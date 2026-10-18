@@ -173,7 +173,6 @@ describe('Result', () => {
 		it('narrows to ok after isOk check', () => {
 			const r: Result<number, string> = Result.ok(1);
 			if (r.isOk()) {
-				// TypeScript should know r.val exists here
 				const _v: number = r.val;
 				expect(_v).toBe(1);
 			}
@@ -182,7 +181,6 @@ describe('Result', () => {
 		it('narrows to error after isError check', () => {
 			const r: Result<number, string> = Result.error('e');
 			if (r.isError()) {
-				// TypeScript should know r.err exists here
 				const _e: string = r.err;
 				expect(_e).toBe('e');
 			}

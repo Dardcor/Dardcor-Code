@@ -58,9 +58,6 @@ export class TestingExplorerFilter extends BaseActionViewItem {
 		this._register(testService.excluded.onTestExclusionsChanged(this.updateFilterActiveState, this));
 	}
 
-	/**
-	 * @override
-	 */
 	public override render(container: HTMLElement) {
 		container.classList.add('testing-filter-action-item');
 
@@ -137,37 +134,25 @@ export class TestingExplorerFilter extends BaseActionViewItem {
 
 	public layout(width: number) {
 		this.input.layout(new dom.Dimension(
-			width - /* horizontal padding */ 24 - /* editor padding */ 8 - /* filter button padding */ 22,
-			20, // line height from suggestEnabledInput.ts
+			width - 24 - 8 - 22,
+			20,
 		));
 	}
 
 
-	/**
-	 * Focuses the filter input.
-	 */
 	public override focus(): void {
 		this.input.focus();
 	}
 
-	/**
-	 * Persists changes to the input history.
-	 */
 	public saveState() {
 		this.history.store({ lastValue: this.input.getValue(), values: this.input.getHistory() });
 	}
 
-	/**
-	 * @override
-	 */
 	public override dispose() {
 		this.saveState();
 		super.dispose();
 	}
 
-	/**
-	 * Updates the 'checked' state of the filter submenu.
-	 */
 	private updateFilterActiveState() {
 		this.filtersAction.checked = this.testService.excluded.hasAny;
 	}

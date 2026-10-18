@@ -27,7 +27,6 @@ import { AgentFeedbackReviewCommandId, IChatAgentFeedbackPullRequestThreadLink }
 import { IChatRequestViewModel } from '../../../common/model/chatViewModel.js';
 import './media/chatAgentMergeContent.css';
 
-/** The widget draws its own chrome, so the button contributes no colors of its own. */
 const transparentButtonStyles: IButtonStyles = {
 	buttonBackground: undefined,
 	buttonBorder: undefined,
@@ -40,34 +39,25 @@ const transparentButtonStyles: IButtonStyles = {
 	buttonSeparator: undefined,
 };
 
-/** Where a piece of review feedback is anchored in the repository. */
 export interface IAgentMergeFileLocation {
-	/** Repository-relative POSIX path, absent for pull request level feedback. */
 	readonly path?: string;
 	readonly line?: number;
 }
 
-/** A commented file's label, disambiguated only as far as its siblings require. */
 export interface IAgentMergeFileLabel {
-	/** File name, with the commented line appended when known. */
 	readonly name: string;
-	/** Shortest directory prefix that tells same-named files apart. */
 	readonly description?: string;
-	/** Full path, for the hover. */
 	readonly title: string;
 }
 
-/** A single piece of review feedback, flattened out of threads and reviews. */
 interface IAgentMergeCommentItem extends IAgentMergeFileLocation {
 	readonly author?: string;
 	readonly body: string;
-	/** GitHub review thread id, used to link the comment to local feedback. */
 	readonly threadId?: string;
 }
 
 const agentMergeSource = localize('chat.agentMerge.source', "Agent Merge");
 
-/** The status shown in the header, describing why the turn was started. */
 function describeAgentMergeStatus(summary: IAgentMergePromptSummary, commentCount: number): string {
 	const events: string[] = [];
 	if (commentCount > 0) {
@@ -106,21 +96,11 @@ function formatAgentMergeEvents(events: readonly string[]): string {
 	}
 }
 
-/**
- * Plain-text rendering of the widget's collapsed header. The request's own text
- * is the machine-facing prompt, which is never displayed, so screen readers and
- * transcript find use this in its place.
- */
 export function getAgentMergeSummaryLabel(summary: IAgentMergePromptSummary): string {
 	const status = describeAgentMergeStatus(summary, collectComments(summary).length);
 	return localize('chat.agentMerge.summaryLabel', "{0}, {1}", status, agentMergeSource);
 }
 
-/**
- * Stand-in label for a system-initiated Agent Merge request, whose own text is
- * the machine-facing prompt this widget renders in place of. Returns
- * `undefined` for every other request, which keeps its own text.
- */
 export function getAgentMergeRequestLabel(element: IChatRequestViewModel): string | undefined {
 	if (element.systemInitiatedLabel !== undefined) {
 		return undefined;
@@ -129,7 +109,6 @@ export function getAgentMergeRequestLabel(element: IChatRequestViewModel): strin
 	return summary && getAgentMergeSummaryLabel(summary);
 }
 
-/** Renders the Agent Merge prompt as a compact disclosure whose header action switches between merge details and the agent message. Mirrored review file labels link to their local comments. */
 export class ChatAgentMergeContentPart extends Disposable {
 
 	readonly domNode: HTMLElement;
@@ -302,8 +281,6 @@ export class ChatAgentMergeContentPart extends Disposable {
 				}
 			}
 
-			// Review feedback is untrusted pull request content, so it renders
-			// through the chat markdown pipeline, which forbids trusted commands.
 			const rendered = this._register(this._markdownRenderer.render(new MarkdownString(comment.body)));
 			rendered.element.classList.add('chat-agent-merge-comment-body');
 			item.appendChild(rendered.element);
@@ -312,12 +289,6 @@ export class ChatAgentMergeContentPart extends Disposable {
 		this._linkMirroredComments(fileElements);
 	}
 
-	/**
-	 * Turns the file label of each thread the session mirrored into agent
-	 * feedback into a link that reveals that comment in the editor. Runs only
-	 * where the feedback commands exist (the Agents window) and after the lookup
-	 * resolves, so an unmirrored thread stays plain text.
-	 */
 	private async _linkMirroredComments(fileElements: Map<string, HTMLElement>): Promise<void> {
 		if (fileElements.size === 0 || !CommandsRegistry.getCommand(AgentFeedbackReviewCommandId.GetPullRequestThreadLinks)) {
 			return;
@@ -350,8 +321,6 @@ export class ChatAgentMergeContentPart extends Disposable {
 		if (this._comments.length > 0) {
 			dom.append(section, dom.$('.chat-agent-merge-section-title', undefined, localize('chat.agentMerge.checksTitle', "Checks")));
 		}
-		// A check's own run URL is not part of the prompt, so the pull request's
-		// checks tab is the closest target that always resolves.
 		const checksUrl = this._summary.pullRequestUrl ? `${this._summary.pullRequestUrl}/checks` : undefined;
 		for (const check of this._summary.failedChecks) {
 			const item = dom.append(section, dom.$('.chat-agent-merge-check'));
@@ -376,7 +345,6 @@ export class ChatAgentMergeContentPart extends Disposable {
 		dom.append(section, dom.$('.chat-agent-merge-message-body', undefined, this._summary.agentMessage));
 	}
 
-	/** Makes an element activate `run` by mouse or keyboard, with a hover describing it. */
 	private _registerLink(element: HTMLElement, hover: string, run: () => void): void {
 		element.tabIndex = 0;
 		this._register(this._hoverService.setupDelayedHover(element, { content: hover }));
@@ -410,17 +378,10 @@ function collectComments(summary: IAgentMergePromptSummary): readonly IAgentMerg
 	return comments;
 }
 
-/**
- * Labels each commented file by name alone, adding the shortest distinguishing
- * directory prefix only when several comments share a file name — the same
- * disambiguation editor tabs apply to duplicate labels. Entries without a path
- * (pull request level feedback) get no label.
- */
 export function describeAgentMergeFileLabels(locations: readonly IAgentMergeFileLocation[]): readonly (IAgentMergeFileLabel | undefined)[] {
 	const indicesByName = new Map<string, number[]>();
 	locations.forEach((location, index) => {
 		if (location.path) {
-			// GitHub always reports repository-relative POSIX paths.
 			const name = posix.basename(location.path);
 			const existing = indicesByName.get(name);
 			if (existing) {

@@ -32,9 +32,9 @@ import { TreeSitterTokenizationImpl } from '../../../../editor/common/model/toke
 import { waitForState } from '../../../../base/common/observable.js';
 
 interface IToken {
-	c: string; // token
-	t: string; // space separated scopes, most general to most specific
-	r: { [themeName: string]: string | undefined }; // token type: color
+	c: string;
+	t: string;
+	r: { [themeName: string]: string | undefined };
 }
 
 interface IThemedToken {
@@ -75,7 +75,6 @@ class ThemeDocument {
 		const matchingRule = this._findMatchingThemeRule(scopes);
 		if (!matchingRule) {
 			const expected = Color.fromHex(this._defaultColor);
-			// No matching rule
 			if (!color.equals(expected)) {
 				throw new Error(`[${this._theme.label}]: Unexpected color ${Color.Format.CSS.formatHexA(color)} for ${scopes}. Expected default ${Color.Format.CSS.formatHexA(expected)}`);
 			}
@@ -283,7 +282,6 @@ class Snapper {
 
 	private _moveInjectionCursorToRange(cursor: Parser.TreeCursor, injectionRange: { startIndex: number; endIndex: number }): void {
 		let continueCursor = cursor.gotoFirstChild();
-		// Get into the first "real" child node, as the root nodes can extend outside the range.
 		while (((cursor.startIndex < injectionRange.startIndex) || (cursor.endIndex > injectionRange.endIndex)) && continueCursor) {
 			if (cursor.endIndex < injectionRange.startIndex) {
 				continueCursor = cursor.gotoNextSibling();
@@ -387,7 +385,6 @@ class Snapper {
 		const tokenizationImplObs = tokenizationPart.tokenizationImpl;
 		const treeSitterTree = treeObs.get() ?? await waitForState(treeObs);
 		const tokenizationImpl = tokenizationImplObs.get() ?? await waitForState(tokenizationImplObs);
-		// TODO: injections
 		if (!treeSitterTree) {
 			return [];
 		}
@@ -437,8 +434,6 @@ CommandsRegistry.registerCommand('_workbench.captureSyntaxTokens', function (acc
 });
 
 CommandsRegistry.registerCommand('_workbench.captureTreeSitterSyntaxTokens', function (accessor: ServicesAccessor, resource?: URI) {
-	// If no resource is provided, use the active editor's resource
-	// This is useful for testing the command
 	if (!resource) {
 		const editorService = accessor.get(IEditorService);
 		resource = editorService.activeEditor?.resource;

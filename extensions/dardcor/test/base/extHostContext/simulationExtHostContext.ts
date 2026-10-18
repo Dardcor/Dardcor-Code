@@ -24,17 +24,12 @@ import { TerminalServiceImpl } from '../../../src/platform/terminal/dardcor/term
 import { TestingServiceCollection } from '../../../src/platform/test/node/services';
 import { SyncDescriptor } from '../../../src/util/dardcor/platform/instantiation/common/descriptors';
 
-/**
- * Adds a select number of 'real' services to the stest when they're running
- * in a real extension.
- */
 export async function addExtensionHostSimulationServices(builder: TestingServiceCollection) {
 	builder.define(IFileSystemService, new VSCodeFileSystemService());
 	builder.define(INotebookService, new SyncDescriptor(NotebookService));
 	builder.define(INotebookSummaryTracker, new SyncDescriptor(NotebookSummaryTrackerImpl));
 	builder.define(ITabsAndEditorsService, new TabsAndEditorsServiceImpl());
 	builder.define(ITerminalService, new SyncDescriptor(TerminalServiceImpl));
-	// builder.define(IWorkspaceService, new SyncDescriptor(ExtensionTextDocumentManager));
 	builder.define(IExtensionsService, new SyncDescriptor(VSCodeExtensionsService));
 	builder.define(IRemoteRepositoriesService, new RemoteRepositoriesService());
 	builder.define(IGitDiffService, new SyncDescriptor(GitDiffService));

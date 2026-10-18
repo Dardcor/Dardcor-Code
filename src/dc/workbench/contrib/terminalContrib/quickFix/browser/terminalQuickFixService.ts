@@ -50,7 +50,6 @@ export class TerminalQuickFixService implements ITerminalQuickFixService {
 		this._selectors.set(selector.id, selector);
 		this._onDidRegisterCommandSelector.fire(selector);
 
-		// Check if there's a pending provider for this selector
 		const pendingProvider = this._pendingProviders.get(selector.id);
 		if (pendingProvider) {
 			this._pendingProviders.delete(selector.id);
@@ -60,9 +59,6 @@ export class TerminalQuickFixService implements ITerminalQuickFixService {
 	}
 
 	registerQuickFixProvider(id: string, provider: ITerminalQuickFixProvider): IDisposable {
-		// This is more complicated than it looks like it should be because we need to return an
-		// IDisposable synchronously but we must await ITerminalContributionService.quickFixes
-		// asynchronously before actually registering the provider.
 		let disposed = false;
 		this.extensionQuickFixes.then(() => {
 			if (disposed) {
@@ -70,11 +66,9 @@ export class TerminalQuickFixService implements ITerminalQuickFixService {
 			}
 			const selector = this._selectors.get(id);
 			if (selector) {
-				// Selector is already available, register immediately
 				this._providers.set(id, provider);
 				this._onDidRegisterProvider.fire({ selector, provider });
 			} else {
-				// Selector not yet available, store provider as pending
 				this._pendingProviders.set(id, provider);
 			}
 		});

@@ -11,7 +11,6 @@ export class StableEditorScrollState {
 
 	public static capture(editor: ICodeEditor): StableEditorScrollState {
 		if (editor.getScrollTop() === 0 || editor.hasPendingScrollAnimation()) {
-			// Never mess with the scroll top if the editor is at the top of the file or if there is a pending scroll animation
 			return new StableEditorScrollState(editor.getScrollTop(), editor.getContentHeight(), null, 0, null);
 		}
 
@@ -37,7 +36,6 @@ export class StableEditorScrollState {
 
 	public restore(editor: ICodeEditor): void {
 		if (this._initialContentHeight === editor.getContentHeight() && this._initialScrollTop === editor.getScrollTop()) {
-			// The editor's content height and scroll top haven't changed, so we don't need to do anything
 			return;
 		}
 
@@ -49,7 +47,6 @@ export class StableEditorScrollState {
 
 	public restoreRelativeVerticalPositionOfCursor(editor: ICodeEditor): void {
 		if (this._initialContentHeight === editor.getContentHeight() && this._initialScrollTop === editor.getScrollTop()) {
-			// The editor's content height and scroll top haven't changed, so we don't need to do anything
 			return;
 		}
 
@@ -69,7 +66,6 @@ export class StableEditorBottomScrollState {
 
 	public static capture(editor: ICodeEditor): StableEditorBottomScrollState {
 		if (editor.hasPendingScrollAnimation()) {
-			// Never mess with the scroll if there is a pending scroll animation
 			return new StableEditorBottomScrollState(editor.getScrollTop(), editor.getContentHeight(), null, 0);
 		}
 
@@ -94,7 +90,6 @@ export class StableEditorBottomScrollState {
 
 	public restore(editor: ICodeEditor): void {
 		if (this._initialContentHeight === editor.getContentHeight() && this._initialScrollTop === editor.getScrollTop()) {
-			// The editor's content height and scroll top haven't changed, so we don't need to do anything
 			return;
 		}
 

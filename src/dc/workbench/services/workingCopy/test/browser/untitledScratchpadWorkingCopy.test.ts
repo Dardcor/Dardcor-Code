@@ -85,7 +85,6 @@ suite('UntitledScratchpadWorkingCopy', () => {
 		await workingCopy.resolve();
 		assert.strictEqual(workingCopy.isResolved(), true);
 
-		// Modified from: Model content change
 		workingCopy.model?.updateContents('hello modified');
 		assert.strictEqual(contentChangeCounter, 1);
 
@@ -211,7 +210,7 @@ suite('UntitledScratchpadWorkingCopy', () => {
 
 		workingCopy.model.updateContents('Changed contents');
 
-		await workingCopy.resolve(); // second resolve should be ignored
+		await workingCopy.resolve();
 		assert.strictEqual(workingCopy.model?.contents, 'Changed contents');
 	});
 

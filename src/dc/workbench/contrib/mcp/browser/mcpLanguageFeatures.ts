@@ -16,13 +16,7 @@ import { CodeLens, CodeLensList, CodeLensProvider, InlayHint, InlayHintList } fr
 import { ITextModel } from '../../../../editor/common/model.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
 import { localize } from '../../../../nls.js';
-import { IAgentHostConnectionInfo, IAgentHostConnectionsService, LOCAL_AGENT_HOST_SCHEME_PREFIX } from '../../../../platform/agentHost/common/agentHostConnectionsService.js';
-import { remoteAgentHostSessionTypeId } from '../../../../platform/agentHost/common/agentHostSessionType.js';
-import { AgentSession } from '../../../../platform/agentHost/common/agentService.js';
-import { isCustomizationEnabled } from '../../../../platform/agentHost/common/customizationEnablement.js';
-import { ActionType } from '../../../../platform/agentHost/common/state/protocol/actions.js';
-import { CustomizationType, McpServerStatus, type ChildCustomization, type Customization, type SessionState } from '../../../../platform/agentHost/common/state/protocol/state.js';
-import { StateComponents } from '../../../../platform/agentHost/common/state/sessionState.js';
+
 import { ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';
 import { IMarkerData, IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js';
 import { ISecretStorageService } from '../../../../platform/secrets/common/secrets.js';
@@ -30,12 +24,9 @@ import { StorageScope } from '../../../../platform/storage/common/storage.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
 import { IConfigurationResolverService } from '../../../services/configurationResolver/common/configurationResolver.js';
 import { ConfigurationResolverExpression, IResolvedValue } from '../../../services/configurationResolver/common/configurationResolverExpression.js';
-import { IAgentHostCustomizationService } from '../../chat/browser/agentSessions/agentHost/agentHostCustomizationService.js';
-import { IChatWidgetService } from '../../chat/browser/chat.js';
 import { isContributionDisabled } from '../../chat/common/enablement.js';
 import { McpCommandIds } from '../common/mcpCommandIds.js';
 import { mcpConfigurationSection } from '../common/mcpConfiguration.js';
-import { countRunningMcpServersInOtherSessions, getActiveAgentHostMcpSessionResource, IMcpEditorAgentHostServer, type IMcpEditorAgentHostSessionServers } from '../common/mcpEditorAffordanceState.js';
 import { IMcpRegistry } from '../common/mcpRegistryTypes.js';
 import { IMcpConfigPath, IMcpServerStartOpts, IMcpService, IMcpWorkbenchService, McpConnectionState, mcpOAuthClientSecretStorageKey } from '../common/mcpTypes.js';
 
@@ -45,7 +36,6 @@ type ConfigDescriptor = Pick<IMcpConfigPath, 'section' | 'scope' | 'target'> & {
 	serversKey?: string;
 };
 
-type AgentHostMcpServer = ReturnType<IAgentHostCustomizationService['getMcpServers']>[number];
 
 export class McpLanguageFeatures extends Disposable implements IWorkbenchContribution {
 	private readonly _cachedMcpSection = this._register(new MutableDisposable<{ model: ITextModel; inConfig: ConfigDescriptor; tree: Node } & IDisposable>());
@@ -55,9 +45,7 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 		@IMcpRegistry private readonly _mcpRegistry: IMcpRegistry,
 		@IMcpWorkbenchService private readonly _mcpWorkbenchService: IMcpWorkbenchService,
 		@IMcpService private readonly _mcpService: IMcpService,
-		@IChatWidgetService private readonly _chatWidgetService: IChatWidgetService,
-		@IAgentHostCustomizationService private readonly _agentHostCustomizationService: IAgentHostCustomizationService,
-		@IAgentHostConnectionsService private readonly _agentHostConnectionsService: IAgentHostConnectionsService,
+
 		@IMarkerService private readonly _markerService: IMarkerService,
 		@IConfigurationResolverService private readonly _configurationResolverService: IConfigurationResolverService,
 		@ISecretStorageService private readonly _secretStorageService: ISecretStorageService,
@@ -82,38 +70,7 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 				refreshCodeLens();
 			}
 		}));
-		const focusedWidgetViewModelListener = this._register(new MutableDisposable());
-		const updateFocusedWidgetViewModelListener = () => {
-			focusedWidgetViewModelListener.value = this._chatWidgetService.lastFocusedWidget?.onDidChangeViewModel(refreshCodeLens);
-			refreshCodeLens();
-		};
-		const connectionStateListeners = this._register(new MutableDisposable<DisposableStore>());
-		const updateConnectionStateListeners = () => {
-			const store = new DisposableStore();
-			for (const connectionInfo of this._agentHostConnectionsService.connections) {
-				const connection = connectionInfo.connection;
-				if (connection) {
-					store.add(connection.onDidAction(({ action }) => {
-						switch (action.type) {
-							case ActionType.SessionCustomizationsChanged:
-							case ActionType.SessionCustomizationUpdated:
-							case ActionType.SessionCustomizationRemoved:
-							case ActionType.SessionMcpServerStateChanged:
-								refreshCodeLens();
-								break;
-						}
-					}));
-				}
-			}
-			connectionStateListeners.value = store;
-			refreshCodeLens();
-		};
-		updateFocusedWidgetViewModelListener();
-		updateConnectionStateListeners();
-		this._register(this._chatWidgetService.onDidChangeFocusedWidget(updateFocusedWidgetViewModelListener));
-		this._register(this._chatWidgetService.onDidChangeFocusedSession(refreshCodeLens));
-		this._register(this._agentHostConnectionsService.onDidChangeConnections(updateConnectionStateListeners));
-		this._register(this._agentHostCustomizationService.onDidChangeCustomizations(refreshCodeLens));
+
 
 		this._register(languageFeaturesService.inlayHintsProvider.register(patterns, {
 			onDidChangeInlayHints: _mcpRegistry.onDidChangeInputs,
@@ -121,7 +78,6 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 		}));
 	}
 
-	/** Simple mechanism to avoid extra json parsing for hints+lenses */
 	private async _parseModel(model: ITextModel) {
 		if (this._cachedMcpSection.value?.model === model) {
 			return this._cachedMcpSection.value;
@@ -181,7 +137,7 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 			for (const { id, name, arg } of expr.unresolved()) {
 				if (!this._configurationResolverService.resolvableVariables.has(name)) {
 					const position = value.indexOf(id, node.offset);
-					if (position === -1) { continue; } // unreachable?
+					if (position === -1) { continue; }
 
 					const start = tm.getPositionAt(position);
 					const end = tm.getPositionAt(position + id.length);
@@ -231,25 +187,7 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 			return lensList;
 		}
 
-		const agentHostSession = getActiveAgentHostMcpSessionResource(this._chatWidgetService.lastFocusedWidget?.viewModel?.sessionResource);
-		if (agentHostSession) {
-			const mcpServers = this._agentHostCustomizationService.getMcpServers(agentHostSession);
-			const otherRunningCounts = this._getOtherRunningAgentHostMcpServerCounts(agentHostSession);
-			for (const node of serversNode.children || []) {
-				if (node.type !== 'property' || node.children?.[0]?.type !== 'string') {
-					continue;
-				}
-
-				const name = node.children[0].value as string;
-				const server = mcpServers.find(s => s.name === name);
-				if (!server) {
-					continue;
-				}
-
-				this._addAgentHostServerCodeLenses(lenses, Range.fromPositions(model.getPositionAt(node.children[0].offset)), agentHostSession, server, otherRunningCounts.get(name) ?? 0);
-			}
-		} else {
-			const mcpServers = read(this._mcpService.servers).filter(s => s.collection.id === collection.id);
+		const mcpServers = read(this._mcpService.servers).filter(s => s.collection.id === collection.id);
 			for (const node of serversNode.children || []) {
 				if (node.type !== 'property' || node.children?.[0]?.type !== 'string') {
 					continue;
@@ -412,11 +350,7 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 					});
 				}
 			}
-		}
-
-		// Add "Set/Replace Client Secret" lenses for servers that have oauth.clientId configured.
-		// Collect candidates first, then batch-resolve secrets with Promise.all to avoid
-		// sequential awaits for each server (which would slow CodeLens on larger mcp.json files).
+		
 		type SecretCandidate = { clientId: string; mcpServerUrl: string; serverName: string; clientIdOffset: number };
 		const candidates: SecretCandidate[] = [];
 		for (const node of serversNode.children || []) {
@@ -432,14 +366,13 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 					const urlNode = findNodeAtLocation(serverValue, ['url']);
 					const rawUrl = urlNode && urlNode.type === 'string' ? urlNode.value as string : undefined;
 					if (!rawUrl) {
-						continue; // OAuth only meaningful for HTTP servers, which require url
+						continue;
 					}
-					// Canonicalize to match the runtime key (URI.parse normalizes authority casing, etc.)
 					let mcpServerUrl: string;
 					try {
 						mcpServerUrl = URI.parse(rawUrl).toString(true);
 					} catch {
-						continue; // malformed URL, skip
+						continue;
 					}
 					candidates.push({ clientId, mcpServerUrl, serverName, clientIdOffset: clientIdNode.offset });
 				}
@@ -467,183 +400,6 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 		return lensList;
 	}
 
-	private _addAgentHostServerCodeLenses(lenses: CodeLens[], range: Range, agentHostSession: URI, server: AgentHostMcpServer, otherRunningSessionCount: number): void {
-		const commandArg = { agentHostSession, serverId: server.id };
-		if (!server.enabled) {
-			lenses.push({
-				range,
-				command: {
-					id: McpCommandIds.AgentHostServerOptions,
-					title: '$(circle-slash) ' + localize('server.disabled', 'Disabled'),
-					arguments: [agentHostSession, server.id],
-				},
-			});
-			return;
-		}
-
-		switch (server.status) {
-			case McpServerStatus.Error:
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.AgentHostServerOptions,
-						title: '$(error) ' + localize('server.error', 'Error'),
-						arguments: [agentHostSession, server.id],
-					},
-				});
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.StartServer,
-						title: localize('mcp.start', "Start"),
-						arguments: [commandArg],
-					},
-				});
-				break;
-			case McpServerStatus.Starting:
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.AgentHostServerOptions,
-						title: '$(loading~spin) ' + localize('server.starting', 'Starting'),
-						arguments: [agentHostSession, server.id],
-					},
-				});
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.StopServer,
-						title: localize('cancel', "Cancel"),
-						arguments: [commandArg],
-					},
-				});
-				break;
-			case McpServerStatus.Ready:
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.AgentHostServerOptions,
-						title: '$(check) ' + localize('server.running', 'Running'),
-						arguments: [agentHostSession, server.id],
-					},
-				});
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.StopServer,
-						title: localize('mcp.stop', "Stop"),
-						arguments: [commandArg],
-					},
-				});
-				break;
-			case McpServerStatus.AuthRequired:
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.AgentHostServerOptions,
-						title: '$(account) ' + localize('server.authRequired', 'Authentication Required'),
-						arguments: [agentHostSession, server.id],
-					},
-				});
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.StopServer,
-						title: localize('mcp.stop', "Stop"),
-						arguments: [commandArg],
-					},
-				});
-				break;
-			case McpServerStatus.Stopped:
-				lenses.push({
-					range,
-					command: {
-						id: McpCommandIds.StartServer,
-						title: '$(debug-start) ' + localize('mcp.start', "Start"),
-						arguments: [commandArg],
-					},
-				});
-				break;
-		}
-
-		if (otherRunningSessionCount > 0) {
-			lenses.push({
-				range,
-				command: {
-					id: '',
-					title: otherRunningSessionCount === 1
-						? localize('server.runningInOneOtherSession', '(Running in 1 session)')
-						: localize('server.runningInOtherSessions', '(Running in {0} sessions)', otherRunningSessionCount),
-				}
-			});
-		}
-
-		if (server.status !== McpServerStatus.Error) {
-			lenses.push({
-				range,
-				command: {
-					id: McpCommandIds.AgentHostServerOptions,
-					title: localize('mcp.server.more', 'More...'),
-					arguments: [agentHostSession, server.id],
-				}
-			});
-		}
-	}
-
-	private _getOtherRunningAgentHostMcpServerCounts(agentHostSession: URI): Map<string, number> {
-		const sessionServers: IMcpEditorAgentHostSessionServers[] = [];
-		for (const connectionInfo of this._agentHostConnectionsService.connections) {
-			const connection = connectionInfo.connection;
-			if (!connection) {
-				continue;
-			}
-
-			for (const subscription of connection.getActiveSubscriptions()) {
-				if (subscription.kind !== StateComponents.Session) {
-					continue;
-				}
-
-				const state = connection.getSubscriptionUnmanaged(StateComponents.Session, subscription.resource)?.value;
-				const resource = this._toAgentHostSessionResource(connectionInfo, subscription.resource);
-				if (!resource || !state || state instanceof Error) {
-					continue;
-				}
-
-				sessionServers.push({ resource, servers: this._getMcpServersFromSessionState(state) });
-			}
-		}
-		return countRunningMcpServersInOtherSessions(agentHostSession, sessionServers);
-	}
-
-	private _toAgentHostSessionResource(connectionInfo: IAgentHostConnectionInfo, backendSession: URI): URI | undefined {
-		const provider = AgentSession.provider(backendSession);
-		if (!provider) {
-			return undefined;
-		}
-		const scheme = connectionInfo.isAmbient
-			? `${LOCAL_AGENT_HOST_SCHEME_PREFIX}${provider}`
-			: remoteAgentHostSessionTypeId(connectionInfo.authority, provider);
-		return URI.from({ scheme, path: backendSession.path });
-	}
-
-	private _getMcpServersFromSessionState(state: SessionState): IMcpEditorAgentHostServer[] {
-		const servers: IMcpEditorAgentHostServer[] = [];
-		const collect = (customizations: readonly (Customization | ChildCustomization)[] | undefined) => {
-			for (const customization of customizations ?? []) {
-				if (customization.type === CustomizationType.McpServer) {
-					servers.push({
-						name: customization.name,
-						enabled: isCustomizationEnabled(customization),
-						status: customization.state.kind,
-					});
-				} else if (customization.type === CustomizationType.Directory || customization.type === CustomizationType.Plugin) {
-					collect(customization.children);
-				}
-			}
-		};
-		collect(state.customizations);
-		return servers;
-	}
 
 	private async _provideInlayHints(model: ITextModel, range: Range): Promise<InlayHintList | undefined> {
 		const parsed = await this._parseModel(model);
@@ -739,7 +495,6 @@ function forEachPropertyWithReplacement(node: Node, callback: (node: Node) => vo
 	if (node.type === 'string' && typeof node.value === 'string' && node.value.includes(ConfigurationResolverExpression.VARIABLE_LHS)) {
 		callback(node);
 	} else if (node.type === 'property') {
-		// skip the property name
 		node.children?.slice(1).forEach(n => forEachPropertyWithReplacement(n, callback));
 	} else {
 		node.children?.forEach(n => forEachPropertyWithReplacement(n, callback));

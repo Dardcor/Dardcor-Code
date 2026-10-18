@@ -20,9 +20,9 @@ export class SimpleSettingRenderer {
 	private readonly codeSettingAnchorRegex: RegExp;
 	private readonly codeSettingSimpleRegex: RegExp;
 
-	private _updatedSettings = new Map<string, unknown>(); // setting ID to user's original setting value
-	private _encounteredSettings = new Map<string, ISetting>(); // setting ID to setting
-	private _featuredSettings = new Map<string, unknown>(); // setting ID to feature value
+	private _updatedSettings = new Map<string, unknown>();
+	private _encounteredSettings = new Map<string, ISetting>();
+	private _featuredSettings = new Map<string, unknown>();
 
 	constructor(
 		@IConfigurationService private readonly _configurationService: IConfigurationService,

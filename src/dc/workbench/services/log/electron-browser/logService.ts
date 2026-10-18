@@ -20,10 +20,8 @@ export class NativeLogService extends LogService {
 
 		let consoleLogger: ILogger;
 		if (environmentService.isExtensionDevelopment && !!environmentService.extensionTestsLocationURI) {
-			// Extension development test CLI: forward everything to main side
 			consoleLogger = loggerService.createConsoleMainLogger();
 		} else {
-			// Normal mode: Log to console
 			consoleLogger = new ConsoleLogger(fileLogger.getLevel());
 		}
 

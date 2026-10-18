@@ -93,7 +93,6 @@ suite('TextModelWithTokens', () => {
 
 		const model = disposables.add(instantiateTextModel(instantiationService, contents.join('\n'), languageId));
 
-		// findPrevBracket
 		{
 			let expectedBracketIndex = expectedBrackets.length - 1;
 			let currentExpectedBracket = expectedBracketIndex >= 0 ? expectedBrackets[expectedBracketIndex] : null;
@@ -119,7 +118,6 @@ suite('TextModelWithTokens', () => {
 			}
 		}
 
-		// findNextBracket
 		{
 			let expectedBracketIndex = 0;
 			let currentExpectedBracket = expectedBracketIndex < expectedBrackets.length ? expectedBrackets[expectedBracketIndex] : null;
@@ -306,18 +304,14 @@ suite('TextModelWithTokens 2', () => {
 			['begin', 'end']
 		]);
 
-		// <if> ... <end ifa> is not matched
 		assertIsNotBracket(model, 10, 9);
 
-		// <if> ... <end if> is matched
 		assertIsBracket(model, new Position(3, 9), [new Range(3, 9, 3, 11), new Range(4, 9, 4, 15)]);
 		assertIsBracket(model, new Position(4, 9), [new Range(4, 9, 4, 15), new Range(3, 9, 3, 11)]);
 
-		// <loop> ... <end loop> is matched
 		assertIsBracket(model, new Position(2, 5), [new Range(2, 5, 2, 9), new Range(5, 5, 5, 13)]);
 		assertIsBracket(model, new Position(5, 5), [new Range(5, 5, 5, 13), new Range(2, 5, 2, 9)]);
 
-		// <begin> ... <end> is matched
 		assertIsBracket(model, new Position(1, 1), [new Range(1, 1, 1, 6), new Range(6, 1, 6, 4)]);
 		assertIsBracket(model, new Position(6, 1), [new Range(6, 1, 6, 4), new Range(1, 1, 1, 6)]);
 
@@ -338,11 +332,9 @@ suite('TextModelWithTokens 2', () => {
 			['simplerecordbegin', 'endrecord'],
 		]);
 
-		// <recordbegin> ... <endrecord> is matched
 		assertIsBracket(model, new Position(1, 1), [new Range(1, 1, 1, 12), new Range(4, 1, 4, 10)]);
 		assertIsBracket(model, new Position(4, 1), [new Range(4, 1, 4, 10), new Range(1, 1, 1, 12)]);
 
-		// <simplerecordbegin> ... <endrecord> is matched
 		assertIsBracket(model, new Position(2, 3), [new Range(2, 3, 2, 20), new Range(3, 3, 3, 12)]);
 		assertIsBracket(model, new Position(3, 3), [new Range(3, 3, 3, 12), new Range(2, 3, 2, 20)]);
 
@@ -776,19 +768,19 @@ suite('TextModel.getLineIndentGuide', () => {
 
 	test('getLineIndentGuide Java', () => {
 		assertIndentGuides([
-			/* 1*/[0, 2, 9, 1, 'class A {'],
-			/* 2*/[1, 3, 4, 2, '  void foo() {'],
-			/* 3*/[2, 3, 4, 2, '    console.log(1);'],
-			/* 4*/[2, 3, 4, 2, '    console.log(2);'],
-			/* 5*/[1, 3, 4, 2, '  }'],
-			/* 6*/[1, 2, 9, 1, ''],
-			/* 7*/[1, 8, 8, 2, '  void bar() {'],
-			/* 8*/[2, 8, 8, 2, '    console.log(3);'],
-			/* 9*/[1, 8, 8, 2, '  }'],
-			/*10*/[0, 2, 9, 1, '}'],
-			/*11*/[0, 12, 12, 1, 'interface B {'],
-			/*12*/[1, 12, 12, 1, '  void bar();'],
-			/*13*/[0, 12, 12, 1, '}'],
+			[0, 2, 9, 1, 'class A {'],
+			[1, 3, 4, 2, '  void foo() {'],
+			[2, 3, 4, 2, '    console.log(1);'],
+			[2, 3, 4, 2, '    console.log(2);'],
+			[1, 3, 4, 2, '  }'],
+			[1, 2, 9, 1, ''],
+			[1, 8, 8, 2, '  void bar() {'],
+			[2, 8, 8, 2, '    console.log(3);'],
+			[1, 8, 8, 2, '  }'],
+			[0, 2, 9, 1, '}'],
+			[0, 12, 12, 1, 'interface B {'],
+			[1, 12, 12, 1, '  void bar();'],
+			[0, 12, 12, 1, '}'],
 		], 2);
 	});
 
@@ -832,23 +824,23 @@ suite('TextModel.getLineIndentGuide', () => {
 
 	test('getLineIndentGuide checker.ts', () => {
 		assertIndentGuides([
-			/* 1*/[0, 1, 1, 0, '/// <reference path="binder.ts"/>'],
-			/* 2*/[0, 2, 2, 0, ''],
-			/* 3*/[0, 3, 3, 0, '/* @internal */'],
-			/* 4*/[0, 5, 16, 1, 'namespace ts {'],
-			/* 5*/[1, 5, 16, 1, '    let nextSymbolId = 1;'],
-			/* 6*/[1, 5, 16, 1, '    let nextNodeId = 1;'],
-			/* 7*/[1, 5, 16, 1, '    let nextMergeId = 1;'],
-			/* 8*/[1, 5, 16, 1, '    let nextFlowId = 1;'],
-			/* 9*/[1, 5, 16, 1, ''],
-			/*10*/[1, 11, 15, 2, '    export function getNodeId(node: Node): number {'],
-			/*11*/[2, 12, 13, 3, '        if (!node.id) {'],
-			/*12*/[3, 12, 13, 3, '            node.id = nextNodeId;'],
-			/*13*/[3, 12, 13, 3, '            nextNodeId++;'],
-			/*14*/[2, 12, 13, 3, '        }'],
-			/*15*/[2, 11, 15, 2, '        return node.id;'],
-			/*16*/[1, 11, 15, 2, '    }'],
-			/*17*/[0, 5, 16, 1, '}']
+			[0, 1, 1, 0, '/// <reference path="binder.ts"/>'],
+			[0, 2, 2, 0, ''],
+			[0, 3, 3, 0, '/* @internal */'],
+			[0, 5, 16, 1, 'namespace ts {'],
+			[1, 5, 16, 1, '    let nextSymbolId = 1;'],
+			[1, 5, 16, 1, '    let nextNodeId = 1;'],
+			[1, 5, 16, 1, '    let nextMergeId = 1;'],
+			[1, 5, 16, 1, '    let nextFlowId = 1;'],
+			[1, 5, 16, 1, ''],
+			[1, 11, 15, 2, '    export function getNodeId(node: Node): number {'],
+			[2, 12, 13, 3, '        if (!node.id) {'],
+			[3, 12, 13, 3, '            node.id = nextNodeId;'],
+			[3, 12, 13, 3, '            nextNodeId++;'],
+			[2, 12, 13, 3, '        }'],
+			[2, 11, 15, 2, '        return node.id;'],
+			[1, 11, 15, 2, '    }'],
+			[0, 5, 16, 1, '}']
 		], 4);
 	});
 

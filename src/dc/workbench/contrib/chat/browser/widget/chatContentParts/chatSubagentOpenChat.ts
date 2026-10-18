@@ -43,14 +43,12 @@ export interface IOpenSubagentChatContext {
 	readonly parentSessionResource?: string;
 	readonly title?: string;
 	readonly agentType?: string;
-	/** Open the subagent chat to the side (in a new group) rather than in place. */
 	readonly toSide?: boolean;
 	readonly confirmationCount?: number;
 	readonly confirmationActive?: boolean;
 	readonly startedAt?: number;
 	readonly duration?: number;
 	readonly modelName?: string;
-	/** Copilot credits (AIC) this subagent has consumed so far. */
 	readonly credits?: number;
 	readonly parentModelId?: string;
 	readonly parentModelName?: string;
@@ -112,11 +110,6 @@ export function getSubagentEditorResource(context: IOpenSubagentChatContext): UR
 	}
 }
 
-/**
- * Whether the subagent's model is worth showing next to the parent's. It is not when
- * it merely repeats the parent's, nor when it is "Auto", which names no real model.
- * Under an Auto parent a concrete model always shows, since the parent only says "Auto".
- */
 export function shouldShowSubagentModel(subagentModelName: string | undefined, parentModelId: string | undefined, parentModelName: string | undefined, parentModelMetadataId: string | undefined): boolean {
 	const normalize = (value: string | undefined) => value?.trim().toLowerCase();
 	const subagent = normalize(subagentModelName);
@@ -125,8 +118,6 @@ export function shouldShowSubagentModel(subagentModelName: string | undefined, p
 	}
 	const parentIdSuffix = parentModelId?.slice(parentModelId.lastIndexOf(':') + 1);
 	const parents = [parentModelId, parentIdSuffix, parentModelName, parentModelMetadataId].map(normalize);
-	// The picker can move to Auto after the request starts, so decide Auto from the
-	// request's own model id and consult the live selection only when it is absent.
 	const autoCandidates = parentModelId ? [parentModelId, parentIdSuffix].map(normalize) : parents;
 	return autoCandidates.includes(AUTO_RAW_MODEL_ID) || !parents.includes(subagent);
 }
@@ -329,8 +320,6 @@ export class OpenSubagentChatActionViewItem extends BaseActionViewItem {
 			EventHelper.stop(event, true);
 			return;
 		}
-		// Alt-click opens the subagent chat to the side (in a new group) rather
-		// than in place. Thread the intent through the action context.
 		if ((event as MouseEvent).altKey) {
 			if (this._openToSide()) {
 				EventHelper.stop(event, true);
@@ -429,7 +418,6 @@ export class OpenSubagentChatActionViewItem extends BaseActionViewItem {
 	}
 
 	private _setCredits(credits: number | undefined): void {
-		// Zero-cost subagents report 0 rather than nothing, so normalize both to hidden.
 		this._reportedCredits = typeof credits === 'number' && credits > 0 ? credits : undefined;
 		this._updateCredits();
 	}

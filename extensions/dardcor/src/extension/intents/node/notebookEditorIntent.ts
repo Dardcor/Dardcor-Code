@@ -168,7 +168,6 @@ export class NotebookEditorIntentInvocation extends EditCode2IntentInvocation {
 				}
 			];
 
-			// Add selected text as a separate reference if we have any
 			if (selectedText.trim()) {
 				const cellID = getCellId(cell);
 				refsForActiveEditor.push({

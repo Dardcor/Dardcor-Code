@@ -30,28 +30,16 @@ export class TestExclusions extends Disposable {
 		this.onTestExclusionsChanged = this.excluded.onDidChange;
 	}
 
-	/**
-	 * Event that fires when the excluded tests change.
-	 */
 	public readonly onTestExclusionsChanged: Event<unknown>;
 
-	/**
-	 * Gets whether there's any excluded tests.
-	 */
 	public get hasAny() {
 		return this.excluded.value.size > 0;
 	}
 
-	/**
-	 * Gets all excluded tests.
-	 */
 	public get all(): Iterable<string> {
 		return this.excluded.value;
 	}
 
-	/**
-	 * Sets whether a test is excluded.
-	 */
 	public toggle(test: InternalTestItem, exclude?: boolean): void {
 		if (exclude !== true && this.excluded.value.has(test.item.extId)) {
 			this.excluded.value = new Set(Iterable.filter(this.excluded.value, e => e !== test.item.extId));
@@ -60,16 +48,10 @@ export class TestExclusions extends Disposable {
 		}
 	}
 
-	/**
-	 * Gets whether a test is excluded.
-	 */
 	public contains(test: InternalTestItem): boolean {
 		return this.excluded.value.has(test.item.extId);
 	}
 
-	/**
-	 * Removes all test exclusions.
-	 */
 	public clear(): void {
 		this.excluded.value = new Set();
 	}

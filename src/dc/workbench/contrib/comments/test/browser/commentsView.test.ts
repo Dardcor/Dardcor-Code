@@ -172,13 +172,11 @@ suite('Comments View', function () {
 		assert.strictEqual(view.getFilterStats().total, 2);
 		assert.strictEqual(view.getFilterStats().filtered, 2);
 		view.getFilterWidget().setFilterText('cat');
-		// Setting showResolved causes the filter to trigger for the purposes of this test.
 		view.filters.showResolved = false;
 
 		assert.strictEqual(view.getFilterStats().total, 2);
 		assert.strictEqual(view.getFilterStats().filtered, 1);
 		view.clearFilterText();
-		// Setting showResolved causes the filter to trigger for the purposes of this test.
 		view.filters.showResolved = true;
 		assert.strictEqual(view.getFilterStats().total, 2);
 		assert.strictEqual(view.getFilterStats().filtered, 2);

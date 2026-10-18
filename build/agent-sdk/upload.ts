@@ -3,20 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Uploads one agent-SDK tarball to the `main.vscode-cdn.net` storage account.
- * Callable as both a library function (`uploadOne(...)`) and a thin CLI.
- *
- * Auth: reads `AZURE_STORAGE_ACCOUNT`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
- * `AZURE_ID_TOKEN` from env — same shape as `build/azure-pipelines/upload-cdn.ts`.
- *
- * Idempotency: HEAD-first on the `.tgz` blob.
- *   - Absent → upload.
- *   - Present with matching sha256 (in `metadata.sha256`) → skip.
- *   - Present with different / no sha256 metadata → fail loud, refusing to
- *     overwrite content-addressed history. Recovery: delete the blob in the
- *     Azure Portal and re-run.
- */
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -31,7 +17,6 @@ export interface IUploadArgs {
 	readonly sdkVersion: string;
 	readonly sdkTarget: string;
 	readonly tgzPath: string;
-	/** Pre-computed sha (e.g. from `buildOne()`); if omitted, computed here. */
 	readonly sha256?: string;
 }
 
@@ -106,13 +91,8 @@ function requireEnv(name: string): string {
 	return value;
 }
 
-// #region CLI entry point
 
 function isCliInvocation(): boolean {
-	// `import.meta.filename` is already a real filesystem path; comparing
-	// it directly to `process.argv[1]` works on Windows (where the
-	// manual `file://${argv}` construction breaks because Node URL-encodes
-	// drive letters and spaces). Pattern matches `build/npm/installStateHash.ts:143`.
 	return import.meta.filename === process.argv[1];
 }
 
@@ -120,7 +100,6 @@ function parseCliArgs(): IUploadArgs {
 	const flags = parseFlags(process.argv.slice(2));
 	const tgzPath = flags.get('tarball');
 	if (!tgzPath) { throw new Error('--tarball=<path> is required'); }
-	// Filename convention from package.ts: `<sdk>-<sdkVersion>-<sdkTarget>.tgz`.
 	const basename = path.basename(tgzPath);
 	const match = /^(claude|codex)-(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)-((?:darwin|linux|win32)-(?:x64|arm64)(?:-musl)?)\.tgz$/.exec(basename);
 	if (!match) {
@@ -137,4 +116,3 @@ if (isCliInvocation()) {
 	});
 }
 
-// #endregion

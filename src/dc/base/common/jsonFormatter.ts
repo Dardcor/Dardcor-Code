@@ -6,49 +6,19 @@
 import { createScanner, ScanError, SyntaxKind } from './json.js';
 
 export interface FormattingOptions {
-	/**
-	 * If indentation is based on spaces (`insertSpaces` = true), then what is the number of spaces that make an indent?
-	 */
 	tabSize?: number;
-	/**
-	 * Is indentation based on spaces?
-	 */
 	insertSpaces?: boolean;
-	/**
-	 * The default 'end of line' character. If not set, '\n' is used as default.
-	 */
 	eol?: string;
 }
 
-/**
- * Represents a text modification
- */
 export interface Edit {
-	/**
-	 * The start offset of the modification.
-	 */
 	offset: number;
-	/**
-	 * The length of the modification. Must not be negative. Empty length represents an *insert*.
-	 */
 	length: number;
-	/**
-	 * The new content. Empty content represents a *remove*.
-	 */
 	content: string;
 }
 
-/**
- * A text range in the document
-*/
 export interface Range {
-	/**
-	 * The start offset of the range.
-	 */
 	offset: number;
-	/**
-	 * The length of the range. Must not be negative.
-	 */
 	length: number;
 }
 
@@ -128,7 +98,6 @@ export function format(documentText: string, range: Range | undefined, options: 
 
 		let replaceContent = '';
 		while (!lineBreak && (secondToken === SyntaxKind.LineCommentTrivia || secondToken === SyntaxKind.BlockCommentTrivia)) {
-			// comments on the same line: keep them on the same line, but ignore them otherwise
 			const commentTokenStart = scanner.getTokenOffset() + formatTextStart;
 			addEdit(' ', firstTokenEnd, commentTokenStart);
 			firstTokenEnd = scanner.getTokenOffset() + scanner.getTokenLength() + formatTextStart;
@@ -161,7 +130,6 @@ export function format(documentText: string, range: Range | undefined, options: 
 					if (lineBreak) {
 						replaceContent = newLineAndIndent();
 					} else {
-						// symbol following comment on the same line: keep on same line, separate with ' '
 						replaceContent = ' ';
 					}
 					break;
@@ -173,7 +141,6 @@ export function format(documentText: string, range: Range | undefined, options: 
 						replaceContent = '';
 						break;
 					}
-				// fall through
 				case SyntaxKind.NullKeyword:
 				case SyntaxKind.TrueKeyword:
 				case SyntaxKind.FalseKeyword:
@@ -202,11 +169,6 @@ export function format(documentText: string, range: Range | undefined, options: 
 	return editOperations;
 }
 
-/**
- * Creates a formatted string out of the object passed as argument, using the given formatting options
- * @param any The object to stringify and format
- * @param options The formatting options to use
- */
 export function toFormattedString(obj: unknown, options: FormattingOptions) {
 	const content = JSON.stringify(obj, undefined, options.insertSpaces ? options.tabSize || 4 : '\t');
 	if (options.eol !== undefined) {

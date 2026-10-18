@@ -117,7 +117,6 @@ export class RemoteExtensionHost extends Disposable implements IExtensionHost {
 
 			let debugOk = true;
 			if (extDevLocs && extDevLocs.length > 0) {
-				// TODO@AW: handles only first path in array
 				if (extDevLocs[0].scheme === Schemas.file) {
 					debugOk = false;
 				}
@@ -145,8 +144,6 @@ export class RemoteExtensionHost extends Disposable implements IExtensionHost {
 					}
 				});
 
-				// 1) wait for the incoming `ready` event and send the initialization data.
-				// 2) wait for the incoming `initialized` event.
 				return new Promise<IMessagePassingProtocol>((resolve, reject) => {
 
 					const handle = setTimeout(() => {
@@ -156,7 +153,6 @@ export class RemoteExtensionHost extends Disposable implements IExtensionHost {
 					const disposable = protocol.onMessage(msg => {
 
 						if (isMessageOfType(msg, MessageType.Ready)) {
-							// 1) Extension Host is ready to receive messages, initialize it
 							this._createExtHostInitData(isExtensionDevelopmentDebug).then(data => {
 								protocol.send(VSBuffer.fromString(JSON.stringify(data)));
 							});
@@ -164,14 +160,11 @@ export class RemoteExtensionHost extends Disposable implements IExtensionHost {
 						}
 
 						if (isMessageOfType(msg, MessageType.Initialized)) {
-							// 2) Extension Host is initialized
 
 							clearTimeout(handle);
 
-							// stop listening for messages here
 							disposable.dispose();
 
-							// release this promise
 							this._protocol = protocol;
 							resolve(protocol);
 
@@ -188,7 +181,6 @@ export class RemoteExtensionHost extends Disposable implements IExtensionHost {
 
 	private _onExtHostConnectionLost(reconnectionToken: string): void {
 		if (this._hasLostConnection) {
-			// avoid re-entering this method
 			return;
 		}
 		this._hasLostConnection = true;
@@ -198,7 +190,6 @@ export class RemoteExtensionHost extends Disposable implements IExtensionHost {
 		}
 
 		if (this._terminating) {
-			// Expected termination path (we asked the process to terminate)
 			return;
 		}
 
@@ -289,14 +280,8 @@ export class RemoteExtensionHost extends Disposable implements IExtensionHost {
 		this.disconnect();
 
 		if (this._protocol) {
-			// Send the extension host a request to terminate itself
-			// (graceful termination)
-			// setTimeout(() => {
-			// console.log(`SENDING TERMINATE TO REMOTE EXT HOST!`);
 			this._protocol.getSocket().end();
-			// this._protocol.drain();
 			this._protocol = null;
-			// }, 1000);
 		}
 	}
 }

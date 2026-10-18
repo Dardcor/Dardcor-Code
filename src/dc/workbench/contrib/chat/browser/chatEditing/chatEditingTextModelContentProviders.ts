@@ -58,13 +58,6 @@ export class ChatEditingSnapshotTextModelContentProvider implements ITextModelCo
 		});
 	}
 
-	/**
-	 * Recovers the URI of the real file that a snapshot URI (as produced by
-	 * {@link getSnapshotFileURI}) was taken from, so callers can open the file
-	 * itself instead of a read-only snapshot. Returns the resource unchanged if
-	 * it is not a snapshot URI, or `undefined` if the origin cannot be recovered
-	 * (e.g. snapshot URIs persisted before the origin was recorded).
-	 */
 	public static getOriginalFileURI(resource: URI): URI | undefined {
 		if (resource.scheme !== Schemas.chatEditingSnapshotScheme) {
 			return resource;

@@ -69,7 +69,6 @@ describe('extractAssistantResponse', () => {
 	});
 
 	it('handles truncated JSON from truncateForOTel', () => {
-		// Simulate what truncateForOTel does: slices JSON mid-string and appends suffix
 		const longContent = 'A'.repeat(100_000);
 		const fullJson = JSON.stringify([
 			{ role: 'assistant', parts: [{ type: 'text', content: longContent }] },
@@ -83,7 +82,6 @@ describe('extractAssistantResponse', () => {
 	});
 
 	it('unescapes JSON escapes in truncated fallback path', () => {
-		// Content with characters that get JSON-escaped: newlines, quotes, backslashes
 		const content = 'Hello "world"\nLine two\tTabbed\\end';
 		const fullJson = JSON.stringify([
 			{ role: 'assistant', parts: [{ type: 'text', content: content + 'A'.repeat(100_000) }] },
@@ -92,7 +90,6 @@ describe('extractAssistantResponse', () => {
 
 		const result = extractAssistantResponse(truncated);
 		expect(result).toBeDefined();
-		// Should be unescaped — actual newlines and quotes, not \\n and \\"
 		expect(result!).toContain('Hello "world"');
 		expect(result!).toContain('\n');
 	});
@@ -102,7 +99,6 @@ describe('extractAssistantResponse', () => {
 	});
 
 	it('skips tool_call content and extracts text part in truncated JSON', () => {
-		// Simulate JSON with a tool_call part (which has a "content" field) before the text part
 		const fullJson = JSON.stringify([
 			{
 				role: 'assistant',

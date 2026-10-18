@@ -19,7 +19,7 @@ suite('Streaming', () => {
 		expect(arr).toMatchInlineSnapshot(`[]`);
 		arr.length = 0;
 
-		streamSrc.emitOne('12345'); // nothing happens
+		streamSrc.emitOne('12345');
 		await timeout(1);
 		expect(arr).toMatchInlineSnapshot(`
 			[
@@ -28,7 +28,7 @@ suite('Streaming', () => {
 		`);
 		arr.length = 0;
 
-		streamSrc.emitOne('1aba234aba5'); // aba's get replaced
+		streamSrc.emitOne('1aba234aba5');
 		await timeout(1);
 		expect(arr).toMatchInlineSnapshot(`
 			[
@@ -37,12 +37,12 @@ suite('Streaming', () => {
 		`);
 		arr.length = 0;
 
-		streamSrc.emitOne('ab'); // waits for more data
+		streamSrc.emitOne('ab');
 		await timeout(1);
 		expect(arr).toMatchInlineSnapshot(`[]`);
 		arr.length = 0;
 
-		streamSrc.emitOne('a'); // -> replace
+		streamSrc.emitOne('a');
 		await timeout(1);
 		expect(arr).toMatchInlineSnapshot(`
 			[
@@ -52,12 +52,12 @@ suite('Streaming', () => {
 		arr.length = 0;
 
 
-		streamSrc.emitOne('a'); // waits for more data
+		streamSrc.emitOne('a');
 		await timeout(1);
 		expect(arr).toMatchInlineSnapshot(`[]`);
 		arr.length = 0;
 
-		streamSrc.emitOne('a'); // cannot emit this a yet, but the previous one
+		streamSrc.emitOne('a');
 		await timeout(1);
 		expect(arr).toMatchInlineSnapshot(`
 			[
@@ -66,7 +66,7 @@ suite('Streaming', () => {
 		`);
 		arr.length = 0;
 
-		streamSrc.emitOne('x'); // flush buffer
+		streamSrc.emitOne('x');
 		await timeout(1);
 		expect(arr).toMatchInlineSnapshot(`
 			[

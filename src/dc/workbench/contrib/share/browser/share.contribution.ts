@@ -40,7 +40,6 @@ const targetMenus = [
 	MenuId.OpenEditorsContextShare,
 	MenuId.EditorTitleContextShare,
 	MenuId.MenubarShare,
-	// MenuId.EditorLineNumberContext, // todo@joyceerhl add share
 	MenuId.ExplorerContextShare
 ];
 
@@ -147,7 +146,6 @@ class ShareWorkbenchContribution extends Disposable {
 		const actions = this.shareService.getShareActions();
 		for (const menuId of targetMenus) {
 			for (const action of actions) {
-				// todo@joyceerhl avoid duplicates
 				this._disposables.add(MenuRegistry.appendMenuItem(menuId, action));
 			}
 		}

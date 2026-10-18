@@ -61,7 +61,6 @@ export abstract class AbstractFloatingClickMenu extends Disposable {
 		this.menu = this._register(menuService.createMenu(menuId, contextKeyService));
 	}
 
-	/** Should be called in implementation constructors after they initialized */
 	protected render() {
 		const menuDisposables = this._register(new DisposableStore());
 		const renderMenuAsFloatingClickBtn = () => {
@@ -73,7 +72,6 @@ export abstract class AbstractFloatingClickMenu extends Disposable {
 			if (actions.length === 0) {
 				return;
 			}
-			// todo@jrieken find a way to handle N actions, like showing a context menu
 			const [first] = actions;
 			const widget = this.createWidget(first, menuDisposables);
 			menuDisposables.add(widget);
@@ -99,11 +97,8 @@ export class FloatingClickMenu extends AbstractFloatingClickMenu {
 
 	constructor(
 		private readonly options: {
-			/** Element the menu should be rendered into. */
 			container: HTMLElement;
-			/** Menu to show. If no actions are present, the button is hidden. */
 			menuId: MenuId;
-			/** Argument provided to the menu action */
 			getActionArg: () => void;
 		},
 		@IInstantiationService private readonly instantiationService: IInstantiationService,

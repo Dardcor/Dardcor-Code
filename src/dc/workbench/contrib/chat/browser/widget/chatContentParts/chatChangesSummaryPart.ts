@@ -42,23 +42,10 @@ import { IChatContentPart, IChatContentPartRenderContext } from './chatContentPa
 const CHANGES_SUMMARY_ELEMENT_HEIGHT = 22;
 const CHANGES_SUMMARY_MAX_ITEMS_SHOWN = 6;
 
-/** Options controlling how {@link renderChangesSummaryFileList} renders each row. */
 export interface IChangesSummaryFileListOptions {
-	/**
-	 * Provides the actions shown in a per-row action bar (right-aligned). Return
-	 * an empty array for rows that should have no actions. When omitted, no action
-	 * bar is rendered.
-	 */
 	readonly getRowActions?: (diff: IEditSessionEntryDiff) => IAction[];
 }
 
-/**
- * Renders the collapsible list of changed files (one row per {@link IEditSessionEntryDiff},
- * showing the file's resource label and its +added/-removed counts) into `container`,
- * keeping it in sync with `diffs`. Rows open the file or its diff on activation.
- * Shared by the checkpoint file changes summary and the agent turn changes summary
- * so both render an identical list.
- */
 export function renderChangesSummaryFileList(
 	container: HTMLElement,
 	diffs: IObservable<readonly IEditSessionEntryDiff[]>,
@@ -89,8 +76,6 @@ export function renderChangesSummaryFileList(
 				editorService.openEditor({ resource: fileURI, options: { preserveFocus: true } });
 				return;
 			}
-			// The file's origin cannot be recovered (e.g. legacy snapshot URIs):
-			// fall back to the diff editor.
 		}
 
 		const editorResource = toChatFileChangeEditorResource(diff);
@@ -113,7 +98,6 @@ export function renderChangesSummaryFileList(
 		const currentDiffs = diffs.read(r);
 		let insertionsColumnCharacters = 2;
 		let deletionsColumnCharacters = 2;
-		// Widths are shared by the list so each row uses the same count columns.
 		for (const diff of currentDiffs) {
 			if (!diff.identical && !diff.isBusy) {
 				insertionsColumnCharacters = Math.max(insertionsColumnCharacters, String(diff.added).length + 1);
@@ -165,10 +149,6 @@ export class ChatCheckpointFileChangesSummaryContentPart extends Disposable impl
 		const headerDomNode = this.detailsElement.appendChild(document.createElement('summary'));
 		headerDomNode.classList.add('checkpoint-file-changes-summary-header');
 
-		// Hide the whole summary when there are no changes to show. The part is
-		// created eagerly for completed responses, but session types whose
-		// changes are computed asynchronously (e.g. agent host turn changesets)
-		// only know whether a turn produced edits once the diffs resolve.
 		this._register(autorun(r => {
 			const hasChanges = this.fileChangesDiffsObservable.read(r).length > 0;
 			this.domNode.style.display = hasChanges ? '' : 'none';
@@ -182,9 +162,6 @@ export class ChatCheckpointFileChangesSummaryContentPart extends Disposable impl
 	}
 
 	private computeFileChangesDiffs({ requestId, sessionResource }: IChatFileChangesSummaryPart) {
-		// Prefer a session-type-specific provider (the authoritative source for
-		// session types that own their own change computation); otherwise fall
-		// back to the chat editing session's per-request diffs.
 		const fromProvider = this.chatResponseFileChangesService.getChangesForRequest(sessionResource, requestId);
 		if (fromProvider) {
 			return fromProvider;
@@ -376,8 +353,6 @@ class CollapsibleChangesSummaryListRenderer implements IListRenderer<IEditSessio
 
 	renderTemplate(container: HTMLElement): ICollapsibleChangesSummaryListTemplate {
 		const label = this.labels.create(container, { supportHighlights: true, supportIcons: true });
-		// Only when a row-action provider is supplied do we add an action bar
-		// between the file label and the trailing change counts.
 		let actionBar: ActionBar | undefined;
 		if (this.options?.getRowActions) {
 			container.classList.add('chat-summary-list-row-with-actions');

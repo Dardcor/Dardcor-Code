@@ -49,15 +49,12 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 	static readonly placeholdeViewContainersKey = 'workbench.auxiliarybar.placeholderPanels';
 	static readonly viewContainersWorkspaceStateKey = 'workbench.auxiliarybar.viewContainersWorkspaceState';
 
-	// Use the side bar dimensions
 	override readonly minimumWidth: number = 170;
 	override readonly maximumWidth: number = Number.POSITIVE_INFINITY;
 	override readonly minimumHeight: number = 0;
 	override readonly maximumHeight: number = Number.POSITIVE_INFINITY;
 
 	get preferredHeight(): number | undefined {
-		// Don't worry about titlebar or statusbar visibility
-		// The difference is minimal and keeps this function clean
 		return this.layoutService.mainContainerDimension.height * 0.4;
 	}
 
@@ -129,7 +126,6 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 			configurationService,
 		);
 
-		// Track visible view containers for auto-hide
 		this.visibleViewContainersTracker = this._register(instantiationService.createInstance(VisibleViewContainersTracker, ViewContainerLocation.AuxiliaryBar));
 		this._register(this.visibleViewContainersTracker.onDidChange((e) => this.onDidChangeAutoHideViewContainers(e)));
 
@@ -149,7 +145,6 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 	}
 
 	private onDidChangeAutoHideViewContainers(e: { before: number; after: number }): void {
-		// Only update if auto-hide is enabled and composite bar would show
 		const autoHide = this.configurationService.getValue<boolean>(LayoutSettings.ACTIVITY_BAR_AUTO_HIDE);
 		if (autoHide && (this.configuration.position === ActivityBarPosition.TOP || this.configuration.position === ActivityBarPosition.BOTTOM)) {
 			const visibleBefore = e.before > 1;
@@ -163,7 +158,7 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 	private resolveConfiguration(): IAuxiliaryBarPartConfiguration {
 		const position = this.configurationService.getValue<ActivityBarPosition>(LayoutSettings.ACTIVITY_BAR_LOCATION);
 
-		const canShowLabels = position !== ActivityBarPosition.TOP && position !== ActivityBarPosition.BOTTOM; // use same style as activity bar in this case
+		const canShowLabels = position !== ActivityBarPosition.TOP && position !== ActivityBarPosition.BOTTOM;
 		const showLabels = canShowLabels && this.configurationService.getValue('workbench.secondarySideBar.showLabels') !== false;
 
 		return { position, canShowLabels, showLabels };
@@ -214,7 +209,6 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 			fillExtraContextMenuActions: actions => this.fillExtraContextMenuActions(actions),
 			compositeSize: 0,
 			iconSize: 16,
-			// Add 10px spacing if the overflow action is visible to no confuse the user with ... between the toolbars
 			get overflowActionSize() { return $this.getCompositeBarPosition() === CompositeBarPosition.TITLE ? 40 : 30; },
 			colors: theme => ({
 				activeBackgroundColor: theme.getColor(SIDE_BAR_BACKGROUND),
@@ -265,14 +259,9 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 			return false;
 		}
 
-		// Check if auto-hide is enabled and there's only one visible view container
-		// while the activity bar is configured to be top or bottom.
 		if (this.configuration.position === ActivityBarPosition.TOP || this.configuration.position === ActivityBarPosition.BOTTOM) {
 			const autoHide = this.configurationService.getValue<boolean>(LayoutSettings.ACTIVITY_BAR_AUTO_HIDE);
 			if (autoHide) {
-				// Use visible composite count from the composite bar if available (considers pinned state),
-				// otherwise fall back to the tracker's count (based on active view descriptors).
-				// Note: We access paneCompositeBar directly to avoid circular calls with getVisiblePaneCompositeIds()
 				const visibleCount = this.visibleViewContainersTracker.visibleCount;
 				if (visibleCount <= 1) {
 					return false;

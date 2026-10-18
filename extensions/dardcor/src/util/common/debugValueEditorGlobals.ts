@@ -7,7 +7,7 @@ export interface IDebugValueEditorGlobals {
 	$$debugValueEditor_run: (args: any) => void;
 	$$debugValueEditor_properties: readonly any[];
 
-	$$debugValueEditor_debugChannels: Record</* name of the debug channel */ string, DebugChannel>;
+	$$debugValueEditor_debugChannels: Record< string, DebugChannel>;
 
 	$$debugValueEditor_refresh?: (body: string) => void;
 }

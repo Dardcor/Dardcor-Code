@@ -30,30 +30,13 @@ export const AgentMergeSettingId = {
 	ReplyAttribution: 'chat.agentMerge.replyAttribution',
 } as const;
 
-/**
- * Settings-editor tag carried by every Agent Merge setting, so the UI can open
- * settings filtered to exactly this group with `@tag:agentMerge`.
- */
 export const AGENT_MERGE_SETTING_TAG = 'agentMerge';
 
-/**
- * Work the agent itself can be asked to perform. Merging is deliberately absent:
- * it is executed by the host, never delegated to a model.
- */
 export type AgentMergeRepairAction = 'addressReviews' | 'fixCI' | 'resolveConflicts';
 
-/** A user-authorizable Agent Merge action, including the host-executed merge. */
 export type AgentMergeAction = AgentMergeRepairAction | 'mergePullRequest';
 export type AgentMergeMethod = 'auto' | 'squash' | 'merge' | 'rebase';
 
-/**
- * When Agent Merge may merge the pull request once it is ready.
- *
- * `ifUnchanged` is self-demoting rather than evaluated at merge time: the
- * moment a repair turn lands a commit the session's value is rewritten to
- * `never`, so the chosen value always reflects what will actually happen.
- * Re-selecting `ifUnchanged` starts a fresh baseline from that point.
- */
 export type AgentMergeMergePullRequest = 'always' | 'ifUnchanged' | 'never';
 
 export const agentMergeMergePullRequestValues: readonly AgentMergeMergePullRequest[] = ['always', 'ifUnchanged', 'never'];
@@ -88,7 +71,6 @@ export interface AgentMergeReviewThreadContext {
 	readonly id: string;
 	readonly path?: string;
 	readonly line?: number;
-	/** Authorized comments in the thread, oldest first, so later follow-ups are visible. */
 	readonly comments: readonly AgentMergeFeedbackComment[];
 }
 
@@ -111,16 +93,6 @@ export interface AgentMergeSessionState {
 	readonly lastPromptAt?: string;
 	readonly repeatedPromptCount?: number;
 	readonly totalPromptCount?: number;
-	/**
-	 * Local worktree commit observed when the most recent repair turn started.
-	 * A different local commit afterwards means that turn produced work, which
-	 * is what demotes an `ifUnchanged` session to `never`.
-	 *
-	 * Deliberately the local commit rather than the pull request's published
-	 * head: GitHub reports a push only after some replication delay, and a turn
-	 * ends by evaluating immediately, so a published comparison would routinely
-	 * read a stale head and merge changes it should have held back.
-	 */
 	readonly repairBaseCommit?: string;
 }
 
@@ -209,7 +181,6 @@ export interface AgentMergePromptContext {
 	readonly commentWatermark: string;
 }
 
-/** Caps that keep an autonomous prompt bounded regardless of pull request size. */
 const maximumReviewThreads = 10;
 const maximumCommentsPerThread = 5;
 const maximumReviewSummaries = 5;
@@ -231,11 +202,6 @@ export function resolveAgentMergeConfiguration(defaults: AgentMergeConfiguration
 	};
 }
 
-/**
- * Maps the configured merge method onto a method the repository actually
- * allows. `auto` prefers squash, then a merge commit, then rebase; an
- * explicitly configured method is only used when the repository permits it.
- */
 export function resolveMergeMethod(configured: AgentMergeMethod, allowed: readonly ('MERGE' | 'SQUASH' | 'REBASE')[]): 'MERGE' | 'SQUASH' | 'REBASE' | undefined {
 	if (configured !== 'auto') {
 		const method = configured.toUpperCase() as 'MERGE' | 'SQUASH' | 'REBASE';
@@ -244,19 +210,11 @@ export function resolveMergeMethod(configured: AgentMergeMethod, allowed: readon
 	return (['SQUASH', 'MERGE', 'REBASE'] as const).find(method => allowed.includes(method));
 }
 
-/**
- * Why Agent Merge stopped monitoring a session. Keeping both strings together
- * lets the controller log a stable English detail while the transcript shows a
- * localized sentence, without either drifting from the other.
- */
 export interface AgentMergeDisableReason {
-	/** Stable English detail appended to the host log line. */
 	readonly log: string;
-	/** Localized sentence shown to the user in the session transcript. */
 	readonly notice: string;
 }
 
-/** Every reason the Agent Merge controller can stop monitoring a session on its own. */
 export const agentMergeDisableReasons = {
 	sessionArchived: (): AgentMergeDisableReason => ({
 		log: 'the session was archived',
@@ -305,7 +263,6 @@ export const agentMergeDisableReasons = {
 	}),
 } as const;
 
-/** The transcript notice shown once Agent Merge starts watching a branch. */
 export function agentMergeEnabledNotice(target: Pick<AgentMergeTarget, 'branchName' | 'pullRequestUrl'>, configuration: AgentMergeConfiguration): string {
 	const lines = [
 		target.pullRequestUrl
@@ -341,17 +298,8 @@ export function agentMergeEnabledNotice(target: Pick<AgentMergeTarget, 'branchNa
 	return [lines[0], '', ...lines.slice(1).map(line => `- ${line}`)].join('\n');
 }
 
-/**
- * Whether a configuration change was made for one session alone, or to the
- * defaults every session follows.
- */
 export type AgentMergeConfigurationChangeScope = 'session' | 'global';
 
-/**
- * The transcript notice shown when effective Agent Merge behavior changes. The
- * scope is named up front because the same change reads very differently
- * depending on whether it was made for this session or for all of them.
- */
 export function agentMergeConfigurationChangedNotice(previous: AgentMergeConfiguration, current: AgentMergeConfiguration, scope: AgentMergeConfigurationChangeScope): string | undefined {
 	const changes: string[] = [];
 	if (previous.addressReviews !== current.addressReviews) {
@@ -443,15 +391,10 @@ function agentMergeMergeBehaviorChangedNotice(mergePullRequest: AgentMergeMergeP
 	}
 }
 
-/** The transcript notice shown when the user, rather than the controller, disables Agent Merge. */
 export function agentMergeDisabledNotice(): string {
 	return localize('agentMerge.notice.disabled', "Agent Merge was disabled for this session.");
 }
 
-/**
- * The transcript notice shown when Agent Merge stops merging automatically
- * because its own repair work changed the pull request.
- */
 export function agentMergeMergePullRequestDemotedNotice(): string {
 	return localize('agentMerge.notice.mergeDemoted', "Agent Merge changed this pull request, so automatic merging was disabled for this session. Review the changes, then enable it again if you want it merged automatically.");
 }
@@ -478,10 +421,6 @@ export function readAgentMergeSessionState(values: Record<string, unknown> | und
 	};
 }
 
-/**
- * Returns session config values with Agent Merge injected overrides removed,
- * so callers can read the user's own picker selections while merge is active.
- */
 export function getNonMergeSessionConfigValues(values: Readonly<Record<string, unknown>> | undefined): Readonly<Record<string, unknown>> {
 	if (!values) {
 		return {};
@@ -529,8 +468,6 @@ function readOverrides(value: unknown): AgentMergeSessionOverrides | undefined {
 			result[action] = value[action];
 		}
 	}
-	// Migrates sessions written before this was an enum, so an explicit opt-in
-	// is not silently downgraded to the more conservative default.
 	const mergePullRequest = value.mergePullRequest;
 	if (typeof mergePullRequest === 'boolean') {
 		result.mergePullRequest = mergePullRequest ? 'always' : 'never';
@@ -540,31 +477,8 @@ function readOverrides(value: unknown): AgentMergeSessionOverrides | undefined {
 	return Object.keys(result).length > 0 ? result as AgentMergeSessionOverrides : undefined;
 }
 
-/**
- * Recorded as the repair baseline when the session worktree cannot be read.
- * No git object id can equal it, so a session that reached this state always
- * counts as changed — see {@link shouldStopMergingAfterAgentChanges}.
- */
 export const AGENT_MERGE_UNKNOWN_COMMIT = 'unknown';
 
-/**
- * Whether a session that only authorized merging while the pull request is
- * unchanged must stop merging automatically, because a repair turn produced
- * work since it started.
- *
- * Compares local worktree commits, not the pull request's published head: the
- * commit exists locally the moment the agent makes it, whereas GitHub reports
- * it only after a replication delay that a turn-completion check would race.
- *
- * Fails closed. Once a repair turn has run, a commit that cannot be resolved
- * counts as a change: a missed automatic merge is cheap, whereas merging
- * agent-written changes the user wanted to review first is not.
- *
- * Callers rewrite the chosen value to `never` rather than gating on this, so
- * the value always reflects what will actually happen. Clearing
- * {@link AgentMergeSessionState.repairBaseCommit} at the same time is what lets
- * a later re-selection start from a fresh baseline.
- */
 export function shouldStopMergingAfterAgentChanges(
 	configuration: AgentMergeConfiguration,
 	agentMerge: AgentMergeSessionState,
@@ -607,10 +521,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/**
- * Truncates feedback bodies against one shared character budget so a
- * comment-heavy pull request cannot grow the autonomous prompt without bound.
- */
 class FeedbackBudget {
 
 	private _remaining: number;
@@ -730,7 +640,6 @@ const headFragments = ['checks', 'mergeability'] as const;
 
 type EvaluatedFragment = typeof conversationFragments[number] | typeof headFragments[number];
 
-/** Fragments the gate must be able to read before it can decide anything. */
 export const agentMergeGateFragments = ['core', ...conversationFragments, ...headFragments] as const;
 
 function firstIncompleteFragment(snapshot: PullRequestSnapshot, headSha: string): EvaluatedFragment | undefined {
@@ -747,7 +656,6 @@ function firstIncompleteFragment(snapshot: PullRequestSnapshot, headSha: string)
 	return undefined;
 }
 
-/** Describes why a fragment blocks evaluation, with a `cause` that stays stable while the condition lasts. */
 function describeIncompleteFragment(snapshot: PullRequestSnapshot, fragment: EvaluatedFragment): { readonly reason: string; readonly cause: string } {
 	const state = snapshot[fragment];
 	if (state.error) {
@@ -791,10 +699,6 @@ function getAgentMergeFeedback(snapshot: PullRequestSnapshot, commentWatermark: 
 	return { reviewThreads, changesRequested, newComments };
 }
 
-/**
- * Returns whether a draft pull request has no pending or failed required checks
- * and no actionable review feedback, or `undefined` while that state is incomplete.
- */
 export function isAgentMergePullRequestReadyForReview(snapshot: PullRequestSnapshot, commentWatermark: string): boolean | undefined {
 	const core = snapshot.core;
 	if (core.status !== 'ready' || !core.complete || !core.value || core.value.state !== 'open' || !core.value.draft) {

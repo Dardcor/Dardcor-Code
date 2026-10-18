@@ -8,7 +8,7 @@ import { TelemetryWithExp } from '../../telemetry';
 import { createLibTestingContext } from '../../test/context';
 import { withInMemoryTelemetry } from '../../test/telemetry';
 import { createTextDocument } from '../../test/textDocument';
-import { CopilotCompletion } from '../dardcorCompletion';
+import { DardcorCompletion } from '../dardcorCompletion';
 import {
 	ICompletionsLastGhostText, handleGhostTextPostInsert,
 	handleGhostTextShown,
@@ -26,7 +26,7 @@ suite('Isolated LastGhostText tests', function () {
 		last = accessor.get(ICompletionsLastGhostText);
 	});
 
-	function makeCompletion(index = 0, text = 'foo', offset = 0): CopilotCompletion {
+	function makeCompletion(index = 0, text = 'foo', offset = 0): DardcorCompletion {
 		return {
 			uuid: 'uuid-' + index,
 			insertText: text,
@@ -38,7 +38,7 @@ suite('Isolated LastGhostText tests', function () {
 			position: { line: 0, character: 0 },
 			telemetry: TelemetryWithExp.createEmptyConfigForTesting(),
 			resultType: ResultType.Network,
-		} as CopilotCompletion;
+		} as DardcorCompletion;
 	}
 
 	test('full completion flow: show, accept, reset', function () {
@@ -57,9 +57,8 @@ suite('Isolated LastGhostText tests', function () {
 		const cmp = makeCompletion(2, 'partial completion', 0);
 		handleGhostTextShown(accessor, cmp);
 		assert.strictEqual(last.shownCompletions.length, 1);
-		handlePartialGhostTextPostInsert(accessor, cmp, 7); // accept first 7 chars
+		handlePartialGhostTextPostInsert(accessor, cmp, 7);
 		assert.strictEqual(last.partiallyAcceptedLength, 7);
-		// State is not reset by partial accept
 		assert.strictEqual(last.shownCompletions.length, 1);
 	});
 
@@ -113,7 +112,7 @@ suite('Isolated LastGhostText tests', function () {
 		const cmp = makeCompletion(0, 'line1\nline2\nline3', 0);
 		handleGhostTextShown(accessor, cmp);
 		handlePartialGhostTextPostInsert(accessor, cmp, 'line1'.length);
-		cmp.displayText = 'line2\nline3'; // Simulate the display text being updated after accepting the first line
+		cmp.displayText = 'line2\nline3';
 
 		const { reporter } = await withInMemoryTelemetry(accessor, () => {
 			handlePartialGhostTextPostInsert(accessor, cmp, 'line2'.length);

@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -58,9 +57,6 @@ export class LineEdit {
 	}
 
 	constructor(
-		/**
-		 * Have to be sorted by start line number and non-intersecting.
-		*/
 		public readonly replacements: readonly LineReplacement[]
 	) {
 		assert(checkAdjacentItems(replacements, (i1, i2) => i1.lineRange.endLineNumberExclusive <= i2.lineRange.startLineNumber));
@@ -117,7 +113,6 @@ export class LineEdit {
 	}
 
 
-	/** TODO improve, dont require originalLines */
 	public mapBackLineRange(lineRange: LineRange, originalLines: string[]): LineRange {
 		const i = this.inverse(originalLines);
 		return i.mapLineRange(lineRange);
@@ -238,17 +233,9 @@ export class LineReplacement {
 	}
 
 	public static fromSingleTextEdit(edit: TextReplacement, initialValue: AbstractText): LineReplacement {
-		// 1: ab[cde
-		// 2: fghijk
-		// 3: lmn]opq
 
-		// replaced with
 
-		// 1n: 123
-		// 2n: 456
-		// 3n: 789
 
-		// simple solution: replace [1..4) with [1n..4n)
 
 		const newLines = splitLines(edit.text);
 		let startLineNumber = edit.range.startLineNumber;
@@ -266,19 +253,16 @@ export class LineReplacement {
 		));
 		newLines[newLines.length - 1] = newLines[newLines.length - 1] + survivingEndLineText;
 
-		// Replacing [startLineNumber, endLineNumberEx) with newLines would be correct, however it might not be minimal.
 
 		const startBeforeNewLine = edit.range.startColumn === initialValue.getTransformer().getLineLength(edit.range.startLineNumber) + 1;
 		const endAfterNewLine = edit.range.endColumn === 1;
 
 		if (startBeforeNewLine && newLines[0].length === survivingFirstLineText.length) {
-			// the replacement would not delete any text on the first line
 			startLineNumber++;
 			newLines.shift();
 		}
 
 		if (newLines.length > 0 && startLineNumber < endLineNumberEx && endAfterNewLine && newLines[newLines.length - 1].length === survivingEndLineText.length) {
-			// the replacement would not delete any text on the last line
 			endLineNumberEx--;
 			newLines.pop();
 		}
@@ -293,7 +277,6 @@ export class LineReplacement {
 
 	public toSingleTextEdit(initialValue: AbstractText): TextReplacement {
 		if (this.newLines.length === 0) {
-			// Deletion
 			const textLen = initialValue.getTransformer().textLength;
 			if (this.lineRange.endLineNumberExclusive === textLen.lineCount + 2) {
 				let startPos: Position;
@@ -302,9 +285,6 @@ export class LineReplacement {
 					const startColumn = initialValue.getTransformer().getLineLength(startLineNumber) + 1;
 					startPos = new Position(startLineNumber, startColumn);
 				} else {
-					// Delete everything.
-					// In terms of lines, this would end up with 0 lines.
-					// However, a string has always 1 line (which can be empty).
 					startPos = new Position(1, 1);
 				}
 
@@ -315,7 +295,6 @@ export class LineReplacement {
 			}
 
 		} else if (this.lineRange.isEmpty) {
-			// Insertion
 
 			let endLineNumber: number;
 			let column: number;
@@ -340,7 +319,6 @@ export class LineReplacement {
 				endLineNumber,
 				endLineNumberMaxColumn
 			);
-			// Don't add \n to the last line. This is because we subtract one from lineRange.endLineNumberExclusive for endLineNumber.
 			const text = this.newLines.join('\n');
 			return new TextReplacement(range, text);
 		}

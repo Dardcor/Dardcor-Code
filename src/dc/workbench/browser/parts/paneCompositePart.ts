@@ -55,54 +55,24 @@ export interface IPaneCompositePart extends IView {
 	readonly onDidPaneCompositeOpen: Event<IPaneComposite>;
 	readonly onDidPaneCompositeClose: Event<IPaneComposite>;
 
-	/**
-	 * Opens a viewlet with the given identifier and pass keyboard focus to it if specified.
-	 */
 	openPaneComposite(id: string | undefined, focus?: boolean): Promise<IPaneComposite | undefined>;
 
-	/**
-	 * Returns the current active viewlet if any.
-	 */
 	getActivePaneComposite(): IPaneComposite | undefined;
 
-	/**
-	 * Returns the viewlet by id.
-	 */
 	getPaneComposite(id: string): PaneCompositeDescriptor | undefined;
 
-	/**
-	 * Returns all enabled viewlets
-	 */
 	getPaneComposites(): PaneCompositeDescriptor[];
 
-	/**
-	 * Returns the progress indicator for the side bar.
-	 */
 	getProgressIndicator(id: string): IProgressIndicator | undefined;
 
-	/**
-	 * Hide the active viewlet.
-	 */
 	hideActivePaneComposite(): void;
 
-	/**
-	 * Return the last active viewlet id.
-	 */
 	getLastActivePaneCompositeId(): string;
 
-	/**
-	 * Returns id of pinned view containers following the visual order.
-	 */
 	getPinnedPaneCompositeIds(): string[];
 
-	/**
-	 * Returns id of visible view containers following the visual order.
-	 */
 	getVisiblePaneCompositeIds(): string[];
 
-	/**
-	 * Returns id of all view containers following the visual order.
-	 */
 	getPaneCompositeIds(): string[];
 }
 
@@ -111,8 +81,6 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 	private static readonly MIN_COMPOSITE_BAR_WIDTH = 50;
 
 	get snap(): boolean {
-		// Always allow snapping closed
-		// Only allow dragging open if the panel contains view containers
 		return this.layoutService.isVisible(this.partId) || !!this.paneCompositeBar.value?.getVisiblePaneCompositeIds().length;
 	}
 
@@ -305,7 +273,6 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 					if (this.paneCompositeBar.value) {
 						this.paneCompositeBar.value.dndHandler.drop(e.dragAndDropData, undefined, e.eventData);
 					} else {
-						// Allow opening views/composites if the composite bar is hidden
 						const dragData = e.dragAndDropData.getData();
 
 						if (dragData.type === 'composite') {
@@ -348,7 +315,6 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 
 		const globalTitleActionsContainer = titleArea.appendChild($('.global-actions'));
 
-		// Global Actions Toolbar
 		this.globalToolBar = this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar,
 			globalTitleActionsContainer,
 			this.globalActionsMenuId,
@@ -388,12 +354,10 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 		const previousPosition = this.compositeBarPosition;
 		const newPosition = isCompositeBarVisible ? this.getCompositeBarPosition() : undefined;
 
-		// Only update if the visibility or position has changed or if the composite bar options should be updated
 		if (!updateCompositeBarOption && previousPosition === newPosition) {
 			return;
 		}
 
-		// Remove old composite bar
 		if (wasCompositeBarVisible) {
 			const previousCompositeBarContainer = previousPosition === CompositeBarPosition.TITLE ? this.titleContainer : this.headerFooterCompositeBarContainer;
 			if (!this.paneCompositeBarContainer || !this.paneCompositeBar.value || !previousCompositeBarContainer) {
@@ -413,7 +377,6 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 			}
 		}
 
-		// Create new composite bar
 		let newCompositeBarContainer;
 		switch (newPosition) {
 			case CompositeBarPosition.TOP: newCompositeBarContainer = this.createHeaderArea(); break;
@@ -459,7 +422,6 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 
 	protected createHeaderFooterCompositeBarArea(area: HTMLElement): HTMLElement {
 		if (this.headerFooterCompositeBarContainer) {
-			// A pane composite part has either a header or a footer, but not both
 			throw new Error('Header or Footer composite bar already exists');
 		}
 		this.headerFooterCompositeBarContainer = area;
@@ -492,7 +454,6 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 	protected override onTitleAreaUpdate(compositeId: string): void {
 		super.onTitleAreaUpdate(compositeId);
 
-		// If title actions change, relayout the composite bar
 		this.layoutCompositeBar();
 	}
 
@@ -512,10 +473,6 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 
 	private async doOpenPaneComposite(id: string, focus?: boolean): Promise<PaneComposite | undefined> {
 		if (this.blockOpening) {
-			// Workaround against a potential race condition when calling
-			// `setPartHidden` we may end up in `openPaneComposite` again.
-			// But we still want to return the result of the original call,
-			// so we return the promise of the original call.
 			return this.blockOpening.p;
 		}
 
@@ -596,13 +553,8 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 			return;
 		}
 
-		// Remember the dimension as provided by the grid (before the floating inset is
-		// applied) so relayouts triggered by internal changes (title/header/footer) feed
-		// back this original dimension instead of a repeatedly shrunk one.
 		this.floatingLayoutDimension = new Dimension(width, height);
 
-		// When the floating panels experiment is enabled, shrink the content to
-		// leave room for the card margin and border applied via CSS on the part.
 		const floatingInset = this.getFloatingInset();
 		if (floatingInset.width > 0 || floatingInset.height > 0) {
 			width = Math.max(0, width - floatingInset.width);
@@ -611,41 +563,23 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 
 		this.contentDimension = new Dimension(width, height);
 
-		// Reflect which window edges this part is the outermost floating card on so the
-		// matching doubled outer gutter can be applied in CSS (kept in sync with
-		// `getFloatingInset`).
 		const outerGutter = this.getFloatingOuterGutterEdges();
 		this.element.classList.toggle('floating-part-outer-left', outerGutter.left);
 		this.element.classList.toggle('floating-part-outer-right', outerGutter.right);
 
-		// Mirror the panel's outer-edge state onto the workbench container so the
-		// horizontal grid sash highlight can match the panel card's doubled outer
-		// gutter by selecting a direct class, rather than a `:has()` query on the
-		// workbench root (which would force selector invalidation across the whole
-		// workbench on every DOM change). Updated here in lockstep with the part-level
-		// classes above, so the timing is identical.
 		if (this.partId === Parts.PANEL_PART) {
 			const workbenchContainer = this.layoutService.getContainer(getWindow(this.element));
 			workbenchContainer.classList.toggle('floating-panel-outer-left', outerGutter.left);
 			workbenchContainer.classList.toggle('floating-panel-outer-right', outerGutter.right);
 		}
 
-		// Layout contents
 		super.layout(this.contentDimension.width, this.contentDimension.height, top, left);
 
-		// Layout composite bar
 		this.layoutCompositeBar();
 
-		// Add empty pane message
 		this.layoutEmptyMessage();
 	}
 
-	/**
-	 * The window edges on which this part is the outermost floating card and therefore
-	 * adopts a doubled outer gutter, so its contents do not hug the window edge. Applies
-	 * to the primary side bar, the secondary side bar and the panel; a horizontal panel
-	 * can own both edges at once.
-	 */
 	private getFloatingOuterGutterEdges(): { left: boolean; right: boolean } {
 		return getFloatingOuterGutterEdges(this.layoutService, this.partId);
 	}
@@ -654,20 +588,12 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 		return this.floatingLayoutDimension ?? super.getRelayoutDimension();
 	}
 
-	/**
-	 * Amount (in pixels) to subtract from each axis when the floating panels
-	 * experiment is enabled: a margin on each side plus a 1px border on each side
-	 * (the border is drawn inside the box, as `.monaco-workbench .part` is
-	 * `box-sizing: border-box` in `part.css`). On each window edge this part is the outermost
-	 * floating card on (see {@link getFloatingOuterGutterEdges}) it gets a doubled outer
-	 * margin, so its width inset is larger on that side.
-	 */
 	private getFloatingInset(): { width: number; height: number } {
 		if (!this.layoutService.isFloatingPanelsEnabled()) {
 			return { width: 0, height: 0 };
 		}
 
-		const borderTotal = 2; // 1px border on each side
+		const borderTotal = 2;
 		const margin = FLOATING_PANEL_MARGIN;
 		const { top, bottom } = getFloatingPaneCompositeVerticalMargins(this.layoutService, this.partId, getWindow(this.element));
 		const outerGutter = this.getFloatingOuterGutterEdges();
@@ -707,10 +633,9 @@ export abstract class AbstractPaneCompositePart extends CompositePart<PaneCompos
 			return 0;
 		}
 
-		// Each toolbar item has 4px margin
 		const toolBarWidth = this.toolBar.getItemsWidth() + this.toolBar.getItemsLength() * 4;
 		const globalToolBarWidth = this.globalToolBar ? this.globalToolBar.getItemsWidth() + this.globalToolBar.getItemsLength() * 4 : 0;
-		return toolBarWidth + globalToolBarWidth + 8; // 8px padding left
+		return toolBarWidth + globalToolBarWidth + 8;
 	}
 
 	private onTitleAreaContextMenu(event: StandardMouseEvent): void {

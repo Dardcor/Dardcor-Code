@@ -16,27 +16,12 @@ import { IChatEndpoint } from '../../../platform/networking/common/networking';
 
 const requestLogStorage = new AsyncLocalStorage<CapturingToken>();
 
-/**
- * Correlation map for preserving CapturingToken across IPC boundaries.
- *
- * When requests cross the VS Code IPC boundary (e.g., BYOK providers),
- * AsyncLocalStorage context is lost. This map allows correlating requests
- * by storing the token before IPC and retrieving it on the other side.
- */
 const capturingTokenCorrelationMap = new Map<string, CapturingToken>();
 
-/**
- * Get the current CapturingToken from AsyncLocalStorage.
- * Returns undefined if not within a captureInvocation context.
- */
 export function getCurrentCapturingToken(): CapturingToken | undefined {
 	return requestLogStorage.getStore();
 }
 
-/**
- * Store the current CapturingToken with a correlation ID for cross-IPC retrieval.
- * Call this before making a request that will cross IPC boundaries.
- */
 export function storeCapturingTokenForCorrelation(correlationId: string): void {
 	const token = requestLogStorage.getStore();
 	if (token) {
@@ -44,10 +29,6 @@ export function storeCapturingTokenForCorrelation(correlationId: string): void {
 	}
 }
 
-/**
- * Retrieve and remove a CapturingToken by correlation ID.
- * Returns undefined if no token was stored for this ID.
- */
 export function retrieveCapturingTokenByCorrelation(correlationId: string): CapturingToken | undefined {
 	const token = capturingTokenCorrelationMap.get(correlationId);
 	if (token) {
@@ -56,10 +37,6 @@ export function retrieveCapturingTokenByCorrelation(correlationId: string): Capt
 	return token;
 }
 
-/**
- * Run a function within a CapturingToken context without going through IRequestLogger.
- * Used to restore context after IPC boundary crossing.
- */
 export function runWithCapturingToken<T>(token: CapturingToken, fn: () => T): T {
 	return requestLogStorage.run(token, fn);
 }
@@ -79,7 +56,6 @@ export abstract class AbstractRequestLogger extends Disposable implements IReque
 	public abstract logToolCall(id: string, name: string | undefined, args: unknown, response: LanguageModelToolResult2): void;
 
 	public logContentExclusionRules(_repos: string[], _rules: { patterns: string[]; ifAnyMatch: string[]; ifNoneMatch: string[] }[], _durationMs: number): void {
-		// no-op by default; concrete implementations can override
 	}
 
 	public logChatRequest(debugName: string, chatEndpoint: IChatEndpoint, chatParams: ILoggedPendingRequest): PendingLoggedChatRequest {
@@ -93,14 +69,11 @@ export abstract class AbstractRequestLogger extends Disposable implements IReque
 	abstract onDidChangeRequests: Event<void>;
 
 	public enableWorkspaceEditTracing(): void {
-		// no-op by default; concrete implementations can override
 	}
 
 	public disableWorkspaceEditTracing(): void {
-		// no-op by default; concrete implementations can override
 	}
 
-	/** Current request being made to the LM. */
 	protected get currentRequest() {
 		return requestLogStorage.getStore();
 	}

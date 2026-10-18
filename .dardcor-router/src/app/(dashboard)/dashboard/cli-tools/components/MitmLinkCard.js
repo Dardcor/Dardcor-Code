@@ -4,9 +4,6 @@ import Link from "next/link";
 import { Card } from "@/shared/components";
 import Image from "next/image";
 
-/**
- * Clickable card for MITM tools — navigates to /dashboard/mitm on click.
- */
 export default function MitmLinkCard({ tool }) {
   return (
     <Link href="/dashboard/mitm" className="block">

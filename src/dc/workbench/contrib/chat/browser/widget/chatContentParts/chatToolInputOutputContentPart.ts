@@ -31,7 +31,7 @@ import { ChatCollapsibleContentPart } from './chatCollapsibleContentPart.js';
 
 export interface IChatCollapsibleIOCodePart {
 	kind: 'code';
-	data: string; // The text content to create a model from
+	data: string;
 	languageId: string;
 	options: ICodeBlockRenderOptions;
 	codeBlockIndex: number;
@@ -42,10 +42,6 @@ export interface IChatCollapsibleIOCodePart {
 export interface IChatCollapsibleIODataPart {
 	kind: 'data';
 	value?: Uint8Array;
-	/**
-	 * Base64-encoded value that can be decoded lazily to avoid expensive
-	 * decoding during scroll. Takes precedence over `value` when present.
-	 */
 	base64Value?: string;
 	audience?: LanguageModelPartAudience[];
 	mimeType: string | undefined;
@@ -127,12 +123,10 @@ export class ChatCollapsibleInputOutputContentPart extends Disposable {
 		btn.labelElement.append(titleEl.root);
 		elements.root.appendChild(contentAnimation.root);
 
-		// Add hover chevron indicator on the right (decorative, hide from screen readers)
 		const hoverChevron = dom.$('span.chat-collapsible-hover-chevron.codicon.codicon-chevron-right-compact');
 		hoverChevron.setAttribute('aria-hidden', 'true');
 		btn.element.appendChild(hoverChevron);
 
-		// Only show leading icon for errors, or for checkmarks/loading when the accessibility setting is on
 		const showCheckmarks = observableConfigValue(AccessibilityWorkbenchSettingId.ShowChatCheckmarks, false, this.configurationService);
 
 		const expanded = this._expanded = observableValue(this, initiallyExpanded);
@@ -152,10 +146,8 @@ export class ChatCollapsibleInputOutputContentPart extends Disposable {
 
 			container.root.classList.toggle('show-checkmarks', checkmarksEnabled);
 
-			// Update hover chevron direction
 			hoverChevron.classList.toggle('expanded', value);
 
-			// Lazy initialization: render content only when expanded for the first time
 			if (value && !this._contentInitialized) {
 				this._contentInitialized = true;
 				const messageContainer = dom.h('.chat-confirmation-widget-message');
@@ -258,7 +250,6 @@ export class ChatCollapsibleInputOutputContentPart extends Disposable {
 	}
 
 	hasSameContent(other: IChatRendererContent, followingContent: IChatRendererContent[], element: ChatTreeItem): boolean {
-		// For now, we consider content different unless it's exactly the same instance
 		return false;
 	}
 

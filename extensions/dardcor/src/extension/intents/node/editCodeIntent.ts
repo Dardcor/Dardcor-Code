@@ -117,12 +117,10 @@ export class EditCodeIntent implements IIntent {
 
 			const toolCallResults = toolCallLoopResult.toolCallResults;
 			if (!toolCallLoopResult.chatResult?.errorDetails && toolCallResults) {
-				// TODO: do these new references need a lower priority?
 				const variables = new ChatVariablesCollection(request.references);
 				const endpoint = await this.endpointProvider.getChatEndpoint(request);
 				const { references } = await renderPromptElement(this.instantiationService, endpoint, ToolCallResultWrapper, { toolCallResults }, undefined, token);
 				foundReferences.push(...toNewChatReferences(variables, references));
-				// TODO: how should we splice in the assistant message?
 				conversation = new Conversation(conversation.sessionId, [...conversation.turns.slice(0, -1), new Turn(latestTurn.id, latestTurn.request, undefined, [], undefined, undefined, false, latestTurn.modeInstructions)]);
 			}
 			return { conversation, request: { ...request, references: [...request.references, ...foundReferences], toolReferences: request.toolReferences.filter((r) => r.name !== CodebaseTool.toolName) } };
@@ -151,7 +149,7 @@ export class EditCodeIntent implements IIntent {
 			const uri = request.codeBlock.resource;
 
 			outputStream.markdown(l10n.t`Applying edits to \`${this.workspaceService.asRelativePath(uri)}\`...\n\n`);
-			outputStream.textEdit(uri, []); // signal start of
+			outputStream.textEdit(uri, []);
 
 			try {
 				return await this.codeMapperService.mapCode(request, outputStream, { chatRequestId: requestDry.chatRequestId, chatRequestModel: requestDry.chatRequestModel, chatRequestSource: `confirmed_edits_${this.id}` }, token);
@@ -228,31 +226,11 @@ class EditIntentRequestHandler {
 		);
 		const result = await actual.getResult();
 
-		// Record telemetry for the edit code blocks in an editing session
 		const turn = this.conversation.getLatestTurn();
 		const currentTurnMetadata = turn.getMetadata(IntentInvocationMetadata)?.value;
 		const editCodeStep = (currentTurnMetadata instanceof EditCodeIntentInvocation ? currentTurnMetadata._editCodeStep : undefined);
 
 		if (editCodeStep?.telemetryInfo) {
-			/* __GDPR__
-					"panel.edit.codeblocks" : {
-						"owner": "joyceerhl",
-						"comment": "Records information about the proposed edit codeblocks in an editing session",
-						"conversationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for the current chat conversation." },
-						"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request succeeded or failed." },
-						"workingSetCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of entries in the working set" },
-						"uniqueCodeblockUriCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of unique code block URIs" },
-						"codeblockCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of code blocks in the response" },
-						"codeblockWithUriCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of code blocks that had URIs" },
-						"codeblockWithElidedCodeCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of code blocks that had a ...existing code... comment" },
-						"shellCodeblockCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of shell code blocks in the response" },
-						"shellCodeblockWithUriCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of shell code blocks that had URIs" },
-						"shellCodeblockWithElidedCodeCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of shell code blocks that had a ...existing code... comment" },
-						"editStepCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of edit steps in the session so far" },
-						"sessionDuration": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The time since the session started" },
-						"intentId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The ID of the intent being executed" }
-					}
-				*/
 			this.telemetryService.sendMSFTTelemetryEvent('panel.edit.codeblocks', {
 				conversationId: this.conversation.sessionId,
 				outcome: Boolean(result.errorDetails) ? 'error' : 'success',
@@ -281,7 +259,7 @@ class EditIntentRequestHandler {
 type MappedEditsRequest = IMapCodeRequest & { workingSet: IWorkingSet };
 
 const enum ConfirmationIds {
-	EditsOkay = '4e6e0e05-5dab-48d0-b2cd-6a14c8e3e8a2', // random string
+	EditsOkay = '4e6e0e05-5dab-48d0-b2cd-6a14c8e3e8a2',
 }
 
 interface IEditsOkayConfirmation {
@@ -303,10 +281,6 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 
 	public _editCodeStep: EditCodeStep | undefined = undefined;
 
-	/**
-	 * Stable codebase invocation so that their {@link InternalToolReference.id ids}
-	 * are reused across multiple turns.
-	 */
 	protected stableToolReferences = this.request.toolReferences.map(InternalToolReference.from);
 
 	public get linkification(): IntentLinkificationOptions {
@@ -346,7 +320,6 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 		token: vscode.CancellationToken
 	): Promise<IBuildPromptResult> {
 
-		// Add any references from the codebase invocation to the request
 		const codebase = await this._getCodebaseReferences(promptContext, token);
 
 		const allReferences: vscode.ChatPromptReference[] = [];
@@ -388,7 +361,6 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 			query = query ? `${command.details}.\n${query}` : command.details;
 		}
 
-		// Reserve extra space when tools are involved due to token counting issues
 		const renderer = PromptRenderer.create(this.instantiationService, endpoint, EditCodePrompt, {
 			endpoint,
 			promptContext: {
@@ -416,25 +388,12 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 
 		return {
 			...result,
-			// The codebase tool is not actually called/referenced in the edit prompt, so we need to
-			// merge its metadata so that its output is not lost and it's not called repeatedly every turn
-			// todo@connor4312/joycerhl: this seems a bit janky
 			metadata: codebase ? mergeMetadata(result.metadata, codebase.metadatas) : result.metadata,
-			// Don't report file references that came in via chat variables in an editing session, unless they have warnings,
-			// because they are already displayed as part of the working set
 			references: result.references.filter((ref) => this.shouldKeepReference(editCodeStep, ref, toolReferences, chatVariables)),
 		};
 	}
 
 	private sendPromptRenderTelemetry(duration: number) {
-		/* __GDPR__
-			"editCodeIntent.promptRender" : {
-				"owner": "roblourens",
-				"comment": "Understanding the performance of the edit code intent rendering",
-				"promptRenderDurationIncludingRunningTools": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Duration of the prompt rendering, includes running tools" },
-				"isAgentMode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the prompt was for agent mode" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('editCodeIntent.promptRender', {
 		}, {
 			promptRenderDurationIncludingRunningTools: duration,
@@ -460,28 +419,22 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 
 	private shouldKeepReference(editCodeStep: EditCodeStep, ref: PromptReference, toolReferences: vscode.ChatPromptReference[], chatVariables: ChatVariablesCollection): boolean {
 		if (ref.options?.status && ref.options?.status?.kind !== ChatResponseReferencePartStatusKind.Complete) {
-			// Always show references for files which have warnings
 			return true;
 		}
 		const uri = getUriOfReference(ref);
 		if (!uri) {
-			// This reference doesn't have an URI
 			return true;
 		}
 		if (toolReferences.find(entry => (URI.isUri(entry.value) && isEqual(entry.value, uri) || (isLocation(entry.value) && isEqual(entry.value.uri, uri))))) {
-			// If this reference came in via resolving #codebase, we should show it
-			// TODO@joyceerhl if this reference is subsequently modified and joins the working set, should we suppress it again in the UI?
 			return true;
 		}
 		const PROMPT_INSTRUCTION_ROOT_PREFIX = `${InstructionFileIdPrefix}.root`;
 		const promptInstruction = chatVariables.find((variable) => isInstructionFile(variable.reference) && URI.isUri(variable.value) && isEqual(variable.value, uri));
 		if (promptInstruction) {
-			// Report references for root prompt instruction files and not their children
 			return promptInstruction.reference.id.startsWith(PROMPT_INSTRUCTION_ROOT_PREFIX);
 		}
 		const workingSetEntry = editCodeStep.workingSet.find(entry => isEqual(entry.document.uri, uri));
 		if (!workingSetEntry) {
-			// This reference wasn't part of the working set
 			return true;
 		}
 		return false;
@@ -489,7 +442,7 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 
 	private async shouldConfirmBeforeFileEdits(uri: URI) {
 		for (const tool of this.request.toolReferences) {
-			const ownTool = this.toolsService.getCopilotTool(tool.name as ToolName);
+			const ownTool = this.toolsService.getAgentTool(tool.name as ToolName);
 			if (!ownTool) {
 				continue;
 			}
@@ -538,7 +491,6 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 						this._editCodeStep.telemetryInfo.shellCodeblockWithUriCount += 1;
 					}
 
-					// The model proposed an edit for this URI
 					this._editCodeStep.setWorkingSetEntryState(codeBlock.resource, WorkingSetEntryState.Undecided);
 
 					if (codeBlock.code.includes(EXISTING_CODE_MARKER)) {
@@ -561,7 +513,7 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 					if (isNotebookDocument) {
 						outputStream.notebookEdit(codeBlock.resource, []);
 					} else {
-						outputStream.textEdit(codeBlock.resource, []); // signal start
+						outputStream.textEdit(codeBlock.resource, []);
 					}
 					const task = this.codeMapperService.mapCode(request, outputStream, {
 						chatRequestId: context.turn.id,
@@ -570,7 +522,6 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 						chatRequestSource: `${this.intent.id}_${ChatLocation.toString(this.location)}`,
 					}, token).finally(() => {
 						if (!token.isCancellationRequested) {
-							// signal being done with this uri
 							if (isNotebookDocument) {
 								outputStream.notebookEdit(codeBlock.resource, true);
 								sendEditNotebookTelemetry(this.telemetryService, undefined, 'editCodeIntent', codeBlock.resource, this.request.id, undefined, this.endpoint);
@@ -627,7 +578,6 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 	private _createUriFromResponsePath(path: string): URI | undefined {
 		assertType(this._editCodeStep);
 
-		// ok to modify entries from the working set
 		for (const entry of this._editCodeStep.workingSet) {
 			if (this.promptPathRepresentationService.getFilePath(entry.document.uri) === path) {
 				return entry.document.uri;
@@ -639,12 +589,10 @@ export class EditCodeIntentInvocation implements IIntentInvocation {
 			return undefined;
 		}
 
-		// ok to make changes in the workspace
 		if (this.workspaceService.getWorkspaceFolder(uri)) {
 			return uri;
 		}
 		if (uri.scheme === Schemas.file || uri.scheme === Schemas.vscodeRemote) {
-			// do not directly modify files outside the workspace. Create an untitled file instead, let the user save when ok
 			return URI.from({ scheme: Schemas.untitled, path: uri.path });
 		}
 		return uri;
@@ -670,7 +618,6 @@ export function getCodeBlocksFromResponse(textStream: AsyncIterable<string>, out
 					outputStream.markdown(markdown);
 				}
 				if (codeBlockInfo && codeBlockInfo.resource && codeBlockInfo !== currentCodeBlock) {
-					// first time we see this code block
 					currentCodeBlock = codeBlockInfo;
 					outputStream.codeblockUri(codeBlockInfo.resource, true);
 				}
@@ -683,7 +630,7 @@ export function getCodeBlocksFromResponse(textStream: AsyncIterable<string>, out
 					return !inCodeBlock && linePart.startsWith(fileHeadingLineStart.substring(0, linePart.length));
 				},
 				process(line, inCodeBlock) {
-					const header = line.value.substring(fileHeadingLineStart.length).trim(); // remove the ### and trim
+					const header = line.value.substring(fileHeadingLineStart.length).trim();
 					let fileUri = createUriFromResponsePath(header);
 					if (fileUri) {
 						if (remoteName) {
@@ -692,7 +639,6 @@ export function getCodeBlocksFromResponse(textStream: AsyncIterable<string>, out
 						const headerLine = `### [${basename(fileUri)}](${fileUri.toString()})\n`;
 						return new MarkdownString(headerLine);
 					} else {
-						// likely not a file path, just keep the original line
 						return line;
 					}
 				},

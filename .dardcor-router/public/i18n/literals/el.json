@@ -173,9 +173,7 @@
   "Cert": "Πιστοποιητικό",
   "Server": "Διακομιστής",
   "Purpose:": "Σκοπός:",
-  "Use Antigravity IDE & GitHub Copilot → with ANY provider/model from Dardcor Code": "Χρησιμοποιήστε Antigravity IDE & GitHub Copilot → με ΟΠΟΙΟΝΔΗΠΟΤΕ πάροχο/μοντέλο από Dardcor Code",
   "How it works:": "Πώς λειτουργεί:",
-  "Antigravity/Copilot IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Code → response to Antigravity/Copilot": "Αίτημα Antigravity/Copilot IDE → Ανακατεύθυνση DNS στο localhost:443 → Ο διακομιστής μεσολάβησης MITM παρεμβαίνει → Dardcor Code → απάντηση στο Antigravity/Copilot",
   "No API keys — create one in Keys page": "Δεν υπάρχουν κλειδιά API — δημιουργήστε ένα στη σελίδα Keys",
   "e.g. a warm, gentle voice, speaking slowly with a British accent": "π.χ.: μια ζεστή, απαλή φωνή, που μιλάει αργά με βρετανική προφορά",
   "sk_dardcor-code (default)": "sk_dardcor-code (προεπιλεγμένο)",
@@ -192,6 +190,5 @@
   "Sudo Password": "Κωδικός πρόσβασης Sudo",
   "Click to add, click again to remove. Changes are saved automatically.": "Κάντε κλικ για προσθήκη, κάντε ξανά κλικ για αφαίρεση. Οι αλλαγές αποθηκεύονται αυτόματα.",
   "⚠️ Risk Notice: This provider uses a subscription/OAuth session not officially licensed for proxy/router use. Account may be restricted or banned. Use at your own risk.": "⚠️ Ειδοποίηση κινδύνου: Αυτός ο πάροχος χρησιμοποιεί συνδρομή/συνεδρία OAuth που δεν έχει επίσημη άδεια για χρήση μέσω proxy/router. Ο λογαριασμός ενδέχεται να περιοριστεί ή να αποκλειστεί. Χρήση με δική σας ευθύνη.",
-  "⚠️ MITM intercepts HTTPS traffic of IDE tools (Antigravity, GitHub Copilot, Kiro) via local CA to redirect requests to your providers. May violate ToS → account ban. Use at your own risk.": "⚠️ Το MITM υποκλέπτει την κίνηση HTTPS των εργαλείων IDE (Antigravity, GitHub Copilot, Kiro) μέσω τοπικού CA για ανακατεύθυνση αιτημάτων στους παρόχους σας. Μπορεί να παραβιάσει τους ToS → κίνδυνος αποκλεισμού λογαριασμού. Χρήση με δική σας ευθύνη.",
   "Endpoint is exposed without an API key.": "Το τελικό σημείο είναι εκτεθειμένο χωρίς κλειδί API."
 }

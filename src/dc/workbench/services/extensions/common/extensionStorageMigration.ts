@@ -15,11 +15,6 @@ import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uri
 import { IUserDataProfilesService } from '../../../../platform/userDataProfile/common/userDataProfile.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 
-/**
- * An extension storage has following
- * 	- State: Stored using storage service with extension id as key and state as value.
- *  - Resources: Stored under a location scoped to the extension.
- */
 export async function migrateExtensionStorage(fromExtensionId: string, toExtensionId: string, global: boolean, instantionService: IInstantiationService): Promise<void> {
 	return instantionService.invokeFunction(async serviceAccessor => {
 		const environmentService = serviceAccessor.get(IEnvironmentService);
@@ -47,14 +42,12 @@ export async function migrateExtensionStorage(fromExtensionId: string, toExtensi
 		const storageScope = global ? StorageScope.PROFILE : StorageScope.WORKSPACE;
 		if (!storageService.getBoolean(storageMigratedKey, storageScope, false) && !(migrateLowerCaseStorageKey && storageService.getBoolean(migrateLowerCaseStorageKey, storageScope, false))) {
 			logService.info(`Migrating ${global ? 'global' : 'workspace'} extension storage from ${fromExtensionId} to ${toExtensionId}...`);
-			// Migrate state
 			const value = extensionStorageService.getExtensionState(fromExtensionId, global);
 			if (value) {
 				extensionStorageService.setExtensionState(toExtensionId, value, global);
 				extensionStorageService.setExtensionState(fromExtensionId, undefined, global);
 			}
 
-			// Migrate stored files
 			const fromPath = getExtensionStorageLocation(fromExtensionId, global);
 			const toPath = getExtensionStorageLocation(toExtensionId, global);
 			if (!uriIdentityService.extUri.isEqual(fromPath, toPath)) {

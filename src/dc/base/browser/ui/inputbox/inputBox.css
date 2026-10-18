@@ -10,14 +10,12 @@
 	box-sizing:	border-box;
 	border-radius: 4px;
 
-	/* Customizable */
 	font-size: inherit;
 }
 
 .monaco-inputbox > .ibwrapper > .input,
 .monaco-inputbox > .ibwrapper > .mirror {
 
-	/* Customizable */
 	padding: 4px 6px;
 }
 
@@ -45,12 +43,12 @@
 
 .monaco-inputbox > .ibwrapper > textarea.input {
 	display: block;
-	scrollbar-width: none; /* Firefox: hide scrollbars */
+	scrollbar-width: none;
 	outline: none;
 }
 
 .monaco-inputbox > .ibwrapper > textarea.input::-webkit-scrollbar {
-	display: none; /* Chrome + Safari: hide scrollbar */
+	display: none;
 }
 
 .monaco-inputbox > .ibwrapper > textarea.input.empty {
@@ -69,7 +67,6 @@
 	word-wrap: break-word;
 }
 
-/* Context view */
 
 .monaco-inputbox-container {
 	text-align: right;
@@ -88,7 +85,6 @@
 	word-wrap: break-word;
 }
 
-/* Action bar support */
 .monaco-inputbox .monaco-action-bar {
 	position: absolute;
 	right: 2px;

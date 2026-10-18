@@ -57,7 +57,6 @@ export class CellFocusIndicator extends CellContentPart {
 			}
 
 			if (e.target !== this.left.domNode) {
-				// Don't allow dblclick on the codeFocusIndicator/outputFocusIndicator
 				return;
 			}
 

@@ -36,8 +36,6 @@ export default {
     },
     defaultRegion: "sgp",
   },
-  // Multi-endpoint: pick the transport matching client sourceFormat to skip translation.
-  // baseUrl omitted — region-dynamic, resolved in the executor's buildUrl.
   transports: [
     {
       format: "openai",

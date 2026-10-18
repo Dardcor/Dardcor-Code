@@ -8,19 +8,9 @@ import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocum
 import * as strings from '../../../util/dardcor/base/common/strings';
 import { isLines, Lines } from './editGeneration';
 
-/**
- * An inlined enum containing useful character codes (to be used with String.charCodeAt).
- * Please leave the const keyword such that it gets inlined when compiled to JavaScript!
- */
 const enum CharCode {
-	/**
-	 * The `\t` character.
-	 */
 	Tab = 9,
 	Space = 32,
-	/**
-	 * The `,` character.
-	 */
 	Comma = 44,
 }
 
@@ -35,17 +25,10 @@ class SpacesDiffResult {
 	public looksLikeAlignment = false;
 }
 
-/**
- * Compute the diff in spaces between two line's indentation.
- */
 function spacesDiff(a: string, aLength: number, b: string, bLength: number, result: SpacesDiffResult): void {
 	result.spacesDiff = 0;
 	result.looksLikeAlignment = false;
 
-	// This can go both ways (e.g.):
-	//  - a: "\t"
-	//  - b: "\t    "
-	//  => This should count 1 tab and 4 spaces
 
 	let i: number;
 
@@ -91,16 +74,11 @@ function spacesDiff(a: string, aLength: number, b: string, bLength: number, resu
 	const spacesDiff = Math.abs(aSpacesCnt - bSpacesCnt);
 
 	if (tabsDiff === 0) {
-		// check if the indentation difference might be caused by alignment reasons
-		// sometime folks like to align their code, but this should not be used as a hint
 		result.spacesDiff = spacesDiff;
 
 		if (spacesDiff > 0 && 0 <= bSpacesCnt - 1 && bSpacesCnt - 1 < a.length && bSpacesCnt < b.length) {
 			if (b.charCodeAt(bSpacesCnt) !== CharCode.Space && a.charCodeAt(bSpacesCnt - 1) === CharCode.Space) {
 				if (a.charCodeAt(a.length - 1) === CharCode.Comma) {
-					// This looks like an alignment desire: e.g.
-					// const a = b + c,
-					//       d = b - c;
 					result.looksLikeAlignment = true;
 				}
 			}
@@ -113,17 +91,8 @@ function spacesDiff(a: string, aLength: number, b: string, bLength: number, resu
 	}
 }
 
-/**
- * Result for a guessIndentation
- */
 export interface IGuessedIndentation {
-	/**
-	 * If indentation is based on spaces (`insertSpaces` = true), then what is the number of spaces that make an indent?
-	 */
 	tabSize: number;
-	/**
-	 * Is indentation based on spaces?
-	 */
 	insertSpaces: boolean;
 }
 
@@ -136,29 +105,28 @@ export function guessIndentation(
 	defaultTabSize: number,
 	defaultInsertSpaces: boolean
 ): IGuessedIndentation {
-	// Look at most at the first 10k lines
 	const linesCount = Math.min(isLines(source) ? source.length : source.lineCount, 10000);
 
-	let linesIndentedWithTabsCount = 0; // number of lines that contain at least one tab in indentation
-	let linesIndentedWithSpacesCount = 0; // number of lines that contain only spaces in indentation
+	let linesIndentedWithTabsCount = 0;
+	let linesIndentedWithSpacesCount = 0;
 
-	let previousLineText = ''; // content of latest line that contained non-whitespace chars
-	let previousLineIndentation = 0; // index at which latest line contained the first non-whitespace char
+	let previousLineText = '';
+	let previousLineIndentation = 0;
 
-	const ALLOWED_TAB_SIZE_GUESSES = [2, 4, 6, 8, 3, 5, 7]; // prefer even guesses for `tabSize`, limit to [2, 8].
-	const MAX_ALLOWED_TAB_SIZE_GUESS = 8; // max(ALLOWED_TAB_SIZE_GUESSES) = 8
+	const ALLOWED_TAB_SIZE_GUESSES = [2, 4, 6, 8, 3, 5, 7];
+	const MAX_ALLOWED_TAB_SIZE_GUESS = 8;
 
-	const spacesDiffCount = [0, 0, 0, 0, 0, 0, 0, 0, 0]; // `tabSize` scores
+	const spacesDiffCount = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 	const tmp = new SpacesDiffResult();
 
 	for (let lineNumber = 0; lineNumber < linesCount; lineNumber++) {
 		const currentLineText = isLines(source) ? source[lineNumber] : source.lineAt(lineNumber).text;
 		const currentLineLength = currentLineText.length;
 
-		let currentLineHasContent = false; // does `currentLineText` contain non-whitespace chars
-		let currentLineIndentation = 0; // index at which `currentLineText` contains the first non-whitespace char
-		let currentLineSpacesCount = 0; // count of spaces found in `currentLineText` indentation
-		let currentLineTabsCount = 0; // count of tabs found in `currentLineText` indentation
+		let currentLineHasContent = false;
+		let currentLineIndentation = 0;
+		let currentLineSpacesCount = 0;
+		let currentLineTabsCount = 0;
 		for (let j = 0, lenJ = currentLineLength; j < lenJ; j++) {
 			const charCode = currentLineText.charCodeAt(j);
 
@@ -167,14 +135,12 @@ export function guessIndentation(
 			} else if (charCode === CharCode.Space) {
 				currentLineSpacesCount++;
 			} else {
-				// Hit non whitespace character on this line
 				currentLineHasContent = true;
 				currentLineIndentation = j;
 				break;
 			}
 		}
 
-		// Ignore empty or only whitespace lines
 		if (!currentLineHasContent) {
 			continue;
 		}
@@ -188,15 +154,6 @@ export function guessIndentation(
 		spacesDiff(previousLineText, previousLineIndentation, currentLineText, currentLineIndentation, tmp);
 
 		if (tmp.looksLikeAlignment) {
-			// if defaultInsertSpaces === true && the spaces count == tabSize, we may want to count it as valid indentation
-			//
-			// - item1
-			//   - item2
-			//
-			// otherwise skip this line entirely
-			//
-			// const a = 1,
-			//       b = 2;
 
 			if (!(defaultInsertSpaces && defaultTabSize === tmp.spacesDiff)) {
 				continue;
@@ -219,11 +176,9 @@ export function guessIndentation(
 
 	let tabSize = defaultTabSize;
 
-	// Guess tabSize only if inserting spaces...
 	if (insertSpaces) {
 		let tabSizeScore = insertSpaces ? 0 : 0.1 * linesCount;
 
-		// console.log("score threshold: " + tabSizeScore);
 
 		ALLOWED_TAB_SIZE_GUESSES.forEach(possibleTabSize => {
 			const possibleTabSizeScore = spacesDiffCount[possibleTabSize];
@@ -233,8 +188,6 @@ export function guessIndentation(
 			}
 		});
 
-		// Let a tabSize of 2 win even if it is not the maximum
-		// (only in case 4 was guessed)
 		if (
 			tabSize === 4 &&
 			spacesDiffCount[4] > 0 &&
@@ -245,10 +198,6 @@ export function guessIndentation(
 		}
 	}
 
-	// console.log('--------------------------');
-	// console.log('linesIndentedWithTabsCount: ' + linesIndentedWithTabsCount + ', linesIndentedWithSpacesCount: ' + linesIndentedWithSpacesCount);
-	// console.log('spacesDiffCount: ' + spacesDiffCount);
-	// console.log('tabSize: ' + tabSize + ', tabSizeScore: ' + tabSizeScore);
 
 	return {
 		insertSpaces: insertSpaces,
@@ -256,11 +205,6 @@ export function guessIndentation(
 	};
 }
 
-/**
- * Returns:
- *  - if the result is positive => the indent level is returned value
- *  - if the result is negative => the line contains only whitespace and the indent level is ~(result)
- */
 function computeIndentLevel(line: string, tabSize: number): number {
 	let indent = 0;
 	let i = 0;
@@ -279,7 +223,7 @@ function computeIndentLevel(line: string, tabSize: number): number {
 	}
 
 	if (i === len) {
-		return ~indent; // line only consists of whitespace
+		return ~indent;
 	}
 
 	return indent;

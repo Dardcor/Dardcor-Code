@@ -46,11 +46,6 @@ IMPORTANT: The file and line do NOT need to be the definition of the symbol. Any
 
 If the tool returns an error, retry with corrected input - ensure the file path is correct, the line content matches the actual file content, and the symbol name appears in that line.`;
 
-/**
- * Static description that does not depend on the set of registered rename
- * providers, so it stays byte-stable across requests as language extensions
- * activate during a turn.
- */
 const StaticModelDescription = BaseModelDescription + `
 
 If the file's language has no rename provider registered, the tool returns an error.`;
@@ -124,13 +119,11 @@ export class RenameTool extends Disposable implements IToolImpl {
 	async invoke(invocation: IToolInvocation, _countTokens: CountTokensCallback, _progress: ToolProgress, token: CancellationToken): Promise<IToolResult> {
 		const input = invocation.parameters as IRenameToolInput;
 
-		// --- resolve URI ---
 		const uri = resolveSymbolToolFileUri(input, this._workspaceContextService, this._uriIdentityService, invocation.context?.workingDirectory);
 		if (!uri) {
 			return errorResult(localize('tool.rename.invalidFile', 'Provide either "uri" (a full URI) or "filePath" (a workspace-relative path) to identify a file within the current workspace or working directory.'));
 		}
 
-		// --- open text model ---
 		const ref = await this._textModelService.createModelReference(uri);
 		try {
 			const model = ref.object.textEditorModel;
@@ -139,13 +132,11 @@ export class RenameTool extends Disposable implements IToolImpl {
 				return errorResult(`No rename provider available for this file's language. The rename tool may not support this language.`);
 			}
 
-			// --- find line containing lineContent ---
 			const lineNumber = findLineNumber(model, input.lineContent);
 			if (lineNumber === undefined) {
 				return errorResult(`Could not find line content "${input.lineContent}" in ${uri.toString()}. Provide the exact text from the line where the symbol appears.`);
 			}
 
-			// --- find symbol in that line ---
 			const lineText = model.getLineContent(lineNumber);
 			const column = findSymbolColumn(lineText, input.symbol);
 			if (column === undefined) {
@@ -154,7 +145,6 @@ export class RenameTool extends Disposable implements IToolImpl {
 
 			const position = new Position(lineNumber, column);
 
-			// --- perform rename ---
 			const renameResult = await rename(this._languageFeaturesService.renameProvider, model, position, input.newName);
 
 			if (renameResult.rejectReason) {
@@ -169,7 +159,6 @@ export class RenameTool extends Disposable implements IToolImpl {
 				return errorResult(localize('tool.rename.outOfScopeEdit', 'Rename was not applied because it would modify files outside the current workspace or working directory.'));
 			}
 
-			// --- apply edits via chat response stream ---
 			if (invocation.context) {
 				const chatModel = this._chatService.getSession(invocation.context.sessionResource) as ChatModel | undefined;
 				const request = chatModel?.getRequests().at(-1);
@@ -179,7 +168,6 @@ export class RenameTool extends Disposable implements IToolImpl {
 						return errorResult(localize('tool.rename.unsupportedEdit', 'Rename was not applied because it produced edits that cannot be reviewed in chat.'));
 					}
 
-					// Group text edits by URI
 					const editsByUri = new ResourceMap<TextEdit[]>();
 					for (const edit of renameResult.edits) {
 						if (ResourceTextEdit.is(edit)) {
@@ -192,7 +180,6 @@ export class RenameTool extends Disposable implements IToolImpl {
 						}
 					}
 
-					// Push edits through the chat response stream
 					for (const [editUri, edits] of editsByUri) {
 						chatModel.acceptResponseProgress(request, {
 							kind: 'textEdit',
@@ -216,7 +203,6 @@ export class RenameTool extends Disposable implements IToolImpl {
 				}
 			}
 
-			// Fallback: apply via bulk edit service when no chat context is available
 			await this._bulkEditService.apply(renameResult);
 			const fileCount = new ResourceSet(renameResult.edits.filter(ResourceTextEdit.is).map(e => e.resource)).size;
 			return this._successResult(input, fileCount, renameResult.edits.length);

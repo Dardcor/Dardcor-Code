@@ -43,27 +43,7 @@ function createTemplate(input: string): (params: Record<string, string>) => stri
 
 const darwinCreditsTemplate = product.darwinCredits && createTemplate(fs.readFileSync(path.join(root, product.darwinCredits), 'utf8'));
 
-/**
- * Generate a `DarwinDocumentType` given a list of file extensions, an icon name, and an optional suffix or file type name.
- * @param extensions A list of file extensions, such as `['bat', 'cmd']`
- * @param icon A sentence-cased file type name that matches the lowercase name of a darwin icon resource.
- * For example, `'HTML'` instead of `'html'`, or `'Java'` instead of `'java'`.
- * This parameter is lowercased before it is used to reference an icon file.
- * @param nameOrSuffix An optional suffix or a string to use as the file type. If a suffix is provided,
- * it is used with the icon parameter to generate a file type string. If nothing is provided,
- * `'document'` is used with the icon parameter to generate file type string.
- *
- * For example, if you call `darwinBundleDocumentType(..., 'HTML')`, the resulting file type is `"HTML document"`,
- * and the `'html'` darwin icon is used.
- *
- * If you call `darwinBundleDocumentType(..., 'Javascript', 'file')`, the resulting file type is `"Javascript file"`.
- * and the `'javascript'` darwin icon is used.
- *
- * If you call `darwinBundleDocumentType(..., 'bat', 'Windows command script')`, the file type is `"Windows command script"`,
- * and the `'bat'` darwin icon is used.
- */
 function darwinBundleDocumentType(extensions: string[], icon: string, nameOrSuffix?: string | DarwinDocumentSuffix, utis?: string[]): DarwinDocumentType {
-	// If given a suffix, generate a name from it. If not given anything, default to 'document'
 	if (isDocumentSuffix(nameOrSuffix) || !nameOrSuffix) {
 		nameOrSuffix = icon.charAt(0).toUpperCase() + icon.slice(1) + ' ' + (nameOrSuffix ?? 'document');
 	}
@@ -78,17 +58,6 @@ function darwinBundleDocumentType(extensions: string[], icon: string, nameOrSuff
 	};
 }
 
-/**
- * Generate several `DarwinDocumentType`s with unique names and a shared icon.
- * @param types A map of file type names to their associated file extensions.
- * @param icon A darwin icon resource to use. For example, `'HTML'` would refer to `resources/darwin/html.icns`
- *
- * Examples:
- * ```
- * darwinBundleDocumentTypes({ 'C header file': 'h', 'C source code': 'c' },'c')
- * darwinBundleDocumentTypes({ 'React source code': ['jsx', 'tsx'] }, 'react')
- * ```
- */
 function darwinBundleDocumentTypes(types: { [name: string]: string | string[] }, icon: string): DarwinDocumentType[] {
 	return Object.keys(types).map((name: string): DarwinDocumentType => {
 		const extensions = types[name];
@@ -104,17 +73,11 @@ function darwinBundleDocumentTypes(types: { [name: string]: string | string[] },
 
 const { electronVersion, msBuildId } = util.getElectronVersion();
 
-// In product builds, `@vscode/gulp-electron` is given an asset resolver (via the
-// `repo` option) that fetches the prebuilt Electron archives on demand from the
-// Azure Artifacts feed named by `product.electronArtifactFeed` using the `az`
-// CLI, instead of downloading them from electron's official GitHub releases
-// (which OSS builds use when no feed is configured). Each universal package
-// contains exactly one file, which is streamed back as a `Response` and
-// validated against the feed's `SHASUMS256.txt`.
 const electronFeed: string | undefined = product.electronArtifactFeed;
+if (electronFeed && !msBuildId) {
+	throw new Error('The configured Electron artifact feed requires dardcorBuild.electronMsBuildId in package.json.');
+}
 
-// Maps the artifact file name `@vscode/gulp-electron` requests to the matching
-// universal package name in the feed, or `undefined` when it is not mirrored.
 function feedPackageName(fileName: string): string | undefined {
 	if (fileName === 'SHASUMS256.txt') {
 		return 'shasums256';
@@ -189,7 +152,6 @@ export const config = {
 			'profile', 'rhistory', 'rprofile', 'sh', 'zlogin', 'zlogout',
 			'zprofile', 'zsh', 'zshenv', 'zshrc'
 		], 'Shell', 'script'),
-		// Default icon with specified names
 		...darwinBundleDocumentTypes({
 			'Clojure source code': ['clj', 'cljs', 'cljx', 'clojure'],
 			'VS Code workspace file': 'code-workspace',
@@ -222,12 +184,10 @@ export const config = {
 			'TOML document': 'toml',
 			'Swift source code': 'swift',
 		}, 'default'),
-		// Default icon with default name
 		darwinBundleDocumentType([
 			'containerfile', 'ctp', 'dot', 'edn', 'handlebars', 'hbs', 'ml', 'mli',
 			'pl', 'pl6', 'pm', 'pm6', 'pod', 'pp', 'properties', 'psgi', 'rt', 't'
 		], 'default', product.nameLong + ' document'),
-		// Folder support ()
 		darwinBundleDocumentType([], 'default', 'Folder', ['public.folder'])
 	],
 	darwinBundleURLTypes: [{

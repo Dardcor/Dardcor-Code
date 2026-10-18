@@ -55,7 +55,6 @@ describe('AgentIntent /summarize command', () => {
 	});
 
 	beforeEach(() => {
-		// Reset config to enabled by default
 		configService.setConfig(ConfigKey.SummarizeAgentConversationHistory, true);
 		chatResponse.length = 0;
 		chatResponse.push('This is a test summary of the conversation.');
@@ -117,7 +116,6 @@ describe('AgentIntent /summarize command', () => {
 	}
 
 	function createConversationWithHistory(): Conversation {
-		// Create a previous turn with tool call rounds
 		const previousTurn = new Turn('turn1', { type: 'user', message: 'Create a file for me' });
 		const previousTurnResult: ICopilotChatResultIn = {
 			metadata: {
@@ -129,14 +127,12 @@ describe('AgentIntent /summarize command', () => {
 		};
 		previousTurn.setResponse(TurnStatus.Success, { type: 'model', message: 'Done!' }, 'responseId1', previousTurnResult);
 
-		// Create the current turn (the /summarize command turn)
 		const currentTurn = new Turn('turn2', { type: 'user', message: '/summarize' });
 
 		return new Conversation('sessionId', [previousTurn, currentTurn]);
 	}
 
 	function createConversationWithNoHistory(): Conversation {
-		// Just the current /summarize turn, no prior history
 		const currentTurn = new Turn('turn1', { type: 'user', message: '/summarize' });
 		return new Conversation('sessionId', [currentTurn]);
 	}
@@ -145,7 +141,6 @@ describe('AgentIntent /summarize command', () => {
 		const conversation = createConversationWithHistory();
 		const { result } = await runSummarize(conversation);
 
-		// Should have summary metadata
 		expect(result.metadata).toBeDefined();
 		expect(result.metadata?.summary).toBeDefined();
 		expect(result.metadata?.summary?.toolCallRoundId).toBe('toolCallRoundId1');
@@ -153,12 +148,10 @@ describe('AgentIntent /summarize command', () => {
 	});
 
 	test('summarizes even when auto-summarize setting is disabled', async () => {
-		// Disable auto-summarization - /compact should still work since it's an explicit user action
 		configService.setConfig(ConfigKey.SummarizeAgentConversationHistory, false);
 		const conversation = createConversationWithHistory();
 		const { result } = await runSummarize(conversation);
 
-		// Should still have summary metadata since /compact is explicit
 		expect(result.metadata).toBeDefined();
 		expect(result.metadata?.summary).toBeDefined();
 		expect(result.metadata?.summary?.toolCallRoundId).toBe('toolCallRoundId1');
@@ -169,27 +162,19 @@ describe('AgentIntent /summarize command', () => {
 		const conversation = createConversationWithNoHistory();
 		const { result, stream } = await runSummarize(conversation);
 
-		// Should not have summary metadata
 		expect(result.metadata?.summary).toBeUndefined();
 
-		// Should have output with "Nothing to compact" message
 		expect(stream.output.some(msg => msg.toLowerCase().includes('nothing to compact'))).toBe(true);
 	});
 
 	test('cancels any pending background summarizer for the session', async () => {
 		const intent = instantiationService.createInstance(AgentIntent);
 
-		// Prime a background summarizer for this session before /compact runs.
-		// Its identity is what we want to see disappear from the map afterward.
 		const before = intent.getOrCreateBackgroundSummarizer('sessionId', 100_000, 'test-model');
 
 		const conversation = createConversationWithHistory();
 		await runSummarize(conversation, intent);
 
-		// After /compact, a follow-up get must create a fresh instance — the
-		// pre-existing summarizer was cancelled and removed so its (potentially
-		// stale) result can't overwrite the user-initiated compaction on the
-		// next render.
 		const after = intent.getOrCreateBackgroundSummarizer('sessionId', 100_000, 'test-model');
 		expect(after).not.toBe(before);
 	});
@@ -199,14 +184,9 @@ describe('AgentIntent /summarize command', () => {
 
 		const onModelA = intent.getOrCreateBackgroundSummarizer('sessionId', 100_000, 'model-a');
 			expect(onModelA.endpointId).toBe('model-a');
-		// Switching the endpoint identity must hand back a different instance
-		// (the previous one's pending/completed state is for the old prefix
-		// and would surprise the user on the new model).
 		const onModelB = intent.getOrCreateBackgroundSummarizer('sessionId', 200_000, 'model-b');
 		expect(onModelB).not.toBe(onModelA);
 			expect(onModelB.endpointId).toBe('model-b');
-		// Re-asking for model A must NOT return the old instance — it was
-		// dropped from the map when we switched away.
 		const onModelAAgain = intent.getOrCreateBackgroundSummarizer('sessionId', 100_000, 'model-a');
 		expect(onModelAAgain).not.toBe(onModelA);
 	});

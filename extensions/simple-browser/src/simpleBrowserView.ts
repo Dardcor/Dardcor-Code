@@ -77,7 +77,6 @@ export class SimpleBrowserView extends Disposable {
 						const url = vscode.Uri.parse(e.url);
 						vscode.env.openExternal(url);
 					} catch {
-						// Noop
 					}
 					break;
 			}
@@ -119,7 +118,7 @@ export class SimpleBrowserView extends Disposable {
 		const mainCss = this.extensionResourceUrl('media', 'main.css');
 		const codiconsUri = this.extensionResourceUrl('media', 'codicon.css');
 
-		return /* html */ `<!DOCTYPE html>
+		return `<!DOCTYPE html>
 			<html>
 			<head>
 				<meta http-equiv="Content-type" content="text/html;charset=UTF-8">

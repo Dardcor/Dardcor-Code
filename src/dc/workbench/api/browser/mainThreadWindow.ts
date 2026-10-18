@@ -59,10 +59,8 @@ export class MainThreadWindow implements MainThreadWindowShape {
 		const uri = URI.from(uriComponents);
 		let target: URI | string;
 		if (uriString && URI.parse(uriString).toString() === uri.toString()) {
-			// called with string and no transformation happened -> keep string
 			target = uriString;
 		} else {
-			// called with URI or transformed -> use uri
 			target = uri;
 		}
 		return this.openerService.open(target, {

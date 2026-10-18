@@ -131,7 +131,6 @@ async function runPostInstallCommand(commandService: ICommandService, chatServic
 	try {
 		await commandService.executeCommand(commandId);
 	} catch {
-		// Command failed or was cancelled; ignore.
 	}
 }
 

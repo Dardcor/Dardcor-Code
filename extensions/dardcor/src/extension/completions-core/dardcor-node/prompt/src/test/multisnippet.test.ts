@@ -26,7 +26,7 @@ suite('Test Multiple Snippet Selection', function () {
 		uri: 'source1',
 		source: docSource,
 		languageId: 'python',
-		offset: docSource.indexOf('|'), // reference snippet will be A B C D
+		offset: docSource.indexOf('|'),
 	};
 
 	const similarFiles: SimilarFileInfo[] = [
@@ -62,7 +62,7 @@ suite('Test Multiple Snippet Selection', function () {
 		uri: 'source1',
 		source: fixedWinDocSrc,
 		languageId: 'python',
-		offset: fixedWinDocSrc.length, // Reference doc qrstuvqxyz with conservative option (10 characters), stuv...abc...xyz with eager (60 characters)
+		offset: fixedWinDocSrc.length,
 	};
 
 	const fixedWinSimilarFiles: SimilarFileInfo[] = [
@@ -76,7 +76,6 @@ suite('Test Multiple Snippet Selection', function () {
 	];
 
 	test('FixedWindow Matcher None', async function () {
-		/** Test under FixedWindow matcher no match gets picked up */
 		const options: SimilarFilesOptions = nullSimilarFilesOptions;
 		const snippets = await getSimilarSnippets(doc, similarFiles, options);
 
@@ -84,10 +83,6 @@ suite('Test Multiple Snippet Selection', function () {
 	});
 
 	test('FixedWindow Matcher Eager No Selection Option', async function () {
-		/** This is to test Multisnippet selection with FixedWindow Matcher and Eager Neibhbortab
-		 * option. windows size for Eager option is 60 and minimum score threshold for inclusion is 0.0.
-		 * We expect only 1 match from line 0 to 60. WIth no selection option, we expect the best match to be returned.
-		 */
 		const options: SimilarFilesOptions = defaultSimilarFilesOptions;
 		const snippetLocationsTop1 = (await getSimilarSnippets(fixedWinDoc, fixedWinSimilarFiles, options)).map(
 			snippet => [snippet.startLine, snippet.endLine]

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { killAppProcesses } from "@/lib/appUpdater";
 
-// Shutdown app to release file locks for manual update
 export async function POST() {
   try {
     await killAppProcesses();
-  } catch { /* best effort */ }
+  } catch { }
 
   const response = NextResponse.json({ success: true, message: "Shutting down for manual update..." });
 

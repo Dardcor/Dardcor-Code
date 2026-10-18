@@ -3,10 +3,6 @@ import { createProviderConnection } from "@/models";
 
 const GITLAB_DEFAULT_BASE = "https://gitlab.com";
 
-/**
- * POST /api/oauth/gitlab/pat
- * Authenticate GitLab Duo with a Personal Access Token (PAT)
- */
 export async function POST(request) {
   try {
     let body;
@@ -23,7 +19,6 @@ export async function POST(request) {
 
     const base = (baseUrl?.trim() || GITLAB_DEFAULT_BASE).replace(/\/$/, "");
 
-    // Verify token by fetching current user
     const userRes = await fetch(`${base}/api/v4/user`, {
       headers: { "Private-Token": token.trim(), Accept: "application/json" },
     });

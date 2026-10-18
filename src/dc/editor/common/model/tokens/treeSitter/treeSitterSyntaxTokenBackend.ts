@@ -70,7 +70,7 @@ export class TreeSitterSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 				return undefined;
 			}
 
-			return reader.store.add(this._instantiationService.createInstance(TreeSitterTree, currentLanguage, undefined, parser, parserClass, /*queries, */this._textModel));
+			return reader.store.add(this._instantiationService.createInstance(TreeSitterTree, currentLanguage, undefined, parser, parserClass, this._textModel));
 		});
 
 
@@ -135,12 +135,10 @@ export class TreeSitterSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 	}
 
 	public override handleDidChangeAttached(): void {
-		// TODO @alexr00 implement for background tokenization
 	}
 
 	public override handleDidChangeContent(e: IModelContentChangedEvent): void {
 		if (e.isFlush) {
-			// Don't fire the event, as the view might not have got the text change event yet
 			this.todo_resetTokenization(false);
 		} else {
 			const model = this._tokenizationImpl.get();
@@ -170,12 +168,10 @@ export class TreeSitterSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 	}
 
 	public override isCheapToTokenize(lineNumber: number): boolean {
-		// TODO @alexr00 determine what makes it cheap to tokenize?
 		return true;
 	}
 
 	public override getTokenTypeIfInsertingCharacter(lineNumber: number, column: number, character: string): StandardTokenType {
-		// TODO @alexr00 implement once we have custom parsing and don't just feed in the whole text model value
 		return StandardTokenType.Other;
 	}
 

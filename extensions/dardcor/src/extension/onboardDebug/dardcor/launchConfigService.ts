@@ -14,7 +14,6 @@ export class LaunchConfigService implements ILaunchConfigService {
 	declare readonly _serviceBrand: undefined;
 
 
-	/** @inheritdoc */
 	async add(workspaceFolder: URI | undefined, toAdd: { configurations: vscode.DebugConfiguration[]; inputs?: unknown[] }): Promise<void> {
 		const config = vscode.workspace.getConfiguration('launch', workspaceFolder);
 
@@ -37,7 +36,6 @@ export class LaunchConfigService implements ILaunchConfigService {
 		}
 	}
 
-	/** @inheritdoc */
 	async show(workspaceFolder: URI, showConfigName?: string): Promise<void> {
 		const fileUri = URI.joinPath(workspaceFolder, '.vscode', 'launch.json');
 		let document: vscode.TextDocument | undefined;
@@ -78,14 +76,12 @@ export class LaunchConfigService implements ILaunchConfigService {
 					},
 				});
 			} catch {
-				// ignored
 			}
 		}
 
 		await vscode.window.showTextDocument(document, { selection: range });
 	}
 
-	/** @inheritdoc */
 	async launch(config: vscode.DebugConfiguration | ILaunchJSON): Promise<void> {
 		const debugConfig: vscode.DebugConfiguration | undefined = 'configurations' in config && config.configurations.length ? config.configurations[0] : config;
 		if (!debugConfig) {

@@ -10,9 +10,6 @@ export type InitArgs = {
 	grep?: string;
 };
 
-/**
- * See {@link script/electron/simulationWorkbenchMain.js} for CLI args available.
- */
 export function parseInitEventArgs(processArgv: string[]): InitArgs | undefined {
 
 	const parsedArgs = minimist(processArgv);

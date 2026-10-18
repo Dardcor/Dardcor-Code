@@ -154,9 +154,6 @@ export function activateEmmetExtension(context: vscode.ExtensionContext) {
 	}));
 }
 
-/**
- * Holds any registered completion providers by their language strings
- */
 const languageMappingForCompletionProviders: Map<string, string> = new Map<string, string>();
 const completionProviderDisposables: vscode.Disposable[] = [];
 
@@ -177,8 +174,6 @@ function refreshCompletionProviders(_: vscode.ExtensionContext) {
 			const range = item.range as vscode.Range;
 
 			if (document.getText(range) !== item.label) {
-				// We only want to show an inline completion if we are really sure the user meant emmet.
-				// If the user types `d`, we don't want to suggest `<div></div>`.
 				return undefined;
 			}
 

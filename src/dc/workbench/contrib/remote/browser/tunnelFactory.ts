@@ -30,7 +30,6 @@ export class TunnelFactoryContribution extends Disposable implements IWorkbenchC
 		super();
 		const tunnelFactory = environmentService.options?.tunnelProvider?.tunnelFactory;
 		if (tunnelFactory) {
-			// At this point we clearly want the ports view/features since we have a tunnel factory
 			contextKeyService.createKey(forwardedPortsFeaturesEnabled.key, true);
 			let privacyOptions = environmentService.options?.tunnelProvider?.features?.privacyOptions ?? [];
 			if (environmentService.options?.tunnelProvider?.features?.public
@@ -75,8 +74,6 @@ export class TunnelFactoryContribution extends Disposable implements IWorkbenchC
 					const remoteTunnel: RemoteTunnel = {
 						tunnelRemotePort: tunnel.remoteAddress.port,
 						tunnelRemoteHost: tunnel.remoteAddress.host,
-						// The tunnel factory may give us an inaccessible local address.
-						// To make sure this doesn't happen, resolve the uri immediately.
 						localAddress: await this.resolveExternalUri(localAddress),
 						privacy: tunnel.privacy ?? (tunnel.public ? TunnelPrivacyId.Public : TunnelPrivacyId.Private),
 						protocol: tunnel.protocol ?? TunnelProtocol.Http,

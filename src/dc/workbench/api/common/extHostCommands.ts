@@ -71,9 +71,6 @@ export class ExtHostCommands implements ExtHostCommandsShape {
 		this.converter = new CommandsConverter(
 			this,
 			id => {
-				// API commands that have no return type (void) can be
-				// converted to their internal command and don't need
-				// any indirection commands
 				const candidate = this._apiCommands.get(id);
 				return candidate?.result === ApiCommandResult.Void
 					? candidate : undefined;
@@ -83,14 +80,12 @@ export class ExtHostCommands implements ExtHostCommandsShape {
 		this._argumentProcessors = [
 			{
 				processArgument(a) {
-					// URI, Regex
 					return revive(a);
 				}
 			},
 			{
 				processArgument(arg) {
 					return cloneAndChange(arg, function (obj) {
-						// Reverse of https://github.com/microsoft/vscode/blob/1f28c5fc681f4c01226460b6d1c7e91b8acb4a5b/src/vs/workbench/api/node/extHostCommands.ts#L112-L127
 						if (Range.isIRange(obj)) {
 							return extHostTypeConverter.Range.to(obj);
 						}
@@ -177,15 +172,10 @@ export class ExtHostCommands implements ExtHostCommandsShape {
 	private async _doExecuteCommand<T>(id: string, args: unknown[], retry: boolean): Promise<T> {
 
 		if (this._commands.has(id)) {
-			// - We stay inside the extension host and support
-			// 	 to pass any kind of parameters around.
-			// - We still emit the corresponding activation event
-			//   BUT we don't await that event
 			this.#proxy.$fireCommandActivationEvent(id);
 			return this._executeContributedCommand<T>(id, args, false);
 
 		} else {
-			// automagically convert some argument types
 			let hasBuffers = false;
 			const toArgs = cloneAndChange(args, function (value) {
 				if (value instanceof extHostTypes.Position) {
@@ -215,9 +205,6 @@ export class ExtHostCommands implements ExtHostCommandsShape {
 				const result = await this.#proxy.$executeCommand(id, hasBuffers ? new SerializableObjectWithBuffers(toArgs) : toArgs, retry);
 				return revive<any>(result);
 			} catch (e) {
-				// Rerun the command when it wasn't known, had arguments, and when retry
-				// is enabled. We do this because the command might be registered inside
-				// the extension host now and can therefore accept the arguments as-is.
 				if (e instanceof Error && e.message === '$executeCommand:retry') {
 					return this._doExecuteCommand(id, args, false);
 				} else {
@@ -247,8 +234,6 @@ export class ExtHostCommands implements ExtHostCommandsShape {
 		try {
 			return await callback.apply(thisArg, args);
 		} catch (err) {
-			// The indirection-command from the converter can fail when invoking the actual
-			// command and in that case it is better to blame the correct command
 			if (id === this.converter.delegatingCommandId) {
 				const actual = this.converter.getActualCommand(...args);
 				if (actual) {
@@ -286,7 +271,6 @@ export class ExtHostCommands implements ExtHostCommandsShape {
 			return;
 		}
 		if (id.startsWith('code.copilot.logStructured')) {
-			// This command is very active. See https://github.com/microsoft/vscode/issues/254153.
 			return;
 		}
 		type ExtensionActionTelemetry = {
@@ -352,7 +336,6 @@ export class CommandsConverter implements extHostTypeConverter.Command.ICommands
 	private readonly _cache = new Map<string, vscode.Command>();
 	private _cachIdPool = 0;
 
-	// --- conversion between internal and api commands
 	constructor(
 		private readonly _commands: ExtHostCommands,
 		private readonly _lookupApiCommand: (id: string) => ApiCommand | undefined,
@@ -377,21 +360,16 @@ export class CommandsConverter implements extHostTypeConverter.Command.ICommands
 		};
 
 		if (!command.command) {
-			// falsy command id -> return converted command but don't attempt any
-			// argument or API-command dance since this command won't run anyways
 			return result;
 		}
 
 		const apiCommand = this._lookupApiCommand(command.command);
 		if (apiCommand) {
-			// API command with return-value can be converted inplace
 			result.id = apiCommand.internalId;
 			result.arguments = apiCommand.args.map((arg, i) => arg.convert(command.arguments && command.arguments[i]));
 
 
 		} else if (isNonEmptyArray(command.arguments)) {
-			// we have a contributed command with arguments. that
-			// means we don't want to send the arguments around
 
 			const id = `${command.command} /${++this._cachIdPool}`;
 			this._cache.set(id, command);

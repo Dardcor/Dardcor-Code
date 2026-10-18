@@ -29,7 +29,6 @@ export async function getCodeSnippetsFromContextItems(
 		return [];
 	}
 
-	// Expand snippets and collect URIs
 	const allUris = new Set<string>();
 	const mappedSnippets: SnippetWithProviderInfo[] = codeSnippetContextItems.flatMap(item =>
 		item.data.map(data => {
@@ -39,7 +38,6 @@ export async function getCodeSnippetsFromContextItems(
 		})
 	);
 
-	// Validate all URIs at once: we already know they are distinct
 	const contextProviderStatistics = accessor.get(ICompletionsContextProviderService);
 	const tdm = accessor.get(ICompletionsTextDocumentManagerService);
 	const validationMap = new Map<string, TextDocumentValidation>();
@@ -49,14 +47,12 @@ export async function getCodeSnippetsFromContextItems(
 		})
 	);
 
-	// Process only valid snippets
 	const statistics = contextProviderStatistics.getStatisticsForCompletion(completionId);
 	return mappedSnippets
 		.filter(snippet => {
 			const urisToCheck = [snippet.data.uri, ...(snippet.data.additionalUris ?? [])];
 			const isValid = urisToCheck.every(uri => validationMap.get(uri)?.status === 'valid');
 
-			// Set expectations regardless of validity
 			if (isValid) {
 				statistics.addExpectations(snippet.providerId, [[snippet.data, 'included']]);
 			} else {

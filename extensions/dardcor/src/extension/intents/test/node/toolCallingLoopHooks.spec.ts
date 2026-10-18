@@ -20,11 +20,6 @@ import { IBuildPromptResult, nullRenderPromptResult } from '../../../prompt/node
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { IToolCallingLoopOptions, ToolCallingLoop } from '../../node/toolCallingLoop';
 
-/**
- * Minimal concrete implementation of ToolCallingLoop for testing.
- * Exposes the abstract base class methods for testing while providing
- * simple implementations for the abstract methods.
- */
 class TestToolCallingLoop extends ToolCallingLoop<IToolCallingLoopOptions> {
 	public lastBuildPromptContext: IBuildPromptContext | undefined;
 	public additionalContextValue: string | undefined;
@@ -42,12 +37,10 @@ class TestToolCallingLoop extends ToolCallingLoop<IToolCallingLoopOptions> {
 		throw new Error('fetch should not be called in these tests');
 	}
 
-	// Expose the protected method for testing
 	public async testRunStartHooks(token: CancellationToken): Promise<void> {
 		await this.runStartHooks(undefined, token);
 	}
 
-	// Expose the protected stop hook methods for testing
 	public async testExecuteStopHook(input: StopHookInput, sessionId: string, token: CancellationToken) {
 		return this.executeStopHook(input, sessionId, undefined, token);
 	}
@@ -56,9 +49,7 @@ class TestToolCallingLoop extends ToolCallingLoop<IToolCallingLoopOptions> {
 		return this.executeSubagentStopHook(input, sessionId, undefined, token);
 	}
 
-	// Expose additionalHookContext for verification
 	public getAdditionalHookContext(): string | undefined {
-		// Access via createPromptContext which uses this.additionalHookContext
 		const context = this.createPromptContext([], undefined);
 		return context.additionalHookContext;
 	}
@@ -69,7 +60,7 @@ function createMockChatRequest(overrides: Partial<ChatRequest> = {}): ChatReques
 		prompt: 'test prompt',
 		command: undefined,
 		references: [],
-		location: 1, // ChatLocation.Panel
+		location: 1,
 		location2: undefined,
 		attempt: 0,
 		enableCommandDetection: false,
@@ -106,7 +97,6 @@ describe('ToolCallingLoop SessionStart hook', () => {
 		mockChatHookService = new MockChatHookService();
 
 		const serviceCollection = disposables.add(createExtensionUnitTestingServices());
-		// Must define the mock service BEFORE creating the accessor
 		serviceCollection.define(IChatHookService, mockChatHookService);
 		serviceCollection.define(IOTelService, new NoopOTelService(resolveOTelConfig({ env: {}, extensionVersion: '0.0.0', sessionId: 'test' })));
 
@@ -124,7 +114,7 @@ describe('ToolCallingLoop SessionStart hook', () => {
 
 	describe('SessionStart hook execution conditions', () => {
 		it('should execute SessionStart hook on the first turn of regular sessions', async () => {
-			const conversation = createTestConversation(1); // First turn
+			const conversation = createTestConversation(1);
 			const request = createMockChatRequest({
 				model: { id: 'test-model-id' } as ChatRequest['model'],
 				participant: 'test-agent',
@@ -140,7 +130,6 @@ describe('ToolCallingLoop SessionStart hook', () => {
 			);
 			disposables.add(loop);
 
-			// Spy on the hook service
 			vi.spyOn(mockChatHookService, 'executeHook');
 
 			await loop.testRunStartHooks(tokenSource.token);
@@ -156,7 +145,7 @@ describe('ToolCallingLoop SessionStart hook', () => {
 		});
 
 		it('should NOT execute SessionStart hook on subsequent turns', async () => {
-			const conversation = createTestConversation(3); // Third turn
+			const conversation = createTestConversation(3);
 			const request = createMockChatRequest();
 
 			const loop = instantiationService.createInstance(
@@ -176,7 +165,7 @@ describe('ToolCallingLoop SessionStart hook', () => {
 		});
 
 		it('should NOT execute SessionStart hook for subagent requests', async () => {
-			const conversation = createTestConversation(1); // First turn
+			const conversation = createTestConversation(1);
 			const request = createMockChatRequest({
 				subAgentInvocationId: 'subagent-123',
 				subAgentName: 'TestSubagent',
@@ -194,11 +183,9 @@ describe('ToolCallingLoop SessionStart hook', () => {
 
 			await loop.testRunStartHooks(tokenSource.token);
 
-			// SessionStart should NOT be called for subagents
 			const sessionStartCalls = mockChatHookService.getCallsForHook('SessionStart');
 			expect(sessionStartCalls).toHaveLength(0);
 
-			// SubagentStart should be called instead
 			const subagentStartCalls = mockChatHookService.getCallsForHook('SubagentStart');
 			expect(subagentStartCalls).toHaveLength(1);
 		});
@@ -278,7 +265,7 @@ describe('ToolCallingLoop SessionStart hook', () => {
 				},
 				{
 					resultKind: 'success',
-					output: {}, // No additionalContext
+					output: {},
 				},
 				{
 					resultKind: 'success',
@@ -331,10 +318,8 @@ describe('ToolCallingLoop SessionStart hook', () => {
 			);
 			disposables.add(loop);
 
-			// Should NOT throw - blocking errors are silently ignored for SessionStart
 			await expect(loop.testRunStartHooks(tokenSource.token)).resolves.not.toThrow();
 
-			// Only non-error results should be processed
 			const additionalContext = loop.getAdditionalHookContext();
 			expect(additionalContext).toBe('Context from hook 1\nContext from hook 3');
 		});
@@ -369,10 +354,8 @@ describe('ToolCallingLoop SessionStart hook', () => {
 			);
 			disposables.add(loop);
 
-			// Should NOT throw - stopReason is silently ignored for SessionStart
 			await expect(loop.testRunStartHooks(tokenSource.token)).resolves.not.toThrow();
 
-			// Results with stopReason are skipped, only other results are processed
 			const additionalContext = loop.getAdditionalHookContext();
 			expect(additionalContext).toBe('Context from hook 1\nContext from hook 3');
 		});
@@ -395,10 +378,8 @@ describe('ToolCallingLoop SessionStart hook', () => {
 			);
 			disposables.add(loop);
 
-			// Should not throw
 			await expect(loop.testRunStartHooks(tokenSource.token)).resolves.not.toThrow();
 
-			// additionalContext should be undefined since error occurred
 			const additionalContext = loop.getAdditionalHookContext();
 			expect(additionalContext).toBeUndefined();
 		});
@@ -450,7 +431,6 @@ describe('ToolCallingLoop SessionStart hook', () => {
 
 			await loop.testRunStartHooks(tokenSource.token);
 
-			// Verify the context is available through createPromptContext
 			const promptContext = loop.getAdditionalHookContext();
 			expect(promptContext).toBe('Custom context for prompt');
 		});
@@ -543,7 +523,6 @@ describe('ToolCallingLoop SubagentStart hook', () => {
 			const conversation = createTestConversation(1);
 			const request = createMockChatRequest({
 				subAgentInvocationId: 'subagent-789',
-				// subAgentName not provided
 			} as Partial<ChatRequest>);
 
 			const loop = instantiationService.createInstance(
@@ -582,15 +561,10 @@ describe('ToolCallingLoop SubagentStart hook', () => {
 			);
 			disposables.add(loop);
 
-			// First call: runStartHooks should execute SubagentStart once
 			await loop.testRunStartHooks(tokenSource.token);
 
-			// Second call: run() should NOT execute SubagentStart again
-			// run() will throw because fetch() is not implemented, but SubagentStart
-			// happens before fetch, so we need to verify it wasn't called again
 			await expect(loop.run(undefined, tokenSource.token)).rejects.toThrow();
 
-			// SubagentStart should have been called exactly once (from runStartHooks only)
 			const subagentStartCalls = mockChatHookService.getCallsForHook('SubagentStart');
 			expect(subagentStartCalls).toHaveLength(1);
 		});
@@ -682,10 +656,8 @@ describe('ToolCallingLoop SubagentStart hook', () => {
 			);
 			disposables.add(loop);
 
-			// Should not throw
 			await expect(loop.testRunStartHooks(tokenSource.token)).resolves.not.toThrow();
 
-			// additionalContext should be undefined since error occurred
 			const additionalContext = loop.getAdditionalHookContext();
 			expect(additionalContext).toBeUndefined();
 		});
@@ -771,7 +743,6 @@ describe('ToolCallingLoop Stop hook', () => {
 				output: {
 					hookSpecificOutput: {
 						hookEventName: 'Stop',
-						// no decision field
 					},
 				},
 			},
@@ -818,7 +789,6 @@ describe('ToolCallingLoop Stop hook', () => {
 				output: {
 					hookSpecificOutput: {
 						decision: 'block',
-						// no reason
 					},
 				},
 			},

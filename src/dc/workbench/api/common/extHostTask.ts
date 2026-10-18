@@ -262,7 +262,6 @@ export namespace TaskDTO {
 				scope = value.scope.uri;
 			}
 		} else {
-			// To continue to support the deprecated task constructor that doesn't take a scope, we must add a scope here:
 			scope = types.TaskScope.Workspace;
 		}
 		if (!definition || !scope) {
@@ -411,7 +410,7 @@ export abstract class ExtHostTaskBase implements ExtHostTaskShape, IExtHostTask 
 	protected _taskExecutions: Map<string, TaskExecutionImpl>;
 	protected _taskExecutionPromises: Map<string, Promise<TaskExecutionImpl>>;
 	protected _providedCustomExecutions2: Map<string, types.CustomExecution>;
-	private _notProvidedCustomExecutions: Set<string>; // Used for custom executions tasks that are created and run through executeTask.
+	private _notProvidedCustomExecutions: Set<string>;
 	protected _activeCustomExecutions2: Map<string, types.CustomExecution>;
 	private _lastStartedTask: string | undefined;
 	protected readonly _onDidExecuteTask: Emitter<vscode.TaskStartEvent> = new Emitter<vscode.TaskStartEvent>();
@@ -501,7 +500,6 @@ export abstract class ExtHostTaskBase implements ExtHostTaskShape, IExtHostTask 
 	public async $onDidStartTask(execution: tasks.ITaskExecutionDTO, terminalId: number, resolvedDefinition: tasks.ITaskDefinitionDTO): Promise<void> {
 		const customExecution: types.CustomExecution | undefined = this._providedCustomExecutions2.get(execution.id);
 		if (customExecution) {
-			// Clone the custom execution to keep the original untouched. This is important for multiple runs of the same task.
 			this._activeCustomExecutions2.set(execution.id, customExecution);
 			this._terminalService.attachPtyToTerminal(terminalId, await customExecution.callback(resolvedDefinition));
 		}
@@ -524,8 +522,6 @@ export abstract class ExtHostTaskBase implements ExtHostTaskShape, IExtHostTask 
 
 	public async $OnDidEndTask(execution: tasks.ITaskExecutionDTO): Promise<void> {
 		if (!this._taskExecutionPromises.has(execution.id)) {
-			// Event already fired by the main thread
-			// See https://github.com/microsoft/vscode/commit/aaf73920aeae171096d205efb2c58804a32b6846
 			return;
 		}
 		const _execution = await this.getTaskExecution(execution);
@@ -570,7 +566,6 @@ export abstract class ExtHostTaskBase implements ExtHostTaskShape, IExtHostTask 
 		try {
 			execution = await this.getTaskExecution(value.execution.id);
 		} catch (error) {
-			// The task execution is not available anymore
 			return;
 		}
 
@@ -586,7 +581,6 @@ export abstract class ExtHostTaskBase implements ExtHostTaskShape, IExtHostTask 
 		try {
 			execution = await this.getTaskExecution(value.execution.id);
 		} catch (error) {
-			// The task execution is not available anymore
 			return;
 		}
 
@@ -601,14 +595,6 @@ export abstract class ExtHostTaskBase implements ExtHostTaskShape, IExtHostTask 
 			return Promise.reject(new Error('no handler found'));
 		}
 
-		// Set up a list of task ID promises that we can wait on
-		// before returning the provided tasks. The ensures that
-		// our task IDs are calculated for any custom execution tasks.
-		// Knowing this ID ahead of time is needed because when a task
-		// start event is fired this is when the custom execution is called.
-		// The task start event is also the first time we see the ID from the main
-		// thread, which is too late for us because we need to save an map
-		// from an ID to the custom execution function. (Kind of a cart before the horse problem).
 		const taskIdPromises: Promise<void>[] = [];
 		const fetchPromise = asPromise(() => handler.provider.provideTasks(CancellationToken.None)).then(value => {
 			return this.provideTasksInternal(validTypes, taskIdPromises, handler, value);
@@ -673,7 +659,6 @@ export abstract class ExtHostTaskBase implements ExtHostTaskShape, IExtHostTask 
 		const taskId = await this._proxy.$createTaskId(taskDTO);
 		if (!isProvided && !this._providedCustomExecutions2.has(taskId)) {
 			this._notProvidedCustomExecutions.add(taskId);
-			// Also add to active executions when not coming from a provider to prevent timing issue.
 			this._activeCustomExecutions2.set(taskId, <types.CustomExecution>task.execution);
 		}
 		this._providedCustomExecutions2.set(taskId, <types.CustomExecution>task.execution);
@@ -724,10 +709,6 @@ export abstract class ExtHostTaskBase implements ExtHostTaskShape, IExtHostTask 
 			this._activeCustomExecutions2.delete(execution.id);
 		}
 
-		// Technically we don't really need to do this, however, if an extension
-		// is executing a task through "executeTask" over and over again
-		// with different properties in the task definition, then the map of executions
-		// could grow indefinitely, something we don't want.
 		if (this._notProvidedCustomExecutions.has(execution.id) && (this._lastStartedTask !== execution.id)) {
 			this._providedCustomExecutions2.delete(execution.id);
 			this._notProvidedCustomExecutions.delete(execution.id);
@@ -777,16 +758,12 @@ export class WorkerExtHostTask extends ExtHostTaskBase {
 			throw new Error('Task is not valid');
 		}
 
-		// If this task is a custom execution, then we need to save it away
-		// in the provided custom execution map that is cleaned up after the
-		// task is executed.
 		if (CustomExecutionDTO.is(dto.execution)) {
 			await this.addCustomExecution(dto, task, false);
 		} else {
 			throw new NotSupportedError();
 		}
 
-		// Always get the task execution first to prevent timing issues when retrieving it later
 		const execution = await this.getTaskExecution(await this._proxy.$getTaskExecution(dto), task);
 		this._proxy.$executeTask(dto).catch(error => { throw new Error(error); });
 		return execution;
@@ -805,9 +782,6 @@ export class WorkerExtHostTask extends ExtHostTaskBase {
 				const taskDTO: tasks.ITaskDTO | undefined = TaskDTO.from(task, handler.extension);
 				if (taskDTO && CustomExecutionDTO.is(taskDTO.execution)) {
 					taskDTOs.push(taskDTO);
-					// The ID is calculated on the main thread task side, so, let's call into it here.
-					// We need the task id's pre-computed for custom task executions because when OnDidStartTask
-					// is invoked, we have to be able to map it back to our data.
 					taskIdPromises.push(this.addCustomExecution(taskDTO, task, true));
 				} else {
 					this._logService.warn('Only custom execution tasks supported.');

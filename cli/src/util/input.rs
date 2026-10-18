@@ -9,7 +9,6 @@ use std::fmt::Display;
 
 use super::{errors::WrappedError, io::ReportCopyProgress};
 
-/// Wrapper around indicatif::ProgressBar that implements ReportCopyProgress.
 pub struct ProgressBarReporter {
 	bar: ProgressBar,
 	has_set_total: bool,

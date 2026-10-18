@@ -11,21 +11,12 @@ export interface IToken<S> {
 	token: string;
 }
 
-/**
- * Defines a grammar that moves the streaming response between states (S).
- * You give it an initial state and then a map of states the grammar is in, to
- * substrings that it looks for to move into a different state.
- */
 export class StreamingGrammar<S extends string | number> {
 	public state: S;
 	private accumulator = '';
 
 	private currentEntries: [string, S][] = [];
 
-	/**
-	 * A list of tokens seen so far. "tokens" are substrings of the `deltaText`.
-	 * 'transitionTo' is set for tokens seen in the grammar when a state transiton happens.
-	 */
 	public readonly tokens: IToken<S>[] = [];
 
 	constructor(
@@ -36,17 +27,10 @@ export class StreamingGrammar<S extends string | number> {
 		this.currentEntries = Object.entries(grammar[initialState] || {});
 	}
 
-	/**
-	 * Gets whether the given state was visited.
-	 */
 	public visited(state: S) {
 		return this.tokens.some(token => token.state === state);
 	}
 
-	/**
-	 * Convenience function that accumulates the string of tokens between
-	 * the given indices, optionally only for tokens in the given state.
-	 */
 	public accumulate(fromIndex = 0, toIndex = this.tokens.length, whenState?: S) {
 		let str = '';
 		for (let i = fromIndex; i < toIndex && i < this.tokens.length; i++) {
@@ -63,7 +47,6 @@ export class StreamingGrammar<S extends string | number> {
 		return str;
 	}
 
-	/** Appends text, returns the tokens that were added as a convenience. */
 	public append(deltaText: string): Iterable<IToken<S>> {
 		let maxLength = 0;
 		let found: { index: number; length: number; toState: S } | undefined;
@@ -91,8 +74,6 @@ export class StreamingGrammar<S extends string | number> {
 			this.accumulator = '';
 			this.append(remainder);
 		} else if (this.accumulator.length > maxLength) {
-			// todo: we could use a boyer-moore-horspool lookup table to reduce
-			// the amoung of accumulated text we need to keep
 			this.tokens.push({ state: this.state, token: this.accumulator.slice(0, this.accumulator.length - maxLength) });
 			this.accumulator = this.accumulator.slice(this.accumulator.length - maxLength);
 		}

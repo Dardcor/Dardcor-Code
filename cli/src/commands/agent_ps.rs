@@ -14,7 +14,6 @@ use super::args::AgentPsArgs;
 use super::output::{self, Styles};
 use super::CommandContext;
 
-/// Lists active sessions on a running agent host.
 pub async fn agent_ps(ctx: CommandContext, args: AgentPsArgs) -> Result<i32, AnyError> {
 	let client = agent::connect(&ctx, args.address.as_deref(), args.tunnel.as_deref()).await?;
 
@@ -41,7 +40,6 @@ pub async fn agent_ps(ctx: CommandContext, args: AgentPsArgs) -> Result<i32, Any
 			.collect()
 	};
 
-	// Most-recently-modified first.
 	items.sort_by_key(|b| std::cmp::Reverse(b.modified_at));
 
 	if args.json {
@@ -58,8 +56,6 @@ pub async fn agent_ps(ctx: CommandContext, args: AgentPsArgs) -> Result<i32, Any
 	Ok(0)
 }
 
-/// A session is "active" if it is in-progress, needs input, or errored
-/// (i.e. not just idle/archived).
 fn is_active(status: u32) -> bool {
 	let dominated = SessionStatus::IsRead.bits()
 		| SessionStatus::IsArchived.bits()

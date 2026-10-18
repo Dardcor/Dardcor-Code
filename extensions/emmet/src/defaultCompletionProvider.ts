@@ -66,7 +66,6 @@ export class DefaultCompletionItemProvider implements vscode.CompletionItemProvi
 		const lsDoc = toLSTextDocument(document);
 		position = document.validatePosition(position);
 
-		// Don't show completions if there's a comment at the beginning of the line
 		const lineRange = new vscode.Range(position.line, 0, position.line, position.character);
 		if (document.getText(lineRange).trimStart().startsWith('//')) {
 			return;
@@ -143,9 +142,6 @@ export class DefaultCompletionItemProvider implements vscode.CompletionItemProvi
 			currentNode = getFlatNode(rootNode, offset, true);
 		}
 
-		// Fix for https://github.com/microsoft/vscode/issues/107578
-		// Validate location if syntax is of styleSheet type to ensure that location is valid for emmet abbreviation.
-		// For an html document containing a <style> node, compute the embeddedCssNode and fetch the flattened node as currentNode.
 		if (!isStyleSheet(document.languageId) && isStyleSheet(syntax) && context.triggerKind !== vscode.CompletionTriggerKind.TriggerForIncompleteCompletions) {
 			validateLocation = true;
 			rootNode = getRootNode(document, true);
@@ -163,13 +159,8 @@ export class DefaultCompletionItemProvider implements vscode.CompletionItemProvi
 
 		let isNoisePromise: Thenable<boolean> = Promise.resolve(false);
 
-		// Fix for https://github.com/microsoft/vscode/issues/32647
-		// Check for document symbols in js/ts/jsx/tsx and avoid triggering emmet for abbreviations of the form symbolName.sometext
-		// Presence of > or * or + in the abbreviation denotes valid abbreviation that should trigger emmet
 		if (!isStyleSheet(syntax) && (document.languageId === 'javascript' || document.languageId === 'javascriptreact' || document.languageId === 'typescript' || document.languageId === 'typescriptreact')) {
 			const abbreviation: string = extractAbbreviationResults.abbreviation;
-			// For the second condition, we don't want abbreviations that have [] characters but not ='s in them to expand
-			// In turn, users must explicitly expand abbreviations of the form Component[attr1 attr2], but it means we don't try to expand a[i].
 			if (abbreviation.startsWith('this.') || /\[[^\]=]*\]/.test(abbreviation)) {
 				isNoisePromise = Promise.resolve(true);
 			} else {

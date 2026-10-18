@@ -9,7 +9,6 @@ import { escapeIcons, getCodiconAriaLabel, IParsedLabelWithIcons, markdownEscape
 import { ensureNoDisposablesAreLeakedInTestSuite } from './utils.js';
 
 interface IIconFilter {
-	// Returns null if word doesn't match.
 	(query: string, target: IParsedLabelWithIcons): IMatch[] | null;
 }
 
@@ -23,7 +22,6 @@ function filterOk(filter: IIconFilter, word: string, target: IParsedLabelWithIco
 
 suite('Icon Labels', () => {
 	test('Can get proper aria labels', () => {
-		// note, the spaces in the results are important
 		const testCases = new Map<string, string>([
 			['', ''],
 			['asdf', 'asdf'],
@@ -43,7 +41,6 @@ suite('Icon Labels', () => {
 
 	test('matchesFuzzyIconAware', () => {
 
-		// Camel Case
 
 		filterOk(matchesFuzzyIconAware, 'ccr', parseLabelWithIcons('$(codicon)CamelCaseRocks$(codicon)'), [
 			{ start: 10, end: 11 },
@@ -63,13 +60,11 @@ suite('Icon Labels', () => {
 			{ start: 43, end: 44 },
 		]);
 
-		// Prefix
 
 		filterOk(matchesFuzzyIconAware, 'using', parseLabelWithIcons('$(codicon) Indent Using Spaces'), [
 			{ start: 18, end: 23 },
 		]);
 
-		// Broken Codicon
 
 		filterOk(matchesFuzzyIconAware, 'codicon', parseLabelWithIcons('This $(codicon Indent Using Spaces'), [
 			{ start: 7, end: 14 },
@@ -79,12 +74,10 @@ suite('Icon Labels', () => {
 			{ start: 14, end: 20 },
 		]);
 
-		// Testing #59343
 		filterOk(matchesFuzzyIconAware, 'unt', parseLabelWithIcons('$(primitive-dot) $(file-text) Untitled-1'), [
 			{ start: 30, end: 33 },
 		]);
 
-		// Testing #136172
 		filterOk(matchesFuzzyIconAware, 's', parseLabelWithIcons('$(loading~spin) start'), [
 			{ start: 16, end: 17 },
 		]);

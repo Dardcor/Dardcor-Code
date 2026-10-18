@@ -91,7 +91,6 @@ export async function getWorkspaceSymbols(query: string, token: CancellationToke
 		return [];
 	}
 
-	// de-duplicate entries
 
 	function compareItems(a: WorkspaceSymbolItem, b: WorkspaceSymbolItem): number {
 		let res = compare(a.symbol.name, b.symbol.name);
@@ -135,9 +134,6 @@ export interface IWorkbenchSearchConfiguration extends ISearchConfiguration {
 	search: IWorkbenchSearchConfigurationProperties;
 }
 
-/**
- * Helper to return all opened editors with resources not belonging to the currently opened workspace.
- */
 export function getOutOfWorkspaceEditorResources(accessor: ServicesAccessor): URI[] {
 	const editorService = accessor.get(IEditorService);
 	const contextService = accessor.get(IWorkspaceContextService);
@@ -150,7 +146,6 @@ export function getOutOfWorkspaceEditorResources(accessor: ServicesAccessor): UR
 	return resources as URI[];
 }
 
-// Supports patterns of <path><#|:|(><line><#|:|,><col?>> optionally followed by a range suffix <-<endLine><#|:|,><endCol?>>
 const LINE_COLON_PATTERN = /\s?[#:\(](?:line )?(\d*)(?:[#:,](\d*))?(?:-(\d*)(?:[#:,](\d*))?)?\)?:?\s*$/;
 
 export interface IFilterAndRange {
@@ -159,7 +154,6 @@ export interface IFilterAndRange {
 }
 
 export function extractRangeFromFilter(filter: string, unless?: string[]): IFilterAndRange | undefined {
-	// Ignore when the unless character not the first character or is before the line colon pattern
 	if (!filter || unless?.some(value => {
 		const unlessCharPos = filter.indexOf(value);
 		return unlessCharPos === 0 || unlessCharPos > 0 && !LINE_COLON_PATTERN.test(filter.substring(unlessCharPos + 1));
@@ -169,13 +163,11 @@ export function extractRangeFromFilter(filter: string, unless?: string[]): IFilt
 
 	let range: IRange | undefined = undefined;
 
-	// Find Line/Column number from search value using RegExp
 	const patternMatch = LINE_COLON_PATTERN.exec(filter);
 
 	if (patternMatch) {
 		const startLineNumber = parseInt(patternMatch[1] ?? '', 10);
 
-		// Line Number
 		if (isNumber(startLineNumber)) {
 			range = {
 				startLineNumber: startLineNumber,
@@ -184,7 +176,6 @@ export function extractRangeFromFilter(filter: string, unless?: string[]): IFilt
 				endColumn: 1
 			};
 
-			// Column Number
 			const startColumn = parseInt(patternMatch[2] ?? '', 10);
 			if (isNumber(startColumn)) {
 				range = {
@@ -195,11 +186,9 @@ export function extractRangeFromFilter(filter: string, unless?: string[]): IFilt
 				};
 			}
 
-			// End Line Number (range selection, e.g. "20-40")
 			const endLineNumber = parseInt(patternMatch[3] ?? '', 10);
 			if (isNumber(endLineNumber)) {
 
-				// End Column Number (e.g. "20:3-40:5"), defaults to the start of the end line
 				const endColumn = parseInt(patternMatch[4] ?? '', 10);
 				range = {
 					startLineNumber: range.startLineNumber,
@@ -210,7 +199,6 @@ export function extractRangeFromFilter(filter: string, unless?: string[]): IFilt
 			}
 		}
 
-		// User has typed "something:" or "something#" without a line number, in this case treat as start of file
 		else if (patternMatch[1] === '') {
 			range = {
 				startLineNumber: 1,
@@ -223,7 +211,7 @@ export function extractRangeFromFilter(filter: string, unless?: string[]): IFilt
 
 	if (patternMatch && range) {
 		return {
-			filter: filter.substr(0, patternMatch.index), // clear range suffix from search value
+			filter: filter.substr(0, patternMatch.index),
 			range
 		};
 	}

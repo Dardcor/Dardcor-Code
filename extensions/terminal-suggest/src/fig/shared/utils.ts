@@ -6,15 +6,6 @@
 import { osIsWindows } from '../../helpers/os.js';
 import { createErrorInstance } from './errors.js';
 
-// Use bitwise representation of suggestion flags.
-// See here: https://stackoverflow.com/questions/39359740/what-are-enum-flags-in-typescript/
-//
-// Given a number `flags` we can test `if (flags & Subcommands)` to see if we
-// should be suggesting subcommands.
-//
-// This is more maintainable in the future if we add more options (e.g. if we
-// distinguish between subcommand args and option args) as we can just add a
-// number here instead of passing 3+ boolean flags everywhere.
 export enum SuggestionFlag {
 	None = 0,
 	Subcommands = 1 << 0,
@@ -23,7 +14,6 @@ export enum SuggestionFlag {
 	Any = (1 << 2) | (1 << 1) | (1 << 0),
 }
 
-// Combination of suggestion flags.
 export type SuggestionFlags = number;
 
 export enum SpecLocationSource {
@@ -129,15 +119,6 @@ export const sleep = (ms: number): Promise<void> =>
 export type Func<S extends unknown[], T> = (...args: S) => T;
 type EqualFunc<T> = (args: T, newArgs: T) => boolean;
 
-// Memoize a function (cache the most recent result based on the most recent args)
-// Optionally can pass an equals function to determine whether or not the old arguments
-// and new arguments are equal.
-//
-// e.g. let fn = (a, b) => a * 2
-//
-// If we memoize this then we recompute every time a or b changes. if we memoize with
-// isEqual = ([a, b], [newA, newB]) => newA === a
-// then we will only recompute when a changes.
 export function memoizeOne<S extends unknown[], T>(
 	fn: Func<S, T>,
 	isEqual?: EqualFunc<S>,
@@ -165,11 +146,6 @@ function isEmptyObject(v: unknown): v is Record<string, never> {
 	return isNonNullObj(v) && Object.keys(v).length === 0;
 }
 
-// TODO: to fix this we may want to have the default fields as Object.keys(A)
-/**
- * If no fields are specified and A,B are not equal primitives/empty objects, this returns false
- * even if the objects are actually equal.
- */
 export function fieldsAreEqual<T>(A: T, B: T, fields: (keyof T)[]): boolean {
 	if (A === B || (isEmptyObject(A) && isEmptyObject(B))) {
 		return true;
@@ -202,7 +178,6 @@ export const splitPath = (path: string): [string, string] => {
 export const ensureTrailingSlash = (str: string) =>
 	str.endsWith('/') ? str : `${str}/`;
 
-// Outputs CWD with trailing `/`
 export const getCWDForFilesAndFolders = (
 	cwd: string | null,
 	searchTerm: string,
@@ -223,8 +198,6 @@ export const getCWDForFilesAndFolders = (
 
 export function localProtocol(domain: string, path: string) {
 	let modifiedDomain;
-	//TODO@meganrogge
-	// if (domain === 'path' && !window.fig?.constants?.newUriFormat) {
 	if (domain === 'path') {
 		modifiedDomain = '';
 	} else {
@@ -238,10 +211,10 @@ export function localProtocol(domain: string, path: string) {
 }
 
 type ExponentialBackoffOptions = {
-	attemptTimeout: number; // The maximum time in milliseconds to wait for a function to execute.
-	baseDelay: number; // The initial delay in milliseconds.
-	maxRetries: number; // The maximum number of retries.
-	jitter: number; // A random factor to add to the delay on each retry.
+	attemptTimeout: number;
+	baseDelay: number;
+	maxRetries: number;
+	jitter: number;
 };
 
 export async function exponentialBackoff<T>(

@@ -11,15 +11,11 @@ import { _createBaselineContext } from '../../../lib/src/test/context';
 import { StaticFetcher } from '../../../lib/src/test/fetcher';
 import { ICompletionsTextDocumentManagerService } from '../../../lib/src/textDocumentManager';
 import { VSCodeEditorInfo } from '../config';
-import { CopilotExtensionStatus, ICompletionsExtensionStatus } from '../extensionStatus';
+import { DardcorCompletionStatus, ICompletionsExtensionStatus } from '../extensionStatus';
 import { extensionFileSystem } from '../fileSystem';
 import { ExtensionTextDocumentManager } from '../textDocumentManager';
 import { ExtensionTestConfigProvider } from './config';
 
-/**
- * A default context for VSCode extension testing, building on general one in `lib`.
- * Only includes items that are needed for almost all extension tests.
- */
 export function createExtensionTestingContext() {
 	let serviceCollection = createExtensionTestingServices();
 	serviceCollection = _createBaselineContext(serviceCollection, new ExtensionTestConfigProvider());
@@ -28,7 +24,7 @@ export function createExtensionTestingContext() {
 	serviceCollection.define(ICompletionsEditorAndPluginInfo, new VSCodeEditorInfo());
 	serviceCollection.define(ICompletionsTextDocumentManagerService, new SyncDescriptor(ExtensionTextDocumentManager));
 	serviceCollection.define(ICompletionsFileSystemService, extensionFileSystem);
-	serviceCollection.define(ICompletionsExtensionStatus, new CopilotExtensionStatus());
+	serviceCollection.define(ICompletionsExtensionStatus, new DardcorCompletionStatus());
 
 	return serviceCollection;
 }

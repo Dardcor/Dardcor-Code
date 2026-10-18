@@ -89,7 +89,6 @@ export default function KiloToolCard({ tool, isExpanded, onToggle, baseUrl, apiK
       });
       const data = await res.json();
       if (res.ok) {
-        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkStatus();

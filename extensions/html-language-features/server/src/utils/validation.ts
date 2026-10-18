@@ -21,13 +21,10 @@ export function registerDiagnosticsPushSupport(documents: TextDocuments<TextDocu
 
 	const disposables: Disposable[] = [];
 
-	// The content of a text document has changed. This event is emitted
-	// when the text document first opened or when its content has changed.
 	documents.onDidChangeContent(change => {
 		triggerValidation(change.document);
 	}, undefined, disposables);
 
-	// a document has closed: clear all diagnostics
 	documents.onDidClose(event => {
 		cleanPendingValidation(event.document);
 		connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });

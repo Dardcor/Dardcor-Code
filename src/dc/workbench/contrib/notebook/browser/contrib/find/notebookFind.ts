@@ -96,7 +96,6 @@ function notebookContainsTextModel(uri: URI, textModel: ITextModel) {
 }
 
 function getSearchStringOptions(editor: ICodeEditor, opts: IFindStartOptions) {
-	// Get the search string result, following the same logic in _start function in 'vs/editor/contrib/find/browser/findController'
 	if (opts.seedSearchStringFromSelection === 'single') {
 		const selectionSearchString = getSelectionSearchString(editor, opts.seedSearchStringFromSelection, opts.seedSearchStringFromNonEmptySelection);
 		if (selectionSearchString) {
@@ -129,10 +128,8 @@ function isNotebookEditorValidForSearch(accessor: ServicesAccessor, editor: INot
 
 	if (!editor.hasEditorFocus() && !editor.hasWebviewFocus()) {
 		const codeEditorService = accessor.get(ICodeEditorService);
-		// check if the active pane contains the active text editor
 		const textEditor = codeEditorService.getFocusedCodeEditor() || codeEditorService.getActiveCodeEditor();
 		if (editor.hasModel() && textEditor && textEditor.hasModel() && notebookContainsTextModel(editor.textModel.uri, textEditor.getModel())) {
-			// the active text editor is in notebook editor
 			return true;
 		} else {
 			return false;
@@ -193,13 +190,10 @@ function findWidgetAction(accessor: ServicesAccessor, codeEditor: ICodeEditor, n
 		return false;
 	}
 
-	// Check if find widget is already visible
 	if (controller.isVisible()) {
-		// Find widget is open, navigate
 		next ? controller.findNext() : controller.findPrevious();
 		return true;
 	} else {
-		// Find widget is not open, open it without focusing the widget (keep focus in editor)
 		return openFindWidget(controller, editor, codeEditor, false);
 	}
 }
@@ -271,8 +265,6 @@ PreviousMatchFindAction.addImplementation(100, (accessor: ServicesAccessor, code
 	return findWidgetAction(accessor, codeEditor, false);
 });
 
-// Widget-focused keybindings - these handle F3/Shift+F3 when the notebook find widget has focus
-// This follows the same pattern as the text editor which has separate keybindings for widget focus
 registerAction2(class extends Action2 {
 	constructor() {
 		super({

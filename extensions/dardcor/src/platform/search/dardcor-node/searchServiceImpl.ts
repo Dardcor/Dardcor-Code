@@ -29,7 +29,7 @@ export class SearchServiceImpl extends BaseSearchServiceImpl {
 		} else if (Array.isArray(results)) {
 			return await filterIngoredResources(this._ignoreService, results);
 		} else {
-			return await this._ignoreService.isCopilotIgnored(results) ? undefined : results;
+			return await this._ignoreService.isIgnored(results) ? undefined : results;
 		}
 	}
 
@@ -54,7 +54,7 @@ export class SearchServiceImpl extends BaseSearchServiceImpl {
 		const ignoreSupportedProgress: vscode.Progress<vscode.TextSearchResult> = {
 			report: async (value) => {
 				jobs.push((async () => {
-					if (await this._ignoreService.isCopilotIgnored(value.uri)) {
+					if (await this._ignoreService.isIgnored(value.uri)) {
 						return;
 					} else {
 						progress.report(value);

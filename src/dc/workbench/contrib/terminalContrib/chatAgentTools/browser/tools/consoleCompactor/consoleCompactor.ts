@@ -3,46 +3,30 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Shell-output compactor. Classifies shell commands and strips non-diagnostic
-// noise from their output. This is a faithful TypeScript port of the original
-// Rust implementation (lib.rs, report.rs, shell_output_compactor.rs).
 
-//#region Public API types
 
-/** Character (UTF-16 code units), byte (UTF-8), and line counts for one text. */
 export interface Counts {
-	/** UTF-16 code units, matching JavaScript `String.length` semantics. */
 	readonly chars: number;
-	/** UTF-8 byte length. */
 	readonly bytes: number;
 	readonly lines: number;
 }
 
-/** Percentage of each count removed by compaction (0-100). */
 export interface Reduction {
 	readonly charsPct: number;
 	readonly bytesPct: number;
 	readonly linesPct: number;
 }
 
-/** How a command string was classified, without running compaction. */
 export interface CommandClassification {
-	/** Compactor tags that matched, e.g. `["npm"]`, `["cargo"]`, `["shell-grep"]`. */
 	readonly commandKinds: string[];
 	readonly isSourceReadCommand: boolean;
 	readonly runsGoTest: boolean;
 	readonly mentionsSavedToolOutput: boolean;
 }
 
-/**
- * The full compaction report: statistics about what was removed, plus the
- * compacted text itself.
- */
 export interface Report {
 	readonly command: string;
-	/** Whether compaction actually changed the output. */
 	readonly applied: boolean;
-	/** Whether the compaction preserved all information (no data dropped). */
 	readonly lossless: boolean;
 	readonly commandKinds: string[];
 	readonly isSourceReadCommand: boolean;
@@ -52,35 +36,20 @@ export interface Report {
 	readonly compacted: Counts;
 	readonly saved: Counts;
 	readonly reduction: Reduction;
-	/** The compacted output text. Equals the input `output` when `applied` is false. */
 	readonly compactedOutput: string;
 }
 
-/**
- * Tuning knobs for `compact`. Every field is optional; omitted fields use the
- * documented defaults.
- */
 export interface CompactOptions {
-	/** Byte threshold above which output is treated as "large". Default 30000. */
 	readonly largeOutputThreshold?: number;
-	/** Byte threshold used specifically for shell `grep`/`rg` output. Default 30000. */
 	readonly shellGrepLargeOutputThreshold?: number;
-	/** Minimum saved chars (UTF-16 units) before compaction is applied. Default 0. */
 	readonly minSavedChars?: number;
 }
 
-//#endregion
 
 const DEFAULT_LARGE_OUTPUT_THRESHOLD = 30_000;
 const DEFAULT_SHELL_GREP_LARGE_OUTPUT_THRESHOLD = 30_000;
 const DEFAULT_MIN_SAVED_CHARS = 0;
 
-/**
- * Compact the raw output of a shell command and report how much was saved.
- *
- * Classifies `command`, compacts `output` accordingly, and returns the
- * statistics plus the compacted text.
- */
 export function compact(command: string, output: string, options?: CompactOptions | null): Report {
 	const opts = options ?? {};
 	const largeOutputThreshold = opts.largeOutputThreshold ?? DEFAULT_LARGE_OUTPUT_THRESHOLD;
@@ -98,7 +67,6 @@ export function compact(command: string, output: string, options?: CompactOption
 	return buildReport(command, classification, output, preview);
 }
 
-/** Classify a shell command without compacting any output. */
 export function classifyCommand(command: string): CommandClassification {
 	const result = classifyCommandResult(command);
 	return {
@@ -109,7 +77,6 @@ export function classifyCommand(command: string): CommandClassification {
 	};
 }
 
-//#region report.rs
 
 const textEncoder = new TextEncoder();
 
@@ -117,7 +84,6 @@ function byteLength(value: string): number {
 	return textEncoder.encode(value).length;
 }
 
-/** Number of lines using Rust `str::lines()` semantics (empty string = 0). */
 function countLines(text: string): number {
 	if (text.length === 0) {
 		return 0;
@@ -189,9 +155,7 @@ function buildReport(
 	};
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — constants and types
 
 const COMPACTED_REFERENCE_OVERHEAD_BUDGET = 512;
 const COMMON_PREFIX_DISPLAY_WIDTH = 120;
@@ -261,7 +225,6 @@ interface ShellOutputPreviewResult {
 	lossless: boolean;
 }
 
-/** Discriminated union mirroring Rust `ClassifiedCommandSegment`. */
 type ClassifiedCommandSegment = { readonly benign: true } | { readonly benign: false; readonly kind: string };
 
 const BENIGN_SEGMENT: ClassifiedCommandSegment = { benign: true };
@@ -299,19 +262,12 @@ interface PackageManagerOperation {
 	version: string | undefined;
 }
 
-//#endregion
 
-//#region Primitive helpers
 
-/** Length in UTF-16 code units, matching JavaScript `String.length`. */
 function jsStringLen(value: string): number {
 	return value.length;
 }
 
-/**
- * Slice by UTF-16 code units (JavaScript native string semantics). Mirrors the
- * Rust `slice_js_units` helper, which emulated JS slicing.
- */
 function sliceJsUnits(text: string, start: number, len: number): string {
 	if (len === 0) {
 		return '';
@@ -319,7 +275,6 @@ function sliceJsUnits(text: string, start: number, len: number): string {
 	return text.slice(start, start + len);
 }
 
-/** Rust `str::split_whitespace`: split on runs of whitespace, dropping empties. */
 function splitWhitespace(value: string): string[] {
 	const trimmed = value.trim();
 	return trimmed.length === 0 ? [] : trimmed.split(/\s+/);
@@ -329,7 +284,6 @@ function saturatingSub(a: number, b: number): number {
 	return a > b ? a - b : 0;
 }
 
-/** Compare two equal-length windows of an array for element equality. */
 function arraySliceEqual(arr: string[], aStart: number, bStart: number, len: number): boolean {
 	for (let k = 0; k < len; k++) {
 		if (arr[aStart + k] !== arr[bStart + k]) {
@@ -347,7 +301,6 @@ function isAsciiAlphabetic(ch: string): boolean {
 	return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
 }
 
-/** Remove all leading characters that appear in `chars`. */
 function trimStartMatchesChars(value: string, chars: string[]): string {
 	let i = 0;
 	while (i < value.length && chars.includes(value[i])) {
@@ -381,7 +334,6 @@ function regexCaptureFirst(pattern: string, input: string): string | undefined {
 	return undefined;
 }
 
-/** Rust `Regex::find_iter`: returns the code-unit ranges of every non-overlapping match. */
 function regexFindAll(pattern: string, input: string): { start: number; end: number }[] {
 	const regex = new RegExp(pattern, 'g');
 	const matches: { start: number; end: number }[] = [];
@@ -479,8 +431,6 @@ function highSignalTextIndex(text: string): number | undefined {
 function excerptAroundIndex(text: string, maxLength: number, index: number): string {
 	const prefix = index > 0 ? '... ' : '';
 	const textLen = jsStringLen(text);
-	// `index` is a UTF-16 offset (JS regex match index), which equals the Rust
-	// `js_string_len(&text[..byte_index])` value.
 	const indexUnits = index;
 	const suffix = indexUnits + maxLength < textLen ? ' ...' : '';
 	const available = saturatingSub(maxLength, prefix.length + suffix.length);
@@ -635,9 +585,7 @@ function compareCodePoint(a: string, b: string): number {
 	return compareNumber(ac, bc);
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — classification
 
 function classifyCommandResult(command: string): CommandClassificationResult {
 	return {
@@ -952,21 +900,16 @@ function isBenignPipelineTail(segment: string): boolean {
 		|| isSafeStreamingFlagOnlyTail(normalized);
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — command detectors
 
-/** Rust `str::strip_prefix`: returns the remainder if `value` starts with `prefix`. */
 function stripPrefix(value: string, prefix: string): string | undefined {
 	return value.startsWith(prefix) ? value.slice(prefix.length) : undefined;
 }
 
-/** Rust `str::strip_suffix`: returns the leading part if `value` ends with `suffix`. */
 function stripSuffix(value: string, suffix: string): string | undefined {
 	return value.endsWith(suffix) ? value.slice(0, value.length - suffix.length) : undefined;
 }
 
-/** Rust `str::split_once`: splits at the first `separator` occurrence. */
 function splitOnce(value: string, separator: string): [string, string] | undefined {
 	const index = value.indexOf(separator);
 	if (index === -1) {
@@ -975,7 +918,6 @@ function splitOnce(value: string, separator: string): [string, string] | undefin
 	return [value.slice(0, index), value.slice(index + separator.length)];
 }
 
-/** Rust `str::rsplit_once`: splits at the last `separator` occurrence. */
 function rsplitOnce(value: string, separator: string): [string, string] | undefined {
 	const index = value.lastIndexOf(separator);
 	if (index === -1) {
@@ -984,7 +926,6 @@ function rsplitOnce(value: string, separator: string): [string, string] | undefi
 	return [value.slice(0, index), value.slice(index + separator.length)];
 }
 
-/** Rust `str::to_ascii_lowercase`: lowercases only ASCII A-Z, leaving other characters unchanged. */
 function asciiLowercase(value: string): string {
 	let result = '';
 	for (let i = 0; i < value.length; i++) {
@@ -994,7 +935,6 @@ function asciiLowercase(value: string): string {
 	return result;
 }
 
-/** Rust `str::parse::<usize>()`: parses an optional `+` sign followed by ASCII digits. */
 function parseUsize(value: string): number | undefined {
 	if (!/^\+?\d+$/.test(value)) {
 		return undefined;
@@ -1219,9 +1159,7 @@ function isGoCommand(segment: string): boolean {
 	);
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — python detectors, grep safety, segmentation
 
 function isPytestCommand(segment: string): boolean {
 	return regexTest(
@@ -1638,15 +1576,12 @@ function isEscapedByOddBackslashes(text: string, index: number): boolean {
 	return count % 2 === 1;
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — heredoc parsing, errexit, output detectors, python patterns
 
 function isWhitespaceChar(ch: string): boolean {
 	return /\s/.test(ch);
 }
 
-/** Rust `str::starts_with(char::is_whitespace)`: true when the first character is whitespace. */
 function startsWithWhitespace(line: string): boolean {
 	return line.length > 0 && isWhitespaceChar(line[0]);
 }
@@ -1827,9 +1762,7 @@ function pythonWithOptionsPattern(): string {
 	return String.raw`${pythonExecutablePattern()}(?:\s+(?:-[BEsStuUvVqQ]|-W\S+|-X\s+\S+))*`;
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — orchestration
 
 interface CompactionState {
 	output: string;
@@ -2083,9 +2016,7 @@ function compactPytestSessionMetadata(output: string): string {
 	);
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — run collapsing, package manager operations
 
 function compactDjangoTestBoilerplate(output: string): string {
 	return omitNonDiagnosticLines(output, 'django test boilerplate', isDjangoTestBoilerplateLine);
@@ -2396,9 +2327,7 @@ function summarizeWithMore(items: string[], maxItems: number): string {
 	return shown.join(', ');
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — npm-pack, go, diagnostics, cargo, unittest, cmake
 
 function compactNpmPackOutput(output: string): string {
 	if (!looksLikeNpmPackOutput(output)) {
@@ -2700,9 +2629,7 @@ function isCmakeLookingForProbeLine(line: string): boolean {
 	return !line.endsWith(' - not found') && regexTest(String.raw`^-- Looking for .+(?: - found)?$`, line);
 }
 
-//#endregion
 
-//#region shell_output_compactor.rs — maven, golangci-lint, git progress, js-test
 
 function compactMavenDependencyTransfer(output: string): string {
 	if (!hasMavenDependencyTransfer(output)) {
@@ -2982,7 +2909,6 @@ function compactJestRunsProgress(output: string): string {
 	);
 }
 
-//#endregion
 
 function hasPassingJsTestSummary(output: string): boolean {
 	if (regexTest(String.raw`(?:^|\n)\s*(?:FAIL|\u2717|\u00D7|\u2716)\s`, output)

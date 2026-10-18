@@ -3,38 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Minimal OTLP/HTTP JSON wire types for the trace export request body.
- *
- * Reference:
- * - opentelemetry-proto/opentelemetry/proto/trace/v1/trace.proto
- * - opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
- * - opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
- * - opentelemetry-proto/docs/specification.md#json-protobuf-encoding
- *
- * JSON encoding rules used here:
- *   - field names are camelCase (NOT snake_case)
- *   - `traceId`/`spanId`/`parentSpanId` are lower-hex strings
- *     (32 hex chars / 16 hex chars; parentSpanId may be empty)
- *   - `startTimeUnixNano`/`endTimeUnixNano`/`timeUnixNano` are stringified
- *     unsigned 64-bit decimal integers (string fits int64 without precision loss)
- *   - `intValue` on AnyValue is a stringified int64; other numeric fields are JSON numbers
- *   - bytesValue is base64-encoded
- *   - all fields are technically optional in proto3; producers MAY omit defaults
- *
- * Only the subset of fields we currently consume is modeled here. Unknown
- * fields are ignored by the decoder (forwards-compatible).
- */
 
 
-/** Status code as defined by the OTLP trace status enum. */
 export const enum OtlpStatusCode {
 	UNSET = 0,
 	OK = 1,
 	ERROR = 2,
 }
 
-/** Span kind as defined by the OTLP trace span_kind enum. */
 export const enum OtlpSpanKind {
 	UNSPECIFIED = 0,
 	INTERNAL = 1,
@@ -44,19 +20,13 @@ export const enum OtlpSpanKind {
 	CONSUMER = 5,
 }
 
-/**
- * A single attribute value. Exactly one of the optional fields is set, except
- * for empty values which may be entirely absent (proto3 defaults).
- */
 export interface IOtlpAnyValue {
 	readonly stringValue?: string;
 	readonly boolValue?: boolean;
-	/** Stringified int64. */
 	readonly intValue?: string | number;
 	readonly doubleValue?: number;
 	readonly arrayValue?: { readonly values?: readonly IOtlpAnyValue[] };
 	readonly kvlistValue?: { readonly values?: readonly IOtlpKeyValue[] };
-	/** Base64-encoded bytes. */
 	readonly bytesValue?: string;
 }
 
@@ -129,17 +99,10 @@ export interface IOtlpResourceSpans {
 	readonly schemaUrl?: string;
 }
 
-/** The body shape of `POST /v1/traces`. */
 export interface IOtlpExportTraceServiceRequest {
 	readonly resourceSpans?: readonly IOtlpResourceSpans[];
 }
 
-/**
- * The response shape from `POST /v1/traces`.
- *
- * On full success: `{}` is acceptable (per spec).
- * On partial success: `partialSuccess` is set; the request is NOT retried.
- */
 export interface IOtlpExportTraceServiceResponse {
 	readonly partialSuccess?: {
 		readonly rejectedSpans?: number;

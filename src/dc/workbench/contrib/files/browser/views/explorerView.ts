@@ -69,9 +69,6 @@ function hasExpandedRootChild(tree: WorkbenchCompressibleAsyncDataTree<ExplorerI
 	return false;
 }
 
-/**
- * Whether or not any of the nodes in the tree are expanded
- */
 function hasExpandedNode(tree: WorkbenchCompressibleAsyncDataTree<ExplorerItem | ExplorerItem[], ExplorerItem, FuzzyScore>, treeInput: ExplorerItem[]): boolean {
 	for (const folder of treeInput) {
 		if (tree.hasNode(folder) && !tree.isCollapsed(folder)) {
@@ -97,7 +94,6 @@ export function getContext(focus: ExplorerItem[], selection: ExplorerItem[], res
 	let focusedStat: ExplorerItem | undefined;
 	focusedStat = focus.length ? focus[0] : undefined;
 
-	// If we are respecting multi-select and we have a multi-selection we ignore focus as we want to act on the selection
 	if (respectMultiSelection && selection.length > 1) {
 		focusedStat = undefined;
 	}
@@ -115,7 +111,6 @@ export function getContext(focus: ExplorerItem[], selection: ExplorerItem[], res
 			if (stat === focusedStat) {
 				selectedStats.push(stat);
 			}
-			// Ignore stats which are selected but are part of the same compact node as the focused stat
 			continue;
 		}
 
@@ -252,7 +247,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 	}
 
 	override set title(_: string) {
-		// noop
 	}
 
 	override setVisible(visible: boolean): void {
@@ -268,12 +262,10 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 		return ExplorerResourceCut.bindTo(this.contextKeyService);
 	}
 
-	// Split view methods
 
 	protected override renderHeader(container: HTMLElement): void {
 		super.renderHeader(container);
 
-		// Expand on drag over
 		this.dragHandler = new DelayedDragHandler(container, () => this.setExpanded(true));
 
 		// eslint-disable-next-line no-restricted-syntax
@@ -307,29 +299,22 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 			this._onDidChangeTitleArea.fire();
 		}));
 
-		// Update configuration
 		this.onConfigurationUpdated(undefined);
 
-		// When the explorer viewer is loaded, listen to changes to the editor input
 		this._register(this.editorService.onDidActiveEditorChange(() => {
 			this.selectActiveFile();
 		}));
 
-		// Also handle configuration updates
 		this._register(this.configurationService.onDidChangeConfiguration(e => this.onConfigurationUpdated(e)));
 
 		this._register(this.onDidChangeBodyVisibility(async visible => {
 			if (visible) {
-				// Always refresh explorer when it becomes visible to compensate for missing file events #126817
 				await this.setTreeInput();
-				// Update the collapse / expand  button state
 				this.updateAnyCollapsedContext();
-				// Find resource to focus from active editor input if set
 				this.selectActiveFile(true);
 			}
 		}));
 
-		// Support for paste of files into explorer
 		this._register(DOM.addDisposableListener(DOM.getWindow(this.container), DOM.EventType.PASTE, async event => {
 			if (!this.hasFocus() || this.readonlyContext.get()) {
 				return;
@@ -376,7 +361,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 	}
 
 	isItemVisible(item: ExplorerItem): boolean {
-		// If filter is undefined it means the tree hasn't been rendered yet, so nothing is visible
 		if (!this.filter) {
 			return false;
 		}
@@ -423,7 +407,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 				const focus = this.tree.getFocus();
 				const selection = this.tree.getSelection();
 				if (focus.length === 1 && this.uriIdentityService.extUri.isEqual(focus[0].resource, activeFile) && selection.length === 1 && this.uriIdentityService.extUri.isEqual(selection[0].resource, activeFile)) {
-					// No action needed, active file is already focused and selected
 					return;
 				}
 				return this.explorerService.select(activeFile, reveal);
@@ -448,7 +431,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 
 		const isCompressionEnabled = () => {
 			const configValue = this.configurationService.getValue<boolean>('explorer.compactFolders');
-			// Disable compact folders when screen reader is optimized for better accessibility
 			if (this.accessibilityService.isScreenReaderOptimized()) {
 				return false;
 			}
@@ -512,35 +494,26 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 		this._register(this.tree);
 		this._register(this.themeService.onDidColorThemeChange(() => this.tree.rerender()));
 
-		// Bind configuration
 		const onDidChangeCompressionConfiguration = Event.filter(this.configurationService.onDidChangeConfiguration, e => e.affectsConfiguration('explorer.compactFolders'));
 		this._register(onDidChangeCompressionConfiguration(_ => this.tree.updateOptions({ compressionEnabled: isCompressionEnabled() })));
 
-		// Update compression when screen reader mode changes
 		this._register(this.accessibilityService.onDidChangeScreenReaderOptimized(() => {
 			this.tree.updateOptions({ compressionEnabled: isCompressionEnabled() });
 		}));
 
-		// Bind context keys
 		FilesExplorerFocusedContext.bindTo(this.tree.contextKeyService);
 		ExplorerFocusedContext.bindTo(this.tree.contextKeyService);
 
-		// Update resource context based on focused element
 		this._register(this.tree.onDidChangeFocus(e => this.onFocusChanged(e.elements)));
 		this.onFocusChanged([]);
-		// Open when selecting via keyboard
 		this._register(this.tree.onDidOpen(async e => {
 			const element = e.element;
 			if (!element) {
 				return;
 			}
-			// Do not react if the user is expanding selection via keyboard.
-			// Check if the item was previously also selected, if yes the user is simply expanding / collapsing current selection #66589.
 			const shiftDown = DOM.isKeyboardEvent(e.browserEvent) && e.browserEvent.shiftKey;
 			if (!shiftDown) {
 				if (element.isDirectory || this.explorerService.isEditable(undefined)) {
-					// Do not react if user is clicking on explorer items while some are being edited #70276
-					// Do not react if clicking on directories
 					return;
 				}
 				this.telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: 'workbench.files.openFile', from: 'explorer' });
@@ -568,28 +541,23 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 				const navigationControllers = this.renderer.getCompressedNavigationController(Array.isArray(element) ? element[0] : element);
 				navigationControllers?.forEach(controller => controller.updateCollapsed(e.node.collapsed));
 			}
-			// Update showing expand / collapse button
 			this.updateAnyCollapsedContext();
 		}));
 
 		this.updateAnyCollapsedContext();
 
 		this._register(this.tree.onMouseDblClick(e => {
-			// If empty space is clicked, and not scrolling by page enabled #173261
 			const scrollingByPage = this.configurationService.getValue<boolean>('workbench.list.scrollByPage');
 			if (e.element === null && !scrollingByPage) {
-				// click in empty area -> create a new file #116676
 				this.commandService.executeCommand(NEW_FILE_COMMAND_ID);
 			}
 		}));
 
-		// save view state
 		this._register(this.storageService.onWillSaveState(() => {
 			this.storeTreeViewState();
 		}));
 	}
 
-	// React on events
 
 	private onConfigurationUpdated(event: IConfigurationChangeEvent | undefined): void {
 		if (!event || event.affectsConfiguration('explorer.autoReveal')) {
@@ -597,7 +565,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 			this._autoReveal = configuration?.explorer?.autoReveal;
 		}
 
-		// Push down config updates to components of viewer
 		if (event && (event.affectsConfiguration('explorer.decorations.colors') || event.affectsConfiguration('explorer.decorations.badges'))) {
 			this.refresh(true);
 		}
@@ -633,7 +600,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 		const stat = e.element;
 		let anchor = e.anchor;
 
-		// Adjust for compressed folders (except when mouse is used)
 		if (DOM.isHTMLElement(anchor)) {
 			if (stat) {
 				const controllers = this.renderer.getCompressedNavigationController(stat);
@@ -648,13 +614,12 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 			}
 		}
 
-		// update dynamic contexts
 		this.fileCopiedContextKey.set(await this.clipboardService.hasResources());
 		this.setContextKeys(stat);
 
 		const selection = this.tree.getSelection();
 
-		const roots = this.explorerService.roots; // If the click is outside of the elements pass the root resource if there is only one root. If there are multiple roots pass empty object.
+		const roots = this.explorerService.roots;
 		let arg: URI | {};
 		if (stat instanceof ExplorerItem) {
 			const compressedControllers = this.renderer.getCompressedNavigationController(stat);
@@ -704,24 +669,7 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 		});
 	}
 
-	// General methods
 
-	/**
-	 * Safely queries the file explorer tree for the relative top of an element.
-	 *
-	 * `hasNode()` and `getRelativeTop()` consult different internal maps in the
-	 * compressible async data tree. During an async refresh (e.g. when the
-	 * underlying file system provider changes, or file nesting settings update)
-	 * there is a microtask gap where one map has been updated but the other has
-	 * not. In that window `getRelativeTop()` can throw
-	 * `TreeError [FileExplorer] Tree element not found` (issue #188365) even
-	 * though the caller reasonably believed the element was still present.
-	 *
-	 * Treat such a failure as "not currently visible" so that callers fall back
-	 * to their not-visible branch (e.g. finishing editable state, or calling
-	 * `reveal()`), which is safe when the element is still in the data source
-	 * even if the view has not caught up yet.
-	 */
 	private tryGetRelativeTop(element: ExplorerItem): number | null {
 		if (!this.tree) {
 			return null;
@@ -734,13 +682,8 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 		}
 	}
 
-	/**
-	 * Refresh the contents of the explorer to get up to date data from the disk about the file structure.
-	 * If the item is passed we refresh only that level of the tree, otherwise we do a full refresh.
-	 */
 	refresh(recursive: boolean, item?: ExplorerItem, cancelEditing: boolean = true): Promise<void> {
 		if (!this.tree || !this.isBodyVisible() || (item && !this.tree.hasNode(item)) || (this.findProvider?.isShowingFilterResults() && recursive)) {
-			// Tree node doesn't exist yet, when it becomes visible we will refresh
 			return Promise.resolve(undefined);
 		}
 
@@ -755,7 +698,7 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 	override getOptimalWidth(): number {
 		const parentNode = this.tree.getHTMLElement();
 		// eslint-disable-next-line no-restricted-syntax
-		const childNodes = ([] as HTMLElement[]).slice.call(parentNode.querySelectorAll('.explorer-item .label-name')); // select all file labels
+		const childNodes = ([] as HTMLElement[]).slice.call(parentNode.querySelectorAll('.explorer-item .label-name'));
 
 		return DOM.getLargestChildWidth(parentNode, childNodes);
 	}
@@ -765,7 +708,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 			return Promise.resolve(undefined);
 		}
 
-		// Wait for the last execution to complete before executing
 		if (this.setTreeInputPromise) {
 			await this.setTreeInputPromise;
 		}
@@ -777,7 +719,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 		const roots = this.explorerService.roots;
 		let input: ExplorerItem | ExplorerItem[] = roots[0];
 		if (this.contextService.getWorkbenchState() !== WorkbenchState.FOLDER || roots[0].error) {
-			// Display roots only when multi folder workspace
 			input = roots;
 		}
 
@@ -795,15 +736,12 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 		const promise = this.setTreeInputPromise = this.tree.setInput(input, viewState).then(async () => {
 			if (Array.isArray(input)) {
 				if (!viewState || previousInput instanceof ExplorerItem) {
-					// There is no view state for this workspace (we transitioned from a folder workspace?), expand up to five roots.
-					// If there are many roots in a workspace, expanding them all would can cause performance issues #176226
 					for (let i = 0; i < Math.min(input.length, 5); i++) {
 						try {
 							await this.tree.expand(input[i]);
 						} catch (e) { }
 					}
 				}
-				// Reloaded or transitioned from an empty workspace, but only have a single folder in the workspace.
 				if (!previousInput && input.length === 1 && this.configurationService.getValue<IFilesConfiguration>().explorer.expandSingleFolderWorkspaces) {
 					await this.tree.expand(input[0]).catch(() => { });
 				}
@@ -811,7 +749,6 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 					const previousRoots = new ResourceMap<true>();
 					previousInput.forEach(previousRoot => previousRoots.set(previousRoot.resource, true));
 
-					// Roots added to the explorer -> expand them.
 					await Promise.all(input.map(async item => {
 						if (!previousRoots.has(item.resource)) {
 							try {
@@ -828,14 +765,13 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 
 		this.progressService.withProgress({
 			location: ProgressLocation.Explorer,
-			delay: this.layoutService.isRestored() ? 800 : 1500 // reduce progress visibility when still restoring
+			delay: this.layoutService.isRestored() ? 800 : 1500
 		}, _progress => promise);
 
 		await promise;
 	}
 
 	public async selectResource(resource: URI | undefined, reveal = this._autoReveal, retry = 0): Promise<void> {
-		// do no retry more than once to prevent infinite loops in cases of inconsistent model
 		if (retry === 2) {
 			return;
 		}
@@ -844,12 +780,10 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 			return;
 		}
 
-		// If something is refreshing the explorer, we must await it or else a selection race condition can occur
 		if (this.setTreeInputPromise) {
 			await this.setTreeInputPromise;
 		}
 
-		// Expand all stats in the parent chain.
 		let item: ExplorerItem | null = this.explorerService.findClosestRoot(resource);
 
 		while (item && item.resource.toString() !== resource.toString()) {
@@ -879,20 +813,17 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 			}
 
 			try {
-				// We must expand the nest to have it be populated in the tree
 				if (item.nestedParent) {
 					await this.tree.expand(item.nestedParent);
 				}
 
 				if ((reveal === true || reveal === 'force') && this.tree.getRelativeTop(item) === null) {
-					// Don't scroll to the item if it's already visible, or if set not to.
 					this.tree.reveal(item, 0.5);
 				}
 
 				this.tree.setFocus([item]);
 				this.tree.setSelection([item]);
 			} catch (e) {
-				// Element might not be in the tree, try again and silently fail
 				return this.selectResource(resource, reveal, retry + 1);
 			}
 		}
@@ -997,9 +928,7 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 			return;
 		}
 		const treeInputArray = Array.isArray(treeInput) ? treeInput : Array.from(treeInput.children.values());
-		// Has collapsible root when anything is expanded
 		this.viewHasSomeCollapsibleRootItem.set(hasExpandedNode(this.tree, treeInputArray));
-		// synchronize state to cache
 		this.storeTreeViewState();
 	}
 
@@ -1027,9 +956,7 @@ export function createFileIconThemableTreeContainerScope(container: HTMLElement,
 }
 
 const CanCreateContext = ContextKeyExpr.or(
-	// Folder: can create unless readonly
 	ContextKeyExpr.and(ExplorerFolderContext, ExplorerResourceWritableContext),
-	// File: can create unless parent is readonly
 	ContextKeyExpr.and(ExplorerFolderContext.toNegated(), ExplorerResourceParentReadOnlyContext.toNegated())
 );
 

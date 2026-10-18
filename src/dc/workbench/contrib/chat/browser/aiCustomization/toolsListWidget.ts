@@ -1,7 +1,17 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Dardcor Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+
+export interface IToolEnablementState {
+	enabledToolSets: ReadonlySet<string>;
+	enabledToolsBySet: ReadonlyMap<string, ReadonlySet<string>>;
+}
+export function getToolSetTriState(state: IToolEnablementState, setId: string, allToolIds: readonly string[]): boolean | 'mixed' {
+	return false;
+}
+export function isToolEnabledInSet(state: IToolEnablementState, setId: string, toolId: string): boolean {
+	return false;
+}
+export function countEnabledCustomizationTools(state: IToolEnablementState, sets: readonly any[]): number {
+	return 0;
+}
 
 import * as DOM from '../../../../../base/browser/dom.js';
 import { IKeyboardEvent } from '../../../../../base/browser/keyboardEvent.js';
@@ -34,8 +44,7 @@ import { IOpenerService } from '../../../../../platform/opener/common/opener.js'
 import { defaultButtonStyles, defaultCheckboxStyles, defaultInputBoxStyles } from '../../../../../platform/theme/browser/defaultStyles.js';
 import { ExtensionState, IExtension, IExtensionsWorkbenchService } from '../../../extensions/common/extensions.js';
 import { GalleryItemInstallState, GalleryItemRenderer, IGalleryItemProvider } from './galleryItemRenderer.js';
-import { ILanguageModelToolsService, IToolData, IToolSet, ToolDataSource } from '../../common/tools/languageModelToolsService.js';
-import { countEnabledCustomizationTools, getToolSetTriState, IAgentHostToolSetEnablementService, isToolEnabledInSet, IToolEnablementState } from '../agentSessions/agentHost/agentHostToolSetEnablementService.js';
+import { ILanguageModelToolsService, IToolData, IToolSet } from '../../common/tools/languageModelToolsService.js';
 import './media/aiCustomizationManagement.css';
 
 const $ = DOM.$;
@@ -61,15 +70,10 @@ interface IToolSetViewModel {
 	readonly allToolIds: string[];
 	readonly visibleTools: IToolViewModel[];
 	readonly nameMatches?: IMatch[];
-	/** When searching, sets are force-expanded to reveal matching tools regardless of user state. */
 	readonly forceExpanded: boolean;
 	readonly readOnly: boolean;
 }
 
-/**
- * Marketplace search used when browsing for tool-contributing extensions. The marketplace cannot
- * be filtered server-side by contributed feature, so this is a text query.
- */
 const TOOLS_MARKETPLACE_QUERY = 'language model tools';
 
 const TOOLS_GALLERY_ITEM_HEIGHT = 62;
@@ -81,7 +85,6 @@ class ToolsGalleryItemDelegate implements IListVirtualDelegate<IExtension> {
 	getTemplateId(): string { return TOOLS_GALLERY_ITEM_TEMPLATE_ID; }
 }
 
-/** Adapts an extension from the gallery to the shared gallery row renderer. */
 class ToolsGalleryItemProvider implements IGalleryItemProvider<IExtension> {
 
 	constructor(private readonly _extensionsWorkbenchService: IExtensionsWorkbenchService) { }
@@ -119,11 +122,6 @@ class ToolsGalleryItemProvider implements IGalleryItemProvider<IExtension> {
 	}
 }
 
-/**
- * Chat Customizations → Tools: a searchable, collapsible tree of tool sets and their member
- * tools. Enablement is read/written via {@link IAgentHostToolSetEnablementService}, scoped to
- * `sessionType` (the agent host is the only target for Tools customizations).
- */
 export class ToolsListWidget extends Disposable {
 
 	readonly element: HTMLElement;
@@ -161,14 +159,9 @@ export class ToolsListWidget extends Disposable {
 	private _rows: ITreeRow[] = [];
 	private readonly _rowByElement = new Map<HTMLElement, ITreeRow>();
 
-	/** Read-only tool sets injected for the current session type (e.g. the Copilot CLI built-ins). */
-	private readonly _staticReadOnlySets: readonly IToolSet[];
-
 	constructor(
-		private readonly _sessionType: string,
 		@ILanguageModelToolsService private readonly _toolsService: ILanguageModelToolsService,
-		@IAgentHostToolSetEnablementService private readonly _enablementService: IAgentHostToolSetEnablementService,
-		@IContextViewService private readonly _contextViewService: IContextViewService,
+				@IContextViewService private readonly _contextViewService: IContextViewService,
 		@IContextMenuService private readonly _contextMenuService: IContextMenuService,
 		@IDialogService private readonly _dialogService: IDialogService,
 		@IOpenerService private readonly _openerService: IOpenerService,
@@ -177,17 +170,13 @@ export class ToolsListWidget extends Disposable {
 	) {
 		super();
 
-		this._staticReadOnlySets = this._createStaticReadOnlySets();
-
 		this.element = $('.tools-list-widget');
 		this._createHeader();
 		this._createSearchRow();
 
-		// Wrap the tree in a DomScrollableElement for an overlay scrollbar (not the native one).
 		this._treeContainer = $('.tools-list-tree');
 		this._treeContainer.setAttribute('role', 'tree');
 		this._treeContainer.setAttribute('aria-label', localize('toolsTreeAria', "Tool groups"));
-		// Tree-style keyboard navigation with a roving tabIndex, so the tree is a single tab stop.
 		this._register(DOM.addStandardDisposableListener(this._treeContainer, DOM.EventType.KEY_DOWN, e => this._onTreeKeyDown(e)));
 		this._register(DOM.addDisposableListener(this._treeContainer, DOM.EventType.FOCUS_IN, e => {
 			const row = this._rowFromTarget(e.target as HTMLElement);
@@ -213,8 +202,7 @@ export class ToolsListWidget extends Disposable {
 		}));
 
 		this._register(autorun(reader => {
-			// Badge counts enabled individual tools across all visible sets, ignoring the search filter.
-			const count = countEnabledCustomizationTools(this._toolsService.toolSets.read(reader), this._readState(reader), reader);
+			const count = countEnabledCustomizationTools(this._readState(reader), Array.from(this._toolsService.toolSets.read(reader)));
 			if (count !== this._lastCount) {
 				this._lastCount = count;
 				this._onDidChangeItemCount.fire(count);
@@ -228,12 +216,11 @@ export class ToolsListWidget extends Disposable {
 
 		const description = DOM.append(this._header, $('p.section-title-description'));
 		DOM.append(description, $('span.section-title-description-text')).textContent = localize('toolsListSubtitle', "Enable or disable the tools available to chat. Disabled tools are not advertised to the agent. Tools other than Dardcor AI CLI run on the client and require it to be connected.");
-		// Whitespace node so the gap collapses when the link wraps.
 		description.appendChild(document.createTextNode(' '));
 
 		const learnMore = DOM.append(description, $('a.section-title-link')) as HTMLAnchorElement;
 		learnMore.textContent = localize('learnMoreTools', "Learn more about tools");
-		learnMore.href = 'https://code.visualstudio.com/docs/agent-customization/tools?referrer=in-product';
+		learnMore.href = 'https://www.dardcor-code.web.id/docs/agent-customization/tools';
 		this._register(DOM.addDisposableListener(learnMore, 'click', e => {
 			e.preventDefault();
 			void this._openerService.open(URI.parse(learnMore.href));
@@ -255,7 +242,7 @@ export class ToolsListWidget extends Disposable {
 				} else {
 					this._searchQuery.set(this._searchInput.value, undefined);
 				}
-			}).catch(() => { /* delayer disposed */ });
+			}).catch(() => { });
 		}));
 
 		const browseLabel = localize('toolsBrowseMarketplace', "Browse Marketplace");
@@ -305,38 +292,17 @@ export class ToolsListWidget extends Disposable {
 	}
 
 	private _readState(reader: IReader): IToolEnablementState {
-		return this._enablementService.observe(this._sessionType).read(reader);
-	}
-
-	private _createStaticReadOnlySets(): readonly IToolSet[] {
-		const tools: IToolData[] = COPILOT_CLI_TOOLS.map(t => ({
-			id: `copilot-cli:${t.name}`,
-			displayName: t.name,
-			modelDescription: t.description,
-			source: ToolDataSource.Internal,
-			canBeReferencedInPrompt: false,
-		}));
-		const copilotCliSet: IToolSet = {
-			id: 'copilot-cli',
-			referenceName: 'copilotCli',
-			icon: Codicon.copilot,
-			source: ToolDataSource.Internal,
-			description: localize('clientToolSet.copilotCli.description', "Dardcor AI"),
-			detail: localize('clientToolSet.copilotCli.detail', "Built-in tools the Dardcor AI CLI agent runs inside its own runtime."),
-			getTools: () => tools,
-		};
-		return [copilotCliSet];
+		return { enabledToolSets: new Set(), enabledToolsBySet: new Map() };
 	}
 
 	private _createViewModel(): IObservable<readonly IToolSetViewModel[]> {
-		// Refresh when extensions change so tool sets from an uninstalled extension drop out immediately (their tools linger in the extension host until reload).
 		const extensionsChanged = observableSignalFromEvent(this, this._extensionsWorkbenchService.onChange);
 		return derived(reader => {
 			extensionsChanged.read(reader);
 			const query = this._searchQuery.read(reader).trim();
 
 			const result: IToolSetViewModel[] = [];
-			for (const ts of [...this._toolsService.toolSets.read(reader), ...this._staticReadOnlySets]) {
+			for (const ts of this._toolsService.toolSets.read(reader)) {
 				const vm = this._toViewModel(reader, ts, query);
 				if (vm) {
 					result.push(vm);
@@ -351,7 +317,6 @@ export class ToolsListWidget extends Disposable {
 		if (ts.deprecated) {
 			return undefined;
 		}
-		// Hide extension-provided sets whose extension is gone or being removed.
 		if (ts.source.type === 'extension') {
 			const extensionId = ts.source.extensionId;
 			const installed = this._extensionsWorkbenchService.local.find(e => ExtensionIdentifier.equals(e.identifier.id, extensionId));
@@ -391,7 +356,7 @@ export class ToolsListWidget extends Disposable {
 			visibleTools,
 			nameMatches,
 			forceExpanded: query !== '',
-			readOnly: ts.id === 'copilot-cli'
+			readOnly: false
 		};
 	}
 
@@ -405,7 +370,6 @@ export class ToolsListWidget extends Disposable {
 		this._galleryList.layout(Math.max(0, height - galleryOffset), width);
 	}
 
-	/** Enters/leaves marketplace browse mode, swapping the tree for the gallery list. */
 	private _setBrowseMode(browse: boolean): void {
 		if (this._browseMode === browse) {
 			return;
@@ -439,7 +403,6 @@ export class ToolsListWidget extends Disposable {
 		}
 	}
 
-	/** Queries the Extensions gallery for tool-contributing extensions. */
 	private async _queryGallery(): Promise<void> {
 		this._galleryCts?.dispose(true);
 		const cts = this._galleryCts = new CancellationTokenSource();
@@ -476,9 +439,6 @@ export class ToolsListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Keeps only extensions that contribute language model tools.
-	 */
 	private async _filterGalleryResults(extensions: readonly IExtension[], token: CancellationToken): Promise<IExtension[]> {
 		const results = await Promise.all(extensions.map(async extension => {
 			try {
@@ -488,7 +448,6 @@ export class ToolsListWidget extends Disposable {
 				}
 				return extension;
 			} catch {
-				// Ignore extensions whose manifest cannot be resolved.
 				return undefined;
 			}
 		}));
@@ -496,7 +455,6 @@ export class ToolsListWidget extends Disposable {
 	}
 
 	private _setGalleryMessage(text: string, subtext?: string): void {
-		// Drop any stale rows so only the message shows.
 		this._galleryList.splice(0, this._galleryList.length, []);
 		this._galleryListContainer.style.display = 'none';
 		DOM.clearNode(this._galleryEmpty);
@@ -508,19 +466,16 @@ export class ToolsListWidget extends Disposable {
 		}
 	}
 
-	/** Move keyboard focus to the search box. */
 	focusSearch(): void {
 		this._searchInput.focus();
 		this._searchInput.select();
 	}
 
-	/** Re-emit the current item count. Called once at startup to seed the section badge. */
 	fireItemCount(): void {
 		this._onDidChangeItemCount.fire(this._lastCount === -1 ? 0 : this._lastCount);
 	}
 
 	private _render(model: readonly IToolSetViewModel[]): void {
-		// A live update (search/tool-set change) rebuilds rows; keep keyboard focus in the tree if it was there.
 		const hadFocus = DOM.isAncestor(this._treeContainer.ownerDocument.activeElement, this._treeContainer);
 		this._rowStore.clear();
 		this._rows = [];
@@ -562,7 +517,6 @@ export class ToolsListWidget extends Disposable {
 	private _renderToolSet(vm: IToolSetViewModel): ITreeRow {
 		const ts = vm.toolSet;
 		const row = DOM.append(this._treeContainer, $('.tools-list-setrow'));
-		// Tree item with a roving tabIndex: navigated with arrows, toggled with Space; not a Tab stop.
 		row.setAttribute('role', 'treeitem');
 		row.setAttribute('aria-level', '1');
 		row.tabIndex = -1;
@@ -582,8 +536,6 @@ export class ToolsListWidget extends Disposable {
 			checkbox.setTitle(localize('toolsSetReadOnly', "These are the agent's built-in tools and cannot be changed."));
 		} else {
 			this._rowStore.add(checkbox.onChange(() => {
-				const enabled = checkbox.checked === true;
-				this._enablementService.setToolSetEnabled(this._sessionType, ts.id, vm.allToolIds, enabled);
 			}));
 		}
 
@@ -599,7 +551,6 @@ export class ToolsListWidget extends Disposable {
 
 		const count = DOM.append(row, $('span.tools-list-row-count'));
 
-		// Decorative chevron: expand state is on the row (aria-expanded); toggled by row click or arrows.
 		const chevron = DOM.append(row, $('a.tools-list-chevron.codicon')) as HTMLAnchorElement;
 		chevron.setAttribute('aria-hidden', 'true');
 
@@ -611,7 +562,6 @@ export class ToolsListWidget extends Disposable {
 			toggleExpand();
 		}));
 
-		// Extension-provided tool sets can be uninstalled via the context menu.
 		this._rowStore.add(DOM.addDisposableListener(row, 'contextmenu', e => {
 			const extension = this._resolveExtensionForToolSet(ts);
 			if (!extension) {
@@ -626,7 +576,6 @@ export class ToolsListWidget extends Disposable {
 		group.id = `tools-group-${ts.id}`;
 		group.setAttribute('role', 'group');
 		group.setAttribute('aria-label', setName);
-		// The child group is a DOM sibling (flat flex layout), so associate it with the parent item via aria-owns.
 		row.setAttribute('aria-owns', group.id);
 
 		const setRow: ITreeRow = {
@@ -642,7 +591,6 @@ export class ToolsListWidget extends Disposable {
 			setRow.children!.push(this._renderTool(group, setRow, vm, tool));
 		}
 
-		// Tri-state and count reflect enablement; update in place so a toggle never rebuilds the row.
 		this._rowStore.add(autorun(reader => {
 			const state = this._readState(reader);
 			const triState = getToolSetTriState(state, ts.id, vm.allToolIds);
@@ -653,7 +601,6 @@ export class ToolsListWidget extends Disposable {
 			count.setAttribute('aria-label', localize('toolsRowEnabledOfTotal', "{0} of {1} tools enabled", enabledCount, vm.allToolIds.length));
 		}));
 
-		// Expand/collapse toggles child visibility in place (no rebuild) so row focus is kept.
 		this._rowStore.add(autorun(reader => {
 			const expanded = vm.forceExpanded || this._expanded.read(reader).has(ts.id);
 			group.style.display = expanded ? '' : 'none';
@@ -673,7 +620,6 @@ export class ToolsListWidget extends Disposable {
 
 		const row = DOM.append(group, $('.tools-list-toolrow'));
 		row.classList.toggle('readonly', vm.readOnly);
-		// Tree item at level 2; read-only tools stay navigable (only the checkbox is disabled).
 		row.setAttribute('role', 'treeitem');
 		row.setAttribute('aria-level', '2');
 		row.tabIndex = -1;
@@ -691,7 +637,6 @@ export class ToolsListWidget extends Disposable {
 			checkbox.setTitle(localize('toolsSetReadOnly', "These are the agent's built-in tools and cannot be changed."));
 		} else {
 			this._rowStore.add(checkbox.onChange(() => {
-				this._enablementService.setToolEnabled(this._sessionType, vm.toolSet.id, tool.id, checkbox.checked);
 			}));
 
 			this._rowStore.add(DOM.addDisposableListener(row, 'click', e => {
@@ -699,10 +644,8 @@ export class ToolsListWidget extends Disposable {
 					return;
 				}
 				row.focus();
-				this._enablementService.setToolEnabled(this._sessionType, vm.toolSet.id, tool.id, !checkbox.checked);
 			}));
 
-			// Keep the checkbox and the treeitem's aria-checked in sync (e.g. when the parent set is toggled).
 			this._rowStore.add(autorun(reader => {
 				const toolEnabled = isToolEnabledInSet(this._readState(reader), vm.toolSet.id, tool.id);
 				checkbox.checked = toolEnabled;
@@ -730,10 +673,6 @@ export class ToolsListWidget extends Disposable {
 		};
 	}
 
-	/**
-	 * Subtitle for a tool-set row: the set's own `detail`, or for extension sets the extension's
-	 * description (falling back to a generic "contributed by" label).
-	 */
 	private _resolveSetDetail(ts: IToolSet): string | undefined {
 		if (ts.detail) {
 			return ts.detail;
@@ -746,7 +685,6 @@ export class ToolsListWidget extends Disposable {
 		return extension?.description || localize('toolsSetExtensionDetail', "Tools contributed by {0}", source.label);
 	}
 
-	/** Mirror a row's enablement onto its `treeitem` so assistive tech announces it while navigating. */
 	private _updateRowAriaChecked(element: HTMLElement, state: boolean | 'mixed'): void {
 		element.setAttribute('aria-checked', state === 'mixed' ? 'mixed' : String(state));
 	}
@@ -774,18 +712,15 @@ export class ToolsListWidget extends Disposable {
 		this._expanded.set(next, undefined);
 	}
 
-	// --- Tree keyboard navigation ---
 
 	private _isExpanded(setRow: ITreeRow): boolean {
 		return setRow.group!.style.display !== 'none';
 	}
 
-	/** Rows the user can currently land on: all set rows plus tool rows inside expanded sets, in tree order. */
 	private _visibleRows(): ITreeRow[] {
 		return this._rows.filter(r => r.kind === 'set' || this._isExpanded(r.parent!));
 	}
 
-	/** Keep a single roving `tabIndex=0` on the given row so the tree is one tab stop. */
 	private _setRovingRow(row: ITreeRow): void {
 		for (const r of this._rows) {
 			r.element.tabIndex = r === row ? 0 : -1;
@@ -798,7 +733,6 @@ export class ToolsListWidget extends Disposable {
 		row.element.focus();
 	}
 
-	/** Resolve the row owning a focus/keyboard target by walking up to a known row element. */
 	private _rowFromTarget(target: HTMLElement | null): ITreeRow | undefined {
 		for (let el = target; el && el !== this._treeContainer; el = el.parentElement) {
 			const row = this._rowByElement.get(el);
@@ -809,7 +743,6 @@ export class ToolsListWidget extends Disposable {
 		return undefined;
 	}
 
-	/** After a (re)render, restore the roving tabIndex to the previously active row, else the first row. */
 	private _initRovingTabIndex(refocus = false): void {
 		let active = this._activeRowId ? this._rows.find(r => r.rowId === this._activeRowId) : undefined;
 		if (!active || (active.kind === 'tool' && !this._isExpanded(active.parent!))) {
@@ -851,7 +784,6 @@ export class ToolsListWidget extends Disposable {
 				break;
 			case KeyCode.Space:
 			case KeyCode.Enter:
-				// Reuse the row's checkbox wiring; disabled (read-only) checkboxes ignore the click.
 				row.toggleNode.click();
 				break;
 			default:
@@ -877,7 +809,6 @@ export class ToolsListWidget extends Disposable {
 		this._focusRow(first ? rows[0] : rows[rows.length - 1]);
 	}
 
-	/** Right arrow: expand a collapsed set, or move into its first child when already expanded. */
 	private _onExpandKey(row: ITreeRow): boolean {
 		if (row.kind !== 'set') {
 			return false;
@@ -890,7 +821,6 @@ export class ToolsListWidget extends Disposable {
 		return true;
 	}
 
-	/** Left arrow: collapse an expanded set, or move a tool row up to its parent set. */
 	private _onCollapseKey(row: ITreeRow): boolean {
 		if (row.kind === 'set') {
 			if (this._isExpanded(row)) {
@@ -904,10 +834,9 @@ export class ToolsListWidget extends Disposable {
 	}
 
 	private _currentState(): IToolEnablementState {
-		return this._enablementService.getState(this._sessionType);
+		return { enabledToolSets: new Set(), enabledToolsBySet: new Map() };
 	}
 
-	/** Resolve the installed, non-builtin extension backing an extension-provided tool set. */
 	private _resolveExtensionForToolSet(ts: IToolSet): IExtension | undefined {
 		if (ts.source.type !== 'extension') {
 			return undefined;
@@ -957,37 +886,7 @@ export class ToolsListWidget extends Disposable {
 	}
 }
 
-/**
- * The Copilot CLI's built-in tools, surfaced read-only for reference. Mirrored from the published
- * "Tool availability values" table (the SDK does not expose this list at runtime); keep in sync:
- * https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#tool-availability-values
- */
-const COPILOT_CLI_TOOLS: readonly { readonly name: string; readonly description: string }[] = [
-	// Shell tools
-	{ name: 'bash / powershell', description: localize('copilotCliTool.shell', "Execute commands") },
-	{ name: 'list_bash / list_powershell', description: localize('copilotCliTool.listShell', "List active shell sessions") },
-	{ name: 'read_bash / read_powershell', description: localize('copilotCliTool.readShell', "Read output from a shell session") },
-	{ name: 'stop_bash / stop_powershell', description: localize('copilotCliTool.stopShell', "Terminate a shell session") },
-	{ name: 'write_bash / write_powershell', description: localize('copilotCliTool.writeShell', "Send input to a shell session") },
-	// File operation tools
-	{ name: 'apply_patch', description: localize('copilotCliTool.applyPatch', "Apply patches (used by some models instead of edit/create)") },
-	{ name: 'create', description: localize('copilotCliTool.create', "Create new files") },
-	{ name: 'edit', description: localize('copilotCliTool.edit', "Edit files via string replacement") },
-	{ name: 'view', description: localize('copilotCliTool.view', "Read files or directories") },
-	// Agent and task delegation tools
-	{ name: 'list_agents', description: localize('copilotCliTool.listAgents', "List available agents") },
-	{ name: 'read_agent', description: localize('copilotCliTool.readAgent', "Check background agent status") },
-	{ name: 'task', description: localize('copilotCliTool.task', "Run subagents") },
-	// Other tools
-	{ name: 'ask_user', description: localize('copilotCliTool.askUser', "Ask the user a question") },
-	{ name: 'glob', description: localize('copilotCliTool.glob', "Find files matching patterns") },
-	{ name: 'grep (or rg)', description: localize('copilotCliTool.grep', "Search for text in files") },
-	{ name: 'skill', description: localize('copilotCliTool.skill', "Invoke custom skills") },
-	{ name: 'web_fetch', description: localize('copilotCliTool.webFetch', "Fetch and parse web content") },
-];
-
 const CUSTOM_TOOL_SET_ORDER: Record<string, number> = {
-	'copilot-cli': 0,
 	'vscode-general': 1,
 	'vscode-tasks': 2,
 	'vscode-browser': 3,

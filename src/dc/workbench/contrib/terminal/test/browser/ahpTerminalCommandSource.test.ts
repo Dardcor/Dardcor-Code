@@ -106,7 +106,6 @@ suite('AhpTerminalCommandSource', () => {
 	};
 	let mockInstance: Partial<ITerminalInstance>;
 
-	/** Simple marker stub for testing */
 	let markerIdCounter: number;
 	const mockMarkers = new Map<string, { id: number; line: number; isDisposed: boolean; dispose: () => void; onDispose: { (listener: () => void): { dispose(): void } } }>();
 
@@ -166,13 +165,6 @@ suite('AhpTerminalCommandSource', () => {
 		return source;
 	}
 
-	/**
-	 * Simulates what xterm's OSC 633 parser does when it processes a SetMark
-	 * code: registers a marker in the BufferMarkCapability by ID. In the real
-	 * flow, AgentHostPty writes the SetMark code via handleData() before
-	 * firing the command event, so the capability already has the marker when
-	 * AhpTerminalCommandSource._handleCommandExecuted/Finished runs.
-	 */
 	function simulateMark(commandId: string, kind: AhpCommandMarkKind): void {
 		const markId = getAhpCommandMarkId(commandId, kind);
 		const bufferMark = mockInstance.capabilities?.get(TerminalCapability.BufferMarkDetection) as ReturnType<typeof createMockBufferMarkCapability>;
@@ -201,7 +193,6 @@ suite('AhpTerminalCommandSource', () => {
 		assert.strictEqual(source.executingCommandObject?.command, 'echo hello');
 		assert.strictEqual(events.length, 1);
 		assert.strictEqual(events[0].id, 'cmd-1');
-		// Executing commands are not yet in the commands list
 		assert.deepStrictEqual(source.commands, []);
 	});
 
@@ -273,13 +264,11 @@ suite('AhpTerminalCommandSource', () => {
 	test('multiple commands are tracked in order', () => {
 		const source = createSource();
 
-		// First command
 		simulateMark('cmd-1', AhpCommandMarkKind.Executed);
 		onCommandExecuted.fire({ commandId: 'cmd-1', commandLine: 'ls', timestamp: 1000 });
 		simulateMark('cmd-1', AhpCommandMarkKind.End);
 		onCommandFinished.fire({ commandId: 'cmd-1', exitCode: 0 });
 
-		// Second command
 		simulateMark('cmd-2', AhpCommandMarkKind.Executed);
 		onCommandExecuted.fire({ commandId: 'cmd-2', commandLine: 'pwd', timestamp: 2000 });
 		simulateMark('cmd-2', AhpCommandMarkKind.End);
@@ -298,7 +287,6 @@ suite('AhpTerminalCommandSource', () => {
 			commandId: 'cmd-1',
 			commandLine: 'echo hello',
 			timestamp: 1000,
-			// No storedOutput — this is a streaming command
 		});
 
 		onWillData.fire('hello ');
@@ -311,9 +299,6 @@ suite('AhpTerminalCommandSource', () => {
 	test('streaming data arriving between executed and finished is kept as the command output', () => {
 		const source = createSource();
 
-		// The server dispatches data in stream order relative to command
-		// events, so a command's output arrives while the command is still
-		// executing and must survive as its output after it finishes.
 		simulateMark('cmd-1', AhpCommandMarkKind.Executed);
 		onCommandExecuted.fire({ commandId: 'cmd-1', commandLine: 'echo hi', timestamp: 1000 });
 
@@ -334,13 +319,12 @@ suite('AhpTerminalCommandSource', () => {
 			commandId: 'cmd-1',
 			commandLine: 'echo hello',
 			timestamp: 1000,
-			storedOutput: 'existing output', // Replayed command
+			storedOutput: 'existing output',
 		});
 
 		onWillData.fire('extra data');
 
 		const executing = source.executingCommandObject as AhpTerminalCommand;
-		// Should still have the original stored output, not appended
 		assert.strictEqual(executing.getRawOutput(), 'existing output');
 	});
 
@@ -373,9 +357,7 @@ suite('AhpTerminalCommandSource', () => {
 
 		innerStore.dispose();
 
-		// After disposal, firing events should not create new commands
 		const executedEvents: ITerminalCommand[] = [];
-		// Can't subscribe after dispose, but events should not leak
 		onCommandExecuted.fire({
 			commandId: 'cmd-2',
 			commandLine: 'test2',

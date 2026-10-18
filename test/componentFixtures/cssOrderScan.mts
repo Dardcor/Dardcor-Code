@@ -3,22 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * CSS cascade-order dependency scanner.
- *
- * Renders every component fixture twice — once normally and once with the
- * bundled CSS documents reversed — and flags every fixture whose screenshot
- * changes under reversal: its appearance depends on the source-concatenation
- * order of two CSS files (a cascade tie broken only by order). For each flagged
- * fixture it then binary-searches to localize the two conflicting source files
- * (see `cssOrderShared.mts`), and writes a self-contained Markdown report with
- * the baseline/reversed images so the fragile pairs can be reviewed.
- *
- * Intended for a scheduled CI job; runs against an already-running `serve`
- * (see `component-explorer-attach.json`). Prerequisites: start the serve, e.g.
- * `npm run serve-out-rspack`, then run:
- *   node test/componentFixtures/cssOrderScan.mts [--out <dir>] [--fixture-id-regex <rx>]
- */
 
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -29,7 +13,6 @@ interface Args {
 	readonly config: string;
 	readonly fixtureRegex: string;
 	readonly out: string;
-	/** When set, images are linked as `<imageBaseUrl>/<hash>` instead of bundled relative paths. */
 	readonly imageBaseUrl: string | undefined;
 	readonly keep: boolean;
 }
@@ -50,7 +33,6 @@ function parseArgs(argv: readonly string[]): Args {
 	};
 }
 
-/** A localized cascade-order conflict for one fixture. */
 interface Problem {
 	readonly fixtureId: string;
 	readonly background: 'light' | 'dark' | undefined;
@@ -58,15 +40,11 @@ interface Problem {
 	readonly docCount: number;
 	readonly baselineHash: string;
 	readonly reversedHash: string;
-	/** Document index + source file of the later document (wins the tie in product order). */
 	readonly laterIndex: number;
 	readonly laterFile: string;
-	/** Document index + source file of the earlier document (loses the tie in product order). */
 	readonly earlierIndex: number;
 	readonly earlierFile: string;
-	/** Relative path of the baseline image within the report, if captured. */
 	readonly baselineImage: string | undefined;
-	/** Relative path of the reversed image within the report, if captured. */
 	readonly reversedImage: string | undefined;
 }
 
@@ -74,12 +52,10 @@ const GITHUB_SERVER = process.env.GITHUB_SERVER_URL ?? 'https://github.com';
 const GITHUB_REPO = process.env.GITHUB_REPOSITORY;
 const GITHUB_SHA = process.env.GITHUB_SHA;
 
-/** Maps a bundled `out/…` document path back to its `src/…` source. */
 function toSourcePath(path: string): string {
 	return path.startsWith('out/') ? `src/${path.slice('out/'.length)}` : path;
 }
 
-/** A Markdown link to the source file on GitHub (when running in Actions), else inline code. */
 function fileLink(path: string): string {
 	const src = toSourcePath(path);
 	if (GITHUB_REPO && GITHUB_SHA) {
@@ -88,7 +64,6 @@ function fileLink(path: string): string {
 	return `\`${src}\``;
 }
 
-/** Just the file name of a bundled document path, for compact tables. */
 function fileBaseName(path: string): string {
 	const src = toSourcePath(path);
 	return src.slice(src.lastIndexOf('/') + 1);
@@ -98,11 +73,6 @@ function slugify(fixtureId: string): string {
 	return fixtureId.replace(/[^a-zA-Z0-9._-]+/g, '_');
 }
 
-/**
- * An embedded Markdown image (`![]()`) of a captured render.
- * When `--image-base-url` is set, the image source is `<base>/<hash>`. Otherwise,
- * it stays relative to the report directory.
- */
 async function imageLink(args: Args, label: string, hash: string, relativePath: string | undefined): Promise<string | undefined> {
 	if (!relativePath) {
 		return undefined;
@@ -141,7 +111,6 @@ async function renderMarkdown(args: Args, problems: readonly Problem[], totals: 
 		return lines.join('\n');
 	}
 
-	// Aggregate by CSS source file so the most frequently fragile files surface.
 	const byFile = new Map<string, { fixtures: Set<string>; partners: Set<string> }>();
 	const note = (file: string, partner: string, fixtureId: string) => {
 		let entry = byFile.get(file);
@@ -214,13 +183,8 @@ async function main(): Promise<void> {
 	await mkdir(assetsDir, { recursive: true });
 	const renderer = new Renderer(args.config, probeRoot);
 
-	// One render of every fixture in product order: this is the per-fixture
-	// baseline image and also reports each fixture's document list, so the scan
-	// never has to parse the bundle itself.
 	process.stdout.write('Rendering all fixtures (baseline)...\n');
 	const baseline = await renderer.render(args.fixtureRegex, { outputStylesheetFiles: true }, { useHashPaths: false });
-	// One render of every fixture with all documents reversed: fixtures whose
-	// image changes here are order-dependent.
 	process.stdout.write('Rendering all fixtures (reversed)...\n');
 	const reversed = await renderer.render(args.fixtureRegex, { reverseStylesheets: true }, { useHashPaths: false });
 
@@ -250,8 +214,6 @@ async function main(): Promise<void> {
 			process.stdout.write(`  probe #${++probeCount}: reverse[${fromIndex}, ${toIndex}) -> ${verdict} (${ms}ms)\n`);
 		});
 
-		// Copy the baseline and reversed images into the report so it is
-		// self-contained (links resolve when the artifact is downloaded).
 		const slug = slugify(base.fixtureId);
 		let baselineImage: string | undefined;
 		let reversedImage: string | undefined;

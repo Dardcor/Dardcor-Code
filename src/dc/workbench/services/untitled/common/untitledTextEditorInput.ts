@@ -22,9 +22,6 @@ import { DisposableStore, dispose, IReference } from '../../../../base/common/li
 import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
 import { ICustomEditorLabelService } from '../../editor/common/customEditorLabelService.js';
 
-/**
- * An editor input to be used for untitled text buffers.
- */
 export class UntitledTextEditorInput extends AbstractTextResourceEditorInput implements IEncodingSupport, ILanguageSupport {
 
 	static readonly ID: string = 'workbench.editors.untitledEditorInput';
@@ -64,20 +61,15 @@ export class UntitledTextEditorInput extends AbstractTextResourceEditorInput imp
 	private registerModelListeners(model: IUntitledTextEditorModel): void {
 		this.modelDisposables.clear();
 
-		// re-emit some events from the model
 		this.modelDisposables.add(model.onDidChangeDirty(() => this._onDidChangeDirty.fire()));
 		this.modelDisposables.add(model.onDidChangeName(() => this._onDidChangeLabel.fire()));
 
-		// a reverted untitled text editor model renders this input disposed
 		this.modelDisposables.add(model.onDidRevert(() => this.dispose()));
 	}
 
 	private onDidCreateUntitledModel(model: IUntitledTextEditorModel): void {
 		if (isEqual(model.resource, this.model.resource) && model !== this.model) {
 
-			// Ensure that we keep our model up to date with
-			// the actual model from the service so that we
-			// never get out of sync with the truth.
 
 			this.model = model;
 			this.registerModelListeners(model);
@@ -90,7 +82,6 @@ export class UntitledTextEditorInput extends AbstractTextResourceEditorInput imp
 
 	override getDescription(verbosity = Verbosity.MEDIUM): string | undefined {
 
-		// Without associated path: only use if name and description differ
 		if (!this.model.hasAssociatedFilePath) {
 			const descriptionCandidate = this.resource.path;
 			if (descriptionCandidate !== this.getName()) {
@@ -100,14 +91,11 @@ export class UntitledTextEditorInput extends AbstractTextResourceEditorInput imp
 			return undefined;
 		}
 
-		// With associated path: delegate to parent
 		return super.getDescription(verbosity);
 	}
 
 	override getTitle(verbosity: Verbosity): string {
 
-		// Without associated path: check if name and description differ to decide
-		// if description should appear besides the name to distinguish better
 		if (!this.model.hasAssociatedFilePath) {
 			const name = this.getName();
 			const description = this.getDescription();
@@ -118,7 +106,6 @@ export class UntitledTextEditorInput extends AbstractTextResourceEditorInput imp
 			return name;
 		}
 
-		// With associated path: delegate to parent
 		return super.getTitle(verbosity);
 	}
 
@@ -130,7 +117,7 @@ export class UntitledTextEditorInput extends AbstractTextResourceEditorInput imp
 		return this.model.getEncoding();
 	}
 
-	setEncoding(encoding: string, mode: EncodingMode /* ignored, we only have Encode */): Promise<void> {
+	setEncoding(encoding: string, mode: EncodingMode ): Promise<void> {
 		return this.model.setEncoding(encoding);
 	}
 
@@ -150,16 +137,12 @@ export class UntitledTextEditorInput extends AbstractTextResourceEditorInput imp
 		if (!this.modelResolve) {
 			this.modelResolve = (async () => {
 
-				// Acquire a model reference
 				this.cachedUntitledTextEditorModelReference = await this.textModelService.createModelReference(this.resource) as IReference<IUntitledTextEditorModel>;
 			})();
 		}
 
 		await this.modelResolve;
 
-		// It is possible that this input was disposed before the model
-		// finished resolving. As such, we need to make sure to dispose
-		// the model reference to not leak it.
 		if (this.isDisposed()) {
 			this.disposeModelReference();
 		}
@@ -183,14 +166,6 @@ export class UntitledTextEditorInput extends AbstractTextResourceEditorInput imp
 			untypedInput.options.viewState = findViewStateForEditor(this, options.preserveViewState, this.editorService);
 
 			if (typeof untypedInput.contents === 'string' && !this.model.hasAssociatedFilePath && !options.preserveResource) {
-				// Given how generic untitled resources in the system are, we
-				// need to be careful not to set our resource into the untyped
-				// editor if we want to transport contents too, because of
-				// issue https://github.com/microsoft/vscode/issues/140898
-				// The workaround is to simply remove the resource association
-				// if we have contents and no associated resource.
-				// In that case we can ensure that a new untitled resource is
-				// being created and the contents can be restored properly.
 				untypedInput.resource = undefined;
 			}
 		}
@@ -216,10 +191,8 @@ export class UntitledTextEditorInput extends AbstractTextResourceEditorInput imp
 
 	override dispose(): void {
 
-		// Model
 		this.modelResolve = undefined;
 
-		// Model reference
 		this.disposeModelReference();
 
 		super.dispose();

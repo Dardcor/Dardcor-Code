@@ -214,20 +214,16 @@ suite('SnippetParser', () => {
 		assertTextAndMarker('${foo/regex/format/gmi}', '', Variable);
 		assertTextAndMarker('${foo/([A-Z][a-z])/format/}', '', Variable);
 
-		// invalid regex
 		assertTextAndMarker('${foo/([A-Z][a-z])/format/GMI}', '${foo/([A-Z][a-z])/format/GMI}', Text);
 		assertTextAndMarker('${foo/([A-Z][a-z])/format/funky}', '${foo/([A-Z][a-z])/format/funky}', Text);
 		assertTextAndMarker('${foo/([A-Z][a-z]/format/}', '${foo/([A-Z][a-z]/format/}', Text);
 
-		// tricky regex
 		assertTextAndMarker('${foo/m\\/atch/$1/i}', '', Variable);
 		assertMarker('${foo/regex\/format/options}', Text);
 
-		// incomplete
 		assertTextAndMarker('${foo///', '${foo///', Text);
 		assertTextAndMarker('${foo/regex/format/options', '${foo/regex/format/options', Text);
 
-		// format string
 		assertMarker('${foo/.*/${0:fooo}/i}', Variable);
 		assertMarker('${foo/.*/${1}/i}', Variable);
 		assertMarker('${foo/.*/$1/i}', Variable);
@@ -245,11 +241,9 @@ suite('SnippetParser', () => {
 		assertTextAndMarker('${1/regex/format/gmi}', '', Placeholder);
 		assertTextAndMarker('${1/([A-Z][a-z])/format/}', '', Placeholder);
 
-		// tricky regex
 		assertTextAndMarker('${1/m\\/atch/$1/i}', '', Placeholder);
 		assertMarker('${1/regex\/format/options}', Text);
 
-		// incomplete
 		assertTextAndMarker('${1///', '${1///', Text);
 		assertTextAndMarker('${1/regex/format/options', '${1/regex/format/options', Text);
 	});
@@ -311,7 +305,6 @@ suite('SnippetParser', () => {
 	test('Marker, toTextmateString() <-> identity', function () {
 
 		function assertIdent(input: string): void {
-			// full loop: (1) parse input, (2) generate textmate string, (3) parse, (4) ensure both trees are equal
 			const snippet = new SnippetParser().parse(input);
 			const input2 = snippet.toTextmateString();
 			const snippet2 = new SnippetParser().parse(input2);
@@ -402,22 +395,18 @@ suite('SnippetParser', () => {
 	test('Parser, transform example', () => {
 		const { children } = new SnippetParser().parse('${1:name} : ${2:type}${3/\\s:=(.*)/${1:+ :=}${1}/};\n$0');
 
-		//${1:name}
 		assert.ok(children[0] instanceof Placeholder);
 		assert.strictEqual(children[0].children.length, 1);
 		assert.strictEqual(children[0].children[0].toString(), 'name');
 		assert.strictEqual((<Placeholder>children[0]).transform, undefined);
 
-		// :
 		assert.ok(children[1] instanceof Text);
 		assert.strictEqual(children[1].toString(), ' : ');
 
-		//${2:type}
 		assert.ok(children[2] instanceof Placeholder);
 		assert.strictEqual(children[2].children.length, 1);
 		assert.strictEqual(children[2].children[0].toString(), 'type');
 
-		//${3/\\s:=(.*)/${1:+ :=}${1}/}
 		assert.ok(children[3] instanceof Placeholder);
 		assert.strictEqual(children[3].children.length, 0);
 		assert.notStrictEqual((<Placeholder>children[3]).transform, undefined);
@@ -434,7 +423,6 @@ suite('SnippetParser', () => {
 
 	});
 
-	// TODO @jrieken making this strictEqul causes circular json conversion errors
 	test('Parser, default placeholder values', () => {
 
 		assertMarker('errorContext: `${1:err}`, error: $1', Text, Placeholder, Text, Placeholder);
@@ -450,7 +438,6 @@ suite('SnippetParser', () => {
 		assert.strictEqual((<Text>(<Placeholder>p2).children[0]).toString(), 'err');
 	});
 
-	// TODO @jrieken making this strictEqul causes circular json conversion errors
 	test('Parser, default placeholder values and one transform', () => {
 
 		assertMarker('errorContext: `${1:err}`, error: ${1/err/ok/}', Text, Placeholder, Text, Placeholder);
@@ -550,7 +537,6 @@ suite('SnippetParser', () => {
 		assert.strictEqual(snippet.offset(snippet.children[0]), 0);
 		assert.strictEqual(snippet.offset((<Variable>snippet.children[0]).children[0]), 0);
 
-		// forgein marker
 		assert.strictEqual(snippet.offset(new Text('foo')), -1);
 	});
 
@@ -653,7 +639,6 @@ suite('SnippetParser', () => {
 
 	test('Transform -> FormatString#resolve', function () {
 
-		// shorthand functions
 		assert.strictEqual(new FormatString(1, 'upcase').resolve('foo'), 'FOO');
 		assert.strictEqual(new FormatString(1, 'downcase').resolve('FOO'), 'foo');
 		assert.strictEqual(new FormatString(1, 'capitalize').resolve('bar'), 'Bar');
@@ -684,17 +669,14 @@ suite('SnippetParser', () => {
 		assert.strictEqual(new FormatString(1, 'snakecase').resolve('_justPascalCase'), '_just_pascal_case');
 		assert.strictEqual(new FormatString(1, 'notKnown').resolve('input'), 'input');
 
-		// if
 		assert.strictEqual(new FormatString(1, undefined, 'foo', undefined).resolve(undefined), '');
 		assert.strictEqual(new FormatString(1, undefined, 'foo', undefined).resolve(''), '');
 		assert.strictEqual(new FormatString(1, undefined, 'foo', undefined).resolve('bar'), 'foo');
 
-		// else
 		assert.strictEqual(new FormatString(1, undefined, undefined, 'foo').resolve(undefined), 'foo');
 		assert.strictEqual(new FormatString(1, undefined, undefined, 'foo').resolve(''), 'foo');
 		assert.strictEqual(new FormatString(1, undefined, undefined, 'foo').resolve('bar'), 'bar');
 
-		// if-else
 		assert.strictEqual(new FormatString(1, undefined, 'bar', 'foo').resolve(undefined), 'foo');
 		assert.strictEqual(new FormatString(1, undefined, 'bar', 'foo').resolve(''), 'foo');
 		assert.strictEqual(new FormatString(1, undefined, 'bar', 'foo').resolve('baz'), 'bar');
@@ -869,7 +851,6 @@ suite('SnippetParser', () => {
 		const actual2 = snippet2.toString();
 		assert.strictEqual(actual2, 'prog: prog.cc.33 - prog.cc prog.cc.33');
 
-		// cyclic references of placeholders
 		const snippet3 = new SnippetParser().parse('${1:$2.one} <> ${2:$1.two}');
 		const actual3 = snippet3.toString();
 		assert.strictEqual(actual3, '.two.one.two.one <> .one.two.one.two');

@@ -10,7 +10,6 @@ import { CancellationToken } from '../../../util/dardcor/base/common/cancellatio
 import { Codicon } from '../../../util/dardcor/base/common/codicons';
 import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { ThemeIcon } from '../../../util/dardcor/base/common/themables';
-import { IAuthenticationService } from '../../authentication/common/authentication';
 import { getRequestId, RequestId } from '../../networking/common/fetch';
 import { FetchOptions, IFetcherService, IHeaders, Response } from '../../networking/common/fetcherService';
 import { IRequestLogger, LoggedRequestKind } from '../../requestLogger/common/requestLogger';
@@ -18,6 +17,7 @@ import { Completion } from '../common/completionsAPI';
 import { Completions, ICompletionsFetchService } from '../common/completionsFetchService';
 import { ResponseStream } from '../common/responseStream';
 import { jsonlStreamToCompletions } from './streamTransformer';
+import { getDardcorRouterApiKey, getDardcorRouterBaseUrl } from '../../endpoint/node/dardcorRouter';
 
 export type FetchResponse = {
 	status: number;
@@ -34,7 +34,6 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 	readonly _serviceBrand: undefined;
 
 	constructor(
-		@IAuthenticationService private authService: IAuthenticationService,
 		@IFetcherService private fetcherService: IFetcherService,
 		@IRequestLogger private readonly requestLogger: IRequestLogger,
 	) {
@@ -53,6 +52,7 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 		headerOverrides?: Record<string, string>,
 	): Promise<Result<ResponseStream, Completions.CompletionsFetchFailure>> {
 		const startTimeMs = Date.now();
+		const isRouterChatRequest = this._isDardcorRouterChatEndpoint(url);
 
 		if (ct.isCancellationRequested) {
 			const result = Result.error(new Completions.RequestCancelled());
@@ -62,11 +62,8 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 
 		const options = {
 			requestId,
-			headers: this.getHeaders(requestId, secretKey, headerOverrides),
-			body: JSON.stringify({
-				...params,
-				stream: true,
-			})
+			headers: this.getHeaders(requestId, isRouterChatRequest ? getDardcorRouterApiKey() : secretKey, headerOverrides, isRouterChatRequest),
+			body: JSON.stringify(isRouterChatRequest ? toRouterChatCompletionRequest(params) : { ...params, stream: true })
 		};
 
 		const fetchResponse = await this._fetchFromUrl(url, options, ct);
@@ -78,8 +75,10 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 
 		if (fetchResponse.val.status === 200) {
 
-			const jsonlStream = AsyncIterUtilsExt.splitLines(fetchResponse.val.body);
-			const completionsStream = jsonlStreamToCompletions(jsonlStream);
+			const lines = AsyncIterUtilsExt.splitLines(fetchResponse.val.body);
+			const completionsStream = isRouterChatRequest
+				? routerChatSseToCompletions(lines)
+				: jsonlStreamToCompletions(lines);
 
 			const response = new ResponseStream(fetchResponse.val.response, completionsStream, fetchResponse.val.requestId, fetchResponse.val.headers);
 
@@ -121,20 +120,7 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 
 			const response = await this.fetcherService.fetch(url, request);
 
-			if (response.status === 200 && this.authService.dardcorToken?.isFreeUser && this.authService.dardcorToken?.isChatQuotaExceeded) {
-				this.authService.resetCopilotToken();
-			}
-
 			if (response.status !== 200) {
-				if (response.status === 402) {
-					// When we receive a 402, we have exceed the free tier quota
-					// This is stored on the token so let's refresh it
-					if (!this.authService.dardcorToken?.isCompletionsQuotaExceeded) {
-						this.authService.resetCopilotToken(response.status);
-						await this.authService.getCopilotToken();
-					}
-				}
-
 				return Result.error(new Completions.UnsuccessfulResponse(response.status, response.statusText, response.headers, () => response.text().catch(() => '')));
 			}
 
@@ -172,7 +158,6 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 		result: Result<ResponseStream, Completions.CompletionsFetchFailure>,
 	): void {
 		if (result.isOk()) {
-			// For successful requests, wait for the stream to complete so we can log the response
 			const responseStream = result.val;
 			void responseStream.response.then(aggregated => {
 				const aggregationStatus = aggregated.isOk() ? 'success' : 'failed';
@@ -206,7 +191,6 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 		lines.push(`# completions`);
 		lines.push(``);
 
-		// Table of contents
 		lines.push(`- [Metadata](#metadata)`);
 		lines.push(`- [Prompt](#prompt)`);
 		if (params.suffix) {
@@ -215,7 +199,6 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 		lines.push(`- [Response](#response)`);
 		lines.push(``);
 
-		// Metadata
 		lines.push(`## Metadata`);
 		lines.push(`<pre><code>`);
 		lines.push(`url              : ${url}`);
@@ -228,14 +211,12 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 		lines.push(`duration         : ${durationMs}ms`);
 		lines.push(`</code></pre>`);
 
-		// Prompt
 		lines.push(``);
 		lines.push(`## Prompt`);
 		lines.push(`~~~`);
 		lines.push(params.prompt);
 		lines.push(`~~~`);
 
-		// Suffix
 		if (params.suffix) {
 			lines.push(``);
 			lines.push(`## Suffix`);
@@ -244,7 +225,6 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 			lines.push(`~~~`);
 		}
 
-		// Response
 		lines.push(``);
 		lines.push(`## Response`);
 		if (status === 'cancelled') {
@@ -288,23 +268,114 @@ export class CompletionsFetchService implements ICompletionsFetchService {
 		requestId: string,
 		secretKey: string,
 		headerOverrides: Record<string, string> = {},
+		isRouterChatRequest = false,
 	): Record<string, string> {
+		if (isRouterChatRequest) {
+			return {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${secretKey}`,
+				'X-Request-Id': requestId,
+				...headerOverrides,
+			};
+		}
+
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'x-policy-id': 'nil',
 			Authorization: 'Bearer ' + secretKey,
 			'X-Request-Id': requestId,
-			'X-GitHub-Api-Version': '2025-04-01',
 			...headerOverrides,
 		};
 
 		return headers;
 	}
+
+	private _isDardcorRouterChatEndpoint(url: string): boolean {
+		try {
+			const normalizedUrl = new URL(url).toString().replace(/\/$/, '');
+			return normalizedUrl === `${getDardcorRouterBaseUrl()}/v1/chat/completions`;
+		} catch {
+			return false;
+		}
+	}
 }
 
-/**
- * Wraps an async iterable stream and disposes the cleanup disposable when the stream completes or errors.
- */
+function toRouterChatCompletionRequest(params: IFetchRequestParams): Record<string, unknown> {
+	const context = params.extra?.context;
+	const contextText = Array.isArray(context)
+		? context.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join('\n\n')
+		: typeof context === 'string' ? context : '';
+	const prefix = typeof params.prompt === 'string' ? params.prompt : '';
+	const suffix = typeof params.suffix === 'string' ? params.suffix : '';
+	const systemContent = [
+		'You provide inline code completions for Dardcor Code.',
+		'Return only the code to insert at the cursor. Do not explain your answer, repeat code already present before or after the cursor, or wrap the result in markdown fences.',
+		contextText ? `Relevant project context:\n${contextText}` : undefined,
+	].filter(Boolean).join('\n\n');
+
+	return {
+		model: params.model,
+		messages: [
+			{ role: 'system', content: systemContent },
+			{ role: 'user', content: `Code before cursor:\n${prefix}\n\nCode after cursor:\n${suffix}\n\nReturn only the missing code between these two sections.` },
+		],
+		max_tokens: params.max_tokens,
+		temperature: params.temperature,
+		top_p: params.top_p,
+		stop: params.stop,
+		n: params.n,
+		presence_penalty: params.presence_penalty,
+		frequency_penalty: params.frequency_penalty,
+		stream: true,
+	};
+}
+
+async function* routerChatSseToCompletions(lines: AsyncIterable<string>): AsyncGenerator<Completion> {
+	for await (const line of lines) {
+		const trimmed = line.trim();
+		if (!trimmed.startsWith('data:')) {
+			continue;
+		}
+		const payload = trimmed.slice('data:'.length).trim();
+		if (!payload || payload === '[DONE]') {
+			continue;
+		}
+
+		const chunk = JSON.parse(payload) as {
+			error?: { message?: string } | string;
+			system_fingerprint?: string;
+			choices?: Array<{
+				index?: number;
+				delta?: { content?: string | Array<{ text?: string }> };
+				finish_reason?: string | null;
+			}>;
+		};
+		if (chunk.error) {
+			throw new Error(typeof chunk.error === 'string' ? chunk.error : chunk.error.message ?? 'Dardcor Router returned a chat completion error.');
+		}
+
+		const choices = (chunk.choices ?? []).map(choice => {
+			const content = choice.delta?.content;
+			const text = typeof content === 'string'
+				? content
+				: Array.isArray(content) ? content.map(part => part.text ?? '').join('') : '';
+			const finishReason: Completion.FinishReason | null = choice.finish_reason === 'length'
+				? Completion.FinishReason.Length
+				: choice.finish_reason === 'content_filter'
+					? Completion.FinishReason.ContentFilter
+					: choice.finish_reason ? Completion.FinishReason.Stop : null;
+			return { index: choice.index ?? 0, text, finish_reason: finishReason };
+		});
+		if (choices.length) {
+			yield {
+				choices,
+				system_fingerprint: chunk.system_fingerprint ?? '',
+				object: 'text_completion',
+				usage: undefined,
+			};
+		}
+	}
+}
+
 async function* streamWithCleanup(
 	stream: AsyncIterable<string>,
 	cleanupDisposable: IDisposable
@@ -321,9 +392,6 @@ async function* streamWithCleanup(
 	}
 }
 
-/**
- * Collects all strings from an async iterable and joins them into a single string.
- */
 async function collectAsyncIterableToString(iterable: AsyncIterable<string>): Promise<string> {
 	const parts: string[] = [];
 	for await (const part of iterable) {

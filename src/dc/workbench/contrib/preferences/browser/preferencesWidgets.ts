@@ -201,7 +201,6 @@ export class FolderSettingsActionViewItem extends BaseActionViewItem {
 	}
 
 	private labelWithCount(label: string, count: number | undefined): string {
-		// Append the count if it's >0 and not undefined
 		if (count) {
 			label += ` (${count})`;
 		}
@@ -442,7 +441,6 @@ export class SearchWidget extends Widget {
 	}
 
 	showMessage(message: string): void {
-		// Avoid setting the aria-label unnecessarily, the screenreader will read the count every time it's set, since it's aria-live:assertive. #50968
 		if (this.countElement && message !== this.countElement.textContent) {
 			this.countElement.textContent = message;
 			this.inputBox.inputElement.setAttribute('aria-label', message);

@@ -91,9 +91,6 @@ suite('Debug - Base Debug View', () => {
 		label.dispose();
 	}
 
-	/**
-	 * Instantiate services for use by the functions being tested.
-	 */
 	setup(() => {
 		const instantiationService: TestInstantiationService = workbenchInstantiationService(undefined, disposables);
 		configurationService = instantiationService.createInstance(TestConfigurationService);

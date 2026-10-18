@@ -205,8 +205,6 @@ export class WindowsKeyboardMapper implements IKeyboardMapper {
 						continue;
 					}
 					if (scanCode !== ScanCode.NumpadComma) {
-						// Looks like ScanCode.NumpadComma doesn't always map to KeyCode.NUMPAD_SEPARATOR
-						// e.g. on POR - PTB
 						continue;
 					}
 				}
@@ -234,12 +232,10 @@ export class WindowsKeyboardMapper implements IKeyboardMapper {
 				this._keyCodeExists[keyCode] = true;
 
 				if (value.length === 0) {
-					// This key does not produce strings
 					this._keyCodeToLabel[keyCode] = null;
 				}
 
 				else if (value.length > 1) {
-					// This key produces a letter representable with multiple UTF-16 code units.
 					this._keyCodeToLabel[keyCode] = value;
 				}
 
@@ -266,7 +262,6 @@ export class WindowsKeyboardMapper implements IKeyboardMapper {
 			}
 		}
 
-		// Handle keyboard layouts where latin characters are not produced e.g. Cyrillic
 		const _registerLetterIfMissing = (charCode: CharCode, keyCode: KeyCode): void => {
 			if (!producesLetter[charCode]) {
 				this._keyCodeToLabel[keyCode] = String.fromCharCode(charCode);
@@ -300,15 +295,8 @@ export class WindowsKeyboardMapper implements IKeyboardMapper {
 		_registerLetterIfMissing(CharCode.Z, KeyCode.KeyZ);
 
 		if (!producesLetters) {
-			// Since this keyboard layout produces no latin letters at all, most of the UI will use the
-			// US kb layout equivalent for UI labels, so also try to render other keys with the US labels
-			// for consistency...
 			const _registerLabel = (keyCode: KeyCode, charCode: CharCode): void => {
-				// const existingLabel = this._keyCodeToLabel[keyCode];
-				// const existingCharCode = (existingLabel ? existingLabel.charCodeAt(0) : CharCode.Null);
-				// if (existingCharCode < 32 || existingCharCode > 126) {
 				this._keyCodeToLabel[keyCode] = String.fromCharCode(charCode);
-				// }
 			};
 			_registerLabel(KeyCode.Semicolon, CharCode.Semicolon);
 			_registerLabel(KeyCode.Equal, CharCode.Equals);

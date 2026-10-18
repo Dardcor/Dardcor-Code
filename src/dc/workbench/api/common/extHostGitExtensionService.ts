@@ -45,7 +45,6 @@ function toGitUpstreamRefDto(upstream: UpstreamRef): GitUpstreamRefDto {
 	};
 }
 
-// Status values from the git extension's const enum Status
 const enum GitStatus {
 	INDEX_ADDED = 1,
 	INDEX_DELETED = 2,
@@ -59,23 +58,19 @@ const enum GitStatus {
 
 function toGitChangeDto(change: Change): GitChangeDto {
 	switch (change.status) {
-		// Added: no original
 		case GitStatus.INDEX_ADDED:
 		case GitStatus.UNTRACKED:
 		case GitStatus.INTENT_TO_ADD:
 			return { uri: change.uri, originalUri: undefined, modifiedUri: change.uri };
 
-		// Deleted: no modified
 		case GitStatus.INDEX_DELETED:
 		case GitStatus.DELETED:
 			return { uri: change.uri, originalUri: change.uri, modifiedUri: undefined };
 
-		// Renamed: original is old name, modified is new name
 		case GitStatus.INDEX_RENAMED:
 		case GitStatus.INTENT_TO_RENAME:
 			return { uri: change.uri, originalUri: change.originalUri, modifiedUri: change.renameUri };
 
-		// Modified and everything else: both original and modified
 		default:
 			return { uri: change.uri, originalUri: change.originalUri, modifiedUri: change.uri };
 	}
@@ -225,7 +220,6 @@ export class ExtHostGitExtensionService extends Disposable implements IExtHostGi
 			return { handle: existingHandle, rootUri: repository.rootUri, state };
 		}
 
-		// Store the repository and its handle in the maps
 		const handle = ExtHostGitExtensionService._handlePool++;
 
 		this._repositories.set(handle, repository);
@@ -350,7 +344,6 @@ export class ExtHostGitExtensionService extends Disposable implements IExtHostGi
 				this._gitApi = (exports as GitExtension).getAPI(1);
 			}
 		} catch {
-			// Git extension not available
 		}
 
 		return this._gitApi;

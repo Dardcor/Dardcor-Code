@@ -20,10 +20,6 @@ import { ColorDetector } from '../../../../editor/contrib/colorPicker/browser/co
 const openSettingsCommand = 'workbench.action.openSettings';
 const configureSettingsLabel = nls.localize('status.button.configure', "Configure");
 
-/**
- * Uses that language status indicator to show information which language features have been limited for performance reasons.
- * Currently this is used for folding ranges and for color decorators.
- */
 export class LimitIndicatorContribution extends Disposable implements IWorkbenchContribution {
 
 	constructor(

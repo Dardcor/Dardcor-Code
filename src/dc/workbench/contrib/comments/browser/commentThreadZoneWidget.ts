@@ -33,9 +33,6 @@ function getCommentThreadWidgetStateColor(thread: languages.CommentThreadState |
 	return getCommentThreadStateBorderColor(thread, theme) ?? theme.getColor(peekViewBorder);
 }
 
-/**
- * Check if a comment thread has any draft comments
- */
 function commentThreadHasDraft(commentThread: languages.CommentThread): boolean {
 	const comments = commentThread.comments;
 	if (!comments) {
@@ -68,7 +65,6 @@ export function parseMouseDownInfoFromEvent(e: IEditorMouseEvent) {
 	const data = e.target.detail;
 	const gutterOffsetX = data.offsetX - data.glyphMarginWidth - data.lineNumbersWidth - data.glyphMarginLeft;
 
-	// don't collide with folding and git decorations
 	if (gutterOffsetX > 20) {
 		return null;
 	}
@@ -202,7 +198,6 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 	}
 
 	protected override revealRange() {
-		// we don't do anything here as we always do the reveal ourselves.
 	}
 
 	public reveal(commentUniqueId?: number, focus: CommentWidgetFocus = CommentWidgetFocus.None) {
@@ -302,8 +297,6 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 							let range: Range;
 
 							if (newPosition.lineNumber !== originalRange.endLineNumber) {
-								// The widget could have moved as a result of editor changes.
-								// We need to try to calculate the new, more correct, range for the comment.
 								const distance = newPosition.lineNumber - originalRange.endLineNumber;
 								range = new Range(originalRange.startLineNumber + distance, originalRange.startColumn, originalRange.endLineNumber + distance, originalRange.endColumn);
 							} else {
@@ -326,7 +319,6 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 		if (!range) {
 			return undefined;
 		}
-		// Arrow on top edge of zone widget will be at the start of the line if range is multi-line, else at midpoint of range (rounding rightwards)
 		return { lineNumber: range.endLineNumber, column: range.endLineNumber === range.startLineNumber ? (range.startColumn + range.endColumn + 1) / 2 : 1 };
 	}
 
@@ -390,7 +382,6 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 
 		await this._commentThreadWidget.updateCommentThread(commentThread);
 
-		// Move comment glyph widget and show position if the line has changed.
 		const lineNumber = this._commentThread.range?.endLineNumber ?? 1;
 		let shouldMoveWidget = false;
 		if (this._commentGlyph) {
@@ -440,7 +431,6 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 			this.show(this.arrowPosition(range), 2);
 		}
 
-		// If this is a new comment thread awaiting user input then we need to reveal it.
 		if (shouldReveal) {
 			this.makeVisible();
 		}
@@ -468,7 +458,6 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 
 		if (this._initialCollapsibleState === undefined) {
 			const onDidChangeInitialCollapsibleState = this._commentThread.onDidChangeInitialCollapsibleState(state => {
-				// File comments always start expanded
 				this._initialCollapsibleState = state;
 				this._commentThread.collapsibleState = this._initialCollapsibleState;
 				onDidChangeInitialCollapsibleState.dispose();
@@ -506,7 +495,7 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 			const arrowHeight = Math.round(lineHeight / 3);
 			const frameThickness = Math.round(lineHeight / 9) * 2;
 
-			const computedLinesNumber = Math.ceil((headHeight + dimensions.height + arrowHeight + frameThickness + 8 /** margin bottom to avoid margin collapse */) / lineHeight);
+			const computedLinesNumber = Math.ceil((headHeight + dimensions.height + arrowHeight + frameThickness + 8 ) / lineHeight);
 
 			if (this._viewZone?.heightInLines === computedLinesNumber) {
 				return;
@@ -539,8 +528,6 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 		const glyphPosition = this._commentGlyph?.getPosition();
 		let range = Range.isIRange(rangeOrPos) ? rangeOrPos : (rangeOrPos ? Range.fromPositions(rangeOrPos) : undefined);
 		if (glyphPosition?.position && range && glyphPosition.position.lineNumber !== range.endLineNumber) {
-			// The widget could have moved as a result of editor changes.
-			// We need to try to calculate the new, more correct, range for the comment.
 			const distance = glyphPosition.position.lineNumber - range.endLineNumber;
 			range = new Range(range.startLineNumber + distance, range.startColumn, range.endLineNumber + distance, range.endColumn);
 		}
@@ -564,7 +551,6 @@ export class ReviewZoneWidget extends ZoneWidget implements ICommentThreadWidget
 	override hide() {
 		if (this._isExpanded) {
 			this._isExpanded = false;
-			// Focus the container so that the comment editor will be blurred before it is hidden
 			if (this.editor.hasWidgetFocus()) {
 				this.editor.focus();
 			}

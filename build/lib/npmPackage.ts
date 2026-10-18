@@ -23,10 +23,6 @@ export interface EnsureNpmPackageOptions {
 	packPackage?: (packageName: string, version: string, tempDir: string) => string;
 }
 
-/**
- * Materializes an npm package from the version recorded in the adjacent
- * package-lock.json when it is missing from node_modules.
- */
 export function ensureNpmPackage(packageName: string, nodeModulesRoot = 'node_modules', options: EnsureNpmPackageOptions = {}): void {
 	const absoluteNodeModulesRoot = path.isAbsolute(nodeModulesRoot) ? nodeModulesRoot : path.join(root, nodeModulesRoot);
 	const packageDir = path.join(absoluteNodeModulesRoot, ...packageName.split('/'));
@@ -57,14 +53,6 @@ export function ensureNpmPackage(packageName: string, nodeModulesRoot = 'node_mo
 	}
 }
 
-/**
- * Materializes a SPECIFIC version of an npm package into `targetDir`, replacing
- * any existing contents. Unlike {@link ensureNpmPackage}, the version is passed
- * explicitly rather than read from the adjacent lockfile — use for build-time
- * payloads whose required version does not match that lockfile. Pass
- * `expectedIntegrity` (the `sha512-...` recorded for that version in the
- * relevant lockfile) to verify the fetched tarball before extraction.
- */
 export function materializeNpmPackageVersion(packageName: string, version: string, targetDir: string, expectedIntegrity: string | undefined, options: EnsureNpmPackageOptions = {}): void {
 	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-npm-package-'));
 	try {

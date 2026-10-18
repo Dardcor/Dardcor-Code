@@ -6,7 +6,7 @@
 import assert from 'assert';
 import type Anthropic from '@anthropic-ai/sdk';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { COPILOT_API_ERROR_STATUS_STREAMING, CopilotApiError } from '../../node/shared/copilotApiService.js';
+import { DARDCOR_ROUTER_ERROR_STATUS_STREAMING, DardcorRouterApiError } from '../../node/shared/dardcorRouterService.js';
 import {
 	buildForwardedChatError,
 	buildForwardedChatErrorFromFields,
@@ -19,13 +19,13 @@ import {
 	tryParseForwardedChatError,
 } from '../../node/shared/forwardedChatError.js';
 
-function makeApiError(status: number, type: string, message: string, requestId: string | null = 'req-1'): CopilotApiError {
+function makeApiError(status: number, type: string, message: string, requestId: string | null = 'req-1'): DardcorRouterApiError {
 	const envelope: Anthropic.ErrorResponse = {
 		type: 'error',
 		error: { type: type as Anthropic.ErrorResponse['error']['type'], message },
 		request_id: requestId,
 	};
-	return new CopilotApiError(status, envelope);
+	return new DardcorRouterApiError(status, envelope);
 }
 
 suite('forwardedChatError', () => {
@@ -50,7 +50,7 @@ suite('forwardedChatError', () => {
 		});
 
 		test('mid-stream streaming sentinel maps to failed', () => {
-			const forwarded = buildForwardedChatError(makeApiError(COPILOT_API_ERROR_STATUS_STREAMING, 'api_error', 'mid-stream boom'));
+			const forwarded = buildForwardedChatError(makeApiError(DARDCOR_ROUTER_ERROR_STATUS_STREAMING, 'api_error', 'mid-stream boom'));
 			assert.strictEqual(forwarded.fetchError.type, 'failed');
 		});
 
@@ -115,8 +115,6 @@ suite('forwardedChatError', () => {
 		});
 
 		test('returns undefined for an oversized marker payload without decoding it', () => {
-			// A marker that rode along in model-influenced text could be arbitrarily
-			// large; the parser must reject it before allocating/decoding.
 			const huge = `${PROXY_ERROR_PREFIX}${'A'.repeat(9 * 1024)}`;
 			assert.strictEqual(tryParseForwardedChatError(huge), undefined);
 		});
@@ -156,9 +154,6 @@ suite('forwardedChatError', () => {
 		});
 
 		test('defaults a quota error without an explicit code to quota_exceeded so the plan message renders', () => {
-			// The Copilot CLI SDK reports quota errors only via `errorType: 'quota'`
-			// (no fine-grained CAPI code). Without the default, the core formatter
-			// would fall through to the generic "Quota Exceeded" title.
 			const fromType = buildForwardedChatErrorFromFields({ errorType: 'quota', message: 'no credits' });
 			const fromStatus = buildForwardedChatErrorFromFields({ errorType: 'unknown', message: 'no credits', statusCode: 402 });
 			assert.deepStrictEqual([fromType?.fetchError.capiError?.code, fromStatus?.fetchError.capiError?.code], ['quota_exceeded', 'quota_exceeded']);

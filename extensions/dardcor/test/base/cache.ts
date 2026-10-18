@@ -17,18 +17,6 @@ import { CurrentTestRunInfo } from './simulationContext';
 const compress = promisify(zlib.brotliCompress);
 const decompress = promisify(zlib.brotliDecompress);
 
-/**
- * Yield to the libuv event loop.
- *
- * The previous `@keyv/sqlite` store was backed by the asynchronous `sqlite3`
- * driver, so every individual store operation resolved on a later loop tick.
- * Some consumers rely on that boundary: e.g. the panel multi-file edit flow
- * applies one code block's edits while the next code block's code-mapper request
- * is awaiting its cached response, so the next request is built against the
- * already-edited document. `node:sqlite`'s `DatabaseSync` is synchronous, so we
- * reintroduce the async boundary on every store operation to preserve that
- * interleaving (and thus compatibility with the recorded cache).
- */
 function yieldEventLoop(): Promise<void> {
 	return new Promise<void>(resolve => setImmediate(resolve));
 }
@@ -41,14 +29,6 @@ async function getGitRoot(cwd: string): Promise<string> {
 	return stdout.trim();
 }
 
-/**
- * Minimal key/value store backed by Node's built-in `node:sqlite` module.
- *
- * It is wire-compatible with the on-disk format previously produced by
- * `keyv` + `@keyv/sqlite` so that the committed simulation cache databases
- * keep working: rows live in a `keyv` table, keys are namespaced as
- * `keyv:<key>` and values are stored as `{"value":<string>}` JSON.
- */
 class SqliteKeyValueStore {
 	private static readonly NAMESPACE = 'keyv';
 
@@ -163,11 +143,9 @@ export class Cache extends EventEmitter {
 	async get(key: string): Promise<string | undefined> {
 		let data: string | undefined;
 
-		// First check base database
 		data = await this.base.get(key) as string;
 
 		if (!data) {
-			// Check layer databases
 			for (const [, layer] of this.layers) {
 				data = await layer.get(key) as string;
 
@@ -181,7 +159,6 @@ export class Cache extends EventEmitter {
 			return undefined;
 		}
 
-		// GC mode in progress
 		if (this.gcBase && this.gcBaseKeys) {
 			if (!this.gcBaseKeys.has(key)) {
 				await this.gcBase.set(key, data);
@@ -222,12 +199,10 @@ export class Cache extends EventEmitter {
 	}
 
 	async has(key: string): Promise<boolean> {
-		// Check primary first
 		if (await this.base.has(key)) {
 			return true;
 		}
 
-		// Check layers
 		for (const layer of this.layers.values()) {
 			if (await layer.has(key)) {
 				return true;
@@ -253,10 +228,8 @@ export class Cache extends EventEmitter {
 			}
 		};
 
-		// Base database
 		await checkDatabase('base', this.base);
 
-		// Layer databases
 		for (const [uuid, database] of this.layers.entries()) {
 			await checkDatabase(uuid, database);
 		}
@@ -278,27 +251,21 @@ export class Cache extends EventEmitter {
 			throw new Error('GC is not in progress');
 		}
 
-		// Close the connections
 		await this.base.disconnect();
 		await this.gcBase.disconnect();
 
-		// Delete base.sqlite
 		fs.unlinkSync(path.join(this.cachePath, 'base.sqlite'));
 
-		// Rename _base.sqlite to base.sqlite
 		fs.renameSync(
 			path.join(this.cachePath, '_base.sqlite'),
 			path.join(this.cachePath, 'base.sqlite'));
 
-		// Delete the layer databases
 		for (const [uuid, layer] of this.layers.entries()) {
 			try {
-				// Close the connection
 				await layer.disconnect();
 			} catch (error) { }
 
 			try {
-				// Delete the layer database
 				fs.unlinkSync(path.join(this.layersPath, `${uuid}.sqlite`));
 			} catch (error) { }
 		}
@@ -321,7 +288,6 @@ export class Cache extends EventEmitter {
 					? `${path.relative(await getGitRoot(activeLayerPath), activeLayerPath)}/*`
 					: 'test/simulation/cache/layers/*';
 
-				// Check git for an uncommitted layer database file
 				try {
 					const gitRoot = await getGitRoot(activeLayerPath);
 					const { stdout: statusStdout } = await execAsync(`git status -z ${gitStatusPath}`, { cwd: gitRoot });
@@ -336,10 +302,8 @@ export class Cache extends EventEmitter {
 						}
 					}
 				} catch (error) {
-					// If git operations fail, continue to create new layer
 				}
 
-				// Create a new layer database
 				const uuid = generateUuid();
 				const activeLayer = new SqliteKeyValueStore(path.join(activeLayerPath, `${uuid}.sqlite`));
 				this.layers.set(uuid, activeLayer);

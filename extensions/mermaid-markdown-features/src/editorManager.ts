@@ -16,9 +16,6 @@ interface MermaidPreviewState {
 	readonly mermaidSource: string;
 }
 
-/**
- * Manages mermaid diagram editor panels, ensuring only one editor per diagram.
- */
 export class MermaidEditorManager extends Disposable implements vscode.WebviewPanelSerializer {
 
 	private readonly _previews = new Map<string, MermaidPreview>();
@@ -32,11 +29,6 @@ export class MermaidEditorManager extends Disposable implements vscode.WebviewPa
 		this._register(vscode.window.registerWebviewPanelSerializer(mermaidEditorViewType, this));
 	}
 
-	/**
-	 * Opens a preview for the given diagram
-	 *
-	 * If a preview already exists for this diagram, it will be revealed instead of creating a new one.
-	 */
 	public openPreview(mermaidSource: string, title?: string): void {
 		const webviewId = getWebviewId(mermaidSource);
 		const existingPreview = this._previews.get(webviewId);
@@ -87,7 +79,7 @@ export class MermaidEditorManager extends Disposable implements vscode.WebviewPa
 	}
 
 	private _getErrorHtml(): string {
-		return /* html */`<!DOCTYPE html>
+		return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
@@ -175,7 +167,6 @@ class MermaidPreview extends Disposable {
 
 		this._webviewPanel.webview.html = this._getHtml();
 
-		// Register with the webview manager
 		this._register(this._webviewManager.registerWebview(this.diagramId, this._webviewPanel.webview, this._mermaidSource, undefined, 'editor'));
 
 		this._register(this._webviewPanel.onDidChangeViewState(e => {
@@ -217,7 +208,7 @@ class MermaidPreview extends Disposable {
 		const zoomInLabel = vscode.l10n.t('Zoom In');
 		const resetPanZoomLabel = vscode.l10n.t('Reset Pan and Zoom');
 
-		return /* html */`<!DOCTYPE html>
+		return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
@@ -294,17 +285,12 @@ class MermaidPreview extends Disposable {
 }
 
 
-/**
- * Generates a unique ID for a diagram based on its content.
- * This ensures the same diagram content always gets the same ID.
- */
 function getWebviewId(source: string): string {
-	// Simple hash function for generating a content-based ID
 	let hash = 0;
 	for (let i = 0; i < source.length; i++) {
 		const char = source.charCodeAt(i);
 		hash = ((hash << 5) - hash) + char;
-		hash = hash & hash; // Convert to 32-bit integer
+		hash = hash & hash;
 	}
 	return Math.abs(hash).toString(16);
 }

@@ -347,7 +347,7 @@ const policies: ExportedPolicyDataDto = {
 
 const mockProduct: ProductJson = {
 	nameLong: 'Code - OSS',
-	darwinBundleIdentifier: 'com.visualstudio.code.oss',
+	darwinBundleIdentifier: 'com.dardcor.code.oss',
 	darwinProfilePayloadUUID: 'CF808BE7-53F3-46C6-A7E2-7EDB98A5E959',
 	darwinProfileUUID: '47827DD9-4734-49A0-AF80-7E19B11495CC',
 	win32RegValueName: 'CodeOSS'
@@ -400,7 +400,7 @@ suite('Policy E2E conversion', () => {
 		const result = renderMacOSPolicy(mockProduct, parsedPolicies, []);
 
 		// Load the expected fixture file
-		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'com.visualstudio.code.oss.mobileconfig');
+		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'com.dardcor.code.oss.mobileconfig');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
 		// Compare the rendered profile with the fixture
@@ -412,7 +412,7 @@ suite('Policy E2E conversion', () => {
 		const result = renderMacOSPolicy(mockProduct, parsedPolicies, []);
 
 		// Load the expected fixture file
-		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'en-us', 'com.visualstudio.code.oss.plist');
+		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'en-us', 'com.dardcor.code.oss.plist');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
 		// Find the en-us manifest
@@ -462,7 +462,7 @@ suite('Policy E2E conversion', () => {
 		const result = renderMacOSPolicy(mockProduct, parsedPolicies, frenchTranslations);
 
 		// Load the expected fixture file
-		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'fr-fr', 'com.visualstudio.code.oss.plist');
+		const fixturePath = path.join(import.meta.dirname, 'fixtures', 'policies', 'darwin', 'fr-fr', 'com.dardcor.code.oss.plist');
 		const expectedContent = await fs.readFile(fixturePath, 'utf-8');
 
 		// Find the fr-fr manifest

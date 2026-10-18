@@ -7,7 +7,7 @@ import {
   requestDeviceCode,
   pollForToken
 } from "@/lib/oauth/providers";
-import { createProviderConnection } from "@/models";
+import { createProviderConnection, setProviderStatus } from "@/models";
 import { readDesktopPassToken } from "open-sse/shared/mimoAccount.js";
 import {
   startCodexProxy,
@@ -83,32 +83,23 @@ async function completeXaiManualCode(code, state) {
   }
 }
 
-/**
- * Dynamic OAuth API Route
- * Handles: authorize, exchange, device-code, poll
- */
 
-// GET /api/oauth/[provider]/authorize - Generate auth URL
-// GET /api/oauth/[provider]/device-code - Request device code (for device_code flow)
 export async function GET(request, { params }) {
   try {
     const { provider, action } = await params;
     const { searchParams } = new URL(request.url);
 
     if (action === "authorize") {
-      // Xiaomi Desktop: custom ECDH flow — generate keypair, start proxy, return authorize URL
       if (provider === "xiaomi-mimo") {
         const { generateKeyPair, buildAuthorizeUrl, getKeyName } = await import("@/lib/oauth/providers/xiaomi-mimo");
         const { publicKey, privateKeyDer } = generateKeyPair();
         const state = searchParams.get("state") || crypto.randomUUID();
 
-        // Start the callback proxy (or reuse if already running)
         const proxyResult = await startXiaomiMimoProxy();
         if (!proxyResult.success) {
           return NextResponse.json({ error: `Failed to start callback server: ${proxyResult.reason}` }, { status: 500 });
         }
 
-        // Register the session with the private key for decryption
         registerXiaomiMimoSession({ state, privateKeyDer });
 
         const redirectUri = proxyResult.callbackUrl;
@@ -123,22 +114,17 @@ export async function GET(request, { params }) {
       }
 
       const redirectUri = searchParams.get("redirect_uri") || "http://localhost:8080/callback";
-      // Collect provider-specific meta params (e.g. gitlab passes baseUrl, clientId, clientSecret)
       const reservedParams = new Set(["redirect_uri"]);
       const meta = {};
       searchParams.forEach((value, key) => { if (!reservedParams.has(key)) meta[key] = value; });
-      // Zed: derive native_app_port from the local callback URL so the RSA keypair
-      // is bound to the port the proxy is actually listening on.
       if (provider === "zed") {
-        try { const p = new URL(redirectUri).port; if (p) meta.nativeAppPort = p; } catch { /* ignore */ }
+        try { const p = new URL(redirectUri).port; if (p) meta.nativeAppPort = p; } catch { }
       }
       const authData = await generateAuthData(provider, redirectUri, Object.keys(meta).length ? meta : undefined);
       return NextResponse.json(authData);
     }
 
     if (action === "start-proxy") {
-      // Trae/Windsurf/Zed use a dynamic-port local callback server (singleton session,
-      // state is registered separately via /register-session after /authorize).
       if (provider === "trae") {
         const result = await startTraeProxy();
         return NextResponse.json(result);
@@ -148,8 +134,6 @@ export async function GET(request, { params }) {
         return NextResponse.json(result);
       }
       if (provider === "zed") {
-        // Prefer ZED_HOSTED_CONFIG.defaultNativeAppPort (58443) so the browser redirect
-        // matches what Zed expects; falls back to a random port if it's busy.
         const result = await startZedProxy(searchParams.get("native_app_port") || ZED_HOSTED_CONFIG.defaultNativeAppPort);
         return NextResponse.json(result);
       }
@@ -196,9 +180,6 @@ export async function GET(request, { params }) {
       if (session.status === "done" || session.status === "error") {
         const payload = { ...session };
         if (provider === "xiaomi-mimo") {
-          // Unlike the others this does not auto-exchange server-side, so a
-          // finished session must survive until the client POSTs /exchange —
-          // that call clears it. A failed one is cleared here instead.
           if (session.status === "error") {
             clearXiaomiMimoSession(state);
             stopXiaomiMimoProxy();
@@ -227,7 +208,6 @@ export async function GET(request, { params }) {
     }
 
     if (action === "ide-status") {
-      // Detect whether the IDE is installed locally (used by import-token UX).
       if (provider !== "trae" && provider !== "windsurf") {
         return NextResponse.json({ error: "ide-status only supported for trae/windsurf" }, { status: 400 });
       }
@@ -253,7 +233,6 @@ export async function GET(request, { params }) {
           }
         : undefined;
       
-      // Providers that don't use PKCE for device code (Grok CLI HAR: plain device_code, no challenge)
       const noPkceDeviceProviders = [
         "github",
         "kiro",
@@ -264,19 +243,17 @@ export async function GET(request, { params }) {
         "codebuddy-intl",
         "qoder",
         "grok-cli",
+        "opencode",
       ];
       let deviceData;
       if (noPkceDeviceProviders.includes(provider)) {
         deviceData = await requestDeviceCode(provider, undefined, deviceOptions);
       } else {
-        // Qwen and other PKCE providers
         deviceData = await requestDeviceCode(provider, authData.codeChallenge, deviceOptions);
       }
 
       return NextResponse.json({
         ...deviceData,
-        // Prefer the verifier the provider's requestDeviceCode generated for
-        // itself (qoder rolls its own PKCE pair); fall back to the generic one.
         codeVerifier: deviceData.codeVerifier || authData.codeVerifier,
       });
     }
@@ -288,8 +265,6 @@ export async function GET(request, { params }) {
   }
 }
 
-// POST /api/oauth/[provider]/exchange - Exchange code for tokens and save
-// POST /api/oauth/[provider]/poll - Poll for token (device_code flow)
 export async function POST(request, { params }) {
   try {
     const { provider, action } = await params;
@@ -301,8 +276,6 @@ export async function POST(request, { params }) {
     }
 
     if (action === "register-session") {
-      // Register proxy session out of URL query (state) + body (codeVerifier).
-      // Zed's codeVerifier encodes the RSA private key — must stay out of URL/logs.
       const searchParams = new URL(request.url).searchParams;
       const state = searchParams.get("state") || body?.state;
       if (!state) return NextResponse.json({ error: "Missing state" }, { status: 400 });
@@ -317,8 +290,6 @@ export async function POST(request, { params }) {
     if (action === "exchange") {
       const { code, redirectUri, codeVerifier, state, meta } = body;
 
-      // Xiaomi MiMo: no token exchange needed — the callback already decrypted the sk.
-      // Just read the session result and create the connection.
       if (provider === "xiaomi-mimo") {
         if (!state) {
           return NextResponse.json({ error: "Missing state" }, { status: 400 });
@@ -332,14 +303,10 @@ export async function POST(request, { params }) {
         }
         const { uid, accessToken, baseUrl } = session.result;
 
-        // Desktop-exclusive Preview models authenticate with the account-session
-        // passToken, which only lives in MiMo Desktop's cookie store — attach it
-        // to the connection so those models work right after OAuth.
         let passToken = null;
         try {
           passToken = await readDesktopPassToken();
         } catch {
-          // Desktop not installed / cookie DB locked — preview models stay unavailable.
         }
 
         try {
@@ -379,8 +346,6 @@ export async function POST(request, { params }) {
         }
       }
 
-      // Trae/Windsurf: code is either a raw callback URL or a pasted token.
-      // exchangeTokens() handles both paths; no PKCE, skip codex JWT extraction.
       if (provider === "trae" || provider === "windsurf") {
         const token = typeof code === "string" ? code.trim() : "";
         if (!token) {
@@ -411,13 +376,10 @@ export async function POST(request, { params }) {
         }
       }
 
-      // Detect if "code" is actually a raw JWT access token (starts with eyJ)
       if (code && code.startsWith("eyJ") && code.includes(".")) {
         const { extractCodexAccountInfo } = await import("@/lib/oauth/providers");
         const info = extractCodexAccountInfo(code);
 
-        // Also decode JWT directly for ChatGPT website tokens which use
-        // top-level account_id/plan_type instead of nested openai auth claims
         let directPayload = {};
         try {
           const b64 = code.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -453,16 +415,13 @@ export async function POST(request, { params }) {
         });
       }
 
-      // Cline and ClinePass use authorization_code without PKCE. Kimchi returns a browser token.
       const noPkceExchangeProviders = ["cline", "clinepass", "kimchi"];
       if (!code || !redirectUri || (!codeVerifier && !noPkceExchangeProviders.includes(provider))) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
 
-      // Exchange code for tokens (meta carries provider-specific params, e.g. gitlab clientId/baseUrl)
       const tokenData = await exchangeTokens(provider, code, redirectUri, codeVerifier, state, meta);
 
-      // Save to database
       const connection = await createProviderConnection({
         provider,
         authType: "oauth",
@@ -472,6 +431,8 @@ export async function POST(request, { params }) {
           : null,
         testStatus: "active",
       });
+
+      await setProviderStatus(provider, true).catch(() => {});
 
       return NextResponse.json({ 
         success: true, 
@@ -491,25 +452,18 @@ export async function POST(request, { params }) {
         return NextResponse.json({ error: "Missing device code" }, { status: 400 });
       }
 
-      // Providers that don't use PKCE for device code
-      const noPkceProviders = ["github", "kimi", "kimi-coding", "kilocode", "codebuddy-cn", "codebuddy-intl"];
+      const noPkceProviders = ["github", "kimi", "kimi-coding", "kilocode", "codebuddy-cn", "codebuddy-intl", "grok-cli", "opencode"];
       let result;
       if (noPkceProviders.includes(provider)) {
-        // kimi needs extraData._kimiDeviceId for stable X-Msh-Device-Id (CLIProxyAPI parity)
         result = await pollForToken(provider, deviceCode, null, extraData);
       } else if (provider === "kiro") {
-        // Kiro needs extraData (clientId, clientSecret) from device code response
         result = await pollForToken(provider, deviceCode, null, extraData);
       } else if (provider === "qoder") {
-        // Qoder needs both the PKCE verifier (codeVerifier) and the machineId
-        // captured at device-code time (extraData._qoderMachineId) so
-        // mapTokens can persist it for COSY signing.
         if (!codeVerifier) {
           return NextResponse.json({ error: "Missing code verifier" }, { status: 400 });
         }
         result = await pollForToken(provider, deviceCode, codeVerifier, extraData);
       } else {
-        // Qwen and other PKCE providers
         if (!codeVerifier) {
           return NextResponse.json({ error: "Missing code verifier" }, { status: 400 });
         }
@@ -517,7 +471,6 @@ export async function POST(request, { params }) {
       }
 
       if (result.success) {
-        // Save to database (legacy kimi-coding OAuth → dual-auth kimi)
         const providerId = provider === "kimi-coding" ? "kimi" : provider;
         const connection = await createProviderConnection({
           provider: providerId,
@@ -529,6 +482,8 @@ export async function POST(request, { params }) {
           testStatus: "active",
         });
 
+        await setProviderStatus(providerId, true).catch(() => {});
+
         return NextResponse.json({ 
           success: true, 
           connection: {
@@ -538,7 +493,6 @@ export async function POST(request, { params }) {
         });
       }
 
-      // Still pending or error - don't create connection for pending states
       const isPending = result.pending || result.error === "authorization_pending" || result.error === "slow_down";
       
       return NextResponse.json({

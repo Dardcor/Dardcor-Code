@@ -14,7 +14,6 @@ const PROVIDER_NAME = "dardcor-code";
 const getDeepSeekDir = () => path.join(os.homedir(), ".deepseek");
 const getDeepSeekConfigPath = () => path.join(getDeepSeekDir(), "config.toml");
 
-// Simple TOML parser for key = "value" and [section] patterns
 const parseToml = (content) => {
     const result = {};
     let currentSection = result;
@@ -22,10 +21,8 @@ const parseToml = (content) => {
     const lines = content.split(/\r?\n/);
     for (const line of lines) {
         const trimmed = line.trim();
-        // Skip empty lines and comments
         if (!trimmed || trimmed.startsWith("#")) continue;
 
-        // Section header: [section] or [section.subsection]
         const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
         if (sectionMatch) {
             const sectionName = sectionMatch[1];
@@ -34,14 +31,12 @@ const parseToml = (content) => {
             continue;
         }
 
-        // Key = "value" or key = value
         const keyValueMatch = trimmed.match(/^(\w+)\s*=\s*"([^"]*)"$/);
         if (keyValueMatch) {
             currentSection[keyValueMatch[1]] = keyValueMatch[2];
             continue;
         }
 
-        // Key = value (unquoted)
         const unquotedMatch = trimmed.match(/^(\w+)\s*=\s*(.+)$/);
         if (unquotedMatch) {
             currentSection[unquotedMatch[1]] = unquotedMatch[2].trim();
@@ -51,7 +46,6 @@ const parseToml = (content) => {
     return result;
 };
 
-// Build TOML config for Dardcor Router (openai provider mode)
 const buildDardcorCodeConfig = (baseUrl, apiKey, model) => {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     return `provider = "openai"
@@ -63,7 +57,6 @@ model = "${model}"
 `;
 };
 
-// Default DeepSeek config (reset state)
 const DEFAULT_CONFIG = `provider = "deepseek"
 `;
 
@@ -92,7 +85,6 @@ const readConfigToml = async () => {
     }
 };
 
-// Detect Dardcor Router by checking if provider is "openai" and base_url points to localhost/127.0.0.1
 const hasDardcorCodeConfig = (config) => {
     if (!config) return false;
     const provider = config.provider;

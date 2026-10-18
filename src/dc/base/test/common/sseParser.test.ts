@@ -7,7 +7,6 @@ import * as assert from 'assert';
 import { ISSEEvent, SSEParser } from '../../common/sseParser.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from './utils.js';
 
-// Helper function to convert string to Uint8Array for testing
 function toUint8Array(str: string): Uint8Array {
 	return new TextEncoder().encode(str);
 }
@@ -170,7 +169,6 @@ suite('SSEParser', () => {
 	});
 
 	test('supports spec example', () => {
-		// Example from the spec
 		parser.feed(toUint8Array(':This is a comment\ndata: first event\nid: 1\n\n'));
 		parser.feed(toUint8Array('data:second event\nid\n\n'));
 		parser.feed(toUint8Array('data:  third event\n\n'));

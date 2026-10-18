@@ -72,6 +72,5 @@ export const NullApiDeprecationService = Object.freeze(new class implements IExt
 	declare readonly _serviceBrand: undefined;
 
 	public report(_apiId: string, _extension: IExtensionDescription, _warningMessage: string): void {
-		// noop
 	}
 }());

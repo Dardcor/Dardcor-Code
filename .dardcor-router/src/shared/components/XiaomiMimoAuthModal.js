@@ -4,22 +4,13 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Modal, Button } from "@/shared/components";
 
-/**
- * Xiaomi MiMo Auth Modal
- *
- * Auto-imports credentials from the local Xiaomi MiMo Desktop auth.json (~/.local/share/mimocode/auth.json).
- * If auto-import fails, offers a one-click browser OAuth fallback.
- * Reached only via the "Connect with OAuth" button — the API-key path uses the
- * standard Add API Key modal, since Xiaomi MiMo supports both auth modes.
- */
 export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
-  const [phase, setPhase] = useState("detecting"); // detecting | found | not-found | importing | error
+  const [phase, setPhase] = useState("detecting");
   const [detectResult, setDetectResult] = useState(null);
   const [error, setError] = useState(null);
   const [oauthUrl, setOauthUrl] = useState(null);
   const [oauthState, setOauthState] = useState(null);
 
-  // Auto-detect local credentials when modal opens
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
@@ -53,7 +44,6 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
     return () => { cancelled = true; };
   }, [isOpen]);
 
-  // Import the auto-detected key
   const handleImport = async () => {
     if (!detectResult?.apiKey) return;
     setPhase("importing");
@@ -86,7 +76,6 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
     }
   };
 
-  // Start browser OAuth fallback
   const handleStartOAuth = async () => {
     setError(null);
     try {
@@ -105,7 +94,6 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
     }
   };
 
-  // Poll OAuth result
   const handlePollOAuth = async () => {
     if (!oauthState) return;
     setError(null);
@@ -114,7 +102,6 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
       const data = await res.json();
 
       if (data.status === "done" && data.result) {
-        // Exchange to create the connection
         const exRes = await fetch("/api/oauth/xiaomi-mimo/exchange", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -140,7 +127,7 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
   return (
     <Modal isOpen={isOpen} title="Connect Xiaomi MiMo" onClose={onClose}>
       <div className="flex flex-col gap-4">
-        {/* Detecting */}
+        {}
         {phase === "detecting" && (
           <div className="text-center py-6">
             <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -155,7 +142,7 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
           </div>
         )}
 
-        {/* Found — one-click import */}
+        {}
         {phase === "found" && detectResult && (
           <>
             <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
@@ -187,7 +174,7 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
           </>
         )}
 
-        {/* Importing */}
+        {}
         {phase === "importing" && (
           <div className="text-center py-6">
             <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -199,7 +186,7 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
           </div>
         )}
 
-        {/* Not found — offer OAuth fallback */}
+        {}
         {phase === "not-found" && (
           <>
             <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -221,7 +208,6 @@ export default function XiaomiMimoAuthModal({ isOpen, onSuccess, onClose }) {
                 <Button
                   onClick={() => {
                     setPhase("detecting");
-                    // Re-trigger detect
                     fetch("/api/oauth/xiaomi-mimo/auto-import")
                       .then((r) => r.json())
                       .then((data) => {

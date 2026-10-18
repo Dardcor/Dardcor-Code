@@ -16,9 +16,6 @@ import { ITextResourceConfigurationService } from '../../../../editor/common/ser
 import { IEditorGroup, IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 
-/**
- * An implementation of editor for diffing binary files like images or videos.
- */
 export class BinaryResourceDiffEditor extends SideBySideEditor {
 
 	static override readonly ID = BINARY_DIFF_EDITOR_ID;

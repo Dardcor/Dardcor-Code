@@ -77,22 +77,15 @@ async function detectAvailableWindowsProfiles(
 	testPwshSourcePaths?: string[],
 	variableResolver?: (text: string[]) => Promise<string[]>
 ): Promise<ITerminalProfile[]> {
-	// Determine the correct System32 path. We want to point to Sysnative
-	// when the 32-bit version of VS Code is running on a 64-bit machine.
-	// The reason for this is because PowerShell's important PSReadline
-	// module doesn't work if this is not the case. See #27915.
 	const is32ProcessOn64Windows = process.env.hasOwnProperty('PROCESSOR_ARCHITEW6432');
 	const system32Path = `${process.env['windir']}\\${is32ProcessOn64Windows ? 'Sysnative' : 'System32'}`;
 
-	// WSL 2 released in the May 2020 Update, this is where the `-d` flag was added that we depend
-	// upon
 	const allowWslDiscovery = await getWindowsBuildNumberAsync() >= 19041;
 
 	await initializeWindowsProfiles(testPwshSourcePaths);
 
 	const detectedProfiles: Map<string, IUnresolvedTerminalProfile> = new Map();
 
-	// Add auto detected profiles
 	if (includeDetectedProfiles) {
 		detectedProfiles.set('PowerShell', {
 			source: ProfileSource.Pwsh,
@@ -127,7 +120,6 @@ async function detectAvailableWindowsProfiles(
 				{ path: `${process.env['HOMEDRIVE']}\\msys64\\usr\\bin\\bash.exe`, isUnsafe: true },
 			],
 			args: ['--login', '-i'],
-			// CHERE_INVOKING retains current working directory
 			env: { CHERE_INVOKING: '1' },
 			icon: Codicon.terminalBash,
 			isAutoDetected: true
@@ -136,7 +128,6 @@ async function detectAvailableWindowsProfiles(
 		detectedProfiles.set('Cmder', {
 			path: `${system32Path}\\cmd.exe`,
 			args: ['/K', cmderPath],
-			// The path is safe if it was derived from CMDER_ROOT
 			requiresPath: process.env['CMDER_ROOT'] ? cmderPath : { path: cmderPath, isUnsafe: true },
 			isAutoDetected: true
 		});
@@ -195,7 +186,6 @@ async function getValidatedProfile(
 	let originalPaths: (string | ITerminalUnsafePath)[];
 	let args: string[] | string | undefined;
 	let icon: ThemeIcon | URI | { light: URI; dark: URI } | undefined = undefined;
-	// use calculated values if path is not specified
 	if (hasKey(profile, { source: true })) {
 		const source = profileSources?.get(profile.source);
 		if (!source) {
@@ -203,7 +193,6 @@ async function getValidatedProfile(
 		}
 		originalPaths = source.paths;
 
-		// if there are configured args, override the default ones
 		args = profile.args || source.args;
 		if (profile.icon) {
 			icon = validateIcon(profile.icon);
@@ -218,11 +207,9 @@ async function getValidatedProfile(
 
 	let paths: (string | ITerminalUnsafePath)[];
 	if (variableResolver) {
-		// Convert to string[] for resolve
 		const mapped = originalPaths.map(e => isString(e) ? e : e.path);
 
 		const resolved = await variableResolver(mapped);
-		// Convert resolved back to (T | string)[]
 		paths = new Array(originalPaths.length);
 		for (let i = 0; i < originalPaths.length; i++) {
 			if (isString(originalPaths[i])) {
@@ -240,7 +227,6 @@ async function getValidatedProfile(
 
 	let requiresUnsafePath: string | undefined;
 	if (profile.requiresPath) {
-		// Validate requiresPath exists
 		let actualRequiredPath: string;
 		if (isString(profile.requiresPath)) {
 			actualRequiredPath = profile.requiresPath;
@@ -299,9 +285,6 @@ async function initializeWindowsProfiles(testPwshSourcePaths?: string[]): Promis
 async function getGitBashPaths(): Promise<string[]> {
 	const gitDirs: Set<string> = new Set();
 
-	// Look for git.exe on the PATH and use that if found. git.exe is located at
-	// `<installdir>/cmd/git.exe`. This is not an unsafe location because the git executable is
-	// located on the PATH which is only controlled by the user/admin.
 	const gitExePath = await findExecutable('git.exe');
 	if (gitExePath) {
 		const gitExeDir = dirname(gitExePath);
@@ -313,7 +296,6 @@ async function getGitBashPaths(): Promise<string[]> {
 		}
 	}
 
-	// Add common git install locations
 	addTruthy(gitDirs, process.env['ProgramW6432']);
 	addTruthy(gitDirs, process.env['ProgramFiles']);
 	addTruthy(gitDirs, process.env['ProgramFiles(X86)']);
@@ -324,11 +306,10 @@ async function getGitBashPaths(): Promise<string[]> {
 		gitBashPaths.push(
 			`${gitDir}\\Git\\bin\\bash.exe`,
 			`${gitDir}\\Git\\usr\\bin\\bash.exe`,
-			`${gitDir}\\usr\\bin\\bash.exe` // using Git for Windows SDK
+			`${gitDir}\\usr\\bin\\bash.exe`
 		);
 	}
 
-	// Add special installs that don't follow the standard directory structure
 	gitBashPaths.push(`${process.env['UserProfile']}\\scoop\\apps\\git\\current\\bin\\bash.exe`);
 	gitBashPaths.push(`${process.env['UserProfile']}\\scoop\\apps\\git-with-openssh\\current\\bin\\bash.exe`);
 
@@ -337,7 +318,6 @@ async function getGitBashPaths(): Promise<string[]> {
 
 async function getPowershellPaths(): Promise<string[]> {
 	const paths: string[] = [];
-	// Add all of the different kinds of PowerShells
 	for await (const pwshExe of enumeratePowerShellInstallations()) {
 		paths.push(pwshExe.exePath);
 	}
@@ -347,8 +327,6 @@ async function getPowershellPaths(): Promise<string[]> {
 async function getWslProfiles(wslPath: string, defaultProfileName: string | undefined): Promise<ITerminalProfile[]> {
 	const profiles: ITerminalProfile[] = [];
 	const distroOutput = await new Promise<string>((resolve, reject) => {
-		// wsl.exe output is encoded in utf16le (ie. A -> 0x4100) by default, force it in case the
-		// user changed https://github.com/microsoft/vscode/issues/276253
 		cp.exec('wsl.exe -l -q', { encoding: 'utf16le', env: { ...process.env, WSL_UTF8: '0' }, timeout: 1000 }, (err, stdout) => {
 			if (err) {
 				return reject('Problem occurred when getting wsl distros');
@@ -361,18 +339,14 @@ async function getWslProfiles(wslPath: string, defaultProfileName: string | unde
 	}
 	const distroNames = distroOutput.split(/\r?\n/).filter(t => t.trim().length > 0);
 	for (const distroName of distroNames) {
-		// Skip empty lines
 		if (distroName === '') {
 			continue;
 		}
 
-		// docker-desktop and docker-desktop-data are treated as implementation details of
-		// Docker Desktop for Windows and therefore not exposed
 		if (distroName.startsWith('docker-desktop')) {
 			continue;
 		}
 
-		// Create the profile, adding the icon depending on the distro
 		const profileName = `${distroName} (WSL)`;
 		const profile: ITerminalProfile = {
 			profileName,
@@ -382,7 +356,6 @@ async function getWslProfiles(wslPath: string, defaultProfileName: string | unde
 			icon: getWslIcon(distroName),
 			isAutoDetected: false
 		};
-		// Add the profile
 		profiles.push(profile);
 	}
 	return profiles;
@@ -410,7 +383,6 @@ async function detectAvailableUnixProfiles(
 ): Promise<ITerminalProfile[]> {
 	const detectedProfiles: Map<string, IUnresolvedTerminalProfile> = new Map();
 
-	// Add non-quick launch profiles
 	if (includeDetectedProfiles && await fsProvider.existsFile(Constants.UnixShellsPath)) {
 		const contents = (await fsProvider.readFile(Constants.UnixShellsPath)).toString();
 		const profiles = (
@@ -476,9 +448,7 @@ async function validateProfilePaths(profileName: string, defaultProfileName: str
 		requiresUnsafePath
 	};
 
-	// For non-absolute paths, check if it's available on $PATH
 	if (basename(actualPath) === actualPath) {
-		// The executable isn't an absolute path, try find it on the PATH
 		const envPaths: string[] | undefined = shellEnv.PATH ? shellEnv.PATH.split(delimiter) : undefined;
 		const executable = await findExecutable(actualPath, undefined, envPaths, undefined, fsProvider.existsFile);
 		if (!executable) {

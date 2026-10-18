@@ -55,7 +55,6 @@ import { AgentPluginItemKind, IAgentPluginItem, IInstalledPluginItem, IMarketpla
 import { getInstalledPluginContextMenuActions, InstallPluginAction, OpenPluginReadmeAction } from './agentPluginActions.js';
 import { HasInstalledAgentPluginsContext, InstalledAgentPluginsViewId, RefreshAgentPluginMarketplacesCommandId } from './chat.js';
 
-//#region Item model
 
 function installedPluginToItem(plugin: IAgentPlugin, labelService: ILabelService, outdated?: IObservable<IMarketplacePlugin | undefined>): IInstalledPluginItem {
 	const name = plugin.label;
@@ -79,11 +78,8 @@ function marketplacePluginToItem(plugin: IMarketplacePlugin): IMarketplacePlugin
 	};
 }
 
-//#endregion
 
-//#region Actions
 
-//#region Actions
 
 class UpdatePluginAction extends Action {
 	static readonly ID = 'agentPlugin.update';
@@ -153,9 +149,7 @@ class DropDownActionViewItem extends ActionViewItem {
 	}
 }
 
-//#endregion
 
-//#region Renderer
 
 interface IAgentPluginTemplateData {
 	root: HTMLElement;
@@ -259,9 +253,7 @@ class AgentPluginRenderer implements IPagedRenderer<IAgentPluginItem, IAgentPlug
 	}
 }
 
-//#endregion
 
-//#region List View
 
 interface IAgentPluginsListViewOptions {
 	installedOnly?: boolean;
@@ -428,7 +420,6 @@ export class AgentPluginsListView extends AbstractExtensionsListView<IAgentPlugi
 			);
 		}
 
-		// When @recommended, filter to plugins listed in workspace recommendations.
 		if (isRecommended) {
 			const recommended = this.pluginMarketplaceService.recommendedPlugins.get();
 			installed = installed.filter(p => {
@@ -448,7 +439,6 @@ export class AgentPluginsListView extends AbstractExtensionsListView<IAgentPlugi
 			let filteredMp = marketplacePlugins;
 
 			if (isRecommended) {
-				// When @recommended, filter marketplace plugins to those in recommendations.
 				const recommended = this.pluginMarketplaceService.recommendedPlugins.get();
 				filteredMp = filteredMp.filter(p => {
 					const key = `${p.name}@${p.marketplace}`;
@@ -461,7 +451,6 @@ export class AgentPluginsListView extends AbstractExtensionsListView<IAgentPlugi
 
 			const marketplace = filteredMp.map(marketplacePluginToItem);
 
-			// Filter out marketplace items that are already installed
 			const installedPaths = new Set(installed.map(i => i.plugin.uri.toString()));
 			const filteredMarketplace = marketplace.filter(m => {
 				const expectedUri = this.pluginInstallService.getPluginInstallUri({
@@ -488,12 +477,6 @@ export class AgentPluginsListView extends AbstractExtensionsListView<IAgentPlugi
 		return model;
 	}
 
-	/**
-	 * Builds the installed plugin list using only cached marketplace data
-	 * (no IO). The cached data is populated by {@link fetchMarketplacePlugins}
-	 * and exposed via the {@link IPluginMarketplaceService.lastFetchedPlugins}
-	 * observable, which the view's autorun subscribes to for reactivity.
-	 */
 	private queryInstalled(): IInstalledPluginItem[] {
 		const marketplaceObs = derived(reader => {
 			const cachedMarketplace = this.pluginMarketplaceService.lastFetchedPlugins.read(reader);
@@ -503,8 +486,6 @@ export class AgentPluginsListView extends AbstractExtensionsListView<IAgentPlugi
 			}
 
 
-			// Read fresh installed plugin metadata from the store (not from
-			// IAgentPlugin.fromMarketplace which may be stale after an update).
 			const installedByUri = new Map<string, IMarketplacePlugin>();
 			for (const entry of this.pluginMarketplaceService.installedPlugins.read(reader)) {
 				installedByUri.set(entry.pluginUri.toString(), entry.plugin);
@@ -556,9 +537,7 @@ export class AgentPluginsListView extends AbstractExtensionsListView<IAgentPlugi
 	}
 }
 
-//#endregion
 
-//#region Browse command
 
 class AgentPluginsBrowseCommand extends Action2 {
 	constructor() {
@@ -599,8 +578,6 @@ class RefreshPluginMarketplacesCommand extends Action2 {
 	}
 
 	async run(accessor: ServicesAccessor) {
-		// Services must be resolved synchronously — the accessor is invalidated
-		// as soon as this method returns its promise.
 		const marketplaceService = accessor.get(IPluginMarketplaceService);
 		const notificationService = accessor.get(INotificationService);
 		const progressService = accessor.get(IProgressService);
@@ -625,8 +602,6 @@ class RefreshPluginMarketplacesCommand extends Action2 {
 				return;
 			}
 
-			// Individual marketplace failures don't reject the fetch, so report
-			// them explicitly rather than claiming an unqualified success.
 			if (failedLabels.length > 0) {
 				notificationService.warn(localize('agentPlugins.marketplacesRefreshedWithErrors', "Refreshed plugin marketplaces, but {0} could not be read: {1}", failedLabels.length, failedLabels.join(', ')));
 			} else {
@@ -641,8 +616,6 @@ class RefreshPluginMarketplacesCommand extends Action2 {
 	}
 }
 
-//#endregion
-//#region Views contribution
 
 export class AgentPluginsViewsContribution extends Disposable implements IWorkbenchContribution {
 
@@ -692,4 +665,3 @@ export class AgentPluginsViewsContribution extends Disposable implements IWorkbe
 	}
 }
 
-//#endregion

@@ -15,10 +15,8 @@ import { IDiffService } from '../../../../platform/diff/common/diffService';
 import { NotebookDocumentSnapshot } from '../../../../platform/editing/common/notebookDocumentSnapshot';
 import { TextDocumentSnapshot } from '../../../../platform/editing/common/textDocumentSnapshot';
 import { IEndpointProvider } from '../../../../platform/endpoint/common/endpointProvider';
-import { ChatEndpoint } from '../../../../platform/endpoint/node/chatEndpoint';
-import { Proxy4oEndpoint } from '../../../../platform/endpoint/node/proxy4oEndpoint';
-import { ProxyInstantApplyShortEndpoint } from '../../../../platform/endpoint/node/proxyInstantApplyShortEndpoint';
-import { IOctoKitService } from '../../../../platform/github/common/githubService';
+import { GitHubOutageStatus, IOctoKitService } from '../../../../platform/github/common/githubService';
+import { IChatEndpoint, isCAPIEndpoint } from '../../../../platform/networking/common/networking';
 import { ILogService } from '../../../../platform/log/common/logService';
 import { IEditLogService } from '../../../../platform/multiFileEdit/common/editLogService';
 import { IMultiFileEditInternalTelemetryService } from '../../../../platform/multiFileEdit/common/multiFileEditQualityTelemetry';
@@ -62,7 +60,7 @@ export async function processFullRewriteNotebook(document: NotebookDocument, inp
 		if (Array.isArray(edit)) {
 			outputStream.textEdit(edit[0], edit[1]);
 		} else {
-			outputStream.notebookEdit(document.uri, edit); // changed this.outputStream to outputStream
+			outputStream.notebookEdit(document.uri, edit);
 		}
 	}
 
@@ -72,7 +70,6 @@ export async function processFullRewriteNotebook(document: NotebookDocument, inp
 export type CellOrNotebookEdit = NotebookEdit | [Uri, TextEdit[]];
 
 export async function* processFullRewriteNotebookEdits(document: NotebookDocument, inputStream: string | AsyncIterable<LineOfText>, alternativeNotebookEditGenerator: IAlternativeNotebookContentEditGenerator, telemetryOptions: NotebookEditGenerationTelemtryOptions, token: CancellationToken): AsyncIterable<CellOrNotebookEdit> {
-	// emit start of notebook
 	const cellMap = new ResourceMap<NotebookCell>();
 	for await (const edit of alternativeNotebookEditGenerator.generateNotebookEdits(document, inputStream, telemetryOptions, token)) {
 		if (Array.isArray(edit)) {
@@ -115,11 +112,9 @@ function emitCodeLine(line: string, uri: Uri, existingDocument: TextDocumentSnap
 	pushedLines.push(line);
 
 	if (currentLineIndex < lineCount) {
-		// this line exists in the doc => replace it
 		const currentLineLength = existingDocument ? existingDocument.lineAt(currentLineIndex).text.length : 0;
 		outputStream.textEdit(uri, [TextEdit.replace(new Range(currentLineIndex, 0, currentLineIndex, currentLineLength), line)]);
 	} else {
-		// we are at the end of the document
 		const addedText = currentLineIndex === 0 ? line : `\n` + line;
 		outputStream.textEdit(uri, [TextEdit.replace(new Range(currentLineIndex, 0, currentLineIndex, 0), addedText)]);
 	}
@@ -137,14 +132,11 @@ async function handleTrailingLines(uri: Uri, existingDocument: TextDocumentSnaps
 	const lineCount = existingDocument ? existingDocument.lineCount : 0;
 	const initialTrailingEmptyLineCount = existingDocument ? getTrailingDocumentEmptyLineCount(existingDocument) : 0;
 
-	// The LLM does not want to produce trailing newlines
-	// Here we try to maintain the exact same tralining newlines count as the original document had
 	const pushedTrailingEmptyLineCount = getTrailingArrayEmptyLineCount(pushedLines);
 	for (let i = pushedTrailingEmptyLineCount; i < initialTrailingEmptyLineCount; i++) {
 		emitCodeLine('', uri, existingDocument, outputStream, pushedLines, token);
 	}
 
-	// Make sure we delete everything after the changed lines
 	const currentLineIndex = pushedLines.length;
 	if (currentLineIndex < lineCount) {
 		const from = currentLineIndex === 0 ? new Position(0, 0) : new Position(currentLineIndex - 1, pushedLines[pushedLines.length - 1].length);
@@ -162,9 +154,6 @@ async function processFullRewriteResponseCode(uri: Uri, existingDocument: TextDo
 	await handleTrailingLines(uri, existingDocument, outputStream, pushedLines, token);
 }
 
-/**
- * Extract a fenced code block from a reply and emit the lines in the code block one-by-one.
- */
 function extractCodeBlock(inputStream: AsyncIterable<IResponsePart>, token: CancellationToken): AsyncIterable<LineOfText> {
 	return new AsyncIterableObject<LineOfText>(async (emitter) => {
 		const fence = '```';
@@ -173,13 +162,11 @@ function extractCodeBlock(inputStream: AsyncIterable<IResponsePart>, token: Canc
 
 		let inCodeBlock = false;
 		while (!reader.endOfStream) {
-			// Skip everything until we hit a fence
 			if (token.isCancellationRequested) {
 				break;
 			}
 			const line = await reader.readLine();
 			if (line.startsWith(fence) && inCodeBlock) {
-				// Done reading code block, stop reading
 				inCodeBlock = false;
 				break;
 			} else if (line.startsWith(fence)) {
@@ -194,7 +181,6 @@ function extractCodeBlock(inputStream: AsyncIterable<IResponsePart>, token: Canc
 export async function processPatchResponse(uri: URI, originalText: string | undefined, inputStream: AsyncIterable<IResponsePart>, outputStream: MappedEditsResponseStream, token: CancellationToken): Promise<void> {
 	let documentLines = originalText ? Lines.fromString(originalText) : [];
 	function processAndEmitPatch(patch: Patch) {
-		// Make sure it's valid, otherwise emit
 		if (equals(patch.find, patch.replace)) {
 			return;
 		}
@@ -271,7 +257,7 @@ interface IFullRewritePrompt {
 	readonly promptTokenCount: number;
 	readonly speculationTokenCount: number;
 
-	readonly endpoint: ChatEndpoint;
+	readonly endpoint: IChatEndpoint;
 	readonly tokenizer: ITokenizer;
 }
 
@@ -306,14 +292,12 @@ export class CodeMapper {
 		this.shortContextLimit = configurationService.getExperimentBasedConfig<number>(ConfigKey.Advanced.InstantApplyShortContextLimit, experimentationService) ?? 8000;
 	}
 
-	private async getGpt4oProxyEndpoint(): Promise<Proxy4oEndpoint> {
-		await this.experimentationService.hasTreatments();
-		return this.instantiationService.createInstance(Proxy4oEndpoint);
+	private async getRewriteEndpoint(): Promise<IChatEndpoint> {
+		return this.endpointProvider.getChatEndpoint('dardcor-utility');
 	}
 
-	private async getShortIAEndpoint(): Promise<ProxyInstantApplyShortEndpoint> {
-		await this.experimentationService.hasTreatments();
-		return this.instantiationService.createInstance(ProxyInstantApplyShortEndpoint);
+	private async getCompactRewriteEndpoint(): Promise<IChatEndpoint> {
+		return this.endpointProvider.getChatEndpoint('dardcor-utility-small');
 	}
 
 	public async mapCode(request: ICodeMapperRequestInput, resultStream: MappedEditsResponseStream, telemetryInfo: ICodeMapperTelemetryInfo | undefined, token: CancellationToken): Promise<CodeMapperOutcome | undefined> {
@@ -322,14 +306,13 @@ export class CodeMapper {
 		if (!(fastEdit instanceof CodeMapperRefusal)) {
 			return fastEdit;
 		}
-		// continue with "slow rewrite endpoint" when fast rewriting was not possible
-		// use dardcor base as fallback
 		const chatEndpoint = await this.endpointProvider.getChatEndpoint('dardcor-utility');
 
-		// Only attempt a full file rewrite if the original document fits into 3/4 of the max output token limit, leaving space for the model to add code. The limit is currently a flat 4K tokens from CAPI across all our models.
-		// If there are multiple input documents, pick the longest one to base the limit on
 		const longestDocumentContext = isNewDocument(request) ? request.workingSet.reduce<ICodeMapperDocument | undefined>((prev, curr) => (prev && (prev.getText().length > curr.getText().length)) ? prev : curr, undefined) : request.existingDocument;
-		const doFullRewrite = longestDocumentContext ? await chatEndpoint.acquireTokenizer().tokenLength(longestDocumentContext.getText()) < (4096 / 4 * 3) : true;
+		const maxRewriteInputTokens = Math.floor(chatEndpoint.maxOutputTokens * 0.75);
+		const doFullRewrite = longestDocumentContext
+			? await chatEndpoint.acquireTokenizer().tokenLength(longestDocumentContext.getText()) < maxRewriteInputTokens
+			: true;
 
 		const existingDocument = request.existingDocument;
 
@@ -341,7 +324,7 @@ export class CodeMapper {
 		};
 		let responsePromise: Promise<void> | undefined;
 		if (doFullRewrite) {
-			if (existingDocument && existingDocument instanceof NotebookDocumentSnapshot) { // TODO@joyceerhl: Handle notebook document response processing
+			if (existingDocument && existingDocument instanceof NotebookDocumentSnapshot) {
 				const telemtryOptions: NotebookEditGenerationTelemtryOptions = {
 					source: NotebookEditGenrationSource.codeMapperEditNotebook,
 					requestId: undefined,
@@ -377,7 +360,7 @@ export class CodeMapper {
 		);
 
 		fetchStreamSource.resolve();
-		await responsePromise; // Make sure we push all text edits to the response stream
+		await responsePromise;
 
 		let result: CodeMapperOutcome;
 
@@ -390,8 +373,10 @@ export class CodeMapper {
 			if (fetchResult.type === ChatFetchResponseType.Canceled) {
 				return undefined;
 			}
-			const outageStatus = await this.octoKitService.getGitHubOutageStatus();
-			const errorDetails = getErrorDetailsFromChatFetchError(fetchResult, this.authenticationService.dardcorToken?.dardcorPlan, outageStatus, this.authenticationService.dardcorToken?.tokenBasedBilling, this.authenticationService.dardcorToken?.quotaInfo.quota_reset_date);
+			const isCapiRequest = isCAPIEndpoint(chatEndpoint);
+			const dardcorToken = isCapiRequest ? this.authenticationService.dardcorToken : undefined;
+			const outageStatus = isCapiRequest ? await this.octoKitService.getGitHubOutageStatus() : GitHubOutageStatus.None;
+			const errorDetails = getErrorDetailsFromChatFetchError(fetchResult, dardcorToken?.dardcorPlan, outageStatus, dardcorToken?.tokenBasedBilling, dardcorToken?.quotaInfo.quota_reset_date);
 			result = createOutcome([{ label: errorDetails.message, message: `request ${fetchResult.type}`, severity: 'error' }], errorDetails);
 		}
 		if (result.annotations.length || result.errorDetails) {
@@ -400,11 +385,9 @@ export class CodeMapper {
 		return result;
 	}
 
-	//#region Full file rewrite with speculation / predicted outputs
 
 	private async buildPrompt(request: ICodeMapperRequestInput, token: CancellationToken): Promise<IFullRewritePrompt> {
-		let endpoint: ChatEndpoint = await this.getGpt4oProxyEndpoint();
-		const tokenizer = this.tokenizerProvider.acquireTokenizer(endpoint);
+		let endpoint: IChatEndpoint = await this.getRewriteEndpoint();
 		const requestId = generateUuid();
 
 		const promptRenderer = PromptRenderer.create(
@@ -440,9 +423,10 @@ export class CodeMapper {
 		}, '').trimEnd() + `\n\n\nThe resulting document:\n<${CodeMapper.closingXmlTag}>\n${fence}${languageIdToMDCodeBlockLang(languageId)}\n`;
 
 		if (prompt.length < this.shortContextLimit) {
-			endpoint = await this.getShortIAEndpoint();
+			endpoint = await this.getCompactRewriteEndpoint();
 		}
 
+		const tokenizer = this.tokenizerProvider.acquireTokenizer(endpoint);
 		const promptTokenCount = await tokenizer.tokenLength(prompt);
 		const speculationTokenCount = await tokenizer.tokenLength(speculation);
 		const stopTokens = [`${fence}\n</${CodeMapper.closingXmlTag}>`, `${fence}\r\n</${CodeMapper.closingXmlTag}>`, `</${CodeMapper.closingXmlTag}>`];
@@ -452,7 +436,6 @@ export class CodeMapper {
 
 	private async logDoneInfo(request: ICodeMapperRequestInput, prompt: IFullRewritePrompt, response: ICompletedRequest, telemetryInfo: CodeMapperOutcomeTelemetry, mapper: string, annotations: OutcomeAnnotation[]) {
 		if (this.telemetryService instanceof NullTelemetryService) {
-			// noo need to make all the computation
 			return;
 		}
 
@@ -466,26 +449,6 @@ export class CodeMapper {
 
 		const { addedLines, removedLines } = await computeAdditionsAndDeletions(this.diffService, speculation, responseText);
 
-		/* __GDPR__
-			"speculation.response.success" : {
-				"owner": "alexdima",
-				"comment": "Report quality details for a successful speculative response.",
-				"chatRequestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Id of the current turn request" },
-				"chatRequestSource": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Source of the current turn request" },
-				"isNoopEdit": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether the response text is identical to the speculation." },
-				"speculationRequestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Id of the current turn request" },
-				"containsElidedCodeComments": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether the response text contains elided code comments." },
-				"model": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The model used for this speculation request" },
-				"promptTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of prompt tokens", "isMeasurement": true },
-				"speculationTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of speculation tokens", "isMeasurement": true },
-				"responseTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of response tokens", "isMeasurement": true },
-				"addedLines": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of lines added", "isMeasurement": true },
-				"removedLines": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of lines removed", "isMeasurement": true },
-				"isNotebook": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether this is a notebook", "isMeasurement": true },
-				"timeToFirstToken": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Time to first token", "isMeasurement": true },
-				"timeToComplete": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Time to complete the request", "isMeasurement": true }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('speculation.response.success', {
 			chatRequestId: telemetryInfo?.requestId,
 			chatRequestSource: telemetryInfo?.requestSource,
@@ -517,20 +480,6 @@ export class CodeMapper {
 		if (error) {
 			this.logService.error(error);
 		}
-		/* __GDPR__
-			"speculation.response.error" : {
-				"owner": "alexdima",
-				"comment": "Report quality issue for when a speculative response failed.",
-				"errorMessage": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The name of the error" },
-				"chatRequestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Id of the current turn request" },
-				"speculationRequestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Id of the speculation request" },
-				"chatRequestSource": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Source of the current turn request" },
-				"model": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The model used for this speculation request" },
-				"promptTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of prompt tokens", "isMeasurement": true },
-				"speculationTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of speculation tokens", "isMeasurement": true },
-				"isNotebook": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether this is a notebook", "isMeasurement": true }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('speculation.response.error', {
 			errorMessage,
 			chatRequestId: telemetryInfo?.requestId,
@@ -545,9 +494,6 @@ export class CodeMapper {
 	}
 
 	private async mapCodeUsingFastEdit(request: ICodeMapperRequestInput, resultStream: MappedEditsResponseStream, telemetryInfo: ICodeMapperTelemetryInfo | undefined, token: CancellationToken): Promise<CodeMapperOutcome | CodeMapperRefusal> {
-		// When generating edits for notebooks that are from location=panel, do not use fast edit.
-		// location = panel, is when user is applying code displayed in chat panel into notebook.
-		// Fast apply doesn't work well when we have only a part of the code and no code markers.
 		if (!request.createNew && request.location === 'panel' && this.notebookService.hasSupportedNotebooks(request.uri)) {
 			this.logService.error(`srequest | refuse | SD | refusing notebook from Panel | [codeMapper]`);
 			return new CodeMapperRefusal();
@@ -555,7 +501,7 @@ export class CodeMapper {
 
 		const combinedDocumentLength = isNewDocument(request) ? request.workingSet.reduce((prev, curr) => prev + curr.getText().length, 0) : request.existingDocument.getText().length;
 
-		const promptLimit = 256_000; // (256K is roughly 64k tokens) and documents longer than this will surely not fit
+		const promptLimit = 256_000;
 		if (combinedDocumentLength > promptLimit) {
 			this.logService.error(`srequest | refuse | SD | refusing huge document | [codeMapper]`);
 			return new CodeMapperRefusal();
@@ -564,10 +510,6 @@ export class CodeMapper {
 		const builtPrompt = await this.buildPrompt(request, token);
 		const { promptTokenCount, speculation, requestId, endpoint } = builtPrompt;
 
-		// `prompt` includes the whole document, the codeblock and some prosa. we leave space
-		// for the document again and the whole codeblock (assuming it's all insertions)
-		// const codeBlockTokenCount = promptTokenCount - speculationTokenCount;
-		// if (promptTokenCount > 128_000 - speculationTokenCount - codeBlockTokenCount) {
 
 		if (promptTokenCount > 64_000) {
 			this.logService.error(`srequest | refuse | SD | exceeds token limit | [codeMapper]`);
@@ -635,7 +577,7 @@ export class CodeMapper {
 			messageText: useGPT4oProxy ? JSON.stringify(builtPrompt.messages) : builtPrompt.prompt,
 			completionTextJson: result.allResponseText.join(''),
 		};
-		void multiplexProperties(payload).then(properties => this.telemetryService.sendEnhancedGHTelemetryEvent('fastApply/successfulEdit', properties)).catch(() => { /* best-effort telemetry */ });
+		void multiplexProperties(payload).then(properties => this.telemetryService.sendEnhancedGHTelemetryEvent('fastApply/successfulEdit', properties)).catch(() => { });
 		this.telemetryService.sendInternalMSFTTelemetryEvent('fastApply/successfulEdit', payload);
 	}
 
@@ -659,7 +601,7 @@ export class CodeMapper {
 		return res;
 	}
 
-	private async fetchAndContinueOnLengthError(endpoint: ChatEndpoint, promptMessages: Raw.ChatMessage[], speculation: string, request: ICodeMapperRequestInput, resultStream: MappedEditsResponseStream, token: CancellationToken, applyEdits: boolean): Promise<ISpeculationFetchResult> {
+	private async fetchAndContinueOnLengthError(endpoint: IChatEndpoint, promptMessages: Raw.ChatMessage[], speculation: string, request: ICodeMapperRequestInput, resultStream: MappedEditsResponseStream, token: CancellationToken, applyEdits: boolean): Promise<ISpeculationFetchResult> {
 		const allResponseText: string[] = [];
 		let responseLength = 0;
 		let firstTokenTime: number = -1;
@@ -667,9 +609,8 @@ export class CodeMapper {
 		const existingDocument = request.existingDocument;
 		const documentLength = existingDocument ? existingDocument.getText().length : 0;
 		const uri = request.uri;
-		const maxLength = documentLength + request.codeBlock.length + 1000; // add 1000 to be safe
+		const maxLength = documentLength + request.codeBlock.length + 1000;
 
-		//const { codeBlock, uri, documentContext, markdownBeforeBlock } = codemapperRequestInput;
 		const pushedLines: string[] = [];
 		const fetchStreamSource = new FetchStreamSource();
 		const textStream = fetchStreamSource.stream.map((part) => part.delta.text);
@@ -677,7 +618,7 @@ export class CodeMapper {
 		let processPromise: Promise<unknown> | undefined;
 		if (applyEdits) {
 			processPromise = existingDocument instanceof NotebookDocumentSnapshot
-				? processFullRewriteNotebook(existingDocument.document, readLineByLine(textStream, token), resultStream, this.alternativeNotebookEditGenerator, { source: NotebookEditGenrationSource.codeMapperFastApply, model: endpoint.model, requestId: undefined }, token) // corrected parameter passing
+				? processFullRewriteNotebook(existingDocument.document, readLineByLine(textStream, token), resultStream, this.alternativeNotebookEditGenerator, { source: NotebookEditGenrationSource.codeMapperFastApply, model: endpoint.model, requestId: undefined }, token)
 				: processFullRewriteStream(uri, existingDocument, readLineByLine(textStream, token), resultStream, token, pushedLines);
 		} else {
 			processPromise = textStream.toPromise();
@@ -706,7 +647,7 @@ export class CodeMapper {
 			if (result.type === ChatFetchResponseType.Length) {
 				if (responseLength > maxLength) {
 					fetchStreamSource.resolve();
-					await processPromise; // Flush all received text as edits to the response stream
+					await processPromise;
 					this.logCodemapperLoopTelemetry(request, result, uri, endpoint.model, documentLength, responseLength, true);
 					return {
 						result, firstTokenTime, allResponseText, annotations: [{
@@ -725,7 +666,7 @@ export class CodeMapper {
 				promptMessages = response.messages;
 			} else if (result.type === ChatFetchResponseType.Success) {
 				fetchStreamSource.resolve();
-				await processPromise; // Flush all received text as edits to the response stream
+				await processPromise;
 
 				if (applyEdits && (!existingDocument || existingDocument instanceof TextDocumentSnapshot)) {
 					await handleTrailingLines(uri, existingDocument, resultStream, pushedLines, token);
@@ -733,9 +674,8 @@ export class CodeMapper {
 				this.logCodemapperLoopTelemetry(request, result, uri, endpoint.model, documentLength, responseLength, false);
 				return { result, firstTokenTime, allResponseText, annotations: [] };
 			} else {
-				// error or cancelled
 				fetchStreamSource.resolve();
-				await processPromise; // Flush all received text as edits to the response stream
+				await processPromise;
 
 				return { result, firstTokenTime, allResponseText: [], annotations: [] };
 			}
@@ -744,18 +684,6 @@ export class CodeMapper {
 	}
 
 	private logCodemapperLoopTelemetry(request: ICodeMapperRequestInput, result: ChatResponse, uri: Uri, model: string, documentLength: number, responseLength: number, hasLoop: boolean) {
-		/* __GDPR__
-			"speculation.response.loop" : {
-				"owner": "joyceerhl",
-				"comment": "Report when the model appears to have gone into a loop.",
-				"hasLoop": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether the model appears to have gone into a loop." },
-				"speculationRequestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Id of the current turn request" },
-				"languageId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The language id of the document" },
-				"model": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The model used for this speculation request" },
-				"documentLength": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Length of original file", "isMeasurement": true },
-				"rewrittenLength": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Length of original file", "isMeasurement": true }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('speculation.response.loop', {
 			speculationRequestId: result.requestId,
 			languageId: isNewDocument(request) ? getLanguageForResource(uri).languageId : request.existingDocument.languageId,
@@ -776,33 +704,29 @@ export class CodeMapper {
 			case Completion.FinishReason.Length:
 				throw new CompletionsFetchError('stop_length', requestId, 'Length limit');
 			case Completion.FinishReason.Stop:
-				break; // No error for 'Stop' finish reason
+				break;
 			default:
 				assertNever(finishReason);
 		}
 	}
 
-	//#endregion
 }
 
 function readLineByLine(source: AsyncIterable<string>, token: CancellationToken): AsyncIterable<LineOfText> {
 	return new AsyncIterableObject<LineOfText>(async (emitter) => {
 		const reader = new PartialAsyncTextReader(source[Symbol.asyncIterator]());
-		let previousLineWasEmpty = false; // avoid emitting a trailing empty line all the time
+		let previousLineWasEmpty = false;
 		while (!reader.endOfStream) {
-			// Skip everything until we hit a fence
 			if (token.isCancellationRequested) {
 				break;
 			}
 			const line = (await reader.readLine()).replace(/\r$/g, '');
 
 			if (previousLineWasEmpty) {
-				// Emit the previous held back empty line
 				emitter.emitOne(new LineOfText(''));
 			}
 
 			if (line === '') {
-				// Hold back empty lines and emit them with the next iteration
 				previousLineWasEmpty = true;
 			} else {
 				previousLineWasEmpty = false;

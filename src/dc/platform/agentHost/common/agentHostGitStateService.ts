@@ -23,38 +23,17 @@ export const IAgentHostGitStateService = createDecorator<IAgentHostGitStateServi
 export interface IAgentHostGitStateService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fires when the git state for a session is refreshed.
-	 */
 	readonly onDidRefreshSessionGitState: Event<string>;
 
-	/** Fires when GitHub metadata that affects changeset operations changes. */
 	readonly onDidChangeSessionGitHubState: Event<string>;
 
-	/**
-	 * Refreshes the git state for a given session.
-	 * @param sessionKey The key of the session for which to refresh the git state.
-	 * @param workingDirectory Optional working directory override; when omitted, the session summary's working directory is used.
-	 */
 	refreshSessionGitState(sessionKey: string, workingDirectory?: URI): Promise<void>;
 
-	/** Resolves the canonical base branch selected for a session. */
 	resolveSessionBaseBranchName(sessionKey: string): Promise<string | undefined>;
 
-	/**
-	 * Sets the GitHub state for a given session.
-	 * @param sessionKey The key of the session for which to set the GitHub state.
-	 * @param state The GitHub state to set.
-	 */
 	setSessionGitHubState(sessionKey: string, state: ISessionGitHubState): Promise<void>;
 
-	/** Records a successful direct merge and its resulting target-branch HEAD. */
 	recordSessionMerge(sessionKey: string, commit: string): Promise<void>;
 
-	/**
-	 * Refresh git state, then reconcile the actionable GitHub pull request for the current branch.
-	 * @param sessionKey The key of the session for which to check the GitHub pull request.
-	 * @param workingDirectory Optional working directory override; when omitted, the session summary's working directory is used.
-	 */
 	attachSessionGitHubPullRequest(sessionKey: string, workingDirectory?: URI): Promise<void>;
 }

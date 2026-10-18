@@ -51,7 +51,6 @@ export class BreadcrumbsService implements IBreadcrumbsService {
 registerSingleton(IBreadcrumbsService, BreadcrumbsService, InstantiationType.Delayed);
 
 
-//#region config
 
 export abstract class BreadcrumbsConfig<T> {
 
@@ -63,7 +62,6 @@ export abstract class BreadcrumbsConfig<T> {
 	abstract dispose(): void;
 
 	private constructor() {
-		// internal
 	}
 
 	static readonly IsEnabled = BreadcrumbsConfig._stub<boolean>('breadcrumbs.enabled');
@@ -338,4 +336,3 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfigurat
 	}
 });
 
-//#endregion

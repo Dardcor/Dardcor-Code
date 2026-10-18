@@ -54,10 +54,6 @@ export class ReplacePattern {
 		return this._regExp;
 	}
 
-	/**
-	* Returns the replace string for the first match in the given text.
-	* If text has no matches then returns null.
-	*/
 	getReplaceString(text: string, preserveCase?: boolean): string | null {
 		this._regExp.lastIndex = 0;
 		const match = this._regExp.exec(text);
@@ -75,21 +71,10 @@ export class ReplacePattern {
 		return null;
 	}
 
-	/**
-	 * replaceWithCaseOperations applies case operations to relevant replacement strings and applies
-	 * the affected $N arguments. It then passes unaffected $N arguments through to string.replace().
-	 *
-	 * \u			=> upper-cases one character in a match.
-	 * \U			=> upper-cases ALL remaining characters in a match.
-	 * \l			=> lower-cases one character in a match.
-	 * \L			=> lower-cases ALL remaining characters in a match.
-	 */
 	private replaceWithCaseOperations(text: string, regex: RegExp, replaceString: string): string {
-		// Short-circuit the common path.
 		if (!/\\[uUlL]/.test(replaceString)) {
 			return text.replace(regex, replaceString);
 		}
-		// Store the values of the search parameters.
 		const firstMatch = regex.exec(text);
 		if (firstMatch === null) {
 			return text.replace(regex, replaceString);
@@ -99,13 +84,12 @@ export class ReplacePattern {
 		let newReplaceString = '';
 		let lastIndex = 0;
 		let lastMatch = '';
-		// For each annotated $N, perform text processing on the parameters and perform the substitution.
 		while ((patMatch = this._caseOpsRegExp.exec(replaceString)) !== null) {
 			lastIndex = patMatch.index;
 			const fullMatch = patMatch[0];
 			lastMatch = fullMatch;
-			let caseOps = patMatch[2]; // \u, \l\u, etc.
-			const money = patMatch[3]; // $1, $2, etc.
+			let caseOps = patMatch[2];
+			const money = patMatch[3];
 
 			if (!caseOps) {
 				newReplaceString += fullMatch;
@@ -118,7 +102,7 @@ export class ReplacePattern {
 			}
 			const replacementLen = replacement.length;
 
-			newReplaceString += patMatch[1]; // prefix
+			newReplaceString += patMatch[1];
 			caseOps = caseOps.replace(/\\/g, '');
 			let i = 0;
 			for (; i < caseOps.length; i++) {
@@ -139,15 +123,13 @@ export class ReplacePattern {
 						break;
 				}
 			}
-			// Append any remaining replacement string content not covered by case operations.
 			if (i < replacementLen) {
 				newReplaceString += replacement.slice(i);
 			}
 
-			newReplaceString += patMatch[4]; // suffix
+			newReplaceString += patMatch[4];
 		}
 
-		// Append any remaining trailing content after the final regex match.
 		newReplaceString += replaceString.slice(lastIndex + lastMatch.length);
 
 		return text.replace(regex, newReplaceString);
@@ -161,13 +143,6 @@ export class ReplacePattern {
 		}
 	}
 
-	/**
-	 * \n => LF
-	 * \t => TAB
-	 * \\ => \
-	 * $0 => $& (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_string_as_a_parameter)
-	 * everything else stays untouched
-	 */
 	private parseReplaceString(replaceString: string): void {
 		if (!replaceString || replaceString.length === 0) {
 			return;
@@ -179,11 +154,9 @@ export class ReplacePattern {
 
 			if (chCode === CharCode.Backslash) {
 
-				// move to next char
 				i++;
 
 				if (i >= len) {
-					// string ends with a \
 					break;
 				}
 
@@ -192,15 +165,12 @@ export class ReplacePattern {
 
 				switch (nextChCode) {
 					case CharCode.Backslash:
-						// \\ => \
 						replaceWithCharacter = '\\';
 						break;
 					case CharCode.n:
-						// \n => LF
 						replaceWithCharacter = '\n';
 						break;
 					case CharCode.t:
-						// \t => TAB
 						replaceWithCharacter = '\t';
 						break;
 				}
@@ -213,11 +183,9 @@ export class ReplacePattern {
 
 			if (chCode === CharCode.DollarSign) {
 
-				// move to next char
 				i++;
 
 				if (i >= len) {
-					// string ends with a $
 					break;
 				}
 
@@ -226,7 +194,6 @@ export class ReplacePattern {
 
 				switch (nextChCode) {
 					case CharCode.Digit0:
-						// $0 => $&
 						replaceWithCharacter = '$&';
 						this._hasParameters = true;
 						break;
@@ -235,7 +202,6 @@ export class ReplacePattern {
 						this._hasParameters = true;
 						break;
 					default: {
-						// check if it is a valid string parameter $n (0 <= n <= 99). $0 is already handled by now.
 						if (!this.between(nextChCode, CharCode.Digit1, CharCode.Digit9)) {
 							break;
 						}
@@ -271,7 +237,6 @@ export class ReplacePattern {
 		}
 
 		if (substrFrom === 0) {
-			// no replacement occurred
 			return;
 		}
 

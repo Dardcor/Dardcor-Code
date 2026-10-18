@@ -20,11 +20,6 @@ import { IChatService } from '../../../../chat/common/chatService/chatService.js
 import { IAhpTerminalCommandSource, ITerminalInstance, ITerminalService } from '../../../../terminal/browser/terminal.js';
 import { TerminalChatService } from '../../browser/terminalChatService.js';
 
-/**
- * Peeks at the protected `_size` counter on a base Emitter to assert listener counts in tests.
- * The Emitter tracks this internally for leak detection, and it is the same counter that fires
- * the "potential listener LEAK detected" warning we are guarding against here.
- */
 function listenerCount(emitter: Emitter<any>): number {
 	return (emitter as unknown as { _size: number })._size ?? 0;
 }
@@ -65,11 +60,6 @@ suite('TerminalChatService', () => {
 		const onInstanceDisposed = store.add(new Emitter<ITerminalInstance>());
 		const instance = { onDisposed: onInstanceDisposed.event, shellLaunchConfig: {}, persistentProcessId: undefined, instanceId: 1 } as unknown as ITerminalInstance;
 
-		// Simulate the real-world scenario: the RunInTerminalTool generates a fresh
-		// `terminalToolSessionId` (via generateUuid()) per invocation and re-registers the
-		// same foreground terminal instance. Before the fix, each call added another
-		// listener to `chatService.onDidDisposeSession`, eventually breaching the leak
-		// threshold.
 		const registrations = 50;
 		const initialListenerCount = listenerCount(onDidDisposeSessionEmitter);
 		for (let i = 0; i < registrations; i++) {
@@ -78,14 +68,11 @@ suite('TerminalChatService', () => {
 
 		const addedListeners = listenerCount(onDidDisposeSessionEmitter) - initialListenerCount;
 
-		// After the fix at most one listener should be attached per instance (not one per call).
 		assert.ok(
 			addedListeners <= 1,
 			`Expected at most 1 listener on onDidDisposeSession after ${registrations} re-registrations, saw ${addedListeners}`
 		);
 
-		// Only the latest tool-session-id should remain mapped to the instance; stale
-		// mappings must have been cleaned up to prevent orphan entries from surviving.
 		assert.strictEqual(
 			service.getToolSessionIdForInstance(instance),
 			`tool-session-${registrations - 1}`
@@ -151,8 +138,6 @@ suite('TerminalChatService', () => {
 	suite('getAutoApproveActions', () => {
 
 		test('returns undefined for empty command lines without touching the analysis collaborators', async () => {
-			// No ITreeSitterLibraryService stub is installed, so reaching the
-			// parser would throw — passing proves the early return.
 			assert.strictEqual(await service.getAutoApproveActions('   ', 'shellscript'), undefined);
 		});
 

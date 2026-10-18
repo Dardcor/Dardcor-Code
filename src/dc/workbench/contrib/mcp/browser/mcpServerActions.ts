@@ -1009,7 +1009,7 @@ export class AuthServerAction extends McpServerAction {
 		for (const [providerId, accountName] of preferences) {
 			const accountQuery = this._authenticationQueryService.provider(providerId).account(accountName);
 			if (!accountQuery.mcpServer(serverId).isAccessAllowed()) {
-				continue; // skip accounts that are not allowed
+				continue;
 			}
 			return accountQuery;
 		}

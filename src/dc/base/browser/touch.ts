@@ -81,7 +81,7 @@ export class Gesture extends Disposable {
 
 	private _lastSetTapCountTime: number;
 
-	private static readonly CLEAR_TAP_COUNT_TIME = 400; // ms
+	private static readonly CLEAR_TAP_COUNT_TIME = 400;
 
 
 	private constructor() {
@@ -122,19 +122,11 @@ export class Gesture extends Disposable {
 		return toDisposable(remove);
 	}
 
-	/**
-	 * Whether the device is able to represent touch events.
-	 */
 	@memoize
 	static isTouchDevice(): boolean {
-		// `'ontouchstart' in window` always evaluates to true with typescript's modern typings. This causes `window` to be
-		// `never` later in `window.navigator`. That's why we need the explicit `window as Window` cast
 		return 'ontouchstart' in mainWindow || navigator.maxTouchPoints > 0;
 	}
 
-	/**
-	 * Whether the device's primary input is able to hover.
-	 */
 	@memoize
 	static isHoverDevice(): boolean {
 		return mainWindow.matchMedia('(hover: hover)').matches;
@@ -150,7 +142,7 @@ export class Gesture extends Disposable {
 	}
 
 	private onTouchStart(e: TouchEvent): void {
-		const timestamp = Date.now(); // use Date.now() because on FF e.timeStamp is not epoch based.
+		const timestamp = Date.now();
 
 		if (this.handle) {
 			this.handle.dispose();
@@ -185,7 +177,7 @@ export class Gesture extends Disposable {
 	}
 
 	private onTouchEnd(targetWindow: Window, e: TouchEvent): void {
-		const timestamp = Date.now(); // use Date.now() because on FF e.timeStamp is not epoch based.
+		const timestamp = Date.now();
 
 		const activeTouchCount = Object.keys(this.activeTouches).length;
 
@@ -227,21 +219,19 @@ export class Gesture extends Disposable {
 				const deltaX = finalX - data.rollingPageX[0];
 				const deltaY = finalY - data.rollingPageY[0];
 
-				// We need to get all the dispatch targets on the start of the inertia event
 				const dispatchTo = [...this.targets].filter(t => data.initialTarget instanceof Node && t.contains(data.initialTarget));
-				this.inertia(targetWindow, dispatchTo, timestamp,	// time now
-					Math.abs(deltaX) / deltaT,						// speed
-					deltaX > 0 ? 1 : -1,							// x direction
-					finalX,											// x now
-					Math.abs(deltaY) / deltaT,  					// y speed
-					deltaY > 0 ? 1 : -1,							// y direction
-					finalY											// y now
+				this.inertia(targetWindow, dispatchTo, timestamp,
+					Math.abs(deltaX) / deltaT,
+					deltaX > 0 ? 1 : -1,
+					finalX,
+					Math.abs(deltaY) / deltaT,
+					deltaY > 0 ? 1 : -1,
+					finalY
 				);
 			}
 
 
 			this.dispatchEvent(this.newGestureEvent(EventType.End, data.initialTarget));
-			// forget about this touch
 			delete this.activeTouches[touch.identifier];
 		}
 
@@ -273,7 +263,6 @@ export class Gesture extends Disposable {
 			this._lastSetTapCountTime = currentTime;
 			event.tapCount = setTapCount;
 		} else if (event.type === EventType.Change || event.type === EventType.Contextmenu) {
-			// tap is canceled by scrolling or context menu
 			this._lastSetTapCountTime = 0;
 		}
 
@@ -310,7 +299,6 @@ export class Gesture extends Disposable {
 		this.handle = DomUtils.scheduleAtNextAnimationFrame(targetWindow, () => {
 			const now = Date.now();
 
-			// velocity: old speed + accel_over_time
 			const deltaT = now - t1;
 			let delta_pos_x = 0, delta_pos_y = 0;
 			let stopped = true;
@@ -328,7 +316,6 @@ export class Gesture extends Disposable {
 				delta_pos_y = dirY * vY * deltaT;
 			}
 
-			// dispatch translation event
 			const evt = this.newGestureEvent(EventType.Change);
 			evt.translationX = delta_pos_x;
 			evt.translationY = delta_pos_y;
@@ -341,7 +328,7 @@ export class Gesture extends Disposable {
 	}
 
 	private onTouchMove(e: TouchEvent): void {
-		const timestamp = Date.now(); // use Date.now() because on FF e.timeStamp is not epoch based.
+		const timestamp = Date.now();
 
 		for (let i = 0, len = e.changedTouches.length; i < len; i++) {
 
@@ -361,7 +348,6 @@ export class Gesture extends Disposable {
 			evt.pageY = touch.pageY;
 			this.dispatchEvent(evt);
 
-			// only keep a few data points, to average the final speed
 			if (data.rollingPageX.length > 3) {
 				data.rollingPageX.shift();
 				data.rollingPageY.shift();

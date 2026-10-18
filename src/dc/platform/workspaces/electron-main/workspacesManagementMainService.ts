@@ -64,7 +64,7 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 	private readonly _onDidEnterWorkspace = this._register(new Emitter<IWorkspaceEnteredEvent>());
 	readonly onDidEnterWorkspace: Event<IWorkspaceEnteredEvent> = this._onDidEnterWorkspace.event;
 
-	private readonly untitledWorkspacesHome: URI; // local URI that contains all untitled workspaces
+	private readonly untitledWorkspacesHome: URI;
 
 	private untitledWorkspaces: IUntitledWorkspaceInfo[] = [];
 
@@ -82,10 +82,8 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 
 	async initialize(): Promise<void> {
 
-		// Reset
 		this.untitledWorkspaces = [];
 
-		// Resolve untitled workspaces
 		try {
 			const untitledWorkspacePaths = (await Promises.readdir(this.untitledWorkspacesHome.with({ scheme: Schemas.file }).fsPath)).map(folder => joinPath(this.untitledWorkspacesHome, folder, UNTITLED_WORKSPACE_NAME));
 			for (const untitledWorkspacePath of untitledWorkspacePaths) {
@@ -112,7 +110,7 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 	private doResolveLocalWorkspace(uri: URI, contentsFn: (path: string) => Promise<string>): Promise<IResolvedWorkspace | undefined>;
 	private doResolveLocalWorkspace(uri: URI, contentsFn: (path: string) => string | Promise<string>): IResolvedWorkspace | undefined | Promise<IResolvedWorkspace | undefined> {
 		if (!this.isWorkspacePath(uri)) {
-			return undefined; // does not look like a valid workspace config file
+			return undefined;
 		}
 
 		if (uri.scheme !== Schemas.file) {
@@ -122,12 +120,12 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 		try {
 			const contents = contentsFn(uri.fsPath);
 			if (contents instanceof Promise) {
-				return contents.then(value => this.doResolveWorkspace(uri, value), error => undefined /* invalid workspace */);
+				return contents.then(value => this.doResolveWorkspace(uri, value), error => undefined );
 			} else {
 				return this.doResolveWorkspace(uri, contents);
 			}
 		} catch {
-			return undefined; // invalid workspace
+			return undefined;
 		}
 	}
 
@@ -155,10 +153,8 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 
 	private doParseStoredWorkspace(path: URI, contents: string): IStoredWorkspace {
 
-		// Parse workspace file
-		const storedWorkspace: IStoredWorkspace = parse(contents); // use fault tolerant parser
+		const storedWorkspace: IStoredWorkspace = parse(contents);
 
-		// Filter out folders which do not have a path or uri set
 		if (storedWorkspace && Array.isArray(storedWorkspace.folders)) {
 			storedWorkspace.folders = storedWorkspace.folders.filter(folder => isStoredWorkspaceFolder(folder));
 		} else {
@@ -207,16 +203,13 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 
 	async deleteUntitledWorkspace(workspace: IWorkspaceIdentifier): Promise<void> {
 		if (!this.isUntitledWorkspace(workspace)) {
-			return; // only supported for untitled workspaces
+			return;
 		}
 
-		// Delete from disk
 		await this.doDeleteUntitledWorkspace(workspace);
 
-		// unset workspace from profiles
 		this.userDataProfilesMainService.unsetWorkspace(workspace);
 
-		// Event
 		this._onDidDeleteUntitledWorkspace.fire(workspace);
 	}
 
@@ -224,16 +217,13 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 		const configPath = originalFSPath(workspace.configPath);
 		try {
 
-			// Delete Workspace
 			await Promises.rm(dirname(configPath));
 
-			// Mark Workspace Storage to be deleted
 			const workspaceStoragePath = join(this.environmentMainService.workspaceStorageHome.with({ scheme: Schemas.file }).fsPath, workspace.id);
 			if (await Promises.exists(workspaceStoragePath)) {
 				await Promises.writeFile(join(workspaceStoragePath, 'obsolete'), '');
 			}
 
-			// Remove from list
 			this.untitledWorkspaces = this.untitledWorkspaces.filter(untitledWorkspace => untitledWorkspace.workspace.id !== workspace.id);
 		} catch (error) {
 			this.logService.warn(`Unable to delete untitled workspace ${configPath} (${error}).`);
@@ -246,12 +236,12 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 
 	async enterWorkspace(window: ICodeWindow, windows: ICodeWindow[], path: URI): Promise<IEnterWorkspaceResult | undefined> {
 		if (!window?.win || !window.isReady) {
-			return undefined; // return early if the window is not ready or disposed
+			return undefined;
 		}
 
 		const isValid = await this.isValidTargetWorkspacePath(window, windows, path);
 		if (!isValid) {
-			return undefined; // return early if the workspace is not valid
+			return undefined;
 		}
 
 		const result = await this.doEnterWorkspace(window, getWorkspaceIdentifier(path));
@@ -259,7 +249,6 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 			return undefined;
 		}
 
-		// Emit as event
 		this._onDidEnterWorkspace.fire({ window, workspace: result.workspace });
 
 		return result;
@@ -271,10 +260,9 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 		}
 
 		if (isWorkspaceIdentifier(window.openedWorkspace) && extUriBiasedIgnorePathCase.isEqual(window.openedWorkspace.configPath, workspacePath)) {
-			return false; // window is already opened on a workspace with that path
+			return false;
 		}
 
-		// Prevent overwriting a workspace that is currently opened in another window
 		if (findWindowOnWorkspaceOrFolder(windows, workspacePath)) {
 			await this.dialogMainService.showMessageBox({
 				type: 'info',
@@ -286,7 +274,7 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 			return false;
 		}
 
-		return true; // OK
+		return true;
 	}
 
 	private async doEnterWorkspace(window: ICodeWindow, workspace: IWorkspaceIdentifier): Promise<IEnterWorkspaceResult | undefined> {
@@ -296,7 +284,6 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 
 		window.focus();
 
-		// Register window for backups and migrate current backups over
 		let backupPath: string | undefined;
 		if (!window.config.extensionDevelopmentPath) {
 			if (window.config.backupPath) {
@@ -306,12 +293,10 @@ export class WorkspacesManagementMainService extends Disposable implements IWork
 			}
 		}
 
-		// if the window was opened on an untitled workspace, delete it.
 		if (isWorkspaceIdentifier(window.openedWorkspace) && this.isUntitledWorkspace(window.openedWorkspace)) {
 			await this.deleteUntitledWorkspace(window.openedWorkspace);
 		}
 
-		// Update window configuration properly based on transition to workspace
 		window.config.workspace = workspace;
 		window.config.backupPath = backupPath;
 

@@ -30,7 +30,7 @@ import { IProductService } from '../../../../../../../platform/product/common/pr
 import { ITelemetryService } from '../../../../../../../platform/telemetry/common/telemetry.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../../../../platform/storage/common/storage.js';
 import { TelemetryTrustedValue } from '../../../../../../../platform/telemetry/common/telemetryUtils.js';
-import { COPILOT_VENDOR_ID, getLanguageModelProviderDisplayName, IModelControlEntry, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../../../common/languageModels.js';
+import { DARD_COR_VENDOR_ID, getLanguageModelProviderDisplayName, IModelControlEntry, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../../../common/languageModels.js';
 import { getLanguageModelDisplayNameWithSubscriptionSource } from '../../../../common/languageModelSourcePresentation.js';
 import { IChatEntitlementService } from '../../../../../../services/chat/common/chatEntitlementService.js';
 import { IModelPickerDelegate } from './modelPickerActionItem.js';
@@ -53,7 +53,6 @@ import { getModelPickerUnavailableReason, isAutoModel, ModelPickerUnavailableRea
 
 const CACHE_BREAK_HINT_DISMISSED_STORAGE_KEY = 'chat.cacheBreakHintDismissed';
 
-/** Opt-in setting for the tabbed model picker, which replaces the flat dropdown and the separate configuration button. */
 export const TABBED_MODEL_PICKER_SETTING_ID = 'chat.experimentalModelPicker';
 
 const MODEL_PICKER_MINIMUM_LABEL_WIDTH = 60;
@@ -90,28 +89,13 @@ type ChatModelPickerInteractionEvent = {
 
 type ModelPickerBadge = 'info' | 'warning';
 
-/** Why the picker has no model to offer, and the label states that follow from it. */
 interface IModelPickerAvailability {
-	/** Untrusted workspace or sign-in / setup required, or `undefined` when a model is available. */
 	readonly reason: ModelPickerUnavailableReason | undefined;
-	/** Trusted, but models are still loading while the chat extension activates. */
 	readonly activating: boolean;
-	/** Trusted and set up, but the list is empty and there is no Auto fallback. */
 	readonly genericNoModels: boolean;
-	/** Any of the above: the picker has nothing to offer. */
 	readonly noModels: boolean;
 }
 
-/**
- * A model selection dropdown widget.
- *
- * Renders a button showing the currently selected model name.
- * On click, opens a grouped picker popup with:
- * Auto → Promoted (recently used + curated) → Other Models (collapsed with search).
- *
- * The widget owns its state - set models, selection, and curated IDs via setters.
- * Listen for selection changes via `onDidChangeSelection`.
- */
 export class ModelPickerWidget extends Disposable {
 
 	private readonly _onDidChangeSelection = this._register(new Emitter<ILanguageModelChatMetadataAndIdentifier>());
@@ -183,7 +167,7 @@ export class ModelPickerWidget extends Disposable {
 			getSelectedModel: () => this._selectedModel,
 			getConfigurationAccess: () => this._delegate.modelConfiguration ?? this._languageModelsService,
 			isDisabled: () => !!this._domNode?.classList.contains('disabled'),
-			shouldShowCacheBreakHint: () => this.shouldShowCacheBreakHint(/* excludeAutoModel */ false),
+			shouldShowCacheBreakHint: () => this.shouldShowCacheBreakHint( false),
 			getCacheBreakLearnMoreLink: () => this.getCacheBreakLearnMoreLink(),
 			dismissCacheBreakHint: () => this.dismissCacheBreakHint(),
 		});
@@ -194,10 +178,6 @@ export class ModelPickerWidget extends Disposable {
 			this._renderLabel();
 		}));
 
-		// Reflect Restricted Mode immediately when trust changes. When trust is
-		// granted but no models are available yet, briefly show an "Activating..."
-		// state while the chat extension comes up and loads them, rather than a
-		// misleading "Auto" fallback.
 		this._register(this._workspaceTrustManagementService.onDidChangeTrust(trusted => {
 			if (trusted && this._delegate.getPresentationOptions().showAutoModel && this._delegate.getModels().length === 0) {
 				this._activatingAfterTrust = true;
@@ -211,8 +191,6 @@ export class ModelPickerWidget extends Disposable {
 			this._renderLabel();
 		}));
 
-		// Trust reads as untrusted until initialization resolves; gate on it so a
-		// trusted workspace doesn't briefly render as restricted at startup.
 		this._workspaceTrustManagementService.workspaceTrustInitialized.then(() => {
 			if (this._store.isDisposed) {
 				return;
@@ -225,15 +203,11 @@ export class ModelPickerWidget extends Disposable {
 			this._renderLabel();
 		}));
 
-		// The setup-required state derives from entitlement / sentiment / anonymous
-		// access, so refresh the label when any of those change (e.g. after sign-in).
 		this._register(this._entitlementService.onDidChangeEntitlement(() => this._renderLabel()));
 		this._register(this._entitlementService.onDidChangeSentiment(() => this._renderLabel()));
 		this._register(this._entitlementService.onDidChangeAnonymous(() => this._renderLabel()));
 
-		// Also refresh the label when the per-editor config layer (if any) reports
 		// a change. The global service path is already covered above via
-		// `onDidChangeLanguageModels` which fires from `setModelConfiguration`.
 		if (this._delegate.modelConfiguration?.onDidChange) {
 			this._register(this._delegate.modelConfiguration.onDidChange(() => {
 				this._renderLabel();
@@ -284,11 +258,6 @@ export class ModelPickerWidget extends Disposable {
 		this._updateBadge();
 	}
 
-	/**
-	 * Why the picker currently has no model to offer (untrusted vs. needs
-	 * sign-in/setup), or `undefined` when a model is available. See
-	 * {@link getModelPickerUnavailableReason}.
-	 */
 	private _unavailableReason(): ModelPickerUnavailableReason | undefined {
 		return getModelPickerUnavailableReason({
 			trustInitialized: this._workspaceTrustInitialized,
@@ -303,19 +272,10 @@ export class ModelPickerWidget extends Disposable {
 		return false;
 	}
 
-	/**
-	 * Whether the picker has no usable model specifically because the workspace
-	 * is untrusted (Restricted Mode disables the chat model providers).
-	 */
 	isRestrictedMode(): boolean {
 		return this._unavailableReason() === ModelPickerUnavailableReason.Restricted;
 	}
 
-	/**
-	 * Whether the picker has no usable model because Chat still needs sign-in /
-	 * setup (and the workspace is trusted, so it is not Restricted Mode). BYOK
-	 * and anonymous access never report this state.
-	 */
 	isSetupRequired(): boolean {
 		return this._unavailableReason() === ModelPickerUnavailableReason.SetupRequired;
 	}
@@ -348,21 +308,12 @@ export class ModelPickerWidget extends Disposable {
 		this._activatingTimer.clear();
 	}
 
-	/**
-	 * Prompts the user to trust the workspace. On grant, providers register their
-	 * models and `onDidChangeLanguageModels` refreshes the picker.
-	 */
 	private async _requestWorkspaceTrust(): Promise<void> {
 		await this._workspaceTrustRequestService.requestWorkspaceTrust({
 			message: localize('chat.modelPicker.trustMessage', "Trusting this workspace enables AI models and chat features.")
 		});
 	}
 
-	/**
-	 * Starts the Chat setup / sign-in flow (same command as the title-bar Sign In
-	 * affordance). On completion the entitlement and model registry change, which
-	 * refreshes the picker.
-	 */
 	private _requestSetup(): void {
 		this._commandService.executeCommand(CHAT_SETUP_ACTION_ID);
 	}
@@ -370,11 +321,8 @@ export class ModelPickerWidget extends Disposable {
 	render(container: HTMLElement): void {
 		this._domNode = dom.append(container, dom.$('div.action-label.model-picker-split'));
 		this._domNode.setAttribute('role', 'group');
-		// The container groups the individual buttons; only the buttons should be
-		// tab stops, not the container itself.
 		this._domNode.tabIndex = -1;
 
-		// Apply initial collapsed state now that _domNode exists
 		if (this._compact?.get()) {
 			this._domNode.classList.toggle('compact', true);
 		}
@@ -382,15 +330,12 @@ export class ModelPickerWidget extends Disposable {
 			this._domNode.classList.toggle('minimal', true);
 		}
 
-		// Model name button
 		this._nameButton = dom.append(this._domNode, dom.$('a.model-picker-section.model-picker-name'));
 		this._nameButton.tabIndex = 0;
 		this._nameButton.setAttribute('role', 'button');
 		this._nameButton.setAttribute('aria-haspopup', 'true');
 		this._nameButton.setAttribute('aria-expanded', 'false');
 
-		// Combined configuration button (conditionally visible): opens a single
-		// dropdown with Thinking Effort and Context Size sections.
 		this._configButton = dom.append(this._domNode, dom.$('a.model-picker-section.model-picker-config'));
 		this._configButton.tabIndex = 0;
 		this._configButton.setAttribute('role', 'button');
@@ -406,7 +351,6 @@ export class ModelPickerWidget extends Disposable {
 		this._registerButtonAction(this._nameButton, () => this.show());
 		this._registerButtonAction(this._configButton, () => this._configuration.show(this._configButton));
 
-		// Managed hover for the combined configuration button
 		this._register(getBaseLayerHoverDelegate().setupManagedHover(
 			getDefaultHoverDelegate('mouse'),
 			this._configButton,
@@ -414,9 +358,6 @@ export class ModelPickerWidget extends Disposable {
 		));
 	}
 
-	/**
-	 * Registers mouse-down and Enter/Space key handlers on a button element.
-	 */
 	private _registerButtonAction(element: HTMLElement, action: () => void): void {
 		this._register(dom.addDisposableGenericMouseDownListener(element, e => {
 			if (e.button !== 0) {
@@ -434,7 +375,6 @@ export class ModelPickerWidget extends Disposable {
 		}));
 	}
 
-	/** The "Learn more" header link for cache-break hints; `undefined` when the product has no URL. */
 	private getCacheBreakLearnMoreLink(): IActionListHeaderLink | undefined {
 		const url = this._productService.defaultChatAgent?.optimizeUsageDocumentationUrl;
 		return url ? { label: localize('chat.cacheBreak.learnMore', "Learn more"), uri: URI.parse(url) } : undefined;
@@ -448,13 +388,7 @@ export class ModelPickerWidget extends Disposable {
 		this._storageService.store(CACHE_BREAK_HINT_DISMISSED_STORAGE_KEY, true, StorageScope.APPLICATION, StorageTarget.USER);
 	}
 
-	/**
-	 * The picker's current availability, derived once so the label states and the "nothing to switch
-	 * to" hint suppression (#325185) cannot disagree.
-	 */
 	private _availability(): IModelPickerAvailability {
-		// Queried directly rather than through the isRestrictedMode()/isSetupRequired() wrappers,
-		// which would each recompute it.
 		const reason = this._unavailableReason();
 		const empty = this._delegate.getModels().length === 0;
 		const activating = reason === undefined && empty && this._activatingAfterTrust;
@@ -462,7 +396,6 @@ export class ModelPickerWidget extends Disposable {
 		return { reason, activating, genericNoModels, noModels: reason !== undefined || activating || genericNoModels || empty };
 	}
 
-	/** Thin wrapper over {@link computeShouldShowCacheBreakHint} that supplies this picker's live state. */
 	private shouldShowCacheBreakHint(excludeAutoModel: boolean): boolean {
 		return computeShouldShowCacheBreakHint({
 			dismissed: this.isCacheBreakHintDismissed(),
@@ -473,23 +406,17 @@ export class ModelPickerWidget extends Disposable {
 		});
 	}
 
-	/** Whether the user opted into the tabbed picker, which folds model configuration into the list. */
 	isTabbedPickerEnabled(): boolean {
 		return this._configurationService.getValue<boolean>(TABBED_MODEL_PICKER_SETTING_ID) === true;
 	}
 
-	/**
-	 * Providers that need a welcome body instead of a list. Only the built-in provider
-	 * qualifies today, when it still needs sign-in. Providers the user has not set up are
-	 * reached through "Add Models" rather than given a tab.
-	 */
 	private _providerPlaceholders(): IModelPickerProviderPlaceholder[] {
 		if (!this.isSetupRequired()) {
 			return [];
 		}
 		return [{
-			vendor: COPILOT_VENDOR_ID,
-			label: getLanguageModelProviderDisplayName(this._languageModelsService, COPILOT_VENDOR_ID),
+			vendor: DARD_COR_VENDOR_ID,
+			label: getLanguageModelProviderDisplayName(this._languageModelsService, DARD_COR_VENDOR_ID),
 			message: localize('chat.modelPicker.signInMessage', "Sign in to see available models."),
 			action: { label: localize('chat.modelPicker.signIn', "Sign in"), run: () => this._requestSetup() },
 		}];
@@ -531,8 +458,8 @@ export class ModelPickerWidget extends Disposable {
 
 		const onSelect = (model: ILanguageModelChatMetadataAndIdentifier) => {
 			this._telemetryService.publicLog2<ChatModelChangeEvent, ChatModelChangeClassification>('chat.modelChange', {
-				fromModel: previousModel?.metadata.vendor === 'copilot' ? new TelemetryTrustedValue(previousModel.identifier) : 'unknown',
-				toModel: model.metadata.vendor === 'copilot' ? new TelemetryTrustedValue(model.identifier) : 'unknown',
+				fromModel: previousModel?.metadata.vendor === 'dardcor' ? new TelemetryTrustedValue(previousModel.identifier) : 'unknown',
+				toModel: model.metadata.vendor === 'dardcor' ? new TelemetryTrustedValue(model.identifier) : 'unknown',
 				chatSessionId: this._delegate.getChatSessionId?.()
 			});
 			this._selectedModel = model;
@@ -540,9 +467,6 @@ export class ModelPickerWidget extends Disposable {
 			this._onDidChangeSelection.fire(model);
 		};
 
-		// Selecting a model from a hover's config button: apply the selection,
-		// close the model picker, then open the config picker focused on the
-		// requested section (Thinking Effort or Context Size).
 		const onConfigure = (model: ILanguageModelChatMetadataAndIdentifier, group: string) => {
 			onSelect(model);
 			this._actionWidgetService.hide();
@@ -565,7 +489,6 @@ export class ModelPickerWidget extends Disposable {
 			} else {
 				this._languageModelsService.unpinModel(modelIdentifier);
 			}
-			// Re-show the picker to reflect the updated pin state
 			this._actionWidgetService.hide();
 			this.show(anchorElement);
 		};
@@ -581,7 +504,7 @@ export class ModelPickerWidget extends Disposable {
 
 		const placeholders = this._providerPlaceholders();
 		if (this.isTabbedPickerEnabled() && !this.isRestrictedMode() && (models.length > 0 || placeholders.length > 0)) {
-			const showCacheBreakHint = this.shouldShowCacheBreakHint(/* excludeAutoModel */ true);
+			const showCacheBreakHint = this.shouldShowCacheBreakHint( true);
 			this._showTabbedPicker(anchorElement, {
 				models,
 				selectedModelId: this._selectedModel?.identifier,
@@ -641,9 +564,6 @@ export class ModelPickerWidget extends Disposable {
 			},
 		});
 
-		// Collect all hover disposables so they are properly cleaned up when the
-		// picker is hidden. The ActionListWidget only tracks the disposable for the
-		// currently-shown hover; all other items' hover disposables would leak.
 		const hoverDisposables = new DisposableStore();
 		for (const item of items) {
 			if (item.hover?.disposable) {
@@ -651,13 +571,8 @@ export class ModelPickerWidget extends Disposable {
 			}
 		}
 
-		// Hide the filter in the unavailable states (Restricted Mode / setup
-		// required): the only entries are the explanatory header and the Trust /
-		// Sign In action, so a search field would just let users filter through
-		// stale, unusable models. Shown otherwise (it also hosts the secondary
-		// heading).
 		const unavailable = this.isRestrictedMode() || this.isSetupRequired();
-		const showCacheBreakHint = this.shouldShowCacheBreakHint(/* excludeAutoModel */ true);
+		const showCacheBreakHint = this.shouldShowCacheBreakHint( true);
 		const chatInputWidth = chatInputContainer?.offsetWidth;
 		const minWidth = chatInputWidth && chatInputWidth > 200 ? chatInputWidth : 200;
 		const maxWidth = chatInputWidth && chatInputWidth > 200 ? chatInputWidth : undefined;
@@ -741,7 +656,6 @@ export class ModelPickerWidget extends Disposable {
 		const setupRequired = reason === ModelPickerUnavailableReason.SetupRequired;
 		const unavailable = reason !== undefined;
 
-		// --- Name section ---
 		const nameChildren: (HTMLElement | string)[] = [];
 		const modelIcon = selectedModel
 			? (this._delegate.getPresentationOptions().showModelIcon
@@ -759,15 +673,10 @@ export class ModelPickerWidget extends Disposable {
 			: noModelConfigured
 				? localize('chat.modelPicker.noModelConfigure', "No Model Configure")
 				: (name ?? (selectedModel && isAutoModel(selectedModel) ? localize('chat.modelPicker.auto', "Auto") : localize('chat.modelPicker.noModelConfigure', "No Model Configure")));
-		// The tabbed picker has no separate configuration button, so the chip reads out
-		// what the model was tuned to.
 		const configSummary = this.isTabbedPickerEnabled() && !unavailable && !minimal && selectedModel
 			? getModelConfigSummary(selectedModel, this._delegate.modelConfiguration ?? this._languageModelsService)
 			: undefined;
 		const showModelLabel = !compact || !modelIcon || noModelsAvailable || noModelConfigured;
-		// Fixed rather than measured: this runs from a resize-driven autorun, so reading
-		// the rendered width here would dirty layout from inside the ResizeObserver
-		// callback and never settle.
 		const showingNoModel = !activating && noModelConfigured;
 		const showingAuto = !activating && !noModelConfigured && (!selectedModel || isAutoModel(selectedModel));
 		const nameMinimumWidth = compact && !showModelLabel
@@ -799,8 +708,6 @@ export class ModelPickerWidget extends Disposable {
 		const configVisible = !!this._configButton && this._configButton.style.display !== 'none';
 		this._domNode.classList.toggle('icon-only', !showModelLabel && !configVisible);
 
-		// Aria — name the control "Models" to match the visible label; the comma
-		// separates the control name from its current value / state.
 		const ariaLabel = restrictedMode
 			? localize('chat.modelPicker.ariaLabelRestricted', "Models, {0}, unavailable while in Restricted mode", modelLabel)
 			: setupRequired

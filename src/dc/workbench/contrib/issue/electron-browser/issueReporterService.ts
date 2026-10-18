@@ -26,12 +26,8 @@ import { BaseIssueReporterService } from '../browser/baseIssueReporterService.js
 import { IssueReporterData as IssueReporterModelData } from '../browser/issueReporterModel.js';
 import { IIssueFormService, IssueReporterData, IssueType } from '../common/issue.js';
 
-// GitHub has let us know that we could up our limit here to 8k. We chose 7500 to play it safe.
-// ref https://github.com/microsoft/vscode/issues/159191
 const MAX_URL_LENGTH = 7500;
 
-// Github API and issues on web has a limit of 65536. We chose 65500 to play it safe.
-// ref https://github.com/github/issues/issues/12858
 const MAX_GITHUB_API_LENGTH = 65500;
 
 
@@ -110,7 +106,6 @@ export class IssueReporter extends BaseIssueReporterService {
 				});
 			}
 
-			// Resets placeholder
 			// eslint-disable-next-line no-restricted-syntax
 			const descriptionTextArea = <HTMLInputElement>this.getElementById('issue-title');
 			if (descriptionTextArea) {
@@ -129,8 +124,8 @@ export class IssueReporter extends BaseIssueReporterService {
 			if (extensionData) {
 				issueBody = issueBody.replace(extensionData, '');
 				const date = new Date();
-				const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
-				const formattedTime = date.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+				const formattedDate = date.toISOString().split('T')[0];
+				const formattedTime = date.toTimeString().split(' ')[0].replace(/:/g, '-');
 				const fileName = `extensionData_${formattedDate}_${formattedTime}.md`;
 				try {
 					const downloadPath = await this.fileDialogService.showSaveDialog({
@@ -177,7 +172,6 @@ export class IssueReporter extends BaseIssueReporterService {
 
 	public override async createIssue(shouldCreate?: boolean, privateUri?: boolean): Promise<boolean> {
 		const selectedExtension = this.issueReporterModel.getData().selectedExtension;
-		// Short circuit if the extension provides a custom issue handler
 		if (this.nonGitHubIssueUrl) {
 			const url = this.getExtensionBugsUrl();
 			if (url) {
@@ -188,8 +182,6 @@ export class IssueReporter extends BaseIssueReporterService {
 		}
 
 		if (!this.validateInputs()) {
-			// If inputs are invalid, set focus to the first one and add listeners on them
-			// to detect further changes
 			// eslint-disable-next-line no-restricted-syntax
 			const invalidInput = this.window.document.getElementsByClassName('invalid-input');
 			if (invalidInput.length) {

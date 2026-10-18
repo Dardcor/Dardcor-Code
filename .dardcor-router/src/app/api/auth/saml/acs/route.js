@@ -29,7 +29,6 @@ export async function POST(request) {
   const cookieStore = await cookies();
   const storedRequestId = cookieStore.get("saml_state")?.value || "";
 
-  // Always clear saml_state cookie after attempt
   cookieStore.delete("saml_state");
 
   try {

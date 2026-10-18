@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {
-    // `?log=1` returns the live install/uninstall log tail for progress polling.
     if (new URL(req.url).searchParams.get("log") === "1") {
       return NextResponse.json({ log: getInstallLogTail() });
     }

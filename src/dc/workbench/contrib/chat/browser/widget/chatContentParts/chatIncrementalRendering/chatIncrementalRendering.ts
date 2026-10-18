@@ -16,47 +16,16 @@ import { IIncrementalRenderingAnimation } from './animations/animation.js';
 import { ANIMATION_STYLES, AnimationStyleName } from './animations/animationRegistry.js';
 import { ANIMATION_DURATION_MS } from './animations/blockAnimations.js';
 
-/**
- * Incremental markdown streaming renderer — rAF-batched, append-only.
- *
- * Orchestrates two independent concerns:
- * - **Buffering** (when to render): controlled by an {@link IIncrementalRenderingBuffer}.
- * - **Animation** (how it appears): controlled by an {@link IIncrementalRenderingAnimation}.
- *
- * The renderer works *with* the existing markdown rendering pipeline.
- * Each update re-renders through the standard `doRenderMarkdown()` path,
- * so code blocks, tables, KaTeX, and all markdown features render correctly.
- *
- * If the new markdown is NOT a pure append, `tryMorph()` returns `false`
- * and the caller falls back to a full re-render.
- */
 export class IncrementalDOMMorpher extends Disposable {
 
 	private _lastMarkdown: string = '';
 
-	/**
-	 * The markdown that was last rendered to the DOM. May lag behind
-	 * `_lastMarkdown` while content is being buffered.
-	 */
 	private _renderedMarkdown: string = '';
 
-	/**
-	 * High-water mark: the number of top-level children that have been
-	 * fully revealed. Children at indices >= this value are "new"
-	 * and get animated on each render.
-	 */
 	private _revealedChildCount: number = 0;
 
-	/**
-	 * Timestamp when children at indices >= `_revealedChildCount`
-	 * first appeared. 0 means no animation is in progress.
-	 */
 	private _animationStartTime: number = 0;
 
-	/**
-	 * The total child count at the end of the most recent render in
-	 * the current animation batch.
-	 */
 	private _batchChildCount: number = 0;
 
 	private _rafScheduled: boolean = false;
@@ -90,7 +59,6 @@ export class IncrementalDOMMorpher extends Disposable {
 		}));
 	}
 
-	// ---- strategy factories ----
 
 	private _createBuffer(): IIncrementalRenderingBuffer {
 		const raw = this._configService.getValue<string>(ChatConfiguration.IncrementalRenderingBuffering);
@@ -108,63 +76,37 @@ export class IncrementalDOMMorpher extends Disposable {
 		return factory();
 	}
 
-	// ---- public API ----
 
 	get isDrained(): boolean {
 		return this._isDrained;
 	}
 
-	/**
-	 * Register the callback that performs the actual markdown re-render.
-	 */
 	setRenderCallback(cb: (newMarkdown: string) => void): void {
 		this._renderCallback = cb;
 	}
 
-	/**
-	 * Forward the stream's word-rate estimate to the active buffer
-	 * (word buffer or line buffer). When the stream completes,
-	 * also flushes any remaining buffered content for buffers
-	 * that don't handle their own flushing (e.g. ParagraphBuffer).
-	 */
 	updateStreamRate(rate: number, isComplete: boolean): void {
 		if (this._buffer instanceof WordBuffer) {
 			this._buffer.setRate(rate, isComplete);
 		}
 
-		// For buffers that don't handle their own flushing (e.g.
-		// ParagraphBuffer), force-render any remaining buffered
-		// content when the stream completes. Without this, content
-		// after the last \n\n boundary is never rendered.
 		if (isComplete && !this._buffer.handlesFlush && this._lastMarkdown.length > this._renderedMarkdown.length) {
 			this._pendingMarkdown = this._lastMarkdown;
 			this._scheduleRender();
 		}
 	}
 
-	/**
-	 * Seeds the renderer with the initial markdown string.
-	 *
-	 * @param animateInitial When `true`, the children already in the
-	 *   DOM receive the entrance animation.
-	 */
 	seed(markdown: string, animateInitial?: boolean): void {
 		this._lastMarkdown = markdown;
 		this._animationStartTime = 0;
 
-		// For drip-feed buffers (word), clear the DOM and let the
-		// buffer reveal content from scratch — the initial
-		// doRenderMarkdown() ran to initialize pipeline state but
-		// the visible content should be built up by the buffer.
 		if (this._buffer.handlesFlush && markdown.length > 0) {
 			this._isDrained = false;
 			this._renderedMarkdown = '';
 			this._revealedChildCount = 0;
-			// Clear the DOM so the buffer starts from empty.
 			while (this._domNode.firstChild) {
 				this._domNode.removeChild(this._domNode.firstChild);
 			}
-			// Schedule the first drip-feed render.
 			this._pendingMarkdown = markdown;
 			this._scheduleRender();
 			return;
@@ -178,11 +120,6 @@ export class IncrementalDOMMorpher extends Disposable {
 		}
 	}
 
-	/**
-	 * Attempts an incremental DOM update via rAF-batched re-render.
-	 *
-	 * @returns `true` if absorbed, `false` if a full re-render is needed.
-	 */
 	tryMorph(newMarkdown: string): boolean {
 		if (!newMarkdown.startsWith(this._lastMarkdown)) {
 			return false;
@@ -196,8 +133,6 @@ export class IncrementalDOMMorpher extends Disposable {
 		this._lastMarkdown = newMarkdown;
 		this._isDrained = false;
 
-		// Buffers that handle flushing themselves (e.g. line buffer)
-		// don't update _renderedMarkdown here — _flushRender decides.
 		if (this._buffer.handlesFlush) {
 			this._pendingMarkdown = newMarkdown;
 			this._scheduleRender();
@@ -215,7 +150,6 @@ export class IncrementalDOMMorpher extends Disposable {
 		return true;
 	}
 
-	// ---- rAF batching ----
 
 	private _scheduleRender(): void {
 		if (this._rafScheduled) {
@@ -238,13 +172,9 @@ export class IncrementalDOMMorpher extends Disposable {
 			return;
 		}
 
-		// Let the buffer filter the flush (e.g. line buffer may skip).
 		if (this._buffer.filterFlush) {
 			const filtered = this._buffer.filterFlush(markdown);
 			if (filtered === undefined) {
-				// Buffer says skip — but if it needs another frame
-				// (e.g. typewriter still revealing words), re-schedule
-				// with the same pending content.
 				if (this._buffer.needsNextFrame) {
 					this._pendingMarkdown = markdown;
 					this._scheduleRender();
@@ -258,8 +188,6 @@ export class IncrementalDOMMorpher extends Disposable {
 		this._renderCallback(markdown);
 		this._animateNewChildren();
 
-		// If the buffer has more content to reveal, keep the rAF
-		// loop running even though no new tokens arrived.
 		if (this._buffer.needsNextFrame) {
 			this._pendingMarkdown = this._lastMarkdown;
 			this._scheduleRender();
@@ -269,7 +197,6 @@ export class IncrementalDOMMorpher extends Disposable {
 		}
 	}
 
-	// ---- animation ----
 
 	private _animateNewChildren(): void {
 		const children = this._domNode.children;
@@ -301,7 +228,6 @@ export class IncrementalDOMMorpher extends Disposable {
 		this._animation.animate(children, this._revealedChildCount, currentCount, elapsed);
 	}
 
-	// ---- lifecycle ----
 
 	override dispose(): void {
 		if (this._rafHandle !== undefined) {

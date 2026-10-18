@@ -37,8 +37,8 @@ export async function showBrowserToast(controller: IShowToastController, options
 
 	return new Promise<IToastResult>(r => {
 		const resolve = (result: IToastResult) => {
-			r(result);				// first return the result before...
-			disposables.dispose();	// ...disposing which would invalidate the result object
+			r(result);
+			disposables.dispose();
 		};
 
 		disposables.add(cts.token.onCancellationRequested(() => resolve({ supported: true, clicked: false })));

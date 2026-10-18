@@ -28,12 +28,12 @@ const enum AnnotationTool {
 }
 
 const COLORS = [
-	'#ff3b30', // red
-	'#007aff', // blue
-	'#34c759', // green
-	'#ffcc00', // yellow
-	'#000000', // black
-	'#ffffff', // white
+	'#ff3b30',
+	'#007aff',
+	'#34c759',
+	'#ffcc00',
+	'#000000',
+	'#ffffff',
 ];
 
 const LIGHT_SWATCH_COLORS = new Set(['#34c759', '#ffcc00', '#ffffff', 'transparent']);
@@ -47,7 +47,6 @@ const FONT_FAMILIES = [
 const DEFAULT_TEXT_BOX_WIDTH = 240;
 const MIN_TEXT_BOX_WIDTH = 48;
 const TEXT_DRAG_THRESHOLD = 4;
-/** Padding on each side of the displayed image inside the canvas container at fit-to-window scale. */
 const CANVAS_BREATHING_ROOM = 64;
 const FILL_COLORS = ['transparent', ...COLORS];
 const STROKE_WIDTHS = [2, 4, 8, 12];
@@ -69,19 +68,12 @@ export interface IAnnotationDrawAction {
 	text?: string;
 	textPos?: { x: number; y: number };
 	textWidth?: number;
-	/** Only set for type === AnnotationTool.Eraser: the batch of actions removed in one stroke. */
 	erasedActions?: IAnnotationDrawAction[];
-	/** Only set for type === AnnotationTool.Eraser: the original index (in `actions[]`) of each erased action at the moment it was removed. */
 	erasedIndices?: number[];
-	/** Only set for type === AnnotationTool.Crop: the crop active before this action. null means no crop (full original image). */
 	cropFrom?: { x: number; y: number; width: number; height: number } | null;
-	/** Only set for type === AnnotationTool.Crop: the crop active after this action. null means no crop (full original image). */
 	cropTo?: { x: number; y: number; width: number; height: number } | null;
-	/** Only set for type === AnnotationTool.Move: the action that was moved or resized. */
 	moveTarget?: IAnnotationDrawAction;
-	/** Only set for type === AnnotationTool.Move: snapshot of geometric fields before the change. */
 	moveBefore?: IAnnotationMoveSnapshot;
-	/** Only set for type === AnnotationTool.Move: snapshot of geometric fields after the change. */
 	moveAfter?: IAnnotationMoveSnapshot;
 }
 
@@ -135,7 +127,6 @@ function cloneDrawAction(action: IAnnotationDrawAction, identityMap: Map<IAnnota
 		moveAfter: action.moveAfter ? cloneMoveSnapshot(action.moveAfter) : undefined,
 	};
 	identityMap.set(action, clone);
-	// Resolve references after registering self so cyclic structures don't recurse forever.
 	clone.erasedActions = action.erasedActions ? action.erasedActions.map(a => cloneDrawAction(a, identityMap)) : undefined;
 	clone.erasedIndices = action.erasedIndices ? action.erasedIndices.slice() : undefined;
 	clone.moveTarget = action.moveTarget ? cloneDrawAction(action.moveTarget, identityMap) : undefined;
@@ -204,9 +195,7 @@ export class ScreenshotAnnotationEditor {
 	private currentAction: DrawAction | null = null;
 	private isDrawing = false;
 	private isErasing = false;
-	/** Actions erased during the current pointer drag; committed to undo stack on pointer-up. */
 	private pendingEraseActions: DrawAction[] = [];
-	/** Original index (in `actions[]`) of each entry in `pendingEraseActions`, captured at the moment it was removed. */
 	private pendingEraseIndices: number[] = [];
 
 	private imageElement: HTMLImageElement | null = null;
@@ -214,46 +203,36 @@ export class ScreenshotAnnotationEditor {
 	private imageHeight = 0;
 	private scale = 1;
 
-	// Pan & zoom
 	private panX = 0;
 	private panY = 0;
 	private isPanning = false;
 	private lastPanPoint = { x: 0, y: 0 };
 
-	// Crop with handles
 	private cropMode = false;
 	private cropRegion: { x: number; y: number; width: number; height: number } | null = null;
 	private cropDragHandle: 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move' | null = null;
 	private cropDragStart = { x: 0, y: 0 };
 	private cropRegionStart: { x: number; y: number; width: number; height: number } | null = null;
 	private hasUserZoomed = false;
-	/** Pending wheel-zoom delta accumulated across rapid wheel events; flushed on rAF. */
 	private pendingZoom: { factor: number; cx: number; cy: number } | null = null;
 	private pendingZoomRaf = 0;
 
-	// Original image preserved so crops can be expanded back
 	private originalImage: { element: HTMLImageElement; width: number; height: number } | null = null;
-	// Current crop region in original-image coords (null = no crop applied)
 	private currentCrop: { x: number; y: number; width: number; height: number } | null = null;
-	// Pre-crop state restored on Cancel
 	private preCropState: { element: HTMLImageElement; width: number; height: number; currentCrop: { x: number; y: number; width: number; height: number } | null } | null = null;
 	private mainToolbar: HTMLElement | null = null;
 	private cropToolbar: HTMLElement | null = null;
 
-	/** Annotations are stored in original-image coords. While in crop mode the canvas already shows the original image, so the offset is 0. */
 	private get cropOffsetX(): number { return this.cropMode ? 0 : (this.currentCrop?.x ?? 0); }
 	private get cropOffsetY(): number { return this.cropMode ? 0 : (this.currentCrop?.y ?? 0); }
 
-	// Selection (Select tool)
 	private selectedActionIndex = -1;
 	private isDraggingSelected = false;
 	private isResizingSelectedText = false;
 	private dragStart = { x: 0, y: 0 };
 	private selectedTextResizeStartWidth = DEFAULT_TEXT_BOX_WIDTH;
-	/** Captured at the start of a Select-tool drag/resize so a Move sentinel can be committed on pointer-up. */
 	private pendingMove: { target: DrawAction; before: IAnnotationMoveSnapshot } | null = null;
 
-	// Text configuration
 	private activeFontSize = 18;
 	private activeFontFamily = FONT_FAMILIES[0].value;
 	private textPlacementState: {
@@ -277,7 +256,6 @@ export class ScreenshotAnnotationEditor {
 	private textCaretVisible = true;
 	private textCaretInterval: number | null = null;
 
-	// Tool buttons (for active state management)
 	private readonly toolButtons: { element: HTMLElement; tool: AnnotationTool }[] = [];
 	private undoBtn: HTMLButtonElement | null = null;
 	private redoBtn: HTMLButtonElement | null = null;
@@ -297,11 +275,9 @@ export class ScreenshotAnnotationEditor {
 		this.container = append(this.parentElement, $('div.issue-reporter-annotation-overlay'));
 		this.container.tabIndex = -1;
 
-		// Main toolbar (hidden during crop mode)
 		const toolbar = append(this.container, $('div.annotation-toolbar'));
 		this.mainToolbar = toolbar;
 
-		// 1. Drawing tools: Select, Pan, Crop, Draw, Rectangle, Ellipse, Arrow
 		const drawingTools: { tool: AnnotationTool; label: string; icon: HTMLSpanElement }[] = [
 			{ tool: AnnotationTool.Select, label: localize('select', "Select / Move"), icon: renderIcon(Codicon.inspect) },
 			{ tool: AnnotationTool.Pan, label: localize('pan', "Pan"), icon: renderIcon(Codicon.move) },
@@ -310,7 +286,6 @@ export class ScreenshotAnnotationEditor {
 			this.addToolButton(toolbar, tool, label, icon);
 		}
 
-		// 2. Crop tool
 		const cropBtn = append(toolbar, $('button.tool-btn.crop-btn'));
 		cropBtn.appendChild(renderIcon(Codicon.screenCut));
 		cropBtn.title = localize('crop', "Crop");
@@ -320,7 +295,6 @@ export class ScreenshotAnnotationEditor {
 			this.setActiveTool(AnnotationTool.Crop);
 		}));
 
-		// 3. More drawing tools
 		const moreDrawingTools: { tool: AnnotationTool; label: string; icon: HTMLSpanElement }[] = [
 			{ tool: AnnotationTool.Freehand, label: localize('freehand', "Draw"), icon: renderIcon(Codicon.edit) },
 			{ tool: AnnotationTool.Rectangle, label: localize('rectangle', "Rectangle"), icon: renderIcon(Codicon.primitiveSquare) },
@@ -332,7 +306,6 @@ export class ScreenshotAnnotationEditor {
 			this.addToolButton(toolbar, tool, label, icon);
 		}
 
-		// 4. Text tool
 		this.addToolButton(toolbar, AnnotationTool.Text, localize('text', "Text"), renderIcon(Codicon.symbolString));
 
 		this.toolOptionsPopover = append(this.container, $('div.annotation-tool-options-popover'));
@@ -348,10 +321,8 @@ export class ScreenshotAnnotationEditor {
 		}));
 		this.renderToolOptions();
 
-		// 5. Separator
 		append(toolbar, $('div.toolbar-separator'));
 
-		// 6. Undo button
 		const undoBtn = append(toolbar, $('button.tool-btn')) as HTMLButtonElement;
 		undoBtn.appendChild(renderIcon(Codicon.discard));
 		undoBtn.title = localize('undo', "Undo");
@@ -359,7 +330,6 @@ export class ScreenshotAnnotationEditor {
 		this.disposables.add(addDisposableListener(undoBtn, EventType.CLICK, () => this.undo()));
 		this.undoBtn = undoBtn;
 
-		// 7. Redo button
 		const redoBtn = append(toolbar, $('button.tool-btn')) as HTMLButtonElement;
 		redoBtn.appendChild(renderIcon(Codicon.redo));
 		redoBtn.title = localize('redo', "Redo");
@@ -368,10 +338,8 @@ export class ScreenshotAnnotationEditor {
 		this.redoBtn = redoBtn;
 		this.updateUndoRedoState();
 
-		// 8. Separator
 		append(toolbar, $('div.toolbar-separator'));
 
-		// 9. Discard button
 		const discardBtn = this.disposables.add(new Button(toolbar, { ...defaultButtonStyles, secondary: true }));
 		discardBtn.label = localize('discard', "Discard");
 		this.disposables.add(discardBtn.onDidClick(() => {
@@ -380,7 +348,6 @@ export class ScreenshotAnnotationEditor {
 			this.dispose();
 		}));
 
-		// 10. Save button
 		const saveBtn = this.disposables.add(new Button(toolbar, defaultButtonStyles));
 		saveBtn.label = localize('save', "Save");
 		this.disposables.add(saveBtn.onDidClick(() => {
@@ -390,7 +357,6 @@ export class ScreenshotAnnotationEditor {
 			this.dispose();
 		}));
 
-		// Crop toolbar (shown only during crop mode, hidden by default)
 		const cropToolbar = append(this.container, $('div.annotation-toolbar.annotation-crop-toolbar'));
 		cropToolbar.style.display = 'none';
 		this.cropToolbar = cropToolbar;
@@ -407,11 +373,9 @@ export class ScreenshotAnnotationEditor {
 			this.commitCrop();
 		}));
 
-		// Hint label
 		const hint = append(this.container, $('div.annotation-hint'));
 		hint.textContent = localize('annotationHint', "Edit screenshot to highlight the problem");
 
-		// Canvas container
 		const canvasContainer = append(this.container, $('div.annotation-canvas-container'));
 		this.canvas = append(canvasContainer, $('canvas')) as HTMLCanvasElement;
 		const ctx = this.canvas.getContext('2d');
@@ -420,25 +384,17 @@ export class ScreenshotAnnotationEditor {
 		}
 		this.ctx = ctx;
 
-		// Canvas pointer events
 		this.disposables.add(addDisposableListener(this.canvas, EventType.POINTER_DOWN, e => this.onPointerDown(e)));
 		this.disposables.add(addDisposableListener(this.canvas, EventType.POINTER_MOVE, e => this.onPointerMove(e)));
 		this.disposables.add(addDisposableListener(this.canvas, EventType.POINTER_UP, e => this.onPointerUp(e)));
 
-		// Double-click to apply crop
 		this.disposables.add(addDisposableListener(this.canvas, EventType.DBLCLICK, () => {
 			this.commitCrop();
 		}));
 
-		// Wheel: touchpad two-finger scroll → pan; Ctrl+wheel or pinch → zoom around cursor
 		this.disposables.add(addDisposableListener(canvasContainer, EventType.WHEEL, (e: WheelEvent) => {
 			e.preventDefault();
 			if (e.ctrlKey) {
-				// Pinch-to-zoom on touchpad (browser synthesises ctrlKey) or Ctrl+scroll.
-				// Wheel events can fire faster than we can redraw at high zoom levels,
-				// so we coalesce the deltas and flush once per animation frame. This keeps
-				// the canvas reallocation/redraw cost bounded and lets other input (like
-				// drawing) interleave responsively.
 				const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
 				const factor = delta < 0 ? 1.1 : 0.9;
 				const containerRect = canvasContainer.getBoundingClientRect();
@@ -459,7 +415,6 @@ export class ScreenshotAnnotationEditor {
 					});
 				}
 			} else {
-				// Two-finger scroll on touchpad (or plain scroll wheel) → pan
 				this.panX -= e.deltaX;
 				this.panY -= e.deltaY;
 				this.clampPan();
@@ -467,7 +422,6 @@ export class ScreenshotAnnotationEditor {
 			}
 		}, { passive: false }));
 
-		// Keyboard shortcuts
 		this.disposables.add(addDisposableListener(this.container, EventType.KEY_DOWN, (e: KeyboardEvent) => {
 			if (this.textEditState) {
 				return;
@@ -502,8 +456,6 @@ export class ScreenshotAnnotationEditor {
 				const removedIndex = this.selectedActionIndex;
 				const [removed] = this.actions.splice(removedIndex, 1);
 				this.selectedActionIndex = -1;
-				// Record the deletion as an Eraser sentinel so undo/redo works just
-				// like the eraser tool.
 				this.actions.push({
 					type: AnnotationTool.Eraser,
 					strokeColor: '',
@@ -518,12 +470,8 @@ export class ScreenshotAnnotationEditor {
 			}
 		}));
 
-		// Re-fit canvas when container resizes
 		const resizeObserver = new ResizeObserver(() => {
 			if (this.imageElement) {
-				// On resize, ensure the user's current zoom is still at least the new fit-to-window
-				// scale. Without this, growing the window after zooming out could leave the image
-				// orphaned in the centre with empty space around it that can't be filled.
 				if (this.hasUserZoomed) {
 					const minScale = this.getFitScale();
 					if (this.scale < minScale) {
@@ -715,7 +663,6 @@ export class ScreenshotAnnotationEditor {
 			this.cancelTextPlacement();
 		}
 
-		// Special handling for Crop: enter crop mode (don't change activeTool to Crop persistently)
 		if (tool === AnnotationTool.Crop) {
 			this.hideToolOptions();
 			this.enterCropMode();
@@ -744,30 +691,24 @@ export class ScreenshotAnnotationEditor {
 		if (this.cropMode || !this.originalImage) {
 			return;
 		}
-		// Save current state for cancel
 		this.preCropState = {
 			element: this.imageElement!,
 			width: this.imageWidth,
 			height: this.imageHeight,
 			currentCrop: this.currentCrop,
 		};
-		// Switch to original image so user can expand crop region
 		this.imageElement = this.originalImage.element;
 		this.imageWidth = this.originalImage.width;
 		this.imageHeight = this.originalImage.height;
-		// Initial crop region = current crop (or full original)
 		this.cropRegion = this.currentCrop
 			? { ...this.currentCrop }
 			: { x: 0, y: 0, width: this.originalImage.width, height: this.originalImage.height };
 		this.cropMode = true;
-		// Mark crop tool button active
 		for (const tb of this.toolButtons) {
 			tb.element.classList.toggle('active', tb.tool === AnnotationTool.Crop);
 		}
-		// Toggle toolbars
 		if (this.mainToolbar) { this.mainToolbar.style.display = 'none'; }
 		if (this.cropToolbar) { this.cropToolbar.style.display = ''; }
-		// Reset zoom/pan to fit original
 		this.hasUserZoomed = false;
 		this.panX = 0;
 		this.panY = 0;
@@ -783,10 +724,8 @@ export class ScreenshotAnnotationEditor {
 		this.cropDragHandle = null;
 		this.cropRegionStart = null;
 		this.preCropState = null;
-		// Restore main toolbar
 		if (this.mainToolbar) { this.mainToolbar.style.display = ''; }
 		if (this.cropToolbar) { this.cropToolbar.style.display = 'none'; }
-		// Reactivate previous tool
 		this.setActiveTool(this.activeTool);
 	}
 
@@ -799,8 +738,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 		const cropFrom = this.preCropState?.currentCrop ?? null;
-		// Push a Crop sentinel into the linear undo stack so undo/redo treats it
-		// like any other action.
 		const cropAction: DrawAction = {
 			type: AnnotationTool.Crop,
 			strokeColor: '',
@@ -825,8 +762,6 @@ export class ScreenshotAnnotationEditor {
 			this.exitCropMode();
 			return;
 		}
-		// Restore the pre-crop displayed state. Annotations live in original coords
-		// and don't need to be touched.
 		this.imageElement = this.preCropState.element;
 		this.imageWidth = this.preCropState.width;
 		this.imageHeight = this.preCropState.height;
@@ -846,14 +781,9 @@ export class ScreenshotAnnotationEditor {
 			this.imageElement = img;
 			this.imageWidth = img.naturalWidth;
 			this.imageHeight = img.naturalHeight;
-			// Preserve the original image so crops can be re-expanded
 			this.originalImage = { element: img, width: img.naturalWidth, height: img.naturalHeight };
 			this.currentCrop = null;
 
-			// Restore prior actions (clone so undo/redo state survives reopens).
-			// Use a shared identity map so Move/Eraser sentinels keep pointing at
-			// the correct cloned action references, both in actions[] and
-			// undoneActions[].
 			if (this.initialState && (this.initialState.actions.length || this.initialState.undoneActions.length)) {
 				const identityMap = new Map<IAnnotationDrawAction, IAnnotationDrawAction>();
 				this.actions.push(...this.initialState.actions.map(a => cloneDrawAction(a, identityMap)));
@@ -861,19 +791,11 @@ export class ScreenshotAnnotationEditor {
 				this.updateUndoRedoState();
 			}
 
-			// Restore prior crop, if any.
 			this.applyDisplayedCrop(this.initialState?.crop ?? null);
 		};
-		// Use original screenshot (not annotated) so we can re-crop from full original
 		img.src = this.screenshot.dataUrl;
 	}
 
-	/**
-	 * Update the displayed image to reflect the given crop (or the full original
-	 * when null). Cropped images are re-rasterized from the preserved original so
-	 * undo/redo of crop actions is fully reversible without keeping intermediate
-	 * image elements around.
-	 */
 	private applyDisplayedCrop(crop: { x: number; y: number; width: number; height: number } | null): void {
 		if (!this.originalImage) {
 			return;
@@ -931,7 +853,6 @@ export class ScreenshotAnnotationEditor {
 		const maxWidth = container.clientWidth - CANVAS_BREATHING_ROOM * 2;
 		const maxHeight = container.clientHeight - CANVAS_BREATHING_ROOM * 2;
 
-		// Only auto-fit on initial load; respect user zoom after that
 		if (!this.hasUserZoomed) {
 			const scaleX = maxWidth / this.imageWidth;
 			const scaleY = maxHeight / this.imageHeight;
@@ -944,10 +865,6 @@ export class ScreenshotAnnotationEditor {
 		this.canvas.style.width = `${displayWidth}px`;
 		this.canvas.style.height = `${displayHeight}px`;
 
-		// Cap the backing buffer so a 1920×1080 image at 8× zoom + dpr 2 doesn't try to
-		// allocate a 30k×17k canvas (~2GB GPU memory) per wheel tick. When the natural
-		// backing size exceeds the cap, the browser CSS-stretches the canvas (slight
-		// pixelation at extreme zoom) but allocation and drawing stay cheap.
 		const MAX_BACKING_DIM = 4096;
 		const naturalW = displayWidth * dpr;
 		const naturalH = displayHeight * dpr;
@@ -970,7 +887,6 @@ export class ScreenshotAnnotationEditor {
 	private onPointerDown(e: PointerEvent): void {
 		const pos = this.canvasCoords(e);
 
-		// Crop mode: hit test handles or interior
 		if (this.cropMode && this.cropRegion) {
 			const handle = this.cropHandleHitTest(pos);
 			if (handle) {
@@ -982,7 +898,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Select tool: hit test and start drag
 		if (this.activeTool === AnnotationTool.Select) {
 			const hitIndex = this.hitTest(pos);
 			this.selectedActionIndex = hitIndex;
@@ -1006,10 +921,8 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Deselect when using other tools
 		this.selectedActionIndex = -1;
 
-		// Text tool: drag to define width, then enter text editing.
 		if (this.activeTool === AnnotationTool.Text) {
 			this.commitTextEdit();
 			this.textPlacementState = {
@@ -1022,7 +935,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Eraser removes annotations that intersect the pointer path.
 		if (this.activeTool === AnnotationTool.Eraser) {
 			this.isErasing = true;
 			this.canvas.setPointerCapture(e.pointerId);
@@ -1030,7 +942,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Pan tool
 		if (this.activeTool === AnnotationTool.Pan) {
 			this.isPanning = true;
 			this.lastPanPoint = { x: e.clientX, y: e.clientY };
@@ -1086,7 +997,6 @@ export class ScreenshotAnnotationEditor {
 	}
 
 	private onPointerMove(e: PointerEvent): void {
-		// Crop mode: drag handle or move region; also update cursor
 		if (this.cropMode) {
 			const pos = this.canvasCoords(e);
 			if (this.cropDragHandle && this.cropRegionStart) {
@@ -1094,13 +1004,11 @@ export class ScreenshotAnnotationEditor {
 				this.redraw();
 				return;
 			}
-			// Update cursor based on hover
 			const handle = this.cropHandleHitTest(pos);
 			this.canvas.style.cursor = this.cropCursorFor(handle);
 			return;
 		}
 
-		// Select tool: resize selected text
 		if (this.isResizingSelectedText && this.selectedActionIndex >= 0) {
 			const pos = this.canvasCoords(e);
 			const action = this.actions[this.selectedActionIndex];
@@ -1111,7 +1019,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Select tool: move selected element
 		if (this.isDraggingSelected && this.selectedActionIndex >= 0) {
 			const pos = this.canvasCoords(e);
 			const dx = pos.x - this.dragStart.x;
@@ -1122,7 +1029,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Pan
 		if (this.isPanning) {
 			const dx = e.clientX - this.lastPanPoint.x;
 			const dy = e.clientY - this.lastPanPoint.y;
@@ -1173,7 +1079,6 @@ export class ScreenshotAnnotationEditor {
 				break;
 			case AnnotationTool.Rectangle: {
 				const rect = this.currentAction.rect!;
-				// Mutate the rect on the current action (this is the in-progress drawing)
 				(this.currentAction as { rect: { x: number; y: number; width: number; height: number } }).rect = {
 					...rect,
 					width: pos.x - rect.x,
@@ -1202,7 +1107,6 @@ export class ScreenshotAnnotationEditor {
 	}
 
 	private onPointerUp(e: PointerEvent): void {
-		// Crop mode: end handle drag
 		if (this.cropMode && this.cropDragHandle) {
 			this.cropDragHandle = null;
 			this.cropRegionStart = null;
@@ -1210,7 +1114,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Select tool: end drag
 		if (this.isResizingSelectedText) {
 			this.isResizingSelectedText = false;
 			this.canvas.releasePointerCapture(e.pointerId);
@@ -1219,7 +1122,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Select tool: end drag
 		if (this.isDraggingSelected) {
 			this.isDraggingSelected = false;
 			this.canvas.releasePointerCapture(e.pointerId);
@@ -1228,7 +1130,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 
-		// Pan
 		if (this.isPanning) {
 			this.isPanning = false;
 			this.canvas.releasePointerCapture(e.pointerId);
@@ -1348,9 +1249,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 		if (action.type === AnnotationTool.Eraser && action.erasedActions) {
-			// Re-insert each erased action at the index it occupied at the moment it was removed.
-			// Iterate in reverse because each erase splice was relative to the array state after
-			// the previous one, so unwinding must happen in reverse order to restore positions.
 			const erased = action.erasedActions;
 			const indices = action.erasedIndices ?? erased.map(() => this.actions.length);
 			for (let i = erased.length - 1; i >= 0; i--) {
@@ -1383,7 +1281,6 @@ export class ScreenshotAnnotationEditor {
 			return;
 		}
 		if (action.type === AnnotationTool.Eraser && action.erasedActions) {
-			// Re-apply the erase: remove the re-inserted actions by reference.
 			for (const erased of action.erasedActions) {
 				const idx = this.actions.indexOf(erased);
 				if (idx >= 0) {
@@ -1409,7 +1306,6 @@ export class ScreenshotAnnotationEditor {
 			return null;
 		}
 		const r = this.normalizeCropRect(this.cropRegion);
-		// Convert handle pixel size to image coords
 		const handlePx = 12;
 		const tol = handlePx / this.scale;
 		const cx = r.x + r.width / 2;
@@ -1429,7 +1325,6 @@ export class ScreenshotAnnotationEditor {
 				return h.name;
 			}
 		}
-		// Inside region → move
 		if (pos.x >= r.x && pos.x <= r.x + r.width && pos.y >= r.y && pos.y <= r.y + r.height) {
 			return 'move';
 		}
@@ -1459,7 +1354,6 @@ export class ScreenshotAnnotationEditor {
 		const dy = pos.y - this.cropDragStart.y;
 		const start = this.cropRegionStart;
 
-		// Translating the entire box: keep dimensions fixed and clamp only the position.
 		if (this.cropDragHandle === 'move') {
 			const x = Math.max(0, Math.min(this.imageWidth - start.width, start.x + dx));
 			const y = Math.max(0, Math.min(this.imageHeight - start.height, start.y + dy));
@@ -1494,7 +1388,6 @@ export class ScreenshotAnnotationEditor {
 				x += dx; width -= dx;
 				break;
 		}
-		// Clamp to image bounds
 		x = Math.max(0, Math.min(this.imageWidth, x));
 		y = Math.max(0, Math.min(this.imageHeight, y));
 		width = Math.max(10, Math.min(this.imageWidth - x, width));
@@ -1672,27 +1565,21 @@ export class ScreenshotAnnotationEditor {
 	private redraw(): void {
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-		// Draw background image
 		if (this.imageElement) {
 			this.ctx.drawImage(this.imageElement, 0, 0, this.imageWidth * this.scale, this.imageHeight * this.scale);
 		}
 
-		// Annotations are stored in original-image coords; translate so they appear correctly
-		// over the (possibly cropped) displayed image.
 		this.ctx.save();
 		this.ctx.translate(-this.cropOffsetX * this.scale, -this.cropOffsetY * this.scale);
 
-		// Draw all completed annotations
 		for (const action of this.actions) {
 			this.drawAction(action);
 		}
 
-		// Draw selection highlight
 		if (this.selectedActionIndex >= 0 && this.selectedActionIndex < this.actions.length) {
 			this.drawSelectionHighlight(this.actions[this.selectedActionIndex]);
 		}
 
-		// Draw current in-progress annotation
 		if (this.currentAction) {
 			this.drawAction(this.currentAction);
 		}
@@ -1707,7 +1594,6 @@ export class ScreenshotAnnotationEditor {
 
 		this.ctx.restore();
 
-		// Draw crop overlay with handles
 		if (this.cropMode && this.cropRegion) {
 			const r = this.normalizeCropRect(this.cropRegion);
 			const dpr = getWindow(this.canvas).devicePixelRatio || 1;
@@ -1719,30 +1605,27 @@ export class ScreenshotAnnotationEditor {
 			const rh = r.height * this.scale;
 
 			this.ctx.save();
-			// Dim area outside crop
 			this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-			this.ctx.fillRect(0, 0, cw, ry);                            // top
-			this.ctx.fillRect(0, ry + rh, cw, ch - (ry + rh));          // bottom
-			this.ctx.fillRect(0, ry, rx, rh);                           // left
-			this.ctx.fillRect(rx + rw, ry, cw - (rx + rw), rh);         // right
+			this.ctx.fillRect(0, 0, cw, ry);
+			this.ctx.fillRect(0, ry + rh, cw, ch - (ry + rh));
+			this.ctx.fillRect(0, ry, rx, rh);
+			this.ctx.fillRect(rx + rw, ry, cw - (rx + rw), rh);
 
-			// Draw crop border
 			this.ctx.strokeStyle = '#ffffff';
 			this.ctx.lineWidth = 1;
 			this.ctx.strokeRect(rx, ry, rw, rh);
 
-			// Draw 8 handles (corner squares)
 			const handleSize = 10;
 			const half = handleSize / 2;
 			const handles: { x: number; y: number }[] = [
-				{ x: rx, y: ry },                 // nw
-				{ x: rx + rw / 2, y: ry },        // n
-				{ x: rx + rw, y: ry },            // ne
-				{ x: rx + rw, y: ry + rh / 2 },   // e
-				{ x: rx + rw, y: ry + rh },       // se
-				{ x: rx + rw / 2, y: ry + rh },   // s
-				{ x: rx, y: ry + rh },            // sw
-				{ x: rx, y: ry + rh / 2 },        // w
+				{ x: rx, y: ry },
+				{ x: rx + rw / 2, y: ry },
+				{ x: rx + rw, y: ry },
+				{ x: rx + rw, y: ry + rh / 2 },
+				{ x: rx + rw, y: ry + rh },
+				{ x: rx + rw / 2, y: ry + rh },
+				{ x: rx, y: ry + rh },
+				{ x: rx, y: ry + rh / 2 },
 			];
 			this.ctx.fillStyle = '#ffffff';
 			this.ctx.strokeStyle = '#000000';
@@ -1756,7 +1639,6 @@ export class ScreenshotAnnotationEditor {
 	}
 
 	private drawAction(action: DrawAction): void {
-		// Erase, crop and move records are undo sentinels; nothing to draw.
 		if (action.type === AnnotationTool.Eraser || action.type === AnnotationTool.Crop || action.type === AnnotationTool.Move) {
 			return;
 		}
@@ -2079,14 +1961,12 @@ export class ScreenshotAnnotationEditor {
 					if (rx < 1 || ry < 1) {
 						return false;
 					}
-					// Normalized distance from center
 					const dx = (pos.x - cx) / rx;
 					const dy = (pos.y - cy) / ry;
 					const dist = Math.sqrt(dx * dx + dy * dy);
 					if (!this.isTransparent(action.fillColor ?? 'transparent')) {
 						return dist <= 1 + threshold / Math.min(rx, ry);
 					}
-					// Check if point is near the ellipse border (dist around 1)
 					const normalizedThreshold = threshold / Math.min(rx, ry);
 					return Math.abs(dist - 1) < normalizedThreshold;
 				}
@@ -2315,10 +2195,6 @@ export class ScreenshotAnnotationEditor {
 		if (newScale === this.scale) {
 			return;
 		}
-		// Cursor-anchored zoom: keep the image pixel under the cursor under the
-		// cursor after zoom. Clamp the cursor's image-space coord to the actual
-		// image extent so an off-image cursor (in breathing-room padding) still
-		// pivots on the nearest real image pixel.
 		const halfImgW = (this.imageWidth * this.scale) / 2;
 		const halfImgH = (this.imageHeight * this.scale) / 2;
 		const anchorCx = this.panX + Math.max(-halfImgW, Math.min(halfImgW, pending.cx - this.panX));
@@ -2328,15 +2204,6 @@ export class ScreenshotAnnotationEditor {
 		this.panY = anchorCy * (1 - r) + this.panY * r;
 		this.scale = newScale;
 		this.hasUserZoomed = true;
-		// Deliberately do NOT call clampPan() here. With rAF-coalesced wheel events
-		// a single flush can produce a large zoom factor (e.g. trackpad pinch firing
-		// 10+ events in one frame -> r ~= 2-3); the cursor-anchored pan that needs to
-		// be applied at large r can exceed the strict clamp, and clamping then
-		// drifts the cursor away from the anchor pixel. The cursor anchor itself
-		// ensures at least one image pixel stays visible (the one under the cursor),
-		// so unbounded zoom pan is safe.
-		// When zooming back out to fit, snap pan to centered so the breathing-room
-		// layout looks symmetric instead of carrying over any accumulated offset.
 		if (newScale === minScale) {
 			this.panX = 0;
 			this.panY = 0;
@@ -2365,11 +2232,6 @@ export class ScreenshotAnnotationEditor {
 		const imgH = this.imageHeight * this.scale;
 		const cW = container.clientWidth;
 		const cH = container.clientHeight;
-		// Manual-pan clamp: image edge can't travel past container edge in either
-		// direction. When image is smaller than container (fit / zoomed-out), the
-		// bound shrinks symmetrically toward 0 so pan can shift the image around
-		// inside the container without sliding off either edge. When zoomed in,
-		// allows full pan within the zoomed content.
 		const maxPanX = Math.abs(cW - imgW) / 2;
 		const maxPanY = Math.abs(cH - imgH) / 2;
 		this.panX = Math.max(-maxPanX, Math.min(maxPanX, this.panX));
@@ -2377,19 +2239,15 @@ export class ScreenshotAnnotationEditor {
 	}
 
 	private compositeToDataUrl(): string {
-		// Create a final canvas at full resolution
 		const finalCanvas = mainWindow.document.createElement('canvas');
 		finalCanvas.width = this.imageWidth;
 		finalCanvas.height = this.imageHeight;
 		const ctx = finalCanvas.getContext('2d')!;
 
-		// Draw background image
 		if (this.imageElement) {
 			ctx.drawImage(this.imageElement, 0, 0, this.imageWidth, this.imageHeight);
 		}
 
-		// Replay annotations at full resolution. Actions are in original-image coords;
-		// translate by -currentCrop offset so they land correctly on the cropped output.
 		const savedScale = this.scale;
 		this.scale = 1;
 		const savedCtx = this.ctx;

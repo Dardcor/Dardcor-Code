@@ -90,7 +90,6 @@
 				}
 
 				.action-label:not(.checked):not(:focus) {
-					/* Still maintain a border for alignment, but keep it transparent */
 					border-bottom: 1px solid transparent;
 				}
 

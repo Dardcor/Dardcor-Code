@@ -15,7 +15,6 @@ import { IClaudeCodeSessionInfo } from '../sessionParser/claudeSessionSchema';
 import { IClaudeCodeSessionService } from '../sessionParser/claudeCodeSessionService';
 import { ClaudeCodeFolderMruService } from '../claudeCodeFolderMru';
 
-// #region Test Helpers
 
 class TestGitService extends mock<IGitService>() {
 	declare readonly _serviceBrand: undefined;
@@ -42,7 +41,6 @@ function makeSession(overrides: Partial<IClaudeCodeSessionInfo> & { id: string }
 	};
 }
 
-// #endregion
 
 describe('ClaudeCodeFolderMruService', () => {
 	let sessionService: TestClaudeCodeSessionService;
@@ -57,7 +55,6 @@ describe('ClaudeCodeFolderMruService', () => {
 		service = new ClaudeCodeFolderMruService(sessionService, gitService, workspaceService);
 	});
 
-	// #region Session extraction
 
 	it('returns empty array when no sessions exist', async () => {
 		const result = await service.getRecentlyUsedFolders(CancellationToken.None);
@@ -101,9 +98,7 @@ describe('ClaudeCodeFolderMruService', () => {
 		expect(result).toEqual([]);
 	});
 
-	// #endregion
 
-	// #region Timestamp fallback
 
 	it('uses lastRequestEnded as primary timestamp', async () => {
 		sessionService.sessions = [
@@ -129,9 +124,7 @@ describe('ClaudeCodeFolderMruService', () => {
 		expect(result[0].lastAccessed).toBe(100);
 	});
 
-	// #endregion
 
-	// #region Git repository merging
 
 	it('merges git repo into matching session entry', async () => {
 		sessionService.sessions = [
@@ -177,9 +170,7 @@ describe('ClaudeCodeFolderMruService', () => {
 		expect(result).toEqual([]);
 	});
 
-	// #endregion
 
-	// #region Workspace folders
 
 	it('adds workspace folders not already present', async () => {
 		const folder = URI.file('/Users/test/workspace');
@@ -205,9 +196,7 @@ describe('ClaudeCodeFolderMruService', () => {
 		expect(result).toHaveLength(1);
 	});
 
-	// #endregion
 
-	// #region Sorting, caching, deletion
 
 	it('sorts entries by lastAccessed descending', async () => {
 		sessionService.sessions = [
@@ -239,7 +228,6 @@ describe('ClaudeCodeFolderMruService', () => {
 		const first = await service.getRecentlyUsedFolders(CancellationToken.None);
 		expect(first).toHaveLength(1);
 
-		// Add another session — second call returns stale cache immediately
 		sessionService.sessions.push(
 			makeSession({ id: 's2', cwd: '/Users/test/other', lastRequestEnded: 200 }),
 		);
@@ -247,5 +235,4 @@ describe('ClaudeCodeFolderMruService', () => {
 		expect(second).toHaveLength(1);
 	});
 
-	// #endregion
 });

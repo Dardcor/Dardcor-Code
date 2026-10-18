@@ -5,26 +5,12 @@
 
 import type { HttpHeaders, HttpResponse } from './fetchTypes';
 
-/**
- * An HTTP response whose body may be a {@link ReadableStream} or a
- * `DestroyableStream` (from the platform `Response` class).
- */
 export interface CloneableResponse {
 	readonly status: number;
 	readonly headers: HttpHeaders;
 	readonly body: ReadableStream<Uint8Array> | { toReadableStream(): ReadableStream<Uint8Array> } | null;
 }
 
-/**
- * Clones a response by teeing its body stream, returning two independent
- * {@link HttpResponse} objects that can each be consumed separately.
- *
- * Both returned responses have fully functional `text()` and `json()`
- * methods backed by their own stream branch.
- *
- * Accepts either an {@link HttpResponse} (with `ReadableStream` body) or a
- * platform `Response` (with `DestroyableStream` body) transparently.
- */
 export function cloneResponse(response: CloneableResponse): [HttpResponse, HttpResponse] {
 	const { status, headers } = response;
 

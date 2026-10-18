@@ -126,7 +126,7 @@ flakySuite('WorkspacesManagementMainService', () => {
 			pathInWorkspaceFile = normalizeDriveLetter(pathInWorkspaceFile);
 			pathOnDisk = normalizeDriveLetter(pathOnDisk);
 			if (!isUNC(pathOnDisk)) {
-				pathOnDisk = toSlashes(pathOnDisk); // workspace file is using slashes for all paths except where mandatory
+				pathOnDisk = toSlashes(pathOnDisk);
 			}
 		}
 
@@ -187,7 +187,6 @@ flakySuite('WorkspacesManagementMainService', () => {
 		const workspace = await createUntitledWorkspace([cwd, tmpDir]);
 		assert.ok(await service.resolveLocalWorkspace(workspace.configPath));
 
-		// make it a valid workspace path
 		const newPath = path.join(path.dirname(workspace.configPath.fsPath), `workspace.${WORKSPACE_EXTENSION}`);
 		fs.renameSync(workspace.configPath.fsPath, newPath);
 		workspace.configPath = URI.file(newPath);
@@ -196,12 +195,12 @@ flakySuite('WorkspacesManagementMainService', () => {
 		assert.strictEqual(2, resolved!.folders.length);
 		assertEqualURI(resolved!.configPath, workspace.configPath);
 		assert.ok(resolved!.id);
-		fs.writeFileSync(workspace.configPath.fsPath, JSON.stringify({ something: 'something' })); // invalid workspace
+		fs.writeFileSync(workspace.configPath.fsPath, JSON.stringify({ something: 'something' }));
 
 		const resolvedInvalid = await service.resolveLocalWorkspace(workspace.configPath);
 		assert.ok(!resolvedInvalid);
 
-		fs.writeFileSync(workspace.configPath.fsPath, JSON.stringify({ transient: true, folders: [] })); // transient worksapce
+		fs.writeFileSync(workspace.configPath.fsPath, JSON.stringify({ transient: true, folders: [] }));
 		const resolvedTransient = await service.resolveLocalWorkspace(workspace.configPath);
 		assert.ok(resolvedTransient?.transient);
 	});
@@ -232,14 +231,14 @@ flakySuite('WorkspacesManagementMainService', () => {
 
 	test('resolveWorkspace (support invalid JSON via fault tolerant parsing)', async () => {
 		const workspace = await createUntitledWorkspace([cwd, tmpDir]);
-		fs.writeFileSync(workspace.configPath.fsPath, '{ "folders": [ { "path": "./ticino-playground/lib" } , ] }'); // trailing comma
+		fs.writeFileSync(workspace.configPath.fsPath, '{ "folders": [ { "path": "./ticino-playground/lib" } , ] }');
 
 		const resolved = await service.resolveLocalWorkspace(workspace.configPath);
 		assertEqualURI(resolved!.folders[0].uri, URI.file(path.join(path.dirname(workspace.configPath.fsPath), 'ticino-playground', 'lib')));
 	});
 
 	test('rewriteWorkspaceFileForNewLocation', async () => {
-		const folder1 = cwd;  // absolute path because outside of tmpDir
+		const folder1 = cwd;
 		const tmpInsideDir = path.join(tmpDir, 'inside');
 
 		const firstConfigPath = path.join(tmpDir, 'myworkspace0.code-workspace');
@@ -251,7 +250,7 @@ flakySuite('WorkspacesManagementMainService', () => {
 		let newContent = rewriteWorkspaceFileForNewLocation(origContent, origConfigPath, false, workspaceConfigPath, extUriBiasedIgnorePathCase);
 		let ws = (JSON.parse(newContent) as IStoredWorkspace);
 		assert.strictEqual(ws.folders.length, 3);
-		assertPathEquals((<IRawFileWorkspaceFolder>ws.folders[0]).path, folder1); // absolute path because outside of tmpdir
+		assertPathEquals((<IRawFileWorkspaceFolder>ws.folders[0]).path, folder1);
 		assertPathEquals((<IRawFileWorkspaceFolder>ws.folders[1]).path, '.');
 		assertPathEquals((<IRawFileWorkspaceFolder>ws.folders[2]).path, 'somefolder');
 
@@ -302,7 +301,7 @@ flakySuite('WorkspacesManagementMainService', () => {
 		const workspaceConfigPath = URI.file(path.join(tmpDir, `myworkspace.${Date.now()}.${WORKSPACE_EXTENSION}`));
 
 		let origContent = fs.readFileSync(workspace.configPath.fsPath).toString();
-		origContent = origContent.replace(/[\\]/g, '/'); // convert backslash to slash
+		origContent = origContent.replace(/[\\]/g, '/');
 
 		const newContent = rewriteWorkspaceFileForNewLocation(origContent, workspace.configPath, false, workspaceConfigPath, extUriBiasedIgnorePathCase);
 		const ws = (JSON.parse(newContent) as IStoredWorkspace);

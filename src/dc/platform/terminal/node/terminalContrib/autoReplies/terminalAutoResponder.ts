@@ -10,19 +10,10 @@ import { isWindows } from '../../../../../base/common/platform.js';
 import { ILogService } from '../../../../log/common/log.js';
 import { ITerminalChildProcess } from '../../../common/terminal.js';
 
-/**
- * Tracks a terminal process's data stream and responds immediately when a matching string is
- * received. This is done in a low overhead way and is ideally run on the same process as the
- * where the process is handled to minimize latency.
- */
 export class TerminalAutoResponder extends Disposable {
 	private _pointer = 0;
 	private _paused = false;
 
-	/**
-	 * Each reply is throttled by a second to avoid resource starvation and responding to screen
-	 * reprints on Winodws.
-	 */
 	private _throttled = false;
 
 	constructor(
@@ -44,7 +35,6 @@ export class TerminalAutoResponder extends Disposable {
 				} else {
 					this._reset();
 				}
-				// Auto reply and reset
 				if (this._pointer === matchWord.length) {
 					logService.debug(`Auto reply match: "${matchWord}", response: "${response}"`);
 					proc.input(response);
@@ -60,10 +50,6 @@ export class TerminalAutoResponder extends Disposable {
 		this._pointer = 0;
 	}
 
-	/**
-	 * No auto response will happen after a resize on Windows in case the resize is a result of
-	 * reprinting the screen.
-	 */
 	handleResize() {
 		if (isWindows) {
 			this._paused = true;

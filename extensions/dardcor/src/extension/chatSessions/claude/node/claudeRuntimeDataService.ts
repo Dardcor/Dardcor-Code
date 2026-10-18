@@ -33,7 +33,6 @@ export class ClaudeRuntimeDataService extends Disposable implements IClaudeRunti
 			this.logService.trace(`[ClaudeRuntimeDataService] Cached ${this._agents.length} agents`);
 		} catch (err) {
 			this.logService.error('[ClaudeRuntimeDataService] Failed to query agents from SDK', err);
-			// Keep previous cache (or empty) on error
 		}
 		this._onDidChange.fire();
 	}

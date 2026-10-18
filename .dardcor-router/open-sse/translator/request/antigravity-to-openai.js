@@ -6,8 +6,6 @@ import { ROLE, GEMINI_ROLE, OPENAI_BLOCK } from "../schema/index.js";
 import { budgetToEffort } from "../concerns/thinking.js";
 import { collapseTextParts } from "../concerns/message.js";
 
-// Convert Antigravity request to OpenAI format
-// Antigravity body: { project, model, userAgent, requestType, requestId, request: { contents, systemInstruction, tools, toolConfig, generationConfig, sessionId } }
 export function antigravityToOpenAIRequest(model, body, stream) {
   const req = body.request || body;
   const result = {
@@ -16,7 +14,6 @@ export function antigravityToOpenAIRequest(model, body, stream) {
     stream: stream
   };
 
-  // Generation config
   if (req.generationConfig) {
     const config = req.generationConfig;
     if (config.maxOutputTokens) {
@@ -33,14 +30,12 @@ export function antigravityToOpenAIRequest(model, body, stream) {
       result.top_k = config.topK;
     }
 
-    // Thinking config → reasoning_effort
     if (config.thinkingConfig) {
       const effort = budgetToEffort(config.thinkingConfig.thinkingBudget || 0);
       if (effort) result.reasoning_effort = effort;
     }
   }
 
-  // System instruction
   if (req.systemInstruction) {
     const systemText = extractText(req.systemInstruction);
     if (systemText) {
@@ -48,7 +43,6 @@ export function antigravityToOpenAIRequest(model, body, stream) {
     }
   }
 
-  // Convert contents to messages
   if (req.contents && Array.isArray(req.contents)) {
     for (const content of req.contents) {
       const converted = convertContent(content);
@@ -62,7 +56,6 @@ export function antigravityToOpenAIRequest(model, body, stream) {
     }
   }
 
-  // Tools
   if (req.tools && Array.isArray(req.tools)) {
     result.tools = [];
     for (const tool of req.tools) {
@@ -84,8 +77,6 @@ export function antigravityToOpenAIRequest(model, body, stream) {
   return result;
 }
 
-// Recursively convert Antigravity schema types (OBJECT, STRING, etc.) to lowercase
-// and strip unsupported fields like enumDescriptions
 function normalizeSchemaTypes(schema) {
   if (!schema || typeof schema !== "object") return schema;
 
@@ -96,7 +87,6 @@ function normalizeSchemaTypes(schema) {
     result.type = result.type.toLowerCase();
   }
 
-  // Strip enumDescriptions — not supported by upstream APIs
   delete result.enumDescriptions;
 
 
@@ -115,8 +105,6 @@ function normalizeSchemaTypes(schema) {
   return result;
 }
 
-// Convert Antigravity content to OpenAI message
-// Handles: text, thought, thoughtSignature, functionCall, functionResponse, inlineData
 function convertContent(content) {
   const role = content.role === GEMINI_ROLE.MODEL ? ROLE.ASSISTANT : content.role === GEMINI_ROLE.USER ? ROLE.USER : content.role;
 
@@ -130,13 +118,11 @@ function convertContent(content) {
   let reasoningContent = "";
 
   for (const part of content.parts) {
-    // Thinking content (thought: true)
     if (part.thought === true && part.text) {
       reasoningContent += part.text;
       continue;
     }
 
-    // Text with thoughtSignature = regular text after thinking
     if (part.thoughtSignature && part.text !== undefined) {
       if (part.text) {
         textParts.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
@@ -144,12 +130,10 @@ function convertContent(content) {
       continue;
     }
 
-    // Regular text
     if (part.text !== undefined && part.text !== "") {
       textParts.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
     }
 
-    // Inline data (images)
     if (part.inlineData) {
       textParts.push({
         type: OPENAI_BLOCK.IMAGE_URL,
@@ -159,10 +143,8 @@ function convertContent(content) {
       });
     }
 
-    // Function call
     if (part.functionCall) {
       toolCalls.push({
-        // Deterministic id from name so the matching functionResponse pairs correctly.
         id: part.functionCall.id || `call_${part.functionCall.name}`,
         type: OPENAI_BLOCK.FUNCTION,
         function: {
@@ -172,7 +154,6 @@ function convertContent(content) {
       });
     }
 
-    // Function response → collect all, each becomes a separate tool message
     if (part.functionResponse) {
       toolResults.push({
         role: ROLE.TOOL,
@@ -182,8 +163,6 @@ function convertContent(content) {
     }
   }
 
-  // Content with functionResponses — return array of tool result messages,
-  // plus an assistant message for any co-located tool calls / text.
   if (toolResults.length > 0) {
     if (toolCalls.length > 0 || textParts.length > 0 || reasoningContent) {
       const assistantMsg = { role: ROLE.ASSISTANT };
@@ -201,7 +180,6 @@ function convertContent(content) {
     return toolResults;
   }
 
-  // Assistant with tool calls
   if (toolCalls.length > 0) {
     const msg = { role: ROLE.ASSISTANT };
     if (textParts.length > 0) {
@@ -214,7 +192,6 @@ function convertContent(content) {
     return msg;
   }
 
-  // Regular message
   if (textParts.length > 0 || reasoningContent) {
     const msg = { role };
     if (textParts.length > 0) {
@@ -229,7 +206,6 @@ function convertContent(content) {
   return null;
 }
 
-// Extract text from systemInstruction
 function extractText(instruction) {
   if (typeof instruction === "string") return instruction;
   if (instruction.parts && Array.isArray(instruction.parts)) {
@@ -238,5 +214,4 @@ function extractText(instruction) {
   return "";
 }
 
-// Register
 register(FORMATS.ANTIGRAVITY, FORMATS.OPENAI, antigravityToOpenAIRequest, null);

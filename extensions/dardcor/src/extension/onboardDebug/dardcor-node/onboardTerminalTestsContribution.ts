@@ -6,16 +6,12 @@
 import * as vscode from 'vscode';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IDebuggableCommandIdentifier } from '../node/debuggableCommandIdentifier';
-import { COPILOT_DEBUG_COMMAND } from './dardcorDebugCommandContribution';
+import { DARDCOR_DEBUG_COMMAND } from './dardcorDebugCommandContribution';
 
 const PROVIDER_ID = 'dardcor-chat.terminalToDebugging';
 const PROVIDER_ID2 = 'dardcor-chat.terminalToDebuggingSuccess';
 
 export class OnboardTerminalTestsContribution extends Disposable implements vscode.TerminalQuickFixProvider {
-	/**
-	 * Execution end events for terminals. This is a hacky back door to get
-	 * output info into quick fixes.
-	 */
 	private lastExecutionFor = new Map<vscode.Terminal, vscode.TerminalShellExecutionStartEvent>();
 
 	constructor(
@@ -30,14 +26,14 @@ export class OnboardTerminalTestsContribution extends Disposable implements vsco
 		this._register(vscode.window.onDidStartTerminalShellExecution(e => {
 			this.lastExecutionFor.set(e.terminal, e);
 		}));
-		this._register(vscode.commands.registerCommand('github.dardcor.chat.rerunWithCopilotDebug', () => {
+		this._register(vscode.commands.registerCommand('github.dardcor.chat.rerunWithDardcorDebug', () => {
 			const terminal = vscode.window.activeTerminal;
 			const execution = terminal && this.lastExecutionFor.get(terminal);
 			if (!execution) {
 				return;
 			}
 
-			terminal.sendText(`${COPILOT_DEBUG_COMMAND} ${execution.execution.commandLine.value}`, true);
+			terminal.sendText(`${DARDCOR_DEBUG_COMMAND} ${execution.execution.commandLine.value}`, true);
 		}));
 	}
 
@@ -51,10 +47,8 @@ export class OnboardTerminalTestsContribution extends Disposable implements vsco
 			return undefined;
 		}
 
-		// todo@connor4312: try to parse stack trace and shell intergation and
-		// set a breakpoint on any failure position
 		return {
-			terminalCommand: `${COPILOT_DEBUG_COMMAND} ${commandMatchResult.commandLine}`,
+			terminalCommand: `${DARDCOR_DEBUG_COMMAND} ${commandMatchResult.commandLine}`,
 			shouldExecute: false,
 		};
 	}

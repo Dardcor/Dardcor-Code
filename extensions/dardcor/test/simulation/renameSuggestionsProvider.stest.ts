@@ -37,11 +37,6 @@ ssuite({ title: 'Rename suggestions', location: 'external' }, () => {
 		}
 	}
 
-	/**
-	 * Asserts that each newSymbolName includes at least one of the searchStrings.
-	 *
-	 * @remark lower-cases symbol names for string search but not search-strings
-	 */
 	function assertIncludesLowercased(newSymbolNames: vscode.NewSymbolName[], searchStrings: string | string[]) {
 		searchStrings = Array.isArray(searchStrings) ? searchStrings : [searchStrings];
 		searchStrings = searchStrings.map(s => s.toLowerCase());
@@ -70,7 +65,6 @@ ssuite({ title: 'Rename suggestions', location: 'external' }, () => {
 
 	async function provideNewSymbolNames(testingServiceCollection: TestingServiceCollection, files: IRenameScenarioFile[]) {
 
-		// find current file from files, deannoate it and put it at the end
 
 		const currentFileIx = files.length === 1 ? 0 : files.findIndex(f => f.isCurrent);
 		if (currentFileIx < 0) { throw new Error(`No current file found from files:\n ${JSON.stringify(files, null, '\t')}`); }
@@ -83,20 +77,17 @@ ssuite({ title: 'Rename suggestions', location: 'external' }, () => {
 		};
 		files.push(currentFile);
 
-		// set up workspace
 		const workspace = setupSimulationWorkspace(testingServiceCollection, { files });
 		const accessor = testingServiceCollection.createTestingAccessor();
 		try {
 			const document = workspace.getDocument(currentFile.fileName).document;
 			const renameRange = offsetRangeToPositionRange(annotatedRange, document);
 
-			// write initial file contents to disk to be able to view it from swb
 
 			const testRuntime = accessor.get(ISimulationTestRuntime);
 			const workspacePath = workspace.getFilePath(document.uri);
-			await testRuntime.writeFile(workspacePath + '.txt', document.getText(), INLINE_INITIAL_DOC_TAG); // using .txt instead of real file extension to avoid breaking automation scripts
+			await testRuntime.writeFile(workspacePath + '.txt', document.getText(), INLINE_INITIAL_DOC_TAG);
 
-			// get rename suggestions
 
 			const provider = accessor.get(IInstantiationService).createInstance(AlwaysEnabledNewSymbolNamesProvider);
 

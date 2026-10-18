@@ -67,13 +67,8 @@ class TypeScriptFormattingProvider implements vscode.DocumentRangeFormattingEdit
 		for (const edit of response.body) {
 			const textEdit = typeConverters.TextEdit.fromCodeEdit(edit);
 			const range = textEdit.range;
-			// Work around for https://github.com/microsoft/TypeScript/issues/6700.
-			// Check if we have an edit at the beginning of the line which only removes white spaces and leaves
-			// an empty line. Drop those edits
 			if (range.start.character === 0 && range.start.line === range.end.line && textEdit.newText === '') {
 				const lText = document.lineAt(range.start.line).text;
-				// If the edit leaves something on the line keep the edit (note that the end character is exclusive).
-				// Keep it also if it removes something else than whitespace
 				if (lText.trim().length > 0 || lText.length > range.end.character) {
 					result.push(textEdit);
 				}

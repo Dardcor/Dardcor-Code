@@ -69,19 +69,13 @@ declare const performance: IPerformance;
 
 function _define() {
 
-	// Identify browser environment when following property is not present
-	// https://nodejs.org/dist/latest-v16.x/docs/api/perf_hooks.html#performancenodetiming
 	// @ts-ignore
 	if (typeof performance === 'object' && typeof performance.mark === 'function' && !performance.nodeTiming) {
-		// in a browser context, reuse performance-util
 
 		if (typeof performance.timeOrigin !== 'number' && !performance.timing) {
-			// safari & webworker: because there is no timeOrigin and no workaround
-			// we use the `Date.now`-based polyfill.
 			return _definePolyfillMarks();
 
 		} else {
-			// use "native" performance for mark and getMarks
 			return {
 				mark(name: string, markOptions?: { startTime?: number }) {
 					performance.mark(name, markOptions);
@@ -92,8 +86,6 @@ function _define() {
 				getMarks() {
 					let timeOrigin = performance.timeOrigin;
 					if (typeof timeOrigin !== 'number') {
-						// safari: there is no timerOrigin but in renderers there is the timing-property
-						// see https://bugs.webkit.org/show_bug.cgi?id=174862
 						timeOrigin = (performance.timing.navigationStart || performance.timing.redirectStart || performance.timing.fetchStart) ?? 0;
 					}
 					const result = [{ name: 'code/timeOrigin', startTime: Math.round(timeOrigin) }];
@@ -109,13 +101,10 @@ function _define() {
 		}
 
 	} else if (typeof process === 'object') {
-		// node.js: use the normal polyfill but add the timeOrigin
-		// from the node perf_hooks API as very first mark
 		const timeOrigin = performance?.timeOrigin;
 		return _definePolyfillMarks(timeOrigin);
 
 	} else {
-		// unknown environment
 		console.trace('perf-util loaded in UNKNOWN environment');
 		return _definePolyfillMarks();
 	}
@@ -132,10 +121,6 @@ const perf = _factory(globalThis);
 
 export const mark: (name: string, markOptions?: { startTime?: number }) => void = perf.mark;
 
-/**
- * Clears performance marks. If a name is given, only marks with that exact
- * name are removed. If no name is given, all marks are removed.
- */
 export const clearMarks: (name?: string) => void = perf.clearMarks;
 
 export interface PerformanceMark {
@@ -143,7 +128,4 @@ export interface PerformanceMark {
 	readonly startTime: number;
 }
 
-/**
- * Returns all marks, sorted by `startTime`.
- */
 export const getMarks: () => PerformanceMark[] = perf.getMarks;

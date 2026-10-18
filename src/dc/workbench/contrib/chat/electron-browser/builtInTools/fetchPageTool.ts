@@ -75,24 +75,20 @@ export class FetchWebPageTool implements IToolImpl {
 			};
 		}
 
-		// Get contents from web URIs
 		let webContents: WebContentExtractResult[] = [];
 		if (webUris.size > 0) {
 			const trustedDomains = this._trustedDomainService.trustedDomains;
 			webContents = await this._readerModeService.extract([...webUris.values()], { trustedDomains });
 		}
 
-		// Get contents from file URIs
 		const fileContents: (string | { type: 'tooldata'; value: IToolResultDataPart } | undefined)[] = [];
 		const successfulFileUris: URI[] = [];
 		for (const uri of fileUris.values()) {
 			try {
 				const fileContent = await this._fileService.readFile(uri, undefined, token);
 
-				// Check if this is a supported image type first
 				const imageMimeType = this._getSupportedImageMimeType(uri);
 				if (imageMimeType) {
-					// For supported image files, return as IToolResultDataPart
 					fileContents.push({
 						type: 'tooldata',
 						value: {
@@ -104,27 +100,21 @@ export class FetchWebPageTool implements IToolImpl {
 						}
 					});
 				} else {
-					// Check if the content is binary
 					const detected = detectEncodingFromBuffer({ buffer: fileContent.value, bytesRead: fileContent.value.byteLength });
 
 					if (detected.seemsBinary) {
-						// For binary files, return a message indicating they're not supported
-						// We do this for now until the tools that leverage this internal tool can support binary content
 						fileContents.push(localize('fetchWebPage.binaryNotSupported', 'Binary files are not supported at the moment.'));
 					} else {
-						// For text files, convert to string
 						fileContents.push(fileContent.value.toString());
 					}
 				}
 
 				successfulFileUris.push(uri);
 			} catch (error) {
-				// If file service can't read it, treat as invalid
 				fileContents.push(undefined);
 			}
 		}
 
-		// Build results array in original order
 		const results: ResultType[] = [];
 		let webIndex = 0;
 		let fileIndex = 0;
@@ -144,14 +134,12 @@ export class FetchWebPageTool implements IToolImpl {
 			}
 		}
 
-		// Skip confirming any results if every web content we got was an error or redirect
 		let confirmResults: undefined | boolean;
 		if (webContents.every(e => e.status === 'error' || e.status === 'redirect')) {
 			confirmResults = false;
 		}
 
 
-		// Only include URIs that actually had content successfully fetched
 		const actuallyValidUris = [...webUris.values(), ...successfulFileUris];
 
 		return {
@@ -164,7 +152,6 @@ export class FetchWebPageTool implements IToolImpl {
 	async prepareToolInvocation(context: IToolInvocationPreparationContext, token: CancellationToken): Promise<IPreparedToolInvocation | undefined> {
 		const { webUris, fileUris, invalidUris, blockedUris } = this._parseUris(context.parameters.urls);
 
-		// Check which file URIs can actually be read
 		const validFileUris: URI[] = [];
 		const additionalInvalidUrls: string[] = [];
 		for (const [originalUrl, uri] of fileUris.entries()) {
@@ -172,37 +159,28 @@ export class FetchWebPageTool implements IToolImpl {
 				await this._fileService.stat(uri);
 				validFileUris.push(uri);
 			} catch (error) {
-				// If file service can't stat it, treat as invalid
 				additionalInvalidUrls.push(originalUrl);
 			}
 		}
 
 		const invalid = [...Array.from(invalidUris), ...additionalInvalidUrls, ...Array.from(blockedUris)];
-		// All valid URIs (web + file) for display in messages
 		const allFetchedUris = new ResourceSet([...webUris.values(), ...validFileUris]);
-		// File URIs that are inside the workspace don't need confirmation — they're already accessible
-		// and don't carry the web content risks (prompt injection, malicious redirects).
-		// When a chat working directory is set, it is the source of truth; only fall
-		// back to workspace folders when no working directory is specified.
 		const workingDir = new WorkingDirectory(this._workspaceContextService, context.workingDirectory);
 		const fileUrisOutsideWorkspace = validFileUris.filter(uri => !workingDir.getFolder(uri));
 		const urlsNeedingConfirmation = new ResourceSet([...webUris.values(), ...fileUrisOutsideWorkspace]);
 
 		const pastTenseMessage = invalid.length
 			? invalid.length > 1
-				// If there are multiple invalid URLs, show them all
 				? new MarkdownString(
 					localize(
 						'fetchWebPage.pastTenseMessage.plural',
 						'Fetched {0} resources, but the following were invalid URLs:\n\n{1}\n\n', allFetchedUris.size, invalid.map(url => `- ${url}`).join('\n')
 					))
-				// If there is only one invalid URL, show it
 				: new MarkdownString(
 					localize(
 						'fetchWebPage.pastTenseMessage.singular',
 						'Fetched resource, but the following was an invalid URL:\n\n{0}\n\n', invalid[0]
 					))
-			// No invalid URLs
 			: new MarkdownString();
 
 		const invocationMessage = new MarkdownString();
@@ -211,19 +189,16 @@ export class FetchWebPageTool implements IToolImpl {
 			invocationMessage.appendMarkdown(localize('fetchWebPage.invocationMessage.plural', 'Fetching {0} resources', allFetchedUris.size));
 		} else if (allFetchedUris.size === 1) {
 			const url = Iterable.first(allFetchedUris)!.toString(true);
-			// If the URL is too long or it's a file url, show it as a link... otherwise, show it as plain text
 			if (url.length > 400 || validFileUris.length === 1) {
 				pastTenseMessage.appendMarkdown(localize({
 					key: 'fetchWebPage.pastTenseMessageResult.singularAsLink',
 					comment: [
-						// Make sure the link syntax is correct
 						'{Locked="]({0})"}',
 					]
 				}, 'Fetched [resource]({0})', url));
 				invocationMessage.appendMarkdown(localize({
 					key: 'fetchWebPage.invocationMessage.singularAsLink',
 					comment: [
-						// Make sure the link syntax is correct
 						'{Locked="]({0})"}',
 					]
 				}, 'Fetching [resource]({0})', url));
@@ -237,12 +212,6 @@ export class FetchWebPageTool implements IToolImpl {
 		if (context.chatSessionResource) {
 			const model = this._chatService.getSession(context.chatSessionResource);
 			const userMessages = model?.getRequests().map(r => r.message.text) ?? [];
-			// Collect the resources the user actually referenced by parsing whole
-			// whitespace-delimited tokens from their messages. Parsing at token granularity
-			// (rather than a substring match) ensures a `file://` URI embedded inside another
-			// URL the user pasted — e.g. `https://host/p?u=file:///home/victim/.ssh/id_rsa` —
-			// is parsed as part of its enclosing web URL and is not mistaken for an explicit
-			// request for that local file, which would otherwise auto-approve the read.
 			const referencedResources = collectReferencedResources(userMessages);
 			let urlsMentionedInPrompt = false;
 			for (const uri of urlsNeedingConfirmation) {
@@ -303,7 +272,6 @@ export class FetchWebPageTool implements IToolImpl {
 						webUris.set(url, uriObj);
 					}
 				} else {
-					// Normalize `..` so the confirmation-gating workspace check and the eventual read agree on one path.
 					fileUris.set(url, normalizePath(uriObj));
 				}
 			} catch (e) {
@@ -368,37 +336,19 @@ export class FetchWebPageTool implements IToolImpl {
 	}
 }
 
-/**
- * Matches the start of a URI scheme (RFC 3986: ALPHA *( ALPHA / DIGIT / "+" / "-" / "." ) ":").
- * Used as a cheap filter so only scheme-qualified tokens are parsed.
- */
 const _schemePrefix = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 
-/**
- * Collects the URIs a user explicitly referenced across their chat messages, used to decide
- * whether a fetch may skip its confirmation dialog. Each message is split on whitespace and
- * scheme-qualified tokens are parsed into URIs; parsing at token granularity is what makes
- * this safe — a `file://` URI embedded inside another URL the user pasted (e.g. a
- * `?u=file:///…` query parameter) is parsed as part of its enclosing URL and never becomes a
- * standalone reference. Membership is compared by {@link ResourceSet} (keyed on `URI.toString()`).
- */
 function collectReferencedResources(messages: readonly string[]): ResourceSet {
 	const resources = new ResourceSet();
 	for (const message of messages) {
 		for (const rawToken of message.split(/\s+/)) {
-			// Trim common punctuation/brackets a user might type around a URL.
 			const token = rawToken.replace(/^[<("'`[{]+/, '').replace(/[>)"'`\]},.;]+$/, '');
-			// Cheap pre-check: only tokens that start with a URI scheme are worth parsing.
-			// This avoids using exceptions for control flow on every plain word in a message.
 			if (!_schemePrefix.test(token)) {
 				continue;
 			}
 			try {
-				// Strict parsing rejects scheme-less tokens, so only genuine `scheme:…`
-				// tokens (http, https, file, …) are treated as references.
 				resources.add(URI.parse(token, true));
 			} catch {
-				// Scheme-like but not a valid URI; ignore.
 			}
 		}
 	}

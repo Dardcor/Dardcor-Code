@@ -29,7 +29,6 @@ class NotebookBreakpoints extends Disposable implements IWorkbenchContribution {
 		const listeners = new ResourceMap<IDisposable>();
 		this._register(_notebookService.onWillAddNotebookDocument(model => {
 			listeners.set(model.uri, model.onWillAddRemoveCells(e => {
-				// When deleting a cell, remove its breakpoints
 				const debugModel = this._debugService.getModel();
 				if (!debugModel.getBreakpoints().length) {
 					return;

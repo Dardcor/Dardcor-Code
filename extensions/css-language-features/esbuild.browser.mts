@@ -8,7 +8,6 @@ import { run } from '../esbuild-extension-common.mts';
 const extensionRoot = import.meta.dirname;
 
 await Promise.all([
-	// Build client
 	run({
 		platform: 'browser',
 		entryPoints: {
@@ -21,7 +20,6 @@ await Promise.all([
 		},
 	}, process.argv),
 
-	// Build server
 	run({
 		platform: 'browser',
 		format: 'esm',

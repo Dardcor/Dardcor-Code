@@ -19,16 +19,11 @@ import { ShowCurrentReleaseNotesActionId } from '../common/update.js';
 import { computeDownloadSpeed, computeDownloadTimeRemaining, computeProgressPercent, formatBytes, formatDate, formatTimeRemaining, tryParseDate } from '../common/updateUtils.js';
 import './media/updateTooltip.css';
 
-/**
- * A stateful tooltip control for the update status.
- */
 export class UpdateTooltip extends Disposable {
 	public readonly domNode: HTMLElement;
 
-	// Header section
 	private readonly titleNode: HTMLElement;
 
-	// Product info section
 	private readonly productInfoNode: HTMLElement;
 	private readonly productNameNode: HTMLElement;
 	private readonly currentVersionNode: HTMLElement;
@@ -37,21 +32,17 @@ export class UpdateTooltip extends Disposable {
 	private readonly latestVersionCopyValue: { value: string };
 	private readonly releaseDateNode: HTMLElement;
 
-	// Progress section
 	private readonly progressContainer: HTMLElement;
 	private readonly progressFill: HTMLElement;
 	private readonly progressPercentNode: HTMLElement;
 	private readonly progressSizeNode: HTMLElement;
 
-	// Extra download info
 	private readonly downloadStatsContainer: HTMLElement;
 	private readonly timeRemainingNode: HTMLElement;
 	private readonly speedInfoNode: HTMLElement;
 
-	// State-specific message
 	private readonly messageNode: HTMLElement;
 
-	// Button bar
 	private readonly buttonBar: HTMLElement;
 	private readonly releaseNotesButton: HTMLButtonElement;
 	private readonly actionButton: HTMLButtonElement;
@@ -70,11 +61,9 @@ export class UpdateTooltip extends Disposable {
 
 		this.domNode = dom.$('.update-tooltip');
 
-		// Header section
 		const header = dom.append(this.domNode, dom.$('.header'));
 		this.titleNode = dom.append(header, dom.$('.title'));
 
-		// Product info section
 		this.productInfoNode = dom.append(this.domNode, dom.$('.product-info'));
 
 		const logoContainer = dom.append(this.productInfoNode, dom.$('.product-logo'));
@@ -96,7 +85,6 @@ export class UpdateTooltip extends Disposable {
 
 		this.releaseDateNode = dom.append(details, dom.$('.product-release-date'));
 
-		// Progress section
 		this.progressContainer = dom.append(this.domNode, dom.$('.progress-container'));
 		const progressBar = dom.append(this.progressContainer, dom.$('.progress-bar'));
 		this.progressFill = dom.append(progressBar, dom.$('.progress-fill'));
@@ -105,15 +93,12 @@ export class UpdateTooltip extends Disposable {
 		this.progressPercentNode = dom.append(progressText, dom.$('span'));
 		this.progressSizeNode = dom.append(progressText, dom.$('span'));
 
-		// Extra download stats
 		this.downloadStatsContainer = dom.append(this.progressContainer, dom.$('.download-stats'));
 		this.timeRemainingNode = dom.append(this.downloadStatsContainer, dom.$('.time-remaining'));
 		this.speedInfoNode = dom.append(this.downloadStatsContainer, dom.$('.speed-info'));
 
-		// State-specific message
 		this.messageNode = dom.append(this.domNode, dom.$('.state-message'));
 
-		// Button bar
 		this.buttonBar = dom.append(this.domNode, dom.$('.button-bar'));
 
 		this.releaseNotesButton = dom.append(this.buttonBar, dom.$('button.release-notes-button')) as HTMLButtonElement;
@@ -132,7 +117,6 @@ export class UpdateTooltip extends Disposable {
 			}
 		}));
 
-		// Populate static product info
 		this.updateCurrentVersion();
 	}
 
@@ -376,7 +360,6 @@ export class UpdateTooltip extends Disposable {
 	private renderTitleAndInfo(title: string, update?: IUpdate) {
 		this.titleNode.textContent = title;
 
-		// Latest version
 		const version = update?.productVersion;
 		if (version) {
 			const updateCommitId = update.version?.substring(0, 7);
@@ -389,7 +372,6 @@ export class UpdateTooltip extends Disposable {
 			this.latestVersionNode.parentElement!.style.display = 'none';
 		}
 
-		// Release date
 		const releaseDate = update?.timestamp ?? tryParseDate(this.productService.date);
 		if (typeof releaseDate === 'number' && releaseDate > 0) {
 			this.releaseDateNode.textContent = localize('updateTooltip.releasedLabel', "Released {0}", formatDate(releaseDate));
@@ -398,7 +380,6 @@ export class UpdateTooltip extends Disposable {
 			this.releaseDateNode.style.display = 'none';
 		}
 
-		// Release notes button
 		this.releaseNotesVersion = version ?? this.productService.version;
 		this.releaseNotesButton.style.display = this.releaseNotesVersion ? '' : 'none';
 		this.releaseNotesButton.style.marginRight = this.releaseNotesVersion ? 'auto' : '';

@@ -38,7 +38,6 @@ interface ICurrentRestrictedState {
 	readonly gitHubState: ISessionGitHubState;
 }
 
-/** Live session inputs and callbacks needed to guard an asynchronous reconciliation. */
 export interface IRestrictedPullRequestReconciliationContext {
 	readonly sessionKey: string;
 	readonly sessionState: ISessionWithDefaultChat;
@@ -83,7 +82,6 @@ function getPullRequestArtifactUrls(meta: SessionSummaryMeta | undefined): strin
 	return urls.reverse();
 }
 
-/** Resolves checkout pull requests and owns restricted-mode candidate selection state. */
 export class AgentHostPullRequestAssociationResolver extends Disposable {
 
 	private readonly _restrictedResolutions = new Map<string, IRestrictedPullRequestResolution>();
@@ -105,7 +103,6 @@ export class AgentHostPullRequestAssociationResolver extends Disposable {
 		this._restrictedResolutions.delete(sessionKey);
 	}
 
-	/** Resolves the current checkout by remote head branch, then by exact HEAD commit. */
 	async resolveForCheckout(
 		state: ISessionWithDefaultChat,
 		owner: string,
@@ -137,7 +134,6 @@ export class AgentHostPullRequestAssociationResolver extends Disposable {
 			: undefined;
 	}
 
-	/** Reconciles branch-aware GitHub state against artifact and explicit-association candidates. */
 	async reconcileRestricted(context: IRestrictedPullRequestReconciliationContext): Promise<RestrictedPullRequestReconciliationResult> {
 		const { sessionKey, sessionState, gitHubState, gitState } = context;
 		const branchName = gitState?.branchName;

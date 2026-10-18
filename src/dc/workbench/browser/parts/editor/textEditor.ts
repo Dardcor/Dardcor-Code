@@ -43,9 +43,6 @@ export interface IEditorConfiguration {
 	};
 }
 
-/**
- * The base class of editors that leverage any kind of text editor for the editing experience.
- */
 export abstract class AbstractTextEditor<T extends IEditorViewState> extends AbstractEditorWithViewState<T> implements IEditorPaneWithSelection, IEditorPaneWithScrolling {
 
 	private static readonly VIEW_STATE_PREFERENCE_KEY = 'textEditorViewState';
@@ -77,11 +74,8 @@ export abstract class AbstractTextEditor<T extends IEditorViewState> extends Abs
 	) {
 		super(id, group, AbstractTextEditor.VIEW_STATE_PREFERENCE_KEY, telemetryService, instantiationService, storageService, textResourceConfigurationService, themeService, editorService, editorGroupService);
 
-		// Listen to configuration changes
 		this._register(this.textResourceConfigurationService.onDidChangeConfiguration(e => this.handleConfigurationChangeEvent(e)));
 
-		// ARIA: if a group is added or removed, update the editor's ARIA
-		// label so that it appears in the label for when there are > 1 groups
 
 		this._register(Event.any(this.editorGroupService.onDidAddGroup, this.editorGroupService.onDidRemoveGroup)(() => {
 			const ariaLabel = this.computeAriaLabel();
@@ -90,7 +84,6 @@ export abstract class AbstractTextEditor<T extends IEditorViewState> extends Abs
 			this.updateEditorControlOptions({ ariaLabel });
 		}));
 
-		// Listen to file system provider changes
 		this._register(this.fileService.onDidChangeFileSystemProviderCapabilities(e => this.onDidChangeFileSystemProvider(e.scheme)));
 		this._register(this.fileService.onDidChangeFileSystemProviderRegistrations(e => this.onDidChangeFileSystemProvider(e.scheme)));
 	}
@@ -121,11 +114,9 @@ export abstract class AbstractTextEditor<T extends IEditorViewState> extends Abs
 
 	protected computeConfiguration(configuration: IEditorConfiguration): ICodeEditorOptions {
 
-		// Specific editor options always overwrite user configuration
 		const editorConfiguration: ICodeEditorOptions = isObject(configuration.editor) ? deepClone(configuration.editor) : Object.create(null);
 		Object.assign(editorConfiguration, this.getConfigurationOverrides(configuration));
 
-		// ARIA label
 		editorConfiguration.ariaLabel = this.computeAriaLabel();
 
 		return editorConfiguration;
@@ -174,11 +165,9 @@ export abstract class AbstractTextEditor<T extends IEditorViewState> extends Abs
 
 	protected createEditor(parent: HTMLElement): void {
 
-		// Create editor control
 		this.editorContainer = parent;
 		this.createEditorControl(parent, this.computeConfiguration(this.textResourceConfigurationService.getValue<IEditorConfiguration>(this.getActiveResource())));
 
-		// Listeners
 		this.registerCodeEditorListeners();
 	}
 
@@ -214,47 +203,25 @@ export abstract class AbstractTextEditor<T extends IEditorViewState> extends Abs
 		return undefined;
 	}
 
-	/**
-	 * This method creates and returns the text editor control to be used.
-	 * Subclasses must override to provide their own editor control that
-	 * should be used (e.g. a text diff editor).
-	 *
-	 * The passed in configuration object should be passed to the editor
-	 * control when creating it.
-	 */
 	protected abstract createEditorControl(parent: HTMLElement, initialOptions: ICodeEditorOptions): void;
 
-	/**
-	 * The method asks to update the editor control options and is called
-	 * whenever there is change to the options.
-	 */
 	protected abstract updateEditorControlOptions(options: ICodeEditorOptions): void;
 
-	/**
-	 * This method returns the main, dominant instance of `ICodeEditor`
-	 * for the editor pane. E.g. for a diff editor, this is the right
-	 * hand (modified) side.
-	 */
 	protected abstract getMainControl(): ICodeEditor | undefined;
 
 	override async setInput(input: EditorInput, options: ITextEditorOptions | undefined, context: IEditorOpenContext, token: CancellationToken): Promise<void> {
 		await super.setInput(input, options, context, token);
 
-		// Update our listener for input capabilities
 		this.inputListener.value = input.onDidChangeCapabilities(() => this.onDidChangeInputCapabilities(input));
 
-		// Update editor options after having set the input. We do this because there can be
-		// editor input specific options (e.g. an ARIA label depending on the input showing)
 		this.updateEditorConfiguration();
 
-		// Update aria label on editor
 		const editorContainer = assertReturnsDefined(this.editorContainer);
 		editorContainer.setAttribute('aria-label', this.computeAriaLabel());
 	}
 
 	override clearInput(): void {
 
-		// Clear input listener
 		this.inputListener.clear();
 
 		super.clearInput();
@@ -267,7 +234,6 @@ export abstract class AbstractTextEditor<T extends IEditorViewState> extends Abs
 		}
 
 		return {
-			// The top position can vary depending on the view zones (find widget for example)
 			scrollTop: editor.getScrollTop() - editor.getTopForLineNumber(1),
 			scrollLeft: editor.getScrollLeft(),
 		};
@@ -309,9 +275,6 @@ export abstract class AbstractTextEditor<T extends IEditorViewState> extends Abs
 
 		const editorConfiguration = this.computeConfiguration(configuration);
 
-		// Try to figure out the actual editor options that changed from the last time we updated the editor.
-		// We do this so that we are not overwriting some dynamic editor settings (e.g. word wrap) that might
-		// have been applied to the editor directly.
 		let editorSettingsToApply = editorConfiguration;
 		if (this.lastAppliedEditorOptions) {
 			editorSettingsToApply = distinct(this.lastAppliedEditorOptions, editorSettingsToApply);
@@ -349,7 +312,7 @@ export abstract class AbstractTextEditor<T extends IEditorViewState> extends Abs
 
 export class TextEditorPaneSelection implements IEditorPaneSelection {
 
-	private static readonly TEXT_EDITOR_SELECTION_THRESHOLD = 10; // number of lines to move in editor to justify for significant change
+	private static readonly TEXT_EDITOR_SELECTION_THRESHOLD = 10;
 
 	constructor(
 		private readonly textSelection: Selection
@@ -368,7 +331,7 @@ export class TextEditorPaneSelection implements IEditorPaneSelection {
 		}
 
 		if (Math.abs(thisLineNumber - otherLineNumber) < TextEditorPaneSelection.TEXT_EDITOR_SELECTION_THRESHOLD) {
-			return EditorPaneSelectionCompareResult.SIMILAR; // when in close proximity, treat selection as being similar
+			return EditorPaneSelectionCompareResult.SIMILAR;
 		}
 
 		return EditorPaneSelectionCompareResult.DIFFERENT;

@@ -23,11 +23,11 @@ class WelcomeBannerContribution {
 	) {
 		const welcomeBanner = environmentService.options?.welcomeBanner;
 		if (!welcomeBanner) {
-			return; // welcome banner is not enabled
+			return;
 		}
 
 		if (storageService.getBoolean(WelcomeBannerContribution.WELCOME_BANNER_DISMISSED_KEY, StorageScope.PROFILE, false)) {
-			return; // welcome banner dismissed
+			return;
 		}
 
 		let icon: ThemeIcon | URI | undefined = undefined;

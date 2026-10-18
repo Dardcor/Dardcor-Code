@@ -22,7 +22,6 @@ export function getDynamicVariablesForWidget(widget: IChatWidget): ReadonlyArray
 		return model.variables.filter(variable => variable.isAttachmentReference);
 	}
 
-	// track for editing state
 	if (widget.viewModel.editing && model.variables.length > 0) {
 		return model.variables;
 	}
@@ -32,7 +31,6 @@ export function getDynamicVariablesForWidget(widget: IChatWidget): ReadonlyArray
 		const editorModel = widget.inputEditor.getModel();
 		const modelTextLength = editorModel?.getValueLength() ?? 0;
 		for (const attachment of widget.input.attachmentModel.attachments) {
-			// If the attachment has a range, it is a dynamic variable
 			if (attachment.range) {
 				if (attachment.range.start >= attachment.range.endExclusive) {
 					continue;

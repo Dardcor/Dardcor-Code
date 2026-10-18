@@ -32,13 +32,9 @@ import { PromptsStorage } from '../../../../common/promptSyntax/service/promptsS
 import { runWithFakedTimers } from '../../../../../../../base/test/common/timeTravelScheduler.js';
 import { IWorkspaceTrustManagementService } from '../../../../../../../platform/workspace/common/workspaceTrust.js';
 
-/**
- * Mocked instance of {@link IConfigurationService}.
- */
 function mockConfigService(configValues: Record<string, unknown>): IConfigurationService {
 	return mockService<IConfigurationService>({
 		getValue(key?: string | IConfigurationOverrides) {
-			// Handle object configuration overrides (e.g., for file exclude patterns)
 			if (typeof key === 'object') {
 				return {};
 			}
@@ -53,9 +49,6 @@ function mockConfigService(configValues: Record<string, unknown>): IConfiguratio
 	});
 }
 
-/**
- * Mocked instance of {@link IWorkspaceContextService}.
- */
 function mockWorkspaceService(folders: IWorkspaceFolder[]): IWorkspaceContextService {
 	return mockService<IWorkspaceContextService>({
 		getWorkspace(): IWorkspace {
@@ -82,7 +75,6 @@ suite('PromptFilesLocator', () => {
 	const configValues: Record<string, unknown> = {};
 	let workspaceTrustService: TestWorkspaceTrustManagementService;
 
-	// Sets all prompt file location config keys to the same value
 	const setLocations = (value: unknown) => {
 		configValues[PromptsConfig.PROMPT_LOCATIONS_KEY] = value;
 		configValues[PromptsConfig.INSTRUCTIONS_LOCATION_KEY] = value;
@@ -90,7 +82,6 @@ suite('PromptFilesLocator', () => {
 		configValues[PromptsConfig.SKILLS_LOCATION_KEY] = value;
 	};
 
-	// Stubs workspace context service with the given folder paths
 	const setWorkspaceFolders = (paths: string[]) => {
 		const workspaceFolders = paths.map((path, index) => {
 			const uri = URI.file(path);
@@ -115,7 +106,6 @@ suite('PromptFilesLocator', () => {
 		workspaceTrustService = disposables.add(new TestWorkspaceTrustManagementService());
 		instantiationService.stub(IWorkspaceTrustManagementService, workspaceTrustService);
 
-		// Reset config values to defaults
 		for (const key of Object.keys(configValues)) {
 			delete configValues[key];
 		}
@@ -1284,15 +1274,12 @@ suite('PromptFilesLocator', () => {
 				assertOutcome(
 					await locator.listFiles(PromptsType.prompt, PromptsStorage.local, CancellationToken.None),
 					[
-						// all of these are due to the `.github/prompts` setting
 						'/Users/legomushroom/repos/vscode/.github/prompts/default.prompt.md',
 						'/Users/legomushroom/repos/node/.github/prompts/refactor-static-classes.prompt.md',
 						'/var/shared/prompts/.github/prompts/prompt-name.prompt.md',
 						'/var/shared/prompts/.github/prompts/name-of-the-prompt.prompt.md',
-						// all of these are due to the `/Users/legomushroom/repos/**/*test*` setting
 						'/Users/legomushroom/repos/prompts/test.prompt.md',
 						'/Users/legomushroom/repos/prompts/refactor-tests.prompt.md',
-						// this one is due to the specific `/absolute/path/prompts/some-prompt-file.prompt.md` setting
 						'/absolute/path/prompts/some-prompt-file.prompt.md',
 					],
 					'Must find correct prompts.',
@@ -1376,7 +1363,6 @@ suite('PromptFilesLocator', () => {
 								'/Users/legomushroom/repos/vscode/gen/text/nested/specific.prompt.md',
 								'/Users/legomushroom/repos/vscode/gen/text/nested/unspecific1.prompt.md',
 								'/Users/legomushroom/repos/vscode/gen/text/nested/unspecific2.prompt.md',
-								// -
 								'/Users/legomushroom/repos/prompts/general/common.prompt.md',
 								'/Users/legomushroom/repos/prompts/general/uncommon-10.prompt.md',
 							],
@@ -1554,7 +1540,6 @@ suite('PromptFilesLocator', () => {
 								'/Users/legomushroom/repos/vscode/gen/text/nested/specific.prompt.md',
 								'/Users/legomushroom/repos/vscode/gen/text/nested/unspecific1.prompt.md',
 								'/Users/legomushroom/repos/vscode/gen/text/nested/unspecific2.prompt.md',
-								// -
 								'/Users/legomushroom/repos/prompts/general/common.prompt.md',
 								'/Users/legomushroom/repos/prompts/general/uncommon-10.prompt.md',
 							],
@@ -1651,7 +1636,6 @@ suite('PromptFilesLocator', () => {
 								'/Users/legomushroom/repos/vscode/gen/text/nested/specific.prompt.md',
 								'/Users/legomushroom/repos/vscode/gen/text/nested/unspecific1.prompt.md',
 								'/Users/legomushroom/repos/vscode/gen/text/nested/unspecific2.prompt.md',
-								// -
 								'/Users/legomushroom/repos/prompts/general/common.prompt.md',
 								'/Users/legomushroom/repos/prompts/general/uncommon-10.prompt.md',
 							],
@@ -1859,7 +1843,6 @@ suite('PromptFilesLocator', () => {
 								'/Users/legomushroom/repos/vscode/gen/text/nested/specific.prompt.md',
 								'/Users/legomushroom/repos/vscode/gen/text/nested/unspecific1.prompt.md',
 								'/Users/legomushroom/repos/vscode/gen/text/nested/unspecific2.prompt.md',
-								// -
 								'/Users/legomushroom/repos/prompts/general/common.prompt.md',
 								'/Users/legomushroom/repos/prompts/general/uncommon-10.prompt.md',
 							],
@@ -1918,7 +1901,6 @@ suite('PromptFilesLocator', () => {
 			testT('finds skill files in configured locations', async () => {
 				setLocations({
 					'.claude/skills': true,
-					// disable other defaults
 					'.github/skills': false,
 					'~/.copilot/skills': false,
 					'~/.claude/skills': false,
@@ -1950,7 +1932,6 @@ suite('PromptFilesLocator', () => {
 			testT('ignores folders without SKILL.md', async () => {
 				setLocations({
 					'.claude/skills': true,
-					// disable other defaults
 					'.github/skills': false,
 					'~/.copilot/skills': false,
 					'~/.claude/skills': false,
@@ -1985,7 +1966,6 @@ suite('PromptFilesLocator', () => {
 			testT('returns empty array when no skills exist', async () => {
 				setLocations({
 					'.claude/skills': true,
-					// disable other defaults
 					'.github/skills': false,
 					'~/.copilot/skills': false,
 					'~/.claude/skills': false,
@@ -2005,7 +1985,6 @@ suite('PromptFilesLocator', () => {
 			testT('returns empty array when skill folder does not exist', async () => {
 				setLocations({
 					'.claude/skills': true,
-					// disable other defaults
 					'.github/skills': false,
 					'~/.copilot/skills': false,
 					'~/.claude/skills': false,
@@ -2025,7 +2004,6 @@ suite('PromptFilesLocator', () => {
 			testT('finds skills across multiple workspace folders', async () => {
 				setLocations({
 					'.claude/skills': true,
-					// disable other defaults
 					'.github/skills': false,
 					'~/.copilot/skills': false,
 					'~/.claude/skills': false,
@@ -2062,7 +2040,6 @@ suite('PromptFilesLocator', () => {
 			testT('does not list skills when location is disabled', async () => {
 				setLocations({
 					'.claude/skills': false,
-					// disable other defaults
 					'.github/skills': false,
 					'~/.copilot/skills': false,
 					'~/.claude/skills': false,
@@ -2091,7 +2068,6 @@ suite('PromptFilesLocator', () => {
 					'skills/**': true,
 					'skills/*': true,
 					'**/skills': true,
-					// disable defaults
 					'.github/skills': false,
 					'.agents/skills': false,
 					'.claude/skills': false,
@@ -2114,7 +2090,6 @@ suite('PromptFilesLocator', () => {
 			testT('rejects absolute paths in skill paths via getConfigBasedSourceFolders', async () => {
 				setLocations({
 					'/absolute/path/skills': true,
-					// disable defaults
 					'.github/skills': false,
 					'.agents/skills': false,
 					'.claude/skills': false,
@@ -2138,7 +2113,6 @@ suite('PromptFilesLocator', () => {
 				setLocations({
 					'./my-skills': true,
 					'custom/skills': true,
-					// disable defaults
 					'.github/skills': false,
 					'.agents/skills': false,
 					'.claude/skills': false,
@@ -2164,7 +2138,6 @@ suite('PromptFilesLocator', () => {
 			testT('accepts parent relative paths for monorepos via getConfigBasedSourceFolders', async () => {
 				setLocations({
 					'../shared-skills': true,
-					// disable defaults
 					'.github/skills': false,
 					'.agents/skills': false,
 					'.claude/skills': false,
@@ -2189,7 +2162,6 @@ suite('PromptFilesLocator', () => {
 			testT('accepts tilde paths for user home skills', async () => {
 				setLocations({
 					'~/my-skills': true,
-					// disable defaults
 					'.github/skills': false,
 					'.agents/skills': false,
 					'.claude/skills': false,
@@ -2217,7 +2189,6 @@ suite('PromptFilesLocator', () => {
 				setLocations({
 					'.claude/skills': true,
 					'custom-skills': true,
-					// explicitly disable other defaults we don't want for this test
 					'.github/skills': false,
 					'.agents/skills': false,
 					'~/.copilot/skills': false,
@@ -2247,9 +2218,8 @@ suite('PromptFilesLocator', () => {
 			testT('filters out invalid skill paths from source folders', async () => {
 				setLocations({
 					'.claude/skills': true,
-					'skills/**': true, // glob - should be filtered out
-					'/absolute/skills': true, // absolute - should be filtered out
-					// explicitly disable other defaults we don't want for this test
+					'skills/**': true,
+					'/absolute/skills': true,
 					'.github/skills': false,
 					'.agents/skills': false,
 					'~/.copilot/skills': false,
@@ -2282,14 +2252,12 @@ suite('PromptFilesLocator', () => {
 				assertOutcome(
 					folders,
 					[
-						// defaults
 						'/Users/legomushroom/repos/vscode/.agents/skills',
 						'/Users/legomushroom/repos/vscode/.github/skills',
 						'/Users/legomushroom/repos/vscode/.claude/skills',
 						'/Users/legomushroom/.agents/skills',
 						'/Users/legomushroom/.copilot/skills',
 						'/Users/legomushroom/.claude/skills',
-						// custom
 						'/Users/legomushroom/repos/vscode/custom-skills',
 					],
 					'Must include default skill source folders.',
@@ -2429,11 +2397,9 @@ suite('PromptFilesLocator', () => {
 
 		testT('rejects absolute paths', async () => {
 			const invalidPaths = [
-				// Unix absolute paths
 				'/Users/username/skills',
 				'/absolute/path',
 				'/usr/local/skills',
-				// Windows absolute paths
 				'C:\\Users\\skills',
 				'D:/skills',
 				'c:\\folder',
@@ -2453,7 +2419,6 @@ suite('PromptFilesLocator', () => {
 				'~abc',
 				'~skills',
 				'~.config',
-				// Windows-style backslash paths are not supported for cross-platform sharing
 				'~\\folder',
 				'~\\.copilot\\skills',
 			];
@@ -2708,7 +2673,6 @@ suite('PromptFilesLocator', () => {
 			const locator = instantiationService.createInstance(PromptFilesLocator);
 
 			const source = new CancellationTokenSource();
-			// Cancel immediately
 			source.cancel();
 			const result = (await locator.findAgentMDsInWorkspace(source.token)).map(f => f.uri);
 			assertOutcome(
@@ -2723,7 +2687,6 @@ suite('PromptFilesLocator', () => {
 	suite('getWorkspaceFolderRoots', () => {
 		let locator: PromptFilesLocator;
 
-		// Override setWorkspaceFolders to also create the locator
 		const setWorkspaceFoldersForRoots = (paths: string[]) => {
 			setWorkspaceFolders(paths);
 			locator = instantiationService.createInstance(PromptFilesLocator);
@@ -2804,10 +2767,6 @@ suite('PromptFilesLocator', () => {
 		});
 
 		testT('excludes vscode-agent-host workspace folders', async () => {
-			// Agent host folders surface customizations through AHP, not via
-			// filesystem scanning. Including them here would issue a `resourceList`
-			// JSON-RPC per configured location for every nonexistent `.github` /
-			// `.claude` folder on the remote.
 			const localFolder = URI.file('/repos/local-project');
 			const agentHostFolder = URI.from({ scheme: 'vscode-agent-host', authority: 'remote', path: '/repos/remote-project' });
 			const folders = [localFolder, agentHostFolder].map((uri, index) => new class extends mock<IWorkspaceFolder>() {
@@ -2848,7 +2807,6 @@ suite('PromptFilesLocator', () => {
 			configValues[PromptsConfig.HOOKS_LOCATION_KEY] = {
 				'.github/hooks': true,
 				'~/.copilot/hooks': true,
-				// disable Claude paths (which are filtered out anyway)
 				'.claude/settings.json': false,
 				'.claude/settings.local.json': false,
 				'~/.claude/settings.json': false,
@@ -2882,7 +2840,6 @@ suite('PromptFilesLocator', () => {
 
 			const folders = await locator.getHookSourceFolders();
 
-			// Claude paths should be filtered out
 			const paths = folders.map(f => f.uri.path);
 			assert.ok(!paths.some(p => p.includes('.claude')), 'Claude paths must be excluded');
 			assert.deepStrictEqual(paths, [
@@ -2903,13 +2860,10 @@ suite('PromptFilesLocator', () => {
 			};
 			setWorkspaceFolders(['/Users/legomushroom/repos/vscode']);
 			await mockFiles(fileService, [
-				// targeted files that should be found
 				{ path: '/Users/legomushroom/repos/vscode/.claude/settings.json', contents: ['{}'] },
 				{ path: '/Users/legomushroom/repos/vscode/.claude/settings.local.json', contents: ['{}'] },
-				// sibling files in .claude/ that should NOT be found
 				{ path: '/Users/legomushroom/repos/vscode/.claude/config.json', contents: ['{}'] },
 				{ path: '/Users/legomushroom/repos/vscode/.claude/stats-cache.json', contents: ['{}'] },
-				// hook directory files that should be found
 				{ path: '/Users/legomushroom/repos/vscode/.github/hooks/pre-commit.json', contents: ['{}'] },
 			]);
 			const locator = instantiationService.createInstance(PromptFilesLocator);
@@ -2932,12 +2886,9 @@ suite('PromptFilesLocator', () => {
 			};
 			setWorkspaceFolders(['/Users/legomushroom/repos/vscode']);
 			await mockFiles(fileService, [
-				// targeted user file
 				{ path: '/Users/legomushroom/.claude/settings.json', contents: ['{}'] },
-				// sibling files that should NOT be found
 				{ path: '/Users/legomushroom/.claude/config.json', contents: ['{}'] },
 				{ path: '/Users/legomushroom/.claude/stats-cache.json', contents: ['{}'] },
-				// hook directory files
 				{ path: '/Users/legomushroom/.copilot/hooks/my-hook.json', contents: ['{}'] },
 			]);
 			const locator = instantiationService.createInstance(PromptFilesLocator);

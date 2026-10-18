@@ -129,7 +129,6 @@ class RecordingWorktreeIsolation extends NullAgentHostWorktreeIsolation {
 	}
 }
 
-/** Reads a string field from a recorded telemetry payload without asserting its shape. */
 function readEventDataString(data: unknown, key: string): string | undefined {
 	if (typeof data !== 'object' || data === null) {
 		return undefined;
@@ -693,7 +692,7 @@ function createContributions(disposables: ReturnType<typeof ensureNoDisposablesA
 	const logService = new NullLogService();
 	const instantiationService = disposables.add(new InstantiationService(new ServiceCollection(
 		[ILogService, logService],
-	), /*strict*/ true));
+	), true));
 	const service = new AgentHostChatContributions(logService, instantiationService);
 	for (const contribution of contributions) {
 		disposables.add(service.registerContribution(contribution));
@@ -736,7 +735,7 @@ function createSideChatContributions(disposables: ReturnType<typeof ensureNoDisp
 		[ILogService, logService],
 		[IAgentHostStateManager, stateManager],
 		[IAgentHostLocalTurns, localTurns],
-	), /*strict*/ true));
+	), true));
 	const service: IAgentHostChatContributions = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 	disposables.add(service.registerContribution(SideChatContribution));
 	return { service, stateManager, session, sourceChat, sideChat, localTurns };
@@ -767,7 +766,7 @@ function createSessionTitleContributions(disposables: ReturnType<typeof ensureNo
 		[ISessionDataService, sessionDataService],
 		[IAgentHostSessionTitleController, titleController],
 	);
-	const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+	const instantiationService = disposables.add(new InstantiationService(services, true));
 	const service: IAgentHostChatContributions = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 	disposables.add(service.registerContribution(SessionTitleContribution));
 	return { service, stateManager, database, titleController, session, defaultChat, peerChat };
@@ -781,7 +780,7 @@ function createTurnDelegationContributions(disposables: ReturnType<typeof ensure
 		[ILogService, logService],
 		[ISessionDataService, sessionDataService],
 	);
-	const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+	const instantiationService = disposables.add(new InstantiationService(services, true));
 	const service: IAgentHostChatContributions = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 	disposables.add(service.registerContribution(TurnDelegationContribution));
 	const session = 'copilot:/target';
@@ -845,7 +844,7 @@ function createBuiltInContributions(disposables: ReturnType<typeof ensureNoDispo
 	const queueAgent = new MockAgent();
 	services.set(IAgentHostProviderService, createTestAgentHostProviderService(() => queueAgent));
 	services.set(IAgentHostLocalTurns, new AgentHostLocalTurns(sessionDataService, logService));
-	const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+	const instantiationService = disposables.add(new InstantiationService(services, true));
 	const service = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 	services.set(IAgentHostChatContributions, service);
 	const telemetryReporter = new AgentHostTelemetryReporter(new RecordingTelemetryService());
@@ -898,7 +897,7 @@ function createQueueDrainContributions(disposables: ReturnType<typeof ensureNoDi
 	mockAgent.setPendingMessages = (_chat, steeringMessage) => pendingMessages.push(steeringMessage);
 	services.set(IAgentHostProviderService, createTestAgentHostProviderService(() => agent));
 	services.set(IAgentHostLocalTurns, new AgentHostLocalTurns(sessionDataService, logService));
-	const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+	const instantiationService = disposables.add(new InstantiationService(services, true));
 	const service = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 	services.set(IAgentHostChatContributions, service);
 	const titleController = new RecordingTitleController(undefined, undefined);

@@ -71,7 +71,6 @@ class GitHubGistProfileContentHandler implements vscode.ProfileContentHandler {
 				return gist.data.files[Object.keys(gist.data.files)[0]]?.content ?? null;
 			}
 		} catch (error) {
-			// ignore
 		}
 		return null;
 	}

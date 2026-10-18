@@ -15,7 +15,6 @@ class TestPolicyService extends AbstractPolicyService {
 	}
 
 	protected async _updatePolicyDefinitions(_policyDefinitions: IStringDictionary<PolicyDefinition>): Promise<void> {
-		// no-op: the OS/file watcher is irrelevant for serialization tests
 	}
 }
 
@@ -39,15 +38,11 @@ suite('AbstractPolicyService', () => {
 
 		const serialized = service.serialize();
 
-		// The callback must not survive serialization...
 		assert.strictEqual(typeof serialized['WithCallback'].definition.value, 'undefined');
-		// ...while the structured-clone-safe metadata is preserved.
 		assert.strictEqual(serialized['WithCallback'].definition.type, 'boolean');
 		assert.strictEqual(serialized['WithCallback'].definition.restrictedValue, false);
 		assert.strictEqual(serialized['PlainDefinition'].definition.type, 'string');
 
-		// The whole payload must be structured-clone-safe (this is how it is delivered to the
-		// renderer as part of the window configuration's policiesData).
 		assert.doesNotThrow(() => structuredClone(serialized));
 
 		service.dispose();

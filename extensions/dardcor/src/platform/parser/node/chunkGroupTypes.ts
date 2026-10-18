@@ -5,9 +5,6 @@
 
 import { TreeSitterChunkHeaderInfo, TreeSitterOffsetRange } from './nodes';
 
-/**
- * For workspace semantic chunking
- */
 
 export interface GenericDetail extends DetailBlock {
 	comments: TreeSitterChunkHeaderInfo[];
@@ -35,29 +32,13 @@ export interface QueryMatchNode<DetailType extends DetailBlock> {
 	children: QueryMatchNode<DetailType>[];
 }
 
-/**
- * This tree is like the `Parser.SyntaxTree` that we have when we use TreeSitter to parse,
- * but it only has the `MatchGroups` that get passed into the constructor.
- *
- * It sorts the `MatchGroups` into its own hierarchy.
- *
- * This assumes that the constructor's `blockInfos` are a part of the same syntax tree.
- */
 export class QueryMatchTree<DetailType extends DetailBlock> {
 
 	public roots: QueryMatchNode<DetailType>[] = [];
 
-	/**
-	 * @remark mutates the passed `groups`
-	 */
 	constructor(groups: MatchGroup<DetailType>[], public readonly syntaxTreeRoot: TreeSitterChunkHeaderInfo) {
 		this.formTree(groups);
 	}
-	/**
-	 * This assumes that overlapping blocks imply that one fully overlaps another.
-	 * Runs with the same assumptions as `removeOverlapping`.
-	 * @param groups to use as node content in the tree
-	 */
 	private formTree(groups: MatchGroup<DetailType>[]) {
 		groups
 			.sort((a, b) => a.mainBlock.startIndex - b.mainBlock.startIndex || a.mainBlock.endIndex - b.mainBlock.endIndex);
@@ -87,7 +68,6 @@ export class QueryMatchTree<DetailType extends DetailBlock> {
 			}
 
 			if (hasEqualRange(currParent.info, group)) {
-				// any duplicate nodes will always be one after another
 				continue;
 			}
 
@@ -110,9 +90,6 @@ export class QueryMatchTree<DetailType extends DetailBlock> {
 
 }
 
-/**
- * A tree of block names that would appear in semantic chunks.
- */
 
 export interface BlockNameNode {
 	name: string;

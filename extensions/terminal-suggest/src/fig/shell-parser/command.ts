@@ -122,7 +122,6 @@ export const substituteAlias = (
 
 	const commandBuffer = `${preAliasText}${alias}${postAliasText}`;
 
-	// Parse command and shift indices to align with original command.
 	const parseTree = shiftByAmount(parse(commandBuffer), tree.startIndex);
 
 	if (parseTree.children.length !== 1) {
@@ -138,7 +137,6 @@ export const substituteAlias = (
 
 	let tokenIndexDiff = 0;
 	let lastTokenInAlias = false;
-	// Map tokens from new command back to old command to attributing the correct original nodes.
 	const tokens = newCommand.tokens.map((newToken, index) => {
 		const tokenInAlias =
 			aliasStart < newToken.node.endIndex &&
@@ -168,7 +166,6 @@ export const expandCommand = (
 	let expanded = command;
 	const usedAliases = new Set();
 
-	// Check for aliases
 	let [name] = expanded.tokens;
 	while (
 		expanded.tokens.length > 1 &&
@@ -176,13 +173,10 @@ export const expandCommand = (
 		aliases[name.text] &&
 		!usedAliases.has(name.text)
 	) {
-		// Remove quotes
 		const aliasValue = aliases[name.text].replace(/^'(.*)'$/g, '$1');
 		try {
 			expanded = substituteAlias(expanded, name, aliasValue);
 		} catch (_err) {
-			// TODO(refactoring): add logger again
-			// console.error('Error substituting alias');
 		}
 		usedAliases.add(name.text);
 		[name] = expanded.tokens;

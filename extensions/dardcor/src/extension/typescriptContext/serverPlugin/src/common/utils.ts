@@ -271,7 +271,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
 	}
 
 	private addItemFirst(item: Item<K, V>): void {
-		// First time Insert
 		if (!this._head && !this._tail) {
 			this._tail = item;
 		} else if (!this._head) {
@@ -285,7 +284,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
 	}
 
 	private addItemLast(item: Item<K, V>): void {
-		// First time Insert
 		if (!this._head && !this._tail) {
 			this._head = item;
 		} else if (!this._tail) {
@@ -304,8 +302,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			this._tail = undefined;
 		}
 		else if (item === this._head) {
-			// This can only happen if size === 1 which is handled
-			// by the case above.
 			if (!item.next) {
 				throw new Error('Invalid list');
 			}
@@ -313,8 +309,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			this._head = item.next;
 		}
 		else if (item === this._tail) {
-			// This can only happen if size === 1 which is handled
-			// by the case above.
 			if (!item.previous) {
 				throw new Error('Invalid list');
 			}
@@ -351,20 +345,15 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			const next = item.next;
 			const previous = item.previous;
 
-			// Unlink the item
 			if (item === this._tail) {
-				// previous must be defined since item was not head but is tail
-				// So there are more than on item in the map
 				previous!.next = undefined;
 				this._tail = previous;
 			}
 			else {
-				// Both next and previous are not undefined since item was neither head nor tail.
 				next!.previous = previous;
 				previous!.next = next;
 			}
 
-			// Insert the node at head
 			item.previous = undefined;
 			item.next = this._head;
 			this._head.previous = item;
@@ -378,14 +367,10 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			const next = item.next;
 			const previous = item.previous;
 
-			// Unlink the item.
 			if (item === this._head) {
-				// next must be defined since item was not tail but is head
-				// So there are more than on item in the map
 				next!.previous = undefined;
 				this._head = next;
 			} else {
-				// Both next and previous are not undefined since item was neither head nor tail.
 				next!.previous = previous;
 				previous!.next = next;
 			}

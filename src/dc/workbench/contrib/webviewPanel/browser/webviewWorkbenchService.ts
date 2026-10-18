@@ -29,22 +29,11 @@ export interface IWebViewShowOptions {
 
 export const IWebviewWorkbenchService = createDecorator<IWebviewWorkbenchService>('webviewEditorService');
 
-/**
- * Service responsible for showing and managing webview editors in the workbench.
- */
 export interface IWebviewWorkbenchService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Event fired when focus switches to a different webview editor.
-	 *
-	 * Fires `undefined` if focus switches to a non-webview editor.
-	 */
 	readonly onDidChangeActiveWebviewEditor: Event<WebviewInput | undefined>;
 
-	/**
-	 * Create a new webview editor and open it in the workbench.
-	 */
 	openWebview(
 		webviewInitInfo: WebviewInitInfo,
 		viewType: string,
@@ -53,9 +42,6 @@ export interface IWebviewWorkbenchService {
 		showOptions: IWebViewShowOptions,
 	): WebviewInput;
 
-	/**
-	 * Open a webview that is being restored from serialization.
-	 */
 	openRevivedWebview(options: {
 		webviewInitInfo: WebviewInitInfo;
 		viewType: string;
@@ -65,45 +51,22 @@ export interface IWebviewWorkbenchService {
 		group: number | undefined;
 	}): WebviewInput;
 
-	/**
-	 * Reveal an already opened webview editor in the workbench.
-	 */
 	revealWebview(
 		webview: WebviewInput,
 		group: IEditorGroup | GroupIdentifier | ACTIVE_GROUP_TYPE | SIDE_GROUP_TYPE,
 		preserveFocus: boolean
 	): void;
 
-	/**
-	 * Register a new {@link WebviewResolver}.
-	 *
-	 * If there are any webviews awaiting revival that this resolver can handle, they will be resolved by it.
-	 */
 	registerResolver(resolver: WebviewResolver): IDisposable;
 
-	/**
-	 * Check if a webview should be serialized across window reloads.
-	 */
 	shouldPersist(input: WebviewInput): boolean;
 
-	/**
-	 * Try to resolve a webview. This will block until a resolver is registered for the webview.
-	 */
 	resolveWebview(webview: WebviewInput, token: CancellationToken): Promise<void>;
 }
 
-/**
- * Handles filling in the content of webview before it can be shown to the user.
- */
 interface WebviewResolver {
-	/**
-	 * Returns true if the resolver can resolve the given webview.
-	 */
 	canResolve(webview: WebviewInput): boolean;
 
-	/**
-	 * Resolves the webview.
-	 */
 	resolveWebview(webview: WebviewInput, token: CancellationToken): Promise<void>;
 }
 
@@ -224,7 +187,6 @@ export class WebviewEditorService extends Disposable implements IWebviewWorkbenc
 			this.updateActiveWebview();
 		}));
 
-		// The user may have switched focus between two sides of a diff editor
 		this._register(_webviewService.onDidChangeActiveWebview(() => {
 			this.updateActiveWebview();
 		}));
@@ -283,8 +245,6 @@ export class WebviewEditorService extends Disposable implements IWebviewWorkbenc
 		this._editorService.openEditor(webviewInput, {
 			pinned: true,
 			preserveFocus: showOptions.preserveFocus,
-			// preserve pre 1.38 behaviour to not make group active when preserveFocus: true
-			// but make sure to restore the editor to fix https://github.com/microsoft/vscode/issues/79633
 			activation: showOptions.preserveFocus ? EditorActivation.RESTORE : undefined
 		}, showOptions.group);
 		return webviewInput;
@@ -299,8 +259,6 @@ export class WebviewEditorService extends Disposable implements IWebviewWorkbenc
 
 		this._editorService.openEditor(topLevelEditor, {
 			preserveFocus,
-			// preserve pre 1.38 behaviour to not make group active when preserveFocus: true
-			// but make sure to restore the editor to fix https://github.com/microsoft/vscode/issues/79633
 			activation: preserveFocus ? EditorActivation.RESTORE : undefined
 		}, group);
 	}
@@ -357,8 +315,6 @@ export class WebviewEditorService extends Disposable implements IWebviewWorkbenc
 	}
 
 	public shouldPersist(webview: WebviewInput): boolean {
-		// Revived webviews may not have an actively registered reviver but we still want to persist them
-		// since a reviver should exist when it is actually needed.
 		if (webview instanceof LazilyResolvedWebviewEditorInput) {
 			return true;
 		}
@@ -379,7 +335,6 @@ export class WebviewEditorService extends Disposable implements IWebviewWorkbenc
 	public async resolveWebview(webview: WebviewInput, token: CancellationToken): Promise<void> {
 		const didRevive = await this.tryRevive(webview, token);
 		if (!didRevive && !token.isCancellationRequested) {
-			// A reviver may not be registered yet. Put into pool and resolve promise when we can revive
 			return this._revivalPool.enqueueForRestoration(webview, token);
 		}
 	}

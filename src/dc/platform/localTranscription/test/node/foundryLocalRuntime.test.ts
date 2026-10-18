@@ -27,7 +27,7 @@ import {
 flakySuite('FoundryLocalRuntime', () => {
 
 	let testDir: string;
-	const platformKey = 'linux-x64'; // arbitrary; the cache layout is platform-key agnostic
+	const platformKey = 'linux-x64';
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
@@ -81,8 +81,6 @@ flakySuite('FoundryLocalRuntime', () => {
 	});
 
 	test('isRuntimeProvisioned: a different arch marker does not satisfy this arch', () => {
-		// A first run for another architecture wrote its marker + payload; this
-		// arch has neither and must not be considered provisioned.
 		writePayload(testDir, 'win32-x64');
 		writeMarker(testDir, 'win32-x64');
 		assert.strictEqual(isRuntimeProvisioned(testDir, platformKey), false);
@@ -109,7 +107,6 @@ flakySuite('FoundryLocalRuntime', () => {
 		fs.mkdirSync(from, { recursive: true });
 		fs.writeFileSync(join(from, 'file'), 'loser');
 
-		// Loser's promote must not clobber the winner and must not throw.
 		await promoteDir(from, to);
 
 		assert.strictEqual(fs.readFileSync(join(to, 'file'), 'utf8'), 'winner');
@@ -145,13 +142,7 @@ flakySuite('FoundryLocalRuntime', () => {
 		});
 	});
 
-	// --- provisionRuntime: download + {target} substitution + extract + verify ---
 
-	/**
-	 * Build a runtime tarball fixture (`<target>.tgz`) whose internal layout
-	 * matches what `provisionRuntime` extracts and verifies. Set `omitCoreLib`
-	 * to leave one required core library out (an incomplete/corrupt payload).
-	 */
 	async function makeTarball(key: string, opts?: { omitCoreLib?: boolean }): Promise<string> {
 		const src = join(testDir, `src-${key}`);
 		fs.mkdirSync(join(src, 'prebuilds', key), { recursive: true });
@@ -167,10 +158,6 @@ flakySuite('FoundryLocalRuntime', () => {
 		return tgz;
 	}
 
-	/**
-	 * Serve `/<name>` → the file at `files[name]` (200), everything else 404.
-	 * Records requested paths so `{target}` substitution can be asserted.
-	 */
 	async function startServer(files: Record<string, string>): Promise<{ url: string; requested: string[]; dispose: () => Promise<void> }> {
 		const http = await import('http');
 		const requested: string[] = [];
@@ -202,9 +189,7 @@ flakySuite('FoundryLocalRuntime', () => {
 			const overrideDir = join(testDir, '1.2.3');
 			await provisionRuntime(overrideDir, platformKey, `${server.url}/{target}.tgz`, '1.2.3', CancellationToken.None);
 
-			// {target} was substituted with the platform key in the request URL.
 			assert.deepStrictEqual(server.requested, [`${platformKey}.tgz`]);
-			// Payload extracted into the cache layout + completion marker written.
 			assert.strictEqual(fs.existsSync(join(overrideDir, 'prebuilds', platformKey, 'foundry_local_napi.node')), true);
 			for (const name of requiredCoreLibraryNames()) {
 				assert.strictEqual(fs.existsSync(join(overrideDir, 'foundry-local-core', platformKey, name)), true);

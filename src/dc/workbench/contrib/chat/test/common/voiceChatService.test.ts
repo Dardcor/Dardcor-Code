@@ -170,7 +170,6 @@ suite('VoiceChat', () => {
 
 	async function testAgentsAndSlashCommandsDetection(options: IVoiceChatSessionOptions) {
 
-		// Nothing to detect
 		await createSession(options);
 
 		emitter.fire({ status: SpeechToTextStatus.Started });
@@ -191,7 +190,6 @@ suite('VoiceChat', () => {
 		assert.strictEqual(event?.text, 'Hello World');
 		assert.strictEqual(event?.waitingForInput, undefined);
 
-		// Agent
 		await createSession(options);
 
 		emitter.fire({ status: SpeechToTextStatus.Recognizing, text: 'At' });
@@ -218,7 +216,6 @@ suite('VoiceChat', () => {
 		assert.strictEqual(event?.text, options.usesAgents ? '@workspace help' : 'At workspace help');
 		assert.strictEqual(event?.waitingForInput, false);
 
-		// Agent with punctuation
 		await createSession(options);
 
 		emitter.fire({ status: SpeechToTextStatus.Recognizing, text: 'At workspace, help' });
@@ -243,7 +240,6 @@ suite('VoiceChat', () => {
 		assert.strictEqual(event?.text, options.usesAgents ? '@workspace help' : 'At Workspace. help');
 		assert.strictEqual(event?.waitingForInput, false);
 
-		// Slash Command
 		await createSession(options);
 
 		emitter.fire({ status: SpeechToTextStatus.Recognizing, text: 'Slash fix' });
@@ -256,7 +252,6 @@ suite('VoiceChat', () => {
 		assert.strictEqual(event?.text, options.usesAgents ? '@workspace /fix' : '/fix');
 		assert.strictEqual(event?.waitingForInput, true);
 
-		// Agent + Slash Command
 		await createSession(options);
 
 		emitter.fire({ status: SpeechToTextStatus.Recognizing, text: 'At code slash search help' });
@@ -269,7 +264,6 @@ suite('VoiceChat', () => {
 		assert.strictEqual(event?.text, options.usesAgents ? '@vscode /search help' : 'At code slash search help');
 		assert.strictEqual(event?.waitingForInput, false);
 
-		// Agent + Slash Command with punctuation
 		await createSession(options);
 
 		emitter.fire({ status: SpeechToTextStatus.Recognizing, text: 'At code, slash search, help' });
@@ -294,7 +288,6 @@ suite('VoiceChat', () => {
 		assert.strictEqual(event?.text, options.usesAgents ? '@vscode /search help' : 'At code. slash search, help');
 		assert.strictEqual(event?.waitingForInput, false);
 
-		// Agent not detected twice
 		await createSession(options);
 
 		emitter.fire({ status: SpeechToTextStatus.Recognizing, text: 'At workspace, for at workspace' });
@@ -307,7 +300,6 @@ suite('VoiceChat', () => {
 		assert.strictEqual(event?.text, options.usesAgents ? '@workspace for at workspace' : 'At workspace, for at workspace');
 		assert.strictEqual(event?.waitingForInput, false);
 
-		// Slash command detected after agent recognized
 		if (options.usesAgents) {
 			await createSession(options);
 
@@ -347,7 +339,6 @@ suite('VoiceChat', () => {
 
 	test('waiting for input', async () => {
 
-		// Agent
 		await createSession({ usesAgents: true, model: {} as IChatModel });
 
 		emitter.fire({ status: SpeechToTextStatus.Recognizing, text: 'At workspace' });
@@ -360,7 +351,6 @@ suite('VoiceChat', () => {
 		assert.strictEqual(event?.text, '@workspace');
 		assert.strictEqual(event.waitingForInput, true);
 
-		// Slash Command
 		await createSession({ usesAgents: true, model: {} as IChatModel });
 
 		emitter.fire({ status: SpeechToTextStatus.Recognizing, text: 'At workspace slash explain' });

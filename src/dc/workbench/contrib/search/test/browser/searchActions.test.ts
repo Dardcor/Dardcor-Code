@@ -107,7 +107,6 @@ suite('Search Actions', () => {
 		const data = [fileMatch1, aMatch(fileMatch1)];
 		const tree = aTree(data);
 		const target = data[0];
-		// const testObject: ReplaceAction = instantiationService.createInstance(ReplaceAction, tree, target, null);
 
 		const actual = await getElementToFocusAfterRemoved(tree, target, []);
 		assert.strictEqual(undefined, actual);

@@ -84,8 +84,6 @@ export class LintErrors {
 
 		const activeDocUri = this._documentId.toUri();
 		const formattedDiagnostics = allDiagnostics.map(d => {
-			// Only show code context for diagnostics from the current file,
-			// since we don't have the document lines for recent files.
 			const isCurrentFile = isEqual(d.documentUri, activeDocUri);
 			const effectiveOptions = isCurrentFile ? options : { ...options, showCode: LintOptionShowCode.NO };
 			return formatSingleDiagnostic(d, this._document.lines, effectiveOptions);
@@ -95,10 +93,6 @@ export class LintErrors {
 		return `${lintTag.start}\n${formattedDiagnostics}\n${lintTag.end}`;
 	}
 
-	/**
-	 * Collects URIs of the N most recently edited/viewed files from xtab history,
-	 * excluding the current document. Files are selected in recency order.
-	 */
 	private _collectRecentFileUris(nRecentFiles: number): URI[] {
 		if (!this._xtabHistory) {
 			return [];
@@ -108,7 +102,6 @@ export class LintErrors {
 		const seenDocuments = new Set<DocumentId>();
 		const activeDocId = this._documentId;
 
-		// Iterate from most recent (end) to least recent (start)
 		for (let i = this._xtabHistory.length - 1; i >= 0; --i) {
 			const entry = this._xtabHistory[i];
 
@@ -127,17 +120,12 @@ export class LintErrors {
 		return result;
 	}
 
-	/**
-	 * Collects diagnostics from recent files, maintaining the file recency order.
-	 * Within each file, diagnostics are sorted by line number.
-	 */
 	private _getRecentFileDiagnostics(recentFileUris: readonly URI[], options: LintOptions): readonly DiagnosticDataWithDistance[] {
 		const result: DiagnosticDataWithDistance[] = [];
 
 		for (const uri of recentFileUris) {
 			let fileDiags = this._diagnostics(uri);
 			fileDiags = filterDiagnosticsBySeverity(fileDiags, options.warnings);
-			// Sort by line number within each file
 			fileDiags = fileDiags.slice().sort((a, b) => a.documentRange.startLineNumber - b.documentRange.startLineNumber);
 			result.push(...fileDiags);
 		}
@@ -153,12 +141,10 @@ export class LintErrors {
 		const activeDocUri = this._documentId.toUri();
 
 		for (const diagnostic of this._previousFormttedDiagnostics) {
-			// Only consider diagnostics from the current file
 			if (!isEqual(diagnostic.documentUri, activeDocUri)) {
 				continue;
 			}
 
-			// Convert diagnostic position (1-based) to 0-based for comparison with formatted output
 			if (diagnostic.documentRange.getStartPosition().lineNumber - 1 === lineNumber) {
 				return true;
 			}
@@ -177,13 +163,12 @@ export class LintErrors {
 	}
 
 	public getData(): string {
-		// Create options with everything enabled for comprehensive telemetry
 		const telemetryOptions: LintOptions = {
 			tagName: 'telemetry',
 			warnings: LintOptionWarning.YES,
 			showCode: LintOptionShowCode.NO,
 			maxLints: Number.MAX_SAFE_INTEGER,
-			maxLineDistance: Number.MAX_SAFE_INTEGER, // Include all diagnostics regardless of distance
+			maxLineDistance: Number.MAX_SAFE_INTEGER,
 			nRecentFiles: 0,
 		};
 
@@ -212,9 +197,6 @@ export class LintErrors {
 	}
 }
 
-/**
- * Formats a single diagnostic with optional code context.
- */
 function formatSingleDiagnostic(
 	diagnostic: DiagnosticDataWithDistance,
 	documentLines: readonly string[],
@@ -231,7 +213,6 @@ function formatSingleDiagnostic(
 }
 
 function formatDiagnosticMessage(diagnostic: DiagnosticDataWithDistance, diagnosticRange: Range): string {
-	// Format: "line:column - severity CODE: message"
 	let codeStr = '';
 	if (diagnostic.code) {
 		const source = diagnostic.source ? diagnostic.source.toUpperCase() : '';
@@ -248,7 +229,6 @@ function formatCodeLines(diagnosticRange: Range, lintOptions: LintOptions, docum
 
 	const lineRange = lineRangeToInclude.intersect(new OffsetRange(0, documentLines.length));
 	if (!lineRange) {
-		// Diagnostic refers to lines that no longer exist (stale diagnostic after document edit)
 		return [];
 	}
 
@@ -260,8 +240,8 @@ function formatCodeLines(diagnosticRange: Range, lintOptions: LintOptions, docum
 }
 
 function diagnosticsToCodeLineRange(diagnosticRange: Range, lintOptions: LintOptions): OffsetRange {
-	const diagnosticStartLine = diagnosticRange.getStartPosition().lineNumber - 1; // 0-based for rendering and array access
-	const diagnosticEndLine = diagnosticRange.getEndPosition().lineNumber - 1; // 0-based for rendering and array access
+	const diagnosticStartLine = diagnosticRange.getStartPosition().lineNumber - 1;
+	const diagnosticEndLine = diagnosticRange.getEndPosition().lineNumber - 1;
 
 	let lineRangeToInclude = new OffsetRange(diagnosticStartLine, diagnosticEndLine + 1);
 	if (lintOptions.showCode === LintOptionShowCode.YES_WITH_SURROUNDING) {

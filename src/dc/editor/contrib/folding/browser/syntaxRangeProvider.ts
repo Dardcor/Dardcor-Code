@@ -31,7 +31,7 @@ export class SyntaxRangeProvider implements RangeProvider {
 		private readonly providers: FoldingRangeProvider[],
 		readonly handleFoldingRangesChange: () => void,
 		private readonly foldingRangesLimit: FoldingLimitReporter,
-		private readonly fallbackRangeProvider: RangeProvider | undefined // used when all providers return null
+		private readonly fallbackRangeProvider: RangeProvider | undefined
 	) {
 		this.disposables = new DisposableStore();
 		if (fallbackRangeProvider) {

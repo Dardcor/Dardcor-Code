@@ -52,17 +52,14 @@ export function listProcesses(rootPid: number): Promise<ProcessItem> {
 			const CONPTY = /conhost\.exe.+--headless/i;
 			const TYPE = /--type=([a-zA-Z-]+)/;
 
-			// find windows crash reporter
 			if (WINDOWS_CRASH_REPORTER.exec(cmd)) {
 				return 'electron-crash-reporter';
 			}
 
-			// find conpty process
 			if (CONPTY.exec(cmd)) {
 				return 'conpty-agent';
 			}
 
-			// find "--type=xxxx"
 			let matches = TYPE.exec(cmd);
 			if (matches && matches.length === 2) {
 				if (matches[1] === 'renderer') {
@@ -74,13 +71,13 @@ export function listProcesses(rootPid: number): Promise<ProcessItem> {
 
 					return 'utility-process';
 				} else if (matches[1] === 'extensionHost') {
-					return 'extension-host'; // normalize remote extension host type
+					return 'extension-host';
 				}
 				return matches[1];
 			}
 
 			if (cmd.indexOf('node ') < 0 && cmd.indexOf('node.exe') < 0) {
-				let result = ''; // find all xyz.js
+				let result = '';
 				do {
 					matches = JS_FILENAME_PATTERN.exec(cmd);
 					if (matches) {
@@ -157,11 +154,9 @@ export function listProcesses(rootPid: number): Promise<ProcessItem> {
 			});
 		}
 
-		// OS X & Linux
 		else {
 			function calculateLinuxCpuUsage() {
 
-				// Flatten rootItem to get a list of all VSCode processes
 				let processes = [rootItem];
 				const pids: number[] = [];
 				while (processes.length) {
@@ -174,9 +169,6 @@ export function listProcesses(rootPid: number): Promise<ProcessItem> {
 					}
 				}
 
-				// The cpu usage value reported on Linux is the average over the process lifetime,
-				// recalculate the usage over a one second interval
-				// JSON.stringify is needed to escape spaces, https://github.com/nodejs/node/issues/6803
 				let cmd = JSON.stringify(FileAccess.asFileUri('vs/base/node/cpuUsage.sh').fsPath);
 				cmd += ' ' + pids.join(' ');
 
@@ -219,9 +211,7 @@ export function listProcesses(rootPid: number): Promise<ProcessItem> {
 					const ps = stdout.toString().trim();
 					const args = '-ax -o pid=,ppid=,pcpu=,pmem=,command=';
 
-					// Set numeric locale to ensure '.' is used as the decimal separator
 					exec(`${ps} ${args}`, { maxBuffer: 1000 * 1024, env: { LC_NUMERIC: 'en_US.UTF-8' } }, (err, stdout, stderr) => {
-						// Silently ignoring the screen size is bogus error. See https://github.com/microsoft/vscode/issues/98590
 						if (err || (stderr && !stderr.includes('screen size is bogus'))) {
 							reject(err || new Error(stderr.toString()));
 						} else {

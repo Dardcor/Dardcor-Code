@@ -120,7 +120,6 @@ suite('Workbench - MCP - ResourceFilesystem', () => {
 
 		const dirStats = await fs.stat(URI.parse('mcp-resource://746573742D736572766572/custom/hello/'));
 		assert.strictEqual(dirStats.type, FileType.Directory);
-		// Size should be sum of all file contents in the directory
 		assert.strictEqual(dirStats.size, 'File 1'.length + 'File 2'.length);
 	});
 
@@ -186,7 +185,6 @@ suite('Workbench - MCP - ResourceFilesystem', () => {
 	});
 
 	test('watch file emits change events', async () => {
-		// Set up the responder for resource reading
 		transport.setResponder('resources/read', msg => {
 			const request = msg as { id: string | number; params: { uri: string } };
 			return {
@@ -200,7 +198,6 @@ suite('Workbench - MCP - ResourceFilesystem', () => {
 
 		const didSubscribe = new Barrier();
 
-		// Set up the responder for resource subscription
 		transport.setResponder('resources/subscribe', msg => {
 			const request = msg as { id: string | number };
 			didSubscribe.open();
@@ -214,17 +211,14 @@ suite('Workbench - MCP - ResourceFilesystem', () => {
 		const uri = URI.parse('mcp-resource://746573742D736572766572/custom/hello/file.txt');
 		const fileChanges: IFileChange[] = [];
 
-		// Create a listener for file change events
 		const disposable = fs.onDidChangeFile(events => {
 			fileChanges.push(...events);
 		});
 
-		// Start watching the file
 		const watchDisposable = fs.watch(uri, { excludes: [], recursive: false });
 
-		// Simulate a file update notification from the server
 		await didSubscribe.wait();
-		await timeout(10); // wait for listeners to attach
+		await timeout(10);
 
 		transport.simulateReceiveMessage({
 			jsonrpc: '2.0',
@@ -241,18 +235,16 @@ suite('Workbench - MCP - ResourceFilesystem', () => {
 			},
 		});
 
-		// Check that we received a file change event
 		assert.strictEqual(fileChanges.length, 1);
 		assert.strictEqual(fileChanges[0].type, FileChangeType.UPDATED);
 		assert.strictEqual(fileChanges[0].resource.toString(), uri.toString());
 
-		// Clean up
 		disposable.dispose();
 		watchDisposable.dispose();
 	});
 
 	test('read blob resource', async () => {
-		const blobBase64 = 'SGVsbG8gV29ybGQgYXMgQmxvYg=='; // "Hello World as Blob" in base64
+		const blobBase64 = 'SGVsbG8gV29ybGQgYXMgQmxvYg==';
 
 		transport.setResponder('resources/read', msg => {
 			const params = (msg as { id: string | number; params: { uri: string } });

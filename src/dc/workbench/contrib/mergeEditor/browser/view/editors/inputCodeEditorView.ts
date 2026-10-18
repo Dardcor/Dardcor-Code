@@ -241,7 +241,7 @@ export class ModifiedBaseRangeGutterItemModel implements IGutterItemInfo {
 		this.state = derived(this, reader => {
 			const active = this.viewModel.activeModifiedBaseRange.read(reader);
 			if (!this.model.hasBaseRange(this.baseRange)) {
-				return { handled: false, focused: false }; // Invalid state, should only be observed temporarily
+				return { handled: false, focused: false };
 			}
 			return {
 				handled: this.model.isHandled(this.baseRange).read(reader),
@@ -269,7 +269,6 @@ export class ModifiedBaseRangeGutterItemModel implements IGutterItemInfo {
 	}
 	public toggleBothSides(): void {
 		transaction(tx => {
-			/** @description Context Menu: toggle both sides */
 			const state = this.model
 				.getState(this.baseRange)
 				.get();
@@ -290,7 +289,6 @@ export class ModifiedBaseRangeGutterItemModel implements IGutterItemInfo {
 
 		const update = (newState: ModifiedBaseRangeState) => {
 			transaction(tx => {
-				/** @description Context Menu: Update Base Range State */
 				return this.viewModel.setState(this.baseRange, newState, tx, this.inputNumber);
 			});
 		};
@@ -356,7 +354,6 @@ export class ModifiedBaseRangeGutterItemModel implements IGutterItemInfo {
 					true,
 					() => {
 						transaction((tx) => {
-							/** @description Context Menu: Mark as handled */
 							this.model.setHandled(this.baseRange, !handled, tx);
 						});
 					}
@@ -397,7 +394,7 @@ export class MergeConflictGutterItemView extends Disposable implements IGutterIt
 					return;
 				}
 
-				if (e.button === /* Right */ 2) {
+				if (e.button === 2) {
 					e.stopPropagation();
 					e.preventDefault();
 
@@ -406,7 +403,7 @@ export class MergeConflictGutterItemView extends Disposable implements IGutterIt
 						getActions: () => item.getContextMenuActions(),
 					});
 
-				} else if (e.button === /* Middle */ 1) {
+				} else if (e.button === 1) {
 					e.stopPropagation();
 					e.preventDefault();
 
@@ -417,7 +414,6 @@ export class MergeConflictGutterItemView extends Disposable implements IGutterIt
 
 		this._register(
 			autorun(reader => {
-				/** @description Update Checkbox */
 				const item = this.item.read(reader)!;
 				const value = item.toggleState.read(reader);
 				const iconMap: Record<InputState, { icon: ThemeIcon | undefined; checked: boolean; title: string }> = {
@@ -440,7 +436,6 @@ export class MergeConflictGutterItemView extends Disposable implements IGutterIt
 		);
 
 		this._register(autorun(reader => {
-			/** @description Update Checkbox CSS ClassNames */
 			const state = this.item.read(reader).state.read(reader);
 			const classNames = [
 				'merge-accept-gutter-marker',
@@ -453,7 +448,6 @@ export class MergeConflictGutterItemView extends Disposable implements IGutterIt
 
 		this._register(checkBox.onChange(() => {
 			transaction(tx => {
-				/** @description Handle Checkbox Change */
 				this.item.get()!.setState(checkBox.checked, tx);
 			});
 		}));
@@ -490,14 +484,12 @@ export class MergeConflictGutterItemView extends Disposable implements IGutterIt
 		this.checkboxDiv.style.top = `${effectiveCheckboxTop - top}px`;
 
 		transaction((tx) => {
-			/** @description MergeConflictGutterItemView: Update Is Multi Line */
 			this.isMultiLine.set(height > 30, tx);
 		});
 	}
 
 	update(baseRange: ModifiedBaseRangeGutterItemModel): void {
 		transaction(tx => {
-			/** @description MergeConflictGutterItemView: Updating new base range */
 			this.item.set(baseRange, tx);
 		});
 	}

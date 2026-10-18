@@ -191,8 +191,6 @@ export function defineCoreTests(context: IAgentHostE2ETestContext): void {
 
 		await context.client.call('initialize', { channel: ROOT_STATE_URI, protocolVersions: [PROTOCOL_VERSION], clientId: `real-sdk-list-models-${config.provider}` }, 30_000);
 
-		// Subscribe to root state *before* authenticating so we can observe
-		// the agentsChanged action that carries the populated model list.
 		const rootResult = await context.client.call<SubscribeResult>('subscribe', { channel: ROOT_STATE_URI }, 30_000);
 		const initial = rootResult.snapshot!.state as RootState;
 		const providerAgent = initial.agents.find(a => a.provider === config.provider);
@@ -200,10 +198,6 @@ export function defineCoreTests(context: IAgentHostE2ETestContext): void {
 
 		await context.client.call('authenticate', { channel: ROOT_STATE_URI, resource: 'https://api.github.com', token: resolveGitHubToken() }, 30_000);
 
-		// Models load asynchronously after the *first* authenticate against
-		// the shared server. If a sibling test already authenticated, the
-		// list is in the subscribe snapshot already; otherwise wait for the
-		// `agentsChanged` action that populates them.
 		let agent = providerAgent;
 		if (agent.models.length === 0) {
 			try {
@@ -218,8 +212,6 @@ export function defineCoreTests(context: IAgentHostE2ETestContext): void {
 				const action = getActionEnvelope(notif).action as RootAgentsChangedAction;
 				agent = action.agents.find(a => a.provider === config.provider)!;
 			} catch (err) {
-				// Surface every agentsChanged we did see so failures point
-				// at the actual data instead of a bare timeout.
 				const seen = context.client.receivedNotifications(n => isActionNotification(n, 'root/agentsChanged'))
 					.map(n => {
 						const a = getActionEnvelope(n).action as RootAgentsChangedAction;

@@ -13,7 +13,7 @@ import { InMemoryStorageService, StorageScope, StorageTarget } from '../../../st
 
 class TestEncryptionService implements IEncryptionService {
 	_serviceBrand: undefined;
-	private encryptedPrefix = 'encrypted+'; // prefix to simulate encryption
+	private encryptedPrefix = 'encrypted+';
 	setUsePlainTextEncryption(): Promise<void> {
 		return Promise.resolve();
 	}
@@ -84,7 +84,6 @@ suite('secrets', () => {
 
 		test('type', async () => {
 			assert.strictEqual(service.type, 'unknown');
-			// trigger lazy initialization
 			await service.set('my-secret', 'my-secret-value');
 
 			assert.strictEqual(service.type, 'in-memory');
@@ -97,7 +96,6 @@ suite('secrets', () => {
 			const result = await service.get(key);
 			assert.strictEqual(result, value);
 
-			// Additionally ensure the encryptionservice was not used
 			assert.strictEqual(spyEncryptionService.encrypt.callCount, 0);
 			assert.strictEqual(spyEncryptionService.decrypt.callCount, 0);
 		});
@@ -146,7 +144,6 @@ suite('secrets', () => {
 
 		test('type', async () => {
 			assert.strictEqual(service.type, 'unknown');
-			// trigger lazy initialization
 			await service.set('my-secret', 'my-secret-value');
 
 			assert.strictEqual(service.type, 'persisted');
@@ -159,7 +156,6 @@ suite('secrets', () => {
 			const result = await service.get(key);
 			assert.strictEqual(result, value);
 
-			// Additionally ensure the encryptionservice was not used
 			assert.strictEqual(spyEncryptionService.encrypt.callCount, 1);
 			assert.strictEqual(spyEncryptionService.decrypt.callCount, 1);
 		});
@@ -229,7 +225,6 @@ suite('secrets', () => {
 
 		test('type', async () => {
 			assert.strictEqual(service.type, 'unknown');
-			// trigger lazy initialization
 			await service.set('my-secret', 'my-secret-value');
 
 			assert.strictEqual(service.type, 'in-memory');
@@ -242,7 +237,6 @@ suite('secrets', () => {
 			const result = await service.get(key);
 			assert.strictEqual(result, value);
 
-			// Additionally ensure the encryptionservice was not used
 			assert.strictEqual(spyNoEncryptionService.encrypt.callCount, 0);
 			assert.strictEqual(spyNoEncryptionService.decrypt.callCount, 0);
 		});
@@ -282,7 +276,6 @@ suite('secrets', () => {
 			const result = await service.get(sharedKey);
 			assert.strictEqual(result, value);
 
-			// Non-shared key should still work via APPLICATION scope
 			const regularKey = 'regular-secret';
 			await service.set(regularKey, 'regular-value');
 			assert.strictEqual(await service.get(regularKey), 'regular-value');

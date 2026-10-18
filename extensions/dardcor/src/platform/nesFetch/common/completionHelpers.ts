@@ -16,9 +16,6 @@ namespace LineOfText {
 	}
 }
 
-/**
- * Split an incoming stream of text to a stream of lines.
- */
 export function streamLines(completions: AsyncIterable<Completion>, initialBuffer = ''): AsyncIterableObject<{
 	line: LineOfText.LineOfText;
 	finishReason: Completion.FinishReason | null;
@@ -46,7 +43,6 @@ export function streamLines(completions: AsyncIterable<Completion>, initialBuffe
 					break;
 				}
 
-				// take the first line
 				const line = buffer.substring(0, newlineIndex);
 				buffer = buffer.substring(newlineIndex + 1);
 
@@ -55,7 +51,6 @@ export function streamLines(completions: AsyncIterable<Completion>, initialBuffe
 		}
 
 		if (buffer.length > 0) {
-			// last line which doesn't end with \n
 			emitter.emitOne({ line: LineOfText.make(buffer), finishReason });
 		}
 	}

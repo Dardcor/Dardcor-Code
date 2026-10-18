@@ -11,7 +11,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../common/utils.js';
 
 suite('URI - perf', function () {
 
-	// COMMENT THIS OUT TO RUN TEST
 	if (1) {
 		return;
 	}

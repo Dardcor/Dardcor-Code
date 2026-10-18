@@ -136,10 +136,8 @@ describe('ToolCallingLoop telemetry linking', () => {
 		await loop.runOne(createStream(), 0, tokenSource.token);
 
 		expect(loop.capturedContexts).toHaveLength(2);
-		// First iteration: no parent context yet
 		expect(loop.capturedContexts[0].parentHeaderRequestId).toBeUndefined();
 		expect(loop.capturedContexts[0].parentModelCallId).toBeUndefined();
-		// Second iteration: should have values from first fetch
 		expect(loop.capturedContexts[1].parentHeaderRequestId).toBe('server-echoed-1');
 		expect(loop.capturedContexts[1].parentModelCallId).toBe('model-call-1');
 	});
@@ -182,7 +180,6 @@ describe('ToolCallingLoop telemetry linking', () => {
 		await loop.runOne(createStream(), 0, tokenSource.token);
 		await loop.runOne(createStream(), 0, tokenSource.token);
 
-		// serverRequestId was '' so should fall back to client requestId
 		expect(loop.capturedContexts[1].parentHeaderRequestId).toBe('client-uuid-1');
 		expect(loop.capturedContexts[1].parentModelCallId).toBe('model-call-1');
 	});
@@ -225,7 +222,6 @@ describe('ToolCallingLoop telemetry linking', () => {
 		await loop.runOne(createStream(), 0, tokenSource.token);
 		await loop.runOne(createStream(), 0, tokenSource.token);
 
-		// serverRequestId was undefined so should fall back to client requestId
 		expect(loop.capturedContexts[1].parentHeaderRequestId).toBe('client-uuid-1');
 		expect(loop.capturedContexts[1].parentModelCallId).toBe('model-call-1');
 	});

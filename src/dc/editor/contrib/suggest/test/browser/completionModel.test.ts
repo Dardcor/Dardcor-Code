@@ -92,12 +92,10 @@ suite('CompletionModel', function () {
 		let itemsThen = model.items;
 		assert.ok(itemsNow === itemsThen);
 
-		// still the same context
 		model.lineContext = { leadingLineContent: 'foo', characterCountDelta: 0 };
 		itemsThen = model.items;
 		assert.ok(itemsNow === itemsThen);
 
-		// different context, refilter
 		model.lineContext = { leadingLineContent: 'foo1', characterCountDelta: 1 };
 		itemsThen = model.items;
 		assert.ok(itemsNow !== itemsThen);
@@ -177,7 +175,7 @@ suite('CompletionModel', function () {
 		const [a, b] = model.items;
 		assert.strictEqual(a.completion.label, 'Snippet1');
 		assert.strictEqual(b.completion.label, 'semver');
-		assert.ok(a.score < b.score); // snippet really promoted
+		assert.ok(a.score < b.score);
 
 	});
 
@@ -196,7 +194,7 @@ suite('CompletionModel', function () {
 		const [a, b] = model.items;
 		assert.strictEqual(a.completion.label, 'Semver');
 		assert.strictEqual(b.completion.label, 'snippet1');
-		assert.ok(a.score < b.score); // snippet really demoted
+		assert.ok(a.score < b.score);
 	});
 
 	test('keep snippet sorting with prefix: inline, #25495', function () {
@@ -214,7 +212,7 @@ suite('CompletionModel', function () {
 		const [a, b] = model.items;
 		assert.strictEqual(a.completion.label, 'snippet1');
 		assert.strictEqual(b.completion.label, 'Semver');
-		assert.ok(a.score > b.score); // snippet really demoted
+		assert.ok(a.score > b.score);
 	});
 
 	test('filterText seems ignored in autocompletion, #26874', function () {
@@ -279,15 +277,12 @@ suite('CompletionModel', function () {
 
 		assert.strictEqual(model.items.length, 5);
 
-		// narrow down once
 		model.lineContext = { leadingLineContent: 'c', characterCountDelta: 1 };
 		assert.strictEqual(model.items.length, 3);
 
-		// query gets longer, narrow down the narrow-down'ed-set from before
 		model.lineContext = { leadingLineContent: 'cn', characterCountDelta: 2 };
 		assert.strictEqual(model.items.length, 2);
 
-		// query gets shorter, refilter everything
 		model.lineContext = { leadingLineContent: '', characterCountDelta: 0 };
 		assert.strictEqual(model.items.length, 5);
 	});
@@ -304,14 +299,13 @@ suite('CompletionModel', function () {
 			characterCountDelta: 0
 		}, WordDistance.None, EditorOptions.suggest.defaultValue, EditorOptions.snippetSuggestions.defaultValue, undefined);
 
-		// query gets longer, narrow down the narrow-down'ed-set from before
 		model.lineContext = { leadingLineContent: 'rlut', characterCountDelta: 4 };
 		assert.strictEqual(model.items.length, 3);
 
 		const [first, second, third] = model.items;
-		assert.strictEqual(first.completion.label, 'result'); // best with `rult`
-		assert.strictEqual(second.completion.label, 'replyToUser');  // best with `rltu`
-		assert.strictEqual(third.completion.label, 'randomLolut');  // best with `rlut`
+		assert.strictEqual(first.completion.label, 'result');
+		assert.strictEqual(second.completion.label, 'replyToUser');
+		assert.strictEqual(third.completion.label, 'randomLolut');
 	});
 
 	test('Emmet suggestion not appearing at the top of the list in jsx files, #39518', function () {
@@ -329,8 +323,8 @@ suite('CompletionModel', function () {
 		model.lineContext = { leadingLineContent: 'form', characterCountDelta: 4 };
 		assert.strictEqual(model.items.length, 5);
 		const [first, second, third] = model.items;
-		assert.strictEqual(first.completion.label, 'form'); // best with `form`
-		assert.strictEqual(second.completion.label, 'form:get');  // best with `form`
-		assert.strictEqual(third.completion.label, 'from');  // best with `from`
+		assert.strictEqual(first.completion.label, 'form');
+		assert.strictEqual(second.completion.label, 'form:get');
+		assert.strictEqual(third.completion.label, 'from');
 	});
 });

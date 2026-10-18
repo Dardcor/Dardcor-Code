@@ -30,11 +30,6 @@ export function removeTag() {
 	});
 }
 
-/**
- * Calculates the ranges to remove, along with what to replace those ranges with.
- * It finds the node to remove based on the selection's start position
- * and then removes that node, reindenting the content in between.
- */
 function getRangesToRemove(document: vscode.TextDocument, rootNode: HtmlFlatNode, selection: vscode.Selection): vscode.Range[] {
 	const offset = document.offsetAt(selection.start);
 	const nodeToUpdate = getHtmlFlatNode(document.getText(), rootNode, offset, true);
@@ -62,7 +57,6 @@ function getRangesToRemove(document: vscode.TextDocument, rootNode: HtmlFlatNode
 			openTagRange.start.character,
 			closeTagRange.end.line,
 			closeTagRange.end.character);
-		// Special case: there is only whitespace in between.
 		if (document.getText(innerCombinedRange).trim() === '' && nodeToUpdate.name !== 'pre') {
 			return [outerCombinedRange];
 		}
@@ -79,15 +73,12 @@ function getRangesToRemove(document: vscode.TextDocument, rootNode: HtmlFlatNode
 				if (!document.lineAt(i).isEmptyOrWhitespace) {
 					rangesToRemove.push(new vscode.Range(i, 0, i, indentAmountToRemove));
 					if (firstInnerNonEmptyLine === undefined) {
-						// We found the first non-empty inner line.
 						firstInnerNonEmptyLine = i;
 					}
 					lastInnerNonEmptyLine = i;
 				}
 			}
 
-			// Remove the entire last line + empty lines preceding it
-			// if it is just the tag, otherwise remove just the tag.
 			if (entireLineIsTag(document, closeTagRange) && lastInnerNonEmptyLine) {
 				rangesToRemove.push(new vscode.Range(
 					lastInnerNonEmptyLine,
@@ -98,8 +89,6 @@ function getRangesToRemove(document: vscode.TextDocument, rootNode: HtmlFlatNode
 				rangesToRemove.push(closeTagRange);
 			}
 
-			// Remove the entire first line + empty lines proceding it
-			// if it is just the tag, otherwise keep on removing just the tag.
 			if (entireLineIsTag(document, openTagRange) && firstInnerNonEmptyLine) {
 				rangesToRemove[1] = new vscode.Range(
 					openTagRange.start.line,
@@ -124,9 +113,6 @@ function entireLineIsTag(document: vscode.TextDocument, range: vscode.Range): bo
 	return false;
 }
 
-/**
- * Calculates the amount of indent to remove for getRangesToRemove.
- */
 function calculateIndentAmountToRemove(document: vscode.TextDocument, openRange: vscode.Range, closeRange: vscode.Range): number {
 	const startLine = openRange.start.line;
 	const endLine = closeRange.start.line;

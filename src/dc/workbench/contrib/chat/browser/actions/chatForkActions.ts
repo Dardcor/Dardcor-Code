@@ -59,12 +59,9 @@ export class ForkConversationAction extends Action2 {
 		const chatSessionsService = accessor.get(IChatSessionsService);
 		const forkedTitlePrefix = localize('chat.forked.titlePrefix', "Forked: ");
 
-		// When invoked via /fork slash command, args[0] is a URI (sessionResource).
-		// Fork at the last request in that session.
 		if (URI.isUri(args[0])) {
 			const sourceSessionResource = args[0];
 
-			// Check if this is a contributed session that supports forking
 			const contentProviderSchemes = chatSessionsService.getContentProviderSchemes();
 			if (contentProviderSchemes.includes(getChatSessionType(sourceSessionResource))) {
 				if (await this._tryForkAsChat(instantiationService, sourceSessionResource, undefined)) {
@@ -93,7 +90,6 @@ export class ForkConversationAction extends Action2 {
 			for (const [index, req] of cleanData.requests.entries()) {
 				req.shouldBeRemovedOnSend = undefined;
 				req.isHidden = undefined;
-				// Generate fresh IDs so the tree doesn't reuse stale DOM from the source session
 				req.requestId = generateUuid();
 				req.responseId = req.responseId ? generateUuid() : undefined;
 				req.timestamp = forkTimestamp + index;
@@ -104,7 +100,6 @@ export class ForkConversationAction extends Action2 {
 
 			const modelRef = chatService.loadSessionFromData(cleanData, 'ChatForkActions#forkCleanSession', 'currentSession');
 
-			// Defer navigation until after the slash command flow completes.
 			const newSessionResource = modelRef.object.sessionResource;
 			setTimeout(async () => {
 				try {
@@ -116,7 +111,6 @@ export class ForkConversationAction extends Action2 {
 			return;
 		}
 
-		// When invoked from the checkpoint menu, args[0] is a ChatTreeItem.
 		const arg = args[0] as { element?: unknown; context?: unknown; item?: unknown } | undefined;
 		let item: ChatTreeItem | undefined = isChatTreeItem(arg)
 			? arg
@@ -141,13 +135,11 @@ export class ForkConversationAction extends Action2 {
 			return;
 		}
 
-		// Get all requests and find the target request index
 		const targetRequestId = isRequestVM(item) ? item.id : isResponseVM(item) ? item.requestId : undefined;
 		if (!targetRequestId) {
 			return;
 		}
 
-		// Check if this is a contributed session that supports forking
 		const contentProviderSchemes = chatSessionsService.getContentProviderSchemes();
 		if (contentProviderSchemes.includes(getChatSessionType(sessionResource))) {
 			const contributedSession = await chatSessionsService.getOrCreateChatSession(sessionResource, CancellationToken.None);
@@ -180,7 +172,6 @@ export class ForkConversationAction extends Action2 {
 			return;
 		}
 
-		// Export the full session data and truncate to include only requests up to and including the target
 		const serializedData = chatModel.toJSON();
 		const isRequestItem = isRequestVM(item);
 		let targetIndex = -1;
@@ -217,7 +208,6 @@ export class ForkConversationAction extends Action2 {
 		for (const [index, req] of forkedData.requests.entries()) {
 			req.shouldBeRemovedOnSend = undefined;
 			req.isHidden = undefined;
-			// Generate fresh IDs so the tree doesn't reuse stale DOM from the source session
 			req.requestId = generateUuid();
 			req.responseId = req.responseId ? generateUuid() : undefined;
 			req.timestamp = forkedTimestamp + index;
@@ -232,7 +222,6 @@ export class ForkConversationAction extends Action2 {
 			return;
 		}
 
-		// Navigate to the new session in the chat view pane
 		try {
 			const newSessionResource = modelRef.object.sessionResource;
 			await this._openForkedSession(instantiationService, chatModel.sessionResource, newSessionResource);
@@ -248,13 +237,6 @@ export class ForkConversationAction extends Action2 {
 		});
 	}
 
-	/**
-	 * Hook for surfaces (the Agents window) that prefer to fork a multi-chat
-	 * session into a new peer chat in the same session rather than a brand-new
-	 * session. Returns `true` when it fully handled the fork; the default
-	 * implementation does nothing and returns `false`, so the standard
-	 * session-creating fork path runs.
-	 */
 	protected async _tryForkAsChat(_instantiationService: IInstantiationService, _sourceSessionResource: URI, _request: IChatSessionRequestHistoryItem | undefined): Promise<boolean> {
 		return false;
 	}

@@ -24,7 +24,6 @@ export function singleTextRemoveCommonPrefix(edit: TextReplacement, model: IText
 }
 
 export function singleTextEditAugments(edit: TextReplacement, base: TextReplacement): boolean {
-	// The augmented completion must replace the base range, but can replace even more
 	return edit.text.startsWith(base.text) && rangeExtends(edit.range, base.range);
 }
 

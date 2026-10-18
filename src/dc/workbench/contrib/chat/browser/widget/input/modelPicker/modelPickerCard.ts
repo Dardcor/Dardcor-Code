@@ -19,53 +19,35 @@ import { getModelConfigProperty, getModelConfigValueLabel, IModelConfigProperty,
 import { getCategoryLabel, getPriceCategoryLabel, isAutoModel, isHighCostCategory, isMultiplierPricing } from './modelPickerPresentation.js';
 import { IModelSpeedVariants } from './modelPickerVariants.js';
 
-/**
- * Whether the pricing breakdown is open, shared by every card. Most people never need
- * the numbers, and the ones who do should not have to open them on each model.
- */
 export interface IPricingDisclosure {
 	isExpanded(): boolean;
 	setExpanded(expanded: boolean): void;
-	/** Fires when the state changes, so cards already built stay in step. */
 	readonly onDidChange: Event<void>;
 }
 
 export interface IModelCardOptions {
 	readonly model: ILanguageModelChatMetadataAndIdentifier;
 	readonly configurationAccess: IModelConfigurationAccess;
-	/** Whether the account is billed by credits, which is when cost numbers are shown. */
 	readonly isUBB: boolean;
 	readonly openerService: IOpenerService;
-	/** Called after a configuration value changes so the caller can report it and refresh its own label. */
 	readonly onDidChangeConfiguration?: (group: string, key: string, fromValue: unknown, toValue: unknown) => void;
-	/** Whether the model is pinned, when pinning is offered here. */
 	readonly isPinned?: boolean;
 	readonly onTogglePin?: (pinned: boolean) => void;
 	readonly pricingDisclosure?: IPricingDisclosure;
-	/** The faster twin of this model, when the provider offers one. */
 	readonly speedVariants?: IModelSpeedVariants;
-	/** Called with the twin the user picked, which becomes the selected model. */
 	readonly onSelectVariant?: (model: ILanguageModelChatMetadataAndIdentifier) => void;
 }
 
-/**
- * The detail card shown beside a model row: what the model costs, how hard it
- * thinks, and how much context it gets. Configuration changes are written
- * straight through and the card re-renders itself in place.
- */
 export class ModelCard extends DisposableStore {
 
 	readonly element = dom.$('.chat-model-card');
 
 	private readonly _contentDisposables = this.add(new DisposableStore());
-	/** The pricing disclosure's button, rebuilt with the rest of the card on each render. */
 	private _pricingToggle: HTMLElement | undefined;
 
 	constructor(private readonly _options: IModelCardOptions) {
 		super();
 		if (_options.pricingDisclosure) {
-			// Opening the breakdown on one model opens it on the rest, so cards built
-			// earlier are re-rendered rather than left showing the old state.
 			this.add(_options.pricingDisclosure.onDidChange(() => this._render()));
 		}
 		this._render();
@@ -119,8 +101,6 @@ export class ModelCard extends DisposableStore {
 		} else if (!isAuto) {
 			this._renderContextWindow(metadata);
 		}
-		// After the settings every model has, so those keep one position whether or not
-		// this model happens to have a faster twin.
 		if (!isAuto) {
 			this._renderSpeedSection();
 		}
@@ -148,8 +128,6 @@ export class ModelCard extends DisposableStore {
 			badge.classList.toggle('high-cost', !isAuto && isHighCostCategory(metadata.priceCategory));
 		}
 
-		// Pinning lives here rather than on the row: a control that only exists on hover
-		// makes every row twitch as the pointer crosses the list.
 		if (this._options.onTogglePin) {
 			const pinned = !!this._options.isPinned;
 			const label = pinned
@@ -188,26 +166,16 @@ export class ModelCard extends DisposableStore {
 			: localize('chat.effort.header', "Thinking Effort")));
 	}
 
-	/**
-	 * The context windows the model can be given. Rendered like every other setting
-	 * whether the producer offers two or five: a switch would read as off/on, but
-	 * neither window is "off", and it would hide the one being chosen between.
-	 */
 	private _renderContextSection(context: IModelConfigProperty): void {
 		this._renderChoiceSection(context, MODEL_CONFIG_GROUP_CONTEXT, context.schema.title ?? localize('chat.context.header', "Context"));
 	}
 
-	/**
-	 * One setting: its name and the choices. The value is not described above the
-	 * control, since these are ordered scales whose labels already say what they mean.
-	 */
 	private _renderChoiceSection(property: IModelConfigProperty, group: string, title: string): void {
 		const values = property.schema.enum ?? [];
 		const section = this._renderSection(title);
 		const control = this._contentDisposables.add(new Radio({
 			ariaLabel: title,
 			className: 'segmented',
-			// Selecting closes the picker, so arrows must be able to travel past an option.
 			arrowKeyBehavior: 'focus',
 			items: values.map((value, index) => ({
 				text: getModelConfigValueLabel(property.schema, value),
@@ -219,10 +187,6 @@ export class ModelCard extends DisposableStore {
 		section.appendChild(control.domNode);
 	}
 
-	/**
-	 * The two speeds the provider offers the same model at. Picking one selects that
-	 * model, since the twins are separate models with their own prices.
-	 */
 	private _renderSpeedSection(): void {
 		const variants = this._options.speedVariants;
 		if (!variants) {
@@ -279,8 +243,6 @@ export class ModelCard extends DisposableStore {
 		const section = dom.append(this.element, dom.$('.chat-model-card-section.chat-model-card-pricing'));
 		const bodyId = `chat-model-card-pricing-${this._options.model.identifier.replace(/[^\w-]/g, '-')}`;
 
-		// Folded away by default: the numbers only matter to the people who go looking
-		// for them, and they are the last thing most people need to read.
 		if (disclosure) {
 			const title = localize('models.pricingDetails', "Pricing details");
 			const toggle = dom.append(section, dom.$<HTMLButtonElement>('button.chat-model-card-pricing-toggle'));
@@ -294,8 +256,6 @@ export class ModelCard extends DisposableStore {
 				dom.EventHelper.stop(e, true);
 				const hadFocus = dom.isActiveElement(toggle);
 				disclosure.setExpanded(!expanded);
-				// The click rebuilt this card, so focus has to land on the button that
-				// replaced the one that was pressed.
 				if (hadFocus) {
 					this._pricingToggle?.focus();
 				}
@@ -307,7 +267,6 @@ export class ModelCard extends DisposableStore {
 
 		const body = dom.append(section, dom.$('.chat-model-card-pricing-body'));
 		body.id = bodyId;
-		// The unit is stated once, so each row can be read as a plain name and number.
 		dom.append(body, dom.$('.chat-model-card-pricing-caption', undefined, getCreditsPerMillionTokensLabel()));
 		for (const metric of metrics) {
 			const cost = useExtended ? metric.extended ?? metric.standard : metric.standard;

@@ -14,21 +14,18 @@ function apiContentToAnthropicContent(content: (LanguageModelTextPart | Language
 
 	for (const part of content) {
 		if (part instanceof LanguageModelThinkingPart) {
-			// Check if this is a redacted thinking block
 			if (part.metadata?.redactedData) {
 				convertedContent.push({
 					type: 'redacted_thinking',
 					data: part.metadata.redactedData,
 				});
 			} else if (part.metadata?._completeThinking) {
-				// Only push thinking block when we have the complete thinking marker
 				convertedContent.push({
 					type: 'thinking',
 					thinking: part.metadata._completeThinking,
 					signature: part.metadata.signature || '',
 				});
 			}
-			// Skip incremental thinking parts - we only care about the complete one
 		} else if (part instanceof LanguageModelToolCallPart) {
 			convertedContent.push({
 				type: 'tool_use',
@@ -41,7 +38,6 @@ function apiContentToAnthropicContent(content: (LanguageModelTextPart | Language
 			if (previousBlock && contentBlockSupportsCacheControl(previousBlock)) {
 				previousBlock.cache_control = { type: 'ephemeral' };
 			} else {
-				// Empty string is invalid
 				convertedContent.push({
 					type: 'text',
 					text: ' ',
@@ -78,7 +74,6 @@ function apiContentToAnthropicContent(content: (LanguageModelTextPart | Language
 					if (p instanceof LanguageModelTextPart) {
 						return { type: 'text', text: p.value };
 					} else if (p instanceof LanguageModelDataPart && p.mimeType === CustomDataPartMimeTypes.CacheControl && p.data.toString() === 'ephemeral') {
-						// Empty string is invalid
 						return { type: 'text', text: ' ', cache_control: { type: 'ephemeral' } };
 					} else if (p instanceof LanguageModelDataPart && p.mimeType === 'application/pdf') {
 						return { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: Buffer.from(p.data).toString('base64') } };
@@ -88,7 +83,6 @@ function apiContentToAnthropicContent(content: (LanguageModelTextPart | Language
 				}).filter(isDefined),
 			});
 		} else {
-			// Anthropic errors if we have text parts with empty string text content
 			if (part.value === '') {
 				continue;
 			}
@@ -120,7 +114,6 @@ export function apiMessageToAnthropicMessage(messages: LanguageModelChatMessage[
 			});
 		} else {
 			systemMessage.text += message.content.map(p => {
-				// For some reason instance of doesn't work
 				if (p instanceof LanguageModelTextPart) {
 					return p.value;
 				} else if (p instanceof LanguageModelDataPart && p.mimeType === CustomDataPartMimeTypes.CacheControl && p.data.toString() === 'ephemeral') {
@@ -131,15 +124,12 @@ export function apiMessageToAnthropicMessage(messages: LanguageModelChatMessage[
 		}
 	}
 
-	// Merge messages of the same type that are adjacent together, this is what anthropic expects
 	const mergedMessages: MessageParam[] = [];
 	for (const message of unmergedMessages) {
 		if (mergedMessages.length === 0 || mergedMessages[mergedMessages.length - 1].role !== message.role) {
 			mergedMessages.push(message);
 		} else {
-			// Merge with the previous message of the same role
 			const prevMessage = mergedMessages[mergedMessages.length - 1];
-			// Concat the content arrays if they're both arrays - They always will be due to the way apiContentToAnthropicContent works
 			if (Array.isArray(prevMessage.content) && Array.isArray(message.content)) {
 				(prevMessage.content as ContentBlockParam[]).push(...(message.content as ContentBlockParam[]));
 			}
@@ -153,14 +143,11 @@ function contentBlockSupportsCacheControl(block: ContentBlockParam): block is Ex
 }
 
 export function anthropicMessagesToRawMessagesForLogging(messages: MessageParam[], system: TextBlockParam): Raw.ChatMessage[] {
-	// Start with full-fidelity conversion, then sanitize for logging
 	const fullMessages = anthropicMessagesToRawMessages(messages, system);
 
-	// Replace bulky content with placeholders
 	return fullMessages.map(message => {
 		const content = message.content.map(part => {
 			if (part.type === Raw.ChatCompletionContentPartKind.Image) {
-				// Replace actual image URLs with placeholder for logging
 				return {
 					...part,
 					imageUrl: { url: '(image)' }
@@ -176,7 +163,6 @@ export function anthropicMessagesToRawMessagesForLogging(messages: MessageParam[
 		});
 
 		if (message.role === Raw.ChatRole.Tool) {
-			// Replace tool result content with placeholder for logging
 			return {
 				...message,
 				content: [{ type: Raw.ChatCompletionContentPartKind.Text, text: '(tool result)' }]
@@ -190,10 +176,6 @@ export function anthropicMessagesToRawMessagesForLogging(messages: MessageParam[
 	});
 }
 
-/**
- * Full-fidelity conversion of Anthropic MessageParam[] + system to Raw.ChatMessage[] suitable for sending to endpoints.
- * Compared to the logging variant, this preserves tool_result content and image data (as data URLs when possible).
- */
 export function anthropicMessagesToRawMessages(messages: MessageParam[], system: TextBlockParam): Raw.ChatMessage[] {
 	const rawMessages: Raw.ChatMessage[] = [];
 
@@ -260,7 +242,6 @@ export function anthropicMessagesToRawMessages(messages: MessageParam[], system:
 						pushCache(block);
 					}
 				} else if (block.type === 'thinking') {
-					// Include thinking content for logging
 					content.push({
 						type: Raw.ChatCompletionContentPartKind.Text,
 						text: `[THINKING: ${block.thinking}]`
@@ -271,19 +252,15 @@ export function anthropicMessagesToRawMessages(messages: MessageParam[], system:
 						text: '[REDACTED THINKING]'
 					});
 				} else if (block.type === 'tool_use') {
-					// tool_use appears in assistant messages; represent as toolCalls on assistant message
 					toolCalls ??= [];
 					toolCalls.push({
 						id: block.id,
 						type: 'function',
 						function: { name: block.name, arguments: JSON.stringify(block.input ?? {}) }
 					});
-					// no content part, tool call is separate
 					pushCache(block);
 				} else if (block.type === 'tool_result') {
-					// tool_result appears in user role; we'll emit a Raw.Tool message later with this toolCallId and content
 					toolCallId = block.tool_use_id;
-					// Translate tool result content to raw parts
 					const toolContent: Raw.ChatCompletionContentPart[] = [];
 					if (typeof block.content === 'string') {
 						toolContent.push({ type: Raw.ChatCompletionContentPartKind.Text, text: block.content });
@@ -304,11 +281,9 @@ export function anthropicMessagesToRawMessages(messages: MessageParam[], system:
 							}
 						}
 					}
-					// Emit the tool result message now and continue to next message
 					rawMessages.push({ role: Raw.ChatRole.Tool, content: toolContent.length ? toolContent : [{ type: Raw.ChatCompletionContentPartKind.Text, text: '' }], toolCallId });
 					toolCallId = undefined;
 				} else {
-					// thinking or unsupported types are ignored
 				}
 			}
 		} else if (typeof message.content === 'string') {
@@ -322,7 +297,6 @@ export function anthropicMessagesToRawMessages(messages: MessageParam[], system:
 			}
 			rawMessages.push(msg);
 		} else if (message.role === 'user') {
-			// note: tool_result handled earlier; here we push standard user content if any
 			if (content.length) {
 				rawMessages.push({ role: Raw.ChatRole.User, content });
 			}

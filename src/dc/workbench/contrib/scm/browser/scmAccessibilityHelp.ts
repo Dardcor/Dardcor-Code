@@ -70,7 +70,6 @@ class SCMAccessibilityHelpContentProvider extends Disposable implements IAccessi
 	provideContent(): string {
 		const content: string[] = [];
 
-		// Active Repository State
 		if (this._scmViewService.visibleRepositories.length > 1) {
 			const repositoryList = this._scmViewService.visibleRepositories.map(r => r.provider.name).join(', ');
 			content.push(localize('state-msg1', "Visible repositories: {0}", repositoryList));
@@ -80,18 +79,15 @@ class SCMAccessibilityHelpContentProvider extends Disposable implements IAccessi
 		if (focusedRepository) {
 			content.push(localize('state-msg2', "Repository: {0}", focusedRepository.provider.name));
 
-			// History Item Reference
 			const currentHistoryItemRef = focusedRepository.provider.historyProvider.get()?.historyItemRef.get();
 			if (currentHistoryItemRef) {
 				content.push(localize('state-msg3', "History item reference: {0}", currentHistoryItemRef.name));
 			}
 
-			// Commit Message
 			if (focusedRepository.input.visible && focusedRepository.input.enabled && focusedRepository.input.value !== '') {
 				content.push(localize('state-msg4', "Commit message: {0}", focusedRepository.input.value));
 			}
 
-			// Action Button
 			const actionButton = focusedRepository.provider.actionButton.get();
 			if (actionButton) {
 				const label = actionButton.command.tooltip ?? actionButton.command.title;
@@ -99,7 +95,6 @@ class SCMAccessibilityHelpContentProvider extends Disposable implements IAccessi
 				content.push(localize('state-msg5', "Action button: {0}, {1}", label, enablementLabel));
 			}
 
-			// Resource Groups
 			const resourceGroups: string[] = [];
 			for (const resourceGroup of focusedRepository.provider.groups) {
 				resourceGroups.push(`${resourceGroup.label} (${resourceGroup.resources.length} resource(s))`);
@@ -109,7 +104,6 @@ class SCMAccessibilityHelpContentProvider extends Disposable implements IAccessi
 			content.push(localize('state-msg6', "Resource groups: {0}", resourceGroups.join(', ')));
 		}
 
-		// Source Control Repositories
 		content.push(localize('scm-repositories-msg1', "Use the \"Source Control: Focus on Source Control Repositories View\" command to open the Source Control Repositories view."));
 		content.push(localize('scm-repositories-msg2', "The Source Control Repositories view lists all repositories from the workspace and is only shown when the workspace contains more than one repository."));
 		content.push(localize('scm-repositories-msg3', "Once the Source Control Repositories view is opened you can:"));
@@ -117,14 +111,12 @@ class SCMAccessibilityHelpContentProvider extends Disposable implements IAccessi
 		content.push(localize('scm-repositories-msg5', " - Use the Enter or Space keys to select a repository."));
 		content.push(localize('scm-repositories-msg6', " - Use Shift + up/down keys to select multiple repositories."));
 
-		// Source Control
 		content.push(localize('scm-msg1', "Use the \"Source Control: Focus on Source Control View\" command to open the Source Control view."));
 		content.push(localize('scm-msg2', "The Source Control view displays the resource groups and resources of the repository. If the workspace contains more than one repository it will list the resource groups and resources of the repositories selected in the Source Control Repositories view."));
 		content.push(localize('scm-msg3', "Once the Source Control view is opened you can:"));
 		content.push(localize('scm-msg4', " - Use the up/down arrow keys to navigate the list of repositories, resource groups and resources."));
 		content.push(localize('scm-msg5', " - Use the Space key to expand or collapse a resource group."));
 
-		// Source Control Graph
 		content.push(localize('scm-graph-msg1', "Use the \"Source Control: Focus on Source Control Graph View\" command to open the Source Control Graph view."));
 		content.push(localize('scm-graph-msg2', "The Source Control Graph view displays a graph history items of the repository. If the workspace contains more than one repository it will list the history items of the active repository."));
 		content.push(localize('scm-graph-msg3', "Once the Source Control Graph view is opened you can:"));

@@ -7,10 +7,10 @@ import * as mobx from 'mobx';
 import { SimulationStorage, SimulationStorageValue } from './simulationStorage';
 
 export enum CacheMode {
-	Disable = 'disable', // never use the cache, don't update the cache
-	Require = 'require', // always use the cache, and fail if it's not available
-	Default = 'default', // use cache of available, but don't require it
-	Regenerate = 'regenerate', // regenerate the cache even if cache files are available
+	Disable = 'disable',
+	Require = 'require',
+	Default = 'default',
+	Regenerate = 'regenerate',
 }
 
 export class RunnerOptions {

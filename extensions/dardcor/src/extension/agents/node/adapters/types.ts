@@ -35,49 +35,25 @@ export interface IAgentToolCallBlock {
 export type IAgentStreamBlock = IAgentTextBlock | IAgentToolCallBlock;
 
 export interface IProtocolAdapter {
-	/**
-	 * The name of this protocol adapter
-	 */
 	readonly name: string;
 
-	/**
-	 * Parse the incoming request body and convert to VS Code format
-	 */
 	parseRequest(body: string): IParsedRequest;
 
-	/**
-	 * Convert raw streaming data to protocol-specific events
-	 */
 	formatStreamResponse(
 		streamData: IAgentStreamBlock,
 		context: IStreamingContext
 	): readonly IStreamEventData[];
 
-	/**
-	 * Generate the final events to close the stream
-	 */
 	generateFinalEvents(context: IStreamingContext, usage?: APIUsage): readonly IStreamEventData[];
 
-	/**
-	 * Generate initial events to start the stream (optional, protocol-specific)
-	 */
 	generateInitialEvents?(context: IStreamingContext): readonly IStreamEventData[];
 
-	/**
-	 * Get the content type for responses
-	 */
 	getContentType(): string;
 
-	/**
-	 * Extract the authentication key/nonce from request headers
-	 */
 	extractAuthKey(headers: http.IncomingHttpHeaders): string | undefined;
 }
 
 export interface IProtocolAdapterFactory {
-	/**
-	 * Create a new adapter instance for a request
-	 */
 	createAdapter(): IProtocolAdapter;
 }
 

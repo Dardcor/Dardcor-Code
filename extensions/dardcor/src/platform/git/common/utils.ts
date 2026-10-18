@@ -28,7 +28,6 @@ class GitConfigParser {
 		};
 
 		for (const line of raw.split(GitConfigParser._lineSeparator)) {
-			// Section
 			const sectionMatch = line.match(GitConfigParser._sectionRegex);
 			if (sectionMatch?.length === 3) {
 				addSection(section);
@@ -37,7 +36,6 @@ class GitConfigParser {
 				continue;
 			}
 
-			// Property
 			const propertyMatch = line.match(GitConfigParser._propertyRegex);
 			if (propertyMatch?.length === 3 && !Object.keys(section.properties).includes(propertyMatch[1])) {
 				section.properties[propertyMatch[1]] = propertyMatch[2];
@@ -79,9 +77,6 @@ export interface GitUriOptions {
 	submoduleOf?: string;
 }
 
-// As a mitigation for extensions like ESLint showing warnings and errors
-// for git URIs, let's change the file extension of these uris to .git,
-// when `replaceFileExtension` is true.
 export function toGitUri(uri: vscode.Uri, ref: string, options: GitUriOptions = {}): vscode.Uri {
 	const params: GitUriParams = {
 		path: uri.fsPath,
@@ -103,10 +98,6 @@ export function toGitUri(uri: vscode.Uri, ref: string, options: GitUriOptions = 
 	return uri.with({ scheme: options.scheme ?? 'git', path, query: JSON.stringify(params) });
 }
 
-/**
- * Returns the configured upstream remote of `repository` (e.g. the `origin` whose URL `git push` would target),
- * or `undefined` when the current HEAD has no upstream or the remote can't be resolved.
- */
 export function getUpstreamRemote(repository: Repository): Remote | undefined {
 	const remoteName = repository.state.HEAD?.upstream?.remote;
 	if (!remoteName) { return undefined; }

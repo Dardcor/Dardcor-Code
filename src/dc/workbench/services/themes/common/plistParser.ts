@@ -23,9 +23,6 @@ const enum State {
 	DICT_STATE = 1,
 	ARR_STATE = 2
 }
-/**
- * A very fast plist parser
- */
 export function parse(content: string): any {
 	return _parse(content, null, null);
 }
@@ -37,7 +34,6 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 	let line = 1;
 	let char = 0;
 
-	// Skip UTF8 BOM
 	if (len > 0 && content.charCodeAt(0) === ChCode.BOM) {
 		pos = 1;
 	}
@@ -88,7 +84,6 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 		if (nextOccurence !== -1) {
 			advancePosTo(nextOccurence + str.length);
 		} else {
-			// EOF
 			advancePosTo(len);
 		}
 	}
@@ -100,7 +95,6 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			advancePosTo(nextOccurence + str.length);
 			return r;
 		} else {
-			// EOF
 			const r = content.substr(pos);
 			advancePosTo(len);
 			return r;
@@ -187,7 +181,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			dictState.enterDict();
 		} else if (state === State.ARR_STATE) {
 			arrState.enterDict();
-		} else { // ROOT_STATE
+		} else {
 			cur = {};
 			if (locationKeyName !== null) {
 				cur[locationKeyName] = {
@@ -204,7 +198,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			popState();
 		} else if (state === State.ARR_STATE) {
 			return fail('unexpected </dict>');
-		} else { // ROOT_STATE
+		} else {
 			return fail('unexpected </dict>');
 		}
 	}
@@ -213,7 +207,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			dictState.enterArray();
 		} else if (state === State.ARR_STATE) {
 			arrState.enterArray();
-		} else { // ROOT_STATE
+		} else {
 			cur = [];
 			pushState(State.ARR_STATE, cur);
 		}
@@ -223,7 +217,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			return fail('unexpected </array>');
 		} else if (state === State.ARR_STATE) {
 			popState();
-		} else { // ROOT_STATE
+		} else {
 			return fail('unexpected </array>');
 		}
 	}
@@ -235,7 +229,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			curKey = val;
 		} else if (state === State.ARR_STATE) {
 			return fail('unexpected <key>');
-		} else { // ROOT_STATE
+		} else {
 			return fail('unexpected <key>');
 		}
 	}
@@ -248,7 +242,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			curKey = null;
 		} else if (state === State.ARR_STATE) {
 			cur.push(val);
-		} else { // ROOT_STATE
+		} else {
 			cur = val;
 		}
 	}
@@ -264,7 +258,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			curKey = null;
 		} else if (state === State.ARR_STATE) {
 			cur.push(val);
-		} else { // ROOT_STATE
+		} else {
 			cur = val;
 		}
 	}
@@ -280,7 +274,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			curKey = null;
 		} else if (state === State.ARR_STATE) {
 			cur.push(val);
-		} else { // ROOT_STATE
+		} else {
 			cur = val;
 		}
 	}
@@ -293,7 +287,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			curKey = null;
 		} else if (state === State.ARR_STATE) {
 			cur.push(val);
-		} else { // ROOT_STATE
+		} else {
 			cur = val;
 		}
 	}
@@ -306,7 +300,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			curKey = null;
 		} else if (state === State.ARR_STATE) {
 			cur.push(val);
-		} else { // ROOT_STATE
+		} else {
 			cur = val;
 		}
 	}
@@ -319,7 +313,7 @@ function _parse(content: string, filename: string | null, locationKeyName: strin
 			curKey = null;
 		} else if (state === State.ARR_STATE) {
 			cur.push(val);
-		} else { // ROOT_STATE
+		} else {
 			cur = val;
 		}
 	}

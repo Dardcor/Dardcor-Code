@@ -38,12 +38,12 @@ describe('Alternative Content for Notebooks', () => {
 		new AlternativeJsonNotebookContentProvider()
 	].forEach((provider) => {
 		const mockLogger: ILogger = {
-			error: () => { /* no-op */ },
-			warn: () => { /* no-op */ },
-			info: () => { /* no-op */ },
-			debug: () => { /* no-op */ },
-			trace: () => { /* no-op */ },
-			show: () => { /* no-op */ },
+			error: () => { },
+			warn: () => { },
+			info: () => { },
+			debug: () => { },
+			trace: () => { },
+			show: () => { },
 			createSubLogger(): ILogger { return mockLogger; },
 			withExtraTarget(): ILogger { return mockLogger; }
 		};
@@ -66,7 +66,6 @@ describe('Alternative Content for Notebooks', () => {
 				warn = mockLogger.warn;
 				error = mockLogger.error;
 				show(preserveFocus?: boolean): void {
-					//
 				}
 				createSubLogger(): ILogger {
 					return this;
@@ -107,7 +106,6 @@ describe('Alternative Content for Notebooks', () => {
 					expect(notebookEdits[0].range.start).toBe(1);
 					expect(notebookEdits[0].range.end).toBe(1);
 
-					// Generate edits as though this is a branch new notebook.
 					const newEdits = await getEditGenerator(provider).generateNotebookEdits(Uri.file('newNotebook.ipynb'), alternativeContentLines, undefined, CancellationToken.None);
 					notebookEdits.length = 0;
 					for await (const edit of newEdits) {
@@ -118,10 +116,6 @@ describe('Alternative Content for Notebooks', () => {
 					expect(notebookEdits.length).toBe(notebook.cellCount + 1);
 				});
 				test(`Generate a single Notebook Edit (insert Python cell)`, async () => {
-					// This test focuses on generating as Notebook edit where LLM hallucinates
-					// & generates Python content instead of a structured Jupytext content.
-					// In such cases the python code should be inserted as is in a single cell.
-					// Previously nothing would be inserted.
 					if (provider.kind !== 'text') {
 						return;
 					}
@@ -163,8 +157,6 @@ describe('Alternative Content for Notebooks', () => {
 					}
 				].forEach(testInfo => {
 					test(`Generate ${testInfo.notebookEdits.length} Notebook Edits from ${path.basename(testInfo.file)}`, async () => {
-						// This test focuses on generating as few Notebook edits as possible.
-						// If a user deletes a cell in the middle there's no need to generate any other edits, but just the delete edit.
 						if (provider.kind !== 'xml') {
 							return;
 						}
@@ -235,7 +227,6 @@ describe('Alternative Content for Notebooks', () => {
 								expect(normatlizeContent(textFromAltDoc).split(/\r?\n/).join(EOL)).toBe([`\\"Hello from Python!\\")",`, `                "    print`].join(EOL));
 							}
 
-							// Now try the reverse translation.
 							if (provider.kind !== 'json') {
 								const cellPosition = altDoc.toCellPosition(startTranslation[0]);
 								expect(cellPosition).toBeDefined();
@@ -248,7 +239,6 @@ describe('Alternative Content for Notebooks', () => {
 
 					test(`getAlternativeDocumentFromText rebuilds cell offset map correctly`, async () => {
 						if (provider.kind === 'json') {
-							// JSON format doesn't use getAlternativeDocumentFromText
 							return;
 						}
 
@@ -266,17 +256,13 @@ describe('Alternative Content for Notebooks', () => {
 							simulation
 						).document;
 
-						// Get the alternative document
 						const altDoc = provider.getAlternativeDocument(notebook);
 						const originalText = altDoc.getText();
 
-						// Rebuild from text
 						const rebuiltDoc = provider.getAlternativeDocumentFromText(originalText, notebook);
 
-						// Test that the rebuilt document has the same text
 						expect(rebuiltDoc.getText()).toBe(originalText);
 
-						// Test position translation works correctly
 						const positions = [
 							{ cellIndex: 0, position: new Position(0, 0) },
 							{ cellIndex: 0, position: new Position(0, 6) },
@@ -290,10 +276,8 @@ describe('Alternative Content for Notebooks', () => {
 						for (const pos of positions) {
 							const cell = notebook.cellAt(pos.cellIndex);
 
-							// Translate from cell to alternative document
 							const altPosition = rebuiltDoc.fromCellPosition(cell, pos.position);
 
-							// Translate back from alternative document to cell
 							const cellPosition = rebuiltDoc.toCellPosition(altPosition);
 
 							expect(cellPosition).toBeDefined();
@@ -321,21 +305,17 @@ describe('Alternative Content for Notebooks', () => {
 							simulation
 						).document;
 
-						// Get alternative document text
 						const altDoc = provider.getAlternativeDocument(notebook);
 						let text = altDoc.getText();
 
-						// Strip cell IDs to simulate LLM-generated content without IDs
 						if (provider.kind === 'xml') {
 							text = text.replace(/id="[^"]+"/g, 'id=""');
 						} else if (provider.kind === 'text') {
 							text = text.replace(/\[id=[^\]]+\]/g, '');
 						}
 
-						// Rebuild from text without IDs
 						const rebuiltDoc = provider.getAlternativeDocumentFromText(text, notebook);
 
-						// Verify position translation still works by matching language
 						for (let i = 0; i < notebook.cellCount; i++) {
 							const cell = notebook.cellAt(i);
 							const position = new Position(0, 0);
@@ -370,12 +350,11 @@ describe('Alternative Content for Notebooks', () => {
 						const text = altDoc.getText();
 						const rebuiltDoc = provider.getAlternativeDocumentFromText(text, notebook);
 
-						// Test markdown cell position translation
 						const markdownCell1 = notebook.cellAt(0);
 						const markdownCell2 = notebook.cellAt(2);
 
-						const pos1 = new Position(0, 2); // Inside "# Title"
-						const pos2 = new Position(0, 3); // Inside "## Subtitle"
+						const pos1 = new Position(0, 2);
+						const pos2 = new Position(0, 3);
 
 						const altPos1 = rebuiltDoc.fromCellPosition(markdownCell1, pos1);
 						const altPos2 = rebuiltDoc.fromCellPosition(markdownCell2, pos2);
@@ -535,11 +514,9 @@ end
 				].forEach((filePath) => {
 					test(`Apply Edits for ${path.basename(filePath)}`, async () => {
 						if ((filePath === 'plotly_to_matplotlib' || filePath === 'matplotlib_to_plotly') && provider.kind === 'json') {
-							// generating text edits for JSON format and ensuring the final output is the same as that generated for text/xml is difficult.
 							return;
 						}
 						if (provider.kind === 'json' && ['delete_1_line_in_cell'].includes(filePath)) {
-							// Incorrectly genrated edits for JSON format.
 							return;
 						}
 						const simulation = new SimulationWorkspace();
@@ -559,14 +536,10 @@ end
 						const notebookData = applyNotebookEdits(notebook, notebookEdits, simulation);
 						const expectedNotebook = await loadNotebook(afterIPynb, simulation);
 						if (filePath === 'plotly_to_matplotlib' && provider.kind === 'text') {
-							// The edits generated for text version is slightly different, hence the result notebook is not the same as we'd expect when using xml.
-							// Hence we need to skip the failing cell (due to differences in LLM outputs)
 							notebookData.cells[8].value = expectedNotebook.getCells()[8].document.getText();
 							notebookData.cells[10].value = expectedNotebook.getCells()[10].document.getText();
 						}
 						if (filePath === 'multicells' && provider.kind === 'text') {
-							// The edits generated for text version is slightly different, hence the result notebook is not the same as we'd expect when using xml.
-							// Hence we need to skip the failing cell (due to differences in LLM outputs)
 							notebookData.cells[1].value = expectedNotebook.getCells()[1].document.getText();
 							notebookData.cells[3].value = expectedNotebook.getCells()[3].document.getText();
 						}
@@ -574,7 +547,6 @@ end
 					});
 					test(`Generate Edits for New Document for ${path.basename(filePath)}`, async () => {
 						if ((filePath === 'plotly_to_matplotlib' || filePath === 'matplotlib_to_plotly') && provider.kind === 'json') {
-							// generating text edits for JSON format and ensuring the final output is the same as that generated for text/xml is difficult.
 							return;
 						}
 						const ipynb = await loadFile({ filePath: fixture(`${filePath}_before.ipynb`) });
@@ -599,13 +571,6 @@ end
 				});
 			});
 
-			/**
-			 * In realworld, notebook gets edited asynchronously.
-			 * I.e. when we stream the edits, the edits are not applied immediately.
-			 * In tests, they get applied immediately.
-			 *
-			 * Lets cover both cases.
-			 */
 			async function applyEditsSyncOrAsync(simulation: SimulationWorkspace, notebook: NotebookDocument, edits: AsyncIterable<NotebookEdit | [Uri, TextEdit[]]>, applyEditsImmediately: boolean) {
 				const notebookEdits = [];
 				if (applyEditsImmediately) {
@@ -786,7 +751,6 @@ end
 					const cells = [{ index: 1, contents: 1 }, { index: 2, contents: 2 }, { index: 3, contents: 3 }, { index: 4, contents: 4 }, { index: 5, contents: 5 }, { index: 6, contents: 6 }, { index: 7, contents: 7 }];
 					const { notebookEdits } = await applyEditsAndVerify(cells);
 
-					// We should only have 3 deletes
 					expect(notebookEdits.length).toBe(3);
 					expect(notebookEdits[0].range.start).toBe(9);
 					expect(notebookEdits[1].range.start).toBe(8);
@@ -799,7 +763,6 @@ end
 					const cells = [{ index: 1, contents: 1 }, { index: 2, contents: 2 }, { index: 3, contents: 3 }, { index: 4, contents: 4 }, { index: 6, contents: 6 }, { index: 7, contents: 7 }, { index: 8, contents: 8 }];
 					const { notebookEdits } = await applyEditsAndVerify(cells);
 
-					// We should only have 3 deletes
 					expect(notebookEdits.length).toBe(3);
 					expect(notebookEdits[0].range.start).toBe(9);
 					expect(notebookEdits[1].range.start).toBe(5);
@@ -918,7 +881,6 @@ end
 				let alternativeContent = provider.getAlternativeDocument(notebook).getText();
 				alternativeContent = alternativeContent.replace('sys.executable', '"Hello World"');
 				alternativeContent = alternativeContent.split(/\r?\n/).join(EOL);
-				// Remove the line break and ensure end cell tag is on the same line as the last line of code.
 				alternativeContent = alternativeContent.replace(`print("Hello World")${EOL}</VSCode.Cell>`, `print("Hello World")</VSCode.Cell>`);
 
 				const edits = await getEditGenerator(provider).generateNotebookEdits(notebook, textToAsyncIterableLines(alternativeContent), undefined, CancellationToken.None);
@@ -953,7 +915,6 @@ end
 				let alternativeContent = provider.getAlternativeDocument(notebook).getText();
 				alternativeContent = alternativeContent.replace('sys.executable', '"Hello World"');
 				alternativeContent = alternativeContent.split(/\r?\n/).join(EOL);
-				// Remove the line break and ensure end cell tag is on the same line as the last line of code.
 				alternativeContent = alternativeContent.replace(`${EOL}</VSCode.Cell>`, `</VSCode.Cell>`);
 
 				const edits = await getEditGenerator(provider).generateNotebookEdits(notebook, textToAsyncIterableLines(alternativeContent), undefined, CancellationToken.None);
@@ -988,7 +949,6 @@ end
 				let alternativeContent = provider.getAlternativeDocument(notebook).getText();
 				alternativeContent = alternativeContent.replace('sys.executable', '"Hello World"');
 				alternativeContent = alternativeContent.split(/\r?\n/).join(EOL);
-				// Remove the line break and ensure end cell tag is on the same line as the last line of code.
 				alternativeContent = alternativeContent.replace(`${EOL}</VSCode.Cell>`, `</VSCode.Cell>`);
 
 				const edits = await getEditGenerator(provider).generateNotebookEdits(notebook, textToAsyncIterableLines(alternativeContent), undefined, CancellationToken.None);
@@ -1040,41 +1000,9 @@ function assertDocumentsAreEqual(notebook: NotebookDocument, data: NotebookData,
 	for (let i = 0; i < notebook.cellCount; i++) {
 		const cell = notebook.cellAt(i);
 		const cellData = data.cells[i];
-		// LLMs retun empty new lines for jupytext cells. Check the case of `reorder.ipynb`
 		if (kind === 'text') {
 			expect(normatlizeContent(cell.document.getText())).toBe(normatlizeContent(cellData.value));
 		} else if (kind === 'json') {
-			// With JSON with get extra padding and thats wrong.
-			// E.g. doc string in python will have extra padding.
-			// Before
-			/**
-			"source": [
-				"import math",
-				"",
-				"def circle_area(radius):",
-				"    print(\"HELLO WORLD\")",
-				"    return math.pi * radius**2"
-			]
-			 */
-			// Response from LLM, notice how the empty lines in docstrings are indented.
-			/**
-			"source": [
-				"import math",
-				"",
-				"def circle_area(radius):",
-				"    \"\"\"",
-				"    Calculate the area of a circle given its radius.",
-				"    ",
-				"    Args:",
-				"        radius (float): The radius of the circle.",
-				"    ",
-				"    Returns:",
-				"        float: The area of the circle.",
-				"    \"\"\"",
-				"    print(\"HELLO WORLD\")",
-				"    return math.pi * radius**2"
-			]
-			 */
 			expect(normatlizeContent(cell.document.getText().split(/\r?\n/g).map(l => l.trim()).join('\n'))).toBe(normatlizeContent(cellData.value.split(/\r?\n/g).map(l => l.trim()).join('\n')));
 		} else {
 			expect(normatlizeContent(cell.document.getText())).toBe(normatlizeContent(cellData.value));
@@ -1085,14 +1013,11 @@ function assertDocumentsAreEqual(notebook: NotebookDocument, data: NotebookData,
 }
 
 
-/**
- * Strip the id value from the string `id="2ce940c2"` to `id=""`.
- */
 function normatlizeContent(content: string) {
 	return content.
-		replace(/id="[^"]+"/g, 'id=""'). // xml id
-		replace(/id=[^"]+/g, 'id='). // jupytext id
-		replace(/"id": "[^"]+"/g, '"id": ""'). // json id
-		replace(/\r\n/g, '\n'). // windows/unix newlines
+		replace(/id="[^"]+"/g, 'id=""').
+		replace(/id=[^"]+/g, 'id=').
+		replace(/"id": "[^"]+"/g, '"id": ""').
+		replace(/\r\n/g, '\n').
 		trim();
 }

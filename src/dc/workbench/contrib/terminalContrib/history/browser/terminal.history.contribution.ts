@@ -26,7 +26,6 @@ import { clearShellFileHistory, getCommandHistory, getDirectoryHistory } from '.
 import { TerminalHistoryCommandId } from '../common/terminal.history.js';
 import { showRunRecentQuickPick } from './terminalRunRecentQuickPick.js';
 
-// #region Terminal Contributions
 
 class TerminalHistoryContribution extends Disposable implements ITerminalContribution {
 	static readonly ID = 'terminal.history';
@@ -46,11 +45,9 @@ class TerminalHistoryContribution extends Disposable implements ITerminalContrib
 
 		this._terminalInRunCommandPicker = TerminalContextKeys.inTerminalRunCommandPicker.bindTo(contextKeyService);
 
-		// Track listeners per capability to avoid leaking disposables
 		const capabilityListeners = this._register(new DisposableMap<TerminalCapability, DisposableStore>());
 
 		this._register(_ctx.instance.capabilities.onDidAddCapability(e => {
-			// Dispose any existing listener for this capability before adding new one
 			capabilityListeners.deleteAndDispose(e.id);
 
 			switch (e.id) {
@@ -80,10 +77,6 @@ class TerminalHistoryContribution extends Disposable implements ITerminalContrib
 		}));
 	}
 
-	/**
-	 * Triggers a quick pick that displays recent commands or cwds. Selecting one will
-	 * rerun it in the active terminal.
-	 */
 	async runRecent(type: 'command' | 'cwd', filterMode?: 'fuzzy' | 'contiguous', value?: string): Promise<void> {
 		return this._instantiationService.invokeFunction(showRunRecentQuickPick,
 			this._ctx.instance,
@@ -97,9 +90,7 @@ class TerminalHistoryContribution extends Disposable implements ITerminalContrib
 
 registerTerminalContribution(TerminalHistoryContribution.ID, TerminalHistoryContribution);
 
-// #endregion
 
-// #region Actions
 
 const precondition = ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated);
 
@@ -190,7 +181,6 @@ registerTerminalAction({
 	],
 	run: async (c, accessor) => {
 		let activeInstance = c.service.activeInstance;
-		// If an instanec doesn't exist, create one and wait for shell type to be set
 		if (!activeInstance) {
 			const newInstance = activeInstance = await c.service.getActiveOrCreateInstance();
 			await c.service.revealActiveTerminal();
@@ -217,4 +207,3 @@ registerTerminalAction({
 	}
 });
 
-// #endregion

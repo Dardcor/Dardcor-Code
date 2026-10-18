@@ -1,5 +1,3 @@
-// Inline stdio<->SSE bridge for MCP. Spawns one child per plugin on demand,
-// broadcasts JSON-RPC frames over SSE, accepts client messages via HTTP POST.
 
 const { spawn } = require("child_process");
 const crypto = require("crypto");
@@ -11,7 +9,6 @@ const COLLAPSE_THRESHOLD = 30;
 const COLLAPSE_KEEP_HEAD = 10;
 const COLLAPSE_KEEP_TAIL = 5;
 
-// Drop noise nodes, collapse repeated siblings, hard-truncate. Preserve [ref=eXX].
 function smartFilterText(text) {
   if (typeof text !== "string" || text.length < 2000) return text;
   let out = text;
@@ -25,7 +22,6 @@ function smartFilterText(text) {
   return out;
 }
 
-// Group consecutive lines sharing the same leading indent + role prefix; collapse if >= COLLAPSE_THRESHOLD.
 function collapseRepeated(text) {
   const lines = text.split("\n");
   const out = [];
@@ -80,7 +76,6 @@ function findLastNSiblingStart(lines, end, indent, role, n) {
   return positions.length > n ? positions[positions.length - n] : end;
 }
 
-// Apply filter to JSON-RPC tool/result content text blocks only.
 function filterFrame(line) {
   try {
     const msg = JSON.parse(line);
@@ -101,7 +96,6 @@ const getStore = () => {
   return globalThis[G_KEY];
 };
 
-// Only preset stdio plugins may spawn. No user-defined commands (RCE prevention).
 function findPlugin(name) {
   return LOCAL_STDIO_PLUGINS.find((p) => p.name === name) || null;
 }
@@ -118,7 +112,6 @@ function getOrSpawn(name) {
   entry = { proc, sessions: new Map(), buffer: "" };
   store.set(name, entry);
 
-  // Parse newline-delimited JSON-RPC from child stdout, broadcast to all sessions.
   proc.stdout.on("data", (chunk) => {
     entry.buffer += chunk.toString("utf8");
     let idx;
@@ -128,7 +121,7 @@ function getOrSpawn(name) {
       if (!raw) continue;
       const line = filterFrame(raw);
       for (const send of entry.sessions.values()) {
-        try { send(`event: message\ndata: ${line}\n\n`); } catch { /* ignore broken pipe */ }
+        try { send(`event: message\ndata: ${line}\n\n`); } catch { }
       }
     }
   });
@@ -153,18 +146,16 @@ function unregisterSession(name, sid) {
   const entry = getStore().get(name);
   if (!entry) return;
   entry.sessions.delete(sid);
-  // No sessions left → kill child to avoid idle orphan process leak.
   if (entry.sessions.size === 0) {
-    try { entry.proc.kill(); } catch { /* ignore */ }
+    try { entry.proc.kill(); } catch { }
     getStore().delete(name);
   }
 }
 
-// Kill all spawned MCP children — called on app shutdown to prevent orphans.
 function killAllBridges() {
   const store = getStore();
   for (const [name, entry] of store) {
-    try { entry.proc.kill(); } catch { /* ignore */ }
+    try { entry.proc.kill(); } catch { }
     store.delete(name);
   }
 }

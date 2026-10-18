@@ -22,44 +22,27 @@ import { IWorkspaceFolder, IWorkspace } from '../../../../platform/workspace/com
 import * as Tasks from './tasks.js';
 import { ITaskDefinitionRegistry, TaskDefinitionRegistry } from './taskDefinitionRegistry.js';
 import { ConfiguredInput } from '../../../services/configurationResolver/common/configurationResolver.js';
+import { FOLDER_CONFIG_FOLDER_NAME } from '../../../services/configuration/common/configuration.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ShellExecutionSupportedContext, ProcessExecutionSupportedContext } from './taskService.js';
 import { IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 
 export const enum ShellQuoting {
-	/**
-	 * Default is character escaping.
-	 */
 	escape = 1,
 
-	/**
-	 * Default is strong quoting
-	 */
 	strong = 2,
 
-	/**
-	 * Default is weak quoting.
-	 */
 	weak = 3
 }
 
 export interface IShellQuotingOptions {
-	/**
-	 * The character used to do character escaping.
-	 */
 	escape?: string | {
 		escapeChar: string;
 		charsToEscape: string;
 	};
 
-	/**
-	 * The character used for string quoting.
-	 */
 	strong?: string;
 
-	/**
-	 * The character used for weak quoting.
-	 */
 	weak?: string;
 }
 
@@ -70,76 +53,32 @@ export interface IShellConfiguration {
 }
 
 export interface ICommandOptionsConfig {
-	/**
-	 * The current working directory of the executed program or shell.
-	 * If omitted VSCode's current workspace root is used.
-	 */
 	cwd?: string;
 
-	/**
-	 * The additional environment of the executed program or shell. If omitted
-	 * the parent process' environment is used.
-	 */
 	env?: IStringDictionary<string>;
 
-	/**
-	 * The shell configuration;
-	 */
 	shell?: IShellConfiguration;
 }
 
 export interface IPresentationOptionsConfig {
-	/**
-	 * Controls whether the terminal executing a task is brought to front or not.
-	 * Defaults to `RevealKind.Always`.
-	 */
 	reveal?: string;
 
-	/**
-	 * Controls whether the problems panel is revealed when running this task or not.
-	 * Defaults to `RevealKind.Never`.
-	 */
 	revealProblems?: string;
 
-	/**
-	 * Controls whether the executed command is printed to the output window or terminal as well.
-	 */
 	echo?: boolean;
 
-	/**
-	 * Controls whether the terminal is focus when this task is executed
-	 */
 	focus?: boolean;
 
-	/**
-	 * Controls whether the task runs in a new terminal
-	 */
 	panel?: string;
 
-	/**
-	 * Controls whether to show the "Terminal will be reused by tasks, press any key to close it" message.
-	 */
 	showReuseMessage?: boolean;
 
-	/**
-	 * Controls whether the terminal should be cleared before running the task.
-	 */
 	clear?: boolean;
 
-	/**
-	 * Controls whether the task is executed in a specific terminal group using split panes.
-	 */
 	group?: string;
 
-	/**
-	 * Controls whether the terminal that the task runs in is closed when the task completes.
-	 * Note that if the terminal process exits with a non-zero exit code, it will not close.
-	 */
 	close?: boolean;
 
-	/**
-	 * Controls whether to preserve the task name in the terminal after task completion.
-	 */
 	preserveTerminalName?: boolean;
 }
 
@@ -163,70 +102,27 @@ export namespace ITaskIdentifier {
 }
 
 export interface ILegacyTaskProperties {
-	/**
-	 * @deprecated Use `isBackground` instead.
-	 * Whether the executed command is kept alive and is watching the file system.
-	 */
 	isWatching?: boolean;
 
-	/**
-	 * @deprecated Use `group` instead.
-	 * Whether this task maps to the default build command.
-	 */
 	isBuildCommand?: boolean;
 
-	/**
-	 * @deprecated Use `group` instead.
-	 * Whether this task maps to the default test command.
-	 */
 	isTestCommand?: boolean;
 }
 
 export interface ILegacyCommandProperties {
 
-	/**
-	 * Whether this is a shell or process
-	 */
 	type?: string;
 
-	/**
-	 * @deprecated Use presentation options
-	 * Controls whether the output view of the running tasks is brought to front or not.
-	 * See BaseTaskRunnerConfiguration#showOutput for details.
-	 */
 	showOutput?: string;
 
-	/**
-	 * @deprecated Use presentation options
-	 * Controls whether the executed command is printed to the output windows as well.
-	 */
 	echoCommand?: boolean;
 
-	/**
-	 * @deprecated Use presentation instead
-	 */
 	terminal?: IPresentationOptionsConfig;
 
-	/**
-	 * @deprecated Use inline commands.
-	 * See BaseTaskRunnerConfiguration#suppressTaskName for details.
-	 */
 	suppressTaskName?: boolean;
 
-	/**
-	 * Some commands require that the task argument is highlighted with a special
-	 * prefix (e.g. /t: for msbuild). This property can be used to control such
-	 * a prefix.
-	 */
 	taskSelector?: string;
 
-	/**
-	 * @deprecated use the task type instead.
-	 * Specifies whether the command is a shell command and therefore must
-	 * be executed in a shell interpreter (e.g. cmd.exe, bash, ...).
-	 *
-	 * Defaults to false if omitted.
-	 */
 	isShellCommand?: boolean | IShellConfiguration;
 }
 
@@ -250,15 +146,8 @@ export namespace CommandString {
 
 export interface IBaseCommandProperties {
 
-	/**
-	 * The command to be executed. Can be an external program or a shell
-	 * command.
-	 */
 	command?: CommandString;
 
-	/**
-	 * The command options used when the command is executed. Can be omitted.
-	 */
 	options?: ICommandOptionsConfig;
 
 	/**
@@ -271,19 +160,10 @@ export interface IBaseCommandProperties {
 
 export interface ICommandProperties extends IBaseCommandProperties {
 
-	/**
-	 * Windows specific command properties
-	 */
 	windows?: IBaseCommandProperties;
 
-	/**
-	 * OSX specific command properties
-	 */
 	osx?: IBaseCommandProperties;
 
-	/**
-	 * linux specific command properties
-	 */
 	linux?: IBaseCommandProperties;
 }
 
@@ -293,183 +173,72 @@ export interface IGroupKind {
 }
 
 export interface IConfigurationProperties {
-	/**
-	 * The task's name
-	 */
 	taskName?: string;
 
-	/**
-	 * The UI label used for the task.
-	 */
 	label?: string;
 
-	/**
-	 * An optional identifier which can be used to reference a task
-	 * in a dependsOn or other attributes.
-	 */
 	identifier?: string;
 
-	/**
-	 * Whether the executed command is kept alive and runs in the background.
-	 */
 	isBackground?: boolean;
 
-	/**
-	 * Whether the task should prompt on close for confirmation if running.
-	 */
 	promptOnClose?: boolean;
 
-	/**
-	 * Defines the group the task belongs too.
-	 */
 	group?: string | IGroupKind;
 
-	/**
-	 * A description of the task.
-	 */
 	detail?: string;
 
-	/**
-	 * The other tasks the task depend on
-	 */
 	dependsOn?: string | ITaskIdentifier | Array<string | ITaskIdentifier>;
 
-	/**
-	 * The order the dependsOn tasks should be executed in.
-	 */
 	dependsOrder?: string;
 
-	/**
-	 * Controls the behavior of the used terminal
-	 */
 	presentation?: IPresentationOptionsConfig;
 
-	/**
-	 * Controls shell options.
-	 */
 	options?: ICommandOptionsConfig;
 
-	/**
-	 * The problem matcher(s) to use to capture problems in the tasks
-	 * output.
-	 */
 	problemMatcher?: ProblemMatcherConfig.ProblemMatcherType;
 
-	/**
-	 * Task run options. Control run related properties.
-	 */
 	runOptions?: IRunOptionsConfig;
 
-	/**
-	 * The icon for this task in the terminal tabs list
-	 */
 	icon?: { id: string; color?: string };
 
-	/**
-	 * The icon's color in the terminal tabs list
-	 */
 	color?: string;
 
-	/**
-	 * Do not show this task in the run task quickpick
-	 */
 	hide?: boolean;
 
-	/**
-	 * Show this task in the Agents run action dropdown
-	 */
 	inAgents?: boolean;
 }
 
 export interface ICustomTask extends ICommandProperties, IConfigurationProperties {
-	/**
-	 * Custom tasks have the type CUSTOMIZED_TASK_TYPE
-	 */
 	type?: string;
 
 }
 
 export interface IConfiguringTask extends IConfigurationProperties {
-	/**
-	 * The contributed type of the task
-	 */
 	type?: string;
 }
 
-/**
- * The base task runner configuration
- */
 export interface IBaseTaskRunnerConfiguration {
 
-	/**
-	 * The command to be executed. Can be an external program or a shell
-	 * command.
-	 */
 	command?: CommandString;
 
-	/**
-	 * @deprecated Use type instead
-	 *
-	 * Specifies whether the command is a shell command and therefore must
-	 * be executed in a shell interpreter (e.g. cmd.exe, bash, ...).
-	 *
-	 * Defaults to false if omitted.
-	 */
 	isShellCommand?: boolean;
 
-	/**
-	 * The task type
-	 */
 	type?: string;
 
-	/**
-	 * The command options used when the command is executed. Can be omitted.
-	 */
 	options?: ICommandOptionsConfig;
 
-	/**
-	 * The arguments passed to the command. Can be omitted.
-	 */
 	args?: CommandString[];
 
-	/**
-	 * Controls whether the output view of the running tasks is brought to front or not.
-	 * Valid values are:
-	 *   "always": bring the output window always to front when a task is executed.
-	 *   "silent": only bring it to front if no problem matcher is defined for the task executed.
-	 *   "never": never bring the output window to front.
-	 *
-	 * If omitted "always" is used.
-	 */
 	showOutput?: string;
 
-	/**
-	 * Controls whether the executed command is printed to the output windows as well.
-	 */
 	echoCommand?: boolean;
 
-	/**
-	 * The group
-	 */
 	group?: string | IGroupKind;
 
-	/**
-	 * Controls the behavior of the used terminal
-	 */
 	presentation?: IPresentationOptionsConfig;
 
-	/**
-	 * If set to false the task name is added as an additional argument to the
-	 * command when executed. If set to true the task name is suppressed. If
-	 * omitted false is used.
-	 */
 	suppressTaskName?: boolean;
 
-	/**
-	 * Some commands require that the task argument is highlighted with a special
-	 * prefix (e.g. /t: for msbuild). This property can be used to control such
-	 * a prefix.
-	 */
 	taskSelector?: string;
 
 	/**
@@ -493,9 +262,6 @@ export interface IBaseTaskRunnerConfiguration {
 	 */
 	isBackground?: boolean;
 
-	/**
-	 * Whether the task should prompt on close for confirmation if running.
-	 */
 	promptOnClose?: boolean;
 
 	/**
@@ -504,48 +270,23 @@ export interface IBaseTaskRunnerConfiguration {
 	 */
 	tasks?: Array<ICustomTask | IConfiguringTask>;
 
-	/**
-	 * Problem matcher declarations.
-	 */
 	declares?: ProblemMatcherConfig.INamedProblemMatcher[];
 
-	/**
-	 * Optional user input variables.
-	 */
 	inputs?: ConfiguredInput[];
 }
 
-/**
- * A configuration of an external build system. BuildConfiguration.buildSystem
- * must be set to 'program'
- */
 export interface IExternalTaskRunnerConfiguration extends IBaseTaskRunnerConfiguration {
 
 	_runner?: string;
 
-	/**
-	 * Determines the runner to use
-	 */
 	runner?: string;
 
-	/**
-	 * The config's version number
-	 */
 	version: string;
 
-	/**
-	 * Windows specific task configuration
-	 */
 	windows?: IBaseTaskRunnerConfiguration;
 
-	/**
-	 * Mac specific task configuration
-	 */
 	osx?: IBaseTaskRunnerConfiguration;
 
-	/**
-	 * Linux specific task configuration
-	 */
 	linux?: IBaseTaskRunnerConfiguration;
 }
 
@@ -1280,7 +1021,6 @@ export namespace ProblemMatcherConverter {
 				let localProblemMatcher: ProblemMatcher & Partial<INamedProblemMatcher> = context.namedProblemMatchers[variableName];
 				if (localProblemMatcher) {
 					localProblemMatcher = Objects.deepClone(localProblemMatcher);
-					// remove the name
 					delete localProblemMatcher.name;
 					return { value: localProblemMatcher };
 				}
@@ -1508,7 +1248,7 @@ namespace ConfiguringTask {
 		}
 		const configElement: Tasks.ITaskSourceConfigElement = {
 			workspaceFolder: context.workspaceFolder,
-			file: '.vscode/tasks.json',
+			file: `${FOLDER_CONFIG_FOLDER_NAME}/tasks.json`,
 			index,
 			element: external
 		};
@@ -1588,15 +1328,15 @@ namespace CustomTask {
 		let taskSource: Tasks.FileBasedTaskSource;
 		switch (source) {
 			case TaskConfigSource.User: {
-				taskSource = { kind: Tasks.TaskSourceKind.User, config: { index, element: external, file: '.vscode/tasks.json', workspaceFolder: context.workspaceFolder }, label };
+				taskSource = { kind: Tasks.TaskSourceKind.User, config: { index, element: external, file: `${FOLDER_CONFIG_FOLDER_NAME}/tasks.json`, workspaceFolder: context.workspaceFolder }, label };
 				break;
 			}
 			case TaskConfigSource.WorkspaceFile: {
-				taskSource = { kind: Tasks.TaskSourceKind.WorkspaceFile, config: { index, element: external, file: '.vscode/tasks.json', workspaceFolder: context.workspaceFolder, workspace: context.workspace }, label };
+				taskSource = { kind: Tasks.TaskSourceKind.WorkspaceFile, config: { index, element: external, file: `${FOLDER_CONFIG_FOLDER_NAME}/tasks.json`, workspaceFolder: context.workspaceFolder, workspace: context.workspace }, label };
 				break;
 			}
 			default: {
-				taskSource = { kind: Tasks.TaskSourceKind.Workspace, config: { index, element: external, file: '.vscode/tasks.json', workspaceFolder: context.workspaceFolder }, label };
+				taskSource = { kind: Tasks.TaskSourceKind.Workspace, config: { index, element: external, file: `${FOLDER_CONFIG_FOLDER_NAME}/tasks.json`, workspaceFolder: context.workspaceFolder }, label };
 				break;
 			}
 		}
@@ -1619,7 +1359,7 @@ namespace CustomTask {
 		if (configuration.value) {
 			result.configurationProperties = Object.assign(result.configurationProperties, configuration.value);
 		}
-		const supportLegacy: boolean = true; //context.schemaVersion === Tasks.JsonSchemaVersion.V2_0_0;
+		const supportLegacy: boolean = true;
 		if (supportLegacy) {
 			const legacy: ILegacyTaskProperties = external as ILegacyTaskProperties;
 			if (result.configurationProperties.isBackground === undefined && legacy.isWatching !== undefined) {
@@ -1638,8 +1378,6 @@ namespace CustomTask {
 			result.command = command;
 		}
 		if (external.command !== undefined) {
-			// if the task has its own command then we suppress the
-			// task name by default.
 			command.suppressTaskName = true;
 		}
 		return result;
@@ -1647,7 +1385,6 @@ namespace CustomTask {
 
 	export function fillGlobals(task: Tasks.CustomTask, globals: IGlobals): void {
 		// We only merge a command from a global definition if there is no dependsOn
-		// or there is a dependsOn and a defined command.
 		if (CommandConfiguration.hasCommand(task.command) || task.configurationProperties.dependsOn === undefined) {
 			task.command = CommandConfiguration.fillGlobals(task.command, globals.command, task.configurationProperties.name);
 		}
@@ -1655,7 +1392,6 @@ namespace CustomTask {
 			task.configurationProperties.problemMatchers = Objects.deepClone(globals.problemMatcher);
 			task.hasDefinedMatchers = true;
 		}
-		// promptOnClose is inferred from isBackground if available
 		if (task.configurationProperties.promptOnClose === undefined && task.configurationProperties.isBackground === undefined && globals.promptOnClose !== undefined) {
 			task.configurationProperties.promptOnClose = globals.promptOnClose;
 		}
@@ -1823,9 +1559,6 @@ export namespace TaskParser {
 			}
 			context.taskLoadIssues = Objects.deepClone(baseLoadIssues);
 		}
-		// There is some special logic for tasks with the labels "build" and "test".
-		// Even if they are not marked as a task group Build or Test, we automagically group them as such.
-		// However, if they are already grouped as Build or Test, we don't need to add this grouping.
 		const defaultBuildGroupName = Types.isString(defaultBuildTask.task?.configurationProperties.group) ? defaultBuildTask.task?.configurationProperties.group : defaultBuildTask.task?.configurationProperties.group?._id;
 		const defaultTestTaskGroupName = Types.isString(defaultTestTask.task?.configurationProperties.group) ? defaultTestTask.task?.configurationProperties.group : defaultTestTask.task?.configurationProperties.group?._id;
 		if ((defaultBuildGroupName !== Tasks.TaskGroup.Build._id) && (defaultBuildTask.rank > -1) && (defaultBuildTask.rank < 2) && defaultBuildTask.task) {
@@ -1846,7 +1579,6 @@ export namespace TaskParser {
 		}
 
 		if (source) {
-			// Tasks are keyed by ID but we need to merge by name
 			const map: IStringDictionary<Tasks.CustomTask> = Object.create(null);
 			target.forEach((task) => {
 				map[task.configurationProperties.name!] = task;

@@ -94,11 +94,6 @@ export interface PullRequestSearchItem {
 
 export type PullRequestState = 'open' | 'closed' | 'merged' | 'draft';
 
-/**
- * Derives a unified pull request state from the GitHub GraphQL `state` enum
- * and the `isDraft` boolean. Terminal states (merged, closed) take precedence
- * over draft — a closed draft PR is reported as 'closed', not 'draft'.
- */
 export function derivePullRequestState(pr: Pick<PullRequestSearchItem, 'state' | 'isDraft'>): PullRequestState {
 	const state = pr.state?.toUpperCase();
 	if (state === 'MERGED') {
@@ -239,7 +234,6 @@ export async function makeGitHubAPIRequest(
 		const rateLimit = Number(response.headers.get('x-ratelimit-remaining'));
 		const logMessage = `[RateLimit] REST rate limit remaining: ${rateLimit}, ${routeSlug}`;
 		if (rateLimit < 1000) {
-			// Danger zone
 			logService.warn(logMessage);
 			telemetry.sendMSFTTelemetryEvent('githubAPI.approachingRateLimit', { rateLimit: rateLimit.toString() });
 		} else {
@@ -282,7 +276,6 @@ export async function makeGitHubGraphQLRequest(fetcherService: IFetcherService, 
 		const rateLimit = Number(response.headers.get('x-ratelimit-remaining'));
 		const logMessage = `[RateLimit] GraphQL rate limit remaining: ${rateLimit}, query: ${query}`;
 		if (rateLimit < 1000) {
-			// Danger zone
 			logService.warn(logMessage);
 			telemetry.sendMSFTTelemetryEvent('githubAPI.approachingRateLimit', { rateLimit: rateLimit.toString() });
 		} else {
@@ -354,9 +347,6 @@ export async function makeSearchGraphQLRequest(
 		first
 	};
 
-	// TODO: Handle rate limiting
-	//       result.errors[0]
-	//         {type: 'RATE_LIMIT', code: 'graphql_rate_limit', message: 'API rate limit already exceeded for user ID xxxxxxx.'}
 
 	const result = await makeGitHubGraphQLRequest(fetcherService, logService, telemetry, host, query, token, variables, 'github-graphql-search-prs');
 
@@ -429,12 +419,6 @@ export async function getPullRequestFromGlobalId(
 		if (errorCode) {
 			properties.errorCode = errorCode;
 		}
-		/* __GDPR__
-			"pr.getPullRequestFromGlobalIdFailed" : {
-				"errorCode": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth" },
-				"requestFailed": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth" }
-			}
-		*/
 		telemetry.sendMSFTTelemetryErrorEvent('pr.getPullRequestFromGlobalIdFailed', properties);
 	}
 
@@ -547,10 +531,6 @@ export async function makeGitHubAPIRequestWithPagination(
 	return sessionInfos;
 }
 
-/**
- * Fetches assignable actors (users/bots) for a repository using suggestedActors API.
- * This is the preferred API as it filters by capability (CAN_BE_ASSIGNED).
- */
 export async function getAssignableActorsWithSuggestedActors(
 	fetcherService: IFetcherService,
 	logService: ILogService,
@@ -610,10 +590,6 @@ export async function getAssignableActorsWithSuggestedActors(
 	return actors;
 }
 
-/**
- * Fetches assignable users for a repository using assignableUsers API.
- * This is a fallback for older GitHub Enterprise Server instances that don't support suggestedActors.
- */
 export async function getAssignableActorsWithAssignableUsers(
 	fetcherService: IFetcherService,
 	logService: ILogService,

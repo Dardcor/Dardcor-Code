@@ -3,14 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { AssistantMessage, BasePromptElementProps, Chunk, IfEmpty, Image, JSONTree, PromptElement, PromptElementProps, PromptMetadata, PromptPiece, PromptSizing, TokenLimit, ToolCall, ToolMessage, useKeepWith, UserMessage } from '@vscode/prompt-tsx';
 import type { ChatParticipantToolToken, LanguageModelToolInvocationOptions, LanguageModelToolResult2, LanguageModelToolTokenizationOptions } from 'vscode';
-import { IAuthenticationService } from '../../../../platform/authentication/common/authentication';
 import { IChatHookService, IPreToolUseHookResult } from '../../../../platform/chat/common/chatHookService';
 import { ISessionTranscriptService } from '../../../../platform/chat/common/sessionTranscriptService';
 import { ConfigKey, IConfigurationService } from '../../../../platform/configuration/common/configurationService';
-import { modelCanUseMcpResultImageURL } from '../../../../platform/endpoint/common/chatModelCapabilities';
 import { CompactionDataContainer } from '../../../../platform/endpoint/common/compactionDataContainer';
 import { IEndpointProvider } from '../../../../platform/endpoint/common/endpointProvider';
 import { CacheType } from '../../../../platform/endpoint/common/endpointTypes';
@@ -38,7 +35,7 @@ import { IResultMetadata } from '../../../prompt/common/conversation';
 import { getSubAgentInvocationId, IBuildPromptContext, IToolCall, IToolCallRound } from '../../../prompt/common/intents';
 import { toJsonSchema } from '../../../tools/common/toJsonSchema';
 import { ToolName } from '../../../tools/common/toolNames';
-import { CopilotToolMode } from '../../../tools/common/toolsRegistry';
+import { AgentToolMode } from '../../../tools/common/toolsRegistry';
 import { IToolsService } from '../../../tools/common/toolsService';
 import { IChatDiskSessionResources } from '../../common/chatDiskSessionResources';
 import { IPromptEndpoint, PromptRenderer } from '../base/promptRenderer';
@@ -49,17 +46,13 @@ export interface ChatToolCallsProps extends BasePromptElementProps {
 	readonly toolCallRounds: readonly IToolCallRound[] | undefined;
 	readonly toolCallResults: Record<string, LanguageModelToolResult2> | undefined;
 	readonly isHistorical?: boolean;
-	readonly toolCallMode?: CopilotToolMode;
+	readonly toolCallMode?: AgentToolMode;
 	readonly enableCacheBreakpoints?: boolean;
 	readonly truncateAt?: number;
 }
 
 const MAX_INPUT_VALIDATION_RETRIES = 5;
 
-/**
- * Render one round of the assistant response's tool calls.
- * One assistant response "turn" which contains multiple rounds of assistant message text, tool calls, and tool results.
- */
 export class ChatToolCalls extends PromptElement<ChatToolCallsProps, void> {
 	constructor(
 		props: PromptElementProps<ChatToolCallsProps>,
@@ -75,14 +68,11 @@ export class ChatToolCalls extends PromptElement<ChatToolCallsProps, void> {
 			return;
 		}
 
-		// Create a child instantiation service with IBuildPromptContext registered
 		const hydratedInstantiationService = this.instantiationService.createChild(
 			new ServiceCollection([IBuildPromptContext, this.props.promptContext])
 		);
 
-		// Shared budget to limit total image data across all tool results in this turn.
-		// Prevents 413 errors when many image-returning tools run in parallel.
-		const sharedImageBudget: SharedImageBudget = { remaining: CAPI_IMAGE_BUDGET_BYTES };
+		const sharedImageBudget: SharedImageBudget = { remaining: INLINE_MODEL_IMAGE_BUDGET_BYTES };
 
 		const toolCallRounds = this.props.toolCallRounds.flatMap((round, i) => {
 			return this.renderOneToolCallRound(round, i, this.props.toolCallRounds!.length, hydratedInstantiationService, sharedImageBudget, token);
@@ -99,9 +89,6 @@ export class ChatToolCalls extends PromptElement<ChatToolCallsProps, void> {
 		</>;
 	}
 
-	/**
-	 * Render one round of tool calling: the assistant message text, its tool calls, and the results of those tool calls.
-	 */
 	private renderOneToolCallRound(round: IToolCallRound, index: number, total: number, hydratedInstantiationService: IInstantiationService, sharedImageBudget: SharedImageBudget, token?: CancellationToken): PromptElement[] {
 		let fixedNameToolCalls = round.toolCalls.map(tc => ({ ...tc, name: this.toolsService.validateToolName(tc.name) ?? tc.name }));
 		if (this.props.isHistorical) {
@@ -120,18 +107,13 @@ export class ChatToolCalls extends PromptElement<ChatToolCallsProps, void> {
 		}));
 		const children: PromptElement[] = [];
 
-		// Don't include this when rendering and triggering summarization
 		const statefulMarker = round.statefulMarker && <StatefulMarkerContainer statefulMarker={{
 			modelId: this.promptEndpoint.model,
 			marker: round.statefulMarker,
 			summarizedAtRoundId: round.statefulMarkerSummarizedAtRoundId,
 		}} />;
-		// Backward compat: older persisted rounds use `phaseModelId` instead of `modelId`. Read both.
 		const roundModelId = round.modelId ?? (round as IToolCallRound & { phaseModelId?: string }).phaseModelId;
 		const sameModelAsEndpoint = roundModelId === this.promptEndpoint.model;
-		// Replaying historical thinking preserves the prompt-cache prefix on the
-		// Messages API, but only adaptive-thinking models accept replayed blocks —
-		// budget-mode models (e.g. Haiku 4.5) 400 on them (#318076).
 		const modelSupportsHistoricalThinking = !!this.promptEndpoint.supportsAdaptiveThinking;
 		const apiSupportsHistoricalThinking = this.promptEndpoint.apiType === 'responses'
 			|| (this.promptEndpoint.apiType === 'messages' && modelSupportsHistoricalThinking);
@@ -148,11 +130,7 @@ export class ChatToolCalls extends PromptElement<ChatToolCallsProps, void> {
 				{round.response}
 			</AssistantMessage>);
 
-		// Tool call elements should be rendered with the later elements first, allowed to grow to fill the available space
-		// Each tool 'reserves' 1/(N*4) of the available space just so that newer tool calls don't completely elimate
-		// older tool calls.
 		const reserve1N = (1 / (total * 4)) / fixedNameToolCalls.length;
-		// todo@connor4312: historical tool calls don't need to reserve and can all be flexed together
 		for (const [i, toolCall] of fixedNameToolCalls.entries()) {
 			const KeepWith = assistantToolCalls[i].keepWith;
 			children.push(
@@ -164,12 +142,11 @@ export class ChatToolCalls extends PromptElement<ChatToolCallsProps, void> {
 						allowInvokingTool: !this.props.isHistorical,
 						validateInput: round.toolInputRetry < MAX_INPUT_VALIDATION_RETRIES,
 						requestId: this.props.promptContext.requestId,
-						toolCallMode: this.props.toolCallMode ?? CopilotToolMode.PartialContext,
+						toolCallMode: this.props.toolCallMode ?? AgentToolMode.PartialContext,
 						isLast: !this.props.isHistorical && i === fixedNameToolCalls.length - 1 && index === total - 1,
 						enableCacheBreakpoints: this.props.enableCacheBreakpoints ?? false,
 						truncateAt: this.props.truncateAt,
 						sessionId: this.props.promptContext.request?.sessionId,
-						// Strip images from historical turns to avoid 413 errors
 						stripImages: !!this.props.isHistorical,
 						sharedImageBudget,
 						token: token ?? CancellationToken.None,
@@ -178,7 +155,6 @@ export class ChatToolCalls extends PromptElement<ChatToolCallsProps, void> {
 			);
 		}
 
-		// If a hook added context after this round, render it as a user message
 		if (round.hookContext) {
 			children.push(<UserMessage>{round.hookContext}</UserMessage>);
 		}
@@ -187,17 +163,8 @@ export class ChatToolCalls extends PromptElement<ChatToolCallsProps, void> {
 	}
 }
 
-/**
- * Half the CAPI body-size limit (5 MB), used to cap image data so the rest
- * of the prompt still fits.  Shared by both the per-tool and cross-tool budgets.
- */
-const CAPI_IMAGE_BUDGET_BYTES = (5 * 1024 * 1024) / 2;
+const INLINE_MODEL_IMAGE_BUDGET_BYTES = (5 * 1024 * 1024) / 2;
 
-/**
- * Shared mutable counter that limits the total image data rendered across
- * all tool results within a turn, preventing 413 (request too large) errors
- * when many image-returning tools (e.g. view_image) run in parallel.
- */
 interface SharedImageBudget {
 	remaining: number;
 }
@@ -209,7 +176,7 @@ interface ToolResultOpts {
 	readonly allowInvokingTool?: boolean;
 	readonly validateInput?: boolean;
 	readonly requestId?: string;
-	readonly toolCallMode: CopilotToolMode;
+	readonly toolCallMode: AgentToolMode;
 	readonly isLast: boolean;
 	readonly enableCacheBreakpoints: boolean;
 	readonly truncateAt?: number;
@@ -221,11 +188,6 @@ interface ToolResultOpts {
 
 const toolErrorSuffix = '\nPlease check your input and try again.';
 
-/**
- * Creates a <ToolResult /> element. Eagerly starts the tool call if we know
- * that the tool will not need/consume sizing information (e.g. MCP calls) and
- * therefore don't need to wait for other elements to sequentially render.
- */
 function buildToolResultElement(accessor: ServicesAccessor, props: ToolResultOpts) {
 	const toolsService: IToolsService = accessor.get(IToolsService);
 	const logService: ILogService = accessor.get(ILogService);
@@ -252,7 +214,7 @@ function buildToolResultElement(accessor: ServicesAccessor, props: ToolResultOpt
 		const extraMetadata: PromptMetadata[] = [];
 		let isCancelled = false;
 		let toolResult = props.toolCallResult;
-		const dardcorTool = toolsService.getCopilotTool(props.toolCall.name as ToolName);
+		const dardcorTool = toolsService.getAgentTool(props.toolCall.name as ToolName);
 		if (toolResult === undefined) {
 			let inputObj: unknown;
 			let validation: ToolValidationOutcome = ToolValidationOutcome.Unknown;
@@ -282,7 +244,6 @@ function buildToolResultElement(accessor: ServicesAccessor, props: ToolResultOpt
 						inputObj = await dardcorTool.resolveInput(inputObj, promptContext, props.toolCallMode);
 					}
 
-					// Execute preToolUse hook before invoking the tool
 					const hookResult = await chatHookService.executePreToolUseHook(
 						props.toolCall.name, inputObj, props.toolCall.id,
 						promptContext.request?.hooks, promptContext.conversation?.sessionId,
@@ -290,15 +251,11 @@ function buildToolResultElement(accessor: ServicesAccessor, props: ToolResultOpt
 						promptContext.stream
 					);
 
-					// Apply updatedInput from hook (input modification takes effect before invocation)
 					if (hookResult?.updatedInput) {
 						inputObj = hookResult.updatedInput;
 					}
 
 					const subAgentInvocationId = getSubAgentInvocationId(promptContext);
-					// Capture the active trace context (from the invoke_agent span) so that
-					// the execute_tool span is properly parented even when async context
-					// propagation doesn't carry the active span.
 					const parentTraceContext = otelService.getActiveTraceContext();
 					const invocationOptions: LanguageModelToolInvocationOptions<unknown> = {
 						input: inputObj,
@@ -306,8 +263,6 @@ function buildToolResultElement(accessor: ServicesAccessor, props: ToolResultOpt
 						tokenizationOptions,
 						chatRequestId: props.requestId,
 						subAgentInvocationId,
-						// Split on `__vscode` so it's the chat stream id
-						// TODO @lramos15 - This is a gross hack
 						chatStreamToolCallId: props.toolCall.id.split('__vscode')[0],
 						preToolUseResult: hookResult ? {
 							permissionDecision: hookResult.permissionDecision,
@@ -315,7 +270,6 @@ function buildToolResultElement(accessor: ServicesAccessor, props: ToolResultOpt
 							updatedInput: hookResult.updatedInput,
 						} : undefined,
 					};
-					// Attach trace context for span parenting (not in the VS Code API type)
 					(invocationOptions as { parentTraceContext?: { traceId: string; spanId: string } }).parentTraceContext = parentTraceContext;
 
 					const transcriptSessionId = promptContext.conversation?.sessionId;
@@ -331,7 +285,6 @@ function buildToolResultElement(accessor: ServicesAccessor, props: ToolResultOpt
 						requestId: props.requestId,
 					});
 
-					// Run hook context handling after tool execution
 					appendHookContext(toolResult, hookResult, chatHookService, props, inputObj, promptContext);
 
 					if (transcriptSessionId) {
@@ -398,16 +351,6 @@ async function sendToolCallTelemetry(props: ToolResultOpts, promptContext: IBuil
 	const model = promptContext.request?.model && (await endpointProvider.getChatEndpoint(promptContext.request?.model)).model;
 	const toolName = props.toolCall.name;
 
-	/* __GDPR__
-		"toolInvoke" : {
-			"owner": "donjayamanne",
-			"comment": "Details about invocation of tools",
-			"validateOutcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the tool input validation. valid, invalid and unknown" },
-			"invokeOutcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the tool Invokcation. invalidInput, disabledByUser, success, error, cancelled" },
-			"toolName": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The name of the tool being invoked." },
-			"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('toolInvoke',
 		{
 			validateOutcome,
@@ -445,11 +388,6 @@ function buildImageUri(sessionId: string | undefined, toolCallId: string | undef
 	return buildToolImageResourceUri(sessionId, coreToolCallId, imageIndex, getExtensionForMimeType(mimeType) ?? '.bin');
 }
 
-/**
- * Replaces image data parts with text placeholders in tool results.
- * Used for historical turns to prevent large base64 image data from
- * accumulating and causing 413 (request too large) errors from the API.
- */
 function replaceImagesWithPlaceholders(
 	content: LanguageModelToolResult2['content'],
 	toolCallId: string | undefined,
@@ -468,15 +406,10 @@ function replaceImagesWithPlaceholders(
 	});
 }
 
-/**
- * One tool call result, which either comes from the cache or from invoking the tool.
- */
 class ToolResultElement extends PromptElement<IToolResultElementActualProps & BasePromptElementProps, void> {
 	async render(state: void, sizing: PromptSizing) {
 		const { extraMetadata, toolResult, isCancelled } = await this.props.call(sizing);
 
-		// For historical turns, replace image data with text placeholders
-		// to avoid accumulating large base64 payloads across conversation turns (413 errors)
 		const content = this.props.stripImages
 			? replaceImagesWithPlaceholders(toolResult.content, this.props.toolCall.id, this.props.sessionId)
 			: toolResult.content;
@@ -506,8 +439,6 @@ interface InvokedToolTelemetryProperties {
 }
 
 export function sendInvokedToolTelemetry(instantiationService: IInstantiationService, endpoint: IChatEndpoint, telemetry: ITelemetryService, toolName: string, toolResult: LanguageModelToolResult2, properties?: InvokedToolTelemetryProperties) {
-	// Override the token budget to Infinity for telemetry counting to avoid truncation,
-	// matching the prior behavior with modelMaxPromptTokens: Infinity
 	const endpointWithUnlimitedBudget: IChatEndpoint = {
 		...endpoint,
 		tokenizer: endpoint.tokenizer,
@@ -524,17 +455,6 @@ export function sendInvokedToolTelemetry(instantiationService: IInstantiationSer
 		},
 		{},
 	).render().then(({ tokenCount }) => {
-		/* __GDPR__
-			"agent.tool.responseLength" : {
-				"owner": "connor4312",
-				"comment": "Counts the number of tokens generated by tools",
-				"conversationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for the current chat conversation." },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for the current chat request." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool." },
-				"toolName": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The name of the tool being invoked." },
-				"tokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of tokens used.", "isMeasurement": true }
-			}
-		*/
 		telemetry.sendMSFTTelemetryEvent('agent.tool.responseLength', { ...properties, model: endpoint.model, toolName }, { tokenCount });
 	});
 }
@@ -553,7 +473,7 @@ enum ToolInvocationOutcome {
 	Cancelled = 'cancelled',
 }
 
-export async function imageDataPartToTSX(part: LanguageModelDataPart, githubToken?: string, urlOrRequestMetadata?: string | RequestMetadata, logService?: ILogService, imageService?: IImageService) {
+export async function imageDataPartToTSX(part: LanguageModelDataPart, logService?: ILogService, imageService?: IImageService) {
 	if (isImageDataPart(part)) {
 		let imageData: Uint8Array = part.data;
 		let mimeType = part.mimeType;
@@ -569,33 +489,11 @@ export async function imageDataPartToTSX(part: LanguageModelDataPart, githubToke
 		}
 
 		const base64 = Buffer.from(imageData).toString('base64');
-		let imageSource = `data:${mimeType};base64,${base64}`;
-		const isChatRequest = typeof urlOrRequestMetadata !== 'string' && (
-			urlOrRequestMetadata?.type === RequestType.ChatCompletions ||
-			urlOrRequestMetadata?.type === RequestType.ChatResponses ||
-			urlOrRequestMetadata?.type === RequestType.ChatMessages);
-		if (githubToken && isChatRequest && imageService) {
-			try {
-				const uri = await imageService.uploadChatImageAttachment(imageData, 'tool-result-image', mimeType ?? 'image/png', githubToken);
-				if (uri) {
-					imageSource = uri.toString();
-				}
-			} catch (error) {
-				if (logService) {
-					logService.warn(`Image upload failed, using base64 fallback: ${error}`);
-				}
-			}
-		}
 
-		return <Image src={imageSource} mimeType={mimeType} />;
+		return <Image src={`data:${mimeType};base64,${base64}`} mimeType={mimeType} />;
 	}
 }
 
-/**
- * Appends hook context to a tool result after execution.
- * Handles preToolUse additionalContext and executes the postToolUse hook,
- * appending block messages and additionalContext as `<*-context>` tags.
- */
 async function appendHookContext(
 	toolResult: LanguageModelToolResult2,
 	preHookResult: IPreToolUseHookResult | undefined,
@@ -604,24 +502,20 @@ async function appendHookContext(
 	toolInput: unknown,
 	promptContext: IBuildPromptContext,
 ): Promise<void> {
-	// Append additional context from preToolUse hook
 	if (preHookResult?.additionalContext) {
 		for (const context of preHookResult.additionalContext) {
 			toolResult.content.push(new LanguageModelTextPart('\n<PreToolUse-context>\n' + context + '\n</PreToolUse-context>'));
 		}
 	}
 
-	// Skip postToolUse hook if preToolUse denied the tool — no tool actually ran
 	if (preHookResult?.permissionDecision === 'deny') {
 		return;
 	}
 
-	// Skip postToolUse hook if the request was cancelled - the response stream is closed
 	if (props.token.isCancellationRequested) {
 		return;
 	}
 
-	// Execute postToolUse hook after successful tool execution
 	const postHookResult = await chatHookService.executePostToolUseHook(
 		props.toolCall.name,
 		toolInput,
@@ -683,8 +577,6 @@ export class ToolResultMetadata extends PromptMetadata {
 	}
 }
 
-// Some MCP servers return a ton of resources as a 'download' action.
-// Only include them all eagerly if we have a manageable number.
 const DONT_INCLUDE_RESOURCE_CONTENT_IF_TOOL_HAS_MORE_THAN = 9;
 
 class McpLinkedResourceToolResult extends PromptElement<{ resourceUri: URI; mimeType: string | undefined; count: number } & BasePromptElementProps> {
@@ -700,7 +592,7 @@ class McpLinkedResourceToolResult extends PromptElement<{ resourceUri: URI; mime
 	}
 
 	async render() {
-		if (await this.ignoreService.isCopilotIgnored(this.props.resourceUri)) {
+		if (await this.ignoreService.isIgnored(this.props.resourceUri)) {
 			return null;
 		}
 
@@ -733,29 +625,19 @@ class McpLinkedResourceToolResult extends PromptElement<{ resourceUri: URI; mime
 
 interface IPrimitiveToolResultProps extends BasePromptElementProps {
 	content: LanguageModelToolResult2['content'];
-	/**
-	 * Shared budget limiting total image data across all tool results in a turn.
-	 */
 	sharedImageBudget?: SharedImageBudget;
 }
 
 class PrimitiveToolResult<T extends IPrimitiveToolResultProps> extends PromptElement<T> {
 	protected readonly linkedResources: LanguageModelDataPart[];
 
-	/**
-	 * Some models do not yet support CAPI image uploads. For these cases,
-	 * track the number of images bytes we're sending and truncate any images
-	 * that would exceed that budget.
-	 */
-	private imageSizeBudgetLeft = CAPI_IMAGE_BUDGET_BYTES;
+	private imageSizeBudgetLeft = INLINE_MODEL_IMAGE_BUDGET_BYTES;
 
 	constructor(
 		props: T,
 		@IPromptEndpoint protected readonly endpoint?: IPromptEndpoint,
-		@IAuthenticationService private readonly authService?: IAuthenticationService,
 		@ILogService private readonly logService?: ILogService,
-		@IImageService private readonly imageService?: IImageService,
-		@IConfigurationService private readonly configurationService?: IConfigurationService
+		@IImageService private readonly imageService?: IImageService
 	) {
 		super(props);
 		this.linkedResources = this.props.content.filter((c): c is LanguageModelDataPart => c instanceof LanguageModelDataPart && c.mimeType === McpLinkedResourceToolResult.mimeType);
@@ -806,46 +688,27 @@ class PrimitiveToolResult<T extends IPrimitiveToolResultProps> extends PromptEle
 			return '[Image content is not available because vision is not supported by the current model.]';
 		}
 
-		const uploadsEnabled = this.configurationService
-			? this.configurationService.getConfig(ConfigKey.EnableChatImageUpload)
-			: false;
-
-		// Anthropic (from CAPI) currently does not support image uploads from tool calls.
-		const canUpload = uploadsEnabled && !!this.endpoint && modelCanUseMcpResultImageURL(this.endpoint);
-
-		// Enforce image budgets only when images will be inlined as base64.
-		// When uploads are available, the request body stays small (URL reference).
-		if (!canUpload) {
-			// Enforce shared cross-tool budget (prevents 413s when many tools return images)
-			const sharedBudget = this.props.sharedImageBudget;
-			if (sharedBudget) {
-				if (sharedBudget.remaining < 0) {
-					return this.sharedBudgetPlaceholder();
-				} else if (part.data.length > sharedBudget.remaining) {
-					sharedBudget.remaining = -1;
-					return this.sharedBudgetPlaceholder();
-				}
-				sharedBudget.remaining -= part.data.length;
+		const sharedBudget = this.props.sharedImageBudget;
+		if (sharedBudget) {
+			if (sharedBudget.remaining < 0) {
+				return this.sharedBudgetPlaceholder();
+			} else if (part.data.length > sharedBudget.remaining) {
+				sharedBudget.remaining = -1;
+				return this.sharedBudgetPlaceholder();
 			}
-
-			// Enforce per-tool budget
-			if (this.imageSizeBudgetLeft < 0) {
-				return ''; // already exceeded and messages about it
-			} else if (part.data.length > this.imageSizeBudgetLeft) {
-				this.imageSizeBudgetLeft = -1; // just now exceeding
-				return 'Additional images are available, but there is no more space in the context. Try requesting a smaller amount of data, if possible.';
-			} else {
-				this.imageSizeBudgetLeft -= part.data.length; // bookkeep
-			}
+			sharedBudget.remaining -= part.data.length;
 		}
 
-		// Only call getGitHubSession when uploads are potentially available
-		let uploadToken: string | undefined;
-		if (canUpload) {
-			uploadToken = (await this.authService?.getGitHubSession('any', { silent: true }))?.accessToken;
+		if (this.imageSizeBudgetLeft < 0) {
+			return '';
+		} else if (part.data.length > this.imageSizeBudgetLeft) {
+			this.imageSizeBudgetLeft = -1;
+			return 'Additional images are available, but there is no more space in the context. Try requesting a smaller amount of data, if possible.';
+		} else {
+			this.imageSizeBudgetLeft -= part.data.length;
 		}
 
-		return Promise.resolve(imageDataPartToTSX(part, uploadToken, this.endpoint?.urlOrRequestMetadata, this.logService, this.imageService));
+		return imageDataPartToTSX(part, this.logService, this.imageService);
 	}
 
 	protected onTSX(part: JSONTree.PromptElementJSON) {
@@ -866,41 +729,24 @@ class PrimitiveToolResult<T extends IPrimitiveToolResultProps> extends PromptEle
 }
 
 export interface IToolResultProps extends IPrimitiveToolResultProps {
-	/**
-	 * Number of tokens at which truncation will be triggered for string content.
-	 */
 	truncate?: number;
-	/**
-	 * The tool call associated with this result.
-	 */
 	toolCallId: string | undefined;
-	/**
-	 * The session ID associated with this result.
-	 */
 	sessionId?: string;
-	/**
-	 * The name of the tool that produced this result.
-	 */
 	toolName?: string;
 }
 
 
-/**
- * Inlined from prompt-tsx. In prompt-tsx it does `require('vscode)` for the instanceof checks which breaks in vitest
- * and unfortunately I can't figure out how to work around that with the tools we have!
- */
 export class ToolResult extends PrimitiveToolResult<IToolResultProps> {
 	constructor(
 		props: IToolResultProps,
 		@IPromptEndpoint endpoint: IPromptEndpoint,
-		@IAuthenticationService authService: IAuthenticationService,
 		@ILogService private readonly _logService: ILogService,
 		@IImageService imageService: IImageService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IExperimentationService private readonly _experimentationService: IExperimentationService,
 		@IChatDiskSessionResources private readonly diskSessionResources: IChatDiskSessionResources,
 	) {
-		super(props, endpoint, authService, _logService, imageService, _configurationService);
+		super(props, endpoint, _logService, imageService);
 	}
 
 	protected override async onTSX(part: JSONTree.PromptElementJSON): Promise<any> {
@@ -929,7 +775,6 @@ export class ToolResult extends PrimitiveToolResult<IToolResultProps> {
 			ConfigKey.Advanced.LargeToolResultsToDiskEnabled,
 			this._experimentationService
 		);
-		// Exempt the search and execution subagents and memory tool from disk caching as their results are often ignored if not written directly to the conversation
 		if (isDiskCachingEnabled && this.diskSessionResources && this.props.toolCallId && this.props.sessionId && this.props.toolName !== ToolName.SearchSubagent && this.props.toolName !== ToolName.ExploreSubagent && this.props.toolName !== ToolName.ExecutionSubagent && this.props.toolName !== ToolName.Memory) {
 			const thresholdBytes = this._configurationService.getExperimentBasedConfig(
 				ConfigKey.Advanced.LargeToolResultsToDiskThreshold,
@@ -946,11 +791,9 @@ export class ToolResult extends PrimitiveToolResult<IToolResultProps> {
 					try {
 						const parsed = JSON.parse(content);
 						schema = JSON.stringify(toJsonSchema(parsed));
-						// re-stringify it as it's more friendly to line-based offsets in the read_file tool
 						content = JSON.stringify(parsed, null, 2);
 						contentFile = 'content.json';
 					} catch {
-						// ignored
 					}
 
 					const fileUri = await this.diskSessionResources.ensure(
@@ -967,14 +810,12 @@ export class ToolResult extends PrimitiveToolResult<IToolResultProps> {
 					return `Large tool result (${Math.round(content.length / 1024)}KB) written to file. Use the ${ToolName.ReadFile} tool to access the content at: ${contentFileUri.fsPath}${schemaFileUri ? `\n\nData schema found at: ${schemaFileUri.fsPath}` : ''}`;
 				} catch (err) {
 					this._logService?.warn(`[ToolResult] Failed to write large tool result to disk: ${toErrorMessage(err)}`);
-					// Fall through to normal truncation
 				}
 			}
 		}
 
-		// Standard truncation logic
 		const truncateAtTokens = this.props.truncate;
-		if (!truncateAtTokens || content.length < truncateAtTokens) { // always >=1 character per token, early bail-out
+		if (!truncateAtTokens || content.length < truncateAtTokens) {
 			return content;
 		}
 
@@ -994,7 +835,6 @@ export class ToolResult extends PrimitiveToolResult<IToolResultProps> {
 	}
 
 	protected override onResourceLink(data: string) {
-		// https://github.com/microsoft/vscode/blob/34e38b4a78a751d006b99acee1a95d76117fec7b/src/vs/workbench/contrib/mcp/common/mcpTypes.ts#L846
 		let parsed: {
 			uri: UriComponents;
 			underlyingMimeType?: string;
@@ -1014,7 +854,6 @@ export interface IToolCallResultWrapperProps extends BasePromptElementProps {
 	toolCallResults: IResultMetadata['toolCallResults'];
 }
 
-// Wrapper around ToolResult to allow rendering prompts
 export class ToolCallResultWrapper extends PromptElement<IToolCallResultWrapperProps> {
 	async render(): Promise<PromptPiece | undefined> {
 		return (
@@ -1079,25 +918,8 @@ function sendNotebookEditToolValidationTelemetry(invokeOutcome: ToolInvocationOu
 			}
 		}
 	} catch {
-		//
 	}
 
-	/* __GDPR__
-		"editNotebook.validation" : {
-			"owner": "donjayamanne",
-			"comment": "Validation failure for a Edit Notebook tool invocation",
-			"validationResult": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The result of the tool input validation. valid, invalid and unknown" },
-			"invokeOutcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The result of the tool Invocation. invalidInput, disabledByUser, success, error, cancelled" },
-			"editType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The type of edit that was attempted. insert, delete, edit or unknown" },
-			"unknownProps": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "List of unknown properties in the input" },
-			"missingProps": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "List of missing properties in the input" },
-			"newCodeType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The type of code, whether its string, string[], object, object[] or unknown" },
-			"cellId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the cell, TOP, BOTTOM, cellid, empty or unknown" },
-			"explanation": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The explanation for the edit. provided, empty and unknown" },
-			"inputParsed": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the input was parsed as JSON" },
-			"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" }
-		}
-	*/
 
 	telemetryService.sendMSFTTelemetryEvent('editNotebook.validation',
 		{

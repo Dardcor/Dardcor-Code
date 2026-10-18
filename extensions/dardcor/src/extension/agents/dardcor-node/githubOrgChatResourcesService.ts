@@ -17,50 +17,21 @@ import { Disposable, DisposableStore, IDisposable } from '../../../util/dardcor/
 import { createDecorator } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export interface IGitHubOrgChatResourcesService extends IDisposable {
-	/**
-	 * Returns the organization that should be used for the current session.
-	 */
 	getPreferredOrganizationName(): Promise<string | undefined>;
 
-	/**
-	 * Creates a polling subscription with a custom interval.
-	 * The callback will be invoked at the specified interval.
-	 * @param intervalMs The polling interval in milliseconds
-	 * @param callback The callback to invoke on each poll cycle
-	 * @returns A disposable that stops the polling when disposed
-	 */
 	startPolling(intervalMs: number, callback: (orgName: string) => Promise<void>): IDisposable;
 
-	/**
-	 * Reads a specific cached resource.
-	 * @returns The content of the resource, or undefined if not found
-	 */
 	readCacheFile(type: PromptsType, orgName: string, filename: string): Promise<string | undefined>;
 
-	/**
-	 * Writes a resource to the cache.
-	 * @returns True if the content was changed, false if unchanged
-	 */
 	writeCacheFile(type: PromptsType, orgName: string, filename: string, content: string, options?: { checkForChanges?: boolean }): Promise<boolean>;
 
-	/**
-	 * Deletes all cached resources of specified type for an organization.
-	 * Optionally provide set of filenames to exclude from deletion.
-	 */
 	clearCache(type: PromptsType, orgName: string, exclude?: Set<string>): Promise<void>;
 
-	/**
-	 * Lists all cached resources for a specific organization and type.
-	 * @returns The list of cached resources.
-	 */
 	listCachedFiles(type: PromptsType, orgName: string): Promise<vscode.ChatResource[]>;
 }
 
 export const IGitHubOrgChatResourcesService = createDecorator<IGitHubOrgChatResourcesService>('IGitHubPromptFileService');
 
-/**
- * Maps PromptsType to the cache subdirectory name.
- */
 function getCacheSubdirectory(type: PromptsType): string {
 	switch (type) {
 		case PromptsType.instructions:
@@ -72,9 +43,6 @@ function getCacheSubdirectory(type: PromptsType): string {
 	}
 }
 
-/**
- * Returns true if the filename is valid for the given PromptsType.
- */
 function isValidFile(type: PromptsType, fileName: string): boolean {
 	switch (type) {
 		case PromptsType.instructions:
@@ -89,7 +57,6 @@ function isValidFile(type: PromptsType, fileName: string): boolean {
 export class GitHubOrgChatResourcesService extends Disposable implements IGitHubOrgChatResourcesService {
 	private static readonly CACHE_ROOT = 'github';
 
-	// private readonly _pollingSubscriptions = this._register(new DisposableStore());
 	private _cachedPreferredOrgName: Promise<string | undefined> | undefined;
 
 	constructor(
@@ -103,13 +70,11 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 	) {
 		super();
 
-		// Invalidate cached org name when workspace folders change
 		this._register(this.workspaceService.onDidChangeWorkspaceFolders(() => {
 			this.logService.trace('[GitHubOrgChatResourcesService] Workspace folders changed, invalidating cached org name');
 			this._cachedPreferredOrgName = undefined;
 		}));
 
-		// Invalidate cached org name when authentication changes (sign in/out)
 		this._register(this.authService.onDidAuthenticationChange(() => {
 			this.logService.trace('[GitHubOrgChatResourcesService] Authentication changed, invalidating cached org name');
 			this._cachedPreferredOrgName = undefined;
@@ -124,7 +89,6 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 	}
 
 	private async computePreferredOrganizationName(): Promise<string | undefined> {
-		// Check if user is signed in first
 		let currentUser: Awaited<ReturnType<typeof this.octoKitService.getCurrentAuthedUser>>;
 		try {
 			currentUser = await this.octoKitService.getCurrentAuthedUser();
@@ -137,7 +101,6 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 			return undefined;
 		}
 
-		// Use the organization from the current workspace's git repository, if any
 		const workspaceOrg = await this.getWorkspaceRepositoryOrganization();
 		this.logService.trace(`[GitHubOrgChatResourcesService] Workspace organization: ${workspaceOrg ?? 'none'}`);
 		if (workspaceOrg) {
@@ -145,8 +108,6 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 			return workspaceOrg;
 		}
 
-		// Check if user has Copilot access through an organization (Business/Enterprise subscription)
-		// and prefer that organization if available
 		const dardcorOrganizations = this.authService.dardcorToken?.organizationLoginList ?? [];
 		this.logService.trace(`[GitHubOrgChatResourcesService] Copilot organizations: ${JSON.stringify(dardcorOrganizations)}`);
 		if (dardcorOrganizations.length > 0) {
@@ -155,8 +116,6 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 			return dardcorOrg;
 		}
 
-		// Fall back to the first organization the user belongs to
-		// Get the organizations the user is a member of
 		let userOrganizations: string[];
 		try {
 			userOrganizations = await this.octoKitService.getUserOrganizations({}, 1);
@@ -173,9 +132,6 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 		return userOrganizations[0];
 	}
 
-	/**
-	 * Gets the organization from the current workspace's git repository, if any.
-	 */
 	private async getWorkspaceRepositoryOrganization(): Promise<string | undefined> {
 		const workspaceFolders = this.workspaceService.getWorkspaceFolders();
 		if (workspaceFolders.length === 0) {
@@ -183,14 +139,11 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 		}
 
 		try {
-			// TODO: Support multi-root workspaces by checking all folders.
-			// This would need workspace-aware context for deciding when to use which org, which is currently not in scope.
 			const repoInfo = await this.gitService.getRepositoryFetchUrls(workspaceFolders[0]);
 			if (!repoInfo?.remoteFetchUrls?.length) {
 				return undefined;
 			}
 
-			// Try each remote URL to find a GitHub repo
 			for (const fetchUrl of repoInfo.remoteFetchUrls) {
 				if (!fetchUrl) {
 					continue;
@@ -231,15 +184,9 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 			}
 		};
 
-		// Initial poll
 		void poll();
 
-		// TODO: re-enable polling
-		// Set up interval polling
-		// const intervalId = setInterval(() => poll(), intervalMs);
-		// disposables.add(toDisposable(() => clearInterval(intervalId)));
 
-		// this._pollingSubscriptions.add(disposables);
 
 		return disposables;
 	}
@@ -295,30 +242,25 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 		const fileUri = this.getCacheFileUri(orgName, type, filename);
 		const contentBytes = new TextEncoder().encode(content);
 
-		// Check for changes if requested
 		let hasChanges = true;
 		if (options?.checkForChanges) {
 			try {
 				hasChanges = false;
 
-				// First check file size to avoid reading file if size differs
 				const stat = await this.fileSystem.stat(fileUri);
 				if (stat.size !== contentBytes.length) {
 					hasChanges = true;
 				}
 
-				// Sizes match, need to compare content
 				const existingContent = await this.fileSystem.readFile(fileUri);
 				const existingText = new TextDecoder().decode(existingContent);
 				if (existingText !== content) {
 					this.logService.trace(`[GitHubOrgChatResourcesService] Skipped writing cache file: ${fileUri.toString()}`);
 					hasChanges = true;
 				} else {
-					// Content is the same, no need to write
 					return false;
 				}
 			} catch {
-				// File doesn't exist, so we have changes
 				hasChanges = true;
 			}
 		}
@@ -346,7 +288,6 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 				}
 			}
 		} catch {
-			// Directory might not exist
 		}
 	}
 
@@ -363,7 +304,6 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 				}
 			}
 		} catch {
-			// Directory might not exist yet
 			this.logService.trace(`[GitHubOrgChatResourcesService] Cache directory does not exist: ${cacheDir.toString()}`);
 		}
 

@@ -3,13 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Protocol-level contracts that are not tied to any one channel: liveness,
- * turn-history paging, and how the host answers a client action it declares
- * but does not yet implement.
- *
- * All of these are host-owned and cross no model boundary.
- */
 
 import assert from 'assert';
 import { mkdtempSync } from 'fs';
@@ -33,17 +26,11 @@ import { conformanceTest, type IAgentHostE2ETestContext } from './e2eTestContext
 export function defineProtocolContractTests(context: IAgentHostE2ETestContext): void {
 	const { config, createdSessions, tempDirs } = context;
 
-	/**
-	 * Client sequence numbers must strictly increase for the lifetime of a
-	 * client, and the suite shares one across tests, so they cannot be
-	 * hard-coded per scenario.
-	 */
 	let clientSeq = 4000;
 	function nextClientSeq(): number {
 		return clientSeq++;
 	}
 
-	/** Dispatch on the shared client and wait for the server to echo it back. */
 	async function dispatchAndWaitOnShared(channel: string, action: StateAction): Promise<void> {
 		const seq = nextClientSeq();
 		context.client.dispatch({ channel, clientSeq: seq, action });
@@ -85,8 +72,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 	}
 
 	conformanceTest(context, 'ping answers while the connection is live', async function () {
-		// Liveness has no payload — the response itself is the signal, so the
-		// contract is that the call resolves rather than what it returns.
 		await context.client.call('ping', { channel: ROOT_STATE_URI });
 	});
 
@@ -590,9 +575,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 		const chatUri = buildDefaultChatUri(sessionUri);
 		await context.client.call<SubscribeResult>('subscribe', { channel: chatUri });
 
-		// Give the chat a turn to page over. `/rename` is handled entirely by the
-		// host's local-command dispatcher, so the turn is real without crossing
-		// the model boundary and without depending on a shell.
 		dispatchTurn(context.client, sessionUri, 'turn-fetch', '/rename Fetch Turns', nextClientSeq());
 		await context.client.waitForNotification(n =>
 			isActionNotification(n, 'chat/turnComplete')
@@ -604,9 +586,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 		context.client.clearReceived();
 		const result = await context.client.call<FetchTurnsResult>('fetchTurns', { channel: chatUri });
 
-		// The current host implementation accepts the request but has no backing
-		// pager: it always publishes an empty page, even when the chat already has
-		// loaded turns.
 		const loaded = await context.client.waitForNotification(n =>
 			isActionNotification(n, 'chat/turnsLoaded') && getActionEnvelope(n).channel === chatUri,
 			30_000,
@@ -697,7 +676,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 		}
 	});
 
-	// Disabled variants document missing multi-client channel isolation; see KNOWN_ISSUES.md.
 	conformanceTest(context, 'a chat action is broadcast to every subscribed client', async function () {
 		const { sessionUri } = await createSession('multi-client-chat-action');
 		const chatUri = buildDefaultChatUri(sessionUri);
@@ -865,12 +843,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 		}
 	}, false);
 
-	/**
-	 * Runs `body` against a second connection that has completed the handshake
-	 * under its own clientId, then drops that connection and hands back a fresh
-	 * un-handshaked one. `reconnect` is only answerable pre-handshake, so
-	 * recovery cannot be exercised on the shared client.
-	 */
 	async function afterConnectionDrop<T>(
 		clientId: string,
 		body: (client: TestProtocolClient) => Promise<T>,
@@ -891,19 +863,12 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 		const chatUri = buildDefaultChatUri(sessionUri);
 		const droppedClientId = `reconnect-dropped-${config.provider}`;
 
-		// The cutoff comes from the subscribe response rather than from watching
-		// this client receive its own dispatch: a subscription is not guaranteed
-		// to be installed before a dispatch sent immediately after it is handled,
-		// so waiting for that echo races. `fromSeq` is the same boundary and the
-		// response itself guarantees it.
 		const { carried: seenThrough, revived } = await afterConnectionDrop(droppedClientId, async first => {
 			const subscribed = await first.call<SubscribeResult>('subscribe', { channel: chatUri });
 			return subscribed.snapshot!.fromSeq;
 		});
 
 		try {
-			// Produced while nobody was listening on that clientId, so it can only
-			// reach the client through replay.
 			await dispatchAndWaitOnShared(chatUri, { type: ActionType.ChatDraftChanged, draft: { text: 'missed while disconnected', origin: { kind: MessageKind.User } } });
 
 			const result = await revived.call<ReconnectResult>('reconnect', {
@@ -913,9 +878,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 				subscriptions: [chatUri],
 			});
 
-			// A client that reconnects inside the replay window must be able to
-			// catch up by applying actions rather than discarding local state for
-			// a fresh snapshot, so the cutoff has to be exclusive and exact.
 			assert.deepStrictEqual({
 				type: result.type,
 				replayedAlreadySeen: result.type === ReconnectResultType.Replay
@@ -1102,9 +1064,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 		const { sessionUri } = await createSession('reconnect-missing');
 		const chatUri = buildDefaultChatUri(sessionUri);
 		const droppedClientId = `reconnect-missing-dropped-${config.provider}`;
-		// A channel that never existed stands in for one disposed while the client
-		// was away: either way the server cannot resume it, and the client has to
-		// be told rather than left waiting on a dead channel.
 		const goneUri = URI.from({ scheme: 'agenthost-terminal', authority: 'e2e', path: '/never-existed' }).toString();
 
 		const { carried: seenThrough, revived } = await afterConnectionDrop(droppedClientId, async first => {
@@ -1311,12 +1270,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 		assert.strictEqual(state.draft?.text, 'changed while unsubscribed');
 	});
 
-	// The protocol declares working-directory mutation on both the session and
-	// chat channels, but the host rejects all four: applying one would change
-	// the synchronized directory set without reconfiguring the agent's actual
-	// access. Each is answered through the normal reconciliation path so the
-	// client can roll back its optimistic write-ahead action instead of leaving
-	// it pending until reconnect.
 	const unsupportedWorkingDirectoryActions = [
 		{ notification: 'session/workingDirectorySet', channel: 'session', build: (directory: string): StateAction => ({ type: ActionType.SessionWorkingDirectorySet, directory }) },
 		{ notification: 'session/workingDirectoryRemoved', channel: 'session', build: (directory: string): StateAction => ({ type: ActionType.SessionWorkingDirectoryRemoved, directory }) },
@@ -1345,7 +1298,6 @@ export function defineProtocolContractTests(context: IAgentHostE2ETestContext): 
 			assert.deepStrictEqual({
 				hasRejectionReason: typeof envelope.rejectionReason === 'string' && envelope.rejectionReason.length > 0,
 				echoedClientSeq: envelope.origin?.clientSeq,
-				// The reducer is deliberately not run, so state never moves.
 				directoryApplied: (state.workingDirectories ?? []).includes(directory),
 			}, {
 				hasRejectionReason: true,

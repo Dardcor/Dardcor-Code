@@ -180,7 +180,6 @@ export function getModifiedEndLineNumber(change: IChange): number {
 }
 
 export function lineIntersectsChange(lineNumber: number, change: IChange): boolean {
-	// deletion at the beginning of the file
 	if (lineNumber === 1 && change.modifiedStartLineNumber === 0 && change.modifiedEndLineNumber === 0) {
 		return true;
 	}

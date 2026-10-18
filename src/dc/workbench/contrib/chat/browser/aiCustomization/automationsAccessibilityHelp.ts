@@ -20,13 +20,6 @@ import {
 	CONTEXT_AI_CUSTOMIZATION_MANAGEMENT_SECTION,
 } from './aiCustomizationManagement.js';
 
-/**
- * Alt+F1 / "Open Accessibility Help" provider for the Automations
- * section of the Agent Customizations editor. Mirrors the structure
- * used by sibling sections (problems, scm, debug). The provider is
- * activated when the editor is focused and the active section is
- * `Automations`.
- */
 export class AutomationsAccessibilityHelp implements IAccessibleViewImplementation {
 	readonly type = AccessibleViewType.Help;
 	readonly priority = 105;
@@ -38,25 +31,16 @@ export class AutomationsAccessibilityHelp implements IAccessibleViewImplementati
 
 	getProvider(accessor: ServicesAccessor): AccessibleContentProvider {
 		const keybindingService = accessor.get(IKeybindingService);
-		// Must be a real AccessibleContentProvider instance: the accessible-view
-		// service does `instanceof` checks and otherwise falls back to
-		// ExtensionContentProvider semantics, breaking verbositySettingKey
-		// propagation. (The repo accessibility skill discourages custom subclasses.)
 		return new AccessibleContentProvider(
 			AccessibleViewProviderId.Automations,
 			{ type: AccessibleViewType.Help },
 			() => buildAutomationsHelpContent(keybindingService),
-			() => { /* no-op: the accessible view returns focus to the previously focused element. */ },
+			() => { },
 			AccessibilityVerbositySettingId.Automations,
 		);
 	}
 }
 
-/**
- * Renders the static Automations accessibility-help content. Exported so
- * tests can validate the rendered string without instantiating an
- * {@link AccessibleContentProvider}.
- */
 export function buildAutomationsHelpContent(keybindingService: IKeybindingService): string {
 	const lines: string[] = [];
 

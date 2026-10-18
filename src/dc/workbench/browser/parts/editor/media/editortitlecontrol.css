@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Breadcrumbs (below multiple editor tabs) */
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title .breadcrumbs-below-tabs .breadcrumbs-control {
 	flex: 1 100%;
@@ -17,12 +16,12 @@
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title .breadcrumbs-below-tabs .breadcrumbs-control .monaco-icon-label::before {
-	height: 22px; /* tweak the icon size of the editor labels when icons are enabled */
+	height: 22px;
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title .breadcrumbs-below-tabs .breadcrumbs-control .outline-element-icon {
 	padding-right: 3px;
-	height: 22px; /* tweak the icon size of the editor labels when icons are enabled */
+	height: 22px;
 	line-height: 22px;
 }
 
@@ -43,5 +42,5 @@
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title .breadcrumbs-below-tabs .breadcrumbs-control .monaco-breadcrumb-item:last-child .codicon:last-child {
-	display: none; /* hides chevrons when last item */
+	display: none;
 }

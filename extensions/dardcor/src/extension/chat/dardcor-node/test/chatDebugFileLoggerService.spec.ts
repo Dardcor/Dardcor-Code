@@ -12,7 +12,7 @@ import { IEnvService } from '../../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { CopilotChatAttr, GenAiAttr, GenAiOperationName } from '../../../../platform/otel/common/index';
+import { DardcorChatAttr, GenAiAttr, GenAiOperationName } from '../../../../platform/otel/common/index';
 import { ICompletedSpanData, IOTelService, ISpanEventData, SpanStatusCode } from '../../../../platform/otel/common/otelService';
 import { IExperimentationService, NullExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
@@ -21,7 +21,6 @@ import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle'
 import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ChatDebugFileLoggerService } from '../chatDebugFileLoggerService';
 
-// ── Test helpers ──
 
 function makeSpan(overrides: Partial<ICompletedSpanData> & { attributes?: Record<string, string | number | boolean | string[]> }): ICompletedSpanData {
 	return {
@@ -43,7 +42,7 @@ function makeToolCallSpan(sessionId: string, toolName: string): ICompletedSpanDa
 		attributes: {
 			[GenAiAttr.OPERATION_NAME]: GenAiOperationName.EXECUTE_TOOL,
 			[GenAiAttr.TOOL_NAME]: toolName,
-			[CopilotChatAttr.CHAT_SESSION_ID]: sessionId,
+			[DardcorChatAttr.CHAT_SESSION_ID]: sessionId,
 		},
 	});
 }
@@ -56,7 +55,7 @@ function makeChatSpan(sessionId: string, model: string, inputTokens: number, out
 			[GenAiAttr.REQUEST_MODEL]: model,
 			[GenAiAttr.USAGE_INPUT_TOKENS]: inputTokens,
 			[GenAiAttr.USAGE_OUTPUT_TOKENS]: outputTokens,
-			[CopilotChatAttr.CHAT_SESSION_ID]: sessionId,
+			[DardcorChatAttr.CHAT_SESSION_ID]: sessionId,
 		},
 	});
 }
@@ -149,7 +148,7 @@ class TestConfigurationService {
 	getConfig(key: { defaultValue: unknown }) { return key.defaultValue; }
 	getExperimentBasedConfig(key: { defaultValue: unknown }) {
 		if (key === ConfigKey.Advanced.ChatDebugFileLogging) {
-			return true; // Enable debug logging for tests
+			return true;
 		}
 		return key.defaultValue;
 	}
@@ -247,7 +246,7 @@ describe('ChatDebugFileLoggerService', () => {
 			attributes: {
 				[GenAiAttr.OPERATION_NAME]: GenAiOperationName.EXECUTE_TOOL,
 				[GenAiAttr.TOOL_NAME]: 'run_in_terminal',
-				[CopilotChatAttr.CHAT_SESSION_ID]: 'session-1',
+				[DardcorChatAttr.CHAT_SESSION_ID]: 'session-1',
 			},
 			status: { code: SpanStatusCode.ERROR, message: 'Command failed' },
 		});
@@ -287,11 +286,9 @@ describe('ChatDebugFileLoggerService', () => {
 			disposables.add(workspaceService);
 
 			// A log under the global root (where a no-workspace session was written)
-			// must still be allowlisted for tool reads.
 			const globalLogUri = URI.joinPath(URI.file(globalTmpDir), 'debug-logs', 'hist-session', 'main.jsonl');
 			expect(workspaceService.isDebugLogUri(globalLogUri)).toBe(true);
 
-			// The workspace root is still allowlisted too.
 			const workspaceLogUri = URI.joinPath(URI.file(tmpDir), 'debug-logs', 'ws-session', 'main.jsonl');
 			expect(workspaceService.isDebugLogUri(workspaceLogUri)).toBe(true);
 		} finally {
@@ -302,10 +299,6 @@ describe('ChatDebugFileLoggerService', () => {
 	it('falls back to global storage when no workspace is open', async () => {
 		const globalTmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'chatdebug-global-'));
 		try {
-			// No workspace open: storageUri is undefined, only globalStorageUri is
-			// available (e.g. an empty VS Code window). Workspace-scoped storage is
-			// preferred whenever a folder is open; this fallback only applies when
-			// no workspace is open.
 			const noWorkspaceService = new ChatDebugFileLoggerService(
 				otelService as unknown as IOTelService,
 				new TestFileSystemService() as unknown as IFileSystemService,
@@ -367,9 +360,6 @@ describe('ChatDebugFileLoggerService', () => {
 			otelService.fireSpan(makeToolCallSpan('hist-session', 'read_file'));
 			await noWorkspaceService.endSession('hist-session');
 
-			// Phase 2: reopen in a window that has a workspace (storageUri defined).
-			// The session is now "historical" (unknown to the fresh service), but it
-			// must still resolve to the global-storage location where it was written.
 			const workspaceService = new ChatDebugFileLoggerService(
 				otelService as unknown as IOTelService,
 				new TestFileSystemService() as unknown as IFileSystemService,
@@ -398,7 +388,6 @@ describe('ChatDebugFileLoggerService', () => {
 		await service.endSession('session-1');
 		expect(service.getActiveSessionIds()).not.toContain('session-1');
 
-		// File should have been written in directory structure
 		const logPath = URI.joinPath(URI.file(tmpDir), 'debug-logs', 'session-1', 'main.jsonl');
 		const content = await fs.promises.readFile(logPath.fsPath, 'utf-8');
 		expect(content.trim()).not.toBe('');
@@ -409,7 +398,6 @@ describe('ChatDebugFileLoggerService', () => {
 			attributes: {
 				[GenAiAttr.OPERATION_NAME]: GenAiOperationName.EXECUTE_TOOL,
 				[GenAiAttr.TOOL_NAME]: 'some_tool',
-				// No session ID
 			},
 		});
 		otelService.fireSpan(span);
@@ -425,7 +413,7 @@ describe('ChatDebugFileLoggerService', () => {
 				[GenAiAttr.OPERATION_NAME]: GenAiOperationName.EXECUTE_TOOL,
 				[GenAiAttr.TOOL_NAME]: 'read_file',
 				[GenAiAttr.TOOL_CALL_ARGUMENTS]: longArgs,
-				[CopilotChatAttr.CHAT_SESSION_ID]: 'session-1',
+				[DardcorChatAttr.CHAT_SESSION_ID]: 'session-1',
 			},
 		});
 		otelService.fireSpan(span);
@@ -439,17 +427,15 @@ describe('ChatDebugFileLoggerService', () => {
 	});
 
 	it('routes child session spans to parent directory with cross-reference', async () => {
-		// First, create a parent session
 		otelService.fireSpan(makeToolCallSpan('parent-session', 'read_file'));
 
-		// Fire a child session span (e.g., title generation) with parent info
 		const titleSpan = makeChatSpan('title-child-id', 'gpt-4o-mini', 100, 20);
 		const titleSpanWithParent: ICompletedSpanData = {
 			...titleSpan,
 			attributes: {
 				...titleSpan.attributes,
-				[CopilotChatAttr.PARENT_CHAT_SESSION_ID]: 'parent-session',
-				[CopilotChatAttr.DEBUG_LOG_LABEL]: 'title',
+				[DardcorChatAttr.PARENT_CHAT_SESSION_ID]: 'parent-session',
+				[DardcorChatAttr.DEBUG_LOG_LABEL]: 'title',
 			},
 		};
 		otelService.fireSpan(titleSpanWithParent);
@@ -457,20 +443,17 @@ describe('ChatDebugFileLoggerService', () => {
 		await service.flush('parent-session');
 		await service.flush('title-child-id');
 
-		// Parent's main.jsonl should contain the tool call + a child_session_ref
 		const parentEntries = await readLogEntries('parent-session');
 		const refEntry = parentEntries.find(e => e.type === 'child_session_ref');
 		expect(refEntry).toBeDefined();
 		expect((refEntry!.attrs as Record<string, unknown>).childLogFile).toBe('title-title-child-id.jsonl');
 		expect((refEntry!.attrs as Record<string, unknown>).label).toBe('title');
 
-		// Child's log file should be under the parent directory
 		const childPath = service.getLogPath('title-child-id');
 		expect(childPath).toBeDefined();
 		expect(childPath!.fsPath).toContain('parent-session');
 		expect(childPath!.fsPath).toContain('title-title-child-id.jsonl');
 
-		// Child should have the session_start + LLM request entry
 		const childEntries = await readLogEntries('title-child-id');
 		expect(childEntries).toHaveLength(2);
 		expect(childEntries[0].type).toBe('session_start');
@@ -501,16 +484,13 @@ describe('ChatDebugFileLoggerService', () => {
 		disposables.add(svc);
 		disposables.add(configChangeEmitter);
 
-		// Start a session so the flush timer is running
 		const span = makeToolCallSpan('interval-test', 'read_file');
 		otelService.fireSpan(span);
 		expect(svc.getActiveSessionIds()).toContain('interval-test');
 
-		// Spy on clearInterval/setInterval to verify timer restart
 		const clearSpy = vi.spyOn(globalThis, 'clearInterval');
 		const setSpy = vi.spyOn(globalThis, 'setInterval');
 
-		// Change the configured interval and fire the config change event
 		configuredInterval = 8000;
 		configChangeEmitter.fire({
 			affectsConfiguration: key => key === ConfigKey.Advanced.ChatDebugFileLoggingFlushInterval.fullyQualifiedId,
@@ -526,25 +506,22 @@ describe('ChatDebugFileLoggerService', () => {
 	it('inherits session ID from parent span for child spans without session ID', async () => {
 		await service.startSession('session-1');
 
-		// Parent span with session ID
 		const parentSpan = makeSpan({
 			spanId: 'parent-span-1',
 			attributes: {
 				[GenAiAttr.OPERATION_NAME]: GenAiOperationName.INVOKE_AGENT,
 				[GenAiAttr.AGENT_NAME]: 'dardcor',
-				[CopilotChatAttr.CHAT_SESSION_ID]: 'session-1',
+				[DardcorChatAttr.CHAT_SESSION_ID]: 'session-1',
 			},
 		});
 		otelService.fireSpan(parentSpan);
 
-		// Child span without session ID but with parentSpanId
 		const childSpan = makeSpan({
 			spanId: 'child-span-1',
 			parentSpanId: 'parent-span-1',
 			attributes: {
 				[GenAiAttr.OPERATION_NAME]: GenAiOperationName.EXECUTE_TOOL,
 				[GenAiAttr.TOOL_NAME]: 'read_file',
-				// No CHAT_SESSION_ID — should inherit from parent
 			},
 		});
 		otelService.fireSpan(childSpan);
@@ -561,18 +538,16 @@ describe('ChatDebugFileLoggerService', () => {
 	it('inherits session ID from parent span for user_message span events', async () => {
 		await service.startSession('session-1');
 
-		// Parent span with session ID
 		const parentSpan = makeSpan({
 			spanId: 'parent-span-2',
 			attributes: {
 				[GenAiAttr.OPERATION_NAME]: GenAiOperationName.INVOKE_AGENT,
 				[GenAiAttr.AGENT_NAME]: 'dardcor',
-				[CopilotChatAttr.CHAT_SESSION_ID]: 'session-1',
+				[DardcorChatAttr.CHAT_SESSION_ID]: 'session-1',
 			},
 		});
 		otelService.fireSpan(parentSpan);
 
-		// user_message event without session ID but with parentSpanId
 		const spanEvent: ISpanEventData = {
 			spanId: 'child-event-span',
 			traceId: 'trace-1',
@@ -612,7 +587,6 @@ describe('ChatDebugFileLoggerService', () => {
 		await service.startSession('session-late');
 		await service.flush('session-late');
 
-		// Model snapshot arrives after session already started
 		const models = [{ id: 'claude-sonnet', name: 'Claude Sonnet' }];
 		service.setModelSnapshot(models);
 		await service.flush('session-late');
@@ -636,10 +610,8 @@ describe('ChatDebugFileLoggerService', () => {
 		const sessionDir = service.getSessionDir('session-dedup');
 		const modelsPath = path.join(sessionDir!.fsPath, 'models.json');
 
-		// Overwrite the file with different content to detect if it gets rewritten
 		await fs.promises.writeFile(modelsPath, '"sentinel"', 'utf-8');
 
-		// Calling setModelSnapshot again should NOT overwrite for existing sessions
 		service.setModelSnapshot([{ id: 'new-model' }]);
 
 		const content = await fs.promises.readFile(modelsPath, 'utf-8');
@@ -651,7 +623,6 @@ describe('ChatDebugFileLoggerService', () => {
 		otelService.fireSpan(makeToolCallSpan('session-read', 'tool_a'));
 		await service.flush('session-read');
 
-		// Fire another span without flushing — it should be in the buffer
 		otelService.fireSpan(makeToolCallSpan('session-read', 'tool_b'));
 
 		const entries = await service.readEntries('session-read');
@@ -675,7 +646,6 @@ describe('ChatDebugFileLoggerService', () => {
 
 		const entries = await service.readTailEntries('session-tail', 2);
 		const toolEntries = entries.filter(e => e.type === 'tool_call');
-		// Should return the last 2 tool entries
 		expect(toolEntries.length).toBe(2);
 		expect(toolEntries[0].name).toBe('tool_3');
 		expect(toolEntries[1].name).toBe('tool_4');
@@ -711,7 +681,6 @@ describe('ChatDebugFileLoggerService', () => {
 		expect(toolEvents[0].sessionId).toBe('session-emit');
 	});
 
-	// ── Subagent / child session tests ──
 
 	it('startChildSession with parentToolSpanId sets parentSpanId on child_session_ref', async () => {
 		await service.startSession('parent-1');
@@ -719,7 +688,6 @@ describe('ChatDebugFileLoggerService', () => {
 
 		service.startChildSession('child-1', 'parent-1', 'runSubagent-Explore', 'tool-span-42');
 
-		// Fire a span for the child to trigger _ensureSession → child_session_ref
 		const childSpan = makeChatSpan('child-1', 'claude-haiku', 100, 20);
 		otelService.fireSpan(childSpan);
 
@@ -821,7 +789,6 @@ describe('ChatDebugFileLoggerService', () => {
 		await service.flush('child-a');
 		await service.flush('child-b');
 
-		// Parent should have two child_session_ref entries
 		const parentEntries = await readLogEntries('parent-multi');
 		const refs = parentEntries.filter(e => e.type === 'child_session_ref');
 		expect(refs).toHaveLength(2);
@@ -830,7 +797,6 @@ describe('ChatDebugFileLoggerService', () => {
 		expect(labels).toContain('runSubagent-Explore');
 		expect(labels).toContain('runSubagent-default');
 
-		// Each child has its own log path
 		const pathA = service.getLogPath('child-a');
 		const pathB = service.getLogPath('child-b');
 		expect(pathA).toBeDefined();
@@ -839,22 +805,19 @@ describe('ChatDebugFileLoggerService', () => {
 	});
 
 	it('routes hook spans to child session when registerSpanSession maps parentSpanId', async () => {
-		// Set up parent session
 		await service.startSession('parent-hook');
 		otelService.fireSpan(makeToolCallSpan('parent-hook', 'read_file'));
 
-		// Register child session and its invoke_agent span ID
 		service.startChildSession('child-hook', 'parent-hook', 'runSubagent-default');
 		service.registerSpanSession('invoke-agent-span-123', 'child-hook');
 
-		// Fire a hook span with CHAT_SESSION_ID=parent but parentSpanId=child's invoke_agent
 		const hookSpan = makeSpan({
 			name: 'PreToolUse',
 			spanId: 'hook-span-1',
 			parentSpanId: 'invoke-agent-span-123',
 			attributes: {
 				[GenAiAttr.OPERATION_NAME]: 'execute_hook',
-				[CopilotChatAttr.CHAT_SESSION_ID]: 'parent-hook', // Parent's session ID
+				[DardcorChatAttr.CHAT_SESSION_ID]: 'parent-hook',
 			},
 		});
 		otelService.fireSpan(hookSpan);
@@ -862,7 +825,6 @@ describe('ChatDebugFileLoggerService', () => {
 		await service.flush('parent-hook');
 		await service.flush('child-hook');
 
-		// Hook should be written to child session, not parent
 		const parentEntries = await readLogEntries('parent-hook');
 		const parentHooks = parentEntries.filter(e => e.type === 'hook');
 		expect(parentHooks).toHaveLength(0);
@@ -898,7 +860,6 @@ describe('ChatDebugFileLoggerService', () => {
 			otelService.fireSpan(makeToolCallSpan('older-session', 'read_file'));
 			await service.flush('older-session');
 
-			// Small delay so mtime differs
 			await new Promise(resolve => setTimeout(resolve, 50));
 
 			await service.startSession('newer-session');
@@ -910,12 +871,10 @@ describe('ChatDebugFileLoggerService', () => {
 		});
 
 		it('does not include non-directory entries', async () => {
-			// Create a session directory
 			await service.startSession('real-session');
 			otelService.fireSpan(makeToolCallSpan('real-session', 'read_file'));
 			await service.flush('real-session');
 
-			// Create a stray file in the debug-logs directory
 			const debugLogsDir = service.debugLogsDir!;
 			await fs.promises.writeFile(path.join(debugLogsDir.fsPath, 'stray-file.jsonl'), '{}');
 
@@ -929,7 +888,6 @@ describe('ChatDebugFileLoggerService', () => {
 			otelService.fireSpan(makeToolCallSpan('good-session', 'read_file'));
 			await service.flush('good-session');
 
-			// Create an empty directory that can be listed but stat should still work
 			const debugLogsDir = service.debugLogsDir!;
 			await fs.promises.mkdir(path.join(debugLogsDir.fsPath, 'empty-dir'));
 
@@ -975,7 +933,6 @@ describe('ChatDebugFileLoggerService', () => {
 		it('trims both workspace and global roots independently to the cap', async () => {
 			const globalTmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'chatdebug-global-'));
 			try {
-				// Config with a small retention cap of 2 sessions per root.
 				class LowCapConfigService extends TestConfigurationService {
 					override getExperimentBasedConfig(key: { defaultValue: unknown }) {
 						if (key === ConfigKey.Advanced.ChatDebugFileLogging) {
@@ -991,7 +948,6 @@ describe('ChatDebugFileLoggerService', () => {
 				const workspaceRoot = path.join(tmpDir, 'debug-logs');
 				const globalRoot = path.join(globalTmpDir, 'debug-logs');
 
-				// Seed 4 session dirs in each root with increasing mtimes.
 				const seed = async (root: string, prefix: string) => {
 					for (let i = 0; i < 4; i++) {
 						const sessionDir = path.join(root, `${prefix}-${i}`);
@@ -1020,7 +976,6 @@ describe('ChatDebugFileLoggerService', () => {
 				const wsRemaining = (await fs.promises.readdir(workspaceRoot)).sort();
 				const glRemaining = (await fs.promises.readdir(globalRoot)).sort();
 
-				// Each root is independently trimmed to the 2 most recent.
 				expect(wsRemaining).toEqual(['ws-2', 'ws-3']);
 				expect(glRemaining).toEqual(['gl-2', 'gl-3']);
 			} finally {

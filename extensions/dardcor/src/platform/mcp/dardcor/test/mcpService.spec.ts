@@ -19,7 +19,6 @@ vi.mock('vscode', () => ({
 	},
 }));
 
-// Import after mock so the module picks up the mocked vscode
 import { McpService } from '../mcpServiceImpl';
 
 function createMockGateway() {
@@ -135,7 +134,6 @@ describe('McpService', () => {
 
 		expect(mockGateway.dispose).toHaveBeenCalledOnce();
 
-		// Next call should create a new gateway since the old one was removed
 		const newMockGateway = createMockGateway();
 		mockStartMcpGateway.mockResolvedValue(newMockGateway);
 		const second = await service.startMcpGateway(resource1);
@@ -153,7 +151,7 @@ describe('McpService', () => {
 		await service.startMcpGateway(resource2);
 
 		service.dispose();
-		await Promise.resolve(); // flush fire-and-forget disposal microtasks
+		await Promise.resolve();
 
 		expect(gateway1.dispose).toHaveBeenCalledOnce();
 		expect(gateway2.dispose).toHaveBeenCalledOnce();
@@ -167,13 +165,11 @@ describe('McpService', () => {
 		const tracked1 = await service.startMcpGateway(resource1);
 		await service.startMcpGateway(resource2);
 
-		// Dispose resource1 individually
 		tracked1!.dispose();
 		expect(gateway1.dispose).toHaveBeenCalledOnce();
 
-		// Dispose the service - should only dispose resource2
 		service.dispose();
-		await Promise.resolve(); // flush fire-and-forget disposal microtasks
+		await Promise.resolve();
 
 		expect(gateway1.dispose).toHaveBeenCalledOnce();
 		expect(gateway2.dispose).toHaveBeenCalledOnce();

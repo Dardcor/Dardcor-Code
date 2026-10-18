@@ -29,7 +29,6 @@ suite('RetryChatAction', () => {
 	const store = new DisposableStore();
 	let instantiationService: TestInstantiationService;
 
-	// Register actions once for all tests
 	let actionsRegistered = false;
 	function ensureActionsRegistered(): void {
 		if (!actionsRegistered) {
@@ -53,7 +52,7 @@ suite('RetryChatAction', () => {
 		return {
 			sessionResource,
 			requestId,
-			setVote: () => { }, // Required by isResponseVM check
+			setVote: () => { },
 		} as unknown as IChatResponseViewModel;
 	}
 
@@ -102,12 +101,10 @@ suite('RetryChatAction', () => {
 		const editingSession = createMockEditingSession([]);
 		const mockWidget = createMockWidget(ChatModeKind.Edit, editingSession, mockResponse);
 
-		// Mock chat model
 		const mockChatModel: Partial<IChatModel> = {
 			getRequests: () => [mockRequest as IChatRequestModel],
 		};
 
-		// Create MockChatWidgetService with widget lookup override
 		const mockChatWidgetService = new class extends MockChatWidgetService {
 			override getWidgetBySessionResource(_resource: URI) {
 				return mockWidget as IChatWidget;
@@ -142,18 +139,15 @@ suite('RetryChatAction', () => {
 			}
 		};
 
-		// Use set() instead of stub() for more direct service registration
 		instantiationService.set(IChatWidgetService, mockChatWidgetService);
 		instantiationService.set(IChatService, mockChatService);
 		instantiationService.set(IConfigurationService, mockConfigService);
 		instantiationService.set(IDialogService, mockDialogService);
 		instantiationService.set(IChatAccessibilityService, mockChatAccessibilityService);
 
-		// Get the action handler
 		const commandHandler = CommandsRegistry.getCommand('workbench.action.chat.retry')?.handler;
 		assert.ok(commandHandler, 'Command handler should be registered');
 
-		// Run the action with the instantiation service acting as accessor
 		await commandHandler(instantiationService, mockResponse);
 
 		assert.ok(resendCalled, 'resendRequest should have been called');
@@ -168,7 +162,6 @@ suite('RetryChatAction', () => {
 		const mockRequest = createMockRequest(requestId);
 		const mockResponse = createMockResponseVM(sessionResource, requestId);
 
-		// Create an entry that was modified by this request to trigger confirmation
 		const modifiedEntry: IModifiedFileEntry = {
 			modifiedURI: URI.parse('test://file.ts'),
 			lastModifyingRequestId: requestId,
@@ -177,12 +170,10 @@ suite('RetryChatAction', () => {
 		const editingSession = createMockEditingSession([modifiedEntry]);
 		const mockWidget = createMockWidget(ChatModeKind.Edit, editingSession, mockResponse);
 
-		// Mock chat model
 		const mockChatModel: Partial<IChatModel> = {
 			getRequests: () => [mockRequest as IChatRequestModel],
 		};
 
-		// Create MockChatWidgetService with widget lookup override
 		const mockChatWidgetService = new class extends MockChatWidgetService {
 			override getWidgetBySessionResource(_resource: URI) {
 				return mockWidget as IChatWidget;
@@ -201,7 +192,6 @@ suite('RetryChatAction', () => {
 			}
 		};
 
-		// Enable confirmation dialog - this will trigger an await
 		const mockConfigService = new TestConfigurationService();
 		await mockConfigService.setUserConfiguration('chat.editing.confirmEditRequestRetry', true);
 
@@ -209,7 +199,6 @@ suite('RetryChatAction', () => {
 		const mockDialogService = new class extends mock<IDialogService>() {
 			override async confirm(_confirmation: IConfirmation): Promise<IConfirmationResult> {
 				dialogShown = true;
-				// Simulate async delay that would happen in real dialog
 				await new Promise(resolve => setTimeout(resolve, 10));
 				return { confirmed: true, checkboxChecked: false };
 			}
@@ -222,20 +211,15 @@ suite('RetryChatAction', () => {
 			}
 		};
 
-		// Use set() for more direct service registration
 		instantiationService.set(IChatWidgetService, mockChatWidgetService);
 		instantiationService.set(IChatService, mockChatService);
 		instantiationService.set(IConfigurationService, mockConfigService);
 		instantiationService.set(IDialogService, mockDialogService);
 		instantiationService.set(IChatAccessibilityService, mockChatAccessibilityService);
 
-		// Get the action handler
 		const commandHandler = CommandsRegistry.getCommand('workbench.action.chat.retry')?.handler;
 		assert.ok(commandHandler, 'Command handler should be registered');
 
-		// Create a strict accessor that throws when used after dispose
-		// This simulates the behavior of the real ServicesAccessor which becomes
-		// invalid after the synchronous portion of the action handler
 		let disposed = false;
 		const strictAccessor = {
 			get<T>(id: ServiceIdentifier<T>): T {
@@ -246,17 +230,13 @@ suite('RetryChatAction', () => {
 			}
 		};
 
-		// Create a wrapper that disposes the accessor after the first await
-		// by wrapping the dialog service
 		const originalConfirm = mockDialogService.confirm.bind(mockDialogService);
 		mockDialogService.confirm = async (confirmation: IConfirmation): Promise<IConfirmationResult> => {
 			const result = await originalConfirm(confirmation);
-			// Mark accessor as disposed after the await, simulating real behavior
 			disposed = true;
 			return result;
 		};
 
-		// Run the action - this should throw if accessor is used after the confirm await
 		let threwError = false;
 		let errorMessage = '';
 		try {
@@ -268,8 +248,6 @@ suite('RetryChatAction', () => {
 
 		assert.ok(dialogShown, 'Dialog should have been shown');
 
-		// The bug is that accessor.get(IChatAccessibilityService) is called after the await
-		// This test should fail until the bug is fixed
 		if (threwError) {
 			assert.fail(`Action threw an error because accessor was used after await: ${errorMessage}`);
 		}

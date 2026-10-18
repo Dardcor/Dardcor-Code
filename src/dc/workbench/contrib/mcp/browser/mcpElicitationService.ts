@@ -93,12 +93,12 @@ export class McpElicitationService implements IMcpElicitationService {
 					const { questions, idToPropertyMap } = this._convertSchemaToQuestions(elicitation);
 					const carousel = new ChatQuestionCarouselData(
 						questions,
-						/* allowSkip */ true,
-						/* resolveId */ undefined,
-						/* data */ undefined,
-						/* isUsed */ undefined,
-						/* message */ new MarkdownString(elicitation.message),
-						/* source */ mcpServerToSourceData(server),
+						true,
+						undefined,
+						undefined,
+						undefined,
+						new MarkdownString(elicitation.message),
+						mcpServerToSourceData(server),
 					);
 
 					chatModel.acceptResponseProgress(request, carousel);
@@ -123,7 +123,6 @@ export class McpElicitationService implements IMcpElicitationService {
 				}
 			}
 
-			// Fallback: no chat session → notification + quickpick
 			const handle = this._notificationService.notify({
 				message: elicitation.message,
 				source: localize('mcp.elicit.source', 'MCP Server ({0})', server.definition.label),
@@ -144,7 +143,6 @@ export class McpElicitationService implements IMcpElicitationService {
 	private async _elicitUrl(server: IMcpServer, context: IMcpToolCallContext | undefined, elicitation: MCP.ElicitRequestURLParams, token: CancellationToken): Promise<IUrlModeElicitResult> {
 		const promiseStore = new DisposableStore();
 
-		// We create this ahead of time in case e.g. a user manually opens the URL beforehand
 		const completePromise = new Promise<void>((resolve, reject) => {
 			promiseStore.add(token.onCancellationRequested(() => reject(new CancellationError())));
 			promiseStore.add(autorun(reader => {
@@ -223,7 +221,6 @@ export class McpElicitationService implements IMcpElicitationService {
 				return { action: 'accept' };
 			}
 		} catch {
-			// ignored
 		}
 
 		return { action: 'decline' };
@@ -532,10 +529,6 @@ export class McpElicitationService implements IMcpElicitationService {
 		return { isValid: true, parsedValue: parsed };
 	}
 
-	/**
-	 * Converts an MCP elicitation schema into IChatQuestion[] for the carousel UI.
-	 * Returns the questions and a map from question ID to schema property name.
-	 */
 	private _convertSchemaToQuestions(elicitation: MCP.ElicitRequestFormParams | Pre20251125ElicitationParams): { questions: IChatQuestion[]; idToPropertyMap: Map<string, string> } {
 		const properties = Object.entries(elicitation.requestedSchema.properties);
 		const requiredFields = new Set(elicitation.requestedSchema.required || []);
@@ -632,7 +625,6 @@ export class McpElicitationService implements IMcpElicitationService {
 					defaultValue: schema.default,
 				});
 			} else {
-				// String, number, integer → text input with validation
 				const validation: IChatQuestionValidation = {};
 				if (schema.type === 'string') {
 					if (schema.minLength !== undefined) { validation.minLength = schema.minLength; }
@@ -659,11 +651,6 @@ export class McpElicitationService implements IMcpElicitationService {
 		return { questions, idToPropertyMap };
 	}
 
-	/**
-	 * Converts carousel answers (keyed by question ID) back into the
-	 * MCP ElicitResult content format (keyed by schema property names),
-	 * coercing types as needed.
-	 */
 	private _convertCarouselAnswersToElicitResult(
 		answers: IChatQuestionAnswers,
 		idToPropertyMap: Map<string, string>,
@@ -682,7 +669,6 @@ export class McpElicitationService implements IMcpElicitationService {
 				continue;
 			}
 
-			// Extract the raw value from structured answers
 			let rawValue: unknown = answer;
 			if (typeof answer === 'object' && answer !== null) {
 				const obj = answer as Record<string, unknown>;
@@ -699,7 +685,6 @@ export class McpElicitationService implements IMcpElicitationService {
 				continue;
 			}
 
-			// Type coercion based on schema
 			if (schema.type === 'boolean') {
 				content[propertyName] = rawValue === 'true' || rawValue === true;
 			} else if (schema.type === 'number' || schema.type === 'integer') {

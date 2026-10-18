@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -13,7 +12,6 @@ export interface ErrorListenerUnbind {
 	(): void;
 }
 
-// Avoid circular dependency on EventEmitter by implementing a subset of the interface.
 export class ErrorHandler {
 	private unexpectedErrorHandler: (e: any) => void;
 	private listeners: ErrorListenerCallback[];
@@ -68,7 +66,6 @@ export class ErrorHandler {
 		this.emit(e);
 	}
 
-	// For external errors, we don't want the listeners to be called
 	onUnexpectedExternalError(e: any): void {
 		this.unexpectedErrorHandler(e);
 	}
@@ -76,17 +73,10 @@ export class ErrorHandler {
 
 export const errorHandler = new ErrorHandler();
 
-/** @skipMangle */
 export function setUnexpectedErrorHandler(newUnexpectedErrorHandler: (e: any) => void): void {
 	errorHandler.setUnexpectedErrorHandler(newUnexpectedErrorHandler);
 }
 
-/**
- * Returns if the error is a SIGPIPE error. SIGPIPE errors should generally be
- * logged at most once, to avoid a loop.
- *
- * @see https://github.com/microsoft/vscode-remote-release/issues/6481
- */
 export function isSigPipeError(e: unknown): e is Error {
 	if (!e || typeof e !== 'object') {
 		return false;
@@ -96,18 +86,12 @@ export function isSigPipeError(e: unknown): e is Error {
 	return cast.code === 'EPIPE' && cast.syscall?.toUpperCase() === 'WRITE';
 }
 
-/**
- * This function should only be called with errors that indicate a bug in the product.
- * E.g. buggy extensions/invalid user-input/network issues should not be able to trigger this code path.
- * If they are, this indicates there is also a bug in the product.
-*/
 export function onBugIndicatingError(e: any): undefined {
 	errorHandler.onUnexpectedError(e);
 	return undefined;
 }
 
 export function onUnexpectedError(e: any): undefined {
-	// ignore errors from cancelled promises
 	if (!isCancellationError(e)) {
 		errorHandler.onUnexpectedError(e);
 	}
@@ -115,7 +99,6 @@ export function onUnexpectedError(e: any): undefined {
 }
 
 export function onUnexpectedExternalError(e: any): undefined {
-	// ignore errors from cancelled promises
 	if (!isCancellationError(e)) {
 		errorHandler.onUnexpectedExternalError(e);
 	}
@@ -154,7 +137,6 @@ export function transformErrorForSerialization(error: any): any {
 		};
 	}
 
-	// return as is
 	return error;
 }
 
@@ -177,7 +159,6 @@ export function transformErrorFromSerialization(data: SerializedError): Error {
 	return error;
 }
 
-// see https://github.com/v8/v8/wiki/Stack%20Trace%20API#basic-stack-traces
 export interface V8CallSite {
 	getThis(): unknown;
 	getTypeName(): string | null;
@@ -197,9 +178,6 @@ export interface V8CallSite {
 
 export const canceledName = 'Canceled';
 
-/**
- * Checks if the given error is a promise in canceled state
- */
 export function isCancellationError(error: any): boolean {
 	if (error instanceof CancellationError) {
 		return true;
@@ -207,8 +185,6 @@ export function isCancellationError(error: any): boolean {
 	return error instanceof Error && error.name === canceledName && error.message === canceledName;
 }
 
-// !!!IMPORTANT!!!
-// Do NOT change this class because it is also used as an API-type.
 export class CancellationError extends Error {
 	constructor() {
 		super(canceledName);
@@ -230,9 +206,6 @@ export class PendingMigrationError extends Error {
 	}
 }
 
-/**
- * @deprecated use {@link CancellationError `new CancellationError()`} instead
- */
 export function canceled(): Error {
 	const error = new Error(canceledName);
 	error.name = error.message;
@@ -299,9 +272,6 @@ export class ExpectedError extends Error {
 	readonly isExpected = true;
 }
 
-/**
- * Error that when thrown won't be logged in telemetry as an unhandled error.
- */
 export class ErrorNoTelemetry extends Error {
 	override readonly name: string;
 
@@ -326,18 +296,10 @@ export class ErrorNoTelemetry extends Error {
 	}
 }
 
-/**
- * This error indicates a bug.
- * Do not throw this for invalid user input.
- * Only catch this error to recover gracefully from bugs.
- */
 export class BugIndicatingError extends Error {
 	constructor(message?: string) {
 		super(message || 'An unexpected bug occurred.');
 		Object.setPrototypeOf(this, BugIndicatingError.prototype);
 
-		// Because we know for sure only buggy code throws this,
-		// we definitely want to break here and fix the bug.
-		// debugger;
 	}
 }

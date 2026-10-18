@@ -13,10 +13,6 @@ import { IExperimentationService } from '../../../platform/telemetry/common/null
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { AgentConfig, AgentHandoff, buildAgentMarkdown, DEFAULT_READ_TOOLS } from './agentTypes';
 
-/**
- * Base Plan agent configuration - embedded from Plan.agent.md
- * This avoids runtime file loading and YAML parsing dependencies.
- */
 const BASE_PLAN_AGENT_CONFIG: AgentConfig = {
 	name: 'Plan',
 	description: 'Researches and outlines multi-step plans',
@@ -26,17 +22,10 @@ const BASE_PLAN_AGENT_CONFIG: AgentConfig = {
 	tools: [
 		...DEFAULT_READ_TOOLS,
 	],
-	handoffs: [], // Handoffs are generated dynamically in buildCustomizedConfig
-	body: '' // Body is generated dynamically in buildCustomizedConfig
+	handoffs: [],
+	body: ''
 };
 
-/**
- * Provides the Plan agent dynamically with settings-based customization.
- *
- * This provider uses an embedded configuration and generates .agent.md content
- * with settings-based customization (additional tools and model override).
- * No external file loading or YAML parsing dependencies required.
- */
 export class PlanAgentProvider extends Disposable implements vscode.ChatCustomAgentProvider {
 	readonly label = vscode.l10n.t('Plan Agent');
 
@@ -55,10 +44,6 @@ export class PlanAgentProvider extends Disposable implements vscode.ChatCustomAg
 	) {
 		super();
 
-		// Listen for settings changes to refresh agents
-		// Note: When settings change, we fire onDidChangeCustomAgents which causes VS Code to re-fetch
-		// the agent definition. However, handoff buttons already rendered may not work as
-		// these capture the model at render time.
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ConfigKey.PlanAgentAdditionalTools.fullyQualifiedId) ||
 				e.affectsConfiguration(ConfigKey.Deprecated.PlanAgentModel.fullyQualifiedId) ||
@@ -75,13 +60,10 @@ export class PlanAgentProvider extends Disposable implements vscode.ChatCustomAg
 		_context: unknown,
 		_token: vscode.CancellationToken
 	): Promise<vscode.ChatResource[]> {
-		// Build config with settings-based customization
 		const config = this.buildCustomizedConfig();
 
-		// Generate .agent.md content
 		const content = buildAgentMarkdown(config);
 
-		// Write to cache file and return URI
 		const fileUri = await this.writeCacheFile(content);
 		return [{ uri: fileUri, sessionTypes: ['local'] }];
 	}
@@ -92,7 +74,6 @@ export class PlanAgentProvider extends Disposable implements vscode.ChatCustomAg
 			PlanAgentProvider.CACHE_DIR
 		);
 
-		// Ensure cache directory exists
 		try {
 			await this.fileSystemService.stat(cacheDir);
 		} catch {
@@ -221,7 +202,6 @@ Rules:
 
 		const implementAgentModelOverride = this.configurationService.getConfig(ConfigKey.ImplementAgentModel);
 
-		// Build handoffs dynamically with model override
 		const startImplementationHandoff: AgentHandoff = {
 			label: 'Start Implementation',
 			agent: 'agent',
@@ -238,26 +218,20 @@ Rules:
 			send: true
 		};
 
-		// Collect tools to add
 		const toolsToAdd: string[] = [...additionalTools];
 
-		// Always include askQuestions tool (now provided by core)
 		toolsToAdd.push('vscode/askQuestions');
 
-		// When explore agent is enabled, include the 'agent' tool to allow sub-agent calls
 		if (isExploreEnabled) {
 			toolsToAdd.push('agent');
 		}
 
-		// Merge additional tools (deduplicated)
 		const tools = toolsToAdd.length > 0
 			? [...new Set([...BASE_PLAN_AGENT_CONFIG.tools, ...toolsToAdd])]
 			: [...BASE_PLAN_AGENT_CONFIG.tools];
 
-		// Start with base config
 		return {
 			...BASE_PLAN_AGENT_CONFIG,
-			// When explore agent is enabled, allow the Explore subagent
 			...(isExploreEnabled ? { agents: ['Explore'] } : {}),
 			tools,
 			handoffs: [startImplementationHandoff, openInEditorHandoff, ...(BASE_PLAN_AGENT_CONFIG.handoffs ?? [])],

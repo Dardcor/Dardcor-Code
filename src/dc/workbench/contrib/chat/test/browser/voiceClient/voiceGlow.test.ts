@@ -92,12 +92,7 @@ suite('VoiceGlow', () => {
 	});
 
 	test('the dictation microphone paints the listening rim color', () => {
-		// Two things must hold: the tuning itself (hue nudge, saturation floor,
-		// per-theme lightness) and the fact that dictation and Voice Mode arrive
-		// at it from their own tokens. Snapshotting the resolved values pins the
-		// former — comparing the two paths alone would cancel it out.
 		const base = Color.fromHex('#58A6FF');
-		// Deliberately under the saturation floor, so the clamp is exercised.
 		const washedOut = Color.fromHex('#7A8B99');
 		const theme = (type: ColorScheme, accent: Color) => ({
 			type,

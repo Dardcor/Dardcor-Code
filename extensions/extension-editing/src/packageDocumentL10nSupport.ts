@@ -191,7 +191,6 @@ export class PackageDocumentL10nSupport implements vscode.DefinitionProvider, vs
 	private getNlsKeyDefinitionAtPosition(nlsDoc: vscode.TextDocument, position: vscode.Position): { key: string; range: vscode.Range } | undefined {
 		const location = getLocation(nlsDoc.getText(), nlsDoc.offsetAt(position));
 
-		// Must be on a top-level property key
 		if (location.path.length !== 1 || !location.isAtPropertyKey || !location.previousNode) {
 			return undefined;
 		}

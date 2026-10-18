@@ -71,7 +71,6 @@ suite('agentHost editSurvivalReporter', () => {
 		});
 		disposables.add(reporter);
 
-		// Let the t=0 TimeoutTimer fire and the file read resolve.
 		await timeout(50);
 
 		assert.ok(telemetry.events.length >= 1, `expected at least one event, got ${telemetry.events.length}`);
@@ -144,11 +143,6 @@ suite('agentHost editSurvivalReporter', () => {
 	});
 
 	test('skips the sample on transient read errors (no event, reporter keeps running)', async () => {
-		// Use a fake file service whose readFile throws a permission
-		// error -- not FILE_NOT_FOUND -- on the first call only, then
-		// succeeds. The reporter should skip the first sample (no
-		// telemetry, no didFileGetDeleted) and emit normally on the
-		// second sample.
 		await fileService.writeFile(URI.file('/workspace/flaky.ts'), VSBuffer.fromString('after'));
 		const realReadFile = fileService.readFile.bind(fileService);
 		let calls = 0;
@@ -179,11 +173,6 @@ suite('agentHost editSurvivalReporter', () => {
 		});
 		disposables.add(reporter);
 
-		// First sample (t=0) is skipped due to the permission error,
-		// second sample (t=5s) would emit -- but waiting 5s in a unit
-		// test is wasteful, so we just verify the first sample produced
-		// no telemetry and the reporter is still scheduled (i.e. didn't
-		// dispose itself like it would for a real delete).
 		await timeout(50);
 
 		assert.strictEqual(telemetry.events.length, 0, 'transient errors must not emit telemetry');
@@ -210,8 +199,6 @@ suite('agentHost editSurvivalReporter', () => {
 	});
 
 	test('skips files larger than the size cap (no events ever)', async () => {
-		// 6 MB exceeds the 5 MB cap; the factory should return a
-		// no-op disposable and never emit telemetry.
 		const huge = 'x'.repeat(6 * 1024 * 1024);
 		await fileService.writeFile(URI.file('/workspace/huge.ts'), VSBuffer.fromString(huge));
 
@@ -250,7 +237,6 @@ suite('agentHost editSurvivalReporter', () => {
 		assert.ok(telemetry.events.length >= 1);
 		const data = telemetry.events[0].data as Record<string, unknown>;
 		const serialized = JSON.stringify(data);
-		// Guard against ever putting file contents in the payload.
 		assert.ok(!serialized.includes('SECRET_BEFORE'), 'payload must not contain before text');
 		assert.ok(!serialized.includes('SECRET_AFTER'), 'payload must not contain after text');
 	});

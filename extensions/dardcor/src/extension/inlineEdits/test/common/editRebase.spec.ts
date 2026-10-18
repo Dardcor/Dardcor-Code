@@ -67,7 +67,6 @@ class Point3D {
 	});
 
 	test('tryRebase matches up edits', async () => {
-		// Ambiguity with shifted edits.
 		const originalDocument = `
 function getEnvVar(name): string | undefined {
 	const value = process.env[name] || undefined;
@@ -234,20 +233,6 @@ int main()
 	});
 
 	test('tryRebase fails when user types characters absent from the suggestion', () => {
-		// Document state when suggestion was cached:
-		//   "function fib\n"
-		//                ^ cursor at offset 12
-		//
-		// Suggestion (two edits):
-		//   edit 0: replace [0,12) "function fib" → "function fib(n: number): number {"
-		//   edit 1: insert at 34                  → "    if (n <= 1) return n;\n    return fib(n - 1) + fib(n - 2);\n}\n"
-		//
-		// User then types "()" at offset 12, producing:
-		//   "function fib()\n"
-		//
-		// Rebase fails because the diff of edit 0 inserts "(n: number): number {" at offset 12,
-		// but the user typed "()" — and "()" is not a substring of "(n: number): number {",
-		// so agreementIndexOf returns -1 and the rebase cannot reconcile the two.
 		const originalDocument = 'function fib\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 12), 'function fib(n: number): number {'),
@@ -266,8 +251,6 @@ int main()
 	});
 
 	test('absorbSubsequenceTyping: parentheses typed by user are absorbed', () => {
-		// The "()" the user typed is a subsequence of the suggestion's "(n: number): number {",
-		// so the rebased edit replaces it with the suggestion's text.
 		const originalDocument = 'function fib\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 12), 'function fib(n: number): number {'),
@@ -299,9 +282,6 @@ int main()
 	});
 
 	test('absorbSubsequenceTyping: user types partial params "(n: )" NOT absorbed (not an auto-close pair)', () => {
-		// User types "(n: )" in "function fib" → "function fib(n: )\n"
-		// "(n: )" is a subsequence of the suggestion but is NOT an auto-close pair,
-		// so absorption does not apply.
 		const originalDocument = 'function fib\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 12), 'function fib(n: number): number {'),
@@ -321,8 +301,6 @@ int main()
 	});
 
 	test('absorbSubsequenceTyping: semicolon NOT absorbed when it cannot align with suggestion', () => {
-		// User types ";" but suggestion wants to insert ": string = \"hello\""
-		// ";" is not a subsequence of ": string = \"hello\"", so absorption fails
 		const originalDocument = 'const x\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 7), 'const x: string = "hello"'),
@@ -341,9 +319,6 @@ int main()
 	});
 
 	test('absorbSubsequenceTyping: semicolon NOT absorbed (not an auto-close pair)', () => {
-		// User types ";" and suggestion inserts ": string = \"hello\";"
-		// ";" is present in the suggestion but is NOT an auto-close pair,
-		// so absorption does not apply.
 		const originalDocument = 'const x\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 7), 'const x: string = "hello";'),
@@ -357,13 +332,10 @@ int main()
 		const nesConfigs = { absorbSubsequenceTyping: true, maxImperfectAgreementLength };
 		const logger = new TestLogService();
 
-		// Strict rejects the exact match (offset 25 > maxAgreementOffset) and absorption
-		// doesn't apply because ";" is not an auto-close pair.
 		expect(tryRebase(originalDocument, editWindow, originalEdits, [], userEditSince, currentDocumentContent, currentSelection, 'strict', logger, nesConfigs)).toBe('rebaseFailed');
 	});
 
 	test('absorbSubsequenceTyping: text NOT a subsequence of suggestion is NOT absorbed', () => {
-		// User types "abc" — not a subsequence of "(n: number): number {", so not absorbed
 		const originalDocument = 'function fib\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 12), 'function fib(n: number): number {'),
@@ -383,7 +355,6 @@ int main()
 	});
 
 	test('absorbSubsequenceTyping: text NOT a subsequence of suggestion is NOT absorbed (2)', () => {
-		// User types "(a" — "a" is not found in "(n: number): number {", so not absorbed
 		const originalDocument = 'function fib\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 12), 'function fib(n: number): number {'),
@@ -403,7 +374,6 @@ int main()
 	});
 
 	test('absorbSubsequenceTyping: config disabled means punctuation is NOT absorbed', () => {
-		// Same fib scenario with "()" but config is explicitly false
 		const originalDocument = 'function fib\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 12), 'function fib(n: number): number {'),
@@ -417,15 +387,11 @@ int main()
 		const currentSelection = [new OffsetRange(13, 13)];
 		const logger = new TestLogService();
 
-		// Explicitly disabled
 		expect(tryRebase(originalDocument, editWindow, originalEdits, [], userEditSince, currentDocumentContent, currentSelection, 'strict', logger, { absorbSubsequenceTyping: false, maxImperfectAgreementLength })).toBe('rebaseFailed');
-		// Default (no config)
 		expect(tryRebase(originalDocument, editWindow, originalEdits, [], userEditSince, currentDocumentContent, currentSelection, 'strict', logger)).toBe('rebaseFailed');
 	});
 
 	test('absorbSubsequenceTyping: normal agreement still works when user types text present in suggestion', () => {
-		// User types "(n" which IS a prefix found in the suggestion "(n: number): number {"
-		// Normal agreement should handle this regardless of the config
 		const originalDocument = 'function fib\n';
 		const suggestedEdit = StringEdit.create([
 			StringReplacement.replace(new OffsetRange(0, 12), 'function fib(n: number): number {'),
@@ -453,16 +419,12 @@ int main()
 		const current = userEdit.apply(text);
 		expect(current).toBe('if (true){\n');
 
-		// Without config: fails
 		expect(tryRebaseStringEdits(text, suggestion, userEdit, 'strict')).toBeUndefined();
 
-		// With config: still fails because a single "{" is not an auto-close pair
 		expect(tryRebaseStringEdits(text, suggestion, userEdit, 'strict', { absorbSubsequenceTyping: true, maxImperfectAgreementLength })).toBeUndefined();
 	});
 
 	test('absorbSubsequenceTyping: "{}" NOT absorbed when suggestion only has opening brace', () => {
-		// User types "{}" but suggestion only inserts " {" (no closing brace in suggestion text)
-		// "}" is not found after "{" in " {", so subsequence check fails
 		const text = 'if (true)\n';
 		const suggestion = StringEdit.create([
 			StringReplacement.replace(new OffsetRange(0, 9), 'if (true) {\n    console.log("yes");'),
@@ -496,9 +458,6 @@ int main()
 	});
 
 	test('absorbSubsequenceTyping: "{}" typed after function signature, suggestion fills body', () => {
-		// User types "{}" after "function fib(n: number) " → "function fib(n: number) {}\n"
-		// Suggestion wants to replace with a full function body including { ... }
-		// "{}" is a subsequence of "{\n    if ...\n}" so absorption succeeds
 		const originalDocument = 'function fib(n: number) \n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 24), 'function fib(n: number) {\n    if (n <= 1) return 1;\n    return n * factorial(n - 1);\n}'),
@@ -1093,9 +1052,6 @@ class Point3D {
 	});
 
 	test('reverse agreement: user typed more than model predicted at same position', () => {
-		// Model predicts two edits: insert "{" and insert body.
-		// User typed "{\n\t" which covers the first edit and the start of the second.
-		// Rebase should succeed, offering the unconsumed portion of the second edit.
 		const originalDocument = 'class Fibonacci \n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 16), 'class Fibonacci {'),
@@ -1108,23 +1064,16 @@ class Point3D {
 		const nesConfigs = { reverseAgreement: true, maxImperfectAgreementLength };
 
 		const logger = new TestLogService();
-		// Without flag: rebase fails
 		expect(tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'strict', logger)).toBe('rebaseFailed');
-		// With flag: rebase succeeds
 		const res = tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'strict', logger, nesConfigs);
 		expect(res).toBeTypeOf('object');
 		const result = res as Exclude<typeof res, string>;
 		expect(result.length).toBe(1);
 		expect(result[0].rebasedEditIndex).toBe(1);
-		// The unconsumed portion of the body edit should be offered
 		expect(result[0].rebasedEdit.newText).toContain('private memo');
 	});
 
 	test('reverse agreement: user typed exactly the first model edit', () => {
-		// User typed exactly "{" which is the model's first edit.
-		// The second edit (body) should be offered in full.
-		// Note: this case is actually handled by the existing forward agreement path
-		// (user text length == model text length), so it works regardless of the flag.
 		const originalDocument = 'class Foo \n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 10), 'class Foo {'),
@@ -1136,7 +1085,6 @@ class Point3D {
 		const currentDocumentContent = 'class Foo {\n';
 
 		const logger = new TestLogService();
-		// Works without reverse agreement flag (handled by forward agreement)
 		const res = tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'strict', logger);
 		expect(res).toBeTypeOf('object');
 		const result = res as Exclude<typeof res, string>;
@@ -1146,9 +1094,6 @@ class Point3D {
 	});
 
 	test('reverse agreement: user typed completely different text — should conflict', () => {
-		// Model: "class Foo " → "class Foo {"
-		// User:  "class Foo " → "class Foo XYZ"
-		// "XYZ" is NOT found in "{", so this should fail.
 		const originalDocument = 'class Foo \n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 10), 'class Foo {'),
@@ -1165,12 +1110,6 @@ class Point3D {
 	});
 
 	test('reverse agreement: user typed text that accidentally contains model text as substring', () => {
-		// Model: replace [0,5) "hello" → "hello{" (diff: insert "{" at 5), then insert body at 6.
-		// User: replace [0,5) "hello" → "helloXX{YY" (diff: insert "XX{YY" at 5).
-		// The model's first diff ("{") IS found in user's "XX{YY" at offset 2, so it's consumed.
-		// But the model's second edit ("\n\tworld\n}") can't be found in the remaining
-		// user text "YY" — partial consumption also fails ("YY" doesn't start with "\n\tworld\n}").
-		// So the rebase correctly fails for the second edit.
 		const originalDocument = 'hello\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 5), 'hello{'),
@@ -1183,17 +1122,11 @@ class Point3D {
 		const nesConfigs = { reverseAgreement: true, maxImperfectAgreementLength };
 
 		const logger = new TestLogService();
-		// Fails because user's remaining text "YY" doesn't match model's second edit
 		expect(tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'strict', logger, nesConfigs)).toBe('rebaseFailed');
 		expect(tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'lenient', logger, nesConfigs)).toBe('rebaseFailed');
 	});
 
 	test('reverse agreement: user typed text with model text at large offset — strict rejects', () => {
-		// Model: "a" → "a{"
-		// User:  "a" → "a" + "X".repeat(15) + "{"
-		// The "{" is at offset 15 into the user text, which exceeds maxAgreementOffset (10).
-		// Strict should reject; lenient should also fail since there's no lenient fallback
-		// in the reverse branch.
 		const pad = 'X'.repeat(maxAgreementOffset + 1);
 		const originalDocument = 'a\n';
 		const originalEdits = [
@@ -1210,11 +1143,6 @@ class Point3D {
 	});
 
 	test('reverse agreement: user typed long text at small offset — strict rejects imperfect agreement', () => {
-		// Model: "a" → "a{"
-		// User:  "a" → "aX" + "{".repeat(maxImperfectAgreementLength + 1)
-		// The model text "{" is found at offset 1 (> 0) and the effective text length
-		// is 1 (≤ maxImperfectAgreementLength), so this should pass strict.
-		// But if effectiveText were longer...
 		const longText = 'Z'.repeat(maxImperfectAgreementLength + 1);
 		const originalDocument = 'a\n';
 		const originalEdits = [
@@ -1227,15 +1155,10 @@ class Point3D {
 		const nesConfigs = { reverseAgreement: true, maxImperfectAgreementLength };
 
 		const logger = new TestLogService();
-		// offset = 1 > 0, effectiveText.length = longText.length > maxImperfectAgreementLength
-		// → strict rejected
 		expect(tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'strict', logger, nesConfigs)).toBe('rebaseFailed');
 	});
 
 	test('reverse agreement: all model edits fully consumed by user — no rebased edit emitted', () => {
-		// Model predicts single edit: insert "{\n\t"
-		// User typed "{\n\tfoo\n}" which fully contains "{\n\t"
-		// All model edits consumed → nothing to offer
 		const originalDocument = 'fn \n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 3), 'fn {\n\t'),
@@ -1247,20 +1170,14 @@ class Point3D {
 		const nesConfigs = { reverseAgreement: true, maxImperfectAgreementLength };
 
 		const logger = new TestLogService();
-		// Without flag: rebase fails
 		expect(tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'strict', logger)).toBe('rebaseFailed');
-		// With flag: succeeds with no edits to offer
 		const res = tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'strict', logger, nesConfigs);
 		expect(res).toBeTypeOf('object');
 		const result = res as Exclude<typeof res, string>;
-		// The single model edit was fully consumed — nothing left to suggest
 		expect(result.length).toBe(0);
 	});
 
 	test('reverse agreement: consistency check — rebased edit applied to current doc produces expected result', () => {
-		// This is the key correctness check: applying the rebased edit to the current
-		// document should produce the same result as applying the original edits to
-		// the original document.
 		const originalDocument = 'class Fibonacci \n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 16), 'class Fibonacci {'),
@@ -1272,7 +1189,6 @@ class Point3D {
 		const currentDocumentContent = 'class Fibonacci {\n\t\n';
 		const nesConfigs = { reverseAgreement: true, maxImperfectAgreementLength };
 
-		// Expected final: apply both model edits in sequence to original
 		const expectedFinal = new StringEdit([originalEdits[0]]).apply(originalDocument);
 		const expectedFinal2 = new StringEdit([originalEdits[1]]).apply(expectedFinal);
 
@@ -1282,19 +1198,11 @@ class Point3D {
 		const result = res as Exclude<typeof res, string>;
 		expect(result.length).toBe(1);
 
-		// Apply rebased edit to current document
 		const actualFinal = StringEdit.single(result[0].rebasedEdit).apply(currentDocumentContent);
 		expect(actualFinal).toBe(expectedFinal2);
 	});
 
 	test('reverse agreement: pure inserts at same position — user insert is superset of model insert', () => {
-		// Both edits are pure inserts at position 5.
-		// Model inserts "X", user inserts "XY".
-		// After removeCommonSuffixAndPrefix on user edit:
-		//   user edit: insert at 5 → "XY", model edit: insert at 5 → "X"
-		// These have equal replaceRange (both emptyAt(5)).
-		// The reverse branch should fire: "X" found in "XY" at offset 0 → consumed.
-		// Nothing left to suggest from this model edit.
 		const originalDocument = 'hello world\n';
 		const suggestedEdit = StringEdit.create([
 			StringReplacement.replace(OffsetRange.emptyAt(5), 'X'),
@@ -1305,9 +1213,7 @@ class Point3D {
 		const current = userEdit.apply(originalDocument);
 		expect(current).toBe('helloXY world\n');
 
-		// Without flag: rebase fails
 		expect(tryRebaseStringEdits(originalDocument, suggestedEdit, userEdit, 'strict')).toBeUndefined();
-		// With flag: model edit fully consumed → empty result
 		const nesConfigs = { reverseAgreement: true, maxImperfectAgreementLength };
 		const res = tryRebaseStringEdits(originalDocument, suggestedEdit, userEdit, 'strict', nesConfigs);
 		expect(res).toBeDefined();
@@ -1315,9 +1221,6 @@ class Point3D {
 	});
 
 	test('reverse agreement: does NOT fire when ranges differ', () => {
-		// Model replaces [0,3), user replaces [0,5) — different ranges.
-		// The reverse branch requires equal ranges, so this should NOT trigger it.
-		// Instead, this falls through to the conflict branch.
 		const originalDocument = 'abcde\n';
 		const originalEdits = [
 			StringReplacement.replace(new OffsetRange(0, 3), 'XYZ'),
@@ -1329,7 +1232,6 @@ class Point3D {
 		const nesConfigs = { reverseAgreement: true, maxImperfectAgreementLength };
 
 		const logger = new TestLogService();
-		// The ranges don't match after removeCommonSuffixAndPrefix, so this conflicts
 		expect(tryRebase(originalDocument, undefined, originalEdits, [], userEditSince, currentDocumentContent, [], 'strict', logger, nesConfigs)).toBe('rebaseFailed');
 	});
 });

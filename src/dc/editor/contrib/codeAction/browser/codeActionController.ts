@@ -232,8 +232,7 @@ export class CodeActionController extends Disposable implements IEditorContribut
 		this._lightBulbInfoObs.set(computeLightBulbInfo(actions, newState.trigger, this._preferredKbLabel.get(), this._quickFixKbLabel.get()), undefined);
 
 		if (newState.trigger.type === CodeActionTriggerType.Invoke) {
-			if (newState.trigger.filter?.include) { // Triggered for specific scope
-				// Check to see if we want to auto apply.
+			if (newState.trigger.filter?.include) {
 
 				const validActionToApply = this.tryGetValidActionToApply(newState.trigger, actions);
 				if (validActionToApply) {
@@ -246,7 +245,6 @@ export class CodeActionController extends Disposable implements IEditorContribut
 					return;
 				}
 
-				// Check to see if there is an action that we would have applied were it not invalid
 				if (newState.trigger.context) {
 					const invalidAction = this.getInvalidActionThatWouldHaveBeenApplied(newState.trigger, actions);
 					if (invalidAction && invalidAction.action.disabled) {
@@ -270,9 +268,7 @@ export class CodeActionController extends Disposable implements IEditorContribut
 			this._activeCodeActions.value = actions;
 			this.showCodeActionList(actions, this.toCoords(newState.position), { includeDisabledActions, fromLightbulb: false });
 		} else {
-			// auto magically triggered
 			if (this._actionWidgetService.isVisible) {
-				// TODO: Figure out if we should update the showing menu?
 				actions.dispose();
 			} else {
 				this._activeCodeActions.value = actions;
@@ -331,7 +327,7 @@ export class CodeActionController extends Disposable implements IEditorContribut
 
 		const delegate: IActionListDelegate<CodeActionItem> = {
 			onSelect: async (action: CodeActionItem, preview?: boolean) => {
-				this.applyCodeAction(action, /* retrigger */ true, !!preview, options.fromLightbulb ? ApplyCodeActionReason.FromAILightbulb : ApplyCodeActionReason.FromCodeActions);
+				this.applyCodeAction(action, true, !!preview, options.fromLightbulb ? ApplyCodeActionReason.FromAILightbulb : ApplyCodeActionReason.FromCodeActions);
 				this._actionWidgetService.hide(false);
 				currentDecorations.clear();
 			},
@@ -368,7 +364,6 @@ export class CodeActionController extends Disposable implements IEditorContribut
 					const diagnostics = action.action.diagnostics;
 					currentDecorations.clear();
 					if (ranges && ranges.length > 0) {
-						// Handles case for `fix all` where there are multiple diagnostics.
 						const decorations: IModelDeltaDecoration[] = (diagnostics && diagnostics?.length > 1)
 							? diagnostics.map(diagnostic => ({ range: diagnostic, options: CodeActionController.DECORATION }))
 							: ranges.map(range => ({ range, options: CodeActionController.DECORATION }));
@@ -406,7 +401,6 @@ export class CodeActionController extends Disposable implements IEditorContribut
 		this._editor.revealPosition(position, ScrollType.Immediate);
 		this._editor.render();
 
-		// Translate to absolute editor position
 		const cursorCoords = this._editor.getScrolledVisiblePosition(position);
 		const editorCoords = getDomNodePagePosition(this._editor.getDomNode());
 		const x = editorCoords.left + cursorCoords.left;

@@ -17,10 +17,6 @@ use super::errors::wrapdbg;
 use super::io::ReportCopyProgress;
 
 fn should_skip_first_segment(file: &fs::File) -> Result<(bool, u64), WrappedError> {
-	// unfortunately, we need to re-read the archive here since you cannot reuse
-	// `.entries()`. But this will generally only look at one or two files, so this
-	// should be acceptably speedy... If not, we could hardcode behavior for
-	// different types of archives.
 
 	let tar = GzDecoder::new(file);
 	let mut archive = Archive::new(tar);
@@ -56,7 +52,7 @@ fn should_skip_first_segment(file: &fs::File) -> Result<(bool, u64), WrappedErro
 		num_entries += 1;
 	}
 
-	Ok((!had_different_prefixes && num_entries > 1, num_entries)) // prefix removal is invalid if there's only a single file
+	Ok((!had_different_prefixes && num_entries > 1, num_entries))
 }
 
 pub fn decompress_tarball<T>(
@@ -74,7 +70,6 @@ where
 
 	let canonical_root = prepare_extraction_root(parent_path)?;
 
-	// reset since skip logic read the tar already:
 	tar_gz
 		.rewind()
 		.map_err(|e| wrap(e, "error resetting seek position"))?;
@@ -86,7 +81,6 @@ where
 		.map_err(|e| wrap(e, "error opening archive"))?
 		.filter_map(|e| e.ok())
 		.try_for_each::<_, Result<_, WrappedError>>(|mut entry| {
-			// approximate progress based on where we are in the archive:
 			entries_so_far += 1;
 			if entries_so_far - last_reported_at > report_progress_every {
 				reporter.report_progress(entries_so_far, num_entries);
@@ -104,12 +98,6 @@ where
 				entry_path.into_owned()
 			};
 
-			// Skip bare top-level directory entries (e.g. "vscode-server-linux-x64/")
-			// once their single segment has been stripped. They contribute no file
-			// to extract, and the directory will be created on demand for nested
-			// entries below. Only directory entries are skipped; non-directory
-			// entries with an empty relative path fall through to
-			// `safe_extract_join`, which rejects them.
 			if relative.as_os_str().is_empty() && entry.header().entry_type().is_dir() {
 				return Ok(());
 			}
@@ -170,11 +158,6 @@ mod tests {
 		builder.append_data(&mut header, name, contents).unwrap();
 	}
 
-	/// Regression test for #317660: a tarball with a bare top-level directory
-	/// entry (e.g. `prefix/`) plus files underneath used to fail extraction
-	/// with "extraction path resolves outside root" because the bare entry
-	/// produced an empty relative path after segment-stripping, whose parent
-	/// walked above the extraction root.
 	#[test]
 	fn decompress_tarball_with_bare_top_level_dir_entry() {
 		let tmp = tempfile::tempdir().unwrap();

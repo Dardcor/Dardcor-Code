@@ -18,15 +18,12 @@ exports.initialize = function (loaderConfig) {
 	const instrumenter = iLibInstrument.createInstrumenter();
 	loaderConfig.nodeInstrumenter = function (contents, source) {
 		if (minimatch(source, '**/test/**')) {
-			// tests don't get instrumented
 			return contents;
 		}
-		// Try to find a .map file
 		let map = undefined;
 		try {
 			map = JSON.parse(fs.readFileSync(`${source}.map`).toString());
 		} catch (err) {
-			// missing source map...
 		}
 		try {
 			return instrumenter.instrumentSync(contents, source, map);
@@ -41,7 +38,6 @@ exports.createReport = function (isSingle, coveragePath, formats) {
 	const mapStore = iLibSourceMaps.createSourceMapStore();
 	const coverageMap = iLibCoverage.createCoverageMap(global.__coverage__);
 	return mapStore.transformCoverage(coverageMap).then((transformed) => {
-		// Paths come out all broken
 		const newData = Object.create(null);
 		Object.keys(transformed.data).forEach((file) => {
 			const entry = transformed.data[file];

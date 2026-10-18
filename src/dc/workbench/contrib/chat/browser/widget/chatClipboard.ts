@@ -8,15 +8,10 @@ import { appendEscapedMarkdownInlineCode, isPortableLinkTarget, isPortableMarkdo
 import * as marked from '../../../../../base/common/marked/marked.js';
 import { IMarkdownEdit, markdownTokensToPlainText, rewriteMarkdownLinks } from '../../../../../base/common/markdownLinks.js';
 
-/**
- * Reads the target a rendered chat anchor points at. Clicks route through `data-href`, so that
- * attribute carries the semantic target while `href` may be empty or a copy-safe duplicate.
- */
 function getLinkTarget(element: Element): string {
 	return (element.getAttribute('data-href') || element.getAttribute('href') || '').trim();
 }
 
-/** Replaces an element with the text a reader saw, marked up as code. */
 function replaceWithLabel(element: Element, label: string): void {
 	if (!label.trim()) {
 		element.remove();
@@ -28,10 +23,6 @@ function replaceWithLabel(element: Element, label: string): void {
 	element.replaceWith(code);
 }
 
-/**
- * Rewrites a copied chat selection so it stays useful outside this window, replacing links and
- * images that only resolve here with the text the reader saw. Returns whether anything changed.
- */
 export function sanitizeChatClipboardFragment(fragment: DocumentFragment): boolean {
 	let changed = false;
 
@@ -68,15 +59,6 @@ function overlapsCode(start: number, end: number, codeRanges: readonly { readonl
 	return codeRanges.some(range => start < range.end && end > range.start);
 }
 
-/**
- * Rewrites markdown so it can be shared outside this window. Chat responses address workspace
- * resources with targets that only mean something here — agent host sessions are even
- * instructed to emit absolute filesystem paths — so links and images that don't resolve
- * elsewhere are reduced to the text the reader saw.
- *
- * Raw HTML is left verbatim. Chat markdown is rendered without `supportHtml`, so a tag the model
- * wrote was never a live link, and rewriting its attributes would corrupt text the reader saw.
- */
 export function toPortableMarkdown(markdown: string): string {
 	return rewriteMarkdownLinks(markdown, {
 		rewriteLink(token) {
@@ -86,8 +68,6 @@ export function toPortableMarkdown(markdown: string): string {
 				return label ? appendEscapedMarkdownInlineCode(label) : '';
 			}
 
-			// Every definition is dropped below, so a link that named one has to start carrying
-			// its own target. Spelling the target out is what tells the two apart.
 			if (!token.raw.includes(target)) {
 				const title = token.title ? ` "${token.title}"` : '';
 				return `${token.type === 'image' ? '!' : ''}[${token.text}](${target}${title})`;
@@ -98,9 +78,6 @@ export function toPortableMarkdown(markdown: string): string {
 		additionalEdits(source, { codeRanges, definitionRanges, unlocatable }) {
 			const edits: IMarkdownEdit[] = [];
 
-			// A label spanning lines inside a list or quote cannot be located, so scrub the
-			// target itself rather than let an absolute path reach the clipboard. Occurrences
-			// inside code are left alone: those are samples, not live links.
 			for (const token of unlocatable) {
 				const target = token.href ?? '';
 				if (isPortableMarkdownTarget(target)) {
@@ -114,9 +91,6 @@ export function toPortableMarkdown(markdown: string): string {
 				}
 			}
 
-			// A definition holds its target in source the reader never saw, so leaving one behind
-			// would publish the very path this strips. The links that leaned on them now spell
-			// their targets out, so the definitions have nothing left to say.
 			edits.push(...definitionRanges.map(range => ({ ...range, replacement: '' })));
 			return edits;
 		},

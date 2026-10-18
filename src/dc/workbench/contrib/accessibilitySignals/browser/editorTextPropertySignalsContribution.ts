@@ -60,7 +60,6 @@ export class EditorTextPropertySignalsContribution extends Disposable implements
 		);
 
 		this._register(autorunWithStore((reader, store) => {
-			/** @description updateSignalsEnabled */
 			if (!this._someAccessibilitySignalIsEnabled.read(reader)) {
 				return;
 			}
@@ -89,7 +88,6 @@ export class EditorTextPropertySignalsContribution extends Disposable implements
 				args.reason !== CursorChangeReason.Explicit &&
 				args.reason !== CursorChangeReason.NotSet
 			) {
-				// Ignore cursor changes caused by navigation (e.g. which happens when execution is paused).
 				ignoredLineSignalsForCurrentLine.clear();
 				return;
 			}
@@ -120,7 +118,6 @@ export class EditorTextPropertySignalsContribution extends Disposable implements
 				}
 			};
 
-			// React to cursor changes
 			const position = args.position;
 			const lineNumber = position.lineNumber;
 			if (lineNumber !== lastLine) {
@@ -134,7 +131,6 @@ export class EditorTextPropertySignalsContribution extends Disposable implements
 				trigger(p.property, p.source, 'positional');
 			}
 
-			// React to property state changes for the current cursor position
 			for (const s of propertySources) {
 				if (
 					![s.property.lineSignal, s.property.positionSignal]

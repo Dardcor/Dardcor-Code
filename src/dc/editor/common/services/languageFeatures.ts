@@ -75,7 +75,6 @@ export interface ILanguageFeaturesService {
 
 	readonly documentDropEditProvider: LanguageFeatureRegistry<DocumentDropEditProvider>;
 
-	// --
 
 	setNotebookTypeResolver(resolver: NotebookInfoResolver | undefined): void;
 }

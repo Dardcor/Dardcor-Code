@@ -5,6 +5,7 @@ import {
   getProviderNodeById,
   getProviderNodes,
   getProxyPoolById,
+  setProviderStatus,
 } from "@/models";
 import { APIKEY_PROVIDERS } from "@/shared/constants/config";
 import { AI_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, isCustomEmbeddingProvider } from "@/shared/constants/providers";
@@ -46,12 +47,10 @@ async function normalizeProxyPoolId(proxyPoolId) {
   return { proxyPoolId: normalizedId };
 }
 
-// GET /api/providers - List all connections
 export async function GET() {
   try {
     const connections = await getProviderConnections();
 
-    // Build nodeNameMap for compatible providers (id → name)
     let nodeNameMap = {};
     try {
       const nodes = await getProviderNodes();
@@ -60,7 +59,6 @@ export async function GET() {
       }
     } catch { }
 
-    // Hide sensitive fields, enrich name for compatible providers
     const safeConnections = connections.map(c => {
       const isCompatible = isOpenAICompatibleProvider(c.provider) || isAnthropicCompatibleProvider(c.provider);
       const name = isCompatible
@@ -83,7 +81,6 @@ export async function GET() {
   }
 }
 
-// POST /api/providers - Create new connection (API Key only, OAuth via separate flow)
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -100,10 +97,7 @@ export async function POST(request) {
     }
     const proxyPoolId = proxyPoolResult.proxyPoolId;
 
-    // Validation
     const isWebCookieProvider = !!WEB_COOKIE_PROVIDERS[provider];
-    // Dual-auth providers (e.g. codebuddy-cn, xai) live under category "oauth" but also
-    // accept an API key via authModes — they aren't in APIKEY_PROVIDERS, so allow them here.
     const supportsApiKeyMode = !!AI_PROVIDERS[provider]?.authModes?.includes("apikey");
     const isValidProvider = APIKEY_PROVIDERS[provider] ||
       FREE_TIER_PROVIDERS[provider] ||
@@ -126,8 +120,6 @@ export async function POST(request) {
 
     let providerSpecificData = normalizeProviderSpecificData(provider, body, body.providerSpecificData);
 
-    // Compatible LLM nodes support multiple API-key connections (key pool); runtime
-    // rotates/fails over via getProviderCredentials. Embedding nodes stay single-connection.
     if (isOpenAICompatibleProvider(provider)) {
       const node = await getProviderNodeById(provider);
       if (!node) {
@@ -185,7 +177,8 @@ export async function POST(request) {
       testStatus: testStatus || "unknown",
     });
 
-    // Hide sensitive fields
+    await setProviderStatus(provider, true).catch(() => {});
+
     const result = { ...newConnection };
     delete result.apiKey;
 

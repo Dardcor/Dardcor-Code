@@ -45,9 +45,7 @@ describe('TtlCache', () => {
 		cache.set('b', 'beta');
 
 		vi.advanceTimersByTime(1000);
-		// 'a' was set 2000ms ago → expired
 		expect(cache.get('a')).toBeUndefined();
-		// 'b' was set 1000ms ago → still valid
 		expect(cache.get('b')).toBe('beta');
 	});
 
@@ -59,7 +57,6 @@ describe('TtlCache', () => {
 		cache.set('key', 'new');
 
 		vi.advanceTimersByTime(800);
-		// 800ms since last set → still valid
 		expect(cache.get('key')).toBe('new');
 	});
 
@@ -101,10 +98,10 @@ describe('TtlCache', () => {
 
 		vi.advanceTimersByTime(1);
 		expect(cache.get('default')).toBe('value1');
-		expect(cache.get('short')).toBeUndefined(); // expired at 1000ms
+		expect(cache.get('short')).toBeUndefined();
 
 		vi.advanceTimersByTime(4000);
-		expect(cache.get('default')).toBeUndefined(); // expired at 5000ms
+		expect(cache.get('default')).toBeUndefined();
 	});
 });
 

@@ -306,9 +306,6 @@ suite('ExtHostWorkspace', function () {
 
 		const ws = createExtHostWorkspace(protocol, { id: 'foo', name: 'Test', folders: [] }, new NullLogService());
 
-		//
-		// Add one folder
-		//
 
 		assert.strictEqual(true, ws.updateWorkspaceFolders(extensionDescriptor, 0, 0, asUpdateWorkspaceFolderData(URI.parse('foo:bar'))));
 		assert.strictEqual(1, ws.workspace!.folders.length);
@@ -322,20 +319,17 @@ suite('ExtHostWorkspace', function () {
 				assert.deepStrictEqual(e.removed, []);
 				assert.strictEqual(e.added.length, 1);
 				assert.strictEqual(e.added[0].uri.toString(), 'foo:bar');
-				assert.strictEqual(e.added[0], firstAddedFolder); // verify object is still live
+				assert.strictEqual(e.added[0], firstAddedFolder);
 				gotEvent = true;
 			} catch (error) {
 				finish(error);
 			}
 		});
-		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar'), 0)] }); // simulate acknowledgement from main side
+		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar'), 0)] });
 		assert.strictEqual(gotEvent, true);
 		sub.dispose();
-		assert.strictEqual(ws.getWorkspaceFolders()![0], firstAddedFolder); // verify object is still live
+		assert.strictEqual(ws.getWorkspaceFolders()![0], firstAddedFolder);
 
-		//
-		// Add two more folders
-		//
 
 		assert.strictEqual(true, ws.updateWorkspaceFolders(extensionDescriptor, 1, 0, asUpdateWorkspaceFolderData(URI.parse('foo:bar1')), asUpdateWorkspaceFolderData(URI.parse('foo:bar2'))));
 		assert.strictEqual(3, ws.workspace!.folders.length);
@@ -360,16 +354,13 @@ suite('ExtHostWorkspace', function () {
 				finish(error);
 			}
 		});
-		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar'), 0), aWorkspaceFolderData(URI.parse('foo:bar1'), 1), aWorkspaceFolderData(URI.parse('foo:bar2'), 2)] }); // simulate acknowledgement from main side
+		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar'), 0), aWorkspaceFolderData(URI.parse('foo:bar1'), 1), aWorkspaceFolderData(URI.parse('foo:bar2'), 2)] });
 		assert.strictEqual(gotEvent, true);
 		sub.dispose();
-		assert.strictEqual(ws.getWorkspaceFolders()![0], firstAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![1], secondAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![2], thirdAddedFolder); // verify object is still live
+		assert.strictEqual(ws.getWorkspaceFolders()![0], firstAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![1], secondAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![2], thirdAddedFolder);
 
-		//
-		// Remove one folder
-		//
 
 		assert.strictEqual(true, ws.updateWorkspaceFolders(extensionDescriptor, 2, 1));
 		assert.strictEqual(2, ws.workspace!.folders.length);
@@ -387,15 +378,12 @@ suite('ExtHostWorkspace', function () {
 				finish(error);
 			}
 		});
-		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar'), 0), aWorkspaceFolderData(URI.parse('foo:bar1'), 1)] }); // simulate acknowledgement from main side
+		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar'), 0), aWorkspaceFolderData(URI.parse('foo:bar1'), 1)] });
 		assert.strictEqual(gotEvent, true);
 		sub.dispose();
-		assert.strictEqual(ws.getWorkspaceFolders()![0], firstAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![1], secondAddedFolder); // verify object is still live
+		assert.strictEqual(ws.getWorkspaceFolders()![0], firstAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![1], secondAddedFolder);
 
-		//
-		// Rename folder
-		//
 
 		assert.strictEqual(true, ws.updateWorkspaceFolders(extensionDescriptor, 0, 2, asUpdateWorkspaceFolderData(URI.parse('foo:bar'), 'renamed 1'), asUpdateWorkspaceFolderData(URI.parse('foo:bar1'), 'renamed 2')));
 		assert.strictEqual(2, ws.workspace!.folders.length);
@@ -416,19 +404,16 @@ suite('ExtHostWorkspace', function () {
 				finish(error);
 			}
 		});
-		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar'), 0, 'renamed 1'), aWorkspaceFolderData(URI.parse('foo:bar1'), 1, 'renamed 2')] }); // simulate acknowledgement from main side
+		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar'), 0, 'renamed 1'), aWorkspaceFolderData(URI.parse('foo:bar1'), 1, 'renamed 2')] });
 		assert.strictEqual(gotEvent, true);
 		sub.dispose();
-		assert.strictEqual(ws.getWorkspaceFolders()![0], firstAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![1], secondAddedFolder); // verify object is still live
+		assert.strictEqual(ws.getWorkspaceFolders()![0], firstAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![1], secondAddedFolder);
 		assert.strictEqual(ws.workspace!.folders[0].name, 'renamed 1');
 		assert.strictEqual(ws.workspace!.folders[1].name, 'renamed 2');
 		assert.strictEqual(ws.getWorkspaceFolders()![0].name, 'renamed 1');
 		assert.strictEqual(ws.getWorkspaceFolders()![1].name, 'renamed 2');
 
-		//
-		// Add and remove folders
-		//
 
 		assert.strictEqual(true, ws.updateWorkspaceFolders(extensionDescriptor, 0, 2, asUpdateWorkspaceFolderData(URI.parse('foo:bar3')), asUpdateWorkspaceFolderData(URI.parse('foo:bar4'))));
 		assert.strictEqual(2, ws.workspace!.folders.length);
@@ -452,23 +437,20 @@ suite('ExtHostWorkspace', function () {
 				finish(error);
 			}
 		});
-		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar3'), 0), aWorkspaceFolderData(URI.parse('foo:bar4'), 1)] }); // simulate acknowledgement from main side
+		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar3'), 0), aWorkspaceFolderData(URI.parse('foo:bar4'), 1)] });
 		assert.strictEqual(gotEvent, true);
 		sub.dispose();
-		assert.strictEqual(ws.getWorkspaceFolders()![0], fourthAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![1], fifthAddedFolder); // verify object is still live
+		assert.strictEqual(ws.getWorkspaceFolders()![0], fourthAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![1], fifthAddedFolder);
 
-		//
-		// Swap folders
-		//
 
 		assert.strictEqual(true, ws.updateWorkspaceFolders(extensionDescriptor, 0, 2, asUpdateWorkspaceFolderData(URI.parse('foo:bar4')), asUpdateWorkspaceFolderData(URI.parse('foo:bar3'))));
 		assert.strictEqual(2, ws.workspace!.folders.length);
 		assert.strictEqual(ws.workspace!.folders[0].uri.toString(), URI.parse('foo:bar4').toString());
 		assert.strictEqual(ws.workspace!.folders[1].uri.toString(), URI.parse('foo:bar3').toString());
 
-		assert.strictEqual(ws.getWorkspaceFolders()![0], fifthAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![1], fourthAddedFolder); // verify object is still live
+		assert.strictEqual(ws.getWorkspaceFolders()![0], fifthAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![1], fourthAddedFolder);
 
 		gotEvent = false;
 		sub = ws.onDidChangeWorkspace(e => {
@@ -480,17 +462,14 @@ suite('ExtHostWorkspace', function () {
 				finish(error);
 			}
 		});
-		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar4'), 0), aWorkspaceFolderData(URI.parse('foo:bar3'), 1)] }); // simulate acknowledgement from main side
+		ws.$acceptWorkspaceData({ id: 'foo', name: 'Test', folders: [aWorkspaceFolderData(URI.parse('foo:bar4'), 0), aWorkspaceFolderData(URI.parse('foo:bar3'), 1)] });
 		assert.strictEqual(gotEvent, true);
 		sub.dispose();
-		assert.strictEqual(ws.getWorkspaceFolders()![0], fifthAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![1], fourthAddedFolder); // verify object is still live
+		assert.strictEqual(ws.getWorkspaceFolders()![0], fifthAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![1], fourthAddedFolder);
 		assert.strictEqual(fifthAddedFolder.index, 0);
 		assert.strictEqual(fourthAddedFolder.index, 1);
 
-		//
-		// Add one folder after the other without waiting for confirmation (not supported currently)
-		//
 
 		assert.strictEqual(true, ws.updateWorkspaceFolders(extensionDescriptor, 2, 0, asUpdateWorkspaceFolderData(URI.parse('foo:bar5'))));
 
@@ -517,13 +496,13 @@ suite('ExtHostWorkspace', function () {
 				aWorkspaceFolderData(URI.parse('foo:bar3'), 1),
 				aWorkspaceFolderData(URI.parse('foo:bar5'), 2)
 			]
-		}); // simulate acknowledgement from main side
+		});
 		assert.strictEqual(gotEvent, true);
 		sub.dispose();
 
-		assert.strictEqual(ws.getWorkspaceFolders()![0], fifthAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![1], fourthAddedFolder); // verify object is still live
-		assert.strictEqual(ws.getWorkspaceFolders()![2], sixthAddedFolder); // verify object is still live
+		assert.strictEqual(ws.getWorkspaceFolders()![0], fifthAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![1], fourthAddedFolder);
+		assert.strictEqual(ws.getWorkspaceFolders()![2], sixthAddedFolder);
 
 		finish();
 	});
@@ -544,9 +523,6 @@ suite('ExtHostWorkspace', function () {
 					// eslint-disable-next-line local/code-no-any-casts
 					(<any>e).added = [];
 				});
-				// assert.throws(() => {
-				// 	(<any>e.added)[0] = null;
-				// });
 			} catch (error) {
 				finish(error);
 			}
@@ -688,7 +664,7 @@ suite('ExtHostWorkspace', function () {
 					mainThreadCalled = true;
 					assert.strictEqual(options.disregardExcludeSettings, false);
 					assert.strictEqual(options.excludePattern?.length, 1);
-					assert.strictEqual(options.excludePattern[0].pattern, 'glob/**'); // Note that the base portion is ignored, see #52651
+					assert.strictEqual(options.excludePattern[0].pattern, 'glob/**');
 					return Promise.resolve(null);
 				}
 			});
@@ -794,7 +770,6 @@ suite('ExtHostWorkspace', function () {
 				}
 			});
 
-			// Only add the root directory as a workspace folder - main.py will be a file within it
 			const folders = [aWorkspaceFolderData(URI.file(root), 0)];
 			const ws = createExtHostWorkspace(rpcProtocol, { id: 'foo', folders: folders, name: 'Test' }, new NullLogService());
 
@@ -835,7 +810,7 @@ suite('ExtHostWorkspace', function () {
 					mainThreadCalled = true;
 					assert.strictEqual(options.disregardExcludeSettings, false);
 					assert.strictEqual(options.excludePattern?.length, 1);
-					assert.strictEqual(options.excludePattern[0].pattern, 'glob/**'); // Note that the base portion is ignored, see #52651
+					assert.strictEqual(options.excludePattern[0].pattern, 'glob/**');
 					return Promise.resolve(null);
 				}
 			});
@@ -905,7 +880,6 @@ suite('ExtHostWorkspace', function () {
 			});
 		});
 
-		// todo: add tests with multiple filePatterns and excludes
 
 	});
 
@@ -1003,7 +977,7 @@ suite('ExtHostWorkspace', function () {
 					assert.deepStrictEqual(folder, null);
 					assert.strictEqual(options.includePattern, undefined);
 					assert.strictEqual(options.excludePattern?.length, 1);
-					assert.strictEqual(options.excludePattern[0].pattern, 'glob/**'); // exclude folder is ignored...
+					assert.strictEqual(options.excludePattern[0].pattern, 'glob/**');
 					return null;
 				}
 			});
@@ -1108,7 +1082,7 @@ suite('ExtHostWorkspace', function () {
 					assert.deepStrictEqual(folder, null);
 					assert.strictEqual(options.includePattern, undefined);
 					assert.strictEqual(options.excludePattern?.length, 1);
-					assert.strictEqual(options.excludePattern[0].pattern, 'glob/**'); // exclude folder is ignored...
+					assert.strictEqual(options.excludePattern[0].pattern, 'glob/**');
 					return null;
 				}
 			});
@@ -1136,6 +1110,5 @@ suite('ExtHostWorkspace', function () {
 			assert(mainThreadCalled, 'mainThreadCalled');
 		});
 
-		// TODO: test multiple includes/excludess
 	});
 });

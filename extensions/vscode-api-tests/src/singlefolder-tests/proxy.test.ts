@@ -72,7 +72,7 @@ import assert from 'assert';
 	});
 
 	test('basic auth', async () => {
-		const url = 'https://example.com'; // Need to use non-local URL because local URLs are excepted from proxying.
+		const url = 'https://example.com';
 		const user = 'testuser';
 		const pass = 'testpassword';
 
@@ -87,7 +87,6 @@ import assert from 'assert';
 			next();
 		});
 		sf.onConnect.use(({ clientSocket }) => {
-			// Shortcircuit the request.
 			if (authEnabled) {
 				clientSocket.end('HTTP/1.1 204\r\n\r\n');
 			} else {
@@ -147,7 +146,6 @@ import assert from 'assert';
 	});
 
 	(vscode.env.remoteName ? test : test.skip)('separate local / remote proxy settings', async () => {
-		// Assumes test resolver runs with `--use-host-proxy`.
 		const localProxy = 'http://localhost:1234';
 		const remoteProxy = 'http://localhost:4321';
 
@@ -204,7 +202,6 @@ import assert from 'assert';
 	}
 });
 
-// Added 'realm'. From MIT licensed https://github.com/berstend/straightforward/blob/84a4cb88024cffce37a05870da7d9d0aba7dcca8/src/middleware/auth.ts
 
 export interface AuthOpts {
 	realm?: string;
@@ -217,12 +214,6 @@ export interface RequestAdditionsAuth {
 	locals: { proxyUser: string; proxyPass: string };
 }
 
-/**
- * Authenticate an incoming proxy request
- * Supports static `user` and `pass` or `dynamic`,
- * in which case `ctx.req.locals` will be populated with `proxyUser` and `proxyPass`
- * This middleware supports both onRequest and onConnect
- */
 export const middlewareAuth =
 	(opts: AuthOpts): Middleware<
 		RequestContext<RequestAdditionsAuth> | ConnectContext<RequestAdditionsAuth>

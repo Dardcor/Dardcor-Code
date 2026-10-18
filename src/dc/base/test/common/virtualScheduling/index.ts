@@ -3,11 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Greenfield virtual scheduling primitives.
-//
-// This folder is the new home for virtual-time scheduling. It supersedes
-// `timeTravelScheduler.ts` and `traceableTimeApi.ts`, both of which are
-// retained as @deprecated re-export shims.
 
 export type { TimeApi } from './timeApi.js';
 export { captureGlobalTimeApi, realTimeApi } from './timeApi.js';

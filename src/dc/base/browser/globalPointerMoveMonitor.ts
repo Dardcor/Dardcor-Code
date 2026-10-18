@@ -27,11 +27,9 @@ export class GlobalPointerMoveMonitor implements IDisposable {
 
 	public stopMonitoring(invokeStopCallback: boolean, browserEvent?: PointerEvent | KeyboardEvent): void {
 		if (!this.isMonitoring()) {
-			// Not monitoring
 			return;
 		}
 
-		// Unhook
 		this._hooks.clear();
 		this._pointerMoveCallback = null;
 		const onStopCallback = this._onStopCallback;
@@ -67,24 +65,9 @@ export class GlobalPointerMoveMonitor implements IDisposable {
 				try {
 					initialElement.releasePointerCapture(pointerId);
 				} catch (err) {
-					// See https://github.com/microsoft/vscode/issues/161731
-					//
-					// `releasePointerCapture` sometimes fails when being invoked with the exception:
-					//     DOMException: Failed to execute 'releasePointerCapture' on 'Element':
-					//     No active pointer with the given id is found.
-					//
-					// There's no need to do anything in case of failure
 				}
 			}));
 		} catch (err) {
-			// See https://github.com/microsoft/vscode/issues/144584
-			// See https://github.com/microsoft/vscode/issues/146947
-			// `setPointerCapture` sometimes fails when being invoked
-			// from a `mousedown` listener on macOS and Windows
-			// and it always fails on Linux with the exception:
-			//     DOMException: Failed to execute 'setPointerCapture' on 'Element':
-			//     No active pointer with the given id is found.
-			// In case of failure, we bind the listeners on the window
 			eventSource = dom.getWindow(initialElement);
 		}
 
@@ -93,7 +76,6 @@ export class GlobalPointerMoveMonitor implements IDisposable {
 			dom.EventType.POINTER_MOVE,
 			(e) => {
 				if (e.buttons !== initialButtons) {
-					// Buttons state has changed in the meantime
 					this.stopMonitoring(true);
 					return;
 				}

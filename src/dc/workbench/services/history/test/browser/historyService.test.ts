@@ -102,38 +102,32 @@ suite('HistoryService', function () {
 		const pane1 = await editorService.openEditor({ resource, options: { pinned: true } });
 		const pane2 = await editorService.openEditor({ resource, options: { pinned: true } }, SIDE_GROUP);
 
-		// [index.txt] | [>index.txt<]
 
 		assert.notStrictEqual(pane1, pane2);
 
 		await editorService.openEditor({ resource: otherResource, options: { pinned: true } }, pane2?.group);
 
-		// [index.txt] | [index.txt] [>other.html<]
 
 		await historyService.goBack();
 
-		// [index.txt] | [>index.txt<] [other.html]
 
 		assert.strictEqual(part.activeGroup.id, pane2?.group.id);
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), resource.toString());
 
 		await historyService.goBack();
 
-		// [>index.txt<] | [index.txt] [other.html]
 
 		assert.strictEqual(part.activeGroup.id, pane1?.group.id);
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), resource.toString());
 
 		await historyService.goForward();
 
-		// [index.txt] | [>index.txt<] [other.html]
 
 		assert.strictEqual(part.activeGroup.id, pane2?.group.id);
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), resource.toString());
 
 		await historyService.goForward();
 
-		// [index.txt] | [index.txt] [>other.html<]
 
 		assert.strictEqual(part.activeGroup.id, pane2?.group.id);
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), otherResource.toString());
@@ -149,8 +143,8 @@ suite('HistoryService', function () {
 		const pane = await editorService.openEditor({ resource, options: { pinned: true } }) as TestTextFileEditor;
 
 		await setTextSelection(historyService, pane, new Selection(1, 2, 1, 2));
-		await setTextSelection(historyService, pane, new Selection(15, 1, 15, 1)); // will be merged and dropped
-		await setTextSelection(historyService, pane, new Selection(16, 1, 16, 1)); // will be merged and dropped
+		await setTextSelection(historyService, pane, new Selection(15, 1, 15, 1));
+		await setTextSelection(historyService, pane, new Selection(16, 1, 16, 1));
 		await setTextSelection(historyService, pane, new Selection(17, 1, 17, 1));
 		await setTextSelection(historyService, pane, new Selection(30, 5, 30, 8));
 		await setTextSelection(historyService, pane, new Selection(40, 1, 40, 1));
@@ -177,14 +171,14 @@ suite('HistoryService', function () {
 
 		const pane = await editorService.openEditor({ resource, options: { pinned: true } }) as TestTextFileEditor;
 
-		await setTextSelection(historyService, pane, new Selection(2, 2, 2, 10)); // this is our starting point
-		await setTextSelection(historyService, pane, new Selection(5, 3, 5, 20), EditorPaneSelectionChangeReason.NAVIGATION); // this is our first target definition
-		await setTextSelection(historyService, pane, new Selection(120, 8, 120, 18), EditorPaneSelectionChangeReason.NAVIGATION); // this is our second target definition
-		await setTextSelection(historyService, pane, new Selection(300, 3, 300, 20)); // unrelated user navigation
-		await setTextSelection(historyService, pane, new Selection(500, 3, 500, 20)); // unrelated user navigation
-		await setTextSelection(historyService, pane, new Selection(200, 3, 200, 20)); // unrelated user navigation
+		await setTextSelection(historyService, pane, new Selection(2, 2, 2, 10));
+		await setTextSelection(historyService, pane, new Selection(5, 3, 5, 20), EditorPaneSelectionChangeReason.NAVIGATION);
+		await setTextSelection(historyService, pane, new Selection(120, 8, 120, 18), EditorPaneSelectionChangeReason.NAVIGATION);
+		await setTextSelection(historyService, pane, new Selection(300, 3, 300, 20));
+		await setTextSelection(historyService, pane, new Selection(500, 3, 500, 20));
+		await setTextSelection(historyService, pane, new Selection(200, 3, 200, 20));
 
-		await historyService.goBack(GoFilter.NAVIGATION); // this should reveal the last navigation entry because we are not at it currently
+		await historyService.goBack(GoFilter.NAVIGATION);
 		assertTextSelection(new Selection(120, 8, 120, 18), pane);
 
 		await historyService.goBack(GoFilter.NAVIGATION);
@@ -266,13 +260,13 @@ suite('HistoryService', function () {
 
 		await setTextSelection(historyService, pane, new Selection(2, 2, 2, 10));
 		await setTextSelection(historyService, pane, new Selection(50, 3, 50, 20), EditorPaneSelectionChangeReason.EDIT);
-		await setTextSelection(historyService, pane, new Selection(300, 3, 300, 20)); // unrelated user navigation
-		await setTextSelection(historyService, pane, new Selection(500, 3, 500, 20)); // unrelated user navigation
-		await setTextSelection(historyService, pane, new Selection(200, 3, 200, 20)); // unrelated user navigation
+		await setTextSelection(historyService, pane, new Selection(300, 3, 300, 20));
+		await setTextSelection(historyService, pane, new Selection(500, 3, 500, 20));
+		await setTextSelection(historyService, pane, new Selection(200, 3, 200, 20));
 		await setTextSelection(historyService, pane, new Selection(5, 3, 5, 20), EditorPaneSelectionChangeReason.EDIT);
-		await setTextSelection(historyService, pane, new Selection(200, 3, 200, 20)); // unrelated user navigation
+		await setTextSelection(historyService, pane, new Selection(200, 3, 200, 20));
 
-		await historyService.goBack(GoFilter.EDITS); // this should reveal the last navigation entry because we are not at it currently
+		await historyService.goBack(GoFilter.EDITS);
 		assertTextSelection(new Selection(5, 3, 5, 20), pane);
 
 		await historyService.goBack(GoFilter.EDITS);
@@ -311,21 +305,17 @@ suite('HistoryService', function () {
 		const pane1 = await editorService.openEditor({ resource: resource1, options: { pinned: true } });
 		await editorService.openEditor({ resource: resource2, options: { pinned: true } });
 
-		// [one.txt] [>two.html<]
 
 		const sideGroup = part.addGroup(part.activeGroup, GroupDirection.RIGHT);
 
-		// [one.txt] [>two.html<] | <empty>
 
 		const editorChangePromise = Event.toPromise(editorService.onDidActiveEditorChange);
 		pane1?.group.moveEditor(pane1.input!, sideGroup);
 		await editorChangePromise;
 
-		// [one.txt] | [>two.html<]
 
 		await historyService.goBack();
 
-		// [>one.txt<] | [two.html]
 
 		assert.strictEqual(part.activeGroup.id, pane1?.group.id);
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), resource1.toString());
@@ -342,17 +332,14 @@ suite('HistoryService', function () {
 		const pane1 = await editorService.openEditor({ resource: resource1, options: { pinned: true } });
 		const pane2 = await editorService.openEditor({ resource: resource2, options: { pinned: true } }, SIDE_GROUP);
 
-		// [one.txt] | [>two.html<]
 
 		assert.notStrictEqual(pane1, pane2);
 
 		await pane1?.group.closeAllEditors();
 
-		// [>two.html<]
 
 		await historyService.goBack();
 
-		// [>two.html<]
 
 		assert.strictEqual(part.activeGroup.id, pane2?.group.id);
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), resource2.toString());
@@ -376,7 +363,6 @@ suite('HistoryService', function () {
 		assert.strictEqual(stack.canGoForward(), false);
 		assert.strictEqual(stack.canGoLast(), false);
 
-		// Opening our first editor emits change event
 		stack.notifyNavigation(pane, { reason: EditorPaneSelectionChangeReason.USER });
 		assert.strictEqual(changed, true);
 		changed = false;
@@ -384,11 +370,9 @@ suite('HistoryService', function () {
 		assert.strictEqual(stack.canGoBack(), false);
 		assert.strictEqual(stack.canGoLast(), true);
 
-		// Opening same editor is not treated as new history stop
 		stack.notifyNavigation(pane, { reason: EditorPaneSelectionChangeReason.USER });
 		assert.strictEqual(stack.canGoBack(), false);
 
-		// Opening different editor allows to go back
 		await editorService.openEditor({ resource: otherResource, options: { pinned: true } });
 
 		stack.notifyNavigation(pane, { reason: EditorPaneSelectionChangeReason.USER });
@@ -440,7 +424,6 @@ suite('HistoryService', function () {
 		await editorService.openEditor({ resource: otherResource, options: { pinned: true } });
 		stack.notifyNavigation(pane);
 
-		// Clear
 		assert.strictEqual(stack.canGoBack(), true);
 		stack.clear();
 		assert.strictEqual(stack.canGoBack(), false);
@@ -450,13 +433,11 @@ suite('HistoryService', function () {
 		await editorService.openEditor({ resource: otherResource, options: { pinned: true } });
 		stack.notifyNavigation(pane);
 
-		// Remove unrelated resource does not cause any harm (via internal event)
 		await stack.goBack();
 		assert.strictEqual(stack.canGoForward(), true);
 		stack.remove(new FileOperationEvent(unrelatedResource, FileOperation.DELETE));
 		assert.strictEqual(stack.canGoForward(), true);
 
-		// Remove (via internal event)
 		await stack.goForward();
 		assert.strictEqual(stack.canGoBack(), true);
 		stack.remove(new FileOperationEvent(resource, FileOperation.DELETE));
@@ -468,7 +449,6 @@ suite('HistoryService', function () {
 		await editorService.openEditor({ resource: otherResource, options: { pinned: true } });
 		stack.notifyNavigation(pane);
 
-		// Remove (via external event)
 		assert.strictEqual(stack.canGoBack(), true);
 		stack.remove(new FileChangesEvent([{ resource, type: FileChangeType.DELETED }], !isLinux));
 		assert.strictEqual(stack.canGoBack(), false);
@@ -479,7 +459,6 @@ suite('HistoryService', function () {
 		await editorService.openEditor({ resource: otherResource, options: { pinned: true } });
 		stack.notifyNavigation(pane);
 
-		// Remove (via editor)
 		assert.strictEqual(stack.canGoBack(), true);
 		stack.remove(pane!.input!);
 		assert.strictEqual(stack.canGoBack(), false);
@@ -490,7 +469,6 @@ suite('HistoryService', function () {
 		await editorService.openEditor({ resource: otherResource, options: { pinned: true } });
 		stack.notifyNavigation(pane);
 
-		// Remove (via group)
 		assert.strictEqual(stack.canGoBack(), true);
 		stack.remove(pane!.group!.id);
 		assert.strictEqual(stack.canGoBack(), false);
@@ -501,7 +479,6 @@ suite('HistoryService', function () {
 		await editorService.openEditor({ resource: otherResource, options: { pinned: true } });
 		stack.notifyNavigation(pane);
 
-		// Move
 		const stat = {
 			ctime: 0,
 			etag: '',
@@ -535,17 +512,14 @@ suite('HistoryService', function () {
 		await editorService.openEditor({ resource: resource2, options: { pinned: true } });
 		await editorService.openEditor({ resource: resource3, options: { pinned: true } });
 
-		// [one.txt] [two.html] [>three.html<]
 
 		const sideGroup = part.addGroup(part.activeGroup, GroupDirection.RIGHT);
 
-		// [one.txt] [two.html] [>three.html<] | <empty>
 
 		const pane2 = await editorService.openEditor({ resource: resource1, options: { pinned: true } }, sideGroup);
 		await editorService.openEditor({ resource: resource2, options: { pinned: true } });
 		await editorService.openEditor({ resource: resource3, options: { pinned: true } });
 
-		// [one.txt] [two.html] [>three.html<] | [one.txt] [two.html] [>three.html<]
 
 		await historyService.goBack();
 		await historyService.goBack();
@@ -554,7 +528,6 @@ suite('HistoryService', function () {
 		assert.strictEqual(part.activeGroup.id, pane2?.group.id);
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), resource1.toString());
 
-		// [one.txt] [two.html] [>three.html<] | [>one.txt<] [two.html] [three.html]
 
 		await editorService.openEditor({ resource: resource3, options: { pinned: true } }, pane1?.group);
 
@@ -587,7 +560,7 @@ suite('HistoryService', function () {
 		assertTextSelection(new Selection(12, 2, 12, 10), pane);
 
 		await historyService.goBack();
-		assertTextSelection(new Selection(12, 2, 12, 10), pane); // no change
+		assertTextSelection(new Selection(12, 2, 12, 10), pane);
 
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), resource2.toString());
 
@@ -597,7 +570,7 @@ suite('HistoryService', function () {
 		assertTextSelection(new Selection(2, 2, 2, 10), pane);
 
 		await historyService.goBack();
-		assertTextSelection(new Selection(2, 2, 2, 10), pane); // no change
+		assertTextSelection(new Selection(2, 2, 2, 10), pane);
 
 		assert.strictEqual(part.activeGroup.activeEditor?.resource?.toString(), resource1.toString());
 
@@ -614,7 +587,7 @@ suite('HistoryService', function () {
 
 		const model = await textFileService.files.resolve(resource) as IResolvedTextFileEditorModel;
 		model.textEditorModel.setValue('Hello World');
-		await timeout(10); // history debounces change events
+		await timeout(10);
 
 		await editorService.openEditor({ resource: otherResource });
 
@@ -665,7 +638,6 @@ suite('HistoryService', function () {
 
 		assert.strictEqual(part.activeGroup.count, 3);
 
-		// Bulk close: all editors closed together should reopen together
 		await part.activeGroup.closeAllEditors();
 		assert.strictEqual(part.activeGroup.count, 0);
 
@@ -712,10 +684,8 @@ suite('HistoryService', function () {
 		history = historyService.getHistory();
 		assert.strictEqual(history.length, 4);
 
-		// first entry is untyped because it implements `toUntyped` and has a supported scheme
 		assert.strictEqual(isResourceEditorInput(history[0]) && !(history[0] instanceof EditorInput), true);
 		assert.strictEqual((history[0] as IResourceEditorInput).options?.override, 'testOverride');
-		// second entry is not untyped even though it implements `toUntyped` but has unsupported scheme
 		assert.strictEqual(history[1] instanceof EditorInput, true);
 		assert.strictEqual(history[2] instanceof EditorInput, true);
 		assert.strictEqual(history[3] instanceof EditorInput, true);
@@ -725,11 +695,10 @@ suite('HistoryService', function () {
 		assert.strictEqual(history.length, 3);
 		assert.strictEqual(history[0].resource?.toString(), input4.resource.toString());
 
-		input1.dispose(); // disposing the editor will apply `search.exclude` rules
+		input1.dispose();
 		history = historyService.getHistory();
 		assert.strictEqual(history.length, 2);
 
-		// side by side
 		const input5 = disposables.add(new TestFileEditorInputWithUntyped(URI.parse('file://bar5'), TEST_EDITOR_INPUT_ID));
 		const input6 = disposables.add(new TestFileEditorInputWithUntyped(URI.file('file://bar1/node_modules/test.txt'), TEST_EDITOR_INPUT_ID));
 		const input7 = new SideBySideEditorInput(undefined, undefined, input6, input5, editorService);
@@ -740,7 +709,7 @@ suite('HistoryService', function () {
 		input7.dispose();
 
 		history = historyService.getHistory();
-		assert.strictEqual(history.length, 3); // only input5 survived, input6 is excluded via search.exclude
+		assert.strictEqual(history.length, 3);
 
 		return workbenchTeardown(instantiationService);
 	});
@@ -899,7 +868,6 @@ suite('HistoryService', function () {
 		await part.activeGroup.openEditor(input5, { pinned: true });
 		assert.strictEqual(part.activeGroup.activeEditor, input5);
 
-		// stack should be [input1, input4, input5]
 		await historyService.goBack();
 		assert.strictEqual(part.activeGroup.activeEditor, input4);
 		await historyService.goBack();

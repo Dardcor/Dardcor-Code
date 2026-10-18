@@ -14,7 +14,7 @@ suite('DomActivityTracker', () => {
 	let uas: UserActivityService;
 	let insta: TestInstantiationService;
 	let clock: sinon.SinonFakeTimers;
-	const maxTimeToBecomeIdle = 3 * 30_000; // (MIN_INTERVALS_WITHOUT_ACTIVITY + 1) * CHECK_INTERVAL;
+	const maxTimeToBecomeIdle = 3 * 30_000;
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	setup(() => {

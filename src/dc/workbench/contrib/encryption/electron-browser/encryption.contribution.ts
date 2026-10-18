@@ -23,11 +23,6 @@ class EncryptionContribution implements IWorkbenchContribution {
 		this.migrateToGnomeLibsecret();
 	}
 
-	/**
-	 * Migrate the user from using the gnome or gnome-keyring password-store to gnome-libsecret.
-	 * TODO@TylerLeonhardt: This migration can be removed in 3 months or so and then storage
-	 * can be cleaned up.
-	 */
 	private async migrateToGnomeLibsecret(): Promise<void> {
 		if (!isLinux || this.storageService.getBoolean('encryption.migratedToGnomeLibsecret', StorageScope.APPLICATION, false)) {
 			return;

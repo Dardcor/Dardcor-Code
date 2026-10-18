@@ -37,14 +37,7 @@ export interface IEnvService {
 	readonly machineId: string;
 	readonly devDeviceId: string;
 	readonly vscodeVersion: string;
-	/**
-	 * Whether the current session is considered active
-	 * @see vscode.window.state.active
-	 */
 	readonly isActive: boolean;
-	/**
-	 * @see vscode.env.remoteName
-	 */
 	readonly remoteName: string | undefined;
 	readonly uiKind: 'desktop' | 'web';
 	readonly OS: OperatingSystem;
@@ -52,9 +45,6 @@ export interface IEnvService {
 	readonly extensionId: string;
 	readonly appRoot: string;
 	readonly shell: string;
-	/**
-	 * @see vscode.window.onDidChangeWindowState
-	 */
 	readonly onDidChangeWindowState: Event<WindowState>;
 	isProduction(): boolean;
 	isPreRelease(): boolean;
@@ -92,9 +82,6 @@ export abstract class AbstractEnvService implements IEnvService {
 	abstract get isActive(): boolean;
 	abstract get onDidChangeWindowState(): Event<WindowState>;
 
-	/**
-	 * @returns true if this is a build for end users.
-	 */
 	isProduction(): boolean {
 		return isProduction;
 	}
@@ -123,29 +110,13 @@ export abstract class AbstractEnvService implements IEnvService {
 		return packageJson.name;
 	}
 
-	/**
-	 * The name and version of the editor itself.
-	 * `{ name : 'vscode', version: '1.63.2' }`.
-	 */
 	abstract getEditorInfo(): NameAndVersion;
 
-	/**
-	 * The name and version of the Copilot chat plugin.
-	 * or `{ name: 'dardcor-chat', version: '1.7.21' }`.
-	 */
 	abstract getEditorPluginInfo(): NameAndVersion;
 
 	abstract openExternal(target: URI): Promise<boolean>;
 }
 
-/**
- * Builds the editor-related request headers (`Editor-Version` and `Editor-Plugin-Version`)
- * that identify the host editor and the Copilot plugin to the backend.
- *
- * Implemented as a free function taking any {@link IEnvService} so that it works for every
- * environment (VS Code, the standalone chat-lib/CLI host, tests) - including implementations
- * that do not extend {@link AbstractEnvService}.
- */
 export function getEditorVersionHeaders(envService: IEnvService): { [key: string]: string } {
 	return {
 		'Editor-Version': envService.getEditorInfo().format(),
@@ -153,6 +124,4 @@ export function getEditorVersionHeaders(envService: IEnvService): { [key: string
 	};
 }
 
-// FIXME: This needs to be used in locations where the EnvService is not yet available, so it's
-//        not part of the env service itself.
 export const isScenarioAutomation = env['IS_SCENARIO_AUTOMATION'] === '1';

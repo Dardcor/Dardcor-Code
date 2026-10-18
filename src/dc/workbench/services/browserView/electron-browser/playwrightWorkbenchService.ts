@@ -14,10 +14,6 @@ class PlaywrightChannelClient {
 		channel: IChannel,
 		@ILogService logService: ILogService
 	) {
-		/**
-		 * send the current window's ID once via `__initialize`, so the server-side {@link PlaywrightChannel}
-		 * can create a per-window {@link PlaywrightWindowInstance}. All subsequent calls and events are proxied directly.
-		 */
 		void channel.call('__initialize', mainWindow.vscodeWindowId).catch((e) => {
 			logService.error(`Failed to initialize Playwright service`, e);
 		});

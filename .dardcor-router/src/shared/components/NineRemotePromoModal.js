@@ -33,7 +33,7 @@ export default function NineRemotePromoModal({ isOpen, onClose }) {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] fade-in" onClick={onClose} />
 
       <div className="relative w-full max-w-sm rounded-[14px] overflow-hidden shadow-[var(--shadow-elev)] fade-in flex flex-col bg-surface border border-border-subtle">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border-subtle">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-[8px] flex items-center justify-center bg-primary">
@@ -49,9 +49,9 @@ export default function NineRemotePromoModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Body */}
+        {}
         <div className="px-7 py-7 pb-9 flex flex-col gap-6">
-          {/* Hero */}
+          {}
           <div className="flex flex-col items-center gap-2 text-center mt-2">
             <div className="w-14 h-14 rounded-[14px] flex items-center justify-center mb-1 bg-primary shadow-[var(--shadow-warm)]">
               <span className="material-symbols-outlined text-white text-[30px]">terminal</span>
@@ -62,7 +62,7 @@ export default function NineRemotePromoModal({ isOpen, onClose }) {
             </p>
           </div>
 
-          {/* Feature cards */}
+          {}
           <div className="flex gap-2 w-full">
             {FEATURES.map(({ icon, label, desc }) => (
               <div key={label} className="flex-1 flex flex-col items-center gap-1.5 py-4 px-1 rounded-[10px] border border-border-subtle bg-surface-2">
@@ -73,7 +73,7 @@ export default function NineRemotePromoModal({ isOpen, onClose }) {
             ))}
           </div>
 
-          {/* Bullets */}
+          {}
           <div className="flex flex-col gap-3 w-full">
             {BULLETS.map(({ icon, text }) => (
               <div key={icon} className="flex items-center gap-2.5">
@@ -83,7 +83,7 @@ export default function NineRemotePromoModal({ isOpen, onClose }) {
             ))}
           </div>
 
-          {/* CTA */}
+          {}
           <button
             onClick={() => window.open(NINE_REMOTE_URL, "_blank")}
             className="w-full py-3 flex items-center justify-center gap-2 text-sm font-semibold text-white rounded-[10px] bg-primary hover:bg-primary-hover shadow-[var(--shadow-warm)] active:scale-[0.98] transition-all"

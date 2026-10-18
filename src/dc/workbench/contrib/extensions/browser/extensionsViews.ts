@@ -115,7 +115,7 @@ export abstract class AbstractExtensionsListView<T> extends ViewPane {
 
 export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 
-	private static RECENT_UPDATE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+	private static RECENT_UPDATE_DURATION = 7 * 24 * 60 * 60 * 1000;
 
 	private bodyTemplate: {
 		messageContainer: HTMLElement;
@@ -582,9 +582,8 @@ export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 	}
 
 	private filterWorkspaceUnsupportedExtensions(local: IExtension[], query: Query, options: IQueryOptions): IExtension[] {
-		// shows local extensions which are restricted or disabled in the current workspace because of the extension's capability
 
-		const queryString = query.value; // @sortby is already filtered out
+		const queryString = query.value;
 
 		const match = queryString.match(/^\s*@workspaceUnsupported(?::(untrusted|virtual)(Partial)?)?(?:\s+([^\s]*))?/i);
 		if (!match) {
@@ -629,13 +628,10 @@ export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 		const inRestrictedWorkspace = !this.workspaceTrustManagementService.isWorkspaceTrusted();
 
 		if (type === 'virtual') {
-			// show limited and disabled extensions unless disabled because of a untrusted workspace
 			local = local.filter(extension => inVirtualWorkspace && hasVirtualSupportType(extension, partial ? 'limited' : false) && !(inRestrictedWorkspace && hasRestrictedSupportType(extension, false)));
 		} else if (type === 'untrusted') {
-			// show limited and disabled extensions unless disabled because of a virtual workspace
 			local = local.filter(extension => hasRestrictedSupportType(extension, partial ? 'limited' : false) && !(inVirtualWorkspace && hasVirtualSupportType(extension, false)));
 		} else {
-			// show extensions that are restricted or disabled in the current workspace
 			local = local.filter(extension => inVirtualWorkspace && !hasVirtualSupportType(extension, true) || inRestrictedWorkspace && !hasRestrictedSupportType(extension, true));
 		}
 		return this.sortExtensions(local, options);
@@ -800,7 +796,6 @@ export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 		const preferredExtensionUUIDs = new Set<string>();
 
 		if (preferredExtensions.length) {
-			// Update gallery data for preferred extensions if they are not yet fetched
 			const extesionsToFetch: IExtensionIdentifier[] = [];
 			for (const extension of preferredExtensions) {
 				if (extension.identifier.uuid) {
@@ -811,7 +806,7 @@ export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 				}
 			}
 			if (extesionsToFetch.length) {
-				this.extensionsWorkbenchService.getExtensions(extesionsToFetch, CancellationToken.None).catch(e => null/*ignore error*/);
+				this.extensionsWorkbenchService.getExtensions(extesionsToFetch, CancellationToken.None).catch(e => null);
 			}
 		}
 
@@ -878,43 +873,35 @@ export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 	}
 
 	private async queryRecommendations(query: Query, options: IQueryOptions, token: CancellationToken): Promise<IPagedModel<IExtension>> {
-		// Workspace recommendations
 		if (ExtensionsListView.isWorkspaceRecommendedExtensionsQuery(query.value)) {
 			return this.getWorkspaceRecommendationsModel(query, options, token);
 		}
 
-		// Keymap recommendations
 		if (ExtensionsListView.isKeymapsRecommendedExtensionsQuery(query.value)) {
 			return this.getKeymapRecommendationsModel(query, options, token);
 		}
 
-		// Language recommendations
 		if (ExtensionsListView.isLanguageRecommendedExtensionsQuery(query.value)) {
 			return this.getLanguageRecommendationsModel(query, options, token);
 		}
 
-		// Exe recommendations
 		if (ExtensionsListView.isExeRecommendedExtensionsQuery(query.value)) {
 			return this.getExeRecommendationsModel(query, options, token);
 		}
 
-		// Remote recommendations
 		if (ExtensionsListView.isRemoteRecommendedExtensionsQuery(query.value)) {
 			return this.getRemoteRecommendationsModel(query, options, token);
 		}
 
-		// All recommendations
 		if (/@recommended:all/i.test(query.value)) {
 			return this.getAllRecommendationsModel(options, token);
 		}
 
-		// Search recommendations
 		if (ExtensionsListView.isSearchRecommendedExtensionsQuery(query.value) ||
 			(ExtensionsListView.isRecommendedExtensionsQuery(query.value) && options.sortBy !== undefined)) {
 			return this.searchRecommendations(query, options, token);
 		}
 
-		// Other recommendations
 		if (ExtensionsListView.isRecommendedExtensionsQuery(query.value)) {
 			return this.getOtherRecommendationsModel(query, options, token);
 		}
@@ -1024,7 +1011,6 @@ export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 
 		return distinct(
 			(await Promise.all([
-				// Order is important
 				this.extensionRecommendationsService.getImportantRecommendations(),
 				this.extensionRecommendationsService.getFileBasedRecommendations(),
 				this.extensionRecommendationsService.getOtherRecommendations()
@@ -1032,14 +1018,12 @@ export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 			), extensionId => extensionId.toLowerCase());
 	}
 
-	// Get All types of recommendations, trimmed to show a max of 8 at any given time
 	private async getAllRecommendationsModel(options: IQueryOptions, token: CancellationToken): Promise<IPagedModel<IExtension>> {
 		const localExtensions = await this.extensionsWorkbenchService.queryLocal(this.options.server);
 		const localExtensionIds = localExtensions.map(e => e.identifier.id.toLowerCase());
 
 		const allRecommendations = distinct(
 			(await Promise.all([
-				// Order is important
 				this.getWorkspaceRecommendations(),
 				this.extensionRecommendationsService.getImportantRecommendations(),
 				this.extensionRecommendationsService.getFileBasedRecommendations(),
@@ -1493,7 +1477,6 @@ export class DefaultRecommendedExtensionsView extends ExtensionsListView {
 		}
 		const model = await super.show(this.recommendedExtensionsQuery);
 		if (!this.extensionsWorkbenchService.local.some(e => !e.isBuiltin)) {
-			// This is part of popular extensions view. Collapse if no installed extensions.
 			this.setExpanded(model.length > 0);
 		}
 		return model;
@@ -1536,7 +1519,7 @@ export class WorkspaceRecommendedExtensionsView extends ExtensionsListView imple
 
 	private async getInstallableWorkspaceRecommendations(): Promise<IExtension[]> {
 		const installed = (await this.extensionsWorkbenchService.queryLocal())
-			.filter(l => l.enablementState !== EnablementState.DisabledByExtensionKind); // Filter extensions disabled by kind
+			.filter(l => l.enablementState !== EnablementState.DisabledByExtensionKind);
 		const recommendations = (await this.getWorkspaceRecommendations())
 			.filter(recommendation => installed.every(local => isString(recommendation) ? !areSameExtensions({ id: recommendation }, local.identifier) : !this.uriIdentityService.extUri.isEqual(recommendation, local.local?.location)));
 		return this.getInstallableRecommendations(recommendations, { source: 'install-all-workspace-recommendations' }, CancellationToken.None);
@@ -1599,7 +1582,6 @@ export class PreferredExtensionsPagedModel implements IPagedModel<IExtension> {
 			}
 		}
 
-		// expected that all preferred gallery extensions will be part of the query results
 		this.length = (preferredExtensions.length - this.preferredGalleryExtensions.size) + this.pager.total;
 
 		const totalPages = Math.ceil(this.pager.total / this.pager.pageSize);
@@ -1630,7 +1612,6 @@ export class PreferredExtensionsPagedModel implements IPagedModel<IExtension> {
 
 		const indexInPagedModel = index - this.preferredExtensions.length + this.resolvedGalleryExtensionsFromQuery.length;
 		const pageIndex = Math.floor(indexInPagedModel / this.pager.pageSize);
-		// pages array excludes page 0 (pre-resolved via firstPage), so adjust index
 		const page = this.pages[pageIndex - 1];
 
 		if (!page.promise) {
@@ -1674,10 +1655,6 @@ export class PreferredExtensionsPagedModel implements IPagedModel<IExtension> {
 				this.resolved.set(this.preferredExtensions.length - this.resolvedGalleryExtensionsFromQuery.length + pageStartIndex + i, e);
 			}
 		}
-		// If this page has preferred gallery extensions, then adjust the index of the next pages
-		// by the number of preferred gallery extensions found in this page. Because these preferred extensions
-		// are already in the resolved list and since we did not add them now, we need to adjust the indices of the next pages.
-		// Skip first page as the preferred extensions are always in the first page
 		if (pageIndex !== 0 && adjustIndexOfNextPagesBy) {
 			const nextPageStartIndex = (pageIndex + 1) * this.pager.pageSize;
 			const indices = [...this.resolved.keys()].sort((a, b) => a - b);

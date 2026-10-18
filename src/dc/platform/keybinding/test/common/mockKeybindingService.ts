@@ -41,7 +41,6 @@ export class MockContextKeyService implements IContextKeyService {
 	private _keys = new Map<string, IContextKey<any>>();
 
 	public dispose(): void {
-		//
 	}
 	public createKey<T extends ContextKeyValue = ContextKeyValue>(key: string, defaultValue: T | undefined): IContextKey<T> {
 		const ret = new MockKeybindingContextKey(defaultValue);
@@ -71,14 +70,10 @@ export class MockContextKeyService implements IContextKeyService {
 		return this;
 	}
 	updateParent(_parentContextKeyService: IContextKeyService): void {
-		// no-op
 	}
 }
 
 export class MockScopableContextKeyService extends MockContextKeyService {
-	/**
-	 * Don't implement this for all tests since we rarely depend on this behavior and it isn't implemented fully
-	 */
 	public override createScoped(domNote: HTMLElement): IScopedContextKeyService {
 		return new MockScopableContextKeyService();
 	}

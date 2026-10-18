@@ -9,10 +9,6 @@ import { TelemetryLevel } from '../../../../platform/telemetry/common/telemetry.
 import { getTelemetryLevel } from '../../../../platform/telemetry/common/telemetryUtils.js';
 import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
 
-/**
- * Determines if experiment properties will be set on telemetry events.
- * When true, TelemetryService should buffer events until setExperimentProperty is called.
- */
 export function experimentsEnabled(
 	configurationService: IConfigurationService,
 	productService: IProductService,

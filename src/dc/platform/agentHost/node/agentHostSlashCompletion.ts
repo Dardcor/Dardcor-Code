@@ -5,27 +5,15 @@
 
 import { matchesFuzzy2 } from '../../../base/common/filters.js';
 
-/**
- * A leading slash token in a user-message input.
- */
 export interface ILeadingSlashToken {
-	/** The token including the leading slash. */
 	readonly token: string;
-	/** The typed token text after the slash. */
 	readonly typed: string;
-	/** The start offset of the token range to replace. */
 	readonly rangeStart: number;
-	/** The end offset of the token range to replace. */
 	readonly rangeEnd: number;
 }
 
-/**
- * Extracts the leading `/word` token from the input, where the token is the
- * run of non-whitespace characters starting at offset 0. Returns `undefined`
- * if the input does not start with `/` or the cursor is past the token.
- */
 export function extractLeadingSlashToken(text: string, offset: number): ILeadingSlashToken | undefined {
-	if (text.length === 0 || text.charCodeAt(0) !== 0x2f /* / */) {
+	if (text.length === 0 || text.charCodeAt(0) !== 0x2f ) {
 		return undefined;
 	}
 	let end = 1;
@@ -42,10 +30,6 @@ export function extractLeadingSlashToken(text: string, offset: number): ILeading
 	return { token, typed: token.slice(1), rangeStart: 0, rangeEnd: end };
 }
 
-/**
- * Extracts the slash token containing the cursor when the slash is either at
- * the start of the input or immediately follows whitespace.
- */
 export function extractWhitespaceDelimitedSlashToken(text: string, offset: number): ILeadingSlashToken | undefined {
 	if (text.length === 0 || offset < 0 || offset > text.length) {
 		return undefined;
@@ -55,7 +39,7 @@ export function extractWhitespaceDelimitedSlashToken(text: string, offset: numbe
 	while (start > 0 && !isSlashTokenWhitespace(text.charCodeAt(start - 1))) {
 		start--;
 	}
-	if (start >= text.length || text.charCodeAt(start) !== 0x2f /* / */) {
+	if (start >= text.length || text.charCodeAt(start) !== 0x2f ) {
 		return undefined;
 	}
 
@@ -71,9 +55,6 @@ export function extractWhitespaceDelimitedSlashToken(text: string, offset: numbe
 	return { token, typed: token.slice(1), rangeStart: start, rangeEnd: end };
 }
 
-/**
- * Tests whether a slash completion name fuzzy matches the typed token text.
- */
 export function matchesSlashCompletion(typed: string, name: string): boolean {
 	if (typed.length === 0 || name.toLowerCase().startsWith(typed.toLowerCase())) {
 		return true;
@@ -82,5 +63,5 @@ export function matchesSlashCompletion(typed: string, name: string): boolean {
 }
 
 function isSlashTokenWhitespace(ch: number): boolean {
-	return ch === 0x20 /* space */ || ch === 0x09 /* tab */ || ch === 0x0a /* \n */ || ch === 0x0d /* \r */;
+	return ch === 0x20 || ch === 0x09 || ch === 0x0a || ch === 0x0d ;
 }

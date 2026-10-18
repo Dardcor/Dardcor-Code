@@ -17,7 +17,6 @@ suite('PromptTimelineGutterRail', () => {
 		return { requestId, allRequestIds: [requestId], text: requestId, timestamp: index, count: 1, ariaLabel: requestId, stat };
 	}
 
-	/** Mounts a rail with `ticks` in the document, so focus and keyboard navigation behave for real. */
 	function createRail(ticks: readonly PromptTick[]): PromptTimelineGutterRail {
 		const rail = store.add(new PromptTimelineGutterRail());
 		document.body.appendChild(rail.domNode);
@@ -58,12 +57,10 @@ suite('PromptTimelineGutterRail', () => {
 
 		assert.deepStrictEqual({ rowHover, dotHover }, {
 			rowHover: {
-				// The pointer is on the row, so its own half lights up instead. The dot still pairs.
 				rows: [false, false, false],
 				dots: [false, true, false],
 			},
 			dotHover: {
-				// The pointer is over on the dot column, so the row itself highlights to point it out.
 				rows: [false, false, true],
 				dots: [false, false, true],
 			},
@@ -104,7 +101,6 @@ suite('PromptTimelineGutterRail', () => {
 			selected,
 			reviewed,
 		}, {
-			// Only the prompt that edited files offers the review target.
 			reviewable: [false, true],
 			selected: ['1'],
 			reviewed: ['1'],
@@ -113,12 +109,10 @@ suite('PromptTimelineGutterRail', () => {
 
 	test('moves between rows with Up/Down and between a row\'s targets with Left/Right', () => {
 		const stat = { added: 1, removed: 0, fileCount: 1 };
-		// Row 1 has no changes, so it has no review target to land on.
 		const rail = createRail([tick(0, stat), tick(1), tick(2, stat)]);
 		const rows = rowParts(rail);
 		const list = rail.domNode.querySelector<HTMLElement>('.prompt-timeline-gutter-panel')!;
 
-		/** Where focus sits, as `row:column`. */
 		const focus = () => {
 			const index = rows.findIndex(r => r.jump === document.activeElement || r.diff === document.activeElement);
 			return index < 0 ? 'none' : `${index}:${rows[index].diff === document.activeElement ? 'diff' : 'jump'}`;
@@ -127,8 +121,8 @@ suite('PromptTimelineGutterRail', () => {
 		rows[0].jump.focus();
 		const path = [focus()];
 		keydown(list, 'ArrowRight', 39); path.push(focus());
-		keydown(list, 'ArrowDown', 40); path.push(focus());  // row 1 has no diff: falls back to the label
-		keydown(list, 'ArrowDown', 40); path.push(focus());  // row 2 has one: Down keeps the label column
+		keydown(list, 'ArrowDown', 40); path.push(focus());
+		keydown(list, 'ArrowDown', 40); path.push(focus());
 		keydown(list, 'ArrowRight', 39); path.push(focus());
 		keydown(list, 'ArrowLeft', 37); path.push(focus());
 		keydown(list, 'Home', 36); path.push(focus());
@@ -136,7 +130,6 @@ suite('PromptTimelineGutterRail', () => {
 
 		assert.deepStrictEqual({
 			path,
-			// Exactly one target across the whole flyout stays tabbable, so it is a single Tab stop.
 			tabbable: rows.flatMap(r => [r.jump, r.diff]).filter(b => b.tabIndex === 0).length,
 		}, {
 			path: ['0:jump', '0:diff', '1:jump', '2:jump', '2:diff', '2:jump', '0:jump', '2:jump'],
@@ -150,7 +143,6 @@ suite('PromptTimelineGutterRail', () => {
 		const rows = rowParts(rail);
 		rows[0].diff.focus();
 
-		// The prompt's edits net back to zero mid-stream, so its review target goes away under focus.
 		rail.setTicks([tick(0)]);
 
 		assert.deepStrictEqual({
@@ -205,12 +197,10 @@ suite('PromptTimelineGutterRail', () => {
 suite('restDotCount', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** Height (px) the drawn column needs: dots (4px) separated by gaps (4px), plus the handle's 8px padding and, when sampled, the 8px marker and its gap. */
 	function drawnHeight(dots: number, sampled: boolean): number {
 		return 16 + dots * 4 + (dots - 1) * 4 + (sampled ? 12 : 0);
 	}
 
-	/** The column must fit the rail with the 12px-per-edge clearance the handle keeps from the transcript. */
 	function fits(dots: number, railHeight: number, sampled = true): boolean {
 		return drawnHeight(dots, sampled) <= railHeight - 24;
 	}
@@ -232,20 +222,15 @@ suite('restDotCount', () => {
 			fits: counts.map((dots, i) => fits(dots, [200, 120, 60][i])),
 		}, {
 			counts: [19, 9, 2],
-			// A rail too short for even the two-dot minimum is degenerate; the handle clips there (CSS).
 			fits: [true, true, false],
 		});
 	});
 
 	test('reserves room for the marker when the fixed cap forces sampling', () => {
-		// 51 prompts in a 444px rail: all 51 dots would fit on their own, but MAX_REST_DOTS caps them at
-		// 50, which makes the trailing marker appear — and 50 dots plus it need 424px of the 420px CSS
-		// allows. The count must drop to leave the marker room.
 		const dots = restDotCount(51, 444);
 		assert.deepStrictEqual({
 			dots,
 			fits: fits(dots, 444),
-			// A rail with room for all 50 plus the marker still draws all 50.
 			roomy: restDotCount(51, 448),
 		}, {
 			dots: 49,

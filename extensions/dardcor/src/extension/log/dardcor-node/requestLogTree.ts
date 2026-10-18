@@ -28,10 +28,6 @@ const showHtmlCommand = 'vscode.dardcor.chat.showRequestHtmlItem';
 const exportLogItemCommand = 'github.dardcor.chat.debug.exportLogItem';
 const exportPromptArchiveCommand = 'github.dardcor.chat.debug.exportPromptArchive';
 
-/**
- * Serialize MCP server definitions to a JSON-safe format.
- * Excludes sensitive headers like Authorization.
- */
 function tokenTotal(usage: APIUsage): number {
 	return usage.total_tokens ?? (usage.prompt_tokens + usage.completion_tokens);
 }
@@ -92,13 +88,12 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				if (child instanceof ChatRequestItem || child instanceof ToolCallItem || child instanceof ChatElementItem) {
 					return child.info;
 				}
-				return undefined; // Skip non-loggable items
+				return undefined;
 			}).filter(isDefined);
 
 			return logEntries;
 		};
 
-		// Helper method to process log entries for a single prompt using shared export function
 		const preparePromptLogsAsJson = async (treeItem: ChatPromptItem): Promise<ExportedPrompt | undefined> => {
 			const logEntries = getExportableLogEntries(treeItem);
 
@@ -133,7 +128,6 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 			let logEntry: LoggedInfo;
 
 			if (treeItem instanceof ChatPromptItem) {
-				// ChatPromptItem doesn't represent a single log entry
 				vscode.window.showWarningMessage('Cannot export chat prompt item. Please select a specific request, tool call, or element.');
 				return;
 			} else if (treeItem instanceof ChatRequestItem || treeItem instanceof ToolCallItem || treeItem instanceof ChatElementItem) {
@@ -143,13 +137,11 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				return;
 			}
 
-			// Check if this entry type supports markdown export
 			if (logEntry.kind === LoggedInfoKind.Element) {
 				vscode.window.showWarningMessage('Element entries cannot be exported as markdown. They contain HTML content that can be viewed in the browser.');
 				return;
 			}
 
-			// Generate a default filename based on the entry type and id
 			let defaultFilename: string;
 			switch (logEntry.kind) {
 				case LoggedInfoKind.Request: {
@@ -170,7 +162,6 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				return;
 			}
 
-			// Show save dialog
 			const saveUri = await vscode.window.showSaveDialog({
 				defaultUri: vscode.Uri.file(path.join(os.homedir(), defaultFilename)),
 				filters: {
@@ -182,19 +173,16 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 			});
 
 			if (!saveUri) {
-				return; // User cancelled
+				return;
 			}
 
 			try {
-				// Get the content using the virtual document URI
 				const virtualUri = vscode.Uri.parse(ChatRequestScheme.buildUri({ kind: 'request', id: logEntry.id }));
 				const document = await vscode.workspace.openTextDocument(virtualUri);
 				const content = document.getText();
 
-				// Write to the selected file
 				await vscode.workspace.fs.writeFile(saveUri, Buffer.from(content, 'utf8'));
 
-				// Show success message with option to open the file
 				const openAction = 'Open File';
 				const result = await vscode.window.showInformationMessage(
 					`Successfully exported to ${saveUri.fsPath}`,
@@ -209,22 +197,18 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 			}
 		}));
 
-		// Save the currently opened chat log (ccreq:*.dardcormd) to a file
 		this._register(vscode.commands.registerCommand(saveCurrentMarkdownCommand, async (...args: any[]) => {
-			// Accept resource from menu invocation (editor/title passes the resource)
 			let resource: vscode.Uri | undefined;
 			const first = args?.[0];
 			if (first instanceof vscode.Uri) {
 				resource = first;
 			} else if (first && typeof first === 'object') {
-				// Some menu invocations pass { resource: Uri }
 				const candidate = (first as { resource?: vscode.Uri }).resource;
 				if (candidate instanceof vscode.Uri) {
 					resource = candidate;
 				}
 			}
 
-			// Fallback to the active editor's document
 			resource ??= vscode.window.activeTextEditor?.document.uri;
 			if (!resource) {
 				vscode.window.showWarningMessage('No document is active to save.');
@@ -236,7 +220,6 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				return;
 			}
 
-			// Determine a default filename from the virtual URI
 			const parseResult = ChatRequestScheme.parseUri(resource.toString());
 			const defaultBase = parseResult && parseResult.data.kind === 'request' ? parseResult.data.id : 'latestrequest';
 			const defaultFilename = `${defaultBase}.md`;
@@ -252,11 +235,10 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 			});
 
 			if (!saveUri) {
-				return; // User cancelled
+				return;
 			}
 
 			try {
-				// Read the text from the virtual document URI explicitly
 				const doc = await vscode.workspace.openTextDocument(resource);
 				await vscode.workspace.fs.writeFile(saveUri, Buffer.from(doc.getText(), 'utf8'));
 
@@ -282,11 +264,9 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				return;
 			}
 
-			// Generate a default filename based on the prompt
 			const promptText = treeItem.token.label.replace(/\W/g, '_').substring(0, 50);
 			const defaultFilename = `${promptText}_exports.tar.gz`;
 
-			// Show save dialog
 			const saveUri = await vscode.window.showSaveDialog({
 				defaultUri: vscode.Uri.file(path.join(os.homedir(), defaultFilename)),
 				filters: {
@@ -297,19 +277,16 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 			});
 
 			if (!saveUri) {
-				return; // User cancelled
+				return;
 			}
 
 			try {
-				// Create temporary directory for files
 				const tempDir = path.join(os.tmpdir(), `vscode-dardcor-export-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`);
 				await vscode.workspace.fs.createDirectory(vscode.Uri.file(tempDir));
 
 				const filesToArchive: string[] = [];
 
-				// Export each child to a temporary file
 				for (const logEntry of logEntries) {
-					// Generate filename for this entry
 					let filename: string;
 					switch (logEntry.kind) {
 						case LoggedInfoKind.Request: {
@@ -328,7 +305,6 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 							continue;
 					}
 
-					// Get the content and write to temporary file
 					const virtualUri = vscode.Uri.parse(ChatRequestScheme.buildUri({ kind: 'request', id: logEntry.id }));
 					const document = await vscode.workspace.openTextDocument(virtualUri);
 					const content = document.getText();
@@ -339,7 +315,6 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				}
 
 				if (filesToArchive.length > 0) {
-					// Create tar.gz archive
 					await tar.create(
 						{
 							gzip: true,
@@ -349,13 +324,11 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 						filesToArchive.map(f => path.basename(f))
 					);
 
-					// Clean up temporary files
 					for (const filePath of filesToArchive) {
 						await vscode.workspace.fs.delete(vscode.Uri.file(filePath));
 					}
 					await vscode.workspace.fs.delete(vscode.Uri.file(tempDir));
 
-					// Show success message with option to reveal the file
 					const revealAction = 'Reveal in Explorer';
 					const result = await vscode.window.showInformationMessage(
 						`Successfully exported ${filesToArchive.length} entries to ${saveUri.fsPath}`,
@@ -380,11 +353,9 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				return;
 			}
 
-			// Generate a default filename based on the prompt
 			const promptText = treeItem.token.label.replace(/\W/g, '_').substring(0, 50);
 			const defaultFilename = `${promptText}_logs.json`;
 
-			// Show save dialog
 			const saveUri = await vscode.window.showSaveDialog({
 				defaultUri: vscode.Uri.file(path.join(os.homedir(), defaultFilename)),
 				filters: {
@@ -395,17 +366,14 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 			});
 
 			if (!saveUri) {
-				return; // User cancelled
+				return;
 			}
 
 			try {
-				// Convert to JSON
 				const finalContent = JSON.stringify(promptObject, null, 2);
 
-				// Write to the selected file
 				await vscode.workspace.fs.writeFile(saveUri, Buffer.from(finalContent, 'utf8'));
 
-				// Show success message with option to reveal the file
 				const revealAction = 'Reveal in Explorer';
 				const openAction = 'Open File';
 				const result = await vscode.window.showInformationMessage(
@@ -425,7 +393,6 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 		}));
 
 		this._register(vscode.commands.registerCommand(exportAllPromptLogsAsJsonCommand, async (savePath?: string) => {
-			// Build the tree structure to get all chat prompt items
 			const allTreeItems = await this.chatRequestProvider.getChildren();
 
 			if (!allTreeItems || allTreeItems.length === 0) {
@@ -433,7 +400,6 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				return;
 			}
 
-			// Filter to only include ChatPromptItem entries
 			const exportableItems = allTreeItems.filter(item =>
 				item instanceof ChatPromptItem
 			);
@@ -446,14 +412,11 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 			let saveUri: vscode.Uri;
 
 			if (savePath && typeof savePath === 'string') {
-				// Use provided path
 				saveUri = vscode.Uri.file(savePath);
 			} else {
-				// Generate a default filename based on current timestamp
 				const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
 				const defaultFilename = `dardcor_all_prompts_${timestamp}.json`;
 
-				// Show save dialog
 				const dialogResult = await vscode.window.showSaveDialog({
 					defaultUri: vscode.Uri.file(path.join(os.homedir(), defaultFilename)),
 					filters: {
@@ -464,7 +427,7 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 				});
 
 				if (!dialogResult) {
-					return; // User cancelled
+					return;
 				}
 				saveUri = dialogResult;
 			}
@@ -481,17 +444,14 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 					}
 				}
 
-				// Use shared export assembly function
 				const exportData = assembleChatLogExport(
 					allPromptsContent,
 					serializeMcpServers(vscode.lm.mcpServerDefinitions ?? [])
 				);
 				const finalContent = serializeChatLogExport(exportData);
 
-				// Write to the selected file
 				await vscode.workspace.fs.writeFile(saveUri, Buffer.from(finalContent, 'utf8'));
 
-				// Show success message with option to reveal the file (only for user-initiated calls)
 				if (!savePath) {
 					const revealAction = 'Reveal in Explorer';
 					const openAction = 'Open File';
@@ -528,14 +488,6 @@ export class RequestLogTree extends Disposable implements IExtensionContribution
 }
 
 
-/**
- * Servers that shows logged request html for the simple browser. Doing this
- * is annoying, but the markdown renderer is limited and doesn't show full HTML,
- * and the simple browser extension can't render internal or `file://` URIs.
- *
- * Note that we don't need secret tokens or anything at this point because the
- * server is read-only and does not advertise any CORS headers.
- */
 class RequestServer extends Disposable {
 	public port: Promise<number>;
 	private routers = new LRUCache<string, IHTMLRouter>(10);
@@ -546,7 +498,7 @@ class RequestServer extends Disposable {
 		const server = createServer((req, res) => {
 			for (const [key, router] of this.routers) {
 				if (router.route(req, res)) {
-					this.routers.get(key); // LRU touch
+					this.routers.get(key);
 					return;
 				}
 			}
@@ -609,7 +561,6 @@ class ChatRequestProvider extends Disposable implements vscode.TreeDataProvider<
 
 			for (const currReq of this.requestLogger.getRequests()) {
 				if (!currReq.token) {
-					// Skip non-main hidden entries (e.g. skipped/cancelled live NES requests)
 					if (currReq.kind === LoggedInfoKind.Request &&
 						currReq.entry.type === LoggedRequestKind.MarkdownContentRequest &&
 						currReq.entry.isVisible && !currReq.entry.isVisible()) {
@@ -627,12 +578,6 @@ class ChatRequestProvider extends Disposable implements vscode.TreeDataProvider<
 					result.push(prompt);
 				}
 
-				// If this entry is the main entry for the group (a MarkdownContentRequest
-				// whose debugName matches the token label), associate it directly with the
-				// parent ChatPromptItem — don't add it as a child. The entry stays in the
-				// request logger for virtual document serving; only tree nesting changes.
-				// Always wire the main entry so the parent node is clickable and shows the
-				// current icon (e.g. loading, lightbulb, skipped, circleSlash, etc.).
 				if (currReq.kind === LoggedInfoKind.Request &&
 					currReq.entry.type === LoggedRequestKind.MarkdownContentRequest &&
 					currReq.entry.debugName === currReq.token.label) {
@@ -640,7 +585,6 @@ class ChatRequestProvider extends Disposable implements vscode.TreeDataProvider<
 					continue;
 				}
 
-				// Skip non-main hidden entries
 				if (currReq.kind === LoggedInfoKind.Request &&
 					currReq.entry.type === LoggedRequestKind.MarkdownContentRequest &&
 					currReq.entry.isVisible && !currReq.entry.isVisible()) {
@@ -709,19 +653,8 @@ class ChatPromptItem extends vscode.TreeItem {
 		}
 	}
 
-	/**
-	 * The main entry associated with this parent node. Stored so that
-	 * `withFilteredChildren` can re-resolve the icon freshly from the entry
-	 * rather than copying a potentially stale `iconPath` snapshot.
-	 */
 	private _mainEntryRef: ILoggedRequestInfo | undefined;
 
-	/**
-	 * Associate a main entry directly with this parent item.
-	 * The main entry's icon and click command are shown on the parent node.
-	 * The entry is NOT added as a child — it stays in the request logger
-	 * for virtual document serving only.
-	 */
 	public setMainEntry(info: ILoggedRequestInfo): void {
 		if (info.entry.type !== LoggedRequestKind.MarkdownContentRequest) {
 			return;
@@ -789,7 +722,6 @@ class ToolCallItem extends vscode.TreeItem {
 	constructor(
 		readonly info: ILoggedToolCall
 	) {
-		// todo@connor4312: we should have flags from the renderer whether it dropped any messages and indicate that here
 		super(info.name, vscode.TreeItemCollapsibleState.None);
 		this.id = `${info.id}_${info.time}`;
 		this.description = info.args === undefined ? '' : typeof info.args === 'string' ? info.args : JSON.stringify(info.args);
@@ -808,7 +740,6 @@ class ChatElementItem extends vscode.TreeItem {
 	constructor(
 		readonly info: ILoggedElementInfo
 	) {
-		// todo@connor4312: we should have flags from the renderer whether it dropped any messages and indicate that here
 		super(`<${info.name}/>`, vscode.TreeItemCollapsibleState.None);
 		this.id = info.id;
 		this.description = `${info.tokens} tokens`;
@@ -910,17 +841,15 @@ class LogTreeFilters extends Disposable {
 			if (this.isGhostRequest(item)) {
 				return this._ghostRequestsShown;
 			}
-			return true; // Always show chat prompt items
+			return true;
 		} else if (item instanceof ChatElementItem) {
 			return this._elementsShown;
 		} else if (item instanceof ToolCallItem) {
 			return this._toolsShown;
 		} else if (item instanceof ChatRequestItem) {
-			// Check if this is a NES request
 			if (this.isNesRequest(item)) {
 				return this._nesRequestsShown;
 			}
-			// Check if this is a Ghost request
 			if (this.isGhostRequest(item)) {
 				return this._ghostRequestsShown;
 			}

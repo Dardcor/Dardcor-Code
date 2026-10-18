@@ -9,9 +9,9 @@ import fs from 'fs';
 import https from 'https';
 import path from 'path';
 import { createHash } from 'crypto';
+import { getElectronVersion as getBuildElectronVersion } from '../../lib/util.ts';
 import type { DebianArchString } from './types.ts';
 
-// Based on https://source.chromium.org/chromium/chromium/src/+/main:build/linux/sysroot_scripts/install-sysroot.py.
 const URL_PREFIX = 'https://msftelectronbuild.z5.web.core.windows.net';
 const URL_PATH = 'sysroots/toolchain';
 const REPO_ROOT = path.dirname(path.dirname(path.dirname(import.meta.dirname)));
@@ -37,15 +37,11 @@ interface IFetchOptions {
 }
 
 function getElectronVersion(): Record<string, string> {
-	const npmrc = fs.readFileSync(path.join(REPO_ROOT, '.npmrc'), 'utf8');
-	const electronVersion = /^(?:npm_config_)?target="(.*)"$/m.exec(npmrc)![1];
-	const msBuildId = /^(?:npm_config_)?ms_build_id="(.*)"$/m.exec(npmrc)![1];
-	return { electronVersion, msBuildId };
+	return getBuildElectronVersion();
 }
 
 function getSha(filename: fs.PathLike): string {
 	const hash = createHash('sha256');
-	// Read file 1 MB at a time
 	const fd = fs.openSync(filename, 'r');
 	const buffer = Buffer.alloc(1024 * 1024);
 	let position = 0;
@@ -59,10 +55,7 @@ function getSha(filename: fs.PathLike): string {
 }
 
 function getVSCodeSysrootChecksum(expectedName: string) {
-	let checksumPath = path.join(REPO_ROOT, 'build', 'checksums', 'dardcor-sysroot.txt');
-	if (!fs.existsSync(checksumPath)) {
-		checksumPath = path.join(REPO_ROOT, 'build', 'checksums', 'vscode-sysroot.txt');
-	}
+	const checksumPath = path.join(REPO_ROOT, 'build', 'checksums', 'dardcor-sysroot.txt');
 	const checksums = fs.readFileSync(checksumPath, 'utf8');
 	for (const line of checksums.split('\n')) {
 		const [checksum, name] = line.split(/\s+/);
@@ -73,11 +66,6 @@ function getVSCodeSysrootChecksum(expectedName: string) {
 	return undefined;
 }
 
-/*
- * Do not use the fetch implementation from build/lib/fetch as it relies on vinyl streams
- * and vinyl-fs breaks the symlinks in the compiler toolchain sysroot. We use the native
- * tar implementation for that reason.
- */
 async function fetchUrl(options: IFetchOptions, retries = 10, retryDelay = 1000): Promise<undefined> {
 	try {
 		const controller = new AbortController();

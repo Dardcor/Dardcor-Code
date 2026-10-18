@@ -7,26 +7,21 @@ import { IndentAction } from '../../../../common/languages/languageConfiguration
 
 export const javascriptOnEnterRules = [
 	{
-		// e.g. /** | */
 		beforeText: /^\s*\/\*\*(?!\/)([^\*]|\*(?!\/))*$/,
 		afterText: /^\s*\*\/$/,
 		action: { indentAction: IndentAction.IndentOutdent, appendText: ' * ' }
 	}, {
-		// e.g. /** ...|
 		beforeText: /^\s*\/\*\*(?!\/)([^\*]|\*(?!\/))*$/,
 		action: { indentAction: IndentAction.None, appendText: ' * ' }
 	}, {
-		// e.g.  * ...|
 		beforeText: /^(\t|[ ])*[ ]\*([ ]([^\*]|\*(?!\/))*)?$/,
 		previousLineText: /(?=^(\s*(\/\*\*|\*)).*)(?=(?!(\s*\*\/)))/,
 		action: { indentAction: IndentAction.None, appendText: '* ' }
 	}, {
-		// e.g.  */|
 		beforeText: /^(\t|[ ])*[ ]\*\/\s*$/,
 		action: { indentAction: IndentAction.None, removeText: 1 }
 	},
 	{
-		// e.g.  *-----*/|
 		beforeText: /^(\t|[ ])*[ ]\*[^/]*\*\/\s*$/,
 		action: { indentAction: IndentAction.None, removeText: 1 }
 	},
@@ -40,19 +35,16 @@ export const javascriptOnEnterRules = [
 		beforeText: /^\s+([^{i\s]|i(?!f\b))/,
 		action: { indentAction: IndentAction.Outdent }
 	},
-	// Indent when pressing enter from inside ()
 	{
 		beforeText: /^.*\([^\)]*$/,
 		afterText: /^\s*\).*$/,
 		action: { indentAction: IndentAction.IndentOutdent, appendText: '\t' }
 	},
-	// Indent when pressing enter from inside {}
 	{
 		beforeText: /^.*\{[^\}]*$/,
 		afterText: /^\s*\}.*$/,
 		action: { indentAction: IndentAction.IndentOutdent, appendText: '\t' }
 	},
-	// Indent when pressing enter from inside []
 	{
 		beforeText: /^.*\[[^\]]*$/,
 		afterText: /^\s*\].*$/,
@@ -133,7 +125,6 @@ export const htmlOnEnterRules = [
 ];
 
 export const vbOnEnterRules = [
-	// Prevent indent after End statements and block terminators (but NOT ElseIf...Then or Else which should indent)
 	{
 		beforeText: /^\s*((End\s+(If|Sub|Function|Class|Module|Enum|Structure|Interface|Namespace|With|Select|Try|While|For|Property|Get|Set|SyncLock|Using|AddHandler|RaiseEvent|RemoveHandler|Event|Operator))|Loop|Next|Wend|Until)\b.*$/i,
 		action: {
@@ -142,11 +133,3 @@ export const vbOnEnterRules = [
 	}
 ];
 
-/*
-export enum IndentAction {
-	None = 0,
-	Indent = 1,
-	IndentOutdent = 2,
-	Outdent = 3
-}
-*/

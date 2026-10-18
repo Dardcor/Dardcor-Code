@@ -42,16 +42,12 @@ import { TaskRunner } from './taskRunner';
 import { TestExecutionInExtension } from './testExecutionInExtension';
 import { createScoreRenderer, printTime } from './util';
 
-/**
- * Represents outcome of N runs of a scenario.
- */
 export interface ITestResult {
 	test: string;
 	outcomeDirectory: string;
 	conversationPath?: string;
 	score: number;
 	usage: APIUsage;
-	// FIXME@ulugbekna: specify when the outcome is undefined
 	outcomes: (shared.SimulationTestOutcome | undefined)[];
 	duration: number;
 	cacheInfo: TestRunCacheInfo[];
@@ -79,12 +75,9 @@ interface ITestRunResultFail extends ITestRunResultCommon {
 	outcome: shared.SimulationTestOutcome;
 }
 
-/**
- * Represents outcome of a single run of a scenario.
- */
 export type ITestRunResult = ITestRunResultPass | ITestRunResultFail;
 
-export type CacheInfo = { type: 'request'; key: string }; // TODO: add other caches here
+export type CacheInfo = { type: 'request'; key: string };
 
 export type TestRunCacheInfo = CacheInfo[];
 
@@ -163,9 +156,7 @@ async function executeTestsUsing(ctx: SimulationTestContext, testsToRun: readonl
 	const testResultsPromises: Promise<ITestResult>[] = [];
 	for (const test of testsToRun) {
 
-		if (test.options.optional && (test.options.skip(ctx.opts) || opts.ci)) { // CI never runs optional stests
-			// Avoid spamming the console, we now have very many skipped stests
-			// console.log(`  Skipping ${test.fullName}`);
+		if (test.options.optional && (test.options.skip(ctx.opts) || opts.ci)) {
 			ctx.baseline.setSkippedTest(test.fullName);
 			jsonOutputPrinter.print({ type: shared.OutputType.skippedTest, name: test.fullName });
 			continue;
@@ -189,7 +180,6 @@ async function executeTestsUsing(ctx: SimulationTestContext, testsToRun: readonl
 	};
 }
 
-/** Runs a single scenario `nRuns` times. */
 async function executeTestNTimes(
 	ctx: SimulationTestContext,
 	taskRunner: TaskRunner,
@@ -331,7 +321,6 @@ function printVerbose(
 
 		console.log(`    ${i + 1} - ${result.kind === 'pass' ? green(result.kind) : red(result.kind)}`);
 		if (result.kind === 'fail' && result.message && opts.verbose !== 0) {
-			// indent the message and print
 			console.error(result.message.split(/\r\n|\r|\n/g).map(line => `      ${line}`).join('\n'));
 		}
 	}
@@ -520,14 +509,12 @@ export const executeTestOnce = async (
 
 		return result;
 	} finally {
-		// (context.safeGet(ILanguageFeaturesService) as { dispose?: () => Promise<void> })?.dispose?.();
 
 		await simulationTestRuntime.writeFile(shared.SIMULATION_REQUESTS_FILENAME, JSON.stringify(fetchRequestCollector.interceptedRequests.map(r => r.toJSON()), undefined, 2), shared.REQUESTS_TAG);
 
 		if (err) {
 			simulationTestRuntime.log(`Scenario failed due to an error:`, err);
 			if ((<any>err).code !== 'ERR_ASSERTION' && !(err instanceof IntentError)) {
-				// Make visible to the console unexpected errors
 				console.log(`Scenario ${test.fullName} failed due to an error:`);
 				console.log(err);
 			}
@@ -557,9 +544,6 @@ export const executeTestOnce = async (
 	}
 };
 
-/**
- * When thrown, fails stest CI.
-*/
 export class CriticalError extends Error {
 	constructor(message: string) {
 		super(message);

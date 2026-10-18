@@ -29,26 +29,14 @@ export interface ITokenizerProvider {
 	acquireTokenizer(endpoint: TokenizationEndpoint): ITokenizer;
 }
 
-/**
- * BaseTokensPerCompletion is the minimum tokens for a completion request.
- * Replies are primed with <|im_start|>assistant<|message|>, so these tokens represent the
- * special token and the role name.
- */
 export const BaseTokensPerCompletion = 3;
-/*
- * Each GPT 3.5 / GPT 4 message comes with 3 tokens per message due to special characters
- */
 export const BaseTokensPerMessage = 3;
-/*
- * Since gpt-3.5-turbo-0613 each name costs 1 token
- */
 export const BaseTokensPerName = 1;
 
 
 export class TokenizerProvider implements ITokenizerProvider {
 	declare readonly _serviceBrand: undefined;
 
-	// These files are copied to `dist` via the `build/postinstall.ts` script
 	private readonly _cl100kTokenizer: Lazy<BPETokenizer>;
 	private readonly _o200kTokenizer: Lazy<BPETokenizer>;
 
@@ -56,9 +44,6 @@ export class TokenizerProvider implements ITokenizerProvider {
 		useWorker: boolean,
 		@ITelemetryService telmetryService: ITelemetryService
 	) {
-		// if we're running from dist, the dictionary is compressed, but if we're  running
-		// in e.g. a `spec` file we should load the dictionary using default behavior.
-		// todo: cleanup a bit, have an IS_BUILT constant?
 		this._cl100kTokenizer = new Lazy(() => new BPETokenizer(useWorker, join(__dirname, './cl100k_base.tiktoken'), 'cl100k_base', telmetryService));
 		this._o200kTokenizer = new Lazy(() => new BPETokenizer(useWorker, join(__dirname, './o200k_base.tiktoken'), 'o200k_base', telmetryService));
 	}
@@ -68,10 +53,6 @@ export class TokenizerProvider implements ITokenizerProvider {
 		this._o200kTokenizer.rawValue?.dispose();
 	}
 
-	/**
-	 * Gets a tokenizer for a given model family
-	 * @param endpoint The endpoint you want to acquire a tokenizer for
-	 */
 	public acquireTokenizer(endpoint: TokenizationEndpoint): ITokenizer {
 		switch (endpoint.tokenizer) {
 			case TokenizerType.CL100K:
@@ -92,11 +73,6 @@ class BPETokenizer extends Disposable implements ITokenizer {
 
 	private _tokenizer?: Promise<TikTokenWorker>;
 
-	/**
-	 * TikToken has its own cache, but it still does some processing
-	 * until a cache hit. We can have a much more efficient cache that
-	 * directly looks up string -> token length
-	 */
 	private readonly _cache = new LRUCache<number>(5000);
 
 	protected readonly baseTokensPerMessage = BaseTokensPerMessage;
@@ -121,20 +97,10 @@ class BPETokenizer extends Disposable implements ITokenizer {
 		return numTokens;
 	}
 
-	/**
-	 * Tokenizes the given text.
-	 * @param text The text to tokenize.
-	 * @returns The tokenized text.
-	 */
 	private async tokenize(text: string): Promise<number[]> {
 		return (await this.ensureTokenizer()).encode(text);
 	}
 
-	/**
-	 * Calculates the token length of the given text.
-	 * @param text The text to calculate the token length for.
-	 * @returns The number of tokens in the text.
-	 */
 	async tokenLength(text: string | Raw.ChatCompletionContentPart): Promise<number> {
 		if (typeof text === 'string') {
 			return this._textTokenLength(text);
@@ -175,13 +141,6 @@ class BPETokenizer extends Disposable implements ITokenizer {
 		return cacheValue;
 	}
 
-	/**
-	 * Counts tokens for a single chat message within a completion request.
-	 *
-	 * Follows https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb for GPT 3.5/4 models.
-	 *
-	 * **Note**: The result does not include base tokens for the completion itself.
-	 */
 	async countMessageTokens(message: Raw.ChatMessage): Promise<number> {
 		return this.baseTokensPerMessage + (await this.countMessageObjectTokens(toMode(OutputMode.OpenAI, message)));
 	}
@@ -199,7 +158,6 @@ class BPETokenizer extends Disposable implements ITokenizer {
 			numTokens += await this.countObjectTokens({ name: tool.name, description: tool.description, parameters: tool.inputSchema });
 		}
 
-		// This is an estimate, so give a little safety margin
 		return Math.floor(numTokens * 1.1);
 	}
 
@@ -229,7 +187,6 @@ class BPETokenizer extends Disposable implements ITokenizer {
 				} else {
 					let newTokens = await this.countMessageObjectTokens(value);
 					if (key === 'tool_calls') {
-						// This is an estimate, not including all of the overhead, so give a little safety margin
 						newTokens = Math.floor(newTokens * 1.5);
 					}
 
@@ -310,15 +267,6 @@ class BPETokenizer extends Disposable implements ITokenizer {
 
 					if (Math.random() < 1 / 1000) {
 						worker.proxy.resetStats().then(stats => {
-							/* __GDPR__
-								"tokenizer.stats" : {
-									"owner": "jrieken",
-									"comment": "Perf stats about tokenizers",
-									"callCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How often tokenize was called" },
-									"encodeDuration": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Average time encode took" },
-									"textLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Average length of text that got encoded" }
-								}
-							*/
 							this._telemetryService.sendMSFTTelemetryEvent('tokenizer.stats', undefined, stats);
 						});
 					}
@@ -331,9 +279,7 @@ class BPETokenizer extends Disposable implements ITokenizer {
 }
 
 
-//#region Image tokenizer helpers
 
-// https://platform.openai.com/docs/guides/vision#calculating-costs
 export function calculateImageTokenCost(imageUrl: string, detail: 'low' | 'high' | 'auto' | undefined): number {
 	let { width, height } = getImageDimensions(imageUrl);
 
@@ -341,7 +287,6 @@ export function calculateImageTokenCost(imageUrl: string, detail: 'low' | 'high'
 		return 85;
 	}
 
-	// Scale image to fit within a 2048 x 2048 square if necessary.
 	if (width > 2048 || height > 2048) {
 		const scaleFactor = 2048 / Math.max(width, height);
 		width = Math.round(width * scaleFactor);
@@ -357,24 +302,13 @@ export function calculateImageTokenCost(imageUrl: string, detail: 'low' | 'high'
 	return tiles * 170 + 85;
 }
 
-/**
- * Estimates the token cost of a base64-encoded document (e.g. PDF) without BPE tokenization.
- * Uses a size-based heuristic to avoid tokenizing large binary payloads and polluting
- * the LRU cache. Intentionally conservative (overestimates) to avoid exceeding context limits.
- */
 export function estimateDocumentTokenCost(base64Data: string | undefined): number {
 	if (!base64Data) {
 		return 0;
 	}
-	// Roughly estimate original bytes from base64 length.
-	// Base64 encodes 3 bytes into 4 characters, so bytes ~= len * 3 / 4.
 	const length = base64Data.length;
 	const estimatedBytes = Math.floor((length * 3) / 4);
-	// Heuristic: assume approximately 1 token per 8 bytes of document data.
-	// This is a rough estimate that avoids expensive BPE tokenization of large
-	// binary payloads and avoids polluting the LRU token cache.
 	const estimatedTokens = Math.ceil(estimatedBytes / 8);
 	return estimatedTokens;
 }
 
-//#endregion

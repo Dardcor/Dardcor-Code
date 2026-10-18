@@ -3,12 +3,6 @@ import { readFile, readdir } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 
-/**
- * GET /api/oauth/kiro/auto-import
- * Auto-detect and extract Kiro refresh token from AWS SSO cache.
- * For IDC (organization) tokens, also resolves clientId/clientSecret from the
- * linked client registration file so token refresh works.
- */
 export async function GET() {
   try {
     const cachePath = join(homedir(), ".aws/sso/cache");
@@ -27,7 +21,6 @@ export async function GET() {
     let foundFile = null;
     let tokenData = null;
 
-    // First try kiro-auth-token.json
     const kiroTokenFile = "kiro-auth-token.json";
     if (files.includes(kiroTokenFile)) {
       try {
@@ -39,11 +32,9 @@ export async function GET() {
           tokenData = data;
         }
       } catch (error) {
-        // Continue to search other files
       }
     }
 
-    // If not found, search all .json files
     if (!refreshToken) {
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
@@ -69,8 +60,6 @@ export async function GET() {
       });
     }
 
-    // For IDC/organization tokens, resolve clientId and clientSecret from
-    // the linked client registration file (referenced by clientIdHash).
     let clientId = null;
     let clientSecret = null;
     const region = tokenData?.region || null;
@@ -86,13 +75,9 @@ export async function GET() {
           clientSecret = clientData.clientSecret;
         }
       } catch (error) {
-        // Client registration file not found - continue without it
       }
     }
 
-    // Read profileArn from Kiro IDE's profile.json.
-    // Important: the runtime gateway requires us-east-1 in the ARN regardless
-    // of the IDC region, so we normalize the region in the ARN to us-east-1.
     let profileArn = null;
     const kiroProfilePaths = [
       join(process.env.APPDATA || join(homedir(), "AppData", "Roaming"), "Kiro", "User", "globalStorage", "kiro.kiroagent", "profile.json"),
@@ -103,7 +88,6 @@ export async function GET() {
         const profileContent = await readFile(profilePath, "utf-8");
         const profileData = JSON.parse(profileContent);
         if (profileData.arn) {
-          // Normalize region to us-east-1 for the runtime gateway
           profileArn = profileData.arn.replace(/arn:aws:codewhisperer:[^:]+:/, "arn:aws:codewhisperer:us-east-1:");
           break;
         }

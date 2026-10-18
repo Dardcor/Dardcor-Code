@@ -24,7 +24,6 @@ import { TurnAdmissionContribution } from './turnAdmission/turnAdmissionContribu
 import { TurnDelegationContribution } from './turnDelegation/turnDelegationContribution.js';
 import { WorktreeAnnouncementContribution } from './worktreeAnnouncement/worktreeAnnouncementContribution.js';
 
-/** Registers all built-in chat contribution constructors. */
 export function registerBuiltInChatContributions(
 	contributions: IAgentHostChatContributions,
 ): IDisposable {

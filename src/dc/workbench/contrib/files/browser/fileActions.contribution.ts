@@ -28,7 +28,6 @@ import { IExplorerService } from './files.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
 
-// Contribute Global Actions
 
 registerAction2(GlobalCompareResourcesAction);
 registerAction2(FocusFilesExplorer);
@@ -42,11 +41,10 @@ registerAction2(SetActiveEditorWriteableInSession);
 registerAction2(ToggleActiveEditorReadonlyInSession);
 registerAction2(ResetActiveEditorReadonlyInSession);
 
-// Commands
 CommandsRegistry.registerCommand('_files.windowOpen', openWindowCommand);
 CommandsRegistry.registerCommand('_files.newWindow', newWindowCommand);
 
-const explorerCommandsWeightBonus = 10; // give our commands a little bit more weight over other default list/tree commands
+const explorerCommandsWeightBonus = 10;
 
 const RENAME_ID = 'renameFile';
 KeybindingsRegistry.registerCommandAndKeybindingRule({
@@ -119,7 +117,7 @@ const PASTE_FILE_ID = 'filesExplorer.paste';
 CommandsRegistry.registerCommand(PASTE_FILE_ID, pasteFileHandler);
 
 KeybindingsRegistry.registerKeybindingRule({
-	id: `^${PASTE_FILE_ID}`, // the `^` enables pasting files into the explorer by preventing default bubble up
+	id: `^${PASTE_FILE_ID}`,
 	weight: KeybindingWeight.WorkbenchContrib + explorerCommandsWeightBonus,
 	when: ContextKeyExpr.and(FilesExplorerFocusCondition, ExplorerResourceWritableContext),
 	primary: KeyMod.CtrlCmd | KeyCode.KeyV,
@@ -159,7 +157,6 @@ export const revealInSideBarCommand = {
 	title: nls.localize('revealInSideBar', "Reveal in Explorer View")
 };
 
-// Editor Title Context Menu
 appendEditorTitleContextMenuItem(SAVE_FILE_COMMAND_ID, SAVE_FILE_LABEL.value, ActiveEditorDirtyContext, '1_close_save', true, 10);
 appendEditorTitleContextMenuItem(SAVE_FILE_AS_COMMAND_ID, SAVE_FILE_AS_LABEL.value, ActiveEditorDirtyContext, '1_close_save', false, 20);
 appendEditorTitleContextMenuItem(COPY_PATH_COMMAND_ID, copyPathCommand.title, ResourceContextKey.IsFileSystemResource, '1_cutcopypaste', true);
@@ -169,7 +166,6 @@ appendEditorTitleContextMenuItem(revealInSideBarCommand.id, revealInSideBarComma
 export function appendEditorTitleContextMenuItem(id: string, title: string, when: ContextKeyExpression | undefined, group: string, supportsMultiSelect: boolean, order?: number): void {
 	const precondition = supportsMultiSelect !== true ? MultipleEditorsSelectedInGroupContext.negate() : undefined;
 
-	// Menu
 	MenuRegistry.appendMenuItem(MenuId.EditorTitleContext, {
 		command: { id, title, precondition },
 		when,
@@ -178,16 +174,13 @@ export function appendEditorTitleContextMenuItem(id: string, title: string, when
 	});
 }
 
-// Editor Title Menu for Conflict Resolution
 appendSaveConflictEditorTitleAction('workbench.files.action.acceptLocalChanges', nls.localize('acceptLocalChanges', "Use your changes and overwrite file contents"), Codicon.check, -10, acceptLocalChangesCommand);
 appendSaveConflictEditorTitleAction('workbench.files.action.revertLocalChanges', nls.localize('revertLocalChanges', "Discard your changes and revert to file contents"), Codicon.discard, -9, revertLocalChangesCommand);
 
 function appendSaveConflictEditorTitleAction(id: string, title: string, icon: ThemeIcon, order: number, command: ICommandHandler): void {
 
-	// Command
 	CommandsRegistry.registerCommand(id, command);
 
-	// Action
 	MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
 		command: { id, title, icon },
 		when: ContextKeyExpr.equals(CONFLICT_RESOLUTION_CONTEXT, true),
@@ -196,7 +189,6 @@ function appendSaveConflictEditorTitleAction(id: string, title: string, icon: Th
 	});
 }
 
-// Menu registration - command palette
 
 export function appendToCommandPalette({ id, title, category, metadata }: ICommandAction, when?: ContextKeyExpression): void {
 	MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
@@ -285,7 +277,6 @@ appendToCommandPalette({
 	category: Categories.File
 });
 
-// Menu registration - open editors
 
 const isFileOrUntitledResourceContextKey = ContextKeyExpr.or(ResourceContextKey.IsFileSystemResource, ResourceContextKey.Scheme.isEqualTo(Schemas.untitled));
 
@@ -308,9 +299,7 @@ MenuRegistry.appendMenuItem(MenuId.OpenEditorsContext, {
 		title: nls.localize('reopenWith', "Reopen Editor With...")
 	},
 	when: ContextKeyExpr.and(
-		// Editors with Available Choices to Open With
 		ActiveEditorAvailableEditorIdsContext,
-		// Not: editor groups
 		OpenEditorsGroupContext.toNegated()
 	)
 });
@@ -338,15 +327,10 @@ MenuRegistry.appendMenuItem(MenuId.OpenEditorsContext, {
 		precondition: OpenEditorsDirtyEditorContext
 	},
 	when: ContextKeyExpr.or(
-		// Untitled Editors
 		ResourceContextKey.Scheme.isEqualTo(Schemas.untitled),
-		// Or:
 		ContextKeyExpr.and(
-			// Not: editor groups
 			OpenEditorsGroupContext.toNegated(),
-			// Not: readonly editors
 			OpenEditorsReadonlyEditorContext.toNegated(),
-			// Not: auto save after short delay
 			AutoSaveAfterShortDelayContext.toNegated()
 		)
 	)
@@ -361,13 +345,9 @@ MenuRegistry.appendMenuItem(MenuId.OpenEditorsContext, {
 		precondition: OpenEditorsDirtyEditorContext
 	},
 	when: ContextKeyExpr.and(
-		// Not: editor groups
 		OpenEditorsGroupContext.toNegated(),
-		// Not: readonly editors
 		OpenEditorsReadonlyEditorContext.toNegated(),
-		// Not: untitled editors (revert closes them)
 		ResourceContextKey.Scheme.notEqualsTo(Schemas.untitled),
-		// Not: auto save after short delay
 		AutoSaveAfterShortDelayContext.toNegated()
 	)
 });
@@ -380,7 +360,6 @@ MenuRegistry.appendMenuItem(MenuId.OpenEditorsContext, {
 		title: nls.localize('saveAll', "Save All"),
 		precondition: DirtyWorkingCopiesContext
 	},
-	// Editor Group
 	when: OpenEditorsGroupContext
 });
 
@@ -473,7 +452,6 @@ MenuRegistry.appendMenuItem(MenuId.OpenEditorsContext, {
 	}
 });
 
-// Menu registration - explorer
 
 MenuRegistry.appendMenuItem(MenuId.ExplorerContext, {
 	group: 'navigation',
@@ -574,11 +552,8 @@ MenuRegistry.appendMenuItem(MenuId.ExplorerContext, ({
 		title: DOWNLOAD_LABEL
 	},
 	when: ContextKeyExpr.or(
-		// native: for any remote resource
 		ContextKeyExpr.and(IsWebContext.toNegated(), ResourceContextKey.Scheme.notEqualsTo(Schemas.file)),
-		// web: for any files
 		ContextKeyExpr.and(IsWebContext, ExplorerFolderContext.toNegated(), ExplorerRootContext.toNegated()),
-		// web: for any folders if file system API support is provided
 		ContextKeyExpr.and(IsWebContext, HasWebFileSystemAccess)
 	)
 }));
@@ -591,11 +566,8 @@ MenuRegistry.appendMenuItem(MenuId.ExplorerContext, ({
 		title: UPLOAD_LABEL,
 	},
 	when: ContextKeyExpr.and(
-		// only in web
 		IsWebContext,
-		// only on folders
 		ExplorerFolderContext,
-		// only on writable folders
 		ExplorerResourceWritableContext
 	)
 }));
@@ -669,13 +641,11 @@ MenuRegistry.appendMenuItem(MenuId.ExplorerContext, {
 	when: ContextKeyExpr.and(ExplorerRootContext.toNegated(), ExplorerResourceMoveableToTrash.toNegated())
 });
 
-// Empty Editor Group / Editor Tabs Container Context Menu
 for (const menuId of [MenuId.EmptyEditorGroupContext, MenuId.EditorTabsBarContext]) {
 	MenuRegistry.appendMenuItem(menuId, { command: { id: NEW_UNTITLED_FILE_COMMAND_ID, title: nls.localize('newFile', "New Text File") }, group: '1_file', order: 10 });
 	MenuRegistry.appendMenuItem(menuId, { command: { id: 'workbench.action.quickOpen', title: nls.localize('openFile', "Open File...") }, group: '1_file', order: 20 });
 }
 
-// File menu
 
 MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 	group: '1_new',
@@ -732,9 +702,7 @@ MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 		id: REVERT_FILE_COMMAND_ID,
 		title: nls.localize({ key: 'miRevert', comment: ['&& denotes a mnemonic'] }, "Re&&vert File"),
 		precondition: ContextKeyExpr.or(
-			// Active editor can revert
 			ContextKeyExpr.and(ActiveEditorCanRevertContext),
-			// Explorer focused but not on untitled
 			ContextKeyExpr.and(ResourceContextKey.Scheme.notEqualsTo(Schemas.untitled), FoldersViewVisibleContext, SidebarFocusContext)
 		),
 	},
@@ -751,7 +719,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 	order: 2
 });
 
-// Go to menu
 
 MenuRegistry.appendMenuItem(MenuId.MenubarGoMenu, {
 	group: '3_global_nav',
@@ -763,7 +730,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarGoMenu, {
 });
 
 
-// Chat used attachment anchor context menu
 
 MenuRegistry.appendMenuItem(MenuId.ChatAttachmentsContext, {
 	group: 'navigation',
@@ -793,7 +759,6 @@ MenuRegistry.appendMenuItem(MenuId.ChatAttachmentsContext, {
 	when: ResourceContextKey.IsFileSystemResource
 });
 
-// Chat resource anchor attachments/anchors context menu
 
 for (const menuId of [MenuId.ChatInlineResourceAnchorContext, MenuId.ChatInputResourceAttachmentContext]) {
 	MenuRegistry.appendMenuItem(menuId, {

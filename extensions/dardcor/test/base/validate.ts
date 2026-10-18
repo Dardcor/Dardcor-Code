@@ -22,7 +22,6 @@ function validatePredicate(answer: string, predicate: KeywordPredicate): string 
 	if (typeof predicate === 'string') {
 		const startsWithWordChar = /^\w/.test(predicate);
 		const endsWithWordChar = /\w$/.test(predicate);
-		// Use word boundaries to prevent matching inside words
 		if (!new RegExp((startsWithWordChar ? '\\b' : '') + escapeRegExpCharacters(predicate) + (endsWithWordChar ? '\\b' : ''), 'i').test(answer)) {
 			return `Missing keyword: ${predicate}`;
 		}
@@ -55,9 +54,6 @@ function validatePredicate(answer: string, predicate: KeywordPredicate): string 
 	}
 }
 
-/**
- * Escapes regular expression characters in a given string
- */
 function escapeRegExpCharacters(value: string): string {
 	return value.replace(/[\\\{\}\*\+\?\|\^\$\.\[\]\(\)]/g, '\\$&');
 }

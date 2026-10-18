@@ -21,9 +21,6 @@ export class HoverProviderResult {
 	) { }
 }
 
-/**
- * Does not throw or return a rejected promise (returns undefined instead).
- */
 async function executeProvider(provider: HoverProvider, ordinal: number, model: ITextModel, position: Position, token: CancellationToken): Promise<HoverProviderResult | undefined> {
 	const result = await Promise
 		.resolve(provider.provideHover(model, position, token))

@@ -21,8 +21,6 @@ perfSuite('Performance - fuzzyMatch', async function () {
 	const uri = FileAccess.asBrowserUri('vs/base/test/common/filters.perf.data').toString(true);
 	const { data } = await importAMDNodeModule<typeof import('./filters.perf.data.js')>(uri, '');
 
-	// suiteSetup(() => console.profile());
-	// suiteTeardown(() => console.profileEnd());
 
 	console.log(`Matching ${data.length} items against ${patterns.length} patterns (${data.length * patterns.length} operations) `);
 

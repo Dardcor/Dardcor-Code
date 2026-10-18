@@ -73,7 +73,6 @@ export function provideInlineCompletions(
 
 			const yieldsTo = yieldsToGraph.getOutgoing(provider);
 			for (const p of yieldsTo) {
-				// We know there is no cycle, so no recursion here
 				const result = await queryProvider.get(p);
 				if (result) {
 					for (const item of result.inlineSuggestions.items) {
@@ -87,7 +86,6 @@ export function provideInlineCompletions(
 							}
 						}
 
-						// else: inline completion is not visible, so lets not block
 					}
 				}
 			}
@@ -113,7 +111,7 @@ export function provideInlineCompletions(
 				return list.removeRef(cancelReason);
 			});
 			if (cancellationTokenSource.token.isCancellationRequested) {
-				return undefined; // The list is disposed now, so we cannot return the items!
+				return undefined;
 			}
 
 			for (const item of result.items) {
@@ -147,7 +145,6 @@ export function provideInlineCompletions(
 	};
 }
 
-/** If the token is eventually cancelled, this will not leak either. */
 export function runWhenCancelled(token: CancellationToken, callback: () => void): IDisposable {
 	if (token.isCancellationRequested) {
 		callback();
@@ -207,7 +204,6 @@ function toInlineSuggestData(
 					languageConfigurationService
 				);
 
-				// Modify range depending on if brackets are added or removed
 				const diff = insertText.length - inlineCompletion.insertText.length;
 				if (diff !== 0) {
 					range = new Range(range.startLineNumber, range.startColumn, range.endLineNumber, range.endColumn + diff);
@@ -226,7 +222,6 @@ function toInlineSuggestData(
 					languageConfigurationService
 				);
 
-				// Modify range depending on if brackets are added or removed
 				const diff = inlineCompletion.insertText.snippet.length - preBracketCompletionLength;
 				if (diff !== 0) {
 					range = new Range(range.startLineNumber, range.startColumn, range.endLineNumber, range.endColumn + diff);
@@ -467,11 +462,6 @@ export class InlineSuggestData {
 		);
 	}
 
-	/**
-	 * Sends the end of life event to the provider.
-	 * If no reason is provided, the last set reason is used.
-	 * If no reason was set, the default reason is used.
-	*/
 	public reportEndOfLife(reason?: InlineCompletionEndOfLifeReason): void {
 		if (this._didReportEndOfLife) {
 			return;
@@ -483,8 +473,6 @@ export class InlineSuggestData {
 			reason = this._lastSetEndOfLifeReason ?? { kind: InlineCompletionEndOfLifeReasonKind.Ignored, userTypingDisagreed: false, supersededBy: undefined };
 		}
 
-		// A suggestion can only be "rejected" if it was actually shown to the user.
-		// If the suggestion was never shown, downgrade to "ignored".
 		if (reason.kind === InlineCompletionEndOfLifeReasonKind.Rejected && !this._didShow) {
 			reason = { kind: InlineCompletionEndOfLifeReasonKind.Ignored, userTypingDisagreed: false, supersededBy: undefined };
 		}
@@ -546,9 +534,6 @@ export class InlineSuggestData {
 		this._notShownReason ??= reason;
 	}
 
-	/**
-	 * Sets the end of life reason, but does not send the event to the provider yet.
-	*/
 	public setEndOfLifeReason(reason: InlineCompletionEndOfLifeReason): void {
 		this.reportInlineEditHidden();
 		this._lastSetEndOfLifeReason = reason;
@@ -625,7 +610,6 @@ class InlineSuggestionsPerformance {
 
 export interface SnippetInfo {
 	snippet: string;
-	/* Could be different than the main range */
 	range: Range;
 }
 
@@ -635,10 +619,6 @@ export enum InlineCompletionEditorType {
 	Notebook = 'notebook',
 }
 
-/**
- * A ref counted pointer to the computed `InlineCompletions` and the `InlineCompletionsProvider` that
- * computed them.
- */
 export class InlineSuggestionList {
 	private refCount = 0;
 	constructor(
@@ -655,13 +635,10 @@ export class InlineSuggestionList {
 		this.refCount--;
 		if (this.refCount === 0) {
 			for (const item of this.inlineSuggestionsData) {
-				// Fallback if it has not been called before
 				item.reportEndOfLife();
 			}
 			this.provider.disposeInlineCompletions(this.inlineSuggestions, reason);
 		} else if (this.refCount < 0) {
-			// Invariant: every addRef must be paired with exactly one removeRef.
-			// Going negative means a removeRef without a matching addRef somewhere.
 			onUnexpectedError(new BugIndicatingError(
 				`InlineSuggestionList (provider=${this.provider.providerId?.toString()}) refCount went negative (${this.refCount}) — more removeRef than addRef calls.`
 			));
@@ -672,8 +649,6 @@ export class InlineSuggestionList {
 function getDefaultRange(position: Position, model: ITextModel): Range {
 	const word = model.getWordAtPosition(position);
 	const maxColumn = model.getLineMaxColumn(position.lineNumber);
-	// By default, always replace up until the end of the current line.
-	// This default might be subject to change!
 	return word
 		? new Range(position.lineNumber, word.startColumn, position.lineNumber, maxColumn)
 		: Range.fromPositions(position, position.with(undefined, maxColumn));

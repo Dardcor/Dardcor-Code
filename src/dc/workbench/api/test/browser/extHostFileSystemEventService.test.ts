@@ -54,7 +54,6 @@ suite('ExtHostFileSystemEventService', () => {
 
 	test('FileSystemWatcher matches case-insensitively via pre-lowercasing', function () {
 		const fileSystemInfo = new ExtHostFileSystemInfo();
-		// Default: no PathCaseSensitive capability → ignoreCase=true for string patterns
 
 		const workspace: Pick<IExtHostWorkspace, 'getWorkspaceFolder'> = {
 			getWorkspaceFolder: () => ({ uri: URI.file('/workspace'), name: 'test', index: 0 })
@@ -66,7 +65,6 @@ suite('ExtHostFileSystemEventService', () => {
 		const created: URI[] = [];
 		const sub = watcher.onDidCreate(uri => created.push(uri));
 
-		// lowercase path should match uppercase pattern on case-insensitive fs
 		service.$onFileEvent({
 			session: undefined,
 			created: [URI.file('/workspace/file.txt')],
@@ -94,7 +92,6 @@ suite('ExtHostFileSystemEventService', () => {
 		const created: URI[] = [];
 		const sub = watcher.onDidCreate(uri => created.push(uri));
 
-		// lowercase path should NOT match uppercase pattern on case-sensitive fs
 		service.$onFileEvent({
 			session: undefined,
 			created: [URI.file('/workspace/file.txt')],
@@ -104,7 +101,6 @@ suite('ExtHostFileSystemEventService', () => {
 
 		assert.strictEqual(created.length, 0);
 
-		// uppercase path SHOULD match
 		service.$onFileEvent({
 			session: undefined,
 			created: [URI.file('/workspace/file.TXT')],
@@ -120,7 +116,7 @@ suite('ExtHostFileSystemEventService', () => {
 
 	test('FileSystemWatcher matches relative pattern case-insensitively via pre-lowercasing', function () {
 		const fileSystemInfo = new ExtHostFileSystemInfo();
-		fileSystemInfo.$acceptProviderInfos(URI.file('/'), FileSystemProviderCapabilities.FileReadWrite); // no PathCaseSensitive → ignoreCase=true
+		fileSystemInfo.$acceptProviderInfos(URI.file('/'), FileSystemProviderCapabilities.FileReadWrite);
 
 		const workspace: Pick<IExtHostWorkspace, 'getWorkspaceFolder'> = {
 			getWorkspaceFolder: () => ({ uri: URI.file('/workspace'), name: 'test', index: 0 })
@@ -136,7 +132,6 @@ suite('ExtHostFileSystemEventService', () => {
 		const created: URI[] = [];
 		const sub = watcher.onDidCreate(uri => created.push(uri));
 
-		// lowercase path should match mixed-case base + uppercase extension on case-insensitive fs
 		service.$onFileEvent({
 			session: undefined,
 			created: [URI.file('/workspace/file.txt')],

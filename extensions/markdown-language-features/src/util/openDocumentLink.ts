@@ -54,7 +54,6 @@ export class MdLinkOpener {
 				return vscode.commands.executeCommand('revealInExplorer', uri);
 
 			case 'file': {
-				// If no explicit viewColumn is given, check if the editor is already open in a tab
 				if (typeof viewColumn === 'undefined') {
 					for (const tab of vscode.window.tabGroups.all.flatMap(x => x.tabs)) {
 						if (tab.input instanceof vscode.TabInputText) {

@@ -8,7 +8,6 @@ import { localize } from '../../../../nls.js';
 import { TestResultState, TestRunProfileBitset } from './testTypes.js';
 
 export const enum Testing {
-	// marked as "extension" so that any existing test extensions are assigned to it.
 	ViewletId = 'workbench.view.extension.test',
 	ExplorerViewId = 'workbench.view.testing',
 	OutputPeekContributionId = 'editor.contrib.testingOutputPeek',

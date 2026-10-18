@@ -120,7 +120,6 @@ export class WebExtensionManagementService extends AbstractExtensionManagementSe
 	}
 
 	protected async deleteExtension(extension: ILocalExtension): Promise<void> {
-		// do nothing
 	}
 
 	protected async copyExtension(extension: ILocalExtension, fromProfileLocation: URI, toProfileLocation: URI, metadata: Partial<Metadata>): Promise<ILocalExtension> {
@@ -178,7 +177,6 @@ export class WebExtensionManagementService extends AbstractExtensionManagementSe
 	}
 
 	async updateMetadata(local: ILocalExtension, metadata: Partial<Metadata>, profileLocation: URI): Promise<ILocalExtension> {
-		// unset if false
 		if (metadata.isMachineScoped === false) {
 			metadata.isMachineScoped = undefined;
 		}

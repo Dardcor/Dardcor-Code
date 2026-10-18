@@ -2,9 +2,6 @@ import figlet from "figlet";
 import gradient from "gradient-string";
 import chalkAnimation from "chalk-animation";
 
-/**
- * Display banner
- */
 export function showBanner() {
   const banner = figlet.textSync("LLM Proxy", {
     font: "ANSI Shadow",
@@ -16,9 +13,6 @@ export function showBanner() {
   console.log(gradient.cristal("  🚀 OAuth CLI for AI Providers\n"));
 }
 
-/**
- * Display simple banner (no animation)
- */
 export function showSimpleBanner() {
   const banner = figlet.textSync("EP CLI", {
     font: "Standard",
@@ -28,9 +22,6 @@ export function showSimpleBanner() {
   console.log(gradient.cristal("  OAuth CLI for AI Providers\n"));
 }
 
-/**
- * Display success animation
- */
 export async function showSuccess(message) {
   return new Promise((resolve) => {
     const animation = chalkAnimation.rainbow(`\n✨ ${message}\n`);
@@ -41,9 +32,6 @@ export async function showSuccess(message) {
   });
 }
 
-/**
- * Display loading animation
- */
 export function showLoading(text) {
   const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
   let i = 0;

@@ -9,12 +9,8 @@ export interface INativeCliOptions {
 	'telemetry-level'?: string;
 }
 
-/**
- * A list of command line arguments we support natively.
- */
 export interface NativeParsedArgs {
 
-	// subcommands
 	tunnel?: INativeCliOptions & {
 		user: {
 			login: {
@@ -36,10 +32,9 @@ export interface NativeParsedArgs {
 		help?: boolean;
 	};
 
-	// arguments
 	_: string[];
-	'folder-uri'?: string[]; // undefined or array of 1 or more
-	'file-uri'?: string[]; // undefined or array of 1 or more
+	'folder-uri'?: string[];
+	'file-uri'?: string[];
 	_urls?: string[];
 	help?: boolean;
 	version?: boolean;
@@ -76,14 +71,14 @@ export interface NativeParsedArgs {
 	'builtin-extensions-dir'?: string;
 	'shared-data-dir'?: string;
 	'agent-plugins-dir'?: string;
-	extensionDevelopmentPath?: string[]; // undefined or array of 1 or more local paths or URIs
-	extensionTestsPath?: string; // either a local path or a URI
+	extensionDevelopmentPath?: string[];
+	extensionTestsPath?: string;
 	extensionDevelopmentKind?: string[];
-	extensionEnvironment?: string; // JSON-stringified Record<string, string> object
+	extensionEnvironment?: string;
 	'inspect-extensions'?: string;
 	'inspect-brk-extensions'?: string;
 	debugId?: string;
-	debugRenderer?: boolean; // whether we expect a debugger (js-debug) to attach to the renderer, incl webviews+webworker
+	debugRenderer?: boolean;
 	'inspect-ptyhost'?: string;
 	'inspect-brk-ptyhost'?: string;
 	'inspect-agenthost'?: string;
@@ -91,18 +86,18 @@ export interface NativeParsedArgs {
 	'inspect-sharedprocess'?: string;
 	'inspect-brk-sharedprocess'?: string;
 	'disable-extensions'?: boolean;
-	'disable-extension'?: string[]; // undefined or array of 1 or more
+	'disable-extension'?: string[];
 	'list-extensions'?: boolean;
 	'show-versions'?: boolean;
 	'category'?: string;
-	'install-extension'?: string[]; // undefined or array of 1 or more
+	'install-extension'?: string[];
 	'pre-release'?: boolean;
-	'install-builtin-extension'?: string[]; // undefined or array of 1 or more
-	'uninstall-extension'?: string[]; // undefined or array of 1 or more
+	'install-builtin-extension'?: string[];
+	'uninstall-extension'?: string[];
 	'update-extensions'?: boolean;
 	'do-not-include-pack-dependencies'?: boolean;
-	'locate-extension'?: string[]; // undefined or array of 1 or more
-	'enable-proposed-api'?: string[]; // undefined or array of 1 or more
+	'locate-extension'?: string[];
+	'enable-proposed-api'?: string[];
 	'open-url'?: boolean;
 	'skip-release-notes'?: boolean;
 	'skip-welcome'?: boolean;
@@ -147,7 +142,6 @@ export interface NativeParsedArgs {
 	'disable-layout-restore'?: boolean;
 	'disable-experiments'?: boolean;
 
-	// chromium command line args: https://electronjs.org/docs/all#supported-chrome-command-line-switches
 	'no-proxy-server'?: boolean;
 	'no-sandbox'?: boolean;
 	'proxy-server'?: string;

@@ -110,11 +110,9 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 	private readonly _isExtensionDevDebugBrk: boolean;
 	private readonly _isExtensionDevTestFromCli: boolean;
 
-	// State
 	private _terminating: boolean;
 	private _mainProcessHandlesExtHostShutdown: boolean;
 
-	// Resources, in order they get acquired/created when .start() is called:
 	private _inspectListener: IExtensionInspectInfo | null;
 	private _extensionHostProcess: ExtensionHostProcess | null;
 	private _messageProtocol: Promise<IMessagePassingProtocol> | null;
@@ -179,8 +177,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 	public async disconnect(): Promise<void> {
 		this._terminating = true;
 
-		// Send the Terminate message so the extension host can run
-		// deactivation handlers and exit gracefully.
 		if (this._messageProtocol) {
 			try {
 				const protocol = await Promise.race([
@@ -189,19 +185,11 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 				]);
 				protocol?.send(createMessageOfType(MessageType.Terminate));
 			} catch {
-				// ignore - extension host may have already exited
 			}
 		}
 
-		// For the restart case where the main process does not handle the
-		// extension host shutdown, signal the main process to start the grace
-		// timer (fire-and-forget). After the timeout the extension host will
-		// be forcefully killed if it hasn't exited on its own. For all
-		// window-lifecycle shutdown reasons (close/quit/reload/load), the
-		// main process already handles this via
-		// WindowUtilityProcess.registerWindowListeners.
 		if (this._extensionHostProcess && !this._mainProcessHandlesExtHostShutdown) {
-			this._extensionHostProcess.waitForExit(extensionHostGraceTimeMs).catch(() => { /* best-effort */ });
+			this._extensionHostProcess.waitForExit(extensionHostGraceTimeMs).catch(() => { });
 		}
 
 		this._messageProtocol = null;
@@ -209,7 +197,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 
 	public start(): Promise<IMessagePassingProtocol> {
 		if (this._terminating) {
-			// .terminate() was called
 			throw new CancellationError();
 		}
 
@@ -241,8 +228,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 		removeDangerousEnvVariables(env);
 
 		if (this._isExtensionDevHost) {
-			// Unset `VSCODE_CODE_CACHE_PATH` when developing extensions because it might
-			// be that dependencies, that otherwise would be cached, get modified.
 			delete env['VSCODE_CODE_CACHE_PATH'];
 		}
 
@@ -251,10 +236,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 			responseChannel: 'vscode:startExtensionHostMessagePortResult',
 			responseNonce: generateUuid(),
 			env,
-			// We only detach the extension host on windows. Linux and Mac orphan by default
-			// and detach under Linux and Mac create another process group.
-			// We detach because we have noticed that when the renderer exits, its child processes
-			// (i.e. extension host) are taken down in a brutal fashion by the OS
 			detached: !!platform.isWindows,
 			execArgv: undefined as string[] | undefined,
 			silent: true
@@ -278,14 +259,8 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 			opts.execArgv.unshift('--prof');
 		}
 
-		// Refs https://github.com/microsoft/vscode/issues/189805
-		//
-		// Enable experimental network inspection
-		// inspector agent is always setup hence add this flag
-		// unconditionally.
 		opts.execArgv.unshift('--dns-result-order=ipv4first', '--experimental-network-inspection');
 
-		// Catch all output coming from the extension host process
 		type Output = { data: string; format: string[] };
 		const onStdout = this._register(this._handleProcessOutputStream(this._extensionHostProcess.onStdout));
 		const onStderr = this._register(this._handleProcessOutputStream(this._extensionHostProcess.onStderr));
@@ -294,28 +269,17 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 			Event.map(onStderr.event, o => ({ data: `%c${o}`, format: ['color: red'] }))
 		);
 
-		// Persist the raw extension host process output (stdout/stderr) to the
-		// renderer log. The output is otherwise only forwarded (debounced) to the
-		// renderer DevTools console. A native crash of the extension host process
-		// - e.g. a faulty native addon - prints to the process' stderr but never
-		// reaches the JavaScript layer, so it has no JS stack and (for utility
-		// processes) frequently produces no crash dump; it also cannot go through
-		// the extension host's own log service, which lives in the dying process.
-		// Capturing the raw output from the (surviving) renderer keeps such
-		// crashes diagnosable from the logs. Gated to smoke tests
 		if (this._environmentService.args['enable-smoke-test-driver']) {
 			this._register(onStdout.event(line => this._logService.info(`[Extension Host (stdout)] ${line.replace(/\r?\n$/, '')}`)));
 		}
 		this._register(onStderr.event(line => this._logService.error(`[Extension Host (stderr)] ${line.replace(/\r?\n$/, '')}`)));
 
-		// Debounce all output, so we can render it in the Chrome console as a group
 		const onDebouncedOutput = Event.debounce<Output>(onOutput, (r, o) => {
 			return r
 				? { data: r.data + o.data, format: [...r.format, ...o.format] }
 				: { data: o.data, format: o.format };
 		}, 100);
 
-		// Print out extension host output
 		this._register(onDebouncedOutput(output => {
 			const inspectorUrlMatch = output.data && output.data.match(/ws:\/\/([^\s]+):(\d+)\/([^\s]+)/);
 			if (inspectorUrlMatch) {
@@ -337,11 +301,9 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 			}
 		}));
 
-		// Lifecycle
 
 		this._register(this._extensionHostProcess.onExit(({ code, signal }) => this._onExtHostProcessExit(code, signal)));
 
-		// Notify debugger that we are ready to attach to the process if we run a development extension
 		if (portNumber) {
 			if (this._isExtensionDevHost && this._isExtensionDevDebug && this._environmentService.debugExtensionHost.debugId) {
 				this._extensionHostDebugService.attachSession(this._environmentService.debugExtensionHost.debugId, portNumber);
@@ -350,7 +312,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 			this._onDidSetInspectPort.fire();
 		}
 
-		// Help in case we fail to start it (only notify if waiting on debug break)
 		let startupTimeoutHandle: Timeout | undefined;
 		if (this._isExtensionDevDebugBrk) {
 			startupTimeoutHandle = setTimeout(() => {
@@ -371,16 +332,12 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 			}, 60000);
 		}
 
-		// Initialize extension host process with hand shakes
 		const protocol = await this._establishProtocol(this._extensionHostProcess, opts);
 		await this._performHandshake(protocol);
 		clearTimeout(startupTimeoutHandle);
 		return protocol;
 	}
 
-	/**
-	 * Find a free port if extension host debugging is enabled.
-	 */
 	private async _tryFindDebugPort(): Promise<number> {
 
 		if (typeof this._environmentService.debugExtensionHost.port !== 'number') {
@@ -388,7 +345,7 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 		}
 
 		const expected = this._environmentService.debugExtensionHost.port;
-		const port = await this._nativeHostService.findFreePort(expected, 10 /* try 10 ports */, 5000 /* try up to 5 seconds */, 2048 /* skip 2048 ports between attempts */);
+		const port = await this._nativeHostService.findFreePort(expected, 10 , 5000 , 2048 );
 
 		if (!this._isExtensionDevTestFromCli) {
 			if (!port) {
@@ -412,8 +369,7 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 
 		writeExtHostConnection(new MessagePortExtHostConnection(), opts.env);
 
-		// Get ready to acquire the message port from the shared process worker
-		const portPromise = acquirePort(undefined /* we trigger the request via service call! */, opts.responseChannel, opts.responseNonce);
+		const portPromise = acquirePort(undefined , opts.responseChannel, opts.responseNonce);
 
 		return new Promise<IMessagePassingProtocol>((resolve, reject) => {
 
@@ -423,7 +379,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 
 			portPromise.then((port) => {
 				this._register(toDisposable(() => {
-					// Close the message port when the extension host is disposed
 					port.close();
 					port.onmessage = null;
 				}));
@@ -443,7 +398,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 				});
 			});
 
-			// Now that the message port listener is installed, start the ext host process
 			const sw = StopWatch.create(false);
 			extensionHostProcess.start(opts).then(({ pid }) => {
 				if (pid) {
@@ -455,15 +409,12 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 					this._logService.info(`IExtensionHostStarter.start() took ${duration} ms.`);
 				}
 			}, (err) => {
-				// Starting the ext host process resulted in an error
 				reject(err);
 			});
 		});
 	}
 
 	private _performHandshake(protocol: IMessagePassingProtocol): Promise<void> {
-		// 1) wait for the incoming `ready` event and send the initialization data.
-		// 2) wait for the incoming `initialized` event.
 		return new Promise<void>((resolve, reject) => {
 
 			let timeoutHandle: Timeout;
@@ -476,19 +427,16 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 				clearTimeout(timeoutHandle);
 			};
 
-			// Wait 60s for the ready message
 			installTimeoutCheck();
 
 			const disposable = protocol.onMessage(msg => {
 
 				if (isMessageOfType(msg, MessageType.Ready)) {
 
-					// 1) Extension Host is ready to receive messages, initialize it
 					uninstallTimeoutCheck();
 
 					this._createExtHostInitData().then(data => {
 
-						// Wait 60s for the initialized message
 						installTimeoutCheck();
 
 						protocol.send(VSBuffer.fromString(JSON.stringify(data)));
@@ -498,13 +446,10 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 
 				if (isMessageOfType(msg, MessageType.Initialized)) {
 
-					// 2) Extension Host is initialized
 					uninstallTimeoutCheck();
 
-					// stop listening for messages here
 					disposable.dispose();
 
-					// release this promise
 					resolve();
 					return;
 				}
@@ -580,7 +525,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 
 	private _onExtHostProcessExit(code: number, signal: string): void {
 		if (this._terminating) {
-			// Expected termination path (we asked the process to terminate)
 			return;
 		}
 
@@ -592,13 +536,10 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 		let isOmitting = false;
 		const event = new Emitter<string>();
 		stream((chunk) => {
-			// not a fancy approach, but this is the same approach used by the split2
-			// module which is well-optimized (https://github.com/mcollina/split2)
 			last += chunk;
 			const lines = last.split(/\r?\n/g);
 			last = lines.pop()!;
 
-			// protected against an extension spamming and leaking memory if no new line is written.
 			if (last.length > 10_000) {
 				lines.push(last);
 				last = '';
@@ -645,11 +586,9 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 	private _onWillShutdown(event: WillShutdownEvent): void {
 		this._mainProcessHandlesExtHostShutdown = true;
 
-		// If the extension development host was started without debugger attached we need
-		// to communicate this back to the main side to terminate the debug session
 		if (this._isExtensionDevHost && !this._isExtensionDevTestFromCli && !this._isExtensionDevDebug && this._environmentService.debugExtensionHost.debugId) {
 			this._extensionHostDebugService.terminateSession(this._environmentService.debugExtensionHost.debugId);
-			event.join(timeout(100 /* wait a bit for IPC to get delivered */), { id: 'join.extensionDevelopment', label: nls.localize('join.extensionDevelopment', "Terminating extension debug session") });
+			event.join(timeout(100 ), { id: 'join.extensionDevelopment', label: nls.localize('join.extensionDevelopment', "Terminating extension debug session") });
 		}
 	}
 }

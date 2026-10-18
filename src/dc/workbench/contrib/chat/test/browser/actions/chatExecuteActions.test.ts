@@ -9,11 +9,12 @@ import { constObservable, observableValue } from '../../../../../../base/common/
 import { URI } from '../../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { CommandsRegistry } from '../../../../../../platform/commands/common/commands.js';
+import { isIMenuItem, MenuId, MenuRegistry } from '../../../../../../platform/actions/common/actions.js';
 import { TestInstantiationService } from '../../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
 import { NullTelemetryService } from '../../../../../../platform/telemetry/common/telemetryUtils.js';
 import { type IChatAcceptInputOptions, IChatWidget, IChatWidgetService } from '../../../browser/chat.js';
-import { ChatSubmitAction, ExecuteHandoffActionId, GetHandoffsActionId, registerChatExecuteActions } from '../../../browser/actions/chatExecuteActions.js';
+import { ChatSubmitAction, ExecuteHandoffActionId, GetHandoffsActionId, OpenModePickerAction, OpenPermissionPickerAction, registerChatExecuteActions } from '../../../browser/actions/chatExecuteActions.js';
 import { ChatModeKind } from '../../../common/constants.js';
 import { IChatMode, IChatModes, IChatModeService, ICustomAgentInfo } from '../../../common/chatModes.js';
 import { IHandOff } from '../../../common/promptSyntax/promptFileParser.js';
@@ -66,6 +67,14 @@ suite('GetHandoffsAction', () => {
 	});
 
 	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('registers access in the input toolbar while preserving the agent picker command', () => {
+		const inputActions = MenuRegistry.getMenuItems(MenuId.ChatInput)
+			.filter(isIMenuItem)
+			.map(item => item.command.id);
+		assert.ok(inputActions.includes(OpenPermissionPickerAction.ID));
+		assert.ok(CommandsRegistry.getCommand(OpenModePickerAction.ID), 'The existing agent picker command remains available');
+	});
 
 	test('should return all modes when no sourceCustomAgent is specified', async () => {
 		const askMode = createMockMode({ id: 'ask', kind: ChatModeKind.Ask, isBuiltin: true });
@@ -297,13 +306,12 @@ suite('ExecuteHandoffAction', () => {
 	test('should resolve sourceCustomAgent to look up handoffs from a different mode', async () => {
 		const askMode = createMockMode({ id: 'ask', kind: ChatModeKind.Ask, isBuiltin: true });
 		const modeService = new MockChatModeService({ builtin: [askMode], custom: [planMode] });
-		const { widget, executeHandoffCalls } = createMockWidget(askMode, await modeService.getLocalModes()); // widget is in "ask" mode (no handoffs)
+		const { widget, executeHandoffCalls } = createMockWidget(askMode, await modeService.getLocalModes());
 
 		const mockWidgetService = new class extends MockChatWidgetService {
 			override readonly lastFocusedWidget = widget as IChatWidget;
 		};
 
-		// The plan mode has handoffs; sourceCustomAgent overrides the widget's current mode
 		instantiationService.set(IChatWidgetService, mockWidgetService);
 		instantiationService.set(IChatModeService, modeService);
 
@@ -322,7 +330,7 @@ suite('ExecuteHandoffAction', () => {
 
 		const askMode = createMockMode({ id: 'ask', kind: ChatModeKind.Ask, isBuiltin: true });
 		const chatModeService = new MockChatModeService({ builtin: [askMode], custom: [] });
-		const { widget } = createMockWidget(askMode, await chatModeService.getLocalModes()); // widget is in "ask" mode (no handoffs)
+		const { widget } = createMockWidget(askMode, await chatModeService.getLocalModes());
 
 		const mockWidgetService = new class extends MockChatWidgetService {
 			override readonly lastFocusedWidget = widget as IChatWidget;

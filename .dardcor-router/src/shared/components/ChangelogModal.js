@@ -44,18 +44,18 @@ export default function ChangelogModal({ isOpen, onClose }) {
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
+      {}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal content */}
+      {}
       <div
         ref={modalRef}
         className="relative w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-w-3xl flex flex-col max-h-[85vh]"
       >
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-3 border-b border-black/5 dark:border-white/5">
           <h2 className="text-lg font-semibold text-text-main">Change Log</h2>
           <button
@@ -67,7 +67,7 @@ export default function ChangelogModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Body */}
+        {}
         <div className="p-6 overflow-y-auto flex-1">
           {loading && (
             <div className="flex items-center justify-center py-10 text-text-muted">

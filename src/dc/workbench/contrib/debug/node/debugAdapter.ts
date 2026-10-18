@@ -17,13 +17,10 @@ import { IDebugAdapterExecutable, IDebugAdapterNamedPipeServer, IDebugAdapterSer
 import { AbstractDebugAdapter } from '../common/abstractDebugAdapter.js';
 import { killTree } from '../../../../base/node/processes.js';
 
-/**
- * An implementation that communicates via two streams with the debug adapter.
- */
 export abstract class StreamDebugAdapter extends AbstractDebugAdapter {
 
 	private static readonly TWO_CRLF = '\r\n\r\n';
-	private static readonly HEADER_LINESEPARATOR = /\r?\n/;	// allow for non-RFC 2822 conforming line separators
+	private static readonly HEADER_LINESEPARATOR = /\r?\n/;
 	private static readonly HEADER_FIELDSEPARATOR = /: */;
 
 	private outputStream!: stream.Writable;
@@ -68,7 +65,7 @@ export abstract class StreamDebugAdapter extends AbstractDebugAdapter {
 							this._onError.fire(new Error((e.message || e) + '\n' + message));
 						}
 					}
-					continue;	// there may be more complete messages to process
+					continue;
 				}
 			} else {
 				const idx = this.rawData.indexOf(StreamDebugAdapter.TWO_CRLF);
@@ -115,7 +112,6 @@ export abstract class NetworkDebugAdapter extends StreamDebugAdapter {
 			});
 
 			this.socket.on('error', error => {
-				// On ipv6 posix this can be an AggregateError which lacks a message. Use the first.
 				if (error instanceof AggregateError) {
 					error = error.errors[0];
 				}
@@ -138,9 +134,6 @@ export abstract class NetworkDebugAdapter extends StreamDebugAdapter {
 	}
 }
 
-/**
- * An implementation that connects to a debug adapter via a socket.
-*/
 export class SocketDebugAdapter extends NetworkDebugAdapter {
 
 	constructor(private adapterServer: IDebugAdapterServer) {
@@ -152,9 +145,6 @@ export class SocketDebugAdapter extends NetworkDebugAdapter {
 	}
 }
 
-/**
- * An implementation that connects to a debug adapter via a NamedPipe (on Windows)/UNIX Domain Socket (on non-Windows).
- */
 export class NamedPipeDebugAdapter extends NetworkDebugAdapter {
 
 	constructor(private adapterServer: IDebugAdapterNamedPipeServer) {
@@ -166,9 +156,6 @@ export class NamedPipeDebugAdapter extends NetworkDebugAdapter {
 	}
 }
 
-/**
- * An implementation that launches the debug adapter as a separate process and communicates via stdin/stdout.
-*/
 export class ExecutableDebugAdapter extends StreamDebugAdapter {
 
 	private serverProcess: cp.ChildProcess | undefined;
@@ -184,7 +171,6 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 		const options = this.adapterExecutable.options || {};
 
 		try {
-			// verify executables asynchronously
 			if (command) {
 				if (path.isAbsolute(command)) {
 					const commandExists = await Promises.exists(command);
@@ -192,10 +178,7 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 						throw new Error(nls.localize('debugAdapterBinNotFound', "Debug adapter executable '{0}' does not exist.", command));
 					}
 				} else {
-					// relative path
 					if (command.indexOf('/') < 0 && command.indexOf('\\') < 0) {
-						// no separators: command looks like a runtime name like 'node' or 'mono'
-						// TODO: check that the runtime is available on PATH
 					}
 				}
 			} else {
@@ -237,12 +220,10 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 					spawnOptions.cwd = options.cwd;
 				}
 				if (platform.isWindows && (command.endsWith('.bat') || command.endsWith('.cmd'))) {
-					// https://github.com/microsoft/vscode/issues/224184
 					spawnOptions.shell = true;
 					spawnCommand = `"${command}"`;
 					spawnArgs = args.map(a => {
-						a = a.replace(/"/g, '\\"'); // Escape existing double quotes with \
-						// Wrap in double quotes
+						a = a.replace(/"/g, '\\"');
 						return `"${a}"`;
 					});
 				}
@@ -270,7 +251,6 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 
 			this.serverProcess.stderr!.resume();
 
-			// finally connect to the DA
 			this.connect(this.serverProcess.stdout!, this.serverProcess.stdin!);
 
 		} catch (err) {
@@ -284,9 +264,6 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 			return Promise.resolve(undefined);
 		}
 
-		// when killing a process in windows its child
-		// processes are *not* killed but become root
-		// processes. Therefore we use TASKKILL.EXE
 		await this.cancelPendingRequests();
 		if (platform.isWindows) {
 			return killTree(this.serverProcess!.pid!, true).catch(() => {
@@ -305,7 +282,7 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 
 		const result: IDebuggerContribution = Object.create(null);
 		if (platformContribution.runtime) {
-			if (platformContribution.runtime.indexOf('./') === 0) {	// TODO
+			if (platformContribution.runtime.indexOf('./') === 0) {
 				result.runtime = path.join(extensionFolderPath, platformContribution.runtime);
 			} else {
 				result.runtime = platformContribution.runtime;
@@ -349,23 +326,19 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 		let result: IDebuggerContribution = Object.create(null);
 		debugType = debugType.toLowerCase();
 
-		// merge all contributions into one
 		for (const ed of extensionDescriptions) {
 			if (ed.contributes) {
 				const debuggers = <IDebuggerContribution[]>ed.contributes['debuggers'];
 				if (debuggers && debuggers.length > 0) {
 					debuggers.filter(dbg => typeof dbg.type === 'string' && strings.equalsIgnoreCase(dbg.type, debugType)).forEach(dbg => {
-						// extract relevant attributes and make them absolute where needed
 						const extractedDbg = ExecutableDebugAdapter.extract(dbg, ed.extensionLocation.fsPath);
 
-						// merge
 						result = objects.mixin(result, extractedDbg, ed.isBuiltin);
 					});
 				}
 			}
 		}
 
-		// select the right platform
 		let platformInfo: IPlatformSpecificAdapterContribution | undefined;
 		if (platform.isWindows && !process.env.hasOwnProperty('PROCESSOR_ARCHITEW6432')) {
 			platformInfo = result.winx86 || result.win || result.windows;
@@ -378,7 +351,6 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 		}
 		platformInfo = platformInfo || result;
 
-		// these are the relevant attributes
 		const program = platformInfo.program || result.program;
 		const args = platformInfo.args || result.args;
 		const runtime = platformInfo.runtime || result.runtime;
@@ -398,7 +370,6 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 			};
 		}
 
-		// nothing found
 		return undefined;
 	}
 }

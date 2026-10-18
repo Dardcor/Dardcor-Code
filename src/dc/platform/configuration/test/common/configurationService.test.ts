@@ -127,7 +127,6 @@ suite('ConfigurationService.test.ts', () => {
 		assert.strictEqual(config.foo, 'bar');
 		await fileService.writeFile(settingsResource, VSBuffer.fromString('{ "foo": "changed" }'));
 
-		// force a reload to get latest
 		await testObject.reloadConfiguration();
 		config = testObject.getValue<{
 			foo: string;
@@ -360,7 +359,6 @@ suite('ConfigurationService.test.ts', () => {
 			await testObject.updateValue('configurationService.testSetting', 'value', ConfigurationTarget.WORKSPACE);
 			assert.fail('Should fail with error');
 		} catch (e) {
-			// succeess
 		}
 	});
 
@@ -394,7 +392,6 @@ suite('ConfigurationService.test.ts', () => {
 			await testObject.updateValue('configurationService.policySetting', 'value');
 			assert.fail('Should throw error');
 		} catch (error) {
-			// succeess
 		}
 	});
 });

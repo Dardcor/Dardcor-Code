@@ -59,10 +59,6 @@ export class TerminalViewPane extends ViewPane {
 	private _terminalTabbedView?: TerminalTabbedView;
 	get terminalTabbedView(): TerminalTabbedView | undefined { return this._terminalTabbedView; }
 	private _isInitialized: boolean = false;
-	/**
-	 * Tracks an active promise of terminal creation requested by this component. This helps prevent
-	 * double creation for example when toggling a terminal's visibility and focusing it.
-	 */
 	private _isTerminalBeingCreated: boolean = false;
 	private readonly _newDropdown: MutableDisposable<DropdownWithPrimaryActionViewItem> = this._register(new MutableDisposable());
 	private readonly _dropdownMenu: IMenu;
@@ -97,13 +93,10 @@ export class TerminalViewPane extends ViewPane {
 		}));
 
 		this._register(this._terminalService.onDidChangeInstances(() => {
-			// If the first terminal is opened, hide the welcome view
-			// and if the last one is closed, show it again
 			if (this._hasWelcomeScreen() && this._terminalGroupService.instances.length <= 1) {
 				this._onDidChangeViewWelcomeState.fire();
 			}
 			if (!this._parentDomElement) { return; }
-			// If we do not have the tab view yet, create it now.
 			if (!this._terminalTabbedView) {
 				this._createTabsView();
 			}
@@ -155,8 +148,6 @@ export class TerminalViewPane extends ViewPane {
 			}
 
 			let shouldCreate = this._terminalGroupService.groups.length === 0;
-			// When triggered just after reconnection, also check there are no groups that could be
-			// getting restored currently
 			if (checkRestoredTerminals) {
 				shouldCreate &&= this._terminalService.restoredGroupCount === 0;
 			}
@@ -219,9 +210,6 @@ export class TerminalViewPane extends ViewPane {
 					this._onDidChangeViewWelcomeState.fire();
 				}
 				this._initializeTerminal(false);
-				// we don't know here whether or not it should be focused, so
-				// defer focusing the panel to the focus() call
-				// to prevent overriding preserveFocus for extensions
 				this._terminalGroupService.showPanel(false);
 			} else {
 				for (const instance of this._terminalGroupService.instances) {
@@ -250,7 +238,6 @@ export class TerminalViewPane extends ViewPane {
 	override createActionViewItem(action: Action, options: IBaseActionViewItemOptions): IActionViewItem | undefined {
 		switch (action.id) {
 			case TerminalCommandId.Split: {
-				// Split needs to be special cased to force splitting within the panel, not the editor
 				const that = this;
 				const store = new DisposableStore();
 				const panelOnlySplitAction = store.add(new class extends Action {
@@ -333,12 +320,9 @@ export class TerminalViewPane extends ViewPane {
 			return;
 		}
 
-		// If the terminal is waiting to reconnect to remote terminals, then there is no TerminalInstance yet that can
-		// be focused. So wait for connection to finish, then focus.
 		const previousActiveElement = this.element.ownerDocument.activeElement;
 		if (previousActiveElement) {
 			const listener = this._register(Event.once(this._terminalService.onDidChangeConnectionState)(() => {
-				// Only focus the terminal if the activeElement has not changed since focus() was called
 				if (previousActiveElement && dom.isActiveElement(previousActiveElement)) {
 					this._terminalGroupService.showPanel(true);
 				}
@@ -428,7 +412,6 @@ class SingleTerminalTabActionViewItem extends MenuEntryActionViewItem {
 			hoverDelegate: _instantiationService.createInstance(SingleTabHoverDelegate)
 		}, keybindingService, notificationService, contextKeyService, themeService, contextMenuService, _accessibilityService);
 
-		// Register listeners to update the tab
 		this._register(Event.debounce<ITerminalInstance | undefined, Set<ITerminalInstance>>(Event.any(
 			this._terminalService.onAnyInstancePrimaryStatusChange,
 			this._terminalGroupService.onDidChangeActiveInstance,
@@ -449,7 +432,6 @@ class SingleTerminalTabActionViewItem extends MenuEntryActionViewItem {
 			}
 		}));
 
-		// Clean up on dispose
 		this._register(toDisposable(() => dispose(this._elementDisposables)));
 	}
 
@@ -464,13 +446,11 @@ class SingleTerminalTabActionViewItem extends MenuEntryActionViewItem {
 
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	protected override updateLabel(e?: ITerminalInstance): void {
-		// Only update if it's the active instance
 		if (e && e !== this._terminalGroupService.activeInstance) {
 			return;
 		}
 
 		if (this._elementDisposables.length === 0 && this.element && this.label) {
-			// Right click opens context menu
 			this._elementDisposables.push(dom.addDisposableListener(this.element, dom.EventType.CONTEXT_MENU, e => {
 				if (e.button === 2) {
 					this._openContextMenu();
@@ -478,7 +458,6 @@ class SingleTerminalTabActionViewItem extends MenuEntryActionViewItem {
 					e.preventDefault();
 				}
 			}));
-			// Middle click kills
 			this._elementDisposables.push(dom.addDisposableListener(this.element, dom.EventType.AUXCLICK, e => {
 				if (e.button === 1) {
 					const instance = this._terminalGroupService.activeInstance;
@@ -488,7 +467,6 @@ class SingleTerminalTabActionViewItem extends MenuEntryActionViewItem {
 					e.preventDefault();
 				}
 			}));
-			// Drag and drop
 			this._elementDisposables.push(dom.addDisposableListener(this.element, dom.EventType.DRAG_START, e => {
 				const instance = this._terminalGroupService.activeInstance;
 				if (e.dataTransfer && instance) {
@@ -554,7 +532,6 @@ class SingleTerminalTabActionViewItem extends MenuEntryActionViewItem {
 			actionRunner,
 			getAnchor: () => this.element!,
 			getActions: () => this._actions,
-			// The context is always the active instance in the terminal view
 			getActionsContext: () => {
 				const instance = this._terminalGroupService.activeInstance;
 				return instance ? [new InstanceContext(instance)] : [];
@@ -565,8 +542,6 @@ class SingleTerminalTabActionViewItem extends MenuEntryActionViewItem {
 }
 
 function getSingleTabLabel(accessor: ServicesAccessor, instance: ITerminalInstance | undefined, separator: string, icon?: ThemeIcon) {
-	// Don't even show the icon if there is no title as the icon would shift around when the title
-	// is added
 	if (!instance || !instance.title) {
 		return '';
 	}
@@ -612,10 +587,8 @@ class TerminalThemeIconStyle extends Themable {
 		super.updateStyles();
 		const colorTheme = this._themeService.getColorTheme();
 
-		// TODO: add a rule collector to avoid duplication
 		let css = '';
 
-		// Add icons
 		for (const instance of this._terminalService.instances) {
 			const icon = instance.icon;
 			if (!icon) {
@@ -636,7 +609,6 @@ class TerminalThemeIconStyle extends Themable {
 			}
 		}
 
-		// Add colors
 		for (const instance of this._terminalService.instances) {
 			const colorClass = getColorClass(instance);
 			if (!colorClass || !instance.color) {
@@ -644,7 +616,6 @@ class TerminalThemeIconStyle extends Themable {
 			}
 			const color = colorTheme.getColor(instance.color);
 			if (color) {
-				// exclude status icons (file-icon) and inline action icons (trashcan, horizontalSplit, rerunTask)
 				css += (
 					`.monaco-workbench .${colorClass} .codicon:first-child:not(.codicon-split-horizontal):not(.codicon-trashcan):not(.file-icon):not(.codicon-rerun-task)` +
 					`{ color: ${color} !important; }`
@@ -671,7 +642,7 @@ class SingleTabHoverDelegate implements IHoverDelegate {
 
 	get delay(): number {
 		return Date.now() - this._lastHoverHideTime < 200
-			? 0  // show instantly when a hover was recently shown
+			? 0
 			: this._configurationService.getValue<number>('workbench.hover.delay');
 	}
 

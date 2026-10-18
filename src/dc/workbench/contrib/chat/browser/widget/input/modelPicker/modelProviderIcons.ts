@@ -10,7 +10,7 @@ import { registerIcon } from '../../../../../../../platform/theme/common/iconReg
 import { ILanguageModelChatMetadataAndIdentifier, isAutoLanguageModel } from '../../../../common/languageModels.js';
 import { getCompactCodicon } from '../../../chatIcons.js';
 
-const copilotModelProviderIcon = registerIcon('chat-model-provider-copilot', Codicon.copilotCompact, localize('chatModelProviderCopilotIcon', "Icon for Copilot models."));
+const dardcorModelProviderIcon = registerIcon('chat-model-provider-dardcor', Codicon.sparkle, localize('chatModelProviderDardcorIcon', "Icon for Dardcor models."));
 const openAIModelProviderIcon = registerIcon('chat-model-provider-openai', Codicon.openai, localize('chatModelProviderOpenAIIcon', "Icon for OpenAI models."));
 const claudeModelProviderIcon = registerIcon('chat-model-provider-claude', Codicon.claude, localize('chatModelProviderClaudeIcon', "Icon for Claude models."));
 const geminiModelProviderIcon = registerIcon('chat-model-provider-gemini', Codicon.googleGemini, localize('chatModelProviderGeminiIcon', "Icon for Gemini models."));
@@ -19,13 +19,29 @@ const microsoftModelProviderIcon = registerIcon('chat-model-provider-microsoft',
 const xAIModelProviderIcon = registerIcon('chat-model-provider-xai', Codicon.xai, localize('chatModelProviderXAIIcon', "Icon for xAI models."));
 const genericModelProviderIcon = registerIcon('chat-model-provider-generic', Codicon.sparkle, localize('chatModelProviderGenericIcon', "Icon for other model providers."));
 const genericModelProviderCompactIcon = registerIcon('chat-model-provider-generic-compact', Codicon.sparkleCompact, localize('chatModelProviderGenericCompactIcon', "Compact icon for other model providers."));
+const codebuddyModelProviderIcon = registerIcon('chat-model-provider-codebuddy', Codicon.hubot, localize('chatModelProviderCodebuddyIcon', "Icon for CodeBuddy models."));
+const clineModelProviderIcon = registerIcon('chat-model-provider-cline', Codicon.robot, localize('chatModelProviderClineIcon', "Icon for Cline models."));
+const antigravityModelProviderIcon = registerIcon('chat-model-provider-antigravity', Codicon.sparkle, localize('chatModelProviderAntigravityIcon', "Icon for Antigravity models."));
+const qoderModelProviderIcon = registerIcon('chat-model-provider-qoder', Codicon.code, localize('chatModelProviderQoderIcon', "Icon for Qoder models."));
+const kilocodeModelProviderIcon = registerIcon('chat-model-provider-kilocode', Codicon.serverProcess, localize('chatModelProviderKilocodeIcon', "Icon for KiloCode models."));
 
-/**
- * The provider icon matching a free-form identity string (vendor, family, model
- * or provider name). Falls back to a generic icon when nothing matches.
- */
-export function getProviderIconForIdentity(identity: string, copilotIdentity: string = identity): ThemeIcon {
+export function getProviderIconForIdentity(identity: string, modelIdentity: string = identity): ThemeIcon {
 	const normalized = identity.toLowerCase();
+	if (normalized.includes('codebuddy') || normalized.includes('cbai') || normalized.includes('cbcn')) {
+		return codebuddyModelProviderIcon;
+	}
+	if (normalized.includes('cline') || /\bcl\b/.test(normalized) || normalized.includes('clinepass')) {
+		return clineModelProviderIcon;
+	}
+	if (normalized.includes('antigravity') || /\bag\b/.test(normalized)) {
+		return antigravityModelProviderIcon;
+	}
+	if (normalized.includes('qoder') || /\bqd\b/.test(normalized)) {
+		return qoderModelProviderIcon;
+	}
+	if (normalized.includes('kilocode') || normalized.includes('kilo') || /\bkc\b/.test(normalized)) {
+		return kilocodeModelProviderIcon;
+	}
 	if (normalized.includes('grok') || normalized.includes('xai')) {
 		return xAIModelProviderIcon;
 	}
@@ -44,9 +60,8 @@ export function getProviderIconForIdentity(identity: string, copilotIdentity: st
 	if (normalized.includes('openai') || normalized.includes('chatgpt') || normalized.includes('gpt') || normalized.includes('codex') || /\bo[134]\b/.test(normalized)) {
 		return openAIModelProviderIcon;
 	}
-	// Checked last, so a more specific match always wins.
-	if (copilotIdentity.toLowerCase().includes('copilot')) {
-		return copilotModelProviderIcon;
+	if (normalized.includes('dardcor') || modelIdentity.toLowerCase().includes('dardcor')) {
+		return dardcorModelProviderIcon;
 	}
 	return genericModelProviderIcon;
 }
@@ -60,10 +75,8 @@ export function getModelProviderIcon(model: ILanguageModelChatMetadataAndIdentif
 		return genericModelProviderIcon;
 	}
 	if (isAutoLanguageModel(model)) {
-		return copilotModelProviderIcon;
+		return dardcorModelProviderIcon;
 	}
-	// The Copilot fallback reads the model's own name only: the vendor is `copilot` for
-	// every first-party model, so including it would brand the whole catalogue.
 	return getProviderIconForIdentity(identity, `${model.metadata.id} ${model.metadata.name}`);
 }
 

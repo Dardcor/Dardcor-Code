@@ -17,8 +17,8 @@ export interface ISessionData {
 }
 
 export interface IDailyAggregate {
-	date: string; // ISO date string (YYYY-MM-DD)
-	displayDate: string; // Formatted for display
+	date: string;
+	displayDate: string;
 	aiRate: number;
 	totalAiChars: number;
 	totalTypedChars: number;
@@ -59,13 +59,11 @@ export function aggregateSessionsByDay(sessions: readonly ISessionData[]): IDail
 		aggregate.sessionCount += 1;
 	}
 
-	// Calculate AI rate for each day
 	for (const aggregate of dayMap.values()) {
 		const total = aggregate.totalAiChars + aggregate.totalTypedChars;
 		aggregate.aiRate = total > 0 ? aggregate.totalAiChars / total : 0;
 	}
 
-	// Sort by date
 	return Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -112,7 +110,6 @@ export function createAiStatsChart(
 		return container;
 	}
 
-	// Draw axes
 	const xAxisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
 	xAxisLine.setAttribute('x1', '0');
 	xAxisLine.setAttribute('y1', `${innerHeight}`);
@@ -131,7 +128,6 @@ export function createAiStatsChart(
 	yAxisLine.setAttribute('stroke-width', '1px');
 	g.appendChild(yAxisLine);
 
-	// Y-axis labels (0%, 50%, 100%)
 	for (const pct of [0, 50, 100]) {
 		const y = innerHeight - (pct / 100) * innerHeight;
 		const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -170,8 +166,6 @@ export function createAiStatsChart(
 		const totalBarSpace = barCount * barWidth + (barCount - 1) * gap;
 		const startX = (innerWidth - totalBarSpace) / 2;
 
-		// Calculate which labels to show based on available space
-		// Each label needs roughly 40px of space to not overlap
 		const minLabelSpacing = 40;
 		const totalWidth = totalBarSpace;
 		const maxLabels = Math.max(2, Math.floor(totalWidth / minLabelSpacing));
@@ -182,7 +176,6 @@ export function createAiStatsChart(
 			const barHeight = day.aiRate * innerHeight;
 			const y = innerHeight - barHeight;
 
-			// Bar for AI rate
 			const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
 			rect.setAttribute('x', `${x}`);
 			rect.setAttribute('y', `${y}`);
@@ -192,18 +185,16 @@ export function createAiStatsChart(
 			rect.setAttribute('rx', '2');
 			g.appendChild(rect);
 
-			// X-axis label - only show at calculated intervals to avoid overlap
 			const isFirst = i === 0;
 			const isLast = i === barCount - 1;
 			const isAtInterval = i % labelStep === 0;
 
 			if (isFirst || isLast || (isAtInterval && barCount > 2)) {
-				// Skip middle labels if they would be too close to first/last
 				if (!isFirst && !isLast) {
 					const distFromFirst = i * (barWidth + gap);
 					const distFromLast = (barCount - 1 - i) * (barWidth + gap);
 					if (distFromFirst < minLabelSpacing || distFromLast < minLabelSpacing) {
-						return; // Skip this label
+						return;
 					}
 				}
 
@@ -233,7 +224,6 @@ export function createAiStatsChart(
 			const barHeight = aiRate * innerHeight;
 			const y = innerHeight - barHeight;
 
-			// Bar for AI rate
 			const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
 			rect.setAttribute('x', `${x}`);
 			rect.setAttribute('y', `${y}`);
@@ -244,15 +234,12 @@ export function createAiStatsChart(
 			g.appendChild(rect);
 		});
 
-		// X-axis labels: only show first and last to avoid overlap
-		// Each label is roughly 40px wide (e.g., "Jan 15")
 		const minLabelSpacing = 40;
 
 		if (sessionCount === 0) {
 			return;
 		}
 
-		// Always show first label
 		const firstSession = sessionsData[0];
 		const firstX = startX;
 		const firstDate = new Date(firstSession.startTime);
@@ -265,7 +252,6 @@ export function createAiStatsChart(
 		firstLabel.textContent = firstDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 		g.appendChild(firstLabel);
 
-		// Show last label if there's enough space and more than 1 session
 		if (sessionCount > 1 && totalBarSpace >= minLabelSpacing) {
 			const lastSession = sessionsData[sessionCount - 1];
 			const lastX = startX + (sessionCount - 1) * (barWidth + gap);

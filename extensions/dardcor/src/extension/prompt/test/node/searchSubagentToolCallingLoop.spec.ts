@@ -465,7 +465,6 @@ describe('SearchSubagentToolCallingLoop.getEndpoint (non-proxy resolution)', () 
 		return { model, name: `${model} display name`, family, supportsToolCalls } as IChatEndpoint;
 	}
 
-	/** Records how the mock endpoint provider was called so tests can assert the resolution path. */
 	interface IEndpointProviderProbe {
 		getAllCalls: number;
 		familyCalls: string[];

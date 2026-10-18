@@ -6,9 +6,6 @@
 import { ColumnRange } from './columnRange.js';
 import { Range } from '../range.js';
 
-/**
- * Represents a column range in a single line.
-*/
 export class RangeSingleLine {
 	public static fromRange(range: Range): RangeSingleLine | undefined {
 		if (range.endLineNumber !== range.startLineNumber) {
@@ -18,7 +15,6 @@ export class RangeSingleLine {
 	}
 
 	constructor(
-		/** 1-based */
 		public readonly lineNumber: number,
 		public readonly columnRange: ColumnRange,
 	) { }

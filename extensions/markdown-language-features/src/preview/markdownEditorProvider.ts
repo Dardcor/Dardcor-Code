@@ -8,12 +8,6 @@ import { Disposable } from '../util/dispose';
 import { MdLinkOpener } from '../util/openDocumentLink';
 import { getMarkdownLocalResourceRoots } from '../util/resources';
 
-/**
- * Experimental hybrid (WYSIWYG) Markdown editor backed by the
- * `@vscode/markdown-editor` component. The {@link vscode.TextDocument} remains
- * the single source of truth, so native undo/redo, dirty state and hot-exit are
- * preserved.
- */
 export class MarkdownEditorProvider extends Disposable implements vscode.CustomTextEditorProvider {
 
 	public static readonly viewType = 'vscode.markdown.editor';
@@ -89,7 +83,6 @@ export class MarkdownEditorProvider extends Disposable implements vscode.CustomT
 				}
 				case 'setReadonly': {
 					// Remember the edit/read-only choice as the global default for the
-					// next Markdown editor.
 					await this.#globalState.update(MarkdownEditorProvider.#readonlyStateKey, !!message.readonly);
 					break;
 				}
@@ -145,22 +138,11 @@ export class MarkdownEditorProvider extends Disposable implements vscode.CustomT
 		});
 	}
 
-	/**
-	 * Forwards the source-control change information for the document (the same
-	 * added/modified/deleted line changes shown in the editor gutter) to the
-	 * webview, where it is painted in the Markdown editor's gutter. Line ranges
-	 * are converted to source character offsets here, since the webview works in
-	 * offsets.
-	 */
 	#wireQuickDiff(document: vscode.TextDocument, webview: vscode.Webview): vscode.Disposable {
 		const diffProvider = vscode.window.createSourceControlDiffInformation(document.uri);
 
 		const postMarkers = () => {
 			const diffInformation = diffProvider.diffInformation;
-			// The changes are computed asynchronously against a specific document
-			// version. Only map them to offsets while that version still matches the
-			// document we hold, otherwise the line positions could be stale. A newer
-			// diff for the current version will arrive via onDidChange.
 			if (!diffInformation || diffInformation.isStale) {
 				return;
 			}
@@ -168,8 +150,6 @@ export class MarkdownEditorProvider extends Disposable implements vscode.CustomT
 		};
 
 		const onChange = diffProvider.onDidChange(postMarkers);
-		// Re-send once the webview has (re)initialized its model, and whenever the
-		// document settles on the version the changes were computed for.
 		const onMessage = webview.onDidReceiveMessage((message) => {
 			if (message.type === 'ready') {
 				postMarkers();
@@ -184,14 +164,6 @@ export class MarkdownEditorProvider extends Disposable implements vscode.CustomT
 		return vscode.Disposable.from(diffProvider, onChange, onMessage, onDocumentChange);
 	}
 
-	/**
-	 * Bridges the workbench's agent/session comments (the same store the code
-	 * editor renders its comments from) to the webview: existing comments are
-	 * forwarded for rendering, and comments the user adds in the Markdown editor
-	 * are written back to the shared store so they appear in the code editor too.
-	 * Comment ranges are converted between {@link vscode.Range} and the source
-	 * character offsets the webview works in.
-	 */
 	#wireComments(document: vscode.TextDocument, webview: vscode.Webview): vscode.Disposable {
 		const commentsProvider = vscode.window.createAgentEditorComments(document.uri);
 		let webviewReady = false;
@@ -238,11 +210,6 @@ export class MarkdownEditorProvider extends Disposable implements vscode.CustomT
 	}
 
 
-	/**
-	 * Proxies the webview's syntax highlighting requests to the
-	 * `documentSyntaxHighlighting` proposed API, since the webview cannot call
-	 * it directly. Also forwards theme changes so the webview can re-highlight.
-	 */
 	#wireHighlight(webview: vscode.Webview): vscode.Disposable {
 		const onMessage = webview.onDidReceiveMessage(async (message) => {
 			if (message.type !== 'highlight') {
@@ -270,10 +237,10 @@ export class MarkdownEditorProvider extends Disposable implements vscode.CustomT
 		const baseUri = webview.asWebviewUri(documentUri);
 		const nonce = getNonce();
 
-		const body = /* html */ `
+		const body = `
 	<div id="editor"></div>`;
 
-		return /* html */ `<!DOCTYPE html>
+		return `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8" />
@@ -306,21 +273,10 @@ interface GutterMarkerMessage {
 	readonly type: 'added' | 'modified' | 'deleted';
 }
 
-/**
- * Converts the line-based source control changes into source character offset
- * ranges understood by the Markdown editor's `gutterMarkers`. Added/modified
- * changes map to the offset span of their modified lines; deleted changes map to
- * an empty range at the boundary where the removed text used to be.
- *
- * Line ranges use {@link vscode.TextEditorLineRange} semantics: 1-based
- * `startLineNumber` and exclusive `endLineNumberExclusive`.
- */
 function toGutterMarkers(document: vscode.TextDocument, changes: readonly vscode.TextEditorChange[]): GutterMarkerMessage[] {
 	const markers: GutterMarkerMessage[] = [];
 	for (const change of changes) {
 		if (change.kind === vscode.TextEditorChangeKind.Deletion) {
-			// The modified range is empty; place an empty marker at the start of the
-			// line where the removed content used to be.
 			const line = Math.max(0, change.modified.startLineNumber - 1);
 			const offset = document.offsetAt(new vscode.Position(line, 0));
 			markers.push({ start: offset, endExclusive: offset, type: 'deleted' });

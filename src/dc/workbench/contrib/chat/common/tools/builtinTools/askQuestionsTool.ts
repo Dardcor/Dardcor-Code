@@ -26,22 +26,11 @@ import { raceCancellation } from '../../../../../../base/common/async.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { TerminalToolId } from '../terminalToolIds.js';
 
-/**
- * Response returned to the model when the user is not available (autopilot mode).
- */
 export const AUTOPILOT_ASK_USER_RESPONSE =
 	'The user is not available to respond and will review your work later. Work autonomously and make good decisions.';
 
-// Use a distinct id to avoid clashing with extension-provided tools
 export const AskQuestionsToolId = 'vscode_askQuestions';
 
-// Soft limits are used in the schema to guide the model
-// Hard limits are more lenient and used to truncate if the model overshoots
-//
-// Example text at each limit:
-// - header soft (50 chars):        "Which database engine do you want to use for this?"
-// - header hard (75 chars):        "Which database engine and connection pooling strategy do you want to use here?"
-// - question soft (200 chars):     "What testing framework would you like to use for this project? Consider factors like your team's familiarity, community support, and integration with your existing CI/CD pipeline when making a choice."
 const SoftLimits = {
 	header: 50,
 	question: 200
@@ -201,9 +190,6 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 			return this.createSkippedResult(questions);
 		}
 
-		// In autopilot mode or when auto-reply is enabled, the user is not available —
-		// auto-respond instead of blocking. Still append a completed carousel so the
-		// user can see what was skipped.
 		const resolveId = invocation.chatStreamToolCallId ?? invocation.callId;
 		if (request.modeInfo?.permissionLevel === ChatPermissionLevel.Autopilot || this.configService.getValue<boolean>(ChatConfiguration.AutoReply)) {
 			const reason = request.modeInfo?.permissionLevel === ChatPermissionLevel.Autopilot ? 'Autopilot mode' : 'Auto-reply enabled';
@@ -246,8 +232,6 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 			throw new CancellationError();
 		}
 
-		// When the user typed directly in the terminal (bypassing the carousel),
-		// tell the agent to stop asking questions and wait for the command to finish.
 		if (carousel.dismissedByTerminalInput && carousel.terminalId) {
 			this.logService.info(`[AskQuestionsTool] Carousel dismissed because user typed directly in terminal ${carousel.terminalId}`);
 			return {
@@ -309,11 +293,9 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 		const model = this.chatService.getSession(chatSessionResource);
 		let request: IChatRequestModel | undefined;
 		if (model) {
-			// Prefer an exact match on chatRequestId when possible
 			if (chatRequestId) {
 				request = model.getRequests().find(r => r.id === chatRequestId);
 			}
-			// Fall back to the most recent request in the session if we can't find a match
 			if (!request) {
 				request = model.getRequests().at(-1);
 			}
@@ -326,16 +308,6 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 		return { request, sessionResource: chatSessionResource };
 	}
 
-	/**
-	 * Resolves the terminal execution ID for the request.
-	 * Prefer structured metadata and fall back to legacy message parsing for
-	 * old sessions that may not carry the metadata yet.
-	 * As a final fallback, search completed runInTerminal tool invocations in
-	 * the response for the terminal ID, but only when the tool output indicates
-	 * the terminal is still running and waiting for input (foreground/timeout
-	 * path where the model calls ask_questions from the same turn as
-	 * runInTerminal).
-	 */
 	private extractTerminalId(request: IChatRequestModel): string | undefined {
 		if (request.terminalExecutionId) {
 			return request.terminalExecutionId;
@@ -346,11 +318,6 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 			return match.groups.termId;
 		}
 
-		// Search completed runInTerminal tool invocations in the response
-		// for the terminal execution ID (covers foreground/timeout path).
-		// Only match output that explicitly indicates the terminal is still
-		// running and waiting for input; otherwise the question is unrelated
-		// to the prior terminal command.
 		const response = request.response;
 		if (response) {
 			const parts = response.response.value;
@@ -403,12 +370,9 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 			}
 		}
 
-		// Use a stable UUID as the internal ID to avoid collisions when truncating headers
-		// The original header is preserved in idToHeaderMap for answer correlation
 		const internalId = `${resolveId}:${index}`;
 		idToHeaderMap.set(internalId, question.header);
 
-		// Truncate header for display only
 		const displayTitle = truncateToLimit(question.header, HardLimits.header) ?? question.header;
 
 		return {
@@ -435,7 +399,6 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 			this.logService.trace(`[AskQuestionsTool] Question headers: ${questions.map(q => q.header).join(', ')}`);
 		}
 
-		// Build a reverse map: original header -> internal ID
 		const headerToIdMap = new Map<string, string>();
 		for (const [internalId, originalHeader] of idToHeaderMap) {
 			headerToIdMap.set(originalHeader, internalId);
@@ -451,7 +414,6 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 				continue;
 			}
 
-			// Look up the answer using the internal ID that was used in the carousel
 			const internalId = headerToIdMap.get(question.header);
 			const answer: IChatQuestionAnswerValue | undefined = internalId ? carouselAnswers[internalId] : undefined;
 			this.logService.trace(`[AskQuestionsTool] Processing question "${question.header}" (internal ID: ${internalId}), raw answer: ${JSON.stringify(answer)}, type: ${typeof answer}`);
@@ -558,9 +520,6 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 	private createAutopilotResult(questions: IQuestion[]): IToolResult {
 		const answers: Record<string, IQuestionAnswer> = {};
 		for (const question of questions) {
-			// In autopilot mode the user is not available to respond. Do not
-			// auto-select any option — instead instruct the model to make its own
-			// decision regardless of the question type.
 			answers[question.header] = {
 				selected: [],
 				freeText: AUTOPILOT_ASK_USER_RESPONSE,
@@ -572,13 +531,8 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 		};
 	}
 
-	/**
-	 * Build carousel answer data keyed by carousel question IDs for rendering
-	 * the completed summary in the UI during autopilot mode.
-	 */
 	private buildAutopilotCarouselAnswers(questions: IQuestion[], carousel: ChatQuestionCarouselData, idToHeaderMap: Map<string, string>): IChatQuestionAnswers {
 		const data: IChatQuestionAnswers = {};
-		// Build reverse map: original header -> internal carousel question ID
 		const headerToIdMap = new Map<string, string>();
 		for (const [internalId, originalHeader] of idToHeaderMap) {
 			headerToIdMap.set(originalHeader, internalId);
@@ -595,8 +549,6 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 				continue;
 			}
 
-			// Do not auto-select any option in autopilot mode — show the
-			// "user is not available" response as the answer for all question types.
 			if (chatQuestion.type === 'multiSelect') {
 				data[internalId] = { selectedValues: [], freeformValue: AUTOPILOT_ASK_USER_RESPONSE };
 			} else if (chatQuestion.type === 'singleSelect') {

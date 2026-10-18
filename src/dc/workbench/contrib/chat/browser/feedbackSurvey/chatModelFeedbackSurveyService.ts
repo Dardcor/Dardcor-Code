@@ -23,40 +23,30 @@ import { IChatResponseViewModel } from '../../common/model/chatViewModel.js';
 import { IChatSessionsService } from '../../common/chatSessionsService.js';
 import { IChatService } from '../../common/chatService/chatService.js';
 
-/** Name of the experiment treatment carrying the survey payload. */
 export const CHAT_MODEL_FEEDBACK_SURVEY_TREATMENT = 'chatModelFeedbackSurvey';
 
-/** Gates the in product feedback UI. The survey replaces thumbs up and down, so it obeys this too. */
 const FEEDBACK_ENABLED_CONFIG = 'telemetry.feedback.enabled';
 
 const STORAGE_PREFIX = 'chat.modelFeedbackSurvey.';
 
 export const enum ChatModelFeedbackSurveyStatus {
-	/** Available but not showing: only the feedback control is rendered. */
 	Collapsed = 'collapsed',
 	Open = 'open',
 }
 
-/** What caused the survey to open, recorded so the funnel can separate the two paths. */
 export type ChatModelFeedbackSurveyOpenTrigger = 'manual' | 'chance' | 'modelSwitchedAway';
 
 export interface IChatModelFeedbackSurveyState {
 	readonly config: IChatModelFeedbackSurveyConfig;
 	readonly instanceId: string;
 	readonly status: ChatModelFeedbackSurveyStatus;
-	/** Index into `config.steps` of the step currently being shown. */
 	readonly stepIndex: number;
-	/** Answers so far, keyed by step id. Choice steps store an option id, text steps the comment. */
 	readonly answers: ReadonlyMap<string, string>;
-	/** Uncommitted free text, preserved across the widget being recycled by virtualization. */
 	readonly commentDraft: string;
-	/** Whether this survey was submitted. Reopening it acknowledges rather than asks again. */
 	readonly isSubmitted: boolean;
-	/** What opened the survey, so the UI can take focus only when the user asked for it. */
 	readonly openTrigger: ChatModelFeedbackSurveyOpenTrigger | undefined;
 }
 
-/** Identifies the response whose survey changed, without retaining its view model. */
 export interface IChatModelFeedbackSurveyChangeEvent {
 	readonly sessionResource: URI;
 	readonly requestId: string;
@@ -67,39 +57,18 @@ export const IChatModelFeedbackSurveyService = createDecorator<IChatModelFeedbac
 export interface IChatModelFeedbackSurveyService {
 	readonly _serviceBrand: undefined;
 
-	/** Fires when a response's survey state changes, so the row can re-render. */
 	readonly onDidChangeSurveyState: Event<IChatModelFeedbackSurveyChangeEvent>;
 
-	/**
-	 * Fires when the configured survey changes, including when it first resolves. Rows rendered
-	 * before that point carry no control until they re-render, so they listen for this.
-	 */
 	readonly onDidChangeConfiguration: Event<void>;
 
-	/**
-	 * The survey attached to a response, or `undefined` when the config does not apply to it.
-	 *
-	 * Presence depends only on the `match` rules and never on the prompting heuristics, so the
-	 * control does not come and go between responses. Repeated calls return the same state, so a
-	 * row scrolling back into view keeps its control and is not asked to prompt twice.
-	 */
 	getSurvey(response: IChatResponseViewModel): IChatModelFeedbackSurveyState | undefined;
 
-	/**
-	 * Opens the survey, or closes it when it is already showing. Manual opens are never rate
-	 * limited, because the prompting rules only exist to pace surveys the user did not ask for.
-	 */
 	toggle(response: IChatResponseViewModel): void;
 
-	/**
-	 * Reports that the user moved the model picker from one model to another. Leaving a surveyed
-	 * model for an unsurveyed one is the strongest signal that the model was wrong.
-	 */
 	notifyModelSwitchedAway(sessionResource: URI, fromModelId: string, toModelId: string): void;
 	answerChoice(response: IChatResponseViewModel, stepId: string, optionId: string): void;
 	submit(response: IChatResponseViewModel, comment?: string): void;
 	dismiss(response: IChatResponseViewModel): void;
-	/** Records in-progress free text without re-rendering, so it survives row recycling. */
 	setCommentDraft(response: IChatResponseViewModel, comment: string): void;
 }
 
@@ -114,17 +83,13 @@ interface IMutableSurveyState {
 	commentDraft: string;
 	isSubmitted: boolean;
 	openTrigger: ChatModelFeedbackSurveyOpenTrigger | undefined;
-	/** Dimensions read from the response when the survey was created. */
 	readonly dimensions: IChatModelFeedbackSurveyDimensions;
-	/** Guards against re-emitting `shown` when a virtualized row is re-rendered. */
 	shownReported: boolean;
-	/** Text already reported, so submitting and dismissing cannot report it twice. */
 	reportedComment?: string;
 }
 
 type IChatModelFeedbackSurveyDimensions = Pick<IChatModelFeedbackSurveyTelemetryEvent, 'modelId' | 'resolvedModelId' | 'modeId' | 'harness' | 'sessionType'>;
 
-/** Whether the user is part way through answering, as opposed to done or not started. */
 function isInProgress(state: IMutableSurveyState): boolean {
 	return state.status === ChatModelFeedbackSurveyStatus.Open && !state.isSubmitted;
 }
@@ -141,13 +106,10 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 
 	private _config: IChatModelFeedbackSurveyConfig | undefined;
 	private _configResolved = false;
-	/** Increments on every treatment refresh so a slow in-flight resolution cannot overwrite a newer one. */
 	private _configGeneration = 0;
 
 	private readonly _states = new Map<string, IMutableSurveyState>();
-	/** How many times the survey has opened itself in each session, keyed by session resource. */
 	private readonly _sessionPromptCounts = new Map<string, number>();
-	/** The most recent response carrying a survey in each session, for event-driven prompting. */
 	private readonly _lastSurveyedResponse = new Map<string, string>();
 
 	constructor(
@@ -178,7 +140,7 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		}
 
 		if (generation !== this._configGeneration) {
-			return; // a newer resolution won
+			return;
 		}
 
 		const previousId = this._config?.id;
@@ -195,9 +157,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		}
 		this._configResolved = true;
 
-		// Only a different survey invalidates state, since reported step indices would no longer
-		// mean what they did when sent. A treatment that resolves to nothing happens while the
-		// experimentation client is rebuilt, and must not close an open survey or reset budgets.
 		if (this._config && this._config.id !== previousId) {
 			this._states.clear();
 			this._sessionPromptCounts.clear();
@@ -213,17 +172,11 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		const key = this.getKey(response);
 		const existing = this._states.get(key);
 		if (existing) {
-			// The config can be retired and feedback can be switched off after a survey was
-			// offered, so a cached one is only handed back while it still applies. A survey the
-			// user is part way through is left alone, since a treatment that briefly resolves to
-			// nothing must not take a form away mid answer.
 			const stillApplies = this._config?.id === existing.config.id && this.isFeedbackUiEnabled();
 			if (!stillApplies && !isInProgress(existing)) {
 				this._states.delete(key);
 				return undefined;
 			}
-			// A survey the user is part way through stays put, so a form is never pulled away
-			// when a newer response arrives. Anything else follows the newest response.
 			if (!response.isLast && !isInProgress(existing)) {
 				this._states.delete(key);
 				return undefined;
@@ -232,12 +185,10 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 			return this.toReadonly(existing);
 		}
 
-		// Only the newest response offers feedback, so history never fills with stale controls.
 		if (!response.isLast) {
 			return undefined;
 		}
 
-		// Runs before the match check so a newer response the survey ignores still supersedes.
 		this.dropSupersededStates(response.sessionResource, key);
 
 		const config = this.getMatchingConfig(response);
@@ -263,8 +214,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		this._lastSurveyedResponse.set(response.sessionResource.toString(), key);
 		this.reportShownOnce(state);
 
-		// Rolled once per response so the outcome is stable however often the row re-renders.
-		// The caller is mid render and reads the state below, so this does not announce a change.
 		if (this.shouldPromptByChance(state)) {
 			this.beginPrompt(state, 'chance', false);
 		}
@@ -291,8 +240,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 			return;
 		}
 
-		// Leaving one surveyed model for another is not abandoning the thing being surveyed, and
-		// a switch between two unrelated models says nothing about it either.
 		if (!this.isSurveyedModel(state.config, fromModelId) || this.isSurveyedModel(state.config, toModelId)) {
 			return;
 		}
@@ -305,17 +252,15 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		this.beginPrompt(state, 'modelSwitchedAway');
 	}
 
-	/** Whether a model identifier is one the survey's `selectedModels` selectors name. */
 	private isSurveyedModel(config: IChatModelFeedbackSurveyConfig, modelId: string): boolean {
 		const selectors = config.match.selectedModels;
 		if (!selectors.length) {
-			return false; // a survey that does not name a model cannot detect leaving one
+			return false;
 		}
 		const candidates = expandModelMatchCandidates(modelId, this.getModelAliases(modelId));
 		return selectors.some(selector => candidates.has(selector));
 	}
 
-	/** The other identifiers a selector may name a model by. */
 	private getModelAliases(modelId: string | undefined): string[] | undefined {
 		const metadata = modelId ? this.languageModelsService.lookupLanguageModel(modelId) : undefined;
 		return metadata ? modelSelectorAliases(metadata) : undefined;
@@ -332,7 +277,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		if (!step || step.kind !== ChatModelFeedbackSurveyStepKind.Choice) {
 			return;
 		}
-		// Only ids that came from the config may reach telemetry.
 		if (!step.options.some(option => option.id === optionId)) {
 			return;
 		}
@@ -342,8 +286,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 
 		const isLastStep = stepIndex === state.config.steps.length - 1;
 		if (isLastStep) {
-			// A survey that ends on a choice has no Submit button, so the final selection is the
-			// submission. Without this the panel would re-render the same question forever.
 			this.finish(state, true, 'submitted');
 			return;
 		}
@@ -368,8 +310,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 			return;
 		}
 
-		// Closing an acknowledgement is not a dismissal, and reporting one would double count
-		// against the submission already sent.
 		if (state.isSubmitted) {
 			state.status = ChatModelFeedbackSurveyStatus.Collapsed;
 			this._onDidChangeSurveyState.fire(this.toChangeEvent(state));
@@ -385,17 +325,10 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		if (!state || state.status !== ChatModelFeedbackSurveyStatus.Open) {
 			return;
 		}
-		// No change event, because re-rendering on every keystroke would fight the input. The
-		// draft lives here so recycling the widget cannot discard it.
 		state.commentDraft = comment;
 	}
 
-	// --- automatic prompting
 
-	/**
-	 * Decides whether a newly surveyed response should prompt on its own. The odds ramp with
-	 * every response that passed without prompting, so heavier users reach the survey sooner.
-	 */
 	private shouldPromptByChance(state: IMutableSurveyState): boolean {
 		const { chance } = state.config.prompt;
 		if (chance.initial <= 0 && chance.increment <= 0) {
@@ -418,7 +351,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		return false;
 	}
 
-	/** Releases everything held for sessions that have gone away. */
 	private forgetSessions(sessionResources: readonly URI[]): void {
 		for (const sessionResource of sessionResources) {
 			const session = sessionResource.toString();
@@ -432,7 +364,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		}
 	}
 
-	/** Whether any survey is part way through, which an unrequested prompt must not displace. */
 	private hasSurveyInProgress(): boolean {
 		for (const state of this._states.values()) {
 			if (isInProgress(state)) {
@@ -459,7 +390,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		return Date.now() - lastPromptAt >= prompt.cooldownDays * 24 * 60 * 60 * 1000;
 	}
 
-	/** Opens the survey unprompted and charges it against the pacing budgets. */
 	private beginPrompt(state: IMutableSurveyState, trigger: ChatModelFeedbackSurveyOpenTrigger, announce = true): void {
 		const sessionKey = state.sessionResource.toString();
 		this._sessionPromptCounts.set(sessionKey, (this._sessionPromptCounts.get(sessionKey) ?? 0) + 1);
@@ -470,7 +400,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 
 	private openState(state: IMutableSurveyState, trigger: ChatModelFeedbackSurveyOpenTrigger, announce = true): void {
 		this.closeOtherOpenSurveys(state);
-		// A submitted survey reopens read only, so it needs no new instance.
 		if (!state.isSubmitted && state.stepIndex >= state.config.steps.length) {
 			state.stepIndex = 0;
 		}
@@ -487,8 +416,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 	private finish(state: IMutableSurveyState, submitted: boolean, kind: ChatModelFeedbackSurveyEventKind): void {
 		const stepIndex = state.stepIndex;
 		state.isSubmitted = submitted;
-		// A submitted survey stays open to acknowledge. An abandoned one closes and can be
-		// reopened, since the user never answered it.
 		state.status = submitted ? ChatModelFeedbackSurveyStatus.Open : ChatModelFeedbackSurveyStatus.Collapsed;
 		this.report(state, kind, { stepIndex });
 		this._onDidChangeSurveyState.fire(this.toChangeEvent(state));
@@ -498,7 +425,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		return { sessionResource: state.sessionResource, requestId: state.requestId };
 	}
 
-	// --- eligibility
 
 	private getMatchingConfig(response: IChatResponseViewModel): IChatModelFeedbackSurveyConfig | undefined {
 		if (!this._configResolved || !this._config) {
@@ -524,7 +450,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		}) ? this._config : undefined;
 	}
 
-	/** Answers that could never be sent must not be collected in the first place. */
 	private isFeedbackUiEnabled(): boolean {
 		return this.configurationService.getValue<boolean>(FEEDBACK_ENABLED_CONFIG) !== false
 			&& this.telemetryService.telemetryLevel !== TelemetryLevel.NONE;
@@ -535,12 +460,10 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		return typeof resolvedModel === 'string' ? resolvedModel : undefined;
 	}
 
-	/** Normalizes local and remote session types to one provider id, which is what a config targets. */
 	private getHarness(sessionResource: URI): string | undefined {
 		return this.chatSessionsService.getChatSessionContribution(getChatSessionType(sessionResource))?.agentHostProviderId;
 	}
 
-	// --- prompt pacing storage
 
 	private readPromptMisses(config: IChatModelFeedbackSurveyConfig): number {
 		const value = this.storageService.getNumber(`${STORAGE_PREFIX}${config.id}.promptMisses`, StorageScope.PROFILE, 0);
@@ -560,7 +483,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		this.storageService.store(`${STORAGE_PREFIX}${config.id}.lastPromptAt`, timestamp, StorageScope.PROFILE, StorageTarget.MACHINE);
 	}
 
-	// --- state bookkeeping
 
 	private getKey(response: IChatResponseViewModel): string {
 		return `${response.sessionResource.toString()}\u0000${response.requestId}`;
@@ -579,10 +501,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		};
 	}
 
-	/**
-	 * Closes whichever survey was already showing, since only one is open at a time. This is the
-	 * UI moving on rather than the user rejecting anything, so nothing is reported.
-	 */
 	private closeOtherOpenSurveys(keep: IMutableSurveyState): void {
 		for (const other of [...this._states.values()]) {
 			if (other === keep || other.status !== ChatModelFeedbackSurveyStatus.Open) {
@@ -593,10 +511,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		}
 	}
 
-	/**
-	 * Within one session, keeps the newest response plus anything the user is part way through.
-	 * Other sessions are separate transcripts and are left alone.
-	 */
 	private dropSupersededStates(sessionResource: URI, currentKey: string): void {
 		const session = sessionResource.toString();
 		for (const [key, state] of [...this._states]) {
@@ -606,7 +520,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		}
 	}
 
-	// --- telemetry
 
 	private reportShownOnce(state: IMutableSurveyState): void {
 		if (state.shownReported) {
@@ -617,7 +530,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 	}
 
 	private reportCommentOnce(state: IMutableSurveyState, comment: string | undefined): void {
-		// Validation guarantees at most one text step, and that it is last.
 		const textStep = state.config.steps.at(-1);
 		if (textStep?.kind !== ChatModelFeedbackSurveyStepKind.Text) {
 			return;
@@ -654,7 +566,7 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 		details: Pick<IChatModelFeedbackSurveyTelemetryEvent, 'stepId' | 'stepIndex' | 'answerId' | 'comment' | 'trigger'>,
 	): void {
 		if (!this.isFeedbackUiEnabled()) {
-			return; // never let survey content cross the process boundary when feedback is off
+			return;
 		}
 
 		const event: IChatModelFeedbackSurveyTelemetryEvent = {
@@ -667,7 +579,6 @@ export class ChatModelFeedbackSurveyService extends Disposable implements IChatM
 			requestId: state.requestId,
 		};
 
-		// Best effort: the survey must never interfere with the chat session.
 		this.commandService.executeCommand(CHAT_MODEL_FEEDBACK_SURVEY_TELEMETRY_COMMAND_ID, event)
 			.catch(err => this.logService.trace(`[chatModelFeedbackSurvey] failed to report '${kind}': ${err}`));
 	}

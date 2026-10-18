@@ -65,7 +65,6 @@ export class TopmostLineMonitor extends Disposable {
 		line: number
 	) {
 		if (!this.#pendingUpdates.has(resource)) {
-			// schedule update
 			setTimeout(() => {
 				if (this.#pendingUpdates.has(resource)) {
 					this.#onChanged.fire({
@@ -81,12 +80,6 @@ export class TopmostLineMonitor extends Disposable {
 	}
 }
 
-/**
- * Get the top-most visible range of `editor`.
- *
- * Returns a fractional line number based the visible character within the line.
- * Floor to get real line number
- */
 export function getVisibleLine(
 	editor: vscode.TextEditor
 ): number | undefined {

@@ -54,28 +54,28 @@ suite('terminalActions', () => {
 		suite('should select the pair that has the same URI when repeated cwds exist', () => {
 			test('all repeated', () => {
 				const pairA = makePair(a);
-				const pairB = makePair(b, a); // CWD points to A
-				const pairC = makePair(c, a); // CWD points to A
+				const pairB = makePair(b, a);
+				const pairC = makePair(c, a);
 				deepStrictEqual(shrinkWorkspaceFolderCwdPairs([pairA, pairB, pairC]), [pairA]);
 			});
 
 			test('two repeated + one different', () => {
 				const pairA = makePair(a);
-				const pairB = makePair(b, a); // CWD points to A
+				const pairB = makePair(b, a);
 				const pairC = makePair(c);
 				deepStrictEqual(shrinkWorkspaceFolderCwdPairs([pairA, pairB, pairC]), [pairA, pairC]);
 			});
 
 			test('two repeated + two repeated', () => {
 				const pairA = makePair(a);
-				const pairB = makePair(b, a); // CWD points to A
+				const pairB = makePair(b, a);
 				const pairC = makePair(c);
 				const pairD = makePair(d, c);
 				deepStrictEqual(shrinkWorkspaceFolderCwdPairs([pairA, pairB, pairC, pairD]), [pairA, pairC]);
 			});
 
 			test('two repeated + two repeated (reverse order)', () => {
-				const pairB = makePair(b, a); // CWD points to A
+				const pairB = makePair(b, a);
 				const pairA = makePair(a);
 				const pairD = makePair(d, c);
 				const pairC = makePair(c);

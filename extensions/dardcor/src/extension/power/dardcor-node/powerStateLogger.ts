@@ -8,10 +8,6 @@ import { ILogService } from '../../../platform/log/common/logService';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IExtensionContribution } from '../../common/contributions';
 
-/**
- * Logs the initial power state and power state change events to the output channel.
- * Monitors vscode.env.power for battery status, thermal state, suspend/resume, and power-saving modes.
- */
 export class PowerStateLogger extends Disposable implements IExtensionContribution {
 	readonly id = 'powerStateLogger';
 
@@ -22,16 +18,13 @@ export class PowerStateLogger extends Disposable implements IExtensionContributi
 	) {
 		super();
 
-		// Register toggle power save blocker command
 		this._register(vscode.commands.registerCommand('github.dardcor.debug.togglePowerSaveBlocker', async () => {
 			const isActive = await this._toggleManualPowerSaveBlocker();
 			vscode.window.showInformationMessage(isActive ? 'Power save blocker is now active' : 'Power save blocker is now inactive');
 		}));
 
-		// Log initial power state
 		this.logInitialPowerState();
 
-		// Listen for system suspend/resume events
 		this._register(vscode.env.power.onDidSuspend(() => {
 			this.logService.debug('[Power] System is suspending (going to sleep)');
 		}));
@@ -40,27 +33,22 @@ export class PowerStateLogger extends Disposable implements IExtensionContributi
 			this.logService.debug('[Power] System is resuming from sleep');
 		}));
 
-		// Listen for battery power state changes
 		this._register(vscode.env.power.onDidChangeOnBatteryPower(onBattery => {
 			this.logService.debug(`[Power] Battery power state changed: ${onBattery ? 'on battery' : 'on AC power'}`);
 		}));
 
-		// Listen for thermal state changes (macOS only)
 		this._register(vscode.env.power.onDidChangeThermalState(thermalState => {
 			this.logService.debug(`[Power] Thermal state changed: ${thermalState}`);
 		}));
 
-		// Listen for CPU speed limit changes
 		this._register(vscode.env.power.onDidChangeSpeedLimit(speedLimit => {
 			this.logService.debug(`[Power] CPU speed limit changed: ${speedLimit}% ${speedLimit < 100 ? '(throttled)' : ''}`);
 		}));
 
-		// Listen for shutdown events
 		this._register(vscode.env.power.onWillShutdown(() => {
 			this.logService.debug('[Power] System is about to shut down or reboot');
 		}));
 
-		// Listen for screen lock/unlock events
 		this._register(vscode.env.power.onDidLockScreen(() => {
 			this.logService.debug('[Power] Screen is being locked');
 		}));
@@ -93,7 +81,6 @@ export class PowerStateLogger extends Disposable implements IExtensionContributi
 		}
 
 		try {
-			// Check if the API is available (proposed API, desktop only)
 			if (typeof vscode.env.power?.startPowerSaveBlocker !== 'function') {
 				this.logService.debug('[Power] Power save blocker API not available');
 				return false;

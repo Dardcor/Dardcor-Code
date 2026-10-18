@@ -92,7 +92,6 @@ export class PromptValidator {
 					));
 				}
 
-				// Extract folder name from path (e.g., .github/skills/my-skill/SKILL.md -> my-skill)
 				const pathParts = promptAST.uri.path.split('/');
 				const skillIndex = pathParts.findIndex(part => isSkillFilename(part));
 				if (skillIndex > 0) {
@@ -116,8 +115,6 @@ export class PromptValidator {
 				MarkerSeverity.Warning
 			));
 
-			// Without a description, user-invocable: false is invalid because the skill
-			// would be model-only but has no description for the model to decide when to use it.
 			if (promptAST.header.userInvocable === false) {
 				const userInvocableAttr = promptAST.header.getAttribute(PromptHeaderAttributes.userInvocable);
 				if (userInvocableAttr) {
@@ -129,8 +126,6 @@ export class PromptValidator {
 				}
 			}
 
-			// Without a description, disable-model-invocation: false (model invocation enabled)
-			// is the default but if explicitly set, report an error that a description is needed.
 			if (promptAST.header.disableModelInvocation === false) {
 				const disableModelInvocationAttr = promptAST.header.getAttribute(PromptHeaderAttributes.disableModelInvocation);
 				if (disableModelInvocationAttr) {
@@ -143,7 +138,6 @@ export class PromptValidator {
 			}
 		}
 
-		// Validate context: fork — requires the skill tool to be enabled
 		const contextAttribute = promptAST.header?.getAttribute(PromptHeaderAttributes.context);
 		if (contextAttribute && contextAttribute.value.type === 'scalar' && contextAttribute.value.value.trim() === 'fork') {
 			const skillToolEnabled = this.configurationService.getValue<boolean>('github.copilot.chat.skillTool.enabled');
@@ -163,7 +157,6 @@ export class PromptValidator {
 			return;
 		}
 
-		// Validate file references
 		const fileReferenceChecks: Promise<void>[] = [];
 		for (const ref of body.fileReferences) {
 			const resolved = body.resolveFilePath(ref.content);
@@ -172,7 +165,6 @@ export class PromptValidator {
 				continue;
 			}
 			if (promptAST.uri.scheme === resolved.scheme) {
-				// only validate if the link is in the file system of the prompt file
 				fileReferenceChecks.push((async () => {
 					try {
 						const exists = await this.fileService.exists(resolved);
@@ -187,7 +179,6 @@ export class PromptValidator {
 			}
 		}
 
-		// Validate variable references (tool or toolset names)
 		if (body.variableReferences.length && isVSCodeOrDefaultTarget(target)) {
 			const headerTools = promptAST.header?.tools;
 			const headerToolsMap = headerTools ? this.languageModelToolsService.toToolAndToolSetEnablementMap(headerTools, undefined) : undefined;
@@ -303,7 +294,6 @@ export class PromptValidator {
 						if (target === Target.GitHubCopilot) {
 							report(toMarker(localize('promptValidator.unknownAttribute.github-agent', "Attribute '{0}' is not supported in custom Dardcor AI agent files. Supported: {1}.", attribute.key, supportedNames.value), attribute.range, MarkerSeverity.Hint, [MarkerTag.Unnecessary]));
 						} else if (target === Target.Claude) {
-							// ignore for now as we don't have a full list of supported attributes for claude target
 						} else {
 							if (validGithubCopilotAttributeNames.value.has(attribute.key)) {
 								report(toMarker(localize('promptValidator.ignoredAttribute.vscode-agent', "Attribute '{0}' is ignored when running locally in VS Code.", attribute.key), attribute.range, MarkerSeverity.Hint, [MarkerTag.Unnecessary]));
@@ -413,7 +403,6 @@ export class PromptValidator {
 
 		const languageModels = this.languageModelsService.getLanguageModelIds();
 		if (languageModels.length === 0) {
-			// likely the service is not initialized yet
 			return;
 		}
 
@@ -428,7 +417,6 @@ export class PromptValidator {
 	}
 
 	private validateClaudeAttributes(attributes: IHeaderAttribute[], report: (markers: IMarkerData) => void): void {
-		// vaidate all claude-specific attributes that have enum values
 		for (const claudeAttributeName in claudeAgentAttributes) {
 			const claudeAttribute = claudeAgentAttributes[claudeAttributeName];
 			const enumValues = claudeAttribute.enums;
@@ -472,7 +460,7 @@ export class PromptValidator {
 
 		const attribute = attributes.find(attr => attr.key === PromptHeaderAttributes.agent) ?? modeAttribute;
 		if (!attribute) {
-			return undefined; // default agent for prompts is Agent
+			return undefined;
 		}
 		if (attribute.value.type !== 'scalar') {
 			report(toMarker(localize('promptValidator.attributeMustBeString', "The '{0}' attribute must be a string.", attribute.key), attribute.value.range, MarkerSeverity.Error));
@@ -490,12 +478,11 @@ export class PromptValidator {
 		const agents = await this.chatModeService.getLocalModes();
 		const availableAgents = [];
 
-		// Check if agent exists in builtin or custom agents
 		for (const agent of Iterable.concat(agents.builtin, agents.custom)) {
 			if (agent.name.get() === value.value) {
 				return agent;
 			}
-			availableAgents.push(agent.name.get()); // collect all available agent names
+			availableAgents.push(agent.name.get());
 		}
 
 		const errorMessage = localize('promptValidator.agentNotFound', "Unknown agent '{0}'. Available agents: {1}.", value.value, availableAgents.join(', '));
@@ -520,7 +507,6 @@ export class PromptValidator {
 			return;
 		}
 		if (target === Target.GitHubCopilot || target === Target.Claude) {
-			// no validation for github-copilot target and claude
 		} else {
 			this.validateVSCodeTools(value, report);
 		}
@@ -753,10 +739,8 @@ export class PromptValidator {
 			return;
 		}
 
-		// Detect nested matcher format: { matcher?: "...", hooks: [{ type: 'command', command: '...' }] }
 		const hooksProperty = item.properties.find(p => p.key.value === 'hooks');
 		if (hooksProperty) {
-			// Validate that only known matcher properties are present
 			for (const prop of item.properties) {
 				if (prop.key.value !== 'hooks' && prop.key.value !== 'matcher') {
 					report(toMarker(localize('promptValidator.unknownMatcherProperty', "Unknown property '{0}' in hook matcher.", prop.key.value), prop.key.range, MarkerSeverity.Warning));
@@ -774,7 +758,6 @@ export class PromptValidator {
 
 		const isCopilotCli = target === Target.GitHubCopilot;
 
-		// Determine valid and command-providing properties based on target
 		const validCommandFields = isCopilotCli
 			? new Set(['bash', 'powershell'])
 			: new Set(['command', 'windows', 'linux', 'osx', 'bash', 'powershell']);
@@ -897,7 +880,6 @@ export class PromptValidator {
 				report(toMarker(localize('promptValidator.missingHandoffProperties', "Missing required properties {0} in handoff object.", Array.from(required).map(s => `'${s}'`).join(', ')), item.range, MarkerSeverity.Error));
 			}
 
-			// Detect duplicate labels (case-insensitive, consistent with ExecuteHandoffAction lookup)
 			const labelProp = item.properties.find(p => p.key.value === 'label');
 			if (labelProp?.value.type === 'scalar') {
 				const normalizedLabel = labelProp.value.value.toLowerCase();
@@ -970,12 +952,10 @@ export class PromptValidator {
 			return;
 		}
 
-		// Collect available agent names
 		const agents = (await this.promptsService.getCustomAgents(CancellationToken.None)).filter(a => a.enabled);
 		const availableAgentNames = new Set<string>(agents.map(agent => agent.name));
-		availableAgentNames.add(ChatMode.Agent.name.get()); // include default agent
+		availableAgentNames.add(ChatMode.Agent.name.get());
 
-		// Check each item is a string and agent exists
 		const agentNames: string[] = [];
 		for (const item of attribute.value.items) {
 			if (item.type !== 'scalar') {
@@ -988,7 +968,6 @@ export class PromptValidator {
 			}
 		}
 
-		// If not wildcard and not empty, check that 'agent' tool is available
 		if (agentNames.length > 0) {
 			const tools = header.tools;
 			if (tools && !tools.includes(SpecedToolAliases.agent)) {
@@ -1060,7 +1039,7 @@ const allAttributeNames: Record<PromptsType, string[]> = {
 	[PromptsType.instructions]: [PromptHeaderAttributes.name, PromptHeaderAttributes.description, PromptHeaderAttributes.applyTo, PromptHeaderAttributes.excludeAgent],
 	[PromptsType.agent]: [PromptHeaderAttributes.name, PromptHeaderAttributes.description, PromptHeaderAttributes.model, PromptHeaderAttributes.tools, PromptHeaderAttributes.advancedOptions, PromptHeaderAttributes.handOffs, PromptHeaderAttributes.argumentHint, PromptHeaderAttributes.target, PromptHeaderAttributes.infer, PromptHeaderAttributes.agents, PromptHeaderAttributes.hooks, PromptHeaderAttributes.userInvocable, PromptHeaderAttributes.disableModelInvocation, GithubPromptHeaderAttributes.github],
 	[PromptsType.skill]: [PromptHeaderAttributes.name, PromptHeaderAttributes.description, PromptHeaderAttributes.license, PromptHeaderAttributes.compatibility, PromptHeaderAttributes.metadata, PromptHeaderAttributes.argumentHint, PromptHeaderAttributes.userInvocable, PromptHeaderAttributes.disableModelInvocation, PromptHeaderAttributes.context],
-	[PromptsType.hook]: [], // hooks are JSON files, not markdown with YAML frontmatter
+	[PromptsType.hook]: [],
 };
 const githubCopilotAgentAttributeNames = [PromptHeaderAttributes.name, PromptHeaderAttributes.description, PromptHeaderAttributes.tools, PromptHeaderAttributes.target, GithubPromptHeaderAttributes.mcpServers, GithubPromptHeaderAttributes.github, PromptHeaderAttributes.infer];
 const recommendedAttributeNames: Record<PromptsType, string[]> = {
@@ -1068,7 +1047,7 @@ const recommendedAttributeNames: Record<PromptsType, string[]> = {
 	[PromptsType.instructions]: allAttributeNames[PromptsType.instructions].filter(name => !isNonRecommendedAttribute(name)),
 	[PromptsType.agent]: allAttributeNames[PromptsType.agent].filter(name => !isNonRecommendedAttribute(name)),
 	[PromptsType.skill]: allAttributeNames[PromptsType.skill].filter(name => !isNonRecommendedAttribute(name)),
-	[PromptsType.hook]: [], // hooks are JSON files, not markdown with YAML frontmatter
+	[PromptsType.hook]: [],
 };
 
 export function getValidAttributeNames(promptType: PromptsType, includeNonRecommended: boolean, target: Target): string[] {
@@ -1174,7 +1153,6 @@ export function getAttributeDescription(attributeName: string, promptType: Promp
 	return undefined;
 }
 
-// The list of tools known to be used by GitHub Copilot custom agents
 export const knownGithubCopilotTools = [
 	{ name: SpecedToolAliases.execute, description: localize('githubCopilot.execute', 'Execute commands') },
 	{ name: SpecedToolAliases.read, description: localize('githubCopilot.read', 'Read files') },
@@ -1223,9 +1201,6 @@ export function mapClaudeModels(claudeModelNames: readonly string[]): readonly s
 	return result;
 }
 
-/**
- * Maps Claude tool names to their VS Code tool equivalents.
- */
 export function mapClaudeTools(claudeToolNames: readonly string[]): string[] {
 	const result: string[] = [];
 	for (const name of claudeToolNames) {
@@ -1301,10 +1276,6 @@ export const claudeAgentAttributes: Record<string, { type: string; description: 
 	}
 };
 
-/**
- * Attributes supported in Claude rules files (`.claude/rules/*.md`).
- * Claude rules use `paths` instead of `applyTo` for glob patterns.
- */
 export const claudeRulesAttributes: Record<string, { type: string; description: string; defaults?: string[]; items?: IValueEntry[]; enums?: IValueEntry[] }> = {
 	'description': {
 		type: 'scalar',

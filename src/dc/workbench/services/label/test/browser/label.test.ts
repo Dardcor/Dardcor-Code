@@ -124,7 +124,6 @@ suite('URI Label', () => {
 			}
 		});
 
-		// Make sure the most specific authority is picked
 		const uri1 = URI.parse('vscode://microsoft.com/1/2/3/4/5');
 		assert.strictEqual(labelService.getUriLabel(uri1, { relative: false }), 'second');
 		assert.strictEqual(labelService.getUriBasenameLabel(uri1), 'second');
@@ -196,23 +195,18 @@ suite('URI Label', () => {
 		const makeFormatter = (scheme: string): ResourceLabelFormatter => ({ formatting: { label: `\${path} (${scheme})`, separator: '/' }, scheme });
 		assert.deepStrictEqual(m, {});
 
-		// registers a new formatter:
 		labelService.registerCachedFormatter(makeFormatter('a'));
 		assert.deepStrictEqual(m, { formatters: [makeFormatter('a')] });
 
-		// registers a 2nd formatter:
 		labelService.registerCachedFormatter(makeFormatter('b'));
 		assert.deepStrictEqual(m, { formatters: [makeFormatter('b'), makeFormatter('a')] });
 
-		// promotes a formatter on re-register:
 		labelService.registerCachedFormatter(makeFormatter('a'));
 		assert.deepStrictEqual(m, { formatters: [makeFormatter('a'), makeFormatter('b')] });
 
-		// no-ops if already in first place:
 		labelService.registerCachedFormatter(makeFormatter('a'));
 		assert.deepStrictEqual(m, { formatters: [makeFormatter('a'), makeFormatter('b')] });
 
-		// limits the cache:
 		for (let i = 0; i < 100; i++) {
 			labelService.registerCachedFormatter(makeFormatter(`i${i}`));
 		}
@@ -369,7 +363,6 @@ suite('multi-root workspace', () => {
 
 		const uri = URI.from({ scheme: 'test-strip', path: '/a/b' });
 		const generated = labelService.getUriLabel(uri, { relative: false });
-		// Should strip as many as possible without crashing
 		assert.strictEqual(generated, '/b');
 	});
 

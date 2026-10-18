@@ -56,7 +56,6 @@ export default new class implements eslint.Rule.RuleModule {
 		}
 
 		if (!config) {
-			// nothing
 			return {};
 		}
 
@@ -70,12 +69,10 @@ export default new class implements eslint.Rule.RuleModule {
 				const part = parts[i];
 
 				if (config!.allowed.has(part)) {
-					// GOOD - same layer
 					break;
 				}
 
 				if (config!.disallowed.has(part)) {
-					// BAD - wrong layer
 					context.report({
 						loc: node.loc,
 						messageId: 'layerbreaker',

@@ -4,12 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { LanguageModelChat, lm, type ChatRequest } from 'vscode';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { ChatEndpointFamily, ChatModelFamily, EmbeddingsEndpointFamily, IChatModelInformation, ICompletionModelInformation, IEmbeddingModelInformation, IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { AutoChatEndpoint } from '../../../platform/endpoint/node/autoChatEndpoint';
 import { IAutomodeService } from '../../../platform/endpoint/node/automodeService';
-import { CopilotChatEndpoint, CopilotUtilityChatEndpoint, CopilotUtilitySmallChatEndpoint } from '../../../platform/endpoint/node/dardcorChatEndpoint';
+import { DardcorChatEndpoint, DardcorUtilityChatEndpoint, DardcorUtilitySmallChatEndpoint } from '../../../platform/endpoint/node/dardcorChatEndpoint';
 import { EmbeddingEndpoint } from '../../../platform/endpoint/node/embeddingsEndpoint';
 import { IModelMetadataFetcher, ModelMetadataFetcher } from '../../../platform/endpoint/node/modelMetadataFetcher';
 import { ExtensionContributedChatEndpoint } from '../../../platform/endpoint/dardcor-node/extChatEndpoint';
@@ -21,11 +20,10 @@ import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 
-// Keep in sync with `BYOKUtilityModelDefault` in `src/vs/workbench/contrib/chat/common/constants.ts` and the `chat.byokUtilityModelDefault` enum in `chat.shared.contribution.ts`.
 const enum BYOKUtilityModelDefault {
 	None = 'none',
 	MainAgent = 'mainAgent',
-	Copilot = 'dardcor',
+	DardcorRouter = 'dardcor',
 }
 
 export class ProductionEndpointProvider extends Disposable implements IEndpointProvider {
@@ -44,7 +42,6 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 		@ILogService protected readonly _logService: ILogService,
 		@IConfigurationService protected readonly _configService: IConfigurationService,
 		@IInstantiationService protected readonly _instantiationService: IInstantiationService,
-		@IAuthenticationService protected readonly _authService: IAuthenticationService,
 		@ITelemetryService protected readonly _telemetryService: ITelemetryService,
 	) {
 		super();
@@ -53,14 +50,12 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 			false,
 		);
 
-		// When new models come in from CAPI we want to clear our local caches and let the endpoints be recreated since there may be new info
 		this._register(this._modelFetcher.onDidModelsRefresh(() => {
 			this._chatEndpoints.clear();
 			this._embeddingEndpoints.clear();
 			this._onDidModelsRefresh.fire();
 		}));
 
-		// Utility model configuration changes invalidate previously resolved aliases.
 		this._register(this._configService.onDidChangeConfiguration(e => {
 			if (
 				e.affectsConfiguration(ProductionEndpointProvider.UTILITY_MODEL_CONFIG_KEY)
@@ -68,8 +63,6 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 				|| e.affectsConfiguration(ProductionEndpointProvider.BYOK_UTILITY_MODEL_DEFAULT_CONFIG_KEY)
 			) {
 				this._logService.trace(`[ProductionEndpointProvider] Utility model configuration changed; invalidating alias endpoints.`);
-				// Clear telemetry fingerprints so a re-applied override emits
-				// once for its new value.
 				this._lastOverrideTelemetryFingerprint.clear();
 				this._onDidModelsRefresh.fire();
 			}
@@ -77,31 +70,18 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 
 	}
 
-	// NOTE: Keep in sync with `ChatConfiguration.UtilityModel` /
-	// `ChatConfiguration.UtilitySmallModel` in
-	// `src/vs/workbench/contrib/chat/common/constants.ts`. The setting value
-	// is encoded as `${vendor}/${id}` by
-	// `defaultModelContribution.ts` (storageFormat: 'vendorAndId'). Both
-	// fields are stable identifiers usable directly with
-	// `vscode.lm.selectChatModels({ vendor, id })`.
 	private static readonly UTILITY_MODEL_CONFIG_KEY = 'chat.utilityModel';
 	private static readonly UTILITY_SMALL_MODEL_CONFIG_KEY = 'chat.utilitySmallModel';
 	private static readonly BYOK_UTILITY_MODEL_DEFAULT_CONFIG_KEY = 'chat.byokUtilityModelDefault';
 	private _mainAgentBYOKModel: LanguageModelChat | undefined;
 
-	/**
-	 * Per-family marker recording that we already emitted a telemetry event
-	 * for the currently-applied override. Used to dedupe so we emit at most
-	 * once per family per override value. Cleared when the relevant setting
-	 * changes.
-	 */
 	private readonly _lastOverrideTelemetryFingerprint = new Map<ChatEndpointFamily, string>();
 
 	private getOrCreateChatEndpointInstance(modelMetadata: IChatModelInformation): IChatEndpoint {
 		const modelId = modelMetadata.id;
 		let chatEndpoint = this._chatEndpoints.get(modelId);
 		if (!chatEndpoint) {
-			chatEndpoint = this._instantiationService.createInstance(CopilotChatEndpoint, modelMetadata);
+			chatEndpoint = this._instantiationService.createInstance(DardcorChatEndpoint, modelMetadata);
 			this._chatEndpoints.set(modelId, chatEndpoint);
 		}
 		return chatEndpoint;
@@ -145,43 +125,22 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 			}
 		}
 
-		// Utility-family aliases (published by LanguageModelAccess under the dardcor vendor)
-		// have synthetic ids that don't map to any real CAPI model, so the lookup below
-		// would silently fall back to `dardcor-utility`. Route them through the family
-		// resolver so the chat-participant path matches direct `getChatEndpoint(family)` callers.
 		if (model.id === 'dardcor-utility-small' || model.id === 'dardcor-utility') {
 			return this.getChatEndpoint(model.id);
 		}
 
 		const modelMetadata = await this._modelFetcher.getChatModelFromApiModel(model);
-		// If we fail to resolve a model since this is panel we give dardcor utility. This really should never happen as the picker is powered by the same service.
 		return modelMetadata ? this.getOrCreateChatEndpointInstance(modelMetadata) : this.getChatEndpoint('dardcor-utility');
 	}
 
-	/**
-	 * Resolves a chat endpoint from a family string. The internal utility
-	 * families (`dardcor-utility` / `dardcor-utility-small`) are routed through
-	 * their dedicated resolvers; any other value is treated as a CAPI model
-	 * family (e.g. `gemini-3-flash`, `gpt-5-mini`) and resolved directly. This
-	 * lets callers such as the execution and search subagents honor their
-	 * `*.model` override settings rather than silently falling back to the
-	 * parent model.
-	 */
 	private async _resolveFamily(family: string): Promise<IChatEndpoint> {
 		if (family === 'dardcor-utility' || family === 'dardcor-utility-small') {
 			return this._resolveUtilityFamily(family);
 		}
-		const modelMetadata = await this._modelFetcher.getChatModelFromCapiFamily(family);
+		const modelMetadata = await this._modelFetcher.getChatModelFromRouterModel(family);
 		return this.getOrCreateChatEndpointInstance(modelMetadata);
 	}
 
-	/**
-	 * Resolves an internal utility family (`dardcor-utility-small` /
-	 * `dardcor-utility`) to a concrete `CopilotChatEndpoint`. The model
-	 * selection for each family lives in the corresponding resolver
-	 * class so callers don't need to know which CAPI family backs each
-	 * purpose.
-	 */
 	private async _resolveUtilityFamily(family: 'dardcor-utility' | 'dardcor-utility-small'): Promise<IChatEndpoint> {
 		const override = await this._resolveUtilityOverride(family);
 		if (override) {
@@ -194,29 +153,22 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 					return this._instantiationService.createInstance(ExtensionContributedChatEndpoint, this._mainAgentBYOKModel);
 				case BYOKUtilityModelDefault.None:
 					throw this._createMissingUtilityModelError(family);
-				case BYOKUtilityModelDefault.Copilot:
-					// Copilot utility models require a Copilot token source (unavailable for air-gapped / signed-out BYOK).
-					if (!this._authService.hasCopilotTokenSource) {
-						throw this._createMissingUtilityModelError(family);
-					}
+				case BYOKUtilityModelDefault.DardcorRouter:
 					break;
 			}
 		}
 
 		switch (family) {
 			case 'dardcor-utility-small':
-				return CopilotUtilitySmallChatEndpoint.resolve(this._modelFetcher, this._instantiationService);
+				return DardcorUtilitySmallChatEndpoint.resolve(this._modelFetcher, this._instantiationService);
 			case 'dardcor-utility':
-				return CopilotUtilityChatEndpoint.resolve(this._modelFetcher, this._instantiationService);
+				return DardcorUtilityChatEndpoint.resolve(this._modelFetcher, this._instantiationService);
 		}
 	}
 
-	/** Creates an actionable error for when no usable utility model is available for a BYOK main agent model. */
 	private _createMissingUtilityModelError(family: 'dardcor-utility' | 'dardcor-utility-small'): Error {
 		const utilityModelSetting = family === 'dardcor-utility' ? 'chat.utilityModel' : 'chat.utilitySmallModel';
-		// 'dardcor' is only usable when a Copilot token is available; for
-		// air-gapped / signed-out BYOK it cannot be used, so don't offer it.
-		const defaultOptions = this._authService.hasCopilotTokenSource ? `'mainAgent' or 'dardcor'` : `'mainAgent'`;
+		const defaultOptions = `'mainAgent' or 'dardcor'`;
 		return new Error(`No utility model is configured for '${family}' while the selected main agent model is BYOK. Configure setting '${utilityModelSetting}' or set 'chat.byokUtilityModelDefault' to ${defaultOptions}.`);
 	}
 
@@ -224,25 +176,19 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 		const value = this._configService.getNonExtensionConfig<unknown>(ProductionEndpointProvider.BYOK_UTILITY_MODEL_DEFAULT_CONFIG_KEY);
 		switch (value) {
 			case undefined:
-				// Preserve the Copilot default when running against a core that does not register this setting.
-				return BYOKUtilityModelDefault.Copilot;
+				return BYOKUtilityModelDefault.DardcorRouter;
 			case BYOKUtilityModelDefault.None:
 			case BYOKUtilityModelDefault.MainAgent:
-			case BYOKUtilityModelDefault.Copilot:
+			case BYOKUtilityModelDefault.DardcorRouter:
 				return value;
+			case 'copilot':
+				return BYOKUtilityModelDefault.DardcorRouter;
 			default:
 				this._logService.warn(`[ProductionEndpointProvider] Ignoring invalid ${ProductionEndpointProvider.BYOK_UTILITY_MODEL_DEFAULT_CONFIG_KEY} value: '${String(value)}'.`);
 				return BYOKUtilityModelDefault.None;
 		}
 	}
 
-	/**
-	 * Resolves the user's `chat.utilityModel` / `chat.utilitySmallModel`
-	 * override (if any) to a concrete chat endpoint.
-	 * Returns `undefined` if no override is configured, if the value is
-	 * malformed, if no matching model is currently available, or if the
-	 * lookup throws.
-	 */
 	private async _resolveUtilityOverride(family: ChatEndpointFamily): Promise<IChatEndpoint | undefined> {
 		let configKey: string;
 		if (family === 'dardcor-utility-small') {
@@ -269,13 +215,6 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 		const vendor = raw.substring(0, slashIdx);
 		const id = raw.substring(slashIdx + 1);
 
-		// For dardcor-vendor overrides, resolve directly through the model
-		// fetcher. Going through `lm.selectChatModels` would re-enter the
-		// language-model service for the `dardcor` vendor, which is held by
-		// `_resolveLMSequencer` whenever the dardcor LM provider is in the
-		// middle of preparing its model list (which is exactly when this
-		// resolution path runs as part of utility-alias publishing). That
-		// re-entrancy deadlocks the picker.
 		if (vendor === 'dardcor') {
 			let allModels: IChatModelInformation[];
 			try {
@@ -327,13 +266,6 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 		}
 		this._lastOverrideTelemetryFingerprint.set(family, 'applied');
 
-		/* __GDPR__
-			"chat.utilityModelOverride" : {
-				"owner": "vrbhardw",
-				"comment": "Tracks adoption of the chat.utilityModel / chat.utilitySmallModel settings. Emitted at most once per family per session when the configured override successfully resolves to a model.",
-				"family": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Which utility slot was resolved: 'dardcor-utility' or 'dardcor-utility-small'." }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent(
 			'chat.utilityModelOverride',
 			{

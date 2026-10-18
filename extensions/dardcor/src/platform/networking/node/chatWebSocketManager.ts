@@ -31,47 +31,19 @@ export interface IChatWebSocketConnectionKey {
 export interface IChatWebSocketManager {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Gets or creates a WebSocket connection for the given conversation lane and model.
-	 * The connection is shared across turns and tool call rounds within
-	 * the same lane, keeping server-side context alive.
-	 */
 	getOrCreateConnection(key: IChatWebSocketConnectionKey, headers: Record<string, string>, initiatingRequestId: string): IChatWebSocketConnection;
 
-	/**
-	 * Returns true if there is an idle, open WebSocket connection for the given
-	 * conversation lane and model. Used to decide whether the server already has
-	 * context from earlier requests in this conversation.
-	 */
 	hasActiveConnection(key: IChatWebSocketConnectionKey): boolean;
 
-	/**
-	 * Returns the stateful marker (last completed response ID) for the given
-	 * conversation's active WebSocket connection, or undefined if there is
-	 * no active connection or no marker yet.
-	 */
 	getStatefulMarker(key: IChatWebSocketConnectionKey): string | undefined;
 
-	/**
-	 * Returns the round ID at which the last client-side summarization
-	 * occurred for this connection, or undefined if none.
-	 */
 	getSummarizedAtRoundId(key: IChatWebSocketConnectionKey): string | undefined;
 
-	/**
-	 * Closes and removes the connection for a specific conversation.
-	 */
 	closeConnection(conversationId: string, connectionId?: string): void;
 
-	/**
-	 * Closes all active connections.
-	 */
 	closeAll(): void;
 }
 
-/**
- * No-op implementation for contexts where WebSocket is not available (web, tests, chat-lib).
- */
 export class NullChatWebSocketManager implements IChatWebSocketManager {
 	declare readonly _serviceBrand: undefined;
 	getOrCreateConnection(_key: IChatWebSocketConnectionKey, _headers?: Record<string, string>, _initiatingRequestId?: string): IChatWebSocketConnection {
@@ -97,65 +69,35 @@ export interface IChatWebSocketRequestOptions {
 }
 
 export interface IChatWebSocketConnection extends IDisposable {
-	/** Opens the WebSocket connection. Must be called before sendRequest. */
 	connect(): Promise<void>;
 
-	/** Sends a response.create request and returns an async iterable of response events. */
 	sendRequest(
 		body: IEndpointBody,
 		options: IChatWebSocketRequestOptions,
 		token: CancellationToken,
 	): IChatWebSocketRequestHandle;
 
-	/** Whether the connection is currently open and usable. */
 	readonly isOpen: boolean;
 
-	/** Response headers from the WebSocket connection handshake. */
 	readonly responseHeaders: IHeaders;
 
-	/** Response status code from the WebSocket connection handshake. */
 	readonly responseStatusCode: number | undefined;
 
-	/** Response status text from the WebSocket connection handshake. */
 	readonly responseStatusText: string | undefined;
 
-	/** The GitHub request ID from response headers. */
 	readonly gitHubRequestId: string;
 
-	/**
-	 * The response.id from the last completed response on this connection.
-	 * Used as `previous_response_id` on subsequent requests to avoid
-	 * re-sending the full message history.
-	 */
 	readonly statefulMarker: string | undefined;
 }
 
 export interface IChatWebSocketRequestHandle {
-	/** Fires for each OpenAI stream event received from the server. */
 	readonly onEvent: Event<OpenAI.Responses.ResponseStreamEvent>;
-	/** Fires when a CAPI WebSocket error is received (nested error shape). */
 	readonly onCAPIError: Event<CAPIWebSocketErrorEvent>;
-	/** Fires when a transport-level error occurs (connection lost, etc.). */
 	readonly onError: Event<Error>;
-	/**
-	 * Resolves with the first event received from the server, or rejects
-	 * if the connection errors/closes before any event arrives.
-	 * Consumers can inspect the event type to decide the response kind
-	 * (success stream vs. CAPI error) before processing remaining events.
-	 */
 	readonly firstEvent: Promise<OpenAI.Responses.ResponseStreamEvent | CAPIWebSocketErrorEvent>;
-	/** Resolves when the request has finished (completed or errored). */
 	readonly done: Promise<void>;
 }
 
-/**
- * CAPI WebSocket error shape. Unlike the OpenAI SDK's flat `ResponseErrorEvent`
- * (`{ type: "error", code, message }`), CAPI wraps the error details in a
- * nested `error` object: `{ type: "error", error: { code, message } }`.
- *
- * Non-recoverable errors (rate limits, quota, upstream failures) also include
- * `dardcor_quota_snapshots` with per-model quota state.
- */
 export interface CAPIWebSocketErrorEvent {
 	readonly type: 'error';
 	readonly error: {
@@ -199,7 +141,6 @@ export class ChatWebSocketManager extends Disposable implements IChatWebSocketMa
 		const connectionKey = this._getConnectionKey(key.conversationId, key.connectionId);
 		const existing = this._connections.get(connectionKey);
 
-		// Reuse the connection if it is idle, open, and bound to the requested model.
 		if (existing?.isOpen && !existing.hasActiveRequest && existing.modelId === key.modelId) {
 			return existing;
 		}
@@ -214,7 +155,6 @@ export class ChatWebSocketManager extends Disposable implements IChatWebSocketMa
 		this._logService.debug(`[ChatWebSocketManager] Creating new connection for conversation ${key.conversationId}, model ${key.modelId}`);
 		this._connections.set(connectionKey, connection);
 
-		// Remove from map when disposed externally
 		connection.onDidDispose(() => {
 			const entry = this._connections.get(connectionKey);
 			if (entry === connection) {
@@ -473,7 +413,7 @@ class ChatWebSocketConnection extends Disposable implements IChatWebSocketConnec
 	private _setupMessageHandlers(ws: WebSocket): void {
 		ws.addEventListener('message', (event) => {
 			if (typeof event.data !== 'string') {
-				return; // Only process text messages
+				return;
 			}
 
 			const receivedMessageCharacters = event.data.length;
@@ -588,7 +528,6 @@ class ChatWebSocketConnection extends Disposable implements IChatWebSocketConnec
 			this._logService.debug(`[ChatWebSocketManager] WebSocket stateful marker (${statefulMarkerPrefix}) does not match previous_response_id (${previousResponsePrefix}), summarizedAtRoundIdMatched: ${summarizedAtRoundIdMatched}`);
 		}
 
-		// Supersede any in-flight request before updating turn state
 		const hadActiveRequest = !!this._activeRequest;
 		if (hadActiveRequest) {
 			this._logService.warn(`[ChatWebSocketManager] New request for conversation ${this._conversationId} turn ${options.turnId} while turn ${this._turnId} still has an active request`);
@@ -597,9 +536,6 @@ class ChatWebSocketConnection extends Disposable implements IChatWebSocketConnec
 			this._logService.debug(`[ChatWebSocketManager] New request for conversation ${this._conversationId} turn ${options.turnId} (previous turn: ${this._turnId})`);
 		}
 
-		// Update turn state after superseding so the old request's settle
-		// callback (which fires synchronously from handleSuperseded) still
-		// sees its own turnId on `this`.
 		const previousTurnId = this._turnId;
 		const turnId = options.turnId;
 		this._previousTurnId = previousTurnId;
@@ -665,7 +601,6 @@ class ChatWebSocketConnection extends Disposable implements IChatWebSocketConnec
 		});
 		this._activeRequest = request;
 
-		// Handle cancellation
 		const cancelDisposable = token.onCancellationRequested(() => {
 			if (this._activeRequest === request) {
 				request.handleCancellation();
@@ -779,8 +714,6 @@ class ChatWebSocketActiveRequest implements IChatWebSocketRequestHandle {
 			return;
 		}
 
-		// E.g.: "github.dardcor.chat.advanced.debug.simulateWebSocketResponse": "{\"type\":\"error\",\"error\":{\"code\":\"user_global_rate_limited:enterprise\",\"message\":\"Rate limit exceeded\"}}"
-		// E.g.: "github.dardcor.chat.advanced.debug.simulateWebSocketResponse": "{\"type\":\"error\",\"error\":{\"code\":\"service_unavailable\",\"message\":\"service temporarily unavailable, please retry\"}}"
 		const simulateResponse = this._configurationService.getConfig(ConfigKey.TeamInternal.DebugSimulateWebSocketResponse);
 		if (simulateResponse) {
 			try {

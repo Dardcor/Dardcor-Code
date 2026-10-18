@@ -11,9 +11,6 @@ export const IMainProcessService = createDecorator<IMainProcessService>('mainPro
 
 export interface IMainProcessService extends IRemoteService { }
 
-/**
- * An implementation of `IMainProcessService` that leverages `IPCServer`.
- */
 export class MainProcessService implements IMainProcessService {
 
 	declare readonly _serviceBrand: undefined;

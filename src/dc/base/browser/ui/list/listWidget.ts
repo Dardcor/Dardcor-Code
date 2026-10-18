@@ -163,12 +163,6 @@ class Trait<T> implements ISpliceable<boolean>, IDisposable {
 		container.classList.remove(this._trait);
 	}
 
-	/**
-	 * Sets the indexes which should have this trait.
-	 *
-	 * @param indexes Indexes which should have this trait.
-	 * @return The old indexes which had this trait.
-	 */
 	set(indexes: number[], browserEvent?: UIEvent): number[] {
 		return this._set(indexes, [...indexes].sort(numericSort), browserEvent);
 	}
@@ -219,11 +213,6 @@ class SelectionTrait<T> extends Trait<T> {
 	}
 }
 
-/**
- * The TraitSpliceable is used as a util class to be able
- * to preserve traits across splice calls, given an identity
- * provider.
- */
 class TraitSpliceable<T> implements ISpliceable<T> {
 
 	constructor(
@@ -406,7 +395,6 @@ class KeyboardController<T> implements IDisposable {
 
 		let selection = range(this.list.length);
 
-		// Filter by group if identity provider has getGroupId
 		const focusedElements = this.list.getFocus();
 		const referenceGroupId = focusedElements.length > 0 ? this.list.getElementGroupId(focusedElements[0]) : undefined;
 		if (referenceGroupId !== undefined) {
@@ -536,8 +524,6 @@ class TypeNavigationController<T> implements IDisposable {
 	private onClear(): void {
 		const focus = this.list.getFocus();
 		if (focus.length > 0 && focus[0] === this.previouslyFocused) {
-			// List: re-announce element on typing end since typed keys will interrupt aria label of focused element
-			// Do not announce if there was a focus change at the end to prevent duplication https://github.com/microsoft/vscode/issues/95961
 			const ariaLabel = this.list.options.accessibilityProvider?.getAriaLabel(this.list.element(focus[0]));
 
 			if (typeof ariaLabel === 'string') {
@@ -569,7 +555,6 @@ class TypeNavigationController<T> implements IDisposable {
 			if (this.list.options.typeNavigationEnabled) {
 				if (typeof labelStr !== 'undefined') {
 
-					// If prefix is found, focus and return early
 					if (matchesPrefix(word, labelStr)) {
 						this.previouslyFocused = start;
 						this.list.setFocus([index]);
@@ -581,7 +566,6 @@ class TypeNavigationController<T> implements IDisposable {
 
 					if (fuzzy) {
 						const fuzzyScore = fuzzy[0].end - fuzzy[0].start;
-						// ensures that when fuzzy matching, doesn't clash with prefix matching (1 input vs 1+ should be prefix and fuzzy respecitvely). Also makes sure that exact matches are prioritized.
 						if (fuzzyScore > 1 && fuzzy.length === 1) {
 							this.previouslyFocused = start;
 							this.list.setFocus([index]);
@@ -787,7 +771,6 @@ export class MouseController<T> implements IDisposable {
 		this.list.setAnchor(focus);
 
 		if (!isMouseRightClick(e.browserEvent)) {
-			// Check if the element is selectable (getGroupId must not return undefined)
 			const focusGroupId = this.list.getElementGroupId(focus);
 			if (focusGroupId !== NotSelectableGroupId) {
 				this.list.setSelection([focus], e.browserEvent);
@@ -858,7 +841,7 @@ export class MouseController<T> implements IDisposable {
 
 			const focusGroupId = this.list.getElementGroupId(focus);
 			if (focusGroupId === NotSelectableGroupId) {
-				return; // Cannot select this element, do nothing
+				return;
 			}
 
 			if (selection.length === newSelection.length) {
@@ -909,7 +892,7 @@ export class DefaultStyleController implements IStyleController {
 
 		if (styles.listFocusBackground) {
 			content.push(`.monaco-list${suffix}:focus .monaco-list-row.focused { background-color: ${styles.listFocusBackground}; }`);
-			content.push(`.monaco-list${suffix}:focus .monaco-list-row.focused:hover { background-color: ${styles.listFocusBackground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix}:focus .monaco-list-row.focused:hover { background-color: ${styles.listFocusBackground}; }`);
 		}
 
 		if (styles.listFocusForeground) {
@@ -918,7 +901,7 @@ export class DefaultStyleController implements IStyleController {
 
 		if (styles.listActiveSelectionBackground) {
 			content.push(`.monaco-list${suffix}:focus .monaco-list-row.selected { background-color: ${styles.listActiveSelectionBackground}; }`);
-			content.push(`.monaco-list${suffix}:focus .monaco-list-row.selected:hover { background-color: ${styles.listActiveSelectionBackground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix}:focus .monaco-list-row.selected:hover { background-color: ${styles.listActiveSelectionBackground}; }`);
 		}
 
 		if (styles.listActiveSelectionForeground) {
@@ -945,7 +928,7 @@ export class DefaultStyleController implements IStyleController {
 
 		if (styles.listInactiveFocusForeground) {
 			content.push(`.monaco-list${suffix} .monaco-list-row.focused { color:  ${styles.listInactiveFocusForeground}; }`);
-			content.push(`.monaco-list${suffix} .monaco-list-row.focused:hover { color:  ${styles.listInactiveFocusForeground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix} .monaco-list-row.focused:hover { color:  ${styles.listInactiveFocusForeground}; }`);
 		}
 
 		if (styles.listInactiveSelectionIconForeground) {
@@ -954,12 +937,12 @@ export class DefaultStyleController implements IStyleController {
 
 		if (styles.listInactiveFocusBackground) {
 			content.push(`.monaco-list${suffix} .monaco-list-row.focused { background-color:  ${styles.listInactiveFocusBackground}; }`);
-			content.push(`.monaco-list${suffix} .monaco-list-row.focused:hover { background-color:  ${styles.listInactiveFocusBackground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix} .monaco-list-row.focused:hover { background-color:  ${styles.listInactiveFocusBackground}; }`);
 		}
 
 		if (styles.listInactiveSelectionBackground) {
 			content.push(`.monaco-list${suffix} .monaco-list-row.selected { background-color:  ${styles.listInactiveSelectionBackground}; }`);
-			content.push(`.monaco-list${suffix} .monaco-list-row.selected:hover { background-color:  ${styles.listInactiveSelectionBackground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix} .monaco-list-row.selected:hover { background-color:  ${styles.listInactiveSelectionBackground}; }`);
 		}
 
 		if (styles.listInactiveSelectionForeground) {
@@ -974,15 +957,12 @@ export class DefaultStyleController implements IStyleController {
 			content.push(`.monaco-list${suffix}:not(.drop-target):not(.dragging) .monaco-list-row:hover:not(.selected):not(.focused) { color:  ${styles.listHoverForeground}; }`);
 		}
 
-		/**
-		 * Outlines
-		 */
 		const focusAndSelectionOutline = asCssValueWithDefault(styles.listFocusAndSelectionOutline, asCssValueWithDefault(styles.listSelectionOutline, styles.listFocusOutline ?? ''));
-		if (focusAndSelectionOutline) { // default: listFocusOutline
+		if (focusAndSelectionOutline) {
 			content.push(`.monaco-list${suffix}:focus .monaco-list-row.focused.selected { outline: 1px solid ${focusAndSelectionOutline}; outline-offset: -1px;}`);
 		}
 
-		if (styles.listFocusOutline) { // default: set
+		if (styles.listFocusOutline) {
 			content.push(`
 				.monaco-drag-image${suffix},
 				.monaco-list${suffix}:focus .monaco-list-row.focused,
@@ -995,15 +975,15 @@ export class DefaultStyleController implements IStyleController {
 			content.push(`.monaco-list${suffix} .monaco-list-row.focused.selected { outline: 1px dotted ${inactiveFocusAndSelectionOutline}; outline-offset: -1px; }`);
 		}
 
-		if (styles.listSelectionOutline) { // default: activeContrastBorder
+		if (styles.listSelectionOutline) {
 			content.push(`.monaco-list${suffix} .monaco-list-row.selected { outline: 1px dotted ${styles.listSelectionOutline}; outline-offset: -1px; }`);
 		}
 
-		if (styles.listInactiveFocusOutline) { // default: null
+		if (styles.listInactiveFocusOutline) {
 			content.push(`.monaco-list${suffix} .monaco-list-row.focused { outline: 1px dotted ${styles.listInactiveFocusOutline}; outline-offset: -1px; }`);
 		}
 
-		if (styles.listHoverOutline) {  // default: activeContrastBorder
+		if (styles.listHoverOutline) {
 			content.push(`.monaco-list${suffix} .monaco-list-row:hover { outline: 1px dashed ${styles.listHoverOutline}; outline-offset: -1px; }`);
 		}
 
@@ -1081,7 +1061,6 @@ export interface IListOptions<T> extends IListOptionsUpdate {
 	readonly accessibilityProvider?: IListAccessibilityProvider<T>;
 	readonly keyboardNavigationEventFilter?: IKeyboardNavigationEventFilter;
 
-	// list view options
 	readonly useShadows?: boolean;
 	readonly verticalScrollMode?: ScrollbarVisibility;
 	readonly setRowLineHeight?: boolean;
@@ -1177,7 +1156,6 @@ const DefaultOptions: IListOptions<any> = {
 	}
 };
 
-// TODO@Joao: move these utils into a SortedArray class
 
 function getContiguousRangeContaining(range: number[], value: number): number[] {
 	const index = range.indexOf(value);
@@ -1201,10 +1179,6 @@ function getContiguousRangeContaining(range: number[], value: number): number[] 
 	return result;
 }
 
-/**
- * Given two sorted collections of numbers, returns the intersection
- * between them (OR).
- */
 function disjunction(one: number[], other: number[]): number[] {
 	const result: number[] = [];
 	let i = 0, j = 0;
@@ -1229,10 +1203,6 @@ function disjunction(one: number[], other: number[]): number[] {
 	return result;
 }
 
-/**
- * Given two sorted collections of numbers, returns the relative
- * complement between them (XOR).
- */
 function relativeComplement(one: number[], other: number[]): number[] {
 	const result: number[] = [];
 	let i = 0, j = 0;
@@ -1262,7 +1232,7 @@ class PipelineRenderer<T> implements IListRenderer<T, any> {
 
 	constructor(
 		private _templateId: string,
-		private renderers: IListRenderer<any /* TODO@joao */, any>[]
+		private renderers: IListRenderer<any , any>[]
 	) { }
 
 	get templateId(): string {
@@ -1391,21 +1361,6 @@ class ListViewDragAndDrop<T> implements IListViewDragAndDrop<T> {
 	}
 }
 
-/**
- * The {@link List} is a virtual scrolling widget, built on top of the {@link ListView}
- * widget.
- *
- * Features:
- * - Customizable keyboard and mouse support
- * - Element traits: focus, selection, achor
- * - Accessibility support
- * - Touch support
- * - Performant template-based rendering
- * - Horizontal scrolling
- * - Variable element height support
- * - Dynamic element height support
- * - Drag-and-drop support
- */
 export class List<T> implements ISpliceable<T>, IDisposable {
 
 	private focus = new Trait<T>('focused');
@@ -1445,13 +1400,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 	get onTouchStart(): Event<IListTouchEvent<T>> { return this.view.onTouchStart; }
 	get onTap(): Event<IListGestureEvent<T>> { return this.view.onTap; }
 
-	/**
-	 * Possible context menu trigger events:
-	 * - ContextMenu key
-	 * - Shift F10
-	 * - Ctrl Option Shift M (macOS with VoiceOver)
-	 * - Mouse right click
-	 */
 	@memoize get onContextMenu(): Event<IListContextMenuEvent<T>> {
 		let didJustPressContextMenuKey = false;
 
@@ -1496,7 +1444,7 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 		private user: string,
 		container: HTMLElement,
 		virtualDelegate: IListVirtualDelegate<T>,
-		renderers: IListRenderer<any /* TODO@joao */, any>[],
+		renderers: IListRenderer<any , any>[],
 		private _options: IListOptions<T> = DefaultOptions
 	) {
 		const role = this._options.accessibilityProvider && this._options.accessibilityProvider.getWidgetRole ? this._options.accessibilityProvider?.getWidgetRole() : 'list';
@@ -1765,10 +1713,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 		return typeof anchor === 'undefined' ? undefined : this.element(anchor);
 	}
 
-	/**
-	 * Gets the group ID for an element at the given index.
-	 * Returns undefined if no identity provider, no getGroupId method, or if the group ID is undefined.
-	 */
 	getElementGroupId(index: number): number | NotSelectableGroupIdType | undefined {
 		const identityProvider = this.options.identityProvider;
 		if (!identityProvider?.getGroupId) {
@@ -1779,11 +1723,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 		return identityProvider.getGroupId(element);
 	}
 
-	/**
-	 * Filters the given indices to only include those with a matching group ID.
-	 * If no identity provider or getGroupId method exists, returns the original indices.
-	 * If referenceGroupId is undefined, returns an empty array (elements without group IDs are not selectable).
-	 */
 	filterIndicesByGroup(indices: number[], referenceGroupId: number | NotSelectableGroupIdType): number[] {
 		const identityProvider = this.options.identityProvider;
 		if (!identityProvider?.getGroupId) {
@@ -1850,7 +1789,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 			const previousScrollTop = this.view.getScrollTop();
 			let nextpageScrollTop = previousScrollTop + this.view.renderHeight;
 			if (lastPageIndex > currentlyFocusedElementIndex) {
-				// scroll last page element to the top only if the last page element is below the focused element
 				nextpageScrollTop -= this.view.elementHeight(lastPageIndex);
 			}
 
@@ -1859,7 +1797,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 			if (this.view.getScrollTop() !== previousScrollTop) {
 				this.setFocus([]);
 
-				// Let the scroll event listener run
 				await timeout(0);
 				await this.focusNextPage(browserEvent, filter);
 			}
@@ -1894,7 +1831,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 			if (this.view.getScrollTop() + getPaddingTop() !== previousScrollTop) {
 				this.setFocus([]);
 
-				// Let the scroll event listener run
 				await timeout(0);
 				await this.focusPreviousPage(browserEvent, filter, getPaddingTop);
 			}
@@ -1979,7 +1915,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 		const elementHeight = this.view.elementHeight(index);
 
 		if (isNumber(relativeTop)) {
-			// y = mx + b
 			const m = elementHeight - this.view.renderHeight + paddingTop;
 			this.view.setScrollTop(m * clamp(relativeTop, 0, 1) + elementTop - paddingTop);
 		} else {
@@ -1987,7 +1922,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 			const scrollBottom = scrollTop + this.view.renderHeight;
 
 			if (elementTop < scrollTop + paddingTop && viewItemBottom >= scrollBottom) {
-				// The element is already overflowing the viewport, no-op
 			} else if (elementTop < scrollTop + paddingTop || (viewItemBottom >= scrollBottom && elementHeight >= this.view.renderHeight)) {
 				this.view.setScrollTop(elementTop - paddingTop);
 			} else if (viewItemBottom >= scrollBottom) {
@@ -1996,10 +1930,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 		}
 	}
 
-	/**
-	 * Returns the relative position of an element rendered in the list.
-	 * Returns `null` if the element isn't *entirely* in the visible viewport.
-	 */
 	getRelativeTop(index: number, paddingTop: number = 0): number | null {
 		if (index < 0 || index >= this.length) {
 			throw new ListError(this.user, `Invalid index ${index}`);
@@ -2013,7 +1943,6 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 			return null;
 		}
 
-		// y = mx + b
 		const m = elementHeight - this.view.renderHeight + paddingTop;
 		return Math.abs((scrollTop + paddingTop - elementTop) / m);
 	}

@@ -23,32 +23,32 @@ suite('Indentation Folding', () => {
 
 
 		const lines = [
-		/* 1*/	'A',
-		/* 2*/	'  A',
-		/* 3*/	'  A',
-		/* 4*/	'    A',
-		/* 5*/	'      A',
-		/* 6*/	'    A',
-		/* 7*/	'      A',
-		/* 8*/	'      A',
-		/* 9*/	'         A',
-		/* 10*/	'      A',
-		/* 11*/	'         A',
-		/* 12*/	'  A',
-		/* 13*/	'              A',
-		/* 14*/	'                 A',
-		/* 15*/	'A',
-		/* 16*/	'  A'
+		'A',
+		'  A',
+		'  A',
+		'    A',
+		'      A',
+		'    A',
+		'      A',
+		'      A',
+		'         A',
+		'      A',
+		'         A',
+		'  A',
+		'              A',
+		'                 A',
+		'A',
+		'  A'
 		];
-		const r1 = r(1, 14); //0
-		const r2 = r(3, 11); //1
-		const r3 = r(4, 5); //2
-		const r4 = r(6, 11); //2
-		const r5 = r(8, 9); //3
-		const r6 = r(10, 11); //3
-		const r7 = r(12, 14); //1
-		const r8 = r(13, 14);//4
-		const r9 = r(15, 16);//0
+		const r1 = r(1, 14);
+		const r2 = r(3, 11);
+		const r3 = r(4, 5);
+		const r4 = r(6, 11);
+		const r5 = r(8, 9);
+		const r6 = r(10, 11);
+		const r7 = r(12, 14);
+		const r8 = r(13, 14);
+		const r9 = r(15, 16);
 
 		const model = createTextModel(lines.join('\n'));
 

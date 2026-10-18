@@ -34,8 +34,6 @@ export abstract class TreeElement {
 	}
 
 	static findId(candidate: DocumentSymbol | string, container: TreeElement): string {
-		// complex id-computation which contains the origin/extension,
-		// the parent path, and some dedupe logic when names collide
 		let candidateId: string;
 		if (typeof candidate === 'string') {
 			candidateId = `${container.id}/${candidate}`;
@@ -146,7 +144,6 @@ export class OutlineGroup extends TreeElement {
 	private _updateMarker(markers: IOutlineMarker[], item: OutlineElement): void {
 		item.marker = undefined;
 
-		// find the proper start index to check for item/marker overlap.
 		const idx = binarySearch<IRange>(markers, item.symbol.range, Range.compareRangesUsingStarts);
 		let start: number;
 		if (idx < 0) {
@@ -162,8 +159,6 @@ export class OutlineGroup extends TreeElement {
 		let myTopSev: MarkerSeverity | undefined;
 
 		for (; start < markers.length && Range.areIntersecting(item.symbol.range, markers[start]); start++) {
-			// remove markers intersecting with this outline element
-			// and store them in a 'private' array.
 			const marker = markers[start];
 			myMarkers.push(marker);
 			(markers as Array<IOutlineMarker | undefined>)[start] = undefined;
@@ -172,10 +167,6 @@ export class OutlineGroup extends TreeElement {
 			}
 		}
 
-		// Recurse into children and let them match markers that have matched
-		// this outline element. This might remove markers from this element and
-		// therefore we remember that we have had markers. That allows us to render
-		// the dot, saying 'this element has children with markers'
 		for (const [, child] of item.children) {
 			this._updateMarker(myMarkers, child);
 		}
@@ -278,17 +269,15 @@ export class OutlineModel extends TreeElement {
 	private _compact(): this {
 		let count = 0;
 		for (const [key, group] of this._groups) {
-			if (group.children.size === 0) { // empty
+			if (group.children.size === 0) {
 				this._groups.delete(key);
 			} else {
 				count += 1;
 			}
 		}
 		if (count !== 1) {
-			//
 			this.children = this._groups;
 		} else {
-			// adopt all elements of the first group
 			const group = Iterable.first(this._groups.values())!;
 			for (const [, child] of group.children) {
 				child.parent = this;
@@ -339,8 +328,6 @@ export class OutlineModel extends TreeElement {
 	}
 
 	updateMarker(marker: IOutlineMarker[]): void {
-		// sort markers by start range so that we can use
-		// outline element starts for quicker look up
 		marker.sort(Range.compareRangesUsingStarts);
 
 		for (const [, group] of this._groups) {
@@ -379,10 +366,9 @@ export class OutlineModel extends TreeElement {
 				containerName: entry.containerName || overrideContainerLabel,
 				range: entry.range,
 				selectionRange: entry.selectionRange,
-				children: undefined, // we flatten it...
+				children: undefined,
 			});
 
-			// Recurse over children
 			if (entry.children) {
 				OutlineModel._flattenDocumentSymbols(bucket, entry.children, entry.name);
 			}
@@ -425,7 +411,6 @@ export class OutlineModelService implements IOutlineModelService {
 	) {
 		this._debounceInformation = debounces.for(_languageFeaturesService.documentSymbolProvider, 'DocumentSymbols', { min: 350 });
 
-		// don't cache outline models longer than their text model
 		this._disposables.add(modelService.onModelRemoved(textModel => {
 			this._cache.delete(textModel.id);
 		}));
@@ -463,15 +448,12 @@ export class OutlineModelService implements IOutlineModelService {
 		}
 
 		if (data.model) {
-			// resolved -> return data
 			return data.model;
 		}
 
-		// increase usage counter
 		data.promiseCnt += 1;
 
 		const listener = token.onCancellationRequested(() => {
-			// last -> cancel provider request, remove cached promise
 			if (--data.promiseCnt === 0) {
 				data.source.cancel();
 				this._cache.delete(textModel.id);

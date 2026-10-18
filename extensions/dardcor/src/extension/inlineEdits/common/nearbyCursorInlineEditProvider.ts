@@ -9,9 +9,6 @@ import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
 import { Range } from '../../../util/dardcor/editor/common/core/range';
 import { OffsetRange, OffsetRangeSet } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
-/**
- * Read the selection from the document, otherwise deduce it from the last edit.
- */
 export function getOrDeduceSelectionFromLastEdit(activeDoc: StatelessNextEditDocument): Range | null {
 	const origin = new OffsetRange(0, 0);
 	if (activeDoc.lastSelectionInAfterEdit && !activeDoc.lastSelectionInAfterEdit.equals(origin)) {
@@ -76,11 +73,9 @@ export function clipTokensToRangeAndAdjustOffsets(tokens: Tokens, range: OffsetR
 export function removeTokensInRangeAndAdjustOffsets(tokens: Tokens, range: OffsetRange): Tokens {
 	const adjustedTokens: Tokens = [];
 	for (let token of tokens) {
-		// remove tokens inside the range
 		if (range.containsRange(token.range)) {
 			continue;
 		}
-		// adjust the token offset
 		if (token.range.start > range.start) {
 			token = token.deltaOffset(-range.length);
 		}

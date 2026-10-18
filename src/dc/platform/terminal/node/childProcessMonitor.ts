@@ -12,22 +12,12 @@ import { listProcesses } from '../../../base/node/ps.js';
 import { ILogService } from '../../log/common/log.js';
 
 const enum Constants {
-	/**
-	 * The amount of time to throttle checks when the process receives output.
-	 */
 	InactiveThrottleDuration = 5000,
-	/**
-	 * The amount of time to debounce check when the process receives input.
-	 */
 	ActiveDebounceDuration = 1000,
 }
 
 export const ignoreProcessNames: string[] = [];
 
-/**
- * Monitors a process for child processes, checking at differing times depending on input and output
- * calls into the monitor.
- */
 export class ChildProcessMonitor extends Disposable {
 	private _hasChildProcesses: boolean = false;
 	private set hasChildProcesses(value: boolean) {
@@ -37,15 +27,9 @@ export class ChildProcessMonitor extends Disposable {
 			this._onDidChangeHasChildProcesses.fire(value);
 		}
 	}
-	/**
-	 * Whether the process has child processes.
-	 */
 	get hasChildProcesses(): boolean { return this._hasChildProcesses; }
 
 	private readonly _onDidChangeHasChildProcesses = this._register(new Emitter<boolean>());
-	/**
-	 * An event that fires when whether the process has child processes changes.
-	 */
 	readonly onDidChangeHasChildProcesses = this._onDidChangeHasChildProcesses.event;
 
 	constructor(
@@ -55,24 +39,14 @@ export class ChildProcessMonitor extends Disposable {
 		super();
 	}
 
-	/**
-	 * Updates the pid to monitor. This is needed when the pid is not available
-	 * immediately after spawn (e.g. node-pty deferred conpty connection).
-	 */
 	setPid(pid: number): void {
 		this._pid = pid;
 	}
 
-	/**
-	 * Input was triggered on the process.
-	 */
 	handleInput() {
 		this._refreshActive();
 	}
 
-	/**
-	 * Output was triggered on the process.
-	 */
 	handleOutput() {
 		this._refreshInactive();
 	}
@@ -96,12 +70,10 @@ export class ChildProcessMonitor extends Disposable {
 	}
 
 	private _processContainsChildren(processItem: ProcessItem): boolean {
-		// No child processes
 		if (!processItem.children) {
 			return false;
 		}
 
-		// A single child process, handle special cases
 		if (processItem.children.length === 1) {
 			const item = processItem.children[0];
 			let cmd: string;
@@ -118,7 +90,6 @@ export class ChildProcessMonitor extends Disposable {
 			return ignoreProcessNames.indexOf(parse(cmd).name) === -1;
 		}
 
-		// Fallback, count child processes
 		return processItem.children.length > 0;
 	}
 }

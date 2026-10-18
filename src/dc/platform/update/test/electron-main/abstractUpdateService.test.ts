@@ -32,11 +32,9 @@ class TestUpdateService extends AbstractUpdateService {
 	private _cancelCount = 0;
 	get cancelCount(): number { return this._cancelCount; }
 
-	/** When set, `cancelUpdate` blocks on this promise so tests can observe the transient Cancelling state. */
 	private _cancelGate: Promise<void> | undefined;
 	blockCancelUpdate(gate: Promise<void>): void { this._cancelGate = gate; }
 
-	/** Forces the service into a given state so tests can exercise cancellation from a cancellable state. */
 	forceState(state: State): void { this.setState(state); }
 
 	feedUrl: string | undefined = 'https://update.example/feed';
@@ -74,7 +72,6 @@ suite('AbstractUpdateService', () => {
 		policyValue: string | undefined;
 
 		override getValue<T>(arg1?: string | IConfigurationOverrides, arg2?: IConfigurationOverrides): T | undefined {
-			// Mirror the real configuration service: a policy value overrides the user setting.
 			if (arg1 === 'update.mode' && this.policyValue !== undefined) {
 				return this.policyValue as T;
 			}
@@ -181,7 +178,6 @@ suite('AbstractUpdateService', () => {
 		await service.whenInitialized;
 		assert.strictEqual(service.state.type, StateType.Idle);
 
-		// User setting stays 'default' (enabled); policy alone forces 'none'.
 		await setPolicy(service, 'none');
 
 		assert.deepStrictEqual(service.state, { type: StateType.Disabled, reason: DisablementReason.Policy });
@@ -243,7 +239,6 @@ suite('AbstractUpdateService', () => {
 		let stateChanges = 0;
 		store.add(service.onStateChange(() => stateChanges++));
 
-		// Re-write the same 'none' value: this affects `update.mode` but does not change the outcome.
 		configurationService.setUserConfiguration('update.mode', 'none');
 		configurationService.onDidChangeConfigurationEmitter.fire({ affectsConfiguration: () => true } as unknown as IConfigurationChangeEvent);
 		await timeout(0);
@@ -256,7 +251,6 @@ suite('AbstractUpdateService', () => {
 		const service = createService('default');
 		await service.whenInitialized;
 
-		// Put the service into a cancellable state and make cancellation block until we release it.
 		service.forceState(State.CheckingForUpdates(false));
 		const gate = new DeferredPromise<void>();
 		service.blockCancelUpdate(gate.p);

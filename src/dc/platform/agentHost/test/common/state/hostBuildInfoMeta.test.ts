@@ -7,7 +7,6 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { ROOT_META_HOST_BUILD_KEY, formatHostBuildInfo, readHostBuildInfo, withHostBuildInfo, type IHostBuildInfo, type RootMeta, type RootState } from '../../../common/state/sessionState.js';
 
-/** Wraps a `_meta` bag in a minimal {@link RootState} so the reader sees the right source type. */
 function rootState(meta: RootMeta | undefined): RootState {
 	return { agents: [], _meta: meta };
 }
@@ -28,7 +27,6 @@ suite('Host build info _meta helpers', () => {
 		assert.strictEqual(readHostBuildInfo(rootState({})), undefined);
 		assert.strictEqual(readHostBuildInfo(rootState({ [ROOT_META_HOST_BUILD_KEY]: 'nope' })), undefined);
 		assert.strictEqual(readHostBuildInfo(rootState({ [ROOT_META_HOST_BUILD_KEY]: [] })), undefined);
-		// Missing required `version`.
 		assert.strictEqual(readHostBuildInfo(rootState({ [ROOT_META_HOST_BUILD_KEY]: { commit: 'x' } })), undefined);
 	});
 
@@ -43,7 +41,6 @@ suite('Host build info _meta helpers', () => {
 		const removed = withHostBuildInfo(withOther, undefined);
 		assert.strictEqual(removed?.[ROOT_META_HOST_BUILD_KEY], undefined);
 		assert.strictEqual(removed?.['other'], 1);
-		// Removing the only key yields undefined.
 		assert.strictEqual(withHostBuildInfo({ [ROOT_META_HOST_BUILD_KEY]: full }, undefined), undefined);
 	});
 

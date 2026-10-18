@@ -8,10 +8,6 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IBufferMarkCapability, TerminalCapability, IMarkProperties } from './capabilities.js';
 import type { IMarker, Terminal } from '@xterm/headless';
 
-/**
- * Manages "marks" in the buffer which are lines that are tracked when lines are added to or removed
- * from the buffer.
- */
 export class BufferMarkCapability extends Disposable implements IBufferMarkCapability {
 
 	readonly type = TerminalCapability.BufferMarkDetection;

@@ -15,7 +15,7 @@ function createModel(id: string, name: string): ILanguageModelChatMetadataAndIde
 		metadata: {
 			id,
 			name,
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			version: id,
 			family: 'copilot',
 			maxInputTokens: 128000,
@@ -66,7 +66,6 @@ suite('ModelPickerHover', () => {
 			assert.ok(hover);
 			disposables.add(hover.disposable);
 			const promoText = hover.element.querySelector('.chat-model-hover-promo-text')?.textContent?.trim();
-			// The formatted date is locale/timezone dependent, so only assert on the sentence around it.
 			return promoText?.replace(/Ends .+\.$/, 'Ends <date>.');
 		});
 

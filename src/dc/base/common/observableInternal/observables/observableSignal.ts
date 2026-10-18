@@ -9,11 +9,6 @@ import { DebugNameData } from '../debugName.js';
 import { BaseObservable } from './baseObservable.js';
 import { DebugLocation } from '../debugLocation.js';
 
-/**
- * Creates a signal that can be triggered to invalidate observers.
- * Signals don't have a value - when they are triggered they indicate a change.
- * However, signals can carry a delta that is passed to observers.
- */
 export function observableSignal<TDelta = void>(debugName: string): IObservableSignal<TDelta>;
 export function observableSignal<TDelta = void>(owner: object): IObservableSignal<TDelta>;
 export function observableSignal<TDelta = void>(debugNameOrOwner: string | object, debugLocation = DebugLocation.ofCaller()): IObservableSignal<TDelta> {
@@ -60,6 +55,5 @@ class ObservableSignal<TChange> extends BaseObservable<void, TChange> implements
 	}
 
 	public override get(): void {
-		// NO OP
 	}
 }

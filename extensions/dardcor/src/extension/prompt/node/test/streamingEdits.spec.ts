@@ -62,9 +62,6 @@ suite('streamLinesInCodeBlock', function () {
 	});
 });
 
-/**
- * Extract just the lines that are inside a code block.
- */
 function streamLinesInCodeBlock(source: AsyncIterable<string>): AsyncIterableObject<string> {
 	return (
 		streamLines(source)

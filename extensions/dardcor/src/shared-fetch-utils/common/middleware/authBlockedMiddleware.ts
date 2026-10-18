@@ -11,13 +11,6 @@ export class AuthBlockedError extends FetchBlockedError {
 	}
 }
 
-/**
- * After a `401` or `403` response, blocks the current auth token for
- * {@link blockDurationMs} (default 1 hour). Subsequent requests with
- * the same `Authorization` header are rejected immediately with an
- * {@link AuthBlockedError}. If the token changes (e.g. the user
- * re-authenticates) the block is cleared automatically.
- */
 export function authBlockedMiddleware(
 	blockDurationMs: number = 60 * 60 * 1000,
 ): FetchMiddleware {
@@ -27,13 +20,11 @@ export function authBlockedMiddleware(
 	return (next) => async (request) => {
 		const currentToken = request.headers['Authorization'] ?? request.headers['authorization'];
 
-		// Token changed → clear block
 		if (currentToken !== blockedToken) {
 			blockedToken = undefined;
 			blockedUntil = 0;
 		}
 
-		// Still blocked?
 		if (currentToken && currentToken === blockedToken && Date.now() < blockedUntil) {
 			throw new AuthBlockedError(blockedUntil - Date.now());
 		}

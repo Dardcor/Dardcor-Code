@@ -3,21 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// FORKED FROM https://github.com/eslint/eslint/blob/b23ad0d789a909baf8d7c41a35bc53df932eaf30/lib/rules/no-unused-expressions.js
-// and added support for `OptionalCallExpression`, see https://github.com/facebook/create-react-app/issues/8107 and https://github.com/eslint/eslint/issues/12642
 
-/**
- * @fileoverview Flag expressions in statement position that do not side effect
- * @author Michael Ficarra
- */
 
 import { TSESTree } from '@typescript-eslint/utils';
 import * as eslint from 'eslint';
 import type * as ESTree from 'estree';
 
-//------------------------------------------------------------------------------
-// Rule Definition
-//------------------------------------------------------------------------------
 
 export default {
 	meta: {
@@ -59,21 +50,12 @@ export default {
 			allowTaggedTemplates = config.allowTaggedTemplates || false;
 
 
-		/**
-		 * @param node any node
-		 * @returns whether the given node structurally represents a directive
-		 */
 		function looksLikeDirective(node: TSESTree.Node): boolean {
 			return node.type === 'ExpressionStatement' &&
 				node.expression.type === 'Literal' && typeof node.expression.value === 'string';
 		}
 
 
-		/**
-		 * @param predicate ([a] -> Boolean) the function used to make the determination
-		 * @param list the input list
-		 * @returns the leading sequence of members in the given list that pass the given predicate
-		 */
 		function takeWhile<T>(predicate: (item: T) => boolean, list: T[]): T[] {
 			for (let i = 0; i < list.length; ++i) {
 				if (!predicate(list[i])) {
@@ -84,20 +66,11 @@ export default {
 		}
 
 
-		/**
-		 * @param node a Program or BlockStatement node
-		 * @returns the leading sequence of directive nodes in the given node's body
-		 */
 		function directives(node: TSESTree.Program | TSESTree.BlockStatement): TSESTree.Node[] {
 			return takeWhile(looksLikeDirective, node.body);
 		}
 
 
-		/**
-		 * @param node any node
-		 * @param ancestors the given node's ancestors
-		 * @returns whether the given node is considered a directive in its current position
-		 */
 		function isDirective(node: TSESTree.Node, ancestors: TSESTree.Node[]): boolean {
 			const parent = ancestors[ancestors.length - 1],
 				grandparent = ancestors[ancestors.length - 2];
@@ -107,15 +80,9 @@ export default {
 				directives(parent).indexOf(node) >= 0;
 		}
 
-		/**
-		 * Determines whether or not a given node is a valid expression. Recurses on short circuit eval and ternary nodes if enabled by flags.
-		 * @param node any node
-		 * @returns whether the given node is a valid expression
-		 */
 		function isValidExpression(node: TSESTree.Node): boolean {
 			if (allowTernary) {
 
-				// Recursive check for ternary and logical expressions
 				if (node.type === 'ConditionalExpression') {
 					return isValidExpression(node.consequent) && isValidExpression(node.alternate);
 				}

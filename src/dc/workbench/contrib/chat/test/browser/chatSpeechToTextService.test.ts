@@ -747,16 +747,16 @@ suite('ChatSpeechToTextService', () => {
 		await createService('auto', 'gpt-5.6-luna')._cleanupWithLanguageModel('Luna experiment transcript', CancellationToken.None);
 		await createService('auto', 'unexpected-model')._cleanupWithLanguageModel('unknown experiment transcript', CancellationToken.None);
 		await createService('gpt-5.6-luna')._cleanupWithLanguageModel('configured Luna transcript', CancellationToken.None);
-		await createService('copilot-utility-small', 'gpt-5.6-luna')._cleanupWithLanguageModel('configured utility transcript', CancellationToken.None);
+		await createService('dardcor-utility-small', 'gpt-5.6-luna')._cleanupWithLanguageModel('configured utility transcript', CancellationToken.None);
 
 		assert.deepStrictEqual(selectors, [
-			{ vendor: 'copilot', id: 'copilot-utility-small' },
-			{ vendor: 'copilot', id: 'gpt-5.6-luna' },
-			{ vendor: 'copilot', id: 'copilot-utility-small' },
-			{ vendor: 'copilot', id: 'copilot-utility-small' },
-			{ vendor: 'copilot', id: 'gpt-5.6-luna' },
-			{ vendor: 'copilot', id: 'copilot-utility-small' },
-			{ vendor: 'copilot', id: 'copilot-utility-small' },
+			{ vendor: 'dardcor', id: 'dardcor-utility-small' },
+			{ vendor: 'dardcor', id: 'gpt-5.6-luna' },
+			{ vendor: 'dardcor', id: 'dardcor-utility-small' },
+			{ vendor: 'dardcor', id: 'dardcor-utility-small' },
+			{ vendor: 'dardcor', id: 'gpt-5.6-luna' },
+			{ vendor: 'dardcor', id: 'dardcor-utility-small' },
+			{ vendor: 'dardcor', id: 'dardcor-utility-small' },
 		]);
 	});
 

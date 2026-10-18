@@ -9,7 +9,7 @@ import { isFirefox } from './browser.js';
 import { getWindows, sharedMutationObserver } from './dom.js';
 import { mainWindow } from './window.js';
 
-const globalStylesheets = new Map<HTMLStyleElement /* main stylesheet */, Set<HTMLStyleElement /* aux window clones that track the main stylesheet */>>();
+const globalStylesheets = new Map<HTMLStyleElement , Set<HTMLStyleElement >>();
 
 export function isGlobalStylesheet(node: Node): boolean {
 	return globalStylesheets.has(node as HTMLStyleElement);
@@ -51,7 +51,6 @@ export function createStyleSheet(container: HTMLElement = mainWindow.document.he
 	}
 
 	// With <head> as container, the stylesheet becomes global and is tracked
-	// to support auxiliary windows to clone the stylesheet.
 	if (container === mainWindow.document.head) {
 		const globalStylesheetClones = new Set<HTMLStyleElement>();
 		globalStylesheets.set(style, globalStylesheetClones);
@@ -61,7 +60,7 @@ export function createStyleSheet(container: HTMLElement = mainWindow.document.he
 
 		for (const { window: targetWindow, disposables } of getWindows()) {
 			if (targetWindow === mainWindow) {
-				continue; // main window is already tracked
+				continue;
 			}
 
 			const cloneDisposable = disposables.add(cloneGlobalStyleSheet(style, globalStylesheetClones, targetWindow));

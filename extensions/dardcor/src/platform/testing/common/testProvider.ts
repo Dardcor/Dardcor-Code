@@ -16,24 +16,17 @@ export interface ITestFailure {
 export interface ITestProvider {
 	readonly _serviceBrand: undefined;
 
-	/** Millisecond timestamp when the last results, if any, were added. */
 	readonly lastResultsFrom?: number;
 
-	/** Fired when test results change. */
 	readonly onDidChangeResults: vscode.Event<void>;
 
-	/** Gets all test failures from the last result. */
 	getAllFailures(): Iterable<ITestFailure>;
 
-	/** Gets the last failure the given test item had. */
 	getLastFailureFor(testItem: vscode.TestItem): ITestFailure | undefined;
 
-	/** Gets a test at a position. */
 	getFailureAtPosition(uri: vscode.Uri, position: vscode.Position): ITestFailure | undefined;
 
-	/** Gets tests in the given URI */
 	hasTestsInUri(uri: vscode.Uri): Promise<boolean>;
 
-	/** Gets whether there's any test controller that has found tests in the workspace. */
 	hasAnyTests(): Promise<boolean>;
 }

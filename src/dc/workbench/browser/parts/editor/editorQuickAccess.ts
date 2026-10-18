@@ -33,12 +33,10 @@ export abstract class BaseEditorQuickAccessProvider extends PickerQuickAccessPro
 
 		reset(isQuickNavigating: boolean): void {
 
-			// Caches
 			if (!isQuickNavigating) {
 				this.scorerCache = Object.create(null);
 			}
 
-			// Other
 			this.isQuickNavigating = isQuickNavigating;
 		}
 	};
@@ -63,47 +61,40 @@ export abstract class BaseEditorQuickAccessProvider extends PickerQuickAccessPro
 
 	override provide(picker: IQuickPick<IEditorQuickPickItem, { useSeparators: true }>, token: CancellationToken): IDisposable {
 
-		// Reset the pick state for this run
 		this.pickState.reset(!!picker.quickNavigate);
 
-		// Start picker
 		return super.provide(picker, token);
 	}
 
 	protected _getPicks(filter: string): Array<IEditorQuickPickItem | IQuickPickSeparator> {
 		const query = prepareQuery(filter);
 
-		// Filtering
 		const filteredEditorEntries = this.doGetEditorPickItems().filter(entry => {
 			if (!query.normalized) {
 				return true;
 			}
 
-			// Score on label and description
 			const itemScore = scoreItemFuzzy(entry, query, true, quickPickItemScorerAccessor, this.pickState.scorerCache);
 			if (!itemScore.score) {
 				return false;
 			}
 
-			// Apply highlights
 			entry.highlights = { label: itemScore.labelMatch, description: itemScore.descriptionMatch };
 
 			return true;
 		});
 
-		// Sorting
 		if (query.normalized) {
 			const groups = this.editorGroupService.getGroups(GroupsOrder.GRID_APPEARANCE).map(group => group.id);
 			filteredEditorEntries.sort((entryA, entryB) => {
 				if (entryA.groupId !== entryB.groupId) {
-					return groups.indexOf(entryA.groupId) - groups.indexOf(entryB.groupId); // older groups first
+					return groups.indexOf(entryA.groupId) - groups.indexOf(entryB.groupId);
 				}
 
 				return compareItemsByFuzzyScore(entryA, entryB, query, true, quickPickItemScorerAccessor, this.pickState.scorerCache);
 			});
 		}
 
-		// Grouping (for more than one group)
 		const filteredEditorEntriesWithSeparators: Array<IEditorQuickPickItem | IQuickPickSeparator> = [];
 		if (this.editorGroupService.count > 1) {
 			let lastGroupId: number | undefined = undefined;
@@ -191,7 +182,6 @@ export abstract class BaseEditorQuickAccessProvider extends PickerQuickAccessPro
 	protected abstract doGetEditors(): IEditorIdentifier[];
 }
 
-//#region Active Editor Group Editors by Most Recently Used
 
 export class ActiveGroupEditorsByMostRecentlyUsedQuickAccess extends BaseEditorQuickAccessProvider {
 
@@ -213,10 +203,8 @@ export class ActiveGroupEditorsByMostRecentlyUsedQuickAccess extends BaseEditorQ
 	}
 }
 
-//#endregion
 
 
-//#region All Editors by Appearance
 
 export class AllEditorsByAppearanceQuickAccess extends BaseEditorQuickAccessProvider {
 
@@ -244,10 +232,8 @@ export class AllEditorsByAppearanceQuickAccess extends BaseEditorQuickAccessProv
 	}
 }
 
-//#endregion
 
 
-//#region All Editors by Most Recently Used
 
 export class AllEditorsByMostRecentlyUsedQuickAccess extends BaseEditorQuickAccessProvider {
 
@@ -273,4 +259,3 @@ export class AllEditorsByMostRecentlyUsedQuickAccess extends BaseEditorQuickAcce
 	}
 }
 
-//#endregion

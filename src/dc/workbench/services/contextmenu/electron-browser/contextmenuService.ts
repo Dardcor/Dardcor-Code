@@ -53,12 +53,9 @@ export class ContextMenuService implements IContextMenuService {
 				: new HTMLContextMenuService(telemetryService, notificationService, contextViewService, keybindingService, menuService, contextKeyService);
 		}
 
-		// set initial context menu service
 		let isNativeContextMenu = hasNativeContextMenu(configurationService);
 		this.impl = createContextMenuService(isNativeContextMenu);
 
-		// MacOS does not need a restart when the menu style changes
-		// It should update the context menu style on menu style configuration change
 		if (isMacintosh) {
 			this.listener = configurationService.onDidChangeConfiguration(e => {
 				if (!e.affectsConfiguration(MenuSettings.MenuStyle)) {
@@ -131,26 +128,17 @@ class NativeContextMenuService extends Disposable implements IContextMenuService
 				const clientRect = anchor.getBoundingClientRect();
 				const elementPosition = { left: clientRect.left, top: clientRect.top, width: clientRect.width, height: clientRect.height };
 
-				// Determine if element is clipped by viewport; if so we'll use the bottom-right of the visible portion
 				const win = dom.getWindow(anchor);
 				const vw = win.innerWidth;
 				const vh = win.innerHeight;
 				const isClipped = clientRect.left < 0 || clientRect.top < 0 || clientRect.right > vw || clientRect.bottom > vh;
 
-				// When drawing context menus, we adjust the pixel position for native menus using zoom level
-				// In areas where zoom is applied to the element or its ancestors, we need to adjust accordingly
-				// e.g. The title bar has counter zoom behavior meaning it applies the inverse of zoom level.
-				// Window Zoom Level: 1.5, Title Bar Zoom: 1/1.5, Coordinate Multiplier: 1.5 * 1.0 / 1.5 = 1.0
 				zoom *= dom.getDomNodeZoomLevel(anchor);
 
 				if (isClipped) {
-					// Element is partially out of viewport: always place at bottom-right visible corner
 					x = Math.min(Math.max(clientRect.right, 0), vw);
 					y = Math.min(Math.max(clientRect.bottom, 0), vh);
 				} else {
-					// Position according to the axis alignment and the anchor alignment:
-					// `HORIZONTAL` aligns at the top left or right of the anchor and
-					//  `VERTICAL` aligns at the bottom left of the anchor.
 					if (delegate.anchorAxisAlignment === AnchorAxisAlignment.HORIZONTAL) {
 						if (delegate.anchorAlignment === AnchorAlignment.LEFT) {
 							x = elementPosition.left;
@@ -163,12 +151,7 @@ class NativeContextMenuService extends Disposable implements IContextMenuService
 						if (!isMacintosh) {
 							const window = dom.getWindow(anchor);
 							const availableHeightForMenu = window.screen.height - y;
-							if (availableHeightForMenu < actions.length * (isWindows ? 45 : 32) /* guess of 1 menu item height */) {
-								// this is a guess to detect whether the context menu would
-								// open to the bottom from this point or to the top. If the
-								// menu opens to the top, make sure to align it to the bottom
-								// of the anchor and not to the top.
-								// this seems to be only necessary for Windows and Linux.
+							if (availableHeightForMenu < actions.length * (isWindows ? 45 : 32) ) {
 								y += elementPosition.height;
 							}
 						}
@@ -183,9 +166,6 @@ class NativeContextMenuService extends Disposable implements IContextMenuService
 					}
 				}
 
-				// Shift macOS menus by a few pixels below elements
-				// to account for extra padding on top of native menu
-				// https://github.com/microsoft/vscode/issues/84231
 				if (isMacintosh) {
 					y += 4 / zoom;
 				}
@@ -193,8 +173,6 @@ class NativeContextMenuService extends Disposable implements IContextMenuService
 				x = anchor.x;
 				y = anchor.y;
 			} else {
-				// We leave x/y undefined in this case which will result in
-				// Electron taking care of opening the menu at the cursor position.
 			}
 
 			if (typeof x === 'number') {
@@ -216,12 +194,10 @@ class NativeContextMenuService extends Disposable implements IContextMenuService
 	}
 
 	private createMenuItem(delegate: IContextMenuDelegate, entry: IAction, onHide: () => void, submenuIds: Set<string>): IContextMenuItem | undefined {
-		// Separator
 		if (entry instanceof Separator) {
 			return { type: 'separator' };
 		}
 
-		// Submenu
 		if (entry instanceof SubmenuAction) {
 			if (submenuIds.has(entry.id)) {
 				console.warn(`Found submenu cycle: ${entry.id}`);
@@ -234,7 +210,6 @@ class NativeContextMenuService extends Disposable implements IContextMenuService
 			};
 		}
 
-		// Normal Menu Item
 		else {
 			let type: 'radio' | 'checkbox' | undefined = undefined;
 			if (entry.checked) {
@@ -252,12 +227,8 @@ class NativeContextMenuService extends Disposable implements IContextMenuService
 				enabled: !!entry.enabled,
 				click: event => {
 
-					// To preserve pre-electron-2.x behaviour, we first trigger
-					// the onHide callback and then the action.
-					// Fixes https://github.com/microsoft/vscode/issues/45601
 					onHide();
 
-					// Run action which will close the menu
 					this.runAction(entry, delegate, event);
 				}
 			};

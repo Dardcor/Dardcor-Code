@@ -27,7 +27,6 @@ export class NullLanguageContextProviderService implements ILanguageContextProvi
 	getContextItems(doc: TextDocument, request: Copilot.ResolveRequest, cancellationToken: CancellationToken): AsyncIterable<ContextItem> {
 		return {
 			[Symbol.asyncIterator]: async function* () {
-				// No context items to provide
 			}
 		};
 	}

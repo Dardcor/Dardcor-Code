@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { getScriptSuggestions } from '../generators/scriptSuggestionsGenerator';
-// import { getCustomSuggestions } from '../generators/customSuggestionsGenerator';
 import { AutocompleteState } from './types';
 import { GeneratorState, GeneratorContext } from '../generators/helpers';
 import { sleep } from '../../shared/utils';
@@ -35,86 +34,30 @@ const getGeneratorContext = (state: AutocompleteState): GeneratorContext => {
 };
 
 export const createGeneratorState = (
-	// setNamed: NamedSetState<AutocompleteState>,
 	state: AutocompleteState,
 	executeExternals?: IFigExecuteExternals
 ): {
 	triggerGenerators: (result: ArgumentParserResult, executeExternals: IFigExecuteExternals) => GeneratorState[];
 } => {
-	// function updateGenerator(
-	// 	generatorState: GeneratorState,
-	// 	getUpdate: () => Partial<GeneratorState>,
-	// ) {
-	// 	return setNamed('updateGenerator', (state) => {
-	// 		let { generatorStates } = state;
-	// 		// Double check to make sure we don't update if things are stale
-	// 		const index = generatorStates.findIndex((s) => s === generatorState);
-	// 		if (index === -1) {
-	// 			console.info('stale update', { generatorStates, generatorState });
-	// 			return { generatorStates };
-	// 		}
 
-	// 		generatorStates = [...generatorStates];
-	// 		// If we are still loading after update (e.g. debounced) then make sure
-	// 		// we re-call this when we get a result.
-	// 		generatorStates[index] = updateGeneratorOnResult({
-	// 			...generatorState,
-	// 			...getUpdate(),
-	// 		});
-	// 		console.info('updating generator', {
-	// 			generatorState: generatorStates[index],
-	// 		});
-	// 		return { generatorStates };
-	// 	});
-	// }
 
-	// function updateGeneratorOnResult(generatorState: GeneratorState) {
-	// 	const { generator, loading, request } = generatorState;
-	// 	if (loading && request) {
-	// 		request.then((result) =>
-	// 			updateGenerator(generatorState, () => ({
-	// 				loading: false,
-	// 				result: result?.map((suggestion) => ({ ...suggestion, generator })),
-	// 			})),
-	// 		);
-	// 	}
-	// 	return generatorState;
-	// }
 	const triggerGenerator = (currentState: GeneratorState, executeExternals: IFigExecuteExternals) => {
 		const { generator, context } = currentState;
 		let request: Promise<Fig.Suggestion[] | undefined>;
 
 		if (generator.template) {
-			// TODO: Implement template generators
-			// request = getTemplateSuggestions(generator, context);
 			request = Promise.resolve(undefined);
 		}
 		else if (generator.script) {
 			request = getScriptSuggestions(
 				generator,
 				context,
-				undefined, // getSetting<number>(SETTINGS.SCRIPT_TIMEOUT, 5000),
+				undefined,
 				executeExternals
 			);
 		}
 		else {
 			request = getCustomSuggestions(generator, context, executeExternals);
-			// filepaths/folders templates are now a sugar for two custom generators, we need to filter
-			// the suggestion created by those two custom generators
-			// if (generator.filterTemplateSuggestions) {
-			// 	request = (async () => {
-			// 		// TODO: use symbols to detect if the the generator fn is filepaths/folders
-			// 		// If the first custom suggestion has template meta properties then all the custom
-			// 		// suggestions are too
-			// 		const suggestions = await request;
-			// 		if (suggestions[0] && isTemplateSuggestion(suggestions[0])) {
-			// 			return generator.filterTemplateSuggestions!(
-			// 				suggestions as Fig.TemplateSuggestion[],
-			// 			);
-			// 		}
-			// 		return suggestions;
-			// 	})();
-			// }
 		}
 		return { ...currentState, loading: true, request };
 	};
@@ -137,9 +80,6 @@ export const createGeneratorState = (
 			if (!previousGeneratorState || currentArg !== previousArg) {
 				shouldTrigger = true;
 			} else if (trigger === undefined) {
-				// If trigger is undefined we never trigger, unless debounced in
-				// which case we always trigger.
-				// TODO: move debounce to generator.
 				shouldTrigger = Boolean(currentArg?.debounce);
 			} else {
 				let triggerFn: (a: string, b: string) => boolean;
@@ -192,7 +132,7 @@ export const createGeneratorState = (
 					typeof currentArg.debounce === 'number' && currentArg.debounce > 0
 						? currentArg.debounce
 						: 200,
-				); //.then(() => updateGenerator(generatorState, getTriggeredState));
+				);
 				return generatorState;
 			}
 			return getTriggeredState();

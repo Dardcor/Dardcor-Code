@@ -36,7 +36,6 @@ function makeInput(overrides: Partial<ICacheInsightsInput> & { aMessages?: reado
 	};
 }
 
-/** Project insights down to the fields that matter for scenario assertions. */
 function shape(insights: readonly ICacheInsight[]): { severity: string; component: string | undefined }[] {
 	return insights.map(i => ({ severity: i.severity, component: i.component }));
 }
@@ -147,8 +146,6 @@ suite('chatDebugCacheInsights', () => {
 				aMessages: [msg('user', 'hi')],
 				bMessages: [msg('user', 'hi'), msg('assistant', 'reply')],
 			}));
-			// model, tools, system are critical; the append downgrades to info
-			// because an earlier tier already broke the cache.
 			assert.deepStrictEqual(shape(insights), [
 				{ severity: CacheInsightSeverity.Critical, component: undefined },
 				{ severity: CacheInsightSeverity.Critical, component: 'tools' },
@@ -324,15 +321,12 @@ suite('chatDebugCacheInsights', () => {
 		});
 
 		test('overall hit rate is token-weighted across all turns', () => {
-			// One huge healthy request and one tiny full miss: pair-counting
-			// would read "50% of requests missed", token-weighting shows the
-			// truth — nearly everything was served from cache.
 			const report = buildSessionCacheReport(
 				[{ turnIndex: 1, category: CacheBreakCategory.Expiration, lostTokens: 1_000 }],
 				[
 					{ inputTokens: 99_000, cachedTokens: 99_000 },
 					{ inputTokens: 1_000, cachedTokens: 0 },
-					{ inputTokens: 0, cachedTokens: 0 }, // no usage reported — excluded
+					{ inputTokens: 0, cachedTokens: 0 },
 				],
 			);
 			assert.deepStrictEqual(report.overall, {

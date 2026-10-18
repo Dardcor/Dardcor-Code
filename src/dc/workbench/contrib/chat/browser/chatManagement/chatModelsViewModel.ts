@@ -264,7 +264,6 @@ export class ChatModelsViewModel extends Disposable {
 				}
 			}
 
-			// Filter by capabilities
 			let matchedCapabilities: string[] = [];
 			if (capabilities.length > 0) {
 				if (!modelEntry.metadata.capabilities) {
@@ -285,7 +284,6 @@ export class ChatModelsViewModel extends Disposable {
 				matchedCapabilities = distinct(matchedCapabilities);
 			}
 
-			// Filter by text
 			let modelMatches: ModelItemMatches | undefined;
 			if (searchValue) {
 				modelMatches = new ModelItemMatches(modelEntry, searchValue, words, completeMatch);
@@ -334,7 +332,6 @@ export class ChatModelsViewModel extends Disposable {
 				}
 				break;
 			default:
-				// Check edit tools
 				if (modelEntry.metadata.capabilities.editTools) {
 					for (const tool of modelEntry.metadata.capabilities.editTools) {
 						if (tool.toLowerCase().includes(capability)) {
@@ -447,11 +444,9 @@ export class ChatModelsViewModel extends Disposable {
 			return;
 		}
 
-		// Remove existing models for this vendor
 		this.languageModels = this.languageModels.filter(m => m.provider.vendor.vendor !== vendorId);
 		this.languageModelGroupStatuses = this.languageModelGroupStatuses.filter(s => s.provider.vendor.vendor !== vendorId);
 
-		// Add updated models for this vendor
 		this.addVendorModels(vendor);
 		this.languageModelGroups = this.groupModels(this.languageModels);
 		this.doFilter();
@@ -482,8 +477,6 @@ export class ChatModelsViewModel extends Disposable {
 				if (!metadata) {
 					continue;
 				}
-				// Models with no toggle of their own are not listed here. Listing the
-				// agent-host BYOK copies would also duplicate the whole BYOK catalogue.
 				if (!canHideModel(identifier, metadata)) {
 					continue;
 				}
@@ -517,7 +510,6 @@ export class ChatModelsViewModel extends Disposable {
 			);
 		}
 
-		// return all models ungrouped
 		return this.languageModels;
 	}
 
@@ -537,7 +529,6 @@ export class ChatModelsViewModel extends Disposable {
 		for (const model of this.languageModels) {
 			model.hidden = this.languageModelsService.isModelHidden(model.identifier);
 		}
-		// Rebuild groups so provider/group header `hidden` reflects the new state.
 		this.languageModelGroups = this.groupModels(this.languageModels);
 		this.doFilter();
 	}
@@ -594,17 +585,14 @@ class ModelItemMatches {
 
 	constructor(modelEntry: ILanguageModel, searchValue: string, words: string[], completeMatch: boolean) {
 		if (!completeMatch) {
-			// Match against model name
 			this.modelNameMatches = modelEntry.metadata.name ?
 				this.matches(searchValue, modelEntry.metadata.name, (word, wordToMatchAgainst) => matchesWords(word, wordToMatchAgainst, true), words) :
 				null;
 
 			this.modelIdMatches = this.matches(searchValue, modelEntry.metadata.id, or(matchesWords, matchesCamelCase), words);
 
-			// Match against vendor display name
 			this.providerMatches = this.matches(searchValue, modelEntry.provider.group.name, (word, wordToMatchAgainst) => matchesWords(word, wordToMatchAgainst, true), words);
 
-			// Match against capabilities
 			if (modelEntry.metadata.capabilities) {
 				const capabilityStrings: string[] = [];
 				if (modelEntry.metadata.capabilities.toolCalling) {

@@ -49,7 +49,7 @@ export async function buildUserEnvironment(startParamsEnv: { [key: string]: stri
 	};
 
 	const binFolder = environmentService.isBuilt ? join(environmentService.appRoot, 'bin') : join(environmentService.appRoot, 'resources', 'server', 'bin-dev');
-	const remoteCliBinFolder = join(binFolder, 'remote-cli'); // contains the `code` command that can talk to the remote server
+	const remoteCliBinFolder = join(binFolder, 'remote-cli');
 
 	let PATH = readCaseInsensitive(env, 'PATH');
 	if (PATH) {
@@ -60,7 +60,7 @@ export async function buildUserEnvironment(startParamsEnv: { [key: string]: stri
 	setCaseInsensitive(env, 'PATH', PATH);
 
 	if (!environmentService.args['without-browser-env-var']) {
-		env.BROWSER = join(binFolder, 'helpers', isWindows ? 'browser.cmd' : 'browser.sh'); // a command that opens a browser on the local machine
+		env.BROWSER = join(binFolder, 'helpers', isWindows ? 'browser.cmd' : 'browser.sh');
 	}
 
 	env.VSCODE_RECONNECTION_GRACE_TIME = String(environmentService.reconnectionGraceTime);
@@ -190,7 +190,6 @@ export class ExtensionHostConnection extends Disposable {
 	}
 
 	private async _sendSocketToExtensionHost(extensionHostProcess: cp.ChildProcess, connectionData: ConnectionData): Promise<void> {
-		// Make sure all outstanding writes have been drained before sending the socket
 		await connectionData.socketDrain();
 		const msg = connectionData.toIExtHostSocketMessage();
 		let socket: net.Socket;
@@ -221,7 +220,6 @@ export class ExtensionHostConnection extends Disposable {
 		const connectionData = new ConnectionData(_socket, initialDataChunk);
 
 		if (!this._extensionHostProcess) {
-			// The extension host didn't even start up yet
 			this._connectionData = connectionData;
 			return;
 		}
@@ -231,7 +229,6 @@ export class ExtensionHostConnection extends Disposable {
 
 	private _cleanResources(): void {
 		if (this._disposed) {
-			// already called
 			return;
 		}
 		this._disposed = true;
@@ -279,10 +276,8 @@ export class ExtensionHostConnection extends Disposable {
 				silent: true
 			};
 
-			// Refs https://github.com/microsoft/vscode/issues/189805
 			opts.execArgv.unshift('--dns-result-order=ipv4first');
 
-			// Run Extension Host as fork of current process
 			const args = ['--type=extensionHost', `--transformURIs`];
 			const useHostProxy = this._environmentService.args['use-host-proxy'];
 			args.push(`--useHostProxy=${useHostProxy ? 'true' : 'false'}`);
@@ -293,7 +288,6 @@ export class ExtensionHostConnection extends Disposable {
 			const pid = this._extensionHostProcess.pid;
 			this._log(`<${pid}> Launched Extension Host Process.`);
 
-			// Catch all output coming from the extension host process
 			this._extensionHostProcess.stdout!.setEncoding('utf8');
 			this._extensionHostProcess.stderr!.setEncoding('utf8');
 			const onStdout = Event.fromNodeEventEmitter<string>(this._extensionHostProcess.stdout!, 'data');
@@ -301,7 +295,6 @@ export class ExtensionHostConnection extends Disposable {
 			this._register(onStdout((e) => this._log(`<${pid}> ${e}`)));
 			this._register(onStderr((e) => this._log(`<${pid}><stderr> ${e}`)));
 
-			// Lifecycle
 			this._extensionHostProcess.on('error', (err) => {
 				this._logError(`<${pid}> Extension Host Process had an error`);
 				this._logService.error(err);
@@ -364,7 +357,6 @@ function setCaseInsensitive(env: { [key: string]: unknown }, key: string, value:
 }
 
 function removeNulls(env: { [key: string]: unknown | null }): void {
-	// Don't delete while iterating the object itself
 	for (const key of Object.keys(env)) {
 		if (env[key] === null) {
 			delete env[key];

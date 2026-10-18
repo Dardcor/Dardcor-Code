@@ -65,23 +65,10 @@ interface ILoadOptions {
 
 const enum ReadyState {
 
-	/**
-	 * This window has not loaded anything yet
-	 * and this is the initial state of every
-	 * window.
-	 */
 	NONE,
 
-	/**
-	 * This window is navigating, either for the
-	 * first time or subsequent times.
-	 */
 	NAVIGATING,
 
-	/**
-	 * This window has finished loading and is ready
-	 * to forward IPC requests to the web contents.
-	 */
 	READY
 }
 
@@ -94,7 +81,7 @@ class DockBadgeManager {
 	acquireBadge(window: IBaseWindow): IDisposable {
 		this.windows.add(window.id);
 
-		electron.app.setBadgeCount(isLinux ? 1 /* only numbers supported */ : undefined /* generic dot */);
+		electron.app.setBadgeCount(isLinux ? 1 : undefined );
 
 		return {
 			dispose: () => {
@@ -110,7 +97,6 @@ class DockBadgeManager {
 
 export abstract class BaseWindow extends Disposable implements IBaseWindow {
 
-	//#region Events
 
 	private readonly _onDidClose = this._register(new Emitter<void>());
 	readonly onDidClose = this._onDidClose.event;
@@ -133,11 +119,10 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 	private readonly _onDidChangeAlwaysOnTop = this._register(new Emitter<boolean>());
 	readonly onDidChangeAlwaysOnTop = this._onDidChangeAlwaysOnTop.event;
 
-	//#endregion
 
 	abstract readonly id: number;
 
-	protected _lastFocusTime = Date.now(); // window is shown on creation so take current time
+	protected _lastFocusTime = Date.now();
 	get lastFocusTime(): number { return this._lastFocusTime; }
 
 	private maximizedWindowState: IWindowState | undefined;
@@ -147,7 +132,6 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 	protected setWin(win: electron.BrowserWindow, options?: BrowserWindowConstructorOptions): void {
 		this._win = win;
 
-		// Window Events
 		this._register(Event.fromNodeEventEmitter(win, 'maximize')(() => {
 			if (isWindows && this.environmentMainService.enableRDPDisplayTracking && this._win) {
 				const [x, y] = this._win.getPosition();
@@ -182,13 +166,11 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 		this._register(Event.fromNodeEventEmitter(this._win, 'leave-full-screen')(() => this._onDidLeaveFullScreen.fire()));
 		this._register(Event.fromNodeEventEmitter(this._win, 'always-on-top-changed', (_, alwaysOnTop) => alwaysOnTop)(alwaysOnTop => this._onDidChangeAlwaysOnTop.fire(alwaysOnTop)));
 
-		// Sheet Offsets
-		const useCustomTitleStyle = !hasNativeTitlebar(this.configurationService, options?.titleBarStyle === 'hidden' ? TitlebarStyle.CUSTOM : undefined /* unknown */);
+		const useCustomTitleStyle = !hasNativeTitlebar(this.configurationService, options?.titleBarStyle === 'hidden' ? TitlebarStyle.CUSTOM : undefined );
 		if (isMacintosh && useCustomTitleStyle) {
-			win.setSheetOffset(isTahoeOrNewer(release()) ? 32 : 28); // offset dialogs by the height of the custom title bar if we have any
+			win.setSheetOffset(isTahoeOrNewer(release()) ? 32 : 28);
 		}
 
-		// Update the window controls immediately based on cached or default values
 		if (useCustomTitleStyle && useWindowControlsOverlay(this.configurationService)) {
 			const cachedWindowControlHeight = this.stateService.getItem<number>((BaseWindow.windowControlHeightStateStorageKey));
 			if (cachedWindowControlHeight) {
@@ -198,7 +180,6 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 			}
 		}
 
-		// Setup windows/linux system context menu so it only is allowed over the app icon
 		if ((isWindows || isLinux) && useCustomTitleStyle) {
 			this._register(Event.fromNodeEventEmitter(win, 'system-context-menu', (event: Electron.Event, point: Electron.Point) => ({ event, point }))(e => {
 				const [x, y] = win.getPosition();
@@ -206,10 +187,8 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 				const cx = Math.floor(cursorPos.x) - x;
 				const cy = Math.floor(cursorPos.y) - y;
 
-				// TODO@deepak1556 workaround for https://github.com/microsoft/vscode/issues/250632
-				// where showing the custom menu seems broken on Windows
 				if (isLinux) {
-					if (cx > 35 /* Cursor is beyond app icon in title bar */) {
+					if (cx > 35 ) {
 						e.event.preventDefault();
 
 						this._onDidTriggerSystemContextMenu.fire({ x: cx, y: cy });
@@ -218,12 +197,10 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 			}));
 		}
 
-		// Open devtools if instructed from command line args
 		if (this.environmentMainService.args['open-devtools'] === true) {
 			win.webContents.openDevTools();
 		}
 
-		// macOS: Window Fullscreen Transitions
 		if (isMacintosh) {
 			this._register(this.onDidEnterFullScreen(() => {
 				this.joinNativeFullScreenTransition?.complete(true);
@@ -235,9 +212,6 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 		}
 
 		if (isWindows && this.environmentMainService.enableRDPDisplayTracking) {
-			// Handles the display-added event on Windows RDP multi-monitor scenarios.
-			// This helps restore maximized windows to their correct monitor after RDP reconnection.
-			// Refs https://github.com/electron/electron/issues/47016
 			this._register(Event.fromNodeEventEmitter(screen, 'display-added', (event: Electron.Event, display: Display) => ({ event, display }))((e) => {
 				this.onDisplayAdded(e.display);
 			}));
@@ -264,15 +238,6 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 
 	protected applyState(state: IWindowState, hasMultipleDisplays = electron.screen.getAllDisplays().length > 0): void {
 
-		// TODO@electron (Electron 4 regression): when running on multiple displays where the target display
-		// to open the window has a larger resolution than the primary display, the window will not size
-		// correctly unless we set the bounds again (https://github.com/microsoft/vscode/issues/74872)
-		//
-		// Extended to cover Windows as well as Mac (https://github.com/microsoft/vscode/issues/146499)
-		//
-		// However, when running with native tabs with multiple windows we cannot use this workaround
-		// because there is a potential that the new window will be added as native tab instead of being
-		// a window on its own. In that case calling setBounds() would cause https://github.com/microsoft/vscode/issues/75830
 
 		const windowSettings = this.configurationService.getValue<IWindowSettings | undefined>('window');
 		const useNativeTabs = isMacintosh && windowSettings?.nativeTabs === true;
@@ -289,18 +254,12 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 
 		if (state.mode === WindowMode.Maximized || state.mode === WindowMode.Fullscreen) {
 
-			// this call may or may not show the window, depends
-			// on the platform: currently on Windows and Linux will
-			// show the window as active. To be on the safe side,
-			// we show the window at the end of this block.
 			this._win?.maximize();
 
 			if (state.mode === WindowMode.Fullscreen) {
 				this.setFullScreen(true, true);
 			}
 
-			// to reduce flicker from the default window size
-			// to maximize or fullscreen, we only show after
 			this._win?.show();
 		}
 	}
@@ -366,10 +325,8 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 		const disposables = new DisposableStore();
 		this.notifyFocusDisposable.value = disposables;
 
-		// Badge
 		disposables.add(DockBadgeManager.INSTANCE.acquireBadge(this));
 
-		// Flash/Bounce
 		if (isWindows || isLinux) {
 			this.win?.flashFrame(true);
 			disposables.add(toDisposable(() => this.win?.flashFrame(false)));
@@ -394,14 +351,9 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 
 		win.focus();
 
-		// When focusing the window, the workbench should always be the view that receives focus.
-		// However, in scenarios where the window has multiple child views (e.g. browser WebContentsViews),
-		// the last focused view in the window may not be the workbench.
-		// So we explicitly focus the workbench web contents here to ensure it gets focus.
 		win.webContents.focus();
 	}
 
-	//#region Window Control Overlays
 
 	private static readonly windowControlHeightStateStorageKey = 'windowControlHeight';
 
@@ -414,15 +366,12 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 			return;
 		}
 
-		// Cache the height for speeds lookups on startup
 		if (options.height) {
 			this.stateService.setItem((CodeWindow.windowControlHeightStateStorageKey), options.height);
 		}
 
-		// Windows/Linux: update window controls via setTitleBarOverlay()
 		if (!isMacintosh && useWindowControlsOverlay(this.configurationService)) {
 
-			// Update dimmed state if explicitly provided
 			if (options.dimmed !== undefined) {
 				this.windowControlsDimmed = options.dimmed;
 			}
@@ -440,15 +389,11 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 			win.setTitleBarOverlay({
 				color: effectiveBackgroundColor?.trim() === '' ? undefined : effectiveBackgroundColor,
 				symbolColor: effectiveForegroundColor?.trim() === '' ? undefined : effectiveForegroundColor,
-				height: options.height ? options.height - 1 : undefined // account for window border
+				height: options.height ? options.height - 1 : undefined
 			});
 		}
 
-		// macOS: update window controls via setWindowButtonPosition()
 		else if (isMacintosh && options.height !== undefined) {
-			// When the position is set, the horizontal margin is offset to ensure
-			// the distance between the traffic lights and the window frame is equal
-			// in both directions.
 			const buttonHeight = isTahoeOrNewer(release()) ? 14 : 16;
 			const offset = Math.floor((options.height - buttonHeight) / 2);
 			if (!offset) {
@@ -461,15 +406,13 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 
 	private dimColor(color: string): string {
 
-		// Blend a CSS color with black at 50% opacity to match the
-		// dimming overlay of `rgba(0, 0, 0, 0.5)` used by modals.
 
 		const parsed = Color.Format.CSS.parse(color);
 		if (!parsed) {
 			return color;
 		}
 
-		const dimFactor = 0.5; // 1 - 0.5 opacity of black overlay
+		const dimFactor = 0.5;
 		const r = Math.round(parsed.rgba.r * dimFactor);
 		const g = Math.round(parsed.rgba.g * dimFactor);
 		const b = Math.round(parsed.rgba.b * dimFactor);
@@ -477,9 +420,7 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 		return `rgb(${r}, ${g}, ${b})`;
 	}
 
-	//#endregion
 
-	//#region Fullscreen
 
 	private transientIsNativeFullScreen: boolean | undefined = undefined;
 	private joinNativeFullScreenTransition: DeferredPromise<boolean> | undefined = undefined;
@@ -490,7 +431,6 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 
 	protected setFullScreen(fullscreen: boolean, fromRestore: boolean): void {
 
-		// Set fullscreen state
 		if (useNativeFullScreen(this.configurationService)) {
 			this.setNativeFullScreen(fullscreen, fromRestore);
 		} else {
@@ -522,11 +462,6 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 	private doSetNativeFullScreen(fullscreen: boolean, fromRestore: boolean): void {
 		if (isMacintosh) {
 
-			// macOS: Electron windows report `false` for `isFullScreen()` for as long
-			// as the fullscreen transition animation takes place. As such, we need to
-			// listen to the transition events and carry around an intermediate state
-			// for knowing if we are in fullscreen or not
-			// Refs: https://github.com/electron/electron/issues/35360
 
 			this.transientIsNativeFullScreen = fullscreen;
 
@@ -538,29 +473,15 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 				]);
 
 				if (this.joinNativeFullScreenTransition !== joinNativeFullScreenTransition) {
-					return; // another transition was requested later
+					return;
 				}
 
 				this.transientIsNativeFullScreen = undefined;
 				this.joinNativeFullScreenTransition = undefined;
 
-				// There is one interesting gotcha on macOS: when you are opening a new
-				// window from a fullscreen window, that new window will immediately
-				// open fullscreen and emit the `enter-full-screen` event even before we
-				// reach this method. In that case, we actually will timeout after 10s
-				// for detecting the transition and as such it is important that we only
-				// signal to leave fullscreen if the window reports as not being in fullscreen.
 
 				if (!transitioned && fullscreen && fromRestore && this.win && !this.win.isFullScreen()) {
 
-					// We have seen requests for fullscreen failing eventually after some
-					// time, for example when an OS update was performed and windows restore.
-					// In those cases a user would find a window that is not in fullscreen
-					// but also does not show any custom titlebar (and thus window controls)
-					// because we think the window is in fullscreen.
-					//
-					// As a workaround in that case we emit a warning and leave fullscreen
-					// so that at least the window controls are back.
 
 					this.logService.warn('window: native macOS fullscreen transition did not happen within 10s from restoring');
 
@@ -580,23 +501,21 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 		}
 
 		win?.setSimpleFullScreen(fullscreen);
-		win?.webContents.focus(); // workaround issue where focus is not going into window
+		win?.webContents.focus();
 	}
 
-	//#endregion
 
 	abstract matches(webContents: electron.WebContents): boolean;
 
 	override dispose(): void {
 		super.dispose();
 
-		this._win = null!; // Important to dereference the window object to allow for GC
+		this._win = null!;
 	}
 }
 
 export class CodeWindow extends BaseWindow implements ICodeWindow {
 
-	//#region Events
 
 	private readonly _onWillLoad = this._register(new Emitter<ILoadEvent>());
 	readonly onWillLoad = this._onWillLoad.event;
@@ -607,10 +526,8 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	private readonly _onDidDestroy = this._register(new Emitter<void>());
 	readonly onDidDestroy = this._onDidDestroy.event;
 
-	//#endregion
 
 
-	//#region Properties
 
 	private _id: number;
 	get id(): number { return this._id; }
@@ -645,7 +562,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 	get isExtensionDevelopmentTestFromCli(): boolean { return this.isExtensionDevelopmentHost && this.isExtensionTestHost && !this._config?.debugId; }
 
-	//#endregion
 
 	private readonly windowState: IWindowState;
 	private currentMenuBarVisibility: MenuBarVisibility | undefined;
@@ -693,11 +609,9 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	) {
 		super(configurationService, stateService, environmentMainService, logService);
 
-		//#region create browser window
 		{
 			this.configObjectUrl = this._register(protocolMainService.createIPCObjectUrl<INativeWindowConfiguration>());
 
-			// Load window state
 			const [state, hasMultipleDisplays] = this.restoreWindowState(config.state);
 			this.windowState = state;
 			this.logService.trace('window#ctor: using window state', state);
@@ -709,7 +623,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			};
 			const options = instantiationService.invokeFunction(defaultBrowserWindowOptions, this.windowState, undefined, webPreferences);
 
-			// Create the browser window
 			mark('code/willCreateCodeBrowserWindow');
 			this._win = new electron.BrowserWindow(options);
 
@@ -718,14 +631,11 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			this._id = this._win.id;
 			this.setWin(this._win, options);
 
-			// Apply some state after window creation
 			this.applyState(this.windowState, hasMultipleDisplays);
 
-			this._lastFocusTime = Date.now(); // since we show directly, we need to set the last focus time too
+			this._lastFocusTime = Date.now();
 		}
-		//#endregion
 
-		//#region JS Callstack Collector
 
 		let sampleInterval = parseInt(this.environmentMainService.args['unresponsive-sample-interval'] || '1000');
 		let samplePeriod = parseInt(this.environmentMainService.args['unresponsive-sample-period'] || '15000');
@@ -739,18 +649,14 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		this.jsCallStackEffectiveSampleCount = Math.round(samplePeriod / sampleInterval);
 		this.jsCallStackCollector = this._register(new Delayer<void>(sampleInterval));
 		this.jsCallStackCollectorStopScheduler = this._register(new RunOnceScheduler(() => {
-			this.stopCollectingJScallStacks(); // Stop collecting after 15s max
+			this.stopCollectingJScallStacks();
 		}, samplePeriod));
 
-		//#endregion
 
-		// respect configured menu bar visibility
 		this.onConfigurationUpdated();
 
-		// macOS: touch bar support
 		this.createTouchBar();
 
-		// Eventing
 		this.registerListeners();
 	}
 
@@ -761,12 +667,10 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 		this.readyState = ReadyState.READY;
 
-		// inform all waiting promises that we are ready now
 		while (this.whenReadyCallbacks.length) {
 			this.whenReadyCallbacks.pop()!(this);
 		}
 
-		// Events
 		this._onDidSignalReady.fire();
 	}
 
@@ -776,7 +680,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 				return resolve(this);
 			}
 
-			// otherwise keep and call later when we are ready
 			this.whenReadyCallbacks.push(resolve);
 		});
 	}
@@ -802,23 +705,15 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 	private registerListeners(): void {
 
-		// Window error conditions to handle
 		this._register(Event.fromNodeEventEmitter(this._win, 'unresponsive')(() => this.onWindowError(WindowError.UNRESPONSIVE)));
 		this._register(Event.fromNodeEventEmitter(this._win, 'responsive')(() => this.onWindowError(WindowError.RESPONSIVE)));
 		this._register(Event.fromNodeEventEmitter(this._win.webContents, 'render-process-gone', (event, details) => details)(details => this.onWindowError(WindowError.PROCESS_GONE, { ...details })));
 		this._register(Event.fromNodeEventEmitter(this._win.webContents, 'did-fail-load', (event, exitCode, reason) => ({ exitCode, reason }))(({ exitCode, reason }) => this.onWindowError(WindowError.LOAD, { reason, exitCode })));
 
-		// Prevent windows/iframes from blocking the unload
-		// through DOM events. We have our own logic for
-		// unloading a window that should not be confused
-		// with the DOM way.
-		// (https://github.com/microsoft/vscode/issues/122736)
 		this._register(Event.fromNodeEventEmitter<electron.Event>(this._win.webContents, 'will-prevent-unload')(event => event.preventDefault()));
 
-		// Remember that we loaded
 		this._register(Event.fromNodeEventEmitter(this._win.webContents, 'did-finish-load')(() => {
 
-			// Associate properties from the load request if provided
 			if (this.pendingLoadConfig) {
 				this._config = this.pendingLoadConfig;
 
@@ -826,7 +721,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 		}));
 
-		// Window (Un)Maximize
 		this._register(this.onDidMaximize(() => {
 			if (this._config) {
 				this._config.maximized = true;
@@ -839,7 +733,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 		}));
 
-		// Window Fullscreen
 		this._register(this.onDidEnterFullScreen(() => {
 			this.sendWhenReady('vscode:enterFullScreen', CancellationToken.None);
 		}));
@@ -848,13 +741,10 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			this.sendWhenReady('vscode:leaveFullScreen', CancellationToken.None);
 		}));
 
-		// Handle configuration changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => this.onConfigurationUpdated(e)));
 
-		// Handle Workspace events
 		this._register(this.workspacesManagementMainService.onDidDeleteUntitledWorkspace(e => this.onDidDeleteUntitledWorkspace(e)));
 
-		// Inject headers when requests are incoming
 		const urls = ['https://*.vsassets.io/*'];
 		if (this.productService.extensionsGallery?.serviceUrl) {
 			const serviceUrl = URI.parse(this.productService.extensionsGallery.serviceUrl);
@@ -904,7 +794,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 				break;
 		}
 
-		// Telemetry
 		type WindowErrorClassification = {
 			type: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'The type of window error to understand the nature of the error better.' };
 			reason: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'The reason of the window error to understand the nature of the error better.' };
@@ -923,49 +812,29 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			code: details?.exitCode
 		});
 
-		// Inform User if non-recoverable
 		switch (type) {
 			case WindowError.UNRESPONSIVE:
 			case WindowError.PROCESS_GONE:
 
-				// If we run extension tests from CLI, we want to signal
-				// back this state to the test runner by exiting with a
-				// non-zero exit code.
 				if (this.isExtensionDevelopmentTestFromCli) {
 					this.lifecycleMainService.kill(1);
 					return;
 				}
 
-				// If we run smoke tests, want to proceed with an orderly
-				// shutdown as much as possible by destroying the window
-				// and then calling the normal `quit` routine.
 				if (this.environmentMainService.args['enable-smoke-test-driver']) {
 					await this.destroyWindow(false, false);
-					this.lifecycleMainService.quit(); // still allow for an orderly shutdown
+					this.lifecycleMainService.quit();
 					return;
 				}
 
-				// Unresponsive
 				if (type === WindowError.UNRESPONSIVE) {
 					if (this.isExtensionDevelopmentHost || this.isExtensionTestHost || this._win?.webContents?.isDevToolsOpened()) {
-						// TODO@electron Workaround for https://github.com/microsoft/vscode/issues/56994
-						// In certain cases the window can report unresponsiveness because a breakpoint was hit
-						// and the process is stopped executing. The most typical cases are:
-						// - devtools are opened and debugging happens
-						// - window is an extensions development host that is being debugged
-						// - window is an extension test development host that is being debugged
 						return;
 					}
 
-					// Interrupt V8 and collect JavaScript stack
 					this.jsCallStackCollector.trigger(() => this.startCollectingJScallStacks());
-					// Stack collection will stop under any of the following conditions:
-					// - The window becomes responsive again
-					// - The window is destroyed i-e reopen or closed
-					// - sampling period is complete, default is 15s
 					this.jsCallStackCollectorStopScheduler.schedule();
 
-					// Show Dialog
 					const { response, checkboxChecked } = await this.dialogMainService.showMessageBox({
 						type: 'warning',
 						buttons: [
@@ -978,15 +847,13 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 						checkboxLabel: this._config?.workspace ? localize('doNotRestoreEditors', "Don't restore editors") : undefined
 					}, this._win);
 
-					// Handle choice
-					if (response !== 2 /* keep waiting */) {
+					if (response !== 2 ) {
 						const reopen = response === 0;
 						this.stopCollectingJScallStacks();
 						await this.destroyWindow(reopen, checkboxChecked);
 					}
 				}
 
-				// Process gone
 				else if (type === WindowError.PROCESS_GONE) {
 					let message: string;
 					if (!details) {
@@ -995,7 +862,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 						message = localize('appGoneDetails', "The window terminated unexpectedly (reason: '{0}', code: '{1}')", details.reason, details.exitCode ?? '<unknown>');
 					}
 
-					// Show Dialog
 					const { response, checkboxChecked } = await this.dialogMainService.showMessageBox({
 						type: 'warning',
 						buttons: [
@@ -1009,7 +875,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 						checkboxLabel: this._config?.workspace ? localize('doNotRestoreEditors', "Don't restore editors") : undefined
 					}, this._win);
 
-					// Handle choice
 					const reopen = response === 0;
 					await this.destroyWindow(reopen, checkboxChecked);
 				}
@@ -1023,7 +888,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	private async destroyWindow(reopen: boolean, skipRestoreEditors: boolean): Promise<void> {
 		const workspace = this._config?.workspace;
 
-		// check to discard editor state first
 		if (skipRestoreEditors && workspace) {
 			try {
 				const workspaceStorage = this.storageMainService.workspaceStorage(workspace);
@@ -1035,14 +899,11 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 		}
 
-		// 'close' event will not be fired on destroy(), so signal crash via explicit event
 		this._onDidDestroy.fire();
 
 		try {
-			// ask the windows service to open a new fresh window if specified
 			if (reopen && this._config) {
 
-				// We have to reconstruct a openable from the current workspace
 				let uriToOpen: IWorkspaceToOpen | IFolderToOpen | undefined = undefined;
 				let forceEmpty = undefined;
 				if (isSingleFolderWorkspaceIdentifier(workspace)) {
@@ -1053,13 +914,12 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 					forceEmpty = true;
 				}
 
-				// Delegate to windows service
 				const window = (await this.windowsMainService.open({
 					context: OpenContext.API,
 					userEnv: this._config.userEnv,
 					cli: {
 						...this.environmentMainService.args,
-						_: [] // we pass in the workspace to open explicitly via `urisToOpen`
+						_: []
 					},
 					urisToOpen: uriToOpen ? [uriToOpen] : undefined,
 					forceEmpty,
@@ -1069,17 +929,12 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 				window?.focus();
 			}
 		} finally {
-			// make sure to destroy the window as its renderer process is gone. do this
-			// after the code for reopening the window, to prevent the entire application
-			// from quitting when the last window closes as a result.
 			this._win?.destroy();
 		}
 	}
 
 	private onDidDeleteUntitledWorkspace(workspace: IWorkspaceIdentifier): void {
 
-		// Make sure to update our workspace config if we detect that it
-		// was deleted
 		if (this._config?.workspace?.id === workspace.id) {
 			this._config.workspace = undefined;
 		}
@@ -1087,7 +942,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 	private onConfigurationUpdated(e?: IConfigurationChangeEvent): void {
 
-		// Swipe command support (macOS)
 		if (isMacintosh && (!e || e.affectsConfiguration('workbench.editor.swipeToNavigate'))) {
 			const swipeToNavigate = this.configurationService.getValue<boolean>('workbench.editor.swipeToNavigate');
 			if (swipeToNavigate) {
@@ -1097,7 +951,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 		}
 
-		// Menubar
 		if (!e || e.affectsConfiguration(MenuSettings.MenuBarVisibility)) {
 			const newMenuBarVisibility = this.getMenuBarVisibility();
 			if (newMenuBarVisibility !== this.currentMenuBarVisibility) {
@@ -1106,11 +959,10 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 		}
 
-		// Proxy
 		if (!e || e.affectsConfiguration('http.proxy') || e.affectsConfiguration('http.noProxy')) {
 			const inspect = this.configurationService.inspect<string>('http.proxy');
 			let newHttpProxy = (inspect.userLocalValue || '').trim()
-				|| (process.env['https_proxy'] || process.env['HTTPS_PROXY'] || process.env['http_proxy'] || process.env['HTTP_PROXY'] || '').trim() // Not standardized.
+				|| (process.env['https_proxy'] || process.env['HTTPS_PROXY'] || process.env['http_proxy'] || process.env['HTTP_PROXY'] || '').trim()
 				|| undefined;
 
 			if (newHttpProxy?.indexOf('@') !== -1) {
@@ -1126,7 +978,7 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 
 			const newNoProxy = (this.configurationService.getValue<string[]>('http.noProxy') || []).map((item) => item.trim()).join(',')
-				|| (process.env['no_proxy'] || process.env['NO_PROXY'] || '').trim() || undefined; // Not standardized.
+				|| (process.env['no_proxy'] || process.env['NO_PROXY'] || '').trim() || undefined;
 			if ((newHttpProxy || '').indexOf('@') === -1 && (newHttpProxy !== this.currentHttpProxy || newNoProxy !== this.currentNoProxy)) {
 				this.currentHttpProxy = newHttpProxy;
 				this.currentNoProxy = newNoProxy;
@@ -1145,7 +997,7 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	private registerSwipeListener(): void {
 		this.swipeListenerDisposable.value = Event.fromNodeEventEmitter<string>(this._win, 'swipe', (event: Electron.Event, cmd: string) => cmd)(cmd => {
 			if (!this.isReady) {
-				return; // window must be ready
+				return;
 			}
 
 			if (cmd === 'left') {
@@ -1165,14 +1017,12 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	load(configuration: INativeWindowConfiguration, options: ILoadOptions = Object.create(null)): void {
 		this.logService.trace(`window#load: attempt to load window (id: ${this._id})`);
 
-		// Clear Document Edited if needed
 		if (this.isDocumentEdited()) {
 			if (!options.isReload || !this.backupMainService.isHotExitEnabled()) {
 				this.setDocumentEdited(false);
 			}
 		}
 
-		// Clear Title and Filename if needed
 		if (!options.isReload) {
 			if (this.getRepresentedFilename()) {
 				this.setRepresentedFilename('');
@@ -1181,42 +1031,29 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			this._win.setTitle(this.productService.nameLong);
 		}
 
-		// Update configuration values based on our window context
-		// and set it into the config object URL for usage.
 		this.updateConfiguration(configuration, options);
 
-		// If this is the first time the window is loaded, we associate the paths
-		// directly with the window because we assume the loading will just work
 		if (this.readyState === ReadyState.NONE) {
 			this._config = configuration;
 		}
 
-		// Otherwise, the window is currently showing a folder and if there is an
-		// unload handler preventing the load, we cannot just associate the paths
-		// because the loading might be vetoed. Instead we associate it later when
-		// the window load event has fired.
 		else {
 			this.pendingLoadConfig = configuration;
 		}
 
-		// Indicate we are navigting now
 		this.readyState = ReadyState.NAVIGATING;
 
-		// Load URL
 		let windowUrl: string;
 		if (process.env.VSCODE_DEV && process.env.VSCODE_DEV_SERVER_URL) {
-			windowUrl = process.env.VSCODE_DEV_SERVER_URL; // support URL override for development
+			windowUrl = process.env.VSCODE_DEV_SERVER_URL;
 		} else {
 			windowUrl = FileAccess.asBrowserUri(`dc/code/electron-browser/workbench/workbench${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
 		}
 		this._win.loadURL(windowUrl);
 
-		// Remember that we did load
 		const wasLoaded = this.wasLoaded;
 		this.wasLoaded = true;
 
-		// Make window visible if it did not open in N seconds because this indicates an error
-		// Only do this when running out of sources and not when running tests
 		if (!this.environmentMainService.isBuilt && !this.environmentMainService.extensionTestsLocationURI) {
 			this._register(new RunOnceScheduler(() => {
 				if (this._win && !this._win.isVisible() && !this._win.isMinimized()) {
@@ -1227,45 +1064,30 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}, 10000)).schedule();
 		}
 
-		// Event
 		this._onWillLoad.fire({ workspace: configuration.workspace, reason: options.isReload ? LoadReason.RELOAD : wasLoaded ? LoadReason.LOAD : LoadReason.INITIAL });
 	}
 
 	private updateConfiguration(configuration: INativeWindowConfiguration, options: ILoadOptions): void {
 
-		// If this window was loaded before from the command line
-		// (as indicated by VSCODE_CLI environment), make sure to
-		// preserve that user environment in subsequent loads,
-		// unless the new configuration context was also a CLI
-		// (for https://github.com/microsoft/vscode/issues/108571)
-		// Also, preserve the environment if we're loading from an
-		// extension development host that had its environment set
-		// (for https://github.com/microsoft/vscode/issues/123508)
 		const currentUserEnv = (this._config ?? this.pendingLoadConfig)?.userEnv;
 		if (currentUserEnv) {
 			const shouldPreserveLaunchCliEnvironment = isLaunchedFromCli(currentUserEnv) && !isLaunchedFromCli(configuration.userEnv);
 			const shouldPreserveDebugEnvironmnet = this.isExtensionDevelopmentHost;
 			if (shouldPreserveLaunchCliEnvironment || shouldPreserveDebugEnvironmnet) {
-				configuration.userEnv = { ...currentUserEnv, ...configuration.userEnv }; // still allow to override certain environment as passed in
+				configuration.userEnv = { ...currentUserEnv, ...configuration.userEnv };
 			}
 		}
 
-		// If named pipe was instantiated for the crashpad_handler process, reuse the same
-		// pipe for new app instances connecting to the original app instance.
-		// Ref: https://github.com/microsoft/vscode/issues/115874
 		if (process.env['CHROME_CRASHPAD_PIPE_NAME']) {
 			Object.assign(configuration.userEnv, {
 				CHROME_CRASHPAD_PIPE_NAME: process.env['CHROME_CRASHPAD_PIPE_NAME']
 			});
 		}
 
-		// Add disable-extensions to the config, but do not preserve it on currentConfig or
-		// pendingLoadConfig so that it is applied only on this load
 		if (options.disableExtensions !== undefined) {
 			configuration['disable-extensions'] = options.disableExtensions;
 		}
 
-		// Update window related properties
 		try {
 			configuration.handle = VSBuffer.wrap(this._win.getNativeWindowHandle());
 		} catch (error) {
@@ -1280,30 +1102,23 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			configuration.partsSplash.zoomLevel = configuration.zoomLevel;
 		}
 
-		// Update with latest perf marks
 		mark('code/willOpenNewWindow');
 		configuration.perfMarks = getMarks();
 
-		// Update in config object URL for usage in renderer
 		this.configObjectUrl.update(configuration);
 	}
 
 	async reload(cli?: NativeParsedArgs): Promise<void> {
 
-		// Copy our current config for reuse
 		const configuration = Object.assign({}, this._config);
 
-		// Validate workspace
 		configuration.workspace = await this.validateWorkspaceBeforeReload(configuration);
 
-		// Delete some properties we do not want during reload
 		delete configuration.filesToOpenOrCreate;
 		delete configuration.filesToDiff;
 		delete configuration.filesToMerge;
 		delete configuration.filesToWait;
 
-		// Some configuration things get inherited if the window is being reloaded and we are
-		// in extension development mode. These options are all development related.
 		if (this.isExtensionDevelopmentHost && cli) {
 			configuration.verbose = cli.verbose;
 			configuration.debugId = cli.debugId;
@@ -1314,8 +1129,8 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		}
 
 		configuration.accessibilitySupport = electron.app.isAccessibilitySupportEnabled();
-		configuration.isInitialStartup = false; // since this is a reload
-		configuration.policiesData = this.policyService.serialize(); // set policies data again
+		configuration.isInitialStartup = false;
+		configuration.policiesData = this.policyService.serialize();
 		configuration.continueOn = this.environmentMainService.continueOn;
 		configuration.profiles = {
 			all: this.userDataProfilesService.profiles,
@@ -1325,13 +1140,11 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		configuration.logLevel = this.loggerMainService.getLogLevel();
 		configuration.loggers = this.loggerMainService.getGlobalLoggers();
 
-		// Load config
 		this.load(configuration, { isReload: true, disableExtensions: cli?.['disable-extensions'] });
 	}
 
 	private async validateWorkspaceBeforeReload(configuration: INativeWindowConfiguration): Promise<IWorkspaceIdentifier | ISingleFolderWorkspaceIdentifier | undefined> {
 
-		// Multi folder
 		if (isWorkspaceIdentifier(configuration.workspace)) {
 			const configPath = configuration.workspace.configPath;
 			if (configPath.scheme === Schemas.file) {
@@ -1342,7 +1155,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 		}
 
-		// Single folder
 		else if (isSingleFolderWorkspaceIdentifier(configuration.workspace)) {
 			const uri = configuration.workspace.uri;
 			if (uri.scheme === Schemas.file) {
@@ -1353,7 +1165,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 		}
 
-		// Workspace is valid
 		return configuration.workspace;
 	}
 
@@ -1362,15 +1173,11 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			return defaultWindowState();
 		}
 
-		// fullscreen gets special treatment
 		if (this.isFullScreen) {
 			let display: electron.Display | undefined;
 			try {
 				display = electron.screen.getDisplayMatching(this.getBounds());
 			} catch (error) {
-				// Electron has weird conditions under which it throws errors
-				// e.g. https://github.com/microsoft/vscode/issues/100334 when
-				// large numbers are passed in
 			}
 
 			const defaultState = defaultWindowState();
@@ -1379,11 +1186,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 				mode: WindowMode.Fullscreen,
 				display: display ? display.id : undefined,
 
-				// Still carry over window dimensions from previous sessions
-				// if we can compute it in fullscreen state.
-				// does not seem possible in all cases on Linux for example
-				// (https://github.com/microsoft/vscode/issues/58218) so we
-				// fallback to the defaults in that case.
 				width: this.windowState.width || defaultState.width,
 				height: this.windowState.height || defaultState.height,
 				x: this.windowState.x || 0,
@@ -1395,27 +1197,24 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		const state: IWindowState = Object.create(null);
 		let mode: WindowMode;
 
-		// get window mode
 		if (!isMacintosh && this._win.isMaximized()) {
 			mode = WindowMode.Maximized;
 		} else {
 			mode = WindowMode.Normal;
 		}
 
-		// we don't want to save minimized state, only maximized or normal
 		if (mode === WindowMode.Maximized) {
 			state.mode = WindowMode.Maximized;
 		} else {
 			state.mode = WindowMode.Normal;
 		}
 
-		// only consider non-minimized window states
 		if (mode === WindowMode.Normal || mode === WindowMode.Maximized) {
 			let bounds: electron.Rectangle;
 			if (mode === WindowMode.Normal) {
 				bounds = this.getBounds();
 			} else {
-				bounds = this._win.getNormalBounds(); // make sure to persist the normal bounds when maximized to be able to restore them
+				bounds = this._win.getNormalBounds();
 			}
 
 			state.x = bounds.x;
@@ -1429,23 +1228,21 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		return state;
 	}
 
-	private restoreWindowState(state?: IWindowState): [IWindowState, boolean? /* has multiple displays */] {
+	private restoreWindowState(state?: IWindowState): [IWindowState, boolean? ] {
 		mark('code/willRestoreCodeWindowState');
 
 		let hasMultipleDisplays = false;
 		if (state) {
 
-			// Window zoom
 			this.customZoomLevel = state.zoomLevel;
 
-			// Window dimensions
 			try {
 				const displays = electron.screen.getAllDisplays();
 				hasMultipleDisplays = displays.length > 1;
 
 				state = WindowStateValidator.validateWindowState(this.logService, state, displays);
 			} catch (err) {
-				this.logService.warn(`Unexpected error validating window state: ${err}\n${err.stack}`); // somehow display API can be picky about the state to validate
+				this.logService.warn(`Unexpected error validating window state: ${err}\n${err.stack}`);
 			}
 		}
 
@@ -1464,10 +1261,8 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	protected override setFullScreen(fullscreen: boolean, fromRestore: boolean): void {
 		super.setFullScreen(fullscreen, fromRestore);
 
-		// Events
 		this.sendWhenReady(fullscreen ? 'vscode:enterFullScreen' : 'vscode:leaveFullScreen', CancellationToken.None);
 
-		// Respect configured menu bar visibility or default to toggle if not set
 		if (this.currentMenuBarVisibility) {
 			this.setMenuBarVisibility(this.currentMenuBarVisibility, false);
 		}
@@ -1484,7 +1279,7 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 	private setMenuBarVisibility(visibility: MenuBarVisibility, notify = true): void {
 		if (isMacintosh) {
-			return; // ignore for macOS platform
+			return;
 		}
 
 		if (visibility === 'toggle') {
@@ -1494,11 +1289,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		}
 
 		if (visibility === 'hidden') {
-			// for some weird reason that I have no explanation for, the menu bar is not hiding when calling
-			// this without timeout (see https://github.com/microsoft/vscode/issues/19777). there seems to be
-			// a timing issue with us opening the first window and the menu bar getting created. somehow the
-			// fact that we want to hide the menu without being able to bring it back via Alt key makes Electron
-			// still show the menu. Unable to reproduce from a simple Hello World application though...
 			setTimeout(() => {
 				this.doSetMenuBarVisibility(visibility);
 			});
@@ -1579,11 +1369,9 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 	updateTouchBar(groups: ISerializableCommandAction[][]): void {
 		if (!isMacintosh) {
-			return; // only supported on macOS
+			return;
 		}
 
-		// Update segments for all groups. Setting the segments property
-		// of the group directly prevents ugly flickering from happening
 		this.touchBarGroups.forEach((touchBarGroup, index) => {
 			const commands = groups[index];
 			touchBarGroup.segments = this.createTouchBarGroupSegments(commands);
@@ -1592,12 +1380,9 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 	private createTouchBar(): void {
 		if (!isMacintosh) {
-			return; // only supported on macOS
+			return;
 		}
 
-		// To avoid flickering, we try to reuse the touch bar group
-		// as much as possible by creating a large number of groups
-		// for reusing later.
 		for (let i = 0; i < 10; i++) {
 			const groupTouchBar = this.createTouchBarGroup();
 			this.touchBarGroups.push(groupTouchBar);
@@ -1608,10 +1393,8 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 	private createTouchBarGroup(items: ISerializableCommandAction[] = []): electron.TouchBarSegmentedControl {
 
-		// Group Segments
 		const segments = this.createTouchBarGroupSegments(items);
 
-		// Group Control
 		const control = new electron.TouchBar.TouchBarSegmentedControl({
 			segments,
 			mode: 'buttons',
@@ -1655,7 +1438,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		if (!this.jsCallStackCollector.isTriggered()) {
 			const stack = await this._win?.webContents.mainFrame.collectJavaScriptCallStack();
 
-			// Increment the count for this stack trace
 			if (stack) {
 				const count = this.jsCallStackMap.get(stack) || 0;
 				this.jsCallStackMap.set(stack, count + 1);
@@ -1678,8 +1460,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 			for (const [stack, count] of sortedEntries) {
 				samples += count;
-				// If the stack appears more than 20 percent of the time, log it
-				// to the error telemetry as UnresponsiveSampleError.
 				if (Math.round((count * 100) / this.jsCallStackEffectiveSampleCount) > 20) {
 					const fakeError = new UnresponsiveError(stack, this.id, this._win?.webContents.getOSProcessId());
 					errorHandler.onUnexpectedError(fakeError);
@@ -1688,7 +1468,7 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			}
 
 			logMessage += `Total Samples: ${samples}\n`;
-			logMessage += 'For full overview of the unresponsive period, capture cpu profile via https://aka.ms/vscode-tracing-cpu-profile';
+			logMessage += 'For full overview of the unresponsive period, capture cpu profile via https://www.dardcor-code.web.id/docs/troubleshooting/performance/cpu-profile';
 			this.logService.error(logMessage);
 		}
 
@@ -1702,7 +1482,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	override dispose(): void {
 		super.dispose();
 
-		// Deregister the loggers for this window
 		this.loggerMainService.deregisterLoggers(this.id);
 	}
 }
@@ -1710,8 +1489,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 class UnresponsiveError extends Error {
 
 	constructor(sample: string, windowId: number, pid = 0) {
-		// Since the stacks are available via the sample
-		// we can avoid collecting them when constructing the error.
 		const stackTraceLimit = Error.stackTraceLimit;
 		Error.stackTraceLimit = 0;
 		super(`UnresponsiveSampleError: from window with ID ${windowId} belonging to process with pid ${pid}`);

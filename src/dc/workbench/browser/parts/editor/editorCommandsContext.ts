@@ -33,7 +33,6 @@ export function resolveCommandsContext(commandArgs: unknown[], editorService: IE
 
 		const { group, editor } = groupAndEditor;
 
-		// Find group context if already added
 		let groupContext = undefined;
 		for (const targetGroupContext of resolvedContext.groupedEditors) {
 			if (targetGroupContext.group.id === group.id) {
@@ -42,13 +41,11 @@ export function resolveCommandsContext(commandArgs: unknown[], editorService: IE
 			}
 		}
 
-		// Otherwise add new group context
 		if (!groupContext) {
 			groupContext = { group, editors: [] };
 			resolvedContext.groupedEditors.push(groupContext);
 		}
 
-		// Add editor to group context
 		if (editor) {
 			groupContext.editors.push(editor);
 		}
@@ -59,14 +56,11 @@ export function resolveCommandsContext(commandArgs: unknown[], editorService: IE
 
 function getCommandsContext(commandArgs: unknown[], editorService: IEditorService, editorGroupsService: IEditorGroupsService, listService: IListService): IEditorCommandsContext[] {
 
-	// Figure out if command is executed from a list
 	const list = listService.lastFocusedList;
 	let isListAction = list instanceof List && list.getHTMLElement() === getActiveElement();
 
-	// Get editor context for which the command was triggered
 	let editorContext = getEditorContextFromCommandArgs(commandArgs, isListAction, editorService, editorGroupsService, listService);
 
-	// If the editor context can not be determined use the active editor
 	if (!editorContext) {
 		const modalEditorPart = editorGroupsService.activeModalEditorPart;
 		const activeGroup = modalEditorPart?.activeGroup ?? editorGroupsService.activeGroup;
@@ -77,7 +71,6 @@ function getCommandsContext(commandArgs: unknown[], editorService: IEditorServic
 
 	const multiEditorContext = getMultiSelectContext(editorContext, isListAction, editorService, editorGroupsService, listService);
 
-	// Make sure the command context is the first one in the list
 	return moveCurrentEditorContextToFront(editorContext, multiEditorContext);
 }
 
@@ -105,17 +98,14 @@ function moveCurrentEditorContextToFront(editorContext: IEditorCommandsContext, 
 
 function getEditorContextFromCommandArgs(commandArgs: unknown[], isListAction: boolean, editorService: IEditorService, editorGroupsService: IEditorGroupsService, listService: IListService): IEditorCommandsContext | undefined {
 
-	// We only know how to extraxt the command context from URI and IEditorCommandsContext arguments
 	const filteredArgs = commandArgs.filter(arg => isEditorCommandsContext(arg) || URI.isUri(arg));
 
-	// If the command arguments contain an editor context, use it
 	for (const arg of filteredArgs) {
 		if (isEditorCommandsContext(arg)) {
 			return arg;
 		}
 	}
 
-	// Otherwise, try to find the editor group by the URI of the resource
 	for (const uri of filteredArgs as URI[]) {
 		const editorIdentifiers = editorService.findEditors(uri);
 		if (editorIdentifiers.length) {
@@ -125,8 +115,6 @@ function getEditorContextFromCommandArgs(commandArgs: unknown[], isListAction: b
 		}
 	}
 
-	// If there is no context in the arguments, try to find the context from the focused list
-	// if the action was executed from a list
 	if (isListAction) {
 		const list = listService.lastFocusedList as List<unknown>;
 		for (const focusedElement of list.getFocusedElements()) {
@@ -141,7 +129,6 @@ function getEditorContextFromCommandArgs(commandArgs: unknown[], isListAction: b
 
 function getMultiSelectContext(editorContext: IEditorCommandsContext, isListAction: boolean, editorService: IEditorService, editorGroupsService: IEditorGroupsService, listService: IListService): IEditorCommandsContext[] {
 
-	// If the action was executed from a list, return all selected editors
 	if (isListAction) {
 		const list = listService.lastFocusedList as List<unknown>;
 		const selection = list.getSelectedElements().filter(isGroupOrEditor);
@@ -151,25 +138,17 @@ function getMultiSelectContext(editorContext: IEditorCommandsContext, isListActi
 		}
 
 		if (selection.length === 0) {
-			// TODO@benibenj workaround for https://github.com/microsoft/vscode/issues/224050
-			// Explainer: the `isListAction` flag can be a false positive in certain cases because
-			// it will be `true` if the active element is a `List` even if it is part of the editor
-			// area. The workaround here is to fallback to `isListAction: false` if the list is not
-			// having any editor or group selected.
 			return getMultiSelectContext(editorContext, false, editorService, editorGroupsService, listService);
 		}
 	}
-	// Check editors selected in the group (tabs)
 	else {
 		const group = editorGroupsService.getGroup(editorContext.groupId);
 		const editor = editorContext.editorIndex !== undefined ? group?.getEditorByIndex(editorContext.editorIndex) : group?.activeEditor;
-		// If the editor is selected, return all selected editors otherwise only use the editors context
 		if (group && editor && group.isSelected(editor)) {
 			return group.selectedEditors.map(editor => groupOrEditorToEditorContext({ editor, groupId: group.id }, editorContext.preserveFocus, editorGroupsService));
 		}
 	}
 
-	// Otherwise go with passed in context
 	return [editorContext];
 }
 

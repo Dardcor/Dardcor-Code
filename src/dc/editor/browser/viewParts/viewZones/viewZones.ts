@@ -32,11 +32,6 @@ interface IComputedViewZoneProps {
 
 const invalidFunc = () => { throw new Error(`Invalid change accessor`); };
 
-/**
- * A view zone is a rectangle that is a section that is inserted into the editor
- * lines that can be used for various purposes such as showing a diffs, peeking
- * an implementation, etc.
- */
 export class ViewZones extends ViewPart {
 
 	private _zones: { [id: string]: IMyViewZone };
@@ -77,7 +72,6 @@ export class ViewZones extends ViewPart {
 		this._zones = {};
 	}
 
-	// ---- begin view event handlers
 
 	private _recomputeWhitespacesProps(): boolean {
 		const whitespaces = this._context.viewLayout.getWhitespaces();
@@ -139,7 +133,6 @@ export class ViewZones extends ViewPart {
 		return true;
 	}
 
-	// ---- end view event handlers
 
 	private _getZoneOrdinal(zone: IViewZone): number {
 		return zone.ordinal ?? zone.afterColumn ?? 10000;
@@ -222,7 +215,6 @@ export class ViewZones extends ViewPart {
 
 			safeInvoke1Arg(callback, changeAccessor);
 
-			// Invalidate changeAccessor
 			changeAccessor.addZone = invalidFunc;
 			changeAccessor.removeZone = invalidFunc;
 			changeAccessor.layoutZone = invalidFunc;
@@ -296,9 +288,7 @@ export class ViewZones extends ViewPart {
 			const zone = this._zones[id];
 			const props = this._computeWhitespaceProps(zone.delegate);
 			zone.isInHiddenArea = props.isInHiddenArea;
-			// const newOrdinal = this._getZoneOrdinal(zone.delegate);
 			whitespaceAccessor.changeOneWhitespace(zone.whitespaceId, props.afterViewLineNumber, props.heightInPx);
-			// TODO@Alex: change `newOrdinal` too
 
 			this._safeCallOnComputedHeight(zone.delegate, props.heightInPx);
 			this.setShouldRender();
@@ -354,7 +344,6 @@ export class ViewZones extends ViewPart {
 	}
 
 	public prepareRender(ctx: RenderingContext): void {
-		// Nothing to read
 	}
 
 	public render(ctx: RestrictedRenderingContext): void {
@@ -382,7 +371,6 @@ export class ViewZones extends ViewPart {
 				newTop = visibleZones[id].verticalOffset - ctx.bigNumbersDelta;
 				newHeight = visibleZones[id].height;
 				newDisplay = 'block';
-				// zone is visible
 				if (!zone.isVisible) {
 					zone.domNode.setAttribute('monaco-visible-view-zone', 'true');
 					zone.isVisible = true;

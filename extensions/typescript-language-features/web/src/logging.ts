@@ -4,9 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import type * as ts from 'typescript/lib/tsserverlibrary';
 
-/**
- * Matches the ts.server.LogLevel enum
- */
 export enum LogLevel {
 	terse = 0,
 	normal = 1,

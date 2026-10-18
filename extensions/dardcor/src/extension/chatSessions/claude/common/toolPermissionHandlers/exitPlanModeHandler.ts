@@ -14,8 +14,6 @@ import { ClaudeToolPermissionContext, ClaudeToolPermissionResult, IClaudeToolPer
 import { registerToolPermissionHandler } from '../claudeToolPermissionRegistry';
 import { ClaudeToolNames, ExitPlanModeInput } from '../claudeTools';
 
-/** A single approve action shown in the plan review widget. Mirrors
- * `IChatPlanApprovalAction` from the workbench side. */
 interface IReviewPlanAction {
 	id?: string;
 	label: string;
@@ -23,8 +21,6 @@ interface IReviewPlanAction {
 	description?: string;
 }
 
-/** Input passed to the `vscode_reviewPlan` core tool. Mirrors the
- * subset of `IChatPlanReview` the tool accepts. */
 interface IReviewPlanInput {
 	title: string;
 	content: string;
@@ -33,10 +29,6 @@ interface IReviewPlanInput {
 	canProvideFeedback: boolean;
 }
 
-/**
- * Shape returned by the `vscode_reviewPlan` core tool. Mirrors
- * `IChatPlanReviewResult` from the workbench side.
- */
 interface IReviewPlanResult {
 	action?: string;
 	actionId?: string;
@@ -44,11 +36,6 @@ interface IReviewPlanResult {
 	feedback?: string;
 }
 
-/**
- * Validate that a value parsed from the tool result has the shape we
- * expect for {@link IReviewPlanResult}. Cheap, structural — keeps a
- * malformed payload from silently flowing into permission decisions.
- */
 function isReviewPlanResult(value: unknown): value is IReviewPlanResult {
 	if (!value || typeof value !== 'object') {
 		return false;
@@ -69,20 +56,10 @@ function isReviewPlanResult(value: unknown): value is IReviewPlanResult {
 	return true;
 }
 
-/** Stable identifiers for the approve actions. Compared programmatically
- * via `parsed.actionId` so they survive localization. */
 const APPROVE_ID = 'approve';
 const APPROVE_ACCEPT_EDITS_ID = 'approveAcceptEdits';
 const APPROVE_BYPASS_ID = 'approveBypass';
 
-/**
- * Handler for the ExitPlanMode tool. Renders the docked plan-review widget
- * with these outcomes:
- *  - Approve: continue in the current permission mode
- *  - Approve & Auto-Edit: continue and switch to `acceptEdits`
- *  - Approve & Bypass Approvals: continue and switch to `bypassPermissions`
- *  - Reject (with optional feedback): deny so Claude revises the plan
- */
 export class ExitPlanModeToolHandler implements IClaudeToolPermissionHandler<ClaudeToolNames.ExitPlanMode> {
 	public readonly toolNames = [ClaudeToolNames.ExitPlanMode] as const;
 
@@ -98,16 +75,8 @@ export class ExitPlanModeToolHandler implements IClaudeToolPermissionHandler<Cla
 		{ toolInvocationToken, sessionId }: ClaudeToolPermissionContext
 	): Promise<ClaudeToolPermissionResult> {
 		try {
-			// Claude writes the plan markdown to ~/.claude/plans/*.md via the
-			// Write tool before invoking ExitPlanMode. The dispatch layer
-			// observes that tool_use and records the path on the tracker
-			// (see claudeMessageDispatch.handleAssistantMessage) so the
-			// review widget can surface it for inline editor comments.
 			const planUri = sessionId ? this.planFileTracker.getLastPlanFile(sessionId) : undefined;
 			if (!planUri) {
-				// Without a plan URI the review widget falls back to the
-				// inline `content` (no inline comments / Open Plan). Log so
-				// missing tracker hookups don't go unnoticed.
 				this.logService.warn(`[ExitPlanMode] No plan file recorded for session ${sessionId ?? '<unknown>'}; review widget will not offer inline plan comments.`);
 			}
 
@@ -156,7 +125,6 @@ export class ExitPlanModeToolHandler implements IClaudeToolPermissionHandler<Cla
 				return { behavior: 'deny', message: 'Plan review returned an invalid result.' };
 			}
 
-			// Rejection (with or without feedback).
 			if (parsed.rejected) {
 				const feedback = parsed.feedback?.trim();
 				return {
@@ -167,11 +135,6 @@ export class ExitPlanModeToolHandler implements IClaudeToolPermissionHandler<Cla
 				};
 			}
 
-			// Feedback alongside any approve action wins: the SDK has no
-			// affordance to attach a message to an `allow` result, so we
-			// route through `deny` with the feedback to let Claude revise
-			// the plan. The user can choose bypass again on the revised
-			// plan when they no longer have feedback to add.
 			const feedback = parsed.feedback?.trim();
 			if (feedback) {
 				this.logService.info(`[ExitPlanMode] User picked ${parsed.actionId ?? '<unknown>'} with feedback; routing as deny+feedback so Claude revises the plan. Mode change (if any) will need to be re-selected on the revised plan.`);
@@ -213,7 +176,6 @@ export class ExitPlanModeToolHandler implements IClaudeToolPermissionHandler<Cla
 	}
 }
 
-// Self-register the handler
 registerToolPermissionHandler(
 	[ClaudeToolNames.ExitPlanMode],
 	ExitPlanModeToolHandler

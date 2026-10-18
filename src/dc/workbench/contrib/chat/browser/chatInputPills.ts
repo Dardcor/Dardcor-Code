@@ -26,7 +26,6 @@ import { sessionBrowsersPillOptions, sessionCustomizationsPillOptions, sessionIs
 export interface IChatInputPillSource {
 	readonly kind?: SessionChatPillKind;
 	readonly hasData: IObservable<boolean>;
-	/** Whether any entries remain after the pill's own filtering. */
 	readonly isVisible?: IObservable<boolean>;
 	readonly pill: IObservable<IChatPill>;
 	getContextMenuActions?(): readonly IAction[];
@@ -47,7 +46,6 @@ export interface IChatInputPillsOptions {
 
 export interface IStandardChatInputPillSections {
 	readonly sections: IObservable<readonly IChatPillSection[]>;
-	/** Keeps configuration reachable when the source filters out all its entries. */
 	readonly hasData?: IObservable<boolean>;
 	readonly icon?: ThemeIcon | IObservable<ThemeIcon>;
 	getContextMenuActions?(): readonly IAction[];
@@ -73,7 +71,6 @@ function setsEqual<T>(first: ReadonlySet<T>, second: ReadonlySet<T>): boolean {
 	return first === second || (first.size === second.size && [...first].every(value => second.has(value)));
 }
 
-/** Creates a source backed by one section/dropdown pill. */
 export function createChatSectionPillSource(
 	kind: SessionChatPillKind,
 	action: IChatPill['action'],
@@ -89,7 +86,6 @@ export function createChatSectionPillSource(
 	};
 }
 
-/** Builds the canonical pill components and ordering from surface-specific data adapters. */
 export class StandardChatInputPillSources extends Disposable {
 	readonly sources: readonly IChatInputPillSource[];
 
@@ -147,7 +143,6 @@ export class StandardChatInputPillSources extends Disposable {
 	}
 }
 
-/** Shared renderer/controller for status pills above a chat input. */
 export class ChatInputPills extends Disposable {
 	readonly element: HTMLElement;
 	readonly onDidChange: Event<void>;
@@ -313,7 +308,6 @@ export class ChatInputPills extends Disposable {
 	}
 }
 
-/** Creates a source for a pill whose data presence is represented by its membership. */
 export function createChatInputPillSource(pill: IChatPill, kind?: SessionChatPillKind): IChatInputPillSource {
 	return { kind, hasData: constObservable(true), pill: constObservable(pill) };
 }

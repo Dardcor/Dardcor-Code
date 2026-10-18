@@ -9,8 +9,6 @@ import { EditorContributionInstantiation, registerEditorContribution } from '../
 import { EditorWorkerService } from './editorWorkerService.js';
 import { MarkerDecorationsContribution } from './markerDecorations.js';
 
-/* registers link detection and word based suggestions for any document */
 registerSingleton(IEditorWorkerService, EditorWorkerService, InstantiationType.Eager);
 
-// eager because it instantiates IMarkerDecorationsService which is responsible for rendering squiggles
 registerEditorContribution(MarkerDecorationsContribution.ID, MarkerDecorationsContribution, EditorContributionInstantiation.Eager);

@@ -50,12 +50,6 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 
 	private readonly _onDidDisposeFocusedElement = this._register(new Emitter<void>());
 
-	/**
-	 * This event is emitted when the renderer disposes an element that has focus.
-	 * This allows the list to re-focus itself and prevent focus from being lost
-	 * (potentially causing quickinput to dismiss itself) when an element is
-	 * removed while focused.
-	 */
 	public readonly onDidDisposeFocusedElement = this._onDidDisposeFocusedElement.event;
 
 	constructor(
@@ -73,7 +67,6 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 	renderTemplate(container: HTMLElement): IQuickTreeTemplateData {
 		const store = new DisposableStore();
 
-		// Main entry container
 		const entry = dom.append(container, $('.quick-input-tree-entry'));
 
 		const checkbox = store.add(new TriStateCheckbox('', false, { ...defaultCheckboxStyles, size: 15 }));
@@ -111,9 +104,7 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 		const store = templateData.toDisposeElement;
 		const quickTreeItem = node.element;
 
-		// Checkbox
 		if (quickTreeItem.pickable === false) {
-			// Hide checkbox for non-pickable items
 			templateData.checkbox.domNode.style.display = 'none';
 		} else {
 			const checkbox = templateData.checkbox;
@@ -126,7 +117,6 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 			store.add(checkbox.onChange((e) => this._checkboxStateHandler.setCheckboxState(quickTreeItem, checkbox.checked)));
 		}
 
-		// Icon
 		if (quickTreeItem.iconPath) {
 			const icon = isDark(this._themeService.getColorTheme().type) ? quickTreeItem.iconPath.dark : (quickTreeItem.iconPath.light ?? quickTreeItem.iconPath.dark);
 			const iconUrl = URI.revive(icon);
@@ -139,9 +129,7 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 
 		const { labelHighlights: matches, descriptionHighlights: descriptionMatches } = node.filterData || {};
 
-		// Label and Description
 		let descriptionTitle: IManagedHoverTooltipMarkdownString | undefined;
-		// NOTE: If we bring back quick tool tips, we need to check that here like we do in the QuickInputListRenderer
 		if (quickTreeItem.description) {
 			descriptionTitle = {
 				markdown: {
@@ -165,7 +153,6 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 			}
 		);
 
-		// Action Bar
 		const buttons = quickTreeItem.buttons;
 		if (buttons && buttons.length) {
 			const { primary, secondary } = quickInputButtonsToActionArrays(

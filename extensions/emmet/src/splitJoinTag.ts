@@ -38,7 +38,6 @@ function getRangesToReplace(document: vscode.TextDocument, nodeToUpdate: HtmlFla
 	let textToReplaceWith: string;
 
 	if (!nodeToUpdate.open || !nodeToUpdate.close) {
-		// Split Tag
 		const nodeText = document.getText().substring(nodeToUpdate.start, nodeToUpdate.end);
 		const m = nodeText.match(/(\s*\/)?>$/);
 		const end = nodeToUpdate.end;
@@ -47,7 +46,6 @@ function getRangesToReplace(document: vscode.TextDocument, nodeToUpdate: HtmlFla
 		rangeToReplace = offsetRangeToVsRange(document, start, end);
 		textToReplaceWith = `></${nodeToUpdate.name}>`;
 	} else {
-		// Join Tag
 		const start = nodeToUpdate.open.end - 1;
 		const end = nodeToUpdate.end;
 		rangeToReplace = offsetRangeToVsRange(document, start, end);

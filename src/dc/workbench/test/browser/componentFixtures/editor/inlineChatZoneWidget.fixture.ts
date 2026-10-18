@@ -51,11 +51,7 @@ import { IChatDebugService } from '../../../../contrib/chat/common/chatDebugServ
 import { IPromptsService } from '../../../../contrib/chat/common/promptSyntax/service/promptsService.js';
 import { IChatWidgetHistoryService } from '../../../../contrib/chat/common/widget/chatWidgetHistoryService.js';
 import { IChatLayoutService } from '../../../../contrib/chat/common/widget/chatLayoutService.js';
-import { IAgentSessionsService } from '../../../../contrib/chat/browser/agentSessions/agentSessionsService.js';
 import { IAgentHostService } from '../../../../../platform/agentHost/common/agentService.js';
-import { IAgentHostUntitledProvisionalSessionService } from '../../../../contrib/chat/browser/agentSessions/agentHost/agentHostUntitledProvisionalSessionService.js';
-import { IAgentHostSessionWorkingDirectoryResolver } from '../../../../contrib/chat/browser/agentSessions/agentHost/agentHostSessionWorkingDirectoryResolver.js';
-import { IAgentHostNewSessionFolderService } from '../../../../contrib/chat/browser/agentSessions/agentHost/agentHostNewSessionFolderService.js';
 import { IWorkspaceContextService, IWorkspace } from '../../../../../platform/workspace/common/workspace.js';
 import { IViewDescriptorService } from '../../../../common/views.js';
 import { IListService, ListService } from '../../../../../platform/list/browser/listService.js';
@@ -76,11 +72,8 @@ import { IChatEditingService } from '../../../../contrib/chat/common/editing/cha
 import { Target } from '../../../../contrib/chat/common/promptSyntax/promptTypes.js';
 import { ICustomizationHarnessService } from '../../../../contrib/chat/common/customizationHarnessService.js';
 
-// Side-effect import: registers InputEditorDecorations into ChatWidget.CONTRIBS
-// so the placeholder decoration is rendered.
 import '../../../../contrib/chat/browser/widget/input/editor/chatInputEditorContrib.js';
 
-// CSS imports
 import '../../../../contrib/inlineChat/browser/media/inlineChat.css';
 import '../../../../contrib/chat/browser/widget/media/chat.css';
 import '../../../../../editor/contrib/zoneWidget/browser/zoneWidget.css';
@@ -128,8 +121,6 @@ export function UserList() {
 }
 `;
 
-// Register fake menu items once at module scope (not per-render) to avoid
-// duplicates when Dark and Light fixtures are rendered simultaneously,
 // since MenuRegistry is a global singleton.
 MenuRegistry.appendMenuItem(MenuId.ChatEditorInlineExecute, {
 	group: 'navigation', order: 1,
@@ -180,7 +171,6 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme }: Compo
 				override readonly onShutdownVeto = Event.None;
 			}());
 
-			// Chat services
 			reg.defineInstance(IChatService, new class extends mock<IChatService>() {
 				override readonly onDidPerformUserAction = Event.None;
 				override readonly onDidSubmitRequest = Event.None;
@@ -222,8 +212,6 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme }: Compo
 				override readonly onDidChangeAnonymous = Event.None;
 				override readonly onDidChangeEntitlement = Event.None;
 				override readonly onDidChangeSentiment = Event.None;
-				// A signed-in, set-up user so the model picker renders normally
-				// (no Restricted / Sign In state) in this fixture.
 				override readonly sentiment = { completed: true };
 				override readonly entitlement = ChatEntitlement.Pro;
 				override readonly anonymous = false;
@@ -267,24 +255,8 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme }: Compo
 				override observeTools() { return observableValue('tools', []); }
 				override getToolSetsForModel() { return []; }
 			}());
-			reg.defineInstance(IAgentSessionsService, new class extends mock<IAgentSessionsService>() {
-				override readonly model = new class extends mock<IAgentSessionsService['model']>() {
-					override readonly onDidChangeSessions = Event.None;
-				}();
-			}());
 			reg.defineInstance(IAgentHostService, new class extends mock<IAgentHostService>() { }());
-			reg.defineInstance(IAgentHostUntitledProvisionalSessionService, new class extends mock<IAgentHostUntitledProvisionalSessionService>() {
-				override readonly onDidChange = Event.None;
-				override get() { return undefined; }
-			}());
-			reg.defineInstance(IAgentHostSessionWorkingDirectoryResolver, new class extends mock<IAgentHostSessionWorkingDirectoryResolver>() {
-				override resolve() { return undefined; }
-			}());
-			reg.defineInstance(IAgentHostNewSessionFolderService, new class extends mock<IAgentHostNewSessionFolderService>() {
-				override readonly onDidChangeFolder = Event.None;
-				override getFolder() { return undefined; }
-			}());
-			reg.defineInstance(IChatContextService, new class extends mock<IChatContextService>() { }());
+												reg.defineInstance(IChatContextService, new class extends mock<IChatContextService>() { }());
 			reg.defineInstance(IChatAttachmentWidgetRegistry, new class extends mock<IChatAttachmentWidgetRegistry>() { }());
 			reg.defineInstance(IChatAttachmentResolveService, new class extends mock<IChatAttachmentResolveService>() { }());
 			reg.defineInstance(IChatImageCarouselService, new class extends mock<IChatImageCarouselService>() { }());
@@ -374,7 +346,6 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme }: Compo
 		},
 	});
 
-	// Configure chat editor settings required by ChatEditorOptions
 	const configService = instantiationService.get(IConfigurationService) as TestConfigurationService;
 	configService.setUserConfiguration('chat', { editor: { fontSize: 14, fontFamily: 'default', fontWeight: 'normal', lineHeight: 0, wordWrap: 'on' } });
 	configService.setUserConfiguration('editor', { fontFamily: 'monospace', fontLigatures: false, accessibilitySupport: 'off' });
@@ -422,8 +393,6 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme }: Compo
 		() => Promise.resolve(),
 	));
 
-	// Match what InlineChatController does in the real product so that the
-	// inline-chat-2 specific styles (toolbar layout, attachment row sizing) apply.
 	zoneWidget.domNode.classList.add('inline-chat-2');
 
 	zoneWidget.show(new Position(10, 1));
@@ -432,9 +401,6 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme }: Compo
 	zoneWidget.widget.chatWidget.setModel(dummyModel);
 	zoneWidget.widget.chatWidget.setInputPlaceholder('Ask Copilot...');
 
-	// Force a relayout after the initial show so that the chat widget's
-	// contentHeight (which includes the toolbar row rendered below the input)
-	// is fully measured and the zone widget adjusts its height accordingly.
 	zoneWidget.updatePositionAndHeight(new Position(10, 1));
 
 	if (showTerminationCard) {

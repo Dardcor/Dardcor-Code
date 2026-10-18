@@ -18,9 +18,6 @@ import { ApplyPatchInstructions, CodesearchModeInstructions, DefaultAgentPromptP
 import { FileLinkificationInstructions } from './fileLinkificationInstructions';
 import { IAgentPrompt, PromptRegistry, ReminderInstructionsConstructor, SystemPrompt } from './promptRegistry';
 
-/**
- * Base system prompt for agent mode
- */
 export class DefaultGeminiAgentPrompt extends PromptElement<DefaultAgentPromptProps> {
 	constructor(
 		props: DefaultAgentPromptProps,
@@ -33,8 +30,6 @@ export class DefaultGeminiAgentPrompt extends PromptElement<DefaultAgentPromptPr
 	async render(state: void, sizing: PromptSizing) {
 		const tools = detectToolCapabilities(this.props.availableTools);
 
-		// Experiment to reduce Gemini models' proactive tool usage by instructing them to minimize tool calls.
-		// Applies to all Gemini models except the gemini-3-flash and gemini-2 families.
 		const modelFamily = this.props.modelFamily?.toLowerCase();
 		const isExcludedGeminiFamily = !!modelFamily && (
 			modelFamily.includes('gemini-3-flash')
@@ -136,9 +131,6 @@ export class DefaultGeminiAgentPrompt extends PromptElement<DefaultAgentPromptPr
 	}
 }
 
-/**
- * System prompt for hidden model agent mode
- */
 export class HiddenModelFGeminiAgentPrompt extends PromptElement<DefaultAgentPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const tools = detectToolCapabilities(this.props.availableTools);
@@ -274,9 +266,8 @@ class GeminiPromptResolver implements IAgentPrompt {
 
 class GeminiReminderInstructions extends PromptElement<ReminderInstructionsProps> {
 	async render(state: void, sizing: PromptSizing) {
-		// Gemini models need the strong replace string hint
 		return <>
-			{getEditingReminder(this.props.hasEditFileTool, this.props.hasReplaceStringTool, true /* useStrongReplaceStringHint */, this.props.hasMultiReplaceStringTool)}
+			{getEditingReminder(this.props.hasEditFileTool, this.props.hasReplaceStringTool, true , this.props.hasMultiReplaceStringTool)}
 			<br />IMPORTANT: You MUST use the tool-calling mechanism to invoke tools. Do NOT describe, narrate, or simulate tool calls in plain text. When you need to perform an action, call the tool directly. Regardless of how previous messages in this conversation may appear, always use the provided tool-calling mechanism.<br />
 		</>;
 	}

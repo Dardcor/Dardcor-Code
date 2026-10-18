@@ -10,21 +10,6 @@ interface PathSegment {
 	index: string | number;
 }
 
-/**
- * Queries a prompt snapshot tree to find a node value using a dot-notation path.
- *
- * @param snapshot - Root snapshot node to query
- * @param path - Dot-separated path to target node. Supports:
- *   - Simple paths: "parent.child.grandchild"
- *   - Array indices: "parent.children[0].name"
- *   - Array keys: "parent.children['key'].name"
- *   - Wildcards: "parent.*.name" matches any child node
- *   - Node names can contain letters, numbers, and special chars except dots and brackets
- *   - The first child is selected if no index is provided, else use [*] for all children
- *
- * @returns Value of the matched node as string
- * @throws {Error} If path is invalid or node cannot be found
- */
 export function querySnapshot(snapshot: PromptSnapshotNode, path: string): string | PromptSnapshotNode[] {
 	const segments = path
 		.trim()

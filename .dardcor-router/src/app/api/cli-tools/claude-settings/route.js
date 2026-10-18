@@ -10,20 +10,17 @@ import { DEFAULT_PLUGINS } from "@/shared/constants/coworkPlugins";
 
 const execAsync = promisify(exec);
 
-// Exa MCP def — reuse from coworkPlugins (DRY).
 const EXA_PLUGIN = DEFAULT_PLUGINS.find((p) => p.name === "exa");
 const buildExaMcpEntry = () => ({
   type: EXA_PLUGIN.transport,
   url: EXA_PLUGIN.url,
 });
 
-// Get claude settings path based on OS
 const getClaudeSettingsPath = () => {
   const homeDir = os.homedir();
   return path.join(homeDir, ".claude", "settings.json");
 };
 
-// Claude Code CLI reads mcpServers from ~/.claude.json (NOT settings.json).
 const getClaudeJsonPath = () => path.join(os.homedir(), ".claude.json");
 
 const readClaudeJson = async () => {
@@ -53,7 +50,6 @@ const writeClaudeJsonMcp = async (mcpServers) => {
 };
 
 
-// Check if claude CLI is installed (via which/where or config file exists)
 const checkClaudeInstalled = async () => {
   try {
     const isWindows = os.platform() === "win32";
@@ -73,13 +69,10 @@ const checkClaudeInstalled = async () => {
   }
 };
 
-// Read current settings
 const readSettings = async () => {
   try {
     const settingsPath = getClaudeSettingsPath();
     const content = await fs.readFile(settingsPath, "utf-8");
-    // Tolerate JSONC (trailing commas) and treat unparseable files as "no config"
-    // rather than throwing a 500 that the UI misreads as "tool not installed".
     const stripped = content.replace(/,(\s*[}\]])/g, "$1");
     return JSON.parse(stripped);
   } catch (error) {
@@ -87,7 +80,6 @@ const readSettings = async () => {
   }
 };
 
-// GET - Check claude CLI and read current settings
 export async function GET() {
   try {
     const isInstalled = await checkClaudeInstalled();
@@ -120,7 +112,6 @@ export async function GET() {
   }
 }
 
-// POST - Backup old fields and write new settings
 export async function POST(request) {
   try {
     const { env, exaMcpEnabled, autoCompactWindow } = await request.json();
@@ -135,10 +126,8 @@ export async function POST(request) {
     const settingsPath = getClaudeSettingsPath();
     const claudeDir = path.dirname(settingsPath);
 
-    // Ensure .claude directory exists
     await fs.mkdir(claudeDir, { recursive: true });
 
-    // Read current settings
     let currentSettings = {};
     try {
       const content = await fs.readFile(settingsPath, "utf-8");
@@ -149,14 +138,12 @@ export async function POST(request) {
       }
     }
 
-    // Normalize ANTHROPIC_BASE_URL to ensure /v1 suffix
     if (env.ANTHROPIC_BASE_URL) {
       env.ANTHROPIC_BASE_URL = env.ANTHROPIC_BASE_URL.endsWith("/v1") 
         ? env.ANTHROPIC_BASE_URL 
         : `${env.ANTHROPIC_BASE_URL}/v1`;
     }
 
-    // Merge new env with existing settings
     const newSettings = {
       ...currentSettings,
       hasCompletedOnboarding: true,
@@ -166,19 +153,14 @@ export async function POST(request) {
       },
     };
 
-    // CLAUDE_CODE_AUTO_COMPACT_WINDOW — the token threshold that triggers
-    // auto-compact. Only set when a concrete value is chosen; "Default" removes
-    // the key so Claude Code derives the window from the model.
     if (autoCompactWindow) {
       newSettings.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW = String(autoCompactWindow);
     } else {
       delete newSettings.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW;
     }
 
-    // Write new settings
     await fs.writeFile(settingsPath, JSON.stringify(newSettings, null, 2));
 
-    // Exa MCP toggle — write to ~/.claude.json (CLI reads mcpServers from here).
     if (EXA_PLUGIN) {
       await writeClaudeJsonMcp(exaMcpEnabled ? { exa: buildExaMcpEntry() } : null);
     }
@@ -196,7 +178,6 @@ export async function POST(request) {
   }
 }
 
-// Fields to remove when resetting
 const RESET_ENV_KEYS = [
   "ANTHROPIC_BASE_URL",
   "ANTHROPIC_AUTH_TOKEN",
@@ -207,12 +188,10 @@ const RESET_ENV_KEYS = [
   "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
 ];
 
-// DELETE - Reset settings (remove env fields)
 export async function DELETE() {
   try {
     const settingsPath = getClaudeSettingsPath();
 
-    // Read current settings
     let currentSettings = {};
     try {
       const content = await fs.readFile(settingsPath, "utf-8");
@@ -227,22 +206,18 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove specified env fields
     if (currentSettings.env) {
       RESET_ENV_KEYS.forEach((key) => {
         delete currentSettings.env[key];
       });
       
-      // Clean up empty env object
       if (Object.keys(currentSettings.env).length === 0) {
         delete currentSettings.env;
       }
     }
 
-    // Remove injected MCP servers (Exa) from ~/.claude.json
     await writeClaudeJsonMcp(null);
 
-    // Write updated settings
     await fs.writeFile(settingsPath, JSON.stringify(currentSettings, null, 2));
 
     return NextResponse.json({

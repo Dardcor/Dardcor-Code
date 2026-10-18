@@ -60,11 +60,6 @@ export interface ISendToTerminalInputParams {
 	waitForOutput?: boolean;
 }
 
-/**
- * Cancel/EOF signals: Ctrl-C (ETX, 0x03), Ctrl-D (EOT, 0x04), Ctrl-\ (FS, 0x1c).
- * When sent on their own these interrupt or close the foreground process rather
- * than completing it, so the model needs an extra nudge that the turn is not done.
- */
 function isCancelSignal(command: string): boolean {
 	return /^[\u0003\u0004\u001c]$/.test(command.trim());
 }
@@ -106,13 +101,11 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 		const args = context.parameters as ISendToTerminalInputParams;
 		const isEmptyInput = !args.command || !args.command.trim();
 
-		// Resolve a human-friendly terminal label from the instance title
 		const terminalLabel = this._getTerminalLabel(args);
 
 		const invocationMessage = new MarkdownString();
 		const pastTenseMessage = new MarkdownString();
 
-		// Look for the question that prompted this send_to_terminal call
 		const questionText = this._getQuestionContextForTerminal(context.chatSessionResource, args);
 
 		if (isEmptyInput) {
@@ -135,7 +128,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 			pastTenseMessage.appendMarkdown(')');
 		}
 
-		// Build the confirmation message with a "Focus Terminal" command link
 		const instanceId = this._getTerminalInstanceId(args);
 		const confirmationMessage = new MarkdownString('', { isTrusted: { enabledCommands: [FocusTerminalByIdCommandId] } });
 		const safeTerminalLabel = appendEscapedMarkdownInlineCode(terminalLabel);
@@ -149,19 +141,12 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 			confirmationMessage.appendMarkdown(baseMessage);
 		}
 
-		// Determine auto-approval, aligned with runInTerminal
 		const chatSessionResource = context.chatSessionResource;
 		const isSessionAutoApproved = chatSessionResource && (
 			isSessionAutoApproveLevel(chatSessionResource, this._configurationService, this._chatWidgetService, this._chatService) ||
 			this._terminalChatService.hasChatSessionAutoApproval(chatSessionResource)
 		);
 
-		// send_to_terminal normally requires confirmation in default permissions mode
-		// because the text may be arbitrary input (passwords, confirmations, etc.)
-		// that the command-line auto-approve analyzer cannot assess. However, when
-		// the text being sent was just collected via askQuestions for the same
-		// terminal, the user already explicitly provided the answer so a second
-		// confirmation is redundant.
 		const isAnsweringQuestion = questionText !== undefined;
 		const shouldShowConfirmation = (!isSessionAutoApproved && !isAnsweringQuestion) || context.forceConfirmationReason !== undefined;
 		const confirmationMessages = shouldShowConfirmation ? {
@@ -177,11 +162,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 		};
 	}
 
-	/**
-	 * Returns a human-friendly label for the target terminal, using the
-	 * terminal instance title (which reflects the running process) instead
-	 * of the raw UUID or numeric id.
-	 */
 	private _getTerminalLabel(args: ISendToTerminalInputParams): string {
 		if (args.id) {
 			const execution = RunInTerminalTool.getExecution(args.id);
@@ -192,10 +172,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 		return args.id ?? '';
 	}
 
-	/**
-	 * Returns the numeric terminal instanceId for the target terminal, used
-	 * to build command URIs for the "Focus Terminal" link.
-	 */
 	private _getTerminalInstanceId(args: ISendToTerminalInputParams): number | undefined {
 		if (args.id) {
 			const execution = RunInTerminalTool.getExecution(args.id);
@@ -206,18 +182,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 		return undefined;
 	}
 
-	/**
-	 * Searches the current session's responses for the most recent question
-	 * carousel associated with the target terminal, then uses positional
-	 * matching to return the specific question that this send_to_terminal
-	 * call is answering.
-	 *
-	 * When a carousel contains multiple questions, the model calls
-	 * send_to_terminal once per answer in order. This method counts prior
-	 * send_to_terminal invocations since the carousel to determine the
-	 * current question index, then verifies the command matches the answer
-	 * at that position.
-	 */
 	private _getQuestionContextForTerminal(chatSessionResource: URI | undefined, args: ISendToTerminalInputParams): string | undefined {
 		if (!chatSessionResource) {
 			return undefined;
@@ -228,14 +192,12 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 			return undefined;
 		}
 
-		// Resolve the terminal ID that will match the carousel's terminalId
 		if (!args.id) {
 			return undefined;
 		}
 
 		const commandText = args.command?.trim();
 
-		// Walk requests in reverse to find the most recent carousel for this terminal
 		const requests = model.getRequests();
 		for (let i = requests.length - 1; i >= 0; i--) {
 			const response = requests[i].response;
@@ -244,7 +206,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 			}
 			const parts = response.response.value;
 
-			// First, find the carousel for this terminal (searching backwards)
 			let carouselIndex = -1;
 			let carousel: IChatQuestionCarousel | undefined;
 			for (let j = parts.length - 1; j >= 0; j--) {
@@ -266,8 +227,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 				continue;
 			}
 
-			// Count send_to_terminal tool invocations after the carousel to
-			// determine which question this call corresponds to (positional).
 			let sendCount = 0;
 			for (let j = carouselIndex + 1; j < parts.length; j++) {
 				if (parts[j].kind === 'toolInvocation' && (parts[j] as { toolId?: string }).toolId === TerminalToolId.SendToTerminal) {
@@ -282,8 +241,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 
 			const question = carousel.questions[questionIndex];
 
-			// Verify the command matches the answer at this position so that
-			// unrelated send_to_terminal calls don't skip confirmation.
 			if (carousel.data) {
 				const answer = carousel.data[question.id];
 				if (this._answerMatchesCommand(answer, commandText)) {
@@ -301,11 +258,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 		return isMarkdownString(text) ? text.value : text;
 	}
 
-	/**
-	 * Checks whether a carousel answer value matches the command text being sent.
-	 * An empty/unprovided answer matches an empty command (i.e. pressing Enter to
-	 * accept the default), since that is the expected way to skip a question.
-	 */
 	private _answerMatchesCommand(answer: IChatQuestionAnswerValue | undefined, commandText: string): boolean {
 		if (answer === undefined) {
 			return commandText === '';
@@ -313,7 +265,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 		if (typeof answer === 'string') {
 			return answer.trim() === commandText;
 		}
-		// answer is now IChatSingleSelectAnswer | IChatMultiSelectAnswer
 		if (hasKey(answer, { selectedValues: true })) {
 			const multi = answer as IChatMultiSelectAnswer;
 			if (multi.selectedValues.some(v => v.trim() === commandText)) {
@@ -356,15 +307,9 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 			};
 		}
 
-		// Register a marker before sending so we can scope output to just the response
 		const startMarker = execution.instance.registerMarker?.();
 
 		if (isMultilineCommand(args.command)) {
-			// Multiline commands (e.g. heredocs) must preserve newlines and use
-			// bracketed paste mode so the shell treats the input as a single paste
-			// rather than executing each line independently. Intentionally skip
-			// normalizeCommandForExecution here so neither newlines nor the
-			// trailing/leading whitespace `.trim()` it performs are stripped.
 			await execution.instance.sendText(args.command, true, true);
 		} else {
 			await execution.instance.sendText(normalizeCommandForExecution(args.command), true);
@@ -372,9 +317,6 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 
 		let recentOutput: string;
 		if (args.waitForOutput) {
-			// Wait for the terminal to become idle (no new data) before returning.
-			// This is critical for interactive programs (games, REPLs, etc.) where
-			// the response arrives asynchronously after the input.
 			recentOutput = await this._waitForIdleOutput(execution, startMarker, token);
 		} else {
 			await timeout(2000, token);
@@ -393,17 +335,13 @@ export class SendToTerminalTool extends Disposable implements IToolImpl {
 		};
 	}
 
-	/**
-	 * Waits for the terminal to become idle (no new output for a sustained period)
-	 * and returns the output produced since the given marker.
-	 */
 	private async _waitForIdleOutput(
 		execution: ReturnType<typeof RunInTerminalTool.getExecution> & {},
 		startMarker: ReturnType<ITerminalInstance['registerMarker']> | undefined,
 		token: CancellationToken,
 	): Promise<string> {
-		const maxWaitMs = 30_000; // 30 seconds maximum wait
-		const idleThresholdMs = 2_000; // Consider idle after 2s of no data
+		const maxWaitMs = 30_000;
+		const idleThresholdMs = 2_000;
 		const pollIntervalMs = 500;
 		let waited = 0;
 		let lastDataTime = Date.now();

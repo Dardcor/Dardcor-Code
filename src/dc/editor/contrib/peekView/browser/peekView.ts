@@ -77,7 +77,7 @@ class PeekContextController implements IEditorContribution {
 	dispose(): void { }
 }
 
-registerEditorContribution(PeekContextController.ID, PeekContextController, EditorContributionInstantiation.Eager); // eager because it needs to define a context key
+registerEditorContribution(PeekContextController.ID, PeekContextController, EditorContributionInstantiation.Eager);
 
 export interface IPeekViewStyles extends IStyles {
 	headerBackgroundColor?: Color;
@@ -125,7 +125,7 @@ export abstract class PeekViewWidget extends ZoneWidget {
 
 	override dispose(): void {
 		if (!this.disposed) {
-			this.disposed = true; // prevent consumers who dispose on onDidClose from looping
+			this.disposed = true;
 			super.dispose();
 			this._onDidClose.fire(this);
 			this._onDidClose.dispose();
@@ -219,7 +219,6 @@ export abstract class PeekViewWidget extends ZoneWidget {
 	}
 
 	protected _onTitleClick(event: IMouseEvent): void {
-		// implement me if supportOnTitleClick option is set
 	}
 
 	setTitle(primaryHeading: string, secondaryHeading?: string): void {
@@ -250,13 +249,12 @@ export abstract class PeekViewWidget extends ZoneWidget {
 	protected override _doLayout(heightInPixel: number, widthInPixel: number): void {
 
 		if (!this._isShowing && heightInPixel < 0) {
-			// Looks like the view zone got folded away!
 			this.dispose();
 			return;
 		}
 
 		const headHeight = Math.ceil(this.editor.getOption(EditorOption.lineHeight) * 1.2);
-		const bodyHeight = Math.round(heightInPixel - (headHeight + 1 /* the border-top width */));
+		const bodyHeight = Math.round(heightInPixel - (headHeight + 1 ));
 
 		this._doLayoutHead(headHeight, widthInPixel);
 		this._doLayoutBody(bodyHeight, widthInPixel);

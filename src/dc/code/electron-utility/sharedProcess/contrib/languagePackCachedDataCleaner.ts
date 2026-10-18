@@ -43,15 +43,13 @@ export class LanguagePackCachedDataCleaner extends Disposable {
 		super();
 
 		this.dataMaxAge = productService.quality !== 'stable'
-			? 1000 * 60 * 60 * 24 * 7 		// roughly 1 week (insiders)
-			: 1000 * 60 * 60 * 24 * 30 * 3; // roughly 3 months (stable)
+			? 1000 * 60 * 60 * 24 * 7
+			: 1000 * 60 * 60 * 24 * 30 * 3;
 
-		// We have no Language pack support for dev version (run from source)
-		// So only cleanup when we have a build version.
 		if (this.environmentService.isBuilt) {
 			const scheduler = this._register(new RunOnceScheduler(() => {
 				this.cleanUpLanguagePackCache();
-			}, 40 * 1000 /* after 40s */));
+			}, 40 * 1000 ));
 			scheduler.schedule();
 		}
 	}
@@ -67,7 +65,6 @@ export class LanguagePackCachedDataCleaner extends Disposable {
 				installed[`${entry.hash}.${locale}`] = true;
 			}
 
-			// Cleanup entries for language packs that aren't installed anymore
 			const cacheDir = join(this.environmentService.userDataPath, 'clp');
 			const cacheDirExists = await Promises.exists(cacheDir);
 			if (!cacheDirExists) {

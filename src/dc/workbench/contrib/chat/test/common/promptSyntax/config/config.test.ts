@@ -11,16 +11,10 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../../ba
 import { IConfigurationOverrides, IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js';
 import { IPromptSourceFolder } from '../../../../common/promptSyntax/config/promptFileLocations.js';
 
-/**
- * Helper to extract just the paths from IPromptSourceFolder array for testing.
- */
 function getPaths(folders: IPromptSourceFolder[]): string[] {
 	return folders.map(f => f.path);
 }
 
-/**
- * Mocked instance of {@link IConfigurationService}.
- */
 function createMock<T>(value: T): IConfigurationService {
 	return mockService<IConfigurationService>({
 		getValue(key?: string | IConfigurationOverrides) {

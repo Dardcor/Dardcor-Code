@@ -17,9 +17,6 @@ import { applyFontInfo } from '../../../config/domFontInfo.js';
 import { ICodeEditor, isCodeEditor } from '../../../editorBrowser.js';
 import './renderedMarkdown.css';
 
-/**
- * Renders markdown code blocks using the editor's tokenization and font settings.
- */
 export class EditorMarkdownCodeBlockRenderer implements IMarkdownCodeBlockRenderer {
 
 	private static _ttpTokenizer = createTrustedTypesPolicy('tokenizeToString', {
@@ -36,8 +33,6 @@ export class EditorMarkdownCodeBlockRenderer implements IMarkdownCodeBlockRender
 	public async renderCodeBlock(languageAlias: string | undefined, value: string, options: IMarkdownRendererExtraOptions): Promise<HTMLElement> {
 		const editor = isCodeEditor(options.context) ? options.context : undefined;
 
-		// In markdown, it is possible that we stumble upon language aliases (e.g.js instead of javascript).
-		// it is possible no alias is given in which case we fall back to the current editor lang
 		let languageId: string | undefined | null;
 		if (languageAlias) {
 			languageId = this._languageService.getLanguageIdByLanguageName(languageAlias);
@@ -65,12 +60,10 @@ export class EditorMarkdownCodeBlockRenderer implements IMarkdownCodeBlockRender
 	}
 
 	private getFontInfo(editor: ICodeEditor | undefined): BareFontInfo {
-		// Use editor's font if we have one
 		if (editor) {
 			return editor.getOption(EditorOption.fontInfo);
 		} else {
 			// Otherwise use the global font settings.
-			// Pass in fake pixel ratio of 1 since we only need the font info to apply font family
 			return createBareFontInfoFromRawSettings({
 				fontFamily: this._configurationService.getValue<IEditorOptions>('editor').fontFamily
 			}, 1);

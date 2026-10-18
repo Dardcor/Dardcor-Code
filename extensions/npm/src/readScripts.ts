@@ -28,7 +28,6 @@ export const readScripts = (document: TextDocument, buffer = document.getText())
 	const scripts: INpmScriptReference[] = [];
 	const visitor: JSONVisitor = {
 		onError() {
-			// no-op
 		},
 		onObjectBegin() {
 			level++;

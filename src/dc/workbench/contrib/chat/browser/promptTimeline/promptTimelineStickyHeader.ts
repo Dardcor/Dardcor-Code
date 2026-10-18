@@ -10,11 +10,6 @@ import { localize } from '../../../../../nls.js';
 import { IAccessibilityService } from '../../../../../platform/accessibility/common/accessibility.js';
 import './media/promptTimeline.css';
 
-/**
- * A flat, opaque header pinned to the top of the chat transcript, modelled on the editor's sticky
- * scroll: it names the prompt currently scrolled off the top. Activating the label reveals the
- * prompt it names. Purely presentational — the owner drives its content and visibility.
- */
 export class PromptTimelineStickyHeader extends Disposable {
 
 	private readonly _domNode: HTMLElement;
@@ -22,7 +17,6 @@ export class PromptTimelineStickyHeader extends Disposable {
 	private readonly _label: HTMLElement;
 	private readonly _count: HTMLElement;
 
-	/** The line element currently naming the pinned prompt (siblings are transient roll animations). */
 	private _labelLine: HTMLElement;
 	private _currentLabel = '';
 	private _lastIndex: number | undefined;
@@ -32,7 +26,6 @@ export class PromptTimelineStickyHeader extends Disposable {
 	private _rollOutgoing: HTMLElement | undefined;
 
 	private readonly _onDidActivate = this._register(new Emitter<void>());
-	/** Fired when the label is clicked or activated by keyboard. */
 	readonly onDidActivate: Event<void> = this._onDidActivate.event;
 
 	get domNode(): HTMLElement { return this._domNode; }
@@ -43,7 +36,6 @@ export class PromptTimelineStickyHeader extends Disposable {
 	) {
 		super();
 		this._domNode = append(container, $('.prompt-timeline-sticky'));
-		// Mirror the session header's box model (see promptTimeline.css) so the band lines up with it.
 		const content = append(this._domNode, $('.prompt-timeline-sticky-content'));
 		const band = append(content, $('.prompt-timeline-sticky-band'));
 
@@ -52,14 +44,11 @@ export class PromptTimelineStickyHeader extends Disposable {
 		this._labelLine = this._createLine('');
 		this._label.appendChild(this._labelLine);
 		this._count = append(this._labelButton, $('span.prompt-timeline-sticky-count'));
-		// A native <button> already activates on click and on Enter/Space, so no manual key handling.
 		this._register(addDisposableListener(this._labelButton, EventType.CLICK, () => this._onDidActivate.fire()));
 
-		// Start hidden and out of the tab order until a prompt is pinned (see setVisible).
 		this._setVisible(false);
 	}
 
-	/** Names the pinned prompt (1-based index within all prompts). */
 	update(text: string, index: number, total: number): void {
 		const label = text || localize('promptTimeline.emptyPrompt', "(empty prompt)");
 		this._count.textContent = localize('promptTimeline.stickyCount', "{0}/{1}", index, total);
@@ -67,13 +56,11 @@ export class PromptTimelineStickyHeader extends Disposable {
 		this._labelButton.setAttribute('aria-label', localize('promptTimeline.stickyLabel', "Go to prompt {0} of {1}: {2}", index, total, label));
 
 		if (label !== this._currentLabel || index !== this._lastIndex) {
-			// Step direction from the previous prompt drives which way the label rolls.
 			const direction = this._lastIndex !== undefined && index !== this._lastIndex ? Math.sign(index - this._lastIndex) : 0;
 			const newLine = this._createLine(label);
 			this._label.appendChild(newLine);
 			const oldLine = this._labelLine;
 			this._labelLine = newLine;
-			// Only roll between prompts while already visible; a first appearance or a jump just snaps.
 			if (this._visible && direction !== 0 && !this.accessibilityService.isMotionReduced()) {
 				this._roll(oldLine, newLine, direction);
 			} else {
@@ -91,7 +78,6 @@ export class PromptTimelineStickyHeader extends Disposable {
 		return line;
 	}
 
-	/** Rolls the outgoing label out and the incoming label in, following the scroll direction. */
 	private _roll(oldLine: HTMLElement, newLine: HTMLElement, direction: number): void {
 		this._finalizeRoll();
 		const timing: KeyframeAnimationOptions = { duration: 140, easing: 'ease' };
@@ -110,7 +96,6 @@ export class PromptTimelineStickyHeader extends Disposable {
 		}, () => { });
 	}
 
-	/** Commits any in-flight roll immediately so a new one can start from a settled state. */
 	private _finalizeRoll(): void {
 		this._rollInAnim?.finish();
 		this._rollOutAnim?.finish();
@@ -125,7 +110,6 @@ export class PromptTimelineStickyHeader extends Disposable {
 	private _setVisible(visible: boolean): void {
 		this._visible = visible;
 		this._domNode.classList.toggle('hidden', !visible);
-		// `.hidden` only drops opacity/pointer-events, so also mark it inert to remove invisible tab stops.
 		this._domNode.toggleAttribute('inert', !visible);
 		if (!visible) {
 			this._finalizeRoll();

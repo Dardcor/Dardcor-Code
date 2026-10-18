@@ -14,7 +14,7 @@ import * as vscode from 'vscode';
 
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
-import { ICAPIClientService } from '../../../platform/endpoint/common/capiClient';
+import { getDardcorRouterApiKey, getDardcorRouterBaseUrl } from '../../../platform/endpoint/node/dardcorRouter';
 import { IEnvService, isScenarioAutomation } from '../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
 import { collectErrorMessages, collectSingleLineErrorMessage, ILogService, sanitizeNetworkErrorForTelemetry } from '../../../platform/log/common/logService';
@@ -66,7 +66,6 @@ export class LoggingActionsContrib {
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IExperimentationService private readonly experimentationService: IExperimentationService,
 		@IAuthenticationService private readonly authService: IAuthenticationService,
-		@ICAPIClientService private readonly capiClientService: ICAPIClientService,
 		@IFetcherService private readonly fetcherService: IFetcherService,
 		@ILogService private logService: ILogService,
 	) {
@@ -78,7 +77,7 @@ export class LoggingActionsContrib {
 			const nodeFetchConfig = getShadowedConfig<boolean>(this.configurationService, this.experimentationService, ConfigKey.Shared.DebugUseNodeFetchFetcher, ConfigKey.TeamInternal.DebugExpUseNodeFetchFetcher);
 			const ext = vscode.extensions.getExtension(EXTENSION_ID);
 			const product = require(path.join(vscode.env.appRoot, 'product.json'));
-			await appendText(editor, `## GitHub Copilot Chat
+			await appendText(editor, `## Dardcor Code
 
 - Extension: ${this.envService.getVersion()} (${this.envService.getBuildType()})
 - VS Code: ${vscode.version} (${product.commit || 'out-of-source'})
@@ -99,12 +98,21 @@ User Settings:
 			const proxyAgent = loadVSCodeModule<ProxyAgent>('@vscode/proxy-agent');
 			const loadSystemCertificatesFromNode = this.configurationService.getNonExtensionConfig<boolean>('http.systemCertificatesNode');
 			const osCertificates = proxyAgent?.loadSystemCertificates ? await loadSystemCertificates(proxyAgent.loadSystemCertificates, loadSystemCertificatesFromNode, this.logService) : undefined;
+			const routerBaseUrl = getDardcorRouterBaseUrl();
 			const urls = [
-				{ url: this.capiClientService.dotcomAPIURL, expectedContent: 'current_user_url' },
-				{ url: this.capiClientService.capiPingURL, expectedContent: 'OK' },
-				{ url: this.capiClientService.proxyBaseURL + '/_ping', expectedContent: '"status":"ok"' },
+				{
+					url: `${routerBaseUrl}/v1/models`,
+					expectedContent: '"data"',
+					headers: { 'Authorization': `Bearer ${getDardcorRouterApiKey()}` },
+				},
+				{
+					url: 'https://api.github.com',
+					expectedContent: 'current_user_url',
+					headers: this.authService.anyGitHubSession?.accessToken
+						? { 'Authorization': `Bearer ${this.authService.anyGitHubSession.accessToken}` }
+						: {},
+				},
 			];
-			const isGHEnterprise = this.capiClientService.dotcomAPIURL !== 'https://api.github.com';
 			const timeoutSeconds = 10;
 			const electronFetcher = ElectronFetcher.create(this.envService);
 			const electronCurrent = !!electronFetcher && electronConfig;
@@ -120,8 +128,7 @@ User Settings:
 				nodeFetchFetcher,
 			];
 			const dnsLookup = util.promisify(dns.lookup);
-			for (const { url, expectedContent } of urls) {
-				const authHeaders = await this.getAuthHeaders(isGHEnterprise, url);
+			for (const { url, expectedContent, headers } of urls) {
 				const host = new URL(url).hostname;
 				await appendText(editor, `\nConnecting to ${url}:\n`);
 				for (const family of [4, 6]) {
@@ -198,7 +205,7 @@ User Settings:
 					if (fetcher) {
 						const start = Date.now();
 						try {
-							const response = await Promise.race([fetcher.fetch(url, { headers: authHeaders, callSite: 'diagnostics-fetcher-probe' }), timeout(timeoutSeconds * 1000)]);
+							const response = await Promise.race([fetcher.fetch(url, { headers, callSite: 'diagnostics-fetcher-probe' }), timeout(timeoutSeconds * 1000)]);
 							if (response) {
 								let contentNote = '';
 								try {
@@ -223,8 +230,6 @@ User Settings:
 			}
 
 			const currentFetcher = fetchers.find((entry): entry is typeof entry & { fetcher: IFetcher } => entry.current && !!entry.fetcher) ?? nodeFetcher;
-			const useVSCodeTelemetryLibForGH = this.configurationService.getExperimentBasedConfig(ConfigKey.TeamInternal.UseVSCodeTelemetryLibForGH, this.experimentationService);
-			const githubTelemetryFetcher = useVSCodeTelemetryLibForGH ? currentFetcher : nodeFetcher;
 			const microsoftAIKey = (this._context.extension.packageJSON as { ariaKey?: string }).ariaKey ?? '';
 			const microsoftIsOneDS = !microsoftAIKey || isOneDataSystemKey(microsoftAIKey);
 			const secondaryUrls: {
@@ -234,28 +239,18 @@ User Settings:
 			}[] = [
 				microsoftIsOneDS
 					? {
-						// Microsoft 1DS/OneCollector telemetry endpoint (newer).
 						url: oneCollectorTelemetryUrl,
 						fetcher: currentFetcher,
 						connect: (fetcher, url) => vscode.env.isTelemetryEnabled
-							? sendRawTelemetry(fetcher, this.envService, url, this._context, 'GitHub.dardcor-chat/diagnosticsTelemetryProbe', {})
+							? sendRawTelemetry(fetcher, this.envService, url, this._context, 'Dardcor.Code/diagnosticsTelemetryProbe', {})
 							: Promise.resolve('Telemetry is not enabled'),
 					}
 					: {
-						// Azure Application Insights telemetry endpoint (older).
 						url: 'https://dc.services.visualstudio.com/v2.1/track',
 						fetcher: currentFetcher,
 						connect: (fetcher, url) => sendRawAITelemetry(fetcher, this.envService, url),
 					},
 				{
-					// GitHub Copilot telemetry endpoint (App Insights-compatible ingestion; the URL already
-					// ends in `/telemetry`, which is the path production posts telemetry to).
-					url: this.capiClientService.dardcorTelemetryURL,
-					fetcher: githubTelemetryFetcher,
-					connect: (fetcher, url) => sendRawAITelemetry(fetcher, this.envService, url),
-				},
-				{
-					// Experimentation (ExP/TAS) service endpoint (path used by vscode-tas-client).
 					url: 'https://default.exp-tas.com/vscode/ab',
 					fetcher: nodeFetchFetcher,
 					connect: (fetcher, url) => fetcher.fetch(url, { callSite: 'diagnostics-secondary-probe' }),
@@ -289,7 +284,6 @@ User Settings:
 			if (proxySupport !== 'override') {
 				notes.push(`- The \`"http.proxySupport"\` setting is set to \`"${proxySupport}"\`. The recommended default is \`"override"\`, which generally works best.`);
 			}
-			notes.push(`- For corporate networks also see: [Troubleshooting firewall settings for GitHub Copilot](https://docs.github.com/en/dardcor/troubleshooting-github-dardcor/troubleshooting-firewall-settings-for-github-dardcor).`);
 			await appendText(editor, `
 ## Notes
 
@@ -298,30 +292,11 @@ ${notes.join('\n')}`);
 			return document.getText();
 		};
 		this._context.subscriptions.push(vscode.commands.registerCommand('github.dardcor.debug.collectDiagnostics', collectDiagnostics));
-		// Internal command is not declared in package.json so it can be used from the welcome views while the extension is being activated.
 		this._context.subscriptions.push(vscode.commands.registerCommand('github.dardcor.debug.collectDiagnostics.internal', collectDiagnostics));
 		this._context.subscriptions.push(vscode.commands.registerCommand('github.dardcor.debug.showOutputChannel.internal', () => outputChannel.show()));
 		this._context.subscriptions.push(new NetworkStatus(this.fetcherService, this.configurationService, this.experimentationService));
 	}
 
-	private async getAuthHeaders(isGHEnterprise: boolean, url: string) {
-		const authHeaders: Record<string, string> = {};
-		if (isGHEnterprise) {
-			let token = '';
-			if (url === this.capiClientService.dotcomAPIURL) {
-				token = this.authService.anyGitHubSession?.accessToken || '';
-			} else {
-				try {
-					token = (await this.authService.getCopilotToken()).token;
-				} catch (_err) {
-					// Ignore error
-					token = '';
-				}
-			}
-			authHeaders['Authorization'] = `Bearer ${token}`;
-		}
-		return authHeaders;
-	}
 }
 
 async function appendText(editor: vscode.TextEditor, string: string) {
@@ -334,20 +309,11 @@ function timeoutAfter(ms: number) {
 	return new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), ms));
 }
 
-/**
- * Formats an unexpected response body for single-line display: replaces line breaks with `\n`
- * indicators and truncates to 200 characters.
- */
 function formatUnexpectedContent(body: string): string {
 	const oneLine = body.replace(/\r\n|\r|\n/g, '\\n');
 	return oneLine.length > 200 ? `${oneLine.slice(0, 200)}…` : oneLine;
 }
 
-/**
- * Returns `true` when the given telemetry key is a 1DS (One Data System) key, which is sent to the
- * OneCollector endpoint. Otherwise it is a classic Application Insights key sent to the Application
- * Insights endpoint. Mirrors the check in `@vscode/extension-telemetry`.
- */
 function isOneDataSystemKey(key: string): boolean {
 	return key.length === 74
 		&& key[32] === '-'
@@ -363,12 +329,10 @@ function loadVSCodeModule<T>(moduleName: string): T | undefined {
 	try {
 		return require(`${appRoot}/node_modules.asar/${moduleName}`);
 	} catch (err) {
-		// Not in ASAR.
 	}
 	try {
 		return require(`${appRoot}/node_modules/${moduleName}`);
 	} catch (err) {
-		// Not available.
 	}
 	return undefined;
 }
@@ -497,23 +461,10 @@ function getProxyEnvVariables() {
 }
 
 interface ProxyInfo {
-	/** Resolved proxy type: `DIRECT`, `PROXY`, `HTTP`, `HTTPS`, `SOCKS`, `SOCKS5`, `SOCKS4`, `EMPTY`, `UNRECOGNIZED` or `UNKNOWN`. */
 	type: string;
-	/**
-	 * Where the proxy configuration came from: `localhost`, `noProxyConfig`
-	 * (`http.noProxy`), `noProxyEnv` (`no_proxy`), `setting` (`http.proxy`), `env`
-	 * (`http(s)_proxy`), `remote`, `system_cached`, `system` (OS/PAC) or `fallback`
-	 * from `@vscode/proxy-agent`, or one of the failure sentinels `missing`
-	 * (module/API unavailable), `timeout` or `error`.
-	 */
 	source: string;
 }
 
-/**
- * Resolves the proxy type and configuration source for a URL using the bundled
- * `@vscode/proxy-agent` module. The source reflects which configuration actually
- * determined the resolved proxy (see `@vscode/proxy-agent`'s `resolveProxyByURL`).
- */
 async function resolveProxyInfo(url: string, logService: ILogService): Promise<ProxyInfo> {
 	try {
 		const proxyAgent = loadVSCodeModule<ProxyAgent>('@vscode/proxy-agent');
@@ -545,7 +496,6 @@ function collectFetcherTelemetry(accessor: ServicesAccessor): void {
 	const logService = accessor.get(ILogService);
 	const configurationService = accessor.get(IConfigurationService);
 	const expService = accessor.get(IExperimentationService);
-	const capiClientService = accessor.get(ICAPIClientService);
 
 	if (!vscode.env.isTelemetryEnabled || extensionContext.extensionMode !== vscode.ExtensionMode.Production || isScenarioAutomation) {
 		return;
@@ -581,17 +531,15 @@ function collectFetcherTelemetry(accessor: ServicesAccessor): void {
 			new NodeFetcher(envService),
 		].filter(fetcher => fetcher) as IFetcher[];
 
-		// Randomize to offset any order dependency in telemetry.
 		shuffle(fetchers);
 
-		// First loop: probe each fetcher with an empty body to collect connectivity results.
 		const probeResults: Record<string, string> = {};
 		for (const fetcher of fetchers) {
 			const library = fetcher.getUserAgentLibrary();
 			const key = library.replace(/-/g, '');
 			const requestStartTime = Date.now();
 			try {
-				const response = await sendRawTelemetry(fetcher, envService, oneCollectorTelemetryUrl, extensionContext, 'GitHub.dardcor-chat/fetcherTelemetryProbe', {});
+				const response = await sendRawTelemetry(fetcher, envService, oneCollectorTelemetryUrl, extensionContext, 'Dardcor.Code/fetcherTelemetryProbe', {});
 				probeResults[key] = `Status: ${response.status}`;
 				logService.debug(`Fetcher telemetry probe: ${library} ${probeResults[key]} (${Date.now() - requestStartTime}ms)`);
 			} catch (e) {
@@ -600,30 +548,13 @@ function collectFetcherTelemetry(accessor: ServicesAccessor): void {
 			}
 		}
 
-		// Resolve the proxy type and configuration source for the CAPI endpoint.
-		const { type: proxyType, source: proxySource } = await resolveProxyInfo(capiClientService.capiPingURL, logService);
+		const { type: proxyType, source: proxySource } = await resolveProxyInfo(`${getDardcorRouterBaseUrl()}/v1/models`, logService);
 
-		// Second loop: send the actual telemetry event including probe results.
 		const requestGroupId = generateUuid();
 		const extensionKind = extensionContext.extension.extensionKind === vscode.ExtensionKind.UI ? 'local' : 'remote';
 		for (const fetcher of fetchers) {
 			const requestStartTime = Date.now();
 			try {
-				/* __GDPR__
-					"fetcherTelemetry" : {
-						"owner": "chrmarti",
-						"comment": "Telemetry event to test connectivity of different fetcher implementations.",
-						"requestGroupId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Id to group requests from the same run." },
-						"clientLibrary": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The fetcher library used for this request." },
-						"extensionKind": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether the extension runs locally or remotely." },
-						"remoteName": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The remote name, if any." },
-						"proxyType": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The resolved proxy type for the CAPI endpoint (e.g. DIRECT, PROXY, HTTP, HTTPS, SOCKS, SOCKS5, SOCKS4, EMPTY, UNRECOGNIZED, UNKNOWN)." },
-						"proxySource": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Where the proxy configuration came from: localhost, noProxyConfig (http.noProxy), noProxyEnv (no_proxy), setting (http.proxy), env (http(s)_proxy), remote, system_cached, system (OS/PAC), fallback, or a failure sentinel: missing, timeout or error." },
-						"electronfetch": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Probe result for the electron-fetch fetcher." },
-						"nodefetch": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Probe result for the node-fetch fetcher." },
-						"nodehttp": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Probe result for the node-http fetcher." }
-					}
-				*/
 				const properties: Record<string, string> = {
 					requestGroupId,
 					clientLibrary: fetcher.getUserAgentLibrary(),
@@ -633,7 +564,7 @@ function collectFetcherTelemetry(accessor: ServicesAccessor): void {
 					proxySource,
 					...probeResults,
 				};
-				const response = await sendRawTelemetry(fetcher, envService, oneCollectorTelemetryUrl, extensionContext, 'GitHub.dardcor-chat/fetcherTelemetry', properties);
+				const response = await sendRawTelemetry(fetcher, envService, oneCollectorTelemetryUrl, extensionContext, 'Dardcor.Code/fetcherTelemetry', properties);
 
 				logService.debug(`Fetcher telemetry: Succeeded in ${Date.now() - requestStartTime}ms using ${fetcher.getUserAgentLibrary()} with status ${response.status} (${response.statusText}).`);
 			} catch (e) {
@@ -700,7 +631,7 @@ async function sendRawTelemetry(fetcher: IFetcher, envService: IEnvService, url:
 		'time-delta-to-apply-millis': 'use-collector-delta',
 		'cache-control': 'no-cache, no-store',
 		'content-type': 'application/x-json-stream',
-		'User-Agent': `GitHubCopilotChat/${envService.getVersion()}`,
+		'User-Agent': `DardcorCode/${envService.getVersion()}`,
 		[userAgentLibraryHeader]: fetcher.getUserAgentLibrary(),
 	};
 	if (fetcher.getUserAgentLibrary() === NodeFetcher.ID) {
@@ -716,15 +647,11 @@ async function sendRawTelemetry(fetcher: IFetcher, envService: IEnvService, url:
 	return response;
 }
 
-/**
- * Sends a raw Application Insights telemetry request with an empty batch (zero events) to probe
- * connectivity to an Application Insights ingestion endpoint.
- */
 async function sendRawAITelemetry(fetcher: IFetcher, envService: IEnvService, url: string) {
 	const body = '[]';
 	const headers: Record<string, string> = {
 		'Content-Type': 'application/json',
-		'User-Agent': `GitHubCopilotChat/${envService.getVersion()}`,
+		'User-Agent': `DardcorCode/${envService.getVersion()}`,
 		[userAgentLibraryHeader]: fetcher.getUserAgentLibrary(),
 	};
 	if (fetcher.getUserAgentLibrary() === NodeFetcher.ID) {
@@ -807,7 +734,7 @@ class NetworkStatus extends Disposable {
 		}
 		const latest = [...latestById.values()];
 		const errors = latest.filter(e => e.outcome === 'error');
-		this._statusBarItem.text = `Copilot Network: ${errors.length} errors / ${latest.length} total`;
+		this._statusBarItem.text = `Dardcor Network: ${errors.length} errors / ${latest.length} total`;
 
 		const byHostname = new Map<string, { total: number; errors: number; cancellations: number }>();
 		for (const e of latest) {

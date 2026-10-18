@@ -151,8 +151,6 @@ suite('ChatConfiguration defaults', () => {
 		const chatSessionsService = createChatSessionsService(SessionType.AgentHostCopilot);
 		const storageService = disposables.add(new TestStorageService());
 
-		// The agent host is enabled but `chat.defaultToCopilotHarness` is off (its
-		// default), so the computed default remains the local harness.
 		assert.deepStrictEqual({
 			computed: getComputedDefaultSessionType(configurationService, chatSessionsService, localWorkspace, true),
 			rememberedAware: getDefaultNewChatSessionType(configurationService, chatSessionsService, storageService, localWorkspace, true),
@@ -329,7 +327,6 @@ suite('ChatConfiguration defaults', () => {
 		const chatSessionsService = createChatSessionsService(SessionType.AgentHostCopilot);
 		const storageService = disposables.add(new TestStorageService());
 
-		// With the agent host disabled (e.g. on web), the Copilot harness is unavailable.
 		const resolved = resolveSessionType(configurationService, chatSessionsService, storageService, localWorkspace, false, { currentSessionType: localChatSessionType });
 
 		assert.deepStrictEqual({
@@ -393,8 +390,6 @@ suite('ChatConfiguration defaults', () => {
 		const chatSessionsService = createChatSessionsService(SessionType.AgentHostCopilot);
 		const storageService = disposables.add(new TestStorageService());
 
-		// With the agent host enabled the computed default is Copilot, so picking
-		// local differs from the default and must be persisted as an explicit opt-out.
 		recordUserSelectedSessionType(storageService, configurationService, chatSessionsService, localWorkspace, localChatSessionType, true);
 
 		assert.deepStrictEqual({
@@ -414,7 +409,6 @@ suite('ChatConfiguration defaults', () => {
 		const chatSessionsService = createChatSessionsService(SessionType.AgentHostCopilot);
 		const storageService = disposables.add(new TestStorageService());
 
-		// Remember local (only reachable because the computed default is Copilot).
 		recordUserSelectedSessionType(storageService, configurationService, chatSessionsService, localWorkspace, localChatSessionType, true);
 
 		assert.deepStrictEqual({
@@ -454,8 +448,6 @@ suite('ChatConfiguration defaults', () => {
 		const chatSessionsService = createChatSessionsService(SessionType.AgentHostCopilot);
 		const storageService = disposables.add(new TestStorageService());
 
-		// No remembered selection and no preferred-harness setting: the current
-		// session type wins over the Copilot computed default (session preservation).
 		assert.deepStrictEqual({
 			resolved: resolveSessionType(configurationService, chatSessionsService, storageService, localWorkspace, true, { currentSessionType: localChatSessionType }),
 		}, {
@@ -470,9 +462,6 @@ suite('ChatConfiguration defaults', () => {
 		const chatSessionsService = createChatSessionsService(SessionType.AgentHostCopilot);
 		const storageService = disposables.add(new TestStorageService());
 
-		// "New Local Chat" from a Copilot session must resolve to local: the explicit
-		// override outranks both the current session type and the computed default,
-		// so the clear path opens a local session instead of dropping the request.
 		assert.deepStrictEqual({
 			resolved: resolveSessionType(configurationService, chatSessionsService, storageService, localWorkspace, true, { explicitOverride: localChatSessionType, currentSessionType: SessionType.AgentHostCopilot }),
 		}, {
@@ -599,8 +588,6 @@ suite('ChatConfiguration defaults', () => {
 		const chatSessionsService = createChatSessionsService(SessionType.AgentHostCopilot, SessionType.AgentHostClaude);
 		const storageService = disposables.add(new TestStorageService());
 
-		// `chat.editor.localAgent.enabled` and `chat.defaultToCopilotHarness` are left at their
-		// defaults: an enterprise-mandated sandbox floor implies both.
 		assert.deepStrictEqual({
 			localEnabled: isEditorLocalAgentEnabled(configurationService, localWorkspace, true),
 			localVisible: isVisibleEditorChatSessionType(localChatSessionType, configurationService, chatSessionsService, localWorkspace, true),
@@ -623,8 +610,6 @@ suite('ChatConfiguration defaults', () => {
 		const chatSessionsService = createChatSessionsService(SessionType.AgentHostCopilot);
 		const storageService = disposables.add(new TestStorageService());
 
-		// A local harness remembered from before the floor was mandated must not keep winning:
-		// otherwise the picker hides local while New Chat keeps opening local sessions.
 		storeUserSelectedSessionType(storageService, localChatSessionType);
 
 		assert.deepStrictEqual({

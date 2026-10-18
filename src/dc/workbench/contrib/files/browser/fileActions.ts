@@ -76,11 +76,10 @@ export const DOWNLOAD_LABEL = nls.localize('download', "Download...");
 export const UPLOAD_COMMAND_ID = 'explorer.upload';
 export const UPLOAD_LABEL = nls.localize('upload', "Upload...");
 const CONFIRM_DELETE_SETTING_KEY = 'explorer.confirmDelete';
-const MAX_UNDO_FILE_SIZE = 5000000; // 5mb
+const MAX_UNDO_FILE_SIZE = 5000000;
 
 async function refreshIfSeparator(value: string, explorerService: IExplorerService): Promise<void> {
 	if (value && ((value.indexOf('/') >= 0) || (value.indexOf('\\') >= 0))) {
-		// New input contains separator, multiple resources will get created workaround for #68204
 		await explorerService.refresh();
 	}
 }
@@ -93,7 +92,6 @@ async function deleteFiles(explorerService: IExplorerService, workingCopyFileSer
 		primaryButton = nls.localize({ key: 'deleteButtonLabel', comment: ['&& denotes a mnemonic'] }, "&&Delete");
 	}
 
-	// Handle dirty
 	const distinctElements = resources.distinctParents(elements, e => e.resource);
 	const dirtyWorkingCopies = new Set<IWorkingCopy>();
 	for (const distinctElement of distinctElements) {
@@ -130,7 +128,6 @@ async function deleteFiles(explorerService: IExplorerService, workingCopyFileSer
 		}
 	}
 
-	// Handle readonly
 	if (!skipConfirm) {
 		const readonlyResources = distinctElements.filter(e => filesConfigurationService.isReadonly(e.resource));
 		if (readonlyResources.length) {
@@ -158,16 +155,13 @@ async function deleteFiles(explorerService: IExplorerService, workingCopyFileSer
 
 	let confirmation: IConfirmationResult;
 
-	// We do not support undo of folders, so in that case the delete action is irreversible
 	const deleteDetail = distinctElements.some(e => e.isDirectory) ? nls.localize('irreversible', "This action is irreversible!") :
 		distinctElements.length > 1 ? nls.localize('restorePlural', "You can restore these files using the Undo command.") : nls.localize('restore', "You can restore this file using the Undo command.");
 
-	// Check if we need to ask for confirmation at all
 	if (skipConfirm || configurationService.getValue<boolean>(CONFIRM_DELETE_SETTING_KEY) === false) {
 		confirmation = { confirmed: true };
 	}
 
-	// Confirm for moving to trash
 	else if (useTrash) {
 		let { message, detail } = getMoveToTrashMessage(distinctElements);
 		detail += detail ? '\n' : '';
@@ -187,7 +181,6 @@ async function deleteFiles(explorerService: IExplorerService, workingCopyFileSer
 		});
 	}
 
-	// Confirm for deleting permanently
 	else {
 		let { message, detail } = getDeleteMessage(distinctElements);
 		detail += detail ? '\n' : '';
@@ -200,17 +193,14 @@ async function deleteFiles(explorerService: IExplorerService, workingCopyFileSer
 		});
 	}
 
-	// Check for confirmation checkbox
 	if (confirmation.confirmed && confirmation.checkboxChecked === true) {
 		await configurationService.updateValue(CONFIRM_DELETE_SETTING_KEY, false);
 	}
 
-	// Check for confirmation
 	if (!confirmation.confirmed) {
 		return;
 	}
 
-	// Call function
 	try {
 		const resourceFileEdits = distinctElements.map(e => new ResourceFileEdit(e.resource, undefined, { recursive: true, folder: e.isDirectory, ignoreIfNotExists, skipTrashBin: !useTrash, maxSize: MAX_UNDO_FILE_SIZE }));
 		const options = {
@@ -220,7 +210,6 @@ async function deleteFiles(explorerService: IExplorerService, workingCopyFileSer
 		await explorerService.applyBulkEdit(resourceFileEdits, options);
 	} catch (error) {
 
-		// Handle error to delete file(s) from a modal confirmation dialog
 		let errorMessage: string;
 		let detailMessage: string | undefined;
 		let primaryButton: string;
@@ -242,7 +231,7 @@ async function deleteFiles(explorerService: IExplorerService, workingCopyFileSer
 
 		if (res.confirmed) {
 			if (useTrash) {
-				useTrash = false; // Delete Permanently
+				useTrash = false;
 			}
 
 			skipConfirm = true;
@@ -331,7 +320,6 @@ export async function findValidPasteFileTarget(
 	let name = typeof fileToPaste.resource === 'string' ? fileToPaste.resource : resources.basenameOrAuthority(fileToPaste.resource);
 	let candidate = resources.joinPath(targetFolder.resource, name);
 
-	// In the disabled case we must ask if it's ok to overwrite the file if it exists
 	if (incrementalNaming === 'disabled') {
 		const canOverwrite = await askForOverwrite(fileService, dialogService, candidate);
 		if (!canOverwrite) {
@@ -362,8 +350,6 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 			namePrefix = basename(name, extSuffix);
 		}
 
-		// name copy 5(.txt) => name copy 6(.txt)
-		// name copy(.txt) => name copy 2(.txt)
 		const suffixRegex = /^(.+ copy)( \d+)?$/;
 		if (suffixRegex.test(namePrefix)) {
 			return namePrefix.replace(suffixRegex, (match, g1?, g2?) => {
@@ -376,14 +362,12 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 			}) + extSuffix;
 		}
 
-		// name(.txt) => name copy(.txt)
 		return `${namePrefix} copy${extSuffix}`;
 	}
 
 	const separators = '[\\.\\-_]';
 	const maxNumber = Constants.MAX_SAFE_SMALL_INTEGER;
 
-	// file.1.txt=>file.2.txt
 	const suffixFileRegex = RegExp('(.*' + separators + ')(\\d+)(\\..*)$');
 	if (!isFolder && name.match(suffixFileRegex)) {
 		return name.replace(suffixFileRegex, (match, g1?, g2?, g3?) => {
@@ -394,7 +378,6 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 		});
 	}
 
-	// 1.file.txt=>2.file.txt
 	const prefixFileRegex = RegExp('(\\d+)(' + separators + '.*)(\\..*)$');
 	if (!isFolder && name.match(prefixFileRegex)) {
 		return name.replace(prefixFileRegex, (match, g1?, g2?, g3?) => {
@@ -405,7 +388,6 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 		});
 	}
 
-	// 1.txt=>2.txt
 	const prefixFileNoNameRegex = RegExp('(\\d+)(\\..*)$');
 	if (!isFolder && name.match(prefixFileNoNameRegex)) {
 		return name.replace(prefixFileNoNameRegex, (match, g1?, g2?) => {
@@ -416,13 +398,11 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 		});
 	}
 
-	// file.txt=>file.1.txt
 	const lastIndexOfDot = name.lastIndexOf('.');
 	if (!isFolder && lastIndexOfDot >= 0) {
 		return `${name.substr(0, lastIndexOfDot)}.1${name.substr(lastIndexOfDot)}`;
 	}
 
-	// 123 => 124
 	const noNameNoExtensionRegex = RegExp('(\\d+)$');
 	if (!isFolder && lastIndexOfDot === -1 && name.match(noNameNoExtensionRegex)) {
 		return name.replace(noNameNoExtensionRegex, (match, g1?) => {
@@ -433,8 +413,6 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 		});
 	}
 
-	// file => file1
-	// file1 => file2
 	const noExtensionRegex = RegExp('(.*)(\\d*)$');
 	if (!isFolder && lastIndexOfDot === -1 && name.match(noExtensionRegex)) {
 		return name.replace(noExtensionRegex, (match, g1?, g2?) => {
@@ -448,7 +426,6 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 		});
 	}
 
-	// folder.1=>folder.2
 	if (isFolder && name.match(/(\d+)$/)) {
 		return name.replace(/(\d+)$/, (match, ...groups) => {
 			const number = parseInt(groups[0]);
@@ -458,7 +435,6 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 		});
 	}
 
-	// 1.folder=>2.folder
 	if (isFolder && name.match(/^(\d+)/)) {
 		return name.replace(/^(\d+)(.*)$/, (match, ...groups) => {
 			const number = parseInt(groups[0]);
@@ -468,23 +444,14 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 		});
 	}
 
-	// file/folder=>file.1/folder.1
 	return `${name}.1`;
 }
 
-/**
- * Checks to see if the resource already exists, if so prompts the user if they would be ok with it being overwritten
- * @param fileService The file service
- * @param dialogService The dialog service
- * @param targetResource The resource to be overwritten
- * @return A boolean indicating if the user is ok with resource being overwritten, if the resource does not exist it returns true.
- */
 async function askForOverwrite(fileService: IFileService, dialogService: IDialogService, targetResource: URI): Promise<boolean> {
 	const exists = await fileService.exists(targetResource);
 	if (!exists) {
 		return true;
 	}
-	// Ask for overwrite confirmation
 	const { confirmed } = await dialogService.confirm({
 		type: Severity.Warning,
 		message: nls.localize('confirmOverwrite', "A file or folder with the name '{0}' already exists in the destination folder. Do you want to replace it?", basename(targetResource.path)),
@@ -493,7 +460,6 @@ async function askForOverwrite(fileService: IFileService, dialogService: IDialog
 	return confirmed;
 }
 
-// Global Compare with
 export class GlobalCompareResourcesAction extends Action2 {
 
 	static readonly ID = 'workbench.files.action.compareFileWith';
@@ -576,7 +542,6 @@ abstract class BaseSaveAllAction extends Action {
 
 	private registerListeners(): void {
 
-		// update enablement based on working copy changes
 		this._register(this.workingCopyService.onDidChangeDirty(workingCopy => this.updateEnablement(workingCopy)));
 	}
 
@@ -710,10 +675,8 @@ export class OpenActiveFileInEmptyWorkspace extends Action2 {
 }
 
 export function validateFileName(pathService: IPathService, item: ExplorerItem, name: string, os: OperatingSystem): { content: string; severity: Severity } | null {
-	// Produce a well formed file name
 	name = getWellFormedFileName(name);
 
-	// Name not provided
 	if (!name || name.length === 0 || /^\s+$/.test(name)) {
 		return {
 			content: nls.localize('emptyFileNameError', "A file or folder name must be provided."),
@@ -721,7 +684,6 @@ export function validateFileName(pathService: IPathService, item: ExplorerItem, 
 		};
 	}
 
-	// Relative paths only
 	if (name[0] === '/' || name[0] === '\\') {
 		return {
 			content: nls.localize('fileNameStartsWithSlashError', "A file or folder name cannot start with a slash."),
@@ -733,7 +695,6 @@ export function validateFileName(pathService: IPathService, item: ExplorerItem, 
 	const parent = item.parent;
 
 	if (name !== item.name) {
-		// Do not allow to overwrite existing file
 		const child = parent?.getChild(name);
 		if (child && child !== item) {
 			return {
@@ -743,9 +704,7 @@ export function validateFileName(pathService: IPathService, item: ExplorerItem, 
 		}
 	}
 
-	// Check for invalid file name.
 	if (names.some(folderName => !pathService.hasValidBasename(item.resource, os, folderName))) {
-		// Escape * characters
 		const escapedName = name.replace(/\*/g, '\\*'); // CodeQL [SM02383] This only processes filenames which are enforced against having backslashes in them farther up in the stack.
 		return {
 			content: nls.localize('invalidFileNameError', "The name **{0}** is not valid as a file or folder name. Please choose a different name.", trimLongName(escapedName)),
@@ -776,10 +735,8 @@ function getWellFormedFileName(filename: string): string {
 		return filename;
 	}
 
-	// Trim tabs
 	filename = trim(filename, '\t');
 
-	// Remove trailing slashes
 	filename = rtrim(filename, '/');
 	filename = rtrim(filename, '\\');
 
@@ -910,11 +867,9 @@ async function openExplorerAndCreate(accessor: ServicesAccessor, isFolder: boole
 	const wasHidden = !viewsService.isViewVisible(explorerViewId);
 	const view = await viewsService.openView(explorerViewId, true);
 	if (wasHidden) {
-		// Give explorer some time to resolve itself #111218
 		await timeout(500);
 	}
 	if (!view) {
-		// Can happen in empty workspace case (https://github.com/microsoft/vscode/issues/100604)
 
 		if (isFolder) {
 			throw new Error('Open a folder or workspace first.');
@@ -1163,7 +1118,6 @@ export const pasteFileHandler = async (accessor: ServicesAccessor, fileList?: Fi
 			return;
 		}
 
-		// Check for confirmation checkbox
 		if (confirmation.checkboxChecked === true) {
 			await configurationService.updateValue('explorer.confirmPasteNative', false);
 		}
@@ -1172,7 +1126,6 @@ export const pasteFileHandler = async (accessor: ServicesAccessor, fileList?: Fi
 	const incrementalNaming = configurationService.getValue<IFilesConfiguration>().explorer.incrementalNaming;
 
 	const editableItem = explorerService.getEditable();
-	// If it's an editable item, just do nothing
 	if (editableItem) {
 		return;
 	}
@@ -1180,16 +1133,14 @@ export const pasteFileHandler = async (accessor: ServicesAccessor, fileList?: Fi
 	try {
 		let targets: URI[] = [];
 
-		if (toPaste.type === 'paths') { // Pasting from files on disk
+		if (toPaste.type === 'paths') {
 
-			// Check if target is ancestor of pasted folder
 			const sourceTargetPairs = coalesce(await Promise.all(toPaste.files.map(async fileToPaste => {
 				if (element.resource.toString() !== fileToPaste.toString() && resources.isEqualOrParent(element.resource, fileToPaste)) {
 					throw new Error(nls.localize('fileIsAncestor', "File to paste is an ancestor of the destination folder"));
 				}
 				const fileToPasteStat = await fileService.stat(fileToPaste);
 
-				// Find target
 				let target: ExplorerItem;
 				if (uriIdentityService.extUri.isEqual(element.resource, fileToPaste)) {
 					target = element.parent!;
@@ -1214,7 +1165,6 @@ export const pasteFileHandler = async (accessor: ServicesAccessor, fileList?: Fi
 			})));
 
 			if (sourceTargetPairs.length >= 1) {
-				// Move/Copy File
 				if (pasteShouldMove) {
 					const resourceFileEdits = sourceTargetPairs.map(pair => new ResourceFileEdit(pair.source, pair.target, { overwrite: incrementalNaming === 'disabled' }));
 					const options = {
@@ -1233,7 +1183,7 @@ export const pasteFileHandler = async (accessor: ServicesAccessor, fileList?: Fi
 
 			targets = sourceTargetPairs.map(pair => pair.target);
 
-		} else { // Pasting from file data
+		} else {
 			const targetAndEdits = coalesce(await Promise.all(toPaste.files.map(async file => {
 				const target = element.isDirectory ? element : element.parent!;
 
@@ -1275,7 +1225,6 @@ export const pasteFileHandler = async (accessor: ServicesAccessor, fileList?: Fi
 		notificationService.error(toErrorMessage(new Error(nls.localize('fileDeleted', "The file(s) to paste have been deleted or moved since you copied them. {0}", getErrorMessage(e))), false));
 	} finally {
 		if (pasteShouldMove) {
-			// Cut is done. Make sure to clear cut state.
 			await explorerService.setToCopy([], false);
 			pasteShouldMove = false;
 		}
@@ -1300,16 +1249,13 @@ type FilesToPaste =
 
 async function getFilesToPaste(fileList: FileList | undefined, clipboardService: IClipboardService, hostService: IHostService): Promise<FilesToPaste> {
 	if (fileList && fileList.length > 0) {
-		// with a `fileList` we support natively pasting file from disk from clipboard
 		const resources = [...fileList].map(file => getPathForFile(file)).filter(filePath => !!filePath && isAbsolute(filePath)).map((filePath) => URI.file(filePath!));
 		if (resources.length) {
 			return { type: 'paths', files: resources, };
 		}
 
-		// Support pasting files that we can't read from disk
 		return { type: 'data', files: [...fileList].filter(file => !getPathForFile(file)) };
 	} else {
-		// otherwise we fallback to reading resources from our clipboard service
 		return { type: 'paths', files: resources.distinctParents(await clipboardService.readResources(), resource => resource) };
 	}
 }

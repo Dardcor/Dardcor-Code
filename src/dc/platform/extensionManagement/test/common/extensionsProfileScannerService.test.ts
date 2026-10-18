@@ -201,7 +201,7 @@ suite('ExtensionsProfileScannerService', () => {
 		try {
 			await testObject.scanProfileExtensions(extensionsManifest);
 			assert.fail('Should throw error');
-		} catch (error) { /*expected*/ }
+		} catch (error) { }
 	});
 
 	test('throws error if extension has no location', async () => {
@@ -218,7 +218,7 @@ suite('ExtensionsProfileScannerService', () => {
 		try {
 			await testObject.scanProfileExtensions(extensionsManifest);
 			assert.fail('Should throw error');
-		} catch (error) { /*expected*/ }
+		} catch (error) { }
 	});
 
 	test('throws error if extension location is invalid', async () => {
@@ -236,7 +236,7 @@ suite('ExtensionsProfileScannerService', () => {
 		try {
 			await testObject.scanProfileExtensions(extensionsManifest);
 			assert.fail('Should throw error');
-		} catch (error) { /*expected*/ }
+		} catch (error) { }
 	});
 
 	test('throws error if extension has no identifier', async () => {
@@ -252,7 +252,7 @@ suite('ExtensionsProfileScannerService', () => {
 		try {
 			await testObject.scanProfileExtensions(extensionsManifest);
 			assert.fail('Should throw error');
-		} catch (error) { /*expected*/ }
+		} catch (error) { }
 	});
 
 	test('throws error if extension identifier is invalid', async () => {
@@ -269,7 +269,7 @@ suite('ExtensionsProfileScannerService', () => {
 		try {
 			await testObject.scanProfileExtensions(extensionsManifest);
 			assert.fail('Should throw error');
-		} catch (error) { /*expected*/ }
+		} catch (error) { }
 	});
 
 	test('throws error if extension has no version', async () => {
@@ -285,7 +285,7 @@ suite('ExtensionsProfileScannerService', () => {
 		try {
 			await testObject.scanProfileExtensions(extensionsManifest);
 			assert.fail('Should throw error');
-		} catch (error) { /*expected*/ }
+		} catch (error) { }
 	});
 
 	test('read extension when manifest is empty', async () => {

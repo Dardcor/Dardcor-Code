@@ -74,18 +74,15 @@ suite('AskAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain base read-only tools
 		assert.ok(content.includes('search'));
 		assert.ok(content.includes('read'));
 		assert.ok(content.includes('web'));
 		assert.ok(content.includes('github/issue_read'));
 
-		// Should NOT contain editing tools
 
 		assert.ok(!content.includes('\'edit'), 'Should not have edit or edit/... tools');
 		assert.ok(!content.includes('\'execute/run'), 'Should not have any execute/run... tool');
 
-		// Should have correct metadata
 		assert.ok(content.includes('name: Ask'));
 		assert.ok(content.includes('description: Answers questions without making changes'));
 	});
@@ -99,11 +96,9 @@ suite('AskAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain base tools
 		assert.ok(content.includes('search'));
 		assert.ok(content.includes('read'));
 
-		// Should contain additional tools
 		assert.ok(content.includes('customTool1'));
 		assert.ok(content.includes('customTool2'));
 	});
@@ -117,14 +112,12 @@ suite('AskAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Count occurrences of 'search' in tools list
 		const toolsMatch = content.match(/tools: \[([^\]]+)\]/);
 		assert.ok(toolsMatch, 'Tools list not found in agent content');
 		const toolsSection = toolsMatch[1];
 		const searchCount = (toolsSection.match(/'search'/g) || []).length;
 		assert.equal(searchCount, 1, 'search tool should appear only once after deduplication');
 
-		// Should contain new tool
 		assert.ok(content.includes('newTool'));
 	});
 
@@ -229,7 +222,6 @@ suite('AskAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should have base tools only
 		assert.ok(content.includes('search'));
 		assert.ok(content.includes('read'));
 	});

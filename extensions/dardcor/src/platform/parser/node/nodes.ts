@@ -36,14 +36,11 @@ export interface TreeSitterPointRange {
 	endPosition: TreeSitterPoint;
 }
 
-/** Util functions to deal with `TreeSitterOffsetRange` type */
 export const TreeSitterOffsetRange = {
-	/** check if `container` contains `containee` (non-strict, ie [0, 3] contains [0, 3] */
 	doesContain: (container: TreeSitterOffsetRange, containee: TreeSitterOffsetRange): boolean => container.startIndex <= containee.startIndex && containee.endIndex <= container.endIndex,
 
 	ofSyntaxNode: (n: SyntaxNode): TreeSitterOffsetRange => ({ startIndex: n.startIndex, endIndex: n.endIndex }),
 
-	/** sort by `node.startIndex`, break ties by `node.endIndex` (so that nodes with same start index are sorted in descending order) */
 	compare: (a: TreeSitterOffsetRange, b: TreeSitterOffsetRange): number => a.startIndex - b.startIndex || b.endIndex - a.endIndex,
 	isEqual: (a: TreeSitterOffsetRange, b: TreeSitterOffsetRange): boolean => TreeSitterOffsetRange.compare(a, b) === 0,
 
@@ -55,14 +52,12 @@ export const TreeSitterOffsetRange = {
 
 	len: (n: TreeSitterOffsetRange) => n.endIndex - n.startIndex,
 
-	/** Given offset ranges [a0, a1] and [b0, b1], returns overlap size */
 	intersectionSize: (a: TreeSitterOffsetRange, b: TreeSitterOffsetRange): number => {
 		const start = Math.max(a.startIndex, b.startIndex);
 		const end = Math.min(a.endIndex, b.endIndex);
 		return Math.max(end - start, 0);
 	},
 
-	/** Check the given object extends TreeSitterOffsetRange  */
 	isTreeSitterOffsetRange(obj: any): obj is TreeSitterOffsetRange {
 		return typeof obj.startIndex === 'number' && typeof obj.endIndex === 'number';
 	},
@@ -110,7 +105,6 @@ export const TreeSitterPoint = {
 
 export const TreeSitterPointRange = {
 
-	/** check if `container` contains `containee` (non-strict) */
 	doesContain: (container: TreeSitterPointRange, containee: TreeSitterPointRange): boolean => {
 		return TreeSitterPoint.isBeforeOrEqual(container.startPosition, containee.startPosition) && TreeSitterPoint.isAfterOrEqual(container.endPosition, containee.endPosition);
 	},
@@ -151,17 +145,11 @@ export const TreeSitterChunkHeaderInfo = {
 	}),
 };
 
-/**
- * Represents a node in the overlay tree.
- */
 export class OverlayNode {
 	constructor(
 		public readonly startIndex: number,
 		public readonly endIndex: number,
-		/**
-		 * @example `class_declaration`
-		 */
-		public kind: string, // TODO@ulugbekna: come up with more generic kinds so that these aren't per-language, then use enum?
+		public kind: string,
 		public readonly children: OverlayNode[],
 	) {
 		if (startIndex > endIndex) {

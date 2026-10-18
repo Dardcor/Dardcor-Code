@@ -18,31 +18,17 @@ import { CONFIGURE_DICTATION_INSTRUCTIONS_ACTION_ID, CONFIGURE_VOICE_INSTRUCTION
 import { DictationSettingId } from './chatSpeechToTextService.js';
 import { SHOW_DICTATION_ONBOARDING_COMMAND } from './dictationOnboarding.js';
 
-/** Command that opens the microphone picker shared by dictation and Voice Mode. */
 export const SELECT_MICROPHONE_COMMAND = 'workbench.action.chat.selectSpeechToTextMicrophone';
-/** Command that cancels the active/preparing dictation session. */
 const CANCEL_DICTATION_COMMAND = 'workbench.action.chat.cancelSpeechToText';
-/** Command that tears down an active Voice Mode session. */
 const VOICE_DISCONNECT_COMMAND = 'agentsVoice.disconnect';
-/** Command that opens the Voice Mode settings; the affordance that used to live behind the toolbar gear. */
 const VOICE_OPEN_SETTINGS_COMMAND = 'agentsVoice.openSettings';
-/** Command that opens the Settings editor. */
 const OPEN_SETTINGS_COMMAND = 'workbench.action.openSettings';
-/** Narrows the Settings editor to dictation settings. */
 const DICTATION_SETTINGS_QUERY = 'dictation';
-/** Command that shows the Voice Mode onboarding card again. */
 export const SHOW_VOICE_MODE_ONBOARDING_COMMAND = 'agentsVoice.showOnboarding';
-/** Setting that enables dictation; toggled off by "Disable". */
 const DICTATION_ENABLED_SETTING = 'dictation.enabled';
-/** Setting that enables Voice Mode; toggled off by "Disable". */
 const VOICE_ENABLED_SETTING = 'agents.voice.enabled';
-/** Setting that shows the live voice transcript overlay; toggled from the menu. */
 const VOICE_SHOW_TRANSCRIPT_SETTING = 'agents.voice.showTranscript';
 
-/**
- * "Select Microphone" entry shared by every dictation / Voice Mode mic button
- * context menu. Opens the picker shared by both features.
- */
 function createSelectMicrophoneAction(commandService: ICommandService): IAction {
 	return toAction({
 		id: SELECT_MICROPHONE_COMMAND,
@@ -51,11 +37,6 @@ function createSelectMicrophoneAction(commandService: ICommandService): IAction 
 	});
 }
 
-/**
- * "Disable" entry for dictation. Cancels any active/preparing dictation first so
- * disabling the setting doesn't leave the microphone capturing while the toolbar
- * affordance disappears, then turns off the feature setting.
- */
 function createDisableDictationAction(commandService: ICommandService, configurationService: IConfigurationService): IAction {
 	return toAction({
 		id: 'chat.dictation.disable',
@@ -75,12 +56,6 @@ function createShowDictationOnboardingAction(commandService: ICommandService): I
 	});
 }
 
-/**
- * Checkable "Microphone Button" entry mirroring the action bar visibility toggles:
- * checked while the button is shown, unchecking it hides the button. Hiding only
- * removes the toolbar affordance — dictation can still be launched with its
- * Cmd/Ctrl+I shortcut, and the button can be restored from Settings.
- */
 function createToggleButtonAction(configurationService: IConfigurationService, settingId: DictationSettingId.ShowButton | AgentsVoiceSettingId.ShowButton, id: string, label: string): IAction {
 	const shown = configurationService.getValue<boolean>(settingId) !== false;
 	return toAction({
@@ -91,11 +66,6 @@ function createToggleButtonAction(configurationService: IConfigurationService, s
 	});
 }
 
-/**
- * "Disable" entry for Voice Mode. Tears down any active session first so disabling
- * the setting doesn't leave the microphone capturing while the toolbar
- * affordance disappears, then turns off the feature setting.
- */
 function createDisableVoiceModeAction(commandService: ICommandService, configurationService: IConfigurationService): IAction {
 	return toAction({
 		id: 'chat.voiceMode.disable',
@@ -107,10 +77,6 @@ function createDisableVoiceModeAction(commandService: ICommandService, configura
 	});
 }
 
-/**
- * Actions for the dictation mic button context menu. Keybinding and feature
- * disabling are grouped separately from configuration and onboarding.
- */
 export function getDictationContextMenuActions(commandService: ICommandService, configurationService: IConfigurationService, keybindingService: IKeybindingService, keybindingCommandId: string): IAction[] {
 	return Separator.join(
 		[
@@ -127,10 +93,6 @@ export function getDictationContextMenuActions(commandService: ICommandService, 
 	);
 }
 
-/**
- * "Settings" entry. Opens the Voice Mode settings — the affordance
- * that used to live behind the toolbar gear button.
- */
 function createVoiceModeSettingsAction(commandService: ICommandService): IAction {
 	return toAction({
 		id: VOICE_OPEN_SETTINGS_COMMAND,
@@ -163,11 +125,6 @@ function createConfigureInstructionsAction(commandService: ICommandService, comm
 	});
 }
 
-/**
- * Checkable "Show Transcript" entry: a quick per-session toggle for the live
- * voice transcript overlay. Reflects and flips `agents.voice.showTranscript`,
- * which also serves as the user's default preference.
- */
 function createToggleTranscriptAction(configurationService: IConfigurationService): IAction {
 	const shown = configurationService.getValue<boolean>(VOICE_SHOW_TRANSCRIPT_SETTING) === true;
 	return toAction({
@@ -178,10 +135,6 @@ function createToggleTranscriptAction(configurationService: IConfigurationServic
 	});
 }
 
-/**
- * Actions for the Voice Mode mic button context menu. Keybinding and feature
- * disabling are grouped separately from configuration and onboarding.
- */
 export function getVoiceModeContextMenuActions(commandService: ICommandService, configurationService: IConfigurationService, keybindingService: IKeybindingService, keybindingCommandId: string): IAction[] {
 	return Separator.join(
 		[
@@ -199,12 +152,6 @@ export function getVoiceModeContextMenuActions(commandService: ICommandService, 
 	);
 }
 
-/**
- * Wire a right-click context menu onto a mic button. Stops the event before it
- * reaches the toolbar's generic context-menu handler so the mic-specific menu is
- * shown instead. Works for both `MenuEntryActionViewItem` containers and the
- * Agents-window custom mic `<div>`s.
- */
 export function addMicButtonContextMenuListener(container: HTMLElement, getActions: () => IAction[], contextMenuService: IContextMenuService): IDisposable {
 	return addDisposableListener(container, 'contextmenu', e => {
 		e.preventDefault();

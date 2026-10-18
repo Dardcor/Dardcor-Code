@@ -42,7 +42,7 @@ export class ContextMenuHandler {
 	showContextMenu(delegate: IContextMenuDelegate): void {
 		const actions = delegate.getActions();
 		if (!actions.length) {
-			return; // Don't render an empty context menu
+			return;
 		}
 
 		this.focusToReturn = getActiveElement() as HTMLElement;
@@ -65,7 +65,6 @@ export class ContextMenuHandler {
 					container.className += ' ' + className;
 				}
 
-				// Render invisible div to block mouse interaction in the rest of the UI
 				if (this.options.blockMouse) {
 					this.block = container.appendChild($('.context-view-block'));
 					this.block.style.position = 'fixed';
@@ -106,7 +105,6 @@ export class ContextMenuHandler {
 					const event = new StandardMouseEvent(targetWindow, e);
 					let element: HTMLElement | null = event.target;
 
-					// Don't do anything as we are likely creating a context menu
 					if (event.rightButton) {
 						return;
 					}

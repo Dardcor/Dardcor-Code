@@ -9,13 +9,11 @@ import * as os from 'os';
 import { isUpToDate, forceInstallMessage } from './installStateHash.ts';
 
 if (!process.env['VSCODE_SKIP_NODE_VERSION_CHECK']) {
-	// Get the running Node.js version
 	const nodeVersion = /^(\d+)\.(\d+)\.(\d+)/.exec(process.versions.node);
 	const majorNodeVersion = parseInt(nodeVersion![1]);
 	const minorNodeVersion = parseInt(nodeVersion![2]);
 	const patchNodeVersion = parseInt(nodeVersion![3]);
 
-	// Get the required Node.js version from .nvmrc
 	const nvmrcPath = path.join(import.meta.dirname, '..', '..', '.nvmrc');
 	const requiredVersion = fs.readFileSync(nvmrcPath, 'utf8').trim();
 	const requiredVersionMatch = /^(\d+)\.(\d+)\.(\d+)/.exec(requiredVersion);
@@ -55,8 +53,6 @@ if (npmVersionMatch) {
 	}
 }
 
-// Fast path: if nothing changed since last successful install, skip everything.
-// This makes `npm i` near-instant when dependencies haven't changed.
 if (!process.env['VSCODE_FORCE_INSTALL'] && isUpToDate()) {
 	console.log(`\x1b[32mAll dependencies up to date.\x1b[0m ${forceInstallMessage}`);
 	process.exit(0);
@@ -79,20 +75,16 @@ if (process.arch !== os.arch()) {
 }
 
 function hasSupportedVisualStudioVersion() {
-	// Translated over from
-	// https://source.chromium.org/chromium/chromium/src/+/master:build/vs_toolchain.py;l=140-175
 	const supportedVersions = ['2022', '2019'];
 
 	const availableVersions = [];
 	for (const version of supportedVersions) {
-		// Check environment variable first (explicit override)
 		let vsPath = process.env[`vs${version}_install`];
 		if (vsPath && fs.existsSync(vsPath)) {
 			availableVersions.push(version);
 			break;
 		}
 
-		// Check default installation paths
 		const programFiles86Path = process.env['ProgramFiles(x86)'];
 		const programFiles64Path = process.env['ProgramFiles'];
 
@@ -126,28 +118,19 @@ function installHeaders() {
 		stdio: 'inherit'
 	});
 
-	// The node gyp package got installed using the above npm command using the gyp/package.json
-	// file checked into our repository. So from that point it is safe to construct the path
-	// to that executable
 	const node_gyp = path.join(import.meta.dirname, 'gyp', 'node_modules', 'node-gyp', 'bin', 'node-gyp.js');
 
 	const local = getHeaderInfo(path.join(import.meta.dirname, '..', '..', '.npmrc'));
 	const remote = getHeaderInfo(path.join(import.meta.dirname, '..', '..', 'remote', '.npmrc'));
 
 	if (local !== undefined) {
-		// Both disturl and target come from a file checked into our repository
 		child_process.execFileSync(process.execPath, [node_gyp, 'install', '--dist-url', local.disturl, local.target]);
 	}
 
 	if (remote !== undefined) {
-		// Both disturl and target come from a file checked into our repository
 		child_process.execFileSync(process.execPath, [node_gyp, 'install', '--dist-url', remote.disturl, remote.target]);
 	}
 
-	// Overlay any custom headers shipped in build/npm/gyp/custom-headers on top of
-	// the downloaded Electron headers. This is used to work around upstream issues:
-	//   - v8-source-location.h: remove dependency on std::source_location (GCC 11+ requirement)
-	//     Refs https://chromium-review.googlesource.com/c/v8/v8/+/6879784
 	if (local !== undefined) {
 		const localHeaderPath = getLocalHeaderPath(local.target);
 		if (localHeaderPath && fs.existsSync(localHeaderPath)) {
@@ -196,6 +179,12 @@ function getHeaderInfo(rcFile: string): { disturl: string; target: string } | un
 		if (match !== null && match.length >= 1) {
 			target = match[1];
 		}
+	}
+	const packageJsonPath = path.join(path.dirname(rcFile), 'package.json');
+	if (fs.existsSync(packageJsonPath)) {
+		const buildConfig = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).dardcorBuild?.nodeGyp;
+		disturl ??= buildConfig?.disturl;
+		target ??= buildConfig?.target;
 	}
 	return disturl !== undefined && target !== undefined
 		? { disturl, target }

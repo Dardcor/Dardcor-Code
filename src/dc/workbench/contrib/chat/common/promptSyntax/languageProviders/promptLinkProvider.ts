@@ -11,9 +11,6 @@ import { IPathService } from '../../../../../services/path/common/pathService.js
 import { URI } from '../../../../../../base/common/uri.js';
 import { isPromptFileTildePath } from '../promptFileParser.js';
 
-/**
- * Provides link references for prompt files.
- */
 export class PromptLinkProvider implements LinkProvider {
 	constructor(
 		@IPromptsService private readonly promptsService: IPromptsService,
@@ -21,9 +18,6 @@ export class PromptLinkProvider implements LinkProvider {
 	) {
 	}
 
-	/**
-	 * Provide list of links for the provided text model.
-	 */
 	public async provideLinks(model: ITextModel, token: CancellationToken): Promise<ILinksList | undefined> {
 		const promptAST = this.promptsService.getParsedPromptFile(model);
 		if (!promptAST.body) {

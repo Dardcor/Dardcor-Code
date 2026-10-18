@@ -170,7 +170,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 		}
 	}
 
-	// Workspace Context Service Impl
 
 	public async getCompleteWorkspace(): Promise<Workspace> {
 		await this.completeWorkspaceBarrier.wait();
@@ -182,17 +181,14 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 	}
 
 	public getWorkbenchState(): WorkbenchState {
-		// Workspace has configuration file
 		if (this.workspace.configuration) {
 			return WorkbenchState.WORKSPACE;
 		}
 
-		// Folder has single root
 		if (this.workspace.folders.length === 1) {
 			return WorkbenchState.FOLDER;
 		}
 
-		// Empty
 		return WorkbenchState.EMPTY;
 	}
 
@@ -240,31 +236,28 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 
 	private async doUpdateFolders(foldersToAdd: IWorkspaceFolderCreationData[], foldersToRemove: URI[], index?: number): Promise<void> {
 		if (this.getWorkbenchState() !== WorkbenchState.WORKSPACE) {
-			return Promise.resolve(undefined); // we need a workspace to begin with
+			return Promise.resolve(undefined);
 		}
 
 		if (foldersToAdd.length + foldersToRemove.length === 0) {
-			return Promise.resolve(undefined); // nothing to do
+			return Promise.resolve(undefined);
 		}
 
 		let foldersHaveChanged = false;
 
-		// Remove first (if any)
 		let currentWorkspaceFolders = this.getWorkspace().folders;
 		let newStoredFolders: IStoredWorkspaceFolder[] = currentWorkspaceFolders.map(f => f.raw).filter((folder, index): folder is IStoredWorkspaceFolder => {
 			if (!isStoredWorkspaceFolder(folder)) {
-				return true; // keep entries which are unrelated
+				return true;
 			}
 
-			return !this.contains(foldersToRemove, currentWorkspaceFolders[index].uri); // keep entries which are unrelated
+			return !this.contains(foldersToRemove, currentWorkspaceFolders[index].uri);
 		});
 
 		foldersHaveChanged = currentWorkspaceFolders.length !== newStoredFolders.length;
 
-		// Add afterwards (if any)
 		if (foldersToAdd.length) {
 
-			// Recompute current workspace folders if we have folders to add
 			const workspaceConfigPath = this.getWorkspace().configuration!;
 			const workspaceConfigFolder = this.uriIdentityService.extUri.dirname(workspaceConfigPath);
 			currentWorkspaceFolders = toWorkspaceFolders(newStoredFolders, workspaceConfigPath, this.uriIdentityService.extUri);
@@ -275,18 +268,17 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 			for (const folderToAdd of foldersToAdd) {
 				const folderURI = folderToAdd.uri;
 				if (this.contains(currentWorkspaceFolderUris, folderURI)) {
-					continue; // already existing
+					continue;
 				}
 				try {
 					const result = await this.fileService.stat(folderURI);
 					if (!result.isDirectory) {
 						continue;
 					}
-				} catch (e) { /* Ignore */ }
+				} catch (e) { }
 				storedFoldersToAdd.push(getStoredWorkspaceFolder(folderURI, false, folderToAdd.name, workspaceConfigFolder, this.uriIdentityService.extUri));
 			}
 
-			// Apply to array of newStoredFolders
 			if (storedFoldersToAdd.length > 0) {
 				foldersHaveChanged = true;
 
@@ -299,7 +291,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 			}
 		}
 
-		// Set folders if we recorded a change
 		if (foldersHaveChanged) {
 			return this.setFolders(newStoredFolders);
 		}
@@ -320,7 +311,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 		return resources.some(resource => this.uriIdentityService.extUri.isEqual(resource, toCheck));
 	}
 
-	// Workspace Configuration Service Impl
 
 	getConfigurationData(): IConfigurationData {
 		return this._configuration.toData();
@@ -358,7 +348,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 			const inspect = this.inspect(key, { resource: overrides?.resource, overrideIdentifier: overrides?.overrideIdentifiers ? overrides.overrideIdentifiers[0] : undefined });
 			targets.push(...this.deriveConfigurationTargets(key, value, inspect));
 
-			// Remove the setting, if the value is same as default value and is updated only in user target
 			if (equals(value, inspect.defaultValue) && targets.length === 1 && (targets[0] === ConfigurationTarget.USER || targets[0] === ConfigurationTarget.USER_LOCAL)) {
 				value = undefined;
 			}
@@ -429,19 +418,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 		await this.initRemoteUserConfigurationBarrier.wait();
 	}
 
-	/**
-	 * At present, all workspaces (empty, single-folder, multi-root) in local and remote
-	 * can be initialized without requiring extension host except following case:
-	 *
-	 * A multi root workspace with .code-workspace file that has to be resolved by an extension.
-	 * Because of readonly `rootPath` property in extension API we have to resolve multi root workspace
-	 * before extension host starts so that `rootPath` can be set to first folder.
-	 *
-	 * This restriction is lifted partially for web in `MainThreadWorkspace`.
-	 * In web, we start extension host with empty `rootPath` in this case.
-	 *
-	 * Related root path issue discussion is being tracked here - https://github.com/microsoft/vscode/issues/69335
-	 */
 	async initialize(arg: IAnyWorkspaceIdentifier): Promise<void> {
 		mark('code/willInitWorkspaceService');
 
@@ -566,7 +542,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 
 		await this.initializeConfiguration(trigger);
 
-		// Trigger changes after configuration initialization so that configuration is up to date.
 		if (hasWorkspaceBefore) {
 			const newState = this.getWorkbenchState();
 			if (previousState && newState !== previousState) {
@@ -586,7 +561,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 		}
 
 		if (!this.localUserConfiguration.hasTasksLoaded) {
-			// Reload local user configuration again to load user tasks
 			this._register(runWhenWindowIdle(mainWindow, () => this.reloadLocalUserConfiguration(false, this._configuration.localUserConfiguration)));
 		}
 	}
@@ -690,7 +664,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 	}
 
 	private async loadConfiguration(applicationConfigurationModel: ConfigurationModel, userConfigurationModel: ConfigurationModel, remoteUserConfigurationModel: ConfigurationModel, trigger: boolean): Promise<void> {
-		// reset caches
 		this.cachedFolderConfigs.clearAndDisposeAll();
 
 		const folders = this.workspace.folders;
@@ -832,15 +805,12 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 		if (this.workspace && this.workspace.configuration) {
 			let newFolders = toWorkspaceFolders(this.workspaceConfiguration.getFolders(), this.workspace.configuration, this.uriIdentityService.extUri);
 
-			// Validate only if workspace is initialized
 			if (this.workspace.initialized) {
 				const { added, removed, changed } = this.compareFolders(this.workspace.folders, newFolders);
 
-				/* If changed validate new folders */
 				if (added.length || removed.length || changed.length) {
 					newFolders = await this.toValidWorkspaceFolders(newFolders);
 				}
-				/* Otherwise use existing */
 				else {
 					newFolders = this.workspace.folders;
 				}
@@ -925,7 +895,7 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 			changes,
 			fromCache
 		});
-		try { await Promises.settled(joiners); } catch (error) { /* Ignore */ }
+		try { await Promises.settled(joiners); } catch (error) { }
 	}
 
 	private async onWorkspaceFolderConfigurationChanged(folder: IWorkspaceFolder): Promise<void> {
@@ -944,7 +914,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 	private async onFoldersChanged(): Promise<IConfigurationChange> {
 		const changes: IConfigurationChange[] = [];
 
-		// Remove the configurations of deleted folders
 		for (const key of this.cachedFolderConfigs.keys()) {
 			if (!this.workspace.folders.filter(folder => folder.uri.toString() === key.toString())[0]) {
 				this.cachedFolderConfigs.deleteAndDispose(key);
@@ -982,8 +951,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 		}
 	}
 
-	// Filter out workspace folders which are files (not directories)
-	// Workspace folders those cannot be resolved are not filtered because they are handled by the Explorer.
 	private async toValidWorkspaceFolders(workspaceFolders: WorkspaceFolder[]): Promise<WorkspaceFolder[]> {
 		const validWorkspaceFolders: WorkspaceFolder[] = [];
 		for (const workspaceFolder of workspaceFolders) {
@@ -1036,7 +1003,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 			}
 		}
 
-		// Use same instance of ConfigurationEditing to make sure all writes go through the same queue
 		this.configurationEditing = this.configurationEditing ?? this.createConfigurationEditingService(this.instantiationService);
 		await (await this.configurationEditing).writeConfiguration(editableConfigurationTarget, { key, value }, { scopes: overrides, ...options });
 		switch (editableConfigurationTarget) {
@@ -1107,7 +1073,6 @@ export class WorkspaceService extends Disposable implements IWorkbenchConfigurat
 		}
 
 		if (value === undefined) {
-			// Remove the setting in all defined targets
 			return definedTargets;
 		}
 
@@ -1173,13 +1138,11 @@ class RegisterConfigurationSchemasContribution extends Disposable implements IWo
 			const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration);
 			const delayer = this._register(new Delayer<void>(50));
 			this._register(Event.any(configurationRegistry.onDidUpdateConfiguration, configurationRegistry.onDidSchemaChange, workspaceTrustManagementService.onDidChangeTrust)(() =>
-				delayer.trigger(() => this.registerConfigurationSchemas(), lifecycleService.phase === LifecyclePhase.Eventually ? undefined : 2500 /* delay longer in early phases */)));
+				delayer.trigger(() => this.registerConfigurationSchemas(), lifecycleService.phase === LifecyclePhase.Eventually ? undefined : 2500 )));
 		});
 	}
 
 	private registerConfigurationSchemas(): void {
-		// Ensure deprecationMessage is plain text for properties where it was derived from
-		// markdownDeprecationMessage, since the JSON editor diagnostics don't support markdown.
 		for (const key of Object.keys(allSettings.properties)) {
 			const prop = allSettings.properties[key];
 			if (prop.markdownDeprecationMessage && prop.deprecationMessage === prop.markdownDeprecationMessage) {
@@ -1366,19 +1329,14 @@ class ConfigurationDefaultOverridesContribution extends Disposable implements IW
 		this.throttler.queue(() => this.updateDefaults());
 		this._register(workbenchAssignmentService.onDidRefetchAssignments(() => this.throttler.queue(() => this.processExperimentalSettings(this.autoExperimentalSettings, true))));
 
-		// When configuration is updated make sure to apply experimental configuration overrides
 		this._register(this.configurationRegistry.onDidUpdateConfiguration(({ properties }) => this.processExperimentalSettings(properties, false)));
 	}
 
 	private async updateDefaults(): Promise<void> {
 		this.logService.trace('ConfigurationService#updateDefaults: begin');
 		try {
-			// Check for experiments
 			await this.processExperimentalSettings(Object.keys(this.configurationRegistry.getConfigurationProperties()), false);
 		} finally {
-			// Invalidate defaults cache after extensions have registered
-			// and after the experiments have been resolved to prevent
-			// resetting the overrides too early.
 			await this.extensionService.whenInstalledExtensionsRegistered();
 			this.logService.trace('ConfigurationService#updateDefaults: resetting the defaults');
 			this.configurationService.reloadConfiguration(ConfigurationTarget.DEFAULT);
@@ -1410,7 +1368,7 @@ class ConfigurationDefaultOverridesContribution extends Disposable implements IW
 				if (this.shouldOverride(value, schema)) {
 					overrides[property] = value;
 				}
-			} catch (error) {/*ignore */ }
+			} catch (error) { }
 		}
 		if (Object.keys(overrides).length) {
 			this.configurationRegistry.registerDefaultConfigurations([{ overrides, source: 'experiments' }]);

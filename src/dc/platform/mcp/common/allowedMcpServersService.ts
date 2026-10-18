@@ -82,8 +82,6 @@ export class AllowedMcpServersService extends Disposable implements IAllowedMcpS
 			return { name: mcpServer.name, command: [config.command, ...(config.args ?? [])] };
 		}
 
-		// Gallery server: match by name or a remote URL; the local command invocation is only
-		// known once the server is installed with a resolved configuration.
 		return { name: mcpServer.name, url: mcpServer.configuration.remotes?.[0]?.url };
 	}
 }

@@ -20,13 +20,11 @@ export class ExtensionIgnoredRecommendationsService extends Disposable implement
 	private _onDidChangeIgnoredRecommendations = this._register(new Emitter<void>());
 	readonly onDidChangeIgnoredRecommendations = this._onDidChangeIgnoredRecommendations.event;
 
-	// Global Ignored Recommendations
 	private _globalIgnoredRecommendations: string[] = [];
 	get globalIgnoredRecommendations(): string[] { return [...this._globalIgnoredRecommendations]; }
 	private _onDidChangeGlobalIgnoredRecommendation = this._register(new Emitter<IgnoredRecommendationChangeNotification>());
 	readonly onDidChangeGlobalIgnoredRecommendation = this._onDidChangeGlobalIgnoredRecommendation.event;
 
-	// Ignored Workspace Recommendations
 	private ignoredWorkspaceRecommendations: string[] = [];
 
 	get ignoredRecommendations(): string[] { return distinct([...this.globalIgnoredRecommendations, ...this.ignoredWorkspaceRecommendations]); }
@@ -70,7 +68,7 @@ export class ExtensionIgnoredRecommendationsService extends Disposable implement
 	}
 
 	private onDidStorageChange(): void {
-		if (this.ignoredRecommendationsValue !== this.getStoredIgnoredRecommendationsValue() /* This checks if current window changed the value or not */) {
+		if (this.ignoredRecommendationsValue !== this.getStoredIgnoredRecommendationsValue() ) {
 			this._ignoredRecommendationsValue = undefined;
 			this._globalIgnoredRecommendations = this.getCachedIgnoredRecommendations();
 			this._onDidChangeIgnoredRecommendations.fire();

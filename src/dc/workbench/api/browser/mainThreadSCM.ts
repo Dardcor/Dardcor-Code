@@ -297,15 +297,7 @@ class MainThreadSCMProvider implements ISCMProvider {
 
 	private readonly _groupsByHandle: { [handle: number]: MainThreadSCMResourceGroup } = Object.create(null);
 
-	// get groups(): ISequence<ISCMResourceGroup> {
-	// 	return {
-	// 		elements: this._groups,
-	// 		onDidSplice: this._onDidSplice.event
-	// 	};
 
-	// 	// return this._groups
-	// 	// 	.filter(g => g.resources.elements.length > 0 || !g.features.hideWhenEmpty);
-	// }
 
 
 	private features: SCMProviderFeatures = {};
@@ -449,7 +441,7 @@ class MainThreadSCMProvider implements ISCMProvider {
 		}
 	}
 
-	$registerGroups(_groups: [number /*handle*/, string /*id*/, string /*label*/, SCMGroupFeatures, /* multiDiffEditorEnableViewChanges */ boolean][]): void {
+	$registerGroups(_groups: [number , string , string , SCMGroupFeatures, boolean][]): void {
 		const groups = _groups.map(([handle, id, label, features, multiDiffEditorEnableViewChanges]) => {
 			const group = new MainThreadSCMResourceGroup(
 				this.handle,
@@ -499,7 +491,6 @@ class MainThreadSCMProvider implements ISCMProvider {
 				continue;
 			}
 
-			// reverse the splices sequence in order to apply them correctly
 			groupSlices.reverse();
 
 			for (const [start, deleteCount, rawResources] of groupSlices) {
@@ -692,7 +683,7 @@ export class MainThreadSCM implements MainThreadSCMShape {
 		this._repositories.delete(handle);
 	}
 
-	async $registerGroups(sourceControlHandle: number, groups: [number /*handle*/, string /*id*/, string /*label*/, SCMGroupFeatures, /* multiDiffEditorEnableViewChanges */ boolean][], splices: SCMRawResourceSplices[]): Promise<void> {
+	async $registerGroups(sourceControlHandle: number, groups: [number , string , string , SCMGroupFeatures, boolean][], splices: SCMRawResourceSplices[]): Promise<void> {
 		await this._repositoryBarriers.get(sourceControlHandle)?.wait();
 		const repository = this._repositories.get(sourceControlHandle);
 

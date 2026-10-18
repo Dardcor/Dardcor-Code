@@ -28,28 +28,28 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: extensions/copilot/.nvmrc
+          node-version-file: extensions/dardcor/.nvmrc
           cache: npm
           cache-dependency-path: |
-            extensions/copilot/package-lock.json
-            extensions/copilot/chat-lib/package-lock.json
+            extensions/dardcor/package-lock.json
+            extensions/dardcor/chat-lib/package-lock.json
 
       - name: Extract chat-lib
         shell: bash
-        working-directory: extensions/copilot
+        working-directory: extensions/dardcor
         run: |
           npm ci
           npm run extract-chat-lib
           rm -rf node_modules
 
       - name: Install chat-lib dependencies
-        working-directory: extensions/copilot/chat-lib
+        working-directory: extensions/dardcor/chat-lib
         run: npm ci
 
       - name: Build chat-lib
-        working-directory: extensions/copilot/chat-lib
+        working-directory: extensions/dardcor/chat-lib
         run: npm run build
 
       - name: Test chat-lib
-        working-directory: extensions/copilot/chat-lib
+        working-directory: extensions/dardcor/chat-lib
         run: npm test

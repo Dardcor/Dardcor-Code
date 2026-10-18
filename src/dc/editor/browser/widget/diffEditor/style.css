@@ -8,7 +8,7 @@
 }
 
 .monaco-editor .diff-hidden-lines {
-	height: 0px; /* The children each have a fixed height, the transform confuses the browser */
+	height: 0px;
 	transform: translate(0px, -10px);
 	font-size: 13px;
 	line-height: 14px;
@@ -29,7 +29,6 @@
 	background-clip: padding-box;
 	border-bottom: 2px solid transparent;
 	border-top: 4px solid transparent;
-	/*cursor: n-resize;*/
 }
 
 .monaco-editor.draggingUnchangedRegion.canMoveTop:not(.canMoveBottom) *,
@@ -173,7 +172,6 @@
 	font-size: 12px;
 }
 
-/* ---------- DiffEditor ---------- */
 
 .monaco-diff-editor .diffOverview {
 	z-index: 9;
@@ -183,7 +181,6 @@
 	z-index: 10;
 }
 
-/* colors not externalized: using transparancy on background */
 .monaco-diff-editor.vs			.diffOverview { background: rgba(0, 0, 0, 0.03); }
 .monaco-diff-editor.vs-dark		.diffOverview { background: rgba(255, 255, 255, 0.01); }
 
@@ -199,7 +196,6 @@
 .modified-in-monaco-diff-editor.hc-black	.slider.active { background: none; }
 .modified-in-monaco-diff-editor.hc-light	.slider.active { background: none; }
 
-/* ---------- Diff ---------- */
 
 .monaco-editor .insert-sign,
 .monaco-diff-editor .insert-sign,
@@ -237,7 +233,6 @@
 	cursor: pointer;
 }
 
-/* ---------- Inline Diff ---------- */
 
 .monaco-editor .view-zones .view-lines .view-line span {
 	display: inline-block;
@@ -371,7 +366,6 @@
 
 		.buttons {
 			position: absolute;
-			/*height: 100%;*/
 			width: 100%;
 
 			display: flex;

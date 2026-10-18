@@ -222,10 +222,8 @@ export class ExtensionEditor extends EditorPane {
 	private extensionChangelog: Cache<string> | null;
 	private extensionManifest: Cache<IExtensionManifest | null> | null;
 
-	// Some action bar items use a webview whose vertical scroll position we track in this map
 	private initialScrollProgress: Map<WebviewIndex, number> = new Map();
 
-	// Spot when an ExtensionEditor instance gets reused for a different extension, in which case the vertical scroll positions must be zeroed
 	private currentIdentifier: string = '';
 
 	private layoutParticipants: ILayoutParticipant[] = [];
@@ -270,7 +268,7 @@ export class ExtensionEditor extends EditorPane {
 		this._scopedContextKeyService.value.createKey('inExtensionEditor', true);
 		this.showPreReleaseVersionContextKey = CONTEXT_SHOW_PRE_RELEASE_VERSION.bindTo(this._scopedContextKeyService.value);
 
-		root.tabIndex = 0; // this is required for the focus tracker on the editor
+		root.tabIndex = 0;
 		root.style.outline = 'none';
 		root.setAttribute('role', 'document');
 		const header = append(root, $('.header'));
@@ -386,7 +384,6 @@ export class ExtensionEditor extends EditorPane {
 
 		extensionActionBar.push(actions, { icon: true, label: true });
 		extensionActionBar.setFocusable(true);
-		// update focusable elements when the enablement of an action changes
 		this._register(Event.any(...actions.map(a => Event.filter(a.onDidChange, e => e.enabled !== undefined)))(() => {
 			extensionActionBar.setFocusable(false);
 			extensionActionBar.setFocusable(true);
@@ -427,7 +424,7 @@ export class ExtensionEditor extends EditorPane {
 		const navbar = this._register(new NavBar(body));
 
 		const content = append(body, $('.content'));
-		content.id = generateUuid(); // An id is needed for the webview parent flow to
+		content.id = generateUuid();
 
 		this.template = {
 			builtin,
@@ -500,7 +497,6 @@ export class ExtensionEditor extends EditorPane {
 		if (this.template.navbar.switch(tab)) {
 			return;
 		}
-		// Fallback to Readme tab if ExtensionPack tab does not exist
 		if (tab === ExtensionEditorTab.ExtensionPack) {
 			this.template.navbar.switch(ExtensionEditorTab.Readme);
 		}
@@ -570,21 +566,11 @@ export class ExtensionEditor extends EditorPane {
 
 		this.renderNavbar(extension, manifest, template, preserveFocus);
 
-		// report telemetry
 		const extRecommendations = this.extensionRecommendationsService.getAllRecommendationsWithReason();
 		let recommendationsData = {};
 		if (extRecommendations[extension.identifier.id.toLowerCase()]) {
 			recommendationsData = { recommendationReason: extRecommendations[extension.identifier.id.toLowerCase()].reasonId };
 		}
-		/* __GDPR__
-		"extensionGallery:openExtension" : {
-			"owner": "sandy081",
-			"recommendationReason": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-			"${include}": [
-				"${GalleryExtensionTelemetryData}"
-			]
-		}
-		*/
 		this.telemetryService.publicLog('extensionGallery:openExtension', { ...extension.telemetryData, ...recommendationsData });
 
 	}
@@ -669,7 +655,6 @@ export class ExtensionEditor extends EditorPane {
 	}
 
 	private open(id: string, extension: IExtension, template: IExtensionEditorTemplate, token: CancellationToken): Promise<IActiveElement | null> {
-		// Setup common container structure for all tabs
 		const details = append(template.content, $('.details'));
 		const contentContainer = append(details, $('.content-container'));
 		const additionalDetailsContainer = append(details, $('.additional-details-container'));
@@ -678,7 +663,6 @@ export class ExtensionEditor extends EditorPane {
 		layout();
 		this.contentDisposables.add(toDisposable(arrays.insert(this.layoutParticipants, { layout })));
 
-		// Render additional details synchronously to avoid flicker
 		this.renderAdditionalDetails(additionalDetailsContainer, extension);
 
 		switch (id) {
@@ -726,9 +710,8 @@ export class ExtensionEditor extends EditorPane {
 			this.contentDisposables.add(toDisposable(() => { isDisposed = true; }));
 
 			this.contentDisposables.add(this.themeService.onDidColorThemeChange(async () => {
-				// Render again since syntax highlighting of code blocks may have changed
 				const body = await this.renderMarkdown(extension, cacheResult, container);
-				if (!isDisposed) { // Make sure we weren't disposed of in the meantime
+				if (!isDisposed) {
 					webview.setHtml(body);
 				}
 			}));
@@ -737,7 +720,6 @@ export class ExtensionEditor extends EditorPane {
 				if (!link) {
 					return;
 				}
-				// Only allow links with specific schemes
 				if (matchesScheme(link, Schemas.http) || matchesScheme(link, Schemas.https) || matchesScheme(link, Schemas.mailto)) {
 					this.openerService.open(link);
 				} else if (matchesScheme(link, Schemas.command) && extension.type === ExtensionType.System) {
@@ -873,8 +855,8 @@ export class ExtensionEditor extends EditorPane {
 		const extensionPack = append(extensionPackReadme, $('div', { class: 'extension-pack' }));
 
 		const packCount = manifest.extensionPack!.length;
-		const headerHeight = 37; // navbar height
-		const contentMinHeight = 200; // minimum height for readme content
+		const headerHeight = 37;
+		const contentMinHeight = 200;
 
 		const layout = () => {
 			extensionPackReadme.classList.remove('one-row', 'two-rows', 'three-rows', 'more-rows');
@@ -1107,17 +1089,17 @@ class AdditionalDetailsWidget extends Disposable {
 		if (extension.repository) {
 			try {
 				resources.push([localize('repository', "Repository"), ThemeIcon.fromId(Codicon.repo.id), URI.parse(extension.repository)]);
-			} catch (error) {/* Ignore */ }
+			} catch (error) { }
 		}
 		if (extension.supportUrl) {
 			try {
 				resources.push([localize('issues', "Issues"), ThemeIcon.fromId(Codicon.issues.id), URI.parse(extension.supportUrl)]);
-			} catch (error) {/* Ignore */ }
+			} catch (error) { }
 		}
 		if (extension.licenseUrl) {
 			try {
 				resources.push([localize('license', "License"), ThemeIcon.fromId(Codicon.linkExternal.id), URI.parse(extension.licenseUrl)]);
-			} catch (error) {/* Ignore */ }
+			} catch (error) { }
 		}
 		if (extension.publisherUrl) {
 			resources.push([extension.publisherDisplayName, ThemeIcon.fromId(Codicon.linkExternal.id), extension.publisherUrl]);

@@ -9,7 +9,7 @@ import { postInsertionTasks, postRejectionTasks } from '../postInsertion';
 import { countLines, SuggestionStatus } from '../suggestions/partialSuggestions';
 import { TelemetryWithExp } from '../telemetry';
 import { IPosition, TextDocumentContents, TextDocumentIdentifier } from '../textDocument';
-import { CopilotCompletion } from './dardcorCompletion';
+import { DardcorCompletion } from './dardcorCompletion';
 import { ResultType } from './resultType';
 import { GHOST_TEXT_CATEGORY, telemetryShown } from './telemetry';
 
@@ -21,7 +21,7 @@ export interface ICompletionsLastGhostText {
 
 	position: IPosition | undefined;
 	uri: string | undefined;
-	shownCompletions: CopilotCompletion[];
+	shownCompletions: DardcorCompletion[];
 	index: number | undefined;
 	totalLength: number | undefined;
 	partiallyAcceptedLength: number | undefined;
@@ -39,13 +39,13 @@ export class LastGhostText implements ICompletionsLastGhostText {
 
 	#position: IPosition | undefined;
 	#uri: string | undefined;
-	#shownCompletions: CopilotCompletion[] = [];
+	#shownCompletions: DardcorCompletion[] = [];
 	index: number | undefined;
 	totalLength: number | undefined;
 	partiallyAcceptedLength: number | undefined;
-	linesLeft: number | undefined; // Lines left to accept in the current completion, used for partial acceptance
-	linesAccepted: number = 0; // Number of lines accepted in the current completion, used for partial acceptance
-	lastLineAcceptedLength: number | undefined; // Length of the last accepted line, used for partial acceptance
+	linesLeft: number | undefined;
+	linesAccepted: number = 0;
+	lastLineAcceptedLength: number | undefined;
 
 	get position() {
 		return this.#position;
@@ -90,7 +90,6 @@ function computeRejectedCompletions<
 			let completionTelemetryData;
 
 			if (last.partiallyAcceptedLength) {
-				// suggestion got partially accepted already but rejecting the remainder
 				completionText = c.displayText.substring(last.partiallyAcceptedLength - 1);
 				completionTelemetryData = c.telemetry.extendedBy(
 					{
@@ -114,8 +113,6 @@ function computeRejectedCompletions<
 export function rejectLastShown(accessor: ServicesAccessor, offset?: number) {
 	const last = accessor.get(ICompletionsLastGhostText);
 	if (!last.position || !last.uri) { return; }
-	//The position has changed and we're not in typing-as-suggested flow
-	// so previously shown completions can be reported as rejected
 	const rejectedCompletions = computeRejectedCompletions(last);
 	if (rejectedCompletions.length > 0) {
 		postRejectionTasks(accessor, 'ghostText', offset ?? rejectedCompletions[0].offset, last.uri, rejectedCompletions);
@@ -139,7 +136,7 @@ export function setLastShown(
 			last.position.character === position.character &&
 			last.uri.toString() === document.uri.toString()
 		) &&
-		resultType !== ResultType.TypingAsSuggested // results for partial acceptance count as TypingAsSuggested
+		resultType !== ResultType.TypingAsSuggested
 	) {
 		rejectLastShown(accessor, document.offsetAt(last.position));
 	}
@@ -147,12 +144,11 @@ export function setLastShown(
 	return last.index;
 }
 
-export function handleGhostTextShown(accessor: ServicesAccessor, cmp: CopilotCompletion) {
+export function handleGhostTextShown(accessor: ServicesAccessor, cmp: DardcorCompletion) {
 	const logTarget = accessor.get(ICompletionsLogTargetService);
 	const last = accessor.get(ICompletionsLastGhostText);
 	last.index = cmp.index;
 	if (!last.shownCompletions.find(c => c.index === cmp.index)) {
-		// Only update if .position is still at the position of the completion
 		if (
 			cmp.uri === last.uri &&
 			last.position?.line === cmp.position.line &&
@@ -160,7 +156,6 @@ export function handleGhostTextShown(accessor: ServicesAccessor, cmp: CopilotCom
 		) {
 			last.shownCompletions.push(cmp);
 		}
-		// Show telemetry only if it was not shown before (i.e. don't sent repeated telemetry in cycling case when user cycled through every suggestions or goes back and forth)
 		if (cmp.displayText) {
 			const fromCache = !(cmp.resultType === ResultType.Network);
 			ghostTextLogger.debug(
@@ -173,14 +168,9 @@ export function handleGhostTextShown(accessor: ServicesAccessor, cmp: CopilotCom
 	}
 }
 
-/**
- * Handles partial acceptance for VS Code clients using line-based strategy.
- * VS Code tracks acceptance by lines and resets the accepted length per line.
- */
-function handleLineAcceptance(accessor: ServicesAccessor, cmp: CopilotCompletion, acceptedLength: number) {
+function handleLineAcceptance(accessor: ServicesAccessor, cmp: DardcorCompletion, acceptedLength: number) {
 	const last = accessor.get(ICompletionsLastGhostText);
 
-	// If this is the first acceptance, we need to initialize the linesLeft
 	if (last.linesLeft === undefined) {
 		last.linesAccepted = countLines(cmp.insertText.substring(0, acceptedLength));
 		last.linesLeft = countLines(cmp.displayText);
@@ -189,8 +179,6 @@ function handleLineAcceptance(accessor: ServicesAccessor, cmp: CopilotCompletion
 	const linesLeft = countLines(cmp.displayText);
 
 	if (last.linesLeft > linesLeft) {
-		// If the number of lines left has decreased, we need to update the accepted lines count
-		// and reset the last line accepted length
 		last.linesAccepted += last.linesLeft - linesLeft;
 		last.lastLineAcceptedLength = last.partiallyAcceptedLength;
 		last.linesLeft = linesLeft;
@@ -199,13 +187,9 @@ function handleLineAcceptance(accessor: ServicesAccessor, cmp: CopilotCompletion
 	last.partiallyAcceptedLength = (last.lastLineAcceptedLength || 0) + acceptedLength;
 }
 
-/**
- * Handles full acceptance of ghost text completions.
- * This method is primarily used by VS Code for explicit full acceptances.
- */
 export function handleGhostTextPostInsert(
 	accessor: ServicesAccessor,
-	cmp: CopilotCompletion,
+	cmp: DardcorCompletion,
 ) {
 	const last = accessor.get(ICompletionsLastGhostText);
 
@@ -225,8 +209,6 @@ export function handleGhostTextPostInsert(
 		};
 	}
 
-	//If any completion was accepted, clear the list of shown completions
-	//that would be passed to rejected telemetry
 	last.resetState();
 
 	return postInsertionTasks(
@@ -243,7 +225,7 @@ export function handleGhostTextPostInsert(
 
 export function handlePartialGhostTextPostInsert(
 	accessor: ServicesAccessor,
-	cmp: CopilotCompletion,
+	cmp: DardcorCompletion,
 	acceptedLength: number,
 ) {
 	const last = accessor.get(ICompletionsLastGhostText);

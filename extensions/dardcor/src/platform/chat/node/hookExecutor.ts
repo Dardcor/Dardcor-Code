@@ -34,7 +34,6 @@ export class NodeHookExecutor implements IHookExecutor {
 		try {
 			return await this._spawn(hookCommand, input, token);
 		} catch (err) {
-			// Spawn failures (e.g. command not found) are non-blocking warnings
 			const errMessage = err instanceof Error ? err.message : String(err);
 			const message = `Hook command failed to start: ${hookCommand.command}: ${errMessage}`;
 			this._logService.warn(`[HookExecutor] ${message}`);
@@ -90,38 +89,30 @@ export class NodeHookExecutor implements IHookExecutor {
 				tokenListener?.dispose();
 			};
 
-			// Collect output
 			child.stdout.on('data', data => stdout.push(data.toString()));
 			child.stderr.on('data', data => stderr.push(data.toString()));
 
-			// Set up timeout
 			const timeoutTimer = setTimeout(() => killWithEscalation('timeout'), (hook.timeout ?? DEFAULT_TIMEOUT_SEC) * 1000);
 
-			// Set up cancellation
 			if (token) {
 				tokenListener = token.onCancellationRequested(() => killWithEscalation('cancelled'));
 			}
 
-			// Write input to stdin
 			if (input !== undefined && input !== null) {
 				try {
 					child.stdin.write(JSON.stringify(input, (_key, value) => {
-						// Convert URI-like objects to filesystem paths
 						if (isUriLike(value)) {
 							return uriToFsPath(value);
 						}
 						return value;
 					}));
 				} catch {
-					// Ignore stdin write errors
 				}
 			}
 			child.stdin.end();
 
-			// Capture exit code
 			child.on('exit', code => { exitCode = code; });
 
-			// Resolve on close (after streams flush)
 			child.on('close', () => {
 				cleanup();
 
@@ -150,10 +141,8 @@ export class NodeHookExecutor implements IHookExecutor {
 					}
 					resolve({ kind: HookCommandResultKind.Success, result, exitCode: code });
 				} else if (code === 2) {
-					// Exit code 2: blocking error shown to model
 					resolve({ kind: HookCommandResultKind.Error, result: stderrStr, exitCode: code });
 				} else {
-					// Other non-zero: non-blocking warning shown to user only
 					resolve({ kind: HookCommandResultKind.NonBlockingError, result: stderrStr, exitCode: code });
 				}
 			});
@@ -171,20 +160,13 @@ function isUriLike(value: unknown): value is Uri {
 }
 
 function uriToFsPath(uri: Uri): string {
-	// vscode.Uri has an fsPath getter
 	if ('fsPath' in uri && typeof uri.fsPath === 'string') {
 		return uri.fsPath;
 	}
-	// Fallback for URI-like objects
 	return (uri as { path: string }).path;
 }
 
 
-/**
- * Returns the shell command and arguments to use for executing a hook command.
- * On Windows when ComSpec is cmd.exe, uses PowerShell with -ExecutionPolicy Bypass.
- * Otherwise uses the platform default shell via `shell: true`.
- */
 export function getShellCommand(hookCommand: string, windowsOS: boolean = isWindows): { command: string; args: string[]; shell?: boolean; env?: Record<string, string> } {
 	if (!windowsOS) {
 		return { command: hookCommand, args: [], shell: true };

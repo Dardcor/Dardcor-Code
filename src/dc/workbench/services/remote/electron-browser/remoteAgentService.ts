@@ -47,7 +47,6 @@ class RemoteConnectionFailureNotificationContribution implements IWorkbenchContr
 		@IRemoteAuthorityResolverService private readonly _remoteAuthorityResolverService: IRemoteAuthorityResolverService,
 		@IOpenerService openerService: IOpenerService,
 	) {
-		// Let's cover the case where connecting to fetch the remote extension info fails
 		this._remoteAgentService.getRawEnvironment()
 			.then(undefined, err => {
 

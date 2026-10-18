@@ -29,10 +29,6 @@ export class BrowserPathService extends AbstractPathService {
 
 function guessLocalUserHome(environmentService: IWorkbenchEnvironmentService, contextService: IWorkspaceContextService): URI {
 
-	// In web we do not really have the concept of a "local" user home
-	// but we still require it in many places as a fallback. As such,
-	// we have to come up with a synthetic location derived from the
-	// environment.
 
 	const workspace = contextService.getWorkspace();
 
@@ -45,9 +41,6 @@ function guessLocalUserHome(environmentService: IWorkbenchEnvironmentService, co
 		return dirname(workspace.configuration);
 	}
 
-	// This is not ideal because with a user home location of `/`, all paths
-	// will potentially appear with `~/...`, but at this point we really do
-	// not have any other good alternative.
 
 	return URI.from({
 		scheme: AbstractPathService.findDefaultUriScheme(environmentService, contextService),

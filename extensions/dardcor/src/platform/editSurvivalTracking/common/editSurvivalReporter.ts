@@ -24,15 +24,8 @@ export interface EditSurvivalResult {
 	readonly currentFileContent?: string;
 	readonly workspace?: WorkspaceOTelMetadata;
 
-	/**
-	 * Set includeArc to get this!
-	 * See ArcTracker.
-	*/
 	readonly arc?: number;
 
-	/**
-	 * Text states for each edit region
-	 */
 	readonly textBeforeAiEdits?: string[];
 	readonly textAfterAiEdits?: string[];
 	readonly textAfterUserEdits?: string[];
@@ -44,19 +37,6 @@ export class EditSurvivalReporter {
 	private readonly _arcTracker = this._options.includeArc === true ? new ArcTracker(this._documentTextBeforeMarkedEdits, this._markedEdits) : undefined;
 	private readonly _initialBranchName: string | undefined;
 
-	/**
-	 * ```
-	 * _documentTextBeforeMarkedEdits
-	 * 	----markedEdits---->
-	 * 	----editsOnTop---->
-	 * _document.getText()
-	 *  ----onDidChangeTextDocument edits---->
-	 * 		[30sec] -> telemetry event of survival rate of markedEdits
-	 * 		[2min] -> ...
-	 * 		[5min] -> ...
-	 * 		[10min] -> ...
-	 * ```
-	*/
 	constructor(
 		private readonly _document: vscode.TextDocument,
 		private readonly _documentTextBeforeMarkedEdits: string,
@@ -82,14 +62,12 @@ export class EditSurvivalReporter {
 
 		this._initialBranchName = this._gitService.activeRepository.get()?.headBranchName;
 
-		// This aligns with github inline completions
 		this._reportAfter(0);
 		this._reportAfter(5 * 1000);
 		this._reportAfter(30 * 1000);
 		this._reportAfter(120 * 1000);
 		this._reportAfter(300 * 1000);
 		this._reportAfter(600 * 1000);
-		// track up to 15min to allow for slower edit responses from legacy SD endpoint
 		this._reportAfter(900 * 1000, () => {
 			this._store.dispose();
 		});

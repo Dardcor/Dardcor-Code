@@ -29,17 +29,14 @@ use super::{
 	io::{copy_async_progress, ReadBuffer, ReportCopyProgress},
 };
 
-/// Boxed body type used across the HTTP layer.
 pub type HyperBody = BoxBody<Bytes, hyper::Error>;
 
-/// Creates a body from some data (string, bytes, etc.)
 pub fn full_body(data: impl Into<Bytes>) -> HyperBody {
 	Full::new(data.into())
 		.map_err(|never| match never {})
 		.boxed()
 }
 
-/// Creates an empty body.
 pub fn empty_body() -> HyperBody {
 	Empty::<Bytes>::new()
 		.map_err(|never| match never {})
@@ -99,7 +96,6 @@ impl SimpleResponse {
 		}
 	}
 
-	/// Converts the response into a StatusError
 	pub async fn into_err(mut self) -> StatusError {
 		let mut body = String::new();
 		self.read.read_to_string(&mut body).await.ok();
@@ -114,12 +110,9 @@ impl SimpleResponse {
 		}
 	}
 
-	/// Deserializes the response body as JSON
 	pub async fn json<T: DeserializeOwned>(&mut self) -> Result<T, AnyError> {
 		let mut buf = vec![];
 
-		// ideally serde would deserialize a stream, but it does not appear that
-		// is supported. reqwest itself reads and decodes separately like we do here:
 		self.read
 			.read_to_end(&mut buf)
 			.await
@@ -132,10 +125,6 @@ impl SimpleResponse {
 	}
 }
 
-/// *Very* simple HTTP implementation. In most cases, this will just delegate to
-/// the request library on the server (i.e. `reqwest`) but it can also be used
-/// to make update/download requests on the client rather than the server,
-/// similar to SSH's `remote.SSH.localServerDownload` setting.
 pub trait SimpleHttp {
 	fn make_request(
 		&self,
@@ -146,7 +135,6 @@ pub trait SimpleHttp {
 
 pub type BoxedHttp = Arc<dyn SimpleHttp + Send + Sync + 'static>;
 
-// Implementation of SimpleHttp that uses a reqwest client.
 #[derive(Clone)]
 pub struct ReqwestSimpleHttp {
 	client: reqwest::Client,
@@ -210,7 +198,6 @@ enum DelegatedHttpEvent {
 	End,
 }
 
-// Handle for a delegated request that allows manually issuing and response.
 pub struct DelegatedHttpRequest {
 	pub method: &'static str,
 	pub url: String,
@@ -240,7 +227,6 @@ impl Drop for DelegatedHttpRequest {
 	}
 }
 
-/// Implementation of SimpleHttp that allows manually controlling responses.
 #[derive(Clone)]
 pub struct DelegatedSimpleHttp {
 	start_request: mpsc::Sender<DelegatedHttpRequest>,
@@ -279,7 +265,7 @@ impl SimpleHttp for DelegatedSimpleHttp {
 				.await;
 
 			if sent.is_err() {
-				return Ok(SimpleResponse::generic_error(&url)); // sender shut down
+				return Ok(SimpleResponse::generic_error(&url));
 			}
 
 			match rx.recv().await {
@@ -313,7 +299,7 @@ impl SimpleHttp for DelegatedSimpleHttp {
 				}
 				Some(DelegatedHttpEvent::End) => Ok(SimpleResponse::generic_error(&url)),
 				Some(_) => panic!("expected initresponse as first message from delegated http"),
-				None => Ok(SimpleResponse::generic_error(&url)), // sender shut down
+				None => Ok(SimpleResponse::generic_error(&url)),
 			}
 		})
 	}
@@ -345,7 +331,7 @@ impl AsyncRead for DelegatedReader {
 
 		match self.receiver.poll_recv(cx) {
 			Poll::Ready(Some(DelegatedHttpEvent::Body(msg))) => self.readbuf.put_data(buf, msg, 0),
-			Poll::Ready(Some(_)) => Poll::Ready(Ok(())), // EOF
+			Poll::Ready(Some(_)) => Poll::Ready(Ok(())),
 			Poll::Ready(None) => {
 				Poll::Ready(Err(io::Error::new(io::ErrorKind::UnexpectedEof, "EOF")))
 			}
@@ -354,8 +340,6 @@ impl AsyncRead for DelegatedReader {
 	}
 }
 
-/// Simple http implementation that falls back to delegated http if
-/// making a direct reqwest fails.
 pub struct FallbackSimpleHttp {
 	native: ReqwestSimpleHttp,
 	delegated: DelegatedSimpleHttp,

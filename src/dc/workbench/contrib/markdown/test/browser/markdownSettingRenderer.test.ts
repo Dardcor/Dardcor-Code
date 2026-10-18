@@ -109,7 +109,6 @@ suite('Markdown Setting Renderer Test', () => {
 
 		const actions = settingRenderer.getActions(uri);
 		if (verifyOriginalState(actions)) {
-			// Update the value
 			await actions[0].run();
 			assert.strictEqual(configurationService.getValue('example.stringSetting'), 'three');
 			const actionsUpdated = settingRenderer.getActions(uri);
@@ -119,7 +118,6 @@ suite('Markdown Setting Renderer Test', () => {
 			assert.strictEqual(actions[2].label, 'Copy Setting ID');
 			assert.strictEqual(configurationService.getValue('example.stringSetting'), 'three');
 
-			// Restore the value
 			await actionsUpdated[0].run();
 			verifyOriginalState(settingRenderer.getActions(uri));
 		}

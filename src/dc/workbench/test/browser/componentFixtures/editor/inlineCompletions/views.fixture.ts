@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-// Import to register the inline completions contribution
 import { constObservable, IObservableWithChange } from '../../../../../../base/common/observable.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { ComponentFixtureContext, createEditorServices, defineThemedFixtureGroup, defineComponentFixture, createTextModel } from '../../fixtureUtils.js';
@@ -19,9 +18,6 @@ import { InlineEditItem } from '../../../../../../editor/contrib/inlineCompletio
 import { TextModelValueReference } from '../../../../../../editor/contrib/inlineCompletions/browser/model/textModelValueReference.js';
 
 
-// ============================================================================
-// Inline Edit Fixture
-// ============================================================================
 
 interface InlineEditOptions extends ComponentFixtureContext {
 	code: string;
@@ -48,7 +44,6 @@ function renderInlineEdit(options: InlineEditOptions): void {
 		'typescript'
 	));
 
-	// Mock the InlineCompletionsSource to provide our test completion
 	instantiationService.stubInstance(InlineCompletionsSource, {
 		cancelUpdate: () => { },
 		clear: () => { },
@@ -97,18 +92,13 @@ function renderInlineEdit(options: InlineEditOptions): void {
 	editor.setPosition({ lineNumber: options.cursorLine, column: 1 });
 	editor.focus();
 
-	// Trigger inline completions
 	const controller = InlineCompletionsController.get(editor);
 	controller?.model?.get();
 }
 
 
-// ============================================================================
-// Fixtures
-// ============================================================================
 
 export default defineThemedFixtureGroup({ path: 'editor/inlineCompletions/' }, {
-	// Side-by-side view: Narrow editor with multi-line replacement
 	SideBySideViewSmall: defineComponentFixture({
 		labels: { kind: 'screenshot' },
 		render: (context) => renderInlineEdit({
@@ -123,7 +113,6 @@ export default defineThemedFixtureGroup({ path: 'editor/inlineCompletions/' }, {
 		}),
 	}),
 
-	// Side-by-side view: Wide editor with multi-line replacement
 	SideBySideViewWide: defineComponentFixture({
 		labels: { kind: 'screenshot' },
 		render: (context) => renderInlineEdit({
@@ -139,7 +128,6 @@ export default defineThemedFixtureGroup({ path: 'editor/inlineCompletions/' }, {
 		}),
 	}),
 
-	// Word replacement view: Single word change
 	WordReplacementView: defineComponentFixture({
 		labels: { kind: 'screenshot' },
 		render: (context) => renderInlineEdit({
@@ -156,7 +144,6 @@ export default defineThemedFixtureGroup({ path: 'editor/inlineCompletions/' }, {
 		}),
 	}),
 
-	// Insertion view: Insert new content
 	InsertionView: defineComponentFixture({
 		labels: { kind: 'screenshot', flaky: true },
 		render: (context) => renderInlineEdit({
@@ -178,7 +165,6 @@ export default defineThemedFixtureGroup({ path: 'editor/inlineCompletions/' }, {
 		}),
 	}),
 
-	// Deletion view: Removing code
 	DeletionView: defineComponentFixture({
 		labels: { kind: 'screenshot' },
 		render: (context) => renderInlineEdit({
@@ -195,7 +181,6 @@ export default defineThemedFixtureGroup({ path: 'editor/inlineCompletions/' }, {
 		}),
 	}),
 
-	// Line replacement view: Single-line with multiple changes
 	LineReplacementView: defineComponentFixture({
 		labels: { kind: 'screenshot' },
 		render: (context) => renderInlineEdit({

@@ -71,7 +71,7 @@ suite('BulkEditPreview', function () {
 		const ops = await instaService.invokeFunction(BulkFileOperations.create, edits);
 		store.add(ops);
 		assert.strictEqual(ops.categories.length, 2);
-		assert.strictEqual(ops.categories[0].metadata.label, 'uri1'); // unconfirmed!
+		assert.strictEqual(ops.categories[0].metadata.label, 'uri1');
 		assert.strictEqual(ops.categories[1].metadata.label, 'uri2');
 	});
 
@@ -85,7 +85,7 @@ suite('BulkEditPreview', function () {
 		const ops = await instaService.invokeFunction(BulkFileOperations.create, edits);
 		store.add(ops);
 		assert.strictEqual(ops.categories.length, 1);
-		assert.strictEqual(ops.categories[0].metadata.label, 'uri1'); // unconfirmed!
+		assert.strictEqual(ops.categories[0].metadata.label, 'uri1');
 		assert.strictEqual(ops.categories[0].metadata.label, 'uri1');
 	});
 
@@ -105,8 +105,6 @@ suite('BulkEditPreview', function () {
 
 		assert.ok(edits === ops.getWorkspaceEdit());
 
-		// NOT taking to create, but the invalid text edit will
-		// go through
 		ops.checked.updateChecked(edits[0], false);
 		const newEdits = ops.getWorkspaceEdit();
 		assert.ok(edits !== newEdits);
@@ -117,7 +115,6 @@ suite('BulkEditPreview', function () {
 
 	test('fix bad metadata', async function () {
 
-		// bogous edit that wants creation to be confirmed, but not it's textedit-child...
 
 		const edits = [
 			new ResourceFileEdit(undefined, URI.parse('some:///uri1'), undefined, { label: 'C1', needsConfirmation: true }),

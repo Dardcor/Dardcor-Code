@@ -44,7 +44,6 @@ suite('parseQuotas', () => {
 					overage_permitted: true,
 					percent_remaining: 97.4,
 					unlimited: false,
-					// no token_based_billing here — paid users don't have it per-snapshot
 				},
 			},
 		});

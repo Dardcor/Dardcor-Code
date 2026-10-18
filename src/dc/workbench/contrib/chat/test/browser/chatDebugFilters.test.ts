@@ -22,7 +22,6 @@ suite('ChatDebugFilterState', () => {
 
 			test('year-month — rounds to end of month', () => {
 				const result = parseTimeToken('before:2026-03', 'before');
-				// new Date(2026, 3, 0) gives last day of March
 				assert.strictEqual(result, new Date(2026, 3, 0, 23, 59, 59, 999).getTime());
 			});
 
@@ -188,7 +187,6 @@ suite('ChatDebugFilterState', () => {
 
 		test('hidden when after beforeTimestamp', () => {
 			state.setTextFilter('before:2026-03');
-			// April 1st is after end of March
 			assert.strictEqual(state.isTimestampVisible(new Date(2026, 3, 1)), false);
 		});
 

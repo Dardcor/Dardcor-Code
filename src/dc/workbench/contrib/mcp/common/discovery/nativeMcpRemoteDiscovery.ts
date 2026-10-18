@@ -14,9 +14,6 @@ import { IRemoteAgentService } from '../../../../services/remote/common/remoteAg
 import { IMcpRegistry } from '../mcpRegistryTypes.js';
 import { NativeFilesystemMcpDiscovery } from './nativeMcpDiscoveryAbstract.js';
 
-/**
- * Discovers MCP servers on the remote filesystem, if any.
- */
 export class RemoteNativeMpcDiscovery extends NativeFilesystemMcpDiscovery {
 	constructor(
 		@IRemoteAgentService private readonly remoteAgent: IRemoteAgentService,

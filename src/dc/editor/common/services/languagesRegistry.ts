@@ -129,7 +129,6 @@ export class LanguagesRegistry extends Disposable {
 			this._registerLanguage(d);
 		}
 
-		// Rebuild fast path maps
 		this._mimeTypesMap = {};
 		this._nameMap = {};
 		this._lowercaseNameMap = {};
@@ -192,7 +191,6 @@ export class LanguagesRegistry extends Disposable {
 
 		if (Array.isArray(lang.extensions)) {
 			if (lang.configuration) {
-				// insert first as this appears to be the 'primary' language definition
 				resolvedLanguage.extensions = lang.extensions.concat(resolvedLanguage.extensions);
 			} else {
 				resolvedLanguage.extensions = resolvedLanguage.extensions.concat(lang.extensions);
@@ -226,7 +224,6 @@ export class LanguagesRegistry extends Disposable {
 					registerPlatformLanguageAssociation({ id: langId, mime: primaryMime, firstline: firstLineRegex }, this._warnOnOverwrite);
 				}
 			} catch (err) {
-				// Most likely, the regex was bad
 				console.warn(`[${lang.id}]: Invalid regular expression \`${firstLineRegexStr}\`: `, err);
 			}
 		}
@@ -236,7 +233,6 @@ export class LanguagesRegistry extends Disposable {
 		let langAliases: Array<string | null> | null = null;
 		if (typeof lang.aliases !== 'undefined' && Array.isArray(lang.aliases)) {
 			if (lang.aliases.length === 0) {
-				// signal that this language should not get a name
 				langAliases = [null];
 			} else {
 				langAliases = lang.aliases;
@@ -254,7 +250,6 @@ export class LanguagesRegistry extends Disposable {
 
 		const containsAliases = (langAliases !== null && langAliases.length > 0);
 		if (containsAliases && langAliases![0] === null) {
-			// signal that this language should not get a name
 		} else {
 			const bestName = (containsAliases ? langAliases![0] : null) || langId;
 			if (containsAliases || !resolvedLanguage.name) {

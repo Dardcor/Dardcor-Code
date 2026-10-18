@@ -31,7 +31,6 @@ const TRANSCRIPT_CSS = `
 export interface TranscriptProps {
 	readonly turns: readonly ITranscriptTurn[];
 	readonly chatStyle?: boolean;
-	/** When true, keep the scroll anchored to the top instead of the bottom. */
 	readonly scrollToTop?: boolean;
 }
 
@@ -59,7 +58,6 @@ function createUserTurn(turn: ITranscriptTurn, chatStyle?: boolean): HTMLElement
 		unsureSpan.textContent = unsure;
 		const cursor = dom.$('span');
 		cursor.style.fontStyle = 'normal';
-		// allow-any-unicode-next-line
 		cursor.textContent = '\u2589';
 		unsureSpan.append(cursor);
 		inner.append(unsureSpan);
@@ -108,7 +106,6 @@ export function createTranscript(): TranscriptComponent & IDisposable {
 				visible[visible.length - 2].speaker === 'assistant') {
 				visible = [visible[visible.length - 1]];
 			}
-			// In chat style, only show the most recent turn (matches collapsed behavior)
 			if (props.chatStyle && visible.length > 0) {
 				visible = [visible[visible.length - 1]];
 			}

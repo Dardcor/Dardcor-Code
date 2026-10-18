@@ -41,7 +41,6 @@ export class StartDebugQuickAccessProvider extends PickerQuickAccessProvider<IPi
 		const configManager = this.debugService.getConfigurationManager();
 		const selectedConfiguration = configManager.selectedConfiguration;
 
-		// Entries: configs
 		let lastGroup: string | undefined;
 		for (const config of configManager.getAllConfigurations()) {
 			const highlights = matchesFuzzy(filter, config.name, true);
@@ -70,26 +69,22 @@ export class StartDebugQuickAccessProvider extends PickerQuickAccessProvider<IPi
 					}
 				};
 
-				// Most recently used configuration
 				if (selectedConfiguration.name === config.name && selectedConfiguration.launch === config.launch) {
 					const separator: IQuickPickSeparator = { type: 'separator', label: localize('mostRecent', 'Most Recent') };
 					picks.unshift(separator, pick);
 					continue;
 				}
 
-				// Separator
 				if (lastGroup !== config.presentation?.group) {
 					picks.push({ type: 'separator' });
 					lastGroup = config.presentation?.group;
 				}
 
-				// Launch entry
 
 				picks.push(pick);
 			}
 		}
 
-		// Entries detected configurations
 		const dynamicProviders = await configManager.getDynamicProviders();
 		if (dynamicProviders.length > 0) {
 			picks.push({
@@ -135,7 +130,6 @@ export class StartDebugQuickAccessProvider extends PickerQuickAccessProvider<IPi
 				accept: async () => {
 					const pick = await provider.pick();
 					if (pick) {
-						// Use the type of the provider, not of the config since config sometimes have subtypes (for example "node-terminal")
 						await configManager.selectConfiguration(pick.launch, pick.config.name, pick.config, { type: provider.type });
 						this.debugService.startDebugging(pick.launch, pick.config, { startedByUser: true });
 					}
@@ -144,10 +138,8 @@ export class StartDebugQuickAccessProvider extends PickerQuickAccessProvider<IPi
 		});
 
 
-		// Entries: launches
 		const visibleLaunches = configManager.getLaunches().filter(launch => !launch.hidden);
 
-		// Separator
 		if (visibleLaunches.length > 0) {
 			picks.push({ type: 'separator', label: localize('configure', "configure") });
 		}
@@ -157,7 +149,6 @@ export class StartDebugQuickAccessProvider extends PickerQuickAccessProvider<IPi
 				localize("addConfigTo", "Add Config ({0})...", launch.name) :
 				localize('addConfiguration', "Add Configuration...");
 
-			// Add Config entry
 			picks.push({
 				label,
 				description: this.contextService.getWorkbenchState() === WorkbenchState.WORKSPACE ? launch.name : '',

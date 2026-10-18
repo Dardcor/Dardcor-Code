@@ -51,12 +51,6 @@ export interface IChatListWidgetStyles {
 	listShadow?: string;
 }
 
-/**
- * Ref-counted suppression of auto-scrolling to the bottom. Holds compose, so
- * unrelated features (request editing, an open text selection) can suppress
- * concurrently without clobbering each other; auto-scroll resumes only once the
- * last hold is released.
- */
 export class AutoScrollHolds {
 
 	private _count = 0;
@@ -67,8 +61,6 @@ export class AutoScrollHolds {
 
 	acquire(): IDisposable {
 		this._count++;
-		// Idempotent so a double-dispose releases one hold rather than
-		// decrementing past it and silently cancelling somebody else's.
 		let released = false;
 		return toDisposable(() => {
 			if (!released) {
@@ -79,9 +71,6 @@ export class AutoScrollHolds {
 	}
 }
 
-/**
- * Tracks when a user-triggered resize has remained stable across animation frames.
- */
 export class UserToggleResizeState {
 
 	private framesUntilSettled = 0;
@@ -123,17 +112,6 @@ export function getAnchoredScrollTop(scrollTop: number, currentTargetTop: number
 	return scrollTop + currentTargetTop - anchorTargetTop;
 }
 
-/**
- * Computes the scroll-down state for the chat list, keeping two concerns decoupled:
- *
- * - `showButton`: whether the "scroll to bottom" affordance is shown. Driven purely by the actual
- *   scroll position so the user can always jump to the latest content when the view is not at the
- *   bottom — including during an auto-scroll (agent) turn where the view has fallen behind. See
- *   https://github.com/microsoft/vscode/issues/326952 (previously this was also suppressed by the
- *   scroll lock, hiding the button for the whole agent turn).
- * - `atBottom`: the `chat-list-at-bottom` visual state that reserves streaming-response padding.
- *   Intentionally still honours the scroll lock so padding during auto-scroll turns is unchanged.
- */
 export function computeScrollDownState(isScrolledToBottom: boolean, scrollLock: boolean): { showButton: boolean; atBottom: boolean } {
 	return {
 		showButton: !isScrolledToBottom,
@@ -205,94 +183,41 @@ class UserToggleResizeTracker extends Disposable {
 }
 
 export interface IChatListWidgetOptions {
-	/**
-	 * Options for the list item renderer.
-	 */
 	readonly rendererOptions?: IChatListItemRendererOptions;
 
-	/**
-	 * Default height for list elements.
-	 */
 	readonly defaultElementHeight?: number;
 
-	/**
-	 * DOM node for overflow widgets (e.g., code editors).
-	 */
 	readonly overflowWidgetsDomNode?: HTMLElement;
 
-	/**
-	 * Optional style overrides for the list.
-	 */
 	readonly styles?: IChatListWidgetStyles;
 
-	/**
-	 * Callback to get the current chat mode.
-	 */
 	readonly currentChatMode?: () => ChatModeKind;
 
-	/**
-	 * View ID for editor options (used in ChatWidget context).
-	 */
 	readonly viewId?: string;
 
-	/**
-	 * Input editor background color key.
-	 */
 	readonly inputEditorBackground?: string;
 
-	/**
-	 * Result editor background color key.
-	 */
 	readonly resultEditorBackground?: string;
 
-	/**
-	 * Optional filter for the tree.
-	 */
 	readonly filter?: ITreeFilter<ChatTreeItem, FuzzyScore>;
 
-	/**
-	 * Initial view model.
-	 */
 	readonly viewModel?: IChatViewModel;
 
-	/**
-	 * Optional pre-created editor options.
-	 * If provided, these will be used instead of creating new ones.
-	 */
 	readonly editorOptions?: ChatEditorOptions;
 
-	/**
-	 * The chat location (for rerun requests).
-	 */
 	readonly location?: ChatAgentLocation;
 
-	/**
-	 * Callback to get the selected language model request options (for rerun requests).
-	 */
 	readonly getSelectedModelRequestOptions?: () => Pick<IChatSendRequestOptions, 'userSelectedModelId' | 'userSelectedModelConfiguration'>;
 
-	/**
-	 * Callback to get current mode info (for rerun requests).
-	 */
 	readonly getCurrentModeInfo?: () => IChatRequestModeInfo | undefined;
 
-	/**
-	 * Callback to get the current editing input value.
-	 */
 	readonly getEditingValue?: () => string | undefined;
 
-	/** Scrollable space kept below the last item, for content floating over the list. */
 	readonly paddingBottom?: number;
 }
 
-/**
- * A reusable widget that encapsulates chat list/tree rendering.
- * This can be used in various contexts such as the main chat widget,
- * hover previews, etc.
- */
 export class ChatListWidget extends Disposable {
 
-	//#region Events
 
 	private readonly _onDidScroll = this._register(new Emitter<ScrollEvent>());
 	readonly onDidScroll: Event<ScrollEvent> = this._onDidScroll.event;
@@ -307,40 +232,25 @@ export class ChatListWidget extends Disposable {
 	readonly onDidFocus: Event<void> = this._onDidFocus.event;
 
 	private readonly _onDidChangeItemHeight = this._register(new Emitter<{ element: ChatTreeItem; height: number }>());
-	/** Event fired when an item's height changes. Used for dynamic layout mode. */
 	readonly onDidChangeItemHeight: Event<{ element: ChatTreeItem; height: number }> = this._onDidChangeItemHeight.event;
 
-	/**
-	 * Event fired when a request item is clicked.
-	 */
 	get onDidClickRequest(): Event<IChatListItemTemplate> {
 		return this._renderer.onDidClickRequest;
 	}
 
-	/**
-	 * Event fired when an item is re-rendered.
-	 */
 	get onDidRerender(): Event<IChatListItemTemplate> {
 		return this._renderer.onDidRerender;
 	}
 
-	/**
-	 * Event fired when a template is disposed.
-	 */
 	get onDidDispose(): Event<IChatListItemTemplate> {
 		return this._renderer.onDidDispose;
 	}
 
-	/**
-	 * Event fired when focus moves outside the editing area.
-	 */
 	get onDidFocusOutside(): Event<void> {
 		return this._renderer.onDidFocusOutside;
 	}
 
-	//#endregion
 
-	//#region Private fields
 
 	private readonly _tree: WorkbenchObjectTree<ChatTreeItem, FuzzyScore>;
 	private readonly _delegate: ChatListDelegate;
@@ -364,12 +274,9 @@ export class ChatListWidget extends Disposable {
 	private readonly _getSelectedModelRequestOptions: (() => Pick<IChatSendRequestOptions, 'userSelectedModelId' | 'userSelectedModelConfiguration'>) | undefined;
 	private readonly _getCurrentModeInfo: (() => IChatRequestModeInfo | undefined) | undefined;
 	private readonly _useTreeHierarchy: boolean;
-	/** Scrollable space kept below the last item, see {@link IChatListWidgetOptions.paddingBottom}. */
 	private _paddingBottom: number;
 
-	//#endregion
 
-	//#region Properties
 
 	get domNode(): HTMLElement {
 		return this._container;
@@ -395,32 +302,20 @@ export class ChatListWidget extends Disposable {
 		return this._tree.contentHeight;
 	}
 
-	/**
-	 * Whether the list is scrolled to the bottom.
-	 */
 	get isScrolledToBottom(): boolean {
 		return this._tree.scrollTop + this._tree.renderHeight >= this._tree.scrollHeight - 2;
 	}
 
-	/**
-	 * The last item in the list.
-	 */
 	get lastItem(): ChatTreeItem | undefined {
 		return this._lastItem;
 	}
 
-	/**
-	 * The bottom-most item intersecting the viewport, or `undefined` when the list is empty.
-	 * Reads the layout height model, so it resolves independently of which rows are mounted.
-	 */
 	get lastVisibleItem(): ChatTreeItem | undefined {
 		const items = this._viewModel?.getItems();
 		if (!items?.length) {
 			return undefined;
 		}
 		const viewportBottom = this._tree.scrollTop + this._tree.renderHeight;
-		// Walking back from the end settles in a step or two for the common case of a
-		// transcript sitting at the bottom.
 		for (let index = items.length - 1; index >= 0; index--) {
 			const top = this.getElementTop(items[index]);
 			if (top !== undefined && top <= viewportBottom) {
@@ -432,7 +327,6 @@ export class ChatListWidget extends Disposable {
 
 
 
-	//#endregion
 
 	constructor(
 		container: HTMLElement,
@@ -456,7 +350,6 @@ export class ChatListWidget extends Disposable {
 		this._lastItemIdContextKey = ChatContextKeys.lastItemId.bindTo(this.contextKeyService);
 		this._container = container;
 
-		// Toggle link-style for inline reference widgets based on configuration (single listener for all widgets)
 		const updateInlineReferencesStyle = () => {
 			const style = this.configurationService.getValue<string>(ChatConfiguration.InlineReferencesStyle);
 			this._container.classList.toggle('chat-inline-references-link-style', style === 'link');
@@ -472,7 +365,6 @@ export class ChatListWidget extends Disposable {
 			new ServiceCollection([IContextKeyService, this.contextKeyService])
 		));
 
-		// Create overflow widgets container
 		const overflowWidgetsContainer = options.overflowWidgetsDomNode ?? document.createElement('div');
 		if (!options.overflowWidgetsDomNode) {
 			overflowWidgetsContainer.classList.add('chat-overflow-widget-container', 'monaco-editor');
@@ -480,7 +372,6 @@ export class ChatListWidget extends Disposable {
 			this._register(toDisposable(() => overflowWidgetsContainer.remove()));
 		}
 
-		// Create editor options (use provided or create new)
 		const editorOptions = options.editorOptions ?? this._register(scopedInstantiationService.createInstance(
 			ChatEditorOptions,
 			options.viewId,
@@ -489,13 +380,11 @@ export class ChatListWidget extends Disposable {
 			options.resultEditorBackground ?? 'chat.responseEditor.background'
 		));
 
-		// Create delegate
 		this._delegate = scopedInstantiationService.createInstance(
 			ChatListDelegate,
 			options.defaultElementHeight ?? 200
 		);
 
-		// Create renderer delegate
 		const rendererDelegate: IChatRendererDelegate = {
 			getListLength: () => this._tree.getListRenderCount(null),
 			onDidScroll: this.onDidScroll,
@@ -507,7 +396,6 @@ export class ChatListWidget extends Disposable {
 			getEditingValue: options.getEditingValue,
 		};
 
-		// Create renderer
 		this._renderer = this._register(scopedInstantiationService.createInstance(
 			ChatListItemRenderer,
 			editorOptions,
@@ -517,7 +405,6 @@ export class ChatListWidget extends Disposable {
 			this._viewModel,
 		));
 
-		// Wire up renderer events
 		this._register(this._renderer.onDidClickFollowup(item => {
 			this._onDidClickFollowup.fire(item);
 		}));
@@ -527,7 +414,6 @@ export class ChatListWidget extends Disposable {
 			this._onDidChangeItemHeight.fire(e);
 		}));
 
-		// Handle rerun with agent or command detection internally
 		this._register(this._renderer.onDidClickRerunWithAgentOrCommandDetection(e => {
 			const request = this.chatService.getSession(e.sessionResource)?.getRequests().find(candidate => candidate.id === e.requestId);
 			if (request) {
@@ -543,12 +429,10 @@ export class ChatListWidget extends Disposable {
 			}
 		}));
 
-		// Create drag-and-drop controller for reordering pending requests
 		this._renderer.pendingDragController = this._register(
 			scopedInstantiationService.createInstance(ChatPendingDragController, this._container, () => this._viewModel)
 		);
 
-		// Create tree
 		const styles = options.styles ?? {};
 		this._tree = this._register(scopedInstantiationService.createInstance(
 			WorkbenchObjectTree<ChatTreeItem, FuzzyScore>,
@@ -604,7 +488,6 @@ export class ChatListWidget extends Disposable {
 			}
 		));
 
-		// Create scroll-down button
 		const scrollToBottomLabel = localize('chat.scrollToBottom', "Scroll to Bottom");
 		const scrollToBottomBackground = asCssVariableWithDefault('chat.list.background', asCssVariable(buttonSecondaryBackground));
 		this._scrollDownButton = this._register(new Button(this._container, {
@@ -621,7 +504,7 @@ export class ChatListWidget extends Disposable {
 		}));
 		this._scrollDownButton.element.classList.add('chat-scroll-down');
 		this._scrollDownButton.label = `$(${Codicon.chevronDown.id})`;
-		this._scrollDownButton.element.style.display = 'none'; // Hidden by default
+		this._scrollDownButton.element.style.display = 'none';
 
 		this._register(this._scrollDownButton.onDidClick(() => {
 			this.cancelUserToggleScrollRestoration();
@@ -629,9 +512,7 @@ export class ChatListWidget extends Disposable {
 			this.scrollToEnd();
 		}));
 
-		// Wire up tree events
 
-		// Handle content height changes (fires high-level event, internal scroll handling)
 		this._register(this._tree.onDidChangeContentHeight(() => {
 			this._onDidChangeContentHeight.fire();
 		}));
@@ -640,7 +521,6 @@ export class ChatListWidget extends Disposable {
 			this._onDidFocus.fire();
 		}));
 
-		// Handle focus changes internally (update mostRecentlyFocusedItemIndex)
 		this._register(this._tree.onDidChangeFocus(() => {
 			const focused = this.getFocus();
 			if (focused && focused.length > 0) {
@@ -653,13 +533,11 @@ export class ChatListWidget extends Disposable {
 			}
 		}));
 
-		// Handle scroll events (fire public event and manage scroll-down button)
 		this._register(this._tree.onDidScroll((e) => {
 			this._onDidScroll.fire(e);
 			this.updateScrollDownButtonVisibility();
 		}));
 
-		// Set initial at-bottom state (scrollLock defaults to true)
 		this.updateScrollDownButtonVisibility();
 
 		this._register(dom.addDisposableListener(this._container, ChatCollapsibleContentPart.userToggleEvent, e => {
@@ -686,7 +564,6 @@ export class ChatListWidget extends Disposable {
 			}
 		}, true));
 
-		// Handle context menu internally
 		this._register(this._tree.onContextMenu(e => {
 			this.handleContextMenu(e);
 		}));
@@ -707,22 +584,13 @@ export class ChatListWidget extends Disposable {
 		}));
 	}
 
-	//#region Internal event handlers
 
-	/**
-	 * Rewrites the rich-text flavor of a copied selection so links that only resolve here
-	 * don't paste as `vscode-file:` targets or local paths. Selections whose links all resolve
-	 * elsewhere are left to the browser, which keeps the styling other apps rely on.
-	 */
 	private handleCopy(e: ClipboardEvent): void {
 		const selection = dom.getWindow(this._container).getSelection();
 		if (!selection || selection.isCollapsed || selection.rangeCount === 0 || !e.clipboardData) {
 			return;
 		}
 
-		// Cloning a range never yields the anchors around it, so ask the selection what it
-		// touches: otherwise a selection inside a link looks clean while the browser still
-		// copies the enclosing anchor.
 		// eslint-disable-next-line no-restricted-syntax
 		const touched = Array.from(this._container.querySelectorAll('a, img'))
 			.filter(element => selection.containsNode(element, true));
@@ -754,11 +622,6 @@ export class ChatListWidget extends Disposable {
 		e.preventDefault();
 	}
 
-	/**
-	 * Clones a range along with the elements it sits inside. `cloneContents` returns only what
-	 * lies between the range boundaries, which drops both the heading or list item giving the
-	 * text its shape and, for a partly selected link, the rest of its label.
-	 */
 	private cloneSelectedContents(range: Range): DocumentFragment {
 		let content: Node = range.cloneContents();
 
@@ -771,8 +634,6 @@ export class ChatListWidget extends Disposable {
 				continue;
 			}
 
-			// A link is one unit: selecting part of `foo.ts:42` should still copy the whole
-			// reference rather than a fragment of its label.
 			if (ancestor.tagName === 'A') {
 				content = ancestor.cloneNode(true);
 				continue;
@@ -792,28 +653,18 @@ export class ChatListWidget extends Disposable {
 		return fragment;
 	}
 
-	/**
-	 * Update scroll-down button visibility based on scroll position and scroll lock.
-	 */
 	private updateScrollDownButtonVisibility(): void {
 		const { showButton, atBottom } = computeScrollDownState(this.isScrolledToBottom, this._scrollLock);
-		// Use an explicit `flex` (the `.monaco-button` default) rather than '' when showing: the
-		// stylesheet applies `display: none` to `.interactive-session .chat-scroll-down`, so clearing
-		// the inline style would let that rule win and keep the button hidden.
 		this._scrollDownButton.element.style.display = showButton ? 'flex' : 'none';
 		this._container.classList.toggle('chat-list-at-bottom', atBottom);
 	}
 
-	/**
-	 * Handle context menu events.
-	 */
 	private handleContextMenu(e: ITreeContextMenuEvent<ChatTreeItem | null>): void {
 		e.browserEvent.preventDefault();
 		e.browserEvent.stopPropagation();
 
 		const selected = e.element;
 
-		// Check if the context menu was opened on a KaTeX element
 		const target = e.browserEvent.target as HTMLElement;
 		const isKatexElement = target.closest(`.${katexContainerClassName}`) !== null;
 
@@ -831,22 +682,13 @@ export class ChatListWidget extends Disposable {
 		});
 	}
 
-	//#endregion
 
-	//#region ViewModel methods
 
-	/**
-	 * Set the view model for the list to render.
-	 */
 	setViewModel(viewModel: IChatViewModel | undefined): void {
 		this._viewModel = viewModel;
 		this._renderer.updateViewModel(viewModel);
 	}
 
-	/**
-	 * Refresh the list from the current view model.
-	 * Uses internal state for diff identity calculation.
-	 */
 	refresh(): void {
 		if (!this._viewModel) {
 			this._tree.setChildren(null, []);
@@ -870,32 +712,20 @@ export class ChatListWidget extends Disposable {
 				diffDepth: 1,
 				diffIdentityProvider: {
 					getId: (element) => {
-						// Pending types only have 'id', request/response have 'dataId'
 						const baseId = (isRequestVM(element) || isResponseVM(element)) ? element.dataId : element.id;
 						const disablement = (isRequestVM(element) || isResponseVM(element)) ? element.shouldBeRemovedOnSend : undefined;
 						const isLastItem = element.id === this._lastItem?.id;
-						// Per-element editing state: only re-render items whose editing role changed
 						const isEditTarget = isRequestVM(element) && editing?.id === element.id;
 						const isBlocked = (isRequestVM(element) || isResponseVM(element)) ? element.shouldBeBlocked.get() : false;
 						return baseId +
-							// If a response is in the process of progressive rendering, we need to ensure that it will
-							// be re-rendered so progressive rendering is restarted, even if the model wasn't updated.
 							`${isResponseVM(element) && element.renderData ? `_${this._visibleChangeCount}` : ''}` +
-							// Re-render once content references are loaded
 							(isResponseVM(element) ? `_${element.contentReferences.length}` : '') +
-							// Re-render if element becomes hidden due to undo/redo
 							`_${disablement ? `${disablement.afterUndoStop || '1'}` : '0'}` +
-							// Re-render the request being edited and requests whose blocked state changed
 							`_${isEditTarget ? 'edit' : ''}` +
 							`_${isBlocked ? 'blocked' : ''}` +
-							// Re-render requests when editing starts/stops (for hover button visibility, click handlers)
 							(isRequestVM(element) ? `_${editing ? '1' : '0'}` : '') +
-							// Re-render the old and new tail rows when the list grows or shrinks.
 							`_${isLastItem ? 'last' : ''}` +
-							// Re-render all if invoked by setting change
 							`_setting${this._settingChangeCounter}` +
-							// Rerender request if we got new content references in the response
-							// since this may change how we render the corresponding attachments in the request
 							(isRequestVM(element) && element.contentReferences ? `_${element.contentReferences?.length}` : '');
 					},
 				}
@@ -903,31 +733,19 @@ export class ChatListWidget extends Disposable {
 		});
 	}
 
-	/**
-	 * Set scroll lock state.
-	 */
 	setScrollLock(value: boolean): void {
 		this._scrollLock = value;
 		this.updateScrollDownButtonVisibility();
 	}
 
-	/**
-	 * Get scroll lock state.
-	 */
 	get scrollLock(): boolean {
 		return this._scrollLock;
 	}
 
-	/**
-	 * Set the visible change count (for diff identity).
-	 */
 	setVisibleChangeCount(value: number): void {
 		this._visibleChangeCount = value;
 	}
 
-	/**
-	 * Scroll to reveal an element if editing.
-	 */
 	scrollToCurrentItem(currentElement: IChatRequestViewModel): void {
 		if (!this._viewModel?.editing || !currentElement) {
 			return;
@@ -941,13 +759,8 @@ export class ChatListWidget extends Disposable {
 		}
 	}
 
-	//#endregion
 
-	//#region Tree methods
 
-	/**
-	 * Rerender the tree.
-	 */
 	rerender(): void {
 		this._tree.rerender();
 		this._renderer.refreshStickyScrollSourceRanges(true);
@@ -1001,24 +814,15 @@ export class ChatListWidget extends Disposable {
 	}
 
 
-	/**
-	 * Delegate scroll events from a mouse wheel event to the tree.
-	 */
 	delegateScrollFromMouseWheelEvent(event: IMouseWheelEvent): void {
 		this.cancelUserToggleScrollRestoration();
 		this._tree.delegateScrollFromMouseWheelEvent(event);
 	}
 
-	/**
-	 * Whether the tree has a specific element.
-	 */
 	hasElement(element: ChatTreeItem): boolean {
 		return this._tree.hasElement(element);
 	}
 
-	/**
-	 * Update the height of an element.
-	 */
 	private _updateElementHeight(element: ChatTreeItem, height?: number): void {
 		if (this._tree.hasElement(element) && this._visible) {
 			const userToggleResizeTracker = this._userToggleResizeTrackers.get(element);
@@ -1054,18 +858,10 @@ export class ChatListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Scroll to reveal an element.
-	 */
 	reveal(element: ChatTreeItem, relativeTop?: number): void {
 		this._tree.reveal(element, relativeTop);
 	}
 
-	/**
-	 * The top offset of an element in transcript content space (same space as
-	 * `scrollTop`/`scrollHeight`), or `undefined` if it is not in the list. Reads
-	 * the layout height model, so it also resolves off-screen elements.
-	 */
 	getElementTop(element: ChatTreeItem): number | undefined {
 		if (!this._tree.hasElement(element)) {
 			return undefined;
@@ -1073,16 +869,10 @@ export class ChatListWidget extends Disposable {
 		return this._tree.getElementTop(element);
 	}
 
-	/**
-	 * Get the focused elements.
-	 */
 	getFocus(): ChatTreeItem[] {
 		return this._tree.getFocus().filter((e): e is ChatTreeItem => e !== null);
 	}
 
-	/**
-	 * Set the focused elements.
-	 */
 	setFocus(elements: ChatTreeItem[]): void {
 		this._tree.setFocus(elements);
 	}
@@ -1095,10 +885,6 @@ export class ChatListWidget extends Disposable {
 		this._tree.domFocus();
 	}
 
-	/**
-	 * Focus the last item in the list. Returns the index of the focused item.
-	 * @param useMostRecentlyFocusedIndex If true, use the mostRecentlyFocusedIndex if valid
-	 */
 	focusLastItem(useMostRecentlyFocusedIndex?: boolean): number {
 		const items = this.getItems();
 		if (items.length === 0) {
@@ -1117,36 +903,21 @@ export class ChatListWidget extends Disposable {
 		return focusIndex;
 	}
 
-	/**
-	 * Scroll the list to reveal the last item.
-	 */
 	scrollToEnd(): void {
-		// Reveal the tree's actual last visible item rather than the held `_lastItem`. `reveal` reliably
-		// scrolls all the way down even while item heights are still settling (see #234089)
 		const lastElement = this.getItems().at(-1);
 		if (lastElement) {
 			const offset = Math.max(lastElement.currentRenderedHeight ?? 0, 1e6);
 			this._tree.reveal(lastElement, offset);
 			if (this._paddingBottom) {
-				// `reveal` stops at the last item's edge, leaving the padding
-				// unscrolled - which would keep the list from ever reporting that
-				// it is at the bottom. Overshoot is clamped.
 				this._tree.scrollTop += this._paddingBottom;
 			}
 		}
 	}
 
-	/**
-	 * Suppresses auto-scrolling to the bottom until the returned disposable is
-	 * disposed. Holds compose, so unrelated features (request editing, an open
-	 * text selection) can suppress concurrently without clobbering each other;
-	 * auto-scroll resumes only once the last hold is released.
-	 */
 	acquireAutoScrollHold(): IDisposable {
 		return this._autoScrollHolds.acquire();
 	}
 
-	/** Whether any {@link acquireAutoScrollHold} hold is currently active. */
 	get isAutoScrollHeld(): boolean {
 		return this._autoScrollHolds.isHeld;
 	}
@@ -1163,64 +934,38 @@ export class ChatListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Focus the list.
-	 */
 	focus(): void {
 		this._tree.domFocus();
 	}
 
-	/**
-	 * Get the DOM focus state.
-	 */
 	isDOMFocused(): boolean {
 		return this._tree.isDOMFocused();
 	}
 
-	//#endregion
 
-	//#region Renderer methods
 
-	/**
-	 * Get code block info for a response.
-	 */
 	getCodeBlockInfosForResponse(response: IChatResponseViewModel): IChatCodeBlockInfo[] {
 		return this._renderer.getCodeBlockInfosForResponse(response);
 	}
 
-	/**
-	 * Get code block info by URI.
-	 */
 	getCodeBlockInfoForEditor(uri: URI): IChatCodeBlockInfo | undefined {
 		return this._renderer.getCodeBlockInfoForEditor(uri);
 	}
 
-	/**
-	 * Get file tree info for a response.
-	 */
 	getFileTreeInfosForResponse(response: IChatResponseViewModel): IChatFileTreeInfo[] {
 		return this._renderer.getFileTreeInfosForResponse(response);
 	}
 
-	/**
-	 * Get the last focused file tree for a response.
-	 */
 	getLastFocusedFileTreeForResponse(response: IChatResponseViewModel): IChatFileTreeInfo | undefined {
 		return this._renderer.getLastFocusedFileTreeForResponse(response);
 	}
 
-	/**
-	 * Get editors currently in use.
-	 */
 	editorsInUse(): Iterable<CodeBlockPart> {
 		return this._renderer.editorsInUse();
 	}
 
 
 
-	/**
-	 * Get template data for a request ID.
-	 */
 	getTemplateDataForRequestId(requestId: string | undefined): IChatListItemTemplate | undefined {
 		if (!requestId) {
 			return undefined;
@@ -1228,16 +973,10 @@ export class ChatListWidget extends Disposable {
 		return this._renderer.getTemplateDataForRequestId(requestId);
 	}
 
-	/**
-	 * Returns the currently rendered chat item containing the node.
-	 */
 	getElementFromNode(node: HTMLElement): ChatTreeItem | undefined {
 		return this._renderer.getElementFromNode(node);
 	}
 
-	/**
-	 * Update renderer options.
-	 */
 	updateRendererOptions(options: IChatListItemRendererOptions): void {
 		this._renderer.updateOptions(options);
 	}
@@ -1255,9 +994,6 @@ export class ChatListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Update the list/tree color overrides, including the sticky-scroll surface.
-	 */
 	setStyles(styles: IChatListWidgetStyles): void {
 		this._tree.updateOptions({
 			overrideStyles: {
@@ -1283,23 +1019,16 @@ export class ChatListWidget extends Disposable {
 		});
 	}
 
-	/**
-	 * Set the visibility of the list.
-	 */
 	setVisible(visible: boolean): void {
 		this._visible = visible;
 		this._renderer.setVisible(visible);
 	}
 
-	/**
-	 * Layout the list.
-	 */
 	layout(height: number, width: number): void {
 		this._tree.layout(height, width);
 		this._renderer.layout(width ?? this._container.clientWidth);
 		this._tree.refreshStickyScroll();
 	}
 
-	//#endregion
 
 }

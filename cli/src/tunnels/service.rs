@@ -21,26 +21,18 @@ pub trait ServiceContainer: Send {
 }
 
 pub trait ServiceManager {
-	/// Registers the current executable as a service to run with the given set
-	/// of arguments.
 	async fn register(&self, exe: PathBuf, args: &[&str]) -> Result<(), AnyError>;
 
-	/// Runs the service using the given handle. The executable *must not* take
-	/// any action which may fail prior to calling this to ensure service
-	/// states may update.
 	async fn run(
 		self,
 		launcher_paths: LauncherPaths,
 		handle: impl 'static + ServiceContainer,
 	) -> Result<(), AnyError>;
 
-	/// Show logs from the running service to standard out.
 	async fn show_logs(&self) -> Result<(), AnyError>;
 
-	/// Gets whether the tunnel service is installed.
 	async fn is_installed(&self) -> Result<bool, AnyError>;
 
-	/// Unregisters the current executable as a service.
 	async fn unregister(&self) -> Result<(), AnyError>;
 }
 
@@ -70,7 +62,7 @@ pub fn create_service_manager(log: log::Logger, paths: &LauncherPaths) -> Servic
 	}
 }
 
-#[allow(dead_code)] // unused on Linux
+#[allow(dead_code)]
 pub(crate) async fn tail_log_file(log_file: &Path) -> Result<(), AnyError> {
 	if !log_file.exists() {
 		println!("The tunnel service has not started yet.");

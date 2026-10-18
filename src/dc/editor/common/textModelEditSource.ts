@@ -37,10 +37,6 @@ export class TextModelEditSource {
 		}
 	}
 
-	/**
-	 * Converts the metadata to a key string.
-	 * Only includes properties/values that have `level` many `$` prefixes or less.
-	*/
 	public toKey(level: number, filter: { [TKey in ITextModelEditSourceMetadataKeys]?: boolean } = {}): string {
 		const metadata = this.metadata;
 		const keys = Object.entries(metadata).filter(([key, value]) => {
@@ -222,7 +218,6 @@ function avoidPathRedaction(str: string | undefined): string | undefined {
 	if (str === undefined) {
 		return undefined;
 	}
-	// To avoid false-positive file path redaction.
 	return str.replaceAll('/', '|');
 }
 
@@ -265,17 +260,11 @@ export class EditDeltaInfo {
 }
 
 
-/**
- * This is an opaque serializable type that represents a unique identity for an edit.
- */
 export interface EditSuggestionId {
 	readonly _brand: 'EditIdentity';
 }
 
 export namespace EditSuggestionId {
-	/**
-	 * Use AiEditTelemetryServiceImpl to create a new id!
-	*/
 	export function newId(genPrefixedUuid?: (ns: string) => string): EditSuggestionId {
 		const id = genPrefixedUuid ? genPrefixedUuid('sgt') : prefixedUuid('sgt');
 		return toEditIdentity(id);

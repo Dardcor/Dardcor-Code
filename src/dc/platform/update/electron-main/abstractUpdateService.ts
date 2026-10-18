@@ -56,15 +56,6 @@ export function createUpdateURL(baseUpdateUrl: string, platform: string, quality
 	return url.toString();
 }
 
-/**
- * Builds common headers for update requests, including those issued
- * via Electron's auto-updater (e.g. setFeedURL({ url, headers })) and
- * manual HTTP requests that bypass the auto-updater. The headers include
- * OS version information which the update server uses for EOL detection.
- *
- * On macOS, the User-Agent includes the Darwin kernel version.
- * On Windows, the User-Agent includes accurate Windows version from the registry.
- */
 export function getUpdateRequestHeaders(productVersion: string): Record<string, string> | undefined {
 	if (isMacintosh) {
 		const darwinVersion = os.release();
@@ -91,10 +82,6 @@ export type UpdateErrorClassification = {
 	comment: 'This is used to know how often VS Code updates have failed.';
 };
 
-/**
- * States representing in-flight or pending update work that takes time to tear down when updates
- * are disabled at runtime. Used to decide whether to surface a transient `Cancelling` state.
- */
 function isCancellableState(type: StateType): boolean {
 	switch (type) {
 		case StateType.CheckingForUpdates:
@@ -122,13 +109,9 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 	private readonly overwriteUpdatesCheckInterval = this._register(new IntervalTimer());
 	private _internalOrg: string | undefined = undefined;
 
-	/** Disabled for a non-reversible reason (e.g. not built, missing config); ignores `update.mode` changes. */
 	private _disabledPermanently: boolean = false;
-	/** Whether one-time platform init (e.g. background update GC, pending update resume) has run. */
 	private _postInitialized: boolean = false;
-	/** Cancels the pending scheduled update check, if any. */
 	private readonly scheduler = this._register(new MutableDisposable<IDisposable>());
-	/** Serializes reconfiguration so overlapping `update.mode` changes settle on the latest value. */
 	private readonly reconfigureThrottler = this._register(new Throttler());
 
 	private readonly _onStateChange = this._register(new Emitter<State>());
@@ -147,13 +130,10 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 		this._state = state;
 		this._onStateChange.fire(state);
 
-		// Clear transient one-time properties from Idle state after delivering the event.
-		// This prevents new windows from seeing stale error/notAvailable messages.
 		if (state.type === StateType.Idle && (state.error || state.notAvailable)) {
 			this._state = State.Idle(state.updateType);
 		}
 
-		// Schedule 5-minute checks when in Ready state and overwrite is supported
 		if (this.supportsUpdateOverwrite) {
 			if (state.type === StateType.Ready) {
 				this.overwriteUpdatesCheckInterval.cancelAndSet(() => this.checkForOverwriteUpdates(), 5 * 60 * 1000);
@@ -181,15 +161,10 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			.finally(() => this.initialize());
 	}
 
-	/**
-	 * This must be called before any other call. This is a performance
-	 * optimization, to avoid using extra CPU cycles before first window open.
-	 * https://github.com/microsoft/vscode/issues/89784
-	 */
 	protected async initialize(): Promise<void> {
 		if (!this.environmentMainService.isBuilt) {
 			this.setDisabledPermanently(DisablementReason.NotBuilt);
-			return; // updates are never enabled when running out of sources
+			return;
 		}
 
 		await this.trackVersionChange();
@@ -207,21 +182,15 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			return;
 		}
 
-		// React to runtime `update.mode`/policy changes so switching to/from `none` applies without a restart.
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('update.mode')) {
 				this.reconfigure().catch(err => this.logService.error('update#reconfigure - failed to apply update mode change', err));
 			}
 		}));
 
-		// Apply the currently configured update mode.
 		await this.reconfigure();
 	}
 
-	/**
-	 * Evaluates the current `update.mode` setting (and its policy) and brings the service into the matching state.
-	 * Runs on startup and on every change, enabling or disabling updates without a restart.
-	 */
 	private reconfigure(): Promise<void> {
 		return this.reconfigureThrottler.queue(() => this.doReconfigure());
 	}
@@ -239,7 +208,6 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 		if (!quality) {
 			const reason = policyDisablesUpdates ? DisablementReason.Policy : DisablementReason.ManuallyDisabled;
 
-			// Skip if already disabled for this reason, so a repeated write or policy refresh is a no-op.
 			if (this._state.type === StateType.Disabled && this._state.reason === reason) {
 				return;
 			}
@@ -257,12 +225,10 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 
 		this.quality = quality;
 
-		// Move to Idle so one-time platform init (which may resume a pending update) can act; it requires Idle.
 		if (this._state.type === StateType.Disabled || this._state.type === StateType.Uninitialized) {
 			this.setState(State.Idle(this.getUpdateType()));
 		}
 
-		// One-time platform init, gated behind updates being enabled so a pending update is never resumed under `none`.
 		if (!this._postInitialized) {
 			this._postInitialized = true;
 			await this.postInitialize();
@@ -271,14 +237,9 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 		this.scheduleAccordingToMode(updateMode);
 	}
 
-	/**
-	 * Disables updates for a reversible reason (user preference or policy), cancelling the scheduled check loop
-	 * and any in-flight or pending update before moving to Disabled.
-	 */
 	private async disable(reason: DisablementReason): Promise<void> {
 		this.scheduler.clear();
 
-		// Show a transient Cancelling state only when there is in-flight or pending work to tear down.
 		if (isCancellableState(this._state.type)) {
 			this.setState(State.Cancelling);
 		}
@@ -300,7 +261,6 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 		this.setState(State.Disabled(reason));
 	}
 
-	/** Disables updates for a non-reversible reason; subsequent `update.mode` changes are ignored. */
 	private setDisabledPermanently(reason: DisablementReason): void {
 		this._disabledPermanently = true;
 		this.scheduler.clear();
@@ -318,10 +278,8 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 		if (updateMode === 'start') {
 			this.logService.info('update#ctor - startup checks only; automatic updates are disabled by user preference');
 
-			// Check for updates only once after 30 seconds
 			this.scheduleCheckForUpdates(30 * 1000, false);
 		} else {
-			// Start checking for updates after 30 seconds
 			this.scheduleCheckForUpdates(30 * 1000, true);
 		}
 	}
@@ -341,7 +299,6 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			try {
 				from = JSON.parse(raw);
 			} catch (error) {
-				// ignore
 			}
 		}
 
@@ -406,7 +363,6 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			.then(() => this.checkForUpdates(false))
 			.then(() => {
 				if (repeat) {
-					// Check again after 1 hour
 					this.scheduleCheckForUpdates(60 * 60 * 1000, true);
 				}
 			})
@@ -443,7 +399,6 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 	}
 
 	protected async doDownloadUpdate(state: AvailableForDownload): Promise<void> {
-		// noop
 	}
 
 	async applyUpdate(): Promise<void> {
@@ -457,7 +412,6 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 	}
 
 	protected async doApplyUpdate(): Promise<void> {
-		// noop
 	}
 
 	async quitAndInstall(): Promise<void> {
@@ -477,13 +431,12 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 			}
 		}
 
-		// Remember the Ready state so we can restore it if the quit is vetoed
 		const readyState = this.state;
 
 		this.setState(State.Restarting(this.state.update));
 		this.logService.trace('update#quitAndInstall(): before lifecycle quit()');
 
-		this.lifecycleMainService.quit(true /* will restart */).then(vetod => {
+		this.lifecycleMainService.quit(true ).then(vetod => {
 			this.logService.trace(`update#quitAndInstall(): after lifecycle quit() with veto: ${vetod}`);
 			if (vetod) {
 				this.logService.info('update#quitAndInstall(): quit was vetoed, restoring Ready state');
@@ -579,7 +532,6 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 				}
 				return true;
 			}
-			// The update server replies with 204 (No Content) when no update is available.
 			return statusCode === 204;
 
 		} catch (error) {
@@ -590,7 +542,6 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 	}
 
 	async _applySpecificUpdate(packagePath: string): Promise<void> {
-		// noop
 	}
 
 	async setInternalOrg(internalOrg: string | undefined): Promise<void> {
@@ -611,21 +562,14 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 	}
 
 	protected doQuitAndInstall(): void {
-		// noop
 	}
 
 	protected async postInitialize(): Promise<void> {
-		// noop
 	}
 
 	protected async cancelPendingUpdate(): Promise<void> {
-		// noop
 	}
 
-	/**
-	 * Aborts in-flight or pending update work when updates are being disabled at runtime. The default cancels a
-	 * pending update; platform services override this to also abort in-flight checks/downloads.
-	 */
 	protected async cancelUpdate(): Promise<void> {
 		await this.cancelPendingUpdate();
 	}

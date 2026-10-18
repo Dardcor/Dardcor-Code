@@ -82,19 +82,17 @@ function generateExternalStestFromRecording(file: fs.Dirent<string>, containingS
 function computeTestNameFromFile(file: fs.Dirent<string>): string {
 	const basename = file.name;
 
-	// if ends with recording file suffix, remove suffix
 	if (basename.endsWith(RECORDING_FILE_SUFFIX)) {
 		return basename.slice(0, -RECORDING_FILE_SUFFIX.length);
 	}
 
-	// if basename is just the recording file name, use parent directory name as test name
 	if (basename === RECORDING_BASENAME) {
 		const fileDir = file.parentPath;
 		const pathChunks = fileDir.split(path.sep);
 		const parentBasename = pathChunks.at(-1);
 		assert(parentBasename !== undefined, `Expected recording's ${path.join(file.parentPath, file.name)} parent directory name to be defined`);
 
-		if (pathChunks.at(-2)?.[0].match(/^[A-Z]/)) { // if the recording is at `path/to/MustHave/MyAwesomeTest/recording.w.json` - test name should be `[MustHave] MyAwesomeTest`
+		if (pathChunks.at(-2)?.[0].match(/^[A-Z]/)) {
 			return `[${pathChunks.at(-2)}] ${parentBasename}`;
 		}
 

@@ -8,9 +8,6 @@ import { URI } from '../../../base/common/uri.js';
 import { IFileService } from '../../../platform/files/common/files.js';
 import { Mimes } from '../../../base/common/mime.js';
 
-/**
- * An editor model that just represents a resource that can be loaded.
- */
 export class BinaryEditorModel extends EditorModel {
 
 	private readonly mime = Mimes.binary;
@@ -26,37 +23,24 @@ export class BinaryEditorModel extends EditorModel {
 		super();
 	}
 
-	/**
-	 * The name of the binary resource.
-	 */
 	getName(): string {
 		return this.name;
 	}
 
-	/**
-	 * The size of the binary resource if known.
-	 */
 	getSize(): number | undefined {
 		return this.size;
 	}
 
-	/**
-	 * The mime of the binary resource if known.
-	 */
 	getMime(): string {
 		return this.mime;
 	}
 
-	/**
-	 * The etag of the binary resource if known.
-	 */
 	getETag(): string | undefined {
 		return this.etag;
 	}
 
 	override async resolve(): Promise<void> {
 
-		// Make sure to resolve up to date stat for file resources
 		if (this.fileService.hasProvider(this.resource)) {
 			const stat = await this.fileService.stat(this.resource);
 			this.etag = stat.etag;

@@ -167,16 +167,10 @@ suite('Completions', () => {
 		}, testUri, folders);
 	});
 
-	/**
-	 * For SCSS, `@import 'foo';` can be used for importing partial file `_foo.scss`
-	 */
 	test('SCSS @import Path completion', async function () {
 		const testCSSUri = URI.file(path.resolve(import.meta.dirname, '../../test/pathCompletionFixtures/about/about.css')).toString(true);
 		const folders = [{ name: 'x', uri: URI.file(path.resolve(import.meta.dirname, '../../test')).toString(true) }];
 
-		/**
-		 * We are in a CSS file, so no special treatment for SCSS partial files
-		*/
 		await assertCompletions(`@import '../scss/|'`, {
 			items: [
 				{ label: 'main.scss', resultText: `@import '../scss/main.scss'` },

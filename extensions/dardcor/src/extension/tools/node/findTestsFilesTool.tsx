@@ -28,18 +28,17 @@ import { ProjectedDocument } from '../../prompts/node/inline/summarizedDocument/
 import { summarizeDocuments, SummarizeDocumentsItem } from '../../prompts/node/inline/summarizedDocument/summarizeDocumentHelpers';
 import { CodeBlock } from '../../prompts/node/panel/safeElements';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { checkCancellation, resolveToolInputPath } from './toolUtils';
 
 
 interface IFindTestFilesToolsParams {
 	readonly filePaths: string[];
-	// sparse array of ranges, as numbers because it goes through JSON
 	readonly ranges?: ([a: number, b: number, c: number, d: number] | undefined)[];
 }
 
-class FindTestFilesTool extends Disposable implements ICopilotTool<IFindTestFilesToolsParams> {
+class FindTestFilesTool extends Disposable implements IAgentTool<IFindTestFilesToolsParams> {
 	public static readonly toolName = ToolName.FindTestFiles;
 	private readonly _testFileFinder: TestFileFinder;
 
@@ -68,7 +67,7 @@ class FindTestFilesTool extends Disposable implements ICopilotTool<IFindTestFile
 			if (!uri) {
 				throw new Error(`Invalid input path ${filePath}`);
 			}
-			if (await this.ignoreService.isCopilotIgnored(uri)) {
+			if (await this.ignoreService.isIgnored(uri)) {
 				return;
 			}
 			const document = await this.workspaceService.openTextDocumentAndSnapshot(uri);
@@ -83,7 +82,7 @@ class FindTestFilesTool extends Disposable implements ICopilotTool<IFindTestFile
 
 			if (isTestFile(document)) {
 				const srcFileUri = await this._testFileFinder.findFileForTestFile(document, token);
-				if (srcFileUri && !await this.ignoreService.isCopilotIgnored(srcFileUri)) {
+				if (srcFileUri && !await this.ignoreService.isIgnored(srcFileUri)) {
 					const srcFileDocument = await this.workspaceService.openTextDocumentAndSnapshot(srcFileUri);
 					srcFiles.push({ srcFile: srcFileUri, testFile: document.uri, document: srcFileDocument });
 				}
@@ -100,7 +99,7 @@ class FindTestFilesTool extends Disposable implements ICopilotTool<IFindTestFile
 
 		if (testFiles.length === 0 && lookForAnyTestFile) {
 			const testFileUri = await this._testFileFinder.findAnyTestFileForSourceFile(lookForAnyTestFile, token);
-			if (testFileUri && !await this.ignoreService.isCopilotIgnored(testFileUri)) {
+			if (testFileUri && !await this.ignoreService.isIgnored(testFileUri)) {
 				const testFileDocument = await this.workspaceService.openTextDocumentAndSnapshot(testFileUri);
 				anyTestFiles.push({ srcFile: lookForAnyTestFile.uri, testFile: testFileUri, document: testFileDocument });
 			}
@@ -178,7 +177,6 @@ class FindTestFilesTool extends Disposable implements ICopilotTool<IFindTestFile
 		}
 
 		if (!filePaths.length) {
-			// no context variables or working set
 		}
 
 		return {

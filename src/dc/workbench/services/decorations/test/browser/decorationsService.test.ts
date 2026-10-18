@@ -59,14 +59,11 @@ suite('DecorationsService', function () {
 				}
 			});
 
-			// trigger -> async
 			assert.strictEqual(service.getDecoration(uri, false), undefined);
 			assert.strictEqual(callCounter, 1);
 
-			// event when result is computed
 			const e = await Event.toPromise(service.onDidChangeDecorations);
 			assert.strictEqual(e.affectsResource(uri), true);
-			// sync result
 			assert.deepStrictEqual(service.getDecoration(uri, false)!.tooltip, 'T');
 			assert.deepStrictEqual(service.getDecoration(uri, false)!.strikethrough, true);
 			assert.strictEqual(callCounter, 1);
@@ -89,7 +86,6 @@ suite('DecorationsService', function () {
 			}
 		});
 
-		// trigger -> sync
 		assert.deepStrictEqual(service.getDecoration(uri, false)!.tooltip, 'Z');
 		assert.deepStrictEqual(service.getDecoration(uri, false)!.strikethrough, false);
 		assert.strictEqual(callCounter, 1);
@@ -149,11 +145,9 @@ suite('DecorationsService', function () {
 				}
 			});
 
-			// trigger -> sync
 			assert.deepStrictEqual(service.getDecoration(uri, false)!.tooltip, 'J');
 			assert.strictEqual(callCounter, 1);
 
-			// un-register -> ensure good event
 			let didSeeEvent = false;
 			const p = new Promise<void>(resolve => {
 				const l = service.onDidChangeDecorations(e => {
@@ -165,7 +159,7 @@ suite('DecorationsService', function () {
 					resolve();
 				});
 			});
-			reg.dispose(); // will clear all data
+			reg.dispose();
 			await p;
 			assert.strictEqual(didSeeEvent, true);
 
@@ -193,7 +187,6 @@ suite('DecorationsService', function () {
 		assert.strictEqual(deco, undefined);
 		reg.dispose();
 
-		// bubble
 		reg = service.registerDecorationsProvider({
 			label: 'Test',
 			onDidChange: Event.None,
@@ -303,7 +296,7 @@ suite('DecorationsService', function () {
 		assert.strictEqual(data.tooltip, 'FOO');
 
 		data = service.getDecoration(uri2, true)!;
-		assert.ok(data.tooltip); // emphazied items...
+		assert.ok(data.tooltip);
 
 		gone = true;
 		emitter.fire([uri]);
@@ -340,7 +333,7 @@ suite('DecorationsService', function () {
 			assert.strictEqual(data.tooltip, 'FOO');
 
 			data = service.getDecoration(uri2, true)!;
-			assert.ok(data.tooltip); // emphazied items...
+			assert.ok(data.tooltip);
 
 			return new Promise<void>((resolve, reject) => {
 				const l = service.onDidChangeDecorations(e => {

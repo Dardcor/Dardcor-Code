@@ -45,10 +45,6 @@ function terminalCommandScenario(command: string, finalReply?: string) {
 					},
 				],
 			},
-			// A fixed reply is useful when a blocked command does not produce stable
-			// rendered tool output. Since this is the second scenario turn, it is sent
-			// only after run_in_terminal completes and can be used as a synchronization
-			// signal before asserting side effects outside the chat UI.
 			finalReply
 				? { kind: 'content', chunks: [{ content: finalReply }] }
 				: { kind: 'echo-last-tool-result' },
@@ -85,13 +81,6 @@ async function updateUserSettingsWhileChatIsOpen(app: Application, settings: [ke
 	await app.workbench.settingsEditor.addUserSettings(settings);
 	await app.workbench.quickaccess.runCommand('workbench.action.closeActiveEditor');
 
-	// Settings are changed between chat requests, so restore the view that the
-	// following test interacts with without restarting the application. The
-	// panel already holds the local session opened by the suite setup, so reveal
-	// it with `chat.open` rather than starting a fresh local session: revealing
-	// the existing session focuses the input without tearing down and rebuilding
-	// the input editor, avoiding a focus race (and, since a session already
-	// exists, without resolving the Agent Host Copilot default).
 	await app.workbench.quickaccess.runCommand('workbench.action.chat.open');
 	await app.workbench.chat.waitForChatView();
 }
@@ -129,9 +118,6 @@ export function setup(logger: Logger): void {
 			registerScenario(WARMUP_SCENARIO_ID, new ScenarioBuilder().emit(WARMUP_REPLY).build());
 			registerScenario(SANDBOX_SCENARIO_ID, terminalCommandScenario(`echo ${sandboxReply}; status=$?; printf 'SANDBOX_EXIT_CODE=%s\n' "$status"; exit "$status"`));
 			registerScenario(TMPDIR_SCENARIO_ID, terminalCommandScenario(`echo test > "$TMPDIR/${tempFileName}"; status=$?; printf 'TMPDIR_EXIT_CODE=%s\n' "$status"; exit "$status"`));
-			// A denied host-temp write has no stable cross-platform output marker. Use a
-			// fixed second-turn reply to know the tool finished, then verify denial by
-			// checking from the smoke-test process that the host file was not created.
 			registerScenario(HOST_TMP_SCENARIO_ID, terminalCommandScenario(`host_tmp=${quoteShellArgument(hostTempFilePath)}; echo test > "$host_tmp"`, HOST_TMP_REPLY));
 
 			mockServer = await startServer(0, { logger: (message: string) => logger.log(`[mock-llm] ${message}`), verbose: true });
@@ -164,12 +150,8 @@ export function setup(logger: Logger): void {
 				['chat.mcp.discovery.enabled', 'false'],
 				['chat.mcp.enabled', 'false'],
 				['chat.disableAIFeatures', 'false'],
-				// addUserSettings writes a single long line. Word wrap keeps that editor
-				// focusable for the additional settings written by nested suites.
 				['editor.wordWrap', '"on"'],
 				['chat.agent.sandbox.enabled', '"on"'],
-				// Leave allowNetwork at its default (false), and prevent a failed probe
-				// from being retried with relaxed network access or outside the sandbox.
 				['chat.agent.sandbox.retryWithAllowNetworkRequests', 'false'],
 				['chat.agent.sandbox.allowUnsandboxedCommands', 'false'],
 			]);
@@ -189,11 +171,6 @@ export function setup(logger: Logger): void {
 			await mockServer?.close();
 		});
 
-		/*
-		 * Input: Ask chat to run an echo command through the terminal tool with sandboxing enabled.
-		 * Expected result: The command is sandbox-wrapped and its output contains
-		 * `${sandboxReply}` and `SANDBOX_EXIT_CODE=0`.
-		 */
 		it.skip('runs terminal commands inside the sandbox', async function () {
 			const app = this.app as Application;
 
@@ -209,8 +186,6 @@ export function setup(logger: Logger): void {
 				assert.ok(exitCodeMatch, 'expected the terminal result to include the sandbox probe exit code');
 				assert.strictEqual(Number(exitCodeMatch[1]), 0, 'expected the sandboxed terminal command to exit successfully');
 
-				// Confirm that the terminal tool actually wrapped the command for
-				// sandbox execution instead of using an unsandboxed fallback.
 				const terminalLogPath = path.join(app.logsPath, 'terminal.log');
 				const terminalLog = fs.readFileSync(terminalLogPath, 'utf8');
 				assert.match(
@@ -225,10 +200,6 @@ export function setup(logger: Logger): void {
 			}
 		});
 
-		/*
-		 * Input: Ask chat to run `echo test > "$TMPDIR/test.txt"` in the sandbox-provided temp directory.
-		 * Expected result: The output contains `TMPDIR_EXIT_CODE=0`.
-		 */
 		it('allows writing to the sandbox TMPDIR', async function () {
 			const app = this.app as Application;
 
@@ -249,11 +220,6 @@ export function setup(logger: Logger): void {
 			}
 		});
 
-		/*
-		 * Input: Ask chat to run `echo test > test.txt` in the host OS temp directory instead of $TMPDIR.
-		 * Expected result: The output contains `MOCKED_CHAT_SANDBOX_HOST_TMP_COMPLETE` after the command
-		 * finishes, and no file is created in the host temp directory.
-		 */
 		it('blocks writing to the host temp directory', async function () {
 			const app = this.app as Application;
 
@@ -273,11 +239,6 @@ export function setup(logger: Logger): void {
 			}
 		});
 
-		/*
-		 * Input: Ask chat to run an HTTP request to the local mock server with allowNetwork disabled.
-		 * Expected result: The sandbox blocks the request and its output contains a network error such as
-		 * `ECONNREFUSED`, `EPERM`, `EACCES`, `ENETUNREACH`, `EHOSTUNREACH`, `ENETDOWN`, or `EAI_AGAIN`.
-		 */
 		it('blocks terminal network access by default', async function () {
 			const app = this.app as Application;
 
@@ -300,10 +261,6 @@ export function setup(logger: Logger): void {
 			}
 		});
 
-		/*
-		 * Input: Enable allowNetwork and ask chat to run an HTTP request to the local mock server.
-		 * Expected result: The sandbox permits the request and its output contains `${networkAllowedReply}`.
-		 */
 		describe('with terminal network access enabled', function () {
 			before(async function () {
 				const app = this.app as Application;
@@ -331,11 +288,6 @@ export function setup(logger: Logger): void {
 			});
 		});
 
-		/*
-		 * Input: Ask chat to read a test file in the home directory without configuring allowRead.
-		 * Expected result: The sandbox blocks the read and its output contains
-		 * `HOME_READ_BLOCKED_EXIT_CODE=<nonzero exit code>`.
-		 */
 		it('blocks reading files in the home directory outside the workspace by default', async function () {
 			const app = this.app as Application;
 
@@ -357,10 +309,6 @@ export function setup(logger: Logger): void {
 			}
 		});
 
-		/*
-		 * Input: Add the home test file to allowRead and ask chat to read it through the terminal tool.
-		 * Expected result: The sandbox permits the read and the chat UI contains the unique file contents.
-		 */
 		describe('with home file read access enabled', function () {
 			before(async function () {
 				const app = this.app as Application;

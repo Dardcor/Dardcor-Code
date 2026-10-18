@@ -23,7 +23,6 @@ suite('GetErrorsResult', () => {
 	let collection: TestingServiceCollection;
 	let diagnosticsService: TestLanguageDiagnosticsService;
 
-	// Avoid creating windows paths
 	const workspaceFolder = URI.file('/test/workspace');
 	const tsDocUri = URI.file('/test/workspace/file.ts');
 	const tsDoc = createTextDocumentData(tsDocUri, 'line 1\nline 2\n\nline 4\nline 5', 'ts').document;

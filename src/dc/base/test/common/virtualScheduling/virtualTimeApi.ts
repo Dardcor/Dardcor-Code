@@ -8,15 +8,10 @@ import { realTimeApi, TimeApi } from './timeApi.js';
 import { ROOT_TRACE, TraceContext } from './trace.js';
 import { VirtualClock } from './virtualClock.js';
 
-// V8 default `Error.stackTraceLimit` of 10 swallows everything past the
-// first async boundary in the stacks we capture for trace diagnostics.
-// Bump it so swimlane callers actually see the user code that scheduled a
-// timer rather than just the Promise wrapper.
 if (typeof Error.stackTraceLimit === 'number' && Error.stackTraceLimit < 50) {
 	Error.stackTraceLimit = 50;
 }
 
-/** Virtual timer IDs are `IDisposable`s. Recover one from an opaque id. */
 function asDisposable(id: unknown): IDisposable | undefined {
 	if (id === null || typeof id !== 'object') { return undefined; }
 	const maybe = id as Partial<IDisposable>;
@@ -24,26 +19,9 @@ function asDisposable(id: unknown): IDisposable | undefined {
 }
 
 export interface CreateVirtualTimeApiOptions {
-	/**
-	 * If `true`, `requestAnimationFrame` is faked: callbacks are scheduled
-	 * onto the virtual queue at `now + 16ms` and the resulting event hints
-	 * the embedding to use a real `requestAnimationFrame` so the host can
-	 * reflow before the callback runs. Useful for fixtures that need DOM
-	 * measurements after rAF callbacks.
-	 *
-	 * If `false` (default), `requestAnimationFrame` is left to the host.
-	 */
 	readonly fakeRequestAnimationFrame?: boolean;
 }
 
-/**
- * Build a {@link TimeApi} that schedules every timer call into `clock`'s
- * virtual queue, capturing the current trace at schedule time so that
- * causal chains (`setTimeout` → `setTimeout`, etc.) are preserved.
- *
- * The returned API is suitable to install with {@link pushGlobalTimeApi},
- * which is what {@link runWithFakedTimers} does internally.
- */
 export function createVirtualTimeApi(
 	clock: VirtualClock,
 	options?: CreateVirtualTimeApiOptions,
@@ -79,8 +57,8 @@ export function createVirtualTimeApi(
 				time: clock.now + interval,
 				run: () => {
 					if (disposed) { return; }
-					arm();          // schedule the next tick first, so a throwing
-					handler();      // handler doesn't kill the interval
+					arm();
+					handler();
 				},
 				source: { toString: () => `setInterval (iteration ${myIter})`, stackTrace: stack },
 				trace: baseTrace.child(`tick #${myIter}`),
@@ -101,16 +79,7 @@ export function createVirtualTimeApi(
 		asDisposable(id)?.dispose();
 	}
 
-	// A faux `Date` that returns virtual time from `now()` and uses virtual
-	// time as the default constructor argument; everything else delegates.
-	// The `Date` constructor is an exotic object whose call/construct
-	// signatures aren't expressible without a structural mismatch — we go
-	// through `unknown` for the tagging mutations rather than widening to
-	// `any`.
 	const OriginalDate = realTimeApi.Date;
-	// `Date` is overloaded (zero-arg, one-arg, multi-arg). `ConstructorParameters`
-	// only sees the last overload, so we type args as `unknown[]` and forward
-	// them through a typed cast at the call site.
 	function VirtualDate(this: unknown, ...args: unknown[]): unknown {
 		if (!(this instanceof VirtualDate)) {
 			return new OriginalDate(clock.now).toString();
@@ -120,10 +89,6 @@ export function createVirtualTimeApi(
 		}
 		return new (OriginalDate as new (...a: unknown[]) => Date)(...args);
 	}
-	// Static-property tagging. Use a typed `Record` view of the function
-	// rather than `any`. We skip non-writable own properties (`length`,
-	// `name` on a function would throw) and then explicitly set the few
-	// statics callers reach for.
 	const dateStatics = VirtualDate as unknown as Record<string, unknown>;
 	const originalStatics = OriginalDate as unknown as Record<string, unknown>;
 	for (const key of Object.getOwnPropertyNames(OriginalDate)) {
@@ -147,9 +112,6 @@ export function createVirtualTimeApi(
 		performanceTimeOrigin,
 	};
 
-	// Expose the real setTimeout as `originalFn` on the virtual one. The
-	// component-explorer host's polling loop reads this to escape virtual
-	// time when waiting for renders to settle.
 	(api.setTimeout as unknown as { originalFn: TimeApi['setTimeout'] }).originalFn = realTimeApi.setTimeout;
 
 	if (options?.fakeRequestAnimationFrame) {
@@ -183,11 +145,6 @@ export function createVirtualTimeApi(
 		}) as TimeApi['cancelAnimationFrame'];
 	}
 
-	// Trace defaults: ensure handlers fired inside virtual time get the
-	// current trace at *schedule* time, not at fire time. The processor
-	// already wraps execution in `runAsHandler`, so when virtual events
-	// fire inside the processor the trace is set correctly. This block is
-	// just a safety net for callers that step the clock manually.
 	void ROOT_TRACE;
 
 	return api;

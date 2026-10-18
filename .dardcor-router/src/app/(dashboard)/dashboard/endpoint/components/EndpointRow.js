@@ -2,7 +2,6 @@
 
 import { Input } from "@/shared/components";
 
-/** Reusable endpoint row component */
 export default function EndpointRow({ label, url, copyId, copied, onCopy, badge, actions }) {
   return (
     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 w-full">

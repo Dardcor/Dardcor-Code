@@ -142,8 +142,6 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 		this._register(editor.onDidChangeCursorPosition((e) => {
 
 			if (this._matchBrackets === 'never') {
-				// Early exit if nothing needs to be done!
-				// Leave some form of early exit check here if you wish to continue being a cursor position change listener ;)
 				return;
 			}
 
@@ -188,7 +186,6 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 		const newSelections = this._editor.getSelections().map(selection => {
 			const position = selection.getStartPosition();
 
-			// find matching brackets if position is on a bracket
 			const brackets = model.bracketPairs.matchBracket(position);
 			let newCursorPosition: Position | null = null;
 			if (brackets) {
@@ -198,12 +195,10 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 					newCursorPosition = brackets[0].getStartPosition();
 				}
 			} else {
-				// find the enclosing brackets if the position isn't on a matching bracket
 				const enclosingBrackets = model.bracketPairs.findEnclosingBrackets(position);
 				if (enclosingBrackets) {
 					newCursorPosition = enclosingBrackets[1].getStartPosition();
 				} else {
-					// no enclosing brackets, try the very first next bracket
 					const nextBracket = model.bracketPairs.findNextBracket(position);
 					if (nextBracket && nextBracket.range) {
 						newCursorPosition = nextBracket.range.getStartPosition();
@@ -253,7 +248,6 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 				selectTo = selectBrackets ? close.getEndPosition() : close.getStartPosition();
 
 				if (close.containsPosition(position)) {
-					// select backwards if the cursor was on the closing bracket
 					const tmp = selectFrom;
 					selectFrom = selectTo;
 					selectTo = tmp;
@@ -336,7 +330,6 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 
 	private _recomputeBrackets(): void {
 		if (!this._editor.hasModel() || !this._editor.hasWidgetFocus()) {
-			// no model or no focus => no brackets!
 			this._lastBracketsData = [];
 			this._lastVersionId = 0;
 			return;
@@ -344,7 +337,6 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 
 		const selections = this._editor.getSelections();
 		if (selections.length > 100) {
-			// no bracket matching for high numbers of selections
 			this._lastBracketsData = [];
 			this._lastVersionId = 0;
 			return;
@@ -354,7 +346,6 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 		const versionId = model.getVersionId();
 		let previousData: BracketsData[] = [];
 		if (this._lastVersionId === versionId) {
-			// use the previous data only if the model is at the same version id
 			previousData = this._lastBracketsData;
 		}
 
@@ -364,12 +355,10 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 			const selection = selections[i];
 
 			if (selection.isEmpty()) {
-				// will bracket match a cursor only if the selection is collapsed
 				positions[positionsLen++] = selection.getStartPosition();
 			}
 		}
 
-		// sort positions for `previousData` cache hits
 		if (positions.length > 1) {
 			positions.sort(Position.compare);
 		}
@@ -388,10 +377,10 @@ export class BracketMatchingController extends Disposable implements IEditorCont
 			if (previousIndex < previousLen && previousData[previousIndex].position.equals(position)) {
 				newData[newDataLen++] = previousData[previousIndex];
 			} else {
-				let brackets = model.bracketPairs.matchBracket(position, 20 /* give at most 20ms to compute */);
+				let brackets = model.bracketPairs.matchBracket(position, 20 );
 				let options = BracketMatchingController._DECORATION_OPTIONS_WITH_OVERVIEW_RULER;
 				if (!brackets && this._matchBrackets === 'always') {
-					brackets = model.bracketPairs.findEnclosingBrackets(position, 20 /* give at most 20ms to compute */);
+					brackets = model.bracketPairs.findEnclosingBrackets(position, 20 );
 					options = BracketMatchingController._DECORATION_OPTIONS_WITHOUT_OVERVIEW_RULER;
 				}
 				newData[newDataLen++] = new BracketsData(position, brackets, options);
@@ -408,7 +397,6 @@ registerEditorAction(SelectToBracketAction);
 registerEditorAction(JumpToBracketAction);
 registerEditorAction(RemoveBracketsAction);
 
-// Go to menu
 MenuRegistry.appendMenuItem(MenuId.MenubarGoMenu, {
 	group: '5_infile_nav',
 	command: {
@@ -418,12 +406,9 @@ MenuRegistry.appendMenuItem(MenuId.MenubarGoMenu, {
 	order: 2
 });
 
-// Theming participant to ensure bracket-match color overrides bracket pair colorization
 registerThemingParticipant((theme, collector) => {
 	const bracketMatchForeground = theme.getColor(editorBracketMatchForeground);
 	if (bracketMatchForeground) {
-		// Use higher specificity to override bracket pair colorization
-		// Apply color to inline class to avoid layout jumps
 		collector.addRule(`.monaco-editor .bracket-match-inline { color: ${bracketMatchForeground} !important; }`);
 	}
 });

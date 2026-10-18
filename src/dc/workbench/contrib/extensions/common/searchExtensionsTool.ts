@@ -114,7 +114,6 @@ export class SearchExtensionsTool implements IToolImpl {
 			}
 		};
 
-		// Search for extensions by their ids
 		if (params.ids?.length) {
 			const extensions = await this.extensionWorkbenchService.getExtensions(params.ids.map(id => ({ id })), token);
 			addExtension(extensions);

@@ -135,7 +135,6 @@ suite('aiCustomizationManagementEditor', () => {
 	};
 
 	function createConfigurationServiceStub(values: Record<string, unknown> = {}): IConfigurationService {
-		// Default to enabling the structured preview so existing assertions exercise the preview path.
 		const merged: Record<string, unknown> = {
 			[ChatConfiguration.ChatCustomizationsStructuredPreviewEnabled]: true,
 			...values,
@@ -341,10 +340,8 @@ suite('aiCustomizationManagementEditor', () => {
 		editor.currentEditingPromptType = PromptsType.agent;
 		editor.editorDisplayMode = 'preview';
 
-		// Sanity: setting is on and file is editable, so label is "Edit" (preview mode).
 		assert.strictEqual(editor.getEditorModeButtonLabel(), 'Edit');
 
-		// Flip the setting off and run the change handler.
 		configurationService.setValue(ChatConfiguration.ChatCustomizationsStructuredPreviewEnabled, false);
 		editor.onStructuredPreviewSettingChanged();
 
@@ -1160,13 +1157,10 @@ suite('aiCustomizationManagementEditor', () => {
 			const readGroupChecked = () => groupCheckbox?.getAttribute('aria-checked');
 
 			const initiallyChecked = readGroupChecked();
-			// Unchecking only one item leaves a partial group selection.
 			itemCheckboxes[0].click();
 			const afterFirstUncheck = readGroupChecked();
-			// Unchecking the last remaining item must keep the group checkbox cleared (issue #331330).
 			itemCheckboxes[1].click();
 			const afterLastUncheck = readGroupChecked();
-			// Re-checking every item should re-select the group checkbox.
 			itemCheckboxes[0].click();
 			itemCheckboxes[1].click();
 			const afterRecheckingAll = readGroupChecked();

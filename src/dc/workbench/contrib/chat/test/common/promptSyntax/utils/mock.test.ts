@@ -55,13 +55,11 @@ suite('mockService', () => {
 			);
 
 			assert.throws(() => {
-				// property is not overriden so must throw
 				// eslint-disable-next-line local/code-no-unused-expressions
 				mock.foo;
 			});
 
 			assert.throws(() => {
-				// function is not overriden so must throw
 				mock.someMethod(randomBoolean());
 			});
 		});
@@ -87,7 +85,6 @@ suite('mockService', () => {
 				'baz should be overridden',
 			);
 
-			// overrides object must be immutable
 			assert.throws(() => {
 				overrides.foo = 'test';
 			});
@@ -144,13 +141,11 @@ suite('mockService', () => {
 			);
 
 			assert.throws(() => {
-				// property is not overridden so must throw
 				// eslint-disable-next-line local/code-no-unused-expressions
 				mock.prop1;
 			});
 
 			assert.throws(() => {
-				// function is not overridden so must throw
 				mock.method1(randomBoolean());
 			});
 		});
@@ -177,7 +172,6 @@ suite('mockService', () => {
 				'baz should be overridden',
 			);
 
-			// overrides object must be immutable
 			assert.throws(() => {
 				overrides.foo = 'test';
 			});

@@ -69,7 +69,7 @@ suite('WorkingCopyBackupTracker (native)', function () {
 		}
 
 		protected override getBackupScheduleDelay(): number {
-			return 10; // Reduce timeout for tests
+			return 10;
 		}
 
 		waitForReady(): Promise<void> {
@@ -173,7 +173,7 @@ suite('WorkingCopyBackupTracker (native)', function () {
 		const tracker = instantiationService.createInstance(TestWorkingCopyBackupTracker);
 
 		const cleanup = async () => {
-			await accessor.workingCopyBackupService.waitForAllBackups(); // File changes could also schedule some backup operations so we need to wait for them before finishing the test
+			await accessor.workingCopyBackupService.waitForAllBackups();
 
 			await workbenchTeardown(instantiationService);
 
@@ -254,7 +254,7 @@ suite('WorkingCopyBackupTracker (native)', function () {
 	});
 
 	test('onWillShutdown - no veto if auto save is on', async function () {
-		const { accessor, cleanup } = await createTracker(true /* auto save enabled */);
+		const { accessor, cleanup } = await createTracker(true );
 
 		const resource = toResource.call(this, '/path/index.txt');
 		await accessor.editorService.openEditor({ resource, options: { pinned: true } });
@@ -380,7 +380,7 @@ suite('WorkingCopyBackupTracker (native)', function () {
 		assert.ok(veto);
 
 		const finalVeto = await event.finalValue?.();
-		assert.ok(finalVeto); // assert the tracker uses the internal finalVeto API
+		assert.ok(finalVeto);
 
 		await cleanup();
 	});
@@ -422,7 +422,7 @@ suite('WorkingCopyBackupTracker (native)', function () {
 		assert.ok(veto);
 
 		const finalVeto = await event.finalValue?.();
-		assert.ok(finalVeto); // assert the tracker uses the internal finalVeto API
+		assert.ok(finalVeto);
 
 		await cleanup();
 	});
@@ -450,7 +450,6 @@ suite('WorkingCopyBackupTracker (native)', function () {
 
 		assert.strictEqual(tracker.pendingBackupOperationCount, 0);
 
-		// Ops are suspended during shutdown!
 		model?.textEditorModel?.setValue('bar');
 		assert.strictEqual(accessor.workingCopyService.dirtyCount, 1);
 		assert.strictEqual(tracker.pendingBackupOperationCount, 0);
@@ -458,7 +457,6 @@ suite('WorkingCopyBackupTracker (native)', function () {
 		const onResume = Event.toPromise(tracker.onDidResume);
 		await event.value;
 
-		// Ops are resumed after shutdown!
 		model?.textEditorModel?.setValue('foo');
 		await onResume;
 		assert.strictEqual(tracker.pendingBackupOperationCount, 1);
@@ -680,20 +678,16 @@ suite('WorkingCopyBackupTracker (native)', function () {
 
 			const model = accessor.textFileService.files.get(resource);
 
-			// Set hot exit config
 			accessor.filesConfigurationService.testOnFilesConfigurationChange({ files: { hotExit: setting } });
 
-			// Set empty workspace if required
 			if (!workspace) {
 				accessor.contextService.setWorkspace(new Workspace('empty:1508317022751'));
 			}
 
-			// Set multiple windows if required
 			if (multipleWindows) {
 				accessor.nativeHostService.windowCount = Promise.resolve(2);
 			}
 
-			// Set cancel to force a veto if hot exit does not trigger
 			accessor.fileDialogService.setConfirmResult(ConfirmResult.CANCEL);
 
 			await model?.resolve();
@@ -705,8 +699,8 @@ suite('WorkingCopyBackupTracker (native)', function () {
 			accessor.lifecycleService.fireBeforeShutdown(event);
 
 			const veto = await event.value;
-			assert.ok(typeof event.finalValue === 'function'); // assert the tracker uses the internal finalVeto API
-			assert.strictEqual(accessor.workingCopyBackupService.discardedBackups.length, 0); // When hot exit is set, backups should never be cleaned since the confirm result is cancel
+			assert.ok(typeof event.finalValue === 'function');
+			assert.strictEqual(accessor.workingCopyBackupService.discardedBackups.length, 0);
 			assert.strictEqual(veto, shouldVeto);
 
 			await cleanup();
@@ -734,20 +728,16 @@ suite('WorkingCopyBackupTracker (native)', function () {
 				}
 			}
 
-			// Set hot exit config
 			accessor.filesConfigurationService.testOnFilesConfigurationChange({ files: { hotExit: setting } });
 
-			// Set empty workspace if required
 			if (!workspace) {
 				accessor.contextService.setWorkspace(new Workspace('empty:1508317022751'));
 			}
 
-			// Set multiple windows if required
 			if (multipleWindows) {
 				accessor.nativeHostService.windowCount = Promise.resolve(2);
 			}
 
-			// Set cancel to force a veto if hot exit does not trigger
 			accessor.fileDialogService.setConfirmResult(ConfirmResult.CANCEL);
 
 			const resource = toResource.call(this, '/path/custom.txt');
@@ -758,8 +748,8 @@ suite('WorkingCopyBackupTracker (native)', function () {
 			accessor.lifecycleService.fireBeforeShutdown(event);
 
 			const veto = await event.value;
-			assert.ok(typeof event.finalValue === 'function'); // assert the tracker uses the internal finalVeto API
-			assert.strictEqual(accessor.workingCopyBackupService.discardedBackups.length, 0); // When hot exit is set, backups should never be cleaned since the confirm result is cancel
+			assert.ok(typeof event.finalValue === 'function');
+			assert.strictEqual(accessor.workingCopyBackupService.discardedBackups.length, 0);
 			assert.strictEqual(veto, shouldVeto);
 
 			await cleanup();

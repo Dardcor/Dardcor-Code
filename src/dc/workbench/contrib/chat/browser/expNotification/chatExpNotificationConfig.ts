@@ -3,19 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Contract for chat notifications delivered as an experiment treatment.
- *
- * A notification is fully described by a versioned JSON payload, so its words, its targeting and
- * its buttons can be authored or retired without shipping code. The payload is a serializable
- * spelling of {@link IChatInputNotification}, which it builds directly.
- */
 
 import { stableStringify } from '../../../../../base/common/objects.js';
 import { expandModelMatchCandidates, ID_PATTERN, isObject, MAX_ID_LENGTH, modelSelectorAliases, normalizeSelector, parseExpPayloadEnvelope, readSelectorList, readText } from '../../common/expPayload.js';
 import { ChatInputNotificationActionKind, ChatInputNotificationSeverity, IChatInputNotification, IChatInputNotificationAction } from '../widget/input/chatInputNotificationService.js';
 
-/** Payload versions this build understands. Bump when making a breaking shape change. */
 export const CHAT_EXP_NOTIFICATION_VERSION = 1;
 
 const MAX_NOTIFICATIONS = 8;
@@ -27,60 +19,41 @@ const MAX_TITLE_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_LABEL_LENGTH = 40;
 
-// A Map has no prototype keys, so a payload cannot reach `Object.prototype` members through it.
 const SEVERITIES = new Map([
 	['info', ChatInputNotificationSeverity.Info],
 	['warning', ChatInputNotificationSeverity.Warning],
 	['error', ChatInputNotificationSeverity.Error],
 ]);
 
-/**
- * Which chats a notification attaches to. An omitted or empty selector list means any.
- *
- * Both lists are matched against a set of candidates rather than one string, so a selector can
- * name a session type or the harness behind it, and a model by id, family, name or vendor.
- */
 export interface IChatExpNotificationMatch {
 	readonly sessionTypes: readonly string[];
 	readonly selectedModels: readonly string[];
-	/** Models that suppress the notification, so a nudge can skip users already on its target. */
 	readonly excludeSelectedModels: readonly string[];
 }
 
-/** A parsed notification, ready to hand to the notification service once `when` is bound. */
 export type ChatExpNotification = Omit<IChatInputNotification, 'when'> & {
 	readonly match: IChatExpNotificationMatch;
-	/** The entry's source text, used to tell a changed notification from an unchanged one. */
 	readonly signature: string;
 };
 
-/** An action always carries its payload id, so duplicate ids can be reported. */
 type ChatExpNotificationAction = IChatInputNotificationAction & { telemetryActionId: string };
 
 export type ChatExpNotificationParseResult =
 	| { readonly notifications: readonly ChatExpNotification[]; readonly error?: undefined }
 	| { readonly notifications?: undefined; readonly error: string };
 
-/** Describes the chat a notification is matched against. The caller resolves the harness. */
 export interface IChatExpNotificationMatchContext {
 	readonly sessionType: string | undefined;
-	/** Agent host provider id, or `undefined` for sessions with no agent host. */
 	readonly harness: string | undefined;
 	readonly selectedModelId: string | undefined;
-	/** Other identifiers for the selected model, such as its id, family, name and vendor. */
 	readonly selectedModelAliases: readonly string[] | undefined;
 }
 
-/**
- * Parses and validates a notification payload. Never throws, and rejects a bad payload whole
- * rather than in part, so a malformed entry cannot quietly change who sees what.
- */
 export function parseChatExpNotifications(raw: string | undefined): ChatExpNotificationParseResult {
 	const parsed = parseExpPayloadEnvelope(raw, CHAT_EXP_NOTIFICATION_VERSION);
 	if (typeof parsed === 'string') {
 		return { error: parsed };
 	}
-	// An empty list is how a running experiment retires its notification without being removed.
 	if (!Array.isArray(parsed.notifications)) {
 		return { error: 'notifications must be an array' };
 	}
@@ -146,8 +119,6 @@ function readNotification(raw: unknown, path: string): ChatExpNotification | str
 		return `${path}.dismissible and ${path}.autoDismissOnMessage must be booleans`;
 	}
 
-	// A notice with no dismiss, no action and no auto-dismiss can never be cleared, and would
-	// outrank the permission and setup prompts a user needs to get on with their work.
 	if (!dismissible && !autoDismissOnMessage && !actions.length) {
 		return `${path} must be dismissible, auto-dismiss on message, or offer an action`;
 	}
@@ -176,8 +147,6 @@ function readMatch(raw: unknown, path: string): IChatExpNotificationMatch | stri
 	}
 	const source = isObject(raw) ? raw : {};
 
-	// A misspelled predicate would otherwise be ignored, silently widening the audience to
-	// everyone the remaining predicates allow.
 	const unknown = Object.keys(source).find(key => !MATCH_KEYS.includes(key));
 	if (unknown) {
 		return `${path} has unknown key ${JSON.stringify(unknown)}`;
@@ -266,7 +235,6 @@ function readAction(raw: unknown, path: string): ChatExpNotificationAction | str
 			if (raw.config !== undefined && (!isObject(raw.config) || Object.keys(raw.config).length > MAX_CONFIG_KEYS)) {
 				return `${path}.config must be an object of at most ${MAX_CONFIG_KEYS} keys`;
 			}
-			// Normalized like every other selector, so a display name such as "Claude Sonnet 4.5" matches.
 			const target = normalizeSelector(raw.model);
 			return {
 				...base,
@@ -281,7 +249,6 @@ function readAction(raw: unknown, path: string): ChatExpNotificationAction | str
 	return `${path}.kind must be "${ChatInputNotificationActionKind.Command}", "${ChatInputNotificationActionKind.OpenModelPicker}" or "${ChatInputNotificationActionKind.SwitchToModel}"`;
 }
 
-/** Whether the chat described by `context` should be shown a notification matching `match`. */
 export function matchesChatExpNotification(match: IChatExpNotificationMatch, context: IChatExpNotificationMatchContext): boolean {
 	const { sessionTypes, selectedModels, excludeSelectedModels } = match;
 	const sessionCandidates = [context.sessionType, context.harness].map(value => value && normalizeSelector(value));

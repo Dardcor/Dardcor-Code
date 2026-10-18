@@ -22,15 +22,6 @@ import { IssueReporterOverlay } from '../browser/issueReporterOverlay.js';
 export const ISSUE_REPORTER_CAPTURE_SCREENSHOT_COMMAND_ID = 'workbench.action.issueReporter.captureScreenshot';
 export const ISSUE_REPORTER_TOGGLE_RECORDING_COMMAND_ID = 'workbench.action.issueReporter.toggleRecording';
 
-/**
- * Watches the editor service to keep the `issueReporterOpen` context key in
- * sync, and installs a capture-phase key listener on every window so the issue
- * reporter shortcuts beat overlays/widgets that swallow key events (e.g. the
- * keybinding-recording widget inside the Keyboard Shortcuts editor or any
- * focused input that calls `stopPropagation()`). The capture-phase listener
- * only intercepts when the issue reporter is actually open, otherwise default
- * behavior (Save As, etc.) is preserved.
- */
 class IssueReporterOpenStateContribution extends Disposable {
 
 	static readonly ID = 'workbench.contrib.issueReporterOpenState';
@@ -52,7 +43,7 @@ class IssueReporterOpenStateContribution extends Disposable {
 		update();
 
 		this._register(Event.runAndSubscribe(dom.onDidRegisterWindow, ({ window, disposables }) => {
-			disposables.add(dom.addDisposableListener(window, dom.EventType.KEY_DOWN, e => this.dispatchCapturePhase(e), true /* capture */));
+			disposables.add(dom.addDisposableListener(window, dom.EventType.KEY_DOWN, e => this.dispatchCapturePhase(e), true ));
 		}, { window: mainWindow, disposables: this._store }));
 	}
 
@@ -84,10 +75,6 @@ class IssueReporterOpenStateContribution extends Disposable {
 registerWorkbenchContribution2(IssueReporterOpenStateContribution.ID, IssueReporterOpenStateContribution, WorkbenchPhase.AfterRestored);
 
 function withWizard(fn: (pane: IssueReporterEditorPane, wizard: IssueReporterOverlay) => void): void {
-	// Look up any live issue reporter pane regardless of whether its tab is the
-	// active editor in its group. visibleEditorPanes only exposes the active
-	// pane per group, so we can't rely on it when the user has switched to
-	// another tab to set up a screenshot.
 	const pane = IssueReporterEditorPane.getAnyLiveInstance();
 	const wizard = pane?.getWizard();
 	if (pane && wizard) {

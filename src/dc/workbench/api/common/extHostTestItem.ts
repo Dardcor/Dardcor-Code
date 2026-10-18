@@ -139,9 +139,6 @@ export class TestItemImpl implements vscode.TestItem {
 	public canResolveChildren!: boolean;
 	public tags!: readonly vscode.TestTag[];
 
-	/**
-	 * Note that data is deprecated and here for back-compat only
-	 */
 	constructor(controllerId: string, id: string, label: string, uri: vscode.Uri | undefined) {
 		if (id.includes(TestIdPathParts.Delimiter)) {
 			throw new Error(`Test IDs may not include the ${JSON.stringify(id)} symbol`);

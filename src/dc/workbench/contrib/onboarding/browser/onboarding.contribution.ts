@@ -27,12 +27,6 @@ registerSingleton(IOnboardingScenarioService, OnboardingScenarioService, Instant
 
 const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 
-/**
- * Builds the configuration node for the developer-mode setting. The setting is a
- * map of scenario/tour id to boolean; the default lists every currently
- * registered scenario id set to `false` so the available ids are discoverable
- * (and individually toggleable) in the settings editor.
- */
 function buildDeveloperModeConfigurationNode(): IConfigurationNode {
 	const properties: IStringDictionary<IConfigurationPropertySchema> = {};
 	const defaultValue: IStringDictionary<boolean> = {};
@@ -87,20 +81,12 @@ configurationRegistry.registerConfiguration({
 });
 configurationRegistry.registerConfiguration(developerModeConfigurationNode);
 
-/**
- * Re-registers the developer-mode setting so its default value and per-scenario
- * properties reflect the currently registered scenarios.
- */
 function refreshDeveloperModeConfiguration(): void {
 	const next = buildDeveloperModeConfigurationNode();
 	configurationRegistry.updateConfigurations({ add: [next], remove: [developerModeConfigurationNode] });
 	developerModeConfigurationNode = next;
 }
 
-/**
- * Boots the onboarding engine after the workbench has restored: registers the
- * built-in presentations and starts evaluating registered scenarios.
- */
 class OnboardingContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.onboarding';
@@ -110,8 +96,6 @@ class OnboardingContribution extends Disposable implements IWorkbenchContributio
 		@IInstantiationService instantiationService: IInstantiationService,
 	) {
 		super();
-		// Keep the developer-mode setting's default ids in sync with the scenarios
-		// registered so far (and any registered later, e.g. session tours).
 		refreshDeveloperModeConfiguration();
 		this._register(onboardingScenarioRegistry.onDidChange(() => refreshDeveloperModeConfiguration()));
 		const spotlight = this._register(instantiationService.createInstance(SpotlightPresentation));

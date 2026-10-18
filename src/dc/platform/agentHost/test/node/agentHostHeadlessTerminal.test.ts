@@ -53,11 +53,11 @@ suite('AgentHostHeadlessTerminal', () => {
 		const responses: string[] = [];
 		disposables.add(terminal.onResponseData(data => responses.push(data)));
 
-		await terminal.writePtyData('\x1b[5n'); // status report
-		await terminal.writePtyData('\x1b[c'); // DA1
-		await terminal.writePtyData('\x1b[0c'); // DA1
-		await terminal.writePtyData('\x1b[>c'); // DA2
-		await terminal.writePtyData('\x1b[>0c'); // DA2
+		await terminal.writePtyData('\x1b[5n');
+		await terminal.writePtyData('\x1b[c');
+		await terminal.writePtyData('\x1b[0c');
+		await terminal.writePtyData('\x1b[>c');
+		await terminal.writePtyData('\x1b[>0c');
 
 		assert.deepStrictEqual(responses, []);
 	});

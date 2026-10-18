@@ -58,8 +58,6 @@ export class McpService extends Disposable implements IMcpService {
 
 		const updateThrottle = this._store.add(new RunOnceScheduler(() => this.updateCollectedServers(), 500));
 
-		// Throttle changes so that if a collection is changed, or a server is
-		// unregistered/registered, we don't stop servers unnecessarily.
 		this._register(autorun(reader => {
 			for (const collection of this._mcpRegistry.collections.read(reader)) {
 				collection.serverDefinitions.read(reader);
@@ -109,7 +107,6 @@ export class McpService extends Disposable implements IMcpService {
 			return;
 		}
 
-		// don't try re-running errored servers or disabled servers
 		const candidates = this.servers.get().filter(s =>
 			s.connectionState.get().state !== McpConnectionState.Kind.Error
 			&& isContributionEnabled(s.enablement.get())
@@ -163,7 +160,7 @@ export class McpService extends Disposable implements IMcpService {
 	}
 
 	public resetTrust(): void {
-		this.resetCaches(); // same difference now
+		this.resetCaches();
 	}
 
 	public async activateCollections(): Promise<void> {
@@ -190,14 +187,12 @@ export class McpService extends Disposable implements IMcpService {
 			nextDefinitions.delete(match);
 			nextServers.push(rec);
 			const connection = rec.object.connection.get();
-			// if the definition was modified, stop the server; it'll be restarted again on-demand
 			if (connection && !McpServerDefinition.equals(connection.definition, match.serverDefinition)) {
 				rec.object.stop();
 				this._logService.debug(`MCP server ${rec.object.definition.id} stopped because the definition changed`);
 			}
 		};
 
-		// Transfer over any servers that are still valid.
 		for (const server of currentServers) {
 			const match = definitions.find(d => defsEqual(server.object, d));
 			if (match) {
@@ -207,7 +202,6 @@ export class McpService extends Disposable implements IMcpService {
 			}
 		}
 
-		// Create any new servers that are needed.
 		for (const def of nextDefinitions) {
 			const object = this._instantiationService.createInstance(
 				McpServer,
@@ -240,24 +234,8 @@ function defsEqual(server: IMcpServer, def: { serverDefinition: McpServerDefinit
 	return server.collection.id === def.collectionDefinition.id && server.definition.id === def.serverDefinition.id;
 }
 
-/**
- * Wraps an {@link EnablementModel} with collision-aware defaults and
- * mutual-exclusion logic for MCP servers with the same label.
- *
- * When collision behavior is `disable`:
- * - Servers whose label collides with a higher-priority server are disabled
- *   by default (unless the user has explicitly toggled them).
- * - Enabling a colliding server disables all other servers with the same label.
- *
- * When collision behavior is `suffix`, delegates everything unchanged.
- */
 export class McpCollisionEnablementModel extends CollisionEnablementModel {
 
-	/**
-	 * For each server definition ID, the list of all definition IDs that share
-	 * the same (case-insensitive) label, in priority order (lowest collection
-	 * order first). Empty when collision behavior is `suffix`.
-	 */
 	constructor(
 		base: EnablementModel,
 		registry: IMcpRegistry,
@@ -269,7 +247,6 @@ export class McpCollisionEnablementModel extends CollisionEnablementModel {
 			}
 
 			const collections = registry.collections.read(reader);
-			// label → list of server definition IDs, in priority order
 			const labelToIds = new Map<string, string[]>();
 			for (const collection of collections) {
 				for (const server of collection.serverDefinitions.read(reader)) {

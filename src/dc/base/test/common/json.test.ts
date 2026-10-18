@@ -50,7 +50,7 @@ function assertTree(input: string, expected: any, expectedErrors: number[] = [],
 			for (const child of node.children) {
 				assert.strictEqual(node, child.parent);
 				// eslint-disable-next-line local/code-no-any-casts
-				delete (<any>child).parent; // delete to avoid recursion in deep equal
+				delete (<any>child).parent;
 				checkParent(child);
 			}
 		}
@@ -80,11 +80,9 @@ suite('JSON', () => {
 		assertKinds('/* this is a \r\ncomment*/', SyntaxKind.BlockCommentTrivia);
 		assertKinds('/* this is a \ncomment*/', SyntaxKind.BlockCommentTrivia);
 
-		// unexpected end
 		assertKinds('/* this is a', SyntaxKind.BlockCommentTrivia);
 		assertKinds('/* this is a \ncomment', SyntaxKind.BlockCommentTrivia);
 
-		// broken comment
 		assertKinds('/ ttt', SyntaxKind.Unknown, SyntaxKind.Trivia, SyntaxKind.Unknown);
 	});
 
@@ -101,11 +99,9 @@ suite('JSON', () => {
 		assertKinds('"\u88ff"', SyntaxKind.StringLiteral);
 		assertKinds('"​\u2028"', SyntaxKind.StringLiteral);
 
-		// unexpected end
 		assertKinds('"test', SyntaxKind.StringLiteral);
 		assertKinds('"test\n"', SyntaxKind.StringLiteral, SyntaxKind.LineBreakTrivia, SyntaxKind.StringLiteral);
 
-		// invalid characters
 		assertScanError('"\t"', SyntaxKind.StringLiteral, ScanError.InvalidCharacter);
 		assertScanError('"\t "', SyntaxKind.StringLiteral, ScanError.InvalidCharacter);
 	});
@@ -126,11 +122,9 @@ suite('JSON', () => {
 		assertKinds('90E123', SyntaxKind.NumericLiteral);
 		assertKinds('90e123', SyntaxKind.NumericLiteral);
 
-		// zero handling
 		assertKinds('01', SyntaxKind.NumericLiteral, SyntaxKind.NumericLiteral);
 		assertKinds('-01', SyntaxKind.NumericLiteral, SyntaxKind.NumericLiteral);
 
-		// unexpected end
 		assertKinds('-', SyntaxKind.Unknown);
 		assertKinds('.0', SyntaxKind.Unknown);
 	});
@@ -148,7 +142,6 @@ suite('JSON', () => {
 			SyntaxKind.Trivia,
 			SyntaxKind.NullKeyword);
 
-		// invalid words
 		assertKinds('nulllll', SyntaxKind.Unknown);
 		assertKinds('True', SyntaxKind.Unknown);
 		assertKinds('foo-bar', SyntaxKind.Unknown);
@@ -230,7 +223,6 @@ suite('JSON', () => {
 	});
 
 	test('parse: trailing comma', () => {
-		// default is allow
 		assertValidParse('{ "hello": [], }', { hello: [] });
 
 		let options = { allowTrailingComma: true };

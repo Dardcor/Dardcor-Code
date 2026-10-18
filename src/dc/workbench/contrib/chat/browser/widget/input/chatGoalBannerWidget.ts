@@ -14,14 +14,6 @@ import './media/chatGoalBannerWidget.css';
 
 const $ = dom.$;
 
-/**
- * Slim banner that surfaces the current autopilot goal above the chat input.
- * Shows a target icon, a short "Goal: <text>" summary, and a dismiss button.
- *
- * The widget is purely presentational — owners drive its content with
- * {@link setLoading}, {@link setGoal}, and {@link clear}, and observe dismissals via
- * {@link onDismiss}.
- */
 export class ChatGoalBannerWidget extends Disposable {
 
 	readonly domNode: HTMLElement;
@@ -33,7 +25,6 @@ export class ChatGoalBannerWidget extends Disposable {
 	private _slot: HTMLElement | undefined;
 	private _visible = false;
 
-	/** Add the banner to its slot in the chat input stack. */
 	attachTo(slot: HTMLElement): void {
 		this._slot = slot;
 		slot.appendChild(this.domNode);

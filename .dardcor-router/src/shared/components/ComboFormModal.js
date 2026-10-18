@@ -8,7 +8,6 @@ import ModelSelectModal from "./ModelSelectModal";
 
 const VALID_NAME_REGEX = /^[a-zA-Z0-9_.\-]+$/;
 
-// Inline editable model item
 function ModelItem({ index, model, isFirst, isLast, onEdit, onMoveUp, onMoveDown, onRemove }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(model);
@@ -49,9 +48,7 @@ function ModelItem({ index, model, isFirst, isLast, onEdit, onMoveUp, onMoveDown
   );
 }
 
-// Reusable Combo create/edit modal. forcePrefix auto-prepends to name.
 export default function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders, kindFilter = null, forcePrefix = "", title }) {
-  // Strip prefix when editing existing combo so user only edits suffix
   const initialName = combo?.name
     ? (forcePrefix && combo.name.startsWith(forcePrefix) ? combo.name.slice(forcePrefix.length) : combo.name)
     : "";
@@ -77,7 +74,6 @@ export default function ComboFormModal({ isOpen, combo, onClose, onSave, activeP
 
   const handleNameChange = (e) => {
     let value = e.target.value;
-    // If user types prefix manually, strip it (we always prepend)
     if (forcePrefix && value.startsWith(forcePrefix)) value = value.slice(forcePrefix.length);
     setName(value);
     if (value) validateName(value); else setNameError("");

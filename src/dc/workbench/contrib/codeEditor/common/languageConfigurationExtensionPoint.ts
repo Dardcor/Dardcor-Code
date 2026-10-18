@@ -44,9 +44,6 @@ interface IOnEnterRule {
 	action: IEnterAction;
 }
 
-/**
- * Serialized form of a language configuration
- */
 export interface ILanguageConfiguration {
 	comments?: CommentRule;
 	brackets?: CharacterPair[];
@@ -88,9 +85,6 @@ function isCharacterPair(something: CharacterPair | null): boolean {
 
 export class LanguageConfigurationFileHandler extends Disposable {
 
-	/**
-	 * A map from language id to a hash computed from the config files locations.
-	 */
 	private readonly _done = new Map<string, number>();
 
 	constructor(
@@ -102,13 +96,11 @@ export class LanguageConfigurationFileHandler extends Disposable {
 		super();
 
 		this._register(this._languageService.onDidRequestBasicLanguageFeatures(async (languageIdentifier) => {
-			// Modes can be instantiated before the extension points have finished registering
 			this._extensionService.whenInstalledExtensionsRegistered().then(() => {
 				this._loadConfigurationsForMode(languageIdentifier);
 			});
 		}));
 		this._register(this._languageService.onDidChange(() => {
-			// reload language configurations as necessary
 			for (const [languageId] of this._done) {
 				this._loadConfigurationsForMode(languageId);
 			}

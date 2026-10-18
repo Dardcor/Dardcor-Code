@@ -45,10 +45,6 @@ export interface ITypeScriptServer {
 
 	kill(): void;
 
-	/**
-	 * @return A list of all execute requests. If there are multiple entries, the first item is the primary
-	 * request while the rest are secondary ones.
-	 */
 	executeImpl(command: keyof TypeScriptRequests, args: unknown, executeInfo: { isAsync: boolean; token?: vscode.CancellationToken; expectsResult: boolean; lowPriority?: boolean; executionTarget?: ExecutionTarget }): Array<Promise<ServerResponse.Response<Proto.Response>> | undefined>;
 
 	dispose(): void;
@@ -218,7 +214,6 @@ export class SingleTsServer extends Disposable implements ITypeScriptServer {
 		if (response.success) {
 			callback.onSuccess(response);
 		} else if (response.message === 'No content available.') {
-			// Special case where response itself is successful but there is not any data to return.
 			callback.onSuccess(ServerResponse.NoContent);
 		} else {
 			callback.onError(TypeScriptServerError.create(this._serverId, this._version, response));
@@ -266,15 +261,6 @@ export class SingleTsServer extends Disposable implements ITypeScriptServer {
 			}).catch((err: Error) => {
 				if (err instanceof TypeScriptServerError) {
 					if (!executeInfo.token?.isCancellationRequested) {
-						/* __GDPR__
-							"languageServiceErrorResponse" : {
-								"owner": "mjbvz",
-								"${include}": [
-									"${TypeScriptCommonProperties}",
-									"${TypeScriptRequestErrorProperties}"
-								]
-							}
-						*/
 						this._telemetryReporter.logTelemetry('languageServiceErrorResponse', err.telemetry);
 					}
 				}
@@ -410,19 +396,14 @@ class RequestRouter {
 		executeInfo: ExecuteInfo,
 	): Array<Promise<ServerResponse.Response<Proto.Response>> | undefined> {
 		if (RequestRouter.sharedCommands.has(command) && typeof executeInfo.executionTarget === 'undefined') {
-			// Dispatch shared commands to all servers but use first one as the primary response
 
 			const requestStates: RequestState.State[] = this.servers.map(() => RequestState.Unresolved);
 
-			// Also make sure we never cancel requests to just one server
 			let token: vscode.CancellationToken | undefined = undefined;
 			if (executeInfo.token) {
 				const source = new vscode.CancellationTokenSource();
 				executeInfo.token.onCancellationRequested(() => {
 					if (requestStates.some(state => state === RequestState.Resolved)) {
-						// Don't cancel.
-						// One of the servers completed this request so we don't want to leave the other
-						// in a different state.
 						return;
 					}
 					source.cancel();
@@ -443,14 +424,12 @@ class RequestRouter {
 							requestStates[serverIndex] = RequestState.Resolved;
 							const erroredRequest = requestStates.find(state => state.type === RequestState.Type.Errored) as RequestState.Errored | undefined;
 							if (erroredRequest) {
-								// We've gone out of sync
 								this.delegate.onFatalError(command, erroredRequest.err);
 							}
 							return result;
 						}, err => {
 							requestStates[serverIndex] = new RequestState.Errored(err);
 							if (requestStates.some(state => state === RequestState.Resolved)) {
-								// We've gone out of sync
 								this.delegate.onFatalError(command, err);
 							}
 							throw err;
@@ -496,7 +475,7 @@ export class GetErrRoutingTsServer extends Disposable implements ITypeScriptServ
 		this.router = new RequestRouter(
 			[
 				{ server: this.getErrServer, canRun: (command) => ['geterr', 'geterrForProject'].includes(command) },
-				{ server: this.mainServer, canRun: undefined /* gets all other commands */ }
+				{ server: this.mainServer, canRun: undefined }
 			],
 			delegate);
 
@@ -504,13 +483,11 @@ export class GetErrRoutingTsServer extends Disposable implements ITypeScriptServ
 			if (GetErrRoutingTsServer.diagnosticEvents.has(e.event)) {
 				this._onEvent.fire(e);
 			}
-			// Ignore all other events
 		}));
 		this._register(this.mainServer.onEvent(e => {
 			if (!GetErrRoutingTsServer.diagnosticEvents.has(e.event)) {
 				this._onEvent.fire(e);
 			}
-			// Ignore all other events
 		}));
 
 		this._register(this.getErrServer.onError(e => this._onError.fire(e)));
@@ -546,9 +523,6 @@ export class GetErrRoutingTsServer extends Disposable implements ITypeScriptServ
 
 export class SyntaxRoutingTsServer extends Disposable implements ITypeScriptServer {
 
-	/**
-	 * Commands that should always be run on the syntax server.
-	 */
 	private static readonly syntaxAlwaysCommands = new Set<keyof TypeScriptRequests>([
 		'navtree',
 		'getOutliningSpans',
@@ -560,9 +534,6 @@ export class SyntaxRoutingTsServer extends Disposable implements ITypeScriptServ
 		'linkedEditingRange'
 	]);
 
-	/**
-	 * Commands that should always be run on the semantic server.
-	 */
 	private static readonly semanticCommands = new Set<keyof TypeScriptRequests>([
 		'geterr',
 		'geterrForProject',
@@ -570,9 +541,6 @@ export class SyntaxRoutingTsServer extends Disposable implements ITypeScriptServ
 		'configurePlugin',
 	]);
 
-	/**
-	 * Commands that can be run on the syntax server but would benefit from being upgraded to the semantic server.
-	 */
 	private static readonly syntaxAllowedCommands = new Set<keyof TypeScriptRequests>([
 		'completions',
 		'completionEntryDetails',
@@ -627,7 +595,7 @@ export class SyntaxRoutingTsServer extends Disposable implements ITypeScriptServ
 					}
 				}, {
 					server: this.semanticServer,
-					canRun: undefined /* gets all other commands */
+					canRun: undefined
 				}
 			],
 			delegate);

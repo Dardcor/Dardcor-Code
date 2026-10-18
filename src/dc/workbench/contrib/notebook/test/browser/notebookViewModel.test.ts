@@ -346,7 +346,6 @@ suite('NotebookViewModel API', () => {
 			],
 			(editor, viewModel) => {
 				assert.strictEqual(viewModel.nearestCodeCellIndex(0), 1);
-				// find the nearest code cell from above
 				assert.strictEqual(viewModel.nearestCodeCellIndex(2), 1);
 				assert.strictEqual(viewModel.nearestCodeCellIndex(4), 3);
 				assert.strictEqual(viewModel.nearestCodeCellIndex(5), 4);
@@ -385,7 +384,6 @@ suite('NotebookViewModel API', () => {
 				assert.deepStrictEqual(viewModel.getCellsInRange({ start: 2, end: 4 }).map(cell => cell.getText()), ['# header b']);
 				assert.deepStrictEqual(viewModel.getCellsInRange({ start: 3, end: 4 }).map(cell => cell.getText()), []);
 
-				// no one should use an invalid range but `getCells` should be able to handle that.
 				assert.deepStrictEqual(viewModel.getCellsInRange({ start: -1, end: 1 }).map(cell => cell.getText()), ['# header a']);
 				assert.deepStrictEqual(viewModel.getCellsInRange({ start: 3, end: 0 }).map(cell => cell.getText()), ['# header a', 'var b = 1;', '# header b']);
 			}

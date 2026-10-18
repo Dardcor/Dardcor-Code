@@ -13,9 +13,6 @@ import { ICodeEditor } from './editorBrowser.js';
 import { asCssVariable } from '../../platform/theme/common/colorRegistry.js';
 import { ThemeColor } from '../../base/common/themables.js';
 
-/**
- * Coordinates relative to the whole document (e.g. mouse event's pageX and pageY)
- */
 export class PageCoordinates {
 	_pageCoordinatesBrand: void = undefined;
 
@@ -29,13 +26,6 @@ export class PageCoordinates {
 	}
 }
 
-/**
- * Coordinates within the application's client area (i.e. origin is document's scroll position).
- *
- * For example, clicking in the top-left corner of the client area will
- * always result in a mouse event with a client.x value of 0, regardless
- * of whether the page is scrolled horizontally.
- */
 export class ClientCoordinates {
 	_clientCoordinatesBrand: void = undefined;
 
@@ -49,9 +39,6 @@ export class ClientCoordinates {
 	}
 }
 
-/**
- * The position of the editor in the page.
- */
 export class EditorPagePosition {
 	_editorPagePositionBrand: void = undefined;
 
@@ -63,12 +50,6 @@ export class EditorPagePosition {
 	) { }
 }
 
-/**
- * Coordinates relative to the (top;left) of the editor that can be used safely with other internal editor metrics.
- * **NOTE**: This position is obtained by taking page coordinates and transforming them relative to the
- * editor's (top;left) position in a way in which scale transformations are taken into account.
- * **NOTE**: These coordinates could be negative if the mouse position is outside the editor.
- */
 export class CoordinatesRelativeToEditor {
 	_positionRelativeToEditorBrand: void = undefined;
 
@@ -84,19 +65,9 @@ export function createEditorPagePosition(editorViewDomNode: HTMLElement): Editor
 }
 
 export function createCoordinatesRelativeToEditor(editorViewDomNode: HTMLElement, editorPagePosition: EditorPagePosition, pos: PageCoordinates) {
-	// The editor's page position is read from the DOM using getBoundingClientRect().
-	//
-	// getBoundingClientRect() returns the actual dimensions, while offsetWidth and offsetHeight
-	// reflect the unscaled size. We can use this difference to detect a transform:scale()
-	// and we will apply the transformation in inverse to get mouse coordinates that make sense inside the editor.
-	//
-	// This could be expanded to cover rotation as well maybe by walking the DOM up from `editorViewDomNode`
-	// and computing the effective transformation matrix using getComputedStyle(element).transform.
-	//
 	const scaleX = editorPagePosition.width / editorViewDomNode.offsetWidth;
 	const scaleY = editorPagePosition.height / editorViewDomNode.offsetHeight;
 
-	// Adjust mouse offsets if editor appears to be scaled via transforms
 	const relativeX = (pos.x - editorPagePosition.x) / scaleX;
 	const relativeY = (pos.y - editorPagePosition.y) / scaleY;
 	return new CoordinatesRelativeToEditor(relativeX, relativeY);
@@ -105,31 +76,16 @@ export function createCoordinatesRelativeToEditor(editorViewDomNode: HTMLElement
 export class EditorMouseEvent extends StandardMouseEvent {
 	_editorMouseEventBrand: void = undefined;
 
-	/**
-	 * If the event is a result of using `setPointerCapture`, the `event.target`
-	 * does not necessarily reflect the position in the editor.
-	 */
 	public readonly isFromPointerCapture: boolean;
 
-	/**
-	 * Coordinates relative to the whole document.
-	 */
 	public readonly pos: PageCoordinates;
 
-	/**
-	 * Editor's coordinates relative to the whole document.
-	 */
 	public get editorPos(): EditorPagePosition {
 		this._editorPos ??= createEditorPagePosition(this._editorViewDomNode);
 		return this._editorPos;
 	}
 	private _editorPos: EditorPagePosition | undefined;
 
-	/**
-	 * Coordinates relative to the (top;left) of the editor.
-	 * *NOTE*: These coordinates are preferred because they take into account transformations applied to the editor.
-	 * *NOTE*: These coordinates could be negative if the mouse position is outside the editor.
-	*/
 	public get relativePos(): CoordinatesRelativeToEditor {
 		this._relativePos ??= createCoordinatesRelativeToEditor(this._editorViewDomNode, this.editorPos, this.pos);
 		return this._relativePos;
@@ -249,12 +205,9 @@ export class GlobalEditorPointerMoveMonitor extends Disposable {
 		onStopCallback: (browserEvent?: PointerEvent | KeyboardEvent) => void
 	): void {
 
-		// Add a <<capture>> keydown event listener that will cancel the monitoring
-		// if something other than a modifier key is pressed
 		this._keydownListener = dom.addStandardDisposableListener(initialElement.ownerDocument, 'keydown', (e) => {
 			const chord = e.toKeyCodeChord();
 			if (chord.isModifierKey()) {
-				// Allow modifier keys
 				return;
 			}
 			this._globalPointerMoveMonitor.stopMonitoring(true, e.browserEvent);
@@ -280,18 +233,12 @@ export class GlobalEditorPointerMoveMonitor extends Disposable {
 }
 
 
-/**
- * A helper to create dynamic css rules, bound to a class name.
- * Rules are reused.
- * Reference counting and delayed garbage collection ensure that no rules leak.
-*/
 export class DynamicCssRules {
 	private static _idPool = 0;
 	private readonly _instanceId = ++DynamicCssRules._idPool;
 	private _counter = 0;
 	private readonly _rules = new DisposableMap<string, RefCountedCssRule>();
 
-	// We delay garbage collection so that hanging rules can be reused.
 	private readonly _garbageCollectionScheduler = new RunOnceScheduler(() => this.garbageCollect(), 1000);
 
 	constructor(

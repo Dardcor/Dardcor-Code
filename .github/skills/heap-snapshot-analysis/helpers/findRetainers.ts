@@ -3,30 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Retainer Path Analysis
- *
- * Finds what keeps objects alive in the heap by tracing non-weak
- * reverse edges from target objects to GC roots.
- */
 
 import { type HeapGraph, type HeapNode } from './parseSnapshot.ts';
 
 export interface RetainerPathOptions {
-	/** Maximum number of paths to find per target class. Default: 5. */
 	maxPaths?: number;
-	/** Maximum BFS depth. Default: 25. */
 	maxDepth?: number;
-	/** Maximum number of instances to attempt before giving up. Default: 200. */
 	maxAttempts?: number;
 }
 
-/**
- * Find retainer paths for all instances of a named class.
- * Skips weak edges so only genuine retainers are reported.
- *
- * @returns The number of paths found.
- */
 export function findRetainerPaths(
 	graph: HeapGraph,
 	targetName: string,
@@ -34,7 +19,6 @@ export function findRetainerPaths(
 ): number {
 	const { maxPaths = 5, maxDepth = 25, maxAttempts = 200 } = options;
 
-	// Find target nodes
 	const targets: number[] = [];
 	for (let i = 0; i < graph.nodes.length; i++) {
 		if (graph.nodes[i].name === targetName && graph.nodes[i].type === 'object') {
@@ -72,10 +56,6 @@ export function findRetainerPaths(
 	return pathsFound;
 }
 
-/**
- * Find ALL non-weak retainers of a specific node (by node index).
- * Returns the immediate parent nodes that reference this node.
- */
 export function findDirectRetainers(
 	graph: HeapGraph,
 	nodeIndex: number,
@@ -88,9 +68,6 @@ export function findDirectRetainers(
 	}));
 }
 
-/**
- * Find a node by its heap ID and optional name filter.
- */
 export function findNodeById(graph: HeapGraph, id: number, name?: string): number {
 	for (let i = 0; i < graph.nodes.length; i++) {
 		if (graph.nodes[i].id === id && (!name || graph.nodes[i].name === name)) {
@@ -100,18 +77,13 @@ export function findNodeById(graph: HeapGraph, id: number, name?: string): numbe
 	return -1;
 }
 
-/**
- * Find all instances of a named class.
- */
 export function findNodesByName(graph: HeapGraph, name: string, type = 'object'): HeapNode[] {
 	return graph.nodes.filter(n => n.name === name && n.type === type);
 }
 
-// ---- Internal ----
 
 function bfsToRoot(graph: HeapGraph, startNi: number, maxDepth: number): number[] | null {
 	const visited = new Set<number>();
-	// Use parent pointers instead of copying full paths — much faster for large graphs
 	const parent = new Map<number, number>();
 	const queue: number[] = [startNi];
 	const depth = new Map<number, number>();
@@ -127,7 +99,6 @@ function bfsToRoot(graph: HeapGraph, startNi: number, maxDepth: number): number[
 
 		const node = graph.nodes[current];
 		if (node.type === 'synthetic' || current === 0) {
-			// Reconstruct path from parent pointers
 			const path: number[] = [];
 			let cur: number | undefined = current;
 			while (cur !== undefined) {

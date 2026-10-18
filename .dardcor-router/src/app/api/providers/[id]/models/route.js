@@ -12,15 +12,10 @@ import { resolveGrokCliModels } from "open-sse/services/grokCliModels.js";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { resolveCursorModels } from "open-sse/services/cursorModels.js";
 import { resolveClineModels, resolveClinepassModels } from "open-sse/services/clinepassModels.js";
-import { resolveDeepseekWebModels } from "open-sse/services/deepseekWebModels.js";
-import { resolveGeminiWebModels } from "open-sse/services/geminiWebModels.js";
+import { resolveCopilotModels } from "open-sse/services/copilotModels.js";
 
 const GEMINI_CLI_MODELS_URL = "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels";
 
-// The /codex/models endpoint gates each entry by minimal_client_version against this
-// value, and codex CLI's own manifest (openai/codex codex-rs/models-manager/models.json)
-// already requires 0.144.0 for its newest models, so a stale client_version here comes
-// back 200 with those entries quietly missing instead of erroring.
 const CODEX_CLIENT_VERSION = "0.144.6";
 const CODEX_MODELS_URL = `https://chatgpt.com/backend-api/codex/models?client_version=${CODEX_CLIENT_VERSION}`;
 
@@ -89,8 +84,6 @@ const getStaticProviderModels = (providerId) =>
     name: model.name || model.id,
   }));
 
-// Generic custom resolver for OAuth providers that need refresh-on-401 + token persist.
-// Receives a `fetchFn(token)` and returns parsed models or throws.
 const buildOAuthResolver = ({ refreshFn, fetchFn, parseFn, errorLabel }) => async (connection) => {
   const { accessToken, refreshToken } = connection;
   if (!accessToken) {
@@ -128,7 +121,6 @@ const buildOAuthResolver = ({ refreshFn, fetchFn, parseFn, errorLabel }) => asyn
   return { models: [], warning };
 };
 
-// Provider models endpoints configuration
 const PROVIDER_MODELS_CONFIG = {
   claude: {
     url: "https://api.anthropic.com/v1/models",
@@ -144,7 +136,7 @@ const PROVIDER_MODELS_CONFIG = {
     url: "https://generativelanguage.googleapis.com/v1beta/models",
     method: "GET",
     headers: { "Content-Type": "application/json" },
-    authQuery: "key", // Use query param for API key
+    authQuery: "key",
     parseResponse: (data) => data.models || []
   },
   codex: {
@@ -171,92 +163,6 @@ const PROVIDER_MODELS_CONFIG = {
     authPrefix: "Bearer ",
     body: {},
     parseResponse: (data) => data.models || []
-  },
-  github: {
-    url: "https://api.githubcopilot.com/models",
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "Copilot-Integration-Id": "vscode-chat",
-      "editor-version": "vscode/1.107.1",
-      "editor-plugin-version": "copilot-chat/0.26.7",
-      "user-agent": "GitHubCopilotChat/0.26.7"
-    },
-    authHeader: "Authorization",
-    authPrefix: "Bearer ",
-    parseResponse: (data) => {
-      if (!data?.data) return [];
-      // Filter out embeddings, non-chat models, and disabled models
-      return data.data
-        .filter(m => m.capabilities?.type === "chat")
-        .filter(m => m.policy?.state !== "disabled") // Only return explicitly enabled models
-        .map(m => ({
-          id: m.id,
-          name: m.name || m.id,
-          version: m.version,
-          capabilities: m.capabilities,
-          isDefault: m.model_picker_enabled === true
-        }));
-    }
-  },
-  "chatgpt-web": {
-    customResolver: async (conn) => {
-      const plan = String(conn?.providerSpecificData?.chatgptPlanType || "free").toLowerCase();
-      if (plan === "pro") {
-        return {
-          models: [
-            { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)" },
-            { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
-            { id: "gpt-5.5", name: "GPT-5.5" },
-            { id: "auto", name: "ChatGPT Auto (Default)" },
-            { id: "gpt-4o", name: "GPT-4o (Unlimited)" },
-            { id: "o1", name: "OpenAI o1" },
-            { id: "o1-pro", name: "OpenAI o1 Pro Mode" },
-            { id: "o3-mini", name: "OpenAI o3 Mini" },
-            { id: "gpt-4.5", name: "GPT 4.5" },
-          ]
-        };
-      }
-      if (plan === "plus" || plan === "team") {
-        return {
-          models: [
-            { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)" },
-            { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
-            { id: "gpt-5.5", name: "GPT-5.5" },
-            { id: "auto", name: "ChatGPT Auto (Default)" },
-            { id: "gpt-4o", name: "GPT-4o" },
-            { id: "gpt-4o-mini", name: "GPT-4o Mini" },
-            { id: "o1", name: "OpenAI o1" },
-            { id: "o1-mini", name: "OpenAI o1 Mini" },
-            { id: "o3-mini", name: "OpenAI o3 Mini" },
-            { id: "gpt-4.5", name: "GPT 4.5 Preview" },
-          ]
-        };
-      }
-      return {
-        models: [
-          { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)" },
-          { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
-          { id: "gpt-5.5", name: "GPT-5.5" },
-          { id: "auto", name: "ChatGPT Auto (Default)" },
-          { id: "gpt-4o", name: "GPT-4o (Free Tier)" },
-          { id: "gpt-4o-mini", name: "GPT-4o Mini" },
-          { id: "o3-mini", name: "OpenAI o3 Mini" },
-        ]
-      };
-    }
-  },
-  "deepseek-web": {
-    customResolver: async (conn) => {
-      const res = await resolveDeepseekWebModels(conn);
-      return { models: res?.models || [] };
-    }
-  },
-  "gemini-web": {
-    customResolver: async (conn) => {
-      const res = await resolveGeminiWebModels(conn);
-      return { models: res?.models || [] };
-    }
   },
   openai: createOpenAIModelsConfig("https://api.openai.com/v1/models"),
   openrouter: createOpenAIModelsConfig("https://openrouter.ai/api/v1/models"),
@@ -298,7 +204,6 @@ const PROVIDER_MODELS_CONFIG = {
   "volcengine-ark": createOpenAIModelsConfig("https://ark.cn-beijing.volces.com/api/coding/v3/models"),
   byteplus: createOpenAIModelsConfig("https://ark.ap-southeast.bytepluses.com/api/coding/v3/models"),
 
-  // OpenAI-compatible API key providers
   deepseek: createOpenAIModelsConfig("https://api.deepseek.com/models"),
   groq: createOpenAIModelsConfig("https://api.groq.com/openai/v1/models"),
   xai: createOpenAIModelsConfig("https://api.x.ai/v1/models"),
@@ -313,7 +218,6 @@ const PROVIDER_MODELS_CONFIG = {
   siliconflow: createOpenAIModelsConfig("https://api.siliconflow.com/v1/models"),
   hyperbolic: createOpenAIModelsConfig("https://api.hyperbolic.xyz/v1/models"),
   ollama: createOpenAIModelsConfig("https://ollama.com/api/tags"),
-  // ollama-local: url resolved dynamically below via providerSpecificData.baseUrl
   nanobanana: createOpenAIModelsConfig("https://api.nanobananaapi.ai/v1/models"),
   chutes: createOpenAIModelsConfig("https://llm.chutes.ai/v1/models"),
   nvidia: createOpenAIModelsConfig("https://integrate.api.nvidia.com/v1/models"),
@@ -348,11 +252,49 @@ const PROVIDER_MODELS_CONFIG = {
       };
     },
   },
+  github: {
+    customResolver: async (connection) => {
+      const credentials = {
+        accessToken: connection.accessToken,
+        refreshToken: connection.refreshToken,
+        providerSpecificData: connection.providerSpecificData || {},
+      };
+      let warning;
+      try {
+        const result = await resolveCopilotModels(credentials, {
+          forceRefresh: true,
+          log: console,
+          onCredentialsRefreshed: async (refreshed) => {
+            if (refreshed?.copilotToken) {
+              await updateProviderCredentials(connection.id, {
+                providerSpecificData: {
+                  ...(connection.providerSpecificData || {}),
+                  copilotToken: refreshed.copilotToken,
+                  copilotTokenExpiresAt: refreshed.copilotTokenExpiresAt,
+                },
+              });
+              if (connection.providerSpecificData) {
+                connection.providerSpecificData.copilotToken = refreshed.copilotToken;
+                connection.providerSpecificData.copilotTokenExpiresAt = refreshed.copilotTokenExpiresAt;
+              }
+            }
+          },
+        });
+        if (result?.models?.length) {
+          return { models: result.models };
+        }
+        warning = "Copilot returned no models; falling back to static catalog.";
+      } catch (error) {
+        warning = `Failed to fetch Copilot models: ${error.message}`;
+        console.log("Failed to fetch Copilot models dynamically, falling back to static:", error.message);
+      }
+      return {
+        models: getStaticProviderModels("github"),
+        ...(warning ? { warning } : {}),
+      };
+    },
+  },
 
-  // Cline/ClinePass share api.cline.bot/api/v1/models. The service layer already
-  // handles Bearer-vs-`workos:` auth and swallows failures into null, so these follow
-  // the cursor direct pattern (no refreshFn) and only differ in filtering:
-  // cline returns the whole catalog verbatim, clinepass keeps cline-pass/* only.
   cline: {
     customResolver: async (connection) => {
       const result = await resolveClineModels({
@@ -380,38 +322,6 @@ const PROVIDER_MODELS_CONFIG = {
     },
   },
 
-  "deepseek-web": {
-    customResolver: async (connection) => {
-      const result = await resolveDeepseekWebModels({
-        accessToken: connection.accessToken,
-        apiKey: connection.apiKey,
-        providerSpecificData: connection.providerSpecificData || {},
-      }, { forceRefresh: true, log: console });
-      if (result?.models?.length) return { models: result.models, warning: result.warning };
-      return {
-        models: getStaticProviderModels("deepseek-web"),
-        warning: "DeepSeek Web returned no models; falling back to static catalog.",
-      };
-    },
-  },
-
-  "gemini-web": {
-    customResolver: async (connection) => {
-      const result = await resolveGeminiWebModels({
-        accessToken: connection.accessToken,
-        apiKey: connection.apiKey,
-        cookie: connection.providerSpecificData?.cookie || connection.accessToken || connection.apiKey,
-        providerSpecificData: connection.providerSpecificData || {},
-      }, { forceRefresh: true, log: console });
-      if (result?.models?.length) return { models: result.models, warning: result.warning };
-      return {
-        models: getStaticProviderModels("gemini-web"),
-        warning: "Gemini Web returned no models; falling back to static catalog.",
-      };
-    },
-  },
-
-  // Custom resolvers (non-OpenAI-shaped APIs / token-refresh flows)
   kiro: {
     customResolver: async (connection) => {
       const credentials = {
@@ -472,8 +382,6 @@ const PROVIDER_MODELS_CONFIG = {
         if (result?.models?.length) {
           return {
             models: result.models.map((m) => ({
-              // Use the canonical "qoder/<key>" id so the dashboard
-              // surfaces the same identifier the chat router expects.
               id: `qoder/${m.id}`,
               name: m.name,
               contextLength: m.contextLength,
@@ -560,9 +468,6 @@ const PROVIDER_MODELS_CONFIG = {
   }
 };
 
-/**
- * GET /api/providers/[id]/models - Get models list from provider
- */
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
@@ -654,7 +559,6 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Config-driven custom resolver path (OAuth refresh, non-OpenAI shape, etc.)
     if (typeof config.customResolver === "function") {
       const result = await config.customResolver(connection);
       if (result.error) {
@@ -668,25 +572,21 @@ export async function GET(request, { params }) {
       });
     }
 
-    // Get auth token
-    const token = connection.providerSpecificData?.copilotToken || connection.accessToken || connection.apiKey;
+    const token = connection.accessToken || connection.apiKey;
     if (!token) {
       return NextResponse.json({ error: "No valid token found" }, { status: 401 });
     }
 
-    // Build request URL
     let url = config.url;
     if (config.authQuery) {
       url += `?${config.authQuery}=${token}`;
     }
 
-    // Build headers
     const headers = { ...config.headers };
     if (config.authHeader && !config.authQuery) {
       headers[config.authHeader] = (config.authPrefix || "") + token;
     }
 
-    // Make request
     const fetchOptions = {
       method: config.method,
       headers

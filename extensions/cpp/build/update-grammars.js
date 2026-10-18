@@ -14,7 +14,6 @@ async function updateGrammars() {
 
 	await updateGrammar.update('NVIDIA/cuda-cpp-grammar', 'syntaxes/cuda-cpp.tmLanguage.json', './syntaxes/cuda-cpp.tmLanguage.json', undefined, 'master');
 
-	// `source.c.platform` which is still included by other grammars
 	await updateGrammar.update('textmate/c.tmbundle', 'Syntaxes/Platform.tmLanguage', './syntaxes/platform.tmLanguage.json');
 }
 

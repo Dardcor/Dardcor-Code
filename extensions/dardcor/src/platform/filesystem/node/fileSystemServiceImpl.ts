@@ -62,7 +62,6 @@ export class NodeFileSystemService implements IFileSystemService {
 	async rename(oldURI: URI, newURI: URI, options?: { overwrite?: boolean }): Promise<void> {
 		assetIsFileUri(oldURI);
 		assetIsFileUri(newURI);
-		// Check if new path exists if overwrite is not set return
 		if (!options?.overwrite && fs.existsSync(newURI.fsPath)) {
 			return;
 		}
@@ -73,7 +72,6 @@ export class NodeFileSystemService implements IFileSystemService {
 	async copy(source: URI, destination: URI, options?: { overwrite?: boolean }): Promise<void> {
 		assetIsFileUri(source);
 		assetIsFileUri(destination);
-		// Calculate copy contants based on overwrite option
 		const copyConstant = options?.overwrite ? fs.constants.COPYFILE_FICLONE : fs.constants.COPYFILE_EXCL;
 		return fs.promises.copyFile(source.fsPath, destination.fsPath, copyConstant);
 	}
@@ -91,23 +89,12 @@ export class NodeFileSystemService implements IFileSystemService {
 			onDidChange = Event.None;
 			onDidDelete = Event.None;
 			dispose() {
-				// noop
 			}
 		};
 	}
 }
 
-/**
- * A helper utility to read a file from the open text buffer if applicable otherwise from the filesystem.
- * This can be useful when you want to get the contents that are shown in the editor if a file is open, otherwise delegate to disk
- * @param fileSystemService The filesystem service
- * @param workspaceService The workspace service
- * @param uri The uri to read
- * @param maxBytesToRead An optional max bytes to read from the file system. If open, the entire document is always read.
- * @returns A promise that resolves to the file content or the file buffer
- */
 export async function readFileFromTextBufferOrFS(fileSystemService: IFileSystemService, workspaceService: IWorkspaceService, uri: Uri, maxBytesToRead?: number): Promise<string | Uint8Array> {
-	// First check open text documents
 	const file = workspaceService.textDocuments.find(d => isEqual(d.uri, uri));
 	if (file) {
 		return file.getText();

@@ -10,14 +10,6 @@ import { ILogService } from '../../log/common/log.js';
 import type { BrowserView } from './browserView.js';
 import { ICDPConnection } from '../common/cdp/types.js';
 
-/**
- * Manages device emulation for a browser view. The renderer is authoritative
- * for the on-screen container size and scale; this class derives the emulated
- * viewport from the current device profile (falling back to container size /
- * scale when width/height are unset) and forwards values to
- * `webContents.enableDeviceEmulation`. It also manages the touch / media /
- * user-agent overrides that have no native Electron equivalent.
- */
 export class BrowserViewEmulator extends Disposable {
 
 	private _device: IBrowserDeviceProfile | undefined;
@@ -35,14 +27,12 @@ export class BrowserViewEmulator extends Disposable {
 		super();
 		this._defaultUserAgent = this.browser.webContents.getUserAgent();
 
-		// Chromium may reset emulation on cross-process navigation.
 		const onNavigate = () => {
 			this._lastApplied = undefined;
 			void this._reapply();
 		};
 		this.browser.webContents.on('did-navigate', onNavigate);
 
-		// Intercept external CDP emulation commands and fold them into the device profile so there is a single source of truth.
 		this._register(this.browser.debugger.registerCommandInterceptor((method, params, session) => this._intercept(method, params, session)));
 	}
 
@@ -79,15 +69,6 @@ export class BrowserViewEmulator extends Disposable {
 		this._onDidChange.fire(device);
 	}
 
-	/**
-	 * Update the cached layout (container size + scale + host zoom) and reapply
-	 * emulation. The emulated viewport is derived from the current device's
-	 * width / height; when those are undefined the viewport auto-fits to the
-	 * container at the given scale. `hostZoom` is the host window's
-	 * CSS-to-screen zoom factor — bounds in main are multiplied by it, so the
-	 * emulation scale must be too or the emulated viewport won't fill the
-	 * WebContentsView when the workbench is zoomed.
-	 */
 	applyScreenEmulation(containerWidth: number, containerHeight: number, scale: number, hostZoom: number): void {
 		this._lastLayout = { containerWidth, containerHeight, scale, hostZoom };
 		this._reapply();
@@ -119,8 +100,6 @@ export class BrowserViewEmulator extends Disposable {
 			scale: s * z,
 		};
 
-		// There's a bug where `screenPosition: 'mobile'` doesn't apply scaling correctly on the first call of enabling emulation,
-		// so we have to first enable emulation in desktop mode and then switch it to mobile below.
 		if (mobile && !last) {
 			this.browser.webContents.enableDeviceEmulation({
 				...params,
@@ -147,10 +126,10 @@ export class BrowserViewEmulator extends Disposable {
 		const mobile = !!this._device?.mobile;
 		try {
 			await this.browser.debugger.sendCommandRaw('Emulation.setTouchEmulationEnabled', { enabled: mobile, maxTouchPoints: mobile ? 5 : 1 });
-			if (this.device !== device) { return; } // Bail if device changed while we were awaiting
+			if (this.device !== device) { return; }
 
 			await this.browser.debugger.sendCommandRaw('Emulation.setEmulatedMedia', { features: this._device ? [{ name: 'pointer', value: mobile ? 'coarse' : 'fine' }] : [] });
-			if (this.device !== device) { return; } // Bail if device changed while we were awaiting
+			if (this.device !== device) { return; }
 
 			await this.browser.debugger.sendCommandRaw('Emulation.setEmitTouchEventsForMouse', { enabled: mobile });
 		} catch (err) {
@@ -158,13 +137,6 @@ export class BrowserViewEmulator extends Disposable {
 		}
 	}
 
-	/**
-	 * Intercept incoming CDP emulation commands and fold the ones that map onto
-	 * {@link IBrowserDeviceProfile} into the device. Anything we don't model
-	 * (geolocation, timezone, CPU throttling, locale, vision deficiency, …)
-	 * falls through to raw CDP. Only the root session is intercepted — worker
-	 * and iframe sub-sessions get pass-through behavior.
-	 */
 	private _intercept(method: string, params: unknown, session: ICDPConnection | undefined): Promise<unknown> | undefined {
 		if (session && session.targetId !== this.browser.debugger.targetId) {
 			return undefined;
@@ -175,7 +147,6 @@ export class BrowserViewEmulator extends Disposable {
 				const p = (params ?? {}) as { width?: number; height?: number; mobile?: boolean; deviceScaleFactor?: number };
 				const next: IBrowserDeviceProfile = {
 					...this._device,
-					// CDP uses 0 to disable the corresponding override.
 					width: p.width || undefined,
 					height: p.height || undefined,
 					mobile: p.mobile ?? this._device?.mobile,
@@ -193,8 +164,6 @@ export class BrowserViewEmulator extends Disposable {
 			}
 			case 'Emulation.setUserAgentOverride': {
 				const p = (params ?? {}) as { userAgent?: string; acceptLanguage?: string; platform?: string; userAgentMetadata?: unknown };
-				// Only fold the bare-string case; richer client-hint params would
-				// not round-trip through our model, so let them go raw.
 				if (p.acceptLanguage !== undefined || p.platform !== undefined || p.userAgentMetadata !== undefined) {
 					return undefined;
 				}
@@ -208,18 +177,12 @@ export class BrowserViewEmulator extends Disposable {
 			case 'Input.synthesizeTapGesture':
 			case 'Input.dispatchTouchEvent':
 				this._scaleInputCoordinates(params);
-				return undefined; // let the event pass through with the modified parameters
+				return undefined;
 			default:
 				return undefined;
 		}
 	}
 
-	/**
-	 * Scale any coordinate-bearing fields on a CDP `Input.*` params object in
-	 * place so screen-space coordinates map onto the emulated viewport. Handles
-	 * point coordinates (`x` / `y`), mouse wheel deltas (`deltaX` / `deltaY`),
-	 * scroll distances (`xDistance` / `yDistance`) and touch points.
-	 */
 	private _scaleInputCoordinates(params: unknown): void {
 		const scale = this.emulatedScaleFactor;
 		const p = (params ?? {}) as {

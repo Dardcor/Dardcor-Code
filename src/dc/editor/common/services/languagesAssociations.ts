@@ -31,27 +31,16 @@ let registeredAssociations: ILanguageAssociationItem[] = [];
 let nonUserRegisteredAssociations: ILanguageAssociationItem[] = [];
 let userRegisteredAssociations: ILanguageAssociationItem[] = [];
 
-/**
- * Associate a language to the registry (platform).
- * * **NOTE**: This association will lose over associations registered using `registerConfiguredLanguageAssociation`.
- * * **NOTE**: Use `clearPlatformLanguageAssociations` to remove all associations registered using this function.
- */
 export function registerPlatformLanguageAssociation(association: ILanguageAssociation, warnOnOverwrite = false): void {
 	_registerLanguageAssociation(association, false, warnOnOverwrite);
 }
 
-/**
- * Associate a language to the registry (configured).
- * * **NOTE**: This association will win over associations registered using `registerPlatformLanguageAssociation`.
- * * **NOTE**: Use `clearConfiguredLanguageAssociations` to remove all associations registered using this function.
- */
 export function registerConfiguredLanguageAssociation(association: ILanguageAssociation): void {
 	_registerLanguageAssociation(association, true, false);
 }
 
 function _registerLanguageAssociation(association: ILanguageAssociation, userConfigured: boolean, warnOnOverwrite: boolean): void {
 
-	// Register
 	const associationItem = toLanguageAssociationItem(association, userConfigured);
 	registeredAssociations.push(associationItem);
 	if (!associationItem.userConfigured) {
@@ -60,11 +49,10 @@ function _registerLanguageAssociation(association: ILanguageAssociation, userCon
 		userRegisteredAssociations.push(associationItem);
 	}
 
-	// Check for conflicts unless this is a user configured association
 	if (warnOnOverwrite && !associationItem.userConfigured) {
 		registeredAssociations.forEach(a => {
 			if (a.mime === associationItem.mime || a.userConfigured) {
-				return; // same mime or userConfigured is ok
+				return;
 			}
 
 			if (associationItem.extension && a.extension === associationItem.extension) {
@@ -100,17 +88,11 @@ function toLanguageAssociationItem(association: ILanguageAssociation, userConfig
 	};
 }
 
-/**
- * Clear language associations from the registry (platform).
- */
 export function clearPlatformLanguageAssociations(): void {
 	registeredAssociations = registeredAssociations.filter(a => a.userConfigured);
 	nonUserRegisteredAssociations = [];
 }
 
-/**
- * Clear language associations from the registry (configured).
- */
 export function clearConfiguredLanguageAssociations(): void {
 	registeredAssociations = registeredAssociations.filter(a => !a.userConfigured);
 	userRegisteredAssociations = [];
@@ -121,17 +103,10 @@ interface IdAndMime {
 	mime: string;
 }
 
-/**
- * Given a file, return the best matching mime types for it
- * based on the registered language associations.
- */
 export function getMimeTypes(resource: URI | null, firstLine?: string): string[] {
 	return getAssociations(resource, firstLine).map(item => item.mime);
 }
 
-/**
- * @see `getMimeTypes`
- */
 export function getLanguageIds(resource: URI | null, firstLine?: string): string[] {
 	return getAssociations(resource, firstLine).map(item => item.id);
 }
@@ -149,7 +124,6 @@ function getAssociations(resource: URI | null, firstLine?: string): IdAndMime[] 
 				break;
 			}
 			case Schemas.vscodeNotebookCell:
-				// File path not relevant for language detection of cell
 				path = undefined;
 				break;
 			default:
@@ -165,19 +139,16 @@ function getAssociations(resource: URI | null, firstLine?: string): IdAndMime[] 
 
 	const filename = basename(path);
 
-	// 1.) User configured mappings have highest priority
 	const configuredLanguage = getAssociationByPath(path, filename, userRegisteredAssociations);
 	if (configuredLanguage) {
 		return [configuredLanguage, { id: PLAINTEXT_LANGUAGE_ID, mime: Mimes.text }];
 	}
 
-	// 2.) Registered mappings have middle priority
 	const registeredLanguage = getAssociationByPath(path, filename, nonUserRegisteredAssociations);
 	if (registeredLanguage) {
 		return [registeredLanguage, { id: PLAINTEXT_LANGUAGE_ID, mime: Mimes.text }];
 	}
 
-	// 3.) Firstline has lowest priority
 	if (firstLine) {
 		const firstlineLanguage = getAssociationByFirstline(firstLine);
 		if (firstlineLanguage) {
@@ -193,28 +164,23 @@ function getAssociationByPath(path: string, filename: string, associations: ILan
 	let patternMatch: ILanguageAssociationItem | undefined = undefined;
 	let extensionMatch: ILanguageAssociationItem | undefined = undefined;
 
-	// We want to prioritize associations based on the order they are registered so that the last registered
-	// association wins over all other. This is for https://github.com/microsoft/vscode/issues/20074
 	for (let i = associations.length - 1; i >= 0; i--) {
 		const association = associations[i];
 
-		// First exact name match
 		if (equals(filename, association.filename, true)) {
 			filenameMatch = association;
-			break; // take it!
+			break;
 		}
 
-		// Longest pattern match
 		if (association.filepattern) {
 			if (!patternMatch || association.filepattern.length > patternMatch.filepattern!.length) {
-				const target = association.filepatternOnPath ? path : filename; // match on full path if pattern contains path separator
+				const target = association.filepatternOnPath ? path : filename;
 				if (association.filepatternParsed?.(target)) {
 					patternMatch = association;
 				}
 			}
 		}
 
-		// Longest extension match
 		if (association.extension) {
 			if (!extensionMatch || association.extension.length > extensionMatch.extension!.length) {
 				if (endsWithIgnoreCase(filename, association.extension)) {
@@ -224,17 +190,14 @@ function getAssociationByPath(path: string, filename: string, associations: ILan
 		}
 	}
 
-	// 1.) Exact name match has second highest priority
 	if (filenameMatch) {
 		return filenameMatch;
 	}
 
-	// 2.) Match on pattern
 	if (patternMatch) {
 		return patternMatch;
 	}
 
-	// 3.) Match on extension comes next
 	if (extensionMatch) {
 		return extensionMatch;
 	}
@@ -249,8 +212,6 @@ function getAssociationByFirstline(firstLine: string): ILanguageAssociationItem 
 
 	if (firstLine.length > 0) {
 
-		// We want to prioritize associations based on the order they are registered so that the last registered
-		// association wins over all other. This is for https://github.com/microsoft/vscode/issues/20074
 		for (let i = registeredAssociations.length - 1; i >= 0; i--) {
 			const association = registeredAssociations[i];
 			if (!association.firstline) {

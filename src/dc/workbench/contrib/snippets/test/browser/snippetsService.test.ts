@@ -31,7 +31,6 @@ class SimpleSnippetService implements ISnippetsService {
 		return Promise.resolve(this.getSnippetsSync(languageId!, resourceUri));
 	}
 	getSnippetsSync(languageId?: string, resourceUri?: URI): Snippet[] {
-		// Filter snippets based on resourceUri if provided
 		if (resourceUri) {
 			return this.snippets.filter(snippet => snippet.isFileIncluded(resourceUri));
 		}
@@ -130,20 +129,20 @@ suite('SnippetsService', function () {
 		const provider = new SnippetCompletionProvider(languageService, snippetService, disposables.add(new TestLanguageConfigurationService()));
 		const model = disposables.add(instantiateTextModel(instantiationService, 'hello ', 'fooLang'));
 
-		await provider.provideCompletionItems(model, new Position(1, 6) /* hello| */, defaultCompletionContext)!.then(result => {
+		await provider.provideCompletionItems(model, new Position(1, 6) , defaultCompletionContext)!.then(result => {
 			assert.strictEqual(result.incomplete, undefined);
 			assert.strictEqual(result.suggestions.length, 0);
 		});
 
-		await provider.provideCompletionItems(model, new Position(1, 7) /* hello |*/, defaultCompletionContext)!.then(result => {
+		await provider.provideCompletionItems(model, new Position(1, 7) , defaultCompletionContext)!.then(result => {
 			assert.strictEqual(result.incomplete, undefined);
 			assert.strictEqual(result.suggestions.length, 2);
 		});
 
-		const completions1 = await asCompletionModel(model, new Position(1, 6)/* hello| */, provider);
+		const completions1 = await asCompletionModel(model, new Position(1, 6), provider);
 		assert.strictEqual(completions1.items.length, 0);
 
-		const completions2 = await asCompletionModel(model, new Position(1, 7)/* hello |*/, provider);
+		const completions2 = await asCompletionModel(model, new Position(1, 7), provider);
 		assert.strictEqual(completions2.items.length, 2);
 	});
 
@@ -793,7 +792,6 @@ suite('SnippetsService', function () {
 		assert.strictEqual(result.suggestions.length, 1);
 		const [first] = result.suggestions;
 		assert.strictEqual((first.range as CompletionItemRanges).insert.endColumn, 5);
-		// This is 6 because it should eat the `]` at the end of the text even if cursor is before it
 		assert.strictEqual((first.range as CompletionItemRanges).replace.endColumn, 6);
 
 		assert.strictEqual(completions.items.length, 1);
@@ -840,7 +838,6 @@ suite('SnippetsService', function () {
 		snippetService = new SimpleSnippetService([
 			new Snippet(false, ['fooLang'], 'aaa', 'aaa', '', 'value', '', SnippetSource.User, generateUuid()),
 			new Snippet(false, ['fooLang'], 'bbb', 'bbb', '', 'value', '', SnippetSource.User, generateUuid()),
-			// new Snippet(['fooLang'], '\'ccc', '\'ccc', '', 'value', '', SnippetSource.User, generateUuid())
 		]);
 
 		const provider = new SnippetCompletionProvider(languageService, snippetService, disposables.add(new TestLanguageConfigurationService()));
@@ -1040,7 +1037,7 @@ suite('SnippetsService', function () {
 		const provider = new SnippetCompletionProvider(languageService, snippetService, disposables.add(new TestLanguageConfigurationService()));
 		const model = disposables.add(instantiateTextModel(instantiationService, '', 'fooLang'));
 
-		{ // PREFIX: w
+		{
 			model.setValue('w');
 			const result1 = await provider.provideCompletionItems(
 				model,
@@ -1051,14 +1048,14 @@ suite('SnippetsService', function () {
 			assert.strictEqual(result1.suggestions.length, 1);
 		}
 
-		{ // PREFIX: where
+		{
 			model.setValue('where');
 			const result2 = await provider.provideCompletionItems(
 				model,
 				new Position(1, 6),
 				{ triggerKind: CompletionTriggerKind.Invoke }
 			);
-			assert.strictEqual(result2.suggestions[0].insertText, 'one'); // /whiletrue matches where (WHilEtRuE)
+			assert.strictEqual(result2.suggestions[0].insertText, 'one');
 			assert.strictEqual(result2.suggestions.length, 1);
 		}
 	});
@@ -1070,24 +1067,20 @@ suite('SnippetsService', function () {
 			new Snippet(false, ['fooLang'], 'AllSnippet', 'all', '', 'snippet', 'test', SnippetSource.User, generateUuid()),
 		]);
 
-		// Test file should only get TestSnippet and AllSnippet
 		let snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.test.ts'));
 		assert.strictEqual(snippets.length, 2);
 		assert.ok(snippets.some(s => s.name === 'TestSnippet'));
 		assert.ok(snippets.some(s => s.name === 'AllSnippet'));
 
-		// Spec file should only get SpecSnippet and AllSnippet
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.spec.ts'));
 		assert.strictEqual(snippets.length, 2);
 		assert.ok(snippets.some(s => s.name === 'SpecSnippet'));
 		assert.ok(snippets.some(s => s.name === 'AllSnippet'));
 
-		// Regular file should only get AllSnippet
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.ts'));
 		assert.strictEqual(snippets.length, 1);
 		assert.strictEqual(snippets[0].name, 'AllSnippet');
 
-		// Without URI, all snippets should be returned (backward compatibility)
 		snippets = snippetService.getSnippetsSync('fooLang');
 		assert.strictEqual(snippets.length, 3);
 	});
@@ -1098,16 +1091,13 @@ suite('SnippetsService', function () {
 			new Snippet(false, ['fooLang'], 'AllSnippet', 'all', '', 'snippet', 'test', SnippetSource.User, generateUuid()),
 		]);
 
-		// Regular .js file should get both snippets
 		let snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.js'));
 		assert.strictEqual(snippets.length, 2);
 
-		// Minified file should only get AllSnippet (ProdSnippet is excluded)
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.min.js'));
 		assert.strictEqual(snippets.length, 1);
 		assert.strictEqual(snippets[0].name, 'AllSnippet');
 
-		// File in dist folder should only get AllSnippet
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/dist/bundle.js'));
 		assert.strictEqual(snippets.length, 1);
 		assert.strictEqual(snippets[0].name, 'AllSnippet');
@@ -1118,31 +1108,25 @@ suite('SnippetsService', function () {
 			new Snippet(false, ['fooLang'], 'TestSnippet', 'test', '', 'snippet', 'test', SnippetSource.User, generateUuid(), ['**/*.test.ts', '**/*.spec.ts'], ['**/*.perf.test.ts']),
 		]);
 
-		// Regular test file should get the snippet
 		let snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.test.ts'));
 		assert.strictEqual(snippets.length, 1);
 
-		// Spec file should get the snippet
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.spec.ts'));
 		assert.strictEqual(snippets.length, 1);
 
-		// Performance test file should NOT get the snippet (excluded)
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.perf.test.ts'));
 		assert.strictEqual(snippets.length, 0);
 
-		// Regular file should NOT get the snippet (not included)
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.ts'));
 		assert.strictEqual(snippets.length, 0);
 	});
 
 	test('getSnippetsSync - filename-only patterns (no path separator)', function () {
-		// Patterns without '/' should match on filename only (like files.associations)
 		snippetService = new SimpleSnippetService([
 			new Snippet(false, ['fooLang'], 'TestSnippet', 'test', '', 'snippet', 'test', SnippetSource.User, generateUuid(), ['*.test.ts']),
 			new Snippet(false, ['fooLang'], 'ConfigSnippet', 'config', '', 'snippet', 'test', SnippetSource.User, generateUuid(), ['config.json']),
 		]);
 
-		// *.test.ts should match any file ending in .test.ts regardless of path
 		let snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/src/foo.test.ts'));
 		assert.strictEqual(snippets.length, 1);
 		assert.strictEqual(snippets[0].name, 'TestSnippet');
@@ -1151,7 +1135,6 @@ suite('SnippetsService', function () {
 		assert.strictEqual(snippets.length, 1);
 		assert.strictEqual(snippets[0].name, 'TestSnippet');
 
-		// config.json should match filename exactly
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/config.json'));
 		assert.strictEqual(snippets.length, 1);
 		assert.strictEqual(snippets[0].name, 'ConfigSnippet');
@@ -1160,7 +1143,6 @@ suite('SnippetsService', function () {
 		assert.strictEqual(snippets.length, 1);
 		assert.strictEqual(snippets[0].name, 'ConfigSnippet');
 
-		// myconfig.json should NOT match config.json pattern
 		snippets = snippetService.getSnippetsSync('fooLang', URI.file('/project/myconfig.json'));
 		assert.strictEqual(snippets.length, 0);
 	});

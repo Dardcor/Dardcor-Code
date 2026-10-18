@@ -55,7 +55,6 @@ async function doFindExpression(container: IExpressionContainer, namesToFind: st
 	}
 
 	const children = await container.getChildren();
-	// look for our variable in the list. First find the parents of the hovered variable if there are any.
 	const filtered = children.filter(v => namesToFind[0] === v.name);
 	if (filtered.length !== 1) {
 		return null;
@@ -73,18 +72,14 @@ export async function findExpressionInStackFrame(stackFrame: IStackFrame, namesT
 	const nonExpensive = scopes.filter(s => !s.expensive);
 	const expressions = coalesce(await Promise.all(nonExpensive.map(scope => doFindExpression(scope, namesToFind))));
 
-	// only show if all expressions found have the same value
 	return expressions.length > 0 && expressions.every(e => e.value === expressions[0].value) ? expressions[0] : undefined;
 }
 
 export class DebugHoverWidget implements IContentWidget {
 
 	static readonly ID = 'debug.hoverWidget';
-	// editor.IContentWidget.allowEditorOverflow
 	readonly allowEditorOverflow = true;
 
-	// todo@connor4312: move more properties that are only valid while a hover
-	// is happening into `_isVisible`
 	private _isVisible?: {
 		store: lifecycle.DisposableStore;
 	};
@@ -171,13 +166,11 @@ export class DebugHoverWidget implements IContentWidget {
 
 		this.toDispose.push(this.tree.onDidChangeContentHeight(() => {
 			if (!this.isUpdatingTree) {
-				// Don't do a layout in the middle of the async setInput
 				this.layoutTreeAndContainer();
 			}
 		}));
 		this.toDispose.push(this.tree.onDidChangeContentWidth(() => {
 			if (!this.isUpdatingTree) {
-				// Don't do a layout in the middle of the async setInput
 				this.layoutTreeAndContainer();
 			}
 		}));
@@ -235,10 +228,6 @@ export class DebugHoverWidget implements IContentWidget {
 		return this.domNode;
 	}
 
-	/**
-	 * Gets whether the given coordinates are in the safe triangle formed from
-	 * the position at which the hover was initiated.
-	 */
 	isInSafeTriangle(x: number, y: number) {
 		return this._isVisible && !!this.safeTriangle?.contains(x, y);
 	}
@@ -351,7 +340,7 @@ export class DebugHoverWidget implements IContentWidget {
 			const containerTop = this.treeContainer.offsetTop + editorTop;
 			const hoveredCharTop = this.editor.getTopForLineNumber(this.showAtPosition.lineNumber, true) - this.editor.getScrollTop();
 			if (containerTop < hoveredCharTop) {
-				maxHeightToAvoidCursorOverlay = hoveredCharTop + editorTop - 22; // 22 is monaco top padding https://github.com/microsoft/vscode/blob/a1df2d7319382d42f66ad7f411af01e4cc49c80a/src/vs/editor/browser/viewParts/contentWidgets/contentWidgets.ts#L364
+				maxHeightToAvoidCursorOverlay = hoveredCharTop + editorTop - 22;
 			}
 		}
 		const treeHeight = Math.min(Math.max(266, this.editor.getLayoutInfo().height * 0.55), this.tree.contentHeight + scrollBarHeight, maxHeightToAvoidCursorOverlay);
@@ -364,12 +353,10 @@ export class DebugHoverWidget implements IContentWidget {
 	}
 
 	beforeRender(): IDimension | null {
-		// beforeRender will be called each time the hover size changes, and the content widget is layed out again.
 		if (this.expressionToRender) {
 			const expression = this.expressionToRender;
 			this.expressionToRender = undefined;
 
-			// Do this in beforeRender once the content widget is no longer display=none so that its elements' sizes will be measured correctly.
 			this.isUpdatingTree = true;
 			this.tree.setInput(expression).finally(() => {
 				this.isUpdatingTree = false;
@@ -381,7 +368,6 @@ export class DebugHoverWidget implements IContentWidget {
 
 	afterRender(positionPreference: ContentWidgetPositionPreference | null) {
 		if (positionPreference) {
-			// Remember where the editor placed you to keep position stable #109226
 			this.positionPreference = [positionPreference];
 		}
 	}

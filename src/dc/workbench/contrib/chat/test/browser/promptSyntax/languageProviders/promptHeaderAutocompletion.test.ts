@@ -55,9 +55,9 @@ suite('PromptHeaderAutocompletion', () => {
 
 		const testModels: ILanguageModelChatMetadata[] = [
 			{ id: 'mae-4', name: 'MAE 4', vendor: 'olama', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
-			{ id: 'mae-4.1', name: 'MAE 4.1', vendor: 'copilot', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
+			{ id: 'mae-4.1', name: 'MAE 4.1', vendor: 'dardcor', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
 			{ id: 'gpt-4', name: 'GPT 4', vendor: 'openai', version: '1.0', family: 'gpt', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: false, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
-			{ id: 'bg-agent-model', name: 'BG Agent Model', vendor: 'copilot', version: '1.0', family: 'bg', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true }, targetChatSessionType: 'background' } satisfies ILanguageModelChatMetadata,
+			{ id: 'bg-agent-model', name: 'BG Agent Model', vendor: 'dardcor', version: '1.0', family: 'bg', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true }, targetChatSessionType: 'background' } satisfies ILanguageModelChatMetadata,
 		];
 
 		instaService.stub(ILanguageModelsService, {
@@ -102,7 +102,6 @@ suite('PromptHeaderAutocompletion', () => {
 		const languageId = getLanguageIdForPromptsType(promptType);
 		uri ??= URI.parse('test:///test' + getPromptFileExtension(promptType));
 		const model = disposables.add(createTextModel(content, languageId, undefined, uri));
-		// get the completion location from  the '|' marker
 		const lineColumnMarkerRange = model.findNextMatch('|', new Position(1, 1), false, false, '', false)?.range;
 		assert.ok(lineColumnMarkerRange, 'No completion marker found in test content');
 		model.applyEdits([{ range: lineColumnMarkerRange, text: '' }]);
@@ -161,7 +160,6 @@ suite('PromptHeaderAutocompletion', () => {
 			].join('\n');
 
 			const actual = await getCompletions(content, PromptsType.agent);
-			// GPT 4 is excluded because it has agentMode: false
 			assert.deepStrictEqual(actual.sort(sortByLabel), [
 				{ label: 'MAE 4 (olama)', result: 'model: MAE 4 (olama)' },
 				{ label: 'MAE 4.1 (copilot)', result: 'model: MAE 4.1 (copilot)' },
@@ -195,7 +193,6 @@ suite('PromptHeaderAutocompletion', () => {
 			].join('\n');
 
 			const actual = await getCompletions(content, PromptsType.agent);
-			// GPT 4 is excluded because it has agentMode: false
 			assert.deepStrictEqual(actual, [
 				{ label: 'MAE 4 (olama)', result: 'model: MAE 4 (olama)' },
 				{ label: 'MAE 4.1 (copilot)', result: 'model: MAE 4.1 (copilot)' },
@@ -211,7 +208,6 @@ suite('PromptHeaderAutocompletion', () => {
 			].join('\n');
 
 			const actual = await getCompletions(content, PromptsType.agent);
-			// GPT 4 is excluded because it has agentMode: false
 			assert.deepStrictEqual(actual.sort(sortByLabel), [
 				{ label: 'MAE 4 (olama)', result: `model: ['MAE 4 (olama)']` },
 				{ label: 'MAE 4.1 (copilot)', result: `model: ['MAE 4.1 (copilot)']` },
@@ -227,7 +223,6 @@ suite('PromptHeaderAutocompletion', () => {
 			].join('\n');
 
 			const actual = await getCompletions(content, PromptsType.agent);
-			// GPT 4 is excluded because it has agentMode: false
 			assert.deepStrictEqual(actual.sort(sortByLabel), [
 				{ label: 'MAE 4.1 (copilot)', result: `model: ['MAE 4 (olama)', 'MAE 4.1 (copilot)']` },
 			].sort(sortByLabel));
@@ -295,7 +290,6 @@ suite('PromptHeaderAutocompletion', () => {
 				'---',
 			].join('\n');
 
-			//uses the first entry to determine quote preference, so the new entry should be unquoted
 
 			const actual = await getCompletions(content, PromptsType.agent);
 			assert.deepStrictEqual(actual.sort(sortByLabel), [
@@ -393,7 +387,6 @@ suite('PromptHeaderAutocompletion', () => {
 
 			const actual = await getCompletions(content, PromptsType.agent);
 			const labels = actual.map(a => a.label);
-			// BG Agent Model has targetChatSessionType set, so it should be excluded
 			assert.ok(!labels.includes('BG Agent Model (copilot)'), 'Models with targetChatSessionType should be excluded from agent model completions');
 		});
 
@@ -459,7 +452,6 @@ suite('PromptHeaderAutocompletion', () => {
 
 			const actual = await getCompletions(content, PromptsType.agent);
 			const labels = actual.map(a => a.label).sort();
-			// SessionStart should be excluded since it already exists
 			assert.ok(!labels.includes('SessionStart'), 'SessionStart should not be suggested when already present');
 			assert.ok(labels.includes('SessionEnd'), 'SessionEnd should be suggested');
 			assert.ok(labels.includes('PreToolUse'), 'PreToolUse should be suggested');
@@ -488,7 +480,6 @@ suite('PromptHeaderAutocompletion', () => {
 			assert.ok(!labels.includes('PreToolUse'), 'PreToolUse should not be suggested when already present');
 			assert.ok(labels.includes('UserPromptSubmit'), 'UserPromptSubmit should be suggested');
 			assert.ok(labels.includes('PostToolUse'), 'PostToolUse should be suggested');
-			// SessionEnd is not available for vscode target
 			assert.ok(!labels.includes('SessionEnd'), 'SessionEnd should not be available for vscode target');
 		});
 
@@ -527,7 +518,6 @@ suite('PromptHeaderAutocompletion', () => {
 			assert.ok(labels.includes('SessionStart'), 'SessionStart should be suggested');
 			assert.ok(labels.includes('SubagentStart'), 'SubagentStart should be suggested');
 			assert.ok(labels.includes('Stop'), 'Stop should be suggested');
-			// Verify insertText only replaces the key (no full snippet)
 			const sessionStartItem = actual.find(a => a.label === 'SessionStart');
 			assert.ok(sessionStartItem);
 			assert.strictEqual(sessionStartItem.result, '  SessionStart:');
@@ -655,7 +645,6 @@ suite('PromptHeaderAutocompletion', () => {
 	});
 
 	suite('claude agent header completions', () => {
-		// Claude agents are identified by their URI being under .claude/agents/
 		const claudeAgentUri = URI.parse('test:///.claude/agents/security-reviewer.agent.md');
 
 		test('complete attribute names', async () => {
@@ -693,7 +682,6 @@ suite('PromptHeaderAutocompletion', () => {
 			].join('\n');
 
 			const actual = await getCompletions(content, PromptsType.agent, claudeAgentUri);
-			// 'tools' should not appear since it is already in the header
 			const labels = actual.map(a => a.label).sort();
 			assert.ok(!labels.includes('tools'), 'tools should not be suggested when already present');
 			assert.ok(!labels.includes('name'), 'name should not be suggested when already present');
@@ -752,7 +740,6 @@ suite('PromptHeaderAutocompletion', () => {
 				'LSP', 'MCPSearch', 'NotebookEdit', 'Read', 'Skill',
 				'Task', 'WebFetch', 'WebSearch', 'Write'
 			].sort());
-			// Array items without quotes should use the name directly
 			assert.deepStrictEqual(actual.find(a => a.label === 'Edit')?.result, `tools: [Edit]`);
 		});
 

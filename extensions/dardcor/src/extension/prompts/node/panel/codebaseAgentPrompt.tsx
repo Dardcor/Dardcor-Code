@@ -7,7 +7,7 @@ import { PromptElement, PromptSizing } from '@vscode/prompt-tsx';
 import { IWorkspaceChunkSearchService } from '../../../../platform/workspaceChunkSearch/node/workspaceChunkSearchService';
 import { GenericBasePromptElementProps } from '../../../context/node/resolvers/genericPanelIntentInvocation';
 import { ToolName } from '../../../tools/common/toolNames';
-import { CopilotToolMode } from '../../../tools/common/toolsRegistry';
+import { AgentToolMode } from '../../../tools/common/toolsRegistry';
 import { InstructionMessage } from '../base/instructionMessage';
 import { Tag } from '../base/tag';
 import { ChatVariablesAndQuery } from './chatVariables';
@@ -61,7 +61,7 @@ export class CodebaseAgentPrompt extends PromptElement<GenericBasePromptElementP
 						</Tag>
 					</InstructionMessage>
 				</HistoryWithInstructions>
-				<ChatToolCalls priority={899} flexGrow={3} promptContext={this.props.promptContext} toolCallRounds={toolCallRounds} toolCallResults={toolCallResults} toolCallMode={CopilotToolMode.FullContext} />
+				<ChatToolCalls priority={899} flexGrow={3} promptContext={this.props.promptContext} toolCallRounds={toolCallRounds} toolCallResults={toolCallResults} toolCallMode={AgentToolMode.FullContext} />
 				<ChatVariablesAndQuery flexGrow={2} priority={900} chatVariables={chatVariables} query={`The developer's request is: ${query}\n\nFind all code in the workspace relevant to the following request.`} includeFilepath={true} embeddedInsideUserMessage={false} />
 			</>
 		);

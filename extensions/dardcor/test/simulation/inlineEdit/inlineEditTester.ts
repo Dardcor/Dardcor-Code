@@ -72,7 +72,7 @@ export class EditNotScoredError extends CriticalError {
 	}
 }
 
-export type NextCursorPosition = /* lineNumber (1-based) */ number | { cursorOffset: number };
+export type NextCursorPosition = number | { cursorOffset: number };
 
 export class InlineEditTester {
 	constructor(
@@ -168,7 +168,7 @@ export class InlineEditTester {
 		const nextEditProvider = instaService.createInstance(NextEditProvider, workspace, statelessNextEditProvider, historyContextProvider, nesXtabHistoryTracker, debugRecorder);
 
 		const historyContext = historyContextProvider.getHistoryContext(docId)!;
-		const activeDocument = historyContext.getMostRecentDocument(); // TODO
+		const activeDocument = historyContext.getMostRecentDocument();
 		const context: NESInlineCompletionContext = { triggerKind: 1, selectedCompletionInfo: undefined, requestUuid: generateUuid(), requestIssuedDateTime: Date.now(), earliestShownDateTime: Date.now() + 200, enforceCacheDelay: false };
 		const logContext = new InlineEditRequestLogContext(activeDocument.docId.toString(), 1, context);
 		const telemetryBuilder = new NextEditProviderTelemetryBuilder(gitExtensionService, notebookService, workspaceService, nextEditProvider.ID, workspace.getDocument(activeDocument.docId)!);
@@ -272,7 +272,6 @@ function sanitizeFileName(name: string) {
 	return name.replace(/[^a-z0-9 \[\]-]/gi, '_');
 }
 
-/** This's used to make sure different flavors of a single test reuse the same scoring file. */
 function stripTestFlavor(name: string) {
 	return name.replace(/ \(\[([a-zA-Z0-9\-])+\]\)/, '');
 }

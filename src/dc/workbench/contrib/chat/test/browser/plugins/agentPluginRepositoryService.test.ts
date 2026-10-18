@@ -267,8 +267,6 @@ suite('AgentPluginRepositoryService', () => {
 		});
 		const plugin = createPlugin('microsoft/vscode', 'plugins/myPlugin');
 
-		// `updateAllPlugins` pulls each installed marketplace and then re-reads
-		// it, which must not pull the same repository a second time.
 		await service.pullRepository(plugin.marketplaceReference, { silent: true });
 		await service.ensureRepository(plugin.marketplaceReference, { refreshIfOlderThanMs: 8 * 60 * 60 * 1000 });
 
@@ -300,7 +298,6 @@ suite('AgentPluginRepositoryService', () => {
 		let cloneCancelled = false;
 		const service = createService(async () => false, undefined, {
 			cloneRepository: async (_cloneUrl, _targetDir, _ref, token) => {
-				// Simulate a long-running clone that the caller aborts.
 				cts.cancel();
 				cloneCancelled = !!token?.isCancellationRequested;
 			},
@@ -365,7 +362,6 @@ suite('AgentPluginRepositoryService', () => {
 		let cloneCount = 0;
 		const instantiationService = store.add(new TestInstantiationService());
 
-		// Track whether the repo exists (set to true after the first clone completes)
 		let repoExists = false;
 		const fileService = {
 			exists: async (_resource: URI) => repoExists,
@@ -382,7 +378,6 @@ suite('AgentPluginRepositoryService', () => {
 		instantiationService.stub(IPluginGitService, stubPluginGit({
 			cloneRepository: async () => {
 				cloneCount++;
-				// Simulate async clone by yielding, then mark repo as existing
 				await new Promise<void>(r => setTimeout(r, 0));
 				repoExists = true;
 			},
@@ -398,7 +393,6 @@ suite('AgentPluginRepositoryService', () => {
 		const service = instantiationService.createInstance(AgentPluginRepositoryService);
 		const plugin = createPlugin('microsoft/vscode', 'plugins/myPlugin');
 
-		// Fire two concurrent ensureRepository calls for the same marketplace
 		const [uri1, uri2] = await Promise.all([
 			service.ensureRepository(plugin.marketplaceReference, { marketplaceType: plugin.marketplaceType }),
 			service.ensureRepository(plugin.marketplaceReference, { marketplaceType: plugin.marketplaceType }),
@@ -515,9 +509,6 @@ suite('AgentPluginRepositoryService', () => {
 		assert.deepStrictEqual(calls, ['revParse', 'fetch', 'checkoutCommit', 'revParse']);
 	});
 
-	// =========================================================================
-	// cleanupPluginSource — issue #297251 regression
-	// =========================================================================
 
 	suite('cleanupPluginSource', () => {
 
@@ -596,7 +587,6 @@ suite('AgentPluginRepositoryService', () => {
 			});
 
 			assert.ok(deleted.length >= 1);
-			// First delete should be the npm/<sanitized-package> cache dir
 			assert.ok(deleted[0].includes('/npm/'), `Expected npm path, got: ${deleted[0]}`);
 		});
 
@@ -637,7 +627,6 @@ suite('AgentPluginRepositoryService', () => {
 			instantiationService.stub(IStorageService, store.add(new InMemoryStorageService()));
 			const service = instantiationService.createInstance(AgentPluginRepositoryService);
 
-			// Should not throw — cleanup is best-effort
 			await service.cleanupPluginSource({
 				name: 'gh-plugin',
 				description: '',
@@ -651,8 +640,6 @@ suite('AgentPluginRepositoryService', () => {
 		});
 
 		test('prunes empty parent directories up to cache root', async () => {
-			// After deleting github.com/owner/repo, the "owner" dir is empty
-			// and should also be removed.
 			const deleted: string[] = [];
 			const service = createServiceWithDel(
 				r => deleted.push(r.path),
@@ -670,7 +657,6 @@ suite('AgentPluginRepositoryService', () => {
 				marketplaceType: MarketplaceType.Copilot,
 			});
 
-			// Should have deleted the repo dir + empty parents (owner, github.com)
 			assert.ok(deleted.length >= 2, `Expected at least 2 deletions (repo + parent), got ${deleted.length}: ${deleted.join(', ')}`);
 			assert.ok(deleted[0].includes('github.com/owner/repo'), 'First delete should be the repo dir');
 			assert.ok(deleted.some(p => p.endsWith('/owner')), 'Should prune empty owner directory');
@@ -682,7 +668,6 @@ suite('AgentPluginRepositoryService', () => {
 				r => deleted.push(r.path),
 				{
 					resolve: (resource: URI) => {
-						// owner dir still has another repo
 						if (resource.path.endsWith('/owner')) {
 							return { children: [{ name: 'other-repo' }] };
 						}
@@ -702,7 +687,6 @@ suite('AgentPluginRepositoryService', () => {
 				marketplaceType: MarketplaceType.Copilot,
 			});
 
-			// Should only delete the repo dir, stop at non-empty owner dir
 			assert.strictEqual(deleted.length, 1);
 			assert.ok(deleted[0].includes('github.com/owner/repo'));
 		});
@@ -722,7 +706,6 @@ suite('AgentPluginRepositoryService', () => {
 					marketplaceReference: parseMarketplaceReference('owner/marketplace')!,
 					marketplaceType: MarketplaceType.Copilot,
 				},
-				// Another plugin from the same repo still installed
 				[{ kind: PluginSourceKind.GitHub, repo: 'owner/repo', path: 'plugins/b' }],
 			);
 
@@ -744,7 +727,6 @@ suite('AgentPluginRepositoryService', () => {
 					marketplaceReference: parseMarketplaceReference('owner/marketplace')!,
 					marketplaceType: MarketplaceType.Copilot,
 				},
-				// Only unrelated plugins remain
 				[{ kind: PluginSourceKind.GitHub, repo: 'other-owner/other-repo' }],
 			);
 

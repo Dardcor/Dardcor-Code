@@ -1,15 +1,7 @@
-/**
- * Zed usage — GET https://cloud.zed.dev/client/users/me
- * Auth: Authorization: {user_id} {access_token}
- *
- * Quota rows are derived from plan.usage (edit_predictions, optional model_requests)
- * and subscription_period.ended_at for billing-cycle reset.
- */
 
 import { fetchZedAuthenticatedUser } from "../../shared/zedAuth.js";
 import { parseResetTime, toFiniteNumber } from "./shared.js";
 
-/** Map plan_v3 ids to dashboard labels (CodexBar-compatible). */
 export function formatZedPlanLabel(rawPlan) {
   const raw = String(rawPlan || "").trim();
   if (!raw) return "Zed";
@@ -33,9 +25,6 @@ export function formatZedPlanLabel(rawPlan) {
   }
 }
 
-/**
- * Parse Zed UsageLimit JSON: "unlimited", a number, or { limited: N }.
- */
 export function parseZedUsageLimit(limit) {
   if (limit == null) return { unlimited: false, total: 0 };
 
@@ -62,7 +51,6 @@ export function parseZedUsageLimit(limit) {
   return { unlimited: false, total: 0 };
 }
 
-/** limit `{ limited: 0 }` on Pro/Student means token billing, not a 0-cap request quota. */
 export function isZedTokenBillingModelRequestsLimit(limitRaw) {
   const info = parseZedUsageLimit(limitRaw);
   return !info.unlimited && info.total === 0;
@@ -110,9 +98,6 @@ function usageBucketLimit(bucket) {
   return bucket;
 }
 
-/**
- * Map /client/users/me JSON → { plan, quotas, message } for the dashboard.
- */
 export function parseZedAuthenticatedUserUsage(userInfo) {
   const plan = userInfo?.plan || {};
   const planId =
@@ -142,7 +127,6 @@ export function parseZedAuthenticatedUserUsage(userInfo) {
         ? modelRequests.limit
         : usageBucketLimit(modelRequests)?.limit;
     const limitInfo = parseZedUsageLimit(limitRaw);
-    // Token-billed plans report model_requests.limit=0 — not a request quota.
     if (limitInfo.unlimited || limitInfo.total > 0) {
       quotas["Hosted Model Requests"] = makeZedQuotaRow(
         "Hosted Model Requests",
@@ -182,11 +166,6 @@ export function parseZedAuthenticatedUserUsage(userInfo) {
   };
 }
 
-/**
- * @param {string|null|undefined} accessToken
- * @param {object|null|undefined} providerSpecificData
- * @param {object|null|undefined} proxyOptions
- */
 export async function getZedUsage(
   accessToken = null,
   providerSpecificData = {},

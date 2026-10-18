@@ -119,7 +119,6 @@ export class CommentReply<T extends IRange | ICellRange> extends Disposable {
 
 		this.setCommentEditorDecorations();
 
-		// Only add the additional step of clicking a reply button to expand the textarea when there are existing comments
 		if (this._pendingComment) {
 			this.expandReplyArea();
 		} else if (hasExistingComments) {
@@ -164,7 +163,7 @@ export class CommentReply<T extends IRange | ICellRange> extends Disposable {
 	public getPendingComment(): languages.PendingComment | undefined {
 		const model = this.commentEditor.getModel();
 
-		if (model && model.getValueLength() > 0) { // checking length is cheap
+		if (model && model.getValueLength() > 0) {
 			return { body: model.getValue(), cursor: this.commentEditor.getPosition() ?? new Position(1, 1) };
 		}
 
@@ -179,7 +178,7 @@ export class CommentReply<T extends IRange | ICellRange> extends Disposable {
 	}
 
 	public layout(widthInPixel: number) {
-		this.commentEditor.layout({ height: this._editorHeight, width: widthInPixel - 54 /* margin 20px * 10 + scrollbar 14px*/ });
+		this.commentEditor.layout({ height: this._editorHeight, width: widthInPixel - 54 });
 	}
 
 	public focusIfNeeded() {
@@ -281,9 +280,6 @@ export class CommentReply<T extends IRange | ICellRange> extends Disposable {
 		}));
 	}
 
-	/**
-	 * Command based actions.
-	 */
 	private createCommentWidgetFormActions(container: HTMLElement, model: ITextModel) {
 		const menu = this._commentMenus.getCommentThreadActions(this._contextKeyService);
 
@@ -369,7 +365,6 @@ export class CommentReply<T extends IRange | ICellRange> extends Disposable {
 		this._register(this.hoverService.setupManagedHover(getDefaultHoverDelegate('mouse'), this._reviewThreadReplyButton, this._commentOptions?.prompt || nls.localize('reply', "Reply...")));
 
 		this._reviewThreadReplyButton.textContent = this._commentOptions?.prompt || nls.localize('reply', "Reply...");
-		// bind click/escape actions for reviewThreadReplyButton and textArea
 		this._register(dom.addDisposableListener(this._reviewThreadReplyButton, 'click', _ => this.clearAndExpandReplyArea()));
 		this._register(dom.addDisposableListener(this._reviewThreadReplyButton, 'focus', _ => this.clearAndExpandReplyArea()));
 

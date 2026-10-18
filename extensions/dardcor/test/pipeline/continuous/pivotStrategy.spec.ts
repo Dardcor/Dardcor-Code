@@ -27,14 +27,10 @@ function selection(time: number): LogEntry {
 	return { kind: 'selectionChanged', id: ID, time, selection: [[0, 0]] };
 }
 
-/** A well-formed recording: meta, encounter, content, selection, then 2 later edits. */
 const recording: LogEntry[] = [meta(), encountered(1), setContent(2), selection(3), changed(4), changed(5)];
 
 describe('selectPivots (random)', () => {
 	it('selects only changed/selectionChanged entries (never framing)', () => {
-		// Indices: 0 meta, 1 documentEncountered, 2 setContent, 3 selectionChanged,
-		// 4 changed, 5 changed. Only 3 and 4 are eligible (5 is last → no oracle;
-		// 1 and 2 are framing). Sweep seeds to exercise the random choice.
 		const chosen = new Set<number>();
 		for (let seed = 0; seed < 50; seed++) {
 			const pivots = selectPivots(recording, PivotStrategy.Random, Random.create(seed));
@@ -51,8 +47,6 @@ describe('selectPivots (random)', () => {
 	});
 
 	it('rejects records whose only unique-time entries are framing', () => {
-		// documentEncountered + setContent have unique times but are framing;
-		// the single changed is last, so no oracle follows it.
 		const framingOnly: LogEntry[] = [encountered(1), setContent(2), changed(3)];
 		expect(selectPivots(framingOnly, PivotStrategy.Random, Random.create(1))).toEqual([]);
 	});

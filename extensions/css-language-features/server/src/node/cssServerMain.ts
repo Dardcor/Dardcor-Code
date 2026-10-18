@@ -8,7 +8,6 @@ import { formatError } from '../utils/runner.js';
 import { RuntimeEnvironment, startServer } from '../cssServer.js';
 import { getNodeFSRequestService } from './nodeFs.js';
 
-// Create a connection for the server.
 const connection: Connection = createConnection();
 
 console.log = connection.console.log.bind(connection.console);

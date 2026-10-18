@@ -8,12 +8,6 @@ import type { ErrorInfo } from '../../../../platform/agentHost/common/state/prot
 import { ChatEntitlement } from '../../../services/chat/common/chatEntitlementService.js';
 import { ChatErrorLevel, IChatResponseErrorDetails } from './chatService/chatService.js';
 
-/**
- * Mirror of the Copilot extension's `ChatFetchResponseType` (see
- * `extensions/copilot/src/platform/chat/common/commonTypes.ts`). These string
- * values are forwarded verbatim from the agent host harnesses (Copilot CLI,
- * Claude, Codex) over `_meta`, so they MUST stay in sync with the extension.
- */
 export const enum ChatFetchResponseType {
 	OffTopic = 'offTopic',
 	Canceled = 'canceled',
@@ -35,10 +29,6 @@ export const enum ChatFetchResponseType {
 	Success = 'success'
 }
 
-/**
- * Mirror of the Copilot extension's `FilterReason` (see
- * `extensions/copilot/src/platform/networking/common/openai.ts`).
- */
 export const enum FilterReason {
 	Hate = 'hate',
 	SelfHarm = 'self_harm',
@@ -48,12 +38,6 @@ export const enum FilterReason {
 	Prompt = 'prompt'
 }
 
-/**
- * Raw error payload forwarded from an agent host harness. This is the
- * serialized `ChatFetchError` from the Copilot extension. Because it crosses
- * the extension/core boundary as untyped JSON inside `_meta`, every field is
- * optional and consumers type-cast based on `type`.
- */
 export interface IChatFetchErrorPayload {
 	readonly type: ChatFetchResponseType | string;
 	readonly reason?: string;
@@ -67,11 +51,6 @@ export interface IChatFetchErrorPayload {
 	readonly capiError?: { code?: string; message?: string };
 }
 
-/**
- * The full forwarded chat error payload, including the user-context fields that
- * the extension would normally read from the Copilot token. This is the value
- * placed at `_meta.chatError` by the harnesses.
- */
 export interface IForwardedChatError {
 	readonly fetchError: IChatFetchErrorPayload;
 	readonly copilotPlan?: string;
@@ -83,19 +62,8 @@ const RATE_LIMIT_LEARN_MORE_URL = 'https://aka.ms/github-copilot-rate-limit-erro
 const FILTERED_DOCS_URL = 'https://aka.ms/copilot-chat-filtered-docs';
 const GITHUB_SUPPORT_URL = 'https://support.github.com/contact';
 
-/**
- * Localized "canceled" message. Mirrors the extension's `CanceledMessage`,
- * which is intentionally not localized there; we localize it in core.
- */
 const CanceledMessage: IChatResponseErrorDetails = { message: localize('chatError.canceled', "Canceled") };
 
-/**
- * Converts a number of seconds into a human readable, localized string like
- * "6 hours 50 minutes". Based on the Copilot extension's
- * `secondsToHumanReadableTime` (`extensions/copilot/src/util/common/time.ts`),
- * but the unit fragments are externalized so they translate in non-English
- * locales.
- */
 function secondsToHumanReadableTime(seconds: number): string {
 	if (seconds < 90) {
 		return localize('chatError.duration.seconds', "{0} seconds", seconds);
@@ -118,7 +86,7 @@ function secondsToHumanReadableTime(seconds: number): string {
 function getRateLimitMessage(fetchError: IChatFetchErrorPayload, copilotPlan: string | undefined): string {
 	const retryAfterString = fetchError.retryAfter ? secondsToHumanReadableTime(fetchError.retryAfter) : localize('chatError.aMoment', "a moment");
 	const code = fetchError.capiError?.code;
-	if (code?.startsWith('agent_mode_limit_exceeded')) { // Rate limited in agent mode
+	if (code?.startsWith('agent_mode_limit_exceeded')) {
 		return localize({ key: 'chatError.rateLimit.agentMode', comment: [`{Locked=']({'}`] }, "Sorry, you have exceeded the agent mode rate limit. Please switch to ask mode and try again in {0}. [Learn More]({1})", retryAfterString, RATE_LIMIT_LEARN_MORE_URL);
 	}
 	if (code?.startsWith('model_overloaded') || code?.startsWith('upstream_provider_rate_limit')) {
@@ -227,7 +195,7 @@ export function getQuotaMessageForPlan(copilotPlan: string | undefined, isUsageB
 function getQuotaHitMessage(fetchError: IChatFetchErrorPayload, copilotPlan: string | undefined, isUsageBasedBilling?: boolean, quotaResetDate?: string): string {
 	let code = fetchError.capiError?.code;
 	if (code === 'free_quota_exceeded') {
-		code = 'quota_exceeded'; // Remap this to the generic quota code so we get per plan handling
+		code = 'quota_exceeded';
 	}
 	if (code === 'quota_exceeded') {
 		return getQuotaMessageForPlan(copilotPlan, isUsageBasedBilling, quotaResetDate);
@@ -264,13 +232,6 @@ export function getFilteredMessage(category: FilterReason | string, supportsMark
 	}
 }
 
-/**
- * Builds the user-facing {@link IChatResponseErrorDetails} from a forwarded raw
- * chat fetch error. This is the core analog of the Copilot extension's
- * `getErrorDetailsFromChatFetchError`. Unlike the extension, core has no
- * access to the GitHub outage status, so the outage note is never appended
- * (assume no outage).
- */
 export function getChatErrorDetailsFromFetchError(fetchError: IChatFetchErrorPayload, copilotPlan: string | undefined, isUsageBasedBilling?: boolean, quotaResetDate?: string): IChatResponseErrorDetails {
 	return { code: fetchError.type, ...getChatErrorDetailsInner(fetchError, copilotPlan, isUsageBasedBilling, quotaResetDate) };
 }
@@ -322,17 +283,12 @@ function getChatErrorDetailsInner(fetchError: IChatFetchErrorPayload, copilotPla
 		case ChatFetchResponseType.ExtensionBlocked:
 			return { message: localize('chatError.extensionBlocked', "Sorry, something went wrong.") };
 		case ChatFetchResponseType.InvalidStatefulMarker:
-			// should be unreachable, retried within the endpoint
 			return { message: localize('chatError.invalidStatefulMarker', "Your chat session state is invalid, please start a new chat.") };
 		default:
 			return { message: reason || localize('chatError.somethingWrong', "Sorry, something went wrong.") };
 	}
 }
 
-/**
- * Type guard for the forwarded chat error payload placed at `_meta.chatError`
- * by the agent host harnesses.
- */
 function isForwardedChatError(value: unknown): value is IForwardedChatError {
 	return !!value
 		&& typeof value === 'object'
@@ -342,16 +298,6 @@ function isForwardedChatError(value: unknown): value is IForwardedChatError {
 		&& typeof (value as IForwardedChatError).fetchError.type === 'string';
 }
 
-/**
- * Extracts and formats {@link IChatResponseErrorDetails} from the `_meta`
- * forwarded by an agent host harness, if present. Returns `undefined` when no
- * forwarded chat error is found so callers can fall back to their existing
- * error handling.
- *
- * The agent host does not know the signed-in user's plan, so callers in core
- * pass an {@link IChatErrorContext} (resolved from `IChatEntitlementService`)
- * whose fields take precedence over the values forwarded in `_meta`.
- */
 export function getChatErrorDetailsFromMeta(error: ErrorInfo | undefined, context?: IChatErrorContext): IChatResponseErrorDetails | undefined {
 	const meta = error?._meta;
 	const chatError = meta?.chatError;
@@ -366,22 +312,12 @@ export function getChatErrorDetailsFromMeta(error: ErrorInfo | undefined, contex
 	);
 }
 
-/**
- * User-context overrides for {@link getChatErrorDetailsFromMeta}. When a field
- * is set it takes precedence over the value forwarded by the agent host. Core
- * resolves these from `IChatEntitlementService`.
- */
 export interface IChatErrorContext {
 	readonly copilotPlan?: string;
 	readonly isUsageBasedBilling?: boolean;
 	readonly quotaResetDate?: string;
 }
 
-/**
- * Maps a core {@link ChatEntitlement} to the Copilot plan string understood by
- * the quota/rate-limit message helpers (mirrors the Copilot extension's
- * `CopilotToken.copilotPlan` values).
- */
 export function getCopilotPlanFromEntitlement(entitlement: ChatEntitlement): string | undefined {
 	switch (entitlement) {
 		case ChatEntitlement.Free:

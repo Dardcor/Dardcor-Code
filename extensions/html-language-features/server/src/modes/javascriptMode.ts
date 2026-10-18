@@ -37,7 +37,7 @@ function getLanguageServiceHost(scriptKind: ts.ScriptKind) {
 				if (fileName === currentTextDocument.uri) {
 					return String(currentTextDocument.version);
 				}
-				return '1'; // default lib an jquery.d.ts are static
+				return '1';
 			},
 			getScriptSnapshot: (fileName: string) => {
 				let text = '';
@@ -69,8 +69,6 @@ function getLanguageServiceHost(scriptKind: ts.ScriptKind) {
 				}
 			},
 			directoryExists: (path: string): boolean => {
-				// typescript tries to first find libraries in node_modules/@types and node_modules/@typescript
-				// there's no node_modules in our setup
 				if (path.startsWith('node_modules')) {
 					return false;
 				}
@@ -101,8 +99,8 @@ function getLanguageServiceHost(scriptKind: ts.ScriptKind) {
 }
 
 const ignoredErrors = [
-	1108,  /* A_return_statement_can_only_be_used_within_a_function_body_1108 */
-	2792, /* Cannot_find_module_0_Did_you_mean_to_set_the_moduleResolution_option_to_node_or_to_add_aliases_to_the_paths_option */
+	1108,
+	2792,
 ];
 
 export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocumentRegions>, languageId: 'javascript' | 'typescript', workspace: Workspace): LanguageMode {
@@ -151,7 +149,7 @@ export function getJavaScriptMode(documentRegions: LanguageModelCache<HTMLDocume
 			return {
 				isIncomplete: false,
 				items: completions.entries.map(entry => {
-					const data: CompletionItemData = { // data used for resolving item details (see 'doResolve')
+					const data: CompletionItemData = {
 						languageId,
 						uri: document.uri,
 						offset: offset
@@ -461,7 +459,6 @@ function tagToMarkdown(tag: ts.JSDocTagInfo): string {
 		case 'template':
 		case 'augments':
 		case 'extends': {
-			// Parse out the parameter name, e.g. "name - description" or "name description"
 			const match = text.match(/^(\S+)\s*-?\s*(.*)$/s);
 			if (match) {
 				const param = match[1];

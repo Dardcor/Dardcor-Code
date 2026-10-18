@@ -12,14 +12,8 @@ import { VSBuffer } from '../../../../base/common/buffer.js';
 
 interface ILocalHistoryResource {
 
-	/**
-	 * The location of the local history entry to read from.
-	 */
 	readonly location: URI;
 
-	/**
-	 * The associated resource the local history entry is about.
-	 */
 	readonly associatedResource: URI;
 }
 
@@ -28,10 +22,6 @@ interface ISerializedLocalHistoryResource {
 	readonly associatedResource: string;
 }
 
-/**
- * A wrapper around a standard file system provider
- * that is entirely readonly.
- */
 export class LocalHistoryFileSystemProvider implements IFileSystemProvider, IFileSystemProviderWithFileReadWriteCapability {
 
 	static readonly SCHEMA = 'vscode-local-history';
@@ -42,10 +32,6 @@ export class LocalHistoryFileSystemProvider implements IFileSystemProvider, IFil
 			associatedResource: resource.associatedResource.toString(true)
 		};
 
-		// Try to preserve the associated resource as much as possible
-		// and only keep the `query` part dynamic. This enables other
-		// components (e.g. other timeline providers) to continue
-		// providing timeline entries even when our resource is active.
 		return resource.associatedResource.with({
 			scheme: LocalHistoryFileSystemProvider.SCHEMA,
 			query: JSON.stringify(serializedLocalHistoryResource)
@@ -82,13 +68,11 @@ export class LocalHistoryFileSystemProvider implements IFileSystemProvider, IFil
 		let providerPromise = this.mapSchemeToProvider.get(scheme);
 		if (!providerPromise) {
 
-			// Resolve early when provider already exists
 			const provider = this.fileService.getProvider(scheme);
 			if (provider) {
 				providerPromise = Promise.resolve(provider);
 			}
 
-			// Otherwise wait for registration
 			else {
 				providerPromise = new Promise<IFileSystemProvider>(resolve => {
 					const disposable = this.fileService.onDidChangeFileSystemProviderRegistrations(e => {
@@ -107,29 +91,24 @@ export class LocalHistoryFileSystemProvider implements IFileSystemProvider, IFil
 		return providerPromise;
 	}
 
-	//#region Supported File Operations
 
 	async stat(resource: URI): Promise<IStat> {
 		const location = LocalHistoryFileSystemProvider.fromLocalHistoryFileSystem(resource).location;
 
-		// Special case: empty resource
 		if (isEqual(LocalHistoryFileSystemProvider.EMPTY_RESOURCE, location)) {
 			return { type: FileType.File, ctime: 0, mtime: 0, size: 0 };
 		}
 
-		// Otherwise delegate to provider
 		return (await this.withProvider(location)).stat(location);
 	}
 
 	async readFile(resource: URI): Promise<Uint8Array> {
 		const location = LocalHistoryFileSystemProvider.fromLocalHistoryFileSystem(resource).location;
 
-		// Special case: empty resource
 		if (isEqual(LocalHistoryFileSystemProvider.EMPTY_RESOURCE, location)) {
 			return VSBuffer.fromString('').buffer;
 		}
 
-		// Otherwise delegate to provider
 		const provider = await this.withProvider(location);
 		if (hasReadWriteCapability(provider)) {
 			return provider.readFile(location);
@@ -138,9 +117,7 @@ export class LocalHistoryFileSystemProvider implements IFileSystemProvider, IFil
 		throw new Error('Unsupported');
 	}
 
-	//#endregion
 
-	//#region Unsupported File Operations
 
 	readonly onDidChangeCapabilities = Event.None;
 	readonly onDidChangeFile = Event.None;
@@ -155,5 +132,4 @@ export class LocalHistoryFileSystemProvider implements IFileSystemProvider, IFil
 
 	watch(resource: URI, opts: IWatchOptions): IDisposable { return Disposable.None; }
 
-	//#endregion
 }

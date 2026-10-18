@@ -24,7 +24,7 @@ suite('Actionbar', () => {
 		const a7 = new Separator();
 
 		const actions = prepareActions([a1, a2, a3, a4, a5, a6, a7]);
-		assert.strictEqual(actions.length, 3); // duplicate separators get removed
+		assert.strictEqual(actions.length, 3);
 		assert(actions[0] === a3);
 		assert(actions[1] === a5);
 		assert(actions[2] === a6);
@@ -77,7 +77,6 @@ suite('Actionbar', () => {
 
 			actionbar.push(toggleAction);
 
-			// Verify that the action was rendered as a toggle
 			assert.strictEqual(actionbar.viewItems.length, 1);
 			assert(actionbar.viewItems[0] instanceof ToggleActionViewItem, 'Action with checked state should render as ToggleActionViewItem');
 		});
@@ -93,7 +92,6 @@ suite('Actionbar', () => {
 
 			actionbar.push(buttonAction);
 
-			// Verify that the action was rendered as a regular button (ActionViewItem)
 			assert.strictEqual(actionbar.viewItems.length, 1);
 			assert(actionbar.viewItems[0] instanceof ActionViewItem, 'Action without checked state should render as ActionViewItem');
 			assert(!(actionbar.viewItems[0] instanceof ToggleActionViewItem), 'Action without checked state should not render as ToggleActionViewItem');
@@ -112,7 +110,6 @@ suite('Actionbar', () => {
 
 			actionbar.push([toggleAction, buttonAction]);
 
-			// Verify that we have both types of items
 			assert.strictEqual(actionbar.viewItems.length, 2);
 			assert(actionbar.viewItems[0] instanceof ToggleActionViewItem, 'First action should be a toggle');
 			assert(actionbar.viewItems[1] instanceof ActionViewItem, 'Second action should be a button');
@@ -131,20 +128,16 @@ suite('Actionbar', () => {
 
 			actionbar.push(toggleAction);
 
-			// Verify the toggle view item was created
 			const toggleViewItem = actionbar.viewItems[0] as ToggleActionViewItem;
 			assert(toggleViewItem instanceof ToggleActionViewItem, 'Toggle view item should exist');
 
-			// Change the action's checked state
 			toggleAction.checked = true;
-			// The view item should reflect the updated checked state
 			assert.strictEqual(toggleAction.checked, true, 'Toggle action should update checked state');
 		});
 
 		test('quick input button with toggle property creates action with checked state', async function () {
 			const { quickInputButtonToAction } = await import('../../../platform/quickinput/browser/quickInputUtils.js');
 
-			// Create a button with toggle property
 			const toggleButton = {
 				iconClass: 'test-icon',
 				tooltip: 'Toggle Button',
@@ -153,10 +146,8 @@ suite('Actionbar', () => {
 
 			const action = quickInputButtonToAction(toggleButton, 'test-id', () => { });
 
-			// Verify the action has checked property set
 			assert.strictEqual(action.checked, true, 'Action should have checked property set to true');
 
-			// Create a button without toggle property
 			const regularButton = {
 				iconClass: 'test-icon',
 				tooltip: 'Regular Button'
@@ -164,7 +155,6 @@ suite('Actionbar', () => {
 
 			const regularAction = quickInputButtonToAction(regularButton, 'test-id-2', () => { });
 
-			// Verify the action doesn't have checked property
 			assert.strictEqual(regularAction.checked, undefined, 'Regular action should not have checked property');
 		});
 	});

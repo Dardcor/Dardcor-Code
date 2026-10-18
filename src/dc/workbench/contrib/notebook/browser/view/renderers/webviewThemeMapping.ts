@@ -19,13 +19,11 @@ const mapping: ReadonlyMap<string, string> = new Map([
 	['theme-quote-border', 'vscode-textBlockQuote-border'],
 	['theme-code-foreground', 'vscode-textPreformat-foreground'],
 	['theme-code-background', 'vscode-textPreformat-background'],
-	// Editor
 	['theme-background', 'vscode-editor-background'],
 	['theme-foreground', 'vscode-editor-foreground'],
 	['theme-ui-foreground', 'vscode-foreground'],
 	['theme-link', 'vscode-textLink-foreground'],
 	['theme-link-active', 'vscode-textLink-activeForeground'],
-	// Buttons
 	['theme-button-background', 'vscode-button-background'],
 	['theme-button-hover-background', 'vscode-button-hoverBackground'],
 	['theme-button-foreground', 'vscode-button-foreground'],
@@ -36,26 +34,22 @@ const mapping: ReadonlyMap<string, string> = new Map([
 	['theme-button-focus-foreground', 'vscode-button-foreground'],
 	['theme-button-secondary-hover-foreground', 'vscode-button-secondaryForeground'],
 	['theme-button-secondary-focus-foreground', 'vscode-button-secondaryForeground'],
-	// Inputs
 	['theme-input-background', 'vscode-input-background'],
 	['theme-input-foreground', 'vscode-input-foreground'],
 	['theme-input-placeholder-foreground', 'vscode-input-placeholderForeground'],
 	['theme-input-focus-border-color', 'vscode-focusBorder'],
-	// Menus
 	['theme-menu-background', 'vscode-menu-background'],
 	['theme-menu-foreground', 'vscode-menu-foreground'],
 	['theme-menu-hover-background', 'vscode-menu-selectionBackground'],
 	['theme-menu-focus-background', 'vscode-menu-selectionBackground'],
 	['theme-menu-hover-foreground', 'vscode-menu-selectionForeground'],
 	['theme-menu-focus-foreground', 'vscode-menu-selectionForeground'],
-	// Errors
 	['theme-error-background', 'vscode-inputValidation-errorBackground'],
 	['theme-error-foreground', 'vscode-foreground'],
 	['theme-warning-background', 'vscode-inputValidation-warningBackground'],
 	['theme-warning-foreground', 'vscode-foreground'],
 	['theme-info-background', 'vscode-inputValidation-infoBackground'],
 	['theme-info-foreground', 'vscode-foreground'],
-	// Notebook:
 	['theme-notebook-output-background', 'vscode-notebook-outputContainerBackgroundColor'],
 	['theme-notebook-output-border', 'vscode-notebook-outputContainerBorderColor'],
 	['theme-notebook-cell-selected-background', 'vscode-notebook-selectedCellBackground'],
@@ -71,12 +65,6 @@ const constants: Readonly<WebviewStyles> = {
 	'theme-input-border-color': 'transparent',
 };
 
-/**
- * Transforms base vscode theme variables into generic variables for notebook
- * renderers.
- * @see https://github.com/microsoft/vscode/issues/107985 for context
- * @deprecated
- */
 export const transformWebviewThemeVars = (s: Readonly<WebviewStyles>): WebviewStyles => {
 	const result = { ...s, ...constants };
 	for (const [target, src] of mapping) {

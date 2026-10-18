@@ -15,9 +15,6 @@ import * as viewEvents from '../../../common/viewEvents.js';
 import { registerThemingParticipant } from '../../../../platform/theme/common/themeService.js';
 import { editorDimmedLineNumber, editorLineNumbers } from '../../../common/core/editorColorRegistry.js';
 
-/**
- * Renders line numbers to the left of the main view lines content.
- */
 export class LineNumbersOverlay extends DynamicViewOverlay {
 
 	public static readonly CLASS_NAME = 'line-numbers';
@@ -64,7 +61,6 @@ export class LineNumbersOverlay extends DynamicViewOverlay {
 		super.dispose();
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		this._readConfig();
@@ -106,7 +102,6 @@ export class LineNumbersOverlay extends DynamicViewOverlay {
 		return e.affectsLineNumber;
 	}
 
-	// --- end event handlers
 
 	private _getLineRenderLineNumber(viewLineNumber: number): string {
 		const modelPosition = this._context.viewModel.coordinatesConverter.convertViewPositionToModelPosition(new Position(viewLineNumber, 1));
@@ -167,7 +162,6 @@ export class LineNumbersOverlay extends DynamicViewOverlay {
 			let renderLineNumber = this._getLineRenderLineNumber(lineNumber);
 			let extraClassNames = '';
 
-			// skip decorations whose end positions we've already passed
 			while (decorationStartIndex < lineNoDecorations.length && lineNoDecorations[decorationStartIndex].range.endLineNumber < lineNumber) {
 				decorationStartIndex++;
 			}
@@ -184,7 +178,6 @@ export class LineNumbersOverlay extends DynamicViewOverlay {
 			}
 
 			if (lineNumber === lineCount && this._context.viewModel.getLineLength(lineNumber) === 0) {
-				// this is the last line
 				if (this._renderFinalNewline === 'off') {
 					renderLineNumber = '';
 				}

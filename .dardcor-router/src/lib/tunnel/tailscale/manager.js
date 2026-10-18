@@ -56,7 +56,6 @@ export async function enableTailscale(localPort = 21128) {
       result = await startFunnel(localPort);
     } catch (e) {
       console.error(`[Tailscale] funnel error: ${e.message}`);
-      // Daemon not logged in / not ready → auto-trigger login flow so user stays in-app
       if (/NoState|unexpected state|not logged in|Logged ?out|NeedsLogin/i.test(e.message || "")) {
         console.log("[Tailscale] retry via startLogin");
         const loginResult = await startLogin(tsHostname);
@@ -71,7 +70,6 @@ export async function enableTailscale(localPort = 21128) {
       return { success: false, funnelNotEnabled: true, enableUrl: result.enableUrl };
     }
 
-    // Strict probe: bypass cache so we don't false-negative on first invocation
     if (!(await isTailscaleLoggedInStrict()) || !(await isTailscaleRunningStrict())) {
       console.error("[Tailscale] strict probe failed (device removed?)");
       stopFunnel();
@@ -81,11 +79,9 @@ export async function enableTailscale(localPort = 21128) {
     await updateSettings({ tailscaleEnabled: true, tailscaleUrl: result.tunnelUrl });
     console.log(`[Tailscale] funnel up: ${result.tunnelUrl}`);
 
-    // Provision TLS cert so Funnel can serve HTTPS (non-fatal if fails)
     const hostname = new URL(result.tunnelUrl).hostname;
     await provisionCert(hostname);
 
-    // Verify funnel serves /api/health — timeout is non-fatal (DNS may still be propagating)
     let reachableNow = false;
     try {
       await waitForHealth(result.tunnelUrl, token);
@@ -116,7 +112,6 @@ export async function getTailscaleStatus() {
   const settings = await getSettings();
   const settingsEnabled = settings.tailscaleEnabled === true;
   const tunnelUrl = settings.tailscaleUrl || "";
-  // Skip probes entirely when disabled; check login before running (device removed = not logged in)
   const loggedIn = settingsEnabled ? isTailscaleLoggedIn() : false;
   const running = loggedIn ? isTailscaleRunning() : false;
   return {

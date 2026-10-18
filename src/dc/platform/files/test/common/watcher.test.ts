@@ -32,10 +32,8 @@ class TestFileWatcher extends Disposable {
 
 	private onRawFileEvents(events: IFileChange[]): void {
 
-		// Coalesce
 		const coalescedEvents = coalesceEvents(events);
 
-		// Emit through event emitter
 		if (coalescedEvents.length > 0) {
 			this._onDidFilesChange.fire({ raw: reviveFileChanges(coalescedEvents), event: this.toFileChangesEvent(coalescedEvents) });
 		}
@@ -112,12 +110,10 @@ suite('Watcher', () => {
 		const path = '/users/data/src';
 		let parsedPattern = parseWatcherPatterns(path, ['*.JS'], false)[0];
 
-		// Case sensitive by default on posix
 		assert.strictEqual(parsedPattern('/users/data/src/foo.js'), false);
 		assert.strictEqual(parsedPattern('/users/data/src/foo.JS'), true);
 		assert.strictEqual(parsedPattern('/users/data/src/foo.Js'), false);
 
-		// Now test with GlobCaseSensitivity.caseInsensitive
 		parsedPattern = parseWatcherPatterns(path, ['*.JS'], true)[0];
 
 		assert.strictEqual(parsedPattern('/users/data/src/foo.js'), true);
@@ -146,13 +142,11 @@ suite('Watcher', () => {
 		const path = 'c:\\users\\data\\src';
 		let parsedPattern = parseWatcherPatterns(path, ['*.JS'], true)[0];
 
-		// Windows is case insensitive by default
 		assert.strictEqual(parsedPattern('c:\\users\\data\\src\\foo.js'), true);
 		assert.strictEqual(parsedPattern('c:\\users\\data\\src\\foo.JS'), true);
 		assert.strictEqual(parsedPattern('c:\\users\\data\\src\\foo.Js'), true);
 		assert.strictEqual(parsedPattern('c:\\users\\data\\src\\foo.ts'), false);
 
-		// Explicit GlobCaseSensitivity.caseInsensitive should work the same
 		parsedPattern = parseWatcherPatterns(path, ['*.JS'], true)[0];
 
 		assert.strictEqual(parsedPattern('c:\\users\\data\\src\\foo.js'), true);
@@ -176,7 +170,6 @@ suite('Watcher', () => {
 		assert.strictEqual(parsedPattern('c:\\users\\data\\src\\bar\\TEST2.JS'), true);
 		assert.strictEqual(parsedPattern('c:\\users\\data\\src\\foo.js'), false);
 
-		// Test with case sensitive mode explicitly
 		parsedPattern = parseWatcherPatterns(path, ['*.JS'], false)[0];
 
 		assert.strictEqual(parsedPattern('c:\\users\\data\\src\\foo.js'), false);

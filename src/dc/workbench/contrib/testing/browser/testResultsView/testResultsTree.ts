@@ -247,7 +247,6 @@ class TestMessageElement implements ITreeElement {
 			return Event.None;
 		}
 
-		// rerender when the test case changes so it gets retired events
 		return Event.filter(this.result.onChange, e => e.item.item.extId === this.test.item.extId && e.reason !== TestResultItemChangeReason.NewMessage);
 	}
 
@@ -443,8 +442,6 @@ export class OutputPeekTree extends Disposable {
 			return children;
 		};
 
-		// Queued result updates to prevent spamming CPU when lots of tests are
-		// completing and messaging quickly (#142514)
 		const taskChildrenToUpdate = new Set<TaskElement>();
 		const taskChildrenUpdate = this._register(new RunOnceScheduler(() => {
 			for (const taskNode of taskChildrenToUpdate) {
@@ -468,14 +465,12 @@ export class OutputPeekTree extends Disposable {
 				this.tree.setChildren(null, getRootChildren(), { diffIdentityProvider });
 
 				if (result.tasks.length === 1) {
-					this.requestReveal.fire(new TaskSubject(result, 0)); // reveal the first task in new runs
+					this.requestReveal.fire(new TaskSubject(result, 0));
 				}
 
-				// note: tasks are bounded and their lifetime is equivalent to that of
-				// the test result, so this doesn't leak indefinitely.
 				const task = result.tasks[i];
 				disposable.add(autorun(reader => {
-					task.coverage.read(reader); // add it to the autorun
+					task.coverage.read(reader);
 					queueTaskChildrenUpdate(cc.get(task) as TaskElement);
 				}));
 			}));
@@ -485,7 +480,6 @@ export class OutputPeekTree extends Disposable {
 			}));
 
 			disposable.add(result.onChange(e => {
-				// try updating the item in each of its tasks
 				for (const [index, task] of result.tasks.entries()) {
 					const taskNode = cc.get(task) as TaskElement;
 					if (!this.tree.hasElement(taskNode)) {
@@ -511,9 +505,6 @@ export class OutputPeekTree extends Disposable {
 		};
 
 		this._register(results.onResultsChanged(e => {
-			// little hack here: a result change can cause the peek to be disposed,
-			// but this listener will still be queued. Doing stuff with the tree
-			// will cause errors.
 			if (this.disposed) {
 				return;
 			}
@@ -632,7 +623,6 @@ export class OutputPeekTree extends Disposable {
 			if (e.node.element instanceof OlderResultsElement && !e.node.collapsed) {
 				telemetryService.publicLog2<{}, {
 					owner: 'connor4312';
-					// we're considering removing or depromoting this feature because we don't think it's used:
 					comment: 'Records that test history was used';
 				}>('testing.expandOlderResults');
 			}
@@ -655,11 +645,6 @@ export class OutputPeekTree extends Disposable {
 			return;
 		}
 
-		// When a row is compressed (e.g. a TestCaseElement is rendered along
-		// with its only TestMessageElement child), the renderer shows the inline
-		// action bar for the parent element. Mirror that logic here so the
-		// right-click menu offers the same actions as the inline action bar
-		// shown on the visible row.
 		const element = this.getRenderedElement(evt.element);
 		const actions = this.treeActions.provideActionBar(element);
 		this.contextMenuService.showContextMenu({
@@ -673,8 +658,6 @@ export class OutputPeekTree extends Disposable {
 	}
 
 	private getRenderedElement(element: ITreeElement): ITreeElement {
-		// See TestRunElementRenderer.renderCompressedElements for the matching
-		// logic that decides which element gets the inline action bar.
 		if (!(element instanceof TaskElement) && !(element instanceof TestMessageElement)) {
 			return element;
 		}
@@ -689,7 +672,6 @@ export class OutputPeekTree extends Disposable {
 				}
 			}
 		} catch {
-			// element may no longer be in the tree; fall through
 		}
 
 		return element;
@@ -718,7 +700,6 @@ class TestRunElementRenderer implements ICompressibleTreeRenderer<ITreeElement, 
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) { }
 
-	/** @inheritdoc */
 	public renderCompressedElements(node: ITreeNode<ICompressedTreeNode<ITreeElement>, FuzzyScore>, _index: number, templateData: TemplateData): void {
 		const chain = node.element.elements;
 		const lastElement = chain[chain.length - 1];
@@ -729,7 +710,6 @@ class TestRunElementRenderer implements ICompressibleTreeRenderer<ITreeElement, 
 		}
 	}
 
-	/** @inheritdoc */
 	public renderTemplate(container: HTMLElement): TemplateData {
 		const templateDisposable = new DisposableStore();
 		container.classList.add('testing-stdtree-container');
@@ -757,17 +737,14 @@ class TestRunElementRenderer implements ICompressibleTreeRenderer<ITreeElement, 
 		};
 	}
 
-	/** @inheritdoc */
 	public renderElement(element: ITreeNode<ITreeElement, FuzzyScore>, _index: number, templateData: TemplateData): void {
 		this.doRender(element.element, templateData);
 	}
 
-	/** @inheritdoc */
 	public disposeTemplate(templateData: TemplateData): void {
 		templateData.templateDisposable.dispose();
 	}
 
-	/** Called to render a new element */
 	private doRender(element: ITreeElement, templateData: TemplateData, subjectElement?: ITreeElement) {
 		templateData.elementDisposable.clear();
 		templateData.elementDisposable.add(
@@ -776,7 +753,6 @@ class TestRunElementRenderer implements ICompressibleTreeRenderer<ITreeElement, 
 		this.doRenderInner(element, templateData, subjectElement);
 	}
 
-	/** Called, and may be re-called, to render or re-render an element */
 	private doRenderInner(element: ITreeElement, templateData: TemplateData, subjectElement: ITreeElement | undefined) {
 		let { label, labelWithIcons, description } = element;
 		if (subjectElement instanceof TestMessageElement) {
@@ -884,7 +860,6 @@ class TreeActionsProvider {
 		}
 
 		if (element instanceof TestResultElement) {
-			// only show if there are no collapsed test nodes that have more specific choices
 			if (element.value.tasks.length === 1) {
 				primary.push(new Action(
 					'testing.outputPeek.showResultOutput',

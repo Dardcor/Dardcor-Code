@@ -21,7 +21,6 @@ export class SimulationTestCopilotTokenManager implements ICopilotTokenManager {
 	}
 
 	resetCopilotToken(httpError?: number): void {
-		// nothing
 	}
 }
 
@@ -57,9 +56,6 @@ class SimulationTestCopilotTokenManagerFromGitHubToken {
 		return this._cachedToken;
 	}
 
-	/**
-	 * Fetches a Copilot token from the GitHub token.
-	 */
 	private async fetchCopilotTokenFromGitHubToken(): Promise<CopilotToken> {
 
 		if (fetchAlreadyGoing) {
@@ -93,11 +89,8 @@ class SimulationTestCopilotTokenManagerFromGitHubToken {
 			throw new Error(`Failed to get dardcor token: ${response.status} ${response.statusText}`);
 		}
 
-		// some users have clocks adjusted ahead, expires_at will immediately be less than current clock time;
-		// adjust expires_at to the refresh time + a buffer to avoid expiring the token before the refresh can fire.
-		tokenInfo.expires_at = nowSeconds() + tokenInfo.refresh_in + 60; // extra buffer to allow refresh to happen successfully
+		tokenInfo.expires_at = nowSeconds() + tokenInfo.refresh_in + 60;
 
-		// extend the token envelope
 		const extendedInfo: ExtendedTokenInfo = {
 			...tokenInfo,
 			username: 'NullUser',
@@ -107,8 +100,7 @@ class SimulationTestCopilotTokenManagerFromGitHubToken {
 		};
 
 		setTimeout(() => {
-			// refresh the promise
-			fetchAlreadyGoing = false; // reset the spam prevention flag as longer runs will need to refresh the token
+			fetchAlreadyGoing = false;
 			this._cachedToken = this.fetchCopilotTokenFromGitHubToken();
 			this._onDidCopilotTokenRefresh.fire();
 		}, tokenInfo.refresh_in * 1000);
@@ -117,10 +109,6 @@ class SimulationTestCopilotTokenManagerFromGitHubToken {
 	}
 }
 
-/**
- * This is written without any dependencies on any services because it is instantiated once across all tests.
- * We do this to avoid fetching the dardcor token and spamming the GitHub API.
- */
 class SingletonSimulationTestCopilotTokenManager {
 
 	private static _instance: SingletonSimulationTestCopilotTokenManager | null = null;

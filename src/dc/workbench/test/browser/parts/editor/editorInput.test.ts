@@ -33,7 +33,6 @@ suite('EditorInput', () => {
 	const untypedResourceDiffEditorInput: IResourceDiffEditorInput = { original: untypedResourceEditorInput, modified: untypedResourceEditorInput, options: { override: DEFAULT_EDITOR_ASSOCIATION.id } };
 	const untypedResourceMergeEditorInput: IResourceMergeEditorInput = { base: untypedResourceEditorInput, input1: untypedResourceEditorInput, input2: untypedResourceEditorInput, result: untypedResourceEditorInput, options: { override: DEFAULT_EDITOR_ASSOCIATION.id } };
 
-	// Function to easily remove the overrides from the untyped inputs
 	const stripOverrides = () => {
 		if (
 			!untypedResourceEditorInput.options ||
@@ -44,7 +43,6 @@ suite('EditorInput', () => {
 		) {
 			throw new Error('Malformed options on untyped inputs');
 		}
-		// Some of the tests mutate the overrides so we want to reset them on each test
 		untypedResourceEditorInput.options.override = undefined;
 		untypedTextResourceEditorInput.options.override = undefined;
 		untypedUntitledResourceEditorinput.options.override = undefined;
@@ -65,7 +63,6 @@ suite('EditorInput', () => {
 		) {
 			throw new Error('Malformed options on untyped inputs');
 		}
-		// Some of the tests mutate the overrides so we want to reset them on each test
 		untypedResourceEditorInput.options.override = DEFAULT_EDITOR_ASSOCIATION.id;
 		untypedTextResourceEditorInput.options.override = DEFAULT_EDITOR_ASSOCIATION.id;
 		untypedUntitledResourceEditorinput.options.override = DEFAULT_EDITOR_ASSOCIATION.id;
@@ -152,7 +149,6 @@ suite('EditorInput', () => {
 		assert.ok(!fileEditorInput.matches(untypedResourceDiffEditorInput));
 		assert.ok(!fileEditorInput.matches(untypedResourceMergeEditorInput));
 
-		// Now we remove the override on the untyped to ensure that FileEditorInput supports lightweight resource matching
 		stripOverrides();
 
 		assert.ok(fileEditorInput.matches(untypedResourceEditorInput));

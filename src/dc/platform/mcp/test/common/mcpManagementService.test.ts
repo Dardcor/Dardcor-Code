@@ -233,7 +233,7 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 					version: '1.0.2',
 					environmentVariables: [{
 						name: 'BRAVE_API_KEY',
-						value: '', // Empty value should create input variable
+						value: '',
 						description: 'Brave Search API Key',
 						isRequired: true,
 						isSecret: true
@@ -243,15 +243,12 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.NODE);
 
-			// BUG: Currently this creates env with empty string instead of input variable
-			// Should create an input variable since no meaningful value is provided
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.length, 1);
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].id, 'BRAVE_API_KEY');
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].description, 'Brave Search API Key');
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].password, true);
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].type, McpServerVariableType.PROMPT);
 
-			// Environment should use input variable interpolation
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				assert.deepStrictEqual(result.mcpServerConfiguration.config.env, { 'BRAVE_API_KEY': '${input:BRAVE_API_KEY}' });
 			}
@@ -266,7 +263,7 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 					version: '1.0.0',
 					environmentVariables: [{
 						name: 'SSL_MODE',
-						value: '', // Empty value should create input variable
+						value: '',
 						description: 'SSL connection mode',
 						default: 'prefer',
 						choices: ['disable', 'prefer', 'require']
@@ -276,8 +273,6 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.NODE);
 
-			// BUG: Currently this creates env with empty string instead of input variable
-			// Should create a pick input variable since choices are provided
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.length, 1);
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].id, 'SSL_MODE');
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].description, 'SSL connection mode');
@@ -285,7 +280,6 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].type, McpServerVariableType.PICK);
 			assert.deepStrictEqual(result.mcpServerConfiguration.inputs?.[0].options, ['disable', 'prefer', 'require']);
 
-			// Environment should use input variable interpolation
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				assert.deepStrictEqual(result.mcpServerConfiguration.config.env, { 'SSL_MODE': '${input:SSL_MODE}' });
 			}
@@ -510,22 +504,18 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 						default: 'localhost',
 						isRequired: true,
 						isRepeated: false
-						// Note: No 'value' field - should create input variable
 					}, {
 						type: 'positional',
 						valueHint: 'database_name',
 						description: 'Name of the database to connect to',
 						isRequired: true,
 						isRepeated: false
-						// Note: No 'value' field - should create input variable
 					}]
 				}]
 			};
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.DOCKER);
 
-			// BUG: Currently named args without value are ignored, positional uses value_hint as literal
-			// Should create input variables for both arguments
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.length, 2);
 
 			const hostInput = result.mcpServerConfiguration.inputs?.find((i: IMcpServerVariable) => i.id === 'host');
@@ -537,7 +527,6 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 			assert.strictEqual(dbNameInput?.description, 'Name of the database to connect to');
 			assert.strictEqual(dbNameInput?.type, McpServerVariableType.PROMPT);
 
-			// Args should use input variable interpolation
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				assert.deepStrictEqual(result.mcpServerConfiguration.config.args, [
 					'run', '-i', '--rm',
@@ -735,13 +724,11 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 						description: 'API token for authentication',
 						isSecret: true,
 						isRequired: true
-						// Note: No 'value' field - should create input variable
 					}, {
 						name: 'X-Custom-Header',
 						description: 'Custom header value',
 						default: 'default-value',
 						choices: ['option1', 'option2', 'option3']
-						// Note: No 'value' field - should create input variable with choices
 					}]
 				}]
 			};
@@ -757,7 +744,6 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 				});
 			}
 
-			// Should create input variables for headers without values
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.length, 2);
 
 			const authInput = result.mcpServerConfiguration.inputs?.find((i: IMcpServerVariable) => i.id === 'Authorization');
@@ -913,21 +899,17 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 						description: 'Type of calculation to enable',
 						isRequired: true,
 						isRepeated: false
-						// Note: No 'value' field, only value_hint - should create input variable
 					}]
 				}]
 			};
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.NODE);
 
-			// BUG: Currently value_hint is used as literal value instead of creating input variable
-			// Should create input variable instead
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.length, 1);
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].id, 'calculation_type');
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].description, 'Type of calculation to enable');
 			assert.strictEqual(result.mcpServerConfiguration.inputs?.[0].type, McpServerVariableType.PROMPT);
 
-			// Args should use input variable interpolation
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				assert.deepStrictEqual(result.mcpServerConfiguration.config.args, [
 					'@example/math-tool@2.0.1',
@@ -975,7 +957,7 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			assert.strictEqual(result.mcpServerConfiguration.config.type, McpServerType.LOCAL);
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
-				assert.strictEqual(result.mcpServerConfiguration.config.command, 'uvx'); // Python command since that's the package type
+				assert.strictEqual(result.mcpServerConfiguration.config.command, 'uvx');
 				assert.deepStrictEqual(result.mcpServerConfiguration.config.args, ['python-server@1.0.0']);
 			}
 		});
@@ -1081,10 +1063,9 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest as IGalleryMcpServerConfiguration, RegistryType.NODE);
 
-			// Should generate a notice about the missing name
 			assert.strictEqual(result.notices.length, 1);
 			assert.ok(result.notices[0].includes('Named argument is missing a name'));
-			assert.ok(result.notices[0].includes('some-value')); // Should include the argument details in JSON format
+			assert.ok(result.notices[0].includes('some-value'));
 
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				assert.deepStrictEqual(result.mcpServerConfiguration.config.args, ['test-server@1.0.0']);
@@ -1109,10 +1090,9 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.NODE);
 
-			// Should generate a notice about the missing name
 			assert.strictEqual(result.notices.length, 1);
 			assert.ok(result.notices[0].includes('Named argument is missing a name'));
-			assert.ok(result.notices[0].includes('some-value')); // Should include the argument details in JSON format
+			assert.ok(result.notices[0].includes('some-value'));
 
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				assert.deepStrictEqual(result.mcpServerConfiguration.config.args, ['test-server@1.0.0']);
@@ -1131,7 +1111,7 @@ suite('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 					environmentVariables: [{
 						name: 'API_KEY',
 						value: 'Bearer {api_key}',
-						description: 'Should not be used', // This should be ignored since we have explicit variables
+						description: 'Should not be used',
 						variables: {
 							api_key: {
 								description: 'Your API key',

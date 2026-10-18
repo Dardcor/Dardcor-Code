@@ -3,13 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * V8 Heap Snapshot Parser
- *
- * Parses .heapsnapshot files that are too large for JSON.parse by using
- * Buffer-based section extraction. Provides a graph structure for
- * retainer path analysis.
- */
 
 import { readFileSync, statSync } from 'fs';
 
@@ -44,17 +37,11 @@ export interface HeapEdge {
 
 export interface HeapGraph {
 	nodes: HeapNode[];
-	/** Forward edges per node index */
 	forwardEdges: HeapEdge[][];
-	/** Reverse edges per node index (non-weak only) */
 	reverseEdges: Map<number, { fromNodeIndex: number; edgeName: string; edgeType: string }[]>;
 	strings: string[];
 }
 
-/**
- * Parse a V8 heap snapshot file.
- * Uses Buffer-based extraction to handle files larger than V8's string limit.
- */
 export function parseSnapshot(path: string): SnapshotData {
 	console.log(`Parsing ${path}...`);
 	const startTime = Date.now();
@@ -64,7 +51,6 @@ export function parseSnapshot(path: string): SnapshotData {
 	const buf = readFileSync(path);
 	console.log(`  Read in ${Date.now() - startTime}ms`);
 
-	// Parse meta
 	const metaKeyPos = buf.indexOf(Buffer.from('"meta"'));
 	if (metaKeyPos === -1) { throw new Error('meta section not found in snapshot'); }
 	const metaBraceStart = buf.indexOf(Buffer.from('{'), metaKeyPos);
@@ -78,7 +64,6 @@ export function parseSnapshot(path: string): SnapshotData {
 	const meta: SnapshotMeta = JSON.parse(buf.subarray(metaBraceStart, metaBraceEnd).toString('utf8'));
 	console.log(`  node_fields: ${meta.node_fields.join(', ')}`);
 
-	// Extract nodes array
 	const nodesKeyBuf = Buffer.from('"nodes":[');
 	const nodesPos = buf.indexOf(nodesKeyBuf);
 	if (nodesPos === -1) { throw new Error('nodes array not found in snapshot'); }
@@ -88,7 +73,6 @@ export function parseSnapshot(path: string): SnapshotData {
 	const nodeFieldCount = meta.node_fields.length;
 	console.log(`  Parsed ${nodes.length / nodeFieldCount} nodes in ${Date.now() - startTime}ms`);
 
-	// Extract edges array
 	const edgesKeyBuf = Buffer.from('"edges":[');
 	const edgesPos = buf.indexOf(edgesKeyBuf);
 	if (edgesPos === -1) { throw new Error('edges array not found in snapshot'); }
@@ -97,7 +81,6 @@ export function parseSnapshot(path: string): SnapshotData {
 	const edges = buf.subarray(edgesArrayStart + 1, edgesEnd).toString('utf8').split(',').map(Number);
 	console.log(`  Parsed ${edges.length / meta.edge_fields.length} edges in ${Date.now() - startTime}ms`);
 
-	// Extract strings array
 	const stringsKeyBuf = Buffer.from('"strings":[');
 	let stringsPos = -1;
 	for (let i = buf.length - 100; i >= 0; i--) {
@@ -124,11 +107,6 @@ export function parseSnapshot(path: string): SnapshotData {
 	return { meta, nodes, edges, strings };
 }
 
-/**
- * Build a graph structure from parsed snapshot data.
- * Includes both forward edges (for traversal) and reverse edges (for retainer analysis).
- * Reverse edges exclude weak references since they don't prevent GC.
- */
 export function buildGraph(data: SnapshotData): HeapGraph {
 	const { meta, nodes, edges, strings } = data;
 	const nfc = meta.node_fields.length;
@@ -160,7 +138,6 @@ export function buildGraph(data: SnapshotData): HeapGraph {
 		});
 	}
 
-	// Build forward edges and reverse edges (non-weak)
 	const forwardEdges: HeapEdge[][] = new Array(nodeCount);
 	const reverseEdges = new Map<number, { fromNodeIndex: number; edgeName: string; edgeType: string }[]>();
 	let edgeOffset = 0;
@@ -181,7 +158,6 @@ export function buildGraph(data: SnapshotData): HeapGraph {
 
 			myEdges.push({ type: edgeType, name: edgeName, toNodeIndex });
 
-			// Build reverse edges, skipping weak refs
 			if (edgeType !== 'weak') {
 				if (!reverseEdges.has(toNodeIndex)) {
 					reverseEdges.set(toNodeIndex, []);
@@ -197,9 +173,6 @@ export function buildGraph(data: SnapshotData): HeapGraph {
 	return { nodes: heapNodes, forwardEdges, reverseEdges, strings };
 }
 
-/**
- * Collect all node IDs from a snapshot for before/after comparison.
- */
 export function collectNodeIds(data: SnapshotData): Set<number> {
 	const ids = new Set<number>();
 	const nfc = data.meta.node_fields.length;

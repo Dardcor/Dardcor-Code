@@ -67,7 +67,6 @@ export class TunnelService extends AbstractTunnelService {
 	) {
 		super(logService, configurationService);
 
-		// Destroy any shared process tunnels that might still be active
 		this._register(lifecycleService.onDidShutdown(() => {
 			this._activeSharedProcessTunnels.forEach((id) => {
 				this._sharedProcessTunnelService.destroyTunnel(id);

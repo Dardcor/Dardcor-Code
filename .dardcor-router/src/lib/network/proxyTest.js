@@ -85,7 +85,6 @@ export async function testProxyUrl({ proxyUrl, testUrl, timeoutMs } = {}) {
     try {
       await dispatcher?.close?.();
     } catch {
-      // ignore
     }
   }
 }

@@ -46,9 +46,6 @@ export interface INotebookTextDiffEditor {
 	showInset(cellDiffViewModel: DiffElementCellViewModelBase, cellViewModel: IDiffNestedCellViewModel, displayOutput: ICellOutputViewModel, diffSide: DiffSide): void;
 	removeInset(cellDiffViewModel: DiffElementCellViewModelBase, cellViewModel: IDiffNestedCellViewModel, output: ICellOutputViewModel, diffSide: DiffSide): void;
 	hideInset(cellDiffViewModel: DiffElementCellViewModelBase, cellViewModel: IDiffNestedCellViewModel, output: ICellOutputViewModel): void;
-	/**
-	 * Trigger the editor to scroll from scroll event programmatically
-	 */
 	triggerScroll(event: IMouseWheelEvent): void;
 	delegateVerticalScrollbarPointerDown(browserEvent: PointerEvent): void;
 	getCellByInfo(cellInfo: ICommonCellInfo): IGenericCellViewModel;
@@ -182,14 +179,6 @@ export interface INotebookDiffViewModelUpdateEvent {
 
 export interface INotebookDiffViewModel extends IDisposable {
 	readonly items: readonly IDiffElementViewModelBase[];
-	/**
-	 * Triggered when ever there's a change in the view model items.
-	 */
 	readonly onDidChangeItems: Event<INotebookDiffViewModelUpdateEvent>;
-	/**
-	 * Computes the differences and generates the viewmodel.
-	 * If view models are generated, then the onDidChangeItems is triggered.
-	 * @param token
-	 */
 	computeDiff(token: CancellationToken): Promise<void>;
 }

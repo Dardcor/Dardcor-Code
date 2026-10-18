@@ -42,7 +42,6 @@ export class NotebookDocumentSnapshot {
 		return nd;
 	}
 	static fromJSON(doc: NotebookDocument, json: INotebookDocumentSnapshotJSON): NotebookDocumentSnapshot {
-		// TODO@DonJayamanne
 		return NotebookDocumentSnapshot.create(doc, json.alternativeFormat);
 	}
 

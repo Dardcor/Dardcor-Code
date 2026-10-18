@@ -55,7 +55,6 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 	private debuggerWhenKeys = new Set<string>();
 	private taskLabels: string[] = [];
 
-	/** Extensions that were already active before any debugger activation events */
 	private earlyActivatedExtensions: Set<string> | undefined;
 
 	private usedDebugTypes = new Set<string>();
@@ -93,7 +92,6 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 			this.debugExtensionsAvailable.set(this.debuggers.length > 0);
 		}));
 
-		// generous debounce since this will end up calling `resolveTask` internally
 		const updateTaskScheduler = this._register(new RunOnceScheduler(() => this.updateTaskLabels(), 5000));
 
 		this._register(Event.any(tasksService.onDidChangeTaskConfig, tasksService.onDidChangeTaskProviders)(() => {
@@ -101,7 +99,7 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 			updateTaskScheduler.schedule();
 		}));
 		this.lifecycleService.when(LifecyclePhase.Eventually)
-			.then(() => this.debugExtensionsAvailable.set(this.debuggers.length > 0)); // If no extensions with a debugger contribution are loaded
+			.then(() => this.debugExtensionsAvailable.set(this.debuggers.length > 0));
 
 		this._register(delegate.onDidNewSession(s => {
 			this.usedDebugTypes.add(s.configuration.type);
@@ -131,7 +129,6 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 				});
 			});
 
-			// take care of all wildcard contributions
 			extensions.forEach(extension => {
 				extension.value.forEach(rawAdapter => {
 					if (rawAdapter.type === '*') {
@@ -162,7 +159,6 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 	}
 
 	private updateDebugAdapterSchema() {
-		// update the schema to include all attributes, snippets and types from extensions.
 		const items = (<IJSONSchema>launchSchema.properties!['configurations'].items);
 		const taskSchema = TaskDefinitionRegistry.getJsonSchema();
 		const definitions: IJSONSchemaMap = {
@@ -291,7 +287,6 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 		if (providers.length === 1) {
 			return providers[0].createDebugAdapterDescriptor(session);
 		} else {
-			// TODO@AW handle n > 1 case
 		}
 		return Promise.resolve(undefined);
 	}
@@ -316,7 +311,6 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 	canSetBreakpointsIn(model: ITextModel): boolean {
 		const languageId = model.getLanguageId();
 		if (!languageId || languageId === 'jsonc' || languageId === 'log') {
-			// do not allow breakpoints in our settings files and output
 			return false;
 		}
 		if (this.configurationService.getValue<IDebugConfiguration>('debug').allowBreakpointsEverywhere) {
@@ -363,8 +357,6 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 			}
 		}
 
-		// We want to get the debuggers that have configuration providers in the case we are fetching configurations
-		// Or if a breakpoint can be set in the current file (good hint that an extension can handle it)
 		if ((!languageLabel || gettingConfigurations || (model && this.canSetBreakpointsIn(model))) && candidates.length === 0) {
 			await this.activateDebuggers('onDebugInitialConfigurations');
 
@@ -398,10 +390,8 @@ export class AdapterManager extends Disposable implements IAdapterManager {
 		candidates.forEach(d => {
 			const descriptor = d.getMainExtensionDescriptor();
 			if (descriptor.id && !!this.earlyActivatedExtensions?.has(descriptor.id)) {
-				// Was activated early
 				suggestedCandidates.push(d);
 			} else if (this.usedDebugTypes.has(d.type)) {
-				// Was used already
 				suggestedCandidates.push(d);
 			} else {
 				otherCandidates.push(d);

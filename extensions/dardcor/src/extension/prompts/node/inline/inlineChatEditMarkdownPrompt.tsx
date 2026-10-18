@@ -47,7 +47,7 @@ export class InlineChatEditMarkdownPrompt extends PromptElement<InlineChatEditMa
 			throw illegalArgument('InlineChatEditMarkdownPrompt should only be used with markdown documents!');
 		}
 
-		const isIgnored = await this._ignoreService.isCopilotIgnored(context.document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(context.document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[this.props.documentContext.document.uri]} />;
 		}
@@ -61,18 +61,7 @@ export class InlineChatEditMarkdownPrompt extends PromptElement<InlineChatEditMa
 
 		const { query, history, chatVariables, } = this.props.promptContext;
 
-		// const summarizedDocument = await createPromptingSummarizedDocument(
-		// 	this._parserService,
-		// 	context.document,
-		// 	context.fileIndentInfo,
-		// 	context.document.validateRange(context.wholeRange),
-		// 	sizing.endpoint.modelMaxPromptTokens / 3 // consume one 3rd of the model window
-		// );
 
-		// const splitDoc = summarizedDocument.splitAroundAdjustedSelection();
-		// const { codeAbove, codeSelected, codeBelow, hasCodeWithoutSelection } = splitDoc;
-		// const placeHolder = '$SELECTION_PLACEHOLDER$';
-		// const codeWithoutSelection = `${codeAbove}${placeHolder}${codeBelow}`;
 		const replyInterpreterFn = (splitDoc: SummarizedDocumentSplit) => splitDoc.createReplyInterpreter(
 			LeadingMarkdownStreaming.Mute,
 			EarlyStopping.None,
@@ -83,7 +72,7 @@ export class InlineChatEditMarkdownPrompt extends PromptElement<InlineChatEditMa
 
 		return (
 			<>
-				{/* <meta value={new ReplyInterpreterMetaData(replyInterpreter)} /> */}
+				{}
 				<SystemMessage priority={1000}>
 					You are an AI programming assistant.<br />
 					When asked for your name, you must respond with "Dardcor Code".<br />

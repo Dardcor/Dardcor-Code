@@ -4,10 +4,6 @@ import { FORMATS } from "../translator/formats.js";
 import { SKIP_PATTERNS } from "../config/runtimeConfig.js";
 import { formatSSE } from "./stream.js";
 
-/**
- * Check for bypass patterns - return fake response without calling provider
- * Only works for Claude CLI requests
- */
 export function handleBypassRequest(body, model, userAgent = "", ccFilterNaming = false) {
   if (!userAgent.includes("claude-cli")) return null;
   if (!body.messages?.length) return null;
@@ -24,13 +20,11 @@ export function handleBypassRequest(body, model, userAgent = "", ccFilterNaming 
   let shouldBypass = false;
   let namingBypass = false;
 
-  // Pattern 1: Title extraction (assistant message = "{")
   const lastMsg = messages[messages.length - 1];
   if (lastMsg?.role === "assistant" && lastMsg.content?.[0]?.text === "{") {
     shouldBypass = true;
   }
 
-  // Pattern 2: Warmup
   if (!shouldBypass) {
     const firstText = getText(messages[0]?.content);
     if (firstText === "Warmup") {
@@ -38,7 +32,6 @@ export function handleBypassRequest(body, model, userAgent = "", ccFilterNaming 
     }
   }
 
-  // Pattern 3: Count
   if (!shouldBypass && messages.length === 1 && messages[0]?.role === "user") {
     const firstText = getText(messages[0]?.content);
     if (firstText === "count") {
@@ -46,7 +39,6 @@ export function handleBypassRequest(body, model, userAgent = "", ccFilterNaming 
     }
   }
 
-  // Pattern 4: Skip patterns
   if (!shouldBypass && SKIP_PATTERNS?.length) {
     const userMessages = messages.filter(m => m.role === "user");
     const userText = userMessages.map(m => getText(m.content)).join(" ");
@@ -55,8 +47,6 @@ export function handleBypassRequest(body, model, userAgent = "", ccFilterNaming 
     }
   }
 
-  // Pattern 5: CC naming request (topic title extraction by Claude Code CLI)
-  // Claude format: system is top-level body.system field, not inside messages
   if (!shouldBypass && ccFilterNaming) {
     const systemMsg = messages.find(m => m.role === "system");
     const systemFromMessages = getText(systemMsg?.content);
@@ -75,7 +65,6 @@ export function handleBypassRequest(body, model, userAgent = "", ccFilterNaming 
   const sourceFormat = detectFormat(body);
   const stream = body.stream !== false;
 
-  // For naming bypass, generate title from user message
   if (namingBypass) {
     const userMsg = messages.find(m => m.role === "user");
     const userText = getText(userMsg?.content);
@@ -93,9 +82,6 @@ export function handleBypassRequest(body, model, userAgent = "", ccFilterNaming 
 
 const DEFAULT_BYPASS_TEXT = "CLI Command Execution: Clear Terminal";
 
-/**
- * Create OpenAI standard format response
- */
 function createOpenAIResponse(model, text = DEFAULT_BYPASS_TEXT) {
   const id = `chatcmpl-${Date.now()}`;
   const created = Math.floor(Date.now() / 1000);
@@ -121,14 +107,9 @@ function createOpenAIResponse(model, text = DEFAULT_BYPASS_TEXT) {
   };
 }
 
-/**
- * Create non-streaming response with translation
- * Use translator to convert OpenAI → sourceFormat
- */
 function createNonStreamingResponse(sourceFormat, model, text) {
   const openaiResponse = createOpenAIResponse(model, text);
 
-  // If sourceFormat is OpenAI, return directly
   if (sourceFormat === FORMATS.OPENAI) {
     return {
       success: true,
@@ -141,7 +122,6 @@ function createNonStreamingResponse(sourceFormat, model, text) {
     };
   }
 
-  // Use translator to convert: simulate streaming then collect all chunks
   const state = initState(sourceFormat);
   state.model = model;
 
@@ -155,13 +135,11 @@ function createNonStreamingResponse(sourceFormat, model, text) {
     }
   }
 
-  // Flush remaining
   const flushed = translateResponse(FORMATS.OPENAI, sourceFormat, null, state);
   if (flushed?.length > 0) {
     allTranslated.push(...flushed);
   }
 
-  // For non-streaming, merge all chunks into final response
   const finalResponse = mergeChunksToResponse(allTranslated, sourceFormat);
 
   return {
@@ -175,19 +153,13 @@ function createNonStreamingResponse(sourceFormat, model, text) {
   };
 }
 
-/**
- * Create streaming response with translation
- * Use translator to convert OpenAI chunks → sourceFormat
- */
 function createStreamingResponse(sourceFormat, model, text) {
   const openaiResponse = createOpenAIResponse(model, text);
   const state = initState(sourceFormat);
   state.model = model;
 
-  // Create OpenAI streaming chunks
   const openaiChunks = createOpenAIStreamingChunks(openaiResponse);
 
-  // Translate each chunk to sourceFormat using translator
   const translatedChunks = [];
 
   for (const chunk of openaiChunks) {
@@ -199,7 +171,6 @@ function createStreamingResponse(sourceFormat, model, text) {
     }
   }
 
-  // Flush remaining events
   const flushed = translateResponse(FORMATS.OPENAI, sourceFormat, null, state);
   if (flushed?.length > 0) {
     for (const item of flushed) {
@@ -207,7 +178,6 @@ function createStreamingResponse(sourceFormat, model, text) {
     }
   }
 
-  // Add [DONE]
   translatedChunks.push("data: [DONE]\n\n");
 
   return {
@@ -223,32 +193,22 @@ function createStreamingResponse(sourceFormat, model, text) {
   };
 }
 
-/**
- * Merge translated chunks into final response object (for non-streaming)
- * Takes the last complete chunk as the final response
- */
 function mergeChunksToResponse(chunks, sourceFormat) {
   if (!chunks || chunks.length === 0) {
     return createOpenAIResponse("unknown");
   }
 
-  // For most formats, the last chunk before done contains the complete response
-  // Find the most complete chunk (usually the last one with content)
   let finalChunk = chunks[chunks.length - 1];
 
-  // For Claude format, find the message_stop or final message
   if (sourceFormat === FORMATS.CLAUDE) {
     const messageStop = chunks.find(c => c.type === "message_stop");
     if (messageStop) {
-      // Reconstruct complete message from chunks
       const contentDelta = chunks.find(c => c.type === "content_block_delta");
       const messageDelta = chunks.find(c => c.type === "message_delta");
       const messageStart = chunks.find(c => c.type === "message_start");
 
       if (messageStart?.message) {
         finalChunk = messageStart.message;
-        // message_start.usage has input + cache; message_delta.usage has the
-        // final output_tokens. Merge so cache survives (delta omits it).
         const startUsage = messageStart.message.usage;
         const deltaUsage = messageDelta?.usage;
         if (startUsage || deltaUsage) {
@@ -273,15 +233,11 @@ function mergeChunksToResponse(chunks, sourceFormat) {
   return finalChunk;
 }
 
-/**
- * Create OpenAI streaming chunks from complete response
- */
 function createOpenAIStreamingChunks(completeResponse) {
   const { id, created, model, choices } = completeResponse;
   const content = choices[0].message.content;
 
   return [
-    // Chunk with content
     {
       id,
       object: "chat.completion.chunk",
@@ -296,7 +252,6 @@ function createOpenAIStreamingChunks(completeResponse) {
         finish_reason: null
       }]
     },
-    // Final chunk with finish_reason
     {
       id,
       object: "chat.completion.chunk",

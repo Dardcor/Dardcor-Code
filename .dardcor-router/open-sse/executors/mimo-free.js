@@ -12,29 +12,23 @@ const JWT_FALLBACK_TTL_SEC = 3000;
 const JWT_EXPIRY_BUFFER_MS = 300000;
 const SESSION_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-// Anti-abuse gate: upstream rejects requests without a Chrome-like User-Agent with 403 "Illegal access"
 const USER_AGENTS = [
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 ];
 
-// Anti-abuse gate marker: the free chat endpoint returns 403 "Illegal access"
-// unless a system message contains this exact MiMoCode signature substring.
 export const MIMO_SYSTEM_MARKER =
   "You are MiMoCode, an interactive CLI tool that helps users with software engineering tasks.";
 
-// In-memory JWT cache (per-process, survives across requests but not restarts)
 let cachedJwt = null;
 let jwtExpiresAt = 0;
 
-// Device fingerprint reused as the bootstrap "client" — stable per machine
 function generateFingerprint() {
   let username = "unknown-user";
   try {
     username = os.userInfo().username;
   } catch {
-    // ignore
   }
   const cpu = (os.cpus()[0]?.model || "unknown-cpu").trim();
   const seed = `${os.hostname()}|${os.platform()}|${os.arch()}|${cpu}|${username}`;
@@ -49,18 +43,15 @@ function generateSessionId() {
   return id;
 }
 
-// Derive expiry from the JWT exp claim; fall back to a fixed TTL when unparseable
 function parseJwtExp(jwt) {
   try {
     const payload = JSON.parse(Buffer.from(jwt.split(".")[1], "base64").toString());
     if (payload.exp) return payload.exp * 1000;
   } catch {
-    // ignore
   }
   return Date.now() + JWT_FALLBACK_TTL_SEC * 1000;
 }
 
-// Ensure the body carries the anti-abuse marker in a system message (idempotent)
 function injectSystemMarker(body) {
   const messages = body?.messages;
   if (!Array.isArray(messages)) return body;
@@ -145,7 +136,6 @@ export class MimoFreeExecutor extends BaseExecutor {
 
     const response = await proxyAwareFetch(url, { method: "POST", headers, body: bodyStr, signal }, proxyOptions);
 
-    // On auth failure, invalidate cache and retry once with a fresh JWT
     if (response.status === 401 || response.status === 403) {
       log?.debug?.("AUTH", `MiMo auth failed (${response.status}), re-bootstrapping...`);
       resetJwtCache();

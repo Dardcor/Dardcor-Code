@@ -8,7 +8,6 @@ import { localize } from '../../../../nls.js';
 import { ChatPillSingleEntry, type IChatDropdownPillOptions } from '../../../browser/chatDropdownPill.js';
 import { computePullRequestIcon } from '../../../common/chatPullRequest.js';
 
-/** Shared presentation of the pull requests pill. */
 export const sessionPullRequestsPillOptions: IChatDropdownPillOptions = {
 	widgetId: 'sessionPullRequests',
 	icon: computePullRequestIcon('open'),
@@ -21,7 +20,6 @@ export const sessionPullRequestsPillOptions: IChatDropdownPillOptions = {
 		: localize('sessionPullRequests.show', "Show {0} pull requests", count),
 };
 
-/** Shared presentation of the issues pill. */
 export const sessionIssuesPillOptions: IChatDropdownPillOptions = {
 	widgetId: 'sessionIssues',
 	icon: Codicon.issues,
@@ -34,7 +32,6 @@ export const sessionIssuesPillOptions: IChatDropdownPillOptions = {
 		: localize('sessionIssues.show', "Show {0} issues", count),
 };
 
-/** Shared presentation of the references pill. */
 export const sessionReferencesPillOptions: IChatDropdownPillOptions = {
 	widgetId: 'sessionReferences',
 	icon: Codicon.bookmark,
@@ -48,7 +45,6 @@ export const sessionReferencesPillOptions: IChatDropdownPillOptions = {
 	singleEntry: ChatPillSingleEntry.Summary,
 };
 
-/** Shared presentation of the active browsers pill. */
 export const sessionBrowsersPillOptions: IChatDropdownPillOptions = {
 	widgetId: 'sessionBrowsers',
 	icon: Codicon.globe,
@@ -61,7 +57,6 @@ export const sessionBrowsersPillOptions: IChatDropdownPillOptions = {
 		: localize('sessionBrowsers.show', "Show {0} browsers", count),
 };
 
-/** Shared presentation of the customizations pill. */
 export const sessionCustomizationsPillOptions: IChatDropdownPillOptions = {
 	widgetId: 'sessionCustomizations',
 	icon: Codicon.bookmark,
@@ -75,7 +70,6 @@ export const sessionCustomizationsPillOptions: IChatDropdownPillOptions = {
 	singleEntry: ChatPillSingleEntry.Summary,
 };
 
-/** Shared presentation of the subagents pill. */
 export const sessionSubagentsPillOptions: IChatDropdownPillOptions = {
 	widgetId: 'sessionSubagents',
 	icon: Codicon.agent,

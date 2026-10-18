@@ -19,15 +19,6 @@ enum CopyFilesSettings {
 	MediaFiles = 'mediaFiles',
 }
 
-/**
- * Provides support for pasting or dropping resources into markdown documents.
- *
- * This includes:
- *
- * - `text/uri-list` data in the data transfer.
- * - File object in the data transfer.
- * - Media data in the data transfer, such as `image/png`.
- */
 class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProvider, vscode.DocumentDropEditProvider {
 
 	public static readonly mimeTypes = [
@@ -38,7 +29,7 @@ class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProvider, v
 
 	readonly #yieldTo = [
 		vscode.DocumentDropOrPasteEditKind.Text,
-		vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'image', 'attachment'), // Prefer notebook attachments
+		vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'image', 'attachment'),
 	];
 
 	readonly #parser: IMdParser;
@@ -96,7 +87,6 @@ class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProvider, v
 
 	#getEnabled(document: vscode.TextDocument, settingName: string): InsertMarkdownLink {
 		const setting = vscode.workspace.getConfiguration('markdown', document).get<boolean | InsertMarkdownLink>(settingName, true);
-		// Convert old boolean values to new enum setting
 		if (setting === false) {
 			return InsertMarkdownLink.Never;
 		} else if (setting === true) {
@@ -158,9 +148,6 @@ class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProvider, v
 			return;
 		}
 
-		// In some browsers, copying from the address bar sets both text/uri-list and text/plain.
-		// Disable ourselves if there's also a text entry with the same http(s) uri as our list,
-		// unless we are explicitly requested.
 		if (
 			uriList.entries.length === 1
 			&& (uriList.entries[0].uri.scheme === Schemes.http || uriList.entries[0].uri.scheme === Schemes.https)
@@ -193,11 +180,6 @@ class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProvider, v
 		};
 	}
 
-	/**
-	 * Create a new edit for media files in a data transfer.
-	 *
-	 * This tries copying files outside of the workspace into the workspace.
-	 */
 	async #createEditForMediaFiles(
 		document: vscode.TextDocument,
 		dataTransfer: vscode.DataTransfer,
@@ -227,7 +209,6 @@ class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProvider, v
 			}
 
 			if (file.uri) {
-				// If the file is already in a workspace, we don't want to create a copy of it
 				const workspaceFolder = vscode.workspace.getWorkspaceFolder(file.uri);
 				if (workspaceFolder) {
 					return { uri: file.uri, kind: mediaKind };

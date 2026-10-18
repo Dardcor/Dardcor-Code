@@ -67,15 +67,11 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 
 	private registerListeners(): void {
 
-		// Install window jump list delayed after opening window
-		// because perf measurements have shown this to be slow
 		this.lifecycleMainService.when(LifecycleMainPhase.Eventually).then(() => this.handleWindowsJumpList());
 
-		// Add to history when entering workspace
 		this._register(this.workspacesManagementMainService.onDidEnterWorkspace(event => this.addRecentlyOpened([{ workspace: event.workspace, remoteAuthority: event.window.remoteAuthority }])));
 	}
 
-	//#region Workspaces History
 
 	async addRecentlyOpened(recentToAdd: IRecent[]): Promise<void> {
 		let workspaces: Array<IRecentFolder | IRecentWorkspace> = [];
@@ -83,21 +79,18 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 
 		for (const recent of recentToAdd) {
 
-			// Workspace
 			if (isRecentWorkspace(recent)) {
 				if (!this.workspacesManagementMainService.isUntitledWorkspace(recent.workspace) && !this.containsWorkspace(workspaces, recent.workspace)) {
 					workspaces.push(recent);
 				}
 			}
 
-			// Folder
 			else if (isRecentFolder(recent)) {
 				if (!this.containsFolder(workspaces, recent.folderUri)) {
 					workspaces.push(recent);
 				}
 			}
 
-			// File
 			else {
 				const alreadyExistsInHistory = this.containsFile(files, recent.fileUri);
 				const shouldBeFiltered = recent.fileUri.scheme === Schemas.file && WorkspacesHistoryMainService.COMMON_FILES_FILTER.indexOf(basename(recent.fileUri)) >= 0;
@@ -105,9 +98,6 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 				if (!alreadyExistsInHistory && !shouldBeFiltered) {
 					files.push(recent);
 
-					// Add to recent documents (Windows only, macOS later)
-					// Skip in portable mode to avoid leaving traces on the machine
-					// Skip in the sessions app to avoid polluting the jump list
 					if (isWindows && recent.fileUri.scheme === Schemas.file && !this.environmentMainService.isPortable) {
 						app.addRecentDocument(recent.fileUri.fsPath);
 					}
@@ -130,8 +120,6 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 		await this.saveRecentlyOpened({ workspaces, files });
 		this._onDidChangeRecentlyOpened.fire();
 
-		// Schedule update to recent documents on macOS dock
-		// Skip in portable mode to avoid leaving traces on the machine
 		if (isMacintosh && !this.environmentMainService.isPortable) {
 			this.macOSRecentDocumentsUpdater.trigger(() => this.updateMacOSRecentDocuments());
 		}
@@ -157,8 +145,6 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 			await this.saveRecentlyOpened({ files, workspaces });
 			this._onDidChangeRecentlyOpened.fire();
 
-			// Schedule update to recent documents on macOS dock
-			// Skip in portable mode to avoid leaving traces on the machine
 			if (isMacintosh && !this.environmentMainService.isPortable) {
 				this.macOSRecentDocumentsUpdater.trigger(() => this.updateMacOSRecentDocuments());
 			}
@@ -185,12 +171,10 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 
 		await this.saveRecentlyOpened({ workspaces: [], files: [] });
 
-		// Skip in portable mode to avoid leaving traces on the machine
 		if (!this.environmentMainService.isPortable) {
 			app.clearRecentDocuments();
 		}
 
-		// Event
 		this._onDidChangeRecentlyOpened.fire();
 	}
 
@@ -223,8 +207,6 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 
 	private async mergeEntriesFromStorage(existingEntries?: IRecentlyOpened): Promise<IRecentlyOpened> {
 
-		// Build maps for more efficient lookup of existing entries that
-		// are passed in by storing based on workspace/file identifier
 
 		const mapWorkspaceIdToWorkspace = new ResourceMap<IRecentFolder | IRecentWorkspace>(uri => extUriBiasedIgnorePathCase.getComparisonKey(uri));
 		if (existingEntries?.workspaces) {
@@ -240,7 +222,6 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 			}
 		}
 
-		// Merge in entries from storage, preserving existing known entries
 
 		const recentFromStorage = await this.getRecentlyOpenedFromStorage();
 		for (const recentWorkspaceFromStorage of recentFromStorage.workspaces) {
@@ -274,7 +255,6 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 
 		let storedRecentlyOpened: object | undefined = undefined;
 
-		// First try with storage service
 		const storedRecentlyOpenedRaw = this.applicationStorageMainService.get(WorkspacesHistoryMainService.RECENTLY_OPENED_STORAGE_KEY, StorageScope.APPLICATION_SHARED);
 		if (typeof storedRecentlyOpenedRaw === 'string') {
 			try {
@@ -292,7 +272,6 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 		// Wait for global storage to be ready
 		await this.applicationStorageMainService.whenReady;
 
-		// Store in application shared storage (but do not sync since this is mainly local paths)
 		this.applicationStorageMainService.store(WorkspacesHistoryMainService.RECENTLY_OPENED_STORAGE_KEY, JSON.stringify(toStoreData(recent)), StorageScope.APPLICATION_SHARED, StorageTarget.MACHINE);
 	}
 
@@ -320,15 +299,12 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 		return !!recents.find(recent => extUriBiasedIgnorePathCase.isEqual(recent.fileUri, candidate));
 	}
 
-	//#endregion
 
 
-	//#region macOS Dock / Windows JumpList
 
-	private static readonly MAX_MACOS_DOCK_RECENT_WORKSPACES = 7; 		// prefer higher number of workspaces...
-	private static readonly MAX_MACOS_DOCK_RECENT_ENTRIES_TOTAL = 10; 	// ...over number of files
+	private static readonly MAX_MACOS_DOCK_RECENT_WORKSPACES = 7;
+	private static readonly MAX_MACOS_DOCK_RECENT_ENTRIES_TOTAL = 10;
 
-	// Exclude some very common files from the dock/taskbar
 	private static readonly COMMON_FILES_FILTER = [
 		'COMMIT_EDITMSG',
 		'MERGE_MSG',
@@ -339,10 +315,9 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 
 	private async handleWindowsJumpList(): Promise<void> {
 		if (!isWindows) {
-			return; // only on windows
+			return;
 		}
 
-		// Skip in portable mode to avoid leaving traces on the machine
 		if (this.environmentMainService.isPortable) {
 			return;
 		}
@@ -353,12 +328,11 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 
 	private async updateWindowsJumpList(): Promise<void> {
 		if (!isWindows) {
-			return; // only on windows
+			return;
 		}
 
 		const jumpList: JumpListCategory[] = [];
 
-		// Tasks
 		jumpList.push({
 			type: 'tasks',
 			items: [
@@ -367,20 +341,15 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 					title: localize('newWindow', "New Window"),
 					description: localize('newWindowDesc', "Opens a new window"),
 					program: process.execPath,
-					args: '-n', // force new window
+					args: '-n',
 					iconPath: process.execPath,
 					iconIndex: 0
 				}
 			]
 		});
 
-		// Recent Workspaces
 		if ((await this.getRecentlyOpened()).workspaces.length > 0) {
 
-			// The user might have meanwhile removed items from the jump list and we have to respect that
-			// so we need to update our list of recent paths with the choice of the user to not add them again
-			// Also: Windows will not show our custom category at all if there is any entry which was removed
-			// by the user! See https://github.com/microsoft/vscode/issues/15052
 			const jumpListSettings = app.getJumpListSettings();
 			const toRemove: URI[] = [];
 			for (const item of jumpListSettings.removedItems) {
@@ -394,7 +363,6 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 			}
 			await this.removeRecentlyOpened(toRemove);
 
-			// Add entries up to the slot count Explorer requested (jumpListSettings.minItems).
 			let hasWorkspaces = false;
 			const items: JumpListItem[] = coalesce((await this.getRecentlyOpened()).workspaces.slice(0, jumpListSettings.minItems).map(recent => {
 				const workspace = isRecentWorkspace(recent) ? recent.workspace : recent.folderUri;
@@ -410,11 +378,11 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 
 				return {
 					type: 'task',
-					title: title.substr(0, 255), 				// Windows seems to be picky around the length of entries
-					description: description.substr(0, 255),	// (see https://github.com/microsoft/vscode/issues/111177)
+					title: title.substr(0, 255),
+					description: description.substr(0, 255),
 					program: process.execPath,
 					args,
-					iconPath: 'explorer.exe', // simulate folder icon
+					iconPath: 'explorer.exe',
 					iconIndex: 0
 				};
 			}));
@@ -428,9 +396,8 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 			}
 		}
 
-		// Recent
 		jumpList.push({
-			type: 'recent' // this enables to show files in the "recent" category
+			type: 'recent'
 		});
 
 		try {
@@ -439,28 +406,24 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 				this.logService.warn(`updateWindowsJumpList#setJumpList unexpected result: ${res}`);
 			}
 		} catch (error) {
-			this.logService.warn('updateWindowsJumpList#setJumpList', error); // since setJumpList is relatively new API, make sure to guard for errors
+			this.logService.warn('updateWindowsJumpList#setJumpList', error);
 		}
 	}
 
 	private getWindowsJumpListLabel(workspace: IWorkspaceIdentifier | URI, recentLabel: string | undefined): { title: string; description: string } {
 
-		// Prefer recent label
 		if (recentLabel) {
 			return { title: splitRecentLabel(recentLabel).name, description: recentLabel };
 		}
 
-		// Single Folder
 		if (URI.isUri(workspace)) {
 			return { title: basename(workspace), description: this.renderJumpListPathDescription(workspace) };
 		}
 
-		// Workspace: Untitled
 		if (this.workspacesManagementMainService.isUntitledWorkspace(workspace)) {
 			return { title: localize('untitledWorkspace', "Untitled (Workspace)"), description: '' };
 		}
 
-		// Workspace: normal
 		let filename = basename(workspace.configPath);
 		if (filename.endsWith(WORKSPACE_EXTENSION)) {
 			filename = filename.substr(0, filename.length - WORKSPACE_EXTENSION.length - 1);
@@ -478,13 +441,10 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 			return;
 		}
 
-		// We clear all documents first to ensure an up-to-date view on the set. Since entries
-		// can get deleted on disk, this ensures that the list is always valid
 		app.clearRecentDocuments();
 
 		const mru = await this.getRecentlyOpened();
 
-		// Collect max-N recent workspaces that are known to exist
 		const workspaceEntries: string[] = [];
 		let entries = 0;
 		for (let i = 0; i < mru.workspaces.length && entries < WorkspacesHistoryMainService.MAX_MACOS_DOCK_RECENT_WORKSPACES; i++) {
@@ -498,15 +458,14 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 			}
 		}
 
-		// Collect max-N recent files that are known to exist
 		const fileEntries: string[] = [];
 		for (let i = 0; i < mru.files.length && entries < WorkspacesHistoryMainService.MAX_MACOS_DOCK_RECENT_ENTRIES_TOTAL; i++) {
 			const loc = this.location(mru.files[i]);
 			if (loc.scheme === Schemas.file) {
 				const filePath = originalFSPath(loc);
 				if (
-					WorkspacesHistoryMainService.COMMON_FILES_FILTER.includes(basename(loc)) || // skip some well known file entries
-					workspaceEntries.includes(filePath)											// prefer a workspace entry over a file entry (e.g. for .code-workspace)
+					WorkspacesHistoryMainService.COMMON_FILES_FILTER.includes(basename(loc)) ||
+					workspaceEntries.includes(filePath)
 				) {
 					continue;
 				}
@@ -518,19 +477,8 @@ export class WorkspacesHistoryMainService extends Disposable implements IWorkspa
 			}
 		}
 
-		// The apple guidelines (https://developer.apple.com/design/human-interface-guidelines/macos/menus/menu-anatomy/)
-		// explain that most recent entries should appear close to the interaction by the user (e.g. close to the
-		// mouse click). Most native macOS applications that add recent documents to the dock, show the most recent document
-		// to the bottom (because the dock menu is not appearing from top to bottom, but from the bottom to the top). As such
-		// we fill in the entries in reverse order so that the most recent shows up at the bottom of the menu.
-		//
-		// On top of that, the maximum number of documents can be configured by the user (defaults to 10). To ensure that
-		// we are not failing to show the most recent entries, we start by adding files first (in reverse order of recency)
-		// and then add folders (in reverse order of recency). Given that strategy, we can ensure that the most recent
-		// N folders are always appearing, even if the limit is low (https://github.com/microsoft/vscode/issues/74788)
 		fileEntries.reverse().forEach(fileEntry => app.addRecentDocument(fileEntry));
 		workspaceEntries.reverse().forEach(workspaceEntry => app.addRecentDocument(workspaceEntry));
 	}
 
-	//#endregion
 }

@@ -65,14 +65,11 @@ export class ChatGettingStartedContribution extends Disposable implements IWorkb
 
 	private async onDidInstallChat() {
 
-		// Don't reveal if user prefers the agent sessions welcome page
 		const startupEditor = this.configurationService.getValue<string>('workbench.startupEditor');
 		if (startupEditor !== 'agentSessionsWelcomePage') {
-			// Open Chat view
 			this.chatWidgetService.revealWidget();
 		}
 
-		// Only do this once
 		this.storageService.store(ChatGettingStartedContribution.hideWelcomeView, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
 		this.recentlyInstalled = false;
 	}

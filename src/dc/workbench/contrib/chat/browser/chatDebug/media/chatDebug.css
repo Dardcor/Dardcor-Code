@@ -9,7 +9,6 @@
 	overflow: hidden;
 }
 
-/* ---- Disabled overlay (shown in place of a sub-view when logging is off) ---- */
 .chat-debug-disabled-overlay {
 	display: flex;
 	flex: 1;
@@ -32,7 +31,6 @@
 	margin: 0 0 16px;
 }
 
-/* ---- Home view ---- */
 .chat-debug-home {
 	display: flex;
 	flex-direction: column;
@@ -139,7 +137,6 @@
 	}
 }
 
-/* ---- Breadcrumb ---- */
 .chat-debug-breadcrumb {
 	flex-shrink: 0;
 	border-bottom: 1px solid var(--vscode-widget-border, transparent);
@@ -166,7 +163,6 @@
 	display: none;
 }
 
-/* ---- Overview view ---- */
 .chat-debug-overview {
 	display: flex;
 	flex-direction: column;
@@ -299,7 +295,6 @@
 	background: var(--vscode-button-hoverBackground);
 }
 
-/* ---- Logs view ---- */
 .chat-debug-logs {
 	display: flex;
 	flex-direction: column;
@@ -504,7 +499,6 @@
 	outline: 1px solid var(--vscode-focusBorder);
 }
 
-/* ---- File List Content ---- */
 .chat-debug-file-list {
 	padding: 8px 16px;
 	font-size: 12px;
@@ -604,7 +598,6 @@
 	min-width: 0;
 }
 
-/* ---- Message Content (User Message / Agent Response) ---- */
 .chat-debug-message-content {
 	padding: 8px 16px;
 	font-size: 12px;
@@ -682,12 +675,10 @@
 	outline: 1px solid var(--vscode-focusBorder);
 }
 
-/* ---- File list: inline file link ---- */
 .chat-debug-file-list-row a.chat-inline-anchor-widget {
 	cursor: pointer;
 }
 
-/* ---- File list: settings gear button ---- */
 .chat-debug-settings-gear.monaco-button,
 .chat-debug-section-copy-btn.monaco-button {
 	flex-shrink: 0;
@@ -713,7 +704,6 @@
 	pointer-events: auto;
 }
 
-/* ---- File list: source folder section ---- */
 .chat-debug-source-folder-content {
 	padding: 8px 12px;
 	border-top: 1px solid var(--vscode-widget-border, transparent);
@@ -737,12 +727,10 @@
 	word-break: break-all;
 }
 
-/* ---- File list: location badge link ---- */
 .chat-debug-file-list-badge-link {
 	cursor: pointer;
 }
 
-/* ---- Flow chart view ---- */
 .chat-debug-flowchart {
 	display: flex;
 	flex-direction: column;
@@ -821,7 +809,6 @@
 	margin: 12px 0 0;
 }
 
-/* ---- Cache Explorer view ---- */
 .chat-debug-cache {
 	display: flex;
 	flex-direction: column;
@@ -1085,9 +1072,6 @@
 	flex-direction: column;
 	gap: 4px;
 }
-/* Performance card border tracks the worst finding severity: red only for
-	an avoidable break, yellow for suspected expiration, green for healthy
-	growth — a permanent red border made every request look broken. */
 .chat-debug-cache-card.break.is-critical {
 	border-color: var(--vscode-charts-red);
 }
@@ -1166,7 +1150,6 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
 	line-height: 1.5;
 	color: var(--vscode-descriptionForeground);
 }
-/* ---- Session cache health (cross-turn report) ---- */
 .chat-debug-cache-session-health {
 	background: var(--vscode-editorWidget-background);
 	border: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border));
@@ -1212,7 +1195,6 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
 	color: var(--vscode-charts-yellow);
 	border-color: var(--vscode-charts-yellow);
 }
-/* ---- Rail: idle-gap separators ---- */
 .chat-debug-cache-rail-gap {
 	display: flex;
 	align-items: center;
@@ -1467,8 +1449,6 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
 	outline: 2px solid var(--vscode-charts-red);
 	outline-offset: -2px;
 	filter: brightness(0.85);
-	/* A drifted sliver must stay visible and clickable even when its share
-	of the bar rounds to nothing. */
 	min-width: 4px;
 }
 .chat-debug-cache-sig-seg.role-coalesced,
@@ -1489,7 +1469,6 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
 	outline: 1px solid var(--vscode-focusBorder);
 	outline-offset: 1px;
 }
-/* Prefix-match rail: thin reused/recomputed split under the lanes. */
 .chat-debug-cache-sig-lane-row.reuse {
 	margin-top: 2px;
 }
@@ -1731,7 +1710,6 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
 	font-size: 12px;
 	line-height: 1;
 }
-/* Flash a component item after a finding / signature segment reveals it. */
 .chat-debug-cache-acc-item.flash {
 	animation: chat-debug-cache-flash 1.2s ease-out;
 }
@@ -1810,7 +1788,6 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
 	border-radius: 2px;
 }
 
-/* ---- AHP Log (protocol frames) view ---- */
 .chat-debug-wirelog {
 	display: flex;
 	flex-direction: column;

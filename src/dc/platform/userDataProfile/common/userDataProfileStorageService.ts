@@ -33,29 +33,12 @@ export const IUserDataProfileStorageService = createDecorator<IUserDataProfileSt
 export interface IUserDataProfileStorageService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Emitted whenever data is updated or deleted in a profile storage or target of a profile storage entry changes
-	 */
 	readonly onDidChange: Event<IProfileStorageChanges>;
 
-	/**
-	 * Return the requested profile storage data
-	 * @param profile The profile from which the data has to be read from
-	 */
 	readStorageData(profile: IUserDataProfile): Promise<Map<string, IStorageValue>>;
 
-	/**
-	 * Update the given profile storage data in the profile storage
-	 * @param profile The profile to which the data has to be written to
-	 * @param data Data that has to be updated
-	 * @param target Storage target of the data
-	 * @param scope Storage scope of the data (defaults to PROFILE)
-	 */
 	updateStorageData(profile: IUserDataProfile, data: Map<string, string | undefined | null>, target: StorageTarget, scope?: StorageScope): Promise<void>;
 
-	/**
-	 * Calls a function with a storage service scoped to given profile.
-	 */
 	withProfileScopedStorageService<T>(profile: IUserDataProfile, fn: (storageService: IStorageService) => Promise<T>): Promise<T>;
 }
 
@@ -157,7 +140,6 @@ export class RemoteUserDataProfileStorageService extends AbstractUserDataProfile
 		const channel = remoteService.getChannel('profileStorageListener');
 		const disposable = this._register(new MutableDisposable());
 		this._onDidChange = this._register(new Emitter<IProfileStorageChanges>({
-			// Start listening to profile storage changes only when someone is listening
 			onWillAddFirstListener: () => {
 				disposable.value = channel.listen<IProfileStorageChanges>('onDidChange')(e => {
 					logService.trace('profile storage changes', e);
@@ -167,7 +149,6 @@ export class RemoteUserDataProfileStorageService extends AbstractUserDataProfile
 					});
 				});
 			},
-			// Stop listening to profile storage changes when no one is listening
 			onDidRemoveLastListener: () => disposable.value = undefined
 		}));
 		this.onDidChange = this._onDidChange.event;

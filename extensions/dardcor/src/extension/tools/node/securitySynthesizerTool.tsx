@@ -8,7 +8,7 @@ import { IFileSystemService } from '../../../platform/filesystem/common/fileSyst
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { resolveToolInputPath } from './toolUtils';
 
 export interface ISecuritySynthesizerParams {
@@ -18,7 +18,7 @@ export interface ISecuritySynthesizerParams {
 	description: string;
 }
 
-export class SecuritySynthesizerTool implements ICopilotTool<ISecuritySynthesizerParams> {
+export class SecuritySynthesizerTool implements IAgentTool<ISecuritySynthesizerParams> {
 	public static toolName = ToolName.SecuritySynthesizer;
 
 	constructor(

@@ -11,7 +11,6 @@ import { parseAgentMessageDelegationMeta, readAgentMessageDelegationMeta, toAgen
 import { ISessionDataService } from '../../../common/sessionDataService.js';
 import { chatStorageUri, MessageKind, type Turn } from '../../../common/state/sessionState.js';
 
-/** Persists agent-authored turn delegation and restores it after provider replay. */
 export class TurnDelegationContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'turnDelegation';

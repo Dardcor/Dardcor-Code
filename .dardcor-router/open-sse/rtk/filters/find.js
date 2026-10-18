@@ -1,5 +1,3 @@
-// Port of find_wrapper (rtk/src/cmds/system/pipe_cmd.rs:89-128)
-// Group by parent dir, show basenames, cap 10/dir and 20 dirs total
 import { FIND_PER_DIR_MAX, FIND_TOTAL_DIR_MAX } from "../constants.js";
 
 export function find(input) {
@@ -9,7 +7,6 @@ export function find(input) {
   const byDir = new Map();
 
   for (const path of lines) {
-    // Accept both Unix ("/a/b") and Windows ("C:\a\b") separators
     const lastSep = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
     let dir;
     let basename;
@@ -17,7 +14,6 @@ export function find(input) {
       dir = ".";
       basename = path;
     } else {
-      // Rust: PathBuf::from(path).parent().display() + file_name().display()
       dir = path.slice(0, lastSep) || "/";
       basename = path.slice(lastSep + 1);
     }
@@ -25,7 +21,6 @@ export function find(input) {
     byDir.get(dir).push(basename);
   }
 
-  // Rust: dirs.sort_by_key(|(d, _)| d.clone())
   const dirs = Array.from(byDir.keys()).sort();
   let out = `${lines.length} files in ${dirs.length} dirs:\n\n`;
 

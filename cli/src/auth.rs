@@ -125,7 +125,6 @@ async fn get_github_user(
 }
 
 impl StoredCredential {
-	/// Returns the raw access token string.
 	pub fn access_token(&self) -> &str {
 		&self.access_token
 	}
@@ -137,9 +136,6 @@ impl StoredCredential {
 				.map(|e| Timestamp::now() + SignedDuration::from_secs(5 * 60) > e)
 				.unwrap_or(false),
 
-			// Make an auth request to Github. Mark the credential as expired
-			// only on a verifiable 4xx code. We don't error on any failed
-			// request since then a drop in connection could "require" a refresh
 			AuthProvider::Github => {
 				let res = get_github_user(client, &self.access_token).await;
 				let res = match res {
@@ -185,10 +181,7 @@ pub struct Auth {
 	log: log::Logger,
 	file_storage_path: PathBuf,
 	storage: Arc<std::sync::Mutex<Option<StorageWithLastRead>>>,
-	/// Prefix for keyring entries, derived from the namespace.
 	keyring_prefix: String,
-	/// When set, restricts authentication to only this provider.
-	/// The user will not be prompted to choose a provider.
 	forced_provider: Option<AuthProvider>,
 }
 
@@ -198,7 +191,6 @@ trait StorageImplementation: Send + Sync {
 	fn clear(&mut self) -> Result<(), AnyError>;
 }
 
-// unseal decrypts and deserializes the value
 fn seal<T>(value: &T) -> String
 where
 	T: Serialize + ?Sized,
@@ -210,12 +202,10 @@ where
 	encrypt(&dec)
 }
 
-// unseal decrypts and deserializes the value
 fn unseal<T>(value: &str) -> Option<T>
 where
 	T: DeserializeOwned,
 {
-	// small back-compat for old unencrypted values, or if VSCODE_CLI_DISABLE_KEYCHAIN_ENCRYPT set
 	if let Ok(v) = serde_json::from_str::<T>(value) {
 		return Some(v);
 	}
@@ -231,8 +221,6 @@ const KEYCHAIN_ENTRY_LIMIT: usize = 128 * 1024;
 
 const CONTINUE_MARKER: &str = "<MORE>";
 
-/// Implementation that wraps the KeyringStorage on Linux to avoid
-/// https://github.com/hwchen/keyring-rs/issues/132
 #[cfg(target_os = "linux")]
 struct ThreadKeyringStorage {
 	s: Option<KeyringStorage>,
@@ -259,8 +247,6 @@ impl ThreadKeyringStorage {
 			None => return Err(CodeError::KeyringTimeout.into()),
 		};
 
-		// It seems like on Linux communication to the keyring can block indefinitely.
-		// Fall back after a 5 second timeout.
 		let (sender, receiver) = std::sync::mpsc::channel();
 		let tsender = sender.clone();
 
@@ -331,7 +317,7 @@ impl StorageImplementation for KeyringStorage {
 			let entry = get_next_entry!(self, i);
 			let next_chunk = match entry.get_password() {
 				Ok(value) => value,
-				Err(keyring::Error::NoEntry) => return Ok(None), // missing entries?
+				Err(keyring::Error::NoEntry) => return Ok(None),
 				Err(e) => return Err(wrap(e, "error reading keyring").into()),
 			};
 
@@ -371,7 +357,7 @@ impl StorageImplementation for KeyringStorage {
 	}
 
 	fn clear(&mut self) -> Result<(), AnyError> {
-		self.read().ok(); // make sure component parts are available
+		self.read().ok();
 		for entry in self.entries.iter() {
 			entry
 				.delete_password()
@@ -404,7 +390,6 @@ impl Auth {
 		Self::with_namespace(paths, log, None)
 	}
 
-	/// Creates an `Auth` instance with an isolated credential namespace.
 	/// Credentials are stored separately from the global CLI credentials,
 	/// so logging in here does not affect tunnel or other global auth.
 	pub fn with_namespace(
@@ -430,8 +415,6 @@ impl Auth {
 		}
 	}
 
-	/// Restricts this `Auth` instance to only allow the given provider.
-	/// When set, the user will not be prompted to choose a provider.
 	pub fn set_provider(&mut self, provider: AuthProvider) {
 		self.forced_provider = Some(provider);
 	}
@@ -487,7 +470,6 @@ impl Auth {
 		out
 	}
 
-	/// Gets a tunnel Authentication for use in the tunnel management API.
 	pub async fn get_tunnel_authentication(&self) -> Result<Authorization, AnyError> {
 		let cred = self.get_credential().await?;
 		let auth = match cred.provider {
@@ -502,7 +484,6 @@ impl Auth {
 		Ok(auth)
 	}
 
-	/// Reads the current details from the keyring.
 	pub fn get_current_credential(&self) -> Result<Option<StoredCredential>, WrappedError> {
 		self.with_storage(|storage| {
 			let value = storage.last_read.replace(Ok(None));
@@ -511,7 +492,6 @@ impl Auth {
 		})
 	}
 
-	/// Clears login info from the keyring.
 	pub fn clear_credentials(&self) -> Result<(), AnyError> {
 		self.with_storage(|storage| {
 			storage.storage.clear()?;
@@ -520,7 +500,6 @@ impl Auth {
 		})
 	}
 
-	/// Runs the login flow, optionally pre-filling a provider and/or access token.
 	pub async fn login(
 		&self,
 		provider: Option<AuthProvider>,
@@ -536,8 +515,6 @@ impl Auth {
 			Some(t) => StoredCredential {
 				provider,
 				access_token: t,
-				// if a refresh token is given, assume it's valid now but refresh it
-				// soon in order to get the real expiry time.
 				expires_at: refresh_token
 					.as_ref()
 					.map(|_| Timestamp::now() + SignedDuration::from_secs(5 * 60)),
@@ -550,10 +527,6 @@ impl Auth {
 		Ok(credentials)
 	}
 
-	/// Runs the device-flow login for a specific provider with custom OAuth
-	/// scopes. Unlike [`login`], this is purpose-built for agent host auth
-	/// where the scopes are dictated by the server's protected resource
-	/// metadata rather than hardcoded defaults.
 	pub async fn login_with_scopes(
 		&self,
 		provider: AuthProvider,
@@ -566,7 +539,6 @@ impl Auth {
 		Ok(credentials)
 	}
 
-	/// Gets the currently stored credentials, or asks the user to log in.
 	pub async fn get_credential(&self) -> Result<StoredCredential, AnyError> {
 		let entry = match self.get_current_credential() {
 			Ok(Some(old_creds)) => {
@@ -610,7 +582,6 @@ impl Auth {
 		Ok(entry)
 	}
 
-	/// Stores credentials, logging a warning if it fails.
 	fn store_credentials(&self, creds: StoredCredential) {
 		self.with_storage(|storage| {
 			if let Err(e) = storage.storage.store(creds.clone()) {
@@ -635,8 +606,6 @@ impl Auth {
 		})
 	}
 
-	/// Refreshes the token in the credentials if necessary. Returns None if
-	/// the token is up to date, or Some new token otherwise.
 	async fn maybe_refresh_token(
 		&self,
 		creds: &StoredCredential,
@@ -648,8 +617,6 @@ impl Auth {
 		self.do_refresh_token(creds).await
 	}
 
-	/// Refreshes the token in the credentials. Returns an error if the process failed.
-	/// Returns None if the token didn't change.
 	async fn do_refresh_token(
 		&self,
 		creds: &StoredCredential,
@@ -673,7 +640,6 @@ impl Auth {
 		}
 	}
 
-	/// Does a "grant token" request.
 	async fn do_grant(
 		&self,
 		provider: AuthProvider,
@@ -700,9 +666,6 @@ impl Auth {
 		))
 	}
 
-	/// GH doesn't have a refresh token, but does limit to the 10 most recently
-	/// used tokens per user (#9052), so for the github "refresh" just request
-	/// the current user.
 	async fn touch_github_token(&self, credential: &StoredCredential) -> Result<(), AnyError> {
 		let response = get_github_user(&self.client, &credential.access_token).await?;
 		if response.status().is_success() {
@@ -734,7 +697,6 @@ impl Auth {
 		}
 		.into()
 	}
-	/// Implements the device code flow, returning the credentials upon success.
 	async fn do_device_code_flow(&self) -> Result<StoredCredential, AnyError> {
 		let provider = self.prompt_for_provider().await?;
 		self.do_device_code_flow_with_scopes(provider, None).await
@@ -769,8 +731,6 @@ impl Auth {
 		self.do_device_code_flow_with_scopes(provider, None).await
 	}
 
-	/// Runs the OAuth device code flow with optional custom scopes.
-	/// If `scopes` is `None`, falls back to the provider's default scopes.
 	pub async fn do_device_code_flow_with_scopes(
 		&self,
 		provider: AuthProvider,
@@ -819,12 +779,11 @@ impl Auth {
 				match self.do_grant(provider, body.clone()).await {
 					Ok(creds) => return Ok(creds),
 					Err(AnyError::OAuthError(e)) if e.error == "slow_down" => {
-						interval_s += 5; // https://www.rfc-editor.org/rfc/rfc8628#section-3.5
+						interval_s += 5;
 						trace!(self.log, "refresh poll failed, slowing down");
 					}
-					// Github returns a non-standard 429 to slow down
 					Err(AnyError::StatusError(e)) if e.status_code == 429 => {
-						interval_s += 5; // https://www.rfc-editor.org/rfc/rfc8628#section-3.5
+						interval_s += 5;
 						trace!(self.log, "refresh poll failed, slowing down");
 					}
 					Err(e) => {
@@ -835,9 +794,6 @@ impl Auth {
 		}
 	}
 
-	/// Maintains the stored credential by refreshing it against the service
-	/// to ensure its stays current. Returns a future that should be polled and
-	/// only errors if a refresh fails in a consistent way.
 	pub async fn keep_token_alive(self) -> Result<(), AnyError> {
 		let this = self.clone();
 		let default_refresh = std::time::Duration::from_secs(60 * 60);
@@ -867,11 +823,9 @@ impl Auth {
 				}
 			};
 
-			// to_std errors on negative duration, fall back to a 60s refresh
 			tokio::time::sleep(sleep_time.max(min_refresh)).await;
 
 			match this.do_refresh_token(&credential).await {
-				// 4xx error means this token is probably not good any mode
 				Err(AnyError::StatusError(e)) if e.status_code >= 400 && e.status_code < 500 => {
 					error!(this.log, "failed to keep token alive: {:?}", e);
 					return Err(e.into());

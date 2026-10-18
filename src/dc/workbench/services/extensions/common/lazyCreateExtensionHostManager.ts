@@ -20,9 +20,6 @@ import { ExtensionRunningLocation } from './extensionRunningLocation.js';
 import { ActivationKind, ExtensionActivationReason, ExtensionHostStartup, IExtensionHost, IExtensionInspectInfo, IInternalExtensionService } from './extensions.js';
 import { ResponsiveState } from './rpcProtocol.js';
 
-/**
- * Waits until `start()` and only if it has extensions proceeds to really start.
- */
 export class LazyCreateExtensionHostManager extends Disposable implements IExtensionHostManager {
 
 	public readonly onDidExit: Event<[number, string | null]>;
@@ -82,7 +79,6 @@ export class LazyCreateExtensionHostManager extends Disposable implements IExten
 
 	private async _getOrCreateActualAndStart(reason: string): Promise<ExtensionHostManager> {
 		if (this._actual) {
-			// already created/started
 			return this._actual;
 		}
 		const actual = this._createActual(reason);
@@ -135,7 +131,6 @@ export class LazyCreateExtensionHostManager extends Disposable implements IExten
 
 	public async activateByEvent(activationEvent: string, activationKind: ActivationKind): Promise<void> {
 		if (activationKind === ActivationKind.Immediate) {
-			// this is an immediate request, so we cannot wait for start to be called
 			if (this._actual) {
 				return this._actual.activateByEvent(activationEvent, activationKind);
 			}
@@ -187,13 +182,11 @@ export class LazyCreateExtensionHostManager extends Disposable implements IExten
 
 	public async start(extensionRegistryVersionId: number, allExtensions: IExtensionDescription[], myExtensions: ExtensionIdentifier[]): Promise<void> {
 		if (myExtensions.length > 0) {
-			// there are actual extensions, so let's launch the extension host (auto-start)
 			const actual = this._createActual(`contains ${myExtensions.length} extension(s): ${myExtensions.map(extId => extId.value)}.`);
 			const result = actual.ready();
 			this._startCalled.open();
 			return result;
 		}
-		// there are no actual extensions running
 		this._startCalled.open();
 	}
 

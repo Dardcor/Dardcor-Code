@@ -34,8 +34,6 @@ const queuingActionsPresent = ContextKeyExpr.and(
 const steerIsDefault = ContextKeyExpr.equals(`config.${ChatConfiguration.RequestQueueingDefaultAction}`, 'steer');
 const queueIsDefault = steerIsDefault.negate();
 
-// The effective default respects the editing context: when editing a queued/steer
-// message, the default matches that message type regardless of the config setting.
 const effectiveDefaultIsQueue = ContextKeyExpr.or(
 	ContextKeyExpr.and(queueIsDefault, editingQueueOrSteer.negate()),
 	editingQueue
@@ -103,7 +101,6 @@ export class ChatQueueMessageAction extends Action2 {
 			return;
 		}
 
-		// If no request is in progress, send as a normal message instead of queuing
 		if (!widget.viewModel.model.requestInProgress.get()) {
 			widget.acceptInput();
 			return;
@@ -156,7 +153,6 @@ export class ChatSteerWithMessageAction extends Action2 {
 			return;
 		}
 
-		// If no request is in progress, send as a normal message instead of steering
 		if (!widget.viewModel.model.requestInProgress.get()) {
 			widget.acceptInput();
 			return;
@@ -209,8 +205,6 @@ export class ChatAskInSideChatAction extends Action2 {
 
 		const selection = captureSideChatSelection(widget);
 
-		// Clear optimistically so the composer behaves like the queue/steer
-		// actions; the text is restored below if the side chat cannot be created.
 		widget.setInput('');
 		try {
 			await sideChatService.askInSideChat(sessionResource, query, selection);
@@ -250,7 +244,6 @@ export class ChatRemovePendingRequestAction extends Action2 {
 		const chatService = accessor.get(IChatService);
 		const [context] = args;
 
-		// Support both toolbar context (IChatRequestViewModel) and command context (IChatRemovePendingRequestContext)
 		if (isRequestVM(context) && context.pendingKind) {
 			chatService.removePendingRequest(context.sessionResource, context.id);
 			return;
@@ -379,10 +372,6 @@ export function registerChatQueueActions(): void {
 	registerAction2(ChatSendPendingImmediatelyAction);
 	registerAction2(ChatRemoveAllPendingRequestsAction);
 
-	// Register the queue submenu in the execute toolbar.
-	// The custom ChatQueuePickerActionItem (registered via IActionViewItemService)
-	// replaces the default rendering with a dropdown that shows hover descriptions.
-	// We still need items in ChatExecuteQueue so the menu system treats it as non-empty.
 	MenuRegistry.appendMenuItem(MenuId.ChatExecuteQueue, {
 		command: { id: ChatQueueMessageAction.ID, title: localize2('chat.queueMessage', "Add to Queue"), icon: Codicon.add },
 		group: 'navigation',

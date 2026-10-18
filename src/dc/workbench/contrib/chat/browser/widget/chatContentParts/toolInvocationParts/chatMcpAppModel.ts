@@ -40,72 +40,43 @@ import { IChatWidgetService } from '../../../chat.js';
 import { IChatCollapsibleIODataPart } from '../chatToolInputOutputContentPart.js';
 import { IMcpAppRenderData } from './chatMcpAppSubPart.js';
 
-/** Storage key for persistent webview origins */
 const ORIGIN_STORE_KEY = 'chatMcpApp.origins';
 
-/**
- * Load state for the MCP App model.
- */
 export type McpAppLoadState =
 	| { readonly status: 'loading' }
 	| { readonly status: 'loaded' }
 	| { readonly status: 'error'; readonly error: Error };
 
-/**
- * Model that owns an MCP App webview and all its state/logic.
- * The webview is created lazily on first claim and survives across re-renders.
- */
 export class ChatMcpAppModel extends Disposable {
 	private static readonly heightCache = new WeakMap<IChatToolInvocation | IChatToolInvocationSerialized, number>();
 
-	/**
-	 * In-memory origin map for agent-host MCP servers. Agent-host server
-	 * ids embed the session id, so they're effectively single-use across
-	 * VS Code restarts — using {@link WebviewOriginStore} for them would
-	 * accumulate one persisted entry per agent-host session forever. The
-	 * in-memory map keeps origins stable for the lifetime of the app
-	 * (enough for webview state to persist across re-renders) without
-	 * touching application storage.
-	 */
 	private static readonly _agentHostOrigins = new Map<string, string>();
 
-	/** Origin store for persistent webview origins per server (local MCP only) */
 	private readonly _originStore: WebviewOriginStore;
 
-	/** The webview element instance */
 	private readonly _webview: IWebviewElement;
 
-	/** Tool call UI for loading resources and proxying calls */
 	private readonly _mcpToolCallUI: McpToolCallUI;
 
-	/** Cancellation source for async operations */
 	private readonly _disposeCts = this._register(new CancellationTokenSource());
 
-	/** Whether ui/initialize has been called and capabilities announced */
 	private _announcedCapabilities = false;
 
-	/** Latest CSP used for the frame */
 	private _latestCsp: McpApps.McpUiResourceCsp | undefined = undefined;
 
-	/** Current height of the webview */
 	private _height: number;
 
-	/** The persistent webview origin */
 	private readonly _webviewOrigin: string;
 
-	/** Observable for load state */
 	private readonly _loadState = observableValue<McpAppLoadState>(this, { status: 'loading' });
 	public readonly loadState: IObservable<McpAppLoadState> = this._loadState;
 
-	/** Event fired when height changes */
 	private readonly _onDidChangeHeight = this._register(new Emitter<void>());
 	public readonly onDidChangeHeight: Event<void> = this._onDidChangeHeight.event;
 
-	/** Accumulated download resource parts from ui/download-file calls */
 	private readonly _downloadParts = observableValue<IChatCollapsibleIODataPart[]>(this, []);
 	public readonly downloadParts: IObservable<IChatCollapsibleIODataPart[]> = this._downloadParts;
 
-	/** Full host context for the MCP App */
 	public readonly hostContext: IObservable<McpApps.McpUiHostContext>;
 
 	constructor(
@@ -130,7 +101,6 @@ export class ChatMcpAppModel extends Disposable {
 		this._mcpToolCallUI = this._register(this._instantiationService.createInstance(McpToolCallUI, renderData));
 		this._height = ChatMcpAppModel.heightCache.get(this.toolInvocation) ?? 300;
 
-		// Create the webview element
 		this._webview = this._register(this._webviewService.createWebviewElement({
 			origin: this._webviewOrigin,
 			title: localize('mcpAppTitle', 'MCP App'),
@@ -148,11 +118,9 @@ export class ChatMcpAppModel extends Disposable {
 			extension: undefined,
 		}));
 
-		// Mount the webview to the container
 		const targetWindow = dom.getWindow(this._container);
 		this._webview.mountTo(this._container, targetWindow);
 
-		// Build host context observable
 		this.hostContext = this._mcpToolCallUI.hostContext.map((context, reader) => ({
 			...context,
 			containerDimensions: {
@@ -165,7 +133,6 @@ export class ChatMcpAppModel extends Disposable {
 			},
 		}));
 
-		// Set up host context change notifications
 		this._register(autorun(reader => {
 			const context = this.hostContext.read(reader);
 			if (this._announcedCapabilities) {
@@ -176,7 +143,6 @@ export class ChatMcpAppModel extends Disposable {
 			}
 		}));
 
-		// Set up message handling
 		this._register(this._webview.onMessage(async ({ message }) => {
 			await this._handleWebviewMessage(message as McpApps.AppMessage);
 		}));
@@ -188,13 +154,9 @@ export class ChatMcpAppModel extends Disposable {
 			this._webview.postMessage({ jsonrpc: '2.0', method: n.method, params: n.params });
 		}));
 
-		// Start loading the content
 		this._loadContent();
 	}
 
-	/**
-	 * Gets the current height of the webview.
-	 */
 	public get height(): number {
 		return this._height;
 	}
@@ -204,35 +166,25 @@ export class ChatMcpAppModel extends Disposable {
 		this._announcedCapabilities = false;
 	}
 
-	/**
-	 * Retries loading the MCP App content.
-	 */
 	public retry(): void {
 		this._loadState.set({ status: 'loading' }, undefined);
 		this._loadContent();
 	}
 
-	/**
-	 * Loads the MCP App content into the webview.
-	 */
 	private async _loadContent(): Promise<void> {
 		const token = this._disposeCts.token;
 
 		try {
-			// Load the UI resource from the MCP server
 			const resourceContent = await this._mcpToolCallUI.loadResource(token);
 			if (token.isCancellationRequested) {
 				return;
 			}
 
-			// Inject CSP into the HTML
 			const htmlWithCsp = this._injectPreamble(resourceContent);
 
-			// Reset the state
 			this._announcedCapabilities = false;
 			this._latestCsp = resourceContent.csp;
 
-			// Set the HTML content
 			this._webview.setHtml(htmlWithCsp);
 
 			this._loadState.set({ status: 'loaded' }, undefined);
@@ -242,22 +194,7 @@ export class ChatMcpAppModel extends Disposable {
 		}
 	}
 
-	/**
-	 * Injects a Content-Security-Policy meta tag into the HTML.
-	 */
 	private _injectPreamble({ html, csp }: IMcpAppResourceContent): string {
-		// Note: this is not bulletproof against malformed domains. However it does not
-		// need to be. The server is the one giving us both the CSP as well as the HTML
-		// to render in the iframe. MCP Apps give the CSP separately so that systems that
-		// proxy the HTML from a server can set it in a header, but the CSP and the HTML
-		// come from the same source and are within the same trust boundary. We only
-		// process the CSP enough (escaping HTML special characters) to avoid breaking it.
-		//
-		// It would certainly be more durable to use `DOMParser.parseFromString` here
-		// and operate on the DocumentFragment of the HTML, however (even though keeping
-		// it solely as a detached document is safe) this requires making the HTML trusted
-		// in the renderer and bypassing various tsec warnings. I consider the string
-		// munging here to be the lesser of two evils.
 		const cleanDomains = (s: string[] | undefined) => (s?.join(' ') || '')
 			.replaceAll('&', '&amp;')
 			.replaceAll('<', '&lt;')
@@ -279,11 +216,6 @@ export class ChatMcpAppModel extends Disposable {
 
 		const cspTag = `<meta http-equiv="Content-Security-Policy" content="${cspContent}">`;
 
-		// window.top and window.parent get reset to `window` after the vscode API is made.
-		// However, the MCP App SDK by default tries to use these for postMessage. So, wrap them.
-		// We also need to wrap the event listeners otherwise the event.source won't match
-		// the wrapped window.parent/window.top.
-		// https://github.com/microsoft/vscode/blob/2a4c8f5b8a715d45dd2a36778906b5810e4a1905/src/dc/workbench/contrib/webview/browser/pre/index.html#L242-L244
 		const postMessageRehoist = `
 			<script>(() => {
 				const api = acquireVsCodeApi();
@@ -414,27 +346,21 @@ export class ChatMcpAppModel extends Disposable {
 	}
 
 	private _prependToHead(html: string, content: string): string {
-		// Try to inject into <head>
 		const headMatch = html.match(/<head[^>]*>/i);
 		if (headMatch) {
 			const insertIndex = headMatch.index! + headMatch[0].length;
 			return html.slice(0, insertIndex) + '\n' + content + html.slice(insertIndex);
 		}
 
-		// If no <head>, try to inject after <html>
 		const htmlMatch = html.match(/<html[^>]*>/i);
 		if (htmlMatch) {
 			const insertIndex = htmlMatch.index! + htmlMatch[0].length;
 			return html.slice(0, insertIndex) + '\n<head>' + content + '</head>' + html.slice(insertIndex);
 		}
 
-		// If no <html>, prepend
 		return `<!DOCTYPE html><html><head>${content}</head><body>${html}</body></html>`;
 	}
 
-	/**
-	 * Handles incoming JSON-RPC messages from the webview.
-	 */
 	private async _handleWebviewMessage(message: McpApps.AppMessage): Promise<void> {
 		const request = message;
 		const token = this._disposeCts.token;
@@ -475,7 +401,6 @@ export class ChatMcpAppModel extends Disposable {
 					break;
 
 				case 'ui/request-display-mode':
-					// VS Code only supports inline display mode
 					result = { mode: 'inline' } satisfies McpApps.McpUiRequestDisplayModeResult;
 					break;
 
@@ -508,7 +433,6 @@ export class ChatMcpAppModel extends Disposable {
 				}
 			}
 
-			// Send response if this was a request (has id)
 			if (hasKey(request, { id: true })) {
 				await this._sendResponse(request.id, result);
 			}
@@ -522,14 +446,9 @@ export class ChatMcpAppModel extends Disposable {
 		}
 	}
 
-	/**
-	 * Handles the ui/initialize request from the MCP App View.
-	 */
 	private async _handleInitialize(_params: McpApps.McpUiInitializeRequest['params']): Promise<McpApps.McpUiInitializeResult> {
 		this._announcedCapabilities = true;
 
-		// "Host MUST send this notification with the complete tool arguments after the Guest UI's initialize request completes"
-		// Cast to `any` due to https://github.com/modelcontextprotocol/ext-apps/issues/197
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let args: any;
 		try {
@@ -587,29 +506,12 @@ export class ChatMcpAppModel extends Disposable {
 		} satisfies Required<McpApps.McpUiInitializeResult>;
 	}
 
-	/**
-	 * Sends the tool result notification when the result becomes available.
-	 */
-	/**
-	 * Returns a stable identifier for the originating MCP server to use
-	 * as the webview origin key. Local servers use their definition id,
-	 * agent-host servers use the per-session `serverId`.
-	 */
 	private _serverOriginId(): string {
 		return this.renderData.kind === 'agentHost'
 			? this.renderData.serverId
 			: this.renderData.serverDefinitionId;
 	}
 
-	/**
-	 * Picks a stable webview origin for this server. Local MCP servers
-	 * get a persisted origin via {@link WebviewOriginStore} since their
-	 * server-definition id is stable across VS Code restarts. Agent-host
-	 * servers fall back to the static in-memory {@link _agentHostOrigins}
-	 * map keyed by `serverId`, so origins are stable within the app
-	 * lifetime without leaking entries into application storage for
-	 * every session.
-	 */
 	private _computeWebviewOrigin(): string {
 		if (this.renderData.kind !== 'agentHost') {
 			return this._originStore.getOrigin('mcpApp', this._serverOriginId());
@@ -623,13 +525,6 @@ export class ChatMcpAppModel extends Disposable {
 		return origin;
 	}
 
-	/**
-	 * Resolves a server-relative resource URI into a workbench URI.
-	 * - Local servers: wrap in {@link McpResourceURI.fromServer} so it
-	 *   resolves through the MCP filesystem provider.
-	 * - Agent-host servers: wrap with the originating connection authority
-	 *   so the URI resolves against the server that supplied it.
-	 */
 	private _resolveServerResourceUri(serverUri: string): URI {
 		if (this.renderData.kind === 'agentHost') {
 			return toAgentHostUri(URI.parse(serverUri), this.renderData.connectionAuthority);
@@ -774,7 +669,6 @@ export class ChatMcpAppModel extends Disposable {
 		for (const content of params.contents) {
 			try {
 				if (content.type === 'resource') {
-					// EmbeddedResource — associate inline content with the chat response FS
 					const resource = content.resource;
 					const parsed = URI.parse(resource.uri);
 
@@ -785,7 +679,6 @@ export class ChatMcpAppModel extends Disposable {
 					const { resource: uri } = this._chatResponseResourceFsProvider.associate(data, { sessionResource: this.renderData.sessionResource, name: basename(parsed) });
 					newParts.push({ kind: 'data', mimeType: resource.mimeType, uri });
 				} else if (content.type === 'resource_link') {
-					// ResourceLink — create a part with an MCP resource URI, resolved lazily on save
 					const mcpUri = this._resolveServerResourceUri(content.uri);
 					newParts.push({ kind: 'data', mimeType: content.mimeType, uri: mcpUri });
 				}
@@ -804,10 +697,6 @@ export class ChatMcpAppModel extends Disposable {
 	}
 
 	private async _handleOpenLink(params: McpApps.McpUiOpenLinkRequest['params']): Promise<McpApps.McpUiOpenLinkResult> {
-		// The MCP Apps protocol scopes ui/open-link to "open an external URL in
-		// the host's default browser". Restrict to http/https so guest content
-		// cannot reach internal product-scheme URL handlers (e.g. forging an
-		// auth callback) through this capability.
 		let parsed: URI;
 		try {
 			parsed = URI.parse(params.url, true);
@@ -823,9 +712,6 @@ export class ChatMcpAppModel extends Disposable {
 		return { isError: !ok };
 	}
 
-	/**
-	 * Handles tools/call requests from the MCP App.
-	 */
 	private async _handleToolsCall(params: MCP.CallToolRequestParams, token: CancellationToken): Promise<MCP.CallToolResult> {
 		if (!params?.name) {
 			throw new Error('Missing tool name in tools/call request');
@@ -834,9 +720,6 @@ export class ChatMcpAppModel extends Disposable {
 		return this._mcpToolCallUI.callTool(params.name, params.arguments || {}, token);
 	}
 
-	/**
-	 * Handles resources/read requests from the MCP App.
-	 */
 	private async _handleResourcesRead(params: MCP.ReadResourceRequestParams, token: CancellationToken): Promise<MCP.ReadResourceResult> {
 		if (!params?.uri) {
 			throw new Error('Missing uri in resources/read request');
@@ -845,11 +728,6 @@ export class ChatMcpAppModel extends Disposable {
 		return this._mcpToolCallUI.readResource(params.uri, token);
 	}
 
-	/**
-	 * Handles sampling/createMessage requests from the MCP App. Forwarded
-	 * to the host-side sampling implementation through the underlying
-	 * transport (typically an agent host that owns the MCP server).
-	 */
 	private async _handleSamplingCreateMessage(params: MCP.CreateMessageRequestParams, token: CancellationToken): Promise<MCP.CreateMessageResult> {
 		if (!params) {
 			throw new Error('Missing params in sampling/createMessage request');

@@ -34,11 +34,6 @@ import { NodeExtHostAuthentication } from './extHostAuthentication.js';
 import { IExtHostBrowserTunnelProxy } from '../common/extHostBrowserTunnelProxy.js';
 import { NodeExtHostBrowserTunnelProxy } from './extHostBrowserTunnelProxy.js';
 
-// #########################################################################
-// ###                                                                   ###
-// ### !!! PLEASE ADD COMMON IMPORTS INTO extHost.common.services.ts !!! ###
-// ###                                                                   ###
-// #########################################################################
 
 registerSingleton(IExtHostExtensionService, ExtHostExtensionService, InstantiationType.Eager);
 registerSingleton(ILoggerService, ExtHostLoggerService, InstantiationType.Delayed);

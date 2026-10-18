@@ -39,7 +39,6 @@ export abstract class CoreEditorCommand<T> extends EditorCommand {
 	public runEditorCommand(accessor: ServicesAccessor, editor: ICodeEditor, args?: Partial<T> | null): void {
 		const viewModel = editor._getViewModel();
 		if (!viewModel) {
-			// the editor has no view => has no cursors
 			return;
 		}
 		this.runCoreEditorCommand(viewModel, args || {});
@@ -119,9 +118,6 @@ export namespace EditorScroll_ {
 		]
 	};
 
-	/**
-	 * Directions in the view for editor scroll command.
-	 */
 	export const RawDirection = {
 		Up: 'up',
 		Right: 'right',
@@ -129,9 +125,6 @@ export namespace EditorScroll_ {
 		Left: 'left'
 	};
 
-	/**
-	 * Units for editor scroll 'by' argument
-	 */
 	export const RawUnit = {
 		Line: 'line',
 		WrappedLine: 'wrappedLine',
@@ -141,9 +134,6 @@ export namespace EditorScroll_ {
 		Column: 'column'
 	};
 
-	/**
-	 * Arguments for editor scroll command
-	 */
 	export interface RawArguments {
 		to: string;
 		by?: string;
@@ -168,7 +158,6 @@ export namespace EditorScroll_ {
 				direction = Direction.Left;
 				break;
 			default:
-				// Illegal arguments
 				return null;
 		}
 
@@ -284,17 +273,11 @@ export namespace RevealLine_ {
 		]
 	};
 
-	/**
-	 * Arguments for reveal line command
-	 */
 	export interface RawArguments {
 		lineNumber?: number | string;
 		at?: string;
 	}
 
-	/**
-	 * Values for reveal line 'at' argument
-	 */
 	export const RawAtArgument = {
 		Top: 'top',
 		Center: 'center',
@@ -305,9 +288,7 @@ export namespace RevealLine_ {
 abstract class EditorOrNativeTextInputCommand {
 
 	constructor(target: MultiCommand) {
-		// 1. handle case when focus is in editor.
 		target.addImplementation(10000, 'code-editor', (accessor: ServicesAccessor, args: unknown) => {
-			// Only if editor text focus (i.e. not if editor has widget focus).
 			const focusedEditor = accessor.get(ICodeEditorService).getFocusedCodeEditor();
 			if (focusedEditor && focusedEditor.hasTextFocus()) {
 				return this._runEditorCommand(accessor, focusedEditor, args);
@@ -315,9 +296,7 @@ abstract class EditorOrNativeTextInputCommand {
 			return false;
 		});
 
-		// 2. handle case when focus is in some other `input` / `textarea`.
 		target.addImplementation(1000, 'generic-dom-input-textarea', (accessor: ServicesAccessor, args: unknown) => {
-			// Only if focused on an element that allows for entering text
 			const activeElement = getActiveElement();
 			if (activeElement && isEditableElement(activeElement)) {
 				this.runDOMCommand(activeElement);
@@ -326,9 +305,7 @@ abstract class EditorOrNativeTextInputCommand {
 			return false;
 		});
 
-		// 3. (default) handle case when focus is somewhere else.
 		target.addImplementation(0, 'generic-dom', (accessor: ServicesAccessor, args: unknown) => {
-			// Redirecting to active editor
 			const activeEditor = accessor.get(ICodeEditorService).getActiveCodeEditor();
 			if (activeEditor) {
 				activeEditor.focus();
@@ -351,17 +328,8 @@ abstract class EditorOrNativeTextInputCommand {
 }
 
 export const enum NavigationCommandRevealType {
-	/**
-	 * Do regular revealing.
-	 */
 	Regular = 0,
-	/**
-	 * Do only minimal revealing.
-	 */
 	Minimal = 1,
-	/**
-	 * Do not reveal the position.
-	 */
 	None = 2
 }
 
@@ -421,7 +389,6 @@ export namespace CoreNavigationCommands {
 			viewModel.model.pushStackElement();
 			const result = this._getColumnSelectResult(viewModel, viewModel.getPrimaryCursorState(), viewModel.getCursorColumnSelectData(), args);
 			if (result === null) {
-				// invalid arguments
 				return;
 			}
 			viewModel.setCursorStates(args.source, CursorChangeReason.Explicit, result.viewStates.map((viewState) => CursorState.fromViewState(viewState)));
@@ -462,7 +429,6 @@ export namespace CoreNavigationCommands {
 			if (typeof args.position === 'undefined' || typeof args.viewPosition === 'undefined' || typeof args.mouseColumn === 'undefined') {
 				return null;
 			}
-			// validate `args`
 			const validatedPosition = viewModel.model.validatePosition(args.position);
 			const validatedViewPosition = viewModel.coordinatesConverter.validateViewPosition(new Position(args.viewPosition.lineNumber, args.viewPosition.column), validatedPosition);
 
@@ -598,14 +564,12 @@ export namespace CoreNavigationCommands {
 		public runCoreEditorCommand(viewModel: IViewModel, args: Partial<BaseCommandOptions & CursorMove_.RawArguments>): void {
 			const parsed = CursorMove_.parse(args);
 			if (!parsed) {
-				// illegal arguments
 				return;
 			}
 			this._runCursorMove(viewModel, args.source, parsed);
 		}
 
 		private _runCursorMove(viewModel: IViewModel, source: string | null | undefined, args: CursorMove_.ParsedArguments): void {
-			// If noHistory is true, use PROGRAMMATIC source to prevent adding to navigation history
 			const effectiveSource = args.noHistory ? TextEditorSelectionSource.PROGRAMMATIC : source;
 
 			viewModel.model.pushStackElement();
@@ -668,7 +632,6 @@ export namespace CoreNavigationCommands {
 		public runCoreEditorCommand(viewModel: IViewModel, dynamicArgs: Partial<CursorMoveCommandOptions>): void {
 			let args = this._staticArgs;
 			if (this._staticArgs.value === Constants.PAGE_SIZE_MARKER) {
-				// -1 is a marker for page size
 				args = {
 					direction: this._staticArgs.direction,
 					unit: this._staticArgs.unit,
@@ -914,7 +877,6 @@ export namespace CoreNavigationCommands {
 
 			const states: PartialCursorState[] = viewModel.getCursorStates();
 
-			// Check if we should remove a cursor (sort of like a toggle)
 			if (states.length > 1) {
 				const newModelPosition = (newState.modelState ? newState.modelState.position : null);
 				const newViewPosition = (newState.viewState ? newState.viewState.position : null);
@@ -930,7 +892,6 @@ export namespace CoreNavigationCommands {
 						continue;
 					}
 
-					// => Remove the cursor
 					states.splice(i, 1);
 
 					viewModel.model.pushStackElement();
@@ -943,7 +904,6 @@ export namespace CoreNavigationCommands {
 				}
 			}
 
-			// => Add the new cursor
 			states.push(newState);
 
 			viewModel.model.pushStackElement();
@@ -1340,12 +1300,10 @@ export namespace CoreNavigationCommands {
 		public runCoreEditorCommand(viewModel: IViewModel, args: Partial<EditorScrollCommandOptions>): void {
 			const parsed = EditorScroll_.parse(args);
 			if (!parsed) {
-				// illegal arguments
 				return;
 			}
 			const runEditorScroll = this.determineScrollMethod(parsed);
 			if (!runEditorScroll) {
-				// Incompatible unit and direction
 				return;
 			}
 			runEditorScroll(viewModel, args.source, parsed);
@@ -1356,7 +1314,6 @@ export namespace CoreNavigationCommands {
 			const desiredScrollTop = this._computeDesiredScrollTop(viewModel, args);
 
 			if (args.revealCursor) {
-				// must ensure cursor is in new visible range
 				const desiredVisibleViewRange = viewModel.getCompletelyVisibleViewRangeAtScrollTop(desiredScrollTop);
 				const paddedRange = viewModel.getViewRangeWithCursorPadding(desiredVisibleViewRange);
 
@@ -1375,17 +1332,14 @@ export namespace CoreNavigationCommands {
 		private _computeDesiredScrollTop(viewModel: IViewModel, args: EditorScroll_.ParsedArguments): number {
 
 			if (args.unit === EditorScroll_.Unit.Line) {
-				// scrolling by model lines
 				const futureViewport = viewModel.viewLayout.getFutureViewport();
 				const visibleViewRange = viewModel.getCompletelyVisibleViewRangeAtScrollTop(futureViewport.top);
 				const visibleModelRange = viewModel.coordinatesConverter.convertViewRangeToModelRange(visibleViewRange);
 
 				let desiredTopModelLineNumber: number;
 				if (args.direction === EditorScroll_.Direction.Up) {
-					// must go x model lines up
 					desiredTopModelLineNumber = Math.max(1, visibleModelRange.startLineNumber - args.value);
 				} else {
-					// must go x model lines down
 					desiredTopModelLineNumber = Math.min(viewModel.model.getLineCount(), visibleModelRange.startLineNumber + args.value);
 				}
 
@@ -1893,7 +1847,6 @@ export namespace CoreNavigationCommands {
 		public runEditorCommand(accessor: ServicesAccessor, editor: ICodeEditor, args: unknown): void {
 			const viewModel = editor._getViewModel();
 			if (!viewModel) {
-				// the editor has no view => has no cursors
 				return;
 			}
 			this.runCoreEditorCommand(viewModel, args);
@@ -1969,7 +1922,6 @@ export namespace CoreEditingCommands {
 		public runEditorCommand(accessor: ServicesAccessor, editor: ICodeEditor, args: unknown): void {
 			const viewModel = editor._getViewModel();
 			if (!viewModel) {
-				// the editor has no view => has no cursors
 				return;
 			}
 			this.runCoreEditingCommand(editor, viewModel, args || {});
@@ -2124,9 +2076,6 @@ export namespace CoreEditingCommands {
 	}();
 }
 
-/**
- * A command that will invoke a command on the focused editor.
- */
 class EditorHandlerCommand extends Command {
 
 	private readonly _handlerId: string;

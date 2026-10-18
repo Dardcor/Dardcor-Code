@@ -167,7 +167,6 @@ suite('PromptsService', () => {
 		instaService.stub(ISearchService, {
 			schemeHasFileSearchProvider: () => true,
 			async fileSearch(query: IFileQuery) {
-				// mock the search service - recursively find files matching pattern
 				const findFilesInLocation = async (location: URI, results: URI[] = []): Promise<URI[]> => {
 					try {
 						const resolve = await fileService.resolve(location);
@@ -179,7 +178,6 @@ suite('PromptsService', () => {
 							}
 						}
 					} catch (error) {
-						// folder doesn't exist
 					}
 					return results;
 				};
@@ -213,7 +211,7 @@ suite('PromptsService', () => {
 
 		instaService.stub(IAgentPluginService, {
 			plugins: testPluginsObservable,
-			enablementModel: { readEnabled: () => 2 /* EnabledProfile */, readProfileEnabled: () => true, setEnabled: () => { }, remove: () => { } },
+			enablementModel: { readEnabled: () => 2 , readProfileEnabled: () => true, setEnabled: () => { }, remove: () => { } },
 		});
 
 		service = disposables.add(instaService.createInstance(PromptsService));
@@ -522,7 +520,6 @@ suite('PromptsService', () => {
 
 			sinon.stub(service, 'listPromptFiles')
 				.returns(Promise.resolve([
-					// local instructions
 					{
 						uri: URI.joinPath(rootFolderUri, '.github/prompts/file1.instructions.md'),
 						storage: PromptsStorage.local,
@@ -543,7 +540,6 @@ suite('PromptsService', () => {
 						storage: PromptsStorage.local,
 						type: PromptsType.instructions,
 					},
-					// user instructions
 					{
 						uri: URI.joinPath(userPromptsFolderUri, 'file10.instructions.md'),
 						storage: PromptsStorage.user,
@@ -556,7 +552,6 @@ suite('PromptsService', () => {
 					},
 				]));
 
-			// mock current workspace file structure
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/file1.prompt.md`,
@@ -623,7 +618,6 @@ suite('PromptsService', () => {
 				}
 			]);
 
-			// mock user data instructions
 			await mockFiles(fileService, [
 				{
 					path: `${userPromptsFolderName}/file10.instructions.md`,
@@ -671,10 +665,8 @@ suite('PromptsService', () => {
 			assert.deepStrictEqual(
 				result.asArray().map(i => isPromptFileVariableEntry(i) ? i.value.path : undefined),
 				[
-					// local instructions
 					URI.joinPath(rootFolderUri, '.github/prompts/file1.instructions.md').path,
 					URI.joinPath(rootFolderUri, '.github/prompts/file2.instructions.md').path,
-					// user instructions
 					URI.joinPath(userPromptsFolderUri, 'file10.instructions.md').path,
 				],
 				'Must find correct instruction files.',
@@ -693,7 +685,6 @@ suite('PromptsService', () => {
 
 			sinon.stub(service, 'listPromptFiles')
 				.returns(Promise.resolve([
-					// local instructions
 					{
 						uri: URI.joinPath(rootFolderUri, '.github/prompts/file1.instructions.md'),
 						storage: PromptsStorage.local,
@@ -714,7 +705,6 @@ suite('PromptsService', () => {
 						storage: PromptsStorage.local,
 						type: PromptsType.instructions,
 					},
-					// user instructions
 					{
 						uri: URI.joinPath(userPromptsFolderUri, 'file10.instructions.md'),
 						storage: PromptsStorage.user,
@@ -727,7 +717,6 @@ suite('PromptsService', () => {
 					},
 				]));
 
-			// mock current workspace file structure
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/file1.prompt.md`,
@@ -794,7 +783,6 @@ suite('PromptsService', () => {
 				}
 			]);
 
-			// mock user data instructions
 			await mockFiles(fileService, [
 				{
 					path: `${userPromptsFolderName}/file10.instructions.md`,
@@ -844,10 +832,8 @@ suite('PromptsService', () => {
 			assert.deepStrictEqual(
 				result.asArray().map(i => isPromptFileVariableEntry(i) ? i.value.path : undefined),
 				[
-					// local instructions
 					URI.joinPath(rootFolderUri, '.github/prompts/file1.instructions.md').path,
 					URI.joinPath(rootFolderUri, '.github/prompts/file2.instructions.md').path,
-					// user instructions
 					URI.joinPath(userPromptsFolderUri, 'file10.instructions.md').path,
 				],
 				'Must find correct instruction files.',
@@ -861,7 +847,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// mock current workspace file structure
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/codestyle.md`,
@@ -956,7 +941,6 @@ suite('PromptsService', () => {
 				inFlight++;
 				maxInFlight = Math.max(maxInFlight, inFlight);
 				try {
-					// Yield so that overlapping reads are observable.
 					await timeout(0);
 					return await readFile(resource, options, token);
 				} finally {
@@ -973,10 +957,6 @@ suite('PromptsService', () => {
 				`Must not read all ${agentCount} agent files at once, but read ${maxInFlight} concurrently.`,
 			);
 
-			// A discovery pass can be invalidated while it is still running, which
-			// starts a second pass alongside the first. Both passes must share the
-			// same quota, otherwise the number of open files grows with the number
-			// of passes.
 			const singlePassPeak = maxInFlight;
 			maxInFlight = 0;
 
@@ -1105,7 +1085,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// mock current workspace file structure
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/agents/agent1.agent.md`,
@@ -1390,7 +1369,6 @@ suite('PromptsService', () => {
 
 			await mockFiles(fileService, [
 				{
-					// Claude agent with tools and model that should be mapped
 					path: `${rootFolder}/.claude/agents/claude-agent.md`,
 					contents: [
 						'---',
@@ -1402,7 +1380,6 @@ suite('PromptsService', () => {
 					]
 				},
 				{
-					// Claude agent with more tools, some with empty equivalents
 					path: `${rootFolder}/.claude/agents/claude-agent2.md`,
 					contents: [
 						'---',
@@ -1414,7 +1391,6 @@ suite('PromptsService', () => {
 					]
 				},
 				{
-					// Non-Claude agent should NOT have tools/model mapped
 					path: `${rootFolder}/.github/agents/copilot-agent.agent.md`,
 					contents: [
 						'---',
@@ -1435,7 +1411,6 @@ suite('PromptsService', () => {
 					name: 'copilot-agent',
 					description: 'Copilot agent with same tool names.',
 					target: Target.GitHubCopilot,
-					// Non-Claude agent: tools and model stay as-is
 					tools: ['Read', 'Edit'],
 					model: ['gpt-4'],
 					agentInstructions: {
@@ -1458,9 +1433,7 @@ suite('PromptsService', () => {
 					name: 'claude-agent',
 					description: 'Claude agent with tools and model.',
 					target: Target.Claude,
-					// Claude tools mapped to vscode equivalents
 					tools: ['read/readFile', 'read/getNotebookSummary', 'edit/editNotebook', 'edit/editFiles', 'execute'],
-					// Claude model mapped to vscode equivalent
 					model: ['Claude Opus 4.6 (copilot)'],
 					agentInstructions: {
 						content: 'I am a Claude agent.',
@@ -1482,7 +1455,6 @@ suite('PromptsService', () => {
 					name: 'claude-agent2',
 					description: 'Claude agent with various tools.',
 					target: Target.Claude,
-					// Tools mapped: Glob->search/fileSearch, Grep->search/textSearch, Write->edit/create*, Task->agent, Skill->[] (empty)
 					tools: ['search/fileSearch', 'search/textSearch', 'edit/createDirectory', 'edit/createFile', 'edit/createJupyterNotebook', 'agent'],
 					model: ['Claude Sonnet 4.5 (copilot)'],
 					agentInstructions: {
@@ -1751,7 +1723,6 @@ suite('PromptsService', () => {
 			const userPromptsFolder = '/user-data/prompts';
 			const userPromptsFolderUri = URI.file(userPromptsFolder);
 
-			// Override the user data profile service to use a file:// URI that the InMemoryFileSystemProvider supports
 			const customUserDataProfileService = {
 				_serviceBrand: undefined,
 				onDidChangeCurrentProfile: Event.None,
@@ -1763,13 +1734,10 @@ suite('PromptsService', () => {
 			};
 			instaService.stub(IUserDataProfileService, customUserDataProfileService);
 
-			// Recreate the service with the new stub (dispose existing to avoid duplicate filesystem registration)
 			service.dispose();
 			const testService = disposables.add(instaService.createInstance(PromptsService));
 
-			// Create agent files in both workspace and user data folder
 			await mockFiles(fileService, [
-				// Workspace agent
 				{
 					path: `${rootFolder}/.github/agents/workspace-agent.agent.md`,
 					contents: [
@@ -1779,7 +1747,6 @@ suite('PromptsService', () => {
 						'I am a workspace agent.',
 					]
 				},
-				// User data agent
 				{
 					path: `${userPromptsFolder}/user-agent.agent.md`,
 					contents: [
@@ -1790,7 +1757,6 @@ suite('PromptsService', () => {
 						'I am a user data agent.',
 					]
 				},
-				// Another user data agent without header
 				{
 					path: `${userPromptsFolder}/simple-user-agent.agent.md`,
 					contents: [
@@ -1801,7 +1767,6 @@ suite('PromptsService', () => {
 
 			const result = (await testService.getCustomAgents(CancellationToken.None)).map(agent => ({ ...agent, uri: URI.from(agent.uri) }));
 
-			// Should find agents from both workspace and user data
 			assert.strictEqual(result.length, 3, 'Should find 3 agents (1 workspace + 2 user data)');
 
 			const workspaceAgent = result.find(a => a.source.storage === PromptsStorage.local);
@@ -1829,7 +1794,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Use a real InMemoryStorageService instance so disabled state actually persists
 			instaService.stub(IStorageService, disposables.add(new InMemoryStorageService()));
 			service.dispose();
 			const testService = disposables.add(instaService.createInstance(PromptsService));
@@ -1864,18 +1828,15 @@ suite('PromptsService', () => {
 				}
 			]);
 
-			// First load to discover URIs as the service sees them
 			const initial = await testService.getCustomAgents(CancellationToken.None);
 			const toDisable = initial.filter(a => a.name === 'disabled-agent' || a.name === 'another-disabled-agent');
 
-			// Disable two of the three agents
 			const disabledUris = new ResourceSet();
 			for (const a of toDisable) {
 				disabledUris.add(URI.from(a.uri));
 			}
 			testService.setDisabledPromptFiles(PromptsType.agent, disabledUris);
 
-			// Sanity check: the service reports the URIs as disabled
 			const persisted = testService.getDisabledPromptFiles(PromptsType.agent);
 			assert.strictEqual(persisted.size, 2, `Expected 2 disabled agents, got ${persisted.size}`);
 
@@ -1903,7 +1864,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Use a real InMemoryStorageService instance so disabled state actually persists
 			instaService.stub(IStorageService, disposables.add(new InMemoryStorageService()));
 			service.dispose();
 			const testService = disposables.add(instaService.createInstance(PromptsService));
@@ -1929,7 +1889,6 @@ suite('PromptsService', () => {
 				}
 			]);
 
-			// Discover the URIs as the service sees them, then disable one
 			const initial = await testService.getCustomAgents(CancellationToken.None);
 			const disabled = initial.find(a => a.name === 'disabled-agent');
 			assert.ok(disabled, 'Should find disabled-agent in initial discovery');
@@ -1978,7 +1937,6 @@ suite('PromptsService', () => {
 				[`${userPromptsFolder}/team`]: true,
 			});
 
-			// Override the user data profile service
 			const customUserDataProfileService = {
 				_serviceBrand: undefined,
 				onDidChangeCurrentProfile: Event.None,
@@ -1990,13 +1948,10 @@ suite('PromptsService', () => {
 			};
 			instaService.stub(IUserDataProfileService, customUserDataProfileService);
 
-			// Recreate the service with the new stub (dispose existing to avoid duplicate filesystem registration)
 			service.dispose();
 			const testService = disposables.add(instaService.createInstance(PromptsService));
 
-			// Create prompt files in workspace, User Data, and a configured personal folder.
 			await mockFiles(fileService, [
-				// Workspace prompt
 				{
 					path: `${rootFolder}/.github/prompts/workspace-prompt.prompt.md`,
 					contents: [
@@ -2006,7 +1961,6 @@ suite('PromptsService', () => {
 						'I am a workspace prompt.',
 					]
 				},
-				// User data prompt
 				{
 					path: `${userPromptsFolder}/user-prompt.prompt.md`,
 					contents: [
@@ -2097,7 +2051,6 @@ suite('PromptsService', () => {
 				'/home/user': true,
 			});
 
-			// Override the user data profile service
 			const customUserDataProfileService = {
 				_serviceBrand: undefined,
 				onDidChangeCurrentProfile: Event.None,
@@ -2109,13 +2062,10 @@ suite('PromptsService', () => {
 			};
 			instaService.stub(IUserDataProfileService, customUserDataProfileService);
 
-			// Recreate the service with the new stub (dispose existing to avoid duplicate filesystem registration)
 			service.dispose();
 			const testService = disposables.add(instaService.createInstance(PromptsService));
 
-			// Create instructions files in both workspace and user data folder
 			await mockFiles(fileService, [
-				// Workspace instructions
 				{
 					path: `${rootFolder}/.github/instructions/workspace-instructions.instructions.md`,
 					contents: [
@@ -2126,7 +2076,6 @@ suite('PromptsService', () => {
 						'I am workspace instructions.',
 					]
 				},
-				// User data instructions
 				{
 					path: `${userPromptsFolder}/user-instructions.instructions.md`,
 					contents: [
@@ -2274,7 +2223,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create files in non-skill locations
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/prompts/SKILL.md`,
@@ -2312,7 +2260,6 @@ suite('PromptsService', () => {
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
 			await mockFiles(fileService, [
-				// Workspace skills
 				{
 					path: `${rootFolder}/.github/skills/workspace-skill/SKILL.md`,
 					contents: [
@@ -2323,7 +2270,6 @@ suite('PromptsService', () => {
 						'Workspace skill content',
 					],
 				},
-				// User home skills
 				{
 					path: '/home/user/.copilot/skills/personal-skill/SKILL.md',
 					contents: [
@@ -2347,7 +2293,6 @@ suite('PromptsService', () => {
 
 		test('should respect disabled default paths via config', async () => {
 			testConfigService.setUserConfiguration(PromptsConfig.USE_AGENT_SKILLS, true);
-			// Disable .github/skills, only .claude/skills should be searched
 			testConfigService.setUserConfiguration(PromptsConfig.SKILLS_LOCATION_KEY, {
 				'.github/skills': false,
 				'.claude/skills': true,
@@ -2391,7 +2336,6 @@ suite('PromptsService', () => {
 
 		test('should expand tilde paths in custom locations', async () => {
 			testConfigService.setUserConfiguration(PromptsConfig.USE_AGENT_SKILLS, true);
-			// Add a tilde path as custom location
 			testConfigService.setUserConfiguration(PromptsConfig.SKILLS_LOCATION_KEY, {
 				'.github/skills': false,
 				'.claude/skills': false,
@@ -2404,7 +2348,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// The mock user home is /home/user, so ~/my-custom-skills should resolve to /home/user/my-custom-skills
 			await mockFiles(fileService, [
 				{
 					path: '/home/user/my-custom-skills/custom-skill/SKILL.md',
@@ -2534,7 +2477,6 @@ suite('PromptsService', () => {
 				enabledApiProposals: ['chatParticipantPrivate']
 			} as unknown as IExtensionDescription;
 
-			// Mock the agent file content
 			await mockFiles(fileService, [
 				{
 					path: agentUri.path,
@@ -2569,7 +2511,6 @@ suite('PromptsService', () => {
 
 			registered.dispose();
 
-			// After disposal, the agent should no longer be listed
 			const actualAfterDispose = await service.getCustomAgents(CancellationToken.None);
 			assert.strictEqual(actualAfterDispose.length, 0);
 		});
@@ -2655,7 +2596,6 @@ suite('PromptsService', () => {
 				identifier: { value: 'test.my-extension' }
 			} as unknown as IExtensionDescription;
 
-			// Only create the existing file
 			await mockFiles(fileService, [
 				{
 					path: existingUri.path,
@@ -2669,7 +2609,6 @@ suite('PromptsService', () => {
 				}
 			]);
 
-			// Register both agents (one exists, one doesn't)
 			const registered1 = service.registerContributedFile(
 				PromptsType.agent,
 				nonExistentUri,
@@ -2686,10 +2625,8 @@ suite('PromptsService', () => {
 				'An agent that exists',
 			);
 
-			// Verify that getCustomAgents doesn't crash and returns only the valid agent
 			const agents = await service.getCustomAgents(CancellationToken.None);
 
-			// Should only get the existing agent, not the non-existent one
 			assert.strictEqual(agents.length, 1, 'Should only return the agent that exists');
 			assert.strictEqual(agents[0].name, 'Existing Agent');
 			assert.strictEqual(agents[0].description, 'An agent that exists');
@@ -2884,12 +2821,10 @@ suite('PromptsService', () => {
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
 			await mockFiles(fileService, [
-				// .git in parent marks it as a repo root
 				{
 					path: `${parentFolder}/.git/HEAD`,
 					contents: ['ref: refs/heads/main'],
 				},
-				// Applying instruction in parent
 				{
 					path: `${parentFolder}/.github/instructions/typescript.instructions.md`,
 					contents: [
@@ -2900,7 +2835,6 @@ suite('PromptsService', () => {
 						'Parent TypeScript coding standards',
 					]
 				},
-				// Prompt file in parent
 				{
 					path: `${parentFolder}/.github/prompts/help.prompt.md`,
 					contents: [
@@ -2910,7 +2844,6 @@ suite('PromptsService', () => {
 						'Help the user with their question',
 					]
 				},
-				// Agent file in parent
 				{
 					path: `${parentFolder}/.github/agents/reviewer.agent.md`,
 					contents: [
@@ -2931,7 +2864,6 @@ suite('PromptsService', () => {
 			await testConfigService.setUserConfiguration(PromptsConfig.INCLUDE_APPLYING_INSTRUCTIONS, true);
 			await testConfigService.setUserConfiguration(PromptsConfig.USE_CUSTOMIZATIONS_IN_PARENT_REPOS, false);
 
-			// With parent search disabled, should not find parent files
 			let promptFiles = await service.listPromptFiles(PromptsType.prompt, CancellationToken.None);
 			let agentFiles = await service.listPromptFiles(PromptsType.agent, CancellationToken.None);
 			let instructionFiles = await service.listPromptFiles(PromptsType.instructions, CancellationToken.None);
@@ -2940,7 +2872,6 @@ suite('PromptsService', () => {
 			assert.ok(!agentFiles.some(f => f.uri.path.includes(parentFolder)), 'Should not find parent agent files when parent search is disabled');
 			assert.ok(!instructionFiles.some(f => f.uri.path.includes(parentFolder)), 'Should not find parent instruction files when parent search is disabled');
 
-			// With parent search enabled, should find parent files
 			testConfigService.setUserConfiguration(PromptsConfig.USE_CUSTOMIZATIONS_IN_PARENT_REPOS, true);
 			fireConfigChange(testConfigService, PromptsConfig.USE_CUSTOMIZATIONS_IN_PARENT_REPOS);
 
@@ -2965,12 +2896,10 @@ suite('PromptsService', () => {
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
 			await mockFiles(fileService, [
-				// .git in parent marks it as a repo root
 				{
 					path: `${parentFolder}/.git/HEAD`,
 					contents: ['ref: refs/heads/main'],
 				},
-				// Applying instruction in parent
 				{
 					path: `${parentFolder}/.github/instructions/typescript.instructions.md`,
 					contents: [
@@ -2981,7 +2910,6 @@ suite('PromptsService', () => {
 						'Parent TypeScript coding standards',
 					]
 				},
-				// Prompt file in parent
 				{
 					path: `${parentFolder}/.github/prompts/help.prompt.md`,
 					contents: [
@@ -2991,7 +2919,6 @@ suite('PromptsService', () => {
 						'Help the user with their question',
 					]
 				},
-				// Agent file in parent
 				{
 					path: `${parentFolder}/.github/agents/reviewer.agent.md`,
 					contents: [
@@ -3012,7 +2939,6 @@ suite('PromptsService', () => {
 			fireConfigChange(testConfigService, PromptsConfig.INCLUDE_APPLYING_INSTRUCTIONS, PromptsConfig.USE_CUSTOMIZATIONS_IN_PARENT_REPOS);
 
 
-			// Mark the parent repo root as untrusted
 			workspaceTrustService.getUriTrustInfo = (uri: URI) => {
 				if (uri.path === parentFolder) {
 					return Promise.resolve({ trusted: false, uri });
@@ -3037,7 +2963,6 @@ suite('PromptsService', () => {
 			enabledApiProposals: ['chatParticipantPrivate']
 		} as unknown as IExtensionDescription;
 
-		// Mock the instruction file content
 		await mockFiles(fileService, [
 			{
 				path: instructionUri.path,
@@ -3069,7 +2994,6 @@ suite('PromptsService', () => {
 
 		registered.dispose();
 
-		// After disposal, the instruction should no longer be listed
 		const actualAfterDispose = await service.listPromptFiles(PromptsType.instructions, CancellationToken.None);
 		const foundAfterDispose = actualAfterDispose.find(i => i.uri.toString() === instructionUri.toString());
 		assert.strictEqual(foundAfterDispose, undefined);
@@ -3172,7 +3096,6 @@ suite('PromptsService', () => {
 			enabledApiProposals: ['chatParticipantPrivate']
 		} as unknown as IExtensionDescription;
 
-		// Mock the prompt file content
 		await mockFiles(fileService, [
 			{
 				path: promptUri.path,
@@ -3204,7 +3127,6 @@ suite('PromptsService', () => {
 
 		registered.dispose();
 
-		// After disposal, the prompt should no longer be listed
 		const actualAfterDispose = await service.listPromptFiles(PromptsType.prompt, CancellationToken.None);
 		const foundAfterDispose = actualAfterDispose.find(i => i.uri.toString() === promptUri.toString());
 		assert.strictEqual(foundAfterDispose, undefined);
@@ -3217,7 +3139,6 @@ suite('PromptsService', () => {
 			enabledApiProposals: ['chatParticipantPrivate']
 		} as unknown as IExtensionDescription;
 
-		// Mock the skill file content
 		await mockFiles(fileService, [
 			{
 				path: skillUri.path,
@@ -3253,7 +3174,6 @@ suite('PromptsService', () => {
 
 		registered.dispose();
 
-		// After disposal, the skill should no longer be listed
 		const actualAfterDispose = await service.listPromptFiles(PromptsType.skill, CancellationToken.None);
 		const foundAfterDispose = actualAfterDispose.find(i => i.uri.toString() === skillUri.toString());
 		assert.strictEqual(foundAfterDispose, undefined);
@@ -3281,8 +3201,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create mock filesystem with skills in both .github/skills and .claude/skills
-			// Folder names must match the skill names exactly (per agentskills.io specification)
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/GitHub Skill 1/SKILL.md`,
@@ -3349,7 +3267,6 @@ suite('PromptsService', () => {
 			const result = allResult;
 			assert.strictEqual(result.length, 5, 'Should find 5 skills total');
 
-			// Check project skills (both from .github/skills and .claude/skills)
 			const projectSkills = result.filter(skill => skill.storage === PromptsStorage.local);
 			assert.strictEqual(projectSkills.length, 3, 'Should find 3 project skills');
 
@@ -3363,13 +3280,11 @@ suite('PromptsService', () => {
 			assert.strictEqual(claudeSkill1.description, 'A Claude skill for testing');
 			assert.strictEqual(claudeSkill1.uri.path, `${rootFolder}/.claude/skills/Claude Skill 1/SKILL.md`);
 
-			// The invalid-skill (no name attribute) should now use folder name as fallback
 			const invalidSkill = projectSkills.find(skill => skill.name === 'invalid-skill');
 			assert.ok(invalidSkill, 'Should find invalid-skill using folder name as fallback');
 			assert.strictEqual(invalidSkill.description, 'Invalid skill, no name');
 			assert.strictEqual(invalidSkill.uri.path, `${rootFolder}/.claude/skills/invalid-skill/SKILL.md`);
 
-			// Check personal skills
 			const personalSkills = result.filter(skill => skill.storage === PromptsStorage.user);
 			assert.strictEqual(personalSkills.length, 2, 'Should find 2 personal skills');
 
@@ -3394,8 +3309,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create mock filesystem with malformed skill file in .github/skills
-			// Folder names must match the skill names exactly
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/Valid Skill/SKILL.md`,
@@ -3420,7 +3333,6 @@ suite('PromptsService', () => {
 
 			const allResult = await service.findAgentSkills(CancellationToken.None);
 
-			// Should return both skills - the malformed one uses folder name as fallback
 			assert.ok(allResult, 'Should return results even with parsing errors');
 			const result = allResult;
 			assert.strictEqual(result.length, 2, 'Should find 2 skills');
@@ -3443,7 +3355,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create empty mock filesystem
 			await mockFiles(fileService, []);
 
 			const allResult = await service.findAgentSkills(CancellationToken.None);
@@ -3463,13 +3374,12 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			const longName = 'A'.repeat(100); // Exceeds 64 characters
-			const truncatedName = 'A'.repeat(64); // Expected after truncation
-			const longDescription = 'B'.repeat(1500); // Exceeds 1024 characters
+			const longName = 'A'.repeat(100);
+			const truncatedName = 'A'.repeat(64);
+			const longDescription = 'B'.repeat(1500);
 
 			await mockFiles(fileService, [
 				{
-					// Folder name must match the truncated skill name
 					path: `${rootFolder}/.github/skills/${truncatedName}/SKILL.md`,
 					contents: [
 						'---',
@@ -3500,7 +3410,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Folder name must match the sanitized skill name (with XML tags removed)
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/Skill with XML tags/SKILL.md`,
@@ -3533,11 +3442,10 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			const longNameWithXml = '<p>' + 'A'.repeat(100) + '</p>'; // Exceeds 64 chars and has XML
-			const truncatedName = 'A'.repeat(64); // Expected after XML removal and truncation
-			const longDescWithXml = '<div>' + 'B'.repeat(1500) + '</div>'; // Exceeds 1024 chars and has XML
+			const longNameWithXml = '<p>' + 'A'.repeat(100) + '</p>';
+			const truncatedName = 'A'.repeat(64);
+			const longDescWithXml = '<div>' + 'B'.repeat(1500) + '</div>';
 
-			// Folder name must match the fully sanitized skill name
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/${truncatedName}/SKILL.md`,
@@ -3556,7 +3464,6 @@ suite('PromptsService', () => {
 			assert.ok(allResult, 'Should return results');
 			const result = allResult;
 			assert.strictEqual(result.length, 1, 'Should find 1 skill');
-			// XML tags are removed first, then truncation happens
 			assert.ok(!result[0].name.includes('<'), 'Name should not contain XML tags');
 			assert.ok(!result[0].name.includes('>'), 'Name should not contain XML tags');
 			assert.strictEqual(result[0].name.length, 64, 'Name should be truncated to 64 characters');
@@ -3575,8 +3482,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create skills with duplicate names in different locations
-			// Workspace skill should be kept (higher priority), user skill should be skipped
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/Duplicate Skill/SKILL.md`,
@@ -3635,7 +3540,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create skills from different sources with same name
 			await mockFiles(fileService, [
 				{
 					path: '/home/user/.copilot/skills/Priority Skill/SKILL.md',
@@ -3680,7 +3584,6 @@ suite('PromptsService', () => {
 
 			await mockFiles(fileService, [
 				{
-					// Folder name "wrong-folder-name" doesn't match skill name "Correct Skill Name"
 					path: `${rootFolder}/.github/skills/wrong-folder-name/SKILL.md`,
 					contents: [
 						'---',
@@ -3691,7 +3594,6 @@ suite('PromptsService', () => {
 					],
 				},
 				{
-					// Folder name matches skill name
 					path: `${rootFolder}/.github/skills/Valid Skill/SKILL.md`,
 					contents: [
 						'---',
@@ -3779,7 +3681,6 @@ suite('PromptsService', () => {
 				enabledApiProposals: ['chatParticipantPrivate']
 			} as unknown as IExtensionDescription;
 
-			// Create workspace skill and extension skill
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/Workspace Skill/SKILL.md`,
@@ -3890,7 +3791,6 @@ suite('PromptsService', () => {
 
 			registered.dispose();
 
-			// After disposal, only local skill should remain
 			const resultAfterDispose = await service.findAgentSkills(CancellationToken.None);
 			assert.strictEqual(resultAfterDispose?.length, 1, 'Should find 1 skill after disposal');
 			assert.strictEqual(resultAfterDispose?.[0].name, 'Local Skill');
@@ -4046,7 +3946,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create skill files in workspace
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/workspace-skill/SKILL.md`,
@@ -4094,9 +3993,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// `npx skills` installs to `~/.agents/skills` and symlinks
-			// `~/.claude/skills` to it, so the same skill is discovered under two
-			// default user locations. They must collapse to a single slash command.
 			await mockFiles(fileService, [
 				{
 					path: '/home/user/.agents/skills/deploy/SKILL.md',
@@ -4136,7 +4032,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create skill files in user storage (personal skills)
 			await mockFiles(fileService, [
 				{
 					path: '/home/user/.copilot/skills/personal-skill/SKILL.md',
@@ -4190,7 +4085,6 @@ suite('PromptsService', () => {
 				enabledApiProposals: ['chatParticipantPrivate']
 			} as unknown as IExtensionDescription;
 
-			// Mock the skill file content
 			await mockFiles(fileService, [
 				{
 					path: providerSkillUri.path,
@@ -4223,7 +4117,6 @@ suite('PromptsService', () => {
 
 			registered.dispose();
 
-			// After disposal, the provider skill should no longer appear
 			const slashCommandsAfterDispose = await service.getPromptSlashCommands(CancellationToken.None);
 			const foundAfterDispose = slashCommandsAfterDispose.find(cmd => cmd.name === 'provider-skill');
 			assert.strictEqual(foundAfterDispose, undefined, 'Should not find provider skill after disposal');
@@ -4244,7 +4137,6 @@ suite('PromptsService', () => {
 				identifier: { value: 'test.my-extension' }
 			} as unknown as IExtensionDescription;
 
-			// Mock the skill file content
 			await mockFiles(fileService, [
 				{
 					path: contributedSkillUri.path,
@@ -4277,7 +4169,6 @@ suite('PromptsService', () => {
 
 			registered.dispose();
 
-			// After disposal, the contributed skill should no longer appear
 			const slashCommandsAfterDispose = await service.getPromptSlashCommands(CancellationToken.None);
 			const foundAfterDispose = slashCommandsAfterDispose.find(cmd => cmd.name === 'contributed-skill');
 			assert.strictEqual(foundAfterDispose, undefined, 'Should not find contributed skill after disposal');
@@ -4293,7 +4184,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create both prompt files and skill files
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/prompts/my-prompt.prompt.md`,
@@ -4368,7 +4258,6 @@ suite('PromptsService', () => {
 				}
 			};
 
-			// Register provider should trigger change
 			const registered = service.registerPromptFileProvider(extension, PromptsType.skill, provider);
 			await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -4376,7 +4265,6 @@ suite('PromptsService', () => {
 			const skillCommand = commandsWithProvider.find(cmd => cmd.name === 'test-skill');
 			assert.ok(skillCommand, 'Should find skill from provider');
 
-			// Dispose provider should trigger change
 			registered.dispose();
 			await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -4400,7 +4288,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create skill without name attribute but with description
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/no-name/SKILL.md`,
@@ -4425,12 +4312,10 @@ suite('PromptsService', () => {
 
 			const slashCommands = await service.getPromptSlashCommands(CancellationToken.None);
 
-			// Should include skill with fallback name from folder name
 			const fallbackNameCommand = slashCommands.find(cmd => cmd.name === 'no-name');
 			assert.ok(fallbackNameCommand, 'Should find skill with fallback name from folder name');
 			assert.strictEqual(fallbackNameCommand.description, 'Skill without name');
 
-			// Should include valid skill
 			const validSkillCommand = slashCommands.find(cmd => cmd.name === 'valid-skill');
 			assert.ok(validSkillCommand, 'Should find valid skill');
 		});
@@ -4478,7 +4363,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create prompt and skill with same name
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/prompts/duplicate-name.prompt.md`,
@@ -4505,8 +4389,6 @@ suite('PromptsService', () => {
 			const slashCommands = await service.getPromptSlashCommands(CancellationToken.None);
 
 			const duplicateCommands = slashCommands.filter(cmd => cmd.name === 'duplicate-name');
-			// Both should be present - the function returns all slash commands without deduplication
-			// This allows the caller to handle name conflicts (e.g., prompt takes precedence over skill)
 			assert.strictEqual(duplicateCommands.length, 2, 'Should return both prompt and skill with same name');
 
 			const promptCommand = duplicateCommands.find(cmd => cmd.type === PromptsType.prompt);
@@ -4526,7 +4408,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create both prompt and skill
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/prompts/my-prompt.prompt.md`,
@@ -4575,7 +4456,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create a skill with user-invocable: false (should be hidden from / menu)
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/hidden-skill/SKILL.md`,
@@ -4597,7 +4477,6 @@ suite('PromptsService', () => {
 			assert.strictEqual(hiddenSkillCommand.userInvocable, false,
 				'Should have userInvocable=false in parsed header');
 
-			// Verify the filtering logic would correctly exclude this skill
 			const filteredCommands = slashCommands.filter(c => c.userInvocable);
 			const hiddenSkillInFiltered = filteredCommands.find(cmd => cmd.name === 'hidden-skill');
 			assert.strictEqual(hiddenSkillInFiltered, undefined,
@@ -4614,7 +4493,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create a skill with explicit user-invocable: true
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/visible-skill/SKILL.md`,
@@ -4636,7 +4514,6 @@ suite('PromptsService', () => {
 			assert.strictEqual(visibleSkillCommand.userInvocable, true,
 				'Should have userInvocable=true in parsed header');
 
-			// Verify the filtering logic would correctly include this skill
 			const filteredCommands = slashCommands.filter(c => c.userInvocable);
 			const visibleSkillInFiltered = filteredCommands.find(cmd => cmd.name === 'visible-skill');
 			assert.ok(visibleSkillInFiltered,
@@ -4653,7 +4530,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create a skill without user-invocable attribute (should default to true)
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/default-skill/SKILL.md`,
@@ -4673,7 +4549,6 @@ suite('PromptsService', () => {
 			assert.ok(defaultSkillCommand, 'Should find default skill in slash commands');
 			assert.strictEqual(defaultSkillCommand.userInvocable, true, 'Should have userInvocable=true when attribute is not specified');
 
-			// Verify the filtering logic would correctly include this skill (undefined !== false is true)
 			const filteredCommands = slashCommands.filter(c => c.userInvocable);
 			const defaultSkillInFiltered = filteredCommands.find(cmd => cmd.name === 'default-skill');
 			assert.ok(defaultSkillInFiltered,
@@ -4687,7 +4562,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create a prompt with user-invocable: false
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/prompts/hidden-prompt.prompt.md`,
@@ -4709,7 +4583,6 @@ suite('PromptsService', () => {
 			assert.strictEqual(hiddenPromptCommand.userInvocable, false,
 				'Should have userInvocable=false in parsed header');
 
-			// Verify the filtering logic would correctly exclude this prompt
 			const filteredCommands = slashCommands.filter(c => c.userInvocable);
 			const hiddenPromptInFiltered = filteredCommands.find(cmd => cmd.name === 'hidden-prompt');
 			assert.strictEqual(hiddenPromptInFiltered, undefined,
@@ -4726,7 +4599,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create a mix of skills and prompts with different user-invocable values
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/prompts/visible-prompt.prompt.md`,
@@ -4775,10 +4647,8 @@ suite('PromptsService', () => {
 
 			const slashCommands = await service.getPromptSlashCommands(CancellationToken.None);
 
-			// All commands should be present in the raw list
 			assert.strictEqual(slashCommands.length, 4, 'Should find all 4 commands');
 
-			// Apply the same filtering logic as chatInputCompletions.ts
 			const filteredCommands = slashCommands.filter(c => c.userInvocable);
 
 			assert.strictEqual(filteredCommands.length, 2, 'Should have 2 commands after filtering');
@@ -4798,7 +4668,6 @@ suite('PromptsService', () => {
 
 			workspaceContextService.setWorkspace(testWorkspace(rootFolderUri));
 
-			// Create a skill without any YAML header
 			await mockFiles(fileService, [
 				{
 					path: `${rootFolder}/.github/skills/no-header-skill/SKILL.md`,
@@ -4811,14 +4680,10 @@ suite('PromptsService', () => {
 
 			const slashCommands = await service.getPromptSlashCommands(CancellationToken.None);
 
-			// Find the skill by checking all commands (name will be derived from filename)
 			const noHeaderSkill = slashCommands.find(cmd =>
 				cmd.uri.path.includes('no-header-skill'));
 			assert.ok(noHeaderSkill, 'Should find skill without header in slash commands');
 
-			// Verify the filtering logic handles missing header correctly
-			// parsedPromptFile?.header?.userInvocable
-			// When header is undefined: undefined !== false is true, so skill is included
 			const filteredCommands = slashCommands.filter(c => c.userInvocable);
 			const noHeaderSkillInFiltered = filteredCommands.find(cmd =>
 				cmd.uri.path.includes('no-header-skill'));
@@ -4843,7 +4708,7 @@ suite('PromptsService', () => {
 				},
 			]);
 
-			const enablement = observableValue('testPluginEnablement', 2 /* ContributionEnablementState.EnabledProfile */);
+			const enablement = observableValue('testPluginEnablement', 2 );
 			const plugin: IAgentPlugin = {
 				uri: URI.file('/plugins/my-plugin'),
 				format: PluginFormat.Copilot,
@@ -4862,7 +4727,6 @@ suite('PromptsService', () => {
 
 			const slashCommands = await service.getPromptSlashCommands(CancellationToken.None);
 
-			// Should be prefixed with plugin name
 			const skillCommand = slashCommands.find(cmd => cmd.name === 'my-plugin:deploy');
 			assert.ok(skillCommand, 'Plugin skill should have plugin prefix in slash command name');
 			assert.strictEqual(skillCommand.storage, PromptsStorage.plugin);
@@ -4889,7 +4753,7 @@ suite('PromptsService', () => {
 				},
 			]);
 
-			const enablement = observableValue('testPluginEnablement', 2 /* ContributionEnablementState.EnabledProfile */);
+			const enablement = observableValue('testPluginEnablement', 2 );
 			const plugin: IAgentPlugin = {
 				uri: URI.file('/plugins/devtools'),
 				format: PluginFormat.Copilot,
@@ -4908,13 +4772,10 @@ suite('PromptsService', () => {
 
 			const slashCommands = await service.getPromptSlashCommands(CancellationToken.None);
 
-			// Skill name is derived from folder name (ci), not frontmatter name (run-ci),
-			// and prefixed with the plugin name
 			const skillCommand = slashCommands.find(cmd => cmd.name === 'devtools:ci');
 			assert.ok(skillCommand, 'Plugin skill folder name should be qualified with plugin prefix');
 			assert.strictEqual(skillCommand.description, 'Run CI pipeline');
 
-			// The frontmatter name should not appear
 			assert.strictEqual(slashCommands.find(cmd => cmd.name === 'devtools:run-ci'), undefined,
 				'Frontmatter skill name should not appear as slash command');
 			assert.strictEqual(slashCommands.find(cmd => cmd.name === 'run-ci'), undefined,
@@ -4942,7 +4803,7 @@ suite('PromptsService', () => {
 				},
 			]);
 
-			const enablement = observableValue('testPluginEnablement', 2 /* ContributionEnablementState.EnabledProfile */);
+			const enablement = observableValue('testPluginEnablement', 2 );
 			const plugin: IAgentPlugin = {
 				uri: pluginUri,
 				format: PluginFormat.Copilot,
@@ -5028,7 +4889,7 @@ suite('PromptsService', () => {
 				uri: URI.file('/plugins/managed'),
 				format: PluginFormat.Copilot,
 				label: 'managed',
-				enablement: observableValue('lockdownPluginEnablement', 2 /* ContributionEnablementState.EnabledProfile */),
+				enablement: observableValue('lockdownPluginEnablement', 2 ),
 				hooks: observableValue('lockdownPluginHooks', []),
 				commands: observableValue('lockdownPluginCommands', []),
 				skills: observableValue<readonly IAgentPluginSkill[]>('lockdownPluginSkills', [{ uri: URI.file('/plugins/managed/skills/plugin-skill/SKILL.md'), name: 'plugin-skill' }]),
@@ -5063,7 +4924,7 @@ suite('PromptsService', () => {
 				uri: pluginUri,
 				format: PluginFormat.Copilot,
 				label: 'managed',
-				enablement: observableValue('lockdownInstructionPluginEnablement', 2 /* ContributionEnablementState.EnabledProfile */),
+				enablement: observableValue('lockdownInstructionPluginEnablement', 2 ),
 				hooks: observableValue('lockdownInstructionPluginHooks', []),
 				commands: observableValue('lockdownInstructionPluginCommands', []),
 				skills: observableValue('lockdownInstructionPluginSkills', []),
@@ -5151,7 +5012,7 @@ suite('PromptsService', () => {
 				uri: pluginUri,
 				format: PluginFormat.Copilot,
 				label: 'managed-plugin',
-				enablement: observableValue('managedPluginEnablement', 2 /* ContributionEnablementState.EnabledProfile */),
+				enablement: observableValue('managedPluginEnablement', 2 ),
 				hooks: observableValue('managedPluginHooks', []),
 				commands: observableValue('managedPluginCommands', []),
 				skills: observableValue('managedPluginSkills', []),
@@ -5170,7 +5031,7 @@ suite('PromptsService', () => {
 
 	suite('hooks', () => {
 		const createTestPlugin = (path: string, initialHooks: readonly IAgentPluginHook[]): { plugin: IAgentPlugin; hooks: ISettableObservable<readonly IAgentPluginHook[]> } => {
-			const enablement = observableValue('testPluginEnablement', 2 /* ContributionEnablementState.EnabledProfile */);
+			const enablement = observableValue('testPluginEnablement', 2 );
 			const hooks = observableValue<readonly IAgentPluginHook[]>('testPluginHooks', initialHooks);
 			const commands = observableValue<readonly IAgentPluginCommand[]>('testPluginCommands', []);
 			const skills = observableValue<readonly IAgentPluginSkill[]>('testPluginSkills', []);
@@ -5342,17 +5203,14 @@ suite('PromptsService', () => {
 				},
 			]);
 
-			// Trusted workspace should return hooks
 			const trustedResult = await service.getHooks(CancellationToken.None);
 			assert.ok(trustedResult, 'Expected hooks when workspace is trusted');
 			assert.strictEqual(trustedResult.hooks[HookType.PreToolUse]?.length, 1);
 
-			// Untrusted workspace should return undefined
 			await workspaceTrustService.setWorkspaceTrust(false);
 			const untrustedResult = await service.getHooks(CancellationToken.None);
 			assert.strictEqual(untrustedResult, undefined, 'Expected undefined hooks when workspace is untrusted');
 
-			// Re-trusting should return hooks again
 			await workspaceTrustService.setWorkspaceTrust(true);
 			const reTrustedResult = await service.getHooks(CancellationToken.None);
 			assert.ok(reTrustedResult, 'Expected hooks after workspace becomes trusted again');
@@ -5378,9 +5236,6 @@ suite('PromptsService', () => {
 		});
 
 		test('Claude hooks with disableAllHooks should not report hasDisabledClaudeHooks when Claude hooks setting is off', async function () {
-			// A Claude settings file that has disableAllHooks: true but defines hooks.
-			// When USE_CLAUDE_HOOKS is false, the old code skipped this file due to
-			// disabledAllHooks before reaching the Claude check, so hasDisabledClaudeHooks was false.
 			const workspaceUri = URI.file('/test-workspace');
 			workspaceContextService.setWorkspace(testWorkspace(workspaceUri));
 			testConfigService.setUserConfiguration(PromptsConfig.USE_CHAT_HOOKS, true);
@@ -5402,13 +5257,10 @@ suite('PromptsService', () => {
 			]);
 
 			const result = await service.getHooks(CancellationToken.None);
-			// No hooks should be collected (the only file has disableAllHooks)
 			assert.strictEqual(result, undefined, 'Expected no hooks result');
 		});
 
 		test('plugin hooks appear in hook discovery info files', async function () {
-			// Plugin hooks should be reported in the discovery info files array
-			// so that diagnostic views can display them.
 			const workspaceUri = URI.file('/test-workspace');
 			workspaceContextService.setWorkspace(testWorkspace(workspaceUri));
 			testConfigService.setUserConfiguration(PromptsConfig.USE_CHAT_HOOKS, true);
@@ -5430,7 +5282,6 @@ suite('PromptsService', () => {
 			assert.ok(result, 'Expected hooks result with plugin hooks');
 			assert.ok(capturedDiscoveryInfo, 'Expected discovery info to be logged');
 
-			// Plugin hook file should appear in discovery files
 			const pluginFile = capturedDiscoveryInfo!.files.find(
 				f => f.promptPath.storage === PromptsStorage.plugin
 			);
@@ -5443,7 +5294,7 @@ suite('PromptsService', () => {
 			path: string,
 			initialInstructions: readonly IAgentPluginInstruction[],
 		): { plugin: IAgentPlugin; instructions: ISettableObservable<readonly IAgentPluginInstruction[]> } {
-			const enablement = observableValue('testPluginEnablement', 2 /* ContributionEnablementState.EnabledProfile */);
+			const enablement = observableValue('testPluginEnablement', 2 );
 			const hooks = observableValue<readonly IAgentPluginHook[]>('testPluginHooks', []);
 			const commands = observableValue<readonly IAgentPluginCommand[]>('testPluginCommands', []);
 			const skills = observableValue<readonly IAgentPluginSkill[]>('testPluginSkills', []);

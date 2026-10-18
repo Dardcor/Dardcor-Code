@@ -18,46 +18,27 @@ type SupportedShellType = 'bash' | 'fish' | 'powershell' | 'zsh';
 
 type TerminalTestCaseSingleAnswer = (string | RegExp)[];
 type TerminalTestCaseShellSpecificAnswer = (
-	// Shell-specific answers
 	Partial<Record<SupportedShellType, TerminalTestCaseSingleAnswer>>
 	&
-	// Negated shell-specific answers
 	Partial<Record<`!${SupportedShellType}`, TerminalTestCaseSingleAnswer>>
 	&
 	(
 		{
-			// Answers that apply to any shell
 			any?: TerminalTestCaseSingleAnswer;
-			// The fallback default answer when no shell-specific answer exists
 			default: TerminalTestCaseSingleAnswer;
 		}
 		|
 		{
-			// Answers that apply to any shell
 			any: TerminalTestCaseSingleAnswer;
-			// The fallback default answer when no shell-specific answer exists
 			default?: TerminalTestCaseSingleAnswer;
 		}
 	)
 );
 
 interface ITerminalTestCase {
-	/**
-	 * The question being asked.
-	 */
 	question: string;
-	/**
-	 * The shell type context.
-	 */
 	shellType: SupportedShellType;
-	/**
-	 * The ideal answer(s) to the question.
-	 */
 	bestAnswer: TerminalTestCaseSingleAnswer | TerminalTestCaseShellSpecificAnswer;
-	/**
-	 * Answers that are acceptable but not ideal, for example they may do what asked but in a more
-	 * complicated way than necessary or require slight user tweaks.
-	 */
 	acceptableAnswers?: TerminalTestCaseSingleAnswer | Partial<TerminalTestCaseShellSpecificAnswer>;
 }
 
@@ -69,7 +50,6 @@ const supportedShells = [
 ] as const;
 
 function getShellSpecificAnswer(answerObject: TerminalTestCaseSingleAnswer | TerminalTestCaseShellSpecificAnswer | Partial<TerminalTestCaseShellSpecificAnswer>, shellType: SupportedShellType): TerminalTestCaseSingleAnswer {
-	// No shell-specific answers
 	if (Array.isArray(answerObject)) {
 		return answerObject;
 	}
@@ -424,18 +404,16 @@ for (const shellType of supportedShells) {
 	] satisfies ITerminalTestCase[]));
 }
 
-// zsh-specific
 generalTestCases.push(...([
 	{
 		shellType: 'zsh',
 		question: 'turn off the zsh git plugin',
 		bestAnswer: [
-			/\.zshrc/ // The answer must include a reference to .zshrc
+			/\.zshrc/
 		]
 	},
 ] satisfies ITerminalTestCase[]));
 
-// Git test cases
 const gitTestCases: ITerminalTestCase[] = [];
 for (const shellType of supportedShells) {
 	gitTestCases.push(...[
@@ -521,7 +499,6 @@ for (const { title, testCases } of [
 ]) {
 	ssuite({ title: `terminal (${title})`, location: 'panel' }, () => {
 		for (const testCase of testCases) {
-			// Non-strict tests verify _any expected_ answer was given in _any_ code block
 			stest(
 				{
 					description: testCase.question,
@@ -537,7 +514,6 @@ for (const { title, testCases } of [
 					generateEvaluate(testCase)
 				)
 			);
-			// Strict tests verify the _best expected_ answer was given and the _first_ code block
 			stest(
 				{
 					description: `${testCase.question} (strict)`,
@@ -566,7 +542,6 @@ function generateEvaluate(testCase: ITerminalTestCase, options: IGenerateEvaluat
 		const inlineCode = extractInlineCode(answer);
 		const codeBlocks = extractCodeBlocks(answer);
 		const commandSuggestions = codeBlocks.map(e => e.code);
-		// Only include inline code suggestions in strict tests as it's harder to action inline code
 		if (!options.strict) {
 			commandSuggestions.concat(inlineCode);
 		}

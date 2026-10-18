@@ -6,7 +6,6 @@
 import { formatStackTrace } from '../stackTraceHelper';
 import * as assert from 'assert';
 
-// The stack frames for these tests can be retreived by using the raw json for a notebook with an error
 suite('StackTraceHelper', () => {
 
 	test('Non Ipython stack trace is left alone', () => {
@@ -93,9 +92,6 @@ suite('StackTraceHelper', () => {
 	});
 
 	test('IPython stack line numbers are linkified for IPython 8.3', () => {
-		// stack frames within functions do not list the line number, i.e.
-		// 'Input In [1], in myfunc()' vs
-		// 'Input In [2], in <cell line: 5>()'
 		const stack =
 			'\u001b[1;31m---------------------------------------------------------------------------\u001b[0m\n' +
 			'\u001b[1;31mException\u001b[0m                                 Traceback (most recent call last)\n' +
@@ -142,7 +138,6 @@ suite('StackTraceHelper', () => {
 			'\u001b[1;33m    print(\u001b[0m\n' +
 			'\u001b[1;37m          ^\u001b[0m\n' +
 			'\u001b[1;31mSyntaxError\u001b[0m\u001b[1;31m:\u001b[0m incomplete input\n' +
-			// contrived examples to check for more false positives
 			'1  print(\n' +
 			'a 1  print(\n' +
 			'   1a  print(\n';

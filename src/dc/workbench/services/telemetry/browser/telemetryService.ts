@@ -51,7 +51,6 @@ export class TelemetryService extends Disposable implements ITelemetryService {
 
 		this.impl = this.initializeService(environmentService, loggerService, configurationService, storageService, productService, remoteAgentService, meteredConnectionService);
 
-		// When the level changes it could change from off to on and we want to make sure telemetry is properly intialized
 		this._register(configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(TELEMETRY_SETTING_ID)) {
 				this.impl = this.initializeService(environmentService, loggerService, configurationService, storageService, productService, remoteAgentService, meteredConnectionService);
@@ -82,11 +81,6 @@ export class TelemetryService extends Disposable implements ITelemetryService {
 		}));
 	}
 
-	/**
-	 * Initializes the telemetry service to be a full fledged service.
-	 * This is only done once and only when telemetry is enabled as this will also ping the endpoint to
-	 * ensure its not adblocked and we can send telemetry
-	 */
 	private initializeService(
 		environmentService: IBrowserWorkbenchEnvironmentService,
 		loggerService: ILoggerService,
@@ -98,7 +92,6 @@ export class TelemetryService extends Disposable implements ITelemetryService {
 	) {
 		const telemetrySupported = supportsTelemetry(productService, environmentService) && productService.aiConfig?.ariaKey;
 		if (telemetrySupported && getTelemetryLevel(configurationService) !== TelemetryLevel.NONE && this.impl === NullTelemetryService) {
-			// If remote server is present send telemetry through that, else use the client side appender
 			const appenders: ITelemetryAppender[] = [];
 			const isInternal = isInternalTelemetry(productService, configurationService);
 			if (!isLoggingOnly(productService, environmentService)) {
@@ -116,10 +109,6 @@ export class TelemetryService extends Disposable implements ITelemetryService {
 			const config: ITelemetryServiceConfig = {
 				appenders,
 				commonProperties: resolveWorkbenchCommonProperties(storageService, productService, environmentService, isInternal, environmentService.options && environmentService.options.resolveCommonTelemetryProperties),
-				// Use the web origin as a cleanup pattern (analogous to appRoot on desktop).
-				// This strips the origin from web URLs in stack traces so the useful
-				// relative path (e.g. /static/build/bundle.js:1:200953) is preserved
-				// for debugging, while the origin itself is removed.
 				piiPaths: [mainWindow.location.origin],
 				sendErrorTelemetry: this.sendErrorTelemetry,
 				waitForExperimentProperties: experimentsEnabled(configurationService, productService, environmentService),

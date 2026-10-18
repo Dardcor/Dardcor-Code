@@ -12,7 +12,7 @@ import { promisify } from 'util';
 import * as crypto from 'crypto';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 const execAsync = promisify(exec);
 
@@ -22,7 +22,7 @@ export interface IShadowSnapshotParams {
 	description?: string;
 }
 
-export class ShadowSnapshotCheckpointTool implements ICopilotTool<IShadowSnapshotParams> {
+export class ShadowSnapshotCheckpointTool implements IAgentTool<IShadowSnapshotParams> {
 	public static readonly toolName = ToolName.ShadowSnapshotCheckpoint;
 
 	private getShadowGitDir(workspaceRoot: string): string {

@@ -24,7 +24,7 @@ import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { WorkbenchList } from '../../../../../platform/list/browser/listService.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
-import { INotificationService } from '../../../../../platform/notification/common/notification.js';
+
 import { defaultButtonStyles } from '../../../../../platform/theme/browser/defaultStyles.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import { status } from '../../../../../base/browser/ui/aria/aria.js';
@@ -34,9 +34,7 @@ import { IAutomationService } from '../../common/automations/automationService.j
 import { IAutomationDialogService } from '../../common/automations/automationDialogService.js';
 import { CHAT_AUTOMATIONS_ENABLED_SETTING } from '../../common/automations/automationsEnabled.js';
 import { DAYS_OF_WEEK } from '../../common/automations/schedule.js';
-import { openSessionByResource } from '../agentSessions/agentSessionsOpener.js';
-import { IEditorService } from '../../../../services/editor/common/editorService.js';
-import { IEditorGroupsService } from '../../../../services/editor/common/editorGroupsService.js';
+
 
 const $ = DOM.$;
 
@@ -77,9 +75,6 @@ interface IAutomationRowTemplateData {
 }
 
 class AutomationItemDelegate implements IListVirtualDelegate<IAutomationListEntry> {
-	// Initial estimate only. Actual row height is measured from the DOM because
-	// the list is created with `supportDynamicHeights` (meta wraps, prompt wraps,
-	// and run-error text is variable-height). See `hasDynamicHeight` below.
 	getHeight(element: IAutomationListEntry): number {
 		if (!element.expanded) {
 			return AUTOMATION_ROW_HEIGHT;
@@ -111,11 +106,6 @@ class AutomationItemRenderer implements IListRenderer<IAutomationItemEntry, IAut
 	constructor(
 		private readonly widget: AutomationsListWidget,
 		private readonly hoverService: IHoverService,
-		private readonly notificationService: INotificationService,
-		private readonly editorService: IEditorService,
-		private readonly editorGroupsService: IEditorGroupsService,
-		private readonly logService: ILogService,
-		private readonly instantiationService: IInstantiationService,
 	) { }
 
 	renderTemplate(container: HTMLElement): IAutomationRowTemplateData {
@@ -300,35 +290,7 @@ class AutomationItemRenderer implements IListRenderer<IAutomationItemEntry, IAut
 			err.setAttribute('aria-live', 'polite');
 		}
 
-		if (run.sessionResource) {
-			const openButton = DOM.append(li, $('span.automations-history-row-open.codicon.codicon-link-external'));
-			openButton.setAttribute('role', 'button');
-			openButton.setAttribute('tabindex', '0');
-			openButton.setAttribute('aria-label', localize('openRunSession', "Open session"));
-			disposables.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), openButton, localize('openRunSession', "Open session")));
-			const openSession = (e: Event) => {
-				e.stopPropagation();
-				const sessionResource = URI.revive(run.sessionResource)!;
-				this.logService.debug(`[AutomationsListWidget] Opening session: ${sessionResource.toString()}`);
-				const activeEditor = this.editorService.activeEditor;
-				const activeGroupId = this.editorGroupsService.activeGroup.id;
-				this.instantiationService.invokeFunction(openSessionByResource, sessionResource).then(() => {
-					if (activeEditor) {
-						this.editorService.closeEditor({ editor: activeEditor, groupId: activeGroupId });
-					}
-				}).catch((err) => {
-					this.logService.error(`[AutomationsListWidget] openSession failed for ${sessionResource.toString()}`, err);
-					this.notificationService.error(localize('openRunSessionFailed', "Failed to open automation session"));
-				});
-			};
-			disposables.add(DOM.addDisposableListener(openButton, 'click', openSession));
-			disposables.add(DOM.addDisposableListener(openButton, 'keydown', (e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					openSession(e);
-				}
-			}));
-		}
+
 	}
 
 	private createIconButton(container: HTMLElement, icon: ThemeIcon, tooltip: string, disabled: boolean, disposables: DisposableStore): HTMLElement {
@@ -348,10 +310,6 @@ class AutomationItemRenderer implements IListRenderer<IAutomationItemEntry, IAut
 	}
 }
 
-/**
- * Widget that renders the Automations section of the AI Customization editor
- * using a virtualized {@link WorkbenchList}.
- */
 export class AutomationsListWidget extends Disposable {
 
 	readonly element: HTMLElement;
@@ -388,9 +346,6 @@ export class AutomationsListWidget extends Disposable {
 		@ILogService private readonly logService: ILogService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@INotificationService private readonly notificationService: INotificationService,
-		@IEditorService private readonly editorService: IEditorService,
-		@IEditorGroupsService private readonly editorGroupsService: IEditorGroupsService,
 	) {
 		super();
 
@@ -427,7 +382,7 @@ export class AutomationsListWidget extends Disposable {
 
 	private createList(): void {
 		const delegate = new AutomationItemDelegate();
-		const renderer = new AutomationItemRenderer(this, this.hoverService, this.notificationService, this.editorService, this.editorGroupsService, this.logService, this.instantiationService);
+		const renderer = new AutomationItemRenderer(this, this.hoverService);
 
 		this.list = this._register(this.instantiationService.createInstance(
 			WorkbenchList<IAutomationListEntry>,
@@ -540,7 +495,6 @@ export class AutomationsListWidget extends Disposable {
 		this.runInFlight.add(automation.id);
 		this.updateList(this.automationService.automations.get());
 		try {
-			// Manual runs do not currently expose cancellation.
 			const operation = this.automationRunner.runOnce(automation, 'manual', 0, CancellationToken.None);
 			const dispatch = await operation.whenDispatched;
 			if (dispatch.kind === 'started') {
@@ -731,24 +685,14 @@ export class AutomationsListWidget extends Disposable {
 		this._onDidChangeItemCount.fire(this.automationService.automations.get().length);
 	}
 
-	/** Test-only: number of rows currently in the virtualized list. */
 	get itemCount(): number {
 		return this.list.length;
 	}
 
-	/**
-	 * Test-only: snapshot of the view-model rows the list is displaying.
-	 * The virtualized {@link WorkbenchList} does not lay out rows in a unit-test
-	 * DOM, so tests assert the derived render state (expansion, runs, in-flight)
-	 * here instead of querying row elements.
-	 */
 	getDisplayEntriesForTest(): readonly IAutomationListEntry[] {
 		return this.displayEntries;
 	}
 
-	/**
-	 * Expands, reveals, and moves keyboard focus to an automation.
-	 */
 	focusAutomation(automationId: string): boolean {
 		const index = this.displayEntries.findIndex(entry => entry.automation.id === automationId);
 		if (index < 0) {

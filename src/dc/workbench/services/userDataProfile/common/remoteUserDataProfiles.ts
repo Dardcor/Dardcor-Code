@@ -60,7 +60,6 @@ class RemoteUserDataProfilesService extends Disposable implements IRemoteUserDat
 		this.remoteUserDataProfilesService = new UserDataProfilesService(environment.profiles.all, environment.profiles.home, connection.getChannel('userDataProfiles'));
 		this._register(this.userDataProfilesService.onDidChangeProfiles(e => this.onDidChangeLocalProfiles(e)));
 
-		// Associate current local profile with remote profile
 		const remoteProfile = await this.getAssociatedRemoteProfile(this.userDataProfileService.currentProfile, this.remoteUserDataProfilesService);
 		if (!remoteProfile.isDefault) {
 			this.setAssociatedRemoteProfiles([...this.getAssociatedRemoteProfiles(), remoteProfile.id]);
@@ -99,7 +98,6 @@ class RemoteUserDataProfilesService extends Disposable implements IRemoteUserDat
 	}
 
 	private async getAssociatedRemoteProfile(localProfile: IUserDataProfile, remoteUserDataProfilesService: IUserDataProfilesService): Promise<IUserDataProfile> {
-		// If the local profile is the default profile, return the remote default profile
 		if (localProfile.isDefault) {
 			return remoteUserDataProfilesService.defaultProfile;
 		}
@@ -168,7 +166,6 @@ class RemoteUserDataProfilesService extends Disposable implements IRemoteUserDat
 				continue;
 			}
 			if (remoteProfile) {
-				// Cleanup remote profiles those are not available locally
 				await this.remoteUserDataProfilesService?.removeProfile(remoteProfile);
 			}
 		}

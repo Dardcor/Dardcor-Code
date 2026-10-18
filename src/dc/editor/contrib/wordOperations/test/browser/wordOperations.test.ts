@@ -182,7 +182,6 @@ suite('WordOperations', () => {
 
 	test('cursorWordLeft - Recognize words', function () {
 		if (isFirefox) {
-			// https://github.com/microsoft/vscode/issues/219843
 			return this.skip();
 		}
 		const EXPECTED = [
@@ -273,7 +272,6 @@ suite('WordOperations', () => {
 	});
 
 	test('cursorWordStartLeft', () => {
-		// This is the behaviour observed in Visual Studio, please do not touch test
 		const EXPECTED = ['|   |/* |Just |some   |more   |text |a|+= |3 |+|5|-|3 |+ |7 |*/  '].join('\n');
 		const [text,] = deserializePipePositions(EXPECTED);
 		const actualStops = testRepeatedActionAndExtractPositions(
@@ -288,7 +286,6 @@ suite('WordOperations', () => {
 	});
 
 	test('cursorWordStartLeft - issue #51119: regression makes VS compatibility impossible', () => {
-		// This is the behaviour observed in Visual Studio, please do not touch test
 		const EXPECTED = ['|this|.|is|.|a|.|test'].join('\n');
 		const [text,] = deserializePipePositions(EXPECTED);
 		const actualStops = testRepeatedActionAndExtractPositions(
@@ -406,7 +403,6 @@ suite('WordOperations', () => {
 
 	test('cursorWordRight - Recognize words', function () {
 		if (isFirefox) {
-			// https://github.com/microsoft/vscode/issues/219843
 			return this.skip();
 		}
 		const EXPECTED = [
@@ -463,7 +459,6 @@ suite('WordOperations', () => {
 	});
 
 	test('moveWordStartRight', () => {
-		// This is the behaviour observed in Visual Studio, please do not touch test
 		const EXPECTED = [
 			'   |/* |Just |some   |more   |text |a|+= |3 |+|5|-|3 |+ |7 |*/  |',
 		].join('\n');
@@ -480,7 +475,6 @@ suite('WordOperations', () => {
 	});
 
 	test('issue #51119: cursorWordStartRight regression makes VS compatibility impossible', () => {
-		// This is the behaviour observed in Visual Studio, please do not touch test
 		const EXPECTED = ['this|.|is|.|a|.|test|'].join('\n');
 		const [text,] = deserializePipePositions(EXPECTED);
 		const actualStops = testRepeatedActionAndExtractPositions(
@@ -495,7 +489,6 @@ suite('WordOperations', () => {
 	});
 
 	test('issue #64810: cursorWordStartRight skips first word after newline', () => {
-		// This is the behaviour observed in Visual Studio, please do not touch test
 		const EXPECTED = ['Hello |World|', '|Hei |mailman|'].join('\n');
 		const [text,] = deserializePipePositions(EXPECTED);
 		const actualStops = testRepeatedActionAndExtractPositions(

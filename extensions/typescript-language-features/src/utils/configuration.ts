@@ -16,30 +16,21 @@ export interface ReadUnifiedConfigOptions<Scope = UnifiedConfigurationScope> {
 	readonly fallbackSubSectionNameOverride?: string;
 }
 
-/**
- * Gets a configuration value, checking the unified `js/ts` setting first,
- * then falling back to the language-specific setting.
- */
 export function readUnifiedConfig<T>(
 	subSectionName: string,
 	defaultValue: T,
 	options: ReadUnifiedConfigOptions
 ): T {
-	// Check unified setting first
 	const unifiedConfig = vscode.workspace.getConfiguration(unifiedConfigSection, options.scope);
 	const unifiedInspect = unifiedConfig.inspect<T>(subSectionName);
 	if (hasModifiedValue(unifiedInspect)) {
 		return unifiedConfig.get<T>(subSectionName, defaultValue);
 	}
 
-	// Fall back to language-specific setting
 	const languageConfig = vscode.workspace.getConfiguration(options.fallbackSection, options.scope);
 	return languageConfig.get<T>(options.fallbackSubSectionNameOverride ?? subSectionName, defaultValue);
 }
 
-/**
- * Checks if an inspected configuration value has any user-defined values set.
- */
 function hasModifiedValue(inspect: ReturnType<vscode.WorkspaceConfiguration['inspect']>): boolean {
 	if (!inspect) {
 		return false;
@@ -56,9 +47,6 @@ function hasModifiedValue(inspect: ReturnType<vscode.WorkspaceConfiguration['ins
 	);
 }
 
-/**
- * Checks if a unified configuration value has been modified from its default value.
- */
 export function hasModifiedUnifiedConfig(
 	subSectionName: string,
 	options: {
@@ -66,20 +54,15 @@ export function hasModifiedUnifiedConfig(
 		readonly fallbackSection: string;
 	}
 ): boolean {
-	// Check unified setting
 	const unifiedConfig = vscode.workspace.getConfiguration(unifiedConfigSection, options.scope);
 	if (hasModifiedValue(unifiedConfig.inspect(subSectionName))) {
 		return true;
 	}
 
-	// Check language-specific setting
 	const languageConfig = vscode.workspace.getConfiguration(options.fallbackSection, options.scope);
 	return hasModifiedValue(languageConfig.inspect(subSectionName));
 }
 
-/**
- * A cached, observable unified configuration value.
- */
 export class UnifiedConfigValue<T> extends Disposable {
 
 	private _value: T;
@@ -123,15 +106,9 @@ export interface ResourceUnifiedConfigScope {
 	readonly languageId: string;
 }
 
-/**
- * A cached, observable unified configuration value that varies per workspace folder.
- *
- * Values are keyed by the workspace folder the resource belongs to, with a separate
- * entry for resources outside any workspace folder.
- */
 export class ResourceUnifiedConfigValue<T> extends Disposable {
 
-	private readonly _cache = new Map</* workspace folder */ string, T>();
+	private readonly _cache = new Map< string, T>();
 
 	private readonly _onDidChange = this._register(new vscode.EventEmitter<void>());
 	public readonly onDidChange = this._onDidChange.event;

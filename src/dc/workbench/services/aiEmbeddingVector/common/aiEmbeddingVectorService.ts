@@ -29,7 +29,7 @@ export interface IAiEmbeddingVectorProvider {
 export class AiEmbeddingVectorService implements IAiEmbeddingVectorService {
 	readonly _serviceBrand: undefined;
 
-	static readonly DEFAULT_TIMEOUT = 1000 * 10; // 10 seconds
+	static readonly DEFAULT_TIMEOUT = 1000 * 10;
 
 	private readonly _providers: IAiEmbeddingVectorProvider[] = [];
 
@@ -76,11 +76,7 @@ export class AiEmbeddingVectorService implements IAiEmbeddingVectorService {
 						t
 					);
 				} catch (e) {
-					// logged in extension host
 				}
-				// Wait for the timer to finish to allow for another provider to resolve.
-				// Alternatively, if something resolved, or we've timed out, this will throw
-				// as expected.
 				await timer;
 				throw new Error('Embedding vector provider timed out');
 			}));
@@ -98,8 +94,6 @@ export class AiEmbeddingVectorService implements IAiEmbeddingVectorService {
 		try {
 			const result = await raceCancellablePromises(cancellablePromises);
 
-			// If we have a single result, return it directly, otherwise return an array.
-			// This aligns with the API overloads.
 			if (result.length === 1) {
 				return result[0];
 			}

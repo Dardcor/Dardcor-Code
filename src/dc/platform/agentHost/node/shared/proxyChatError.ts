@@ -3,37 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CopilotApiError, COPILOT_API_ERROR_STATUS_STREAMING } from './copilotApiService.js';
+import { DardcorRouterApiError, DARDCOR_ROUTER_ERROR_STATUS_STREAMING } from './dardcorRouterService.js';
 
-/**
- * Marker prefix used to smuggle a structured, serialized chat fetch error
- * through the Claude and Codex child-process boundaries. Their model proxies
- * hold the rich {@link CopilotApiError}, while the child processes only see
- * HTTP/SSE error text.
- */
 export const PROXY_ERROR_PREFIX = 'VSCODE_PROXY_ERROR:';
 
-/**
- * Upper bound on the base64 marker payload we will decode. A forwarded chat
- * error serializes to well under 1 KB; this cap prevents an oversized or
- * adversarial marker riding along in model-influenced error text from driving
- * an unbounded base64/JSON allocation.
- */
 const MAX_FORWARDED_MARKER_B64_LENGTH = 8 * 1024;
 
-/** Standard base64 alphabet with optional padding. */
 const FORWARDED_MARKER_B64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 
-/**
- * Serialized chat fetch error payload. This is the JSON shape forwarded over
- * the protocol's `ErrorInfo._meta.chatError`. The core consumer
- * (`src/vs/workbench/contrib/chat/common/chatErrorMessages.ts`) reads the same
- * JSON shape to render localized, user-facing messages. The two definitions
- * are intentionally decoupled (the platform/node layer cannot import workbench
- * code), so any field change must be mirrored on both sides.
- */
 export interface IForwardedChatFetchError {
-	/** Mirrors the extension's `ChatFetchResponseType` string value. */
 	readonly type: string;
 	readonly reason?: string;
 	readonly requestId?: string;
@@ -44,9 +22,6 @@ export interface IForwardedChatFetchError {
 	readonly capiError?: { readonly code?: string; readonly message?: string };
 }
 
-/**
- * The full forwarded chat error placed at `ErrorInfo._meta.chatError`.
- */
 export interface IForwardedChatError {
 	readonly fetchError: IForwardedChatFetchError;
 	readonly copilotPlan?: string;
@@ -54,12 +29,6 @@ export interface IForwardedChatError {
 	readonly quotaResetDate?: string;
 }
 
-/**
- * Maps a {@link CopilotApiError} HTTP status (or the mid-stream streaming
- * sentinel) to the extension's `ChatFetchResponseType` string value. Kept in
- * sync with the Copilot Chat extension's error classification so the core
- * formatter produces identical messages.
- */
 export function httpStatusToChatFetchType(status: number): string {
 	switch (status) {
 		case 402:
@@ -80,20 +49,9 @@ export function httpStatusToChatFetchType(status: number): string {
 	}
 }
 
-/**
- * Builds a {@link IForwardedChatError} from a {@link CopilotApiError}. The
- * error's Anthropic envelope carries the upstream message and type, which are
- * surfaced as `reason`/`capiError` so the core formatter can render the right
- * message (rate limit, quota, filtered, etc.).
- */
-export function buildForwardedChatError(err: CopilotApiError): IForwardedChatError {
-	const status = err.status === COPILOT_API_ERROR_STATUS_STREAMING ? 502 : err.status;
+export function buildForwardedChatError(err: DardcorRouterApiError): IForwardedChatError {
+	const status = err.status === DARDCOR_ROUTER_ERROR_STATUS_STREAMING ? 502 : err.status;
 	const requestId = typeof err.envelope.request_id === 'string' ? err.envelope.request_id : '';
-	// CAPI rate-limit/quota errors carry their fine-grained code in the
-	// response body (e.g. `{ "error": { "code": "quota_exceeded", ... } }`).
-	// The proxy synthesizes a non-conforming body into the Anthropic envelope
-	// as `error.type: 'api_error'` with the raw body as the message, so prefer
-	// a CAPI code/message parsed out of the message when present.
 	const capiError = extractCapiError(err.envelope.error.message) ?? { code: err.envelope.error.type, message: err.envelope.error.message };
 	return {
 		fetchError: {
@@ -105,11 +63,6 @@ export function buildForwardedChatError(err: CopilotApiError): IForwardedChatErr
 	};
 }
 
-/**
- * Attempts to parse a CAPI-style error body (`{ "error": { "code", "message" } }`)
- * out of an envelope message string. Returns `undefined` when the message is
- * not such a JSON payload.
- */
 function extractCapiError(message: string): { code?: string; message?: string } | undefined {
 	let parsed: unknown;
 	try {
@@ -135,22 +88,10 @@ function extractCapiError(message: string): { code?: string; message?: string } 
 	};
 }
 
-/**
- * Encodes a {@link IForwardedChatError} as a `VSCODE_PROXY_ERROR:<base64>`
- * marker string. Base64 survives the SDK's JSON re-encoding without
- * double-escaping issues.
- */
 export function encodeForwardedChatError(forwarded: IForwardedChatError): string {
 	return `${PROXY_ERROR_PREFIX}${Buffer.from(JSON.stringify(forwarded)).toString('base64')}`;
 }
 
-/**
- * Attempts to decode a {@link IForwardedChatError} from arbitrary error text
- * that may contain a {@link PROXY_ERROR_PREFIX} marker. Returns `undefined`
- * when no marker is present or the payload cannot be parsed.
- *
- * Mirrors the extension's `tryParseProxyError`.
- */
 export function tryParseForwardedChatError(errorText: string | undefined): IForwardedChatError | undefined {
 	if (!errorText) {
 		return undefined;
@@ -159,12 +100,9 @@ export function tryParseForwardedChatError(errorText: string | undefined): IForw
 	if (idx === -1) {
 		return undefined;
 	}
-	// Extract the base64 payload after the prefix, stopping at whitespace or quotes.
 	const start = idx + PROXY_ERROR_PREFIX.length;
 	const end = errorText.slice(start).search(/[\s"']/);
 	const b64 = end === -1 ? errorText.slice(start) : errorText.slice(start, start + end);
-	// Reject empty, oversized, or non-base64 payloads before decoding so a
-	// stray/adversarial marker in model-influenced text can't be parsed.
 	if (b64.length === 0 || b64.length > MAX_FORWARDED_MARKER_B64_LENGTH || !FORWARDED_MARKER_B64_PATTERN.test(b64)) {
 		return undefined;
 	}
@@ -179,12 +117,6 @@ export function tryParseForwardedChatError(errorText: string | undefined): IForw
 	}
 }
 
-/**
- * Removes the `VSCODE_PROXY_ERROR:<base64>` marker (and anything after it) from
- * an error message so the human-readable text isn't polluted by the forwarding
- * payload. The structured payload is consumed separately via `_meta`. A no-op
- * when no marker is present.
- */
 export function stripProxyErrorMarker(text: string): string {
 	const idx = text.indexOf(PROXY_ERROR_PREFIX);
 	if (idx === -1) {
@@ -193,36 +125,15 @@ export function stripProxyErrorMarker(text: string): string {
 	return text.slice(0, idx).trim() || text.slice(0, idx);
 }
 
-/**
- * Wraps a {@link IForwardedChatError} into the `_meta` record carried on the
- * protocol `ErrorInfo`. The core consumer reads `_meta.chatError`.
- */
 export function toChatErrorMeta(forwarded: IForwardedChatError): Record<string, unknown> {
 	return { chatError: forwarded };
 }
 
-/**
- * Convenience: decode a {@link IForwardedChatError} from arbitrary error text
- * and wrap it into the protocol `ErrorInfo._meta` record. Returns `undefined`
- * when the text carries no {@link PROXY_ERROR_PREFIX} marker, so callers can
- * spread it onto an `ErrorInfo` without changing behavior for plain errors.
- */
 export function tryBuildChatErrorMeta(errorText: string | undefined): Record<string, unknown> | undefined {
 	const forwarded = tryParseForwardedChatError(errorText);
 	return forwarded ? toChatErrorMeta(forwarded) : undefined;
 }
 
-/**
- * Decodes a forwarded {@link PROXY_ERROR_PREFIX} marker out of an error message
- * and returns the cleaned human-readable message together with the protocol
- * `ErrorInfo._meta` record. When no marker is present the message is returned
- * unchanged and `_meta` is omitted, so the result can be spread directly onto
- * an `ErrorInfo` without changing behavior for plain errors:
- *
- * ```ts
- * error: { errorType: 'CodexError', ...extractForwardedErrorInfo(message) }
- * ```
- */
 export function extractForwardedErrorInfo(message: string): { message: string; _meta?: Record<string, unknown> } {
 	const forwarded = tryParseForwardedChatError(message);
 	if (!forwarded) {

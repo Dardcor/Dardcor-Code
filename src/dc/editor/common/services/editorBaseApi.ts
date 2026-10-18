@@ -26,8 +26,8 @@ export class KeyMod {
 
 export function createMonacoBaseAPI(): typeof monaco {
 	return {
-		editor: undefined!, // undefined override expected here
-		languages: undefined!, // undefined override expected here
+		editor: undefined!,
+		languages: undefined!,
 		CancellationTokenSource: CancellationTokenSource,
 		Emitter: Emitter,
 		KeyCode: standaloneEnums.KeyCode,

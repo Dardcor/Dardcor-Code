@@ -140,7 +140,6 @@ export class PerfModelContentProvider implements ITextModelContentProvider {
 			this._timerService.whenReady(),
 			this._lifecycleService.when(LifecyclePhase.Eventually),
 			this._extensionService.whenInstalledExtensionsRegistered(),
-			// The terminal service never connects to the pty host on the web
 			isWeb && !this._remoteAgentService.getConnection()?.remoteAuthority ? Promise.resolve() : this._terminalService.whenConnected
 		]).then(() => {
 			if (this._model && !this._model.isDisposed()) {
@@ -369,13 +368,11 @@ class MarkdownBuilder {
 			});
 		});
 
-		// header
 		header.forEach((cell, ci) => { result += `| ${cell + ' '.repeat(lengths[ci] - cell.toString().length)} `; });
 		result += '|\n';
 		header.forEach((_cell, ci) => { result += `| ${'-'.repeat(lengths[ci])} `; });
 		result += '|\n';
 
-		// cells
 		rows.forEach(row => {
 			row.forEach((cell, ci) => {
 				if (typeof cell !== 'undefined') {

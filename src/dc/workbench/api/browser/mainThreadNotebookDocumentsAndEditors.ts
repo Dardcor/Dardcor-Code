@@ -66,22 +66,13 @@ class NotebookAndEditorState {
 		readonly activeEditor: string | null | undefined,
 		readonly visibleEditors: Map<string, IActiveNotebookEditor>
 	) {
-		//
 	}
 }
 
 @extHostCustomer
 export class MainThreadNotebooksAndEditors {
 
-	// private readonly _onDidAddNotebooks = new Emitter<NotebookTextModel[]>();
-	// private readonly _onDidRemoveNotebooks = new Emitter<URI[]>();
-	// private readonly _onDidAddEditors = new Emitter<IActiveNotebookEditor[]>();
-	// private readonly _onDidRemoveEditors = new Emitter<string[]>();
 
-	// readonly onDidAddNotebooks: Event<NotebookTextModel[]> = this._onDidAddNotebooks.event;
-	// readonly onDidRemoveNotebooks: Event<URI[]> = this._onDidRemoveNotebooks.event;
-	// readonly onDidAddEditors: Event<IActiveNotebookEditor[]> = this._onDidAddEditors.event;
-	// readonly onDidRemoveEditors: Event<string[]> = this._onDidRemoveEditors.event;
 
 	private readonly _proxy: Pick<ExtHostNotebookShape, '$acceptDocumentAndEditorsDelta'>;
 	private readonly _disposables = new DisposableStore();
@@ -188,10 +179,8 @@ export class MainThreadNotebooksAndEditors {
 			addedEditors: delta.addedEditors.map(this._asEditorAddData, this),
 		};
 
-		// send to extension FIRST
 		this._proxy.$acceptDocumentAndEditorsDelta(new SerializableObjectWithBuffers(dto));
 
-		// handle internally
 		this._mainThreadEditors.handleEditorsRemoved(delta.removedEditors);
 		this._mainThreadNotebooks.handleNotebooksRemoved(delta.removedDocuments);
 		this._mainThreadNotebooks.handleNotebooksAdded(delta.addedDocuments);

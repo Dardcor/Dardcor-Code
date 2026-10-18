@@ -19,19 +19,10 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { IWebviewPortMapping } from '../../../../platform/webview/common/webviewPortMapping.js';
 import { Memento } from '../../../common/memento.js';
 
-/**
- * Set when the find widget in a webview in a webview is visible.
- */
 export const KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_VISIBLE = new RawContextKey<boolean>('webviewFindWidgetVisible', false);
 
-/**
- * Set when the find widget in a webview is focused.
- */
 export const KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_FOCUSED = new RawContextKey<boolean>('webviewFindWidgetFocused', false);
 
-/**
- * Set when the find widget in a webview is enabled in a webview
- */
 export const KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_ENABLED = new RawContextKey<boolean>('webviewFindWidgetEnabled', false);
 
 export const IWebviewService = createDecorator<IWebviewService>('webviewService');
@@ -39,32 +30,14 @@ export const IWebviewService = createDecorator<IWebviewService>('webviewService'
 export interface IWebviewService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * The currently focused webview.
-	 */
 	readonly activeWebview: IWebview | undefined;
 
-	/**
-	 * All webviews.
-	 */
 	readonly webviews: Iterable<IWebview>;
 
-	/**
-	 * Fired when the currently focused webview changes.
-	 */
 	readonly onDidChangeActiveWebview: Event<IWebview | undefined>;
 
-	/**
-	 * Create a basic webview dom element.
-	 */
 	createWebviewElement(initInfo: WebviewInitInfo): IWebviewElement;
 
-	/**
-	 * Create a lazily created webview element that is overlaid on top of another element.
-	 *
-	 * Allows us to avoid re-parenting the webview (which destroys its contents) when
-	 * moving webview around the workbench.
-	 */
 	createWebviewOverlay(initInfo: WebviewInitInfo): IOverlayWebview;
 }
 
@@ -90,16 +63,10 @@ export const enum WebviewContentPurpose {
 export type WebviewStyles = { readonly [key: string]: string | number };
 
 export interface WebviewOptions {
-	/**
-	 * The purpose of the webview; this is (currently) only used for filtering in js-debug
-	 */
 	readonly purpose?: WebviewContentPurpose;
 	readonly customClasses?: string;
 	readonly enableFindWidget?: boolean;
 
-	/**
-	 * Disable the service worker used for loading local resources in the webview.
-	 */
 	readonly disableServiceWorker?: boolean;
 
 	readonly tryRestoreScrollPosition?: boolean;
@@ -108,54 +75,21 @@ export interface WebviewOptions {
 }
 
 export interface WebviewContentOptions {
-	/**
-	 * Should the webview allow `acquireVsCodeApi` to be called multiple times? Defaults to false.
-	 */
 	readonly allowMultipleAPIAcquire?: boolean;
 
-	/**
-	 * Should scripts be enabled in the webview? Defaults to false.
-	 */
 	readonly allowScripts?: boolean;
 
-	/**
-	 * Should forms be enabled in the webview? Defaults to the value of {@link allowScripts}.
-	 */
 	readonly allowForms?: boolean;
 
-	/**
-	 * Should untrusted key events from the webview be forwarded to the workbench? Defaults to false.
-	 *
-	 * This blocks keypress events that are triggered by scripts. Webviews should not allow untrusted scripts
-	 * to be run, so this is more of a defense-in-depth measure.
-	 *
-	 * There are valid reasons to enable this, such as when a webview embeds an iframe. In those cases, keyboard events can
-	 * be eaten by the iframe, so the inner iframe needs to forward keyboard events to the parent webview,
-	 * which then needs to forward them to the workbench.
-	 */
 	readonly forwardUntrustedKeypressEvents?: boolean;
 
-	/**
-	 * Set of root paths from which the webview can load local resources.
-	 */
 	readonly localResourceRoots?: readonly URI[];
 
-	/**
-	 * Set of localhost port mappings to apply inside the webview.
-	 */
 	readonly portMapping?: readonly IWebviewPortMapping[];
 
-	/**
-	 * Are command uris enabled in the webview? Defaults to false.
-	 *
-	 * TODO: This is only supported by mainThreadWebviews and should be removed from here.
-	 */
 	readonly enableCommandUris?: boolean | readonly string[];
 }
 
-/**
- * Check if two {@link WebviewContentOptions} are equal.
- */
 export function areWebviewContentOptionsEqual(a: WebviewContentOptions, b: WebviewContentOptions): boolean {
 	return (
 		a.allowMultipleAPIAcquire === b.allowMultipleAPIAcquire
@@ -192,41 +126,18 @@ export interface WebviewMessageReceivedEvent {
 
 export interface IWebview extends IDisposable {
 
-	/**
-	 * The original view type of the webview.
-	 */
 	readonly providedViewType?: string;
 
-	/**
-	 * The origin this webview itself is loaded from. May not be unique.
-	 */
 	readonly origin: string;
 
-	/**
-	 * Set html content of the webview.
-	 */
 	setHtml(html: string): void;
 
-	/**
-	 * Set the title of the webview. This is set on the webview's iframe element.
-	 */
 	setTitle(title: string): void;
 
-	/**
-	 * Control what content is allowed/blocked inside the webview.
-	 */
 	contentOptions: WebviewContentOptions;
 
-	/**
-	 * List of roots from which local resources can be loaded.
-	 *
-	 * Requests for local resources not in this list are blocked.
-	 */
 	localResourcesRoot: readonly URI[];
 
-	/**
-	 * The extension that created/owns this webview.
-	 */
 	extension: WebviewExtensionDescription | undefined;
 
 	initialScrollProgress: number;
@@ -237,9 +148,6 @@ export interface IWebview extends IDisposable {
 	readonly onDidFocus: Event<void>;
 	readonly onDidBlur: Event<void>;
 
-	/**
-	 * Fired when the webview is disposed of.
-	 */
 	readonly onDidDispose: Event<void>;
 
 	readonly onDidClickLink: Event<string>;
@@ -248,16 +156,8 @@ export interface IWebview extends IDisposable {
 
 	readonly onDidUpdateState: Event<string | undefined>;
 
-	/**
-	 * The natural size of the content inside the webview.
-	 *
-	 * This is computed by looking at the size of the webview's the document element.
-	 */
 	readonly intrinsicContentSize: IObservable<{ readonly width: number; readonly height: number } | undefined>;
 
-	/**
-	 * Fired when the webview cannot be loaded or is now in a non-functional state.
-	 */
 	readonly onFatalError: Event<{ readonly message: string }>;
 	readonly onMissingCsp: Event<ExtensionIdentifier>;
 
@@ -285,78 +185,26 @@ export interface IWebview extends IDisposable {
 	setContextKeyService(scopedContextKeyService: IContextKeyService): void;
 }
 
-/**
- * Basic webview rendered directly in the dom
- */
 export interface IWebviewElement extends IWebview {
-	/**
-	 * Append the webview to a HTML element.
-	 *
-	 * Note that the webview content will be destroyed if any part of the parent hierarchy
-	 * changes. You can avoid this by using a {@link IOverlayWebview} instead.
-	 *
-	 * @param parent Element to append the webview to.
-	 */
 	mountTo(parent: HTMLElement, targetWindow: CodeWindow): void;
 
 	reinitializeAfterDismount(): void;
 }
 
-/**
- * Lazily created {@link IWebview} that is absolutely positioned over another element.
- *
- * Absolute positioning lets us avoid having the webview be re-parented, which would destroy the
- * webview's content.
- *
- * Note that the underlying webview owned by a `WebviewOverlay` can be dynamically created
- * and destroyed depending on who has {@link IOverlayWebview.claim claimed} or {@link IOverlayWebview.release released} it.
- */
 export interface IOverlayWebview extends IWebview {
-	/**
-	 * The HTML element that holds the webview.
-	 */
 	readonly container: HTMLElement;
 
 	origin: string;
 
 	options: WebviewOptions;
 
-	/**
-	 * Take ownership of the webview.
-	 *
-	 * This will create the underlying webview element.
-	 *
-	 * @param claimant Identifier for the object claiming the webview.
-	 *   This must match the `claimant` passed to {@link IOverlayWebview.release}.
-	 */
 	claim(claimant: any, targetWindow: CodeWindow, scopedContextKeyService: IContextKeyService | undefined): void;
 
-	/**
-	 * Release ownership of the webview.
-	 *
-	 * If the {@link claimant} is still the current owner of the webview, this will
-	 * cause the underlying webview element to be destoryed.
-	 *
-	 * @param claimant Identifier for the object releasing its claim on the webview.
-	 *   This must match the `claimant` passed to {@link IOverlayWebview.claim}.
-	 */
 	release(claimant: any): void;
 
-	/**
-	 * Sets the webview to be absolutely positioned on top of another element in the DOM.
-	 *
-	 * @param element Element to position the webview on top of. This element should
-	 *   be an placeholder for the webview since the webview will entirely cover it.
-	 * @param clippingContainer Optional container to clip the webview to. This should generally be a parent of `element`.
-	 */
 	setAnchorElement(element: HTMLElement, clippingContainer?: HTMLElement): void;
 }
 
-/**
- * Stores the unique origins for a webview.
- *
- * These are randomly generated
- */
 export class WebviewOriginStore {
 
 	private readonly _memento: Memento<Record<string, string>>;
@@ -389,11 +237,6 @@ export class WebviewOriginStore {
 	}
 }
 
-/**
- * Stores the unique origins for a webview.
- *
- * These are randomly generated, but keyed on extension and webview viewType.
- */
 export class ExtensionKeyedWebviewOriginStore {
 
 	private readonly _store: WebviewOriginStore;

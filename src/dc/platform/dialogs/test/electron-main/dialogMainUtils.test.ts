@@ -27,13 +27,11 @@ suite('Dialog', () => {
 			nameLong: 'Test'
 		};
 
-		// All platforms
 		const allPlatformsMassagedOptions = massageMessageBoxOptions({ buttons: ['1'], message: 'message' }, testProductService);
 		deepEqual(allPlatformsMassagedOptions.options.title, 'Test');
 		deepEqual(allPlatformsMassagedOptions.options.message, 'message');
 		deepEqual(allPlatformsMassagedOptions.options.noLink, true);
 
-		// Specific cases
 
 		const oneButtonNoCancel = massageMessageBoxOptions({ buttons: ['1'], cancelId: undefined, message: 'message' }, testProductService);
 		const oneButtonCancel_0 = massageMessageBoxOptions({ buttons: ['1'], cancelId: 0, message: 'message' }, testProductService);

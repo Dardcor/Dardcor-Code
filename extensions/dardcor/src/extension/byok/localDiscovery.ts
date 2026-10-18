@@ -32,7 +32,6 @@ export class LocalModelAutoDiscovery {
 
 		const results: IDiscoveredLocalModel[] = [];
 
-		// 1. Probe Ollama at default port 11434
 		try {
 			const controller = new AbortController();
 			const timeout = setTimeout(() => controller.abort(), 1200);
@@ -58,10 +57,8 @@ export class LocalModelAutoDiscovery {
 				}
 			}
 		} catch {
-			// Ollama not running or timed out
 		}
 
-		// 2. Probe LM Studio at default port 1234
 		try {
 			const controller = new AbortController();
 			const timeout = setTimeout(() => controller.abort(), 1200);
@@ -86,10 +83,8 @@ export class LocalModelAutoDiscovery {
 				}
 			}
 		} catch {
-			// LM Studio not running or timed out
 		}
 
-		// 3. Probe vLLM / LocalAI at default port 8000
 		try {
 			const controller = new AbortController();
 			const timeout = setTimeout(() => controller.abort(), 1200);
@@ -114,7 +109,6 @@ export class LocalModelAutoDiscovery {
 				}
 			}
 		} catch {
-			// vLLM not running or timed out
 		}
 
 		this.discoveredModels = results;

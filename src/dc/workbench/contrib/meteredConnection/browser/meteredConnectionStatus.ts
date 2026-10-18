@@ -35,7 +35,7 @@ export class MeteredConnectionStatusContribution extends Disposable implements I
 					this.getStatusBarEntry(),
 					MeteredConnectionStatusContribution.ID,
 					StatusbarAlignment.RIGHT,
-					-Number.MAX_VALUE // Show at the far right
+					-Number.MAX_VALUE
 				);
 			}
 		} else {

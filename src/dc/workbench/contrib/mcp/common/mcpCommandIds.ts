@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Contains all MCP command IDs used in the workbench.
- */
 export const enum McpCommandIds {
 	AddConfiguration = 'workbench.mcp.addConfiguration',
 	Browse = 'workbench.mcp.browseServers',

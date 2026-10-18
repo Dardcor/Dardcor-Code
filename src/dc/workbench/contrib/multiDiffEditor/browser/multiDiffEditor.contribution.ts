@@ -26,8 +26,7 @@ registerAction2(ExpandAllAction);
 
 registerSingleton(IMultiDiffSourceResolverService, MultiDiffSourceResolverService, InstantiationType.Delayed);
 
-// Editor Integration
-registerWorkbenchContribution2(MultiDiffEditorResolverContribution.ID, MultiDiffEditorResolverContribution, WorkbenchPhase.BlockStartup /* only registering an editor resolver */);
+registerWorkbenchContribution2(MultiDiffEditorResolverContribution.ID, MultiDiffEditorResolverContribution, WorkbenchPhase.BlockStartup );
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane)
 	.registerEditorPane(
@@ -38,6 +37,5 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane)
 Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory)
 	.registerEditorSerializer(MultiDiffEditorInput.ID, MultiDiffEditorSerializer);
 
-// SCM integration
 registerAction2(OpenScmGroupAction);
-registerWorkbenchContribution2(ScmMultiDiffSourceResolverContribution.ID, ScmMultiDiffSourceResolverContribution, WorkbenchPhase.BlockStartup /* only registering an editor resolver  */);
+registerWorkbenchContribution2(ScmMultiDiffSourceResolverContribution.ID, ScmMultiDiffSourceResolverContribution, WorkbenchPhase.BlockStartup );

@@ -61,7 +61,6 @@ suite('Window', () => {
 			const window1 = createWindow(1);
 			windows = [{ window: window1, disposables }];
 
-			// Window Count: 1
 
 			let called = false;
 			await new Promise<void>((resolve, reject) => {
@@ -100,7 +99,6 @@ suite('Window', () => {
 			setTimeoutCalls.length = 0;
 			clearTimeoutCalls.length = 0;
 
-			// Window Count: 3
 
 			let window2 = createWindow(2);
 			const window3 = createWindow(3);
@@ -128,7 +126,6 @@ suite('Window', () => {
 			setTimeoutCalls.length = 0;
 			clearTimeoutCalls.length = 0;
 
-			// Window Count: 2 (1 fast, 1 slow)
 
 			window2 = createWindow(2, true);
 			windows = [

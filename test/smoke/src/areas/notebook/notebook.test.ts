@@ -8,9 +8,8 @@ import { Application, Logger } from '../../../../automation';
 import { installAllHandlers } from '../../utils';
 
 export function setup(logger: Logger) {
-	describe('Notebooks', () => { // https://github.com/microsoft/vscode/issues/140575
+	describe('Notebooks', () => {
 
-		// Shared before/after handling
 		installAllHandlers(logger);
 
 		afterEach(async function () {
@@ -26,7 +25,6 @@ export function setup(logger: Logger) {
 			cp.execSync('git reset --hard HEAD --quiet', { cwd: app.workspacePathOrFolder });
 		});
 
-		// the heap snapshot fails to parse
 		it.skip('check heap leaks', async function () {
 			const app = this.app as Application;
 			await app.profiler.checkHeapLeaks(['NotebookTextModel', 'NotebookCellTextModel', 'NotebookEventDispatcher'], async () => {
@@ -61,7 +59,6 @@ export function setup(logger: Logger) {
 			await app.workbench.notebook.insertNotebookCell('markdown');
 			await app.workbench.notebook.waitForTypeInEditor('## hello2! ');
 			await app.workbench.notebook.stopEditingCell();
-			// TODO: markdown row selectors haven't been updated to look in the webview
 			await app.workbench.notebook.waitForMarkdownContents('', '');
 		});
 
@@ -79,17 +76,15 @@ export function setup(logger: Logger) {
 			await app.workbench.notebook.waitForActiveCellEditorContents('# added cell');
 		});
 
-		it.skip('moves focus in and out of output', async function () { // TODO@rebornix https://github.com/microsoft/vscode/issues/139270
+		it.skip('moves focus in and out of output', async function () {
 			const app = this.app as Application;
 			await app.workbench.notebook.openNotebook();
-			// first cell is a code cell that already has output
 			await app.workbench.notebook.focusInCellOutput();
 			await app.workbench.notebook.editCell();
 			await app.workbench.notebook.waitForActiveCellEditorContents('print(1)');
 		});
 
-		// broken: there is no kernel available to execute code
-		it.skip('cell action execution', async function () { // TODO@rebornix https://github.com/microsoft/vscode/issues/139270
+		it.skip('cell action execution', async function () {
 			const app = this.app as Application;
 			await app.workbench.notebook.openNotebook();
 			await app.workbench.notebook.insertNotebookCell('code');

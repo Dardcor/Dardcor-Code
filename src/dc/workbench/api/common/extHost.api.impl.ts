@@ -146,12 +146,8 @@ export function getTerminalInternalOptions(extension: IExtensionDescription, opt
 	return undefined;
 }
 
-/**
- * This method instantiates and returns the extension API surface
- */
 export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): IExtensionApiFactory {
 
-	// services
 	const initData = accessor.get(IExtHostInitDataService);
 	const extHostFileSystemInfo = accessor.get(IExtHostFileSystemInfo);
 	const extHostConsumerFileSystem = accessor.get(IExtHostConsumerFileSystem);
@@ -182,7 +178,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 	const extHostMeteredConnection = accessor.get(IExtHostMeteredConnection);
 	const extHostGitExtensionService = accessor.get(IExtHostGitExtensionService);
 
-	// register addressable instances
 	rpcProtocol.set(ExtHostContext.ExtHostFileSystemInfo, extHostFileSystemInfo);
 	// eslint-disable-next-line local/code-no-any-casts
 	rpcProtocol.set(ExtHostContext.ExtHostLogLevelServiceShape, <ExtHostLogLevelServiceShape><any>extHostLoggerService);
@@ -206,7 +201,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 	rpcProtocol.set(ExtHostContext.ExtHostMeteredConnection, extHostMeteredConnection);
 	rpcProtocol.set(ExtHostContext.ExtHostGitExtension, extHostGitExtensionService);
 
-	// automatically create and register addressable instances
 	const extHostDecorations = rpcProtocol.set(ExtHostContext.ExtHostDecorations, accessor.get(IExtHostDecorations));
 	const extHostDocumentsAndEditors = rpcProtocol.set(ExtHostContext.ExtHostDocumentsAndEditors, accessor.get(IExtHostDocumentsAndEditors));
 	const extHostCommands = rpcProtocol.set(ExtHostContext.ExtHostCommands, accessor.get(IExtHostCommands));
@@ -218,7 +212,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 	const extHostOutputService = rpcProtocol.set(ExtHostContext.ExtHostOutputService, accessor.get(IExtHostOutputService));
 	const extHostLocalization = rpcProtocol.set(ExtHostContext.ExtHostLocalization, accessor.get(IExtHostLocalizationService));
 
-	// manually create and register addressable instances
 	const extHostDocuments = rpcProtocol.set(ExtHostContext.ExtHostDocuments, new ExtHostDocuments(rpcProtocol, extHostDocumentsAndEditors));
 	const extHostDocumentContentProviders = rpcProtocol.set(ExtHostContext.ExtHostDocumentContentProviders, new ExtHostDocumentContentProvider(rpcProtocol, extHostDocumentsAndEditors, extHostLogService));
 	const extHostDocumentSaveParticipant = rpcProtocol.set(ExtHostContext.ExtHostDocumentSaveParticipant, new ExtHostDocumentSaveParticipant(extHostLogService, extHostDocuments, rpcProtocol.getProxy(MainContext.MainThreadBulkEdits)));
@@ -271,11 +264,9 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 
 	rpcProtocol.set(ExtHostContext.ExtHostMcp, accessor.get(IExtHostMpcService));
 
-	// Check that no named customers are missing
 	const expected = Object.values<ProxyIdentifier<any>>(ExtHostContext);
 	rpcProtocol.assertRegistered(expected);
 
-	// Other instances
 	const extHostBulkEdits = new ExtHostBulkEdits(rpcProtocol, extHostDocumentsAndEditors);
 	const extHostClipboard = new ExtHostClipboard(rpcProtocol);
 	const extHostMessageService = new ExtHostMessageService(rpcProtocol, extHostLogService);
@@ -283,14 +274,10 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 	const extHostChatStatus = new ExtHostChatStatus(rpcProtocol);
 	const extHostChatInputNotification = new ExtHostChatInputNotification(rpcProtocol);
 
-	// Register API-ish commands
 	ExtHostApiCommands.register(extHostCommands);
 
 	return function (extension: IExtensionDescription, extensionInfo: IExtensionRegistries, configProvider: ExtHostConfigProvider): typeof vscode {
 
-		// Wraps an event with error handling and telemetry so that we know what extension fails
-		// handling events. This will prevent us from reporting this as "our" error-telemetry and
-		// allows for better blaming
 		function _asExtensionEvent<T>(actual: vscode.Event<T>): vscode.Event<T> {
 			return (listener, thisArgs, disposables) => {
 				const handle = actual(e => {
@@ -306,11 +293,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 		}
 
 
-		// Check document selectors for being overly generic. Technically this isn't a problem but
-		// in practice many extensions say they support `fooLang` but need fs-access to do so. Those
-		// extension should specify then the `file`-scheme, e.g. `{ scheme: 'fooLang', language: 'fooLang' }`
-		// We only inform once, it is not a warning because we just want to raise awareness and because
-		// we cannot say if the extension is doing it right or wrong...
 		const checkSelector = (function () {
 			let done = !extension.isUnderDevelopment;
 			function informOnce() {
@@ -325,7 +307,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				} else if (typeof selector === 'string') {
 					informOnce();
 				} else {
-					const filter = selector as vscode.DocumentFilter; // TODO: microsoft/TypeScript#42768
+					const filter = selector as vscode.DocumentFilter;
 					if (typeof filter.scheme === 'undefined') {
 						informOnce();
 					}
@@ -354,7 +336,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			getAccounts(providerId: string) {
 				return extHostAuthentication.getAccounts(providerId);
 			},
-			// TODO: remove this after GHPR and Codespaces move off of it
 			async hasSession(providerId: string, scopes: readonly string[]) {
 				checkProposedApiEnabled(extension, 'authSession');
 				// eslint-disable-next-line local/code-no-any-casts
@@ -371,7 +352,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: commands
 		const commands: typeof vscode.commands = {
 			registerCommand(id: string, command: <T>(...args: unknown[]) => T | Thenable<T>, thisArgs?: unknown): vscode.Disposable {
 				return extHostCommands.registerCommand(true, id, command, thisArgs, undefined, extension);
@@ -416,7 +396,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: env
 		const env: typeof vscode.env = {
 			get machineId() { return initData.telemetryInfo.machineId; },
 			get devDeviceId() {
@@ -570,11 +549,9 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 		if (!initData.environment.extensionTestsLocationURI) {
-			// allow to patch env-function when running tests
 			Object.freeze(env);
 		}
 
-		// namespace: tests
 		const tests: typeof vscode.tests = {
 			createTestController(provider, label, refreshHandler?: (token: vscode.CancellationToken) => Thenable<void> | void) {
 				return extHostTesting.createTestController(extension, provider, label, refreshHandler);
@@ -601,7 +578,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			},
 		};
 
-		// namespace: extensions
 		const extensionKind = initData.remote.isRemote
 			? extHostTypes.ExtensionKind.Workspace
 			: extHostTypes.ExtensionKind.UI;
@@ -618,7 +594,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				if (includeFromDifferentExtensionHosts) {
 					const foreign = extensionInfo.all.getExtensionDescription(extensionId);
 					if (foreign) {
-						return new Extension(extensionService, extension.identifier, foreign, extensionKind /* TODO@alexdima THIS IS WRONG */, true);
+						return new Extension(extensionService, extension.identifier, foreign, extensionKind , true);
 					}
 				}
 				return undefined;
@@ -636,7 +612,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				const result: vscode.Extension<any>[] = [];
 				for (const desc of extensionInfo.all.getAllExtensionDescriptions()) {
 					const isFromDifferentExtensionHost = !local.has(desc.identifier);
-					result.push(new Extension(extensionService, extension.identifier, desc, extensionKind /* TODO@alexdima THIS IS WRONG */, isFromDifferentExtensionHost));
+					result.push(new Extension(extensionService, extension.identifier, desc, extensionKind , isFromDifferentExtensionHost));
 				}
 				return result;
 			},
@@ -648,7 +624,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: languages
 		const languages: typeof vscode.languages = {
 			createDiagnosticCollection(name?: string): vscode.DiagnosticCollection {
 				return extHostDiagnostics.createDiagnosticCollection(extension.identifier, name);
@@ -817,7 +792,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: window
 		const window: typeof vscode.window = {
 			get activeTextEditor() {
 				return extHostEditors.getActiveTextEditor();
@@ -952,7 +926,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				extHostApiDeprecation.report('window.withScmProgress', extension,
 					`Use 'withProgress' instead.`);
 
-				return extHostProgress.withProgress(extension, { location: extHostTypes.ProgressLocation.SourceControl }, (progress, token) => task({ report(n: number) { /*noop*/ } }));
+				return extHostProgress.withProgress(extension, { location: extHostTypes.ProgressLocation.SourceControl }, (progress, token) => task({ report(n: number) { } }));
 			},
 			withProgress<R>(options: vscode.ProgressOptions, task: (progress: vscode.Progress<{ message?: string; worked?: number }>, token: vscode.CancellationToken) => Thenable<R>) {
 				return extHostProgress.withProgress(extension, options, task);
@@ -1142,12 +1116,11 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			},
 		};
 
-		// namespace: workspace
 
 		const workspace: typeof vscode.workspace = {
 			get rootPath() {
 				extHostApiDeprecation.report('workspace.rootPath', extension,
-					`Please use 'workspace.workspaceFolders' instead. More details: https://aka.ms/vscode-eliminating-rootpath`);
+					`Please use 'workspace.workspaceFolders' instead. More details: https://www.dardcor-code.web.id/docs/extensions/api-migration`);
 
 				return extHostWorkspace.getPath();
 			},
@@ -1182,7 +1155,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				return extHostWorkspace.getRelativePath(pathOrUri, includeWorkspace);
 			},
 			findFiles: (include, exclude, maxResults?, token?) => {
-				// Note, undefined/null have different meanings on "exclude"
 				return extHostWorkspace.findFiles(include, exclude, maxResults, extension.identifier, token);
 			},
 			findFiles2: (filePattern: vscode.GlobPattern[], options?: vscode.FindFiles2Options, token?: vscode.CancellationToken): Thenable<vscode.Uri[]> => {
@@ -1244,9 +1216,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 					})),
 				});
 
-				// TODO@API currently the diff is computed in one shot and all changes are emitted at once.
-				// In the future, we may want to stream changes incrementally as they are computed
-				// (e.g. by having the worker yield partial results).
 				return {
 					changes: new AsyncIterableObject<vscode.TextDiffChange>(async emitter => {
 						const result = await mappedPromise;
@@ -1400,7 +1369,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				return extHostSearch.registerTextSearchProviderOld(scheme, provider);
 			},
 			registerAITextSearchProvider: (scheme: string, provider: vscode.AITextSearchProvider) => {
-				// there are some dependencies on textSearchProvider, so we need to check for both
 				checkProposedApiEnabled(extension, 'aiTextSearchProvider');
 				checkProposedApiEnabled(extension, 'textSearchProvider2');
 				return extHostSearch.registerAITextSearchProvider(scheme, provider);
@@ -1518,13 +1486,12 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			},
 		};
 
-		// namespace: scm
 		const scm: typeof vscode.scm = {
 			get inputBox() {
 				extHostApiDeprecation.report('scm.inputBox', extension,
 					`Use 'SourceControl.inputBox' instead`);
 
-				return extHostSCM.getLastInputBox(extension)!; // Strict null override - Deprecated api
+				return extHostSCM.getLastInputBox(extension)!;
 			},
 			createSourceControl(id: string, label: string, rootUri?: vscode.Uri, iconPath?: vscode.IconPath, isHidden?: boolean, parent?: vscode.SourceControl): vscode.SourceControl {
 				if (iconPath || isHidden || parent) {
@@ -1534,14 +1501,12 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: comments
 		const comments: typeof vscode.comments = {
 			createCommentController(id: string, label: string) {
 				return extHostComment.createCommentController(extension, id, label);
 			}
 		};
 
-		// namespace: debug
 		const debug: typeof vscode.debug = {
 			get activeDebugSession() {
 				return extHostDebugService.activeDebugSession;
@@ -1657,7 +1622,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: notebook
 		const notebooks: typeof vscode.notebooks = {
 			createNotebookController(id: string, notebookType: string, label: string, handler?, rendererScripts?: vscode.NotebookRendererScript[]) {
 				return extHostNotebookKernels.createNotebookController(extension, id, notebookType, label, handler, isProposedApiEnabled(extension, 'notebookMessaging') ? rendererScripts : undefined);
@@ -1678,14 +1642,11 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			},
 		};
 
-		// namespace: l10n
 		const l10n: typeof vscode.l10n = {
 			t(...params: [message: string, ...args: Array<string | number | boolean>] | [message: string, args: Record<string, any>] | [{ message: string; args?: Array<string | number | boolean> | Record<string, any>; comment: string | string[] }]): string {
 				if (typeof params[0] === 'string') {
 					const key = params.shift() as string;
 
-					// We have either rest args which are Array<string | number | boolean> or an array with a single Record<string, any>.
-					// This ensures we get a Record<string | number, any> which will be formatted correctly.
 					const argsFormatted = !params || typeof params[0] !== 'object' ? params : params[0];
 					return extHostLocalization.getMessage(extension.identifier.value, { message: key, args: argsFormatted as Record<string | number, any> | undefined });
 				}
@@ -1700,7 +1661,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: interactive
 		const interactive: typeof vscode.interactive = {
 			transferActiveChat(toWorkspace: vscode.Uri): Thenable<void> {
 				checkProposedApiEnabled(extension, 'interactive');
@@ -1708,7 +1668,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: ai
 		const ai: typeof vscode.ai = {
 			getRelatedInformation(query: string, types: vscode.RelatedInformationType[]): Thenable<vscode.RelatedInformationResult[]> {
 				checkProposedApiEnabled(extension, 'aiRelatedInformation');
@@ -1728,11 +1687,9 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: chatregisterMcpServerDefinitionProvider
 		const chat: typeof vscode.chat = {
 			registerMappedEditsProvider(_selector: vscode.DocumentSelector, _provider: vscode.MappedEditsProvider) {
 				checkProposedApiEnabled(extension, 'mappedEditsProvider');
-				// no longer supported
 				return { dispose() { } };
 			},
 			registerMappedEditsProvider2(provider: vscode.MappedEditsProvider2) {
@@ -1883,7 +1840,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			},
 		};
 
-		// namespace: lm
 		const lm: typeof vscode.lm = {
 			selectChatModels: (selector) => {
 				return extHostLanguageModels.selectLanguageModels(extension, selector ?? {});
@@ -1910,7 +1866,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				checkProposedApiEnabled(extension, 'chatParticipantPrivate');
 				return extHostLanguageModels.registerLanguageModelProxyProvider(extension, provider);
 			},
-			// --- embeddings
 			get embeddingModels() {
 				checkProposedApiEnabled(extension, 'embeddings');
 				return extHostEmbeddings.embeddingsModels;
@@ -1973,7 +1928,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// namespace: speech
 		const speech: typeof vscode.speech = {
 			registerSpeechProvider(id: string, provider: vscode.SpeechProvider) {
 				checkProposedApiEnabled(extension, 'speech');
@@ -1984,7 +1938,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		return <typeof vscode>{
 			version: initData.version,
-			// namespaces
 			ai,
 			authentication,
 			commands,
@@ -2004,7 +1957,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			tests,
 			window,
 			workspace,
-			// types
 			Breakpoint: extHostTypes.Breakpoint,
 			TerminalOutputAnchor: extHostTypes.TerminalOutputAnchor,
 			ChatResultFeedbackKind: extHostTypes.ChatResultFeedbackKind,
@@ -2153,7 +2105,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			Uri: URI,
 			ViewColumn: extHostTypes.ViewColumn,
 			WorkspaceEdit: extHostTypes.WorkspaceEdit,
-			// proposed api types
 			DocumentPasteTriggerKind: extHostTypes.DocumentPasteTriggerKind,
 			DocumentDropEdit: extHostTypes.DocumentDropEdit,
 			DocumentDropOrPasteEditKind: extHostTypes.DocumentDropOrPasteEditKind,
@@ -2301,7 +2252,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			LanguageModelTextPart: extHostTypes.LanguageModelTextPart,
 			LanguageModelTextPart2: extHostTypes.LanguageModelTextPart,
 			LanguageModelPartAudience: extHostTypes.LanguageModelPartAudience,
-			ToolResultAudience: extHostTypes.LanguageModelPartAudience, // back compat
+			ToolResultAudience: extHostTypes.LanguageModelPartAudience,
 			LanguageModelToolCallPart: extHostTypes.LanguageModelToolCallPart,
 			LanguageModelThinkingPart: extHostTypes.LanguageModelThinkingPart,
 			LanguageModelError: extHostTypes.LanguageModelError,

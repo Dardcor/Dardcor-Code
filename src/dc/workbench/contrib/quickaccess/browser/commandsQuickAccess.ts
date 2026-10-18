@@ -46,10 +46,6 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 	private static AI_RELATED_INFORMATION_MAX_PICKS = 5;
 	private static AI_RELATED_INFORMATION_DEBOUNCE = 200;
 
-	// If extensions are not yet registered, we wait for a little moment to give them
-	// a chance to register so that the complete set of commands shows up as result
-	// We do not want to delay functionality beyond that time though to keep the commands
-	// functional.
 	private readonly extensionRegistrationRace: Promise<boolean | undefined>;
 
 	private useAiRelatedInfo = false;
@@ -118,7 +114,6 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 
 	protected async getCommandPicks(token: CancellationToken): Promise<Array<ICommandQuickPick>> {
 
-		// wait for extensions registration or 800ms once
 		await this.extensionRegistrationRace;
 
 		if (token.isCancellationRequested) {
@@ -161,14 +156,11 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 
 		let additionalPicks: (ICommandQuickPick | IQuickPickSeparator)[] = [];
 		try {
-			// Wait a bit to see if the user is still typing
 			await timeout(CommandsQuickAccessProvider.AI_RELATED_INFORMATION_DEBOUNCE, token);
 			additionalPicks = await this.getRelatedInformationPicks(allPicks, picksSoFar, filter, token);
 		} catch (e) {
-			// Ignore and continue to add "Ask in Chat" option
 		}
 
-		// If enabled in settings, add "Ask in Chat" option after a separator (if needed).
 		if (this.configuration.showAskInChat) {
 			const defaultAgent = this.chatAgentService.getDefaultAgent(ChatAgentLocation.Chat);
 			if (defaultAgent) {
@@ -204,7 +196,6 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 			token
 		) as CommandInformationResult[];
 
-		// Sort by weight descending to get the most relevant results first
 		relatedInformation.sort((a, b) => b.weight - a.weight);
 
 		const setOfPicksSoFar = new Set(picksSoFar.map(p => p.commandId));
@@ -233,16 +224,13 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 
 		for (const action of globalCommandsMenuActions) {
 
-			// Label
 			let label = (typeof action.item.title === 'string' ? action.item.title : action.item.title.value) || action.item.id;
 
-			// Category
 			const category = typeof action.item.category === 'string' ? action.item.category : action.item.category?.value;
 			if (category) {
 				label = localize('commandWithCategory', "{0}: {1}", category, label);
 			}
 
-			// Alias
 			const aliasLabel = typeof action.item.title !== 'string' ? action.item.title.original : undefined;
 			const aliasCategory = (category && action.item.category && typeof action.item.category !== 'string') ? action.item.category.original : undefined;
 			const commandAlias = (aliasLabel && category) ?
@@ -252,7 +240,6 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 			const metadataDescription = action.item.metadata?.description;
 			const commandDescription = metadataDescription === undefined || isLocalizedString(metadataDescription)
 				? metadataDescription
-				// TODO: this type will eventually not be a string and when that happens, this should simplified.
 				: { value: metadataDescription, original: metadataDescription };
 			globalCommandPicks.push({
 				commandId: action.item.id,
@@ -268,7 +255,6 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 	}
 }
 
-//#region Actions
 
 export class ShowAllCommandsAction extends Action2 {
 
@@ -311,7 +297,6 @@ export class ClearCommandHistoryAction extends Action2 {
 		const commandHistoryLength = CommandsHistory.getConfiguredCommandHistoryLength(configurationService);
 		if (commandHistoryLength > 0) {
 
-			// Ask for confirmation
 			const { confirmed } = await dialogService.confirm({
 				type: 'warning',
 				message: localize('confirmClearMessage', "Do you want to clear the history of recently used commands?"),
@@ -328,4 +313,3 @@ export class ClearCommandHistoryAction extends Action2 {
 	}
 }
 
-//#endregion

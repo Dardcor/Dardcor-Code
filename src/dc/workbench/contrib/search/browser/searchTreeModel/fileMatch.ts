@@ -117,7 +117,6 @@ export class FileMatchImpl extends Disposable implements ISearchTreeFileMatch {
 	createMatches(): void {
 		const model = this.modelService.getModel(this._resource);
 		if (model) {
-			// todo: handle better when ai contributed results has model, currently, createMatches does not work for this
 			this.bindModel(model);
 			this.updateMatchesForModel();
 		} else {
@@ -143,7 +142,6 @@ export class FileMatchImpl extends Disposable implements ISearchTreeFileMatch {
 	}
 
 	private onModelWillDispose(): void {
-		// Update matches because model might have some dirty changes
 		this.updateMatchesForModel();
 		this.unbindModel();
 	}
@@ -160,8 +158,6 @@ export class FileMatchImpl extends Disposable implements ISearchTreeFileMatch {
 	}
 
 	protected updateMatchesForModel(): void {
-		// this is called from a timeout and might fire
-		// after the model has been disposed
 		if (!this._model) {
 			return;
 		}
@@ -359,7 +355,5 @@ export class FileMatchImpl extends Disposable implements ISearchTreeFileMatch {
 		return this.matches().every(match => match.isReadonly);
 	}
 
-	// #region strictly notebook methods
 
-	//#endregion
 }

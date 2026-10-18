@@ -1,18 +1,3 @@
-// ZedHostedExecutor — routes requests to Zed's hosted LLM aggregator
-// (cloud.zed.dev/completions), a multi-format proxy fronting
-// Anthropic/OpenAI/Google/xAI depending on the requested model.
-//
-// Wire protocol: POST /completions with an NDJSON/SSE-ish body-per-line
-// response stream (`{"event": <provider-shaped-chunk>}` / `{"status": ...}` /
-// `[DONE]`), authenticated with a short-lived LLM bearer token exchanged from
-// the RSA-decrypted access_token (see open-sse/shared/zedAuth.js). The
-// provider-shaped chunk is Claude/Gemini/OpenAI-Responses/xAI(OpenAI-shaped)
-// depending on which upstream Zed fronts for the model — translated back to
-// OpenAI Chat Completions by reusing the existing translators.
-//
-// Overrides execute() entirely (does NOT use DefaultExecutor's pipeline) because the Zed wire
-// shape (thread envelope, LLM-token exchange, NDJSON status frames) doesn't
-// fit the generic transformRequest/buildUrl contract.
 
 import { BaseExecutor } from "./base.js";
 import { FORMATS } from "../translator/formats.js";
@@ -60,7 +45,6 @@ function buildProviderRequest(provider, model, body, stream, credentials) {
   if (provider === ZED_PROVIDER.openai) {
     return openaiToOpenAIResponsesRequest(model, body, true, credentials);
   }
-  // xAI is OpenAI-shaped — forward as-is.
   return { ...(body || {}), model, stream: stream !== false };
 }
 
@@ -292,7 +276,6 @@ class ZedExecutor extends BaseExecutor {
   }
 
   async refreshCredentials() {
-    // Zed uses a long-lived RSA-decrypted access_token — no OAuth refresh.
     return null;
   }
 

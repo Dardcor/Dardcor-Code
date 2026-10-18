@@ -151,8 +151,6 @@ data: [DONE]
 	});
 
 	test('response with text and without finish_reason yields "DONE" result', async function () {
-		// This is not an expected case, since the OpenAI API should always
-		// include a finish_reason, but we handle it anyway.
 		const response = `data: {"choices":[{"text":"foo","index":0,"finish_reason":null}]}
 data: [DONE]
 `;
@@ -172,8 +170,6 @@ data: [DONE]
 	});
 
 	test('response with delta and without finish_reason yields "DONE" result', async function () {
-		// This is not an expected case, since the OpenAI API should always
-		// include a finish_reason, but we handle it anyway.
 		const response = [
 			`data: {"choices":[{"delta":{"content":"foo"},"index":0,"finish_reason":null}]}\n`,
 			`data: [DONE]\n`
@@ -194,8 +190,6 @@ data: [DONE]
 	});
 
 	test('response with text and without finish_reason or "[DONE]" yields "Iteration Done" result', async function () {
-		// This is not an expected case, since the OpenAI API should always
-		// include a finish_reason, but we handle it anyway.
 		const response = `data: {"choices":[{"text":"foo","index":0,"finish_reason":null}]}\n`;
 		const processor = await SSEProcessor.create(
 			logService,
@@ -213,8 +207,6 @@ data: [DONE]
 	});
 
 	test('response with delta and without finish_reason or "[DONE]" yields "Iteration Done" result', async function () {
-		// This is not an expected case, since the OpenAI API should always
-		// include a finish_reason, but we handle it anyway.
 		const response = `data: {"choices":[{"delta":{"content":"foo"},"index":0,"finish_reason":null}]}\n`;
 		const processor = await SSEProcessor.create(
 			logService,
@@ -648,8 +640,6 @@ data: [DONE]
 		expect(metadata).toBeUndefined();
 	});
 
-	// Regression for https://github.com/microsoft/vscode/issues/312746
-	// DeepSeek / Moonshot (Kimi) / Minimax stream reasoning under `reasoning_content`.
 	test('stream containing reasoning_content (DeepSeek/Kimi/Moonshot)', async function () {
 		const response = [
 			`data: {"choices":[{"content_filter_results":{},"delta":{"reasoning_content":"Analy"},"index":0}],"created":1751057335,"id":"","model":"","object":"chat.completion.chunk","system_fingerprint":"fp","usage":null}\n`,
@@ -678,8 +668,6 @@ data: [DONE]
 		expect(thinkingText).toBe('Analyzing');
 	});
 
-	// Regression for https://github.com/microsoft/vscode/issues/312746
-	// OpenRouter streams reasoning under `reasoning`.
 	test('stream containing reasoning (OpenRouter)', async function () {
 		const response = [
 			`data: {"choices":[{"content_filter_results":{},"delta":{"reasoning":"Analy"},"index":0}],"created":1751057335,"id":"","model":"","object":"chat.completion.chunk","system_fingerprint":"fp","usage":null}\n`,

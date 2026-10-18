@@ -132,7 +132,6 @@ export class CodeBlockActionRendering extends Disposable implements IWorkbenchCo
 			}, action, undefined);
 		});
 
-		// Reduces flicker a bit on reload/restart
 		markAsSingleton(copyCodeBlockActionRendering);
 		markAsSingleton(disposable);
 	}
@@ -209,7 +208,6 @@ export function registerChatCodeBlockActions() {
 	});
 
 	CopyAction?.addImplementation(50000, 'chat-codeblock', (accessor) => {
-		// get active code editor
 		const editor = accessor.get(ICodeEditorService).getFocusedCodeEditor();
 		if (!editor) {
 			return false;
@@ -231,7 +229,6 @@ export function registerChatCodeBlockActions() {
 			editor.getSelections()?.reduce((acc, selection) => acc + editorModel.getValueInRange(selection), '') ?? '';
 		const totalCharacters = editorModel.getValueLength();
 
-		// Report copy to extensions
 		const chatService = accessor.get(IChatService);
 		const aiEditTelemetryService = accessor.get(IAiEditTelemetryService);
 		const element = context.element as IChatResponseViewModel | undefined;
@@ -275,7 +272,6 @@ export function registerChatCodeBlockActions() {
 			});
 		}
 
-		// Copy full cell if no selection, otherwise fall back on normal editor implementation
 		if (noSelection) {
 			accessor.get(IClipboardService).writeText(context.code);
 			return true;
@@ -386,7 +382,6 @@ export function registerChatCodeBlockActions() {
 
 		override async runWithContext(accessor: ServicesAccessor, context: ICodeBlockActionContext) {
 			if (isResponseFiltered(context)) {
-				// When run from command palette
 				return;
 			}
 
@@ -475,7 +470,6 @@ export function registerChatCodeBlockActions() {
 
 		override async runWithContext(accessor: ServicesAccessor, context: ICodeBlockActionContext) {
 			if (isResponseFiltered(context)) {
-				// When run from command palette
 				return;
 			}
 
@@ -487,7 +481,6 @@ export function registerChatCodeBlockActions() {
 
 			let terminal = await terminalService.getActiveOrCreateInstance({ acceptsInput: true });
 
-			// isFeatureTerminal = debug terminal or task terminal
 			if (terminal.xterm?.isStdinDisabled || terminal.shellLaunchConfig.isFeatureTerminal) {
 				terminal = await terminalService.createAndFocusTerminal({ location: TerminalLocation.Panel });
 			} else {
@@ -634,7 +627,6 @@ export function registerChatCodeCompareBlockActions() {
 			const context = args[0];
 			if (!isCodeCompareBlockActionContext(context)) {
 				return;
-				// TODO@jrieken derive context
 			}
 
 			return this.runWithContext(accessor, context);
@@ -672,12 +664,10 @@ export function registerChatCodeCompareBlockActions() {
 			const response = context.element;
 
 			if (item.state?.applied) {
-				// already applied
 				return false;
 			}
 
 			if (!response.response.value.includes(item)) {
-				// bogous item
 				return false;
 			}
 

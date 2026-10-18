@@ -174,7 +174,6 @@ suite('AgentHostOctoKitService', () => {
 	});
 
 	test('findPullRequestByHeadSha returns the pull request whose head is the commit', async () => {
-		// Pull request 1 only contains the commit; 9 has it as its head.
 		const { fetch, captured } = capturingFetch(jsonResponse([
 			{ html_url: 'https://github.com/o/r/pull/1', number: 1, state: 'open', head: { sha: 'aaa' } },
 			{ html_url: 'https://github.com/o/r/pull/9', number: 9, state: 'open', head: { sha: 'bbb' }, node_id: 'PR_node_9' },
@@ -312,7 +311,6 @@ suite('AgentHostOctoKitService', () => {
 		apiBaseUri = deriveGitHubEndpoints('https://ghe.example.com').apiBaseUri;
 		await service.findPullRequestByHeadBranch('o', 'r', 'feature', 'tok', signal());
 
-		// The validator is replayed only against the host that issued it.
 		assert.deepStrictEqual(requests, [undefined, 'W/"tag"', undefined]);
 	});
 
@@ -352,7 +350,7 @@ suite('AgentHostOctoKitService', () => {
 	});
 
 	test('createPullRequest throws when response is missing html_url or number', async () => {
-		const service = makeService(capturingFetch(jsonResponse({ html_url: 'https://github.com/o/r/pull/1' /* missing number */ })).fetch);
+		const service = makeService(capturingFetch(jsonResponse({ html_url: 'https://github.com/o/r/pull/1' })).fetch);
 
 		await assert.rejects(
 			() => service.createPullRequest('o', 'r', 't', 'b', 'h', 'b', false, 'tok', signal()),

@@ -153,7 +153,6 @@ suite('typescript function call snippets', () => {
 			'foobar(${1:alpha}$2)$0');
 	});
 
-	// A more complex case
 	test('Should skip end-of-list optional params but should not skip start-of-list and mid-list ones', async () => {
 		assert.strictEqual(
 			snippetForFunctionCall(

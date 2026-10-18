@@ -141,7 +141,6 @@ export class BreakpointWidget extends ZoneWidget implements IPrivateBreakpointWi
 			if (this.breakpoint && e && e.removed && e.removed.indexOf(this.breakpoint) >= 0) {
 				this.dispose();
 			}
-			// Update the breakpoint list when in trigger point context
 			if (this.context === Context.TRIGGER_POINT && this.selectBreakpointBox) {
 				this.updateTriggerBreakpointList();
 			}
@@ -193,7 +192,6 @@ export class BreakpointWidget extends ZoneWidget implements IPrivateBreakpointWi
 
 	private setInputMode(): void {
 		if (this.editor.hasModel()) {
-			// Use plaintext language for log messages, otherwise respect underlying editor language #125619
 			const languageId = this.context === Context.LOG_MESSAGE ? PLAINTEXT_LANGUAGE_ID : this.editor.getModel().getLanguageId();
 			this.input.getModel().setLanguage(languageId);
 		}
@@ -240,7 +238,6 @@ export class BreakpointWidget extends ZoneWidget implements IPrivateBreakpointWi
 		this.createTriggerBreakpointInput(container);
 
 		this.updateContextInput();
-		// Due to an electron bug we have to do the timeout, otherwise we do not get focus
 		setTimeout(() => this.focusInput(), 150);
 	}
 
@@ -327,7 +324,6 @@ export class BreakpointWidget extends ZoneWidget implements IPrivateBreakpointWi
 			})),
 		];
 
-		// Load the source code for each breakpoint asynchronously
 		for (const [i, bp] of this.availableBreakpoints.entries()) {
 			this.textModelService.createModelReference(bp.uri).then(ref => {
 				try {
@@ -365,7 +361,6 @@ export class BreakpointWidget extends ZoneWidget implements IPrivateBreakpointWi
 		if (this.context === Context.TRIGGER_POINT) {
 			this.inputContainer.hidden = true;
 			this.selectBreakpointContainer.hidden = false;
-			// Update the breakpoint list when switching to trigger point context
 			if (this.selectBreakpointBox) {
 				this.updateTriggerBreakpointList();
 			}
@@ -429,7 +424,6 @@ export class BreakpointWidget extends ZoneWidget implements IPrivateBreakpointWi
 						if (this.context === Context.CONDITION) {
 							overwriteBefore = position.column - 1;
 						} else {
-							// Inside the currly brackets, need to count how many useful characters are behind the position so they would all be taken into account
 							const value = this.input.getModel().getValue();
 							while ((position.column - 2 - overwriteBefore >= 0) && value[position.column - 2 - overwriteBefore] !== '{' && value[position.column - 2 - overwriteBefore] !== ' ') {
 								overwriteBefore++;
@@ -481,7 +475,6 @@ export class BreakpointWidget extends ZoneWidget implements IPrivateBreakpointWi
 
 	close(success: boolean): void {
 		if (success) {
-			// if there is already a breakpoint on this location - remove it.
 
 			let condition: string | undefined = undefined;
 			let hitCondition: string | undefined = undefined;
@@ -506,7 +499,6 @@ export class BreakpointWidget extends ZoneWidget implements IPrivateBreakpointWi
 				modeLabel = this.modeInput?.label;
 			}
 			if (this.context === Context.TRIGGER_POINT) {
-				// currently, trigger points don't support additional conditions:
 				condition = undefined;
 				hitCondition = undefined;
 				logMessage = undefined;
@@ -598,7 +590,6 @@ class CloseBreakpointWidgetCommand extends EditorCommand {
 	runEditorCommand(accessor: ServicesAccessor, editor: ICodeEditor, args: unknown): void {
 		const debugContribution = editor.getContribution<IBreakpointEditorContribution>(BREAKPOINT_EDITOR_CONTRIBUTION_ID);
 		if (debugContribution) {
-			// if focus is in outer editor we need to use the debug contribution to close
 			return debugContribution.closeBreakpointWidget();
 		}
 

@@ -6,8 +6,6 @@
 //@ts-check
 'use strict';
 
-// mocha disables running through electron by default. Note that this must
-// come before any mocha imports.
 process.env.MOCHA_COLORS = '1';
 
 const { app, BrowserWindow, ipcMain, crashReporter, session } = require('electron');
@@ -87,7 +85,6 @@ Options:
 	process.exit(0);
 }
 
-// Treat bare .ts/.js positional arguments as --run values
 const bareFiles = (args._ || []).filter(a => typeof a === 'string' && (a.endsWith('.ts') || a.endsWith('.js')));
 if (bareFiles.length > 0) {
 	const existing = !args.run ? [] : Array.isArray(args.run) ? args.run : [args.run];
@@ -113,8 +110,6 @@ if (crashReporterDirectory) {
 		}
 	}
 
-	// Crashes are stored in the crashDumps directory by default, so we
-	// need to change that directory to the provided one
 	console.log(`Found --crash-reporter-directory argument. Setting crashDumps directory to be '${crashReporterDirectory}'`);
 	app.setPath('crashDumps', crashReporterDirectory);
 
@@ -161,8 +156,6 @@ function deserializeRunnable(runnable) {
 function deserializeError(err) {
 	const inspect = err.inspect;
 	err.inspect = () => inspect;
-	// Unfortunately, mocha rewrites and formats err.actual/err.expected.
-	// This formatting is hard to reverse, so err.*JSON includes the unformatted value.
 	if (err.actual) {
 		err.actual = JSON.parse(err.actual).value;
 		err.actualJSON = err.actual;
@@ -232,7 +225,6 @@ class IPCRunner extends events.EventEmitter {
 
 app.on('ready', () => {
 
-	// needed when loading resources from the renderer, e.g xterm.js or the encoding lib
 	session.defaultSession.protocol.registerFileProtocol('vscode-file', (request, callback) => {
 		const path = new URL(request.url).pathname;
 		callback({ path });
@@ -245,9 +237,6 @@ app.on('ready', () => {
 		}
 	});
 
-	// We need to provide a basic `ISandboxConfiguration`
-	// for our preload script to function properly because
-	// some of our types depend on it (e.g. product.ts).
 	ipcMain.handle('vscode:test-vscode-window-config', async () => {
 		return {
 			product: {
@@ -261,7 +250,6 @@ app.on('ready', () => {
 		};
 	});
 
-	// No-op since invoke the IPC as part of IIFE in the preload.
 	ipcMain.handle('vscode:fetchShellEnv', event => { });
 
 	/**
@@ -274,7 +262,6 @@ app.on('ready', () => {
 		const resolvedPath = path.resolve(filePath);
 		const normalizedRoot = path.resolve(projectRoot);
 
-		// On Windows, paths are case-insensitive
 		const isWindows = process.platform === 'win32';
 		const rel = path.relative(
 			isWindows ? normalizedRoot.toLowerCase() : normalizedRoot,
@@ -287,7 +274,6 @@ app.on('ready', () => {
 		}
 	}
 
-	// Handle file reading for tests
 	ipcMain.handle('vscode:readFile', async (event, filePath) => {
 		validatePathWithinProject(filePath);
 
@@ -299,7 +285,6 @@ app.on('ready', () => {
 		}
 	});
 
-	// Handle file stat for tests
 	ipcMain.handle('vscode:statFile', async (event, filePath) => {
 		validatePathWithinProject(filePath);
 
@@ -312,7 +297,7 @@ app.on('ready', () => {
 				ctimeMs: stats.ctimeMs,
 				mtimeMs: stats.mtimeMs,
 				size: stats.size,
-				isReadonly: (stats.mode & 0o200) === 0 // Check if owner write bit is not set
+				isReadonly: (stats.mode & 0o200) === 0
 			};
 		} catch (error) {
 			console.error(`Error stating file ${filePath}:`, error);
@@ -325,7 +310,7 @@ app.on('ready', () => {
 		width: 800,
 		show: false,
 		webPreferences: {
-			preload: path.join(__dirname, 'preload.js'), // ensure similar environment as VSCode as tests may depend on this
+			preload: path.join(__dirname, 'preload.js'),
 			additionalArguments: [`--vscode-window-config=vscode:test-vscode-window-config`],
 			nodeIntegration: true,
 			contextIsolation: false,
@@ -385,7 +370,6 @@ app.on('ready', () => {
 	const runner = new IPCRunner(win);
 	createStatsCollector(runner);
 
-	// Handle renderer crashes, #117068
 	win.webContents.on('render-process-gone', (evt, details) => {
 		if (!runner.didEnd) {
 			console.error(`Renderer process crashed with: ${JSON.stringify(details)}`);
@@ -407,8 +391,6 @@ app.on('ready', () => {
 			}),
 		);
 	} else {
-		// mocha patches symbols to use windows escape codes, but it seems like
-		// Electron mangles these in its output.
 		if (process.platform === 'win32') {
 			Object.assign(importMochaReporter('base').symbols, {
 				ok: '+',

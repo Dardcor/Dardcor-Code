@@ -67,7 +67,6 @@ class DropOrPasteResourceProvider implements vscode.DocumentDropEditProvider, vs
 			return UriList.from(urlList);
 		}
 
-		// Find file entries
 		const uris: vscode.Uri[] = [];
 		for (const [_, entry] of dataTransfer) {
 			const file = entry.asFile();
@@ -118,9 +117,6 @@ class DropOrPasteResourceProvider implements vscode.DocumentDropEditProvider, vs
 function getRelativePath(fromFile: vscode.Uri | undefined, toFile: vscode.Uri): string | undefined {
 	if (fromFile && fromFile.scheme === toFile.scheme && fromFile.authority === toFile.authority) {
 		if (toFile.scheme === Schemes.file) {
-			// On windows, we must use the native `path.relative` to generate the relative path
-			// so that drive-letters are resolved cast insensitively. However we then want to
-			// convert back to a posix path to insert in to the document
 			const relativePath = path.relative(fromFile.fsPath, toFile.fsPath);
 			return path.posix.normalize(relativePath.split(path.sep).join(path.posix.sep));
 		}

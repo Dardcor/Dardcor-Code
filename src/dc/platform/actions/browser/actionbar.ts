@@ -8,17 +8,9 @@ import { WorkbenchActionExecutedClassification, WorkbenchActionExecutedEvent } f
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 
 export interface IWorkbenchActionBarOptions extends IActionBarOptions {
-	/**
-	 * When set the `workbenchActionExecuted` is automatically sent for each invoked action. The `from` property
-	 * of the event will be the passed `telemetrySource`-value.
-	 */
 	telemetrySource?: string;
 }
 
-/**
- * A {@link ActionBar action bar} that automatically sends `workbenchActionExecuted` telemetry
- * events for each invoked action, like {@link import('./toolbar.js').WorkbenchToolBar WorkbenchToolBar} does.
- */
 export class WorkbenchActionBar extends ActionBar {
 
 	constructor(

@@ -84,10 +84,6 @@ export class OpenFolderAction extends Action2 {
 
 export class OpenFolderViaWorkspaceAction extends Action2 {
 
-	// This action swaps the folders of a workspace with
-	// the selected folder and is a workaround for providing
-	// "Open Folder..." in environments that do not support
-	// this without having a workspace open (e.g. web serverless)
 
 	static readonly ID = 'workbench.action.files.openFolderViaWorkspace';
 
@@ -320,7 +316,6 @@ class DuplicateWorkspaceInNewWindowAction extends Action2 {
 	}
 }
 
-// --- Actions Registration
 
 registerAction2(AddRootFolderAction);
 registerAction2(RemoveRootFolderAction);
@@ -334,7 +329,6 @@ registerAction2(CloseWorkspaceAction);
 registerAction2(SaveWorkspaceAsAction);
 registerAction2(DuplicateWorkspaceInNewWindowAction);
 
-// --- Menu Registration
 
 MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 	group: '2_open',

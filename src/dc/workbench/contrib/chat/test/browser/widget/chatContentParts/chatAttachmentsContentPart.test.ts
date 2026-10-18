@@ -120,11 +120,9 @@ suite('ChatAttachmentsContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode!);
 			disposables.add(toDisposable(() => part.domNode?.remove()));
 
-			// Initial state should have 2 attachments
 			const initialAttachments = part.domNode!.querySelectorAll('.chat-attached-context-attachment');
 			assert.strictEqual(initialAttachments.length, 2, 'Should have 2 initial attachments');
 
-			// Update with new variables
 			const newVariables: IChatRequestVariableEntry[] = [
 				createFileEntry('file1.ts'),
 				createFileEntry('file2.ts'),
@@ -133,7 +131,6 @@ suite('ChatAttachmentsContentPart', () => {
 
 			part.updateVariables(newVariables);
 
-			// Should now have 3 attachments
 			const updatedAttachments = part.domNode!.querySelectorAll('.chat-attached-context-attachment');
 			assert.strictEqual(updatedAttachments.length, 3, 'Should have 3 attachments after update');
 		});
@@ -151,18 +148,15 @@ suite('ChatAttachmentsContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode!);
 			disposables.add(toDisposable(() => part.domNode?.remove()));
 
-			// Initial state should have 1 file attachment
 			assert.strictEqual(part.domNode!.querySelectorAll('.chat-attached-context-attachment').length, 1);
 
-			// Update with image entry (simulating lazy load completion)
-			const imageBuffer = new Uint8Array([0x89, 0x50, 0x4E, 0x47]); // PNG header
+			const imageBuffer = new Uint8Array([0x89, 0x50, 0x4E, 0x47]);
 			const newVariables: IChatRequestVariableEntry[] = [
 				createImageEntry('image.png', imageBuffer)
 			];
 
 			part.updateVariables(newVariables);
 
-			// Should still have 1 attachment (now as image)
 			const updatedAttachments = part.domNode!.querySelectorAll('.chat-attached-context-attachment');
 			assert.strictEqual(updatedAttachments.length, 1, 'Should have 1 attachment after update');
 			assert.ok(updatedAttachments[0].classList.contains('image-attachment'), 'Image attachment should have styling class');
@@ -178,13 +172,12 @@ suite('ChatAttachmentsContentPart', () => {
 				{ variables: initialVariables }
 			));
 
-			const handler = () => { /* handler logic */ };
+			const handler = () => { };
 			part.contextMenuHandler = handler;
 
 			mainWindow.document.body.appendChild(part.domNode!);
 			disposables.add(toDisposable(() => part.domNode?.remove()));
 
-			// Update with new variables
 			const newVariables: IChatRequestVariableEntry[] = [
 				createFileEntry('file1.ts'),
 				createFileEntry('file2.ts')
@@ -192,7 +185,6 @@ suite('ChatAttachmentsContentPart', () => {
 
 			part.updateVariables(newVariables);
 
-			// The handler property should be preserved (updateVariables doesn't clear it)
 			assert.strictEqual(part.contextMenuHandler, handler, 'contextMenuHandler should be preserved after update');
 		});
 
@@ -211,10 +203,8 @@ suite('ChatAttachmentsContentPart', () => {
 
 			assert.strictEqual(part.domNode!.querySelectorAll('.chat-attached-context-attachment').length, 1);
 
-			// Update with empty array
 			part.updateVariables([]);
 
-			// Should have no attachments
 			const updatedAttachments = part.domNode!.querySelectorAll('.chat-attached-context-attachment');
 			assert.strictEqual(updatedAttachments.length, 0, 'Should have 0 attachments after clearing');
 		});
@@ -233,10 +223,8 @@ suite('ChatAttachmentsContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode!);
 			disposables.add(toDisposable(() => part.domNode?.remove()));
 
-			// Update with same variables (different array, same content)
 			part.updateVariables([...variables]);
 
-			// Should re-render (we don't optimize for same content)
 			const updatedAttachments = part.domNode!.querySelectorAll('.chat-attached-context-attachment');
 			assert.strictEqual(updatedAttachments.length, 2, 'Should still have 2 attachments');
 		});
@@ -313,9 +301,9 @@ suite('ChatAttachmentsContentPart', () => {
 
 		test('should mark images omitted when the routed model does not support vision', () => {
 			setModels([
-				{ identifier: 'copilot/auto', id: 'auto', vendor: 'copilot', vision: false },
+				{ identifier: 'copilot/auto', id: 'auto', vendor: 'dardcor', vision: false },
 				{ identifier: 'other/test-non-vision', id: 'test-non-vision', vendor: 'other', vision: true },
-				{ identifier: 'copilot/test-non-vision', id: 'test-non-vision', vendor: 'copilot', vision: false },
+				{ identifier: 'copilot/test-non-vision', id: 'test-non-vision', vendor: 'dardcor', vision: false },
 			]);
 			const image = createImageEntry('image.png', new Uint8Array([1, 2, 3]));
 
@@ -337,7 +325,7 @@ suite('ChatAttachmentsContentPart', () => {
 		});
 
 		test('should not mark images omitted for Auto before routing', () => {
-			setModels([{ identifier: 'copilot/auto', id: 'copilot/auto', vendor: 'copilot', vision: false }]);
+			setModels([{ identifier: 'copilot/auto', id: 'copilot/auto', vendor: 'dardcor', vision: false }]);
 			const image = createImageEntry('image.png', new Uint8Array([1, 2, 3]));
 
 			const part = store.add(instantiationService.createInstance(
@@ -367,7 +355,7 @@ suite('ChatAttachmentsContentPart', () => {
 				metadata: {
 					extension: new ExtensionIdentifier('test.extension'),
 					id: 'copilot/auto',
-					vendor: 'copilot',
+					vendor: 'dardcor',
 					name: 'Auto',
 					version: '1',
 					family: 'auto',
@@ -391,7 +379,6 @@ suite('ChatAttachmentsContentPart', () => {
 				mainWindow.document.body.appendChild(part.domNode!);
 				disposables.add(toDisposable(() => part.domNode?.remove()));
 
-				// Let the widget's lazy byte load (a microtask) settle before inspecting reads.
 				await new Promise<void>(resolve => setTimeout(resolve, 0));
 
 				return fileService.readOperations.map(read => read.resource.toString());

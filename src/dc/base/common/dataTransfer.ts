@@ -42,32 +42,12 @@ export function createFileDataTransferItem(fileName: string, uri: URI | undefine
 }
 
 export interface IReadonlyVSDataTransfer extends Iterable<readonly [string, IDataTransferItem]> {
-	/**
-	 * Get the total number of entries in this data transfer.
-	 */
 	get size(): number;
 
-	/**
-	 * Check if this data transfer contains data for `mimeType`.
-	 *
-	 * This uses exact matching and does not support wildcards.
-	 */
 	has(mimeType: string): boolean;
 
-	/**
-	 * Check if this data transfer contains data matching `pattern`.
-	 *
-	 * This allows matching for wildcards, such as `image/*`.
-	 *
-	 * Use the special `files` mime type to match any file in the data transfer.
-	 */
 	matches(pattern: string): boolean;
 
-	/**
-	 * Retrieve the first entry for `mimeType`.
-	 *
-	 * Note that if you want to find all entries for a given mime type, use {@link IReadonlyVSDataTransfer.entries} instead.
-	 */
 	get(mimeType: string): IDataTransferItem | undefined;
 }
 
@@ -100,11 +80,6 @@ export class VSDataTransfer implements IReadonlyVSDataTransfer {
 		return this._entries.get(this.toKey(mimeType))?.[0];
 	}
 
-	/**
-	 * Add a new entry to this data transfer.
-	 *
-	 * This does not replace existing entries for `mimeType`.
-	 */
 	public append(mimeType: string, value: IDataTransferItem): void {
 		const existing = this._entries.get(mimeType);
 		if (existing) {
@@ -114,27 +89,14 @@ export class VSDataTransfer implements IReadonlyVSDataTransfer {
 		}
 	}
 
-	/**
-	 * Set the entry for a given mime type.
-	 *
-	 * This replaces all existing entries for `mimeType`.
-	 */
 	public replace(mimeType: string, value: IDataTransferItem): void {
 		this._entries.set(this.toKey(mimeType), [value]);
 	}
 
-	/**
-	 * Remove all entries for `mimeType`.
-	 */
 	public delete(mimeType: string) {
 		this._entries.delete(this.toKey(mimeType));
 	}
 
-	/**
-	 * Iterate over all `[mime, item]` pairs in this data transfer.
-	 *
-	 * There may be multiple entries for each mime type.
-	 */
 	public *[Symbol.iterator](): IterableIterator<readonly [string, IDataTransferItem]> {
 		for (const [mine, items] of this._entries) {
 			for (const item of items) {
@@ -159,17 +121,14 @@ export function matchesMimeType(pattern: string, mimeTypes: readonly string[]): 
 }
 
 function matchesMimeType_normalized(normalizedPattern: string, normalizedMimeTypes: readonly string[]): boolean {
-	// Anything wildcard
 	if (normalizedPattern === '*/*') {
 		return normalizedMimeTypes.length > 0;
 	}
 
-	// Exact match
 	if (normalizedMimeTypes.includes(normalizedPattern)) {
 		return true;
 	}
 
-	// Wildcard, such as `image/*`
 	const wildcard = normalizedPattern.match(/^([a-z]+)\/([a-z]+|\*)$/i);
 	if (!wildcard) {
 		return false;
@@ -185,7 +144,6 @@ function matchesMimeType_normalized(normalizedPattern: string, normalizedMimeTyp
 
 
 export const UriList = Object.freeze({
-	// http://amundsen.com/hypermedia/urilist/
 	create: (entries: ReadonlyArray<string | URI>): string => {
 		return distinct(entries.map(x => x.toString())).join('\r\n');
 	},

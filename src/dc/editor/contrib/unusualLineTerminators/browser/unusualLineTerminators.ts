@@ -52,7 +52,6 @@ export class UnusualLineTerminatorsDetector extends Disposable implements IEdito
 
 		this._register(this._editor.onDidChangeModelContent((e) => {
 			if (e.isUndoing) {
-				// skip checking in case of undoing
 				return;
 			}
 			this._checkForUnusualLineTerminators();
@@ -74,23 +73,18 @@ export class UnusualLineTerminatorsDetector extends Disposable implements IEdito
 		}
 		const ignoreState = readIgnoreState(this._codeEditorService, model);
 		if (ignoreState === true) {
-			// this model should be ignored
 			return;
 		}
 		if (this._editor.getOption(EditorOption.readOnly)) {
-			// read only editor => sorry!
 			return;
 		}
 
 		if (this._config === 'auto') {
-			// just do it!
 			model.removeUnusualLineTerminators(this._editor.getSelections());
 			return;
 		}
 
 		if (this._isPresentingDialog) {
-			// we're currently showing the dialog, which is async.
-			// avoid spamming the user
 			return;
 		}
 
@@ -109,7 +103,6 @@ export class UnusualLineTerminatorsDetector extends Disposable implements IEdito
 		}
 
 		if (!result.confirmed) {
-			// this model should be ignored
 			writeIgnoreState(this._codeEditorService, model, true);
 			return;
 		}

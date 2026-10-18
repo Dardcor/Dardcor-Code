@@ -22,22 +22,12 @@ import { renderPromptElement } from '../../base/promptRenderer';
 import { BackgroundTodoPrompt } from './backgroundTodoAgentPrompt';
 import { CancellationTokenSource } from '../../../../../util/dardcor/base/common/cancellation';
 
-/**
- * External state the policy needs but does not own.
- * Callers construct this once and pass it in.
- */
 export interface IBackgroundTodoPolicyInput {
-	/** Whether the combined background todo agent gate is enabled. */
 	readonly backgroundTodoAgentEnabled: boolean;
-	/** Whether the user explicitly referenced the todo tool (e.g. `#todo`), used for diagnostics. */
 	readonly todoToolExplicitlyEnabled: boolean;
-	/** Whether the current prompt is the main agent prompt. */
 	readonly isAgentPrompt: boolean;
-	/** The current prompt context for delta computation. */
 	readonly promptContext: IBuildPromptContext;
-	/** ID of the current user turn, used to reset turn-scoped policy backoff. */
 	readonly turnId?: string;
-	/** Whether a todo list already exists for this session. `undefined` means unknown. */
 	readonly todoListExists?: boolean;
 }
 
@@ -57,14 +47,6 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 
 	private state = BackgroundTodoAgentProcessorState.Idle;
 
-	/**
-	 * Per-generation cancellation source. `cancel()` aborts the in-flight and
-	 * queued work of the current generation and installs a fresh source, so the
-	 * processor stays reusable for later turns (mirrors BackgroundSummarizer).
-	 *
-	 * Held in a {@link MutableDisposable} so the active source is disposed both
-	 * when it is replaced (on `cancel()`) and when the processor is disposed.
-	 */
 	private readonly _cts = this._register(new MutableDisposable<CancellationTokenSource>());
 	private get cts(): CancellationTokenSource {
 		return this._cts.value!;
@@ -97,9 +79,6 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 
 
 	trackTurnRound(promptContext: IBuildPromptContext, token: CancellationToken) {
-		// Capture the current generation synchronously: if cancel() runs while this
-		// task is still queued, the captured token is already cancelled so the task
-		// bails, while a fresh generation handles future turns.
 		const cts = this.cts;
 		this.queue.queue(async () => {
 			if (cts.token.isCancellationRequested) {
@@ -120,12 +99,10 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 			}
 
 			if (this.currentTurnId === undefined) {
-				// First run for a turn
 				this.logger.debug(`starting to track turn ${turnId}`);
 				this.currentTurnId = turnId;
 				this.currentUserRequest = promptContext.query;
 				this.backOffTracker.reset();
-				// clear existing todos
 				await this.clearCurrentTodos(toolInvocationToken);
 			}
 
@@ -136,12 +113,9 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 
 			this.sessionHistoryStore.trackPromptContext(turnId, promptContext);
 
-			// Abort this in-turn pass when EITHER the request stops (stop button or
-			// the turn ending) OR the processor generation is cancelled.
 			const linkedCts = new CancellationTokenSource(token);
 			const sub = cts.token.onCancellationRequested(() => linkedCts.cancel());
 			try {
-				// TODO: block the queue?
 				await this.doWork(turnId, toolInvocationToken, false, linkedCts.token);
 			} finally {
 				sub.dispose();
@@ -151,7 +125,6 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 	}
 
 	endTurn(turnId: string, toolInvocationToken: ChatParticipantToolToken) {
-		// Capture the current generation synchronously (see trackTurnRound).
 		const cts = this.cts;
 		return this.queue.queue(async () => {
 			if (cts.token.isCancellationRequested) {
@@ -165,12 +138,8 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 
 				this.logger.debug(`ending turn ${turnId}, running final pass`);
 
-				// Use the processor generation token, NOT the request token: the
-				// request token is (expectedly) cancelled once the turn is over, which
-				// would abort this legitimate final pass. cancel() still stops us here.
 				await this.doWork(turnId, toolInvocationToken, true, cts.token);
 
-				// store current todos
 				const oldTodos = await this.getCurrentTodoContext();
 				if (oldTodos !== undefined) {
 					this.oldTurnTodos = oldTodos;
@@ -184,31 +153,16 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 	}
 
 	cancel() {
-		// Once disposed the generation is already aborted (see dispose()) and the
-		// queue is torn down, so there is nothing to reset. Guard here because the
-		// endTurn() timeout fallback in agentIntent.ts may call cancel() after the
-		// session — and thus this processor — has been disposed.
 		if (this._store.isDisposed) {
 			return;
 		}
 		this.logger.debug('cancelling background todo agent generation');
-		// Abort the current generation and install a fresh one so the processor
-		// stays reusable for later turns (mirrors BackgroundSummarizer.cancel()).
-		// We deliberately do NOT clear the queue: Limiter.clear() drops queued
-		// tasks without settling their promises, which would hang the awaited
-		// endTurn() in agentIntent.ts. Queued tasks instead bail via their
-		// captured, now-cancelled token.
 		this.cts.cancel();
-		// Assigning a new source disposes the previous (now-cancelled) one.
 		this._cts.value = new CancellationTokenSource();
 		this.currentTurnId = undefined;
 	}
 
 	override dispose(): void {
-		// Abort any in-flight/queued generation before tearing down so pending
-		// passes observe cancellation rather than running against disposed state.
-		// The queue, the session history store and the MutableDisposable holding
-		// the active source are all registered, so super.dispose() releases them.
 		this._cts.value?.cancel();
 		super.dispose();
 	}
@@ -237,13 +191,10 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 				this.logger.debug(`running ${isFinal ? 'final ' : ''}pass for turn ${turnId} with ${history.new.length} new round(s)`);
 				const res = await this.makeChatRequest(history, toolInvocationToken, isFinal, token);
 
-				// Only retire the delta when the pass did not error.
 				if (res !== 'error') {
 					this.sessionHistoryStore.markToolCallsAsProcessed(turnId, history.new);
 				}
 
-				// Every pass that fires grows the turn-length wait so the background
-				// agent runs less often the longer a turn lasts.
 				this.backOffTracker.recordPass();
 
 				if (res === 'error' || res === 'noop') {
@@ -308,9 +259,6 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 
 		const durationMs = Date.now() - startTime;
 
-		// Non-success responses (canceled, rate-limited, filtered, etc.) should
-		// propagate as errors so the delta is NOT marked processed — a later pass
-		// can retry with fresh or coalesced activity.
 		if (response.type !== ChatFetchResponseType.Success) {
 			this.logger.error(`[BackgroundTodo] dardcor-utility-small returned non-success response: ${response.type}`);
 			this.sendTelemetry('modelError', this.currentTurnId, durationMs);
@@ -336,7 +284,6 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 	}
 
 	private async handleTodoToolCall(toolCalls: ToolCall[], toolInvocationToken: ChatParticipantToolToken, token: CancellationToken): Promise<'success' | 'error' | 'noop'> {
-		// Only accept manage_todo_list, pick the LAST matching call
 		let todoToolCall: ToolCall | undefined;
 		for (let i = toolCalls.length - 1; i >= 0; i--) {
 			if (toolCalls[i].name === ToolName.CoreManageTodoList) {
@@ -369,8 +316,6 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 		}
 
 		try {
-			// Forward only the model's todoList and pin the operation. The session is
-			// resolved from the tool invocation token's context on the main thread.
 			await this.toolsService.invokeTool(ToolName.CoreManageTodoList, {
 				input: { operation: 'write', todoList },
 				toolInvocationToken,
@@ -409,19 +354,6 @@ export class BackgroundTodoAgentProcessor extends Disposable {
 		completionTokens?: number,
 		model?: string,
 	) {
-		/* __GDPR__
-			"backgroundTodoAgent" : {
-				"owner": "vritant24",
-				"comment": "Tracks background todo agent pass outcomes.",
-				"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the background todo pass." },
-				"conversationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for the current chat conversation." },
-				"chatRequestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The chat request ID." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model ID used." },
-				"duration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Duration in ms." },
-				"promptTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Prompt token count." },
-				"completionTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Completion token count." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('backgroundTodoAgent', {
 			outcome: outcome,
 			conversationId: this.sessionId,
@@ -471,10 +403,6 @@ function getNormalizedTodoToolsSchema(endpoint: IChatEndpoint, logger: ILogger) 
 	);
 }
 
-/**
- * Resolves the chat session resource from a prompt context, preferring the
- * typed request and falling back to the (opaque) tool invocation token.
- */
 export function getSessionResource(promptContext: IBuildPromptContext): string | undefined {
 	const fromRequest = promptContext.request?.sessionResource;
 	if (fromRequest) {
@@ -508,19 +436,14 @@ export function getSessionResource(promptContext: IBuildPromptContext): string |
  */
 export class BackOffTracker {
 
-	/** Substantive rounds to wait before the very first pass. */
 	private static readonly DEFAULT_INITIAL_THRESHOLD = 3;
 
-	/** Extra substantive rounds added to the wait each time the threshold is hit. */
 	private static readonly DEFAULT_THRESHOLD_STEP = 2;
 
-	/** Upper bound for the wait; once reached it stays steady. */
 	private static readonly DEFAULT_MAX_THRESHOLD = 24;
 
-	/** Number of passes that fired this turn (turn-length signal). */
 	private passCount = 0;
 
-	/** Consecutive passes that produced no useful todo update. */
 	private consecutiveNoops = 0;
 
 	constructor(
@@ -529,44 +452,31 @@ export class BackOffTracker {
 		private readonly maxThreshold: number = BackOffTracker.DEFAULT_MAX_THRESHOLD,
 	) { }
 
-	/** Current effective substantive-round threshold for the next pass. */
 	get threshold(): number {
 		const grown = this.initialThreshold + (this.passCount + this.consecutiveNoops) * this.thresholdStep;
 		return Math.min(grown, this.maxThreshold);
 	}
 
-	/** Whether the wait has grown beyond its initial value. */
 	get isBackedOff(): boolean {
 		return this.threshold > this.initialThreshold;
 	}
 
-	/**
-	 * Whether the given substantive tool-round count meets the current
-	 * (possibly backed-off) threshold and a pass should run.
-	 */
 	isReady(substantiveRoundCount: number): boolean {
 		return substantiveRoundCount >= this.threshold;
 	}
 
-	/**
-	 * Record that a pass fired (the threshold was hit). Grows the
-	 * turn-length component of the wait by one step.
-	 */
 	recordPass(): void {
 		this.passCount++;
 	}
 
-	/** Record a no-op/error pass, adding further backoff on top of turn length. */
 	recordNoop(): void {
 		this.consecutiveNoops++;
 	}
 
-	/** Clear the no-op backoff after a useful pass; keep turn-length growth. */
 	clearNoops(): void {
 		this.consecutiveNoops = 0;
 	}
 
-	/** Reset all back-off at the start of a new turn. */
 	reset(): void {
 		this.passCount = 0;
 		this.consecutiveNoops = 0;

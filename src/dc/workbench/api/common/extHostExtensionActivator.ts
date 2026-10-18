@@ -12,19 +12,12 @@ import { ExtensionActivationReason, MissingExtensionDependency } from '../../ser
 import { ILogService } from '../../../platform/log/common/log.js';
 import { Barrier } from '../../../base/common/async.js';
 
-/**
- * Represents the source code (module) of an extension.
- */
 export interface IExtensionModule {
 	activate?(ctx: vscode.ExtensionContext): Promise<IExtensionAPI>;
 	deactivate?(): void;
 }
 
-/**
- * Represents the API of an extension (return value of `activate`).
- */
 export interface IExtensionAPI {
-	// _extensionAPIBrand: any;
 }
 
 export type ExtensionActivationTimesFragment = {
@@ -169,9 +162,6 @@ export class ExtensionsActivator implements IDisposable {
 	private readonly _globalRegistry: ExtensionDescriptionRegistry;
 	private readonly _host: IExtensionsActivatorHost;
 	private readonly _operations: ExtensionIdentifierMap<ActivationOperation>;
-	/**
-	 * A map of already activated events to speed things up if the same activation event is triggered multiple times.
-	 */
 	private readonly _alreadyActivatedEvents: { [activationEvent: string]: boolean };
 
 	constructor(
@@ -243,10 +233,6 @@ export class ExtensionsActivator implements IDisposable {
 		await Promise.all(operations.map(op => op.wait()));
 	}
 
-	/**
-	 * Handle semantics related to dependencies for `currentExtension`.
-	 * We don't need to worry about dependency loops because they are handled by the registry.
-	 */
 	private _handleActivationRequest(currentActivation: ActivationIdAndReason): ActivationOperation {
 		if (this._operations.has(currentActivation.id)) {
 			return this._operations.get(currentActivation.id)!;
@@ -258,7 +244,6 @@ export class ExtensionsActivator implements IDisposable {
 
 		const currentExtension = this._registry.getExtensionDescription(currentActivation.id);
 		if (!currentExtension) {
-			// Error condition 0: unknown extension
 			const error = new Error(`Cannot activate unknown extension '${currentActivation.id.value}'`);
 			const result = this._createAndSaveOperation(currentActivation, null, [], new FailedExtension(error));
 			this._host.onExtensionActivationError(
@@ -274,7 +259,6 @@ export class ExtensionsActivator implements IDisposable {
 		for (const depId of depIds) {
 
 			if (this._isResolvedExtension(depId)) {
-				// This dependency is already resolved
 				continue;
 			}
 
@@ -285,7 +269,6 @@ export class ExtensionsActivator implements IDisposable {
 			}
 
 			if (this._isHostExtension(depId)) {
-				// must first wait for the dependency to activate
 				deps.push(this._handleActivationRequest({
 					id: this._globalRegistry.getExtensionDescription(depId)!.identifier,
 					reason: currentActivation.reason
@@ -296,11 +279,9 @@ export class ExtensionsActivator implements IDisposable {
 			const depDesc = this._registry.getExtensionDescription(depId);
 			if (depDesc) {
 				if (!depDesc.main && !depDesc.browser) {
-					// this dependency does not need to activate because it is descriptive only
 					continue;
 				}
 
-				// must first wait for the dependency to activate
 				deps.push(this._handleActivationRequest({
 					id: depDesc.identifier,
 					reason: currentActivation.reason
@@ -308,7 +289,6 @@ export class ExtensionsActivator implements IDisposable {
 				continue;
 			}
 
-			// Error condition 1: unknown dependency
 			const currentExtensionFriendlyName = currentExtension.displayName || currentExtension.identifier.value;
 			const error = new Error(`Cannot activate the '${currentExtensionFriendlyName}' extension because it depends on unknown extension '${depId}'`);
 			const result = this._createAndSaveOperation(currentActivation, currentExtension.displayName, [], new FailedExtension(error));
@@ -336,7 +316,6 @@ export class ExtensionsActivator implements IDisposable {
 	private _isResolvedExtension(extensionId: ExtensionIdentifier | string): boolean {
 		const extensionDescription = this._globalRegistry.getExtensionDescription(extensionId);
 		if (!extensionDescription) {
-			// unknown extension
 			return false;
 		}
 		return (!extensionDescription.main && !extensionDescription.browser);
@@ -383,24 +362,20 @@ class ActivationOperation {
 
 	private async _waitForDepsThenActivate(): Promise<void> {
 		if (this._value) {
-			// this operation is already finished
 			return;
 		}
 
 		while (this._deps.length > 0) {
-			// remove completed deps
 			for (let i = 0; i < this._deps.length; i++) {
 				const dep = this._deps[i];
 
 				if (dep.value && !dep.value.activationFailed) {
-					// the dependency is already activated OK
 					this._deps.splice(i, 1);
 					i--;
 					continue;
 				}
 
 				if (dep.value && dep.value.activationFailed) {
-					// Error condition 2: a dependency has already failed activation
 					const error = new Error(`Cannot activate the '${this.friendlyName}' extension because its dependency '${dep.friendlyName}' failed to activate`);
 					// eslint-disable-next-line local/code-no-any-casts
 					(<any>error).detail = dep.value.activationFailedError;
@@ -411,7 +386,6 @@ class ActivationOperation {
 			}
 
 			if (this._deps.length > 0) {
-				// wait for one dependency
 				await Promise.race(this._deps.map(dep => dep.wait()));
 			}
 		}
@@ -437,12 +411,9 @@ class ActivationOperation {
 				error.stack = err.stack;
 			}
 
-			// Treat the extension as being empty
 			this._value = new FailedExtension(error);
 
 			if (this._isDisposed && errors.isCancellationError(err)) {
-				// It is expected for ongoing activations to fail if the extension host is going down
-				// So simply ignore and don't log canceled errors in this case
 				return;
 			}
 

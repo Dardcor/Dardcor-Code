@@ -69,13 +69,11 @@ describe('DebuggableCommandIdentifier', () => {
 		expect(getToolsForLanguages.called).to.be.false;
 	});
 
-	// todo@connor4312: these work on macos locally but fail in CI, look into it
 	it.skip('should return true if referencing an absolute path', async () => {
 		const result = await debuggableCommandIdentifier.isDebuggable(undefined, __filename, CancellationToken.None);
 		expect(result).to.be.true;
 	});
 
-	// todo@connor4312: these work on macos locally but fail in CI, look into it
 	it.skip('should return true if referencing a relative path in a cwd', async () => {
 		const result = await debuggableCommandIdentifier.isDebuggable(URI.file(__dirname), basename(__filename), CancellationToken.None);
 		expect(result).to.be.true;
@@ -97,7 +95,6 @@ describe('DebuggableCommandIdentifier', () => {
 		expect(result).to.be.true;
 		expect(getToolsForLanguages.calledWith(['mylang'])).to.be.true;
 
-		// should not call again because no new langauge was seen:
 		const result2 = await debuggableCommandIdentifier.isDebuggable(undefined, 'othertool hello', CancellationToken.None);
 		expect(result2).to.be.false;
 		expect(getToolsForLanguages.callCount).to.equal(1);
@@ -115,22 +112,6 @@ describe('DebuggableCommandIdentifier', () => {
 		expect(result).to.be.false;
 	});
 
-	// it('should return true for commands matching specific treatment', async () => {
-	// 	(configurationService.getConfig as sinon.SinonStub).returns(['node']);
-	// 	const result = await debuggableCommandIdentifier.isDebuggable(undefined, 'node index.js', CancellationToken.None);
-	// 	expect(result).to.be.true;
-	// });
 
-	// it('should return false for commands matching specific exclusion', async () => {
-	// 	(configurationService.getConfig as sinon.SinonStub).returns(['!node']);
-	// 	const result = await debuggableCommandIdentifier.isDebuggable(undefined, 'node index.js', CancellationToken.None);
-	// 	expect(result).to.be.false;
-	// });
 
-	// it('should query language model for unknown commands', async () => {
-	// 	(context.globalState.get as sinon.SinonStub).returns({ languages: ['unknown'], commands: [] });
-	// 	(instantiationService.createInstance().getToolsForLanguages as sinon.SinonStub).resolves({ commands: ['unknowncommand'], ok: true });
-	// 	const result = await debuggableCommandIdentifier.isDebuggable(undefined, 'unknowncommand', CancellationToken.None);
-	// 	expect(result).to.be.true;
-	// });
 });

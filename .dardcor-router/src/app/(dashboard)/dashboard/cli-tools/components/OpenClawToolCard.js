@@ -30,8 +30,8 @@ export default function OpenClawToolCard({
   const [message, setMessage] = useState(null);
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [agentModels, setAgentModels] = useState({}); // { [agentId]: modelId }
-  const [agentModalFor, setAgentModalFor] = useState(null); // agentId opening modal
+  const [agentModels, setAgentModels] = useState({});
+  const [agentModalFor, setAgentModalFor] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
@@ -87,7 +87,6 @@ export default function OpenClawToolCard({
           setSelectedApiKey(provider.apiKey);
         }
       }
-      // Init per-agent models from enriched agents list
       const agentList = openclawStatus.agents || [];
       const initAgentModels = {};
       agentList.forEach((agent) => {
@@ -149,7 +148,6 @@ export default function OpenClawToolCard({
       });
       const data = await res.json();
       if (res.ok) {
-        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkOpenclawStatus();
@@ -284,7 +282,7 @@ export default function OpenClawToolCard({
           {!checkingOpenclaw && openclawStatus?.installed && (
             <>
               <div className="flex flex-col gap-2">
-                {/* Endpoint (selector) */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Select Endpoint</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -300,7 +298,7 @@ export default function OpenClawToolCard({
                   />
                 </div>
 
-                {/* Current configured */}
+                {}
                 {openclawStatus?.settings?.models?.providers?.["dardcor-code"]?.baseUrl && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
@@ -311,14 +309,14 @@ export default function OpenClawToolCard({
                   </div>
                 )}
 
-                {/* API Key */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">API Key</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                   <ApiKeySelect value={selectedApiKey} onChange={setSelectedApiKey} apiKeys={apiKeys} cloudEnabled={cloudEnabled} />
                 </div>
 
-                {/* Default Model */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Default Model</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -329,7 +327,7 @@ export default function OpenClawToolCard({
                   <button onClick={() => { setAgentModalFor(null); setModalOpen(true); }} disabled={!hasActiveProviders} className={`w-full sm:w-auto rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 whitespace-nowrap sm:shrink-0 ${hasActiveProviders ? "bg-surface border-border text-text-main hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}>Select</button>
                 </div>
 
-                {/* Per-agent model overrides */}
+                {}
                 {(openclawStatus.agents || []).filter(a => a.agentDir).map((agent) => (
                   <div key={agent.id} className="flex items-center gap-2 pl-4">
                     <span className="w-32 shrink-0 text-xs text-primary text-right truncate" title={agent.name || agent.id}>Agent {agent.name || agent.id}</span>

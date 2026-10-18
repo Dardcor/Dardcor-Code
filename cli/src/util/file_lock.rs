@@ -12,7 +12,7 @@ pub struct FileLock {
 	overlapped: winapi::um::minwinbase::OVERLAPPED,
 }
 
-#[cfg(windows)] // overlapped is thread-safe, mark it so with this
+#[cfg(windows)]
 unsafe impl Send for FileLock {}
 
 pub enum Lock {
@@ -20,10 +20,6 @@ pub enum Lock {
 	AlreadyLocked(File),
 }
 
-/// Number of locked bytes in the file. On Windows, locking prevents reads,
-/// but consumers of the lock may still want to read what the locking file
-/// as written. Thus, only PREFIX_LOCKED_BYTES are locked, and any globally-
-/// readable content should be written after the prefix.
 #[cfg(windows)]
 pub const PREFIX_LOCKED_BYTES: usize = 1;
 
@@ -63,8 +59,6 @@ impl FileLock {
 
 		let err = io::Error::last_os_error();
 		let raw = err.raw_os_error();
-		// docs report it should return ERROR_IO_PENDING, but in my testing it actually
-		// returns ERROR_LOCK_VIOLATION. Or maybe winapi is wrong?
 		if raw == Some(ERROR_IO_PENDING as i32) || raw == Some(ERROR_LOCK_VIOLATION as i32) {
 			return Ok(Lock::AlreadyLocked(file));
 		}

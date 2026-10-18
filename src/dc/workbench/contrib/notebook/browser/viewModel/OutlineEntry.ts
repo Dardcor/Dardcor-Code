@@ -67,7 +67,6 @@ export class OutlineEntry {
 
 	updateMarkers(markerService: IMarkerService): void {
 		if (this.cell.cellKind === CellKind.Code) {
-			// a code cell can have marker
 			const marker = markerService.read({ resource: this.cell.uri, severities: MarkerSeverity.Error | MarkerSeverity.Warning });
 			if (marker.length === 0) {
 				this._markerInfo = undefined;
@@ -76,7 +75,6 @@ export class OutlineEntry {
 				this._markerInfo = { topSev, count: marker.length };
 			}
 		} else {
-			// a markdown cell can inherit markers from its children
 			let topChild: MarkerSeverity | undefined;
 			for (const child of this.children) {
 				child.updateMarkers(markerService);

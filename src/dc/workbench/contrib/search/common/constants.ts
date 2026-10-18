@@ -69,9 +69,9 @@ export const SearchContext = {
 	ReplaceActiveKey: new RawContextKey<boolean>('replaceActive', false),
 	HasSearchResults: new RawContextKey<boolean>('hasSearchResult', false),
 	FirstMatchFocusKey: new RawContextKey<boolean>('firstMatchFocus', false),
-	FileMatchOrMatchFocusKey: new RawContextKey<boolean>('fileMatchOrMatchFocus', false), // This is actually, Match or File or Folder
+	FileMatchOrMatchFocusKey: new RawContextKey<boolean>('fileMatchOrMatchFocus', false),
 	FileMatchOrFolderMatchFocusKey: new RawContextKey<boolean>('fileMatchOrFolderMatchFocus', false),
-	FileMatchOrFolderMatchWithResourceFocusKey: new RawContextKey<boolean>('fileMatchOrFolderMatchWithResourceFocus', false), // Excludes "Other files"
+	FileMatchOrFolderMatchWithResourceFocusKey: new RawContextKey<boolean>('fileMatchOrFolderMatchWithResourceFocus', false),
 	FileFocusKey: new RawContextKey<boolean>('fileMatchFocus', false),
 	FolderFocusKey: new RawContextKey<boolean>('folderMatchFocus', false),
 	ResourceFolderFocusKey: new RawContextKey<boolean>('folderMatchWithResourceFocus', false),

@@ -31,7 +31,6 @@ export class ViewEventHandler extends Disposable {
 		this._shouldRender = false;
 	}
 
-	// --- begin event handlers
 
 	public onCompositionStart(e: viewEvents.ViewCompositionStartEvent): boolean {
 		return false;
@@ -88,7 +87,6 @@ export class ViewEventHandler extends Disposable {
 		return false;
 	}
 
-	// --- end event handlers
 
 	public handleEvents(events: viewEvents.ViewEvent[]): void {
 

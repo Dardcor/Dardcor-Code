@@ -416,7 +416,6 @@ export class CommentNode<T extends IRange | ICellRange> extends Disposable {
 		const hasReactionHandler = this.commentService.hasReactionHandler(this.owner);
 		const reactions = this.comment.commentReactions?.filter(reaction => !!reaction.count) || [];
 
-		// Only create the container if there are reactions to show or if there's a reaction handler
 		if (reactions.length === 0 && !hasReactionHandler) {
 			return;
 		}
@@ -577,7 +576,7 @@ export class CommentNode<T extends IRange | ICellRange> extends Disposable {
 	}
 
 	layout(widthInPixel?: number) {
-		const editorWidth = widthInPixel !== undefined ? widthInPixel - 72 /* - margin and scrollbar*/ : (this._commentEditor?.getLayoutInfo().width ?? 0);
+		const editorWidth = widthInPixel !== undefined ? widthInPixel - 72 : (this._commentEditor?.getLayoutInfo().width ?? 0);
 		this._commentEditor?.layout({ width: editorWidth, height: this._editorHeight });
 		const scrollWidth = this._body.scrollWidth;
 		const width = dom.getContentWidth(this._body);
@@ -700,7 +699,6 @@ export class CommentNode<T extends IRange | ICellRange> extends Disposable {
 			this._isPendingLabel.innerText = '';
 		}
 
-		// update comment reactions
 		this.createReactionsContainer(this._commentDetailsContainer);
 
 		if (this.comment.contextValue) {

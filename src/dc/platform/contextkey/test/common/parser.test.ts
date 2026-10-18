@@ -138,27 +138,11 @@ suite('Context Key Parser', () => {
 	});
 
 	suite('controversial', () => {
-		/*
-			new parser KEEPS old one's behavior:
-
-			old parser output: { key: 'debugState', op: '==', value: '"stopped"' }
-			new parser output: { key: 'debugState', op: '==', value: '"stopped"' }
-
-			TODO@ulugbekna: we should consider breaking old parser's behavior, and not take double quotes as part of the `value` because that's not what user expects.
-		*/
 		test(`debugState == "stopped"`, () => {
 			const input = `debugState == "stopped"`;
 			assert.deepStrictEqual(parseToStr(input), `debugState == '"stopped"'`);
 		});
 
-		/*
-			new parser BREAKS old one's behavior:
-
-			old parser output: { key: 'viewItem', op: '==', value: 'VSCode WorkSpace' }
-			new parser output: { key: 'viewItem', op: '==', value: 'VSCode' }
-
-			TODO@ulugbekna: since this's breaking, we can have hacky code that tries detecting such cases and replicate old parser's behavior.
-		*/
 		test(` viewItem == VSCode WorkSpace`, () => {
 			const input = ` viewItem == VSCode WorkSpace`;
 			assert.deepStrictEqual(parseToStr(input), `Parsing errors:\n\nUnexpected 'WorkSpace' at offset 20.\n`);
@@ -205,7 +189,7 @@ suite('Context Key Parser', () => {
 
 		test('vim<c-r> == 1 && vim<2<=3', () => {
 			const input = 'vim<c-r> == 1 && vim<2<=3';
-			assert.deepStrictEqual(parseToStr(input), `Lexing errors:\n\nUnexpected token '=' at offset 23. Did you mean == or =~?\n\n --- \nParsing errors:\n\nUnexpected '=' at offset 23.\n`); // FIXME
+			assert.deepStrictEqual(parseToStr(input), `Lexing errors:\n\nUnexpected token '=' at offset 23. Did you mean == or =~?\n\n --- \nParsing errors:\n\nUnexpected '=' at offset 23.\n`);
 		});
 
 		test(`foo && 'bar`, () => {

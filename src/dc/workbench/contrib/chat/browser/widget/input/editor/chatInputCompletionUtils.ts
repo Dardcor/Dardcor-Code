@@ -53,7 +53,6 @@ export function getCompletionRangeWord(rangeResult: IChatCompletionRangeResult):
 export function computeCompletionRanges(model: ITextModel, position: Position, reg: RegExp, onlyOnWordStart = false): IChatCompletionRangeResult | undefined {
 	const varWord = getWordAtText(position.column, reg, model.getLineContent(position.lineNumber), 0);
 	if (!varWord && model.getWordUntilPosition(position).word) {
-		// inside a "normal" word
 		return;
 	}
 
@@ -67,7 +66,6 @@ export function computeCompletionRanges(model: ITextModel, position: Position, r
 	if (varWord && onlyOnWordStart) {
 		const wordBefore = model.getWordUntilPosition({ lineNumber: position.lineNumber, column: varWord.startColumn });
 		if (wordBefore.word) {
-			// inside a word
 			return;
 		}
 	}
@@ -90,25 +88,21 @@ export function isEmptyUpToCompletionWord(model: ITextModel, rangeResult: IChatC
 }
 
 export function isOnlySlashOrPromptCommandsUpToCompletionWord(model: ITextModel, rangeResult: IChatCompletionRangeResult): boolean {
-	const startToCompletionWordStart = new Range(1, 1, rangeResult.replace.startLineNumber, rangeResult.replace.startColumn);
-	const text = model.getValueInRange(startToCompletionWordStart);
-	return /^\s*(?:\/[\p{L}0-9_.:-]+\s+)*$/u.test(text);
+	const startColumn = rangeResult.replace.startColumn;
+	const lineNumber = rangeResult.replace.startLineNumber;
+	if (startColumn === 1) {
+		return true;
+	}
+	const charBefore = model.getValueInRange(new Range(lineNumber, startColumn - 1, lineNumber, startColumn));
+	return /\s|[\(\[\{\"\'\`]/.test(charBefore);
 }
 
-/**
- * Returns `true` when the cursor sits inside a non-empty token whose first
- * character is one of the given trigger characters (or is positioned right
- * after such a token). Used to gate completion providers so they only run
- * when the user is actively editing a trigger-led token.
- */
 export function isAtTriggerCharacterToken(model: ITextModel, position: Position, triggerCharacters: readonly string[]): boolean {
 	if (triggerCharacters.length === 0) {
 		return false;
 	}
 	const line = model.getLineContent(position.lineNumber);
 	const beforeCursor = line.slice(0, position.column - 1);
-	// The current token is everything from the last whitespace char (or
-	// start-of-line) up to the cursor.
 	const wsIdx = beforeCursor.search(/\s\S*$/);
 	const token = wsIdx >= 0 ? beforeCursor.slice(wsIdx + 1) : beforeCursor;
 	if (token.length === 0) {

@@ -95,12 +95,9 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
-		// The default keybindings.json updates based on keyboard layouts, so here we make sure
-		// if a model has been given out we update it accordingly.
 		this._register(keybindingService.onDidUpdateKeybindings(() => {
 			const model = modelService.getModel(this.defaultKeybindingsResource);
 			if (!model) {
-				// model has not been given out => nothing to do
 				return;
 			}
 			modelService.updateModel(model, defaultKeybindingsContents(keybindingService));
@@ -126,8 +123,6 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 
 	private createOrGetCachedSettingsEditor2Input(): SettingsEditor2Input {
 		if (!this._cachedSettingsEditor2Input || this._cachedSettingsEditor2Input.isDisposed()) {
-			// Recreate the input if the user never opened the Settings editor,
-			// or if they closed it and want to reopen it.
 			this._cachedSettingsEditor2Input = new SettingsEditor2Input(this);
 		}
 		return this._cachedSettingsEditor2Input;
@@ -144,8 +139,6 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 
 	getDefaultSettingsContent(uri: URI): string | undefined {
 		if (this.isDefaultSettingsResource(uri)) {
-			// We opened a split json editor in this case,
-			// and this half shows the default settings.
 
 			const target = this.getConfigurationTargetFromDefaultSettingsResource(uri);
 			const defaultSettings = this.getDefaultSettings(target);
@@ -346,7 +339,6 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 			const editableKeybindings = this.userDataProfileService.currentProfile.keybindingsResource;
 			const openDefaultKeybindings = !!this.configurationService.getValue('workbench.settings.openDefaultKeybindings');
 
-			// Create as needed and open in editor
 			await this.createIfNotExists(editableKeybindings, emptyContents);
 			if (openDefaultKeybindings) {
 				const sourceGroupId = options.groupId ?? this.editorGroupService.activeGroup.id;
@@ -375,12 +367,6 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 
 	private getEditorGroupFromOptions(options: { groupId?: number; openToSide?: boolean }): PreferredGroup {
 
-		// When the caller knows the source editor group (e.g. the editor title actions
-		// and their keyboard shortcuts that switch between the settings UI and JSON editor),
-		// open in that same group so the editor stays in the editor part (main, modal or
-		// auxiliary window) it was invoked from. If that group lives in the modal editor part,
-		// request the modal group so it stays modal; otherwise open in that exact group. This
-		// is skipped when opening to the side, where a new side group is preferred instead.
 		if (options?.groupId !== undefined && !options.openToSide) {
 			const group = this.editorGroupService.getGroup(options.groupId);
 			if (group) {
@@ -393,8 +379,8 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 		}
 
 		if (
-			this.configurationService.getValue<string>('workbench.editor.useModal') !== 'off' &&					// modal editors enabled in settings
-			!this.environmentService.enableSmokeTestDriver && !this.environmentService.extensionTestsLocationURI	// but not in smoke test or extension test environments to reduce flakiness
+			this.configurationService.getValue<string>('workbench.editor.useModal') !== 'off' &&
+			!this.environmentService.enableSmokeTestDriver && !this.environmentService.extensionTestsLocationURI
 		) {
 			return MODAL_GROUP;
 		}
@@ -621,7 +607,7 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 		}
 
 		let position = null;
-		const type = schema?.type ?? 'object' /* Type not defined or is an Override Identifier */;
+		const type = schema?.type ?? 'object' ;
 		let setting = settingsModel.getPreference(settingKey);
 		if (!setting && edit) {
 			let defaultValue = (type === 'object' || type === 'array') ? this.configurationService.inspect(settingKey).defaultValue : getDefaultValue(type);
@@ -644,7 +630,6 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 					position = { lineNumber: position.lineNumber + 1, column: model.getLineMaxColumn(position.lineNumber + 1) };
 					const firstNonWhiteSpaceColumn = model.getLineFirstNonWhitespaceColumn(position.lineNumber);
 					if (firstNonWhiteSpaceColumn) {
-						// Line has some text. Insert another new line.
 						codeEditor.setPosition({ lineNumber: position.lineNumber, column: firstNonWhiteSpaceColumn });
 						await this.instantiationService.invokeFunction(accessor => {
 							return CoreEditingCommands.LineBreakInsert.runEditorCommand(accessor, codeEditor, null);
@@ -685,13 +670,6 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 		return undefined;
 	}
 
-	/**
-	 * Should be of the format:
-	 * 	code://settings/settingName
-	 * Examples:
-	 * 	code://settings/files.autoSave
-	 *
-	 */
 	async handleURL(uri: URI): Promise<boolean> {
 		if (compareIgnoreCase(uri.authority, SETTINGS_AUTHORITY) !== 0) {
 			return false;
@@ -707,7 +685,6 @@ export class PreferencesService extends Disposable implements IPreferencesServic
 		let setting = this.getSetting(settingId);
 
 		if (!setting && this.extensionService.extensions.length === 0) {
-			// wait for extension points to be processed
 			await this.progressService.withProgress({ location: ProgressLocation.Window }, () => Event.toPromise(this.extensionService.onDidRegisterExtensions));
 			setting = this.getSetting(settingId);
 		}

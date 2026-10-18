@@ -19,7 +19,7 @@ import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { IEditToolLearningService } from '../common/editToolLearningService';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { IToolsService } from '../common/toolsService';
 import { ActionType } from './applyPatch/parser';
 import { EditFileResult } from './editFileToolResult';
@@ -35,7 +35,7 @@ export interface IEditFileParams {
 
 export const InternalEditToolId = 'vscode_editFile_internal';
 
-export class EditFileTool implements ICopilotTool<IEditFileParams> {
+export class EditFileTool implements IAgentTool<IEditFileParams> {
 	public static toolName = ToolName.EditFile;
 	public static readonly nonDeferred = true;
 	private promptContext?: IBuildPromptContext;
@@ -68,7 +68,6 @@ export class EditFileTool implements ICopilotTool<IEditFileParams> {
 
 		const existingDiagnostics = this.languageDiagnosticsService.getDiagnostics(uri);
 
-		// Wait for vscode to do the edit, call the codemapper service, wait for textedits to be applied
 		const internalOptions = {
 			...options,
 			input: {
@@ -92,15 +91,12 @@ export class EditFileTool implements ICopilotTool<IEditFileParams> {
 		if (document instanceof NotebookDocumentSnapshot) {
 			sendEditNotebookTelemetry(this.telemetryService, this.endpointProvider, 'insertEdit', uri, this.promptContext?.requestId, options.model ?? this.promptContext?.request?.model);
 		}
-		// Then fill in the tool result
 		return new LanguageModelToolResult([
 			new LanguageModelPromptTsxPart(
 				await renderPromptElementJSON(
 					this.instantiationService,
 					EditFileResult,
 					{ files: [{ operation: ActionType.UPDATE, uri, isNotebook, existingDiagnostics }], toolName: ToolName.EditFile, requestId: options.chatRequestId, model: options.model },
-					// If we are not called with tokenization options, have _some_ fake tokenizer
-					// otherwise we end up returning the entire document
 					options.tokenizationOptions ?? {
 						tokenBudget: 1000,
 						countTokens: (t) => Promise.resolve(t.length * 3 / 4)

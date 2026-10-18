@@ -40,7 +40,7 @@ index 0877b83..6260896 100644
 				uri: document.uri,
 				originalUri: document.uri,
 				renameUri: undefined,
-				status: 5 /* Modified */,
+				status: 5 ,
 				diff
 			} satisfies Diff
 		];
@@ -85,7 +85,7 @@ index 0877b83..6260896 100644
 				uri: document.uri,
 				originalUri: document.uri,
 				renameUri: undefined,
-				status: 5 /* Modified */,
+				status: 5 ,
 				diff
 			} satisfies Diff
 		];
@@ -137,7 +137,7 @@ index 0877b83..6260896 100644
 				uri: document.uri,
 				originalUri: document.uri,
 				renameUri: undefined,
-				status: 5 /* Modified */,
+				status: 5 ,
 				diff
 			} satisfies Diff
 		];

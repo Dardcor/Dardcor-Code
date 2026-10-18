@@ -71,8 +71,8 @@ export class TextChange {
 
 	public writeSize(): number {
 		return (
-			+ 4 // oldPosition
-			+ 4 // newPosition
+			+ 4
+			+ 4
 			+ TextChange._writeStringSize(this.oldText)
 			+ TextChange._writeStringSize(this.newText)
 		);
@@ -179,7 +179,6 @@ class TextChangeCompressor {
 				continue;
 			}
 
-			// At this point, currEdit.oldPosition === prevEdit.newPosition
 
 			let mergePrev: TextChange;
 			let mergeCurr: TextChange;
@@ -307,7 +306,6 @@ class TextChangeCompressor {
 			const curr = edits[i];
 
 			if (prev.oldEnd === curr.oldPosition) {
-				// Merge into `prev`
 				prev = new TextChange(
 					prev.oldPosition,
 					prev.oldText + curr.oldText,

@@ -6,32 +6,22 @@
 import * as nls from '../../../../nls.js';
 import { registerSize, sizeForAllThemes } from '../sizeUtils.js';
 
-// ------ Font Sizes
 
-/** @deprecated Use {@link fontSizeBody1} instead. */
 export const bodyFontSize = registerSize('bodyFontSize',
 	sizeForAllThemes(13, 'px'),
 	nls.localize('bodyFontSize', "Base font size. This size is used if not overridden by a component."),
 	nls.localize('bodyFontSize.deprecated', "Deprecated: use `fontSize.body1` instead."));
 
-/** @deprecated Use {@link fontSizeLabel1} instead. */
 export const bodyFontSizeSmall = registerSize('bodyFontSize.small',
 	sizeForAllThemes(12, 'px'),
 	nls.localize('bodyFontSizeSmall', "Small font size for secondary content."),
 	nls.localize('bodyFontSizeSmall.deprecated', "Deprecated: use `fontSize.label1` instead."));
 
-/** @deprecated Use {@link fontSizeBody2} instead. */
 export const bodyFontSizeXSmall = registerSize('bodyFontSize.xSmall',
 	sizeForAllThemes(11, 'px'),
 	nls.localize('bodyFontSizeXSmall', "Extra small font size for less prominent content."),
 	nls.localize('bodyFontSizeXSmall.deprecated', "Deprecated: use `fontSize.body2` instead."));
 
-// ------ Font ramp
-//
-// A generic font-size ramp (headings, body and labels) mirroring the agents
-// window ramp. "Strong" variants are NOT separate size tokens: reuse the
-// matching size token paired with `fontWeight.semiBold` (600). Regular text
-// pairs with `fontWeight.regular` (400).
 
 export const fontSizeHeading1 = registerSize('fontSize.heading1',
 	sizeForAllThemes(26, 'px'),
@@ -65,10 +55,6 @@ export const fontSizeLabel3 = registerSize('fontSize.label3',
 	sizeForAllThemes(10, 'px'),
 	nls.localize('fontSizeLabel3', "Label 3 font size (badge)."));
 
-// ------ Font weights
-//
-// A two-weight ramp (regular/semiBold). "Strong" emphasis reuses the matching
-// font-size token paired with `fontWeight.semiBold`.
 
 export const fontWeightRegular = registerSize('fontWeight.regular',
 	sizeForAllThemes(400, ''),
@@ -86,7 +72,6 @@ export const codiconFontSizeCompact = registerSize('codiconFontSize.compact',
 	sizeForAllThemes(12, 'px'),
 	nls.localize('codiconFontSizeCompact', "Compact font size for codicons."));
 
-// ------ Corner Radii
 
 export const cornerRadiusMedium = registerSize('cornerRadius.medium',
 	sizeForAllThemes(6, 'px'),
@@ -112,17 +97,11 @@ export const cornerRadiusCircle = registerSize('cornerRadius.circle',
 	sizeForAllThemes(9999, 'px'),
 	nls.localize('cornerRadiusCircle', "Circular corner radius for fully rounded UI elements."));
 
-// ------ Stroke Thickness
 
 export const strokeThickness = registerSize('strokeThickness',
 	sizeForAllThemes(1, 'px'),
 	nls.localize('strokeThickness', "Base stroke thickness for borders and outlines."));
 
-// ------ Spacing ramp
-//
-// A fixed ramp of spacing tokens used for padding, margins and gaps. Numeric tokens
-// encode the value in tenths of a pixel (e.g. `size200` is 20px). `sizeNone`
-// represents 0px, matching the design system's spacing ramp.
 
 export const spacingNone = registerSize('spacing.sizeNone',
 	sizeForAllThemes(0, 'px'),

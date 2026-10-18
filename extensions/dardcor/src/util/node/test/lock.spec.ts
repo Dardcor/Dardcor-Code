@@ -28,7 +28,6 @@ suite('Lock', async function () {
 		assert.strictEqual(released, false);
 		lock.release();
 
-		// wait 1 tick
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		assert.strictEqual(released, true);

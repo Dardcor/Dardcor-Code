@@ -13,9 +13,6 @@ import { isReplEditorControl } from '../../replNotebook/browser/replEditor.js';
 import { IS_COMPOSITE_NOTEBOOK, NOTEBOOK_CELL_LIST_FOCUSED } from '../common/notebookContextKeys.js';
 import { getAllOutputsText } from './viewModel/cellOutputTextHelper.js';
 
-/**
- * The REPL input is already accessible, so we can show a view for the most recent execution output.
- */
 export class ReplEditorAccessibleView implements IAccessibleViewImplementation {
 	readonly priority = 100;
 	readonly name = 'replEditorInput';
@@ -34,7 +31,6 @@ export function getAccessibleOutputProvider(editorService: IEditorService) {
 		const notebookEditor = editorControl.notebookEditor;
 		const viewModel = notebookEditor?.getViewModel();
 		if (notebookEditor && viewModel) {
-			// last cell of the viewmodel is the last cell history
 			const lastCellIndex = viewModel.length - 1;
 			if (lastCellIndex >= 0) {
 				const cell = viewModel.viewCells[lastCellIndex];

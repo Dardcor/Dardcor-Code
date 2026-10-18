@@ -24,7 +24,7 @@ suite('PositionOffsetTransformer', () => {
 	test('should get correct offset for a position', () => {
 		const position = new Position(1, 2);
 		const offset = transformer.getOffset(position);
-		assert.equal(offset, 8); // 6 (line1\n) + 2 (line2)
+		assert.equal(offset, 8);
 	});
 
 	test('should get correct position for an offset', () => {
@@ -86,7 +86,6 @@ suite('PositionOffsetTransformer', () => {
 		const newText = transformer.getText();
 		assert.equal(newText, 'line1Hello \nline2 World\nline3');
 
-		// Additional assertions
 		assert.equal(transformer.getPosition(11).line, 0);
 		assert.equal(transformer.getPosition(11).character, 11);
 		assert.equal(transformer.getPosition(12).line, 1);
@@ -106,7 +105,6 @@ suite('PositionOffsetTransformer', () => {
 		const newText = transformer.getText();
 		assert.equal(newText, '\n\nline3');
 
-		// Additional assertions
 		assert.equal(transformer.getPosition(0).line, 0);
 		assert.equal(transformer.getPosition(0).character, 0);
 		assert.equal(transformer.getPosition(1).line, 1);
@@ -128,7 +126,6 @@ suite('PositionOffsetTransformer', () => {
 		const newText = transformer.getText();
 		assert.equal(newText, 'Hello\nWorld\nTest');
 
-		// Additional assertions
 		assert.equal(transformer.getPosition(5).line, 0);
 		assert.equal(transformer.getPosition(5).character, 5);
 		assert.equal(transformer.getPosition(6).line, 1);
@@ -146,7 +143,6 @@ suite('PositionOffsetTransformer', () => {
 		const newText = transformer.getText();
 		assert.equal(newText, 'line1\nInserted\nText\n\nline2\nline3');
 
-		// Additional assertions
 		assert.equal(transformer.getPosition(6).line, 1);
 		assert.equal(transformer.getPosition(6).character, 0);
 		assert.equal(transformer.getPosition(14).line, 1);
@@ -171,7 +167,6 @@ suite('PositionOffsetTransformer', () => {
 		const newText = transformer.getText();
 		assert.equal(newText, 'line1\r\nInserted\r\nText\r\n\r\nline2\r\nline3');
 
-		// Additional assertions
 		assert.equal(transformer.getPosition(7).line, 1);
 		assert.equal(transformer.getPosition(7).character, 0);
 		assert.equal(transformer.getPosition(15).line, 1);

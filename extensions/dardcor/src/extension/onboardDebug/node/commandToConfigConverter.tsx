@@ -44,10 +44,6 @@ export class DebugCommandToConfigConverter implements IDebugCommandToConfigConve
 	) {
 	}
 
-	/**
-	 * Converts a command run in the given working directory to a VS Code
-	 * launch config.
-	 */
 	public async convert(cwd: string, args: readonly string[], token: CancellationToken): Promise<IDebugConfigResult> {
 		const relCwd = getPathRelativeToWorkspaceFolder(cwd, this.workspace);
 
@@ -82,14 +78,6 @@ export class DebugCommandToConfigConverter implements IDebugCommandToConfigConve
 
 		const config = parseLaunchConfigFromResponse(fetchResult.value, this.extensionsService);
 
-		/* __GDPR__
-		"onboardDebug.configGenerated" : {
-			"owner": "connor4312",
-			"comment": "Reports usages of the dardcor-debug command",
-			"configGenerated": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether a config was generated", "isMeasurement": true },
-			"configType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "command": "launch.json config type generated, if any" }
-		}
-		*/
 		this.telemetry.sendMSFTTelemetryEvent('onboardDebug.configGenerated', {
 			configType: config?.configurations[0].type,
 		}, {

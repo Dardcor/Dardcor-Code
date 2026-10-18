@@ -109,7 +109,7 @@ suite('ExtHostWebview', () => {
 	});
 
 	test('asWebviewUri for local file paths', () => {
-		const webview = createWebview(rpcProtocol, /* remoteAuthority */undefined);
+		const webview = createWebview(rpcProtocol, undefined);
 
 		assert.strictEqual(
 			(webview.webview.asWebviewUri(URI.parse('file:///Users/codey/file.html')).toString()),
@@ -143,7 +143,7 @@ suite('ExtHostWebview', () => {
 	});
 
 	test('asWebviewUri for remote file paths', () => {
-		const webview = createWebview(rpcProtocol, /* remoteAuthority */ 'remote');
+		const webview = createWebview(rpcProtocol, 'remote');
 
 		assert.strictEqual(
 			(webview.webview.asWebviewUri(URI.parse('file:///Users/codey/file.html')).toString()),
@@ -153,7 +153,7 @@ suite('ExtHostWebview', () => {
 	});
 
 	test('asWebviewUri for remote with / and + in name', () => {
-		const webview = createWebview(rpcProtocol, /* remoteAuthority */ 'remote');
+		const webview = createWebview(rpcProtocol, 'remote');
 		const authority = 'ssh-remote+localhost=foo/bar';
 
 		const sourceUri = URI.from({
@@ -176,7 +176,7 @@ suite('ExtHostWebview', () => {
 	});
 
 	test('asWebviewUri for remote with port in name', () => {
-		const webview = createWebview(rpcProtocol, /* remoteAuthority */ 'remote');
+		const webview = createWebview(rpcProtocol, 'remote');
 		const authority = 'localhost:8080';
 
 		const sourceUri = URI.from({
@@ -281,9 +281,9 @@ suite('ExtHostWebview', () => {
 
 function createNoopMainThreadWebviews() {
 	return new class extends mock<MainThreadWebviewManager>() {
-		$disposeWebview() { /* noop */ }
-		$createWebviewPanel() { /* noop */ }
-		$registerSerializer() { /* noop */ }
-		$unregisterSerializer() { /* noop */ }
+		$disposeWebview() { }
+		$createWebviewPanel() { }
+		$registerSerializer() { }
+		$unregisterSerializer() { }
 	};
 }

@@ -30,10 +30,6 @@ import { ILanguageModelChatMetadata, LanguageModelPartAudience } from '../langua
 import { UserSelectedTools } from '../participants/chatAgents.js';
 import { PromptElementJSON, stringifyPromptElementJSON } from './promptTsxTypes.js';
 
-/**
- * Selector for matching language models by vendor, family, version, or id.
- * Used to filter tools to specific models or model families.
- */
 export interface ILanguageModelChatSelector {
 	readonly vendor?: string;
 	readonly family?: string;
@@ -54,38 +50,20 @@ export interface IToolData {
 	readonly modelDescription: string;
 	readonly inputSchema?: IJSONSchema;
 	readonly canBeReferencedInPrompt?: boolean;
-	/**
-	 * True if the tool runs in the (possibly remote) workspace, false if it runs
-	 * on the host, undefined if known.
-	 */
 	readonly runsInWorkspace?: boolean;
 	readonly alwaysDisplayInputOutput?: boolean;
-	/** True if this tool might ask for pre-approval */
 	readonly canRequestPreApproval?: boolean;
-	/** True if this tool might ask for post-approval */
 	readonly canRequestPostApproval?: boolean;
-	/**
-	 * Model selectors that this tool is available for.
-	 * If defined, the tool is only available when the selected model matches one of the selectors.
-	 */
 	readonly models?: readonly ILanguageModelChatSelector[];
 }
 
-/**
- * Check if a tool matches the given model metadata based on the tool's `models` selectors.
- * If the tool has no `models` defined, it matches all models.
- * If model is undefined, model-specific filtering is skipped (tool is included).
- */
 export function toolMatchesModel(toolData: IToolData, model: ILanguageModelChatMetadata | undefined): boolean {
-	// If no model selectors are defined, the tool is available for all models
 	if (!toolData.models || toolData.models.length === 0) {
 		return true;
 	}
-	// If model is undefined, skip model-specific filtering
 	if (!model) {
 		return true;
 	}
-	// Check if any selector matches the model (OR logic)
 	return toolData.models.some(selector =>
 		(!selector.id || selector.id === model.id) &&
 		(!selector.vendor || selector.vendor === model.vendor) &&
@@ -96,7 +74,6 @@ export function toolMatchesModel(toolData: IToolData, model: ILanguageModelChatM
 
 export interface IToolProgressStep {
 	readonly message: string | IMarkdownString | undefined;
-	/** 0-1 progress of the tool call */
 	readonly progress?: number;
 }
 
@@ -133,7 +110,6 @@ export namespace ToolDataSource {
 
 	export const Internal: ToolDataSource = { type: 'internal', label: 'Built-In' };
 
-	/** External tools may not be contributed or invoked, but may be invoked externally and described in an IChatToolInvocationSerialized */
 	export const External: ToolDataSource = { type: 'external', label: 'External' };
 
 	export function toKey(source: ToolDataSource): string {
@@ -163,9 +139,6 @@ export namespace ToolDataSource {
 	}
 }
 
-/**
- * Pre-tool-use hook result passed from the extension when the hook was executed externally.
- */
 export interface IExternalPreToolUseHookResult {
 	permissionDecision?: 'allow' | 'deny' | 'ask';
 	permissionDecisionReason?: string;
@@ -182,48 +155,20 @@ export interface IToolInvocation {
 	context: IToolInvocationContext | undefined;
 	chatRequestId?: string;
 	chatInteractionId?: string;
-	/**
-	 * Optional tool call ID from the chat stream, used to correlate with pending streaming tool calls.
-	 */
 	chatStreamToolCallId?: string;
-	/**
-	 * Lets us add some nicer UI to toolcalls that came from a sub-agent, but in the long run, this should probably just be rendered in a similar way to thinking text + tool call groups
-	 */
 	subAgentInvocationId?: string;
 	toolSpecificData?: IChatTerminalToolInvocationData | IChatToolInputInvocationData | IChatExtensionsContent | IChatTodoListContent | IChatSubagentToolInvocationData | IChatSimpleToolInvocationData | IChatSearchToolInvocationData | IChatModifiedFilesConfirmationData | IChatAgentFeedbackReviewConfirmationData | IChatSessionCreatedData | IChatGeneratedImageData | IChatAutomationConfigurationData | IChatAutomationConfiguredData;
 	modelId?: string;
 	userSelectedTools?: UserSelectedTools;
-	/** The label of the custom button selected by the user during confirmation, if custom buttons were used. */
 	selectedCustomButton?: string;
-	/** Pre-tool-use hook result passed from the extension, if the hook was already executed externally. */
 	preToolUseResult?: IExternalPreToolUseHookResult;
-	/**
-	 * A confirmation reason resolved out-of-band by the caller (e.g. the agent
-	 * host, which decides auto-approval server-side). When set, the invocation
-	 * is treated as already auto-approved and transitions straight to executing
-	 * without ever entering the `WaitingForConfirmation` state. This avoids a
-	 * transient "needs input" flicker in surfaces (like the sessions list) that
-	 * observe pending confirmations, for tool calls that will be auto-approved
-	 * anyway.
-	 */
 	preApproved?: ConfirmedReason;
-	/**
-	 * Optional W3C trace context `traceparent` value identifying the parent distributed
-	 * tracing span for this tool invocation. Forwarded to MCP tool implementations as
-	 * `_meta.traceparent` (MCP SEP-414).
-	 */
 	traceparent?: string;
-	/** Optional W3C trace context `tracestate` value paired with {@link traceparent}. */
 	tracestate?: string;
 }
 
 export interface IToolInvocationContext {
 	readonly sessionResource: URI;
-	/**
-	 * The working directory URI associated with this session.
-	 * Only set in the agents window context where each session can
-	 * have its own working directory that differs from the workspace folders.
-	 */
 	readonly workingDirectory?: URI;
 }
 
@@ -240,30 +185,20 @@ export interface IToolInvocationPreparationContext {
 	chatSessionResource: URI | undefined;
 	chatInteractionId?: string;
 	modelId?: string;
-	/** If set, tells the tool that it should include confirmation messages. */
 	forceConfirmationReason?: string;
-	/**
-	 * The working directory URI for the session, if set.
-	 * Used by tools to resolve relative paths and check file access.
-	 */
 	workingDirectory?: URI;
 }
 
 export type ToolInputOutputBase = {
-	/** Mimetype of the value, optional */
 	mimeType?: string;
-	/** URI of the resource on the MCP server. */
 	uri?: URI;
-	/** If true, this part came in as a resource reference rather than direct data. */
 	asResource?: boolean;
-	/** Audience of the data part */
 	audience?: LanguageModelPartAudience[];
 };
 
 export type ToolInputOutputEmbedded = ToolInputOutputBase & {
 	type: 'embed';
 	value: string;
-	/** If true, value is text. If false or not given, value is base64 */
 	isText?: boolean;
 };
 
@@ -271,11 +206,9 @@ export type ToolInputOutputReference = ToolInputOutputBase & { type: 'ref'; uri:
 
 export interface IToolResultInputOutputDetails {
 	readonly input: string;
-	/** Language identifier for syntax highlighting the input. Defaults to 'json'. */
 	readonly inputLanguage?: string;
 	readonly output: (ToolInputOutputEmbedded | ToolInputOutputReference)[];
 	readonly isError?: boolean;
-	/** Raw MCP tool result for MCP App UI rendering */
 	readonly mcpOutput?: unknown;
 }
 
@@ -300,7 +233,6 @@ export interface IToolResult {
 	toolResultDetails?: Array<URI | Location> | IToolResultInputOutputDetails | IToolResultOutputDetails;
 	toolResultError?: string | boolean;
 	toolMetadata?: unknown;
-	/** Whether to ask the user to confirm these tool results. Overrides {@link IToolConfirmationMessages.confirmResults}. */
 	confirmResults?: boolean;
 }
 
@@ -356,29 +288,18 @@ export type IToolApprovalReason =
 	};
 
 export interface IToolConfirmationMessages {
-	/** Title for the confirmation. If set, the user will be asked to confirm execution of the tool */
 	title?: string | IMarkdownString;
-	/** MUST be set if `title` is also set */
 	message?: string | IMarkdownString;
 	disclaimer?: string | IMarkdownString;
-	/** Model-provided assessment of whether automatic approval is safe. */
 	approvalReason?: IToolApprovalReason;
-	/** Whether this confirmation is eligible for automatic approval. */
 	allowAutoConfirm?: boolean;
 	terminalCustomActions?: ToolConfirmationAction[];
-	/** If true, confirmation will be requested after the tool executes and before results are sent to the model */
 	confirmResults?: boolean;
-	/** If title is not set (no confirmation needed), this reason will be shown to explain why confirmation was not needed */
 	confirmationNotNeededReason?: string | IMarkdownString;
-	/** Custom options to display instead of the default Allow/Skip buttons. */
 	customOptions?: ConfirmationOption[];
-	/** When set, shows an additional approval option to approve this particular combination of tool and arguments */
 	approveCombination?: {
-		/** Human-readable label for the approval option */
 		label: string | IMarkdownString;
-		/** Precomputed SHA-256 key for the combination (set during tool preparation) */
 		key: string;
-		/** String representation of the arguments for this combination */
 		arguments?: string;
 	};
 }
@@ -432,12 +353,9 @@ export interface IToolSet {
 	readonly icon: ThemeIcon;
 	readonly source: ToolDataSource;
 	readonly description?: string;
-	/** A longer, human-readable description of what the tool set is for, shown as a subtitle in the Chat Customizations "Tools" section. */
 	readonly detail?: string;
 	readonly legacyFullNames?: string[];
-	/** When true, this tool set is deprecated: it is hidden from the Chat Customizations "Tools" section and these groupings will be removed when the Local harness is dropped. */
 	readonly deprecated?: boolean;
-	/** When true, this tool set is hidden from the chat tools picker (e.g. a customizations-only grouping). */
 	readonly hiddenInToolsPicker?: boolean;
 
 	getTools(r?: IReader): Iterable<IToolData>;
@@ -445,10 +363,6 @@ export interface IToolSet {
 
 
 
-/**
-* Maps tools and tool sets to their enablement state. Use a class to control creation of the map and ensure
-* that it is not mutated after creation.
-*/
 export class ToolAndToolSetEnablementMap implements Iterable<[IToolData | IToolSet, boolean]> {
 
 	static fromEntries(entries: Iterable<[IToolData | IToolSet, boolean]>): ToolAndToolSetEnablementMap {
@@ -493,9 +407,6 @@ export class ToolSet implements IToolSet {
 
 	protected readonly _toolSets = new ObservableSet<IToolSet>();
 
-	/**
-	 * A homogenous tool set only contains tools from the same source as the tool set itself
-	 */
 	readonly isHomogenous: IObservable<boolean>;
 
 	constructor(
@@ -597,12 +508,6 @@ export interface IBeginToolCallOptions {
 	chatRequestId?: string;
 	sessionResource?: URI;
 	subagentInvocationId?: string;
-	/**
-	 * Create the streaming invocation even when the tool does not
-	 * implement `handleToolStream`. Used by callers that need a
-	 * `ChatToolInvocation` handle to observe state transitions (e.g.
-	 * confirmation) before invoking the tool.
-	 */
 	force?: boolean;
 }
 
@@ -630,59 +535,22 @@ export interface ILanguageModelToolsService {
 	registerToolImplementation(id: string, tool: IToolImpl): IDisposable;
 	registerTool(toolData: IToolData, tool: IToolImpl): IDisposable;
 
-	/**
-	 * Get all tools currently enabled (matching `when` clauses and model).
-	 * @param model The language model metadata to filter tools by. If undefined, model-specific filtering is skipped.
-	 */
 	getTools(model: ILanguageModelChatMetadata | undefined): Iterable<IToolData>;
 
-	/**
-	 * Creats an observable of enabled tools in the context. Note the observable
-	 * should be created and reused, not created per reader, for example:
-	 *
-	 * ```
-	 * const toolsObs = toolsService.observeTools(model);
-	 * autorun(reader => {
-	 *  const tools = toolsObs.read(reader);
-	 *  ...
-	 * });
-	 * ```
-	 * @param model The language model metadata to filter tools by. If undefined, model-specific filtering is skipped.
-	 */
 	observeTools(model: ILanguageModelChatMetadata | undefined): IObservable<readonly IToolData[]>;
 
-	/**
-	 * Get all registered tools regardless of enablement state.
-	 * Use this for configuration UIs, completions, etc. where all tools should be visible.
-	 */
 	getAllToolsIncludingDisabled(): Iterable<IToolData>;
 
-	/**
-	 * Get a tool by its ID. Does not check when clauses.
-	 */
 	getTool(id: string): IToolData | undefined;
 
-	/**
-	 * Get a tool by its reference name. Does not check when clauses.
-	 */
 	getToolByName(name: string): IToolData | undefined;
 
-	/**
-	 * Begin a tool call in the streaming phase.
-	 * Creates a ChatToolInvocation in the Streaming state and appends it to the chat.
-	 * Returns the invocation so it can be looked up later when invokeTool is called.
-	 */
 	beginToolCall(options: IBeginToolCallOptions): IChatToolInvocation | undefined;
 
-	/**
-	 * Update the streaming state of a pending tool call.
-	 * Calls the tool's handleToolStream method to get a custom invocation message.
-	 */
 	updateToolStream(toolCallId: string, partialInput: unknown, token: CancellationToken): Promise<void>;
 
 	invokeTool(invocation: IToolInvocation, countTokens: CountTokensCallback, token: CancellationToken): Promise<IToolResult>;
 	cancelToolCallsForRequest(requestId: string): void;
-	/** Flush any pending tool updates to the extension hosts. */
 	flushToolUpdates(): void;
 
 	readonly toolSets: IObservable<Iterable<IToolSet>>;
@@ -691,19 +559,12 @@ export interface ILanguageModelToolsService {
 	getToolSetByName(name: string): IToolSet | undefined;
 	createToolSet(source: ToolDataSource, id: string, referenceName: string, options?: { icon?: ThemeIcon; description?: string; detail?: string; legacyFullNames?: string[]; deprecated?: boolean; hiddenInToolsPicker?: boolean }): ToolSet & IDisposable;
 
-	// tool names in prompt and agent files ('full reference names')
 	getFullReferenceNames(): Iterable<string>;
 	getFullReferenceName(tool: IToolData | IToolSet, toolSet?: IToolSet): string;
 	getFullReferenceNameMap(): Map<IToolData | IToolSet, string>;
 	getToolByFullReferenceName(fullReferenceName: string): IToolData | IToolSet | undefined;
 	getDeprecatedFullReferenceNames(): Map<string, Set<string>>;
 
-	/**
-	 * Gets the enablement maps based on the given set of references.
-	 * @param fullReferenceNames The full reference names of the tools and tool sets to enable.
-	 * @param model Optional language model metadata to filter tools by.
-	 * If undefined is passed, all tools will be returned, even if normally disabled.
-	 */
 	toToolAndToolSetEnablementMap(fullReferenceNames: readonly string[], model: ILanguageModelChatMetadata | undefined): ToolAndToolSetEnablementMap;
 
 	toFullReferenceNames(map: ToolAndToolSetEnablementMap): string[];

@@ -28,17 +28,14 @@ export class GitPostCommitCommandsProvider implements PostCommitCommandsProvider
 
 		const config = workspace.getConfiguration('git', Uri.file(repository.root));
 
-		// Branch protection
 		const isBranchProtected = repository.isBranchProtected();
 		const branchProtectionPrompt = config.get<'alwaysCommit' | 'alwaysCommitToNewBranch' | 'alwaysPrompt'>('branchProtectionPrompt')!;
 		const alwaysPrompt = isBranchProtected && branchProtectionPrompt === 'alwaysPrompt';
 		const alwaysCommitToNewBranch = isBranchProtected && branchProtectionPrompt === 'alwaysCommitToNewBranch';
 
-		// Icon
 		const isCommitInProgress = repository.operations.isRunning(OperationKind.Commit) || repository.operations.isRunning(OperationKind.PostCommitCommand);
 		const icon = isCommitInProgress ? '$(sync~spin)' : alwaysPrompt ? '$(lock)' : alwaysCommitToNewBranch ? '$(git-branch)' : undefined;
 
-		// Tooltip (default)
 		let pushCommandTooltip = !alwaysCommitToNewBranch ?
 			l10n.t('Commit & Push Changes') :
 			l10n.t('Commit to New Branch & Push Changes');
@@ -47,7 +44,6 @@ export class GitPostCommitCommandsProvider implements PostCommitCommandsProvider
 			l10n.t('Commit & Sync Changes') :
 			l10n.t('Commit to New Branch & Synchronize Changes');
 
-		// Tooltip (in progress)
 		if (isCommitInProgress) {
 			pushCommandTooltip = !alwaysCommitToNewBranch ?
 				l10n.t('Committing & Pushing Changes...') :
@@ -82,8 +78,6 @@ export class CommitCommandsCenter {
 
 	set postCommitCommand(command: string | null | undefined) {
 		if (command === undefined) {
-			// Commit WAS NOT initiated using the action button
-			// so there is no need to store the post-commit command
 			return;
 		}
 
@@ -98,7 +92,6 @@ export class CommitCommandsCenter {
 	) {
 		const root = Uri.file(repository.root);
 
-		// Migrate post commit command storage
 		this.migratePostCommitCommandStorage()
 			.then(() => {
 				const onRememberPostCommitCommandChange = async () => {
@@ -146,13 +139,10 @@ export class CommitCommandsCenter {
 	async executePostCommitCommand(command: string | null | undefined): Promise<void> {
 		try {
 			if (command === null) {
-				// No post-commit command
 				return;
 			}
 
 			if (command === undefined) {
-				// Commit WAS NOT initiated using the action button (ex: keybinding, toolbar action,
-				// command palette) so we have to honour the default post commit command (memento/setting).
 				const primaryCommand = this.getPrimaryCommand();
 				command = primaryCommand.arguments?.length === 2 ? primaryCommand.arguments[1] : null;
 			}
@@ -178,16 +168,13 @@ export class CommitCommandsCenter {
 	private getCommitCommands(): Command[] {
 		const config = workspace.getConfiguration('git', Uri.file(this.repository.root));
 
-		// Branch protection
 		const isBranchProtected = this.repository.isBranchProtected();
 		const branchProtectionPrompt = config.get<'alwaysCommit' | 'alwaysCommitToNewBranch' | 'alwaysPrompt'>('branchProtectionPrompt')!;
 		const alwaysPrompt = isBranchProtected && branchProtectionPrompt === 'alwaysPrompt';
 		const alwaysCommitToNewBranch = isBranchProtected && branchProtectionPrompt === 'alwaysCommitToNewBranch';
 
-		// Icon
 		const icon = alwaysPrompt ? '$(lock)' : alwaysCommitToNewBranch ? '$(git-branch)' : undefined;
 
-		// Tooltip (default)
 		const branch = this.repository.HEAD?.name;
 		let tooltip = alwaysCommitToNewBranch ?
 			l10n.t('Commit Changes to New Branch') :
@@ -195,7 +182,6 @@ export class CommitCommandsCenter {
 				l10n.t('Commit Changes on "{0}"', branch) :
 				l10n.t('Commit Changes');
 
-		// Tooltip (in progress)
 		if (this.repository.operations.isRunning(OperationKind.Commit)) {
 			tooltip = !alwaysCommitToNewBranch ?
 				l10n.t('Committing Changes...') :

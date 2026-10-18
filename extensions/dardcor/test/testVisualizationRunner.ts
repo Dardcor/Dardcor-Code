@@ -6,7 +6,6 @@ import { enableHotReload, hotRequire } from '@hediet/node-reload';
 import { Module } from 'module';
 import { IDebugValueEditorGlobals, IPlaygroundRunnerGlobals } from '../src/util/common/debugValueEditorGlobals';
 
-/** See {@link file://./../.vscode/extensions/visualization-runner/README.md} */
 
 enableHotReload({ loggingEnabled: false });
 
@@ -28,7 +27,6 @@ function run(args: { fileName: string; path: string[] }) {
 const g = globalThis as unknown as IDebugValueEditorGlobals & IPlaygroundRunnerGlobals;
 g.$$playgroundRunner_data = { currentPath: [] };
 
-// The timeout seems to fix a deadlock-issue of tsx, when the run function is called from the debugger.
 g.$$debugValueEditor_run = args => (setTimeout(() => { run(args); }, 0));
 (g.$$debugValueEditor_debugChannels ?? (g.$$debugValueEditor_debugChannels = {}))['run'] = host => ({
 	handleRequest: (args) => { setTimeout(() => run(args as any), 0); }

@@ -45,17 +45,14 @@ suite('keyboardMapper - MAC de_ch', () => {
 	}
 
 	test('kb => hw', () => {
-		// unchanged
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.Digit1, 'cmd+Digit1');
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.KeyB, 'cmd+KeyB');
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyB, 'shift+cmd+KeyB');
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyMod.Shift | KeyMod.Alt | KeyMod.WinCtrl | KeyCode.KeyB, 'ctrl+shift+alt+cmd+KeyB');
 
-		// flips Y and Z
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.KeyZ, 'cmd+KeyY');
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.KeyY, 'cmd+KeyZ');
 
-		// Ctrl+/
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.Slash, 'shift+cmd+Digit7');
 	});
 
@@ -542,17 +539,14 @@ suite('keyboardMapper - LINUX de_ch', () => {
 	}
 
 	test('kb => hw', () => {
-		// unchanged
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.Digit1, 'ctrl+Digit1');
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.KeyB, 'ctrl+KeyB');
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyB, 'ctrl+shift+KeyB');
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyMod.Shift | KeyMod.Alt | KeyMod.WinCtrl | KeyCode.KeyB, 'ctrl+shift+alt+meta+KeyB');
 
-		// flips Y and Z
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.KeyZ, 'ctrl+KeyY');
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.KeyY, 'ctrl+KeyZ');
 
-		// Ctrl+/
 		assertKeybindingTranslation(KeyMod.CtrlCmd | KeyCode.Slash, 'ctrl+shift+Digit7');
 	});
 
@@ -1649,7 +1643,6 @@ suite('keyboardMapper', () => {
 			);
 		}
 
-		// https://github.com/microsoft/vscode/issues/24107#issuecomment-292318497
 		assertKeyboardEvent(KeyCode.UpArrow, 'Lang3', 'UpArrow', 'Up', 'up', '[ArrowUp]');
 		assertKeyboardEvent(KeyCode.DownArrow, 'NumpadEnter', 'DownArrow', 'Down', 'down', '[ArrowDown]');
 		assertKeyboardEvent(KeyCode.LeftArrow, 'Convert', 'LeftArrow', 'Left', 'left', '[ArrowLeft]');
@@ -1661,7 +1654,6 @@ suite('keyboardMapper', () => {
 		assertKeyboardEvent(KeyCode.PageDown, 'ControlRight', 'PageDown', 'PageDown', 'pagedown', '[PageDown]');
 		assertKeyboardEvent(KeyCode.PageUp, 'Lang4', 'PageUp', 'PageUp', 'pageup', '[PageUp]');
 
-		// https://github.com/microsoft/vscode/issues/24107#issuecomment-292323924
 		assertKeyboardEvent(KeyCode.PageDown, 'ControlRight', 'PageDown', 'PageDown', 'pagedown', '[PageDown]');
 		assertKeyboardEvent(KeyCode.PageUp, 'Lang4', 'PageUp', 'PageUp', 'pageup', '[PageUp]');
 		assertKeyboardEvent(KeyCode.End, '', 'End', 'End', 'end', '[End]');

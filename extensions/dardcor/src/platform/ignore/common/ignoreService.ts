@@ -8,7 +8,7 @@ import { createServiceIdentifier } from '../../../util/common/services';
 import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { URI } from '../../../util/dardcor/base/common/uri';
 
-export const HAS_IGNORED_FILES_MESSAGE = l10n.t('\n\n**Note:** Some files were excluded from the context due to content exclusion rules. Click [here](https://docs.github.com/en/dardcor/managing-github-dardcor-in-your-organization/configuring-content-exclusions-for-github-dardcor) to learn more.');
+export const HAS_IGNORED_FILES_MESSAGE = l10n.t('\n\n**Note:** Some files were excluded from the context by `.dardcorignore` rules.');
 
 export const IIgnoreService = createServiceIdentifier<IIgnoreService>('IIgnoreService');
 
@@ -18,18 +18,13 @@ export interface IIgnoreService {
 
 	isEnabled: boolean;
 
-	/**
-	 * Whether or not regex context exclusions are enabled.
-	 * If they're not enabled, you can use the `asMinimatchPattern` method to get a minimatch pattern that works for the exclusion rules.
-	 * Otherwise you will need to do a `.filter()` on the files yourself.
-	 */
 	isRegexExclusionsEnabled: boolean;
 
 	dispose(): void;
 
 	init(): Promise<void>;
 
-	isCopilotIgnored(file: URI, token?: CancellationToken): Promise<boolean>;
+	isIgnored(file: URI, token?: CancellationToken): Promise<boolean>;
 
 	asMinimatchPattern(): Promise<string | undefined>;
 }
@@ -52,7 +47,7 @@ export class NullIgnoreService implements IIgnoreService {
 
 	async init(): Promise<void> { }
 
-	async isCopilotIgnored(file: URI): Promise<boolean> {
+	async isIgnored(file: URI): Promise<boolean> {
 		return false;
 	}
 
@@ -64,7 +59,7 @@ export class NullIgnoreService implements IIgnoreService {
 export async function filterIngoredResources(ignoreService: IIgnoreService, resources: URI[]): Promise<URI[]> {
 	const result: URI[] = [];
 	for (const resource of resources) {
-		if (!await ignoreService.isCopilotIgnored(resource)) {
+		if (!await ignoreService.isIgnored(resource)) {
 			result.push(resource);
 		}
 	}

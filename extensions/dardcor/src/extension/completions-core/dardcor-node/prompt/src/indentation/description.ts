@@ -6,17 +6,10 @@
 import { IndentationTree, isBlank, isLine, isTop, isVirtual, JsonStable, LineNode } from './classes';
 import { foldTree } from './manipulation';
 
-/**
- * Format only the given line node, and *NOT* its subnodes.
- * This essentially comprise indentation and a trailing newline.
- */
 export function deparseLine<T>(node: LineNode<T>): string {
 	return ' '.repeat(node.indentation) + node.sourceLine + '\n';
 }
 
-/**
- * Return a flat string representation of the indentation tree.
- */
 export function deparseTree<L>(tree: IndentationTree<L>): string {
 	function accumulator(tree: IndentationTree<L>, accum: string): string {
 		let str = '';
@@ -30,23 +23,10 @@ export function deparseTree<L>(tree: IndentationTree<L>): string {
 	return foldTree(tree, '', accumulator, 'topDown');
 }
 
-/**
- * Return a list of flat strings whose concatenation equals `deparseTree`.
- * The source is cut at the lines whose labels appear in `cutAt`. In other
- * words, if a node has a labelled `A` that appears in `cutAt`, then there will
- * be at least three strings in the result: the concatenation of lines before
- * the node `A`, the lines covered by node `A`, and lines after the node `A`.
- *
- * FIXME: The cuts are *not* applied recursively: If e.g. node `A` has a
- * sub-node labelled `B` which is also in `cutAt`, then the result will still
- * contain only a single string for node `A`.
- *
- */
 export function deparseAndCutTree<L>(tree: IndentationTree<L>, cutAt: L[]): { label: L | undefined; source: string }[] {
 	const cutAtSet = new Set(cutAt);
 	const cuts: { label: L | undefined; source: string }[] = [];
 	let curUndef = '';
-	// Reimplement visitTree to avoid descending into cut nodes.
 	function visit(tree: IndentationTree<L>) {
 		if (tree.label !== undefined && cutAtSet.has(tree.label)) {
 			if (curUndef !== '') {
@@ -71,12 +51,6 @@ export function deparseAndCutTree<L>(tree: IndentationTree<L>, cutAt: L[]): { la
 	return cuts;
 }
 
-/**
- * Return a readable string representation of the tree.
- *
- * The output is closely related to building trees using the helper functions in
- * `indentation.test.ts`.
- */
 export function describeTree<L>(tree: IndentationTree<L>, indent = 0): string {
 	const ind = ' '.repeat(indent);
 	if (tree === undefined) {
@@ -104,10 +78,6 @@ export function describeTree<L>(tree: IndentationTree<L>, indent = 0): string {
 	}
 }
 
-/**
- * Return a string that mimics the call that would construct the tree
- * This is less readable than describeTree, but useful to write code.
- */
 export function encodeTree<T extends JsonStable>(tree: IndentationTree<T>, indent = ''): string {
 	const labelString = tree.label === undefined ? '' : `, ${JSON.stringify(tree.label)}`;
 
@@ -128,9 +98,6 @@ export function encodeTree<T extends JsonStable>(tree: IndentationTree<T>, inden
 	}
 }
 
-/**
- * Return the first line number of the given tree.
- */
 export function firstLineOf<L>(tree: IndentationTree<L>): number | undefined {
 	if (isLine(tree) || isBlank(tree)) {
 		return tree.lineNumber;
@@ -144,9 +111,6 @@ export function firstLineOf<L>(tree: IndentationTree<L>): number | undefined {
 	return undefined;
 }
 
-/**
- * Return the last line number of the given tree.
- */
 export function lastLineOf<L>(tree: IndentationTree<L>): number | undefined {
 	let lastLine: number | undefined = undefined;
 	let i = tree.subs.length - 1;

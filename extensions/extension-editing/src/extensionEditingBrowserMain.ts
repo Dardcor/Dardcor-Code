@@ -8,10 +8,8 @@ import { PackageDocument } from './packageDocumentHelper';
 import { PackageDocumentL10nSupport } from './packageDocumentL10nSupport';
 
 export function activate(context: vscode.ExtensionContext) {
-	//package.json suggestions
 	context.subscriptions.push(registerPackageDocumentCompletions());
 
-	//package.json go to definition for NLS strings
 	context.subscriptions.push(new PackageDocumentL10nSupport());
 }
 

@@ -77,7 +77,6 @@ export class IssueReporterOverlay {
 	private readonly _onDidRequestOpenScreenshot = new Emitter<IScreenshot>();
 	readonly onDidRequestOpenScreenshot: Event<IScreenshot> = this._onDidRequestOpenScreenshot.event;
 	private readonly _onDidChangeAttachments = new Emitter<void>();
-	/** Fires whenever the screenshot/recording collection changes so the host can persist it. */
 	readonly onDidChangeAttachments: Event<void> = this._onDidChangeAttachments.event;
 
 	private wizardPanel!: HTMLElement;
@@ -85,7 +84,6 @@ export class IssueReporterOverlay {
 	private stepContainer!: HTMLElement;
 	private readonly stepPages: HTMLElement[] = [];
 
-	// Step 1: Describe (category + description + title)
 	private readonly issueTypeButtons: Button[] = [];
 	private readonly issueSourceButtons: Button[] = [];
 	private selectedIssueType: IssueType | undefined;
@@ -115,7 +113,6 @@ export class IssueReporterOverlay {
 	private readonly _onDidRequestGenerateTitle = new Emitter<string>();
 	readonly onDidRequestGenerateTitle: Event<string> = this._onDidRequestGenerateTitle.event;
 
-	// Step 0: Screenshots & Recording
 	private screenshotContainer!: HTMLElement;
 	private screenshotDelay = 0;
 	private recordingElapsedTimer: number | undefined;
@@ -124,7 +121,6 @@ export class IssueReporterOverlay {
 	private delayedScreenshotPending = false;
 	private readonly recordings: { filePath: string; durationMs: number; thumbnailDataUrl?: string }[] = [];
 
-	// Step 2: Review
 	private reviewThumbCards: HTMLElement[] = [];
 	private readonly reviewRenderDisposables = new DisposableStore();
 	private readonly similarIssuesDisposables = new DisposableStore();
@@ -140,13 +136,11 @@ export class IssueReporterOverlay {
 	private performanceInfoLoaded = false;
 	private performanceInfoRefreshing = false;
 
-	// Navigation
 	private stepIndicator!: HTMLElement;
 	private stepLabel!: HTMLElement;
 	private backButton!: Button;
 	private nextButton!: Button;
 
-	// Progress dots
 	private readonly progressDots: HTMLElement[] = [];
 
 	private currentStep: WizardStep = WizardStep.Attachments;
@@ -171,7 +165,6 @@ export class IssueReporterOverlay {
 		private readonly openExternalLink?: (url: string) => Promise<void>,
 		private showUpdateBanner = false,
 		private readonly refreshPerformanceInfo?: () => Promise<void>,
-		/** Returns the user's currently-bound keybinding for the given command id, or undefined when unbound. */
 		private readonly resolveKeybinding?: (commandId: string) => ResolvedKeybinding | undefined,
 	) {
 		this._hideToolbarInScreenshots = initialHideToolbar;
@@ -201,12 +194,8 @@ export class IssueReporterOverlay {
 		this.wizardPanel.setAttribute('aria-label', localize('reportIssue', "Report Issue"));
 		this.wizardPanel.setAttribute('tabindex', '-1');
 
-		// Toolbar with progress indicator and navigation buttons. The nav buttons
-		// sit in their own row directly beneath the step indicator, aligned to the
-		// start, so they read as part of the step UI.
 		const toolbar = append(this.wizardPanel, $('div.wizard-toolbar'));
 
-		// Progress indicator area
 		const progressArea = append(toolbar, $('div.wizard-progress-area'));
 		const progressDotsContainer = append(progressArea, $('div.wizard-progress-dots'));
 		for (let i = 0; i < STEP_COUNT; i++) {
@@ -217,8 +206,6 @@ export class IssueReporterOverlay {
 		append(progressArea, $('span.wizard-step-separator'));
 		this.stepLabel = append(progressArea, $('span.wizard-step-label'));
 
-		// Navigation buttons placed in their own row directly under the step
-		// indicator, aligned to the start.
 		const nav = append(toolbar, $('div.wizard-nav'));
 
 		this.backButton = this.disposables.add(new Button(nav, { ...defaultButtonStyles, secondary: true }));
@@ -237,7 +224,6 @@ export class IssueReporterOverlay {
 		this.updateBanner.textContent = localize('updateAvailable', "A new version of {0} is available.", product.nameLong);
 		this.setUpdateAvailable(this.showUpdateBanner);
 
-		// Step content area
 		this.stepContainer = append(this.wizardPanel, $('div.wizard-step-container'));
 		this.createStep0Attachments();
 		this.createStep1Describe();
@@ -250,7 +236,6 @@ export class IssueReporterOverlay {
 		this.updateStepUI();
 	}
 
-	// Step 0: Attachments
 	private createStep0Attachments(): void {
 		const page = append(this.stepContainer, $('div.wizard-step'));
 		this.stepPages.push(page);
@@ -294,20 +279,15 @@ export class IssueReporterOverlay {
 
 	private createFloatingCaptureBar(): void {
 		const targetWindow = getWindow(this.container);
-		// Mount inside .monaco-workbench so VS Code's color theme CSS vars
-		// (--vscode-debugToolBar-background, etc.) cascade and the bar matches the
-		// active theme. body is outside that scope and the vars wouldn't resolve.
 		// eslint-disable-next-line no-restricted-syntax
 		const workbench = targetWindow.document.querySelector('.monaco-workbench') as HTMLElement | null;
 		const mountTarget = workbench ?? targetWindow.document.body;
 
 		this.floatingBar = $('div.issue-reporter-floating-bar');
 
-		// Drag handle
 		const dragArea = append(this.floatingBar, $('div.wizard-floating-drag'));
 		dragArea.appendChild(renderIcon(Codicon.gripper));
 
-		// Segmented screenshot button: [Screenshot | options]
 		const segmented = append(this.floatingBar, $('div.wizard-segmented-btn'));
 		const floatingButtonStyles = this.getFloatingBarButtonStyles(targetWindow);
 
@@ -316,7 +296,6 @@ export class IssueReporterOverlay {
 		captureBtn.label = `$(device-camera) ${localize('screenshot', "Screenshot")}`;
 		this.captureStripCaptureBtn = captureBtn;
 
-		// Delay/options dropdown using VS Code's context menu
 		const delayOptions = this.getScreenshotDelayOptions();
 		const delayDropdownButton = this.disposables.add(new Button(segmented, { ...floatingButtonStyles, supportIcons: true }));
 		delayDropdownButton.element.classList.add('wizard-segmented-dropdown');
@@ -331,7 +310,6 @@ export class IssueReporterOverlay {
 				if (!delayDropdownButton.enabled || menuOpen) {
 					return;
 				}
-				// Hide-toolbar-in-screenshots toggle (first)
 				const hideAction = new Action(
 					'hide-toolbar',
 					localize('hideToolbarInScreenshots', "Hide Toolbar in Screenshots"),
@@ -369,10 +347,6 @@ export class IssueReporterOverlay {
 				});
 			}));
 
-			// Close the delay menu when drag starts.
-			// The drag handler calls e.preventDefault() on pointerdown which
-			// suppresses the mousedown event that the context menu uses for
-			// outside-click detection, so we dispatch a synthetic one.
 			this.disposables.add(addDisposableListener(dragArea, EventType.POINTER_DOWN, () => {
 				dragArea.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
 			}));
@@ -383,7 +357,6 @@ export class IssueReporterOverlay {
 				return;
 			}
 			if (this.screenshotDelay > 0) {
-				// Lock width so button doesn't shrink during countdown
 				captureBtn.element.style.minWidth = `${captureBtn.element.offsetWidth}px`;
 				captureBtn.enabled = false;
 				this.delayedScreenshotPending = true;
@@ -412,7 +385,6 @@ export class IssueReporterOverlay {
 			}
 		}));
 
-		// Record button
 		if (this.recordingSupported) {
 			this.captureStripRecordBtn = this.disposables.add(new Button(this.floatingBar, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
 			this.captureStripRecordBtn.label = `$(record) ${localize('recordVideo', "Record video")}`;
@@ -428,7 +400,6 @@ export class IssueReporterOverlay {
 
 		mountTarget.appendChild(this.floatingBar);
 
-		// Dragging (clamped to window bounds)
 		let dragStartX = 0;
 		let dragStartY = 0;
 		let barStartX = 0;
@@ -466,11 +437,6 @@ export class IssueReporterOverlay {
 			targetWindow.document.addEventListener('pointerup', onPointerUp);
 		}));
 
-		// Keep the bar fully within the visible viewport when the window is
-		// resized. Without this, narrowing the window can clip the bar off the
-		// right edge — see screenshot in issue. The bar stays in its current
-		// relative position; we only nudge it inward when it would otherwise
-		// fall off-screen.
 		const clampIntoView = () => {
 			if (!this.floatingBar) {
 				return;
@@ -515,11 +481,9 @@ export class IssueReporterOverlay {
 		if (!this.floatingBar) {
 			return;
 		}
-		// Show on all steps so the user can capture screenshots of the wizard itself
 		this.floatingBar.style.display = '';
 	}
 
-	// Step 1: Describe (category + description + title)
 	private createStep1Describe(): void {
 		const page = append(this.stepContainer, $('div.wizard-step'));
 		this.stepPages.push(page);
@@ -527,7 +491,6 @@ export class IssueReporterOverlay {
 		const heading = append(page, $('h2.wizard-heading'));
 		heading.textContent = localize('describeHeading', "Describe your feedback");
 
-		// Issue guidance link — keep the same wording as the classic reporter.
 		if (this.markdownRendererService) {
 			const guidanceContainer = append(page, $('div.wizard-issue-guidance'));
 			const guidanceMd = new MarkdownString(localize(
@@ -547,16 +510,12 @@ export class IssueReporterOverlay {
 			this.disposables.add(rendered);
 		}
 
-		// Issue source selection + extension dropdown share a row when both are visible
 		const targetRow = append(page, $('div.wizard-target-row'));
 		const sourceField = append(targetRow, $('div.wizard-field.wizard-source-field'));
 		const sourceLabel = append(sourceField, $('label.wizard-field-label'));
 		sourceLabel.textContent = localize('target', "Target");
 		this.appendRequiredMarker(sourceLabel);
 		this.sourceButtonGroup = append(sourceField, $('div.wizard-type-buttons.wizard-source-buttons'));
-		// Create a button for every source up front so async-loaded extensions can
-		// reveal the Extension target later; updateIssueSourceButtons() controls
-		// which buttons are visible.
 		for (const option of this.getAllSourceOptions()) {
 			const btn = this.disposables.add(new Button(this.sourceButtonGroup, { ...defaultButtonStyles, secondary: true }));
 			btn.element.classList.add('wizard-type-btn', 'wizard-source-btn');
@@ -596,15 +555,12 @@ export class IssueReporterOverlay {
 		this.updateExtensionOptions();
 		this.updateExtensionFieldVisibility();
 
-		// Default the target to the most likely option when the reporter opens.
-		// Extension is preselected only when an extension id was already provided.
 		if (!this.selectedIssueSource) {
 			this.selectedIssueSource = this.data.extensionId ? IssueSource.Extension : IssueSource.VSCode;
 			this.updateIssueSourceFlags();
 		}
 		this.updateIssueSourceButtons();
 
-		// Category selection
 		const catLabel = append(page, $('label.wizard-field-label'));
 		catLabel.textContent = localize('feedbackCategory', "Category");
 		this.appendRequiredMarker(catLabel);
@@ -639,7 +595,6 @@ export class IssueReporterOverlay {
 		}
 		this.typeError = this.createFieldError(page, localize('categoryRequired', "Select a category to continue."));
 
-		// Title field with AI generate button next to label
 		const titleGroup = append(page, $('div.wizard-field.wizard-title-field'));
 		const titleLabelRow = append(titleGroup, $('div.wizard-title-label-row'));
 		const titleLabel = append(titleLabelRow, $('label.wizard-field-label'));
@@ -654,7 +609,6 @@ export class IssueReporterOverlay {
 		this.disposables.add(aiBtn.onDidClick(() => {
 			const desc = this.descriptionTextarea.value.trim();
 			if (desc && !aiBtn.element.classList.contains('loading')) {
-				// Lock width to prevent layout shift during loading
 				aiBtn.element.style.minWidth = `${aiBtn.element.offsetWidth}px`;
 				aiBtn.enabled = false;
 				aiBtn.label = `$(loading~spin) ${localize('generatingTitle', "Generating...")}`;
@@ -680,7 +634,6 @@ export class IssueReporterOverlay {
 		}));
 		this.titleError = this.createFieldError(titleGroup, localize('titleRequired', "Enter a title to continue."));
 
-		// Description field with guidance and auto-growing textarea
 		const descriptionGroup = append(page, $('div.wizard-field'));
 		const descLabel = append(descriptionGroup, $('label.wizard-field-label'));
 		descLabel.textContent = localize('description', "Description");
@@ -714,9 +667,6 @@ export class IssueReporterOverlay {
 		this.updateIssueSourceFlags();
 		this.updateTargetStatus();
 
-		// Default the category to Bug (most common). Must run after
-		// descriptionGuidance is initialized because selectType ->
-		// updateDescriptionGuidance touches it.
 		if (this.selectedIssueType === undefined) {
 			selectType(IssueType.Bug);
 		} else {
@@ -736,8 +686,6 @@ export class IssueReporterOverlay {
 			{ type: IssueType.FeatureRequest, label: localize('featureRequest', "Feature Request"), icon: Codicon.lightbulb },
 			{ type: IssueType.PerformanceIssue, label: localize('performanceIssue', "Performance Issue"), icon: Codicon.dashboard },
 		];
-		// The Marketplace target is for issues with the marketplace site/service
-		// itself, where performance metrics from a single VS Code instance aren't useful.
 		if (this.selectedIssueSource === IssueSource.Marketplace) {
 			return options.filter(o => o.type !== IssueType.PerformanceIssue);
 		}
@@ -754,8 +702,6 @@ export class IssueReporterOverlay {
 
 	private getSourceOptions(): { label: string; value: IssueSource }[] {
 		const options = this.getAllSourceOptions();
-		// The Extension target only applies when there are non-builtin, non-theme
-		// extensions to report against.
 		if (!this.hasReportableExtensions()) {
 			return options.filter(o => o.value !== IssueSource.Extension);
 		}
@@ -801,11 +747,6 @@ export class IssueReporterOverlay {
 		this.searchSimilarIssues();
 	}
 
-	/**
-	 * Hide or restore issue type buttons based on the current source. The Marketplace
-	 * source does not support reporting performance issues, so the button is hidden
-	 * and the selection falls back to Bug when it was the Performance option.
-	 */
 	private updateIssueTypeButtons(): void {
 		if (!this.issueTypeButtons.length) {
 			return;
@@ -839,10 +780,6 @@ export class IssueReporterOverlay {
 			selectedExtension: this.selectedExtension,
 		});
 		this.data.issueSource = this.selectedIssueSource;
-		// Preserve a preset `extensionId` while the extension list is still loading:
-		// `selectedExtension` may be undefined here even though the caller asked
-		// for a specific extension, and overwriting with `undefined` would prevent
-		// the catch-up retry in `updateExtensionOptions` from re-resolving it.
 		this.data.extensionId = fileOnExtension
 			? (this.selectedExtension?.id ?? this.data.extensionId)
 			: undefined;
@@ -908,12 +845,6 @@ export class IssueReporterOverlay {
 			? this.model.getData().allExtensions.find(candidate => candidate.id.toLowerCase() === extensionId.toLowerCase())
 			: undefined;
 		this.selectedExtension = extension;
-		// Preserve the requested extensionId even when the extension list hasn't
-		// been populated yet (typical wizard flow: the constructor runs before
-		// `populateReporterDataAsync` finishes filling `allExtensions`). Without
-		// this preservation, the later catch-up retry in `updateExtensionOptions`
-		// sees `this.data.extensionId === undefined` and never re-resolves,
-		// dropping any preset extension data with it.
 		if (extensionId === undefined || extension) {
 			this.data.extensionId = extension?.id;
 		}
@@ -927,20 +858,6 @@ export class IssueReporterOverlay {
 			return;
 		}
 
-		// Apply any preset extension data BEFORE the built-in source-switch below.
-		// When the reporter is opened programmatically (e.g. via the
-		// `workbench.action.openIssueReporter` command) with a preset `extensionId`
-		// plus extension `data`/`uri`, propagate that data onto the selected
-		// extension and the model so it shows up in the issue body. Doing this
-		// before the built-in early-return is important: extensions bundled with
-		// the dev build (Copilot, etc.) are flagged `isBuiltin`, which triggers
-		// the source switch to VSCode and returns — otherwise the preset data
-		// would be silently lost for every built-in caller. We guard on
-		// `!this.includeExtensionData` (rather than `!extension.data`) because
-		// `issueService` pre-populates `extension.data` on every enabled
-		// extension, so that field is not a reliable "already applied" signal —
-		// `includeExtensionData` is only flipped to `true` by
-		// `applyExtensionIssueData`.
 		const hasPresetData = !this.includeExtensionData && (this.data.data !== undefined || this.data.uri !== undefined || this.data.privateUri !== undefined);
 		if (!loadExtensionData && hasPresetData) {
 			this.applyExtensionIssueData(extension, this.data);
@@ -1155,7 +1072,6 @@ export class IssueReporterOverlay {
 				return duplicates;
 			}
 		} catch {
-			// Fall back to GitHub search below.
 		}
 
 		const repo = this.getIssueTargetRepo();
@@ -1193,7 +1109,6 @@ export class IssueReporterOverlay {
 		}
 	}
 
-	/** Clear the similar-issues container and re-render the section heading. */
 	private resetSimilarIssuesContainer(): void {
 		this.similarIssuesDisposables.clear();
 		this.similarIssuesContainer.textContent = '';
@@ -1201,12 +1116,10 @@ export class IssueReporterOverlay {
 		heading.textContent = localize('similarIssues', "Similar Issues");
 	}
 
-	/** Update the guidance text above the description based on selected category */
 	private updateDescriptionGuidance(): void {
 		const markdownHint = localize('markdownSupported', "Markdown formatting is supported.");
 		const perfWikiUrl = 'https://github.com/microsoft/vscode/wiki/Performance-Issues';
 
-		// Reset before updating
 		this.descriptionGuidanceDisposables.clear();
 		this.descriptionGuidance.textContent = '';
 		this.descriptionGuidance.classList.remove('wizard-description-guidance-with-link');
@@ -1266,7 +1179,6 @@ export class IssueReporterOverlay {
 		error.classList.toggle('hidden', !hasError);
 	}
 
-	// Step 2: Review & Submit
 	private createStep2Review(): void {
 		const page = append(this.stepContainer, $('div.wizard-step.wizard-step-review'));
 		this.stepPages.push(page);
@@ -1274,15 +1186,12 @@ export class IssueReporterOverlay {
 		const heading = append(page, $('h2.wizard-heading'));
 		heading.textContent = localize('reviewSubmit', "Review and submit");
 
-		// Review details (filled dynamically) with compact horizontal layout
 		append(page, $('div.wizard-review-details'));
 	}
 
 	private registerEventHandlers(): void {
-		// Back
 		this.disposables.add(this.backButton.onDidClick(() => this.goBack()));
 
-		// Next
 		this.disposables.add(this.nextButton.onDidClick(() => this.goNext()));
 	}
 
@@ -1327,9 +1236,6 @@ export class IssueReporterOverlay {
 		}
 
 		if (this.currentStep === WizardStep.Review) {
-			// Defensive: if user managed to invoke goNext while diagnostics are
-			// still loading (e.g. via Cmd/Ctrl+Enter), block the submit. The
-			// Preview button is also visually disabled in this state.
 			if (this.selectedIssueType === IssueType.PerformanceIssue && (!this.performanceInfoLoaded || this.performanceInfoRefreshing)) {
 				return;
 			}
@@ -1349,7 +1255,6 @@ export class IssueReporterOverlay {
 		const oldPage = this.stepPages[oldStep];
 		const newPage = this.stepPages[step];
 
-		// Immediate transition with no animation
 		oldPage.style.display = 'none';
 		newPage.style.display = 'flex';
 
@@ -1362,7 +1267,6 @@ export class IssueReporterOverlay {
 			this.searchSimilarIssues();
 			this.wizardPanel.focus();
 		} else {
-			// Attachments: focus the panel so keyboard shortcuts work
 			this.wizardPanel.focus();
 		}
 	}
@@ -1378,13 +1282,11 @@ export class IssueReporterOverlay {
 		];
 		this.stepLabel.textContent = stepNames[this.currentStep];
 
-		// Update progress dots
 		for (let i = 0; i < this.progressDots.length; i++) {
 			this.progressDots[i].classList.toggle('active', i === this.currentStep);
 			this.progressDots[i].classList.toggle('completed', i < this.currentStep);
 		}
 
-		// Show/hide pages
 		for (let i = 0; i < this.stepPages.length; i++) {
 			if (i === this.currentStep) {
 				this.stepPages[i].style.display = 'flex';
@@ -1393,14 +1295,12 @@ export class IssueReporterOverlay {
 			}
 		}
 
-		// Back button visibility
 		this.backButton.element.style.display = this.currentStep === WizardStep.Attachments ? 'none' : '';
 		if (this.closeButton) {
 			const currentDraftPreviewed = this.previewedDraftKey === this.getDraftKey();
 			this.closeButton.element.style.display = this.previewOpened && currentDraftPreviewed && this.currentStep === WizardStep.Review ? '' : 'none';
 		}
 
-		// Next button label
 		if (this.currentStep === WizardStep.Review) {
 			const externalExtensionUrl = this.selectedIssueSource === IssueSource.Extension && this.getIssueTargetUrl() && !this.isGitHubUrl(this.getIssueTargetUrl()!);
 			const waitingForData = this.selectedIssueType === IssueType.PerformanceIssue && (!this.performanceInfoLoaded || this.performanceInfoRefreshing);
@@ -1425,9 +1325,7 @@ export class IssueReporterOverlay {
 			this.nextButton.element.title = localize('next', "Next");
 		}
 
-		// Show/hide capture strip (only on attachments step)
 		this.updateCaptureStripVisibility();
-		// Reflect recording state on next button
 		this.updateNextButtonForRecording();
 	}
 
@@ -1485,7 +1383,6 @@ export class IssueReporterOverlay {
 			descValue.textContent = description || localize('noDescription', "(no description)");
 		}
 
-		// Attachments row with full-size clickable thumbnails
 		const totalAttachments = this.screenshots.length + this.recordings.length;
 		if (totalAttachments > 0) {
 			const attachSection = append(details as HTMLElement, $('div.review-section'));
@@ -1501,7 +1398,6 @@ export class IssueReporterOverlay {
 				img.src = s.annotatedDataUrl ?? s.dataUrl;
 				img.alt = localize('screenshotAlt', "Screenshot {0}", i + 1);
 
-				// Progress overlay (hidden initially)
 				const progressOverlay = append(card, $('div.review-progress-overlay'));
 				append(progressOverlay, $('div.review-progress-ring'));
 
@@ -1530,13 +1426,11 @@ export class IssueReporterOverlay {
 			}
 		}
 
-		// Diagnostic data sections with checkboxes and collapsible details
 		const diagContainer = append(details as HTMLElement, $('div.review-diagnostics'));
 
 		const modelData = this.model.getData();
 		let diagnosticSectionCount = 0;
 
-		// System Info
 		if (modelData.versionInfo || modelData.systemInfo) {
 			diagnosticSectionCount++;
 			this.createDiagSection(diagContainer, {
@@ -1572,11 +1466,6 @@ export class IssueReporterOverlay {
 		}
 
 		if (modelData.extensionData) {
-			// Match `buildIssueBody`, which only gates on `extensionData`. Gating
-			// here on `fileOnExtension` as well would hide the section in the
-			// review UI whenever the issue source was auto-switched away from
-			// Extension (e.g. built-in extensions are filed against VS Code),
-			// even though the extension data still ends up in the submitted body.
 			diagnosticSectionCount++;
 			this.createDiagSection(diagContainer, {
 				id: 'extension-data',
@@ -1593,7 +1482,6 @@ export class IssueReporterOverlay {
 			});
 		}
 
-		// Extensions (non-theme only)
 		const nonThemeExtensions = (modelData.allExtensions ?? []).filter(e => !e.isTheme && !e.isBuiltin);
 		if (!modelData.fileOnExtension && !modelData.fileOnMarketplace && nonThemeExtensions.length > 0) {
 			diagnosticSectionCount++;
@@ -1623,7 +1511,6 @@ export class IssueReporterOverlay {
 			});
 		}
 
-		// Experiments
 		if (modelData.experimentInfo) {
 			diagnosticSectionCount++;
 			this.createDiagSection(diagContainer, {
@@ -1667,11 +1554,6 @@ export class IssueReporterOverlay {
 						await this.refreshPerformanceInfo();
 					} finally {
 						this.performanceInfoRefreshing = false;
-						// updateModel inside refreshPerformanceInfo already re-renders the
-						// review step, so the previous performanceContainer/refreshBtn may
-						// be stale by now. Re-rendering once more here ensures the
-						// "refreshing" class is cleared and the button is re-enabled even
-						// if the model didn't update (e.g. error path).
 						if (this.currentStep === WizardStep.Review) {
 							this.updateReviewDetails();
 						}
@@ -1727,10 +1609,6 @@ export class IssueReporterOverlay {
 			const heading = document.createElement('div');
 			heading.className = 'review-diag-heading';
 
-			// Master checkbox before "Additional Information" shows/hides and
-			// includes/excludes the whole block. It is an explicit toggle
-			// controlled only by the user: clicking a per-section checkbox affects
-			// that section alone and never changes the master or hides the others.
 			const masterWrap = append(heading, $('div.review-diag-master-wrap'));
 			const masterCheckbox = this.disposables.add(new Checkbox(localize('additionalInformation', "Additional Information"), !this.diagnosticsCollapsed, defaultCheckboxStyles));
 			masterCheckbox.domNode.classList.add('review-diag-master-checkbox');
@@ -1742,13 +1620,11 @@ export class IssueReporterOverlay {
 				this.setAllDiagnosticSectionsIncluded(masterCheckbox.checked);
 			}));
 
-			// Hide all sections only when the user turns the master off.
 			diagContainer.classList.toggle('all-excluded', this.diagnosticsCollapsed);
 
 			diagContainer.prepend(heading);
 		}
 
-		// Align all title widths dynamically to the widest title so chevron columns line up.
 		// eslint-disable-next-line no-restricted-syntax
 		const titles = diagContainer.querySelectorAll('.review-diag-title');
 		let maxWidth = 0;
@@ -1793,8 +1669,6 @@ export class IssueReporterOverlay {
 		const group = append(parent, $('div.review-diag-group'));
 		group.classList.toggle('excluded', !opts.checked);
 
-		// Header layout: [Checkbox] [Chevron + Title (toggle area)]. The whole
-		// title area is clickable to expand/collapse.
 		const header = append(group, $('div.review-diag-header'));
 
 		const checkWrap = append(header, $('div.review-diag-check-wrap'));
@@ -1849,7 +1723,6 @@ export class IssueReporterOverlay {
 		td.textContent = value;
 	}
 
-	/** Called by the form service to show upload progress */
 	setUploading(uploading: boolean): void {
 		this.uploading = uploading;
 
@@ -1865,7 +1738,6 @@ export class IssueReporterOverlay {
 		}
 	}
 
-	/** Mark a specific attachment as uploading / done */
 	setAttachmentUploadState(index: number, state: 'pending' | 'uploading' | 'done'): void {
 		if (index < 0 || index >= this.reviewThumbCards.length) {
 			return;
@@ -1881,7 +1753,6 @@ export class IssueReporterOverlay {
 		}
 
 		if (state === 'done') {
-			// Replace ring with checkmark
 			overlay.textContent = '';
 			const check = $('span.review-progress-check');
 			check.appendChild(renderIcon(Codicon.check));
@@ -1892,7 +1763,6 @@ export class IssueReporterOverlay {
 	private submit(): void {
 		const title = this.titleInput.value.trim();
 		if (!title) {
-			// Should not happen: validated in goNext() on Describe step
 			return;
 		}
 
@@ -1946,8 +1816,6 @@ export class IssueReporterOverlay {
 			return;
 		}
 		this.screenshots.push(screenshot);
-		// Navigate to the Attachments step so the user sees where the screenshot
-		// was saved instead of staying on whatever step they were composing on.
 		if (this.currentStep !== WizardStep.Attachments) {
 			this.setStep(WizardStep.Attachments);
 		}
@@ -1956,7 +1824,6 @@ export class IssueReporterOverlay {
 		this.updateStepUI();
 		this._onDidChangeAttachments.fire();
 
-		// Immediately open the annotation editor for the new screenshot
 		this.openAnnotationEditor(this.screenshots.length - 1);
 	}
 
@@ -1965,9 +1832,7 @@ export class IssueReporterOverlay {
 		const maxMsg = localize('maxAttachmentsReached', "Max attachments reached");
 		const wouldReachMax = this.getTotalAttachments() >= MAX_ATTACHMENTS - 1;
 
-		// Screenshot disabled when: at max, OR recording will fill the last slot, OR delayed screenshot pending
 		const screenshotDisabled = atMax || (wouldReachMax && this.currentRecordingState === RecordingState.Recording) || this.delayedScreenshotPending;
-		// Record disabled when: at max, OR delayed screenshot will fill the last slot
 		const recordDisabled = atMax || (wouldReachMax && this.delayedScreenshotPending);
 
 		if (this.captureStripCaptureBtn) {
@@ -1975,7 +1840,6 @@ export class IssueReporterOverlay {
 			this.captureStripCaptureBtn.element.title = screenshotDisabled ? maxMsg : localize('screenshot', "Screenshot");
 		}
 		if (this.captureStripDelayBtn) {
-			// Delay dropdown also disabled while countdown is running
 			this.captureStripDelayBtn.enabled = !screenshotDisabled;
 			this.captureStripDelayBtn.element.title = screenshotDisabled ? maxMsg : localize('captureOptions', "Capture options");
 		}
@@ -1986,7 +1850,6 @@ export class IssueReporterOverlay {
 			}
 		}
 
-		// Disable "Preview on GitHub" while recording
 		this.updateNextButtonForRecording();
 	}
 
@@ -2059,12 +1922,10 @@ export class IssueReporterOverlay {
 			}));
 		}
 
-		// Recording thumbnails
 		for (let i = 0; i < this.recordings.length; i++) {
 			const rec = this.recordings[i];
 			const card = this.renderRecordingCard(this.screenshotContainer, rec, i);
 
-			// Click to open from OS
 			this.disposables.add(addDisposableListener(card, EventType.CLICK, () => {
 				this._onDidRequestOpenRecording.fire(rec.filePath);
 			}));
@@ -2106,12 +1967,6 @@ export class IssueReporterOverlay {
 			return;
 		}
 
-		// Per-editor lifecycle: each call creates a new editor that mounts an
-		// absolutely-positioned overlay on top of any previously-open editor and
-		// disposes itself on save/cancel. This gives us the stacking behavior the
-		// user expects when taking multiple screenshots in a row — the topmost
-		// editor handles save/cancel, then the previous one becomes visible
-		// again.
 		const screenshot = this.screenshots[index];
 		const editor = new ScreenshotAnnotationEditor(screenshot, this.wizardPanel, screenshot.annotationState);
 		this.disposables.add(editor);
@@ -2124,7 +1979,6 @@ export class IssueReporterOverlay {
 		}));
 
 		this.disposables.add(editor.onDidCancel(() => {
-			// nothing to do, editor disposes itself
 		}));
 	}
 
@@ -2136,13 +1990,6 @@ export class IssueReporterOverlay {
 		return this.recordings;
 	}
 
-	/**
-	 * Replace the current attachments with a previously-captured set. Used when the
-	 * issue reporter editor is moved between the main editor area and a modal editor
-	 * part in another editor group, which rebuilds the wizard and would otherwise drop
-	 * the in-memory screenshots and recordings. Does not fire
-	 * `onDidChangeAttachments` since the host is the source of this state.
-	 */
 	restoreAttachments(screenshots: readonly IScreenshot[], recordings: readonly { filePath: string; durationMs: number; thumbnailDataUrl?: string }[]): void {
 		this.screenshots.length = 0;
 		this.screenshots.push(...screenshots.slice(0, MAX_ATTACHMENTS));
@@ -2373,29 +2220,23 @@ ${rows.map(row => row.map(value => this.escapeMarkdownTableCell(value ?? '')).jo
 		return this._hideToolbarInScreenshots;
 	}
 
-	/** Re-parent the floating bar into the wizard's current window. */
 	reparentFloatingBar(): void {
 		if (!this.floatingBar) {
 			return;
 		}
 		const targetWindow = getWindow(this.container);
-		// Mount inside .monaco-workbench so theme CSS vars cascade. Fall back to
-		// document.body when no workbench root is present (shouldn't happen in
-		// practice but keeps the bar visible regardless).
 		// eslint-disable-next-line no-restricted-syntax
 		const workbench = targetWindow.document.querySelector('.monaco-workbench') as HTMLElement | null;
 		const mountTarget = workbench ?? targetWindow.document.body;
 		if (this.floatingBar.parentElement !== mountTarget) {
 			this.floatingBar.remove();
 			mountTarget.appendChild(this.floatingBar);
-			// Reset position so it appears in the new window
 			this.floatingBar.style.left = '';
 			this.floatingBar.style.top = '';
 			this.floatingBar.style.right = '30%';
 		}
 	}
 
-	/** Update the internal model with additional data loaded asynchronously */
 	updateModel(newData: Record<string, unknown>): void {
 		this.model.update(newData);
 		if (Array.isArray(newData.allExtensions)) {
@@ -2404,18 +2245,15 @@ ${rows.map(row => row.map(value => this.escapeMarkdownTableCell(value ?? '')).jo
 			this.updateIssueSourceFlags();
 			this.updateIssueSourceButtons();
 		}
-		// Refresh review details if we're on the review step (async data may have arrived)
 		if (this.currentStep === WizardStep.Review) {
 			this.updateReviewDetails();
 		}
 	}
 
-	/** Called once performance info has resolved; suppresses "Loading…" placeholders. */
 	markPerformanceInfoLoaded(): void {
 		this.performanceInfoLoaded = true;
 		if (this.currentStep === WizardStep.Review) {
 			this.updateReviewDetails();
-			// Re-enable the Preview button now that diagnostics are ready.
 			this.updateStepUI();
 		}
 	}
@@ -2461,7 +2299,6 @@ ${rows.map(row => row.map(value => this.escapeMarkdownTableCell(value ?? '')).jo
 		});
 	}
 
-	/** Set the title input value (e.g., from AI generation) */
 	setGeneratedTitle(title: string): void {
 		this.titleInput.value = title;
 		if (title.trim()) {
@@ -2477,9 +2314,7 @@ ${rows.map(row => row.map(value => this.escapeMarkdownTableCell(value ?? '')).jo
 		this.generateTitleBtn.enabled = this.hasDescriptionContent();
 	}
 
-	/** Show a "Close" button next to the submit button after successful submission */
 	showCloseButton(): void {
-		// Add close button next to the existing preview button
 		const nav = this.nextButton.element.parentElement;
 		// eslint-disable-next-line no-restricted-syntax
 		if (nav && !nav.querySelector('.wizard-close-btn')) {
@@ -2521,7 +2356,6 @@ ${rows.map(row => row.map(value => this.escapeMarkdownTableCell(value ?? '')).jo
 				}
 			}, 1000);
 		} else {
-			// Back to idle
 			if (this.recordingElapsedTimer !== undefined) {
 				getWindow(this.container).clearInterval(this.recordingElapsedTimer);
 				this.recordingElapsedTimer = undefined;
@@ -2540,7 +2374,6 @@ ${rows.map(row => row.map(value => this.escapeMarkdownTableCell(value ?? '')).jo
 
 	addRecording(filePath: string, durationMs: number, thumbnailDataUrl?: string): void {
 		this.recordings.push({ filePath, durationMs, thumbnailDataUrl });
-		// Navigate to the Attachments step so the user sees the saved recording.
 		if (this.currentStep !== WizardStep.Attachments) {
 			this.setStep(WizardStep.Attachments);
 		}
@@ -2557,16 +2390,6 @@ ${rows.map(row => row.map(value => this.escapeMarkdownTableCell(value ?? '')).jo
 		}
 	}
 
-	/**
-	 * Trigger a screenshot capture as if the user clicked the screenshot button
-	 * on the floating capture bar. The floating bar is mounted at the workbench
-	 * root and the button is enabled regardless of the current wizard step, so
-	 * the shortcut works from any step without changing it. The existing
-	 * capture flow opens the annotation editor and re-activates the issue
-	 * reporter editor when the screenshot is added.
-	 *
-	 * No-op when the capture button is disabled (e.g. at the attachment limit).
-	 */
 	triggerCaptureScreenshot(): void {
 		const btn = this.captureStripCaptureBtn;
 		if (!btn?.enabled) {
@@ -2575,11 +2398,6 @@ ${rows.map(row => row.map(value => this.escapeMarkdownTableCell(value ?? '')).jo
 		btn.element.click();
 	}
 
-	/**
-	 * Toggle screen recording on/off as if the user clicked the record button.
-	 * Works from any step without changing it. No-op when recording isn't
-	 * supported or the record button is disabled.
-	 */
 	triggerToggleRecording(): void {
 		if (!this.recordingSupported) {
 			return;

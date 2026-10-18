@@ -16,10 +16,6 @@ export const IPullRequestFileChangesService = createServiceIdentifier<IPullReque
 export interface IPullRequestFileChangesService {
 	readonly _serviceBrand: undefined;
 	getFileChangesMultiDiffPart(pullRequest: PullRequestSearchItem): Promise<vscode.ChatResponseMultiDiffPart | undefined>;
-	/**
-	 * Builds the changed-file list for a branch comparison (`base...head`), used to surface
-	 * file changes for cloud tasks that pushed a branch but have no pull request yet.
-	 */
 	getComparisonChangedFiles(params: { owner: string; repo: string; baseRef: string; headRef: string }): Promise<vscode.ChatSessionChangedFile[] | undefined>;
 }
 
@@ -51,7 +47,6 @@ export class PullRequestFileChangesService implements IPullRequestFileChangesSer
 				return undefined;
 			}
 
-			// Check if we have base and head commit SHAs
 			if (!pullRequest.baseRefOid || !pullRequest.headRefOid) {
 				this.logService.warn('PR missing base or head commit SHA, cannot create diff URIs');
 				return undefined;
@@ -76,12 +71,6 @@ export class PullRequestFileChangesService implements IPullRequestFileChangesSer
 		}
 	}
 
-	/**
-	 * Builds the changed-file list for a branch comparison (`base...head`) — used to surface
-	 * file changes for cloud tasks that pushed a branch but have no pull request yet. Mirrors
-	 * the PR path, but sources the file list (and the bounding commit SHAs) from the GitHub
-	 * compare API instead of a pull request.
-	 */
 	async getComparisonChangedFiles(params: { owner: string; repo: string; baseRef: string; headRef: string }): Promise<vscode.ChatSessionChangedFile[] | undefined> {
 		const { owner, repo, baseRef, headRef } = params;
 		try {
@@ -99,11 +88,6 @@ export class PullRequestFileChangesService implements IPullRequestFileChangesSer
 		}
 	}
 
-	/**
-	 * Builds the base/head/go-to content URIs for one changed file. Both sides use remote
-	 * `dardcor-pr` URIs so we always show the exact remote content regardless of the local
-	 * checkout. Shared by the pull-request and branch-comparison paths.
-	 */
 	private buildFileDiffUris(
 		file: PullRequestFile,
 		ctx: { owner: string; repo: string; prNumber?: number; baseSha: string; headSha: string },

@@ -161,7 +161,6 @@ class ModelSemanticColoring extends Disposable {
 			}
 		}));
 		this._register(this._model.onDidChangeLanguage(() => {
-			// clear any outstanding state
 			if (this._currentDocumentResponse) {
 				this._currentDocumentResponse.dispose();
 				this._currentDocumentResponse = null;
@@ -176,7 +175,6 @@ class ModelSemanticColoring extends Disposable {
 		}));
 
 		this._register(themeService.onDidColorThemeChange(_ => {
-			// clear out existing tokens
 			this._setDocumentSemanticTokens(null, null, null, []);
 			this._fetchDocumentSemanticTokens.schedule(this._debounceInformation.get(this._model));
 		}));
@@ -194,7 +192,6 @@ class ModelSemanticColoring extends Disposable {
 			return;
 		}
 		if (this._currentDocumentRequestCancellationTokenSource) {
-			// there is already a request running,
 			this._providersChangedDuringRequest = true;
 			return;
 		}
@@ -222,21 +219,17 @@ class ModelSemanticColoring extends Disposable {
 
 	private _fetchDocumentSemanticTokensNow(): void {
 		if (this._currentDocumentRequestCancellationTokenSource) {
-			// there is already a request running, let it finish...
 			return;
 		}
 
 		if (!hasDocumentSemanticTokensProvider(this._provider, this._model)) {
-			// there is no provider
 			if (this._currentDocumentResponse) {
-				// there are semantic tokens set
 				this._model.tokenization.setSemanticTokens(null, false);
 			}
 			return;
 		}
 
 		if (!this._model.isAttachedToEditor()) {
-			// this document is not visible, there is no need to fetch semantic tokens for it
 			return;
 		}
 
@@ -271,13 +264,10 @@ class ModelSemanticColoring extends Disposable {
 				errors.onUnexpectedError(err);
 			}
 
-			// Semantic tokens eats up all errors and considers errors to mean that the result is temporarily not available
-			// The API does not have a special error kind to express this...
 			this._currentDocumentRequestCancellationTokenSource = null;
 			contentChangeListener.dispose();
 
 			if (pendingChanges.length > 0 || this._providersChangedDuringRequest) {
-				// More changes occurred while the request was running
 				if (!this._fetchDocumentSemanticTokens.isScheduled()) {
 					this._fetchDocumentSemanticTokens.schedule(this._debounceInformation.get(this._model));
 				}
@@ -286,7 +276,6 @@ class ModelSemanticColoring extends Disposable {
 	}
 
 	private static _copy(src: Uint32Array, srcOffset: number, dest: Uint32Array, destOffset: number, length: number): void {
-		// protect against overflows
 		length = Math.min(length, dest.length - destOffset, src.length - srcOffset);
 		for (let i = 0; i < length; i++) {
 			dest[destOffset + i] = src[srcOffset + i];
@@ -306,7 +295,6 @@ class ModelSemanticColoring extends Disposable {
 			this._currentDocumentResponse = null;
 		}
 		if (this._isDisposed) {
-			// disposed!
 			if (provider && tokens) {
 				provider.releaseDocumentSemanticTokens(tokens.resultId);
 			}
@@ -324,12 +312,10 @@ class ModelSemanticColoring extends Disposable {
 
 		if (isSemanticTokensEdits(tokens)) {
 			if (!currentResponse) {
-				// not possible!
 				this._model.tokenization.setSemanticTokens(null, true);
 				return;
 			}
 			if (tokens.edits.length === 0) {
-				// nothing to do!
 				tokens = {
 					resultId: tokens.resultId,
 					data: currentResponse.data
@@ -350,7 +336,6 @@ class ModelSemanticColoring extends Disposable {
 
 					if (edit.start > srcData.length) {
 						styling.warnInvalidEditStart(currentResponse.resultId, tokens.resultId, i, edit.start, srcData.length);
-						// The edits are invalid and there's no way to recover
 						this._model.tokenization.setSemanticTokens(null, true);
 						return;
 					}
@@ -386,12 +371,7 @@ class ModelSemanticColoring extends Disposable {
 
 			const result = toMultilineTokens2(tokens, styling, this._model.getLanguageId());
 
-			// Adjust incoming semantic tokens
 			if (pendingChanges.length > 0) {
-				// More changes occurred while the request was running
-				// We need to:
-				// 1. Adjust incoming semantic tokens
-				// 2. Request them again
 				for (const change of pendingChanges) {
 					for (const area of result) {
 						for (const singleChange of change.changes) {

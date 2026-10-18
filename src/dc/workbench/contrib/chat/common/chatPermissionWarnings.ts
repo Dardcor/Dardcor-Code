@@ -13,15 +13,6 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { ASSISTED_APPROVAL_DONT_SHOW_AGAIN_KEY, AUTO_APPROVE_DONT_SHOW_AGAIN_KEY, AUTOPILOT_DONT_SHOW_AGAIN_KEY } from './chatPermissionStorageKeys.js';
 import { ChatConfiguration, ChatPermissionLevel } from './constants.js';
 
-/**
- * In-memory record of warnings already accepted in this VS Code session.
- * Checked alongside the persisted "Don't show again" storage value so that the
- * warning isn't repeated within a session even when the user didn't tick the
- * checkbox.
- *
- * Per-renderer; the `StorageScope.PROFILE` storage entry is what synchronizes
- * the dismissed state across windows (workbench and Agents).
- */
 const shownWarnings = new Set<ChatPermissionLevel>();
 
 function dontShowAgainKey(level: ChatPermissionLevel): string | undefined {
@@ -37,23 +28,10 @@ function dontShowAgainKey(level: ChatPermissionLevel): string | undefined {
 	return undefined;
 }
 
-/**
- * Clears the in-process suppression set so that previously accepted (but not
- * persistently dismissed) warnings will be shown again within this session.
- * Call this alongside removing the persisted storage keys when implementing a
- * "reset" developer action.
- */
 export function resetShownWarnings(): void {
 	shownWarnings.clear();
 }
 
-/**
- * Relative "auto-approval reach" of each elevated level, used to suppress
- * lower-level warnings once a stronger one has been accepted. Bypass Approvals
- * and Autopilot both auto-approve *every* tool call, so confirming either in
- * this session (or persistently) implies acceptance of the other — the user is
- * not warned again when stepping between them (e.g. Autopilot → Bypass).
- */
 const ELEVATION_RANK: ReadonlyMap<ChatPermissionLevel, number> = new Map([
 	[ChatPermissionLevel.Assisted, 1],
 	[ChatPermissionLevel.AutoApprove, 2],
@@ -65,8 +43,6 @@ export function hasShownElevatedWarning(level: ChatPermissionLevel, storageServi
 	if (rank === undefined) {
 		return false;
 	}
-	// Accepting any elevated level whose reach is >= this one (in this session
-	// or persistently) suppresses the warning.
 	for (const [candidate, candidateRank] of ELEVATION_RANK) {
 		if (candidateRank < rank) {
 			continue;
@@ -119,26 +95,6 @@ function getElevatedWarningCopy(level: ChatPermissionLevel, defaultSettingKey: s
 	}
 }
 
-/**
- * If `level` is an elevated permission level (Bypass Approvals or Autopilot)
- * that hasn't already been confirmed in this session or persistently
- * dismissed, show the corresponding warning dialog. Returns:
- *
- * - `true` if the level is not elevated, has already been confirmed, or the
- *   user accepts the dialog. In these cases the caller should proceed to apply
- *   the level.
- * - `false` if the user cancels the dialog. The caller should abort the
- *   permission change.
- *
- * When the user ticks "Don't show again", the choice is persisted in
- * `StorageScope.PROFILE`, which is shared across the workbench and Agents
- * windows so a dismissal in one applies to the other.
- *
- * `options.defaultSettingKey` controls which "make this the default" setting
- * the dialog links to — local chat uses `chat.permissions.default` (the
- * default), while agent-host sessions pass
- * `chat.defaultConfiguration`.
- */
 export async function maybeConfirmElevatedPermissionLevel(
 	level: ChatPermissionLevel,
 	dialogService: IDialogService,

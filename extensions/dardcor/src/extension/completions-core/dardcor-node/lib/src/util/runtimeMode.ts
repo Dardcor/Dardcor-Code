@@ -63,19 +63,14 @@ function determineSimulationFlag(env: NodeJS.ProcessEnv): boolean {
 
 function determineVerboseLoggingEnabled(argv: string[], env: NodeJS.ProcessEnv): boolean {
 	return (
-		env['COPILOT_AGENT_VERBOSE'] === '1' ||
-		env['COPILOT_AGENT_VERBOSE']?.toLowerCase() === 'true' ||
+		env['DARDCOR_AGENT_VERBOSE'] === '1' ||
+		env['DARDCOR_AGENT_VERBOSE']?.toLowerCase() === 'true' ||
 		determineEnvFlagEnabled(env, 'VERBOSE') ||
 		determineDebugFlag(argv, env)
 	);
 }
 
 function determineEnvFlagEnabled(env: NodeJS.ProcessEnv, name: string): boolean {
-	for (const prefix of ['GH_COPILOT_', 'GITHUB_COPILOT_']) {
-		const val = env[`${prefix}${name}`];
-		if (val) {
-			return val === '1' || val?.toLowerCase() === 'true';
-		}
-	}
-	return false;
+	const value = env[`DARDCOR_${name}`];
+	return value === '1' || value?.toLowerCase() === 'true';
 }

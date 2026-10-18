@@ -112,7 +112,6 @@ registerAction2(class extends NotebookCellAction {
 				const widgetService = accessor.get(IChatWidgetService);
 				const chatWidget = await widgetService.revealWidget();
 				const message = error.name ? `${error.name}: ${error.message}` : error.message;
-				// TODO: can we add special prompt instructions? e.g. use "%pip install"
 				chatWidget?.acceptInput('@workspace /explain ' + message,);
 			}
 		}

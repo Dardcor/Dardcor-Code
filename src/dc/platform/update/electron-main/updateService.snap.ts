@@ -32,8 +32,6 @@ abstract class AbstractUpdateService implements IUpdateService {
 		this._state = state;
 		this._onStateChange.fire(state);
 
-		// Clear transient one-time properties from Idle state after delivering the event.
-		// This prevents new windows from seeing stale error/notAvailable messages.
 		if (state.type === StateType.Idle && (state.error || state.notAvailable)) {
 			this._state = State.Idle(state.updateType);
 		}
@@ -52,7 +50,6 @@ abstract class AbstractUpdateService implements IUpdateService {
 
 		this.setState(State.Idle(this.getUpdateType()));
 
-		// Start checking for updates after 30 seconds
 		this.scheduleCheckForUpdates(30 * 1000).then(undefined, err => this.logService.error(err));
 	}
 
@@ -60,7 +57,6 @@ abstract class AbstractUpdateService implements IUpdateService {
 		return timeout(delay)
 			.then(() => this.checkForUpdates(false))
 			.then(() => {
-				// Check again after 1 hour
 				return this.scheduleCheckForUpdates(60 * 60 * 1000);
 			});
 	}
@@ -115,13 +111,12 @@ abstract class AbstractUpdateService implements IUpdateService {
 			return Promise.resolve(undefined);
 		}
 
-		// Remember the Ready state so we can restore it if the quit is vetoed
 		const readyState = this.state;
 
 		this.setState(State.Restarting(this.state.update));
 		this.logService.trace('update#quitAndInstall(): before lifecycle quit()');
 
-		this.lifecycleMainService.quit(true /* will restart */).then(vetod => {
+		this.lifecycleMainService.quit(true ).then(vetod => {
 			this.logService.trace(`update#quitAndInstall(): after lifecycle quit() with veto: ${vetod}`);
 			if (vetod) {
 				this.logService.info('update#quitAndInstall(): quit was vetoed, restoring Ready state');
@@ -142,17 +137,14 @@ abstract class AbstractUpdateService implements IUpdateService {
 	}
 
 	protected doQuitAndInstall(): void {
-		// noop
 	}
 
 	async setInternalOrg(_internalOrg: string | undefined): Promise<void> {
-		// noop - not applicable for snap
 	}
 
 	abstract isLatestVersion(): Promise<boolean | undefined>;
 
 	async _applySpecificUpdate(packagePath: string): Promise<void> {
-		// noop
 	}
 
 	protected abstract doCheckForUpdates(context: any): void;
@@ -199,7 +191,6 @@ export class SnapUpdateService extends AbstractUpdateService {
 	protected override doQuitAndInstall(): void {
 		this.logService.trace('update#quitAndInstall(): running raw#quitAndInstall()');
 
-		// Allow 3 seconds for VS Code to close
 		spawn('sleep 3 && ' + path.basename(process.argv[0]), {
 			shell: true,
 			detached: true,

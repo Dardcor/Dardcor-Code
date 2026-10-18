@@ -48,7 +48,6 @@ registerSingleton(IEditorCancellationTokens, class implements IEditorCancellatio
 		removeFn = data.tokens.push(cts);
 
 		return () => {
-			// remove w/o cancellation
 			if (removeFn) {
 				removeFn();
 				data.key.set(!data.tokens.isEmpty());
@@ -62,7 +61,6 @@ registerSingleton(IEditorCancellationTokens, class implements IEditorCancellatio
 		if (!data) {
 			return;
 		}
-		// remove with cancellation
 		const cts = data.tokens.pop();
 		if (cts) {
 			cts.cancel();

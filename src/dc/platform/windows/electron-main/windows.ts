@@ -63,25 +63,18 @@ export interface IWindowsCountChangedEvent {
 
 export const enum OpenContext {
 
-	// opening when running from the command line
 	CLI,
 
-	// macOS only: opening from the dock (also when opening files to a running instance from desktop)
 	DOCK,
 
-	// opening from the main application window
 	MENU,
 
-	// opening from a file or folder dialog
 	DIALOG,
 
-	// opening from the OS's UI
 	DESKTOP,
 
-	// opening through the API
 	API,
 
-	// opening from a protocol link
 	LINK
 }
 
@@ -107,11 +100,6 @@ export interface IOpenConfiguration extends IBaseOpenConfiguration {
 	readonly gotoLineMode?: boolean;
 	readonly initialStartup?: boolean;
 	readonly noRecentEntry?: boolean;
-	/**
-	 * The remote authority to use when windows are opened with either
-	 * - no workspace (empty window)
-	 * - a workspace that is neither `file://` nor `vscode-remote://`
-	 */
 	readonly remoteAuthority?: string;
 	readonly forceProfile?: string;
 	readonly forceTempProfile?: boolean;
@@ -143,7 +131,7 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 		minWidth: WindowMinimumSize.WIDTH,
 		minHeight: WindowMinimumSize.HEIGHT,
 		title: productService.nameLong,
-		show: windowState.mode !== WindowMode.Maximized && windowState.mode !== WindowMode.Fullscreen, // reduce flicker by showing later
+		show: windowState.mode !== WindowMode.Maximized && windowState.mode !== WindowMode.Fullscreen,
 		x: windowState.x,
 		y: windowState.y,
 		width: windowState.width,
@@ -154,12 +142,8 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 			spellcheck: false,
 			zoomFactor: zoomLevelToZoomFactor(windowState.zoomLevel ?? windowSettings?.zoomLevel),
 			autoplayPolicy: 'user-gesture-required',
-			// Enable experimental css highlight api https://chromestatus.com/feature/5436441440026624
-			// Refs https://github.com/microsoft/vscode/issues/140098
 			enableBlinkFeatures: 'HighlightAPI',
 			sandbox: true,
-			// TODO(deepak1556): Should be removed once migration is complete
-			// https://github.com/microsoft/vscode/issues/239228
 			enableDeprecatedPaste: true,
 		},
 		experimentalDarkMode: true
@@ -180,13 +164,13 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 	}
 
 	if (isLinux) {
-		options.icon = join(environmentMainService.appRoot, 'resources/linux/code.png'); // always on Linux
+		options.icon = join(environmentMainService.appRoot, 'resources/linux/code.png');
 	} else if (isWindows) {
 		options.icon = join(environmentMainService.appRoot, 'public/dardcor-code.ico');
 	}
 
 	if (isMacintosh) {
-		options.acceptFirstMouse = true; // enabled by default
+		options.acceptFirstMouse = true;
 
 		if (windowSettings?.clickThroughInactive === false) {
 			options.acceptFirstMouse = false;
@@ -196,12 +180,12 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 	if (overrides?.disableFullscreen) {
 		options.fullscreen = false;
 	} else if (isMacintosh && !useNativeFullScreen(configurationService)) {
-		options.fullscreenable = false; // enables simple fullscreen mode
+		options.fullscreenable = false;
 	}
 
 	const useNativeTabs = isMacintosh && windowSettings?.nativeTabs === true;
 	if (useNativeTabs) {
-		options.tabbingIdentifier = productService.nameShort; // this opts in to native macOS tabs
+		options.tabbingIdentifier = productService.nameShort;
 	}
 
 	const hideNativeTitleBar = !hasNativeTitlebar(configurationService, overrides?.forceNativeTitlebar ? TitlebarStyle.NATIVE : undefined);
@@ -216,15 +200,12 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 				options.titleBarOverlay = true;
 			} else {
 
-				// This logic will not perfectly guess the right colors
-				// to use on initialization, but prefer to keep things
-				// simple as it is temporary and not noticeable
 
 				const titleBarColor = themeMainService.getWindowSplash(undefined)?.colorInfo.titleBarBackground ?? themeMainService.getBackgroundColor();
 				const symbolColor = Color.fromHex(titleBarColor).isDarker() ? '#FFFFFF' : '#000000';
 
 				options.titleBarOverlay = {
-					height: 29, // the smallest size of the title bar on windows accounting for the border on windows 11
+					height: 29,
 					color: titleBarColor,
 					symbolColor
 				};
@@ -250,7 +231,7 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 
 	if (overrides?.transparent) {
 		options.transparent = true;
-		options.backgroundColor = undefined!; // transparent requires no background color
+		options.backgroundColor = undefined!;
 	}
 
 	if (overrides?.notResizable) {
@@ -305,12 +286,6 @@ export namespace WindowStateValidator {
 			return undefined;
 		}
 
-		// Single Monitor: be strict about x/y positioning
-		// macOS & Linux: these OS seem to be pretty good in ensuring that a window is never outside of it's bounds.
-		// Windows: it is possible to have a window with a size that makes it fall out of the window. our strategy
-		//          is to try as much as possible to keep the window in the monitor bounds. we are not as strict as
-		//          macOS and Linux and allow the window to exceed the monitor bounds as long as the window is still
-		//          some pixels (128) visible on the screen for the user to drag it back.
 		if (displays.length === 1) {
 			const displayWorkingArea = getWorkingArea(displays[0]);
 			logService.trace('window#validateWindowState: single monitor working area', displayWorkingArea);
@@ -323,66 +298,51 @@ export namespace WindowStateValidator {
 					}
 
 					if (state.x < displayWorkingArea.x) {
-						// prevent window from falling out of the screen to the left
 						state.x = displayWorkingArea.x;
 					}
 
 					if (state.y < displayWorkingArea.y) {
-						// prevent window from falling out of the screen to the top
 						state.y = displayWorkingArea.y;
 					}
 				}
 
-				// ensure state is not outside display working area (top, left)
 				ensureStateInDisplayWorkingArea();
 
 				if (state.width > displayWorkingArea.width) {
-					// prevent window from exceeding display bounds width
 					state.width = displayWorkingArea.width;
 				}
 
 				if (state.height > displayWorkingArea.height) {
-					// prevent window from exceeding display bounds height
 					state.height = displayWorkingArea.height;
 				}
 
 				if (state.x > (displayWorkingArea.x + displayWorkingArea.width - 128)) {
-					// prevent window from falling out of the screen to the right with
-					// 128px margin by positioning the window to the far right edge of
-					// the screen
 					state.x = displayWorkingArea.x + displayWorkingArea.width - state.width;
 				}
 
 				if (state.y > (displayWorkingArea.y + displayWorkingArea.height - 128)) {
-					// prevent window from falling out of the screen to the bottom with
-					// 128px margin by positioning the window to the far bottom edge of
-					// the screen
 					state.y = displayWorkingArea.y + displayWorkingArea.height - state.height;
 				}
 
-				// again ensure state is not outside display working area
-				// (it may have changed from the previous validation step)
 				ensureStateInDisplayWorkingArea();
 			}
 
 			return state;
 		}
 
-		// Multi Montior (fullscreen): try to find the previously used display
 		if (state.display && state.mode === WindowMode.Fullscreen) {
 			const display = displays.find(d => d.id === state.display);
 			if (display && typeof display.bounds?.x === 'number' && typeof display.bounds?.y === 'number') {
 				logService.trace('window#validateWindowState: restoring fullscreen to previous display');
 
-				const defaults = defaultWindowState(WindowMode.Fullscreen); // make sure we have good values when the user restores the window
-				defaults.x = display.bounds.x; // carefull to use displays x/y position so that the window ends up on the correct monitor
+				const defaults = defaultWindowState(WindowMode.Fullscreen);
+				defaults.x = display.bounds.x;
 				defaults.y = display.bounds.y;
 
 				return defaults;
 			}
 		}
 
-		// Multi Monitor (non-fullscreen): ensure window is within display bounds
 		let display: electron.Display | undefined;
 		let displayWorkingArea: electron.Rectangle | undefined;
 		try {
@@ -391,9 +351,6 @@ export namespace WindowStateValidator {
 
 			logService.trace('window#validateWindowState: multi-monitor working area', displayWorkingArea);
 		} catch (error) {
-			// Electron has weird conditions under which it throws errors
-			// e.g. https://github.com/microsoft/vscode/issues/100334 when
-			// large numbers are passed in
 			logService.error('window#validateWindowState: error finding display for window state', error);
 		}
 
@@ -419,21 +376,16 @@ export namespace WindowStateValidator {
 
 		const displayWorkingArea = getWorkingArea(display);
 		return Boolean(
-			displayWorkingArea &&											// we have valid working area bounds
-			state.x + state.width > displayWorkingArea.x &&					// prevent window from falling out of the screen to the left
-			state.y + state.height > displayWorkingArea.y &&				// prevent window from falling out of the screen to the top
-			state.x < displayWorkingArea.x + displayWorkingArea.width &&	// prevent window from falling out of the screen to the right
-			state.y < displayWorkingArea.y + displayWorkingArea.height		// prevent window from falling out of the screen to the bottom
+			displayWorkingArea &&
+			state.x + state.width > displayWorkingArea.x &&
+			state.y + state.height > displayWorkingArea.y &&
+			state.x < displayWorkingArea.x + displayWorkingArea.width &&
+			state.y < displayWorkingArea.y + displayWorkingArea.height
 		);
 	}
 
 	function getWorkingArea(display: electron.Display): electron.Rectangle | undefined {
 
-		// Prefer the working area of the display to account for taskbars on the
-		// desktop being positioned somewhere (https://github.com/microsoft/vscode/issues/50830).
-		//
-		// Linux X11 sessions sometimes report wrong display bounds, so we validate
-		// the reported sizes are positive.
 		if (display.workArea.width > 0 && display.workArea.height > 0) {
 			return display.workArea;
 		}
@@ -446,13 +398,6 @@ export namespace WindowStateValidator {
 	}
 }
 
-/**
- * We have some components like `NativeWebContentExtractorService` that create offscreen windows
- * to extract content from web pages. These windows are not visible to the user and are not
- * considered part of the main application window. This function filters out those offscreen
- * windows from the list of all windows.
- * @returns An array of all BrowserWindow instances that are not offscreen.
- */
 export function getAllWindowsExcludingOffscreen() {
 	return electron.BrowserWindow.getAllWindows().filter(win => !win.webContents.isOffscreen());
 }

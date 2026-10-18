@@ -92,8 +92,7 @@ export class SearchService extends Disposable implements ISearchService {
 
 	async aiTextSearch(query: IAITextQuery, token?: CancellationToken, onProgress?: (item: ISearchProgressItem) => void): Promise<ISearchComplete> {
 		const onProviderProgress = (progress: ISearchProgressItem) => {
-			// Match
-			if (onProgress) { // don't override open editor results
+			if (onProgress) {
 				if (isFileMatch(progress) || isAIKeyword(progress)) {
 					onProgress(progress);
 				} else {
@@ -123,7 +122,6 @@ export class SearchService extends Disposable implements ISearchService {
 		syncResults: ISearchComplete;
 		asyncResults: Promise<ISearchComplete>;
 	} {
-		// Get open editor results from dirty/untitled
 		const openEditorResults = this.getOpenEditorResults(query);
 
 		if (onProgress) {
@@ -140,12 +138,10 @@ export class SearchService extends Disposable implements ISearchService {
 			const resolvedAsyncNotebookFilesToIgnore = await asyncNotebookFilesToIgnore ?? new ResourceSet();
 			const onProviderProgress = (progress: ISearchProgressItem) => {
 				if (isFileMatch(progress)) {
-					// Match
-					if (!openEditorResults.results.has(progress.resource) && !resolvedAsyncNotebookFilesToIgnore.has(progress.resource) && onProgress) { // don't override open editor results
+					if (!openEditorResults.results.has(progress.resource) && !resolvedAsyncNotebookFilesToIgnore.has(progress.resource) && onProgress) {
 						onProgress(progress);
 					}
 				} else if (onProgress) {
-					// Progress
 					onProgress(<IProgressMessage>progress);
 				}
 
@@ -183,7 +179,6 @@ export class SearchService extends Disposable implements ISearchService {
 			await Promise.all(providerActivations);
 			await this.extensionService.whenInstalledExtensionsRegistered();
 
-			// Cancel faster if search was canceled while waiting for extensions
 			if (token && token.isCancellationRequested) {
 				return Promise.reject(new CancellationError());
 			}
@@ -355,7 +350,6 @@ export class SearchService extends Disposable implements ISearchService {
 
 	private sendTelemetry(query: ISearchQuery, endToEndTime: number, complete?: ISearchComplete, err?: SearchError): void {
 		if (!randomChance(5 / 100)) {
-			// Noisy events, only send 5% of them
 			return;
 		}
 
@@ -524,27 +518,22 @@ export class SearchService extends Disposable implements ISearchService {
 					return;
 				}
 
-				// Skip search results
 				if (model.getLanguageId() === SEARCH_RESULT_LANGUAGE_ID && !(query.includePattern && query.includePattern['**/*.code-search'])) {
-					// TODO: untitled search editors will be excluded from search even when include *.code-search is specified
 					return;
 				}
 
-				// Block walkthrough, webview, etc.
 				if (originalResource.scheme !== Schemas.untitled && !this.fileService.hasProvider(originalResource)) {
 					return;
 				}
 
-				// Exclude files from the git FileSystemProvider, e.g. to prevent open staged files from showing in search results
 				if (originalResource.scheme === 'git') {
 					return;
 				}
 
 				if (!this.matches(originalResource, query)) {
-					return; // respect user filters
+					return;
 				}
 
-				// Use editor API to find matches
 				const askMax = (isNumber(query.maxResults) ? query.maxResults : DEFAULT_MAX_SEARCH_RESULTS) + 1;
 				let matches = model.findMatches(query.contentPattern.pattern, false, !!query.contentPattern.isRegExp, !!query.contentPattern.isCaseSensitive, query.contentPattern.isWordMatch ? query.contentPattern.wordSeparators! : null, false, askMax);
 				if (matches.length) {

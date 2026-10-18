@@ -14,7 +14,6 @@ import { TextModel } from '../../../common/model/textModel.js';
 import { SearchParams, TextModelSearch, isMultilineRegexSource } from '../../../common/model/textModelSearch.js';
 import { createTextModel } from '../testTextModel.js';
 
-// --------- Find
 suite('TextModelSearch', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
@@ -29,7 +28,6 @@ suite('TextModelSearch', () => {
 		const actual = TextModelSearch.findMatches(model, searchParams, model.getFullModelRange(), false, 1000);
 		assert.deepStrictEqual(actual, expectedMatches, 'findMatches OK');
 
-		// test `findNextMatch`
 		let startPos = new Position(1, 1);
 		let match = TextModelSearch.findNextMatch(model, searchParams, startPos, false);
 		assert.deepStrictEqual(match, expectedMatches[0], `findNextMatch ${startPos}`);
@@ -39,7 +37,6 @@ suite('TextModelSearch', () => {
 			assert.deepStrictEqual(match, expectedMatch, `findNextMatch ${startPos}`);
 		}
 
-		// test `findPrevMatch`
 		startPos = new Position(model.getLineCount(), model.getLineMaxColumn(model.getLineCount()));
 		match = TextModelSearch.findPreviousMatch(model, searchParams, startPos, false);
 		assert.deepStrictEqual(match, expectedMatches[expectedMatches.length - 1], `findPrevMatch ${startPos}`);
@@ -664,7 +661,6 @@ suite('TextModelSearch', () => {
 			]
 		);
 
-		// Line break doesn't affect the result as we always use \n as line break when doing search
 		assertFindMatches(
 			[
 				'Just some text',
@@ -696,7 +692,6 @@ suite('TextModelSearch', () => {
 			]
 		);
 
-		// line break is seen as one non-word character
 		assertFindMatches(
 			[
 				'Just  some text',
@@ -710,7 +705,6 @@ suite('TextModelSearch', () => {
 			]
 		);
 
-		// even if it's \r\n
 		assertFindMatches(
 			[
 				'Just  some text',
@@ -797,7 +791,6 @@ suite('TextModelSearch', () => {
 	});
 
 	test('issue #100134. Zero-length matches should properly step over surrogate pairs', () => {
-		// 1[Laptop]1 - there shoud be no matches inside of [Laptop] emoji
 		assertFindMatches('1\uD83D\uDCBB1', '()', true, false, null,
 			[
 				[1, 1, 1, 1],
@@ -807,8 +800,6 @@ suite('TextModelSearch', () => {
 
 			]
 		);
-		// 1[Hacker Cat]1 = 1[Cat Face][ZWJ][Laptop]1 - there shoud be matches between emoji and ZWJ
-		// there shoud be no matches inside of [Cat Face] and [Laptop] emoji
 		assertFindMatches('1\uD83D\uDC31\u200D\uD83D\uDCBB1', '()', true, false, null,
 			[
 				[1, 1, 1, 1],

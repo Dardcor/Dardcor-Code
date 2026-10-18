@@ -28,21 +28,17 @@ export class MarkedKatexSupport {
 				override: [
 					...baseConfig.allowedAttributes,
 
-					// Math
 					'stretchy',
 					'encoding',
 					'accent',
 					katexContainerLatexAttributeName,
 
-					// SVG
 					'd',
 					'viewBox',
 					'preserveAspectRatio',
 
-					// Allow all classes since we don't have a list of allowed katex classes
 					'class',
 
-					// Sanitize allowed styles for katex
 					{
 						attributeName: 'style',
 						shouldKeep: (_el, data) => this.sanitizeKatexStyles(data.attrValue),
@@ -53,7 +49,6 @@ export class MarkedKatexSupport {
 	}
 
 	private static tempSanitizerRule = new Lazy(() => {
-		// Create a CSSStyleDeclaration object via a style sheet rule
 		const styleSheet = new CSSStyleSheet();
 		styleSheet.insertRule(`.temp{}`);
 		const rule = styleSheet.cssRules[0];
@@ -73,8 +68,6 @@ export class MarkedKatexSupport {
 			const prop = style[i];
 			if (allowedProperties.includes(prop)) {
 				const value = style.getPropertyValue(prop);
-				// Allow through lists of numbers with units or bare words like 'block'
-				// Main goal is to block things like 'url()'.
 				if (/^(([\d\.\-]+\w*\s?)+|\w+)$/.test(value)) {
 					sanitizedProps.push(`${prop}: ${value}`);
 				}
@@ -197,7 +190,6 @@ const trustedMathMlTags = Object.freeze([
 	'munderover',
 	'mprescripts',
 
-	// svg tags
 	'svg',
 	'altglyph',
 	'altglyphdef',

@@ -14,11 +14,6 @@ import { IndentRulesSupport } from './indentRules.js';
 import { StandardTokenType } from '../../encodedTokenAttributes.js';
 import { Position } from '../../core/position.js';
 
-/**
- * This class is a wrapper class around {@link IndentRulesSupport}.
- * It processes the lines by removing the language configuration brackets from the regex, string and comment tokens.
- * It then calls into the {@link IndentRulesSupport} to validate the indentation conditions.
- */
 export class ProcessedIndentRulesSupport {
 
 	private readonly _indentRulesSupport: IndentRulesSupport;
@@ -33,33 +28,21 @@ export class ProcessedIndentRulesSupport {
 		this._indentationLineProcessor = new IndentationLineProcessor(model, languageConfigurationService);
 	}
 
-	/**
-	 * Apply the new indentation and return whether the indentation level should be increased after the given line number
-	 */
 	public shouldIncrease(lineNumber: number, newIndentation?: string): boolean {
 		const processedLine = this._indentationLineProcessor.getProcessedLine(lineNumber, newIndentation);
 		return this._indentRulesSupport.shouldIncrease(processedLine);
 	}
 
-	/**
-	 * Apply the new indentation and return whether the indentation level should be decreased after the given line number
-	 */
 	public shouldDecrease(lineNumber: number, newIndentation?: string): boolean {
 		const processedLine = this._indentationLineProcessor.getProcessedLine(lineNumber, newIndentation);
 		return this._indentRulesSupport.shouldDecrease(processedLine);
 	}
 
-	/**
-	 * Apply the new indentation and return whether the indentation level should remain unchanged at the given line number
-	 */
 	public shouldIgnore(lineNumber: number, newIndentation?: string): boolean {
 		const processedLine = this._indentationLineProcessor.getProcessedLine(lineNumber, newIndentation);
 		return this._indentRulesSupport.shouldIgnore(processedLine);
 	}
 
-	/**
-	 * Apply the new indentation and return whether the indentation level should increase on the line after the given line number
-	 */
 	public shouldIndentNextLine(lineNumber: number, newIndentation?: string): boolean {
 		const processedLine = this._indentationLineProcessor.getProcessedLine(lineNumber, newIndentation);
 		return this._indentRulesSupport.shouldIndentNextLine(processedLine);
@@ -67,13 +50,6 @@ export class ProcessedIndentRulesSupport {
 
 }
 
-/**
- * This class fetches the processed text around a range which can be used for indentation evaluation.
- * It returns:
- * - The processed text before the given range and on the same start line
- * - The processed text after the given range and on the same end line
- * - The processed text on the previous line
- */
 export class IndentationContextProcessor {
 
 	private readonly model: ITextModel;
@@ -87,9 +63,6 @@ export class IndentationContextProcessor {
 		this.indentationLineProcessor = new IndentationLineProcessor(model, languageConfigurationService);
 	}
 
-	/**
-	 * Returns the processed text, stripped from the language configuration brackets within the string, comment and regex tokens, around the given range
-	 */
 	getProcessedTokenContextAroundRange(range: Range): {
 		beforeRangeProcessedTokens: IViewLineTokens;
 		afterRangeProcessedTokens: IViewLineTokens;
@@ -165,10 +138,6 @@ export class IndentationContextProcessor {
 	}
 }
 
-/**
- * This class performs the actual processing of the indentation lines.
- * The brackets of the language configuration are removed from the regex, string and comment tokens.
- */
 class IndentationLineProcessor {
 
 	constructor(
@@ -176,10 +145,6 @@ class IndentationLineProcessor {
 		private readonly languageConfigurationService: ILanguageConfigurationService
 	) { }
 
-	/**
-	 * Get the processed line for the given line number and potentially adjust the indentation level.
-	 * Remove the language configuration brackets from the regex, string and comment tokens.
-	 */
 	getProcessedLine(lineNumber: number, newIndentation?: string): string {
 		const replaceIndentation = (line: string, newIndentation: string): string => {
 			const currentIndentation = strings.getLeadingWhitespace(line);
@@ -196,9 +161,6 @@ class IndentationLineProcessor {
 		return processedLine;
 	}
 
-	/**
-	 * Process the line with the given tokens, remove the language configuration brackets from the regex, string and comment tokens.
-	 */
 	getProcessedTokens(tokens: IViewLineTokens): IViewLineTokens {
 
 		const shouldRemoveBracketsFromTokenType = (tokenType: StandardTokenType): boolean => {

@@ -27,7 +27,7 @@ export class StatusbarViewModel extends Disposable {
 	private readonly _onDidChangeEntryVisibility = this._register(new Emitter<{ id: string; visible: boolean }>());
 	readonly onDidChangeEntryVisibility = this._onDidChangeEntryVisibility.event;
 
-	private _entries: IStatusbarViewModelEntry[] = []; // Intentionally not using a map here since multiple entries can have the same ID
+	private _entries: IStatusbarViewModelEntry[] = [];
 	get entries(): IStatusbarViewModelEntry[] { return this._entries.slice(0); }
 
 	private _lastFocusedEntry: IStatusbarViewModelEntry | undefined;
@@ -50,7 +50,6 @@ export class StatusbarViewModel extends Disposable {
 			try {
 				this.hidden = new Set(JSON.parse(hiddenRaw));
 			} catch (error) {
-				// ignore parsing errors
 			}
 		}
 	}
@@ -61,30 +60,25 @@ export class StatusbarViewModel extends Disposable {
 
 	private onDidStorageValueChange(): void {
 
-		// Keep current hidden entries
 		const currentlyHidden = new Set(this.hidden);
 
-		// Load latest state of hidden entries
 		this.hidden.clear();
 		this.restoreState();
 
 		const changed = new Set<string>();
 
-		// Check for each entry that is now visible
 		for (const id of currentlyHidden) {
 			if (!this.hidden.has(id)) {
 				changed.add(id);
 			}
 		}
 
-		// Check for each entry that is now hidden
 		for (const id of this.hidden) {
 			if (!currentlyHidden.has(id)) {
 				changed.add(id);
 			}
 		}
 
-		// Update visibility for entries have changed
 		if (changed.size > 0) {
 			for (const entry of this._entries) {
 				if (changed.has(entry.id)) {
@@ -98,16 +92,12 @@ export class StatusbarViewModel extends Disposable {
 
 	add(entry: IStatusbarViewModelEntry): void {
 
-		// Add to set of entries
 		this._entries.push(entry);
 
-		// Update visibility directly
 		this.updateVisibility(entry, false);
 
-		// Sort according to priority
 		this.sort();
 
-		// Mark first/last visible entry
 		this.markFirstLastVisibleEntry();
 	}
 
@@ -115,16 +105,12 @@ export class StatusbarViewModel extends Disposable {
 		const index = this._entries.indexOf(entry);
 		if (index >= 0) {
 
-			// Remove from entries
 			this._entries.splice(index, 1);
 
-			// Re-sort entries if this one was used
-			// as reference from other entries
 			if (this._entries.some(otherEntry => isStatusbarEntryLocation(otherEntry.priority.primary) && otherEntry.priority.primary.location.id === entry.id)) {
 				this.sort();
 			}
 
-			// Mark first/last visible entry
 			this.markFirstLastVisibleEntry();
 		}
 	}
@@ -211,7 +197,6 @@ export class StatusbarViewModel extends Disposable {
 	private updateVisibility(entry: IStatusbarViewModelEntry, trigger: boolean): void;
 	private updateVisibility(arg1: string | IStatusbarViewModelEntry, trigger: boolean): void {
 
-		// By identifier
 		if (typeof arg1 === 'string') {
 			const id = arg1;
 
@@ -222,12 +207,10 @@ export class StatusbarViewModel extends Disposable {
 			}
 		}
 
-		// By entry
 		else {
 			const entry = arg1;
 			const isHidden = this.isHidden(entry.id);
 
-			// Use CSS to show/hide item container
 			if (isHidden) {
 				hide(entry.container);
 			} else {
@@ -238,7 +221,6 @@ export class StatusbarViewModel extends Disposable {
 				this._onDidChangeEntryVisibility.fire({ id: entry.id, visible: !isHidden });
 			}
 
-			// Mark first/last visible entry
 			this.markFirstLastVisibleEntry();
 		}
 	}
@@ -254,11 +236,8 @@ export class StatusbarViewModel extends Disposable {
 	private sort(): void {
 		const allEntryIds = new Set(this._entries.map(entry => entry.id));
 
-		// Split up entries into 2 buckets:
-		// - those with priority as number that can be compared or with a missing relative entry
-		// - those with a relative priority that must be sorted relative to another entry that exists
-		const mapEntryWithNumberedPriorityToIndex = new Map<IStatusbarViewModelEntry, number /* priority of entry as number */>();
-		const mapEntryWithRelativePriority = new Map<string /* id of entry to position after */, Map<string, IStatusbarViewModelEntry>>();
+		const mapEntryWithNumberedPriorityToIndex = new Map<IStatusbarViewModelEntry, number >();
+		const mapEntryWithRelativePriority = new Map<string , Map<string, IStatusbarViewModelEntry>>();
 		for (let i = 0; i < this._entries.length; i++) {
 			const entry = this._entries[i];
 			if (typeof entry.priority.primary === 'number' || !allEntryIds.has(entry.priority.primary.location.id)) {
@@ -268,9 +247,6 @@ export class StatusbarViewModel extends Disposable {
 				let entries = mapEntryWithRelativePriority.get(referenceEntryId);
 				if (!entries) {
 
-					// It is possible that this entry references another entry
-					// that itself references an entry. In that case, we want
-					// to add it to the entries of the referenced entry.
 
 					for (const relativeEntries of mapEntryWithRelativePriority.values()) {
 						if (relativeEntries.has(referenceEntryId)) {
@@ -288,12 +264,10 @@ export class StatusbarViewModel extends Disposable {
 			}
 		}
 
-		// Sort the entries with `priority: number` or referencing a missing entry accordingly
 		const sortedEntriesWithNumberedPriority = Array.from(mapEntryWithNumberedPriorityToIndex.keys());
 		sortedEntriesWithNumberedPriority.sort((entryA, entryB) => {
 			if (entryA.alignment === entryB.alignment) {
 
-				// Sort by primary/secondary priority: higher values move towards the left
 
 				const entryAPrimaryPriority = typeof entryA.priority.primary === 'number' ? entryA.priority.primary : entryA.priority.primary.location.priority;
 				const entryBPrimaryPriority = typeof entryB.priority.primary === 'number' ? entryB.priority.primary : entryB.priority.primary.location.priority;
@@ -306,7 +280,6 @@ export class StatusbarViewModel extends Disposable {
 					return entryB.priority.secondary - entryA.priority.secondary;
 				}
 
-				// otherwise maintain stable order (both values known to be in map)
 				return mapEntryWithNumberedPriorityToIndex.get(entryA)! - mapEntryWithNumberedPriorityToIndex.get(entryB)!;
 			}
 
@@ -323,7 +296,6 @@ export class StatusbarViewModel extends Disposable {
 
 		let sortedEntries: IStatusbarViewModelEntry[];
 
-		// Entries with location: sort in accordingly
 		if (mapEntryWithRelativePriority.size > 0) {
 			sortedEntries = [];
 
@@ -331,45 +303,32 @@ export class StatusbarViewModel extends Disposable {
 				const relativeEntriesMap = mapEntryWithRelativePriority.get(entry.id);
 				const relativeEntries = relativeEntriesMap ? Array.from(relativeEntriesMap.values()) : undefined;
 
-				// Fill relative entries to LEFT
 				if (relativeEntries) {
 					sortedEntries.push(...relativeEntries
 						.filter(entry => isStatusbarEntryLocation(entry.priority.primary) && entry.priority.primary.alignment === StatusbarAlignment.LEFT)
 						.sort((entryA, entryB) => entryB.priority.secondary - entryA.priority.secondary));
 				}
 
-				// Fill referenced entry
 				sortedEntries.push(entry);
 
-				// Fill relative entries to RIGHT
 				if (relativeEntries) {
 					sortedEntries.push(...relativeEntries
 						.filter(entry => isStatusbarEntryLocation(entry.priority.primary) && entry.priority.primary.alignment === StatusbarAlignment.RIGHT)
 						.sort((entryA, entryB) => entryB.priority.secondary - entryA.priority.secondary));
 				}
 
-				// Delete from map to mark as handled
 				mapEntryWithRelativePriority.delete(entry.id);
 			}
 
-			// Finally, just append all entries that reference another entry
-			// that does not exist to the end of the list
-			//
-			// Note: this should really not happen because of our check in
-			// `allEntryIds`, but we play it safe here to really consume
-			// all entries.
-			//
 			for (const [, entries] of mapEntryWithRelativePriority) {
 				sortedEntries.push(...Array.from(entries.values()).sort((entryA, entryB) => entryB.priority.secondary - entryA.priority.secondary));
 			}
 		}
 
-		// No entries with relative priority: take sorted entries as is
 		else {
 			sortedEntries = sortedEntriesWithNumberedPriority;
 		}
 
-		// Take over as new truth of entries
 		this._entries = sortedEntries;
 	}
 
@@ -384,7 +343,6 @@ export class StatusbarViewModel extends Disposable {
 
 		for (const entry of entries) {
 
-			// Clear previous first
 			entry.container.classList.remove('first-visible-item', 'last-visible-item');
 
 			const isVisible = !this.isHidden(entry.id);
@@ -397,10 +355,8 @@ export class StatusbarViewModel extends Disposable {
 			}
 		}
 
-		// Mark: first visible item
 		firstVisibleItem?.container.classList.add('first-visible-item');
 
-		// Mark: last visible item
 		lastVisibleItem?.container.classList.add('last-visible-item');
 	}
 }

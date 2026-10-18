@@ -125,9 +125,6 @@ class ManualTokenizationSupport implements ITokenizationSupport {
 		return new EncodedTokenizationResult(this.tokens.get(s.lineNumber)!, [], new LineState(s.lineNumber + 1));
 	}
 
-	/**
-	 * Can be/return undefined if default background tokenization should be used.
-	 */
 	createBackgroundTokenizer?(textModel: ITextModel, store: IBackgroundTokenizationStore): IBackgroundTokenizer | undefined {
 		this.stores.add(store);
 		return {

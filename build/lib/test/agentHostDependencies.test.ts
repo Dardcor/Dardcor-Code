@@ -16,12 +16,10 @@ const agentHostEntryPoints = [
 	'src/dc/platform/agentHost/node/agentHostServerMain.ts',
 ];
 const excludedLiteralDynamicImports = new Set([
-	// Test-only provider loaded by the standalone server's --enable-mock-agent option.
 	literalDynamicImportKey(
 		path.join(repositoryRoot, 'src/dc/platform/agentHost/node/agentHostServerMain.ts'),
 		'../test/node/mockAgent.js'
 	),
-	// Built products use the downloaded SDK path; the bare package import is a dev fallback.
 	literalDynamicImportKey(
 		path.join(repositoryRoot, 'src/dc/platform/agentHost/node/claude/claudeAgentSdkService.ts'),
 		'@anthropic-ai/claude-agent-sdk'

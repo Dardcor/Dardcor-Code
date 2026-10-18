@@ -6,20 +6,12 @@
 import { Page } from 'playwright';
 import { TestContext } from './context.js';
 
-/**
- * Handles GitHub authentication flows in the browser.
- */
 export class GitHubAuth {
 	private readonly username = process.env.GITHUB_ACCOUNT;
 	private readonly password = process.env.GITHUB_PASSWORD;
 
 	public constructor(private readonly context: TestContext) { }
 
-	/**
-	 * Runs GitHub device authentication flow in a browser, signing in first.
-	 * @param page Page to use.
-	 * @param code Device authentication code to use.
-	 */
 	public async runDeviceCodeFlow(page: Page, code: string) {
 		if (!this.username || !this.password) {
 			this.context.error('GITHUB_ACCOUNT and GITHUB_PASSWORD environment variables must be set');
@@ -53,10 +45,6 @@ export class GitHubAuth {
 		}
 	}
 
-	/**
-	 * Handles the GitHub "Authorize" popup dialog.
-	 * @param page Page to use.
-	 */
 	public async runAuthorizeFlow(page: Page) {
 		try {
 			this.context.log(`Authorizing app at ${page.url()}`);

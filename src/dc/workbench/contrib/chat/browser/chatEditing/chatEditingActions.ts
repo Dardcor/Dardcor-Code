@@ -60,9 +60,6 @@ export abstract class EditingSessionAction extends Action2 {
 
 export type EditingSessionActionContext = { editingSession?: IChatEditingSession; chatWidget: IChatWidget };
 
-/**
- * Resolve view title toolbar context. If none, return context from the lastFocusedWidget.
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getEditingSessionContext(accessor: ServicesAccessor, args: any[]): EditingSessionActionContext | undefined {
 	const arg0 = args.at(0);
@@ -126,9 +123,6 @@ registerAction2(class OpenFileInDiffAction extends WorkingSetAction {
 
 		for (const uri of uris) {
 
-			// Always open the editor for the target URI. Using the currently active
-			// editor pane is not safe because it may be unrelated to `uri` (e.g. a
-			// webview), in which case `getEditorIntegration` would have no effect.
 			const pane = await editorService.openEditor({ resource: uri });
 
 			if (!pane) {
@@ -289,7 +283,6 @@ export async function discardAllEditsWithConfirmation(accessor: ServicesAccessor
 
 	const dialogService = accessor.get(IDialogService);
 
-	// Ask for confirmation if there are any edits
 	const entries = currentEditingSession.entries.get().filter(e => e.state.get() === ModifiedFileEntryState.Modified);
 	if (entries.length > 0) {
 		const confirmation = await dialogService.confirm({
@@ -433,7 +426,6 @@ async function restoreSnapshotWithConfirmationByRequestId(accessor: ServicesAcce
 
 	await chatService.cancelCurrentRequestForSession(sessionResource, 'restoreCheckpoint');
 
-	// Restore the snapshot to what it was before the request(s) that we deleted
 	const snapshotRequestId = chatRequests[itemIndex].id;
 	await session.restoreSnapshot(snapshotRequestId, undefined);
 	return true;
@@ -808,8 +800,6 @@ registerAction2(class ResolveSymbolsContextAction extends EditingSessionAction {
 				this.getImplementations(position, textModel, languageFeaturesService)
 			]);
 
-			// Sort the references, definitions and implementations by
-			// how important it is that they make it into the working set as it has limited size
 			const attachments = [];
 			for (const reference of [...definitions, ...implementations, ...references]) {
 				attachments.push(chatWidget.attachmentModel.asFileVariableEntry(reference.uri));
@@ -881,10 +871,6 @@ export class ViewPreviousEditsAction extends EditingSessionAction {
 }
 registerAction2(ViewPreviousEditsAction);
 
-/**
- * Workbench command to explore accepting working set changes from an extension. Executing
- * the command will accept the changes for the provided resources across all edit sessions.
- */
 CommandsRegistry.registerCommand('_chat.editSessions.accept', async (accessor: ServicesAccessor, resources: UriComponents[]) => {
 	if (resources.length === 0) {
 		return;

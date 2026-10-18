@@ -4,7 +4,7 @@
 
 ## Features
 
-This extension supports running [Jake](http://jakejs.com/) tasks defined in a `Jakefile.js` file as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks). Jake tasks with the name 'build', 'compile', or 'watch' are treated as build tasks.
+This extension supports running [Jake](http://jakejs.com/) tasks defined in a `Jakefile.js` file as [VS Code tasks](https://www.dardcor-code.web.id/docs/editor/tasks). Jake tasks with the name 'build', 'compile', or 'watch' are treated as build tasks.
 
 To run Jake tasks, use the **Tasks** menu.
 

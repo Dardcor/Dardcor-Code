@@ -33,7 +33,7 @@ export class ThreadedBackgroundTokenizerFactory implements IDisposable {
 	private _workerProxyPromise: Promise<Proxied<TextMateTokenizationWorker> | null> | null = null;
 	private _worker: IWebWorkerClient<TextMateTokenizationWorker> | null = null;
 	private _workerProxy: Proxied<TextMateTokenizationWorker> | null = null;
-	private readonly _workerTokenizerControllers = new Map</* backgroundTokenizerId */number, TextMateWorkerTokenizerController>();
+	private readonly _workerTokenizerControllers = new Map< number, TextMateWorkerTokenizerController>();
 
 	private _currentTheme: IRawTheme | null = null;
 	private _currentTokenColorMap: string[] | null = null;
@@ -56,9 +56,7 @@ export class ThreadedBackgroundTokenizerFactory implements IDisposable {
 		this._disposeWorker();
 	}
 
-	// Will be recreated after worker is disposed (because tokenizer is re-registered when languages change)
 	public createBackgroundTokenizer(textModel: ITextModel, tokenStore: IBackgroundTokenizationStore, maxTokenizationLineLength: IObservable<number>): IBackgroundTokenizer | undefined {
-		// fallback to default sync background tokenizer
 		if (!this._shouldTokenizeAsync() || textModel.isTooLargeForSyncing()) { return undefined; }
 
 		const store = new DisposableStore();
@@ -86,8 +84,6 @@ export class ThreadedBackgroundTokenizerFactory implements IDisposable {
 			requestTokens: async (startLineNumber, endLineNumberExclusive) => {
 				const container = await controllerContainer;
 
-				// If there is no controller, the model has been detached in the meantime.
-				// Only request the proxy object if the worker is the same!
 				if (container?.controller && container.worker === this._worker) {
 					container.controller.requestTokens(startLineNumber, endLineNumberExclusive);
 				}
@@ -153,9 +149,6 @@ export class ThreadedBackgroundTokenizerFactory implements IDisposable {
 			},
 			$setTokensAndStates: async (controllerId: number, versionId: number, tokens: Uint8Array, fontTokens: ISerializedAnnotation<IFontTokenOption>[], lineEndStateDeltas: StateDeltas[]): Promise<void> => {
 				const controller = this._workerTokenizerControllers.get(controllerId);
-				// When a model detaches, it is removed synchronously from the map.
-				// However, the worker might still be sending tokens for that model,
-				// so we ignore the event when there is no controller.
 				if (controller) {
 					controller.setTokensAndStates(controllerId, versionId, tokens, fontTokens, lineEndStateDeltas);
 				}
@@ -167,7 +160,6 @@ export class ThreadedBackgroundTokenizerFactory implements IDisposable {
 		await worker.proxy.$init(createData);
 
 		if (this._worker !== worker) {
-			// disposed in the meantime
 			return null;
 		}
 		this._workerProxy = worker.proxy;

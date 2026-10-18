@@ -9,7 +9,6 @@ import './geminiPrompts';
 import './kimiPrompts';
 import './minimaxPrompts';
 import './vscModelPrompts';
-// vscModelPrompts must be imported before gpt5Prompt to ensure VSC model prompt resolvers are registered first.
 import './openai/defaultOpenAIPrompt';
 import './openai/gpt51CodexPrompt';
 import './openai/gpt51Prompt';

@@ -53,7 +53,6 @@
 	white-space: pre;
 }
 
-/* Disable tree highlight in debug hover tree. */
 .monaco-editor .debug-hover-widget .debug-hover-tree .monaco-list-rows .monaco-list-row:hover:not(.highlighted):not(.selected):not(.focused)  {
 	background-color: inherit;
 }

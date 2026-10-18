@@ -62,9 +62,6 @@ class AMDModuleImporter {
 				callback = dependencies;
 				dependencies = null;
 			}
-			// if (!dependencies) {
-			// 	dependencies = ['require', 'exports', 'module'];
-			// }
 			this._defineCalls.push(new DefineCall(id, dependencies, callback));
 		};
 
@@ -108,7 +105,6 @@ class AMDModuleImporter {
 			console.warn(`Did not receive a define call from script ${scriptSrc}`);
 			return <T>undefined;
 		}
-		// TODO@esm require, module
 		const exports = {};
 		const dependencyObjs: any[] = [];
 		const dependencyModules: string[] = [];
@@ -175,12 +171,6 @@ class AMDModuleImporter {
 
 	private async _nodeJSLoadScript(scriptSrc: string): Promise<DefineCall | undefined> {
 		try {
-			// `import('module')` is not remapped (only `fs` is), so it yields the real
-			// `module` builtin. We use its `createRequire` to obtain `fs`/`vm`: the ESM
-			// resolution hook maps `import('fs')` to the ASAR-unaware `original-fs`, but
-			// `scriptSrc` may point inside the `node_modules.asar` archive. The `fs`
-			// returned by `require` stays ASAR-aware in Electron, so it can read module
-			// files from within the archive.
 			const module = (await import(/* webpackIgnore: true */ /* @vite-ignore */ `${'module'}`)).default;
 			const nodeRequire = module.createRequire(import.meta.url);
 			const fs = nodeRequire('fs');
@@ -201,12 +191,6 @@ class AMDModuleImporter {
 
 const cache = new Map<string, Promise<any>>();
 
-/**
- * Utility for importing an AMD node module. This util supports AMD and ESM contexts and should be used while the ESM adoption
- * is on its way.
- *
- * e.g. pass in `vscode-textmate/release/main.js`
- */
 export async function importAMDNodeModule<T>(nodeModuleName: string, pathInsideNodeModule: string, isBuilt?: boolean): Promise<T> {
 	if (isBuilt === undefined) {
 		const product = globalThis._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
@@ -219,8 +203,6 @@ export async function importAMDNodeModule<T>(nodeModuleName: string, pathInsideN
 	}
 	let scriptSrc: string;
 	if (/^\w[\w\d+.-]*:\/\//.test(nodeModulePath)) {
-		// looks like a URL
-		// bit of a special case for: src/vs/workbench/services/languageDetection/browser/languageDetectionWebWorker.ts
 		scriptSrc = nodeModulePath;
 	} else {
 		const useASAR = (isBuilt && (platform.isElectron || (platform.isWebWorker && platform.hasElectronUserAgent)));

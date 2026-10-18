@@ -33,13 +33,11 @@ suite('CommandDetectionCapability', () => {
 		deepStrictEqual(capability.commands.map(e => e.cwd), expectedCommands.map(e => e.cwd));
 		deepStrictEqual(capability.commands.map(e => e.exitCode), expectedCommands.map(e => e.exitCode));
 		deepStrictEqual(capability.commands.map(e => e.marker?.line), expectedCommands.map(e => e.marker?.line));
-		// Ensure timestamps are set and were captured recently
 		for (const command of capability.commands) {
 			ok(Math.abs(Date.now() - command.timestamp) < 2000);
 			ok(command.id, 'Expected command to have an assigned id');
 		}
 		deepStrictEqual(addEvents, capability.commands);
-		// Clear the commands to avoid re-asserting past commands
 		addEvents.length = 0;
 		capability.clearCommands();
 	}

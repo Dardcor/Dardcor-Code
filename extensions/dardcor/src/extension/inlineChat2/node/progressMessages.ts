@@ -22,10 +22,6 @@ interface MessageCache {
 	readonly fetchInProgress: boolean;
 }
 
-/**
- * Provides catchy progress messages for inline chat operations.
- * Pre-fetches messages and automatically replenishes when running low.
- */
 export class InlineChatProgressMessages {
 
 	private readonly _caches = new Map<ProgressMessageScenario, MessageCache>();
@@ -37,7 +33,6 @@ export class InlineChatProgressMessages {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IEnvService private readonly _envService: IEnvService,
 	) {
-		// Initialize caches with fallback messages
 		this._caches.set('generate', { messages: [...InlineChatProgressMessages._FALLBACK_GENERATE], fetchInProgress: false });
 		this._caches.set('edit', { messages: [...InlineChatProgressMessages._FALLBACK_EDIT], fetchInProgress: false });
 
@@ -52,21 +47,15 @@ export class InlineChatProgressMessages {
 		'Working...',
 	];
 
-	/**
-	 * Gets the next progress message for the given scenario.
-	 * Automatically triggers a background fetch when running low on messages.
-	 */
 	getNextMessage(scenario: ProgressMessageScenario): string {
 		const cache = this._caches.get(scenario);
 		if (!cache || cache.messages.length === 0) {
-			// Should never happen, but use fallback
 			const fallbacks = scenario === 'generate'
 				? InlineChatProgressMessages._FALLBACK_GENERATE
 				: InlineChatProgressMessages._FALLBACK_EDIT;
 			return fallbacks[Math.floor(Math.random() * fallbacks.length)];
 		}
 
-		// Get a random message and remove it from the cache
 		const index = Math.floor(Math.random() * cache.messages.length);
 		const message = cache.messages[index];
 		const newMessages = [...cache.messages];
@@ -74,7 +63,6 @@ export class InlineChatProgressMessages {
 
 		this._caches.set(scenario, { messages: newMessages, fetchInProgress: cache.fetchInProgress });
 
-		// Trigger background fetch if running low
 		if (newMessages.length < REFETCH_THRESHOLD && !cache.fetchInProgress) {
 			this._triggerBackgroundFetch(scenario);
 		}
@@ -82,10 +70,6 @@ export class InlineChatProgressMessages {
 		return message;
 	}
 
-	/**
-	 * Gets a contextual progress message based on the user's prompt and document context.
-	 * Falls back to generic messages if contextual generation fails or times out.
-	 */
 	async getContextualMessage(prompt: string, documentContext: IDocumentContext, token: CancellationToken): Promise<string> {
 		const scenario: ProgressMessageScenario = documentContext.selection.isEmpty ? 'generate' : 'edit';
 
@@ -136,25 +120,18 @@ export class InlineChatProgressMessages {
 			this._logService.trace(`[InlineChatProgressMessages] Contextual message generation failed, using fallback: ${err}`);
 		}
 
-		// Fall back to generic message
 		return this.getNextMessage(scenario);
 	}
 
 	private _parseContextualMessage(responseText: string): string | undefined {
 		const trimmed = responseText.trim();
-		// Remove any surrounding quotes if present
 		const unquoted = trimmed.replace(/^["']|["']$/g, '');
-		// Validate the message is reasonable length
 		if (unquoted.length > 0 && unquoted.length < 60) {
 			return unquoted;
 		}
 		return undefined;
 	}
 
-	/**
-	 * Pre-warms the cache by fetching messages for both scenarios.
-	 * Can be called during extension activation.
-	 */
 	prewarm(): void {
 		this._triggerBackgroundFetch('generate');
 		this._triggerBackgroundFetch('edit');
@@ -228,11 +205,9 @@ export class InlineChatProgressMessages {
 
 	private _parseMessages(responseText: string): string[] {
 		try {
-			// Try to extract JSON array from the response
 			const trimmed = responseText.trim();
 			let jsonStr = trimmed;
 
-			// Handle markdown code blocks
 			const jsonMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
 			if (jsonMatch) {
 				jsonStr = jsonMatch[1].trim();

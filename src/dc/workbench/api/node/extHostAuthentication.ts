@@ -57,16 +57,13 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 			initialTokens
 		);
 
-		// Prepend Node-specific flows to the existing flows
 		if (!initData.remote.isRemote && serverMetadata.authorization_endpoint) {
-			// If we are not in a remote environment, we can use the loopback server for authentication
 			this._createFlows.unshift({
 				label: nls.localize('loopback', "Loopback Server"),
 				handler: (scopes, progress, token) => this._createWithLoopbackServer(scopes, progress, token)
 			});
 		}
 
-		// Add device code flow to the end since it's not as streamlined
 		if (serverMetadata.device_authorization_endpoint) {
 			this._createFlows.push({
 				label: nls.localize('device code', "Device Code"),
@@ -83,11 +80,9 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 			throw new Error('Token endpoint not available in server metadata');
 		}
 
-		// Generate PKCE code verifier (random string) and code challenge (SHA-256 hash of verifier)
 		const codeVerifier = this.generateRandomString(64);
 		const codeChallenge = await this.generateCodeChallenge(codeVerifier);
 
-		// Generate a random state value to prevent CSRF
 		const nonce = this.generateRandomString(32);
 		const callbackUri = URI.parse(`${this._initData.environment.appUriScheme}://dynamicauthprovider/${this.authorizationServer.authority}/redirect?nonce=${nonce}`);
 		let appUri: URI;
@@ -97,7 +92,6 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 			throw new Error(`Failed to create external URI: ${error}`);
 		}
 
-		// Prepare the authorization request URL
 		const authorizationUrl = new URL(this._serverMetadata.authorization_endpoint);
 		authorizationUrl.searchParams.append('client_id', this._clientId);
 		authorizationUrl.searchParams.append('response_type', 'code');
@@ -108,11 +102,9 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 			authorizationUrl.searchParams.append('scope', scopeString);
 		}
 		if (this._resourceMetadata?.resource) {
-			// If a resource is specified, include it in the request
 			authorizationUrl.searchParams.append('resource', this._resourceMetadata.resource);
 		}
 
-		// Create and start the loopback server
 		const server = new LoopbackAuthServer(
 			this._logger,
 			appUri,
@@ -124,16 +116,13 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 			throw new Error(`Failed to start loopback server: ${err}`);
 		}
 
-		// Update the authorization URL with the actual redirect URI
 		authorizationUrl.searchParams.set('redirect_uri', server.redirectUri);
 		authorizationUrl.searchParams.set('state', server.state);
 
 		const promise = server.waitForOAuthResponse();
-		// Set up a Uri Handler but it's just to redirect not to handle the code
 		void this._proxy.$waitForUriHandler(appUri);
 
 		try {
-			// Open the browser for user authorization
 			this._logger.info(`Opening authorization URL for scopes: ${scopeString}`);
 			this._logger.trace(`Authorization URL: ${authorizationUrl.toString()}`);
 			const opened = await this._extHostWindow.openUri(authorizationUrl.toString(), {});
@@ -144,7 +133,6 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 				message: nls.localize('completeAuth', "Complete the authentication in the browser window that has opened."),
 			});
 
-			// Wait for the authorization code via the loopback server
 			let code: string | undefined;
 			try {
 				const response = await raceCancellationError(promise, token);
@@ -159,11 +147,9 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 			}
 			this._logger.info(`Authorization code received for scopes: ${scopeString}`);
 
-			// Exchange the authorization code for tokens
 			const tokenResponse = await this.exchangeCodeForToken(code, codeVerifier, server.redirectUri);
 			return tokenResponse;
 		} finally {
-			// Clean up the server
 			setTimeout(() => {
 				void server.stop();
 			}, 5000);
@@ -182,14 +168,12 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 		const scopeString = scopes.join(' ');
 		this._logger.info(`Starting device code flow for scopes: ${scopeString}`);
 
-		// Step 1: Request device and user codes
 		const deviceCodeRequest = new URLSearchParams();
 		deviceCodeRequest.append('client_id', this._clientId);
 		if (scopeString) {
 			deviceCodeRequest.append('scope', scopeString);
 		}
 		if (this._resourceMetadata?.resource) {
-			// If a resource is specified, include it in the request
 			deviceCodeRequest.append('resource', this._resourceMetadata.resource);
 		}
 
@@ -220,7 +204,6 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 		}
 		this._logger.info(`Device code received: ${deviceCodeData.user_code}`);
 
-		// Step 2: Show the device code modal
 		const userConfirmed = await this._proxy.$showDeviceCodeModal(
 			deviceCodeData.user_code,
 			deviceCodeData.verification_uri
@@ -230,12 +213,11 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 			throw new CancellationError();
 		}
 
-		// Step 3: Poll for token
 		progress.report({
 			message: nls.localize('waitingForAuth', "Open [{0}]({0}) in a new tab and paste your one-time code: {1}", deviceCodeData.verification_uri, deviceCodeData.user_code)
 		});
 
-		const pollInterval = (deviceCodeData.interval || 5) * 1000; // Convert to milliseconds
+		const pollInterval = (deviceCodeData.interval || 5) * 1000;
 		const expiresAt = Date.now() + (deviceCodeData.expires_in * 1000);
 
 		while (Date.now() < expiresAt) {
@@ -243,20 +225,17 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 				throw new CancellationError();
 			}
 
-			// Wait for the specified interval
 			await new Promise(resolve => setTimeout(resolve, pollInterval));
 
 			if (token.isCancellationRequested) {
 				throw new CancellationError();
 			}
 
-			// Poll the token endpoint
 			const tokenRequest = new URLSearchParams();
 			tokenRequest.append('grant_type', 'urn:ietf:params:oauth:grant-type:device_code');
 			tokenRequest.append('device_code', deviceCodeData.device_code);
 			tokenRequest.append('client_id', this._clientId);
 
-			// Add resource indicator if available (RFC 8707)
 			if (this._resourceMetadata?.resource) {
 				tokenRequest.append('resource', this._resourceMetadata.resource);
 			}
@@ -288,12 +267,9 @@ export class NodeDynamicAuthProvider extends DynamicAuthProvider {
 						throw new Error(`Token request failed with status ${tokenResponse.status}: ${tokenResponse.statusText}`);
 					}
 
-					// Handle known error cases
 					if (errorData.error === AuthorizationDeviceCodeErrorType.AuthorizationPending) {
-						// User hasn't completed authorization yet, continue polling
 						continue;
 					} else if (errorData.error === AuthorizationDeviceCodeErrorType.SlowDown) {
-						// Server is asking us to slow down
 						await new Promise(resolve => setTimeout(resolve, pollInterval));
 						continue;
 					} else if (errorData.error === AuthorizationDeviceCodeErrorType.ExpiredToken) {

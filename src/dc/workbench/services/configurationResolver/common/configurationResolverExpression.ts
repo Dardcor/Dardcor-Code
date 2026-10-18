@@ -7,39 +7,20 @@ import { Iterable } from '../../../../base/common/iterator.js';
 import { isLinux, isMacintosh, isWindows } from '../../../../base/common/platform.js';
 import { ConfiguredInput } from './configurationResolver.js';
 
-/** A replacement found in the object, as ${name} or ${name:arg} */
 export type Replacement = {
-	/** ${name:arg} */
 	id: string;
-	/** The `name:arg` in ${name:arg} */
 	inner: string;
-	/** The `name` in ${name:arg} */
 	name: string;
-	/** The `arg` in ${name:arg} */
 	arg?: string;
 };
 
 interface IConfigurationResolverExpression<T> {
-	/**
-	 * Gets the replacements which have not yet been
-	 * resolved.
-	 */
 	unresolved(): Iterable<Replacement>;
 
-	/**
-	 * Gets the replacements which have been resolved.
-	 */
 	resolved(): Iterable<[Replacement, IResolvedValue]>;
 
-	/**
-	 * Resolves a replacement into the string value.
-	 * If the value is undefined, the original variable text will be preserved.
-	 */
 	resolve(replacement: Replacement, data: string | IResolvedValue): void;
 
-	/**
-	 * Returns the complete object. Any unresolved replacements are left intact.
-	 */
 	toObject(): T;
 }
 
@@ -52,7 +33,6 @@ type PropertyLocation = {
 export interface IResolvedValue {
 	value: string | undefined;
 
-	/** Present when the variable is resolved from an input field. */
 	input?: ConfiguredInput;
 }
 
@@ -68,14 +48,9 @@ export class ConfigurationResolverExpression<T> implements IConfigurationResolve
 	private readonly locations = new Map<string, IReplacementLocation>();
 	private root: T;
 	private stringRoot: boolean;
-	/**
-	 * Callbacks when a new replacement is made, so that nested resolutions from
-	 * `expr.unresolved()` can be fulfilled in the same iteration.
-	 */
 	private newReplacementNotifiers = new Set<(r: Replacement) => void>();
 
 	private constructor(object: T) {
-		// If the input is a string, wrap it in an object so we can use the same logic
 		if (typeof object === 'string') {
 			this.stringRoot = true;
 			// eslint-disable-next-line local/code-no-any-casts
@@ -86,11 +61,6 @@ export class ConfigurationResolverExpression<T> implements IConfigurationResolve
 		}
 	}
 
-	/**
-	 * Creates a new {@link ConfigurationResolverExpression} from an object.
-	 * Note that platform-specific keys (i.e. `windows`, `osx`, `linux`) are
-	 * applied during parsing.
-	 */
 	public static parse<T>(object: T): ConfigurationResolverExpression<T> {
 		if (object instanceof ConfigurationResolverExpression) {
 			return object;
@@ -104,7 +74,7 @@ export class ConfigurationResolverExpression<T> implements IConfigurationResolve
 
 	private applyPlatformSpecificKeys() {
 		// eslint-disable-next-line local/code-no-any-casts
-		const config = this.root as any; // already cloned by ctor, safe to change
+		const config = this.root as any;
 		const key = isWindows ? 'windows' : isMacintosh ? 'osx' : isLinux ? 'linux' : undefined;
 
 		if (key && config && typeof config === 'object' && config.hasOwnProperty(key)) {
@@ -175,7 +145,7 @@ export class ConfigurationResolverExpression<T> implements IConfigurationResolve
 		}
 
 		for (const [key, value] of Object.entries(obj)) {
-			this.parseString(obj, key, key, true); // parse key
+			this.parseString(obj, key, key, true);
 
 			if (typeof value === 'string') {
 				this.parseString(obj, key, value);
@@ -271,10 +241,8 @@ export class ConfigurationResolverExpression<T> implements IConfigurationResolve
 			return;
 		}
 
-		// avoid recursive resolution, e.g. ${env:FOO} -> ${env:BAR}=${env:FOO}
 		path.push(replacement.id);
 
-		// note: in nested `this.parseString`, parse only the new substring for any replacements, don't reparse the whole string
 		if (replaceKeyName && typeof propertyName === 'string') {
 			const value = object[propertyName];
 			const newKey = propertyName.replaceAll(replacement.id, data.value);
@@ -301,7 +269,6 @@ export class ConfigurationResolverExpression<T> implements IConfigurationResolve
 	}
 
 	public toObject(): T {
-		// If we wrapped a string, unwrap it
 		if (this.stringRoot) {
 			// eslint-disable-next-line local/code-no-any-casts
 			return (this.root as any).value as T;

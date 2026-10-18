@@ -109,15 +109,13 @@ abstract class BaseZoomAction extends Action2 {
 
 		let level: number;
 		if (typeof levelOrReset === 'number') {
-			level = Math.round(levelOrReset); // prevent fractional zoom levels
+			level = Math.round(levelOrReset);
 		} else {
 
-			// reset to 0 when we apply to all windows
 			if (target === ApplyZoomTarget.ALL_WINDOWS) {
 				level = 0;
 			}
 
-			// otherwise, reset to the default zoom level
 			else {
 				const defaultLevel = configurationService.getValue(BaseZoomAction.ZOOM_LEVEL_SETTING_KEY);
 				if (typeof defaultLevel === 'number') {
@@ -129,7 +127,7 @@ abstract class BaseZoomAction extends Action2 {
 		}
 
 		if (level > MAX_ZOOM_LEVEL || level < MIN_ZOOM_LEVEL) {
-			return; // https://github.com/microsoft/vscode/issues/48357
+			return;
 		}
 
 		if (target === ApplyZoomTarget.ALL_WINDOWS) {
@@ -326,12 +324,12 @@ abstract class BaseSwitchWindow extends Action2 {
 				for (let i = 0; i < picks.length; i++) {
 					const pick = picks[i];
 					if (isWindowPickItem(pick) && pick.windowId === currentWindowId) {
-						let nextPick = picks[i + 1]; // try to select next window unless it's a separator
+						let nextPick = picks[i + 1];
 						if (isWindowPickItem(nextPick)) {
 							return nextPick;
 						}
 
-						nextPick = picks[i + 2]; // otherwise try to select the next window after the separator
+						nextPick = picks[i + 2];
 						if (isWindowPickItem(nextPick)) {
 							return nextPick;
 						}
@@ -381,7 +379,7 @@ export class QuickSwitchWindowAction extends BaseSwitchWindow {
 		super({
 			id: 'workbench.action.quickSwitchWindow',
 			title: localize2('quickSwitchWindow', 'Quick Switch Window...'),
-			f1: false // hide quick pickers from command palette to not confuse with the other entry that shows a input field
+			f1: false
 		});
 	}
 
@@ -422,11 +420,6 @@ export class FocusWindowAction extends Action2 {
 	override async run(accessor: ServicesAccessor): Promise<void> {
 		const hostService = accessor.get(IHostService);
 
-		// Bring the current window to the foreground and focus it. `FocusMode.Force` is used because
-		// the application may not be active (for example when this runs from a system-wide keybinding
-		// while another app owns OS focus). This makes it usable as the first step of a `runCommands`
-		// chain that reveals the window before running a command which surfaces UI in it (e.g. Quick
-		// Open).
 		await hostService.focus(getActiveWindow(), { mode: FocusMode.Force });
 	}
 }
@@ -506,7 +499,7 @@ export class ToggleWindowAlwaysOnTopAction extends Action2 {
 
 		const targetWindow = getActiveWindow();
 		if (!isAuxiliaryWindow(targetWindow.window)) {
-			return; // Currently, we only support toggling always on top for auxiliary windows
+			return;
 		}
 
 		return nativeHostService.toggleWindowAlwaysOnTop({ targetWindowId: getActiveWindow().vscodeWindowId });
@@ -536,7 +529,7 @@ export class EnableWindowAlwaysOnTopAction extends Action2 {
 
 		const targetWindow = getActiveWindow();
 		if (!isAuxiliaryWindow(targetWindow.window)) {
-			return; // Currently, we only support toggling always on top for auxiliary windows
+			return;
 		}
 
 		return nativeHostService.setWindowAlwaysOnTop(true, { targetWindowId: targetWindow.vscodeWindowId });
@@ -566,7 +559,7 @@ export class DisableWindowAlwaysOnTopAction extends Action2 {
 
 		const targetWindow = getActiveWindow();
 		if (!isAuxiliaryWindow(targetWindow.window)) {
-			return; // Currently, we only support toggling always on top for auxiliary windows
+			return;
 		}
 
 		return nativeHostService.setWindowAlwaysOnTop(false, { targetWindowId: targetWindow.vscodeWindowId });

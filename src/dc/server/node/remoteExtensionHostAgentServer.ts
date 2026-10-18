@@ -43,7 +43,6 @@ import { CacheControl, serveError, serveFile, WebClientServer } from './webClien
 const require = createRequire(import.meta.url);
 
 declare namespace vsda {
-	// the signer is a native module that for historical reasons uses a lower case class name
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	export class signer {
 		sign(arg: string): string;
@@ -85,11 +84,10 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 		this._webEndpointOriginChecker = WebEndpointOriginChecker.create(this._productService);
 
 		if (serverBasePath !== undefined && serverBasePath.charCodeAt(serverBasePath.length - 1) === CharCode.Slash) {
-			// Remove trailing slash from base path
 			serverBasePath = serverBasePath.substring(0, serverBasePath.length - 1);
 		}
-		this._serverBasePath = serverBasePath; // undefined or starts with a slash
-		this._serverProductPath = `/${getServerProductSegment(_productService)}`; // starts with a slash
+		this._serverBasePath = serverBasePath;
+		this._serverProductPath = `/${getServerProductSegment(_productService)}`;
 		this._extHostConnections = Object.create(null);
 		this._managementConnections = Object.create(null);
 		this._allReconnectionTokens = new Set<string>();
@@ -103,7 +101,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 	}
 
 	public async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-		// Only serve GET requests
 		if (req.method !== 'GET') {
 			return serveError(req, res, 405, `Unsupported method ${req.method}`);
 		}
@@ -119,22 +116,18 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 			return serveError(req, res, 400, `Bad request.`);
 		}
 
-		// Serve from both '/' and serverBasePath
 		if (this._serverBasePath !== undefined && pathname.startsWith(this._serverBasePath)) {
 			pathname = pathname.substring(this._serverBasePath.length) || '/';
 		}
-		// for now accept all paths, with or without server product path
 		if (pathname.startsWith(this._serverProductPath) && pathname.charCodeAt(this._serverProductPath.length) === CharCode.Slash) {
 			pathname = pathname.substring(this._serverProductPath.length);
 		}
 
-		// Version
 		if (pathname === '/version') {
 			res.writeHead(200, { 'Content-Type': 'text/plain' });
 			return void res.end(this._productService.commit || '');
 		}
 
-		// Delay shutdown
 		if (pathname === '/delay-shutdown') {
 			this._serverLifetimeService.delay();
 			res.writeHead(200);
@@ -142,13 +135,10 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 		}
 
 		if (!httpRequestHasValidConnectionToken(this._connectionToken, req, parsedUrl)) {
-			// invalid connection token
 			return serveError(req, res, 403, `Forbidden.`);
 		}
 
 		if (pathname === '/vscode-remote-resource') {
-			// Handle HTTP requests for resources rendered in the rich client (images, fonts, etc.)
-			// These resources could be files shipped with extensions or even workspace files.
 			const desiredPath = parsedUrl.query['path'];
 			if (typeof desiredPath !== 'string') {
 				return serveError(req, res, 400, `Bad request.`);
@@ -170,7 +160,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 				}
 			}
 
-			// Allow cross origin requests from the web worker extension host
 			responseHeaders['Vary'] = 'Origin';
 			const requestOrigin = req.headers['origin'];
 			if (requestOrigin && this._webEndpointOriginChecker.matches(requestOrigin)) {
@@ -179,7 +168,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 			return serveFile(filePath, CacheControl.ETAG, this._logService, req, res, responseHeaders);
 		}
 
-		// workbench web UI
 		if (this._webClientServer) {
 			this._webClientServer.handle(req, res, parsedUrl, pathname);
 			return;
@@ -225,7 +213,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 		this._logService.error(err);
 	}
 
-	// Eventually cleanup
 
 	private _getRemoteAddress(socket: NodeSocket | WebSocketNodeSocket): string {
 		let _socket: net.Socket;
@@ -250,11 +237,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 		socket.dispose();
 	}
 
-	/**
-	 * NOTE: Avoid using await in this method!
-	 * The problem is that await introduces a process.nextTick due to the implicit Promise.then
-	 * This can lead to some bytes being received and interpreted and a control message being emitted before the next listener has a chance to be registered.
-	 */
 	private _handleWebSocketConnection(socket: NodeSocket | WebSocketNodeSocket, isReconnection: boolean, reconnectionToken: string): void {
 		const remoteAddress = this._getRemoteAddress(socket);
 		const logPrefix = `[${remoteAddress}][${reconnectionToken.substr(0, 8)}]`;
@@ -293,7 +275,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 					return rejectWebSocketConnection(`Unauthorized client refused: auth mismatch`);
 				}
 
-				// Send `sign` request
 				let signedData = generateUuid();
 				if (signer) {
 					try {
@@ -335,7 +316,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 				const rendererCommit = msg2.commit;
 				const myCommit = this._productService.commit;
 				if (rendererCommit && myCommit) {
-					// Running in the built version where commits are defined
 					if (rendererCommit !== myCommit) {
 						return rejectWebSocketConnection(`Client refused: version mismatch`);
 					}
@@ -345,7 +325,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 				if (!validator) {
 					valid = true;
 				} else if (this._connectionToken.validate(msg2.signedData)) {
-					// web client
 					valid = true;
 				} else {
 					try {
@@ -362,9 +341,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 					}
 				}
 
-				// We have received a new connection.
-				// This indicates that the server owner has connectivity.
-				// Therefore we will shorten the reconnection grace period for disconnected connections!
 				for (const key in this._managementConnections) {
 					const managementConnection = this._managementConnections[key];
 					managementConnection.shortenReconnectionGraceTimeIfNecessary();
@@ -391,19 +367,15 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 		);
 
 		if (msg.desiredConnectionType === ConnectionType.Management) {
-			// This should become a management connection
 			if (socket instanceof WebSocketNodeSocket) {
 				socket.setRecordInflateBytes(false);
 			}
 
 			if (isReconnection) {
-				// This is a reconnection
 				if (!this._managementConnections[reconnectionToken]) {
 					if (!this._allReconnectionTokens.has(reconnectionToken)) {
-						// This is an unknown reconnection token
 						return this._rejectWebSocketConnection(logPrefix, protocol, `Unknown reconnection token (never seen)`);
 					} else {
-						// This is a connection that was seen in the past, but is no longer valid
 						return this._rejectWebSocketConnection(logPrefix, protocol, `Unknown reconnection token (seen before)`);
 					}
 				}
@@ -414,9 +386,7 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 				this._managementConnections[reconnectionToken].acceptReconnection(remoteAddress, socket, dataChunk);
 
 			} else {
-				// This is a fresh connection
 				if (this._managementConnections[reconnectionToken]) {
-					// Cannot have two concurrent connections using the same reconnection token
 					return this._rejectWebSocketConnection(logPrefix, protocol, `Duplicate reconnection token`);
 				}
 
@@ -433,7 +403,6 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 
 		} else if (msg.desiredConnectionType === ConnectionType.ExtensionHost) {
 
-			// This should become an extension host connection
 			const startParams0 = <IRemoteExtensionHostStartParams>msg.args || { language: 'en' };
 			const startParams = await this._updateWithFreeDebugPort(startParams0);
 
@@ -444,13 +413,10 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 			this._logService.trace(`${logPrefix} - startParams env: ${JSON.stringify(startParams.env)}`);
 
 			if (isReconnection) {
-				// This is a reconnection
 				if (!this._extHostConnections[reconnectionToken]) {
 					if (!this._allReconnectionTokens.has(reconnectionToken)) {
-						// This is an unknown reconnection token
 						return this._rejectWebSocketConnection(logPrefix, protocol, `Unknown reconnection token (never seen)`);
 					} else {
-						// This is a connection that was seen in the past, but is no longer valid
 						return this._rejectWebSocketConnection(logPrefix, protocol, `Unknown reconnection token (seen before)`);
 					}
 				}
@@ -462,9 +428,7 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 				this._extHostConnections[reconnectionToken].acceptReconnection(remoteAddress, socket, dataChunk);
 
 			} else {
-				// This is a fresh connection
 				if (this._extHostConnections[reconnectionToken]) {
-					// Cannot have two concurrent connections using the same reconnection token
 					return this._rejectWebSocketConnection(logPrefix, protocol, `Duplicate reconnection token`);
 				}
 
@@ -524,7 +488,7 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 		const remoteSocket = remoteNodeSocket.socket;
 		const dataChunk = protocol.readEntireBuffer();
 		protocol.dispose();
-		remoteNodeSocket.dispose(false); // `false` prevents the underlying socket from being closed
+		remoteNodeSocket.dispose(false);
 
 		if (dataChunk.byteLength > 0) {
 			localSocket.write(dataChunk.buffer);
@@ -561,12 +525,11 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 
 	private _updateWithFreeDebugPort(startParams: IRemoteExtensionHostStartParams): Thenable<IRemoteExtensionHostStartParams> {
 		if (typeof startParams.port === 'number') {
-			return findFreePort(startParams.port, 10 /* try 10 ports */, 5000 /* try up to 5 seconds */).then(freePort => {
+			return findFreePort(startParams.port, 10 , 5000 ).then(freePort => {
 				startParams.port = freePort;
 				return startParams;
 			});
 		}
-		// No port clear debug configuration.
 		startParams.debugId = undefined;
 		startParams.port = undefined;
 		startParams.break = undefined;
@@ -575,21 +538,9 @@ class RemoteExtensionHostAgentServer extends Disposable implements IServerAPI {
 }
 
 export interface IServerAPI {
-	/**
-	 * Do not remove!!. Called from server-main.js
-	 */
 	handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void>;
-	/**
-	 * Do not remove!!. Called from server-main.js
-	 */
 	handleUpgrade(req: http.IncomingMessage, socket: net.Socket): void;
-	/**
-	 * Do not remove!!. Called from server-main.js
-	 */
 	handleServerError(err: Error): void;
-	/**
-	 * Do not remove!!. Called from server-main.js
-	 */
 	dispose(): void;
 }
 
@@ -601,14 +552,9 @@ export async function createServer(address: string | net.AddressInfo | null, arg
 		process.exit(1);
 	}
 
-	// setting up error handlers, first with console.error, then, once available, using the log service
 
 	function initUnexpectedErrorHandler(handler: (err: any) => void) {
 		setUnexpectedErrorHandler(err => {
-			// See https://github.com/microsoft/vscode-remote-release/issues/6481
-			// In some circumstances, console.error will throw an asynchronous error. This asynchronous error
-			// will end up here, and then it will be logged again, thus creating an endless asynchronous loop.
-			// Here we try to break the loop by ignoring EPIPE errors that include our own unexpected error handler in the stack.
 			if (isSigPipeError(err) && err.stack && /unexpectedErrorHandler/.test(err.stack)) {
 				return;
 			}
@@ -623,10 +569,6 @@ export async function createServer(address: string | net.AddressInfo | null, arg
 	});
 	let didLogAboutSIGPIPE = false;
 	process.on('SIGPIPE', () => {
-		// See https://github.com/microsoft/vscode-remote-release/issues/6543
-		// We would normally install a SIGPIPE listener in bootstrap-node.js
-		// But in certain situations, the console itself can be in a broken pipe state
-		// so logging SIGPIPE to the console will cause an infinite async loop
 		if (!didLogAboutSIGPIPE) {
 			didLogAboutSIGPIPE = true;
 			onUnexpectedError(new Error(`Unexpected SIGPIPE`));
@@ -636,8 +578,6 @@ export async function createServer(address: string | net.AddressInfo | null, arg
 	const disposables = new DisposableStore();
 	const { socketServer, instantiationService } = await setupServerServices(connectionToken, args, REMOTE_DATA_FOLDER, disposables);
 
-	// Set the unexpected error handler after the services have been initialized, to avoid having
-	// the telemetry service overwrite our handler
 	instantiationService.invokeFunction((accessor) => {
 		const logService = accessor.get(ILogService);
 		unloggedErrors.forEach(error => logService.error(error));
@@ -646,7 +586,6 @@ export async function createServer(address: string | net.AddressInfo | null, arg
 		initUnexpectedErrorHandler((error: any) => logService.error(error));
 	});
 
-	// On Windows, configure the UNC allow list based on settings
 	instantiationService.invokeFunction((accessor) => {
 		const configurationService = accessor.get(IConfigurationService);
 
@@ -659,10 +598,6 @@ export async function createServer(address: string | net.AddressInfo | null, arg
 		}
 	});
 
-	//
-	// On Windows, exit early with warning message to users about potential security issue
-	// if there is node_modules folder under home drive or Users folder.
-	//
 	instantiationService.invokeFunction((accessor) => {
 		const logService = accessor.get(ILogService);
 
@@ -712,7 +647,6 @@ export async function createServer(address: string | net.AddressInfo | null, arg
 	const hasWebClient = fs.existsSync(FileAccess.asFileUri(`vs/code/browser/workbench/workbench.html`).fsPath);
 
 	if (hasWebClient && address && typeof address !== 'string') {
-		// ships the web ui!
 		const queryPart = (connectionToken.type !== ServerConnectionTokenType.None ? `?${connectionTokenQueryName}=${connectionToken.value}` : '');
 		console.log(`Web UI available at http://localhost${address.port === 80 ? '' : `:${address.port}`}${serverBasePath ?? ''}${queryPart}`);
 	}

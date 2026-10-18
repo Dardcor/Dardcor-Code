@@ -16,10 +16,6 @@ function areDirectorySetsEqual(first: readonly URI[], second: readonly URI[]): b
 	return firstSet.size === secondSet.size && [...firstSet].every(directory => secondSet.has(directory));
 }
 
-/**
- * Compares two additional (non-primary) working-directory lists. A session's
- * additional directories are unordered peers, so only membership matters.
- */
 export function areAdditionalWorkingDirectoriesEqual(first: readonly URI[] | undefined, second: readonly URI[] | undefined): boolean {
 	if (!first || !second) {
 		return first === second;
@@ -27,13 +23,6 @@ export function areAdditionalWorkingDirectoriesEqual(first: readonly URI[] | und
 	return areDirectorySetsEqual(first, second);
 }
 
-/**
- * Compares two complete session working-directory sets. `hasImmutablePrimary`
- * is the owning agent's {@link MultipleWorkingDirectoriesCapability.immutablePrimary}
- * capability: when set, index 0 is a fixed process root and is compared by
- * position while the remaining entries are unordered peers. Agents without it
- * treat every directory as an equal peer.
- */
 export function areSessionWorkingDirectoriesEqual(first: readonly URI[] | undefined, second: readonly URI[] | undefined, hasImmutablePrimary: boolean): boolean {
 	if (!first || !second) {
 		return first === second;
@@ -45,25 +34,11 @@ export function areSessionWorkingDirectoriesEqual(first: readonly URI[] | undefi
 		&& areDirectorySetsEqual(first.slice(1), second.slice(1));
 }
 
-/**
- * Provider working-directory capability flags relevant to authoritative
- * host-side validation. Mirrors {@link MultipleWorkingDirectoriesCapability}
- * fields without the transport concerns.
- */
 export interface ISessionWorkingDirectoryCapability {
 	readonly immutablePrimary: boolean;
 	readonly primaryReplacement: boolean;
 }
 
-/**
- * Validates and canonicalizes a working-directory delta against the session's
- * current host-side URI identities. The returned spelling is safe for the
- * exact-string session reducer. `capability` reflects the owning agent's
- * multiple-working-directories capability: `immutablePrimary` fixes the first
- * entry as a process root that cannot be removed via the generic membership
- * action, and `primaryReplacement` protects index 0 as a replaceable primary
- * that may only change through `SessionWorkingDirectoryReplaced`.
- */
 export function resolveSessionWorkingDirectoryAction(
 	action: SessionWorkingDirectoryAction,
 	workingDirectories: readonly string[],
@@ -79,9 +54,6 @@ export function resolveSessionWorkingDirectoryAction(
 	const canonicalDirectory = index >= 0 ? current[index] : directory;
 
 	if (action.type === ActionType.SessionWorkingDirectoryRemoved) {
-		// The generic membership action MUST NOT remove index 0 when the primary
-		// is either fixed or a protected-replaceable slot; the replace action is
-		// the only path in the latter case.
 		if (index === 0 && (capability.immutablePrimary || capability.primaryReplacement)) {
 			throw new Error('The primary working directory cannot be removed.');
 		}
@@ -93,10 +65,6 @@ export function resolveSessionWorkingDirectoryAction(
 		if (replacement.scheme !== Schemas.file) {
 			throw new Error(`Working directory replacement must be a file URI: ${action.replacement}`);
 		}
-		// Index 0 may only be replaced when the provider advertises
-		// primaryReplacement. An immutable primary without primaryReplacement
-		// is fixed and cannot be swapped; a plain equal-peer index 0 (neither
-		// flag set) is fine to replace like any other entry.
 		if (index === 0 && capability.immutablePrimary && !capability.primaryReplacement) {
 			throw new Error('The primary working directory cannot be replaced.');
 		}

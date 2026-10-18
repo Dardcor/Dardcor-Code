@@ -26,14 +26,7 @@ import { MenuId } from '../../../platform/actions/common/actions.js';
 import { InputMode } from '../../common/inputMode.js';
 
 export interface IEditorConstructionOptions extends IEditorOptions {
-	/**
-	 * The initial editor dimension (to avoid measuring the container).
-	 */
 	dimension?: IDimension;
-	/**
-	 * Place overflow widgets inside an external DOM node.
-	 * Defaults to an internal DOM node.
-	 */
 	overflowWidgetsDomNode?: HTMLElement;
 }
 
@@ -57,17 +50,8 @@ export class EditorConfiguration extends Disposable implements IEditorConfigurat
 	private _targetWindowId: number;
 
 	private readonly _computeOptionsMemory: ComputeOptionsMemory = new ComputeOptionsMemory();
-	/**
-	 * Raw options as they were passed in and merged with all calls to `updateOptions`.
-	 */
 	private readonly _rawOptions: IEditorOptions;
-	/**
-	 * Validated version of `_rawOptions`.
-	 */
 	private _validatedOptions: ValidatedEditorOptions;
-	/**
-	 * Complete options which are a combination of passed in options and env values.
-	 */
 	public options: ComputedEditorOptions;
 
 	constructor(
@@ -104,7 +88,6 @@ export class EditorConfiguration extends Disposable implements IEditorConfigurat
 		const newOptions = this._computeOptions();
 		const changeEvent = EditorOptionsUtil.checkEquals(this.options, newOptions);
 		if (changeEvent === null) {
-			// nothing changed!
 			return;
 		}
 
@@ -232,11 +215,9 @@ function digitCount(n: number): number {
 function getExtraEditorClassName(): string {
 	let extra = '';
 	if (browser.isSafari || browser.isWebkitWebView) {
-		// See https://github.com/microsoft/vscode/issues/108822
 		extra += 'no-minimap-shadow ';
 		extra += 'enable-user-select ';
 	} else {
-		// Use user-select: none in all browsers except Safari and native macOS WebView
 		extra += 'no-user-select ';
 	}
 	if (platform.isMacintosh) {
@@ -334,10 +315,6 @@ class EditorOptionsUtil {
 		return (somethingChanged ? new ConfigurationChangedEvent(result) : null);
 	}
 
-	/**
-	 * Returns true if something changed.
-	 * Modifies `options`.
-	*/
 	public static applyUpdate(options: IEditorOptions, update: Readonly<IEditorOptions>): boolean {
 		let changed = false;
 		for (const editorOption of editorOptionsRegistry) {

@@ -49,7 +49,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		client.close();
 	});
 
-	// ---- Session rename / title ------------------------------------------------
 
 	test('client titleChanged updates session state snapshot', async function () {
 		this.timeout(10_000);
@@ -80,8 +79,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		const sessionUri = await createAndSubscribeSession(client, 'test-agent-title');
 		dispatchTurnStarted(client, sessionUri, 'turn-title', 'with-title', 1);
 
-		// The first titleChanged is the immediate fallback (user message text).
-		// Wait for the agent-generated title which arrives second.
 		const titleNotif = await client.waitForNotification(n => {
 			if (!isActionNotification(n, 'session/titleChanged')) {
 				return false;
@@ -104,20 +101,15 @@ suite('Protocol WebSocket — Session Features', function () {
 
 		const sessionUri = await createAndSubscribeSession(client, 'test-immediate-title');
 
-		// Verify the session starts with the default placeholder title
 		const before = await client.call<SubscribeResult>('subscribe', { channel: sessionUri });
 		assert.strictEqual((before.snapshot!.state as ISessionWithDefaultChat).title, '');
 
-		// Send first turn — side effects should dispatch an immediate titleChanged
-		// with the user's message text before the agent produces its own title.
 		dispatchTurnStarted(client, sessionUri, 'turn-immediate', 'Fix the login bug', 1);
 
-		// The first titleChanged should carry the user message text
 		const titleNotif = await client.waitForNotification(n => isActionNotification(n, 'session/titleChanged'));
 		const titleAction = getActionEnvelope(titleNotif).action as ITitleChangedAction;
 		assert.strictEqual(titleAction.title, 'Fix the login bug');
 
-		// listSessions should also reflect the updated title
 		const result = await client.call<ListSessionsResult>('listSessions', { channel: ROOT_STATE_URI });
 		const session = result.items.find(s => s.resource === sessionUri);
 		assert.ok(session, 'session should appear in listSessions');
@@ -146,7 +138,6 @@ suite('Protocol WebSocket — Session Features', function () {
 			return action.title === 'Persisted Title';
 		});
 
-		// Poll listSessions until the persisted title appears (async DB write)
 		let session: { title: string } | undefined;
 		for (let i = 0; i < 20; i++) {
 			const result = await client.call<ListSessionsResult>('listSessions', { channel: ROOT_STATE_URI });
@@ -160,7 +151,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		assert.strictEqual(session.title, 'Persisted Title');
 	});
 
-	// ---- Session model --------------------------------------------------------
 
 	test('message model flows through turn dispatch and subscribe', async function () {
 		this.timeout(10_000);
@@ -187,7 +177,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		assert.deepStrictEqual(state.turns.at(-1)?.message.model, { id: 'mock-model' });
 	});
 
-	// ---- Reasoning events ------------------------------------------------------
 
 	test('reasoning events produce reasoning response parts and append actions', async function () {
 		this.timeout(10_000);
@@ -195,7 +184,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		const sessionUri = await createAndSubscribeSession(client, 'test-reasoning');
 		dispatchTurnStarted(client, sessionUri, 'turn-reasoning', 'with-reasoning', 1);
 
-		// The first reasoning event produces a responsePart with kind Reasoning
 		const reasoningPart = await client.waitForNotification(n => {
 			if (!isActionNotification(n, 'chat/responsePart')) {
 				return false;
@@ -206,7 +194,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		const reasoningAction = getActionEnvelope(reasoningPart).action as IResponsePartAction;
 		assert.strictEqual(reasoningAction.part.kind, ResponsePartKind.Reasoning);
 
-		// The second reasoning chunk produces a chat/reasoning append action
 		const appendNotif = await client.waitForNotification(n => isActionNotification(n, 'chat/reasoning'));
 		const appendAction = getActionEnvelope(appendNotif).action;
 		assert.strictEqual(appendAction.type, 'chat/reasoning');
@@ -214,7 +201,6 @@ suite('Protocol WebSocket — Session Features', function () {
 			assert.strictEqual(appendAction.content, ' about this...');
 		}
 
-		// Then the markdown response part
 		const mdPart = await client.waitForNotification(n => {
 			if (!isActionNotification(n, 'chat/responsePart')) {
 				return false;
@@ -227,7 +213,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete'));
 	});
 
-	// ---- Queued messages -------------------------------------------------------
 
 	test('queued message is auto-consumed when session is idle', async function () {
 		this.timeout(10_000);
@@ -235,7 +220,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		const sessionUri = await createAndSubscribeSession(client, 'test-queue-idle');
 		client.clearReceived();
 
-		// Queue a message when the session is idle — server should immediately consume it
 		client.notify('dispatchAction', {
 			channel: defaultChatChannel(sessionUri),
 			clientSeq: 1,
@@ -247,16 +231,13 @@ suite('Protocol WebSocket — Session Features', function () {
 			},
 		});
 
-		// The server should auto-consume the queued message and start a turn
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnStarted'));
 		await client.waitForNotification(n => isActionNotification(n, 'chat/responsePart'));
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete'));
 
-		// Verify the turn was created from the queued message
 		const state = await fetchSessionWithChat(client, sessionUri);
 		assert.ok(state.turns.length >= 1);
 		assert.strictEqual(state.turns[state.turns.length - 1].message.text, 'hello');
-		// Queue should be empty after consumption
 		assert.ok(!state.queuedMessages?.length, 'queued messages should be empty after consumption');
 	});
 
@@ -265,13 +246,10 @@ suite('Protocol WebSocket — Session Features', function () {
 
 		const sessionUri = await createAndSubscribeSession(client, 'test-queue-wait');
 
-		// Start a turn first
 		dispatchTurnStarted(client, sessionUri, 'turn-first', 'hello', 1);
 
-		// Wait for the first turn's response to confirm it is in progress
 		await client.waitForNotification(n => isActionNotification(n, 'chat/responsePart'));
 
-		// Queue a message while the turn is in progress
 		client.notify('dispatchAction', {
 			channel: defaultChatChannel(sessionUri),
 			clientSeq: 2,
@@ -283,7 +261,6 @@ suite('Protocol WebSocket — Session Features', function () {
 			},
 		});
 
-		// First turn should complete
 		const firstComplete = await client.waitForNotification(n => {
 			if (!isActionNotification(n, 'chat/turnComplete')) {
 				return false;
@@ -292,7 +269,6 @@ suite('Protocol WebSocket — Session Features', function () {
 		});
 		const firstSeq = getActionEnvelope(firstComplete).serverSeq;
 
-		// The queued message's turn should complete AFTER the first turn
 		const secondComplete = await client.waitForNotification(n => {
 			if (!isActionNotification(n, 'chat/turnComplete')) {
 				return false;
@@ -307,17 +283,14 @@ suite('Protocol WebSocket — Session Features', function () {
 		assert.ok(state.turns.length >= 2, `expected >= 2 turns but got ${state.turns.length}`);
 	});
 
-	// ---- Steering messages ----------------------------------------------------
 
 	test('steering message is set and consumed by agent', async function () {
 		this.timeout(10_000);
 
 		const sessionUri = await createAndSubscribeSession(client, 'test-steering');
 
-		// Start a turn first
 		dispatchTurnStarted(client, sessionUri, 'turn-steer', 'hello', 1);
 
-		// Set a steering message while the turn is in progress
 		client.notify('dispatchAction', {
 			channel: defaultChatChannel(sessionUri),
 			clientSeq: 2,
@@ -329,30 +302,24 @@ suite('Protocol WebSocket — Session Features', function () {
 			},
 		});
 
-		// The steering message should be set in state initially
 		const setNotif = await client.waitForNotification(n => isActionNotification(n, 'chat/pendingMessageSet'));
 		assert.ok(setNotif, 'should see pendingMessageSet action');
 
-		// The mock agent consumes steering and fires steering_consumed,
-		// which causes the server to dispatch pendingMessageRemoved
 		const removedNotif = await client.waitForNotification(n => isActionNotification(n, 'chat/pendingMessageRemoved'));
 		assert.ok(removedNotif, 'should see pendingMessageRemoved after agent consumes steering');
 
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete'));
 
-		// Steering should be cleared from state
 		const state = await fetchSessionWithChat(client, sessionUri);
 		assert.ok(!state.steeringMessage, 'steering message should be cleared after consumption');
 	});
 
-	// ---- Truncation -----------------------------------------------------------
 
 	test('truncate session removes turns after specified turn', async function () {
 		this.timeout(15_000);
 
 		const sessionUri = await createAndSubscribeSession(client, 'test-truncate');
 
-		// Create two turns
 		dispatchTurnStarted(client, sessionUri, 'turn-t1', 'hello', 1);
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete') && (getActionEnvelope(n).action as { turnId: string }).turnId === 'turn-t1');
 
@@ -360,13 +327,11 @@ suite('Protocol WebSocket — Session Features', function () {
 		dispatchTurnStarted(client, sessionUri, 'turn-t2', 'hello', 2);
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete') && (getActionEnvelope(n).action as { turnId: string }).turnId === 'turn-t2');
 
-		// Verify 2 turns exist
 		let state = await fetchSessionWithChat(client, sessionUri);
 		assert.strictEqual(state.turns.length, 2);
 
 		client.clearReceived();
 
-		// Truncate: keep only turn-t1
 		client.notify('dispatchAction', {
 			channel: defaultChatChannel(sessionUri),
 			clientSeq: 3,
@@ -390,7 +355,6 @@ suite('Protocol WebSocket — Session Features', function () {
 
 		client.clearReceived();
 
-		// Truncate all (no turnId)
 		client.notify('dispatchAction', {
 			channel: defaultChatChannel(sessionUri),
 			clientSeq: 2,
@@ -417,7 +381,6 @@ suite('Protocol WebSocket — Session Features', function () {
 
 		client.clearReceived();
 
-		// Truncate to turn-tr1
 		client.notify('dispatchAction', {
 			channel: defaultChatChannel(sessionUri),
 			clientSeq: 3,
@@ -426,7 +389,6 @@ suite('Protocol WebSocket — Session Features', function () {
 
 		await client.waitForNotification(n => isActionNotification(n, 'chat/truncated'));
 
-		// Send a new turn after truncation
 		dispatchTurnStarted(client, sessionUri, 'turn-tr3', 'hello', 4);
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete'));
 

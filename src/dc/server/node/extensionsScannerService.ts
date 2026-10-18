@@ -42,7 +42,7 @@ export class ExtensionsScannerService extends AbstractExtensionsScannerService i
 			try {
 				const content = await this.fileService.readFile(URI.file(config.languagePack.translationsConfigFile));
 				return JSON.parse(content.value.toString());
-			} catch (err) { /* Ignore error */ }
+			} catch (err) { }
 		}
 		return Object.create(null);
 	}

@@ -20,7 +20,6 @@ export interface IChatPullRequestPillSection extends IChatPillSection {
 	readonly entries: readonly IChatPullRequestPillEntry[];
 }
 
-/** Supplies filtered PR data and options using the user's application-wide preference. */
 export function createSessionPullRequestPillData(
 	sections: IObservable<readonly IChatPullRequestPillSection[]>,
 	visibility: ISessionChatPillVisibilityService['pullRequests'],

@@ -10,12 +10,6 @@ import { IAgentHostGitService } from '../../common/agentHostGitService.js';
 import { resolveSessionRepositories } from '../../node/agentHostSessionRepositories.js';
 import { createNoopGitService } from '../common/sessionTestHelpers.js';
 
-/**
- * Builds a typed {@link IAgentHostGitService} fake whose `getRepositoryRoot`
- * returns a canned repository root per working directory (keyed by URI
- * string), and `undefined` for any directory absent from the map (i.e. a
- * non-git directory). All other members delegate to the shared no-op fake.
- */
 function createFakeGitService(repositoryRoots: ReadonlyMap<string, URI>): IAgentHostGitService {
 	return {
 		...createNoopGitService(),
@@ -133,8 +127,6 @@ suite('agentHostSessionRepositories', () => {
 		const resultPromise = resolveSessionRepositories(directories, gitService);
 		let settled = false;
 		void resultPromise.then(() => { settled = true; });
-		// Drain probes one at a time, yielding so the limiter can start the next
-		// queued probe, until the whole resolution settles.
 		while (!settled) {
 			pending.shift()?.();
 			await Promise.resolve();

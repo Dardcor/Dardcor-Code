@@ -15,7 +15,6 @@ import { LiveTestResult, TestResultItemChangeReason } from '../common/testResult
 import { ITestResultService } from '../common/testResultService.js';
 import { ExplorerTestCoverageBars } from './testCoverageBars.js';
 
-/** Workbench contribution that triggers updates in the TestingProgressUi service */
 export class TestingProgressTrigger extends Disposable {
 	public static readonly ID = 'workbench.contrib.testing.progressTrigger';
 
@@ -64,7 +63,6 @@ export class TestingProgressTrigger extends Disposable {
 			return this.openResultsView();
 		}
 
-		// open on failure
 		const disposable = new DisposableStore();
 		disposable.add(result.onComplete(() => disposable.dispose()));
 		disposable.add(result.onChange(e => {

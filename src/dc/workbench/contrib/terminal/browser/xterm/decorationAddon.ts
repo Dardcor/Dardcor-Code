@@ -224,12 +224,10 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 		this._removeCapabilityDisposables(TerminalCapability.CommandDetection);
 
 		const commandDetectionListeners = [];
-		// Command started
 		if (capability.executingCommandObject?.marker) {
 			this.registerCommandDecoration(capability.executingCommandObject, true);
 		}
 		commandDetectionListeners.push(capability.onCommandStarted(command => this.registerCommandDecoration(command, true)));
-		// Command finished
 		for (const command of capability.commands) {
 			this.registerCommandDecoration(command);
 		}
@@ -237,10 +235,8 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 			const buffer = this._terminal?.buffer?.active;
 			const marker = command.promptStartMarker;
 
-			// Edge case: Handle case where tsc watch commands clears buffer, but decoration of that tsc command re-appears
 			const shouldRegisterDecoration = (
 				command.exitCode === undefined ||
-				// Only register decoration if the cursor is at or below the promptStart marker.
 				(buffer && marker && buffer.baseY + buffer.cursorY >= marker.line)
 			);
 
@@ -254,7 +250,6 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 				this._accessibilitySignalService.playSignal(AccessibilitySignal.terminalCommandSucceeded);
 			}
 		}));
-		// Command invalidated
 		commandDetectionListeners.push(capability.onCommandInvalidated(commands => {
 			for (const command of commands) {
 				const id = command.marker?.id;
@@ -267,7 +262,6 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 				}
 			}
 		}));
-		// Current command invalidated
 		commandDetectionListeners.push(capability.onCurrentCommandInvalidated((request) => {
 			if (request.reason === CommandInvalidationReason.NoProblemsReported) {
 				const lastDecoration = Array.from(this._decorations.entries())[this._decorations.size - 1];
@@ -327,7 +321,6 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 					});
 			}
 			if (!element.classList.contains(DecorationSelector.Codicon) || command?.marker?.line === 0) {
-				// first render or buffer was cleared
 				updateLayout(this._configurationService, element);
 				this._updateClasses(element, command, command?.markProperties || markProperties);
 			}
@@ -382,11 +375,9 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 		if (markProperties) {
 			element.classList.add(DecorationSelector.DefaultColor, ...ThemeIcon.asClassNameArray(terminalDecorationMark));
 			if (!markProperties.hoverMessage) {
-				//disable the mouse pointer
 				element.classList.add(DecorationSelector.Default);
 			}
 		} else {
-			// command decoration
 			const state = getTerminalCommandDecorationState(command);
 			this._updateCommandDecorationVisibility(element);
 			for (const className of state.classNames) {
@@ -399,8 +390,6 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 	}
 
 	private _createContextMenu(element: HTMLElement, command: ITerminalCommand): IDisposable[] {
-		// When the xterm Decoration gets disposed of, its element gets removed from the dom
-		// along with its listeners
 		return [
 			dom.addDisposableListener(element, dom.EventType.MOUSE_DOWN, async (e) => {
 				e.stopImmediatePropagation();
@@ -468,7 +457,6 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 					this._onDidRequestRunCommand.fire({ command });
 				}
 			});
-			// The second section is the clipboard section
 			actions.push(new Separator());
 			const labelCopy = localize("terminal.copyCommand", 'Copy Command');
 			actions.push({
@@ -522,7 +510,7 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 		const labelAbout = localize("terminal.learnShellIntegration", 'Learn About Shell Integration');
 		actions.push({
 			class: undefined, tooltip: labelAbout, id: 'terminal.learnShellIntegration', label: labelAbout, enabled: true,
-			run: () => this._openerService.open('https://code.visualstudio.com/docs/terminal/shell-integration')
+			run: () => this._openerService.open('https://www.dardcor-code.web.id/docs/terminal/shell-integration')
 		});
 		return actions;
 	}
@@ -538,7 +526,6 @@ export class DecorationAddon extends Disposable implements ITerminalAddon, IDeco
 			run: async () => {
 				let widget = this._chatWidgetService.lastFocusedWidget ?? this._chatWidgetService.getWidgetsByLocations(ChatAgentLocation.Chat)?.find(w => w.attachmentCapabilities.supportsTerminalAttachments);
 
-				// If no widget found (e.g., after window reload when chat hasn't been focused), open chat view
 				if (!widget) {
 					widget = await this._chatWidgetService.revealWidget();
 				}

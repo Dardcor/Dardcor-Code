@@ -14,26 +14,15 @@ import { ILogger, ILoggerService } from '../../log/common/log.js';
 import { IMcpGatewayInfo, IMcpGatewayServerDescriptor, IMcpGatewayServerInfo, IMcpGatewayService, IMcpGatewaySingleServerInvoker, IMcpGatewayToolInvoker } from '../common/mcpGateway.js';
 import { isInitializeMessage, McpGatewaySession } from './mcpGatewaySession.js';
 
-/**
- * Node.js implementation of the MCP Gateway Service.
- *
- * Creates and manages an HTTP server on localhost that provides MCP gateway endpoints.
- * The server is shared among all gateways and uses ref-counting for lifecycle management.
- */
 export class McpGatewayService extends Disposable implements IMcpGatewayService {
 	declare readonly _serviceBrand: undefined;
 
 	private _server: http.Server | undefined;
 	private _port: number | undefined;
-	/** All active routes keyed by their route UUID */
 	private readonly _routes = new Map<string, McpGatewayRoute>();
-	/** Maps gatewayId → set of route UUIDs belonging to that gateway */
 	private readonly _gatewayRoutes = new Map<string, Set<string>>();
-	/** Maps gatewayId → serverId → routeId for reverse lookup */
 	private readonly _gatewayServerRoutes = new Map<string, Map<string, string>>();
-	/** Maps gatewayId to clientId for tracking ownership */
 	private readonly _gatewayToClient = new Map<string, unknown>();
-	/** Per-gateway disposables (e.g. event listeners) */
 	private readonly _gatewayDisposables = new Map<string, DisposableStore>();
 	private _serverStartPromise: Promise<void> | undefined;
 	private readonly _logger: ILogger;
@@ -47,7 +36,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 	}
 
 	async createGateway(clientId: unknown, toolInvoker?: IMcpGatewayToolInvoker): Promise<IMcpGatewayInfo> {
-		// Ensure server is running
 		await this._ensureServer();
 
 		if (this._port === undefined) {
@@ -68,7 +56,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 		this._gatewayDisposables.set(gatewayId, disposables);
 
 		try {
-			// Create initial server routes
 			const serverDescriptors = toolInvoker.listServers();
 			const servers: IMcpGatewayServerInfo[] = [];
 			for (const descriptor of serverDescriptors) {
@@ -76,7 +63,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 				servers.push(serverInfo);
 			}
 
-			// Track client ownership
 			if (clientId) {
 				this._gatewayToClient.set(gatewayId, clientId);
 				this._logger.info(`[McpGatewayService] Created gateway ${gatewayId} with ${servers.length} server(s) for client ${clientId}`);
@@ -84,7 +70,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 				this._logger.warn(`[McpGatewayService] Created gateway ${gatewayId} with ${servers.length} server(s) without client tracking`);
 			}
 
-			// Listen for server changes to dynamically add/remove routes
 			const onDidChangeServers = disposables.add(new Emitter<readonly IMcpGatewayServerInfo[]>());
 			disposables.add(toolInvoker.onDidChangeServers(newDescriptors => {
 				this._refreshGatewayServers(gatewayId, newDescriptors, toolInvoker, routeIds, serverRouteMap, onDidChangeServers);
@@ -96,7 +81,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 				gatewayId,
 			};
 		} catch (error) {
-			// Clean up partially-created state on failure
 			this._cleanupGateway(gatewayId);
 			throw error;
 		}
@@ -110,7 +94,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 		serverRouteMap: Map<string, string>,
 		onDidChangeServers: Emitter<readonly IMcpGatewayServerInfo[]>,
 	): void {
-		// Bail out if the gateway has been disposed
 		if (!this._gatewayRoutes.has(gatewayId)) {
 			return;
 		}
@@ -118,7 +101,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 		const newServerIds = new Set(newDescriptors.map(d => d.id));
 		const existingServerIds = new Set(serverRouteMap.keys());
 
-		// Remove routes for servers that are gone
 		for (const serverId of existingServerIds) {
 			if (!newServerIds.has(serverId)) {
 				const routeId = serverRouteMap.get(serverId);
@@ -130,7 +112,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 			}
 		}
 
-		// Add routes for new servers, and update labels for existing ones.
 		for (const descriptor of newDescriptors) {
 			if (!existingServerIds.has(descriptor.id)) {
 				this._createRouteForServer(gatewayId, descriptor.id, descriptor.label, toolInvoker, routeIds, serverRouteMap);
@@ -173,7 +154,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 	): IMcpGatewayServerInfo {
 		const routeId = generateUuid();
 
-		// Create a single-server invoker that delegates to the aggregating invoker
 		const singleServerInvoker: IMcpGatewaySingleServerInvoker = {
 			onDidChangeTools: toolInvoker.onDidChangeTools,
 			onDidChangeResources: toolInvoker.onDidChangeResources,
@@ -231,7 +211,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 		this._cleanupGateway(gatewayId);
 		this._logger.info(`[McpGatewayService] Disposed gateway: ${gatewayId} (remaining routes: ${this._routes.size})`);
 
-		// If no more routes, shut down the server
 		if (this._routes.size === 0) {
 			this._stopServer();
 		}
@@ -253,7 +232,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 				this._cleanupGateway(gatewayId);
 			}
 
-			// If no more routes, shut down the server
 			if (this._routes.size === 0) {
 				this._stopServer();
 			}
@@ -265,7 +243,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 			return;
 		}
 
-		// If server is already starting, wait for it
 		if (this._serverStartPromise) {
 			return this._serverStartPromise;
 		}
@@ -279,7 +256,7 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 	}
 
 	private async _startServer(): Promise<void> {
-		const { createServer } = await import('http'); // Lazy due to https://github.com/nodejs/node/issues/59686
+		const { createServer } = await import('http');
 		const deferredPromise = new DeferredPromise<void>();
 
 		this._server = createServer((req, res) => {
@@ -310,7 +287,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 		this._server.on('error', (err: NodeJS.ErrnoException) => {
 			if (err.code === 'EADDRINUSE') {
 				this._logger.warn('[McpGatewayService] Port in use, retrying with random port...');
-				// Try with a random port
 				this._server!.listen(0, '127.0.0.1');
 				return;
 			}
@@ -319,7 +295,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 			deferredPromise.error(err);
 		});
 
-		// Use dynamic port assignment (port 0)
 		this._server.listen(0, '127.0.0.1');
 
 		return deferredPromise.p;
@@ -350,7 +325,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 
 		this._logger.debug(`[McpGatewayService] ${req.method} ${url.pathname} (active routes: ${this._routes.size})`);
 
-		// Expected path: /gateway/{routeId}
 		if (pathParts.length >= 2 && pathParts[0] === 'gateway') {
 			const routeId = pathParts[1];
 			const route = this._routes.get(routeId);
@@ -361,7 +335,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 			}
 		}
 
-		// Not found
 		this._logger.warn(`[McpGatewayService] ${req.method} ${url.pathname}: route not found`);
 		res.writeHead(404, { 'Content-Type': 'application/json' });
 		res.end(JSON.stringify({ error: 'Gateway not found' }));
@@ -385,9 +358,6 @@ export class McpGatewayService extends Disposable implements IMcpGatewayService 
 	}
 }
 
-/**
- * Represents a single MCP gateway route for one MCP server.
- */
 class McpGatewayRoute extends Disposable {
 	private readonly _sessions = new Map<string, McpGatewaySession>();
 

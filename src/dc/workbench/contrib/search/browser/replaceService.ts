@@ -81,7 +81,7 @@ class ReplacePreviewModel extends Disposable {
 		const replacePreviewModel = this.modelService.createModel(createTextBufferFactoryFromSnapshot(sourceModel.createSnapshot()), this.languageService.createById(sourceModelLanguageId), replacePreviewUri);
 		this._register(fileMatch.onChange(({ forceUpdateModel }) => this.update(sourceModel, replacePreviewModel, fileMatch, forceUpdateModel)));
 		this._register(this.searchWorkbenchService.searchModel.onReplaceTermChanged(() => this.update(sourceModel, replacePreviewModel, fileMatch)));
-		this._register(fileMatch.onDispose(() => replacePreviewModel.dispose())); // TODO@Sandeep we should not dispose a model directly but rather the reference (depends on https://github.com/microsoft/vscode/issues/17073)
+		this._register(fileMatch.onDispose(() => replacePreviewModel.dispose()));
 		this._register(replacePreviewModel.onWillDispose(() => this.dispose()));
 		this._register(sourceModel.onWillDispose(() => this.dispose()));
 		return replacePreviewModel;
@@ -170,7 +170,6 @@ export class ReplaceService implements IReplaceService {
 		const [sourceModelRef, replaceModelRef] = await Promise.all([this.textModelResolverService.createModelReference(fileMatch.resource), this.textModelResolverService.createModelReference(replacePreviewUri)]);
 		const sourceModel = sourceModelRef.object.textEditorModel;
 		const replaceModel = replaceModelRef.object.textEditorModel;
-		// If model is disposed do not update
 		try {
 			if (sourceModel && replaceModel) {
 				if (override) {
@@ -204,7 +203,6 @@ export class ReplaceService implements IReplaceService {
 		if (isSearchTreeMatch(arg)) {
 			if (!arg.isReadonly) {
 				if (isIMatchInNotebook(arg)) {
-					// only apply edits if it's not a webview match, since webview matches are read-only
 					const match = arg;
 					edits.push(this.createEdit(match, match.replaceString, match.cell?.uri));
 				} else {

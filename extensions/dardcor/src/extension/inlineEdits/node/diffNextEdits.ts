@@ -9,9 +9,6 @@ import { LineRangeMapping } from '../../../util/dardcor/editor/common/diff/range
 import { Lines } from '../../prompt/node/editGeneration';
 import { getTrailingArrayEmptyLineCount } from '../../prompts/node/codeMapper/codeMapper';
 
-/**
- * Generates the next edit based on the current lines and the desired lines.
- */
 export async function generateDiffNextEdits(
 	diffService: IDiffService,
 	currentLines: string[],

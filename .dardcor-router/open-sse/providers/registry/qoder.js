@@ -55,7 +55,6 @@ export default {
   },
   features: {
     usage: true,
-    // PAT (apikey) connections also carry quota usage (via job-token exchange).
     usageApikey: true,
   },
 };

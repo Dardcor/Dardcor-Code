@@ -110,7 +110,6 @@ export class InlineCompletionsUnificationImpl extends Disposable implements IInl
 
 		const extensionStatesMatchUnificationSetting = this._configurationService.getValue<boolean>(ExtensionUnificationSetting) === extensionUnificationEnabled;
 
-		// Intentionally read the current experiments after fetching the treatments
 		const currentExperiments = await this._assignmentService.getCurrentExperiments();
 		const newState = new InlineCompletionsUnificationState(
 			codeUnificationFF === true,
@@ -151,7 +150,6 @@ export class InlineCompletionsUnificationImpl extends Disposable implements IInl
 			return false;
 		}
 
-		// Extension might be installed on remote and local
 		const completionExtensionInstalled = installedExtensions.filter(ext => ext.identifier.id.toLowerCase() === this._completionsExtensionId);
 		if (completionExtensionInstalled.length === 0) {
 			return true;

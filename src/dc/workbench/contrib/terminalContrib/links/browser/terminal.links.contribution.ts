@@ -27,13 +27,10 @@ import { TerminalLinkProviderService } from './terminalLinkProviderService.js';
 import { TerminalLinkQuickpick } from './terminalLinkQuickpick.js';
 import { TerminalLinkResolver } from './terminalLinkResolver.js';
 
-// #region Services
 
 registerSingleton(ITerminalLinkProviderService, TerminalLinkProviderService, InstantiationType.Delayed);
 
-// #endregion
 
-// #region Terminal Contributions
 
 class TerminalLinkContribution extends DisposableStore implements ITerminalContribution {
 	static readonly ID = 'terminal.link';
@@ -58,7 +55,6 @@ class TerminalLinkContribution extends DisposableStore implements ITerminalContr
 	xtermReady(xterm: IXtermTerminal & { raw: RawXtermTerminal }): void {
 		const linkManager = this._linkManager = this.add(this._instantiationService.createInstance(TerminalLinkManager, xterm.raw, this._ctx.processManager, this._ctx.instance.capabilities, this._linkResolver));
 
-		// Set widget manager
 		if (isTerminalProcessManager(this._ctx.processManager)) {
 			const disposable = linkManager.add(Event.once(this._ctx.processManager.onProcessReady)(() => {
 				linkManager.setWidgetManager(this._ctx.widgetManager);
@@ -68,7 +64,6 @@ class TerminalLinkContribution extends DisposableStore implements ITerminalContr
 			linkManager.setWidgetManager(this._ctx.widgetManager);
 		}
 
-		// Attach the external link provider to the instance and listen for changes
 		if (!isDetachedTerminalInstance(this._ctx.instance)) {
 			for (const linkProvider of this._terminalLinkProviderService.linkProviders) {
 				linkManager.externalProvideLinksCb = linkProvider.provideLinks.bind(linkProvider, this._ctx.instance);
@@ -108,9 +103,7 @@ class TerminalLinkContribution extends DisposableStore implements ITerminalContr
 
 registerTerminalContribution(TerminalLinkContribution.ID, TerminalLinkContribution, true);
 
-// #endregion
 
-// #region Actions
 
 const category = terminalStrings.actionCategory;
 
@@ -152,4 +145,3 @@ registerActiveInstanceAction({
 	run: (activeInstance) => TerminalLinkContribution.get(activeInstance)?.openRecentLink('localFile')
 });
 
-// #endregion

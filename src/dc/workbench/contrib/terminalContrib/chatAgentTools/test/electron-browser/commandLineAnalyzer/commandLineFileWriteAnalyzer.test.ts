@@ -69,7 +69,6 @@ suite('CommandLineFileWriteAnalyzer', () => {
 		async function t(commandLine: string, blockDetectedFileWrites: 'never' | 'outsideWorkspace' | 'all', expectedAutoApprove: boolean, expectedDisclaimers: number = 0, workspaceFolders: URI[] = [cwd]) {
 			configurationService.setUserConfiguration(TerminalChatAgentToolsSettingId.BlockDetectedFileWrites, blockDetectedFileWrites);
 
-			// Setup workspace folders
 			const workspace = new Workspace('test', workspaceFolders.map(uri => toWorkspaceFolder(uri)));
 			workspaceContextService.setWorkspace(workspace);
 
@@ -98,13 +97,11 @@ suite('CommandLineFileWriteAnalyzer', () => {
 		});
 
 		suite('blockDetectedFileWrites: outsideWorkspace', () => {
-			// Relative paths (joined with cwd)
 			test('relative path - file in workspace root - allow', () => t('echo hello > file.txt', 'outsideWorkspace', true, 1));
 			test('relative path - file in subdirectory - allow', () => t('echo hello > subdir/file.txt', 'outsideWorkspace', true, 1));
 			test('relative path - parent directory - block', () => t('echo hello > ../file.txt', 'outsideWorkspace', false, 1));
 			test('relative path - grandparent directory - block', () => t('echo hello > ../../file.txt', 'outsideWorkspace', false, 1));
 
-			// Absolute paths (parsed as-is)
 			test('absolute path - /tmp - block', () => t('echo hello > /tmp/file.txt', 'outsideWorkspace', false, 1));
 			test('absolute path - /etc - block', () => t('echo hello > /etc/config.txt', 'outsideWorkspace', false, 1));
 			test('absolute path - /home - block', () => t('echo hello > /home/user/file.txt', 'outsideWorkspace', false, 1));
@@ -117,7 +114,6 @@ suite('CommandLineFileWriteAnalyzer', () => {
 			test('triple-quoted settings path outside workspace - block', () => t('echo "{}" > \'\'\'/home/user/.config/Code/User/settings.json\'\'\'', 'outsideWorkspace', false, 1));
 			test('triple double-quoted absolute path outside workspace - block', () => t('echo hello > """/tmp/file.txt"""', 'outsideWorkspace', false, 1));
 
-			// Special cases
 			test('no workspace folders - block', () => t('echo hello > file.txt', 'outsideWorkspace', false, 1, []));
 			test('no workspace folders - /dev/null allowed', () => t('echo hello > /dev/null', 'outsideWorkspace', true, 1, []));
 			test('no redirections - allow', () => t('echo hello', 'outsideWorkspace', true, 0));
@@ -167,24 +163,20 @@ suite('CommandLineFileWriteAnalyzer', () => {
 			}
 
 			suite('blockDetectedFileWrites: outsideWorkspace', () => {
-				// /tmp writes are allowed only when session auto-approval is enabled
 				test('/tmp - allow when auto-approval enabled', () => tWithAutoApproval('echo hello > /tmp/file.txt', 'outsideWorkspace', true, true));
 				test('/tmp subdirectory - allow when auto-approval enabled', () => tWithAutoApproval('echo hello > /tmp/sub/file.txt', 'outsideWorkspace', true, true));
 				test('triple-quoted /tmp - allow when auto-approval enabled', () => tWithAutoApproval('echo hello > \'\'\'/tmp/file.txt\'\'\'', 'outsideWorkspace', true, true));
 				test('/tmp - block when auto-approval disabled', () => tWithAutoApproval('echo hello > /tmp/file.txt', 'outsideWorkspace', false, false));
 
-				// Other outside-workspace paths remain blocked even with auto-approval enabled
 				test('/etc - block even when auto-approval enabled', () => tWithAutoApproval('echo hello > /etc/config.txt', 'outsideWorkspace', true, false));
 				test('/home - block even when auto-approval enabled', () => tWithAutoApproval('echo hello > /home/user/file.txt', 'outsideWorkspace', true, false));
 				test('root - block even when auto-approval enabled', () => tWithAutoApproval('echo hello > /file.txt', 'outsideWorkspace', true, false));
 
-				// Mixed writes: /tmp allowed, but other outside paths still block
 				test('mixed /tmp and /etc - block even when auto-approval enabled', () => tWithAutoApproval('echo hello > /tmp/a.txt && echo world > /etc/b.txt', 'outsideWorkspace', true, false));
 				test('mixed inside-workspace and /tmp - allow when auto-approval enabled', () => tWithAutoApproval('echo hello > file.txt && echo world > /tmp/b.txt', 'outsideWorkspace', true, true));
 			});
 
 			suite('blockDetectedFileWrites: all', () => {
-				// `all` setting still blocks /tmp writes regardless of session auto-approval
 				test('/tmp - block when auto-approval enabled', () => tWithAutoApproval('echo hello > /tmp/file.txt', 'all', true, false));
 			});
 		});
@@ -197,35 +189,27 @@ suite('CommandLineFileWriteAnalyzer', () => {
 		});
 
 		suite('sed in-place editing', () => {
-			// Basic -i flag variants (inside workspace)
 			test('sed -i inside workspace - allow', () => t('sed -i \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 1));
 			test('sed -I (uppercase) inside workspace - allow', () => t('sed -I \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 1));
 			test('sed --in-place inside workspace - allow', () => t('sed --in-place \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 1));
 
-			// Backup suffix variants (inside workspace)
 			test('sed -i.bak inside workspace - allow', () => t('sed -i.bak \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 1));
 			test('sed --in-place=.bak inside workspace - allow', () => t('sed --in-place=.bak \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 1));
 			test('sed -i with empty backup (macOS) inside workspace - allow', () => t('sed -i \'\' \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 1));
 
-			// Combined flags (inside workspace)
 			test('sed -ni inside workspace - allow', () => t('sed -ni \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 1));
 			test('sed -n -i inside workspace - allow', () => t('sed -n -i \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 1));
 
-			// Multiple files (inside workspace)
 			test('sed -i multiple files inside workspace - allow', () => t('sed -i \'s/foo/bar/\' file1.txt file2.txt', 'outsideWorkspace', true, 1));
 
-			// Outside workspace
 			test('sed -i outside workspace - block', () => t('sed -i \'s/foo/bar/\' /tmp/file.txt', 'outsideWorkspace', false, 1));
 			test('sed -i absolute path outside workspace - block', () => t('sed -i \'s/foo/bar/\' /etc/config', 'outsideWorkspace', false, 1));
 			test('sed -i mixed inside/outside - block', () => t('sed -i \'s/foo/bar/\' file.txt /tmp/other.txt', 'outsideWorkspace', false, 1));
 
-			// With blockDetectedFileWrites: all
 			test('sed -i with all setting - block', () => t('sed -i \'s/foo/bar/\' file.txt', 'all', false, 1));
 
-			// With blockDetectedFileWrites: never
 			test('sed -i with never setting - allow', () => t('sed -i \'s/foo/bar/\' file.txt', 'never', true, 1));
 
-			// Without -i flag (should not detect as file write)
 			test('sed without -i - no file write detected', () => t('sed \'s/foo/bar/\' file.txt', 'outsideWorkspace', true, 0));
 			test('sed with pipe - no file write detected', () => t('cat file.txt | sed \'s/foo/bar/\'', 'outsideWorkspace', true, 0));
 		});
@@ -252,12 +236,10 @@ suite('CommandLineFileWriteAnalyzer', () => {
 				strictEqual((result.disclaimers || []).length, expectedDisclaimers, `Expected ${expectedDisclaimers} disclaimers for: ${commandLine}`);
 			}
 
-			// When cwd is undefined, relative paths remain as strings and are blocked
 			test('relative path - never setting - allow', () => tNoCwd('echo hello > file.txt', 'never', true, 1));
 			test('relative path - outsideWorkspace setting - block (unknown cwd)', () => tNoCwd('echo hello > file.txt', 'outsideWorkspace', false, 1));
 			test('relative path - all setting - block', () => tNoCwd('echo hello > file.txt', 'all', false, 1));
 
-			// Absolute paths are converted to URIs and checked normally
 			test('absolute path inside workspace - outsideWorkspace setting - allow', () => tNoCwd('echo hello > /workspace/project/file.txt', 'outsideWorkspace', true, 1));
 			test('absolute path outside workspace - outsideWorkspace setting - block', () => tNoCwd('echo hello > /tmp/file.txt', 'outsideWorkspace', false, 1));
 			test('absolute path - all setting - block', () => tNoCwd('echo hello > /tmp/file.txt', 'all', false, 1));
@@ -270,7 +252,6 @@ suite('CommandLineFileWriteAnalyzer', () => {
 		async function t(commandLine: string, blockDetectedFileWrites: 'never' | 'outsideWorkspace' | 'all', expectedAutoApprove: boolean, expectedDisclaimers: number = 0, workspaceFolders: URI[] = [cwd]) {
 			configurationService.setUserConfiguration(TerminalChatAgentToolsSettingId.BlockDetectedFileWrites, blockDetectedFileWrites);
 
-			// Setup workspace folders
 			const workspace = new Workspace('test', workspaceFolders.map(uri => toWorkspaceFolder(uri)));
 			workspaceContextService.setWorkspace(workspace);
 
@@ -298,13 +279,11 @@ suite('CommandLineFileWriteAnalyzer', () => {
 		});
 
 		suite('blockDetectedFileWrites: outsideWorkspace', () => {
-			// Relative paths (joined with cwd)
 			test('relative path - file in workspace root - allow', () => t('Write-Host "hello" > file.txt', 'outsideWorkspace', true, 1));
 			test('relative path - file in subdirectory - allow', () => t('Write-Host "hello" > subdir\\file.txt', 'outsideWorkspace', true, 1));
 			test('relative path - parent directory - block', () => t('Write-Host "hello" > ..\\file.txt', 'outsideWorkspace', false, 1));
 			test('relative path - grandparent directory - block', () => t('Write-Host "hello" > ..\\..\\file.txt', 'outsideWorkspace', false, 1));
 
-			// Absolute paths - Windows drive letters (parsed as-is)
 			test('absolute path - C: drive - block', () => t('Write-Host "hello" > C:\\temp\\file.txt', 'outsideWorkspace', false, 1));
 			test('absolute path - D: drive - block', () => t('Write-Host "hello" > D:\\data\\config.txt', 'outsideWorkspace', false, 1));
 			test('absolute path - different drive than workspace - block', () => t('Write-Host "hello" > E:\\external\\file.txt', 'outsideWorkspace', false, 1));
@@ -312,10 +291,8 @@ suite('CommandLineFileWriteAnalyzer', () => {
 			test('absolute path traversal to settings path outside workspace - block', () => t('Write-Host "{}" > C:\\workspace\\project\\test\\..\\..\\..\\Users\\user\\AppData\\Roaming\\Code\\User\\settings.json', 'outsideWorkspace', false, 1));
 			test('absolute path traversal that remains inside workspace - allow', () => t('Write-Host "hello" > C:\\workspace\\project\\test\\..\\file.txt', 'outsideWorkspace', true, 1));
 
-			// Absolute paths - UNC paths
 			test('absolute path - UNC path - block', () => t('Write-Host "hello" > \\\\server\\share\\file.txt', 'outsideWorkspace', false, 1));
 
-			// Special cases
 			test('no workspace folders - block', () => t('Write-Host "hello" > file.txt', 'outsideWorkspace', false, 1, []));
 			test('no redirections - allow', () => t('Write-Host "hello"', 'outsideWorkspace', true, 0));
 			test('variable in filename - block', () => t('Write-Host "hello" > $env:TEMP\\file.txt', 'outsideWorkspace', false, 1));
@@ -350,13 +327,11 @@ suite('CommandLineFileWriteAnalyzer', () => {
 		});
 
 		suite('quoted file paths', () => {
-			// Double-quoted paths
 			test('double-quoted relative path inside workspace - allow', () => t('Write-Host "hello" > "file.txt"', 'outsideWorkspace', true, 1));
 			test('double-quoted relative path with spaces inside workspace - allow', () => t('Write-Host "hello" > "file with spaces.txt"', 'outsideWorkspace', true, 1));
 			test('double-quoted absolute path outside workspace - block', () => t('Write-Host "hello" > "C:\\temp\\file.txt"', 'outsideWorkspace', false, 1));
 			test('double-quoted absolute path to different drive - block', () => t('Write-Host "hello" > "D:\\data\\file.txt"', 'outsideWorkspace', false, 1));
 
-			// Single-quoted paths
 			test('single-quoted relative path inside workspace - allow', () => t('Write-Host \'hello\' > \'file.txt\'', 'outsideWorkspace', true, 1));
 			test('single-quoted relative path with spaces inside workspace - allow', () => t('Write-Host \'hello\' > \'file with spaces.txt\'', 'outsideWorkspace', true, 1));
 			test('single-quoted absolute path outside workspace - block', () => t('Write-Host \'hello\' > \'C:\\temp\\file.txt\'', 'outsideWorkspace', false, 1));
@@ -387,36 +362,28 @@ suite('CommandLineFileWriteAnalyzer', () => {
 			}
 
 			suite('blockDetectedFileWrites: outsideWorkspace', () => {
-				// User TEMP (AppData\Local\Temp) - allow only when auto-approval is enabled
 				test('user TEMP - allow when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Users\\foo\\AppData\\Local\\Temp\\file.txt', 'outsideWorkspace', true, true));
 				test('user TEMP subdirectory - allow when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Users\\foo\\AppData\\Local\\Temp\\sub\\file.txt', 'outsideWorkspace', true, true));
 				test('user TEMP - block when auto-approval disabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Users\\foo\\AppData\\Local\\Temp\\file.txt', 'outsideWorkspace', false, false));
 
-				// System Windows\Temp - allow only when auto-approval is enabled
 				test('Windows\\Temp - allow when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Windows\\Temp\\file.txt', 'outsideWorkspace', true, true));
 				test('Windows\\Temp - block when auto-approval disabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Windows\\Temp\\file.txt', 'outsideWorkspace', false, false));
 
-				// Top-level \tmp\ - allow only when auto-approval is enabled
 				test('\\tmp - allow when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\tmp\\file.txt', 'outsideWorkspace', true, true));
 				test('\\tmp - block when auto-approval disabled', () => tWithAutoApproval('Write-Host "hello" > C:\\tmp\\file.txt', 'outsideWorkspace', false, false));
 
-				// Top-level \Temp\ (common dev convention) - allow only when auto-approval is enabled
 				test('\\Temp - allow when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Temp\\file.txt', 'outsideWorkspace', true, true));
 
-				// Case-insensitive matching (Windows paths are case-insensitive)
 				test('user TEMP lowercase - allow when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\users\\foo\\appdata\\local\\temp\\file.txt', 'outsideWorkspace', true, true));
 
-				// Other outside-workspace paths remain blocked even with auto-approval enabled
 				test('C:\\Windows\\System32 - block even when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Windows\\System32\\config.txt', 'outsideWorkspace', true, false));
 				test('different drive - block even when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > D:\\data\\file.txt', 'outsideWorkspace', true, false));
 
-				// Mixed writes: TEMP allowed, but other outside paths still block
 				test('mixed TEMP and System32 - block even when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Users\\foo\\AppData\\Local\\Temp\\a.txt ; Write-Host "world" > C:\\Windows\\System32\\b.txt', 'outsideWorkspace', true, false));
 				test('mixed inside-workspace and TEMP - allow when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > file.txt ; Write-Host "world" > C:\\Users\\foo\\AppData\\Local\\Temp\\b.txt', 'outsideWorkspace', true, true));
 			});
 
 			suite('blockDetectedFileWrites: all', () => {
-				// `all` setting still blocks TEMP writes regardless of session auto-approval
 				test('user TEMP - block when auto-approval enabled', () => tWithAutoApproval('Write-Host "hello" > C:\\Users\\foo\\AppData\\Local\\Temp\\file.txt', 'all', true, false));
 			});
 		});
@@ -537,26 +504,22 @@ suite('CommandLineFileWriteAnalyzer', () => {
 			strictEqual((result.disclaimers || []).length, expectedDisclaimers, `Expected ${expectedDisclaimers} disclaimers for: ${commandLine}`);
 		}
 
-		// Double-quoted paths
 		test('double-quoted relative path inside workspace - allow', () => t('echo hello > "file.txt"', 'outsideWorkspace', true, 1));
 		test('double-quoted relative path with spaces inside workspace - allow', () => t('echo hello > "file with spaces.txt"', 'outsideWorkspace', true, 1));
 		test('double-quoted absolute path outside workspace - block', () => t('echo hello > "/tmp/file.txt"', 'outsideWorkspace', false, 1));
 		test('double-quoted absolute path to home - block', () => t('echo hello > "/home/user/foo.txt"', 'outsideWorkspace', false, 1));
 
-		// Single-quoted paths
 		test('single-quoted relative path inside workspace - allow', () => t('echo hello > \'file.txt\'', 'outsideWorkspace', true, 1));
 		test('single-quoted relative path with spaces inside workspace - allow', () => t('echo hello > \'file with spaces.txt\'', 'outsideWorkspace', true, 1));
 		test('single-quoted absolute path outside workspace - block', () => t('echo hello > \'/tmp/file.txt\'', 'outsideWorkspace', false, 1));
 		test('single-quoted absolute path to home - block', () => t('echo hello > \'/home/user/foo.txt\'', 'outsideWorkspace', false, 1));
 
-		// Note: Backticks in bash are command substitution, not quoting, so no tests for backtick-quoted paths
 	});
 
 	suite('remote workspace with quoted absolute paths', () => {
 		async function t(commandLine: string, expectedAutoApprove: boolean, expectedDisclaimers: number = 0) {
 			configurationService.setUserConfiguration(TerminalChatAgentToolsSettingId.BlockDetectedFileWrites, 'outsideWorkspace');
 
-			// Simulate a remote workspace (e.g., WSL)
 			const cwd = URI.from({ scheme: 'vscode-remote', authority: 'wsl+debian', path: '/home/user/workspace' });
 			const workspace = new Workspace('test', [toWorkspaceFolder(cwd)]);
 			workspaceContextService.setWorkspace(workspace);
@@ -576,8 +539,6 @@ suite('CommandLineFileWriteAnalyzer', () => {
 			strictEqual((result.disclaimers || []).length, expectedDisclaimers, `Expected ${expectedDisclaimers} disclaimers for: ${commandLine}`);
 		}
 
-		// These tests verify that absolute paths preserve the remote scheme/authority
-		// and are correctly compared against workspace folders
 		test('quoted absolute path inside remote workspace - allow', () => t('echo hello > "/home/user/workspace/file.txt"', true, 1));
 		test('quoted absolute path outside remote workspace - block', () => t('echo hello > "/home/user/other/file.txt"', false, 1));
 		test('quoted absolute path to different home dir - block', () => t('echo hello > "/home/otheruser/file.txt"', false, 1));

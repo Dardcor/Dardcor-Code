@@ -31,7 +31,6 @@ export async function changeCellToKind(kind: CellKind, context: INotebookActionC
 	}
 
 	if (context.ui && context.cell) {
-		// action from UI
 		const { cell } = context;
 
 		if (cell.cellKind === kind) {
@@ -168,14 +167,12 @@ export function runDeleteAction(editor: IActiveNotebookEditor, cell: ICellViewMo
 		}
 
 		if (editor.cellAt(focus.start) === cell) {
-			// focus is the target, focus is also not part of any selection
 			const newFocus = focus.end === textModel.length ? { start: focus.start - 1, end: focus.end - 1 } : focus;
 
 			textModel.applyEdits(edits, true, { kind: SelectionStateType.Index, focus: editor.getFocus(), selections: editor.getSelections() }, () => ({
 				kind: SelectionStateType.Index, focus: newFocus, selections: finalSelections
 			}), undefined, computeUndoRedo);
 		} else {
-			// users decide to delete a cell out of current focus/selection
 			const newFocus = focus.start > targetCellIndex ? { start: focus.start - 1, end: focus.end - 1 } : focus;
 
 			textModel.applyEdits(edits, true, { kind: SelectionStateType.Index, focus: editor.getFocus(), selections: editor.getSelections() }, () => ({
@@ -301,7 +298,6 @@ export async function copyCellRange(context: INotebookCellActionContext, directi
 	}
 
 	if (direction === 'up') {
-		// insert up, without changing focus and selections
 		const focus = editor.getFocus();
 		const selections = editor.getSelections();
 		textModel.applyEdits([
@@ -322,7 +318,6 @@ export async function copyCellRange(context: INotebookCellActionContext, directi
 			true
 		);
 	} else {
-		// insert down, move selections
 		const focus = editor.getFocus();
 		const selections = editor.getSelections();
 		const newCells = cellRangesToIndexes([range]).map(index => cloneNotebookCellTextModel(editor.cellAt(index)!.model));
@@ -368,17 +363,13 @@ export async function joinSelectedCells(bulkEditService: IBulkEditService, notif
 		return;
 	}
 
-	// check if all cells are of the same kind
 	const cellKind = cells[0].cellKind;
 	const isSameKind = cells.every(cell => cell.cellKind === cellKind);
 	if (!isSameKind) {
-		// cannot join cells of different kinds
-		// show warning and quit
 		const message = localize('notebookActions.joinSelectedCells', "Cannot join cells of different kinds");
 		return notificationService.warn(message);
 	}
 
-	// merge all cells content into first cell
 	const firstCell = cells[0];
 	const insertContent = cells.map(cell => cell.getText()).join(firstCell.textBuffer.getEOL());
 	const firstSelection = editor.getSelections()[0];
@@ -609,7 +600,6 @@ function _splitPointsToBoundaries(splitPoints: IPosition[], textBuffer: IReadonl
 		return textBuffer.getLineLength(lineNumber);
 	};
 
-	// split points need to be sorted
 	splitPoints = splitPoints.sort((l, r) => {
 		const lineDiff = l.lineNumber - r.lineNumber;
 		const columnDiff = l.column - r.column;
@@ -617,7 +607,7 @@ function _splitPointsToBoundaries(splitPoints: IPosition[], textBuffer: IReadonl
 	});
 
 	for (let sp of splitPoints) {
-		if (getLineLen(sp.lineNumber) + 1 === sp.column && sp.column !== 1 /** empty line */ && sp.lineNumber < lineCnt) {
+		if (getLineLen(sp.lineNumber) + 1 === sp.column && sp.column !== 1 && sp.lineNumber < lineCnt) {
 			sp = new Position(sp.lineNumber + 1, 1);
 		}
 		_pushIfAbsent(boundaries, sp);
@@ -627,7 +617,6 @@ function _splitPointsToBoundaries(splitPoints: IPosition[], textBuffer: IReadonl
 		return null;
 	}
 
-	// boundaries already sorted and not empty
 	const modelStart = new Position(1, 1);
 	const modelEnd = new Position(lineCnt, getLineLen(lineCnt) + 1);
 	return [modelStart, ...boundaries, modelEnd];
@@ -689,7 +678,6 @@ export function insertCell(
 				language = defaultLanguage;
 			}
 		} else if (!cell && viewModel.length === 0) {
-			// No cells in notebook - check kernel history
 			const lastKernels = kernelHistoryService?.getKernels(viewModel.notebookDocument);
 			if (lastKernels?.all.length) {
 				const lastKernel = lastKernels.all[0];
@@ -699,7 +687,6 @@ export function insertCell(
 			}
 		} else {
 			if (cell === undefined && direction === 'above') {
-				// insert cell at the very top
 				language = viewModel.viewCells.find(cell => cell.cellKind === CellKind.Code)?.language || defaultLanguage;
 			} else {
 				language = defaultLanguage;
@@ -707,7 +694,6 @@ export function insertCell(
 		}
 
 		if (!supportedLanguages.includes(language)) {
-			// the language no longer exists
 			language = defaultLanguage;
 		}
 	} else {

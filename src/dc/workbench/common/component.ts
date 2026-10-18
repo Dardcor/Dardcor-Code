@@ -24,10 +24,8 @@ export class Component<MementoType extends object = object> extends Themable {
 
 		this._register(storageService.onWillSaveState(() => {
 
-			// Ask the component to persist state into the memento
 			this.saveState();
 
-			// Then save the memento into storage
 			this.memento.saveMemento();
 		}));
 	}
@@ -49,6 +47,5 @@ export class Component<MementoType extends object = object> extends Themable {
 	}
 
 	protected saveState(): void {
-		// Subclasses to implement for storing state
 	}
 }

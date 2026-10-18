@@ -5,11 +5,9 @@
 
 import * as nls from '../../../../nls.js';
 
-// Import the effects we need
 import { Color } from '../../../../base/common/color.js';
 import { registerColor, darken, lighten, transparent, ifDefinedThenElse } from '../colorUtils.js';
 
-// Import the colors we need
 import { foreground, contrastBorder, activeContrastBorder, focusBorder, iconForeground } from './baseColors.js';
 import { editorWidgetBackground, editorFindMatchHighlightBorder, editorFindMatchHighlight, widgetShadow, editorWidgetForeground } from './editorColors.js';
 
@@ -31,7 +29,7 @@ export const listFocusAndSelectionOutline = registerColor('list.focusAndSelectio
 	nls.localize('listFocusAndSelectionOutline', "List/Tree outline color for the focused item when the list/tree is active and selected. An active list/tree has keyboard focus, an inactive does not."));
 
 export const listActiveSelectionBackground = registerColor('list.activeSelectionBackground',
-	{ dark: '#4A148C', light: '#0060C0', hcDark: null, hcLight: Color.fromHex('#0F4A85').transparent(0.1) },
+	{ dark: '#7C4DFF', light: '#7C4DFF', hcDark: null, hcLight: Color.fromHex('#7C4DFF').transparent(0.1) },
 	nls.localize('listActiveSelectionBackground', "List/Tree background color for the selected item when the list/tree is active. An active list/tree has keyboard focus, an inactive does not."));
 
 export const listActiveSelectionForeground = registerColor('list.activeSelectionForeground',
@@ -71,7 +69,7 @@ export const listHoverForeground = registerColor('list.hoverForeground',
 	nls.localize('listHoverForeground', "List/Tree foreground when hovering over items using the mouse."));
 
 export const listDropOverBackground = registerColor('list.dropBackground',
-	{ dark: '#062F4A', light: '#D6EBFF', hcDark: null, hcLight: null },
+	{ dark: '#2A0845', light: '#E1BEE7', hcDark: null, hcLight: null },
 	nls.localize('listDropBackground', "List/Tree drag and drop background when moving items over other items when using the mouse."));
 
 export const listDropBetweenBackground = registerColor('list.dropBetweenBackground',
@@ -79,11 +77,11 @@ export const listDropBetweenBackground = registerColor('list.dropBetweenBackgrou
 	nls.localize('listDropBetweenBackground', "List/Tree drag and drop border color when moving items between items when using the mouse."));
 
 export const listHighlightForeground = registerColor('list.highlightForeground',
-	{ dark: '#2AAAFF', light: '#0066BF', hcDark: focusBorder, hcLight: focusBorder },
+	{ dark: '#B388FF', light: '#6A1B9A', hcDark: focusBorder, hcLight: focusBorder },
 	nls.localize('highlight', 'List/Tree foreground color of the match highlights when searching inside the list/tree.'));
 
 export const listFocusHighlightForeground = registerColor('list.focusHighlightForeground',
-	{ dark: listHighlightForeground, light: ifDefinedThenElse(listActiveSelectionBackground, listHighlightForeground, '#BBE7FF'), hcDark: listHighlightForeground, hcLight: listHighlightForeground },
+	{ dark: listHighlightForeground, light: ifDefinedThenElse(listActiveSelectionBackground, listHighlightForeground, '#E1BEE7'), hcDark: listHighlightForeground, hcLight: listHighlightForeground },
 	nls.localize('listFocusHighlightForeground', 'List/Tree foreground color of the match highlights on actively focused items when searching inside the list/tree.'));
 
 export const listInvalidItemForeground = registerColor('list.invalidItemForeground',
@@ -101,7 +99,7 @@ export const listFilterWidgetBackground = registerColor('listFilterWidget.backgr
 	nls.localize('listFilterWidgetBackground', 'Background color of the type filter widget in lists and trees.'));
 
 export const listFilterWidgetOutline = registerColor('listFilterWidget.outline',
-	{ dark: Color.transparent, light: Color.transparent, hcDark: '#f38518', hcLight: '#007ACC' },
+	{ dark: Color.transparent, light: Color.transparent, hcDark: '#f38518', hcLight: '#6A1B9A' },
 	nls.localize('listFilterWidgetOutline', 'Outline color of the type filter widget in lists and trees.'));
 
 export const listFilterWidgetNoMatchesOutline = registerColor('listFilterWidget.noMatchesOutline',
@@ -125,7 +123,6 @@ export const listDeemphasizedForeground = registerColor('list.deemphasizedForegr
 	nls.localize('listDeemphasizedForeground', "List/Tree foreground color for items that are deemphasized."));
 
 
-// ------ tree
 
 export const treeIndentGuidesStroke = registerColor('tree.indentGuidesStroke',
 	{ dark: '#585858', light: '#a9a9a9', hcDark: '#a9a9a9', hcLight: '#a5a5a5' },
@@ -136,7 +133,6 @@ export const treeInactiveIndentGuidesStroke = registerColor('tree.inactiveIndent
 	nls.localize('treeInactiveIndentGuidesStroke', "Tree stroke color for the indentation guides that are not active."));
 
 
-// ------ table
 
 export const tableColumnsBorder = registerColor('tree.tableColumnsBorder',
 	{ dark: '#CCCCCC20', light: '#61616120', hcDark: null, hcLight: null },
@@ -146,7 +142,6 @@ export const tableOddRowsBackgroundColor = registerColor('tree.tableOddRowsBackg
 	{ dark: transparent(foreground, 0.04), light: transparent(foreground, 0.04), hcDark: null, hcLight: null },
 	nls.localize('tableOddRowsBackgroundColor', "Background color for odd table rows."));
 
-// ------ action list
 
 export const editorActionListBackground = registerColor('editorActionList.background',
 	editorWidgetBackground,

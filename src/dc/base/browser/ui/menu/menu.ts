@@ -132,7 +132,6 @@ export class Menu extends ActionBar {
 		this._register(addDisposableListener(menuElement, EventType.KEY_DOWN, (e) => {
 			const event = new StandardKeyboardEvent(e);
 
-			// Stop tab navigation of menus
 			if (event.equals(KeyCode.Tab)) {
 				e.preventDefault();
 			}
@@ -207,7 +206,6 @@ export class Menu extends ActionBar {
 
 			if (target.classList.contains('action-item')) {
 				const lastFocusedItem = this.focusedItem;
-				// Moving within the focused item is the common case; skip the item lookup for it
 				if (lastFocusedItem !== undefined && this.actionsList.children[lastFocusedItem] === target) {
 					return;
 				}
@@ -220,7 +218,6 @@ export class Menu extends ActionBar {
 			}
 		}));
 
-		// Support touch on actions list to focus items (needed for submenus)
 		this._register(Gesture.addTarget(this.actionsList));
 		this._register(addDisposableListener(this.actionsList, TouchEventType.Tap, e => {
 			let target = e.initialTarget as HTMLElement;
@@ -249,7 +246,6 @@ export class Menu extends ActionBar {
 
 		this.mnemonics = new Map<string, Array<BaseMenuActionViewItem>>();
 
-		// Scroll Logic
 		this.scrollableElement = this._register(new DomScrollableElement(menuElement, {
 			alwaysConsumeMouseWheel: true,
 			horizontal: ScrollbarVisibility.Hidden,
@@ -264,7 +260,6 @@ export class Menu extends ActionBar {
 
 		this.styleScrollElement(scrollElement, menuStyles);
 
-		// Support scroll on menu drag
 		this._register(addDisposableListener(menuElement, TouchEventType.Change, e => {
 			EventHelper.stop(e, true);
 
@@ -273,8 +268,6 @@ export class Menu extends ActionBar {
 		}));
 
 		this._register(addDisposableListener(scrollElement, EventType.MOUSE_UP, e => {
-			// Absorb clicks in menu dead space https://github.com/microsoft/vscode/issues/63575
-			// We do this on the scroll element so the scroll bar doesn't dismiss the menu either
 			e.preventDefault();
 		}));
 
@@ -287,7 +280,6 @@ export class Menu extends ActionBar {
 				return false;
 			}
 
-			// Filter out consecutive or useless separators
 			if (a instanceof Separator) {
 				if (idx === actions.length - 1 || idx === 0) {
 					return false;
@@ -386,9 +378,6 @@ export class Menu extends ActionBar {
 		super.updateFocus(fromRight, true, true);
 
 		if (typeof this.focusedItem !== 'undefined') {
-			// Workaround for #80047 caused by an issue in chromium
-			// https://bugs.chromium.org/p/chromium/issues/detail?id=414283
-			// When that's fixed, just call this.scrollableElement.scanDomNode()
 			this.scrollableElement.setScrollPosition({
 				scrollTop: Math.round(this.menuElement.scrollTop)
 			});
@@ -470,7 +459,6 @@ class BaseMenuActionViewItem extends BaseActionViewItem {
 		this.options = options;
 		this.cssClass = '';
 
-		// Set mnemonic
 		if (this.options.label && options.enableMnemonics) {
 			const label = this.action.label;
 			if (label) {
@@ -481,31 +469,18 @@ class BaseMenuActionViewItem extends BaseActionViewItem {
 			}
 		}
 
-		// Add mouse up listener later to avoid accidental clicks
 		this.runOnceToEnableMouseUp = new RunOnceScheduler(() => {
 			if (!this.element) {
 				return;
 			}
 
 			this._register(addDisposableListener(this.element, EventType.MOUSE_UP, e => {
-				// removed default prevention as it conflicts
-				// with BaseActionViewItem #101537
-				// add back if issues arise and link new issue
 				EventHelper.stop(e, true);
 
-				// See https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Interact_with_the_clipboard
-				// > Writing to the clipboard
-				// > You can use the "cut" and "copy" commands without any special
-				// permission if you are using them in a short-lived event handler
-				// for a user action (for example, a click handler).
 
-				// => to get the Copy and Paste context menu actions working on Firefox,
-				// there should be no timeout here
 				if (isFirefox) {
 					const mouseEvent = new StandardMouseEvent(getWindow(this.element), e);
 
-					// Allowing right click to trigger the event causes the issue described below,
-					// but since the solution below does not work in FF, we must disable right click
 					if (mouseEvent.rightButton) {
 						return;
 					}
@@ -513,9 +488,6 @@ class BaseMenuActionViewItem extends BaseActionViewItem {
 					this.onClick(e);
 				}
 
-				// In all other cases, set timeout to allow context menu cancellation to trigger
-				// otherwise the action will destroy the menu and a second context menu
-				// will still trigger for right click.
 				else {
 					setTimeout(() => {
 						this.onClick(e);
@@ -542,7 +514,6 @@ class BaseMenuActionViewItem extends BaseActionViewItem {
 
 		this.item = append(this.element, $('a.action-menu-item'));
 		if (this._action.id === Separator.ID) {
-			// A separator is a presentation item
 			this.item.setAttribute('role', 'presentation');
 		} else {
 			this.item.setAttribute('role', 'menuitem');
@@ -560,7 +531,6 @@ class BaseMenuActionViewItem extends BaseActionViewItem {
 			append(this.item, $('span.keybinding')).textContent = this.options.keybinding;
 		}
 
-		// Adds mouse up listener to actually run the action
 		this.runOnceToEnableMouseUp.schedule();
 
 		this.updateClass();
@@ -614,11 +584,9 @@ class BaseMenuActionViewItem extends BaseActionViewItem {
 				if (matches) {
 					label = strings.escape(label);
 
-					// This is global, reset it
 					MENU_ESCAPED_MNEMONIC_REGEX.lastIndex = 0;
 					let escMatch = MENU_ESCAPED_MNEMONIC_REGEX.exec(label);
 
-					// We can't use negative lookbehind so if we match our negative and skip
 					while (escMatch && escMatch[1]) {
 						escMatch = MENU_ESCAPED_MNEMONIC_REGEX.exec(label);
 					}
@@ -644,7 +612,6 @@ class BaseMenuActionViewItem extends BaseActionViewItem {
 	}
 
 	protected override updateTooltip(): void {
-		// menus should function like native menus and they do not have tooltips
 	}
 
 	protected override updateClass(): void {
@@ -830,9 +797,6 @@ class SubmenuMenuActionViewItem extends BaseMenuActionViewItem {
 	}
 
 	protected override updateEnabled(): void {
-		// override on submenu entry
-		// native menus do not observe enablement on sumbenus
-		// we mimic that behavior
 	}
 
 	open(selectFirst?: boolean): void {
@@ -841,7 +805,6 @@ class SubmenuMenuActionViewItem extends BaseMenuActionViewItem {
 	}
 
 	override onClick(e: EventLike): void {
-		// stop clicking from trying to run an action
 		EventHelper.stop(e, true);
 
 		this.cleanupExistingSubmenu(false);
@@ -851,7 +814,6 @@ class SubmenuMenuActionViewItem extends BaseMenuActionViewItem {
 	private cleanupExistingSubmenu(force: boolean): void {
 		if (this.parentData.submenu && (force || (this.parentData.submenu !== this.mysubmenu))) {
 
-			// disposal may throw if the submenu has already been removed
 			try {
 				this.parentData.submenu.dispose();
 			} catch { }
@@ -868,10 +830,8 @@ class SubmenuMenuActionViewItem extends BaseMenuActionViewItem {
 	private calculateSubmenuMenuLayout(windowDimensions: Dimension, submenu: Dimension, entry: IDomNodePagePosition, expandDirection: IMenuDirection): { top: number; left: number } {
 		const ret = { top: 0, left: 0 };
 
-		// Start with horizontal
 		ret.left = layout(windowDimensions.width, submenu.width, { position: expandDirection.horizontal === HorizontalDirection.Right ? LayoutAnchorPosition.Before : LayoutAnchorPosition.After, offset: entry.left, size: entry.width }).position;
 
-		// We don't have enough room to layout the menu fully, so we are overlapping the menu
 		if (ret.left >= entry.left && ret.left < entry.left + entry.width) {
 			if (entry.left + 10 + submenu.width <= windowDimensions.width) {
 				ret.left = entry.left + 10;
@@ -881,10 +841,8 @@ class SubmenuMenuActionViewItem extends BaseMenuActionViewItem {
 			entry.height = 0;
 		}
 
-		// Now that we have a horizontal position, try layout vertically
 		ret.top = layout(windowDimensions.height, submenu.height, { position: LayoutAnchorPosition.Before, offset: entry.top, size: 0 }).position;
 
-		// We didn't have enough room below, but we did above, so we shift down to align the menu
 		if (ret.top + submenu.height === entry.top && ret.top + entry.height + submenu.height <= windowDimensions.height) {
 			ret.top += entry.height;
 		}
@@ -902,19 +860,15 @@ class SubmenuMenuActionViewItem extends BaseMenuActionViewItem {
 			this.submenuContainer = append(this.element, $('div.monaco-submenu'));
 			this.submenuContainer.classList.add('menubar-menu-items-holder', 'context-view');
 
-			// Set the top value of the menu container before construction
-			// This allows the menu constructor to calculate the proper max height
 			const computedStyles = getWindow(this.parentData.parent.domNode).getComputedStyle(this.parentData.parent.domNode);
 			const paddingTop = parseFloat(computedStyles.paddingTop || '0') || 0;
 			this.submenuContainer.style.position = 'fixed';
 			this.submenuContainer.style.top = '0';
 			this.submenuContainer.style.left = '0';
-			// Fix to #263546, for submenu of treeView view/item/context z-index issue - ensure submenu appears above other elements
 			this.submenuContainer.style.zIndex = '1';
 
 			this.parentData.submenu = new Menu(this.submenuContainer, this.submenuActions.length ? this.submenuActions : [new EmptySubmenuAction()], this.submenuOptions, this.menuStyle);
 
-			// layout submenu
 			const entryBox = this.element.getBoundingClientRect();
 			const entryBoxUpdated = {
 				top: entryBox.top - paddingTop,
@@ -927,7 +881,6 @@ class SubmenuMenuActionViewItem extends BaseMenuActionViewItem {
 
 			const window = getWindow(this.element);
 			const { top, left } = this.calculateSubmenuMenuLayout(new Dimension(window.innerWidth, window.innerHeight), Dimension.lift(viewBox), entryBoxUpdated, this.expandDirection);
-			// subtract offsets caused by transform parent
 			this.submenuContainer.style.left = `${left - viewBox.left}px`;
 			this.submenuContainer.style.top = `${top - viewBox.top}px`;
 
@@ -1031,7 +984,7 @@ export function formatRule(c: ThemeIcon) {
 export function getMenuWidgetCSS(style: IMenuStyles, isForShadowDom: boolean): string {
 	const borderColor = style.borderColor ?? 'var(--vscode-menu-border)';
 	const menuShadow = `var(--vscode-shadow-lg${style.shadowColor ? `, 0 0 12px ${style.shadowColor}` : ''})`;
-	let result = /* css */`
+	let result = `
 .monaco-menu {
 	font-size: 13px;
 	border-radius: var(--vscode-cornerRadius-large);
@@ -1353,7 +1306,6 @@ ${formatRule(Codicon.menuSubmenu)}
 }`;
 
 	if (isForShadowDom) {
-		// Only define scrollbar styles when used inside shadow dom,
 		// otherwise leave their styling to the global workbench styling.
 		result += `
 			/* Arrows */
@@ -1410,7 +1362,6 @@ ${formatRule(Codicon.menuSubmenu)}
 			}
 		`;
 
-		// Scrollbars
 		const scrollbarShadowColor = style.scrollbarShadow;
 		if (scrollbarShadowColor) {
 			result += `

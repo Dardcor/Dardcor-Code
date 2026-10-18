@@ -87,13 +87,13 @@ async function* readGrokNdjsonEvents(body, signal) {
         const line = buffer.slice(0, idx).trim();
         buffer = buffer.slice(idx + 1);
         if (!line) continue;
-        try { yield JSON.parse(line); } catch { /* skip */ }
+        try { yield JSON.parse(line); } catch { }
       }
     }
     buffer += decoder.decode();
     const remaining = buffer.trim();
     if (remaining) {
-      try { yield JSON.parse(remaining); } catch { /* skip */ }
+      try { yield JSON.parse(remaining); } catch { }
     }
   } finally {
     reader.releaseLock();
@@ -282,7 +282,6 @@ export class GrokWebExecutor extends BaseExecutor {
       traceparent: `00-${traceId}-${spanId}-00`,
     };
 
-    // Strip "sso=" prefix if user pasted it
     if (credentials.apiKey) {
       let token = credentials.apiKey;
       if (token.startsWith("sso=")) token = token.slice(4);

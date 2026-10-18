@@ -54,16 +54,12 @@ export interface EditorAssociation {
 	filenamePattern?: string;
 }
 
-/**
- * Find a notebook document by uri or cell uri.
- */
 export function findNotebook(uri: vscode.Uri, notebookDocuments: readonly vscode.NotebookDocument[]): vscode.NotebookDocument | undefined {
 	return notebookDocuments.find(doc => isEqual(doc.uri, uri) || doc.uri.path === uri.path || findCell(uri, doc));
 }
 
 export function findCell(cellUri: vscode.Uri, notebook: vscode.NotebookDocument): vscode.NotebookCell | undefined {
 	if (cellUri.scheme === Schemas.vscodeNotebookCell || cellUri.scheme === Schemas.vscodeNotebookCellOutput) {
-		// Fragment is not unique to a notebook, hence ensure we compaure the path as well.
 		const index = notebook.getCells().findIndex(cell => isEqual(cell.document.uri, cellUri) || (cell.document.uri.fragment === cellUri.fragment && cell.document.uri.path === cellUri.path));
 		if (index !== -1) {
 			return notebook.getCells()[index];
@@ -95,7 +91,6 @@ export function getNotebookAndCellFromUri(uri: Uri, notebookDocuments: readonly 
 	}
 	const cell = findCell(uri, notebook);
 	if (cell === undefined) {
-		// Possible the cell has since been deleted.
 		return [notebook, undefined];
 	}
 	return [notebook, cell];
@@ -103,7 +98,6 @@ export function getNotebookAndCellFromUri(uri: Uri, notebookDocuments: readonly 
 
 export function isNotebookCellOrNotebookChatInput(uri: vscode.Uri): boolean {
 	return uri.scheme === Schemas.vscodeNotebookCell
-		// Support the experimental cell chat widget
 		|| (uri.scheme === 'untitled' && uri.fragment.startsWith('notebook-chat-input'));
 }
 
@@ -137,7 +131,6 @@ export function extractNotebookOutline(response: string): INotebookOutline | und
 		const match = regex.exec(trimmedResponse);
 		if (match) {
 			const prefixTrimed = match[1];
-			// remove content after ```
 			const suffixBacktick = prefixTrimed.indexOf('```');
 			const json = suffixBacktick === -1 ? prefixTrimed : prefixTrimed.substring(0, suffixBacktick);
 			return JSON.parse(json) as INotebookOutline;
@@ -147,30 +140,19 @@ export function extractNotebookOutline(response: string): INotebookOutline | und
 	return undefined;
 }
 
-/**
- * Checks if the provided pattern is a document exclude pattern
- */
 export function isDocumentExcludePattern(pattern: string | vscode.RelativePattern | INotebookExclusiveDocumentFilter | INotebookFilenamePattern): pattern is INotebookExclusiveDocumentFilter {
 	const arg = pattern as INotebookExclusiveDocumentFilter;
 
-	// Check if it has include property (exclude is optional)
 	return typeof arg === 'object' && arg !== null &&
 		(typeof arg.include === 'string' || isRelativePattern(arg.include));
 }
 
-/**
- * Checks if the provided pattern is a filename pattern
- */
 export function isFilenamePattern(pattern: string | vscode.RelativePattern | INotebookExclusiveDocumentFilter | INotebookFilenamePattern): pattern is INotebookFilenamePattern {
 	const arg = pattern as INotebookFilenamePattern;
 
-	// Check if it has filenamePattern property
 	return typeof arg === 'object' && arg !== null && typeof arg.filenamePattern === 'string';
 }
 
-/**a
- * Checks if the provided object is a RelativePattern
- */
 export function isRelativePattern(obj: unknown): obj is vscode.RelativePattern {
 	const rp = obj as vscode.RelativePattern | undefined | null;
 	if (!rp) {
@@ -180,20 +162,11 @@ export function isRelativePattern(obj: unknown): obj is vscode.RelativePattern {
 	return typeof rp.base === 'string' && typeof rp.pattern === 'string';
 }
 
-/**
- * Checks if the provided object is a valid INotebookEditorContribution
- */
 export function isNotebookEditorContribution(contrib: unknown): contrib is INotebookEditorContribution {
 	const candidate = contrib as INotebookEditorContribution | undefined;
 	return !!candidate && !!candidate.type && !!candidate.displayName && !!candidate.selector;
 }
 
-/**
- * Extracts editor associations from the raw editor association config object
- *
- * @param raw The raw editor association config object
- * @returns An array of EditorAssociation objects
- */
 export function extractEditorAssociation(raw: { [fileNamePattern: string]: string }): EditorAssociation[] {
 	const associations: EditorAssociation[] = [];
 	for (const [filenamePattern, viewType] of Object.entries(raw)) {
@@ -204,19 +177,14 @@ export function extractEditorAssociation(raw: { [fileNamePattern: string]: strin
 	return associations;
 }
 
-/**
- * Checks if a resource matches a selector
- */
 export function notebookSelectorMatches(resource: URI, selector: NotebookSelector): boolean {
 	if (typeof selector === 'string') {
-		// selector as string
 		if (glob.match(selector.toLowerCase(), basename(resource.fsPath).toLowerCase())) {
 			return true;
 		}
 	}
 
 	if (isDocumentExcludePattern(selector)) {
-		// selector as INotebookExclusiveDocumentFilter
 		const filenamePattern = selector.include;
 		const excludeFilenamePattern = selector.exclude;
 
@@ -233,7 +201,6 @@ export function notebookSelectorMatches(resource: URI, selector: NotebookSelecto
 	}
 
 	if (isFilenamePattern(selector)) {
-		// selector as INotebookFilenamePattern
 		if (glob.match(selector.filenamePattern, basename(resource.fsPath).toLowerCase())) {
 			if (selector.excludeFileNamePattern && glob.match(selector.excludeFileNamePattern, basename(resource.fsPath).toLowerCase())) {
 				return false;
@@ -245,9 +212,6 @@ export function notebookSelectorMatches(resource: URI, selector: NotebookSelecto
 	return false;
 }
 
-/**
- * Returns all associations that match the glob of the provided resource
- */
 export function getNotebookEditorAssociations(resource: Uri, editorAssociations: EditorAssociation[]): EditorAssociation[] {
 	const validAssociations: EditorAssociation[] = [];
 	for (const a of editorAssociations) {
@@ -259,9 +223,6 @@ export function getNotebookEditorAssociations(resource: Uri, editorAssociations:
 	return validAssociations;
 }
 
-/**
- * Checks if the provided resource has a supported notebook provider
- */
 export function _hasSupportedNotebooks(uri: Uri, workspaceNotebookDocuments: readonly vscode.NotebookDocument[], notebookEditorContributions: INotebookEditorContribution[], editorAssociations: EditorAssociation[]): boolean {
 	if (findNotebook(uri, workspaceNotebookDocuments)) {
 		return true;
@@ -279,9 +240,6 @@ export function _hasSupportedNotebooks(uri: Uri, workspaceNotebookDocuments: rea
 		}
 	}
 
-	// often users won't have associations that take priority, so check the priority of our valid providers
-	// a provider with priority !default will only be chosen if there is an association that matches, so we need default at this point
-	// In VS Code, if priority is empty, it defaults to `default`, vscode/main/src/vs/workbench/contrib/notebook/browser/notebookExtensionPoint.ts#L110
 	if (validNotebookEditorContribs.some(notebookEditorContrib => (notebookEditorContrib.priority ?? RegisteredEditorPriority.default) === RegisteredEditorPriority.default)) {
 		return true;
 	} else {

@@ -24,16 +24,13 @@ export class CodeCacheCleaner extends Disposable {
 		super();
 
 		this.dataMaxAge = productService.quality !== 'stable'
-			? 1000 * 60 * 60 * 24 * 7 		// roughly 1 week (insiders)
-			: 1000 * 60 * 60 * 24 * 30 * 3; // roughly 3 months (stable)
+			? 1000 * 60 * 60 * 24 * 7
+			: 1000 * 60 * 60 * 24 * 30 * 3;
 
-		// Cached data is stored as user data and we run a cleanup task every time
-		// the editor starts. The strategy is to delete all files that are older than
-		// 3 months (1 week respectively)
 		if (currentCodeCachePath) {
 			const scheduler = this._register(new RunOnceScheduler(() => {
 				this.cleanUpCodeCaches(currentCodeCachePath);
-			}, 30 * 1000 /* after 30s */));
+			}, 30 * 1000 ));
 			scheduler.schedule();
 		}
 	}
@@ -44,18 +41,15 @@ export class CodeCacheCleaner extends Disposable {
 		try {
 			const now = Date.now();
 
-			// The folder which contains folders of cached data.
-			// Each of these folders is partioned per commit
 			const codeCacheRootPath = dirname(currentCodeCachePath);
 			const currentCodeCache = basename(currentCodeCachePath);
 
 			const codeCaches = await Promises.readdir(codeCacheRootPath);
 			await Promise.all(codeCaches.map(async codeCache => {
 				if (codeCache === currentCodeCache) {
-					return; // not the current cache folder
+					return;
 				}
 
-				// Delete cache folder if old enough
 				const codeCacheEntryPath = join(codeCacheRootPath, codeCache);
 				const codeCacheEntryStat = await promises.stat(codeCacheEntryPath);
 				if (codeCacheEntryStat.isDirectory() && (now - codeCacheEntryStat.mtime.getTime()) > this.dataMaxAge) {

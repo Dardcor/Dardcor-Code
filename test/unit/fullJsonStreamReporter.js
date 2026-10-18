@@ -14,13 +14,6 @@ const {
 	EVENT_RUN_END,
 } = constants;
 
-/**
- * Similar to the mocha JSON stream, but includes additional information
- * on failure. Specifically, the mocha json-stream does not include unmangled
- * expected versus actual results.
- *
- * Writes a superset of the data that json-stream normally would.
- */
 module.exports = class FullJsonStreamReporter extends BaseRunner {
 	constructor(runner, options) {
 		super(runner, options);
@@ -29,7 +22,6 @@ module.exports = class FullJsonStreamReporter extends BaseRunner {
 		runner.once(EVENT_RUN_BEGIN, () => this.writeEvent(['start', { total }]));
 		runner.once(EVENT_RUN_END, () => this.writeEvent(['end', this.stats]));
 
-		// custom coverage events:
 		runner.on('coverage init', (c) => this.writeEvent(['coverageInit', c]));
 		runner.on('coverage increment', (context, coverage) => this.writeEvent(['coverageIncrement', { ...context, coverage }]));
 

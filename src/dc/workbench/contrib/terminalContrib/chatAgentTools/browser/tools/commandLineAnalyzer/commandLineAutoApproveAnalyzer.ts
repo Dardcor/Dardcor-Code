@@ -147,18 +147,14 @@ export class CommandLineAutoApproveAnalyzer extends Disposable implements IComma
 			}
 		}
 
-		// Shell-state mutations omitted from normal command extraction must never
-		// auto-approve, even when every extracted sub-command matches an allow rule.
 		if (hasUnanalyzableSyntax) {
 			isAutoApproved = false;
 		}
 
-		// Log detailed auto approval reasoning
 		for (const reason of autoApproveReasons) {
 			this._log(`- ${reason}`);
 		}
 
-		// Apply auto approval or force it off depending on enablement/opt-in state
 		const isAutoApproveEnabled = this._configurationService.getValue(TerminalChatAgentToolsSettingId.EnableAutoApprove) === true;
 		const isAutoApproveWarningAccepted = this._storageService.getBoolean(TerminalToolConfirmationStorageKeys.TerminalAutoApproveWarningAccepted, StorageScope.APPLICATION, false);
 		if (isAutoApproveEnabled && isAutoApproved) {
@@ -173,7 +169,6 @@ export class CommandLineAutoApproveAnalyzer extends Disposable implements IComma
 			isAutoApproved = false;
 		}
 
-		// Send telemetry about auto approval process
 		this._telemetry.logPrepare({
 			terminalToolSessionId: options.terminalToolSessionId,
 			subCommands,
@@ -183,7 +178,6 @@ export class CommandLineAutoApproveAnalyzer extends Disposable implements IComma
 			autoApproveDefault
 		});
 
-		// Prompt injection warning for common commands that return content from the web
 		const disclaimers: (string | IMarkdownString)[] = [];
 		const subCommandsLowerFirstWordOnly = subCommands.map(command => command.split(' ')[0].toLowerCase());
 		if (!isAutoApproved && (
@@ -193,7 +187,6 @@ export class CommandLineAutoApproveAnalyzer extends Disposable implements IComma
 			disclaimers.push(localize('runInTerminal.promptInjectionDisclaimer', 'Web content may contain malicious code or attempt prompt injection attacks.'));
 		}
 
-		// Add denial reason to disclaimers when auto-approve is enabled but command was denied by a rule
 		if (isAutoApproveEnabled && isDenied) {
 			const denialInfo = this._createAutoApproveInfo(
 				isAutoApproved,
@@ -207,14 +200,12 @@ export class CommandLineAutoApproveAnalyzer extends Disposable implements IComma
 			}
 		}
 
-		// Unanalyzable shell-state syntax cannot be expressed as a safe persistent rule.
 		if (!isAutoApproved && isAutoApproveEnabled && !hasUnanalyzableSyntax) {
 			customActions = generateAutoApproveActions(trimmedCommandLine, subCommands, { subCommandResults, commandLineResult });
 		}
 
 		return {
 			isAutoApproved,
-			// Denied rules stay configurable; unanalyzable syntax cannot be auto-approved safely.
 			isAutoApproveAllowed: !hasUnanalyzableSyntax,
 			disclaimers,
 			autoApproveInfo,
@@ -234,7 +225,6 @@ export class CommandLineAutoApproveAnalyzer extends Disposable implements IComma
 				.filter((e): e is ICommandApprovalResultWithReason & { rule: IAutoApproveRule } =>
 					isAutoApproveRule(e.rule))
 				.map(e => {
-					// Session rules cannot be actioned currently so no link
 					const escapedSourceText = e.rule.sourceText.replaceAll('$', '\\$');
 					if (e.rule.sourceTarget === 'session') {
 						return localize('autoApproveRule.sessionIndicator', '{0} (session)', `\`${escapedSourceText}\``);
@@ -284,7 +274,6 @@ export class CommandLineAutoApproveAnalyzer extends Disposable implements IComma
 					break;
 				}
 				case 'subCommand': {
-					// Check if approval came from npm script
 					const npmScriptApproval = subCommandResults.find(e => isNpmScriptAutoApproveRule(e.rule));
 					if (npmScriptApproval && isNpmScriptAutoApproveRule(npmScriptApproval.rule) && npmScriptApproval.rule.npmScriptResult.autoApproveInfo) {
 						return npmScriptApproval.rule.npmScriptResult.autoApproveInfo;

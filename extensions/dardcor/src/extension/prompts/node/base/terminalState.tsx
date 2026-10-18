@@ -11,9 +11,6 @@ export interface TerminalStateProps extends BasePromptElementProps {
 	sessionId?: string;
 }
 
-/**
- * PromptElement that gets the current task and terminal state for the chat context.
- */
 export class TerminalStatePromptElement extends PromptElement<TerminalStateProps> {
 	constructor(
 		props: TerminalStateProps,

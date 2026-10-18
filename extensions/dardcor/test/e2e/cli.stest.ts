@@ -57,9 +57,6 @@ class TestCopilotCLIToolsService extends TestToolsService {
 			return new LanguageModelToolResult2([new LanguageModelTextPart('yes')]);
 		}
 
-		// `manage_todo_list` is invoked by CopilotCLISession at session start to clear any
-		// previous todo list, but the underlying tool does not implement `invoke` in the
-		// test toolsService. Return a no-op success result so session startup does not fail.
 		if (name === 'manage_todo_list') {
 			return new LanguageModelToolResult2([new LanguageModelTextPart('ok')]);
 		}
@@ -67,14 +64,6 @@ class TestCopilotCLIToolsService extends TestToolsService {
 	}
 }
 
-/**
- * Reads the GitHub OAuth token from the environment.
- *
- * The token is loaded automatically by `dotenv.config()` in `test/simulationMain.ts`
- * from the `.env` file at the workspace root. We only ever read `process.env` so the
- * token value never appears in any tool call output, log line, or LM request emitted
- * by this test file.
- */
 function getGitHubTokenFromEnv(): string {
 	const token = process.env.GITHUB_OAUTH_TOKEN;
 	if (!token) {
@@ -83,28 +72,13 @@ function getGitHubTokenFromEnv(): string {
 	return token;
 }
 
-// Force the Copilot CLI runtime to use the public CAPI endpoint regardless of
-// the AuthInfo we hand it. The runtime's `getCopilotApiUrl()` checks
-// `process.env.COPILOT_API_URL` first (highest precedence), so setting it here
-// guarantees the model list is fetched against an endpoint we know works with
-// the GITHUB_OAUTH_TOKEN, instead of getting an empty list and cascading into
-// "No model available."
 if (!process.env.COPILOT_API_URL) {
 	process.env.COPILOT_API_URL = 'https://api.githubdardcor.com';
 }
 
-// Force the SDK to route Anthropic models to `/v1/messages` instead of
-// `/responses`. The default routing sends Claude models to `/responses`,
-// which CAPI rejects with `400 model_not_supported`. The runtime reads ExP
-// flag overrides from `process.env.COPILOT_EXP_<UPPER_SNAKE_CASE_FLAG>`,
-// which works without setting up an ExP service in tests.
-// if (!process.env.COPILOT_EXP_COPILOT_CLI_ANTHROPIC_MESSAGES_API) {
-// process.env.COPILOT_EXP_COPILOT_CLI_ANTHROPIC_MESSAGES_API = 'true';
-// }
 
 function sessionOptionsFor(workingDirectory: Uri | undefined): ICreateSessionOptions {
 	return {
-		// workingDirectory,
 		model: 'gpt-5-mini',
 		workspace: {
 			folder: workingDirectory,
@@ -132,7 +106,6 @@ async function registerChatServices(testingServiceCollection: TestingServiceColl
 
 	class TestCopilotCLISessionService extends CopilotCLISessionService {
 		override async monitorSessionFiles() {
-			// Override to do nothing in tests
 		}
 		protected override async createSessionsOptions(options: { model?: string; workingDirectory?: Uri; workspace: IWorkspaceInfo; mcpServers?: SessionOptions['mcpServers']; sessionId?: string; debugTargetSessionIds?: readonly string[] }) {
 			const sessionOptions = await super.createSessionsOptions({ ...options, agent: undefined });
@@ -145,18 +118,12 @@ async function registerChatServices(testingServiceCollection: TestingServiceColl
 
 	class TestCopilotCLISDK extends CopilotCLISDK {
 		protected override async ensureShims(): Promise<void> {
-			// Override to do nothing in tests
 		}
 		override async getAuthInfo(): Promise<NonNullable<SessionOptions['authInfo']>> {
 			return {
 				type: 'token',
 				token: getGitHubTokenFromEnv(),
 				host: 'https://github.com',
-				// Without `dardcorUser.endpoints.api` the runtime's `getCopilotApiUrl()`
-				// returns undefined, `retrieveAvailableModels()` short-circuits to an
-				// empty list, and every model check below fails. Pointing it at the
-				// public Copilot API endpoint makes model resolution actually contact
-				// CAPI for the user's enabled models.
 				dardcorUser: {
 					endpoints: {
 						api: 'https://api.githubdardcor.com',
@@ -251,7 +218,6 @@ async function registerChatServices(testingServiceCollection: TestingServiceColl
 			['.py', 'python'],
 		]);
 		const workspaceUri = Uri.file(workingDirectory);
-		// Enumerate all files and folders under workingDirectory
 
 		const files: Uri[] = [];
 		const folders: Uri[] = [];
@@ -287,16 +253,13 @@ async function registerChatServices(testingServiceCollection: TestingServiceColl
 	};
 }
 
-// NOTE: Ensure all files/folders/workingDirectories are under test/scenarios/test-cli for path replacements to work correctly.
 const sourcePath = path.join(__dirname, '..', 'test', 'scenarios', 'test-cli');
 let tmpDirCounter = 0;
 function testRunner(cb: (services: { sessionService: ICopilotCLISessionService; promptResolver: CopilotCLIPromptResolver; init: (workingDirectory: URI) => Promise<void>; authInfo: NonNullable<SessionOptions['authInfo']> }, scenariosPath: string, toolInvocations: ChatToolInvocationPart[], stream: MockChatResponseStream, disposables: DisposableStore) => Promise<void>) {
 	return async (testingServiceCollection: TestingServiceCollection) => {
 		const disposables = new DisposableStore();
-		// Temp folder can be `/var/folders/....` in our code we use `realpath` to resolve any symlinks.
-		// That results in these temp folders being resolved as `/private/var/folders/...` on macOS.
 		const scenariosPath = path.join(tmpdir() + tmpDirCounter++, 'vscode-dardcor-chat', 'test-cli');
-		await fs.rm(scenariosPath, { recursive: true, force: true }).catch(() => { /* Ignore */ });
+		await fs.rm(scenariosPath, { recursive: true, force: true }).catch(() => { });
 		await fs.mkdir(scenariosPath, { recursive: true });
 		await fs.cp(sourcePath, scenariosPath, { recursive: true, force: true, errorOnExist: false });
 		const toolInvocations: ChatToolInvocationPart[] = [];
@@ -310,7 +273,7 @@ function testRunner(cb: (services: { sessionService: ICopilotCLISessionService; 
 			});
 			await cb(services, await fs.realpath(scenariosPath), toolInvocations, stream, disposables);
 		} finally {
-			await fs.rm(scenariosPath, { recursive: true }).catch(() => { /* Ignore */ });
+			await fs.rm(scenariosPath, { recursive: true }).catch(() => { });
 			disposables.dispose();
 		}
 	};
@@ -352,14 +315,11 @@ ssuite.skip({ title: '@cli', location: 'external' }, async (_) => {
 
 			await session.object.handleRequest({ id: '', toolInvocationToken: undefined as never }, { prompt: 'What is 1+8?' }, [], undefined, authInfo, CancellationToken.None);
 
-			// Verify we have a response of 9.
 			assert.strictEqual(session.object.status, ChatSessionStatus.Completed);
 			assertNoErrorsInStream(stream);
 			assertStreamContains(stream, '9');
 
-			// Can send a subsequent request.
 			await session.object.handleRequest({ id: '', toolInvocationToken: undefined as never }, { prompt: 'What is 11+25?' }, [], undefined, authInfo, CancellationToken.None);
-			// Verify we have a response of 36.
 			assertStreamContains(stream, '36');
 		})
 	);
@@ -370,7 +330,6 @@ ssuite.skip({ title: '@cli', location: 'external' }, async (_) => {
 			await init(workingDirectory);
 
 			let sessionId = '';
-			// Start session.
 			{
 				const session = await sessionService.createSession(sessionOptionsFor(workingDirectory), CancellationToken.None);
 				sessionId = session.object.sessionId;
@@ -379,7 +338,6 @@ ssuite.skip({ title: '@cli', location: 'external' }, async (_) => {
 				session.dispose();
 			}
 
-			// Resume the session.
 			{
 				const session = await new Promise<IReference<ICopilotCLISession>>((resolve, reject) => {
 					const interval = disposables.add(new IntervalTimer());
@@ -397,7 +355,6 @@ ssuite.skip({ title: '@cli', location: 'external' }, async (_) => {
 
 				await session.object.handleRequest({ id: '', toolInvocationToken: undefined as never }, { prompt: 'What was my previous question?' }, [], undefined, authInfo, CancellationToken.None);
 
-				// Verify we have a response of 9.
 				assert.strictEqual(session.object.status, ChatSessionStatus.Completed);
 				assertNoErrorsInStream(stream);
 				assertStreamContains(stream, '8');
@@ -485,7 +442,6 @@ ssuite.skip({ title: '@cli', location: 'external' }, async (_) => {
 			await assertFileContains(file, 'function subtract', 1);
 			await assertFileContains(file, 'function add', 1);
 
-			// Multi-turn edit
 			({ prompt, attachments } = await resolvePromptWithFileReferences(
 				`Now add a divide function.`,
 				[],
@@ -495,7 +451,6 @@ ssuite.skip({ title: '@cli', location: 'external' }, async (_) => {
 
 			assert.strictEqual(session.object.status, ChatSessionStatus.Completed);
 			assertNoErrorsInStream(stream);
-			// Ensure previous edits are preserved (in past there have been cases where SDK applies edits again)
 			await assertFileNotContains(file, 'Sample function to add two values');
 			await assertFileContains(file, 'function subtract', 1);
 			await assertFileContains(file, 'function add', 1);

@@ -9,10 +9,6 @@ import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { IModalEditorNavigation, IModalEditorPartOptions } from '../../../../../platform/editor/common/editor.js';
 
-/**
- * Simple test harness that mimics the ModalEditorPartImpl navigation behavior
- * without requiring the full editor part infrastructure.
- */
 class TestModalEditorNavigationHost {
 
 	private readonly _onDidChangeNavigation = new Emitter<IModalEditorNavigation | undefined>();
@@ -86,13 +82,11 @@ suite('Modal Editor Navigation', () => {
 
 		const navigate = (index: number) => {
 			navigatedIndices.push(index);
-			// Simulates what real navigation does: update the context with new index
 			host.updateOptions({ navigation: { total: 10, current: index, navigate } });
 		};
 
 		host.updateOptions({ navigation: { total: 10, current: 0, navigate } });
 
-		// Navigate forward
 		host.navigation!.navigate(1);
 		assert.strictEqual(host.navigation!.current, 1);
 
@@ -114,16 +108,13 @@ suite('Modal Editor Navigation', () => {
 
 		host.updateOptions({ navigation: { total: 3, current: 0, navigate } });
 
-		// At first item
 		assert.strictEqual(host.navigation!.current, 0);
-		assert.ok(host.navigation!.current <= 0); // previous disabled
+		assert.ok(host.navigation!.current <= 0);
 
-		// Navigate to last
 		host.navigation!.navigate(2);
 		assert.strictEqual(host.navigation!.current, 2);
-		assert.ok(host.navigation!.current >= host.navigation!.total - 1); // next disabled
+		assert.ok(host.navigation!.current >= host.navigation!.total - 1);
 
-		// Navigate back to middle
 		host.navigation!.navigate(1);
 		assert.strictEqual(host.navigation!.current, 1);
 	});
@@ -144,6 +135,6 @@ suite('Modal Editor Navigation', () => {
 		host.navigation!.navigate(2);
 		host.updateOptions({ navigation: undefined });
 
-		assert.strictEqual(eventCount, 4); // initial + 2 navigates + clear
+		assert.strictEqual(eventCount, 4);
 	});
 });

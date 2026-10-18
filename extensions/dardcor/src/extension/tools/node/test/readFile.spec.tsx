@@ -35,10 +35,8 @@ suite('ReadFile', () => {
 		const emptyDoc = createTextDocumentData(URI.file('/workspace/empty.ts'), '', 'ts').document;
 		const whitespaceDoc = createTextDocumentData(URI.file('/workspace/whitespace.ts'), ' \t\n', 'ts').document;
 		const singleLineDoc = createTextDocumentData(URI.file('/workspace/single.ts'), 'single line', 'ts').document;
-		// Create a large document for testing truncation (3000 lines to exceed MAX_LINES_PER_READ)
 		const largeContent = Array.from({ length: 3000 }, (_, i) => `line ${i + 1}`).join('\n');
 		const largeDoc = createTextDocumentData(URI.file('/workspace/large.ts'), largeContent, 'ts').document;
-		// Create a document with long lines to test per-line truncation (each line is 2500 chars)
 		const longLine = 'x'.repeat(2500);
 		const longLinesContent = `normal line\n${longLine}\nanother normal line\n${longLine}`;
 		const longLinesDoc = createTextDocumentData(URI.file('/workspace/longlines.ts'), longLinesContent, 'ts').document;
@@ -178,10 +176,9 @@ suite('ReadFile', () => {
 			const input: IReadFileParamsV2 = {
 				filePath: '/workspace/large.ts',
 				offset: 1,
-				limit: 3000 // This exceeds MAX_LINES_PER_READ (2000)
+				limit: 3000
 			};
 			const result = await toolsService.invokeTool(ToolName.ReadFile, { input, toolInvocationToken: null as never }, CancellationToken.None);
-			// Should be truncated to MAX_LINES_PER_READ (2000) and show truncation message
 			const resultString = await toolResultToString(accessor, result);
 			expect(resultString).toContain('line 1');
 			expect(resultString).toContain('line 2000');
@@ -200,7 +197,6 @@ suite('ReadFile', () => {
 			expect(resultString).toContain('normal line');
 			expect(resultString).toContain('[truncated]');
 			expect(resultString).toContain('[One or more long lines were truncated at 2000 characters]');
-			// The truncated line should be at most 2000 chars + ' [truncated]' = ~2012 chars, not the full 2500
 			const lines = resultString.split('\n');
 			const longLines = lines.filter(l => l.includes('x'.repeat(100)));
 			for (const l of longLines) {
@@ -213,7 +209,7 @@ suite('ReadFile', () => {
 
 			const input: IReadFileParamsV2 = {
 				filePath: '/workspace/file.ts',
-				offset: 535 // file only has 5 lines
+				offset: 535
 			};
 			await expect(toolsService.invokeTool(ToolName.ReadFile, { input, toolInvocationToken: null as never }, CancellationToken.None))
 				.rejects.toThrow('Invalid offset 535: file only has 5 lines. Line numbers are 1-indexed.');
@@ -223,7 +219,7 @@ suite('ReadFile', () => {
 			const toolsService = accessor.get(IToolsService);
 
 			const input: IReadFileParamsV2 = {
-				filePath: '/workspace/whitespace.ts', // 2 line file (has a newline)
+				filePath: '/workspace/whitespace.ts',
 				offset: 10
 			};
 			await expect(toolsService.invokeTool(ToolName.ReadFile, { input, toolInvocationToken: null as never }, CancellationToken.None))
@@ -235,7 +231,7 @@ suite('ReadFile', () => {
 
 			const input: IReadFileParamsV2 = {
 				filePath: '/workspace/file.ts',
-				offset: 5, // file has exactly 5 lines
+				offset: 5,
 				limit: 1
 			};
 			const result = await toolsService.invokeTool(ToolName.ReadFile, { input, toolInvocationToken: null as never }, CancellationToken.None);
@@ -264,7 +260,6 @@ suite('ReadFile', () => {
 			};
 			const result = await toolsService.invokeTool(ToolName.ReadFile, { input, toolInvocationToken: null as never }, CancellationToken.None);
 			const resultString = await toolResultToString(accessor, result);
-			// Should start from line 1 (offset clamped to 1)
 			expect(resultString).toContain('line 1');
 			expect(resultString).toContain('line 2');
 		});
@@ -344,7 +339,6 @@ suite('ReadFile', () => {
 			));
 
 			const mockCustomInstructions = new MockCustomInstructionsService();
-			// Don't mark this file as a skill file
 			services.define(ICustomInstructionsService, mockCustomInstructions);
 
 			const testAccessor = services.createTestingAccessor();
@@ -397,7 +391,6 @@ suite('ReadFile', () => {
 			);
 
 			expect(result).toBeDefined();
-			// When reading a partial range of a skill file, it should say "Reading skill"
 			expect((result!.invocationMessage as MarkdownString).value).toBe('Reading skill [workspace](file:///workspace/test.skill.md?vscodeLinkType%3Dskill#2-2), lines 2 to 4');
 			expect((result!.pastTenseMessage as MarkdownString).value).toBe('Read skill [workspace](file:///workspace/test.skill.md?vscodeLinkType%3Dskill#2-2), lines 2 to 4');
 
@@ -433,7 +426,6 @@ suite('ReadFile', () => {
 			);
 
 			expect(result).toBeDefined();
-			// For non-.md skill files, skill name should be in backticks
 			expect((result!.invocationMessage as MarkdownString).value).toContain('Reading skill `workspace`: [](file:///workspace/test.skill)');
 			expect((result!.pastTenseMessage as MarkdownString).value).toContain('Read skill `workspace`: [](file:///workspace/test.skill)');
 
@@ -471,7 +463,6 @@ suite('ReadFile', () => {
 			);
 
 			expect(result).toBeDefined();
-			// For non-.md skill files with range, skill name should be in backticks
 			expect((result!.invocationMessage as MarkdownString).value).toContain('Reading skill `workspace`: [](file:///workspace/test.skill#2-2), lines 2 to 4');
 			expect((result!.pastTenseMessage as MarkdownString).value).toContain('Read skill `workspace`: [](file:///workspace/test.skill#2-2), lines 2 to 4');
 
@@ -491,7 +482,6 @@ suite('ReadFile', () => {
 			));
 
 			const mockCustomInstructions = new MockCustomInstructionsService();
-			// Don't mark this file as a skill file
 			services.define(ICustomInstructionsService, mockCustomInstructions);
 
 			const testAccessor = services.createTestingAccessor();
@@ -509,7 +499,6 @@ suite('ReadFile', () => {
 			);
 
 			expect(result).toBeDefined();
-			// When reading a partial range of a non-skill file, it should say "Reading"
 			expect((result!.invocationMessage as MarkdownString).value).toBe('Reading [](file:///workspace/test.ts#2-2), lines 2 to 4');
 			expect((result!.pastTenseMessage as MarkdownString).value).toBe('Read [](file:///workspace/test.ts#2-2), lines 2 to 4');
 
@@ -577,7 +566,6 @@ suite('ReadFile', () => {
 
 		test('returns hexdump for binary file', async () => {
 			const binaryUri = URI.file('/workspace/binary.dat');
-			// Data with null bytes triggers binary detection
 			const binaryData = new Uint8Array([0x4d, 0x5a, 0x00, 0x03, 0x00, 0x00, 0xff, 0xfe]);
 			const mockFs = createBinaryMockFs(binaryUri, binaryData);
 
@@ -598,7 +586,6 @@ suite('ReadFile', () => {
 			);
 
 			const text = await toolResultToString(testAccessor, result);
-			// Should contain hex representation
 			expect(text).toContain('4d 5a 00 03');
 			expect(text).toContain('MZ');
 
@@ -611,7 +598,6 @@ suite('ReadFile', () => {
 			for (let i = 0; i < 64; i++) {
 				binaryData[i] = i;
 			}
-			// Ensure there's a null byte for detection
 			binaryData[0] = 0x00;
 			const mockFs = createBinaryMockFs(binaryUri, binaryData);
 
@@ -632,7 +618,6 @@ suite('ReadFile', () => {
 			);
 
 			const text = await toolResultToString(testAccessor, result);
-			// Should contain hex starting from offset 16
 			expect(text).toContain('00000010');
 
 			testAccessor.dispose();
@@ -664,7 +649,6 @@ suite('ReadFile', () => {
 			);
 
 			const text = await toolResultToString(testAccessor, result);
-			// Should contain hex starting from byte offset 16
 			expect(text).toContain('00000010');
 
 			testAccessor.dispose();
@@ -696,9 +680,7 @@ suite('ReadFile', () => {
 			);
 
 			const text = await toolResultToString(testAccessor, result);
-			// Should contain hex starting from byte offset 16
 			expect(text).toContain('00000010');
-			// Should NOT contain hex from byte offset 32 (limit=16 means only 16 bytes)
 			expect(text).not.toContain('00000020');
 
 			testAccessor.dispose();
@@ -706,11 +688,9 @@ suite('ReadFile', () => {
 
 		test('does not treat text files as binary', async () => {
 			const textUri = URI.file('/workspace/text.dat');
-			// Pure text content with no null bytes
 			const textData = new TextEncoder().encode('Hello, world!\nThis is text.\n');
 			const mockFs = createBinaryMockFs(textUri, textData);
 
-			// Also register as a text document so openTextDocument works
 			const textDoc = createTextDocumentData(textUri, 'Hello, world!\nThis is text.\n', 'plaintext').document;
 			const services = createExtensionUnitTestingServices();
 			services.define(IFileSystemService, mockFs);
@@ -729,7 +709,6 @@ suite('ReadFile', () => {
 			);
 
 			const text = await toolResultToString(testAccessor, result);
-			// Should contain the original text, not hex
 			expect(text).toContain('Hello, world!');
 			expect(text).not.toContain('00000000');
 
@@ -814,7 +793,6 @@ suite('ReadFile', () => {
 
 		test('should send skillStorage=user for personal skill files', async () => {
 			const skillContent = '# Personal Skill';
-			// NullNativeEnvService uses /home/testuser as userHome
 			const skillUri = URI.file('/home/testuser/.dardcor/skills/personal-skill/SKILL.md');
 			const testDoc = createTextDocumentData(skillUri, skillContent, 'markdown').document;
 
@@ -934,7 +912,6 @@ suite('ReadFile', () => {
 			const internalSkillEvent = telemetry.internalEvents.find(e => e.eventName === 'skillContentRead');
 			expect(internalSkillEvent).toBeUndefined();
 
-			// readFileToolInvoked should still fire
 			const readEvent = telemetry.events.find(e => e.eventName === 'readFileToolInvoked');
 			expect(readEvent).toBeDefined();
 			expect(readEvent!.properties!.fileType).toBe('');

@@ -53,14 +53,12 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 
 		type Rec = { source?: ToolDataSource } & IDisposable;
 
-		// Keep tools in sync with the tools service.
 		const previous = this._register(new DisposableMap<IMcpServer, Rec>());
 		this._register(autorun(reader => {
 			const servers = mcpService.servers.read(reader);
 
 			const toDelete = new Set(previous.keys());
 			for (const server of servers) {
-				// Skip disabled servers — don't register their tools.
 				if (!isContributionEnabled(server.enablement.read(reader))) {
 					continue;
 				}
@@ -69,7 +67,7 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 				if (previousRec) {
 					toDelete.delete(server);
 					if (!previousRec.source || equals(previousRec.source, mcpServerToSourceData(server, reader))) {
-						continue; // same definition, no need to update
+						continue;
 					}
 
 					previousRec.dispose();
@@ -79,7 +77,7 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 				const rec: Rec = { dispose: () => store.dispose() };
 				const toolSet = new Lazy(() => {
 					const source = rec.source = mcpServerToSourceData(server);
-					const referenceName = server.definition.label.toLowerCase().replace(/\s+/g, '-'); // see issue https://github.com/microsoft/vscode/issues/278152
+					const referenceName = server.definition.label.toLowerCase().replace(/\s+/g, '-');
 					const toolSet = store.add(this._toolsService.createToolSet(
 						source,
 						server.definition.id,
@@ -105,7 +103,7 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 	}
 
 	private _syncTools(server: IMcpServer, collectionData: Lazy<{ toolSet: ToolSet; source: ToolDataSource }>, store: DisposableStore) {
-		const tools = new Map</* tool ID */string, ISyncedToolData>();
+		const tools = new Map< string, ISyncedToolData>();
 
 		const collectionObservable = this._mcpRegistry.collections.map(collections =>
 			collections.find(c => c.id === server.collection.id));
@@ -113,15 +111,12 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 		store.add(autorun(reader => {
 			const toDelete = new Set(tools.keys());
 
-			// toRegister is deferred until deleting tools that moving a tool between
-			// servers (or deleting one instance of a multi-instance server) doesn't cause an error.
 			const toRegister: (() => void)[] = [];
 			const registerTool = (tool: IMcpTool, toolData: IToolData, store: DisposableStore) => {
 				store.add(this._toolsService.registerTool(toolData, this._instantiationService.createInstance(McpToolImplementation, tool, server)));
 				store.add(collectionData.value.toolSet.addTool(toolData));
 			};
 
-			// Don't bother cleaning up tools internally during shutdown. This just costs time for no benefit.
 			if (this.lifecycleService.willShutdown) {
 				return;
 			}
@@ -134,7 +129,6 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 			}
 
 			for (const tool of server.tools.read(reader)) {
-				// Skip app-only tools - they should not be registered with the language model tools service
 				if (!(tool.visibility & McpToolVisibility.Model)) {
 					continue;
 				}
@@ -145,7 +139,6 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 					id: tool.id,
 					source: collectionData.value.source,
 					icon: icons || Codicon.tools,
-					// duplicative: https://github.com/modelcontextprotocol/modelcontextprotocol/pull/813
 					displayName: tool.definition.annotations?.title || tool.definition.title || tool.definition.name,
 					toolReferenceName: tool.referenceName,
 					modelDescription: tool.definition.description ?? '',
@@ -163,8 +156,6 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 					if (!equals(existing.toolData, toolData)) {
 						existing.toolData = toolData;
 						existing.store.clear();
-						// We need to re-register both the data and implementation, as the
-						// implementation is discarded when the data is removed (#245921)
 						registerTool(tool, toolData, existing.store);
 					}
 					toDelete.delete(tool.id);
@@ -187,8 +178,6 @@ export class McpLanguageModelToolContribution extends Disposable implements IWor
 				fn();
 			}
 
-			// Important: flush tool updates when the server is fully registered so that
-			// any consuming (e.g. autostarting) requests have the tools available immediately.
 			this._toolsService.flushToolUpdates();
 		}));
 
@@ -213,7 +202,6 @@ class McpToolImplementation implements IToolImpl {
 	async prepareToolInvocation(context: IToolInvocationPreparationContext): Promise<IPreparedToolInvocation> {
 		const tool = this._tool;
 		const server = this._server;
-		// ToDO: need to be revisited as the first tool invocation doesnt have sandbox info and we are optimistically assuming it is not sandboxed. We should ideally have the sandbox info.
 		const sandboxEnabled = await McpServer.callOn(server, async (_handler, connection) => {
 			return connection.definition.sandboxEnabled;
 		});
@@ -225,7 +213,6 @@ class McpToolImplementation implements IToolImpl {
 			this._productService.nameShort
 		);
 
-		// duplicative: https://github.com/modelcontextprotocol/modelcontextprotocol/pull/813
 		const title = tool.definition.annotations?.title || tool.definition.title || ('`' + tool.definition.name + '`');
 
 		let confirm: IToolConfirmationMessages | undefined;
@@ -291,14 +278,12 @@ class McpToolImplementation implements IToolImpl {
 				}
 			}).filter(isDefined);
 
-			// Explicit user parts get pushed to progress to show in the status UI
 			if (audience?.includes(LanguageModelPartAudience.User)) {
 				if (item.type === 'text') {
 					progress.report({ message: item.text });
 				}
 			}
 
-			// Rewrite image resources to images so they are inlined nicely
 			const addAsInlineData = async (mimeType: string, value: string, uri?: URI): Promise<VSBuffer | void> => {
 				details.output.push({ type: 'embed', mimeType, value, uri, audience });
 				if (isForModel) {
@@ -328,8 +313,6 @@ class McpToolImplementation implements IToolImpl {
 			const isForModel = !audience || audience.includes(LanguageModelPartAudience.Assistant);
 			if (item.type === 'text') {
 				details.output.push({ type: 'embed', isText: true, value: item.text });
-				// structured content 'represents the result of the tool call', so take
-				// that in place of any textual description when present.
 				if (isForModel && !callResult.structuredContent) {
 					result.content.push({
 						kind: 'text',
@@ -338,7 +321,6 @@ class McpToolImplementation implements IToolImpl {
 					});
 				}
 			} else if (item.type === 'image' || item.type === 'audio') {
-				// default to some image type if not given to hint
 				await addAsInlineData(item.mimeType || 'image/png', item.data);
 			} else if (item.type === 'resource_link') {
 				const uri = McpResourceURI.fromServer(this._server.definition, item.uri);
@@ -391,7 +373,6 @@ class McpToolImplementation implements IToolImpl {
 			result.content.push({ kind: 'text', value: JSON.stringify(callResult.structuredContent), audience: [LanguageModelPartAudience.Assistant] });
 		}
 
-		// Add raw MCP output for MCP App UI rendering if this tool has UI
 		if (this._tool.uiResourceUri) {
 			details.mcpOutput = callResult;
 		}

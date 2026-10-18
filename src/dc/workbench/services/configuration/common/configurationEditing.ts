@@ -33,74 +33,32 @@ import { IFilesConfigurationService } from '../../filesConfiguration/common/file
 
 export const enum ConfigurationEditingErrorCode {
 
-	/**
-	 * Error when trying to write a configuration key that is not registered.
-	 */
 	ERROR_UNKNOWN_KEY,
 
-	/**
-	 * Error when trying to write an application setting into workspace settings.
-	 */
 	ERROR_INVALID_WORKSPACE_CONFIGURATION_APPLICATION,
 
-	/**
-	 * Error when trying to write a machne setting into workspace settings.
-	 */
 	ERROR_INVALID_WORKSPACE_CONFIGURATION_MACHINE,
 
-	/**
-	 * Error when trying to write an invalid folder configuration key to folder settings.
-	 */
 	ERROR_INVALID_FOLDER_CONFIGURATION,
 
-	/**
-	 * Error when trying to write to user target but not supported for provided key.
-	 */
 	ERROR_INVALID_USER_TARGET,
 
-	/**
-	 * Error when trying to write to user target but not supported for provided key.
-	 */
 	ERROR_INVALID_WORKSPACE_TARGET,
 
-	/**
-	 * Error when trying to write a configuration key to folder target
-	 */
 	ERROR_INVALID_FOLDER_TARGET,
 
-	/**
-	 * Error when trying to write to language specific setting but not supported for preovided key
-	 */
 	ERROR_INVALID_RESOURCE_LANGUAGE_CONFIGURATION,
 
-	/**
-	 * Error when trying to write to the workspace configuration without having a workspace opened.
-	 */
 	ERROR_NO_WORKSPACE_OPENED,
 
-	/**
-	 * Error when trying to write and save to the configuration file while it is dirty in the editor.
-	 */
 	ERROR_CONFIGURATION_FILE_DIRTY,
 
-	/**
-	 * Error when trying to write and save to the configuration file while it is not the latest in the disk.
-	 */
 	ERROR_CONFIGURATION_FILE_MODIFIED_SINCE,
 
-	/**
-	 * Error when trying to write to a configuration file that contains JSON errors.
-	 */
 	ERROR_INVALID_CONFIGURATION,
 
-	/**
-	 * Error when trying to write a policy configuration
-	 */
 	ERROR_POLICY_CONFIGURATION,
 
-	/**
-	 * Internal Error.
-	 */
 	ERROR_INTERNAL
 }
 
@@ -116,9 +74,6 @@ export interface IConfigurationValue {
 }
 
 export interface IConfigurationEditingOptions extends IConfigurationUpdateOptions {
-	/**
-	 * Scope of configuration to be written into.
-	 */
 	scopes?: IConfigurationUpdateOverrides;
 }
 
@@ -162,7 +117,6 @@ export class ConfigurationEditing {
 
 	async writeConfiguration(target: EditableConfigurationTarget, value: IConfigurationValue, options: IConfigurationEditingOptions = {}): Promise<void> {
 		const operation = this.getConfigurationEditOperation(target, value, options.scopes || {});
-		// queue up writes to prevent race conditions
 		return this.queue.queue(async () => {
 			try {
 				await this.doWriteConfiguration(operation, options);
@@ -203,10 +157,6 @@ export class ConfigurationEditing {
 		if (edit) {
 			let disposable: IDisposable | undefined;
 			try {
-				// Optimization: we apply edits to a text model and save it
-				// right after. Use the files config service to signal this
-				// to the workbench to optimise the UI during this operation.
-				// For example, avoids to briefly show dirty indicators.
 				disposable = this.filesConfigurationService.enableAutoSaveAfterShortDelay(model.uri);
 				if (this.applyEditsToBuffer(edit, model)) {
 					await this.save(model, operation);
@@ -246,7 +196,6 @@ export class ConfigurationEditing {
 			return setProperty(modelContent, jsonPath, value, formattingOptions);
 		}
 
-		// Without jsonPath, the entire configuration file is being replaced, so we just use JSON.stringify
 		const content = JSON.stringify(value, null, formattingOptions.insertSpaces && formattingOptions.tabSize ? ' '.repeat(formattingOptions.tabSize) : '\t');
 		return [{
 			content,
@@ -365,7 +314,6 @@ export class ConfigurationEditing {
 	private toErrorMessage(error: ConfigurationEditingErrorCode, target: EditableConfigurationTarget, operation: IConfigurationEditOperation): string {
 		switch (error) {
 
-			// API constraints
 			case ConfigurationEditingErrorCode.ERROR_POLICY_CONFIGURATION: return nls.localize('errorPolicyConfiguration', "Unable to write {0} because it is configured in system policy.", operation.key);
 			case ConfigurationEditingErrorCode.ERROR_UNKNOWN_KEY: return nls.localize('errorUnknownKey', "Unable to write to {0} because {1} is not a registered configuration.", this.stringifyTarget(target), operation.key);
 			case ConfigurationEditingErrorCode.ERROR_INVALID_WORKSPACE_CONFIGURATION_APPLICATION: return nls.localize('errorInvalidWorkspaceConfigurationApplication', "Unable to write {0} to Workspace Settings. This setting can be written only into User settings.", operation.key);
@@ -377,7 +325,6 @@ export class ConfigurationEditing {
 			case ConfigurationEditingErrorCode.ERROR_INVALID_RESOURCE_LANGUAGE_CONFIGURATION: return nls.localize('errorInvalidResourceLanguageConfiguration', "Unable to write to Language Settings because {0} is not a resource language setting.", operation.key);
 			case ConfigurationEditingErrorCode.ERROR_NO_WORKSPACE_OPENED: return nls.localize('errorNoWorkspaceOpened', "Unable to write to {0} because no workspace is opened. Please open a workspace first and try again.", this.stringifyTarget(target));
 
-			// User issues
 			case ConfigurationEditingErrorCode.ERROR_INVALID_CONFIGURATION: {
 				if (operation.workspaceStandAloneConfigurationKey === TASKS_CONFIGURATION_KEY) {
 					return nls.localize('errorInvalidTaskConfiguration', "Unable to write into the tasks configuration file. Please open it to correct errors/warnings in it and try again.");
@@ -497,8 +444,6 @@ export class ConfigurationEditing {
 	}
 
 	private hasParseErrors(content: string, operation: IConfigurationEditOperation): boolean {
-		// If we write to a workspace standalone file and replace the entire contents (no key provided)
-		// we can return here because any parse errors can safely be ignored since all contents are replaced
 		if (operation.workspaceStandAloneConfigurationKey && !operation.key) {
 			return false;
 		}
@@ -516,12 +461,6 @@ export class ConfigurationEditing {
 		const configurationProperties = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).getConfigurationProperties();
 		const configurationScope = configurationProperties[operation.key]?.scope;
 
-		/**
-		 * Key to update must be a known setting from the registry unless
-		 * 	- the key is standalone configuration (eg: tasks, debug)
-		 * 	- the key is an override identifier
-		 * 	- the operation is to delete the key
-		 */
 		if (!operation.workspaceStandAloneConfigurationKey) {
 			const validKeys = this.configurationService.keys().default;
 			if (validKeys.indexOf(operation.key) < 0 && !OVERRIDE_PROPERTY_REGEX.test(operation.key) && operation.value !== undefined) {
@@ -530,13 +469,11 @@ export class ConfigurationEditing {
 		}
 
 		if (operation.workspaceStandAloneConfigurationKey) {
-			// Global launches are not supported
 			if ((operation.workspaceStandAloneConfigurationKey !== TASKS_CONFIGURATION_KEY) && (operation.workspaceStandAloneConfigurationKey !== MCP_CONFIGURATION_KEY) && (target === EditableConfigurationTarget.USER_LOCAL || target === EditableConfigurationTarget.USER_REMOTE)) {
 				throw this.toConfigurationEditingError(ConfigurationEditingErrorCode.ERROR_INVALID_USER_TARGET, target, operation);
 			}
 		}
 
-		// Target cannot be workspace or folder if no workspace opened
 		if ((target === EditableConfigurationTarget.WORKSPACE || target === EditableConfigurationTarget.WORKSPACE_FOLDER) && this.contextService.getWorkbenchState() === WorkbenchState.EMPTY) {
 			throw this.toConfigurationEditingError(ConfigurationEditingErrorCode.ERROR_NO_WORKSPACE_OPENED, target, operation);
 		}
@@ -582,20 +519,17 @@ export class ConfigurationEditing {
 
 	private getConfigurationEditOperation(target: EditableConfigurationTarget, config: IConfigurationValue, overrides: IConfigurationUpdateOverrides): IConfigurationEditOperation {
 
-		// Check for standalone workspace configurations
 		if (config.key) {
 			const standaloneConfigurationMap = target === EditableConfigurationTarget.USER_LOCAL ? USER_STANDALONE_CONFIGURATIONS : WORKSPACE_STANDALONE_CONFIGURATIONS;
 			const standaloneConfigurationKeys = Object.keys(standaloneConfigurationMap);
 			for (const key of standaloneConfigurationKeys) {
 				const resource = this.getConfigurationFileResource(target, key, standaloneConfigurationMap[key], overrides.resource, undefined);
 
-				// Check for prefix
 				if (config.key === key) {
 					const jsonPath = this.isWorkspaceConfigurationResource(resource) ? [key] : [];
 					return { key: jsonPath[jsonPath.length - 1], jsonPath, value: config.value, resource: resource ?? undefined, workspaceStandAloneConfigurationKey: key, target };
 				}
 
-				// Check for prefix.<setting>
 				const keyPrefix = `${key}.`;
 				if (config.key.indexOf(keyPrefix) === 0) {
 					const jsonPath = this.isWorkspaceConfigurationResource(resource) ? [key, config.key.substring(keyPrefix.length)] : [config.key.substring(keyPrefix.length)];

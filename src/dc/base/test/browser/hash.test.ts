@@ -65,7 +65,7 @@ suite('Hash', () => {
 		];
 		const hashes: number[] = candidates.map(hash);
 		for (let i = 0; i < hashes.length; i++) {
-			assert.strictEqual(hashes[i], hash(candidates[i])); // verify that repeated invocation returns the same hash
+			assert.strictEqual(hashes[i], hash(candidates[i]));
 			for (let k = i + 1; k < hashes.length; k++) {
 				assert.notStrictEqual(hashes[i], hashes[k], `Same hash ${hashes[i]} for ${JSON.stringify(candidates[i])} and ${JSON.stringify(candidates[k])}`);
 			}
@@ -75,13 +75,11 @@ suite('Hash', () => {
 
 	async function checkSHA1(str: string, expected: string) {
 
-		// Test with StringSHA1
 		const hash = new StringSHA1();
 		hash.update(str);
 		let actual = hash.digest();
 		assert.strictEqual(actual, expected);
 
-		// Test with crypto.subtle
 		actual = await hashAsync(str);
 		assert.strictEqual(actual, expected);
 	}

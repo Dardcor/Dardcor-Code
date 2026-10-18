@@ -20,11 +20,6 @@ export const createPrivateApiFor = (impl: vscode.TestItem, controllerId: string)
 	return api;
 };
 
-/**
- * Gets the private API for a test item implementation. This implementation
- * is a managed object, but we keep a weakmap to avoid exposing any of the
- * internals to extensions.
- */
 export const getPrivateApiFor = (impl: vscode.TestItem) => {
 	const api = eventPrivateApis.get(impl);
 	if (!api) {

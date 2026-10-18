@@ -25,10 +25,6 @@ import { addUNCHostToAllowlist } from '../../../../base/node/unc.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { TestParcelWatcher } from './parcelWatcher.test.js';
 
-// this suite has shown flaky runs in Azure pipelines where
-// tasks would just hang and timeout after a while (not in
-// mocha but generally). as such they will run only on demand
-// whenever we update the watcher library.
 
 suite.skip('File Watcher (node.js)', function () {
 
@@ -72,10 +68,6 @@ suite.skip('File Watcher (node.js)', function () {
 	setup(async () => {
 		await createWatcher(undefined);
 
-		// Rule out strange testing conditions by using the realpath
-		// here. for example, on macOS the tmp dir is potentially a
-		// symlink in some of the root folders, which is a rather
-		// unrealisic case for the file watcher.
 		testDir = URI.file(getRandomTestPath(fs.realpathSync(tmpdir()), 'vsctests', 'filewatcher')).fsPath;
 
 		const sourceDir = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/service').fsPath;
@@ -107,10 +99,6 @@ suite.skip('File Watcher (node.js)', function () {
 		await watcher.stop();
 		watcher.dispose();
 
-		// Possible that the file watcher is still holding
-		// onto the folders on Windows specifically and the
-		// unlink would fail. In that case, do not fail the
-		// test suite.
 		return Promises.rm(testDir).catch(error => console.error(error));
 	});
 
@@ -127,7 +115,6 @@ suite.skip('File Watcher (node.js)', function () {
 			console.log(`Awaiting change type '${toMsg(type)}' on file '${path}'`);
 		}
 
-		// Await the event
 		await new Promise<void>(resolve => {
 			let counter = 0;
 			const disposable = service.onDidChangeFile(events => {
@@ -135,7 +122,7 @@ suite.skip('File Watcher (node.js)', function () {
 					if (extUriBiasedIgnorePathCase.isEqual(event.resource, URI.file(path)) && event.type === type && (correlationId === null || event.cId === correlationId)) {
 						counter++;
 						if (typeof expectedCount === 'number' && counter < expectedCount) {
-							continue; // not yet
+							continue;
 						}
 
 						disposable.dispose();
@@ -156,19 +143,16 @@ suite.skip('File Watcher (node.js)', function () {
 		assert.strictEqual(instance.isReusingRecursiveWatcher, false);
 		assert.strictEqual(instance.failed, false);
 
-		// New file
 		const newFilePath = join(testDir, 'newFile.txt');
 		let changeFuture: Promise<unknown> = awaitEvent(watcher, newFilePath, FileChangeType.ADDED);
 		await Promises.writeFile(newFilePath, 'Hello World');
 		await changeFuture;
 
-		// New folder
 		const newFolderPath = join(testDir, 'New Folder');
 		changeFuture = awaitEvent(watcher, newFolderPath, FileChangeType.ADDED);
 		await fs.promises.mkdir(newFolderPath);
 		await changeFuture;
 
-		// Rename file
 		let renamedFilePath = join(testDir, 'renamedFile.txt');
 		changeFuture = Promise.all([
 			awaitEvent(watcher, newFilePath, FileChangeType.DELETED),
@@ -177,7 +161,6 @@ suite.skip('File Watcher (node.js)', function () {
 		await Promises.rename(newFilePath, renamedFilePath);
 		await changeFuture;
 
-		// Rename folder
 		let renamedFolderPath = join(testDir, 'Renamed Folder');
 		changeFuture = Promise.all([
 			awaitEvent(watcher, newFolderPath, FileChangeType.DELETED),
@@ -186,7 +169,6 @@ suite.skip('File Watcher (node.js)', function () {
 		await Promises.rename(newFolderPath, renamedFolderPath);
 		await changeFuture;
 
-		// Rename file (same name, different case)
 		const caseRenamedFilePath = join(testDir, 'RenamedFile.txt');
 		changeFuture = Promise.all([
 			awaitEvent(watcher, renamedFilePath, FileChangeType.DELETED),
@@ -196,7 +178,6 @@ suite.skip('File Watcher (node.js)', function () {
 		await changeFuture;
 		renamedFilePath = caseRenamedFilePath;
 
-		// Rename folder (same name, different case)
 		const caseRenamedFolderPath = join(testDir, 'REnamed Folder');
 		changeFuture = Promise.all([
 			awaitEvent(watcher, renamedFolderPath, FileChangeType.DELETED),
@@ -206,7 +187,6 @@ suite.skip('File Watcher (node.js)', function () {
 		await changeFuture;
 		renamedFolderPath = caseRenamedFolderPath;
 
-		// Move file
 		const movedFilepath = join(testDir, 'movedFile.txt');
 		changeFuture = Promise.all([
 			awaitEvent(watcher, renamedFilePath, FileChangeType.DELETED),
@@ -215,7 +195,6 @@ suite.skip('File Watcher (node.js)', function () {
 		await Promises.rename(renamedFilePath, movedFilepath);
 		await changeFuture;
 
-		// Move folder
 		const movedFolderpath = join(testDir, 'Moved Folder');
 		changeFuture = Promise.all([
 			awaitEvent(watcher, renamedFolderPath, FileChangeType.DELETED),
@@ -224,35 +203,29 @@ suite.skip('File Watcher (node.js)', function () {
 		await Promises.rename(renamedFolderPath, movedFolderpath);
 		await changeFuture;
 
-		// Copy file
 		const copiedFilepath = join(testDir, 'copiedFile.txt');
 		changeFuture = awaitEvent(watcher, copiedFilepath, FileChangeType.ADDED);
 		await fs.promises.copyFile(movedFilepath, copiedFilepath);
 		await changeFuture;
 
-		// Copy folder
 		const copiedFolderpath = join(testDir, 'Copied Folder');
 		changeFuture = awaitEvent(watcher, copiedFolderpath, FileChangeType.ADDED);
 		await Promises.copy(movedFolderpath, copiedFolderpath, { preserveSymlinks: false });
 		await changeFuture;
 
-		// Change file
 		changeFuture = awaitEvent(watcher, copiedFilepath, FileChangeType.UPDATED);
 		await Promises.writeFile(copiedFilepath, 'Hello Change');
 		await changeFuture;
 
-		// Create new file
 		const anotherNewFilePath = join(testDir, 'anotherNewFile.txt');
 		changeFuture = awaitEvent(watcher, anotherNewFilePath, FileChangeType.ADDED);
 		await Promises.writeFile(anotherNewFilePath, 'Hello Another World');
 		await changeFuture;
 
-		// Delete file
 		changeFuture = awaitEvent(watcher, copiedFilepath, FileChangeType.DELETED);
 		await fs.promises.unlink(copiedFilepath);
 		await changeFuture;
 
-		// Delete folder
 		changeFuture = awaitEvent(watcher, copiedFolderpath, FileChangeType.DELETED);
 		await fs.promises.rmdir(copiedFolderpath);
 		await changeFuture;
@@ -270,22 +243,18 @@ suite.skip('File Watcher (node.js)', function () {
 		assert.strictEqual(instance.isReusingRecursiveWatcher, false);
 		assert.strictEqual(instance.failed, false);
 
-		// Change file
 		let changeFuture = awaitEvent(watcher, filePath, FileChangeType.UPDATED);
 		await Promises.writeFile(filePath, 'Hello Change');
 		await changeFuture;
 
-		// Delete file
 		changeFuture = awaitEvent(watcher, filePath, FileChangeType.DELETED);
 		await fs.promises.unlink(filePath);
 		await changeFuture;
 
-		// Recreate watcher
 		await Promises.writeFile(filePath, 'Hello Change');
 		await watcher.watch([]);
 		await watcher.watch([{ path: filePath, excludes: [], recursive: false }]);
 
-		// Move file
 		changeFuture = awaitEvent(watcher, filePath, FileChangeType.DELETED);
 		await Promises.rename(filePath, `${filePath}-moved`);
 		await changeFuture;
@@ -294,7 +263,6 @@ suite.skip('File Watcher (node.js)', function () {
 	test('atomic writes (folder watch)', async function () {
 		await watcher.watch([{ path: testDir, excludes: [], recursive: false }]);
 
-		// Delete + Recreate file
 		const newFilePath = join(testDir, 'lorem.txt');
 		const changeFuture: Promise<unknown> = awaitEvent(watcher, newFilePath, FileChangeType.UPDATED);
 		await fs.promises.unlink(newFilePath);
@@ -306,7 +274,6 @@ suite.skip('File Watcher (node.js)', function () {
 		const filePath = join(testDir, 'lorem.txt');
 		await watcher.watch([{ path: filePath, excludes: [], recursive: false }]);
 
-		// Delete + Recreate file
 		const newFilePath = join(filePath);
 		const changeFuture: Promise<unknown> = awaitEvent(watcher, newFilePath, FileChangeType.UPDATED);
 		await fs.promises.unlink(newFilePath);
@@ -317,7 +284,6 @@ suite.skip('File Watcher (node.js)', function () {
 	test('multiple events (folder watch)', async function () {
 		await watcher.watch([{ path: testDir, excludes: [], recursive: false }]);
 
-		// multiple add
 
 		const newFilePath1 = join(testDir, 'newFile-1.txt');
 		const newFilePath2 = join(testDir, 'newFile-2.txt');
@@ -335,7 +301,6 @@ suite.skip('File Watcher (node.js)', function () {
 
 		await Promise.all([addedFuture1, addedFuture2, addedFuture3]);
 
-		// multiple change
 
 		const changeFuture1: Promise<unknown> = awaitEvent(watcher, newFilePath1, FileChangeType.UPDATED);
 		const changeFuture2: Promise<unknown> = awaitEvent(watcher, newFilePath2, FileChangeType.UPDATED);
@@ -349,7 +314,6 @@ suite.skip('File Watcher (node.js)', function () {
 
 		await Promise.all([changeFuture1, changeFuture2, changeFuture3]);
 
-		// copy with multiple files
 
 		const copyFuture1: Promise<unknown> = awaitEvent(watcher, join(testDir, 'newFile-1-copy.txt'), FileChangeType.ADDED);
 		const copyFuture2: Promise<unknown> = awaitEvent(watcher, join(testDir, 'newFile-2-copy.txt'), FileChangeType.ADDED);
@@ -363,7 +327,6 @@ suite.skip('File Watcher (node.js)', function () {
 
 		await Promise.all([copyFuture1, copyFuture2, copyFuture3]);
 
-		// multiple delete
 
 		const deleteFuture1: Promise<unknown> = awaitEvent(watcher, newFilePath1, FileChangeType.DELETED);
 		const deleteFuture2: Promise<unknown> = awaitEvent(watcher, newFilePath2, FileChangeType.DELETED);
@@ -382,7 +345,6 @@ suite.skip('File Watcher (node.js)', function () {
 		const filePath = join(testDir, 'lorem.txt');
 		await watcher.watch([{ path: filePath, excludes: [], recursive: false }]);
 
-		// multiple change
 
 		const changeFuture1: Promise<unknown> = awaitEvent(watcher, filePath, FileChangeType.UPDATED);
 
@@ -448,7 +410,7 @@ suite.skip('File Watcher (node.js)', function () {
 		return basicCrudTest(join(testDir, 'newFile.txt'), undefined, correlationId);
 	});
 
-	(isWindows /* windows: cannot create file symbolic link without elevated context */ ? test.skip : test)('symlink support (folder watch)', async function () {
+	(isWindows ? test.skip : test)('symlink support (folder watch)', async function () {
 		const link = join(testDir, 'deep-linked');
 		const linkTarget = join(testDir, 'deep');
 		await fs.promises.symlink(linkTarget, link);
@@ -461,7 +423,6 @@ suite.skip('File Watcher (node.js)', function () {
 	async function basicCrudTest(filePath: string, skipAdd?: boolean, correlationId?: number | null, expectedCount?: number, awaitWatchAfterAdd?: boolean): Promise<void> {
 		let changeFuture: Promise<unknown>;
 
-		// New file
 		if (!skipAdd) {
 			changeFuture = awaitEvent(watcher, filePath, FileChangeType.ADDED, correlationId, expectedCount);
 			await Promises.writeFile(filePath, 'Hello World');
@@ -471,18 +432,16 @@ suite.skip('File Watcher (node.js)', function () {
 			}
 		}
 
-		// Change file
 		changeFuture = awaitEvent(watcher, filePath, FileChangeType.UPDATED, correlationId, expectedCount);
 		await Promises.writeFile(filePath, 'Hello Change');
 		await changeFuture;
 
-		// Delete file
 		changeFuture = awaitEvent(watcher, filePath, FileChangeType.DELETED, correlationId, expectedCount);
-		await fs.promises.unlink(await Promises.realpath(filePath)); // support symlinks
+		await fs.promises.unlink(await Promises.realpath(filePath));
 		await changeFuture;
 	}
 
-	(isWindows /* windows: cannot create file symbolic link without elevated context */ ? test.skip : test)('symlink support (file watch)', async function () {
+	(isWindows ? test.skip : test)('symlink support (file watch)', async function () {
 		const link = join(testDir, 'lorem.txt-linked');
 		const linkTarget = join(testDir, 'lorem.txt');
 		await fs.promises.symlink(linkTarget, link);
@@ -492,10 +451,9 @@ suite.skip('File Watcher (node.js)', function () {
 		return basicCrudTest(link, true);
 	});
 
-	(!isWindows /* UNC is windows only */ ? test.skip : test)('unc support (folder watch)', async function () {
+	(!isWindows ? test.skip : test)('unc support (folder watch)', async function () {
 		addUNCHostToAllowlist('localhost');
 
-		// Local UNC paths are in the form of: \\localhost\c$\my_dir
 		const uncPath = `\\\\localhost\\${getDriveLetter(testDir)?.toLowerCase()}$\\${ltrim(testDir.substr(testDir.indexOf(':') + 1), '\\')}`;
 
 		await watcher.watch([{ path: uncPath, excludes: [], recursive: false }]);
@@ -503,10 +461,9 @@ suite.skip('File Watcher (node.js)', function () {
 		return basicCrudTest(join(uncPath, 'newFile.txt'));
 	});
 
-	(!isWindows /* UNC is windows only */ ? test.skip : test)('unc support (file watch)', async function () {
+	(!isWindows ? test.skip : test)('unc support (file watch)', async function () {
 		addUNCHostToAllowlist('localhost');
 
-		// Local UNC paths are in the form of: \\localhost\c$\my_dir
 		const uncPath = `\\\\localhost\\${getDriveLetter(testDir)?.toLowerCase()}$\\${ltrim(testDir.substr(testDir.indexOf(':') + 1), '\\')}\\lorem.txt`;
 
 		await watcher.watch([{ path: uncPath, excludes: [], recursive: false }]);
@@ -514,7 +471,7 @@ suite.skip('File Watcher (node.js)', function () {
 		return basicCrudTest(uncPath, true);
 	});
 
-	(isLinux /* linux: is case sensitive */ ? test.skip : test)('wrong casing (folder watch)', async function () {
+	(isLinux ? test.skip : test)('wrong casing (folder watch)', async function () {
 		const wrongCase = join(dirname(testDir), basename(testDir).toUpperCase());
 
 		await watcher.watch([{ path: wrongCase, excludes: [], recursive: false }]);
@@ -522,7 +479,7 @@ suite.skip('File Watcher (node.js)', function () {
 		return basicCrudTest(join(wrongCase, 'newFile.txt'));
 	});
 
-	(isLinux /* linux: is case sensitive */ ? test.skip : test)('wrong casing (file watch)', async function () {
+	(isLinux ? test.skip : test)('wrong casing (file watch)', async function () {
 		const filePath = join(testDir, 'LOREM.txt');
 		await watcher.watch([{ path: filePath, excludes: [], recursive: false }]);
 
@@ -550,7 +507,7 @@ suite.skip('File Watcher (node.js)', function () {
 
 		await chunkPromise.p;
 
-		cts.cancel(); // this will resolve `watchPromise`
+		cts.cancel();
 
 		return watchPromise;
 	});
@@ -596,7 +553,7 @@ suite.skip('File Watcher (node.js)', function () {
 		assert.strictEqual(instance.failed, true);
 	});
 
-	(isMacintosh || isWindows /* macOS: does not seem to report deletes on folders | Windows: reports on('error') event only */ ? test.skip : test)('deleting watched path emits watcher fail and delete event when correlated (folder watch)', async function () {
+	(isMacintosh || isWindows ? test.skip : test)('deleting watched path emits watcher fail and delete event when correlated (folder watch)', async function () {
 		const folderPath = join(testDir, 'deep');
 
 		await watcher.watch([{ path: folderPath, excludes: [], recursive: false, correlationId: 1 }]);
@@ -634,7 +591,7 @@ suite.skip('File Watcher (node.js)', function () {
 		await basicCrudTest(filePath, undefined, null, undefined, true);
 	});
 
-	(isWindows /* Windows: does not seem to report this */ ? test.skip : test)('watch requests support suspend/resume (folder, does not exist in beginning)', async function () {
+	(isWindows ? test.skip : test)('watch requests support suspend/resume (folder, does not exist in beginning)', async function () {
 		let onDidWatchFail = Event.toPromise(watcher.onWatchFail);
 
 		const folderPath = join(testDir, 'not-found');
@@ -651,7 +608,7 @@ suite.skip('File Watcher (node.js)', function () {
 
 		assert.strictEqual(watcher.isSuspended(request), false);
 
-		if (isWindows) { // somehow failing on macOS/Linux
+		if (isWindows) {
 			const filePath = join(folderPath, 'newFile.txt');
 			await basicCrudTest(filePath);
 
@@ -665,13 +622,13 @@ suite.skip('File Watcher (node.js)', function () {
 			await changeFuture;
 			await onDidWatch;
 
-			await timeout(500); // somehow needed on Linux
+			await timeout(500);
 
 			await basicCrudTest(filePath);
 		}
 	});
 
-	(isMacintosh /* macOS: does not seem to report this */ ? test.skip : test)('watch requests support suspend/resume (folder, exists in beginning)', async function () {
+	(isMacintosh ? test.skip : test)('watch requests support suspend/resume (folder, exists in beginning)', async function () {
 		const folderPath = join(testDir, 'deep');
 		await watcher.watch([{ path: folderPath, excludes: [], recursive: false }]);
 
@@ -688,7 +645,7 @@ suite.skip('File Watcher (node.js)', function () {
 		await changeFuture;
 		await onDidWatch;
 
-		await timeout(500); // somehow needed on Linux
+		await timeout(500);
 
 		await basicCrudTest(filePath);
 	});
@@ -735,14 +692,14 @@ suite.skip('File Watcher (node.js)', function () {
 		assert.strictEqual(instance.isReusingRecursiveWatcher, true);
 		assert.strictEqual(recursiveInstance.subscriptionsCount, 1);
 
-		let changeFuture = awaitEvent(watcher, filePath, isMacintosh /* somehow fsevents seems to report still on the initial create from test setup */ ? FileChangeType.ADDED : FileChangeType.UPDATED, correlationId);
+		let changeFuture = awaitEvent(watcher, filePath, isMacintosh ? FileChangeType.ADDED : FileChangeType.UPDATED, correlationId);
 		await Promises.writeFile(filePath, 'Hello World');
 		await changeFuture;
 
 		await recursiveWatcher.stop();
 		recursiveWatcher.dispose();
 
-		await timeout(500); // give the watcher some time to restart
+		await timeout(500);
 
 		changeFuture = awaitEvent(watcher, filePath, FileChangeType.UPDATED, correlationId);
 		await Promises.writeFile(filePath, 'Hello World');
@@ -777,12 +734,10 @@ suite.skip('File Watcher (node.js)', function () {
 		const request = { path: filePath, excludes: [], recursive: false, filter: FileChangeFilter.UPDATED | FileChangeFilter.DELETED, correlationId: 1 };
 		await watcher.watch([request]);
 
-		// Change file
 		let changeFuture = awaitEvent(watcher, filePath, FileChangeType.UPDATED, 1);
 		await Promises.writeFile(filePath, 'Hello Change');
 		await changeFuture;
 
-		// Delete file
 		changeFuture = awaitEvent(watcher, filePath, FileChangeType.DELETED, 1);
 		await fs.promises.unlink(filePath);
 		await changeFuture;
@@ -792,13 +747,11 @@ suite.skip('File Watcher (node.js)', function () {
 		const request = { path: testDir, excludes: [], recursive: false, filter: FileChangeFilter.UPDATED | FileChangeFilter.DELETED, correlationId: 1 };
 		await watcher.watch([request]);
 
-		// Change file
 		const filePath = join(testDir, 'lorem.txt');
 		let changeFuture = awaitEvent(watcher, filePath, FileChangeType.UPDATED, 1);
 		await Promises.writeFile(filePath, 'Hello Change');
 		await changeFuture;
 
-		// Delete file
 		changeFuture = awaitEvent(watcher, filePath, FileChangeType.DELETED, 1);
 		await fs.promises.unlink(filePath);
 		await changeFuture;
@@ -813,7 +766,6 @@ suite.skip('File Watcher (node.js)', function () {
 	(isLinux ? test.skip : test)('excludes are case insensitive on Windows/Mac', async function () {
 		await watcher.watch([{ path: testDir, excludes: ['*.TXT'], recursive: false }]);
 
-		// New file (should be excluded)
 		const newFilePath = join(testDir, 'newFile.txt');
 		const changeFuture = awaitEvent(watcher, newFilePath, FileChangeType.ADDED);
 		await Promises.writeFile(newFilePath, 'Hello World');
@@ -831,7 +783,6 @@ suite.skip('File Watcher (node.js)', function () {
 	(isLinux ? test.skip : test)('excludes are case insensitive on Windows/Mac', async function () {
 		await watcher.watch([{ path: testDir, excludes: ['*.TXT'], recursive: false }]);
 
-		// New file (should be excluded)
 		const newFilePath = join(testDir, 'newFile.txt');
 		const changeFuture = awaitEvent(watcher, newFilePath, FileChangeType.ADDED);
 		await Promises.writeFile(newFilePath, 'Hello World');

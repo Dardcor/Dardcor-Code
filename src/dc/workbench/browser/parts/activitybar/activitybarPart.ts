@@ -48,7 +48,6 @@ export class ActivitybarPart extends Part {
 	static readonly ACTIVITYBAR_WIDTH = 48;
 	static readonly COMPACT_ACTIVITYBAR_WIDTH = 36;
 
-	/** Narrower dimensions used when the floating panels (Modern UI) experiment is enabled. */
 	static readonly FLOATING_ACTION_HEIGHT = 36;
 	static readonly FLOATING_ACTIVITYBAR_WIDTH = 36;
 	static readonly FLOATING_COMPACT_ACTIVITYBAR_WIDTH = 28;
@@ -56,26 +55,19 @@ export class ActivitybarPart extends Part {
 	static readonly ICON_SIZE = 24;
 	static readonly COMPACT_ICON_SIZE = 16;
 
-	/**
-	 * Base gutter reserved around the activity bar under the floating panels
-	 * experiment. Must match the margins applied in `floatingPanels.css`.
-	 */
 	static readonly FLOATING_MARGIN = FLOATING_PANEL_MARGIN;
 
 	static readonly pinnedViewContainersKey = 'workbench.activity.pinnedViewlets2';
 	static readonly placeholderViewContainersKey = 'workbench.activity.placeholderViewlets';
 	static readonly viewContainersWorkspaceStateKey = 'workbench.activity.viewletsWorkspaceState';
 
-	//#region IView
 
 	get minimumWidth(): number { return this.baseWidth + this.floatingHorizontalGutter; }
 	get maximumWidth(): number { return this.baseWidth + this.floatingHorizontalGutter; }
 	readonly minimumHeight: number = 0;
 	readonly maximumHeight: number = Number.POSITIVE_INFINITY;
 
-	//#endregion
 
-	/** The intrinsic activity bar width (excludes any floating gutter). */
 	private get baseWidth(): number {
 		if (this.layoutService.isFloatingPanelsEnabled()) {
 			return this._isCompact ? ActivitybarPart.FLOATING_COMPACT_ACTIVITYBAR_WIDTH : ActivitybarPart.FLOATING_ACTIVITYBAR_WIDTH;
@@ -83,7 +75,6 @@ export class ActivitybarPart extends Part {
 		return this._isCompact ? ActivitybarPart.COMPACT_ACTIVITYBAR_WIDTH : ActivitybarPart.ACTIVITYBAR_WIDTH;
 	}
 
-	/** The action (item) height that drives visible item sizing and the composite bar overflow size. */
 	private get actionHeight(): number {
 		if (this._isCompact) {
 			return ActivitybarPart.COMPACT_ACTION_HEIGHT;
@@ -117,11 +108,9 @@ export class ActivitybarPart extends Part {
 				this._isCompact = this.configurationService.getValue<boolean>(LayoutSettings.ACTIVITY_BAR_COMPACT) ?? false;
 				this.updateCompactStyle();
 				this.recreateCompositeBar();
-				this._onDidChange.fire(undefined); // Signal grid that size constraints changed
+				this._onDidChange.fire(undefined);
 			}
 
-			// Floating panels changes the reserved left/bottom gutter (and therefore
-			// the fixed part width): signal the grid that the size constraint changed.
 			if (e.affectsConfiguration(LayoutSettings.MODERN_UI)) {
 				this.updateCompactStyle();
 				this.recreateCompositeBar();
@@ -133,7 +122,6 @@ export class ActivitybarPart extends Part {
 	private updateCompactStyle(): void {
 		if (this.element) {
 			this.element.classList.toggle('compact', this._isCompact);
-			// Mirrored on the workbench root for floatingPanels.css
 			this.layoutService.mainContainer.classList.toggle('activitybar-compact', this._isCompact);
 			this.element.style.setProperty('--activity-bar-width', `${this.baseWidth}px`);
 			this.element.style.setProperty('--activity-bar-action-height', `${this.actionHeight}px`);
@@ -265,24 +253,18 @@ export class ActivitybarPart extends Part {
 		super.layout(width, height, 0, 0);
 
 		if (!this.content) {
-			return; // not created yet
+			return;
 		}
 
 		const { top, bottom } = this.getFloatingGutters();
 		const contentWidth = Math.max(0, width - this.floatingHorizontalGutter);
 		const contentHeight = Math.max(0, height - top - bottom);
 
-		// Layout contents
 		const contentAreaSize = super.layoutContents(contentWidth, contentHeight).contentSize;
 
-		// Layout composite bar
 		this.compositeBar.value?.layout(contentWidth, contentAreaSize.height);
 	}
 
-	/**
-	 * Vertical gutters (in pixels) mirroring the margins in `floatingPanels.css`. Each one
-	 * doubles on the window edge the activity bar faces.
-	 */
 	private getFloatingGutters(): { top: number; bottom: number } {
 		if (!this.layoutService.isFloatingPanelsEnabled()) {
 			return { top: 0, bottom: 0 };
@@ -342,7 +324,6 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 			this.globalCompositeBar = this._register(instantiationService.createInstance(GlobalCompositeBar, () => this.getContextMenuActions(), (theme: IColorTheme) => this.options.colors(theme), this.options.activityHoverOptions));
 		}
 
-		// Register for configuration changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(MenuSettings.MenuBarVisibility)) {
 				if (getMenuBarVisibility(this.configurationService) === 'compact') {
@@ -355,7 +336,6 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 	}
 
 	private fillContextMenuActions(actions: IAction[], e?: MouseEvent | GestureEvent) {
-		// Menu
 		const menuBarVisibility = getMenuBarVisibility(this.configurationService);
 		if (menuBarVisibility === 'compact' || menuBarVisibility === 'hidden' || menuBarVisibility === 'toggle') {
 			actions.unshift(...[toAction({ id: 'toggleMenuVisibility', label: localize('menu', "Menu"), checked: menuBarVisibility === 'compact', run: () => this.configurationService.updateValue(MenuSettings.MenuBarVisibility, menuBarVisibility === 'compact' ? 'toggle' : 'compact') }), new Separator()]);
@@ -367,7 +347,6 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 			}
 		}
 
-		// Global Composite Bar
 		if (this.globalCompositeBar) {
 			actions.push(new Separator());
 			actions.push(...this.globalCompositeBar.getContextMenuActions());
@@ -389,7 +368,7 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 
 	private installMenubar() {
 		if (this.menuBar.value) {
-			return; // prevent menu bar from installing twice #110720
+			return;
 		}
 
 		this.menuBarContainer = $('.menubar');
@@ -397,7 +376,6 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 		const content = assertReturnsDefined(this.element);
 		content.prepend(this.menuBarContainer);
 
-		// Menubar: install a custom menu bar depending on configuration
 		this.menuBar.value = this.instantiationService.createInstance(CustomMenubarControl);
 		this.menuBar.value.create(this.menuBarContainer);
 
@@ -406,7 +384,6 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 	private registerKeyboardNavigationListeners(): void {
 		this.keyboardNavigationDisposables.clear();
 
-		// Up/Down or Left/Right arrow on compact menu
 		if (this.menuBarContainer) {
 			this.keyboardNavigationDisposables.add(addDisposableListener(this.menuBarContainer, EventType.KEY_DOWN, e => {
 				const kbEvent = new StandardKeyboardEvent(e);
@@ -416,7 +393,6 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 			}));
 		}
 
-		// Up/Down on Activity Icons
 		if (this.compositeBarContainer) {
 			this.keyboardNavigationDisposables.add(addDisposableListener(this.compositeBarContainer, EventType.KEY_DOWN, e => {
 				const kbEvent = new StandardKeyboardEvent(e);
@@ -442,20 +418,16 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 	override create(parent: HTMLElement): HTMLElement {
 		this.element = parent;
 
-		// Install menubar if compact
 		if (getMenuBarVisibility(this.configurationService) === 'compact') {
 			this.installMenubar();
 		}
 
-		// View Containers action bar
 		this.compositeBarContainer = super.create(this.element);
 
-		// Global action bar
 		if (this.globalCompositeBar) {
 			this.globalCompositeBar.create(this.element);
 		}
 
-		// Keyboard Navigation
 		this.registerKeyboardNavigationListeners();
 
 		return this.compositeBarContainer;
@@ -486,7 +458,6 @@ export class ActivityBarCompositeBar extends PaneCompositeBar {
 			new SubmenuAction('workbench.action.activityBar.position', localize('activity bar position', "Activity Bar Position"), positionActions),
 		];
 
-		// Show size submenu only when activity bar is in default position
 		const activityBarPosition = this.configurationService.getValue<string>(LayoutSettings.ACTIVITY_BAR_LOCATION);
 		if (activityBarPosition === ActivityBarPosition.DEFAULT) {
 			const isCompact = this.configurationService.getValue<boolean>(LayoutSettings.ACTIVITY_BAR_COMPACT) ?? false;
@@ -704,7 +675,6 @@ registerThemingParticipant((theme, collector) => {
 		`);
 	}
 
-	// Styling with Outline color (e.g. high contrast theme)
 	const outline = theme.getColor(activeContrastBorder);
 	if (outline) {
 		collector.addRule(`
@@ -729,7 +699,6 @@ registerThemingParticipant((theme, collector) => {
 		`);
 	}
 
-	// Styling without outline color
 	else {
 		const focusBorderColor = theme.getColor(focusBorder);
 		if (focusBorderColor) {

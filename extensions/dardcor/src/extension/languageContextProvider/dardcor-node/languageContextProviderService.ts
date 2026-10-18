@@ -62,7 +62,6 @@ export class LanguageContextProviderService extends Disposable implements ILangu
 						emitter.emitOne(context);
 					}
 				} else if (typeof (result as any)[Symbol.asyncIterator] !== 'function') {
-					// Only push if it's a single SupportedContextItem, not an AsyncIterable
 					emitter.emitOne(result as Copilot.SupportedContextItem);
 				}
 			}
@@ -97,7 +96,6 @@ export class LanguageContextProviderService extends Disposable implements ILangu
 		}
 	}
 
-	// importance is coined by the dardcor extension and must be an integer in [0, 100], while priority is by the chat extension and spans [0, 1]
 	private static convertImportanceToPriority(importance: number | undefined): number {
 		if (importance === undefined || importance < 0) {
 			return 0;

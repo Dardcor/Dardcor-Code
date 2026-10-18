@@ -24,7 +24,6 @@ import { CATEGORIZE_PROMPT_TOOL_NAME, CATEGORIZE_PROMPT_TOOL_SCHEMA, isValidDoma
 import { getModeNameForTelemetry } from './telemetry';
 import { isCAPIEndpoint } from '../../../platform/networking/common/networking';
 
-/** Experiment flag to enable prompt categorization */
 const EXP_FLAG_PROMPT_CATEGORIZATION = 'dardcorchat.promptCategorization';
 
 export const IPromptCategorizerService = createServiceIdentifier<IPromptCategorizerService>('IPromptCategorizerService');
@@ -32,22 +31,9 @@ export const IPromptCategorizerService = createServiceIdentifier<IPromptCategori
 export interface IPromptCategorizerService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Categorizes the first user prompt in a chat session.
-	 * This runs as a fire-and-forget operation and sends results to telemetry.
-	 * Only runs for panel location, first attempt, non-subagent requests.
-	 * Requires telemetry to be enabled and experiment flag to be set.
-	 *
-	 * @param telemetryMessageId The extension-generated request ID (shared with panel.request telemetry)
-	 */
 	categorizePrompt(request: vscode.ChatRequest, context: vscode.ChatContext, telemetryMessageId: string): void;
 }
 
-// Categorization outcome values for telemetry
-// Success: outcome == '' — full classification with valid timeEstimates
-// Partial success: outcome == 'partialClassification' — core fields valid, timeEstimate malformed
-// Pipeline failures: other non-empty outcomes (timeout, requestFailed, noToolCall, parseError, invalidClassification, error)
-// Low confidence: outcome == '' AND confidence < 0.5
 const CATEGORIZATION_OUTCOMES = {
 	SUCCESS: '',
 	TIMEOUT: 'timeout',
@@ -59,27 +45,16 @@ const CATEGORIZATION_OUTCOMES = {
 	ERROR: 'error',
 } as const;
 
-// ISO 8601 duration regex: PT followed by at least one of hours (H), minutes (M), seconds (S)
 const ISO_8601_DURATION_REGEX = /^PT(?!$)(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/;
 
 function isValidIsoDuration(duration: string): boolean {
 	return ISO_8601_DURATION_REGEX.test(duration);
 }
 
-/**
- * Returns true when the partial classification has fully valid ISO 8601 time estimates.
- */
 function hasValidTimeEstimates(partial: PromptClassification): boolean {
 	return partial.timeEstimate.bestCase !== '' && partial.timeEstimate.realistic !== '';
 }
 
-/**
- * Extracts a partial classification from the LLM response, validating only the core
- * fields (intent, domain, scope, confidence, reasoning). Time estimates are extracted
- * on a best-effort basis — malformed durations are replaced with empty strings.
- *
- * Returns undefined if the core fields are missing or invalid.
- */
 function extractPartialClassification(obj: unknown): PromptClassification | undefined {
 	if (typeof obj !== 'object' || obj === null) {
 		return undefined;
@@ -87,7 +62,6 @@ function extractPartialClassification(obj: unknown): PromptClassification | unde
 
 	const c = obj as Record<string, unknown>;
 
-	// Core fields must all be valid
 	if (
 		typeof c.intent !== 'string' || !isValidIntent(c.intent) ||
 		typeof c.domain !== 'string' || !isValidDomain(c.domain) ||
@@ -98,7 +72,6 @@ function extractPartialClassification(obj: unknown): PromptClassification | unde
 		return undefined;
 	}
 
-	// Time estimates are optional — extract valid durations, fall back to ''
 	let bestCase = '';
 	let realistic = '';
 	if (typeof c.timeEstimate === 'object' && c.timeEstimate !== null) {
@@ -136,14 +109,11 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 	) { }
 
 	categorizePrompt(request: vscode.ChatRequest, context: vscode.ChatContext, telemetryMessageId: string): void {
-		// Always enable for internal users; external users require experiment flag
 		const isInternal = this.dardcorTokenStore.dardcorToken?.isInternal === true;
 		if (!isInternal && !this.experimentationService.getTreatmentVariable<boolean>(EXP_FLAG_PROMPT_CATEGORIZATION)) {
 			return;
 		}
 
-		// Guard conditions - only run for first attempt, panel location, non-subagent
-		// location2 === undefined means Panel (ChatRequestEditorData = editor, ChatRequestNotebookData = notebook)
 		if (request.location2 !== undefined) {
 			return;
 		}
@@ -153,12 +123,10 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 		if (request.attempt !== 0) {
 			return;
 		}
-		// Only categorize truly first messages in a session
 		if (context.history.length > 0) {
 			return;
 		}
 
-		// Fire and forget - don't await
 		const parentChatSessionId = (request as { sessionId?: string }).sessionId;
 		this._categorizePromptAsync(request, context, telemetryMessageId, parentChatSessionId).catch(err => {
 			this.logService.error(`[PromptCategorizer] Error categorizing prompt: ${err instanceof Error ? err.message : String(err)}`);
@@ -171,10 +139,8 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 		let errorDetail = '';
 		let classification: PromptClassification | undefined;
 
-		// Gather context signals (outside try block for telemetry access)
 		const currentLanguage = this.tabsAndEditorsService.activeTextEditor?.document.languageId;
 
-		// Use 10 second timeout - classification should be fast with dardcor-utility-small model
 		const CATEGORIZATION_TIMEOUT_MS = 10_000;
 		const cts = new CancellationTokenSource();
 		const timeoutHandle = setTimeout(() => cts.cancel(), CATEGORIZATION_TIMEOUT_MS);
@@ -182,8 +148,7 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 		try {
 			const mainModelEndpoint = await this.endpointProvider.getChatEndpoint(request);
 
-			if (!isCAPIEndpoint(mainModelEndpoint)) {
-				// The main model is a BYOK model and prompt categorization should not be run.
+			if (!isCAPIEndpoint(mainModelEndpoint) && mainModelEndpoint.modelProvider?.toLowerCase() !== 'dardcor') {
 				this.logService.debug('[PromptCategorizer] Skipping categorization because main model is BYOK');
 				return;
 			}
@@ -199,7 +164,6 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 				}
 			);
 
-			// Collect tool calls from the response stream
 			const toolCalls: ICopilotToolCall[] = [];
 
 			const capturingToken = new CapturingToken(
@@ -242,9 +206,7 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 				outcome = CATEGORIZATION_OUTCOMES.TIMEOUT;
 				errorDetail = `Timed out after ${CATEGORIZATION_TIMEOUT_MS}ms`;
 				this.logService.debug('[PromptCategorizer] Request cancelled due to timeout');
-				// Don't return early - still send telemetry below to track timeouts
 			} else if (response.type === ChatFetchResponseType.Success) {
-				// Find the categorize_prompt tool call
 				const categorizationCall = toolCalls.find(tc => tc.name === CATEGORIZE_PROMPT_TOOL_NAME);
 
 				if (categorizationCall) {
@@ -255,7 +217,6 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 							classification = partial;
 							outcome = CATEGORIZATION_OUTCOMES.SUCCESS;
 						} else if (partial) {
-							// Core fields valid but timeEstimate malformed — recover partial
 							classification = partial;
 							outcome = CATEGORIZATION_OUTCOMES.PARTIAL_CLASSIFICATION;
 							errorDetail = `Recovered core fields; invalid timeEstimate (arguments length: ${categorizationCall.arguments.length})`;
@@ -282,7 +243,6 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 				this.logService.warn(`[PromptCategorizer] Request failed with type: ${response.type}`);
 			}
 
-			// Release accumulated tool call data that may be retained via finishedCb closure
 			toolCalls.length = 0;
 		} catch (err) {
 			if (isCancellationError(err)) {
@@ -299,36 +259,11 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 
 		const latencyMs = Date.now() - startTime;
 
-		// Truncate errorDetail to prevent telemetry backend limits
 		const MAX_ERROR_DETAIL_LENGTH = 500;
 		const truncatedErrorDetail = errorDetail.length > MAX_ERROR_DETAIL_LENGTH
 			? errorDetail.slice(0, MAX_ERROR_DETAIL_LENGTH)
 			: errorDetail;
 
-		// Send telemetry
-		/* __GDPR__
-			"promptCategorization" : {
-				"owner": "digitarald",
-				"comment": "Classifies agent requests for understanding user intent and response quality",
-				"taxonomyVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The taxonomy version used for classification (e.g. v2). Used to segment data when taxonomy keys change." },
-				"sessionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The chat session identifier" },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The extension-generated request identifier, matches panel.request requestId" },
-				"vscodeRequestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The VS Code chat request id, for joining with VS Code telemetry events" },
-				"modeName": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The chat mode name being used" },
-				"currentLanguage": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The language ID of the active editor" },
-				"outcome": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Classification outcome: empty string for success, partialClassification for recovered core fields, or error kind (timeout, requestFailed, noToolCall, parseError, invalidClassification, error)" },
-				"intent": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The classified intent (populated on success or partialClassification, empty string on failure)" },
-				"domain": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The classified domain (populated on success or partialClassification, empty string on failure)" },
-				"timeEstimateBestCase": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "ISO 8601 duration for best case time estimate" },
-				"timeEstimateRealistic": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "ISO 8601 duration for realistic time estimate" },
-				"scope": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The classified scope (populated on success or partialClassification, empty string on failure)" },
-				"promptLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Length of the user prompt in characters" },
-				"numReferences": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of context references attached to the request" },
-				"numToolReferences": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of tool references in the request" },
-				"confidence": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Confidence score of the classification (0.0 to 1.0)" },
-				"latencyMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time in milliseconds to complete the classification" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'promptCategorization',
 			{
@@ -354,8 +289,6 @@ export class PromptCategorizerService implements IPromptCategorizerService {
 			}
 		);
 
-		// Send internal telemetry with full metrics including PAI data (reasoning + prompt)
-		// Truncate prompt to 8192 chars to avoid telemetry backend limits; promptLength measurement preserves original size
 		const MAX_TELEMETRY_PROMPT_LENGTH = 8192;
 		const truncatedPrompt = request.prompt.length > MAX_TELEMETRY_PROMPT_LENGTH
 			? request.prompt.slice(0, MAX_TELEMETRY_PROMPT_LENGTH)

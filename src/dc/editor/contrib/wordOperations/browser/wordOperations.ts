@@ -65,7 +65,6 @@ export abstract class MoveWordCommand extends EditorCommand {
 
 	private _moveTo(from: Selection, to: Position, inSelectionMode: boolean): Selection {
 		if (inSelectionMode) {
-			// move just position
 			return new Selection(
 				from.selectionStartLineNumber,
 				from.selectionStartColumn,
@@ -73,7 +72,6 @@ export abstract class MoveWordCommand extends EditorCommand {
 				to.column
 			);
 		} else {
-			// move everything
 			return new Selection(
 				to.lineNumber,
 				to.column,
@@ -176,7 +174,6 @@ export class CursorWordLeftSelect extends WordLeftCommand {
 	}
 }
 
-// Accessibility navigation commands should only be enabled on windows since they are tuned to what NVDA expects
 export class CursorWordAccessibilityLeft extends WordLeftCommand {
 	constructor() {
 		super({

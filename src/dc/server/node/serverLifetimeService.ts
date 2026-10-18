@@ -11,36 +11,18 @@ export const IServerLifetimeService = createDecorator<IServerLifetimeService>('s
 
 export const SHUTDOWN_TIMEOUT = 5 * 60 * 1000;
 
-/** Options controlling the auto-shutdown behaviour. */
 export interface IServerLifetimeOptions {
-	/** When `false` (default), the server never auto-shuts down. */
 	readonly enableAutoShutdown?: boolean;
-	/** When `true`, skip the 5-minute grace period on non-initial shutdowns. */
 	readonly shutdownWithoutDelay?: boolean;
 }
 
-/**
- * Tracks active consumers (extension hosts, agent sessions, etc.) that keep
- * the server alive. When auto-shutdown is enabled, the service manages a
- * shutdown timer and fires {@link onDidShutdownRequested} when it is time for
- * the process to exit.
- */
 export interface IServerLifetimeService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Marks a consumer as active. The server will not auto-shutdown until the
-	 * returned {@link IDisposable} is disposed.
-	 */
 	active(consumer: string): IDisposable;
 
-	/**
-	 * Delays the auto-shutdown timer. If the server is currently in a shutdown
-	 * timeout (all consumers inactive), the timer is reset.
-	 */
 	delay(): void;
 
-	/** Whether any consumer is currently active. */
 	readonly hasActiveConsumers: boolean;
 }
 
@@ -58,7 +40,6 @@ export class ServerLifetimeService extends Disposable implements IServerLifetime
 		super();
 
 		if (this._options.enableAutoShutdown) {
-			// Start initial shutdown timer (no clients connected yet)
 			this._scheduleShutdown(true);
 		}
 	}

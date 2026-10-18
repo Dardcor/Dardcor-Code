@@ -100,7 +100,6 @@ export class ViewZoneComputer {
 				}));
 
 				lastModifiedBaseRange = m.left;
-				// This is a total hack.
 				alignedLines[alignedLines.length - 1].resultLine =
 					m.left.baseRange.endLineNumberExclusive
 					+ (lastBaseResultDiff ? lastBaseResultDiff.resultingDeltaFromOriginalToModified : 0);
@@ -182,9 +181,6 @@ export class MergeEditorViewZones {
 	) { }
 }
 
-/**
- * This is an abstract class to create various editor view zones.
-*/
 export abstract class MergeEditorViewZone {
 	abstract create(viewZoneChangeAccessor: IViewZoneChangeAccessor, viewZoneIdsToCleanUp: string[], disposableStore: DisposableStore): void;
 }

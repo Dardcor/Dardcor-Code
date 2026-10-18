@@ -64,11 +64,6 @@ export interface NesCompletionItem extends InlineCompletionItem {
 	readonly info: NesCompletionInfo;
 	wasShown: boolean;
 	isEditInAnotherDocument?: boolean;
-	/**
-	 * Whether the underlying NES suggestion is being served as an inline (ghost
-	 * text at cursor) suggestion as opposed to a non-inline NES (e.g. gutter or
-	 * side hint). Used by the "mimic ghost text behavior" gating.
-	 */
 	isInlineCompletion?: boolean;
 }
 
@@ -124,7 +119,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 	public readonly handleDidPartiallyAcceptCompletionItem = undefined;
 	public readonly handleDidRejectCompletionItem = undefined;
 
-	//#region Model picker
 	private _isModelPickerEnabled: IObservable<boolean> = this._configurationService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsModelPickerEnabled, this._expService);
 
 	public modelInfo: InlineCompletionModelInfo | undefined;
@@ -133,9 +127,7 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 	public onDidChangeModelInfo = this._onDidChangeModelInfo.event;
 
 	public setCurrentModelId: ((modelId: string) => Thenable<void>) | undefined;
-	//#endregion
 
-	//#region Provider options (Eagerness)
 	private static readonly _aggressivenessOptionId = 'eagerness';
 
 	providerOptions: readonly InlineCompletionProviderOption[] | undefined;
@@ -148,7 +140,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 			await this._configurationService.setConfig(ConfigKey.Advanced.InlineEditsAggressiveness, valueId);
 		}
 	};
-	//#endregion
 
 	private readonly _displayNextEditorNES: boolean;
 	private readonly _renameSymbolSuggestions: IObservable<boolean>;
@@ -190,7 +181,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 			this._onDidChangeModelInfo.fire();
 		}));
 
-		// Provider options: eagerness
 		const aggressivenessObs = this._configurationService.getExperimentBasedConfigObservable(ConfigKey.Advanced.InlineEditsAggressiveness, this._expService);
 
 		this._register(autorun(reader => {
@@ -211,7 +201,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 
 	}
 
-	// copied from `vscodeWorkspace.ts` `DocumentFilter#_enabledLanguages`
 	private _isCompletionsEnabled(document: TextDocument): boolean {
 		const enabledLanguages = this._configurationService.getConfig(ConfigKey.Enable);
 		const enabledLanguagesMap = new Map(Object.entries(enabledLanguages));
@@ -246,7 +235,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 	): Promise<NesCompletionList | undefined> {
 		const logger = this._logger.createSubLogger(['provideInlineCompletionItems', shortenOpportunityId(context.requestUuid)]);
 
-		// Disable NES while capture mode is active to avoid interference
 		if (this.expectedEditCaptureController.isCaptureActive) {
 			logger.trace('Return: capture mode active');
 			return undefined;
@@ -258,9 +246,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 
 		const isInlineEditsEnabled = this._configurationService.getExperimentBasedConfig(ConfigKey.InlineEditsEnabled, this._expService, { languageId: document.languageId });
 
-		// Respect the per-language `github.dardcor.enable` setting for NES, just like ghost text does.
-		// The tracking-based filter (`getDocumentByTextDocument`) is updated asynchronously and is not
-		// reactive to configuration changes, so enforce the policy synchronously here.
 		const isLanguageEnabled = this.model.workspace.isLanguageEnabled(document.languageId);
 
 		const serveAsCompletionsProvider = unification && isCompletionsEnabled && !isInlineEditsEnabled;
@@ -334,14 +319,11 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 				throw new BugIndicatingError('At least one of LLM NES or Diagnostics NES must be defined');
 			}
 
-			// Cancel ongoing requests
 			requestCancellationTokenSource.cancel();
 
 			const emptyList = new NesCompletionList(context.requestUuid, undefined, [], telemetryBuilder);
 			const isFromCursorJump = suggestion.kind === 'llm' && (
-				// edit came using cursor jump
 				!!(suggestion.val.result?.isFromCursorJump) ||
-				// no edit but cursor jump suggested jumping to a certain position
 				!!(suggestion.val.result?.jumpToPosition)
 			);
 			const correlationId = createCorrelationId('nes', { isFromCursorJump });
@@ -352,7 +334,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 				return emptyList;
 			}
 
-			// Determine which suggestion to use
 			if (suggestion.kind === 'diagnostics' && suggestion.val && suggestion.val.result) {
 				suggestionInfo = new DiagnosticsCompletionInfo(suggestion.val, doc.id, document, context.requestUuid);
 			} else if (suggestion.kind === 'llm') {
@@ -381,7 +362,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 				return new NesCompletionList(context.requestUuid, jumpToPositionCompletionItem, [], telemetryBuilder);
 			}
 
-			// Return and send telemetry if there is no result
 			const result = suggestionInfo.suggestion.result;
 			if (!result || !result.edit) {
 				logger.trace('no next edit suggestion');
@@ -393,7 +373,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 			let isInlineCompletion: boolean = false;
 			let completionItem: Omit<NesCompletionItem, 'telemetryBuilder' | 'info' | 'showInlineEditMenu' | 'action' | 'wasShown' | 'isInlineEdit'> | undefined;
 
-			// When the edit targets a different document, resolve the range against the target document
 			const targetDocumentId = isLlmCompletionInfo(suggestionInfo) ? suggestionInfo.suggestion.result?.targetDocumentId : undefined;
 			let resolveDoc = doc;
 			if (targetDocumentId && targetDocumentId !== doc.id) {
@@ -416,10 +395,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 			telemetryBuilder.setIsNESForOtherEditor(targetDocument !== undefined && targetDocument !== document);
 			telemetryBuilder.setIsActiveDocument(window.activeTextEditor?.document === targetDocument);
 
-			// When the edit targets a different document (cross-file / cross-cell NES), respect the
-			// per-language `github.dardcor.enable` setting for that target too. The active document was
-			// already gated above; the target was resolved through the tracking-based filter, which is
-			// not reactive to configuration changes, so enforce the policy synchronously here as well.
 			if (targetDocument && targetDocument !== document && !this.model.workspace.isLanguageEnabled(targetDocument.languageId)) {
 				logger.trace('Return: inline edits disabled for target document language');
 				telemetryBuilder.setStatus('noEdit:targetLanguageDisabled');
@@ -427,8 +402,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 				return emptyList;
 			}
 
-			// Signed line distance from the request cursor to the suggested edit's range start.
-			// Only meaningful when both share the active document's coordinate space.
 			if (range && targetDocument === document) {
 				telemetryBuilder.setSuggestionLineDistanceToCursor(range.start.line - position.line);
 			}
@@ -438,7 +411,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 			} else if (hasNotebookCellMarker(document, result.edit.newText)) {
 				logger.trace('no next edit suggestion, edits contain Notebook Cell Markers');
 			} else if (isNotebookCell(targetDocument.uri) && this._displayNextEditorNES && targetDocument !== document) {
-				// NES is for a different notebook cell
 				completionItem = serveAsCompletionsProvider ?
 					undefined :
 					this.createNextEditorEditCompletionItem(position, {
@@ -446,14 +418,14 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 						insertText: result.edit.newText,
 						range
 					});
-			} else if (targetDocument === document) { // NES is for the active document
+			} else if (targetDocument === document) {
 				const allowInlineCompletions = this.model.inlineEditsInlineCompletionsEnabled.get();
 				const inlineSuggestion = allowInlineCompletions ? toInlineSuggestion(position, document, range, result.edit.newText, this._inlineCompletionsAdvanced.get()) : undefined;
 				isInlineCompletion = !!inlineSuggestion;
 				completionItem = serveAsCompletionsProvider && !isInlineCompletion ?
 					undefined :
 					this.createCompletionItem(doc, document, inlineSuggestion?.range ?? range, result, inlineSuggestion?.newText);
-			} else { // NES is not for the active doc but a different one
+			} else {
 				completionItem = serveAsCompletionsProvider ? undefined : {
 					range,
 					insertText: result.edit.newText,
@@ -462,10 +434,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 				};
 			}
 
-			// Gate: when the "mimic ghost text behavior" setting is on, a cached suggestion
-			// that was previously rendered as an inline (ghost text) suggestion must not
-			// re-surface in any other form. Suppress here without evicting the cache entry —
-			// when the cursor returns to an inline-renderable position, we'll serve it again.
 			if (
 				this._nesMimicGhostTextBehavior.get()
 				&& !isInlineCompletion
@@ -489,7 +457,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 			}
 
 
-			// telemetry
 			telemetryBuilder.setPickedNESType(suggestionInfo.source === 'diagnostics' ? 'diagnostics' : 'llm');
 			logContext.setPickedNESType(suggestionInfo.source === 'diagnostics' ? 'diagnostics' : 'llm');
 			telemetryBuilder.setPostProcessingOutcome({ edit: result.edit, displayLocation: result.displayLocation, isInlineCompletion });
@@ -538,8 +505,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 	private createNextEditorEditCompletionItem(requestingPosition: Position,
 		nextEdit: { document: TextDocument; range: Range; insertText: string }
 	): Omit<NesCompletionItem, 'telemetryBuilder' | 'info' | 'showInlineEditMenu' | 'action' | 'wasShown' | 'isInlineEdit'> {
-		// Display the next edit in the current document, but with a command to open the next edit in the other document.
-		// & range of this completion item will be the same as the current documents cursor position.
 		const range = new Range(requestingPosition, requestingPosition);
 		const displayLocation: InlineCompletionDisplayLocation = {
 			range,
@@ -602,9 +567,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 		this.logContextRecorder?.handleShown(info.suggestion);
 
 		if (isLlmCompletionInfo(info)) {
-			// Mark the underlying cache entry as having been rendered as an inline
-			// (ghost text) suggestion. The "mimic ghost text behavior" gate uses this
-			// flag to suppress re-serving the same suggestion in a non-inline form.
 			if (completionItem.isInlineCompletion) {
 				const cacheEntry = info.suggestion.result?.cacheEntry;
 				if (cacheEntry) {
@@ -642,9 +604,7 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 			case InlineCompletionEndOfLifeReasonKind.Rejected: {
 				this._handleDidRejectCompletionItem(item);
 
-				// Trigger expected edit capture if enabled
 				if (this.expectedEditCaptureController.isEnabled && this.expectedEditCaptureController.captureOnReject) {
-					// Get endpoint info from the log context if available (LLM suggestions only)
 					const endpointInfo = isLlmCompletionInfo(item.info) ? item.info.suggestion.source.log.endpointInfo : undefined;
 					const metadata = {
 						requestUuid: item.info.requestUuid,
@@ -669,14 +629,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 				const supersededBy = reason.supersededBy ? (reason.supersededBy as NesCompletionItem) : undefined;
 				logger.trace(`Superseded by: ${supersededBy?.info.requestUuid || 'none'}, was shown: ${item.wasShown}`);
 				if (supersededBy) {
-					/* __GDPR__
-						"supersededInlineEdit" : {
-							"owner": "ulugbekna",
-							"comment": "Tracks when an inline edit was superseded by another edit.",
-							"opportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The opportunity ID of the original inline edit." },
-							"supersededByOpportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The opportunity ID of the inline edit that superseded the original edit." }
-						}
-					*/
 					this._telemetryService.sendMSFTTelemetryEvent('supersededInlineEdit', { opportunityId: item.info.requestUuid, supersededByOpportunityId: supersededBy.info.requestUuid });
 				}
 				this._handleDidIgnoreCompletionItem(item, supersededBy);
@@ -702,7 +654,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 		}
 	}
 
-	// TODO: Support tracking Diagnostics NES
 	private async _trackSurvivalRate(item: LlmCompletionInfo) {
 		const result = item.suggestion.result;
 		if (!result || !result.edit) {
@@ -714,9 +665,7 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 
 		const recorder = this._instantiationService.createInstance(DocumentEditRecorder, item.document);
 
-		// Assumption: The user cannot edit the document while the inline edit is being applied
 		let userEdits = StringEdit.empty;
-		// softAssert(docAfterEdits === userEdits.apply(item.document.getText())); // TODO@hediet
 
 		const diffedNextEdit = await stringEditFromDiff(docBeforeEdits, docAfterEdits, this._diffService);
 		const recordedEdits = recorder.getEdits();
@@ -731,19 +680,6 @@ export class InlineCompletionProviderImpl extends Disposable implements InlineCo
 			userEdits,
 			{ includeArc: true },
 			res => {
-				/* __GDPR__
-					"reportInlineEditSurvivalRate" : {
-						"owner": "hediet",
-						"comment": "Reports the survival rate for an inline edit.",
-						"opportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Unique identifier for an opportunity to show an NES." },
-
-						"survivalRateFourGram": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the AI edit is still present in the document." },
-						"survivalRateNoRevert": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the ranges the AI touched ended up being reverted." },
-						"didBranchChange": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Indicates if the branch changed in the meantime. If the branch changed (value is 1), this event should probably be ignored." },
-						"timeDelayMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The time delay between the user accepting the edit and measuring the survival rate." },
-						"arc": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The accepted and restrained character count." }
-					}
-				*/
 				this._telemetryService.sendTelemetryEvent('reportInlineEditSurvivalRate', { microsoft: true, github: { eventNamePrefix: 'dardcor-nes/' } },
 					{
 						opportunityId: item.requestUuid,

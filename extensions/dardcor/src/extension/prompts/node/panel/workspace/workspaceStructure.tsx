@@ -61,15 +61,7 @@ export class WorkspaceStructureMetadata extends PromptMetadata {
 	}
 }
 
-/**
- * Similar to {@link WorkspaceStructure}, but for multiroot workspaces it
- * prefixes each path with the workspace label.
- */
 export class MultirootWorkspaceStructure extends PromptElement<WorkspaceStructureProps, { label: string; tree: IFileTreeData }[]> {
-	/**
-	 * Takes a list of relative file paths referenced in a multiroot workspace
-	 * response and returns their URIs.
-	 */
 	public static toURIs(workspaceService: IWorkspaceService, files: string[]) {
 		const folders = workspaceService.getWorkspaceFolders();
 		if (!folders.length) {

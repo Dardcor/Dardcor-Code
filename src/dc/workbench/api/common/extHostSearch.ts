@@ -197,7 +197,6 @@ export class ExtHostSearch implements IExtHostSearch {
 			return undefined;
 		}
 
-		// if the provider is defined, but has no name, use default name
 		return provider.name ?? 'AI';
 	}
 
@@ -219,7 +218,7 @@ export class ExtHostSearch implements IExtHostSearch {
 export function reviveQuery<U extends IRawQuery>(rawQuery: U): U extends IRawTextQuery ? ITextQuery : U extends IRawAITextQuery ? IAITextQuery : IFileQuery {
 	return {
 		// eslint-disable-next-line local/code-no-any-casts
-		...<any>rawQuery, // TODO@rob ???
+		...<any>rawQuery,
 		...{
 			folderQueries: rawQuery.folderQueries && rawQuery.folderQueries.map(reviveFolderQuery),
 			extraFileResources: rawQuery.extraFileResources && rawQuery.extraFileResources.map(components => URI.revive(components))

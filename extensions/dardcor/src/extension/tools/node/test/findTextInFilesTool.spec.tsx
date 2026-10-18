@@ -18,7 +18,7 @@ import { URI } from '../../../../util/dardcor/base/common/uri';
 import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
-import { CopilotToolMode } from '../../common/toolsRegistry';
+import { AgentToolMode } from '../../common/toolsRegistry';
 import { FindTextInFilesTool } from '../findTextInFilesTool';
 import { createMockEndpointProvider, mockLanguageModelChat } from './searchToolTestUtils';
 
@@ -204,8 +204,7 @@ suite('FindTextInFiles - absolute workspace folder path', () => {
 		const searchService = setup();
 		const tool = accessor.get(IInstantiationService).createInstance(FindTextInFilesTool);
 
-		// Simulate the full pipeline: resolveInput then invoke
-		const resolved = await tool.resolveInput({ query: 'hello', includePattern: folder1 }, null!, CopilotToolMode.PartialContext);
+		const resolved = await tool.resolveInput({ query: 'hello', includePattern: folder1 }, null!, AgentToolMode.PartialContext);
 		await tool.invoke({ input: resolved, toolInvocationToken: null! }, CancellationToken.None);
 
 		expect(searchService.lastInclude).toHaveLength(1);
@@ -217,7 +216,7 @@ suite('FindTextInFiles - absolute workspace folder path', () => {
 		const searchService = setup();
 		const tool = accessor.get(IInstantiationService).createInstance(FindTextInFilesTool);
 
-		const resolved = await tool.resolveInput({ query: 'hello', includePattern: `${folder1}/src/**/*.ts` }, null!, CopilotToolMode.PartialContext);
+		const resolved = await tool.resolveInput({ query: 'hello', includePattern: `${folder1}/src/**/*.ts` }, null!, AgentToolMode.PartialContext);
 		await tool.invoke({ input: resolved, toolInvocationToken: null! }, CancellationToken.None);
 
 		expect(searchService.lastInclude).toHaveLength(1);

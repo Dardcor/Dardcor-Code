@@ -23,7 +23,6 @@ import { IServerAPI } from './dc/server/node/remoteExtensionHostAgentServer.js';
 perf.mark('code/server/start');
 (globalThis as { vscodeServerStartTime?: number }).vscodeServerStartTime = performance.now();
 
-// Do a quick parse to determine if a server or the cli needs to be started
 const parsedArgs = minimist(process.argv.slice(2), {
 	boolean: ['start-server', 'list-extensions', 'print-ip-address', 'help', 'version', 'accept-server-license-terms', 'update-extensions'],
 	string: ['install-extension', 'install-builtin-extension', 'uninstall-extension', 'locate-extension', 'socket-path', 'host', 'port', 'compatibility', 'agent-host-port', 'agent-host-path'],
@@ -136,7 +135,6 @@ if (shouldSpawnCli) {
 		}
 
 		output += `Server bound to ${typeof address === 'string' ? address : `${address.address}:${address.port} (${address.family})`}\n`;
-		// Do not change this line. VS Code looks for this in the output.
 		output += `Extension host agent listening on ${typeof address === 'string' ? address : address.port}\n`;
 		console.log(output);
 
@@ -155,24 +153,12 @@ if (shouldSpawnCli) {
 }
 
 function sanitizeStringArg(val: unknown): string | undefined {
-	if (Array.isArray(val)) { // if an argument is passed multiple times, minimist creates an array
-		val = val.pop(); // take the last item
+	if (Array.isArray(val)) {
+		val = val.pop();
 	}
 	return typeof val === 'string' ? val : undefined;
 }
 
-/**
- * Records why/when the remote server process exits, to help debug unexpected
- * server exits in the remote smoke tests (which surface to the client as
- * `Unknown reconnection token` reconnection failures). The handlers tell apart a
- * self-exit (`beforeExit`), an external kill (`signal`) and a crash
- * (`uncaughtExceptionMonitor`). Gated behind the `VSCODE_SERVER_EXIT_DIAGNOSTICS`
- * env var (set by the smoke tests) so it adds no product noise. Lines are
- * appended synchronously to a `server-exit-diagnostics.log` file in the server's
- * `--logsPath` directory (falling back to `os.tmpdir()` when `--logsPath` is not
- * provided) so they survive process teardown (an async stdio write from an
- * `exit` handler does not).
- */
 function installServerProcessExitDiagnostics(): void {
 	if (!process.env['VSCODE_SERVER_EXIT_DIAGNOSTICS']) {
 		return;
@@ -180,32 +166,13 @@ function installServerProcessExitDiagnostics(): void {
 
 	const startTime = Date.now();
 
-	// Append diagnostics synchronously to a file rather than relying on
-	// `console.error`: a process `exit` handler cannot flush an async pipe write
-	// (the server's stdio is piped through the test resolver, and on Windows
-	// additionally through a `cmd.exe`/batch wrapper) before the process dies,
-	// so the exit-time lines we care about most were being dropped. A synchronous
-	// `fs.appendFileSync` survives teardown. We target the server's `--logsPath`
-	// directory because it is captured as a smoke test artifact.
 	const logsPath = sanitizeStringArg(parsedArgs['logsPath']) || os.tmpdir();
 	const diagnosticsFile = path.join(logsPath, 'server-exit-diagnostics.log');
 	try {
 		fs.mkdirSync(logsPath, { recursive: true });
 	} catch {
-		// best effort: the directory is normally created by the server already
 	}
 
-	// The file write is authoritative: it is synchronous (so it survives process
-	// teardown) and goes to a captured smoke artifact. We additionally mirror to
-	// stderr for live visibility in the test resolver's output channel, but that
-	// mirror is dangerous precisely because these diagnostics fire when the
-	// server's stdio pipe is dying: a write to a broken pipe throws `EPIPE`
-	// synchronously and/or emits an async `error` event, either of which Node
-	// promotes to an uncaught exception — which re-enters the
-	// `uncaughtExceptionMonitor` handler below and loops (one CI run produced a
-	// 386MB log this way). We therefore make the mirror best-effort and latch it
-	// off after the first failure, and attach an `error` handler so async pipe
-	// errors are swallowed rather than crashing the process.
 	let mirrorToStderr = true;
 	try {
 		process.stderr.on('error', () => { mirrorToStderr = false; });
@@ -218,14 +185,11 @@ function installServerProcessExitDiagnostics(): void {
 		try {
 			fs.appendFileSync(diagnosticsFile, `${line}\n`);
 		} catch {
-			// ignore logging failures while the process is tearing down
 		}
 		if (mirrorToStderr) {
 			try {
 				process.stderr.write(`${line}\n`);
 			} catch {
-				// Broken pipe during teardown: stop mirroring so we can never
-				// throw (and thus loop) on subsequent diagnostics.
 				mirrorToStderr = false;
 			}
 		}
@@ -247,12 +211,6 @@ function installServerProcessExitDiagnostics(): void {
 	process.on('beforeExit', code => log(`'beforeExit' (code: ${code}) — event loop drained, process will exit on its own. ${describeState()}`));
 	process.on('exit', code => log(`'exit' (code: ${code}). ${describeState()}`));
 
-	// `uncaughtExceptionMonitor` is observational: it runs before the process
-	// crashes but does NOT prevent the default crash, so the real failure mode
-	// is preserved. It also fires for unhandled rejections that get promoted to
-	// uncaught exceptions by Node's default policy. Guard against re-entrancy:
-	// if logging an exception were to itself throw (and get promoted to another
-	// uncaught exception), we must not recurse into this handler forever.
 	let handlingUncaughtException = false;
 	process.on('uncaughtExceptionMonitor', (err, origin) => {
 		if (handlingUncaughtException) {
@@ -271,25 +229,14 @@ function installServerProcessExitDiagnostics(): void {
 		try {
 			process.on(signal, () => {
 				log(`received signal '${signal}' — terminating. ${describeState()}`);
-				// Preserve default termination semantics after logging.
 				const signalNumber = (os.constants.signals as Record<string, number>)[signal];
 				process.exit(typeof signalNumber === 'number' ? 128 + signalNumber : 1);
 			});
 		} catch {
-			// Not all signals can be listened to on all platforms (e.g. SIGBREAK).
 		}
 	}
 }
 
-/**
- * If `--port` is specified and describes a single port, connect to that port.
- *
- * If `--port`describes a port range
- * then find a free port in that range. Throw error if no
- * free port available in range.
- *
- * In absence of specified ports, connect to port 8000.
- */
 async function parsePort(host: string | undefined, strPort: string | undefined): Promise<number> {
 	if (strPort) {
 		let range: { start: number; end: number } | undefined;
@@ -300,7 +247,6 @@ async function parsePort(host: string | undefined, strPort: string | undefined):
 			if (port !== undefined) {
 				return port;
 			}
-			// Remote-SSH extension relies on this exact port error message, treat as an API
 			console.warn(`--port: Could not find free port in range: ${range.start} - ${range.end} (inclusive).`);
 			process.exit(1);
 
@@ -323,10 +269,6 @@ function parseRange(strRange: string): { start: number; end: number } | undefine
 	return undefined;
 }
 
-/**
- * Starting at the `start` port, look for a free port incrementing
- * by 1 until `end` inclusive. If no free port is found, undefined is returned.
- */
 async function findFreePort(host: string | undefined, start: number, end: number): Promise<number | undefined> {
 	const testPort = (port: number) => {
 		return new Promise((resolve) => {
@@ -349,18 +291,11 @@ async function findFreePort(host: string | undefined, start: number, end: number
 
 async function loadCode(nlsConfiguration: INLSConfiguration) {
 
-	// required for `bootstrap-esm` to pick up NLS messages
 	process.env['VSCODE_NLS_CONFIG'] = JSON.stringify(nlsConfiguration);
 
-	// See https://github.com/microsoft/vscode-remote-release/issues/6543
-	// We would normally install a SIGPIPE listener in bootstrap-node.js
-	// But in certain situations, the console itself can be in a broken pipe state
-	// so logging SIGPIPE to the console will cause an infinite async loop
 	process.env['VSCODE_HANDLES_SIGPIPE'] = 'true';
 
 	if (process.env['VSCODE_DEV']) {
-		// When running out of sources, we need to load node modules from remote/node_modules,
-		// which are compiled against nodejs, not electron
 		process.env['VSCODE_DEV_INJECT_NODE_MODULE_LOOKUP_PATH'] = process.env['VSCODE_DEV_INJECT_NODE_MODULE_LOOKUP_PATH'] || path.join(import.meta.dirname, '..', 'remote', 'node_modules');
 		devInjectNodeModuleLookupPath(process.env['VSCODE_DEV_INJECT_NODE_MODULE_LOOKUP_PATH']);
 	} else {
@@ -370,18 +305,15 @@ async function loadCode(nlsConfiguration: INLSConfiguration) {
 	// Remove global paths from the node module lookup (node.js only)
 	removeGlobalNodeJsModuleLookupPaths();
 
-	// Bootstrap ESM
 	await bootstrapESM();
 
-	// Load Server
 	return import('./dc/server/node/server.main.js');
 }
 
 function hasStdinWithoutTty(): boolean {
 	try {
-		return !process.stdin.isTTY; // Via https://twitter.com/MylesBorins/status/782009479382626304
+		return !process.stdin.isTTY;
 	} catch (error) {
-		// Windows workaround for https://github.com/nodejs/node/issues/11656
 	}
 	return false;
 }

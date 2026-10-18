@@ -127,7 +127,6 @@ export default class PHPSignatureHelpProvider implements SignatureHelpProvider {
 				case _DQuote:
 				case _Quote:
 					while (iterator.hasNext() && ch !== iterator.next()) {
-						// find the closing quote or double quote
 					}
 					break;
 				case _Comma:
@@ -141,11 +140,11 @@ export default class PHPSignatureHelpProvider implements SignatureHelpProvider {
 	}
 
 	private isIdentPart(ch: number): boolean {
-		if (ch === _USC || // _
-			ch >= _a && ch <= _z || // a-z
-			ch >= _A && ch <= _Z || // A-Z
-			ch >= _0 && ch <= _9 || // 0/9
-			ch >= 0x80 && ch <= 0xFFFF) { // nonascii
+		if (ch === _USC ||
+			ch >= _a && ch <= _z ||
+			ch >= _A && ch <= _Z ||
+			ch >= _0 && ch <= _9 ||
+			ch >= 0x80 && ch <= 0xFFFF) {
 
 			return true;
 		}

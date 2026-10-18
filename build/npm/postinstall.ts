@@ -110,6 +110,20 @@ async function npmInstallAsync(dir: string, opts?: child_process.SpawnOptions): 
 }
 
 function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
+	const packageJsonPath = path.join(root, dir, 'package.json');
+	if (fs.existsSync(packageJsonPath)) {
+		try {
+			const nativeBuildConfig = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).dardcorBuild?.nodeGyp;
+			for (const [key, value] of Object.entries(nativeBuildConfig ?? {})) {
+				if (['target', 'disturl', 'runtime'].includes(key) && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')) {
+					env[`npm_package_config_node_gyp_${key}`] = String(value);
+				}
+			}
+		} catch (error) {
+			log(dir, `Could not read package node-gyp configuration: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	}
+
 	const npmrcPath = path.join(root, dir, '.npmrc');
 	if (fs.existsSync(npmrcPath)) {
 		const lines = fs.readFileSync(npmrcPath, 'utf8').split('\n');
@@ -121,8 +135,13 @@ function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
 			}
 			if (trimmedLine && trimmedLine.includes('=')) {
 				const [key, value] = trimmedLine.split('=');
-				const cleanKey = key.trim().replace(/^npm_config_/, '');
-				env[`npm_config_${cleanKey}`] = value.trim().replace(/^"(.*)"$/, '$1');
+				const cleanKey = key.trim().replace(/^npm_config_/, '').replace(/-/g, '_');
+				const cleanValue = value.trim().replace(/^"(.*)"$/, '$1');
+				if (['target', 'disturl', 'runtime'].includes(cleanKey)) {
+					env[`npm_package_config_node_gyp_${cleanKey}`] = cleanValue;
+				} else if (cleanKey !== 'ms_build_id') {
+					env[`npm_config_${cleanKey}`] = cleanValue;
+				}
 			}
 		}
 	}
@@ -365,21 +384,6 @@ async function main() {
 	const claudeSkillsLinkType = ensureAgentHarnessLink(path.join('..', '.agents', 'skills'), claudeSkillsLink);
 	if (claudeSkillsLinkType !== 'existing' && claudeSkillsLinkType !== 'missing') {
 		log('.', `Created ${claudeSkillsLinkType} .claude/skills -> .agents/skills`);
-	}
-
-	// Temporary: patch @github/copilot-sdk session.js to fix ESM import
-	// (missing .js extension on vscode-jsonrpc/node). Fixed upstream in v0.1.32.
-	// TODO: Remove once @github/copilot-sdk is updated to >=0.1.32
-	for (const dir of ['', 'remote']) {
-		const sessionFile = path.join(root, dir, 'node_modules', '@github', 'copilot-sdk', 'dist', 'session.js');
-		if (fs.existsSync(sessionFile)) {
-			const content = fs.readFileSync(sessionFile, 'utf8');
-			const patched = content.replace(/from "vscode-jsonrpc\/node"/g, 'from "vscode-jsonrpc/node.js"');
-			if (content !== patched) {
-				fs.writeFileSync(sessionFile, patched);
-				log(dir || '.', 'Patched @github/copilot-sdk session.js (vscode-jsonrpc ESM import fix)');
-			}
-		}
 	}
 
 	// foundry-local-sdk (on-device chat dictation) resolves its prebuilt N-API

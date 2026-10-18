@@ -43,7 +43,6 @@ export class OverviewRulerFeature extends Disposable {
 		const currentColorTheme = observableFromEvent(this._themeService.onDidColorThemeChange, () => this._themeService.getColorTheme());
 
 		const currentColors = derived(reader => {
-			/** @description colors */
 			const theme = currentColorTheme.read(reader);
 			const insertColor = theme.getColor(diffOverviewRulerInserted) || (theme.getColor(diffInserted) || defaultInsertColor).transparent(2);
 			const removeColor = theme.getColor(diffOverviewRulerRemoved) || (theme.getColor(diffRemoved) || defaultRemoveColor).transparent(2);
@@ -67,7 +66,6 @@ export class OverviewRulerFeature extends Disposable {
 		this._register(appendRemoveOnDispose(this._rootElement, diffOverviewRoot));
 
 		this._register(autorunWithStore((reader, store) => {
-			/** @description recreate overview rules when model changes */
 			const m = this._diffModel.read(reader);
 
 			const originalOverviewRuler = this._editors.original.createOverviewRuler('original diffOverviewRuler');
@@ -83,7 +81,6 @@ export class OverviewRulerFeature extends Disposable {
 			}
 
 			if (!originalOverviewRuler || !modifiedOverviewRuler) {
-				// probably no model
 				return;
 			}
 
@@ -93,7 +90,6 @@ export class OverviewRulerFeature extends Disposable {
 			const modHiddenRangesChanged = observableSignalFromEvent('hiddenRangesChanged', this._editors.modified.onDidChangeHiddenAreas);
 
 			store.add(autorun(reader => {
-				/** @description set overview ruler zones */
 				origViewZonesChanged.read(reader);
 				modViewZonesChanged.read(reader);
 				origHiddenRangesChanged.read(reader);
@@ -112,9 +108,6 @@ export class OverviewRulerFeature extends Disposable {
 						.map(r => {
 							const start = vm.coordinatesConverter.convertModelPositionToViewPosition(new Position(r.startLineNumber, 1));
 							const end = vm.coordinatesConverter.convertModelPositionToViewPosition(new Position(r.endLineNumberExclusive, 1));
-							// By computing the lineCount, we won't ask the view model later for the bottom vertical position.
-							// (The view model will take into account the alignment viewzones, which will give
-							// modifications and deletetions always the same height.)
 							const lineCount = end.lineNumber - start.lineNumber;
 							return new OverviewRulerZone(start.lineNumber, end.lineNumber, lineCount, color.toString());
 						});
@@ -127,7 +120,6 @@ export class OverviewRulerFeature extends Disposable {
 			}));
 
 			store.add(autorun(reader => {
-				/** @description layout overview ruler */
 				const height = this._rootHeight.read(reader);
 				const width = this._rootWidth.read(reader);
 				const layoutInfo = this._modifiedEditorLayoutInfo.read(reader);

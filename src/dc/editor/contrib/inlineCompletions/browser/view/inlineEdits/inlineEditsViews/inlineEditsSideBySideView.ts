@@ -40,7 +40,6 @@ const MODIFIED_END_PADDING = 12;
 
 export class InlineEditsSideBySideView extends Disposable implements IInlineEditsView {
 
-	// This is an approximation and should be improved by using the real parameters used bellow
 	static fitsInsideViewport(editor: ICodeEditor, textModel: ITextModel, edit: InlineEditWithChanges, reader: IReader): boolean {
 		const editorObs = observableCodeEditor(editor);
 		const editorWidth = editorObs.layoutInfoWidth.read(reader);
@@ -48,10 +47,10 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 		const editorVerticalScrollbar = editor.getLayoutInfo().verticalScrollbarWidth;
 		const minimapWidth = editorObs.layoutInfoMinimap.read(reader).minimapLeft !== 0 ? editorObs.layoutInfoMinimap.read(reader).minimapWidth : 0;
 
-		const maxOriginalContent = maxContentWidthInRange(editorObs, edit.displayRange, undefined/* do not reconsider on each layout info change */);
+		const maxOriginalContent = maxContentWidthInRange(editorObs, edit.displayRange, undefined);
 		const maxModifiedContent = edit.lineEdit.newLines.reduce((max, line) => Math.max(max, getContentRenderWidth(line, editor, textModel)), 0);
-		const originalPadding = ORIGINAL_END_PADDING; // padding after last line of original editor
-		const modifiedPadding = MODIFIED_END_PADDING + 2 * BORDER_WIDTH; // padding after last line of modified editor
+		const originalPadding = ORIGINAL_END_PADDING;
+		const modifiedPadding = MODIFIED_END_PADDING + 2 * BORDER_WIDTH;
 
 		return maxOriginalContent + maxModifiedContent + originalPadding + modifiedPadding < editorWidth - editorContentLeft - editorVerticalScrollbar - minimapWidth;
 	}
@@ -83,7 +82,7 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 			class: ['editorContainer'],
 			style: { position: 'absolute', overflow: 'hidden', cursor: 'pointer' },
 			onmousedown: e => {
-				e.preventDefault(); // This prevents that the editor loses focus
+				e.preventDefault();
 			},
 			onclick: (e) => {
 				this._onDidClick.fire(InlineEditClickEvent.create(e));
@@ -105,7 +104,7 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 					bracketPairsHorizontal: false,
 					highlightActiveIndentation: false,
 				},
-				editContext: false, // is a bit faster
+				editContext: false,
 				rulers: [],
 				padding: { top: 0, bottom: 0 },
 				folding: false,
@@ -141,12 +140,8 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 		this._activeViewZones = [];
 		this._updatePreviewEditor = derived(this, reader => {
 			this._editorContainer.readEffect(reader);
-			this._previewEditorObs.model.read(reader); // update when the model is set
+			this._previewEditorObs.model.read(reader);
 
-			// Setting this here explicitly to make sure that the preview editor is
-			// visible when needed, we're also checking that these fields are defined
-			// because of the auto run initial
-			// Before removing these, verify with a non-monospace font family
 			this._display.read(reader);
 			if (this._nonOverflowView) {
 				this._nonOverflowView.element.style.display = this._display.read(reader);
@@ -170,7 +165,6 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 
 			this.previewEditor.setHiddenAreas(hiddenAreas, undefined, true);
 
-			// TODO: is this the proper way to handle viewzones?
 			const previousViewZones = [...this._activeViewZones];
 			this._activeViewZones = [];
 
@@ -219,8 +213,6 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 			}
 			this._editorObs.versionId.read(reader);
 
-			// Take the max value that we observed.
-			// Reset when either the edit changes or the editor text version.
 			return derivedObservableWithCache<number>(this, (reader, lastValue) => {
 				const maxWidth = maxContentWidthInRange(this._editorObs, originalDisplayRange, reader);
 				return Math.max(maxWidth, lastValue ?? 0);
@@ -258,9 +250,7 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 			const cursorPos = this._cursorPosIfTouchesEdit.read(reader);
 
 			const maxPreviewEditorLeft = Math.max(
-				// We're starting from the content area right and moving it left by IN_EDITOR_DISPLACEMENT and also by an amount to ensure some minimum desired width
 				editorContentAreaWidth + horizontalScrollOffset - IN_EDITOR_DISPLACEMENT - Math.max(0, desiredMinimumWidth - maximumAvailableWidth),
-				// But we don't want that the moving left ends up covering the cursor, so this will push it to the right again
 				Math.min(
 					cursorPos ? getOffsetForPos(this._editorObs, cursorPos, reader) + 50 : 0,
 					editorContentAreaWidth + horizontalScrollOffset
@@ -285,7 +275,6 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 			const selectionTop = this._originalVerticalStartPosition.read(reader) ?? this._editor.getTopForLineNumber(range.startLineNumber) - this._editorObs.scrollTop.read(reader);
 			const selectionBottom = this._originalVerticalEndPosition.read(reader) ?? this._editor.getBottomForLineNumber(range.endLineNumberExclusive - 1) - this._editorObs.scrollTop.read(reader);
 
-			// TODO: const { prefixLeftOffset } = getPrefixTrim(inlineEdit.edit.edits.map(e => e.range), inlineEdit.originalLineRange, [], this._editor);
 			const codeLeft = editorLayout.contentLeft - horizontalScrollOffset;
 
 			let codeRect = Rect.fromLeftTopRightBottom(codeLeft, selectionTop, codeRight, selectionBottom);
@@ -307,11 +296,9 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 			if (!isInsertion) {
 				editRect = editRect.withMargin(VERTICAL_PADDING, HORIZONTAL_PADDING).translateX(HORIZONTAL_PADDING + BORDER_WIDTH);
 			} else {
-				// Align top of edit with insertion line
 				editRect = editRect.withMargin(VERTICAL_PADDING, HORIZONTAL_PADDING).translateY(VERTICAL_PADDING);
 			}
 
-			// debugView(debugLogRects({ codeRect, editRect }, this._editor.getDomNode()!), reader);
 
 			return {
 				codeRect,
@@ -397,8 +384,6 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 			const isModifiedLower = layoutInfoObs.map(layoutInfo => layoutInfo.codeRect.bottom < layoutInfo.editRect.bottom);
 			const transitionRectSize = BORDER_RADIUS * 2 + BORDER_WIDTH * 2;
 
-			// Create an overlay which hides the left hand side of the original overlay when it overflows to the left
-			// such that there is a smooth transition at the edge of content left
 			const overlayHider = layoutInfoObs.map(layoutInfo => Rect.fromLeftTopRightBottom(
 				layoutInfo.contentLeft - BORDER_RADIUS - BORDER_WIDTH,
 				layoutInfo.codeRect.top,
@@ -565,11 +550,10 @@ export class InlineEditsSideBySideView extends Disposable implements IInlineEdit
 			}
 			const editorRect = layoutInfo.editRect.withMargin(-VERTICAL_PADDING, -HORIZONTAL_PADDING);
 
-			this.previewEditor.layout({ height: editorRect.height, width: layoutInfo.previewEditorWidth + 15 /* Make sure editor does not scroll horizontally */ });
+			this.previewEditor.layout({ height: editorRect.height, width: layoutInfo.previewEditorWidth + 15 });
 			this._editorContainer.element.style.top = `${editorRect.top}px`;
 			this._editorContainer.element.style.left = `${editorRect.left}px`;
-			this._editorContainer.element.style.width = `${layoutInfo.previewEditorWidth + HORIZONTAL_PADDING}px`; // Set width to clip view zone
-			//this._editorContainer.element.style.borderRadius = `0 ${BORDER_RADIUS}px ${BORDER_RADIUS}px 0`;
+			this._editorContainer.element.style.width = `${layoutInfo.previewEditorWidth + HORIZONTAL_PADDING}px`;
 		}));
 
 		this._register(autorun(reader => {

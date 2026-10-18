@@ -41,9 +41,6 @@ export interface IViewModel extends ICursorSimpleModel, ISimpleModel {
 
 	getEditorOption<T extends EditorOption>(id: T): FindComputedEditorOptionValueById<T>;
 
-	/**
-	 * Gives a hint that a lot of requests are about to come in for these line numbers.
-	 */
 	setViewport(startLineNumber: number, endLineNumber: number, centeredLineNumber: number): void;
 	visibleLinesStabilized(): void;
 	setHasFocus(hasFocus: boolean): void;
@@ -91,7 +88,6 @@ export interface IViewModel extends ICursorSimpleModel, ISimpleModel {
 
 	createLineBreaksComputer(context?: ILineBreaksComputerContext): ILineBreaksComputer;
 
-	//#region cursor
 	getPrimaryCursorState(): CursorState;
 	getLastAddedCursorIndex(): number;
 	getCursorStates(): CursorState[];
@@ -106,11 +102,8 @@ export interface IViewModel extends ICursorSimpleModel, ISimpleModel {
 	revealTopMostCursor(source: string | null | undefined): void;
 	revealBottomMostCursor(source: string | null | undefined): void;
 	revealRange(source: string | null | undefined, revealHorizontal: boolean, viewRange: Range, verticalType: VerticalRevealType, scrollType: ScrollType): void;
-	//#endregion
 
-	//#region viewLayout
 	changeWhitespace(callback: (accessor: IWhitespaceChangeAccessor) => void): void;
-	//#endregion
 
 	batchEvents(callback: () => void): void;
 }
@@ -149,9 +142,6 @@ export interface IViewLayout {
 	getLineHeightForLineNumber(lineNumber: number): number;
 	getWhitespaceAtVerticalOffset(verticalOffset: number): IViewWhitespaceViewportData | null;
 
-	/**
-	 * Get the layout information for whitespaces currently in the viewport
-	 */
 	getWhitespaceViewportData(): IViewWhitespaceViewportData[];
 }
 
@@ -161,9 +151,6 @@ export interface IEditorWhitespace {
 	readonly height: number;
 }
 
-/**
- * An accessor that allows for whitespace to be added, removed or changed in bulk.
- */
 export interface IWhitespaceChangeAccessor {
 	insertWhitespace(afterLineNumber: number, ordinal: number, heightInPx: number, minWidth: number): string;
 	changeOneWhitespace(id: string, newAfterLineNumber: number, newHeight: number): void;
@@ -176,38 +163,14 @@ export interface ILineHeightChangeAccessor {
 }
 
 export interface IPartialViewLinesViewportData {
-	/**
-	 * Value to be substracted from `scrollTop` (in order to vertical offset numbers < 1MM)
-	 */
 	readonly bigNumbersDelta: number;
-	/**
-	 * The first (partially) visible line number.
-	 */
 	readonly startLineNumber: number;
-	/**
-	 * The last (partially) visible line number.
-	 */
 	readonly endLineNumber: number;
-	/**
-	 * relativeVerticalOffset[i] is the `top` position for line at `i` + `startLineNumber`.
-	 */
 	readonly relativeVerticalOffset: number[];
-	/**
-	 * The centered line in the viewport.
-	 */
 	readonly centeredLineNumber: number;
-	/**
-	 * The first completely visible line number.
-	 */
 	readonly completelyVisibleStartLineNumber: number;
-	/**
-	 * The last completely visible line number.
-	 */
 	readonly completelyVisibleEndLineNumber: number;
 
-	/**
-	 * The height of a line.
-	 */
 	readonly lineHeight: number;
 }
 
@@ -250,34 +213,13 @@ export class MinimapLinesRenderingData {
 export class ViewLineData {
 	_viewLineDataBrand: void = undefined;
 
-	/**
-	 * The content at this view line.
-	 */
 	public readonly content: string;
-	/**
-	 * Does this line continue with a wrapped line?
-	 */
 	public readonly continuesWithWrappedLine: boolean;
-	/**
-	 * The minimum allowed column at this view line.
-	 */
 	public readonly minColumn: number;
-	/**
-	 * The maximum allowed column at this view line.
-	 */
 	public readonly maxColumn: number;
-	/**
-	 * The visible column at the start of the line (after the fauxIndent).
-	 */
 	public readonly startVisibleColumn: number;
-	/**
-	 * The tokens at this view line.
-	 */
 	public readonly tokens: IViewLineTokens;
 
-	/**
-	 * Additional inline decorations for this line.
-	*/
 	public readonly inlineDecorations: readonly InlineDecoration[] | null;
 
 	constructor(
@@ -300,53 +242,17 @@ export class ViewLineData {
 }
 
 export class ViewLineRenderingData {
-	/**
-	 * The minimum allowed column at this view line.
-	 */
 	public readonly minColumn: number;
-	/**
-	 * The maximum allowed column at this view line.
-	 */
 	public readonly maxColumn: number;
-	/**
-	 * The content at this view line.
-	 */
 	public readonly content: string;
-	/**
-	 * Does this line continue with a wrapped line?
-	 */
 	public readonly continuesWithWrappedLine: boolean;
-	/**
-	 * Describes if `content` contains RTL characters.
-	 */
 	public readonly containsRTL: boolean;
-	/**
-	 * Describes if `content` contains non basic ASCII chars.
-	 */
 	public readonly isBasicASCII: boolean;
-	/**
-	 * The tokens at this view line.
-	 */
 	public readonly tokens: IViewLineTokens;
-	/**
-	 * Inline decorations at this view line.
-	 */
 	public readonly inlineDecorations: InlineDecoration[];
-	/**
-	 * The tab size for this view model.
-	 */
 	public readonly tabSize: number;
-	/**
-	 * The visible column at the start of the line (after the fauxIndent)
-	 */
 	public readonly startVisibleColumn: number;
-	/**
-	 * The direction to use for rendering the line.
-	 */
 	public readonly textDirection: TextDirection;
-	/**
-	 * Whether the line has variable fonts
-	 */
 	public readonly hasVariableFonts: boolean;
 
 	constructor(
@@ -411,12 +317,6 @@ export class OverviewRulerDecorationsGroup {
 	constructor(
 		public readonly color: string,
 		public readonly zIndex: number,
-		/**
-		 * Decorations are encoded in a number array using the following scheme:
-		 *  - 3*i = lane
-		 *  - 3*i+1 = startLineNumber
-		 *  - 3*i+2 = endLineNumber
-		 */
 		public readonly data: number[]
 	) { }
 

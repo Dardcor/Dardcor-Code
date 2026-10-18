@@ -114,7 +114,6 @@ async function buildCombinedFix(
 	}
 }
 
-// #region Source Actions
 
 abstract class SourceAction extends vscode.CodeAction {
 	abstract build(
@@ -180,7 +179,6 @@ class SourceAddMissingImports extends SourceAction {
 	}
 }
 
-//#endregion
 
 class TypeScriptAutoFixProvider implements vscode.CodeActionProvider {
 
@@ -220,7 +218,6 @@ class TypeScriptAutoFixProvider implements vscode.CodeActionProvider {
 		const actions = this.getFixAllActions(context.only);
 		const diagnostics = this.diagnosticsManager.getDiagnostics(document.uri);
 		if (!diagnostics.length) {
-			// Actions are a no-op in this case but we still want to return them
 			return actions;
 		}
 

@@ -27,11 +27,6 @@ const $ = DOM.$;
 type Pair = { user?: IVoiceTranscriptTurn; assistant?: IVoiceTranscriptTurn; timestamp: string };
 type Group = { label: string; pairs: Pair[] };
 
-/**
- * Side-panel view that lists the user's persisted voice-conversation turns,
- * grouped by relative time bucket. Display-only — read from the local
- * voiceTranscriptStore (JSONL on disk).
- */
 export class VoiceTranscriptsViewPane extends ViewPane {
 
 	static readonly ID = 'workbench.view.voiceTranscripts';
@@ -39,7 +34,6 @@ export class VoiceTranscriptsViewPane extends ViewPane {
 	private contentContainer: HTMLElement | undefined;
 	private emptyState: HTMLElement | undefined;
 
-	/** Cached login resolved on first render, refreshed lazily on each refresh(). */
 	private userLogin: string | undefined;
 
 	constructor(
@@ -71,9 +65,6 @@ export class VoiceTranscriptsViewPane extends ViewPane {
 			hoverService,
 		);
 
-		// Auto-refresh when a voice turn completes: state goes from a
-		// mid-turn value (speaking/processing) back to idle/listening. The
-		// transcript store has been written by then.
 		let lastState: VoiceState | undefined;
 		this._register(autorun(reader => {
 			const state = this.voiceSessionController.voiceState.read(reader);
@@ -115,13 +106,8 @@ export class VoiceTranscriptsViewPane extends ViewPane {
 
 	protected override layoutBody(height: number, width: number): void {
 		super.layoutBody(height, width);
-		// Native ViewPane handles outer chrome — our content is naturally scrollable.
 	}
 
-	/**
-	 * Re-read the transcript JSONL and re-render. Cheap; the file is text-only
-	 * and bounded by the user's actual usage.
-	 */
 	async refresh(): Promise<void> {
 		if (!this.contentContainer || !this.emptyState) {
 			return;
@@ -136,11 +122,6 @@ export class VoiceTranscriptsViewPane extends ViewPane {
 			const turns = await this.voiceTranscriptStore.loadTurns(this.userLogin);
 			const indexEntry = this.voiceTranscriptStore.getIndexEntry(this.userLogin);
 			const archiveCutoff = indexEntry?.archivedBefore;
-			// Only voice-spoken entries are user-visible. ``agent_tool_call`` and
-			// ``coding_event`` rows live in the same JSONL so they can be
-			// replayed to the backend as cross-session context, but they
-			// would clutter the transcript view (and a user reading the
-			// transcript expects only the spoken conversation).
 			const spoken = turns.filter(t => t.kind === 'user_voice' || t.kind === 'agent_voice');
 			const visible = archiveCutoff
 				? spoken.filter(t => t.timestamp >= archiveCutoff)
@@ -190,7 +171,6 @@ export class VoiceTranscriptsViewPane extends ViewPane {
 		await this.refresh();
 	}
 
-	// --- Internals ---
 
 	private async resolveUserLogin(): Promise<string | undefined> {
 		try {
@@ -301,7 +281,6 @@ export class VoiceTranscriptsViewPane extends ViewPane {
 	}
 }
 
-// --- Helpers ---
 
 function formatTime(timestamp: string): string {
 	try {
@@ -315,11 +294,6 @@ function startOfDay(d: Date): Date {
 	return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-/**
- * Group a flat chronological turn list into relative-time buckets, pairing
- * each user turn with the subsequent assistant turn (and vice-versa for
- * orphaned assistant-only turns produced by proactive narration).
- */
 function groupTurnsByTime(turns: readonly IVoiceTranscriptTurn[]): Group[] {
 	if (turns.length === 0) {
 		return [];

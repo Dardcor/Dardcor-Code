@@ -17,40 +17,23 @@ import { URI } from '../../../../../../base/common/uri.js';
 export interface IChatContentPart extends IDisposable {
 	domNode: HTMLElement | undefined;
 
-	/**
-	 * Used to indicate a part's ownership of a code block.
-	 */
 	codeblocksPartId?: string;
 
-	/**
-	 * Codeblocks that were rendered by this part.
-	 */
 	codeblocks?: IChatCodeBlockInfo[];
 
-	/**
-	 * Returns true if the other content is equivalent to what is already rendered in this content part.
-	 * Returns false if a rerender is needed.
-	 * followingContent is all the content that will be rendered after this content part (to support progress messages' behavior).
-	 */
 	hasSameContent(other: IChatRendererContent, followingContent: IChatRendererContent[], element: ChatTreeItem): boolean;
 
-	/**
-	 * Called when the content part is mounted to the DOM after being detached
-	 * due to virtualization.
-	 */
 	onDidRemount?(): void;
 
 	addDisposable?(disposable: IDisposable): void;
 }
 
-/** Diff resource emitted by an edit-rendering content part. */
 export interface IChatContentPartDiffResource {
 	readonly resource: URI;
 	readonly originalURI: URI | undefined;
 	readonly modifiedURI: URI | undefined;
 }
 
-/** Aggregated diff data emitted by an edit-rendering content part. */
 export interface IChatContentPartDiffData {
 	readonly added: number;
 	readonly removed: number;
@@ -72,11 +55,6 @@ export interface IChatContentPartRenderContext {
 	readonly inlineTextModels: InlineTextModelCollection;
 }
 
-/**
- * Ref-counted collection of inline text models keyed by URI. Models are
- * created on first acquire and disposed only when the last reference is
- * released, preventing duplicate-model errors during re-renders.
- */
 export class InlineTextModelCollection extends Disposable {
 	private readonly _collection: InlineTextModelReferenceCollection;
 

@@ -9,7 +9,6 @@ import { RuntimeEnvironment, startServer } from '../htmlServer.js';
 import { getNodeFileFS } from './nodeFs.js';
 
 
-// Create a connection for the server.
 const connection: Connection = createConnection();
 
 console.log = connection.console.log.bind(connection.console);

@@ -20,13 +20,10 @@ import { TerminalQuickFixAddon } from './quickFixAddon.js';
 import { freePort, gitCreatePr, gitFastForwardPull, gitPushSetUpstream, gitSimilar, gitTwoDashes, pwshGeneralError, pwshUnixCommandNotFoundError } from './terminalQuickFixBuiltinActions.js';
 import { TerminalQuickFixService } from './terminalQuickFixService.js';
 
-// #region Services
 
 registerSingleton(ITerminalQuickFixService, TerminalQuickFixService, InstantiationType.Delayed);
 
-// #endregion
 
-// #region Contributions
 
 class TerminalQuickFixContribution extends DisposableStore implements ITerminalContribution {
 	static readonly ID = 'quickFix';
@@ -48,18 +45,14 @@ class TerminalQuickFixContribution extends DisposableStore implements ITerminalC
 	}
 
 	xtermReady(xterm: IXtermTerminal & { raw: RawXtermTerminal }): void {
-		// Create addon
 		this._addon = this._instantiationService.createInstance(TerminalQuickFixAddon, this._ctx.instance.sessionId, undefined, this._ctx.instance.capabilities);
 		xterm.raw.loadAddon(this._addon);
 
-		// Hook up listeners
 		this.add(this._addon.onDidRequestRerunCommand((e) => this._ctx.instance.runCommand(e.command, e.shouldExecute || false)));
 		this.add(this._addon.onDidUpdateQuickFixes(e => {
-			// Only track the latest command's quick fixes
 			this._quickFixMenuItems.value = e.actions ? xterm.decorationAddon.registerMenuItems(e.command, e.actions) : undefined;
 		}));
 
-		// Register quick fixes
 		for (const actionOption of [
 			gitTwoDashes(),
 			gitFastForwardPull(),
@@ -76,9 +69,7 @@ class TerminalQuickFixContribution extends DisposableStore implements ITerminalC
 }
 registerTerminalContribution(TerminalQuickFixContribution.ID, TerminalQuickFixContribution);
 
-// #endregion
 
-// #region Actions
 
 const enum TerminalQuickFixCommandId {
 	ShowQuickFixes = 'workbench.action.terminal.showQuickFixes',
@@ -95,4 +86,3 @@ registerActiveInstanceAction({
 	run: (activeInstance) => TerminalQuickFixContribution.get(activeInstance)?.addon?.showMenu()
 });
 
-// #endregion

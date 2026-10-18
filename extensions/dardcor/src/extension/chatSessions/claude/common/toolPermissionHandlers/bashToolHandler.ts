@@ -12,16 +12,8 @@ import { ClaudeToolPermissionContext, ClaudeToolPermissionResult, IClaudeToolPer
 import { registerToolPermissionHandler } from '../claudeToolPermissionRegistry';
 import { ClaudeToolNames } from '../claudeTools';
 
-/**
- * Default deny message when user declines a tool
- */
 const DenyToolMessage = 'The user declined to run the tool';
 
-/**
- * Handler for the Bash tool.
- * Uses terminal-style confirmation with the command highlighted.
- * See: src/extension/agents/dardcorcli/node/permissionHelpers.ts#L126-L127
- */
 export class BashToolHandler implements IClaudeToolPermissionHandler<ClaudeToolNames.Bash> {
 	public readonly toolNames = [ClaudeToolNames.Bash] as const;
 
@@ -60,7 +52,6 @@ export class BashToolHandler implements IClaudeToolPermissionHandler<ClaudeToolN
 	}
 }
 
-// Self-register the handler
 registerToolPermissionHandler(
 	[ClaudeToolNames.Bash],
 	BashToolHandler

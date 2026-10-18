@@ -9,10 +9,6 @@ import type { Uri } from '../../../dardcorTypes';
 import { Config } from '../../configuration/common/configurationService';
 import { CodeGenerationInstruction, ICustomInstructions, ICustomInstructionsService, IInstructionIndexFile, ISkillInfo, SkillStorage } from '../../customInstructions/common/customInstructionsService';
 
-/**
- * A configurable mock implementation of ICustomInstructionsService for testing.
- * Allows setting skill files and external instruction files for different test scenarios.
- */
 export class MockCustomInstructionsService implements ICustomInstructionsService {
 	declare readonly _serviceBrand: undefined;
 
@@ -30,33 +26,21 @@ export class MockCustomInstructionsService implements ICustomInstructionsService
 		};
 	}
 
-	/**
-	 * Set the URIs that should be recognized as skill files.
-	 */
 	setSkillFiles(uris: URI[], storage: SkillStorage = SkillStorage.Workspace): void {
 		this.skillFiles.clear();
 		uris.forEach(uri => this.skillFiles.set(uri.toString(), storage));
 	}
 
-	/**
-	 * Set the URIs that should be recognized as external instruction files.
-	 */
 	setExternalFiles(uris: URI[]): void {
 		this.externalFiles.clear();
 		uris.forEach(uri => this.externalFiles.add(uri.toString()));
 	}
 
-	/**
-	 * Set the URIs that should be recognized as external instruction folders.
-	 */
 	setExternalFolders(uris: URI[]): void {
 		this.externalFolders.clear();
 		uris.forEach(uri => this.externalFolders.add(uri.toString()));
 	}
 
-	/**
-	 * Set the URIs that should be recognized as extension skill files with their info.
-	 */
 	setExtensionSkillInfos(infos: { uri: URI; skillName: string; skillFolderUri: URI; extensionId: string }[]): void {
 		this.extensionSkillInfos.clear();
 		infos.forEach(info => this.extensionSkillInfos.set(info.uri.toString(), { skillName: info.skillName, skillFolderUri: info.skillFolderUri, storage: SkillStorage.Extension, extensionId: info.extensionId }));
@@ -71,7 +55,6 @@ export class MockCustomInstructionsService implements ICustomInstructionsService
 	}
 
 	getSkillDirectory(uri: URI): URI {
-		// Simple mock implementation: return parent directory
 		return URI.parse(uri.toString().substring(0, uri.toString().lastIndexOf('/')));
 	}
 

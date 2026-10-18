@@ -45,7 +45,7 @@ export class ScmContextProviderContribution extends Disposable {
 		try {
 			const provider: Copilot.ContextProvider<Copilot.SupportedContextItem> = {
 				id: 'scm-context-provider',
-				selector: { scheme: 'vscode-scm' }, // TODO: Verify if this is the correct document selector for SCM
+				selector: { scheme: 'vscode-scm' },
 				resolver: this._resolver
 			};
 			disposables.add(this._languageContextProviderService.registerContextProvider(provider, [ProviderTarget.Completions]));
@@ -68,7 +68,6 @@ export class ScmContextProviderContribution extends Disposable {
 			return new Set(workingTreeChanges);
 		});
 
-		// Invalidate cache when workspace file documents change
 		disposables.add(this._workspaceService.onDidChangeTextDocument(e => {
 			if (resourcesToConsider.get().has(e.document.uri.toString())) {
 				this._resolver.invalidateCache();
@@ -103,11 +102,9 @@ class ScmContextResolver implements Copilot.ContextResolver<Copilot.SupportedCon
 	}
 
 	async *resolve(request: Copilot.ResolveRequest, token: CancellationToken): AsyncIterable<Copilot.SupportedContextItem> {
-		// Get git configuration values that affect commit message formatting
 		const inputValidationLength = this._configurationService.getNonExtensionConfig<number>('git.inputValidationLength') ?? 72;
 		const inputValidationSubjectLength = this._configurationService.getNonExtensionConfig<number>('git.inputValidationSubjectLength') ?? 50;
 
-		// Build commit message guidelines based on configuration
 		const guidelines: string[] = [
 			'This is a git commit message input field.',
 			'The commit message should accurately describe the changes being committed in less than a sentence.',
@@ -125,7 +122,6 @@ class ScmContextResolver implements Copilot.ContextResolver<Copilot.SupportedCon
 			importance: 100
 		};
 
-		// Get staged changes diffs - one context item per file
 		const diffs = await this._getStagedChangesDiffs(token);
 		for (const diff of diffs) {
 			yield {
@@ -156,7 +152,6 @@ class ScmContextResolver implements Copilot.ContextResolver<Copilot.SupportedCon
 				return [];
 			}
 
-			// Get staged changes (index changes), or fall back to working tree changes if nothing is staged
 			const changedFiles: Change[] = changes.indexChanges.length > 0
 				? changes.indexChanges
 				: [...changes.workingTree, ...changes.untrackedChanges];
@@ -166,10 +161,8 @@ class ScmContextResolver implements Copilot.ContextResolver<Copilot.SupportedCon
 				return [];
 			}
 
-			// Generate cache key based on the current changed files
 			const cacheKey = this._generateCacheKey(changedFiles, repository);
 
-			// Return cached diffs if the cache key matches
 			if (this._cachedDiffs && this._cachedDiffs.cacheKey === cacheKey) {
 				this._logService.trace('[ScmContextResolver] Returning cached diffs');
 				return this._cachedDiffs.diffs;
@@ -178,7 +171,6 @@ class ScmContextResolver implements Copilot.ContextResolver<Copilot.SupportedCon
 			const diffs = await this._gitDiffService.getChangeDiffs(repository.rootUri, changedFiles);
 			this._logService.trace(`[ScmContextResolver] Retrieved ${diffs.length} diffs`);
 
-			// Cache the diffs
 			this._cachedDiffs = { cacheKey, diffs };
 
 			return diffs;
@@ -189,7 +181,6 @@ class ScmContextResolver implements Copilot.ContextResolver<Copilot.SupportedCon
 	}
 
 	private _generateCacheKey(changedFiles: Change[], repository: RepoContext): string {
-		// Create a cache key based on the changed file URIs and their status
 		const fileKeys = changedFiles
 			.map(change => `${change.uri.toString()}:${change.status}`)
 			.sort()

@@ -22,11 +22,5 @@ export interface IBackupMainService {
 	registerFolderBackup(folderInfo: IFolderBackupInfo): string;
 	registerEmptyWindowBackup(emptyWindowInfo: IEmptyWindowBackupInfo): string;
 
-	/**
-	 * All folders or workspaces that are known to have
-	 * backups stored. This call is long running because
-	 * it checks for each backup location if any backups
-	 * are stored.
-	 */
 	getDirtyWorkspaces(): Promise<Array<IWorkspaceBackupInfo | IFolderBackupInfo>>;
 }

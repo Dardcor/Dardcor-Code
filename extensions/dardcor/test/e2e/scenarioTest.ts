@@ -31,10 +31,6 @@ import { INLINE_CHANGED_DOC_TAG, INLINE_INITIAL_DOC_TAG, IWorkspaceStateFile } f
 import { Scenario, ScenarioEvaluator } from './scenarioLoader';
 import { parseQueryForScenarioTest } from './testHelper';
 
-/**
- * Grabs the default conversation options. Copied over from conversationFeature.ts
- * TODO @lramos15, these should use the same code as conversationFeature.ts
- */
 export function fetchConversationOptions() {
 	const maxResponseTokens = undefined;
 	const temperature = 0.1;
@@ -111,7 +107,6 @@ export function generateScenarioTestRunner(scenario: Scenario, evaluator: Scenar
 					content: fullResponse
 				});
 
-				// Use the evaluator passed to us to evaluate if the response is correct
 				log(`## Response:\n${fullResponse}\n`);
 				log(`## Commands:\n`);
 				const commands = mockProgressReporter.commandButtons;
@@ -127,11 +122,9 @@ export function generateScenarioTestRunner(scenario: Scenario, evaluator: Scenar
 						const codeMapper = accessor.get(IInstantiationService).createInstance(CodeMapper);
 						const changedDocs: Map<string, { document: TextDocument; originalContent: string; postContent: string }> = new Map();
 
-						// Apply Code Block Changes
 						let codeBlockApplyErrorDetails: ChatErrorDetails | undefined = undefined;
 						for (const codeBlock of codeBlocks) {
 							const prevDocument = simulationWorkspace.activeTextEditor?.document!;
-							// Set the active document if the code resource has a uri
 							if (codeBlock.resource) {
 								simulationWorkspace.setCurrentDocument(codeBlock.resource);
 							}
@@ -182,7 +175,6 @@ export function generateScenarioTestRunner(scenario: Scenario, evaluator: Scenar
 							}
 						}
 
-						// Log the changed files
 						const changedFilePaths: IWorkspaceStateFile[] = [];
 						if (!codeBlockApplyErrorDetails && changedDocs.size > 0) {
 							const seenDoc = new Set<string>();
@@ -193,7 +185,7 @@ export function generateScenarioTestRunner(scenario: Scenario, evaluator: Scenar
 								seenDoc.add(workspacePath);
 
 								if (isNotebook(changes.document.uri)) {
-									await testRuntime.writeFile(workspacePath + '.txt', changes.originalContent, INLINE_INITIAL_DOC_TAG);  // using .txt instead of real file extension to avoid breaking automation scripts
+									await testRuntime.writeFile(workspacePath + '.txt', changes.originalContent, INLINE_INITIAL_DOC_TAG);
 
 									changedFilePaths.push({
 										workspacePath,
@@ -201,7 +193,7 @@ export function generateScenarioTestRunner(scenario: Scenario, evaluator: Scenar
 										languageId: changes.document.languageId
 									});
 								} else {
-									await testRuntime.writeFile(workspacePath + '.txt', changes.originalContent, INLINE_INITIAL_DOC_TAG);  // using .txt instead of real file extension to avoid breaking automation scripts
+									await testRuntime.writeFile(workspacePath + '.txt', changes.originalContent, INLINE_INITIAL_DOC_TAG);
 
 									changedFilePaths.push({
 										workspacePath,

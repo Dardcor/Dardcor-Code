@@ -32,12 +32,9 @@ export abstract class BaseResolvedKeybinding<T extends Chord> extends ResolvedKe
 
 	public getElectronAccelerator(): string | null {
 		if (this._chords.length > 1) {
-			// [Electron Accelerators] Electron cannot handle chords
 			return null;
 		}
 		if (this._chords[0].isDuplicateModifierCase()) {
-			// [Electron Accelerators] Electron cannot handle modifier only keybindings
-			// e.g. "shift shift"
 			return null;
 		}
 		return ElectronAcceleratorLabelProvider.toLabel(this._os, this._chords, (keybinding) => this._getElectronAccelerator(keybinding));

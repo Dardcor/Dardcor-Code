@@ -67,13 +67,10 @@ export class SpyingTelemetryService implements ITelemetryService {
 		this.addEvent(TelemetryServiceEventType.internal, eventName, properties, measurements);
 	}
 	postEvent(eventName: string, props: Map<string, string>): void {
-		// Do nothing
 	}
 	setSharedProperty(name: string, value: string): void {
-		// Do nothing
 	}
 	setAdditionalExpAssignments(expAssignments: string[]): void {
-		// Do nothing
 	}
 	sendTelemetryErrorEvent(eventName: string, destination: TelemetryDestination, properties?: TelemetryEventProperties | undefined, measurements?: TelemetryEventMeasurements | undefined): void {
 		this.addEvent(TelemetryServiceEventType.error, eventName, properties, measurements);
@@ -84,7 +81,6 @@ export class SpyingTelemetryService implements ITelemetryService {
 
 	private addEvent(eventType: TelemetryServiceEventType, eventName: string, properties?: TelemetryEventProperties | undefined, measurements?: TelemetryEventMeasurements | undefined): void {
 		{
-			// create a copy, in case the caller modifies the object after calling this method
 			this.telemetryServiceEvents.push({
 				eventType,
 				eventName,

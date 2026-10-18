@@ -14,7 +14,6 @@ export interface IExtensionDevOptions {
 }
 
 export function parseExtensionDevOptions(environmentService: IEnvironmentService): IExtensionDevOptions {
-	// handle extension host lifecycle a bit special when we know we are developing an extension that runs inside
 	const isExtensionDevHost = environmentService.isExtensionDevelopment;
 
 	let debugOk = true;

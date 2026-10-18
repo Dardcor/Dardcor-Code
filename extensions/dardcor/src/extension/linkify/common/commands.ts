@@ -5,7 +5,6 @@
 
 import { UriComponents } from '../../../util/dardcor/base/common/uri';
 
-// TODO: keep these commands around for backwards compatibility, but remove them in the future
 export const openFileLinkCommand = '_github.dardcor.openRelativePath';
 export type OpenFileLinkCommandArgs = [path: string | UriComponents, requestId?: string];
 

@@ -63,7 +63,6 @@ export class InlineEditsInsertionView extends Disposable implements IInlineEdits
 		const eol = this._editor.getModel()!.getEOL();
 		const lineCount = text.split(eol).length;
 
-		// Count leading/trailing blank lines so the overlay can be trimmed to the actual inserted content.
 		let linesTop = 0;
 		let linesBottom = 0;
 		if (text.trim() !== '') {
@@ -155,7 +154,6 @@ export class InlineEditsInsertionView extends Disposable implements IInlineEdits
 				return {
 					ghostText: ghostText,
 					handleInlineCompletionShown: (data) => {
-						// This is a no-op for the insertion view, as it is handled by the InlineEditsView.
 					},
 					warning: undefined,
 				} satisfies IGhostTextWidgetData;
@@ -214,8 +212,6 @@ export class InlineEditsInsertionView extends Disposable implements IInlineEdits
 			return renderLines(new LineSource([tokens]), renderOptions, [], $('div'), true).minWidthInPx;
 		});
 
-		// Take the max value that we observed.
-		// Reset when either the edit changes or the editor text version.
 		return Math.max(...lineWidths);
 	});
 
@@ -234,7 +230,6 @@ export class InlineEditsInsertionView extends Disposable implements IInlineEdits
 			return null;
 		}
 
-		// Update the overlay when the position changes
 		this._editorObs.observePosition(observableValue(this, new Position(state.lineNumber, state.column)), reader.store).read(reader);
 
 		const editorLayout = this._editorObs.layoutInfo.read(reader);
@@ -242,7 +237,7 @@ export class InlineEditsInsertionView extends Disposable implements IInlineEdits
 		const verticalScrollbarWidth = this._editorObs.layoutInfoVerticalScrollbarWidth.read(reader);
 
 		const right = editorLayout.contentLeft + this._editorMaxContentWidthInRange.read(reader) - horizontalScrollOffset;
-		const prefixLeftOffset = this._maxPrefixTrim.read(reader).prefixLeftOffset ?? 0 /* fix due to observable bug? */;
+		const prefixLeftOffset = this._maxPrefixTrim.read(reader).prefixLeftOffset ?? 0 ;
 		const left = editorLayout.contentLeft + prefixLeftOffset - horizontalScrollOffset;
 		if (right <= left) {
 			return null;
@@ -251,11 +246,6 @@ export class InlineEditsInsertionView extends Disposable implements IInlineEdits
 		const { topOffset: topTrim, contentHeight: height } = this._trimVertically.read(reader);
 
 		const scrollTop = this._editorObs.scrollTop.read(reader);
-		// Derive the overlay height synchronously from the model (via _trimVertically) rather than the
-		// asynchronously measured ghost text view zone height, which is transiently just a single line while
-		// the view zone is (re)created. Because it uses the same line height and line accounting as the trims,
-		// top/height/bottom stay consistent and height is always positive: leading and trailing blank lines
-		// can never cover every inserted line.
 		const top = this._editor.getTopForLineNumber(state.lineNumber) - scrollTop + topTrim;
 		const bottom = top + height;
 
@@ -275,8 +265,6 @@ export class InlineEditsInsertionView extends Disposable implements IInlineEdits
 		const overlayLayoutObs = mapOutFalsy(this._overlayLayout).read(reader);
 		if (!overlayLayoutObs) { return undefined; }
 
-		// Create an overlay which hides the left hand side of the original overlay when it overflows to the left
-		// such that there is a smooth transition at the edge of content left
 		const overlayHider = overlayLayoutObs.map(layoutInfo => Rect.fromLeftTopRightBottom(
 			layoutInfo.contentLeft - BORDER_RADIUS - BORDER_WIDTH,
 			layoutInfo.overlay.top,

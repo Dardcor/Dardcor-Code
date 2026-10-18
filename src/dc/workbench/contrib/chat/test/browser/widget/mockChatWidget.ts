@@ -19,9 +19,6 @@ export class MockChatWidgetService implements IChatWidgetService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Returns the most recently focused widget if any.
-	 */
 	readonly lastFocusedWidget: IChatWidget | undefined;
 
 	getWidgetByInputUri(uri: URI): IChatWidget | undefined {

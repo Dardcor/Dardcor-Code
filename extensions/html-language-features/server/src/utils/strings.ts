@@ -11,7 +11,6 @@ export function getWordAtText(text: string, offset: number, wordDefinition: RegE
 	const offsetInLine = offset - lineStart;
 	const lineText = text.substr(lineStart);
 
-	// make a copy of the regex as to not keep the state
 	const flags = wordDefinition.ignoreCase ? 'gi' : 'g';
 	wordDefinition = new RegExp(wordDefinition.source, flags);
 

@@ -24,22 +24,10 @@ import { TextDirection } from '../../../common/model.js';
 
 const canUseFastRenderedViewLine = (function () {
 	if (platform.isNative) {
-		// In VSCode we know very well when the zoom level changes
 		return true;
 	}
 
 	if (platform.isLinux || browser.isFirefox || browser.isSafari) {
-		// On Linux, it appears that zooming affects char widths (in pixels), which is unexpected.
-		// --
-		// Even though we read character widths correctly, having read them at a specific zoom level
-		// does not mean they are the same at the current zoom level.
-		// --
-		// This could be improved if we ever figure out how to get an event when browsers zoom,
-		// but until then we have to stick with reading client rects.
-		// --
-		// The same has been observed with Firefox on Windows7
-		// --
-		// The same has been oversved with Safari
 		return false;
 	}
 
@@ -62,7 +50,6 @@ export class ViewLine implements IVisibleLine {
 		this._renderedViewLine = null;
 	}
 
-	// --- begin IVisibleLineData
 
 	public getDomNode(): HTMLElement | null {
 		if (this._renderedViewLine && this._renderedViewLine.domNode) {
@@ -107,7 +94,6 @@ export class ViewLine implements IVisibleLine {
 		}
 
 		if (this._isMaybeInvalid === false) {
-			// it appears that nothing relevant has changed
 			return false;
 		}
 
@@ -119,14 +105,12 @@ export class ViewLine implements IVisibleLine {
 		const renderWhitespace = options.experimentalWhitespaceRendering === 'off' ? options.renderWhitespace : 'none';
 		const allowFastRendering = !lineData.hasVariableFonts;
 
-		// Only send selection information when needed for rendering whitespace
 		let selectionsOnLine: OffsetRange[] | null = null;
 		if (isHighContrast(options.themeType) || renderWhitespace === 'selection') {
 			const selections = viewportData.selections;
 			for (const selection of selections) {
 
 				if (selection.endLineNumber < lineNumber || selection.startLineNumber > lineNumber) {
-					// Selection does not intersect line
 					continue;
 				}
 
@@ -173,7 +157,6 @@ export class ViewLine implements IVisibleLine {
 		);
 
 		if (this._renderedViewLine && this._renderedViewLine.input.equals(renderLineInput)) {
-			// no need to do anything, we have the same render input
 			return false;
 		}
 
@@ -240,7 +223,6 @@ export class ViewLine implements IVisibleLine {
 		}
 	}
 
-	// --- end IVisibleLineData
 
 	public isRenderedRTL(): boolean {
 		if (!this._renderedViewLine) {
@@ -297,7 +279,6 @@ export class ViewLine implements IVisibleLine {
 		const stopRenderingLineAfter = this._renderedViewLine.input.stopRenderingLineAfter;
 
 		if (stopRenderingLineAfter !== -1 && startColumn > stopRenderingLineAfter + 1 && endColumn > stopRenderingLineAfter + 1) {
-			// This range is obviously not visible
 			return new VisibleRanges(true, [new FloatHorizontalRange(this.getWidth(context), 0)]);
 		}
 
@@ -340,19 +321,9 @@ interface IRenderedViewLine {
 }
 
 const enum Constants {
-	/**
-	 * It seems that rounding errors occur with long lines, so the purely multiplication based
-	 * method is only viable for short lines. For longer lines, we look up the real position of
-	 * every 300th character and use multiplication based on that.
-	 *
-	 * See https://github.com/microsoft/vscode/issues/33178
-	 */
 	MaxMonospaceDistance = 300
 }
 
-/**
- * A rendered line which is guaranteed to contain only regular ASCII and is rendered with a monospace font.
- */
 class FastRenderedViewLine implements IRenderedViewLine {
 
 	public domNode: FastDomNode<HTMLElement> | null;
@@ -408,7 +379,6 @@ class FastRenderedViewLine implements IRenderedViewLine {
 			const expectedWidth = this.getWidth(null);
 			const actualWidth = (<HTMLSpanElement>this.domNode.domNode.firstChild).offsetWidth;
 			if (Math.abs(expectedWidth - actualWidth) >= 2) {
-				// more than 2px off
 				console.warn(`monospace assumptions have been violated, therefore disabling monospace optimizations!`);
 				monospaceAssumptionsAreValid = false;
 			}
@@ -444,7 +414,6 @@ class FastRenderedViewLine implements IRenderedViewLine {
 		}
 
 		if (keyColumnPixelOffset === -1) {
-			// Could not read actual key column pixel offset
 			const horizontalOffset = this._characterMapping.getHorizontalOffset(column);
 			return this._charWidth * horizontalOffset;
 		}
@@ -475,9 +444,6 @@ class FastRenderedViewLine implements IRenderedViewLine {
 	}
 }
 
-/**
- * Every time we render a line, we save what we have rendered in an instance of this class.
- */
 class RenderedViewLine implements IRenderedViewLine {
 
 	public domNode: FastDomNode<HTMLElement> | null;
@@ -488,9 +454,6 @@ class RenderedViewLine implements IRenderedViewLine {
 	private readonly _containsForeignElements: ForeignElementType;
 	private _cachedWidth: number;
 
-	/**
-	 * This is a map that is used only when the line is guaranteed to be rendered LTR and has no RTL text.
-	 */
 	private readonly _pixelOffsetCache: Float32Array | null;
 
 	constructor(domNode: FastDomNode<HTMLElement> | null, renderLineInput: RenderLineInput, characterMapping: CharacterMapping, containsForeignElements: ForeignElementType) {
@@ -510,15 +473,11 @@ class RenderedViewLine implements IRenderedViewLine {
 		}
 	}
 
-	// --- Reading from the DOM methods
 
 	protected _getReadingTarget(myDomNode: FastDomNode<HTMLElement>): HTMLElement {
 		return <HTMLSpanElement>myDomNode.domNode.firstChild;
 	}
 
-	/**
-	 * Width of the line in pixels
-	 */
 	public getWidth(context: DomReadingContext | null): number {
 		if (!this.domNode) {
 			return 0;
@@ -546,15 +505,11 @@ class RenderedViewLine implements IRenderedViewLine {
 		}
 	}
 
-	/**
-	 * Visible ranges for a model range
-	 */
 	public getVisibleRangesForRange(lineNumber: number, startColumn: number, endColumn: number, context: DomReadingContext): FloatHorizontalRange[] | null {
 		if (!this.domNode) {
 			return null;
 		}
 		if (this._pixelOffsetCache !== null) {
-			// the text is guaranteed to be entirely LTR
 			const startOffset = this._readPixelOffset(this.domNode, lineNumber, startColumn, context);
 			if (startOffset === -1) {
 				return null;
@@ -586,20 +541,15 @@ class RenderedViewLine implements IRenderedViewLine {
 
 	protected _readPixelOffset(domNode: FastDomNode<HTMLElement>, lineNumber: number, column: number, context: DomReadingContext): number {
 		if (this.input.isLTR && this._characterMapping.length === 0) {
-			// This line has no content
 			if (this._containsForeignElements === ForeignElementType.None) {
-				// We can assume the line is really empty
 				return 0;
 			}
 			if (this._containsForeignElements === ForeignElementType.After) {
-				// We have foreign elements after the (empty) line
 				return 0;
 			}
 			if (this._containsForeignElements === ForeignElementType.Before) {
-				// We have foreign elements before the (empty) line
 				return this.getWidth(context);
 			}
-			// We have foreign elements before & after the (empty) line
 			const readingTarget = this._getReadingTarget(domNode);
 			if (readingTarget.firstChild) {
 				context.markDidDomLayout();
@@ -610,7 +560,6 @@ class RenderedViewLine implements IRenderedViewLine {
 		}
 
 		if (this._pixelOffsetCache !== null) {
-			// the text is guaranteed to be LTR
 
 			const cachedPixelOffset = this._pixelOffsetCache[column];
 			if (cachedPixelOffset !== -1) {
@@ -627,7 +576,6 @@ class RenderedViewLine implements IRenderedViewLine {
 
 	private _actualReadPixelOffset(domNode: FastDomNode<HTMLElement>, lineNumber: number, column: number, context: DomReadingContext): number {
 		if (this._characterMapping.length === 0) {
-			// This line has no content
 			const r = RangeUtil.readHorizontalRanges(this._getReadingTarget(domNode), 0, 0, 0, 0, context);
 			if (!r || r.length === 0) {
 				return -1;
@@ -636,7 +584,6 @@ class RenderedViewLine implements IRenderedViewLine {
 		}
 
 		if (this.input.isLTR && column === this._characterMapping.length && this._isWhitespaceOnly && this._containsForeignElements === ForeignElementType.None) {
-			// This branch helps in the case of whitespace only lines which have a width set
 			return this.getWidth(context);
 		}
 
@@ -660,7 +607,6 @@ class RenderedViewLine implements IRenderedViewLine {
 	private _readRawVisibleRangesForRange(domNode: FastDomNode<HTMLElement>, startColumn: number, endColumn: number, context: DomReadingContext): FloatHorizontalRange[] | null {
 
 		if (this.input.isLTR && startColumn === 1 && endColumn === this._characterMapping.length) {
-			// This branch helps IE with bidi text & gives a performance boost to other browsers when reading visible ranges for an entire line
 
 			return [new FloatHorizontalRange(0, this.getWidth(context))];
 		}
@@ -671,9 +617,6 @@ class RenderedViewLine implements IRenderedViewLine {
 		return RangeUtil.readHorizontalRanges(this._getReadingTarget(domNode), startDomPosition.partIndex, startDomPosition.charIndex, endDomPosition.partIndex, endDomPosition.charIndex, context);
 	}
 
-	/**
-	 * Returns the column for the text found at a specific offset inside a rendered dom node
-	 */
 	public getColumnOfNodeOffset(spanNode: HTMLElement, offset: number): number {
 		return getColumnOfNodeOffset(this._characterMapping, spanNode, offset);
 	}
@@ -687,16 +630,11 @@ class WebKitRenderedViewLine extends RenderedViewLine {
 			return output;
 		}
 
-		// WebKit is buggy and returns an expanded range (to contain words in some cases)
-		// The last client rect is enlarged (I think)
 		if (this.input.isLTR) {
-			// This is an attempt to patch things up
-			// Find position of last column
 			const endPixelOffset = this._readPixelOffset(domNode, lineNumber, endColumn, context);
 			if (endPixelOffset !== -1) {
 				const lastRange = output[output.length - 1];
 				if (lastRange.left < endPixelOffset) {
-					// Trim down the width of the last visible range to not go after the last column's position
 					lastRange.width = endPixelOffset - lastRange.left;
 				}
 			}

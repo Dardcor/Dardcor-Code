@@ -10,9 +10,6 @@ import { ConstantTimePrefixSumComputer, PrefixSumComputer, PrefixSumIndexOfResul
 
 interface IPrefixSumComputer {
 	getTotalSum(): number;
-	/**
-	 * Returns sum of first `count` values: SUM(0 <= j < count, values[j]).
-	 */
 	getPrefixSum(count: number): number;
 	getIndexOf(sum: number): PrefixSumIndexOfResult;
 	setValue(index: number, value: number): void;
@@ -80,7 +77,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 			assert.deepStrictEqual(psc.getIndexOf(7), new PrefixSumIndexOfResult(4, 2));
 			assert.deepStrictEqual(psc.getIndexOf(8), new PrefixSumIndexOfResult(4, 3));
 
-			// [1, 2, 2, 1, 3]
 			psc.setValue(1, 2);
 			assert.strictEqual(psc.getTotalSum(), 9);
 			assert.strictEqual(psc.getPrefixSum(1), 1);
@@ -89,7 +85,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 			assert.strictEqual(psc.getPrefixSum(4), 6);
 			assert.strictEqual(psc.getPrefixSum(5), 9);
 
-			// [1, 0, 2, 1, 3]
 			psc.setValue(1, 0);
 			assert.strictEqual(psc.getTotalSum(), 7);
 			assert.strictEqual(psc.getPrefixSum(1), 1);
@@ -105,7 +100,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 			assert.deepStrictEqual(psc.getIndexOf(5), new PrefixSumIndexOfResult(4, 1));
 			assert.deepStrictEqual(psc.getIndexOf(6), new PrefixSumIndexOfResult(4, 2));
 
-			// [1, 0, 0, 1, 3]
 			psc.setValue(2, 0);
 			assert.strictEqual(psc.getTotalSum(), 5);
 			assert.strictEqual(psc.getPrefixSum(1), 1);
@@ -119,7 +113,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 			assert.deepStrictEqual(psc.getIndexOf(3), new PrefixSumIndexOfResult(4, 1));
 			assert.deepStrictEqual(psc.getIndexOf(4), new PrefixSumIndexOfResult(4, 2));
 
-			// [1, 0, 0, 0, 3]
 			psc.setValue(3, 0);
 			assert.strictEqual(psc.getTotalSum(), 4);
 			assert.strictEqual(psc.getPrefixSum(1), 1);
@@ -132,7 +125,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 			assert.deepStrictEqual(psc.getIndexOf(2), new PrefixSumIndexOfResult(4, 1));
 			assert.deepStrictEqual(psc.getIndexOf(3), new PrefixSumIndexOfResult(4, 2));
 
-			// [1, 1, 0, 1, 1]
 			psc.setValue(1, 1);
 			psc.setValue(3, 1);
 			psc.setValue(4, 1);
@@ -149,7 +141,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 		});
 	});
 
-	// --- getTotalSum ---
 
 	test('getTotalSum with typical values', () => {
 		forBoth([1, 1, 2, 1, 3], psc => assert.strictEqual(psc.getTotalSum(), 8));
@@ -172,7 +163,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 		forBoth([100], psc => assert.strictEqual(psc.getTotalSum(), 100));
 	});
 
-	// --- getPrefixSum ---
 
 	test('getPrefixSum with typical values', () => {
 		forBoth([1, 1, 2, 1, 3], psc => {
@@ -218,7 +208,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 		});
 	});
 
-	// --- getIndexOf ---
 
 	test('getIndexOf with typical values', () => {
 		forBoth([1, 1, 2, 1, 3], psc => {
@@ -294,7 +283,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 		});
 	});
 
-	// --- setValue ---
 
 	test('setValue no-op when value unchanged', () => {
 		forBoth([1, 2, 3], psc => {
@@ -394,7 +382,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 		});
 	});
 
-	// --- insertValues ---
 
 	test('insertValues at beginning', () => {
 		forBoth([3, 4], psc => {
@@ -464,7 +451,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 		});
 	});
 
-	// --- removeValues ---
 
 	test('removeValues from beginning', () => {
 		forBoth([1, 2, 3, 4], psc => {
@@ -524,7 +510,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 		});
 	});
 
-	// --- combined operations ---
 
 	test('insert then remove', () => {
 		forBoth([1, 2, 3], psc => {
@@ -554,7 +539,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 			psc.setValue(0, 5);
 			psc.insertValues(1, [10]);
 			psc.removeValues(3, 1);
-			// [5, 10, 1]
 			assert.strictEqual(psc.getTotalSum(), 16);
 			assert.deepStrictEqual(psc.getIndexOf(0), new PrefixSumIndexOfResult(0, 0));
 			assert.deepStrictEqual(psc.getIndexOf(4), new PrefixSumIndexOfResult(0, 4));
@@ -579,7 +563,6 @@ suite('Editor ViewModel - PrefixSumComputer', () => {
 		});
 	});
 
-	// --- edge cases ---
 
 	test('large values', () => {
 		forBoth([100, 200, 300], psc => {

@@ -73,12 +73,10 @@ class Tool {
 }
 
 export class ExtHostLanguageModelTools implements ExtHostLanguageModelToolsShape {
-	/** A map of tools that were registered in this EH */
 	private readonly _registeredTools = new Map<string, { extension: IExtensionDescription; tool: vscode.LanguageModelTool<Object> }>();
 	private readonly _proxy: MainThreadLanguageModelToolsShape;
-	private readonly _tokenCountFuncs = new Map</* call ID */string, (text: string, token?: vscode.CancellationToken) => Thenable<number>>();
+	private readonly _tokenCountFuncs = new Map< string, (text: string, token?: vscode.CancellationToken) => Thenable<number>>();
 
-	/** A map of all known tools, from other EHs or registered in vscode core */
 	private readonly _allTools = new Map<string, Tool>();
 
 	constructor(
@@ -119,7 +117,6 @@ export class ExtHostLanguageModelTools implements ExtHostLanguageModelToolsShape
 				throw new Error(`Invalid tool: ${toolId}`);
 			}
 
-			// Making the round trip here because not all tools were necessarily registered in this EH
 			const result = await this._proxy.$invokeTool({
 				toolId,
 				callId,
@@ -231,7 +228,6 @@ export class ExtHostLanguageModelTools implements ExtHostLanguageModelToolsShape
 			};
 		}
 
-		// todo: 'any' cast because TS can't handle the overloads
 		// eslint-disable-next-line local/code-no-any-casts
 		const extensionResult = await raceCancellation(Promise.resolve((item.tool.invoke as any)(options, token, progress!)), token);
 		if (!extensionResult) {
@@ -262,12 +258,10 @@ export class ExtHostLanguageModelTools implements ExtHostLanguageModelToolsShape
 			throw new Error(`Unknown tool ${toolId}`);
 		}
 
-		// Only call handleToolStream if it's defined on the tool
 		if (!item.tool.handleToolStream) {
 			return undefined;
 		}
 
-		// Ensure the chatParticipantAdditions API is enabled
 		checkProposedApiEnabled(item.extension, 'chatParticipantAdditions');
 
 		const options: vscode.LanguageModelToolInvocationStreamOptions<any> = {
@@ -356,7 +350,6 @@ export class ExtHostLanguageModelTools implements ExtHostLanguageModelToolsShape
 
 		const id = definition.name;
 
-		// Convert the definition to a DTO
 		const dto: IToolDefinitionDto = {
 			id,
 			displayName: definition.displayName,
@@ -373,7 +366,7 @@ export class ExtHostLanguageModelTools implements ExtHostLanguageModelToolsShape
 			models: definition.models,
 			toolSet: definition.toolSet,
 			tags: definition.tags,
-			fullReferenceName: undefined, // will be filled in on the main thread based on the extension ID and tool reference name
+			fullReferenceName: undefined,
 		};
 
 		this._registeredTools.set(id, { extension, tool });

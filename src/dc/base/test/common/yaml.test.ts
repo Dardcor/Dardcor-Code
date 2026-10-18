@@ -7,7 +7,6 @@ import * as assert from 'assert';
 import { parse, parseFrontMatter, parseCommaSeparatedList, YamlNode, YamlScalarNode, YamlMapNode, YamlSequenceNode, YamlParseError } from '../../common/yaml.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from './utils.js';
 
-// Helper to parse and assert no errors
 function parseOk(input: string): YamlNode | undefined {
 	const errors: YamlParseError[] = [];
 	const result = parse(input, errors);
@@ -15,7 +14,6 @@ function parseOk(input: string): YamlNode | undefined {
 	return result;
 }
 
-// Helper to assert a scalar node and verify its offsets match the raw value in the input
 function assertScalar(input: string, node: YamlNode | undefined, expected: { value: string; format?: 'single' | 'double' | 'none' | 'literal' | 'folded' }): void {
 	assert.ok(node, 'Expected a node but got undefined');
 	assert.strictEqual(node.type, 'scalar');
@@ -24,7 +22,6 @@ function assertScalar(input: string, node: YamlNode | undefined, expected: { val
 	if (expected.format !== undefined) {
 		assert.strictEqual(scalar.format, expected.format);
 	}
-	// Verify that the offsets correctly correspond to the rawValue in the input
 	assert.strictEqual(
 		input.substring(scalar.startOffset, scalar.endOffset),
 		scalar.rawValue,
@@ -32,7 +29,6 @@ function assertScalar(input: string, node: YamlNode | undefined, expected: { val
 	);
 }
 
-// Helper to assert a map node and return properties for further assertions
 function assertMap(node: YamlNode | undefined, expectedKeyCount: number): YamlMapNode {
 	assert.ok(node, 'Expected a node but got undefined');
 	assert.strictEqual(node.type, 'map', `Expected map but got ${node.type}`);
@@ -41,7 +37,6 @@ function assertMap(node: YamlNode | undefined, expectedKeyCount: number): YamlMa
 	return map;
 }
 
-// Helper to assert a sequence node and return items
 function assertSequence(node: YamlNode | undefined, expectedItemCount: number): YamlSequenceNode {
 	assert.ok(node, 'Expected a node but got undefined');
 	assert.strictEqual(node.type, 'sequence', `Expected sequence but got ${node.type}`);
@@ -252,7 +247,6 @@ suite('YAML Parser', () => {
 			assertScalar(input, seq.items[2], { value: 'Cherry' });
 		});
 
-		// Spec Example 2.4. Sequence of Mappings (229Q)
 		test('spec 2.4 - sequence of mappings (229Q)', () => {
 			const input = [
 				'-',
@@ -396,25 +390,20 @@ suite('YAML Parser', () => {
 			const node = parseOk(input);
 			const map = assertMap(node, 5);
 
-			// Nested object
 			const obj = assertMap(map.properties[0].value, 2);
 			assertScalar(input, obj.properties[0].value, { value: '123 Main St' });
 			assertScalar(input, obj.properties[1].value, { value: 'Example City', format: 'double' });
 
-			// Array
 			const arr = assertSequence(map.properties[1].value, 2);
 			assertScalar(input, arr.items[0], { value: 'Boston Red Sox' });
 			assertScalar(input, arr.items[1], { value: 'Detroit Tigers', format: 'single' });
 
-			// Inline object
 			const inlineObj = assertMap(map.properties[2].value, 2);
 			assertScalar(input, inlineObj.properties[0].value, { value: '65' });
 
-			// Inline array
 			const inlineArr = assertSequence(map.properties[3].value, 3);
 			assertScalar(input, inlineArr.items[0], { value: 'Sammy Sosa', format: 'single' });
 
-			// Boolean as scalar
 			assertScalar(input, map.properties[4].value, { value: 'false' });
 		});
 
@@ -465,7 +454,6 @@ suite('YAML Parser', () => {
 			assertScalar(input, hr.items[0], { value: 'Mark McGwire' });
 
 			const rbi = assertSequence(map.properties[1].value, 2);
-			// '#' without leading space is part of the value
 			assertScalar(input, rbi.items[1], { value: 'Ken Griffey#part of the value, not a comment' });
 		});
 	});
@@ -514,7 +502,6 @@ suite('YAML Parser', () => {
 			].join('\n');
 			const node = parse(input, errors);
 			assert.ok(node);
-			// Should have produced an indentation error
 			assert.ok(errors.some(e => e.code === 'unexpected-indentation'));
 		});
 	});
@@ -635,7 +622,6 @@ suite('YAML Parser', () => {
 				' val3',
 			].join('\n');
 			const map = assertMap(parseOk(input), 1);
-			// Empty line between val2 and val3 becomes \n
 			assertScalar(input, map.properties[0].value, { value: 'val1 val2\nval3' });
 		});
 
@@ -666,7 +652,6 @@ suite('YAML Parser', () => {
 				'# a comment',
 				'value2',
 			].join('\n');
-			// Comment terminates the scalar continuation, so value2 is not part of value1
 			const result = parseOk(input);
 			assertScalar(input, result, { value: 'value1' });
 		});
@@ -903,7 +888,6 @@ suite('YAML Parser', () => {
 		});
 
 		test('flow sequence with mixed types', () => {
-			// Note: current parser treats all values as scalars (strings), not typed
 			const input = 'vals: [1, true, null, "str"]';
 			const node = parseOk(input);
 			const map = assertMap(node, 1);
@@ -954,7 +938,6 @@ suite('YAML Parser', () => {
 			assertScalar(input, map.properties[0].value, { value: '1' });
 			assertScalar(input, map.properties[1].key, { value: 'stray' });
 			assertScalar(input, map.properties[1].value, { value: 'value' });
-			// Should report an indentation error
 			assert.ok(errors.some(e => e.code === 'unexpected-indentation'));
 		});
 
@@ -1092,7 +1075,6 @@ suite('YAML Parser', () => {
 			const node = parse(input, errors);
 			const map = assertMap(node, 1);
 			assertScalar(input, map.properties[0].key, { value: 'name' });
-			// Parser should recover: value should be 'John' (sans quote)
 			assertScalar(input, map.properties[0].value, { value: 'John' });
 		});
 
@@ -1292,7 +1274,6 @@ suite('YAML Parser', () => {
 		});
 
 		test('double-quoted items', () => {
-			// Value is: "hello", "world"  — pass it directly as a string with known offset.
 			const items = parseCommaSeparatedList('"hello", "world"', 0);
 			assert.strictEqual(items.length, 2);
 			assert.strictEqual(items[0].value, 'hello');
@@ -1330,7 +1311,6 @@ suite('YAML Parser', () => {
 			const offset = 10;
 			const items = parseCommaSeparatedList(value, offset);
 			assert.strictEqual(items.length, 3);
-			// Each item's rawValue should appear at startOffset within `offset + value`
 			const doc = ' '.repeat(offset) + value;
 			for (const item of items) {
 				assert.strictEqual(doc.substring(item.startOffset, item.endOffset), item.rawValue);

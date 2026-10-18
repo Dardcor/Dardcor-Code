@@ -68,7 +68,6 @@ suite('Notebook Document', function () {
 		const p = new Promise<void>((resolve, reject) => {
 			const sub = vscode.workspace.onDidOpenTextDocument(doc => {
 				if (doc.uri.scheme !== 'vscode-notebook-cell') {
-					// ignore other open events
 					return;
 				}
 				const notebook = vscode.workspace.notebookDocuments.find(notebook => {
@@ -117,7 +116,6 @@ suite('Notebook Document', function () {
 		assert.strictEqual(nb.isUntitled, true);
 		assert.strictEqual(nb.isClosed, false);
 		assert.strictEqual(nb.uri.scheme, 'untitled');
-		// assert.strictEqual(nb.cellCount, 0); // NotebookSerializer ALWAYS returns something here
 	});
 
 	test('open untitled with data', async function () {
@@ -143,7 +141,6 @@ suite('Notebook Document', function () {
 		const document = await vscode.workspace.openNotebookDocument(uri);
 		assert.strictEqual(document.cellCount, 1);
 
-		// inserting two new cells
 		{
 			const edit = new vscode.WorkspaceEdit();
 			edit.set(document.uri, [vscode.NotebookEdit.replaceCells(new vscode.NotebookRange(0, 0), [{
@@ -168,7 +165,6 @@ suite('Notebook Document', function () {
 		assert.strictEqual(document.cellAt(0).document.getText(), 'new_markdown');
 		assert.strictEqual(document.cellAt(1).document.getText(), 'new_code');
 
-		// deleting cell 1 and 3
 		{
 			const edit = new vscode.WorkspaceEdit();
 			edit.set(document.uri, [
@@ -182,7 +178,6 @@ suite('Notebook Document', function () {
 		assert.strictEqual(document.cellCount, 1);
 		assert.strictEqual(document.cellAt(0).document.getText(), 'new_code');
 
-		// replacing all cells
 		{
 			const edit = new vscode.WorkspaceEdit();
 			edit.set(document.uri, [vscode.NotebookEdit.replaceCells(new vscode.NotebookRange(0, 1), [{
@@ -205,7 +200,6 @@ suite('Notebook Document', function () {
 		assert.strictEqual(document.cellAt(0).document.getText(), 'new2_markdown');
 		assert.strictEqual(document.cellAt(1).document.getText(), 'new2_code');
 
-		// remove all cells
 		{
 			const edit = new vscode.WorkspaceEdit();
 			edit.set(document.uri, [vscode.NotebookEdit.replaceCells(new vscode.NotebookRange(0, document.cellCount), [])]);
@@ -242,12 +236,10 @@ suite('Notebook Document', function () {
 
 		const data = await event;
 
-		// check document
 		assert.strictEqual(document.cellCount, 3);
 		assert.strictEqual(document.cellAt(0).document.getText(), 'new_markdown');
 		assert.strictEqual(document.cellAt(1).document.getText(), 'new_code');
 
-		// check event data
 		assert.strictEqual(data.notebook === document, true);
 		assert.strictEqual(data.contentChanges.length, 1);
 		assert.strictEqual(data.contentChanges[0].range.isEmpty, true);
@@ -280,10 +272,8 @@ suite('Notebook Document', function () {
 		assert.strictEqual(success, true);
 		const data = await event;
 
-		// check document
 		assert.strictEqual(document.cellAt(0).metadata.inputCollapsed, true);
 
-		// check event data
 		assert.strictEqual(data.notebook === document, true);
 		assert.strictEqual(data.contentChanges.length, 0);
 		assert.strictEqual(data.cellChanges.length, 1);
@@ -349,7 +339,7 @@ suite('Notebook Document', function () {
 		assert.strictEqual(document.isDirty, false);
 	});
 
-	test.skip('onDidOpenNotebookDocument - emit event only once when opened in two editors', async function () { // TODO@rebornix https://github.com/microsoft/vscode/issues/157222
+	test.skip('onDidOpenNotebookDocument - emit event only once when opened in two editors', async function () {
 		const uri = await utils.createRandomFile(undefined, undefined, '.nbdtest');
 		let counter = 0;
 		testDisposables.push(vscode.workspace.onDidOpenNotebookDocument(nb => {

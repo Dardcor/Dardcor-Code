@@ -19,9 +19,6 @@ export function isAskQuestionsToolInvocation(toolInvocation: IChatToolInvocation
 		|| toolInvocation.toolId === 'request_user_input';
 }
 
-/**
- * Determines whether a tool invocation's progress text should shimmer.
- */
 export function shouldShimmerForTool(toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized, content: string | IMarkdownString | undefined): boolean {
 	if (!isAskQuestionsToolInvocation(toolInvocation) || IChatToolInvocation.isComplete(toolInvocation)) {
 		return false;
@@ -36,11 +33,6 @@ function getMarkdownValue(content: string | IMarkdownString | undefined): string
 		.replace(/\\[\\`*_{}\[\]()#+\-!~]/g, escaped => escaped.slice(1));
 }
 
-/**
- * Creates a markdown message explaining why a tool was auto-approved.
- * @param toolInvocation The tool invocation to get the approval message for
- * @returns A markdown string with the approval message, or undefined if no message should be shown
- */
 export function getToolApprovalMessage(toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized): IMarkdownString | undefined {
 	const reason = IChatToolInvocation.executionConfirmedOrDenied(toolInvocation);
 	if (!reason || typeof reason === 'boolean') {
@@ -50,11 +42,6 @@ export function getToolApprovalMessage(toolInvocation: IChatToolInvocation | ICh
 	return getApprovalMessageFromReason(reason);
 }
 
-/**
- * Creates a markdown message from a ConfirmedReason explaining why a tool was auto-approved.
- * @param reason The confirmation reason
- * @returns A markdown string with the approval message, or undefined if no message should be shown
- */
 export function getApprovalMessageFromReason(reason: ConfirmedReason): IMarkdownString | undefined {
 	let md: string;
 	switch (reason.type) {

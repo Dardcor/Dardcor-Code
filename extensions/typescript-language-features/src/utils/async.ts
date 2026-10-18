@@ -12,7 +12,7 @@ export interface ITask<T> {
 export class Delayer<T> {
 
 	public defaultDelay: number;
-	private timeout: any; // Timer
+	private timeout: any;
 	private completionPromise: Promise<T | undefined> | null;
 	private onSuccess: ((value: T | PromiseLike<T> | undefined) => void) | null;
 	private task: ITask<T> | null;
@@ -72,32 +72,6 @@ export function setImmediate(callback: (...args: unknown[]) => void, ...args: un
 }
 
 
-/**
- * A helper to prevent accumulation of sequential async tasks.
- *
- * Imagine a mail man with the sole task of delivering letters. As soon as
- * a letter submitted for delivery, he drives to the destination, delivers it
- * and returns to his base. Imagine that during the trip, N more letters were submitted.
- * When the mail man returns, he picks those N letters and delivers them all in a
- * single trip. Even though N+1 submissions occurred, only 2 deliveries were made.
- *
- * The throttler implements this via the queue() method, by providing it a task
- * factory. Following the example:
- *
- * 		const throttler = new Throttler();
- * 		const letters = [];
- *
- * 		function deliver() {
- * 			const lettersToDeliver = letters;
- * 			letters = [];
- * 			return makeTheTrip(lettersToDeliver);
- * 		}
- *
- * 		function onLetterReceived(l) {
- * 			letters.push(l);
- * 			throttler.queue(deliver);
- * 		}
- */
 export class Throttler {
 
 	private activePromise: Promise<any> | null;

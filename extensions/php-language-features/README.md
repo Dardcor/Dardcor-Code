@@ -4,4 +4,4 @@
 
 ## Features
 
-See [PHP in Visual Studio Code](https://code.visualstudio.com/docs/languages/php) to learn about the features of this extension.
+See [PHP in Visual Studio Code](https://www.dardcor-code.web.id/docs/languages/php) to learn about the features of this extension.

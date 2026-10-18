@@ -3,8 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Copied from https://github.com/microsoft/vscode/blob/d49049e5263a64cba8c9ca33f89bb0ad198f3391/src/vs/platform/mcp/test/common/mcpManagementService.test.ts
-// Refactored to use vitest
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IGalleryMcpServerConfiguration, IMcpServerVariable, McpMappingUtility, McpServerType, McpServerVariableType, RegistryType, TransportType } from '../../dardcor-node/nuget';
@@ -102,7 +100,7 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 					version: '1.0.2',
 					environmentVariables: [{
 						name: 'BRAVE_API_KEY',
-						value: '', // Empty value should create input variable
+						value: '',
 						description: 'Brave Search API Key',
 						isRequired: true,
 						isSecret: true
@@ -112,15 +110,12 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.NODE);
 
-			// BUG: Currently this creates env with empty string instead of input variable
-			// Should create an input variable since no meaningful value is provided
 			expect(result.mcpServerConfiguration.inputs?.length).toBe(1);
 			expect(result.mcpServerConfiguration.inputs?.[0].id).toBe('BRAVE_API_KEY');
 			expect(result.mcpServerConfiguration.inputs?.[0].description).toBe('Brave Search API Key');
 			expect(result.mcpServerConfiguration.inputs?.[0].password).toBe(true);
 			expect(result.mcpServerConfiguration.inputs?.[0].type).toBe(McpServerVariableType.PROMPT);
 
-			// Environment should use input variable interpolation
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				expect(result.mcpServerConfiguration.config.env).toEqual({ 'BRAVE_API_KEY': '${input:BRAVE_API_KEY}' });
 			}
@@ -134,7 +129,7 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 					version: '1.0.0',
 					environmentVariables: [{
 						name: 'SSL_MODE',
-						value: '', // Empty value should create input variable
+						value: '',
 						description: 'SSL connection mode',
 						default: 'prefer',
 						choices: ['disable', 'prefer', 'require']
@@ -144,8 +139,6 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.NODE);
 
-			// BUG: Currently this creates env with empty string instead of input variable
-			// Should create a pick input variable since choices are provided
 			expect(result.mcpServerConfiguration.inputs?.length).toBe(1);
 			expect(result.mcpServerConfiguration.inputs?.[0].id).toBe('SSL_MODE');
 			expect(result.mcpServerConfiguration.inputs?.[0].description).toBe('SSL connection mode');
@@ -153,7 +146,6 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 			expect(result.mcpServerConfiguration.inputs?.[0].type).toBe(McpServerVariableType.PICK);
 			expect(result.mcpServerConfiguration.inputs?.[0].options).toEqual(['disable', 'prefer', 'require']);
 
-			// Environment should use input variable interpolation
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				expect(result.mcpServerConfiguration.config.env).toEqual({ 'SSL_MODE': '${input:SSL_MODE}' });
 			}
@@ -328,22 +320,18 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 						default: 'localhost',
 						isRequired: true,
 						isRepeated: false
-						// Note: No 'value' field - should create input variable
 					}, {
 						type: 'positional',
 						valueHint: 'database_name',
 						description: 'Name of the database to connect to',
 						isRequired: true,
 						isRepeated: false
-						// Note: No 'value' field - should create input variable
 					}]
 				}]
 			};
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.DOCKER);
 
-			// BUG: Currently named args without value are ignored, positional uses value_hint as literal
-			// Should create input variables for both arguments
 			expect(result.mcpServerConfiguration.inputs?.length).toBe(2);
 
 			const hostInput = result.mcpServerConfiguration.inputs?.find((i: IMcpServerVariable) => i.id === 'host');
@@ -355,7 +343,6 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 			expect(dbNameInput?.description).toBe('Name of the database to connect to');
 			expect(dbNameInput?.type).toBe(McpServerVariableType.PROMPT);
 
-			// Args should use input variable interpolation
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				expect(result.mcpServerConfiguration.config.args).toEqual([
 					'run', '-i', '--rm',
@@ -527,13 +514,11 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 						description: 'API token for authentication',
 						isSecret: true,
 						isRequired: true
-						// Note: No 'value' field - should create input variable
 					}, {
 						name: 'X-Custom-Header',
 						description: 'Custom header value',
 						default: 'default-value',
 						choices: ['option1', 'option2', 'option3']
-						// Note: No 'value' field - should create input variable with choices
 					}]
 				}]
 			};
@@ -549,7 +534,6 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 				});
 			}
 
-			// Should create input variables for headers without values
 			expect(result.mcpServerConfiguration.inputs?.length).toBe(2);
 
 			const authInput = result.mcpServerConfiguration.inputs?.find((i: IMcpServerVariable) => i.id === 'Authorization');
@@ -701,21 +685,17 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 						description: 'Type of calculation to enable',
 						isRequired: true,
 						isRepeated: false
-						// Note: No 'value' field, only value_hint - should create input variable
 					}]
 				}]
 			};
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.NODE);
 
-			// BUG: Currently value_hint is used as literal value instead of creating input variable
-			// Should create input variable instead
 			expect(result.mcpServerConfiguration.inputs?.length).toBe(1);
 			expect(result.mcpServerConfiguration.inputs?.[0].id).toBe('calculation_type');
 			expect(result.mcpServerConfiguration.inputs?.[0].description).toBe('Type of calculation to enable');
 			expect(result.mcpServerConfiguration.inputs?.[0].type).toBe(McpServerVariableType.PROMPT);
 
-			// Args should use input variable interpolation
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				expect(result.mcpServerConfiguration.config.args).toEqual([
 					'@example/math-tool@2.0.1',
@@ -747,7 +727,7 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			expect(result.mcpServerConfiguration.config.type).toBe(McpServerType.LOCAL);
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
-				expect(result.mcpServerConfiguration.config.command).toBe('uvx'); // Python command since that's the package type
+				expect(result.mcpServerConfiguration.config.command).toBe('uvx');
 				expect(result.mcpServerConfiguration.config.args).toEqual(['python-server==1.0.0']);
 			}
 		});
@@ -847,10 +827,9 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest as IGalleryMcpServerConfiguration, RegistryType.NODE);
 
-			// Should generate a notice about the missing name
 			expect(result.notices.length).toBe(1);
 			expect(result.notices[0].includes('Named argument is missing a name')).toBeTruthy();
-			expect(result.notices[0].includes('some-value')).toBeTruthy(); // Should include the argument details in JSON format
+			expect(result.notices[0].includes('some-value')).toBeTruthy();
 
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				expect(result.mcpServerConfiguration.config.args).toEqual(['test-server@1.0.0']);
@@ -874,10 +853,9 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 
 			const result = service.getMcpServerConfigurationFromManifest(manifest, RegistryType.NODE);
 
-			// Should generate a notice about the missing name
 			expect(result.notices.length).toBe(1);
 			expect(result.notices[0].includes('Named argument is missing a name')).toBeTruthy();
-			expect(result.notices[0].includes('some-value')).toBeTruthy(); // Should include the argument details in JSON format
+			expect(result.notices[0].includes('some-value')).toBeTruthy();
 
 			if (result.mcpServerConfiguration.config.type === McpServerType.LOCAL) {
 				expect(result.mcpServerConfiguration.config.args).toEqual(['test-server@1.0.0']);
@@ -895,7 +873,7 @@ describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 					environmentVariables: [{
 						name: 'API_KEY',
 						value: 'Bearer {api_key}',
-						description: 'Should not be used', // This should be ignored since we have explicit variables
+						description: 'Should not be used',
 						variables: {
 							api_key: {
 								description: 'Your API key',

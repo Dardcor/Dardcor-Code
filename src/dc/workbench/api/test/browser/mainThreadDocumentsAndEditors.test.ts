@@ -209,7 +209,7 @@ suite('MainThreadDocumentsAndEditors', () => {
 	});
 
 	test('ignore simple widget model', function () {
-		this.timeout(1000 * 60); // increase timeout for this one test
+		this.timeout(1000 * 60);
 
 		const model = modelService.createModel('test', null, undefined, true);
 		disposables.add(model);
@@ -265,7 +265,6 @@ suite('MainThreadDocumentsAndEditors', () => {
 		const model = modelService.createModel('farboo', null);
 		const editor = myCreateTestCodeEditor(model);
 
-		// ignore things until now
 		deltas.length = 0;
 
 		modelService.destroyModel(model.uri);

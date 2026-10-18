@@ -49,22 +49,15 @@ export interface IMergeEditorInputModel extends IDisposable {
 
 	save(options?: ITextFileSaveOptions): Promise<void>;
 
-	/**
-	 * If save resets the dirty state, revert must do so too.
-	*/
 	revert(options?: IRevertOptions): Promise<void>;
 
 	shouldConfirmClose(): boolean;
 
 	confirmClose(inputModels: IMergeEditorInputModel[]): Promise<ConfirmResult>;
 
-	/**
-	 * Marks the merge as done. The merge editor must be closed afterwards.
-	*/
 	accept(): Promise<void>;
 }
 
-/* ================ Temp File ================ */
 
 export class TempFileMergeEditorModeFactory implements IMergeEditorInputModelFactory {
 	constructor(
@@ -147,7 +140,7 @@ class TempFileMergeEditorInputModel extends EditorModel implements IMergeEditorI
 		this.savedAltVersionId = observableValue(this, this.model.resultTextModel.getAlternativeVersionId());
 		this.altVersionId = observableFromEvent(this,
 			e => this.model.resultTextModel.onDidChangeContent(e),
-			() => /** @description getAlternativeVersionId */ this.model.resultTextModel.getAlternativeVersionId()
+			() => this.model.resultTextModel.getAlternativeVersionId()
 		);
 		this.isDirty = derived(this, (reader) => this.altVersionId.read(reader) !== this.savedAltVersionId.read(reader));
 		this.finished = false;
@@ -226,13 +219,10 @@ class TempFileMergeEditorInputModel extends EditorModel implements IMergeEditorI
 		}
 
 		if (choice === ConfirmResult.SAVE) {
-			// save with conflicts
 			await Promise.all(inputModels.map(m => m.accept()));
 		} else if (choice === ConfirmResult.DONT_SAVE) {
-			// discard changes
 			await Promise.all(inputModels.map(m => m._discard()));
 		} else {
-			// cancel: stay in editor
 		}
 		return choice;
 	}
@@ -241,8 +231,6 @@ class TempFileMergeEditorInputModel extends EditorModel implements IMergeEditorI
 		if (this.finished) {
 			return;
 		}
-		// It does not make sense to save anything in the temp file mode.
-		// The file stays dirty from the first edit on.
 
 		(async () => {
 			const { confirmed } = await this.dialogService.confirm({
@@ -266,11 +254,9 @@ class TempFileMergeEditorInputModel extends EditorModel implements IMergeEditorI
 	}
 
 	public async revert(options?: IRevertOptions): Promise<void> {
-		// no op
 	}
 }
 
-/* ================ Workspace ================ */
 
 export class WorkspaceMergeEditorModeFactory implements IMergeEditorInputModelFactory {
 	constructor(
@@ -299,7 +285,7 @@ export class WorkspaceMergeEditorModeFactory implements IMergeEditorInputModelFa
 				dispose: () => v.dispose(),
 			})).catch(e => {
 				onUnexpectedError(e);
-				console.error(e); // Only file not found error should be handled ideally
+				console.error(e);
 				return undefined;
 			}),
 			this._textModelService.createModelReference(args.result),
@@ -324,7 +310,6 @@ export class WorkspaceMergeEditorModeFactory implements IMergeEditorInputModelFa
 		if (!resultTextFileModel) {
 			throw new BugIndicatingError();
 		}
-		// So that "Don't save" does revert the file
 		await resultTextFileModel.save({ source: WorkspaceMergeEditorModeFactory.FILE_SAVED_SOURCE });
 
 		const lines = resultTextFileModel.textEditorModel!.getLinesContent();
@@ -370,7 +355,7 @@ class WorkspaceMergeEditorInputModel extends EditorModel implements IMergeEditor
 		super();
 		this.isDirty = observableFromEvent(this,
 			Event.any(this.resultTextFileModel.onDidChangeDirty, this.resultTextFileModel.onDidSaveError),
-			() => /** @description isDirty */ this.resultTextFileModel.isDirty()
+			() => this.resultTextFileModel.isDirty()
 		);
 		this.reported = false;
 		this.dateTimeOpened = new Date();
@@ -428,15 +413,11 @@ class WorkspaceMergeEditorInputModel extends EditorModel implements IMergeEditor
 		await this.resultTextFileModel.save(options);
 	}
 
-	/**
-	 * If save resets the dirty state, revert must do so too.
-	*/
 	async revert(options?: IRevertOptions): Promise<void> {
 		await this.resultTextFileModel.revert(options);
 	}
 
 	shouldConfirmClose(): boolean {
-		// Always confirm
 		return true;
 	}
 
@@ -499,13 +480,11 @@ class WorkspaceMergeEditorInputModel extends EditorModel implements IMergeEditor
 
 			return confirmed ? ConfirmResult.SAVE : ConfirmResult.CANCEL;
 		} else {
-			// This shouldn't do anything
 			return ConfirmResult.SAVE;
 		}
 	}
 }
 
-/* ================= Utils ================== */
 
 async function toInputData(data: MergeEditorInputData, textModelService: ITextModelService, store: DisposableStore): Promise<InputData> {
 	const ref = await textModelService.createModelReference(data.uri);

@@ -69,7 +69,6 @@ class LanguageDetectionStatusContribution implements IWorkbenchContribution {
 
 		this._renderDisposables.clear();
 
-		// update when editor language changes
 		editor?.onDidChangeModelLanguage(() => this._update(true), this, this._renderDisposables);
 		editor?.onDidChangeModelContent(() => this._update(false), this, this._renderDisposables);
 		const editorModel = editor?.getModel();

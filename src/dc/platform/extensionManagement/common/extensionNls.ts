@@ -18,15 +18,10 @@ export function localizeManifest(logger: ILogger, extensionManifest: IExtensionM
 		replaceNLStrings(logger, extensionManifest, translations, fallbackTranslations);
 	} catch (error) {
 		logger.error(error?.message ?? error);
-		/*Ignore Error*/
 	}
 	return extensionManifest;
 }
 
-/**
- * This routine makes the following assumptions:
- * The root element is an object literal
- */
 function replaceNLStrings(logger: ILogger, extensionManifest: IExtensionManifest, messages: ITranslations, originalMessages?: ITranslations): void {
 	const processEntry = (obj: Record<string, unknown>, key: string | number, command?: boolean) => {
 		const value = obj[key];
@@ -36,14 +31,11 @@ function replaceNLStrings(logger: ILogger, extensionManifest: IExtensionManifest
 			if (length > 1 && str[0] === '%' && str[length - 1] === '%') {
 				const messageKey = str.substr(1, length - 2);
 				let translated = messages[messageKey];
-				// If the messages come from a language pack they might miss some keys
-				// Fill them from the original messages.
 				if (translated === undefined && originalMessages) {
 					translated = originalMessages[messageKey];
 				}
 				const message: string | undefined = typeof translated === 'string' ? translated : translated?.message;
 
-				// This branch returns ILocalizedString's instead of Strings so that the Command Palette can contain both the localized and the original value.
 				const original = originalMessages?.[messageKey];
 				const originalMessage: string | undefined = typeof original === 'string' ? original : original?.message;
 
@@ -55,9 +47,7 @@ function replaceNLStrings(logger: ILogger, extensionManifest: IExtensionManifest
 				}
 
 				if (
-					// if we are translating the title or category of a command
 					command && (key === 'title' || key === 'category') &&
-					// and the original value is not the same as the translated value
 					originalMessage && originalMessage !== message
 				) {
 					const localizedString: ILocalizedString = {

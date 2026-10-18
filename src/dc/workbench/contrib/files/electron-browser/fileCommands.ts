@@ -10,7 +10,6 @@ import { Schemas } from '../../../../base/common/network.js';
 import { INativeHostService } from '../../../../platform/native/common/native.js';
 import { getRemoteName, getRemoteServerRootPath } from '../../../../platform/remote/common/remoteHosts.js';
 
-// Commands
 
 export function revealResourcesInOS(resources: URI[], nativeHostService: INativeHostService, workspaceContextService: IWorkspaceContextService): void {
 	if (resources.length) {
@@ -28,10 +27,6 @@ export function revealResourcesInOS(resources: URI[], nativeHostService: INative
 	}
 }
 
-/**
- * Converts a resource URI to a local file URI.
- * For WSL remote resources, constructs a UNC path (e.g. \\wsl$\Ubuntu\...).
- */
 function toLocalFileUri(resource: URI): URI | undefined {
 	switch (resource.scheme) {
 		case Schemas.file:

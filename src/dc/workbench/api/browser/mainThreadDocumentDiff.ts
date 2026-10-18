@@ -58,6 +58,5 @@ export class MainThreadDocumentDiff implements MainThreadDocumentDiffShape {
 	}
 
 	dispose(): void {
-		// nothing to dispose
 	}
 }

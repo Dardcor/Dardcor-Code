@@ -14,7 +14,6 @@ import { CancellationError } from '../../../../base/common/errors.js';
 suite('Request Service', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Kerberos module fails to load on local macOS and Linux CI.
 	(isWindows ? test : test.skip)('Kerberos lookup', async () => {
 		try {
 			const logService = store.add(new NullLogService());
@@ -40,8 +39,6 @@ suite('Request Service', () => {
 					if (event === 'error') {
 						const err = new Error('Connection refused') as NodeJS.ErrnoException;
 						err.code = 'ECONNREFUSED';
-						// Fail the first attempt with a transient error, then cancel while the
-						// retry backoff is pending so cancellation is observed during the backoff.
 						setTimeout(() => {
 							handler(err);
 							cts.cancel();
@@ -85,7 +82,6 @@ suite('Request Service', () => {
 				},
 				end: () => {
 					if (currentAttempt >= 3) {
-						// Succeed on third attempt by calling the response callback
 						setTimeout(() => callback({ statusCode: 200, headers: {}, on: () => { }, pipe: () => ({ on: () => { } }) }), 0);
 					}
 				},
@@ -103,7 +99,6 @@ suite('Request Service', () => {
 				callSite: 'requestService.test.retryGET'
 			}, CancellationToken.None);
 		} catch (err) {
-			// Expected to eventually succeed or fail after retries
 		}
 
 		assert.ok(attemptCount > 1, 'GET request should have been retried');
@@ -175,7 +170,6 @@ suite('Request Service', () => {
 				callSite: 'requestService.test.retryHEAD'
 			}, CancellationToken.None);
 		} catch (err) {
-			// Expected to eventually succeed or fail after retries
 		}
 
 		assert.ok(attemptCount > 1, 'HEAD request should have been retried');
@@ -213,7 +207,6 @@ suite('Request Service', () => {
 				callSite: 'requestService.test.retryOPTIONS'
 			}, CancellationToken.None);
 		} catch (err) {
-			// Expected to eventually succeed or fail after retries
 		}
 
 		assert.ok(attemptCount > 1, 'OPTIONS request should have been retried');

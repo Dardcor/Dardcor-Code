@@ -42,7 +42,6 @@ export class TerminalCommandArtifactCollector {
 				return;
 			}
 
-			// Command not found in finished commands - try to capture current/partial command output
 			const partialSnapshot = await this._capturePartialCommandOutput(instance, commandId);
 			if (partialSnapshot) {
 				toolSpecificData.terminalCommandOutput = partialSnapshot;
@@ -70,10 +69,6 @@ export class TerminalCommandArtifactCollector {
 		});
 	}
 
-	/**
-	 * Captures output from a partial/current command that hasn't finished yet.
-	 * This is used when the command is cancelled mid-execution.
-	 */
 	private async _capturePartialCommandOutput(instance: ITerminalInstance, commandId: string): Promise<IChatTerminalToolInvocationData['terminalCommandOutput'] | undefined> {
 		try {
 			await instance.xtermReadyPromise;
@@ -85,15 +80,12 @@ export class TerminalCommandArtifactCollector {
 			return undefined;
 		}
 
-		// Try to find the current/partial command
 		const commandDetection = instance.capabilities.get(TerminalCapability.CommandDetection);
 		const currentCommand = commandDetection?.currentCommand;
 		if (currentCommand && (currentCommand as { id?: string }).id === commandId) {
-			// Use commandExecutedMarker from partial command
 			const executedMarker = currentCommand.commandExecutedMarker;
 			if (executedMarker && !executedMarker.isDisposed) {
 				try {
-					// Get text from executed marker to current cursor position
 					const raw = xterm.raw;
 					const buffer = raw.buffer.active;
 					const endLine = buffer.baseY + buffer.cursorY;

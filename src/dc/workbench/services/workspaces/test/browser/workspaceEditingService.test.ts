@@ -58,16 +58,13 @@ suite('WorkspaceEditingService', () => {
 			let waitCompleted = false;
 			const waitPromise = event.wait().then(() => { waitCompleted = true; });
 
-			// Should not be completed yet
 			await Promise.resolve();
 			assert.strictEqual(waitCompleted, false);
 
-			// Resolve first promise
 			resolve1!();
 			await Promise.resolve();
 			assert.strictEqual(waitCompleted, false);
 
-			// Resolve second promise
 			resolve2!();
 			await waitPromise;
 			assert.strictEqual(waitCompleted, true);
@@ -78,7 +75,6 @@ suite('WorkspaceEditingService', () => {
 			const event = new DidEnterWorkspaceEvent(UNKNOWN_EMPTY_WINDOW_WORKSPACE, newWorkspace);
 
 			await event.wait();
-			// Should complete without error
 		});
 	});
 

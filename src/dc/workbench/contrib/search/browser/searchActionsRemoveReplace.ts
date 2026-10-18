@@ -27,7 +27,6 @@ import { MatchInNotebook } from './notebookSearch/notebookSearchModel.js';
 import { AITextSearchHeadingImpl } from './AISearch/aiSearchModel.js';
 
 
-//#region Interfaces
 export interface ISearchActionContext {
 	readonly viewer: WorkbenchCompressibleAsyncDataTree<ISearchResult, RenderableMatch>;
 	readonly element: RenderableMatch;
@@ -48,9 +47,7 @@ export interface IFindInFilesArgs {
 	onlyOpenEditors?: boolean;
 }
 
-//#endregion
 
-//#region Actions
 registerAction2(class RemoveAction extends Action2 {
 
 	constructor(
@@ -125,11 +122,10 @@ registerAction2(class RemoveAction extends Action2 {
 			searchResult.batchRemove(elementsToRemove);
 		}
 
-		await searchView.queueRefreshTree(); // wait for refreshTree to finish
+		await searchView.queueRefreshTree();
 
 		if (focusElement && shouldRefocusMatch) {
 			if (!nextFocusElement) {
-				// Ignore error if there are no elements left
 				nextFocusElement = await getLastNodeFromSameType(viewer, focusElement).catch(() => { });
 			}
 
@@ -255,9 +251,7 @@ registerAction2(class ReplaceAllInFolderAction extends Action2 {
 	}
 });
 
-//#endregion
 
-//#region Helpers
 
 async function performReplace(accessor: ServicesAccessor,
 	context: ISearchActionContext | undefined) {
@@ -273,7 +267,6 @@ async function performReplace(accessor: ServicesAccessor,
 	}
 	const element: RenderableMatch | null = context?.element ?? viewer.getFocus()[0];
 
-	// since multiple elements can be selected, we need to check the type of the FolderMatch/FileMatch/Match before we perform the replace.
 	const elementsToReplace = getElementsToOperateOn(viewer, element ?? undefined, configurationService.getValue<ISearchConfigurationProperties>('search'));
 	let focusElement = viewer.getFocus()[0];
 
@@ -295,7 +288,7 @@ async function performReplace(accessor: ServicesAccessor,
 		await searchResult.batchReplace(elementsToReplace);
 	}
 
-	await viewlet?.queueRefreshTree(); // wait for refreshTree to finish
+	await viewlet?.queueRefreshTree();
 
 	if (focusElement) {
 		if (!nextFocusElement) {
@@ -369,16 +362,12 @@ function compareLevels(elem1: RenderableMatch, elem2: RenderableMatch) {
 	}
 }
 
-/**
- * Returns element to focus after removing the given element
- */
 export async function getElementToFocusAfterRemoved(viewer: WorkbenchCompressibleAsyncDataTree<ISearchResult, RenderableMatch>, element: RenderableMatch, elementsToRemove: RenderableMatch[]): Promise<RenderableMatch | undefined> {
 	const navigator: ITreeNavigator<any> = viewer.navigate(element);
 	if (isSearchTreeFolderMatch(element)) {
 		while (!!navigator.next() && (!isSearchTreeFolderMatch(navigator.current()) || arrayContainsElementOrParent(navigator.current(), elementsToRemove))) { }
 	} else if (isSearchTreeFileMatch(element)) {
 		while (!!navigator.next() && (!isSearchTreeFileMatch(navigator.current()) || arrayContainsElementOrParent(navigator.current(), elementsToRemove))) {
-			// Never expand AI search results by default
 			if (navigator.current() instanceof AITextSearchHeadingImpl) {
 				return navigator.current();
 			}
@@ -386,7 +375,6 @@ export async function getElementToFocusAfterRemoved(viewer: WorkbenchCompressibl
 		}
 	} else {
 		while (navigator.next() && (!isSearchTreeMatch(navigator.current()) || arrayContainsElementOrParent(navigator.current(), elementsToRemove))) {
-			// Never expand AI search results by default
 			if (navigator.current() instanceof AITextSearchHeadingImpl) {
 				return navigator.current();
 			}
@@ -396,9 +384,6 @@ export async function getElementToFocusAfterRemoved(viewer: WorkbenchCompressibl
 	return navigator.current();
 }
 
-/***
- * Finds the last element in the tree with the same type as `element`
- */
 export async function getLastNodeFromSameType(viewer: WorkbenchCompressibleAsyncDataTree<ISearchResult, RenderableMatch>, element: RenderableMatch): Promise<RenderableMatch | undefined> {
 	let lastElem: RenderableMatch | null = viewer.lastVisibleElement ?? null;
 
@@ -425,4 +410,3 @@ export async function getLastNodeFromSameType(viewer: WorkbenchCompressibleAsync
 	return undefined;
 }
 
-//#endregion

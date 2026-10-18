@@ -19,18 +19,13 @@ import { ICAPIClientService } from '../common/capiClient';
 import { IDomainService } from '../common/domainService';
 import { IChatModelInformation } from '../common/endpointProvider';
 import { ChatEndpoint } from './chatEndpoint';
-import { CopilotChatEndpoint } from './dardcorChatEndpoint';
+import { DardcorChatEndpoint } from './dardcorChatEndpoint';
 
-/**
- * This endpoint represents the "Auto" model in the model picker.
- * It just effectively wraps a different endpoint and adds the auto stuff on top
- */
-export class AutoChatEndpoint extends CopilotChatEndpoint {
+export class AutoChatEndpoint extends DardcorChatEndpoint {
 	public static readonly pseudoModelId = 'auto';
 
 	constructor(
 		_wrappedEndpoint: IChatEndpoint,
-		_sessionToken: string,
 		_discountPercent: number,
 		public readonly discountRange: { low: number; high: number },
 		@IDomainService _domainService: IDomainService,
@@ -48,7 +43,7 @@ export class AutoChatEndpoint extends CopilotChatEndpoint {
 		@ILogService _logService: ILogService,
 	) {
 		super(
-			calculateAutoModelInfo(_wrappedEndpoint, _sessionToken, _discountPercent),
+			calculateAutoModelInfo(_wrappedEndpoint, _discountPercent),
 			_domainService,
 			_capiClientService,
 			_fetcherService,
@@ -66,7 +61,7 @@ export class AutoChatEndpoint extends CopilotChatEndpoint {
 	}
 }
 
-function calculateAutoModelInfo(endpoint: IChatEndpoint, sessionToken: string, discountPercent: number): IChatModelInformation {
+function calculateAutoModelInfo(endpoint: IChatEndpoint, discountPercent: number): IChatModelInformation {
 	let originalModelInfo: IChatModelInformation;
 	if (endpoint instanceof ChatEndpoint) {
 		originalModelInfo = endpoint.modelMetadata;
@@ -91,7 +86,7 @@ function calculateAutoModelInfo(endpoint: IChatEndpoint, sessionToken: string, d
 					tool_calls: endpoint.supportsToolCalls,
 					vision: endpoint.supportsVision,
 					prediction: endpoint.supportsPrediction,
-					streaming: true, // Assume streaming support for non-ChatEndpoint instances
+					streaming: true,
 				},
 			},
 			billing: endpoint.isPremium !== undefined || endpoint.multiplier !== undefined || endpoint.restrictedToSkus !== undefined
@@ -104,7 +99,6 @@ function calculateAutoModelInfo(endpoint: IChatEndpoint, sessionToken: string, d
 			custom_model: endpoint.customModel,
 		};
 	}
-	// Calculate the multiplier including the discount percent, rounding to two decimal places
 	const newMultiplier = endpoint.multiplier !== undefined
 		? Math.round(endpoint.multiplier * (1 - discountPercent) * 100) / 100
 		: undefined;
@@ -118,10 +112,7 @@ function calculateAutoModelInfo(endpoint: IChatEndpoint, sessionToken: string, d
 			multiplier: newMultiplier,
 			restricted_to: originalModelInfo.billing?.restricted_to
 		},
-		requestHeaders: {
-			...(originalModelInfo.requestHeaders || {}),
-			'Copilot-Session-Token': sessionToken
-		}
+		requestHeaders: originalModelInfo.requestHeaders,
 	};
 	return newModelInfo;
 }

@@ -112,7 +112,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 
 	private _updateActiveAndVisibleTextEditors(): void {
 
-		// editor columns
 		const editorPositionData = this._getTextEditorPositionData();
 		if (!objectEquals(this._editorPositionData, editorPositionData)) {
 			this._editorPositionData = editorPositionData;
@@ -137,7 +136,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 			return constObservable(undefined);
 		}
 
-		// Check if the TextModel belongs to a DiffEditor
 		const [diffEditor] = this._codeEditorService.listDiffEditors()
 			.filter(d =>
 				d.getOriginalEditor().getId() === codeEditor.getId() ||
@@ -153,7 +151,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 				return constObservable(undefined);
 			}
 
-			// TextEditor
 			if (isITextModel(editorModel)) {
 				const quickDiffModelRef = this._quickDiffModelService.createQuickDiffModelReference(editorModel.uri);
 				if (!quickDiffModelRef) {
@@ -171,9 +168,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 				});
 			}
 
-			// DiffEditor - we create a quick diff model (using the diff algorithm used by the diff editor)
-			// even for diff editor so that we can provide multiple "original resources" to diff with the original
-			// and modified resources.
 			const diffAlgorithm = this._configurationService.getValue<DiffAlgorithmName>('diffEditor.diffAlgorithm');
 			const quickDiffModelRef = this._quickDiffModelService.createQuickDiffModelReference(editorModel.modified.uri, { algorithm: diffAlgorithm });
 			if (!quickDiffModelRef) {
@@ -189,7 +183,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 					changes: diffChanges.map(change => change as LineRangeMapping)
 				}];
 
-				// Add quick diff information from secondary/contributed providers
 				const quickDiffInformation = quickDiffModelRef.object.getQuickDiffResults()
 					.filter(result => result.providerKind !== 'primary')
 					.map(result => ({
@@ -198,7 +191,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 						changes: result.changes2
 					}));
 
-				// Combine diff and quick diff information
 				return diffInformation.concat(quickDiffInformation);
 			});
 		});
@@ -237,7 +229,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 		});
 	}
 
-	// --- from extension host process
 
 	async $tryShowTextDocument(resource: UriComponents, options: ITextDocumentShowOptions): Promise<string | undefined> {
 		const uri = URI.revive(resource);
@@ -246,8 +237,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 			preserveFocus: options.preserveFocus,
 			pinned: options.pinned,
 			selection: options.selection,
-			// preserve pre 1.38 behaviour to not make group active when preserveFocus: true
-			// but make sure to restore the editor to fix https://github.com/microsoft/vscode/issues/79633
 			activation: options.preserveFocus ? EditorActivation.RESTORE : undefined,
 			override: EditorResolution.EXCLUSIVE_ONLY
 		};
@@ -261,7 +250,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 		if (!editor) {
 			return undefined;
 		}
-		// Composite editors are made up of many editors so we return the active one at the time of opening
 		const editorControl = editor.getControl();
 		const codeEditor = getCodeEditor(editorControl);
 		return codeEditor ? this._editorLocator.getIdOfCodeEditor(codeEditor) : undefined;
@@ -407,7 +395,6 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 	}
 }
 
-// --- commands
 
 CommandsRegistry.registerCommand('_workbench.revertAllDirty', async function (accessor: ServicesAccessor) {
 	const environmentService = accessor.get(IEnvironmentService);

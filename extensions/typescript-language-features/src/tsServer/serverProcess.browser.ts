@@ -48,9 +48,7 @@ export class WorkerServerProcessFactory implements TsServerProcessFactory {
 		const tsServerPath = version.tsServerPath;
 		const launchArgs = [
 			...args,
-			// Explicitly give TS Server its path so it can load local resources
 			'--executingFilePath', tsServerPath,
-			// Enable/disable web type acquisition
 			(configuration.webTypeAcquisitionEnabled && supportsReadableByteStreams() ? '--experimentalTypeAcquisition' : '--disableAutomaticTypingAcquisition'),
 		];
 
@@ -71,11 +69,8 @@ class WorkerServerProcess implements TsServerProcess {
 	private readonly _worker: Worker;
 	private readonly _watches: FileWatcherManager;
 
-	/** For communicating with TS server synchronously */
 	private readonly _tsserver: MessagePort;
-	/** For communicating watches asynchronously */
 	private readonly _watcher: MessagePort;
-	/** For communicating with filesystem synchronously */
 	private readonly _syncFs: MessagePort;
 
 	public constructor(
@@ -115,7 +110,7 @@ class WorkerServerProcess implements TsServerProcess {
 				}
 				case 'watchDirectory':
 				case 'watchFile': {
-					this._watches.create(event.data.id, vscode.Uri.from(event.data.uri), /*watchParentDirs*/ true, !!event.data.recursive, {
+					this._watches.create(event.data.id, vscode.Uri.from(event.data.uri), true, !!event.data.recursive, {
 						change: uri => this._watcher.postMessage({ type: 'watch', event: 'change', uri }),
 						create: uri => this._watcher.postMessage({ type: 'watch', event: 'create', uri }),
 						delete: uri => this._watcher.postMessage({ type: 'watch', event: 'delete', uri }),
@@ -128,7 +123,6 @@ class WorkerServerProcess implements TsServerProcess {
 		};
 
 		this._worker.onmessage = (msg: any) => {
-			// for logging only
 			if (msg.data.type === 'log') {
 				this.appendLog(msg.data.body);
 				return;
@@ -139,7 +133,6 @@ class WorkerServerProcess implements TsServerProcess {
 		this._worker.onerror = (err: ErrorEvent) => {
 			console.error('error! ' + JSON.stringify(err));
 			for (const handler of this._onErrorHandlers) {
-				// TODO: The ErrorEvent type might be wrong; previously this was typed as Error and didn't have the property access.
 				handler(err.error);
 			}
 		};
@@ -168,7 +161,6 @@ class WorkerServerProcess implements TsServerProcess {
 
 	onExit(handler: (code: number | null, signal: string | null) => void): void {
 		this._onExitHandlers.add(handler);
-		// Todo: not implemented
 	}
 
 	kill(): void {

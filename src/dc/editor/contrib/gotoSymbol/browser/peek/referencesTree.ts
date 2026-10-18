@@ -22,7 +22,6 @@ import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { defaultCountBadgeStyles } from '../../../../../platform/theme/browser/defaultStyles.js';
 import { FileReferences, OneReference, ReferencesModel } from '../referencesModel.js';
 
-//#region data source
 
 export type TreeElement = FileReferences | OneReference;
 
@@ -47,11 +46,6 @@ export class DataSource implements IAsyncDataSource<ReferencesModel | FileRefere
 
 		if (element instanceof FileReferences) {
 			return element.resolve(this._resolverService).then(val => {
-				// if (element.failure) {
-				// 	// refresh the element on failure so that
-				// 	// we can update its rendering
-				// 	return tree.refresh(element).then(() => val.children);
-				// }
 				return val.children;
 			});
 		}
@@ -60,7 +54,6 @@ export class DataSource implements IAsyncDataSource<ReferencesModel | FileRefere
 	}
 }
 
-//#endregion
 
 export class Delegate implements IListVirtualDelegate<TreeElement> {
 	getHeight(): number {
@@ -86,7 +79,6 @@ export class StringRepresentationProvider implements IKeyboardNavigationLabelPro
 				return parts.value;
 			}
 		}
-		// FileReferences or unresolved OneReference
 		return basename(element.uri);
 	}
 
@@ -102,7 +94,6 @@ export class IdentityProvider implements IIdentityProvider<TreeElement> {
 	}
 }
 
-//#region render: File
 
 class FileReferencesTemplate extends Disposable {
 
@@ -159,9 +150,7 @@ export class FileReferencesRenderer implements ITreeRenderer<FileReferences, Fuz
 	}
 }
 
-//#endregion
 
-//#region render: Reference
 class OneReferenceTemplate extends Disposable {
 
 	readonly label: HighlightedLabel;
@@ -175,11 +164,8 @@ class OneReferenceTemplate extends Disposable {
 	set(element: OneReference, score?: FuzzyScore): void {
 		const preview = element.parent.getPreview(element)?.preview(element.range);
 		if (!preview || !preview.value) {
-			// this means we FAILED to resolve the document or the value is the empty string
 			this.label.set(`${basename(element.uri)}:${element.range.startLineNumber + 1}:${element.range.startColumn + 1}`);
 		} else {
-			// render search match as highlight unless
-			// we have score, then render the score
 			const { value, highlight } = preview;
 			if (score && !FuzzyScore.isDefault(score)) {
 				this.label.element.classList.toggle('referenceMatch', false);
@@ -209,7 +195,6 @@ export class OneReferenceRenderer implements ITreeRenderer<OneReference, FuzzySc
 	}
 }
 
-//#endregion
 
 
 export class AccessibilityProvider implements IListAccessibilityProvider<FileReferences | OneReference> {

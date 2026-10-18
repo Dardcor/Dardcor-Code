@@ -23,14 +23,8 @@ suite('agentHostClientByokLmChannel', () => {
 		return { _serviceBrand: undefined, chat: (request) => chat(request), listModels: () => listModels(), onDidChangeModels };
 	}
 
-	/** Resolves once the channel's async snapshot publish has settled. */
 	const flush = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
-	/**
-	 * Wire the node-side connection straight to the renderer server channel,
-	 * standing in for the MessagePort transport so the full request → handler →
-	 * response round-trip can be exercised without the renderer or the SDK.
-	 */
 	function bridge(handler: IAgentHostByokLmHandler) {
 		const server = new AgentHostClientByokLmChannel(handler, new NullLogService());
 		const channel: IChannel = {
@@ -38,9 +32,6 @@ suite('agentHostClientByokLmChannel', () => {
 				return server.call<T>(null, command, arg);
 			},
 			listen<T>(event: string): Event<T> {
-				// Mirror ChannelClient.listen: defer to the server channel only when
-				// the returned event is actually subscribed (lazy), so a connection
-				// that never listens allocates nothing.
 				return (listener, thisArgs?, disposables?) => server.listen<T>(null, event)(listener, thisArgs, disposables);
 			},
 		};
@@ -98,7 +89,6 @@ suite('agentHostClientByokLmChannel', () => {
 		const sub = connection.onDidChangeModels(snapshot => pushed.push(snapshot));
 		await flush();
 
-		// A change on the handler triggers a fresh snapshot push.
 		models = [{ vendor: 'acme', id: 'gpt' }];
 		onDidChange.fire();
 		await flush();
@@ -119,9 +109,6 @@ suite('agentHostClientByokLmChannel', () => {
 		const sub = connection.onDidChangeModels(snapshot => pushed.push(snapshot));
 		await flush();
 
-		// A rapid burst: several changes fire before any enumeration settles. The
-		// throttler serializes them, so the last snapshot must reflect the latest
-		// models rather than a stale enumeration finishing out of order.
 		models = [{ vendor: 'acme', id: 'v2' }];
 		onDidChange.fire();
 		models = [{ vendor: 'acme', id: 'v3' }];

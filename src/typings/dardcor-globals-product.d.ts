@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// AMD2ESM migration relevant
 
 declare var _DCCODE_FILE_ROOT: string;
 declare var _VSCODE_FILE_ROOT: string;

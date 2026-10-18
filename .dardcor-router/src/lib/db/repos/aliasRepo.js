@@ -6,7 +6,6 @@ const aliasKv = makeKv("modelAliases");
 const customKv = makeKv("customModels");
 const mitmKv = makeKv("mitmAlias");
 
-// modelAliases: key=alias, value=modelString
 export async function getModelAliases() {
   return await aliasKv.getAll();
 }
@@ -19,7 +18,6 @@ export async function deleteModelAlias(alias) {
   await aliasKv.remove(alias);
 }
 
-// customModels: key=`${providerAlias}|${id}|${type}`, value=full model object
 function customKey(providerAlias, id, type) {
   return `${providerAlias}|${id}|${type}`;
 }
@@ -29,8 +27,6 @@ export async function getCustomModels() {
   return Object.values(all);
 }
 
-// Atomic upsert inside transaction to prevent duplicate races.
-// Re-adding an existing model updates caps/name without resetting omitted fields.
 export async function addCustomModel({ providerAlias, id, type = "llm", name, caps }) {
   const k = customKey(providerAlias, id, type);
   const db = await getAdapter();
@@ -54,7 +50,6 @@ export async function deleteCustomModel({ providerAlias, id, type = "llm" }) {
   await customKv.remove(customKey(providerAlias, id, type));
 }
 
-// mitmAlias: key=toolName, value=mappings object
 export async function getMitmAlias(toolName) {
   if (toolName) {
     const v = await mitmKv.get(toolName);

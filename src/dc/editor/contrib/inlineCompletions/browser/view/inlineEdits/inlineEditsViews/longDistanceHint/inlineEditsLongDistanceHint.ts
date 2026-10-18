@@ -79,7 +79,6 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 		this._styles = derived(reader => {
 			const v = this._tabAction.read(reader);
 
-			// Check theme type by observing a color - this ensures we react to theme changes
 			const widgetBorderColor = observeColor(editorWidgetBorder, this._themeService).read(reader);
 			const isHighContrast = observableFromEvent(this._themeService.onDidColorThemeChange, () => {
 				const theme = this._themeService.getColorTheme();
@@ -88,7 +87,6 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 
 			let borderColor;
 			if (isHighContrast) {
-				// Use editorWidgetBorder in high contrast mode for better visibility
 				borderColor = widgetBorderColor;
 			} else {
 				let border;
@@ -211,12 +209,10 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 			return undefined;
 		}
 
-		// const debugRects = stackSizesDown(new Point(editorLayout.contentLeft, lineSizes.top - scrollTop), lineSizes.sizes);
 
 		const editorTrueContentWidth = editorLayout.contentWidth - editorLayout.verticalScrollbarWidth;
 		const editorTrueContentRight = editorLayout.contentLeft + editorTrueContentWidth;
 
-		// drawEditorWidths(this._editor, reader);
 
 		const c = this._editorObs.cursorLineNumber.read(reader);
 		if (!c) {
@@ -227,7 +223,6 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 		const extraGutterMarginToAvoidScrollBar = 2;
 		const previewEditorHeight = previewContentHeight + extraGutterMarginToAvoidScrollBar;
 
-		// Try to find widget placement in available empty space
 		let possibleWidgetOutline: WidgetOutline | undefined;
 		let lastPlacementContext: WidgetPlacementContext | undefined;
 
@@ -263,13 +258,11 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 			}
 		}
 
-		// Fallback to overlay position if no empty space was found
 		let position: 'overlay' | 'empty-space' = 'empty-space';
 		if (!possibleWidgetOutline) {
 			position = 'overlay';
 			const maxAvailableWidth = Math.min(editorLayout.width - editorLayout.contentLeft, MAX_WIDGET_WIDTH.OVERLAY);
 
-			// Create a fallback placement context for computing overlay vertical position
 			const fallbackPlacementContext = lastPlacementContext ?? new WidgetPlacementContext(
 				continousLineRanges[0],
 				editorTrueContentWidth,
@@ -302,8 +295,6 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 
 		const { previewEditorMargin, widgetPadding, widgetBorder, lowerBarHeight } = layoutConstants;
 		const maxWidgetWidthUpperBound = position === 'overlay' ? MAX_WIDGET_WIDTH.OVERLAY : MAX_WIDGET_WIDTH.EMPTY_SPACE;
-		// Honor the same `minWidgetWidth` the placement logic guarantees, so a short/empty preview line
-		// (e.g. a jump onto an empty line) can't collapse the widget below its reserved space.
 		const contentBasedWidgetWidth = previewEditorContentLayout.maxEditorWidth + previewEditorMargin + widgetPadding;
 		const maxWidgetWidth = Math.min(maxWidgetWidthUpperBound, Math.max(contentBasedWidgetWidth, layoutConstants.minWidgetWidth));
 
@@ -372,7 +363,7 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 		derived(this, _reader => [this._widgetContent]),
 	]);
 
-	private readonly _widgetContent = derived(this, reader => // TODO@hediet: remove when n.div lazily creates previewEditor.element node
+	private readonly _widgetContent = derived(this, reader =>
 		n.div({
 			class: ['inline-edits-long-distance-hint-widget', 'show-file-icons'],
 			style: {
@@ -391,7 +382,7 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 				...rectToProps(reader => this._previewEditorLayoutInfo.read(reader)?.widgetRect)
 			},
 			onmousedown: e => {
-				e.preventDefault(); // This prevents that the editor loses focus
+				e.preventDefault();
 			},
 			onclick: () => {
 				this._viewState.read(undefined)?.model.jump();
@@ -406,7 +397,7 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 					pointerEvents: 'none',
 				},
 			}, [
-				derived(this, r => this._previewEditor.element), // --
+				derived(this, r => this._previewEditor.element),
 			]),
 			n.div({ class: 'bar', style: { color: asCssVariable(descriptionForeground), pointerEvents: 'none', margin: '0 4px', height: this._previewEditorLayoutInfo.map(i => i?.lowerBarHeight), display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
 				derived(this, reader => {
@@ -416,13 +407,11 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 						return children;
 					}
 
-					// Check if this is a cross-file edit
 					const currentModel = this._editorObs.model.read(reader);
 					const targetUri = viewState.target.uri;
 					const isCrossFileEdit = !currentModel || !viewState.target.targets(currentModel);
 
 					if (isCrossFileEdit) {
-						// For cross-file edits, show target filename instead of outline
 						const fileName = basename(targetUri);
 						const iconClasses = getIconClasses(this._modelService, this._languageService, targetUri, FileKind.FILE);
 						children.push(n.div({
@@ -433,7 +422,6 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 							fileName,
 						]));
 					} else {
-						// Outline Element
 						const source = this._originalOutlineSource.read(reader);
 						const originalTargetLineNumber = this._originalTargetLineNumber.read(reader);
 						const outlineItems = source?.getAt(originalTargetLineNumber, reader).slice(0, 1) ?? [];
@@ -459,7 +447,6 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 						children.push(n.div({ class: 'outline-elements', style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, outlineElements));
 					}
 
-					// Show Edit Direction
 					const originalTargetLineNumber = this._originalTargetLineNumber.read(reader);
 					const arrowIcon = isCrossFileEdit ? Codicon.arrowRight : (viewState.hint.lineNumber < originalTargetLineNumber ? Codicon.arrowDown : Codicon.arrowUp);
 					const keybinding = this._keybindingService.lookupKeybinding(jumpToNextInlineEditId);
@@ -482,7 +469,6 @@ export class InlineEditsLongDistanceHint extends Disposable implements IInlineEd
 		])
 	);
 
-	// Drives breadcrumbs and symbol icon
 	private readonly _originalTargetLineNumber = derived(this, (reader) => {
 		const viewState = this._viewState.read(reader);
 		if (!viewState) {
@@ -567,9 +553,6 @@ export function drawEditorWidths(e: ICodeEditor, reader: IReader) {
 }
 
 
-/**
- * Changes the scroll position as little as possible just to reveal the given range in the window.
-*/
 export function scrollToReveal(currentScrollPosition: number, windowWidth: number, contentRangeToReveal: OffsetRange): { newScrollPosition: number } {
 	const visibleRange = new OffsetRange(currentScrollPosition, currentScrollPosition + windowWidth);
 	if (visibleRange.containsRange(contentRangeToReveal)) {

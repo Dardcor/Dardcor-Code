@@ -60,13 +60,9 @@ export async function main(argv: string[]): Promise<void> {
 			const env: IProcessEnvironment = {
 				...process.env
 			};
-			// bootstrap-esm.js determines the electron environment based
-			// on the following variable. For the server we need to unset
-			// it to prevent importing any electron specific modules.
-			// Refs https://github.com/microsoft/vscode/issues/221883
 			delete env['ELECTRON_RUN_AS_NODE'];
 
-			const tunnelArgs = argv.slice(argv.indexOf(subcommand) + 1); // all arguments behind `tunnel`
+			const tunnelArgs = argv.slice(argv.indexOf(subcommand) + 1);
 			return new Promise((resolve, reject) => {
 				let tunnelProcess: ChildProcess;
 				const stdio: StdioOptions = ['ignore', 'pipe', 'pipe'];
@@ -74,7 +70,6 @@ export async function main(argv: string[]): Promise<void> {
 					tunnelProcess = spawn('cargo', ['run', '--', subcommand, ...tunnelArgs], { cwd: join(getAppRoot(), 'cli'), stdio, env });
 				} else {
 					const appPath = process.platform === 'darwin'
-						// ./Contents/MacOS/Code => ./Contents/Resources/app/bin/code-tunnel-insiders
 						? join(dirname(dirname(process.execPath)), 'Resources', 'app')
 						: dirname(process.execPath);
 					const tunnelCommand = join(appPath, 'bin', `${product.tunnelApplicationName}${isWindows ? '.exe' : ''}`);
@@ -89,47 +84,34 @@ export async function main(argv: string[]): Promise<void> {
 		}
 	}
 
-	// Help (general)
 	if (args.help) {
 		const executable = 'dc';
 		console.log(buildHelpMessage(product.nameLong, executable, product.version, OPTIONS));
 	}
 
-	// Help (chat)
 	else if (args.chat?.help) {
 		const executable = 'dc';
 		console.log(buildHelpMessage(product.nameLong, executable, product.version, OPTIONS.chat.options, { isChat: true }));
 	}
 
-	// Version Info
 	else if (args.version) {
 		console.log(buildVersionMessage(product.version, product.commit));
 	}
 
-	// Shell integration
 	else if (args['locate-shell-integration-path']) {
 		let file: string;
 		switch (args['locate-shell-integration-path']) {
-			// Usage: `[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path bash)"`
 			case 'bash': file = 'shellIntegration-bash.sh'; break;
-			// Usage: `if ($env:TERM_PROGRAM -eq "vscode") { . "$(code --locate-shell-integration-path pwsh)" }`
 			case 'pwsh': file = 'shellIntegration.ps1'; break;
-			// Usage: `[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"`
 			case 'zsh': file = 'shellIntegration-rc.zsh'; break;
-			// Usage: `string match -q "$TERM_PROGRAM" "vscode"; and . (code --locate-shell-integration-path fish)`
 			case 'fish': file = 'shellIntegration.fish'; break;
 			default: throw new Error('Error using --locate-shell-integration-path: Invalid shell type');
 		}
 		console.log(join(getAppRoot(), 'out', 'vs', 'workbench', 'contrib', 'terminal', 'common', 'scripts', file));
 	}
 
-	// Extensions Management
 	else if (shouldSpawnCliProcess(args)) {
 
-		// We do not bundle `cliProcessMain.js` into this file because
-		// it is rather large and only needed for very few CLI operations.
-		// This has the downside that we need to know if we run OSS or
-		// built, because our location on disk is different if built.
 
 		let cliProcessMain: string;
 		if (process.env['VSCODE_DEV']) {
@@ -144,7 +126,6 @@ export async function main(argv: string[]): Promise<void> {
 		return;
 	}
 
-	// Write File
 	else if (args['file-write']) {
 		const argsFile = args._[0];
 		if (!argsFile || !isAbsolute(argsFile) || !existsSync(argsFile) || !statSync(argsFile).isFile()) {
@@ -161,8 +142,6 @@ export async function main(argv: string[]): Promise<void> {
 			throw new Error('Using --file-write with invalid arguments.');
 		}
 
-		// Windows: set the paths as allowed UNC paths given
-		// they are explicitly provided by the user as arguments
 		if (isWindows) {
 			for (const path of [source, target]) {
 				if (typeof path === 'string' && isUNC(path)) {
@@ -171,45 +150,35 @@ export async function main(argv: string[]): Promise<void> {
 			}
 		}
 
-		// Validate
 		if (
-			!source || !target || source === target ||				// make sure source and target are provided and are not the same
-			!isAbsolute(source) || !isAbsolute(target) ||			// make sure both source and target are absolute paths
-			!existsSync(source) || !statSync(source).isFile() ||	// make sure source exists as file
-			!existsSync(target) || !statSync(target).isFile()		// make sure target exists as file
+			!source || !target || source === target ||
+			!isAbsolute(source) || !isAbsolute(target) ||
+			!existsSync(source) || !statSync(source).isFile() ||
+			!existsSync(target) || !statSync(target).isFile()
 		) {
 			throw new Error('Using --file-write with invalid arguments.');
 		}
 
 		try {
 
-			// Check for readonly status and chmod if so if we are told so
 			let targetMode = 0;
 			let restoreMode = false;
 			if (args['file-chmod']) {
 				targetMode = statSync(target).mode;
-				if (!(targetMode & 0o200 /* File mode indicating writable by owner */)) {
+				if (!(targetMode & 0o200 )) {
 					chmodSync(target, targetMode | 0o200);
 					restoreMode = true;
 				}
 			}
 
-			// Write source to target
 			const data = readFileSync(source);
 			if (isWindows) {
-				// On Windows we use a different strategy of saving the file
-				// by first truncating the file and then writing with r+ mode.
-				// This helps to save hidden files on Windows
-				// (see https://github.com/microsoft/vscode/issues/931) and
-				// prevent removing alternate data streams
-				// (see https://github.com/microsoft/vscode/issues/6363)
 				truncateSync(target, 0);
 				writeFileSync(target, data, { flag: 'r+' });
 			} else {
 				writeFileSync(target, data);
 			}
 
-			// Restore previous mode as needed
 			if (restoreMode) {
 				chmodSync(target, targetMode);
 			}
@@ -219,7 +188,6 @@ export async function main(argv: string[]): Promise<void> {
 		}
 	}
 
-	// Just Code
 	else {
 		const env: IProcessEnvironment = {
 			...process.env,
@@ -243,7 +211,6 @@ export async function main(argv: string[]): Promise<void> {
 			});
 		}
 
-		// Handle --transient option
 		if (args['transient']) {
 			const tempParentDir = randomPath(tmpdir(), 'vscode');
 			const tempUserDataDir = join(tempParentDir, 'data');
@@ -262,7 +229,6 @@ export async function main(argv: string[]): Promise<void> {
 
 		const hasReadStdinArg = args._.some(arg => arg === '-') || args.chat?._.some(arg => arg === '-');
 		if (hasReadStdinArg) {
-			// remove the "-" argument when we read from stdin
 			args._ = args._.filter(a => a !== '-');
 			argv = argv.filter(a => a !== '-');
 		}
@@ -270,9 +236,6 @@ export async function main(argv: string[]): Promise<void> {
 		let stdinFilePath: string | undefined;
 		if (hasStdinWithoutTty()) {
 
-			// Read from stdin: we require a single "-" argument to be passed in order to start reading from
-			// stdin. We do this because there is no reliable way to find out if data is piped to stdin. Just
-			// checking for stdin being connected to a TTY is not enough (https://github.com/microsoft/vscode/issues/40351)
 
 			if (hasReadStdinArg) {
 				stdinFilePath = getStdinFilePath();
@@ -282,29 +245,13 @@ export async function main(argv: string[]): Promise<void> {
 					await readFromStdin(stdinFilePath, !!args.verbose, () => readFromStdinDone.complete());
 					if (!args.wait) {
 
-						// if `--wait` is not provided, we keep this process alive
-						// for at least as long as the stdin stream is open to
-						// ensure that we read all the data.
-						// the downside is that the Code CLI process will then not
-						// terminate until stdin is closed, but users can always
-						// pass `--wait` to prevent that from happening (this is
-						// actually what we enforced until v1.85.x but then was
-						// changed to not enforce it anymore).
-						// a solution in the future would possibly be to exit, when
-						// the Code process exits. this would require some careful
-						// solution though in case Code is already running and this
-						// is a second instance telling the first instance what to
-						// open.
 
 						processCallbacks.push(() => readFromStdinDone.p);
 					}
 
 					if (args.chat) {
-						// Make sure to add tmp file as context to chat
 						addArg(argv, '--add-file', stdinFilePath);
 					} else {
-						// Make sure to open tmp file as editor but ignore
-						// it in the "recently open" list
 						addArg(argv, stdinFilePath);
 						addArg(argv, '--skip-add-to-recently-opened');
 					}
@@ -316,8 +263,6 @@ export async function main(argv: string[]): Promise<void> {
 				}
 			} else {
 
-				// If the user pipes data via stdin but forgot to add the "-" argument, help by printing a message
-				// if we detect that data flows into via stdin after a certain timeout.
 				processCallbacks.push(_ => stdinDataListener(1000).then(dataReceived => {
 					if (dataReceived) {
 						console.log(buildStdinMessage('dc', !!args.chat));
@@ -326,10 +271,6 @@ export async function main(argv: string[]): Promise<void> {
 			}
 		}
 
-		// If we are started with --wait create a random temporary file
-		// and pass it over to the starting instance. We can use this file
-		// to wait for it to be deleted to monitor that the edited file
-		// is closed and then exit the waiting process.
 		let waitMarkerFilePath: string | undefined;
 		if (args.wait) {
 			waitMarkerFilePath = createWaitMarkerFileSync(args.verbose);
@@ -337,18 +278,10 @@ export async function main(argv: string[]): Promise<void> {
 				addArg(argv, '--waitMarkerFilePath', waitMarkerFilePath);
 			}
 
-			// When running with --wait, we want to continue running CLI process
-			// until either:
-			// - the wait marker file has been deleted (e.g. when closing the editor)
-			// - the launched process terminates (e.g. due to a crash)
 			processCallbacks.push(async child => {
 				let childExitPromise;
 				if (isMacintosh) {
-					// On macOS, we resolve the following promise only when the child,
-					// i.e. the open command, exited with a signal or error. Otherwise, we
-					// wait for the marker file to be deleted or for the child to error.
 					childExitPromise = new Promise<void>(resolve => {
-						// Only resolve this promise if the child (i.e. open) exited with an error
 						child.on('exit', (code, signal) => {
 							if (code !== 0 || signal) {
 								resolve();
@@ -356,8 +289,6 @@ export async function main(argv: string[]): Promise<void> {
 						});
 					});
 				} else {
-					// On other platforms, we listen for exit in case the child exits before the
-					// marker file is deleted.
 					childExitPromise = Event.toPromise(Event.fromNodeEventEmitter(child, 'exit'));
 				}
 				try {
@@ -368,23 +299,18 @@ export async function main(argv: string[]): Promise<void> {
 					]);
 				} finally {
 					if (stdinFilePath) {
-						unlinkSync(stdinFilePath); // Make sure to delete the tmp stdin file if we have any
+						unlinkSync(stdinFilePath);
 					}
 				}
 			});
 		}
 
-		// If we have been started with `--prof-startup` we need to find free ports to profile
-		// the main process, the renderer, and the extension host. We also disable v8 cached data
-		// to get better profile traces. Last, we listen on stdout for a signal that tells us to
-		// stop profiling.
 		if (args['prof-startup']) {
 			const profileHost = '127.0.0.1';
 			const portMain = await findFreePort(randomPort(), 10, 3000);
 			const portRenderer = await findFreePort(portMain + 1, 10, 3000);
 			const portExthost = await findFreePort(portRenderer + 1, 10, 3000);
 
-			// fail the operation when one of the ports couldn't be acquired.
 			if (portMain * portRenderer * portExthost === 0) {
 				throw new Error('Failed to find free ports for profiler. Make sure to shutdown all instances of the editor first.');
 			}
@@ -419,10 +345,6 @@ export async function main(argv: string[]): Promise<void> {
 								let suffix = '';
 								const result = await session.stop();
 								if (!process.env['VSCODE_DEV']) {
-									// when running from a not-development-build we remove
-									// absolute filenames because we don't want to reveal anything
-									// about users. We also append the `.txt` suffix to make it
-									// easier to attach these files to GH issues
 									result.profile = Utils.rewriteAbsolutePaths(result.profile, 'piiRemoved');
 									suffix = '.txt';
 								}
@@ -434,7 +356,6 @@ export async function main(argv: string[]): Promise<void> {
 				}
 
 				try {
-					// load and start profiler
 					const mainProfileRequest = Profiler.start('main', filenamePrefix, { port: portMain });
 					const extHostProfileRequest = Profiler.start('extHost', filenamePrefix, { port: portExthost, tries: 300 });
 					const rendererProfileRequest = Profiler.start('renderer', filenamePrefix, {
@@ -458,15 +379,12 @@ export async function main(argv: string[]): Promise<void> {
 					const extHost = await extHostProfileRequest;
 					const renderer = await rendererProfileRequest;
 
-					// wait for the renderer to delete the marker file
 					await whenDeleted(filenamePrefix);
 
-					// stop profiling
 					await main.stop();
 					await renderer.stop();
 					await extHost.stop();
 
-					// re-create the marker file to signal that profiling is done
 					writeFileSync(filenamePrefix, '');
 
 				} catch (e) {
@@ -487,56 +405,35 @@ export async function main(argv: string[]): Promise<void> {
 		let child: ChildProcess;
 		if (!isMacintosh) {
 			if (!args.verbose && args.status) {
-				options['stdio'] = ['ignore', 'pipe', 'ignore']; // restore ability to see output when --status is used
+				options['stdio'] = ['ignore', 'pipe', 'ignore'];
 			}
 
-			// On Windows, Chromium filters standalone URL-like argv tokens (containing "://")
-			// before main.js runs, so rewrite `--folder-uri <uri>` / `--file-uri <uri>` to
-			// `--flag=value` form. See https://github.com/microsoft/vscode/issues/209072.
 			const spawnArgs = isWindows ? combineUriFlags(argv.slice(2)) : argv.slice(2);
 
-			// We spawn the resolved executable directly
 			child = spawn(process.execPath, spawnArgs, options);
 		} else {
-			// On macOS, we spawn using the open command to obtain behavior
-			// similar to if the app was launched from the dock
-			// https://github.com/microsoft/vscode/issues/102975
 
-			// The following args are for the open command itself, rather than for VS Code:
-			// -n creates a new instance.
-			//    Without -n, the open command re-opens the existing instance as-is.
-			// -g starts the new instance in the background.
-			//    Later, Electron brings the instance to the foreground.
-			//    This way, Mac does not automatically try to foreground the new instance, which causes
-			//    focusing issues when the new instance only sends data to a previous instance and then closes.
 			const spawnArgs = ['-n', '-g'];
-			spawnArgs.push('-a', process.execPath); // -a opens the given application.
+			spawnArgs.push('-a', process.execPath);
 
 			if (args.verbose || args.status) {
-				spawnArgs.push('--wait-apps'); // `open --wait-apps`: blocks until the launched app is closed (even if they were already running)
+				spawnArgs.push('--wait-apps');
 
-				// The open command only allows for redirecting stderr and stdout to files,
-				// so we make it redirect those to temp files, and then use a logger to
-				// redirect the file output to the console
 				for (const outputType of args.verbose ? ['stdout', 'stderr'] : ['stdout']) {
 
-					// Tmp file to target output to
 					const tmpName = randomPath(tmpdir(), `code-${outputType}`);
 					writeFileSync(tmpName, '');
 					spawnArgs.push(`--${outputType}`, tmpName);
 
-					// Listener to redirect content to stdout/stderr
 					processCallbacks.push(async child => {
 						try {
 							const stream = outputType === 'stdout' ? process.stdout : process.stderr;
 
 							const cts = new CancellationTokenSource();
 							child.on('close', () => {
-								// We must dispose the token to stop watching,
-								// but the watcher might still be reading data.
 								setTimeout(() => cts.dispose(true), 200);
 							});
-							await watchFileContents(tmpName, chunk => stream.write(chunk), () => { /* ignore */ }, cts.token);
+							await watchFileContents(tmpName, chunk => stream.write(chunk), () => { }, cts.token);
 						} finally {
 							unlinkSync(tmpName);
 						}
@@ -545,22 +442,15 @@ export async function main(argv: string[]): Promise<void> {
 			}
 
 			for (const e in env) {
-				// Ignore the _ env var, because the open command
-				// ignores it anyway.
-				// Pass the rest of the env vars in to fix
-				// https://github.com/microsoft/vscode/issues/134696.
 				if (e !== '_') {
 					spawnArgs.push('--env');
 					spawnArgs.push(`${e}=${env[e]}`);
 				}
 			}
 
-			spawnArgs.push('--args', ...argv.slice(2)); // pass on our arguments
+			spawnArgs.push('--args', ...argv.slice(2));
 
 			if (env['VSCODE_DEV']) {
-				// If we're in development mode, replace the . arg with the
-				// vscode source arg. Because the OSS app isn't bundled,
-				// it needs the full vscode source arg to launch properly.
 				const curdir = '.';
 				const launchDirIndex = spawnArgs.indexOf(curdir);
 				if (launchDirIndex !== -1) {
@@ -568,9 +458,6 @@ export async function main(argv: string[]): Promise<void> {
 				}
 			}
 
-			// We already passed over the env variables
-			// using the --env flags, so we can leave them out here.
-			// Also, we don't need to pass env._, which is different from argv._
 			child = spawn('open', spawnArgs, { ...options, env: {} });
 		}
 

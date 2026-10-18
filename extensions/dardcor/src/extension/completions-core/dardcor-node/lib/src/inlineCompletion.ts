@@ -8,7 +8,7 @@ import { IInstantiationService } from '../../../../../util/dardcor/platform/inst
 import { LlmNESTelemetryBuilder } from '../../../../inlineEdits/node/nextEditProviderTelemetry';
 import { GhostTextLogContext } from '../../../common/ghostTextContext';
 import { CompletionState, createCompletionState } from './completionState';
-import { completionsFromGhostTextResults, CopilotCompletion } from './ghostText/dardcorCompletion';
+import { completionsFromGhostTextResults, DardcorCompletion } from './ghostText/dardcorCompletion';
 import { getGhostText, GetGhostTextOptions } from './ghostText/ghostText';
 import { setLastShown } from './ghostText/last';
 import { ITextEditorOptions } from './ghostText/normalizeIndent';
@@ -38,7 +38,7 @@ export class GhostText {
 		logContext: GhostTextLogContext,
 		telemetryBuilder: LlmNESTelemetryBuilder,
 		parentLogger: ILogger,
-	): Promise<CopilotCompletion[] | undefined> {
+	): Promise<DardcorCompletion[] | undefined> {
 		logCompletionLocation(this.logTargetService, textDocument, position);
 
 		const result = await this.getInlineCompletionsResult(createCompletionState(textDocument, position), token, options, logContext, telemetryBuilder, parentLogger);
@@ -52,11 +52,8 @@ export class GhostText {
 		logContext: GhostTextLogContext,
 		telemetryBuilder: LlmNESTelemetryBuilder,
 		parentLogger: ILogger,
-	): Promise<GhostTextResultWithTelemetry<CopilotCompletion[]>> {
+	): Promise<GhostTextResultWithTelemetry<DardcorCompletion[]>> {
 		let lineLengthIncrease = 0;
-		// The golang.go extension (and quite possibly others) uses snippets for function completions, which collapse down
-		// to look like empty function calls (e.g., `foo()`) in selectedCompletionInfo.text.  Injecting that directly into
-		// the prompt produces low quality completions, so don't.
 		if (options.selectedCompletionInfo?.text && !options.selectedCompletionInfo.text.includes(')')) {
 			completionState = completionState.addSelectedCompletionInfo(options.selectedCompletionInfo);
 			lineLengthIncrease = completionState.position.character - options.selectedCompletionInfo.range.end.character;
@@ -89,12 +86,9 @@ export class GhostText {
 			index
 		);
 		if (completions.length === 0) {
-			// This is a backstop, most/all cases of an empty completions list should be caught earlier
-			// TODO: figure out how this accounts for 7% of ghostText.empty when it looks unreachable
 			return { type: 'empty', reason: 'no completions in final result', telemetryData: result.telemetryData };
 		}
 
-		// Speculatively request a new completion including the newly returned completion in the document
 		if (resultType !== ResultType.TypingAsSuggested) {
 			completionState = completionState.applyEdits([
 				{
@@ -103,7 +97,6 @@ export class GhostText {
 				},
 			]);
 
-			// Cache speculative request to be triggered when telemetryShown is called
 			const specOpts = { isSpeculative: true, opportunityId: options.opportunityId };
 			const fn = () => this.instantiationService.invokeFunction(getGhostText, completionState, undefined, specOpts, logContext, telemetryBuilder, parentLogger);
 			this.speculativeRequestCache.set(completions[0].clientCompletionId, fn);

@@ -59,7 +59,7 @@
 }
 
 .monaco-workbench .notebookOverlay .output .error_message {
-	color: red; /*TODO@rebornix theme color*/
+	color: red;
 }
 
 .monaco-workbench .notebookOverlay .output .error > div {
@@ -96,7 +96,6 @@
 	cursor: pointer;
 }
 
-/** Cell output show more*/
 .notebookOverlay .output-show-more-container a,
 .notebookOverlay div.output-show-more a {
 	color: var(--vscode-textLink-foreground);
@@ -107,7 +106,6 @@
 	color: var(--vscode-textLink-activeForeground);
 }
 
-/** Notebook cell output background */
 .notebookOverlay .output,
 .notebookOverlay .output-element,
 .notebookOverlay .output-show-more-container {

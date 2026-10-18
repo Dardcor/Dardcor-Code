@@ -11,7 +11,6 @@ import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js'
 import { isMacintosh } from '../../../base/common/platform.js';
 import { IEditorOptions } from '../common/editor.js';
 
-//#region Editor Open Event Listeners
 
 export interface IOpenEditorOptions {
 	readonly editorOptions: IEditorOptions;
@@ -23,7 +22,7 @@ export function registerOpenEditorListeners(element: HTMLElement, onOpenEditor: 
 
 	disposables.add(addDisposableListener(element, EventType.CLICK, e => {
 		if (e.detail === 2) {
-			return; // ignore double click as it is handled below
+			return;
 		}
 
 		EventHelper.stop(e, true);
@@ -71,4 +70,3 @@ export function toOpenEditorOptions(event: StandardMouseEvent | StandardKeyboard
 	}
 }
 
-//#endregion

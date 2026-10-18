@@ -51,7 +51,6 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IOTelService private readonly _otelService: IOTelService,
 	) {
-		// Initialize with the model's max tokens
 		this._maxTokens = languageModel.maxInputTokens;
 		this.supportedEditTools = languageModel.capabilities.editToolsHint?.filter(isEndpointEditToolName);
 	}
@@ -65,12 +64,10 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 	}
 
 	get maxOutputTokens(): number {
-		// The VS Code API doesn't expose max output tokens, use a reasonable default
 		return 8192;
 	}
 
 	get urlOrRequestMetadata(): string {
-		// Not used for extension contributed endpoints
 		return '';
 	}
 
@@ -91,12 +88,10 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 	}
 
 	get tokenizer(): TokenizerType {
-		// Most language models use the O200K tokenizer, if they don't they should specify in their metadata
 		return TokenizerType.O200K;
 	}
 
 	get showInModelPicker(): boolean {
-		// TODO @lramos15 - Need some API exposed for this, registration seems to have it
 		return true;
 	}
 
@@ -133,7 +128,6 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 	}
 
 	public acquireTokenizer(): ITokenizer {
-		// Use the extension-contributed tokenizer that leverages the VS Code language model API
 		return new ExtensionContributedChatTokenizer(this.languageModel);
 	}
 
@@ -178,11 +172,6 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 		});
 		const ourRequestId = generateUuid();
 
-		// Capture active OTel trace context to propagate through IPC to the BYOK provider.
-		// Each provider creates its own chat span with full usage data:
-		// - OpenAI-compatible (Azure, OpenAI, etc.): via CopilotLanguageModelWrapper → chatMLFetcher
-		// - Anthropic: inside AnthropicLMProvider
-		// - Gemini: inside GeminiNativeBYOKLMProvider
 		const activeTraceCtx = this._otelService.getActiveTraceContext();
 		const telemetryTurn = getTelemetryTurnFromProperties(telemetryProperties);
 
@@ -192,7 +181,6 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 				description: tool.function.description,
 				inputSchema: tool.function.parameters,
 			})),
-			// Pass correlation ID and OTel trace context through modelOptions for cross-IPC restoration.
 			modelOptions: {
 				_capturingTokenCorrelationId: ourRequestId,
 				_otelTraceContext: activeTraceCtx ?? null,
@@ -200,11 +188,6 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 			}
 		};
 
-		// Store current CapturingToken for retrieval by BYOK providers after IPC crossing
-		//
-		// Note: We intentionally don't create an OTel chat span here for extension-contributed models.
-		// The BYOK provider (CopilotLanguageModelWrapper) creates the real chat span via chatMLFetcher
-		// with full token usage, response model, and cache data. Creating a span here would duplicate it.
 		storeCapturingTokenForCorrelation(ourRequestId);
 
 		const streamRecorder = new FetchStreamRecorder(finishedCb);
@@ -216,7 +199,6 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 			let reportedUsage: APIUsage | undefined;
 			const requestId = ourRequestId;
 
-			// consume stream
 			for await (const chunk of response.stream) {
 				if (chunk instanceof vscode.LanguageModelTextPart) {
 					text += chunk.value;
@@ -244,8 +226,6 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 						try {
 							const parsed = JSON.parse(new TextDecoder().decode(chunk.data)) as APIUsage;
 							if (isApiUsage(parsed)) {
-								// Clamp sentinel negative values that some BYOK providers emit
-								// when the API hasn't reported a count yet (e.g. -1).
 								reportedUsage = {
 									...parsed,
 									prompt_tokens: Math.max(0, parsed.prompt_tokens),
@@ -258,7 +238,6 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 								};
 							}
 						} catch {
-							// ignore malformed usage payload
 						}
 					}
 				} else if (chunk instanceof vscode.LanguageModelThinkingPart) {
@@ -305,7 +284,7 @@ export class ExtensionContributedChatEndpoint implements IChatEndpoint {
 	}
 
 	createRequestBody(options: ICreateEndpointBodyOptions): IEndpointBody {
-		throw new Error('unreachable'); // this endpoint does not call into fetchers
+		throw new Error('unreachable');
 	}
 
 	cloneWithTokenOverride(modelMaxPromptTokens: number): IChatEndpoint {
@@ -332,7 +311,6 @@ function getTelemetryTurnFromProperties(telemetryProperties: IMakeChatRequestOpt
 interface ConvertToApiChatMessageOptions {
 	readonly ignoreStatefulMarker?: boolean;
 	readonly summarizedAtRoundId?: string;
-	/** Emit the {@link CustomDataPartMimeTypes.CacheControl} sentinel for cache breakpoints. Defaults to `false` (fail closed) so it never reaches a provider that can't consume it (#313920). */
 	readonly emitCacheBreakpoints?: boolean;
 }
 
@@ -340,12 +318,10 @@ export function convertToApiChatMessage(messages: Raw.ChatMessage[], options: Co
 	const apiMessages: Array<vscode.LanguageModelChatMessage | vscode.LanguageModelChatMessage2> = [];
 	for (const message of messages) {
 		const apiContent: Array<vscode.LanguageModelTextPart | vscode.LanguageModelToolResultPart2 | vscode.LanguageModelToolCallPart | vscode.LanguageModelDataPart | vscode.LanguageModelThinkingPart> = [];
-		// Easier to work with arrays everywhere, rather than string in some cases. So convert to a single text content part
 		for (const contentPart of message.content) {
 			if (contentPart.type === Raw.ChatCompletionContentPartKind.Text) {
 				apiContent.push(new vscode.LanguageModelTextPart(contentPart.text));
 			} else if (contentPart.type === Raw.ChatCompletionContentPartKind.Image) {
-				// Handle base64 encoded images
 				if (contentPart.imageUrl.url.startsWith('data:')) {
 					const dataUrlRegex = /^data:([^;]+);base64,(.*)$/;
 					const match = contentPart.imageUrl.url.match(dataUrlRegex);
@@ -355,7 +331,6 @@ export function convertToApiChatMessage(messages: Raw.ChatMessage[], options: Co
 						apiContent.push(new vscode.LanguageModelDataPart(Buffer.from(base64Data, 'base64'), mimeType as ChatImageMimeType));
 					}
 				} else {
-					// Not a base64 image
 					continue;
 				}
 			} else if (contentPart.type === Raw.ChatCompletionContentPartKind.CacheBreakpoint) {
@@ -364,9 +339,6 @@ export function convertToApiChatMessage(messages: Raw.ChatMessage[], options: Co
 				}
 			} else if (contentPart.type === Raw.ChatCompletionContentPartKind.Opaque) {
 				const statefulMarker = rawPartAsStatefulMarker(contentPart);
-				// A marker created under a different local summary generation points at
-				// server-side history that the rendered summary has replaced. Omit it so
-				// this request establishes a new BYOK Responses chain from the summary.
 				if (statefulMarker
 					&& !options.ignoreStatefulMarker
 					&& statefulMarker.summarizedAtRoundId === options.summarizedAtRoundId) {

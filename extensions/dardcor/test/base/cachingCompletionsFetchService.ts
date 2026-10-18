@@ -48,12 +48,11 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 
 	private static readonly Locks = new LockMap();
 
-	/** Throttle per URL (currently set to send a request only once a second) */
 	private static readonly throttlers = new CachedFunction(
 		function createThrottler(url: string) {
-			const delayMs = 1000; // milliseconds
+			const delayMs = 1000;
 			const options: IThrottledWorkerOptions = {
-				maxBufferedWork: undefined, // We want to hold as many requests as possible
+				maxBufferedWork: undefined,
 				maxWorkChunkSize: 1,
 				waitThrottleDelayBetweenWorkUnits: true,
 				throttleDelay: delayMs,
@@ -66,7 +65,7 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 		}
 	);
 
-	private requests: Map<string /* requestId */, { request: CacheableCompletionRequest; hitsCache: boolean }> = new Map(); // this's dirty hack to pass info from lower layer _fetchFromUrl to _fetch -- needs rewriting
+	private requests: Map<string , { request: CacheableCompletionRequest; hitsCache: boolean }> = new Map();
 
 	constructor(
 		private readonly nesCache: ICompletionsCache,
@@ -219,7 +218,7 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 					]);
 				});
 
-		if (fetchResult.isError() || fetchResult.val.status !== 200) { // don't cache a failure
+		if (fetchResult.isError() || fetchResult.val.status !== 200) {
 			console.log('Fetch failed', JSON.stringify(fetchResult, null, '\t'));
 			return fetchResult;
 		}
@@ -231,7 +230,6 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 
 		let body = '';
 		const cachingStream = new AsyncIterableObject<string>(async (emitter) => {
-			// I specifically don't wrap in try-catch to not cache if this throws
 			for await (const chunk of stream) {
 				body += chunk.toString();
 				emitter.emitOne(chunk);
@@ -252,7 +250,6 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 			}
 		});
 
-		// Replace response.body with the caching stream
 		response.body = cachingStream;
 
 		return fetchResult;

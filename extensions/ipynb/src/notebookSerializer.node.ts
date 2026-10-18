@@ -25,7 +25,6 @@ export class NotebookSerializer extends NotebookSerializerBase {
 		try {
 			void this.worker?.terminate();
 		} catch {
-			//
 		}
 		super.dispose();
 	}

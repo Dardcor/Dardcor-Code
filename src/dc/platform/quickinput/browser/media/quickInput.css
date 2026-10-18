@@ -19,6 +19,10 @@
 	will-change: transform, opacity;
 }
 
+.style-override.monaco-enable-motion .quick-input-widget.quick-input-centered:not(.quick-input-widget-overlay) {
+	transform-origin: center center;
+}
+
 .style-override.monaco-enable-motion .quick-input-widget.quick-input-widget-closing:not(.quick-input-widget-overlay) {
 	animation: quick-input-widget-close 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
 	pointer-events: none;
@@ -76,12 +80,10 @@
 	margin-left: 4px;
 }
 
-/* give some space between input and action bar */
 .quick-input-inline-action-bar .actions-container > .action-item:first-child {
 	margin-left: 5px;
 }
 
-/* center horizontally */
 .quick-input-inline-action-bar .actions-container > .action-item {
 	margin-top: 2px;
 }
@@ -138,7 +140,6 @@
 }
 
 .quick-input-widget.hidden-input .quick-input-header {
-	/* reduce margins and paddings when input box hidden */
 	padding: 0;
 	margin-bottom: 0;
 }
@@ -211,7 +212,6 @@
 	vertical-align: text-bottom;
 }
 
-/* Links in descriptions & validations */
 .quick-input-message a {
 	color: inherit;
 }
@@ -226,7 +226,6 @@
 
 .quick-input-widget.hidden-input .quick-input-list {
 	margin-top: 4px;
-	/* reduce margins when input box hidden */
 	padding-bottom: 4px;
 }
 
@@ -306,7 +305,6 @@
 .quick-input-list .quick-input-list-rows > .quick-input-list-row .monaco-icon-label,
 .quick-input-list .quick-input-list-rows > .quick-input-list-row .monaco-icon-label .monaco-icon-label-container > .monaco-icon-name-container {
 	flex: 1;
-	/* make sure the icon label grows within the row */
 }
 
 .quick-input-list .quick-input-list-rows > .quick-input-list-row .codicon[class*='codicon-'] {
@@ -319,7 +317,6 @@
 
 .quick-input-list .quick-input-list-entry .quick-input-list-entry-keybinding {
 	margin-right: 8px;
-	/* separate from the separator label or scrollbar if any */
 }
 
 .quick-input-list .quick-input-list-label-meta {
@@ -333,14 +330,12 @@
 	opacity: 1;
 }
 
-/* preserve list-like styling instead of tree-like styling */
 .quick-input-list .monaco-list .monaco-list-row .monaco-highlighted-label .highlight {
 	font-weight: bold;
 	background-color: unset;
 	color: var(--vscode-list-highlightForeground) !important;
 }
 
-/* preserve list-like styling instead of tree-like styling */
 .quick-input-list .monaco-list .monaco-list-row.focused .monaco-highlighted-label .highlight {
 	color: var(--vscode-quickInputList-focusHighlightForeground) !important;
 }
@@ -349,7 +344,6 @@
 	margin-right: 4px;
 	font-size: var(--vscode-bodyFontSize-xSmall);
 	color: var(--vscode-descriptionForeground);
-	/* separate from keybindings or actions */
 }
 
 .quick-input-list .quick-input-list-entry-action-bar {
@@ -360,12 +354,6 @@
 
 .quick-input-list .quick-input-list-entry .quick-input-list-entry-action-bar .action-label,
 .quick-input-list .quick-input-list-entry .quick-input-list-entry-action-bar .monaco-custom-toggle {
-	/*
-	 * Icon actions and toggles also match `.monaco-action-bar .action-item .codicon`,
-	 * whose equal-specificity `display: flex` would reveal them in the idle state
-	 * when loaded later. The hover, focus, and always-visible rules below remain
-	 * more specific and reveal the controls on intent.
-	 */
 	display: none;
 }
 
@@ -384,7 +372,6 @@
 
 .quick-input-list .quick-input-list-entry-action-bar {
 	margin-right: 4px;
-	/* separate from scrollbar */
 }
 
 .quick-input-list .quick-input-list-entry .quick-input-list-entry-action-bar .action-label.always-visible,
@@ -409,7 +396,6 @@
 	border-color: transparent;
 }
 
-/* focused items in quick pick */
 .quick-input-list .monaco-list-row.focused .monaco-keybinding-key,
 .quick-input-list .monaco-list-row.focused .quick-input-list-entry .quick-input-list-separator {
 	color: inherit
@@ -421,9 +407,6 @@
 	border-color: var(--vscode-widget-shadow);
 }
 
-/* In light/dark themes the widget shadow can be transparent, leaving the key borders invisible
-	against the focus/hover background. Derive the border from the foreground instead. High contrast
-	themes are excluded so their stronger borders are preserved. */
 :is(.vs, .vs-dark) .quick-input-list .monaco-list-row.focused .monaco-keybinding-key,
 :is(.vs, .vs-dark) .quick-input-list .monaco-list-row:hover .monaco-keybinding-key {
 	border-color: color-mix(in srgb, currentColor 30%, transparent);
@@ -434,32 +417,26 @@
 	font-size: 12px;
 }
 
-/* Quick input separators as full-row item */
 .quick-input-list .quick-input-list-separator-as-item .label-name {
 	font-weight: 600;
 }
 
 .quick-input-list .quick-input-list-separator-as-item .label-description {
-	/* Override default description opacity so we don't have a contrast ratio issue. */
 	opacity: 1 !important;
 }
 
-/* Hide border when the item becomes the sticky one */
 .quick-input-list .monaco-tree-sticky-row .quick-input-list-entry.quick-input-list-separator-as-item.quick-input-list-separator-border {
 	border-top-style: none;
 }
 
-/* Give sticky row the same padding as the scrollable list */
 .quick-input-list .monaco-tree-sticky-row {
 	padding: 0 5px;
 }
 
-/* Hide the twistie containers so that there isn't blank indent */
 .quick-input-list .monaco-tl-twistie {
 	display: none !important;
 }
 
-/* Tree */
 
 .quick-input-tree .monaco-list {
 	overflow: hidden;
@@ -533,7 +510,6 @@
 .quick-input-tree .quick-input-tree-rows > .quick-input-tree-row .monaco-icon-label,
 .quick-input-tree .quick-input-tree-rows > .quick-input-tree-row .monaco-icon-label .monaco-icon-label-container > .monaco-icon-name-container {
 	flex: 1;
-	/* make sure the icon label grows within the row */
 }
 
 .quick-input-tree .quick-input-tree-rows > .quick-input-tree-row .codicon[class*='codicon-'] {
@@ -552,10 +528,6 @@
 
 .quick-input-tree .quick-input-tree-entry-action-bar .action-label,
 .quick-input-tree .quick-input-tree-entry-action-bar .monaco-custom-toggle {
-	/*
-	 * By default, actions in the quick input action bar are hidden
-	 * until hovered over them or selected.
-	 */
 	display: none;
 }
 
@@ -574,7 +546,6 @@
 
 .quick-input-tree .quick-input-tree-entry-action-bar {
 	margin-right: 4px;
-	/* separate from scrollbar */
 }
 
 .quick-input-tree .quick-input-tree-entry .quick-input-tree-entry-action-bar .action-label.always-visible,

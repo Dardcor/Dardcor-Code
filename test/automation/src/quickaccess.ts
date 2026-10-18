@@ -20,8 +20,6 @@ export class QuickAccess {
 
 	async openFileQuickAccessAndWait(searchValue: string, expectedFirstElementNameOrExpectedResultCount: string | number): Promise<void> {
 
-		// make sure the file quick access is not "polluted"
-		// with entries from the editor history when opening
 		await this.runCommand('workbench.action.clearEditorHistoryWithoutConfirm');
 
 		const PollingStrategy = {
@@ -40,14 +38,12 @@ export class QuickAccess {
 				await this.quickInput.waitForQuickInputElements(elementNames => {
 					this.code.logger.log('QuickAccess: resulting elements: ', elementNames);
 
-					// Quick access seems to be still running -> retry
 					if (elementNames.length === 0) {
 						this.code.logger.log('QuickAccess: file search returned 0 elements, will continue polling...');
 
 						return PollingStrategy.Continue;
 					}
 
-					// Quick access does not seem healthy/ready -> retry
 					const firstElementName = elementNames[0];
 					if (firstElementName === 'No matching results') {
 						this.code.logger.log(`QuickAccess: file search returned "No matching results", will retry...`);
@@ -57,7 +53,6 @@ export class QuickAccess {
 						return PollingStrategy.Stop;
 					}
 
-					// Expected: number of results
 					if (typeof expectedFirstElementNameOrExpectedResultCount === 'number') {
 						if (elementNames.length === expectedFirstElementNameOrExpectedResultCount) {
 							success = true;
@@ -72,7 +67,6 @@ export class QuickAccess {
 						return PollingStrategy.Stop;
 					}
 
-					// Expected: string
 					else {
 						if (firstElementName === expectedFirstElementNameOrExpectedResultCount) {
 							success = true;
@@ -99,9 +93,6 @@ export class QuickAccess {
 
 			await this.quickInput.closeQuickInput();
 
-			// Back off between retries so that slow file search
-			// indexing (e.g. browser/remote on CI) has a chance to
-			// catch up before we hammer it again.
 			if (retries < 9) {
 				await this.code.wait(250 * retries);
 			}
@@ -118,35 +109,25 @@ export class QuickAccess {
 
 	async openFile(path: string): Promise<void> {
 		if (!isAbsolute(path)) {
-			// we require absolute paths to get a single
-			// result back that is unique and avoid hitting
-			// the search process to reduce chances of
-			// search needing longer.
 			throw new Error('QuickAccess.openFile requires an absolute path');
 		}
 
 		const fileName = basename(path);
 
-		// quick access shows files with the basename of the path
 		await this.openFileQuickAccessAndWait(path, basename(path));
 
-		// open first element
 		await this.quickInput.selectQuickInputElement(0);
 
-		// wait for editor being focused
 		await this.editors.waitForEditorFocus(fileName);
 	}
 
 	private async openQuickAccessWithRetry(kind: QuickAccessKind, value?: string): Promise<void> {
 		let retries = 0;
 
-		// Other parts of code might steal focus away from quickinput :(
 		while (retries < 5) {
 
 			try {
-				// Await for quick input widget opened
 				const accept = () => this.quickInput.waitForQuickInputOpened(10);
-				// Open via keybinding
 				switch (kind) {
 					case QuickAccessKind.Files:
 						await this.code.dispatchKeybinding(process.platform === 'darwin' ? 'cmd+p' : 'ctrl+p', accept);
@@ -168,12 +149,10 @@ export class QuickAccess {
 					throw new Error(`QuickAccess.openQuickAccessWithRetry(kind: ${kind}) failed: ${err}`);
 				}
 
-				// Retry
 				await this.code.dispatchKeybinding('escape', async () => { });
 			}
 		}
 
-		// Type value if any
 		if (value) {
 			await this.quickInput.type(value);
 		}
@@ -184,13 +163,10 @@ export class QuickAccess {
 		const exactLabelMatch = options?.exactLabelMatch;
 
 		const openCommandPalletteAndTypeCommand = async (): Promise<boolean> => {
-			// open commands picker
 			await this.openQuickAccessWithRetry(QuickAccessKind.Commands, `>${commandId}`);
 
-			// wait for best choice to be focused
 			await this.quickInput.waitForQuickInputElementFocused();
 
-			// Retry for as long as the command not found
 			const text = await this.quickInput.waitForQuickInputElementText();
 
 			if (text === 'No matching commands' || (exactLabelMatch && text !== commandId)) {
@@ -224,11 +200,6 @@ export class QuickAccess {
 			}
 		}
 
-		// Wait and click on best choice. Focus can be stolen away from the
-		// quick input between opening the palette and now (e.g. by an async
-		// UI event from a previously opened editor), which causes the
-		// `waitForQuickInputOpened` inside `selectQuickInputElement` to time
-		// out. Retry the open+type+select sequence in that case.
 		let selectRetries = 0;
 		while (true) {
 			try {
@@ -242,7 +213,6 @@ export class QuickAccess {
 				try {
 					await this.quickInput.closeQuickInput();
 				} catch {
-					// ignore - the quick input may already be closed or in a weird state
 				}
 				const found = await openCommandPalletteAndTypeCommand();
 				if (!found) {
@@ -257,16 +227,13 @@ export class QuickAccess {
 
 		while (++retries < 10) {
 
-			// open quick outline via keybinding
 			await this.openQuickAccessWithRetry(QuickAccessKind.Symbols);
 
 			const text = await this.quickInput.waitForQuickInputElementText();
 
-			// Retry for as long as no symbols are found
 			if (text === 'No symbol information for the file') {
 				this.code.logger.log(`QuickAccess: openQuickOutline indicated 'No symbol information for the file', will retry...`);
 
-				// close and retry
 				await this.quickInput.closeQuickInput();
 
 				continue;
@@ -276,17 +243,14 @@ export class QuickAccess {
 
 	async getVisibleCommandNames(searchValue: string): Promise<string[]> {
 
-		// open commands picker
 		await this.openQuickAccessWithRetry(QuickAccessKind.Commands, `>${searchValue}`);
 
-		// wait for quick input elements to be available
 		let commandNames: string[] = [];
 		await this.quickInput.waitForQuickInputElements(elementNames => {
 			commandNames = elementNames;
 			return true;
 		});
 
-		// close the quick input
 		await this.quickInput.closeQuickInput();
 
 		return commandNames;

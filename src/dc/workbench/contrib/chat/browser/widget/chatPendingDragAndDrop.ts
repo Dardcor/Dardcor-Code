@@ -19,12 +19,6 @@ interface IDragState {
 	readonly pendingKind: ChatRequestQueueKind;
 }
 
-/**
- * Manages drag-and-drop reordering for pending (steering/queued) chat messages.
- * Attaches drag handles to pending request rows and uses event delegation on
- * the list container to handle drop targets, keeping logic isolated from the
- * renderer itself.
- */
 export class ChatPendingDragController extends Disposable {
 
 	private _dragState: IDragState | undefined;
@@ -49,9 +43,6 @@ export class ChatPendingDragController extends Disposable {
 		}));
 	}
 
-	/**
-	 * Called by the renderer to wire up a drag handle for a pending request row.
-	 */
 	attachDragHandle(
 		element: IChatRequestViewModel,
 		handleEl: HTMLElement,
@@ -68,7 +59,6 @@ export class ChatPendingDragController extends Disposable {
 			this._dragState = { element, pendingKind: element.pendingKind };
 			rowContainer.classList.add(DRAGGING_CLASS);
 
-			// Use the row as the drag image
 			e.dataTransfer.setDragImage(rowContainer, 0, 0);
 			e.dataTransfer.effectAllowed = 'move';
 		}));
@@ -79,7 +69,6 @@ export class ChatPendingDragController extends Disposable {
 		}));
 	}
 
-	// --- drag event handlers (delegated on the container) ---
 
 	private _onDragOver(e: DragEvent): void {
 		if (!this._dragState) {
@@ -130,7 +119,6 @@ export class ChatPendingDragController extends Disposable {
 		this._dragState = undefined;
 	}
 
-	// --- indicator positioning ---
 
 	private _showIndicator(targetRow: HTMLElement, before: boolean): void {
 		const rect = targetRow.getBoundingClientRect();
@@ -147,7 +135,6 @@ export class ChatPendingDragController extends Disposable {
 		this._insertIndicator.style.display = 'none';
 	}
 
-	// --- target resolution ---
 
 	private _findDropTarget(e: DragEvent): { row: HTMLElement; requestId: string } | undefined {
 		if (!this._dragState) {
@@ -162,7 +149,6 @@ export class ChatPendingDragController extends Disposable {
 		const requestId = target.getAttribute(PENDING_REQUEST_ID_ATTR)!;
 		const kind = target.getAttribute(PENDING_KIND_ATTR);
 
-		// Only allow reorder within the same group
 		if (kind !== this._dragState.pendingKind || requestId === this._dragState.element.id) {
 			return undefined;
 		}
@@ -170,7 +156,6 @@ export class ChatPendingDragController extends Disposable {
 		return { row: target, requestId };
 	}
 
-	// --- reorder logic ---
 
 	private _reorder(draggedElement: IChatRequestViewModel, targetId: string, insertBefore: boolean): void {
 		const viewModel = this._getViewModel();
@@ -181,21 +166,18 @@ export class ChatPendingDragController extends Disposable {
 		const pendingRequests = viewModel.model.getPendingRequests();
 		const draggedKind = draggedElement.pendingKind!;
 
-		// Split into the dragged kind's group and the rest (preserving order)
 		const group: IChatPendingRequest[] = [];
 		const rest: IChatPendingRequest[] = [];
 		for (const p of pendingRequests) {
 			(p.kind === draggedKind ? group : rest).push(p);
 		}
 
-		// Remove dragged from group
 		const draggedIdx = group.findIndex(p => p.request.id === draggedElement.id);
 		if (draggedIdx === -1) {
 			return;
 		}
 		const [dragged] = group.splice(draggedIdx, 1);
 
-		// Find target position and insert
 		let targetIdx = group.findIndex(p => p.request.id === targetId);
 		if (targetIdx === -1) {
 			return;
@@ -205,10 +187,9 @@ export class ChatPendingDragController extends Disposable {
 		}
 		group.splice(targetIdx, 0, dragged);
 
-		// Rebuild full list: steering first, then queued (matching addPendingRequest ordering)
 		const reordered = (draggedKind === ChatRequestQueueKind.Steering
-			? [...group, ...rest]   // group is steering, rest is queued
-			: [...rest, ...group]   // rest is steering, group is queued
+			? [...group, ...rest]
+			: [...rest, ...group]
 		).map(p => ({ requestId: p.request.id, kind: p.kind }));
 
 		this._chatService.setPendingRequests(viewModel.sessionResource, reordered);

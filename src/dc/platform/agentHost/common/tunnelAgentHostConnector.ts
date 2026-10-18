@@ -30,14 +30,8 @@ import type { ITunnelDuplexStream, ITunnelMessageSocket, ITunnelSocketCloseEvent
 const LOG_PREFIX = '[TunnelAgentHost]';
 const BASE64_URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
-/**
- * Per-step timeout for dev-tunnel relay and socket operations.
- */
 export const TUNNEL_STEP_TIMEOUT_MS = 30_000;
 
-/**
- * A minimal tunnel descriptor that is independent of the dev-tunnels SDK.
- */
 export interface ITunnelDescriptor {
 	readonly tunnelId?: string;
 	readonly clusterId?: string;
@@ -48,48 +42,30 @@ export interface ITunnelDescriptor {
 	};
 }
 
-/**
- * The relay client used to connect a resolved dev tunnel to its agent-host port.
- */
 export interface ITunnelRelayClient extends IDisposable {
 	connect(): Promise<void>;
 	waitForForwardedPort(port: number): Promise<void>;
 	connectToForwardedPort(port: number): Promise<ITunnelDuplexStream>;
 }
 
-/**
- * A resolved tunnel and its configured relay client.
- */
 export interface ITunnelRelayClientSession {
 	readonly tunnel: ITunnelDescriptor;
 	createRelayClient(): Promise<ITunnelRelayClient>;
 }
 
-/**
- * Resolves a dev tunnel before its relay client is created.
- */
 export interface ITunnelRelayClientFactory {
 	getTunnel(tunnelId: string, clusterId: string, authProvider: 'github' | 'microsoft', token: string): Promise<ITunnelRelayClientSession | undefined>;
 }
 
-/**
- * Opens a message socket over a tunnel relay stream.
- */
 export interface ITunnelSocketFactory {
 	open(stream: ITunnelDuplexStream, path: string): Promise<ITunnelMessageSocket>;
 }
 
-/**
- * Logging methods required by the connector.
- */
 export interface ITunnelAgentHostConnectorLogService {
 	info(message: string): void;
 	warn(message: string): void;
 }
 
-/**
- * Runs an operation with a named deadline.
- */
 export async function withTimeout<T>(
 	op: () => Promise<T>,
 	timeoutMs: number,
@@ -103,9 +79,6 @@ export async function withTimeout<T>(
 	return result as T;
 }
 
-/**
- * Derives the tunnel connection token used by the CLI and desktop clients.
- */
 export async function deriveConnectionToken(tunnelId: string): Promise<string> {
 	const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tunnelId)));
 	let result = '';
@@ -128,9 +101,6 @@ export async function deriveConnectionToken(tunnelId: string): Promise<string> {
 	return result.startsWith('-') ? `a${result}` : result;
 }
 
-/**
- * Maps a dev-tunnels descriptor to the tunnel information shared with clients.
- */
 export function parseTunnelInfo(tunnel: ITunnelDescriptor): ITunnelInfo | undefined {
 	const labels = tunnel.labels ?? [];
 	const tags = new TunnelTags(labels);
@@ -154,9 +124,6 @@ export function parseTunnelInfo(tunnel: ITunnelDescriptor): ITunnelInfo | undefi
 	};
 }
 
-/**
- * A gateway selection that owns its socket and relay until completed or cancelled.
- */
 export class PendingGatewaySelection implements IDisposable {
 	private _disposed = false;
 	private readonly _onSocketClosedListener: IDisposable;
@@ -176,7 +143,6 @@ export class PendingGatewaySelection implements IDisposable {
 		});
 	}
 
-	/** Transfers socket ownership to an active connection. */
 	detach(): void {
 		this._onSocketClosedListener.dispose();
 	}
@@ -188,17 +154,14 @@ export class PendingGatewaySelection implements IDisposable {
 			try {
 				this.socket.close();
 			} catch {
-				// ignore — best-effort cleanup
 			}
 			try {
 				this.socket.dispose();
 			} catch {
-				// ignore — best-effort cleanup
 			}
 			try {
 				this.relayClient.dispose();
 			} catch {
-				// ignore — best-effort cleanup
 			}
 		}
 	}
@@ -243,9 +206,6 @@ class TunnelConnection extends Disposable {
 	}
 }
 
-/**
- * Coordinates dev-tunnel relay connection and gateway selection over injected transports.
- */
 export class TunnelAgentHostConnector extends Disposable {
 	private readonly _onDidRelayMessage = this._register(new Emitter<ITunnelRelayMessage>());
 	readonly onDidRelayMessage: Event<ITunnelRelayMessage> = this._onDidRelayMessage.event;
@@ -425,12 +385,10 @@ export class TunnelAgentHostConnector extends Disposable {
 		}
 	}
 
-	/** Registers a pending selection without creating a relay for unit tests. */
 	setPendingGatewaySelectionForTests(selectionId: string, pending: PendingGatewaySelection): void {
 		this._pendingSelections.set(selectionId, pending);
 	}
 
-	/** Removes and disposes a pending selection for unit tests. */
 	deletePendingGatewaySelectionForTests(selectionId: string): void {
 		this._pendingSelections.deleteAndDispose(selectionId);
 	}
@@ -500,12 +458,10 @@ export class TunnelAgentHostConnector extends Disposable {
 		try {
 			socket.close();
 		} catch {
-			// ignore — best-effort cleanup
 		}
 		try {
 			socket.dispose();
 		} catch {
-			// ignore — best-effort cleanup
 		}
 	}
 
@@ -513,7 +469,6 @@ export class TunnelAgentHostConnector extends Disposable {
 		try {
 			relayClient.dispose();
 		} catch {
-			// ignore — best-effort cleanup
 		}
 	}
 }

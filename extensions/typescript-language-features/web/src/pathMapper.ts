@@ -6,15 +6,12 @@ import { URI } from 'vscode-uri';
 
 export class PathMapper {
 
-	private readonly projectRootPaths = new Map</* original path*/ string, /* parsed URI */ URI>();
+	private readonly projectRootPaths = new Map< string, URI>();
 
 	constructor(
 		private readonly extensionUri: URI
 	) { }
 
-	/**
-	 * Copied from toResource in typescriptServiceClient.ts
-	 */
 	toResource(filepath: string): URI {
 		if (looksLikeLibDtsPath(filepath) || looksLikeLocaleResourcePath(filepath)) {
 			return URI.from({
@@ -29,9 +26,6 @@ export class PathMapper {
 			throw new Error(`Could not parse path ${filepath}`);
 		}
 
-		// Check if TS is trying to read a file outside of the project root.
-		// We allow reading files on unknown scheme as these may be loose files opened by the user.
-		// However we block reading files on schemes that are on a known file system with an unknown root
 		let allowRead: 'implicit' | 'block' | 'allow' = 'implicit';
 		for (const projectRoot of this.projectRootPaths.values()) {
 			if (uri.scheme === projectRoot.scheme) {
@@ -40,7 +34,6 @@ export class PathMapper {
 					break;
 				}
 
-				// Tentatively block the read but a future loop may allow it
 				allowRead = 'block';
 			}
 		}

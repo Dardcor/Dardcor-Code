@@ -30,10 +30,8 @@ export class ExtHostChatContext extends Disposable implements ExtHostChatContext
 	private _handlePool: number = 0;
 	private _providers: Map<number, ProviderEntry> = new Map();
 	private _itemPool: number = 0;
-	/** Global map of itemHandle -> original item for command execution with reference equality */
 	private _globalItems: Map<number, vscode.ChatContextItem> = new Map();
-	/** Track which items belong to which provider for cleanup */
-	private _providerItems: Map<number, Set<number>> = new Map(); // providerHandle -> Set<itemHandle>
+	private _providerItems: Map<number, Set<number>> = new Map();
 
 	constructor(
 		@IExtHostRpcService extHostRpc: IExtHostRpcService,
@@ -44,7 +42,6 @@ export class ExtHostChatContext extends Disposable implements ExtHostChatContext
 		this._proxy = extHostRpc.getProxy(MainContext.MainThreadChatContext);
 	}
 
-	// Workspace context provider methods
 
 	async $provideWorkspaceChatContext(handle: number, token: CancellationToken): Promise<IChatContextItem[]> {
 		this._clearProviderItems(handle);
@@ -57,7 +54,6 @@ export class ExtHostChatContext extends Disposable implements ExtHostChatContext
 		return this._convertItems(handle, result);
 	}
 
-	// Explicit context provider methods
 
 	async $provideExplicitChatContext(handle: number, token: CancellationToken): Promise<IChatContextItem[]> {
 		this._clearProviderItems(handle);
@@ -83,7 +79,6 @@ export class ExtHostChatContext extends Disposable implements ExtHostChatContext
 		return this._doResolve((provider.resolveAttachChatContext)?.bind(provider), context, extItem, token);
 	}
 
-	// Resource context provider methods
 
 	async $provideResourceChatContext(handle: number, options: { resource: UriComponents; withValue: boolean; viewType?: string }, token: CancellationToken): Promise<IChatContextItem | undefined> {
 		const entry = this._providers.get(handle);
@@ -139,7 +134,6 @@ export class ExtHostChatContext extends Disposable implements ExtHostChatContext
 		return this._doResolve(provider.resolveChatTabContext?.bind(provider), context, extItem, token);
 	}
 
-	// Command execution
 
 	async $executeChatContextItemCommand(itemHandle: number): Promise<void> {
 		const extItem = this._globalItems.get(itemHandle);
@@ -149,12 +143,10 @@ export class ExtHostChatContext extends Disposable implements ExtHostChatContext
 		if (!extItem.command) {
 			throw new Error('Chat context item has no command');
 		}
-		// Execute the command with the original extension item as an argument (reference equality)
 		const args = extItem.command.arguments ? [extItem, ...extItem.command.arguments] : [extItem];
 		await this._commands.executeCommand(extItem.command.command, ...args);
 	}
 
-	// Registration methods
 
 	registerChatWorkspaceContextProvider(id: string, provider: vscode.ChatWorkspaceContextProvider): vscode.Disposable {
 		const handle = this._handlePool++;
@@ -208,11 +200,6 @@ export class ExtHostChatContext extends Disposable implements ExtHostChatContext
 		};
 	}
 
-	/**
-	 * Finds the open {@link vscode.Tab tab} for the given resource. When a `viewType` is provided,
-	 * webview and custom editor tabs are matched by their view type; otherwise tabs are matched by
-	 * their input resource. When multiple tabs match by view type, the active tab is preferred.
-	 */
 	private _findTab(resource: URI, viewType?: string): vscode.Tab | undefined {
 		let viewTypeMatch: vscode.Tab | undefined;
 		for (const group of this._editorTabs.tabGroups.all) {
@@ -306,7 +293,6 @@ export class ExtHostChatContext extends Disposable implements ExtHostChatContext
 		};
 
 		disposables.add(provider.onDidChangeWorkspaceChatContext(async () => provideWorkspaceContext()));
-		// kick off initial workspace context fetch
 		provideWorkspaceContext();
 	}
 

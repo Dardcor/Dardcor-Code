@@ -9,7 +9,6 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 import * as semver from '../../../../base/common/semver/semver.js';
 import { Mutable } from '../../../../base/common/types.js';
 
-// TODO: @sandy081 merge this with deduping in extensionsScannerService.ts
 export function dedupExtensions(system: IExtensionDescription[], user: IExtensionDescription[], workspace: IExtensionDescription[], development: IExtensionDescription[], logService: ILogService): IExtensionDescription[] {
 	const result = new ExtensionIdentifierMap<IExtensionDescription>();
 	system.forEach((systemExtension) => {
@@ -27,7 +26,6 @@ export function dedupExtensions(system: IExtensionDescription[], user: IExtensio
 					logService.warn(`Skipping extension ${userExtension.extensionLocation.path} in favour of the builtin extension ${extension.extensionLocation.path}.`);
 					return;
 				}
-				// Overwriting a builtin extension inherits the `isBuiltin` property and it doesn't show a warning
 				(<Mutable<IExtensionDescription>>userExtension).isBuiltin = true;
 			} else {
 				logService.warn(localize('overwritingExtension', "Overwriting extension {0} with {1}.", extension.extensionLocation.fsPath, userExtension.extensionLocation.fsPath));
@@ -50,7 +48,6 @@ export function dedupExtensions(system: IExtensionDescription[], user: IExtensio
 		const extension = result.get(developedExtension.identifier);
 		if (extension) {
 			if (extension.isBuiltin) {
-				// Overwriting a builtin extension inherits the `isBuiltin` property
 				(<Mutable<IExtensionDescription>>developedExtension).isBuiltin = true;
 			}
 		}

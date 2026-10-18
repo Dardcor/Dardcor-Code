@@ -10,7 +10,6 @@ import { AttachmentCleaner } from './notebookAttachmentCleaner';
 import { serializeNotebookToString } from './serializers';
 import { defaultNotebookFormat } from './constants';
 
-// From {nbformat.INotebookMetadata} in @jupyterlab/coreutils
 type NotebookMetadata = {
 	kernelspec?: {
 		name: string;

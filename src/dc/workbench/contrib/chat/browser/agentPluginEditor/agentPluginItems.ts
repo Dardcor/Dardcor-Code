@@ -18,7 +18,6 @@ export interface IInstalledPluginItem {
 	readonly description: string;
 	readonly marketplace?: string;
 	readonly plugin: IAgentPlugin;
-	/** When set, indicates the plugin has a newer version in the marketplace. */
 	readonly outdated?: IObservable<IMarketplacePlugin | undefined>;
 }
 

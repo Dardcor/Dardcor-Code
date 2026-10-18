@@ -74,10 +74,8 @@ suite('Intent Streaming', function () {
 		};
 		const context2: IResponseProcessorContext = {
 			addAnnotations: function (annotations: OutcomeAnnotation[]): void {
-				// nothing
 			},
 			storeInInlineSession: function (store: ISessionTurnStorage): void {
-				// nothing
 			},
 			chatSessionId: '',
 			turn: null!,

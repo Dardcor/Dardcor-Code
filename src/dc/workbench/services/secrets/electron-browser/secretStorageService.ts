@@ -58,7 +58,6 @@ export class NativeSecretStorageService extends BaseSecretStorageService {
 		const troubleshootingButton: IPromptChoice = {
 			label: localize('troubleshootingButton', "Open troubleshooting guide"),
 			run: () => this._openerService.open('https://go.microsoft.com/fwlink/?linkid=2239490'),
-			// doesn't close dialogs
 			keepOpen: true
 		};
 		buttons.push(troubleshootingButton);

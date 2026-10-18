@@ -96,11 +96,9 @@ export class ExtensionMcpDiscovery extends Disposable implements IMcpDiscovery {
 					const id = extensionPrefixedIdentifier(collections.description.identifier, coll.id);
 					this._extensionCollectionIdsToPersist.set(id, PersistWhen.CollectionExists);
 
-					// Handle conditional collections with 'when' clause
 					if (coll.when) {
 						this._registerConditionalCollection(id, coll, collections, extensionCollections);
 					} else {
-						// Register collection immediately if no 'when' clause
 						this._registerCollection(id, coll, collections, extensionCollections);
 					}
 				}
@@ -128,7 +126,6 @@ export class ExtensionMcpDiscovery extends Disposable implements IMcpDiscovery {
 			lazy: {
 				isCached: !!serverDefs,
 				load: () => this._activateExtensionServers(coll.id).then(() => {
-					// persist (an empty collection) in case the extension doesn't end up publishing one
 					this._extensionCollectionIdsToPersist.set(id, PersistWhen.Always);
 				}),
 				removed: () => {
@@ -150,7 +147,6 @@ export class ExtensionMcpDiscovery extends Disposable implements IMcpDiscovery {
 	) {
 		const whenClause = ContextKeyExpr.deserialize(coll.when!);
 		if (!whenClause) {
-			// Invalid when clause, treat as always false
 			return;
 		}
 
@@ -167,7 +163,6 @@ export class ExtensionMcpDiscovery extends Disposable implements IMcpDiscovery {
 		const contextKeyListener = this._contextKeyService.onDidChangeContext(evaluate);
 		evaluate();
 
-		// Store disposable for this conditional collection
 		this._conditionalCollections.set(id, contextKeyListener);
 	}
 

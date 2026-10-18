@@ -43,7 +43,6 @@ export class ChunkingEndpointClientSQLiteCache extends SQLiteCache<CacheableChun
 	override async get(req: CacheableChunkingEndpointClientRequest): Promise<FileChunkWithEmbedding[] | undefined> {
 		const result = await super.get(req);
 
-		// Revive objects from cache
 		return result?.map(cachedResponse => {
 			const chunk: FileChunkWithEmbedding = {
 				chunk: {
@@ -73,7 +72,7 @@ export class CachingChunkingEndpointClient implements IChunkingEndpointClient {
 		this._chunkingEndpointClient = instantiationService.createInstance(ChunkingEndpointClientImpl);
 	}
 
-	async computeChunksAndEmbeddings(authToken: string, embeddingType: EmbeddingType, content: ChunkableContent, batchInfo: ComputeBatchInfo, qos: EmbeddingsComputeQos, cache: ReadonlyMap</* hash */string, FileChunkWithEmbedding> | undefined, telemetryInfo: CallTracker, token: CancellationToken): Promise<readonly FileChunkWithEmbedding[] | undefined> {
+	async computeChunksAndEmbeddings(authToken: string, embeddingType: EmbeddingType, content: ChunkableContent, batchInfo: ComputeBatchInfo, qos: EmbeddingsComputeQos, cache: ReadonlyMap< string, FileChunkWithEmbedding> | undefined, telemetryInfo: CallTracker, token: CancellationToken): Promise<readonly FileChunkWithEmbedding[] | undefined> {
 		const req = await CacheableChunkingEndpointClientRequest.create(content);
 		const cacheValue = await this._cache.get(req);
 		if (cacheValue) {

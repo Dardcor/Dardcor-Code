@@ -22,16 +22,12 @@ import { NodeVersionManager } from './nodeManager';
 import { Lazy } from '../utils/lazy';
 
 const enum CompositeServerType {
-	/** Run a single server that handles all commands  */
 	Single,
 
-	/** Run a separate server for syntax commands */
 	SeparateSyntax,
 
-	/** Use a separate syntax server while the project is loading */
 	DynamicSeparateSyntax,
 
-	/** Only enable the syntax server */
 	SyntaxOnly
 }
 
@@ -272,7 +268,7 @@ export class TypeScriptServerSpawner {
 		if (
 			apiVersion.gte(API.v544)
 			&& configUseVsCodeWatcher
-			&& !isYarnPnp // Disable for yarn pnp as it currently breaks with the VS Code watcher
+			&& !isYarnPnp
 		) {
 			args.push('--canUseWatchEvents');
 		} else {

@@ -37,8 +37,6 @@ export class FindMatchDecorationModel extends Disposable {
 
 		this.clearCurrentFindMatchDecoration();
 
-		// match is an editor FindMatch, we update find match decoration in the editor
-		// we will highlight the match in the webview
 		this._notebookEditor.changeModelDecorations(accessor => {
 			const findMatchesOptions: ModelDecorationOptions = FindDecorations._CURRENT_FIND_MATCH_DECORATION;
 
@@ -112,7 +110,6 @@ export class FindMatchDecorationModel extends Disposable {
 			const findMatchesOptions: ModelDecorationOptions = FindDecorations._FIND_MATCH_DECORATION;
 
 			const deltaDecorations: ICellModelDeltaDecorations[] = cellFindMatches.map(cellFindMatch => {
-				// Find matches
 				const newFindMatchesDecorations: IModelDeltaDecoration[] = new Array<IModelDeltaDecoration>(cellFindMatch.contentMatches.length);
 				for (let i = 0; i < cellFindMatch.contentMatches.length; i++) {
 					newFindMatchesDecorations[i] = {

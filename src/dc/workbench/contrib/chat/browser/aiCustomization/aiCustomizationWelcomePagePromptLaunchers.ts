@@ -140,8 +140,6 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 		scrollableNode.classList.add('welcome-prompts-scrollable');
 		parent.appendChild(scrollableNode);
 
-		// Re-scan whenever the wrapper changes size so the scrollbar reflects
-		// the current overflow state. rebuildCards() scans after content changes.
 		const resizeObserver = this._register(new DOM.DisposableResizeObserver('AICustomizationWelcomePagePromptLaunchers.scrollable', () => this.scrollable.scanDomNode()));
 		this._register(resizeObserver.observe(scrollableNode));
 
@@ -191,8 +189,6 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 				}
 				const query = `/init ${value}`;
 
-				// Show confirmation immediately — before prefillChat so it's visible
-				// even if prefillChat navigates focus away from this editor
 				if (this.inputElement) {
 					this.inputElement.value = '';
 				}
@@ -219,7 +215,6 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 			}));
 			this._register(DOM.addDisposableListener(this.inputElement, 'input', () => {
 				updateSubmitState();
-				// Typing restores the input row from sent state
 				this._clearSentState();
 			}));
 			updateSubmitState();
@@ -307,7 +302,6 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 			this.renderStandaloneCustomization(otherGrid, customization);
 		}
 
-		// Content changed — recompute scroll dimensions.
 		this.scrollable.scanDomNode();
 	}
 
@@ -395,10 +389,6 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 	}
 
 	focus(): void {
-		// Prefer the prompt input so screen reader / keyboard users land on a meaningful
-		// control. If the input isn't rendered (e.g. when the getting-started banner is
-		// disabled), fall back to the first focusable card so focus stays inside the
-		// welcome page rather than escaping to the surrounding workbench editor.
 		if (this.inputElement) {
 			this.inputElement.focus();
 			return;

@@ -41,17 +41,13 @@ abstract class CommentLineAction extends EditorAction {
 		const selections = editor.getSelections().map((selection, index) => ({ selection, index, ignoreFirstLine: false }));
 		selections.sort((a, b) => Range.compareRangesUsingStarts(a.selection, b.selection));
 
-		// Remove selections that would result in copying the same line
 		let prev = selections[0];
 		for (let i = 1; i < selections.length; i++) {
 			const curr = selections[i];
 			if (prev.selection.endLineNumber === curr.selection.startLineNumber) {
-				// these two selections would copy the same line
 				if (prev.index < curr.index) {
-					// prev wins
 					curr.ignoreFirstLine = true;
 				} else {
-					// curr wins
 					prev.ignoreFirstLine = true;
 					prev = curr;
 				}

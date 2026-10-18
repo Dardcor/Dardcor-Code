@@ -14,7 +14,6 @@ function getLocaleFromCookie() {
   return normalizeLocale(value);
 }
 
-// Locale display names and flags - will be translated by runtime i18n
 const getLocaleInfo = (locale) => {
   const locales = {
     "en": { name: "English", flag: "🇺🇸" },
@@ -37,7 +36,7 @@ const getLocaleInfo = (locale) => {
     "tr": { name: "Türkçe", flag: "🇹🇷" },
     "uk": { name: "Українська", flag: "🇺🇦" },
     "tl": { name: "Tagalog", flag: "🇵🇭" },
-    "id": { name: "Indonesia", flag: "🇮🇩" },
+    "id": { name: "Bahasa Indonesia", flag: "🇮🇩" },
     "th": { name: "ไทย", flag: "🇹🇭" },
     "km": { name: "ខ្មែរ", flag: "🇰🇭" },
     "hi": { name: "हिन्दी", flag: "🇮🇳" },
@@ -76,7 +75,6 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
     setLocale(getLocaleFromCookie());
   }, []);
 
-  // Close modal when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -100,7 +98,6 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
         body: JSON.stringify({ locale: nextLocale }),
       });
       
-      // Reload translations without full page reload
       await reloadTranslations();
       setLocale(nextLocale);
       setIsOpen(false, nextLocale);
@@ -113,7 +110,7 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
 
   return (
     <div className={className}>
-      {/* Trigger button */}
+      {}
       {!hideTrigger && (
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -128,21 +125,21 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
         </button>
       )}
 
-      {/* Portal modal - renders at document.body to avoid parent layout constraints */}
+      {}
       {isOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-i18n-skip="true">
-          {/* Overlay */}
+          {}
           <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Modal content */}
+          {}
           <div
             ref={modalRef}
             className="relative w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-w-2xl flex flex-col max-h-[80vh]"
           >
-            {/* Modal header */}
+            {}
             <div className="flex items-center justify-between p-3 border-b border-black/5 dark:border-white/5">
               <h2 className="text-lg font-semibold text-text-main">Select Language</h2>
               <button
@@ -154,7 +151,7 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
               </button>
             </div>
 
-            {/* Modal body - fixed grid columns, equal sizing */}
+            {}
             <div className="p-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
                 {LOCALES.map((item) => {
@@ -173,7 +170,7 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
                       title={info.name}
                     >
                       <span className="text-2xl">{info.flag}</span>
-                      {/* Fixed 2-line height so all cards are uniform */}
+                      {}
                       <span className="text-center leading-tight line-clamp-2 h-8 flex items-center">{info.name}</span>
                       {active && (
                         <span className="material-symbols-outlined text-sm">check</span>

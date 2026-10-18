@@ -26,11 +26,6 @@ export class VSCodeTelemetryReporter implements TelemetryReporter {
 			return;
 		}
 
-		/* __GDPR__FRAGMENT__
-			"TypeScriptCommonProperties" : {
-				"version" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-			}
-		*/
 		properties['version'] = this.clientVersionDelegate();
 
 		reporter.postEventObj(eventName, properties);
@@ -45,17 +40,6 @@ export class VSCodeTelemetryReporter implements TelemetryReporter {
 			event.data = data;
 		}
 
-		/* __GDPR__
-			"typeScriptExtension.trace" : {
-				"owner": "dirkb",
-				"${include}": [
-					"${TypeScriptCommonProperties}"
-				],
-				"point" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The trace point." },
-				"traceId" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The traceId is used to correlate the request with other trace points." },
-				"data": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Additional data" }
-			}
-		*/
 		this.logTelemetry('typeScriptExtension.trace', event);
 	}
 }

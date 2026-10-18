@@ -71,8 +71,6 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 			return undefined;
 		}
 
-		// Caches run independently of filters. Even if no filters match, a
-		// cache hit can replace the output with a one-liner.
 		const caches = this._caches.get(toolId);
 		if (caches && caches.length > 0) {
 			for (const c of caches) {
@@ -88,7 +86,6 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 				}
 				if (hit) {
 					const totalBefore = result.content.reduce((acc, p) => acc + (p.kind === 'text' ? p.value.length : 0), 0);
-					// Guard: don't replace small outputs or structured data.
 					if (totalBefore < MIN_COMPRESSIBLE_LENGTH) {
 						continue;
 					}
@@ -117,14 +114,10 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 			}
 		}) ?? [];
 		if (matchingFilters.length === 0) {
-			// No filters matched, but we may still want to record the raw output
-			// in the caches so the next read-only call can hit.
 			this._recordInCaches(toolId, input, result, caches);
 			return undefined;
 		}
 
-		// Mutable copy: filters that throw get spliced out so we don't repeatedly
-		// invoke a broken filter on every subsequent text part in this pass.
 		const activeFilters = matchingFilters.slice();
 		const disabledFilterIds = new Set<string>();
 
@@ -143,9 +136,6 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 				totalAfter += original.length;
 				return part;
 			}
-			// Registry-level "never make it worse" guard: don't pass structured
-			// data (JSON / TOML / YAML headers) through filters even if they say
-			// they match.
 			if (isProtectedFromCompression(original)) {
 				totalAfter += original.length;
 				return part;
@@ -153,7 +143,7 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 
 			let current = original;
 			const partFilterIds: string[] = [];
-			for (let i = 0; i < activeFilters.length; /* manual increment */) {
+			for (let i = 0; i < activeFilters.length; ) {
 				const filter = activeFilters[i];
 				try {
 					const out = filter.apply(current, input);
@@ -164,9 +154,6 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 					}
 					i++;
 				} catch (err) {
-					// "Never make it worse." Disable the filter for the rest of this
-					// compression pass so it can't repeatedly throw on later text parts,
-					// and warn at most once per filter.
 					activeFilters.splice(i, 1);
 					if (!disabledFilterIds.has(filter.id)) {
 						disabledFilterIds.add(filter.id);
@@ -178,10 +165,6 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 			totalAfter += current.length;
 			if (current !== original) {
 				anyCompressed = true;
-				// Prepend a banner so the model knows the output was filtered, by
-				// which filters, and how to disable compression. We only annotate
-				// the parts we actually changed — non-compressed parts pass through
-				// untouched.
 				const banner = formatCompressionBanner(partFilterIds, original.length, current.length);
 				const annotated = `${banner}\n${current}`;
 				const rewritten: IToolResultTextPart = {
@@ -213,8 +196,6 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 	private _buildCacheHitResult(original: IToolResult, hit: { text: string; timestamp: number }): IToolResult {
 		const iso = new Date(hit.timestamp).toISOString();
 		const text = `Same output as last run (${iso}). To disable, set ${ChatConfiguration.CompressOutputEnabled} to false.`;
-		// Preserve the first text part's audience metadata so downstream
-		// model-routing logic still behaves the same way.
 		const firstText = original.content.find((p): p is IToolResultTextPart => p.kind === 'text');
 		const replacement: IToolResultTextPart = {
 			kind: 'text',
@@ -222,8 +203,6 @@ export class ToolResultCompressorService extends Disposable implements IToolResu
 			audience: firstText?.audience,
 			title: firstText?.title,
 		};
-		// Drop other text parts but keep non-text parts (e.g. binary data) so
-		// downstream consumers don't lose attachments.
 		const nonText = original.content.filter(p => p.kind !== 'text');
 		return { ...original, content: [replacement, ...nonText] };
 	}

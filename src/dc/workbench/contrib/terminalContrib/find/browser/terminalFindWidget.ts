@@ -112,13 +112,11 @@ export class TerminalFindWidget extends SimpleFindWidget {
 			return;
 		}
 
-		// Disable copy-on-selection during search to prevent search result from overriding clipboard
 		this._register(xterm.onBeforeSearch(() => {
 			this._overrideCopyOnSelectionDisposable.clear();
 			this._overrideCopyOnSelectionDisposable.value = TerminalClipboardContribution.get(this._instance)?.overrideCopyOnSelection(false);
 		}));
 
-		// Re-enable copy-on-selection after search completes
 		this._register(xterm.onAfterSearch(() => {
 			this._overrideCopyOnSelectionDisposable.clear();
 		}));
@@ -141,7 +139,6 @@ export class TerminalFindWidget extends SimpleFindWidget {
 		const inputValue = initialInput ?? this.inputValue;
 		const xterm = this._instance.xterm;
 		if (xterm && inputValue && inputValue !== '') {
-			// trigger highlight all matches
 			this._findPreviousWithEvent(xterm, inputValue, { incremental: true, regex: this._getRegexValue(), wholeWord: this._getWholeWordValue(), caseSensitive: this._getCaseSensitiveValue() }).then(foundMatch => {
 				this.updateButtons(foundMatch);
 				this._register(Event.once(xterm.onDidChangeSelection)(() => xterm.clearActiveSearchDecoration()));
@@ -172,7 +169,6 @@ export class TerminalFindWidget extends SimpleFindWidget {
 	}
 
 	protected _onInputChanged() {
-		// Ignore input changes for now
 		const xterm = this._instance.xterm;
 		if (xterm) {
 			this._findPreviousWithEvent(xterm, this.inputValue, { regex: this._getRegexValue(), wholeWord: this._getWholeWordValue(), caseSensitive: this._getCaseSensitiveValue(), incremental: true }).then(foundMatch => {

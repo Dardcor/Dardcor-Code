@@ -27,7 +27,6 @@ export default function ConsoleLogClient() {
   const handleClear = async () => {
     try {
       await fetch("/api/translator/console-logs", { method: "DELETE" });
-      // UI cleared via SSE "clear" event
     } catch (err) {
       console.error("Failed to clear console logs:", err);
     }
@@ -62,7 +61,6 @@ export default function ConsoleLogClient() {
     return () => es.close();
   }, []);
 
-  // Auto-scroll to bottom on new logs
   useEffect(() => {
     if (!logRef.current) return;
     logRef.current.scrollTop = logRef.current.scrollHeight;

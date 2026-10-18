@@ -20,9 +20,6 @@ interface IDynamicToolSetSpec {
 	readonly members: readonly string[];
 }
 
-/**
- * Contributes the built-in "client" tool sets surfaced as rows in the Chat Customizations → Tools section.
- */
 export class ClientToolSetsContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.chat.clientToolSets';
 
@@ -57,7 +54,7 @@ export class ClientToolSetsContribution extends Disposable implements IWorkbench
 		this._register(this._registerDynamicToolSet(toolsService, {
 			id: 'vscode-general',
 			referenceName: 'vscodeGeneral',
-			icon: Codicon.vscode,
+			icon: Codicon.dardcorCode,
 			description: localize('clientToolSet.vscode.description', "Dardcor Code"),
 			detail: localize('clientToolSet.vscode.detail', "Navigate code, manage extensions, and run built-in Dardcor Code commands."),
 			members: [
@@ -85,11 +82,6 @@ export class ClientToolSetsContribution extends Disposable implements IWorkbench
 		}));
 	}
 
-	/**
-	 * Creates a tool set and keeps its membership in sync with the tools registered under the
-	 * reference names in {@link IDynamicToolSetSpec.members}. Returns a disposable that removes the
-	 * tool set and all of its member registrations.
-	 */
 	private _registerDynamicToolSet(toolsService: ILanguageModelToolsService, spec: IDynamicToolSetSpec): IDisposable {
 		const store = new DisposableStore();
 
@@ -105,7 +97,6 @@ export class ClientToolSetsContribution extends Disposable implements IWorkbench
 			}
 		));
 
-		/** Tracks the currently-added member tools so membership can be reconciled on change. */
 		const members = new Map<string, { readonly tool: IToolData; readonly disposable: IDisposable }>();
 		const reconcile = () => {
 			for (const name of spec.members) {

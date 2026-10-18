@@ -32,23 +32,12 @@ const NOT_WORD_RE = /[^a-z0-9]/i;
 
 const enum StatsConstants {
 	StatsBufferSize = 24,
-	StatsSendTelemetryEvery = 1000 * 60 * 5, // how often to collect stats
+	StatsSendTelemetryEvery = 1000 * 60 * 5,
 	StatsMinSamplesToTurnOn = 5,
 	StatsMinAccuracyToTurnOn = 0.3,
-	StatsToggleOffThreshold = 0.5, // if latency is less than `threshold * this`, turn off
+	StatsToggleOffThreshold = 0.5,
 }
 
-/**
- * Codes that should be omitted from sending to the prediction engine and instead omitted directly:
- * - Hide cursor (DECTCEM): We wrap the local echo sequence in hide and show
- *   CSI ? 2 5 l
- * - Show cursor (DECTCEM): We wrap the local echo sequence in hide and show
- *   CSI ? 2 5 h
- * - Device Status Report (DSR): These sequence fire report events from xterm which could cause
- *   double reporting and potentially a stack overflow (#119472)
- *   CSI Ps n
- *   CSI ? Ps n
- */
 const PREDICTION_OMIT_RE = /^(\x1b\[(\??25[hl]|\??[0-9;]+n))+/;
 
 const core = (terminal: Terminal): IXtermCore => {
@@ -58,7 +47,6 @@ const core = (terminal: Terminal): IXtermCore => {
 	return (terminal as XtermWithCore)._core;
 };
 const flushOutput = (terminal: Terminal) => {
-	// TODO: Flushing output is not possible anymore without async
 };
 
 const enum CursorMoveDirection {
@@ -174,59 +162,27 @@ const moveToWordBoundary = (b: IBuffer, cursor: Cursor, direction: -1 | 1) => {
 	}
 
 	if (direction < 0) {
-		cursor.shift(1); // we want to place the cursor after the whitespace starting the word
+		cursor.shift(1);
 	}
 };
 
 const enum MatchResult {
-	/** matched successfully */
 	Success,
-	/** failed to match */
 	Failure,
-	/** buffer data, it might match in the future one more data comes in */
 	Buffer,
 }
 
 export interface IPrediction {
-	/**
-	 * Whether applying this prediction can modify the style attributes of the
-	 * terminal. If so it means we need to reset the cursor style if it's
-	 * rolled back.
-	 */
 	readonly affectsStyle?: boolean;
 
-	/**
-	 * If set to false, the prediction will not be cleared if no input is
-	 * received from the server.
-	 */
 	readonly clearAfterTimeout?: boolean;
 
-	/**
-	 * Returns a sequence to apply the prediction.
-	 * @param buffer to write to
-	 * @param cursor position to write the data. Should advance the cursor.
-	 * @returns a string to be written to the user terminal, or optionally a
-	 * string for the user terminal and real pty.
-	 */
 	apply(buffer: IBuffer, cursor: Cursor): string;
 
-	/**
-	 * Returns a sequence to roll back a previous `apply()` call. If
-	 * `rollForwards` is not given, then this is also called if a prediction
-	 * is correct before show the user's data.
-	 */
 	rollback(cursor: Cursor): string;
 
-	/**
-	 * If available, this will be called when the prediction is correct.
-	 */
 	rollForwards(cursor: Cursor, withInput: string): string;
 
-	/**
-	 * Returns whether the given input is one expected by this prediction.
-	 * @param input reader for the input the PTY is giving
-	 * @param lookBehind the last successfully-made prediction, if any
-	 */
 	matches(input: StringReader, lookBehind?: IPrediction): MatchResult;
 }
 
@@ -249,9 +205,6 @@ class StringReader {
 		private readonly _input: string
 	) { }
 
-	/**
-	 * Advances the reader and returns the character if it matches.
-	 */
 	eatChar(char: string) {
 		if (this._input[this.index] !== char) {
 			return;
@@ -261,9 +214,6 @@ class StringReader {
 		return char;
 	}
 
-	/**
-	 * Advances the reader and returns the string if it matches.
-	 */
 	eatStr(substr: string) {
 		if (this._input.slice(this.index, substr.length) !== substr) {
 			return;
@@ -273,11 +223,6 @@ class StringReader {
 		return substr;
 	}
 
-	/**
-	 * Matches and eats the substring character-by-character. If EOF is reached
-	 * before the substring is consumed, it will buffer. Index is not moved
-	 * if it's not a match.
-	 */
 	eatGradually(substr: string): MatchResult {
 		const prevIndex = this.index;
 		for (let i = 0; i < substr.length; i++) {
@@ -294,9 +239,6 @@ class StringReader {
 		return MatchResult.Success;
 	}
 
-	/**
-	 * Advances the reader and returns the regex if it matches.
-	 */
 	eatRe(re: RegExp) {
 		const match = re.exec(this._input.slice(this.index));
 		if (!match) {
@@ -307,9 +249,6 @@ class StringReader {
 		return match;
 	}
 
-	/**
-	 * Advances the reader and returns the character if the code matches.
-	 */
 	eatCharCode(min = 0, max = min + 1) {
 		const code = this._input.charCodeAt(this.index);
 		if (code < min || code >= max) {
@@ -321,10 +260,6 @@ class StringReader {
 	}
 }
 
-/**
- * Preidction which never tests true. Will always discard predictions made
- * after it.
- */
 class HardBoundary implements IPrediction {
 	readonly clearAfterTimeout = false;
 
@@ -345,10 +280,6 @@ class HardBoundary implements IPrediction {
 	}
 }
 
-/**
- * Wraps another prediction. Does not apply the prediction, but will pass
- * through its `matches` request.
- */
 class TentativeBoundary implements IPrediction {
 	private _appliedCursor?: Cursor;
 
@@ -381,9 +312,6 @@ class TentativeBoundary implements IPrediction {
 const isTenativeCharacterPrediction = (p: unknown): p is (TentativeBoundary & { inner: CharacterPrediction }) =>
 	p instanceof TentativeBoundary && p.inner instanceof CharacterPrediction;
 
-/**
- * Prediction for a single alphanumeric character.
- */
 class CharacterPrediction implements IPrediction {
 	readonly affectsStyle = true;
 
@@ -408,7 +336,7 @@ class CharacterPrediction implements IPrediction {
 
 	rollback(cursor: Cursor) {
 		if (!this.appliedAt) {
-			return ''; // not applied
+			return '';
 		}
 
 		const { oldAttributes, oldChar, pos } = this.appliedAt;
@@ -418,7 +346,7 @@ class CharacterPrediction implements IPrediction {
 
 	rollForwards(cursor: Cursor, input: string) {
 		if (!this.appliedAt) {
-			return ''; // not applied
+			return '';
 		}
 
 		return cursor.clone().moveTo(this.appliedAt.pos) + input;
@@ -427,7 +355,6 @@ class CharacterPrediction implements IPrediction {
 	matches(input: StringReader, lookBehind?: IPrediction) {
 		const startIndex = input.index;
 
-		// remove any styling CSI before checking the char
 		while (input.eatRe(CSI_STYLE_RE)) { }
 
 		if (input.eof) {
@@ -439,7 +366,6 @@ class CharacterPrediction implements IPrediction {
 		}
 
 		if (lookBehind instanceof CharacterPrediction) {
-			// see #112842
 			const sillyZshOutcome = input.eatGradually(`\b${lookBehind._char}${this._char}`);
 			if (sillyZshOutcome !== MatchResult.Failure) {
 				return sillyZshOutcome;
@@ -462,8 +388,6 @@ class BackspacePrediction implements IPrediction {
 	constructor(private readonly _terminal: Terminal) { }
 
 	apply(_: IBuffer, cursor: Cursor) {
-		// at eol if everything to the right is whitespace (zsh will emit a "clear line" code in this case)
-		// todo: can be optimized if `getTrimmedLength` is exposed from xterm
 		const isLastChar = !cursor.getLine()?.translateToString(undefined, cursor.x).trim();
 		const pos = cursor.coordinate;
 		const move = cursor.shift(-1);
@@ -477,7 +401,7 @@ class BackspacePrediction implements IPrediction {
 
 	rollback(cursor: Cursor) {
 		if (!this._appliedAt) {
-			return ''; // not applied
+			return '';
 		}
 
 		const { oldAttributes, oldChar, pos } = this._appliedAt;
@@ -523,7 +447,7 @@ class NewlinePrediction implements IPrediction {
 	}
 
 	rollForwards() {
-		return ''; // does not need to rewrite
+		return '';
 	}
 
 	matches(input: StringReader) {
@@ -531,10 +455,6 @@ class NewlinePrediction implements IPrediction {
 	}
 }
 
-/**
- * Prediction when the cursor reaches the end of the line. Similar to newline
- * prediction, but shells handle it slightly differently.
- */
 class LinewrapPrediction extends NewlinePrediction implements IPrediction {
 	override apply(_: IBuffer, cursor: Cursor) {
 		this._prevPosition = cursor.coordinate;
@@ -543,10 +463,8 @@ class LinewrapPrediction extends NewlinePrediction implements IPrediction {
 	}
 
 	override matches(input: StringReader) {
-		// bash and zshell add a space which wraps in the terminal, then a CR
 		const r = input.eatGradually(' \r');
 		if (r !== MatchResult.Failure) {
-			// zshell additionally adds a clear line after wrapping to be safe -- eat it
 			const r2 = input.eatGradually(VT.DeleteRestOfLine);
 			return r2 === MatchResult.Buffer ? MatchResult.Buffer : r;
 		}
@@ -605,7 +523,7 @@ class CursorMovePrediction implements IPrediction {
 	}
 
 	rollForwards() {
-		return ''; // does not need to rewrite
+		return '';
 	}
 
 	matches(input: StringReader) {
@@ -617,21 +535,16 @@ class CursorMovePrediction implements IPrediction {
 		const { amount, rollForward } = this._applied;
 
 
-		// arg can be omitted to move one character. We don't eatGradually() here
-		// or below moves that don't go as far as the cursor would be buffered
-		// indefinitely
 		if (input.eatStr(`${VT.Csi}${direction}`.repeat(amount))) {
 			return MatchResult.Success;
 		}
 
-		// \b is the equivalent to moving one character back
 		if (direction === CursorMoveDirection.Back) {
 			if (input.eatStr(`\b`.repeat(amount))) {
 				return MatchResult.Success;
 			}
 		}
 
-		// check if the cursor position is set absolutely
 		if (rollForward) {
 			const r = input.eatGradually(rollForward);
 			if (r !== MatchResult.Failure) {
@@ -639,7 +552,6 @@ class CursorMovePrediction implements IPrediction {
 			}
 		}
 
-		// check for a relative move in the direction
 		return input.eatGradually(`${VT.Csi}${amount}${direction}`);
 	}
 }
@@ -651,9 +563,6 @@ export class PredictionStats extends Disposable {
 	private readonly _changeEmitter = this._register(new Emitter<void>());
 	readonly onChange = this._changeEmitter.event;
 
-	/**
-	 * Gets the percent (0-1) of predictions that were accurate.
-	 */
 	get accuracy() {
 		let correctCount = 0;
 		for (const [, correct] of this._stats) {
@@ -665,16 +574,10 @@ export class PredictionStats extends Disposable {
 		return correctCount / (this._stats.length || 1);
 	}
 
-	/**
-	 * Gets the number of recorded stats.
-	 */
 	get sampleSize() {
 		return this._stats.length;
 	}
 
-	/**
-	 * Gets latency stats of successful predictions.
-	 */
 	get latency() {
 		const latencies = this._stats.filter(([, correct]) => correct).map(([s]) => s).sort();
 
@@ -686,9 +589,6 @@ export class PredictionStats extends Disposable {
 		};
 	}
 
-	/**
-	 * Gets the maximum observed latency.
-	 */
 	get maxLatency() {
 		let max = -Infinity;
 		for (const [latency, correct] of this._stats) {
@@ -716,48 +616,18 @@ export class PredictionStats extends Disposable {
 }
 
 export class PredictionTimeline extends Disposable {
-	/**
-	 * Expected queue of events. Only predictions for the lowest are
-	 * written into the terminal.
-	 */
 	private _expected: ({ gen: number; p: IPrediction })[] = [];
 
-	/**
-	 * Current prediction generation.
-	 */
 	private _currentGen = 0;
 
-	/**
-	 * Current cursor position -- kept outside the buffer since it can be ahead
-	 * if typing swiftly. The position of the cursor that the user is currently
-	 * looking at on their screen (or will be looking at after all pending writes
-	 * are flushed.)
-	 */
 	private _physicalCursor: Cursor | undefined;
 
-	/**
-	 * Cursor position taking into account all (possibly not-yet-applied)
-	 * predictions. A new prediction inserted, if applied, will be applied at
-	 * the position of the tentative cursor.
-	 */
 	private _tenativeCursor: Cursor | undefined;
 
-	/**
-	 * Previously sent data that was buffered and should be prepended to the
-	 * next input.
-	 */
 	private _inputBuffer?: string;
 
-	/**
-	 * Whether predictions are echoed to the terminal. If false, predictions
-	 * will still be computed internally for latency metrics, but input will
-	 * never be adjusted.
-	 */
 	private _showPredictions = false;
 
-	/**
-	 * The last successfully-made prediction.
-	 */
 	private _lookBehind?: IPrediction;
 
 	private readonly _addedEmitter = this._register(new Emitter<IPrediction>());
@@ -786,7 +656,6 @@ export class PredictionTimeline extends Disposable {
 			return;
 		}
 
-		// console.log('set predictions:', show);
 		this._showPredictions = show;
 
 		const buffer = this._getActiveBuffer();
@@ -804,9 +673,6 @@ export class PredictionTimeline extends Disposable {
 		}
 	}
 
-	/**
-	 * Undoes any predictions written and resets expectations.
-	 */
 	undoAllPredictions() {
 		const buffer = this._getActiveBuffer();
 		if (this._showPredictions && buffer) {
@@ -817,9 +683,6 @@ export class PredictionTimeline extends Disposable {
 		this._expected = [];
 	}
 
-	/**
-	 * Should be called when input is incoming to the temrinal.
-	 */
 	beforeServerInput(input: string): string {
 		const originalInput = input;
 		if (this._inputBuffer) {
@@ -857,13 +720,11 @@ export class PredictionTimeline extends Disposable {
 			const beforeTestReaderIndex = reader.index;
 			switch (prediction.matches(reader, this._lookBehind)) {
 				case MatchResult.Success: {
-					// if the input character matches what the next prediction expected, undo
-					// the prediction and write the real character out.
 					const eaten = input.slice(beforeTestReaderIndex, reader.index);
 					if (gen === startingGen) {
 						output += prediction.rollForwards?.(cursor, eaten);
 					} else {
-						prediction.apply(buffer, this.physicalCursor(buffer)); // move cursor for additional apply
+						prediction.apply(buffer, this.physicalCursor(buffer));
 						output += eaten;
 					}
 
@@ -873,19 +734,13 @@ export class PredictionTimeline extends Disposable {
 					break;
 				}
 				case MatchResult.Buffer:
-					// on a buffer, store the remaining data and completely read data
-					// to be output as normal.
 					this._inputBuffer = input.slice(beforeTestReaderIndex);
 					reader.index = input.length;
 					break ReadLoop;
 				case MatchResult.Failure: {
-					// on a failure, roll back all remaining items in this generation
-					// and clear predictions, since they are no longer valid
 					const rollback = this._expected.filter(p => p.gen === startingGen).reverse();
 					output += rollback.map(({ p }) => p.rollback(this.physicalCursor(buffer))).join('');
 					if (rollback.some(r => r.p.affectsStyle)) {
-						// reading the current style should generally be safe, since predictions
-						// always restore the style if they modify it.
 						output += attributesToSeq(core(this.terminal)._inputHandler._curAttrData);
 					}
 					this._clearPredictionState();
@@ -897,14 +752,11 @@ export class PredictionTimeline extends Disposable {
 
 		emitPredictionOmitted();
 
-		// Extra data (like the result of running a command) should cause us to
-		// reset the cursor
 		if (!reader.eof) {
 			output += reader.rest;
 			this._clearPredictionState();
 		}
 
-		// If we passed a generation boundary, apply the current generation's predictions
 		if (this._expected.length && startingGen !== this._expected[0].gen) {
 			for (const { p, gen } of this._expected) {
 				if (gen !== this._expected[0].gen) {
@@ -930,25 +782,17 @@ export class PredictionTimeline extends Disposable {
 			output += this._physicalCursor.moveInstruction();
 		}
 
-		// prevent cursor flickering while typing
 		output = VT.HideCursor + output + VT.ShowCursor;
 
 		return output;
 	}
 
-	/**
-	 * Clears any expected predictions and stored state. Should be called when
-	 * the pty gives us something we don't recognize.
-	 */
 	private _clearPredictionState() {
 		this._expected = [];
 		this.clearCursor();
 		this._lookBehind = undefined;
 	}
 
-	/**
-	 * Appends a typeahead prediction.
-	 */
 	addPrediction(buffer: IBuffer, prediction: IPrediction) {
 		this._expected.push({ gen: this._currentGen, p: prediction });
 		this._addedEmitter.fire(prediction);
@@ -959,32 +803,23 @@ export class PredictionTimeline extends Disposable {
 		}
 
 		const text = prediction.apply(buffer, this.physicalCursor(buffer));
-		this._tenativeCursor = undefined; // next read will get or clone the physical cursor
+		this._tenativeCursor = undefined;
 
 		if (this._showPredictions && text) {
 			if (prediction.affectsStyle) {
 				this._style.expectIncomingStyle();
 			}
-			// console.log('predict:', JSON.stringify(text));
 			this.terminal.write(text);
 		}
 
 		return true;
 	}
 
-	/**
-	 * Appends a prediction followed by a boundary. The predictions applied
-	 * after this one will only be displayed after the give prediction matches
-	 * pty output/
-	 */
 	addBoundary(): void;
 	addBoundary(buffer: IBuffer, prediction: IPrediction): boolean;
 	addBoundary(buffer?: IBuffer, prediction?: IPrediction) {
 		let applied = false;
 		if (buffer && prediction) {
-			// We apply the prediction so that it's matched against, but wrapped
-			// in a tentativeboundary so that it doesn't affect the physical cursor.
-			// Then we apply it specifically to the tentative cursor.
 			applied = this.addPrediction(buffer, new TentativeBoundary(prediction));
 			prediction.apply(buffer, this.tentativeCursor(buffer));
 		}
@@ -992,23 +827,14 @@ export class PredictionTimeline extends Disposable {
 		return applied;
 	}
 
-	/**
-	 * Peeks the last prediction written.
-	 */
 	peekEnd(): IPrediction | undefined {
 		return this._expected[this._expected.length - 1]?.p;
 	}
 
-	/**
-	 * Peeks the first pending prediction.
-	 */
 	peekStart(): IPrediction | undefined {
 		return this._expected[0]?.p;
 	}
 
-	/**
-	 * Current position of the cursor in the terminal.
-	 */
 	physicalCursor(buffer: IBuffer) {
 		if (!this._physicalCursor) {
 			if (this._showPredictions) {
@@ -1020,10 +846,6 @@ export class PredictionTimeline extends Disposable {
 		return this._physicalCursor;
 	}
 
-	/**
-	 * Cursor position if all predictions and boundaries that have been inserted
-	 * so far turn out to be successfully predicted.
-	 */
 	tentativeCursor(buffer: IBuffer) {
 		if (!this._tenativeCursor) {
 			this._tenativeCursor = this.physicalCursor(buffer).clone();
@@ -1043,9 +865,6 @@ export class PredictionTimeline extends Disposable {
 	}
 }
 
-/**
- * Gets the escape sequence args to restore state/appearance in the cell.
- */
 const attributesToArgs = (cell: XtermAttributes) => {
 	if (cell.isAttributeDefault()) { return [0]; }
 
@@ -1069,9 +888,6 @@ const attributesToArgs = (cell: XtermAttributes) => {
 	return args;
 };
 
-/**
- * Gets the escape sequence to restore state/appearance in the cell.
- */
 const attributesToSeq = (cell: XtermAttributes) => `${VT.Csi}${attributesToArgs(cell).join(';')}m`;
 
 const arrayHasPrefixAt = <T>(a: ReadonlyArray<T>, ai: number, b: ReadonlyArray<T>) => {
@@ -1088,9 +904,6 @@ const arrayHasPrefixAt = <T>(a: ReadonlyArray<T>, ai: number, b: ReadonlyArray<T
 	return true;
 };
 
-/**
- * @see https://github.com/xtermjs/xterm.js/blob/065eb13a9d3145bea687239680ec9696d9112b8e/src/common/InputHandler.ts#L2127
- */
 const getColorWidth = (params: SingleOrMany<number>[], pos: number) => {
 	const accu = [0, 0, -1, 0, 0, 0];
 	let cSpace = 0;
@@ -1109,12 +922,10 @@ const getColorWidth = (params: SingleOrMany<number>[], pos: number) => {
 			} while (++i < v.length && i + advance + 1 + cSpace < accu.length);
 			break;
 		}
-		// exit early if can decide color mode with semicolons
 		if ((accu[1] === 5 && advance + cSpace >= 2)
 			|| (accu[1] === 2 && advance + cSpace >= 5)) {
 			break;
 		}
-		// offset colorSpace slot for semicolon mode
 		if (accu[1]) {
 			cSpace = 1;
 		}
@@ -1128,10 +939,6 @@ class TypeAheadStyle implements IDisposable {
 		return `${VT.Csi}${args.join(';')}m`;
 	}
 
-	/**
-	 * Number of typeahead style arguments we expect to read. If this is 0 and
-	 * we see a style coming in, we know that the PTY actually wanted to update.
-	 */
 	private _expectedIncomingStyles = 0;
 	private _applyArgs!: ReadonlyArray<number>;
 	private _originalUndoArgs!: ReadonlyArray<number>;
@@ -1145,17 +952,10 @@ class TypeAheadStyle implements IDisposable {
 		this.onUpdate(value);
 	}
 
-	/**
-	 * Signals that a style was written to the terminal and we should watch
-	 * for it coming in.
-	 */
 	expectIncomingStyle(n = 1) {
 		this._expectedIncomingStyles += n * 2;
 	}
 
-	/**
-	 * Starts tracking for CSI changes in the terminal.
-	 */
 	startTracking() {
 		this._expectedIncomingStyles = 0;
 		this._onDidWriteSGR(attributesToArgs(core(this._terminal)._inputHandler._curAttrData));
@@ -1165,17 +965,11 @@ class TypeAheadStyle implements IDisposable {
 		});
 	}
 
-	/**
-	 * Stops tracking terminal CSI changes.
-	 */
 	@debounce(2000)
 	debounceStopTracking() {
 		this._stopTracking();
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	dispose() {
 		this._stopTracking();
 	}
@@ -1233,7 +1027,6 @@ class TypeAheadStyle implements IDisposable {
 					} else if (p === 0) {
 						this._undoArgs = this._originalUndoArgs;
 					}
-				// no-op
 			}
 
 			i += width;
@@ -1244,9 +1037,6 @@ class TypeAheadStyle implements IDisposable {
 		}
 	}
 
-	/**
-	 * Updates the current typeahead style.
-	 */
 	onUpdate(style: ITerminalTypeAheadConfiguration['localEchoStyle']) {
 		const { applyArgs, undoArgs } = this._getArgs(style);
 		this._applyArgs = applyArgs;
@@ -1286,11 +1076,8 @@ const compileExcludeRegexp = (programs = DEFAULT_LOCAL_ECHO_EXCLUDE) =>
 	new RegExp(`\\b(${programs.map(escapeRegExpCharacters).join('|')})\\b`, 'i');
 
 export const enum CharPredictState {
-	/** No characters typed on this line yet */
 	Unknown,
-	/** Has a pending character prediction */
 	HasPendingChar,
-	/** Character validated on this line */
 	Validated,
 }
 
@@ -1303,9 +1090,6 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 	private _terminalTitle = '';
 	stats?: PredictionStats;
 
-	/**
-	 * Debounce that clears predictions after a timeout if the PTY doesn't apply them.
-	 */
 	private _clearPredictionDebounce?: IDisposable;
 
 	constructor(
@@ -1396,13 +1180,6 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 		);
 	}
 
-	/**
-	 * Note on debounce:
-	 *
-	 * We want to toggle the state only when the user has a pause in their
-	 * typing. Otherwise, we could turn this on when the PTY sent data but the
-	 * terminal cursor is not updated, causes issues.
-	 */
 	@debounce(100)
 	protected _reevaluatePredictorState(stats: PredictionStats, timeline: PredictionTimeline) {
 		this._reevaluatePredictorStateNow(stats, timeline);
@@ -1426,16 +1203,6 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 	}
 
 	private _sendLatencyStats(stats: PredictionStats) {
-		/* __GDPR__
-			"terminalLatencyStats" : {
-				"owner": "anthonykim1",
-				"min" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-				"max" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-				"median" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-				"count" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-				"predictionAccuracy" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true }
-			}
-		 */
 		this._telemetryService.publicLog('terminalLatencyStats', {
 			...stats.latency,
 			predictionAccuracy: stats.accuracy,
@@ -1447,22 +1214,16 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 			return;
 		}
 
-		// console.log('user data:', JSON.stringify(data));
 
 		const terminal = this._timeline.terminal;
 		const buffer = terminal.buffer.active;
 
-		// Detect programs like git log/less that use the normal buffer but don't
-		// take input by deafult (fixes #109541)
 		if (buffer.cursorX === 1 && buffer.cursorY === terminal.rows - 1) {
 			if (buffer.getLine(buffer.cursorY + buffer.baseY)?.getCell(0)?.getChars() === ':') {
 				return;
 			}
 		}
 
-		// the following code guards the terminal prompt to avoid being able to
-		// arrow or backspace-into the prompt. Record the lowest X value at which
-		// the user gave input, and mark all additions before that as tentative.
 		const actualY = buffer.baseY + buffer.cursorY;
 		if (actualY !== this._lastRow?.y) {
 			this._lastRow = { y: actualY, startingX: buffer.cursorX, endingX: buffer.cursorX, charState: CharPredictState.Unknown };
@@ -1481,17 +1242,14 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 				? this._timeline!.addBoundary(buffer, p)
 				: this._timeline!.addPrediction(buffer, p);
 
-		/** @see https://github.com/xtermjs/xterm.js/blob/1913e9512c048e3cf56bb5f5df51bfff6899c184/src/common/input/Keyboard.ts */
 		const reader = new StringReader(data);
 		while (reader.remaining > 0) {
-			if (reader.eatCharCode(127)) { // backspace
+			if (reader.eatCharCode(127)) {
 				const previous = this._timeline.peekEnd();
 				if (previous && previous instanceof CharacterPrediction) {
 					this._timeline.addBoundary();
 				}
 
-				// backspace must be able to read the previously-written character in
-				// the event that it needs to undo it
 				if (this._timeline.isShowingPredictions) {
 					flushOutput(this._timeline.terminal);
 				}
@@ -1499,7 +1257,6 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 				if (this._timeline.tentativeCursor(buffer).x <= this._lastRow.startingX) {
 					this._timeline.addBoundary(buffer, new BackspacePrediction(this._timeline.terminal));
 				} else {
-					// Backspace decrements our ability to go right.
 					this._lastRow.endingX--;
 					this._timeline.addPrediction(buffer, new BackspacePrediction(this._timeline.terminal));
 				}
@@ -1507,7 +1264,7 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 				continue;
 			}
 
-			if (reader.eatCharCode(32, 126)) { // alphanum
+			if (reader.eatCharCode(32, 126)) {
 				const char = data[reader.index - 1];
 				const prediction = new CharacterPrediction(this._typeaheadStyle!, char);
 				if (this._lastRow.charState === CharPredictState.Unknown) {
@@ -1550,7 +1307,6 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 				continue;
 			}
 
-			// something else
 			this._timeline.addBoundary(buffer, new HardBoundary());
 			break;
 		}
@@ -1566,9 +1322,7 @@ export class TypeAheadAddon extends Disposable implements ITerminalAddon {
 			return;
 		}
 
-		// console.log('incoming data:', JSON.stringify(event.data));
 		event.data = this._timeline.beforeServerInput(event.data);
-		// console.log('emitted data:', JSON.stringify(event.data));
 
 		this._deferClearingPredictions();
 	}

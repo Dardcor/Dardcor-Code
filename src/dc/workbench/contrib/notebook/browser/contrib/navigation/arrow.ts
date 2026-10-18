@@ -54,7 +54,6 @@ registerAction2(class extends Action2 {
 	}
 
 	run() {
-		// noop, these are handled by the output webview
 		return;
 	}
 
@@ -84,7 +83,7 @@ registerAction2(class FocusNextCellAction extends NotebookCellAction {
 						EditorContextKeys.isEmbeddedDiffEditor.negate()
 					),
 					primary: KeyCode.DownArrow,
-					weight: NOTEBOOK_EDITOR_WIDGET_ACTION_WEIGHT, // code cell keybinding, focus inside editor: lower weight to not override suggest widget
+					weight: NOTEBOOK_EDITOR_WIDGET_ACTION_WEIGHT,
 				},
 				{
 					when: ContextKeyExpr.and(
@@ -98,7 +97,7 @@ registerAction2(class FocusNextCellAction extends NotebookCellAction {
 						EditorContextKeys.isEmbeddedDiffEditor.negate()
 					),
 					primary: KeyCode.DownArrow,
-					weight: KeybindingWeight.WorkbenchContrib, // markdown keybinding, focus on list: higher weight to override list.focusDown
+					weight: KeybindingWeight.WorkbenchContrib,
 				},
 				{
 					when: ContextKeyExpr.and(NOTEBOOK_EDITOR_FOCUSED, NOTEBOOK_OUTPUT_FOCUSED),
@@ -126,7 +125,6 @@ registerAction2(class FocusNextCellAction extends NotebookCellAction {
 		}
 
 		if (idx >= editor.getLength() - 1) {
-			// last one
 			return;
 		}
 
@@ -169,7 +167,7 @@ registerAction2(class FocusPreviousCellAction extends NotebookCellAction {
 						EditorContextKeys.isEmbeddedDiffEditor.negate()
 					),
 					primary: KeyCode.UpArrow,
-					weight: NOTEBOOK_EDITOR_WIDGET_ACTION_WEIGHT, // code cell keybinding, focus inside editor: lower weight to not override suggest widget
+					weight: NOTEBOOK_EDITOR_WIDGET_ACTION_WEIGHT,
 				},
 				{
 					when: ContextKeyExpr.and(
@@ -184,7 +182,7 @@ registerAction2(class FocusPreviousCellAction extends NotebookCellAction {
 						EditorContextKeys.isEmbeddedDiffEditor.negate()
 					),
 					primary: KeyCode.UpArrow,
-					weight: KeybindingWeight.WorkbenchContrib, // markdown keybinding, focus on list: higher weight to override list.focusDown
+					weight: KeybindingWeight.WorkbenchContrib,
 				},
 				{
 					when: ContextKeyExpr.and(NOTEBOOK_CELL_EDITOR_FOCUSED, CONTEXT_ACCESSIBILITY_MODE_ENABLED),
@@ -206,7 +204,6 @@ registerAction2(class FocusPreviousCellAction extends NotebookCellAction {
 		}
 
 		if (idx < 1 || editor.getLength() === 0) {
-			// we don't do loop
 			return;
 		}
 
@@ -395,7 +392,7 @@ registerAction2(class extends NotebookCellAction {
 						NOTEBOOK_EDITOR_FOCUSED,
 						ContextKeyExpr.has(InputFocusedContextKey),
 						EditorContextKeys.editorTextFocus,
-						NOTEBOOK_OUTPUT_FOCUSED.negate(), // Webview handles Shift+PageUp for selection of output contents
+						NOTEBOOK_OUTPUT_FOCUSED.negate(),
 					),
 					primary: KeyMod.Shift | KeyCode.PageUp,
 					weight: NOTEBOOK_EDITOR_WIDGET_ACTION_WEIGHT
@@ -444,7 +441,7 @@ registerAction2(class extends NotebookCellAction {
 						NOTEBOOK_EDITOR_FOCUSED,
 						ContextKeyExpr.has(InputFocusedContextKey),
 						EditorContextKeys.editorTextFocus,
-						NOTEBOOK_OUTPUT_FOCUSED.negate(), // Webview handles Shift+PageDown for selection of output contents
+						NOTEBOOK_OUTPUT_FOCUSED.negate(),
 					),
 					primary: KeyMod.Shift | KeyCode.PageDown,
 					weight: NOTEBOOK_EDITOR_WIDGET_ACTION_WEIGHT

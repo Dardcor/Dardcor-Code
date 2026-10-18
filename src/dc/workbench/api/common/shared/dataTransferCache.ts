@@ -10,7 +10,7 @@ import { IDataTransferFile, IReadonlyVSDataTransfer } from '../../../../base/com
 export class DataTransferFileCache {
 
 	private requestIdPool = 0;
-	private readonly dataTransferFiles = new Map</* requestId */ number, ReadonlyArray<IDataTransferFile>>();
+	private readonly dataTransferFiles = new Map< number, ReadonlyArray<IDataTransferFile>>();
 
 	public add(dataTransfer: IReadonlyVSDataTransfer): { id: number; dispose: () => void } {
 		const requestId = this.requestIdPool++;

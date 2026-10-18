@@ -1,11 +1,9 @@
 import { filepaths } from '../../helpers/filepaths';
 
 const packages: Fig.Generator = {
-	// only trigger when the token length transitions to or from 0
 	trigger: (current, previous) =>
 		current.length === 0 || (previous.length === 0 && current.length > 0),
 
-	// have to use `custom` to skip running the script when length is 0
 	custom: async (tokens, executeShellCommand) => {
 		const finalToken = tokens[tokens.length - 1];
 		if (finalToken.length === 0) {
@@ -17,7 +15,6 @@ const packages: Fig.Generator = {
 			args: ["list"],
 		});
 
-		// Only lines matching the first character, delete characters after '/'
 		return stdout
 			.trim()
 			.split("\n")
@@ -27,8 +24,6 @@ const packages: Fig.Generator = {
 				name,
 				description: "Package",
 				icon: "📦",
-				// make the suggestions... actually show up
-				// see https://github.com/withfig/autocomplete/pull/1429#discussion_r950688126
 				priority: 50,
 			}));
 	},
@@ -249,7 +244,6 @@ const completionSpec: Fig.Spec = {
 			options: [...yesNoOptions],
 		},
 		{
-			// docs for this weren't the greatest, some descriptions might be slightly (or very) wrong.
 			name: "source",
 			description: "Fetch package source files",
 			args: {
@@ -269,7 +263,6 @@ const completionSpec: Fig.Spec = {
 				},
 				{
 					name: "--only-source",
-					// no idea how this works
 				},
 				{
 					name: "--host-architecture",
@@ -282,7 +275,6 @@ const completionSpec: Fig.Spec = {
 			],
 		},
 		{
-			// I don't understand this either
 			name: "build-dep",
 			description:
 				"Install/remove packages in an attempt to satisfy the build dependencies for a source package",

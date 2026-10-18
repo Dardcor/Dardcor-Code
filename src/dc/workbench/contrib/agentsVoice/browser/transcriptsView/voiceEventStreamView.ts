@@ -25,11 +25,6 @@ import { IVoiceTranscriptStore, IVoiceTranscriptTurn } from '../../common/voiceT
 
 const $ = DOM.$;
 
-/**
- * Side-panel debug view that renders the raw, persisted voice event stream.
- * Unlike the transcript view, this includes non-voice timeline entries
- * (tool calls and coding events), and supports copying the stream as JSONL.
- */
 export class VoiceEventStreamViewPane extends ViewPane {
 
 	static readonly ID = 'workbench.view.voiceEventStream';
@@ -37,7 +32,6 @@ export class VoiceEventStreamViewPane extends ViewPane {
 	private contentContainer: HTMLElement | undefined;
 	private emptyState: HTMLElement | undefined;
 
-	/** Cached login resolved on first render, refreshed lazily on each refresh(). */
 	private userLogin: string | undefined;
 	private currentTurns: readonly IVoiceTranscriptTurn[] = [];
 

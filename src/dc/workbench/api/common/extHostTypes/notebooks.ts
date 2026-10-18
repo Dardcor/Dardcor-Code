@@ -93,7 +93,6 @@ export class NotebookCellData {
 	}
 
 	static isNotebookCellData(value: unknown): value is vscode.NotebookCellData {
-		// return value instanceof NotebookCellData;
 		return true;
 	}
 
@@ -253,12 +252,10 @@ export class NotebookCellOutput {
 		for (let i = 0; i < items.length; i++) {
 			const item = items[i];
 			const normalMime = normalizeMimeType(item.mime);
-			// We can have multiple text stream mime types in the same output.
 			if (!seen.has(normalMime) || isTextStreamMime(normalMime)) {
 				seen.add(normalMime);
 				continue;
 			}
-			// duplicated mime types... first has won
 			removeIdx.add(i);
 			if (warn) {
 				console.warn(`DUPLICATED mime type '${item.mime}' will be dropped`);

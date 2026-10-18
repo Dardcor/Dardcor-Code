@@ -37,7 +37,6 @@ export default new class implements eslint.Rule.RuleModule {
 
 		const matchingKey = Object.keys(ruleArgs).find(key => fileRelativePath.startsWith(key) || minimatch(fileRelativePath, key));
 		if (!matchingKey) {
-			// nothing
 			return {};
 		}
 

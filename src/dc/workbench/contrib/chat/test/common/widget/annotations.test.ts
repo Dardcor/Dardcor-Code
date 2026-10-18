@@ -124,10 +124,8 @@ suite('Annotations', function () {
 		});
 
 		test('handles malformed URL encoding gracefully', () => {
-			// Manually construct a malformed tag with invalid URL encoding
 			const malformedTag = '<vscode_codeblock_uri isEdit subAgentInvocationId="%ZZ">file:///test.ts</vscode_codeblock_uri>';
 			const result = extractSubAgentInvocationIdFromText(malformedTag);
-			// Should return the raw value when decoding fails
 			assert.strictEqual(result, '%ZZ');
 		});
 	});
@@ -153,9 +151,6 @@ suite('Annotations', function () {
 		});
 
 		test('returns undefined for invalid URI content inside codeblock uri tag', () => {
-			// When content contains backticks and a colon, URI.parse extracts
-			// the text before the colon as the scheme. Backticks are illegal
-			// scheme characters, causing URI.parse to throw.
 			const invalidTag = '<vscode_codeblock_uri>```typescript\nconst uri: string\n```</vscode_codeblock_uri>';
 			const result = extractCodeblockUrisFromText(invalidTag);
 			assert.strictEqual(result, undefined);
@@ -282,8 +277,6 @@ suite('Annotations', function () {
 				{ kind: 'markdownContent', content: new MarkdownString(' more info', { isTrusted: true, supportThemeIcons: true }) },
 			]);
 
-			// The first item has "See [index.ts](...)" with default markdown properties,
-			// the second item has different properties - they must stay separate.
 			assert.strictEqual(result.length, 2);
 			const first = result[0] as IChatMarkdownContent;
 			assert.ok(first.content.value.startsWith('See '));

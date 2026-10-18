@@ -57,13 +57,10 @@ import { renderLabelWithIcons } from '../../../../base/browser/ui/iconLabel/icon
 import { ViewMenuActions } from './viewMenuActions.js';
 
 export enum ViewPaneShowActions {
-	/** Show the actions when the view is hovered. This is the default behavior. */
 	Default,
 
-	/** Always shows the actions when the view is expanded */
 	WhenExpanded,
 
-	/** Always shows the actions */
 	Always,
 }
 
@@ -72,7 +69,6 @@ export interface IViewPaneOptions extends IPaneOptions {
 	readonly showActions?: ViewPaneShowActions;
 	readonly titleMenuId?: MenuId;
 	readonly donotForwardArgs?: boolean;
-	// The title of the container pane when it is merged with the view container
 	readonly singleViewPaneContainerTitle?: string;
 }
 
@@ -122,7 +118,7 @@ class ViewWelcomeController {
 		@ILifecycleService lifecycleService: ILifecycleService
 	) {
 		this.disposables.add(Event.runAndSubscribe(this.delegate.onDidChangeViewWelcomeState, () => this.onDidChangeViewWelcomeState()));
-		this.disposables.add(lifecycleService.onWillShutdown(() => this.dispose())); // Fixes https://github.com/microsoft/vscode/issues/208878
+		this.disposables.add(lifecycleService.onWillShutdown(() => this.dispose()));
 	}
 
 	layout(height: number, width: number) {
@@ -347,12 +343,6 @@ export abstract class ViewPane extends Pane implements IView {
 
 	readonly menuActions: ViewMenuActions;
 
-	/**
-	 * Additional menu groups (beyond `navigation`) whose actions should be
-	 * rendered as primary (inline) actions in the title action bar. Separators
-	 * are rendered between groups in the primary actions. Subclasses can
-	 * override this to customize grouping in the title action bar.
-	 */
 	protected get primaryActionGroups(): string[] | undefined {
 		return undefined;
 	}
@@ -518,11 +508,9 @@ export abstract class ViewPane extends Pane implements IView {
 		if (this.iconContainer) {
 			const fgColor = asCssValueWithDefault(styles.headerForeground, asCssVariable(foreground));
 			if (URI.isUri(icon)) {
-				// Apply background color to activity bar item provided with iconUrls
 				this.iconContainer.style.backgroundColor = fgColor;
 				this.iconContainer.style.color = '';
 			} else {
-				// Apply foreground color to activity bar items provided with codicons
 				this.iconContainer.style.color = fgColor;
 				this.iconContainer.style.backgroundColor = '';
 			}
@@ -644,7 +632,6 @@ export abstract class ViewPane extends Pane implements IView {
 	}
 
 	onDidScrollRoot() {
-		// noop
 	}
 
 	getProgressIndicator() {
@@ -713,7 +700,7 @@ export abstract class ViewPane extends Pane implements IView {
 			const that = this;
 			return new class extends BaseActionViewItem {
 				constructor() { super(null, action); }
-				override setFocusable(): void { /* noop input elements are focusable by default */ }
+				override setFocusable(): void { }
 				override get trapsArrowNavigation(): boolean { return true; }
 				override render(container: HTMLElement): void {
 					container.classList.add('viewpane-filter-container');
@@ -739,7 +726,6 @@ export abstract class ViewPane extends Pane implements IView {
 	}
 
 	saveState(): void {
-		// Subclasses to implement for saving state
 	}
 
 	shouldShowWelcome(): boolean {

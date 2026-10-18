@@ -21,7 +21,6 @@ import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js'
 import { InputLatencyContrib } from './inputLatencyContrib.js';
 import { PerfviewContrib, PerfviewInput } from './perfviewEditor.js';
 
-// -- startup performance view
 
 registerWorkbenchContribution2(
 	PerfviewContrib.ID,
@@ -134,7 +133,6 @@ registerAction2(class PrintEventProfiling extends Action2 {
 	}
 });
 
-// -- input latency
 
 Registry.as<IWorkbenchContributionsRegistry>(Extensions.Workbench).registerWorkbenchContribution(
 	InputLatencyContrib,
@@ -162,7 +160,6 @@ Registry.as<IConfigurationRegistry>(ConfigExt.Configuration).registerConfigurati
 	}
 });
 
-// -- track leaking disposables, those that get GC'ed before having been disposed
 
 
 class DisposableTracking {

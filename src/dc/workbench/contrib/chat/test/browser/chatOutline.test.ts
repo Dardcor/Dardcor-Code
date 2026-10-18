@@ -101,11 +101,9 @@ suite('ChatOutline', () => {
 		let changes = 0;
 		store.add(outline.onDidChange(() => changes++));
 
-		// A response-only view-model update (same requests) must not refresh the outline.
 		viewModel.onChange.fire(null);
 		assert.strictEqual(changes, 0);
 
-		// A new request must refresh the outline.
 		viewModel.items = [...viewModel.items, reqVM('r3', 'third')];
 		viewModel.onChange.fire(null);
 		assert.strictEqual(changes, 1);

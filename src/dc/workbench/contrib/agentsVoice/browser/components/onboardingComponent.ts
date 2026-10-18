@@ -34,7 +34,6 @@ export function createOnboarding(): OnboardingComponent {
 	const descSection = dom.$('div');
 	descSection.style.cssText = `display:flex;flex-direction:column;gap:10px;font-size:${ONBOARDING_FONT};color:var(--vscode-foreground);line-height:1.5;`;
 
-	// Welcome description row
 	const welcomeRow = dom.$('div');
 	welcomeRow.style.cssText = 'display:flex;gap:10px;align-items:center;';
 	const welcomeIconWrap = dom.$('span');
@@ -46,7 +45,6 @@ export function createOnboarding(): OnboardingComponent {
 	welcomeText.textContent = localize('agentsVoice.welcomeDesc', "Speak to an assistant that controls multiple coding agents at once. Get notified when work is done or input is needed.");
 	welcomeRow.append(welcomeIconWrap, welcomeText);
 
-	// PTT row
 	const pttRow = dom.$('div');
 	pttRow.style.cssText = 'display:flex;gap:10px;align-items:center;';
 	const pttIconWrap = dom.$('span');
@@ -71,7 +69,6 @@ export function createOnboarding(): OnboardingComponent {
 	pttTextSpan.append(pttStrong, pttHold, pttLink, pttSuffix);
 	pttRow.append(pttIconWrap, pttTextSpan);
 
-	// Feedback row
 	const feedbackRow = dom.$('div');
 	feedbackRow.style.cssText = 'display:flex;gap:10px;align-items:center;';
 	const feedbackIconWrap = dom.$('span');
@@ -83,7 +80,6 @@ export function createOnboarding(): OnboardingComponent {
 	feedbackText.textContent = localize('agentsVoice.feedbackDesc', "Use the feedback icon to help us improve your experience.");
 	feedbackRow.append(feedbackIconWrap, feedbackText);
 
-	// Mini-view row (conditionally shown)
 	const miniViewRow = dom.$('div');
 	miniViewRow.style.cssText = 'display:flex;gap:10px;align-items:center;';
 	const miniViewIconWrap = dom.$('span');
@@ -102,7 +98,6 @@ export function createOnboarding(): OnboardingComponent {
 
 	descSection.append(welcomeRow, pttRow, feedbackRow, miniViewRow);
 
-	// Get Started button
 	const button = document.createElement('button');
 	button.style.cssText = `-webkit-app-region:no-drag;background:var(--vscode-button-background);border:none;color:var(--vscode-button-foreground);font-size:${ONBOARDING_FONT};padding:6px 14px;border-radius:3px;font-weight:500;align-self:stretch;margin-top:2px;`;
 	button.addEventListener('mouseenter', () => { if (!button.disabled) { button.style.background = 'var(--vscode-button-hoverBackground)'; } });

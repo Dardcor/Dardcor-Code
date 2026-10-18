@@ -23,26 +23,21 @@ const postProcessRemoteBranches: Fig.Generator["postProcess"] = (out) => {
 	}
 
 	return output.split("\n").map((elm) => {
-		// Trim and remove the remote part of the branch name (origin/, fork/...)
 		let name = elm.trim().replace(/\w+\//, "");
 
 		const parts = elm.match(/\S+/g)!;
 		if (parts.length > 1) {
 			if (parts[0] === "*") {
-				// We are in a detached HEAD state
 				if (elm.includes("HEAD detached")) {
 					return {};
 				}
-				// Current branch
 				return {
 					name: elm.replace("*", "").trim(),
 					description: "Current branch",
 					priority: 100,
-					// allow-any-unicode-next-line
 					icon: "⭐️",
 				};
 			} else if (parts[0] === "+") {
-				// Branch checked out in another worktree.
 				name = elm.replace("+", "").trim();
 			}
 		}
@@ -65,47 +60,31 @@ interface RepoDataType {
 const listRepoMapFunction = (repo: RepoDataType) => ({
 	name: repo.nameWithOwner,
 	description: repo.description ?? undefined,
-	//be able to see if the repo is private at a glance
-	// allow-any-unicode-next-line
 	icon: repo.isPrivate ? "🔒" : "👀",
 });
 
 const ghGenerators: Record<string, Fig.Generator> = {
 	listCustomRepositories: {
 		trigger: "/",
-		//execute is script then postProcess
 		custom: async (tokens, execute) => {
-			//get the last command token
 			const last = tokens.pop();
 
-			//gatekeeper
 			if (!last) {
 				return [];
 			}
 
-			/**
-			 * this turns this input:
-			 * `withfig/autocomplete`
-			 *
-			 * into:
-			 * ["withfig", "autocomplete"]
-			 */
 			const userRepoSplit = last.split("/");
 
-			// make sure it has some length.
 			if (userRepoSplit.length === 0) {
 				return [];
 			}
 
-			//get first element of arr
 			const userOrOrg = userRepoSplit.shift();
 
-			// make sure it has some existence.
 			if (!userOrOrg) {
 				return [];
 			}
 
-			//run `gh repo list` cmd
 			const { stdout, status } = await execute({
 				command: "gh",
 				args: [
@@ -119,24 +98,16 @@ const ghGenerators: Record<string, Fig.Generator> = {
 				],
 			});
 
-			// make sure it has some existence.
 			if (status !== 0) {
 				return [];
 			}
 
-			//parse the JSON string output of the command
 			const repoArr: RepoDataType[] = JSON.parse(stdout);
 
 			return repoArr.map(listRepoMapFunction);
 		},
 	},
 	listRepositories: {
-		/*
-		 * based on the gh api (use this instead as it also returns repos in the orgs that the user is part of)
-		 * https://cli.github.com/manual/gh_api
-		 *
-		 * --jq https://cli.github.com/manual/gh_help_formatting https://www.baeldung.com/linux/jq-command-json
-		 */
 		script: [
 			"gh",
 			"api",
@@ -149,18 +120,6 @@ const ghGenerators: Record<string, Fig.Generator> = {
 		],
 		postProcess: (out) => {
 			if (out) {
-				/**
-				 * the string thats returned bt the command will contain lines like this:
-				 *
-				 * {...data}
-				 * {...data}
-				 * etc
-				 *
-				 * so the string needs to be transformed into a json array by adding commas on all newline chars then wrapping in square braces
-				 *
-				 * compared to none paginating request this is a touch slower 300ms or so, but it fixes the over 100 repos issue!
-				 *
-				 */
 				const jsonifiedOutString = `[${out.replace(/(?:\r\n|\r|\n)/g, ",")}]`;
 				try {
 					const data: RepoDataType[] = JSON.parse(jsonifiedOutString);

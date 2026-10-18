@@ -90,7 +90,6 @@ export abstract class StatusReporter implements ICompletionsStatusReporter {
 	}
 }
 
-// Don't delete. Needed for tests that don't care about status changes
 export class NoOpStatusReporter extends StatusReporter {
 	override didChange() { }
 }

@@ -51,9 +51,6 @@ export interface ILogger extends IDisposable {
 	warn(message: string, ...args: unknown[]): void;
 	error(message: string | Error, ...args: unknown[]): void;
 
-	/**
-	 * An operation to flush the contents. Can be synchronous.
-	 */
 	flush(): void;
 }
 
@@ -68,7 +65,7 @@ export function log(logger: ILogger, level: LogLevel, message: string): void {
 		case LogLevel.Info: logger.info(message); break;
 		case LogLevel.Warning: logger.warn(message); break;
 		case LogLevel.Error: logger.error(message); break;
-		case LogLevel.Off: /* do nothing */ break;
+		case LogLevel.Off: break;
 		default: throw new Error(`Invalid log level ${level}`);
 	}
 }
@@ -76,13 +73,7 @@ export function log(logger: ILogger, level: LogLevel, message: string): void {
 type ConsoleMethod = 'debug' | 'error' | 'info' | 'log' | 'warn';
 type ConsoleMethodFn = (...args: unknown[]) => void;
 
-/**
- * Flag to enable forwarding of console.* calls to the log service in development.
- * This is intended for the use of agents to quickly instrument the code with console.logs
- * which will end up in the log service's file outputs.
- */
 export const isDevConsoleLogForwardingEnabled = false
-	// || Boolean("true") // done "weirdly" so that a lint warning prevents you from pushing this
 	;
 
 let isConsoleForwarding = false;
@@ -135,7 +126,6 @@ export function registerDevConsoleLogForwarder(logService: ILogService): IDispos
 			try {
 				log(logService, level, format(args));
 			} catch {
-				// Best-effort development logging must not break normal console semantics.
 			} finally {
 				isConsoleForwarding = false;
 			}
@@ -210,49 +200,22 @@ export interface ILogService extends ILogger {
 
 export interface ILoggerOptions {
 
-	/**
-	 * Id of the logger.
-	 */
 	id?: string;
 
-	/**
-	 * Name of the logger.
-	 */
 	name?: string;
 
-	/**
-	 * Do not create rotating files if max size exceeds.
-	 */
 	donotRotate?: boolean;
 
-	/**
-	 * Do not use formatters.
-	 */
 	donotUseFormatters?: boolean;
 
-	/**
-	 * When to log. Set to `always` to log always.
-	 */
 	logLevel?: 'always' | LogLevel;
 
-	/**
-	 * Whether the log should be hidden from the user.
-	 */
 	hidden?: boolean;
 
-	/**
-	 * Condition which must be true to show this logger
-	 */
 	when?: string;
 
-	/**
-	 * Id of the extension that created this logger.
-	 */
 	extensionId?: string;
 
-	/**
-	 * Group of the logger.
-	 */
 	group?: LoggerGroup;
 }
 
@@ -276,84 +239,32 @@ export interface ILoggerService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Creates a logger for the given resource, or gets one if it already exists.
-	 *
-	 * This will also register the logger with the logger service.
-	 */
 	createLogger(resource: URI, options?: ILoggerOptions): ILogger;
 
-	/**
-	 * Creates a logger with the given id in the logs folder, or gets one if it already exists.
-	 *
-	 * This will also register the logger with the logger service.
-	 */
 	createLogger(id: string, options?: Omit<ILoggerOptions, 'id'>): ILogger;
 
-	/**
-	 * Gets an existing logger, if any.
-	 */
 	getLogger(resourceOrId: URI | string): ILogger | undefined;
 
-	/**
-	 * An event which fires when the log level of a logger has changed
-	 */
 	readonly onDidChangeLogLevel: Event<LogLevel | [URI, LogLevel]>;
 
-	/**
-	 * Set default log level.
-	 */
 	setLogLevel(level: LogLevel): void;
 
-	/**
-	 * Set log level for a logger.
-	 */
 	setLogLevel(resource: URI, level: LogLevel): void;
 
-	/**
-	 * Get log level for a logger or the default log level.
-	 */
 	getLogLevel(resource?: URI): LogLevel;
 
-	/**
-	 * An event which fires when the visibility of a logger has changed
-	 */
 	readonly onDidChangeVisibility: Event<[URI, boolean]>;
 
-	/**
-	 * Set the visibility of a logger.
-	 */
 	setVisibility(resourceOrId: URI | string, visible: boolean): void;
 
-	/**
-	 * An event which fires when the logger resources are changed
-	 */
 	readonly onDidChangeLoggers: Event<DidChangeLoggersEvent>;
 
-	/**
-	 * Register a logger with the logger service.
-	 *
-	 * Note that this will not create a logger, but only register it.
-	 *
-	 * Use `createLogger` to create a logger and register it.
-	 *
-	 * Use it when you want to register a logger that is not created by the logger service.
-	 */
 	registerLogger(resource: ILoggerResource): void;
 
-	/**
-	 * Deregister the logger for the given resource.
-	 */
 	deregisterLogger(idOrResource: URI | string): void;
 
-	/**
-	 * Get all registered loggers
-	 */
 	getRegisteredLoggers(): Iterable<ILoggerResource>;
 
-	/**
-	 * Get the registered logger for the given resource.
-	 */
 	getRegisteredLogger(resource: URI): ILoggerResource | undefined;
 }
 
@@ -506,7 +417,6 @@ export class ConsoleMainLogger extends AbstractLogger implements ILogger {
 	}
 
 	flush(): void {
-		// noop
 	}
 
 }
@@ -570,7 +480,6 @@ export class ConsoleLogger extends AbstractLogger implements ILogger {
 
 
 	flush(): void {
-		// noop
 	}
 }
 
@@ -620,7 +529,6 @@ export class AdapterLogger extends AbstractLogger implements ILogger {
 	}
 
 	flush(): void {
-		// noop
 	}
 }
 
@@ -747,7 +655,6 @@ export abstract class AbstractLoggerService extends Disposable implements ILogge
 			}
 		};
 		this.registerLogger(loggerEntry.info);
-		// TODO: @sandy081 Remove this once registerLogger can take ILogger
 		this._loggers.set(resource, loggerEntry);
 		return logger;
 	}
@@ -922,5 +829,4 @@ export function parseLogLevel(logLevel: string): LogLevel | undefined {
 	return undefined;
 }
 
-// Contexts
 export const CONTEXT_LOG_LEVEL = new RawContextKey<string>('logLevel', LogLevelToString(LogLevel.Info));

@@ -15,22 +15,8 @@ import { IContinuousRecord } from './continuousRecord';
 import { deriveSeed, selectPivots } from './pivotStrategy';
 import type { WithRowIndex } from '../withRowIndex';
 
-/**
- * Sentinel `suggestionStatus` for samples synthesized from a continuous
- * recording: no model suggestion was ever made, so the sample is oracle-only
- * (the model edit scores 0).
- */
 export const CONTINUOUS_SUGGESTION_STATUS = 'continuous';
 
-/**
- * Build a synthetic {@link IInputRow} for one continuous-recording pivot.
- *
- * Continuous slices carry no model suggestion, prompt, or response — only the
- * recorded edit timeline — so those fields use sentinels: an empty
- * `suggestedEdit` produces no proposed edits, which is exactly what we want for
- * oracle-only training data. `activeDocumentLanguageId` is filled in by the
- * caller after replay, once the active file (and hence its language) is known.
- */
 function synthesizeRow(record: IContinuousRecord, entries: LogEntry[], pivotTime: number, languageId: string): IInputRow {
 	const alternativeAction: IAlternativeAction = {
 		text: undefined,
@@ -56,15 +42,6 @@ function synthesizeRow(record: IContinuousRecord, entries: LogEntry[], pivotTime
 	};
 }
 
-/**
- * Turn a single continuous recording into a processed row by splitting it at
- * `pivotTime`. The returned {@link IProcessedRow} holds a live replayer that the
- * caller must dispose.
- *
- * Never throws: like {@link processRow}, any unexpected error during replay
- * (e.g. a malformed recorded edit) is caught and returned as an error `Result`,
- * so one bad record can't abort a whole batch (see {@link processContinuousRecords}).
- */
 export function processContinuousRecord(record: IContinuousRecord, pivotTime: number): Result<IProcessedRow, Error> {
 	try {
 		return _processContinuousRecord(record, pivotTime);
@@ -90,9 +67,6 @@ function _processContinuousRecord(record: IContinuousRecord, pivotTime: number):
 		return result;
 	}
 
-	// The replayer resolves the active document's language from its file
-	// extension; reuse that so continuous samples carry a real language id
-	// (continuous telemetry has no per-slice language column).
 	const languageId = result.val.activeDocument.languageId.get();
 	return Result.ok({
 		...result.val,
@@ -141,13 +115,6 @@ export function processContinuousRecords(
 			continue;
 		}
 
-		// NOTE: each materialized row is keyed downstream by `originalRowIndex`
-		// (prompt/response/output maps in pipeline.ts). The shipped `random`
-		// strategy yields at most one pivot per record, so that key stays unique.
-		// A future multi-pivot strategy (idle-gap, every-edit, ...) MUST first
-		// introduce a per-sample id (e.g. `{ originalRowIndex, pivotOrdinal }`)
-		// threaded through those maps, otherwise rows sharing a record index
-		// would overwrite each other.
 		for (const pivotTime of pivots) {
 			const result = processContinuousRecord(record, pivotTime);
 			if (result.isError()) {

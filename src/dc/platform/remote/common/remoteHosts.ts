@@ -19,22 +19,11 @@ export function getRemoteName(authority: string | undefined): string | undefined
 	}
 	const pos = authority.indexOf('+');
 	if (pos < 0) {
-		// e.g. localhost:8000
 		return authority;
 	}
 	return authority.substr(0, pos);
 }
 
-/**
- * Returns the suffix part of the authority after the '+' character.
- * For remote connections, this is typically the server/tunnel identifier.
- * Examples:
- * - For tunnels: `tunnel+myTunnel` returns `myTunnel`
- * - For SSH: `ssh+myserver` returns `myserver`
- * - For localhost: `localhost:8000` returns `undefined`
- * @param authority The remote authority string.
- * @returns The suffix after the '+' character, or undefined if there is no '+' character.
- */
 export function getRemoteServerRootPath(authority: string): string | undefined;
 export function getRemoteServerRootPath(authority: undefined): undefined;
 export function getRemoteServerRootPath(authority: string | undefined): string | undefined;
@@ -66,25 +55,21 @@ export function parseAuthorityWithOptionalPort(authority: string, defaultPort: n
 }
 
 function parseAuthority(authority: string): { host: string; port: number | undefined } {
-	// check for ipv6 with port
 	const m1 = authority.match(/^(\[[0-9a-z:]+\]):(\d+)$/);
 	if (m1) {
 		return { host: m1[1], port: parseInt(m1[2], 10) };
 	}
 
-	// check for ipv6 without port
 	const m2 = authority.match(/^(\[[0-9a-z:]+\])$/);
 	if (m2) {
 		return { host: m2[1], port: undefined };
 	}
 
-	// anything with a trailing port
 	const m3 = authority.match(/(.*):(\d+)$/);
 	if (m3) {
 		return { host: m3[1], port: parseInt(m3[2], 10) };
 	}
 
-	// doesn't contain a port
 	return { host: authority, port: undefined };
 }
 
@@ -97,13 +82,6 @@ const loopbackHosts = new Set([
 	'[0000:0000:0000:0000:0000:0000:0000:0001]'
 ]);
 
-/**
- * Returns whether the given host (as found in a direct `<host>:<port>` remote
- * authority) refers to the local loopback interface. The check is intentionally
- * strict: only `localhost` and the IPv4/IPv6 loopback literals are considered
- * local. Any other host (a routable IP address or a hostname) is treated as a
- * connection that leaves the local machine.
- */
 export function isLoopbackHost(host: string): boolean {
 	return loopbackHosts.has(host.toLowerCase());
 }

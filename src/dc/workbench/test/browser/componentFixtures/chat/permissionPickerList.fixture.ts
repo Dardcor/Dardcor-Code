@@ -13,11 +13,8 @@ import { ComponentFixtureContext, createEditorServices, defineComponentFixture, 
 import '../../../../contrib/chat/browser/widget/media/chat.css';
 
 export interface PermissionPickerListFixtureOptions {
-	/** Whether the inline "Sandboxing for terminal" toggle is shown on the Default option. */
 	readonly showSandboxToggle?: boolean;
-	/** Whether the inline toggle renders in the on (checked) state. */
 	readonly sandboxingEnabled?: boolean;
-	/** Whether the standalone toggle is shown. */
 	readonly showStandaloneSandboxToggle?: boolean;
 	readonly width?: number;
 }
@@ -117,14 +114,11 @@ export function renderPermissionPickerList(context: ComponentFixtureContext, opt
 	container.style.padding = '8px';
 	container.style.backgroundColor = 'var(--vscode-editor-background)';
 
-	// Render inside an .action-widget wrapper so the popup-scoped CSS applies.
 	const wrapper = document.createElement('div');
 	wrapper.classList.add('action-widget');
 	wrapper.appendChild(widget.domNode);
 	container.appendChild(wrapper);
 
-	// Item heights: Default = 70 with inline toggle (inlineToggleItemHeight), else 44 (detail).
-	// Bypass + Autopilot with detail = 44 each. Separator = 8. Learn more = 24.
 	const defaultItemHeight = options.showSandboxToggle ? 70 : 44;
 	const actionHeight = defaultItemHeight + 44 * 2 + 24;
 	const totalHeight = actionHeight + 8;

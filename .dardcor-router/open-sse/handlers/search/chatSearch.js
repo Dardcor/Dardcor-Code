@@ -1,12 +1,6 @@
-/**
- * Wrap chat-completions endpoints (with built-in web search) into the unified
- * /v1/search response format. Supports gemini, antigravity, openai, xai, kimi,
- * minimax, perplexity.
- */
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 import { ANTIGRAVITY_IDE_USER_AGENT } from "../../providers/shared.js";
 
-// Default search model + endpoint derive from registry searchViaChat (single source)
 const searchModel = (id) => PROVIDER_MEDIA[id]?.searchViaChat?.defaultModel;
 const searchEndpoint = (id, model) =>
   (PROVIDER_MEDIA[id]?.searchViaChat?.endpoint || "").replace("{model}", model || "");
@@ -14,13 +8,6 @@ const searchEndpoint = (id, model) =>
 const REQUEST_TIMEOUT_MS = 15000;
 const DEFAULT_MAX_RESULTS = 10;
 
-/**
- * Normalize a citation entry into the unified result shape.
- * @param {{url:string, title?:string, snippet?:string}} c
- * @param {number} index
- * @param {string} provider
- * @param {string} retrievedAt
- */
 function toResult(c, index, provider, retrievedAt) {
   return {
     title: c.title || "",
@@ -37,31 +24,26 @@ function toResult(c, index, provider, retrievedAt) {
   };
 }
 
-// Antigravity search request envelope (mirrors the IDE client)
 const AG_CLIENT_NAME = "antigravity";
 const AG_SEARCH_GENERATION_CONFIG = { temperature: 1.0, maxOutputTokens: 8192 };
 const AG_CONTEXT_BEFORE = 150;
 const AG_CONTEXT_AFTER = 250;
 
-/** Widen a grounded segment to its surrounding sentence(s) in the answer text. */
 function expandSegment(text, segment) {
   const { startIndex, endIndex } = segment || {};
   if (!text || !Number.isInteger(startIndex) || !Number.isInteger(endIndex)) return "";
   const start = Math.max(0, startIndex - AG_CONTEXT_BEFORE);
   const end = Math.min(text.length, endIndex + AG_CONTEXT_AFTER);
   let out = text.slice(start, end).trim();
-  // Drop the partial words the window cut off at either edge
   if (start > 0) out = `...${out.replace(/^\S+/, "")}`;
   if (end < text.length) out = `${out.replace(/\S+$/, "")}...`;
   return out.trim();
 }
 
-/** Join deduped grounding pieces, skipping empties. */
 function joinPieces(set, sep) {
   return [...(set || [])].filter(Boolean).join(sep).trim();
 }
 
-/** Coerce a citation that might be a raw URL string or an object. */
 function normalizeCitation(c) {
   if (!c) return null;
   if (typeof c === "string") return { url: c };
@@ -69,12 +51,6 @@ function normalizeCitation(c) {
   return null;
 }
 
-/**
- * Provider-specific configuration map. All providers must implement:
- * { endpoint, defaultModel, buildBody, buildHeaders, extractAnswer }
- * Optional: requireCredentials(credentials) → error string when a provider needs
- * more than a token (returns null when satisfied).
- */
 const CHAT_SEARCH_CONFIG = {
   gemini: {
     endpoint: (model) => searchEndpoint("gemini", model),
@@ -103,7 +79,6 @@ const CHAT_SEARCH_CONFIG = {
 
   antigravity: {
     endpoint: () => searchEndpoint("antigravity"),
-    // Upstream 403s on a missing or fabricated project — surface the real cause
     requireCredentials: (credentials) =>
       credentials?.projectId ? null : "Antigravity account has no projectId — reconnect the account",
     buildBody: (query, model, credentials) => ({
@@ -123,7 +98,6 @@ const CHAT_SEARCH_CONFIG = {
       "User-Agent": ANTIGRAVITY_IDE_USER_AGENT
     }),
     extractAnswer: (data) => {
-      // Antigravity wraps the Gemini payload in { response: {...} }
       const response = data?.response || data;
       const candidate = response?.candidates?.[0];
       const parts = candidate?.content?.parts || [];
@@ -132,8 +106,6 @@ const CHAT_SEARCH_CONFIG = {
       const chunks = grounding.groundingChunks || [];
       const supports = grounding.groundingSupports || [];
 
-      // Upstream repeats the same source across chunks — key by URL so it stays one citation.
-      // Map, not a plain object: both the index and the URL come from upstream.
       const sources = new Map();
       const byIndex = chunks.map((ch) => {
         const web = ch?.web;
@@ -143,7 +115,6 @@ const CHAT_SEARCH_CONFIG = {
         return sources.get(url);
       });
 
-      // Each support ties a sentence of the answer back to the chunks that grounded it
       for (const s of supports) {
         const segment = s?.segment;
         const grounded = segment?.text || "";
@@ -173,7 +144,6 @@ const CHAT_SEARCH_CONFIG = {
         model,
         messages: [{ role: "user", content: query }]
       };
-      // Non-search-preview models need explicit web_search tool
       if (!/search/i.test(model)) {
         body.tools = [{ type: "web_search" }];
       }
@@ -212,7 +182,6 @@ const CHAT_SEARCH_CONFIG = {
       Authorization: `Bearer ${token}`
     }),
     extractAnswer: (data) => {
-      // /v1/responses returns output[] array of message/tool blocks
       const output = Array.isArray(data?.output) ? data.output : [];
       let text = "";
       const citations = [];
@@ -227,7 +196,6 @@ const CHAT_SEARCH_CONFIG = {
           }
         }
       }
-      // Fallback: top-level citations array (some response variants)
       if (!citations.length && Array.isArray(data?.citations)) {
         for (const c of data.citations) {
           const n = normalizeCitation(c);
@@ -416,17 +384,6 @@ const CHAT_SEARCH_CONFIG = {
   }
 };
 
-/**
- * Execute a chat-search request against the chosen provider.
- * @param {object} params
- * @param {string} params.provider
- * @param {string} params.query
- * @param {number} [params.maxResults]
- * @param {string} [params.model]
- * @param {{apiKey?:string, accessToken?:string}} params.credentials
- * @param {{info?:Function, warn?:Function, error?:Function}} [params.log]
- * @returns {Promise<{success:boolean, status?:number, error?:string, data?:object}>}
- */
 export async function handleChatSearch({
   provider,
   query,

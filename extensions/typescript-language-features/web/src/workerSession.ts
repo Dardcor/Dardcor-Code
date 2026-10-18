@@ -53,7 +53,7 @@ export function startWorkerSession(
 				cancellationToken,
 				...options,
 				typingsInstaller,
-				byteLength: () => { throw new Error('Not implemented'); }, // Formats the message text in send of Session which is overridden in this class so not needed
+				byteLength: () => { throw new Error('Not implemented'); },
 				hrtime,
 				logger: logger.tsLogger,
 				canUseEvents: true,
@@ -61,7 +61,6 @@ export function startWorkerSession(
 			this.wasmCancellationToken = cancellationToken;
 
 			this.listener = (message: any) => {
-				// TEMP fix since Cancellation.retrieveCheck is not correct
 				function retrieveCheck2(data: any) {
 					if (!globalThis.crossOriginIsolated || !(data.$cancellationData instanceof SharedArrayBuffer)) {
 						return () => false;
@@ -87,7 +86,6 @@ export function startWorkerSession(
 						}
 					}
 				} catch {
-					// Noop
 				}
 
 				this.onMessage(message.data);

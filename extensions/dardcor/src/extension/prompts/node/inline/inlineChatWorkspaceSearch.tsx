@@ -58,8 +58,7 @@ export class InlineChatWorkspaceSearch extends PromptElement<InlineChatWorkspace
 			query: {
 				queryText: query
 			},
-			// do not return matches in the current file
-			globPatterns: { exclude: [document.uri.fsPath] }, // TODO: use relativePattern once supported
+			globPatterns: { exclude: [document.uri.fsPath] },
 			maxResults: 3,
 		};
 	}
@@ -73,7 +72,6 @@ export class InlineChatWorkspaceSearch extends PromptElement<InlineChatWorkspace
 			query: {
 				queryText: query
 			},
-			// do not return matches in the current file
 			globPatterns: { exclude: [document.uri.fsPath] },
 			maxResults: 3,
 		};

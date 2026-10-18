@@ -24,35 +24,17 @@ export class InlineDecoration {
 	) { }
 }
 
-/**
- * A collection of decorations in a range of lines.
- */
 export interface IViewDecorationsCollection {
-	/**
-	 * decorations in the range of lines (ungrouped).
-	 */
 	readonly decorations: ViewModelDecoration[];
-	/**
-	 * inline decorations (grouped by each line in the range of lines).
-	 */
 	readonly inlineDecorations: InlineDecoration[][];
-	/**
-	 * Whether the decorations affect the fonts.
-	 */
 	readonly hasVariableFonts: boolean[];
 }
 
 export interface IInlineDecorationsComputer {
-	/**
-	 * Get the inline decorations for a specific model line number, split by view line number
-	 */
 	getInlineDecorations(modelLineNumber: number): InlineDecoration[][];
 }
 
 export interface IInlineModelDecorationsComputerContext {
-	/**
-	 * Get model decorations for a view range
-	 */
 	getModelDecorations(viewRange: Range, onlyMinimapDecorations: boolean, onlyMarginDecorations: boolean): IModelDecoration[];
 }
 
@@ -172,8 +154,6 @@ export class InlineModelDecorationsComputer implements IInlineDecorationsCompute
 				const end = this.coordinatesConverter.convertModelPositionToViewPosition(new Position(modelRange.endLineNumber, this.model.getLineMaxColumn(modelRange.endLineNumber)), PositionAffinity.Right);
 				viewRange = new Range(start.lineNumber, start.column, end.lineNumber, end.column);
 			} else {
-				// For backwards compatibility reasons, we want injected text before any decoration.
-				// Thus, move decorations to the right.
 				viewRange = this.coordinatesConverter.convertModelRangeToViewRange(modelRange, PositionAffinity.Right);
 			}
 			r = new ViewModelDecoration(viewRange, options);
@@ -184,25 +164,10 @@ export class InlineModelDecorationsComputer implements IInlineDecorationsCompute
 }
 
 export interface IInjectedTextInlineDecorationsComputerContext {
-	/**
-	 * Get the injections options for a model line number
-	 */
 	getInjectionOptions(modelLineNumber: number): InjectedTextOptions[] | null;
-	/**
-	 * Get the injection offsets for a model line number
-	 */
 	getInjectionOffsets(modelLineNumber: number): number[] | null;
-	/**
-	 * Get the break offets for a model line number
-	 */
 	getBreakOffsets(modelLineNumber: number): number[];
-	/**
-	 * Get the wrapped text indent length for a model line number
-	 */
 	getWrappedTextIndentLength(modelLineNumber: number): number;
-	/**
-	 * Get the view line number for the first output line of a model line
-	 */
 	getBaseViewLineNumber(modelLineNumber: number): number;
 }
 
@@ -235,12 +200,10 @@ export class InjectedTextInlineDecorationsComputer implements IInlineDecorations
 				const injectedTextEndOffsetInInputWithInjections = injectedTextStartOffsetInInputWithInjections + length;
 
 				if (injectedTextStartOffsetInInputWithInjections > lineEndOffsetInInputWithInjections) {
-					// Injected text only starts in later wrapped lines.
 					break;
 				}
 
 				if (lineStartOffsetInInputWithInjections < injectedTextEndOffsetInInputWithInjections) {
-					// Injected text ends after or in this line (but also starts in or before this line).
 					const options = injectionOptions![currentInjectedOffset];
 					if (options.inlineClassName) {
 						const wrappedTextIndentLength = this.context.getWrappedTextIndentLength(modelLineNumber);
@@ -259,7 +222,6 @@ export class InjectedTextInlineDecorationsComputer implements IInlineDecorations
 					totalInjectedTextLengthBefore += length;
 					currentInjectedOffset++;
 				} else {
-					// injected text breaks into next line, process it again
 					break;
 				}
 			}

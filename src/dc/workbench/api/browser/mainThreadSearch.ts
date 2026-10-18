@@ -107,15 +107,11 @@ class SearchOperation {
 		readonly matches = new Map<string, IFileMatch>(),
 		readonly keywords: AISearchKeyword[] = []
 	) {
-		//
 	}
 
 	addMatch(match: IFileMatch): void {
 		const existingMatch = this.matches.get(match.resource.toString());
 		if (existingMatch) {
-			// TODO@rob clean up text/file result types
-			// If a file search returns the same file twice, we would enter this branch.
-			// It's possible that could happen, #90813
 			if (existingMatch.results && match.results) {
 				existingMatch.results.push(...match.results);
 			}
@@ -194,7 +190,6 @@ class RemoteSearchProvider implements ISearchResultProvider, IDisposable {
 		const searchOp = this._searches.get(session);
 
 		if (!searchOp) {
-			// ignore...
 			return;
 		}
 
@@ -213,7 +208,6 @@ class RemoteSearchProvider implements ISearchResultProvider, IDisposable {
 		const searchOp = this._searches.get(session);
 
 		if (!searchOp) {
-			// ignore...
 			return;
 		}
 		searchOp.addKeyword(data);

@@ -3,23 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Detached worktrees: a git worktree the host materializes *before* any session
- * owns it.
- *
- * A client that wants a worktree ready before the user sends their first
- * message (the Agents window does this so a draft session already has a
- * checkout) asks the host for one through the `vscode/…DetachedWorktree`
- * extension methods. The worktree is keyed by an opaque handle rather than by a
- * session, so its whole lifecycle — materialize, claim, archive/unarchive,
- * delete, reconcile — is addressable over the protocol without a turn ever
- * running.
- *
- * Everything here is host-local: git commands against a temporary repository
- * plus the host's own per-handle record. Nothing crosses the model boundary, so
- * every scenario is registered as a conformance-tier host-only test and runs
- * against the strict shared empty fixture.
- */
 
 import assert from 'assert';
 import { execFileSync } from 'child_process';
@@ -47,16 +30,8 @@ import { conformanceTest, type IAgentHostE2ETestContext } from './e2eTestContext
 
 type CreateDetachedWorktreeResult = IAgentHostExtensionCommandMap[typeof CreateAgentHostDetachedWorktreeExtensionMethod]['result'];
 
-/** The `agents/` prefix the host puts in front of every branch it generates for an isolated checkout. */
 const AGENT_BRANCH_PREFIX = 'agents/';
 
-/**
- * Resolves a path through symlinks when it exists, and returns it unchanged
- * when it does not. Temp directories are symlinked on macOS (`/var` ->
- * `/private/var`), and these tests compare paths that git printed against paths
- * the host returned, so both sides have to be canonicalized the same way —
- * including after a worktree has been removed, when the path no longer resolves.
- */
 function canonicalPath(candidate: string): string {
 	try {
 		return realpathSync(candidate);
@@ -70,8 +45,6 @@ function pathComparisonKey(candidate: string): string {
 }
 
 export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): void {
-	// The detached-worktree family is an AHP *extension* method set rather than
-	// part of the core protocol, so only the VS Code agent host answers it.
 	if (context.targetId !== vscodeAgentHostTarget.id) {
 		return;
 	}
@@ -81,11 +54,7 @@ export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): 
 
 	let clientOrdinal = 0;
 
-	/** A git repository with one commit, so a worktree has a branch point to check out. */
 	function createGitWorkspace(prefix: string): string {
-		// Canonicalized up front: the host resolves the repository root through
-		// git, which reports the real path, and the worktree container is derived
-		// from that root.
 		const workspace = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
 		tempDirs.push(workspace, `${workspace}.worktrees`);
 		initTestGitRepo(workspace);
@@ -99,7 +68,6 @@ export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): 
 		return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 	}
 
-	/** The worktrees git currently has registered for `repository`, canonicalized. */
 	function registeredWorktrees(repository: string): string[] {
 		return git(repository, 'worktree', 'list', '--porcelain')
 			.split('\n')
@@ -115,12 +83,6 @@ export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): 
 		return git(repository, 'branch', '--list', branchName).length > 0;
 	}
 
-	/**
-	 * Creates a session configured for worktree isolation and stops before the
-	 * first turn, which is exactly the state a detached worktree is requested
-	 * from: the host has a session record but has deliberately not resolved its
-	 * working directory yet.
-	 */
 	async function createUnstartedWorktreeSession(workspace: string, prefix: string): Promise<string> {
 		context.client.setWorkingDirectory(workspace);
 		await context.client.call('initialize', {
@@ -173,11 +135,6 @@ export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): 
 		const created = await createDetachedWorktree(sessionUri, 'summarize the seed file');
 		const worktreePath = URI.parse(created.resource).fsPath;
 
-		// The handle is opaque to the client, the checkout is a real git worktree
-		// of the session's repository, and it carries the repository's content —
-		// the three things a client needs before it can hand the directory to a
-		// user. The session itself stays unstarted: a detached worktree is not
-		// (yet) anybody's working directory.
 		assert.deepStrictEqual({
 			sessionLifecycle: sessionState.lifecycle,
 			handleIsOpaqueId: isAgentDevContainerWorktreeHandle(created.handle),
@@ -207,7 +164,6 @@ export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): 
 		const droppedPath = URI.parse(dropped.resource).fsPath;
 		await claimDetachedWorktree(held.handle);
 
-		// Omitted handles remain claimable until the retention grace period expires.
 		await reconcileDetachedWorktrees(getComparisonKey(URI.parse(held.resource)), [held.handle]);
 		await reconcileDetachedWorktrees(getComparisonKey(URI.parse(dropped.resource)), []);
 
@@ -236,10 +192,6 @@ export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): 
 		const worktreePath = URI.parse(created.resource).fsPath;
 		const branchName = git(worktreePath, 'rev-parse', '--abbrev-ref', 'HEAD');
 
-		// Archiving reclaims the disk a dormant checkout is holding, but it must
-		// preserve the branch: that branch is the only thing that makes the
-		// checkout reconstructible, so dropping it would turn "archive" into
-		// "discard".
 		await setDetachedWorktreeArchived(created.handle, true);
 		const archived = {
 			existsOnDisk: existsSync(worktreePath),
@@ -247,8 +199,6 @@ export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): 
 			branchPreserved: branchExists(workspace, branchName),
 		};
 
-		// Unarchiving puts the same branch back at the same path, so a client that
-		// stored the path before archiving still resolves to a valid checkout.
 		await setDetachedWorktreeArchived(created.handle, false);
 		const restored = {
 			existsOnDisk: existsSync(worktreePath),
@@ -281,15 +231,9 @@ export function defineDetachedWorktreeTests(context: IAgentHostE2ETestContext): 
 
 		await deleteDetachedWorktree(created.handle);
 
-		// Deletion takes the checkout off disk *and* drops the host's record for
-		// the handle. The record is not directly observable, so the oracle is the
-		// handle no longer resolving — a client cannot claim what the host forgot.
 		await assert.rejects(claimDetachedWorktree(created.handle), /Unknown detached worktree handle/);
 		await assert.rejects(claimDetachedWorktree(generateUuid()), /Unknown detached worktree handle/);
 
-		// Deletion is idempotent: a client retrying after a dropped response, or
-		// two clients reacting to the same removal, must not turn the second
-		// attempt into an error.
 		await deleteDetachedWorktree(created.handle);
 
 		assert.deepStrictEqual({

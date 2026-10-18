@@ -14,10 +14,6 @@ import { IMcpServer, IMcpServerStartOpts, IMcpService, McpConnectionState, McpSe
 import { MCP } from './modelContextProtocol.js';
 
 
-/**
- * Waits up to `timeout` for a server passing the filter to be discovered,
- * and then starts it.
- */
 export function startServerByFilter(mcpService: IMcpService, filter: (s: IMcpServer) => boolean, timeout = 5000) {
 	return new Promise<void>((resolve, reject) => {
 		const store = new DisposableStore();
@@ -44,10 +40,6 @@ export function startServerByFilter(mcpService: IMcpService, filter: (s: IMcpSer
 	});
 }
 
-/**
- * Starts a server (if needed) and waits for its tools to be live. Returns
- * true/false whether this happened successfully.
- */
 export async function startServerAndWaitForLiveTools(server: IMcpServer, opts?: IMcpServerStartOpts, token?: CancellationToken): Promise<boolean> {
 	const r = await server.start(opts);
 
@@ -66,19 +58,19 @@ export async function startServerAndWaitForLiveTools(server: IMcpServer, opts?: 
 		store.add(autorun(reader => {
 			const connState = server.connectionState.read(reader).state;
 			if (connState === McpConnectionState.Kind.Error || connState === McpConnectionState.Kind.Stopped) {
-				resolve(false); // some error, don't block the request
+				resolve(false);
 			}
 
 			const toolState = server.cacheState.read(reader);
 			if (toolState === McpServerCacheState.Live) {
-				resolve(true); // got tools, all done
+				resolve(true);
 			}
 		}));
 	});
 	store.dispose();
 
 	if (ok) {
-		await timeout(0); // let the tools register in the language model contribution
+		await timeout(0);
 	}
 
 	return ok;
@@ -97,13 +89,6 @@ export function mcpServerToSourceData(server: IMcpServer, reader?: IReader): Too
 }
 
 
-/**
- * Validates whether the given HTTP or HTTPS resource is allowed for the specified MCP server.
- *
- * @param resource The URI of the resource to validate.
- * @param server The MCP server instance to validate against, or undefined.
- * @returns True if the resource request is valid for the server, false otherwise.
- */
 export function canLoadMcpNetworkResourceDirectly(resource: URL, server: IMcpServer | undefined) {
 	let isResourceRequestValid = false;
 	if (resource.protocol === 'http:') {

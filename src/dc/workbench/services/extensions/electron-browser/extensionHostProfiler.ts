@@ -70,7 +70,6 @@ export class ExtensionHostProfiler {
 				try {
 					extension = searchTree.findSubstr(URI.parse(node.callFrame.url));
 				} catch {
-					// ignore
 				}
 				if (extension) {
 					segmentId = extension.identifier.value;

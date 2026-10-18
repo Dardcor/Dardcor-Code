@@ -3,30 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * A very VM friendly rgba datastructure.
- * Please don't touch unless you take a look at the IR.
- */
 export class RGBA8 {
 	_rgba8Brand: void = undefined;
 
 	static readonly Empty = new RGBA8(0, 0, 0, 0);
 
-	/**
-	 * Red: integer in [0-255]
-	 */
 	public readonly r: number;
-	/**
-	 * Green: integer in [0-255]
-	 */
 	public readonly g: number;
-	/**
-	 * Blue: integer in [0-255]
-	 */
 	public readonly b: number;
-	/**
-	 * Alpha: integer in [0-255]
-	 */
 	public readonly a: number;
 
 	constructor(r: number, g: number, b: number, a: number) {

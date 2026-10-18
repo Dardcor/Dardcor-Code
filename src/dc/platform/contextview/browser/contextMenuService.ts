@@ -51,7 +51,6 @@ export class ContextMenuService extends Disposable implements IContextMenuServic
 		this.contextMenuHandler.configure(options);
 	}
 
-	// ContextMenu
 
 	showContextMenu(delegate: IContextMenuDelegate | IContextMenuMenuDelegate): void {
 

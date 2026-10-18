@@ -67,13 +67,6 @@ function stripToolArtifacts(body) {
   });
 }
 
-// Strip `reasoning_content` echoed by clients on assistant messages — but
-// only when it's a real thinking block. `DefaultExecutor.transformRequest`
-// runs `injectReasoningContent` first and may inject a 1-char placeholder
-// (" ") for upstream validation; the placeholder is small (no token cost
-// worth stripping) and stripping it would re-trigger upstream to complain
-// about missing reasoning on the next turn. Threshold matches the
-// placeholder length with a safety margin.
 const REASONING_PLACEHOLDER_MAX_LEN = 8;
 
 export function stripReasoningContent(body) {

@@ -1,20 +1,7 @@
 // Copyright 2025 Google LLC
-//
-// This is adapted from the edit corrector in the Gemini CLI which can be found
-// at https://github.com/google-gemini/gemini-cli/blob/5008aea90d4ea7ac6bb5872f3702f3c7a7878ed0/packages/core/src/utils/editCorrector.ts
-// and is available under the following license:
-//
 // Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
 
-//        http://www.apache.org/licenses/LICENSE-2.0
 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 // eslint-disable-next-line header/header
 import { Raw } from '@vscode/prompt-tsx';
@@ -30,18 +17,12 @@ import { count } from '../../../util/dardcor/base/common/strings.js';
 import { findAndReplaceOne } from './editFileToolUtils.js';
 import { IReplaceStringToolParams } from './replaceStringTool.js';
 
-/**
- * Defines the structure of the parameters within CorrectedEditResult
- */
 interface CorrectedEditParams {
 	filePath: string;
 	oldString: string;
 	newString: string;
 }
 
-/**
- * Defines the result structure for ensureCorrectEdit.
- */
 export interface CorrectedEditResult {
 	params: CorrectedEditParams;
 	occurrences: number;
@@ -115,21 +96,10 @@ export function tryLocalProximityHealing(
 	return undefined;
 }
 
-/**
- * Attempts to correct edit parameters if the original oldString is not found.
- * It tries unescaping, and then LLM-based correction.
- * Results are cached to avoid redundant processing.
- *
- * @param currentContent The current content of the file.
- * @param originalParams The original EditToolParams
- * @param healEndpoint The GeminiClient for LLM calls.
- * @returns A promise resolving to an object containing the (potentially corrected)
- *          EditToolParams (as CorrectedEditParams) and the final occurrences count.
- */
 export async function healReplaceStringParams(
 	model: LanguageModelChat | undefined,
 	currentContent: string,
-	originalParams: IReplaceStringToolParams & { expected_replacements?: number }, // This is the EditToolParams from edit.ts, without \'corrected\'
+	originalParams: IReplaceStringToolParams & { expected_replacements?: number },
 	eol: string,
 	healEndpoint: IChatEndpoint,
 	token: CancellationToken,
@@ -157,7 +127,6 @@ export async function healReplaceStringParams(
 	} else if (occurrences > expectedReplacements) {
 		const expectedReplacements = originalParams.expected_replacements ?? 1;
 
-		// If user expects multiple replacements, return as-is
 		if (occurrences === expectedReplacements) {
 			const result: CorrectedEditResult = {
 				params: { ...originalParams },
@@ -166,7 +135,6 @@ export async function healReplaceStringParams(
 			return result;
 		}
 
-		// If user expects 1 but found multiple, try to correct (existing behavior)
 		if (expectedReplacements === 1) {
 			const result: CorrectedEditResult = {
 				params: { ...originalParams },
@@ -175,14 +143,12 @@ export async function healReplaceStringParams(
 			return result;
 		}
 
-		// If occurrences don't match expected, return as-is (will fail validation later)
 		const result: CorrectedEditResult = {
 			params: { ...originalParams },
 			occurrences,
 		};
 		return result;
 	} else {
-		// occurrences is 0 or some other unexpected state initially
 		const unescapedOldStringAttempt = unescapeStringForGeminiBug(
 			originalParams.oldString,
 		);
@@ -193,9 +159,9 @@ export async function healReplaceStringParams(
 			if (newStringPotentiallyEscaped) {
 				finalNewString = await correctNewString(
 					healEndpoint,
-					originalParams.oldString, // original old
-					unescapedOldStringAttempt, // corrected old
-					originalParams.newString, // original new (which is potentially escaped)
+					originalParams.oldString,
+					unescapedOldStringAttempt,
+					originalParams.newString,
 					token,
 				);
 			}
@@ -232,26 +198,24 @@ export async function healReplaceStringParams(
 					);
 					finalNewString = await correctNewString(
 						healEndpoint,
-						originalParams.oldString, // original old
-						llmCorrectedOldString, // corrected old
-						baseNewStringForLLMCorrection, // base new for correction
+						originalParams.oldString,
+						llmCorrectedOldString,
+						baseNewStringForLLMCorrection,
 						token,
 					);
 				}
 			} else {
-				// LLM correction also failed for oldString
 				const result: CorrectedEditResult = {
 					params: { ...originalParams },
-					occurrences: 0, // Explicitly 0 as LLM failed
+					occurrences: 0,
 				};
 				return result;
 			}
 		}
 	} else {
-			// Unescaping oldString resulted in > 1 occurrences
 			const result: CorrectedEditResult = {
 				params: { ...originalParams },
-				occurrences, // This will be > 1
+				occurrences,
 			};
 			return result;
 		}
@@ -266,19 +230,17 @@ export async function healReplaceStringParams(
 	finalOldString = targetString;
 	finalNewString = pair;
 
-	// Final result construction
 	const result: CorrectedEditResult = {
 		params: {
 			filePath: originalParams.filePath,
 			oldString: finalOldString,
 			newString: finalNewString,
 		},
-		occurrences: count(currentContent, finalOldString), // Recalculate occurrences with the final oldString
+		occurrences: count(currentContent, finalOldString),
 	};
 	return result;
 }
 
-// Define the expected JSON schema for the LLM response for oldString correction
 const oldString_CORRECTION_SCHEMA: ObjectJsonSchema = {
 	type: 'object',
 	properties: {
@@ -334,7 +296,6 @@ Return ONLY the corrected target snippet in the specified JSON format with the k
 	}
 }
 
-// Define the expected JSON schema for the newString correction LLM response
 const newString_CORRECTION_SCHEMA: ObjectJsonSchema = {
 	type: 'object',
 	properties: {
@@ -347,9 +308,6 @@ const newString_CORRECTION_SCHEMA: ObjectJsonSchema = {
 	required: ['corrected_newString'],
 };
 
-/**
- * Adjusts the newString to align with a corrected oldString, maintaining the original intent.
- */
 export async function correctNewString(
 	endpoint: IChatEndpoint,
 	originalOldString: string,
@@ -482,7 +440,6 @@ For example: ${JSON.stringify(example)}
 `.trim();
 
 	const contents: Raw.ChatMessage[] = [
-		// Some system message to avoid tripping CAPI
 		{ role: Raw.ChatRole.System, content: [{ type: Raw.ChatCompletionContentPartKind.Text, text: 'You are an expert at analyzing files and patterns.' }] },
 		{ role: Raw.ChatRole.User, content: [{ type: Raw.ChatCompletionContentPartKind.Text, text: prompt }] },
 	];
@@ -503,7 +460,6 @@ For example: ${JSON.stringify(example)}
 		try {
 			return JSONC.parse(block.code);
 		} catch {
-			// ignored
 		}
 	}
 
@@ -578,46 +534,30 @@ function trimPairIfPossible(
 	};
 }
 
-/**
- * Unescapes a string that might have been overly escaped by an LLM.
- */
 export function _unescapeStringForGeminiBug(inputString: string): string {
-	// Regex explanation:
-	// \\ : Matches exactly one literal backslash character.
-	// (n|t|r|'|"|`|\\|\n) : This is a capturing group. It matches one of the following:
-	//   n, t, r, ', ", ` : These match the literal characters 'n', 't', 'r', single quote, double quote, or backtick.
-	//                       This handles cases like "\\n", "\\`", etc.
-	//   \\ : This matches a literal backslash. This handles cases like "\\\\" (escaped backslash).
-	//   \n : This matches an actual newline character. This handles cases where the input
-	//        string might have something like "\\\n" (a literal backslash followed by a newline).
-	// g : Global flag, to replace all occurrences.
 
 	return inputString.replace(
 		/\\+(n|t|r|'|"|`|\\|\n)/g,
 		(match, capturedChar) => {
-			// 'match' is the entire erroneous sequence, e.g., if the input (in memory) was "\\\\`", match is "\\\\`".
-			// 'capturedChar' is the character that determines the true meaning, e.g., '`'.
 
 			switch (capturedChar) {
 				case 'n':
-					return '\n'; // Correctly escaped: \n (newline character)
+					return '\n';
 				case 't':
-					return '\t'; // Correctly escaped: \t (tab character)
+					return '\t';
 				case 'r':
-					return '\r'; // Correctly escaped: \r (carriage return character)
+					return '\r';
 				case `'`:
-					return `'`; // Correctly escaped: ' (apostrophe character)
+					return `'`;
 				case '"':
-					return '"'; // Correctly escaped: " (quotation mark character)
+					return '"';
 				case '`':
-					return '`'; // Correctly escaped: ` (backtick character)
-				case '\\': // This handles when 'capturedChar' is a literal backslash
-					return '\\'; // Replace escaped backslash (e.g., "\\\\") with single backslash
-				case '\n': // This handles when 'capturedChar' is an actual newline
-					return '\n'; // Replace the whole erroneous sequence (e.g., "\\\n" in memory) with a clean newline
+					return '`';
+				case '\\':
+					return '\\';
+				case '\n':
+					return '\n';
 				default:
-					// This fallback should ideally not be reached if the regex captures correctly.
-					// It would return the original matched sequence if an unexpected character was captured.
 					return match;
 			}
 		},

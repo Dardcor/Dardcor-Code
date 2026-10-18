@@ -78,7 +78,7 @@ export class ExtensionsResourceInitializer implements IProfileResourceInitialize
 				if (await this.extensionManagementService.canInstall(extension) === true) {
 					this.logService.trace(`Initializing Profile: Installing extension...`, extension.identifier.id, extension.version);
 					await this.extensionManagementService.installFromGallery(extension, {
-						isMachineScoped: false,/* set isMachineScoped value to prevent install and sync dialog in web */
+						isMachineScoped: false,
 						donotIncludePackAndDependencies: true,
 						installGivenVersion: !!e.version,
 						installPreReleaseVersion: e.preRelease,
@@ -158,7 +158,7 @@ export class ExtensionsResource implements IProfileResource {
 						installExtensionInfos.push({
 							extension,
 							options: {
-								isMachineScoped: false,/* set isMachineScoped value to prevent install and sync dialog in web */
+								isMachineScoped: false,
 								donotIncludePackAndDependencies: true,
 								installGivenVersion: !!e.version,
 								installPreReleaseVersion: e.preRelease,
@@ -215,18 +215,15 @@ export class ExtensionsResource implements IProfileResource {
 				const { identifier, preRelease } = extension;
 				const disabled = disabledExtensions.some(disabledExtension => areSameExtensions(disabledExtension, identifier));
 				if (extension.isBuiltin && !disabled) {
-					// skip enabled builtin extensions
 					continue;
 				}
 				if (!extension.isBuiltin) {
 					if (!extension.identifier.uuid) {
-						// skip user extensions without uuid
 						continue;
 					}
 				}
 				const existing = result.get(identifier.id.toLowerCase());
 				if (existing?.disabled) {
-					// Remove the duplicate disabled extension
 					result.delete(identifier.id.toLowerCase());
 				}
 				const profileExtension: IProfileExtension = { identifier, displayName: extension.manifest.displayName };

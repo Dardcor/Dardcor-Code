@@ -5,11 +5,9 @@
 
 import * as nls from '../../../../nls.js';
 
-// Import the effects we need
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { registerColor, transparent } from '../colorUtils.js';
 
-// Import the colors we need
 import { editorFindMatchHighlight, editorInfoBorder, editorInfoForeground, editorSelectionBackground, editorSelectionHighlight, editorWarningBorder, editorWarningForeground } from './editorColors.js';
 import { scrollbarSliderActiveBackground, scrollbarSliderBackground, scrollbarSliderHoverBackground } from './miscColors.js';
 

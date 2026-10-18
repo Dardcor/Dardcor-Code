@@ -109,7 +109,6 @@ suite('PromptCategorizerService', () => {
 
 		service.categorizePrompt(request, context, 'telemetry-message-id');
 
-		// categorizePrompt is fire-and-forget; allow the async branch to complete
 		await new Promise(setImmediate);
 
 		expect(endpointProvider.getChatEndpoint).toHaveBeenCalledTimes(1);
@@ -151,7 +150,6 @@ suite('PromptCategorizerService', () => {
 
 		service.categorizePrompt(request, context, 'telemetry-message-id');
 
-		// categorizePrompt is fire-and-forget; allow the async branch to complete
 		await new Promise(setImmediate);
 
 		expect(endpointProvider.getChatEndpoint).toHaveBeenCalledTimes(2);

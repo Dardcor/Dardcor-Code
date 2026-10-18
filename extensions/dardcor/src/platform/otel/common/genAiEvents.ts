@@ -8,9 +8,6 @@ import { normalizeProviderMessages, stringifyToolsRawForTelemetry, toSystemInstr
 import type { IOTelService } from './otelService';
 import { type WorkspaceOTelMetadata, workspaceMetadataToOTelAttributes } from './workspaceOTelMetadata';
 
-/**
- * Emit OTel GenAI standard events via the IOTelService abstraction.
- */
 export function emitInferenceDetailsEvent(
 	otel: IOTelService,
 	request: {
@@ -51,8 +48,6 @@ export function emitInferenceDetailsEvent(
 		attributes[StdAttr.ERROR_TYPE] = error.type;
 	}
 
-	// Full content capture (optionally truncated per OTelConfig.maxAttributeSizeChars).
-	// Normalize to OTel GenAI semantic convention format.
 	if (otel.config.captureContent) {
 		const maxLen = otel.config.maxAttributeSizeChars;
 		if (request.messages !== undefined) {
@@ -81,9 +76,6 @@ export function emitInferenceDetailsEvent(
 	otel.emitLogRecord(`GenAI inference: ${request.model}`, attributes);
 }
 
-/**
- * Emit extension-specific events.
- */
 export function emitSessionStartEvent(
 	otel: IOTelService,
 	sessionId: string,
@@ -130,7 +122,6 @@ export function emitAgentTurnEvent(
 	});
 }
 
-// ── Agent Activity & Outcome Events ──
 
 export function emitEditFeedbackEvent(
 	otel: IOTelService,

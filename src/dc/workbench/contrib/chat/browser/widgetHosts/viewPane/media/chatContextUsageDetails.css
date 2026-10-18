@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Remove the outline and change border color on focus instead */
 .workbench-hover-container.locked:has(.chat-context-usage-details) .monaco-hover.workbench-hover {
 	outline: none;
 }
@@ -24,7 +23,6 @@
 	outline: none;
 }
 
-/* Section headers — matching ChatStatusDashboard */
 .chat-context-usage-details div.header {
 	display: flex;
 	align-items: center;
@@ -33,7 +31,6 @@
 	font-weight: 600;
 }
 
-/* Session cost section */
 .chat-context-usage-details .session-cost-section {
 	margin-bottom: 8px;
 }
@@ -53,7 +50,6 @@
 	font-weight: 600;
 }
 
-/* Quota indicator — matching ChatStatusDashboard */
 .chat-context-usage-details .quota-indicator .quota-label {
 	display: flex;
 	justify-content: space-between;
@@ -97,7 +93,6 @@
 	border-radius: 4px 0 0 4px;
 }
 
-/* Output buffer legend */
 .chat-context-usage-details .quota-indicator .output-buffer-legend {
 	display: flex;
 	align-items: center;
@@ -177,7 +172,6 @@
 	);
 }
 
-/* Description / warning text — matching ChatStatusDashboard */
 .chat-context-usage-details div.description {
 	font-size: 11px;
 	color: var(--vscode-descriptionForeground);
@@ -186,7 +180,6 @@
 	gap: 3px;
 }
 
-/* Token details breakdown */
 .chat-context-usage-details .token-category {
 	margin-bottom: 6px;
 }
@@ -220,7 +213,6 @@
 	color: var(--vscode-descriptionForeground);
 }
 
-/* Actions section */
 .chat-context-usage-details .actions-section {
 	margin-top: 8px;
 }

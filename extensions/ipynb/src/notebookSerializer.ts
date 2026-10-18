@@ -50,17 +50,14 @@ export abstract class NotebookSerializerBase extends vscode.Disposable implement
 			throw new Error('Only Jupyter notebooks version 4+ are supported');
 		}
 
-		// Then compute indent from the contents (only use first 1K characters as a perf optimization)
 		const indentAmount = contents ? detectIndent(contents.substring(0, 1_000)).indent : ' ';
 
 		const preferredCellLanguage = getPreferredLanguage(json.metadata);
-		// Ensure we always have a blank cell.
 		if ((json.cells || []).length === 0) {
 			json.cells = [
 			];
 		}
 
-		// For notebooks without metadata default the language in metadata to the preferred language.
 		if (!json.metadata || (!json.metadata.kernelspec && !json.metadata.language_info)) {
 			json.metadata = json.metadata || {};
 			json.metadata.language_info = json.metadata.language_info || { name: preferredCellLanguage };

@@ -78,7 +78,6 @@ suite('AccessibilityService', () => {
 			let fired = false;
 			store.add(service.onDidChangeReducedTransparency(() => { fired = true; }));
 
-			// Simulate config change
 			configurationService.setUserConfiguration('workbench.reduceTransparency', 'on');
 			configurationService.onDidChangeConfigurationEmitter.fire({
 				affectsConfiguration(id: string) { return id === 'workbench.reduceTransparency'; },

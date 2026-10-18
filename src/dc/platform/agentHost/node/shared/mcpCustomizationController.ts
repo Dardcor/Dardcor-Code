@@ -15,54 +15,21 @@ import { parseChatUri } from '../../common/state/sessionState.js';
 import type { SessionAction } from '../../common/state/sessionActions.js';
 import { AgentHostStateManager, IAgentHostStateManager } from '../agentHostStateManager.js';
 
-/**
- * SDK-neutral description of a single MCP server, as the controller's
- * caller sees it. Each provider adapts its own SDK events into this
- * shape (Copilot, Claude, Codex, …) and feeds them to
- * {@link McpCustomizationController}.
- */
 export interface ISdkMcpServer {
-	/** Server name (used both as the customization name and the channel suffix). */
 	readonly name: string;
-	/** Current lifecycle state. */
 	readonly state: McpServerState;
-	/** Explicit runtime enablement when the SDK distinguishes disabled from stopped. */
 	readonly enabled?: boolean;
 }
 
-/**
- * Runtime fields of an MCP server customization that this controller
- * owns — the high-frequency `state`/`channel` pair. Consumers overlay
- * these onto their published customizations (keyed by customization id)
- * so a wholesale customization republish preserves live MCP status
- * rather than resetting it to the `Stopped` default baked into
- * `makeMcpServerCustomization`.
- */
 export type IMcpServerRuntimeState = Pick<McpServerCustomization, 'state' | 'channel'>;
 
-/**
- * Re-export so existing imports of `DEFAULT_MCP_APP_CAPABILITIES` from
- * the controller keep working — the canonical home is now
- * `agentHost/common/state/protocol/mcpAppDefaults.ts`.
- */
 export { DEFAULT_MCP_APP_CAPABILITIES, DEFAULT_MCP_APP };
 
-/**
- * Options for {@link McpCustomizationController}.
- */
 export interface IMcpCustomizationControllerOptions {
-	/** Concrete chat URI used for MCP App routing. */
 	readonly chatUri: URI;
-	/** Emits a {@link SessionAction} into the session's action stream. */
 	readonly emit: (action: SessionAction) => void;
-	/** Returns durable plugin source URIs for plugin-provided MCP servers. */
 	readonly pluginMcpServerSources?: () => ReadonlyMap<string, string> | undefined;
-	/** Resolves the scoped enablement to publish for a temporarily top-level server. */
 	readonly resolveEnablement?: (server: McpServerCustomization, owningPluginUri: string | undefined) => readonly CustomizationEnablement[] | undefined;
-	/**
-	 * MCP App capabilities to advertise on every ready server. Defaults
-	 * to {@link DEFAULT_MCP_APP_CAPABILITIES}.
-	 */
 	readonly capabilities?: AhpMcpUiHostCapabilities;
 }
 
@@ -70,7 +37,6 @@ interface ILiveEntry {
 	readonly serverName: string;
 	readonly state: McpServerState;
 	readonly enabled: boolean;
-	/** Top-level customization id (when no child match was found). */
 	readonly topLevelId?: string;
 }
 
@@ -83,29 +49,6 @@ export function buildMcpChannel(chatUri: URI, serverName: string): string {
 	return `mcp://${providerId}/${encodeURIComponent(chatUri.toString())}/${encodeURIComponent(serverName)}`;
 }
 
-/**
- * Translates a stream of SDK-reported MCP server states into AHP
- * customization actions:
- *
- *  - For servers backed by an existing child customization (plugin- or
- *    directory-derived), the controller emits
- *    {@link ActionType.SessionMcpServerStateChanged} keyed on the
- *    resolved child id. The reducer narrowly updates `state` and
- *    `channel` on the matching child.
- *  - For servers with no matching child (typically globally-configured
- *    MCP servers the SDK reports), the controller emits a full
- *    {@link ActionType.SessionCustomizationUpdated} carrying a bare
- *    top-level {@link McpServerCustomization}. The same id is reused
- *    across updates, so the reducer's upsert keeps in-place.
- *
- * The controller is SDK-agnostic: providers translate their own events
- * into {@link ISdkMcpServer} and call {@link applyAll} / {@link applyOne}.
- * If a provider reports a coarse {@link McpServerStatus.Starting} update
- * after a richer {@link McpServerStatus.AuthRequired} state, the controller
- * preserves the auth-required state until a definitive
- * {@link McpServerStatus.Ready}, {@link McpServerStatus.Error}, or
- * {@link McpServerStatus.Stopped} update arrives.
- */
 export class McpCustomizationController extends Disposable {
 
 	private readonly _chatUri: URI;
@@ -113,18 +56,8 @@ export class McpCustomizationController extends Disposable {
 	private readonly _sessionId: string;
 	private readonly _sessionUri: URI;
 
-	/** Per-server live entries, keyed by server name. */
 	private readonly _live = observableValue<ReadonlyMap<string, ILiveEntry>>(this, new Map());
 
-	/**
-	 * Snapshot of every live server's runtime {@link IMcpServerRuntimeState},
-	 * keyed by the customization id under which it is published (the
-	 * minted top-level id, or the plugin-derived child id resolved from session
-	 * state). Derived from {@link _live}. Callers mirror
-	 * this into their own published customizations so a wholesale republish
-	 * preserves live MCP status. Servers whose child id cannot currently be
-	 * resolved are omitted.
-	 */
 	readonly runtimeStates: IObservable<ReadonlyMap<string, IMcpServerRuntimeState>>;
 
 	constructor(
@@ -156,7 +89,6 @@ export class McpCustomizationController extends Disposable {
 		});
 	}
 
-	/** Snapshot for inclusion in `getSessionCustomizations()` results. */
 	topLevelCustomizations(): readonly McpServerCustomization[] {
 		const out: McpServerCustomization[] = [];
 		for (const entry of this._live.get().values()) {
@@ -172,13 +104,6 @@ export class McpCustomizationController extends Disposable {
 		return this._options.pluginMcpServerSources?.();
 	}
 
-	/**
-	 * Names of MCP servers currently in {@link McpServerStatus.Ready},
-	 * paired with their channel URI. Used by providers to drive
-	 * polling-based notification streams (e.g. re-fetch `tools/list`
-	 * after a refresh hint and fire
-	 * `notifications/tools/list_changed` if the result changed).
-	 */
 	readyChannels(): readonly { readonly serverName: string; readonly channel: string }[] {
 		const out: { serverName: string; channel: string }[] = [];
 		for (const entry of this._live.get().values()) {
@@ -193,16 +118,6 @@ export class McpCustomizationController extends Disposable {
 		return out;
 	}
 
-	/**
-	 * Returns the customization id currently associated with the MCP
-	 * server named `serverName`, or `undefined` when no customization
-	 * exists. Top-level entries return the minted top-level id; child
-	 * entries return the child id published in session state for that server.
-	 * Used by providers to tag
-	 * {@link ToolCallMcpContributor.customizationId | tool-call contributors}
-	 * so clients can correlate MCP tool calls with the originating
-	 * server customization.
-	 */
 	customizationIdForServer(serverName: string): string | undefined {
 		const live = this._live.get().get(serverName);
 		if (live?.topLevelId !== undefined) {
@@ -212,7 +127,6 @@ export class McpCustomizationController extends Disposable {
 		return published?.topLevelId ?? published?.childId;
 	}
 
-	/** Returns the live server name associated with a customization id. */
 	serverNameForCustomizationId(id: string): string | undefined {
 		for (const entry of this._live.get().values()) {
 			const entryId = entry.topLevelId ?? this._resolveChildId(entry.serverName);
@@ -223,12 +137,10 @@ export class McpCustomizationController extends Disposable {
 		return undefined;
 	}
 
-	/** Returns the last live state recorded for the MCP server named `serverName`. */
 	stateForServer(serverName: string): McpServerState | undefined {
 		return this._live.get().get(serverName)?.state;
 	}
 
-	/** Snapshot used by providers to reconcile desired and observed enablement. */
 	serverEnablement(): readonly { readonly serverName: string; readonly customizationId: string; readonly enabled: boolean }[] {
 		const result: { serverName: string; customizationId: string; enabled: boolean }[] = [];
 		for (const entry of this._live.get().values()) {
@@ -240,14 +152,6 @@ export class McpCustomizationController extends Disposable {
 		return result;
 	}
 
-	/**
-	 * Returns the `mcp://` AHP channel URI currently advertised for the
-	 * MCP server named `serverName`, or `undefined` when the server is
-	 * not in {@link McpServerStatus.Ready}. Used by providers to attach
-	 * the channel to MCP App `_meta.ui` so clients can route App
-	 * sub-RPCs (tools/call, resources/read, sampling/createMessage)
-	 * back through {@link IAgentHostService.handleMcpRequest}.
-	 */
 	channelForServer(serverName: string): string | undefined {
 		const live = this._live.get().get(serverName);
 		if (!live || live.state.kind !== McpServerStatus.Ready) {
@@ -256,12 +160,6 @@ export class McpCustomizationController extends Disposable {
 		return this._buildChannel(serverName, live.state);
 	}
 
-	/**
-	 * Replaces the live inventory with `servers`. Servers no longer
-	 * present are removed; new servers and changed servers are upserted.
-	 * Batched in a single transaction so {@link runtimeStates} observers
-	 * see one coalesced update.
-	 */
 	applyAll(servers: readonly ISdkMcpServer[]): void {
 		transaction(tx => {
 			const seen = new Set<string>();
@@ -277,7 +175,6 @@ export class McpCustomizationController extends Disposable {
 		});
 	}
 
-	/** Upserts a single server. */
 	applyOne(server: ISdkMcpServer): void {
 		transaction(tx => this._applyOne(server, tx));
 	}
@@ -286,9 +183,6 @@ export class McpCustomizationController extends Disposable {
 		const previous = this._live.get().get(server.name);
 		const state = this._stateForUpdate(previous?.state, server.state);
 		const enabled = server.enabled ?? previous?.enabled ?? true;
-		// Once promoted to a top-level entry, stay top-level for the
-		// session — flipping back to a child mid-stream would orphan the
-		// previously-published top-level id.
 		let topLevelId = previous?.topLevelId;
 		if (topLevelId === undefined) {
 			const published = this._findPublishedMcpCustomization(server.name);
@@ -312,18 +206,6 @@ export class McpCustomizationController extends Disposable {
 		});
 	}
 
-	/**
-	 * Removes a server from the live inventory. For top-level entries
-	 * (bare servers with no plugin-derived child) emits
-	 * {@link ActionType.SessionCustomizationRemoved} so the entry is
-	 * dropped from session state, not just from the in-memory live
-	 * inventory.
-	 *
-	 * For child entries we emit a final {@link ActionType.SessionMcpServerStateChanged}
-	 * carrying {@link McpServerStatus.Stopped} so the UI sees the
-	 * server settle into a terminal state; the plugin layer owns the
-	 * actual removal of the child container.
-	 */
 	remove(serverName: string): void {
 		transaction(tx => this._remove(serverName, tx));
 	}
@@ -352,16 +234,13 @@ export class McpCustomizationController extends Disposable {
 		});
 	}
 
-	// ---- internals ---------------------------------------------------------
 
-	/** Immutable upsert into the {@link _live} observable. */
 	private _setLiveEntry(serverName: string, entry: ILiveEntry, tx: ITransaction): void {
 		const next = new Map(this._live.get());
 		next.set(serverName, entry);
 		this._live.set(next, tx);
 	}
 
-	/** Immutable delete from the {@link _live} observable. */
 	private _deleteLiveEntry(serverName: string, tx: ITransaction): void {
 		const current = this._live.get();
 		if (!current.has(serverName)) {
@@ -407,11 +286,6 @@ export class McpCustomizationController extends Disposable {
 	private _buildTopLevel(id: string, serverName: string, state: McpServerState, enabled: boolean): McpServerCustomization {
 		const channel = this._buildChannel(serverName, state);
 		const owningPluginUri = this.pluginMcpServerSources?.get(serverName);
-		// Per AHP spec, `mcpApp` is a static capability declaration —
-		// "SHOULD be present whenever the server can host Apps". We
-		// proxy every MCP server uniformly, so advertise the host's
-		// capability set regardless of runtime `state`. Clients gate
-		// rendering on `state.kind === Ready` + `channel` themselves.
 		const mcpApp = this._options.capabilities
 			? { capabilities: this._options.capabilities }
 			: DEFAULT_MCP_APP;
@@ -431,11 +305,6 @@ export class McpCustomizationController extends Disposable {
 	}
 }
 
-/**
- * Convenience helper: given a flat list of {@link Customization}
- * entries, returns the id of the first MCP child customization whose
- * name matches `serverName`.
- */
 export function findMcpChildId(customizations: readonly Customization[], serverName: string): string | undefined {
 	return getMcpServerCustomizations(customizations).find(server => server.name === serverName)?.id;
 }
@@ -456,12 +325,6 @@ export function getMcpServerCustomizations(customizations: readonly Customizatio
 	return result;
 }
 
-/**
- * Every MCP server with its effective enabled value, after applying the
- * container gate. The gate is applied here, at the point of use — a child's
- * own stored decisions are never overwritten, so re-enabling a container
- * restores each child to the user's chosen value.
- */
 export function getEffectiveMcpServerCustomizations(
 	customizations: readonly Customization[],
 ): readonly { readonly server: McpServerCustomization; readonly enabled: boolean }[] {
@@ -518,11 +381,6 @@ export function findMcpServerName(customizations: readonly Customization[], id: 
 	return getMcpServerCustomizations(customizations).find(server => server.id === id)?.name;
 }
 
-/**
- * Parsed `mcp://<providerId>/<chatUri>/<serverName>` URI as minted by
- * {@link McpCustomizationController}. The path segments are
- * URL-decoded.
- */
 export interface IMcpChannelRoute {
 	readonly providerId: string;
 	readonly chatUri: URI;
@@ -541,11 +399,6 @@ function getMcpChannelProviderId(chatUri: URI): string {
 	return providerId;
 }
 
-/**
- * Decodes a channel URI string into a {@link IMcpChannelRoute}, or
- * returns `undefined` when the URI is not an `mcp://` channel or the
- * path is malformed.
- */
 export function parseMcpChannelUri(uri: string): IMcpChannelRoute | undefined {
 	const prefix = 'mcp://';
 	if (!uri.startsWith(prefix)) {

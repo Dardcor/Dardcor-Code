@@ -1,23 +1,3 @@
-/**
- * Kiro model catalog fetcher.
- *
- * Calls AWS CodeWhisperer's `ListAvailableModels` endpoint to get the live
- * catalog for an authenticated Kiro account, then expands each upstream model
- * into dardcor-code-shaped variants:
- *
- *   {upstream}                          - base model
- *   {upstream}-thinking                 - same model, thinking on at request time
- *   {upstream}-agentic                  - same model, chunked-write prompt prepended
- *   {upstream}-thinking-agentic         - both
- *
- * The `-thinking` and `-agentic` suffixes do not exist on the Kiro upstream
- * API. They are dardcor-code fictions and the `openai-to-kiro` translator strips
- * them before the request leaves this process.
- *
- * The runtime UA is built to match what Kiro IDE itself sends, because the
- * upstream rejects requests with malformed `User-Agent` headers (returns 400
- * "format of value 'os/win/10 lang/js ...' is invalid").
- */
 
 import { v4 as uuidv4 } from "uuid";
 import { createHash } from "crypto";
@@ -31,16 +11,10 @@ const KIRO_VERSION = "0.10.32";
 
 const DEFAULT_REGION = "us-east-1";
 const FETCH_TIMEOUT_MS = 30_000;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes per credential
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
-/** @type {Map<string, { expiresAt: number, models: any[] }>} */
 const catalogCache = new Map();
 
-/**
- * Strip the `-agentic` and/or `-thinking` suffixes from a synthetic id, if
- * any. Used only for display naming when a Kiro upstream id happens to look
- * synthetic (defensive).
- */
 function stripSyntheticSuffixes(id) {
   let out = id;
   if (out.endsWith("-agentic")) out = out.slice(0, -"-agentic".length);
@@ -48,10 +22,6 @@ function stripSyntheticSuffixes(id) {
   return out;
 }
 
-/**
- * Extract region from a profileArn like
- *   arn:aws:codewhisperer:us-east-1:123456789012:profile/ABC
- */
 function regionFromProfileArn(profileArn) {
   if (!profileArn || typeof profileArn !== "string") return DEFAULT_REGION;
   const parts = profileArn.split(":");
@@ -59,11 +29,6 @@ function regionFromProfileArn(profileArn) {
   return DEFAULT_REGION;
 }
 
-/**
- * Build the per-account fingerprint headers Kiro upstream validates.
- * Keyed off whatever stable identifier we have for this credential, so the
- * same account always presents the same machineId.
- */
 function buildKiroFingerprintHeaders(credentials) {
   const seed =
     credentials?.providerSpecificData?.clientId
@@ -92,17 +57,6 @@ function buildKiroFingerprintHeaders(credentials) {
   };
 }
 
-/**
- * Build the synthetic dardcor-code variant set for a single upstream Kiro model.
- *
- * Returns objects shaped for `PROVIDER_MODELS` (`{ id, name }`) so they can
- * be slotted directly into the existing model registry.
- *
- * The `auto` model is special: Kiro picks the underlying model server-side,
- * so the chunked-write `-agentic` prompt is not meaningful (the prompt
- * targets coding-agent file writes). Match CLIProxyAPIPlus and skip
- * `-agentic` / `-thinking-agentic` for `auto`.
- */
 function buildVariants(upstream, displayName) {
   const safeUpstream = stripSyntheticSuffixes(upstream);
   const display = displayName || `Kiro ${safeUpstream}`;
@@ -137,25 +91,16 @@ function buildVariants(upstream, displayName) {
   return variants;
 }
 
-/**
- * Format the human-friendly display name for a Kiro model, including the
- * rate multiplier when it is something other than 1.0x.
- */
 function formatDisplayName(modelName, modelId, rateMultiplier) {
   const base = (modelName || modelId || "Kiro").trim();
   const rate = Number(rateMultiplier);
   if (!Number.isFinite(rate) || Math.abs(rate - 1.0) < 1e-9 || rate <= 0) {
     return `Kiro ${base}`;
   }
-  // Locale-independent decimal formatting.
   const rateStr = rate.toFixed(1).replace(",", ".");
   return `Kiro ${base} (${rateStr}x credit)`;
 }
 
-/**
- * Fetch the raw model catalog from Kiro. Returns the array under `.models`
- * from the API response, or throws on network/HTTP error.
- */
 async function fetchKiroCatalogRaw(credentials, signal) {
   const profileArn = credentials?.providerSpecificData?.profileArn || "";
   const region = regionFromProfileArn(profileArn);
@@ -171,7 +116,6 @@ async function fetchKiroCatalogRaw(credentials, signal) {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort("timeout"), FETCH_TIMEOUT_MS);
-  // Forward outer cancellation if any.
   if (signal && typeof signal.addEventListener === "function") {
     signal.addEventListener("abort", () => controller.abort(signal.reason));
   }
@@ -200,11 +144,6 @@ async function fetchKiroCatalogRaw(credentials, signal) {
   return models;
 }
 
-/**
- * Build a stable cache key for a Kiro credential. Uses the most stable id we
- * have available so different login sessions for the same account share a
- * cache entry.
- */
 function cacheKey(credentials) {
   const psd = credentials?.providerSpecificData || {};
   const seed =
@@ -216,23 +155,6 @@ function cacheKey(credentials) {
   return createHash("sha256").update(`kiro:${seed}`).digest("hex");
 }
 
-/**
- * Resolve the live Kiro model catalog for a credential and expand each entry
- * into dardcor-code variants (`-thinking`, `-agentic`, `-thinking-agentic`).
- *
- * On any error (network, 4xx, 5xx), returns `null` so callers can fall back
- * to the static catalog without taking down the dashboard or `/v1/models`.
- *
- * @param {object} credentials Connection record (accessToken, refreshToken,
- *   providerSpecificData {profileArn, authMethod, clientId, clientSecret, region})
- * @param {object} [options]
- * @param {boolean} [options.forceRefresh] Bypass the per-credential cache.
- * @param {object}  [options.log] Logger.
- * @param {function} [options.onCredentialsRefreshed] Persist refreshed token
- *   back to your credential store. Called with `{ accessToken, refreshToken,
- *   expiresIn }` whenever a 401 triggers a token refresh.
- * @returns {Promise<{ models: object[], rawModels: object[] } | null>}
- */
 export async function resolveKiroModels(credentials, options = {}) {
   if (!credentials || !credentials.accessToken) {
     options.log?.debug?.("KIRO_MODELS", "No accessToken; skipping live fetch");
@@ -268,8 +190,6 @@ export async function resolveKiroModels(credentials, options = {}) {
         }
         try {
           raw = await fetchKiroCatalogRaw(next, options.signal);
-          // Update the in-memory credential reference too so retry logic uses
-          // the fresh token consistently.
           credentials.accessToken = next.accessToken;
           if (next.refreshToken) credentials.refreshToken = next.refreshToken;
         } catch (err2) {
@@ -296,8 +216,6 @@ export async function resolveKiroModels(credentials, options = {}) {
     for (const v of buildVariants(upstreamId, display)) {
       expanded.push({
         ...v,
-        // Carry over context window + raw upstream metadata so the caller
-        // (e.g. the dashboard models endpoint) can render it.
         contextLength: ctx,
         rateMultiplier: Number.isFinite(Number(m.rateMultiplier)) ? Number(m.rateMultiplier) : 1.0,
         upstreamModelId: upstreamId,
@@ -315,18 +233,11 @@ export async function resolveKiroModels(credentials, options = {}) {
   return { models: expanded, rawModels: raw };
 }
 
-/**
- * Drop any cached catalog for this credential. Call this after rotating /
- * importing tokens so the next fetch is fresh.
- */
 export function invalidateKiroModelCache(credentials) {
   if (!credentials) return;
   catalogCache.delete(cacheKey(credentials));
 }
 
-/**
- * Drop the entire in-memory cache. Mostly for tests / manual debug.
- */
 export function clearKiroModelCache() {
   catalogCache.clear();
 }

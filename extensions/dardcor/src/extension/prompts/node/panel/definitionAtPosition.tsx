@@ -24,14 +24,7 @@ import { CodeBlock } from './safeElements';
 
 type Props = PromptElementProps<{
 	document: TextDocumentSnapshot;
-	/**
-	 * Range of interest for which definitions are to be found.
-	 * @remark if not provided, will use active selection in currently active editor
-	 */
 	position: vscode.Position;
-	/**
-	 * Timeout for finding implementations in milliseconds. Defaults to 200ms.
-	 */
 	timeoutMs?: number;
 }>;
 
@@ -48,15 +41,11 @@ export type State =
 		definitions: CodeExcerpt[];
 	}
 	| {
-		/** Document should be ignored by Copilot */
 		k: 'ignored';
 	}
 	;
 
 
-/**
- * @remark Excludes definitions that are in dardcor-ignored files.
- */
 export class DefinitionAtPosition extends PromptElement<Props, State> {
 
 	private static DEFAULT_TIMEOUT_MS = 200;
@@ -75,7 +64,7 @@ export class DefinitionAtPosition extends PromptElement<Props, State> {
 	}
 
 	override async prepare(): Promise<State> {
-		if (await this._ignoreService.isCopilotIgnored(this.props.document.uri)) {
+		if (await this._ignoreService.isIgnored(this.props.document.uri)) {
 			return { k: 'ignored' };
 		}
 
@@ -136,7 +125,6 @@ export class DefinitionAtPosition extends PromptElement<Props, State> {
 	private async findDefinition(timeoutMs: number): Promise<CodeExcerpt[]> {
 		const { document, position } = this.props;
 
-		// find implementation or, if not found, definition
 		const findImplOrDefinition = async (position: vscode.Position) => {
 			try {
 				const impls = await this._languageFeaturesService.getImplementations(document.uri, position);
@@ -169,12 +157,11 @@ export class DefinitionAtPosition extends PromptElement<Props, State> {
 			await Promise.all(
 				foundDefs.map(async def => {
 					const uri = isLocationLink(def) ? def.targetUri : document.uri;
-					return await this._ignoreService.isCopilotIgnored(uri) ? undefined : def;
+					return await this._ignoreService.isIgnored(uri) ? undefined : def;
 				})
 			)
 		);
 
-		// since language service gives us only links to identifiers, expand to whole implementation/definition using tree-sitter
 
 		return Promise.all(
 			nonIgnoredDefs.map(async def => {
@@ -187,7 +174,7 @@ export class DefinitionAtPosition extends PromptElement<Props, State> {
 
 				let code: string;
 				let excerptRange: vscode.Range;
-				if (wasmLanguage === undefined) { // capture at least the line of the definition
+				if (wasmLanguage === undefined) {
 					const line = docContainingDef.lineAt(range.start.line);
 					code = line.text;
 					excerptRange = line.range;

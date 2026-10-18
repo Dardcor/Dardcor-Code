@@ -41,9 +41,6 @@ import { IStorageService, StorageScope } from '../../../../platform/storage/comm
 export const VIEWLET_ID = 'workbench.view.remote';
 export const TOGGLE_VIEW_ACTION_ID = 'remoteExplorer.toggleForwardedPortsView';
 
-/**
- * Checks if a process candidate is the remapped local endpoint of an existing tunnel.
- */
 export function isCandidateRemappedTunnelLocalEndpoint(candidate: CandidatePort, tunnels: Iterable<Pick<Tunnel, 'localPort' | 'remotePort'>>): boolean {
 	if (!isLocalhost(candidate.host) && !isAllInterfaces(candidate.host)) {
 		return false;
@@ -103,7 +100,6 @@ export class ForwardedPortsView extends Disposable implements IWorkbenchContribu
 		const viewEnabled: boolean = !!forwardedPortsViewEnabled.getValue(this.contextKeyService);
 
 		if (featuresEnabled || viewEnabled) {
-			// Also enable the view if it isn't already.
 			if (!viewEnabled) {
 				this.contextKeyService.createKey(forwardedPortsViewEnabled.key, true);
 			}
@@ -154,7 +150,6 @@ export class ForwardedPortsView extends Disposable implements IWorkbenchContribu
 
 	private updateStatusBar() {
 		if (!this.environmentService.remoteAuthority && !this.hasPortsInSession) {
-			// We only want to show the ports status bar entry when the user has taken an action that indicates that they might care about it.
 			return;
 		}
 
@@ -352,7 +347,7 @@ export class AutomaticPortForwarding extends Disposable implements IWorkbenchCon
 
 class OnAutoForwardedAction extends Disposable {
 	private lastNotifyTime: Date;
-	private static NOTIFY_COOL_DOWN = 5000; // milliseconds
+	private static NOTIFY_COOL_DOWN = 5000;
 	private lastNotification: INotificationHandle | undefined;
 	private readonly notificationDisposable = this._register(new MutableDisposable());
 	private lastShownPort: number | undefined;
@@ -387,7 +382,6 @@ class OnAutoForwardedAction extends Disposable {
 						break;
 					}
 					this.alreadyOpenedOnce.add(tunnel.localAddress);
-					// Intentionally do not break so that the open browser path can be run.
 				}
 				case OnPortForward.OpenBrowser: {
 					const address = makeAddress(tunnel.tunnelRemoteHost, tunnel.tunnelRemotePort);
@@ -428,12 +422,10 @@ class OnAutoForwardedAction extends Disposable {
 		}
 		this.doActionTunnels = this.doActionTunnels.sort((a, b) => a.tunnelRemotePort - b.tunnelRemotePort);
 		const firstTunnel = this.doActionTunnels.shift()!;
-		// Heuristic.
 		if (firstTunnel.tunnelRemotePort % 1000 === 0) {
 			this.logService.trace(`ForwardedPorts: (OnAutoForwardedAction) Heuristic chose tunnel because % 1000: ${firstTunnel.tunnelRemotePort}`);
 			this.newerTunnel = firstTunnel;
 			return firstTunnel;
-			// 9229 is the node inspect port
 		} else if (firstTunnel.tunnelRemotePort < 10000 && firstTunnel.tunnelRemotePort !== 9229) {
 			this.logService.trace(`ForwardedPorts: (OnAutoForwardedAction) Heuristic chose tunnel because < 10000: ${firstTunnel.tunnelRemotePort}`);
 			this.newerTunnel = firstTunnel;
@@ -482,7 +474,6 @@ class OnAutoForwardedAction extends Disposable {
 		}
 
 		if ((tunnel.tunnelLocalPort !== tunnel.tunnelRemotePort) && this.tunnelService.canElevate && this.tunnelService.isPortPrivileged(tunnel.tunnelRemotePort)) {
-			// Privileged ports are not on Windows, so it's safe to use "superuser"
 			message += nls.localize('remote.tunnelsView.elevationMessage', "You'll need to run as superuser to use port {0} locally.  ", tunnel.tunnelRemotePort);
 			choices.unshift(this.elevateChoice(tunnel));
 		}
@@ -538,7 +529,6 @@ class OnAutoForwardedAction extends Disposable {
 
 	private elevateChoice(tunnel: RemoteTunnel): IPromptChoice {
 		return {
-			// Privileged ports are not on Windows, so it's ok to stick to just "sudo".
 			label: nls.localize('remote.tunnelsView.elevationButton', "Use Port {0} as Sudo...", tunnel.tunnelRemotePort),
 			run: async () => {
 				await this.remoteExplorerService.close({ host: tunnel.tunnelRemoteHost, port: tunnel.tunnelRemotePort }, TunnelCloseReason.Other);
@@ -714,10 +704,8 @@ class ProcAutomaticPortForwarding extends Disposable {
 		}
 		this.portsFeatures?.dispose();
 
-		// Capture list of starting candidates so we don't auto forward them later.
 		await this.setInitialCandidates();
 
-		// Need to check the setting again, since it may have changed while we waited for the initial candidates to be set.
 		if (this.configurationService.getValue(PORT_AUTO_FORWARD_SETTING)) {
 			this.candidateListener = this._register(this.remoteExplorerService.tunnelModel.onCandidatesChanged(this.handleCandidateUpdate, this));
 		}

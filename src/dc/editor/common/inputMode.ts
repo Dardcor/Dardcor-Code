@@ -21,7 +21,4 @@ class InputModeImpl {
 	}
 }
 
-/**
- * Controls the type mode, whether insert or overtype
- */
 export const InputMode = new InputModeImpl();

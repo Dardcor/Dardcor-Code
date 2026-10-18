@@ -118,7 +118,6 @@ suite('Workbench - Test Service', () => {
 			const rawUri = URI.file('/home/user/test.py');
 			const extUri = new ExtUri(() => false);
 
-			// Build a collection where test items are stored with the canonical URI.
 			const collection = new TestTestCollection();
 			collection.resolveHandler = item => {
 				if (item === undefined) {
@@ -127,8 +126,6 @@ suite('Workbench - Test Service', () => {
 			};
 			const mainCollection = await getInitializedMainTestCollection(collection);
 
-			// Mock IUriIdentityService: asCanonicalUri maps rawUri to canonicalUri,
-			// simulating a remote environment where URI.file() produces a non-canonical form.
 			const ident = upcastPartial<IUriIdentityService>({
 				asCanonicalUri: (u: URI) => extUri.isEqual(u, rawUri) ? canonicalUri : u,
 				extUri,

@@ -91,28 +91,28 @@ suite('Files - FileEditorInput', () => {
 
 		const resolvedModelA = resolved;
 		resolved = await inputToResolve.resolve();
-		assert(resolvedModelA === resolved); // OK: Resolved Model cached globally per input
+		assert(resolvedModelA === resolved);
 
 		try {
-			DisposableStore.DISABLE_DISPOSED_WARNING = true; // prevent unwanted warning output from occurring
+			DisposableStore.DISABLE_DISPOSED_WARNING = true;
 
 			const otherResolved = await sameOtherInput.resolve();
-			assert(otherResolved === resolvedModelA); // OK: Resolved Model cached globally per input
+			assert(otherResolved === resolvedModelA);
 			inputToResolve.dispose();
 
 			resolved = await inputToResolve.resolve();
-			assert(resolvedModelA === resolved); // Model is still the same because we had 2 clients
+			assert(resolvedModelA === resolved);
 			inputToResolve.dispose();
 			sameOtherInput.dispose();
 			resolvedModelA.dispose();
 
 			resolved = await inputToResolve.resolve();
-			assert(resolvedModelA !== resolved); // Different instance, because input got disposed
+			assert(resolvedModelA !== resolved);
 
 			const stat = getLastResolvedFileStat(resolved);
 			resolved = await inputToResolve.resolve();
 			await timeout(0);
-			assert(stat !== getLastResolvedFileStat(resolved)); // Different stat, because resolve always goes to the server for refresh
+			assert(stat !== getLastResolvedFileStat(resolved));
 		} finally {
 			DisposableStore.DISABLE_DISPOSED_WARNING = false;
 		}
@@ -209,7 +209,7 @@ suite('Files - FileEditorInput', () => {
 
 		model.textEditorModel?.setValue('Changed contents');
 		await input.resolve();
-		assert.strictEqual(model.textEditorModel!.getValue(), 'Changed contents'); // preferred contents only used once
+		assert.strictEqual(model.textEditorModel!.getValue(), 'Changed contents');
 
 		const input2 = createFileInput(toResource.call(this, '/foo/bar/file.js'));
 		input2.setPreferredContents('My contents');
@@ -301,8 +301,6 @@ suite('Files - FileEditorInput', () => {
 			listenerCount++;
 		}));
 
-		// instead of going through file input resolve method
-		// we resolve the model directly through the service
 		const model = disposables.add(await accessor.textFileService.files.resolve(input.resource));
 		model.textEditorModel?.setValue('hello world');
 
@@ -360,7 +358,6 @@ suite('Files - FileEditorInput', () => {
 
 	test('preferred name/description', async function () {
 
-		// Works with custom file input
 		const customFileInput = createFileInput(toResource.call(this, '/foo/bar/updatefile.js').with({ scheme: 'test-custom' }), undefined, undefined, 'My Name', 'My Description');
 
 		let didChangeLabelCounter = 0;
@@ -381,7 +378,6 @@ suite('Files - FileEditorInput', () => {
 
 		customFileInput.dispose();
 
-		// Disallowed with local file input
 		const fileInput = createFileInput(toResource.call(this, '/foo/bar/updatefile.js'), undefined, undefined, 'My Name', 'My Description');
 
 		didChangeLabelCounter = 0;

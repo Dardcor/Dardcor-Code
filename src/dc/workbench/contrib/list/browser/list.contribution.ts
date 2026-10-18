@@ -17,7 +17,6 @@ export class ListContext implements IWorkbenchContribution {
 	) {
 		contextKeyService.createKey<boolean>('listSupportsTypeNavigation', true);
 
-		// @deprecated in favor of listSupportsTypeNavigation
 		contextKeyService.createKey('listSupportsKeyboardNavigation', true);
 	}
 }

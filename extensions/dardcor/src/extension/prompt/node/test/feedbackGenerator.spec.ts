@@ -35,7 +35,7 @@ suite('feedbackGenerator', () => {
 
 	function createReviewRequest(overrides?: Partial<ReviewRequest>): ReviewRequest {
 		return {
-			source: 'vscodeCopilotChat',
+			source: 'dardcorRouter',
 			promptCount: 1,
 			messageId: 'test-message-id',
 			inputType: 'change',
@@ -46,7 +46,6 @@ suite('feedbackGenerator', () => {
 
 	describe('parseFeedbackResponse', () => {
 
-		// Legacy test case before refactor
 		test('Correctly parses reply', function () {
 			const fileContents = `1. Line 33 in \`requestLoggerImpl.ts\`, readability, low severity: The lambda function used in \`onDidChange\` could be extracted into a named function for better readability and reusability.
    \`\`\`typescript
@@ -78,15 +77,13 @@ suite('feedbackGenerator', () => {
 			const matches = parseFeedbackResponse(response);
 
 			assert.strictEqual(matches.length, 1);
-			assert.strictEqual(matches[0].from, 9); // 0-indexed
+			assert.strictEqual(matches[0].from, 9);
 			assert.strictEqual(matches[0].to, 10);
 			assert.strictEqual(matches[0].relativeDocumentPath, 'file.ts');
 			assert.strictEqual(matches[0].kind, 'bug');
 			assert.strictEqual(matches[0].severity, 'high');
 			assert.strictEqual(matches[0].content, 'This is a bug.');
-			// linkOffset = match.index + num.length + 2 = 0 + 1 + 2 = 3
 			assert.strictEqual(matches[0].linkOffset, 3);
-			// linkLength = 5 ("Line ") + from.length (2 for "10") = 7
 			assert.strictEqual(matches[0].linkLength, 7);
 		});
 
@@ -103,9 +100,8 @@ suite('feedbackGenerator', () => {
 			const matches = parseFeedbackResponse(response);
 
 			assert.strictEqual(matches.length, 1);
-			assert.strictEqual(matches[0].from, 9); // 0-indexed
+			assert.strictEqual(matches[0].from, 9);
 			assert.strictEqual(matches[0].to, 15);
-			// linkLength = 5 ("Line ") + from.length (2) + to.length (2) + 1 ("-") = 10
 			assert.strictEqual(matches[0].linkLength, 5 + 2 + 2 + 1);
 		});
 
@@ -143,12 +139,10 @@ suite('feedbackGenerator', () => {
 		test('keeps partial comment when dropPartial is false, drops when true', () => {
 			const partialResponse = '1. Line 10 in `file.ts`, bug: Incomplete';
 
-			// dropPartial = false (default) keeps partial
 			const matchesKept = parseFeedbackResponse(partialResponse, false);
 			assert.strictEqual(matchesKept.length, 1);
 			assert.strictEqual(matchesKept[0].content, 'Incomplete');
 
-			// dropPartial = true drops partial
 			const matchesDropped = parseFeedbackResponse(partialResponse, true);
 			assert.strictEqual(matchesDropped.length, 0);
 		});
@@ -196,8 +190,6 @@ const extracted = () => doSomething();
 			const matches = parseFeedbackResponse(response);
 
 			assert.strictEqual(matches.length, 1);
-			// Since there's no matching opening ```, the trailing ``` removal fails (i === -1),
-			// but the broken block handler (odd count) removes it
 			assert.strictEqual(matches[0].content, 'Some text ending with');
 		});
 
@@ -213,7 +205,6 @@ const y = 2;
 			const matches = parseFeedbackResponse(response);
 
 			assert.strictEqual(matches.length, 1);
-			// Should keep the first code block but remove the trailing one
 			assert.ok(matches[0].content.includes('Example:'));
 			assert.ok(matches[0].content.includes('```typescript'));
 			assert.ok(matches[0].content.includes('const x = 1;'));
@@ -225,8 +216,6 @@ const y = 2;
 			const matches = parseFeedbackResponse(response);
 
 			assert.strictEqual(matches.length, 1);
-			// On Windows, forward slashes should be converted to backslashes
-			// On Unix, paths stay with forward slashes
 			if (path.sep === '\\') {
 				assert.strictEqual(matches[0].relativeDocumentPath, 'src\\utils\\helpers.ts');
 			} else {
@@ -274,7 +263,6 @@ multiple lines.
 			const matches = parseFeedbackResponse(response);
 
 			assert.strictEqual(matches.length, 1);
-			// linkOffset = match.index + num.length + 2 = 0 + 2 + 2 = 4
 			assert.strictEqual(matches[0].linkOffset, 4);
 		});
 	});
@@ -455,15 +443,12 @@ multiple lines.
 				}
 			}];
 			const request = createReviewRequest();
-			// Line 1 in the message becomes 0 after 0-indexing
 			const message = '1. Line 1 in `file.ts`, bug: First line.\n\n';
 
 			const comments = parseReviewComments(request, input, message);
 
 			assert.strictEqual(comments.length, 1);
-			// Range should start at line 0
 			assert.strictEqual(comments[0].range.start.line, 0);
-			// firstNonWhitespaceCharacterIndex for "  indented line" is 2
 			assert.strictEqual(comments[0].range.start.character, 2);
 		});
 
@@ -481,13 +466,11 @@ multiple lines.
 				}
 			}];
 			const request = createReviewRequest();
-			// Line 100 is way beyond lineCount of 3
 			const message = '1. Line 1-100 in `file.ts`, bug: Should clamp to end.\n\n';
 
 			const comments = parseReviewComments(request, input, message);
 
 			assert.strictEqual(comments.length, 1);
-			// End line should be clamped to lineCount-1 = 2
 			assert.strictEqual(comments[0].range.end.line, 2);
 		});
 
@@ -501,12 +484,10 @@ multiple lines.
 				change: {
 					repository: {} as any,
 					uri,
-					// Change only affects lines 0-1
 					hunks: [{ range: new Range(0, 0, 1, 6), text: 'line 0\nline 1' }]
 				}
 			}];
 			const request = createReviewRequest();
-			// Comment on line 4 which is outside the hunk range
 			const message = '1. Line 5 in `file.ts`, bug: Outside hunk range.\n\n';
 
 			const comments = parseReviewComments(request, input, message);
@@ -526,12 +507,10 @@ multiple lines.
 			}];
 			const request = createReviewRequest({ inputType: 'selection' });
 
-			// Comment on line 1 (outside selection)
 			const messageOutside = '1. Line 1 in `file.ts`, bug: Outside selection.\n\n';
 			const commentsOutside = parseReviewComments(request, input, messageOutside);
 			assert.strictEqual(commentsOutside.length, 0);
 
-			// Comment on line 3 (inside selection)
 			const messageInside = '1. Line 3 in `file.ts`, bug: Inside selection.\n\n';
 			const commentsInside = parseReviewComments(request, input, messageInside);
 			assert.strictEqual(commentsInside.length, 1);
@@ -544,7 +523,6 @@ multiple lines.
 			const input: CurrentChangeInput[] = [{
 				document: snapshot,
 				relativeDocumentPath: 'file.ts'
-				// No selection or change
 			}];
 			const request = createReviewRequest();
 			const message = '1. Line 1 in `file.ts`, bug: No filter ranges.\n\n';
@@ -572,7 +550,6 @@ multiple lines.
 			}];
 			const request = createReviewRequest();
 
-			// Comment on line 5 intersects second hunk
 			const message = '1. Line 5 in `file.ts`, bug: In second hunk.\n\n';
 			const comments = parseReviewComments(request, input, message);
 
@@ -593,14 +570,11 @@ multiple lines.
 				}
 			}];
 			const request = createReviewRequest();
-			// Partial response (no terminating newline)
 			const partialMessage = '1. Line 1 in `file.ts`, bug: Partial';
 
-			// dropPartial = false keeps the partial comment
 			const commentsKept = parseReviewComments(request, input, partialMessage, false);
 			assert.strictEqual(commentsKept.length, 1);
 
-			// dropPartial = true drops the partial comment
 			const commentsDropped = parseReviewComments(request, input, partialMessage, true);
 			assert.strictEqual(commentsDropped.length, 0);
 		});
@@ -653,9 +627,7 @@ multiple lines.
 			const comments = parseReviewComments(request, input, message);
 
 			assert.strictEqual(comments.length, 1);
-			// Start character should be firstNonWhitespaceCharacterIndex (4 spaces)
 			assert.strictEqual(comments[0].range.start.character, 4);
-			// End character should be lastNonWhitespaceCharacterIndex (25 - no trailing whitespace)
 			assert.strictEqual(comments[0].range.end.character, 25);
 		});
 
@@ -678,10 +650,8 @@ multiple lines.
 			const comments = parseReviewComments(request, input, message);
 
 			assert.strictEqual(comments.length, 1);
-			// Start: line 0, firstNonWhitespaceCharacterIndex = 2
 			assert.strictEqual(comments[0].range.start.line, 0);
 			assert.strictEqual(comments[0].range.start.character, 2);
-			// End: line 2, lastNonWhitespaceCharacterIndex for "  line 2 with trailing  " is 22 (trimEnd removes trailing spaces)
 			assert.strictEqual(comments[0].range.end.line, 2);
 			assert.strictEqual(comments[0].range.end.character, 22);
 		});
@@ -716,7 +686,7 @@ multiple lines.
 		private _ignoredUris = new Set<string>();
 		private _alwaysIgnore = false;
 
-		override async isCopilotIgnored(file: Uri): Promise<boolean> {
+		override async isIgnored(file: Uri): Promise<boolean> {
 			if (this._alwaysIgnore) {
 				return true;
 			}
@@ -1050,7 +1020,6 @@ multiple lines.
 
 			await feedbackGenerator.generateComments(input, CancellationToken.None, progress);
 
-			// Progress should have been reported at least once
 			assert.ok(reportedComments.length > 0);
 		});
 
@@ -1143,7 +1112,6 @@ multiple lines.
 		});
 
 		test('returns error when prompts exceed maxPrompts limit', async () => {
-			// Create many inputs that will each become a separate prompt after splitting
 			const inputs: CurrentChangeInput[] = [];
 			for (let i = 0; i < 15; i++) {
 				const uri = Uri.file(`/test/file${i}.ts`);
@@ -1153,7 +1121,6 @@ multiple lines.
 				}));
 			}
 
-			// Mock the endpoint to track calls
 			let callCount = 0;
 			const originalMakeChatRequest = mockEndpointProvider.mockEndpoint.makeChatRequest.bind(mockEndpointProvider.mockEndpoint);
 			mockEndpointProvider.mockEndpoint.makeChatRequest = async (debugName, messages, finishedCb, token) => {
@@ -1161,14 +1128,8 @@ multiple lines.
 				return originalMakeChatRequest(debugName, messages, finishedCb, token);
 			};
 
-			// Since we can't easily mock the PromptRenderer to throw split_input,
-			// we test the error message when inputType is 'selection' vs 'change'
-			// The actual maxPrompts > 10 is hard to trigger without mocking PromptRenderer
-			// This test documents the expected behavior
 			const result = await feedbackGenerator.generateComments(inputs, CancellationToken.None);
 
-			// With 15 files that don't cause split_input, they should be processed
-			// If the batch was split enough times (>10 prompts), we'd get an error
 			assert.ok(result.type === 'success' || result.type === 'error');
 		});
 	});
@@ -1224,7 +1185,7 @@ multiple lines.
 
 			return {
 				request: {
-					source: 'vscodeCopilotChat',
+						source: 'dardcorRouter',
 					promptCount: 1,
 					messageId: 'test-message-id',
 					inputType: 'change',
@@ -1367,7 +1328,7 @@ multiple lines.
 			const uri = Uri.file('/test/file.ts');
 			const comment = createTestReviewComment({
 				request: {
-					source: 'vscodeCopilotChat',
+						source: 'dardcorRouter',
 					promptCount: 1,
 					messageId: 'test-message-id',
 					inputType: 'change',
@@ -1380,7 +1341,6 @@ multiple lines.
 
 			sendReviewActionTelemetry(comment, 1, 'helpful', mockLogService, mockTelemetryService, mockInstantiationService);
 
-			// (5-0) + (15-10) + (25-20) = 5 + 5 + 5 = 15
 			assert.strictEqual(mockTelemetryService.msftEvents[0].measurements?.inputLineCount, 15);
 		});
 
@@ -1390,7 +1350,7 @@ multiple lines.
 			sendReviewActionTelemetry(comment, 2, 'helpful', mockLogService, mockTelemetryService, mockInstantiationService);
 
 			const props = mockTelemetryService.msftEvents[0].properties;
-			assert.strictEqual(props?.source, 'vscodeCopilotChat');
+			assert.strictEqual(props?.source, 'dardcorRouter');
 			assert.strictEqual(props?.requestId, 'test-message-id');
 			assert.strictEqual(props?.documentType, 'text');
 			assert.strictEqual(props?.languageId, 'typescript');
@@ -1416,19 +1376,13 @@ multiple lines.
 		test('triggers EditSurvivalReporter for discardComment action', () => {
 			const comment = createTestReviewComment();
 
-			// Note: discardComment action tries to create EditSurvivalReporter which requires
-			// additional services not available in unit tests. This test verifies the telemetry
-			// path is correct before that point.
 			try {
 				sendReviewActionTelemetry(comment, 1, 'discardComment', mockLogService, mockTelemetryService, mockInstantiationService);
 			} catch {
-				// Expected: EditSurvivalReporter instantiation fails in unit test context
 			}
 
-			// discardComment is a non-vote action, so actionCount should be incremented
 			assert.strictEqual(comment.actionCount, 1);
 
-			// Should send review.comment.action telemetry (not vote)
 			assert.strictEqual(mockTelemetryService.msftEvents.length, 1);
 			assert.strictEqual(mockTelemetryService.msftEvents[0].eventName, 'review.comment.action');
 			assert.strictEqual(mockTelemetryService.msftEvents[0].properties?.userAction, 'discardComment');

@@ -82,7 +82,6 @@ export default function CoworkToolCard({
     if (status?.cowork?.baseUrl && !customBaseUrl) {
       setCustomBaseUrl(stripV1(status.cowork.baseUrl));
     }
-    // Initialize plugins: from current config, fallback to defaultPlugins
     if (Array.isArray(status?.cowork?.plugins) && status.cowork.plugins.length > 0) {
       setPlugins(status.cowork.plugins);
     } else if (plugins.length === 0 && Array.isArray(status?.defaultPlugins)) {
@@ -151,7 +150,6 @@ export default function CoworkToolCard({
       });
       const data = await res.json();
       if (res.ok) {
-        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied. Quit & reopen Claude Desktop to load." });
         checkStatus();
@@ -357,7 +355,7 @@ export default function CoworkToolCard({
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right pt-2">MCP</span>
                   <span className="material-symbols-outlined text-text-muted text-[14px] mt-2">arrow_forward</span>
                   <div className="flex-1 flex flex-col gap-1">
-                    {/* Preset plugins */}
+                    {}
                     {plugins.filter((p) => p.name !== "exa").map((p) => (
                       <div key={p.name} className="flex items-center gap-2 px-2 py-1 bg-surface rounded border border-border">
                         <span className="text-xs font-medium min-w-0 truncate flex-shrink-0">{p.title || p.name}</span>
@@ -375,7 +373,7 @@ export default function CoworkToolCard({
                         </button>
                       </div>
                     ))}
-                    {/* Custom plugins */}
+                    {}
                     {customPlugins.map((p) => (
                       <div key={p.name} className="flex items-center gap-2 px-2 py-1 bg-surface rounded border border-border">
                         <span className="text-xs font-medium min-w-0 truncate flex-shrink-0">{p.name}</span>
@@ -389,7 +387,7 @@ export default function CoworkToolCard({
                     {plugins.filter((p) => p.name !== "exa").length === 0 && customPlugins.length === 0 && (
                       <div className="px-2 py-1.5 bg-surface rounded border border-border text-xs text-text-muted">No MCPs added</div>
                     )}
-                    {/* Actions row */}
+                    {}
                     <div className="flex items-center gap-2 mt-0.5">
                       <button onClick={() => setMarketplaceOpen(true)} className="px-2 py-1 rounded border text-xs bg-primary/10 border-primary/40 text-primary hover:bg-primary/20 cursor-pointer whitespace-nowrap">
                         + Browse
@@ -553,7 +551,7 @@ export default function CoworkToolCard({
         addedNames={plugins.map((p) => p.name)}
       />
 
-      {/* Add Custom MCP modal */}
+      {}
       {addMcpOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setAddMcpOpen(false)}>
           <div className="bg-surface border border-border rounded-xl shadow-xl w-full max-w-sm mx-4 p-5 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>

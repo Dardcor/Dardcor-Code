@@ -21,7 +21,7 @@ import { ClientCapability, ITypeScriptServiceClient } from '../typescriptService
 import { coalesce } from '../utils/arrays';
 import { nulToken } from '../utils/cancellation';
 import FormattingOptionsManager from './fileConfigurationManager';
-import { CompositeCommand, EditorChatFollowUp } from './util/copilot';
+import { CompositeCommand, EditorChatFollowUp } from './util/editorChat';
 import { conditionalRegistration, requireSomeCapability } from './util/dependentRegistration';
 
 function toWorkspaceEdit(client: ITypeScriptServiceClient, edits: readonly Proto.FileCodeEdits[]): vscode.WorkspaceEdit {
@@ -53,16 +53,6 @@ class DidApplyRefactoringCommand implements Command {
 	) { }
 
 	public async execute(args: DidApplyRefactoringCommand.Args): Promise<void> {
-		/* __GDPR__
-			"refactor.execute" : {
-				"owner": "mjbvz",
-				"action" : { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
-				"trigger" : { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
-				"${include}": [
-					"${TypeScriptCommonProperties}"
-				]
-			}
-		*/
 		this.telemetryReporter.logTelemetry('refactor.execute', {
 			action: args.action,
 			trigger: args.trigger,
@@ -182,7 +172,6 @@ class MoveToFileRefactorCommand implements Command {
 		const quickPick = vscode.window.createQuickPick<DestinationItem>();
 		quickPick.ignoreFocusOut = true;
 
-		// true so we don't skip computing in the first call
 		let quickPickInRelativeMode = true;
 		const updateItems = () => {
 			const relativeQuery = ['./', '../'].find(str => quickPick.value.startsWith(str));
@@ -392,7 +381,6 @@ class InlinedCodeAction extends vscode.CodeAction {
 		}
 
 		if (response.body.renameLocation) {
-			// Disable renames in interactive playground https://github.com/microsoft/vscode/issues/75137
 			if (this.document.uri.scheme !== fileSchemes.walkThroughSnippet) {
 				this.command = {
 					command: CompositeCommand.ID,
@@ -475,7 +463,6 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 
 	private static isOnSignatureName(node: Proto.NavigationTree, range: vscode.Range): boolean {
 		if (this._declarationKinds.has(node.kind)) {
-			// Show when on the name span
 			if (node.nameSpan) {
 				const convertedSpan = typeConverters.Range.fromTextSpan(node.nameSpan);
 				if (range.intersection(convertedSpan)) {
@@ -492,7 +479,6 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 			}
 		}
 
-		// Show if on the signature of any children
 		return node.childItems?.some(child => this.isOnSignatureName(child, range)) ?? false;
 	}
 
@@ -564,14 +550,11 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 		const applicableRefactors = this.convertApplicableRefactors(document, context, response.body, rangeOrSelection);
 		const actions = coalesce(await Promise.all(Array.from(applicableRefactors, async action => {
 			if (this.client.apiVersion.lt(API.v430)) {
-				// Don't show 'infer return type' refactoring unless it has been explicitly requested
-				// https://github.com/microsoft/TypeScript/issues/42993
 				if (!context.only && action.kind?.value === 'refactor.rewrite.function.returnType') {
 					return undefined;
 				}
 			}
 
-			// Don't include move actions on auto light bulb unless you are on a declaration name
 			if (this.client.apiVersion.lt(API.v540) && context.triggerKind === vscode.CodeActionTriggerKind.Automatic) {
 				if (action.kind?.value === Move_NewFile.kind.value || action.kind?.value === Move_File.kind.value) {
 					const file = this.client.toOpenTsFilePath(document);
@@ -593,13 +576,10 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 			return actions;
 		}
 
-		return this.pruneInvalidActions(this.appendInvalidActions(actions), context.only, /* numberOfInvalid = */ 5);
+		return this.pruneInvalidActions(this.appendInvalidActions(actions), context.only, 5);
 	}
 
 	private interruptGetErrIfNeeded<R>(context: vscode.CodeActionContext, f: () => R): R {
-		// Only interrupt diagnostics computation when code actions are explicitly
-		// (such as using the refactor command or a keybinding). This is a clear
-		// user action so we want to return results as quickly as possible.
 		if (context.triggerKind === vscode.CodeActionTriggerKind.Invoke) {
 			return this.client.interruptGetErr(f);
 		} else {
@@ -675,7 +655,6 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 		allActions: readonly Proto.RefactorActionInfo[],
 	): boolean {
 		if (Extract_Constant.matches(action)) {
-			// Only mark the action with the lowest scope as preferred
 			const getScope = (name: string) => {
 				const scope = name.match(/scope_(\d)/)?.[1];
 				return scope ? +scope : undefined;
@@ -700,7 +679,6 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 
 	private appendInvalidActions(actions: vscode.CodeAction[]): vscode.CodeAction[] {
 		if (this.client.apiVersion.gte(API.v400)) {
-			// Invalid actions come from TS server instead
 			return actions;
 		}
 
@@ -732,7 +710,6 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 
 	private pruneInvalidActions(actions: vscode.CodeAction[], only?: vscode.CodeActionKind, numberOfInvalid?: number): vscode.CodeAction[] {
 		if (this.client.apiVersion.lt(API.v400)) {
-			// Older TS version don't return extra actions
 			return actions;
 		}
 
@@ -745,13 +722,11 @@ class TypeScriptRefactorProvider implements vscode.CodeActionProvider<TsCodeActi
 				continue;
 			}
 
-			// These are the common refactors that we should always show if applicable.
 			if (action.kind && (Extract_Constant.kind.contains(action.kind) || Extract_Function.kind.contains(action.kind))) {
 				invalidCommonActions.push(action);
 				continue;
 			}
 
-			// These are the remaining refactors that we can show if we haven't reached the max limit with just common refactors.
 			invalidUncommonActions.push(action);
 		}
 

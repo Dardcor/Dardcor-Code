@@ -16,13 +16,6 @@ import { IAgentHostProviderService } from '../../agentHostProviderService.js';
 import { AgentHostToolCallTracker, IAgentHostToolCallTracker } from '../../agentHostToolCallTracker.js';
 import { AgentHostTurnTracker, IAgentHostTurnTracker } from '../../agentHostTurnTracker.js';
 
-/**
- * Mirrors per-chat blockers (user-input elicitations, tool confirmations,
- * client-tool executions, and MCP authentication) into the owning session's
- * `inputNeeded` list so clients subscribed only to the session channel can
- * discover and answer them without subscribing to each chat. This handler
- * only produces the state; it does not consume it.
- */
 export class SessionInputNeededContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'sessionInputNeeded';
@@ -39,9 +32,6 @@ export class SessionInputNeededContribution extends Disposable implements IAgent
 	}
 
 	onDidDispatchAction(dispatched: IDispatchedAction): void {
-		// A rejected action never reduced, so there is no state change to mirror. The
-		// removal branches below clear a mirrored blocker without re-reading state, so
-		// acting on one could drop a request that is still outstanding.
 		if (dispatched.rejectionReason !== undefined || !isAhpChatChannel(dispatched.channel) || !isChatAction(dispatched.action)) {
 			return;
 		}
@@ -103,11 +93,6 @@ export class SessionInputNeededContribution extends Disposable implements IAgent
 		const authenticationId = this._toolAuthenticationNeededId(chatUri, turnId, toolCallId);
 		const toolCall = this._findToolCall(chatUri, turnId, toolCallId);
 
-		// A parameter gate auto-approved by the session's bypass setting never
-		// blocks on the user, so keep it out of the session `inputNeeded` queue
-		// (which would flash "input needed" in the sessions list).
-		// `autoApproveBySetting` covers only the parameter gate; a
-		// `PendingResultConfirmation` is a genuine prompt and is still surfaced.
 		const autoApproved = !!toolCall && readToolCallMeta(toolCall).autoApproveBySetting === true;
 
 		const suppressAutoApprovedConfirmation = autoApproved && toolCall?.status === ToolCallStatus.PendingConfirmation;
@@ -165,11 +150,6 @@ export class SessionInputNeededContribution extends Disposable implements IAgent
 			return;
 		}
 		this._stateManager.dispatchServerAction(sessionUri, { type: ActionType.SessionInputNeededSet, request });
-		// Record the blocker on the turn so a hang reported while the request is
-		// outstanding is tagged as an expected wait on the user rather than as
-		// an unexplained stall, and so the report can name the tool it gates. A
-		// `ChatInput` elicitation carries neither `turnId` nor a tool call, so
-		// fall back to the chat's active turn.
 		const blockedTurnId = hasKey(request, { turnId: true }) ? request.turnId : this._stateManager.getActiveTurnId(chatUri);
 		if (blockedTurnId) {
 			const blockedToolCallId = hasKey(request, { toolCall: true }) ? request.toolCall.toolCallId : undefined;

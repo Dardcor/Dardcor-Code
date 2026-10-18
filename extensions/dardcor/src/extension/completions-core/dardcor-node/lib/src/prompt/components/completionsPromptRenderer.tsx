@@ -42,17 +42,8 @@ export interface CompletionsPromptRenderOptions extends PromptRenderOptions {
 export class CompletionsPromptRenderer implements PromptRenderer<CompletionsPrompt, CompletionsPromptRenderOptions> {
 	private renderId = 0;
 
-	/**
-	 * Function used to format the prefix blocks into a string.
-	 * If implementing a renderer subclass, override this to control how the prefix is formatted, otherwise defaults to `makePrompt`.
-	 */
 	protected formatPrefix: (elidedBlocks: ElidedBlock[]) => string = makePrompt;
 
-	/**
-	 * Function used to format the context blocks into a string array.
-	 * Context is optional, so leave this as `undefined` if you do not want to include context in the rendered prompt.
-	 * If implementing a renderer subclass, override this to control how the context is formatted, otherwise defaults to `undefined`.
-	 */
 	protected formatContext: undefined | ((elidedBlocks: ElidedBlock[]) => string[]);
 
 	render(
@@ -66,10 +57,8 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 			if (cancellationToken?.isCancellationRequested) {
 				return { status: 'cancelled' };
 			}
-			// Default options
 			const delimiter = options.delimiter ?? '';
 			const tokenizer = options.tokenizer ?? TokenizerName.o200k;
-			// Process the snapshot to get the prefix and suffix and adjust the token limits accordingly
 			const { prefixBlocks, suffixBlock, componentStatistics } = this.processSnapshot(
 				snapshot,
 				delimiter,
@@ -79,7 +68,6 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 			const { prefixTokenLimit, suffixTokenLimit } = this.getPromptLimits(suffixBlock, options);
 			const elisionStart = performance.now();
 			const elisionStrategy = new WishlistElision();
-			// The first element is always the suffix
 			const {
 				blocks: [elidedSuffix, ...elidedPrefix],
 			} = elisionStrategy.elide(
@@ -122,8 +110,6 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 		}
 	}
 
-	// Defaults are hardcoded for now, but we can use EXP flags like PromptOptions does
-	// by passing the context
 	private getPromptLimits(suffixBlock: WeightedBlock | undefined, options: CompletionsPromptRenderOptions) {
 		const suffix = suffixBlock?.value ?? '';
 
@@ -134,7 +120,6 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 			return { prefixTokenLimit: availableTokens, suffixTokenLimit: 0 };
 		}
 
-		// If there is a suffix, we need to reserve some tokens for the suffix encoding
 		availableTokens = suffix.length > 0 ? availableTokens - TOKENS_RESERVED_FOR_SUFFIX_ENCODING : availableTokens;
 
 		const suffixTokenLimit = Math.ceil(availableTokens * (suffixPercent / 100));
@@ -158,7 +143,6 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 		const prefixBlocks: WeightedBlock[] = [];
 		const suffixBlocks: WeightedBlock[] = [];
 		const componentStatistics: ComponentStatistics[] = [];
-		// Store the status of the required nodes
 		let foundDocument = false;
 
 		const walker = new SnapshotWalker(snapshot, transformers);
@@ -167,7 +151,6 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 				return true;
 			}
 
-			// Check for the presence of required node
 			if (node.name === CurrentFile.name) {
 				foundDocument = true;
 			}
@@ -180,13 +163,11 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 			}
 
 			if (node.value === undefined || node.value === '') {
-				// No need to process this node as it only adds whitespace
 				return true;
 			}
 
 			const chunks = context.chunks as Set<string> | undefined;
 			if (context.type === 'suffix') {
-				// Everything after the cursor is part of the suffix
 				suffixBlocks.push({
 					value: normalizeLineEndings(node.value),
 					type: 'suffix',
@@ -197,7 +178,6 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 					source: context.source,
 				});
 			} else {
-				// Add a delimiter for all nodes, that are not the beforeCursor if not already present
 				const nodeValueWithDelimiter = node.value.endsWith(delimiter) ? node.value : node.value + delimiter;
 				let value = nodeValueWithDelimiter;
 				if (context.type === 'prefix') {
@@ -243,14 +223,12 @@ export class CompletionsPromptRenderer implements PromptRenderer<CompletionsProm
 
 export const transformers: WalkContextTransformer[] = [
 	...defaultTransformers(),
-	// Context transformer
 	(node, _, context) => {
 		if (isContextNode(node)) {
 			return { ...context, type: 'context' };
 		}
 		return context;
 	},
-	// Prefix transformer
 	(node, _, context) => {
 		if (node.name === BeforeCursor.name) {
 			return {
@@ -260,7 +238,6 @@ export const transformers: WalkContextTransformer[] = [
 		}
 		return context;
 	},
-	// Suffix transformer
 	(node, _, context) => {
 		if (node.name === AfterCursor.name) {
 			return {

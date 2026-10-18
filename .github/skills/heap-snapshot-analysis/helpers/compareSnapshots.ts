@@ -3,15 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Heap Snapshot Comparison
- *
- * Compares two V8 heap snapshots (before/after) and reports:
- * - Top object groups by size increase
- * - Top object groups by count increase
- * - New object groups (only in "after")
- * - VS Code-specific class changes
- */
 
 import { parseSnapshot, collectNodeIds, type SnapshotData } from './parseSnapshot.ts';
 
@@ -36,11 +27,8 @@ export interface ComparisonResult {
 		nodeDelta: number;
 		sizeDelta: number;
 	};
-	/** Top groups by size increase */
 	topBySize: ComparisonGroup[];
-	/** Top groups by count increase */
 	topByCount: ComparisonGroup[];
-	/** Groups that only exist in the "after" snapshot */
 	newObjectGroups: ComparisonGroup[];
 }
 
@@ -78,14 +66,10 @@ function groupByConstructor(data: SnapshotData, filterIds?: Set<number>) {
 	return { groups, totalSize, nodeCount: nodes.length / nfc };
 }
 
-/**
- * Compare two heap snapshots and return the differences.
- */
 export function compareSnapshots(beforePath: string, afterPath: string, topN = 50): ComparisonResult {
 	const beforeData = parseSnapshot(beforePath);
 	const beforeResult = groupByConstructor(beforeData);
 	const beforeIds = collectNodeIds(beforeData);
-	// Free memory
 	beforeData.nodes = null!;
 	beforeData.edges = null!;
 
@@ -104,7 +88,6 @@ export function compareSnapshots(beforePath: string, afterPath: string, topN = 5
 	afterData.nodes = null!;
 	afterData.edges = null!;
 
-	// Compute diffs
 	const diffs: ComparisonGroup[] = [];
 	for (const [key, afterGroup] of afterResult.groups) {
 		const beforeGroup = beforeResult.groups.get(key);
@@ -166,9 +149,6 @@ export function formatBytes(bytes: number): string {
 	return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-/**
- * Print a comparison result to the console.
- */
 function formatSigned(value: number, formatter: (v: number) => string): string {
 	return `${value >= 0 ? '+' : ''}${formatter(value)}`;
 }

@@ -9,7 +9,6 @@ import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { FolderRepositoryMRUEntry, IFolderRepositoryManager } from '../../../../chatSessions/common/folderRepositoryManager';
 import { computeFolderSlug, getProjectFolders } from '../claudeProjectFolders';
 
-// #region MockFolderRepositoryManager
 
 class MockFolderRepositoryManager implements IFolderRepositoryManager {
 	declare _serviceBrand: undefined;
@@ -28,7 +27,6 @@ class MockFolderRepositoryManager implements IFolderRepositoryManager {
 	async getFolderMRU(): Promise<FolderRepositoryMRUEntry[]> { return this._mruEntries; }
 }
 
-// #endregion
 
 describe('computeFolderSlug', () => {
 	it('converts a simple Unix path', () => {
@@ -47,7 +45,6 @@ describe('computeFolderSlug', () => {
 	});
 
 	it('converts a Windows-style drive letter path', () => {
-		// On Windows, URI.file('C:/Users/test/project') produces path '/c:/Users/test/project'
 		const uri = URI.from({ scheme: 'file', path: '/c:/Users/test/project' });
 		expect(computeFolderSlug(uri)).toBe('C--Users-test-project');
 	});

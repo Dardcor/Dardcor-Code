@@ -14,7 +14,6 @@ export function removeAllTSBoilerplate(source: string) {
 	return removeDuplicateTSBoilerplate(source, seen);
 }
 
-// Taken from typescript compiler => emitFiles
 const BOILERPLATE = [
 	{ start: /^var __extends/, end: /^}\)\(\);$/ },
 	{ start: /^var __assign/, end: /^};$/ },

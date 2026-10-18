@@ -1,4 +1,3 @@
-// TTS provider registry
 import googleTts from "./googleTts.js";
 import edgeTts, { fetchEdgeTtsVoices } from "./edgeTts.js";
 import localDevice, { fetchLocalDeviceVoices } from "./localDevice.js";
@@ -11,7 +10,6 @@ import selfhostedTts from "./selfhostedTts.js";
 import { FORMAT_HANDLERS } from "./genericFormats.js";
 import { parseModelVoice } from "./_base.js";
 
-// Special providers with custom synthesize() logic
 const SPECIAL_ADAPTERS = {
   "google-tts": googleTts,
   "edge-tts": edgeTts,
@@ -28,7 +26,6 @@ export function getTtsAdapter(provider) {
   return SPECIAL_ADAPTERS[provider] || null;
 }
 
-// Generic config-driven dispatcher (uses ttsConfig.format)
 export async function synthesizeViaConfig(provider, text, model, credentials) {
   const { AI_PROVIDERS } = await import("@/shared/constants/providers");
   const cfg = AI_PROVIDERS[provider]?.ttsConfig;
@@ -44,7 +41,6 @@ export async function synthesizeViaConfig(provider, text, model, credentials) {
   return handler({ baseUrl: cfg.baseUrl, apiKey, text, modelId, voiceId });
 }
 
-// Voice fetchers (used by /api/media-providers/tts/voices route)
 export const VOICE_FETCHERS = {
   "edge-tts": fetchEdgeTtsVoices,
   "local-device": fetchLocalDeviceVoices,
@@ -52,5 +48,4 @@ export const VOICE_FETCHERS = {
   gemini: fetchGeminiVoices,
 };
 
-// Re-export for backward compat
 export { fetchEdgeTtsVoices, fetchLocalDeviceVoices, fetchElevenLabsVoices, fetchGeminiVoices };

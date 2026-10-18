@@ -12,7 +12,7 @@ export default function GetStarted() {
     <section className="py-24 px-6 bg-[#120f0d]">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-16 items-start">
-          {/* Left: Steps */}
+          {}
           <div className="flex-1">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Get Started in 30 Seconds</h2>
             <p className="text-gray-400 text-lg mb-8">
@@ -46,10 +46,10 @@ export default function GetStarted() {
             </div>
           </div>
 
-          {/* Right: Code block */}
+          {}
           <div className="flex-1 w-full">
             <div className="rounded-xl overflow-hidden bg-[#1e1e1e] border border-[#3a2f27] shadow-2xl">
-              {/* Terminal header */}
+              {}
               <div className="flex items-center gap-2 px-4 py-3 bg-[#252526] border-b border-gray-700">
                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -57,7 +57,7 @@ export default function GetStarted() {
                 <div className="ml-2 text-xs text-gray-500 font-mono">terminal</div>
               </div>
               
-              {/* Terminal content */}
+              {}
               <div className="p-6 font-mono text-sm leading-relaxed overflow-x-auto">
                 <div 
                   className="flex items-center gap-2 mb-4 group cursor-pointer"

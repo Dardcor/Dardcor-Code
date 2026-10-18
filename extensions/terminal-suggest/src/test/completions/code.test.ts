@@ -89,24 +89,15 @@ export function createCodeTestSpecs(executable: string): ITestSpec[] {
 	}
 
 	return [
-		// Typing the command
 		...typingTests,
 
-		// Basic arguments
 		{ input: `${executable} |`, expectedCompletions: codeSpecOptionsAndSubcommands, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
-		// Test for --remove
 		{ input: `${executable} --remove |`, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
-		// Test for --add-mcp
 		{ input: `${executable} --add-mcp |`, expectedCompletions: [] },
-		// Test for --update-extensions
 		{ input: `${executable} --update-extensions |`, expectedCompletions: codeSpecOptionsAndSubcommands.filter(c => c !== '--update-extensions'), expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
-		// Test for --disable-lcd-text
 		{ input: `${executable} --disable-lcd-text |`, expectedCompletions: codeSpecOptionsAndSubcommands.filter(c => c !== '--disable-lcd-text'), expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
-		// Test for --disable-chromium-sandbox
 		{ input: `${executable} --disable-chromium-sandbox |`, expectedCompletions: codeSpecOptionsAndSubcommands.filter(c => c !== '--disable-chromium-sandbox'), expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
-		// Test for --enable-proposed-api variadic
 		{ input: `${executable} --enable-proposed-api |`, expectedCompletions: [executable] },
-		// Test for --log repeatable and extension-specific
 		{ input: `${executable} --log |`, expectedCompletions: logOptions },
 		{ input: `${executable} --locale |`, expectedCompletions: localeOptions },
 		{ input: `${executable} --diff |`, expectedResourceRequests: { type: 'files', cwd: testPaths.cwd } },
@@ -128,12 +119,10 @@ export function createCodeTestSpecs(executable: string): ITestSpec[] {
 		{ input: `${executable} --category |`, expectedCompletions: categoryOptions },
 		{ input: `${executable} --category a|`, expectedCompletions: categoryOptions },
 
-		// Chat subcommand tests
 		{ input: `${executable} chat |`, expectedCompletions: chatOptions },
 		{ input: `${executable} chat --mode |`, expectedCompletions: ['agent', 'ask', 'edit'] },
 		{ input: `${executable} chat --add-file |`, expectedResourceRequests: { type: 'files', cwd: testPaths.cwd } },
 
-		// Agent subcommand tests
 		{ input: `${executable} agent |`, expectedCompletions: [...agentSubcommands, ...agentHostFlags, ...agentCommonFlags] },
 		{ input: `${executable} agent host |`, expectedCompletions: [...agentHostFlags, ...agentCommonFlags] },
 		{ input: `${executable} agent ps |`, expectedCompletions: [...agentConnectionFlags, '--json', '--all', '-a', ...agentCommonFlags] },
@@ -142,7 +131,6 @@ export function createCodeTestSpecs(executable: string): ITestSpec[] {
 		{ input: `${executable} agent kill |`, expectedCompletions: [...agentCommonFlags] },
 		{ input: `${executable} agent help |`, expectedCompletions: agentHelpSubcommands },
 
-		// Middle of command
 		{ input: `${executable} | --locale`, expectedCompletions: codeSpecOptionsAndSubcommands, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 	];
 }

@@ -19,20 +19,14 @@ enum Constants {
 }
 
 const WINDOWS_EXPECTED_SHUTDOWN_EXIT_CODES = new Set([
-	0xC000026B, // STATUS_DLL_INIT_FAILED_LOGOFF
-	0x40010004, // DBG_TERMINATE_PROCESS
+	0xC000026B,
+	0x40010004,
 ]);
 
 function isExpectedWindowsShutdownExit(platform: NodeJS.Platform, code: number): boolean {
 	return platform === 'win32' && WINDOWS_EXPECTED_SHUTDOWN_EXIT_CODES.has(code >>> 0);
 }
 
-/**
- * Main-process service that manages the agent host utility process lifecycle
- * (lazy start, crash recovery, logger forwarding). The renderer communicates
- * with the utility process directly via MessagePort - this class does not
- * relay any agent service calls.
- */
 export class AgentHostProcessManager extends Disposable {
 
 	private _wasQuitRequested = false;
@@ -86,10 +80,6 @@ export class AgentHostProcessManager extends Disposable {
 		return this._startPromise;
 	}
 
-	/**
-	 * Explicitly restarts the agent host process, discarding the current connection
-	 * and resetting crash recovery bookkeeping.
-	 */
 	restart(): Promise<void> {
 		if (this._wasQuitRequested || this._store.isDisposed) {
 			return Promise.reject(new Error('Agent Host process manager is shutting down.'));
@@ -103,7 +93,6 @@ export class AgentHostProcessManager extends Disposable {
 				try {
 					await pendingStart;
 				} catch {
-					// An explicit restart retries after a failed start.
 				}
 			}
 			if (this._wasQuitRequested || this._store.isDisposed) {
@@ -161,7 +150,6 @@ export class AgentHostProcessManager extends Disposable {
 			this._connectionStore.value = startedConnection.store;
 			this._logService.info('AgentHostProcessManager: agent host started');
 
-			// Connect logger channel so agent host logs appear in the output channel
 			startedConnection.store.add(new RemoteLoggerChannelClient(this._loggerService, startedConnection.client.getChannel(AgentHostIpcChannels.Logger)));
 
 			startedConnection.store.add(startedConnection.onDidProcessExit(e => this._handleProcessExit(startedConnection, e.code)));
@@ -180,10 +168,6 @@ export class AgentHostProcessManager extends Disposable {
 		}
 	}
 
-	/**
-	 * Drops the given connection, disposing it exactly once regardless of whether it is
-	 * still the connection tracked by {@link _connectionStore}.
-	 */
 	private _clearConnection(connection: IAgentHostConnection | undefined): void {
 		if (this._connection === connection) {
 			this._connection = undefined;

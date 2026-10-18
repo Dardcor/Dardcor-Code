@@ -5,10 +5,6 @@
 /* eslint-disable local/code-no-unexternalized-strings */
 import { LanguageInput } from 'shiki/core';
 
-// This file has been converted from https://github.com/NVIDIA/cuda-cpp-grammar/blob/master/syntaxes/cuda-cpp.tmLanguage.json
-// If you want to provide a fix or improvement, please create a pull request against the original repository.
-// Once accepted there, we are happy to receive an update request.
-// version: https://github.com/NVIDIA/cuda-cpp-grammar/commit/81e88eaec5170aa8585736c63627c73e3589998c
 export const cudaCpp: LanguageInput = {
 	name: 'CUDA C++',
 	scopeName: 'source.cuda-cpp',

@@ -24,14 +24,7 @@ export interface ITelemetryServiceConfig {
 	sendErrorTelemetry?: boolean;
 	commonProperties?: ICommonProperties;
 	piiPaths?: string[];
-	/**
-	 * If true, telemetry events will be buffered until setExperimentProperty is called
-	 * (up to 10 seconds) to ensure experiment context is attached to all events.
-	 */
 	waitForExperimentProperties?: boolean;
-	/**
-	 * If provided, telemetry events will be dropped when the connection is metered.
-	 */
 	meteredConnectionService?: IMeteredConnectionService;
 }
 
@@ -46,7 +39,7 @@ export class TelemetryService implements ITelemetryService {
 	static readonly IDLE_START_EVENT_NAME = 'UserIdleStart';
 	static readonly IDLE_STOP_EVENT_NAME = 'UserIdleStop';
 
-	private static readonly BUFFER_FLUSH_TIMEOUT = 10000; // 10 seconds
+	private static readonly BUFFER_FLUSH_TIMEOUT = 10000;
 	private static readonly MAX_BUFFER_SIZE = 1000;
 
 	declare readonly _serviceBrand: undefined;
@@ -94,7 +87,6 @@ export class TelemetryService implements ITelemetryService {
 		this._sendErrorTelemetry = !!config.sendErrorTelemetry;
 		this._meteredConnectionService = config.meteredConnectionService;
 
-		// static cleanup pattern for: `vscode-file:///DANGEROUS/PATH/resources/app/Useful/Information`
 		this._cleanupPatterns = [/(vscode-)?file:\/\/.*?\/resources\/app\//gi];
 
 		for (const piiPath of this._piiPaths) {
@@ -107,7 +99,6 @@ export class TelemetryService implements ITelemetryService {
 
 		this._updateTelemetryLevel();
 		this._disposables.add(this._configurationService.onDidChangeConfiguration(e => {
-			// Check on the telemetry settings and update the state if changed
 			const affectsTelemetryConfig =
 				e.affectsConfiguration(TELEMETRY_SETTING_ID)
 				|| e.affectsConfiguration(TELEMETRY_OLD_SETTING_ID)
@@ -117,8 +108,6 @@ export class TelemetryService implements ITelemetryService {
 			}
 		}));
 
-		// Buffer events until experiment properties are set (or timeout expires).
-		// This ensures early events include experiment context when available.
 		if (config.waitForExperimentProperties) {
 			this._flushTimeout = setTimeout(() => this._flushPendingEvents(), TelemetryService.BUFFER_FLUSH_TIMEOUT);
 		} else {
@@ -129,7 +118,6 @@ export class TelemetryService implements ITelemetryService {
 	setExperimentProperty(name: string, value: string): void {
 		this._experimentProperties[name] = new TelemetryTrustedValue(value);
 
-		// On first call, flush all pending events that were buffered waiting for experiment properties
 		if (!this._isExperimentPropertySet) {
 			this._flushPendingEvents();
 		}
@@ -155,7 +143,6 @@ export class TelemetryService implements ITelemetryService {
 			this._flushTimeout = undefined;
 		}
 
-		// Send all buffered events now that experiment properties are available
 		for (const event of this._pendingEvents) {
 			this._doLog(event.eventName, event.eventLevel, event.data);
 		}
@@ -165,10 +152,8 @@ export class TelemetryService implements ITelemetryService {
 	private _updateTelemetryLevel(): void {
 		let level = getTelemetryLevel(this._configurationService);
 		const collectableTelemetry = this._productService.enabledTelemetryLevels;
-		// Also ensure that error telemetry is respecting the product configuration for collectable telemetry
 		if (collectableTelemetry) {
 			this._sendErrorTelemetry = this.sendErrorTelemetry ? collectableTelemetry.error : false;
-			// Make sure the telemetry level from the service is the minimum of the config and product
 			const maxCollectableTelemetryLevel = collectableTelemetry.usage ? TelemetryLevel.USAGE : collectableTelemetry.error ? TelemetryLevel.ERROR : TelemetryLevel.NONE;
 			level = Math.min(level, maxCollectableTelemetryLevel);
 		}
@@ -185,23 +170,19 @@ export class TelemetryService implements ITelemetryService {
 	}
 
 	dispose(): void {
-		// Flush any remaining pending events before disposing
 		this._flushPendingEvents();
 		this._disposables.dispose();
 	}
 
 	private _log(eventName: string, eventLevel: TelemetryLevel, data?: ITelemetryData) {
-		// don't send events when the user is optout
 		if (this._telemetryLevel < eventLevel) {
 			return;
 		}
 
-		// Don't send events when the connection is metered
 		if (this._meteredConnectionService?.isConnectionMetered) {
 			return;
 		}
 
-		// Buffer events until experiment properties are set (or timeout expires)
 		if (!this._isExperimentPropertySet) {
 			if (this._pendingEvents.length < TelemetryService.MAX_BUFFER_SIZE) {
 				this._pendingEvents.push({ eventName, eventLevel, data });
@@ -213,21 +194,16 @@ export class TelemetryService implements ITelemetryService {
 	}
 
 	private _doLog(eventName: string, eventLevel: TelemetryLevel, data?: ITelemetryData) {
-		// add experiment properties
 		data = mixin(data, this._experimentProperties);
 
-		// remove all PII from data
 		data = cleanData(data, this._cleanupPatterns);
 
-		// add common properties
 		data = mixin(data, this._commonProperties);
 
-		// tag error-level events so the backend can identify them generically
 		if (eventLevel === TelemetryLevel.ERROR) {
 			data = { ...data, 'isError': true };
 		}
 
-		// Log to the appenders of sufficient level
 		this._appenders.forEach(a => a.log(eventName, data ?? {}));
 	}
 
@@ -244,7 +220,6 @@ export class TelemetryService implements ITelemetryService {
 			return;
 		}
 
-		// Send error event and anonymize paths
 		this._log(errorEventName, TelemetryLevel.ERROR, data);
 	}
 
@@ -256,8 +231,8 @@ export class TelemetryService implements ITelemetryService {
 function getTelemetryLevelSettingDescription(): string {
 	const telemetryText = localize('telemetry.telemetryLevelMd', "Controls {0} telemetry, first-party extension telemetry, and participating third-party extension telemetry. Some third party extensions might not respect this setting. Consult the specific extension's documentation to be sure. Telemetry helps us better understand how {0} is performing, where improvements need to be made, and how features are being used.", product.nameLong);
 	const externalLinksStatement = !product.privacyStatementUrl ?
-		localize("telemetry.docsStatement", "Read more about the [data we collect]({0}).", 'https://aka.ms/vscode-telemetry') :
-		localize("telemetry.docsAndPrivacyStatement", "Read more about the [data we collect]({0}) and our [privacy statement]({1}).", 'https://aka.ms/vscode-telemetry', product.privacyStatementUrl);
+		localize("telemetry.docsStatement", "Read more about the [data we collect]({0}).", 'https://www.dardcor-code.web.id/docs/privacy/telemetry') :
+		localize("telemetry.docsAndPrivacyStatement", "Read more about the [data we collect]({0}) and our [privacy statement]({1}).", 'https://www.dardcor-code.web.id/docs/privacy/telemetry', product.privacyStatementUrl);
 	const restartString = !isWeb ? localize('telemetry.restart', 'A full restart of the application is necessary for crash reporting changes to take effect.') : '';
 
 	const crashReportsHeader = localize('telemetry.crashReports', "Crash Reports");
@@ -353,7 +328,6 @@ configurationRegistry.registerConfiguration({
 				localization: { description: { key: 'telemetry.feedback.enabled', value: localize('telemetry.feedback.enabled', "Enable feedback mechanisms such as the issue reporter, surveys, and other feedback options.") } },
 			}
 		},
-		// Deprecated telemetry setting
 		[TELEMETRY_OLD_SETTING_ID]: {
 			'type': 'boolean',
 			'markdownDescription':

@@ -3,10 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* ========================================================================
- * Variation A — Classic Wizard Modal
- * Full-screen overlay with centered modal, progress dots, one step at a time.
- * ======================================================================== */
 
 .onboarding-a-overlay {
 	position: fixed;
@@ -254,7 +250,6 @@
 	color: var(--vscode-editor-foreground);
 }
 
-/* Sign-In step */
 .onboarding-a-signin {
 	display: grid;
 	grid-template-columns: auto auto;
@@ -436,7 +431,6 @@
 	white-space: nowrap;
 }
 
-/* Inline GitHub Enterprise instance input */
 .onboarding-a-signin-ghe-input {
 	display: flex;
 	flex: 1 1 auto;
@@ -545,7 +539,6 @@
 	background-image: url('../../../chat/browser/chatSetup/media/apple-dark.svg');
 }
 
-/* Personalize step */
 .onboarding-a-personalize {
 	display: flex;
 	flex-direction: column;
@@ -703,7 +696,6 @@
 	border-color: var(--vscode-button-background);
 }
 
-/* AI Preference step */
 .onboarding-a-ai-pref {
 	display: flex;
 	flex-direction: column;
@@ -778,7 +770,6 @@
 	text-align: center;
 }
 
-/* Agent Sessions step */
 .onboarding-a-sessions {
 	display: flex;
 	flex-direction: column;
@@ -888,7 +879,6 @@
 	padding: 14px 4px 4px 4px;
 }
 
-/* Tip banner */
 .onboarding-a-sessions-tip {
 	display: flex;
 	align-items: center;
@@ -907,7 +897,6 @@
 	line-height: 1.5;
 }
 
-/* Sign-in nudge */
 .onboarding-a-signin-nudge {
 	display: flex;
 	align-items: center;
@@ -959,7 +948,6 @@
 	border-radius: 2px;
 }
 
-/* Sign-in icon row */
 .onboarding-a-signin-icon-row {
 	display: flex;
 	gap: 12px;
@@ -1086,7 +1074,6 @@
 	}
 }
 
-/* Keymap pills with icons */
 .onboarding-a-keymap-pill .codicon {
 	font-size: 13px;
 	opacity: 0.7;

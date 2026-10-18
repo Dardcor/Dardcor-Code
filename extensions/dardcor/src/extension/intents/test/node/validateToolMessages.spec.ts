@@ -96,7 +96,6 @@ describe('validateToolMessagesCore', () => {
 		const messages: Raw.ChatMessage[] = [
 			assistantMsg('calling 3 tools', [tc('1', 'readFile'), tc('2', 'listDir'), tc('3', 'grep')]),
 			toolMsg('1', 'result 1'),
-			// tool results for '2' and '3' are missing
 		];
 
 		const { messages: result, filterReasons, strippedToolCallCount } = ToolCallingLoop.validateToolMessagesCore(messages, geminiOpts);
@@ -123,14 +122,11 @@ describe('validateToolMessagesCore', () => {
 
 	it('handles multiple assistant turns with mixed valid/orphaned tool_calls', () => {
 		const messages: Raw.ChatMessage[] = [
-			// First round: all matched
 			assistantMsg('round 1', [tc('1', 'readFile'), tc('2', 'listDir')]),
 			toolMsg('1', 'result 1'),
 			toolMsg('2', 'result 2'),
-			// Second round: one orphaned
 			assistantMsg('round 2', [tc('3', 'grep'), tc('4', 'writeFile')]),
 			toolMsg('3', 'result 3'),
-			// '4' is missing
 		];
 
 		const { messages: result, filterReasons, strippedToolCallCount } = ToolCallingLoop.validateToolMessagesCore(messages, geminiOpts);
@@ -158,7 +154,6 @@ describe('validateToolMessagesCore', () => {
 	});
 
 	it('handles the boundary between two assistant messages correctly', () => {
-		// Ensure tool results are only matched to the immediately preceding assistant
 		const messages: Raw.ChatMessage[] = [
 			assistantMsg('first', [tc('1', 'readFile')]),
 			toolMsg('1', 'result for first'),
@@ -172,13 +167,11 @@ describe('validateToolMessagesCore', () => {
 	});
 
 	it('strips tool_calls when the last assistant message has unresolved calls', () => {
-		// This simulates the maxToolCallsExceeded scenario
 		const messages: Raw.ChatMessage[] = [
 			userMsg('do something'),
 			assistantMsg('round 1', [tc('1', 'readFile')]),
 			toolMsg('1', 'result'),
 			assistantMsg('round 2 — exceeded', [tc('2', 'listDir'), tc('3', 'grep')]),
-			// No tool results — tool call limit exceeded
 		];
 
 		const { messages: result, filterReasons, strippedToolCallCount } = ToolCallingLoop.validateToolMessagesCore(messages, geminiOpts);
@@ -190,33 +183,27 @@ describe('validateToolMessagesCore', () => {
 	});
 
 	it('does not strip orphaned tool_calls when stripOrphanedToolCalls is not set', () => {
-		// For non-Gemini models, orphaned tool_calls should be left as-is
 		const messages: Raw.ChatMessage[] = [
 			assistantMsg('calling', [tc('1', 'readFile'), tc('2', 'listDir')]),
 			toolMsg('1', 'result 1'),
-			// '2' is missing
 		];
 
 		const { messages: result, filterReasons } = ToolCallingLoop.validateToolMessagesCore(messages);
 		expect(result).toHaveLength(2);
 		const asstMsg = result[0] as Raw.AssistantChatMessage;
-		// tool_calls preserved — no stripping for non-Gemini models
 		expect(asstMsg.toolCalls).toHaveLength(2);
 		expect(filterReasons).toHaveLength(0);
 	});
 
 	it('matches tool results across an intervening user message', () => {
-		// Regression: Assistant(toolCalls) → User → Tool should still pair correctly
 		const messages: Raw.ChatMessage[] = [
 			assistantMsg('calling', [tc('1', 'readFile')]),
 			userMsg('some user message'),
 			toolMsg('1', 'result'),
 		];
 
-		// First-pass keeps the tool result (previousAssistantMessage is not reset by user messages)
 		const { messages: result, filterReasons } = ToolCallingLoop.validateToolMessagesCore(messages, geminiOpts);
 		expect(result).toHaveLength(3);
-		// Second-pass should NOT strip the tool_call — the result exists after the user message
 		const asstMsg = result[0] as Raw.AssistantChatMessage;
 		expect(asstMsg.toolCalls).toHaveLength(1);
 		expect(asstMsg.toolCalls![0].id).toBe('1');
@@ -224,7 +211,6 @@ describe('validateToolMessagesCore', () => {
 	});
 
 	it('strips orphaned tool_calls when tool result is separated by a second assistant message', () => {
-		// Assistant(toolCalls) → User → Assistant → Tool should NOT pair across the second assistant
 		const messages: Raw.ChatMessage[] = [
 			assistantMsg('first', [tc('1', 'readFile')]),
 			userMsg('some user message'),
@@ -234,10 +220,8 @@ describe('validateToolMessagesCore', () => {
 
 		const { messages: result, filterReasons, strippedToolCallCount } = ToolCallingLoop.validateToolMessagesCore(messages, geminiOpts);
 		expect(result).toHaveLength(4);
-		// First assistant's tool_call '1' has no matching result — should be stripped
 		const firstAsst = result[0] as Raw.AssistantChatMessage;
 		expect(firstAsst.toolCalls).toBeUndefined();
-		// Second assistant's tool_call '2' is properly matched
 		const secondAsst = result[2] as Raw.AssistantChatMessage;
 		expect(secondAsst.toolCalls).toHaveLength(1);
 		expect(secondAsst.toolCalls![0].id).toBe('2');
@@ -246,7 +230,6 @@ describe('validateToolMessagesCore', () => {
 	});
 
 	it('correctly matches tool results with empty-string toolCallId', () => {
-		// Edge case: empty string is a valid tool call ID and should not be treated as falsy
 		const messages: Raw.ChatMessage[] = [
 			assistantMsg('calling', [tc('', 'readFile')]),
 			toolMsg('', 'result'),

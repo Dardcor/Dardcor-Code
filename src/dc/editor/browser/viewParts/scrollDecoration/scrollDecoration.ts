@@ -60,7 +60,6 @@ export class ScrollDecorationViewPart extends ViewPart {
 		}
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -75,10 +74,8 @@ export class ScrollDecorationViewPart extends ViewPart {
 		return this._updateShouldShow();
 	}
 
-	// --- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
-		// Nothing to read
 	}
 
 	public render(ctx: RestrictedRenderingContext): void {

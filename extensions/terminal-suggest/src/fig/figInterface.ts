@@ -47,8 +47,6 @@ export async function getFigSuggestions(
 	};
 	const currentCommand = currentCommandAndArgString.split(' ')[0];
 
-	// Assemble a map to allow O(1) access to the available command from a spec
-	// label. The label does not include an extension on Windows.
 	const specLabelToAvailableCommandMap = new Map<string, ICompletionResource>();
 	for (const command of availableCommands) {
 		let label = typeof command.label === 'string' ? command.label : command.label.label;
@@ -70,7 +68,6 @@ export async function getFigSuggestions(
 				continue;
 			}
 
-			// push it to the completion items
 			if (tokenType === TokenType.Command) {
 				if (availableCommand.kind !== vscode.TerminalCompletionItemKind.Alias) {
 					const description = getFixSuggestionDescription(spec);
@@ -141,12 +138,10 @@ async function getFigSpecSuggestions(
 		currentWorkingDirectory: shellIntegrationCwd.fsPath,
 		sshPrefix: '',
 		currentProcess: name,
-		// TODO: pass in aliases
 	};
 	const parsedArguments: ArgumentParserResult = await parseArguments(command, shellContext, spec, executeExternals);
 
 	const items: vscode.TerminalCompletionItem[] = [];
-	// TODO: Pass in and respect cancellation token
 	const completionItemResult = await collectCompletionItemResult(command, parsedArguments, prefix, terminalContext, shellIntegrationCwd, env, items, executeExternals);
 	if (token?.isCancellationRequested) {
 		return undefined;
@@ -250,8 +245,6 @@ export async function collectCompletionItemResult(
 				}
 			}
 			for (const generator of generators) {
-				// Only some templates are supported, these are applied generally before calling
-				// into the general fig code for now
 				if (generator.template) {
 					const templates = Array.isArray(generator.template) ? generator.template : [generator.template];
 					for (const template of templates) {
@@ -285,7 +278,6 @@ export async function collectCompletionItemResult(
 				itemKind = vscode.TerminalCompletionItemKind.OptionValue;
 			}
 
-			// Add <argName> for every argument
 			let detail: string | undefined;
 			if (typeof item === 'object' && Object.hasOwn(item, 'args')) {
 				const args = asArray((item as Fig.Option).args);

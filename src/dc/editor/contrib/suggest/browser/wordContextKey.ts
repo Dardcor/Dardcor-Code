@@ -36,7 +36,6 @@ export class WordContextKey {
 	}
 
 	private _update(): void {
-		// only update this when tab completions are enabled
 		const enabled = this._editor.getOption(EditorOption.tabCompletion) === 'on';
 		if (this._enabled === enabled) {
 			return;

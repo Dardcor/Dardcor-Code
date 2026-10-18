@@ -37,16 +37,6 @@ function isServiceAccessor(obj: any): obj is ServicesAccessor {
 
 export class SummarizedDocumentData {
 
-	/**
-	 * Create new summarized document data that is be used for the `SummarizedDocumentWithSelection`-element,
-	 * the data should also be used for other parts of the prompt, e.g to know if there is selected code, etc pp
-	 *
-	 * @param document the document to summarize
-	 * @param formattingOptions (optional) formatting options
-	 * @param selection The selection or whole range
-	 * @param selectionSplitKind Split around adjusted or original selection.
-	 * @returns
-	 */
 	static async create(
 		parserService: IParserService | ServicesAccessor,
 		document: TextDocumentSnapshot,
@@ -119,23 +109,10 @@ export class SummarizedDocumentData {
 
 export type SummarizedDocumentWithSelectionProps = PromptElementProps<{
 
-	/**
-	 * The summarized document data to render.
-	 * @see {SummarizedDocumentData.create}
-	 */
 	documentData: SummarizedDocumentData;
 
-	/**
-	 * The token budget to use for summarization.
-	 *
-	 * If set to 'usePromptSizingBudget', the token budget will be read from the component's `PromptSizing` budget, which is updated only when `flex*` props are used.
-	 * So we allow just passing a number here.
-	 */
 	tokenBudget: number | 'usePromptSizingBudget';
 
-	/**
-	 * Optional function to create a custom `ReplyInterpreter` for the split document.
-	 */
 	createReplyInterpreter?: (splitDoc: SummarizedDocumentSplit) => ReplyInterpreter;
 
 	_allowEmptySelection?: boolean;
@@ -162,7 +139,7 @@ export class SummarizedDocumentWithSelection extends PromptElement<SummarizedDoc
 	override async render(_state: void, sizing: PromptSizing) {
 
 		const { createReplyInterpreter, documentData } = this.props;
-		const isIgnored = await this.ignoreService.isCopilotIgnored(documentData.document.uri);
+		const isIgnored = await this.ignoreService.isIgnored(documentData.document.uri);
 
 		if (isIgnored) {
 			return <ignoredFiles value={[documentData.document.uri]} />;
@@ -170,8 +147,6 @@ export class SummarizedDocumentWithSelection extends PromptElement<SummarizedDoc
 
 		let { tokenBudget } = this.props;
 		if (tokenBudget === 'usePromptSizingBudget') {
-			// some hard coded value to account for the message padding below,
-			// e.g the placeholder message, the path, etc
 			tokenBudget = (sizing.tokenBudget * .85) - 300;
 		}
 

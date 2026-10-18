@@ -135,7 +135,6 @@ export class MarkerHoverParticipant implements IEditorHoverParticipant<MarkerHov
 		messageElement.innerText = message;
 
 		if (source || code) {
-			// Code has link
 			if (code && typeof code !== 'string') {
 				const sourceAndCodeElement = $('span');
 				if (source) {
@@ -214,7 +213,6 @@ export class MarkerHoverParticipant implements IEditorHoverParticipant<MarkerHov
 			}
 		}
 
-		// Menu-contributed actions (e.g. fix with inline chat)
 		const menuActions: MenuItemAction[] = [];
 		for (const [, actions] of this._menuService.getMenuActions(MenuId.MarkerHoverStatusBar, this._contextKeyService)) {
 			for (const action of actions) {
@@ -253,8 +251,7 @@ export class MarkerHoverParticipant implements IEditorHoverParticipant<MarkerHov
 			}
 			const updatePlaceholderDisposable = this.recentMarkerCodeActionsInfo && !this.recentMarkerCodeActionsInfo.hasCodeActions ? Disposable.None : disposableTimeout(() => quickfixPlaceholderElement.textContent = nls.localize('checkingForQuickFixes', "Checking for quick fixes..."), 200, disposables);
 			if (!quickfixPlaceholderElement.textContent) {
-				// Have some content in here to avoid flickering
-				quickfixPlaceholderElement.textContent = String.fromCharCode(0xA0); // &nbsp;
+				quickfixPlaceholderElement.textContent = String.fromCharCode(0xA0);
 			}
 			const codeActionsPromise = this.getCodeActions(markerHover.marker);
 			disposables.add(toDisposable(() => codeActionsPromise.cancel()));
@@ -309,14 +306,9 @@ export class MarkerHoverParticipant implements IEditorHoverParticipant<MarkerHov
 						}
 					});
 				} else {
-					// Only show menu-contributed actions (e.g. inline chat Fix) when there
-					// is no AI code action, to avoid duplicate Fix entry points.
 					renderMenuActions();
 				}
 
-				// Notify that the contents have changed given we added
-				// actions to the hover
-				// https://github.com/microsoft/vscode/issues/250424
 				context.onContentsChanged();
 
 			}, onUnexpectedError);

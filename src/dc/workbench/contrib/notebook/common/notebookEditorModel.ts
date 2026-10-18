@@ -28,7 +28,6 @@ import { IStoredFileWorkingCopy, IStoredFileWorkingCopyModel, IStoredFileWorking
 import { IUntitledFileWorkingCopy, IUntitledFileWorkingCopyModel, IUntitledFileWorkingCopyModelContentChangedEvent, IUntitledFileWorkingCopyModelFactory } from '../../../services/workingCopy/common/untitledFileWorkingCopy.js';
 import { WorkingCopyCapabilities } from '../../../services/workingCopy/common/workingCopy.js';
 
-//#region --- simple content provider
 
 export class SimpleNotebookEditorModel extends EditorModel implements INotebookEditorModel {
 
@@ -171,8 +170,6 @@ export class SimpleNotebookEditorModel extends EditorModel implements INotebookE
 		if (!newWorkingCopy) {
 			return undefined;
 		}
-		// this is a little hacky because we leave the new working copy alone. BUT
-		// the newly created editor input will pick it up and claim ownership of it.
 		return { resource: newWorkingCopy.resource };
 	}
 
@@ -213,9 +210,9 @@ export class NotebookFileWorkingCopyModel extends Disposable implements IStoredF
 					continue;
 				}
 				this._onDidChangeContent.fire({
-					isRedoing: false, //todo@rebornix forward this information from notebook model
+					isRedoing: false,
 					isUndoing: false,
-					isInitial: false, //_notebookModel.cells.length === 0 // todo@jrieken non transient metadata?
+					isInitial: false,
 				});
 				break;
 			}
@@ -225,20 +222,16 @@ export class NotebookFileWorkingCopyModel extends Disposable implements IStoredF
 
 		if (saveWithReducedCommunication || _notebookModel.uri.scheme === Schemas.vscodeRemote) {
 			this.configuration = {
-				// Intentionally pick a larger delay for triggering backups to allow auto-save
-				// to complete first on the optimized save path
 				backupDelay: 10000
 			};
 		}
 
-		// Override save behavior to avoid transferring the buffer across the wire 3 times
 		if (saveWithReducedCommunication) {
 			this.setSaveDelegate().catch(error => this._notebookLogService.error('WorkingCopyModel', `Failed to set save delegate: ${error}`));
 		}
 	}
 
 	private async setSaveDelegate() {
-		// make sure we wait for a serializer to resolve before we try to handle saves in the EH
 		await this.getNotebookSerializer();
 
 		this.save = async (options: IWriteFileOptions, token: CancellationToken) => {
@@ -249,7 +242,6 @@ export class NotebookFileWorkingCopyModel extends Disposable implements IStoredF
 					this._notebookLogService.info('WorkingCopyModel', 'No serializer found for notebook model, checking if provider still needs to be resolved');
 					serializer = await this.getNotebookSerializer().catch(error => {
 						this._notebookLogService.error('WorkingCopyModel', `Failed to get notebook serializer: ${error}`);
-						// The serializer was set initially but somehow is no longer available
 						this.save = undefined;
 						throw new NotebookSaveError('Failed to get notebook serializer');
 					});
@@ -354,7 +346,6 @@ export class NotebookFileWorkingCopyModelFactory implements IStoredFileWorkingCo
 	}
 }
 
-//#endregion
 
 class NotebookSaveError extends Error {
 	constructor(message: string) {

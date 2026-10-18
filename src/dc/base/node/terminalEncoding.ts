@@ -3,26 +3,23 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * This code is also used by standalone cli's. Avoid adding dependencies to keep the size of the cli small.
- */
 import { exec } from 'child_process';
 import { isWindows } from '../common/platform.js';
 
 const windowsTerminalEncodings = {
-	'437': 'cp437', // United States
-	'850': 'cp850', // Multilingual(Latin I)
-	'852': 'cp852', // Slavic(Latin II)
-	'855': 'cp855', // Cyrillic(Russian)
-	'857': 'cp857', // Turkish
-	'860': 'cp860', // Portuguese
-	'861': 'cp861', // Icelandic
-	'863': 'cp863', // Canadian - French
-	'865': 'cp865', // Nordic
-	'866': 'cp866', // Russian
-	'869': 'cp869', // Modern Greek
-	'936': 'cp936', // Simplified Chinese
-	'1252': 'cp1252' // West European Latin
+	'437': 'cp437',
+	'850': 'cp850',
+	'852': 'cp852',
+	'855': 'cp855',
+	'857': 'cp857',
+	'860': 'cp860',
+	'861': 'cp861',
+	'863': 'cp863',
+	'865': 'cp865',
+	'866': 'cp866',
+	'869': 'cp869',
+	'936': 'cp936',
+	'1252': 'cp1252'
 };
 
 function toIconvLiteEncoding(encodingName: string): string {
@@ -52,7 +49,6 @@ export async function resolveTerminalEncoding(verbose?: boolean): Promise<string
 		rawEncodingPromise = Promise.resolve(cliEncodingEnv);
 	}
 
-	// Windows: educated guess
 	else if (isWindows) {
 		rawEncodingPromise = new Promise<string | undefined>(resolve => {
 			if (verbose) {
@@ -77,7 +73,6 @@ export async function resolveTerminalEncoding(verbose?: boolean): Promise<string
 			});
 		});
 	}
-	// Linux/Mac: use "locale charmap" command
 	else {
 		rawEncodingPromise = new Promise<string>(resolve => {
 			if (verbose) {

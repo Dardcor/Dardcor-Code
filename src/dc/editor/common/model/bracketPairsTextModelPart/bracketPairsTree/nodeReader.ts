@@ -6,10 +6,6 @@
 import { AstNode } from './ast.js';
 import { lengthAdd, lengthZero, Length, lengthLessThan } from './length.js';
 
-/**
- * Allows to efficiently find a longest child at a given offset in a fixed node.
- * The requested offsets must increase monotonously.
-*/
 export class NodeReader {
 	private readonly nextNodes: AstNode[];
 	private readonly offsets: Length[];
@@ -22,17 +18,12 @@ export class NodeReader {
 		this.idxs = [];
 	}
 
-	/**
-	 * Returns the longest node at `offset` that satisfies the predicate.
-	 * @param offset must be greater than or equal to the last offset this method has been called with!
-	*/
 	readLongestNodeAt(offset: Length, predicate: (node: AstNode) => boolean): AstNode | undefined {
 		if (lengthLessThan(offset, this.lastOffset)) {
 			throw new Error('Invalid offset');
 		}
 		this.lastOffset = offset;
 
-		// Find the longest node of all those that are closest to the current offset.
 		while (true) {
 			const curNode = lastOrUndefined(this.nextNodes);
 
@@ -42,43 +33,32 @@ export class NodeReader {
 			const curNodeOffset = lastOrUndefined(this.offsets)!;
 
 			if (lengthLessThan(offset, curNodeOffset)) {
-				// The next best node is not here yet.
-				// The reader must advance before a cached node is hit.
 				return undefined;
 			}
 
 			if (lengthLessThan(curNodeOffset, offset)) {
-				// The reader is ahead of the current node.
 				if (lengthAdd(curNodeOffset, curNode.length) <= offset) {
-					// The reader is after the end of the current node.
 					this.nextNodeAfterCurrent();
 				} else {
-					// The reader is somewhere in the current node.
 					const nextChildIdx = getNextChildIdx(curNode);
 					if (nextChildIdx !== -1) {
-						// Go to the first child and repeat.
 						this.nextNodes.push(curNode.getChild(nextChildIdx)!);
 						this.offsets.push(curNodeOffset);
 						this.idxs.push(nextChildIdx);
 					} else {
-						// We don't have children
 						this.nextNodeAfterCurrent();
 					}
 				}
 			} else {
-				// readerOffsetBeforeChange === curNodeOffset
 				if (predicate(curNode)) {
 					this.nextNodeAfterCurrent();
 					return curNode;
 				} else {
 					const nextChildIdx = getNextChildIdx(curNode);
-					// look for shorter node
 					if (nextChildIdx === -1) {
-						// There is no shorter node.
 						this.nextNodeAfterCurrent();
 						return undefined;
 					} else {
-						// Descend into first child & repeat.
 						this.nextNodes.push(curNode.getChild(nextChildIdx)!);
 						this.offsets.push(curNodeOffset);
 						this.idxs.push(nextChildIdx);
@@ -88,7 +68,6 @@ export class NodeReader {
 		}
 	}
 
-	// Navigates to the longest node that continues after the current node.
 	private nextNodeAfterCurrent(): void {
 		while (true) {
 			const currentOffset = lastOrUndefined(this.offsets);
@@ -97,11 +76,9 @@ export class NodeReader {
 			this.offsets.pop();
 
 			if (this.idxs.length === 0) {
-				// We just popped the root node, there is no next node.
 				break;
 			}
 
-			// Parent is not undefined, because idxs is not empty
 			const parent = lastOrUndefined(this.nextNodes)!;
 			const nextChildIdx = getNextChildIdx(parent, this.idxs[this.idxs.length - 1]);
 
@@ -113,8 +90,6 @@ export class NodeReader {
 			} else {
 				this.idxs.pop();
 			}
-			// We fully consumed the parent.
-			// Current node is now parent, so call nextNodeAfterCurrent again
 		}
 	}
 }

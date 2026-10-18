@@ -73,24 +73,21 @@ suite('EditorGroupModel', () => {
 	function closeEditors(group: EditorGroupModel, except: EditorInput, direction?: CloseDirection): void {
 		const index = group.indexOf(except);
 		if (index === -1) {
-			return; // not found
+			return;
 		}
 
-		// Close to the left
 		if (direction === CloseDirection.LEFT) {
 			for (let i = index - 1; i >= 0; i--) {
 				group.closeEditor(group.getEditorByIndex(i)!);
 			}
 		}
 
-		// Close to the right
 		else if (direction === CloseDirection.RIGHT) {
 			for (let i = group.getEditors(EditorsOrder.SEQUENTIAL).length - 1; i > index; i--) {
 				group.closeEditor(group.getEditorByIndex(i)!);
 			}
 		}
 
-		// Both directions
 		else {
 			group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).filter(editor => !editor.matches(except)).forEach(editor => group.closeEditor(editor));
 		}
@@ -338,16 +335,13 @@ suite('EditorGroupModel', () => {
 		const input2 = input();
 		const input3 = input();
 
-		// Pinned and Active
 		group.openEditor(input1, { pinned: true, active: true });
 		group.openEditor(input2, { pinned: true, active: true });
 		group.openEditor(input3, { pinned: false, active: true });
 
-		// Sticky
 		group.stick(input2);
 		assert.ok(group.isSticky(input2));
 
-		// Locked
 		assert.strictEqual(group.isLocked, false);
 		group.lock(true);
 		assert.strictEqual(group.isLocked, true);
@@ -355,7 +349,7 @@ suite('EditorGroupModel', () => {
 		const clone = disposables.add(group.clone());
 		assert.notStrictEqual(group.id, clone.id);
 		assert.strictEqual(clone.count, 3);
-		assert.strictEqual(clone.isLocked, false); // locking does not clone over
+		assert.strictEqual(clone.isLocked, false);
 
 		let didEditorLabelChange = false;
 		const toDispose = clone.onDidModelChange((e) => {
@@ -685,7 +679,6 @@ suite('EditorGroupModel', () => {
 		const input2 = input();
 		const input3 = input();
 
-		// Case 1: inputs can be serialized and deserialized
 
 		group.openEditor(input1, { pinned: true, active: true });
 		group.openEditor(input2, { pinned: true, active: true });
@@ -701,7 +694,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(deserialized.isPinned(input3), false);
 		assert.strictEqual(deserialized.isActive(input3), true);
 
-		// Case 2: inputs cannot be serialized
 		TestEditorInputSerializer.disableSerialize = true;
 
 		deserialized = createEditorGroupModel(group.serialize());
@@ -710,7 +702,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(deserialized.getEditors(EditorsOrder.SEQUENTIAL).length, 0);
 		assert.strictEqual(deserialized.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).length, 0);
 
-		// Case 3: inputs cannot be deserialized
 		TestEditorInputSerializer.disableSerialize = false;
 		TestEditorInputSerializer.disableDeserialize = true;
 
@@ -729,7 +720,6 @@ suite('EditorGroupModel', () => {
 		const input2 = input();
 		const input3 = input();
 
-		// Case 1: inputs can be serialized and deserialized
 
 		group.openEditor(input1, { pinned: true, active: true });
 		group.openEditor(input2, { pinned: true, active: true });
@@ -754,7 +744,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(deserialized.isActive(input3), true);
 		assert.strictEqual(deserialized.isSticky(input3), false);
 
-		// Case 2: inputs cannot be serialized
 		TestEditorInputSerializer.disableSerialize = true;
 
 		deserialized = createEditorGroupModel(group.serialize());
@@ -764,7 +753,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(deserialized.getEditors(EditorsOrder.SEQUENTIAL).length, 0);
 		assert.strictEqual(deserialized.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).length, 0);
 
-		// Case 3: inputs cannot be deserialized
 		TestEditorInputSerializer.disableSerialize = false;
 		TestEditorInputSerializer.disableDeserialize = true;
 
@@ -849,7 +837,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.count, 0);
 		assert.strictEqual(group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).length, 0);
 
-		// Active && Pinned
 		const input1 = input();
 		const { editor: openedEditor, isNew } = group.openEditor(input1, { active: true, pinned: true });
 		assert.strictEqual(openedEditor, input1);
@@ -884,7 +871,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(events.closed[0].editorIndex, 0);
 		assert.strictEqual(events.closed[0].context === EditorCloseContext.UNPIN, true);
 
-		// Active && Preview
 		const input2 = input();
 		group.openEditor(input2, { active: true, pinned: false });
 
@@ -915,7 +901,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.activeEditor, null);
 		assert.strictEqual(events.closed[1].editor, input2);
 
-		// Nonactive && Pinned => gets active because its first editor
 		const input3 = input();
 		group.openEditor(input3, { active: false, pinned: true });
 
@@ -944,7 +929,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.activeEditor, null);
 		assert.strictEqual(events.closed[2].editor, input3);
 
-		// Nonactive && Preview => gets active because its first editor
 		const input4 = input();
 		group.openEditor(input4);
 
@@ -974,12 +958,11 @@ suite('EditorGroupModel', () => {
 		const input2 = input('2');
 		const input3 = input('3');
 
-		// Pinned and Active
 		let openedEditorResult = group.openEditor(input1, { pinned: true, active: true });
 		assert.strictEqual(openedEditorResult.editor, input1);
 		assert.strictEqual(openedEditorResult.isNew, true);
 
-		openedEditorResult = group.openEditor(input1Copy, { pinned: true, active: true }); // opening copy of editor should still return existing one
+		openedEditorResult = group.openEditor(input1Copy, { pinned: true, active: true });
 		assert.strictEqual(openedEditorResult.editor, input1);
 		assert.strictEqual(openedEditorResult.isNew, false);
 
@@ -1018,8 +1001,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(mru[1], input2);
 		assert.strictEqual(mru[2], input1);
 
-		// Add some tests where a matching input is used
-		// and verify that events carry the original input
 		const sameInput1 = input('1');
 		group.openEditor(sameInput1, { pinned: true, active: true });
 		assert.strictEqual(events.activated[3].editor, input1);
@@ -1070,7 +1051,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(input3, group.getEditors(EditorsOrder.SEQUENTIAL)[2]);
 
 		const input4 = input();
-		group.openEditor(input4, { pinned: false, active: true }); // this should cause the preview editor to move after input3
+		group.openEditor(input4, { pinned: false, active: true });
 
 		assert.strictEqual(input4, group.getEditors(EditorsOrder.SEQUENTIAL)[2]);
 	});
@@ -1094,7 +1075,6 @@ suite('EditorGroupModel', () => {
 		const input2 = input();
 		const input3 = input();
 
-		// Pinned and Active
 		group.openEditor(input1, { pinned: true, active: true });
 		group.openEditor(input2, { pinned: true, active: true });
 		group.openEditor(input3, { pinned: true, active: true });
@@ -1117,7 +1097,6 @@ suite('EditorGroupModel', () => {
 		const input2 = input();
 		const input3 = input();
 
-		// Pinned and Active
 		group.openEditor(input1, { pinned: true });
 		group.openEditor(input2, { pinned: true });
 		group.openEditor(input3, { pinned: true });
@@ -1150,10 +1129,9 @@ suite('EditorGroupModel', () => {
 		const input2 = input();
 		const input3 = input();
 
-		// Non active, preview
-		group.openEditor(input1); // becomes active, preview
-		group.openEditor(input2); // overwrites preview
-		group.openEditor(input3); // overwrites preview
+		group.openEditor(input1);
+		group.openEditor(input2);
+		group.openEditor(input3);
 
 		assert.strictEqual(group.count, 1);
 		assert.strictEqual(group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).length, 1);
@@ -1244,7 +1222,7 @@ suite('EditorGroupModel', () => {
 		group.unpin(input2);
 
 		assert.strictEqual(group.activeEditor, input3);
-		assert.strictEqual(group.count, 2); // 2 previews got merged into one
+		assert.strictEqual(group.count, 2);
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[0], input2);
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[1], input3);
 		assert.strictEqual(events.closed[0].editor, input1);
@@ -1253,7 +1231,7 @@ suite('EditorGroupModel', () => {
 		group.unpin(input3);
 
 		assert.strictEqual(group.activeEditor, input3);
-		assert.strictEqual(group.count, 1); // pinning replaced the preview
+		assert.strictEqual(group.count, 1);
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[0], input3);
 		assert.strictEqual(events.closed[1].editor, input2);
 		assert.strictEqual(group.count, 1);
@@ -1446,7 +1424,6 @@ suite('EditorGroupModel', () => {
 		group1.openEditor(g1_input2, { active: true, pinned: true });
 		group2.openEditor(g2_input1, { active: true, pinned: true });
 
-		// A move across groups is a close in the one group and an open in the other group at a specific index
 		group2.closeEditor(g2_input1);
 		group1.openEditor(g2_input1, { active: true, pinned: true, index: 1 });
 
@@ -1470,7 +1447,6 @@ suite('EditorGroupModel', () => {
 		group1.openEditor(g1_input3, { active: true, pinned: true });
 		group2.openEditor(g2_input1, { active: true, pinned: true });
 
-		// A move across groups is a close in the one group and an open in the other group at a specific index
 		group2.closeEditor(g2_input1);
 		group1.openEditor(g2_input1, { active: true, pinned: true, index: 0 });
 
@@ -1526,7 +1502,6 @@ suite('EditorGroupModel', () => {
 		group.openEditor(input4, { active: true, pinned: true });
 		group.openEditor(input5, { active: true, pinned: true });
 
-		// Close Others
 		closeEditors(group, group.activeEditor!);
 		assert.strictEqual(group.activeEditor, input5);
 		assert.strictEqual(group.count, 1);
@@ -1539,7 +1514,6 @@ suite('EditorGroupModel', () => {
 		group.openEditor(input5, { active: true, pinned: true });
 		group.setActive(input3);
 
-		// Close Left
 		assert.strictEqual(group.activeEditor, input3);
 		closeEditors(group, group.activeEditor, CloseDirection.LEFT);
 		assert.strictEqual(group.activeEditor, input3);
@@ -1556,7 +1530,6 @@ suite('EditorGroupModel', () => {
 		group.openEditor(input5, { active: true, pinned: true });
 		group.setActive(input3);
 
-		// Close Right
 		assert.strictEqual(group.activeEditor, input3);
 		closeEditors(group, group.activeEditor, CloseDirection.RIGHT);
 		assert.strictEqual(group.activeEditor, input3);
@@ -1569,7 +1542,6 @@ suite('EditorGroupModel', () => {
 	test('Multiple Editors - real user example', function () {
 		const group = createEditorGroupModel();
 
-		// [] -> /index.html/
 		const indexHtml = input('index.html');
 		let openedEditor = group.openEditor(indexHtml).editor;
 		assert.strictEqual(openedEditor, indexHtml);
@@ -1578,7 +1550,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[0], indexHtml);
 		assert.strictEqual(group.count, 1);
 
-		// /index.html/ -> /index.html/
 		const sameIndexHtml = input('index.html');
 		openedEditor = group.openEditor(sameIndexHtml).editor;
 		assert.strictEqual(openedEditor, indexHtml);
@@ -1587,7 +1558,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[0], indexHtml);
 		assert.strictEqual(group.count, 1);
 
-		// /index.html/ -> /style.css/
 		const styleCss = input('style.css');
 		openedEditor = group.openEditor(styleCss).editor;
 		assert.strictEqual(openedEditor, styleCss);
@@ -1596,7 +1566,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[0], styleCss);
 		assert.strictEqual(group.count, 1);
 
-		// /style.css/ -> [/style.css/, test.js]
 		const testJs = input('test.js');
 		openedEditor = group.openEditor(testJs, { active: true, pinned: true }).editor;
 		assert.strictEqual(openedEditor, testJs);
@@ -1608,7 +1577,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[1], testJs);
 		assert.strictEqual(group.count, 2);
 
-		// [/style.css/, test.js] -> [test.js, /index.html/]
 		const indexHtml2 = input('index.html');
 		group.openEditor(indexHtml2, { active: true });
 		assert.strictEqual(group.activeEditor, indexHtml2);
@@ -1619,33 +1587,28 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[1], indexHtml2);
 		assert.strictEqual(group.count, 2);
 
-		// make test.js active
 		const testJs2 = input('test.js');
 		group.setActive(testJs2);
 		assert.strictEqual(group.activeEditor, testJs);
 		assert.strictEqual(group.isActive(testJs2), true);
 		assert.strictEqual(group.count, 2);
 
-		// [test.js, /indexHtml/] -> [test.js, index.html]
 		const indexHtml3 = input('index.html');
 		group.pin(indexHtml3);
 		assert.strictEqual(group.isPinned(indexHtml3), true);
 		assert.strictEqual(group.activeEditor, testJs);
 
-		// [test.js, index.html] -> [test.js, file.ts, index.html]
 		const fileTs = input('file.ts');
 		group.openEditor(fileTs, { active: true, pinned: true });
 		assert.strictEqual(group.isPinned(fileTs), true);
 		assert.strictEqual(group.count, 3);
 		assert.strictEqual(group.activeEditor, fileTs);
 
-		// [test.js, index.html, file.ts] -> [test.js, /file.ts/, index.html]
 		group.unpin(fileTs);
 		assert.strictEqual(group.count, 3);
 		assert.strictEqual(group.isPinned(fileTs), false);
 		assert.strictEqual(group.activeEditor, fileTs);
 
-		// [test.js, /file.ts/, index.html] -> [test.js, /other.ts/, index.html]
 		const otherTs = input('other.ts');
 		group.openEditor(otherTs, { active: true });
 		assert.strictEqual(group.count, 3);
@@ -1654,32 +1617,27 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[1], otherTs);
 		assert.ok(group.getEditors(EditorsOrder.SEQUENTIAL)[2].matches(indexHtml));
 
-		// make index.html active
 		const indexHtml4 = input('index.html');
 		group.setActive(indexHtml4);
 		assert.strictEqual(group.activeEditor, indexHtml2);
 
-		// [test.js, /other.ts/, index.html] -> [test.js, /other.ts/]
 		group.closeEditor(indexHtml);
 		assert.strictEqual(group.count, 2);
 		assert.strictEqual(group.activeEditor, otherTs);
 		assert.ok(group.getEditors(EditorsOrder.SEQUENTIAL)[0].matches(testJs));
 		assert.strictEqual(group.getEditors(EditorsOrder.SEQUENTIAL)[1], otherTs);
 
-		// [test.js, /other.ts/] -> [test.js]
 		group.closeEditor(otherTs);
 		assert.strictEqual(group.count, 1);
 		assert.strictEqual(group.activeEditor, testJs);
 		assert.ok(group.getEditors(EditorsOrder.SEQUENTIAL)[0].matches(testJs));
 
-		// [test.js] -> /test.js/
 		group.unpin(testJs);
 		assert.strictEqual(group.count, 1);
 		assert.strictEqual(group.activeEditor, testJs);
 		assert.ok(group.getEditors(EditorsOrder.SEQUENTIAL)[0].matches(testJs));
 		assert.strictEqual(group.isPinned(testJs), false);
 
-		// /test.js/ -> []
 		group.closeEditor(testJs);
 		assert.strictEqual(group.count, 0);
 		assert.strictEqual(group.activeEditor, null);
@@ -1711,7 +1669,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.previewEditor!.matches(input1), true);
 		assert.strictEqual(group.isActive(input1), true);
 
-		// Create model again - should load from storage
 		group = disposables.add(inst.createInstance(EditorGroupModel, group.serialize()));
 
 		assert.strictEqual(group.count, 1);
@@ -1771,7 +1728,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group2.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE)[1].matches(g2_input3), true);
 		assert.strictEqual(group2.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE)[2].matches(g2_input2), true);
 
-		// Create model again - should load from storage
 		group1 = disposables.add(inst.createInstance(EditorGroupModel, group1.serialize()));
 		group2 = disposables.add(inst.createInstance(EditorGroupModel, group2.serialize()));
 
@@ -1825,7 +1781,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE)[1].matches(serializableInput2), true);
 		assert.strictEqual(group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE)[2].matches(serializableInput1), true);
 
-		// Create model again - should load from storage
 		group = disposables.add(inst.createInstance(EditorGroupModel, group.serialize()));
 
 		assert.strictEqual(group.count, 2);
@@ -1865,7 +1820,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.count, 3);
 		assert.strictEqual(group.stickyCount, 1);
 
-		// Create model again - should load from storage
 		group = disposables.add(inst.createInstance(EditorGroupModel, group.serialize()));
 
 		assert.strictEqual(group.count, 2);
@@ -1900,7 +1854,6 @@ suite('EditorGroupModel', () => {
 
 		group2.openEditor(nonSerializableInput);
 
-		// Create model again - should load from storage
 		group1 = disposables.add(inst.createInstance(EditorGroupModel, group1.serialize()));
 		group2 = disposables.add(inst.createInstance(EditorGroupModel, group2.serialize()));
 
@@ -2039,7 +1992,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).length, 3);
 		assert.strictEqual(group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE, { excludeSticky: true }).length, 3);
 
-		// Stick last editor should move it first and pin
 		group.stick(input3);
 		assert.strictEqual(group.stickyCount, 1);
 		assert.strictEqual(group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE, { excludeSticky: true }).length, 2);
@@ -2065,11 +2017,9 @@ suite('EditorGroupModel', () => {
 		assert.ok(mruEditorsExcludingSticky.indexOf(input1) >= 0);
 		assert.ok(mruEditorsExcludingSticky.indexOf(input2) >= 0);
 
-		// Sticking same editor again is a no-op
 		group.stick(input3);
 		assert.strictEqual(group.isSticky(input3), true);
 
-		// Sticking last editor now should move it after sticky one
 		group.stick(input2);
 		assert.strictEqual(group.stickyCount, 2);
 		assert.strictEqual(group.isSticky(input1), false);
@@ -2090,7 +2040,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(mruEditorsExcludingSticky.length, 1);
 		assert.ok(mruEditorsExcludingSticky.indexOf(input1) >= 0);
 
-		// Sticking remaining editor also works
 		group.stick(input1);
 		assert.strictEqual(group.stickyCount, 3);
 		assert.strictEqual(group.isSticky(input1), true);
@@ -2109,7 +2058,6 @@ suite('EditorGroupModel', () => {
 		mruEditorsExcludingSticky = group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE, { excludeSticky: true });
 		assert.strictEqual(mruEditorsExcludingSticky.length, 0);
 
-		// Unsticking moves editor after sticky ones
 		group.unstick(input3);
 		assert.strictEqual(group.stickyCount, 2);
 		assert.strictEqual(group.isSticky(input1), true);
@@ -2119,7 +2067,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 0);
 		assert.strictEqual(group.indexOf(input3), 2);
 
-		// Unsticking all works
 		group.unstick(input1);
 		group.unstick(input2);
 		assert.strictEqual(group.stickyCount, 0);
@@ -2131,7 +2078,6 @@ suite('EditorGroupModel', () => {
 		group.moveEditor(input2, 1);
 		group.moveEditor(input3, 2);
 
-		// Opening a new editor always opens after sticky editors
 		group.stick(input1);
 		group.stick(input2);
 		group.setActive(input1);
@@ -2152,7 +2098,6 @@ suite('EditorGroupModel', () => {
 
 		assert.strictEqual(events.closed[1].sticky, false);
 
-		// Reset
 		assert.strictEqual(group.stickyCount, 2);
 		assert.strictEqual(group.isSticky(input1), true);
 		assert.strictEqual(group.isSticky(input2), true);
@@ -2161,8 +2106,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 1);
 		assert.strictEqual(group.indexOf(input3), 2);
 
-		// Moving a sticky editor works
-		group.moveEditor(input1, 1); // still moved within sticky range
+		group.moveEditor(input1, 1);
 		assert.strictEqual(group.isSticky(input1), true);
 		assert.strictEqual(group.isSticky(input2), true);
 		assert.strictEqual(group.isSticky(input3), false);
@@ -2170,7 +2114,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 0);
 		assert.strictEqual(group.indexOf(input3), 2);
 
-		group.moveEditor(input1, 0); // still moved within sticky range
+		group.moveEditor(input1, 0);
 		assert.strictEqual(group.isSticky(input1), true);
 		assert.strictEqual(group.isSticky(input2), true);
 		assert.strictEqual(group.isSticky(input3), false);
@@ -2178,7 +2122,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 1);
 		assert.strictEqual(group.indexOf(input3), 2);
 
-		group.moveEditor(input1, 2); // moved out of sticky range//
+		group.moveEditor(input1, 2);
 		assert.strictEqual(group.isSticky(input1), false);
 		assert.strictEqual(group.isSticky(input2), true);
 		assert.strictEqual(group.isSticky(input3), false);
@@ -2186,7 +2130,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 0);
 		assert.strictEqual(group.indexOf(input3), 1);
 
-		group.moveEditor(input2, 2); // moved out of sticky range
+		group.moveEditor(input2, 2);
 		assert.strictEqual(group.isSticky(input1), false);
 		assert.strictEqual(group.isSticky(input2), false);
 		assert.strictEqual(group.isSticky(input3), false);
@@ -2194,7 +2138,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 2);
 		assert.strictEqual(group.indexOf(input3), 0);
 
-		// Reset
 		group.moveEditor(input1, 0);
 		group.moveEditor(input2, 1);
 		group.moveEditor(input3, 2);
@@ -2208,8 +2151,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 1);
 		assert.strictEqual(group.indexOf(input3), 2);
 
-		// Moving a unsticky editor in works
-		group.moveEditor(input3, 1); // still moved within unsticked range
+		group.moveEditor(input3, 1);
 		assert.strictEqual(group.isSticky(input1), true);
 		assert.strictEqual(group.isSticky(input2), false);
 		assert.strictEqual(group.isSticky(input3), false);
@@ -2217,7 +2159,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 2);
 		assert.strictEqual(group.indexOf(input3), 1);
 
-		group.moveEditor(input3, 2); // still moved within unsticked range
+		group.moveEditor(input3, 2);
 		assert.strictEqual(group.isSticky(input1), true);
 		assert.strictEqual(group.isSticky(input2), false);
 		assert.strictEqual(group.isSticky(input3), false);
@@ -2225,7 +2167,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 1);
 		assert.strictEqual(group.indexOf(input3), 2);
 
-		group.moveEditor(input3, 0); // moved into sticky range//
+		group.moveEditor(input3, 0);
 		assert.strictEqual(group.isSticky(input1), true);
 		assert.strictEqual(group.isSticky(input2), false);
 		assert.strictEqual(group.isSticky(input3), true);
@@ -2233,7 +2175,7 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 2);
 		assert.strictEqual(group.indexOf(input3), 0);
 
-		group.moveEditor(input2, 0); // moved into sticky range
+		group.moveEditor(input2, 0);
 		assert.strictEqual(group.isSticky(input1), true);
 		assert.strictEqual(group.isSticky(input2), true);
 		assert.strictEqual(group.isSticky(input3), true);
@@ -2241,7 +2183,6 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(group.indexOf(input2), 0);
 		assert.strictEqual(group.indexOf(input3), 1);
 
-		// Closing a sticky editor updates state properly
 		group.stick(input1);
 		group.stick(input2);
 		group.unstick(input3);
@@ -2256,7 +2197,6 @@ suite('EditorGroupModel', () => {
 		closeAllEditors(group);
 		assert.strictEqual(group.stickyCount, 0);
 
-		// Open sticky
 		group.openEditor(input1, { sticky: true });
 		assert.strictEqual(group.stickyCount, 1);
 		assert.strictEqual(group.isSticky(input1), true);
@@ -2329,7 +2269,6 @@ suite('EditorGroupModel', () => {
 		const input1group2 = input();
 		const input2group2 = input();
 
-		// Open all the editors
 		group1.openEditor(input1group1, { pinned: true, active: true, index: 0 });
 		group1.openEditor(input2group1, { pinned: true, active: false, index: 1 });
 		group2.openEditor(input1group2, { pinned: true, active: true, index: 0 });
@@ -2361,7 +2300,6 @@ suite('EditorGroupModel', () => {
 		const input1group2 = input();
 		const input2group2 = input();
 
-		// Open all the editors
 		group1.openEditor(input1group1, { pinned: true, active: true, index: 0 });
 		group1.openEditor(input2group1, { pinned: true, active: false, index: 1 });
 		group2.openEditor(input1group2, { pinned: true, active: true, index: 0 });
@@ -2387,7 +2325,6 @@ suite('EditorGroupModel', () => {
 		const input2group1 = input();
 		const input3group1 = input();
 
-		// Open all the editors
 		group1.openEditor(input1group1, { pinned: true, active: true, index: 0, sticky: true });
 		group1.openEditor(input2group1, { pinned: true, active: false, index: 1 });
 		group1.openEditor(input3group1, { pinned: true, active: false, index: 2 });
@@ -2404,7 +2341,6 @@ suite('EditorGroupModel', () => {
 		const input2group2 = input();
 		const input3group2 = input();
 
-		// Open all the editors
 		group2.openEditor(input1group2, { pinned: true, active: true, index: 0, sticky: true });
 		group2.openEditor(input2group2, { pinned: true, active: false, index: 1 });
 		group2.openEditor(input3group2, { pinned: true, active: false, index: 2 });
@@ -2432,19 +2368,16 @@ suite('EditorGroupModel', () => {
 		assert.strictEqual(activeEditor, null);
 		assert.strictEqual(selectedEditors.length, 0);
 
-		// active editor: input1, selection: [input1]
 		const input1 = input();
 		group.openEditor(input1, { pinned: true, active: true, index: 0 });
 		assertSelection(group, input1, [input1]);
 
-		// active editor: input3, selection: [input3]
 		const input2 = input();
 		const input3 = input();
 		group.openEditor(input2, { pinned: true, active: true, index: 1 });
 		group.openEditor(input3, { pinned: true, active: true, index: 2 });
 		assertSelection(group, input3, [input3]);
 
-		// active editor: input2, selection: [input1, input2] (in sequential order)
 		group.setSelection(input2, [input1]);
 		assertSelection(group, input2, [input1, input2]);
 	});
@@ -2452,7 +2385,6 @@ suite('EditorGroupModel', () => {
 	test('editor selection: openEditor with inactive selection', () => {
 		const group = createEditorGroupModel();
 
-		// active editor: input3, selection: [input3]
 		const input1 = input();
 		const input2 = input();
 		const input3 = input();
@@ -2460,23 +2392,16 @@ suite('EditorGroupModel', () => {
 		group.openEditor(input2, { pinned: true, active: true, index: 1 });
 		group.openEditor(input3, { pinned: true, active: true, index: 2 });
 
-		// active editor: input2, selection: [input1, input2, input3] (in sequential order)
 		group.openEditor(input2, { active: true, inactiveSelection: [input3, input1] });
 		assertSelection(group, input2, [input1, input2, input3]);
 
-		// active editor: input1, selection: [input1, input3] (in sequential order)
-		// test duplicate entries
 		group.openEditor(input1, { active: true, inactiveSelection: [input3, input1, input3] });
 		assertSelection(group, input1, [input1, input3]);
 
-		// active editor: input1, selection: [input1, input2] (in sequential order)
-		// open new Editor as inactive with selection
 		const input4 = input();
 		group.openEditor(input4, { pinned: true, active: false, inactiveSelection: [input2], index: 3 });
 		assertSelection(group, input1, [input1, input2]);
 
-		// active editor: input5, selection: [input4, input5] (in sequential order)
-		// open new Editor as active with selection
 		const input5 = input();
 		group.openEditor(input5, { pinned: true, active: true, inactiveSelection: [input4], index: 4 });
 		assertSelection(group, input5, [input4, input5]);
@@ -2485,7 +2410,6 @@ suite('EditorGroupModel', () => {
 	test('editor selection: closeEditor keeps selection', () => {
 		const group = createEditorGroupModel();
 
-		// active editor: input3, selection: [input3]
 		const input1 = input();
 		const input2 = input();
 		const input3 = input();
@@ -2501,7 +2425,6 @@ suite('EditorGroupModel', () => {
 	test('editor selection: setSeletion', () => {
 		const group = createEditorGroupModel();
 
-		// active editor: input3, selection: [input3]
 		const input1 = input();
 		const input2 = input();
 		const input3 = input();
@@ -2509,16 +2432,12 @@ suite('EditorGroupModel', () => {
 		group.openEditor(input2, { pinned: true, active: true, index: 1 });
 		group.openEditor(input3, { pinned: true, active: true, index: 2 });
 
-		// active editor: input2, selection: [input1, input2, input3] (in sequential order)
 		group.setSelection(input2, [input3, input1]);
 		assertSelection(group, input2, [input1, input2, input3]);
 
-		// active editor: input3, selection: [input3]
 		group.setSelection(input3, []);
 		assertSelection(group, input3, [input3]);
 
-		// active editor: input2, selection: [input1, input2]
-		// test duplicate entries
 		group.setSelection(input2, [input1, input2, input1]);
 		assertSelection(group, input2, [input1, input2]);
 	});
@@ -2526,7 +2445,6 @@ suite('EditorGroupModel', () => {
 	test('editor selection: isSelected', () => {
 		const group = createEditorGroupModel();
 
-		// active editor: input3, selection: [input3]
 		const input1 = input();
 		const input2 = input();
 		const input3 = input();
@@ -2534,21 +2452,18 @@ suite('EditorGroupModel', () => {
 		group.openEditor(input2, { pinned: true, active: true, index: 1 });
 		group.openEditor(input3, { pinned: true, active: true, index: 2 });
 
-		// active editor: input2, selection: [input1, input2, input3] (in sequential order)
 		group.setSelection(input2, [input3, input1]);
 
 		assert.strictEqual(group.isSelected(input1), true);
 		assert.strictEqual(group.isSelected(input2), true);
 		assert.strictEqual(group.isSelected(input3), true);
 
-		// active editor: input3, selection: [input3]
 		group.setSelection(input3, []);
 
 		assert.strictEqual(group.isSelected(input1), false);
 		assert.strictEqual(group.isSelected(input2), false);
 		assert.strictEqual(group.isSelected(input3), true);
 
-		// use index
 		assert.strictEqual(group.isSelected(0), false);
 		assert.strictEqual(group.isSelected(1), false);
 		assert.strictEqual(group.isSelected(2), true);

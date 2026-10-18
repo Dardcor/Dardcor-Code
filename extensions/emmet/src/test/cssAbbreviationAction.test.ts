@@ -457,8 +457,8 @@ m10
 
 		return withRandomFileEditor(scssContentsNoExpand, 'scss', (editor, _) => {
 			editor.selections = [
-				new Selection(1, 3, 1, 3), // outside rule
-				new Selection(5, 15, 5, 15) // in the value part of property value
+				new Selection(1, 3, 1, 3),
+				new Selection(5, 15, 5, 15)
 			];
 			return expandEmmetAbbreviation(null).then(() => {
 				assert.strictEqual(editor.document.getText(), scssContentsNoExpand);
@@ -479,14 +479,14 @@ m10
 		`;
 
 		return withRandomFileEditor(scssContentsNoExpand, 'scss', (editor, _) => {
-			editor.selection = new Selection(1, 3, 1, 3); // outside rule
+			editor.selection = new Selection(1, 3, 1, 3);
 			const cancelSrc = new CancellationTokenSource();
 			let completionPromise = completionProvider.provideCompletionItems(editor.document, editor.selection.active, cancelSrc.token, invokeCompletionContext);
 			if (completionPromise) {
 				assert.strictEqual(1, 2, `m10 gets expanded in invalid location (outside rule)`);
 			}
 
-			editor.selection = new Selection(5, 15, 5, 15); // in the value part of property value
+			editor.selection = new Selection(5, 15, 5, 15);
 			completionPromise = completionProvider.provideCompletionItems(editor.document, editor.selection.active, cancelSrc.token, invokeCompletionContext);
 			if (completionPromise) {
 				return completionPromise.then((completionList: CompletionList | undefined) => {

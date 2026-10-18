@@ -31,7 +31,7 @@ interface IAPIMenu {
 	readonly id: MenuId;
 	readonly description: string;
 	readonly proposed?: ApiProposalName;
-	readonly supportsSubmenus?: boolean; // defaults to true
+	readonly supportsSubmenus?: boolean;
 }
 
 const apiMenus: IAPIMenu[] = [
@@ -497,7 +497,6 @@ const apiMenus: IAPIMenu[] = [
 		proposed: 'chatSessionsProvider'
 	},
 	{
-		// TODO: rename this to something like: `chatSessions/item/inline`
 		key: 'chat/chatSessions',
 		id: MenuId.AgentSessionsContext,
 		description: localize('menus.chatSessions', "The Chat Sessions menu."),
@@ -562,7 +561,6 @@ const apiMenus: IAPIMenu[] = [
 
 namespace schema {
 
-	// --- menus, submenus contribution point
 
 	export interface IUserFriendlyMenuItem {
 		command: string;
@@ -761,7 +759,6 @@ namespace schema {
 		items: submenu
 	};
 
-	// --- commands contribution point
 
 	export interface IUserFriendlyCommand {
 		command: string;
@@ -945,7 +942,6 @@ commandsExtensionPoint.setHandler(extensions => {
 		}));
 	}
 
-	// remove all previous command registrations
 	_commandRegistrations.clear();
 
 	for (const extension of extensions) {
@@ -1024,7 +1020,7 @@ submenusExtensionPoint.setHandler(extensions => {
 
 const _apiMenusByKey = new Map(apiMenus.map(menu => ([menu.key, menu])));
 const _menuRegistrations = new DisposableStore();
-const _submenuMenuItems = new Map<string /* menu id */, Set<string /* submenu id */>>();
+const _submenuMenuItems = new Map<string , Set<string >>();
 
 const menusExtensionPoint = ExtensionsRegistry.registerExtensionPoint<{ [loc: string]: (schema.IUserFriendlyMenuItem | schema.IUserFriendlySubmenuItem)[] }>({
 	extensionPoint: 'menus',
@@ -1034,7 +1030,6 @@ const menusExtensionPoint = ExtensionsRegistry.registerExtensionPoint<{ [loc: st
 
 menusExtensionPoint.setHandler(extensions => {
 
-	// remove all previous menu registrations
 	_menuRegistrations.clear();
 	_submenuMenuItems.clear();
 
@@ -1129,7 +1124,6 @@ menusExtensionPoint.setHandler(extensions => {
 				}
 
 				if (menu.id === MenuId.ViewContainerTitle && !menuItem.when?.includes('viewContainer == workbench.view.debug')) {
-					// Not a perfect check but enough to communicate that this proposed extension point is currently only for the debug view container
 					collector.error(localize('viewContainerTitle.when', "The {0} menu contribution must check {1} in its {2} clause.", '`viewContainer/title`', '`viewContainer == workbench.view.debug`', '"when"'));
 					continue;
 				}
@@ -1166,7 +1160,6 @@ class CommandsTableRenderer extends Disposable implements IExtensionFeatureTable
 
 		const menus = manifest.contributes?.menus || {};
 
-		// Add to commandPalette array any commands not explicitly contributed to it
 		const implicitlyOnCommandPalette = index(commands, c => c.id);
 		if (menus['commandPalette']) {
 			for (const command of menus['commandPalette']) {
@@ -1186,7 +1179,6 @@ class CommandsTableRenderer extends Disposable implements IExtensionFeatureTable
 		for (const context in menus) {
 			for (const menu of menus[context]) {
 
-				// This typically happens for the commandPalette context
 				if (menu.when === 'false') {
 					continue;
 				}

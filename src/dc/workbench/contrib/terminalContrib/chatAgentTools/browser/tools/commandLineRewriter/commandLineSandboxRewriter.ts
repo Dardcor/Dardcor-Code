@@ -28,7 +28,7 @@ export class CommandLineSandboxRewriter extends Disposable implements ICommandLi
 		return {
 			rewritten: wrappedCommand.command,
 			reasoning: wrappedCommand.requiresAllowNetworkConfirmation ? 'Wrapped command for sandbox execution with unrestricted network access' : wrappedCommand.requiresUnsandboxConfirmation ? 'Switched command to unsandboxed execution because the command includes a domain that is not in the sandbox allowlist' : 'Wrapped command for sandbox execution',
-			forDisplay: options.commandLine, // show the command that is passed as input (after prior rewrites like cd prefix stripping)
+			forDisplay: options.commandLine,
 			isSandboxWrapped: wrappedCommand.isSandboxWrapped,
 			requiresUnsandboxConfirmation: wrappedCommand.requiresUnsandboxConfirmation,
 			requiresAllowNetworkConfirmation: wrappedCommand.requiresAllowNetworkConfirmation,
@@ -37,14 +37,9 @@ export class CommandLineSandboxRewriter extends Disposable implements ICommandLi
 		};
 	}
 
-	/**
-	 * Parses the command line into sandbox command details. If parsing fails,
-	 * wrapping continues with the base sandbox config rather than blocking the command.
-	 */
 	private async _parseCommandDetails(options: ICommandLineRewriterOptions): Promise<ITerminalSandboxCommand[]> {
 		try {
 			if (options.requestUnsandboxedExecution === true) {
-				// if the user is requesting unsandboxed execution, not required to parse the command.
 				return [];
 			}
 			const languageId = isPowerShell(options.shell, options.os)

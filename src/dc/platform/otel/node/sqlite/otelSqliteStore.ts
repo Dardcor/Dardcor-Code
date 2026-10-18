@@ -4,8 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { mkdirSync } from 'fs';
-// The 'node:module' specifier is unresolvable by the Electron renderer
-// ESM loader (used by the unit test harness), so use the bare form.
 import { createRequire } from 'module';
 // eslint-disable-next-line local/code-import-patterns
 import type { DatabaseSync, StatementSync } from 'node:sqlite';
@@ -14,30 +12,18 @@ import { createDecorator } from '../../../instantiation/common/instantiation.js'
 import { CopilotChatAttr, GenAiAttr } from '../../common/genAiAttributes.js';
 import type { ICompletedSpanData } from '../../common/spanData.js';
 
-// `node:sqlite` is currently an experimental Node module and is not
-// reachable via a static `import` under our layer rules (it would also
-// load synchronously on startup). Use createRequire so the binding is
-// only resolved when the store is actually opened.
 const nodeRequire = createRequire(import.meta.url);
 function loadSqlite(): typeof import('node:sqlite') {
 	return nodeRequire('node:sqlite') as typeof import('node:sqlite');
 }
 
-/** Schema version — bump when altering tables so existing DBs get migrated. */
 const SCHEMA_VERSION = 1;
 
-// -- Retention constants ---------------------------------------------------------
 
-/** Max age for span data before cleanup. */
-const DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Max number of sessions (by conversation_id) to retain. */
 const DEFAULT_MAX_SESSIONS = 100;
 
-/**
- * Keys extracted from ICompletedSpanData.attributes and denormalized into the spans table
- * for indexed query access. The key is the SQL column name, the value is the OTel attribute key.
- */
 const DENORMALIZED_ATTRS: Record<string, string> = {
 	operation_name: GenAiAttr.OPERATION_NAME,
 	provider_name: GenAiAttr.PROVIDER_NAME,
@@ -57,11 +43,9 @@ const DENORMALIZED_ATTRS: Record<string, string> = {
 	ttft_ms: CopilotChatAttr.TIME_TO_FIRST_TOKEN,
 };
 
-// -- Service identifier ----------------------------------------------------------
 
 export const IOTelSqliteStore = createDecorator<OTelSqliteStore>('otelSqliteStore');
 
-// -- Row types -------------------------------------------------------------------
 
 export interface SpanRow {
 	span_id: string;
@@ -113,26 +97,12 @@ export interface SessionRow {
 	total_cached_tokens: number;
 }
 
-// -- Store implementation --------------------------------------------------------
 
-/**
- * Always-on SQLite store for OTel span data using node:sqlite DatabaseSync.
- *
- * Consumers call {@link insertSpan} with a serialized completed span; the store
- * persists span attributes and events with denormalized columns for the most
- * common GenAI semconv attributes (so the eval harness can query without joining).
- *
- * - WAL mode + busy_timeout for concurrent read/write safety
- * - Schema versioning with migration table
- * - Lazy initialization (DB created on first write)
- * - Synchronous DatabaseSync API
- */
 export class OTelSqliteStore {
 	declare readonly _serviceBrand: undefined;
 	private _db: DatabaseSync | null = null;
 	private readonly _dbPath: string;
 
-	// Cached prepared statements (created once per DB connection in _ensureDb)
 	private _insertSpanStmt: StatementSync | null = null;
 	private _insertAttrStmt: StatementSync | null = null;
 	private _insertEventStmt: StatementSync | null = null;
@@ -148,9 +118,6 @@ export class OTelSqliteStore {
 		return this._dbPath;
 	}
 
-	/**
-	 * Insert a completed span and its attributes/events into the database.
-	 */
 	insertSpan(span: ICompletedSpanData): void {
 		this._ensureDb();
 
@@ -190,7 +157,7 @@ export class OTelSqliteStore {
 
 			this._commitTx!.run();
 		} catch (err) {
-			try { this._rollbackTx!.run(); } catch { /* ignore */ }
+			try { this._rollbackTx!.run(); } catch { }
 			throw err;
 		}
 	}
@@ -238,10 +205,6 @@ export class OTelSqliteStore {
 			.map(r => r.trace_id);
 	}
 
-	/**
-	 * List all sessions with aggregated metrics, ordered by most recent first.
-	 * Uses the `sessions` SQL view over the spans table.
-	 */
 	getSessions(limit?: number): SessionRow[] {
 		const sql = limit
 			? 'SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?'
@@ -251,10 +214,6 @@ export class OTelSqliteStore {
 			: this._ensureDb().prepare(sql).all() as unknown as SessionRow[];
 	}
 
-	/**
-	 * List sessions within a time window (chronicle-style).
-	 * @param sinceMs Epoch ms — only return sessions that started after this time
-	 */
 	getSessionsSince(sinceMs: number): SessionRow[] {
 		return this._ensureDb().prepare(
 			'SELECT * FROM sessions WHERE started_at >= ? ORDER BY started_at DESC'
@@ -267,11 +226,6 @@ export class OTelSqliteStore {
 		return Number(result.changes);
 	}
 
-	/**
-	 * Checkpoint WAL to flush all pending writes into the main .db file.
-	 * This must be called before copying the .db file, otherwise the copy
-	 * will be missing data that lives only in the -wal file.
-	 */
 	checkpoint(): void {
 		this._ensureDb().exec('PRAGMA wal_checkpoint(TRUNCATE)');
 	}
@@ -289,7 +243,6 @@ export class OTelSqliteStore {
 		}
 	}
 
-	// -- Private ------------------------------------------------------------
 
 	private _attr(span: ICompletedSpanData, attrKey: string): string | number | null {
 		const val = span.attributes[attrKey];
@@ -299,15 +252,6 @@ export class OTelSqliteStore {
 		return val as string | number;
 	}
 
-	/**
-	 * Coalesce TTFT from foreground extension (`copilot_chat.time_to_first_token`, ms)
-	 * and CLI runtime. The CLI runtime historically emitted `github.copilot.time_to_first_chunk`
-	 * (seconds) but is migrating to the OTel GenAI semconv attribute
-	 * `gen_ai.response.time_to_first_chunk` (also seconds). Accept both for forward/backward
-	 * compatibility while the runtime rollout completes.
-	 *
-	 * @see https://github.com/open-telemetry/semantic-conventions/pull/3607 (semconv addition)
-	 */
 	private _ttftMs(span: ICompletedSpanData): number | null {
 		const foreground = this._attr(span, CopilotChatAttr.TIME_TO_FIRST_TOKEN);
 		if (foreground !== null) { return foreground as number; }
@@ -335,8 +279,6 @@ export class OTelSqliteStore {
 			this._ensureSchema();
 			this._prepareStatements(db);
 
-			// Auto-cleanup on startup: remove spans older than 7 days,
-			// then cap to the most recent DEFAULT_MAX_SESSIONS sessions by conversation_id.
 			this._cleanupOnStartup(db);
 		} catch (err) {
 			db.close();
@@ -436,13 +378,9 @@ export class OTelSqliteStore {
 	}
 
 	private _cleanupOnStartup(db: DatabaseSync): void {
-		// 1. Time-based: delete spans older than DEFAULT_MAX_AGE_MS
 		const cutoffMs = Date.now() - DEFAULT_MAX_AGE_MS;
 		db.prepare('DELETE FROM spans WHERE start_time_ms < ?').run(cutoffMs);
 
-		// 2. Session-count cap: keep only the most recent DEFAULT_MAX_SESSIONS sessions.
-		// A "session" is identified by conversation_id (or chat_session_id as fallback).
-		// We find the Nth-newest session's max start_time_ms and delete everything older.
 		const sessionCutoff = db.prepare(`
 			SELECT MIN(max_start) AS cutoff_ms FROM (
 				SELECT MAX(start_time_ms) AS max_start

@@ -11,12 +11,6 @@ export class WindowInactiveError extends FetchBlockedError {
 	}
 }
 
-/**
- * Prevents fetches while the window is inactive by throwing a
- * {@link WindowInactiveError}. Callers that cache the parsed value
- * (e.g. {@link FetchedValue}) will fall back to the last-good value
- * automatically because they handle {@link FetchBlockedError}.
- */
 export function windowActiveMiddleware(provider: WindowStateProvider): FetchMiddleware {
 	return (next) => async (request) => {
 		if (!provider.isActive) {

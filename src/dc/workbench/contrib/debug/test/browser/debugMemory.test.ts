@@ -33,7 +33,7 @@ suite('Debug - Memory', () => {
 		setup(() => {
 			const memoryBuf = new Uint8Array(1024);
 			for (let i = 0; i < memoryBuf.length; i++) {
-				memoryBuf[i] = i; // will be 0-255
+				memoryBuf[i] = i;
 			}
 			memory = VSBuffer.wrap(memoryBuf);
 			invalidateMemoryEmitter = new Emitter();

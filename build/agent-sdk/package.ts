@@ -3,33 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Builds one per-target tarball for one agent SDK. Callable as both a Node
- * library function (`buildOne(...)`) and a thin CLI (the bottom of this file).
- *
- * The library form is what `produce.ts` calls during the per-platform
- * "Agent SDK: build + upload" pipeline step; the CLI form is for local
- * one-off builds during development.
- *
- * Runs on any OS — `npm install` with `npm_config_libc/os/cpu` set fetches
- * the foreign platform's pre-built binary package as-is from the registry,
- * no compilation involved. The tarball is then `tar`'d on whatever host is
- * doing the packaging. Each `(sdk, target)` pair has exactly one producer
- * per pipeline run (no cross-host race), so we don't need byte-identical
- * tarballs across OSes — only across re-runs on the same host, which the
- * same npm install + same tar version produces naturally.
- *
- * SDK version pinning:
- *   - Pinned via repo-root `package.json` devDeps (`getSdkVersion`).
- *   - No `node_modules` package-lock for the scratch install: transitive
- *     drift surfaces at upload time as a sha mismatch against the existing
- *     blob, where a human investigates.
- *
- * Uses node-tar (pure JS) for tar creation rather than system tar so that
- * tarballs produced on a Windows or macOS host have the same shape as ones
- * produced on Linux — same library, same flags, same output bytes given
- * the same input tree.
- */
 
 import { spawnSync } from 'child_process';
 import * as fs from 'fs';
@@ -54,25 +27,12 @@ export interface IBuildArgs {
 	readonly outDir: string;
 }
 
-/**
- * Build one tarball. Copies the SDK's pinned `agents/<sdk>/{package.json,
- * package-lock.json}` into a scratch dir, runs `npm ci` against the
- * lockfile (byte-deterministic dep graph), chmods+normalises+tars the
- * result. Returns the produced `.tgz` path and its sha256.
- *
- * Determinism comes from the lockfile + node-tar's portable mode. Two
- * runs against the same lockfile on different hosts should produce the
- * same bytes — that's what the CDN's HEAD-then-fail upload depends on.
- */
 export async function buildOne(args: IBuildArgs): Promise<IBuildResult> {
 	const { name: packageName, version: sdkVersion } = getAgentMeta(args.sdk);
 	const agentDir = getAgentDir(args.sdk);
 
 	const stagingDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-sdk-pkg-'));
 	try {
-		// Copy the pinned package.json + package-lock.json into the scratch
-		// dir. `npm ci` errors out if a node_modules is already present, so
-		// the scratch dir starts clean.
 		fs.copyFileSync(path.join(agentDir, 'package.json'), path.join(stagingDir, 'package.json'));
 		fs.copyFileSync(path.join(agentDir, 'package-lock.json'), path.join(stagingDir, 'package-lock.json'));
 
@@ -87,14 +47,6 @@ export async function buildOne(args: IBuildArgs): Promise<IBuildResult> {
 
 		const nodeModulesDir = path.join(stagingDir, 'node_modules');
 
-		// The SDK ships its native binary in a per-platform package declared as
-		// an *optional* dependency (e.g. `@openai/codex-linux-x64`). npm does not
-		// fail when an optional dependency can't be installed, so a transient
-		// registry hiccup can leave the base package present but the native
-		// package missing — which would silently produce a binary-less tarball
-		// and upload it to the (immutable, content-addressed) CDN path, failing
-		// only at runtime for end users. Fail loud here instead.
-		// See https://github.com/microsoft/vscode/pull/323881.
 		const missingNativeDep = findMissingNativeOptionalDep(nodeModulesDir, packageName, args.sdkTarget);
 		if (missingNativeDep) {
 			throw new Error(`[${SCRIPT}] npm ci left ${packageName}@${sdkVersion} without its native package '${missingNativeDep}' for target ${args.sdkTarget} — the optional dependency was silently skipped. Refusing to build a binary-less tarball; re-run to re-fetch it.`);
@@ -117,7 +69,6 @@ export async function buildOne(args: IBuildArgs): Promise<IBuildResult> {
 }
 
 function parseTargetTriple(sdkTarget: string): { os: string; cpu: string; libc?: string } {
-	// `darwin-arm64`, `linux-x64`, `linux-x64-musl`, `win32-x64`, …
 	const match = /^([a-z0-9]+)-([a-z0-9]+)(?:-([a-z0-9]+))?$/.exec(sdkTarget);
 	if (!match) {
 		throw new Error(`[${SCRIPT}] Cannot parse target '${sdkTarget}'`);
@@ -127,12 +78,6 @@ function parseTargetTriple(sdkTarget: string): { os: string; cpu: string; libc?:
 }
 
 
-/**
- * Chmod the executable binaries inside a per-SDK extracted node_modules tree.
- * Layout differs per SDK; we don't pretend it's configurable:
- *   - claude: a single top-level `claude` binary per platform package
- *   - codex:  `vendor/<rust-triple>/bin/codex` under the platform package
- */
 function chmodPlatformBinaries(nodeModulesDir: string, sdk: Sdk): void {
 	if (sdk === 'claude') {
 		const scopeDir = path.join(nodeModulesDir, '@anthropic-ai');
@@ -151,7 +96,6 @@ function chmodPlatformBinaries(nodeModulesDir: string, sdk: Sdk): void {
 		return;
 	}
 
-	// codex
 	const scopeDir = path.join(nodeModulesDir, '@openai');
 	if (!fs.existsSync(scopeDir)) {
 		return;
@@ -177,15 +121,6 @@ function chmodPlatformBinaries(nodeModulesDir: string, sdk: Sdk): void {
 }
 
 function npmCi(workDir: string, env: NodeJS.ProcessEnv): void {
-	// `npm ci` instead of `npm install`: installs the EXACT graph from the
-	// committed package-lock.json without resolving versions, which is what
-	// makes the tarball bytes reproducible across pipeline runs.
-	// `--ignore-scripts` blocks any postinstall/preinstall the SDK or its
-	// transitive deps might ship.
-	// On Windows, npm is a `.cmd` shim. Two things matter:
-	//   1. The explicit `.cmd` suffix — Node won't resolve PATHEXT.
-	//   2. `shell: true` — since Node 20 (CVE-2024-27980) child_process
-	//      refuses to spawn .cmd/.bat without it.
 	const isWindows = process.platform === 'win32';
 	const npm = isWindows ? 'npm.cmd' : 'npm';
 	const result = spawnSync(npm, ['ci', '--ignore-scripts'], {
@@ -202,35 +137,21 @@ function npmCi(workDir: string, env: NodeJS.ProcessEnv): void {
 	}
 }
 
-/**
- * Builds the gzipped tar via node-tar. Same library on every host, so the
- * output is consistent regardless of whether GNU/BSD/Windows tar is what
- * the host normally ships.
- */
 async function buildTarball(stagingDir: string, outTgz: string): Promise<void> {
 	await tar.c(
 		{
 			file: outTgz,
 			cwd: stagingDir,
 			gzip: { level: 9 },
-			portable: true, // omit user/group names and similar host-specific metadata
+			portable: true,
 			mtime: new Date(0),
 		},
 		['node_modules'],
 	);
 }
 
-// #region CLI entry point
-//
-// Lets a developer run `node build/agent-sdk/package.ts --sdk=claude
-// --target=darwin-arm64 --out=/tmp/out` to produce one tarball locally.
-// The gulpfile-side packaging uses `buildOne()` directly.
 
 function isCliInvocation(): boolean {
-	// `import.meta.filename` is already a real filesystem path; comparing
-	// it directly to `process.argv[1]` works on Windows (where the
-	// manual `file://${argv}` construction breaks because Node URL-encodes
-	// drive letters and spaces). Pattern matches `build/npm/installStateHash.ts:143`.
 	return import.meta.filename === process.argv[1];
 }
 
@@ -255,4 +176,3 @@ if (isCliInvocation()) {
 	});
 }
 
-// #endregion

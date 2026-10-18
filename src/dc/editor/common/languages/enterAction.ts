@@ -37,7 +37,6 @@ export function getEnterAction(
 	let appendText = enterResult.appendText;
 	const removeText = enterResult.removeText || 0;
 
-	// Here we add `\t` to appendText first because enterAction is leveraging appendText and removeText to change indentation.
 	if (!appendText) {
 		if (
 			(indentAction === IndentAction.Indent) ||

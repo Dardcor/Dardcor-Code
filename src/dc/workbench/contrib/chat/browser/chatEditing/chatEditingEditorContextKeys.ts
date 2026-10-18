@@ -124,7 +124,6 @@ class ContextKeyGroup {
 			this._ctxHasRequestInProgress.set(chatModel?.requestInProgress.read(r) ?? false);
 			this._ctxIsCurrentlyBeingModified.set(!!entry?.isCurrentlyBeingModifiedBy.read(r));
 
-			// number of requests
 			const requestCount = chatModel
 				? observableFromEvent(this, chatModel.onDidChange, () => chatModel.getRequests().length)
 				: constObservable(0);

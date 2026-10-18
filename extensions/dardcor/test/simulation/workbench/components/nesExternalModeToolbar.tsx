@@ -32,7 +32,6 @@ interface FilterParams {
 	showOnlyRanTests: boolean;
 }
 
-/** Adapted from localModeToolbar's useAsyncFilter */
 const useAsyncFilter = (
 	filterParams: FilterParams,
 	debounceMs: number,

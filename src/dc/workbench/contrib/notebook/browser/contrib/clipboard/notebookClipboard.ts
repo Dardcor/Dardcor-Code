@@ -59,7 +59,6 @@ function getFocusedEditor(accessor: ServicesAccessor) {
 		_log(loggerService, '[Revive Webview] Notebook editor backlayer webview is not focused, bypass');
 		return;
 	}
-	// If none of the outputs have focus, then webview is not focused
 	const view = editor.getViewModel();
 	if (view && view.viewCells.every(cell => !cell.outputIsFocused && !cell.outputIsHovered)) {
 		return;
@@ -217,13 +216,11 @@ export function runCutCells(accessor: ServicesAccessor, editor: INotebookEditor,
 	const selections = editor.getSelections();
 
 	if (targetCell) {
-		// from ui
 		const targetCellIndex = editor.getCellIndex(targetCell);
 		const containingSelection = selections.find(selection => selection.start <= targetCellIndex && targetCellIndex < selection.end);
 
 		if (!containingSelection) {
 			clipboardService.writeText(targetCell.getText());
-			// delete cell
 			const focus = editor.getFocus();
 			const newFocus = focus.end <= targetCellIndex ? focus : { start: focus.start - 1, end: focus.end - 1 };
 			const newSelections = selections.map(selection => (selection.end <= targetCellIndex ? selection : { start: selection.start - 1, end: selection.end - 1 }));
@@ -241,7 +238,6 @@ export function runCutCells(accessor: ServicesAccessor, editor: INotebookEditor,
 	const containingSelection = selections.find(selection => selection.start <= focus.start && focus.end <= selection.end);
 
 	if (!containingSelection) {
-		// focus is out of any selection, we should only cut this cell
 		const targetCell = editor.cellAt(focus.start);
 		clipboardService.writeText(targetCell.getText());
 		const newFocus = focus.end === editor.getLength() ? { start: focus.start - 1, end: focus.end - 1 } : focus;
@@ -265,11 +261,6 @@ export function runCutCells(accessor: ServicesAccessor, editor: INotebookEditor,
 	const edits: ICellEditOperation[] = selectionRanges.map(range => ({ editType: CellEditType.Replace, index: range.start, count: range.end - range.start, cells: [] }));
 	const firstSelectIndex = selectionRanges[0].start;
 
-	/**
-	 * If we have cells, 0, 1, 2, 3, 4, 5, 6
-	 * and cells 1, 2 are selected, and then we delete cells 1 and 2
-	 * the new focused cell should still be at index 1
-	 */
 	const newFocusedCellIndex = firstSelectIndex < textModel.cells.length - 1
 		? firstSelectIndex
 		: Math.max(textModel.cells.length - 2, 0);

@@ -83,7 +83,7 @@ suite('PolicyTelemetryContribution', () => {
 		policyService.setPolicy('ChatExtraMarketplaces', '[]');
 		policyService.setPolicy('ChatStrictMarketplaces', '[]');
 		policyService.setPolicy('ChatApprovedAccountOrganizations', '[]');
-		policyService.setPolicy('CopilotOtelEnabled', true);
+		policyService.setPolicy('DardcorOtelEnabled', true);
 		policyService.setPolicy('TelemetryLevel', 'all');
 		policyService.setPolicy('EnableFeedback', false);
 

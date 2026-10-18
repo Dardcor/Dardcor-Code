@@ -26,7 +26,7 @@
 
 .monaco-workbench .terminal-env-var-info {
 	position: absolute;
-	right: 10px; /* room for scroll bar */
+	right: 10px;
 	top: 0;
 	width: 28px;
 	height: 28px;

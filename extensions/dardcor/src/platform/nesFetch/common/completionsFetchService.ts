@@ -19,7 +19,6 @@ export namespace Completions {
 		temperature?: number;
 		presence_penalty?: number;
 		frequency_penalty?: number;
-		// required to access certain experimental models
 		model?: string;
 		logprobs?: number;
 		n?: number;
@@ -80,9 +79,6 @@ export class CompletionsFetchError extends Error {
 
 export const ICompletionsFetchService = createServiceIdentifier<ICompletionsFetchService>('ICompletionsFetchService');
 
-/**
- * OpenAI has completions and _chat_ completions endpoints. This's (non-chat) completions endpoint fetcher.
- */
 export interface ICompletionsFetchService {
 	readonly _serviceBrand: undefined;
 

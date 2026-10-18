@@ -32,9 +32,6 @@ suite('ChatGoalSummaryService', () => {
 		});
 
 		test('keeps and normalizes legitimate summaries', () => {
-			// [rawModelText, expectedGoal]. Includes the meta case of a request that
-			// mentions a refusal but is itself a valid goal, plus imperative phrases
-			// that begin with words appearing inside the refusal pattern.
 			const cases: [string, string | undefined][] = [
 				['Fix the avatar popup bug', 'Fix the avatar popup bug'],
 				['"Add tests for the parser"', 'Add tests for the parser'],

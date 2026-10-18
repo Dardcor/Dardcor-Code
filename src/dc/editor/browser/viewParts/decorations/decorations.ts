@@ -34,7 +34,6 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 		super.dispose();
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -62,12 +61,10 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 	public override onZonesChanged(e: viewEvents.ViewZonesChangedEvent): boolean {
 		return true;
 	}
-	// --- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
 		const _decorations = ctx.getDecorationsInViewport();
 
-		// Keep only decorations with `className`
 		let decorations: ViewModelDecoration[] = [];
 		let decorationsLen = 0;
 		for (let i = 0, len = _decorations.length; i < len; i++) {
@@ -77,7 +74,6 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 			}
 		}
 
-		// Sort decorations for consistent render output
 		decorations = decorations.sort((a, b) => {
 			if (a.options.zIndex! < b.options.zIndex!) {
 				return -1;
@@ -106,7 +102,6 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 			output[lineIndex] = '';
 		}
 
-		// Render first whole line decorations and then regular decorations
 		this._renderWholeLineDecorations(ctx, decorations, output);
 		this._renderNormalDecorations(ctx, decorations, output);
 		this._renderResult = output;
@@ -162,12 +157,10 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 			}
 
 			if (prevClassName === className && prevShowIfCollapsed === showIfCollapsed && Range.areIntersectingOrTouching(prevRange!, range)) {
-				// merge into previous decoration
 				prevRange = Range.plusRange(prevRange!, range);
 				continue;
 			}
 
-			// flush previous decoration
 			if (prevClassName !== null) {
 				this._renderNormalDecoration(ctx, prevRange!, prevClassName, prevShouldFillLineOnLineBreak, prevShowIfCollapsed, visibleStartLineNumber, output);
 			}
@@ -184,7 +177,7 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 	}
 
 	private _renderNormalDecoration(ctx: RenderingContext, range: Range, className: string, shouldFillLineOnLineBreak: boolean, showIfCollapsed: boolean, visibleStartLineNumber: number, output: string[]): void {
-		const linesVisibleRanges = ctx.linesVisibleRangesForRange(range, /*TODO@Alex*/className === 'findMatch');
+		const linesVisibleRanges = ctx.linesVisibleRangesForRange(range, className === 'findMatch');
 		if (!linesVisibleRanges) {
 			return;
 		}
@@ -199,8 +192,6 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 			if (showIfCollapsed && lineVisibleRanges.ranges.length === 1) {
 				const singleVisibleRange = lineVisibleRanges.ranges[0];
 				if (singleVisibleRange.width < this._typicalHalfwidthCharacterWidth) {
-					// collapsed/very small range case => make the decoration visible by expanding its width
-					// expand its size on both sides (both to the left and to the right, keeping it centered)
 					const center = Math.round(singleVisibleRange.left + singleVisibleRange.width / 2);
 					const left = Math.max(0, Math.round(center - this._typicalHalfwidthCharacterWidth / 2));
 					lineVisibleRanges.ranges[0] = new HorizontalRange(left, this._typicalHalfwidthCharacterWidth);

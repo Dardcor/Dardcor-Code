@@ -39,9 +39,6 @@ const enum GlyphStorageBufferInfo {
 	Offset_OriginPosition = 4,
 }
 
-/**
- * The GPU implementation of the ViewLines part.
- */
 export class ViewLinesGpu extends ViewPart implements IViewLines {
 
 	private readonly canvas: HTMLCanvasElement;
@@ -50,10 +47,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 	private _lastViewportData?: ViewportData;
 	private _lastViewLineOptions?: ViewLineOptions;
 
-	/**
-	 * Tracks the maximum line width seen so far for horizontal scrollbar sizing.
-	 * This is needed because GPU-rendered lines don't have DOM nodes to measure.
-	 */
 	private _maxLineWidth: number = 0;
 
 	private _device!: GPUDevice;
@@ -84,8 +77,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 
 		this.canvas = this._viewGpuContext.canvas.domNode;
 
-		// Re-render the following frame after canvas device pixel dimensions change, provided a
-		// new render does not occur.
 		this._register(autorun(reader => {
 			this._viewGpuContext.canvasDevicePixelDimensions.read(reader);
 			const lastViewportData = this._lastViewportData;
@@ -102,7 +93,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 	}
 
 	async initWebgpu() {
-		// #region General
 
 		this._device = ViewGpuContext.deviceSync || await ViewGpuContext.device;
 
@@ -112,7 +102,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 
 		const atlas = ViewGpuContext.atlas;
 
-		// Rerender when the texture atlas deletes glyphs
 		this._register(atlas.onDidDeleteGlyphs(() => {
 			this._atlasGpuTextureVersions.length = 0;
 			this._atlasGpuTextureVersions[0] = 0;
@@ -128,7 +117,7 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 		});
 
 		this._renderPassColorAttachment = {
-			view: null!, // Will be filled at render time
+			view: null!,
 			loadOp: 'load',
 			storeOp: 'store',
 		};
@@ -137,9 +126,7 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 			colorAttachments: [this._renderPassColorAttachment],
 		};
 
-		// #endregion General
 
-		// #region Uniforms
 
 		let layoutInfoUniformBuffer: GPUBuffer;
 		{
@@ -196,9 +183,7 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 			})).object;
 		}
 
-		// #endregion Uniforms
 
-		// #region Storage buffers
 
 		const fontFamily = this._context.configuration.options.get(EditorOption.fontFamily);
 		const fontSize = this._context.configuration.options.get(EditorOption.fontSize);
@@ -209,7 +194,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 
 
 		this._renderStrategy.value = this._instantiationService.createInstance(FullFileRenderStrategy, this._context, this._viewGpuContext, this._device, this._glyphRasterizer as { value: GlyphRasterizer });
-		// this._renderStrategy.value = this._instantiationService.createInstance(ViewportRenderStrategy, this._context, this._viewGpuContext, this._device);
 
 		this._glyphStorageBuffer = this._register(GPULifecycle.createBuffer(this._device, {
 			label: 'Monaco glyph storage buffer',
@@ -230,9 +214,7 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 
 		this._updateAtlasStorageBufferAndTexture();
 
-		// #endregion Storage buffers
 
-		// #region Vertex buffer
 
 		this._vertexBuffer = this._register(GPULifecycle.createBuffer(this._device, {
 			label: 'Monaco vertex buffer',
@@ -240,18 +222,14 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 		}, quadVertices)).object;
 
-		// #endregion Vertex buffer
 
-		// #region Shader module
 
 		const module = this._device.createShaderModule({
 			label: 'Monaco shader module',
 			code: this._renderStrategy.value.wgsl,
 		});
 
-		// #endregion Shader module
 
-		// #region Pipeline
 
 		this._pipeline = this._device.createRenderPipeline({
 			label: 'Monaco render pipeline',
@@ -260,9 +238,9 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 				module,
 				buffers: [
 					{
-						arrayStride: 2 * Float32Array.BYTES_PER_ELEMENT, // 2 floats, 4 bytes each
+						arrayStride: 2 * Float32Array.BYTES_PER_ELEMENT,
 						attributes: [
-							{ shaderLocation: 0, offset: 0, format: 'float32x2' },  // position
+							{ shaderLocation: 0, offset: 0, format: 'float32x2' },
 						],
 					}
 				]
@@ -287,16 +265,13 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 			},
 		});
 
-		// #endregion Pipeline
 
-		// #region Bind group
 
 		this._rebuildBindGroup = () => {
 			this._bindGroup = this._device.createBindGroup({
 				label: 'Monaco bind group',
 				layout: this._pipeline.getBindGroupLayout(0),
 				entries: [
-					// TODO: Pass in generically as array?
 					{ binding: BindingId.GlyphInfo, resource: { buffer: this._glyphStorageBuffer } },
 					{
 						binding: BindingId.TextureSampler, resource: this._device.createSampler({
@@ -314,14 +289,10 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 		};
 		this._rebuildBindGroup();
 
-		// endregion Bind group
 
 		this._initialized = true;
 
-		// Render the initial viewport immediately after initialization
 		if (this._initViewportData) {
-			// HACK: Rendering multiple times in the same frame like this isn't ideal, but there
-			//       isn't an easy way to merge viewport data
 			for (const viewportData of this._initViewportData) {
 				this.renderText(viewportData);
 			}
@@ -360,7 +331,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 				continue;
 			}
 
-			// Skip the update if it's already the latest version
 			if (page.version === this._atlasGpuTextureVersions[layerIndex]) {
 				continue;
 			}
@@ -418,15 +388,7 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 		throw new BugIndicatingError('Should not be called');
 	}
 
-	// #region Event handlers
 
-	// Since ViewLinesGpu currently coordinates rendering to the canvas, it must listen to all
-	// changed events that any GPU part listens to. This is because any drawing to the canvas will
-	// clear it for that frame, so all parts must be rendered every time.
-	//
-	// Additionally, since this is intrinsically linked to ViewLines, it must also listen to events
-	// from that side. Luckily rendering is cheap, it's only when uploaded data changes does it
-	// start to cost.
 
 	override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		this._refreshGlyphRasterizer();
@@ -452,7 +414,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 	override onThemeChanged(e: viewEvents.ViewThemeChangedEvent): boolean { return true; }
 	override onZonesChanged(e: viewEvents.ViewZonesChangedEvent): boolean { return true; }
 
-	// #endregion
 
 	private _refreshGlyphRasterizer() {
 		const glyphRasterizer = this._glyphRasterizer.value;
@@ -497,7 +458,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 		pass.setPipeline(this._pipeline);
 		pass.setVertexBuffer(0, this._vertexBuffer);
 
-		// Only draw the content area
 		const contentLeft = Math.ceil(this._viewGpuContext.contentLeft.get() * this._viewGpuContext.devicePixelRatio.get());
 		pass.setScissorRect(contentLeft, 0, this.canvas.width - contentLeft, this.canvas.height);
 
@@ -514,14 +474,9 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 		this._lastViewportData = viewportData;
 		this._lastViewLineOptions = options;
 
-		// Update max line width for horizontal scrollbar
 		this._updateMaxLineWidth(viewportData, options);
 	}
 
-	/**
-	 * Update the max line width based on GPU-rendered lines.
-	 * This is needed because GPU-rendered lines don't have DOM nodes to measure.
-	 */
 	private _updateMaxLineWidth(viewportData: ViewportData, viewLineOptions: ViewLineOptions): void {
 		const dpr = getActiveWindow().devicePixelRatio;
 		let localMaxLineWidth = 0;
@@ -536,7 +491,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 			localMaxLineWidth = Math.max(localMaxLineWidth, lineWidth);
 		}
 
-		// Only update if we found a larger width (use ceil to match DOM behavior)
 		const iLineWidth = Math.ceil(localMaxLineWidth);
 		if (iLineWidth > this._maxLineWidth) {
 			this._maxLineWidth = iLineWidth;
@@ -544,9 +498,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 		}
 	}
 
-	/**
-	 * Compute the width of a line in CSS pixels.
-	 */
 	private _computeLineWidth(lineData: ViewLineRenderingData, viewLineOptions: ViewLineOptions, dpr: number): number {
 		const content = lineData.content;
 		let contentSegmenter: IContentSegmenter | undefined;
@@ -647,8 +598,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 
 	private _visibleRangesForLineRange(lineNumber: number, startColumn: number, endColumn: number): VisibleRanges | null {
 		if (this.shouldRender()) {
-			// Cannot read from the DOM because it is dirty
-			// i.e. the model & the dom are out of sync, so I'd be reading something stale
 			return null;
 		}
 
@@ -659,7 +608,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 			return null;
 		}
 
-		// Resolve tab widths for this line
 		const lineData = viewportData.getViewLineRenderingData(lineNumber);
 		const content = lineData.content;
 
@@ -707,7 +655,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 			}
 		}
 
-		// Visible horizontal range in _scaled_ pixels
 		const result = new VisibleRanges(false, [new FloatHorizontalRange(
 			resolvedStartColumn * viewLineOptions.spaceWidth + resolvedStartCssPixelOffset,
 			(resolvedEndColumn - resolvedStartColumn) * viewLineOptions.spaceWidth + resolvedEndCssPixelOffset)
@@ -736,7 +683,6 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 		const lineRange = this._visibleRangesForLineRange(lineNumber, 1, lineData.maxColumn);
 		const lastRange = lineRange?.ranges.at(-1);
 		if (lastRange) {
-			// Total line width is the left offset plus width of the last range
 			return lastRange.left + lastRange.width;
 		}
 
@@ -764,19 +710,15 @@ export class ViewLinesGpu extends ViewPart implements IViewLines {
 		for (let x = 0; x < content.length; x++) {
 			const chars = contentSegmenter.getSegmentAtIndex(x);
 
-			// Part of an earlier segment
 			if (chars === undefined) {
 				column++;
 				continue;
 			}
 
-			// Get the width of the character
 			if (chars === '\t') {
-				// Find the pixel offset between the current position and the next tab stop
 				const offsetBefore = x + tabXOffset;
 				tabXOffset = CursorColumns.nextRenderTabStop(x + tabXOffset, lineData.tabSize);
 				charWidth = spaceWidthDevicePixels * (tabXOffset - offsetBefore);
-				// Convert back to offset excluding x and the current character
 				tabXOffset -= x + 1;
 			} else if (lineData.isBasicASCII && this._lastViewLineOptions.useMonospaceOptimizations) {
 				charWidth = spaceWidthDevicePixels;

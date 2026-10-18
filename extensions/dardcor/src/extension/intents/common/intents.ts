@@ -5,9 +5,6 @@
 
 import { defaultAgentName, editingSessionAgentName, editorAgentName, editsAgentName, getChatParticipantNameFromId, terminalAgentName, vscodeAgentName } from '../../../platform/chat/common/chatAgents';
 
-/**
- * Create a mode name for gh telemetry
- */
 export function participantIdToModeName(participantId: string): string {
 	const name = getChatParticipantNameFromId(participantId);
 
@@ -21,7 +18,7 @@ export function participantIdToModeName(participantId: string): string {
 		case editingSessionAgentName:
 			return 'edit';
 		case editorAgentName:
-		case terminalAgentName: // Count terminal and "etc" as 'inline'
+		case terminalAgentName:
 		default:
 			return 'inline';
 	}

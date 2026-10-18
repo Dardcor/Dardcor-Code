@@ -7,12 +7,6 @@ import * as vscode from 'vscode';
 import * as fileSchemes from '../configuration/fileSchemes';
 import { looksLikeAbsoluteWindowsPath } from './fs';
 
-/**
- * Maps of file resources
- *
- * Attempts to handle correct mapping on both case sensitive and case in-sensitive
- * file systems.
- */
 export class ResourceMap<T> {
 
 	private static readonly defaultPathNormalizer = (resource: vscode.Uri): string => {

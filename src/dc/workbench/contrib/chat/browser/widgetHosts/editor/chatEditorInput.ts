@@ -18,7 +18,7 @@ import { IConfigurationService } from '../../../../../../platform/configuration/
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../../../platform/log/common/log.js';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
-import { IProgressService, ProgressLocation } from '../../../../../../platform/progress/common/progress.js';
+import { IProgressService } from '../../../../../../platform/progress/common/progress.js';
 import { IStorageService } from '../../../../../../platform/storage/common/storage.js';
 import { registerIcon } from '../../../../../../platform/theme/common/iconRegistry.js';
 import { IWorkspaceContextService } from '../../../../../../platform/workspace/common/workspace.js';
@@ -26,14 +26,13 @@ import { IAgentHostEnablementService } from '../../../../../../platform/agentHos
 import { EditorInputCapabilities, IEditorIdentifier, IEditorSerializer, IUntypedEditorInput, Verbosity } from '../../../../../common/editor.js';
 import { EditorInput, IEditorCloseHandler } from '../../../../../common/editor/editorInput.js';
 import { IChatModelReference, IChatService } from '../../../common/chatService/chatService.js';
-import { IChatSessionsService, isAgentHostTarget, localChatSessionType } from '../../../common/chatSessionsService.js';
+import { IChatSessionsService, localChatSessionType } from '../../../common/chatSessionsService.js';
 import { ChatAgentLocation, ChatEditorTitleMaxLength, getDefaultNewChatSessionType, getDefaultNewChatSessionTypeAndReasonFromServices, getLocalFallbackSessionTypeSelectionReason, isNewChatSessionTypeUsable } from '../../../common/constants.js';
 import { IChatEditingSession, ModifiedFileEntryState } from '../../../common/editing/chatEditingService.js';
 import { IChatModel } from '../../../common/model/chatModel.js';
 import { LocalChatSessionUri, getChatSessionType, getNewChatSessionResource, isUntitledChatSession } from '../../../common/model/chatUri.js';
 import { IAgentHostConnectionsService } from '../../../../../../platform/agentHost/common/agentHostConnectionsService.js';
-import { adoptLegacyCopilotCliResource, LEGACY_MIGRATION_RESTORE_TIMEOUT_MS } from '../../agentSessions/agentHost/agentHostLegacyMigration.js';
-import { migratedCopilotCliResource } from '../../copilotCliEventsUri.js';
+
 import { IClearEditingSessionConfirmationOptions } from '../../actions/chatActions.js';
 import type { IChatEditorOptions } from './chatEditor.js';
 
@@ -45,11 +44,6 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 
 	private _sessionResource: URI | undefined;
 
-	/**
-	 * Get the uri of the session this editor input is associated with.
-	 *
-	 * This should be preferred over using `resource` directly, as it handles cases where a chat editor becomes a session
-	 */
 	public get sessionResource(): URI | undefined { return this._sessionResource; }
 
 	private didTransferOutEditingSession = false;
@@ -78,9 +72,9 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 		@ILogService private readonly logService: ILogService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IAgentHostEnablementService private readonly agentHostEnablementService: IAgentHostEnablementService,
-		@IAgentHostConnectionsService private readonly agentHostConnectionsService: IAgentHostConnectionsService,
-		@ITelemetryService private readonly telemetryService: ITelemetryService,
-		@IProgressService private readonly progressService: IProgressService,
+		@IAgentHostConnectionsService _agentHostConnectionsService: IAgentHostConnectionsService,
+		@ITelemetryService _telemetryService: ITelemetryService,
+		@IProgressService _progressService: IProgressService,
 	) {
 		super();
 
@@ -134,15 +128,10 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 		return this.instantiationService.createInstance(ChatEditorInput, this.getNewResourceForCopy(), { sessionTypeSelectionReason: 'currentSession' });
 	}
 
-	/**
-	 * A split or duplicate opens a new, empty chat of the same session type as the
-	 * source, falling back to a generic editor URI when that type is unknown or
-	 * cannot start a new session.
-	 */
 	private getNewResourceForCopy(): URI {
 		const sourceType = this._sessionResource ? getChatSessionType(this._sessionResource) : undefined;
 		if (sourceType !== undefined
-			&& (sourceType === localChatSessionType || isAgentHostTarget(sourceType))
+			&& (sourceType === localChatSessionType || false)
 			&& isNewChatSessionTypeUsable(sourceType, this.configurationService, this.chatSessionsService, this.workspaceContextService.getWorkspace(), this.agentHostEnablementService.enabled.get())) {
 			return getNewChatSessionResource(sourceType);
 		}
@@ -162,39 +151,32 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 	}
 
 	override getName(): string {
-		// If we have a resolved model, use its title
 		if (this.model?.title) {
-			// Only truncate if the default title is being used (don't truncate custom titles)
 			return this.model.hasCustomTitle ? this.model.title : truncate(this.model.title, ChatEditorTitleMaxLength);
 		}
 
-		// If we have a sessionId but no resolved model, try to get the title from persisted sessions
 		if (this._sessionResource) {
-			// First try the active session registry
 			const existingSession = this.chatService.getSession(this._sessionResource);
 			if (existingSession?.title) {
 				return existingSession.title;
 			}
 
-			// If not in active registry, try persisted session data
 			const persistedTitle = this.chatService.getSessionTitle(this._sessionResource);
-			if (persistedTitle && persistedTitle.trim()) { // Only use non-empty persisted titles
+			if (persistedTitle && persistedTitle.trim()) {
 				return persistedTitle;
 			}
 		}
 
-		// If a preferred title was provided in options, use it
 		if (this.options.title?.preferred) {
 			return this.options.title.preferred;
 		}
 
-		// Fall back to default naming pattern
 		return this.options.title?.fallback ?? nls.localize('chatEditorName', "Chat");
 	}
 
 	override getTitle(verbosity?: Verbosity): string {
 		const name = this.getName();
-		if (verbosity === Verbosity.LONG) { // Verbosity LONG is used for tooltips
+		if (verbosity === Verbosity.LONG) {
 			const sessionTypeDisplayName = this.getSessionTypeDisplayName();
 			if (sessionTypeDisplayName) {
 				return `${name} | ${sessionTypeDisplayName}`;
@@ -220,12 +202,10 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 			return resolvedIcon;
 		}
 
-		// Fall back to default icon
 		return ChatEditorIcon;
 	}
 
 	private resolveIcon(): ThemeIcon | URI | undefined {
-		// TODO@osortega,@rebornix double check: Chat Session Item icon is reserved for chat session list and deprecated for chat session status. thus here we use session type icon. We may want to show status for the Editor Title.
 		const sessionType = this.getSessionType();
 		if (sessionType !== localChatSessionType) {
 			return this.chatSessionsService.getChatSessionContribution(sessionType)?.icon;
@@ -234,9 +214,6 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 		return undefined;
 	}
 
-	/**
-	 * Returns chat session type from a URI, or {@linkcode localChatSessionType} if not specified or cannot be determined.
-	 */
 	public getSessionType(): string {
 		return getChatSessionType(this._sessionResource ?? this.resource);
 	}
@@ -247,29 +224,6 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 		const inputType = chatSessionType ?? this.resource.authority;
 
 		if (this._sessionResource) {
-			// Restore addresses a session by URI, which for a legacy Copilot CLI
-			// session names the extension-host provider. Redirect (and adopt) here,
-			// since `deserialize` is synchronous and cannot. Only a legacy resource can
-			// redirect, so the progress wrapper is skipped for every normal restore.
-			// Migration is invisible to the user, so the adopt runs under a subtle
-			// status-bar hint rather than a silent wait while the (cold) host settles.
-			if (migratedCopilotCliResource(this._sessionResource)) {
-				const migrated = await this.progressService.withProgress(
-					{ location: ProgressLocation.Window, title: nls.localize('chat.openingSession', "Opening chat…") },
-					() => adoptLegacyCopilotCliResource(
-						this.agentHostConnectionsService.ambientConnection,
-						this._sessionResource!,
-						this.logService,
-						this.configurationService,
-						this.telemetryService,
-						'restore',
-						LEGACY_MIGRATION_RESTORE_TIMEOUT_MS,
-					),
-				);
-				if (migrated) {
-					this._sessionResource = migrated;
-				}
-			}
 			try {
 				this.modelRef.value = await this.chatService.acquireOrLoadSession(this._sessionResource, ChatAgentLocation.Chat, CancellationToken.None, 'ChatEditorInput#resolve', this.options.sessionTypeSelectionReason);
 			} catch (error) {
@@ -300,7 +254,6 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 				}
 			}
 
-			// For local session only, if we find no existing session, create a new one
 			if (!this.model && LocalChatSessionUri.parseLocalSessionId(this._sessionResource)) {
 				this.modelRef.value = this.chatService.startNewLocalSession(ChatAgentLocation.Chat, { canUseTools: true, debugOwner: 'ChatEditorInput#resolveNewLocalSession', sessionTypeSelectionReason: this.options.sessionTypeSelectionReason });
 			}
@@ -338,7 +291,6 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 
 		this._trackModelChanges();
 
-		// Check if icon has changed after model resolution
 		const newIcon = this.resolveIcon();
 		if (newIcon && (!this.cachedIcon || !this.iconsEqual(this.cachedIcon, newIcon))) {
 			this.cachedIcon = newIcon;
@@ -357,10 +309,6 @@ export class ChatEditorInput extends EditorInput implements IEditorCloseHandler 
 			&& getDefaultNewChatSessionType(this.configurationService, this.chatSessionsService, this.storageService, this.workspaceContextService.getWorkspace(), this.agentHostEnablementService.enabled.get(), undefined, this.agentHostEnablementService.managedSandboxEnforced.get()) !== localChatSessionType;
 	}
 
-	/**
-	 * Updates the editor input to track a new model. Called when the widget swaps
-	 * from an untitled session to a real session.
-	 */
 	updateModel(model: IChatModel): void {
 		this._sessionResource = model.sessionResource;
 		this.modelRef.value = this.chatService.acquireExistingSession(model.sessionResource, 'ChatEditorInput#updateModel');
@@ -468,17 +416,13 @@ export class ChatEditorInputSerializer implements IEditorSerializer {
 
 	deserialize(instantiationService: IInstantiationService, serializedEditor: string): EditorInput | undefined {
 		try {
-			// Old inputs have a session id for local session
-			// Use revive to properly restore URIs and other special objects in options.target.data
 			const parsed = revive(JSON.parse(serializedEditor));
 
-			// First if we have a modern session resource, use that
 			if (parsed.sessionResource) {
 				const sessionResource = URI.revive(parsed.sessionResource);
 				return instantiationService.createInstance(ChatEditorInput, sessionResource, parsed.options);
 			}
 
-			// Otherwise check to see if we're a chat editor with a local session id
 			let resource = URI.revive(parsed.resource);
 			if (resource.scheme === Schemas.vscodeChatEditor && parsed.sessionId) {
 				resource = LocalChatSessionUri.forSession(parsed.sessionId);
@@ -494,7 +438,7 @@ export class ChatEditorInputSerializer implements IEditorSerializer {
 export async function showClearEditingSessionConfirmation(model: IChatModel, dialogService: IDialogService, options?: IClearEditingSessionConfirmationOptions): Promise<boolean> {
 	const undecidedEdits = shouldShowClearEditingSessionConfirmation(model, options);
 	if (!undecidedEdits) {
-		return true; // safe to dispose without confirmation
+		return true;
 	}
 
 	const defaultPhrase = nls.localize('chat.startEditing.confirmation.pending.message.default1', "Starting a new chat will end your current edit session.");
@@ -528,10 +472,9 @@ export async function showClearEditingSessionConfirmation(model: IChatModel, dia
 	return Boolean(result);
 }
 
-/** Returns the number of files in the  model's modifications that need a prompt before saving */
 export function shouldShowClearEditingSessionConfirmation(model: IChatModel, options?: IClearEditingSessionConfirmationOptions): number {
 	if (!model.editingSession || (model.willKeepAlive && !options?.isArchiveAction)) {
-		return 0; // safe to dispose without confirmation
+		return 0;
 	}
 
 	const currentEdits = model.editingSession.entries.get();

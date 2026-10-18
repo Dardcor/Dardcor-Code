@@ -6,16 +6,8 @@
 import { IDisposable } from '../../../common/lifecycle.js';
 import { captureGlobalTimeApi, realTimeApi, TimeApi } from './timeApi.js';
 
-/** Cast through `unknown` so we don't widen our typed `TimeApi` shapes to `any`. */
 type AsGlobal<K extends keyof typeof globalThis> = (typeof globalThis)[K];
 
-/**
- * Ensure `fn` carries an `originalFn` back-door pointing at the real
- * (non-virtual) `setTimeout`. We prefer the existing tag on `fn`, then a tag
- * inherited from `previousFn` (which may itself be a wrapper that already
- * carried the back-door), and finally fall back to `realTimeApi.setTimeout`
- * — which has its own `originalFn` set at module load.
- */
 function ensureSetTimeoutOriginalFn(fn: TimeApi['setTimeout'], previousFn: TimeApi['setTimeout']): TimeApi['setTimeout'] {
 	const tagged = fn as TimeApi['setTimeout'] & { originalFn?: TimeApi['setTimeout'] };
 	if (!tagged.originalFn) {
@@ -102,9 +94,4 @@ export function pushGlobalTimeApi(api: TimeApi): IDisposable {
 	};
 }
 
-// One-shot tag on the *real* setTimeout: lets callers (e.g. the
-// component-explorer host's polling loop) escape virtual time even after
-// pushGlobalTimeApi has installed a virtual version on top. The `originalFn`
-// property is not on the `setTimeout` signature by design — it's a back-door
-// convention shared with the polling code.
 (realTimeApi.setTimeout as unknown as { originalFn: TimeApi['setTimeout'] }).originalFn = realTimeApi.setTimeout;

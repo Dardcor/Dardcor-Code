@@ -98,14 +98,11 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 		this._register(fileService.watch(this.extUri.dirname(this.environmentService.argvResource)));
 		this._register(
 			Event.any(
-				/* Locale change */
 				Event.filter(fileService.onDidFilesChange, e => e.contains(this.environmentService.argvResource)),
 				Event.filter(userDataProfileStorageService.onDidChange, e => {
-					/* StorageTarget has changed in profile storage */
 					if (e.targetChanges.some(profile => this.syncResource.profile.id === profile.id)) {
 						return true;
 					}
-					/* User storage data has changed in profile storage */
 					if (e.valueChanges.some(({ profile, changes }) => this.syncResource.profile.id === profile.id && changes.some(change => change.target === StorageTarget.USER))) {
 						return true;
 					}
@@ -118,7 +115,6 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 	protected async generateSyncPreview(remoteUserData: IRemoteUserData, lastSyncUserData: IRemoteUserData | null, isRemoteDataFromCurrentMachine: boolean): Promise<IGlobalStateResourcePreview[]> {
 		const remoteGlobalState: IGlobalState = remoteUserData.syncData ? JSON.parse(remoteUserData.syncData.content) : null;
 
-		// Use remote data as last sync data if last sync data does not exist and remote data is from same machine
 		lastSyncUserData = lastSyncUserData === null && isRemoteDataFromCurrentMachine ? remoteUserData : lastSyncUserData;
 		const lastSyncGlobalState: IGlobalState | null = lastSyncUserData && lastSyncUserData.syncData ? JSON.parse(lastSyncUserData.syncData.content) : null;
 
@@ -175,17 +171,14 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 
 	protected async getAcceptResult(resourcePreview: IGlobalStateResourcePreview, resource: URI, content: string | null | undefined, token: CancellationToken): Promise<IGlobalStateResourceMergeResult> {
 
-		/* Accept local resource */
 		if (this.extUri.isEqual(resource, this.localResource)) {
 			return this.acceptLocal(resourcePreview);
 		}
 
-		/* Accept remote resource */
 		if (this.extUri.isEqual(resource, this.remoteResource)) {
 			return this.acceptRemote(resourcePreview);
 		}
 
-		/* Accept preview resource */
 		if (this.extUri.isEqual(resource, this.previewResource)) {
 			return resourcePreview.previewResult;
 		}
@@ -246,7 +239,6 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 		}
 
 		if (localChange !== Change.None) {
-			// update local
 			this.logService.trace(`${this.syncResourceLogLabel}: Updating local ui state...`);
 			await this.backupLocal(JSON.stringify(localUserData));
 			await this.localGlobalStateProvider.writeLocalGlobalState(local, this.syncResource.profile);
@@ -254,7 +246,6 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 		}
 
 		if (remoteChange !== Change.None) {
-			// update remote
 			this.logService.trace(`${this.syncResourceLogLabel}: Updating remote ui state...`);
 			const content = JSON.stringify({ storage: remote.all });
 			remoteUserData = await this.updateRemoteUserData(content, force ? null : remoteUserData.ref);
@@ -262,7 +253,6 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 		}
 
 		if (lastSyncUserData?.ref !== remoteUserData.ref) {
-			// update last sync
 			this.logService.trace(`${this.syncResourceLogLabel}: Updating last synchronized ui state...`);
 			await this.updateLastSyncUserData(remoteUserData);
 			this.logService.info(`${this.syncResourceLogLabel}: Updated last synchronized ui state`);
@@ -288,7 +278,6 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 				return true;
 			}
 		} catch (error) {
-			/* ignore error */
 		}
 		return false;
 	}
@@ -307,7 +296,6 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 		const unregistered = lastSyncGlobalState?.storage ? Object.keys(lastSyncGlobalState.storage).filter(key => !key.startsWith(argvStoragePrefx) && !registered.includes(key) && storageData.get(key) !== undefined) : [];
 
 		if (!isWeb) {
-			// Following keys are synced only in web. Do not sync these keys in other platforms
 			const keysSyncedOnlyInWeb = [...ALL_SYNC_RESOURCES.map(resource => getEnablementKey(resource)), SYNC_SERVICE_URL_TYPE];
 			unregistered.push(...keysSyncedOnlyInWeb);
 			machine.push(...keysSyncedOnlyInWeb);
@@ -445,7 +433,7 @@ export class GlobalStateInitializer extends AbstractInitializer {
 			} else {
 				const isSharedScope = remoteGlobalState.storage[key].scope === StorageScope.APPLICATION_SHARED;
 				if (isSharedScope && !isDefaultProfile) {
-					continue; // Skip APPLICATION_SHARED keys for non-default profiles
+					continue;
 				}
 				const scope = isSharedScope ? StorageScope.APPLICATION_SHARED : StorageScope.PROFILE;
 				if (this.storageService.get(key, scope) === undefined) {
@@ -514,7 +502,6 @@ export class UserDataSyncStoreTypeSynchronizer {
 		const globalStateUserData = await this.userDataSyncStoreClient.readResource(SyncResource.GlobalState, null, undefined, syncHeaders);
 		const remoteGlobalState = this.parseGlobalState(globalStateUserData) || { storage: {} };
 
-		// Update the sync store type
 		remoteGlobalState.storage[SYNC_SERVICE_URL_TYPE] = { value: userDataSyncStoreType, version: GLOBAL_STATE_DATA_VERSION };
 
 		// Write the global state to remote

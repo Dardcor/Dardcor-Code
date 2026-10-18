@@ -11,64 +11,24 @@ import { IModelContentChange } from './model/mirrorTextModel.js';
 import { AnnotationsUpdate } from './model/tokens/annotations.js';
 import { TextModelEditSource } from './textModelEditSource.js';
 
-/**
- * An event describing that the current language associated with a model has changed.
- */
 export interface IModelLanguageChangedEvent {
-	/**
-	 * Previous language
-	 */
 	readonly oldLanguage: string;
-	/**
-	 * New language
-	 */
 	readonly newLanguage: string;
 
-	/**
-	 * Source of the call that caused the event.
-	 */
 	readonly source: string;
 }
 
-/**
- * An event describing that the language configuration associated with a model has changed.
- */
 export interface IModelLanguageConfigurationChangedEvent {
 }
 
-/**
- * An event describing a change in the text of a model.
- */
 export interface IModelContentChangedEvent {
-	/**
-	 * The changes are ordered from the end of the document to the beginning, so they should be safe to apply in sequence.
-	 */
 	readonly changes: IModelContentChange[];
-	/**
-	 * The (new) end-of-line character.
-	 */
 	readonly eol: string;
-	/**
-	 * The new version id the model has transitioned to.
-	 */
 	readonly versionId: number;
-	/**
-	 * Flag that indicates that this event was generated while undoing.
-	 */
 	readonly isUndoing: boolean;
-	/**
-	 * Flag that indicates that this event was generated while redoing.
-	 */
 	readonly isRedoing: boolean;
-	/**
-	 * Flag that indicates that all decorations were lost with this edit.
-	 * The model has been reset to a new value.
-	 */
 	readonly isFlush: boolean;
 
-	/**
-	 * Flag that indicates that this event describes an eol change.
-	 */
 	readonly isEolChange: boolean;
 
 	/**
@@ -77,43 +37,17 @@ export interface IModelContentChangedEvent {
 	 */
 	readonly detailedReasons: TextModelEditSource[];
 
-	/**
-	 * The sum of these lengths equals changes.length.
-	 * The length of this array must equal the length of detailedReasons.
-	*/
 	readonly detailedReasonsChangeLengths: number[];
 }
 
 export interface ISerializedModelContentChangedEvent {
-	/**
-	 * The changes are ordered from the end of the document to the beginning, so they should be safe to apply in sequence.
-	 */
 	readonly changes: IModelContentChange[];
-	/**
-	 * The (new) end-of-line character.
-	 */
 	readonly eol: string;
-	/**
-	 * The new version id the model has transitioned to.
-	 */
 	readonly versionId: number;
-	/**
-	 * Flag that indicates that this event was generated while undoing.
-	 */
 	readonly isUndoing: boolean;
-	/**
-	 * Flag that indicates that this event was generated while redoing.
-	 */
 	readonly isRedoing: boolean;
-	/**
-	 * Flag that indicates that all decorations were lost with this edit.
-	 * The model has been reset to a new value.
-	 */
 	readonly isFlush: boolean;
 
-	/**
-	 * Flag that indicates that this event describes an eol change.
-	 */
 	readonly isEolChange: boolean;
 
 	/**
@@ -123,9 +57,6 @@ export interface ISerializedModelContentChangedEvent {
 	readonly detailedReason: Record<string, unknown> | undefined;
 }
 
-/**
- * An event describing that model decorations have changed.
- */
 export interface IModelDecorationsChangedEvent {
 	readonly affectsMinimap: boolean;
 	readonly affectsOverviewRuler: boolean;
@@ -140,13 +71,7 @@ export interface IModelDecorationsChangedEvent {
 export interface IModelTokensChangedEvent {
 	readonly semanticTokensApplied: boolean;
 	readonly ranges: {
-		/**
-		 * The start of the range (inclusive)
-		 */
 		readonly fromLineNumber: number;
-		/**
-		 * The end of the range (inclusive)
-		 */
 		readonly toLineNumber: number;
 	}[];
 }
@@ -155,17 +80,8 @@ export interface IModelTokensChangedEvent {
  * @internal
  */
 export interface IFontTokenOption {
-	/**
-	 * Font family of the token.
-	 */
 	readonly fontFamily?: string;
-	/**
-	 * Font size of the token.
-	 */
 	readonly fontSizeMultiplier?: number;
-	/**
-	 * Line height of the token.
-	 */
 	readonly lineHeightMultiplier?: number;
 }
 
@@ -307,13 +223,7 @@ export class LineInjectedText {
  */
 export class ModelRawLineChanged {
 	public readonly changeType = RawContentChangedType.LineChanged;
-	/**
-	 * The line number that has changed (before the change was applied).
-	 */
 	public readonly lineNumber: number;
-	/**
-	 * The new line number the old one is mapped to (after the change was applied).
-	 */
 	public readonly lineNumberPostEdit: number;
 
 	constructor(lineNumber: number, lineNumberPostEdit: number) {
@@ -328,21 +238,9 @@ export class ModelRawLineChanged {
  * @internal
  */
 export class ModelLineHeightChanged {
-	/**
-	 * Editor owner ID
-	 */
 	public readonly ownerId: number;
-	/**
-	 * The decoration ID that has changed.
-	 */
 	public readonly decorationId: string;
-	/**
-	 * The line that has changed.
-	 */
 	public readonly lineNumber: number;
-	/**
-	 * The line height on the line.
-	 */
 	public readonly lineHeightMultiplier: number | null;
 
 	constructor(ownerId: number, decorationId: string, lineNumber: number, lineHeightMultiplier: number | null) {
@@ -358,13 +256,7 @@ export class ModelLineHeightChanged {
  * @internal
  */
 export class ModelFontChanged {
-	/**
-	 * Editor owner ID
-	 */
 	public readonly ownerId: number;
-	/**
-	 * The line that has changed.
-	 */
 	public readonly lineNumber: number;
 
 	constructor(ownerId: number, lineNumber: number) {
@@ -379,17 +271,8 @@ export class ModelFontChanged {
  */
 export class ModelRawLinesDeleted {
 	public readonly changeType = RawContentChangedType.LinesDeleted;
-	/**
-	 * At what line the deletion began (inclusive).
-	 */
 	public readonly fromLineNumber: number;
-	/**
-	 * At what line the deletion stopped (inclusive).
-	 */
 	public readonly toLineNumber: number;
-	/**
-	 * The last unmodified line in the updated buffer after the deletion is made.
-	 */
 	public readonly lastUntouchedLinePostEdit: number;
 
 	constructor(fromLineNumber: number, toLineNumber: number, lastUntouchedLinePostEdit: number) {
@@ -405,27 +288,12 @@ export class ModelRawLinesDeleted {
  */
 export class ModelRawLinesInserted {
 	public readonly changeType = RawContentChangedType.LinesInserted;
-	/**
-	 * Before what line did the insertion begin
-	 */
 	public readonly fromLineNumber: number;
-	/**
-	 * The actual start line number in the updated buffer where the newly inserted content can be found.
-	 */
 	public readonly fromLineNumberPostEdit: number;
-	/**
-	 * The count of inserted lines.
-	*/
 	public readonly count: number;
-	/**
-	 * `toLineNumber` - `fromLineNumber` + 1 denotes the number of lines that were inserted
-	 */
 	public get toLineNumber(): number {
 		return this.fromLineNumber + this.count - 1;
 	}
-	/**
-	 * The actual end line number of the insertion in the updated buffer.
-	 */
 	public get toLineNumberPostEdit(): number {
 		return this.fromLineNumberPostEdit + this.count - 1;
 	}
@@ -457,17 +325,8 @@ export type ModelRawChange = ModelRawFlush | ModelRawLineChanged | ModelRawLines
 export class ModelRawContentChangedEvent {
 
 	public readonly changes: ModelRawChange[];
-	/**
-	 * The new version id the model has transitioned to.
-	 */
 	public readonly versionId: number;
-	/**
-	 * Flag that indicates that this event was generated while undoing.
-	 */
 	public readonly isUndoing: boolean;
-	/**
-	 * Flag that indicates that this event was generated while redoing.
-	 */
 	public readonly isRedoing: boolean;
 
 	public resultingSelection: Selection[] | null;
@@ -578,7 +437,7 @@ export class InternalModelContentChangeEvent {
 		const isUndoing = (a.isUndoing || b.isUndoing);
 		const isRedoing = (a.isRedoing || b.isRedoing);
 		const isFlush = (a.isFlush || b.isFlush);
-		const isEolChange = a.isEolChange && b.isEolChange; // both must be true to not confuse listeners who skip such edits
+		const isEolChange = a.isEolChange && b.isEolChange;
 		return {
 			changes: changes,
 			eol: eol,

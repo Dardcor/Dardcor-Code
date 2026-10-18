@@ -56,11 +56,9 @@ describe('ConversationStore', () => {
 
 		disposeChatSession.fire('session-1');
 
-		// Access before timeout — cancels cleanup entirely
 		vi.advanceTimersByTime(7 * 60 * 1000);
 		expect(store.getConversation('resp-1')).toBe(conv);
 
-		// Advance well past the original timeout — should still exist
 		vi.advanceTimersByTime(30 * 60 * 1000);
 		expect(store.getConversation('resp-1')).toBe(conv);
 	});
@@ -85,11 +83,9 @@ describe('ConversationStore', () => {
 		disposeChatSession.fire('session-1');
 		vi.advanceTimersByTime(7 * 60 * 1000);
 
-		// Late write for the same session — cancels cleanup
 		const conv2 = createConversation('session-1');
 		store.addConversation('resp-2', conv2);
 
-		// Advance well past the original timeout — both should survive
 		vi.advanceTimersByTime(30 * 60 * 1000);
 		expect(store.getConversation('resp-1')).toBe(conv1);
 		expect(store.getConversation('resp-2')).toBe(conv2);

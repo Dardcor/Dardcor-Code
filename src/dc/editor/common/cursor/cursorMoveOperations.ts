@@ -57,25 +57,15 @@ export class MoveOperations {
 		return new CursorPosition(pos.lineNumber, pos.column, 0);
 	}
 
-	/**
-	 * @param noOfColumns Must be either `1`
-	 * or `Math.round(viewModel.getLineContent(viewLineNumber).length / 2)` (for half lines).
-	*/
 	public static moveLeft(config: CursorConfiguration, model: ICursorSimpleModel, cursor: SingleCursorState, inSelectionMode: boolean, noOfColumns: number): SingleCursorState {
 		let lineNumber: number,
 			column: number;
 
 		if (cursor.hasSelection() && !inSelectionMode) {
-			// If the user has a selection and does not want to extend it,
-			// put the cursor at the beginning of the selection.
 			lineNumber = cursor.selection.startLineNumber;
 			column = cursor.selection.startColumn;
 		} else {
-			// This has no effect if noOfColumns === 1.
-			// It is ok to do so in the half-line scenario.
 			const pos = cursor.position.delta(undefined, -(noOfColumns - 1));
-			// We clip the position before normalization, as normalization is not defined
-			// for possibly negative columns.
 			const normalizedPos = model.normalizePosition(MoveOperations.clipPositionColumn(pos, model), PositionAffinity.Left);
 			const p = MoveOperations.left(config, model, normalizedPos);
 
@@ -86,9 +76,6 @@ export class MoveOperations {
 		return cursor.move(inSelectionMode, lineNumber, column, 0);
 	}
 
-	/**
-	 * Adjusts the column so that it is within min/max of the line.
-	*/
 	private static clipPositionColumn(position: Position, model: ICursorSimpleModel): Position {
 		return new Position(
 			position.lineNumber,
@@ -140,7 +127,6 @@ export class MoveOperations {
 			column: number;
 
 		if (cursor.hasSelection() && !inSelectionMode) {
-			// If we are in selection mode, move right without selection cancels selection and puts cursor at the end of the selection
 			lineNumber = cursor.selection.endLineNumber;
 			column = cursor.selection.endColumn;
 		} else {
@@ -205,7 +191,6 @@ export class MoveOperations {
 			column: number;
 
 		if (cursor.hasSelection() && !inSelectionMode) {
-			// If we are in selection mode, move down acts relative to the end of selection
 			lineNumber = cursor.selection.endLineNumber;
 			column = cursor.selection.endColumn;
 		} else {
@@ -250,7 +235,6 @@ export class MoveOperations {
 			column: number;
 
 		if (cursor.hasSelection() && !inSelectionMode) {
-			// If we are in selection mode, move up acts relative to the beginning of selection
 			lineNumber = cursor.selection.startLineNumber;
 			column = cursor.selection.startColumn;
 		} else {
@@ -281,7 +265,6 @@ export class MoveOperations {
 
 	private static _isBlankLine(model: ICursorSimpleModel, lineNumber: number): boolean {
 		if (model.getLineFirstNonWhitespaceColumn(lineNumber) === 0) {
-			// empty or contains only whitespace
 			return true;
 		}
 		return false;
@@ -290,12 +273,10 @@ export class MoveOperations {
 	public static moveToPrevBlankLine(config: CursorConfiguration, model: ICursorSimpleModel, cursor: SingleCursorState, inSelectionMode: boolean): SingleCursorState {
 		let lineNumber = cursor.position.lineNumber;
 
-		// If our current line is blank, move to the previous non-blank line
 		while (lineNumber > 1 && this._isBlankLine(model, lineNumber)) {
 			lineNumber--;
 		}
 
-		// Find the previous blank line
 		while (lineNumber > 1 && !this._isBlankLine(model, lineNumber)) {
 			lineNumber--;
 		}
@@ -307,12 +288,10 @@ export class MoveOperations {
 		const lineCount = model.getLineCount();
 		let lineNumber = cursor.position.lineNumber;
 
-		// If our current line is blank, move to the next non-blank line
 		while (lineNumber < lineCount && this._isBlankLine(model, lineNumber)) {
 			lineNumber++;
 		}
 
-		// Find the next blank line
 		while (lineNumber < lineCount && !this._isBlankLine(model, lineNumber)) {
 			lineNumber++;
 		}

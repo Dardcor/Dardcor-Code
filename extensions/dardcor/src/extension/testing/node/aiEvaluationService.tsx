@@ -14,9 +14,6 @@ import { IInstantiationService } from '../../../util/dardcor/platform/instantiat
 
 export const IAIEvaluationService = createServiceIdentifier<IAIEvaluationService>('IAIEvaluationService');
 
-/**
- * A service used in testing to evaluate if a response meets a given criteria.
- */
 export interface IAIEvaluationService {
 
 	_serviceBrand: undefined;

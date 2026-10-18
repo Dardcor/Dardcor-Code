@@ -33,7 +33,5 @@ export default {
     { id: "veo-2.0-generate-001", name: "Veo 2", params: ["duration","aspect_ratio","negative_prompt","seed","storage_uri"], kind: "video" },
   ],
   serviceKinds: ["llm","imageToText","video"],
-  // Veo via predictLongRunning + fetchPredictOperation (adapter: handlers/videoProviders/vertex.js).
-  // Docs: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/veo-video-generation
   videoConfig: { baseUrl: "https://aiplatform.googleapis.com" },
 };

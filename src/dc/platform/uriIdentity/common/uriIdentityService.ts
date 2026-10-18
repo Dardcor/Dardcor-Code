@@ -36,15 +36,9 @@ export class UriIdentityService implements IUriIdentityService {
 
 		const schemeIgnoresPathCasingCache = new Map<string, boolean>();
 
-		// assume path casing matters unless the file system provider spec'ed the opposite.
-		// for all other cases path casing matters, e.g for
-		// * virtual documents
-		// * in-memory uris
-		// * all kind of "private" schemes
 		const ignorePathCasing = (uri: URI): boolean => {
 			let ignorePathCasing = schemeIgnoresPathCasingCache.get(uri.scheme);
 			if (ignorePathCasing === undefined) {
-				// retrieve once and then case per scheme until a change happens
 				ignorePathCasing = _fileService.hasProvider(uri) && !this._fileService.hasCapability(uri, FileSystemProviderCapabilities.PathCaseSensitive);
 				schemeIgnoresPathCasingCache.set(uri.scheme, ignorePathCasing);
 			}
@@ -82,19 +76,16 @@ export class UriIdentityService implements IUriIdentityService {
 
 	asCanonicalUri(uri: URI): URI {
 
-		// (1) normalize URI
 		if (this._fileService.hasProvider(uri)) {
 			uri = normalizePath(uri);
 		}
 
-		// (2) find the uri in its canonical form or use this uri to define it
 		const uriKey = this.extUri.getComparisonKey(uri, true);
 		const item = this._canonicalUris.get(uriKey);
 		if (item) {
 			return item.touch().uri.with({ fragment: uri.fragment });
 		}
 
-		// this uri is first and defines the canonical form
 		this._canonicalUris.set(uriKey, new Entry(uri));
 		this._checkTrim();
 
@@ -113,9 +104,6 @@ export class UriIdentityService implements IUriIdentityService {
 			times,
 			(a, b) => a - b);
 		for (const [key, entry] of this._canonicalUris.entries()) {
-			// Its important to remove the median value here (<= not <).
-			// If we have not touched any items since the last trim, the
-			// median will be 0 and no items will be removed otherwise.
 			if (entry.time <= median) {
 				this._canonicalUris.delete(key);
 			} else {

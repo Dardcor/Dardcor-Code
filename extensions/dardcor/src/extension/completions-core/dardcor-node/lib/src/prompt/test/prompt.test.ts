@@ -176,42 +176,6 @@ def product(c, d):`
 
 	test('exception telemetry', async function () {
 		this.skip();
-		/* todo@dbaeumer need to understand how we handle exception in chat
-		class TestExceptionTextDocumentManager extends TestTextDocumentManager {
-			override textDocuments() {
-				return Promise.reject(new Error('test error'));
-			}
-		}
-		const tdm = accessor.get(IInstantiationService).createInstance(TestExceptionTextDocumentManager);
-		tdm.setTextDocument('file:///a/1.py', 'python', 'import torch');
-		ctx.forceSet(TextDocumentManager, tdm);
-		NeighborSource.reset();
-
-		const { reporter, enhancedReporter } = await withInMemoryTelemetry(ctx, async ctx => {
-			const document = createTextDocument('file:///a/2.py', 'python', 0, 'import torch');
-			await extractPromptInternal(
-				ctx,
-				'COMPLETION_ID',
-				document,
-				{ line: 0, character: 0 },
-				TelemetryWithExp.createEmptyConfigForTesting()
-			);
-		});
-
-		assert.ok(reporter.hasException);
-		assert.deepStrictEqual(
-			reporter.firstException?.properties?.origin,
-			'PromptComponents.CompletionsPromptFactory'
-		);
-		assert.strictEqual(reporter.exceptions.length, 1);
-
-		assert.ok(enhancedReporter.hasException);
-		assert.deepStrictEqual(
-			enhancedReporter.firstException?.properties?.origin,
-			'PromptComponents.CompletionsPromptFactory'
-		);
-		assert.strictEqual(enhancedReporter.exceptions.length, 1);
-		*/
 	});
 });
 

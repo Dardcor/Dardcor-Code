@@ -16,9 +16,6 @@ function hasModifier(e: { ctrlKey: boolean; shiftKey: boolean; altKey: boolean; 
 	return !!e[modifier];
 }
 
-/**
- * An event that encapsulates the various trigger modifiers logic needed for go to definition.
- */
 export class ClickLinkMouseEvent {
 
 	public readonly target: IMouseTarget;
@@ -40,7 +37,6 @@ export class ClickLinkMouseEvent {
 		this.hasTriggerModifier = hasModifier(source.event, opts.triggerModifier);
 
 		if (this.isMiddleClick && opts.mouseMiddleClickAction === 'ctrlLeftClick') {
-			// Redirect middle click to left click with modifier
 			this.isMiddleClick = false;
 			this.isLeftClick = true;
 			this.hasTriggerModifier = true;
@@ -50,9 +46,6 @@ export class ClickLinkMouseEvent {
 	}
 }
 
-/**
- * An event that encapsulates the various trigger modifiers logic needed for go to definition.
- */
 export class ClickLinkKeyboardEvent {
 
 	public readonly keyCodeIsTriggerKey: boolean;
@@ -113,9 +106,6 @@ function createOptions(multiCursorModifier: 'altKey' | 'ctrlKey' | 'metaKey', mo
 }
 
 export interface IClickLinkGestureOptions {
-	/**
-	 * Return 0 if the mouse event should not be considered.
-	 */
 	extractLineNumberFromMouseEvent?: (e: ClickLinkMouseEvent) => number;
 }
 
@@ -181,7 +171,7 @@ export class ClickLinkGesture extends Disposable {
 
 	private _onDidChangeCursorSelection(e: ICursorSelectionChangedEvent): void {
 		if (e.selection && e.selection.startColumn !== e.selection.endColumn) {
-			this._resetHandler(); // immediately stop this feature if the user starts to select (https://github.com/microsoft/vscode/issues/7827)
+			this._resetHandler();
 		}
 	}
 
@@ -192,10 +182,6 @@ export class ClickLinkGesture extends Disposable {
 	}
 
 	private _onEditorMouseDown(mouseEvent: ClickLinkMouseEvent): void {
-		// We need to record if we had the trigger key on mouse down because someone might select something in the editor
-		// holding the mouse down and then while mouse is down start to press Ctrl/Cmd to start a copy operation and then
-		// release the mouse button without wanting to do the navigation.
-		// With this flag we prevent goto definition if the mouse was down before the trigger key was pressed.
 		this._hasTriggerKeyOnMouseDown = mouseEvent.hasTriggerModifier;
 		this._lineNumberOnMouseDown = this._extractLineNumberFromMouseEvent(mouseEvent);
 	}
@@ -212,13 +198,13 @@ export class ClickLinkGesture extends Disposable {
 		if (
 			this._lastMouseMoveEvent
 			&& (
-				e.keyCodeIsTriggerKey // User just pressed Ctrl/Cmd (normal goto definition)
-				|| (e.keyCodeIsSideBySideKey && e.hasTriggerModifier) // User pressed Ctrl/Cmd+Alt (goto definition to the side)
+				e.keyCodeIsTriggerKey
+				|| (e.keyCodeIsSideBySideKey && e.hasTriggerModifier)
 			)
 		) {
 			this._onMouseMoveOrRelevantKeyDown.fire([this._lastMouseMoveEvent, e]);
 		} else if (e.hasTriggerModifier) {
-			this._onCancel.fire(); // remove decorations if user holds another key with ctrl/cmd to prevent accident goto declaration
+			this._onCancel.fire();
 		}
 	}
 

@@ -3,8 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// WebSocket client transport for connecting to remote agent host processes.
-// Uses plain JSON serialization — URIs are string-typed in the protocol.
 
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
@@ -16,13 +14,7 @@ import type { AhpServerNotification, JsonRpcNotification, JsonRpcRequest, JsonRp
 import type { IClientTransport } from '../common/state/sessionTransport.js';
 import { MALFORMED_FRAMES_FORCE_CLOSE_THRESHOLD, MALFORMED_FRAMES_LOG_CAP } from '../common/transportConstants.js';
 
-// ---- Client transport -------------------------------------------------------
 
-/**
- * A WebSocket client transport that connects to a remote agent host server.
- * Uses the native browser WebSocket API (available in Electron renderer).
- * Implements {@link IClientTransport} with JSON serialization and URI revival.
- */
 export class WebSocketClientTransport extends Disposable implements IClientTransport {
 	readonly clientConnectionKind = AgentHostClientConnectionKind.DirectWebSocket;
 
@@ -38,7 +30,6 @@ export class WebSocketClientTransport extends Disposable implements IClientTrans
 	private _ws: WebSocket | undefined;
 	private _malformedFrames = 0;
 
-	/** Guards against firing onClose more than once. */
 	private _closeFired = false;
 
 	get isOpen(): boolean {
@@ -53,17 +44,12 @@ export class WebSocketClientTransport extends Disposable implements IClientTrans
 		ahpLogOptions: IAhpJsonlLoggerOptions | undefined,
 		@IInstantiationService instantiationService: IInstantiationService,
 	) {
-		// TODO: @osortega remove console.logs
 		super();
 		if (ahpLogOptions) {
 			this._ahpLogger = this._register(instantiationService.createInstance(AhpJsonlLogger, ahpLogOptions));
 		}
 	}
 
-	/**
-	 * Initiate the WebSocket connection. Resolves when the connection
-	 * is open, or rejects on error/timeout.
-	 */
 	connect(): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
 			if (this._store.isDisposed) {
@@ -109,7 +95,6 @@ export class WebSocketClientTransport extends Disposable implements IClientTrans
 			ws.addEventListener('error', onError);
 			ws.addEventListener('close', onClose);
 
-			// Wire up long-lived listeners after connection
 			ws.addEventListener('message', (event: MessageEvent) => {
 				if (typeof event.data !== 'string') {
 					this._malformedFrames++;
@@ -161,8 +146,6 @@ export class WebSocketClientTransport extends Disposable implements IClientTrans
 			});
 
 			ws.addEventListener('error', () => {
-				// Error always precedes close - closing is handled in the close handler.
-				// Only fire if close hasn't already been fired (e.g. from send failure).
 				if (!this._closeFired) {
 					this._closeFired = true;
 					this._onClose.fire();
@@ -171,12 +154,6 @@ export class WebSocketClientTransport extends Disposable implements IClientTrans
 		});
 	}
 
-	/**
-	 * Send a message to the remote end. Returns `true` if the message was
-	 * sent, `false` if it was dropped (socket not open). On failure, the
-	 * transport is force-closed so reconnection is triggered immediately
-	 * rather than silently losing messages.
-	 */
 	send(message: ProtocolMessage | AhpServerNotification | JsonRpcNotification | JsonRpcResponse | JsonRpcRequest): boolean {
 		if (this._ws?.readyState === WebSocket.OPEN) {
 			const text = JSON.stringify(message);
@@ -187,7 +164,6 @@ export class WebSocketClientTransport extends Disposable implements IClientTrans
 		console.warn(
 			`[WebSocketClientTransport] Message dropped: readyState=${this._ws?.readyState ?? 'no-socket'}`
 		);
-		// Force-close and fire onClose exactly once to trigger reconnection
 		this._ws?.close(4001, 'send-on-dead-socket');
 		if (!this._closeFired) {
 			this._closeFired = true;

@@ -54,12 +54,8 @@ export class PanZoomHandler {
 		this.setupEventListeners();
 	}
 
-	/**
-	 * Initializes the pan/zoom state - either restores from saved state or applies the default view.
-	 */
 	public initialize(): void {
 		if (!this.restoreState()) {
-			// Use requestAnimationFrame to ensure layout is updated before resetting the view
 			requestAnimationFrame(() => {
 				this.resetView();
 			});
@@ -67,24 +63,19 @@ export class PanZoomHandler {
 	}
 
 	private setupEventListeners(): void {
-		// Pan with mouse drag
 		this.container.addEventListener('mousedown', e => this.handleMouseDown(e));
 		document.addEventListener('mousemove', e => this.handleMouseMove(e));
 		document.addEventListener('mouseup', () => this.handleMouseUp());
 
-		// Click to zoom (Alt+click = zoom in, Alt+Shift+click = zoom out)
 		this.container.addEventListener('click', e => this.handleClick(e));
 
-		// Trackpad: pinch = zoom, Alt + two-finger scroll = zoom
 		this.container.addEventListener('wheel', e => this.handleWheel(e), { passive: false });
 
-		// Update cursor when Alt/Option key is pressed
 		this.container.addEventListener('mousemove', e => this.updateCursorFromModifier(e));
 		this.container.addEventListener('mouseenter', e => this.updateCursorFromModifier(e));
 		window.addEventListener('keydown', e => this.handleKeyChange(e));
 		window.addEventListener('keyup', e => this.handleKeyChange(e));
 
-		// Reset the view on resize if user hasn't interacted yet
 		window.addEventListener('resize', () => this.handleResize());
 	}
 
@@ -118,7 +109,6 @@ export class PanZoomHandler {
 	}
 
 	private handleClick(e: MouseEvent): void {
-		// Only zoom on click if Alt is held and we didn't drag
 		if (!e.altKey || this.hasDragged) {
 			return;
 		}
@@ -130,23 +120,18 @@ export class PanZoomHandler {
 		const x = e.clientX - rect.left;
 		const y = e.clientY - rect.top;
 
-		// Alt+Shift+click = zoom out, Alt+click = zoom in
 		const factor = e.shiftKey ? 0.8 : 1.25;
 		this.zoomAtPoint(factor, x, y);
 	}
 
 	private handleWheel(e: WheelEvent): void {
-		// Only zoom when Alt is held (or ctrlKey for pinch-to-zoom gestures)
-		// ctrlKey is set by browsers for pinch-to-zoom gestures
 		const isPinchZoom = e.ctrlKey;
 
 		if (!e.altKey && !isPinchZoom) {
-			// Allow normal scrolling when Alt is not held
 			return;
 		}
 
 		if (isPinchZoom || e.altKey) {
-			// Pinch gesture or Alt + two-finger drag = zoom
 			e.preventDefault();
 			e.stopPropagation();
 
@@ -154,13 +139,10 @@ export class PanZoomHandler {
 			const mouseX = e.clientX - rect.left;
 			const mouseY = e.clientY - rect.top;
 
-			// Calculate zoom (scroll up = zoom in, scroll down = zoom out)
-			// Pinch gestures have smaller deltaY values, so use a higher factor
 			const effectiveZoomFactor = isPinchZoom ? this.zoomFactor * 5 : this.zoomFactor;
 			const delta = -e.deltaY * effectiveZoomFactor;
 			const newScale = Math.min(this.maxScale, Math.max(this.minScale, this.scale * (1 + delta)));
 
-			// Zoom toward mouse position
 			const scaleFactor = newScale / this.scale;
 			this.translateX = mouseX - (mouseX - this.translateX) * scaleFactor;
 			this.translateY = mouseY - (mouseY - this.translateY) * scaleFactor;
@@ -189,7 +171,6 @@ export class PanZoomHandler {
 			return;
 		}
 
-		// Handle case where mouse was released outside the webview
 		if (e.buttons === 0) {
 			this.handleMouseUp();
 			return;
@@ -265,7 +246,6 @@ export class PanZoomHandler {
 	}
 
 	private getSvgSize(): Size | undefined {
-		// Get the SVG element inside the content - mermaid renders to an SVG
 		const svg = this.content.querySelector('svg');
 		if (!svg) {
 			return;
@@ -337,14 +317,12 @@ export class PanZoomHandler {
 		this.translateX = 0;
 		this.translateY = 0;
 		this.hasInteracted = false;
-		this.applyTransform(); // Apply scale first so content size is correct
+		this.applyTransform();
 
-		// Clear the saved pan/zoom state
 		const currentState = this.vscode.getState() || {};
 		delete currentState.panZoom;
 		this.vscode.setState(currentState);
 
-		// Use requestAnimationFrame to ensure layout is updated before resetting the view
 		requestAnimationFrame(() => {
 			this.resetView();
 		});
@@ -378,9 +356,6 @@ export class PanZoomHandler {
 	}
 }
 
-/**
- * Unpersisted state
- */
 interface LocalState {
 	readonly mermaidSource: string;
 }
@@ -390,9 +365,6 @@ interface PersistedState {
 	readonly panZoom?: PanZoomState;
 }
 
-/**
- * Re-renders the mermaid diagram when theme changes
- */
 async function rerenderMermaidDiagram(
 	diagramElement: HTMLElement,
 	diagramText: string,
@@ -413,21 +385,18 @@ export async function initializeMermaidWebview(vscode: VsCodeApi, options?: PanZ
 		return;
 	}
 
-	// Capture diagram state
 	const diagramText = diagram.textContent ?? '';
 	const themeTracker = new VsCodeMermaidThemeTracker();
 	const state: LocalState = {
 		mermaidSource: diagramText,
 	};
 
-	// Save the mermaid source in the webview state
 	const currentState: PersistedState = vscode.getState() || {};
 	vscode.setState({
 		...currentState,
 		mermaidSource: diagramText
 	});
 
-	// Wrap the diagram for pan/zoom support
 	const wrapper = document.createElement('div');
 	wrapper.className = 'mermaid-wrapper';
 	wrapper.style.cssText = 'position: relative; width: 100%; height: 100%; overflow: hidden;';
@@ -435,12 +404,10 @@ export async function initializeMermaidWebview(vscode: VsCodeApi, options?: PanZ
 	const content = document.createElement('div');
 	content.className = 'mermaid-content';
 
-	// Move the diagram into the content wrapper
 	diagram.parentNode?.insertBefore(wrapper, diagram);
 	content.appendChild(diagram);
 	wrapper.appendChild(content);
 
-	// Run mermaid using the selected VS Code-themed config
 	const config: MermaidConfig = buildMermaidConfig(loadExtensionConfig(), themeTracker);
 	mermaid.initialize(config);
 	try {
@@ -455,13 +422,11 @@ export async function initializeMermaidWebview(vscode: VsCodeApi, options?: PanZ
 		return;
 	}
 
-	// Show the diagram now that it's rendered
 	diagram.classList.add('rendered');
 
 	const panZoomHandler = new PanZoomHandler(wrapper, content, vscode, options);
 	panZoomHandler.initialize();
 
-	// Listen for messages from the extension
 	window.addEventListener('message', event => {
 		const message = event.data;
 		if (message.type === 'resetPanZoom') {
@@ -469,10 +434,6 @@ export async function initializeMermaidWebview(vscode: VsCodeApi, options?: PanZ
 		}
 	});
 
-	// Re-render when the active VS Code theme changes. The tracker watches DOM mutations on the
-	// body (theme class / data attributes) and the document element (inline CSS variable updates
-	// from `workbench.colorCustomizations`), and only fires when the resolved colors actually
-	// change.
 	themeTracker.onDidChange(() => {
 		const diagramNode = document.querySelector('.mermaid');
 		if (!(diagramNode instanceof HTMLElement)) {

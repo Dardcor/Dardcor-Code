@@ -63,13 +63,11 @@ export class TerminalCommand implements ITerminalCommand {
 		const buffer = xterm.buffer.normal;
 		const marker = serialized.startLine !== undefined ? xterm.registerMarker(serialized.startLine - (buffer.baseY + buffer.cursorY)) : undefined;
 
-		// Check for invalid command
 		if (!marker) {
 			return undefined;
 		}
 		const promptStartMarker = serialized.promptStartLine !== undefined ? xterm.registerMarker(serialized.promptStartLine - (buffer.baseY + buffer.cursorY)) : undefined;
 
-		// Valid full command
 		const endMarker = serialized.endLine !== undefined ? xterm.registerMarker(serialized.endLine - (buffer.baseY + buffer.cursorY)) : undefined;
 		const executedMarker = serialized.executedLine !== undefined ? xterm.registerMarker(serialized.executedLine - (buffer.baseY + buffer.cursorY)) : undefined;
 		const newCommand = new TerminalCommand(xterm, {
@@ -139,8 +137,6 @@ export class TerminalCommand implements ITerminalCommand {
 			if (!line) {
 				continue;
 			}
-			// NOTE: xterm stores wrapping state on the *next* line, not the current one.
-			// Use next line's `isWrapped` to determine whether this line should be joined.
 			const isWrapped = i + 1 < endLine ? !!buffer.getLine(i + 1)?.isWrapped : false;
 			currentLine += line.translateToString(!isWrapped);
 			if (!isWrapped) {
@@ -155,7 +151,6 @@ export class TerminalCommand implements ITerminalCommand {
 	}
 
 	getOutputMatch(outputMatcher: ITerminalOutputMatcher): ITerminalOutputMatch | undefined {
-		// TODO: Add back this check? this._ptyHeuristics.value instanceof WindowsPtyHeuristics && (executedMarker?.line === endMarker?.line) ? this._currentCommand.commandStartMarker : executedMarker
 		if (!this.executedMarker || !this.endMarker) {
 			return undefined;
 		}
@@ -248,15 +243,8 @@ export interface ICurrentPartialCommand {
 
 	command?: string;
 
-	/**
-	 * Whether the command line is trusted via a nonce.
-	 */
 	isTrusted?: boolean;
 
-	/**
-	 * Something invalidated the command before it finished, this will prevent the onCommandFinished
-	 * event from firing.
-	 */
 	isInvalid?: boolean;
 
 	getPromptRowCount(): number;
@@ -293,10 +281,6 @@ export class PartialTerminalCommand implements ICurrentPartialCommand {
 
 	isTrusted?: boolean;
 	isInvalid?: boolean;
-	/**
-	 * Track temporarily if the command was recently cleared, this can be used for marker
-	 * adjustments
-	 */
 	wasCleared?: boolean;
 
 	constructor(
@@ -332,7 +316,6 @@ export class PartialTerminalCommand implements ICurrentPartialCommand {
 	}
 
 	promoteToFullCommand(cwd: string | undefined, exitCode: number | undefined, ignoreCommandLine: boolean, markProperties: IMarkProperties | undefined): TerminalCommand | undefined {
-		// When the command finishes and executed never fires the placeholder selector should be used.
 		if (exitCode === undefined && this.command === undefined) {
 			this.command = '';
 		}
@@ -408,14 +391,10 @@ function extractCommandLine(
 }
 
 function getXtermLineContent(buffer: IBuffer, lineStart: number, lineEnd: number, cols: number): string {
-	// Cap the maximum number of lines generated to prevent potential performance problems. This is
-	// more of a sanity check as the wrapped line should already be trimmed down at this point.
 	const maxLineLength = Math.max(2048 / cols * 2);
 	lineEnd = Math.min(lineEnd, lineStart + maxLineLength);
 	let content = '';
 	for (let i = lineStart; i <= lineEnd; i++) {
-		// Make sure only 0 to cols are considered as resizing when windows mode is enabled will
-		// retain buffer data outside of the terminal width as reflow is disabled.
 		const line = buffer.getLine(i);
 		if (line) {
 			content += line.translateToString(true, 0, cols);
@@ -445,7 +424,6 @@ function getPromptRowCount(command: ITerminalCommand | ICurrentPartialCommand, b
 	}
 	let promptRowCount = 1;
 	let promptStartLine = command.promptStartMarker.line;
-	// Trim any leading whitespace-only lines to retain vertical space
 	while (promptStartLine < marker.line && (buffer.getLine(promptStartLine)?.translateToString(true) ?? '').length === 0) {
 		promptStartLine++;
 	}
@@ -461,7 +439,6 @@ function getCommandRowCount(command: ITerminalCommand | ICurrentPartialCommand):
 	}
 	const commandExecutedLine = Math.max(executedMarker.line, marker.line);
 	let commandRowCount = commandExecutedLine - marker.line + 1;
-	// Trim the last line if the cursor X is in the left-most cell
 	const executedX = isFullTerminalCommand(command) ? command.executedX : command.commandExecutedX;
 	if (executedX === 0) {
 		commandRowCount--;

@@ -10,7 +10,6 @@ import { installAllHandlers } from '../../utils';
 export function setup(logger: Logger) {
 	describe('Language Features', () => {
 
-		// Shared before/after handling
 		installAllHandlers(logger);
 
 		it('verifies quick outline (js)', async function () {

@@ -198,9 +198,6 @@ describe('CustomEndpointBYOKModelProvider', () => {
 		});
 
 		it('uses user-supplied api-key header for bare base URLs without an explicit API path', () => {
-			// URL contains neither /messages, /responses, nor /chat/completions, and is not an
-			// openai.azure host — exercises the path where neither the api-type inference nor the
-			// azure heuristic apply, and verifies the user-supplied auth header still wins.
 			const metadata = makeMetadata(undefined);
 			metadata.requestHeaders = { 'api-key': 'apim-secret' };
 			const endpoint = instaService.createInstance(CustomEndpointOAIEndpoint,
@@ -492,9 +489,6 @@ describe('CustomEndpointBYOKModelProvider', () => {
 		});
 
 		it('still sends default Bearer alongside complementary headers (e.g. Ocp-Apim-Subscription-Key)', () => {
-			// Complementary credentials such as APIM subscription keys or Azure Functions keys
-			// are intentionally excluded from the suppression set — they sit in front of the
-			// backend auth header, not in place of it.
 			const metadata = makeMetadata(undefined);
 			metadata.requestHeaders = { 'Ocp-Apim-Subscription-Key': 'apim-sub-key' };
 			const endpoint = instaService.createInstance(CustomEndpointOAIEndpoint,
@@ -582,10 +576,6 @@ describe('CustomEndpointBYOKModelProvider', () => {
 			});
 		});
 
-		// Regression for https://github.com/microsoft/vscode/issues/312746
-		// Custom endpoints pointed at DeepSeek / Kimi / Moonshot / Minimax must emit
-		// `reasoning_content` on assistant tool-call messages so the next request after
-		// a tool call is not rejected with HTTP 400.
 		it('issue #312746: emits reasoning_content on assistant tool-call message for custom Chat Completions endpoints (DeepSeek/Kimi/Moonshot)', () => {
 			const thinkingMetadata: IChatModelInformation = {
 				...makeMetadata(undefined),

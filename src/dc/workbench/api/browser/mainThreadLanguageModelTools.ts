@@ -22,7 +22,7 @@ export class MainThreadLanguageModelTools extends Disposable implements MainThre
 
 	private readonly _proxy: ExtHostLanguageModelToolsShape;
 	private readonly _tools = this._register(new DisposableMap<string>());
-	private readonly _runningToolCalls = new Map</* call ID */string, {
+	private readonly _runningToolCalls = new Map< string, {
 		countTokens: CountTokensCallback;
 		progress: ToolProgress;
 	}>();
@@ -67,7 +67,6 @@ export class MainThreadLanguageModelTools extends Disposable implements MainThre
 			token ?? CancellationToken.None,
 		);
 
-		// Only return content and metadata to EH
 		const out: Dto<IToolResult> = {
 			content: result.content,
 			toolMetadata: result.toolMetadata,
@@ -122,7 +121,6 @@ export class MainThreadLanguageModelTools extends Disposable implements MainThre
 			}
 		}
 
-		// Convert source from DTO, matching the isBuiltinTool logic from languageModelToolsContribution
 		const isBuiltinTool = this._productService.defaultChatAgent?.chatExtensionId
 			? ExtensionIdentifier.equals(extensionId, this._productService.defaultChatAgent.chatExtensionId)
 			: false;
@@ -130,7 +128,6 @@ export class MainThreadLanguageModelTools extends Disposable implements MainThre
 			? ToolDataSource.Internal
 			: revive<ToolDataSource>(definition.source);
 
-		// Create the tool data
 		const toolData: IToolData = {
 			id: definition.id,
 			displayName: definition.displayName,
@@ -146,7 +143,6 @@ export class MainThreadLanguageModelTools extends Disposable implements MainThre
 			canBeReferencedInPrompt: !!definition.userDescription && !definition.toolSet,
 		};
 
-		// Register both tool data and implementation
 		const id = definition.id;
 		const store = new DisposableStore();
 		store.add(this._languageModelToolsService.registerTool(

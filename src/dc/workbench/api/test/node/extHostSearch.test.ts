@@ -254,7 +254,7 @@ suite('ExtHostSearch', () => {
 						function onCancel() {
 							cancelRequested = true;
 
-							resolve([joinPath(options.folder, 'file1.ts')]); // or reject or nothing?
+							resolve([joinPath(options.folder, 'file1.ts')]);
 						}
 
 						if (token.isCancellationRequested) {
@@ -304,7 +304,6 @@ suite('ExtHostSearch', () => {
 				await runFileSearch(getSimpleQuery());
 				assert(false, 'Expected to fail');
 			} catch {
-				// Expected to throw
 			}
 		});
 
@@ -456,7 +455,6 @@ suite('ExtHostSearch', () => {
 				]);
 		});
 
-		// https://github.com/microsoft/vscode-remotehub/issues/255
 		test('include, sibling exclude, and subfolder', async () => {
 			const reportedResults = [
 				'foo/file1.ts',
@@ -674,7 +672,6 @@ suite('ExtHostSearch', () => {
 				async provideFileSearchResults(query: vscode.FileSearchQuery, options: vscode.FileSearchOptions, token: vscode.CancellationToken): Promise<URI[]> {
 					disposables.add(token.onCancellationRequested(() => cancels++));
 
-					// Provice results async so it has a chance to invoke every provider
 					await new Promise(r => process.nextTick(r));
 					return [
 						'file1.ts',
@@ -701,7 +698,7 @@ suite('ExtHostSearch', () => {
 			};
 
 			const { results } = await runFileSearch(query);
-			assert.strictEqual(results.length, 2); // Don't care which 2 we got
+			assert.strictEqual(results.length, 2);
 			assert.strictEqual(cancels, 2, 'Expected all invocations to be canceled when hitting limit');
 		});
 
@@ -789,7 +786,6 @@ suite('ExtHostSearch', () => {
 		function assertResults(actual: IFileMatch[], expected: vscode.TextSearchResult[]) {
 			const actualTextSearchResults: vscode.TextSearchResult[] = [];
 			for (const fileMatch of actual) {
-				// Make relative
 				for (const lineResult of fileMatch.results!) {
 					if (resultIsMatch(lineResult)) {
 						actualTextSearchResults.push({
@@ -828,7 +824,7 @@ suite('ExtHostSearch', () => {
 					range: mapArrayOrNot(r.ranges, rangeToString),
 					preview: {
 						text: r.preview.text,
-						match: null // Don't care about this right now
+						match: null
 					}
 				} : {
 					uri: r.uri.toString(),
@@ -996,7 +992,6 @@ suite('ExtHostSearch', () => {
 				await runTextSearch(getSimpleQuery('foo'));
 				assert(false, 'Expected to fail');
 			} catch {
-				// expected to fail
 			}
 		});
 

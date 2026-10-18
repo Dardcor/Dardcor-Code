@@ -45,7 +45,6 @@ export interface IChatPetWidgetHost {
 	readonly onDidChangePlatform: Event<void>;
 }
 
-/** The layer the pet is positioned in, spanning its host. */
 export const CHAT_PET_OVERLAY_CLASS = 'chat-pet-overlay';
 const CHAT_PET_RUN_LAYER_CLASS = 'chat-pet-run-layer';
 
@@ -1075,7 +1074,6 @@ export function getChatPetPillPlatformTop(petCenterX: number, pillBounds: readon
 	return undefined;
 }
 
-/** Top of the topmost surface showing above the input, else the input's own top. */
 export function getChatPetStackPlatformTop(container: HTMLElement, inputContainer: HTMLElement, startAfter?: Element): number {
 	const inputTop = inputContainer.getBoundingClientRect().top;
 	let current = container;
@@ -1086,7 +1084,6 @@ export function getChatPetStackPlatformTop(container: HTMLElement, inputContaine
 		let nestedContainer: HTMLElement | undefined;
 		for (let index = startIndex; index < children.length; index++) {
 			const child = children[index];
-			// The pet's own overlay spans the host, so it is never a platform.
 			if (!dom.isHTMLElement(child) || child.classList.contains(CHAT_PET_OVERLAY_CLASS)) {
 				continue;
 			}

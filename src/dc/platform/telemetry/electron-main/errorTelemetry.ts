@@ -17,7 +17,6 @@ export default class ErrorTelemetry extends BaseErrorTelemetry {
 	}
 
 	protected override installErrorListeners(): void {
-		// We handle uncaught exceptions here to prevent electron from opening a dialog to the user
 		setUnexpectedErrorHandler(error => this.onUnexpectedError(error));
 
 		process.on('uncaughtException', error => {

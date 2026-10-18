@@ -9,9 +9,6 @@ import { ICellViewModel } from '../../browser/notebookBrowser.js';
 import { CellKind } from '../../common/notebookCommon.js';
 import { ICellRange } from '../../common/notebookRange.js';
 
-/**
- * Return a set of ranges for the cells matching the given predicate
- */
 function getRanges(cells: ICellViewModel[], included: (cell: ICellViewModel) => boolean): ICellRange[] {
 	const ranges: ICellRange[] = [];
 	let currentRange: ICellRange | undefined;

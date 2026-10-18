@@ -73,7 +73,6 @@ export class LanguageDetectionService extends Disposable implements ILanguageDet
 			languageService,
 			telemetryService,
 			webWorkerService,
-			// TODO See if it's possible to bundle vscode-languagedetection
 			useAsar
 				? FileAccess.asBrowserUri(`${moduleLocationAsar}/dist/lib/index.js`).toString(true)
 				: FileAccess.asBrowserUri(`${moduleLocation}/dist/lib/index.js`).toString(true),
@@ -118,7 +117,6 @@ export class LanguageDetectionService extends Disposable implements ILanguageDet
 
 		const biases: Record<string, number> = {};
 
-		// Give different weight to the biases depending on relevance of source
 		this.sessionOpenedLanguageIds.forEach(lang =>
 			biases[lang] = (biases[lang] ?? 0) + 7);
 
@@ -151,8 +149,6 @@ export class LanguageDetectionService extends Disposable implements ILanguageDet
 		return this._languageDetectionWorkerClient.detectLanguage(resource, biases, preferHistory, supportedLangs);
 	}
 
-	// TODO: explore using the history service or something similar to provide this list of opened editors
-	// so this service can support delayed instantiation. This may be tricky since it seems the IHistoryService
 	// only gives history for a workspace... where this takes advantage of history at a global level as well.
 	private initEditorOpenedListeners(storageService: IStorageService) {
 		try {
@@ -304,5 +300,4 @@ export class LanguageDetectionWorkerClient extends Disposable {
 	}
 }
 
-// For now we use Eager until we handle keeping track of history better.
 registerSingleton(ILanguageDetectionService, LanguageDetectionService, InstantiationType.Eager);

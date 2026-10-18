@@ -6,15 +6,6 @@
 import { useState } from 'react';
 import * as simulationStorage from './simulationStorage';
 
-/**
- * A hook that returns a stateful value, and a function to update it.
- * The state is persisted to localStorage under the given key.
- * If the key is not found in localStorage, the default value is used.
- * @param key - The key to use for storing the state in localStorage.
- * @param initialVal - The initial state value, or a function that returns the initial state value.
- * @param defaultValue - The default value to use if the key is not found in localStorage.
- * @returns A tuple containing the current state value, and a function to update it.
- */
 export function useLocalStorageState<S>(key: string, initialVal: S | (() => S) | undefined, defaultValue: S): [S, (newV: S | ((oldV: S | undefined) => S)) => void] {
 
 	let initVal = initialVal;

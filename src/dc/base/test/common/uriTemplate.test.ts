@@ -10,18 +10,12 @@ import * as assert from 'assert';
 suite('UriTemplate', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/**
-	 * Helper function to test template parsing and component extraction
-	 */
 	function testParsing(template: string, expectedComponents: unknown[]) {
 		const templ = UriTemplate.parse(template);
 		assert.deepStrictEqual(templ.components.filter(c => typeof c === 'object'), expectedComponents);
 		return templ;
 	}
 
-	/**
-	 * Helper function to test template resolution
-	 */
 	function testResolution(template: string, variables: Record<string, any>, expected: string) {
 		const templ = UriTemplate.parse(template);
 		const result = templ.resolve(variables);
@@ -40,21 +34,18 @@ suite('UriTemplate', () => {
 	});
 
 	test('parsing components correctly', () => {
-		// Simple component
 		testParsing('http://example.com/{var}', [{
 			expression: '{var}',
 			operator: '',
 			variables: [{ explodable: false, name: 'var', optional: false, prefixLength: undefined, repeatable: false }]
 		}]);
 
-		// Component with operator
 		testParsing('http://example.com/{+path}', [{
 			expression: '{+path}',
 			operator: '+',
 			variables: [{ explodable: false, name: 'path', optional: false, prefixLength: undefined, repeatable: false }]
 		}]);
 
-		// Component with multiple variables
 		testParsing('http://example.com/{x,y}', [{
 			expression: '{x,y}',
 			operator: '',
@@ -64,7 +55,6 @@ suite('UriTemplate', () => {
 			]
 		}]);
 
-		// Component with value modifiers
 		testParsing('http://example.com/{var:3}', [{
 			expression: '{var:3}',
 			operator: '',
@@ -77,7 +67,6 @@ suite('UriTemplate', () => {
 			variables: [{ explodable: true, name: 'list', optional: false, prefixLength: undefined, repeatable: true }]
 		}]);
 
-		// Multiple components
 		testParsing('http://example.com/{x}/path/{y}', [
 			{
 				expression: '{x}',
@@ -93,7 +82,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 1 - Simple string expansion', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!'
@@ -104,15 +92,12 @@ suite('UriTemplate', () => {
 	});
 
 	test('control characters are percent-encoded with two hex digits', () => {
-		// Code points below 0x10 must be zero-padded (e.g. %09, not %9) so the
-		// output is a valid percent-encoding that decodeURIComponent accepts.
 		testResolution('{x}', { x: 'a\tb' }, 'a%09b');
 		testResolution('{x}', { x: '\n' }, '%0A');
 		testResolution('{x}', { x: '\r' }, '%0D');
 	});
 
 	test('Level 2 - Reserved expansion', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!',
@@ -126,7 +111,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 2 - Fragment expansion', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!'
@@ -137,7 +121,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 3 - String expansion with multiple variables', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!',
@@ -152,7 +135,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 3 - Reserved expansion with multiple variables', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!',
@@ -166,7 +148,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 3 - Fragment expansion with multiple variables', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!',
@@ -180,7 +161,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 3 - Label expansion with dot-prefix', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			x: '1024',
@@ -192,7 +172,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 3 - Path segments expansion', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			x: '1024'
@@ -203,7 +182,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 3 - Path-style parameter expansion', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			x: '1024',
 			y: '768',
@@ -215,7 +193,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 3 - Form-style query expansion', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			x: '1024',
 			y: '768',
@@ -227,7 +204,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 3 - Form-style query continuation', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			x: '1024',
 			y: '768',
@@ -239,7 +215,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 4 - String expansion with value modifiers', () => {
-		// Test cases from RFC 6570 Section 1.2
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!',
@@ -259,7 +234,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 4 - Reserved expansion with value modifiers', () => {
-		// Test cases related to Level 4 features
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!',
@@ -280,7 +254,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 4 - Fragment expansion with value modifiers', () => {
-		// Test cases related to Level 4 features
 		const variables = {
 			var: 'value',
 			hello: 'Hello World!',
@@ -301,7 +274,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 4 - Label expansion with value modifiers', () => {
-		// Test cases related to Level 4 features
 		const variables = {
 			var: 'value',
 			list: ['red', 'green', 'blue'],
@@ -320,7 +292,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 4 - Path expansion with value modifiers', () => {
-		// Test cases related to Level 4 features
 		const variables = {
 			var: 'value',
 			list: ['red', 'green', 'blue'],
@@ -341,7 +312,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 4 - Path-style parameters with value modifiers', () => {
-		// Test cases related to Level 4 features
 		const variables = {
 			var: 'value',
 			list: ['red', 'green', 'blue'],
@@ -360,7 +330,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 4 - Form-style query with value modifiers', () => {
-		// Test cases related to Level 4 features
 		const variables = {
 			var: 'value',
 			list: ['red', 'green', 'blue'],
@@ -379,7 +348,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('Level 4 - Form-style query continuation with value modifiers', () => {
-		// Test cases related to Level 4 features
 		const variables = {
 			var: 'value',
 			list: ['red', 'green', 'blue'],
@@ -398,7 +366,6 @@ suite('UriTemplate', () => {
 	});
 
 	test('handling undefined or null values', () => {
-		// Test handling of undefined/null values for different operators
 		const variables = {
 			defined: 'value',
 			undef: undefined,
@@ -406,33 +373,24 @@ suite('UriTemplate', () => {
 			empty: ''
 		};
 
-		// Simple string expansion
 		testResolution('{defined,undef,null,empty}', variables, 'value,');
 
-		// Reserved expansion
 		testResolution('{+defined,undef,null,empty}', variables, 'value,');
 
-		// Fragment expansion
 		testResolution('{#defined,undef,null,empty}', variables, '#value,');
 
-		// Label expansion
 		testResolution('X{.defined,undef,null,empty}', variables, 'X.value');
 
-		// Path segments
 		testResolution('{/defined,undef,null}', variables, '/value');
 
-		// Path-style parameters
 		testResolution('{;defined,empty}', variables, ';defined=value;empty');
 
-		// Form-style query
 		testResolution('{?defined,undef,null,empty}', variables, '?defined=value&undef=&null=&empty=');
 
-		// Form-style query continuation
 		testResolution('{&defined,undef,null,empty}', variables, '&defined=value&undef=&null=&empty=');
 	});
 
 	test('complex templates', () => {
-		// Test more complex template combinations
 		const variables = {
 			domain: 'example.com',
 			user: 'fred',
@@ -445,24 +403,20 @@ suite('UriTemplate', () => {
 			coordinates: { lat: '37.7', lon: '-122.4' }
 		};
 
-		// RESTful URL pattern
 		testResolution('https://{domain}/api/v1/users/{user}{/path*}{?query,page,lang}',
 			variables,
 			'https://example.com/api/v1/users/fred/path/to/resource?query=search&page=5&lang=en');
 
-		// Complex query parameters
 		testResolution('https://{domain}/search{?query,filters,coordinates*}',
 			variables,
 			'https://example.com/search?query=search&filters=color:blue,shape:square&lat=37.7&lon=-122.4');
 
-		// Multiple expression types
 		testResolution('https://{domain}/users/{user}/profile{.lang}{?sessionId}{#path}',
 			variables,
 			'https://example.com/users/fred/profile.en?sessionId=123abc#path,to,resource');
 	});
 
 	test('literals and escaping', () => {
-		// Test literal segments and escaping
 		testParsing('http://example.com/literal', []);
 		testParsing('http://example.com/{var}literal{var2}', [
 			{
@@ -477,25 +431,18 @@ suite('UriTemplate', () => {
 			}
 		]);
 
-		// Test that escaped braces are treated as literals
-		// Note: The current implementation might not handle this case
 		testResolution('http://example.com/{{var}}', { var: 'value' }, 'http://example.com/{var}');
 	});
 
 	test('edge cases', () => {
-		// Empty template
 		testResolution('', {}, '');
 
-		// Template with only literals
 		testResolution('http://example.com/path', {}, 'http://example.com/path');
 
-		// No variables provided for resolution
 		testResolution('{var}', {}, '');
 
-		// Multiple sequential expressions
 		testResolution('{a}{b}{c}', { a: '1', b: '2', c: '3' }, '123');
 
-		// Expressions with special characters in variable names
 		testResolution('{_hidden.var-name$}', { '_hidden.var-name$': 'value' }, 'value');
 	});
 });

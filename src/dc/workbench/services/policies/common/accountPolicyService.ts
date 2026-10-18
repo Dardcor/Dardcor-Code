@@ -15,16 +15,11 @@ import { INativeManagedSettingsService, IFileManagedSettingsService, IManagedSet
 import { AbstractPolicyService, getRestrictedPolicyValue, IPolicyService, PolicyDefinition, PolicyValue, PolicyValueSource } from '../../../../platform/policy/common/policy.js';
 import { IDefaultAccountService } from '../../../../platform/defaultAccount/common/defaultAccount.js';
 
-/**
- * Policy name (declared by `chat.approvedAccountOrganizations`) holding the list of
- * GitHub organization logins that satisfy the gate. The token `*` is a wildcard.
- */
 export const APPROVED_ACCOUNT_ORGANIZATIONS_POLICY_NAME = 'ChatApprovedAccountOrganizations';
 
 export const enum AccountPolicyGateState {
 	Inactive = 'inactive',
 	Satisfied = 'satisfied',
-	/** Gate active and NOT satisfied — restricted values are applied to all gated policies. */
 	Restricted = 'restricted',
 }
 
@@ -51,12 +46,6 @@ export const ChatAccountPolicyGateActiveContext = new RawContextKey<boolean>(
 	{ type: 'boolean', description: localize('chatAccountPolicyGateActive', "True when the 'Require Approved Account' policy is in effect and the user is not yet signed into an approved GitHub organization, so all AI features are disabled until they sign in.") }
 );
 
-/**
- * Read-only accessor for the Account Policy gate state. Backed by the same
- * `AccountPolicyService` instance that drives policy enforcement, so UX consumers
- * (notifications, context keys, telemetry) cannot drift from the authoritative
- * gate decision.
- */
 export const IAccountPolicyGateService = createDecorator<IAccountPolicyGateService>('accountPolicyGateService');
 export interface IAccountPolicyGateService {
 	readonly _serviceBrand: undefined;
@@ -79,7 +68,6 @@ export class AccountPolicyService extends AbstractPolicyService implements IPoli
 	private readonly _onDidChangeGateInfo = this._register(new Emitter<IAccountPolicyGateInfo>());
 	readonly onDidChangeGateInfo = this._onDidChangeGateInfo.event;
 
-	// Read-only — the MultiplexPolicyService owns calling updatePolicyDefinitions.
 	private readonly managedPolicyReader?: IPolicyService;
 	private readonly nativeManagedSettingsService?: INativeManagedSettingsService;
 	private readonly fileManagedSettingsService?: IFileManagedSettingsService;
@@ -122,9 +110,6 @@ export class AccountPolicyService extends AbstractPolicyService implements IPoli
 			}));
 		}
 
-		// The initial account load sets `currentDefaultAccount` but does NOT fire
-		// `onDidChangeDefaultAccount`. Re-evaluate once the account has resolved
-		// so the gate doesn't stay stuck on `noAccount`.
 		this.defaultAccountService.getDefaultAccount().then(() => {
 			this._updatePolicyDefinitions(this.policyDefinitions);
 		});
@@ -145,12 +130,6 @@ export class AccountPolicyService extends AbstractPolicyService implements IPoli
 			|| previousInfo.reason !== this._gateInfo.reason
 			|| previousApprovedOrgs !== currentApprovedOrgs;
 
-		// `policyNotResolved` is a transient state where the user IS in an approved
-		// org but account-side policy data hasn't loaded yet. We don't force restricted
-		// values here — `policy.value(policyData)` naturally returns undefined when
-		// `policyData` is null, so no account overrides slip through. Forcing
-		// `restrictedValue` would transiently flip `chat.disableAIFeatures = true`,
-		// surfacing confusing "Unable to write" errors and a UI flash.
 		const gateRestricted = this._gateInfo.state === AccountPolicyGateState.Restricted
 			&& this._gateInfo.reason !== AccountPolicyGateUnsatisfiedReason.PolicyNotResolved;
 
@@ -236,10 +215,6 @@ export class AccountPolicyService extends AbstractPolicyService implements IPoli
 		const nativeManagedSettings = mdmManagedSettings ?? this.nativeManagedSettingsService?.managedSettings;
 		const fileManagedSettings = this.fileManagedSettingsService?.managedSettings;
 
-		// Per-key precedence: native MDM wins over the server-delivered channel, which in turn wins
-		// over the file-based channel — but resolved key-by-key, so a key left unset by a higher
-		// channel is still filled in by a lower one. A key locked by a higher channel cannot be
-		// overwritten. See `.github/skills/policy-and-managed-settings/github-managed-settings.md` for the rationale.
 		const pick = pickManagedSettings(nativeManagedSettings, accountPolicyData?.managedSettings, fileManagedSettings);
 		if (!accountPolicyData && pick.activeSources.length === 0) {
 			return undefined;
@@ -282,10 +257,6 @@ export class AccountPolicyService extends AbstractPolicyService implements IPoli
 			return { state: AccountPolicyGateState.Restricted, reason: AccountPolicyGateUnsatisfiedReason.WrongProvider, approvedOrganizations: approvedOrgs };
 		}
 
-		// Org membership is checked BEFORE policy-data resolution so users definitively
-		// NOT in an approved org are restricted immediately, even while policy data is
-		// still loading. `policyNotResolved` is reserved for users who ARE in an approved
-		// org — a transient state that resolves on its own.
 		if (!approvedOrgs.includes('*')) {
 			const accountOrgs = (account.entitlementsData?.organization_login_list ?? []).map(o => o.toLowerCase());
 			const intersects = accountOrgs.some(org => approvedOrgs.includes(org));
@@ -314,11 +285,9 @@ function policyValueSourceForManagedSettingsChannel(channel: ManagedSettingsChan
 }
 
 function parseApprovedOrganizations(raw: PolicyValue | undefined): string[] {
-	// Array-typed policies are delivered as JSON-stringified arrays — see
-	// `PolicyConfiguration.parse` for the same normalisation.
 	let value: unknown = raw;
 	if (typeof value === 'string') {
-		try { value = JSON.parse(value); } catch { /* not JSON */ }
+		try { value = JSON.parse(value); } catch { }
 	}
 	if (!Array.isArray(value)) {
 		return [];

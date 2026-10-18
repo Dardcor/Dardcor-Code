@@ -11,7 +11,6 @@ import { Registry } from '../../../../platform/registry/common/platform.js';
 import { diffInserted, diffRemoved, editorWidgetBackground, editorWidgetBorder, editorWidgetForeground, focusBorder, inputBackground, inputPlaceholderForeground, registerColor, transparent, widgetShadow } from '../../../../platform/theme/common/colorRegistry.js';
 import { NOTEBOOK_IS_ACTIVE_EDITOR } from '../../notebook/common/notebookContextKeys.js';
 
-// settings
 
 export const enum InlineChatConfigKeys {
 	NotebookAgent = 'inlineChat.notebookAgent',
@@ -67,7 +66,6 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfigurat
 
 export const INLINE_CHAT_ID = 'editor.contrib.inlineChatController';
 
-// --- CONTEXT
 export const CTX_INLINE_CHAT_POSSIBLE = new RawContextKey<boolean>('inlineChatPossible', false, localize('inlineChatHasPossible', "Whether a provider for inline chat exists and whether an editor for inline chat is open"));
 export const CTX_INLINE_CHAT_HAS_AGENT = new RawContextKey<boolean>('inlineChatHasEditsAgent', false, localize('inlineChatHasEditsAgent', "Whether an agent for inline chat in interactive editors exists"));
 export const CTX_INLINE_CHAT_HAS_NOTEBOOK_INLINE = new RawContextKey<boolean>('inlineChatHasNotebookInline', false, localize('inlineChatHasNotebookInline', "Whether an agent for notebook cells exists"));
@@ -91,17 +89,14 @@ export const CTX_INLINE_CHAT_V2_ENABLED = ContextKeyExpr.or(
 export const CTX_FIX_DIAGNOSTICS_ENABLED = ContextKeyExpr.equals('config.inlineChat.fixDiagnostics', true);
 export const CTX_ASK_IN_CHAT_ENABLED = ContextKeyExpr.equals('config.inlineChat.askInChat', true);
 
-// --- (selected) action identifier
 
 export const ACTION_START = 'inlineChat.start';
 export const ACTION_ASK_IN_CHAT = 'inlineChat.askInChat';
 
-// --- menus
 
 export const MENU_INLINE_CHAT_WIDGET_SECONDARY = MenuId.for('inlineChatWidget.secondary');
 export const MENU_INLINE_CHAT_SIDE = MenuId.for('inlineChatWidget.side');
 
-// --- colors
 
 export const inlineChatForeground = registerColor('inlineChat.foreground', editorWidgetForeground, localize('inlineChat.foreground', "Foreground color of the interactive editor widget"));
 export const inlineChatBackground = registerColor('inlineChat.background', editorWidgetBackground, localize('inlineChat.background', "Background color of the interactive editor widget"));

@@ -12,7 +12,6 @@ const execAsync = promisify(exec);
 const getDroidDir = () => path.join(os.homedir(), ".factory");
 const getDroidSettingsPath = () => path.join(getDroidDir(), "settings.json");
 
-// Check if droid CLI is installed (via which/where or config file exists)
 const checkDroidInstalled = async () => {
   try {
     const isWindows = os.platform() === "win32";
@@ -32,13 +31,10 @@ const checkDroidInstalled = async () => {
   }
 };
 
-// Read current settings.json
 const readSettings = async () => {
   try {
     const settingsPath = getDroidSettingsPath();
     const content = await fs.readFile(settingsPath, "utf-8");
-    // Tolerate JSONC (trailing commas) and treat unparseable files as "no config"
-    // rather than throwing a 500 that the UI misreads as "tool not installed".
     const stripped = content.replace(/,(\s*[}\]])/g, "$1");
     return JSON.parse(stripped);
   } catch (error) {
@@ -46,13 +42,11 @@ const readSettings = async () => {
   }
 };
 
-// Check if settings has Dardcor Router customModels
 const hasDardcorCodeConfig = (settings) => {
   if (!settings || !settings.customModels) return false;
   return settings.customModels.some(m => m.id?.startsWith("custom:DardcorRouter") || m.id?.startsWith("custom:DRouter"));
 };
 
-// GET - Check droid CLI and read current settings
 export async function GET() {
   try {
     const isInstalled = await checkDroidInstalled();
@@ -79,14 +73,10 @@ export async function GET() {
   }
 }
 
-// POST - Update Dardcor Router customModels (merge with existing settings)
-// Accepts either `model` (string, legacy single-model) or `models` (array of strings, multi-model)
-// Also accepts `activeModel` to set which model is active/primary
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, model, models, activeModel } = await request.json();
     
-    // Accept either `models` (array) or `model` (string, legacy)
     const modelsArray = Array.isArray(models) ? models.slice() : (typeof model === "string" ? [model] : []);
     
     if (!baseUrl || modelsArray.length === 0) {
@@ -96,42 +86,33 @@ export async function POST(request) {
     const droidDir = getDroidDir();
     const settingsPath = getDroidSettingsPath();
 
-    // Ensure directory exists
     await fs.mkdir(droidDir, { recursive: true });
 
-    // Read existing settings or create new
     let settings = {};
     try {
       const existingSettings = await fs.readFile(settingsPath, "utf-8");
       settings = JSON.parse(existingSettings);
-    } catch { /* No existing settings */ }
+    } catch { }
 
-    // Ensure customModels array exists
     if (!settings.customModels) {
       settings.customModels = [];
     }
 
-    // Remove all existing Dardcor Router configs
     settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:DardcorRouter") && !m.id?.startsWith("custom:DRouter"));
 
-    // Normalize baseUrl to ensure /v1 suffix
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const keyToUse = apiKey || "your_api_key";
 
-    // Determine active model: prefer explicit activeModel, else first of modelsArray
-    // If activeModel is explicitly empty string, no model will be set as default
     let defaultIndex = 0;
     if (typeof activeModel === "string") {
       if (activeModel === "") {
-        defaultIndex = -1; // signal: don't set a default
+        defaultIndex = -1;
       } else {
         const idx = modelsArray.indexOf(activeModel);
         defaultIndex = idx >= 0 ? idx : 0;
       }
     }
 
-    // Add entries for all requested models
-    // The first one (index 0) will be the default if defaultIndex >= 0
     for (let i = 0; i < modelsArray.length; i++) {
       const m = modelsArray[i];
       if (!m || typeof m !== "string") continue;
@@ -148,16 +129,12 @@ export async function POST(request) {
       });
     }
 
-    // Set default model if applicable
     if (defaultIndex >= 0 && settings.customModels[defaultIndex]) {
-      // Reorder so the default comes first
       const [defaultEntry] = settings.customModels.splice(defaultIndex, 1);
       settings.customModels.unshift({ ...defaultEntry, index: 0 });
-      // Re-index the rest
       settings.customModels.forEach((m, i) => { m.index = i; });
     }
 
-    // Write settings
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
 
     return NextResponse.json({
@@ -171,12 +148,10 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove Dardcor Router customModels only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getDroidSettingsPath();
 
-    // Read existing settings
     let settings = {};
     try {
       const existingSettings = await fs.readFile(settingsPath, "utf-8");
@@ -191,17 +166,14 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Dardcor Router customModels
     if (settings.customModels) {
       settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:DardcorRouter") && !m.id?.startsWith("custom:DRouter"));
       
-      // Remove customModels array if empty
       if (settings.customModels.length === 0) {
         delete settings.customModels;
       }
     }
 
-    // Write updated settings
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
 
     return NextResponse.json({

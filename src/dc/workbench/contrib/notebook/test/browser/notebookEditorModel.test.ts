@@ -53,7 +53,7 @@ suite('NotebookFileWorkingCopyModel', function () {
 			{ transientCellMetadata: {}, transientDocumentMetadata: {}, cellContentMetadata: {}, transientOutputs: false }
 		);
 
-		{ // transient output
+		{
 			let callCount = 0;
 			const model = disposables.add(new NotebookFileWorkingCopyModel(
 				notebook,
@@ -77,7 +77,7 @@ suite('NotebookFileWorkingCopyModel', function () {
 			assert.strictEqual(callCount, 1);
 		}
 
-		{ // NOT transient output
+		{
 			let callCount = 0;
 			const model = disposables.add(new NotebookFileWorkingCopyModel(
 				notebook,
@@ -113,7 +113,7 @@ suite('NotebookFileWorkingCopyModel', function () {
 
 		disposables.add(notebook);
 
-		{ // transient
+		{
 			let callCount = 0;
 			const model = disposables.add(new NotebookFileWorkingCopyModel(
 				notebook,
@@ -137,7 +137,7 @@ suite('NotebookFileWorkingCopyModel', function () {
 			assert.strictEqual(callCount, 1);
 		}
 
-		{ // NOT transient
+		{
 			let callCount = 0;
 			const model = disposables.add(new NotebookFileWorkingCopyModel(
 				notebook,
@@ -173,7 +173,7 @@ suite('NotebookFileWorkingCopyModel', function () {
 		);
 		disposables.add(notebook);
 
-		{ // transient
+		{
 			let callCount = 0;
 			const model = disposables.add(new NotebookFileWorkingCopyModel(
 				notebook,
@@ -197,7 +197,7 @@ suite('NotebookFileWorkingCopyModel', function () {
 			assert.strictEqual(callCount, 1);
 		}
 
-		{ // NOT transient
+		{
 			let callCount = 0;
 			const model = disposables.add(new NotebookFileWorkingCopyModel(
 				notebook,
@@ -297,7 +297,6 @@ suite('NotebookFileWorkingCopyModel', function () {
 			logservice
 		));
 
-		// the save method should not be set if the serializer is not yet resolved
 		const notExist = model.save;
 		assert.strictEqual(notExist, undefined);
 

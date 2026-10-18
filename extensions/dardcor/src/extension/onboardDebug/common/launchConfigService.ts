@@ -13,30 +13,17 @@ export const needsWorkspaceFolderForTaskError = () => l10n.t`The model asked to 
 export interface ILaunchConfigService {
 	_serviceBrand: undefined;
 
-	/**
-	 * Adds the launch configuration and/or inputs to the user's launch.json.
-	 */
 	add(workspaceFolder: URI | undefined, config: ILaunchJSON): Promise<void>;
 
-	/**
-	 * Opens the user's launch.json. Optionally show the new configuration.
-	 */
 	show(workspaceFolder: URI, showConfigName?: string): Promise<void>;
 
-	/**
-	 * Launches the debug configuration.
-	 */
 	launch(config: ILaunchJSON | vscode.DebugConfiguration): Promise<void>;
 
-	/**
-	 * Resolves the configuration inputs in the given launch.json.
-	 */
 	resolveConfigurationInputs(launchJson: ILaunchJSON, defaults?: Map<string, string>, interactor?: ICommandInteractor): Promise<{ config: vscode.DebugConfiguration; inputs: Map<string, string> } | undefined>;
 }
 
 export const ILaunchConfigService = createServiceIdentifier<ILaunchConfigService>('ILaunchConfigService');
 
-/** Describes the contents of launch.json */
 export interface ILaunchJSON {
 	configurations: vscode.DebugConfiguration[];
 	inputs?: {

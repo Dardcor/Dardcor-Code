@@ -69,10 +69,6 @@ export interface ITerminalQueryFilterState {
 
 export interface ISendTextOptions {
 	shouldExecute: boolean;
-	/**
-	 * Match workbench terminal sendText: wrap in bracketed paste markers only
-	 * when requested by the caller and enabled by the terminal.
-	 */
 	bracketedPasteMode?: boolean;
 }
 
@@ -81,7 +77,6 @@ export interface IFormatTerminalTextOptions {
 	forceBracketedPasteMode?: boolean;
 }
 
-// Return immediately when no partial query is buffered and this chunk contains no escape character.
 export function removeTerminalQueriesSuppressedFromClient(data: string, state: ITerminalQueryFilterState): string {
 	if (!state.pendingData && !data.includes('\x1b')) {
 		return data;
@@ -114,9 +109,6 @@ export function formatTerminalText(data: string, options: IFormatTerminalTextOpt
 	return data;
 }
 
-/**
- * Service interface for terminal management in the agent host.
- */
 export interface IAgentHostTerminalManager {
 	readonly _serviceBrand: undefined;
 	createTerminal(params: CreateTerminalParams, options?: { shell?: string; preventShellHistory?: boolean; nonInteractive?: boolean }): Promise<void>;
@@ -141,7 +133,6 @@ export interface IAgentHostTerminalManager {
 	finalizeOutputTerminal(uri: string, exitCode: number | undefined): void;
 }
 
-// node-pty is loaded dynamically to avoid bundling issues in non-node environments
 let nodePtyModule: typeof import('node-pty') | undefined;
 async function getNodePty(): Promise<typeof import('node-pty')> {
 	if (!nodePtyModule) {
@@ -150,7 +141,6 @@ async function getNodePty(): Promise<typeof import('node-pty')> {
 	return nodePtyModule;
 }
 
-/** Per-terminal command detection tracking state. */
 interface ICommandTracker {
 	readonly parser: Osc633Parser;
 	readonly nonce: string;
@@ -161,7 +151,6 @@ interface ICommandTracker {
 	activeCommandTimestamp?: number;
 }
 
-/** Represents a single managed terminal with its PTY process. */
 interface IManagedTerminal {
 	readonly uri: string;
 	readonly store: DisposableStore;
@@ -183,11 +172,6 @@ interface IManagedTerminal {
 	terminalQueryFilterState: ITerminalQueryFilterState;
 }
 
-/**
- * A lightweight output-only terminal channel: no PTY behind it, plain-text
- * content appended by its owner (e.g. runtime-executed shell tools). Served
- * to subscribers with `isPty: false` so clients skip VT parsing.
- */
 interface IOutputTerminal {
 	title: string;
 	content: TerminalContentPart[];
@@ -196,14 +180,6 @@ interface IOutputTerminal {
 	lifecycle: TerminalState['lifecycle'];
 }
 
-/**
- * Manages terminal processes for the agent host. Each terminal is backed by
- * a node-pty instance and identified by a protocol URI.
- *
- * Listens to the {@link AgentHostStateManager} for client-dispatched terminal
- * actions (input, resize, claim changes) and dispatches server-originated
- * PTY output back through the state manager.
- */
 export class AgentHostTerminalManager extends Disposable implements IAgentHostTerminalManager {
 	declare readonly _serviceBrand: undefined;
 
@@ -218,7 +194,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 	) {
 		super();
 
-		// React to client-dispatched terminal actions flowing through the state manager
 		this._register(this._stateManager.onDidEmitEnvelope(envelope => {
 			const action = envelope.action;
 			if (!isTerminalAction(action)) {
@@ -245,7 +220,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}));
 	}
 
-	/** Get metadata for all active terminals (for root state). */
 	getTerminalInfos(): TerminalInfo[] {
 		return [...this._terminals.values()].map(t => ({
 			resource: t.uri,
@@ -255,7 +229,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}));
 	}
 
-	/** Get the full state for a terminal (for subscribe snapshots). */
 	getTerminalState(uri: string): TerminalState | undefined {
 		const outputTerminal = this._outputTerminals.get(uri);
 		if (outputTerminal) {
@@ -284,10 +257,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		};
 	}
 
-	/**
-	 * Create a new terminal backed by node-pty.
-	 * Spawns the user's default shell.
-	 */
 	async createTerminal(params: CreateTerminalParams, options?: { shell?: string; preventShellHistory?: boolean; nonInteractive?: boolean }): Promise<void> {
 		const uri = params.channel;
 		if (this._terminals.has(uri)) {
@@ -303,29 +272,16 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 
 		this._logService.info(`[TerminalManager] Creating terminal ${uri}: shell=${shell}, cwd=${cwd}, cols=${cols}, rows=${rows}`);
 
-		// Shell integration — inject scripts so the shell emits OSC 633 sequences
 		const nonce = generateUuid();
 		const env: Record<string, string> = { ...process.env as Record<string, string> };
-		// Attribute these commands to VS Code. Already inherited from the agent
-		// host process; set here as defense in depth.
 		env[AiAgentEnvVar] = AiAgentEnvValue;
 		if (options?.preventShellHistory) {
-			// Picked up by the shell integration scripts to set HISTCONTROL=ignorespace
-			// (bash) / HIST_IGNORE_SPACE (zsh), or suppress PSReadLine history (pwsh).
-			// Combined with the leading-space prefix applied at command-write time, this
-			// prevents agent-executed commands from polluting the user's shell history.
 			env['VSCODE_PREVENT_SHELL_HISTORY'] = '1';
 		}
-		// Zsh-specific fixups for agent tool terminals: disable bang history
-		// expansion and enable inline # comments.
 		if (params.claim?.kind === TerminalClaimKind.Session && isZsh(shell)) {
 			env['VSCODE_AGENT_ZSH_FIXUPS'] = '1';
 		}
 		if (options?.nonInteractive) {
-			// Suppress paging and interactive prompts so that tool-spawned
-			// terminals produce clean, machine-friendly output. An empty
-			// string disables paging in git, less, and most CLI tools and
-			// is safe on all platforms (unlike 'cat' which isn't on Windows PATH).
 			env['LC_ALL'] = 'C.UTF-8';
 			env['PAGER'] = '';
 			env['GIT_PAGER'] = '';
@@ -375,7 +331,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 						await fs.promises.mkdir(dirname(f.dest), { recursive: true });
 						await fs.promises.copyFile(f.source, f.dest);
 					} catch {
-						// Swallow — another process may be using the same temp dir
 					}
 				}
 			}
@@ -442,9 +397,8 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 			}
 		}));
 
-		// Wire PTY events → protocol events
 		store.add(toDisposable(() => {
-			try { ptyProcess.kill(); } catch { /* already dead */ }
+			try { ptyProcess.kill(); } catch { }
 		}));
 
 		const onFirstData = new DeferredPromise<void>();
@@ -467,7 +421,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		});
 		store.add(toDisposable(() => exitListener.dispose()));
 
-		// Poll for title changes (non-Windows)
 		if (!platform.isWindows) {
 			const titleInterval = setInterval(() => {
 				const newTitle = ptyProcess.process;
@@ -493,12 +446,10 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return nodePty.spawn(file, args, options);
 	}
 
-	/** Send input data to a terminal's PTY process (from client-dispatched actions). */
 	private _writeInput(uri: string, data: string): void {
 		this.writeInput(uri, data);
 	}
 
-	/** Send input data to a terminal's PTY process. */
 	writeInput(uri: string, data: string): void {
 		const terminal = this._terminals.get(uri);
 		if (terminal?.lifecycle.status === TerminalLifecycleStatus.Running) {
@@ -506,7 +457,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}
 	}
 
-	/** Send formatted text to a terminal's PTY process. */
 	async sendText(uri: string, data: string, options: ISendTextOptions): Promise<void> {
 		const terminal = this._terminals.get(uri);
 		let forceBracketedPasteMode = false;
@@ -517,7 +467,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		this.writeInput(uri, formatTerminalText(data, { shouldExecute: options.shouldExecute, forceBracketedPasteMode }));
 	}
 
-	/** Register a callback for PTY data events on a terminal. */
 	onData(uri: string, cb: (data: string) => void): IDisposable {
 		const terminal = this._terminals.get(uri);
 		if (!terminal) {
@@ -526,7 +475,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return terminal.onDataEmitter.event(cb);
 	}
 
-	/** Register a callback for PTY exit events on a terminal. */
 	onExit(uri: string, cb: (exitCode: number) => void): IDisposable {
 		const terminal = this._terminals.get(uri);
 		if (!terminal) {
@@ -535,7 +483,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return terminal.onExitEmitter.event(cb);
 	}
 
-	/** Register a callback for terminal claim changes. */
 	onClaimChanged(uri: string, cb: (claim: TerminalClaim) => void): IDisposable {
 		const terminal = this._terminals.get(uri);
 		if (!terminal) {
@@ -544,7 +491,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return terminal.onClaimChangedEmitter.event(cb);
 	}
 
-	/** Register a callback for command completion events (requires shell integration). */
 	onCommandFinished(uri: string, cb: (event: ICommandFinishedEvent) => void): IDisposable {
 		const terminal = this._terminals.get(uri);
 		if (!terminal) {
@@ -561,7 +507,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return terminal.headlessTerminal.createAltBufferPromise(store);
 	}
 
-	/** Get accumulated scrollback content for a terminal as raw text. */
 	getContent(uri: string): string | undefined {
 		const terminal = this._terminals.get(uri);
 		if (!terminal) {
@@ -570,23 +515,19 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return terminal.content.map(p => p.type === 'command' ? p.output : p.value).join('');
 	}
 
-	/** Get the current claim for a terminal. */
 	getClaim(uri: string): TerminalClaim | undefined {
 		return this._terminals.get(uri)?.claim;
 	}
 
-	/** Check whether a terminal exists. */
 	hasTerminal(uri: string): boolean {
 		return this._terminals.has(uri);
 	}
 
-	/** Whether the terminal has shell integration active for command detection. */
 	supportsCommandDetection(uri: string): boolean {
 		const terminal = this._terminals.get(uri);
 		return terminal?.commandTracker?.detectionAvailableEmitted ?? false;
 	}
 
-	/** Resize a terminal. */
 	private _resize(uri: string, cols: number, rows: number): void {
 		const terminal = this._terminals.get(uri);
 		if (terminal?.lifecycle.status === TerminalLifecycleStatus.Running) {
@@ -597,7 +538,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}
 	}
 
-	/** Update a terminal's claim. */
 	private _setClaim(uri: string, claim: TerminalClaim): void {
 		const terminal = this._terminals.get(uri);
 		if (terminal) {
@@ -607,7 +547,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}
 	}
 
-	/** Update a terminal's title. */
 	private _setTitle(uri: string, title: string): void {
 		const terminal = this._terminals.get(uri);
 		if (terminal) {
@@ -616,7 +555,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}
 	}
 
-	/** Clear a terminal's scrollback buffer. */
 	private _clearContent(uri: string): void {
 		const terminal = this._terminals.get(uri);
 		if (terminal) {
@@ -626,23 +564,13 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}
 	}
 
-	/** Process raw PTY output: parse OSC 633 sequences, dispatch actions, track content. */
 	private _handlePtyData(managed: IManagedTerminal, rawData: string): void {
 		const tracker = managed.commandTracker;
 
-		// Without command detection there are no OSC 633 sequences to
-		// interleave — the whole chunk is command output. With a tracker,
-		// process cleaned-data and events in stream order so that output which
-		// arrives before a CommandFinished marker (commonly in the same PTY
-		// read for fast commands) is appended to the command's output BEFORE the
-		// finished event snapshots it. Handling all events first would emit
-		// CommandFinished with the not-yet-appended output missing.
 		const segments: Osc633ParseSegment[] = tracker
 			? tracker.parser.parseSegments(rawData)
 			: (rawData.length > 0 ? [{ kind: 'data', data: rawData }] : []);
 
-		// Preserve OSC 633 stream order when emitting AHP actions: command data must remain between
-		// TerminalCommandExecuted and TerminalCommandFinished, matching the AHP contract and xterm.
 		let pendingClientData = '';
 		const flushClientData = (): void => {
 			if (pendingClientData.length === 0) {
@@ -663,9 +591,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 				continue;
 			}
 
-			// Agent Host's server-side headless terminal answers CPR but cannot answer
-			// OSC color queries. Hide both from client xterms so terminal responses
-			// cannot flow back out of order through AgentHostPty.input.
 			const cleanedData = removeTerminalQueriesSuppressedFromClient(segment.data, managed.terminalQueryFilterState);
 			if (cleanedData.length > 0) {
 				this._appendToContent(managed, cleanedData);
@@ -675,13 +600,10 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 
 		flushClientData();
 
-		// Trim content if too large
 		this._trimContent(managed);
 	}
 
-	/** Handle a parsed OSC 633 event by dispatching the appropriate protocol actions. */
 	private _handleOsc633Event(managed: IManagedTerminal, tracker: ICommandTracker, event: Osc633Event): void {
-		// Emit TerminalCommandDetectionAvailable on first sequence
 		if (!tracker.detectionAvailableEmitted) {
 			tracker.detectionAvailableEmitted = true;
 			this._stateManager.dispatchServerAction(managed.uri, {
@@ -691,7 +613,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 
 		switch (event.type) {
 			case Osc633EventType.CommandLine: {
-				// Only trust command lines with a valid nonce
 				if (event.nonce === tracker.nonce) {
 					tracker.pendingCommandLine = event.commandLine;
 				}
@@ -706,7 +627,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 				tracker.activeCommandId = commandId;
 				tracker.activeCommandTimestamp = timestamp;
 
-				// Push a new command content part
 				managed.content.push({
 					type: 'command',
 					commandId,
@@ -734,7 +654,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 					? Date.now() - tracker.activeCommandTimestamp
 					: undefined;
 
-				// Mark the command content part as complete and collect output
 				let commandLine = '';
 				let commandOutput = '';
 				for (const part of managed.content) {
@@ -780,20 +699,16 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}
 	}
 
-	/** Append cleaned data to the terminal's structured content array. */
 	private _appendToContent(managed: { content: TerminalContentPart[]; contentSize: number }, data: string): void {
 		const tail = managed.content.length > 0 ? managed.content[managed.content.length - 1] : undefined;
 
 		if (tail?.type === 'command' && !tail.isComplete) {
-			// Active command — append to its output
 			tail.output += data;
 			managed.contentSize += data.length;
 		} else if (tail?.type === 'unclassified') {
-			// Extend the existing unclassified part
 			tail.value += data;
 			managed.contentSize += data.length;
 		} else {
-			// Start a new unclassified part
 			managed.content.push({ type: 'unclassified', value: data });
 			managed.contentSize += data.length;
 		}
@@ -803,19 +718,16 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return part.type === 'command' ? part.output.length : part.value.length;
 	}
 
-	/** Trim content parts to stay within the rolling buffer limit. */
 	private _trimContent(managed: { content: TerminalContentPart[]; contentSize: number }): void {
 		const maxSize = 100_000;
 		const targetSize = 80_000;
 		if (managed.contentSize <= maxSize) {
 			return;
 		}
-		// Drop whole parts from the front while possible
 		while (managed.contentSize > targetSize && managed.content.length > 1) {
 			const removed = managed.content.shift()!;
 			managed.contentSize -= this._getContentPartSize(removed);
 		}
-		// If the single remaining (or first) part is still over budget, trim its text
 		if (managed.contentSize > targetSize && managed.content.length > 0) {
 			const head = managed.content[0];
 			const excess = managed.contentSize - targetSize;
@@ -828,13 +740,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		}
 	}
 
-	/**
-	 * Create an output-only terminal channel. Unlike {@link createTerminal}
-	 * there is no PTY behind it: the owner appends plain-text output via
-	 * {@link appendOutputTerminalData}. The channel is not announced on the
-	 * root terminal list — clients discover it through the tool result's
-	 * terminal content block and subscribe to its URI.
-	 */
 	createOutputTerminal(uri: string, options: { title: string; claim: TerminalClaim }): void {
 		if (this._terminals.has(uri) || this._outputTerminals.has(uri)) {
 			throw new Error(`Terminal already exists: ${uri}`);
@@ -848,7 +753,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		});
 	}
 
-	/** Append plain-text data to an output-only terminal and stream it to subscribers. */
 	appendOutputTerminalData(uri: string, data: string): void {
 		const terminal = this._outputTerminals.get(uri);
 		if (!terminal || data.length === 0) {
@@ -862,7 +766,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		});
 	}
 
-	/** Clear an output-only terminal's content (e.g. when cumulative source output was rewritten). */
 	resetOutputTerminal(uri: string): void {
 		const terminal = this._outputTerminals.get(uri);
 		if (!terminal) {
@@ -875,7 +778,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		});
 	}
 
-	/** Record the command's exit on an output-only terminal and notify subscribers. */
 	finalizeOutputTerminal(uri: string, exitCode: number | undefined): void {
 		const terminal = this._outputTerminals.get(uri);
 		if (!terminal || terminal.lifecycle.status === TerminalLifecycleStatus.Exited) {
@@ -889,7 +791,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 			: { type: ActionType.TerminalExited, exitCode });
 	}
 
-	/** Dispose a terminal: kill the process and remove it. */
 	disposeTerminal(uri: string): void {
 		if (this._outputTerminals.delete(uri)) {
 			return;
@@ -915,12 +816,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return getSystemShell(platform.OS, process.env);
 	}
 
-	/**
-	 * Resolves the cwd string from {@link CreateTerminalParams} to an
-	 * accessible filesystem path, falling back to $HOME if the requested
-	 * directory is missing (otherwise node-pty exits silently with code 1).
-	 * Accepts either a `file://` URI string or a raw absolute filesystem path.
-	 */
 	private async _resolveCwd(cwd: string | undefined, terminalURI: string): Promise<string> {
 		let resolved = cwd;
 		if (cwd) {
@@ -940,7 +835,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 				}
 			}
 		} catch {
-			// fall through to fallback
 		}
 
 		const fallback = process.env['HOME'] || process.env['USERPROFILE'] || process.cwd();
@@ -948,7 +842,6 @@ export class AgentHostTerminalManager extends Disposable implements IAgentHostTe
 		return fallback;
 	}
 
-	/** Dispatch root/terminalsChanged with the current terminal list. */
 	private _broadcastTerminalList(): void {
 		this._stateManager.dispatchServerAction(ROOT_STATE_URI, {
 			type: ActionType.RootTerminalsChanged,

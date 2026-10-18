@@ -35,7 +35,6 @@ export enum RemoteCacheType {
 	Tools = 'tools'
 }
 
-// These values are the blob storage container names where we publish computed embeddings
 enum RemoteEmbeddingsContainer {
 	TEXT3SMALL = 'text-3-small',
 	METIS_1024_I16_BINARY = 'metis-1024-I16-Binary'
@@ -87,20 +86,16 @@ class EmbeddingsCache {
 		if (!this.cacheStorageUri || value === undefined) {
 			return;
 		}
-		// Cannot write to readonly file system
 		if (!this.fileSystemService.isWritableFileSystem(this.cacheStorageUri.scheme)) {
 			return;
 		}
-		// Create directory at stoageUri if it doesn't exist
 		try {
 			await this.fileSystemService.stat(this.cacheStorageUri);
 		} catch (e) {
 			if (e.code === 'ENOENT') {
-				// Directory doesn't exist we should create it
 				await this.fileSystemService.createDirectory(this.cacheStorageUri);
 			}
 		}
-		// Update cache version
 		await this.cacheVersionMementoStorage.update(this.cacheVersionKey, this.cacheVersion);
 		const cacheFile = URI.joinPath(this.cacheStorageUri, `${this.cacheKey}.json`);
 		try {
@@ -124,7 +119,6 @@ class EmbeddingsCache {
 		try {
 			const cacheEntries: any = await fileSystemServiceReadAsJSON.readJSON<T>(this.fileSystemService, URI.joinPath(this.cacheStorageUri, `${this.cacheKey}.json`));
 			if (this.isEmbeddingCacheEntriesType(cacheEntries)) {
-				// If the cache is of the type EmbeddingCacheEntriesWithExtensions (during tests), we need to flatten it
 				return this.constructExposedCache(cacheEntries as EmbeddingCacheEntriesWithExtensions) as T;
 			}
 
@@ -180,9 +174,6 @@ export interface IEmbeddingsCache {
 	clearCache(): Promise<void>;
 }
 
-/**
- * A local cache which caches information on disk.
- */
 export class LocalEmbeddingsCache implements IEmbeddingsCache {
 
 	private readonly _embeddingsCache: EmbeddingsCache;
@@ -214,10 +205,6 @@ export class LocalEmbeddingsCache implements IEmbeddingsCache {
 	}
 }
 
-/**
- * An embeddings cache which fetches embeddings from a remote CDN.
- * It is limited to one remote file
- */
 export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 	private _remoteCacheEntries: EmbeddingCacheEntries | undefined;
 	private readonly remoteCacheVersionKey: string;
@@ -312,15 +299,11 @@ export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 	public async getCache<T = EmbeddingCacheEntries>(): Promise<T | undefined> {
 		const remoteCacheLatest = await this.fetchRemoteCacheLatest();
 		const cache = await this.embeddingsCache.getCache();
-		// If the cache exists and the remote cache version is a match,
-		// it means it is the latest version and we can return it,
-		// otherwise we will fetch again the remote cache
 		if (cache && remoteCacheLatest === this.embeddingsCache.cacheVersionMementoStorage.get<string>(this.remoteCacheVersionKey)) {
 			return cache as T;
 		}
 		const remoteCache = await this.fetchRemoteCache();
 		if (remoteCache === undefined) {
-			// fallback to previous local cache if remote cache is unavailable
 			return cache as T;
 		}
 
@@ -339,14 +322,7 @@ export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 	}
 }
 
-/**
- * A remote cache which is also aware of installed extensions and updates properly when they are updated, installed, or uninstalled
- * Internally we use a nested structure which breaks down core, and each extension id for better perf.
- * Externally a flattened cache with all values on the same level is exposed for easier consumption and to conform to the other cache interfaces.
- * When updating the cache we use the internal structure rather than the flatten one because the flattened on is only for external consumption.
- */
 export class RemoteEmbeddingsExtensionCache extends RemoteEmbeddingsCache {
-	// This is a nested structure used to help us do just patching of updated extensions
 	private _remoteExtensionCache: EmbeddingCacheEntriesWithExtensions | undefined;
 	private _baseExtensionCDNURL: string | undefined;
 
@@ -394,7 +370,6 @@ export class RemoteEmbeddingsExtensionCache extends RemoteEmbeddingsCache {
 				return (await response.json()) as EmbeddingCacheEntries;
 			} else {
 				if (response.status === 404) {
-					// The file doesn't exist on our CDN return an empty object so we don't try to fetch it again
 					return {};
 				}
 				console.error(`Failed to fetch remote embeddings cache from ${extensionUrl}`);
@@ -410,12 +385,10 @@ export class RemoteEmbeddingsExtensionCache extends RemoteEmbeddingsCache {
 
 	public override async getCache<T = EmbeddingCacheEntries>(): Promise<T | undefined> {
 		const coreOrLocalCache = await super.getCache<EmbeddingCacheEntries | EmbeddingCacheEntriesWithExtensions>();
-		// The remote cache for core coming back unavaiable indicates request problems so we cannot continue with fetching extensions
 		if (coreOrLocalCache === undefined) {
 			return;
 		}
 		let currentCache: EmbeddingCacheEntriesWithExtensions = { core: {}, extensions: {} };
-		// Check if the cache has a property 'core' as the RemoteCachewithExtensions has it
 		if (
 			coreOrLocalCache &&
 			RemoteEmbeddingsExtensionCache.isEmbeddingsCacheEntriesWithExtensions(coreOrLocalCache)
@@ -427,7 +400,6 @@ export class RemoteEmbeddingsExtensionCache extends RemoteEmbeddingsCache {
 
 		const activatedExtensionIds = RemoteEmbeddingsExtensionCache.getInstalledExtensionIds(this.workbenchService);
 		let removedExtensions = false;
-		// Remove any extensions from currentCache which aren't in activatedExtensionIds
 		for (const extensionId in currentCache.extensions) {
 			if (!activatedExtensionIds.includes(extensionId)) {
 				delete currentCache.extensions[extensionId];
@@ -498,12 +470,6 @@ export abstract class BaseEmbeddingsIndex<V extends { key: string; embedding?: E
 		return this.calculateEmbeddings();
 	}
 
-	/**
-	 * Finds the n closest values to a given embedding
-	 * @param queryEmbedding The embedding to find the n closest values for
-	 * @param n The number of closest values to return
-	 * @returns The n closest values to the embedding, sorted by similarity. Could be less than n if there are less than n items indexed
-	 */
 	public nClosestValues(queryEmbedding: Embedding, n: number): V[] {
 		return rankEmbeddings(queryEmbedding, Array.from(this._items.values()).filter(x => x.embedding).map(x => [x, { value: x.embedding!, type: this.embeddingType } satisfies Embedding] as const), n)
 			.map(x => x.value);
@@ -518,7 +484,6 @@ export abstract class BaseEmbeddingsIndex<V extends { key: string; embedding?: E
 	}
 
 	public async calculateEmbeddings(): Promise<void> {
-		// This prevents being able to queue many calculations at once since it should always be referring to the same promise
 		if (this._calculationPromise) {
 			return this._calculationPromise;
 		}
@@ -530,17 +495,14 @@ export abstract class BaseEmbeddingsIndex<V extends { key: string; embedding?: E
 		const startTime = Date.now();
 		const allItems: V[] = await this.getLatestItems();
 		const cachedEmbeddings = await this._embeddingsCache.getCache();
-		// check that the cached embeddings is of flattened format, if not, we need to construct it
 		const latestEmbeddingsIndex = new Map<string, V>();
 		for (const item of allItems) {
 			let newItem = item;
 			const oldItem = this._items.get(item.key);
 			const key = item.key;
-			// We have it in our current index
 			if (oldItem?.embedding) {
 				newItem = oldItem;
 			} else if (cachedEmbeddings && cachedEmbeddings[key]) {
-				// We have it in our cache
 				newItem = { ...item, ...cachedEmbeddings[key] };
 			}
 
@@ -553,11 +515,6 @@ export abstract class BaseEmbeddingsIndex<V extends { key: string; embedding?: E
 		this.isIndexLoaded = true;
 	}
 
-	/**
-	 * Converts the value into the string that will be used to calculate the embedding
-	 * @param value The value to convert to a natural language query
-	 * @returns The natural language query
-	 */
 	protected abstract getEmbeddingQueryString(value: V): string;
 
 	protected abstract getLatestItems(): Promise<V[]>;

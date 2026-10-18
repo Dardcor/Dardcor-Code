@@ -77,8 +77,7 @@ suite('outputHelpers', () => {
 		);
 
 		const output = getOutput(instance);
-		// getOutput no longer truncates - it returns full output
-		strictEqual(output.length, 100 * 1000 + 99); // 100 lines of 1000 chars + 99 newlines
+		strictEqual(output.length, 100 * 1000 + 99);
 	});
 
 	suite('truncateLargeOutput', () => {

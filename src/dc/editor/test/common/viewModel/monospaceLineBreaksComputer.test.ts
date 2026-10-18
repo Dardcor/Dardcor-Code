@@ -25,7 +25,6 @@ function parseAnnotatedText(annotatedText: string): { text: string; indices: num
 }
 
 function toAnnotatedText(text: string, lineBreakData: ModelLineProjectionData | null): string {
-	// Insert line break markers again, according to algorithm
 	let actualAnnotatedText = '';
 	if (lineBreakData) {
 		let previousLineIndex = 0;
@@ -38,7 +37,6 @@ function toAnnotatedText(text: string, lineBreakData: ModelLineProjectionData | 
 			actualAnnotatedText += text.charAt(i);
 		}
 	} else {
-		// No wrapping
 		actualAnnotatedText = text;
 	}
 	return actualAnnotatedText;
@@ -78,7 +76,6 @@ function getLineBreakData(factory: ILineBreaksComputerFactory, tabSize: number, 
 }
 
 function assertLineBreaks(factory: ILineBreaksComputerFactory, tabSize: number, breakAfter: number, annotatedText: string, wrappingIndent = WrappingIndent.None, wordBreak: 'normal' | 'keepAll' = 'normal'): ModelLineProjectionData | null {
-	// Create version of `annotatedText` with line break markers removed
 	const text = parseAnnotatedText(annotatedText).text;
 	const lineBreakData = getLineBreakData(factory, tabSize, breakAfter, 2, wrappingIndent, wordBreak, false, text, null);
 	const actualAnnotatedText = toAnnotatedText(text, lineBreakData);
@@ -96,36 +93,29 @@ suite('Editor ViewModel - MonospaceLineBreaksComputer', () => {
 
 		const factory = new MonospaceLineBreaksComputerFactory('(', '\t).');
 
-		// Empty string
 		assertLineBreaks(factory, 4, 5, '');
 
-		// No wrapping if not necessary
 		assertLineBreaks(factory, 4, 5, 'aaa');
 		assertLineBreaks(factory, 4, 5, 'aaaaa');
 		assertLineBreaks(factory, 4, -1, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
 
-		// Acts like hard wrapping if no char found
 		assertLineBreaks(factory, 4, 5, 'aaaaa|a');
 
-		// Honors wrapping character
 		assertLineBreaks(factory, 4, 5, 'aaaaa|.');
 		assertLineBreaks(factory, 4, 5, 'aaaaa|a.|aaa.|aa');
 		assertLineBreaks(factory, 4, 5, 'aaaaa|a..|aaa.|aa');
 		assertLineBreaks(factory, 4, 5, 'aaaaa|a...|aaa.|aa');
 		assertLineBreaks(factory, 4, 5, 'aaaaa|a....|aaa.|aa');
 
-		// Honors tabs when computing wrapping position
 		assertLineBreaks(factory, 4, 5, '\t');
 		assertLineBreaks(factory, 4, 5, '\t|aaa');
 		assertLineBreaks(factory, 4, 5, '\t|a\t|aa');
 		assertLineBreaks(factory, 4, 5, 'aa\ta');
 		assertLineBreaks(factory, 4, 5, 'aa\t|aa');
 
-		// Honors wrapping before characters (& gives it priority)
 		assertLineBreaks(factory, 4, 5, 'aaa.|aa');
 		assertLineBreaks(factory, 4, 5, 'aaa(.|aa');
 
-		// Honors wrapping after characters (& gives it priority)
 		assertLineBreaks(factory, 4, 5, 'aaa))|).aaa');
 		assertLineBreaks(factory, 4, 5, 'aaa))|).|aaaa');
 		assertLineBreaks(factory, 4, 5, 'aaa)|().|aaa');
@@ -148,24 +138,19 @@ suite('Editor ViewModel - MonospaceLineBreaksComputer', () => {
 	}
 
 	function assertIncrementalLineBreaks(factory: ILineBreaksComputerFactory, text: string, tabSize: number, breakAfter1: number, annotatedText1: string, breakAfter2: number, annotatedText2: string, wrappingIndent = WrappingIndent.None, columnsForFullWidthChar: number = 2): void {
-		// sanity check the test
 		assert.strictEqual(text, parseAnnotatedText(annotatedText1).text);
 		assert.strictEqual(text, parseAnnotatedText(annotatedText2).text);
 
-		// check that the direct mapping is ok for 1
 		const directLineBreakData1 = getLineBreakData(factory, tabSize, breakAfter1, columnsForFullWidthChar, wrappingIndent, 'normal', false, text, null);
 		assert.strictEqual(toAnnotatedText(text, directLineBreakData1), annotatedText1);
 
-		// check that the direct mapping is ok for 2
 		const directLineBreakData2 = getLineBreakData(factory, tabSize, breakAfter2, columnsForFullWidthChar, wrappingIndent, 'normal', false, text, null);
 		assert.strictEqual(toAnnotatedText(text, directLineBreakData2), annotatedText2);
 
-		// check that going from 1 to 2 is ok
 		const lineBreakData2from1 = getLineBreakData(factory, tabSize, breakAfter2, columnsForFullWidthChar, wrappingIndent, 'normal', false, text, directLineBreakData1);
 		assert.strictEqual(toAnnotatedText(text, lineBreakData2from1), annotatedText2);
 		assertLineBreakDataEqual(lineBreakData2from1, directLineBreakData2);
 
-		// check that going from 2 to 1 is ok
 		const lineBreakData1from2 = getLineBreakData(factory, tabSize, breakAfter1, columnsForFullWidthChar, wrappingIndent, 'normal', false, text, directLineBreakData2);
 		assert.strictEqual(toAnnotatedText(text, lineBreakData1from2), annotatedText1);
 		assertLineBreakDataEqual(lineBreakData1from2, directLineBreakData1);
@@ -329,32 +314,21 @@ suite('Editor ViewModel - MonospaceLineBreaksComputer', () => {
 	test('issue #258022: wrapOnEscapedLineFeeds: should work correctly after editor resize', () => {
 		const factory = new MonospaceLineBreaksComputerFactory(EditorOptions.wordWrapBreakBeforeCharacters.defaultValue, EditorOptions.wordWrapBreakAfterCharacters.defaultValue);
 
-		// Test text with escaped line feeds - simulates a JSON string with \n
-		// The \n should trigger a soft wrap when wrapOnEscapedLineFeeds is enabled
 		const text = '"Short text with\\nescaped newline and an escaped\\\\nbackslash"';
 
-		// First, compute line breaks with wrapOnEscapedLineFeeds enabled at initial width
 		const initialBreakData = getLineBreakData(factory, 4, 30, 2, WrappingIndent.None, 'normal', true, text, null);
 		const initialAnnotatedText = toAnnotatedText(text, initialBreakData);
 
-		// Verify the escaped \n triggers a wrap in the initial case
 		assert.ok(initialAnnotatedText.includes('with\\n'), 'Initial case should wrap at escaped line feeds');
 
-		// Now simulate editor resize by computing line breaks with different width using previous data
-		// This triggers createLineBreaksFromPreviousLineBreaks which has the bug
 		const resizedBreakData = getLineBreakData(factory, 4, 35, 2, WrappingIndent.None, 'normal', true, text, initialBreakData);
 		const resizedAnnotatedText = toAnnotatedText(text, resizedBreakData);
 
-		// Compute fresh line breaks at the new width (without using previous data)
-		// This uses createLineBreaks which correctly handles wrapOnEscapedLineFeeds
 		const freshBreakData = getLineBreakData(factory, 4, 35, 2, WrappingIndent.None, 'normal', true, text, null);
 		const freshAnnotatedText = toAnnotatedText(text, freshBreakData);
 
-		// Fresh computation should still wrap at escaped line feeds
 		assert.ok(freshAnnotatedText.includes('with\\n'), 'Fresh computation should wrap at escaped line feeds');
 
-		// BUG DEMONSTRATION: Incremental computation after resize doesn't handle escaped line feeds
-		// The two results should be identical, but they're not due to the bug
 		assert.strictEqual(
 			resizedAnnotatedText,
 			freshAnnotatedText,

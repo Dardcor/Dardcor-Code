@@ -44,7 +44,6 @@ suite('Agent Merge gate', () => {
 			],
 		});
 
-		// Every authorized comment is carried so a later follow-up cannot be lost.
 		const expectedContext = {
 			pullRequestUrl: 'https://github.com/octo/repo/pull/1',
 			title: 'Change',
@@ -424,8 +423,6 @@ suite('Agent Merge gate', () => {
 			noRepairYet: shouldStopMergingAfterAgentChanges(ifUnchanged, enabled, 'sha1'),
 			repairCommittedNothing: shouldStopMergingAfterAgentChanges(ifUnchanged, { ...enabled, repairBaseCommit: 'sha1' }, 'sha1'),
 			repairCommitted: shouldStopMergingAfterAgentChanges(ifUnchanged, { ...enabled, repairBaseCommit: 'sha1' }, 'sha2'),
-			// Fails closed: an unreadable worktree after a repair turn, and an
-			// unreadable one when the baseline was taken, both count as changed.
 			worktreeUnreadable: shouldStopMergingAfterAgentChanges(ifUnchanged, { ...enabled, repairBaseCommit: 'sha1' }, undefined),
 			baselineUnknown: shouldStopMergingAfterAgentChanges(ifUnchanged, { ...enabled, repairBaseCommit: AGENT_MERGE_UNKNOWN_COMMIT }, 'sha1'),
 			always: shouldStopMergingAfterAgentChanges({ ...configuration, mergePullRequest: 'always' }, { ...enabled, repairBaseCommit: 'sha1' }, 'sha2'),

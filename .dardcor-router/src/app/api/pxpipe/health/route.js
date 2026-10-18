@@ -12,5 +12,4 @@ export async function POST() {
   }
 }
 
-// GET mirrors POST so the card can probe on page load without a mutation call.
 export const GET = POST;

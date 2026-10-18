@@ -23,7 +23,6 @@ export class Temp {
 			try {
 				fs.unlinkSync(file);
 			} catch (err) {
-				// noop
 			}
 		}
 	}
@@ -48,8 +47,8 @@ function getParams(type: string): Params[] {
 					keyCode: 'CP-230012',
 					operationSetCode: 'SigntoolSign',
 					parameters: [
-						{ parameterName: 'OpusName', parameterValue: 'VS Code' },
-						{ parameterName: 'OpusInfo', parameterValue: 'https://code.visualstudio.com/' },
+						{ parameterName: 'OpusName', parameterValue: 'Dardcor Code' },
+						{ parameterName: 'OpusInfo', parameterValue: 'https://www.dardcor-code.web.id/' },
 						{ parameterName: 'Append', parameterValue: '/as' },
 						{ parameterName: 'FileDigest', parameterValue: '/fd "SHA256"' },
 						{ parameterName: 'PageHash', parameterValue: '/NPH' },
@@ -74,8 +73,8 @@ function getParams(type: string): Params[] {
 					keyCode: 'CP-229979',
 					operationSetCode: 'SigntoolSign',
 					parameters: [
-						{ parameterName: 'OpusName', parameterValue: 'VS Code' },
-						{ parameterName: 'OpusInfo', parameterValue: 'https://code.visualstudio.com/' },
+						{ parameterName: 'OpusName', parameterValue: 'Dardcor Code' },
+						{ parameterName: 'OpusInfo', parameterValue: 'https://www.dardcor-code.web.id/' },
 						{ parameterName: 'FileDigest', parameterValue: '/fd "SHA256"' },
 						{ parameterName: 'PageHash', parameterValue: '/NPH' },
 						{ parameterName: 'TimeStamp', parameterValue: '/tr "http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer" /td sha256' }

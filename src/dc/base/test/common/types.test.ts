@@ -27,7 +27,7 @@ suite('Types', () => {
 		assert(!types.isFunction(new Date()));
 
 		assert(types.isFunction(assert));
-		assert(types.isFunction(function foo() { /**/ }));
+		assert(types.isFunction(function foo() { }));
 	});
 
 	test('areFunctions', () => {
@@ -47,7 +47,7 @@ suite('Types', () => {
 
 		assert(types.areFunctions(assert));
 		assert(types.areFunctions(assert, assert));
-		assert(types.areFunctions(function foo() { /**/ }));
+		assert(types.areFunctions(function foo() { }));
 	});
 
 	test('isObject', () => {
@@ -80,7 +80,7 @@ suite('Types', () => {
 		assert(!types.isEmptyObject(new RegExp('')));
 		assert(!types.isEmptyObject(new Date()));
 		assert.strictEqual(types.isEmptyObject(assert), false);
-		assert(!types.isEmptyObject(function foo() { /**/ }));
+		assert(!types.isEmptyObject(function foo() { }));
 		assert(!types.isEmptyObject({ foo: 'bar' }));
 
 		assert(types.isEmptyObject({}));
@@ -98,7 +98,7 @@ suite('Types', () => {
 		assert(!types.isString(new RegExp('')));
 		assert(!types.isString(new Date()));
 		assert(!types.isString(assert));
-		assert(!types.isString(function foo() { /**/ }));
+		assert(!types.isString(function foo() { }));
 		assert(!types.isString({ foo: 'bar' }));
 
 		assert(types.isString('foo'));
@@ -115,7 +115,7 @@ suite('Types', () => {
 		assert(!types.isStringArray(new RegExp('')));
 		assert(!types.isStringArray(new Date()));
 		assert(!types.isStringArray(assert));
-		assert(!types.isStringArray(function foo() { /**/ }));
+		assert(!types.isStringArray(function foo() { }));
 		assert(!types.isStringArray({ foo: 'bar' }));
 		assert(!types.isStringArray([1, 2, 3]));
 		assert(!types.isStringArray([1, 2, '3']));
@@ -130,7 +130,6 @@ suite('Types', () => {
 	});
 
 	test('isArrayOf', () => {
-		// Basic non-array values
 		assert(!types.isArrayOf(undefined, types.isString));
 		assert(!types.isArrayOf(null, types.isString));
 		assert(!types.isArrayOf(5, types.isString));
@@ -141,41 +140,35 @@ suite('Types', () => {
 		assert(!types.isArrayOf(new RegExp(''), types.isString));
 		assert(!types.isArrayOf(new Date(), types.isString));
 		assert(!types.isArrayOf(assert, types.isString));
-		assert(!types.isArrayOf(function foo() { /**/ }, types.isString));
+		assert(!types.isArrayOf(function foo() { }, types.isString));
 		assert(!types.isArrayOf({ foo: 'bar' }, types.isString));
 
-		// Arrays with wrong types
 		assert(!types.isArrayOf([1, 2, 3], types.isString));
 		assert(!types.isArrayOf([1, 2, '3'], types.isString));
 		assert(!types.isArrayOf(['foo', 'bar', 5], types.isString));
 		assert(!types.isArrayOf(['foo', null, 'bar'], types.isString));
 		assert(!types.isArrayOf(['foo', undefined, 'bar'], types.isString));
 
-		// Valid string arrays
 		assert(types.isArrayOf([], types.isString));
 		assert(types.isArrayOf(['foo'], types.isString));
 		assert(types.isArrayOf(['foo', 'bar'], types.isString));
 		assert(types.isArrayOf(['foo', 'bar', 'baz'], types.isString));
 
-		// Valid number arrays
 		assert(types.isArrayOf([], types.isNumber));
 		assert(types.isArrayOf([1], types.isNumber));
 		assert(types.isArrayOf([1, 2, 3], types.isNumber));
 		assert(!types.isArrayOf([1, 2, '3'], types.isNumber));
 
-		// Valid boolean arrays
 		assert(types.isArrayOf([], types.isBoolean));
 		assert(types.isArrayOf([true], types.isBoolean));
 		assert(types.isArrayOf([true, false, true], types.isBoolean));
 		assert(!types.isArrayOf([true, 1, false], types.isBoolean));
 
-		// Valid function arrays
 		assert(types.isArrayOf([], types.isFunction));
 		assert(types.isArrayOf([assert], types.isFunction));
-		assert(types.isArrayOf([assert, function foo() { /**/ }], types.isFunction));
+		assert(types.isArrayOf([assert, function foo() { }], types.isFunction));
 		assert(!types.isArrayOf([assert, 'foo'], types.isFunction));
 
-		// Custom type guard
 		const isEven = (n: unknown): n is number => types.isNumber(n) && n % 2 === 0;
 		assert(types.isArrayOf([], isEven));
 		assert(types.isArrayOf([2, 4, 6], isEven));
@@ -195,7 +188,7 @@ suite('Types', () => {
 		assert(!types.isNumber(new RegExp('')));
 		assert(!types.isNumber(new Date()));
 		assert(!types.isNumber(assert));
-		assert(!types.isNumber(function foo() { /**/ }));
+		assert(!types.isNumber(function foo() { }));
 		assert(!types.isNumber({ foo: 'bar' }));
 		assert(!types.isNumber(parseInt('A', 10)));
 
@@ -213,7 +206,7 @@ suite('Types', () => {
 		assert(!types.isUndefined(new RegExp('')));
 		assert(!types.isUndefined(new Date()));
 		assert(!types.isUndefined(assert));
-		assert(!types.isUndefined(function foo() { /**/ }));
+		assert(!types.isUndefined(function foo() { }));
 		assert(!types.isUndefined({ foo: 'bar' }));
 
 		assert(types.isUndefined(undefined));
@@ -229,7 +222,7 @@ suite('Types', () => {
 		assert(!types.isUndefinedOrNull(new RegExp('')));
 		assert(!types.isUndefinedOrNull(new Date()));
 		assert(!types.isUndefinedOrNull(assert));
-		assert(!types.isUndefinedOrNull(function foo() { /**/ }));
+		assert(!types.isUndefinedOrNull(function foo() { }));
 		assert(!types.isUndefinedOrNull({ foo: 'bar' }));
 
 		assert(types.isUndefinedOrNull(undefined));
@@ -285,11 +278,6 @@ suite('Types', () => {
 			});
 		});
 
-		/**
-		 * Note! API of `assert.throws()` is different in the browser
-		 * and in Node.js, and it is not possible to use the same code
-		 * here. Therefore we had to resort to the manual try/catch.
-		 */
 		const assertThrows = (
 			testFunction: () => void,
 			errorMessage: string,
@@ -913,7 +901,6 @@ suite('Types', () => {
 			const obj: A | B = { a: 'test' };
 
 			assert(types.hasKey(obj, { a: true }));
-			// After this check, TypeScript knows obj is type A
 			assert.strictEqual(obj.a, 'test');
 		});
 
@@ -932,7 +919,6 @@ suite('Types', () => {
 			const obj: A | B = { a: 'test', b: 42 };
 
 			assert(types.hasKey(obj, { a: true, b: true }));
-			// After this check, TypeScript knows obj is type A
 			assert.strictEqual(obj.a, 'test');
 			assert.strictEqual(obj.b, 42);
 		});
@@ -950,7 +936,6 @@ suite('Types', () => {
 			type B = { b: number };
 			const obj: A | B = { a: 'test' };
 
-			// Empty key object should return true (all zero keys exist)
 			assert(types.hasKey(obj, {}));
 		});
 

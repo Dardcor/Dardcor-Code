@@ -43,14 +43,8 @@ export abstract class AlternativeNotebookDocument {
 		return this.transformer.getOffset(position);
 	}
 
-	/**
-	 * Translates a position in the notebook document to the corresponding alternative position.
-	 */
 	abstract fromCellPosition(cell: NotebookCell, position: Position): Position;
 
-	/**
-	 * Translates a position in the alternative document to the corresponding cell index and position in the notebook document.
-	 */
 	abstract toCellPosition(position: Position): { cell: NotebookCell; position: Position } | undefined;
 
 	getWordRangeAtPosition(_position: Position): Range | undefined {

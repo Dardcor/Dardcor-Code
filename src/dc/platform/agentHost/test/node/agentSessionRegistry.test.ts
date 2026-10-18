@@ -387,7 +387,6 @@ suite('AgentSessionRegistry', () => {
 		const registry = createRegistry();
 		assert.strictEqual(await registry.isBackfilled(), false);
 
-		// Simulate a one-time backfill: merge sessions, then set the marker.
 		await registerExplicit(registry, a, 'copilot', 100);
 		await registerExplicit(registry, b, 'claude', 200);
 		await registry.markBackfilled();
@@ -395,7 +394,6 @@ suite('AgentSessionRegistry', () => {
 		assert.strictEqual(await registry.isBackfilled(), true);
 		assert.deepStrictEqual((await list(registry)).map(s => s.session.toString()).sort(), [a.toString(), b.toString()].sort());
 
-		// The marker persists across instances so the seed never runs twice.
 		const second = createRegistry();
 		assert.strictEqual(await second.isBackfilled(), true);
 	});
@@ -408,13 +406,10 @@ suite('AgentSessionRegistry', () => {
 		await registerExplicit(registry, a, 'copilot', 100);
 		await registry.markProviderBackfilled('copilot');
 
-		// Only the swept provider is marked — a provider that hasn't had its own
-		// sweep run yet (e.g. because it registered later) is still pending,
 		// unlike the legacy global marker which covered every provider at once.
 		assert.strictEqual(await registry.isProviderBackfilled('copilot'), true);
 		assert.strictEqual(await registry.isProviderBackfilled('claude'), false);
 
-		// The marker persists across instances.
 		const second = createRegistry();
 		assert.deepStrictEqual(
 			{ copilot: await second.isProviderBackfilled('copilot'), claude: await second.isProviderBackfilled('claude') },
@@ -505,7 +500,6 @@ suite('AgentSessionRegistry', () => {
 		await registry.tombstone(a);
 		assert.strictEqual(await registry.isTombstoned(a), true, 'tombstone must durably tombstone the session');
 
-		// The tombstone persists across instances (it is durable, not in-process).
 		const second = createRegistry();
 		assert.strictEqual(await second.isTombstoned(a), true);
 	});
@@ -516,8 +510,6 @@ suite('AgentSessionRegistry', () => {
 		await registry.tombstone(a);
 		assert.strictEqual(await registry.isTombstoned(a), true);
 
-		// An explicit re-register (a genuine new `createSession`) must clear
-		// the tombstone so the session is usable again.
 		await registerExplicit(registry, a, 'copilot', 150);
 		assert.strictEqual(await registry.isTombstoned(a), false);
 		assert.deepStrictEqual((await list(registry)).map(s => s.session.toString()), [a.toString()]);
@@ -539,8 +531,6 @@ suite('AgentSessionRegistry', () => {
 		await registry.tombstone(a);
 		assert.strictEqual(await registry.isTombstoned(a), true);
 
-		// Unlike `register`, a revival attempt (backfill, restore) must not
-		// resurrect an explicitly-deleted session.
 		const registered = await registerDiscovered(registry, a, 'copilot', 200);
 		assert.strictEqual(registered, false);
 		assert.deepStrictEqual(await list(registry), []);

@@ -5,11 +5,6 @@
 
 import { CustomizationEnablementKind, type CustomizationEnablement, type SkillCustomization } from './state/protocol/state.js';
 
-/**
- * Effective enablement when no explicit decision exists at any scope. It is
- * also the value compared before persisting a decision, so decisions matching
- * their inherited value are never written.
- */
 export const DEFAULT_CUSTOMIZATION_ENABLED = true;
 
 export type CustomizationDisabledReason =
@@ -28,21 +23,14 @@ export type CustomizationDisabledReason =
 		};
 	};
 
-/** Returns the decisive explicit enablement decision, if one exists. */
 export function getCustomizationEnablementDecision(customization: { readonly enablement?: readonly CustomizationEnablement[] }): CustomizationEnablement | undefined {
 	return customization.enablement?.[0];
 }
 
-/**
- * Effective enablement of a customization, derived from its explicit decisions.
- * The most specific decision is first, so `enablement[0]` decides; no explicit
- * decision anywhere means enabled.
- */
 export function isCustomizationEnabled(customization: { readonly enablement?: readonly CustomizationEnablement[] }): boolean {
 	return getCustomizationEnablementDecision(customization)?.enabled ?? DEFAULT_CUSTOMIZATION_ENABLED;
 }
 
-/** Returns whether a skill should be offered for direct user invocation. */
 export function isSkillEligibleForUserInvocation(skill: SkillCustomization): boolean {
 	return skill.enabled !== false && skill.disableUserInvocation !== true;
 }
@@ -53,9 +41,6 @@ export interface ICustomizationScopeEnablement {
 	readonly session: boolean;
 }
 
-/**
- * Resolves the value each scope would inherit if it had no explicit decision.
- */
 export function getCustomizationScopeEnablement(customization: { readonly enablement?: readonly CustomizationEnablement[] }): ICustomizationScopeEnablement {
 	const global = customization.enablement?.find(decision => decision.kind === CustomizationEnablementKind.Global)?.enabled ?? DEFAULT_CUSTOMIZATION_ENABLED;
 	const workspace = customization.enablement?.find(decision => decision.kind === CustomizationEnablementKind.Workspace)?.enabled ?? global;
@@ -66,11 +51,6 @@ export function getCustomizationScopeEnablement(customization: { readonly enable
 	};
 }
 
-/**
- * Returns the published reason when a customization or its containing plugin is
- * disabled. The plugin takes precedence because its child cannot take effect
- * until the plugin is enabled again.
- */
 export function getCustomizationDisabledReason(customization: { readonly enablement?: readonly CustomizationEnablement[] }, plugin?: { readonly id: string; readonly name: string; readonly uri: string; readonly clientId?: string; readonly enablement?: readonly CustomizationEnablement[] }): CustomizationDisabledReason | undefined {
 	if (plugin && !isCustomizationEnabled(plugin)) {
 		return {
@@ -103,7 +83,6 @@ function customizationEnablementOrder(kind: CustomizationEnablementKind): number
 	}
 }
 
-/** Sorts enablement decisions from most to least specific, stably within each scope. */
 export function sortCustomizationEnablement(enablement: readonly CustomizationEnablement[]): CustomizationEnablement[] {
 	return enablement
 		.map((decision, index) => ({ decision, index }))
@@ -111,7 +90,6 @@ export function sortCustomizationEnablement(enablement: readonly CustomizationEn
 		.map(({ decision }) => decision);
 }
 
-/** Replaces all decisions for one scope and returns the complete sorted decision set. */
 export function withCustomizationEnablement(current: readonly CustomizationEnablement[] | undefined, kind: CustomizationEnablementKind, entry: CustomizationEnablement | readonly CustomizationEnablement[] | undefined): CustomizationEnablement[] {
 	const replacement: readonly CustomizationEnablement[] = entry === undefined
 		? []

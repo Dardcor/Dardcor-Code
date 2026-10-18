@@ -17,14 +17,12 @@ export function rangeToString(r: IRange) {
 export function restoreEnvAfterTest() {
 	const origEnv: typeof process.env = { ...process.env };
 	teardown(function () {
-		// remove any keys that were added
 		for (const key of Object.keys(process.env)) {
 			if (!(key in origEnv)) {
 				delete process.env[key];
 			}
 		}
 
-		// restore the original values
 		for (const key of Object.keys(origEnv)) {
 			process.env[key] = origEnv[key];
 		}
@@ -59,7 +57,6 @@ export class TestNotificationSender implements ICompletionsNotificationSender {
 				warningPromise = action ? Promise.resolve(action) : Promise.resolve(undefined);
 			}
 		} else {
-			// If not set, default to the first action
 			warningPromise = actions ? Promise.resolve(actions[0]) : Promise.resolve(undefined);
 		}
 
@@ -79,7 +76,6 @@ export class TestNotificationSender implements ICompletionsNotificationSender {
 				informationPromise = action ? Promise.resolve(action) : Promise.resolve(undefined);
 			}
 		} else {
-			// If not set, default to the first action
 			informationPromise = actions ? Promise.resolve(actions[0]) : Promise.resolve(undefined);
 		}
 

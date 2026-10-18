@@ -6,82 +6,36 @@
 import { LanguageSelector } from '../../../../../editor/common/languageSelector.js';
 import { localize } from '../../../../../nls.js';
 
-/**
- * Documentation link for the reusable prompts feature.
- */
-export const PROMPT_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-prompt-snippets';
-export const INSTRUCTIONS_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-custom-instructions';
-export const AGENT_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-custom-chat-modes'; // todo
-export const SKILL_DOCUMENTATION_URL = 'https://aka.ms/vscode-agent-skills';
-// TODO: update link when available
-export const HOOK_DOCUMENTATION_URL = 'https://aka.ms/vscode-chat-hooks';
+export const PROMPT_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/agent-customization/prompt-files';
+export const INSTRUCTIONS_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/agent-customization/custom-instructions';
+export const AGENT_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/agent-customization/custom-agents';
+export const SKILL_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/agent-customization/agent-skills';
+export const HOOK_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/agent-customization/hooks';
 
-/**
- * Language ID for the reusable prompt syntax.
- */
 export const PROMPT_LANGUAGE_ID = 'prompt';
 
-/**
- * Language ID for instructions syntax.
- */
 export const INSTRUCTIONS_LANGUAGE_ID = 'instructions';
 
-/**
- * Language ID for agent syntax.
- */
 export const AGENT_LANGUAGE_ID = 'chatagent';
 
-/**
- * Language ID for skill syntax.
- */
 export const SKILL_LANGUAGE_ID = 'skill';
 
-/**
- * Prompt and instructions files language selector.
- */
 export const ALL_PROMPTS_LANGUAGE_SELECTOR: LanguageSelector = [PROMPT_LANGUAGE_ID, INSTRUCTIONS_LANGUAGE_ID, AGENT_LANGUAGE_ID, SKILL_LANGUAGE_ID];
 
-/**
- * Configuration key for enabling the agent debug log feature.
- */
 export const AGENT_DEBUG_LOG_ENABLED_SETTING = 'github.copilot.chat.agentDebugLog.enabled';
 
-/**
- * Configuration key for enabling file logging for the agent debug log.
- */
 export const AGENT_DEBUG_LOG_FILE_LOGGING_ENABLED_SETTING = 'github.copilot.chat.agentDebugLog.fileLogging.enabled';
 
-/**
- * Configuration key for enabling agent debug logging for agent host (Copilot CLI) sessions.
- * Registered in core (see `chat.shared.contribution.ts`) since only core consumes it.
- */
 export const AgentHostAgentDebugLogEnabledSettingId = 'chat.agentHost.agentDebugLog.enabled';
 
-/**
- * Configuration key for the maximum number of debug events kept in memory for
- * agent host (Copilot CLI) sessions. Registered in core (see
- * `chat.shared.contribution.ts`) since only core consumes it.
- */
 export const AgentHostAgentDebugLogMaxEventsSettingId = 'chat.agentHost.agentDebugLog.maxEventsInMemory';
 
-/**
- * The name of the troubleshoot slash command / skill.
- */
 export const TROUBLESHOOT_COMMAND_NAME = 'troubleshoot';
 
-/**
- * URI scheme used by the Copilot extension for built-in skills.
- */
 export const COPILOT_SKILL_URI_SCHEME = 'copilot-skill';
 
-/**
- * Path fragment that identifies the troubleshoot skill in a URI.
- */
 export const TROUBLESHOOT_SKILL_PATH = 'troubleshoot/SKILL.md';
 
-/**
- * The language id for a prompts type.
- */
 export function getLanguageIdForPromptsType(type: PromptsType): string {
 	switch (type) {
 		case PromptsType.prompt:
@@ -93,7 +47,6 @@ export function getLanguageIdForPromptsType(type: PromptsType): string {
 		case PromptsType.skill:
 			return SKILL_LANGUAGE_ID;
 		case PromptsType.hook:
-			// Hooks use JSONC syntax with schema validation
 			return 'jsonc';
 		default:
 			throw new Error(`Unknown prompt type: ${type}`);
@@ -110,16 +63,12 @@ export function getPromptsTypeForLanguageId(languageId: string): PromptsType | u
 			return PromptsType.agent;
 		case SKILL_LANGUAGE_ID:
 			return PromptsType.skill;
-		// Note: hook uses 'jsonc' language ID which is shared, so we don't map it here
 		default:
 			return undefined;
 	}
 }
 
 
-/**
- * What the prompt is used for.
- */
 export enum PromptsType {
 	instructions = 'instructions',
 	prompt = 'prompt',
@@ -138,9 +87,6 @@ export enum Target {
 	Undefined = 'undefined',
 }
 
-/**
- * Tracks where prompt files originate from.
- */
 export enum PromptFileSource {
 	GitHubWorkspace = 'github-workspace',
 	CopilotPersonal = 'copilot-personal',
@@ -157,9 +103,6 @@ export enum PromptFileSource {
 	Plugin = 'plugin',
 }
 
-/**
- * Returns a human-readable description for a prompt file source.
- */
 export function getSourceDescription(source: PromptFileSource): string | undefined {
 	switch (source) {
 		case PromptFileSource.AgentsWorkspace:

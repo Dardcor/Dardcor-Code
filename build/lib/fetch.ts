@@ -60,7 +60,6 @@ export async function fetchUrl(url: string, options: IFetchOptions, retries = 10
 				log(`Fetch completed: Status ${response.status}. Took ${ansiColors.magenta(`${new Date().getTime() - startTime} ms`)}`);
 			}
 			if (response.ok && (response.status >= 200 && response.status < 300)) {
-				// Reset timeout for body download - large files need more time
 				clearTimeout(timeout);
 				timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
 				const contents = Buffer.from(await response.arrayBuffer());
@@ -121,10 +120,6 @@ export interface IGitHubAssetOptions {
 	name: string | ((name: string) => boolean);
 	checksumSha256?: string;
 	verbose?: boolean;
-	/**
-	 * When set, ignore {@link IGitHubAssetOptions.version} and resolve the asset from the latest
-	 * published GitHub release (including pre-releases) instead of a specific tagged release.
-	 */
 	latest?: boolean;
 }
 
@@ -134,16 +129,8 @@ interface IGitHubRelease {
 	assets: { name: string; url: string }[];
 }
 
-/**
- * @param repo for example `Microsoft/vscode`
- * @param version for example `16.17.1` - must be a valid releases tag
- * @param assetName for example (name) => name === `win-x64-node.exe` - must be an asset that exists
- * @returns a stream with the asset as file
- */
 export function fetchGithub(repo: string, options: IGitHubAssetOptions): Stream {
 	const cleanRepo = repo.replace(/^\/|\/$/g, '');
-	// When `latest` is set, list all releases and pick the most recently published one (ignoring the
-	// requested version). Otherwise fetch the specific tagged release.
 	const releaseUrl = options.latest
 		? `/repos/${cleanRepo}/releases?per_page=100`
 		: `/repos/${cleanRepo}/releases/tags/v${options.version}`;
@@ -157,11 +144,6 @@ export function fetchGithub(repo: string, options: IGitHubAssetOptions): Stream 
 		let release: IGitHubRelease | undefined;
 		let asset: { name: string; url: string } | undefined;
 		if (options.latest) {
-			// Pick the most recently published non-draft release that actually contains the
-			// requested asset. Sort by `published_at` (when the release was made public) rather than
-			// `created_at` (when the draft was first created); treat a missing/unparseable timestamp
-			// as 0 so it sorts to the end deterministically. Skipping releases without the asset makes
-			// this resilient to releases that ship other artifacts (e.g. tarballs) but no matching VSIX.
 			const publishedTime = (r: IGitHubRelease) => {
 				const time = Date.parse(r.published_at ?? '');
 				return isNaN(time) ? 0 : time;

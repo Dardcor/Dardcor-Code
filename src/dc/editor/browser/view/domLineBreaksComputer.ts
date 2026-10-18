@@ -49,8 +49,6 @@ function createLineBreaks(targetWindow: Window, context: ILineBreaksComputerCont
 			const injectionOptions = injectedTexts.map(t => t.options);
 			const injectionOffsets = injectedTexts.map(text => text.column - 1);
 
-			// creating a `LineBreakData` with an invalid `breakOffsetsVisibleColumn` is OK
-			// because `breakOffsetsVisibleColumn` will never be used because it contains injected text
 			return new ModelLineProjectionData(injectionOffsets, injectionOptions, [lineText.length], [], 0);
 		} else {
 			return null;
@@ -90,11 +88,9 @@ function createLineBreaks(targetWindow: Window, context: ILineBreaksComputerCont
 		if (wrappingIndent !== WrappingIndent.None) {
 			firstNonWhitespaceIndex = strings.firstNonWhitespaceIndex(lineContent);
 			if (firstNonWhitespaceIndex === -1) {
-				// all whitespace line
 				firstNonWhitespaceIndex = 0;
 
 			} else {
-				// Track existing indent
 
 				for (let i = 0; i < firstNonWhitespaceIndex; i++) {
 					const charWidth = (
@@ -107,7 +103,6 @@ function createLineBreaks(targetWindow: Window, context: ILineBreaksComputerCont
 
 				const indentWidth = Math.ceil(fontInfo.spaceWidth * wrappedTextIndentLength);
 
-				// Force sticking to beginning of line if no character would fit except for the indentation
 				if (indentWidth + fontInfo.typicalFullwidthCharacterWidth > overallWidth) {
 					firstNonWhitespaceIndex = 0;
 					wrappedTextIndentLength = 0;
@@ -132,11 +127,9 @@ function createLineBreaks(targetWindow: Window, context: ILineBreaksComputerCont
 	containerDomNode.style.position = 'absolute';
 	containerDomNode.style.top = '10000px';
 	if (wordBreak === 'keepAll') {
-		// word-break: keep-all; overflow-wrap: anywhere
 		containerDomNode.style.wordBreak = 'keep-all';
 		containerDomNode.style.overflowWrap = 'anywhere';
 	} else {
-		// overflow-wrap: break-word
 		containerDomNode.style.wordBreak = 'inherit';
 		containerDomNode.style.overflowWrap = 'break-word';
 	}
@@ -165,7 +158,6 @@ function createLineBreaks(targetWindow: Window, context: ILineBreaksComputerCont
 		}
 
 		if (firstNonWhitespaceIndex !== 0) {
-			// All break offsets are relative to the renderLineContent, make them absolute again
 			for (let j = 0, len = breakOffsets.length; j < len; j++) {
 				breakOffsets[j] += firstNonWhitespaceIndex;
 			}
@@ -207,9 +199,6 @@ function renderLine(lineContent: string, initialVisibleColumn: number, tabSize: 
 	}
 	sb.appendString(String(width));
 	sb.appendString('px;">');
-	// if (containsRTL) {
-	// 	sb.appendASCIIString('" dir="ltr');
-	// }
 
 	const len = lineContent.length;
 	let visibleColumn = initialVisibleColumn;
@@ -235,7 +224,7 @@ function renderLine(lineContent: string, initialVisibleColumn: number, tabSize: 
 				charWidth = producedCharacters;
 				for (let space = 1; space <= producedCharacters; space++) {
 					if (space < producedCharacters) {
-						sb.appendCharCode(0xA0); // &nbsp;
+						sb.appendCharCode(0xA0);
 					} else {
 						sb.appendASCIICharCode(CharCode.Space);
 					}
@@ -244,7 +233,7 @@ function renderLine(lineContent: string, initialVisibleColumn: number, tabSize: 
 
 			case CharCode.Space:
 				if (nextCharCode === CharCode.Space) {
-					sb.appendCharCode(0xA0); // &nbsp;
+					sb.appendCharCode(0xA0);
 				} else {
 					sb.appendASCIICharCode(CharCode.Space);
 				}
@@ -328,13 +317,10 @@ function discoverBreaks(range: Range, spans: HTMLSpanElement[], charOffsets: num
 	highRects = highRects || readClientRect(range, spans, charOffsets[high], charOffsets[high + 1]);
 
 	if (Math.abs(lowRects[0].top - highRects[0].top) <= 0.1) {
-		// same line
 		return;
 	}
 
-	// there is at least one line break between these two offsets
 	if (low + 1 === high) {
-		// the two characters are adjacent, so the line break must be exactly between them
 		result.push(high);
 		return;
 	}

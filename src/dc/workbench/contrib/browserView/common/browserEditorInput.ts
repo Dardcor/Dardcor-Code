@@ -35,33 +35,18 @@ const LOADING_SPINNER_SVG = (color: string | undefined) => `
 	</svg>
 `;
 
-/**
- * Maximum length for browser page titles before truncation
- */
 const MAX_TITLE_LENGTH = 30;
 
-/**
- * JSON-serializable type used during browser state serialization/deserialization
- */
 export interface IBrowserEditorInputData extends IBrowserEditorViewState {
 	readonly id: string;
 	readonly associatedResource?: URI;
-	/** Whether the tab came from the default localhost link opener. Not serialized. */
 	readonly isDefaultLinkOpen?: boolean;
 }
 
-/**
- * Fired before a {@link BrowserEditorInput} is disposed. Listeners may call
- * {@link veto} to prevent disposal and keep the input and its model alive.
- */
 export interface IBeforeDisposeBrowserEditorEvent {
 	veto(): void;
 }
 
-/**
- * Slice both the query and fragment off a raw URL, preserving the exact
- * encoding of the remaining scheme/authority/path.
- */
 function stripUrlQueryAndFragment(url: string): string {
 	const suffix = url.search(/[?#]/);
 	return suffix === -1 ? url : url.slice(0, suffix);
@@ -112,18 +97,15 @@ export class BrowserEditorInput extends EditorInput {
 		this._modelStore.clear();
 		this._model = model;
 
-		// Set up cleanup when the model is disposed
 		this._modelStore.add(this._model.onWillDispose(() => {
 			this._modelStore.clear();
 			this._model = undefined;
 		}));
 
-		// Auto-close editor when webcontents closes
 		this._modelStore.add(this._model.onDidClose(() => {
 			this.dispose(true);
 		}));
 
-		// Listen for label-relevant changes to fire onDidChangeLabel
 		this._modelStore.add(this._model.onDidChangeTitle(() => this._onDidChangeLabel.fire()));
 		this._modelStore.add(this._model.onDidChangeFavicon(() => this._onDidChangeLabel.fire()));
 		this._modelStore.add(this._model.onDidChangeLoadingState(() => this._onDidChangeLabel.fire()));
@@ -165,10 +147,6 @@ export class BrowserEditorInput extends EditorInput {
 		return this._model?.favicon ?? this._initialData.favicon;
 	}
 
-	/**
-	 * Whether this editor was opened via a default localhost link open (setting
-	 * not explicitly configured by the user). Transient — not serialized.
-	 */
 	get isDefaultLinkOpen(): boolean {
 		return !!this._initialData.isDefaultLinkOpen;
 	}
@@ -271,7 +249,6 @@ export class BrowserEditorInput extends EditorInput {
 			return _mediumlong;
 		};
 		return {
-			// Host only for network URLs, path only for file URLs.
 			get [Verbosity.SHORT]() {
 				if (_short === undefined) {
 					const parsed = URL.parse(url);
@@ -279,13 +256,9 @@ export class BrowserEditorInput extends EditorInput {
 				}
 				return _short;
 			},
-			// Raw URL without the query/fragment. Computed by string slicing
-			// (not a URI round-trip) so the displayed text stays byte-for-byte
-			// consistent with the canonical URL shown in the navbar.
 			get [Verbosity.MEDIUM]() {
 				return mediumlong();
 			},
-			// Raw URL without the query/fragment.
 			get [Verbosity.LONG]() {
 				return mediumlong();
 			}
@@ -309,7 +282,6 @@ export class BrowserEditorInput extends EditorInput {
 			return this._id === otherInput._id;
 		}
 
-		// Check if it's an untyped input with a browser view resource
 		if (hasKey(otherInput, { resource: true }) && otherInput.resource?.scheme === BrowserViewUri.scheme) {
 			const parsed = BrowserViewUri.parse(otherInput.resource);
 			if (parsed) {
@@ -320,10 +292,6 @@ export class BrowserEditorInput extends EditorInput {
 		return false;
 	}
 
-	/**
-	 * Creates a copy of this browser editor input with a new unique ID, creating an independent browser view with no linked state.
-	 * This is used during Copy into New Window.
-	 */
 	override copy(): EditorInput {
 		logBrowserOpen(this.telemetryService, 'copyToNewWindow');
 
@@ -389,9 +357,8 @@ export class BrowserEditorInput extends EditorInput {
 			}
 		}
 
-		super.dispose(); // Emit `onWillDispose` event first, then clean up the model.
+		super.dispose();
 		if (this._model) {
-			// `toUntyped()` is called after disposal. Store the latest data in `_initialData` so we can still get them there.
 			this._initialData = {
 				id: this._id,
 				url: this._model.url,

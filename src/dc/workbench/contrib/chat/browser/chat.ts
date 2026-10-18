@@ -33,82 +33,31 @@ import { IChatEditorOptions } from './widgetHosts/editor/chatEditor.js';
 import { ChatInputPart } from './widget/input/chatInputPart.js';
 import { IChatWidgetContrib } from './widget/chatWidget.js';
 import { ICodeBlockActionContext, ICodeBlockRenderOptions } from './widget/chatContentParts/codeBlockPart.js';
-import { AgentSessionTarget } from './agentSessions/agentSessions.js';
+
 
 export { ChatOutline } from './chatOutline.js';
 
-/**
- * A workspace item that can be selected in the workspace picker.
- */
 export interface IWorkspacePickerItem {
 	readonly uri: URI;
 	readonly label: string;
 	readonly isFolder: boolean;
 }
 
-/**
- * Delegate interface for the workspace picker.
- * Allows consumers to get and set the target workspace for chat submissions in empty window contexts.
- */
 export interface IWorkspacePickerDelegate {
-	/**
-	 * Returns the list of available workspaces to select from.
-	 */
 	getWorkspaces(): IWorkspacePickerItem[];
-	/**
-	 * Returns the currently selected workspace, if any.
-	 */
 	getSelectedWorkspace(): IWorkspacePickerItem | undefined;
-	/**
-	 * Sets the currently selected workspace.
-	 */
 	setSelectedWorkspace(workspace: IWorkspacePickerItem | undefined): void;
-	/**
-	 * Event that fires when the selected workspace changes.
-	 */
 	onDidChangeSelectedWorkspace: Event<IWorkspacePickerItem | undefined>;
-	/**
-	 * Event that fires when the available workspaces change.
-	 */
 	onDidChangeWorkspaces: Event<void>;
-	/**
-	 * Command ID to execute when user wants to open a new folder.
-	 */
 	openFolderCommand: string;
 }
 
-/**
- * Delegate interface for the session target picker.
- * Allows consumers to get and optionally set the active session provider.
- */
 export interface ISessionTypePickerDelegate {
-	getActiveSessionProvider(): AgentSessionTarget | undefined;
-	/**
-	 * Optional setter for the active session provider.
-	 * When provided, the picker will call this instead of executing the openNewChatSessionInPlace command.
-	 * This allows the welcome view to maintain independent state from the main chat panel.
-	 */
-	setActiveSessionProvider?(provider: AgentSessionTarget): void;
-	/**
-	 * Optional getter for the pending delegation target - the target that will be used when submit is pressed.
-	 */
-	getPendingDelegationTarget?(): AgentSessionTarget | undefined;
-	/**
-	 * Optional setter for the pending delegation target.
-	 * When a user selects a different session provider in a non-empty chat,
-	 * this stores the target for delegation on the next submit instead of immediately creating a new session.
-	 */
-	setPendingDelegationTarget?(provider: AgentSessionTarget): void;
-	/**
-	 * Optional event that fires when the active session provider changes.
-	 * When provided, listeners (like chatInputPart) can react to session type changes
-	 * and update pickers accordingly.
-	 */
-	onDidChangeActiveSessionProvider?: Event<AgentSessionTarget>;
-	/**
-	 * Returns whether the current session's workspace has a git repository.
-	 * Used to gate cloud delegation which requires a GitHub repository.
-	 */
+	getActiveSessionProvider(): string | undefined;
+	setActiveSessionProvider?(provider: string): void;
+	getPendingDelegationTarget?(): string | undefined;
+	setPendingDelegationTarget?(provider: string): void;
+	onDidChangeActiveSessionProvider?: Event<string>;
 	hasGitRepository?(): boolean;
 }
 
@@ -118,13 +67,6 @@ export interface IChatWidgetService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Returns the most recently focused widget if any.
-	 *
-	 * ⚠️ Consider carefully if this is appropriate for your use case. If you
-	 * can know what session you're interacting with, prefer {@link getWidgetBySessionResource}
-	 * or similar methods to work nicely with multiple chat widgets.
-	 */
 	readonly lastFocusedWidget: IChatWidget | undefined;
 
 	readonly onDidAddWidget: Event<IChatWidget>;
@@ -132,30 +74,14 @@ export interface IChatWidgetService {
 
 	readonly onDidChangeWidgetVisibility: Event<IChatWidget>;
 
-	/**
-	 * Fires when a chat session is no longer open in any chat widget.
-	 */
 	readonly onDidBackgroundSession: Event<URI>;
 
-	/**
-	 * Fires when the focused chat widget changes.
-	 */
 	readonly onDidChangeFocusedWidget: Event<IChatWidget | undefined>;
 
-	/**
-	 * Fires when the focused chat session changes, either because the focused widget
-	 * changed or because the focused widget loaded a different session.
-	 */
 	readonly onDidChangeFocusedSession: Event<void>;
 
-	/**
-	 * Reveals the widget, focusing its input unless `preserveFocus` is true.
-	 */
 	reveal(widget: IChatWidget, preserveFocus?: boolean): Promise<boolean>;
 
-	/**
-	 * Reveals the last active widget, or creates a new chat if necessary.
-	 */
 	revealWidget(preserveFocus?: boolean): Promise<IChatWidget | undefined>;
 
 	getAllWidgets(): ReadonlyArray<IChatWidget>;
@@ -168,9 +94,6 @@ export interface IChatWidgetService {
 
 	getWidgetsByLocations(location: ChatAgentLocation): ReadonlyArray<IChatWidget>;
 
-	/**
-	 * An IChatWidget registers itself when created.
-	 */
 	register(newWidget: IChatWidget): IDisposable;
 }
 
@@ -182,7 +105,6 @@ export interface IQuickChatService {
 	readonly onDidClose: Event<void>;
 	readonly enabled: boolean;
 	readonly focused: boolean;
-	/** Defined when quick chat is open */
 	readonly sessionResource?: URI;
 	toggle(options?: IQuickChatOpenOptions): void;
 	focus(): void;
@@ -192,17 +114,8 @@ export interface IQuickChatService {
 }
 
 export interface IQuickChatOpenOptions {
-	/**
-	 * The query for quick chat.
-	 */
 	query: string;
-	/**
-	 * Whether the query is partial and will await more input from the user.
-	 */
 	isPartialQuery?: boolean;
-	/**
-	 * An optional selection range to apply to the query text box.
-	 */
 	selection?: Selection;
 }
 
@@ -247,17 +160,12 @@ export interface IChatListItemRendererOptions {
 	readonly referencesExpandedWhenEmptyResponse?: boolean | ((mode: ChatModeKind) => boolean);
 	readonly progressMessageAtBottomOfResponse?: boolean | ((mode: ChatModeKind) => boolean);
 	readonly contentHorizontalPadding?: number;
-	/**
-	 * Render options applied to code blocks in response markdown (e.g. force word-wrap
-	 * so command/tool output pasted by the model wraps instead of overflowing).
-	 */
 	readonly codeBlockRenderOptions?: ICodeBlockRenderOptions;
 }
 
 export interface IChatWidgetViewOptions {
 	autoScroll?: boolean | ((mode: ChatModeKind) => boolean);
 	renderInputOnTop?: boolean;
-	/** Show the read-only status banner above the transcript instead of beside the composer. */
 	readOnlyBannerAtTop?: boolean;
 	renderFollowups?: boolean;
 	renderStyle?: 'compact' | 'minimal';
@@ -265,25 +173,11 @@ export interface IChatWidgetViewOptions {
 	renderGettingStartedTip?: boolean | (() => boolean);
 	supportsFileReferences?: boolean;
 	filter?: (item: ChatTreeItem) => boolean;
-	/**
-	 * Action triggered when 'clear' is called on the widget. The optional
-	 * `resolvedSessionType` carries the already-resolved new session type and
-	 * selection reason so the host does not recompute either value.
-	 */
 	clear?: (resolvedSessionType?: IResolvedNewChatSessionType | string) => Promise<void>;
 	rendererOptions?: IChatListItemRendererOptions;
 	menus?: {
-		/**
-		 * The menu that is inside the input editor, use for send, dictation
-		 */
 		executeToolbar?: MenuId;
-		/**
-		 * The menu that next to the input editor, use for close, config etc
-		 */
 		inputSideToolbar?: MenuId;
-		/**
-		 * The telemetry source for all commands of this widget
-		 */
 		telemetrySource?: string;
 	};
 	defaultElementHeight?: number;
@@ -294,47 +188,16 @@ export interface IChatWidgetViewOptions {
 	dndContainer?: HTMLElement;
 	inputEditorMinLines?: number;
 	defaultMode?: IChatMode;
-	/**
-	 * Optional delegate for the session target picker.
-	 * When provided, allows the widget to maintain independent state for the selected session type.
-	 * This is useful for contexts like the welcome view where target selection should not
-	 * immediately open a new session.
-	 */
 	sessionTypePickerDelegate?: ISessionTypePickerDelegate;
 
-	/**
-	 * Optional delegate for the workspace picker.
-	 * When provided, shows a workspace picker in the chat input allowing users to select
-	 * a target workspace for their request. This is useful for empty window contexts where
-	 * the user wants to send a request to a specific workspace.
-	 */
 	workspacePickerDelegate?: IWorkspacePickerDelegate;
 
-	/**
-	 * Optional handler for chat submission.
-	 * When provided, this handler is called before the normal input acceptance flow.
-	 * If it returns true (handled), the normal submission is skipped.
-	 * This is useful for contexts like the welcome view where submission should
-	 * redirect to a different workspace rather than executing locally.
-	 *
-	 * `attachedContext` carries the explicit attachments (paste/drop/pick) present
-	 * on the input so a host that routes the request elsewhere can forward them
-	 * instead of silently dropping them.
-	 */
 	submitHandler?: (query: string, mode: ChatModeKind, attachedContext?: IChatRequestVariableEntry[], isVoiceModeInput?: boolean) => Promise<boolean>;
 
-	/** Whether this host supports the experimental session state indicator. Defaults to false. */
 	enableSessionStateIndicator?: boolean;
 
-	/** Enables the transcript Find widget (`Ctrl/Cmd+F`) for this chat widget. Off by default. */
 	enableFind?: boolean;
 
-	/**
-	 * Height of the content this host mounts into
-	 * {@link ChatInputPart.persistentContentContainerElement}. Setting it floats that
-	 * content above the input, so the transcript scrolls underneath it, and reserves
-	 * the same space below the transcript. Must match the content's rendered height.
-	 */
 	persistentContentHeight?: number;
 	onDidChangeModelPickerVisibility?: (visible: boolean) => void;
 	inputPickerPosition?: AnchorPosition;
@@ -366,29 +229,12 @@ export interface IChatAcceptInputOptions {
 	noCommandDetection?: boolean;
 	isVoiceInput?: boolean;
 	isVoiceModeInput?: boolean;
-	enableImplicitContext?: boolean; // defaults to true
-	// Whether to store the input to history. This defaults to 'true' if the input
-	// box's current content is being accepted, or 'false' if a specific input
-	// is being submitted to the widget.
+	enableImplicitContext?: boolean;
 	storeToHistory?: boolean;
-	/**
-	 * When set, queues this message to be sent after the current request completes.
-	 * If Steering, also sets yieldRequested on any active request to signal it should wrap up.
-	 */
 	queue?: ChatRequestQueueKind;
-	/**
-	 * Cancels the current request before sending this message instead of falling back to queueing.
-	 */
 	cancelCurrentRequest?: boolean;
 	preserveFocus?: boolean;
-	/** Keeps the input box contents and attachments after submitting a programmatic query, and omits them from it. The query itself is sent as-is: prompt slash commands in it are not resolved. */
 	preserveInput?: boolean;
-	/**
-	 * Called once the request has been handed over to the chat service, i.e. it was either sent
-	 * right away or queued because another request is in progress. Callers that must not wait for
-	 * a queued request to actually run should use this instead of awaiting `acceptInput`, which
-	 * only resolves once the request has been sent.
-	 */
 	onRequestAccepted?: () => void;
 }
 
@@ -397,10 +243,6 @@ export interface IChatWidgetViewModelChangeEvent {
 	readonly currentSessionResource: URI | undefined;
 }
 
-/**
- * Visual presentation state restored when a widget is rebound to a chat.
- * Composer data such as text, attachments, mode, and model belongs in {@link IChatModelInputState}.
- */
 export interface IChatWidgetViewState {
 	readonly scrollTop: number;
 	readonly isAtBottom?: boolean;
@@ -410,7 +252,6 @@ export const CHAT_WIDGET_VIEW_STATE_CACHE_LIMIT = 100;
 
 export interface IChatWidget {
 	readonly domNode: HTMLElement;
-	/** DOM node of the scrollable transcript area, excluding the input part. */
 	readonly transcriptDomNode: HTMLElement;
 	readonly visible: boolean;
 	readonly onDidChangeViewModel: Event<IChatWidgetViewModelChangeEvent>;
@@ -428,7 +269,6 @@ export interface IChatWidget {
 	readonly viewModel: IChatViewModel | undefined;
 	readonly inputEditor: ICodeEditor;
 	readonly supportsFileReferences: boolean;
-	/** Whether the input part is rendered above the transcript instead of below it (quick chat, composer-style widgets). */
 	readonly rendersInputOnTop: boolean;
 	readonly attachmentCapabilities: IChatAgentAttachmentCapabilities;
 	readonly parsedInput: IParsedChatRequest;
@@ -436,7 +276,6 @@ export interface IChatWidget {
 	lastSelectedAgent: IChatAgentData | undefined;
 	readonly scopedContextKeyService: IContextKeyService;
 	readonly input: ChatInputPart;
-	/** The main input part at the bottom of the widget. Unlike `input`, this always returns the main input, not the inline editing input. */
 	readonly inputPart: ChatInputPart;
 	readonly attachmentModel: ChatAttachmentModel;
 	readonly locationData?: IChatLocationData;
@@ -452,7 +291,6 @@ export interface IChatWidget {
 	setInput(query?: string): void;
 	getInput(): string;
 	refreshParsedInput(): void;
-	/** Floats persistent input content and reserves matching space below the transcript. */
 	setPersistentContentHeight(height: number | undefined): void;
 	logInputHistory(): void;
 	acceptInput(query?: string, options?: IChatAcceptInputOptions): Promise<IChatResponseModel | undefined>;
@@ -463,46 +301,14 @@ export interface IChatWidget {
 	rerunLastRequest(): Promise<void>;
 	setInputPlaceholder(placeholder: string): void;
 	resetInputPlaceholder(): void;
-	/**
-	 * Focuses the response item in the list.
-	 * @param lastFocused Focuses the most recently focused response. Otherwise, focuses the last response.
-	 */
 	focusResponseItem(lastFocused?: boolean): void;
 	focusInput(): void;
-	/**
-	 * Focuses the Todos view in the chat widget.
-	 * @returns Whether the operation succeeded (i.e., the Todos view was focused).
-	 */
 	focusTodosView(): boolean;
-	/**
-	 * Toggles focus between the Todos view and the previous focus target in the chat widget.
-	 * @returns Whether the operation succeeded (i.e., the focus was toggled).
-	 */
 	toggleTodosViewFocus(): boolean;
-	/**
-	 * Focuses the question carousel in the chat widget.
-	 * @returns Whether the operation succeeded (i.e., the question carousel was focused).
-	 */
 	focusQuestionCarousel(): boolean;
-	/**
-	 * Toggles focus between the question carousel and the chat input.
-	 * @returns Whether the operation succeeded (i.e., the focus was toggled).
-	 */
 	toggleQuestionCarouselFocus(): boolean;
-	/**
-	 * Navigates to the previous question in the question carousel.
-	 * @returns Whether the operation succeeded (i.e., a previous question exists).
-	 */
 	navigateToPreviousQuestion(): boolean;
-	/**
-	 * Navigates to the next question in the question carousel.
-	 * @returns Whether the operation succeeded (i.e., a next question exists).
-	 */
 	navigateToNextQuestion(): boolean;
-	/**
-	 * Focuses the terminal associated with the active question carousel.
-	 * @returns Whether the operation succeeded (i.e., a terminal was found and focused).
-	 */
 	focusQuestionCarouselTerminal(): boolean;
 	hasInputFocus(): boolean;
 	getModeRequestOptions(): Partial<IChatSendRequestOptions>;
@@ -510,15 +316,7 @@ export interface IChatWidget {
 	getCodeBlockInfosForResponse(response: IChatResponseViewModel): IChatCodeBlockInfo[];
 	getFileTreeInfosForResponse(response: IChatResponseViewModel): IChatFileTreeInfo[];
 	getLastFocusedFileTreeForResponse(response: IChatResponseViewModel): IChatFileTreeInfo | undefined;
-	/**
-	 * Returns the currently rendered chat item containing the node, if any.
-	 */
 	getElementFromNode(node: HTMLElement): ChatTreeItem | undefined;
-	/**
-	 * Suppresses auto-scrolling the transcript to the bottom until the returned
-	 * disposable is disposed. Holds compose, so concurrent callers do not
-	 * clobber each other.
-	 */
 	holdAutoScroll(): IDisposable;
 	clear(resolvedSessionType?: IResolvedNewChatSessionType | string): Promise<void>;
 	getInputState(): IChatModelInputState | undefined;
@@ -531,14 +329,11 @@ export interface IChatWidget {
 
 	delegateScrollFromMouseWheelEvent(event: IMouseWheelEvent): void;
 
-	/** Returns the widget's transcript Find controller, or `undefined` if `enableFind` was not set. */
 	getFindController(): IChatFindController | undefined;
 }
 
-/** Minimal surface used to route `Ctrl/Cmd+F` and Find Next/Previous to a chat widget's transcript Find widget. */
 export interface IChatFindController {
 	readonly visible: boolean;
-	/** Shows the Find widget, optionally seeding the query and focusing the input. */
 	show(seedText?: string, focus?: boolean): void;
 	hide(): void;
 	next(): void;
@@ -546,26 +341,12 @@ export interface IChatFindController {
 	toggleCaseSensitive(): void;
 	toggleWholeWord(): void;
 	toggleRegex(): void;
-	/** Focuses the Find widget's last-focused element (defaults to the input). */
 	focus(): void;
 }
 
-/**
- * Binds a freshly loaded model to a chat widget, preserving any text the user
- * typed into the input while the session was still loading (the input stays
- * editable during the async load, and binding would otherwise reset it to the
- * session's own draft). See #325323.
- *
- * @param inputBeforeLoad Input value captured when the load window started, used
- * as a baseline so a previous session's leftover draft is not mistaken for newly
- * typed text.
- * @param setModel Callback that performs the actual `setModel` binding.
- */
 export function setModelPreservingInputTypedWhileLoading(widget: IChatWidget, inputBeforeLoad: string, setModel: () => void): void {
 	const typedWhileLoading = widget.getInput();
 	setModel();
-	// Restore only genuinely new text onto a session that has no draft of its own,
-	// so we never clobber a persisted draft or carry over a leftover draft.
 	if (typedWhileLoading && typedWhileLoading !== inputBeforeLoad && !widget.getInput()) {
 		widget.setInput(typedWhileLoading);
 	}
@@ -589,37 +370,24 @@ export const ChatViewContainerId = 'workbench.panel.chat';
 export const HasInstalledAgentPluginsContext = new RawContextKey<boolean>('hasInstalledAgentPlugins', false);
 export const InstalledAgentPluginsViewId = 'workbench.views.agentPlugins.installed';
 
-/**
- * A surface that can receive chat context attachments.
- */
 export interface IChatAttachmentTarget {
 	readonly attachments: readonly IChatRequestVariableEntry[];
 
 	addAttachments(entries: readonly IChatRequestVariableEntry[]): void;
 }
 
-/**
- * A chat input surface that paste providers can attach context to. Implemented
- * by both the workbench chat widget and the Agents window composer so the paste
- * pipeline does not depend on {@link IChatWidget}.
- */
 export interface IChatPasteTarget extends IChatAttachmentTarget {
 
-	/** Scopes resources created for this input, so they are cleaned up with the session. */
 	readonly sessionResource: URI;
 
-	/** Inline references currently present in the input. */
 	readonly inlineReferences: readonly IDynamicVariable[];
 
 	removeAttachments(ids: readonly string[]): void;
 
-	/** Attaches `entry` and binds it to the inline `text` inserted at `range`. */
 	addInlineAttachment(entry: IChatRequestVariableEntry, text: string, range: IRange): void;
 
-	/** Adds an inline reference that is not backed by an attachment, such as a symbol. */
 	addInlineReference(reference: IDynamicVariable): void;
 
-	/** Whether pasting `text` over `range` would turn the input into a terminal command. */
 	isTerminalCommandPaste(text: string, range: IRange): boolean;
 }
 

@@ -43,14 +43,12 @@ suite('remoteHosts', () => {
 	});
 
 	test('isLoopbackHost', () => {
-		// loopback hosts
 		assert.strictEqual(isLoopbackHost('localhost'), true);
 		assert.strictEqual(isLoopbackHost('LOCALHOST'), true);
 		assert.strictEqual(isLoopbackHost('127.0.0.1'), true);
 		assert.strictEqual(isLoopbackHost('::1'), true);
 		assert.strictEqual(isLoopbackHost('[::1]'), true);
 
-		// non-loopback hosts
 		assert.strictEqual(isLoopbackHost('evil.com'), false);
 		assert.strictEqual(isLoopbackHost('192.168.0.1'), false);
 		assert.strictEqual(isLoopbackHost('10.0.0.1'), false);

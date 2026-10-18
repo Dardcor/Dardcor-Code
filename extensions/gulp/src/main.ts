@@ -11,18 +11,6 @@ import * as vscode from 'vscode';
 
 type AutoDetect = 'on' | 'off';
 
-/**
- * Check if the given filename is a file.
- *
- * If returns false in case the file does not exist or
- * the file stats cannot be accessed/queried or it
- * is no file at all.
- *
- * @param filename
- *   the filename to the checked
- * @returns
- *   true in case the file exists, in any other case false.
- */
 async function exists(filename: string): Promise<boolean> {
 	try {
 
@@ -30,8 +18,6 @@ async function exists(filename: string): Promise<boolean> {
 			return true;
 		}
 	} catch (ex) {
-		// In case requesting the file statistics fail.
-		// we assume it does not exist.
 		return false;
 	}
 
@@ -160,18 +146,6 @@ class FolderDetector {
 		return undefined;
 	}
 
-	/**
-	 * Searches for a gulp entry point inside the given folder.
-	 *
-	 * Typically the entry point is a file named "gulpfile.js"
-	 *
-	 * It can also be a transposed gulp entry points, like gulp.babel.js or gulp.esm.js
-	 *
-	 * Additionally recent node version prefer the .mjs or .cjs extension over the .js.
-	 *
-	 * @param root
-	 *   the folder which should be checked.
-	 */
 	private async hasGulpfile(root: string): Promise<boolean | undefined> {
 
 		for (const filename of await fs.promises.readdir(root)) {
@@ -215,9 +189,8 @@ class FolderDetector {
 		try {
 			const { stdout, stderr } = await exec(commandLine, { cwd: rootPath });
 			if (stderr && stderr.length > 0) {
-				// Filter out "No license field"
 				const errors = stderr.split('\n');
-				errors.pop(); // The last line is empty.
+				errors.pop();
 				if (!errors.every(value => value.indexOf('No license field') >= 0)) {
 					getOutputChannel().appendLine(stderr);
 					showError();
@@ -382,7 +355,6 @@ class TaskDetector {
 			return this.detectors.values().next().value!.getTask(task);
 		} else {
 			if ((task.scope === vscode.TaskScope.Workspace) || (task.scope === vscode.TaskScope.Global)) {
-				// Not supported, we don't have enough info to create the task.
 				return undefined;
 			} else if (task.scope) {
 				const detector = this.detectors.get(task.scope.uri.toString());

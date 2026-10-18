@@ -11,12 +11,6 @@ import { DebugOwner, DebugNameData, IDebugNameData } from '../debugName.js';
 import { _setDerivedOpts } from './baseObservable.js';
 import { IDerivedReader, Derived, DerivedWithSetter } from './derivedImpl.js';
 
-/**
- * Creates an observable that is derived from other observables.
- * The value is only recomputed when absolutely needed.
- *
- * {@link computeFn} should start with a JS Doc using `@description` to name the derived.
- */
 export function derived<T, TChange = void>(computeFn: (reader: IDerivedReader<TChange>, debugLocation?: DebugLocation) => T): IObservableWithChange<T, TChange>;
 export function derived<T, TChange = void>(owner: DebugOwner, computeFn: (reader: IDerivedReader<TChange>) => T, debugLocation?: DebugLocation): IObservableWithChange<T, TChange>;
 export function derived<T, TChange = void>(
@@ -77,19 +71,6 @@ export function derivedOpts<T>(
 }
 _setDerivedOpts(derivedOpts);
 
-/**
- * Represents an observable that is derived from other observables.
- * The value is only recomputed when absolutely needed.
- *
- * {@link computeFn} should start with a JS Doc using `@description` to name the derived.
- *
- * Use `createEmptyChangeSummary` to create a "change summary" that can collect the changes.
- * Use `handleChange` to add a reported change to the change summary.
- * The compute function is given the last change summary.
- * The change summary is discarded after the compute function was called.
- *
- * @see derived
- */
 export function derivedHandleChanges<T, TDelta, TChangeSummary>(
 	options: IDebugNameData & {
 		changeTracker: IChangeTracker<TChangeSummary>;
@@ -108,14 +89,8 @@ export function derivedHandleChanges<T, TDelta, TChangeSummary>(
 	);
 }
 
-/**
- * @deprecated Use `derived(reader => { reader.store.add(...) })` instead!
-*/
 export function derivedWithStore<T>(computeFn: (reader: IReader, store: DisposableStore) => T): IObservable<T>;
 
-/**
- * @deprecated Use `derived(reader => { reader.store.add(...) })` instead!
-*/
 export function derivedWithStore<T>(owner: DebugOwner, computeFn: (reader: IReader, store: DisposableStore) => T): IObservable<T>;
 export function derivedWithStore<T>(computeFnOrOwner: ((reader: IReader, store: DisposableStore) => T) | DebugOwner, computeFnOrUndefined?: ((reader: IReader, store: DisposableStore) => T), debugLocation = DebugLocation.ofCaller()): IObservable<T> {
 	let computeFn: (reader: IReader, store: DisposableStore) => T;
@@ -130,7 +105,6 @@ export function derivedWithStore<T>(computeFnOrOwner: ((reader: IReader, store: 
 		computeFn = computeFnOrUndefined as any;
 	}
 
-	// Intentionally re-assigned in case an inactive observable is re-used later
 	// eslint-disable-next-line local/code-no-potentially-unsafe-disposables
 	let store = new DisposableStore();
 

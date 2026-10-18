@@ -18,7 +18,6 @@ export class MainThreadClipboard implements MainThreadClipboardShape {
 	) { }
 
 	dispose(): void {
-		// nothing
 	}
 
 	$readText(): Promise<string> {

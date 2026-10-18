@@ -15,27 +15,6 @@ import { ILanguageFeaturesService } from '../../../../../../../editor/common/ser
 import { IChatInputCompletionItem, IChatSessionsService } from '../../../../common/chatSessionsService.js';
 import { isAtTriggerCharacterToken } from './chatInputCompletionUtils.js';
 
-/**
- * Shared plumbing for Monaco completion providers that delegate to an
- * agent host's `provideChatInputCompletions` RPC.
- *
- * Subclasses own the registration lifecycle (per-scheme, per-active-
- * session, etc.) and supply two pieces of behaviour:
- *
- *   - {@link _resolveContext}: how to find the session resource for a
- *     given input model, plus any subclass-specific data ({@link TContext})
- *     that needs to flow into the accept command. Receives the per-
- *     registration data ({@link TRegData}) the subclass passed to
- *     {@link _registerProvider} so it can short-circuit when the model
- *     does not belong to *this* registration (e.g. a different scheme).
- *   - {@link _buildItem}: how to produce the final Monaco
- *     {@link CompletionItem} including the command that runs when the
- *     user accepts a suggestion.
- *
- * The base handles the cross-cutting concerns: gating on trigger
- * characters, performing the host RPC, cancellation, and registering
- * the Monaco provider with the host-announced trigger characters.
- */
 export abstract class AgentHostInputCompletionsBase<TContext, TRegData = void> extends Disposable {
 
 	constructor(
@@ -45,30 +24,10 @@ export abstract class AgentHostInputCompletionsBase<TContext, TRegData = void> e
 		super();
 	}
 
-	/**
-	 * Resolve the session resource whose host should answer completions
-	 * for `model`, along with any subclass-specific context that should
-	 * flow into {@link _buildItem}. Return `undefined` to skip.
-	 */
 	protected abstract _resolveContext(model: ITextModel, regData: TRegData): { sessionResource: URI; context: TContext } | undefined;
 
-	/**
-	 * Build the Monaco completion item — including the accept command —
-	 * for one item returned by the host. Return `undefined` to omit the item
-	 * (e.g. a config-action item the client suppresses under enterprise policy).
-	 */
 	protected abstract _buildItem(position: Position, item: IChatInputCompletionItem, context: TContext): CompletionItem | undefined;
 
-	/**
-	 * Register a Monaco completion provider that delegates to this
-	 * instance. Subclasses call this once their lifecycle decides a
-	 * registration should exist (e.g. once a content provider becomes
-	 * available, or once the active session changes to an AHP-backed
-	 * one). The opaque {@link regData} is forwarded to
-	 * {@link _resolveContext} so the subclass can identify which
-	 * registration is firing (e.g. its scheme) and ignore models that
-	 * don't belong to it.
-	 */
 	protected _registerProvider(filter: LanguageFilter, debugName: string, triggerCharacters: readonly string[], regData: TRegData): IDisposable {
 		return this._languageFeaturesService.completionProvider.register(filter, {
 			_debugDisplayName: debugName,
@@ -78,8 +37,6 @@ export abstract class AgentHostInputCompletionsBase<TContext, TRegData = void> e
 	}
 
 	private async _provide(model: ITextModel, position: Position, token: CancellationToken, triggerCharacters: readonly string[], regData: TRegData): Promise<CompletionList | null> {
-		// Only consult the agent host when the cursor sits inside a token
-		// led by one of the host-announced trigger characters.
 		if (!isAtTriggerCharacterToken(model, position, triggerCharacters)) {
 			return null;
 		}
@@ -110,12 +67,6 @@ export abstract class AgentHostInputCompletionsBase<TContext, TRegData = void> e
 		return { suggestions, incomplete: true };
 	}
 
-	/**
-	 * Compute the insert/replace ranges for an item. Positions returned
-	 * by the host are already 1-based Monaco positions, so they can be
-	 * used directly. When omitted, the ranges default to a zero-length
-	 * span at the cursor (Monaco then inserts without replacing).
-	 */
 	protected static computeRange(position: Position, item: IChatInputCompletionItem): { insert: Range; replace: Range } {
 		const start = item.start ?? position;
 		const end = item.end ?? position;

@@ -1,10 +1,6 @@
-// Pre-fetch remote image URLs into base64 BEFORE translation, for target
-// formats whose upstream providers cannot fetch remote URLs themselves
-// (they require inline base64). Runs on the source-format body.
 import { FORMATS } from "../formats.js";
 import { fetchImageAsBase64, parseDataUri } from "./image.js";
 
-// Targets that require inline base64 images (cannot accept remote URLs).
 const TARGETS_NEED_BASE64 = new Set([
   FORMATS.GEMINI, FORMATS.GEMINI_CLI, FORMATS.VERTEX,
   FORMATS.ANTIGRAVITY, FORMATS.OLLAMA, FORMATS.KIRO,
@@ -14,7 +10,6 @@ function isRemoteUrl(url) {
   return typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"));
 }
 
-// Collect {get,set} accessors for every remote image URL in a source body.
 function collectImageRefs(body, sourceFormat) {
   const refs = [];
   const pushOpenAI = (messages) => {
@@ -71,11 +66,6 @@ function collectImageRefs(body, sourceFormat) {
   return refs;
 }
 
-/**
- * Replace remote image URLs with base64 data when the target needs inline data.
- * No-op when target accepts remote URLs (e.g. openai, claude) or body has none.
- * @returns {Promise<number>} count of images converted
- */
 export async function prefetchRemoteImages(body, sourceFormat, targetFormat, options = {}) {
   if (!body || !TARGETS_NEED_BASE64.has(targetFormat)) return 0;
   const refs = collectImageRefs(body, sourceFormat);
@@ -84,7 +74,7 @@ export async function prefetchRemoteImages(body, sourceFormat, targetFormat, opt
   let converted = 0;
   for (const ref of refs) {
     const url = ref.get();
-    if (parseDataUri(url)) continue; // already inline
+    if (parseDataUri(url)) continue;
     const fetched = await fetchImageAsBase64(url, options);
     if (!fetched) continue;
     if (ref.set) ref.set(fetched.url);

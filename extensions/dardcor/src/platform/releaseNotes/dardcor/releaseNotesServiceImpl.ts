@@ -43,7 +43,6 @@ export class ReleaseNotesService implements IReleaseNotesService {
 	}
 
 	private getUrl(version?: string): string | undefined {
-		// Build URL using MAJOR and MINOR only (no patch). VS Code does not have separate URLs per patch.
 		const sourceVersion = (version && version.trim().length > 0)
 			? version.trim()
 			: this.envService.getEditorInfo().version;

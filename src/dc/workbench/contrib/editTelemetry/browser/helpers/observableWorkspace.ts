@@ -24,16 +24,13 @@ export abstract class ObservableWorkspace {
 
 	private _version = 0;
 
-	/**
-	 * Is fired when any open document changes.
-	*/
 	public readonly onDidOpenDocumentChange = derivedHandleChanges({
 		owner: this,
 		changeTracker: {
 			createChangeSummary: () => ({ didChange: false }),
 			handleChange: (ctx, changeSummary) => {
 				if (!ctx.didChange(this.documents)) {
-					changeSummary.didChange = true; // A document changed
+					changeSummary.didChange = true;
 				}
 				return true;
 			}
@@ -41,23 +38,13 @@ export abstract class ObservableWorkspace {
 	}, (reader, changeSummary) => {
 		const docs = this.documents.read(reader);
 		for (const d of docs) {
-			d.value.read(reader); // add dependency
+			d.value.read(reader);
 		}
 		if (changeSummary.didChange) {
-			this._version++; // to force a change
+			this._version++;
 		}
 		return this._version;
 
-		// TODO@hediet make this work:
-		/*
-		const docs = this.openDocuments.read(reader);
-		for (const d of docs) {
-			if (reader.readChangesSinceLastRun(d.value).length > 0) {
-				reader.reportChange(d);
-			}
-		}
-		return undefined;
-		*/
 	});
 
 	public readonly lastActiveDocument = derived((reader) => {
@@ -78,9 +65,6 @@ export interface IObservableDocument {
 	readonly uri: URI;
 	readonly value: IObservableWithChange<StringText, StringEditWithReason>;
 
-	/**
-	 * Increases whenever the value changes. Is also used to reference document states from the past.
-	*/
 	readonly version: IObservable<number>;
 	readonly languageId: IObservable<string>;
 }

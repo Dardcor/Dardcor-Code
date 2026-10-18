@@ -2,10 +2,6 @@ const sourceDestArgs: Fig.Arg[] = [
 	{
 		name: "source_file",
 		template: ["filepaths", "folders"],
-		// isVariadic: true,
-		// source_file is variadic but usability wise having it is less useful
-		// because it keeps recommending "source_file" repeatedly and not "link_name or link_dirname"
-		// and since most people won't need multiple files and those who do can look it up
 	},
 	{
 		name: "link_name or link_dirname",

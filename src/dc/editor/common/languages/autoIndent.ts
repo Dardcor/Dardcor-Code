@@ -30,13 +30,6 @@ export interface IIndentConverter {
 	normalizeIndentation?(indentation: string): string;
 }
 
-/**
- * Get nearest preceding line which doesn't match unIndentPattern or contains all whitespace.
- * Result:
- * -1: run into the boundary of embedded languages
- * 0: every line above are invalid
- * else: nearest preceding line of the same language
- */
 function getPrecedingValidLine(model: IVirtualModel, lineNumber: number, processedIndentRulesSupport: ProcessedIndentRulesSupport) {
 	const languageId = model.tokenization.getLanguageIdAtPosition(lineNumber, 0);
 	if (lineNumber > 1) {
@@ -60,18 +53,6 @@ function getPrecedingValidLine(model: IVirtualModel, lineNumber: number, process
 	return -1;
 }
 
-/**
- * Get inherited indentation from above lines.
- * 1. Find the nearest preceding line which doesn't match unIndentedLinePattern.
- * 2. If this line matches indentNextLinePattern or increaseIndentPattern, it means that the indent level of `lineNumber` should be 1 greater than this line.
- * 3. If this line doesn't match any indent rules
- *   a. check whether the line above it matches indentNextLinePattern
- *   b. If not, the indent level of this line is the result
- *   c. If so, it means the indent of this line is *temporary*, go upward utill we find a line whose indent is not temporary (the same workflow a -> b -> c).
- * 4. Otherwise, we fail to get an inherited indent from aboves. Return null and we should not touch the indent of `lineNumber`
- *
- * This function only return the inherited indent based on above lines, it doesn't check whether current line should decrease or not.
- */
 export function getInheritIndentForLine(
 	autoIndent: EditorAutoIndentStrategy,
 	model: IVirtualModel,
@@ -96,7 +77,6 @@ export function getInheritIndentForLine(
 		};
 	}
 
-	// Use no indent if this is the first non-blank line
 	for (let priorLineNumber = lineNumber - 1; priorLineNumber > 0; priorLineNumber--) {
 		if (model.getLineContent(priorLineNumber) !== '') {
 			break;
@@ -134,11 +114,6 @@ export function getInheritIndentForLine(
 			line: precedingUnIgnoredLine
 		};
 	} else {
-		// precedingUnIgnoredLine can not be ignored.
-		// it doesn't increase indent of following lines
-		// it doesn't increase just next line
-		// so current line is not affect by precedingUnIgnoredLine
-		// and then we should get a correct inheritted indentation from above lines
 		if (precedingUnIgnoredLine === 1) {
 			return {
 				indentation: strings.getLeadingWhitespace(model.getLineContent(precedingUnIgnoredLine)),
@@ -175,7 +150,6 @@ export function getInheritIndentForLine(
 				line: precedingUnIgnoredLine
 			};
 		} else {
-			// search from precedingUnIgnoredLine until we find one whose indent is not temporary
 			for (let i = precedingUnIgnoredLine; i > 0; i--) {
 				if (processedIndentRulesSupport.shouldIncrease(i)) {
 					return {
@@ -244,7 +218,6 @@ export function getGoodIndentForLine(
 	if (indent) {
 		const inheritLine = indent.line;
 		if (inheritLine !== undefined) {
-			// Apply enter action as long as there are only whitespace lines between inherited line and this line.
 			let shouldApplyEnterRules = true;
 			for (let inBetweenLine = inheritLine; inBetweenLine < lineNumber - 1; inBetweenLine++) {
 				if (!/^\s*$/.test(virtualModel.getLineContent(inBetweenLine))) {
@@ -353,10 +326,6 @@ export function getIndentForEnter(
 	};
 }
 
-/**
- * We should always allow intentional indentation. It means, if users change the indentation of `lineNumber` and the content of
- * this line doesn't match decreaseIndentPattern, we should not adjust the indentation.
- */
 export function getIndentActionForType(
 	cursorConfig: CursorConfiguration,
 	model: ITextModel,
@@ -371,7 +340,6 @@ export function getIndentActionForType(
 	}
 	const languageIsDifferentFromLineStart = isLanguageDifferentFromLineStart(model, range.getStartPosition());
 	if (languageIsDifferentFromLineStart) {
-		// this line has mixed languages and indentation rules will not work
 		return null;
 	}
 
@@ -388,11 +356,7 @@ export function getIndentActionForType(
 	const textAroundRange = beforeRangeText + afterRangeText;
 	const textAroundRangeWithCharacter = beforeRangeText + ch + afterRangeText;
 
-	// If previous content already matches decreaseIndentPattern, it means indentation of this line should already be adjusted
-	// Users might change the indentation by purpose and we should honor that instead of readjusting.
 	if (!indentRulesSupport.shouldDecrease(textAroundRange) && indentRulesSupport.shouldDecrease(textAroundRangeWithCharacter)) {
-		// after typing `ch`, the content matches decreaseIndentPattern, we should adjust the indent to a good manner.
-		// 1. Get inherited indent action
 		const r = getInheritIndentForLine(autoIndent, model, range.startLineNumber, false, languageConfigurationService);
 		if (!r) {
 			return null;
@@ -416,7 +380,6 @@ export function getIndentActionForType(
 				const currentLine = model.getLineContent(range.startLineNumber);
 				const actualCurrentIndentation = strings.getLeadingWhitespace(currentLine);
 				const inferredCurrentIndentation = indentConverter.shiftIndent(inheritedIndentation);
-				// If the inferred current indentation is not equal to the actual current indentation, then the indentation has been intentionally changed, in that case keep it
 				const inferredIndentationEqualsActual = inferredCurrentIndentation === actualCurrentIndentation;
 				const textAroundRangeContainsOnlyWhitespace = /^\s*$/.test(textAroundRange);
 				const autoClosingPairs = cursorConfig.autoClosingPairs.autoClosingPairsOpenByEnd.get(ch);

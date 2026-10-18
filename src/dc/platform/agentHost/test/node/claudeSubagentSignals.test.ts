@@ -21,15 +21,6 @@ import {
 	makeUserToolResultMessage,
 } from './claudeMapSessionEventsTestUtils.js';
 
-/**
- * Direct tests for Phase 12 subagent signal emission.
- *
- * Drives `mapSDKMessageToAgentSignals` end-to-end for the integrated
- * paths, and the two newly-exported `claudeSubagentSignals` functions
- * directly for their contract-level assertions. Uses a fresh real
- * {@link SubagentRegistry} per test so subagent state is visible
- * across mapper invocations and assertable directly on the spawn record.
- */
 suite('claudeSubagentSignals — Phase 12 emission', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
@@ -181,11 +172,6 @@ suite('claudeSubagentSignals — Phase 12 emission', () => {
 	});
 
 	test('inner emission with unknown parent_tool_use_id (no spawn recorded) does NOT prepend subagent_started — tagging still applies', () => {
-		// New model: "no spawn means no announcement". If the registry
-		// has never seen the parent (and thus has no metadata), emitting
-		// a subagent_started would be lying about a session that never
-		// existed. The action is still tagged with parentToolCallId so
-		// AgentSideEffects can route it (or buffer / drop).
 		const state = new ClaudeMapperState();
 		const log = new NullLogService();
 		const registry = r();
@@ -204,8 +190,6 @@ suite('claudeSubagentSignals — Phase 12 emission', () => {
 	});
 
 	test('inner subagent canonical assistant message emits text/thinking/tool_use signals + tags them with parentToolCallId, lets the matching tool_result complete', () => {
-		// Empirically the SDK delivers inner content via canonical messages,
-		// not partials — this exercises that integration path end-to-end.
 		const state = new ClaudeMapperState();
 		const log = new NullLogService();
 		const registry = r();
@@ -241,10 +225,6 @@ suite('claudeSubagentSignals — Phase 12 emission', () => {
 			fromToolResultHasComplete: completeAction !== undefined,
 			everyActionTaggedWithParent: allParentIds.every(p => p === PARENT),
 			modelCallParentId,
-			// D6 parity: inner-tool past-tense must use the rich helper
-			// (seeded by `seedParsedInput` at start time), not fall back to
-			// the generic "{displayName} finished" — replay always renders
-			// rich text, so a generic live message would silently diverge.
 			completePastTense,
 		}, {
 			fromAssistantKinds: ['subagent_started', 'model_call_completed', 'action', 'action', 'action'],
@@ -396,7 +376,6 @@ suite('claudeSubagentSignals — Phase 12 emission', () => {
 		});
 	});
 
-	// #region focused contract tests on the extracted exports
 
 	test('buildTopLevelSubagentReadyAction omits _meta description/agentName when input fields are missing or wrong-typed; still records the spawn', () => {
 		const registry = r();
@@ -443,5 +422,4 @@ suite('claudeSubagentSignals — Phase 12 emission', () => {
 		});
 	});
 
-	// #endregion
 });

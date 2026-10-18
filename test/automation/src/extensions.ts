@@ -52,7 +52,6 @@ export class Extensions extends Viewlet {
 	async installExtension(id: string, waitUntilEnabled: boolean): Promise<void> {
 		await this.searchForExtension(id);
 
-		// try to install extension 3 times
 		let attempt = 1;
 		while (true) {
 			await this.code.waitAndClick(`div.extensions-viewlet[id="workbench.view.extensions"] .monaco-list-row[data-extension-id="${id}"] .extension-list-item .monaco-action-bar .action-item:not(.disabled) .extension-action.install`);

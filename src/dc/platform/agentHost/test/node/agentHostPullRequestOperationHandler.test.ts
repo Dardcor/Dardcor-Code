@@ -10,7 +10,7 @@ import type { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { NullLogService } from '../../../log/common/log.js';
-import { GITHUB_COPILOT_PROTECTED_RESOURCE, GITHUB_REPO_PROTECTED_RESOURCE } from '../../common/agent.js';
+import { GITHUB_REPO_PROTECTED_RESOURCE } from '../../common/agent.js';
 import { buildSessionChangesetUri } from '../../common/changesetUri.js';
 import { SessionConfigKey } from '../../common/sessionConfigKeys.js';
 import { withSessionGitHubState, withSessionGitState, type ISessionFileDiff, type ISessionGitState, MessageKind, ResponsePartKind, SessionStatus, TurnState, type Turn } from '../../common/state/sessionState.js';
@@ -19,34 +19,34 @@ import { AgentHostPullRequestOperationHandler } from '../../node/agentHostPullRe
 import { createTestGitHubEndpointService } from './testGitHubEndpointService.js';
 import { AgentHostStateManager } from '../../node/agentHostStateManager.js';
 import type { AutoMergeMethod, CreatedPullRequest, GitHubIssueOrPullRequest, IAgentHostOctoKitService } from '../../node/shared/agentHostOctoKitService.js';
-import type { ICopilotApiService, ICopilotApiServiceRequestOptions, ICopilotUtilityChatCompletionRequest } from '../../node/shared/copilotApiService.js';
+import type { IDardcorRouterService, IDardcorRouterRequestOptions, IDardcorUtilityChatCompletionRequest } from '../../node/shared/dardcorRouterService.js';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../common/dardcorRouterModel.js';
 import type { IAgentHostAuthenticationService } from '../../node/agentHostAuthenticationService.js';
 import type { IAgentBranchNameGenerator, IAgentBranchNameGeneratorRequest } from '../../node/shared/agentBranchNameGenerator.js';
 import { mock } from '../../../../base/test/common/mock.js';
 import type { AgentMergeControllerState, AgentMergeSessionOverrides } from '../../common/agentMerge.js';
 import type { IAgentConfigurationService } from '../../node/agentConfigurationService.js';
 
-class TestCopilotApiService implements ICopilotApiService {
+class TestDardcorRouterService implements IDardcorRouterService {
 	declare readonly _serviceBrand: undefined;
 
-	readonly calls: { token: string; request: ICopilotUtilityChatCompletionRequest; options?: ICopilotApiServiceRequestOptions }[] = [];
+	readonly calls: { request: IDardcorUtilityChatCompletionRequest; options?: IDardcorRouterRequestOptions }[] = [];
 	response = 'Generated PR title\n\nGenerated PR description.';
 	error: Error | undefined;
 
-	messages(_githubToken: string, _request: Anthropic.MessageCreateParamsStreaming, _options?: ICopilotApiServiceRequestOptions): AsyncGenerator<Anthropic.MessageStreamEvent>;
-	messages(_githubToken: string, _request: Anthropic.MessageCreateParamsNonStreaming, _options?: ICopilotApiServiceRequestOptions): Promise<Anthropic.Message>;
+	messages(_request: Anthropic.MessageCreateParamsStreaming, _options?: IDardcorRouterRequestOptions): AsyncGenerator<Anthropic.MessageStreamEvent>;
+	messages(_request: Anthropic.MessageCreateParamsNonStreaming, _options?: IDardcorRouterRequestOptions): Promise<Anthropic.Message>;
 	messages(): AsyncGenerator<Anthropic.MessageStreamEvent> | Promise<Anthropic.Message> {
 		throw new Error('not used');
 	}
 	async countTokens(): Promise<Anthropic.MessageTokensCount> { throw new Error('not used'); }
-	async models(): Promise<CCAModel[]> { return []; }
+	async models(): Promise<IDardcorRouterModel[]> { return []; }
 	async responses(): Promise<Response> { throw new Error('not used'); }
 	async resolveRestrictedTelemetryContext() { return { restrictedTelemetryEnabled: false, trackingId: undefined, telemetryEndpoint: undefined }; }
 	async resolveApiEndpoint() { return undefined; }
-	async utilityChatCompletion(githubToken: string, request: ICopilotUtilityChatCompletionRequest, options?: ICopilotApiServiceRequestOptions): Promise<string> {
-		this.calls.push({ token: githubToken, request, options });
+	async utilityChatCompletion(request: IDardcorUtilityChatCompletionRequest, options?: IDardcorRouterRequestOptions): Promise<string> {
+		this.calls.push({ request, options });
 		if (this.error) {
 			throw this.error;
 		}
@@ -195,7 +195,7 @@ class TestOctoKitService implements IAgentHostOctoKitService {
 	}
 }
 
-function createAuthenticationService(withCopilotToken = false): IAgentHostAuthenticationService {
+function createAuthenticationService(): IAgentHostAuthenticationService {
 	return {
 		_serviceBrand: undefined,
 		onDidChangeAuthToken: Event.None,
@@ -203,15 +203,12 @@ function createAuthenticationService(withCopilotToken = false): IAgentHostAuthen
 			if (resource.resource === GITHUB_REPO_PROTECTED_RESOURCE.resource) {
 				return 'gh-token';
 			}
-			if (withCopilotToken && resource.resource === GITHUB_COPILOT_PROTECTED_RESOURCE.resource) {
-				return 'copilot-token';
-			}
 			return undefined;
 		},
 	};
 }
 
-function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitService, octoKitService: TestOctoKitService, options?: { copilotApiService?: TestCopilotApiService; withCopilotToken?: boolean; turns?: Turn[]; draft?: boolean; autoMergeMethod?: AutoMergeMethod; enableAgentMerge?: boolean; agentMergeOverrides?: AgentMergeSessionOverrides; agentMergeControllerState?: AgentMergeControllerState; baseBranch?: string; branchPrefix?: string }): { handler: AgentHostPullRequestOperationHandler; session: URI; createdEvents: string[]; createdBranches: string[]; sessionConfigUpdates: Record<string, unknown>[]; copilotApiService: TestCopilotApiService; branchNameGenerator: TestBranchNameGenerator } {
+function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitService, octoKitService: TestOctoKitService, options?: { dardcorRouterService?: TestDardcorRouterService; turns?: Turn[]; draft?: boolean; autoMergeMethod?: AutoMergeMethod; enableAgentMerge?: boolean; agentMergeOverrides?: AgentMergeSessionOverrides; agentMergeControllerState?: AgentMergeControllerState; baseBranch?: string; branchPrefix?: string }): { handler: AgentHostPullRequestOperationHandler; session: URI; createdEvents: string[]; createdBranches: string[]; sessionConfigUpdates: Record<string, unknown>[]; dardcorRouterService: TestDardcorRouterService; branchNameGenerator: TestBranchNameGenerator } {
 	const stateManager = disposables.add(new AgentHostStateManager(new NullLogService()));
 	const session = URI.parse('agent:/session');
 	const createdEvents: string[] = [];
@@ -236,7 +233,6 @@ function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitSer
 			},
 		});
 	}
-	// Git state and GitHub state now share the single `_meta` bag.
 	const sessionMeta = withSessionGitHubState(withSessionGitState(undefined, {
 		hasGitHubRemote: true,
 		githubOwner: 'microsoft',
@@ -248,7 +244,7 @@ function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitSer
 		repo: 'vscode',
 	});
 	stateManager.setSessionMeta(session.toString(), sessionMeta);
-	const copilotApiService = options?.copilotApiService ?? new TestCopilotApiService();
+	const dardcorRouterService = options?.dardcorRouterService ?? new TestDardcorRouterService();
 	const branchNameGenerator = new TestBranchNameGenerator();
 	const configurationService = new class extends mock<IAgentConfigurationService>() {
 		override getSessionConfigValues(): Record<string, unknown> {
@@ -278,12 +274,12 @@ function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitSer
 				createdEvents.push(`${event.sessionKey}:${event.pullRequestUrl}`);
 				createdBranches.push(event.branchName);
 			},
-			createAuthenticationService(options?.withCopilotToken), gitService, octoKitService, createTestGitHubEndpointService(), copilotApiService, branchNameGenerator, configurationService, new NullLogService()),
+			createAuthenticationService(), gitService, octoKitService, createTestGitHubEndpointService(), dardcorRouterService, branchNameGenerator, configurationService, new NullLogService()),
 		session,
 		createdEvents,
 		createdBranches,
 		sessionConfigUpdates,
-		copilotApiService,
+		dardcorRouterService,
 		branchNameGenerator,
 	};
 }
@@ -291,9 +287,6 @@ function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitSer
 suite('AgentHostPullRequestOperationHandler', () => {
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Matches the Copilot CLI Agent Window behavior: if the session has
-	// uncommitted work, Create PR first commits that work, then pushes the
-	// branch, then asks GitHub to create the PR.
 	test('commits uncommitted changes before pushing and creating a pull request', async () => {
 		const gitService = new TestGitService();
 		gitService.uncommitted = true;
@@ -407,8 +400,8 @@ suite('AgentHostPullRequestOperationHandler', () => {
 			baseBranchName: 'main',
 		};
 		const octoKitService = new TestOctoKitService();
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.response = 'add-retry-logic';
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.response = 'add-retry-logic';
 		const turns: Turn[] = [{
 			id: 'turn-1',
 			message: { text: 'Add retry logic', origin: { kind: MessageKind.User } },
@@ -416,9 +409,8 @@ suite('AgentHostPullRequestOperationHandler', () => {
 			usage: undefined,
 			state: TurnState.Complete,
 		}];
-		const { handler, session, createdBranches, branchNameGenerator } = setup(disposables, gitService, octoKitService, {
-			copilotApiService,
-			withCopilotToken: true,
+		const { handler, session, createdBranches } = setup(disposables, gitService, octoKitService, {
+			dardcorRouterService,
 			turns,
 			branchPrefix: 'users/test/',
 		});
@@ -428,8 +420,7 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		assert.deepStrictEqual({
 			gitCalls: gitService.calls,
 			requestedBaseBranches: gitService.requestedBaseBranches,
-			branchGenerationTokens: branchNameGenerator.requests.map(request => request.githubToken),
-			utilityCallTokens: copilotApiService.calls.map(call => call.token),
+			utilityCallCount: dardcorRouterService.calls.length,
 			pushOptions: gitService.pushOptions,
 			createHead: octoKitService.lastHead,
 			createBase: octoKitService.lastBase,
@@ -445,8 +436,7 @@ suite('AgentHostPullRequestOperationHandler', () => {
 				'push:users/test/agents/add-retry-logic:true',
 			],
 			requestedBaseBranches: ['main', 'main'],
-			branchGenerationTokens: ['gh-token'],
-			utilityCallTokens: ['copilot-token'],
+			utilityCallCount: 1,
 			pushOptions: [{ remote: undefined, ref: 'users/test/agents/add-retry-logic', setUpstream: true }],
 			createHead: 'users/test/agents/add-retry-logic',
 			createBase: 'main',
@@ -481,9 +471,6 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		});
 	});
 
-	// GitHub returns 422 when a PR already exists for the branch. The handler
-	// should preflight the branch and return/open the existing PR instead of
-	// trying to create a duplicate.
 	test('returns an existing pull request without creating a duplicate', async () => {
 		const gitService = new TestGitService();
 		const octoKitService = new TestOctoKitService();
@@ -505,9 +492,6 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		});
 	});
 
-	// A visible PR button can race with refreshed git state. If the backend
-	// discovers that the branch has no file changes, it should stop before
-	// calling GitHub so the user gets a local, actionable failure.
 	test('does not call GitHub when there are no branch changes', async () => {
 		const gitService = new TestGitService();
 		gitService.branchChanges = [];
@@ -587,10 +571,6 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		});
 	});
 
-	// When a Copilot token is available, the handler asks the utility model
-	// for a title/description, feeding it the main session conversation (only
-	// the markdown text of requests/responses — reasoning, tool calls, and
-	// subagents are excluded) plus the changed-file summary.
 	test('generates the PR title and description from the conversation via the model', async () => {
 		const gitService = new TestGitService();
 		const octoKitService = new TestOctoKitService();
@@ -604,14 +584,13 @@ suite('AgentHostPullRequestOperationHandler', () => {
 			usage: undefined,
 			state: TurnState.Complete,
 		}];
-		const { handler, session, copilotApiService } = setup(disposables, gitService, octoKitService, { withCopilotToken: true, turns });
+		const { handler, session, dardcorRouterService } = setup(disposables, gitService, octoKitService, { turns });
 
 		const result = await handler.invoke({ channel: buildSessionChangesetUri(session.toString()), operationId: AgentHostPullRequestOperationHandler.OPERATION_CREATE_PR }, CancellationToken.None);
 
-		const userContent = copilotApiService.calls[0]?.request.messages.find(m => m.role === 'user')?.content ?? '';
+		const userContent = dardcorRouterService.calls[0]?.request.messages.find(m => m.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			message: result.message,
-			token: copilotApiService.calls[0]?.token,
 			title: octoKitService.lastTitle,
 			body: octoKitService.lastBody,
 			includesUserRequest: userContent.includes('Add retry logic to the uploader'),
@@ -619,7 +598,6 @@ suite('AgentHostPullRequestOperationHandler', () => {
 			excludesReasoning: !userContent.includes('SECRET_REASONING_SHOULD_BE_EXCLUDED'),
 		}, {
 			message: { markdown: 'Created pull request [#123](https://github.com/microsoft/vscode/pull/123).' },
-			token: 'copilot-token',
 			title: 'Generated PR title',
 			body: 'Generated PR description.',
 			includesUserRequest: true,
@@ -628,17 +606,15 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		});
 	});
 
-	// Without a Copilot token the model is never called and the handler falls
-	// back to the branch-name based title/description.
 	test('falls back to branch-name title and description without a Copilot token', async () => {
 		const gitService = new TestGitService();
 		const octoKitService = new TestOctoKitService();
-		const { handler, session, copilotApiService } = setup(disposables, gitService, octoKitService);
+		const { handler, session, dardcorRouterService } = setup(disposables, gitService, octoKitService);
 
 		await handler.invoke({ channel: buildSessionChangesetUri(session.toString()), operationId: AgentHostPullRequestOperationHandler.OPERATION_CREATE_PR }, CancellationToken.None);
 
 		assert.deepStrictEqual({
-			utilityCalls: copilotApiService.calls.length,
+			utilityCalls: dardcorRouterService.calls.length,
 			title: octoKitService.lastTitle,
 			body: octoKitService.lastBody,
 		}, {
@@ -648,14 +624,12 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		});
 	});
 
-	// Model failures must not block PR creation — the handler falls back to the
-	// branch-name based title/description.
 	test('falls back to branch-name title and description when generation fails', async () => {
 		const gitService = new TestGitService();
 		const octoKitService = new TestOctoKitService();
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.error = new Error('utility model unavailable');
-		const { handler, session } = setup(disposables, gitService, octoKitService, { withCopilotToken: true, copilotApiService });
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.error = new Error('utility model unavailable');
+		const { handler, session } = setup(disposables, gitService, octoKitService, { dardcorRouterService });
 
 		const result = await handler.invoke({ channel: buildSessionChangesetUri(session.toString()), operationId: AgentHostPullRequestOperationHandler.OPERATION_CREATE_PR }, CancellationToken.None);
 
@@ -670,8 +644,6 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		});
 	});
 
-	// The auto-merge variants create the PR and then ask GitHub to enable
-	// auto-merge with the requested merge method, reporting it in the result.
 	test('enables auto-merge with the requested merge method after creating the pull request', async () => {
 		const gitService = new TestGitService();
 		const octoKitService = new TestOctoKitService();
@@ -694,8 +666,6 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		});
 	});
 
-	// Enabling auto-merge is best-effort: a failure (e.g. the repository does
-	// not allow the merge method) must not fail PR creation.
 	test('reports but does not fail when auto-merge cannot be enabled', async () => {
 		const gitService = new TestGitService();
 		const octoKitService = new TestOctoKitService();
@@ -713,8 +683,6 @@ suite('AgentHostPullRequestOperationHandler', () => {
 		});
 	});
 
-	// Without a pull request node id we cannot issue the GraphQL mutation, so
-	// auto-merge is reported as not enabled rather than silently skipped.
 	test('reports when the pull request node id is missing for auto-merge', async () => {
 		const gitService = new TestGitService();
 		const octoKitService = new TestOctoKitService();

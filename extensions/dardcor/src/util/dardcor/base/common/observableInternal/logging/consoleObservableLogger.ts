@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.

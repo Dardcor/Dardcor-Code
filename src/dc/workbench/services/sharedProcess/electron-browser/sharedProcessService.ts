@@ -33,16 +33,9 @@ export class SharedProcessService extends Disposable implements ISharedProcessSe
 	private async connect(): Promise<MessagePortClient> {
 		this.logService.trace('Renderer->SharedProcess#connect');
 
-		// Our performance tests show that a connection to the shared
-		// process can have significant overhead to the startup time
-		// of the window because the shared process could be created
-		// as a result. As such, make sure we await the `Restored`
-		// phase before making a connection attempt, but also add a
-		// timeout to be safe against possible deadlocks.
 
 		await Promise.race([this.restoredBarrier.wait(), timeout(2000)]);
 
-		// Acquire a message port connected to the shared process
 		mark('code/willConnectSharedProcess');
 		this.logService.trace('Renderer->SharedProcess#connect: before acquirePort');
 		const port = await acquirePort(SharedProcessChannelConnection.request, SharedProcessChannelConnection.response);
@@ -68,10 +61,8 @@ export class SharedProcessService extends Disposable implements ISharedProcessSe
 
 	async createRawConnection(): Promise<MessagePort> {
 
-		// Await initialization of the shared process
 		await this.withSharedProcessConnection;
 
-		// Create a new port to the shared process
 		this.logService.trace('Renderer->SharedProcess#createRawConnection: before acquirePort');
 		const port = await acquirePort(SharedProcessRawConnection.request, SharedProcessRawConnection.response);
 		this.logService.trace('Renderer->SharedProcess#createRawConnection: connection established');

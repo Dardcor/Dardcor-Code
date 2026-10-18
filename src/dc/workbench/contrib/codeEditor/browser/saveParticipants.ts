@@ -42,7 +42,6 @@ export class TrimWhitespaceParticipant implements ITextFileSaveParticipant {
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ICodeEditorService private readonly codeEditorService: ICodeEditorService
 	) {
-		// Nothing
 	}
 
 	async participate(model: ITextFileEditorModel, context: ITextFileSaveParticipantContext): Promise<void> {
@@ -63,8 +62,6 @@ export class TrimWhitespaceParticipant implements ITextFileSaveParticipant {
 
 		const editor = findEditor(model, this.codeEditorService);
 		if (editor) {
-			// Find `prevSelection` in any case do ensure a good undo stack when pushing the edit
-			// Collect active cursors in `cursors` only if `isAutoSaved` to avoid having the cursors jump
 			prevSelection = editor.getSelections();
 			if (isAutoSaved) {
 				cursors = prevSelection.map(s => s.getPosition());
@@ -79,7 +76,7 @@ export class TrimWhitespaceParticipant implements ITextFileSaveParticipant {
 
 		const ops = trimTrailingWhitespace(model, cursors, trimInRegexesAndStrings);
 		if (!ops.length) {
-			return; // Nothing to do
+			return;
 		}
 
 		model.pushEditOperations(prevSelection, ops, (_edits) => prevSelection);
@@ -93,7 +90,7 @@ function findEditor(model: ITextModel, codeEditorService: ICodeEditorService): I
 		for (const editor of codeEditorService.listCodeEditors()) {
 			if (editor.hasModel() && editor.getModel() === model) {
 				if (editor.hasTextFocus()) {
-					return editor; // favour focused editor if there are multiple
+					return editor;
 				}
 
 				candidate = editor;
@@ -110,7 +107,6 @@ export class FinalNewLineParticipant implements ITextFileSaveParticipant {
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ICodeEditorService private readonly codeEditorService: ICodeEditorService
 	) {
-		// Nothing
 	}
 
 	async participate(model: ITextFileEditorModel, context: ITextFileSaveParticipantContext): Promise<void> {
@@ -148,7 +144,6 @@ export class TrimFinalNewLinesParticipant implements ITextFileSaveParticipant {
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ICodeEditorService private readonly codeEditorService: ICodeEditorService
 	) {
-		// Nothing
 	}
 
 	async participate(model: ITextFileEditorModel, context: ITextFileSaveParticipantContext): Promise<void> {
@@ -161,25 +156,19 @@ export class TrimFinalNewLinesParticipant implements ITextFileSaveParticipant {
 		}
 	}
 
-	/**
-	 * returns 0 if the entire file is empty
-	 */
 	private findLastNonEmptyLine(model: ITextModel): number {
 		for (let lineNumber = model.getLineCount(); lineNumber >= 1; lineNumber--) {
 			const lineLength = model.getLineLength(lineNumber);
 			if (lineLength > 0) {
-				// this line has content
 				return lineNumber;
 			}
 		}
-		// no line has content
 		return 0;
 	}
 
 	private doTrimFinalNewLines(model: ITextModel, isAutoSaved: boolean): void {
 		const lineCount = model.getLineCount();
 
-		// Do not insert new line if file does not end with new line
 		if (lineCount === 1) {
 			return;
 		}
@@ -220,7 +209,6 @@ class FormatOnSaveParticipant implements ITextFileSaveParticipant {
 		@ICodeEditorService private readonly codeEditorService: ICodeEditorService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) {
-		// Nothing
 	}
 
 	async participate(model: ITextFileEditorModel, context: ITextFileSaveParticipantContext, progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
@@ -259,11 +247,9 @@ class FormatOnSaveParticipant implements ITextFileSaveParticipant {
 		} else {
 			const ranges = await this.instantiationService.invokeFunction(getModifiedRanges, isCodeEditor(editorOrModel) ? editorOrModel.getModel() : editorOrModel);
 			if (ranges === null && mode === 'modificationsIfAvailable') {
-				// no SCM, fallback to formatting the whole file iff wanted
 				await this.instantiationService.invokeFunction(formatDocumentWithSelectedProvider, editorOrModel, FormattingMode.Silent, nestedProgress, token);
 
 			} else if (ranges) {
-				// formatted modified ranges
 				await this.instantiationService.invokeFunction(formatDocumentRangesWithSelectedProvider, editorOrModel, ranges, FormattingMode.Silent, nestedProgress, token, false);
 			}
 		}
@@ -313,7 +299,6 @@ class CodeActionOnSaveParticipant extends Disposable implements ITextFileSavePar
 				codeActionKindList.push(new HierarchicalKind(item));
 			}
 
-			// run code actions based on what is found from setting === 'always', no exclusions.
 			await this.applyOnSaveActions(model, codeActionKindList, [], Progress.None, cancellationTokenSource.token);
 		}
 	}
@@ -326,7 +311,6 @@ class CodeActionOnSaveParticipant extends Disposable implements ITextFileSavePar
 		const textEditorModel = model.textEditorModel;
 		const settingsOverrides = { overrideIdentifier: textEditorModel.getLanguageId(), resource: textEditorModel.uri };
 
-		// Convert boolean values to strings
 		const setting = this.configurationService.getValue<{ [kind: string]: string | boolean } | string[]>('editor.codeActionsOnSave', settingsOverrides);
 		if (!setting) {
 			return undefined;
@@ -380,7 +364,6 @@ class CodeActionOnSaveParticipant extends Disposable implements ITextFileSavePar
 	private createCodeActionsOnSave(settingItems: readonly string[]): HierarchicalKind[] {
 		const kinds = settingItems.map(x => new HierarchicalKind(x));
 
-		// Remove subsets
 		return kinds.filter(kind => {
 			return kinds.every(otherKind => otherKind.equals(kind) || !otherKind.contains(kind));
 		});
@@ -425,7 +408,6 @@ class CodeActionOnSaveParticipant extends Disposable implements ITextFileSavePar
 					}
 				}
 			} catch {
-				// Failure to apply a code action should not block other on save actions
 			} finally {
 				actionsToRun.dispose();
 			}

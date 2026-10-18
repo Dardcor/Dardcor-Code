@@ -61,7 +61,6 @@ class MockWebContents {
 		for (const listener of listeners) {
 			listener(...args);
 		}
-		// Remove once listeners, keep on listeners
 		const remaining = listeners.filter(l => !this._onceListeners.has(l));
 		for (const listener of listeners) {
 			this._onceListeners.delete(listener);
@@ -189,7 +188,6 @@ suite('WebPageLoader', () => {
 		});
 	}
 
-	//#region Basic Loading Tests
 
 	test('successful page load returns ok status with content', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		const uri = URI.parse('https://example.com/page');
@@ -199,7 +197,6 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate page load events
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
@@ -218,7 +215,6 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate page load failure
 		const mockEvent: MockElectronEvent = {};
 		window.webContents.emit('did-fail-load', mockEvent, -6, 'ERR_CONNECTION_REFUSED');
 
@@ -239,13 +235,11 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate ERR_ABORTED (-3) which should be ignored
 		const mockEvent: MockElectronEvent = {};
 		window.webContents.emit('did-fail-load', mockEvent, -3, 'ERR_ABORTED');
 
 		const result = await loadPromise;
 
-		// ERR_ABORTED should not cause an error status, content should be extracted
 		assert.strictEqual(result.status, 'ok');
 		if (result.status === 'ok') {
 			assert.ok(result.result.includes('Test content from page'));
@@ -260,22 +254,18 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate ERR_BLOCKED_BY_CLIENT (-27) which should be ignored
 		const mockEvent: MockElectronEvent = {};
 		window.webContents.emit('did-fail-load', mockEvent, -27, 'ERR_BLOCKED_BY_CLIENT');
 
 		const result = await loadPromise;
 
-		// ERR_BLOCKED_BY_CLIENT should not cause an error status, content should be extracted
 		assert.strictEqual(result.status, 'ok');
 		if (result.status === 'ok') {
 			assert.ok(result.result.includes('Test content from page'));
 		}
 	}));
 
-	//#endregion
 
-	//#region Redirect Tests
 
 	test('redirect to different authority returns redirect status when followRedirects is false', async () => {
 		const uri = URI.parse('https://example.com/page');
@@ -287,7 +277,6 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate redirect to different authority
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
@@ -311,16 +300,13 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate redirect to same authority
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
 		window.webContents.emit('will-redirect', mockEvent, redirectUrl);
 
-		// Should not prevent default for same-authority redirects
 		assert.ok(!(mockEvent.preventDefault!).called);
 
-		// Continue with normal load
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
@@ -337,16 +323,13 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate redirect
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
 		window.webContents.emit('will-redirect', mockEvent, redirectUrl);
 
-		// Should not prevent default when followRedirects is true
 		assert.ok(!(mockEvent.preventDefault!).called);
 
-		// Continue with normal load after redirect
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
@@ -363,16 +346,13 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate redirect from www to non-www
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
 		window.webContents.emit('will-redirect', mockEvent, redirectUrl);
 
-		// Should not prevent default for www prefix redirect
 		assert.ok(!(mockEvent.preventDefault!).called);
 
-		// Continue with normal load
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
@@ -389,16 +369,13 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate redirect from non-www to www
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
 		window.webContents.emit('will-redirect', mockEvent, redirectUrl);
 
-		// Should not prevent default for www prefix redirect
 		assert.ok(!(mockEvent.preventDefault!).called);
 
-		// Continue with normal load
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
@@ -418,16 +395,13 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate redirect to trusted domain
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
 		window.webContents.emit('will-redirect', mockEvent, redirectUrl);
 
-		// Should not prevent default for trusted domain redirect
 		assert.ok(!(mockEvent.preventDefault!).called);
 
-		// Continue with normal load
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
@@ -444,11 +418,9 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate successful page load
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
-		// Simulate ad/tracker script redirecting after page load
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
@@ -456,9 +428,7 @@ suite('WebPageLoader', () => {
 
 		const result = await loadPromise;
 
-		// Navigation should be prevented
 		assert.ok((mockEvent.preventDefault!).called);
-		// But result should be ok (content extracted), NOT redirect
 		assert.strictEqual(result.status, 'ok');
 		assert.ok(result.result.includes('Test content from page'));
 	}));
@@ -473,18 +443,15 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// First navigation: same-authority, should be allowed
 		const initialEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
 		window.webContents.emit('will-navigate', initialEvent, sameDomainUrl);
 		assert.ok(!(initialEvent.preventDefault!).called);
 
-		// Simulate successful page load
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
-		// Second navigation: cross-domain after load, should be blocked
 		const crossDomainEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
@@ -510,7 +477,6 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate redirect to non-trusted domain
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
@@ -518,7 +484,6 @@ suite('WebPageLoader', () => {
 
 		const result = await loadPromise;
 
-		// Should prevent redirect to non-trusted domain
 		assert.ok((mockEvent.preventDefault!).called);
 		assert.strictEqual(result.status, 'redirect');
 		if (result.status === 'redirect') {
@@ -538,16 +503,13 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate redirect to subdomain of trusted wildcard domain
 		const mockEvent: MockElectronEvent = {
 			preventDefault: sinon.stub()
 		};
 		window.webContents.emit('will-redirect', mockEvent, redirectUrl);
 
-		// Should not prevent default for wildcard subdomain match
 		assert.ok(!(mockEvent.preventDefault!).called);
 
-		// Continue with normal load
 		window.webContents.emit('did-start-loading');
 		window.webContents.emit('did-finish-load');
 
@@ -593,7 +555,6 @@ suite('WebPageLoader', () => {
 		};
 		window.webContents.emit('will-navigate', mockEvent, allowedUrl);
 
-		// Should not prevent navigation to allowed domain
 		assert.ok(!(mockEvent.preventDefault!).called);
 
 		window.webContents.emit('did-start-loading');
@@ -603,9 +564,7 @@ suite('WebPageLoader', () => {
 		assert.strictEqual(result.status, 'ok');
 	}));
 
-	//#endregion
 
-	//#region HTTP Error Tests
 
 	test('HTTP error status code returns error with content', async () => {
 		const uri = URI.parse('https://example.com/not-found');
@@ -615,7 +574,6 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate network response with error status
 		const mockEvent: MockElectronEvent = {};
 		window.webContents.debugger.emit('message', mockEvent, 'Network.responseReceived', {
 			requestId: 'req1',
@@ -643,7 +601,6 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate network response with 500 status
 		const mockEvent: MockElectronEvent = {};
 		window.webContents.debugger.emit('message', mockEvent, 'Network.responseReceived', {
 			requestId: 'req1',
@@ -671,7 +628,6 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate network response without status text
 		const mockEvent: MockElectronEvent = {};
 		window.webContents.debugger.emit('message', mockEvent, 'Network.responseReceived', {
 			requestId: 'req1',
@@ -690,9 +646,7 @@ suite('WebPageLoader', () => {
 		}
 	});
 
-	//#endregion
 
-	//#region Network Request Tracking Tests
 
 	test('tracks network requests and waits for completion', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		const uri = URI.parse('https://example.com/page');
@@ -702,10 +656,8 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate page starting to load
 		window.webContents.emit('did-start-loading');
 
-		// Simulate network requests
 		const mockEvent: MockElectronEvent = {};
 		window.webContents.debugger.emit('message', mockEvent, 'Network.requestWillBeSent', {
 			requestId: 'req1'
@@ -714,10 +666,8 @@ suite('WebPageLoader', () => {
 			requestId: 'req2'
 		});
 
-		// Simulate page finish load (but network requests still pending)
 		window.webContents.emit('did-finish-load');
 
-		// Simulate network requests completing
 		window.webContents.debugger.emit('message', mockEvent, 'Network.loadingFinished', {
 			requestId: 'req1'
 		});
@@ -738,10 +688,8 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate page load
 		window.webContents.emit('did-start-loading');
 
-		// Simulate a network request that fails
 		const mockEvent: MockElectronEvent = {};
 		window.webContents.debugger.emit('message', mockEvent, 'Network.requestWillBeSent', {
 			requestId: 'req1'
@@ -757,9 +705,7 @@ suite('WebPageLoader', () => {
 		assert.strictEqual(result.status, 'ok');
 	}));
 
-	//#endregion
 
-	//#region Accessibility Tree Extraction Tests
 
 	test('extracts content from accessibility tree', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		const uri = URI.parse('https://example.com/page');
@@ -798,7 +744,6 @@ suite('WebPageLoader', () => {
 
 	test('falls back to DOM extraction when accessibility tree yields insufficient content', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		const uri = URI.parse('https://example.com/page');
-		// Create AX tree with very short content (less than MIN_CONTENT_LENGTH)
 		const shortAXNodes: AXNode[] = [
 			{
 				nodeId: 'node1',
@@ -811,7 +756,6 @@ suite('WebPageLoader', () => {
 		const loader = createWebPageLoader(uri);
 		setupDebuggerMock({ axNodes: shortAXNodes });
 
-		// Mock DOM extraction returning longer content
 		const domContent = 'This is much longer content extracted from the DOM that exceeds the minimum content length requirement and should be used instead of the short accessibility tree content.';
 		window.webContents.executeJavaScript.resolves(domContent);
 
@@ -826,7 +770,6 @@ suite('WebPageLoader', () => {
 		if (result.status === 'ok') {
 			assert.strictEqual(result.result, domContent);
 		}
-		// Verify executeJavaScript was called for DOM extraction
 		assert.ok(window.webContents.executeJavaScript.called);
 	}));
 
@@ -843,7 +786,6 @@ suite('WebPageLoader', () => {
 		if (result.status === 'error') {
 			assert.ok(result.error.includes('Failed to extract meaningful content'));
 		}
-		// Verify executeJavaScript was NOT called for DOM extraction
 		assert.ok(!window.webContents.executeJavaScript.called);
 	}));
 
@@ -853,7 +795,6 @@ suite('WebPageLoader', () => {
 		const loader = createWebPageLoader(uri);
 		setupDebuggerMock({ axNodes: [] });
 
-		// Mock DOM extraction returning undefined (no content)
 		window.webContents.executeJavaScript.resolves(undefined);
 
 		const loadPromise = loader.load();
@@ -867,14 +808,12 @@ suite('WebPageLoader', () => {
 		if (result.status === 'error') {
 			assert.ok(result.error.includes('Failed to extract meaningful content'));
 		}
-		// Verify both extraction methods were attempted
 		assert.ok(window.webContents.executeJavaScript.called);
 	}));
 
 	test('extracts content from multiple frames including iframes', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		const uri = URI.parse('https://example.com/page-with-iframes');
 
-		// Accessibility nodes for the main frame
 		const mainFrameNodes: AXNode[] = [
 			{
 				nodeId: 'main-root',
@@ -898,7 +837,6 @@ suite('WebPageLoader', () => {
 			}
 		];
 
-		// Accessibility nodes for an iframe (simulating nested documentation content)
 		const iframeNodes: AXNode[] = [
 			{
 				nodeId: 'iframe-root',
@@ -922,7 +860,6 @@ suite('WebPageLoader', () => {
 			}
 		];
 
-		// Accessibility nodes for a nested iframe
 		const nestedIframeNodes: AXNode[] = [
 			{
 				nodeId: 'nested-root',
@@ -986,38 +923,29 @@ suite('WebPageLoader', () => {
 
 		assert.strictEqual(result.status, 'ok');
 		if (result.status === 'ok') {
-			// Verify content from main frame is included
 			assert.ok(result.result.includes('Main Page Content'), 'Should include main frame content');
-			// Verify content from iframe is included
 			assert.ok(result.result.includes('Iframe Documentation Content'), 'Should include iframe content');
-			// Verify content from nested iframe is included
 			assert.ok(result.result.includes('Deeply nested iframe content'), 'Should include nested iframe content');
 		}
 
-		// Verify Accessibility.getFullAXTree was called for each frame
 		const getFullAXTreeCalls = window.webContents.debugger.sendCommand.getCalls()
 			.filter(call => call.args[0] === 'Accessibility.getFullAXTree');
 		assert.strictEqual(getFullAXTreeCalls.length, 3, 'Should call getFullAXTree for all 3 frames');
 	}));
 
-	//#endregion
 
-	//#region Header Modification Tests
 
 	test('onBeforeSendHeaders adds privacy headers for all requests', () => {
 		createWebPageLoader(URI.parse('https://example.com/page'));
 
-		// Get the callback passed to onBeforeSendHeaders
 		assert.ok(window.webContents.session.webRequest.onBeforeSendHeaders.called);
 		const callback = window.webContents.session.webRequest.onBeforeSendHeaders.getCall(0).args[0];
 
-		// Mock callback function
 		let modifiedHeaders: Record<string, string> | undefined;
 		const mockCallback = (details: { requestHeaders: Record<string, string> }) => {
 			modifiedHeaders = details.requestHeaders;
 		};
 
-		// Simulate a sub-resource request (no resourceType)
 		callback(
 			{
 				url: 'https://example.com/style.css',
@@ -1028,12 +956,10 @@ suite('WebPageLoader', () => {
 			mockCallback
 		);
 
-		// Verify privacy headers were added
 		assert.ok(modifiedHeaders);
 		assert.strictEqual(modifiedHeaders['DNT'], '1');
 		assert.strictEqual(modifiedHeaders['Sec-GPC'], '1');
 		assert.strictEqual(modifiedHeaders['TestHeader'], 'TestValue');
-		// Accept header should NOT be set for non-mainFrame requests
 		assert.strictEqual(modifiedHeaders['Accept'], undefined);
 	});
 
@@ -1048,7 +974,6 @@ suite('WebPageLoader', () => {
 			modifiedHeaders = details.requestHeaders;
 		};
 
-		// Simulate a mainFrame navigation request
 		callback(
 			{
 				url: 'https://example.com/page',
@@ -1063,14 +988,11 @@ suite('WebPageLoader', () => {
 		assert.ok(modifiedHeaders['Accept']?.includes('text/html'));
 	});
 
-	//#endregion
 
-	//#region Download Prevention Tests
 
 	test('onHeadersReceived replaces Content-Disposition attachment with inline for text content', () => {
 		createWebPageLoader(URI.parse('https://example.com/page'));
 
-		// Get the callback passed to onHeadersReceived
 		assert.ok(window.webContents.session.webRequest.onHeadersReceived.called);
 		const listener = window.webContents.session.webRequest.onHeadersReceived.getCall(0).args[0];
 
@@ -1158,7 +1080,6 @@ suite('WebPageLoader', () => {
 			response = result;
 		};
 
-		// Simulate a normal HTML response
 		listener(
 			{
 				url: 'https://example.com/page',
@@ -1180,7 +1101,6 @@ suite('WebPageLoader', () => {
 		const loader = createWebPageLoader(uri);
 		setupDebuggerMock();
 
-		// Get the will-download handler
 		assert.ok(window.webContents.session.on.called);
 		const willDownloadCall = window.webContents.session.on.getCalls()
 			.find(call => call.args[0] === 'will-download');
@@ -1189,7 +1109,6 @@ suite('WebPageLoader', () => {
 
 		const loadPromise = loader.load();
 
-		// Simulate a download being triggered
 		const mockItem = {
 			cancel: sinon.stub(),
 			getFilename: sinon.stub().returns('repomd.xml')
@@ -1198,10 +1117,8 @@ suite('WebPageLoader', () => {
 
 		const result = await loadPromise;
 
-		// Verify download was cancelled
 		assert.ok(mockItem.cancel.called);
 
-		// Verify error result
 		assert.strictEqual(result.status, 'error');
 		if (result.status === 'error') {
 			assert.ok(result.error.includes('Download not allowed'));
@@ -1209,9 +1126,7 @@ suite('WebPageLoader', () => {
 		}
 	});
 
-	//#endregion
 
-	//#region Markdown Content Negotiation Tests
 
 	test('onHeadersReceived detects markdown content-type for mainFrame responses', () => {
 		createWebPageLoader(URI.parse('https://example.com/page'));
@@ -1223,7 +1138,6 @@ suite('WebPageLoader', () => {
 			response = result;
 		};
 
-		// Simulate a markdown response for mainFrame
 		listener(
 			{
 				url: 'https://example.com/page',
@@ -1243,8 +1157,6 @@ suite('WebPageLoader', () => {
 		const uri = URI.parse('https://learn.microsoft.com/en-us/docs');
 
 		const loader = createWebPageLoader(uri);
-		// Use AX nodes that exceed MIN_CONTENT_LENGTH so the test only passes
-		// if the markdown branch short-circuits before accessibility extraction.
 		const longAXNodes: AXNode[] = [
 			{
 				nodeId: 'node1',
@@ -1255,12 +1167,10 @@ suite('WebPageLoader', () => {
 		];
 		setupDebuggerMock({ axNodes: longAXNodes });
 
-		// Get the onHeadersReceived listener to simulate markdown response
 		const headersListener = window.webContents.session.webRequest.onHeadersReceived.getCall(0).args[0];
 
 		const loadPromise = loader.load();
 
-		// Simulate receiving a markdown content-type response
 		headersListener(
 			{
 				url: uri.toString(),
@@ -1272,7 +1182,6 @@ suite('WebPageLoader', () => {
 			() => { }
 		);
 
-		// Make executeJavaScript return markdown content
 		window.webContents.executeJavaScript.resolves('# Hello World\n\nThis is markdown content.');
 
 		window.webContents.emit('did-start-loading');
@@ -1285,9 +1194,7 @@ suite('WebPageLoader', () => {
 		assert.ok(result.result.includes('This is markdown content.'));
 	}));
 
-	//#endregion
 
-	//#region Disposal Tests
 
 	test('disposes resources after load completes', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		const uri = URI.parse('https://example.com/page');
@@ -1302,9 +1209,7 @@ suite('WebPageLoader', () => {
 
 		await loadPromise;
 
-		// The loader should call destroy on the window when disposed
 		assert.ok(window.destroy.called);
 	}));
 
-	//#endregion
 });

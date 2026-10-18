@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card } from "@/shared/components";
 
-// Derive simple connected/configured/not-installed status from API payload
 function getStatus(status, tool) {
   if (tool?.configType === "guide") return { label: "Guide", cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400" };
   if (!status) return { label: "Unknown", cls: "bg-gray-500/10 text-gray-500" };

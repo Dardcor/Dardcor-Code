@@ -19,14 +19,6 @@ interface IFrontMatterMeta {
 	readonly content: string;
 }
 
-/**
- * Extends a `markdown-it` instance with parsing and rendering support for YAML
- * frontmatter at the start of a Markdown document.
- *
- * Frontmatter is delimited by lines containing only `---`. How (or whether) the parsed
- * frontmatter is rendered in the preview is controlled by the `markdown.preview.frontMatter`
- * setting.
- */
 export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
 	md.block.ruler.before('fence', FRONT_MATTER_TOKEN, frontMatterRule, {
 		alt: ['paragraph', 'reference', 'blockquote', 'list']

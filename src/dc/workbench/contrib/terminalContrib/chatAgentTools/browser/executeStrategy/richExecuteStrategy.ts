@@ -40,13 +40,6 @@ function extractExitCode(exitCodeOrError: number | ITerminalLaunchError | undefi
 	return undefined;
 }
 
-/**
- * This strategy is used when the terminal has rich shell integration/command detection is
- * available, meaning every sequence we rely upon should be exactly where we expect it to be. In
- * particular (`633;`) `A, B, E, C, D` all happen in exactly that order. While things still could go
- * wrong in this state, minimal verification is done in this mode since rich command detection is a
- * strong signal that it's behaving correctly.
- */
 export class RichExecuteStrategy extends Disposable implements ITerminalExecuteStrategy {
 	readonly type = 'rich';
 	private readonly _startMarker = this._register(new MutableDisposable<IXtermMarker>());
@@ -54,12 +47,6 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 	private readonly _onDidCreateStartMarker = this._register(new Emitter<IXtermMarker | undefined>);
 	public onDidCreateStartMarker: Event<IXtermMarker | undefined> = this._onDidCreateStartMarker.event;
 
-	/**
-	 * Tracks per-execute() DisposableStores so they can be cleaned up if the
-	 * strategy is disposed mid-flight, AND removed from this collection on
-	 * successful completion to avoid accumulating stale references when
-	 * execute() is invoked many times on the same strategy instance.
-	 */
 	private readonly _executionStores = this._register(new DisposableStore());
 
 	constructor(
@@ -74,20 +61,8 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 
 	async execute(commandLine: string, token: CancellationToken, commandId?: string, commandLineForMetadata?: string): Promise<ITerminalExecuteStrategyResult> {
 		const store = new DisposableStore();
-		// Track the store so that if the strategy is disposed while execute()
-		// is still running (e.g. the session is torn down), accumulated
-		// Event.toPromise listeners on shared emitters like onCommandFinished
-		// are cleaned up immediately. Using a dedicated DisposableStore (rather
-		// than this._register) lets us remove the entry on completion so we
-		// don't accumulate stale references across many execute() calls.
 		this._executionStores.add(store);
 		try {
-			// If the terminal is already disposed or its pty has already exited
-			// (e.g. the shell from a previous command died before this one was
-			// requested), Event.toPromise(onExit/onDisposed) will subscribe to an
-			// emitter that has already fired and never resolves, hanging the
-			// run-in-terminal tool until the agent's outer timeout. Detect this
-			// up front and resolve immediately with the captured exit code.
 			if (this._instance.isDisposed) {
 				this._log('Terminal already disposed at strategy entry');
 				throw new Error('The terminal was closed');
@@ -103,29 +78,11 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 
 			const idlePollInterval = this._configurationService.getValue<number>(TerminalChatAgentToolsSettingId.IdlePollInterval) ?? 1000;
 
-			// Capture any command that is already executing in the terminal at
-			// strategy entry. `runCommand` (called below) may send ETX (Ctrl+C)
-			// to clear stale prompt input, which kills that prior command and
-			// produces an `onCommandFinished` event with exit code 130. Without
-			// this filter, the race below resolves with the prior command's
-			// finished event before our new command has even started — causing
-			// the new command to be reported as having instantly exited 130 and
-			// cascading to every subsequent command on the same terminal.
-			//
-			// Compare by marker identity rather than command object identity
-			// because `executingCommandObject` calls `promoteToFullCommand()`
-			// which creates a new wrapper each time, while `onCommandFinished`
-			// creates yet another wrapper. Both wrappers share the same
-			// underlying xterm `IMarker` reference from `commandStartMarker`,
-			// so marker identity is a reliable stable comparison.
 			const staleMarker = this._commandDetection.executingCommandObject?.marker;
 			const onCommandFinishedFiltered = staleMarker
 				? Event.filter(this._commandDetection.onCommandFinished, e => e.marker !== staleMarker, store)
 				: this._commandDetection.onCommandFinished;
 
-			// Subscribe to terminal lifecycle events BEFORE any awaits so that we
-			// don't miss events that fire while we're waiting for xterm to be
-			// ready (e.g. the pty exits during xtermReadyPromise resolution).
 			const onDone = Promise.race([
 				Event.toPromise(onCommandFinishedFiltered, store).then(e => {
 					this._log('onDone via end event');
@@ -145,10 +102,6 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 					this._log(`onDone via process exit (${formatExitCodeOrError(exitCodeOrError)})`);
 					return { type: 'processExit', exitCodeOrError } as const;
 				}),
-				// For sync mode, track idle-on-prompt as a race candidate so that
-				// commands complete when the terminal returns to a prompt. For async
-				// mode this is unnecessary — the OutputMonitor handles idle detection
-				// and the strategy result is not awaited.
 				...(this._isSyncMode ? [
 					trackIdleOnPrompt(this._instance, idlePollInterval, store, idlePollInterval, this._logService, { disableFallbacks: true }).then(() => {
 						this._log('onDone via idle prompt');
@@ -156,7 +109,6 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 				] : []),
 			]);
 
-			// Ensure xterm is available
 			this._log('Waiting for xterm');
 			const xterm = await this._instance.xtermReadyPromise;
 			if (!xterm) {
@@ -172,13 +124,11 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 				this._log.bind(this)
 			);
 
-			// Execute the command
 			this._log(`Executing command line \`${commandLine}\``);
 			markerRecreation.dispose();
 			const forceBracketedPasteMode = isMacintosh || isMultilineCommand(commandLine);
 			this._instance.runCommand(commandLine, true, commandId, forceBracketedPasteMode, commandLineForMetadata);
 
-			// Wait for the terminal to idle
 			this._log('Waiting for done event');
 			const onDoneResult = await Promise.race([onDone, alternateBufferPromise.then(() => ({ type: 'alternateBuffer' } as const))]);
 			if (onDoneResult && onDoneResult.type === 'disposal') {
@@ -200,17 +150,12 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 			}
 			const endMarker = store.add(xterm.raw.registerMarker());
 
-			// Assemble final result
 			let output: string | undefined;
 			const additionalInformationLines: string[] = [];
 			if (finishedCommand) {
 				const commandOutput = finishedCommand?.getOutput();
 				if (commandOutput !== undefined) {
 					this._log('Fetched output via finished command');
-					// On some platforms (e.g. Windows/PowerShell), shell integration
-					// markers can misfire and getOutput() includes the command echo.
-					// Strip it defensively — the function is a no-op when the output
-					// is already clean.
 					output = stripCommandEchoAndPrompt(commandOutput, commandLine, this._log.bind(this));
 				}
 			}
@@ -220,8 +165,6 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 					output = xterm.getContentsAsText(this._startMarker.value, endMarker);
 					this._log('Fetched output via markers');
 
-					// The marker-based output includes the command echo and trailing
-					// prompt lines. Strip them to isolate the actual command output.
 					if (output !== undefined) {
 						output = stripCommandEchoAndPrompt(output, commandLine, this._log.bind(this));
 					}
@@ -240,7 +183,6 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 				additionalInformationLines.push('Command produced no output');
 			}
 
-			// Determine exit code from shell integration or from the process exit event
 			let exitCode = finishedCommand?.exitCode;
 			if (exitCode === undefined && onDoneResult && onDoneResult.type === 'processExit') {
 				exitCode = extractExitCode(onDoneResult.exitCodeOrError);

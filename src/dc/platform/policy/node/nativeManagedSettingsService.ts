@@ -135,13 +135,6 @@ export class NativeManagedSettingsService extends Disposable implements INativeM
 		}));
 	}
 
-	/**
-	 * Project the internal {@link IManagedSettingsPolicyDefinitions} (readonly, and free to grow
-	 * extra fields) down to the minimal `{ type }` payload the external `@vscode/policy-watcher`
-	 * native module expects. Deliberately a fresh, narrowly-typed copy rather than handing the
-	 * watcher our internal state: it decouples the two shapes so a future field on
-	 * `IManagedSettingPolicyDefinition` cannot silently leak across the native boundary.
-	 */
 	private getManagedSettingDefinitions(): Record<string, { type: 'string' | 'number' | 'boolean' }> {
 		const definitions: Record<string, { type: 'string' | 'number' | 'boolean' }> = {};
 		for (const key in this.watchedSettings) {

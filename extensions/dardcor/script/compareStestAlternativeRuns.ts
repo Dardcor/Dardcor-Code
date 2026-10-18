@@ -9,11 +9,7 @@ import { execFile } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
-/**
- * An entry from `baseline.json`.
- */
 interface BaselineTestResult {
-	/** Test name */
 	name: string;
 	score: number;
 	passCount: number;
@@ -41,7 +37,6 @@ namespace SignalKind {
 }
 
 interface TestResult {
-	/** unflavored */
 	name: string;
 	signalKind: SignalKind | undefined;
 	testResults: BaselineTestResult[];
@@ -125,12 +120,10 @@ function formatAsColored(text: string, color: 'green' | 'violet' | 'red' | undef
 	return `\x1b[${colorMap[color]}m${text}\x1b[0m`;
 }
 
-// For BadSuggestion tests, a score > 0 is considered a pass, otherwise a fail
 function isBadSuggestionPassed(score: number): boolean {
 	return score > 0;
 }
 
-// Format pass ratio as a percentage string
 function formatPassRatio(passed: number, total: number): string {
 	if (total === 0) {
 		return '0.00%';
@@ -138,7 +131,7 @@ function formatPassRatio(passed: number, total: number): string {
 	return `${((passed / total) * 100).toFixed(2)}%`;
 }
 
-type TestScoreByFlavor = Record<string /* flavor */, number | { oldScore: number; newScore: number } | undefined>;
+type TestScoreByFlavor = Record<string , number | { oldScore: number; newScore: number } | undefined>;
 type AggregatedTest = { test: string; scores: TestScoreByFlavor; signalKind?: SignalKind };
 
 function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterProviders, omitEqual }: { compare: boolean; useColoredOutput: boolean; filterProviders?: string[]; omitEqual: boolean }) {
@@ -159,7 +152,6 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 	const totalScoreByProvider: Record<string, number> = {};
 	const oldTotalScoreByProvider: Record<string, number> = {};
 
-	// Track pass/fail counts for BadSuggestion tests
 	const badSuggestionPassedByProvider: Record<string, number> = {};
 	const badSuggestionTotalByProvider: Record<string, number> = {};
 	const oldBadSuggestionPassedByProvider: Record<string, number> = {};
@@ -172,15 +164,12 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 		oldBadSuggestionPassedByProvider[provider] = 0;
 	}
 
-	// Iterate over each signal kind
 	for (const [signalKind, tests] of Object.entries(aggregatedTestsBySignalKind)) {
-		// add header
 		tableData.push({ 'Test Name': `=== ${signalKind} ===` });
 
-		const totalByProviderForSignalKind: Record<string /* provider */, number> = {};
-		const oldTotalByProviderForSignalKind: Record<string /* provider */, number> = {};
+		const totalByProviderForSignalKind: Record<string , number> = {};
+		const oldTotalByProviderForSignalKind: Record<string , number> = {};
 
-		// Track pass/fail counts for BadSuggestion tests within this signal kind
 		const badSuggestionPassedByProviderForSignalKind: Record<string, number> = {};
 		const badSuggestionTotalByProviderForSignalKind: Record<string, number> = {};
 		const oldBadSuggestionPassedByProviderForSignalKind: Record<string, number> = {};
@@ -201,7 +190,6 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 				const oldScore = typeof score === 'object' ? score.oldScore : undefined;
 				const numericScore = typeof score === 'object' ? score.newScore : score ?? 0;
 
-				// Handle BadSuggestion scores differently
 				if (isBadSuggestionCategory) {
 					badSuggestionTotalByProvider[provider]++;
 					badSuggestionTotalByProviderForSignalKind[provider]++;
@@ -218,7 +206,6 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 						}
 					}
 				} else {
-					// Regular handling for non-BadSuggestion tests
 					totalByProviderForSignalKind[provider] += numericScore;
 					oldTotalScoreByProvider[provider] += oldScore ?? 0;
 					totalScoreByProvider[provider] += numericScore;
@@ -245,7 +232,6 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 				let formattedScore: string;
 
 				if (isBadSuggestionCategory) {
-					// For BadSuggestion, show "Pass" or "Fail" instead of score
 					formattedScore = isBadSuggestionPassed(score) ? 'Pass' : 'Fail';
 
 					if (compare && typeof rawScore === 'object') {
@@ -260,7 +246,6 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 						}
 					}
 				} else {
-					// Regular formatting for non-BadSuggestion tests
 					formattedScore = score.toFixed(2);
 					if (compare && typeof rawScore === 'object' && rawScore.oldScore !== rawScore.newScore) {
 						const color = useColoredOutput ? (rawScore.newScore > rawScore.oldScore ? 'green' : 'red') : undefined;
@@ -276,11 +261,9 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 			tableData.push(resultRow);
 		}
 
-		// Add subtotal for signal kind
 		const subtotalRow: Record<string, string> = { 'Test Name': `${signalKind} Subtotal (${tests.length} tests)` };
 		for (const provider of filteredProviders) {
 			if (isBadSuggestionCategory) {
-				// For BadSuggestion, show pass ratio
 				const passedTests = badSuggestionPassedByProviderForSignalKind[provider];
 				const totalTests = badSuggestionTotalByProviderForSignalKind[provider];
 				const passRatio = formatPassRatio(passedTests, totalTests);
@@ -299,7 +282,6 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 					subtotalRow[provider] = passRatio;
 				}
 			} else {
-				// Regular handling for non-BadSuggestion categories
 				const oldSubTotal = oldTotalByProviderForSignalKind[provider];
 				const subTotal = totalByProviderForSignalKind[provider];
 				if (compare && Math.abs(oldSubTotal - subTotal) > 0.001 && !provider.startsWith('Comp')) {
@@ -314,7 +296,6 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 		tableData.push(subtotalRow, { 'Test Name': '' });
 	}
 
-	// Add total (don't include BadSuggestion in the grand total)
 	const totalRow: Record<string, string> = { 'Test Name': 'Grand Total (excluding BadSuggestions)' };
 	for (const provider of filteredProviders) {
 		const oldTotal = oldTotalScoreByProvider[provider];
@@ -329,7 +310,6 @@ function printTable(data: AggregatedTest[], { compare, useColoredOutput, filterP
 	}
 	tableData.push(totalRow);
 
-	// Add BadSuggestion aggregate pass ratio
 	const badSuggestionRow: Record<string, string> = { 'Test Name': 'BadSuggestion Pass Ratio' };
 	for (const provider of filteredProviders) {
 		const passedTests = badSuggestionPassedByProvider[provider];
@@ -369,7 +349,6 @@ async function main() {
 	const externalBaselineArg = args.find(arg => arg.startsWith('--external-baseline='));
 	const externalBaselinePath = externalBaselineArg ? externalBaselineArg.split('=')[1] : undefined;
 
-	// Determine baseline paths
 	const BASELINE_JSON_PATH = externalBaselinePath ? path.resolve(externalBaselinePath) : DEFAULT_BASELINE_JSON_PATH;
 	const BASELINE_OLD_JSON_PATH = path.join(path.dirname(BASELINE_JSON_PATH), 'baseline.old.json');
 
@@ -421,7 +400,7 @@ async function main() {
 	const testResults = computeTestResultsFromBaseline(baseline);
 	const oldTestResults = compare && oldBaseline ? computeTestResultsFromBaseline(oldBaseline) : undefined;
 
-	const testNameToOldScoresByFlavor = oldTestResults?.reduce((acc: Record<string /* testName */, Record<string /* flavor */, number | undefined>>, testResult) => {
+	const testNameToOldScoresByFlavor = oldTestResults?.reduce((acc: Record<string , Record<string , number | undefined>>, testResult) => {
 		acc[testResult.name] = testResult.testResults.reduce((acc, testResult) => {
 			acc[getFlavor(testResult)] = testResult.score;
 			return acc;

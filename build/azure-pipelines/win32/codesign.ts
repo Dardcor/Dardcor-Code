@@ -15,34 +15,25 @@ async function main() {
 	const esrpCliDLLPath = e('EsrpCliDllPath');
 	const codeSigningFolderPath = e('CodeSigningFolderPath');
 
-	// Start the code sign processes in parallel
-	// 1. Codesign executables and shared libraries
-	// 2. Codesign Powershell scripts
-	// 3. Codesign context menu appx package (insiders only)
 	const codesignTask1 = spawnCodesignProcess(esrpCliDLLPath, 'sign-windows', codeSigningFolderPath, '*.dll,*.exe,*.node');
 	const codesignTask2 = spawnCodesignProcess(esrpCliDLLPath, 'sign-windows-appx', codeSigningFolderPath, '*.ps1,*.psm1,*.psd1,*.ps1xml');
 	const codesignTask3 = process.env['VSCODE_QUALITY'] !== 'exploration'
 		? spawnCodesignProcess(esrpCliDLLPath, 'sign-windows-appx', codeSigningFolderPath, '*.appx')
 		: undefined;
 
-	// Codesign executables and shared libraries
 	printBanner('Codesign executables and shared libraries');
 	await streamProcessOutputAndCheckResult('Codesign executables and shared libraries', codesignTask1);
 
-	// Codesign Powershell scripts
 	printBanner('Codesign Powershell scripts');
 	await streamProcessOutputAndCheckResult('Codesign Powershell scripts', codesignTask2);
 
 	if (codesignTask3) {
-		// Codesign context menu appx package
 		printBanner('Codesign context menu appx package');
 		await streamProcessOutputAndCheckResult('Codesign context menu appx package', codesignTask3);
 	}
 
-	// Create build artifact directory
 	await $`New-Item -ItemType Directory -Path .build/win32-${arch} -Force`;
 
-	// Package client
 	if (process.env['BUILT_CLIENT']) {
 		printBanner('Package client');
 		const clientDir = fs.existsSync(`../Dardcor-Code-win32-${arch}`) ? `../Dardcor-Code-win32-${arch}` : `../VSCode-win32-${arch}`;
@@ -51,7 +42,6 @@ async function main() {
 		await $`7z.exe l ${clientArchivePath}`.pipe(process.stdout);
 	}
 
-	// Package server
 	if (process.env['BUILT_SERVER']) {
 		printBanner('Package server');
 		const serverArchivePath = `.build/win32-${arch}/vscode-server-win32-${arch}.zip`;
@@ -59,7 +49,6 @@ async function main() {
 		await $`7z.exe l ${serverArchivePath}`.pipe(process.stdout);
 	}
 
-	// Package server (web)
 	if (process.env['BUILT_WEB']) {
 		printBanner('Package server (web)');
 		const webArchivePath = `.build/win32-${arch}/vscode-server-win32-${arch}-web.zip`;
@@ -67,7 +56,6 @@ async function main() {
 		await $`7z.exe l ${webArchivePath}`.pipe(process.stdout);
 	}
 
-	// Sign setup
 	if (process.env['BUILT_CLIENT']) {
 		printBanner('Sign setup packages (system, user)');
 		const task = $`npm exec -- npm-run-all2 -lp "gulp vscode-win32-${arch}-system-setup -- --sign" "gulp vscode-win32-${arch}-user-setup -- --sign"`;

@@ -63,7 +63,6 @@ suite('AgentFeedbackServerTools', () => {
 			replies: [
 				{ author: 'agent', text: 'done' },
 				{ author: 'user', text: 'not quite' },
-				// Replies predating authorship could only be typed by the user.
 				{ author: 'user', text: 'legacy reply' },
 			],
 		});
@@ -79,8 +78,6 @@ suite('AgentFeedbackServerTools', () => {
 			entries: [{ id: 'a:0', text: 'comment' }],
 			_meta: { [FEEDBACK_ANNOTATION_META_KEY]: { kind: 'nonsense', state: 'accepted', sessionResource } },
 		};
-		// A comment whose metadata does not decode is not listable at all, so the
-		// agent never sees it mislabelled as the user's.
 		assert.deepStrictEqual(JSON.parse(applyFeedbackTool(stateWith(orphan), sessionResource, listCommentsToolName, {}).result).comments, []);
 	});
 
@@ -188,7 +185,6 @@ suite('AgentFeedbackServerTools', () => {
 			annotation('b', 'created'),
 		);
 		const outcome = applyFeedbackTool(state, sessionResource, deleteCommentsToolName, { commentIds: ['a', 'b', 'missing'] });
-		// 'b' is in the created state (not listable) so it is treated as not found.
 		assert.deepStrictEqual(outcome.actions, [{ type: ActionType.AnnotationsRemoved, annotationId: 'a' }]);
 		const parsed = JSON.parse(outcome.result);
 		assert.deepStrictEqual(parsed.deletedCommentIds, ['a']);
@@ -232,7 +228,6 @@ suite('AgentFeedbackServerTools', () => {
 			annotation('pr1', 'created', false, 'pr a', 'prReview'),
 			annotation('pr2', 'created', false, 'pr b', 'prReview'),
 			annotation('cr1', 'created', false, 'cr a', 'codeReview'),
-			// user-authored created comments are not "reviewable" and never counted
 			annotation('u1', 'created', false, 'user', 'user'),
 			annotation('done', 'accepted', false, 'already reviewed', 'prReview'),
 		);
@@ -248,9 +243,7 @@ suite('AgentFeedbackServerTools', () => {
 			annotation('pr1', 'created', false, 'still hidden', 'prReview'),
 			annotation('pr2', 'accepted', false, 'revealed pr', 'prReview', true),
 			annotation('cr1', 'accepted', false, 'revealed code review', 'codeReview', true),
-			// previously-accepted reviewable comment without the flag -> excluded
 			annotation('pr3', 'accepted', false, 'old accepted pr', 'prReview'),
-			// user-authored comment is not reviewable -> excluded even when flagged
 			annotation('u1', 'accepted', false, 'user comment', 'user', true),
 		);
 		const outcome = applyFeedbackTool(state, sessionResource, viewUnreviewedCommentsToolName, {});
@@ -323,10 +316,6 @@ suite('AgentFeedbackServerTools', () => {
 	});
 
 	test('ignores annotations that do not carry feedback metadata', () => {
-		// A non-feedback annotation produced by another feature sharing the
-		// generic annotations channel must be invisible to the feedback tools:
-		// it is never listed, and delete/resolve treat it as not found rather
-		// than mutating it.
 		const foreign: Annotation = {
 			id: 'foreign',
 			origin: { session: sessionResource },
@@ -420,8 +409,6 @@ suite('AgentFeedbackServerTools', () => {
 				range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 2 },
 				text: 'from a peer chat',
 			});
-			// The comment must land on the main session's annotations channel,
-			// not on the individual chat's.
 			assert.strictEqual(manager.getSnapshot(buildAnnotationsUri(chatUri)), undefined);
 			const state = manager.getSnapshot(buildAnnotationsUri(sessionResource))!.state as AnnotationsState;
 			assert.strictEqual(state.annotations.length, 1);

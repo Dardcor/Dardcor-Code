@@ -17,10 +17,6 @@ export interface IWorkspaceTagsService {
 
 	getTags(): Promise<Tags>;
 
-	/**
-	 * Returns an id for the workspace, different from the id returned by the context service. A hash based
-	 * on the folder uri or workspace configuration, not time-based, and undefined for empty workspaces.
-	 */
 	getTelemetryWorkspaceId(workspace: IWorkspace, state: WorkbenchState): Promise<string | undefined>;
 
 	getHashedRemotesFromUri(workspaceUri: URI, stripEndingDotGit?: boolean): Promise<string[]>;

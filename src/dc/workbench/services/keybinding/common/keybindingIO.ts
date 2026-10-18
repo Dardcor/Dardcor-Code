@@ -14,7 +14,7 @@ export interface IUserKeybindingItem {
 	commandArgs?: unknown;
 	when: ContextKeyExpression | undefined;
 	systemWide: boolean;
-	_sourceKey: string | undefined; /** captures `key` field from `keybindings.json`; `this.keybinding !== null` implies `_sourceKey !== null` */
+	_sourceKey: string | undefined;
 }
 
 export class KeybindingIO {

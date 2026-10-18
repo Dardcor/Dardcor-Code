@@ -13,11 +13,6 @@ import { omitTransientSessionConfigValues } from '../../../common/sessionConfigK
 import { AgentHostStateManager, IAgentHostStateManager } from '../../agentHostStateManager.js';
 import { persistSessionMetadata } from '../../shared/persistSessionMetadata.js';
 
-/**
- * Persists host-owned read state, archived state, and merged config values that must survive a
- * restart. It uses `onDidDispatchAction` rather than `onDidApplyClientAction` because the client and host both dispatch
- * these changes.
- */
 export class SessionFlagsContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'sessionFlags';
@@ -39,9 +34,6 @@ export class SessionFlagsContribution extends Disposable implements IAgentHostCh
 				persistSessionMetadata(this._sessionDataService, this._logService, dispatched.channel, 'configValues', JSON.stringify(omitTransientSessionConfigValues(values)));
 			}
 		}
-		// Persisting here rather than in `handleAction` covers client- and
-		// server-dispatched changes alike, so no dispatch path can skip it.
-		// Rejected actions never reached state and must not be written.
 		if (!dispatched.rejectionReason) {
 			if (dispatched.action.type === ActionType.SessionIsReadChanged) {
 				persistSessionMetadata(this._sessionDataService, this._logService, dispatched.channel, AH_META_IS_READ_DB_KEY, dispatched.action.isRead ? 'true' : '');

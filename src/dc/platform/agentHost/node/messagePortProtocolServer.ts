@@ -10,12 +10,6 @@ import { AgentHostTransportKind } from '../common/agentHostTelemetry.js';
 import { JSON_RPC_PARSE_ERROR, type AhpServerNotification, type JsonRpcNotification, type JsonRpcParseErrorResponse, type JsonRpcRequest, type JsonRpcResponse, type ProtocolMessage } from '../common/state/sessionProtocol.js';
 import type { IProtocolServer, IProtocolTransport } from '../common/state/sessionTransport.js';
 
-/**
- * Adapts MessagePort IPC clients to Agent Host Protocol transports.
- *
- * Consumers must call {@link closeClient} when a UtilityProcessServer client
- * connection disappears.
- */
 export class MessagePortProtocolServer<TContext> extends Disposable implements IProtocolServer, IServerChannel<TContext> {
 
 	private readonly _onConnection = this._register(new Emitter<IProtocolTransport>());
@@ -66,9 +60,6 @@ export class MessagePortProtocolServer<TContext> extends Disposable implements I
 		throw new Error(`Invalid call: ${command}`);
 	}
 
-	/**
-	 * Closes a client's transport after its owning IPC connection disappears.
-	 */
 	closeClient(ctx: TContext): void {
 		const transport = this._transports.get(ctx);
 		if (!transport) {

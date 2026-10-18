@@ -26,7 +26,7 @@ export class UtilityProcessWorkerMainService extends Disposable implements IUtil
 
 	declare readonly _serviceBrand: undefined;
 
-	private readonly workers = this._register(new DisposableMap<number /* id */, UtilityProcessWorker>());
+	private readonly workers = this._register(new DisposableMap<number , UtilityProcessWorker>());
 
 	constructor(
 		@ILogService private readonly logService: ILogService,
@@ -41,7 +41,6 @@ export class UtilityProcessWorkerMainService extends Disposable implements IUtil
 		const workerLogId = `window: ${configuration.reply.windowId}, moduleId: ${configuration.process.moduleId}`;
 		this.logService.trace(`[UtilityProcessWorker]: createWorker(${workerLogId})`);
 
-		// Ensure to dispose any existing process for config
 		const workerId = this.hash(configuration);
 		if (this.workers.has(workerId)) {
 			this.logService.warn(`[UtilityProcessWorker]: createWorker() found an existing worker that will be terminated (${workerLogId})`);
@@ -49,7 +48,6 @@ export class UtilityProcessWorkerMainService extends Disposable implements IUtil
 			this.disposeWorker(configuration);
 		}
 
-		// Create new worker
 		const worker = new UtilityProcessWorker(this.logService, this.windowsMainService, this.telemetryService, this.lifecycleMainService, configuration);
 		if (!worker.spawn()) {
 			return { reason: { code: 1, signal: 'EINVALID' } };
@@ -67,7 +65,6 @@ export class UtilityProcessWorkerMainService extends Disposable implements IUtil
 
 			onDidTerminate.complete({ reason });
 
-			// Only remove from map if this worker is still the one tracked.
 			if (this.workers.get(workerId) === worker) {
 				this.workers.deleteAndLeak(workerId);
 			}

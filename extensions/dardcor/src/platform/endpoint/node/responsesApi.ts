@@ -54,19 +54,11 @@ export function createResponsesRequestBody(accessor: ServicesAccessor, options: 
 	const expService = accessor.get(IExperimentationService);
 	const verbosity = getVerbosityForModelSyncBasedOnExp(configService, expService, endpoint);
 	const compactThreshold = getResponsesApiCompactionThreshold(configService, expService, endpoint);
-	// compaction supported for all the models but works well for codex models and any future models after 5.3
 
 	const webSocketStatefulMarker = resolveWebSocketStatefulMarker(accessor, options, model);
-	// When WebSocket is in use, always defer to the WebSocket marker (which may be
-	// undefined if the connection is new or the summary state changed). Never fall
-	// back to the HTTP marker lookup in that case.
 	const ignoreStatefulMarker = !!options.ignoreStatefulMarker || !!options.useWebSocket;
 	const modeChanged = !!options.modeChanged;
 
-	// Tool search: when enabled, split tools into non-deferred (included in the request) and deferred
-	// (excluded from the request entirely). Uses OpenAI's client-executed tool search protocol: we add
-	// { type: 'tool_search', execution: 'client' }. The model emits tool_search_call, which we handle via
-	// our ToolSearchTool embeddings search, then round-trip as tool_search_output in the next request.
 	const toolSearchEnabled = !!endpoint.supportsToolSearch
 		&& !!options.requestOptions?.tools?.some(t => t.function.name === CUSTOM_TOOL_SEARCH_NAME);
 	const isAllowedConversationAgent = options.location === ChatLocation.Agent || options.location === ChatLocation.MessagesProxy;
@@ -81,14 +73,10 @@ export function createResponsesRequestBody(accessor: ServicesAccessor, options: 
 			if (!tool.function.name || tool.function.name.length === 0) {
 				continue;
 			}
-			// Always skip the tool_search function tool — 'tool_search' is a reserved namespace in the
-			// Responses API. Client-executed tool search uses { type: 'tool_search', execution: 'client' } instead.
 			if (tool.function.name === CUSTOM_TOOL_SEARCH_NAME) {
 				continue;
 			}
 			const isDeferred = shouldDeferTools && !toolDeferralService!.isNonDeferredTool(tool.function.name);
-			// Client-executed tool search: deferred tools are NOT sent in the request.
-			// They are returned via tool_search_output when the model searches for them.
 			if (isDeferred) {
 				continue;
 			}
@@ -101,11 +89,8 @@ export function createResponsesRequestBody(accessor: ServicesAccessor, options: 
 		}
 	}
 
-	// Build final tools array
 	const finalTools: Array<ResponsesFunctionTool | OpenAiToolSearchTool | ClientToolSearchTool> = [...functionTools];
 	if (shouldDeferTools) {
-		// Client-executed tool search: the model emits tool_search_call, our ToolSearchTool
-		// handles the embeddings search, and we return tool_search_output with full definitions.
 		finalTools.unshift({
 			type: 'tool_search',
 			execution: 'client',
@@ -140,8 +125,6 @@ export function createResponsesRequestBody(accessor: ServicesAccessor, options: 
 		}),
 		stream: true,
 		tools: finalTools.length > 0 ? finalTools : undefined,
-		// Only a subset of completion post options are supported, and some
-		// are renamed. Handle them manually:
 		max_output_tokens: options.postOptions.max_tokens,
 		tool_choice: typeof options.postOptions.tool_choice === 'object'
 			? { type: 'function', name: options.postOptions.tool_choice.function.name }
@@ -155,7 +138,6 @@ export function createResponsesRequestBody(accessor: ServicesAccessor, options: 
 	if (compactThreshold !== undefined) {
 		body.context_management = [{
 			'type': openAIContextManagementCompactionType,
-			// Trigger compaction at 90% of the model max prompt context to keep headroom for active turns.
 			'compact_threshold': compactThreshold
 		}];
 	}
@@ -216,10 +198,7 @@ interface ResponseOutputItemWithPhase {
 	phase?: string;
 }
 
-// ── Responses API tool search types ──────────────────────────────────
-// These match the shapes from https://developers.openai.com/api/docs/guides/tools-tool-search
 
-/** Client-executed tool_search tool definition for the Responses API */
 interface ClientToolSearchTool {
 	type: 'tool_search';
 	execution: 'client';
@@ -236,7 +215,6 @@ interface ResponsesToolSearchCall {
 	arguments?: Record<string, unknown>;
 }
 
-/** Input item shape for a client-executed tool_search_call in conversation history */
 interface ResponsesToolSearchCallInput {
 	type: 'tool_search_call';
 	execution: 'client';
@@ -245,7 +223,6 @@ interface ResponsesToolSearchCallInput {
 	arguments: Record<string, unknown>;
 }
 
-/** Input item shape for a client-executed tool_search_output in conversation history */
 interface ResponsesToolSearchOutputInput {
 	type: 'tool_search_output';
 	execution: 'client';
@@ -254,7 +231,6 @@ interface ResponsesToolSearchOutputInput {
 	tools: ToolSearchLoadedTool[];
 }
 
-/** A tool definition returned in tool_search_output */
 interface ToolSearchLoadedTool {
 	type: 'function';
 	name: string;
@@ -293,9 +269,6 @@ function resolveWebSocketStatefulMarker(accessor: ServicesAccessor, options: ICr
 	}
 	const wsManager = accessor.get(IChatWebSocketManager);
 	const connectionKey = { conversationId: options.conversationId, modelId, connectionId: options.webSocketConnectionId };
-	// If client-side summarization state changed since the stateful marker
-	// was stored (new summary, or rollback removing a summary), the server's
-	// state no longer matches. Skip the marker so the full history is sent.
 	const connSummarizedAt = wsManager.getSummarizedAtRoundId(connectionKey);
 	if (options.summarizedAtRoundId !== connSummarizedAt) {
 		return undefined;
@@ -319,13 +292,11 @@ function rawMessagesToResponseAPI(modelId: string, messages: readonly Raw.ChatMe
 	let markerIndex: number | undefined;
 
 	if (webSocketStatefulMarker) {
-		// WebSocket path: use the connection's current stateful marker if present in messages
 		markerIndex = getIndexOfStatefulMarker(webSocketStatefulMarker, messages);
 		if (markerIndex !== undefined) {
 			previousResponseId = webSocketStatefulMarker;
 		}
 	} else if (!ignoreStatefulMarker) {
-		// HTTP path: look up the latest marker for this model from messages
 		const statefulMarkerAndIndex = getStatefulMarkerAndIndex(modelId, messages);
 		if (statefulMarkerAndIndex) {
 			previousResponseId = statefulMarkerAndIndex.statefulMarker;
@@ -340,9 +311,6 @@ function rawMessagesToResponseAPI(modelId: string, messages: readonly Raw.ChatMe
 
 	const toolSearchCallIds = new Set<string>();
 	const toolSearchLoadedTools = new Set<string>();
-	// Only pre-scan when history will be sliced (matches the slicing block below);
-	// otherwise the serialization loop visits each tool_search_call before its
-	// result and populates these sets in order on its own.
 	const willSliceHistory = markerIndex !== undefined || latestCompactionMessageIndex !== undefined;
 	if (willSliceHistory) {
 		for (const message of messages) {
@@ -365,9 +333,6 @@ function rawMessagesToResponseAPI(modelId: string, messages: readonly Raw.ChatMe
 	}
 
 	if (markerIndex !== undefined) {
-		// Requests that resume from previous_response_id send only post-marker history,
-		// but they still need the latest compaction item even when that item predates
-		// the marker. This keeps both websocket and non-websocket traffic aligned.
 		messages = messages.slice(markerIndex + 1);
 		if (latestCompactionMessageIndex !== undefined) {
 			if (latestCompactionMessageIndex > markerIndex) {
@@ -395,15 +360,12 @@ function rawMessagesToResponseAPI(modelId: string, messages: readonly Raw.ChatMe
 							type: 'message',
 							phase: extractPhaseData(message.content),
 						};
-						// The Responses API expects previous assistant message content as output_text/refusal,
-						// but the SDK's ResponseOutputMessage type requires response-only id/status fields.
 						input.push(assistantMessage as OpenAI.Responses.ResponseInputItem);
 					}
 				}
 				if (message.toolCalls) {
 					for (const toolCall of message.toolCalls) {
 						if (toolCall.function.name === CUSTOM_TOOL_SEARCH_NAME) {
-							// Client-executed tool search: emit as tool_search_call instead of function_call
 							toolSearchCallIds.add(toolCall.id);
 							let parsedArgs: Record<string, unknown> = {};
 							try { parsedArgs = JSON.parse(toolCall.function.arguments || '{}'); } catch { }
@@ -415,7 +377,6 @@ function rawMessagesToResponseAPI(modelId: string, messages: readonly Raw.ChatMe
 								arguments: parsedArgs,
 							} satisfies ResponsesToolSearchCallInput as unknown as OpenAI.Responses.ResponseInputItem);
 						} else {
-							// Tools loaded via tool_search need a namespace field to round-trip correctly
 							const namespace = toolSearchLoadedTools.has(toolCall.function.name) ? toolCall.function.name : undefined;
 							input.push({ type: 'function_call', name: toolCall.function.name, arguments: toolCall.function.arguments, call_id: toolCall.id, ...(namespace ? { namespace } : {}) });
 						}
@@ -425,7 +386,6 @@ function rawMessagesToResponseAPI(modelId: string, messages: readonly Raw.ChatMe
 			case Raw.ChatRole.Tool:
 				if (message.toolCallId) {
 					if (toolSearchCallIds.has(message.toolCallId)) {
-						// Client-executed tool search result: convert tool names to tool_search_output with full definitions
 						const resultText = message.content
 							.filter(c => c.type === Raw.ChatCompletionContentPartKind.Text)
 							.map(c => c.text)
@@ -459,7 +419,6 @@ function rawMessagesToResponseAPI(modelId: string, messages: readonly Raw.ChatMe
 							.filter(isDefined);
 						applyPromptCacheBreakpointsToToolMedia(message.content, asImages, asFiles, supportsCacheBreakpoints);
 
-						// todod@connor4312: hack while responses API only supports text output from tools
 						input.push({ type: 'function_call_output', call_id: message.toolCallId, output: asText });
 						if (asImages.length) {
 							input.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Image associated with the above tool call:' }, ...asImages] });
@@ -482,10 +441,6 @@ function rawMessagesToResponseAPI(modelId: string, messages: readonly Raw.ChatMe
 	return { input, previous_response_id: previousResponseId };
 }
 
-/**
- * Converts a JSON array of tool names (from ToolSearchTool) into full tool definitions
- * for the tool_search_output. Falls back to an empty array on parse failure.
- */
 function buildToolSearchOutputTools(resultText: string, toolsMap: Map<string, OpenAiFunctionTool>, shouldLoadToolFromToolSearch: ((name: string) => boolean) | undefined): ToolSearchLoadedTool[] {
 	let toolNames: unknown;
 	try { toolNames = JSON.parse(resultText); } catch { return []; }
@@ -638,16 +593,6 @@ function applyPromptCacheBreakpointsToToolMedia(
 		}
 	}
 }
-/**
- * The Responses API rejects the entire request with
- * `400 invalid_request_body: Invalid 'input[N].id': '...'. Expected an ID that begins with 'rs'.`
- * when a reasoning item is round-tripped with an id it did not issue. Reasoning items
- * produced by the Responses API always carry an id beginning with `rs`. Thinking blocks
- * that originated from a different API (e.g. the Anthropic Messages API, whose accumulator
- * generates `thinking_<index>` ids) can leak into a Responses request — most notably via the
- * `vscode.lm` access path, which has no model gate — and their `encrypted_content` is not a
- * valid Responses reasoning blob anyway. Such foreign reasoning items must be dropped, not sent.
- */
 function isResponsesReasoningId(id: string | undefined): boolean {
 	return typeof id === 'string' && id.startsWith('rs');
 }
@@ -656,8 +601,6 @@ function extractThinkingData(content: Raw.ChatCompletionContentPart[]): OpenAI.R
 	return coalesce(content.map(part => {
 		if (part.type === Raw.ChatCompletionContentPartKind.Opaque) {
 			const thinkingData = rawPartAsThinkingData(part);
-			// Only round-trip genuine Responses API reasoning items. A foreign id (or a thinking
-			// block with no encrypted payload) would otherwise 400 the whole request.
 			if (thinkingData && thinkingData.encrypted && isResponsesReasoningId(thinkingData.id)) {
 				return {
 					type: 'reasoning',
@@ -682,10 +625,6 @@ function extractPhaseData(content: Raw.ChatCompletionContentPart[]): string | un
 	return undefined;
 }
 
-/**
- * Extracts compaction data from opaque content parts and converts them to
- * Responses API input items for round-tripping.
- */
 function extractCompactionData(content: Raw.ChatCompletionContentPart[]): OpenAI.Responses.ResponseInputItem[] {
 	return coalesce(content.map(part => {
 		if (part.type === Raw.ChatCompletionContentPartKind.Opaque) {
@@ -701,9 +640,6 @@ function extractCompactionData(content: Raw.ChatCompletionContentPart[]): OpenAI
 	}));
 }
 
-/**
- * This is an approximate responses input -> raw messages helper, should be used for logging only
- */
 export function responseApiInputToRawMessagesForLogging(body: OpenAI.Responses.ResponseCreateParams): Raw.ChatMessage[] {
 	const messages: Raw.ChatMessage[] = [];
 	const pendingFunctionCalls: Raw.ChatMessageToolCall[] = [];
@@ -718,7 +654,6 @@ export function responseApiInputToRawMessagesForLogging(body: OpenAI.Responses.R
 		}
 	};
 
-	// Add system instructions if provided
 	if (body.instructions) {
 		messages.push({
 			role: Raw.ChatRole.System,
@@ -726,11 +661,9 @@ export function responseApiInputToRawMessagesForLogging(body: OpenAI.Responses.R
 		});
 	}
 
-	// Convert input to array format if it's a string
 	const inputItems = typeof body.input === 'string' ? [{ role: 'user' as const, content: body.input, type: 'message' as const }] : (body.input ?? []);
 
 	for (const item of inputItems) {
-		// Handle message items with roles
 		if ('role' in item) {
 			switch (item.role) {
 				case 'user':
@@ -764,10 +697,8 @@ export function responseApiInputToRawMessagesForLogging(body: OpenAI.Responses.R
 					break;
 			}
 		} else if ('type' in item) {
-			// Handle other item types without roles
 			switch (item.type) {
 				case 'function_call':
-					// Collect function calls to be grouped with the next assistant message
 					pendingFunctionCalls.push({
 						id: item.call_id,
 						type: 'function',
@@ -788,8 +719,6 @@ export function responseApiInputToRawMessagesForLogging(body: OpenAI.Responses.R
 					break;
 				}
 				case 'reasoning':
-					// We can't perfectly reconstruct the original thinking data
-					// but we can add a placeholder for logging
 					flushPendingFunctionCalls();
 					messages.push({
 						role: Raw.ChatRole.Assistant,
@@ -800,7 +729,6 @@ export function responseApiInputToRawMessagesForLogging(body: OpenAI.Responses.R
 					});
 					break;
 				default: {
-					// Client-executed tool search items (tool_search_call / tool_search_output)
 					const tsItem = item as unknown as ResponsesToolSearchCallInput | ResponsesToolSearchOutputInput;
 					if (tsItem.type === 'tool_search_call') {
 						pendingFunctionCalls.push({
@@ -829,7 +757,6 @@ export function responseApiInputToRawMessagesForLogging(body: OpenAI.Responses.R
 		}
 	}
 
-	// Flush any remaining function calls at the end
 	if (pendingFunctionCalls.length > 0) {
 		messages.push({
 			role: Raw.ChatRole.Assistant,
@@ -871,7 +798,6 @@ function responseContentToRawContent(part: OpenAI.Responses.ResponseInputContent
 				}
 			};
 		case 'input_file':
-			// This is a rough approximation for logging
 			return {
 				type: Raw.ChatCompletionContentPartKind.Opaque,
 				value: `[File Input - Filename: ${part.filename || 'unknown'}]`
@@ -955,8 +881,6 @@ export async function processResponseFromChatEndpoint(instantiationService: IIns
 			try {
 				logService.trace(`SSE: ${ev.data}`);
 				if (ev.data === '[DONE]') {
-					// Some OpenAI-compatible gateways (e.g. LiteLLM) emit the chat-completions
-					// `[DONE]` sentinel at the end of a Responses stream. Ignore it.
 					return;
 				}
 				const parsedData = JSON.parse(ev.data);
@@ -1009,22 +933,6 @@ interface CapiResponseCompletedEvent extends OpenAI.Responses.ResponseCompletedE
 	};
 }
 
-/**
- * Terminal Responses-API events (`response.completed`, `response.incomplete`,
- * `response.failed`). CAPI extends the standard payload with a `content_filters`
- * array that carries the actual block reason when a response is cut short by a
- * content filter. The OpenAI types don't include this field, so we narrow with
- * a local interface.
- *
- * Two shapes are observed on the wire and we handle both:
- *  - `content_filter_results` is the per-category structured map defined by the
- *    Azure REST spec ({@link https://learn.microsoft.com/azure/ai-services/openai/concepts/content-filter | docs});
- *    e.g. `{ hate: { filtered: true, severity: 'high' }, protected_material_text: { filtered: true } }`.
- *  - `content_filter_raw` is a CAPI-internal/legacy passthrough that carries the
- *    raw RAI rule decisions (`{ action: 'BLOCK', label: 'TextCopyright', result: true }`)
- *    and is not in the Azure spec. It's currently what production emits, so we
- *    match it first and only fall back to the structured map.
- */
 interface CapiResponseTerminalEvent {
 	response: OpenAI.Responses.Response & {
 		content_filters?: CapiContentFilterEntry[] | null;
@@ -1038,24 +946,15 @@ interface CapiContentFilterEntry {
 	content_filter_results?: Record<string, { filtered?: boolean; severity?: string; detected?: boolean } | undefined>;
 }
 
-/**
- * Map CAPI's `content_filters` (sent on a terminal Responses event when a
- * response is blocked) to a {@link FilterReason}. Returns `undefined` if no
- * reason can be deduced; the caller defaults to {@link FilterReason.Copyright}.
- */
 function extractFilterReasonFromContentFilters(filters: CapiContentFilterEntry[] | null | undefined): FilterReason | undefined {
 	if (!filters) {
 		return undefined;
 	}
-	// Prefer a completion-side block; if none, fall back to a prompt-side block.
 	const blocked = filters.filter(f => f.blocked);
 	const completion = blocked.find(f => f.source_type === 'completion') ?? blocked[0];
 	if (!completion) {
 		return undefined;
 	}
-	// Look for a definitive BLOCK action in content_filter_raw. The label
-	// `TextCopyright` maps to our Copyright filter; the multi-severity labels
-	// map to hate/self-harm/sexual/violence.
 	const blockingRule = completion.content_filter_raw?.find(r => r.action === 'BLOCK' && r.result === true);
 	const label = blockingRule?.label?.toLowerCase() ?? '';
 	if (label.includes('copyright')) {
@@ -1073,7 +972,6 @@ function extractFilterReasonFromContentFilters(filters: CapiContentFilterEntry[]
 	if (label.includes('hate')) {
 		return FilterReason.Hate;
 	}
-	// Fall back to the Azure-spec'd per-category result map (`AzureContentFilterResultsForResponsesAPI`).
 	const results = completion.content_filter_results ?? {};
 	if (results.hate?.filtered) { return FilterReason.Hate; }
 	if (results.self_harm?.filtered) { return FilterReason.SelfHarm; }
@@ -1088,12 +986,6 @@ function extractFilterReasonFromContentFilters(filters: CapiContentFilterEntry[]
 	return undefined;
 }
 
-/**
- * Map a Responses-API `response.error` (string-coded per the OpenAI SDK) onto
- * our {@link APIErrorResponse} shape (numeric `code`). We can't preserve the
- * string code in `code`, so we stash it in `metadata.code` for BYOK diagnostics
- * (which `JSON.stringify` the whole struct).
- */
 function mapResponsesApiError(err: OpenAI.Responses.ResponseError | null | undefined): APIErrorResponse | undefined {
 	if (!err) {
 		return undefined;
@@ -1111,9 +1003,7 @@ export class OpenAIResponsesProcessor {
 	private sawCompactionMessage = false;
 	private latestCompactionOutputIndex: number | undefined;
 	private latestCompactionItem: OpenAIContextManagementResponse | undefined;
-	/** Tracks the output_index of the last text delta to detect output item boundaries */
 	private lastTextDeltaOutputIndex: number | undefined;
-	/** Maps output_index to { name, callId, arguments } for streaming tool call updates */
 	private readonly toolCallInfo = new Map<number, { name: string; callId: string; arguments: string }>();
 
 	constructor(
@@ -1184,10 +1074,6 @@ export class OpenAIResponsesProcessor {
 
 		switch (chunk.type) {
 			case 'error':
-				// Surface the error as a progress delta, but also produce a terminal
-				// completion so the request resolves to a meaningful server error
-				// instead of collapsing into the generic "Response contained no
-				// choices" fallback when the stream ends without a terminal event.
 				onProgress({ text: '', dardcorErrors: [{ agent: 'openai', code: chunk.code || 'unknown', message: chunk.message, type: 'error', identifier: chunk.param || undefined }] });
 				return this.buildTerminalCompletion(
 					{ output: [] } as unknown as CapiResponseTerminalEvent['response'],
@@ -1196,8 +1082,6 @@ export class OpenAIResponsesProcessor {
 				);
 			case 'response.output_text.delta': {
 				const capiChunk: CapiResponsesTextDeltaEvent = chunk;
-				// When text arrives from a new output item, emit a paragraph
-				// separator so that e.g. commentary and final text don't fuse.
 				if (this.lastTextDeltaOutputIndex !== undefined && capiChunk.output_index !== this.lastTextDeltaOutputIndex) {
 					onProgress({ text: '\n\n' });
 				}
@@ -1223,7 +1107,6 @@ export class OpenAIResponsesProcessor {
 				} else if (chunk.item.type.toString() === 'tool_search_call') {
 					const tsItem = chunk.item as unknown as ResponsesToolSearchCall;
 					if (tsItem.execution === 'client' && tsItem.call_id) {
-						// Client-executed tool search: treat as a regular tool call so our ToolSearchTool handles it.
 						this.toolCallInfo.set(chunk.output_index, { name: CUSTOM_TOOL_SEARCH_NAME, callId: tsItem.call_id, arguments: '' });
 						onProgress({
 							text: '',
@@ -1262,7 +1145,6 @@ export class OpenAIResponsesProcessor {
 				} else if (chunk.item.type.toString() === 'tool_search_call') {
 					const tsCall = chunk.item as unknown as ResponsesToolSearchCall;
 					if (tsCall.execution === 'client' && tsCall.call_id) {
-						// Client-executed tool search completed: emit as a completed dardcorToolCall
 						this.toolCallInfo.delete(chunk.output_index);
 						onProgress({
 							text: '',
@@ -1278,7 +1160,6 @@ export class OpenAIResponsesProcessor {
 						text: '',
 						thinking: chunk.item.encrypted_content ? {
 							id: chunk.item.id,
-							// CAPI models don't stream the reasoning summary for some reason, byok do, so don't duplicate it
 							text: this.hasReceivedReasoningSummary ?
 								undefined :
 								chunk.item.summary.map(s => s.text),
@@ -1407,8 +1288,6 @@ export class OpenAIResponsesProcessor {
 					finishReason = FinishedCompletionReason.ContentFilter;
 					filterReason = extractFilterReasonFromContentFilters(incomplete.content_filters);
 				} else {
-					// Unknown incomplete reason — treat as a server-side stream termination so the
-					// caller surfaces a "request failed" message instead of the generic flake.
 					finishReason = FinishedCompletionReason.ServerError;
 				}
 				return this.buildTerminalCompletion(incomplete, finishReason, {
@@ -1425,12 +1304,6 @@ export class OpenAIResponsesProcessor {
 		}
 	}
 
-	/**
-	 * Build a {@link ChatCompletion} for a terminal Responses API event other than
-	 * `response.completed` (i.e. `response.incomplete` or `response.failed`). The
-	 * resulting completion is fed into the same downstream switch as a normal
-	 * completion so callers can map it to the appropriate user-facing error.
-	 */
 	private buildTerminalCompletion(
 		response: CapiResponseTerminalEvent['response'],
 		finishReason: FinishedCompletionReason,

@@ -34,7 +34,6 @@ export class References {
 	}
 
 	async close(): Promise<void> {
-		// Sometimes someone else eats up the `Escape` key
 		let count = 0;
 		while (true) {
 

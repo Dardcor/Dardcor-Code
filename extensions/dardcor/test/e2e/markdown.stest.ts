@@ -16,7 +16,6 @@ import { generateScenarioTestRunner } from './scenarioTest';
 		const scenarioFolder = inputPath ?? path.join(__dirname, '..', 'test/scenarios/test-generate-markdown');
 		const scenarios: Scenario[] = fetchConversationScenarios(scenarioFolder);
 
-		// Dynamically create a test case per each entry in the scenarios array
 		for (let i = 0; i < scenarios.length; i++) {
 			const scenario = scenarios[i][0];
 			stest({ description: scenario.name, language: 'markdown' },

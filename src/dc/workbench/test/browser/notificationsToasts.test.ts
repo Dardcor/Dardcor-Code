@@ -52,7 +52,6 @@ suite('NotificationsToasts', () => {
 		}));
 
 		const toasts = testDisposables.add(instantiationService.createInstance(NotificationsToasts, container, model));
-		// Avoid viewport-dependent hiding because these tests assert scheduled toast counts.
 		toasts.layout(new Dimension(1024, Number.MAX_SAFE_INTEGER));
 		await Promise.resolve();
 

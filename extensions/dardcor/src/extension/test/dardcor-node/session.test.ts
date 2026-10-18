@@ -55,10 +55,8 @@ suite('Session tests', function () {
 	setup(() => {
 		sandbox = sinon.createSandbox();
 		getSessionStub = sandbox.stub(authentication, 'getSession');
-		// default to no session
 		getSessionStub.resolves(undefined);
 		getAccountsStub = sandbox.stub(authentication, 'getAccounts');
-		// default to no accounts
 		getAccountsStub.resolves([]);
 		configurationStub = sandbox.stub(workspace, 'getConfiguration');
 		configurationStub.returns(new class implements WorkspaceConfiguration {
@@ -183,7 +181,6 @@ suite('Session tests', function () {
 
 			assert.strictEqual(result, undefined);
 			assert.strictEqual(alignedScopeSessionStub.calledOnce, false);
-			// Only call the user:email scope one since we have no accounts
 			assert.strictEqual(userEmailSessionStub.calledOnce, true);
 			assert.strictEqual(readUserScopeSessionStub.calledOnce, false);
 		});

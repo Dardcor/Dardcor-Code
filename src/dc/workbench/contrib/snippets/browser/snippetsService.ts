@@ -193,11 +193,9 @@ class SnippetUsageTimestamps {
 	}
 
 	updateUsageTimestamp(id: string): void {
-		// map uses insertion order, we want most recent at the end
 		this._usages.delete(id);
 		this._usages.set(id, Date.now());
 
-		// persist last 100 item
 		const all = [...this._usages].slice(-100);
 		this._storageService.store(SnippetUsageTimestamps._key, JSON.stringify(all), StorageScope.PROFILE, StorageTarget.USER);
 	}
@@ -296,9 +294,7 @@ export class SnippetsService implements ISnippetsService {
 		const result: Snippet[] = [];
 		if (this._languageService.isRegisteredLanguageId(languageId)) {
 			for (const file of this._files.values()) {
-				// kick off loading (which is a noop in case it's already loaded)
-				// and optimistically collect snippets
-				file.load().catch(_err => { /*ignore*/ });
+				file.load().catch(_err => { });
 				file.select(languageId, result);
 			}
 		}
@@ -311,19 +307,15 @@ export class SnippetsService implements ISnippetsService {
 
 		for (const snippet of snippets) {
 			if (!snippet.prefix && !opts?.includeNoPrefixSnippets) {
-				// prefix or no-prefix wanted
 				continue;
 			}
 			if (!this.isEnabled(snippet) && !opts?.includeDisabledSnippets) {
-				// enabled or disabled wanted
 				continue;
 			}
 			if (typeof opts?.fileTemplateSnippets === 'boolean' && opts.fileTemplateSnippets !== snippet.isFileTemplate) {
-				// isTopLevel requested but mismatching
 				continue;
 			}
 			if (resourceUri && !snippet.isFileIncluded(resourceUri)) {
-				// include/exclude settings don't match
 				continue;
 			}
 			result.push(snippet);
@@ -362,7 +354,6 @@ export class SnippetsService implements ISnippetsService {
 		}
 	}
 
-	// --- loading, watching
 
 	private _initExtensionSnippets(): void {
 		snippetExt.point.setHandler(extensions => {
@@ -393,16 +384,14 @@ export class SnippetsService implements ISnippetsService {
 
 						if (this._environmentService.isExtensionDevelopment) {
 							file.load().then(file => {
-								// warn about bad tabstop/variable usage
 								if (file.data.some(snippet => snippet.isBogous)) {
 									extension.collector.warn(localize(
 										'badVariableUse',
-										"One or more snippets from the extension '{0}' very likely confuse snippet-variables and snippet-placeholders (see https://code.visualstudio.com/docs/editor/userdefinedsnippets#_snippet-syntax for more details)",
+										"One or more snippets from the extension '{0}' very likely confuse snippet-variables and snippet-placeholders (see https://www.dardcor-code.web.id/docs/editor/userdefinedsnippets#_snippet-syntax for more details)",
 										extension.description.name
 									));
 								}
 							}, err => {
-								// generic error
 								extension.collector.warn(localize(
 									'badFile',
 									"The snippet file \"{0}\" could not be read.",
@@ -418,7 +407,6 @@ export class SnippetsService implements ISnippetsService {
 	}
 
 	private _initWorkspaceSnippets(): void {
-		// workspace stuff
 		const disposables = new DisposableStore();
 		const updateWorkspaceSnippets = () => {
 			disposables.clear();
@@ -437,7 +425,6 @@ export class SnippetsService implements ISnippetsService {
 			if (value) {
 				this._initFolderSnippets(SnippetSource.Workspace, snippetFolder, bucket);
 			} else {
-				// watch
 				bucket.add(this._fileService.onDidFilesChange(e => {
 					if (e.contains(snippetFolder, FileChangeType.ADDED)) {
 						this._initFolderSnippets(SnippetSource.Workspace, snippetFolder, bucket);
@@ -510,9 +497,6 @@ export interface ISimpleModel {
 }
 
 export function getNonWhitespacePrefix(model: ISimpleModel, position: Position): string {
-	/**
-	 * Do not analyze more characters
-	 */
 	const MAX_PREFIX_LENGTH = 100;
 
 	const line = model.getLineContent(position.lineNumber).substr(0, position.column - 1);

@@ -24,38 +24,12 @@ import { isNumber } from '../../../base/common/types.js';
 import { getWindowsBuildNumberSync } from '../../../base/node/windowsVersion.js';
 
 const enum ShutdownConstants {
-	/**
-	 * The amount of ms that must pass between data events after exit is queued before the actual
-	 * kill call is triggered. This data flush mechanism works around an [issue in node-pty][1]
-	 * where not all data is flushed which causes problems for task problem matchers. Additionally
-	 * on Windows under conpty, killing a process while data is being output will cause the [conhost
-	 * flush to hang the pty host][2] because [conhost should be hosted on another thread][3].
-	 *
-	 * [1]: https://github.com/microsoft/node-pty/issues/72
-	 * [2]: https://github.com/microsoft/vscode/issues/71966
-	 * [3]: https://github.com/microsoft/node-pty/pull/415
-	 */
 	DataFlushTimeout = 250,
-	/**
-	 * The maximum ms to allow after dispose is called because forcefully killing the process.
-	 */
 	MaximumShutdownTime = 5000
 }
 
 const enum Constants {
-	/**
-	 * The minimum duration between kill and spawn calls on Windows/conpty as a mitigation for a
-	 * hang issue. See:
-	 * - https://github.com/microsoft/vscode/issues/71966
-	 * - https://github.com/microsoft/vscode/issues/117956
-	 * - https://github.com/microsoft/vscode/issues/121336
-	 */
 	KillSpawnThrottleInterval = 250,
-	/**
-	 * The amount of time to wait when a call is throttled beyond the exact amount, this is used to
-	 * try prevent early timeouts causing a kill/spawn call to happen at double the regular
-	 * interval.
-	 */
 	KillSpawnSpacingDuration = 50,
 }
 
@@ -136,9 +110,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 		cols: number,
 		rows: number,
 		env: IProcessEnvironment,
-		/**
-		 * environment used for `findExecutable`
-		 */
 		private readonly _executableEnv: IProcessEnvironment,
 		private readonly _options: ITerminalProcessOptions,
 		@ILogService private readonly _logService: ILogService,
@@ -149,8 +120,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 		if (isWindows) {
 			name = path.basename(this.shellLaunchConfig.executable || '');
 		} else {
-			// Using 'xterm-256color' here helps ensure that the majority of Linux distributions will use a
-			// color prompt as defined in the default ~/.bashrc file.
 			name = 'xterm-256color';
 		}
 		this._initialCwd = cwd;
@@ -161,16 +130,13 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 		this._ptyOptions = {
 			name,
 			cwd,
-			// TODO: When node-pty is updated this cast can be removed
 			env: env as { [key: string]: string },
 			cols,
 			rows,
 			useConpty,
 			useConptyDll,
-			// This option will force conpty to not redraw the whole viewport on launch
 			conptyInheritCursor: useConpty && !!shellLaunchConfig.initialText
 		};
-		// Delay resizes to avoid conpty not respecting very early resize calls
 		if (isWindows) {
 			if (useConpty && cols === 0 && rows === 0 && this.shellLaunchConfig.executable?.endsWith('Git\\bin\\bash.exe')) {
 				this._delayedResizer = this._register(new DelayedResizer());
@@ -182,7 +148,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 					}
 				}));
 			}
-			// WindowsShellHelper is used to fetch the process title and shell type
 			this._register(this.onProcessReady(e => {
 				this._windowsShellHelper = this._register(new WindowsShellHelper(e.pid));
 				this._register(this._windowsShellHelper.onShellTypeChanged(e => this._onDidChangeProperty.fire({ type: ProcessPropertyType.ShellType, value: e })));
@@ -223,18 +188,12 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 						await fs.promises.mkdir(path.dirname(f.dest), { recursive: true });
 						await fs.promises.copyFile(f.source, f.dest);
 					} catch {
-						// Swallow error, this should only happen when multiple users are on the same
-						// machine. Since the shell integration scripts rarely change, plus the other user
-						// should be using the same version of the server in this case, assume the script is
-						// fine if copy fails and swallow the error.
 					}
 				}
 			}
 		} else {
 			this._onDidChangeProperty.fire({ type: ProcessPropertyType.FailedShellIntegrationActivation, value: true });
 			this._onDidChangeProperty.fire({ type: ProcessPropertyType.ShellIntegrationInjectionFailureReason, value: injection.reason });
-			// Even if shell integration injection failed, still set the nonce if one was provided
-			// This allows extensions to use shell integration with custom shells
 			if (this._options.shellIntegration.nonce) {
 				this._ptyOptions.env ||= {};
 				this._ptyOptions.env['VSCODE_NONCE'] = this._options.shellIntegration.nonce;
@@ -252,7 +211,7 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 			this._logService.trace('node-pty.node-pty.IPty#spawn native exception', err);
 			const errorMessage = err.message;
 			if (errorMessage?.includes('Cannot launch conpty')) {
-				return { message: localize('conptyLaunchFailed', "A native exception occurred during launch (Cannot launch conpty). Winpty has been removed, see {0} for more details. You can also try enabling the `{1}` setting.", 'https://code.visualstudio.com/updates/v1_109#_removal-of-winpty-support', 'terminal.integrated.windowsUseConptyDll') };
+				return { message: localize('conptyLaunchFailed', "A native exception occurred during launch (Cannot launch conpty). Winpty has been removed, see {0} for more details. You can also try enabling the `{1}` setting.", 'https://www.dardcor-code.web.id/updates/v1_109#_removal-of-winpty-support', 'terminal.integrated.windowsUseConptyDll') };
 			}
 			return { message: `A native exception occurred during launch (${errorMessage})` };
 		}
@@ -291,12 +250,9 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 			if (!result.isFile() && !result.isSymbolicLink()) {
 				return { message: localize('launchFail.executableIsNotFileOrSymlink', "Path to shell executable \"{0}\" is not a file or a symlink", slc.executable) };
 			}
-			// Set the executable explicitly here so that node-pty doesn't need to search the
-			// $PATH too.
 			slc.executable = executable;
 		} catch (err) {
 			if (err?.code === 'EACCES') {
-				// Swallow
 			} else {
 				throw err;
 			}
@@ -321,7 +277,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 			this._register(this.onProcessReady(() => c()));
 		});
 		this._register(ptyProcess.onData(data => {
-			// Handle flow control
 			this._unacknowledgedCharCount += data.length;
 			if (!this._isPtyPaused && this._unacknowledgedCharCount > FlowControlConstants.HighWatermarkChars) {
 				this._logService.trace(`Flow control: Pause (${this._unacknowledgedCharCount} > ${FlowControlConstants.HighWatermarkChars})`);
@@ -329,7 +284,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 				ptyProcess.pause();
 			}
 
-			// Refire the data event
 			this._logService.trace('node-pty.IPty#onData', data);
 			this._onProcessData.fire(data);
 			if (this._closeTimeout) {
@@ -342,10 +296,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 			this._exitCode = e.exitCode;
 			this._queueProcessExit();
 		}));
-		// node-pty >= 1.2.0-beta.11 defers conptyNative.connect() on Windows, so
-		// ptyProcess.pid may be 0 immediately after spawn. In that case we wait
-		// for the first data event which only fires after the connection completes
-		// and the real pid is available. See microsoft/node-pty#885.
 		if (ptyProcess.pid > 0) {
 			this._sendProcessId(ptyProcess.pid);
 		} else {
@@ -360,9 +310,7 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 	}
 
 	private _setupTitlePolling(ptyProcess: IPty) {
-		// Send initial timeout async to give event listeners a chance to init
 		setTimeout(() => this._sendProcessTitle(ptyProcess));
-		// Setup polling for non-Windows, for Windows `process` doesn't change
 		if (!isWindows) {
 			this._titleInterval = setInterval(() => {
 				if (this._currentTitle !== ptyProcess.process) {
@@ -372,8 +320,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 		}
 	}
 
-	// Allow any trailing data events to be sent before the exit event is sent.
-	// See https://github.com/microsoft/node-pty/issues/72
 	private _queueProcessExit() {
 		if (this._logService.getLevel() === LogLevel.Trace) {
 			this._logService.trace('TerminalProcess#_queueProcessExit', new Error().stack?.replace(/^Error/, ''));
@@ -388,14 +334,10 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 	}
 
 	private async _kill(): Promise<void> {
-		// Wait to kill to process until the start up code has run. This prevents us from firing a process exit before a
-		// process start.
 		await this._processStartupComplete;
 		if (this._store.isDisposed) {
 			return;
 		}
-		// Attempt to kill the pty, it may have already been killed at this
-		// point but we want to make sure
 		try {
 			if (this._ptyProcess) {
 				await this._throttleKillSpawn();
@@ -403,22 +345,18 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 				this._ptyProcess.kill();
 			}
 		} catch (ex) {
-			// Swallow, the pty has already been killed
 		}
 		this._onProcessExit.fire(this._exitCode || 0);
 		this.dispose();
 	}
 
 	private async _throttleKillSpawn(): Promise<void> {
-		// Only throttle on Windows/conpty
 		if (!isWindows || !hasConptyOption(this._ptyOptions) || !this._ptyOptions.useConpty) {
 			return;
 		}
-		// Don't throttle when using conpty.dll as it seems to have been fixed in later versions
 		if (this._ptyOptions.useConptyDll) {
 			return;
 		}
-		// Use a loop to ensure multiple calls in a single interval space out
 		while (Date.now() - TerminalProcess._lastKillOrStart < Constants.KillSpawnThrottleInterval) {
 			this._logService.trace('Throttling kill/spawn call');
 			await timeout(Constants.KillSpawnThrottleInterval - (Date.now() - TerminalProcess._lastKillOrStart) + Constants.KillSpawnSpacingDuration);
@@ -438,13 +376,9 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 		if (this._store.isDisposed) {
 			return;
 		}
-		// HACK: The node-pty API can return undefined somehow https://github.com/microsoft/vscode/issues/222323
 		this._currentTitle = (ptyProcess.process ?? '');
 		this._onDidChangeProperty.fire({ type: ProcessPropertyType.Title, value: this._currentTitle });
-		// If fig is installed it may change the title of the process
 		let sanitizedTitle = this.currentTitle.replace(/ \(figterm\)$/g, '');
-		// Ensure any prefixed path is removed so that the executable name since we use this to
-		// detect the shell type
 		if (!isWindows) {
 			sanitizedTitle = path.basename(sanitizedTitle);
 		}
@@ -463,15 +397,11 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 		if (this._logService.getLevel() === LogLevel.Trace) {
 			this._logService.trace('TerminalProcess#shutdown', new Error().stack?.replace(/^Error/, ''));
 		}
-		// don't force immediate disposal of the terminal processes on Windows as an additional
-		// mitigation for https://github.com/microsoft/vscode/issues/71966 which causes the pty host
-		// to become unresponsive, disconnecting all terminals across all windows.
 		if (immediate && !isWindows) {
 			this._kill();
 		} else {
 			if (!this._closeTimeout && !this._store.isDisposed) {
 				this._queueProcessExit();
-				// Allow a maximum amount of time for the process to exit, otherwise force kill it
 				setTimeout(() => {
 					if (this._closeTimeout && !this._store.isDisposed) {
 						this._closeTimeout = undefined;
@@ -541,13 +471,10 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 		if (!isNumber(cols) || !isNumber(rows)) {
 			return;
 		}
-		// Ensure that cols and rows are always >= 1, this prevents a native exception in winpty.
-		// TODO: Handle this directly on node-pty instead: https://github.com/microsoft/node-pty/issues/877
 		if (this._ptyProcess) {
 			cols = Math.max(cols, 1);
 			rows = Math.max(rows, 1);
 
-			// Delay resize if needed
 			if (this._delayedResizer) {
 				this._delayedResizer.cols = cols;
 				this._delayedResizer.rows = rows;
@@ -561,7 +488,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 					: undefined;
 				this._ptyProcess.resize(cols, rows, pixelSize);
 			} catch (e) {
-				// Swallow error if the pty has already exited
 				this._logService.trace('node-pty.IPty#resize exception ' + e.message);
 				if (this._exitCode !== undefined &&
 					e.message !== 'ioctl(2) failed, EBADF' &&
@@ -577,7 +503,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 	}
 
 	acknowledgeDataEvent(charCount: number): void {
-		// Prevent lower than 0 to heal from errors
 		this._unacknowledgedCharCount = Math.max(this._unacknowledgedCharCount - charCount, 0);
 		this._logService.trace(`Flow control: Ack ${charCount} chars (unacknowledged: ${this._unacknowledgedCharCount})`);
 		if (this._isPtyPaused && this._unacknowledgedCharCount < FlowControlConstants.LowWatermarkChars) {
@@ -597,7 +522,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 	}
 
 	async setUnicodeVersion(version: '6' | '11'): Promise<void> {
-		// No-op
 	}
 
 	getInitialCwd(): Promise<string> {
@@ -606,9 +530,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 
 	async getCwd(): Promise<string> {
 		if (isMacintosh) {
-			// From Big Sur (darwin v20) there is a spawn blocking thread issue on Electron,
-			// this is fixed in VS Code's internal Electron.
-			// https://github.com/Microsoft/vscode/issues/105446
 			return new Promise<string>(resolve => {
 				if (!this._ptyProcess) {
 					resolve(this._initialCwd);
@@ -649,9 +570,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 	}
 }
 
-/**
- * Tracks the latest resize event to be trigger at a later point.
- */
 class DelayedResizer extends Disposable {
 	rows: number | undefined;
 	cols: number | undefined;

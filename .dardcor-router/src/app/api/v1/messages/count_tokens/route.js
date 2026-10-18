@@ -4,9 +4,6 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "*"
 };
 
-/**
- * Handle CORS preflight
- */
 export async function OPTIONS() {
   return new Response(null, { headers: CORS_HEADERS });
 }
@@ -69,9 +66,6 @@ export function estimateAnthropicInputTokens(body = {}) {
   return Math.ceil(totalChars / 4);
 }
 
-/**
- * POST /v1/messages/count_tokens - Mock token count response
- */
 export async function POST(request) {
   let body;
   try {

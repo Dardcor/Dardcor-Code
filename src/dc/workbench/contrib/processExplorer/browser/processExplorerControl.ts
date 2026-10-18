@@ -37,7 +37,6 @@ import { isWeb } from '../../../../base/common/platform.js';
 const DEBUG_FLAGS_PATTERN = /\s--inspect(?:-brk|port)?=(?<port>\d+)?/;
 const DEBUG_PORT_PATTERN = /\s--inspect-port=(?<port>\d+)/;
 
-//#region --- process explorer tree
 
 interface IProcessTree {
 	readonly processes: IProcessInformation;
@@ -122,7 +121,7 @@ class ProcessTreeDataSource implements IDataSource<IProcessTree, IProcessInforma
 
 		if (isProcessInformation(element)) {
 			if (element.processRoots.length > 1) {
-				return element.processRoots; // If there are multiple process roots, return these, otherwise go directly to the root process
+				return element.processRoots;
 			}
 
 			if (element.processRoots.length > 0) {
@@ -170,7 +169,7 @@ class ProcessHeaderTreeRenderer implements ITreeRenderer<IProcessInformation, vo
 	readonly templateId: string = 'header';
 
 	renderTemplate(container: HTMLElement): IProcessItemTemplateData {
-		container.previousElementSibling?.classList.add('force-no-twistie'); // hack, but no API for hiding twistie on tree
+		container.previousElementSibling?.classList.add('force-no-twistie');
 
 		return createRow(container, 'header');
 	}
@@ -183,7 +182,6 @@ class ProcessHeaderTreeRenderer implements ITreeRenderer<IProcessInformation, vo
 	}
 
 	disposeTemplate(templateData: unknown): void {
-		// Nothing to do
 	}
 }
 
@@ -200,7 +198,6 @@ class MachineRenderer implements ITreeRenderer<IMachineProcessInformation, void,
 	}
 
 	disposeTemplate(templateData: IProcessRowTemplateData): void {
-		// Nothing to do
 	}
 }
 
@@ -217,7 +214,6 @@ class ErrorRenderer implements ITreeRenderer<IRemoteDiagnosticError, void, IProc
 	}
 
 	disposeTemplate(templateData: IProcessRowTemplateData): void {
-		// Nothing to do
 	}
 }
 
@@ -325,7 +321,6 @@ class ProcessIdentityProvider implements IIdentityProvider<IMachineProcessInform
 	}
 }
 
-//#endregion
 
 export abstract class ProcessExplorerControl extends Disposable {
 
@@ -421,7 +416,7 @@ export abstract class ProcessExplorerControl extends Disposable {
 				const selectionPids = this.getSelectedPids();
 
 				if (!selectionPids?.includes(pid)) {
-					selectionPids.length = 0; // If the selection does not contain the right clicked item, copy the right clicked item only.
+					selectionPids.length = 0;
 					selectionPids.push(pid);
 				}
 
@@ -478,13 +473,12 @@ export abstract class ProcessExplorerControl extends Disposable {
 		if (matches) {
 			config.port = Number(matches.groups!.port);
 		} else {
-			config.processId = String(item.pid); // no port -> try to attach via pid (send SIGUSR1)
+			config.processId = String(item.pid);
 		}
 
-		// a debug-port=n or inspect-port=n overrides the port
 		matches = DEBUG_PORT_PATTERN.exec(item.cmd);
 		if (matches) {
-			config.port = Number(matches.groups!.port); // override port
+			config.port = Number(matches.groups!.port);
 		}
 
 		this.commandService.executeCommand('debug.startFromConfig', config);
@@ -538,14 +532,12 @@ class ProcessExplorerModel implements IProcessTree {
 
 	update(processRoots: IMachineProcessInformation[], pidToNames: [number, string][]): void {
 
-		// PID to Names
 		this.mapPidToName.clear();
 
 		for (const [pid, name] of pidToNames) {
 			this.mapPidToName.set(pid, name);
 		}
 
-		// Processes
 		processRoots.forEach((info, index) => {
 			if (isProcessItem(info.rootProcess)) {
 				info.rootProcess.name = index === 0 ? this.productService.applicationName : 'remote-server';

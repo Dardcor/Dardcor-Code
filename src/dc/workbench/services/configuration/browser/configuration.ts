@@ -74,14 +74,13 @@ export class DefaultConfiguration extends BaseDefaultConfiguration {
 		if (!this.initiaizeCachedConfigurationDefaultsOverridesPromise) {
 			this.initiaizeCachedConfigurationDefaultsOverridesPromise = (async () => {
 				try {
-					// Read only when the cache exists
 					if (localStorage.getItem(DefaultConfiguration.DEFAULT_OVERRIDES_CACHE_EXISTS_KEY)) {
 						const content = await this.configurationCache.read(this.cacheKey);
 						if (content) {
 							this.cachedConfigurationDefaultsOverrides = JSON.parse(content);
 						}
 					}
-				} catch (error) { /* ignore */ }
+				} catch (error) { }
 				this.cachedConfigurationDefaultsOverrides = isObject(this.cachedConfigurationDefaultsOverrides) ? this.cachedConfigurationDefaultsOverrides : {};
 			})();
 		}
@@ -121,7 +120,7 @@ export class DefaultConfiguration extends BaseDefaultConfiguration {
 				localStorage.removeItem(DefaultConfiguration.DEFAULT_OVERRIDES_CACHE_EXISTS_KEY);
 				await this.configurationCache.remove(this.cacheKey);
 			}
-		} catch (error) {/* Ignore error */ }
+		} catch (error) { }
 	}
 
 }
@@ -205,7 +204,6 @@ export class UserConfiguration extends Disposable {
 		const configurationModel = await fileServiceBasedConfiguration.loadConfiguration(settingsConfiguration);
 		this.userConfiguration.value = fileServiceBasedConfiguration;
 
-		// Check for value because userConfiguration might have been disposed.
 		if (this.userConfigurationChangeDisposable.value) {
 			this.userConfigurationChangeDisposable.value = this.userConfiguration.value.onDidChange(() => this.reloadConfigurationScheduler.schedule());
 		}
@@ -258,7 +256,6 @@ class FileServiceBasedConfiguration extends Disposable {
 		this.allResources = [this.settingsResource, ...this.standAloneConfigurationResources.map(([, resource]) => resource)];
 		this._register(combinedDisposable(...this.allResources.map(resource => combinedDisposable(
 			this.fileService.watch(uriIdentityService.extUri.dirname(resource)),
-			// Also listen to the resource incase the resource is a symlink - https://github.com/microsoft/vscode/issues/118134
 			this.fileService.watch(resource)
 		))));
 
@@ -304,11 +301,9 @@ class FileServiceBasedConfiguration extends Disposable {
 
 		const [settingsContent, standAloneConfigurationContents] = await this.resolveContents(!!settingsConfiguration);
 
-		// reset
 		this._standAloneConfigurations = [];
 		this._folderSettingsModelParser.parse('', this._folderSettingsParseOptions);
 
-		// parse
 		if (settingsContent !== undefined) {
 			this._folderSettingsModelParser.parse(settingsContent, this._folderSettingsParseOptions);
 		}
@@ -321,7 +316,6 @@ class FileServiceBasedConfiguration extends Disposable {
 			}
 		}
 
-		// Consolidate (support *.json files in the workspace settings folder)
 		this.consolidate(settingsConfiguration);
 
 		return this._cache;
@@ -346,11 +340,9 @@ class FileServiceBasedConfiguration extends Disposable {
 	}
 
 	private handleFileChangesEvent(event: FileChangesEvent): boolean {
-		// One of the resources has changed
 		if (this.allResources.some(resource => event.contains(resource))) {
 			return true;
 		}
-		// One of the resource's parent got deleted
 		if (this.allResources.some(resource => event.contains(this.uriIdentityService.extUri.dirname(resource), FileChangeType.DELETED))) {
 			return true;
 		}
@@ -358,12 +350,10 @@ class FileServiceBasedConfiguration extends Disposable {
 	}
 
 	private handleFileOperationEvent(event: FileOperationEvent): boolean {
-		// One of the resources has changed
 		if ((event.isOperation(FileOperation.CREATE) || event.isOperation(FileOperation.COPY) || event.isOperation(FileOperation.DELETE) || event.isOperation(FileOperation.WRITE))
 			&& this.allResources.some(resource => this.uriIdentityService.extUri.isEqual(event.resource, resource))) {
 			return true;
 		}
-		// One of the resource's parent got deleted
 		if (event.isOperation(FileOperation.DELETE) && this.allResources.some(resource => this.uriIdentityService.extUri.isEqual(event.resource, this.uriIdentityService.extUri.dirname(resource)))) {
 			return true;
 		}
@@ -415,10 +405,8 @@ export class RemoteUserConfiguration extends Disposable {
 			return this._userConfiguration.initialize();
 		}
 
-		// Initialize cached configuration
 		let configurationModel = await this._userConfiguration.initialize();
 		if (this._userConfigurationInitializationPromise) {
-			// Use user configuration
 			configurationModel = await this._userConfigurationInitializationPromise;
 			this._userConfigurationInitializationPromise = null;
 		}
@@ -540,7 +528,6 @@ class FileServiceBasedRemoteUserConfiguration extends Disposable {
 
 	private handleFileChangesEvent(event: FileChangesEvent): void {
 
-		// Find changes that affect the resource
 		let affectedByChanges = false;
 		if (event.contains(this.configurationResource, FileChangeType.ADDED)) {
 			affectedByChanges = true;
@@ -625,7 +612,7 @@ class CachedRemoteUserConfiguration extends Disposable {
 				this.parser.parse(parsed.content, this.parseOptions);
 				this.configurationModel = this.parser.configurationModel;
 			}
-		} catch (e) { /* Ignore error */ }
+		} catch (e) { }
 		return this.configurationModel;
 	}
 

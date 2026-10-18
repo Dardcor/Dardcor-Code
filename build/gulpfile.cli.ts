@@ -98,7 +98,6 @@ const acquireBuiltOpenSSL = (callback: (err?: unknown) => void) => {
 const compileWithOpenSSLCheck = (reporter: import('./lib/reporter.ts').IReporter) => es.map((_, callback) => {
 	compileFromSources(err => {
 		if (!err) {
-			// no-op
 		} else if (err.toString().includes('Could not find directory of OpenSSL installation') && !existsSync(platformOpensslDir)) {
 			fancyLog(ansiColors.yellow(`[cli]`), 'OpenSSL libraries not found, acquiring prebuilt bits...');
 			acquireBuiltOpenSSL(err => {

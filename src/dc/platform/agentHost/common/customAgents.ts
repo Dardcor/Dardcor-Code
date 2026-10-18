@@ -8,20 +8,6 @@ import { URI } from '../../../base/common/uri.js';
 import { isCustomizationEnabled } from './customizationEnablement.js';
 import { CustomizationType, type AgentCustomization, type ClientPluginCustomization, type Customization } from './state/protocol/state.js';
 
-/**
- * Computes the effective set of selectable custom agents for a session.
- *
- * Custom agents live as {@link CustomizationType.Agent | `Agent`} entries
- * in each container customization's {@link Customization.children | `children`}
- * array. Only the agent host populates `children` (after parsing the
- * container). Disabled containers are skipped; containers with an absent
- * `children` field are treated as "unknown" (e.g. the host has not finished
- * parsing yet) and skipped, while an empty array means "no children
- * contributed" and is respected.
- *
- * The picker is keyed on the agent's stable {@link AgentCustomization.uri};
- * duplicates within the session's customization list are coalesced.
- */
 export function getEffectiveAgents(
 	sessionCustomizations: readonly Customization[] | undefined,
 ): readonly AgentCustomization[] {
@@ -50,11 +36,6 @@ export function getEffectiveAgents(
 	return result;
 }
 
-/**
- * Filters draft agents by their published plugin container enablement.
- * Unmatched agents remain selectable because they may be loose agents or precede
- * their plugin ref during a client update.
- */
 export function getEffectiveClientAgents(
 	clientCustomizations: readonly ClientPluginCustomization[] | undefined,
 	clientAgents: readonly AgentCustomization[],
@@ -69,27 +50,10 @@ export function getEffectiveClientAgents(
 	});
 }
 
-/**
- * Storage key used by the custom-agent pickers to remember the user's last
- * selection per session-resource scheme. Shared between the Agents Window
- * picker and the workbench chat-editor picker so the two surfaces agree on
- * the default for new (untitled) sessions.
- */
 export function agentHostAgentPickerStorageKey(resourceScheme: string): string {
 	return `workbench.agentsession.agentHostAgentPicker.${resourceScheme}.selectedAgentUri`;
 }
 
-/**
- * Resolves the agent that should be shown for a session:
- * - If the session has a current selection and it exists in the effective list, use it.
- * - Else if a stored agent URI matches an entry in the list, use that entry.
- * - Else `undefined` (the default "Agent" placeholder row).
- *
- * `sessionAgentUri` accepts either a platform {@link URI} instance or a raw
- * URI string. The agent-host protocol
- * {@link import('./state/protocol/state.js').AgentSelection} URI field and the
- * sessions-layer `ISessionAgentRef` both provide URI strings.
- */
 export function resolveAgentHostAgent(
 	agents: readonly AgentCustomization[],
 	sessionAgentUri: URI | string | undefined,

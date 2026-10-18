@@ -35,13 +35,12 @@ type Message = {
 };
 
 window.addEventListener('DOMContentLoaded', () => {
-	// Notify the extension that the webview is ready
 	vscode.postMessage({ command: 'webviewReady' });
 	initializeSolutionEventHandlers();
 });
 
 window.addEventListener('message', (event) => {
-	const message = event.data as Message; // The JSON data our extension sent
+	const message = event.data as Message;
 
 	switch (message.command) {
 		case 'solutionsUpdated':

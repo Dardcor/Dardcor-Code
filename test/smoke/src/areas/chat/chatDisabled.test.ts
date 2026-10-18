@@ -9,7 +9,6 @@ import { installAllHandlers } from '../../utils';
 export function setup(logger: Logger) {
 	describe('Chat Disabled', () => {
 
-		// Shared before/after handling
 		installAllHandlers(logger);
 
 		it('can disable AI features', async function () {
@@ -17,10 +16,8 @@ export function setup(logger: Logger) {
 
 			await app.workbench.settingsEditor.addUserSetting('chat.disableAIFeatures', 'true');
 
-			// await for setting to apply in the UI
 			await app.code.waitForElements('.noauxiliarybar', true, elements => elements.length === 1);
 
-			// assert that AI related commands are not present
 			let expectedFound = false;
 			const unexpectedFound: Set<string> = new Set();
 			for (const term of ['chat', 'agent', 'copilot', 'mcp']) {

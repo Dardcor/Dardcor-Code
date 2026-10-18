@@ -162,7 +162,6 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 
 	private registerListeners(): void {
 
-		// Shared process lifecycle
 		let didExit = false;
 		const onExit = () => {
 			if (!didExit) {
@@ -178,30 +177,23 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 
 	async init(): Promise<void> {
 
-		// Services
 		const instantiationService = await this.initServices();
 
-		// Config
 		registerUserDataSyncConfiguration();
 
 		instantiationService.invokeFunction(accessor => {
 			const logService = accessor.get(ILogService);
 			const telemetryService = accessor.get(ITelemetryService);
 
-			// Log info
 			logService.trace('sharedProcess configuration', JSON.stringify(this.configuration));
 
-			// Channels
 			this.initChannels(accessor);
 
-			// Error handler
 			this.registerErrorHandler(logService);
 
-			// Report Client OS/DE Info
 			this.reportClientOSInfo(telemetryService, logService);
 		});
 
-		// Instantiate Contributions
 		this._register(combinedDisposable(
 			instantiationService.createInstance(CodeCacheCleaner, this.configuration.codeCachePath),
 			instantiationService.createInstance(LanguagePackCachedDataCleaner),
@@ -217,28 +209,22 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 	private async initServices(): Promise<IInstantiationService> {
 		const services = new ServiceCollection();
 
-		// Product
 		const productService = { _serviceBrand: undefined, ...product };
 		services.set(IProductService, productService);
 
-		// Main Process
 		const mainRouter = new StaticRouter(ctx => ctx === 'main');
 		const mainProcessService = new MainProcessService(this.server, mainRouter);
 		services.set(IMainProcessService, mainProcessService);
 
-		// Policies
 		const policyService = this.configuration.policiesData ? new PolicyChannelClient(this.configuration.policiesData, mainProcessService.getChannel('policy')) : new NullPolicyService();
 		services.set(IPolicyService, policyService);
 
-		// Environment
 		const environmentService = new NativeEnvironmentService(this.configuration.args, productService);
 		services.set(INativeEnvironmentService, environmentService);
 
-		// Logger
 		const loggerService = new LoggerChannelClient(undefined, this.configuration.logLevel, environmentService.logsHome, this.configuration.loggers.map(loggerResource => ({ ...loggerResource, resource: URI.revive(loggerResource.resource) })), mainProcessService.getChannel('logger'));
 		services.set(ILoggerService, loggerService);
 
-		// Log
 		const sharedLogGroup: LoggerGroup = { id: 'shared', name: localize('sharedLog', "Shared") };
 		const logger = this._register(loggerService.createLogger('sharedprocess', { name: localize('sharedLog', "Shared"), group: sharedLogGroup }));
 		const consoleLogger = this._register(new ConsoleLogger(logger.getLevel()));
@@ -248,31 +234,23 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		}
 		services.set(ILogService, logService);
 
-		// Lifecycle
 		this.lifecycleService = this._register(new SharedProcessLifecycleService(logService));
 		services.set(ISharedProcessLifecycleService, this.lifecycleService);
 
-		// Files
 		const fileService = this._register(new FileService(logService));
 		services.set(IFileService, fileService);
 
 		const diskFileSystemProvider = this._register(new DiskFileSystemProvider(logService));
 		fileService.registerProvider(Schemas.file, diskFileSystemProvider);
 
-		// URI Identity
 		const uriIdentityService = new UriIdentityService(fileService);
 		services.set(IUriIdentityService, uriIdentityService);
 
-		// User Data Profiles
 		const userDataProfilesService = this._register(new UserDataProfilesService(this.configuration.profiles.all, URI.revive(this.configuration.profiles.home).with({ scheme: environmentService.userRoamingDataHome.scheme }), mainProcessService.getChannel('userDataProfiles')));
 		services.set(IUserDataProfilesService, userDataProfilesService);
 
 		const userDataFileSystemProvider = this._register(new FileUserDataProvider(
 			Schemas.file,
-			// Specifically for user data, use the disk file system provider
-			// from the main process to enable atomic read/write operations.
-			// Since user data can change very frequently across multiple
-			// processes, we want a single process handling these operations.
 			this._register(new DiskFileSystemProviderClient(mainProcessService.getChannel(LOCAL_FILE_SYSTEM_CHANNEL_NAME), { pathCaseSensitive: isLinux })),
 			Schemas.vscodeUserData,
 			userDataProfilesService,
@@ -281,7 +259,6 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		));
 		fileService.registerProvider(Schemas.vscodeUserData, userDataFileSystemProvider);
 
-		// Configuration
 		const configurationService = this._register(new ConfigurationService(userDataProfilesService.defaultProfile.settingsResource, fileService, policyService, logService));
 		services.set(IConfigurationService, configurationService);
 
@@ -290,40 +267,31 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		services.set(IStorageService, storageService);
 		this._register(toDisposable(() => storageService.flush()));
 
-		// Initialize config & storage in parallel
 		await Promise.all([
 			configurationService.initialize(),
 			storageService.initialize()
 		]);
 
-		// Request
 		const networkLogger = this._register(loggerService.createLogger(`network-shared`, { name: localize('networkk', "Network"), group: sharedLogGroup }));
 		const requestService = new RequestService(configurationService, environmentService, this._register(new LogService(networkLogger)));
 		services.set(IRequestService, requestService);
 
-		// Checksum
-		services.set(IChecksumService, new SyncDescriptor(ChecksumService, undefined, false /* proxied to other processes */));
+		services.set(IChecksumService, new SyncDescriptor(ChecksumService, undefined, false ));
 
-		// V8 Inspect profiler
-		services.set(IV8InspectProfilingService, new SyncDescriptor(V8InspectProfilingService, undefined, false /* proxied to other processes */));
+		services.set(IV8InspectProfilingService, new SyncDescriptor(V8InspectProfilingService, undefined, false ));
 
-		// Native Host
-		const nativeHostService = new NativeHostService(-1 /* we are not running in a browser window context */, mainProcessService) as INativeHostService;
+		const nativeHostService = new NativeHostService(-1 , mainProcessService) as INativeHostService;
 		services.set(INativeHostService, nativeHostService);
 
-		// Metered Connection
 		const meteredConnectionService = this._register(new MeteredConnectionChannelClient(mainProcessService.getChannel(METERED_CONNECTION_CHANNEL)));
 		services.set(IMeteredConnectionService, meteredConnectionService);
 
-		// Download
 		services.set(IDownloadService, new SyncDescriptor(DownloadService, undefined, true));
 
-		// Extension recommendations
 		const activeWindowManager = this._register(new ActiveWindowManager(nativeHostService));
 		const activeWindowRouter = new StaticRouter(ctx => activeWindowManager.getActiveClientId().then(id => ctx === id));
 		services.set(IExtensionRecommendationNotificationService, new ExtensionRecommendationNotificationServiceChannelClient(this.server.getChannel('extensionRecommendationNotification', activeWindowRouter)));
 
-		// Telemetry
 		let telemetryService: ITelemetryService;
 		const appenders: ITelemetryAppender[] = [];
 		const internalTelemetry = isInternalTelemetry(productService, configurationService);
@@ -332,7 +300,7 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 			appenders.push(logAppender);
 			if (!isLoggingOnly(productService, environmentService) && productService.aiConfig?.ariaKey) {
 				const collectorAppender = new OneDataSystemAppender(requestService, internalTelemetry, 'monacoworkbench', null, productService.aiConfig.ariaKey);
-				this._register(toDisposable(() => collectorAppender.flush())); // Ensure the 1DS appender is disposed so that it flushes remaining data
+				this._register(toDisposable(() => collectorAppender.flush()));
 				appenders.push(collectorAppender);
 			}
 
@@ -352,82 +320,65 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		this.server.registerChannel('telemetryAppender', new TelemetryAppenderChannel(appenders));
 		services.set(ITelemetryService, telemetryService);
 
-		// Custom Endpoint Telemetry
 		const customEndpointTelemetryService = new CustomEndpointTelemetryService(configurationService, telemetryService, loggerService, environmentService, productService);
 		services.set(ICustomEndpointTelemetryService, customEndpointTelemetryService);
 
-		// Extension Management
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
 		services.set(IExtensionsScannerService, new SyncDescriptor(ExtensionsScannerService, undefined, true));
 		services.set(IExtensionSignatureVerificationService, new SyncDescriptor(ExtensionSignatureVerificationService, undefined, true));
 		services.set(IAllowedExtensionsService, new SyncDescriptor(AllowedExtensionsService, undefined, true));
 		services.set(INativeServerExtensionManagementService, new SyncDescriptor(ExtensionManagementService, undefined, true));
 
-		// MCP Management
 		services.set(IAllowedMcpServersService, new SyncDescriptor(AllowedMcpServersService, undefined, true));
 		services.set(IMcpGalleryManifestService, new McpGalleryManifestIPCService(this.server));
 		services.set(IMcpGalleryService, new SyncDescriptor(McpGalleryService, undefined, true));
 		services.set(IMcpResourceScannerService, new SyncDescriptor(McpResourceScannerService, undefined, true));
 		services.set(IMcpManagementService, new SyncDescriptor(McpManagementService, undefined, true));
 
-		// Extension Gallery
 		services.set(IExtensionGalleryManifestService, new ExtensionGalleryManifestIPCService(this.server, logService, productService));
 		services.set(IExtensionGalleryService, new SyncDescriptor(ExtensionGalleryService, undefined, true));
 
-		// Extension Tips
-		services.set(IExtensionTipsService, new SyncDescriptor(ExtensionTipsService, undefined, false /* Eagerly scans and computes exe based recommendations */));
+		services.set(IExtensionTipsService, new SyncDescriptor(ExtensionTipsService, undefined, false ));
 
-		// Localizations
-		services.set(ILanguagePackService, new SyncDescriptor(NativeLanguagePackService, undefined, false /* proxied to other processes */));
+		services.set(ILanguagePackService, new SyncDescriptor(NativeLanguagePackService, undefined, false ));
 
-		// Diagnostics
-		services.set(IDiagnosticsService, new SyncDescriptor(DiagnosticsService, undefined, false /* proxied to other processes */));
+		services.set(IDiagnosticsService, new SyncDescriptor(DiagnosticsService, undefined, false ));
 
-		// Settings Sync
 		services.set(IUserDataSyncAccountService, new SyncDescriptor(UserDataSyncAccountService, undefined, true));
 		services.set(IUserDataSyncLogService, new SyncDescriptor(UserDataSyncLogService, undefined, true));
 		services.set(IUserDataSyncUtilService, ProxyChannel.toService(this.server.getChannel('userDataSyncUtil', client => client.ctx !== 'main')));
-		services.set(IGlobalExtensionEnablementService, new SyncDescriptor(GlobalExtensionEnablementService, undefined, false /* Eagerly resets installed extensions */));
+		services.set(IGlobalExtensionEnablementService, new SyncDescriptor(GlobalExtensionEnablementService, undefined, false ));
 		services.set(IIgnoredExtensionsManagementService, new SyncDescriptor(IgnoredExtensionsManagementService, undefined, true));
 		services.set(IExtensionStorageService, new SyncDescriptor(ExtensionStorageService));
 		services.set(IUserDataSyncStoreManagementService, new SyncDescriptor(UserDataSyncStoreManagementService, undefined, true));
 		services.set(IUserDataSyncStoreService, new SyncDescriptor(UserDataSyncStoreService, undefined, true));
 		services.set(IUserDataSyncMachinesService, new SyncDescriptor(UserDataSyncMachinesService, undefined, true));
-		services.set(IUserDataSyncLocalStoreService, new SyncDescriptor(UserDataSyncLocalStoreService, undefined, false /* Eagerly cleans up old backups */));
+		services.set(IUserDataSyncLocalStoreService, new SyncDescriptor(UserDataSyncLocalStoreService, undefined, false ));
 		services.set(IUserDataSyncEnablementService, new SyncDescriptor(UserDataSyncEnablementService, undefined, true));
-		services.set(IUserDataSyncService, new SyncDescriptor(UserDataSyncService, undefined, false /* Initializes the Sync State */));
+		services.set(IUserDataSyncService, new SyncDescriptor(UserDataSyncService, undefined, false ));
 		services.set(IUserDataProfileStorageService, new SyncDescriptor(SharedProcessUserDataProfileStorageService, undefined, true));
 		services.set(IUserDataSyncResourceProviderService, new SyncDescriptor(UserDataSyncResourceProviderService, undefined, true));
 
-		// Signing
-		services.set(ISignService, new SyncDescriptor(SignService, undefined, false /* proxied to other processes */));
+		services.set(ISignService, new SyncDescriptor(SignService, undefined, false ));
 
-		// Tunnel
 		const remoteSocketFactoryService = new RemoteSocketFactoryService();
 		services.set(IRemoteSocketFactoryService, remoteSocketFactoryService);
 		remoteSocketFactoryService.register(RemoteConnectionType.WebSocket, nodeSocketFactory);
 		services.set(ISharedTunnelsService, new SyncDescriptor(SharedTunnelsService));
 		services.set(ISharedProcessTunnelService, new SyncDescriptor(SharedProcessTunnelService));
 
-		// Remote Tunnel
 		services.set(IRemoteTunnelService, new SyncDescriptor(RemoteTunnelService));
 
-		// Web Content Extractor
 		services.set(ISharedWebContentExtractorService, new SyncDescriptor(SharedWebContentExtractorService));
 
-		// Local Git
-		services.set(ILocalGitService, new SyncDescriptor(LocalGitService, undefined, false /* proxied to other processes */));
+		services.set(ILocalGitService, new SyncDescriptor(LocalGitService, undefined, false ));
 
-		// SSH Remote Agent Host
 		services.set(ISSHRemoteAgentHostMainService, new SyncDescriptor(SSHRemoteAgentHostMainService, undefined, true));
 
-		// WSL Remote Agent Host
 		services.set(IWSLRemoteAgentHostMainService, new SyncDescriptor(WSLRemoteAgentHostMainService, undefined, true));
 
-		// Tunnel Agent Host
 		services.set(ITunnelAgentHostMainService, new SyncDescriptor(TunnelAgentHostMainService, undefined, true));
 
-		// Tunnel Host (hosting local agent host for remote connections)
 		services.set(ITunnelAgentHostHostingService, new SyncDescriptor(TunnelHostMainService, undefined, true));
 
 		return new InstantiationService(services);
@@ -435,39 +386,30 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 
 	private initChannels(accessor: ServicesAccessor): void {
 
-		// Extensions Management
 		const channel = new ExtensionManagementChannel(accessor.get(IExtensionManagementService), () => null);
 		this.server.registerChannel('extensions', channel);
 
-		// Mcp Management
 		const mcpManagementChannel = new McpManagementChannel(accessor.get(IMcpManagementService), () => null);
 		this.server.registerChannel('mcpManagement', mcpManagementChannel);
 
-		// Language Packs
 		const languagePacksChannel = ProxyChannel.fromService(accessor.get(ILanguagePackService), this._store);
 		this.server.registerChannel('languagePacks', languagePacksChannel);
 
-		// Diagnostics
 		const diagnosticsChannel = ProxyChannel.fromService(accessor.get(IDiagnosticsService), this._store);
 		this.server.registerChannel('diagnostics', diagnosticsChannel);
 
-		// Extension Tips
 		const extensionTipsChannel = new ExtensionTipsChannel(accessor.get(IExtensionTipsService));
 		this.server.registerChannel('extensionTipsService', extensionTipsChannel);
 
-		// Checksum
 		const checksumChannel = ProxyChannel.fromService(accessor.get(IChecksumService), this._store);
 		this.server.registerChannel('checksum', checksumChannel);
 
-		// Profiling
 		const profilingChannel = ProxyChannel.fromService(accessor.get(IV8InspectProfilingService), this._store);
 		this.server.registerChannel('v8InspectProfiling', profilingChannel);
 
-		// Settings Sync
 		const userDataSyncMachineChannel = ProxyChannel.fromService(accessor.get(IUserDataSyncMachinesService), this._store);
 		this.server.registerChannel('userDataSyncMachines', userDataSyncMachineChannel);
 
-		// Custom Endpoint Telemetry
 		const customEndpointTelemetryChannel = ProxyChannel.fromService(accessor.get(ICustomEndpointTelemetryService), this._store);
 		this.server.registerChannel('customEndpointTelemetry', customEndpointTelemetryChannel);
 
@@ -485,40 +427,31 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 
 		this.server.registerChannel('IUserDataSyncResourceProviderService', ProxyChannel.fromService(accessor.get(IUserDataSyncResourceProviderService), this._store));
 
-		// Tunnel
 		const sharedProcessTunnelChannel = ProxyChannel.fromService(accessor.get(ISharedProcessTunnelService), this._store);
 		this.server.registerChannel(ipcSharedProcessTunnelChannelName, sharedProcessTunnelChannel);
 
-		// Remote Tunnel
 		const remoteTunnelChannel = ProxyChannel.fromService(accessor.get(IRemoteTunnelService), this._store);
 		this.server.registerChannel('remoteTunnel', remoteTunnelChannel);
 
-		// Web Content Extractor
 		const webContentExtractorChannel = ProxyChannel.fromService(accessor.get(ISharedWebContentExtractorService), this._store);
 		this.server.registerChannel('sharedWebContentExtractor', webContentExtractorChannel);
 
-		// Playwright
 		const agentNetworkFilterService = this._register(new AgentNetworkFilterService(accessor.get(IConfigurationService)));
 		const playwrightChannel = this._register(new PlaywrightChannel(this.server, accessor.get(IMainProcessService), accessor.get(ILogService), agentNetworkFilterService, accessor.get(ITelemetryService)));
 		this.server.registerChannel('playwright', playwrightChannel);
 
-		// Local Git
 		const localGitChannel = ProxyChannel.fromService(accessor.get(ILocalGitService), this._store);
 		this.server.registerChannel('localGit', localGitChannel);
 
-		// SSH Remote Agent Host
 		const sshRemoteAgentHostChannel = ProxyChannel.fromService(accessor.get(ISSHRemoteAgentHostMainService), this._store);
 		this.server.registerChannel(SSH_REMOTE_AGENT_HOST_CHANNEL, sshRemoteAgentHostChannel);
 
-		// WSL Remote Agent Host
 		const wslRemoteAgentHostChannel = ProxyChannel.fromService(accessor.get(IWSLRemoteAgentHostMainService), this._store);
 		this.server.registerChannel(WSL_REMOTE_AGENT_HOST_CHANNEL, wslRemoteAgentHostChannel);
 
-		// Tunnel Agent Host
 		const tunnelAgentHostChannel = ProxyChannel.fromService(accessor.get(ITunnelAgentHostMainService), this._store);
 		this.server.registerChannel(TUNNEL_AGENT_HOST_CHANNEL, tunnelAgentHostChannel);
 
-		// Tunnel Host
 		const tunnelHostChannel = ProxyChannel.fromService(accessor.get(ITunnelAgentHostHostingService), this._store);
 		this.server.registerChannel(TUNNEL_HOST_CHANNEL, tunnelHostChannel);
 	}
@@ -529,7 +462,6 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		process.on('uncaughtException', error => onUnexpectedError(error));
 		process.on('unhandledRejection', (reason: unknown) => onUnexpectedError(reason));
 
-		// Install handler for unexpected errors
 		setUnexpectedErrorHandler(error => {
 			const message = toErrorMessage(error, true);
 			if (!message) {
@@ -581,10 +513,6 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 
 	handledClientConnection(e: MessageEvent): boolean {
 
-		// This filter on message port messages will look for
-		// attempts of a window to connect raw to the shared
-		// process to handle these connections separate from
-		// our IPC based protocol.
 
 		if (e.data !== SharedProcessRawConnection.response) {
 			return false;
@@ -603,14 +531,11 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 
 export async function main(configuration: ISharedProcessConfiguration): Promise<void> {
 
-	// create shared process and signal back to main that we are
-	// ready to accept message ports as client connections
 
 	try {
 		const sharedProcess = new SharedProcessMain(configuration);
 		process.parentPort.postMessage(SharedProcessLifecycle.ipcReady);
 
-		// await initialization and signal this back to electron-main
 		await sharedProcess.init();
 
 		process.parentPort.postMessage(SharedProcessLifecycle.initDone);

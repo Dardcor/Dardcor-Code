@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -74,7 +73,6 @@ export class SlidingWindowAverage {
 	}
 }
 
-/** Returns whether the point is within the triangle formed by the following 6 x/y point pairs */
 export function isPointWithinTriangle(
 	x: number, y: number,
 	ax: number, ay: number,

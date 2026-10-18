@@ -25,7 +25,6 @@ export class ContextViewHandler extends Disposable implements IContextViewProvid
 		this._register(layoutService.onDidLayoutContainer(() => this.layout()));
 	}
 
-	// ContextView
 
 	showContextView(delegate: IContextViewDelegate, container?: HTMLElement, shadowRoot?: boolean): IOpenContextView {
 		let domPosition: ContextViewDOMPosition;

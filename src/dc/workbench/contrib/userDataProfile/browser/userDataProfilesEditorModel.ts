@@ -1268,7 +1268,6 @@ export class UserDataProfilesEditorModel extends EditorModel {
 				try {
 					await this.userDataProfileManagementService.removeProfile(profile);
 				} catch (error) {
-					// ignore
 				}
 			}
 			return;

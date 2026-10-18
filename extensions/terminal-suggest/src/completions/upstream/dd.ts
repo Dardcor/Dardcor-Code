@@ -97,8 +97,6 @@ const completionSpec: Fig.Spec = {
 	parserDirectives: {
 		flagsArePosixNoncompliant: true,
 	},
-	// dd has "operands", which are most closely modeled as options in a Fig spec.
-	// Asterisk *feels* a lot better than the default option icon here.
 	options: [
 		{
 			name: "bs",

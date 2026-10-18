@@ -5,9 +5,6 @@
 
 import type { Raw } from '@vscode/prompt-tsx';
 
-/**
- * Types shared between simulation framework and simulation workbench.
- */
 
 export const SIMULATION_EXPLICIT_LOG_FILENAME = 'sim-log.md';
 export const EXPLICIT_LOG_TAG = 'explicit-log-tag';
@@ -15,9 +12,7 @@ export const EXPLICIT_LOG_TAG = 'explicit-log-tag';
 export const SIMULATION_IMPLICIT_LOG_FILENAME = 'sim-log.txt';
 export const IMPLICIT_LOG_TAG = 'implicit-log-tag';
 
-/** Suffix for files that keep intercepted requests; these files are written and read with tag `REQUESTS_TAG`.  */
-export const SIMULATION_REQUESTS_FILENAME = 'sim-requests.txt'; // using .txt instead of .json to avoid breaking automation scripts
-/** This tag is used to read `SIMULATION_REQUESTS_FILENAME` */
+export const SIMULATION_REQUESTS_FILENAME = 'sim-requests.txt';
 export const REQUESTS_TAG = 'requests-tag';
 
 export const INLINE_INITIAL_DOC_TAG = 'inline-initial-doc-tag';
@@ -32,9 +27,9 @@ export const NES_LOG_CONTEXT_TAG = 'nes-log-context-tag';
 export const NEXT_EDIT_SUGGESTION_TAG = 'next-edit-suggestion-tag';
 
 export const SIMULATION_FOLDER_NAME = '.simulation';
-export const STDOUT_FILENAME = 'stdout.json.txt'; // using .txt instead of .json to avoid breaking automation scripts
-export const OLD_BASELINE_FILENAME = 'baseline.old.json.txt'; // using .txt instead of .json to avoid breaking automation scripts
-export const PRODUCED_BASELINE_FILENAME = 'baseline.produced.json.txt'; // using .txt instead of .json to avoid breaking automation scripts
+export const STDOUT_FILENAME = 'stdout.json.txt';
+export const OLD_BASELINE_FILENAME = 'baseline.old.json.txt';
+export const PRODUCED_BASELINE_FILENAME = 'baseline.produced.json.txt';
 export const AML_OUTPUT_PATH = 'test/aml/out';
 export const REPORT_FILENAME = 'report.json';
 export const SCORECARD_FILENAME = 'scorecard.csv';
@@ -43,8 +38,8 @@ export const RUN_METADATA = 'metadata.json';
 export interface ISerialisedChatMessage {
 	role: 'system' | 'user' | 'assistant' | 'function' | 'tool';
 	content: string | ISerializedChatCompletionContentPart[];
-	tool_calls?: Raw.ChatMessageToolCall[]; // assistant
-	tool_call_id?: string; // tool
+	tool_calls?: Raw.ChatMessageToolCall[];
+	tool_call_id?: string;
 	name?: string;
 }
 
@@ -62,16 +57,9 @@ export interface ISerializedChatCompletionContentPartText {
 
 export namespace ISerializedChatCompletionContentPartImage {
 	export interface ISerializedImageURL {
-		/**
-		 * Either a URL of the image or the base64 encoded image data.
-		 */
 		url: string;
 
 
-		/**
-		 * Specifies the detail level of the image. Learn more in the
-		 * [Vision guide](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding).
-		 */
 		detail?: 'low' | 'high';
 	}
 }
@@ -83,7 +71,6 @@ export interface ICopilotFunctionCall {
 	id?: string;
 }
 
-/** union of ChatMLFetcher's ChatResponses & CachingChatMLFetcher's ResponseWithMeta */
 export type ISerialisedChatResponse = {
 	type?: 'success' | 'filtered' | 'length' | string;
 	value?: string[];
@@ -99,7 +86,6 @@ export type ISerialisedChatResponse = {
 	dardcorFunctionCalls?: ICopilotFunctionCall[];
 	truncatedValue?: string;
 
-	/** is undefined if the serialized response wasn't coming from CachingChatMLFetcher */
 	isCacheHit?: boolean;
 	cacheKey?: string;
 	cacheMetadata?: {
@@ -118,7 +104,6 @@ export class InterceptedRequest {
 		public readonly model: string | undefined,
 		public readonly duration?: number
 	) {
-		// console.log('InterceptedRequest', requestMessages, requestOptions, response, cacheKey, model);
 	}
 
 	static fromJSON(json: any): InterceptedRequest {
@@ -147,29 +132,21 @@ export interface ISerializedFileEdit {
 	languageId: string;
 	original: string;
 	modified: string;
-	/**
-	 * Can be filename, path, URI, etc.
-	 */
 	id?: string;
 }
 
 export type SimulationTestOutcome = (
-	| { kind: 'edit'; files: Array<{ srcUri: string; post: string }> | string[] } // inline edit, supports both old and new format
-	| { kind: 'failed'; hitContentFilter: boolean; error: string | undefined; /** if true, will fail CI */ critical: boolean } // failed
-	| { kind: 'answer'; content: string } // sidebar or inline-chat coversational answer
+	| { kind: 'edit'; files: Array<{ srcUri: string; post: string }> | string[] }
+	| { kind: 'failed'; hitContentFilter: boolean; error: string | undefined; critical: boolean }
+	| { kind: 'answer'; content: string }
 ) & { annotations?: OutputAnnotation[] };
 
-/**
- * Representation of a single scenario summary
- * written to `baseline.json`
- */
 export interface IBaselineTestSummary {
 	readonly name: string;
 	readonly optional?: boolean;
 	readonly contentFilterCount: number;
 	readonly passCount: number;
 	readonly failCount: number;
-	/** A value between 0 and 1 */
 	readonly score: number;
 	readonly attributes: Record<string, string | number> | undefined;
 }
@@ -181,7 +158,6 @@ export enum OutputType {
 	skippedTest = 'skippedTest',
 	testRunStart = 'testRunStart',
 	testRunEnd = 'testRunEnd',
-	/** Currently sent only when early termination happens, e.g., because of `--require-cache` option */
 	terminated = 'terminated',
 	deviceCodeCallback = 'deviceCodeCallback',
 }
@@ -213,25 +189,16 @@ export interface IInitialTestSummaryOutput {
 
 export interface ITestRunStartOutput {
 	type: OutputType.testRunStart;
-	/**
-	 * Full test name, e.g., `<suite name> - <test name>`
-	 */
 	name: string;
 	runNumber: number;
 }
 
 export interface ITestRunEndOutput {
 	type: OutputType.testRunEnd;
-	/**
-	 * Full test name, e.g., `<suite name> - <test name>`
-	 */
 	name: string;
 	runNumber: number;
 	duration: number;
 	pass: boolean;
-	/**
-	 * A test can set own score (between 0 and 1) based on some rubric. If not set, the score is 1 for passing tests and 0 for failing tests - based on `pass` property of this object.
-	 */
 	explicitScore: number | undefined;
 	annotations?: OutputAnnotation[];
 	error?: string;
@@ -274,11 +241,6 @@ export type Output = IDetectedTestOutput
 	| IDeviceCodeCallbackOutput
 	;
 
-/**
- * Describes a single adhoc chat request sent from the simulation workbench
- * "Adhoc request sender" mode. Serialized to a temp file and passed to the
- * simulation CLI via `--adhoc-request-file`.
- */
 export interface IAdhocRequest {
 	readonly system: string;
 	readonly user: string;
@@ -286,11 +248,8 @@ export interface IAdhocRequest {
 }
 
 export enum AdhocResponseType {
-	/** A streamed chunk of the response text. */
 	delta = 'adhocResponseDelta',
-	/** The final, full response text. */
 	done = 'adhocResponseDone',
-	/** The request failed. */
 	error = 'adhocResponseError',
 }
 
@@ -356,7 +315,7 @@ export type OutputAnnotation = { severity: string; label: string; message: strin
 export interface IInitialWorkspaceState {
 	kind: 'initial';
 	file?: IWorkspaceStateFile;
-	additionalFiles: IWorkspaceStateFile[] | undefined; // TODO: remove | undefined after a while (allow viewing old runs for now)
+	additionalFiles: IWorkspaceStateFile[] | undefined;
 	languageId?: string;
 	selection?: IRange;
 	diagnostics: IDiagnostic[];
@@ -372,10 +331,6 @@ export type IDiagnosticComparison = { before: IDiagnostic[]; after: IDiagnostic[
 
 export type IWorkspaceState = IInitialWorkspaceState | IInteractionWorkspaceState;
 
-/**
- * Generates a unique output folder name based on the current date and time.
- * @returns A string representing the output folder name.
- */
 export function generateOutputFolderName(prefix?: string): string {
 	const twodigits = (n: number) => String(n).padStart(2, '0');
 	const d = new Date();

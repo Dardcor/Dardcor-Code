@@ -35,7 +35,6 @@ const BUNDLED_FILE_HEADER = [
 ].join('\n');
 
 const extractEditorSrcTask = task.define('extract-editor-src', () => {
-	// Ensure codicon.ttf is copied from node_modules (needed when node_modules is cached and postinstall doesn't run)
 	const codiconSource = path.join(root, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf');
 	const codiconDest = path.join(root, 'src', 'dc', 'base', 'browser', 'ui', 'codicons', 'codicon', 'codicon.ttf');
 	if (fs.existsSync(codiconSource)) {
@@ -61,7 +60,7 @@ const extractEditorSrcTask = task.define('extract-editor-src', () => {
 			'dc/base/browser/dompurify/dompurify.js',
 			'dc/base/common/marked/marked.js',
 		],
-		shakeLevel: 2, // 0-Files, 1-InnerFile, 2-ClassMembers
+		shakeLevel: 2,
 		importIgnorePattern: /\.css$/,
 		destRoot: path.join(root, 'out-editor-src'),
 		tsOutDir: '../out-monaco-editor-core/esm/vs',
@@ -130,14 +129,12 @@ function toExternalDTS(contents: string) {
 
 const finalEditorResourcesTask = task.define('final-editor-resources', () => {
 	return es.merge(
-		// other assets
 		es.merge(
 			gulp.src('build/monaco/LICENSE'),
 			gulp.src('build/monaco/ThirdPartyNotices.txt'),
 			gulp.src('src/dc/monaco.d.ts')
 		).pipe(gulp.dest('out-monaco-editor-core')),
 
-		// place the .d.ts in the esm folder
 		gulp.src('src/dc/monaco.d.ts')
 			.pipe(es.through(function (data) {
 				this.emit('data', new File({
@@ -148,7 +145,6 @@ const finalEditorResourcesTask = task.define('final-editor-resources', () => {
 			}))
 			.pipe(gulp.dest('out-monaco-editor-core/esm/dc/editor')),
 
-		// package.json
 		gulp.src('build/monaco/package.json')
 			.pipe(es.through(function (data) {
 				const json = JSON.parse(data.contents.toString());
@@ -183,7 +179,6 @@ const finalEditorResourcesTask = task.define('final-editor-resources', () => {
 			}))
 			.pipe(gulp.dest('out-monaco-editor-core')),
 
-		// version.txt
 		gulp.src('build/monaco/version.txt')
 			.pipe(es.through(function (data) {
 				data.contents = Buffer.from(`monaco-editor-core: https://github.com/microsoft/vscode/tree/${sha1}`);
@@ -191,7 +186,6 @@ const finalEditorResourcesTask = task.define('final-editor-resources', () => {
 			}))
 			.pipe(gulp.dest('out-monaco-editor-core')),
 
-		// README.md
 		gulp.src('build/monaco/README-npm.md')
 			.pipe(es.through(function (data) {
 				this.emit('data', new File({
@@ -230,7 +224,6 @@ task.task('monacodts', task.define('monacodts', () => {
 	return Promise.resolve(true);
 }));
 
-//#region monaco type checking
 
 function createTscCompileTask(watch: boolean) {
 	return () => {
@@ -241,13 +234,12 @@ function createTscCompileTask(watch: boolean) {
 			}
 			const child = cp.spawn(`node`, args, {
 				cwd: path.join(import.meta.dirname, '..'),
-				// stdio: [null, 'pipe', 'inherit']
 			});
 			const errors: string[] = [];
 			const reporter = createReporter('monaco');
 
 			let report: NodeJS.ReadWriteStream | undefined;
-			const magic = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g; // https://stackoverflow.com/questions/25245716/remove-all-ansi-colors-styles-from-strings
+			const magic = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 			child.stdout.on('data', data => {
 				let str = String(data);
@@ -263,8 +255,6 @@ function createTscCompileTask(watch: boolean) {
 				} else if (str) {
 					const match = /(.*\(\d+,\d+\): )(.*: )(.*)/.exec(str);
 					if (match) {
-						// trying to massage the message so that it matches the gulp-tsb error messages
-						// e.g. src/dc/base/common/strings.ts(663,5): error TS2322: Type '1234' is not assignable to type 'string'.
 						const fullpath = path.join(root, match[1]);
 						const message = match[3];
 						reporter(fullpath + message);
@@ -283,13 +273,6 @@ export const monacoTypecheckWatchTask = task.define('monaco-typecheck-watch', cr
 
 export const monacoTypecheckTask = task.define('monaco-typecheck', createTscCompileTask(false));
 
-//#endregion
-/**
- * Sets a field on an object only if it's not already set, otherwise throws an error
- * @param obj The object to modify
- * @param field The field name to set
- * @param value The value to set
- */
 function setUnsetField(obj: Record<string, unknown>, field: string, value: unknown) {
 	if (obj[field] !== undefined) {
 		throw new Error(`Field "${field}" is already set (but was expected to not be).`);

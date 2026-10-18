@@ -11,7 +11,6 @@ import { MainContext, MainThreadErrorsShape } from '../common/extHost.protocol.j
 export class MainThreadErrors implements MainThreadErrorsShape {
 
 	dispose(): void {
-		//
 	}
 
 	$onUnexpectedError(err: unknown | SerializedError): void {

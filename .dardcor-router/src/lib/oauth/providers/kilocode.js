@@ -33,7 +33,6 @@ const kilocode = {
     if (!response.ok) return { ok: false, data: { error: "poll_failed", error_description: `Poll failed: ${response.status}` } };
     const data = await response.json();
     if (data.status === "approved" && data.token) {
-      // Fetch profile to get orgId for X-Kilocode-OrganizationID header
       let orgId = null;
       try {
         const profileRes = await fetch(`${config.apiBaseUrl}/api/profile`, {

@@ -26,19 +26,12 @@ interface ICustomizationEventData {
 	readonly hooks: ChatRequestHooks | undefined;
 }
 
-/**
- * Bridges prompt discovery information to {@link IChatDebugService}.
- */
 export class PromptsDebugContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.promptsDebug';
 
 	private static readonly MAX_DISCOVERY_DETAILS = 10_000;
 
-	/**
-	 * Maps debug event IDs to their discovery info, so that
-	 * {@link IChatDebugService.resolveEvent} can return rich details.
-	 */
 	private readonly _discoveryEventDetails = new Map<string, IPromptDiscoveryInfo>();
 	private readonly _customizationEventDetails = new Map<string, ICustomizationEventData>();
 	private readonly _loggedSessions = new Set<string>();
@@ -52,14 +45,12 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 	) {
 		super();
 
-		// Clean up logged-session entries when sessions are disposed.
 		this._register(chatService.onDidDisposeSession(e => {
 			for (const sessionResource of e.sessionResources) {
 				this._loggedSessions.delete(sessionResource.toString());
 			}
 		}));
 
-		// Forward discovery log events to the debug service.
 		this._register(chatAgentService.onWillInvokeAgent(async e => {
 			const sessionKey = e.request.sessionResource.toString();
 			const isFirstInvocation = !this._loggedSessions.has(sessionKey);
@@ -70,12 +61,6 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 			if (isFirstInvocation) {
 				const cts = new CancellationTokenSource();
 				try {
-					// For agent-host (Copilot CLI) sessions, VS Code core still collects
-					// instructions and hooks and passes them into the agent-host request,
-					// so those discovery events are relevant. Agent / skill / slash-command
-					// discovery reflects VS Code's own chat-participant discovery, which the
-					// agent host does not consume (the agent host surfaces its actually loaded
-					// customizations separately), so we suppress those to avoid noise.
 					const discoveryTypes = isAgentHostTarget(getChatSessionType(sessionResource))
 						? [PromptsType.instructions, PromptsType.hook]
 						: [PromptsType.agent, PromptsType.instructions, PromptsType.prompt, PromptsType.skill, PromptsType.hook];
@@ -86,7 +71,6 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 
 						this._discoveryEventDetails.set(eventId, discoveryInfo);
 
-						// Evict oldest entries when the map exceeds the cap.
 						if (this._discoveryEventDetails.size > PromptsDebugContribution.MAX_DISCOVERY_DETAILS) {
 							const first = this._discoveryEventDetails.keys().next().value;
 							if (first !== undefined) {
@@ -94,9 +78,6 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 							}
 						}
 
-						// Enrich details with file paths so they appear in the event
-						// payload (e.g. forwarded via onDidReceiveChatDebugEvent to the
-						// extension's JSONL file logger).
 						const loaded = discoveryInfo.files
 							.filter(f => f.status === 'loaded')
 							.map(f => f.promptPath.name ?? f.promptPath.uri.path.split('/').pop() ?? f.promptPath.uri.toString());
@@ -135,11 +116,9 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 				}
 			}
 
-			// Log resolved customizations from the last instructions collection.
 			const lastResult = lastInstructionsCollectionResult;
 			if (!isFirstInvocation && lastResult) {
 				const { telemetryEvent: collectionEvent, debugInfo } = lastResult;
-				// Fetch the cached hook discovery info.
 				let resolvedHooks: ChatRequestHooks | undefined;
 				try {
 					const hookDiscoveryInfo = await this.promptsService.getDiscoveryInfo(PromptsType.hook, CancellationToken.None) as IHookDiscoveryInfo;
@@ -176,7 +155,6 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 				const customizationEventId = generateUuid();
 				this._customizationEventDetails.set(customizationEventId, { debugInfo, hooks: resolvedHooks });
 
-				// Evict oldest entries when the map exceeds the cap.
 				if (this._customizationEventDetails.size > PromptsDebugContribution.MAX_DISCOVERY_DETAILS) {
 					const first = this._customizationEventDetails.keys().next().value;
 					if (first !== undefined) {
@@ -193,8 +171,6 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 				);
 			}
 		}));
-		// Register a resolve provider so expanding a discovery event
-		// in the Agent Debug Logs shows the full file list.
 		this._register(chatDebugService.registerProvider({
 			provideChatDebugLog: async () => undefined,
 			resolveChatDebugLogEvent: async (eventId) => {
@@ -274,7 +250,6 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 		const { debugInfo, hooks } = data;
 		const logs: IChatDebugCustomizationLogEntry[] = [...debugInfo.debugDetails];
 
-		// Add hook entries from the resolved hooks — each command carries its sourceUri.
 		if (hooks) {
 			for (const hookType of Object.values(HookType)) {
 				const commands = hooks[hookType];
@@ -331,10 +306,6 @@ export class PromptsDebugContribution extends Disposable implements IWorkbenchCo
 
 const MAX_LIST_ITEMS = 100;
 
-/**
- * Join a list of strings, truncating after {@link MAX_LIST_ITEMS} entries.
- * Full details are available via {@link IChatDebugService.resolveEvent}.
- */
 function truncateList(items: string[]): string {
 	if (items.length <= MAX_LIST_ITEMS) {
 		return items.join(', ');

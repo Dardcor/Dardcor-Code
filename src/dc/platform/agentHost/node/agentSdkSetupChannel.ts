@@ -10,35 +10,23 @@ import { AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY, AGENT_SDK_SETUP_RELOAD_REQUEST_KE
 import { IAgentConfigurationService } from './agentConfigurationService.js';
 import { IAgentSdkDownloader, type IAgentSdkDownloadProgress, type IAgentSdkPackage } from './agentSdkDownloader.js';
 
-/** The per-agent half of {@link AgentSdkSetupChannel}. */
 export interface IAgentSdkSetupChannelAgent {
-	/** Agent/provider id, which becomes {@link IAgentSdkSetupInfo.agent}. */
 	readonly id: string;
 	readonly sdkPackage: IAgentSdkPackage;
 
-	/** What this agent offers besides the download. Published verbatim. */
 	readonly setupInfo: Omit<IAgentSdkSetupInfo, 'agent' | 'download'>;
 
-	/** Whether the SDK can be loaded without a network fetch. */
 	isSdkLocal(): Promise<boolean>;
 
-	/** Fetch the SDK. */
 	downloadSdk(): Promise<void>;
 
-	/** Restart chat discovery, which defers itself while there is no SDK to read a catalog from. */
 	restartChatDiscovery(): void;
 
-	/** Re-enumerate models against the SDK that just landed. */
 	refreshModels(): Promise<void>;
 }
 
-/**
- * One agent's side of the SDK setup channel: publishes whether its SDK is on
- * disk, tracks first-use and explicit downloads, and handles setup requests.
- */
 export class AgentSdkSetupChannel extends Disposable {
 
-	/** Consumed request nonce per request key, so a root-config change we caused isn't re-handled. */
 	private readonly _lastRequests = new Map<string, string>();
 	private readonly _operations = new Sequencer();
 
@@ -52,14 +40,11 @@ export class AgentSdkSetupChannel extends Disposable {
 		private readonly _logService: ILogService,
 	) {
 		super();
-		// The workbench addresses the agent through the root config bag. The key is
-		// cleared as it is consumed so a later identical press still lands.
 		this._register(this._configurationService.onDidRootConfigChange(() => this._handleRequest()));
 		this._register(this._downloader.onDidDownloadProgress(progress => this._handleDownloadProgress(progress)));
 		this.refresh();
 	}
 
-	/** Recompute the host's SDK status after an outside state change. */
 	refresh(): void {
 		this._queue('failed to refresh agent SDK setup', async () => this._publish(await this._agent.isSdkLocal()));
 	}
@@ -129,7 +114,6 @@ export class AgentSdkSetupChannel extends Disposable {
 		});
 	}
 
-	/** Claim one request addressed to this agent, clearing the key so a repeat press still lands. */
 	private _takeRequest(values: Readonly<Record<string, unknown>>, key: string): boolean {
 		const request = values[key];
 		if (!isAgentSdkSetupRequestFor(request, this._agent.id) || request.request === this._lastRequests.get(key)) {
@@ -152,7 +136,6 @@ export class AgentSdkSetupChannel extends Disposable {
 		}
 	}
 
-	/** Download requested explicitly through the setup UI. */
 	private async _download(): Promise<void> {
 		if (this._downloadActivity !== 'explicit') {
 			return;
@@ -187,18 +170,8 @@ export class AgentSdkSetupChannel extends Disposable {
 		}
 	}
 
-	/**
-	 * Re-read the world: the tail of a download, and the whole of a reload. Both
-	 * gestures change exactly what these two calls see — one puts the SDK on disk,
-	 * the other follows a `claude login` the app could not observe.
-	 */
 	private async _lookAgain(): Promise<void> {
-		// Chat discovery deferred itself while there was no SDK to read the catalog
-		// from; this is the one moment that can change.
 		this._agent.restartChatDiscovery();
-		// Second, not first: the refresh is what asks the SDK about the account, so
-		// announcing `ready` ahead of it would show "no account found" to a user who
-		// has one for as long as enumeration takes.
 		await this._agent.refreshModels();
 	}
 }

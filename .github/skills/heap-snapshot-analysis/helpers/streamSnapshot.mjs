@@ -185,13 +185,6 @@ export function streamNumberArray(path, start, end, onNumber, options = {}) {
 	}
 }
 
-/**
- * Streams fixed-size tuples from a number array.
- *
- * By default, the same mutable tuple array instance is reused for each callback
- * invocation to avoid per-tuple allocations. Callers must not retain that array
- * reference after onTuple returns unless options.copyTuple is enabled.
- */
 export function streamNumberTuples(path, start, end, tupleSize, onTuple, options = {}) {
 	const tuple = new Array(tupleSize);
 	const copyTuple = options.copyTuple === true;

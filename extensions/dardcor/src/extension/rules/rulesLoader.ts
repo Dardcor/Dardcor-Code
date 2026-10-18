@@ -29,7 +29,6 @@ export class ProjectRulesLoader {
 			hierarchical: [],
 		};
 
-		// 1. Scan root rule files
 		const rootCandidates = [
 			'.dardcorrules',
 			'.cursorrules',
@@ -50,11 +49,9 @@ export class ProjectRulesLoader {
 					}
 				}
 			} catch {
-				// Ignore non-existent files
 			}
 		}
 
-		// 2. Scan contextual rules folders: .dardcor/rules/ and .dc/rules/
 		const ruleDirs = [
 			path.join(workspaceRoot, '.dardcor', 'rules'),
 			path.join(workspaceRoot, '.dc', 'rules'),
@@ -80,11 +77,9 @@ export class ProjectRulesLoader {
 					}
 				}
 			} catch {
-				// Ignore non-existent directories
 			}
 		}
 
-		// 3. Hierarchical traversal from targetFilePath to workspaceRoot
 		if (targetFilePath && path.isAbsolute(targetFilePath)) {
 			let currentDir = path.dirname(targetFilePath);
 			const normalizedRoot = path.normalize(workspaceRoot).toLowerCase();
@@ -104,7 +99,6 @@ export class ProjectRulesLoader {
 						}
 					}
 				} catch {
-					// Ignore
 				}
 
 				const parent = path.dirname(currentDir);

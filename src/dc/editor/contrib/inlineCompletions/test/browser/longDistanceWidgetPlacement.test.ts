@@ -38,9 +38,9 @@ suite('WidgetPlacementContext', () => {
 			const context = new WidgetPlacementContext(lineRangeInfo, editorTrueContentWidth, endOfLinePadding);
 
 			assert.strictEqual(context.availableSpaceSizes.length, 3);
-			assert.strictEqual(context.availableSpaceSizes[0].width, 400); // 500 - 100
-			assert.strictEqual(context.availableSpaceSizes[1].width, 350); // 500 - 150
-			assert.strictEqual(context.availableSpaceSizes[2].width, 420); // 500 - 80
+			assert.strictEqual(context.availableSpaceSizes[0].width, 400);
+			assert.strictEqual(context.availableSpaceSizes[1].width, 350);
+			assert.strictEqual(context.availableSpaceSizes[2].width, 420);
 		});
 
 		test('computes available space sizes with end of line padding', () => {
@@ -51,8 +51,8 @@ suite('WidgetPlacementContext', () => {
 
 			const context = new WidgetPlacementContext(lineRangeInfo, editorTrueContentWidth, endOfLinePadding);
 
-			assert.strictEqual(context.availableSpaceSizes[0].width, 390); // 500 - 100 - 10
-			assert.strictEqual(context.availableSpaceSizes[1].width, 330); // 500 - 150 - 20
+			assert.strictEqual(context.availableSpaceSizes[0].width, 390);
+			assert.strictEqual(context.availableSpaceSizes[1].width, 330);
 		});
 
 		test('available space width is never negative', () => {
@@ -108,8 +108,6 @@ suite('WidgetPlacementContext', () => {
 
 			const context = new WidgetPlacementContext(lineRangeInfo, 500, () => 0);
 
-			// Transposed: width becomes height and vice versa
-			// Available widths are 400 and 350, heights are 20 and 30
 			assert.strictEqual(context.availableSpaceSizesTransposed[0].width, 20);
 			assert.strictEqual(context.availableSpaceSizesTransposed[0].height, 400);
 			assert.strictEqual(context.availableSpaceSizesTransposed[1].width, 30);
@@ -125,9 +123,6 @@ suite('WidgetPlacementContext', () => {
 			const context = new WidgetPlacementContext(lineRangeInfo, 500, () => 0);
 			const outline = context.getWidgetVerticalOutline(1, 50, defaultLayoutConstants);
 
-			// previewEditorMargin + widgetPadding + widgetBorder = 5 + 2 + 1 = 8
-			// editorRange = [100, 150)
-			// verticalWidgetRange = [100 - 8, 150 + 8 + 10) = [92, 168)
 			assert.strictEqual(outline.start, 92);
 			assert.strictEqual(outline.endExclusive, 168);
 		});
@@ -139,11 +134,6 @@ suite('WidgetPlacementContext', () => {
 			const context = new WidgetPlacementContext(lineRangeInfo, 500, () => 0);
 			const outline = context.getWidgetVerticalOutline(2, 50, defaultLayoutConstants);
 
-			// Line 2 is at index 1, prefixSum[1] = 20
-			// top = 100 + 20 = 120
-			// editorRange = [120, 170)
-			// margin = 8, lowerBarHeight = 10
-			// verticalWidgetRange = [120 - 8, 170 + 8 + 10) = [112, 188)
 			assert.strictEqual(outline.start, 112);
 			assert.strictEqual(outline.endExclusive, 188);
 		});
@@ -169,7 +159,6 @@ suite('WidgetPlacementContext', () => {
 
 	suite('tryFindWidgetOutline', () => {
 		test('returns undefined when no line has enough width', () => {
-			// All lines have content that leaves less than minWidgetWidth
 			const sizes = [new Size2D(460, 20), new Size2D(470, 20), new Size2D(480, 20)];
 			const lineRangeInfo = createLineRangeInfo(1, sizes);
 
@@ -191,21 +180,18 @@ suite('WidgetPlacementContext', () => {
 		});
 
 		test('searches outward from target line', () => {
-			// First and last lines are excluded from placement
-			// Lines 2, 3 have no space, line 4 has space
 			const sizes = [
-				new Size2D(100, 20),  // line 1 - excluded (first)
-				new Size2D(460, 20),  // line 2 - no space
-				new Size2D(460, 20),  // line 3 - no space (target)
-				new Size2D(100, 20),  // line 4 - has space
-				new Size2D(100, 20),  // line 5 - has space
-				new Size2D(100, 20),  // line 6 - has space
-				new Size2D(100, 20),  // line 7 - excluded (last)
+				new Size2D(100, 20),
+				new Size2D(460, 20),
+				new Size2D(460, 20),
+				new Size2D(100, 20),
+				new Size2D(100, 20),
+				new Size2D(100, 20),
+				new Size2D(100, 20),
 			];
 			const lineRangeInfo = createLineRangeInfo(1, sizes, 0);
 
 			const context = new WidgetPlacementContext(lineRangeInfo, 500, () => 0);
-			// Target is line 3, but it should find line 4 (searching outward)
 			const result = context.tryFindWidgetOutline(3, 15, 500, defaultLayoutConstants);
 
 			assert.ok(result !== undefined);
@@ -213,15 +199,15 @@ suite('WidgetPlacementContext', () => {
 
 		test('prefers closer lines to target', () => {
 			const sizes = [
-				new Size2D(100, 20),  // line 0 - excluded (first)
-				new Size2D(100, 20),  // line 1 - has space
-				new Size2D(100, 20),  // line 2 - has space
-				new Size2D(100, 20),  // line 3 - has space
-				new Size2D(500, 9999),// line 4 - no space (target)
-				new Size2D(100, 20),  // line 5 - has space
-				new Size2D(100, 20),  // line 6 - has space
-				new Size2D(100, 20),  // line 7 - has space
-				new Size2D(100, 20),  // line 8 - excluded (last)
+				new Size2D(100, 20),
+				new Size2D(100, 20),
+				new Size2D(100, 20),
+				new Size2D(100, 20),
+				new Size2D(500, 9999),
+				new Size2D(100, 20),
+				new Size2D(100, 20),
+				new Size2D(100, 20),
+				new Size2D(100, 20),
 			];
 			const lineRangeInfo = createLineRangeInfo(1, sizes, 0);
 
@@ -232,7 +218,7 @@ suite('WidgetPlacementContext', () => {
 				assert.ok(result.verticalWidgetRange.endExclusive < 9999);
 			}
 
-			for (let targetLine = 5; targetLine <= 10 /* test outside line range */; targetLine++) {
+			for (let targetLine = 5; targetLine <= 10 ; targetLine++) {
 				const context = new WidgetPlacementContext(lineRangeInfo, 500, () => 0);
 				const result = context.tryFindWidgetOutline(targetLine, 15, 500, defaultLayoutConstants);
 				assert.ok(result !== undefined);
@@ -280,7 +266,6 @@ suite('WidgetPlacementContext', () => {
 
 			const context = new WidgetPlacementContext(lineRangeInfo, 500, () => 0);
 
-			// Verify prefix sums account for varying heights
 			assert.deepStrictEqual(context.availableSpaceHeightPrefixSums, [0, 10, 40, 60]);
 		});
 

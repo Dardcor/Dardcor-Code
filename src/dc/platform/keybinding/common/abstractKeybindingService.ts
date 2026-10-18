@@ -30,11 +30,6 @@ interface CurrentChord {
 
 const HIGH_FREQ_COMMANDS = /^(cursor|delete|undo|redo|tab|editor\.action\.clipboard)/;
 
-/**
- * Whether the keystroke belongs to an in-flight IME composition. `StandardKeyboardEvent` normalizes
- * every composing keystroke to {@link KeyCode.KEY_IN_COMPOSITION}, including the platform/IME
- * combinations that would otherwise report the real key code for keys the IME owns.
- */
 function isKeyInComposition(e: IKeyboardEvent): boolean {
 	return e.keyCode === KeyCode.KEY_IN_COMPOSITION;
 }
@@ -45,16 +40,9 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 
 	protected readonly _onDidUpdateKeybindings: Emitter<void> = this._register(new Emitter<void>());
 	get onDidUpdateKeybindings(): Event<void> {
-		return this._onDidUpdateKeybindings ? this._onDidUpdateKeybindings.event : Event.None; // Sinon stubbing walks properties on prototype
+		return this._onDidUpdateKeybindings ? this._onDidUpdateKeybindings.event : Event.None;
 	}
 
-	/** recently recorded keypresses that can trigger a keybinding;
-	 *
-	 * example: say, there's "cmd+k cmd+i" keybinding;
-	 * the user pressed "cmd+k" (before they press "cmd+i")
-	 * "cmd+k" would be stored in this array, when on pressing "cmd+i", the service
-	 * would invoke the command bound by the keybinding
-	 */
 	private _currentChords: CurrentChord[];
 
 	private _currentChordChecker: IntervalTimer;
@@ -144,14 +132,9 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 		return this._dispatch(e, target);
 	}
 
-	// TODO@ulugbekna: update namings to align with `_doDispatch`
-	// TODO@ulugbekna: this fn doesn't seem to take into account single-modifier keybindings, eg `shift shift`
 	public softDispatch(e: IKeyboardEvent, target: IContextKeyServiceTarget): ResolutionResult {
 		this._log(`/ Soft dispatching keyboard event`);
 		if (isKeyInComposition(e)) {
-			// Must agree with `_dispatch`: callers use this to decide whether the workbench will
-			// claim the key, and a "yes" here followed by a "no" there would drop the keystroke on
-			// the floor - stopping the widget (e.g. the terminal) from passing it to the IME.
 			this._log(`\\ Keyboard event is part of an IME composition`);
 			return NoMatchingKb;
 		}
@@ -162,7 +145,6 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 		}
 		const [firstChord,] = keybinding.getDispatchChords();
 		if (firstChord === null) {
-			// cannot be dispatched, probably only modifier keys
 			this._log(`\\ Keyboard event cannot be dispatched`);
 			return NoMatchingKb;
 		}
@@ -177,13 +159,11 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 		this._currentChordChecker.cancelAndSet(() => {
 
 			if (!this._documentHasFocus()) {
-				// Focus has been lost => leave chord mode
 				this._leaveChordMode();
 				return;
 			}
 
 			if (Date.now() - chordLastInteractedTime > 5000) {
-				// 5 seconds elapsed => leave chord mode
 				this._leaveChordMode();
 			}
 
@@ -198,7 +178,6 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 			case 0:
 				throw illegalState('impossible');
 			case 1:
-				// TODO@ulugbekna: revise this message and the one below (at least, fix terminology)
 				this._currentChordStatusMessage = this._notificationService.status(nls.localize('first.chord', "({0}) was pressed. Waiting for second key of chord...", keypressLabel));
 				break;
 			default: {
@@ -230,20 +209,16 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 		if (keybindings.length === 0) {
 			this._log(`\\ Could not resolve - ${userSettingsLabel}`);
 		} else {
-			this._doDispatch(keybindings[0], target, /*isSingleModiferChord*/false);
+			this._doDispatch(keybindings[0], target, false);
 		}
 	}
 
 	protected _dispatch(e: IKeyboardEvent, target: IContextKeyServiceTarget): boolean {
 		if (isKeyInComposition(e)) {
-			// The keystroke belongs to the IME, which owns Enter (commit), Space and the arrows
-			// (candidate selection) and Escape (cancel) for the duration of the composition.
-			// Dispatching would run commands the user never invoked - e.g. accepting a picker or
-			// submitting a form while they are still choosing characters.
 			this._log(`+ Ignoring keybinding dispatch because an IME composition is in progress.`);
 			return false;
 		}
-		return this._doDispatch(this.resolveKeyboardEvent(e), target, /*isSingleModiferChord*/false);
+		return this._doDispatch(this.resolveKeyboardEvent(e), target, false);
 	}
 
 	protected _singleModifierDispatch(e: IKeyboardEvent, target: IContextKeyServiceTarget): boolean {
@@ -266,7 +241,6 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 			this._ignoreSingleModifiers = KeybindingModifierSet.EMPTY;
 
 			if (this._currentSingleModifier === null) {
-				// we have a valid `singleModifier`, store it for the next keyup, but clear it in 300ms
 				this._log(`+ Storing single modifier for possible chord ${singleModifier}.`);
 				this._currentSingleModifier = singleModifier;
 				this._currentSingleModifierClearTimeout.cancelAndSet(() => {
@@ -277,11 +251,10 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 			}
 
 			if (singleModifier === this._currentSingleModifier) {
-				// bingo!
 				this._log(`/ Dispatching single modifier chord ${singleModifier} ${singleModifier}`);
 				this._currentSingleModifierClearTimeout.cancel();
 				this._currentSingleModifier = null;
-				return this._doDispatch(keybinding, target, /*isSingleModiferChord*/true);
+				return this._doDispatch(keybinding, target, true);
 			}
 
 			this._log(`+ Clearing single modifier due to modifier mismatch: ${this._currentSingleModifier} ${singleModifier}`);
@@ -290,8 +263,6 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 			return false;
 		}
 
-		// When pressing a modifier and holding it pressed with any other modifier or key combination,
-		// the pressed modifiers should no longer be considered for single modifier dispatch.
 		const [firstChord,] = keybinding.getChords();
 		this._ignoreSingleModifiers = new KeybindingModifierSet(firstChord);
 
@@ -306,7 +277,7 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 	private _doDispatch(userKeypress: ResolvedKeybinding, target: IContextKeyServiceTarget, isSingleModiferChord = false): boolean {
 		let shouldPreventDefault = false;
 
-		if (userKeypress.hasMultipleChords()) { // warn - because user can press a single chord at a time
+		if (userKeypress.hasMultipleChords()) {
 			console.warn('Unexpected keyboard event mapped to multiple chords');
 			return false;
 		}
@@ -315,12 +286,9 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 		let currentChords: string[] | null = null;
 
 		if (isSingleModiferChord) {
-			// The keybinding is the second keypress of a single modifier chord, e.g. "shift shift".
-			// A single modifier can only occur when the same modifier is pressed in short sequence,
-			// hence we disregard `_currentChord` and use the same modifier instead.
 			const [dispatchKeyname,] = userKeypress.getSingleModifierDispatchChords();
 			userPressedChord = dispatchKeyname;
-			currentChords = dispatchKeyname ? [dispatchKeyname] : []; // TODO@ulugbekna: in the `else` case we assign an empty array - make sure `resolve` can handle an empty array well
+			currentChords = dispatchKeyname ? [dispatchKeyname] : [];
 		} else {
 			[userPressedChord,] = userKeypress.getDispatchChords();
 			currentChords = this._currentChords.map(({ keypress }) => keypress);
@@ -328,7 +296,6 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 
 		if (userPressedChord === null) {
 			this._log(`\\ Keyboard event cannot be dispatched in keydown phase.`);
-			// cannot be dispatched, probably only modifier keys
 			return shouldPreventDefault;
 		}
 
@@ -346,7 +313,7 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 				if (this.inChordMode) {
 					const currentChordsLabel = this._currentChords.map(({ label }) => label).join(', ');
 					this._log(`+ Leaving multi-chord mode: Nothing bound to "${currentChordsLabel}, ${keypressLabel}".`);
-					this._notificationService.status(nls.localize('missing.chord', "The key combination ({0}, {1}) is not a command.", currentChordsLabel, keypressLabel), { hideAfter: 10 * 1000 /* 10s */ });
+					this._notificationService.status(nls.localize('missing.chord', "The key combination ({0}, {1}) is not a command.", currentChordsLabel, keypressLabel), { hideAfter: 10 * 1000 });
 					this._leaveChordMode();
 
 					shouldPreventDefault = true;
@@ -373,7 +340,7 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 					if (this.inChordMode) {
 						const currentChordsLabel = this._currentChords.map(({ label }) => label).join(', ');
 						this._log(`+ Leaving chord mode: Nothing bound to "${currentChordsLabel}, ${keypressLabel}".`);
-						this._notificationService.status(nls.localize('missing.chord', "The key combination ({0}, {1}) is not a command.", currentChordsLabel, keypressLabel), { hideAfter: 10 * 1000 /* 10s */ });
+						this._notificationService.status(nls.localize('missing.chord', "The key combination ({0}, {1}) is not a command.", currentChordsLabel, keypressLabel), { hideAfter: 10 * 1000 });
 						this._leaveChordMode();
 						shouldPreventDefault = true;
 					}
@@ -413,11 +380,8 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 
 	mightProducePrintableCharacter(event: IKeyboardEvent): boolean {
 		if (event.ctrlKey || event.metaKey) {
-			// ignore ctrl/cmd-combination but not shift/alt-combinatios
 			return false;
 		}
-		// weak check for certain ranges. this is properly implemented in a subclass
-		// with access to the KeyboardMapperFactory.
 		if ((event.keyCode >= KeyCode.KeyA && event.keyCode <= KeyCode.KeyZ)
 			|| (event.keyCode >= KeyCode.Digit0 && event.keyCode <= KeyCode.Digit9)) {
 			return true;

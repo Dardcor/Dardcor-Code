@@ -23,10 +23,6 @@ import { isHighContrast } from '../../../../platform/theme/common/theme.js';
 import { CursorChangeReason } from '../../../common/cursorEvents.js';
 import { WindowIntervalTimer, getWindow } from '../../../../base/browser/dom.js';
 
-/**
- * View cursors is a view part responsible for rendering the primary cursor and
- * any secondary cursors that are currently active.
- */
 export class ViewCursors extends ViewPart {
 
 	static readonly BLINK_INTERVAL = 500;
@@ -97,7 +93,6 @@ export class ViewCursors extends ViewPart {
 		return this._domNode;
 	}
 
-	// --- begin event handlers
 
 	public override onCompositionStart(e: viewEvents.ViewCompositionStartEvent): boolean {
 		this._isComposingInput = true;
@@ -137,7 +132,6 @@ export class ViewCursors extends ViewPart {
 		this._updateBlinking();
 
 		if (this._secondaryCursors.length < secondaryPositions.length) {
-			// Create new cursors
 			const addCnt = secondaryPositions.length - this._secondaryCursors.length;
 			for (let i = 0; i < addCnt; i++) {
 				const newCursor = new ViewCursor(this._context, CursorPlurality.MultiSecondary);
@@ -145,7 +139,6 @@ export class ViewCursors extends ViewPart {
 				this._secondaryCursors.push(newCursor);
 			}
 		} else if (this._secondaryCursors.length > secondaryPositions.length) {
-			// Remove some cursors
 			const removeCnt = this._secondaryCursors.length - secondaryPositions.length;
 			for (let i = 0; i < removeCnt; i++) {
 				this._domNode.removeChild(this._secondaryCursors[0].getDomNode());
@@ -174,7 +167,6 @@ export class ViewCursors extends ViewPart {
 		return true;
 	}
 	public override onDecorationsChanged(e: viewEvents.ViewDecorationsChangedEvent): boolean {
-		// true for inline decorations that can end up relayouting text
 		return true;
 	}
 	public override onFlushed(e: viewEvents.ViewFlushedEvent): boolean {
@@ -220,14 +212,10 @@ export class ViewCursors extends ViewPart {
 		return true;
 	}
 
-	// --- end event handlers
 
-	// ---- blinking logic
 
 	private _getCursorBlinking(): TextEditorCursorBlinkingStyle {
-		// TODO: Remove the following if statement when experimental edit context is made default sole implementation
 		if (this._isComposingInput && !this._editContextEnabled) {
-			// avoid double cursors
 			return TextEditorCursorBlinkingStyle.Hidden;
 		}
 		if (!this._editorHasFocus) {
@@ -245,7 +233,6 @@ export class ViewCursors extends ViewPart {
 
 		const blinkingStyle = this._getCursorBlinking();
 
-		// hidden and solid are special as they involve no animations
 		const isHidden = (blinkingStyle === TextEditorCursorBlinkingStyle.Hidden);
 		const isSolid = (blinkingStyle === TextEditorCursorBlinkingStyle.Solid);
 
@@ -260,7 +247,6 @@ export class ViewCursors extends ViewPart {
 
 		if (!isHidden && !isSolid) {
 			if (blinkingStyle === TextEditorCursorBlinkingStyle.Blink) {
-				// flat blinking is handled by JavaScript to save battery life due to Chromium step timing issue https://bugs.chromium.org/p/chromium/issues/detail?id=361587
 				this._cursorFlatBlinkInterval.cancelAndSet(() => {
 					if (this._isVisible) {
 						this._hide();
@@ -277,7 +263,6 @@ export class ViewCursors extends ViewPart {
 		}
 	}
 
-	// --- end blinking logic
 
 	private _updateDomClassName(): void {
 		this._domNode.setClassName(this._getClassName());
@@ -355,7 +340,6 @@ export class ViewCursors extends ViewPart {
 		this._isVisible = false;
 	}
 
-	// ---- IViewPart implementation
 
 	public prepareRender(ctx: RenderingContext): void {
 		this._primaryCursor.prepareRender(ctx);

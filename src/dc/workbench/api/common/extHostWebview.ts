@@ -58,11 +58,11 @@ export class ExtHostWebview implements vscode.Webview {
 		this.#deprecationService = deprecationService;
 	}
 
-	/* internal */ readonly _onMessageEmitter = new Emitter<any>();
+	readonly _onMessageEmitter = new Emitter<any>();
 	public readonly onDidReceiveMessage: Event<any> = this._onMessageEmitter.event;
 
 	readonly #onDidDisposeEmitter = new Emitter<void>();
-	/* internal */ readonly _onDidDispose: Event<void> = this.#onDidDisposeEmitter.event;
+	readonly _onDidDispose: Event<void> = this.#onDidDisposeEmitter.event;
 
 	public dispose() {
 		this.#isDisposed = true;
@@ -81,11 +81,8 @@ export class ExtHostWebview implements vscode.Webview {
 	public get cspSource(): string {
 		const extensionLocation = this.#extension.extensionLocation;
 		if (extensionLocation.scheme === Schemas.https || extensionLocation.scheme === Schemas.http) {
-			// The extension is being served up from a CDN.
-			// Also include the CDN in the default csp.
 			let extensionCspRule = extensionLocation.toString();
 			if (!extensionCspRule.endsWith('/')) {
-				// Always treat the location as a directory so that we allow all content under it
 				extensionCspRule += '/';
 			}
 			return extensionCspRule + ' ' + webviewGenericCspSource;
@@ -105,7 +102,7 @@ export class ExtHostWebview implements vscode.Webview {
 			if (this.#shouldRewriteOldResourceUris && !this.#hasCalledAsWebviewUri && /(["'])vscode-resource:([^\s'"]+?)(["'])/i.test(value)) {
 				this.#hasCalledAsWebviewUri = true;
 				this.#deprecationService.report('Webview vscode-resource: uris', this.#extension,
-					`Please migrate to use the 'webview.asWebviewUri' api instead: https://aka.ms/vscode-webview-use-aswebviewuri`);
+					`Please migrate to use the 'webview.asWebviewUri' api instead: https://www.dardcor-code.web.id/docs/extensions/api/webviews`);
 			}
 			this.#proxy.$setHtml(this.#handle, this.rewriteOldResourceUrlsIfNeeded(value));
 		}
@@ -231,7 +228,7 @@ export class ExtHostWebviews extends Disposable implements extHostProtocol.ExtHo
 		_handle: extHostProtocol.WebviewHandle,
 		extensionId: string
 	): void {
-		this._logService.warn(`${extensionId} created a webview without a content security policy: https://aka.ms/vscode-webview-missing-csp`);
+		this._logService.warn(`${extensionId} created a webview without a content security policy: https://www.dardcor-code.web.id/docs/extensions/api/webviews`);
 	}
 
 	public createNewWebview(handle: string, options: extHostProtocol.IWebviewContentOptions, extension: IExtensionDescription): ExtHostWebview {
@@ -246,16 +243,6 @@ export class ExtHostWebviews extends Disposable implements extHostProtocol.ExtHo
 		return webview;
 	}
 
-	/**
-	 * Ensures that the main thread side of the webview has `localResourceRoots`
-	 * populated when the caller did not supply any.
-	 *
-	 * This honors the documented `WebviewOptions.localResourceRoots` contract
-	 * ("Default to ... the workspace folders and the extension's install
-	 * directory") for code paths that construct the webview's content options
-	 * outside of the extension host (e.g. custom editors), where the main
-	 * thread starts with empty content options.
-	 */
 	public ensureDefaultContentOptions(handle: extHostProtocol.WebviewHandle, contentOptions: extHostProtocol.IWebviewContentOptions, extension: IExtensionDescription): void {
 		if (contentOptions.localResourceRoots) {
 			return;

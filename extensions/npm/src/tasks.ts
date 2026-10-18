@@ -63,7 +63,6 @@ export class NpmTaskProvider implements TaskProvider {
 			const kind = _task.definition as INpmTaskDefinition;
 			let packageJsonUri: Uri;
 			if (_task.scope === undefined || _task.scope === TaskScope.Global || _task.scope === TaskScope.Workspace) {
-				// scope is required to be a WorkspaceFolder for resolveTask
 				return undefined;
 			}
 			if (kind.path) {
@@ -77,8 +76,6 @@ export class NpmTaskProvider implements TaskProvider {
 			} else {
 				task = await createScriptRunnerTask(this.context, kind.script, _task.scope, packageJsonUri);
 			}
-			// VSCode requires that task.definition must not change between resolutions
-			// We need to restore task.definition to its original value
 			task.definition = kind;
 			return task;
 		}
@@ -351,10 +348,9 @@ export async function createScriptRunnerTask(context: ExtensionContext, script: 
 	} else if (isTestTask(lowerCaseTaskName)) {
 		task.group = TaskGroup.Test;
 	} else if (canHavePrePostScript(lowerCaseTaskName)) {
-		task.group = TaskGroup.Clean; // hack: use Clean group to tag pre/post scripts
+		task.group = TaskGroup.Clean;
 	} else if (scriptValue && isDebugScript(scriptValue)) {
-		// todo@connor4312: all scripts are now debuggable, what is a 'debug script'?
-		task.group = TaskGroup.Rebuild; // hack: use Rebuild group to tag debug scripts
+		task.group = TaskGroup.Rebuild;
 	}
 	return task;
 }
@@ -399,12 +395,10 @@ export function getPackageJsonUriFromTask(task: Task): Uri | null {
 }
 
 export async function hasPackageJson(): Promise<boolean> {
-	// Faster than `findFiles` for workspaces with a root package.json.
 	if (await hasRootPackageJson()) {
 		return true;
 	}
 	const token = new CancellationTokenSource();
-	// Search for files for max 1 second.
 	const timeout = setTimeout(() => token.cancel(), 1000);
 	const files = await workspace.findFiles('**/package.json', undefined, 1, token.token);
 	clearTimeout(timeout);

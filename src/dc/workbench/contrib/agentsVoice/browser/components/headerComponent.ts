@@ -55,11 +55,9 @@ export function createHeader(): HeaderComponent {
 	const container = dom.$('div');
 	container.style.cssText = 'display:flex;align-items:center;gap:8px;height:30px;flex-shrink:0;';
 
-	// Copilot icon
 	const copilotIcon = document.createElement('img');
 	copilotIcon.style.cssText = 'width:18px;height:18px;margin-right:4px;';
 
-	// Voice mode button
 	const micBtn = dom.$('span.codicon.codicon-voice-mode');
 	micBtn.role = 'button';
 	micBtn.tabIndex = 0;
@@ -67,7 +65,6 @@ export function createHeader(): HeaderComponent {
 	micBtn.title = localize('agentsVoice.pushToTalkSpace', "Push to talk (Space)");
 	micBtn.style.cssText = `font-size:${FONT_SIZE.iconMd};cursor:pointer;-webkit-app-region:no-drag;border-radius:4px;padding:2px;`;
 
-	// Connection indicator
 	const connIndicator = dom.$('span.voice-conn-indicator');
 	connIndicator.role = 'button';
 	connIndicator.tabIndex = 0;
@@ -86,7 +83,6 @@ export function createHeader(): HeaderComponent {
 	connIndicator.append(connDot, connDisc);
 	addKeyboardActivation(connIndicator);
 
-	// Placeholder text — clickable, shows PTT keybinding
 	const placeholderText = dom.$('span.voice-placeholder-text');
 	placeholderText.role = 'button';
 	placeholderText.tabIndex = 0;
@@ -95,26 +91,21 @@ export function createHeader(): HeaderComponent {
 	placeholderText.addEventListener('mouseleave', () => { placeholderText.style.color = 'var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground))'; });
 	addKeyboardActivation(placeholderText);
 
-	// Spacer
 	const spacer = dom.$('span');
 	spacer.style.flex = '1';
 
-	// Feedback button
 	const feedbackBtn = hoverButton('codicon-feedback',
 		localize('agentsVoice.sendFeedback', "Send feedback"),
 		localize('agentsVoice.sendFeedback', "Send feedback"));
 
-	// Popout button
 	const popoutBtn = hoverButton('codicon-open-in-window',
 		localize('agentsVoice.openMiniView', "Open mini-view"),
 		localize('agentsVoice.openMiniView', "Open mini-view"));
 
-	// Close button
 	const closeBtn = hoverButton('codicon-chrome-minimize',
 		localize('agentsVoice.minimize', "Minimize"),
 		localize('agentsVoice.minimize', "Minimize"));
 
-	// Hover style for connection indicator
 	const connStyle = dom.$('style');
 	connStyle.textContent = `
 		.voice-conn-indicator:hover .voice-conn-dot { display: none !important; }
@@ -135,13 +126,11 @@ export function createHeader(): HeaderComponent {
 		update(props: HeaderProps) {
 			container.style.cssText = `display:flex;align-items:center;gap:8px;height:30px;flex-shrink:0;${props.draggable ? '-webkit-app-region:drag;' : ''}`;
 
-			// Copilot icon
 			copilotIcon.style.display = props.showCopilotIcon ? '' : 'none';
 			copilotIcon.src = props.copilotIconSrc;
 
 			const showConnected = props.isConnected || props.isReconnecting;
 
-			// Mic button — shown only when connected
 			micBtn.style.display = showConnected ? '' : 'none';
 			const micColor = props.voiceState === 'error' ? 'var(--vscode-editorError-foreground)'
 				: props.voiceState === 'listening' ? 'var(--vscode-editorInfo-foreground)'
@@ -161,7 +150,6 @@ export function createHeader(): HeaderComponent {
 			micBtn.onmouseup = (e: MouseEvent) => { if (isSecondaryPointerGesture(e)) { return; } props.onMicUp(); };
 			micBtn.oncontextmenu = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); props.onMicContextMenu(e); };
 
-			// Placeholder text — shown when not connected, displays PTT keybinding
 			placeholderText.style.display = showConnected ? 'none' : '';
 			const keyLabel = props.pttKeyLabel;
 			const holdText = keyLabel
@@ -171,29 +159,23 @@ export function createHeader(): HeaderComponent {
 			placeholderText.ariaLabel = holdText;
 			placeholderText.onclick = props.onConnectClick;
 
-			// Connection indicator
 			connIndicator.style.display = showConnected && !props.hideDisconnect ? 'inline-flex' : 'none';
 			connIndicator.onclick = props.onDisconnectClick;
 
-			// Spacer / center connect button
 			const showConnBtnCenter = !showConnected && props.centerConnectButton;
 			spacer.style.cssText = 'flex:1;';
 			if (showConnBtnCenter) {
 				spacer.style.cssText = 'flex:1;display:flex;justify-content:center;gap:8px;';
-				// In center mode, popout moves inside the spacer
 				if (props.showPopout) {
 					spacer.append(popoutBtn);
 				}
 			}
 
-			// Feedback
 			feedbackBtn.onclick = props.onFeedbackClick;
 
-			// Popout — shown in its normal position unless it's in the centered spacer
 			if (showConnBtnCenter) {
 				popoutBtn.style.display = props.showPopout ? '' : 'none';
 			} else {
-				// Ensure popout is back in its normal position (after feedback, before close)
 				if (popoutBtn.parentElement === spacer) {
 					closeBtn.before(popoutBtn);
 				}
@@ -201,7 +183,6 @@ export function createHeader(): HeaderComponent {
 			}
 			popoutBtn.onclick = props.onPopoutClick;
 
-			// Close
 			closeBtn.style.display = props.showClose ? '' : 'none';
 			closeBtn.onclick = props.onCloseClick;
 		}

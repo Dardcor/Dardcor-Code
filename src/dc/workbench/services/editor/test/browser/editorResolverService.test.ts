@@ -95,13 +95,10 @@ suite('EditorResolverService', () => {
 			}
 		);
 
-		// Untyped untitled - no resource
 		let resultingResolution = await service.resolveEditor({ resource: undefined }, part.activeGroup);
 		assert.ok(resultingResolution);
-		// We don't expect untitled to match the *.test glob
 		assert.strictEqual(typeof resultingResolution, 'number');
 
-		// Untyped untitled - with untitled resource
 		resultingResolution = await service.resolveEditor({ resource: URI.from({ scheme: Schemas.untitled, path: 'foo.test' }) }, part.activeGroup);
 		assert.ok(resultingResolution);
 		assert.notStrictEqual(typeof resultingResolution, 'number');
@@ -110,7 +107,6 @@ suite('EditorResolverService', () => {
 			resultingResolution.editor.dispose();
 		}
 
-		// Untyped untitled - file resource with forceUntitled
 		resultingResolution = await service.resolveEditor({ resource: URI.file('/fake.test'), forceUntitled: true }, part.activeGroup);
 		assert.ok(resultingResolution);
 		assert.notStrictEqual(typeof resultingResolution, 'number');
@@ -400,7 +396,6 @@ suite('EditorResolverService', () => {
 			}
 		);
 
-		// The text-mode association does not opt the editor into diff mode.
 		const diffResolution = await service.resolveEditor({
 			original: { resource: URI.file('resource-basics.test-explicit-diff') },
 			modified: { resource: URI.file('resource-basics.test-explicit-diff') }
@@ -518,7 +513,6 @@ suite('EditorResolverService', () => {
 			}
 		);
 
-		// A custom editor that provides no diff factory must never be used as a binary diff fallback.
 		const noDiff = service.registerEditor('*.noDiff',
 			{
 				id: 'NO_DIFF_EDITOR',
@@ -772,7 +766,6 @@ suite('EditorResolverService', () => {
 			}
 		);
 
-		// Resolve a diff
 		let resultingResolution = await service.resolveEditor({
 			original: { resource: URI.file('my://resource-basics.test') },
 			modified: { resource: URI.file('my://resource-basics.test') }
@@ -786,10 +779,8 @@ suite('EditorResolverService', () => {
 			assert.fail();
 		}
 
-		// Remove diff registration
 		registeredDiffEditor.dispose();
 
-		// Resolve a diff again, expected failure
 		resultingResolution = await service.resolveEditor({
 			original: { resource: URI.file('my://resource-basics.test') },
 			modified: { resource: URI.file('my://resource-basics.test') }
@@ -806,7 +797,6 @@ suite('EditorResolverService', () => {
 	test('User-configured editor association resolves on first startup with empty cache #244597', async () => {
 		const CUSTOM_EDITOR_INPUT_ID = 'testCustomEditorInput';
 
-		// Set up a configuration with a user-configured editor association
 		const instantiationService = workbenchInstantiationService({
 			configurationService: () => new TestConfigurationService({
 				[editorsAssociationsSettingId]: {
@@ -821,8 +811,6 @@ suite('EditorResolverService', () => {
 		const editorResolverService = instantiationService.createInstance(EditorResolverService);
 		disposables.add(editorResolverService);
 
-		// Register both the default text editor and the custom markdown editor with 'option' priority
-		// (matching how markdown preview is registered in package.json)
 		const defaultEditor = editorResolverService.registerEditor('*',
 			{
 				id: 'default',
@@ -849,7 +837,6 @@ suite('EditorResolverService', () => {
 			}
 		);
 
-		// Resolve a .md file - should use the custom editor due to user association
 		const resultingResolution = await editorResolverService.resolveEditor(
 			{ resource: URI.file('test.md') },
 			part.activeGroup
@@ -897,7 +884,6 @@ suite('EditorResolverService', () => {
 			}
 		);
 
-		// Regular editor should use custom editor (priority.editor: default)
 		const editorResolution = await service.resolveEditor({ resource: URI.file('my://resource.test-diff-priority') }, part.activeGroup);
 		assert.ok(editorResolution);
 		assert.notStrictEqual(typeof editorResolution, 'number');
@@ -908,13 +894,11 @@ suite('EditorResolverService', () => {
 			assert.fail('Expected editor to resolve successfully');
 		}
 
-		// Diff editor should NOT use custom editor (priority.diff: option)
 		const diffResolution = await service.resolveEditor({
 			original: { resource: URI.file('my://resource.test-diff-priority') },
 			modified: { resource: URI.file('my://resource.test-diff-priority') }
 		}, part.activeGroup);
 		assert.ok(diffResolution);
-		// With priority.diff: option, the custom editor should not be selected as default
 		if (diffResolution !== ResolvedStatus.ABORT && diffResolution !== ResolvedStatus.NONE) {
 			assert.notStrictEqual(diffResolution.editor.typeId, CUSTOM_EDITOR_INPUT_ID,
 				'Custom editor with priority.diff:option should not be used for diffs');
@@ -949,7 +933,6 @@ suite('EditorResolverService', () => {
 			}
 		);
 
-		// Diff editor should use custom editor since string priority expands to priority.diff: default
 		const diffResolution = await service.resolveEditor({
 			original: { resource: URI.file('my://resource.test-no-diff-priority') },
 			modified: { resource: URI.file('my://resource.test-no-diff-priority') }

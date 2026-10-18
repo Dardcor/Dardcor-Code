@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -10,19 +9,8 @@ import { DisposableStore, IDisposable } from './lifecycle';
 
 export interface CancellationToken {
 
-	/**
-	 * A flag signalling is cancellation has been requested.
-	 */
 	readonly isCancellationRequested: boolean;
 
-	/**
-	 * An event which fires when cancellation is requested. This event
-	 * only ever fires `once` as cancellation can only happen once. Listeners
-	 * that are registered after cancellation will be called (next event loop run),
-	 * but also only once.
-	 *
-	 * @event
-	 */
 	readonly onCancellationRequested: (listener: (e: void) => unknown, thisArgs?: unknown, disposables?: IDisposable[]) => IDisposable;
 }
 
@@ -107,8 +95,6 @@ export class CancellationTokenSource {
 
 	get token(): CancellationToken {
 		if (!this._token) {
-			// be lazy and create the token only when
-			// actually needed
 			this._token = new MutableToken();
 		}
 		return this._token;
@@ -116,13 +102,9 @@ export class CancellationTokenSource {
 
 	cancel(): void {
 		if (!this._token) {
-			// save an object by returning the default
-			// cancelled token when cancellation happens
-			// before someone asks for the token
 			this._token = CancellationToken.Cancelled;
 
 		} else if (this._token instanceof MutableToken) {
-			// actually cancel
 			this._token.cancel();
 		}
 	}
@@ -133,11 +115,9 @@ export class CancellationTokenSource {
 		}
 		this._parentListener?.dispose();
 		if (!this._token) {
-			// ensure to initialize with an empty token if we had none
 			this._token = CancellationToken.None;
 
 		} else if (this._token instanceof MutableToken) {
-			// actually dispose
 			this._token.dispose();
 		}
 	}
@@ -149,12 +129,6 @@ export function cancelOnDispose(store: DisposableStore): CancellationToken {
 	return source.token;
 }
 
-/**
- * A pool that aggregates multiple cancellation tokens. The pool's own token
- * (accessible via `pool.token`) is cancelled only after every token added
- * to the pool has been cancelled. Adding tokens after the pool token has
- * been cancelled has no effect.
- */
 export class CancellationTokenPool {
 
 	private readonly _source = new CancellationTokenSource();
@@ -168,10 +142,6 @@ export class CancellationTokenPool {
 		return this._source.token;
 	}
 
-	/**
-	 * Add a token to the pool. If the token is already cancelled it is counted
-	 * immediately. Tokens added after the pool token has been cancelled are ignored.
-	 */
 	add(token: CancellationToken): void {
 		if (this._isDone) {
 			return;

@@ -15,13 +15,6 @@ import type { ServerNotification } from './protocol/generated/ServerNotification
 import type { ServerRequest } from './protocol/generated/ServerRequest.js';
 import type { IAgentHostTraceContext } from '../../common/otel/agentHostOTelService.js';
 
-// #region Wire types
-//
-// JSON-RPC 2.0 over NDJSON, with the `"jsonrpc": "2.0"` field *omitted on
-// the wire* per the codex app-server convention. The generated
-// `ClientRequest` / `ClientNotification` / `ServerRequest` /
-// `ServerNotification` unions encode `method` + `params` shapes; we add
-// `id` + `result` / `error` envelopes on top.
 
 interface IWireResponseSuccess<R = unknown> {
 	readonly id: RequestId;
@@ -39,13 +32,7 @@ interface IWireResponseError {
 
 type WireMessage = ClientNotification | ClientRequest | ServerNotification | ServerRequest | IWireResponseSuccess | IWireResponseError;
 
-// #endregion
 
-/**
- * Standard JSON-RPC error codes.
- *
- * @see https://www.jsonrpc.org/specification#error_object
- */
 export const enum JsonRpcErrorCode {
 	ParseError = -32700,
 	InvalidRequest = -32600,
@@ -54,9 +41,6 @@ export const enum JsonRpcErrorCode {
 	InternalError = -32603,
 }
 
-/**
- * Error thrown when a remote request responds with an `error` envelope.
- */
 export class JsonRpcError extends Error {
 	constructor(
 		readonly code: number,
@@ -68,11 +52,6 @@ export class JsonRpcError extends Error {
 	}
 }
 
-// #region Typed method projections
-//
-// Extract `<method>` → `params` / `result` for each direction. The
-// generated unions have shape `{ method: "x/y", id?: RequestId, params: P
-// }`, so a discriminated-union pick works as a method-keyed lookup.
 
 type MethodOf<U> = U extends { method: infer M } ? M : never;
 type ParamsOf<U, M> = U extends { method: M; params: infer P } ? P : never;
@@ -87,100 +66,41 @@ export type ClientNotificationParams<M extends ClientNotificationMethod> = Param
 export type ServerRequestParams<M extends ServerRequestMethod> = ParamsOf<ServerRequest, M>;
 export type ServerNotificationParams<M extends ServerNotificationMethod> = ParamsOf<ServerNotification, M>;
 
-// `result` for client-issued requests doesn't have a single generated
-// union; each method has its own `<X>Response` type. We surface the
-// response shape as a generic parameter on `request<M, R>` so callers
-// can name the response type explicitly, defaulting to `unknown`.
 
-// #endregion
 
-/**
- * Result of a server→client request. Either a successful result payload
- * or a JSON-RPC error envelope. Implementations of
- * {@link ICodexAppServerClient.onRequest} return one of these.
- */
 export type ServerRequestHandlerResult<R = unknown> =
 	| { readonly result: R; readonly error?: undefined }
 	| { readonly result?: undefined; readonly error: { readonly code: number; readonly message: string; readonly data?: unknown } };
 
-/**
- * Subset of `ChildProcessWithoutNullStreams` we actually use, so callers
- * can pass either a real child process or an in-memory pair for tests.
- */
 export interface ICodexAppServerTransport {
 	readonly stdin: Writable;
 	readonly stdout: Readable;
-	/** Force termination. Used as the 2 s grace force-kill fallback. */
 	kill(signal?: NodeJS.Signals): boolean;
-	/** Fires when the underlying process exits. */
 	readonly onExit: Event<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>;
-	/** Registers a one-shot exit listener that may outlive client disposal. */
 	onExitOnce(listener: (e: { readonly code: number | null; readonly signal: NodeJS.Signals | null }) => void): void;
 }
 
-/**
- * Generic JSON-RPC client over a {@link ICodexAppServerTransport}.
- *
- * The client doesn't know anything about codex's domain — it just
- * brokers typed requests and notifications in both directions. The
- * `CodexAgent` layer above translates this into `IAgent` semantics.
- *
- * Lifecycle:
- *  - Construct with an active transport. The client immediately starts
- *    reading from `transport.stdout`.
- *  - Send requests / notifications via {@link request} / {@link notify}.
- *  - Register handlers for server-initiated traffic via
- *    {@link onNotification} / {@link onRequest}.
- *  - On `dispose()`: send EOF on stdin, wait up to 2 s for clean exit,
- *    then SIGKILL. Outstanding requests reject with `CancellationError`.
- */
 export interface ICodexAppServerClient extends IDisposable {
-	/** Fires once when the transport exits (clean or otherwise). */
 	readonly onExit: Event<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>;
 
-	/** Fires when the underlying transport rejects further writes (process exited unexpectedly). */
 	readonly onTransportError: Event<Error>;
 
-	/**
-	 * Issue a request. Resolves with the typed response payload, or
-	 * rejects with {@link JsonRpcError} for protocol-level errors and
-	 * {@link CancellationError} on dispose.
-	 */
 	request<M extends ClientRequestMethod, R = unknown>(
 		method: M,
 		params: ClientRequestParams<M>,
 		trace?: IAgentHostTraceContext,
 	): Promise<R>;
 
-	/**
-	 * Fire-and-forget notification. Does not throw if the transport
-	 * already closed; lost notifications are surfaced via
-	 * `onTransportError`.
-	 */
 	notify<M extends ClientNotificationMethod>(
 		method: M,
 		params: ClientNotificationParams<M>,
 	): void;
 
-	/**
-	 * Register a handler for a server-pushed notification.
-	 *
-	 * Only one handler per method; subsequent registrations replace the
-	 * previous handler.
-	 */
 	onNotification<M extends ServerNotificationMethod>(
 		method: M,
 		handler: (params: ServerNotificationParams<M>) => void,
 	): IDisposable;
 
-	/**
-	 * Register a handler for a server-initiated request. The handler
-	 * returns a typed result or an error envelope.
-	 *
-	 * Only one handler per method; subsequent registrations replace the
-	 * previous handler. Unregistered methods reply with
-	 * {@link JsonRpcErrorCode.MethodNotFound}.
-	 */
 	onRequest<M extends ServerRequestMethod, R = unknown>(
 		method: M,
 		handler: (params: ServerRequestParams<M>) => Promise<ServerRequestHandlerResult<R>> | ServerRequestHandlerResult<R>,
@@ -252,7 +172,6 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 	private _dispatch(msg: WireMessage): void {
 		const hasId = hasKey(msg, { id: true });
 		const hasMethod = hasKey(msg, { method: true });
-		// Response envelope (has id and either result or error, no method).
 		if (hasId && !hasMethod && (hasKey(msg, { result: true }) || hasKey(msg, { error: true }))) {
 			if (typeof msg.id !== 'number') {
 				this._log('warn', `unsolicited response id=${msg.id}`);
@@ -273,13 +192,11 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 			return;
 		}
 
-		// Server→client request (has method + id).
 		if (hasMethod && hasId && msg.id !== undefined && msg.method !== undefined) {
 			void this._handleServerRequest(msg as ServerRequest);
 			return;
 		}
 
-		// Server→client notification (has method, no id).
 		if (hasMethod && msg.method !== undefined) {
 			this._handleServerNotification(msg as ServerNotification);
 			return;
@@ -320,9 +237,6 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 	private _handleServerNotification(msg: ServerNotification): void {
 		const handler = this._notificationHandlers.get(msg.method);
 		if (!handler) {
-			// Tolerate unhandled notifications (newer codex versions may add
-			// notifications we don't handle yet). Warn so every dropped method is
-			// intentionally triaged by CodexAgent instead of disappearing silently.
 			this._log('warn', `dropping unhandled notification: ${msg.method}`);
 			return;
 		}
@@ -390,8 +304,6 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 		method: M,
 		params: ClientNotificationParams<M>,
 	): void {
-		// `params` may be `undefined` (e.g. `initialized` carries no
-		// payload). Don't include the key in that case.
 		const payload: { method: string; params?: unknown } = { method };
 		if (params !== undefined) {
 			payload.params = params;
@@ -431,21 +343,18 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 			return;
 		}
 		this._disposed = true;
-		// Reject anything still pending so callers don't hang.
 		for (const pending of this._pending.values()) {
 			pending.reject(new CancellationError());
 		}
 		this._pending.clear();
-		// Try a graceful EOF on stdin; if the process doesn't exit in
-		// {@link GRACE_KILL_MS}, SIGKILL.
 		try {
 			this._transport.stdin.end();
-		} catch { /* already closed */ }
+		} catch { }
 		if (!this._exited) {
 			const timer = setTimeout(() => {
 				try {
 					this._transport.kill('SIGKILL');
-				} catch { /* already dead */ }
+				} catch { }
 			}, this._graceKillMs) as unknown as { unref?(): void };
 			this._transport.onExitOnce(() => {
 				clearTimeout(timer as unknown as ReturnType<typeof setTimeout>);
@@ -460,11 +369,6 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 	}
 }
 
-/**
- * Wrap a {@link import('node:child_process').ChildProcessWithoutNullStreams}
- * into an {@link ICodexAppServerTransport}. Tests use a fake transport
- * built around `node:stream`'s `PassThrough` or similar.
- */
 export function transportFromChildProcess(
 	child: { stdin: Writable | null; stdout: Readable | null; kill: (signal?: NodeJS.Signals) => boolean; on: (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void) => unknown; once: (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void) => unknown; removeListener: (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void) => unknown },
 ): ICodexAppServerTransport {

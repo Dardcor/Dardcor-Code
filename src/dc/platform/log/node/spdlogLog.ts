@@ -18,7 +18,6 @@ enum SpdLogLevel {
 }
 
 async function createSpdLogLogger(name: string, logfilePath: string, filesize: number, filecount: number, donotUseFormatters: boolean): Promise<spdlog.Logger | null> {
-	// Do not crash if spdlog cannot be loaded
 	try {
 		const _spdlog = await import('@vscode/spdlog');
 		_spdlog.setFlushOn(SpdLogLevel.Trace);
@@ -47,7 +46,7 @@ function log(logger: spdlog.Logger, level: LogLevel, message: string): void {
 		case LogLevel.Info: logger.info(message); break;
 		case LogLevel.Warning: logger.warn(message); break;
 		case LogLevel.Error: logger.error(message); break;
-		case LogLevel.Off: /* do nothing */ break;
+		case LogLevel.Off: break;
 		default: throw new Error(`Invalid log level ${level}`);
 	}
 }

@@ -19,13 +19,10 @@ import { defineFileOperationsTests } from './fileOperationsSuite.js';
 import { defineHostFeaturesTests } from './hostFeaturesSuite.js';
 import { defineMultiChatTests } from './multiChatSuite.js';
 import { defineMcpPluginTests } from './mcpPluginSuite.js';
-import { defineCopilotRuntimeMcpTests } from './copilotRuntimeMcpSuite.js';
 import { defineStateOperationsTests } from './stateOperationsSuite.js';
 import { defineSubagentTests } from './subagentSuite.js';
 import { defineTurnLifecycleTests } from './turnLifecycleSuite.js';
 import { defineWorkspaceTests } from './workspaceSuite.js';
-import { defineCopilotCoverageTests } from './copilotCoverageSuite.js';
-import { defineCopilotRuntimeToolsTests } from './copilotRuntimeToolsSuite.js';
 import { defineManagementExtensionTests } from './managementExtensionsSuite.js';
 import { defineAutomationsTests } from './automationsSuite.js';
 import { defineDetachedWorktreeTests } from './detachedWorktreeSuite.js';
@@ -129,13 +126,8 @@ function defineSuite(config: IAgentHostE2EProviderConfig, options: IDefineOption
 			if (!lease) {
 				throw new Error('Agent Host E2E server lease was not initialized.');
 			}
-			// A failed test can leave a mid-turn session that wedges (or already
-			// killed) the shared host; restart it so the failure does not cascade
-			// into the next, unrelated test.
 			const failed = this.currentTest?.state === 'failed';
 			if (failed) {
-				// Surface the Copilot runtime's own logs for a hang/timeout before
-				// the server is restarted and its temp home is eventually removed.
 				lease.dumpRuntimeLogsOnFailure(this.currentTest?.title ?? 'unknown');
 			}
 			const errors: Error[] = [];
@@ -156,7 +148,6 @@ function defineSuite(config: IAgentHostE2EProviderConfig, options: IDefineOption
 
 		defineAutomationsTests(context);
 
-		// Suites that contain only conformance-tier scenarios.
 		if (options.tier === 'conformance') {
 			defineHostFeaturesTests(context);
 			defineStateOperationsTests(context);
@@ -167,22 +158,15 @@ function defineSuite(config: IAgentHostE2EProviderConfig, options: IDefineOption
 			defineDetachedWorktreeTests(context);
 		}
 
-		// Suites that contain only parity-tier scenarios.
 		if (options.tier === 'parity') {
 			defineCoreTests(context);
-			defineCopilotRuntimeMcpTests(context);
 			defineHostFeaturesTests(context);
-			defineCopilotCoverageTests(context);
-			defineCopilotRuntimeToolsTests(context);
 			defineFileOperationsTests(context);
 			defineTurnLifecycleTests(context);
 			defineWorkspaceTests(context);
 			defineSubagentTests(context);
 		}
 
-		// Mixed: peer-catalog semantics are host-owned (conformance) while
-		// peer turns and capability advertisement are provider-dependent
-		// (parity). The registrars self-select on `context.tier`.
 		defineMultiChatTests(context);
 		defineChangesetTests(context);
 		defineMcpPluginTests(context);
@@ -193,19 +177,10 @@ function defineSuite(config: IAgentHostE2EProviderConfig, options: IDefineOption
 	});
 }
 
-/**
- * Registers the parity tier for one provider: scenarios whose contract depends
- * on that provider's runtime behavior. Called once per provider entrypoint.
- */
 export function defineAgentHostE2ETests(config: IAgentHostE2EProviderConfig, target?: IAgentHostTarget): void {
 	defineSuite(config, { tier: 'parity', suiteTitle: config.suiteTitle, target });
 }
 
-/**
- * Registers the conformance tier: provider-invariant Agent Host Protocol
- * contracts. Called **once per target**, not once per provider — the reference
- * provider only exists so sessions can be materialized.
- */
 export function defineAgentHostConformanceTests(config: IAgentHostE2EProviderConfig, target?: IAgentHostTarget): void {
 	defineSuite(config, { tier: 'conformance', suiteTitle: config.suiteTitle, target });
 }

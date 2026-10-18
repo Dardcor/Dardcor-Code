@@ -16,11 +16,6 @@ export interface IUpdate {
 
 export interface IUpdateProvider {
 
-	/**
-	 * Should return with the `IUpdate` object if an update is
-	 * available or `null` otherwise to signal that there are
-	 * no updates.
-	 */
 	checkForUpdate(): Promise<IUpdate | null>;
 }
 
@@ -50,7 +45,7 @@ export class BrowserUpdateService extends Disposable implements IUpdateService {
 	async isLatestVersion(): Promise<boolean | undefined> {
 		const update = await this.doCheckForUpdates(false);
 		if (update === undefined) {
-			return undefined; // no update provider
+			return undefined;
 		}
 
 		return !!update;
@@ -60,30 +55,26 @@ export class BrowserUpdateService extends Disposable implements IUpdateService {
 		await this.doCheckForUpdates(explicit);
 	}
 
-	private async doCheckForUpdates(explicit: boolean): Promise<IUpdate | null /* no update available */ | undefined /* no update provider */> {
+	private async doCheckForUpdates(explicit: boolean): Promise<IUpdate | null | undefined > {
 		if (this.environmentService.options && this.environmentService.options.updateProvider) {
 			const updateProvider = this.environmentService.options.updateProvider;
 
-			// State -> Checking for Updates
 			this.state = State.CheckingForUpdates(explicit);
 
 			const update = await updateProvider.checkForUpdate();
 			if (update) {
-				// State -> Downloaded
 				this.state = State.Ready({ version: update.version, productVersion: update.version }, explicit, false);
 			} else {
-				// State -> Idle
 				this.state = State.Idle(UpdateType.Archive);
 			}
 
 			return update;
 		}
 
-		return undefined; // no update provider to ask
+		return undefined;
 	}
 
 	async downloadUpdate(_explicit: boolean): Promise<void> {
-		// no-op
 	}
 
 	async applyUpdate(): Promise<void> {
@@ -95,11 +86,9 @@ export class BrowserUpdateService extends Disposable implements IUpdateService {
 	}
 
 	async _applySpecificUpdate(packagePath: string): Promise<void> {
-		// noop
 	}
 
 	async setInternalOrg(_internalOrg: string | undefined): Promise<void> {
-		// noop - not applicable in browser
 	}
 }
 

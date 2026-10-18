@@ -21,12 +21,6 @@ const TOOL_CALL_STALL_THRESHOLD_MS = 5 * 60 * 1000;
 
 type ToolCallBlockerRequest = SessionToolConfirmationRequest | SessionToolClientExecutionRequest | SessionToolAuthenticationRequest;
 
-/**
- * Maps a completed tool call's result to the telemetry result bucket. Mirrors
- * the derivation previously done inline in `CopilotAgentSession`: a denied,
- * rejected, or cancelled tool call counts as `userCancelled`; any other
- * failure counts as `error`.
- */
 export function deriveToolInvokedResult(result: ToolCallResult): ToolInvokedResult {
 	if (result.success) {
 		return 'success';
@@ -38,7 +32,6 @@ export function deriveToolInvokedResult(result: ToolCallResult): ToolInvokedResu
 	return 'error';
 }
 
-/** Per-tool-call timing state, keyed by `session:toolCallId`. */
 interface IToolCallTiming {
 	readonly lifecycleStopWatch: StopWatch;
 	invocationStopWatch?: StopWatch;
@@ -60,20 +53,6 @@ interface IStalledToolCall {
 	readonly executorClientConnectionState: AgentHostExecutorClientConnectionState | undefined;
 }
 
-/**
- * Tracks completed and stalled tool calls for agent host sessions.
- *
- * Lifecycle per tool call:
- *   1. {@link toolCallStarted} — begins a stopwatch and records the tool's
- *      name and source kind (only the start action carries these)
- *   2. {@link toolCallCompleted} — emits the telemetry event and clears state
- *   3. {@link toolCallBlocked} / {@link toolCallUnblocked} — emits once when a
- *      confirmation or client execution remains unresolved past the threshold
- *
- * In-flight tool calls that never complete (e.g. the turn is cancelled mid
- * tool call) are dropped via {@link clearSession} / {@link clear} so the
- * tracking map cannot leak.
- */
 export const IAgentHostToolCallTracker = createDecorator<AgentHostToolCallTracker>('agentHostToolCallTracker');
 
 export class AgentHostToolCallTracker extends Disposable {
@@ -152,9 +131,6 @@ export class AgentHostToolCallTracker extends Disposable {
 		const key = this._key(session, toolCallId);
 		const timing = this._toolCalls.get(key);
 		if (!timing) {
-			// No matching start: either the start was never observed, or this is
-			// a duplicate completion (the entry was already consumed). Either
-			// way, do not emit so volume stays accurate.
 			return;
 		}
 		this._toolCalls.delete(key);
@@ -236,11 +212,6 @@ export class AgentHostToolCallTracker extends Disposable {
 		this._toolCallStallTimers.deleteAndDispose(this._key(session, requestId));
 	}
 
-	/**
-	 * Drops any in-flight (never-completed) tool calls for a session. Called
-	 * when a turn ends or a session is torn down so the tracking map cannot
-	 * leak. A no-op in the normal case where every tool call completes.
-	 */
 	clearSession(session: string): void {
 		const prefix = `${session}\0`;
 		for (const [key, reports] of this._pendingToolReports) {

@@ -21,9 +21,7 @@ export interface IAgentMergeTurnContext {
 	readonly signal: AbortSignal;
 	readonly commentWatermark: string;
 	readonly deferredCheckIds: ReadonlySet<string>;
-	/** Keeps rerun authorization stable when diagnostics are suppressed mid-turn. */
 	readonly initialDeferredCheckIds: ReadonlySet<string>;
-	/** Defers a busy workflow or coalesces with a rerun the host is already handling. */
 	readonly deferWorkflowRerun: (options: GitHubWorkflowRerunOptions, checkIds: readonly string[], running: boolean) => boolean;
 }
 

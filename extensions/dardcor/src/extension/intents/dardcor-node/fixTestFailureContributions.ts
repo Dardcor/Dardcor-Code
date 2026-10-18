@@ -50,23 +50,16 @@ function registerTestMessageSparkles(store: DisposableStore, telemetryService: I
 
 	async function openFixChat(args: FixCommandArgs) {
 		if (!args.test.uri) {
-			return; // should not happen based on context keys
+			return;
 		}
 
-		/* __GDPR__
-		"intent.fixTestFailure.actioned" : {
-			"owner": "connor4312",
-			"comment": "Reports when we show a ",
-			"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Where the action was taken" }
-		}
-		*/
 		telemetryService.sendMSFTTelemetryEvent('intent.fixTestFailure.actioned', {
 			source: args.source ?? 'testResultsPanel',
 		});
 
 		const doc = await vscode.workspace.openTextDocument(args.test.uri);
 		await vscode.window.showTextDocument(doc, {
-			preserveFocus: false, // must transfer focus so editor chat starts at the right place
+			preserveFocus: false,
 			preview: true,
 			selection: args.test.range ? new vscode.Range(args.test.range.start, args.test.range.start) : undefined
 		});

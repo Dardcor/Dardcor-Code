@@ -6,19 +6,11 @@
 import { IMarkdownString } from '../../../../../base/common/htmlContent.js';
 import { IChatQuestion, IChatQuestionValidation } from './chatService.js';
 
-/** An option paired with its position in the question's declared order. */
 export interface IOrderedQuestionOption {
 	readonly option: { id: string; label: string; value: string };
 	readonly originalIndex: number;
 }
 
-/**
- * Order a question's options as they are displayed: defaults first, then the
- * rest, each group keeping declared order. Defaults are named by option *id*.
- *
- * The voice path numbers options from this list, so the widget must render from
- * the same function or the number the user hears stops matching the one they see.
- */
 export function getOptionsWithDefaultsFirst(question: IChatQuestion): IOrderedQuestionOption[] {
 	const options = question.options ?? [];
 	const orderedOptions = options.map((option, index) => ({ option, originalIndex: index }));
@@ -44,29 +36,14 @@ export function getOptionsWithDefaultsFirst(question: IChatQuestion): IOrderedQu
 	return [...defaults, ...nonDefaults];
 }
 
-/**
- * The text that represents a question to a reader or a listener.
- *
- * The built-in `askQuestions` tool puts the question itself in `message` and a
- * short header in `title`, so anything that shows or speaks `title` alone shows
- * the header instead of the question.
- */
 export function getDisplayedQuestionText(question: IChatQuestion): string | IMarkdownString {
 	return question.message ?? question.title;
 }
 
-/** Why a value failed a question's validation rules. `limit` carries the bound it broke. */
 export type QuestionValidationFailure =
 	| { readonly kind: 'minLength' | 'maxLength' | 'minimum' | 'maximum'; readonly limit: number }
 	| { readonly kind: 'email' | 'uri' | 'date' | 'dateTime' | 'number' | 'integer' };
 
-/**
- * Check a freeform value against a question's validation rules.
- *
- * The widget words the failure for the screen and the voice path just refuses
- * the answer, so the rules themselves live here: an answer the form would
- * reject on submit must not become acceptable by saying it out loud.
- */
 export function findQuestionValidationFailure(value: string, validation: IChatQuestionValidation): QuestionValidationFailure | undefined {
 	if (validation.minLength !== undefined && value.length < validation.minLength) {
 		return { kind: 'minLength', limit: validation.minLength };

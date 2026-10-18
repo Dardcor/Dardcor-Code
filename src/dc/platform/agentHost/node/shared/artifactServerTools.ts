@@ -85,15 +85,11 @@ export const artifactServerToolDefinitions: ToolDefinition[] = [
 	},
 ];
 
-/** Host services the artifact tools need beyond the session state. */
 export interface IArtifactServerToolAccessor {
-	/** Whether the artifact tools are advertised and executable. */
 	readonly isEnabled: () => boolean;
-	/** Persists a session's artifacts and references so they survive a host restart. */
 	readonly persist: (session: string, artifacts: readonly ISessionArtifact[]) => void;
 }
 
-/** The noun an entry is described by, so every message names what it acted on. */
 function entryNoun(isArtifact: boolean): string {
 	return isArtifact ? 'artifact' : 'reference';
 }
@@ -123,11 +119,6 @@ function describeArtifact(artifact: ISessionArtifact): string {
 	return `${artifact.id} (${artifact.type}, ${entryNoun(artifact.isArtifact)}) ${artifact.label}${value ? ` — ${value}` : ''}`;
 }
 
-/**
- * Reads, mutates and republishes the artifacts and references of the session
- * that owns the executing chat. They live on the session's `_meta` bag, so a
- * change reaches subscribed clients through the regular action envelope.
- */
 class SessionArtifacts {
 
 	private readonly _session: string;
@@ -172,8 +163,6 @@ export function createArtifactServerToolGroup(accessor?: IArtifactServerToolAcce
 						};
 					}
 					const { label, isArtifact } = inputs[0] ?? {};
-					// The flag is only trusted for display when the agent actually sent
-					// a boolean; `execute` rejects anything else.
 					const noun = typeof isArtifact === 'boolean' ? entryNoun(isArtifact) : 'artifact or reference';
 					const suffix = typeof label === 'string' && label.length > 0 ? ` "${label}"` : '';
 					return {
@@ -183,7 +172,6 @@ export function createArtifactServerToolGroup(accessor?: IArtifactServerToolAcce
 					};
 				}
 				case ArtifactServerToolName.RemoveArtifactOrReference: {
-					// Only the result says whether an artifact or a reference was removed.
 					const text = result?.text ?? '';
 					const pastTenseMessage = text.startsWith(REMOVED_REFERENCE_MESSAGE)
 						? REMOVED_REFERENCE_MESSAGE
@@ -256,7 +244,4 @@ export function createArtifactServerToolGroup(accessor?: IArtifactServerToolAcce
 	};
 }
 
-/**
- * The instruction added to the first outgoing turn while artifact tools are enabled.
- */
 export const ARTIFACT_TOOLS_INSTRUCTION = `Record notable artifacts and references with \`${ArtifactServerToolName.AddArtifactOrReference}\` so they are surfaced next to the chat input. ${artifactClassification} Other artifacts are durable results you produce beyond ordinary workspace edits; references are existing resources the user will likely want to view. Batch related entries in one call when practical. Do not record routine files, incidental resources, commits you create unless the user asks, or sessions and chats created with session-management tools.`;

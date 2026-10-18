@@ -52,7 +52,7 @@ suite('Files - TextFileEditorModel', () => {
 
 	test('basic events', async function () {
 		const model = disposables.add(instantiationService.createInstance(TextFileEditorModel, toResource.call(this, '/path/index_async.txt'), 'utf8', undefined));
-		accessor.workingCopyService.testUnregisterWorkingCopy(model); // causes issues with subsequent resolves otherwise
+		accessor.workingCopyService.testUnregisterWorkingCopy(model);
 
 		let onDidResolveCounter = 0;
 		disposables.add(model.onDidResolve(() => onDidResolveCounter++));
@@ -292,7 +292,7 @@ suite('Files - TextFileEditorModel', () => {
 		let encodingEvent = false;
 		disposables.add(model.onDidChangeEncoding(() => encodingEvent = true));
 
-		await model.setEncoding('utf8', EncodingMode.Encode); // no-op
+		await model.setEncoding('utf8', EncodingMode.Encode);
 		assert.strictEqual(getLastModifiedTime(model), -1);
 
 		assert.ok(!encodingEvent);
@@ -301,26 +301,23 @@ suite('Files - TextFileEditorModel', () => {
 
 		assert.ok(encodingEvent);
 
-		assert.ok(getLastModifiedTime(model) <= Date.now()); // indicates model was saved due to encoding change
+		assert.ok(getLastModifiedTime(model) <= Date.now());
 	});
 
 	test('setEncoding - decode', async function () {
 		let model: TextFileEditorModel = disposables.add(instantiationService.createInstance(TextFileEditorModel, toResource.call(this, '/path/index_async.txt'), 'utf8', undefined));
-		accessor.workingCopyService.testUnregisterWorkingCopy(model); // causes issues with subsequent resolves otherwise
+		accessor.workingCopyService.testUnregisterWorkingCopy(model);
 
 		await model.setEncoding('utf16', EncodingMode.Decode);
 
-		// we have to get the model again from working copy service
-		// because `setEncoding` will resolve it again through the
-		// text file service which is outside our scope
 		model = accessor.workingCopyService.get(model) as TextFileEditorModel;
 
-		assert.ok(model.isResolved()); // model got resolved due to decoding
+		assert.ok(model.isResolved());
 	});
 
 	test('setEncoding - decode dirty file throws', async function () {
 		const model: TextFileEditorModel = disposables.add(instantiationService.createInstance(TextFileEditorModel, toResource.call(this, '/path/index_async.txt'), 'utf8', undefined));
-		accessor.workingCopyService.testUnregisterWorkingCopy(model); // causes issues with subsequent resolves otherwise
+		accessor.workingCopyService.testUnregisterWorkingCopy(model);
 
 		await model.resolve();
 
@@ -339,14 +336,12 @@ suite('Files - TextFileEditorModel', () => {
 		accessor.testConfigurationService.setOverrideIdentifiers('files.encoding', [languageId]);
 
 		const model: TextFileEditorModel = disposables.add(instantiationService.createInstance(TextFileEditorModel, toResource.call(this, '/path/index_async.txt'), 'utf8', undefined));
-		accessor.workingCopyService.testUnregisterWorkingCopy(model); // causes issues with subsequent resolves otherwise
+		accessor.workingCopyService.testUnregisterWorkingCopy(model);
 
 		await model.resolve();
 
 		const deferredPromise = new DeferredPromise<TextFileEditorModel>();
 
-		// We use this listener as a way to figure out that the working
-		// copy was resolved again as part of the language change
 		disposables.add(accessor.workingCopyService.onDidRegister(e => {
 			if (isEqual(e.resource, model.resource)) {
 				deferredPromise.complete(model as TextFileEditorModel);
@@ -357,7 +352,7 @@ suite('Files - TextFileEditorModel', () => {
 
 		model.setLanguageId(languageId);
 
-		await deferredPromise.p; // this asserts that the model was reloaded due to the language change
+		await deferredPromise.p;
 	});
 
 	test('create with language', async function () {
@@ -423,8 +418,6 @@ suite('Files - TextFileEditorModel', () => {
 		assert.strictEqual(model.textEditorModel?.getValue(), 'Hello Changes');
 		assert.strictEqual(model.isDirty(), true);
 
-		// verify that we do not mark the model as saved when undoing once because
-		// we never really had a saved state
 		await model.textEditorModel.undo();
 		assert.ok(model.isDirty());
 
@@ -454,13 +447,10 @@ suite('Files - TextFileEditorModel', () => {
 		assert.strictEqual(accessor.workingCopyService.dirtyCount, 1);
 		assert.strictEqual(accessor.workingCopyService.isDirty(model.resource, model.typeId), true);
 
-		accessor.workingCopyService.testUnregisterWorkingCopy(model); // causes issues with subsequent resolves otherwise
+		accessor.workingCopyService.testUnregisterWorkingCopy(model);
 
 		await model.revert();
 
-		// we have to get the model again from working copy service
-		// because `setEncoding` will resolve it again through the
-		// text file service which is outside our scope
 		model = accessor.workingCopyService.get(model) as TextFileEditorModel;
 
 		assert.strictEqual(model.isDirty(), false);
@@ -534,7 +524,7 @@ suite('Files - TextFileEditorModel', () => {
 		const model: TextFileEditorModel = disposables.add(instantiationService.createInstance(TextFileEditorModel, toResource.call(this, '/path/index_async.txt'), 'utf8', undefined));
 
 		model.setDirty(true);
-		assert.ok(!model.isDirty()); // needs to be resolved
+		assert.ok(!model.isDirty());
 
 		await model.resolve();
 		model.updateTextEditorModel(createTextBufferFactory('foo'));
@@ -657,13 +647,9 @@ suite('Files - TextFileEditorModel', () => {
 		assert.ok(!accessor.textFileService.isDirty(toResource.call(this, '/path/index_async2.txt')));
 
 		if (isWeb) {
-			// web tests does not ensure timeouts are respected at all, so we cannot
-			// really assert the mtime to be different, only that it is equal or greater.
-			// https://github.com/microsoft/vscode/issues/161886
 			assert.ok(assertReturnsDefined(getLastResolvedFileStat(model1)).mtime >= m1Mtime);
 			assert.ok(assertReturnsDefined(getLastResolvedFileStat(model2)).mtime >= m2Mtime);
 		} else {
-			// on desktop we want to assert this condition more strictly though
 			assert.ok(assertReturnsDefined(getLastResolvedFileStat(model1)).mtime > m1Mtime);
 			assert.ok(assertReturnsDefined(getLastResolvedFileStat(model2)).mtime > m2Mtime);
 		}
@@ -840,14 +826,12 @@ suite('Files - TextFileEditorModel', () => {
 
 					const newSavePromise = model.save(force ? { force } : undefined);
 
-					// assert that this is not the same promise as the outer one
 					assert.notStrictEqual(savePromise, newSavePromise);
 
 					await newSavePromise;
 				} else {
 					const newSavePromise = model.save(force ? { force } : undefined);
 
-					// assert that this is the same promise as the outer one
 					assert.strictEqual(savePromise, newSavePromise);
 
 					await savePromise;

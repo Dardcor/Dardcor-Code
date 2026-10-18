@@ -12,7 +12,6 @@ import { NotebookData } from '../../../../dardcorTypes';
 
 describe('NotebookService', () => {
 	suite('hasSupportedNotebooks', () => {
-		// all real providers pulled from package.json of various extensions
 		const jupyterNotebookProvider: INotebookEditorContribution = {
 			type: 'jupyter-notebook',
 			displayName: 'Jupyter Notebook',
@@ -122,7 +121,6 @@ describe('NotebookService', () => {
 					}]
 				};
 
-				// Test file that matches include but not exclude
 				const valid = ExtHostNotebookDocumentData.fromNotebookData(
 					URI.file('one.ipynb'),
 					new NotebookData([]),
@@ -133,7 +131,6 @@ describe('NotebookService', () => {
 					'Notebook matching only the include pattern should be supported.'
 				);
 
-				// Test file that matches both include and exclude
 				const excluded = ExtHostNotebookDocumentData.fromNotebookData(
 					URI.file('test.ipynb'),
 					new NotebookData([]),
@@ -144,7 +141,6 @@ describe('NotebookService', () => {
 					'Notebook matching both include and exclude patterns should not be supported.'
 				);
 
-				// Test file that doesn't match either pattern
 				const nonMatching = ExtHostNotebookDocumentData.fromNotebookData(
 					URI.file('one.txt'),
 					new NotebookData([]),
@@ -155,7 +151,6 @@ describe('NotebookService', () => {
 					'Notebook matching neither include nor exclude pattern should not be supported.'
 				);
 
-				// Test file in a subdirectory
 				const subDirValid = ExtHostNotebookDocumentData.fromNotebookData(
 					URI.file('subdir/one.ipynb'),
 					new NotebookData([]),
@@ -166,7 +161,6 @@ describe('NotebookService', () => {
 					'Notebook in subdirectory matching include pattern should be supported.'
 				);
 
-				// Test remote URI
 				const remoteValid = ExtHostNotebookDocumentData.fromNotebookData(
 					URI.parse('vscode-remote://ssh-remote+test/one.ipynb'),
 					new NotebookData([]),
@@ -189,7 +183,6 @@ describe('NotebookService', () => {
 					}]
 				};
 
-				// Test file that matches include but not exclude
 				const valid = ExtHostNotebookDocumentData.fromNotebookData(
 					URI.file('one.ipynb'),
 					new NotebookData([]),
@@ -200,7 +193,6 @@ describe('NotebookService', () => {
 					'Notebook matching filenamePattern but not excludeFileNamePattern should be supported.'
 				);
 
-				// Test file that matches both include and exclude
 				const excluded = ExtHostNotebookDocumentData.fromNotebookData(
 					URI.file('test.ipynb'),
 					new NotebookData([]),

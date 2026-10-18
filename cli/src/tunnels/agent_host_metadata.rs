@@ -12,23 +12,12 @@ use serde::{Deserialize, Serialize};
 pub const AGENT_HOST_METADATA_SCHEMA_VERSION: u32 = 1;
 pub const AGENT_HOST_PROTOCOL_VERSION: &str = "0.1.0";
 
-/// Persisted record describing a running `code agent host` proxy, written to
-/// the per-quality lockfile (`<launcher-root>/agent-host-<quality>.lock`).
-///
-/// This schema is shared with the TypeScript SSH client in
-/// `src/dc/platform/agentHost/common/remoteAgentHostMetadata.ts`; field
-/// renames or removals MUST be coordinated across both languages.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentHostMetadata {
 	pub schema_version: u32,
 	pub pid: u32,
 	pub port: u16,
-	/// Host the supervisor's TCP listener was bound to (e.g. `127.0.0.1`,
-	/// `0.0.0.0`). Optional so older lockfiles still parse; consumers
-	/// fall back to loopback when absent. Used by the foreground
-	/// `code agent host` command to detect when a caller's requested
-	/// `--host` differs from what's already running.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub host: Option<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]

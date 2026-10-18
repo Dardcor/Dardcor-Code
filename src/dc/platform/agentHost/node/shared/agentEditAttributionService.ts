@@ -501,7 +501,6 @@ export class AgentEditAttributionService extends Disposable implements IAgentEdi
 			try {
 				await preparing;
 			} catch {
-				// The prepare path restores its own resources before rejecting.
 			}
 		}
 		if (!this._enabled) {

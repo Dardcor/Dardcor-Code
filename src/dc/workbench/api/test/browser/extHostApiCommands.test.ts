@@ -102,7 +102,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		originalErrorHandler = errorHandler.getUnexpectedErrorHandler();
 		setUnexpectedErrorHandler(() => { });
 
-		// Use IInstantiationService to get typechecking when instantiating
 		rpcProtocol = new TestRPCProtocol();
 		const services = new ServiceCollection();
 		services.set(IUriIdentityService, new class extends mock<IUriIdentityService>() {
@@ -195,7 +194,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 
 		mainThread = rpcProtocol.set(MainContext.MainThreadLanguageFeatures, insta.createInstance(MainThreadLanguageFeatures, rpcProtocol));
 
-		// forcefully create the outline service so that `ensureNoDisposablesAreLeakedInTestSuite` doesn't bark
 		insta.get(IOutlineModelService);
 
 		return rpcProtocol.sync();
@@ -217,14 +215,12 @@ suite('ExtHostLanguageFeatureCommands', function () {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// --- workspace symbols
 
 	function testApiCmd(name: string, fn: () => Promise<any>) {
 		test(name, async function () {
 			await runWithFakedTimers({}, async () => {
 				await fn();
-				await timeout(10000); 	// API commands for things that allow commands dispose their result delay. This is to be nice
-				// because otherwise properties like command are disposed too early
+				await timeout(10000);
 			});
 		});
 
@@ -262,7 +258,7 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		return rpcProtocol.sync().then(() => {
 			return commands.executeCommand<vscode.SymbolInformation[]>('vscode.executeWorkspaceSymbolProvider', 'testing').then(value => {
 
-				assert.strictEqual(value.length, 2); // de-duped
+				assert.strictEqual(value.length, 2);
 				for (const info of value) {
 					assert.strictEqual(info instanceof types.SymbolInformation, true);
 					assert.strictEqual(info.name, 'testing');
@@ -289,7 +285,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.strictEqual(symbols.length, 1);
 	});
 
-	// --- formatting
 	test('executeFormatDocumentProvider, back and forth', async function () {
 
 		disposables.push(extHost.registerDocumentFormattingEditProvider(nullExtensionDescription, defaultSelector, new class implements vscode.DocumentFormattingEditProvider {
@@ -307,7 +302,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 	});
 
 
-	// --- rename
 	test('vscode.prepareRename', async function () {
 		disposables.push(extHost.registerRenameProvider(nullExtensionDescription, defaultSelector, new class implements vscode.RenameProvider {
 
@@ -358,7 +352,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.strictEqual(textEdits[0].newText, 'newNameOfThis');
 	});
 
-	// --- definition
 
 	test('Definition, invalid arguments', function () {
 		const promises = [
@@ -380,7 +373,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		}));
 		disposables.push(extHost.registerDefinitionProvider(nullExtensionDescription, defaultSelector, <vscode.DefinitionProvider>{
 			provideDefinition(doc: any): any {
-				// duplicate result will get removed
 				return new types.Location(doc.uri, new types.Range(1, 0, 0, 0));
 			}
 		}));
@@ -415,7 +407,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		}));
 		disposables.push(extHost.registerDefinitionProvider(nullExtensionDescription, defaultSelector, <vscode.DefinitionProvider>{
 			provideDefinition(doc: any): any {
-				// duplicate result will get removed
 				return new types.Location(URI.parse('file:///b'), new types.Range(1, 0, 0, 0));
 			}
 		}));
@@ -469,7 +460,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		});
 	});
 
-	// --- declaration
 
 	test('Declaration, back and forth', function () {
 
@@ -480,7 +470,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		}));
 		disposables.push(extHost.registerDeclarationProvider(nullExtensionDescription, defaultSelector, <vscode.DeclarationProvider>{
 			provideDeclaration(doc: any): any {
-				// duplicate result will get removed
 				return new types.Location(doc.uri, new types.Range(1, 0, 0, 0));
 			}
 		}));
@@ -533,7 +522,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		});
 	});
 
-	// --- type definition
 
 	test('Type Definition, invalid arguments', function () {
 		const promises = [
@@ -555,7 +543,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		}));
 		disposables.push(extHost.registerTypeDefinitionProvider(nullExtensionDescription, defaultSelector, <vscode.TypeDefinitionProvider>{
 			provideTypeDefinition(doc: any): any {
-				// duplicate result will get removed
 				return new types.Location(doc.uri, new types.Range(1, 0, 0, 0));
 			}
 		}));
@@ -608,7 +595,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		});
 	});
 
-	// --- implementation
 
 	test('Implementation, invalid arguments', function () {
 		const promises = [
@@ -630,7 +616,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		}));
 		disposables.push(extHost.registerImplementationProvider(nullExtensionDescription, defaultSelector, <vscode.ImplementationProvider>{
 			provideImplementation(doc: any): any {
-				// duplicate result will get removed
 				return new types.Location(doc.uri, new types.Range(1, 0, 0, 0));
 			}
 		}));
@@ -683,7 +668,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		});
 	});
 
-	// --- references
 
 	test('reference search, back and forth', function () {
 
@@ -706,7 +690,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		});
 	});
 
-	// --- document highlights
 
 	test('"vscode.executeDocumentHighlights" API has stopped returning DocumentHighlight[]#200056', async function () {
 
@@ -733,7 +716,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 
 	});
 
-	// --- outline
 
 	test('Outline, back and forth', function () {
 		disposables.push(extHost.registerDocumentSymbolProvider(nullExtensionDescription, defaultSelector, <vscode.DocumentSymbolProvider>{
@@ -787,7 +769,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		});
 	});
 
-	// --- suggest
 
 	testApiCmd('triggerCharacter is null when completion provider is called programmatically #159914', async function () {
 
@@ -816,13 +797,12 @@ suite('ExtHostLanguageFeatureCommands', function () {
 				const a = new types.CompletionItem('item1');
 				a.documentation = new types.MarkdownString('hello_md_string');
 				const b = new types.CompletionItem('item2');
-				b.textEdit = types.TextEdit.replace(new types.Range(0, 4, 0, 8), 'foo'); // overwite after
+				b.textEdit = types.TextEdit.replace(new types.Range(0, 4, 0, 8), 'foo');
 				const c = new types.CompletionItem('item3');
-				c.textEdit = types.TextEdit.replace(new types.Range(0, 1, 0, 6), 'foobar'); // overwite before & after
+				c.textEdit = types.TextEdit.replace(new types.Range(0, 1, 0, 6), 'foobar');
 
-				// snippet string!
 				const d = new types.CompletionItem('item4');
-				d.range = new types.Range(0, 1, 0, 4);// overwite before
+				d.range = new types.Range(0, 1, 0, 4);
 				d.insertText = new types.SnippetString('foo$0bar');
 				return [a, b, c, d];
 			}
@@ -837,7 +817,7 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.strictEqual(values.length, 4);
 		const [first, second, third, fourth] = values;
 		assert.strictEqual(first.label, 'item1');
-		assert.strictEqual(first.textEdit, undefined); // no text edit, default ranges
+		assert.strictEqual(first.textEdit, undefined);
 		assert.ok(!types.Range.isRange(first.range));
 		assert.strictEqual((<types.MarkdownString>first.documentation).value, 'hello_md_string');
 		assert.strictEqual(second.label, 'item2');
@@ -910,7 +890,7 @@ suite('ExtHostLanguageFeatureCommands', function () {
 			model.uri,
 			new types.Position(0, 4),
 			undefined,
-			2 // maxItemsToResolve
+			2
 		);
 
 		assert.ok(list instanceof types.CompletionList);
@@ -1007,7 +987,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.strictEqual(b.kind, types.CompletionItemKind.Property);
 	});
 
-	// --- signatureHelp
 
 	test('Parameter Hints, back and forth', async () => {
 		disposables.push(extHost.registerSignatureHelpProvider(nullExtensionDescription, defaultSelector, new class implements vscode.SignatureHelpProvider {
@@ -1018,7 +997,7 @@ suite('ExtHostLanguageFeatureCommands', function () {
 					signatures: [
 						{
 							label: 'abc',
-							documentation: `${context.triggerKind === 1 /* vscode.SignatureHelpTriggerKind.Invoke */ ? 'invoked' : 'unknown'} ${context.triggerCharacter}`,
+							documentation: `${context.triggerKind === 1 ? 'invoked' : 'unknown'} ${context.triggerCharacter}`,
 							parameters: []
 						}
 					]
@@ -1036,7 +1015,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.strictEqual(firstValue.signatures[0].documentation, 'invoked ,');
 	});
 
-	// --- quickfix
 
 	testApiCmd('QuickFix, back and forth', function () {
 		disposables.push(extHost.registerCodeActionProvider(nullExtensionDescription, defaultSelector, {
@@ -1168,11 +1146,10 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.strictEqual(value.length, 1);
 
 		const [first] = value;
-		assert.strictEqual(first.title, 'title'); // does NOT change
-		assert.ok(first.edit); // is set
+		assert.strictEqual(first.title, 'title');
+		assert.ok(first.edit);
 	});
 
-	// --- code lens
 
 	testApiCmd('CodeLens, back and forth', function () {
 
@@ -1226,7 +1203,7 @@ suite('ExtHostLanguageFeatureCommands', function () {
 
 		let value = await commands.executeCommand<vscode.CodeLens[]>('vscode.executeCodeLensProvider', model.uri, 2);
 
-		assert.strictEqual(value.length, 3); // the resolve argument defines the number of results being returned
+		assert.strictEqual(value.length, 3);
 		assert.strictEqual(resolveCount, 2);
 
 		resolveCount = 0;
@@ -1364,7 +1341,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		});
 	});
 
-	// --- inline hints
 
 	testApiCmd('Inlay Hints, back and forth', async function () {
 		disposables.push(extHost.registerInlayHintsProvider(nullExtensionDescription, defaultSelector, <vscode.InlayHintsProvider>{
@@ -1455,7 +1431,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.strictEqual(first.position.character, 1);
 	});
 
-	// --- selection ranges
 
 	test('Selection Range, back and forth', async function () {
 
@@ -1473,7 +1448,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.ok(value[0].parent);
 	});
 
-	// --- call hierarchy
 
 	test('CallHierarchy, back and forth', async function () {
 
@@ -1538,7 +1512,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		assert.strictEqual(root.length, 0);
 	});
 
-	// --- type hierarchy
 
 	test('TypeHierarchy, back and forth', async function () {
 

@@ -8,10 +8,6 @@ import { BaseTextEditorModel } from './textEditorModel.js';
 import { DiffEditorModel } from './diffEditorModel.js';
 import { IMarkdownString } from '../../../base/common/htmlContent.js';
 
-/**
- * The base text editor model for the diff editor. It is made up of two text editor models, the original version
- * and the modified version.
- */
 export class TextDiffEditorModel extends DiffEditorModel {
 
 	protected override readonly _originalModel: BaseTextEditorModel | undefined;
@@ -41,7 +37,6 @@ export class TextDiffEditorModel extends DiffEditorModel {
 	private updateTextDiffEditorModel(): void {
 		if (this.originalModel?.isResolved() && this.modifiedModel?.isResolved()) {
 
-			// Create new
 			if (!this._textDiffEditorModel) {
 				this._textDiffEditorModel = {
 					original: this.originalModel.textEditorModel,
@@ -49,7 +44,6 @@ export class TextDiffEditorModel extends DiffEditorModel {
 				};
 			}
 
-			// Update existing
 			else {
 				this._textDiffEditorModel.original = this.originalModel.textEditorModel;
 				this._textDiffEditorModel.modified = this.modifiedModel.textEditorModel;
@@ -67,10 +61,6 @@ export class TextDiffEditorModel extends DiffEditorModel {
 
 	override dispose(): void {
 
-		// Free the diff editor model but do not propagate the dispose() call to the two models
-		// inside. We never created the two models (original and modified) so we can not dispose
-		// them without sideeffects. Rather rely on the models getting disposed when their related
-		// inputs get disposed from the diffEditorInput.
 		this._textDiffEditorModel = undefined;
 
 		super.dispose();

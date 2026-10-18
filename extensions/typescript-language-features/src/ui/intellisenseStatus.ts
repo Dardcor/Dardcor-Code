@@ -207,7 +207,7 @@ export class IntellisenseStatus extends Disposable {
 					title: vscode.l10n.t("Learn More"),
 					command: 'vscode.open',
 					arguments: [
-						vscode.Uri.parse('https://aka.ms/vscode/jsts/partial-mode'),
+						vscode.Uri.parse('https://www.dardcor-code.web.id/docs/languages/javascript/partial-mode'),
 					]
 				};
 				break;

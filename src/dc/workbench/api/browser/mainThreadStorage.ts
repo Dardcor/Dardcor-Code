@@ -65,19 +65,11 @@ export class MainThreadStorage implements MainThreadStorageShape {
 		try {
 			let sourceExtensionId = this._extensionStorageService.getSourceExtensionToMigrate(extensionId);
 
-			// TODO: @sandy081 - Remove it after 6 months
-			// If current extension does not have any migration requested
-			// Then check if the extension has to be migrated for using lower case in web
-			// If so, migrate the extension state from lower case id to its normal id.
 			if (!sourceExtensionId && isWeb && extensionId !== extensionId.toLowerCase()) {
 				sourceExtensionId = extensionId.toLowerCase();
 			}
 
 			if (sourceExtensionId) {
-				// TODO: @sandy081 - Remove it after 6 months
-				// In Web, extension state was used to be stored in lower case extension id.
-				// Hence check that if the lower cased source extension was not yet migrated in web
-				// If not take the lower cased source extension id for migration
 				if (isWeb && sourceExtensionId !== sourceExtensionId.toLowerCase() && this._extensionStorageService.getExtensionState(sourceExtensionId.toLowerCase(), shared) && !this._extensionStorageService.getExtensionState(sourceExtensionId, shared)) {
 					sourceExtensionId = sourceExtensionId.toLowerCase();
 				}

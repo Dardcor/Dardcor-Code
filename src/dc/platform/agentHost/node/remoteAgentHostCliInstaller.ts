@@ -24,16 +24,11 @@ export interface IRemoteAgentHostCliInstallOptions {
 	readonly logPrefix?: string;
 }
 
-/** The resolved CLI path and whether this invocation installed it. */
 export interface IRemoteAgentHostCliInstallResult {
 	readonly cliBin: string;
 	readonly installed: boolean;
 }
 
-/**
- * Ensure that a VS Code CLI suitable for launching an Agent Host is installed
- * on a remote execution target.
- */
 export async function ensureRemoteAgentHostCliInstalled(
 	exec: ISshExec,
 	platform: { readonly os: string; readonly arch: string },

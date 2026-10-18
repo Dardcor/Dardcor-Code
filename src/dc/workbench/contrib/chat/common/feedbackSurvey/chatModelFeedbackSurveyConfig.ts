@@ -3,21 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Contract for the inline model feedback survey.
- *
- * A survey is fully described by a versioned JSON payload delivered as an experiment treatment,
- * so one can be authored or retired without shipping code. The shapes stay close to the editor
- * pane survey in `contrib/surveys/browser/surveyQuestions.ts` so the two can converge later,
- * but cannot share code today because that renderer needs telemetry keys known at compile time.
- */
 
 import { expandModelMatchCandidates, ID_PATTERN, isObject, MAX_ID_LENGTH, normalizeSelector, parseExpPayloadEnvelope, readSelectorList, readText } from '../expPayload.js';
 
-/** Payload versions this build understands. Bump when making a breaking shape change. */
 export const CHAT_MODEL_FEEDBACK_SURVEY_CONFIG_VERSION = 1;
 
-/** Sentinel matching sessions that are not backed by an agent host. */
 export const CHAT_MODEL_FEEDBACK_SURVEY_NO_HARNESS = 'none';
 
 const MAX_STEPS = 8;
@@ -58,61 +48,33 @@ export interface IChatModelFeedbackSurveyTextStep extends IChatModelFeedbackSurv
 
 export type ChatModelFeedbackSurveyStep = IChatModelFeedbackSurveyChoiceStep | IChatModelFeedbackSurveyTextStep;
 
-/**
- * Which responses a survey attaches to. An omitted or empty selector list means any.
- *
- * Selected and resolved models are matched separately on purpose. A survey about Auto routing
- * targets the selected model `auto`, and must not fire just because another request happened to
- * be routed to the same model.
- */
 export interface IChatModelFeedbackSurveyMatch {
 	readonly selectedModels: readonly string[];
 	readonly resolvedModels: readonly string[];
 	readonly modes: readonly string[];
-	/** Agent host provider ids (e.g. `copilotcli`), or {@link CHAT_MODEL_FEEDBACK_SURVEY_NO_HARNESS}. */
 	readonly harnesses: readonly string[];
 	readonly sessionTypes: readonly string[];
 }
 
-/**
- * Rules governing when the survey opens *by itself*.
- *
- * None of this applies to manual activation: clicking the feedback control is an explicit
- * request for the survey and always opens it. These rules exist only to keep unprompted
- * surfacing rare enough not to be a nuisance.
- */
 export interface IChatModelFeedbackSurveyPrompt {
-	/** Minimum days between two automatic prompts. `0` disables the cooldown. */
 	readonly cooldownDays: number;
-	/** How many times the survey may open itself within one chat session. */
 	readonly maxPerSession: number;
 	readonly chance: IChatModelFeedbackSurveyChance;
 	readonly triggers: IChatModelFeedbackSurveyTriggers;
 }
 
-/**
- * A probability that ramps with usage. Every eligible response that does not prompt raises the
- * odds up to {@link IChatModelFeedbackSurveyChance.max}, so heavier users are asked sooner. The
- * odds reset once a prompt is shown.
- */
 export interface IChatModelFeedbackSurveyChance {
-	/** Probability applied to the first eligible response. `0` disables random prompting. */
 	readonly initial: number;
-	/** Added to the probability for each eligible response that did not prompt. */
 	readonly increment: number;
-	/** Ceiling the ramped probability cannot exceed. */
 	readonly max: number;
 }
 
-/** Moments that prompt directly, without a probability roll. */
 export interface IChatModelFeedbackSurveyTriggers {
-	/** Fires when the user switches the picker off a model this survey matches. */
 	readonly modelSwitchedAway: IChatModelFeedbackSurveyTrigger;
 }
 
 export interface IChatModelFeedbackSurveyTrigger {
 	readonly enabled: boolean;
-	/** Whether the trigger prompts even inside the cooldown window. */
 	readonly bypassCooldown: boolean;
 }
 
@@ -128,25 +90,15 @@ export type ChatModelFeedbackSurveyParseResult =
 	| { readonly config: IChatModelFeedbackSurveyConfig; readonly error?: undefined }
 	| { readonly config?: undefined; readonly error: string };
 
-/** Describes the response a survey is matched against. The caller resolves any model aliases. */
 export interface IChatModelFeedbackSurveyMatchContext {
-	/** The model identifier the user selected, as recorded on the request. */
 	readonly selectedModelId?: string;
-	/** Other identifiers for the selected model, such as its id, family, name and vendor. */
 	readonly selectedModelAliases?: readonly string[];
-	/** The model a routing layer (e.g. Auto) actually resolved to, when different. */
 	readonly resolvedModelId?: string;
 	readonly modeId?: string;
-	/** Agent host provider id, or `undefined` for sessions with no agent host. */
 	readonly harness?: string;
 	readonly sessionType?: string;
 }
 
-/**
- * Parses and validates a survey payload. Never throws, and rejects a bad config whole rather
- * than in part, since dropping one malformed step would quietly change what the experiment
- * measures.
- */
 export function parseChatModelFeedbackSurveyConfig(raw: string | undefined): ChatModelFeedbackSurveyParseResult {
 	const parsed = parseExpPayloadEnvelope(raw, CHAT_MODEL_FEEDBACK_SURVEY_CONFIG_VERSION);
 	if (typeof parsed === 'string') {
@@ -205,10 +157,6 @@ function readMatch(raw: unknown): IChatModelFeedbackSurveyMatch | string {
 }
 
 
-/**
- * Reads the automatic prompting rules. An omitted `prompt` block gives a manual only survey, so
- * an experiment that forgets to describe its pacing under prompts rather than nags.
- */
 function readPrompt(raw: unknown): IChatModelFeedbackSurveyPrompt | string {
 	if (raw !== undefined && !isObject(raw)) {
 		return 'prompt must be an object';
@@ -281,7 +229,6 @@ function readTrigger(raw: unknown, path: string): IChatModelFeedbackSurveyTrigge
 	if (raw === undefined) {
 		return { enabled: false, bypassCooldown: false };
 	}
-	// `true` is accepted as shorthand for an enabled trigger that still respects the cooldown.
 	if (typeof raw === 'boolean') {
 		return { enabled: raw, bypassCooldown: false };
 	}
@@ -320,8 +267,6 @@ function readSteps(raw: unknown): ChatModelFeedbackSurveyStep[] | string {
 		steps.push(step);
 	}
 
-	// A text step is terminal because it carries the Submit button, so one in the middle would
-	// make every later step unreachable.
 	const textStepIndexes = steps.map((step, index) => step.kind === ChatModelFeedbackSurveyStepKind.Text ? index : -1).filter(index => index >= 0);
 	if (textStepIndexes.length > 1) {
 		return 'steps may contain at most one text step';
@@ -433,7 +378,6 @@ function readProbability(raw: unknown, fallback: number): number | undefined {
 
 
 
-/** Whether the response described by `context` should be offered `config`'s survey. */
 export function matchesChatModelFeedbackSurvey(config: IChatModelFeedbackSurveyConfig, context: IChatModelFeedbackSurveyMatchContext): boolean {
 	const { match } = config;
 

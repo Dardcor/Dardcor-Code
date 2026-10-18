@@ -67,9 +67,6 @@ export class ChatAttachmentsContentPart extends Disposable {
 		}
 	}
 
-	/**
-	 * Update the variables and re-render the attachments in place.
-	 */
 	public updateVariables(variables: readonly IChatRequestVariableEntry[]): void {
 		this._variables = variables;
 		if (this.domNode) {
@@ -113,18 +110,10 @@ export class ChatAttachmentsContentPart extends Disposable {
 		return !!model && !isAutoLanguageModel(model) && model.metadata.capabilities?.vision === false;
 	}
 
-	/**
-	 * When the total number of image attachments exceeds the model-specific
-	 * per-request limit, mark the oldest images (those dropped by the backend)
-	 * with {@link OmittedState.ImageLimitExceeded}.
-	 */
 	private markImageLimitExceeded(attachments: readonly IChatRequestVariableEntry[]): void {
 		const imageAttachments = attachments.filter(isImageVariableEntry);
 		const maxImagesPerRequest = this.getImageLimitForCurrentModel();
 
-		// If we can't determine the model's limit (e.g. historical request whose
-		// model is no longer available), leave existing ImageLimitExceeded flags
-		// alone so we don't lose information about images that were actually dropped.
 		if (maxImagesPerRequest === undefined) {
 			return;
 		}
@@ -138,8 +127,6 @@ export class ChatAttachmentsContentPart extends Disposable {
 			return;
 		}
 
-		// The backend keeps the most-recent images, so mark the oldest ones as exceeded.
-		// Only overwrite NotOmitted or ImageLimitExceeded to avoid clobbering other states (e.g. Partial for GIFs).
 		const excessCount = imageAttachments.length - maxImagesPerRequest;
 		for (let i = 0; i < excessCount; i++) {
 			if (imageAttachments[i].omittedState === OmittedState.NotOmitted || imageAttachments[i].omittedState === OmittedState.ImageLimitExceeded) {
@@ -180,23 +167,19 @@ export class ChatAttachmentsContentPart extends Disposable {
 	}
 
 	private renderShowMoreButton(container: HTMLElement, remainingCount: number) {
-		// Create a button that looks like the attachment pills
 		const showMoreButton = dom.$('div.chat-attached-context-attachment.chat-attachments-show-more-button');
 		showMoreButton.setAttribute('role', 'button');
 		showMoreButton.setAttribute('tabindex', '0');
 		showMoreButton.style.cursor = 'pointer';
 
-		// Add pill icon (ellipsis)
 		const pillIcon = dom.$('div.chat-attached-context-pill', {}, dom.$('span.codicon.codicon-ellipsis'));
 
-		// Add text label
 		const textLabel = dom.$('span.chat-attached-context-custom-text');
 		textLabel.textContent = `${remainingCount} more`;
 
 		showMoreButton.appendChild(pillIcon);
 		showMoreButton.appendChild(textLabel);
 
-		// Add click and keyboard event handlers
 		const clickHandler = () => {
 			this._showingAll = true;
 			this.initAttachedContext(container);
@@ -233,12 +216,12 @@ export class ChatAttachmentsContentPart extends Disposable {
 			widget = this.instantiationService.createInstance(ImageAttachmentWidget, resource, renderedAttachment, this.getCurrentLanguageModel(), { shouldFocusClearButton: false, supportsDeletion: false, showImageInHover: this.showImageInHover }, container, this._contextResourceLabels);
 		} else if (isPromptFileVariableEntry(attachment)) {
 			if (attachment.automaticallyAdded) {
-				return; // Skip automatically added prompt files
+				return;
 			}
 			widget = this.instantiationService.createInstance(PromptFileAttachmentWidget, attachment, undefined, { shouldFocusClearButton: false, supportsDeletion: false }, container, this._contextResourceLabels);
 		} else if (isPromptTextVariableEntry(attachment)) {
 			if (attachment.automaticallyAdded) {
-				return; // Skip automatically added prompt text
+				return;
 			}
 			widget = this.instantiationService.createInstance(PromptTextAttachmentWidget, attachment, undefined, { shouldFocusClearButton: false, supportsDeletion: false }, container, this._contextResourceLabels);
 		} else if (resource && (attachment.kind === 'file' || attachment.kind === 'directory')) {
@@ -258,7 +241,6 @@ export class ChatAttachmentsContentPart extends Disposable {
 		} else if (isBrowserViewVariableEntry(attachment)) {
 			widget = this.instantiationService.createInstance(BrowserViewAttachmentWidget, attachment, undefined, { shouldFocusClearButton: false, supportsDeletion: false }, container, this._contextResourceLabels);
 		} else if (isWorkspaceVariableEntry(attachment)) {
-			// skip workspace attachments
 			return;
 		} else {
 			widget = this.chatAttachmentWidgetRegistry.createWidget(attachment, { shouldFocusClearButton: false, supportsDeletion: false }, container)

@@ -94,7 +94,7 @@ suite('Files - TextFileEditorModelManager', () => {
 		}));
 
 		const modelPromise = manager.resolve(resource, { encoding });
-		assert.ok(manager.get(resource)); // model known even before resolved()
+		assert.ok(manager.get(resource));
 
 		const model1 = await modelPromise;
 		assert.ok(model1);

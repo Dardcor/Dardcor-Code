@@ -20,7 +20,6 @@ export interface GettingStartedEditorOptions extends IEditorOptions {
 	showWelcome?: boolean;
 	walkthroughPageTitle?: string;
 	showNewExperience?: boolean;
-	/** Command to execute when pressing "Go Back" instead of showing the categories slide */
 	returnToCommand?: string;
 }
 

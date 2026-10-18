@@ -15,9 +15,6 @@ export interface IGitCommitMessageService {
 	getRepository(uri: Uri | undefined): Promise<Repository | null>;
 }
 
-/**
- * @remark For testing purposes only.
- */
 export class NoopGitCommitMessageService implements IGitCommitMessageService {
 	declare readonly _serviceBrand: undefined;
 

@@ -25,7 +25,6 @@ class DecorationRequestsQueue {
 		private readonly _proxy: ExtHostDecorationsShape,
 		private readonly _handle: number
 	) {
-		//
 	}
 
 	enqueue(uri: URI, token: CancellationToken): Promise<DecorationData> {
@@ -46,11 +45,9 @@ class DecorationRequestsQueue {
 
 	private _processQueue(): void {
 		if (this._timer !== undefined) {
-			// already queued
 			return;
 		}
 		this._timer = setTimeout(() => {
-			// make request
 			const requests = this._requests;
 			const resolver = this._resolver;
 			this._proxy.$provideDecorations(this._handle, [...requests.values()], CancellationToken.None).then(data => {
@@ -59,7 +56,6 @@ class DecorationRequestsQueue {
 				}
 			});
 
-			// reset
 			this._requests = new Map();
 			this._resolver = new Map();
 			this._timer = undefined;

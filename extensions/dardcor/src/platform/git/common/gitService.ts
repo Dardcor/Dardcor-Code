@@ -23,8 +23,6 @@ export interface RepoContext {
 	readonly upstreamBranchName: string | undefined;
 	readonly upstreamRemote: string | undefined;
 	readonly isRebasing: boolean;
-	// TODO: merge these into one object. The only reason they're separate is to not have
-	// to change every test.
 	readonly remoteFetchUrls?: Array<string | undefined>;
 	readonly remotes: string[];
 	readonly worktrees: Worktree[];
@@ -87,9 +85,6 @@ export interface IGitService extends IDisposable {
 	exec(uri: URI, args: string[], env?: Record<string, string>): Promise<string>;
 }
 
-/**
- * Gets the best repo github repo id from the repo context.
- */
 export function getGitHubRepoInfoFromContext(repoContext: RepoContext): { id: GithubRepoId; remoteUrl: string } | undefined {
 	for (const remoteUrl of getOrderedRemoteUrlsFromContext(repoContext)) {
 		if (remoteUrl) {
@@ -109,9 +104,6 @@ export interface ResolvedRepoRemoteInfo {
 
 export type ResolvedRepoId = GithubRepoId | AdoRepoId;
 
-/**
- * Gets the repo info for any type of repo from the repo context.
- */
 export function* getOrderedRepoInfosFromContext(repoContext: RepoContext): Iterable<ResolvedRepoRemoteInfo> {
 	for (const remoteUrl of getOrderedRemoteUrlsFromContext(repoContext)) {
 		const repoId = getGithubRepoIdFromFetchUrl(remoteUrl) ?? getAdoRepoIdFromFetchUrl(remoteUrl);
@@ -121,20 +113,15 @@ export function* getOrderedRepoInfosFromContext(repoContext: RepoContext): Itera
 	}
 }
 
-/**
- * Returns the remote URLs from repo context, starting with the best first.
- */
 export function getOrderedRemoteUrlsFromContext(repoContext: RepoContext): Iterable<string> {
 	const out = new Set<string>();
 
-	// Strategy 1: If there's only one remote, use that
 	if (repoContext.remoteFetchUrls?.length === 1) {
 		out.add(repoContext.remoteFetchUrls[0]!);
 		return out;
 	}
 
 
-	// Strategy 2: If there's an upstream remote, use that
 	const remoteIndex = repoContext.remotes.findIndex(r => r === repoContext.upstreamRemote);
 	if (remoteIndex !== -1) {
 		const fetchUrl = repoContext.remoteFetchUrls?.[remoteIndex];
@@ -143,7 +130,6 @@ export function getOrderedRemoteUrlsFromContext(repoContext: RepoContext): Itera
 		}
 	}
 
-	// Strategy 3: If there's a remote named "origin", use that
 	const originIndex = repoContext.remotes.findIndex(r => r === 'origin');
 	if (originIndex !== -1) {
 		const fetchUrl = repoContext.remoteFetchUrls?.[originIndex];
@@ -152,7 +138,6 @@ export function getOrderedRemoteUrlsFromContext(repoContext: RepoContext): Itera
 		}
 	}
 
-	// Return everything else
 	for (const remote of repoContext.remoteFetchUrls ?? []) {
 		if (remote) {
 			out.add(remote);
@@ -165,8 +150,6 @@ export function getOrderedRemoteUrlsFromContext(repoContext: RepoContext): Itera
 export function parseRemoteUrl(fetchUrl: string): { host: string; rawHost: string; path: string } | undefined {
 	fetchUrl = fetchUrl.trim();
 	try {
-		// Normalize git shorthand syntax (git@github.com:user/repo.git) into an explicit ssh:// url
-		// See https://git-scm.com/docs/git-clone/2.35.0#_git_urls
 		if (/^[\w\d\-]+@/i.test(fetchUrl)) {
 			const parts = fetchUrl.split(':');
 			if (parts.length !== 2) {
@@ -183,7 +166,7 @@ export function parseRemoteUrl(fetchUrl: string): { host: string; rawHost: strin
 		}
 
 		const splitAuthority = authority.split('@');
-		if (splitAuthority.length > 2) { // Invalid, too many @ symbols
+		if (splitAuthority.length > 2) {
 			return undefined;
 		}
 
@@ -194,11 +177,11 @@ export function parseRemoteUrl(fetchUrl: string): { host: string; rawHost: strin
 
 		const rawHost = extractedHost
 			.toLowerCase()
-			.replace(/:\d+$/, ''); // Remove optional port
+			.replace(/:\d+$/, '');
 
 		const normalizedHost = rawHost
-			.replace(/^[\w\-]+-/, '') // Remove common ssh syntax: abc-github.com
-			.replace(/-[\w\-]+$/, '');// Remove common ssh syntax: github.com-abc
+			.replace(/^[\w\-]+-/, '')
+			.replace(/-[\w\-]+$/, '');
 
 		return { host: normalizedHost, rawHost, path: path };
 	} catch (err) {
@@ -236,11 +219,6 @@ export function toGithubWebUrl(id: GithubRepoId): string {
 	return `https://${id.host}/${id.org}/${id.repo}`;
 }
 
-/**
- * Extracts the GitHub repository name from a git fetch URL.
- * @param fetchUrl The git fetch URL to extract the repository name from.
- * @returns The repository name if the fetch URL is a valid GitHub URL, otherwise undefined.
- */
 export function getGithubRepoIdFromFetchUrl(fetchUrl: string): GithubRepoId | undefined {
 	const parsed = parseRemoteUrl(fetchUrl);
 	if (!parsed) {
@@ -253,9 +231,6 @@ export function getGithubRepoIdFromFetchUrl(fetchUrl: string): GithubRepoId | un
 		return;
 	}
 
-	// Determine the actual web-accessible hostname
-	// For ghe.com subdomains, use the raw host (e.g., 'myco.ghe.com')
-	// For github.com, always use 'github.com' (SSH aliases like 'alias-github.com' should map to github.com)
 	const webHost = matchedHost === 'ghe.com'
 		? parsed.rawHost
 		: 'github.com';
@@ -279,20 +254,12 @@ export class AdoRepoId {
 	}
 }
 
-/**
- * Extracts the ADO repository name from a git fetch URL.
- * @param fetchUrl The Git fetch URL to extract the repository name from.
- * @returns The repository name if the fetch URL is a valid ADO URL, otherwise undefined.
- */
 export function getAdoRepoIdFromFetchUrl(fetchUrl: string): AdoRepoId | undefined {
 	const parsed = parseRemoteUrl(fetchUrl);
 	if (!parsed) {
 		return undefined;
 	}
 
-	// Http: https://dev.azure.com/organization/project/_git/repository
-	// Http: https://dev.azure.com/organization/project/_git/_optimized/repository
-	// Http: https://dev.azure.com/organization/project/_git/_full/repository
 	if (parsed.host === 'dev.azure.com') {
 		const partsMatch = parsed.path.match(/^\/?(?<org>[^/]+)\/(?<project>[^/]+?)\/_git\/(?:_(?:optimized|full)\/)?(?<repo>[^/]+?)(\.git|\/)?$/i);
 		if (partsMatch?.groups) {
@@ -301,9 +268,6 @@ export function getAdoRepoIdFromFetchUrl(fetchUrl: string): AdoRepoId | undefine
 		return undefined;
 	}
 
-	// Ssh: git@ssh.dev.azure.com:v3/organization/project/repository
-	// Ssh: git@ssh.dev.azure.com:v3/organization/project/_optimized/repository
-	// Ssh: git@ssh.dev.azure.com:v3/organization/project/_full/repository
 	if (parsed.host === 'ssh.dev.azure.com') {
 		const partsMatch = parsed.path.match(/^\/?v3\/(?<org>[^/]+)\/(?<project>[^/]+?)\/(?:_(?:optimized|full)\/)?(?<repo>[^/]+?)(\.git|\/)?$/i);
 		if (partsMatch?.groups) {
@@ -312,8 +276,6 @@ export function getAdoRepoIdFromFetchUrl(fetchUrl: string): AdoRepoId | undefine
 		return undefined;
 	}
 
-	// legacy https: https://organization.visualstudio.com/project/_git/repository
-	// Legacy ssh: git@organization.visualstudio.com:v3/organization/project/repository
 	if (parsed.host.endsWith('.visualstudio.com')) {
 		const hostMatch = parsed.host.match(/^(?<org>[^\.]+)\.visualstudio\.com$/i);
 		if (!hostMatch?.groups) {
@@ -321,17 +283,8 @@ export function getAdoRepoIdFromFetchUrl(fetchUrl: string): AdoRepoId | undefine
 		}
 
 		const partsMatch =
-			// Legacy ssh:  git@organization.visualstudio.com:v3/organization/project/repository
-			// Legacy ssh:  git@organization.visualstudio.com:v3/organization/project/_optimized/repository
-			// Legacy ssh:  git@organization.visualstudio.com:v3/organization/project/_full/repository
 			parsed.path.match(/^\/(v3\/)(?<org>[^/]+?)\/(?<project>[^/]+?)\/(?:_(?:optimized|full)\/)?(?<repo>[^/]+?)(\.git|\/)?$/i)
 
-			// legacy https: https://organization.visualstudio.com/project/_git/repository
-			// legacy https: https://organization.visualstudio.com/project/_git/_optimized/repository
-			// legacy https: https://organization.visualstudio.com/project/_git/_full/repository
-			// or legacy https: https://organization.visualstudio.com/collection/project/_git/repository
-			// or legacy https: https://organization.visualstudio.com/collection/project/_git/_optimized/repository
-			// or legacy https: https://organization.visualstudio.com/collection/project/_git/_full/repository
 			?? parsed.path.match(/^\/?((?<collection>[^/]+?)\/)?(?<project>[^/]+?)\/_git\/(?:_(?:optimized|full)\/)?(?<repo>[^/]+?)(\.git|\/)?$/i);
 		if (partsMatch?.groups) {
 			return new AdoRepoId(hostMatch.groups.org, partsMatch.groups.project, partsMatch.groups.repo);
@@ -343,13 +296,7 @@ export function getAdoRepoIdFromFetchUrl(fetchUrl: string): AdoRepoId | undefine
 	return undefined;
 }
 
-/**
- * Normalizes a remote repo fetch url into a standardized format
- * @param fetchUrl A remote repo fetch url in the form of http, https, or ssh.
- * @returns The normalized fetch url. Sanitized of any credentials, stripped of query params, and using https
- */
 export function normalizeFetchUrl(fetchUrl: string): string {
-	// Handle SSH shorthand (git@host:project/repo.git)
 	if (/^[\w\d\-]+@[\w\d\.\-]+:/.test(fetchUrl)) {
 		fetchUrl = fetchUrl.replace(/([\w\d\-]+)@([\w\d\.\-]+):(.+)/, 'https://$2/$3');
 		return fetchUrl;
@@ -362,13 +309,10 @@ export function normalizeFetchUrl(fetchUrl: string): string {
 		return fetchUrl;
 	}
 
-	// Special handling for the scm/scm.git case
 	const scmScmMatch = url.pathname.match(/^\/scm\/scm\.git/);
 
-	// Create new URL with HTTPS protocol
 	const newUrl = new URL('https://' + url.hostname + url.pathname);
 
-	// Only remove /scm/ if it is followed by another segment (not if repo is named 'scm')
 	if (!scmScmMatch && /^\/scm\/[^/]/.test(newUrl.pathname)) {
 		newUrl.pathname = newUrl.pathname.replace(/^\/scm\//, '/');
 	}

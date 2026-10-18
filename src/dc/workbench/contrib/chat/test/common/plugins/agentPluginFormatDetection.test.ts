@@ -27,10 +27,6 @@ import { ContributionEnablementState, IEnablementModel } from '../../../common/e
 import { AGENT_PLUGIN_MCP_SCHEMA, AGENT_PLUGIN_SCHEMA } from '../../../../../../platform/agentPlugins/common/agentPluginParser.js';
 import { PluginFormat } from '../../../../../../platform/agentPlugins/common/pluginParsers.js';
 
-/**
- * Concrete discovery subclass that returns a fixed list of plugin URIs,
- * allowing format detection and content reading to be tested in isolation.
- */
 class TestPluginDiscovery extends AbstractAgentPluginDiscovery {
 	private _sources: URI[] = [];
 	private _remove: (() => Promise<boolean>) | undefined = async () => true;
@@ -49,7 +45,6 @@ class TestPluginDiscovery extends AbstractAgentPluginDiscovery {
 		this._enablementModel = enablementModel;
 	}
 
-	/** Set plugin sources and trigger a refresh. */
 	async setSourcesAndRefresh(uris: URI[]): Promise<void> {
 		this._sources = uris;
 		await this._refreshPlugins();
@@ -223,7 +218,6 @@ suite('AgentPlugin format detection', () => {
 		const plugins = getDiscoveredPlugins(discovery);
 		assert.strictEqual(plugins.length, 1);
 
-		// Verify the plugin read commands from the standard commands/ directory
 		await waitForState(plugins[0].commands, cmds => cmds.length > 0);
 		assert.strictEqual(plugins[0].commands.get()[0].name, 'hello');
 	}));
@@ -259,9 +253,6 @@ suite('AgentPlugin format detection', () => {
 	}));
 
 	test('plugin label uses manifest `name` when no marketplace metadata is present', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		// Direct-installed plugin (no marketplace metadata) with a `name` in
-		// its manifest — the label should use the manifest name, not the
-		// uglier directory basename.
 		const uri = pluginUri('/plugins/_direct/sukumarp2022--slide-creator-plugin');
 		await writeFile('/plugins/_direct/sukumarp2022--slide-creator-plugin/plugin.json', JSON.stringify({
 			name: 'Slide Creator',
@@ -297,19 +288,15 @@ suite('AgentPlugin format detection', () => {
 	}));
 
 	test('Open Plugin format takes priority over Claude format', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		// Plugin has both .plugin/plugin.json and .claude-plugin/plugin.json —
-		// the open plugin manifest should be detected first.
 		const uri = pluginUri('/plugins/dual-plugin');
 		await writeFile('/plugins/dual-plugin/.plugin/plugin.json', JSON.stringify({ name: 'dual-plugin' }));
 		await writeFile('/plugins/dual-plugin/.claude-plugin/plugin.json', JSON.stringify({ name: 'dual-plugin' }));
 
-		// Write inline MCP into the open-plugin manifest to verify it's used.
 		await writeFile('/plugins/dual-plugin/.plugin/plugin.json', JSON.stringify({
 			name: 'dual-plugin',
 			mcpServers: { 'open-server': { command: 'echo', args: ['open'] } },
 		}));
 
-		// Claude manifest defines a different server to prove it's NOT read.
 		await writeFile('/plugins/dual-plugin/.claude-plugin/plugin.json', JSON.stringify({
 			name: 'dual-plugin',
 			mcpServers: { 'claude-server': { command: 'echo', args: ['claude'] } },
@@ -655,8 +642,6 @@ suite('AgentPlugin format detection', () => {
 		const plugins = getDiscoveredPlugins(discovery);
 		assert.strictEqual(plugins.length, 1);
 
-		// Only default skills/ directory should be scanned; the traversal path is rejected.
-		// Since there are no skills in skills/, result should be empty.
 		await waitForState(plugins[0].skills, () => true);
 		assert.deepStrictEqual(plugins[0].skills.get(), []);
 	}));
@@ -681,7 +666,6 @@ suite('AgentPlugin format detection', () => {
 		const cmds = plugins[0].commands.get();
 		assert.strictEqual(cmds.length, 1);
 		assert.strictEqual(cmds[0].name, 'shared');
-		// The default directory is scanned first, so the URI should come from commands/
 		assert.ok(cmds[0].uri.path.includes('/commands/shared.md'));
 	}));
 
@@ -818,9 +802,6 @@ suite('AgentPlugin format detection', () => {
 		const plugins = getDiscoveredPlugins(discovery);
 		assert.strictEqual(plugins.length, 1);
 
-		// When inline mcpServers is an object in the manifest, it is treated as
-		// embedded configuration and the default .mcp.json file is not read.
-		// Wait for the inline server to appear (manifest loads asynchronously).
 		await waitForState(plugins[0].mcpServerDefinitions, d =>
 			[...d].some(s => s.name === 'inline-server'));
 		assert.deepStrictEqual(
@@ -855,7 +836,6 @@ suite('AgentPlugin format detection', () => {
 
 		const hookCommands = plugins[0].hooks.get()[0].hooks;
 		assert.ok(hookCommands.length > 0);
-		// ${PLUGIN_ROOT} should be expanded to the plugin's fsPath
 		const command = hookCommands[0].command;
 		assert.ok(command && !command.includes('${PLUGIN_ROOT}'), `Expected PLUGIN_ROOT to be expanded, got: ${command}`);
 	}));
@@ -1095,7 +1075,6 @@ suite('AgentPlugin format detection', () => {
 		assert.strictEqual(plugins.length, 1);
 
 		await waitForState(plugins[0].instructions, i => i.length > 0);
-		// Should strip '.instructions.md' (longest match), not just '.md'
 		assert.strictEqual(plugins[0].instructions.get()[0].name, 'coding-standards');
 	}));
 
@@ -1105,7 +1084,6 @@ suite('AgentPlugin format detection', () => {
 			name: 'dup-rules',
 			rules: './extra/',
 		}));
-		// Default directory has 'my-rule.mdc', supplemental has 'my-rule.md' — first wins
 		await writeFile('/plugins/dup-rules/rules/my-rule.mdc', 'From default');
 		await writeFile('/plugins/dup-rules/extra/my-rule.md', 'From extra');
 

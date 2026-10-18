@@ -38,11 +38,6 @@ suite('AgentHostDebugLogsCollector', () => {
 	});
 
 	teardown(async () => {
-		// The collector's disposal cleans retained artifacts without awaiting
-		// (`dispose` is synchronous), and that teardown runs first. So this
-		// delete can race a still-running recursive delete of the same tree,
-		// which Windows reports as `EPERM` on `rmdir`. `maxRetries` is Node's
-		// built-in backoff for exactly those errors.
 		await rm(testRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 	});
 
@@ -154,7 +149,6 @@ suite('AgentHostDebugLogsCollector', () => {
 		const artifact = await collector.collect([{
 			id: 'test',
 			collectDebugLogs: async (_session, outputDirectory) => {
-				// Incompressible, so the resulting archive spans several chunks.
 				await writeFile(join(outputDirectory.fsPath, 'events.jsonl'), randomBytes(3 * 1024 * 1024));
 				return true;
 			},
@@ -180,8 +174,6 @@ suite('AgentHostDebugLogsCollector', () => {
 			chunkCountAboveOne: chunks.length > 1,
 			foreignRead: await collector.readArtifactChunk(URI.file(outsider), 0).then(() => 'resolved', () => 'rejected'),
 			negativePosition: await collector.readArtifactChunk(artifact.resource, -1).then(() => 'resolved', () => 'rejected'),
-			// The artifact URI must survive a protocol round-trip, which is how
-			// a remote client sends it back (and which normalizes drive casing).
 			afterUriRoundTrip: (await collector.readArtifactChunk(URI.parse(artifact.resource.toString(), true), 0)).data.byteLength > 0,
 		}, {
 			transferred: artifact.size,
@@ -243,7 +235,6 @@ suite('AgentHostDebugLogsCollector', () => {
 		const result = await collector.collect([{
 			id: 'test',
 			collectDebugLogs: async (_session, outputDirectory) => {
-				// Highly compressible, like real log text.
 				for (let i = 0; i < 3; i++) {
 					await writeFile(join(outputDirectory.fsPath, `big-${i}.log`), Buffer.alloc(8 * 1024 * 1024));
 				}

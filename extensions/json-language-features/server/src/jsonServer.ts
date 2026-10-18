@@ -49,13 +49,7 @@ namespace ValidateContentRequest {
 }
 
 export interface DocumentSortingParams {
-	/**
-	 * The uri of the document to sort.
-	 */
 	uri: string;
-	/**
-	 * The sort options
-	 */
 	options: SortOptions;
 }
 
@@ -112,18 +106,14 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		};
 	}
 
-	// create the JSON language service
 	let languageService = getLanguageService({
 		workspaceContext,
 		contributions: [],
 		clientCapabilities: ClientCapabilities.LATEST
 	});
 
-	// Create a text document manager.
 	const documents = new TextDocuments(TextDocument);
 
-	// Make the text document manager listen on the connection
-	// for open, change and close text document events
 	documents.listen(connection);
 
 	let clientSnippetSupport = false;
@@ -141,8 +131,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 	let diagnosticsSupport: DiagnosticsSupport | undefined;
 
 
-	// After the server has started the client sends an initialize request. The server receives
-	// in the passed params the rootPath of the workspace plus the client capabilities.
 	connection.onInitialize((params: InitializeParams): InitializeResult => {
 
 		const initializationOptions = params.initializationOptions || {};
@@ -184,7 +172,7 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		const capabilities: ServerCapabilities = {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			completionProvider: clientSnippetSupport ? {
-				resolveProvider: false, // turn off resolving as the current language service doesn't do anything on resolve. Also fixes #91747
+				resolveProvider: false,
 				triggerCharacters: ['"', ':']
 			} : undefined,
 			hoverProvider: true,
@@ -210,7 +198,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 
 
 
-	// The settings interface describes the server relevant settings part
 	interface Settings {
 		json?: {
 			schemas?: JSONSchemaSettings[];
@@ -254,7 +241,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 	let schemaRequestSeverity: SeverityLevel | undefined = undefined;
 	let keepLinesEnabled = false;
 
-	// The settings have changed. Is sent on server activation as well.
 	connection.onDidChangeConfiguration((change) => {
 		const settings = <Settings>change.settings;
 		runtime.configureHttpRequests?.(settings?.http?.proxy, !!settings.http?.proxyStrictSSL);
@@ -274,7 +260,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		jsonColorDecoratorLimit = sanitizeLimitSetting(settings.json?.jsonColorDecoratorLimit || Number.MAX_VALUE);
 		jsoncColorDecoratorLimit = sanitizeLimitSetting(settings.json?.jsoncColorDecoratorLimit || Number.MAX_VALUE);
 
-		// dynamically enable & disable the formatter
 		if (dynamicFormatterRegistration) {
 			const enableFormatter = settings.json?.format?.enable;
 			if (enableFormatter) {
@@ -292,13 +277,11 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		}
 	});
 
-	// The jsonValidation extension configuration has changed
 	connection.onNotification(SchemaAssociationNotification.type, associations => {
 		schemaAssociations = associations;
 		updateConfiguration();
 	});
 
-	// A schema has changed
 	connection.onNotification(SchemaContentChangeNotification.type, uriOrUris => {
 		let needsRevalidation = false;
 		if (Array.isArray(uriOrUris)) {
@@ -315,7 +298,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		}
 	});
 
-	// Retry schema validation on all open documents
 	connection.onRequest(ForceValidateAllRequest.type, async () => {
 		diagnosticsSupport?.requestRefresh();
 	});
@@ -399,7 +381,7 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 
 	async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 		if (textDocument.getText().length === 0) {
-			return []; // ignore empty documents
+			return [];
 		}
 		const jsonDocument = getJSONDocument(textDocument);
 		const documentSettings: DocumentLanguageSettings = {
@@ -412,7 +394,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 	}
 
 	connection.onDidChangeWatchedFiles((change) => {
-		// Monitored files have changed in VSCode
 		let hasChanges = false;
 		for (const c of change.changes) {
 			if (languageService.resetSchema(c.uri)) {
@@ -569,7 +550,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		}, [], `Error while computing links for ${params.textDocument.uri}`, token);
 	});
 
-	// Listen on the connection
 	connection.listen();
 }
 

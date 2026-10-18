@@ -30,9 +30,6 @@ export interface IExtensionHostInitData {
 	quality: string | undefined;
 	commit?: string;
 	date?: string;
-	/**
-	 * When set to `0`, no polling for the parent process still running will happen.
-	 */
 	parentPid: number | 0;
 	environment: IEnvironment;
 	workspace?: IStaticWorkspaceData | null;
@@ -57,11 +54,6 @@ export interface IExtensionHostInitData {
 	uiKind: UIKind;
 	messagePorts?: ReadonlyMap<string, MessagePortLike>;
 	handle?: string;
-	/**
-	 * The value of the `extensionEnabledApiProposalsFallback`-experiment: a comma-separated list of
-	 * `publisher.extension:proposalName` entries that are granted proposed API access even when the
-	 * extension has not declared the proposal. Only set on `stable` builds.
-	 */
 	enabledApiProposalsFallback?: string;
 }
 
@@ -104,7 +96,6 @@ export enum UIKind {
 }
 
 export const enum ExtensionHostExitCode {
-	// nodejs uses codes 1-13 and exit codes >128 are signal exits
 	VersionMismatch = 55,
 	UnexpectedError = 81,
 }

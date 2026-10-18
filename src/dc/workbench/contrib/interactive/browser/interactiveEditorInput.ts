@@ -125,11 +125,9 @@ export class InteractiveEditorInput extends EditorInput implements ICompositeNot
 			}
 		}));
 
-		// Re-emit some events from the primary side to the outside
 		this._register(this.primary.onDidChangeDirty(() => this._onDidChangeDirty.fire()));
 		this._register(this.primary.onDidChangeLabel(() => this._onDidChangeLabel.fire()));
 
-		// Re-emit some events from both sides to the outside
 		this._register(this.primary.onDidChangeCapabilities(() => this._onDidChangeCapabilities.fire()));
 	}
 
@@ -206,7 +204,7 @@ export class InteractiveEditorInput extends EditorInput implements ICompositeNot
 
 		const target = await this._fileDialogService.pickFileToSave(pathCandidate, options?.availableFileSystems);
 		if (!target) {
-			return undefined; // save cancelled
+			return undefined;
 		}
 
 		const saved = await this._editorModelReference.saveAs(target);
@@ -249,7 +247,6 @@ export class InteractiveEditorInput extends EditorInput implements ICompositeNot
 	}
 
 	override dispose() {
-		// we support closing the interactive window without prompt, so the editor model should not be dirty
 		this._editorModelReference?.revert({ soft: true });
 
 		this._notebookEditorInput?.dispose();

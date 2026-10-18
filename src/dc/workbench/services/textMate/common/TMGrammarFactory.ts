@@ -114,13 +114,11 @@ export class TMGrammarFactory extends Disposable {
 	public async createGrammar(languageId: string, encodedLanguageId: number): Promise<ICreateGrammarResult> {
 		const scopeName = this._languageToScope.get(languageId);
 		if (typeof scopeName !== 'string') {
-			// No TM grammar defined
 			throw new Error(missingTMGrammarErrorMessage);
 		}
 
 		const grammarDefinition = this._scopeRegistry.getGrammarDefinition(scopeName);
 		if (!grammarDefinition) {
-			// No TM grammar defined
 			throw new Error(missingTMGrammarErrorMessage);
 		}
 
@@ -152,7 +150,6 @@ export class TMGrammarFactory extends Disposable {
 			);
 		} catch (err) {
 			if (err.message && err.message.startsWith('No grammar provided for')) {
-				// No TM grammar defined
 				throw new Error(missingTMGrammarErrorMessage);
 			}
 			throw err;

@@ -10,10 +10,6 @@ import { ICellViewModel } from '../notebookBrowser.js';
 import { CellViewModelStateChangeEvent } from '../notebookViewEvents.js';
 import { ICellExecutionStateChangedEvent } from '../../common/notebookExecutionStateService.js';
 
-/**
- * A content part is a non-floating element that is rendered inside a cell.
- * The rendering of the content part is synchronous to avoid flickering.
- */
 export abstract class CellContentPart extends Disposable {
 	protected currentCell: ICellViewModel | undefined;
 	protected readonly cellDisposables = this._register(new DisposableStore());
@@ -22,15 +18,8 @@ export abstract class CellContentPart extends Disposable {
 		super();
 	}
 
-	/**
-	 * Prepare model for cell part rendering
-	 * No DOM operations recommended within this operation
-	 */
 	prepareRenderCell(element: ICellViewModel): void { }
 
-	/**
-	 * Update the DOM for the cell `element`
-	 */
 	renderCell(element: ICellViewModel): void {
 		this.currentCell = element;
 		safeInvokeNoArg(() => this.didRenderCell(element));
@@ -38,41 +27,20 @@ export abstract class CellContentPart extends Disposable {
 
 	didRenderCell(element: ICellViewModel): void { }
 
-	/**
-	 * Dispose any disposables generated from `didRenderCell`
-	 */
 	unrenderCell(element: ICellViewModel): void {
 		this.currentCell = undefined;
 		this.cellDisposables.clear();
 	}
 
-	/**
-	 * Perform DOM read operations to prepare for the list/cell layout update.
-	 */
 	prepareLayout(): void { }
 
-	/**
-	 * Update internal DOM (top positions) per cell layout info change
-	 * Note that a cell part doesn't need to call `DOM.scheduleNextFrame`,
-	 * the list view will ensure that layout call is invoked in the right frame
-	 */
 	updateInternalLayoutNow(element: ICellViewModel): void { }
 
-	/**
-	 * Update per cell state change
-	 */
 	updateState(element: ICellViewModel, e: CellViewModelStateChangeEvent): void { }
 
-	/**
-	 * Update per execution state change.
-	 */
 	updateForExecutionState(element: ICellViewModel, e: ICellExecutionStateChangedEvent): void { }
 }
 
-/**
- * An overlay part renders on top of other components.
- * The rendering of the overlay part might be postponed to the next animation frame to avoid forced reflow.
- */
 export abstract class CellOverlayPart extends Disposable {
 	protected currentCell: ICellViewModel | undefined;
 	protected readonly cellDisposables = this._register(new DisposableStore());
@@ -81,15 +49,8 @@ export abstract class CellOverlayPart extends Disposable {
 		super();
 	}
 
-	/**
-	 * Prepare model for cell part rendering
-	 * No DOM operations recommended within this operation
-	 */
 	prepareRenderCell(element: ICellViewModel): void { }
 
-	/**
-	 * Update the DOM for the cell `element`
-	 */
 	renderCell(element: ICellViewModel): void {
 		this.currentCell = element;
 		this.didRenderCell(element);
@@ -97,29 +58,15 @@ export abstract class CellOverlayPart extends Disposable {
 
 	didRenderCell(element: ICellViewModel): void { }
 
-	/**
-	 * Dispose any disposables generated from `didRenderCell`
-	 */
 	unrenderCell(element: ICellViewModel): void {
 		this.currentCell = undefined;
 		this.cellDisposables.clear();
 	}
 
-	/**
-	 * Update internal DOM (top positions) per cell layout info change
-	 * Note that a cell part doesn't need to call `DOM.scheduleNextFrame`,
-	 * the list view will ensure that layout call is invoked in the right frame
-	 */
 	updateInternalLayoutNow(element: ICellViewModel): void { }
 
-	/**
-	 * Update per cell state change
-	 */
 	updateState(element: ICellViewModel, e: CellViewModelStateChangeEvent): void { }
 
-	/**
-	 * Update per execution state change.
-	 */
 	updateForExecutionState(element: ICellViewModel, e: ICellExecutionStateChangedEvent): void { }
 }
 
@@ -154,7 +101,6 @@ export class CellPartsCollection extends Disposable {
 	}
 
 	scheduleRenderCell(element: ICellViewModel): void {
-		// prepare model
 		for (const part of this.contentParts) {
 			safeInvokeNoArg(() => part.prepareRenderCell(element));
 		}
@@ -163,7 +109,6 @@ export class CellPartsCollection extends Disposable {
 			safeInvokeNoArg(() => part.prepareRenderCell(element));
 		}
 
-		// render content parts
 		for (const part of this.contentParts) {
 			safeInvokeNoArg(() => part.renderCell(element));
 		}

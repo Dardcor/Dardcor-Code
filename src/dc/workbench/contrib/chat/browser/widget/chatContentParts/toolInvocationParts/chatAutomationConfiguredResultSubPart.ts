@@ -16,10 +16,6 @@ import { IChatContentPartRenderContext } from '../chatContentParts.js';
 import { BaseChatToolInvocationSubPart } from './chatToolInvocationSubPart.js';
 import '../media/chatSessionCreatedResult.css';
 
-/**
- * Renders a deterministic automation create/update result as a secondary
- * button that opens and focuses the affected automation.
- */
 export class ChatAutomationConfiguredResultSubPart extends BaseChatToolInvocationSubPart {
 
 	public readonly domNode: HTMLElement;
@@ -38,7 +34,6 @@ export class ChatAutomationConfiguredResultSubPart extends BaseChatToolInvocatio
 		const label = data.operation === 'created'
 			? localize('automationConfigured.created', "Created an automation: {0}", data.automationName)
 			: localize('automationConfigured.updated', "Edited an automation: {0}", data.automationName);
-		// `ButtonWithIcon` keeps the `codicon-*` classes off the button root, where they would restyle the label text.
 		const button = this._register(new ButtonWithIcon(this.domNode, {
 			...defaultButtonStyles,
 			secondary: true,

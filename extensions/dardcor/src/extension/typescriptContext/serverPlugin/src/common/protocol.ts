@@ -8,23 +8,9 @@ export type DocumentUri = string;
 export type FilePath = string;
 
 export enum CacheScopeKind {
-	/**
-	 * The cache entry is still valid for the file.
-	 */
 	File = 'file',
-	/**
-	 * The cache entry is valid as long as changes to the file happen
-	 * inside of the specific range.
-	 */
 	WithinRange = 'withinRange',
-	/**
-	 * The change entry is valid as long as changes to the file happen
-	 * outside of the specific range.
-	 */
 	OutsideRange = 'outsideRange',
-	/**
-	 * The cache entry is valid as long as the neighbor files don't change.
-	 */
 	NeighborFiles = 'neighborFiles'
 }
 
@@ -61,7 +47,6 @@ export type ContextItemKey = string;
 export enum EmitMode {
 	ClientBased = 'clientBased',
 	ClientBasedOnTimeout = 'clientBasedOnTimeout'
-	// ServerBased = 'serverBased'
 }
 export type CacheInfo = {
 	emitMode: EmitMode;
@@ -83,9 +68,6 @@ export namespace CachedContextItem {
 	}
 }
 
-/**
- * Different supported context item kinds.
- */
 export enum ContextKind {
 	Reference = 'reference',
 	RelatedFile = 'relatedFile',
@@ -120,9 +102,6 @@ export enum SpeculativeKind {
 	ignore = 'ignore'
 }
 
-/**
- * A related file context.
- */
 export type RelatedFile = {
 	kind: ContextKind.RelatedFile;
 	key?: string;
@@ -139,25 +118,13 @@ export enum TraitKind {
 	Version = 'version'
 }
 
-/**
- * A trait context.
- */
 export type Trait = {
 	kind: ContextKind.Trait;
 
-	/**
-	 * An optional key for the trait, used for caching purposes.
-	 */
 	key: string;
 
-	/**
-	 * The trait name.
-	 */
 	name: string;
 
-	/**
-	 * The trait value.
-	 */
 	value: string;
 };
 export namespace Trait {
@@ -172,30 +139,15 @@ export namespace Trait {
 	}
 }
 
-/**
- * A snippet context.
- */
 export type CodeSnippet = {
 	kind: ContextKind.Snippet;
 
-	/**
-	 * An optional key for the snippet, used for caching purposes.
-	 */
 	key?: string;
 
-	/**
-	 * The primary file name.
-	 */
 	fileName: FilePath;
 
-	/**
-	 * Additional URIs
-	 */
 	additionalFileNames?: FilePath[];
 
-	/**
-	 * The snippet value.
-	 */
 	value: string;
 };
 export namespace CodeSnippet {
@@ -204,7 +156,6 @@ export namespace CodeSnippet {
 	}
 	export function sizeInChars(snippet: CodeSnippet): number {
 		let result: number = snippet.value.length;
-		// +3 for "// " at the beginning of the line.
 		result += snippet.fileName.length + 3;
 		if (snippet.additionalFileNames !== undefined) {
 			for (const fileName of snippet.additionalFileNames) {
@@ -255,41 +206,18 @@ export type ContextRunnableResult = {
 
 	kind: ContextRunnableResultKind.ComputedResult;
 
-	/**
-	 * The id of the context compute runnable that computed
-	 * this state.
-	 */
 	id: ContextRunnableResultId;
 
-	/**
-	 * The state of the computation.
-	 */
 	state: ContextRunnableState;
 
-	/**
-	 * Priorities of the items.
-	 */
 	priority: number;
 
-	/**
-	 * The items.
-	 */
 	items: ContextItem[];
 
-	/**
-	 * Information about how items can be cached.
-	 */
 	cache?: CacheInfo;
 
-	/**
-	 * Whether the runnable result can be used in a speculative request with the same
-	 * document and position.
-	 */
 	speculativeKind: SpeculativeKind;
 
-	/**
-	 * A human readable path to the signature to ease debugging.
-	 */
 	debugPath?: ContextRunnableResultId | undefined;
 };
 
@@ -297,25 +225,12 @@ export type CachedContextRunnableResult = {
 
 	kind: ContextRunnableResultKind.CacheEntry;
 
-	/**
-	 * The id of the context compute runnable that computed
-	 * this state.
-	 */
 	id: ContextRunnableResultId;
 
-	/**
-	 * The state of the computation.
-	 */
 	state: ContextRunnableState;
 
-	/**
-	 * The items.
-	 */
 	items: CachedContextItem[];
 
-	/**
-	 * The cache information of the runnable.
-	 */
 	cache?: CacheInfo;
 };
 
@@ -323,10 +238,6 @@ export type ContextRunnableResultReference = {
 
 	kind: ContextRunnableResultKind.Reference;
 
-	/**
-	 * The id of the context compute runnable that computed
-	 * this state.
-	 */
 	id: ContextRunnableResultId;
 };
 
@@ -363,39 +274,18 @@ export type ContextRequestResult = {
 
 	state: ContextRequestResultState;
 
-	/**
-	 * The AST node path to the cursor location in the source file.
-	 */
 	path?: number[];
 
-	/**
-	 * The errors that occurred during the computation.
-	 */
 	errors?: ErrorData[];
 
-	/**
-	 * The timing if captured during the computation.
-	 */
 	timings?: Timings;
 
-	/**
-	 * Whether the requested got auto canceled due to a timeout.
-	 */
 	timedOut: boolean;
 
-	/**
-	 * Whether the token budget was exhausted.
-	 */
 	exhausted: boolean;
 
-	/**
-	 * The runnable results if any.
-	 */
 	runnableResults?: ContextRunnableResultTypes[];
 
-	/**
-	 * New server side context items that were computed.
-	 */
 	contextItems?: ContextItem[];
 };
 

@@ -114,9 +114,6 @@ export class SnippetController2 implements IEditorContribution {
 		template: string,
 		opts?: Partial<ISnippetInsertOptions>
 	): void {
-		// this is here to find out more about the yet-not-understood
-		// error that sometimes happens when we fail to inserted a nested
-		// snippet
 		try {
 			this._doInsert(template, typeof opts === 'undefined' ? _defaultOptions : { ..._defaultOptions, ...opts });
 
@@ -137,15 +134,12 @@ export class SnippetController2 implements IEditorContribution {
 			return;
 		}
 
-		// don't listen while inserting the snippet
-		// as that is the inflight state causing cancelation
 		this._snippetListener.clear();
 
 		if (opts.undoStopBefore) {
 			this._editor.getModel().pushStackElement();
 		}
 
-		// don't merge
 		if (this._session && typeof template !== 'string') {
 			this.cancel();
 		}
@@ -163,7 +157,6 @@ export class SnippetController2 implements IEditorContribution {
 			this._editor.getModel().pushStackElement();
 		}
 
-		// regster completion item provider when there is any choice element
 		if (this._session?.hasChoice) {
 			const provider: CompletionItemProvider = {
 				_debugDisplayName: 'snippetChoiceCompletions',
@@ -229,19 +222,14 @@ export class SnippetController2 implements IEditorContribution {
 
 	private _updateState(): void {
 		if (!this._session || !this._editor.hasModel()) {
-			// canceled in the meanwhile
 			return;
 		}
 
 		if (this._modelVersionId === this._editor.getModel().getAlternativeVersionId()) {
-			// undo until the 'before' state happened
-			// and makes use cancel snippet mode
 			return this.cancel();
 		}
 
 		if (!this._session.hasPlaceholder) {
-			// don't listen for selection changes and don't
-			// update context keys when the snippet is plain text
 			return this.cancel();
 		}
 
@@ -280,7 +268,6 @@ export class SnippetController2 implements IEditorContribution {
 
 			this._choiceCompletions.enable();
 
-			// trigger suggest with the special choice completion provider
 			queueMicrotask(() => {
 				showSimpleSuggestions(this._editor, this._choiceCompletions!.provider);
 			});
@@ -307,9 +294,6 @@ export class SnippetController2 implements IEditorContribution {
 		this._session = undefined;
 		this._modelVersionId = -1;
 		if (resetSelection) {
-			// reset selection to the primary cursor when being asked
-			// for. this happens when explicitly cancelling snippet mode,
-			// e.g. when pressing ESC
 			this._editor.setSelections([this._editor.getSelection()!]);
 		}
 	}
@@ -367,9 +351,6 @@ registerEditorCommand(new CommandCtor({
 	}
 }));
 
-// When a snippet choice is active, the suggest widget is shown and would normally
-// claim Shift+Tab for `acceptAlternativeSelectedSuggestion`. Register a higher-weight
-// rule so Shift+Tab navigates to the previous snippet placeholder instead. See #236489.
 KeybindingsRegistry.registerKeybindingRule({
 	id: 'jumpToPrevSnippetPlaceholder',
 	weight: KeybindingWeight.EditorContrib + 91,
@@ -393,9 +374,4 @@ registerEditorCommand(new CommandCtor({
 	id: 'acceptSnippet',
 	precondition: SnippetController2.InSnippetMode,
 	handler: ctrl => ctrl.finish(),
-	// kbOpts: {
-	// 	weight: KeybindingWeight.EditorContrib + 30,
-	// 	kbExpr: EditorContextKeys.textFocus,
-	// 	primary: KeyCode.Enter,
-	// }
 }));

@@ -28,9 +28,6 @@ SortIcon.propTypes = {
   currentOrder: PropTypes.string.isRequired,
 };
 
-/**
- * Render 3 token or cost cells based on viewMode
- */
 function ValueCells({ item, viewMode, isSummary = false }) {
   if (viewMode === "tokens") {
     return (
@@ -74,24 +71,6 @@ ValueCells.propTypes = {
   isSummary: PropTypes.bool,
 };
 
-/**
- * Reusable sortable usage table with expandable group rows.
- *
- * @param {object} props
- * @param {string} props.title - Table title
- * @param {Array} props.columns - Column definitions [{field, label}]
- * @param {Array} props.groupedData - Grouped data from groupDataByKey
- * @param {string} props.tableType - Table type key for sort URL params
- * @param {string} props.sortBy - Current sort field
- * @param {string} props.sortOrder - Current sort order
- * @param {function} props.onToggleSort - Sort toggle handler
- * @param {string} props.viewMode - "tokens" or "costs"
- * @param {string} props.storageKey - localStorage key for expanded state
- * @param {function} props.renderGroupLabel - Render group summary first cell content
- * @param {function} props.renderDetailCells - Render detail row custom cells (before value cells)
- * @param {function} props.renderSummaryCells - Render summary row cells after group label (placeholder cols)
- * @param {string} props.emptyMessage - Empty state message
- */
 export default function UsageTable({
   title,
   columns,
@@ -108,7 +87,6 @@ export default function UsageTable({
 }) {
   const [expanded, setExpanded] = useState(new Set());
 
-  // Load expanded state from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -118,7 +96,6 @@ export default function UsageTable({
     }
   }, [storageKey]);
 
-  // Save expanded state to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify([...expanded]));
@@ -188,7 +165,7 @@ export default function UsageTable({
           <tbody className="divide-y divide-border">
             {groupedData.map((group) => (
               <Fragment key={group.groupKey}>
-                {/* Group summary row */}
+                {}
                 <tr
                   className="group-summary cursor-pointer hover:bg-bg-subtle/50 transition-colors"
                   onClick={() => toggleGroup(group.groupKey)}
@@ -206,7 +183,7 @@ export default function UsageTable({
                   {renderSummaryCells(group)}
                   <ValueCells item={group.summary} viewMode={viewMode} isSummary />
                 </tr>
-                {/* Detail rows */}
+                {}
                 {expanded.has(group.groupKey) && group.items.map((item) => (
                   <tr
                     key={`detail-${item.key}`}
@@ -251,5 +228,4 @@ UsageTable.propTypes = {
   emptyMessage: PropTypes.string.isRequired,
 };
 
-// Re-export utilities for use in UsageStats orchestrator
 export { fmt, fmtCost, fmtTime };

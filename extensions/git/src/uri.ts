@@ -27,9 +27,6 @@ export interface GitUriOptions {
 	submoduleOf?: string;
 }
 
-// As a mitigation for extensions like ESLint showing warnings and errors
-// for git URIs, let's change the file extension of these uris to .git,
-// when `replaceFileExtension` is true.
 export function toGitUri(uri: Uri, ref: string, options: GitUriOptions = {}): Uri {
 	const params: GitUriParams = {
 		path: uri.fsPath,
@@ -51,9 +48,6 @@ export function toGitUri(uri: Uri, ref: string, options: GitUriOptions = {}): Ur
 	return uri.with({ scheme: options.scheme ?? 'git', path, query: JSON.stringify(params) });
 }
 
-/**
- * Assuming `uri` is being merged it creates uris for `base`, `ours`, and `theirs`
- */
 export function toMergeUris(uri: Uri): { base: Uri; ours: Uri; theirs: Uri } {
 	return {
 		base: toGitUri(uri, ':1'),

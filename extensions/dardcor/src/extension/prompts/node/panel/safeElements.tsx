@@ -28,8 +28,6 @@ export abstract class SafePromptElement<P extends BasePromptElementProps, S = vo
 	}
 
 	protected _handleFoulPrompt(): undefined {
-		// REPORT error telemetry
-		// FAIL when running tests
 		const err = new Error('BAD PROMPT');
 		this._logService.error(err);
 
@@ -37,17 +35,9 @@ export abstract class SafePromptElement<P extends BasePromptElementProps, S = vo
 			throw err;
 		}
 
-		/* __GDPR__
-			"prompt.invalidreference": {
-				"owner": "jrieken",
-				"comment": "Tracks bad prompt references",
-				"stack": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Error stack" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryErrorEvent('prompt.invalidreference', { stack: err.stack });
 	}
 }
-// --- SafeCodeBlock
 
 export type CodeBlockProps = PromptElementProps<{
 	readonly includeFilepath?: boolean;
@@ -56,22 +46,10 @@ export type CodeBlockProps = PromptElementProps<{
 	readonly languageId?: string;
 	readonly references?: PromptReference[];
 
-	/**
-	 * If set, each line of the prompt will be in its own text chunk with
-	 * descending priority so that it may be trimmed if over the token budget.
-	 */
 	readonly lineBasedPriority?: boolean;
 
-	/**
-	 * Invokes `code.trim()`
-	 *
-	 * @default true
-	 */
 	readonly shouldTrim?: boolean;
 
-	/**
-	 * Fence style, defaults to '```'. An empty string omits the fence.
-	 */
 	readonly fence?: string;
 }>;
 
@@ -88,7 +66,7 @@ export class CodeBlock extends SafePromptElement<CodeBlockProps> {
 	}
 
 	async render() {
-		const isIgnored = this.props.uri ? await this._ignoreService.isCopilotIgnored(this.props.uri) : false;
+		const isIgnored = this.props.uri ? await this._ignoreService.isIgnored(this.props.uri) : false;
 		if (isIgnored) {
 			return this._handleFoulPrompt();
 		}
@@ -98,8 +76,6 @@ export class CodeBlock extends SafePromptElement<CodeBlockProps> {
 
 		if (this.props.lineBasedPriority) {
 			const lines = code.split('\n');
-			// Ensure priority is highest for the last line too so that we don't
-			// have an incomplete code block during trimming:
 			return <>
 				{lines.map((line, i) => <TextChunk priority={i === lines.length - 1 ? lines.length : lines.length - i}>
 					{i === 0 && reference}{line}{i === lines.length - 1 ? '' : '\n'}
@@ -142,7 +118,6 @@ export class ExampleCodeBlock extends SafePromptElement<ExampleCodeBlockProps> {
 }
 
 
-// --- SafeUri
 
 export const enum UriMode {
 	Basename,
@@ -161,7 +136,7 @@ export class Uri extends SafePromptElement<UriProps> {
 	}
 
 	async render() {
-		const isIgnored = await this._ignoreService.isCopilotIgnored(this.props.value);
+		const isIgnored = await this._ignoreService.isIgnored(this.props.value);
 		if (isIgnored) {
 			return this._handleFoulPrompt();
 		}

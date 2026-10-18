@@ -17,7 +17,6 @@
 	z-index: 5000;
 }
 
-/* header styling */
 
 .keybindings-editor > .keybindings-header {
 	padding: 0px 10px 11px 0;
@@ -86,7 +85,6 @@
 	opacity: 1;
 }
 
-/** Table styling **/
 
 .keybindings-editor > .keybindings-body .keybindings-table-container {
 	width: 100%;
@@ -104,7 +102,6 @@
 	overflow: hidden;
 }
 
-/** Actions column styling **/
 
 .keybindings-editor > .keybindings-body > .keybindings-table-container .monaco-table-tr .monaco-table-td .actions .monaco-action-bar {
 	display: none;
@@ -124,7 +121,6 @@
 	margin-top: 3px;
 }
 
-/** Command column styling **/
 
 .keybindings-editor > .keybindings-body > .keybindings-table-container .monaco-table-tr .monaco-table-td .command.vertical-align-column {
 	flex-direction: column;
@@ -137,13 +133,11 @@
 	margin-top: 2px;
 }
 
-/** Keybinding column styling **/
 
 .keybindings-editor > .keybindings-body > .keybindings-table-container .monaco-table-tr .monaco-table-td .keybinding .monaco-highlighted-label {
 	padding-left: 10px;
 }
 
-/** When column styling **/
 
 .keybindings-editor > .keybindings-body > .keybindings-table-container .monaco-table-tr .monaco-table-td .when {
 	width: 100%;
@@ -161,7 +155,6 @@
 	padding-left: 10px;
 }
 
-/** Source column styling **/
 .keybindings-editor > .keybindings-body > .keybindings-table-container .monaco-table-tr .monaco-table-td .source a {
 	cursor: pointer;
 }
@@ -182,7 +175,6 @@
 	color: var(--vscode-textLink-activeForeground);
 }
 
-/** columns styling **/
 
 .keybindings-editor > .keybindings-body > .keybindings-table-container .monaco-table-tr .monaco-table-td .command,
 .keybindings-editor > .keybindings-body > .keybindings-table-container .monaco-table-tr .monaco-table-td .command > .command-label,

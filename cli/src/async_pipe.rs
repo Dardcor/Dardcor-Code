@@ -11,7 +11,6 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpListener;
 use uuid::Uuid;
 
-// todo: we could probably abstract this into some crate, if one doesn't already exist
 
 cfg_if::cfg_if! {
 	if #[cfg(unix)] {
@@ -117,12 +116,9 @@ cfg_if::cfg_if! {
 		pub type AsyncPipeReadHalf = tokio::io::ReadHalf<AsyncPipe>;
 
 		pub async fn get_socket_rw_stream(path: &Path) -> Result<AsyncPipe, CodeError> {
-			// Tokio says we can need to try in a loop. Do so.
-			// https://docs.rs/tokio/latest/tokio/net/windows/named_pipe/struct.NamedPipeClient.html
 			let client = loop {
 				match ClientOptions::new().open(path) {
 					Ok(client) => break client,
-					// ERROR_PIPE_BUSY https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
 					Err(e) if e.raw_os_error() == Some(231) => sleep(Duration::from_millis(100)).await,
 					Err(e) => return Err(CodeError::AsyncPipeFailed(e)),
 				}
@@ -138,20 +134,12 @@ cfg_if::cfg_if! {
 
 		impl AsyncPipeListener {
 			pub async fn accept(&mut self) -> Result<AsyncPipe, CodeError> {
-				// see https://docs.rs/tokio/latest/tokio/net/windows/named_pipe/struct.NamedPipeServer.html
-				// this is a bit weird in that the server becomes the client once
-				// they get a connection, and we create a new client.
 
 				self.server
 					.connect()
 					.await
 					.map_err(CodeError::AsyncPipeListenerFailed)?;
 
-				// Construct the next server to be connected before sending the one
-				// we already have of onto a task. This ensures that the server
-				// isn't closed (after it's done in the task) before a new one is
-				// available. Otherwise the client might error with
-				// `io::ErrorKind::NotFound`.
 				let next_server = ServerOptions::new()
 					.create(&self.path)
 					.map_err(CodeError::AsyncPipeListenerFailed)?;
@@ -176,7 +164,6 @@ cfg_if::cfg_if! {
 	}
 }
 
-/// Gets a random name for a pipe/socket on the platform
 pub fn get_socket_name() -> PathBuf {
 	cfg_if::cfg_if! {
 		if #[cfg(unix)] {

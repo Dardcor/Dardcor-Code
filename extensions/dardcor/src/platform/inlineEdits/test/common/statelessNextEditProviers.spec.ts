@@ -14,7 +14,6 @@ import { StatelessNextEditDocument } from '../../common/statelessNextEditProvide
 import { editWouldDeleteWhatWasJustInserted2, IgnoreWhitespaceOnlyChanges } from '../../common/statelessNextEditProviders';
 
 describe('IgnoreFormattingChangesAspect', () => {
-	// Helper to create test cases with less boilerplate
 	function createEdit(baseLines: string[], newLines: string[]): LineReplacement {
 		return new LineReplacement(new LineRange(1, baseLines.length + 1), newLines);
 	}
@@ -23,29 +22,23 @@ describe('IgnoreFormattingChangesAspect', () => {
 		return IgnoreWhitespaceOnlyChanges._isFormattingOnlyChange(base, createEdit(base, edited));
 	}
 
-	// Test the core algorithm: formatting-only changes preserve content after whitespace removal
 	it('identifies formatting vs content changes correctly', () => {
-		// Formatting-only: content identical after removing whitespace
 		expect(isFormattingOnly(['x=1;'], ['x = 1;'])).toBe(true);
 		expect(isFormattingOnly(['  x'], ['x'])).toBe(true);
 		expect(isFormattingOnly(['a', 'b'], ['a b'])).toBe(true);
 
-		// Content changes: content differs after removing whitespace
 		expect(isFormattingOnly(['x=1;'], ['x=2;'])).toBe(false);
 		expect(isFormattingOnly(['x'], ['x+1'])).toBe(false);
 		expect(isFormattingOnly(['a'], ['a', 'b'])).toBe(false);
 	});
 
-	// Representative examples of common scenarios
 	describe('common scenarios', () => {
 		const testCases = [
-			// Formatting-only changes
 			{ name: 'indentation', base: ['  code'], edited: ['    code'], expected: true },
 			{ name: 'space normalization', base: ['a  b'], edited: ['a b'], expected: true },
 			{ name: 'line breaks', base: ['a;', 'b;'], edited: ['a; b;'], expected: true },
 			{ name: 'empty lines', base: ['   '], edited: ['\t'], expected: true },
 
-			// Content changes
 			{ name: 'value change', base: ['x=1'], edited: ['x=2'], expected: false },
 			{ name: 'added code', base: ['f()'], edited: ['f()', 'g()'], expected: false },
 			{ name: 'removed code', base: ['a', 'b'], edited: ['a'], expected: false },
@@ -56,7 +49,6 @@ describe('IgnoreFormattingChangesAspect', () => {
 		});
 	});
 
-	// Edge cases that could break the algorithm
 	describe('edge cases', () => {
 		it('handles empty content correctly', () => {
 			expect(isFormattingOnly([''], [''])).toBe(true);
@@ -108,7 +100,7 @@ export async function getForceFreshForDir(
 }
 `;
 
-		const lineEdit = new LineEdit([new LineReplacement(new LineRange(28, 31), [])]); //[28,31)->[])
+		const lineEdit = new LineEdit([new LineReplacement(new LineRange(28, 31), [])]);
 
 		const recentEdits = Edits.single(new StringEdit([
 			new StringReplacement(new OffsetRange(740, 746), 'return '),

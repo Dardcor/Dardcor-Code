@@ -5,9 +5,8 @@
 
 import assert from 'assert';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../common/dardcorRouterModel.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../base/common/cancellation.js';
-import { Event } from '../../../../base/common/event.js';
 import type { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
@@ -16,14 +15,10 @@ import { buildUncommittedChangesetUri } from '../../common/changesetUri.js';
 import { SessionStatus, withSessionGitState, type ISessionFileDiff } from '../../common/state/sessionState.js';
 import type { IAgentHostGitService, IBranch, IDefaultBranch } from '../../common/agentHostGitService.js';
 import { AgentHostCommitOperationHandler } from '../../node/agentHostCommitOperationHandler.js';
-import { createTestGitHubEndpointService } from './testGitHubEndpointService.js';
 import { AgentHostStateManager } from '../../node/agentHostStateManager.js';
-import { CopilotApiError, type ICopilotApiService, type ICopilotApiServiceRequestOptions, type ICopilotUtilityChatCompletionRequest } from '../../node/shared/copilotApiService.js';
-import { GITHUB_COPILOT_PROTECTED_RESOURCE } from '../../common/agent.js';
-import { AHP_AUTH_REQUIRED, ProtocolError } from '../../common/state/sessionProtocol.js';
+import { DardcorRouterApiError, type IDardcorRouterService, type IDardcorRouterRequestOptions, type IDardcorUtilityChatCompletionRequest } from '../../node/shared/dardcorRouterService.js';
 import { ChangesSummary } from '../../common/state/protocol/state.js';
 import type { IAgentHostChangesetService, IPersistedChangesetMetadata, IRestoredChangesetDiffs, StaticChangesetKind } from '../../common/agentHostChangesetService.js';
-import type { IAgentHostAuthenticationService } from '../../node/agentHostAuthenticationService.js';
 
 class TestGitService implements IAgentHostGitService {
 	declare readonly _serviceBrand: undefined;
@@ -84,31 +79,30 @@ class TestGitService implements IAgentHostGitService {
 	async getDiffPatchBetweenRefs(): Promise<undefined> { return undefined; }
 }
 
-class TestCopilotApiService implements ICopilotApiService {
+class TestDardcorRouterService implements IDardcorRouterService {
 	declare readonly _serviceBrand: undefined;
 
-	readonly calls: { token: string; request: ICopilotUtilityChatCompletionRequest; options?: ICopilotApiServiceRequestOptions }[] = [];
+	readonly calls: { request: IDardcorUtilityChatCompletionRequest; options?: IDardcorRouterRequestOptions }[] = [];
 	response = '```text\nUpdate session changes\n```';
 	error: Error | undefined;
 
-	messages(_githubToken: string, request: Anthropic.MessageCreateParamsStreaming, _options?: ICopilotApiServiceRequestOptions): AsyncGenerator<Anthropic.MessageStreamEvent>;
-	messages(_githubToken: string, request: Anthropic.MessageCreateParamsNonStreaming, _options?: ICopilotApiServiceRequestOptions): Promise<Anthropic.Message>;
+	messages(request: Anthropic.MessageCreateParamsStreaming, _options?: IDardcorRouterRequestOptions): AsyncGenerator<Anthropic.MessageStreamEvent>;
+	messages(request: Anthropic.MessageCreateParamsNonStreaming, _options?: IDardcorRouterRequestOptions): Promise<Anthropic.Message>;
 	messages(): AsyncGenerator<Anthropic.MessageStreamEvent> | Promise<Anthropic.Message> {
 		throw new Error('not used');
 	}
 	responses(
-		githubToken: string,
 		body: string,
-		options?: ICopilotApiServiceRequestOptions,
+		options?: IDardcorRouterRequestOptions,
 	): Promise<Response> {
 		throw new Error('not used');
 	}
 	async countTokens(): Promise<Anthropic.MessageTokensCount> { throw new Error('not used'); }
-	async models(): Promise<CCAModel[]> { return []; }
+	async models(): Promise<IDardcorRouterModel[]> { return []; }
 	async resolveRestrictedTelemetryContext() { return { restrictedTelemetryEnabled: false, trackingId: undefined, telemetryEndpoint: undefined }; }
 	async resolveApiEndpoint() { return undefined; }
-	async utilityChatCompletion(githubToken: string, request: ICopilotUtilityChatCompletionRequest, options?: ICopilotApiServiceRequestOptions): Promise<string> {
-		this.calls.push({ token: githubToken, request, options });
+	async utilityChatCompletion(request: IDardcorUtilityChatCompletionRequest, options?: IDardcorRouterRequestOptions): Promise<string> {
+		this.calls.push({ request, options });
 		if (this.error) {
 			throw this.error;
 		}
@@ -142,15 +136,7 @@ class TestChangesetService implements IAgentHostChangesetService {
 	onSessionTruncated(_session: string): void { }
 }
 
-function createAuthenticationService(token: string | undefined): IAgentHostAuthenticationService {
-	return {
-		_serviceBrand: undefined,
-		onDidChangeAuthToken: Event.None,
-		getAuthToken: () => token,
-	};
-}
-
-function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitService, copilotApiService: TestCopilotApiService, changesets: TestChangesetService, options?: { readonly onCommittedError?: Error }): { handler: AgentHostCommitOperationHandler; session: URI; committedSessions: string[] } {
+function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitService, dardcorRouterService: TestDardcorRouterService, changesets: TestChangesetService, options?: { readonly onCommittedError?: Error }): { handler: AgentHostCommitOperationHandler; session: URI; committedSessions: string[] } {
 	const stateManager = disposables.add(new AgentHostStateManager(new NullLogService()));
 	const session = URI.parse('agent:/session');
 	const committedSessions: string[] = [];
@@ -174,7 +160,7 @@ function setup(disposables: Pick<DisposableStore, 'add'>, gitService: TestGitSer
 			if (options?.onCommittedError) {
 				throw options.onCommittedError;
 			}
-		}, createAuthenticationService('gh-repo-token'), createTestGitHubEndpointService(), gitService, copilotApiService, new NullLogService()),
+		}, gitService, dardcorRouterService, new NullLogService()),
 		session,
 		committedSessions,
 	};
@@ -185,22 +171,22 @@ suite('AgentHostCommitOperationHandler', () => {
 
 	test('generates a commit message, commits all changes, and invokes post-commit refresh', async () => {
 		const gitService = new TestGitService();
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const changesets = new TestChangesetService();
-		const { handler, session, committedSessions } = setup(disposables, gitService, copilotApiService, changesets);
+		const { handler, session, committedSessions } = setup(disposables, gitService, dardcorRouterService, changesets);
 
 		const result = await handler.invoke({ channel: buildUncommittedChangesetUri(session.toString()), operationId: AgentHostCommitOperationHandler.OPERATION_COMMIT }, CancellationToken.None);
 
 		assert.deepStrictEqual({
 			message: result.message,
 			gitCalls: gitService.calls,
-			completion: copilotApiService.calls.map(call => ({ token: call.token, fileIncluded: call.request.messages.some(message => message.content.includes('file.ts')) })),
+			completion: dardcorRouterService.calls.map(call => ({ fileIncluded: call.request.messages.some(message => message.content.includes('file.ts')) })),
 			changesetCalls: changesets.calls,
 			committedSessions,
 		}, {
 			message: { markdown: 'Committed changes with message: `Update session changes`' },
 			gitCalls: ['hasUncommittedChanges', 'computeSessionFileDiffs', 'commitAll:Update session changes'],
-			completion: [{ token: 'gh-repo-token', fileIncluded: true }],
+			completion: [{ fileIncluded: true }],
 			changesetCalls: ['onCommitted:agent:/session'],
 			committedSessions: ['agent:/session'],
 		});
@@ -209,13 +195,13 @@ suite('AgentHostCommitOperationHandler', () => {
 	test('returns no-op success without generating a message or committing when the working tree is clean', async () => {
 		const gitService = new TestGitService();
 		gitService.uncommitted = false;
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const changesets = new TestChangesetService();
-		const { handler, session } = setup(disposables, gitService, copilotApiService, changesets);
+		const { handler, session } = setup(disposables, gitService, dardcorRouterService, changesets);
 
 		const result = await handler.invoke({ channel: buildUncommittedChangesetUri(session.toString()), operationId: AgentHostCommitOperationHandler.OPERATION_COMMIT }, CancellationToken.None);
 
-		assert.deepStrictEqual({ message: result.message, gitCalls: gitService.calls, completionCalls: copilotApiService.calls.length, changesetCalls: changesets.calls }, {
+		assert.deepStrictEqual({ message: result.message, gitCalls: gitService.calls, completionCalls: dardcorRouterService.calls.length, changesetCalls: changesets.calls }, {
 			message: { markdown: 'No uncommitted changes to commit.' },
 			gitCalls: ['hasUncommittedChanges'],
 			completionCalls: 0,
@@ -225,9 +211,9 @@ suite('AgentHostCommitOperationHandler', () => {
 
 	test('returns success when post-commit refresh fails', async () => {
 		const gitService = new TestGitService();
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const changesets = new TestChangesetService();
-		const { handler, session, committedSessions } = setup(disposables, gitService, copilotApiService, changesets, { onCommittedError: new Error('refresh failed') });
+		const { handler, session, committedSessions } = setup(disposables, gitService, dardcorRouterService, changesets, { onCommittedError: new Error('refresh failed') });
 
 		const result = await handler.invoke({ channel: buildUncommittedChangesetUri(session.toString()), operationId: AgentHostCommitOperationHandler.OPERATION_COMMIT }, CancellationToken.None);
 
@@ -246,9 +232,9 @@ suite('AgentHostCommitOperationHandler', () => {
 
 	test('honors cancellation before mutating the repository', async () => {
 		const gitService = new TestGitService();
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const changesets = new TestChangesetService();
-		const { handler, session } = setup(disposables, gitService, copilotApiService, changesets);
+		const { handler, session } = setup(disposables, gitService, dardcorRouterService, changesets);
 		const cts = disposables.add(new CancellationTokenSource());
 		cts.cancel();
 
@@ -257,76 +243,46 @@ suite('AgentHostCommitOperationHandler', () => {
 			/Commit operation was cancelled/,
 		);
 
-		assert.deepStrictEqual({ gitCalls: gitService.calls, completionCalls: copilotApiService.calls.length, changesetCalls: changesets.calls }, {
+		assert.deepStrictEqual({ gitCalls: gitService.calls, completionCalls: dardcorRouterService.calls.length, changesetCalls: changesets.calls }, {
 			gitCalls: [],
 			completionCalls: 0,
 			changesetCalls: [],
 		});
 	});
 
-	test('maps stale Copilot auth failures to AHP_AUTH_REQUIRED before committing', async () => {
+	test('surfaces Router authentication failures without committing', async () => {
 		const gitService = new TestGitService();
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.error = new CopilotApiError(401, {
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.error = new DardcorRouterApiError(401, {
 			type: 'error',
 			error: { type: 'authentication_error', message: 'bad token' },
 			request_id: null,
 		});
 		const changesets = new TestChangesetService();
-		const { handler, session, committedSessions } = setup(disposables, gitService, copilotApiService, changesets);
+		const { handler, session, committedSessions } = setup(disposables, gitService, dardcorRouterService, changesets);
 
-		let err: ProtocolError | undefined;
-		try {
-			await handler.invoke({ channel: buildUncommittedChangesetUri(session.toString()), operationId: AgentHostCommitOperationHandler.OPERATION_COMMIT }, CancellationToken.None);
-		} catch (error) {
-			err = error as ProtocolError;
-		}
-
-		assert.deepStrictEqual({
-			code: err?.code,
-			data: err?.data,
-			gitCalls: gitService.calls,
-			completionCalls: copilotApiService.calls.length,
-			changesetCalls: changesets.calls,
-			committedSessions,
-		}, {
-			code: AHP_AUTH_REQUIRED,
-			data: [GITHUB_COPILOT_PROTECTED_RESOURCE],
-			gitCalls: ['hasUncommittedChanges', 'computeSessionFileDiffs'],
-			completionCalls: 1,
-			changesetCalls: [],
-			committedSessions: [],
+		await assert.rejects(
+			() => handler.invoke({ channel: buildUncommittedChangesetUri(session.toString()), operationId: AgentHostCommitOperationHandler.OPERATION_COMMIT }, CancellationToken.None),
+			error => error instanceof DardcorRouterApiError && error.status === 401,
+		);
+		assert.deepStrictEqual({ gitCalls: gitService.calls, completionCalls: dardcorRouterService.calls.length, changesetCalls: changesets.calls, committedSessions }, {
+			gitCalls: ['hasUncommittedChanges', 'computeSessionFileDiffs'], completionCalls: 1, changesetCalls: [], committedSessions: [],
 		});
 	});
 
-	test('maps Copilot API auth failures to AHP_AUTH_REQUIRED before committing', async () => {
+	test('surfaces other Router failures without committing', async () => {
 		const gitService = new TestGitService();
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.error = new Error('Copilot API authorization failed: 403 Forbidden');
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.error = new Error('Copilot API authorization failed: 403 Forbidden');
 		const changesets = new TestChangesetService();
-		const { handler, session, committedSessions } = setup(disposables, gitService, copilotApiService, changesets);
+		const { handler, session, committedSessions } = setup(disposables, gitService, dardcorRouterService, changesets);
 
-		let err: ProtocolError | undefined;
-		try {
-			await handler.invoke({ channel: buildUncommittedChangesetUri(session.toString()), operationId: AgentHostCommitOperationHandler.OPERATION_COMMIT }, CancellationToken.None);
-		} catch (error) {
-			err = error as ProtocolError;
-		}
-
-		assert.deepStrictEqual({
-			code: err?.code,
-			data: err?.data,
-			gitCalls: gitService.calls,
-			completionCalls: copilotApiService.calls.length,
-			changesetCalls: changesets.calls,
-			committedSessions,
-		}, {
-			code: AHP_AUTH_REQUIRED,
-			data: [GITHUB_COPILOT_PROTECTED_RESOURCE],
-			gitCalls: ['hasUncommittedChanges', 'computeSessionFileDiffs'],
-			completionCalls: 1,
-			changesetCalls: [],
-			committedSessions: [],
+		await assert.rejects(
+			() => handler.invoke({ channel: buildUncommittedChangesetUri(session.toString()), operationId: AgentHostCommitOperationHandler.OPERATION_COMMIT }, CancellationToken.None),
+			/Router authorization failed/,
+		);
+		assert.deepStrictEqual({ gitCalls: gitService.calls, completionCalls: dardcorRouterService.calls.length, changesetCalls: changesets.calls, committedSessions }, {
+			gitCalls: ['hasUncommittedChanges', 'computeSessionFileDiffs'], completionCalls: 1, changesetCalls: [], committedSessions: [],
 		});
 	});
 });

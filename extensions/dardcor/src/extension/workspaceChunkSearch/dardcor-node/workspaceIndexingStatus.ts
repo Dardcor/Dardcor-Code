@@ -20,8 +20,8 @@ import { buildRemoteIndexCommandId, enableExternalIngestCommandId } from './comm
 
 const reauthenticateCommandId = '_dardcor.workspaceIndex.signInAgain';
 
-const codebaseSemanticSearchDocsLink = 'https://aka.ms/vscode-dardcor-workspace-remote-index';
-const externalIngestPolicyLink = 'https://aka.ms/vscode-external-ingest-policy';
+const codebaseSemanticSearchDocsLink = 'https://www.dardcor-code.web.id/docs/workspaces/remote-index';
+const externalIngestPolicyLink = 'https://www.dardcor-code.web.id/docs/enterprise/data-and-privacy';
 const enableExternalIngestCommandLink = `command:${enableExternalIngestCommandId}`;
 
 const enableExternalIngestCommandTitle = t('Enable External Ingest');
@@ -102,7 +102,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 
 		this._register(this.registerCommands());
 
-		// Write an initial status
 		this._writeStatusItem({
 			primary: {
 				message: t`Checking...`,
@@ -112,7 +111,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 			tooltip: t`Checking the current index status...`,
 		});
 
-		// And kick off async update to get the real status
 		this._updateStatusItem();
 	}
 
@@ -124,13 +122,11 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 
 		const state = await this._statusReporter.getIndexState();
 
-		// Make sure a new request hasn't come in since we started
 		if (id !== this.currentUpdateRequestId) {
 			this._logService.trace(`ChatStatusWorkspaceIndexingStatus::updateStatusItem(id=${id}): skipping`);
 			return;
 		}
 
-		// If we have remote index info, prioritize showing information related to it
 		switch (state.remoteIndexState.status) {
 			case 'initializing':
 				return this._writeStatusItem({
@@ -146,7 +142,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 				const externalIngestDisabledInWorkspace = state.remoteIndexState.externalIngestEnablement === ExternalIngestEnablement.DisabledBySetting;
 				const noRepos = state.remoteIndexState.repos.length === 0;
 
-				// See if any repos are still being resolved
 				if (state.remoteIndexState.repos.some(repo => repo.status === CodeSearchRepoStatus.Resolving)) {
 					return this._writeStatusItem({
 						primary: {
@@ -157,7 +152,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 					});
 				}
 
-				// See if any repos are still being checked
 				if (state.remoteIndexState.repos.some(repo => repo.status === CodeSearchRepoStatus.CheckingStatus)) {
 					return this._writeStatusItem({
 						primary: {
@@ -168,7 +162,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 					});
 				}
 
-				// See if we are still building any indexes
 				if (state.remoteIndexState.repos.some(repo => repo.status === CodeSearchRepoStatus.BuildingIndex)
 					|| state.remoteIndexState.externalIngestState?.status === CodeSearchRepoStatus.BuildingIndex
 				) {
@@ -195,13 +188,11 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 					});
 				}
 
-				// Check if we have any authorization errors
 				const readyRepos = state.remoteIndexState.repos.filter(repo => repo.status === CodeSearchRepoStatus.Ready);
 				const notAuthorizedRepos = state.remoteIndexState.repos.filter(repo => repo.status === CodeSearchRepoStatus.NotAuthorized);
 				if (notAuthorizedRepos.length > 0) {
 					const inaccessibleRepo = notAuthorizedRepos[0].remoteInfo;
 					if (readyRepos.length > 0) {
-						// Some repos are ready, some need re-auth
 						return this._writeStatusItem({
 							primary: {
 								message: readyRepos.length === 1
@@ -246,7 +237,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 					});
 				}
 
-				// Check if we have other errors
 				const errorRepos = state.remoteIndexState.repos.filter(repo => repo.status === CodeSearchRepoStatus.CouldNotCheckIndexStatus);
 				if (errorRepos.length > 0) {
 					return this._writeStatusItem({
@@ -258,7 +248,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 					});
 				}
 
-				// See if we have any unindexed repos
 				if (state.remoteIndexState.repos.some(repo => repo.status === CodeSearchRepoStatus.NotYetIndexed)) {
 					return this._writeStatusItem({
 						primary: {
@@ -272,12 +261,8 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 					});
 				}
 
-				// See if we're fully indexed
 				if (
-					// Either with external ingest
 					state.remoteIndexState.externalIngestState?.status === CodeSearchRepoStatus.Ready
-					// Or if external ingest is disabled but all repos are indexed.
-					// This isn't 100% true because files outside of the repos aren't indexed in this case
 					|| (
 						!state.remoteIndexState.externalIngestState
 						&& state.remoteIndexState.repos.length > 0
@@ -311,7 +296,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 					});
 				}
 
-				// External indexing is enabled but not yet fully built
 				if (typeof state.remoteIndexState.externalIngestState !== 'undefined') {
 					return this._writeStatusItem({
 						primary: {
@@ -328,7 +312,6 @@ export class ChatStatusWorkspaceIndexingStatus extends Disposable {
 				break;
 			}
 			case 'disabled': {
-				// fallthrough
 				break;
 			}
 		}

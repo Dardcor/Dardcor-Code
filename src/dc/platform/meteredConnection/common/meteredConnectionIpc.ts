@@ -10,18 +10,12 @@ import { IMeteredConnectionService } from './meteredConnection.js';
 
 export const METERED_CONNECTION_CHANNEL = 'meteredConnection';
 
-/**
- * Commands supported by the metered connection IPC channel.
- */
 export enum MeteredConnectionCommand {
 	OnDidChangeIsConnectionMetered = 'OnDidChangeIsConnectionMetered',
 	IsConnectionMetered = 'IsConnectionMetered',
 	SetIsBrowserConnectionMetered = 'SetIsBrowserConnectionMetered',
 }
 
-/**
- * IPC channel client for the metered connection service.
- */
 export class MeteredConnectionChannelClient extends Disposable implements IMeteredConnectionService {
 	declare readonly _serviceBrand: undefined;
 

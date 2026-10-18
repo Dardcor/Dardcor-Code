@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { GitHubTelemetryNotification } from '@github/copilot-sdk';
+export type GitHubTelemetryNotification = any;
 import { multiplexProperties, type IAgentHostRestrictedTelemetry, type IAgentHostRestrictedTelemetryContext, type TelemetryProps } from './agentHostRestrictedTelemetry.js';
 
 const enum TelemetryDestination {

@@ -1,9 +1,5 @@
 import { CODEBUDDY_CONFIG } from "../constants/oauth.js";
 
-// CodeBuddy (Tencent) - Browser OAuth Polling Flow
-// 1. POST stateUrl → get { state, authUrl }
-// 2. Open authUrl in browser
-// 3. Poll tokenUrl with state until success (code 0) or timeout
 const codebuddyCn = {
   config: CODEBUDDY_CONFIG,
   flowType: "device_code",
@@ -36,8 +32,6 @@ const codebuddyCn = {
     };
   },
   pollToken: async (config, deviceCode) => {
-    // CodeBuddy polls the token endpoint via GET with the state as a query
-    // param (not POST/body) — matches the official CLI's /v2/plugin/auth/token?state=...
     const response = await fetch(`${config.tokenUrl}?state=${encodeURIComponent(deviceCode)}`, {
       method: "GET",
       headers: {
@@ -54,7 +48,6 @@ const codebuddyCn = {
     });
     if (!response.ok) return { ok: false, data: { error: "request_failed" } };
     const data = await response.json();
-    // code 11217 = pending (RetryFetchToken), code 0 = success
     if (data.code === 0 && data.data?.accessToken) {
       return {
         ok: true,

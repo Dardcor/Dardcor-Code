@@ -81,9 +81,6 @@ export async function generateTerminalFixes(instantiationService: IInstantiation
 			}
 			r(picks);
 		}, err => {
-			// Generating terminal fixes is best-effort: a failed model request rejects here.
-			// Surface it as "No fixes found" instead of leaving an unhandled rejection that
-			// also strands the quick pick on "Generating…".
 			instantiationService.invokeFunction(accessor => accessor.get(ILogService)).error(err);
 			r([]);
 		});
@@ -96,7 +93,6 @@ export async function generateTerminalFixes(instantiationService: IInstantiation
 	const pick = vscode.window.createQuickPick<(vscode.QuickPickItem | CommandPick)>();
 	pick.canSelectMany = false;
 
-	// Setup loading state
 	const generatingString = l10n.t('Generating');
 	pick.placeholder = generatingString;
 	pick.busy = true;
@@ -113,7 +109,6 @@ export async function generateTerminalFixes(instantiationService: IInstantiation
 	pick.show();
 	pick.items = await picksPromise;
 
-	// Clear loading state
 	dotTimer.cancel();
 	pick.placeholder = '';
 	pick.busy = false;
@@ -151,7 +146,6 @@ class TerminalQuickFixGenerator {
 		for (const uri of unverifiedContextUris) {
 			try {
 				const exists = await vscode.workspace.fs.stat(uri);
-				// This does not support binary files
 				if (exists.type === vscode.FileType.File || exists.type === vscode.FileType.SymbolicLink) {
 					verifiedContextUris.push(uri);
 				} else if (exists.type === vscode.FileType.Directory) {
@@ -192,10 +186,8 @@ class TerminalQuickFixGenerator {
 		}
 		this._logService.debug('generalTerminalQuickFix fetchResult.value ' + fetchResult.value);
 
-		// Parse result json
 		const parsedResults: ICommandSuggestion[] = [];
 		try {
-			// The result may come in a md fenced code block
 			const codeblocks = extractCodeBlocks(fetchResult.value);
 			const json = JSON.parse(codeblocks.length > 0 ? codeblocks[0].code : fetchResult.value) as unknown;
 			if (json && Array.isArray(json)) {
@@ -249,7 +241,6 @@ class TerminalQuickFixGenerator {
 
 		this._logService.debug('_generalTerminalQuickFixFileContext fetchResult.value' + fetchResult.value);
 
-		// Parse result json
 		const parsedResults: { fileName: string }[] = [];
 		try {
 			const json = JSON.parse(fetchResult.value) as unknown;
@@ -264,7 +255,6 @@ class TerminalQuickFixGenerator {
 				}
 			}
 		} catch {
-			// no-op
 		}
 
 		const uris: Uri[] = [];
@@ -277,7 +267,6 @@ class TerminalQuickFixGenerator {
 					return;
 				}
 				requestedFiles.add(uri.toString());
-				// Do not stat here as the follow up wants to know whether it exists
 				uris.push(uri);
 			}
 		};

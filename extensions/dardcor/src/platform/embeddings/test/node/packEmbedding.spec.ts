@@ -12,8 +12,6 @@ suite('Pack Embedding', () => {
 	test('Text3small should pack and unpack to same values', () => {
 		const embedding: Embedding = {
 			type: EmbeddingType.text3small_512,
-			// Start with float32 array so that we don't check for the very small rounding
-			// that can happen when going from js number -> float32
 			value: Array.from(Float32Array.from({ length: 512 }, () => Math.random())),
 		};
 
@@ -45,7 +43,6 @@ suite('Pack Embedding', () => {
 
 		const serialized = packEmbedding(embedding);
 
-		// Now create a new buffer and write the serialized data to it at an offset
 		const prefixAndSuffixSize = 512;
 		const buffer = new Uint8Array(serialized.length + prefixAndSuffixSize * 2);
 		for (let i = 0; i < serialized.length; i++) {
@@ -65,7 +62,6 @@ suite('Pack Embedding', () => {
 			value: Array.from({ length: 1024 }, () => Math.random() < 0.5 ? 0.03125 : -0.03125)
 		};
 
-		// Don't use pack
 		const float32Buf = Float32Array.from(embedding.value);
 		const serialized = new Uint8Array(float32Buf.buffer, float32Buf.byteOffset, float32Buf.byteLength);
 

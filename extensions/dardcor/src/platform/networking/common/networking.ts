@@ -23,11 +23,6 @@ import { FinishedCallback, OpenAiFunctionTool, OpenAiResponsesFunctionTool, Open
 import { FetcherId, FetchOptions, IAbortController, IFetcherService, PaginationOptions, Response } from './fetcherService';
 import { ChatCompletion, OpenAIContextManagement, RawMessageConversionCallback, rawMessageToCAPI } from './openai';
 
-/**
- * Encapsulates all the functionality related to making GET/POST requests using
- * different libraries (and in the future, different environments like web vs
- * node).
- */
 export interface IFetcher {
 	getUserAgentLibrary(): string;
 	fetch(url: string, options: FetchOptions): Promise<Response>;
@@ -44,24 +39,14 @@ export interface IFetcher {
 export const userAgentLibraryHeader = 'X-VSCode-User-Agent-Library-Version';
 
 export type ReqHeaders = { [key: string]: string };
-/**
- * The HeaderContributor provides the interface which allows implmentors
- * to decorate a request's `headers` object with additional key / value pairs.
- */
 export interface HeaderContributor {
 	contributeHeaderValues(headers: ReqHeaders): void;
 }
 
-// The maximum time to wait for a request to complete.
-const requestTimeoutMs = 30 * 1000; // 30 seconds
+const requestTimeoutMs = 30 * 1000;
 
 
-/**
- * Rough shape of an endpoint body. A superset of the parameters of any request,
- * but provided to at least have rough typings.
- */
 export interface IEndpointBody {
-	/** General or completions: */
 	tools?: (OpenAiFunctionTool | OpenAiResponsesFunctionTool | AnthropicMessagesTool | OpenAiToolSearchTool)[];
 	model?: string;
 	previous_response_id?: string;
@@ -84,26 +69,20 @@ export interface IEndpointBody {
 	snippy?: { enabled: boolean };
 	stream_options?: { include_usage?: boolean };
 	prompt?: string;
-	/** OpenAI Chat Completions API top-level reasoning effort (BYOK chat-completions shape). Mirrors the nested `reasoning.effort` used by the Responses API. */
 	reasoning_effort?: string;
-	/** Embeddings endpoints only: */
 	dimensions?: number;
 	embed?: boolean;
-	/** Chunking endpoints: */
 	qos?: any;
 	content?: string;
 	path?: string;
 	local_hashes?: string[];
 	language_id?: number;
-	/** docs search */
 	query?: string;
 	scopingQuery?: string;
 	limit?: number;
 	similarity?: number;
-	/** Code search: */
 	scoping_query?: string;
 
-	/** Responses API: */
 	input?: readonly any[];
 	truncation?: 'auto' | 'disabled';
 	prompt_cache_key?: string;
@@ -114,17 +93,14 @@ export interface IEndpointBody {
 		verbosity?: 'low' | 'medium' | 'high';
 	};
 
-	/** Messages API */
 	thinking?: {
 		type: 'enabled' | 'disabled' | 'adaptive';
 		budget_tokens?: number;
 	};
 	output_config?: {
-		/** Validated against the endpoint's declared `reasoning_effort` levels, not a hardcoded set. */
 		effort?: string;
 	};
 
-	/** ChatCompletions API for Anthropic models */
 	thinking_budget?: number;
 }
 
@@ -152,22 +128,10 @@ export function stringifyUrlOrRequestMetadata(urlOrRequestMetadata: string | Req
 	return JSON.stringify(urlOrRequestMetadata);
 }
 
-/**
- * Whether the given value is {@link RequestMetadata} (routed through CAPI) rather
- * than a literal URL string (fetched directly, e.g. BYOK / custom endpoints).
- *
- * This is the exact discriminant used by `networkRequest`: a `RequestMetadata`
- * object is dispatched via {@link ICAPIClientService.makeRequest}, whereas a
- * `string` URL is sent straight to {@link IFetcherService.fetch}.
- */
 export function isCAPIRequestMetadata(urlOrRequestMetadata: string | RequestMetadata): urlOrRequestMetadata is RequestMetadata {
 	return typeof urlOrRequestMetadata !== 'string';
 }
 
-/**
- * Whether requests for this endpoint are routed through CAPI (the Copilot proxy)
- * rather than fetched directly from a literal URL (BYOK / custom endpoints).
- */
 export function isCAPIEndpoint(endpoint: IEndpoint): boolean {
 	return isCAPIRequestMetadata(endpoint.urlOrRequestMetadata);
 }
@@ -176,81 +140,37 @@ export interface IEmbeddingsEndpoint extends IEndpoint {
 	readonly maxBatchSize: number;
 }
 
-/** Per-request model capability opt-ins. All off by default. */
 export interface IModelCapabilityOptions {
-	/** Explicitly enable thinking for this request. */
 	enableThinking?: boolean;
-	/** Reasoning effort level (e.g. 'low', 'medium', 'high'). Only used when enableThinking is true or when the model supports reasoning effort. */
 	reasoningEffort?: string;
-	/** Enable the tool search tool for this request. */
 	enableToolSearch?: boolean;
-	/** Enable context editing for this request. */
 	enableContextEditing?: boolean;
 }
 
 export interface IMakeChatRequestOptions {
-	/** The debug name for this request */
 	debugName: string;
-	/** The array of chat messages to send */
 	messages: Raw.ChatMessage[];
-	/** Enable WebSocket transport for this request when supported. */
 	useWebSocket?: boolean;
-	/** Disable Responses API stateful marker reuse, preventing previous_response_id-based history slicing. */
 	ignoreStatefulMarker?: boolean;
-	/** Indicates whether the request's mode instructions changed from the previous turn. */
 	modeChanged?: boolean;
-	/** Streaming callback for each response part. */
 	finishedCb: FinishedCallback | undefined;
-	/** Location where the chat message is being sent. */
 	location: ChatLocation;
-	/** Optional source of the chat request */
 	source?: Source;
-	/** Conversation identifier used for request-scoped state (for example WebSocket connection reuse). */
 	conversationId?: string;
-	/** Optional identifier for an independent WebSocket connection within a conversation. */
 	webSocketConnectionId?: string;
-	/** Identifier for a single tool-calling turn within a conversation. */
 	turnId?: string;
-	/** Additional request options */
 	requestOptions?: Omit<OptionalChatRequestParams, 'n'>;
-	/** Indicates if the request was user-initiated */
 	userInitiatedRequest?: boolean;
-	/** Indicate whether this is a conversation request or a non-conversation utility request (like model list fetch or title generation) */
 	isConversationRequest?: boolean;
-	/** (CAPI-only) Optional telemetry properties for analytics */
 	telemetryProperties?: IChatRequestTelemetryProperties;
-	/** Enable retrying the request when it was filtered due to snippy. Note- if using finishedCb, requires supporting delta.retryReason, eg with clearToPreviousToolInvocation */
 	enableRetryOnFilter?: boolean;
-	/** Enable retrying the request when it failed. Defaults to enableRetryOnFilter. Note- if using finishedCb, requires supporting delta.retryReason, eg with clearToPreviousToolInvocation */
 	enableRetryOnError?: boolean;
-	/** Which fetcher to use, overrides the default. */
 	useFetcher?: FetcherId;
-	/** Per-request model capability opt-ins (thinking, tool search, context editing). */
 	modelCapabilities?: IModelCapabilityOptions;
-	/**
-	 * The round ID at which the most recent client-side summarization occurred.
-	 * Used to detect when the WebSocket stateful marker predates a summary.
-	 */
 	summarizedAtRoundId?: string;
-	/** Enable retrying once on simple network errors like ECONNRESET. */
 	canRetryOnceWithoutRollback?: boolean;
-	/** Custom metadata to be displayed in the log document */
 	customMetadata?: Record<string, string | number | boolean | undefined>;
-	/** Top-level turn ID for credit accumulation. When set, dardcor_usage costs
-	 *  are attributed to this ID instead of turnId. Used so that all LLM calls
-	 *  in a turn (including subagents) aggregate under one key. */
 	topLevelTurnId?: string;
-	/**
-	 * Override for the `X-Interaction-Type` header (and matching `requestKind`
-	 * telemetry value). When unset, the value is derived from {@link ChatLocation}
-	 * via `locationToIntent` (e.g. panel → `conversation-panel`).
-	 *
-	 * Set this for callers whose surface isn't captured by the location alone:
-	 * - `'conversation-subagent'` — search/exec subagents inside an agent turn.
-	 * - `'conversation-background'` — utility calls not tied to an active user
-	 *   turn (e.g. chat title generation, conversation summarization, branch
-	 *   name suggestion, prompt categorization).
-	 */
 	interactionTypeOverride?: InteractionTypeOverride;
 }
 
@@ -265,19 +185,12 @@ export type IChatRequestTelemetryProperties = {
 	connectivityTestError?: string;
 	connectivityTestErrorGitHubRequestId?: string;
 	retryAfterFilterCategory?: string;
-	/** A subtype for categorizing the request with a messageSource- eg subagent */
 	subType?: string;
-	/** For a subagent: The request ID of the parent request that invoked this subagent. */
 	parentRequestId?: string;
-	/** For a subagent: The tool_call_id from the parent agent's LLM response that triggered this subagent invocation. */
 	parentToolCallId?: string;
-	/** For a subagent: The headerRequestId from the parent agent's fetch response that triggered this subagent invocation. */
 	parentHeaderRequestId?: string;
-	/** For a subagent: The modelCallId from the parent agent's model call that triggered this subagent invocation. */
 	parentModelCallId?: string;
-	/** The conversation turn index, matching the panel.request turn measurement. */
 	turnIndex?: string;
-	/** The 0-based iteration number of the tool-calling loop that produced this request. */
 	iterationNumber?: string;
 };
 
@@ -286,44 +199,21 @@ export interface ICreateEndpointBodyOptions extends IMakeChatRequestOptions {
 	postOptions: OptionalChatRequestParams;
 }
 
-/**
- * A single tier of normalized token pricing in AICs per million tokens.
- */
 export interface ITokenPriceTier {
-	/** Cost in AICs per million input tokens */
 	readonly inputPrice: number;
-	/** Cost in AICs per million output tokens */
 	readonly outputPrice: number;
-	/** Cost in AICs per million cached (read) tokens */
 	readonly cacheReadTokenPrice: number | undefined;
-	/** Cost in AICs per million cache-write tokens */
 	readonly cacheWriteTokenPrice: number | undefined;
-	/**
-	 * The largest prompt size (in tokens) billed at this tier's rates.
-	 * Derived from CAPI `billing.token_prices.<tier>.context_max`.
-	 * Present only when CAPI provides a `long_context` tier.
-	 */
 	readonly contextMax?: number;
 }
 
-/**
- * Normalized token pricing in AICs per million tokens, mirroring the CAPI
- * tiered structure with explicit `default` and optional `longContext` tiers.
- */
 export interface IChatEndpointTokenPricing {
-	/** Default-context tier pricing. */
 	readonly default: ITokenPriceTier;
-	/**
-	 * Long-context tier pricing, present only when its rates differ from the
-	 * default tier. When absent the model either has no long-context tier or
-	 * its prices match the default tier.
-	 */
 	readonly longContext?: ITokenPriceTier;
 }
 
 export interface IChatEndpoint extends IEndpoint {
 	readonly maxOutputTokens: number;
-	/** The model ID- this may change and will be `dardcor-utility` for the utility (fallback) model. Use `family` to switch behavior based on model type. */
 	readonly model: string;
 	readonly modelProvider: string;
 	readonly apiType?: string;
@@ -345,11 +235,6 @@ export interface IChatEndpoint extends IEndpoint {
 	readonly promo?: { id: string; discountPercent: number; endsAt: string; message: string };
 	readonly multiplier?: number;
 	readonly restrictedToSkus?: string[];
-	/**
-	 * Normalized token pricing in AICs per million tokens.
-	 * Computed from the raw billing token_prices and normalized
-	 * to per-million-token rates based on batch_size.
-	 */
 	readonly tokenPricing?: IChatEndpointTokenPricing;
 	readonly priceCategory?: string;
 	readonly modelPickerCategory?: string;
@@ -357,26 +242,7 @@ export interface IChatEndpoint extends IEndpoint {
 	readonly customModel?: CustomModel;
 	readonly isExtensionContributed?: boolean;
 	readonly maxPromptImages?: number;
-	/**
-	 * When true, this endpoint owns its own credentials via {@link IEndpoint.getExtraHeaders}
-	 * (e.g. a BYOK target with a user-supplied `api-key`, `x-api-key`, or `Authorization`) and
-	 * the chat fetcher must not fall back to the CAPI Copilot token for the `Authorization`
-	 * header. Prevents leaking the user's CAPI bearer token to third-party endpoints, and
-	 * avoids over-sending an unintended `Authorization: Bearer …` to gateways (strict
-	 * APIM policies, etc.) that validate the header.
-	 */
 	readonly ownsAuthorization?: boolean;
-	/**
-	 * Handles processing of responses from a chat endpoint. Each endpoint can have different response formats.
-	 * @param telemetryService The telemetry service
-	 * @param logService The log service
-	 * @param response The response from the chat endpoint
-	 * @param expectedNumChoices The expected number of choices in the response
-	 * @param finishCallback A finish callback to indicate when the response should be complete
-	 * @param telemetryData GH telemetry data from the originating request, will be extended with request information
-	 * @param cancellationToken A cancellation tokenf for cancelling the request
-	 * @returns An async iterable object of chat completions
-	 */
 	processResponseFromChatEndpoint(
 		telemetryService: ITelemetryService,
 		logService: ILogService,
@@ -388,14 +254,6 @@ export interface IChatEndpoint extends IEndpoint {
 		location?: ChatLocation,
 	): Promise<AsyncIterableObject<ChatCompletion>>;
 
-	/**
-	 * Flights a request from the chat endpoint returning a chat response.
-	 * Most of the time this is ChatMLFetcher#fetchOne, but it can be overridden for special cases.
-	 * TODO @lramos15 - Support multiple completions in the future, we don't use this at the moment.
-	 *
-	 * @param userInitiatedRequest Is only applicable to CAPI requests
-	 * @param telemetryProperties An object containing various properties for telemetry, e.g., can contain a field `requestId` that sets the header request ID
-	 */
 	makeChatRequest(
 		debugName: string,
 		messages: Raw.ChatMessage[],
@@ -408,30 +266,18 @@ export interface IChatEndpoint extends IEndpoint {
 		telemetryProperties?: TelemetryProperties,
 	): Promise<ChatResponse>;
 
-	/**
-	 * Flights a request from the chat endpoint returning a chat response.
-	 * Most of the time this is ChatMLFetcher#fetchOne, but it can be overridden for special cases.
-	 */
 	makeChatRequest2(options: IMakeChatRequestOptions, token: CancellationToken): Promise<ChatResponse>;
 
-	/**
-	 * Creates the request body to be sent to the endpoint based on the request.
-	 */
 	createRequestBody(options: ICreateEndpointBodyOptions): IEndpointBody;
 
 	cloneWithTokenOverride(modelMaxPromptTokens: number): IChatEndpoint;
 }
 
-/** Function to create a standard request body for CAPI completions */
 export function createCapiRequestBody(options: ICreateEndpointBodyOptions, model: string, callback?: RawMessageConversionCallback) {
-	// FIXME@ulugbekna: need to investigate why language configs have such stop words, eg
-	// python has `\ndef` and `\nclass` which must be stop words for ghost text
-	// const stops = getLanguageConfig<string[]>(accessor, ConfigKey.Stops);
 
 	const request: IEndpointBody = {
 		messages: rawMessageToCAPI(options.messages, callback),
 		model,
-		// stop: stops,
 	};
 
 	if (options.postOptions) {
@@ -456,20 +302,6 @@ export interface INetworkRequestOptions {
 	readonly interactionTypeOverride?: InteractionTypeOverride;
 }
 
-/**
- * Override values for the `X-Interaction-Type` header (and matching `requestKind`
- * telemetry value). Mirrors the server's documented vocabulary; only used when the
- * location-derived intent isn't accurate.
- *
- * - `'conversation-subagent'` — nested LLM calls made by a subagent inside an
- *   agent turn (search/exec subagents).
- * - `'conversation-compaction'` — mid-agent-turn history compaction (user is
- *   waiting; runs on the same model as the agent loop). Distinct from background
- *   summarization, which uses a cheap model and is not tied to an active turn.
- * - `'conversation-background'` — utility calls not tied to an active user turn
- *   (e.g. chat title generation, conversation summarization, prompt categorization,
- *   branch name suggestion, background todo processing).
- */
 export type InteractionTypeOverride = 'conversation-subagent' | 'conversation-compaction' | 'conversation-background';
 
 function networkRequest(
@@ -481,7 +313,6 @@ function networkRequest(
 	const capiClientService = accessor.get(ICAPIClientService);
 	const { requestType, endpointOrUrl, secretKey, intent, requestId, body, additionalHeaders, cancelToken, useFetcher, canRetryOnce = true, location } = options;
 
-	// TODO @lramos15 Eventually don't even construct this fake endpoint object.
 	const endpoint = typeof endpointOrUrl === 'string' || 'type' in endpointOrUrl ? {
 		modelMaxPromptTokens: 0,
 		urlOrRequestMetadata: endpointOrUrl,
@@ -498,7 +329,7 @@ function networkRequest(
 	const headers: ReqHeaders = {
 		...(secretKey ? { Authorization: `Bearer ${secretKey}` } : {}),
 		'X-Request-Id': requestId,
-		'OpenAI-Intent': intent, // Tells CAPI who flighted this request. Helps find buggy features
+		'OpenAI-Intent': intent,
 		'X-GitHub-Api-Version': '2026-01-09',
 		...additionalHeaders,
 		...(endpoint.getExtraHeaders ? endpoint.getExtraHeaders(location, options.interactionTypeOverride) : {}),
@@ -524,19 +355,16 @@ function networkRequest(
 	if (cancelToken) {
 		const abort = fetcher.makeAbortController();
 		cancelToken.onCancellationRequested(() => {
-			// abort the request when the token is canceled
 			telemetryService.sendGHTelemetryEvent('networking.cancelRequest', {
 				headerRequestId: requestId,
 			});
 			abort.abort();
 		});
-		// pass the controller abort signal to the request
 		request.signal = abort.signal;
 	}
 	if (!isCAPIRequestMetadata(endpoint.urlOrRequestMetadata)) {
 		const requestPromise = fetcher.fetch(endpoint.urlOrRequestMetadata, request).catch(reason => {
 			if (canRetryOnce && canRetryOnceNetworkError(reason)) {
-				// disconnect and retry the request once if the connection was reset
 				telemetryService.sendGHTelemetryEvent('networking.disconnectAll');
 				return fetcher.disconnectAll().then(() => {
 					return fetcher.fetch(endpoint.urlOrRequestMetadata as string, request);

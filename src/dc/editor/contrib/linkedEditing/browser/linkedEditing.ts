@@ -70,7 +70,7 @@ export class LinkedEditingContribution extends Disposable implements IEditorCont
 	private _currentRequestPosition: Position | null;
 	private _currentRequestModelVersion: number | null;
 
-	private _currentDecorations: IEditorDecorationsCollection; // The one at index 0 is the reference one
+	private _currentDecorations: IEditorDecorationsCollection;
 	private _syncRangesToken: number = 0;
 
 	private _languageWordPattern: RegExp | null;
@@ -177,9 +177,7 @@ export class LinkedEditingContribution extends Disposable implements IEditorCont
 	}
 
 	private _syncRanges(token: number): void {
-		// delayed invocation, make sure we're still on
 		if (!this._editor.hasModel() || token !== this._syncRangesToken || this._currentDecorations.length === 0) {
-			// nothing to do
 			return;
 		}
 
@@ -281,7 +279,6 @@ export class LinkedEditingContribution extends Disposable implements IEditorCont
 
 		const position = this._editor.getPosition();
 		if (!this._enabled && !force || this._editor.getSelections().length > 1) {
-			// disabled or multicursor
 			this.clearRanges();
 			return;
 		}
@@ -290,22 +287,19 @@ export class LinkedEditingContribution extends Disposable implements IEditorCont
 		const modelVersionId = model.getVersionId();
 		if (this._currentRequestPosition && this._currentRequestModelVersion === modelVersionId) {
 			if (position.equals(this._currentRequestPosition)) {
-				return; // same position
+				return;
 			}
 			if (this._currentDecorations.length > 0) {
 				const range = this._currentDecorations.getRange(0);
 				if (range && range.containsPosition(position)) {
-					return; // just moving inside the existing primary range
+					return;
 				}
 			}
 		}
 
 		if (!this._currentRequestPosition?.equals(position)) {
-			// Get the current range of the first decoration (reference range)
 			const currentRange = this._currentDecorations.getRange(0);
-			// If there is no current range or the current range does not contain the new position, clear the ranges
 			if (!currentRange?.containsPosition(position)) {
-				// Clear existing decorations while we compute new ones
 				this.clearRanges();
 			}
 		}
@@ -347,7 +341,6 @@ export class LinkedEditingContribution extends Disposable implements IEditorCont
 			}
 
 			if (!foundReferenceRange) {
-				// Cannot do linked editing if the ranges are not where the cursor is...
 				this.clearRanges();
 				return;
 			}
@@ -355,44 +348,24 @@ export class LinkedEditingContribution extends Disposable implements IEditorCont
 			const decorations: IModelDeltaDecoration[] = ranges.map(range => ({ range: range, options: LinkedEditingContribution.DECORATION }));
 			this._visibleContextKey.set(true);
 			this._currentDecorations.set(decorations);
-			this._syncRangesToken++; // cancel any pending syncRanges call
+			this._syncRangesToken++;
 		} catch (err) {
 			if (!isCancellationError(err)) {
 				onUnexpectedError(err);
 			}
 			if (this._currentRequestCts === currentRequestCts || !this._currentRequestCts) {
-				// stop if we are still the latest request
 				this.clearRanges();
 			}
 		}
 
 	}
 
-	// for testing
 	public setDebounceDuration(timeInMS: number) {
 		this._debounceDuration = timeInMS;
 	}
 
-	// private printDecorators(model: ITextModel) {
-	// 	return this._currentDecorations.map(d => {
-	// 		const range = model.getDecorationRange(d);
-	// 		if (range) {
-	// 			return this.printRange(range);
-	// 		}
-	// 		return 'invalid';
-	// 	}).join(',');
-	// }
 
-	// private printChanges(changes: IModelContentChange[]) {
-	// 	return changes.map(c => {
-	// 		return `${this.printRange(c.range)} - ${c.text}`;
-	// 	}
-	// 	).join(',');
-	// }
 
-	// private printRange(range: IRange) {
-	// 	return `${range.startLineNumber},${range.startColumn}/${range.endLineNumber},${range.endColumn}`;
-	// }
 }
 
 export class LinkedEditingAction extends EditorAction {
@@ -455,9 +428,6 @@ registerEditorCommand(new LinkedEditingCommand({
 function getLinkedEditingRanges(providers: LanguageFeatureRegistry<LinkedEditingRangeProvider>, model: ITextModel, position: Position, token: CancellationToken): Promise<LinkedEditingRanges | undefined | null> {
 	const orderedByScore = providers.ordered(model);
 
-	// in order of score ask the linked editing range provider
-	// until someone response with a good result
-	// (good = not null)
 	return first<LinkedEditingRanges | undefined | null>(orderedByScore.map(provider => async () => {
 		try {
 			return await provider.provideLinkedEditingRanges(model, position, token);

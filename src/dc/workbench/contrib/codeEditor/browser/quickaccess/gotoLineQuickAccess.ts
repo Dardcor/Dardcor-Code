@@ -48,9 +48,8 @@ export class GotoLineQuickAccessProvider extends AbstractGotoLineQuickAccessProv
 
 	protected override gotoLocation(context: IQuickAccessTextEditorContext, options: { range: IRange; keyMods: IKeyMods; forceSideBySide?: boolean; preserveFocus?: boolean }): void {
 
-		// Check for sideBySide use
 		if ((options.keyMods.alt || (this.configuration.openEditorPinned && options.keyMods.ctrlCmd) || options.forceSideBySide) && this.editorService.activeEditor) {
-			context.restoreViewState?.(); // since we open to the side, restore view state in this editor
+			context.restoreViewState?.();
 
 			const editorOptions: ITextEditorOptions = {
 				selection: options.range,
@@ -61,7 +60,6 @@ export class GotoLineQuickAccessProvider extends AbstractGotoLineQuickAccessProv
 			this.editorService.openEditor(this.editorService.activeEditor, editorOptions, SIDE_GROUP);
 		}
 
-		// Otherwise let parent handle it
 		else {
 			super.gotoLocation(context, options);
 		}

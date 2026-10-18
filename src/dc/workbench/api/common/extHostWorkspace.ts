@@ -40,7 +40,6 @@ import { bufferToStream, readableToBuffer, VSBuffer } from '../../../base/common
 import { toDecodeStream, toEncodeReadable, UTF8 } from '../../services/textfile/common/encoding.js';
 import { consumeStream } from '../../../base/common/stream.js';
 import { stringToSnapshot } from '../../services/textfile/common/textfiles.js';
-// Type-only import to avoid a runtime cycle with extHostConfiguration.ts.
 import type { ExtHostConfigProvider } from './extHostConfiguration.js';
 
 export interface IExtHostWorkspaceProvider {
@@ -94,9 +93,7 @@ interface QueryOptions<T> {
 type FindFilesApiKind = 'findFiles' | 'findFiles2';
 
 interface FindFilesCallIntent {
-	/** Value the extension explicitly passed for `useIgnoreFiles.local` (findFiles2); `undefined` if not specified or N/A for legacy `findFiles`. */
 	readonly useIgnoreFilesLocal: boolean | undefined;
-	/** Whether the extension passed `null` as the `exclude` argument to legacy `findFiles` (the documented escape hatch). Always `false` for findFiles2. */
 	readonly excludeWasNull: boolean;
 }
 
@@ -110,9 +107,6 @@ class ExtHostWorkspaceImpl extends Workspace {
 		const { id, name, folders, configuration, transient, isUntitled } = data;
 		const newWorkspaceFolders: vscode.WorkspaceFolder[] = [];
 
-		// If we have an existing workspace, we try to find the folders that match our
-		// data and update their properties. It could be that an extension stored them
-		// for later use and we want to keep them "live" if they are still present.
 		const oldWorkspace = previousConfirmedWorkspace;
 		if (previousConfirmedWorkspace) {
 			folders.forEach((folderData, index) => {
@@ -132,7 +126,6 @@ class ExtHostWorkspaceImpl extends Workspace {
 			newWorkspaceFolders.push(...folders.map(({ uri, name, index }) => ({ uri: URI.revive(uri), name, index })));
 		}
 
-		// make sure to restore sort order based on index
 		newWorkspaceFolders.sort((f1, f2) => f1.index < f2.index ? -1 : 1);
 
 		const workspace = new ExtHostWorkspaceImpl(id, name, newWorkspaceFolders, !!transient, configuration ? URI.revive(configuration) : null, !!isUntitled, uri => ignorePathCasing(uri, extHostFileSystemInfo));
@@ -159,7 +152,6 @@ class ExtHostWorkspaceImpl extends Workspace {
 		super(id, folders.map(f => new WorkspaceFolder(f)), transient, configuration, ignorePathCasing);
 		this._structure = TernarySearchTree.forUris<vscode.WorkspaceFolder>(ignorePathCasing, () => true);
 
-		// setup the workspace folder data structure
 		folders.forEach(folder => {
 			this._workspaceFolders.push(folder);
 			this._structure.set(folder.uri, folder);
@@ -180,7 +172,6 @@ class ExtHostWorkspaceImpl extends Workspace {
 
 	getWorkspaceFolder(uri: URI, resolveParent?: boolean): vscode.WorkspaceFolder | undefined {
 		if (resolveParent && this._structure.get(uri)) {
-			// `uri` is a workspace folder so we check for its parent
 			uri = dirname(uri);
 		}
 		return this._structure.findSubstr(uri);
@@ -223,7 +214,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 
 	private readonly _editSessionIdentityProviders = new Map<string, vscode.EditSessionIdentityProvider>();
 
-	// Pushed in by ExtHostConfiguration after init (see `$setConfigProvider`).
 	private _configProvider?: ExtHostConfigProvider;
 
 	constructor(
@@ -246,11 +236,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		this._confirmedWorkspace = data ? new ExtHostWorkspaceImpl(data.id, data.name, [], !!data.transient, data.configuration ? URI.revive(data.configuration) : null, !!data.isUntitled, uri => ignorePathCasing(uri, extHostFileSystemInfo)) : undefined;
 	}
 
-	/**
-	 * Receives the configuration provider from ExtHostConfiguration after init. We cannot inject
-	 * IExtHostConfiguration directly because it creates a DI cycle (ExtHostConfiguration already
-	 * depends on IExtHostWorkspace). Once set, settings reads in findFiles become synchronous.
-	 */
 	$setConfigProvider(provider: ExtHostConfigProvider): void {
 		this._configProvider = provider;
 	}
@@ -260,8 +245,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 	}
 
 	private _userIgnoreFilesSetting(): boolean {
-		// Default in `search.useIgnoreFiles` is `true`; mirror that here so telemetry computed against
-		// an unset config still reflects the fallback the query builder will apply.
 		return this._configProvider?.getConfiguration('search').get<boolean>('useIgnoreFiles') ?? true;
 	}
 
@@ -275,7 +258,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		return this._barrier.wait();
 	}
 
-	// --- workspace ---
 
 	get workspace(): Workspace | undefined {
 		return this._actualWorkspace;
@@ -289,10 +271,10 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		if (this._actualWorkspace) {
 			if (this._actualWorkspace.configuration) {
 				if (this._actualWorkspace.isUntitled) {
-					return URI.from({ scheme: Schemas.untitled, path: basename(dirname(this._actualWorkspace.configuration)) }); // Untitled Workspace: return untitled URI
+					return URI.from({ scheme: Schemas.untitled, path: basename(dirname(this._actualWorkspace.configuration)) });
 				}
 
-				return this._actualWorkspace.configuration; // Workspace: return the configuration location
+				return this._actualWorkspace.configuration;
 			}
 		}
 
@@ -329,55 +311,49 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		}
 
 		if (!!this._unconfirmedWorkspace) {
-			return false; // prevent accumulated calls without a confirmed workspace
+			return false;
 		}
 
 		if ([index, deleteCount].some(i => typeof i !== 'number' || i < 0)) {
-			return false; // validate numbers
+			return false;
 		}
 
 		if (deleteCount === 0 && validatedDistinctWorkspaceFoldersToAdd.length === 0) {
-			return false; // nothing to delete or add
+			return false;
 		}
 
 		const currentWorkspaceFolders: MutableWorkspaceFolder[] = this._actualWorkspace ? this._actualWorkspace.workspaceFolders : [];
 		if (index + deleteCount > currentWorkspaceFolders.length) {
-			return false; // cannot delete more than we have
+			return false;
 		}
 
-		// Simulate the updateWorkspaceFolders method on our data to do more validation
 		const newWorkspaceFolders = currentWorkspaceFolders.slice(0);
-		newWorkspaceFolders.splice(index, deleteCount, ...validatedDistinctWorkspaceFoldersToAdd.map(f => ({ uri: f.uri, name: f.name || basenameOrAuthority(f.uri), index: undefined! /* fixed later */ })));
+		newWorkspaceFolders.splice(index, deleteCount, ...validatedDistinctWorkspaceFoldersToAdd.map(f => ({ uri: f.uri, name: f.name || basenameOrAuthority(f.uri), index: undefined! })));
 
 		for (let i = 0; i < newWorkspaceFolders.length; i++) {
 			const folder = newWorkspaceFolders[i];
 			if (newWorkspaceFolders.some((otherFolder, index) => index !== i && isFolderEqual(folder.uri, otherFolder.uri, this._extHostFileSystemInfo))) {
-				return false; // cannot add the same folder multiple times
+				return false;
 			}
 		}
 
-		newWorkspaceFolders.forEach((f, index) => f.index = index); // fix index
+		newWorkspaceFolders.forEach((f, index) => f.index = index);
 		const { added, removed } = delta(currentWorkspaceFolders, newWorkspaceFolders, compareWorkspaceFolderByUriAndNameAndIndex, this._extHostFileSystemInfo);
 		if (added.length === 0 && removed.length === 0) {
-			return false; // nothing actually changed
+			return false;
 		}
 
-		// Trigger on main side
 		if (this._proxy) {
 			const extName = extension.displayName || extension.name;
 			this._proxy.$updateWorkspaceFolders(extName, index, deleteCount, validatedDistinctWorkspaceFoldersToAdd).then(undefined, error => {
 
-				// in case of an error, make sure to clear out the unconfirmed workspace
-				// because we cannot expect the acknowledgement from the main side for this
 				this._unconfirmedWorkspace = undefined;
 
-				// show error to user
 				const options: MainThreadMessageOptions = { source: { identifier: extension.identifier, label: extension.displayName || extension.name } };
 				this._messageService.$showMessage(Severity.Error, localize('updateerror', "Extension '{0}' failed to update workspace folders: {1}", extName, error.toString()), options, []);
 			});
 		}
 
-		// Try to accept directly
 		this.trySetWorkspaceFolders(newWorkspaceFolders);
 
 		return true;
@@ -408,9 +384,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 
 	getPath(): string | undefined {
 
-		// this is legacy from the days before having
-		// multi-root and we keep it only alive if there
-		// is just one workspace folder.
 		if (!this._actualWorkspace) {
 			return undefined;
 		}
@@ -419,7 +392,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		if (folders.length === 0) {
 			return undefined;
 		}
-		// #54483 @Joh Why are we still using fsPath?
 		return folders[0].uri.fsPath;
 	}
 
@@ -461,8 +433,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 
 	private trySetWorkspaceFolders(folders: vscode.WorkspaceFolder[]): void {
 
-		// Update directly here. The workspace is unconfirmed as long as we did not get an
-		// acknowledgement from the main side (via $acceptWorkspaceData)
 		if (this._actualWorkspace) {
 			this._unconfirmedWorkspace = ExtHostWorkspaceImpl.toExtHostWorkspace({
 				id: this._actualWorkspace.id,
@@ -478,23 +448,16 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 
 		const { workspace, added, removed } = ExtHostWorkspaceImpl.toExtHostWorkspace(data, this._confirmedWorkspace, this._unconfirmedWorkspace, this._extHostFileSystemInfo);
 
-		// Update our workspace object. We have a confirmed workspace, so we drop our
-		// unconfirmed workspace.
 		this._confirmedWorkspace = workspace || undefined;
 		this._unconfirmedWorkspace = undefined;
 
-		// Events
 		this._onDidChangeWorkspace.fire(Object.freeze({
 			added,
 			removed,
 		}));
 	}
 
-	// --- search ---
 
-	/**
-	 * Note, null/undefined have different and important meanings for "exclude"
-	 */
 	findFiles(include: vscode.GlobPattern | undefined, exclude: vscode.GlobPattern | null | undefined, maxResults: number | undefined, extensionId: ExtensionIdentifier, token: vscode.CancellationToken = CancellationToken.None): Promise<vscode.Uri[]> {
 		this._logService.trace(`extHostWorkspace#findFiles: fileSearch, extension: ${extensionId.value}, entryPoint: findFiles`);
 
@@ -511,13 +474,8 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		}
 
 		const useIgnoreFilesOptIn = this._useIgnoreFilesInFindFiles();
-		// `useIgnoreFiles.local` semantics: `false` means "do not respect local .gitignore" (--no-ignore to rg).
-		// Default (PR #204845): hardcoded `false` for every legacy findFiles caller, regardless of `search.useIgnoreFiles`.
-		// Opt-in (`search.experimental.useIgnoreFilesInFindFiles: true`): honor the user's `search.useIgnoreFiles`,
-		// while keeping `exclude === null` as the documented escape hatch (no excludes => bypass .gitignore).
 		const localIgnoreFiles = useIgnoreFilesOptIn && exclude !== null ? undefined : false;
 
-		// todo: consider exclude baseURI if available
 		return this._findFilesImpl({ type: 'include', value: include }, {
 			exclude: [excludeString],
 			maxResults,
@@ -538,8 +496,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 	}
 
 	private async _findFilesImpl(
-		// the old `findFiles` used `include` to query, but the new `findFiles2` uses `filePattern` to query.
-		// `filePattern` is the proper way to handle this, since it takes less precedence than the ignore files.
 		query: { readonly type: 'include'; readonly value: vscode.GlobPattern | undefined } | { readonly type: 'filePatterns'; readonly value: readonly vscode.GlobPattern[] },
 		options: vscode.FindFiles2Options,
 		extensionId: ExtensionIdentifier,
@@ -602,9 +558,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 			});
 
 			queryCount = queryOptions.length;
-			// Effective ignore-file behavior across all sub-queries: a call respected `.gitignore` only when every
-			// sub-query is either explicitly honoring it or falls back to a user setting that honors it. When
-			// `disregardIgnoreFiles` is `undefined` the query builder uses `search.useIgnoreFiles`, which we mirror here.
 			const userHonorsIgnore = this._userIgnoreFilesSetting();
 			respectedIgnoreFiles = queryOptions.every(q =>
 				q.options.disregardIgnoreFiles === true ? false
@@ -639,10 +592,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		queryOptions: QueryOptions<IFileQueryBuilderOptions>[] | undefined,
 		token: CancellationToken
 	): Promise<vscode.Uri[]> {
-		// Ensure the token is recognized by the RPC protocol. Tokens from extension
-		// bundles may use a different CancellationToken module and fail the instanceof
-		// check in isCancellationToken(), causing them to be serialized (without
-		// functions) rather than handled as cancellation signals.
 		let tokenToUse = token;
 		let linkedSource: CancellationTokenSource | undefined;
 		if (!CancellationToken.isCancellationToken(token)) {
@@ -663,7 +612,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		const flatResult = result.flat();
 		linkedSource?.dispose();
 
-		// Dedupe entries in a flat array
 		const extUri = new ExtUri(uri => ignorePathCasing(uri, this._extHostFileSystemInfo));
 		const uriMap = new Map<string, vscode.Uri>();
 
@@ -879,7 +827,7 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 			fileEncoding: options.encoding,
 			maxResults: options.maxResults,
 			previewOptions,
-			surroundingContext: options.afterContext, // TODO: remove ability to have before/after context separately
+			surroundingContext: options.afterContext,
 
 			includePattern: parsedInclude?.pattern,
 			excludePattern: excludePattern ? [{ pattern: excludePattern }] : undefined,
@@ -947,7 +895,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		return this._proxy.$loadCertificates();
 	}
 
-	// --- trust ---
 
 	get trusted(): boolean {
 		return this._trusted;
@@ -976,11 +923,9 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		return this._proxy.$isResourceTrusted(resource);
 	}
 
-	// --- edit sessions ---
 
 	private _providerHandlePool = 0;
 
-	// called by ext host
 	registerEditSessionIdentityProvider(scheme: string, provider: vscode.EditSessionIdentityProvider) {
 		if (this._editSessionIdentityProviders.has(scheme)) {
 			throw new Error(`A provider has already been registered for scheme ${scheme}`);
@@ -997,7 +942,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		});
 	}
 
-	// called by main thread
 	async $getEditSessionIdentifier(workspaceFolder: UriComponents, cancellationToken: CancellationToken): Promise<string | undefined> {
 		this._logService.info('Getting edit session identifier for workspaceFolder', workspaceFolder);
 		const folder = await this.resolveWorkspaceFolder(URI.revive(workspaceFolder));
@@ -1058,7 +1002,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		};
 	}
 
-	// main thread calls this to trigger participants
 	async $onWillCreateEditSessionIdentity(workspaceFolder: UriComponents, token: CancellationToken, timeout: number): Promise<void> {
 		const folder = await this.resolveWorkspaceFolder(URI.revive(workspaceFolder));
 
@@ -1079,11 +1022,9 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		}
 	}
 
-	// --- canonical uri identity ---
 
 	private readonly _canonicalUriProviders = new Map<string, vscode.CanonicalUriProvider>();
 
-	// called by ext host
 	registerCanonicalUriProvider(scheme: string, provider: vscode.CanonicalUriProvider) {
 		if (this._canonicalUriProviders.has(scheme)) {
 			throw new Error(`A provider has already been registered for scheme ${scheme}`);
@@ -1114,12 +1055,10 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		return result;
 	}
 
-	// called by main thread
 	async $provideCanonicalUri(uri: UriComponents, targetScheme: string, cancellationToken: CancellationToken): Promise<UriComponents | undefined> {
 		return this.provideCanonicalUri(URI.revive(uri), { targetScheme }, cancellationToken);
 	}
 
-	// --- encodings ---
 
 	async decode(content: Uint8Array, args?: { uri?: vscode.Uri; encoding?: string }): Promise<string> {
 		const [uri, opts] = this.toEncodeDecodeParameters(args);
@@ -1130,9 +1069,6 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 			acceptTextOnly: true,
 			overwriteEncoding: detectedEncoding => {
 				if (detectedEncoding === null || detectedEncoding === options.preferredEncoding) {
-					// Prevent another roundtrip to the main thread
-					// if the detected encoding is null or the same
-					// as the preferred encoding
 					return Promise.resolve(options.preferredEncoding);
 				}
 
@@ -1147,12 +1083,10 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 		const [uri, options] = this.toEncodeDecodeParameters(args);
 		const { encoding, addBOM } = await this._proxy.$resolveEncoding(uri, options);
 
-		// when encoding is standard skip encoding step
 		if (encoding === UTF8 && !addBOM) {
 			return VSBuffer.fromString(content).buffer;
 		}
 
-		// otherwise create encoded readable
 		const res = await toEncodeReadable(stringToSnapshot(content), encoding, { addBOM });
 		return readableToBuffer(res).buffer;
 	}

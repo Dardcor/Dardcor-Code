@@ -5,15 +5,6 @@
 import { describeTree, IndentationTree, isLine, VirtualNode } from '../indentation';
 import * as assert from 'assert';
 
-/**
- * Asserts that two trees are isomorphic.
- * @param actual The tree to test.
- * @param expected The tree expected to be equal (source lines can be abbreviated with '...').
- * @param strictness Should the tree be deeply equal (including indentation and line numbers),
- * or is in enough for the children and types of each node match?
- * @param treeParent The tree's parent for context (optional)
- * @param parentIndex The index for the tree in its parent's subs (optional)
- */
 
 export function compareTreeWithSpec<T>(
 	actual: IndentationTree<T>,

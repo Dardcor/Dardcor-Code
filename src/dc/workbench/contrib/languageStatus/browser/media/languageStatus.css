@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* status bar animation */
 
 @keyframes wiggle {
 	0% {
@@ -51,7 +50,6 @@
 	animation-name: flash;
 }
 
-/* --- hover */
 
 .monaco-workbench .hover-language-status {
 	display: flex;

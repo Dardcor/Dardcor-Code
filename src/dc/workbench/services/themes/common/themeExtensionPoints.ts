@@ -140,7 +140,7 @@ class ThemeDataRenderer extends Disposable implements IExtensionFeatureMarkdownR
 		}
 		return {
 			data: markdown,
-			dispose: () => { /* noop */ }
+			dispose: () => { }
 		};
 	}
 }

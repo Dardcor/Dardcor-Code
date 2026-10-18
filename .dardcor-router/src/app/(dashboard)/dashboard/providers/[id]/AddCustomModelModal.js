@@ -10,16 +10,14 @@ const defaultCaps = () => Object.fromEntries(Object.keys(CAPACITY_META).map((key
 export default function AddCustomModelModal({ isOpen, providerAlias, providerDisplayAlias, onSave, onClose }) {
   const [modelId, setModelId] = useState("");
   const [caps, setCaps] = useState(defaultCaps);
-  const [testStatus, setTestStatus] = useState(null); // null | "testing" | "ok" | "error"
+  const [testStatus, setTestStatus] = useState(null);
   const [testError, setTestError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) { setModelId(""); setCaps(defaultCaps()); setTestStatus(null); setTestError(""); }
   }, [isOpen]);
 
-  // Strip provider's own alias prefix (e.g. "cc/model" -> "model" for cc provider)
   const stripAlias = (id) => {
     const prefix = `${providerAlias}/`;
     return id.startsWith(prefix) ? id.slice(prefix.length) : id;
@@ -106,7 +104,7 @@ export default function AddCustomModelModal({ isOpen, providerAlias, providerDis
           </div>
         </div>
 
-        {/* Test result */}
+        {}
         {testStatus === "ok" && (
           <div className="flex items-center gap-2 text-sm text-green-600">
             <span className="material-symbols-outlined text-base">check_circle</span>

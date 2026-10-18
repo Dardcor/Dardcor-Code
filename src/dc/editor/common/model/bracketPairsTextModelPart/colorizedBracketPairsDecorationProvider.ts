@@ -34,17 +34,14 @@ export class ColorizedBracketPairsDecorationProvider extends Disposable implemen
 		}));
 	}
 
-	//#region TextModel events
 
 	public handleDidChangeOptions(e: IModelOptionsChangedEvent): void {
 		this.colorizationOptions = this.textModel.getOptions().bracketPairColorizationOptions;
 	}
 
-	//#endregion
 
 	getDecorationsInRange(range: Range, ownerId?: number, filterOutValidation?: boolean, filterFontDecorations?: boolean, onlyMinimapDecorations?: boolean): IModelDecoration[] {
 		if (onlyMinimapDecorations) {
-			// Bracket pair colorization decorations are not rendered in the minimap
 			return [];
 		}
 		if (ownerId === undefined) {
@@ -97,8 +94,6 @@ class ColorProvider {
 	}
 
 	getInlineClassNameOfLevel(level: number): string {
-		// To support a dynamic amount of colors up to 6 colors,
-		// we use a number that is a lcm of all numbers from 1 to 6.
 		return `bracket-highlighting-${level % 30}`;
 	}
 }

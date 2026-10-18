@@ -15,13 +15,6 @@ export interface IInlineMetaContext {
 
 const packageJsonMarkerId = 'BUILD_INSERT_PACKAGE_CONFIGURATION';
 
-// TODO in order to inline `product.json`, more work is
-// needed to ensure that we cover all cases where modifications
-// are done to the product configuration during build. There are
-// at least 2 more changes that kick in very late:
-// - a `darwinUniversalAssetId` is added in`create-universal-app.ts`
-// - a `target` is added in `gulpfile.vscode.win32.js`
-// const productJsonMarkerId = 'BUILD_INSERT_PRODUCT_CONFIGURATION';
 
 export function inlineMeta(result: NodeJS.ReadWriteStream, ctx: IInlineMetaContext): NodeJS.ReadWriteStream {
 	return result.pipe(es.through(function (file: File) {
@@ -29,17 +22,12 @@ export function inlineMeta(result: NodeJS.ReadWriteStream, ctx: IInlineMetaConte
 			let content = file.contents!.toString();
 			let markerFound = false;
 
-			const packageMarker = `${packageJsonMarkerId}:"${packageJsonMarkerId}"`; // this needs to be the format after esbuild has processed the file (e.g. double quotes)
+			const packageMarker = `${packageJsonMarkerId}:"${packageJsonMarkerId}"`;
 			if (content.includes(packageMarker)) {
-				content = content.replace(packageMarker, JSON.stringify(JSON.parse(ctx.packageJsonFn())).slice(1, -1) /* trim braces */);
+				content = content.replace(packageMarker, JSON.stringify(JSON.parse(ctx.packageJsonFn())).slice(1, -1) );
 				markerFound = true;
 			}
 
-			// const productMarker = `${productJsonMarkerId}:"${productJsonMarkerId}"`; // this needs to be the format after esbuild has processed the file (e.g. double quotes)
-			// if (content.includes(productMarker)) {
-			// 	content = content.replace(productMarker, JSON.stringify(JSON.parse(ctx.productJsonFn())).slice(1, -1) /* trim braces */);
-			// 	markerFound = true;
-			// }
 
 			if (markerFound) {
 				file.contents = Buffer.from(content);
@@ -52,7 +40,7 @@ export function inlineMeta(result: NodeJS.ReadWriteStream, ctx: IInlineMetaConte
 
 function matchesFile(file: File, ctx: IInlineMetaContext): boolean {
 	for (const targetPath of ctx.targetPaths) {
-		if (file.basename === basename(targetPath)) { // TODO would be nicer to figure out root relative path to not match on false positives
+		if (file.basename === basename(targetPath)) {
 			return true;
 		}
 	}

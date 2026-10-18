@@ -502,11 +502,10 @@ suite('TerminalSandboxEngine', () => {
 		const host = createHost();
 		const engine = store.add(instantiationService.createInstance(TerminalSandboxEngine, host));
 
-		// Disable the sandbox so the engine never creates a temp dir.
 		setSandboxSetting(AgentSandboxSettingId.AgentSandboxEnabled, AgentSandboxEnabledValue.Off);
 
 		strictEqual(engine.getTempDir(), undefined);
-		await engine.cleanupTempDir(); // must not throw
+		await engine.cleanupTempDir();
 	});
 
 	test('precheck inputs can disable sandboxing when default approval permission is disabled', async () => {

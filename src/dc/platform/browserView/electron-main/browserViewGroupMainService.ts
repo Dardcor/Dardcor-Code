@@ -18,12 +18,6 @@ export interface IBrowserViewGroupMainService extends IBrowserViewGroupService {
 	readonly _serviceBrand: undefined;
 }
 
-/**
- * Main-process service that manages {@link BrowserViewGroup} instances.
- *
- * Implements {@link IBrowserViewGroupService} so it can be surfaced to
- * the workbench/shared process via {@link ProxyChannel}.
- */
 export class BrowserViewGroupMainService extends Disposable implements IBrowserViewGroupMainService {
 	declare readonly _serviceBrand: undefined;
 
@@ -40,7 +34,6 @@ export class BrowserViewGroupMainService extends Disposable implements IBrowserV
 		const group = this.instantiationService.createInstance(BrowserViewGroup, id, owner);
 		this.groups.set(id, group);
 
-		// Auto-cleanup when the group disposes itself
 		Event.once(group.onDidDestroy)(() => {
 			this.groups.deleteAndLeak(id);
 		});
@@ -80,9 +73,6 @@ export class BrowserViewGroupMainService extends Disposable implements IBrowserV
 		return this._getGroup(groupId).debugger.onMessage;
 	}
 
-	/**
-	 * Get a group or throw if not found.
-	 */
 	private _getGroup(groupId: string): BrowserViewGroup {
 		const group = this.groups.get(groupId);
 		if (!group) {

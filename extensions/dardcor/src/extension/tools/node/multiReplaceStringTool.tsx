@@ -39,7 +39,6 @@ export class MultiReplaceStringTool extends AbstractReplaceStringTool<IMultiRepl
 
 		let invocationMessage: MarkdownString;
 		if (partialInput && typeof partialInput === 'object' && Array.isArray(partialInput.replacements)) {
-			// Filter to valid replacements that have at least oldString
 			const validReplacements = partialInput.replacements.filter(
 				r => r && typeof r === 'object' && r.oldString !== undefined
 			);
@@ -104,18 +103,6 @@ export class MultiReplaceStringTool extends AbstractReplaceStringTool<IMultiRepl
 			}
 		}
 
-		/* __GDPR__
-			"multiStringReplaceCall" : {
-				"owner": "connor4312",
-				"comment": "Tracks how much percent of the AI edits survived after 5 minutes of accepting",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the request." },
-				"successes": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The number of successful edits.", "isMeasurement": true },
-				"failures": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The number of failed edits.", "isMeasurement": true },
-				"uniqueUris": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The number of unique URIs edited.", "isMeasurement": true },
-				"individualEdits": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The number of individual text edits made.", "isMeasurement": true }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('multiStringReplaceCall', {
 			requestId: this._promptContext?.requestId,
 			model: await this.modelForTelemetry(options),
@@ -139,8 +126,6 @@ export class MultiReplaceStringTool extends AbstractReplaceStringTool<IMultiRepl
 
 			for (let k = i + 1; k < prepared.length; k++) {
 				const e2 = prepared[k];
-				// Merge successful edits of the same type and URI so that edits come in
-				// a single correct batch and positions aren't later clobbered.
 				if (!e2.generatedEdit.success || e2.uri.toString() !== e1.uri.toString() || (!!e2.generatedEdit.notebookEdits !== !!e1.generatedEdit.notebookEdits)) {
 					continue;
 				}
@@ -171,10 +156,6 @@ function textEditSorter(a: vscode.TextEdit, b: vscode.TextEdit) {
 	return b.range.end.compareTo(a.range.end) || b.range.start.compareTo(a.range.start);
 }
 
-/**
- * Merge two arrays of notebook edits or text edits grouped by URI.
- * Text edits for the same URI are concatenated and sorted in reverse file order (descending by start position).
- */
 function mergeNotebookAndTextEdits(left: CellOrNotebookEdit[], right: CellOrNotebookEdit[]): CellOrNotebookEdit[] {
 	const notebookEdits: vscode.NotebookEdit[] = [];
 	const textEditsByUri = new ResourceMap<vscode.TextEdit[]>();

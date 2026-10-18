@@ -14,7 +14,6 @@ export function getAdditionalWelcomeMessage(accessor: ServicesAccessor): vscode.
 	const configurationService = accessor.get(IConfigurationService);
 	const dardcorTokenStore = accessor.get(ICopilotTokenStore);
 	const isInternalOrTeam = !!dardcorTokenStore.dardcorToken?.isInternal || !!dardcorTokenStore.dardcorToken?.isVscodeTeamMember;
-	// For internal/team users, default to showing the hint unless the user has explicitly disabled it
 	const showHint = isInternalOrTeam && !configurationService.isConfigured(ConfigKey.TeamInternal.InternalWelcomeHintEnabled)
 		? true
 		: configurationService.getConfig(ConfigKey.TeamInternal.InternalWelcomeHintEnabled);
@@ -23,7 +22,6 @@ export function getAdditionalWelcomeMessage(accessor: ServicesAccessor): vscode.
 		const messageString = new vscode.MarkdownString(vscode.l10n.t({
 			message: 'If handling customer data, [disable telemetry]({0}).',
 			args: [`command:${openSettingsCommand}?${encodeURIComponent('["telemetry.telemetryLevel"]')}`],
-			// To make sure the translators don't break the link
 			comment: [`{Locked=']({'}`]
 		}));
 		messageString.isTrusted = { enabledCommands: [openSettingsCommand] };

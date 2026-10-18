@@ -70,56 +70,44 @@ suite('Token theme matching', () => {
 			assertMatch(scopeName, new ThemeTrieElementRule(FontStyle.None, _A, _B));
 		}
 
-		// matches defaults
 		assertNoMatch('');
 		assertNoMatch('bazz');
 		assertNoMatch('asdfg');
 
-		// matches source
 		assertSimpleMatch('source', FontStyle.None, _A, _G);
 		assertSimpleMatch('source.ts', FontStyle.None, _A, _G);
 		assertSimpleMatch('source.tss', FontStyle.None, _A, _G);
 
-		// matches something
 		assertSimpleMatch('something', FontStyle.None, _A, _G);
 		assertSimpleMatch('something.ts', FontStyle.None, _A, _G);
 		assertSimpleMatch('something.tss', FontStyle.None, _A, _G);
 
-		// matches baz
 		assertSimpleMatch('baz', FontStyle.None, _A, _C);
 		assertSimpleMatch('baz.ts', FontStyle.None, _A, _C);
 		assertSimpleMatch('baz.tss', FontStyle.None, _A, _C);
 
-		// matches constant
 		assertSimpleMatch('constant', FontStyle.Italic, _D, _B);
 		assertSimpleMatch('constant.string', FontStyle.Italic, _D, _B);
 		assertSimpleMatch('constant.hex', FontStyle.Italic, _D, _B);
 
-		// matches constant.numeric
 		assertSimpleMatch('constant.numeric', FontStyle.Italic, _E, _B);
 		assertSimpleMatch('constant.numeric.baz', FontStyle.Italic, _E, _B);
 
-		// matches constant.numeric.hex
 		assertSimpleMatch('constant.numeric.hex', FontStyle.Bold, _E, _B);
 		assertSimpleMatch('constant.numeric.hex.baz', FontStyle.Bold, _E, _B);
 
-		// matches constant.numeric.oct
 		assertSimpleMatch('constant.numeric.oct', FontStyle.Bold | FontStyle.Italic | FontStyle.Underline, _E, _B);
 		assertSimpleMatch('constant.numeric.oct.baz', FontStyle.Bold | FontStyle.Italic | FontStyle.Underline, _E, _B);
 
-		// matches constant.numeric.bin
 		assertSimpleMatch('constant.numeric.bin', FontStyle.Bold | FontStyle.Strikethrough, _E, _B);
 		assertSimpleMatch('constant.numeric.bin.baz', FontStyle.Bold | FontStyle.Strikethrough, _E, _B);
 
-		// matches constant.numeric.dec
 		assertSimpleMatch('constant.numeric.dec', FontStyle.None, _F, _B);
 		assertSimpleMatch('constant.numeric.dec.baz', FontStyle.None, _F, _B);
 
-		// matches storage.object.bar
 		assertSimpleMatch('storage.object.bar', FontStyle.None, _H, _B);
 		assertSimpleMatch('storage.object.bar.baz', FontStyle.None, _H, _B);
 
-		// does not match storage.object.bar
 		assertSimpleMatch('storage.object.bart', FontStyle.None, _A, _B);
 		assertSimpleMatch('storage.object', FontStyle.None, _A, _B);
 		assertSimpleMatch('storage', FontStyle.None, _A, _B);

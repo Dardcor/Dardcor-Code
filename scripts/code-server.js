@@ -58,11 +58,11 @@ function startServer(programArgs) {
 		process.on('exit', () => proc.kill());
 		process.on('SIGINT', () => {
 			proc.kill();
-			process.exit(128 + 2); // https://nodejs.org/docs/v14.16.0/api/process.html#process_signal_events
+			process.exit(128 + 2);
 		});
 		process.on('SIGTERM', () => {
 			proc.kill();
-			process.exit(128 + 15); // https://nodejs.org/docs/v14.16.0/api/process.html#process_signal_events
+			process.exit(128 + 15);
 		});
 	});
 

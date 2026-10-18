@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { ITokenizer } from '../../../util/common/tokenizer';
 import { IEmbeddingsEndpoint } from '../../networking/common/networking';
 import { ITokenizerProvider } from '../../tokenizer/node/tokenizer';
 import { IEmbeddingModelInformation } from '../common/endpointProvider';
+import { getDardcorRouterApiKey, getDardcorRouterBaseUrl } from './dardcorRouter';
 
 export class EmbeddingEndpoint implements IEmbeddingsEndpoint {
 	public readonly maxBatchSize: number;
@@ -30,7 +30,11 @@ export class EmbeddingEndpoint implements IEmbeddingsEndpoint {
 		return this._tokenizerProvider.acquireTokenizer(this);
 	}
 
-	public get urlOrRequestMetadata(): string | RequestMetadata {
-		return { type: RequestType.CAPIEmbeddings };
+	public get urlOrRequestMetadata(): string {
+		return `${getDardcorRouterBaseUrl()}/v1/embeddings`;
+	}
+
+	public getExtraHeaders(): Record<string, string> {
+		return { 'Authorization': `Bearer ${getDardcorRouterApiKey()}` };
 	}
 }

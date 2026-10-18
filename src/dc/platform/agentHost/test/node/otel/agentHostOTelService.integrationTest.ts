@@ -58,8 +58,6 @@ async function postOtlp(endpoint: string, payload: object): Promise<IPostRespons
 }
 
 function makeOtlpRequest(traceId: string, spanId: string): IOtlpExportTraceServiceRequest {
-	// Use a current-time span so the 7-day retention sweep run when a second
-	// (reader) connection opens does not delete the row.
 	const nowNs = `${Date.now()}000000`;
 	const endNs = `${Date.now() + 500}000000`;
 	return {
@@ -96,13 +94,13 @@ interface ISavedEnv {
 }
 
 const OTEL_ENV_KEYS = [
-	'COPILOT_OTEL_ENABLED',
-	'COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED',
-	'COPILOT_OTEL_EXPORTER_TYPE',
-	'COPILOT_OTEL_ENDPOINT',
-	'COPILOT_OTEL_FILE_EXPORTER_PATH',
-	'COPILOT_OTEL_SOURCE_NAME',
-	'COPILOT_OTEL_PROTOCOL',
+	'DARDCOR_OTEL_ENABLED',
+	'DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED',
+	'DARDCOR_OTEL_EXPORTER_TYPE',
+	'DARDCOR_OTEL_ENDPOINT',
+	'DARDCOR_OTEL_FILE_EXPORTER_PATH',
+	'DARDCOR_OTEL_SOURCE_NAME',
+	'DARDCOR_OTEL_PROTOCOL',
 	'OTEL_EXPORTER_OTLP_ENDPOINT',
 	'OTEL_EXPORTER_OTLP_PROTOCOL',
 	'OTEL_EXPORTER_OTLP_HEADERS',
@@ -146,7 +144,7 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 	});
 
 	test('readAgentHostOTelEnv: db mode implies enabled', () => {
-		const cfg = readAgentHostOTelEnv({ COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED: 'true' });
+		const cfg = readAgentHostOTelEnv({ DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED: 'true' });
 		strictEqual(cfg.enabled, true);
 		strictEqual(cfg.dbSpanExporter, true);
 	});
@@ -154,8 +152,8 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 	test('readAgentHostOTelEnv: grpc aliases select the gRPC exporter type', () => {
 		for (const protocol of ['grpc', 'http/grpc']) {
 			const cfg = readAgentHostOTelEnv({
-				COPILOT_OTEL_ENABLED: 'true',
-				COPILOT_OTEL_EXPORTER_TYPE: 'otlp-http',
+				DARDCOR_OTEL_ENABLED: 'true',
+				DARDCOR_OTEL_EXPORTER_TYPE: 'otlp-http',
 				OTEL_EXPORTER_OTLP_PROTOCOL: protocol,
 			});
 			strictEqual(cfg.exporterType, 'otlp-grpc');
@@ -164,7 +162,7 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 
 	test('readAgentHostOTelEnv: parses headers and resource attributes', () => {
 		const cfg = readAgentHostOTelEnv({
-			COPILOT_OTEL_ENABLED: 'true',
+			DARDCOR_OTEL_ENABLED: 'true',
 			OTEL_EXPORTER_OTLP_HEADERS: 'authorization=Bearer%20xyz,x-tenant=acme%2Fprod',
 			OTEL_RESOURCE_ATTRIBUTES: 'deployment.environment.name=dev,custom=value%20with%20spaces,service.name=ignored,service.namespace=foreign',
 			OTEL_SERVICE_NAME: 'agent-host',
@@ -244,9 +242,9 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 	test('getSdkTelemetryConfig: pass-through mode returns user-configured exporter settings', async () => {
 		const saved = saveEnv();
 		try {
-			process.env.COPILOT_OTEL_ENABLED = 'true';
-			process.env.COPILOT_OTEL_EXPORTER_TYPE = 'console';
-			process.env.COPILOT_OTEL_SOURCE_NAME = 'agent-host';
+			process.env.DARDCOR_OTEL_ENABLED = 'true';
+			process.env.DARDCOR_OTEL_EXPORTER_TYPE = 'console';
+			process.env.DARDCOR_OTEL_SOURCE_NAME = 'agent-host';
 			process.env.OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT = 'true';
 
 			const tmp = await mkdtemp(join(tmpdir(), 'vscode-otel-svc-'));
@@ -272,7 +270,7 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 		const saved = saveEnv();
 		try {
 			for (const protocol of ['http/protobuf', 'grpc', 'http/grpc']) {
-				process.env.COPILOT_OTEL_ENABLED = 'true';
+				process.env.DARDCOR_OTEL_ENABLED = 'true';
 				process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://collector:4318';
 				process.env.OTEL_EXPORTER_OTLP_PROTOCOL = protocol;
 				const tmp = await mkdtemp(join(tmpdir(), 'vscode-otel-svc-'));
@@ -293,8 +291,8 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 	test('session trace contexts are stable until permanent release', () => {
 		const saved = saveEnv();
 		try {
-			process.env.COPILOT_OTEL_ENABLED = 'true';
-			process.env.COPILOT_OTEL_EXPORTER_TYPE = 'console';
+			process.env.DARDCOR_OTEL_ENABLED = 'true';
+			process.env.DARDCOR_OTEL_EXPORTER_TYPE = 'console';
 			const di = store.add(new TestInstantiationService());
 			di.set(ILogService, new NullLogService());
 			di.set(INativeEnvironmentService, makeEnvService(tmpdir()));
@@ -313,7 +311,7 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 		const tmp = await mkdtemp(join(tmpdir(), 'vscode-otel-svc-'));
 		store.add({ dispose: () => void rm(tmp, { recursive: true, force: true }).catch(() => undefined) });
 		try {
-			process.env.COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
+			process.env.DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
 			process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://collector:4318';
 			process.env.OTEL_EXPORTER_OTLP_PROTOCOL = 'http/protobuf';
 			const di = store.add(new TestInstantiationService());
@@ -341,7 +339,7 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 		const tmp = await mkdtemp(join(tmpdir(), 'vscode-otel-svc-'));
 		const cleanup = () => rm(tmp, { recursive: true, force: true }).catch(() => undefined);
 		try {
-			process.env.COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
+			process.env.DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
 
 			const di = store.add(new TestInstantiationService());
 			di.set(ILogService, new NullLogService());
@@ -355,11 +353,8 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 
 			const dbPath = svc.getSpansDbPath();
 			ok(dbPath, 'expected a db path in DB mode');
-			// Normalize separators since URI.fsPath uses '\\' on Windows but
-			// AgentHostOTelSpansDbSubPath is declared with POSIX separators.
 			ok(dbPath!.fsPath.replace(/\\/g, '/').endsWith(AgentHostOTelSpansDbSubPath));
 
-			// Post a valid OTLP/JSON payload to the loopback endpoint.
 			const traceId = '1122334455667788aabbccddeeff0011';
 			const spanIdA = '0000000000000001';
 			const spanIdB = '0000000000000002';
@@ -370,12 +365,9 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 
 			await svc.flush();
 
-			// Calling again returns the same loopback endpoint (idempotent start).
 			const cfg2 = await svc.getSdkTelemetryConfig();
 			strictEqual(cfg2!.otlpEndpoint, cfg!.otlpEndpoint);
 
-			// Verify spans landed in SQLite via a separate read-only connection.
-			// (The store keeps the writer open with WAL; a parallel reader is safe.)
 			const reader = new OTelSqliteStore(dbPath!.fsPath);
 			try {
 				const persisted = reader.getSpansByTraceId(traceId);
@@ -399,7 +391,7 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 		const tmp = await mkdtemp(join(tmpdir(), 'vscode-otel-svc-'));
 		const cleanup = () => rm(tmp, { recursive: true, force: true }).catch(() => undefined);
 		try {
-			process.env.COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
+			process.env.DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
 			process.env.OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT = 'true';
 			process.env.OTEL_SERVICE_NAME = 'agent-host-test';
 
@@ -437,8 +429,8 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 		const saved = saveEnv();
 		try {
 			for (const protocol of ['http/protobuf', 'grpc']) {
-				process.env.COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
-				process.env.COPILOT_OTEL_EXPORTER_TYPE = protocol === 'grpc' ? 'otlp-grpc' : 'otlp-http';
+				process.env.DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
+				process.env.DARDCOR_OTEL_EXPORTER_TYPE = protocol === 'grpc' ? 'otlp-grpc' : 'otlp-http';
 				process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://collector:4318';
 				process.env.OTEL_EXPORTER_OTLP_PROTOCOL = protocol;
 				let fetchCalls = 0;
@@ -467,10 +459,8 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 		const tmp = await mkdtemp(join(tmpdir(), 'vscode-otel-svc-'));
 		const cleanup = () => rm(tmp, { recursive: true, force: true }).catch(() => undefined);
 		try {
-			process.env.COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
-			process.env.COPILOT_OTEL_EXPORTER_TYPE = 'otlp-http';
-			// Point the forwarder at an unreachable port; the forwarder is "best-effort"
-			// and must not fail ingestion when the external sink is down.
+			process.env.DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED = 'true';
+			process.env.DARDCOR_OTEL_EXPORTER_TYPE = 'otlp-http';
 			process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://127.0.0.1:1';
 
 			const di = store.add(new TestInstantiationService());
@@ -480,14 +470,11 @@ suite('platform/agentHost - AgentHostOTelService (integration)', () => {
 
 			const cfg = await svc.getSdkTelemetryConfig();
 			ok(cfg!.otlpEndpoint?.startsWith('http://127.0.0.1:'));
-			// The SDK is still pointed at our loopback, not the user's endpoint.
 			notStrictEqual(cfg!.otlpEndpoint, process.env.OTEL_EXPORTER_OTLP_ENDPOINT);
 
 			const traceId = 'ffeeddccbbaa99887766554433221100';
 			const res = await postOtlp(cfg!.otlpEndpoint!, makeOtlpRequest(traceId, '00000000000000ff'));
 			strictEqual(res.statusCode, 200);
-			// flush() awaits the forwarder Queue — must not throw even though the
-			// upstream is unreachable.
 			await svc.flush();
 		} finally {
 			restoreEnv(saved);

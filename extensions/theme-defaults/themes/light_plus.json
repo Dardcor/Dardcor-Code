@@ -1,7 +1,7 @@
 {
 	"$schema": "vscode://schemas/color-theme",
 	"name": "Light+",
-	"include": "./light_vs.json",
+	"include": "./light_dardcor.json",
 	"tokenColors": [ // adds rules to the light vs rules
 		{
 			"name": "Function declarations",
@@ -107,7 +107,7 @@
 				"variable.other.enummember"
 			],
 			"settings": {
-				"foreground": "#7C4DFF",
+				"foreground": "#0070C1",
 			}
 		},
 		{

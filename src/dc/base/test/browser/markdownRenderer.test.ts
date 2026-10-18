@@ -37,7 +37,6 @@ suite('MarkdownRenderer', () => {
 		test('Strips links with disallowed schemes (default config)', () => {
 			const markdown = { value: `Read [](vscode-agent-host://my-host/path/to/foo.ts?_ah%3DeyJzY2hlbWUiOiJmaWxlIn0)` };
 			const result: HTMLElement = store.add(renderMarkdown(markdown)).element;
-			// No <a> element should remain because the scheme isn't allowed.
 			assert.strictEqual(result.querySelector('a'), null);
 		});
 
@@ -355,8 +354,6 @@ suite('MarkdownRenderer', () => {
 	});
 
 	suite('Copy-safe hrefs', () => {
-		// Rich-text copy resolved empty hrefs against the workbench document, so every pasted
-		// link became a `workbench.html` URL. Clicks still route through `data-href`.
 		test('keeps the real href only for targets that resolve elsewhere', () => {
 			const md = new MarkdownString(`[web](https://example.com/page) [mail](mailto:user@example.com) [run](command:doFoo) [file](file:///home/user/a.ts) [ref](http://_vscodecontentref_/0)`, { isTrusted: true });
 
@@ -373,7 +370,6 @@ suite('MarkdownRenderer', () => {
 		});
 
 		test('leaves the href empty when nothing intercepts clicks', () => {
-			// Without an action handler the anchor would navigate natively, bypassing the opener.
 			const md = new MarkdownString(`[web](https://example.com/page)`, {});
 
 			const anchor = store.add(renderMarkdown(md)).element.querySelector('a')!;
@@ -526,7 +522,6 @@ suite('MarkdownRenderer', () => {
 
 			const result = store.add(renderMarkdown(mds)).element;
 
-			// Inputs should always be disabled too
 			assert.strictEqual(result.innerHTML, `<p>text: \ncheckbox:<input type="checkbox" disabled=""></p>`);
 		});
 	});
@@ -604,7 +599,6 @@ suite('MarkdownRenderer', () => {
 			});
 
 			test('full header with leading text', () => {
-				// Parsing this gives one token and one 'text' subtoken
 				const incompleteTable = 'here is a table\n| a | b |';
 				const tokens = marked.marked.lexer(incompleteTable);
 				const completeTableTokens = marked.marked.lexer(incompleteTable + '\n| --- | --- |');
@@ -614,7 +608,6 @@ suite('MarkdownRenderer', () => {
 			});
 
 			test('full header with leading other stuff', () => {
-				// Parsing this gives one token and one 'text' subtoken
 				const incompleteTable = '```js\nconst xyz = 123;\n```\n| a | b |';
 				const tokens = marked.marked.lexer(incompleteTable);
 				const completeTableTokens = marked.marked.lexer(incompleteTable + '\n| --- | --- |');
@@ -996,11 +989,6 @@ suite('MarkdownRenderer', () => {
 			});
 
 			test('codespan inside <body> wrapped markdown', () => {
-				// The chat content renderer wraps `supportHtml` markdown in
-				// `<body>...</body>` so dompurify keeps leading comments. That
-				// makes `</body>` the literal last token — the paragraph with
-				// the bare backtick is no longer at the end. The fixup must
-				// still close the codespan while preserving the trailing html.
 				const text = '<body>\n\nCreated isolated worktree for branch `xyz\n\n</body>';
 				const tokens = marked.marked.lexer(text);
 				const newTokens = fillInIncompleteTokens(tokens);
@@ -1044,7 +1032,6 @@ suite('MarkdownRenderer', () => {
 				assert.deepStrictEqual(newTokens, completeTokens);
 			});
 
-			// TODO trim these patterns from end
 			test.skip(`ending in doublestar`, () => {
 				const incomplete = `some text and **`;
 				const tokens = marked.marked.lexer(incomplete);

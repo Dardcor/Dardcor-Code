@@ -58,7 +58,6 @@ suite('EnvironmentVariable - EnvironmentVariableService', () => {
 			['C', [{ extensionIdentifier: 'ext1', type: EnvironmentVariableMutatorType.Prepend, value: 'c', variable: 'C', options: { applyAtProcessCreation: true, applyAtShellIntegration: true } }]]
 		]);
 
-		// Persist with old service, create a new service with the same storage service to verify restore
 		environmentVariableService.persistCollections();
 		const service2: TestEnvironmentVariableService = store.add(instantiationService.createInstance(TestEnvironmentVariableService));
 		deepStrictEqual([...service2.mergedCollection.getVariableMap(undefined).entries()], [
@@ -102,7 +101,6 @@ suite('EnvironmentVariable - EnvironmentVariableService', () => {
 			environmentVariableService.set('ext2', { map: collection2, persistent: true });
 			environmentVariableService.set('ext3', { map: collection3, persistent: true });
 
-			// The entries should be ordered in the order they are applied
 			deepStrictEqual([...environmentVariableService.mergedCollection.getVariableMap(undefined).entries()], [
 				['A', [
 					{ extensionIdentifier: 'ext3', type: EnvironmentVariableMutatorType.Replace, value: 'a3', variable: 'A', options: undefined },
@@ -111,7 +109,6 @@ suite('EnvironmentVariable - EnvironmentVariableService', () => {
 				]]
 			]);
 
-			// Verify the entries get applied to the environment as expected
 			const env: IProcessEnvironment = { A: 'foo' };
 			await environmentVariableService.mergedCollection.applyToProcessEnvironment(env, undefined);
 			deepStrictEqual(env, { A: 'a2:a3:a1' });
@@ -130,7 +127,6 @@ suite('EnvironmentVariable - EnvironmentVariableService', () => {
 			environmentVariableService.set('ext2', { map: collection2, persistent: true });
 			environmentVariableService.set('ext3', { map: collection3, persistent: true });
 
-			// The entries should be ordered in the order they are applied
 			deepStrictEqual([...environmentVariableService.mergedCollection.getVariableMap(scope1).entries()], [
 				['A', [
 					{ extensionIdentifier: 'ext2', type: EnvironmentVariableMutatorType.Prepend, value: 'a2:', variable: 'A', options: undefined },
@@ -138,7 +134,6 @@ suite('EnvironmentVariable - EnvironmentVariableService', () => {
 				]]
 			]);
 
-			// Verify the entries get applied to the environment as expected
 			const env: IProcessEnvironment = { A: 'foo' };
 			await environmentVariableService.mergedCollection.applyToProcessEnvironment(env, scope1);
 			deepStrictEqual(env, { A: 'a2:foo:a1' });

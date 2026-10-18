@@ -10,7 +10,6 @@ const CODEX_APPROVALS_PICKER_CLASS = 'codex-approvals-picker';
 const CODEX_APPROVALS_PICKER_WIDTH = 340;
 const CODEX_APPROVALS_PICKER_DETAIL_ITEM_HEIGHT = 76;
 
-/** Returns the shared compact action-list layout for Codex permission presets. */
 export function getCodexApprovalsPickerListOptions(): IActionListOptions {
 	return {
 		className: CODEX_APPROVALS_PICKER_CLASS,

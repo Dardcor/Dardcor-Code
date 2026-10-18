@@ -14,19 +14,13 @@ type CacheEntry = Readonly<{
 	expiration: number;
 }>;
 
-/**
- * A cache for web content extraction results.
- */
 export class WebContentCache {
 	private static readonly MAX_CACHE_SIZE = 1000;
-	private static readonly SUCCESS_CACHE_DURATION = 1000 * 60 * 60 * 24; // 24 hours
-	private static readonly ERROR_CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
+	private static readonly SUCCESS_CACHE_DURATION = 1000 * 60 * 60 * 24;
+	private static readonly ERROR_CACHE_DURATION = 1000 * 60 * 5;
 
 	private readonly _cache = new LRUCache<string, CacheEntry>(WebContentCache.MAX_CACHE_SIZE);
 
-	/**
-	 * Add a web content extraction result to the cache.
-	 */
 	public add(uri: URI, options: IWebContentExtractorOptions | undefined, result: WebContentExtractResult) {
 		let expiration: number;
 		switch (result.status) {
@@ -43,9 +37,6 @@ export class WebContentCache {
 		this._cache.set(key, { result, options, expiration });
 	}
 
-	/**
-	 * Try to get a cached web content extraction result for the given URI and options.
-	 */
 	public tryGet(uri: URI, options: IWebContentExtractorOptions | undefined): WebContentExtractResult | undefined {
 		const key = WebContentCache.getKey(uri, options);
 		const entry = this._cache.get(key);
@@ -61,9 +52,6 @@ export class WebContentCache {
 		return entry.result;
 	}
 
-	/**
-	 * Clear all cached entries.
-	 */
 	public clear() {
 		this._cache.clear();
 	}

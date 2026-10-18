@@ -20,11 +20,6 @@ import { IChatResponseModel } from '../../../common/model/chatModel.js';
 import { ChatEditingTextModelChangeService } from '../chatEditingTextModelChangeService.js';
 
 
-/**
- * This is very closely similar to the ChatEditingModifiedDocumentEntry class.
- * Most of the code has been borrowed from there, as a cell is effectively a document.
- * Hence most of the same functionality applies.
- */
 export class ChatEditingNotebookCellEntry extends Disposable {
 	public get isDisposed(): boolean {
 		return this._store.isDisposed;

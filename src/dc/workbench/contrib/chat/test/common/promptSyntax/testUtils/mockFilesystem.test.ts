@@ -15,37 +15,19 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../../ba
 import { InMemoryFileSystemProvider } from '../../../../../../../platform/files/common/inMemoryFilesystemProvider.js';
 import { TestInstantiationService } from '../../../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 
-/**
- * Base attribute for an expected filesystem node (a file or a folder).
- */
 interface IExpectedFilesystemNode extends Pick<
 	IFileStat,
 	'resource' | 'name' | 'isFile' | 'isDirectory' | 'isSymbolicLink'
 > { }
 
-/**
- * Represents an expected `file` info.
- */
 interface IExpectedFile extends IExpectedFilesystemNode {
-	/**
-	 * Expected file contents.
-	 */
 	contents: string;
 }
 
-/**
- * Represents an expected `folder` info.
- */
 interface IExpectedFolder extends IExpectedFilesystemNode {
-	/**
-	 * Expected folder children.
-	 */
 	children: (IExpectedFolder | IExpectedFile)[];
 }
 
-/**
- * Validates that file at {@link filePath} has expected attributes.
- */
 async function validateFile(
 	filePath: string,
 	expectedFile: IExpectedFile,
@@ -102,9 +84,6 @@ async function validateFile(
 	);
 }
 
-/**
- * Validates that folder at {@link folderPath} has expected attributes.
- */
 async function validateFolder(
 	folderPath: string,
 	expectedFolder: IExpectedFolder,
@@ -217,9 +196,6 @@ suite('MockFilesystem', () => {
 
 		await mockFilesystem.mock();
 
-		/**
-		 * Validate files and folders next.
-		 */
 
 		await validateFolder(
 			'/root/folder',

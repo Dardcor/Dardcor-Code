@@ -29,9 +29,9 @@ describe('applyStrategyConfig', () => {
 		expect(applyStrategyConfig(config)).toBe(config);
 	});
 
-	it('forces includeTagsInCurrentFile=true for CopilotNesXtab', () => {
+	it('forces includeTagsInCurrentFile=true for DardcorNesXtab', () => {
 		const result = applyStrategyConfig(baseConfig({
-			promptingStrategy: PromptingStrategy.CopilotNesXtab,
+			promptingStrategy: PromptingStrategy.DardcorNesXtab,
 			includeTagsInCurrentFile: false,
 		}));
 		expect(result.includeTagsInCurrentFile).toBe(true);
@@ -66,9 +66,8 @@ describe('applyStrategyConfig', () => {
 
 	it('preserves undefined for option bags neither side specifies', () => {
 		const result = applyStrategyConfig(baseConfig({
-			promptingStrategy: PromptingStrategy.CopilotNesXtab,
+			promptingStrategy: PromptingStrategy.DardcorNesXtab,
 		}));
-		// CopilotNesXtab only sets includeTagsInCurrentFile; nested option bags should stay undefined.
 		expect(result.currentFile).toBeUndefined();
 		expect(result.recentlyViewedDocuments).toBeUndefined();
 		expect(result.lintOptions).toBeUndefined();
@@ -76,7 +75,7 @@ describe('applyStrategyConfig', () => {
 
 	it('preserves allowImportChanges through strategy application', () => {
 		const result = applyStrategyConfig(baseConfig({
-			promptingStrategy: PromptingStrategy.CopilotNesXtab,
+			promptingStrategy: PromptingStrategy.DardcorNesXtab,
 			allowImportChanges: ImportChanges.All,
 		}));
 		expect(result.allowImportChanges).toBe(ImportChanges.All);
@@ -116,10 +115,6 @@ describe('GlobalBudgetOptions', () => {
 
 	describe('volume-neutral defaults', () => {
 		// Guards the core no-regression promise: enabling the global budget with the
-		// default total + shares must reproduce today's per-part `maxTokens` caps
-		// exactly. If anyone changes DEFAULT_SHARES or DEFAULT_TOTAL_TOKENS in a way
-		// that shifts a part's budget, this fails loudly instead of silently
-		// shrinking/growing prompts in the experiment arm.
 		it('reproduce the legacy per-part caps', () => {
 			const total = GlobalBudgetOptions.DEFAULT_TOTAL_TOKENS;
 			const shares = GlobalBudgetOptions.DEFAULT_SHARES;
@@ -191,9 +186,6 @@ describe('GlobalBudgetOptions', () => {
 		});
 
 		it('throws on a negative share (which would break budget conservation)', () => {
-			// Sums to 1 so the legacy sum check passes, but a negative share clamps to
-			// a 0 allocation yet still counts toward the sum, letting other parts
-			// over-allocate past the pool. Must be rejected.
 			expect(() => GlobalBudgetOptions.validate(gb({
 				shares: { currentFile: 0.25, languageContext: -0.25, recentlyViewedDocuments: 1.0, neighborFiles: 0, diffHistory: 0 },
 			}))).toThrow(/must be a finite, non-negative number/);

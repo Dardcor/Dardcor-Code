@@ -62,7 +62,6 @@ suite('lm', function () {
 
 		const request = await models[0].sendRequest([vscode.LanguageModelChatMessage.User('Hello')]);
 
-		// assert we have a request immediately
 		assert.ok(request);
 		assert.ok(p);
 		assert.strictEqual(defer.isSettled, false);

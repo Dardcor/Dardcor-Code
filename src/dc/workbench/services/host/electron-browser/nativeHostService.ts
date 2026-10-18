@@ -58,7 +58,6 @@ class WorkbenchHostService extends Disposable implements IHostService {
 
 	private registerListeners(): void {
 
-		// Make sure to hide all OS toasts when the window gains focus
 		this._register(this.onDidChangeFocus(focus => {
 			if (focus) {
 				this.clearToasts();
@@ -66,7 +65,6 @@ class WorkbenchHostService extends Disposable implements IHostService {
 		}));
 	}
 
-	//#region Focus
 
 	readonly onDidChangeFocus: Event<boolean>;
 
@@ -84,22 +82,16 @@ class WorkbenchHostService extends Disposable implements IHostService {
 		return activeWindowId === this.nativeHostService.windowId;
 	}
 
-	//#endregion
 
-	//#region Window
 
 	@memoize
 	get onDidChangeActiveWindow(): Event<number> {
 		const emitter = this._register(new Emitter<number>());
 
-		// Emit via native focus tracking
 		this._register(Event.filter(this.nativeHostService.onDidFocusMainOrAuxiliaryWindow, id => hasWindow(id), this._store)(id => emitter.fire(id)));
 
 		this._register(onDidRegisterWindow(({ window, disposables }) => {
 
-			// Emit via interval: immediately when opening an auxiliary window,
-			// it is possible that document focus has not yet changed, so we
-			// poll for a while to ensure we catch the event.
 			disposables.add(disposableWindowInterval(window, () => {
 				const hasFocus = window.document.hasFocus();
 				if (hasFocus) {
@@ -131,8 +123,6 @@ class WorkbenchHostService extends Disposable implements IHostService {
 			toOpen.forEach(openable => openable.label = openable.label || this.getRecentLabel(openable));
 
 			if (options?.remoteAuthority === undefined) {
-				// set the remoteAuthority of the window the request came from.
-				// It will be used when the input is neither file nor vscode-remote.
 				options = options ? { ...options, remoteAuthority } : { remoteAuthority };
 			}
 		}
@@ -155,7 +145,6 @@ class WorkbenchHostService extends Disposable implements IHostService {
 	private doOpenEmptyWindow(options?: IOpenEmptyWindowOptions): Promise<void> {
 		const remoteAuthority = this.environmentService.remoteAuthority;
 		if (!!remoteAuthority && options?.remoteAuthority === undefined) {
-			// set the remoteAuthority of the window the request came from
 			options = options ? { ...options, remoteAuthority } : { remoteAuthority };
 		}
 		return this.nativeHostService.openWindow(options);
@@ -167,7 +156,7 @@ class WorkbenchHostService extends Disposable implements IHostService {
 
 	async moveTop(targetWindow: Window): Promise<void> {
 		if (getWindowsCount() <= 1) {
-			return; // does not apply when only one window is opened
+			return;
 		}
 
 		return this.nativeHostService.moveWindowTop(isAuxiliaryWindow(targetWindow) ? { targetWindowId: targetWindow.vscodeWindowId } : undefined);
@@ -191,9 +180,7 @@ class WorkbenchHostService extends Disposable implements IHostService {
 		return this.nativeHostService.getWindows({ includeAuxiliaryWindows: true });
 	}
 
-	//#endregion
 
-	//#region Lifecycle
 
 	focus(targetWindow: Window, options?: { mode?: FocusMode }): Promise<void> {
 		return this.nativeHostService.focusWindow({
@@ -222,17 +209,13 @@ class WorkbenchHostService extends Disposable implements IHostService {
 		return await expectedShutdownTask();
 	}
 
-	//#endregion
 
-	//#region Screenshots
 
 	getScreenshot(rect?: IRectangle): Promise<VSBuffer | undefined> {
 		return this.nativeHostService.getScreenshot(rect);
 	}
 
-	//#endregion
 
-	//#region Native Handle
 
 	private _nativeWindowHandleCache = new Map<number, Promise<VSBuffer | undefined>>();
 	async getNativeWindowHandle(windowId: number): Promise<VSBuffer | undefined> {
@@ -242,9 +225,7 @@ class WorkbenchHostService extends Disposable implements IHostService {
 		return this._nativeWindowHandleCache.get(windowId)!;
 	}
 
-	//#endregion
 
-	//#region Toast Notifications
 
 	private readonly activeBrowserToasts = this._register(new DisposableSet());
 
@@ -253,13 +234,11 @@ class WorkbenchHostService extends Disposable implements IHostService {
 		const listener = token.onCancellationRequested(() => this.nativeHostService.clearToast(id));
 
 		try {
-			// Try native OS notifications first
 			const nativeToast = await this.nativeHostService.showToast({ ...options, id });
 			if (nativeToast.supported) {
 				return nativeToast;
 			}
 
-			// Then fallback to browser notifications
 			return await showBrowserToast({
 				onDidCreateToast: (toast: IDisposable) => this.activeBrowserToasts.add(toast),
 				onDidDisposeToast: (toast: IDisposable) => this.activeBrowserToasts.deleteAndDispose(toast)
@@ -275,7 +254,6 @@ class WorkbenchHostService extends Disposable implements IHostService {
 		this.activeBrowserToasts.clearAndDisposeAll();
 	}
 
-	//#endregion
 }
 
 registerSingleton(IHostService, WorkbenchHostService, InstantiationType.Delayed);

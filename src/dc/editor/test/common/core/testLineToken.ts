@@ -7,14 +7,8 @@ import { IViewLineTokens } from '../../../common/tokens/lineTokens.js';
 import { ColorId, TokenMetadata, ITokenPresentation, StandardTokenType } from '../../../common/encodedTokenAttributes.js';
 import { ILanguageIdCodec } from '../../../common/languages.js';
 
-/**
- * A token on a line.
- */
 export class TestLineToken {
 
-	/**
-	 * last char index of this token (not inclusive).
-	 */
 	public readonly endIndex: number;
 	private readonly _metadata: number;
 

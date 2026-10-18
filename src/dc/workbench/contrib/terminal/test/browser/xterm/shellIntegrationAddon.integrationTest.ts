@@ -28,31 +28,9 @@ import { events as rich_macos_zsh_omz_ls_one_time } from './recordings/rich/maco
 import { events as basic_macos_zsh_p10k_ls_one_time } from './recordings/basic/macos_zsh_p10k_ls_one_time.js';
 import type { ITerminalConfiguration } from '../../../common/terminal.js';
 
-// These are test cases recorded with the `Developer: Record Terminal Session` command. Once that is
-// run, a terminal is created and the test case is manually executed. After nothing happens for a
-// few seconds the test case will be put into the clipboard.
-//
-// They aim to guarantee the complex interactions within command detection result in a particular
-// outcome.
-//
-// Some things to be aware of when recording tests:
-// - Pwsh on non-Windows can add a bunch of spammy cursor reports (`CSI x;y R`)
-// - It's best to record pwsh on Windows
-// - It's best to record other shells on non-Windows
-// - Turn off builtinCompletions to simplify the recording
-// - Capitalization matters in the recorded events
 type RecordedTestCase = {
-	/**
-	 * The test case name.
-	 */
 	name: string;
-	/**
-	 * A set of events that will play or be awaited for in order.
-	 */
 	events: RecordedSessionEvent[];
-	/**
-	 * Any assertions to perform after the events have been played and validated.
-	 */
 	finalAssertions: (commandDetection: ICommandDetectionCapability | undefined) => void;
 };
 const recordedTestCases: RecordedTestCase[] = [
@@ -102,8 +80,6 @@ const recordedTestCases: RecordedTestCase[] = [
 		name: 'basic_macos_zsh_p10k_ls_one_time',
 		events: basic_macos_zsh_p10k_ls_one_time as unknown as RecordedSessionEvent[],
 		finalAssertions: (commandDetection: ICommandDetectionCapability | undefined) => {
-			// Prompt input model doesn't work for p10k yet
-			// Assert a single command has completed
 			deepStrictEqual(commandDetection!.commands.map(e => e.command), ['']);
 		}
 	},
@@ -173,16 +149,6 @@ suite('Terminal Contrib Shell Integration Recordings', () => {
 	for (const testCase of recordedTestCases) {
 		test(testCase.name, async () => {
 			for (const [i, event] of testCase.events.entries()) {
-				// DEBUG: Uncomment to see the events as they are played
-				// console.log(
-				// 	event.type,
-				// 	event.type === 'command'
-				// 		? event.id
-				// 		: event.type === 'resize'
-				// 			? `${event.cols}x${event.rows}`
-				// 			: (event.data.length > 50 ? event.data.slice(0, 50) + '...' : event.data).replaceAll('\x1b', '\\x1b').replace(/(\n|\r).+$/, '...')
-				// );
-				// console.log('promptInputModel', capabilities.get(TerminalCapability.CommandDetection)?.promptInputModel.getCombinedString());
 				switch (event.type) {
 					case 'resize': {
 						xterm.resize(event.cols, event.rows);
@@ -191,8 +157,6 @@ suite('Terminal Contrib Shell Integration Recordings', () => {
 					case 'output': {
 						const promises: Promise<unknown>[] = [];
 						if (event.data.includes('\x1b]633;B')) {
-							// If the output contains the command start sequence, allow time for the prompt to get
-							// adjusted.
 							promises.push(new Promise<void>(r => {
 								const commandDetection = capabilities.get(TerminalCapability.CommandDetection)!;
 								if (commandDetection) {
@@ -212,9 +176,6 @@ suite('Terminal Contrib Shell Integration Recordings', () => {
 						break;
 					}
 					case 'promptInputChange': {
-						// Ignore this event if it's followed by another promptInputChange as that
-						// means this one isn't important and could cause a race condition in the
-						// test
 						if (testCase.events.length > i + 1 && testCase.events[i + 1].type === 'promptInputChange') {
 							continue;
 						}

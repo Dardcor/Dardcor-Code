@@ -53,15 +53,6 @@ export class OpenTabFiles implements INeighborSource {
 		return openFiles;
 	}
 
-	/**
-	 * Get the neighbor files. Current it supports open editors.
-	 * @param uri The uri of the current open file.
-	 * @param languageId The language id of the current open file.
-	 * @param maxNumNeighborFiles The max number of neighbor files to return.
-	 * @returns Include 2 items.
-	 *          1. The merged unique documents, which is not exceeding MAX_NEIGHBOR_FILES.
-	 *          2. For each neighbor type, the files that are included in the merged unique documents.
-	 */
 	async getNeighborFiles(
 		uri: string,
 		languageId: string,

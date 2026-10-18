@@ -199,7 +199,7 @@ export class UserToolSetsContributions extends Disposable implements IWorkbenchC
 				toolEnumDescriptions.push(localize('tool.description', "{1} ({0})\n\n{2}", item.sourceLabel, item.name, item.description));
 			}
 
-			store.clear(); // reset old schema
+			store.clear();
 			reg.registerSchema(toolSetSchemaId, toolSetsSchema, store);
 		}));
 
@@ -218,7 +218,7 @@ export class UserToolSetsContributions extends Disposable implements IWorkbenchC
 			try {
 				return (await this._fileService.resolve(folder)).children ?? [];
 			} catch (err) {
-				return []; // folder does not exist or cannot be read
+				return [];
 			}
 		};
 
@@ -226,7 +226,7 @@ export class UserToolSetsContributions extends Disposable implements IWorkbenchC
 
 			store.clear();
 
-			toolsSig.read(r); // SIGNALS
+			toolsSig.read(r);
 			fileEventSig.read(r);
 
 			const uri = promptFolder.read(r);
@@ -243,11 +243,9 @@ export class UserToolSetsContributions extends Disposable implements IWorkbenchC
 			for (const entry of entries) {
 
 				if (!entry.isFile || !RawToolSetsShape.isToolSetFileName(entry.resource)) {
-					// not interesting
 					continue;
 				}
 
-				// watch this file
 				store.add(this._fileService.watch(entry.resource));
 
 				let data: RawToolSetsShape | undefined;
@@ -270,9 +268,6 @@ export class UserToolSetsContributions extends Disposable implements IWorkbenchC
 					const tools: IToolData[] = [];
 					const toolSets: IToolSet[] = [];
 					value.tools.forEach(name => {
-						// Resolve by full reference name first. This handles qualified names
-						// (e.g. `vscode/memory`, `github/*`) as well as unqualified names
-						// (e.g. `memory`) via their aliases.
 						const toolOrToolSet = this._languageModelToolsService.getToolByFullReferenceName(name);
 						if (isToolSet(toolOrToolSet)) {
 							toolSets.push(toolOrToolSet);
@@ -281,7 +276,6 @@ export class UserToolSetsContributions extends Disposable implements IWorkbenchC
 							tools.push(toolOrToolSet);
 							return;
 						}
-						// Fall back to legacy lookup by unqualified reference name.
 						const tool = this._languageModelToolsService.getToolByName(name);
 						if (tool) {
 							tools.push(tool);
@@ -295,7 +289,6 @@ export class UserToolSetsContributions extends Disposable implements IWorkbenchC
 					});
 
 					if (tools.length === 0 && toolSets.length === 0) {
-						// NO tools in this set
 						continue;
 					}
 
@@ -304,7 +297,6 @@ export class UserToolSetsContributions extends Disposable implements IWorkbenchC
 						`user/${entry.resource.toString()}/${name}`,
 						name,
 						{
-							// toolReferenceName: value.referenceName,
 							icon: value.icon ? ThemeIcon.fromId(value.icon) : undefined,
 							description: value.description,
 							deprecated: true,
@@ -349,10 +341,6 @@ export function getEnabledSelectionReferences(selection: ToolAndToolSetEnablemen
 		}
 
 		if (isToolSet(item)) {
-			// Only serialize a tool set when none of its member tools are explicitly
-			// unchecked in the selection. A partially-deselected tool set would otherwise
-			// silently re-enable the deselected member tools, matching the guard in
-			// `toFullReferenceNames`. Members absent from the map inherit the tool set's state.
 			if (Iterable.every(item.getTools(), tool => selection.get(tool) !== false)) {
 				enabledToolSets.push(item);
 			}
@@ -386,10 +374,6 @@ export function getEnabledSelectionReferences(selection: ToolAndToolSetEnablemen
 		if (coveredToolIds.has(tool.id)) {
 			continue;
 		}
-		// `getFullReferenceName` already returns the qualified `toolSet/tool` name for tools
-		// that belong to a non-user tool set, even when the tool is not independently
-		// referenceable in prompts. Only include the tool when the reference round-trips, which
-		// filters out orphan tools that cannot be referenced at all.
 		const referenceName = toolsService.getFullReferenceName(tool);
 		if (toolsService.getToolByFullReferenceName(referenceName) !== tool) {
 			continue;
@@ -431,7 +415,6 @@ export function deleteToolSetFromFileContents(rawContents: string, toolSetName: 
 	return { contents: JSON.stringify(record, undefined, '\t'), isEmpty: Object.keys(record).length === 0 };
 }
 
-// ---- actions
 
 export class ConfigureToolSets extends Action2 {
 
@@ -465,8 +448,6 @@ export class ConfigureToolSets extends Action2 {
 		const chatWidgetService = accessor.get(IChatWidgetService);
 
 		const picks: (IQuickPickItem & { toolset?: IToolSet; kind: 'createFromSelection' | 'createNewFile' | 'existing' })[] = [];
-		// When the command is invoked without an explicit selection (e.g. from F1 or the chat
-		// view title menu), fall back to the tool selection of the active chat widget.
 		const currentSelection = getSelectionFromArg(options)
 			?? chatWidgetService.lastFocusedWidget?.input.selectedToolsModel.entriesMap.get()
 			?? ToolAndToolSetEnablementMap.fromEntries([]);
@@ -508,7 +489,7 @@ export class ConfigureToolSets extends Action2 {
 		});
 
 		if (!pick) {
-			return; // user cancelled
+			return;
 		}
 
 		let resource: URI | undefined;
@@ -535,7 +516,7 @@ export class ConfigureToolSets extends Action2 {
 			});
 
 			if (isFalsyOrWhitespace(name)) {
-				return; // user cancelled
+				return;
 			}
 
 			resource = joinPath(userDataProfileService.currentProfile.promptsHome, `${name}${RawToolSetsShape.suffix}`);

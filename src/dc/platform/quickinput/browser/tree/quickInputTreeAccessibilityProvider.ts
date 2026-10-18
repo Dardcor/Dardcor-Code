@@ -10,9 +10,6 @@ import { Event, IValueWithChangeEvent } from '../../../../base/common/event.js';
 import { getCodiconAriaLabel } from '../../../../base/common/iconLabels.js';
 import { localize } from '../../../../nls.js';
 import { IQuickTreeCheckboxEvent, IQuickTreeItem } from '../../common/quickInput.js';
-/**
- * Accessibility provider for QuickTree.
- */
 export class QuickTreeAccessibilityProvider<T extends IQuickTreeItem> implements IListAccessibilityProvider<T> {
 	constructor(private readonly onCheckedEvent: Event<IQuickTreeCheckboxEvent<T>>) { }
 

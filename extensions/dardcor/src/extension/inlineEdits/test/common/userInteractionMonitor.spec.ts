@@ -16,36 +16,20 @@ import { TestLogService } from '../../../../platform/testing/common/testLogServi
 import { ActionKind, MAX_INTERACTIONS_CONSIDERED, MAX_INTERACTIONS_STORED, UserInteractionMonitor } from '../../common/userInteractionMonitor';
 
 
-/**
- * Test-friendly subclass of UserInteractionMonitor that exposes internal state for verification.
- */
 class TestUserInteractionMonitor extends UserInteractionMonitor {
-	/**
-	 * Get a copy of the recent user actions for aggressiveness calculation.
-	 */
 	getActionsForAggressiveness(): { time: number; kind: ActionKind }[] {
-		// Access private field through type assertion
 		return [...this._recentUserActionsForAggressiveness];
 	}
 
-	/**
-	 * Get a copy of the recent user actions for timing calculation.
-	 */
 	getActionsForTiming(): { time: number; kind: ActionKind.Accepted | ActionKind.Rejected }[] {
 		return [...this._recentUserActionsForTiming];
 	}
 
-	/**
-	 * Get the parsed user happiness score configuration.
-	 */
 	getUserHappinessScoreConfiguration(): UserHappinessScoreConfiguration {
 		return this._getUserHappinessScoreConfiguration();
 	}
 }
 
-/**
- * Mock configuration service that allows setting specific config values for testing.
- */
 class MockConfigurationService extends InMemoryConfigurationService {
 	private _useAdaptiveAggressiveness = false;
 
@@ -71,9 +55,6 @@ interface TelemetryCall {
 	measurements?: TelemetryEventMeasurements;
 }
 
-/**
- * Mock telemetry service that records telemetry events for verification.
- */
 class MockTelemetryService extends NullTelemetryService {
 	readonly msftEvents: TelemetryCall[] = [];
 
@@ -137,7 +118,6 @@ describe('UserInteractionMonitor', () => {
 			expect(aggressivenessActions).toHaveLength(1);
 			expect(aggressivenessActions[0].kind).toBe(ActionKind.Ignored);
 
-			// Ignored actions should NOT be recorded for timing
 			expect(timingActions).toHaveLength(0);
 		});
 
@@ -164,7 +144,6 @@ describe('UserInteractionMonitor', () => {
 			expect(aggressivenessActions[2].kind).toBe(ActionKind.Ignored);
 			expect(aggressivenessActions[3].kind).toBe(ActionKind.Accepted);
 
-			// Timing history should only have accepts and rejects
 			const timingActions = monitor.getActionsForTiming();
 			expect(timingActions).toHaveLength(3);
 			expect(timingActions[0].kind).toBe(ActionKind.Accepted);
@@ -173,7 +152,6 @@ describe('UserInteractionMonitor', () => {
 		});
 
 		test('aggressiveness history is limited to MAX_INTERACTIONS_STORED', () => {
-			// Record more than max actions
 			for (let i = 0; i < MAX_INTERACTIONS_STORED + 5; i++) {
 				monitor.handleAcceptance();
 			}
@@ -183,7 +161,6 @@ describe('UserInteractionMonitor', () => {
 		});
 
 		test('timing history is limited to MAX_INTERACTIONS_CONSIDERED', () => {
-			// Record more than max actions
 			for (let i = 0; i < MAX_INTERACTIONS_CONSIDERED + 5; i++) {
 				monitor.handleAcceptance();
 			}
@@ -193,18 +170,13 @@ describe('UserInteractionMonitor', () => {
 		});
 
 		test('timing history does not include "ignored" events', () => {
-			// The timing history only contains accepts/rejects
-			// The aggressiveness history contains all actions
-			// They should be independent
 
 			monitor.handleIgnored();
 			monitor.handleIgnored();
 			monitor.handleIgnored();
 
-			// Timing history should be empty
 			expect(monitor.getActionsForTiming()).toHaveLength(0);
 
-			// Aggressiveness history should have 3 ignored
 			expect(monitor.getActionsForAggressiveness()).toHaveLength(3);
 		});
 	});
@@ -229,7 +201,6 @@ describe('UserInteractionMonitor', () => {
 
 		test('returns high aggressiveness after many acceptances', () => {
 			configurationService.useAdaptiveAggressiveness();
-			// Fill with 10 acceptances
 			for (let i = 0; i < 10; i++) {
 				monitor.handleAcceptance();
 			}
@@ -240,7 +211,6 @@ describe('UserInteractionMonitor', () => {
 
 		test('returns low aggressiveness after many rejections', () => {
 			configurationService.useAdaptiveAggressiveness();
-			// Fill with 10 rejections
 			for (let i = 0; i < 10; i++) {
 				monitor.handleRejection();
 			}
@@ -255,7 +225,6 @@ describe('UserInteractionMonitor', () => {
 				AggressivenessLevel.Low
 			);
 
-			// Even with many acceptances, should return configured level
 			for (let i = 0; i < 10; i++) {
 				monitor.handleAcceptance();
 			}
@@ -266,7 +235,6 @@ describe('UserInteractionMonitor', () => {
 
 		test('recent actions have more weight than older ones', () => {
 			configurationService.useAdaptiveAggressiveness();
-			// Start with acceptances, end with rejections
 			for (let i = 0; i < 5; i++) {
 				monitor.handleAcceptance();
 			}
@@ -276,7 +244,6 @@ describe('UserInteractionMonitor', () => {
 
 			const levelRejectionsRecent = monitor.getAggressivenessLevel().aggressivenessLevel;
 
-			// Reset and do opposite order
 			monitor = new TestUserInteractionMonitor(configurationService, experimentationService, logService, telemetryService);
 			for (let i = 0; i < 5; i++) {
 				monitor.handleRejection();
@@ -287,7 +254,6 @@ describe('UserInteractionMonitor', () => {
 
 			const levelAcceptancesRecent = monitor.getAggressivenessLevel().aggressivenessLevel;
 
-			// When acceptances are more recent, aggressiveness should be higher
 			const aggressivenessOrder = [AggressivenessLevel.Low, AggressivenessLevel.Medium, AggressivenessLevel.High];
 			expect(aggressivenessOrder.indexOf(levelAcceptancesRecent)).toBeGreaterThanOrEqual(
 				aggressivenessOrder.indexOf(levelRejectionsRecent)
@@ -298,7 +264,6 @@ describe('UserInteractionMonitor', () => {
 	describe('ignored action limiting', () => {
 		test('ignored actions are included in aggressiveness calculation', () => {
 			configurationService.useAdaptiveAggressiveness();
-			// With custom config that includes ignored actions
 			const customConfig: UserHappinessScoreConfiguration = {
 				...DEFAULT_USER_HAPPINESS_SCORE_CONFIGURATION,
 				includeIgnored: true,
@@ -310,14 +275,12 @@ describe('UserInteractionMonitor', () => {
 				JSON.stringify(customConfig)
 			);
 
-			// Mix of actions
 			monitor.handleAcceptance();
 			monitor.handleIgnored();
 			monitor.handleIgnored();
 			monitor.handleRejection();
 
 			const level = monitor.getAggressivenessLevel().aggressivenessLevel;
-			// With ignored having score 0.5, result should be medium
 			expect(level).toBe(AggressivenessLevel.Medium);
 		});
 
@@ -335,7 +298,6 @@ describe('UserInteractionMonitor', () => {
 				JSON.stringify(customConfig)
 			);
 
-			// Add many ignored actions scattered between accepts
 			monitor.handleIgnored();
 			monitor.handleAcceptance();
 			monitor.handleIgnored();
@@ -344,7 +306,6 @@ describe('UserInteractionMonitor', () => {
 			monitor.handleIgnored();
 			monitor.handleIgnored();
 
-			// Only 2 ignored should be counted due to limit
 			const level = monitor.getAggressivenessLevel().aggressivenessLevel;
 			expect([AggressivenessLevel.Medium, AggressivenessLevel.High]).toContain(level);
 		});
@@ -377,7 +338,6 @@ describe('UserInteractionMonitor', () => {
 		});
 
 		test('emits telemetry event when config has missing required fields', () => {
-			// Missing ignoredLimit and other required fields
 			const incompleteConfig = JSON.stringify({
 				acceptedScore: 1,
 				rejectedScore: 0,
@@ -395,7 +355,6 @@ describe('UserInteractionMonitor', () => {
 		});
 
 		test('emits telemetry event when config has invalid score relationships', () => {
-			// acceptedScore must be greater than rejectedScore
 			const invalidConfig = JSON.stringify({
 				acceptedScore: 0.3,
 				rejectedScore: 0.7,
@@ -425,10 +384,8 @@ describe('UserInteractionMonitor', () => {
 				'invalid'
 			);
 
-			// Get the config that was parsed (should fall back to default)
 			const parsedConfig = monitor.getUserHappinessScoreConfiguration();
 
-			// Should be exactly equal to the default config
 			expect(parsedConfig).toEqual(DEFAULT_USER_HAPPINESS_SCORE_CONFIGURATION);
 		});
 
@@ -443,14 +400,11 @@ describe('UserInteractionMonitor', () => {
 				JSON.stringify(validConfig)
 			);
 
-			// Get the config that was parsed
 			const parsedConfig = monitor.getUserHappinessScoreConfiguration();
 
-			// Should be exactly equal to the custom config (not the default)
 			expect(parsedConfig).toEqual(validConfig);
 			expect(parsedConfig).not.toEqual(DEFAULT_USER_HAPPINESS_SCORE_CONFIGURATION);
 
-			// No telemetry should be emitted
 			expect(mockTelemetryService.msftEvents).toHaveLength(0);
 		});
 	});

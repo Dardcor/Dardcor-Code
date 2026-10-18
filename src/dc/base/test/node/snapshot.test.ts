@@ -12,10 +12,6 @@ import { URI } from '../../common/uri.js';
 import { join } from '../../common/path.js';
 import { assertThrowsAsync, ensureNoDisposablesAreLeakedInTestSuite } from '../common/utils.js';
 
-// tests for snapshot are in Node so that we can use native FS operations to
-// set up and validate things.
-//
-// Uses snapshots for testing snapshots. It's snapception!
 
 suite('snapshot', () => {
 	let testDir: string;
@@ -87,7 +83,6 @@ suite('snapshot', () => {
 			fullTitle: () => 'hello world!'
 		});
 
-		// should pass:
 		await ctx2.assert({ cool: true });
 
 		const ctx3 = makeContext({
@@ -95,7 +90,6 @@ suite('snapshot', () => {
 			fullTitle: () => 'hello world!'
 		});
 
-		// should fail:
 		await assertThrowsAsync(() => ctx3.assert({ cool: false }));
 	});
 

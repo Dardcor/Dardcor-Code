@@ -70,7 +70,6 @@ export class VSCodeWorkspace extends ObservableWorkspace implements IDisposable 
 
 		let lastDocs: Map<DocumentId, IVSCodeObservableDocument> = new Map();
 		this._store.add(autorun(reader => {
-			// Manually copy over the documents to get the delta
 			const curDocs = this._obsDocsByDocId.read(reader);
 			const diff = diffMaps(lastDocs, curDocs);
 			lastDocs = curDocs;
@@ -189,8 +188,6 @@ export class VSCodeWorkspace extends ObservableWorkspace implements IDisposable 
 	private readonly _textDocsWithShouldTrackFlag = mapObservableArrayCached(this, this._vscodeTextDocuments, (doc, store) => {
 		const shouldTrack = observableValue<boolean>(this, false);
 		const updateShouldTrack = () => {
-			// @ulugbekna: not sure if invoking `isCopilotIgnored` on every textDocument-edit event is a good idea
-			// 	also not sure if we should be enforcing local dardcor-ignore rules (vs only remote-exclusion rules)
 			this._filter.isTrackingEnabled(doc).then(v => {
 				shouldTrack.set(v, undefined);
 			}).catch(e => {
@@ -244,8 +241,6 @@ export class VSCodeWorkspace extends ObservableWorkspace implements IDisposable 
 	private readonly _notebookDocsWithShouldTrackFlag = mapObservableArrayCached(this, this._vscodeNotebookDocuments, (doc, store) => {
 		const shouldTrack = observableValue<boolean>(this, false);
 		const updateShouldTrack = () => {
-			// @ulugbekna: not sure if invoking `isCopilotIgnored` on every textDocument-edit event is a good idea
-			// 	also not sure if we should be enforcing local dardcor-ignore rules (vs only remote-exclusion rules)
 			this._filter.isTrackingEnabled(doc).then(v => {
 				shouldTrack.set(v, undefined);
 			}).catch(e => {
@@ -277,13 +272,9 @@ export class VSCodeWorkspace extends ObservableWorkspace implements IDisposable 
 	private getNotebookSelections(doc: NotebookDocument, activeCellEditor?: TextEditor) {
 		const altNotebook = this.getAltNotebookDocument(doc);
 		const visibleTextEditors = new Map(window.visibleTextEditors.map(e => [e.document, e]));
-		// As notebooks have multiple cells, and each cell can have its own selection,
-		// We should focus on the active cell to determine the cursor position.
 		const selectedCellRange = window.activeNotebookEditor?.selection;
 		const selectedCell = activeCellEditor ? altNotebook.getCell(activeCellEditor.document) : (selectedCellRange && selectedCellRange.start < doc.cellCount ? doc.cellAt(selectedCellRange.start) : undefined);
 		const selectedCellEditor = selectedCell ? visibleTextEditors.get(selectedCell.document) : undefined;
-		// We only care about the active cell where cursor is, don't care about multi-cursor.
-		// As the edits are to be performed around wher the cursor is.
 		return (selectedCellEditor && selectedCell) ? altNotebook.toAltOffsetRange(selectedCell, selectedCellEditor.selections) : [];
 	}
 
@@ -341,15 +332,11 @@ export class VSCodeWorkspace extends ObservableWorkspace implements IDisposable 
 		const notebookDocs = this._notebookDocsWithShouldTrackFlag.read(reader);
 		notebookDocs.forEach(d => {
 			map.set(d.doc.uri.toString(), d);
-			// Markdown cells will be treated as standalone text documents (old behaviour).
 			d.doc.getCells().filter(cell => cell.kind === NotebookCellKind.Code).forEach(cell => map.set(cell.document.uri.toString(), d));
 		});
 		return map;
 	});
 
-	/**
-	 * Returns undefined for documents that are not tracked (e.g. filtered out).
-	*/
 	public getDocumentByTextDocument(doc: TextDocument, reader?: IReader): IVSCodeObservableDocument | undefined {
 		this._store.assertNotDisposed();
 
@@ -360,10 +347,6 @@ export class VSCodeWorkspace extends ObservableWorkspace implements IDisposable 
 		return internalDoc.obsDoc.get();
 	}
 
-	/**
-	 * Whether next edit suggestions are enabled for the given language according to the
-	 * per-language `github.dardcor.enable` setting. See {@link DocumentFilter.isLanguageEnabled}.
-	 */
 	public isLanguageEnabled(languageId: string): boolean {
 		return this._filter.isLanguageEnabled(languageId);
 	}
@@ -381,50 +364,16 @@ export class VSCodeWorkspace extends ObservableWorkspace implements IDisposable 
 }
 
 export interface IVSCodeObservableDocument extends IObservableDocument {
-	/**
-	 * Converts the OffsetRange of the Observable document to a range within the provided Text document.
-	 * If this is a Text Document, performs a simple OffsetRange to Range translation.
-	 * If this is a Notebook Document, then this method converts an offset range of the Observable document to a range within the provided notebook cell. If the range provided does not belong to the provided cell (as identified by TextDocument), it returns undefined.
-	 */
 	fromOffsetRange(textDocument: TextDocument, range: OffsetRange): Range | undefined;
-	/**
-	 * Converts the OffsetRange of the Observable document to range(s) within the provided Text document.
-	 * If this is a Text Document, performs a simple OffsetRange to Range translation.
-	 * If this is a Notebook Document, then this method converts an offset range of the Observable document to a range(s) of multiple notebook cells.
-	 */
 	fromOffsetRange(range: OffsetRange): [TextDocument, Range][];
 
-	/**
-	 * Converts the Range of the Observable document to a range within the provided Text document.
-	 * If this is a Text Document, then this returns the same value passed in.
-	 * If this is a Notebook Document, then this method converts a range of the Observable document to a range within the provided notebook cell. If the range provided does not belong to the provided cell (as identified by TextDocument), it returns undefined.
-	*/
 	fromRange(textDocument: TextDocument, range: Range): Range | undefined;
-	/**
-	 * Converts the Range of the Observable document to range(s) within the provided Text document.
-	 * If this is a Text Document, then this returns the same value passed in.
-	 * If this is a Notebook Document, then this method converts a range of the Observable document to a range(s) of multiple notebook cells.
-	 */
 	fromRange(range: Range): [TextDocument, Range][];
 
-	/**
-	 * Converts the Range of the provided Text Document into an OffsetRange within the Observable Document.
-	 * If this is a Text Document, performs a simple Range to OffsetRange translation.
-	 * If this is a Notebook Document, then this method converts a range within the provided Notebook Cell to an Offset within the Observable document. If the provided document does not belong to the Notebook Cell, it returns undefined.
-	 */
 	toOffsetRange(textDocument: TextDocument, range: Range): OffsetRange | undefined;
 
-	/**
-	 * Converts the Range of the provided Text Document into a Range within the Observable Document.
-	 * If this is a Text Document, then this returns the same value passed in.
-	 * If this is a Notebook Document, then this method converts a range within the provided Notebook Cell to a Range within the Observable document. If the provided document does not belong to the Notebook Cell, it returns undefined.
-	 */
 	toRange(textDocument: TextDocument, range: Range): Range | undefined;
 
-	/**
-	 * Gets code actions for the specific range within the document
-	 * @param itemResolveCount Number of code actions to resolve (too large numbers slow down code actions)
-	 */
 	getCodeActions(range: OffsetRange, itemResolveCount: number, token: CancellationToken): Promise<CodeActionData[] | undefined>;
 }
 
@@ -640,8 +589,6 @@ function getObservableTextDocumentList(excludeNotebookCells: boolean, markdownCe
 				d2.dispose();
 			}
 		};
-		// If we're meant to exclude notebook cells, we will still include the markdown cells as separate documents.
-		// Thats because markdown cells will be treated as standalone text documents in the editor.
 	}, () => excludeNotebookCells ? workspace.textDocuments.filter(doc => doc.uri.scheme !== Schemas.vscodeNotebookCell || markdownCellUris.has(doc.uri)) : workspace.textDocuments);
 }
 
@@ -691,7 +638,6 @@ function toCodeActionData(codeAction: CodeAction, workspaceDocument: IVSCodeObse
 		getCommandDiagnostics(codeAction, uri, translateRange)
 	);
 
-	// remove no-op edits
 	let documentEdits = getDocumentEdits(codeAction, workspaceDocument);
 	if (documentEdits) {
 		const documentContent = workspaceDocument.value.get();
@@ -712,7 +658,6 @@ function getCommandDiagnostics(codeAction: CodeAction, uri: URI, translateRange:
 	return coalesce(commandArgs.map(arg => {
 		if (arg && typeof arg === 'object' && 'diagnostic' in arg) {
 			const diagnostic = arg.diagnostic;
-			// @benibenj Can we not check `diagnostic instanceOf vscode.Diagnostic?
 			if (diagnostic && typeof diagnostic === 'object' && 'range' in diagnostic && 'message' in diagnostic && 'severity' in diagnostic) {
 				return toDiagnosticData(diagnostic, uri, translateRange);
 			}

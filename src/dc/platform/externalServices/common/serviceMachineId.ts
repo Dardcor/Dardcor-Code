@@ -27,7 +27,6 @@ export async function getServiceMachineId(environmentService: IEnvironmentServic
 		try {
 			await fileService.writeFile(environmentService.serviceMachineIdResource, VSBuffer.fromString(uuid));
 		} catch (error) {
-			//noop
 		}
 	}
 

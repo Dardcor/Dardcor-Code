@@ -9,29 +9,13 @@ import { TreeSitterOffsetRange } from './nodes';
 import { WASMLanguage } from './treeSitterLanguages';
 import { isDocumentableNode } from './util';
 
-/**
- * This function is used to find the most relevant node to document in a parse tree.
- * It traverses the parse tree and keeps track of documentable nodes that could be used to generate documentation.
- * The relevance of a node is determined by its intersection with a given range (containerRange).
- * The function rewards nodes for which the overlap size constitutes a large part of the node and penalizes nodes for non-overlapping range.
- *
- * @remarks Exported for testing purposes only.
- *
- * @param parseTree - The parse tree to search for the most relevant node.
- * @param containerRange - The range to intersect with the nodes of the parse tree.
- * @param language - The language identifier used to determine if a node is documentable.
- * @returns The most relevant node to document or undefined if no such node is found.
- */
 export function _getNodeMatchingSelection(parseTree: Tree, containerRange: TreeSitterOffsetRange, language: WASMLanguage, match: (node: SyntaxNode, language: WASMLanguage) => RegExpMatchArray | null = isDocumentableNode): SyntaxNode | undefined {
 
-	// nodes to explore
 	let frontier = [parseTree.rootNode];
 
-	// keeps documentable nodes that could be used to generate documentation for
-	const documentableNodes: [SyntaxNode, /* weight (higher better) */ number][] = [];
+	const documentableNodes: [SyntaxNode, number][] = [];
 
 	while (true) {
-		// nodes that intersect with `containerRange`
 		const candidates = frontier
 			.map((node): [SyntaxNode, number] => [node, TreeSitterOffsetRange.intersectionSize(node, containerRange)])
 			.filter(([_, s]) => s > 0)
@@ -46,7 +30,6 @@ export function _getNodeMatchingSelection(parseTree: Tree, containerRange: TreeS
 				.map(([n, overlapSize]): [SyntaxNode, number] => {
 					const nLen = TreeSitterOffsetRange.len(n);
 					const nonOverlappingSize = Math.abs(TreeSitterOffsetRange.len(containerRange) - overlapSize);
-					// reward overlap size but penalize for non-overlapping range
 					const penalizedWeigth = overlapSize - nonOverlappingSize;
 					const normalizedPenalizedWeight = penalizedWeigth / nLen;
 					return [n, normalizedPenalizedWeight];

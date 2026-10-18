@@ -20,22 +20,14 @@ import { ICustomizationHarnessService, IHarnessDescriptor, isPluginCustomization
 import { IAgentPluginService } from '../../common/plugins/agentPluginService.js';
 import { PromptsType } from '../../common/promptSyntax/promptTypes.js';
 import { IPromptsService } from '../../common/promptSyntax/service/promptsService.js';
-import { AICustomizationItemNormalizer, EmptyItemProviderItemSource, IAICustomizationItemSource, IAICustomizationListItem, ItemProviderItemSource, PureItemProviderItemSource } from './aiCustomizationItemSource.js';
+import { AICustomizationItemNormalizer, EmptyItemProviderItemSource, IAICustomizationItemSource, IAICustomizationListItem, ItemProviderItemSource } from './aiCustomizationItemSource.js';
 import { PromptsServiceCustomizationItemProvider } from './promptsServiceCustomizationItemProvider.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { getChatSessionType } from '../../common/model/chatUri.js';
-import { isAgentHostTarget } from '../agentSessions/agentSessions.js';
+
 import { ILogService } from '../../../../../platform/log/common/log.js';
 
 
-/**
- * The set of sections whose items are sourced from the customization
- * harness pipeline (extension-contributed providers, sync providers,
- * and the prompts-service fallback). McpServers / Models have their
- * own dedicated services and are not modeled here. Plugins keep a
- * dedicated count observable because remote harnesses can contribute
- * plugin rows through the same provider pipeline.
- */
 export const ITEMS_MODEL_SECTIONS = [
 	AICustomizationManagementSection.Agents,
 	AICustomizationManagementSection.Skills,
@@ -48,50 +40,17 @@ export type ItemsModelSection = typeof ITEMS_MODEL_SECTIONS[number];
 
 export const IAICustomizationItemsModel = createDecorator<IAICustomizationItemsModel>('aiCustomizationItemsModel');
 
-/**
- * Single source of truth for the items rendered by the AI Customizations
- * editor and observed by sidebar surfaces (counts/badges).
- *
- * The model owns the per-active-harness item source
- * cache and exposes the unfiltered, normalized list of items per section.
- * Both the editor and any sidebar surface read from these observables so
- * there is exactly one discovery path for customizations.
- */
 export interface IAICustomizationItemsModel {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Returns an observable of the unfiltered, normalized list items for the
-	 * given prompts-based section under the currently active harness.
-	 */
 	getItems(section: ItemsModelSection): IObservable<readonly IAICustomizationListItem[]>;
 
-	/**
-	 * Returns the live item source for the active harness.
-	 * Editor consumers may need this to access provider-level affordances
-	 * (e.g. debug reporting). The returned source is reused across the
-	 * lifetime of the active descriptor.
-	 */
 	getActiveItemSource(): IAICustomizationItemSource;
 
-	/**
-	 * Convenience: an observable of the count for the given section.
-	 */
 	getCount(section: ItemsModelSection): IObservable<number>;
 
-	/**
-	 * Returns an observable of the Plugins section count. This combines
-	 * locally installed plugins with plugin rows supplied by the active
-	 * customization harness provider.
-	 */
 	getPluginCount(): IObservable<number>;
 
-	/**
-	 * Resolves once the most recent fetch for `section` has settled. Useful for
-	 * tests / fixtures that need rendered output to reflect at least one fetch.
-	 * Calling this also marks the section as observed (i.e. starts a fetch if
-	 * none has been kicked off yet).
-	 */
 	whenSectionLoaded(section: ItemsModelSection): Promise<void>;
 }
 
@@ -100,14 +59,7 @@ export class AICustomizationItemsModel extends Disposable implements IAICustomiz
 
 	private readonly itemNormalizer: AICustomizationItemNormalizer;
 
-	/**
-	 * Cached source per active descriptor. Keyed by descriptor reference (not id) so that
-	 * an external harness re-registering under the same id (e.g. extension reload) gets a
-	 * fresh source bound to the new provider. Pruned when its descriptor is no longer
-	 * present in `availableHarnesses`.
-	 */
 	private readonly sourceCache = this._register(new MutableDisposable<IAICustomizationItemSource>());
-	/** The descriptor bound to `sourceCache`'s current source, used to detect a late-registering harness. */
 	private sourceDescriptor: IHarnessDescriptor | undefined;
 	private pendingRefetchSource: IAICustomizationItemSource | undefined;
 	private readonly refetchObservedScheduler = this._register(new RunOnceScheduler(() => {
@@ -121,15 +73,10 @@ export class AICustomizationItemsModel extends Disposable implements IAICustomiz
 	private readonly perSection = new Map<ItemsModelSection, ISettableObservable<readonly IAICustomizationListItem[]>>();
 	private readonly perSectionCount = new Map<ItemsModelSection, IObservable<number>>();
 	private readonly fetchSeq = new Map<ItemsModelSection, number>();
-	/** Promise of the most recent fetch per section (resolves regardless of stale-discard). */
 	private readonly perSectionPending = new Map<ItemsModelSection, Promise<void>>();
 	private readonly remotePluginNames = observableValue<readonly string[]>('aiCustomizationRemotePluginNames', []);
 	private readonly pluginCount = derived(reader => {
 		const installed = this.agentPluginService.plugins.read(reader);
-		// Match PluginListWidget's installed-name derivation
-		// (see installedPluginToItem in pluginListWidget.ts) so the model and
-		// editor widget agree on what counts as a duplicate when a plugin's
-		// `label` is empty/undefined.
 		const installedNames = new Set(installed.map(p => (p.label || basename(p.uri)).toLowerCase()));
 		const remoteNames = this.remotePluginNames.read(reader);
 		const uniqueRemote = remoteNames.filter(name => name && !installedNames.has(name.toLowerCase()));
@@ -137,12 +84,6 @@ export class AICustomizationItemsModel extends Disposable implements IAICustomiz
 	});
 	private pluginCountObserved = false;
 	private pluginFetchSeq = 0;
-	/**
-	 * Sections that have been observed at least once. The model only fetches on
-	 * demand: first `getItems`/`getCount` for a section triggers an initial fetch,
-	 * and subsequent harness/source/workspace change events refetch only sections
-	 * that have already been read. This avoids 5x provider enumeration on startup.
-	 */
 	private readonly observedSections = new Set<ItemsModelSection>();
 
 	constructor(
@@ -169,9 +110,6 @@ export class AICustomizationItemsModel extends Disposable implements IAICustomiz
 			this.fetchSeq.set(section, 0);
 		}
 
-		// Re-bind to the active source whenever the active harness or the set of available
-		// harnesses changes (a new external provider may have registered for the already-
-		// active id), prune the source cache, and refetch any observed sections.
 		const sourceChangeListener = this._register(new MutableDisposable());
 		let currentSource: IAICustomizationItemSource | undefined;
 		this._register(autorun(reader => {
@@ -189,8 +127,6 @@ export class AICustomizationItemsModel extends Disposable implements IAICustomiz
 			this.scheduleRefetchObserved(source);
 		}));
 
-		// Workspace folder changes / active project root changes affect the items the
-		// prompts service surfaces (e.g. workspace vs. user classification).
 		this._register(workspaceContextService.onDidChangeWorkspaceFolders(() => this.scheduleRefetchObserved(this.getActiveItemSource())));
 		this._register(autorun(reader => {
 			this.workspaceService.activeProjectRoot.read(reader);
@@ -252,24 +188,16 @@ export class AICustomizationItemsModel extends Disposable implements IAICustomiz
 				this.logService.warn(`No harness descriptor found for session type ${sessionType}`);
 				return new EmptyItemProviderItemSource(sessionResource);
 			}
-			if (isAgentHostTarget(sessionType)) {
-				if (!descriptor.itemProvider) {
-					this.logService.warn(`Agent-host session type ${sessionType} has no item provider`);
-					return new EmptyItemProviderItemSource(sessionResource);
-				}
-				return new PureItemProviderItemSource(sessionResource, descriptor.itemProvider, this.itemNormalizer);
-			} else {
-				const itemProvider = descriptor.itemProvider ?? this.instantiationService.createInstance(PromptsServiceCustomizationItemProvider);
-				return new ItemProviderItemSource(
-					sessionResource,
-					itemProvider,
-					this.promptsService,
-					this.workspaceService,
-					this.fileService,
-					this.pathService,
-					this.itemNormalizer,
-				);
-			}
+			const itemProvider = descriptor.itemProvider ?? this.instantiationService.createInstance(PromptsServiceCustomizationItemProvider);
+			return new ItemProviderItemSource(
+				sessionResource,
+				itemProvider,
+				this.promptsService,
+				this.workspaceService,
+				this.fileService,
+				this.pathService,
+				this.itemNormalizer,
+			);
 		};
 		const source = getItemSource();
 		this.sourceDescriptor = descriptor;
@@ -300,11 +228,9 @@ export class AICustomizationItemsModel extends Disposable implements IAICustomiz
 			if (this._store.isDisposed) {
 				return;
 			}
-			// Discard stale results (a newer fetch superseded this one).
 			if (this.fetchSeq.get(section) !== seq) {
 				return;
 			}
-			// Discard if the active source changed mid-fetch.
 			if (this.getActiveItemSource() !== source) {
 				return;
 			}

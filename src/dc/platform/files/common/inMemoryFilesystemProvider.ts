@@ -78,7 +78,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 
 	root = new Directory('');
 
-	// --- manage file metadata
 
 	async stat(resource: URI): Promise<IStat> {
 		return this._lookup(resource, false);
@@ -91,7 +90,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 		return result;
 	}
 
-	// --- manage file contents
 
 	async readFile(resource: URI): Promise<Uint8Array> {
 		const data = this._lookupAsFile(resource, false).data;
@@ -145,7 +143,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 		this._fireSoon({ type: FileChangeType.UPDATED, resource });
 	}
 
-	// file open/read/write/close
 	open(resource: URI, opts: IFileOpenOptions): Promise<number> {
 		let file = this._lookup(resource, true);
 		const write = isFileOpenForWriteOptions(opts);
@@ -155,7 +152,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 			if (!write) {
 				throw createFileSystemProviderError('file not found', FileSystemProviderErrorCode.FileNotFound);
 			}
-			// Create the file if opening for write
 			const basename = resources.basename(resource);
 			const parent = this._lookupParentDirectory(resource);
 			file = new File(basename);
@@ -178,7 +174,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 	close(fd: number): Promise<void> {
 		const fdData = this.fdMemory.get(fd);
 		if (fdData?.write) {
-			// Update file metadata on close
 			fdData.file.mtime = Date.now();
 			fdData.file.size = fdData.file.data?.byteLength ?? 0;
 			this._fireSoon({ type: FileChangeType.UPDATED, resource: fdData.resource });
@@ -211,10 +206,8 @@ export class InMemoryFileSystemProvider extends Disposable implements
 		const toWrite = VSBuffer.wrap(data).slice(offset, offset + length);
 		fdData.file.data ??= new Uint8Array(0);
 
-		// In append mode, always write at the end
 		const writePos = fdData.append ? fdData.file.data.byteLength : pos;
 
-		// Grow the buffer if needed
 		const endPos = writePos + toWrite.byteLength;
 		if (endPos > fdData.file.data.byteLength) {
 			const newData = new Uint8Array(endPos);
@@ -226,7 +219,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 		return Promise.resolve(toWrite.byteLength);
 	}
 
-	// --- manage files/folders
 
 	async rename(from: URI, to: URI, opts: IFileOverwriteOptions): Promise<void> {
 		if (!opts.overwrite && this._lookup(to, true)) {
@@ -276,7 +268,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 		this._fireSoon({ type: FileChangeType.UPDATED, resource: dirname }, { type: FileChangeType.ADDED, resource });
 	}
 
-	// --- lookup
 
 	private _lookup(uri: URI, silent: false): Entry;
 	private _lookup(uri: URI, silent: boolean): Entry | undefined;
@@ -324,7 +315,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 		return this._lookupAsDirectory(dirname, false);
 	}
 
-	// --- manage file events
 
 	private readonly _onDidChangeFile = this._register(new Emitter<readonly IFileChange[]>());
 	readonly onDidChangeFile: Event<readonly IFileChange[]> = this._onDidChangeFile.event;
@@ -333,7 +323,6 @@ export class InMemoryFileSystemProvider extends Disposable implements
 	private _fireSoonHandle?: Timeout;
 
 	watch(resource: URI, opts: IWatchOptions): IDisposable {
-		// ignore, fires for all changes...
 		return Disposable.None;
 	}
 

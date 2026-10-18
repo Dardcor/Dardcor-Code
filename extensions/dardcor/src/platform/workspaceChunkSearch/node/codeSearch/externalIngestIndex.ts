@@ -45,11 +45,8 @@ import { WorkspaceFolderIdMap } from './workspaceFolderIdMap';
 const debug = false;
 
 const enum ShouldIngestState {
-	/** File is tracked but we haven't yet determined if it should be ingested */
 	Undetermined = 0,
-	/** File should not be ingested */
 	No = 1,
-	/** File should be ingested */
 	Yes = 2,
 }
 
@@ -66,9 +63,6 @@ export interface ExternalIngestStatus {
 	readonly progressMessage: string | undefined;
 }
 
-/**
- * Manages external ingest indexing for files that are NOT covered by GitHub/ADO code search.
- */
 export class ExternalIngestIndex extends Disposable {
 
 	private static readonly storageKeys = Object.freeze({
@@ -85,18 +79,8 @@ export class ExternalIngestIndex extends Disposable {
 
 	private _isDisposed = false;
 
-	/**
-	 * Set of repo root URIs that are covered by code search.
-	 *
-	 * Files under these roots should NOT be indexed by external ingest.
-	 */
 	private readonly _codeSearchRepoRoots = new ResourceSet();
 
-	/**
-	 * Set of file URIs that should be force-included in external ingest,
-	 * even if they fall under code search repo roots.
-	 * Used for out-of-sync diff files that need to be re-indexed locally.
-	 */
 	private readonly _forceIncludeFiles = new ResourceSet();
 
 	private readonly _client: IExternalIngestClient;
@@ -114,9 +98,6 @@ export class ExternalIngestIndex extends Disposable {
 		readonly checkpointHash: string;
 	};
 
-	/**
-	 * Returns the current index state.
-	 */
 	public getState(): ExternalIngestStatus {
 		if (this._currentIngestOperation) {
 			if (this._currentIngestOperation.completed) {
@@ -202,12 +183,6 @@ export class ExternalIngestIndex extends Disposable {
 		this._vsExtensionContext.workspaceState.update(ExternalIngestIndex.storageKeys.Checkpoint, undefined);
 	}
 
-	/**
-	 * Deletes the external ingest index for the current workspace.
-	 *
-	 * This deletes the remote file set and the checkpoint. We keep around the local database because it
-	 * has a cache of file shas.
-	 */
 	public async deleteIndex(telemetryInfo: TelemetryCorrelationId, token: CancellationToken): Promise<void> {
 		const filesetName = this.getFilesetName();
 		if (!filesetName) {
@@ -222,28 +197,11 @@ export class ExternalIngestIndex extends Disposable {
 
 			this._logService.info(`ExternalIngestIndex: Deleted index for fileset ${filesetName}`);
 
-			/* __GDPR__
-				"externalIngestIndex.deleteIndex" : {
-					"owner": "mjbvz",
-					"comment": "Logged when external ingest index is deleted successfully",
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the operation" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the operation" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('externalIngestIndex.deleteIndex', {
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
 				workspaceSearchCorrelationId: telemetryInfo.correlationId,
 			});
 		} catch (e) {
-			/* __GDPR__
-				"externalIngestIndex.deleteIndex.error" : {
-					"owner": "mjbvz",
-					"comment": "Logged when deleting external ingest index fails",
-					"error": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The error message" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the operation" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the operation" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryErrorEvent('externalIngestIndex.deleteIndex.error', {
 				error: (e as Error).message,
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
@@ -253,11 +211,6 @@ export class ExternalIngestIndex extends Disposable {
 		}
 	}
 
-	/**
-	 * Updates the set of roots that are covered by code search.
-	 *
-	 * Files under these roots will be excluded from external ingest indexing.
-	 */
 	public updateCodeSearchRoots(roots: readonly URI[]): void {
 		this._codeSearchRepoRoots.clear();
 		for (const root of roots) {
@@ -267,12 +220,6 @@ export class ExternalIngestIndex extends Disposable {
 		this._logService.trace(`ExternalIngestIndex: Updated code search roots: ${roots.map(r => r.toString()).join(', ')}`);
 	}
 
-	/**
-	 * Updates the set of files that should always be considered for external ingest.
-	 *
-	 * This lets us index local-diff files that live under code-search repo roots,
-	 * so we can blend local updates with remote code-search results.
-	 */
 	public async updateForceIncludeFiles(files: readonly URI[], token: CancellationToken): Promise<void> {
 		await raceCancellationError(this.initialize(), token);
 
@@ -324,8 +271,6 @@ export class ExternalIngestIndex extends Disposable {
 
 		const currentCheckpoint = this.getCurrentIndexCheckpoint();
 
-		// Pre-collect all files and compute the checkpoint hash so we can
-		// detect whether the workspace state has actually changed.
 		const allFiles: ExternalIngestFile[] = [];
 		for await (const file of this.getFilesToIndexFromDb(callerToken)) {
 			allFiles.push(file);
@@ -334,20 +279,16 @@ export class ExternalIngestIndex extends Disposable {
 
 		const fileSet: ExternalIngestFileSet = { files: allFiles, checkpoint: checkpointHash };
 
-		// If the checkpoint matches the stored one, the index is already up to date.
 		if (checkpointHash === currentCheckpoint) {
 			this._logService.info('ExternalIngestIndex::doIngest(): Checkpoint matches current checkpoint, skipping ingest.');
 			return Result.ok(true);
 		}
 
-		// If there is a running operation with the same checkpoint hash,
-		// the workspace state has not changed — reuse the existing operation.
 		if (this._currentIngestOperation && !this._currentIngestOperation.completed && this._currentIngestOperation.checkpointHash === checkpointHash) {
 			this._logService.info('ExternalIngestIndex::doIngest(): Workspace state unchanged, reusing existing ingest operation');
 			return this._currentIngestOperation.promise;
 		}
 
-		// Track building state
 		const operation: typeof this._currentIngestOperation = {
 			promise: undefined!,
 			progressMessage: undefined,
@@ -357,8 +298,6 @@ export class ExternalIngestIndex extends Disposable {
 
 		const sw = new StopWatch();
 
-		// We generally don't want to cancel an ingest just because the caller's token is canceled.
-		// If we do this, the index will often never be built successfully
 		const updatePromise = createCancelablePromise(async (token): Promise<Result<true, TriggerIndexingError>> => {
 			const wrappedOnProgress = (message: string) => {
 				if (this._currentIngestOperation === operation) {
@@ -380,17 +319,6 @@ export class ExternalIngestIndex extends Disposable {
 				if (result.isOk()) {
 					this.setCurrentIndexCheckpoint(result.val.checkpoint);
 
-					/* __GDPR__
-						"externalIngestIndex.updateIndex.success" : {
-							"owner": "mjbvz",
-							"comment": "Logged when external ingest index update completes successfully",
-"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the operation" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the operation" },
-					"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time taken to complete the update in milliseconds" },
-					"totalFileCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of files in the index" },
-					"updatedFileCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of files that were updated" }
-					}
-				*/
 					this._telemetryService.sendMSFTTelemetryEvent('externalIngestIndex.updateIndex.success', {
 						workspaceSearchSource: telemetryInfo.callTracker.toString(),
 						workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -398,16 +326,6 @@ export class ExternalIngestIndex extends Disposable {
 
 					return Result.ok(true);
 				} else {
-					/* __GDPR__
-						"externalIngestIndex.updateIndex.error" : {
-							"owner": "mjbvz",
-							"comment": "Logged when external ingest index update fails",
-							"error": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The error message" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the operation" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the operation" },
-					"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time taken before failure in milliseconds" }
-					}
-				*/
 					this._telemetryService.sendMSFTTelemetryErrorEvent('externalIngestIndex.updateIndex.error', {
 						error: result.err.message,
 						workspaceSearchSource: telemetryInfo.callTracker.toString(),
@@ -423,16 +341,6 @@ export class ExternalIngestIndex extends Disposable {
 					throw e;
 				}
 
-				/* __GDPR__
-					"externalIngestIndex.updateIndex.exception" : {
-						"owner": "mjbvz",
-						"comment": "Logged when external ingest index update throws an exception",
-						"error": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The exception message" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the operation" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the operation" },
-					"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time taken before exception in milliseconds" }
-					}
-				*/
 				this._telemetryService.sendMSFTTelemetryErrorEvent('externalIngestIndex.updateIndex.exception', {
 					error: (e as Error).message,
 					workspaceSearchSource: telemetryInfo.callTracker.toString(),
@@ -450,7 +358,6 @@ export class ExternalIngestIndex extends Disposable {
 			}
 		});
 
-		// Cancel existing since workspace state has changed
 		this._currentIngestOperation?.promise.cancel();
 
 		operation.promise = updatePromise;
@@ -483,8 +390,6 @@ export class ExternalIngestIndex extends Disposable {
 						return await this._client.searchFilesets(filesetName, resolvedQuery, sizing.maxResultCountHint, callTracker, token);
 					} catch (err) {
 						if (err instanceof ExternalIngestRequestError && err.response.status === 404) {
-							// On the first index or a large workspace, there might be a slight delay on the service
-							// before the index is actually ready. Workaround by retrying just once after a short delay.
 							await raceCancellationError(timeout(2000), token);
 							return await this._client.searchFilesets(filesetName, resolvedQuery, sizing.maxResultCountHint, callTracker, token);
 						}
@@ -505,7 +410,6 @@ export class ExternalIngestIndex extends Disposable {
 				if (!file) {
 					this._logService.warn(`ExternalIngestIndex: Could not resolve file for search result path: ${r.location.path}`);
 
-					// Make a best effort guess
 					if (primaryRoot) {
 						file = URI.joinPath(primaryRoot, r.location.path);
 					}
@@ -529,17 +433,6 @@ export class ExternalIngestIndex extends Disposable {
 				};
 			}));
 
-			/* __GDPR__
-				"externalIngestIndex.search.success" : {
-					"owner": "mjbvz",
-					"comment": "Logged when external ingest search completes successfully",
-					"resultEmbeddingType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The embedding model used for the search" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"resultCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of chunks returned from the search" },
-					"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time taken to complete the search in milliseconds" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('externalIngestIndex.search.success', {
 				resultEmbeddingType: embeddingType.toString(),
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
@@ -552,15 +445,6 @@ export class ExternalIngestIndex extends Disposable {
 			return chunks;
 		} catch (e) {
 			if (isCancellationError(e)) {
-				/* __GDPR__
-					"externalIngestIndex.search.cancelled" : {
-						"owner": "mjbvz",
-						"comment": "Logged info about cancellation of external ingest search. Mostly for timeouts",
-						"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-						"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-						"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time taken before the search was cancelled or aborted in milliseconds" }
-					}
-				*/
 				this._telemetryService.sendMSFTTelemetryEvent('externalIngestIndex.search.cancelled', {
 					workspaceSearchSource: telemetryInfo.callTracker.toString(),
 					workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -570,16 +454,6 @@ export class ExternalIngestIndex extends Disposable {
 				throw e;
 			}
 
-			/* __GDPR__
-				"externalIngestIndex.search.error" : {
-					"owner": "mjbvz",
-					"comment": "Logged when external ingest search fails",
-					"error": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The error message" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time taken before failure in milliseconds" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryErrorEvent('externalIngestIndex.search.error', {
 				error: (e as Error).message,
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
@@ -592,12 +466,10 @@ export class ExternalIngestIndex extends Disposable {
 	private openOrCreateDatabase(dbPath: string | ':memory:'): sql.DatabaseSync {
 		this._logService.trace(`ExternalIngestIndex: Opening database at path: ${dbPath}`);
 
-		// For in-memory databases, always create fresh
 		if (dbPath === ':memory:') {
 			return this.createFreshDatabase(dbPath);
 		}
 
-		// Try to open existing database and check cache version
 		if (fs.existsSync(dbPath)) {
 			try {
 				const db = new sql.DatabaseSync(dbPath, {
@@ -611,14 +483,12 @@ export class ExternalIngestIndex extends Disposable {
 					return db;
 				}
 
-				// Version mismatch - close and delete
 				this._logService.info(`ExternalIngestIndex: Cache version mismatch (stored: ${storedVersion}, current: ${ingestUtils.cacheVersion()}). Recreating database.`);
 				db.close();
 			} catch (error) {
 				this._logService.warn(`ExternalIngestIndex: Failed to open existing database, will recreate: ${error}`);
 			}
 
-			// Delete the old database file
 			try {
 				fs.unlinkSync(dbPath);
 			} catch (error) {
@@ -636,7 +506,6 @@ export class ExternalIngestIndex extends Disposable {
 				return row.value;
 			}
 		} catch {
-			// Table may not exist in older databases
 		}
 		return undefined;
 	}
@@ -675,7 +544,6 @@ export class ExternalIngestIndex extends Disposable {
 			);
 		`);
 
-		// Store the current cache version
 		db.prepare('INSERT OR REPLACE INTO Metadata (key, value) VALUES (?, ?)').run('cacheVersion', ingestUtils.cacheVersion());
 
 		return db;
@@ -688,14 +556,11 @@ export class ExternalIngestIndex extends Disposable {
 			return;
 		}
 
-		// Check if file already exists and hasn't changed
 		const existing = this.get(uri);
 		if (existing && existing.size === stat.size && existing.mtime === stat.mtime) {
-			// File unchanged, keep existing state
 			return;
 		}
 
-		// New or changed file - set to Undetermined so it will be evaluated later
 		this._db.prepare(`
 			INSERT INTO Files (path, size, mtime, docSha, shouldIngest)
 			VALUES (?, ?, ?, ?, ?)
@@ -703,24 +568,15 @@ export class ExternalIngestIndex extends Disposable {
 		`).run(uri.toString(), stat.size, stat.mtime, null, ShouldIngestState.Undetermined);
 	}
 
-	/**
-	 * Determines whether the given file should be tracked by the external ingest index.
-	 *
-	 * This does NOT consider whether the file should be ingested, only whether it should be tracked.
-	 */
 	public async shouldTrackFile(uri: URI, token: CancellationToken): Promise<boolean> {
-		// Only track files within the current workspace
 		if (!this._instantiationService.invokeFunction(accessor => shouldPotentiallyIndexFile(accessor, uri))) {
 			return false;
 		}
 
-		// Don't index files that aren't part of the workspace
 		if (!this._workspaceService.getWorkspaceFolder(uri)) {
 			return false;
 		}
 
-		// Don't index files that are under a code search repo root
-		// (unless they are force-included as diff files)
 		if (!this._forceIncludeFiles.has(uri)) {
 			for (const root of this._codeSearchRepoRoots) {
 				if (isEqualOrParent(uri, root)) {
@@ -729,7 +585,7 @@ export class ExternalIngestIndex extends Disposable {
 			}
 		}
 
-		return !await this._ignoreService.isCopilotIgnored(uri, token);
+		return !await this._ignoreService.isIgnored(uri, token);
 	}
 
 	private async shouldIngestFile(uri: URI, stat: { readonly size: number; readonly mtime: number }, token: CancellationToken): Promise<Result<{ readonly docSha: Uint8Array }, false>> {
@@ -737,12 +593,10 @@ export class ExternalIngestIndex extends Disposable {
 			return Result.error(false);
 		}
 
-		// Quick check based on path and size
 		if (!this._client.canIngestPathAndSize(uri.fsPath, stat.size)) {
 			return Result.error(false);
 		}
 
-		// Complete check based on document contents
 		try {
 			const data = await this._readLimiter.queue(() => this._fileSystemService.readFile(uri));
 			if (!this._client.canIngestDocument(uri.fsPath, data)) {
@@ -797,7 +651,6 @@ export class ExternalIngestIndex extends Disposable {
 			return URI.joinPath(folderUri, ...rest);
 		}
 
-		// Old style indexes always use the first workspace folder as the root
 		const primaryRoot = this._workspaceService.getWorkspaceFolders().at(0);
 		if (!primaryRoot) {
 			return undefined;
@@ -821,8 +674,6 @@ export class ExternalIngestIndex extends Disposable {
 	}
 
 	private async *getFilesToIndexFromDb(token: CancellationToken): AsyncIterable<ExternalIngestFile> {
-		// Get files that are either already marked "Yes" or "need to be evaluated" (Undetermined).
-		// Order by path for deterministic results (important for stable checkpoint hashes).
 		const rows = this._db.prepare('SELECT path, size, mtime, docSha, shouldIngest FROM Files WHERE shouldIngest IN (?, ?) ORDER BY path').all(ShouldIngestState.Yes, ShouldIngestState.Undetermined) as unknown as Array<DbFileEntry>;
 
 		const limiter = new Limiter<ExternalIngestFile | undefined>(20);
@@ -830,7 +681,6 @@ export class ExternalIngestIndex extends Disposable {
 		const processRow = async (row: DbFileEntry): Promise<ExternalIngestFile | undefined> => {
 			const uri = URI.parse(row.path);
 
-			// Skip files that are now under code search repos
 			if (!await this.shouldTrackFile(uri, token)) {
 				this.delete(uri);
 				return undefined;
@@ -846,7 +696,6 @@ export class ExternalIngestIndex extends Disposable {
 			const storedMtime = row.mtime;
 			const fileUnchanged = storedSize === stat.size && storedMtime === stat.mtime;
 
-			// If file state is undetermined, we need to evaluate it
 			if (row.shouldIngest === ShouldIngestState.Undetermined) {
 				const result = await this.shouldIngestFile(uri, stat, token);
 				if (result.isOk()) {
@@ -861,7 +710,6 @@ export class ExternalIngestIndex extends Disposable {
 				return undefined;
 			}
 
-			// File is already marked Yes - use cached docSha if file unchanged
 			let docSha: Uint8Array | undefined = fileUnchanged ? row.docSha ?? undefined : undefined;
 
 			if (!docSha) {
@@ -870,14 +718,12 @@ export class ExternalIngestIndex extends Disposable {
 					return undefined;
 				}
 
-				// Store the computed docSha in the database
 				this._db.prepare('UPDATE Files SET docSha = ? WHERE path = ?').run(docSha, uri.toString());
 			}
 
 			return this.createExternalIngestFile(uri, docSha);
 		};
 
-		// Queue all work upfront to run in parallel, then yield results in order as they complete
 		const pendingResults = rows.map(row => limiter.queue(() => processRow(row)));
 
 		for (const pending of pendingResults) {
@@ -917,7 +763,6 @@ export class ExternalIngestIndex extends Disposable {
 				this._logService.trace(`ExternalIngestIndex::reconcileDbFiles() Found ${paths.length} candidate files in workspace folder ${folder.toString()}.`);
 
 				for (const uri of paths) {
-					// Skip files under code search repos
 					if (!await this.shouldTrackFile(uri, CancellationToken.None)) {
 						continue;
 					}
@@ -943,7 +788,6 @@ export class ExternalIngestIndex extends Disposable {
 			}
 		}
 
-		// Remove files that no longer exist
 		for (const uri of initialDbFiles) {
 			if (!seen.has(uri)) {
 				this.delete(uri);
@@ -1038,8 +882,7 @@ export class ExternalIngestIndex extends Disposable {
 	private async safeStat(uri: URI): Promise<{ size: number; mtime: number } | undefined> {
 		try {
 			const stat = await this._fileSystemService.stat(uri);
-			// Check it's a file, not a directory
-			if (stat.type !== 1) { // FileType.File = 1
+			if (stat.type !== 1) {
 				return undefined;
 			}
 			return { size: stat.size, mtime: stat.mtime };
@@ -1071,8 +914,6 @@ export class ExternalIngestIndex extends Disposable {
 			return stored;
 		}
 
-		// Don't bother building up external ingest sets if there's no workspace as often these are transient and only
-		// have a handful of files.
 		const workspaceFolders = this._workspaceService.getWorkspaceFolders();
 		if (!workspaceFolders.length) {
 			return undefined;
@@ -1090,9 +931,6 @@ export class ExternalIngestIndex extends Disposable {
 		}
 	}
 
-	/**
-	 * Get diagnostic information about the external ingest index.
-	 */
 	public getDiagnostics(): { fileCount: number; files: URI[] } {
 		const files = Array.from(this.iterateDbFiles());
 		return { fileCount: files.length, files };

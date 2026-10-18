@@ -56,16 +56,10 @@ args['extensions-dir'] = args['extensions-dir'] || join(REMOTE_DATA_FOLDER, 'ext
 	} catch (err) { console.error(err); }
 });
 
-/**
- * invoked by server-main.js
- */
 export function spawnCli() {
 	runCli(args, REMOTE_DATA_FOLDER, serverOptions);
 }
 
-/**
- * invoked by server-main.js
- */
 export function createServer(address: string | net.AddressInfo | null): Promise<IServerAPI> {
 	return doCreateServer(address, args, REMOTE_DATA_FOLDER);
 }

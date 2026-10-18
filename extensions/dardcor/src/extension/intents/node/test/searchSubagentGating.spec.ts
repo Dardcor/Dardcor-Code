@@ -59,10 +59,10 @@ describe('getAgentTools search subagent gating', () => {
 		instantiationService = accessor.get(IInstantiationService);
 		configService = accessor.get(IConfigurationService);
 
-		// User-selected model: CAPI-backed, but intentionally not a gpt/anthropic family.
 		userEndpoint = instantiationService.createInstance(MockEndpoint, 'gemini-3-pro');
 		(userEndpoint as { family: string }).family = 'gemini-3-pro';
 		(userEndpoint as { urlOrRequestMetadata: RequestMetadata }).urlOrRequestMetadata = { type: RequestType.ChatCompletions };
+		(userEndpoint as { supportsToolCalls: boolean }).supportsToolCalls = true;
 		searchAgentEndpoint = instantiationService.createInstance(MockEndpoint, SEARCH_AGENT_FAMILY);
 		executionAgentEndpoint = instantiationService.createInstance(MockEndpoint, 'gemini-3-flash');
 	});
@@ -81,14 +81,14 @@ describe('getAgentTools search subagent gating', () => {
 		return tools.some(t => t.name === name);
 	}
 
-	test('hides both subagents when search-agent family is not in CAPI', async () => {
+	test('exposes subagents for a tool-capable model without requiring a special catalog family', async () => {
 		const request = new TestChatRequest('find usages of foo');
 		const tools = await instantiationService.invokeFunction(getAgentTools, request, userEndpoint);
-		expect(hasTool(tools, ToolName.SearchSubagent)).toBe(false);
+		expect(hasTool(tools, ToolName.SearchSubagent)).toBe(true);
 		expect(hasTool(tools, ToolName.ExploreSubagent)).toBe(false);
 	});
 
-	test('exposes SearchSubagent when family is in CAPI and explore-agent experiment is on', async () => {
+	test('exposes SearchSubagent when the explore-agent experiment is on', async () => {
 		endpointProvider.endpoints = [userEndpoint, searchAgentEndpoint];
 		const request = new TestChatRequest('find usages of foo');
 		const tools = await instantiationService.invokeFunction(getAgentTools, request, userEndpoint);
@@ -96,7 +96,7 @@ describe('getAgentTools search subagent gating', () => {
 		expect(hasTool(tools, ToolName.ExploreSubagent)).toBe(false);
 	});
 
-	test('exposes ExploreSubagent (legacy path) when family is in CAPI and explore-agent experiment is off', async () => {
+	test('exposes ExploreSubagent when the explore-agent experiment is off', async () => {
 		endpointProvider.endpoints = [userEndpoint, searchAgentEndpoint];
 		configService.setConfig(ConfigKey.ExploreAgentEnabled, false);
 		const request = new TestChatRequest('find usages of foo');
@@ -105,7 +105,7 @@ describe('getAgentTools search subagent gating', () => {
 		expect(hasTool(tools, ToolName.SearchSubagent)).toBe(false);
 	});
 
-	test('exposes ExecutionSubagent when gemini-3-flash is available for a non-gpt/non-anthropic CAPI model', async () => {
+	test('exposes ExecutionSubagent for a tool-capable model when enabled', async () => {
 		endpointProvider.endpoints = [userEndpoint, executionAgentEndpoint];
 		configService.setConfig(ConfigKey.Advanced.SearchSubagentToolEnabled, false);
 		configService.setConfig(ConfigKey.Advanced.ExecutionSubagentToolEnabled, true);
@@ -114,11 +114,11 @@ describe('getAgentTools search subagent gating', () => {
 		expect(hasTool(tools, ToolName.ExecutionSubagent)).toBe(true);
 	});
 
-	test('hides both subagents when CAPI fetch fails', async () => {
-		endpointProvider.getAllChatEndpoints = async () => { throw new Error('CAPI unreachable'); };
+	test('subagent availability does not depend on fetching a special catalog family', async () => {
+		endpointProvider.getAllChatEndpoints = async () => { throw new Error('Router catalog unavailable'); };
 		const request = new TestChatRequest('find usages of foo');
 		const tools = await instantiationService.invokeFunction(getAgentTools, request, userEndpoint);
-		expect(hasTool(tools, ToolName.SearchSubagent)).toBe(false);
+		expect(hasTool(tools, ToolName.SearchSubagent)).toBe(true);
 		expect(hasTool(tools, ToolName.ExploreSubagent)).toBe(false);
 	});
 
@@ -128,12 +128,11 @@ describe('getAgentTools search subagent gating', () => {
 		expect(hasTool(tools, ToolName.Codebase)).toBe(true);
 	});
 
-	test('hides semantic_search when the model is a BYOK / custom endpoint', async () => {
-		// A BYOK / custom endpoint is identified by a string URL rather than CAPI request metadata.
+	test('keeps semantic_search available on BYOK endpoints with local fallback', async () => {
 		const byokEndpoint = instantiationService.createInstance(MockEndpoint, 'gpt-5');
 		(byokEndpoint as { urlOrRequestMetadata: string }).urlOrRequestMetadata = 'https://localhost:8080/v1/chat/completions';
 		const request = new TestChatRequest('how does foo work');
 		const tools = await instantiationService.invokeFunction(getAgentTools, request, byokEndpoint);
-		expect(hasTool(tools, ToolName.Codebase)).toBe(false);
+		expect(hasTool(tools, ToolName.Codebase)).toBe(true);
 	});
 });

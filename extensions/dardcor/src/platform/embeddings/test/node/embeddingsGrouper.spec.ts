@@ -12,7 +12,6 @@ interface TestTool {
 	category: string;
 }
 
-// Helper function to create test embeddings
 function createEmbedding(values: number[]): Embedding {
 	return {
 		type: EmbeddingType.text3small_512,
@@ -20,7 +19,6 @@ function createEmbedding(values: number[]): Embedding {
 	};
 }
 
-// Helper function to create test nodes
 function createNode(name: string, category: string, embedding: number[]): Node<TestTool> {
 	return {
 		value: { name, category },
@@ -28,14 +26,13 @@ function createNode(name: string, category: string, embedding: number[]): Node<T
 	};
 }
 
-// Create embeddings that should cluster together (high cosine similarity)
 function createSimilarEmbeddings(): number[][] {
 	return [
-		[1, 0.8, 0.2, 0.1],  // Similar to group 1
-		[0.9, 0.7, 0.1, 0.15], // Similar to group 1
-		[0.1, 0.2, 1, 0.8],  // Similar to group 2
-		[0.15, 0.1, 0.9, 0.7], // Similar to group 2
-		[0.5, 0.5, 0.5, 0.5]   // Outlier
+		[1, 0.8, 0.2, 0.1],
+		[0.9, 0.7, 0.1, 0.15],
+		[0.1, 0.2, 1, 0.8],
+		[0.15, 0.1, 0.9, 0.7],
+		[0.5, 0.5, 0.5, 0.5]
 	];
 }
 
@@ -53,7 +50,7 @@ describe('EmbeddingsGrouper', () => {
 
 		it('should accept custom options', () => {
 			const options: GroupingOptions = {
-				eps: 0.85, // High similarity threshold
+				eps: 0.85,
 				minClusterSize: 3,
 				insertThreshold: 0.7
 			};
@@ -95,14 +92,11 @@ describe('EmbeddingsGrouper', () => {
 			grouper.addNode(nodes[0]);
 			grouper.addNode(nodes[1]);
 
-			// After adding similar nodes incrementally, they might not cluster
-			// Let's force clustering to see the behavior
 			grouper.recluster();
 
 			const clusters = grouper.getClusters();
 			expect(clusters.length).toBeGreaterThan(0);
 
-			// Similar embeddings should be in same cluster
 			const cluster = grouper.getClusterForNode(nodes[0]);
 			expect(cluster).toBeDefined();
 			expect(cluster!.nodes.some(n => n === nodes[1])).toBe(true);
@@ -119,10 +113,10 @@ describe('EmbeddingsGrouper', () => {
 			const embeddings = createSimilarEmbeddings();
 			const nodes = [
 				createNode('search', 'lookup', embeddings[0]),
-				createNode('find', 'lookup', embeddings[1]), // Similar to search
+				createNode('find', 'lookup', embeddings[1]),
 				createNode('create', 'generate', embeddings[2]),
-				createNode('make', 'generate', embeddings[3]), // Similar to create
-				createNode('random', 'misc', embeddings[4])     // Outlier
+				createNode('make', 'generate', embeddings[3]),
+				createNode('random', 'misc', embeddings[4])
 			];
 
 			grouper.addNodes(nodes);
@@ -130,7 +124,6 @@ describe('EmbeddingsGrouper', () => {
 			const clusters = grouper.getClusters();
 			expect(clusters.length).toBeGreaterThanOrEqual(2);
 
-			// Verify all nodes are assigned
 			const totalNodesInClusters = clusters.reduce((sum, cluster) => sum + cluster.nodes.length, 0);
 			expect(totalNodesInClusters).toBe(nodes.length);
 		});
@@ -144,15 +137,12 @@ describe('EmbeddingsGrouper', () => {
 
 			grouper.addNodes(nodes, false);
 
-			// Should create singleton clusters without clustering
 			const clusters = grouper.getClusters();
 			expect(clusters).toHaveLength(3);
 			expect(clusters.every(c => c.nodes.length === 1)).toBe(true);
 
-			// Manual recluster should group similar nodes
 			grouper.recluster();
 			const clustersAfterRecluster = grouper.getClusters();
-			// Should potentially reduce cluster count due to grouping
 			expect(clustersAfterRecluster.length).toBeLessThanOrEqual(clusters.length);
 		});
 	});
@@ -187,7 +177,7 @@ describe('EmbeddingsGrouper', () => {
 			const nodes = [
 				createNode('tool1', 'category1', embeddings[0]),
 				createNode('tool2', 'category1', embeddings[1]),
-				createNode('tool3', 'category1', embeddings[0]) // Very similar to first
+				createNode('tool3', 'category1', embeddings[0])
 			];
 
 			nodes.forEach(node => grouper.addNode(node));
@@ -227,10 +217,10 @@ describe('EmbeddingsGrouper', () => {
 			const embeddings = createSimilarEmbeddings();
 			const nodes = [
 				createNode('search', 'lookup', embeddings[0]),
-				createNode('find', 'lookup', embeddings[1]), // Similar to search
+				createNode('find', 'lookup', embeddings[1]),
 				createNode('create', 'generate', embeddings[2]),
-				createNode('make', 'generate', embeddings[3]), // Similar to create
-				createNode('random', 'misc', embeddings[4])     // Outlier
+				createNode('make', 'generate', embeddings[3]),
+				createNode('random', 'misc', embeddings[4])
 			];
 
 			nodes.forEach(node => grouper.addNode(node));
@@ -239,13 +229,11 @@ describe('EmbeddingsGrouper', () => {
 			const clusters = grouper.getClusters();
 			expect(clusters.length).toBeGreaterThanOrEqual(2);
 
-			// Find clusters for similar nodes
 			const searchCluster = grouper.getClusterForNode(nodes[0]);
 			const findCluster = grouper.getClusterForNode(nodes[1]);
 			const createCluster = grouper.getClusterForNode(nodes[2]);
 			const makeCluster = grouper.getClusterForNode(nodes[3]);
 
-			// Similar nodes should be in same clusters
 			expect(searchCluster).toBeDefined();
 			expect(findCluster).toBeDefined();
 			expect(createCluster).toBeDefined();
@@ -263,7 +251,6 @@ describe('EmbeddingsGrouper', () => {
 			nodes.forEach(node => grouper.addNode(node));
 			grouper.recluster();
 
-			// With minClusterSize=3, these 2 similar nodes should be separate singletons
 			const clusters = grouper.getClusters();
 			expect(clusters.every(c => c.nodes.length < 3)).toBe(true);
 		});
@@ -298,7 +285,6 @@ describe('EmbeddingsGrouper', () => {
 			nodes.forEach(node => grouper.addNode(node));
 			grouper.recluster();
 
-			// All identical embeddings should be in same cluster
 			const clusters = grouper.getClusters();
 			expect(clusters).toHaveLength(1);
 			expect(clusters[0].nodes).toHaveLength(3);
@@ -316,7 +302,6 @@ describe('EmbeddingsGrouper', () => {
 		});
 
 		it('should handle varied similarity distributions', () => {
-			// Create embeddings with different similarity levels
 			const nodes = [
 				createNode('very_similar_1', 'cat1', [1, 0.1, 0, 0]),
 				createNode('very_similar_2', 'cat1', [0.9, 0.1, 0, 0]),
@@ -333,7 +318,6 @@ describe('EmbeddingsGrouper', () => {
 			expect(clusters.length).toBeGreaterThan(1);
 			expect(clusters.length).toBeLessThanOrEqual(nodes.length);
 
-			// Verify each node is assigned to exactly one cluster
 			const allNodesInClusters = clusters.flatMap(c => c.nodes);
 			expect(allNodesInClusters).toHaveLength(nodes.length);
 		});
@@ -341,15 +325,14 @@ describe('EmbeddingsGrouper', () => {
 
 	describe('adaptive threshold behavior', () => {
 		it('should work with different similarity percentiles', () => {
-			const strictGrouper = new EmbeddingsGrouper<TestTool>({ eps: 0.95 }); // High similarity required
-			const lenientGrouper = new EmbeddingsGrouper<TestTool>({ eps: 0.8 }); // Lower similarity required
+			const strictGrouper = new EmbeddingsGrouper<TestTool>({ eps: 0.95 });
+			const lenientGrouper = new EmbeddingsGrouper<TestTool>({ eps: 0.8 });
 
 			const embeddings = createSimilarEmbeddings();
 			const nodes = embeddings.map((emb, i) =>
 				createNode(`tool${i}`, 'category', emb)
 			);
 
-			// Add same nodes to both groupers
 			nodes.forEach(node => {
 				strictGrouper.addNode({ ...node });
 				lenientGrouper.addNode({ ...node });
@@ -361,7 +344,6 @@ describe('EmbeddingsGrouper', () => {
 			const strictClusters = strictGrouper.getClusters();
 			const lenientClusters = lenientGrouper.getClusters();
 
-			// Stricter threshold should generally create more clusters
 			expect(strictClusters.length).toBeGreaterThanOrEqual(lenientClusters.length);
 		});
 	});
@@ -381,7 +363,6 @@ describe('EmbeddingsGrouper', () => {
 				expect(cluster.centroid).toBeDefined();
 				expect(cluster.centroid.length).toBeGreaterThan(0);
 
-				// Centroid should be normalized (magnitude ≈ 1 for non-zero vectors)
 				const magnitude = Math.sqrt(cluster.centroid.reduce((sum, val) => sum + val * val, 0));
 				if (magnitude > 0) {
 					expect(magnitude).toBeCloseTo(1, 5);
@@ -395,17 +376,16 @@ describe('EmbeddingsGrouper', () => {
 			const embeddings = createSimilarEmbeddings();
 			const nodes = [
 				createNode('search', 'lookup', embeddings[0]),
-				createNode('find', 'lookup', embeddings[1]), // Similar to search
+				createNode('find', 'lookup', embeddings[1]),
 				createNode('create', 'generate', embeddings[2]),
-				createNode('make', 'generate', embeddings[3]), // Similar to create
-				createNode('random1', 'misc', embeddings[4]),     // Outlier
-				createNode('random2', 'misc', [0.3, 0.3, 0.3, 0.1]), // Another outlier
-				createNode('random3', 'misc', [0.1, 0.3, 0.3, 0.3])  // Another outlier
+				createNode('make', 'generate', embeddings[3]),
+				createNode('random1', 'misc', embeddings[4]),
+				createNode('random2', 'misc', [0.3, 0.3, 0.3, 0.1]),
+				createNode('random3', 'misc', [0.1, 0.3, 0.3, 0.3])
 			];
 
-			grouper.addNodes(nodes, false); // Don't cluster initially
+			grouper.addNodes(nodes, false);
 
-			// Find optimal percentile for max 4 clusters
 			const result = grouper.tuneThresholdForTargetClusters(4);
 
 			expect(result.clusterCount).toBeLessThanOrEqual(4);
@@ -422,33 +402,26 @@ describe('EmbeddingsGrouper', () => {
 
 			grouper.addNodes(nodes);
 
-			// Apply a stricter percentile (should create more clusters)
 			grouper.applyPercentileAndRecluster(98);
 			const strictClusterCount = grouper.getClusters().length;
 
-			// Apply a more lenient percentile (should create fewer clusters)
 			grouper.applyPercentileAndRecluster(85);
 			const lenientClusterCount = grouper.getClusters().length;
 
-			// Stricter threshold should generally create more or equal clusters
 			expect(strictClusterCount).toBeGreaterThanOrEqual(lenientClusterCount);
 
-			// All nodes should still be assigned
 			const allClusters = grouper.getClusters();
 			const totalNodes = allClusters.reduce((sum, cluster) => sum + cluster.nodes.length, 0);
 			expect(totalNodes).toBe(nodes.length);
 		});
 
 		it('should cache similarities for efficient repeated tuning', () => {
-			// Create embeddings with more predictable clustering behavior
 			const nodes: Node<TestTool>[] = [];
 
-			// Create 3 distinct groups of 10 nodes each using deterministic trigonometric patterns
 			for (let group = 0; group < 3; group++) {
 				for (let i = 0; i < 10; i++) {
-					// Each group occupies a different region of the 4D space using trigonometry
-					const baseAngle = group * (2 * Math.PI / 3); // 120° separation between groups
-					const variation = i * 0.1; // Small variation within group
+					const baseAngle = group * (2 * Math.PI / 3);
+					const variation = i * 0.1;
 
 					const embedding = [
 						Math.cos(baseAngle + variation) * 0.8 + 0.2,
@@ -462,38 +435,32 @@ describe('EmbeddingsGrouper', () => {
 
 			grouper.addNodes(nodes, false);
 
-			const result1 = grouper.tuneThresholdForTargetClusters(15); // Very lenient
-			const result2 = grouper.tuneThresholdForTargetClusters(8);  // Moderate
-			const result3 = grouper.tuneThresholdForTargetClusters(5);  // Strict
+			const result1 = grouper.tuneThresholdForTargetClusters(15);
+			const result2 = grouper.tuneThresholdForTargetClusters(8);
+			const result3 = grouper.tuneThresholdForTargetClusters(5);
 
-			// With deterministic trigonometric data, these should be more predictable
 			expect(result1.clusterCount).toBeLessThanOrEqual(15);
 			expect(result2.clusterCount).toBeLessThanOrEqual(8);
 
-			// For the strictest case, we have 3 natural groups, so expect something reasonable
 			expect(result3.clusterCount).toBeLessThanOrEqual(5);
 
-			// Verify the algorithm works in the right direction (more restrictive = fewer clusters)
 			expect(result1.clusterCount).toBeGreaterThanOrEqual(result2.clusterCount);
 			expect(result2.clusterCount).toBeGreaterThanOrEqual(result3.clusterCount);
 		}); it('should handle edge cases in threshold tuning', () => {
-			// Empty grouper
 			const emptyResult = grouper.tuneThresholdForTargetClusters(5);
 			expect(emptyResult.clusterCount).toBe(0);
 
-			// Single node
 			grouper.addNode(createNode('single', 'cat', [1, 0, 0, 0]));
 			const singleResult = grouper.tuneThresholdForTargetClusters(5);
 			expect(singleResult.clusterCount).toBe(1);
 
-			// Target higher than possible clusters
 			const nodes = [
 				createNode('tool1', 'cat1', [1, 0, 0, 0]),
 				createNode('tool2', 'cat1', [0, 1, 0, 0])
 			];
 			grouper.addNodes(nodes);
 			const highTargetResult = grouper.tuneThresholdForTargetClusters(10);
-			expect(highTargetResult.clusterCount).toBeLessThanOrEqual(3); // At most 3 nodes total
+			expect(highTargetResult.clusterCount).toBeLessThanOrEqual(3);
 		});
 	});
 
@@ -515,11 +482,9 @@ describe('EmbeddingsGrouper', () => {
 		it('should handle large number of nodes efficiently', () => {
 			const nodes: Node<TestTool>[] = [];
 			for (let i = 0; i < 100; i++) {
-				// Create diverse embeddings that will form distinct clusters
-				const groupId = Math.floor(i / 10); // 10 groups of 10 nodes each
+				const groupId = Math.floor(i / 10);
 				const withinGroupVariation = (i % 10) * 0.1;
 
-				// Create embeddings with clear group separation
 				const embedding = [
 					groupId === 0 ? 1 - withinGroupVariation * 0.2 : withinGroupVariation * 0.2,
 					groupId === 1 ? 1 - withinGroupVariation * 0.2 : withinGroupVariation * 0.2,
@@ -533,11 +498,9 @@ describe('EmbeddingsGrouper', () => {
 			grouper.recluster();
 
 			const clusters = grouper.getClusters();
-			// Should create multiple clusters but not more than the number of nodes
 			expect(clusters.length).toBeGreaterThanOrEqual(2);
 			expect(clusters.length).toBeLessThanOrEqual(nodes.length);
 
-			// Verify all nodes are assigned
 			const totalNodesInClusters = clusters.reduce((sum, cluster) => sum + cluster.nodes.length, 0);
 			expect(totalNodesInClusters).toBe(nodes.length);
 		});

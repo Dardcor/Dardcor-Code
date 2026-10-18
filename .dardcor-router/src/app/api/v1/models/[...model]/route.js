@@ -1,6 +1,5 @@
 import { buildModelsList } from "../route.js";
 
-// URL slug → service kind(s). `web` covers both webSearch and webFetch.
 const KIND_SLUG_MAP = {
   "image": ["image"],
   "tts": ["tts"],
@@ -32,11 +31,6 @@ function json(data, options = {}) {
   });
 }
 
-/**
- * GET /v1/models/{kind} - OpenAI-compatible models list filtered by capability.
- * GET /v1/models/{provider}/{model} - OpenAI-compatible single model lookup.
- * Supported kinds: image, tts, stt, embedding, image-to-text, web.
- */
 export async function GET(_request, { params }) {
   try {
     const { model } = await params;
@@ -49,8 +43,6 @@ export async function GET(_request, { params }) {
       return json({ object: "list", data });
     }
 
-    // Match the same LLM catalog exposed by GET /v1/models. A catch-all
-    // parameter is required because provider-prefixed IDs contain a slash.
     const models = await buildModelsList([LLM_KIND]);
     const matchedModel = models.find((candidate) => candidate.id === identifier);
 

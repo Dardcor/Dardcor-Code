@@ -64,7 +64,7 @@ suite('CommandService', function () {
 
 		const service = store.add(new CommandService(new InstantiationService(), new class extends NullExtensionService {
 			override whenInstalledExtensionsRegistered() {
-				return new Promise<boolean>(_resolve => { /*ignore*/ });
+				return new Promise<boolean>(_resolve => { });
 			}
 		}, new NullLogService()));
 
@@ -107,7 +107,7 @@ suite('CommandService', function () {
 			override activateByEvent(event: string): Promise<void> {
 				events.push(event);
 				if (event === '*') {
-					return new Promise(() => { }); //forever promise...
+					return new Promise(() => { });
 				}
 				if (event.indexOf('onCommand:') === 0) {
 					return new Promise(resolve => {
@@ -141,12 +141,11 @@ suite('CommandService', function () {
 
 			override activateByEvent(event: string): Promise<void> {
 				if (event === '*') {
-					return new Promise(() => { }); //forever promise...
+					return new Promise(() => { });
 				}
 				if (event.indexOf('onCommand:') === 0) {
 					return new Promise(resolve => {
 						setTimeout(() => {
-							// Register the command after some time
 							actualOrder.push('registering command');
 							const reg = CommandsRegistry.registerCommand(event.substr('onCommand:'.length), () => {
 								actualOrder.push('executing command');
@@ -154,7 +153,6 @@ suite('CommandService', function () {
 							disposables.add(reg);
 
 							setTimeout(() => {
-								// Resolve the activation event after some more time
 								actualOrder.push('resolving activation event');
 								resolve();
 							}, 10);

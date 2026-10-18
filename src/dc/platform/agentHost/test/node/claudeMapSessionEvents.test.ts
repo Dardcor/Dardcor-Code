@@ -34,14 +34,6 @@ import {
 	makeUserToolResultMessage,
 } from './claudeMapSessionEventsTestUtils.js';
 
-/**
- * Direct unit tests for {@link mapSDKMessageToAgentSignals}.
- *
- * The mapper takes a per-session {@link ClaudeMapperState} and is
- * exercised here as a stand-alone function. The integrated
- * `claudeAgent.test.ts` suite still drives the mapper end-to-end
- * alongside the SDK envelope plumbing.
- */
 suite('claudeMapSessionEvents — direct mapper tests', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
@@ -57,10 +49,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		clock = undefined;
 	});
 
-	/**
-	 * Captures `warn` calls so defense-in-depth tests can assert the
-	 * mapper logged the dropped diagnostic.
-	 */
 	class CapturingLogService extends NullLogService {
 		readonly warns: string[] = [];
 		override warn(message: string, ...args: unknown[]): void {
@@ -68,13 +56,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		}
 	}
 
-	/**
-	 * Fresh real {@link SubagentRegistry} so the per-test registry can
-	 * record subagent state writes the mapper makes (Phase 12: spawning
-	 * entries, inner-tool→parent edges, etc). Tests that don't touch
-	 * subagent paths simply pass `r()` through to satisfy the mapper
-	 * signature.
-	 */
 	function r(): SubagentRegistry {
 		return disposables.add(new SubagentRegistry());
 	}
@@ -248,7 +229,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		}]);
 	});
 
-	// #region Phase 7 §3.3 tool_use / tool_result — Tests 8/9/10/11
 
 	test('Test 8 — content_block_start tool_use emits ChatToolCallStart with displayName', () => {
 		const log = new CapturingLogService();
@@ -280,12 +260,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 	});
 
 	test('Test 8b — content_block_start for an mcp__client__* tool sets the Client contributor', () => {
-		// Regression: the mapper used to emit an invalid `toolClientId` field
-		// on the ChatToolCallStart action. Because the spread bypassed
-		// TypeScript's excess-property check and the reducer reads
-		// `action.contributor`, the contributor came through as `undefined`,
-		// so the workbench routed client tools to the server-tool path and
-		// never executed them — the in-process MCP handler hung forever.
 		const log = new CapturingLogService();
 		const state = new ClaudeMapperState();
 		const CLIENT_ID = 'client-abc';
@@ -345,7 +319,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		const state = new ClaudeMapperState();
 		const resolver = r();
 
-		// Open the block first so the per-message map knows about index 0.
 		mapSDKMessageToAgentSignals(makeStreamEvent(SESSION_ID, makeContentBlockStartToolUse(0, 'tu_1', 'Read')), SESSION, TURN_ID, state, log, resolver);
 
 		const signals = mapSDKMessageToAgentSignals(
@@ -577,12 +550,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		const state = new ClaudeMapperState();
 		const resolver = r();
 
-		// Drive a Bash tool_use through start → input deltas → stop. The
-		// fix: `content_block_stop` must emit `ChatToolCallReady` with
-		// `confirmed: NotNeeded`, the parsed input as `toolInput`, the
-		// rich `invocationMessage`, and `_meta.toolKind` — otherwise an
-		// auto-allowed tool (SDK skips `canUseTool`) stays in Streaming
-		// and the reducer drops the subsequent Complete.
 		mapSDKMessageToAgentSignals(makeStreamEvent(SESSION_ID, makeContentBlockStartToolUse(0, 'tu_b', 'Bash')), SESSION, TURN_ID, state, log, resolver);
 		mapSDKMessageToAgentSignals(makeStreamEvent(SESSION_ID, makeInputJsonDelta(0, '{"command":"git status"}')), SESSION, TURN_ID, state, log, resolver);
 		const signals = mapSDKMessageToAgentSignals(makeStreamEvent(SESSION_ID, makeContentBlockStop(0)), SESSION, TURN_ID, state, log, resolver);
@@ -608,11 +575,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		const state = new ClaudeMapperState();
 		const resolver = r();
 
-		// Drive the tool_use through state, simulating the multi-message
-		// flow: the tool_use lands on TURN_ID, content_block_stop drains
-		// the per-message map, then a synthetic user message in the next
-		// (separate) turn carries the tool_result. Cross-message lookup
-		// must recover the original turnId.
 		mapSDKMessageToAgentSignals(makeStreamEvent(SESSION_ID, makeContentBlockStartToolUse(0, 'tu_1', 'Read')), SESSION, TURN_ID, state, log, resolver);
 		mapSDKMessageToAgentSignals(makeStreamEvent(SESSION_ID, makeContentBlockStop(0)), SESSION, TURN_ID, state, log, resolver);
 
@@ -681,9 +643,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		const complete = signals[0];
 		assert.ok(complete.kind === 'action' && complete.action.type === ActionType.ChatToolCallComplete);
 		assert.strictEqual(complete.action.result.success, false);
-		// A genuine failure whose message is not one of the known deny strings
-		// must NOT be classified as a cancellation: no `error.code` is set, so
-		// telemetry reports `error` rather than `userCancelled`.
 		assert.strictEqual(complete.action.result.error?.code, undefined);
 	});
 
@@ -714,9 +673,7 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		]);
 	});
 
-	// #endregion
 
-	// #region Phase 8 — file-edit cache
 
 	test('Phase 8 — cached file edit is appended to ChatToolCallComplete.result.content', () => {
 		const log = new NullLogService();
@@ -786,11 +743,9 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		};
 		state.cacheFileEdit('tu_x', fileEdit);
 		assert.strictEqual(state.takeFileEdit('tu_x'), fileEdit);
-		// Second take is a miss — the entry was consumed.
 		assert.strictEqual(state.takeFileEdit('tu_x'), undefined);
 	});
 
-	// #endregion
 
 	test('canonical assistant envelope drops tool_use blocks silently (partial stream owns ChatToolCallStart)', () => {
 		const log = new CapturingLogService();
@@ -861,11 +816,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 
 		const signals = mapSDKMessageToAgentSignals(result, SESSION, TURN_ID, new ClaudeMapperState(), new NullLogService(), r());
 
-		// Pipeline (Phase 9 refactor) owns the protocol-Turn boundary; it
-		// fires ChatTurnComplete via `onTurnComplete` only on the FINAL
-		// result of a turn (intermediate results during steering preempt do
-		// NOT close the protocol Turn). The mapper therefore emits only
-		// ChatUsage for `result` messages.
 		assert.deepStrictEqual(signals, [
 			{
 				kind: 'action',
@@ -885,9 +835,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 	});
 
 	test('result success does not derive credits from total_cost_usd', () => {
-		// Per-turn credits come from CAPI `copilot_usage` via the proxy, not
-		// from the SDK's Anthropic-list-price `total_cost_usd`. The mapper
-		// must never attach a `_meta.cost` (it would mislabel USD as credits).
 		const result = makeResultSuccess(SESSION_ID);
 		result.total_cost_usd = 0.1234;
 
@@ -917,7 +864,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 
 		const TOOL_USE_ID = 'toolu_orphan_1';
 
-		// Open a tool_use block that will never be paired with a tool_result.
 		mapSDKMessageToAgentSignals(
 			makeStreamEvent(SESSION_ID, makeContentBlockStartToolUse(0, TOOL_USE_ID, 'Read')),
 			SESSION,
@@ -927,7 +873,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 			r(),
 		);
 
-		// Turn ends with no tool_result for the tool_use.
 		const resultSignals = mapSDKMessageToAgentSignals(
 			makeResultSuccess(SESSION_ID),
 			SESSION,
@@ -942,8 +887,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 		assert.ok(log.warns[0].includes(TOOL_USE_ID), `expected warn to mention orphan id, got: ${log.warns[0]}`);
 		assert.ok(log.warns[0].includes('Read'), `expected warn to mention tool name, got: ${log.warns[0]}`);
 
-		// A late-arriving tool_result for the orphan must now be treated
-		// as unknown — proving the cross-message state was actually cleared.
 		const lateSignals = mapSDKMessageToAgentSignals(
 			makeUserToolResultMessage(SESSION_ID, TOOL_USE_ID, 'late content'),
 			SESSION,
@@ -1003,12 +946,6 @@ suite('claudeMapSessionEvents — direct mapper tests', () => {
 	});
 
 	test('two SDK messages within one turn at the same content-block index produce distinct part ids', () => {
-		// Regression: pre-tool message had thinking@0; post-tool-result
-		// message has text@0. Same turnId, same content-block index.
-		// The Anthropic SDK resets `event.index` on each message_start,
-		// so the part id must include the SDK message id to avoid
-		// collision with the earlier Reasoning part (which would cause
-		// the reducer to drop the new Markdown part as a duplicate).
 		const log = new NullLogService();
 		const state = new ClaudeMapperState();
 		const resolver = r();

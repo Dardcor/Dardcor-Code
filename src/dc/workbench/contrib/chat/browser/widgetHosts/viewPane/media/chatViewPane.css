@@ -10,7 +10,6 @@
 	right: 0;
 	bottom: 36px;
 	z-index: 10;
-	/* Let clicks pass through to the input editor unless there is scrollable transcript content */
 	pointer-events: none;
 	background: var(--vscode-input-background, transparent);
 	border-radius: inherit;
@@ -43,7 +42,6 @@
 	font-style: italic;
 }
 
-/* Placeholder text while listening: static, no shimmer animation. */
 .voice-transcript-overlay .listening {
 	color: var(--vscode-descriptionForeground);
 	font-style: italic;
@@ -54,12 +52,10 @@
 	white-space: pre-wrap;
 }
 
-/* Overall styles */
 .chat-viewpane {
 	display: flex;
 	flex-direction: column;
 
-	/* wrapper that holds sessions + chat controls */
 	> .voice-agent-controls-wrapper {
 		display: flex;
 		flex-direction: column;
@@ -76,18 +72,22 @@
 		height: 100%;
 		min-height: 0;
 		min-width: 0;
+		overflow: hidden;
+
+		.chat-view-title-container {
+			flex-shrink: 0;
+		}
 
 		.interactive-session {
-			flex: 1;
-			/* needed so that the chat input does not overflow and input grows over content above */
+			flex: 1 1 auto;
 			width: 100%;
 			min-height: 0;
 			min-width: 0;
+			overflow: hidden;
 		}
 	}
 }
 
-/* Sessions control: either sidebar or stacked */
 .chat-viewpane.has-sessions-control .agent-sessions-container {
 	display: flex;
 	flex-direction: column;
@@ -111,12 +111,10 @@
 	.agent-sessions-toolbar {
 
 		.action-item {
-			/* align with the title actions*/
 			margin-right: 4px;
 		}
 
 		&.filtered .action-label.codicon.codicon-filter {
-			/* indicate when sessions filter is enabled */
 			border-color: var(--vscode-inputOption-activeBorder);
 			color: var(--vscode-inputOption-activeForeground);
 			background-color: var(--vscode-inputOption-activeBackground);
@@ -124,23 +122,19 @@
 	}
 }
 
-/* Sessions control: stacked */
 .chat-viewpane.has-sessions-control.sessions-control-orientation-stacked {
 
 	.agent-sessions-container {
-		/* center it above the chat which has this max-width restriction */
 		max-width: 950px;
 		margin: 0 auto;
 		width: 100%;
 	}
 
 	.agent-sessions-new-button-container {
-		/* hide new session button when stacked */
 		display: none;
 	}
 }
 
-/* Sessions control: side by side */
 .chat-viewpane.has-sessions-control.sessions-control-orientation-sidebyside {
 
 	&.chat-view-position-left > .voice-agent-controls-wrapper {
@@ -164,24 +158,15 @@
 	}
 }
 
-/* Sessions control: panel location */
 .chat-viewpane.has-sessions-control.chat-view-location-panel {
 
 	.agent-sessions-new-button-container {
-		/* hide new session button in the panel considering less vertical space */
 		display: none !important;
 	}
 }
 
-/*
- * Padding rules for agent sessions elements based on:
- * - orientation (stacked vs sidebyside)
- * - view position (left vs right)
- * - activity bar location (default vs other for auxiliarybar)
- */
 .chat-viewpane.has-sessions-control {
 
-	/* Base padding: left-aligned content */
 	.agent-sessions-title-container {
 		padding: 0 8px 0 20px;
 	}
@@ -190,7 +175,6 @@
 		padding: 0 6px 0 14px;
 	}
 
-	/* Stacked: symmetric padding */
 	&.sessions-control-orientation-stacked {
 
 		.agent-sessions-empty-filter-message {
@@ -198,7 +182,6 @@
 		}
 	}
 
-	/* Right position: symmetric padding */
 	&.sessions-control-orientation-sidebyside.chat-view-position-right {
 
 		.agent-sessions-title-container {
@@ -210,14 +193,12 @@
 		}
 	}
 
-	/* Auxiliarybar with non-default activity bar: tighter title padding */
 	&.activity-bar-location-other.chat-view-location-auxiliarybar {
 
 		.agent-sessions-title-container {
 			padding-right: 4px;
 		}
 
-		/* Right position needs adjusted left padding too */
 		&.sessions-control-orientation-sidebyside.chat-view-position-right {
 
 			.agent-sessions-title-container,

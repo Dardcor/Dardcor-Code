@@ -12,24 +12,20 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from './utils.js';
 suite('Labels', () => {
 	(!isWindows ? test.skip : test)('shorten - windows', () => {
 
-		// nothing to shorten
 		assert.deepStrictEqual(labels.shorten(['a']), ['a']);
 		assert.deepStrictEqual(labels.shorten(['a', 'b']), ['a', 'b']);
 		assert.deepStrictEqual(labels.shorten(['a', 'b', 'c']), ['a', 'b', 'c']);
 		assert.deepStrictEqual(labels.shorten(['\\\\x\\a', '\\\\x\\a']), ['\\\\x\\a', '\\\\x\\a']);
 		assert.deepStrictEqual(labels.shorten(['C:\\a', 'C:\\b']), ['C:\\a', 'C:\\b']);
 
-		// completely different paths
 		assert.deepStrictEqual(labels.shorten(['a\\b', 'c\\d', 'e\\f']), ['…\\b', '…\\d', '…\\f']);
 
-		// same beginning
 		assert.deepStrictEqual(labels.shorten(['a', 'a\\b']), ['a', '…\\b']);
 		assert.deepStrictEqual(labels.shorten(['a\\b', 'a\\b\\c']), ['…\\b', '…\\c']);
 		assert.deepStrictEqual(labels.shorten(['a', 'a\\b', 'a\\b\\c']), ['a', '…\\b', '…\\c']);
 		assert.deepStrictEqual(labels.shorten(['x:\\a\\b', 'x:\\a\\c']), ['x:\\…\\b', 'x:\\…\\c']);
 		assert.deepStrictEqual(labels.shorten(['\\\\a\\b', '\\\\a\\c']), ['\\\\a\\b', '\\\\a\\c']);
 
-		// same ending
 		assert.deepStrictEqual(labels.shorten(['a', 'b\\a']), ['a', 'b\\…']);
 		assert.deepStrictEqual(labels.shorten(['a\\b\\c', 'd\\b\\c']), ['a\\…', 'd\\…']);
 		assert.deepStrictEqual(labels.shorten(['a\\b\\c\\d', 'f\\b\\c\\d']), ['a\\…', 'f\\…']);
@@ -45,16 +41,12 @@ suite('Labels', () => {
 		assert.deepStrictEqual(labels.shorten(['\\\\x\\b', '\\\\y\\b']), ['\\\\x\\…', '\\\\y\\…']);
 		assert.deepStrictEqual(labels.shorten(['\\\\x\\a', '\\\\x\\b']), ['\\\\x\\a', '\\\\x\\b']);
 
-		// same name ending
 		assert.deepStrictEqual(labels.shorten(['a\\b', 'a\\c', 'a\\e-b']), ['…\\b', '…\\c', '…\\e-b']);
 
-		// same in the middle
 		assert.deepStrictEqual(labels.shorten(['a\\b\\c', 'd\\b\\e']), ['…\\c', '…\\e']);
 
-		// case-sensetive
 		assert.deepStrictEqual(labels.shorten(['a\\b\\c', 'd\\b\\C']), ['…\\c', '…\\C']);
 
-		// empty or null
 		assert.deepStrictEqual(labels.shorten(['', null!]), ['.\\', null]);
 
 		assert.deepStrictEqual(labels.shorten(['a', 'a\\b', 'a\\b\\c', 'd\\b\\c', 'd\\b']), ['a', 'a\\b', 'a\\b\\c', 'd\\b\\c', 'd\\b']);
@@ -62,7 +54,6 @@ suite('Labels', () => {
 		assert.deepStrictEqual(labels.shorten(['', 'a', 'b', 'b\\c', 'a\\c']), ['.\\', 'a', 'b', 'b\\c', 'a\\c']);
 		assert.deepStrictEqual(labels.shorten(['src\\vs\\workbench\\parts\\execution\\electron-browser', 'src\\vs\\workbench\\parts\\execution\\electron-browser\\something', 'src\\vs\\workbench\\parts\\terminal\\electron-browser']), ['…\\execution\\electron-browser', '…\\something', '…\\terminal\\…']);
 
-		// url paths
 		assert.deepStrictEqual(labels.shorten(['https://a.com/b', 'C:\\foo\\d']), ['https://a.com/b', 'C:\\…\\d']);
 		assert.deepStrictEqual(labels.shorten(['https://a.com/x', 'C:\\foo\\x']), ['https://a.com/…', 'C:\\foo\\…']);
 		assert.deepStrictEqual(labels.shorten(['https://a.com/y/z', 'C:\\foo\\bar\\z']), ['https://a.com/y/…', 'C:\\…\\bar\\…']);
@@ -71,23 +62,19 @@ suite('Labels', () => {
 
 	(isWindows ? test.skip : test)('shorten - not windows', () => {
 
-		// nothing to shorten
 		assert.deepStrictEqual(labels.shorten(['a']), ['a']);
 		assert.deepStrictEqual(labels.shorten(['a', 'b']), ['a', 'b']);
 		assert.deepStrictEqual(labels.shorten(['/a', '/b']), ['/a', '/b']);
 		assert.deepStrictEqual(labels.shorten(['~/a/b/c', '~/a/b/c']), ['~/a/b/c', '~/a/b/c']);
 		assert.deepStrictEqual(labels.shorten(['a', 'b', 'c']), ['a', 'b', 'c']);
 
-		// completely different paths
 		assert.deepStrictEqual(labels.shorten(['a/b', 'c/d', 'e/f']), ['…/b', '…/d', '…/f']);
 
-		// same beginning
 		assert.deepStrictEqual(labels.shorten(['a', 'a/b']), ['a', '…/b']);
 		assert.deepStrictEqual(labels.shorten(['a/b', 'a/b/c']), ['…/b', '…/c']);
 		assert.deepStrictEqual(labels.shorten(['a', 'a/b', 'a/b/c']), ['a', '…/b', '…/c']);
 		assert.deepStrictEqual(labels.shorten(['/a/b', '/a/c']), ['/a/b', '/a/c']);
 
-		// same ending
 		assert.deepStrictEqual(labels.shorten(['a', 'b/a']), ['a', 'b/…']);
 		assert.deepStrictEqual(labels.shorten(['a/b/c', 'd/b/c']), ['a/…', 'd/…']);
 		assert.deepStrictEqual(labels.shorten(['a/b/c/d', 'f/b/c/d']), ['a/…', 'f/…']);
@@ -97,23 +84,18 @@ suite('Labels', () => {
 		assert.deepStrictEqual(labels.shorten(['d/f/a/b/c', 'h/d/b/c']), ['…/a/…', 'h/…']);
 		assert.deepStrictEqual(labels.shorten(['/x/b', '/y/b']), ['/x/…', '/y/…']);
 
-		// same name ending
 		assert.deepStrictEqual(labels.shorten(['a/b', 'a/c', 'a/e-b']), ['…/b', '…/c', '…/e-b']);
 
-		// same in the middle
 		assert.deepStrictEqual(labels.shorten(['a/b/c', 'd/b/e']), ['…/c', '…/e']);
 
-		// case-sensitive
 		assert.deepStrictEqual(labels.shorten(['a/b/c', 'd/b/C']), ['…/c', '…/C']);
 
-		// empty or null
 		assert.deepStrictEqual(labels.shorten(['', null!]), ['./', null]);
 
 		assert.deepStrictEqual(labels.shorten(['a', 'a/b', 'a/b/c', 'd/b/c', 'd/b']), ['a', 'a/b', 'a/b/c', 'd/b/c', 'd/b']);
 		assert.deepStrictEqual(labels.shorten(['a', 'a/b', 'b']), ['a', 'a/b', 'b']);
 		assert.deepStrictEqual(labels.shorten(['', 'a', 'b', 'b/c', 'a/c']), ['./', 'a', 'b', 'b/c', 'a/c']);
 
-		// url paths
 		assert.deepStrictEqual(labels.shorten(['https://a.com/b']), ['https://a.com/b']);
 		assert.deepStrictEqual(labels.shorten(['https://a.com/', 'https://b.com/']), ['https://a.com/', 'https://b.com/']);
 		assert.deepStrictEqual(labels.shorten(['https://a.com/b', 'https://a.com/c']), ['https://a.com/b', 'https://a.com/c']);
@@ -129,7 +111,6 @@ suite('Labels', () => {
 
 	test('template', () => {
 
-		// simple
 		assert.strictEqual(labels.template('Foo Bar'), 'Foo Bar');
 		assert.strictEqual(labels.template('Foo${}Bar'), 'FooBar');
 		assert.strictEqual(labels.template('$FooBar'), '');
@@ -137,19 +118,16 @@ suite('Labels', () => {
 		assert.strictEqual(labels.template('Foo ${one} Bar', { one: 'value' }), 'Foo value Bar');
 		assert.strictEqual(labels.template('Foo ${one} Bar ${two}', { one: 'value', two: 'other value' }), 'Foo value Bar other value');
 
-		// conditional separator
 		assert.strictEqual(labels.template('Foo${separator}Bar'), 'FooBar');
 		assert.strictEqual(labels.template('Foo${separator}Bar', { separator: { label: ' - ' } }), 'Foo - Bar');
 		assert.strictEqual(labels.template('${separator}Foo${separator}Bar', { value: 'something', separator: { label: ' - ' } }), 'Foo - Bar');
 		assert.strictEqual(labels.template('${value} Foo${separator}Bar', { value: 'something', separator: { label: ' - ' } }), 'something Foo - Bar');
 
-		// real world example (macOS)
 		let t = '${activeEditorShort}${separator}${rootName}';
 		assert.strictEqual(labels.template(t, { activeEditorShort: '', rootName: '', separator: { label: ' - ' } }), '');
 		assert.strictEqual(labels.template(t, { activeEditorShort: '', rootName: 'root', separator: { label: ' - ' } }), 'root');
 		assert.strictEqual(labels.template(t, { activeEditorShort: 'markdown.txt', rootName: 'root', separator: { label: ' - ' } }), 'markdown.txt - root');
 
-		// real world example (other)
 		t = '${dirty}${activeEditorShort}${separator}${rootName}${separator}${appName}';
 		assert.strictEqual(labels.template(t, { dirty: '', activeEditorShort: '', rootName: '', appName: '', separator: { label: ' - ' } }), '');
 		assert.strictEqual(labels.template(t, { dirty: '', activeEditorShort: '', rootName: '', appName: 'Dardcor Code', separator: { label: ' - ' } }), 'Dardcor Code');
@@ -158,7 +136,6 @@ suite('Labels', () => {
 		assert.strictEqual(labels.template(t, { dirty: '', activeEditorShort: 'somefile.txt', rootName: 'monaco', appName: 'Dardcor Code', separator: { label: ' - ' } }), 'somefile.txt - monaco - Dardcor Code');
 		assert.strictEqual(labels.template(t, { dirty: '* ', activeEditorShort: 'somefile.txt', rootName: 'monaco', appName: 'Dardcor Code', separator: { label: ' - ' } }), '* somefile.txt - monaco - Dardcor Code');
 
-		// real world example (other)
 		t = '${dirty}${activeEditorShort}${separator}${rootNameShort}${separator}${appName}';
 		assert.strictEqual(labels.template(t, { dirty: '', activeEditorShort: '', rootName: 'monaco (Workspace)', rootNameShort: 'monaco', appName: 'Dardcor Code', separator: { label: ' - ' } }), 'monaco - Dardcor Code');
 	});
@@ -185,7 +162,6 @@ suite('Labels', () => {
 		const uncFileUri = URI.file('c:/some/folder/file.txt').with({ authority: 'auth' });
 		const remoteFileUri = URI.file('/some/folder/file.txt').with({ scheme: 'vscode-test', authority: 'auth' });
 
-		// Basics
 
 		assert.strictEqual(labels.getPathLabel(winFileUri, { os: OperatingSystem.Windows }), 'C:\\some\\folder\\file.txt');
 		assert.strictEqual(labels.getPathLabel(winFileUri, { os: OperatingSystem.Macintosh }), 'c:/some/folder/file.txt');
@@ -203,7 +179,6 @@ suite('Labels', () => {
 		assert.strictEqual(labels.getPathLabel(remoteFileUri, { os: OperatingSystem.Macintosh }), '/some/folder/file.txt');
 		assert.strictEqual(labels.getPathLabel(remoteFileUri, { os: OperatingSystem.Linux }), '/some/folder/file.txt');
 
-		// Tildify
 
 		const nixUserHome = URI.file('/some');
 		const remoteUserHome = URI.file('/some').with({ scheme: 'vscode-test', authority: 'auth' });
@@ -227,7 +202,6 @@ suite('Labels', () => {
 		assert.strictEqual(labels.getPathLabel(nixUntitledUri, { os: OperatingSystem.Macintosh, tildify: { userHome: remoteUserHome } }), '~/folder/file.txt');
 		assert.strictEqual(labels.getPathLabel(nixUntitledUri, { os: OperatingSystem.Linux, tildify: { userHome: remoteUserHome } }), '~/folder/file.txt');
 
-		// Relative
 
 		const winFolder = URI.file('c:/some');
 		const winRelativePathProvider: labels.IRelativePathProvider = {

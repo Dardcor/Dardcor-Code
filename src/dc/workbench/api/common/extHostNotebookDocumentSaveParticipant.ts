@@ -69,7 +69,6 @@ export class ExtHostNotebookDocumentSaveParticipant implements ExtHostNotebookDo
 				if (data instanceof WorkspaceEdit) {
 					edits.push(data);
 				} else {
-					// ignore invalid data
 					this._logService.warn('onWillSaveNotebookDocument-listener from extension', (<IExtensionListener<NotebookDocumentWillSaveEvent>>listener).extension.identifier, 'ignored due to invalid data');
 				}
 			}

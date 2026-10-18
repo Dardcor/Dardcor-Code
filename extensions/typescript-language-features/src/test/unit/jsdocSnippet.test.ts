@@ -12,7 +12,6 @@ import { joinLines } from '../testUtils';
 suite('typescript.jsDocSnippet', () => {
 
 	setup(async () => {
-		// the tests assume that typescript features are registered
 		await vscode.extensions.getExtension('vscode.typescript-language-features')!.activate();
 	});
 

@@ -27,18 +27,6 @@ export interface MarkdownLoggable {
 	toMarkdown(): string;
 }
 
-/**
- * The outcome of a log context request. Determines the icon shown in the log tree.
- * - `pending`: no outcome yet (shows spinner or check depending on completion)
- * - `succeeded`: model returned suggestions
- * - `noSuggestions`: model returned no suggestions
- * - `cached`: result is from NES cache
- * - `cachedFromGhostText`: result is from ghost text cache
- * - `skipped`: request was skipped or fetch-cancelled
- * - `cancelled`: request was cancelled via CancellationToken (shown as skipped)
- * - `errored`: an error occurred
- * - `previouslyRejected`: result matches a suggestion that was previously rejected
- */
 type LogContextOutcome = 'pending' | 'succeeded' | 'noSuggestions' | 'cached' | 'cachedFromGhostText' | 'reusedInFlight' | 'skipped' | 'cancelled' | 'errored' | 'previouslyRejected';
 
 export class InlineEditRequestLogContext {
@@ -49,7 +37,6 @@ export class InlineEditRequestLogContext {
 
 	public readonly time = now();
 
-	/** Tweaks visibility of this log element in the log tree */
 	protected _isVisible: boolean = false;
 
 	get includeInLogTree(): boolean {
@@ -58,7 +45,6 @@ export class InlineEditRequestLogContext {
 
 	private _isCompleted: boolean = false;
 
-	/** Mark this request as completed (no longer in progress). */
 	markCompleted(): void {
 		if (this._isCompleted) {
 			console.warn(`[InlineEditRequestLogContext] markCompleted called twice (request #${this.requestId})`);
@@ -68,7 +54,6 @@ export class InlineEditRequestLogContext {
 	}
 
 	private readonly _onDidChange = new Emitter<void>();
-	/** Fires when state changes, allowing live log entries to refresh their content. */
 	public readonly onDidChange: Event<void> = this._onDidChange.event;
 
 	protected fireDidChange(): void {
@@ -236,7 +221,6 @@ export class InlineEditRequestLogContext {
 	}
 
 	toMinimalLog(): string {
-		// Does not include the users files, but just the relevant edits
 		const lines: string[] = [];
 
 		if (this._nesTypePicked === 'diagnostics' && this._diagnosticsResultEdit) {
@@ -316,9 +300,6 @@ export class InlineEditRequestLogContext {
 	setIsCachedResult(logContextOfCachedEdit: InlineEditRequestLogContext): void {
 		this._logContextOfCachedEdit = logContextOfCachedEdit;
 
-		// Direct field copy — avoids triggering outcome transitions from the
-		// public setters (e.g. setResponseResults -> succeeded, setError -> errored).
-		// The final outcome is always 'cached'.
 		this.recordingBookmark = logContextOfCachedEdit.recordingBookmark;
 		this._nextEditRequest = logContextOfCachedEdit._nextEditRequest ?? this._nextEditRequest;
 		this._resultEdit = logContextOfCachedEdit._resultEdit ?? this._resultEdit;
@@ -341,11 +322,6 @@ export class InlineEditRequestLogContext {
 		this.fireDidChange();
 	}
 
-	/**
-	 * Marks this log context as having joined an already in-flight request
-	 * (async pending or speculative). The icon shows git-merge to distinguish
-	 * from a true cache hit.
-	 */
 	setIsReusedInFlightResult(logContextOfReusedRequest: InlineEditRequestLogContext): void {
 		this._logContextOfCachedEdit = logContextOfReusedRequest;
 
@@ -419,14 +395,6 @@ export class InlineEditRequestLogContext {
 		this.fireDidChange();
 	}
 
-	/**
-	 * Raw chat messages used to construct the cursor-jump (next-cursor-line
-	 * prediction) prompt, and the document-line offset range the model can
-	 * reference in its response. Stored here so in-process debug / datagen
-	 * tooling can read them back via the same log-context vehicle as the
-	 * xtab prompt (`rawMessages`). Never emitted to telemetry sinks — the
-	 * `rawMessages` can contain full prompt content (source code).
-	 */
 	private _cursorJumpRawMessages: Raw.ChatMessage[] | undefined = undefined;
 	private _cursorJumpKeptRange: OffsetRange | undefined = undefined;
 
@@ -514,9 +482,6 @@ export class InlineEditRequestLogContext {
 		this.fireDidChange();
 	}
 
-	/**
-	 * Model Response
-	 */
 	private response: string | undefined = undefined;
 	setResponse(v: string): void {
 		this._isVisible = true;
@@ -559,9 +524,6 @@ export class InlineEditRequestLogContext {
 		this.fireDidChange();
 	}
 
-	/**
-	 * Each of edit suggestions from model
-	 */
 	private _responseResults: readonly unknown[] | undefined = undefined;
 
 	get responseResults(): readonly unknown[] | undefined {
@@ -608,12 +570,10 @@ export class InlineEditRequestLogContext {
 		lines.push('<details open><summary>Trace Diagram</summary>\n');
 		lines.push('```');
 
-		// Parse trace lines into structured data
 		const parsedTraces = this._trace.map(line => {
 			const timeMatch = line.match(/^\[\s*(\d+)ms\]/);
 			const timestamp = timeMatch ? parseInt(timeMatch[1], 10) : 0;
 
-			// Extract the bracketed path segments and the message
 			const afterTime = line.replace(/^\[\s*\d+ms\]\s*/, '');
 			const segments: string[] = [];
 			let remaining = afterTime;
@@ -634,18 +594,15 @@ export class InlineEditRequestLogContext {
 			return lines;
 		}
 
-		// Find the maximum timestamp for time width calculation
 		const maxTime = Math.max(...parsedTraces.map(t => t.timestamp));
 		const timeWidth = Math.max(6, String(maxTime).length + 3);
 
-		// Build a map of segment paths to track when they start/end
 		const activeSegments = new Map<string, { startTime: number; depth: number }>();
 		const segmentLifetimes: { path: string; startTime: number; endTime: number; depth: number; name: string }[] = [];
 
 		parsedTraces.forEach((trace, idx) => {
 			const currentPath = trace.segments.join('|');
 
-			// Check for segments that are no longer active
 			for (const [path, info] of activeSegments) {
 				if (!currentPath.startsWith(path) && currentPath !== path) {
 					segmentLifetimes.push({
@@ -659,7 +616,6 @@ export class InlineEditRequestLogContext {
 				}
 			}
 
-			// Add new segments
 			let pathSoFar = '';
 			trace.segments.forEach((segment, depth) => {
 				pathSoFar = pathSoFar ? `${pathSoFar}|${segment}` : segment;
@@ -669,7 +625,6 @@ export class InlineEditRequestLogContext {
 			});
 		});
 
-		// Close any remaining active segments
 		const lastTimestamp = parsedTraces[parsedTraces.length - 1]?.timestamp || 0;
 		for (const [path, info] of activeSegments) {
 			segmentLifetimes.push({
@@ -681,12 +636,10 @@ export class InlineEditRequestLogContext {
 			});
 		}
 
-		// Render timeline header
 		lines.push('');
 		lines.push('Timeline (nested call hierarchy):');
 		lines.push('─'.repeat(60));
 
-		// Track what's currently shown at each depth to avoid redundant output
 		const currentAtDepth: string[] = [];
 
 		for (const trace of parsedTraces) {
@@ -694,7 +647,6 @@ export class InlineEditRequestLogContext {
 			const indentUnit = '│   ';
 			const newBranchUnit = '├── ';
 
-			// Determine which segments are new vs continuing
 			let indent = '';
 			let displaySegment = '';
 			let hasNewSegment = false;
@@ -702,10 +654,8 @@ export class InlineEditRequestLogContext {
 			for (let d = 0; d < trace.segments.length; d++) {
 				const seg = trace.segments[d];
 				if (currentAtDepth[d] !== seg) {
-					// This is a new segment at this depth
 					hasNewSegment = true;
 					currentAtDepth[d] = seg;
-					// Clear deeper levels
 					currentAtDepth.length = d + 1;
 					displaySegment = seg;
 					indent = indentUnit.repeat(d);
@@ -715,7 +665,6 @@ export class InlineEditRequestLogContext {
 			}
 
 			if (hasNewSegment) {
-				// Show the new segment
 				const prefix = indent + newBranchUnit;
 				lines.push(`${timeStr} ${prefix}[${displaySegment}]`);
 				if (trace.message) {
@@ -723,7 +672,6 @@ export class InlineEditRequestLogContext {
 					lines.push(`${' '.repeat(timeWidth + 1)} ${msgIndent}↳ ${trace.message}`);
 				}
 			} else if (trace.message) {
-				// Just a message at the current depth
 				const msgIndent = indentUnit.repeat(trace.segments.length);
 				lines.push(`${timeStr} ${msgIndent}↳ ${trace.message}`);
 			}
@@ -777,10 +725,6 @@ export class InlineEditRequestLogContext {
 		this._languageContext = langCtx;
 	}
 
-	/**
-	 * Convert the current instance into a JSON format to enable serialization
-	 * @returns JSON representation of the current state
-	 */
 	toJSON(): ISerializedInlineEditLogContext {
 		return {
 			requestId: this.requestId,
@@ -816,11 +760,10 @@ function basename(path: string): string {
 }
 
 export interface INextEditProviderTest {
-	// from least recent to most recent
 	recentWorkspaceEdits: { path: string; initialText: string; edit: SerializedEdit }[];
-	recentWorkspaceEditsActiveDocumentIdx?: number; // by default the last document
+	recentWorkspaceEditsActiveDocumentIdx?: number;
 	statelessDocuments?: { initialText: string; edit: SerializedLineEdit }[];
-	statelessActiveDocumentIdx?: number; // by default the last document
+	statelessActiveDocumentIdx?: number;
 	statelessLLMPrompt?: string;
 	statelessLLMResponse?: string;
 	statelessNextEdit?: SerializedLineEdit;

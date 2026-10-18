@@ -8,56 +8,39 @@ import { Iterable } from './iterator.js';
 const unset = Symbol('unset');
 
 export interface IPrefixTreeNode<T> {
-	/** Possible children of the node. */
 	children?: ReadonlyMap<string, Node<T>>;
 
-	/** The value if data exists for this node in the tree. Mutable. */
 	value: T | undefined;
 }
 
-/**
- * A simple prefix tree implementation where a value is stored based on
- * well-defined prefix segments.
- */
 export class WellDefinedPrefixTree<V> {
 	public readonly root = new Node<V>();
 	private _size = 0;
 
-	/** Tree size, not including the root. */
 	public get size() {
 		return this._size;
 	}
 
-	/** Gets the top-level nodes of the tree */
 	public get nodes(): Iterable<IPrefixTreeNode<V>> {
 		return this.root.children?.values() || Iterable.empty();
 	}
 
-	/** Gets the top-level nodes of the tree */
 	public get entries(): Iterable<[string, IPrefixTreeNode<V>]> {
 		return this.root.children?.entries() || Iterable.empty();
 	}
 
-	/**
-	 * Inserts a new value in the prefix tree.
-	 * @param onNode - called for each node as we descend to the insertion point,
-	 * including the insertion point itself.
-	 */
 	insert(key: Iterable<string>, value: V, onNode?: (n: IPrefixTreeNode<V>) => void): void {
 		this.opNode(key, n => n._value = value, onNode);
 	}
 
-	/** Mutates a value in the prefix tree. */
 	mutate(key: Iterable<string>, mutate: (value?: V) => V): void {
 		this.opNode(key, n => n._value = mutate(n._value === unset ? undefined : n._value));
 	}
 
-	/** Mutates nodes along the path in the prefix tree. */
 	mutatePath(key: Iterable<string>, mutate: (node: IPrefixTreeNode<V>) => void): void {
 		this.opNode(key, () => { }, n => mutate(n));
 	}
 
-	/** Deletes a node from the prefix tree, returning the value it contained. */
 	delete(key: Iterable<string>): V | undefined {
 		const path = this.getPathToKey(key);
 		if (!path) {
@@ -67,7 +50,7 @@ export class WellDefinedPrefixTree<V> {
 		let i = path.length - 1;
 		const value = path[i].node._value;
 		if (value === unset) {
-			return; // not actually a real node
+			return;
 		}
 
 		this._size--;
@@ -85,7 +68,6 @@ export class WellDefinedPrefixTree<V> {
 		return value;
 	}
 
-	/** Deletes a subtree from the prefix tree, returning the values they contained. */
 	*deleteRecursive(key: Iterable<string>): Iterable<V> {
 		const path = this.getPathToKey(key);
 		if (!path) {
@@ -94,8 +76,6 @@ export class WellDefinedPrefixTree<V> {
 
 		const subtree = path[path.length - 1].node;
 
-		// important: run the deletion before we start to yield results, so that
-		// it still runs even if the caller doesn't consumer the iterator
 		for (let i = path.length - 1; i > 0; i--) {
 			const parent = path[i - 1];
 			parent.node.children!.delete(path[i].part);
@@ -111,14 +91,12 @@ export class WellDefinedPrefixTree<V> {
 			}
 		}
 
-		// special case for the root note
 		if (subtree === this.root) {
 			this.root._value = unset;
 			this.root.children = undefined;
 		}
 	}
 
-	/** Gets a value from the tree. */
 	find(key: Iterable<string>): V | undefined {
 		let node = this.root;
 		for (const segment of key) {
@@ -133,7 +111,6 @@ export class WellDefinedPrefixTree<V> {
 		return node._value === unset ? undefined : node._value;
 	}
 
-	/** Gets whether the tree has the key, or a parent of the key, already inserted. */
 	hasKeyOrParent(key: Iterable<string>): boolean {
 		let node = this.root;
 		for (const segment of key) {
@@ -151,7 +128,6 @@ export class WellDefinedPrefixTree<V> {
 		return false;
 	}
 
-	/** Gets whether the tree has the given key or any children. */
 	hasKeyOrChildren(key: Iterable<string>): boolean {
 		let node = this.root;
 		for (const segment of key) {
@@ -166,7 +142,6 @@ export class WellDefinedPrefixTree<V> {
 		return true;
 	}
 
-	/** Gets whether the tree has the given key. */
 	hasKey(key: Iterable<string>): boolean {
 		let node = this.root;
 		for (const segment of key) {
@@ -187,7 +162,7 @@ export class WellDefinedPrefixTree<V> {
 		for (const part of key) {
 			const node = path[i].node.children?.get(part);
 			if (!node) {
-				return; // node not in tree
+				return;
 			}
 
 			path.push({ part, node });
@@ -220,7 +195,6 @@ export class WellDefinedPrefixTree<V> {
 		this._size += sizeAfter - sizeBefore;
 	}
 
-	/** Returns an iterable of the tree values in no defined order. */
 	*values() {
 		for (const { _value } of bfsIterate(this.root)) {
 			if (_value !== unset) {

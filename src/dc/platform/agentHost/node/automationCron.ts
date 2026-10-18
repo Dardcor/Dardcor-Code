@@ -75,7 +75,6 @@ export function nextAutomationCronOccurrence(expression: string, timeZone: strin
 			continue;
 		}
 
-		// Backfill the coarse interval when it enters an eligible local date so its earliest minutes are not skipped.
 		const jumpedCandidate = Math.min(candidate + DATE_SEARCH_STEP_MS, searchEnd);
 		const jumpedParts = readLocalDateParts(formatter, jumpedCandidate);
 		if (matchesDate(cron, jumpedParts)) {

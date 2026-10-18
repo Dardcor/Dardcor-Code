@@ -21,7 +21,7 @@ import { IUserDataProfileService } from '../../userDataProfile/common/userDataPr
 
 export class BrowserStorageService extends AbstractStorageService {
 
-	private static BROWSER_DEFAULT_FLUSH_INTERVAL = 5 * 1000; // every 5s because async operations are not permitted on shutdown
+	private static BROWSER_DEFAULT_FLUSH_INTERVAL = 5 * 1000;
 
 	private applicationStorage: IStorage | undefined;
 	private applicationStorageDatabase: IIndexedDBStorageDatabase | undefined;
@@ -73,7 +73,6 @@ export class BrowserStorageService extends AbstractStorageService {
 
 	protected async doInitialize(): Promise<void> {
 
-		// Init storages
 		await Promises.settled([
 			this.createApplicationStorage(),
 			this.createApplicationSharedStorage(),
@@ -112,18 +111,12 @@ export class BrowserStorageService extends AbstractStorageService {
 
 	private async createProfileStorage(profile: IUserDataProfile): Promise<void> {
 
-		// First clear any previously associated disposables
 		this.profileStorageDisposables.clear();
 
-		// Remember profile associated to profile storage
 		this.profileStorageProfile = profile;
 
 		if (isProfileUsingDefaultStorage(this.profileStorageProfile)) {
 
-			// If we are using default profile storage, the profile storage is
-			// actually the same as application storage. As such we
-			// avoid creating the storage library a second time on
-			// the same DB.
 
 			const { indexedDb: applicationStorageIndexedDB, storage: applicationStorage } = await this.applicationStoragePromise.p;
 
@@ -201,16 +194,12 @@ export class BrowserStorageService extends AbstractStorageService {
 		const oldProfileStorage = assertReturnsDefined(this.profileStorage);
 		const oldItems = oldProfileStorage.items;
 
-		// Close old profile storage but only if this is
-		// different from application storage!
 		if (oldProfileStorage !== this.applicationStorage) {
 			await oldProfileStorage.close();
 		}
 
-		// Create new profile storage & init
 		await this.createProfileStorage(toProfile);
 
-		// Handle data switch and eventing
 		this.switchData(oldItems, assertReturnsDefined(this.profileStorage), StorageScope.PROFILE);
 	}
 
@@ -219,27 +208,11 @@ export class BrowserStorageService extends AbstractStorageService {
 	}
 
 	protected override shouldFlushWhenIdle(): boolean {
-		// this flush() will potentially cause new state to be stored
-		// since new state will only be created while the document
-		// has focus, one optimization is to not run this when the
-		// document has no focus, assuming that state has not changed
-		//
-		// another optimization is to not collect more state if we
-		// have a pending update already running which indicates
-		// that the connection is either slow or disconnected and
-		// thus unhealthy.
 		return getActiveWindow().document.hasFocus() && !this.hasPendingUpdate;
 	}
 
 	close(): void {
 
-		// Safari: there is an issue where the page can hang on load when
-		// a previous session has kept IndexedDB transactions running.
-		// The only fix seems to be to cancel any pending transactions
-		// (https://github.com/microsoft/vscode/issues/136295)
-		//
-		// On all other browsers, we keep the databases opened because
-		// we expect data to be written when the unload happens.
 		if (isSafari) {
 			this.applicationStorage?.close();
 			this.applicationSharedStorageDatabase?.close();
@@ -247,14 +220,11 @@ export class BrowserStorageService extends AbstractStorageService {
 			this.workspaceStorageDatabase?.close();
 		}
 
-		// Always dispose to ensure that no timeouts or callbacks
-		// get triggered in this phase.
 		this.dispose();
 	}
 
 	async clear(): Promise<void> {
 
-		// Clear key/values
 		for (const scope of [StorageScope.APPLICATION, StorageScope.APPLICATION_SHARED, StorageScope.PROFILE, StorageScope.WORKSPACE]) {
 			for (const target of [StorageTarget.USER, StorageTarget.MACHINE]) {
 				for (const key of this.keys(scope, target)) {
@@ -265,7 +235,6 @@ export class BrowserStorageService extends AbstractStorageService {
 			await this.getStorage(scope)?.whenFlushed();
 		}
 
-		// Clear databases
 		await Promises.settled([
 			this.applicationStorageDatabase?.clear() ?? Promise.resolve(),
 			this.applicationSharedStorageDatabase?.clear() ?? Promise.resolve(),
@@ -285,23 +254,13 @@ export class BrowserStorageService extends AbstractStorageService {
 
 interface IIndexedDBStorageDatabase extends IStorageDatabase, IDisposable {
 
-	/**
-	 * Name of the database.
-	 */
 	readonly name: string;
 
-	/**
-	 * Whether an update in the DB is currently pending
-	 * (either update or delete operation).
-	 */
 	readonly hasPendingUpdate: boolean;
 
 	getValue(key: string): Promise<string | undefined>;
 	compareAndSwap(key: string, expectedValue: string | undefined, newValue: string): Promise<{ readonly swapped: boolean; readonly currentValue: string | undefined }>;
 
-	/**
-	 * For testing only.
-	 */
 	clear(): Promise<void>;
 }
 
@@ -330,7 +289,6 @@ class InMemoryIndexedDBStorageDatabase extends InMemoryStorageDatabase implement
 	}
 
 	dispose(): void {
-		// No-op
 	}
 }
 
@@ -400,8 +358,6 @@ export class IndexedDBStorageDatabase extends Disposable implements IIndexedDBSt
 
 	private registerListeners(): void {
 
-		// Check for storage change events from other
-		// windows/tabs via `BroadcastChannel` mechanisms.
 		if (this.broadcastChannel) {
 			this._register(this.broadcastChannel.onDidReceiveData(data => {
 				if (isStorageItemsChangeEvent(data)) {
@@ -439,7 +395,6 @@ export class IndexedDBStorageDatabase extends Disposable implements IIndexedDBSt
 
 	async updateItems(request: IUpdateRequest): Promise<void> {
 
-		// Run the update
 		let didUpdate = false;
 		this.pendingUpdate = this.doUpdateItems(request);
 		try {
@@ -448,8 +403,6 @@ export class IndexedDBStorageDatabase extends Disposable implements IIndexedDBSt
 			this.pendingUpdate = undefined;
 		}
 
-		// Broadcast changes to other windows/tabs if enabled
-		// and only if we actually did update storage items.
 		if (this.broadcastChannel && didUpdate) {
 			const event: IStorageItemsChangeEvent = {
 				changed: request.insert,
@@ -479,7 +432,6 @@ export class IndexedDBStorageDatabase extends Disposable implements IIndexedDBSt
 
 	private async doUpdateItems(request: IUpdateRequest): Promise<boolean> {
 
-		// Return early if the request is empty
 		const toInsert = request.insert;
 		const toDelete = request.delete;
 		if ((!toInsert && !toDelete) || (toInsert?.size === 0 && toDelete?.size === 0)) {
@@ -488,18 +440,15 @@ export class IndexedDBStorageDatabase extends Disposable implements IIndexedDBSt
 
 		const db = await this.whenConnected;
 
-		// Update `ItemTable` with inserts and/or deletes
 		await db.runInTransaction(IndexedDBStorageDatabase.STORAGE_OBJECT_STORE, 'readwrite', objectStore => {
 			const requests: IDBRequest[] = [];
 
-			// Inserts
 			if (toInsert) {
 				for (const [key, value] of toInsert) {
 					requests.push(objectStore.put(value, key));
 				}
 			}
 
-			// Deletes
 			if (toDelete) {
 				for (const key of toDelete) {
 					requests.push(objectStore.delete(key));
@@ -513,16 +462,13 @@ export class IndexedDBStorageDatabase extends Disposable implements IIndexedDBSt
 	}
 
 	async optimize(): Promise<void> {
-		// not suported in IndexedDB
 	}
 
 	async close(): Promise<void> {
 		const db = await this.whenConnected;
 
-		// Wait for pending updates to having finished
 		await this.pendingUpdate;
 
-		// Finally, close IndexedDB
 		return db.close();
 	}
 

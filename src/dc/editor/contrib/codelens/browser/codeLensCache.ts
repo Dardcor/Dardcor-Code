@@ -51,16 +51,13 @@ export class CodeLensCache implements ICodeLensCache {
 
 	constructor(@IStorageService storageService: IStorageService) {
 
-		// remove old data
 		const oldkey = 'codelens/cache';
 		runWhenWindowIdle(mainWindow, () => storageService.remove(oldkey, StorageScope.WORKSPACE));
 
-		// restore lens data on start
 		const key = 'codelens/cache2';
 		const raw = storageService.get(key, StorageScope.WORKSPACE, '{}');
 		this._deserialize(raw);
 
-		// store lens data on shutdown
 		const onWillSaveStateBecauseOfShutdown = Event.filter(storageService.onWillSaveState, e => e.reason === WillSaveStateReason.SHUTDOWN);
 		Event.once(onWillSaveStateBecauseOfShutdown)(e => {
 			storageService.store(key, this._serialize(), StorageScope.WORKSPACE, StorageTarget.MACHINE);
@@ -68,8 +65,6 @@ export class CodeLensCache implements ICodeLensCache {
 	}
 
 	put(model: ITextModel, data: CodeLensModel): void {
-		// create a copy of the model that is without command-ids
-		// but with comand-labels
 		const copyItems = data.lenses.map((item): CodeLens => {
 			return {
 				range: item.symbol.range,
@@ -92,7 +87,6 @@ export class CodeLensCache implements ICodeLensCache {
 		this._cache.delete(model.uri.toString());
 	}
 
-	// --- persistence
 
 	private _serialize(): string {
 		const data: Record<string, ISerializedCacheData> = Object.create(null);
@@ -124,7 +118,6 @@ export class CodeLensCache implements ICodeLensCache {
 				this._cache.set(key, new CacheItem(element.lineCount, model));
 			}
 		} catch {
-			// ignore...
 		}
 	}
 }

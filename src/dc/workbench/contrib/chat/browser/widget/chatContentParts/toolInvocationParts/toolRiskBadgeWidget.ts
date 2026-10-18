@@ -102,20 +102,11 @@ export class ToolRiskBadgeWidget extends Disposable {
 		this._setHover(assessment.explanation);
 	}
 
-	/**
-	 * Provide additional context to surface in the trailing info icon's hover.
-	 * The hover always notes that the assessment is AI-generated; any details
-	 * passed here are appended below that note.
-	 */
 	setDetails(details: IMarkdownString | string | undefined): void {
 		this._details = details;
 		this._refreshDetailsHover();
 	}
 
-	/**
-	 * The markdown content currently shown in the trailing info icon's hover.
-	 * Exposed so component fixtures can render a preview of the hover content.
-	 */
 	getDetailsMarkdown(): IMarkdownString {
 		return this._buildDetailsMarkdown();
 	}

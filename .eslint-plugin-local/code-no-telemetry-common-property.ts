@@ -8,16 +8,6 @@ import type * as ESTree from 'estree';
 
 const telemetryMethods = new Set(['publicLog', 'publicLog2', 'publicLogError', 'publicLogError2']);
 
-/**
- * Common telemetry property names that are automatically added to every event.
- * Telemetry events must not set these because they would collide with / be
- * overwritten by the common properties that the telemetry pipeline injects.
- *
- * Collected from:
- *   - src/vs/platform/telemetry/common/commonProperties.ts  (resolveCommonProperties)
- *   - src/vs/workbench/services/telemetry/common/workbenchCommonProperties.ts
- *   - src/vs/workbench/services/telemetry/browser/workbenchCommonProperties.ts
- */
 const commonTelemetryProperties = new Set([
 	'common.machineid',
 	'common.sqmid',
@@ -61,9 +51,6 @@ export default new class NoTelemetryCommonProperty implements eslint.Rule.RuleMo
 
 	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
-		/**
-		 * Check whether any property key in an object expression is a reserved common telemetry property.
-		 */
 		function checkObjectForCommonProperties(node: ESTree.ObjectExpression) {
 			for (const prop of node.properties) {
 				if (prop.type === 'Property') {
@@ -94,7 +81,6 @@ export default new class NoTelemetryCommonProperty implements eslint.Rule.RuleMo
 				if (prop.type !== 'Identifier' || !telemetryMethods.has(prop.name)) {
 					return;
 				}
-				// The data argument is the second argument for publicLog/publicLog2/publicLogError/publicLogError2
 				const dataArg = node.arguments[1];
 				if (dataArg && dataArg.type === 'ObjectExpression') {
 					checkObjectForCommonProperties(dataArg);

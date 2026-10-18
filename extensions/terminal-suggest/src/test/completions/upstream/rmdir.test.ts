@@ -17,14 +17,11 @@ export const rmdirTestSuiteSpec: ISuiteSpec = {
 	completionSpecs: rmdirSpec,
 	availableCommands: 'rmdir',
 	testSpecs: [
-		// Empty input
 		{ input: '|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Typing the command
 		{ input: 'r|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'rmdir|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Basic options
 		{ input: 'rmdir |', expectedCompletions: allOptions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
 	]
 };

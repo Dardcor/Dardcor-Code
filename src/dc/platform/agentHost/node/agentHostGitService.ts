@@ -21,26 +21,15 @@ import { CheckoutBlockedByLocalChangesError, EMPTY_TREE_OBJECT, IAddWorktreeOpti
 import { LRUCache } from '../../../base/common/map.js';
 import { firstParallel, Limiter, SequencerByKey, timeout } from '../../../base/common/async.js';
 
-/**
- * `git worktree remove`/`prune` can transiently fail — or, worse, exit 0 while
- * leaving the `.git/worktrees/<id>` admin directory behind — when a concurrent
- * git process in the worktree still holds an `index.lock`, so the admin
- * directory is non-empty. That clears once the other process exits, so retry a
- * few times with a capped exponential backoff and verify de-registration.
- */
 const WORKTREE_REMOVAL_MAX_ATTEMPTS = 5;
 const WORKTREE_REMOVAL_RETRY_BASE_DELAY_MS = 100;
 const WORKTREE_REMOVAL_RETRY_MAX_DELAY_MS = 500;
 
-/** Budget for reading one blob; a timeout here drops a diff's original side. */
 const SHOW_BLOB_TIMEOUT_MS = 15_000;
 
 export class AgentHostGitService implements IAgentHostGitService {
 	declare readonly _serviceBrand: undefined;
 
-	/**
-	 * A cache of repository roots that have already been discovered.
-	 */
 	private readonly _repositoryRoots = new LRUCache<string, URI>(100);
 	private readonly _repositoryRootSequencer = new SequencerByKey<string>();
 
@@ -61,7 +50,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 	}
 
 	async getDefaultBranch(workingDirectory: URI): Promise<IDefaultBranch | undefined> {
-		// Try to read the default branch from the remote HEAD reference
 		const remoteRef = (await this._runGit(workingDirectory, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']))?.trim();
 		if (remoteRef) {
 			if (!remoteRef.startsWith('refs/remotes/origin/')) {
@@ -69,13 +57,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			}
 
 			const branch = remoteRef.substring('refs/remotes/origin/'.length);
-			// Prefer the remote-tracking ref ('origin/<branch>') over the local
-			// branch when both exist, so worktrees are based on the most
-			// up-to-date commit rather than a possibly stale local branch.
-			// This mirrors the extension-host CLI which resolves a branch's
-			// upstream and uses that as the worktree start point. Falls back
-			// to the local branch when the remote-tracking ref is missing
-			// (e.g. fresh clone with no remote-tracking refs yet).
 			const hasRemoteRef = (await this._runGit(workingDirectory, ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${branch}`])) !== undefined;
 			if (hasRemoteRef) {
 				return { name: branch, startPoint: `origin/${branch}` };
@@ -163,10 +144,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 
 		if (options.newBranchName) {
 			if (!options.track) {
-				// Pass --no-track so the new agent branch never picks up upstream
-				// tracking from the start point (e.g. when starting from
-				// 'origin/main', without --no-track git would set the new branch's
-				// upstream to origin/main, which would mis-attribute pushes/pulls).
 				args.push('--no-track');
 			}
 
@@ -175,10 +152,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 
 		args.push(options.path.fsPath, resolvedCommitish);
 
-		// `git worktree add` forces progress reporting on its internal checkout
-		// even when stderr is a pipe, so `Updating files: N% (x/y)` can be
-		// parsed for live feedback. GIT_PROGRESS_DELAY=0 lifts git's default
-		// two-second suppression so the first sample arrives immediately.
 		const progressParser = options.onProgress ? new GitCheckoutProgressParser(options.onProgress) : undefined;
 
 		await this._runGit(repositoryRoot, args, {
@@ -222,41 +195,9 @@ export class AgentHostGitService implements IAgentHostGitService {
 	}
 
 	async addExistingWorktree(repositoryRoot: URI, worktree: URI, branchName: string): Promise<void> {
-		// `-f` (force) so recreation succeeds even when the worktree directory was
-		// deleted out-of-band but git still has it registered ("missing but
-		// already registered worktree"). This is our own managed per-session
-		// worktree/branch, so overriding git's safeguards here is safe.
 		await this._runGit(repositoryRoot, ['-c', 'checkout.workers=0', 'worktree', 'add', '-f', worktree.fsPath, branchName], { timeout: 180_000, throwOnError: true });
 	}
 
-	/**
-	 * Removes a session's git worktree, tolerating the teardown race where a
-	 * concurrent git process is still running inside it.
-	 *
-	 * `git worktree remove` deletes the working tree and then the admin directory
-	 * `.git/worktrees/<id>`. If another git process (our own status/diff probes,
-	 * or the agent's own git) re-created `index.lock` there, that last step fails
-	 * with "Directory not empty". And `git worktree prune` — which we use to
-	 * finish a partially-removed worktree — can even exit 0 while failing to
-	 * delete that directory, so a zero exit is not proof of success.
-	 *
-	 * Example the loop below handles:
-	 * ```
-	 *   attempt 1  `remove` deletes the tree, then can't rmdir .git/worktrees/<id>
-	 *              (a probe's index.lock is still there)                  -> throws
-	 *   wait ~100ms  the probe finishes and releases its lock
-	 *   attempt 2  tree already gone -> `prune` clears the stale entry
-	 *              -> verified de-registered                              -> done
-	 * ```
-	 *
-	 * So we: retry with a capped exponential backoff to let the racing process
-	 * finish; switch to `prune` once the working tree is already gone; only retry
-	 * transient lock / "directory not empty" failures (a dirty-tree "use --force"
-	 * still fails fast); treat a non-retryable failure as success when git no
-	 * longer tracks the worktree (idempotent re-removal of an already-removed or
-	 * archived worktree); and verify the worktree is truly de-registered before
-	 * returning, so a silent `prune` no-op cannot mask a leaked entry.
-	 */
 	async removeWorktree(repositoryRoot: URI, worktree: URI, options?: { readonly force?: boolean }): Promise<void> {
 		const removeArgs = ['worktree', 'remove'];
 		if (options?.force) {
@@ -273,10 +214,8 @@ export class AgentHostGitService implements IAgentHostGitService {
 				if (await this._pathExists(worktree.fsPath)) {
 					await this._runGit(repositoryRoot, removeArgs, { timeout: 60_000, throwOnError: true });
 				} else {
-					// Working tree already gone (a prior attempt removed it): prune clears the stale admin entry.
 					await this._runGit(repositoryRoot, ['worktree', 'prune'], { timeout: 60_000, throwOnError: true });
 				}
-				// A zero exit is not proof of success (see the doc above), so confirm de-registration.
 				if (!await this._isWorktreeRegistered(repositoryRoot, worktree)) {
 					return;
 				}
@@ -284,7 +223,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			} catch (error) {
 				lastError = error;
 				if (!isRetryableWorktreeRemovalError(error)) {
-					// Idempotent: if git no longer tracks the worktree the removal goal is already met (e.g. an archived session removed it earlier).
 					if (!await this._isWorktreeRegistered(repositoryRoot, worktree)) {
 						this._logService.trace(`[agentHostGitService] worktree '${worktree.fsPath}' already de-registered; treating removal as complete`);
 						return;
@@ -304,18 +242,10 @@ export class AgentHostGitService implements IAgentHostGitService {
 			await fsPromises.access(fsPath);
 			return true;
 		} catch (error) {
-			// Only a definitive "not found" means the path is gone. Treat any
-			// other error (e.g. EACCES/EPERM) as "exists" so we don't wrongly
-			// take the prune path for a still-present worktree.
 			return (error as NodeJS.ErrnoException)?.code !== 'ENOENT';
 		}
 	}
 
-	/**
-	 * Whether `worktree` is still registered with git (its admin entry survives).
-	 * Fails closed (returns `true`) if the registry cannot be read, so an unrelated
-	 * `git worktree list` failure is never mistaken for a completed removal.
-	 */
 	private async _isWorktreeRegistered(repositoryRoot: URI, worktree: URI): Promise<boolean> {
 		let registered: URI[];
 		try {
@@ -327,7 +257,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			return false;
 		}
 		const target = await this._canonicalizeWorktreePath(worktree);
-		// Check every registered worktree in parallel and resolve as soon as one matches.
 		const matched = await firstParallel(
 			registered.map(async entry =>
 				extUriBiasedIgnorePathCase.isEqual(entry, worktree)
@@ -338,11 +267,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 		return matched ?? false;
 	}
 
-	/**
-	 * Resolves symlinks on the worktree's parent (which persists even after the
-	 * worktree directory itself is deleted) so a path we passed to git (e.g.
-	 * `/var/...`) matches the realpath'd form git reports (`/private/var/...`).
-	 */
 	private async _canonicalizeWorktreePath(worktree: URI): Promise<URI> {
 		try {
 			const parentReal = await fsPromises.realpath(path.dirname(worktree.fsPath));
@@ -353,8 +277,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 	}
 
 	async branchExists(repositoryRoot: URI, branchName: string): Promise<boolean> {
-		// `show-ref --verify --quiet` exits 0 when the ref exists and 1 otherwise.
-		// `_runGit` returns undefined on non-zero exit, so `!== undefined` is the existence signal.
 		const output = await this._runGit(repositoryRoot, ['show-ref', '--verify', '--quiet', `refs/heads/${branchName}`]);
 		return output !== undefined;
 	}
@@ -461,9 +383,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			args.push('-r');
 		}
 
-		// A ref can only be passed alongside a
-		// remote; default to `origin` when a ref
-		// is given without one.
 		if (options?.remote || options?.ref) {
 			args.push(options.remote ?? 'origin');
 
@@ -482,9 +401,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			args.push('--set-upstream');
 		}
 
-		// A ref can only be passed alongside a
-		// remote; default to `origin` when a ref
-		// is given without one.
 		if (options?.remote || options?.ref) {
 			args.push(options.remote ?? 'origin');
 
@@ -497,21 +413,13 @@ export class AgentHostGitService implements IAgentHostGitService {
 	}
 
 	async computeSessionFileDiffs(workingDirectory: URI, options: IComputeSessionFileDiffsOptions): Promise<readonly ISessionFileDiff[] | undefined> {
-		// All git invocations run from the working tree's repository root so
-		// `--raw` paths are repo-relative — that's what `git show <sha>:<path>`
-		// expects when we resolve `git-blob:` URIs later.
 		const repositoryRoot = await this.getRepositoryRoot(workingDirectory);
 		if (!repositoryRoot) {
 			return undefined;
 		}
 
-		// Resolve the merge-base commit the Branch Changes diff is anchored on.
 		const mergeBaseCommit = await this._resolveBranchMergeBaseCommit(repositoryRoot, options.baseBranch);
 
-		// Detect whether the working tree has any untracked files. If so we
-		// have to use the temp-index trick so the untracked content is
-		// included in `--cached --raw` output; otherwise a plain `git diff`
-		// is sufficient and avoids the temp-dir overhead.
 		const statusOut = await this._runGitStatus(repositoryRoot, ['--porcelain=v1', '-z', '--untracked-files=all']);
 		if (statusOut === undefined) {
 			return undefined;
@@ -542,16 +450,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 		return this._resolveBranchMergeBaseCommit(repositoryRoot, baseBranch);
 	}
 
-	/**
-	 * Resolves the merge-base commit-ish the Branch Changes baseline is anchored
-	 * on. With a base branch, prefers the corresponding `origin/<base>`
-	 * remote-tracking ref when it exists so branch changes match a PR-style
-	 * comparison even if the local base branch is stale. Without a usable base,
-	 * falls back to `HEAD` (surfaces uncommitted work but no committed-on-branch
-	 * work). For empty repos with no `HEAD`, falls back to the empty-tree object.
-	 * Always resolves to a commit-ish (never `undefined`) once the repository
-	 * root is known.
-	 */
 	private async _resolveBranchMergeBaseCommit(repositoryRoot: URI, baseBranch?: string): Promise<string> {
 		let mergeBaseCommit: string | undefined;
 		if (baseBranch) {
@@ -566,25 +464,14 @@ export class AgentHostGitService implements IAgentHostGitService {
 	}
 
 	private async _runWithTempIndex(repositoryRoot: URI, mergeBaseCommit: string, changedPaths: readonly string[]): Promise<string | undefined> {
-		// Build a throwaway index so we can stage the changed working tree
-		// paths (including untracked files) without disturbing the user's real
-		// index. `read-tree HEAD` seeds it; in empty repos that fails so we
-		// fall back to the empty tree, leaving everything as "added".
 		const tempDir = URI.joinPath(this._environmentService.tmpDir, `agent-host-git-diff-${generateUuid()}`);
 		await this._fileService.createFolder(tempDir);
-		// `GIT_INDEX_FILE` is consumed by the `git` subprocess so it must be
-		// a real OS path string, not a URI.
 		const indexFile = URI.joinPath(tempDir, 'index').fsPath;
 		const env: Record<string, string> = { GIT_INDEX_FILE: indexFile };
-		// GVFS (Virtual File System) repos use a hook that acquires a lock around
-		// git commands. Setting COMMAND_HOOK_LOCK=1 prevents the temp-index
-		// operations from blocking the main working-tree lock. This mirrors what
-		// the extension's `buildTempIndexEnv` does for the same reason.
 		env.COMMAND_HOOK_LOCK = '1';
 		try {
 			const seeded = await this._runGit(repositoryRoot, ['read-tree', 'HEAD'], { env });
 			if (seeded === undefined) {
-				// Empty repo (no HEAD yet) - `read-tree` of the empty tree always succeeds.
 				await this._runGit(repositoryRoot, ['read-tree', EMPTY_TREE_OBJECT], { env });
 			}
 			if (!(await this._stageChangedPaths(repositoryRoot, tempDir, changedPaths, env))) {
@@ -592,7 +479,7 @@ export class AgentHostGitService implements IAgentHostGitService {
 			}
 			return await this._runGit(repositoryRoot, ['diff', '--cached', '--raw', '--numstat', '--diff-filter=ADMR', '-z', mergeBaseCommit, '--'], { env });
 		} finally {
-			try { await this._fileService.del(tempDir, { recursive: true, useTrash: false }); } catch { /* best-effort */ }
+			try { await this._fileService.del(tempDir, { recursive: true, useTrash: false }); } catch { }
 		}
 	}
 
@@ -601,11 +488,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			return true;
 		}
 		const pathspecFile = URI.joinPath(tempDir, 'pathspec');
-		// Stage only the paths `git status` reported as changed. The previous
-		// full-repo `git add -A -- :/` walked nested repos/worktrees and large
-		// checkouts, which made temp-index diffing slow and timeout-prone. A
-		// NUL-separated pathspec preserves odd filenames while keeping deletes
-		// and rename/copy sources in scope.
 		await this._fileService.writeFile(pathspecFile, VSBuffer.fromString(changedPaths.join('\x00') + '\x00'));
 		this._logService.debug(`[agentHostGitService] Staging ${changedPaths.length} changed path(s) into temp index`);
 		return await this._runGit(repositoryRoot, ['add', '-A', `--pathspec-from-file=${pathspecFile.fsPath}`, '--pathspec-file-nul'], {
@@ -635,24 +517,11 @@ export class AgentHostGitService implements IAgentHostGitService {
 		return remoteBranch;
 	}
 
-	/**
-	 * Resolves the git-ignored paths to copy into a worktree.
-	 */
 	private async _getWorktreeIncludePaths(repositoryRoot: URI, worktreeRoot: URI, globs: readonly string[]): Promise<IWorktreeIncludeEntry[]> {
 		if (globs.length === 0) {
 			return [];
 		}
 
-		// List the git-ignored (but untracked) files: `--others` selects
-		// untracked files, `--ignored` restricts to those matched by an exclude
-		// source, and `--exclude-standard` uses the standard sources (.gitignore,
-		// .git/info/exclude, core.excludesFile). `-z` NUL-separates entries so
-		// paths containing spaces or other special characters survive intact.
-		//
-		// The `--directory` variant additionally collapses a *wholly*-ignored
-		// directory (one containing no tracked files) into a single `dir/`
-		// entry. It is enumerated in parallel and used below to copy such
-		// directories as one recursive unit rather than file-by-file.
 		const baseArgs = ['ls-files', '--others', '--ignored', '--exclude-standard', '-z'];
 		const [filesOutput, directoryOutput, worktreeOutput] = await Promise.all([
 			this._runGit(repositoryRoot, baseArgs, { timeout: 60_000 }),
@@ -663,30 +532,17 @@ export class AgentHostGitService implements IAgentHostGitService {
 			return [];
 		}
 
-		// git emits repository-relative, forward-slash paths.
 		const ignoredFiles = filesOutput.split('\x00').filter(entry => entry.length > 0);
 		if (ignoredFiles.length === 0) {
 			return [];
 		}
 
-		// Keep only the ignored files that match one of the configured
-		// `git.worktreeIncludeFiles` glob patterns (VS Code glob semantics),
-		// and — in the same pass — tally which wholly-ignored directories
-		// contain an ignored file that cannot be copied (and therefore cannot be
-		// collapsed). `git ls-files --directory` reports a wholly-ignored
-		// directory as a single `dir/` entry and never nests these entries
-		// (it stops descending once a directory is wholly ignored), so each
-		// file has at most one containing directory and no de-duplication of
-		// the directory set is required.
 		const matchers = globs.map(pattern => parse(pattern));
 		const wholeDirectories = new Set((directoryOutput ?? '')
 			.split('\x00').filter(entry => entry.endsWith('/')));
 		const worktreeFiles = new Set((worktreeOutput ?? '')
 			.split('\x00').filter(entry => entry.length > 0));
 
-		// Every ancestor directory of a tracked path, with the trailing `/` used
-		// by `git ls-files --directory`, so a source path can be checked against
-		// the shape (file vs directory) of its destination.
 		const worktreeDirectories = new Set<string>();
 		for (const file of worktreeFiles) {
 			let index = file.indexOf('/');
@@ -716,16 +572,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			return [];
 		}
 
-		// Collapse matched files into their containing directory when the whole
-		// directory can be copied as a single recursive unit — i.e. it is
-		// wholly ignored (so it has no tracked files a recursive copy would
-		// clobber) and every ignored file it contains matched a glob (so
-		// nothing unwanted is copied, tracked by `nonCollapsibleDirectories` above).
-		// This turns a large tree such as `node_modules/` into one copy instead
-		// of one per file, while a partially-matched or partially-tracked
-		// directory falls back to its individual matched files. `--directory`
-		// with `--no-empty-directory` never reports an empty directory, so every
-		// entry in `wholeDirectories` is known to contain at least one ignored file.
 		const collapsedDirectories = new Set<string>();
 		for (const dir of wholeDirectories) {
 			if (!nonCollapsibleDirectories.has(dir)) {
@@ -745,12 +591,9 @@ export class AgentHostGitService implements IAgentHostGitService {
 		const args = ['show', `${ref}:${repoRelativePath}`];
 		this._logService.trace(`[agentHostGitService] > git ${args.join(' ')}`);
 
-		// Callers only get `undefined`, which surfaces as "git blob not found"
-		// whatever actually went wrong, so log the real reason.
 		return new Promise((resolve) => {
 			cp.execFile('git', args, { cwd: workingDirectory.fsPath, timeout: SHOW_BLOB_TIMEOUT_MS, encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 }, (error, stdout, stderr) => {
 				if (error) {
-					// The timeout above is the only thing that kills this process.
 					this._logService.warn(`[agentHostGitService] > git ${args.join(' ')} failed: ${formatGitError(args, SHOW_BLOB_TIMEOUT_MS, error.killed === true, error, (stderr as Buffer).toString())}`);
 					resolve(undefined);
 					return;
@@ -797,7 +640,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 		const indexFile = URI.joinPath(tempDir, 'index').fsPath;
 		const env: Record<string, string> = { GIT_INDEX_FILE: indexFile, COMMAND_HOOK_LOCK: '1' };
 		try {
-			// Seed the temp index from HEAD; for empty repos seed from the empty tree.
 			const seeded = await this._runGit(repositoryRoot, ['read-tree', 'HEAD'], { env });
 			if (seeded === undefined) {
 				await this._runGit(repositoryRoot, ['read-tree', EMPTY_TREE_OBJECT], { env });
@@ -808,7 +650,7 @@ export class AgentHostGitService implements IAgentHostGitService {
 			const tree = (await this._runGit(repositoryRoot, ['write-tree'], { env }))?.trim();
 			return tree || undefined;
 		} finally {
-			try { await this._fileService.del(tempDir, { recursive: true, useTrash: false }); } catch { /* best-effort */ }
+			try { await this._fileService.del(tempDir, { recursive: true, useTrash: false }); } catch { }
 		}
 	}
 
@@ -830,13 +672,9 @@ export class AgentHostGitService implements IAgentHostGitService {
 		if (refs.length === 0) {
 			return;
 		}
-		// Use `update-ref --stdin -z` so all deletions go through a single git
-		// invocation. Each command is `delete SP <ref> NUL [<expected_oid>] NUL`;
-		// we omit the expected oid so already-missing refs don't fail the batch.
 		const stdin = refs.map(ref => `delete ${ref}\x00\x00`).join('');
 		await new Promise<void>((resolve) => {
 			const proc = cp.execFile('git', ['update-ref', '--stdin', '-z'], { cwd: repositoryRoot.fsPath, timeout: 10_000 }, () => {
-				// Tolerate non-zero exits — missing refs are not fatal for cleanup.
 				resolve();
 			});
 			proc.stdin?.end(stdin);
@@ -868,10 +706,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 	}
 
 	async overlayPathIntoTree(repositoryRoot: URI, baseTreeOid: string, path: string, sourceTreeOid: string): Promise<string | undefined> {
-		// Build a throwaway index seeded from `baseTreeOid`, replace/remove the
-		// single `path` using `sourceTreeOid`, and write the result back out as
-		// a new tree. The user's real index is never touched (mirrors the
-		// temp-index technique used by `captureWorkingTreeAsTree`).
 		const tempDir = URI.joinPath(this._environmentService.tmpDir, `agent-host-review-overlay-${generateUuid()}`);
 		await this._fileService.createFolder(tempDir);
 		const indexFile = URI.joinPath(tempDir, 'index').fsPath;
@@ -883,9 +717,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 				return undefined;
 			}
 
-			// Resolve the source blob (mode + oid) for `path`. `-z` avoids
-			// path quoting; an empty result means the path is absent in the
-			// source tree, so the overlay removes it from the base.
 			const lsTreeOut = await this._runGit(repositoryRoot, ['ls-tree', '-z', sourceTreeOid, '--', path], { env });
 			const entry = parseSingleLsTreeEntry(lsTreeOut);
 			if (entry) {
@@ -894,8 +725,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 					return undefined;
 				}
 			} else {
-				// `--force-remove` tolerates the path already being absent from
-				// the index, so removing an untracked/added path is a no-op.
 				const updateIndexOut = await this._runGit(repositoryRoot, ['update-index', '--force-remove', '--', path], { env, throwOnError: false });
 				if (updateIndexOut === undefined) {
 					return undefined;
@@ -907,7 +736,7 @@ export class AgentHostGitService implements IAgentHostGitService {
 		} finally {
 			try {
 				await this._fileService.del(tempDir, { recursive: true, useTrash: false });
-			} catch { /* best-effort */ }
+			} catch { }
 		}
 	}
 
@@ -988,8 +817,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			return undefined;
 		}
 
-		// Run all probes in parallel. Each handles its own errors and returns
-		// undefined on failure so we can populate fields independently.
 		const [
 			statusOutput,
 			remotesOutput,
@@ -1000,13 +827,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			configuredBaseBranch ? undefined : this._runGit(repositoryRoot, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']),
 		]);
 
-		// `git status` is the only probe that reports the branch, so a state
-		// computed without it is not merely incomplete — it is misleading.
-		// Callers persist the result wholesale, so returning a branch-less
-		// object here would overwrite the last known good branch and strand
-		// every consumer that keys off it (Agent Merge binds its pull request
-		// by branch). Report the failure instead and let callers keep what
-		// they already had.
 		if (statusOutput === undefined) {
 			this._logService.warn(`[agentHostGitService] Not reporting session git state because git status failed: ${repositoryRoot.fsPath}`);
 			return undefined;
@@ -1017,9 +837,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 		const baseBranchName = configuredBaseBranch ?? parseDefaultBranchRef(defaultBranchRef);
 		const githubRepo = parseGitHubRepoFromRemote(remotesOutput);
 		const upstreamRemote = status.upstreamBranchName?.split('/')[0];
-		// `gh pr checkout` can create a local branch whose head lives on a fork but
-		// has no upstream tracking ref; Git still reports the branch's push remote,
-		// which can be a remote name or the literal fork URL.
 		const [pushRemote, baseBranchDivergence] = await Promise.all([
 			!upstreamRemote && status.branchName
 				? this._getPushRemote(repositoryRoot, status.branchName)
@@ -1032,13 +849,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			? parseGitHubRepoFromRemote(remotesOutput, upstreamRemote)
 			: parseGitHubHeadRepoFromRemoteSelection(remotesOutput, pushRemote);
 
-		// `git status -b --porcelain=v2` only emits ahead/behind counts when the
-		// branch has an upstream tracking ref. For agent-host worktrees the
-		// branch is typically created locally with no upstream, so the user can
-		// have committed work that we'd otherwise report as 0 outgoing changes
-		// and the "Create PR" button would never appear. Fall back to counting
-		// commits relative to the base branch — that matches what the user
-		// actually cares about for "is there work to PR?".
 		let outgoingChanges = status.outgoingChanges;
 		if (outgoingChanges === undefined) {
 			outgoingChanges = baseBranchDivergence?.count;
@@ -1058,8 +868,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 			githubHeadOwner: githubHeadRepo?.owner,
 			githubRepo: githubRepo?.repo,
 		};
-		// Strip undefined fields so the resulting object is the same regardless
-		// of which probes succeeded — easier to compare in tests.
 		return stripUndefined(result);
 	}
 
@@ -1076,7 +884,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 		}
 		const refNames = new Set(refs.split(/\r?\n/g).filter(Boolean));
 		const baseBranchRef = refNames.has(localRef) ? localRef : refNames.has(remoteRef) ? remoteRef : baseBranchName;
-		// Upstream divergence can remain after a local merge, so operation availability tracks the local base separately.
 		const output = await this._runGit(repositoryRoot, ['rev-list', countCommits ? '--count' : '--max-count=1', `${baseBranchRef}..HEAD`]);
 		if (output === undefined) {
 			return undefined;
@@ -1089,7 +896,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 	}
 
 	private _runGitStatus(workingDirectory: URI, args: readonly string[]): Promise<string | undefined> {
-		// Background status probes must not contend with mutating git commands for index.lock.
 		return this._runGit(workingDirectory, ['status', ...args], { env: { GIT_OPTIONAL_LOCKS: '0' } });
 	}
 
@@ -1099,30 +905,14 @@ export class AgentHostGitService implements IAgentHostGitService {
 		return new Promise((resolve, reject) => {
 			const env = options?.env ? { ...process.env, ...options.env } : undefined;
 			const timeoutMs = options?.timeout ?? 5000;
-			// Use our own timer rather than execFile's `timeout` option so
-			// we can definitively flag the timeout case in the error
-			// message — execFile only surfaces signal/killed, which can
-			// also mean the process was killed for other reasons.
 			let didTimeOut = false;
-			// Default maxBuffer is 32MB — Node's default is ~1MB, which is
-			// easy to exceed for diff output in large repos. Exceeding it
-			// causes execFile to error and we'd silently drop the diff.
 			const child = cp.execFile('git', [...args], { cwd: workingDirectory.fsPath, env, maxBuffer: options?.maxBuffer ?? 32 * 1024 * 1024 }, (error, stdout, stderr) => {
 				if (error) {
-					// stderr is summarized in the thrown error message to keep
-					// it readable; log the full unmodified output here so the
-					// raw progress/diagnostic text is still available.
 					if (stderr) {
 						this._logService.warn(`[agentHostGitService] > git ${args.join(' ')} failed; full stderr:\n${stderr}`);
 					} else if (didTimeOut || error.killed) {
-						// A timed-out or signalled git writes nothing to stderr,
-						// so this is the only trace such a failure ever leaves.
-						// Callers that degrade quietly on `undefined` are then
-						// impossible to diagnose from logs alone.
 						this._logService.warn(`[agentHostGitService] > git ${args.join(' ')} failed: ${formatGitError(args, timeoutMs, didTimeOut, error, stderr)}`);
 					} else {
-						// A silent non-zero exit is how the `--quiet` probes
-						// report "not found", so this stays below `warn`.
 						this._logService.trace(`[agentHostGitService] > git ${args.join(' ')} failed: ${formatGitError(args, timeoutMs, didTimeOut, error, stderr)}`);
 					}
 					if (options?.throwOnError) {
@@ -1134,8 +924,6 @@ export class AgentHostGitService implements IAgentHostGitService {
 				}
 				resolve(stdout);
 			});
-			// `execFile` keeps its own listener for the buffered result; an
-			// extra one just tees the same chunks for live progress.
 			const onStderr = options?.onStderr;
 			if (onStderr) {
 				child.stderr?.on('data', (chunk: Buffer | string) => onStderr(chunk.toString()));
@@ -1179,16 +967,6 @@ export function getRemoteTrackingRef(branch: string): { branchName: string; remo
 	};
 }
 
-/**
- * Incrementally extracts checkout progress from git's stderr. Git rewrites the
- * progress line in place with carriage returns, so a chunk carries any number
- * of samples and may split one across chunk boundaries; the trailing partial
- * line is held back until the rest arrives. Every complete sample is forwarded
- * verbatim — rounding and rate limiting belong to the consumer, which knows how
- * it wants to present them.
- *
- * Exported for tests.
- */
 export class GitCheckoutProgressParser {
 
 	private static readonly _pattern = /Updating files:\s+\d+% \((?<done>\d+)\/(?<total>\d+)\)/g;
@@ -1198,8 +976,6 @@ export class GitCheckoutProgressParser {
 	constructor(private readonly _onProgress: (progress: IWorktreeFileProgress) => void) { }
 
 	push(chunk: string): void {
-		// Keep whatever follows the last line break for the next chunk; git
-		// separates progress samples with `\r` and ends the phase with `\n`.
 		const buffer = this._pending + chunk;
 		const lastBreak = Math.max(buffer.lastIndexOf('\r'), buffer.lastIndexOf('\n'));
 		if (lastBreak === -1) {
@@ -1220,30 +996,17 @@ export class GitCheckoutProgressParser {
 	}
 }
 
-/**
- * A path to copy into a worktree, plus how many individual ignored files it
- * covers — one for a plain file, the whole tally for a collapsed directory —
- * so callers can report progress in files rather than in entries of wildly
- * different size.
- */
 interface IWorktreeIncludeEntry {
 	readonly sourcePath: string;
 	readonly fileCount: number;
 }
 
-/**
- * Builds the entries to copy: one per collapsed directory, standing in for all
- * the matched files beneath it, plus one per matched file no collapsed
- * directory covers.
- */
 function toWorktreeIncludeEntries(repositoryRoot: URI, matchedFiles: readonly string[], collapsedDirectories: ReadonlySet<string>): IWorktreeIncludeEntry[] {
 	const toEntry = (relativePath: string, fileCount: number): IWorktreeIncludeEntry => ({
 		sourcePath: path.join(repositoryRoot.fsPath, relativePath),
 		fileCount,
 	});
 
-	// Seeded with every collapsed directory so one is still emitted even if the
-	// tally below never reaches it.
 	const directoryFileCounts = new Map<string, number>();
 	for (const dir of collapsedDirectories) {
 		directoryFileCounts.set(dir, 0);
@@ -1267,14 +1030,6 @@ function toWorktreeIncludeEntries(repositoryRoot: URI, matchedFiles: readonly st
 	];
 }
 
-/**
- * Returns the shallowest directory from `directories` that contains `file`, or
- * `undefined` if none does. `file` is a repository-relative, forward-slash path
- * and every entry in `directories` is expected to end with a trailing `/` (as
- * produced by `git ls-files --directory`). Walking the path's `/` boundaries
- * and probing the set is O(path depth) per file, avoiding an O(directories)
- * scan for each file.
- */
 function findContainingDirectory(file: string, directories: ReadonlySet<string>): string | undefined {
 	let index = file.indexOf('/');
 	while (index !== -1) {
@@ -1287,21 +1042,11 @@ function findContainingDirectory(file: string, directories: ReadonlySet<string>)
 	return undefined;
 }
 
-/**
- * Returns whether copying a source path would overwrite a tracked worktree path
- * or conflict with the file/directory shape of its destination. `file` and both
- * sets use repository-relative, forward-slash paths, with `worktreeDirectories`
- * entries carrying a trailing `/`.
- */
 function hasWorktreePathCollision(file: string, worktreeFiles: ReadonlySet<string>, worktreeDirectories: ReadonlySet<string>): boolean {
-	// The destination is a tracked file, which the copy would overwrite, or a
-	// tracked directory, which a file cannot take the place of.
 	if (worktreeFiles.has(file) || worktreeDirectories.has(`${file}/`)) {
 		return true;
 	}
 
-	// An ancestor of the destination is a tracked file, so the directories
-	// leading up to it cannot be created.
 	let index = file.indexOf('/');
 	while (index !== -1) {
 		if (worktreeFiles.has(file.slice(0, index))) {
@@ -1312,13 +1057,6 @@ function hasWorktreePathCollision(file: string, worktreeFiles: ReadonlySet<strin
 	return false;
 }
 
-/**
- * Whether a `git worktree remove`/`prune` failure is a transient filesystem or
- * lock race — a concurrent git process in the worktree left the
- * `.git/worktrees/<id>` admin directory non-empty — and is worth retrying.
- * Genuine failures (a dirty tree needing `--force`, a missing worktree, or any
- * other fatal git error) are not retryable.
- */
 export function isRetryableWorktreeRemovalError(error: unknown): boolean {
 	const message = error instanceof Error ? error.message : String(error);
 	return /directory not empty/i.test(message)
@@ -1327,16 +1065,6 @@ export function isRetryableWorktreeRemovalError(error: unknown): boolean {
 		|| /could not lock/i.test(message);
 }
 
-/**
- * Builds a diagnostic error message for a failed `git` invocation that
- * preserves the reason (timeout / signal / exit code) instead of just
- * surfacing whatever happened to be on stderr. When `git` is killed by
- * the timeout, stderr often contains only progress output (e.g.
- * `Updating files:   0% (149/14834)`), so without the timeout indicator
- * the bubbled-up error is misleading.
- *
- * Exported for tests.
- */
 export function formatGitError(args: readonly string[], timeoutMs: number, didTimeOut: boolean, error: cp.ExecFileException, stderr: string): string {
 	const subcommand = args[0] ?? '(unknown)';
 	let reason: string;
@@ -1353,14 +1081,6 @@ export function formatGitError(args: readonly string[], timeoutMs: number, didTi
 	return detail ? `${reason}: ${detail}` : reason;
 }
 
-/**
- * Squashes multi-line / carriage-return-heavy stderr (e.g. git progress
- * meters that emit `Updating files:   0% (149/14834)\r...` repeatedly)
- * into a single short line suitable for a one-liner error message.
- * Keeps the most recent non-empty line and caps total length.
- *
- * Exported for tests.
- */
 export function summarizeStderrForError(stderr: string): string {
 	if (!stderr) {
 		return '';
@@ -1378,28 +1098,10 @@ export function summarizeStderrForError(stderr: string): string {
 	return summary.length > MAX ? `${summary.slice(0, MAX - 1)}…` : summary;
 }
 
-/**
- * Parses NUL-separated `git status --porcelain=v1 -z --untracked-files=all`
- * output and returns the repo-relative paths of untracked entries (status
- * `??`). Other entries are ignored; we only need to know whether any
- * untracked files exist to decide whether to use the temp-index path.
- *
- * Exported for tests.
- */
 export function parseUntrackedPaths(output: string | undefined): string[] {
 	return parseChangedPaths(output, status => status === '??');
 }
 
-/**
- * Parses NUL-separated `git status --porcelain=v1 -z --untracked-files=all`
- * output and returns all changed repo-relative paths. Rename/copy entries
- * include both the destination and source paths so scoped `git add -A`
- * stages both sides of the change. Paths added to the index and then deleted
- * from the worktree are omitted because they do not exist in either HEAD or
- * the worktree.
- *
- * Exported for tests.
- */
 export function parseChangedPaths(output: string | undefined, includeStatus: (status: string) => boolean = () => true): string[] {
 	if (!output) {
 		return [];
@@ -1416,8 +1118,6 @@ export function parseChangedPaths(output: string | undefined, includeStatus: (st
 	for (let i = 0; i < segments.length; i++) {
 		const seg = segments[i];
 		if (!seg) { continue; }
-		// Each entry is "XY <path>"; for renames v1 emits a second NUL-separated
-		// "from" path.
 		const status = seg.substring(0, 2);
 		const path = seg.substring(3);
 		const isRenameOrCopy = status[0] === 'R' || status[1] === 'R' || status[0] === 'C' || status[1] === 'C';
@@ -1439,14 +1139,6 @@ export function parseChangedPaths(output: string | undefined, includeStatus: (st
 	return result;
 }
 
-/**
- * Parses NUL-terminated `git ls-tree -z <tree> -- <path>` output for a single
- * path and returns its `{ mode, oid }`, or `undefined` when the path is absent
- * from the tree (empty output). Each entry has the form
- * `<mode> SP <type> SP <oid> TAB <path> NUL`; we only need the mode and oid.
- *
- * Exported for tests.
- */
 export function parseSingleLsTreeEntry(output: string | undefined): { mode: string; oid: string } | undefined {
 	if (!output) {
 		return undefined;
@@ -1463,32 +1155,6 @@ export function parseSingleLsTreeEntry(output: string | undefined): { mode: stri
 	return { mode: meta[0], oid: meta[2] };
 }
 
-/**
- * Parses combined `--raw --numstat -z` output produced by
- * {@link IAgentHostGitService.computeSessionFileDiffs} and converts each
- * change into an {@link ISessionFileDiff} ready for the protocol.
- *
- * The combined NUL-separated stream alternates between `--raw` segments
- * (start with `:`) and `--numstat` segments. For renames the raw segment
- * is followed by two extra path segments (old, new); the numstat segment
- * has an empty path field followed by old/new path segments.
- *
- * `beforeRef` is the commit the `before` side is anchored on (typically a
- * merge-base or the lower bound of a ref-to-ref diff).
- *
- * `afterRef` controls how the `after` side is built:
- * - When `undefined` (the merge-base → working-tree case) the `after`
- *   content URI points at the on-disk working-tree file. The diff editor
- *   reads the file from disk as the user currently sees it.
- * - When set (the ref → ref case, e.g. checkpoint diffs) both `after.uri`
- *   and `after.content.uri` are built as `git-blob:` URIs anchored on that
- *   commit, so the after pane reflects the state at that commit
- *   regardless of what is currently on disk. This also makes the diff
- *   correct when the file does not (or no longer) exists in the working
- *   tree.
- *
- * Exported for tests.
- */
 export function parseGitDiffRawNumstat(output: string, repositoryRoot: URI, sessionUri: string, beforeRef: string, afterRef?: string): ISessionFileDiff[] {
 	const segments = output.split('\x00');
 	const changes: { kind: FileEditKind; oldPath?: string; newPath?: string }[] = [];
@@ -1500,8 +1166,6 @@ export function parseGitDiffRawNumstat(output: string, repositoryRoot: URI, sess
 		if (!segment) { continue; }
 
 		if (segment.startsWith(':')) {
-			// Raw line: ":<srcMode> <dstMode> <srcSha> <dstSha> <status>"
-			// followed by NUL-separated path(s).
 			const fields = segment.split(' ');
 			const status = fields[4] ?? '';
 			const path1 = segments[i++];
@@ -1527,8 +1191,6 @@ export function parseGitDiffRawNumstat(output: string, repositoryRoot: URI, sess
 					break;
 			}
 		} else {
-			// Numstat line: "<added>\t<removed>\t<path>" or, for renames,
-			// "<added>\t<removed>\t" followed by NUL-separated old/new paths.
 			const [addedStr, removedStr, filePath] = segment.split('\t');
 			let key: string;
 			if (filePath === '' || filePath === undefined) {
@@ -1581,18 +1243,6 @@ export function parseGitDiffRawNumstat(output: string, repositoryRoot: URI, sess
 	});
 }
 
-/**
- * Parses output of `git status -b --porcelain=v2`. The format is documented
- * at https://git-scm.com/docs/git-status. We care about a few header lines:
- *
- *   # branch.head <name>
- *   # branch.upstream <name>
- *   # branch.ab +<ahead> -<behind>
- *
- * and the count of non-header lines (one per changed entry).
- *
- * Exported for tests.
- */
 export function parseGitStatusV2(output: string | undefined): {
 	branchName?: string;
 	isDetachedHead?: boolean;
@@ -1615,9 +1265,6 @@ export function parseGitStatusV2(output: string | undefined): {
 		if (!line) { continue; }
 		if (line.startsWith('# branch.head ')) {
 			const head = line.substring('# branch.head '.length).trim();
-			// `(detached)` is what git emits for a detached HEAD. Treat as no
-			// branch, but report why so consumers can tell an intentionally
-			// branch-less checkout from a status probe that never ran.
 			isDetachedHead = head === '(detached)' ? true : undefined;
 			branchName = isDetachedHead ? undefined : head;
 		} else if (line.startsWith('# branch.upstream ')) {
@@ -1635,7 +1282,6 @@ export function parseGitStatusV2(output: string | undefined): {
 	return { branchName, isDetachedHead, upstreamBranchName, outgoingChanges, incomingChanges, uncommittedChanges };
 }
 
-/** Exported for tests. */
 export function parseHasGitHubRemote(remotesOutput: string | undefined): boolean | undefined {
 	if (remotesOutput === undefined) {
 		return undefined;
@@ -1646,7 +1292,6 @@ export function parseHasGitHubRemote(remotesOutput: string | undefined): boolean
 	return /github\.com[:\/]/i.test(remotesOutput);
 }
 
-/** Returns fetch remote URLs with the preferred remote, then `origin`, first. */
 export function parseFetchRemoteUrls(remotesOutput: string | undefined, preferredRemote?: string): string[] | undefined {
 	const candidates = parseFetchRemotes(remotesOutput);
 	if (!candidates) {
@@ -1675,12 +1320,6 @@ function parseFetchRemotes(remotesOutput: string | undefined): { name: string; u
 	return candidates;
 }
 
-/**
- * Parse `owner` and `repo` from `git remote -v` output. When `remoteName` is
- * provided, only that remote is considered. Otherwise, `origin` is preferred.
- *
- * Exported for tests.
- */
 export function parseGitHubRepoFromRemote(remotesOutput: string | undefined, remoteName?: string): { owner: string; repo: string } | undefined {
 	const candidates = remoteName === undefined
 		? parseFetchRemoteUrls(remotesOutput)
@@ -1704,18 +1343,11 @@ function parseGitHubHeadRepoFromRemoteSelection(remotesOutput: string | undefine
 	return parseGitHubRepoFromRemote(remotesOutput, remoteSelection) ?? parseGitHubOwnerRepoFromUrl(remoteSelection);
 }
 
-/**
- * Extract `{owner, repo}` from a GitHub remote URL. Handles the common
- * forms: `git@github.com:owner/repo(.git)?`, `https://github.com/owner/repo(.git)?`,
- * `ssh://git@github.com/owner/repo(.git)?`, `git://github.com/owner/repo(.git)?`.
- */
 function parseGitHubOwnerRepoFromUrl(url: string): { owner: string; repo: string } | undefined {
-	// SCP-like: git@github.com:owner/repo(.git)?
 	let m = /^[^@\s]+@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i.exec(url);
 	if (m) {
 		return { owner: m[1], repo: m[2] };
 	}
-	// URL-form: <scheme>://[user@]github.com[:port]/owner/repo(.git)?
 	m = /^[a-z+]+:\/\/(?:[^@\/\s]+@)?github\.com(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i.exec(url);
 	if (m) {
 		return { owner: m[1], repo: m[2] };
@@ -1723,7 +1355,6 @@ function parseGitHubOwnerRepoFromUrl(url: string): { owner: string; repo: string
 	return undefined;
 }
 
-/** Exported for tests. */
 export function parseDefaultBranchRef(symbolicRefOutput: string | undefined): string | undefined {
 	const ref = symbolicRefOutput?.trim();
 	if (!ref) { return undefined; }

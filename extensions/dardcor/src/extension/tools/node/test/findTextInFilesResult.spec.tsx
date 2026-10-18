@@ -269,7 +269,6 @@ suite('FindTextInFilesGrepResult', () => {
 		}, 'NEEDLE');
 
 		const matchLine = result.split('\n').find(l => l.startsWith('5:'))!;
-		// Match-centered window (150 before + match + 105 after) far smaller than the 2006-char line.
 		expect(matchLine).toContain('NEEDLE');
 		expect(matchLine.length).toBeLessThan(400);
 		expect(matchLine).toContain(`[match at col ${before.length + 1} \u00B7 line truncated, 2,006 chars]`);
@@ -297,7 +296,6 @@ suite('FindTextInFilesGrepResult', () => {
 		}, 'x');
 
 		const matchLine = result.split('\n').find(l => l.startsWith('1:'))!;
-		// Both boundaries of the match stay visible; only its middle is elided.
 		expect(matchLine).toContain('HEAD');
 		expect(matchLine).toContain('TAIL');
 		expect(matchLine).toContain('characters elided ...]');

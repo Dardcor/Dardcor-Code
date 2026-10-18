@@ -12,14 +12,6 @@ import { openVscodeUri } from './open';
 import { SimpleRPC } from './rpc';
 import { IStartOptions } from './shared';
 
-// ⚠️⚠️⚠️
-// This file is built into a standlone bundle, executed in a worker.
-// Avoid including unnecessary dependencies!
-//
-// This is used on macOS and Linux. On Windows, you'll need to make changes
-// in dardcorDebugWorker.ps1 instead. This is because Electron on Windows
-// is not built with support for console stdin.
-// ⚠️⚠️⚠️
 
 const [_node, _script, callbackUrl, remoteCommand, ...args] = process.argv;
 
@@ -73,7 +65,7 @@ const server = createServer(socket => {
 		} else if (category === 'stdout') {
 			process.stdout.write(output);
 		} else if (category !== 'telemetry' && output) {
-			console.log(output); // so that a newline is added
+			console.log(output);
 		}
 
 		return Promise.resolve();
@@ -144,7 +136,7 @@ const server = createServer(socket => {
 		printOnly: flagConfig[Flags.Print],
 		save: flagConfig[Flags.Save],
 		once: flagConfig[Flags.Once],
-		nonce: process.env.COPILOT_DEBUG_NONCE || '',
+		nonce: process.env.DARDCOR_DEBUG_NONCE || '',
 	};
 
 	rpc.callMethod('start', opts);
@@ -160,7 +152,6 @@ const pipePath = path.join(process.platform === 'win32' ? '\\\\.\\pipe\\' : tmpd
 server.listen(pipePath, () => {
 	openVscodeUri(remoteCommand, callbackUrl + (process.platform === 'win32' ? `/${pipeName}` : pipePath)).then(
 		() => {
-			// no-op
 		},
 		error => {
 			console.error('Failed to open the activation URI:', error);

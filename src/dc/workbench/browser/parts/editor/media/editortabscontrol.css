@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Editor Label */
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title {
 	cursor: pointer;
@@ -37,11 +36,11 @@
 .monaco-workbench .part.editor > .content .editor-group-container > .title .monaco-icon-label {
 	&::before,
 	& > .monaco-icon-label-iconpath {
-		height: var(--editor-group-tab-height); /* tweak the icon size of the editor labels when icons are enabled */
+		height: var(--editor-group-tab-height);
 	}
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title.breadcrumbs .monaco-icon-label::after,
 .monaco-workbench .part.editor > .content .editor-group-container > .title.tabs .monaco-icon-label::after {
-	margin-right: 0; /* by default the icon label has a padding right and this isn't wanted when not showing tabs and not showing breadcrumbs */
+	margin-right: 0;
 }

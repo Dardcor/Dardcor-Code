@@ -67,13 +67,11 @@ function getUserIdFromNoReplyEmail(email: string | undefined): string | undefine
 }
 
 function compareAvatarQuery(a: AvatarQueryCommit, b: AvatarQueryCommit): number {
-	// Email
 	const emailComparison = (a.authorEmail ?? '').localeCompare(b.authorEmail ?? '');
 	if (emailComparison !== 0) {
 		return emailComparison;
 	}
 
-	// Name
 	return (a.authorName ?? '').localeCompare(b.authorName ?? '');
 }
 
@@ -114,7 +112,6 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 			return undefined;
 		}
 
-		// upstream -> origin -> first
 		const descriptor = getRepositoryDefaultRemote(repository, ['upstream', 'origin']);
 		if (!descriptor) {
 			this._logger.trace(`[GitHubSourceControlHistoryItemDetailsProvider][provideAvatar] Repository does not have a GitHub remote.`);
@@ -124,8 +121,6 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 		try {
 			const logs = { cached: 0, email: 0, github: 0, incomplete: 0 };
 
-			// Warm up the in-memory cache with the first page
-			// (100 users) from this list of assignable users
 			await this._loadAssignableUsers(descriptor);
 
 			const repositoryStore = this._store.get(this._getRepositoryKey(descriptor));
@@ -133,7 +128,6 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 				return undefined;
 			}
 
-			// Group the query by author
 			const authorQuery = groupBy<AvatarQueryCommit>(query.commits, compareAvatarQuery);
 
 			const results = new Map<string, string | undefined>();
@@ -142,26 +136,20 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 					return;
 				}
 
-				// Query the in-memory cache for the user
 				const avatarUrl = repositoryStore.users.find(
 					user => user.email === commits[0].authorEmail || user.name === commits[0].authorName)?.avatarUrl;
 
-				// Cache hit
 				if (avatarUrl) {
-					// Add avatar for each commit
 					logs.cached += commits.length;
 					commits.forEach(({ hash }) => results.set(hash, `${avatarUrl}&s=${query.size}`));
 					return;
 				}
 
-				// Check if any of the commit are being tracked in the list
-				// of known commits that have incomplte author information
 				if (commits.some(({ hash }) => repositoryStore.commits.has(hash))) {
 					commits.forEach(({ hash }) => results.set(hash, undefined));
 					return;
 				}
 
-				// Try to extract the user identifier from GitHub no-reply emails
 				const userIdFromEmail = getUserIdFromNoReplyEmail(commits[0].authorEmail);
 				if (userIdFromEmail) {
 					logs.email += commits.length;
@@ -170,11 +158,8 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 					return;
 				}
 
-				// Get the commit details
 				const commitAuthor = await this._getCommitAuthor(descriptor, commits[0].hash);
 				if (!commitAuthor) {
-					// The commit has incomplete author information, so
-					// we should not try to query the authors details again
 					logs.incomplete += commits.length;
 					for (const { hash } of commits) {
 						repositoryStore.commits.add(hash);
@@ -183,10 +168,8 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 					return;
 				}
 
-				// Save the user to the cache
 				repositoryStore.users.push(commitAuthor);
 
-				// Add avatar for each commit
 				logs.github += commits.length;
 				commits.forEach(({ hash }) => results.set(hash, `${commitAuthor.avatarUrl}&s=${query.size}`));
 			}));
@@ -195,9 +178,6 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 
 			return results;
 		} catch (err) {
-			// A GitHub authentication session could be missing if the user has not yet
-			// signed in with their GitHub account or they have signed out. Disable the
-			// avatar resolution until the user signes in with their GitHub account.
 			if (err instanceof AuthenticationError) {
 				this._isUserAuthenticated = false;
 			}
@@ -207,7 +187,6 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 	}
 
 	async provideHoverCommands(repository: Repository): Promise<Command[] | undefined> {
-		// origin -> upstream -> first
 		const url = getRepositoryDefaultRemoteUrl(repository, ['origin', 'upstream']);
 		if (!url) {
 			return undefined;
@@ -222,7 +201,6 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 	}
 
 	async provideMessageLinks(repository: Repository, message: string): Promise<string | undefined> {
-		// upstream -> origin -> first
 		const descriptor = getRepositoryDefaultRemote(repository, ['upstream', 'origin']);
 		if (!descriptor) {
 			return undefined;

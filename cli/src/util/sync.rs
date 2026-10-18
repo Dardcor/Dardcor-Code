@@ -17,7 +17,6 @@ impl<T> Barrier<T>
 where
 	T: Clone,
 {
-	/// Waits for the barrier to be closed, returning a value if one was sent.
 	pub async fn wait(&mut self) -> Result<T, RecvError> {
 		loop {
 			self.0.changed().await?;
@@ -28,7 +27,6 @@ where
 		}
 	}
 
-	/// Gets whether the barrier is currently open
 	pub fn is_open(&self) -> bool {
 		self.0.borrow().is_some()
 	}
@@ -44,7 +42,6 @@ impl<T: Clone + Send + Sync> Receivable<T> for Barrier<T> {
 pub struct BarrierOpener<T: Clone>(Arc<watch::Sender<Option<T>>>);
 
 impl<T: Clone> BarrierOpener<T> {
-	/// Opens the barrier.
 	pub fn open(&self, value: T) {
 		self.0.send_if_modified(|v| {
 			if v.is_none() {
@@ -57,8 +54,6 @@ impl<T: Clone> BarrierOpener<T> {
 	}
 }
 
-/// The Barrier is something that can be opened once from one side,
-/// and is thereafter permanently closed. It can contain a value.
 pub fn new_barrier<T>() -> (Barrier<T>, BarrierOpener<T>)
 where
 	T: Clone,
@@ -67,13 +62,10 @@ where
 	(Barrier(closed_rx), BarrierOpener(Arc::new(closed_tx)))
 }
 
-/// Type that can receive messages in an async way.
 pub trait Receivable<T> {
 	fn recv_msg(&mut self) -> Pin<Box<dyn Future<Output = Option<T>> + Send + '_>>;
 }
 
-// todo: ideally we would use an Arc in the broadcast::Receiver to avoid having
-// to clone bytes everywhere, requires updating rpc consumers as well.
 impl<T: Clone + Send> Receivable<T> for broadcast::Receiver<T> {
 	fn recv_msg(&mut self) -> Pin<Box<dyn Future<Output = Option<T>> + Send + '_>> {
 		Box::pin(async move {

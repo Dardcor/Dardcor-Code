@@ -8,19 +8,7 @@ import { GenAiAttr } from '../../../../platform/otel/common/genAiAttributes';
 import type { ICompletedSpanData } from '../../../../platform/otel/common/otelService';
 import { extractFilePath, extractToolArgs } from '../../common/sessionStoreTracking';
 
-/**
- * These tests verify the span data processing logic used by SessionStoreTracker.
- *
- * The tests focus on:
- * 1. Tool argument extraction from OTel span attributes using the real extractToolArgs helper
- * 2. File path extraction using the real extractFilePath helper
- *
- * Note: Full integration tests of SessionStoreTracker require mocking multiple
- * services (ISessionStore, IOTelService, IChatSessionService, etc.) and are
- * covered by manual testing and telemetry validation.
- */
 
-// Create a minimal mock span for testing
 function makeSpan(overrides: Partial<ICompletedSpanData> = {}): ICompletedSpanData {
 	return {
 		name: 'test',
@@ -38,15 +26,12 @@ function makeSpan(overrides: Partial<ICompletedSpanData> = {}): ICompletedSpanDa
 describe('SessionStoreTracker span processing', () => {
 	describe('tool argument extraction from OTel attributes', () => {
 		it('uses gen_ai.tool.call.arguments attribute (not gen_ai.tool.input)', () => {
-			// This test documents the fix for using the correct OTel attribute
 			const span = makeSpan({
 				attributes: {
-					// The correct attribute that OTel uses
 					[GenAiAttr.TOOL_CALL_ARGUMENTS]: JSON.stringify({
 						filePath: '/src/file.ts',
 						content: 'test',
 					}),
-					// This was incorrectly used before - should be ignored
 					'gen_ai.tool.input': JSON.stringify({ wrong: 'data' }),
 				},
 			});
@@ -57,7 +42,6 @@ describe('SessionStoreTracker span processing', () => {
 				filePath: '/src/file.ts',
 				content: 'test',
 			});
-			// Verify we're not reading from the wrong attribute
 			expect(args).not.toHaveProperty('wrong');
 		});
 
@@ -86,7 +70,6 @@ describe('SessionStoreTracker span processing', () => {
 	});
 
 	describe('file path extraction pipeline', () => {
-		// These tests verify the full pipeline: span -> extractToolArgs -> extractFilePath
 
 		it('extracts file from replace_string_in_file span', () => {
 			const span = makeSpan({
@@ -151,7 +134,6 @@ describe('SessionStoreTracker span processing', () => {
 			const args = extractToolArgs(span);
 			const filePath = extractFilePath('multi_replace_string_in_file', args);
 
-			// extractFilePath returns first file from replacements array
 			expect(filePath).toBe('/src/a.ts');
 		});
 

@@ -25,7 +25,7 @@ export class UserDataProfilesHandler extends Disposable {
 			}
 		}));
 		this._register(lifecycleMainService.onBeforeCloseWindow(window => this.unsetProfileForWorkspace(window)));
-		this._register(new RunOnceScheduler(() => this.cleanUpEmptyWindowAssociations(), 30 * 1000 /* after 30s */)).schedule();
+		this._register(new RunOnceScheduler(() => this.cleanUpEmptyWindowAssociations(), 30 * 1000 )).schedule();
 	}
 
 	private async unsetProfileForWorkspace(window: ICodeWindow): Promise<void> {

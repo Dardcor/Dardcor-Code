@@ -58,7 +58,6 @@ export const openWindowCommand = (accessor: ServicesAccessor, toOpen: IWindowOpe
 		const hostService = accessor.get(IHostService);
 		const environmentService = accessor.get(IEnvironmentService);
 
-		// rewrite untitled: workspace URIs to the absolute path on disk
 		toOpen = toOpen.map(openable => {
 			if (isWorkspaceToOpen(openable) && openable.workspaceUri.scheme === Schemas.untitled) {
 				return {
@@ -78,7 +77,6 @@ export const newWindowCommand = (accessor: ServicesAccessor, options?: IOpenEmpt
 	hostService.openWindow(options);
 };
 
-// Command registration
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	weight: KeybindingWeight.WorkbenchContrib,
@@ -93,7 +91,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 		const explorerService = accessor.get(IExplorerService);
 		const resources = getMultiSelectedResources(resource, accessor.get(IListService), editorService, accessor.get(IEditorGroupsService), explorerService);
 
-		// Set side input
 		if (resources.length) {
 			const untitledResources = resources.filter(resource => resource.scheme === Schemas.untitled);
 			const fileResources = resources.filter(resource => resource.scheme !== Schemas.untitled);
@@ -101,7 +98,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			const items = await Promise.all(fileResources.map(async resource => {
 				const item = explorerService.findClosest(resource);
 				if (item) {
-					// Explorer already resolved the item, no need to go to the file service #109780
 					return item;
 				}
 
@@ -150,7 +146,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 		const fileService = accessor.get(IFileService);
 		const listService = accessor.get(IListService);
 
-		// Register provider at first as needed
 		let registerEditorListener = false;
 		if (providerDisposables.length === 0) {
 			registerEditorListener = true;
@@ -160,7 +155,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			providerDisposables.push(textModelService.registerTextModelContentProvider(COMPARE_WITH_SAVED_SCHEMA, provider));
 		}
 
-		// Open editor (only resources that can be handled by file service are supported)
 		const uri = getResourceForCommand(resource, editorService, listService);
 		if (uri && fileService.hasProvider(uri)) {
 			const name = basename(uri);
@@ -168,7 +162,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 
 			try {
 				await TextFileContentProvider.open(uri, COMPARE_WITH_SAVED_SCHEMA, editorLabel, editorService, { pinned: true });
-				// Dispose once no more diff editor is opened with the scheme
 				if (registerEditorListener) {
 					providerDisposables.push(editorService.onDidVisibleEditorsChange(() => {
 						if (!editorService.editors.some(editor => !!EditorResourceAccessor.getCanonicalUri(editor, { supportSideBySide: SideBySideEditor.SECONDARY, filterByScheme: COMPARE_WITH_SAVED_SCHEMA }))) {
@@ -327,8 +320,6 @@ CommandsRegistry.registerCommand({
 			const explorerView = await viewService.openView<ExplorerView>(VIEW_ID, false);
 			if (explorerView) {
 				const oldAutoReveal = explorerView.autoReveal;
-				// Disable autoreveal before revealing the explorer to prevent a race betwene auto reveal + selection
-				// Fixes #197268
 				explorerView.autoReveal = false;
 				explorerView.setExpanded(true);
 				await explorerService.select(uri, 'force');
@@ -336,8 +327,6 @@ CommandsRegistry.registerCommand({
 				explorerView.autoReveal = oldAutoReveal;
 			}
 		} else {
-			// Do not reveal the open editors view if it's hidden explicitly
-			// See https://github.com/microsoft/vscode/issues/227378
 			const openEditorsView = viewService.getViewWithId(OpenEditorsView.ID);
 			if (openEditorsView) {
 				openEditorsView.setExpanded(true);
@@ -361,20 +350,9 @@ CommandsRegistry.registerCommand({
 	}
 });
 
-// Save / Save As / Save All / Revert
 
 function expandSideBySideEditor({ groupId, editor }: IEditorIdentifier, options?: ISaveEditorsOptions): IEditorIdentifier[] {
 
-	// Special treatment for side by side editors: if the editor
-	// has 2 sides, we consider both, to support saving both sides.
-	// We only allow this when saving, not for "Save As" and not if any
-	// editor is untitled which would bring up a "Save As" dialog too.
-	// In addition, we require the secondary side to be modified to not
-	// trigger a touch operation unexpectedly.
-	//
-	// See also https://github.com/microsoft/vscode/issues/4180
-	// See also https://github.com/microsoft/vscode/issues/106330
-	// See also https://github.com/microsoft/vscode/issues/190210
 	if (
 		editor instanceof SideBySideEditorInput &&
 		!options?.saveAs && !(editor.primary.hasCapability(EditorInputCapabilities.Untitled) || editor.secondary.hasCapability(EditorInputCapabilities.Untitled)) &&
@@ -388,7 +366,7 @@ function expandSideBySideEditor({ groupId, editor }: IEditorIdentifier, options?
 
 function getEditorsFromCommandArgs(accessor: ServicesAccessor, commandArgs: unknown[] | undefined, options?: ISaveEditorsOptions): IEditorIdentifier[] | undefined {
 	if (!commandArgs?.some(arg => isEditorCommandsContext(arg))) {
-		return undefined; // only respect the arguments if they contain an explicit editor context
+		return undefined;
 	}
 
 	const resolvedContext = resolveCommandsContext(commandArgs, accessor.get(IEditorService), accessor.get(IEditorGroupsService), accessor.get(IListService));
@@ -400,9 +378,6 @@ function getEditorsFromCommandArgs(accessor: ServicesAccessor, commandArgs: unkn
 		}
 	}
 
-	// Note: we return the (possibly empty) result even when the explicit context
-	// no longer resolves to any editor to not fall back to other editors which
-	// would end up saving an editor the command was not invoked for
 	return editors;
 }
 
@@ -411,12 +386,8 @@ async function saveSelectedEditors(accessor: ServicesAccessor, options?: ISaveEd
 	const codeEditorService = accessor.get(ICodeEditorService);
 	const textFileService = accessor.get(ITextFileService);
 
-	// Retrieve the editors from the command arguments if they contain an explicit
-	// editor context (e.g. when invoked from the editor tab context menu) because
-	// the editor the command was triggered for may not be the active editor
 	let editors = getEditorsFromCommandArgs(accessor, commandArgs, options);
 
-	// Retrieve selected or active editor
 	if (!editors) {
 		editors = getOpenEditorsViewMultiSelection(accessor);
 	}
@@ -428,21 +399,15 @@ async function saveSelectedEditors(accessor: ServicesAccessor, options?: ISaveEd
 	}
 
 	if (!editors || editors.length === 0) {
-		return; // nothing to save
+		return;
 	}
 
-	// Save editors
 	await doSaveEditors(accessor, editors, options);
 
-	// Special treatment for embedded editors: if we detect that focus is
-	// inside an embedded code editor, we save that model as well if we
-	// find it in our text file models. Currently, only textual editors
-	// support embedded editors.
 	const focusedCodeEditor = codeEditorService.getFocusedCodeEditor();
 	if (focusedCodeEditor instanceof EmbeddedCodeEditorWidget && !focusedCodeEditor.isSimpleWidget) {
 		const resource = focusedCodeEditor.getModel()?.uri;
 
-		// Check that the resource of the model was not saved already
 		if (resource && !editors.some(({ editor }) => isEqual(EditorResourceAccessor.getCanonicalUri(editor, { supportSideBySide: SideBySideEditor.PRIMARY }), resource))) {
 			const model = textFileService.files.get(resource);
 			if (!model?.isReadonly()) {
@@ -475,13 +440,13 @@ async function doSaveEditors(accessor: ServicesAccessor, editors: IEditorIdentif
 	} catch (error) {
 		if (!isCancellationError(error)) {
 			const actions: IAction[] = [toAction({ id: 'workbench.action.files.saveEditors', label: nls.localize('retry', "Retry"), run: () => instantiationService.invokeFunction(accessor => doSaveEditors(accessor, editors, options)) })];
-			const editorsToRevert = editors.filter(({ editor }) => !editor.hasCapability(EditorInputCapabilities.Untitled) /* all except untitled to prevent unexpected data-loss */);
+			const editorsToRevert = editors.filter(({ editor }) => !editor.hasCapability(EditorInputCapabilities.Untitled) );
 			if (editorsToRevert.length > 0) {
 				actions.push(toAction({ id: 'workbench.action.files.revertEditors', label: editorsToRevert.length > 1 ? nls.localize('revertAll', "Revert All") : nls.localize('revert', "Revert"), run: () => editorService.revert(editorsToRevert) }));
 			}
 
 			notificationService.notify({
-				id: editors.map(({ editor }) => hash(editor.resource?.toString())).join(), // ensure unique notification ID per set of editor
+				id: editors.map(({ editor }) => hash(editor.resource?.toString())).join(),
 				severity: Severity.Error,
 				message: nls.localize({ key: 'genericSaveError', comment: ['{0} is the resource that failed to save and {1} the error message'] }, "Failed to save '{0}': {1}", editors.map(({ editor }) => editor.getName()).join(', '), toErrorMessage(error, false)),
 				actions: { primary: actions }
@@ -496,7 +461,7 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	primary: KeyMod.CtrlCmd | KeyCode.KeyS,
 	id: SAVE_FILE_COMMAND_ID,
 	handler: (accessor, ...args: unknown[]) => {
-		return saveSelectedEditors(accessor, { reason: SaveReason.EXPLICIT, force: true /* force save even when non-dirty */ }, args);
+		return saveSelectedEditors(accessor, { reason: SaveReason.EXPLICIT, force: true }, args);
 	}
 });
 
@@ -507,7 +472,7 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	win: { primary: KeyChord(KeyMod.CtrlCmd | KeyCode.KeyK, KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyS) },
 	id: SAVE_FILE_WITHOUT_FORMATTING_COMMAND_ID,
 	handler: accessor => {
-		return saveSelectedEditors(accessor, { reason: SaveReason.EXPLICIT, force: true /* force save even when non-dirty */, skipSaveParticipants: true });
+		return saveSelectedEditors(accessor, { reason: SaveReason.EXPLICIT, force: true , skipSaveParticipants: true });
 	}
 });
 
@@ -567,7 +532,6 @@ CommandsRegistry.registerCommand({
 		const editorGroupService = accessor.get(IEditorGroupsService);
 		const editorService = accessor.get(IEditorService);
 
-		// Retrieve selected or active editor
 		let editors = getOpenEditorsViewMultiSelection(accessor);
 		if (!editors) {
 			const activeGroup = editorGroupService.activeGroup;
@@ -577,11 +541,11 @@ CommandsRegistry.registerCommand({
 		}
 
 		if (!editors || editors.length === 0) {
-			return; // nothing to revert
+			return;
 		}
 
 		try {
-			await editorService.revert(editors.filter(({ editor }) => !editor.hasCapability(EditorInputCapabilities.Untitled) /* all except untitled */), { force: true });
+			await editorService.revert(editors.filter(({ editor }) => !editor.hasCapability(EditorInputCapabilities.Untitled) ), { force: true });
 		} catch (error) {
 			const notificationService = accessor.get(INotificationService);
 			notificationService.error(nls.localize('genericRevertError', "Failed to revert '{0}': {1}", editors.map(({ editor }) => editor.getName()).join(', '), toErrorMessage(error, false)));
@@ -596,12 +560,11 @@ CommandsRegistry.registerCommand({
 		const uriIdentityService = accessor.get(IUriIdentityService);
 		const workspace = contextService.getWorkspace();
 		const resources = getMultiSelectedResources(resource, accessor.get(IListService), accessor.get(IEditorService), accessor.get(IEditorGroupsService), accessor.get(IExplorerService)).filter(resource =>
-			workspace.folders.some(folder => uriIdentityService.extUri.isEqual(folder.uri, resource)) // Need to verify resources are workspaces since multi selection can trigger this command on some non workspace resources
+			workspace.folders.some(folder => uriIdentityService.extUri.isEqual(folder.uri, resource))
 		);
 
 		if (resources.length === 0) {
 			const commandService = accessor.get(ICommandService);
-			// Show a picker for the user to choose which folder to remove
 			return commandService.executeCommand(RemoveRootFolderAction.ID);
 		}
 
@@ -610,7 +573,6 @@ CommandsRegistry.registerCommand({
 	}
 });
 
-// Compressed item navigation
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	weight: KeybindingWeight.WorkbenchContrib + 10,

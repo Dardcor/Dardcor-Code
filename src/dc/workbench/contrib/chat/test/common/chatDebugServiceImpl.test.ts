@@ -246,21 +246,17 @@ suite('ChatDebugServiceImpl', () => {
 
 	suite('MAX_EVENTS_PER_SESSION cap', () => {
 		test('should evict oldest events when exceeding per-session cap', () => {
-			// The max per session is 10_000. Add more than that to a single session.
 			for (let i = 0; i < 10_001; i++) {
 				service.addEvent({ kind: 'generic', sessionResource: sessionGeneric, created: new Date(), name: `event-${i}`, level: ChatDebugLogLevel.Info });
 			}
 
 			const events = service.getEvents();
 			assert.ok(events.length <= 10_000, 'Should not exceed MAX_EVENTS_PER_SESSION');
-			// The first event should have been evicted
 			assert.ok(!(events as IChatDebugGenericEvent[]).find(e => e.name === 'event-0'), 'Event-0 should have been evicted');
-			// The last event should be present
 			assert.ok((events as IChatDebugGenericEvent[]).find(e => e.name === 'event-10000'), 'Last event should be present');
 		});
 
 		test('should evict oldest session when exceeding MAX_SESSIONS', () => {
-			// MAX_SESSIONS is 5 — add events to 6 different sessions
 			const sessions: URI[] = [];
 			for (let i = 0; i < 6; i++) {
 				const uri = URI.parse(`vscode-chat-session://local/session-lru-${i}`);
@@ -270,15 +266,12 @@ suite('ChatDebugServiceImpl', () => {
 
 			const resources = service.getSessionResources();
 			assert.strictEqual(resources.length, 5, 'Should not exceed MAX_SESSIONS');
-			// The first session should have been evicted
 			assert.ok(!resources.some(r => r.toString() === sessions[0].toString()), 'Session-0 should have been evicted');
 			assert.strictEqual(service.getEvents(sessions[0]).length, 0, 'Events from evicted session should be gone');
-			// The last session should be present
 			assert.ok(resources.some(r => r.toString() === sessions[5].toString()), 'Session-5 should be present');
 		});
 
 		test('should use LRU eviction — recently-used sessions are kept', () => {
-			// Fill to MAX_SESSIONS (5)
 			const sessions: URI[] = [];
 			for (let i = 0; i < 5; i++) {
 				const uri = URI.parse(`vscode-chat-session://local/session-lru2-${i}`);
@@ -286,10 +279,8 @@ suite('ChatDebugServiceImpl', () => {
 				service.addEvent({ kind: 'generic', sessionResource: uri, created: new Date(), name: `init-${i}`, level: ChatDebugLogLevel.Info });
 			}
 
-			// Touch session-0 so it moves to the back of the LRU order
 			service.addEvent({ kind: 'generic', sessionResource: sessions[0], created: new Date(), name: 'touch', level: ChatDebugLogLevel.Info });
 
-			// Add a 6th session — session-1 (the true LRU) should be evicted, not session-0
 			const session6 = URI.parse('vscode-chat-session://local/session-lru2-5');
 			service.addEvent({ kind: 'generic', sessionResource: session6, created: new Date(), name: 'new', level: ChatDebugLogLevel.Info });
 
@@ -354,7 +345,6 @@ suite('ChatDebugServiceImpl', () => {
 			};
 
 			disposables.add(service.registerProvider(provider));
-			// Suppress the expected onUnexpectedError from _invokeProvider
 			const origHandler = errorHandler.getUnexpectedErrorHandler();
 			errorHandler.setUnexpectedErrorHandler(() => { });
 			try {
@@ -368,9 +358,6 @@ suite('ChatDebugServiceImpl', () => {
 
 	suite('invokeProviders', () => {
 		test('re-invocation that returns undefined should preserve previously loaded events', async () => {
-			// A provider that succeeds once and then transiently fails (e.g. an
-			// Agent Host session's events.jsonl is mid-rewrite by the external
-			// CLI) must not wipe the events currently shown.
 			let succeed = true;
 			const provider: IChatDebugLogProvider = {
 				provideChatDebugLog: async () => succeed ? [{
@@ -387,7 +374,6 @@ suite('ChatDebugServiceImpl', () => {
 			await service.invokeProviders(sessionGeneric);
 			assert.strictEqual(service.getEvents(sessionGeneric).length, 1);
 
-			// Second invocation fails (returns undefined) — events are kept.
 			succeed = false;
 			await service.invokeProviders(sessionGeneric);
 			assert.strictEqual(service.getEvents(sessionGeneric).length, 1);
@@ -434,11 +420,9 @@ suite('ChatDebugServiceImpl', () => {
 
 			disposables.add(service.registerProvider(provider));
 
-			// First invocation
 			await service.invokeProviders(sessionGeneric);
 			const firstToken = cancelledToken!;
 
-			// Second invocation for same session should cancel the first
 			await service.invokeProviders(sessionGeneric);
 			assert.strictEqual(firstToken.isCancellationRequested, true);
 		});
@@ -459,11 +443,9 @@ suite('ChatDebugServiceImpl', () => {
 
 			disposables.add(service.registerProvider(provider));
 
-			// First invocation clears empty set and fires clear event
 			await service.invokeProviders(sessionGeneric);
 			assert.strictEqual(clearedSessions.length, 1, 'Clear event should fire on first invocation');
 
-			// Second invocation clears provider events from first invocation
 			await service.invokeProviders(sessionGeneric);
 			assert.strictEqual(clearedSessions.length, 2, 'Clear event should fire on second invocation');
 			assert.strictEqual(clearedSessions[1].toString(), sessionGeneric.toString());
@@ -535,14 +517,12 @@ suite('ChatDebugServiceImpl', () => {
 		});
 
 		test('newly registered provider should be invoked for active sessions', async () => {
-			// Start an invocation before the provider is registered
 			const firstProvider: IChatDebugLogProvider = {
 				provideChatDebugLog: async () => [],
 			};
 			disposables.add(service.registerProvider(firstProvider));
 			await service.invokeProviders(sessionGeneric);
 
-			// Now register a new provider — it should be invoked for the active session
 			const lateEvents: IChatDebugEvent[] = [];
 			const lateProvider: IChatDebugLogProvider = {
 				provideChatDebugLog: async () => {
@@ -560,7 +540,6 @@ suite('ChatDebugServiceImpl', () => {
 
 			disposables.add(service.registerProvider(lateProvider));
 
-			// Give it a tick to let the async invocation complete
 			await new Promise(resolve => setTimeout(resolve, 10));
 
 			assert.ok(lateEvents.length > 0, 'Late provider should have been invoked');
@@ -648,7 +627,6 @@ suite('ChatDebugServiceImpl', () => {
 		});
 
 		test('should be safe to call for unknown session', () => {
-			// Should not throw
 			service.endSession(URI.parse('vscode-chat-session://local/nonexistent'));
 		});
 
@@ -768,7 +746,7 @@ suite('ChatDebugServiceImpl', () => {
 				sections: [],
 			};
 			service.addEvent(subagent);
-			service.addEvent(userMsg); // should be skipped
+			service.addEvent(userMsg);
 
 			assert.deepStrictEqual(firedKinds, ['subagentInvocation']);
 		});

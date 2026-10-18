@@ -8,7 +8,6 @@ import type { IAgentHostChatContribution, IAgentHostChatContributionContext, IOu
 import { createEditorInlineChatInstruction, createTerminalChatInstruction } from '../../../common/meta/agentChatSurfaceMeta.js';
 import { AgentHostStateManager, IAgentHostStateManager } from '../../agentHostStateManager.js';
 
-/** Adds guidance tailored to the chat surface that created the session. */
 export class ChatSurfaceContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'chatSurface';

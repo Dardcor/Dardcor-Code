@@ -56,7 +56,6 @@ suite('selectRelevance Test Suite', function () {
 	});
 
 	test('findBestJaccardMatch computes correct score of two single lines', async function () {
-		// 100% match if equal
 		assert.strictEqual(
 			(
 				await findBestJaccardMatch(
@@ -67,7 +66,6 @@ suite('selectRelevance Test Suite', function () {
 			)[0].score,
 			1
 		);
-		// no match if different
 		assert.strictEqual(
 			(
 				await findBestJaccardMatch(
@@ -78,7 +76,6 @@ suite('selectRelevance Test Suite', function () {
 			).length,
 			0
 		);
-		// 33% match if 1 same, 1 different (because it's 1 overlap of 3 tokens in total)
 		assert.strictEqual(
 			(
 				await findBestJaccardMatch(
@@ -89,7 +86,6 @@ suite('selectRelevance Test Suite', function () {
 			)[0].score,
 			1 / 3
 		);
-		// 50% match if half the tokens are missing (because it's 1 overlap of 2 tokens in total)
 		assert.strictEqual(
 			(
 				await findBestJaccardMatch(
@@ -100,7 +96,6 @@ suite('selectRelevance Test Suite', function () {
 			)[0].score,
 			0.5
 		);
-		// order is ignored
 		assert.strictEqual(
 			(
 				await findBestJaccardMatch(
@@ -111,7 +106,6 @@ suite('selectRelevance Test Suite', function () {
 			)[0].score,
 			1
 		);
-		// so are stop words
 		assert.strictEqual(
 			(
 				await findBestJaccardMatch(
@@ -122,7 +116,6 @@ suite('selectRelevance Test Suite', function () {
 			)[0].score,
 			1
 		);
-		// and non alphanumeric_ characters
 		assert.strictEqual(
 			(
 				await findBestJaccardMatch(
@@ -135,12 +128,7 @@ suite('selectRelevance Test Suite', function () {
 		);
 	});
 
-	/**
-	 * When requesting matches with a certain length,
-	 * the returns have that length
-	 */
 	test('findBestJaccardMatch respects windowLength', async function () {
-		// no window no match
 		assert.strictEqual(
 			(
 				await findBestJaccardMatch(
@@ -157,7 +145,6 @@ suite('selectRelevance Test Suite', function () {
 			).length,
 			0
 		);
-		// for identical object and reference docs
 		for (const n of [1, 2]) {
 			assert.strictEqual(
 				(
@@ -176,7 +163,6 @@ suite('selectRelevance Test Suite', function () {
 				n
 			);
 		}
-		// if the ref doc is shorter
 		for (const n of [1, 2]) {
 			assert.strictEqual(
 				(
@@ -192,7 +178,6 @@ suite('selectRelevance Test Suite', function () {
 				n
 			);
 		}
-		// if the ref doc is longer
 		for (const n of [1, 2]) {
 			const matches = await findBestJaccardMatch(
 				{
@@ -324,9 +309,9 @@ suite('selectRelevance Test Suite', function () {
 	test('Test Jaccard similarity.', function () {
 		const bagOfWords1 = 'one two three four five';
 		const bagOfWords2 = 'zone ztwo zthree zfour zfive';
-		const bagOfWords3 = 'one two three four five six'; // single word difference with bagOfWords1
-		const bagOfWords4 = 'one ztwo zthree zfour zfive'; // single word intersection with bagOfWords1
-		const bagOfWords5 = 'one ztwo ztwo zthree zfour zfive'; // repeated words
+		const bagOfWords3 = 'one two three four five six';
+		const bagOfWords4 = 'one ztwo zthree zfour zfive';
+		const bagOfWords5 = 'one ztwo ztwo zthree zfour zfive';
 		assert.strictEqual(computeScore(new Set(splitIntoWords(bagOfWords1)), new Set(splitIntoWords(bagOfWords2))), 0);
 		assert.strictEqual(computeScore(new Set(splitIntoWords(bagOfWords1)), new Set(splitIntoWords(bagOfWords1))), 1);
 		assert.strictEqual(
@@ -344,10 +329,6 @@ suite('selectRelevance Test Suite', function () {
 	});
 
 	test('Snippets never overlap, the highest score wins.', async function () {
-		// When overlapping snippets are found, the snippet with the highest score wins and the others are dropped, e.g.:
-		// given the ref doc of "the speed of light is incredibly fast", the doc "the light is incredibly fast" matches
-		// with score 0.75, but the next "The speed of light is incredibly fast" matches with score 1, so the previous overlapping
-		// snippet is dropped.
 		const windowLength = 2;
 		const doc1 = {
 			source: 'the light\nis incredibly fast\nthe speed of light\nis incredibly fast\nexcessively bright, the morning sun\n was hot casting elongated shadows',
@@ -382,7 +363,7 @@ suite('Test getSimilarSnippets function', function () {
 		uri: 'source1',
 		source: docSource,
 		languageId: 'python',
-		offset: docSource.indexOf('|'), // reference snippet will be A B C D
+		offset: docSource.indexOf('|'),
 	};
 
 	const similarFiles: SimilarFileInfo[] = [
@@ -421,7 +402,7 @@ suite('Test getSimilarSnippets function', function () {
 			snippet.endLine,
 		]);
 		const correctSnippetLocations: number[][] = [
-			[0, 7], // A B C H X Y Z
+			[0, 7],
 		];
 		assert.deepStrictEqual(snippetLocations, correctSnippetLocations);
 	});
@@ -432,8 +413,8 @@ suite('Test getSimilarSnippets function', function () {
 			snippet.endLine,
 		]);
 		const correctSnippetLocations: number[][] = [
-			[0, 7], // A B C H X Y Z
-			[0, 2], // D H - included as get up to 4 similar docs
+			[0, 7],
+			[0, 2],
 		];
 		assert.deepStrictEqual(snippetLocations.sort(), correctSnippetLocations.sort());
 	});
@@ -447,9 +428,6 @@ suite('Test getSimilarSnippets function', function () {
 		assert.deepStrictEqual(snippetLocations, correctSnippetLocations);
 	});
 	test('Preserves each source document uri when relativePath collides (multi-root)', async function () {
-		// Two neighbor files from different workspace roots that reduce to the SAME
-		// relativePath. A snippet's provenance must come from its distinct `uri`, not the
-		// shared `relativePath`, otherwise a multi-root workspace can conflate the two.
 		const collidingRelativePath = 'shared/util';
 		const filesSharingRelativePath: SimilarFileInfo[] = [
 			{
@@ -477,8 +455,6 @@ suite('Test getSimilarSnippets function', function () {
 
 		const snippets = await getSimilarSnippets(doc, filesSharingRelativePath, defaultSimilarFilesOptions);
 
-		// Both files contribute a snippet; correlate each by a token unique to its source
-		// ('X' only exists in root-a) and assert the uri is its true origin, not conflated.
 		const provenance = snippets
 			.map(s => ({ uri: s.uri, relativePath: s.relativePath, fromRootA: s.snippet.includes('X') }))
 			.sort((a, b) => a.uri.localeCompare(b.uri));
@@ -488,8 +464,6 @@ suite('Test getSimilarSnippets function', function () {
 		]);
 	});
 	test('Carries isFromRelatedFile provenance from the source file onto its snippets', async function () {
-		// The related-vs-open-tab classification is decided once at the source and rides on
-		// each snippet, so consumers never have to re-classify snippets by URI.
 		const taggedFiles: SimilarFileInfo[] = [
 			{
 				relativePath: 'openTab',
@@ -550,7 +524,6 @@ suite('Test trimming reference document', function () {
 			const matcherFactory = FixedWindowSizeJaccardMatcher.FACTORY(windowLength);
 			const matcher = matcherFactory.to(doc);
 			const referenceTokens = [...(await matcher.referenceTokens)];
-			// Don't get 7 because it's after the cursor
 			const correctReferenceTokens: string[] = ['1', '2', '3', '4', '5', '6'].slice(-windowLength);
 			assert.deepStrictEqual(referenceTokens, correctReferenceTokens);
 		}

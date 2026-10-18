@@ -24,7 +24,6 @@ suite('TokenizationSupport2Adapter', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	const languageId = 'tttt';
-	// const tokenMetadata = (LanguageId.PlainText << MetadataConsts.LANGUAGEID_OFFSET);
 
 	class MockTokenTheme extends TokenTheme {
 		private counter = 0;
@@ -143,7 +142,6 @@ suite('TokenizationSupport2Adapter', () => {
 			modernTokens[i] = actualModernTokens.tokens[i];
 		}
 
-		// Add the encoded language id to the expected tokens
 		const encodedLanguageId = languageService.languageIdCodec.encodeLanguageId(languageId);
 		const tokenLanguageMetadata = (encodedLanguageId << MetadataConsts.LANGUAGEID_OFFSET);
 		for (let i = 1; i < expectedModernTokens.length; i += 2) {

@@ -93,7 +93,6 @@ registerAction2(AcceptAllCombination);
 
 registerAction2(ToggleBetweenInputs);
 
-// Dev Commands
 registerAction2(MergeEditorCopyContentsToJSON);
 registerAction2(MergeEditorSaveContentsToFolder);
 registerAction2(MergeEditorLoadContentsFromFolder);
@@ -102,6 +101,6 @@ Registry
 	.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench)
 	.registerWorkbenchContribution(MergeEditorOpenHandlerContribution, LifecyclePhase.Restored);
 
-registerWorkbenchContribution2(MergeEditorResolverContribution.ID, MergeEditorResolverContribution, WorkbenchPhase.BlockStartup /* only registers an editor resolver */);
+registerWorkbenchContribution2(MergeEditorResolverContribution.ID, MergeEditorResolverContribution, WorkbenchPhase.BlockStartup );
 
 AccessibleViewRegistry.register(new MergeEditorAccessibilityHelpProvider());

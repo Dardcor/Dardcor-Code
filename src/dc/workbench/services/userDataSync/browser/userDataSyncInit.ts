@@ -331,7 +331,6 @@ class InstalledExtensionsInitializer implements IUserDataSyncResourceInitializer
 			return;
 		}
 
-		// 1. Initialise already installed extensions state
 		for (const installedExtension of preview.installedExtensions) {
 			const syncExtension = preview.remoteExtensions.find(({ identifier }) => areSameExtensions(identifier, installedExtension.identifier));
 			if (syncExtension?.state) {
@@ -341,7 +340,6 @@ class InstalledExtensionsInitializer implements IUserDataSyncResourceInitializer
 			}
 		}
 
-		// 2. Initialise extensions enablement
 		if (preview.disabledExtensions.length) {
 			for (const identifier of preview.disabledExtensions) {
 				this.logService.trace(`Disabling extension...`, identifier.id);
@@ -384,7 +382,7 @@ class NewExtensionsInitializer implements IUserDataSyncResourceInitializer {
 				}
 				this.logService.trace(`Installing extension...`, galleryExtension.identifier.id);
 				const local = await this.extensionManagementService.installFromGallery(galleryExtension, {
-					isMachineScoped: false, /* set isMachineScoped to prevent install and sync dialog in web */
+					isMachineScoped: false,
 					donotIncludePackAndDependencies: true,
 					installGivenVersion: !!extensionToSync.version,
 					installPreReleaseVersion: extensionToSync.preRelease,

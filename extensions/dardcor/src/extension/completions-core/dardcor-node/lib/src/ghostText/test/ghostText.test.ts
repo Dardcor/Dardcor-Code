@@ -38,8 +38,6 @@ import { getGhostText, GhostCompletion } from '../ghostText';
 import { ResultType } from '../resultType';
 import { mkBasicResultTelemetry } from '../telemetry';
 
-// Unit tests for ghostText that do not require network connectivity. For other
-// tests, see lib/e2e/src/ghostText.test.ts.
 
 suite('Isolated GhostText tests', function () {
 	function getPrefix(completionState: CompletionState): string {
@@ -68,7 +66,6 @@ suite('Isolated GhostText tests', function () {
 		const state = createCompletionState(doc, position);
 		const prefix = getPrefix(state);
 
-		// Setup closures with the state as default
 		function requestGhostText(completionState = state) {
 			const telemetryBuilder = new LlmNESTelemetryBuilder(undefined, undefined, undefined, 'ghostText', undefined);
 			const logService = accessor.get(ILogService);
@@ -80,7 +77,6 @@ suite('Isolated GhostText tests', function () {
 			return (result as PromptResponsePresent).prompt;
 		}
 
-		// Note, that we return a copy of the state to avoid side effects
 		return {
 			accessor,
 			doc,
@@ -169,7 +165,7 @@ suite('Isolated GhostText tests', function () {
 			new StaticFetcher(() => createFakeCompletionResponse(completionText))
 		);
 		const { suffix } = await requestPrompt();
-		addToCache(accessor, prefix, suffix, '}'); // Completion matches next line of document
+		addToCache(accessor, prefix, suffix, '}');
 
 		const responseWithTelemetry = await requestGhostText();
 
@@ -211,10 +207,6 @@ suite('Isolated GhostText tests', function () {
 		assert.strictEqual(firstRes.type, 'success');
 		assert.strictEqual(firstRes.value[0][0].completion.completionText, completionText);
 
-		// Request a second completion typing into a non-multiline context:
-		// the addition of `\tfmt.` to the current line changes the completion
-		// context (via the `isEmptyBlockStart` computed in prompt/) from
-		// multiline to single line.
 		const secondText = 'import "fmt"\n\nfunc fizzbuzz(n int) {\n\tfmt.\n}\n';
 		const second = createCompletionState(
 			createTextDocument('file:///fizzbuzz.go', 'go', 1, secondText),
@@ -235,10 +227,6 @@ suite('Isolated GhostText tests', function () {
 		const response = fakeResult('\tfmt.Println("hi")\n\tfmt.Print("hello")');
 		void asyncManager.queueCompletionRequest('0', prefix, prompt, new CancellationTokenSource(), response);
 
-		// Request a single completion by typing into a non-multiline context:
-		// the addition of `\tfmt.` to the current line changes the completion
-		// context (via the `isEmptyBlockStart` computed in prompt/) from
-		// multiline to single line.
 		const secondText = 'import "fmt"\n\nfunc fizzbuzz(n int) {\n\tfmt.\n}\n';
 		const second = createCompletionState(
 			createTextDocument('file:///fizzbuzz.go', 'go', 1, secondText),
@@ -320,18 +308,13 @@ suite('Isolated GhostText tests', function () {
 				return createFakeCompletionResponse(completions);
 			})
 		);
-		// Get the completion from the server, do the processing of the responses
-		// this is a multiline request, so it'll request multiple completions, but whatever our cycling specification, it'll not _wait_ for those, c.f isCyclingRequest in getGhostTextStrategy.
 		const firstResponse = await requestGhostText();
 		assert.strictEqual(firstResponse.type, 'success');
 		assert.strictEqual(firstResponse.value[0].length, 1);
 		assert.strictEqual(firstResponse.value[0][0].completion.completionText, firstCompletionText.trimEnd());
-		// therefore, request the same prompt again, this time with cycling specified, to get all completions from the cache
 		const secondResponse = await requestGhostText();
 		assert.strictEqual(secondResponse.type, 'success');
-		// two completion results returned
 		assert.strictEqual(secondResponse.value[0].length, 2);
-		// the second one is the second completion, but with whitespace trimmed
 		assert.strictEqual(secondResponse.value[0][0].completion.completionText, firstCompletionText.trimEnd());
 		assert.strictEqual(secondResponse.value[0][1].completion.completionText, secondCompletionText.trimEnd());
 	});
@@ -350,16 +333,12 @@ suite('Isolated GhostText tests', function () {
 				return createFakeCompletionResponse(completions);
 			})
 		);
-		// Get the completion from the server, do the processing of the responses
-		// this is a multiline request, so it'll request multiple completions, but whatever our cycling specification, it'll not _wait_ for those, c.f isCyclingRequest in getGhostTextStrategy.
 		const firstResponse = await requestGhostText();
 		assert.strictEqual(firstResponse.type, 'success');
 		assert.strictEqual(firstResponse.value[0].length, 1);
 		assert.strictEqual(firstResponse.value[0][0].completion.completionText, firstCompletionText.trimEnd());
-		// therefore, request the same prompt again, this time with cycling specified, to get all completions from the cache
 		const secondResponse = await requestGhostText();
 		assert.strictEqual(secondResponse.type, 'success');
-		// still only one completion result returned
 		assert.strictEqual(secondResponse.value[0].length, 1);
 		assert.strictEqual(secondResponse.value[0][0].completion.completionText, firstCompletionText.trimEnd());
 	});
@@ -376,15 +355,12 @@ suite('Isolated GhostText tests', function () {
 			return await requestGhostText();
 		});
 
-		// The returned object (used for all other telemetry events) does not have the prompt metadata
 		assert.deepStrictEqual(result.type, 'success');
 		assert.ok(!result.telemetryBlob.properties.promptMetadata);
 
-		// Only the issued event has it
 		const issuedTelemetry = reporter.eventByName('ghostText.issued');
 		assert.ok(issuedTelemetry.properties.promptMetadata);
 
-		// Double check that the other events don't have it
 		const events = reporter.events.filter(e => e.name !== 'ghostText.issued');
 		assert.ok(events.length > 0);
 		for (const event of events) {

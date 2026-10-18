@@ -7,12 +7,6 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { scrubUserName } from './e2e/harness/userNameScrub.js';
 
-/**
- * `runner` is used throughout because it is the GitHub Actions Linux account
- * name *and* an ordinary English word — the case a plain substring replace gets
- * wrong, and the one that matters most since it only misbehaves on some
- * platforms.
- */
 suite('userNameScrub', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
@@ -27,7 +21,6 @@ suite('userNameScrub', () => {
 			'path: \'/home/runner\'',
 			'path: `/home/runner`',
 			'path: /home/runner,',
-			// Embedded JSON escapes the separator.
 			'{"path":"C:\\\\Users\\\\runner\\\\x"}',
 			'{"path":"/home/runner"}',
 		].map(text => scrubUserName(text, 'runner')), [
@@ -45,7 +38,6 @@ suite('userNameScrub', () => {
 	});
 
 	test('scrubs the owner and group columns of an ls -l listing', () => {
-		// Exactly the shape recorded in the committed subagent capture.
 		const listing = [
 			'drwx------     4 runner  staff     128 Jan  1 12:00 .',
 			'-rw-r--r--     1 runner  runner      5 Jan  1 12:00 file-a.txt',
@@ -75,8 +67,6 @@ suite('userNameScrub', () => {
 	});
 
 	test('leaves the account name alone when it is an ordinary word', () => {
-		// The regression this exists to prevent: a plain substring replace turns
-		// every one of these into `${user}`.
 		const prose = [
 			'the runner completed successfully',
 			'Test runner exited with code 0',
@@ -97,7 +87,6 @@ suite('userNameScrub', () => {
 
 	test('escapes regular expression characters in the account name', () => {
 		assert.strictEqual(scrubUserName('/home/a.b/x', 'a.b'), '/home/${user}/x');
-		// The `.` must not behave as a wildcard.
 		assert.strictEqual(scrubUserName('/home/axb/x', 'a.b'), '/home/axb/x');
 	});
 });

@@ -8,10 +8,6 @@ import { exec, spawn, type ExecOptionsWithStringEncoding, type SpawnOptionsWitho
 import type { ICompletionResource } from '../types';
 
 export async function spawnHelper(command: string, args: string[], options: SpawnOptionsWithoutStdio): Promise<string> {
-	// This must be run with interactive, otherwise there's a good chance aliases won't
-	// be set up. Note that this could differ from the actual aliases as it's a new bash
-	// session, for the same reason this would not include aliases that are created
-	// by simply running `alias ...` in the terminal.
 	return new Promise<string>((resolve, reject) => {
 		const child = spawn(command, args, options);
 		let stdout = '';
@@ -34,10 +30,6 @@ export interface ISpawnHelperResult {
 	exitCode: number;
 }
 export async function spawnHelper2(command: string, args: string[], options: SpawnOptionsWithoutStdio): Promise<ISpawnHelperResult> {
-	// This must be run with interactive, otherwise there's a good chance aliases won't
-	// be set up. Note that this could differ from the actual aliases as it's a new bash
-	// session, for the same reason this would not include aliases that are created
-	// by simply running `alias ...` in the terminal.
 	return new Promise<ISpawnHelperResult>((resolve, reject) => {
 		const stdout: string[] = [];
 		const stderr: string[] = [];
@@ -68,10 +60,6 @@ export async function execHelper(commandLine: string, options: ExecOptionsWithSt
 }
 
 export async function getAliasesHelper(command: string, args: string[], regex: RegExp, options: ExecOptionsWithStringEncoding): Promise<ICompletionResource[]> {
-	// This must be run with interactive, otherwise there's a good chance aliases won't
-	// be set up. Note that this could differ from the actual aliases as it's a new bash
-	// session, for the same reason this would not include aliases that are created
-	// by simply running `alias ...` in the terminal.
 	const aliasOutput = await spawnHelper(command, args, options);
 	const result: ICompletionResource[] = [];
 	for (const line of aliasOutput.split('\n')) {

@@ -8,25 +8,19 @@ import { resolveOTelConfig } from '../../common/otelConfig';
 import type { TraceContext } from '../../common/otelService';
 import { NodeOTelService } from '../otelServiceImpl';
 
-/**
- * Tests for trace context propagation, specifically verifying that
- * subagent invoke_agent spans can be linked as children of the parent
- * agent's trace via storeTraceContext / getStoredTraceContext / parentTraceContext.
- */
 describe('Trace Context Propagation', () => {
 	let service: NodeOTelService;
 
 	beforeAll(async () => {
 		const config = resolveOTelConfig({
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
-				'COPILOT_OTEL_EXPORTER': 'console',
+				'DARDCOR_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_EXPORTER': 'console',
 			},
 			extensionVersion: '1.0.0',
 			sessionId: 'test-session',
 		});
 		service = new NodeOTelService(config);
-		// Wait for async SDK initialization — poll until _initialized
 		for (let i = 0; i < 50; i++) {
 			if ((service as any)._initialized) { break; }
 			await new Promise(r => setTimeout(r, 50));
@@ -75,14 +69,12 @@ describe('Trace Context Propagation', () => {
 
 	describe('parentTraceContext links subagent to parent trace', () => {
 		it('child span inherits traceId from parent via parentTraceContext', async () => {
-			// Phase 1: Parent agent creates a span, captures context
 			let parentCtx: TraceContext | undefined;
 			await service.startActiveSpan('invoke_agent parent', { attributes: {} }, async () => {
 				parentCtx = service.getActiveTraceContext();
 			});
 			expect(parentCtx).toBeDefined();
 
-			// Phase 2: Subagent uses parentTraceContext (new async context, no active parent)
 			let childCtx: TraceContext | undefined;
 			await service.startActiveSpan('invoke_agent subagent', {
 				attributes: {},
@@ -91,7 +83,6 @@ describe('Trace Context Propagation', () => {
 				childCtx = service.getActiveTraceContext();
 			});
 
-			// Same traceId (same distributed trace), different spanId
 			expect(childCtx!.traceId).toBe(parentCtx!.traceId);
 			expect(childCtx!.spanId).not.toBe(parentCtx!.spanId);
 		});
@@ -115,15 +106,12 @@ describe('Trace Context Propagation', () => {
 			let parentTraceId: string | undefined;
 			let subagentTraceId: string | undefined;
 
-			// Phase 1: Parent agent runs, tool calls runSubagent, stores context
 			await service.startActiveSpan('invoke_agent main', { attributes: {} }, async () => {
 				const ctx = service.getActiveTraceContext()!;
 				parentTraceId = ctx.traceId;
-				// Simulate execute_tool runSubagent storing the context
 				service.storeTraceContext('subagent:req-abc', ctx);
 			});
 
-			// Phase 2: Subagent request arrives (new async context, no parent span active)
 			const restoredCtx = service.getStoredTraceContext('subagent:req-abc');
 			expect(restoredCtx).toBeDefined();
 
@@ -134,10 +122,8 @@ describe('Trace Context Propagation', () => {
 				subagentTraceId = service.getActiveTraceContext()!.traceId;
 			});
 
-			// Both agents share the same traceId
 			expect(subagentTraceId).toBe(parentTraceId);
 
-			// The stored context was consumed (single-use)
 			expect(service.getStoredTraceContext('subagent:req-abc')).toBeUndefined();
 		});
 	});

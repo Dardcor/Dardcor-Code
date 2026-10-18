@@ -40,7 +40,6 @@ export async function updateTag(tagName: string | undefined): Promise<boolean | 
 			value: tagNamesAreEqual ? firstTagName : undefined
 		});
 
-		// TODO: Accept fragments for JSX and TSX
 		if (!tagName) {
 			return false;
 		}

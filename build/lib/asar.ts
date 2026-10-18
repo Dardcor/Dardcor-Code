@@ -30,8 +30,6 @@ export function createAsar(folderPath: string, unpackGlobs: string[], skipGlobs:
 		return false;
 	};
 
-	// Files that should be duplicated between
-	// node_modules.asar and node_modules
 	const shouldDuplicateFile = (file: VinylFile): boolean => {
 		for (const duplicateGlob of duplicateGlobs) {
 			if (minimatch(file.relative, duplicateGlob)) {
@@ -44,11 +42,9 @@ export function createAsar(folderPath: string, unpackGlobs: string[], skipGlobs:
 	const filesystem = new Filesystem(folderPath);
 	const out: Buffer[] = [];
 
-	// Keep track of pending inserts
 	let pendingInserts = 0;
 	let onFileInserted = () => { pendingInserts--; };
 
-	// Do not insert twice the same directory
 	const seenDir: { [key: string]: boolean } = {};
 	const insertDirectoryRecursive = (dir: string) => {
 		if (seenDir[dir]) {
@@ -76,20 +72,10 @@ export function createAsar(folderPath: string, unpackGlobs: string[], skipGlobs:
 		}
 	};
 
-	// CRITICAL FIX: Use a strict serial Promise chain so that filesystem.insertFile()
-	// is called ONE AT A TIME. The underlying asar library's insertFile() is async
-	// (it hashes each file with SHA-256 via getFileIntegrity) and mutates a shared
-	// `this.offset` counter. Running many insertFile() calls concurrently causes
-	// multiple files to read the same offset value before any of them finishes
-	// updating it, corrupting the ASAR header and making Electron load garbage bytes
-	// for modules like undici and yauzl — which crashes the Extension Host and
-	// AgentHost immediately on launch with SyntaxErrors.
 	let _insertSerialChain: Promise<void> = Promise.resolve();
 	const insertFile = (relativePath: string, stat: { size: number; mode: number }, shouldUnpack: boolean) => {
 		insertDirectoryForFile(relativePath);
 		pendingInserts++;
-		// Chain each insert sequentially: the next insert only begins after the
-		// previous one has fully resolved (offset committed, integrity stored).
 		_insertSerialChain = _insertSerialChain
 			.then(() => filesystem.insertFile(relativePath, shouldUnpack, { stat: stat }, {}))
 			.then(() => onFileInserted(), () => onFileInserted());
@@ -123,7 +109,6 @@ export function createAsar(folderPath: string, unpackGlobs: string[], skipGlobs:
 		insertFile(file.relative, { size: file.contents.length, mode: file.stat.mode }, shouldUnpack);
 
 		if (shouldUnpack) {
-			// The file goes outside of xx.asar, in a folder xx.asar.unpacked
 			const relative = path.relative(folderPath, file.path);
 			this.queue(new VinylFile({
 				base: '.',
@@ -132,7 +117,6 @@ export function createAsar(folderPath: string, unpackGlobs: string[], skipGlobs:
 				contents: file.contents
 			}));
 		} else {
-			// The file goes inside of xx.asar
 			out.push(file.contents);
 		}
 	}, function () {
@@ -162,7 +146,6 @@ export function createAsar(folderPath: string, unpackGlobs: string[], skipGlobs:
 			this.queue(null);
 		};
 
-		// Call finish() only when all file inserts have finished...
 		if (pendingInserts === 0) {
 			finish();
 		} else {

@@ -8,7 +8,6 @@ import { Lazy } from '../../../../../../base/common/lazy.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { wrapTablesWithScrollable } from '../../../browser/widget/chatContentParts/chatMarkdownTableScrolling.js';
 
-/** Builds an HTMLElement containing one or more tables from markdown-style 2-D arrays. */
 function buildContainer(tables: string[][][]): HTMLDivElement {
 	const container = document.createElement('div');
 	for (const rows of tables) {
@@ -45,12 +44,10 @@ suite('wrapTablesWithScrollable', () => {
 			['ID', 'Name'],
 			['001', 'Alice'],
 		]]);
-		// Before: direct child is <table>
 		assert.strictEqual(container.children[0].tagName, 'TABLE');
 
 		wrap(container);
 
-		// After: direct child is the monaco-scrollable-element wrapper
 		const wrapper = container.children[0];
 		assert.ok(wrapper.classList.contains('rendered-markdown-table-scroll-wrapper'),
 			'outer node should have the scroll wrapper class');
@@ -60,7 +57,6 @@ suite('wrapTablesWithScrollable', () => {
 		const container = buildContainer([[['A', 'BB'], ['C', 'DD']]]);
 		wrap(container);
 
-		// The table must still be in the document, nested inside the wrapper
 		const table = container.querySelector('table');
 		assert.ok(table, 'table should still exist in DOM');
 		assert.ok(container.contains(table), 'table should be inside container');
@@ -85,8 +81,6 @@ suite('wrapTablesWithScrollable', () => {
 		wrap(container);
 
 		const table = container.querySelector('table')!;
-		// min-width is set only on the first row; other rows are untouched
-		// col 0 max = 3 chars -> 3ch; col 1 max = 11 chars -> capped at 3ch
 		assert.deepStrictEqual(
 			Array.from(table.rows[0].cells).map(cell => cell.style.minWidth),
 			['3ch', '3ch']
@@ -102,7 +96,6 @@ suite('wrapTablesWithScrollable', () => {
 		wrap(container);
 
 		const table = container.querySelector('table')!;
-		// col 0 max=2 -> 2ch; col 1 max=1 -> no min-width
 		assert.strictEqual(table.rows[0].cells[0].style.minWidth, '2ch');
 		assert.strictEqual(table.rows[0].cells[1].style.minWidth, '');
 	});
@@ -125,11 +118,9 @@ suite('wrapTablesWithScrollable', () => {
 		const tables = container.querySelectorAll('table');
 		assert.strictEqual(tables.length, 2);
 
-		// Table 1: col 0 max=2, col 1 max=1 -> only col 0 gets min-width
 		assert.strictEqual(tables[0].rows[0].cells[0].style.minWidth, '2ch');
 		assert.strictEqual(tables[0].rows[0].cells[1].style.minWidth, '');
 
-		// Table 2: col 0 max=1, col 1 max=3 -> only col 1 gets min-width
 		assert.strictEqual(tables[1].rows[0].cells[0].style.minWidth, '');
 		assert.strictEqual(tables[1].rows[0].cells[1].style.minWidth, '3ch');
 	});

@@ -67,13 +67,11 @@ export abstract class EditorPlaceholder extends EditorPane {
 
 	protected createEditor(parent: HTMLElement): void {
 
-		// Container
 		this.container = $('.monaco-editor-pane-placeholder', {
-			tabIndex: 0 // enable focus support from the editor part (do not remove)
+			tabIndex: 0
 		});
 		this.container.style.outline = 'none';
 
-		// Custom Scrollbars
 		this.scrollbar = this._register(new DomScrollableElement(this.container, { horizontal: ScrollbarVisibility.Auto, vertical: ScrollbarVisibility.Auto }));
 		parent.appendChild(this.scrollbar.getDomNode());
 	}
@@ -81,41 +79,33 @@ export abstract class EditorPlaceholder extends EditorPane {
 	override async setInput(input: EditorInput, options: IEditorOptions | undefined, context: IEditorOpenContext, token: CancellationToken): Promise<void> {
 		await super.setInput(input, options, context, token);
 
-		// Check for cancellation
 		if (token.isCancellationRequested) {
 			return;
 		}
 
-		// Render Input
 		this.inputDisposable.value = await this.renderInput(input, options);
 	}
 
 	private async renderInput(input: EditorInput, options: IEditorOptions | undefined): Promise<IDisposable> {
 		const [container, scrollbar] = assertReturnsAllDefined(this.container, this.scrollbar);
 
-		// Reset any previous contents
 		clearNode(container);
 
-		// Delegate to implementation for contents
 		const disposables = new DisposableStore();
 		const { icon, label, actions } = await this.getContents(input, options, disposables);
 		const truncatedLabel = truncate(label, EditorPlaceholder.PLACEHOLDER_LABEL_MAX_LENGTH);
 
-		// Icon
 		const iconContainer = container.appendChild($('.editor-placeholder-icon-container'));
 		const iconWidget = disposables.add(new SimpleIconLabel(iconContainer));
 		iconWidget.text = icon;
 
-		// Label
 		const labelContainer = container.appendChild($('.editor-placeholder-label-container'));
 		const labelWidget = $('span');
 		labelWidget.textContent = truncatedLabel;
 		labelContainer.appendChild(labelWidget);
 
-		// ARIA label
 		container.setAttribute('aria-label', `${computeEditorAriaLabel(input, undefined, this.group, undefined)}, ${truncatedLabel}`);
 
-		// Buttons
 		if (actions.length) {
 			const actionsContainer = container.appendChild($('.editor-placeholder-buttons-container'));
 			const buttons = disposables.add(new ButtonBar(actionsContainer));
@@ -137,7 +127,6 @@ export abstract class EditorPlaceholder extends EditorPane {
 			}
 		}
 
-		// Adjust scrollbar
 		scrollbar.scanDomNode();
 
 		return disposables;
@@ -158,13 +147,10 @@ export abstract class EditorPlaceholder extends EditorPane {
 	layout(dimension: Dimension): void {
 		const [container, scrollbar] = assertReturnsAllDefined(this.container, this.scrollbar);
 
-		// Pass on to Container
 		size(container, dimension.width, dimension.height);
 
-		// Adjust scrollbar
 		scrollbar.scanDomNode();
 
-		// Toggle responsive class
 		container.classList.toggle('max-height-200px', dimension.height <= 200);
 	}
 
@@ -243,7 +229,6 @@ export class ErrorPlaceholderEditor extends EditorPlaceholder {
 		const error = options.error;
 		const isFileNotFound = (<FileOperationError | undefined>error)?.fileOperationResult === FileOperationResult.FILE_NOT_FOUND;
 
-		// Error Label
 		let label: string;
 		if (isFileNotFound) {
 			label = localize('unavailableResourceErrorEditorText', "The editor could not be opened because the file was not found.");
@@ -255,7 +240,6 @@ export class ErrorPlaceholderEditor extends EditorPlaceholder {
 			label = localize('unknownErrorEditorTextWithoutError', "The editor could not be opened due to an unexpected error.");
 		}
 
-		// Error Icon
 		let icon = '$(error)';
 		if (isEditorOpenError(error)) {
 			if (error.forceSeverity === Severity.Info) {
@@ -265,7 +249,6 @@ export class ErrorPlaceholderEditor extends EditorPlaceholder {
 			}
 		}
 
-		// Actions
 		let actions: IEditorPlaceholderContentsAction[] | undefined = undefined;
 		if (isEditorOpenError(error) && error.actions.length > 0) {
 			actions = error.actions.map(action => {
@@ -283,7 +266,7 @@ export class ErrorPlaceholderEditor extends EditorPlaceholder {
 			actions = [
 				{
 					label: localize('retry', "Try Again"),
-					run: () => this.group.openEditor(input, { ...options, source: EditorOpenSource.USER /* explicit user gesture */ })
+					run: () => this.group.openEditor(input, { ...options, source: EditorOpenSource.USER })
 				},
 				{
 					label: localize('showLogs', "Show Logs"),
@@ -292,7 +275,6 @@ export class ErrorPlaceholderEditor extends EditorPlaceholder {
 			];
 		}
 
-		// Auto-reload when file is added
 		if (isFileNotFound && resource && this.fileService.hasProvider(resource)) {
 			disposables.add(this.fileService.onDidFilesChange(e => {
 				if (e.contains(resource, FileChangeType.ADDED, FileChangeType.UPDATED)) {

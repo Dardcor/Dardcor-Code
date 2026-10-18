@@ -16,9 +16,6 @@ import { DefaultAgentPromptProps, detectToolCapabilities } from '../defaultAgent
 import { FileLinkificationInstructions } from '../fileLinkificationInstructions';
 import { CopilotIdentityRulesConstructor, IAgentPrompt, PromptRegistry, SafetyRulesConstructor, SystemPrompt } from '../promptRegistry';
 
-/**
- * This is inspired by the Codex CLI prompt, with some custom tweaks for VS Code.
- */
 class Gpt51CodexPrompt extends PromptElement<DefaultAgentPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const tools = detectToolCapabilities(this.props.availableTools);

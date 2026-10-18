@@ -17,17 +17,12 @@ import { ITerminalBackend, ITerminalLogService } from '../../../../../platform/t
 import { isString } from '../../../../../base/common/types.js';
 
 const enum Constants {
-	/**
-	 * The maximum number of links in a line to resolve against the file system. This limit is put
-	 * in place to avoid sending excessive data when remote connections are in place.
-	 */
 	MaxResolvedLinksInLine = 10
 }
 
 export class TerminalUriLinkDetector implements ITerminalLinkDetector {
 	static id = 'uri';
 
-	// 2048 is the maximum URL length
 	readonly maxLinkLength = 2048;
 
 	constructor(
@@ -51,7 +46,6 @@ export class TerminalUriLinkDetector implements ITerminalLinkDetector {
 		for (const computedLink of computedLinks) {
 			const bufferRange = convertLinkRangeToBuffer(lines, this.xterm.cols, computedLink.range, startLine);
 
-			// Check if the link is within the mouse position
 			const uri = computedLink.url
 				? (isString(computedLink.url) ? URI.parse(this._excludeLineAndColSuffix(computedLink.url)) : computedLink.url)
 				: undefined;
@@ -62,12 +56,10 @@ export class TerminalUriLinkDetector implements ITerminalLinkDetector {
 
 			const text = computedLink.url?.toString() || '';
 
-			// Don't try resolve any links of excessive length
 			if (text.length > this.maxLinkLength) {
 				continue;
 			}
 
-			// Handle non-file scheme links
 			if (uri.scheme !== Schemas.file) {
 				links.push({
 					text,
@@ -78,29 +70,22 @@ export class TerminalUriLinkDetector implements ITerminalLinkDetector {
 				continue;
 			}
 
-			// Filter out URI with unrecognized authorities
 			if (uri.authority.length !== 2 && uri.authority.endsWith(':')) {
 				continue;
 			}
 
-			// As a fallback URI, treat the authority as local to the workspace. This is required
-			// for `ls --hyperlink` support for example which includes the hostname in the URI like
-			// `file://Some-Hostname/mnt/c/foo/bar`.
 			const uriCandidates: URI[] = [uri];
 			if (uri.authority.length > 0) {
 				uriCandidates.push(URI.from({ ...uri, authority: undefined }));
 			}
 
-			// Iterate over all candidates, pushing the candidate on the first that's verified
 			this._logService.trace('terminalUriLinkDetector#detect uriCandidates', uriCandidates);
 			for (const uriCandidate of uriCandidates) {
 				const linkStat = await this._linkResolver.resolveLink(this._processManager, text, uriCandidate);
 
-				// Create the link if validated
 				if (linkStat) {
 					const type = getTerminalLinkType(uriCandidate, linkStat.isDirectory, this._uriIdentityService, this._workspaceContextService);
 					const simpleLink: ITerminalSimpleLink = {
-						// Use computedLink.url if it's a string to retain the line/col suffix
 						text: isString(computedLink.url) ? computedLink.url : linkStat.link,
 						uri: uriCandidate,
 						bufferRange,
@@ -113,7 +98,6 @@ export class TerminalUriLinkDetector implements ITerminalLinkDetector {
 				}
 			}
 
-			// Stop early if too many links exist in the line
 			if (++resolvedLinkCount >= Constants.MaxResolvedLinksInLine) {
 				break;
 			}

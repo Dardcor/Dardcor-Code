@@ -258,8 +258,6 @@ export class StartDebugActionViewItem extends BaseActionViewItem {
 				checked: i === this.selected,
 				category,
 				run: async () => {
-					// Selection state and label are reconciled by updateOptions(),
-					// triggered by manager.onDidSelectConfiguration.
 					await option.handler();
 				}
 			});
@@ -303,7 +301,6 @@ export class StartDebugActionViewItem extends BaseActionViewItem {
 			}, { label: `configurations-${groupOrder}`, order: groupOrder });
 		});
 
-		// Only take 3 elements from the recent dynamic configurations to not clutter the dropdown
 		manager.getRecentDynamicConfigurations().slice(0, 3).forEach(({ name, type }) => {
 			if (type === manager.selectedConfiguration.type && manager.selectedConfiguration.name === name) {
 				this.selected = this.debugOptions.length;
@@ -392,7 +389,6 @@ export class FocusSessionActionViewItem extends SelectActionViewItem<IDebugSessi
 			registerSessionListeners(session);
 			this.update();
 		}));
-		// Apply the same pattern to existing sessions - track listeners for cleanup
 		this.getSessions().forEach(registerSessionListeners);
 		this._register(this.debugService.onDidEndSession(() => this.update()));
 
@@ -412,7 +408,6 @@ export class FocusSessionActionViewItem extends SelectActionViewItem<IDebugSessi
 		const names = sessions.map(s => {
 			const label = s.getLabel();
 			if (s.parentSession) {
-				// Indent child sessions so they look like children
 				return `\u00A0\u00A0${label}`;
 			}
 

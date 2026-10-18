@@ -214,7 +214,6 @@ suite('AccountPolicyService', () => {
 			const C = policyService.getPolicyValue('PolicySettingC');
 			const D = policyService.getPolicyValue('PolicySettingD');
 
-			// No policy is set
 			assert.strictEqual(A, undefined);
 			assert.strictEqual(B, undefined);
 			assert.strictEqual(C, undefined);
@@ -255,7 +254,7 @@ suite('AccountPolicyService', () => {
 			const C = policyService.getPolicyValue('PolicySettingC');
 			const D = policyService.getPolicyValue('PolicySettingD');
 
-			assert.strictEqual(A, undefined); // Not tagged with chat preview tags
+			assert.strictEqual(A, undefined);
 			assert.strictEqual(B, 'policyValueB');
 			assert.strictEqual(C, JSON.stringify(['policyValueC1', 'policyValueC2']));
 			assert.strictEqual(D, false);
@@ -320,9 +319,6 @@ suite('AccountPolicyService', () => {
 	});
 
 	test('managed settings: native MDM value wins over server for the same declared key', async () => {
-		// Server says 'enable', native MDM says 'disable'. Native MDM is the authoritative
-		// source when present, so the server value is ignored entirely and the gated policy IS
-		// forced to `false`.
 		const nativeManagedSettingsService = disposables.add(new FakeNativeManagedSettingsService({ [COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY]: 'disable' }));
 		policyService = disposables.add(new AccountPolicyService(logService, defaultAccountService, undefined, nativeManagedSettingsService));
 		const defaultConfiguration = disposables.add(new DefaultConfiguration(new NullLogService()));
@@ -373,8 +369,6 @@ suite('AccountPolicyService', () => {
 	});
 
 	test('managed settings: native MDM applies when the server provides no managed settings', async () => {
-		// No server managed settings — native MDM is the authoritative source and forces the
-		// gated policy to `false`.
 		const nativeManagedSettingsService = disposables.add(new FakeNativeManagedSettingsService({ [COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY]: 'disable' }));
 		policyService = disposables.add(new AccountPolicyService(logService, defaultAccountService, undefined, nativeManagedSettingsService));
 		const defaultConfiguration = disposables.add(new DefaultConfiguration(new NullLogService()));
@@ -391,9 +385,6 @@ suite('AccountPolicyService', () => {
 	});
 
 	test('managed settings: three-channel precedence native MDM > Server > File', async () => {
-		// All three channels provide the same key with different values.
-		// Server says 'enable', MDM says 'disable', File says 'file-value'.
-		// Native MDM should win.
 		const fileManagedSettingsService = new FakeFileManagedSettingsService({ [COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY]: 'file-value' });
 		const nativeManagedSettingsService = disposables.add(new FakeNativeManagedSettingsService({ [COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY]: 'disable' }));
 		policyService = disposables.add(new AccountPolicyService(logService, defaultAccountService, undefined, nativeManagedSettingsService, fileManagedSettingsService));
@@ -407,13 +398,11 @@ suite('AccountPolicyService', () => {
 
 		await policyConfiguration.initialize();
 
-		// Native MDM value 'disable' wins — policy is forced to false
 		assert.strictEqual(policyService.getPolicyValue('PolicySettingF'), false);
 		assert.strictEqual(policyService.getPolicyValueSource('PolicySettingF'), PolicyValueSource.NativeMdm);
 	});
 
 	test('managed settings: file-based settings apply when server and MDM are empty', async () => {
-		// Only the file channel provides a value — it should be used.
 		const fileManagedSettingsService = new FakeFileManagedSettingsService({ [COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY]: 'disable' });
 		const nativeManagedSettingsService = disposables.add(new FakeNativeManagedSettingsService({}));
 		policyService = disposables.add(new AccountPolicyService(logService, defaultAccountService, undefined, nativeManagedSettingsService, fileManagedSettingsService));
@@ -426,15 +415,11 @@ suite('AccountPolicyService', () => {
 
 		await policyConfiguration.initialize();
 
-		// File value 'disable' applies — policy is forced to false
 		assert.strictEqual(policyService.getPolicyValue('PolicySettingF'), false);
 		assert.strictEqual(policyService.getPolicyValueSource('PolicySettingF'), PolicyValueSource.FileManagedSettings);
 	});
 
 	test('managed settings: per-key precedence merges across channels — different keys win from different channels', async () => {
-		// Native MDM supplies only the disableBypass key; the file supplies only the enabledPlugins
-		// key. Neither overrides the other, so BOTH reach policy evaluation: setting F resolves from
-		// native MDM and setting G resolves from the file. This is the per-key fill-down behavior.
 		const enabledPluginsJson = '{"assign-issue@skills":true}';
 		const fileManagedSettingsService = new FakeFileManagedSettingsService({ [COPILOT_ENABLED_PLUGINS_KEY]: enabledPluginsJson });
 		const nativeManagedSettingsService = disposables.add(new FakeNativeManagedSettingsService({ [COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY]: 'disable' }));
@@ -484,9 +469,6 @@ suite('AccountPolicyService', () => {
 	});
 
 	test('managed settings: an object-typed setting resolves identically from server and native MDM JSON strings', async () => {
-		// Structured-setting invariant: whether the canonical JSON string arrives via the server
-		// account policy bag or via native MDM, PolicyConfiguration must parse it back into the
-		// SAME typed object for an `object`-typed setting. The only difference is the source.
 		const json = '{"assign-issue@skills":true,"other@acme":false}';
 		const expected = { 'assign-issue@skills': true, 'other@acme': false };
 
@@ -515,9 +497,6 @@ suite('AccountPolicyService', () => {
 		assert.deepStrictEqual({ serverConfig, mdmConfig }, { serverConfig: expected, mdmConfig: expected });
 	});
 
-	// ---------------------------------------------------------------------
-	// "Require Approved Account" gate
-	// ---------------------------------------------------------------------
 
 	const APPROVED_ORG_ACCOUNT: IDefaultAccount = {
 		...BASE_DEFAULT_ACCOUNT,
@@ -563,7 +542,7 @@ suite('AccountPolicyService', () => {
 			return this.fakePolicies.get(name);
 		}
 
-		protected async _updatePolicyDefinitions(): Promise<void> { /* no-op */ }
+		protected async _updatePolicyDefinitions(): Promise<void> { }
 	}
 
 	class FakeNativeManagedSettingsService implements INativeManagedSettingsService {
@@ -619,8 +598,6 @@ suite('AccountPolicyService', () => {
 	}): Promise<{ policyService: AccountPolicyService; managed: FakeManagedPolicyService }> {
 		const managed = disposables.add(new FakeManagedPolicyService());
 		if (opts.approvedOrgs !== undefined) {
-			// Mirror how the platform delivers array-typed policy values to AbstractPolicyService:
-			// as a JSON-stringified array. Tests can pass a raw string to exercise edge cases.
 			const value = typeof opts.approvedOrgs === 'string' ? opts.approvedOrgs : JSON.stringify(opts.approvedOrgs);
 			managed.setPolicy(APPROVED_ACCOUNT_ORGANIZATIONS_POLICY_NAME, value);
 		}
@@ -643,18 +620,15 @@ suite('AccountPolicyService', () => {
 	test('gate inactive (no approved orgs set): behaves identically to today', async () => {
 		const { policyService } = await setupGate({ account: APPROVED_ORG_ACCOUNT, policyData: { chat_preview_features_enabled: false } });
 		assert.strictEqual(policyService.gateInfo.state, AccountPolicyGateState.Inactive);
-		assert.strictEqual(policyService.getPolicyValue('PolicySettingD'), false); // account policy still flows
+		assert.strictEqual(policyService.getPolicyValue('PolicySettingD'), false);
 	});
 
 	test('gate active, no account signed in: restricted', async () => {
 		const { policyService } = await setupGate({ approvedOrgs: ['ApprovedOrg'], account: null });
 		assert.strictEqual(policyService.gateInfo.state, AccountPolicyGateState.Restricted);
 		assert.strictEqual(policyService.gateInfo.reason, AccountPolicyGateUnsatisfiedReason.NoAccount);
-		// Restricted values applied to policies that opt into the gate.
-		// PolicySettingD has a `value` callback → falls back to type-default `false`.
 		assert.strictEqual(policyService.getPolicyValue('PolicySettingD'), false);
 		assert.strictEqual(policyService.getPolicyValueSource('PolicySettingD'), PolicyValueSource.AccountGate);
-		// PolicySettingA does NOT opt in (no `value`, no `restrictedValue`) → unchanged.
 		assert.strictEqual(policyService.getPolicyValue('PolicySettingA'), undefined);
 	});
 
@@ -673,9 +647,9 @@ suite('AccountPolicyService', () => {
 	test('gate active, satisfied (case-insensitive org match): account policy values flow normally', async () => {
 		const { policyService } = await setupGate({ approvedOrgs: [' approvedorg ', ' Other '], account: APPROVED_ORG_ACCOUNT, policyData: { chat_preview_features_enabled: false } });
 		assert.strictEqual(policyService.gateInfo.state, AccountPolicyGateState.Satisfied);
-		assert.strictEqual(policyService.getPolicyValue('PolicySettingD'), false); // from account policy data, not restricted
+		assert.strictEqual(policyService.getPolicyValue('PolicySettingD'), false);
 		assert.strictEqual(policyService.getPolicyValueSource('PolicySettingD'), PolicyValueSource.Account);
-		assert.strictEqual(policyService.getPolicyValue('PolicySettingA'), undefined); // not driven by account
+		assert.strictEqual(policyService.getPolicyValue('PolicySettingA'), undefined);
 	});
 
 	test('gate active, wildcard "*" satisfies any signed-in account', async () => {
@@ -689,14 +663,11 @@ suite('AccountPolicyService', () => {
 	});
 
 	test('approved orgs raw non-array string from policy service: gate inactive (fail-safe)', async () => {
-		// Defensive: if some platform delivers the policy as a non-JSON string, treat it as no-orgs
-		// rather than half-parsing CSV. The platform's array-typed policy contract makes this rare.
 		const { policyService } = await setupGate({ approvedOrgs: 'github', account: APPROVED_ORG_ACCOUNT, policyData: {} });
 		assert.strictEqual(policyService.gateInfo.state, AccountPolicyGateState.Inactive);
 	});
 
 	test('gate active, signed in with non-GitHub provider: WrongProvider reason', async () => {
-		// Custom provider whose configured GitHub provider differs from the account's actual provider.
 		class MismatchedProvider extends DefaultAccountProvider {
 			override getDefaultAccountAuthenticationProvider(): IDefaultAccountAuthenticationProvider {
 				return { id: 'github', name: 'GitHub', enterprise: false };
@@ -759,10 +730,8 @@ suite('AccountPolicyService', () => {
 		const events: IAccountPolicyGateInfo[] = [];
 		disposables.add(policyService.onDidChangeGateInfo(info => events.push(info)));
 
-		// Satisfied → Restricted (org no longer approved)
 		managed.setPolicy(APPROVED_ACCOUNT_ORGANIZATIONS_POLICY_NAME, JSON.stringify(['OnlyOtherOrg']));
 		await new Promise(resolve => setTimeout(resolve, 0));
-		// Restricted → Inactive (gate disabled)
 		managed.setPolicy(APPROVED_ACCOUNT_ORGANIZATIONS_POLICY_NAME, JSON.stringify([]));
 		await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -776,9 +745,6 @@ suite('AccountPolicyService', () => {
 	});
 
 	test('boot race: gate is fail-closed until async managed policy service resolves', async () => {
-		// Simulate the IPC boundary: managed service only knows about its policies AFTER
-		// `updatePolicyDefinitions` has been called by the MultiplexPolicyService.
-		// Before that, `getPolicyValue` returns undefined.
 		class AsyncManagedPolicyService extends FakeManagedPolicyService {
 			private _seeded = false;
 			private readonly _seedValue: string;
@@ -793,8 +759,6 @@ suite('AccountPolicyService', () => {
 				return super.getPolicyValue(name);
 			}
 			async seed(): Promise<void> {
-				// Simulate the MultiplexPolicyService calling updatePolicyDefinitions,
-				// which in production triggers the IPC round-trip and then fires onDidChange.
 				await new Promise(resolve => setTimeout(resolve, 0));
 				this._seeded = true;
 				this.setPolicy(APPROVED_ACCOUNT_ORGANIZATIONS_POLICY_NAME, this._seedValue);
@@ -812,15 +776,10 @@ suite('AccountPolicyService', () => {
 		const config = disposables.add(new PolicyConfiguration(defaultConfiguration, service, new NullLogService()));
 		await config.initialize();
 
-		// Before managed service resolves, the gate sees no approved-org policy → Inactive.
 		assert.strictEqual(service.gateInfo.state, AccountPolicyGateState.Inactive);
 
-		// Simulate the multiplex seeding the managed service (IPC completes).
-		// This fires onDidChange on the managed service, which AccountPolicyService
-		// listens to and re-evaluates the gate.
 		await managed.seed();
 
-		// Gate must now reflect the admin policy; account is NOT in 'OnlyOtherOrg'.
 		assert.strictEqual(service.gateInfo.state, AccountPolicyGateState.Restricted);
 		assert.strictEqual(service.gateInfo.reason, AccountPolicyGateUnsatisfiedReason.OrgNotApproved);
 	});
@@ -833,10 +792,7 @@ suite('AccountPolicyService', () => {
 		const changes: string[] = [];
 		disposables.add(policyService.onDidChange(names => changes.push(...names)));
 
-		// Change the approved-org list to one the account is NOT in → flip Satisfied → Restricted,
-		// which forces restricted values onto opted-in policies and emits onDidChange.
 		managed.setPolicy(APPROVED_ACCOUNT_ORGANIZATIONS_POLICY_NAME, JSON.stringify(['OnlyOtherOrg']));
-		// `_updatePolicyDefinitions` is async — wait one turn for it to resolve.
 		await new Promise(resolve => setTimeout(resolve, 0));
 
 		assert.strictEqual(policyService.gateInfo.state, AccountPolicyGateState.Restricted);

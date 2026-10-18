@@ -12,57 +12,9 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from './utils.js';
 
 suite('Glob', () => {
 
-	// test('perf', () => {
 
-	// 	let patterns = [
-	// 		'{**/*.cs,**/*.json,**/*.csproj,**/*.sln}',
-	// 		'{**/*.cs,**/*.csproj,**/*.sln}',
-	// 		'{**/*.ts,**/*.tsx,**/*.js,**/*.jsx,**/*.es6,**/*.mjs,**/*.cjs}',
-	// 		'**/*.go',
-	// 		'{**/*.ps,**/*.ps1}',
-	// 		'{**/*.c,**/*.cpp,**/*.h}',
-	// 		'{**/*.fsx,**/*.fsi,**/*.fs,**/*.ml,**/*.mli}',
-	// 		'{**/*.js,**/*.jsx,**/*.es6,**/*.mjs,**/*.cjs}',
-	// 		'{**/*.ts,**/*.tsx}',
-	// 		'{**/*.php}',
-	// 		'{**/*.php}',
-	// 		'{**/*.php}',
-	// 		'{**/*.php}',
-	// 		'{**/*.py}',
-	// 		'{**/*.py}',
-	// 		'{**/*.py}',
-	// 		'{**/*.rs,**/*.rslib}',
-	// 		'{**/*.cpp,**/*.cc,**/*.h}',
-	// 		'{**/*.md}',
-	// 		'{**/*.md}',
-	// 		'{**/*.md}'
-	// 	];
 
-	// 	let paths = [
-	// 		'/DNXConsoleApp/Program.cs',
-	// 		'C:\\DNXConsoleApp\\foo\\Program.cs',
-	// 		'test/qunit',
-	// 		'test/test.txt',
-	// 		'test/node_modules',
-	// 		'.hidden.txt',
-	// 		'/node_module/test/foo.js'
-	// 	];
 
-	// 	let results = 0;
-	// 	let c = 1000;
-	// 	console.profile('glob.match');
-	// 	while (c-- > 0) {
-	// 		for (let path of paths) {
-	// 			for (let pattern of patterns) {
-	// 				let r = glob.match(pattern, path);
-	// 				if (r) {
-	// 					results += 42;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	console.profileEnd();
-	// });
 
 	function assertGlobMatch(pattern: string | glob.IRelativePattern, input: string, ignoreCase?: boolean) {
 		assert(glob.match(pattern, input, { ignoreCase }), `${JSON.stringify(pattern)} should match ${input}`);
@@ -98,7 +50,6 @@ suite('Glob', () => {
 		assertNoGlobMatch(p, 'qunit.css');
 		assertNoGlobMatch(p, 'test/qunit');
 
-		// Absolute
 
 		p = '/DNXConsoleApp/**/*.cs';
 		assertGlobMatch(p, '/DNXConsoleApp/Program.cs');
@@ -473,7 +424,6 @@ suite('Glob', () => {
 		const siblings = ['test.html', 'test.txt', 'test.ts', 'test.js'];
 		const hasSibling = (name: string) => siblings.indexOf(name) !== -1;
 
-		// { "**/*.js": { "when": "$(basename).ts" } }
 		let expression: glob.IExpression = {
 			'**/*.js': {
 				when: '$(basename).ts'
@@ -510,7 +460,6 @@ suite('Glob', () => {
 		const siblings = ['test.html', 'test.txt', 'test.ts', 'test.js'];
 		const hasSibling = (name: string) => siblings.indexOf(name) !== -1;
 
-		// { "**/*.js": { "when": "$(basename).ts" } }
 		const expression: glob.IExpression = {
 			'**/*.js': { when: '$(basename).ts' },
 			'**/*.as': true,
@@ -664,7 +613,6 @@ suite('Glob', () => {
 		assertNoGlobMatch(p, '\\testing.js\\foo');
 		assertNoGlobMatch(p, 'C:\\testing.js\\foo');
 
-		// Run again and make sure the regex are properly reused
 
 		assertGlobMatch(p, 'foo.js');
 		assertGlobMatch(p, 'testing/foo.js');
@@ -793,7 +741,6 @@ suite('Glob', () => {
 		assert.strictEqual(glob.parse(expr)('foo', undefined, hasSibling), null);
 		assert.strictEqual(glob.parse(expr)('foo/bar', undefined, hasSibling), '**/bar');
 		if (isWindows) {
-			// backslash is a valid file name character on posix
 			assert.strictEqual(glob.parse(expr)('foo\\bar', undefined, hasSibling), '**/bar');
 		}
 		assert.strictEqual(glob.parse(expr)('foo/foo', undefined, hasSibling), null);
@@ -913,7 +860,6 @@ suite('Glob', () => {
 	}
 
 	test('trailing slash', function () {
-		// Testing existing (more or less intuitive) behavior
 		assert.strictEqual(glob.parse('**/foo/')('bar/baz', 'baz'), false);
 		assert.strictEqual(glob.parse('**/foo/')('bar/foo', 'foo'), true);
 		assert.strictEqual(glob.parse('**/*.foo/')('bar/file.baz', 'file.baz'), false);
@@ -937,7 +883,7 @@ suite('Glob', () => {
 
 		assert.strictEqual(glob.parse('foo/bar')(nativeSep('foo/baz'), 'baz'), false);
 		assert.strictEqual(glob.parse('foo/bar')(nativeSep('foo/bar'), 'bar'), true);
-		assert.strictEqual(glob.parse('foo/bar/baz')(nativeSep('foo/bar/baz'), 'baz'), true); // #15424
+		assert.strictEqual(glob.parse('foo/bar/baz')(nativeSep('foo/bar/baz'), 'baz'), true);
 		assert.strictEqual(glob.parse('foo/bar')(nativeSep('bar/foo/bar'), 'bar'), false);
 		assert.strictEqual(glob.parse('foo/bar/**')(nativeSep('foo/bar/baz'), 'baz'), true);
 		assert.strictEqual(glob.parse('foo/bar/**', { trimForExclusions: true })(nativeSep('foo/bar'), 'bar'), true);
@@ -949,16 +895,10 @@ suite('Glob', () => {
 		assert.deepStrictEqual(glob.getPathTerms(glob.parse('**/foo')), []);
 		assert.deepStrictEqual(glob.getPathTerms(glob.parse('**/foo/bar')), ['*/foo/bar']);
 		assert.deepStrictEqual(glob.getPathTerms(glob.parse('**/foo/bar/')), ['*/foo/bar']);
-		// Not supported
-		// assert.deepStrictEqual(glob.getPathTerms(glob.parse('{**/baz/bar,**/foo/bar,**/bar}')), ['*/baz/bar', '*/foo/bar']);
-		// assert.deepStrictEqual(glob.getPathTerms(glob.parse('{**/baz/bar/,**/foo/bar/,**/bar/}')), ['*/baz/bar', '*/foo/bar']);
 
 		const parsed = glob.parse({
 			'**/foo/bar': true,
 			'**/foo2/bar2': true,
-			// Not supported
-			// '{**/bar/foo,**/baz/foo}': true,
-			// '{**/bar2/foo/,**/baz2/foo/}': true,
 			'**/bulb': true,
 			'**/bulb2': true,
 			'**/bulb/foo': false
@@ -978,18 +918,12 @@ suite('Glob', () => {
 
 		testOptimizationForPaths('**/*.foo/bar/**', [], [[nativeSep('baz/bar.foo/bar/baz'), true]]);
 		testOptimizationForPaths('**/foo/bar/**', ['*/foo/bar'], [[nativeSep('bar/foo/bar'), true], [nativeSep('bar/foo/bar/baz'), false]]);
-		// Not supported
-		// testOptimizationForPaths('{**/baz/bar/**,**/foo/bar/**}', ['*/baz/bar', '*/foo/bar'], [[nativeSep('bar/baz/bar'), true], [nativeSep('bar/foo/bar'), true]]);
 
 		testOptimizationForPaths({
 			'**/foo/bar/**': true,
-			// Not supported
-			// '{**/bar/bar/**,**/baz/bar/**}': true,
 			'**/bulb/bar/**': false
 		}, ['*/foo/bar'], [
 			[nativeSep('bar/foo/bar'), '**/foo/bar/**'],
-			// Not supported
-			// [nativeSep('foo/bar/bar'), '{**/bar/bar/**,**/baz/bar/**}'],
 			[nativeSep('/foo/bar/nope'), null!]
 		]);
 
@@ -1136,7 +1070,6 @@ suite('Glob', () => {
 		const siblings = ['test.html', 'test.txt', 'test.ts'];
 		const hasSibling = (name: string) => Promise.resolve(siblings.indexOf(name) !== -1);
 
-		// { "**/*.js": { "when": "$(basename).ts" } }
 		const expression: glob.IExpression = {
 			'**/test.js': { when: '$(basename).js' },
 			'**/*.js': { when: '$(basename).ts' }
@@ -1174,24 +1107,18 @@ suite('Glob', () => {
 	test('caseInsensitiveMatch', () => {
 		assertNoGlobMatch('PATH/FOO.js', 'path/foo.js');
 		assertGlobMatch('PATH/FOO.js', 'path/foo.js', true);
-		// T1
 		assertNoGlobMatch('**/*.JS', 'bar/foo.js');
 		assertGlobMatch('**/*.JS', 'bar/foo.js', true);
-		// T2
 		assertNoGlobMatch('**/package', 'bar/Package');
 		assertGlobMatch('**/package', 'bar/Package', true);
-		// T3
 		assertNoGlobMatch('{**/*.JS,**/*.TS}', 'bar/foo.ts');
 		assertNoGlobMatch('{**/*.JS,**/*.TS}', 'bar/foo.js');
 		assertGlobMatch('{**/*.JS,**/*.TS}', 'bar/foo.ts', true);
 		assertGlobMatch('{**/*.JS,**/*.TS}', 'bar/foo.js', true);
-		// T4
 		assertNoGlobMatch('**/FOO/Bar', 'bar/foo/bar');
 		assertGlobMatch('**/FOO/Bar', 'bar/foo/bar', true);
-		// T5
 		assertNoGlobMatch('FOO/Bar', 'foo/bar');
 		assertGlobMatch('FOO/Bar', 'foo/bar', true);
-		// Other
 		assertNoGlobMatch('some/*/Random/*/Path.FILE', 'some/very/random/unusual/path.file');
 		assertGlobMatch('some/*/Random/*/Path.FILE', 'some/very/random/unusual/path.file', true);
 	});

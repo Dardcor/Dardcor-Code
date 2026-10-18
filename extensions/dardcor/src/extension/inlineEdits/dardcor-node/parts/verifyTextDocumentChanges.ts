@@ -8,11 +8,6 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
 import { editFromTextDocumentContentChangeEvents } from './common';
 
-/**
- * Verifies that VS Code content change API reports consistent document edits.
- * Tracks document states and verifies that applying reported edits to the previous state
- * produces the new document state. Reports mismatches via telemetry.
- */
 export class VerifyTextDocumentChanges extends Disposable {
 	private readonly _documentStates = new Map<string, { text: string; linefeed: EndOfLine }>();
 
@@ -21,18 +16,10 @@ export class VerifyTextDocumentChanges extends Disposable {
 	) {
 		super();
 
-		// This comes from telemetry
 		const allowedSchemes = new Set([
 			'file',
 			'vscode-notebook-cell',
 			'untitled',
-			// "vscode-local",
-			// "vscode-chat-code-block",
-			// "chat-editing-text-model",
-			// "embedded-html",
-			// "vscode-userdata",
-			// "vscode-remote",
-			// "git",
 		]);
 		function shouldVerifyDoc(doc: TextDocument): boolean {
 			return allowedSchemes.has(doc.uri.scheme);
@@ -76,12 +63,6 @@ export class VerifyTextDocumentChanges extends Disposable {
 		const previousValue = this._documentStates.get(docUri);
 
 		if (previousValue === undefined) {
-			/* __GDPR__
-				"vscode.contentChangeForUnknownDocument" : {
-					"owner": "hediet",
-					"comment": "Telemetry for verifying VSCode content change API consistency"
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('vscode.contentChangeForUnknownDocument', {}, {});
 			return;
 		}
@@ -92,18 +73,6 @@ export class VerifyTextDocumentChanges extends Disposable {
 		const expectedText = edit.apply(previousValue.text);
 
 		if (expectedText !== currentText) {
-			/* __GDPR__
-				"vscode.contentChangeInconsistencyDetected" : {
-					"owner": "hediet",
-					"comment": "Telemetry for verifying VSCode content change API consistency",
-					"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language of the currently open document." },
-					"sourceOfChange": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Source of the change." },
-					"reason": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Reason for change (1 = undo, 2 = redo).", "isMeasurement": true },
-					"previousLineFeed": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Line feed of the previously open document.", "isMeasurement": true },
-					"currentLineFeed": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Line feed of the currently open document.", "isMeasurement": true },
-					"scheme": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Scheme of the currently open document." }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('vscode.contentChangeInconsistencyDetected', {
 				languageId: e.document.languageId,
 				scheme: e.document.uri.scheme,

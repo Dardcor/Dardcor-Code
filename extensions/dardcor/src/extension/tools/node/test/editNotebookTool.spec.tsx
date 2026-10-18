@@ -85,7 +85,6 @@ describe('Edit Notebook Tool', () => {
 		return editTool.invoke(options, CancellationToken.None);
 	}
 	async function invokeTool(notebook: ExtHostNotebookDocumentData, editTool: EditNotebookTool, editsToPerform: IEditNotebookToolParams[], notebookEdits: (NotebookEdit | [Uri, TextEdit])[]) {
-		// all all editsToPerformn in sequence
 		for (const edit of editsToPerform) {
 			await invokeOneTool(notebook, editTool, edit, notebookEdits);
 		}
@@ -153,7 +152,6 @@ describe('Edit Notebook Tool', () => {
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
 
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{
@@ -211,7 +209,6 @@ describe('Edit Notebook Tool', () => {
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
 
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{
@@ -267,7 +264,6 @@ describe('Edit Notebook Tool', () => {
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
 
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{
@@ -310,7 +306,6 @@ describe('Edit Notebook Tool', () => {
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
 
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{
@@ -399,7 +394,6 @@ describe('Edit Notebook Tool', () => {
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
 
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{
@@ -457,7 +451,6 @@ describe('Edit Notebook Tool', () => {
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
 
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{
@@ -514,7 +507,6 @@ describe('Edit Notebook Tool', () => {
 			cellEdits[i].cellId = getCellId(notebook.document.cellAt(notebook.document.cellCount - 1));
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{
@@ -600,7 +592,6 @@ describe('Edit Notebook Tool', () => {
 
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{
@@ -661,7 +652,6 @@ describe('Edit Notebook Tool', () => {
 			const promise = invokeTool(notebook, editTool, [cellEdits[i]], notebookEdits);
 			await waitForEditCount(i + 1, notebookEdits);
 
-			// Fire event for the added cell
 			workspaceService.didChangeNotebookDocumentEmitter.fire({
 				cellChanges: [],
 				contentChanges: [{

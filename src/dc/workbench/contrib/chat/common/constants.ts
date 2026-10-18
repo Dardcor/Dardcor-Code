@@ -21,7 +21,7 @@ export { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSe
 export const enum BYOKUtilityModelDefault {
 	None = 'none',
 	MainAgent = 'mainAgent',
-	Copilot = 'copilot',
+	DardcorRouter = 'dardcor',
 }
 
 export const enum CustomizationMigrationHintMode {
@@ -79,8 +79,6 @@ export enum ChatConfiguration {
 	NotifyWindowOnConfirmation = 'chat.notifyWindowOnConfirmation',
 	NotifyWindowOnResponseReceived = 'chat.notifyWindowOnResponseReceived',
 	ChatViewSessionsEnabled = 'chat.viewSessions.enabled',
-	SessionSyncEnabled = 'chat.sessionSync.enabled',
-	SessionSyncExcludeRepositories = 'chat.sessionSync.excludeRepositories',
 	ChatViewSessionsGrouping = 'chat.viewSessions.grouping',
 	ChatViewSessionsOrientation = 'chat.viewSessions.orientation',
 	ChatViewProgressBadgeEnabled = 'chat.viewProgressBadge.enabled',
@@ -137,26 +135,16 @@ export enum ChatConfiguration {
 	ImplicitContextActiveEditor = 'chat.implicitContext.includeActiveEditor',
 }
 
-/**
- * The "kind" of agents for custom agents.
- */
 export enum ChatModeKind {
 	Ask = 'ask',
 	Edit = 'edit',
 	Agent = 'agent'
 }
 
-/**
- * The permission level controlling tool auto-approval behavior.
- */
 export enum ChatPermissionLevel {
-	/** Use existing auto-approve settings */
 	Default = 'default',
-	/** Delegate approval decisions to a model */
 	Assisted = 'assisted',
-	/** Auto-approve all tool calls, auto-retry on error */
 	AutoApprove = 'autoApprove',
-	/** Everything AutoApprove does plus an internal stop hook that continues until the task is done */
 	Autopilot = 'autopilot'
 }
 
@@ -166,15 +154,8 @@ export function isChatPermissionLevel(level: unknown | undefined): level is Chat
 	return chatPermissionLevels.has(level as string);
 }
 
-/**
- * Shape of the {@link ChatConfiguration.DefaultConfiguration}
- * object setting. Controls the starting `mode` and `approvals` for new agent-host
- * sessions (such as Copilot CLI). All properties are optional — a missing property
- * falls back to the per-axis default.
- */
 export type AgentSessionMode = 'interactive' | 'plan' | 'autopilot';
 
-/** Approval values exposed by the `chat.defaultConfiguration` setting. */
 export enum ChatDefaultPermissionLevel {
 	Manual = 'manual',
 	Assisted = 'assisted',
@@ -182,13 +163,10 @@ export enum ChatDefaultPermissionLevel {
 }
 
 export interface IChatDefaultConfiguration {
-	/** Starting agent mode: `interactive` / `plan` / `autopilot`. */
 	readonly mode?: AgentSessionMode;
-	/** Starting approval level: `manual` / `assisted` / `allowAll`. */
 	readonly approvals?: ChatDefaultPermissionLevel;
 }
 
-/** Maps a default-configuration value to the internal Agent Host permission level. */
 export function getChatPermissionLevelFromDefaultConfiguration(value: unknown): ChatPermissionLevel | undefined {
 	switch (value) {
 		case ChatDefaultPermissionLevel.Manual:
@@ -204,24 +182,14 @@ export function getChatPermissionLevelFromDefaultConfiguration(value: unknown): 
 	}
 }
 
-/**
- * Returns true if the permission level enables auto-approval of all tool calls.
- * Both {@link ChatPermissionLevel.AutoApprove} and {@link ChatPermissionLevel.Autopilot} enable auto-approval.
- */
 export function isAutoApproveLevel(level: ChatPermissionLevel | undefined): boolean {
 	return level === ChatPermissionLevel.AutoApprove || level === ChatPermissionLevel.Autopilot;
 }
 
-/**
- * True for {@link ChatPermissionLevel.Autopilot} only. Unlike {@link isAutoApproveLevel}, this
- * excludes {@link ChatPermissionLevel.AutoApprove}, so it can gate Autopilot-only behavior such as
- * risk-based skipping of tool calls.
- */
 export function isAutopilotLevel(level: ChatPermissionLevel | undefined): boolean {
 	return level === ChatPermissionLevel.Autopilot;
 }
 
-// Thinking display modes for pinned content
 export enum ThinkingDisplayMode {
 	Collapsed = 'collapsed',
 	CollapsedPreview = 'collapsedPreview',
@@ -243,16 +211,9 @@ export enum ChatNotificationMode {
 export type RawChatParticipantLocation = 'panel' | 'terminal' | 'notebook' | 'editing-session';
 
 export enum ChatAgentLocation {
-	/**
-	 * This is chat, whether it's in the sidebar, a chat editor, or quick chat.
-	 * Leaving the values alone as they are in stored data so we don't have to normalize them.
-	 */
 	Chat = 'panel',
 	Terminal = 'terminal',
 	Notebook = 'notebook',
-	/**
-	 * EditorInline means inline chat in a text editor.
-	 */
 	EditorInline = 'editor',
 }
 
@@ -268,13 +229,8 @@ export namespace ChatAgentLocation {
 	}
 }
 
-/**
- * List of file schemes that are always unsupported for use in chat
- */
 const chatAlwaysUnsupportedFileSchemes = new Set([
 	Schemas.vscodeChatEditor,
-	// Chat's own read-only resources, such as a pasted-text artifact: their
-	// contents already reach the model through the attachment they belong to.
 	Schemas.vscodeChatResponseResource,
 	Schemas.walkThrough,
 	Schemas.vscodeLocalChatSession,
@@ -283,10 +239,9 @@ const chatAlwaysUnsupportedFileSchemes = new Set([
 	Schemas.vscodeUserData,
 	Schemas.extension,
 	'ccreq',
-	'openai-codex', // Codex session custom editor scheme
+	'openai-codex',
 ]);
 
-/** Schemes whose models are chat input editors. */
 export const chatInputSchemes: readonly string[] = [Schemas.vscodeChatInput, Schemas.sessionsChatInput];
 
 export function isChatInputModel(uri: URI): boolean {
@@ -296,29 +251,17 @@ export function isChatInputModel(uri: URI): boolean {
 export function isSupportedChatFileScheme(accessor: ServicesAccessor, scheme: string): boolean {
 	const chatService = accessor.get(IChatSessionsService);
 
-	// Exclude schemes we always know are bad
 	if (chatAlwaysUnsupportedFileSchemes.has(scheme)) {
 		return false;
 	}
 
-	// Plus any schemes used by content providers
 	if (chatService.getContentProviderSchemes().includes(scheme)) {
 		return false;
 	}
 
-	// Everything else is supported
 	return true;
 }
 
-/**
- * Returns the effective default session type for a new chat in the VS Code
- * editor window.
- *
- * Virtual workspaces always default to {@link localChatSessionType}. Otherwise,
- * when the agent host is enabled and either `chat.defaultToCopilotHarness` is opted in or the
- * agent sandbox is enforced by policy, Agent Host Copilot CLI is the default. It falls back to
- * the local harness when enabled, or to the first visible non-local provider.
- */
 export function getComputedDefaultSessionType(
 	configurationService: IConfigurationService,
 	chatSessionsService: Pick<IChatSessionsService, 'getChatSessionContribution' | 'getAllChatSessionContributions'>,
@@ -368,21 +311,13 @@ export function isNewChatSessionTypeUsable(
 	return isVisibleEditorChatSessionType(sessionType, configurationService, chatSessionsService, workspace, managedSandboxEnforced);
 }
 
-/** Why a new chat session type was selected. */
 export type SessionTypeSelectionReason =
-	/** A caller explicitly chose the session type. */
 	| 'explicitOverride'
-	/** The session type was automatically set to Local in a virtual workspace. */
 	| 'virtualWorkspace'
-	/** The user's last usable session type was restored. */
 	| 'rememberedSelection'
-	/** The current session's usable type was preserved. */
 	| 'currentSession'
-	/** The Copilot harness preference replaced a local current session. */
 	| 'copilotPreference'
-	/** An intended Agent Host session could not be acquired, so Local was used. */
 	| 'agentHostUnavailable'
-	/** Settings and available capabilities determined the default type. */
 	| 'computedDefault';
 
 export function getLocalFallbackSessionTypeSelectionReason(sessionType: string, didAcquireSession: boolean, inheritedReason?: SessionTypeSelectionReason): SessionTypeSelectionReason | undefined {
@@ -395,7 +330,6 @@ export interface IDefaultNewChatSessionTypeOptions {
 }
 
 export interface IResolvedNewChatSessionType {
-	/** The session type to open for the new chat. */
 	readonly sessionType: string;
 	readonly selectionReason: SessionTypeSelectionReason;
 }
@@ -542,30 +476,16 @@ export function recordUserSelectedSessionType(
 	}
 }
 
-/**
- * Whether new editor and panel chats should default to the Agent Host Copilot SDK. Enterprises
- * whose managed settings mandate the SDK sandbox floor get this behavior without opting into
- * `chat.defaultToCopilotHarness`.
- */
 function isCopilotHarnessDefault(configurationService: IConfigurationService, managedSandboxEnforced = false): boolean {
 	return configurationService.getValue<boolean>(ChatConfiguration.DefaultToCopilotHarness) === true
 		|| managedSandboxEnforced;
 }
 
-/**
- * Whether the Agent Host Copilot SDK replaces the local harness whenever the local harness would
- * otherwise be picked for a new chat. Implied by an enterprise-mandated sandbox floor.
- */
 function isCopilotHarnessPreferred(configurationService: IConfigurationService, managedSandboxEnforced = false): boolean {
 	return configurationService.getValue<boolean>(ChatConfiguration.EditorPreferCopilotHarness) === true
 		|| managedSandboxEnforced;
 }
 
-/**
- * Whether the legacy local chat harness is offered. Virtual workspaces always keep it. Outside
- * virtual workspaces, an enterprise-mandated sandbox floor retires it: the sandbox is implemented
- * by the Agent Host, so the enterprise has declared these users governed.
- */
 export function isEditorLocalAgentEnabled(configurationService: IConfigurationService, workspace: IWorkspace, managedSandboxEnforced = false): boolean {
 	if (isVirtualWorkspace(workspace)) {
 		return true;

@@ -4,17 +4,11 @@ import { generatePKCE } from "../utils/pkce.js";
 import { spinner as createSpinner } from "../utils/ui.js";
 import { OAUTH_TIMEOUT } from "../constants/oauth.js";
 
-/**
- * Generic OAuth Authorization Code Flow with PKCE
- */
 export class OAuthService {
   constructor(config) {
     this.config = config;
   }
 
-  /**
-   * Build authorization URL
-   */
   buildAuthUrl(redirectUri, state, codeChallenge, extraParams = {}) {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
@@ -29,13 +23,9 @@ export class OAuthService {
     return `${this.config.authorizeUrl}?${params.toString()}`;
   }
 
-  /**
-   * Start local server and wait for callback
-   */
   async startAuthFlow(authUrl, providerName) {
     const spinner = createSpinner("Starting local server...").start();
 
-    // Start local server for callback
     let callbackParams = null;
     const { port, close } = await startLocalServer((params) => {
       callbackParams = params;
@@ -81,9 +71,6 @@ export class OAuthService {
     };
   }
 
-  /**
-   * Exchange authorization code for tokens
-   */
   async exchangeCode(code, redirectUri, codeVerifier, contentType = "application/x-www-form-urlencoded") {
     const body =
       contentType === "application/json"
@@ -119,29 +106,20 @@ export class OAuthService {
     return await response.json();
   }
 
-  /**
-   * Complete OAuth flow
-   */
   async authenticate(providerName, buildAuthUrlFn) {
-    // Generate PKCE
     const { codeVerifier, codeChallenge, state } = generatePKCE();
 
-    // Start local server and get redirect URI
     const { redirectUri, waitForCallback } = await this.startAuthFlow(null, providerName);
 
-    // Build authorization URL
     const authUrl = buildAuthUrlFn(redirectUri, state, codeChallenge);
 
     console.log(`\nOpening browser for ${providerName} authentication...`);
     console.log(`If browser doesn't open, visit:\n${authUrl}\n`);
 
-    // Open browser
     await open(authUrl);
 
-    // Wait for callback
     const callbackParams = await waitForCallback();
 
-    // Validate state
     if (callbackParams.state !== state) {
       throw new Error("Invalid state parameter");
     }

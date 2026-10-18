@@ -90,7 +90,6 @@ export class OutputElement extends Disposable {
 		this.renderResult = result;
 
 		if (!result) {
-			// this.viewCell.updateOutputHeight(index, 0);
 			return;
 		}
 
@@ -176,7 +175,6 @@ export class OutputElement extends Disposable {
 		}
 
 		if (pick !== currIndex) {
-			// user chooses another mimetype
 			const index = this._nestedCell.outputsViewModels.indexOf(viewModel);
 			const nextElement = this.domNode.nextElementSibling;
 			this.resizeListener.clear();
@@ -257,9 +255,7 @@ export class OutputContainer extends Disposable {
 
 		this._outputEntries.forEach((value, key) => {
 			if (this._nestedCellViewModel.outputsViewModels.indexOf(key) < 0) {
-				// already removed
 				removedKeys.push(key);
-				// remove element from DOM
 				value.domNode.remove();
 				this._editor.removeInset(this._diffElementViewModel, this._nestedCellViewModel, key, this._diffSide);
 			}
@@ -275,23 +271,19 @@ export class OutputContainer extends Disposable {
 
 		outputsToRender.reverse().forEach(output => {
 			if (this._outputEntries.has(output)) {
-				// already exist
 				prevElement = this._outputEntries.get(output)!.domNode;
 				return;
 			}
 
-			// newly added element
 			const currIndex = this._nestedCellViewModel.outputsViewModels.indexOf(output);
 			this._renderOutput(output, currIndex, prevElement);
 			prevElement = this._outputEntries.get(output)?.domNode;
 		});
 	}
 	render() {
-		// TODO, outputs to render (should have a limit)
 		for (let index = 0; index < this._nestedCellViewModel.outputsViewModels.length; index++) {
 			const currOutput = this._nestedCellViewModel.outputsViewModels[index];
 
-			// always add to the end
 			this._renderOutput(currOutput, index, undefined);
 		}
 	}
@@ -299,7 +291,6 @@ export class OutputContainer extends Disposable {
 	showOutputs() {
 		for (let index = 0; index < this._nestedCellViewModel.outputsViewModels.length; index++) {
 			const currOutput = this._nestedCellViewModel.outputsViewModels[index];
-			// always add to the end
 			this._editor.showInset(this._diffElementViewModel, currOutput.cellViewModel, currOutput, this._diffSide);
 		}
 	}

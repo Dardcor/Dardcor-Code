@@ -6,10 +6,6 @@
 import { IIncrementalRenderingAnimation } from './animation.js';
 import { BlockAnimation } from './blockAnimations.js';
 
-/**
- * Registry of all available animation styles.
- * To add a new animation, add an entry here.
- */
 export const ANIMATION_STYLES = {
 	none: (): IIncrementalRenderingAnimation => ({ animate() { } }),
 	fade: (): IIncrementalRenderingAnimation => new BlockAnimation('fade'),

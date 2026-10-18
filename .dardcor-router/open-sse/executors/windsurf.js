@@ -3,14 +3,6 @@ import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { PROVIDERS } from "../config/providers.js";
 import { randomUUID } from "node:crypto";
 
-// WindsurfExecutor — Codeium gRPC-web chat.
-//
-// Wire protocol: gRPC-web over HTTPS (Content-Type: application/grpc-web+proto).
-// Service:  exa.language_server_pb.LanguageServerService
-// Method:   GetChatMessage (unary request → streamed CompletionChunk frames)
-//
-// Auth: credentials.accessToken = Codeium apiKey (sk-ws-... or Firebase-derived)
-//       — placed in Metadata.api_key protobuf field of every request + Bearer header.
 
 const WS_BASE_URL = "https://server.codeium.com";
 const WS_SERVICE = "exa.language_server_pb.LanguageServerService";
@@ -22,34 +14,28 @@ const WS_IDE_VERSION = "3.14.0";
 const WS_EXT_VERSION = "3.14.0";
 const WS_LOCALE = "en-US";
 
-// ─── Model alias map (catalog name → Windsurf wire name) ─────────────────────
 const MODEL_ALIAS_MAP = {
-  // ── Cognition SWE ───────────────────────────────────────────────────────
   "swe-1.6-fast": "swe-1-6-fast",
   "swe-1.6": "swe-1-6",
   "swe-1.5-fast": "swe-1-5-fast",
   "swe-1.5": "swe-1-5",
-  // ── Claude Opus 4.7 — effort-tiered ─────────────────────────────────────
   "claude-opus-4.7-max": "claude-opus-4-7-max",
   "claude-opus-4.7-xhigh": "claude-opus-4-7-xhigh",
   "claude-opus-4.7-high": "claude-opus-4-7-high",
   "claude-opus-4.7-medium": "claude-opus-4-7-medium",
   "claude-opus-4.7-low": "claude-opus-4-7-low",
   "claude-opus-4.7-review": "opus-4-7-review",
-  // ── Claude Opus/Sonnet 4.6 ──────────────────────────────────────────────
   "claude-sonnet-4.6-thinking-1m": "claude-sonnet-4-6-thinking-1m",
   "claude-sonnet-4.6-1m": "claude-sonnet-4-6-1m",
   "claude-sonnet-4.6-thinking": "claude-sonnet-4-6-thinking",
   "claude-sonnet-4.6": "claude-sonnet-4-6",
   "claude-opus-4.6-thinking": "claude-opus-4-6-thinking",
   "claude-opus-4.6": "claude-opus-4-6",
-  // ── Claude 4.5 ──────────────────────────────────────────────────────────
   "claude-opus-4.5-thinking": "MODEL_CLAUDE_4_5_OPUS_THINKING",
   "claude-opus-4.5": "MODEL_CLAUDE_4_5_OPUS",
   "claude-sonnet-4.5-thinking": "MODEL_PRIVATE_3",
   "claude-sonnet-4.5": "MODEL_PRIVATE_2",
   "claude-haiku-4.5": "MODEL_PRIVATE_11",
-  // ── GPT-5.5 ─────────────────────────────────────────────────────────────
   "gpt-5.5-xhigh-fast": "gpt-5-5-xhigh-priority",
   "gpt-5.5-high-fast": "gpt-5-5-high-priority",
   "gpt-5.5-medium-fast": "gpt-5-5-medium-priority",
@@ -62,7 +48,6 @@ const MODEL_ALIAS_MAP = {
   "gpt-5.5-none": "gpt-5-5-none",
   "gpt-5.5-review": "gpt-5-5-review",
   "gpt-5.5": "gpt-5-5-medium",
-  // ── GPT-5.4 ─────────────────────────────────────────────────────────────
   "gpt-5.4-xhigh-fast": "gpt-5-4-xhigh-priority",
   "gpt-5.4-high-fast": "gpt-5-4-high-priority",
   "gpt-5.4-medium-fast": "gpt-5-4-medium-priority",
@@ -78,7 +63,6 @@ const MODEL_ALIAS_MAP = {
   "gpt-5.4-mini-medium": "gpt-5-4-mini-medium",
   "gpt-5.4-mini-low": "gpt-5-4-mini-low",
   "gpt-5.4": "gpt-5-4-medium",
-  // ── GPT-5.3-Codex ───────────────────────────────────────────────────────
   "gpt-5.3-codex-xhigh-fast": "gpt-5-3-codex-xhigh-priority",
   "gpt-5.3-codex-high-fast": "gpt-5-3-codex-high-priority",
   "gpt-5.3-codex-medium-fast": "gpt-5-3-codex-medium-priority",
@@ -88,20 +72,16 @@ const MODEL_ALIAS_MAP = {
   "gpt-5.3-codex-medium": "gpt-5-3-codex-medium",
   "gpt-5.3-codex-low": "gpt-5-3-codex-low",
   "gpt-5.3-codex": "gpt-5-3-codex-medium",
-  // ── GPT-5.2 ─────────────────────────────────────────────────────────────
   "gpt-5.2-xhigh": "MODEL_GPT_5_2_XHIGH",
   "gpt-5.2-high": "MODEL_GPT_5_2_HIGH",
   "gpt-5.2-medium": "MODEL_GPT_5_2_MEDIUM",
   "gpt-5.2-low": "MODEL_GPT_5_2_LOW",
   "gpt-5.2-none": "MODEL_GPT_5_2_NONE",
   "gpt-5.2": "MODEL_GPT_5_2_MEDIUM",
-  // ── GPT-5 ───────────────────────────────────────────────────────────────
   "gpt-5": "gpt-5",
-  // ── GPT-4.1 / 4o ────────────────────────────────────────────────────────
   "gpt-4.1": "MODEL_CHAT_GPT_4_1_2025_04_14",
   "gpt-4.1-mini": "gpt-4.1-mini",
   "gpt-4o": "MODEL_CHAT_GPT_4O_2024_08_06",
-  // ── Gemini ──────────────────────────────────────────────────────────────
   "gemini-3.1-pro-high": "gemini-3-1-pro-high",
   "gemini-3.1-pro-low": "gemini-3-1-pro-low",
   "gemini-3.1-pro": "gemini-3-1-pro-high",
@@ -111,7 +91,6 @@ const MODEL_ALIAS_MAP = {
   "gemini-3.0-flash-minimal": "MODEL_GOOGLE_GEMINI_3_0_FLASH_MINIMAL",
   "gemini-3.0-flash": "MODEL_GOOGLE_GEMINI_3_0_FLASH_HIGH",
   "gemini-2.5-pro": "MODEL_GOOGLE_GEMINI_2_5_PRO",
-  // ── Others ──────────────────────────────────────────────────────────────
   "deepseek-v4": "deepseek-v4",
   "kimi-k2.6": "kimi-k2-6",
   "kimi-k2.5": "kimi-k2-5",
@@ -122,8 +101,6 @@ export function resolveWsModelId(model) {
   return MODEL_ALIAS_MAP[model] ?? model;
 }
 
-// ─── Minimal protobuf encoder ────────────────────────────────────────────────
-// Wire types: 0 = varint, 2 = length-delimited.
 
 function encodeVarint(value) {
   const bytes = [];
@@ -164,7 +141,6 @@ function encodeMessage(fieldNum, msg) {
   return encodeField(fieldNum, msg);
 }
 
-// ─── Protobuf message builders ───────────────────────────────────────────────
 
 function buildMetadata(apiKey, sessionId) {
   return concatBytes([
@@ -192,35 +168,28 @@ export function buildGetChatMessageRequest(apiKey, model, messages) {
   const cascadeId = randomUUID();
 
   const parts = [
-    encodeMessage(1, buildMetadata(apiKey, sessionId)), // metadata
-    encodeString(2, cascadeId), // cascade_id
-    encodeMessage(3, buildModelOrAlias(model)), // model_or_alias
+    encodeMessage(1, buildMetadata(apiKey, sessionId)),
+    encodeString(2, cascadeId),
+    encodeMessage(3, buildModelOrAlias(model)),
   ];
 
   for (const msg of messages) {
-    parts.push(encodeMessage(4, buildChatMessage(msg))); // repeated messages
+    parts.push(encodeMessage(4, buildChatMessage(msg)));
   }
 
   return concatBytes(parts);
 }
 
-// ─── gRPC-web framing ────────────────────────────────────────────────────────
 
 export function grpcWebFrame(payload) {
   const frame = new Uint8Array(5 + payload.length);
-  frame[0] = 0x00; // no compression
+  frame[0] = 0x00;
   const view = new DataView(frame.buffer);
-  view.setUint32(1, payload.length, false); // big-endian length
+  view.setUint32(1, payload.length, false);
   frame.set(payload, 5);
   return frame;
 }
 
-// ─── Protobuf response decoder ───────────────────────────────────────────────
-// CompletionChunk (oneof):
-//   field 1 → ContentChunk { field 1: string text }
-//   field 2 → ToolCallChunk (skipped)
-//   field 3 → DoneChunk    { field 1: UsageStats{ field1: prompt, field2: completion } }
-//   field 4 → ErrorChunk   { field 1: string message }
 
 function readVarint(buf, offset) {
   let result = 0;
@@ -262,8 +231,6 @@ function decodeStringField(buf, targetField) {
 }
 
 function decodeDoneChunk(buf) {
-  // DoneChunk: field 1 = UsageStats (nested)
-  // UsageStats: field 1 = prompt_tokens (varint), field 2 = completion_tokens (varint)
   let offset = 0;
   let usageBytes = null;
   while (offset < buf.length) {
@@ -332,7 +299,6 @@ export function decodeCompletionChunk(buf) {
         const msg = decodeStringField(payload, 1);
         return { kind: "error", message: msg ?? "unknown windsurf error" };
       }
-      // field 2 = ToolCallChunk — not yet handled; skip
     } else if (wireType === 0) {
       let v;
       [v, offset] = readVarint(buf, offset);
@@ -347,7 +313,6 @@ export function decodeCompletionChunk(buf) {
   return { kind: "unknown" };
 }
 
-// ─── OpenAI messages → Windsurf wire ─────────────────────────────────────────
 
 function openAIMessagesToWs(messages) {
   const out = [];
@@ -368,7 +333,6 @@ function openAIMessagesToWs(messages) {
   return out;
 }
 
-// ─── WindsurfExecutor ────────────────────────────────────────────────────────
 
 export class WindsurfExecutor extends BaseExecutor {
   constructor() {
@@ -384,14 +348,12 @@ export class WindsurfExecutor extends BaseExecutor {
     return {
       "Content-Type": "application/grpc-web+proto",
       Accept: "application/grpc-web+proto",
-      // Codeium apiKey also goes in Metadata.api_key (protobuf field) — see request body.
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       "User-Agent": `windsurf/${WS_IDE_VERSION}`,
       "X-Grpc-Web": "1",
     };
   }
 
-  // Request body is built manually in execute() — requires model + messages.
   transformRequest() {
     return null;
   }
@@ -431,7 +393,6 @@ export class WindsurfExecutor extends BaseExecutor {
     return { response: sseResponse, url, headers, transformedBody: protoPayload };
   }
 
-  // Convert a gRPC-web binary response into an OpenAI-compatible SSE stream.
   transformToSSE(upstream, model) {
     const responseId = `chatcmpl-ws-${Date.now()}`;
     const created = Math.floor(Date.now() / 1000);
@@ -454,7 +415,6 @@ export class WindsurfExecutor extends BaseExecutor {
 
           const handleFrame = (flag, payload) => {
             if (flag === 0x80) {
-              // Trailer frame — contains grpc-status, grpc-message
               const trailer = TEXT_DEC.decode(payload);
               const statusMatch = /grpc-status:\s*(\d+)/i.exec(trailer);
               if (statusMatch && statusMatch[1] !== "0") {
@@ -465,7 +425,7 @@ export class WindsurfExecutor extends BaseExecutor {
               }
               return;
             }
-            if (flag !== 0x00) return; // skip unknown flags
+            if (flag !== 0x00) return;
 
             const chunk = executor.constructor.decodeCompletionChunk
               ? executor.constructor.decodeCompletionChunk(payload)
@@ -532,7 +492,6 @@ export class WindsurfExecutor extends BaseExecutor {
             return;
           }
 
-          // Unary fallback: nothing streamed but text decoded → emit as one chunk.
           if (!roleEmitted && totalText) {
             emit(`data: ${JSON.stringify({
               id: responseId, object: "chat.completion.chunk", created, model,
@@ -579,7 +538,6 @@ export class WindsurfExecutor extends BaseExecutor {
     });
   }
 
-  // apiKey is long-lived (Firebase-derived or Devin ide_token); refresh handled out-of-band.
   async refreshCredentials() {
     return null;
   }

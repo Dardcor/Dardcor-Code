@@ -39,7 +39,6 @@ export class ScrollbarVisibilityController extends Disposable {
 		}
 	}
 
-	// ----------------- Hide / Reveal
 
 	public setShouldBeVisible(rawShouldBeVisible: boolean): void {
 		this._rawShouldBeVisible = rawShouldBeVisible;
@@ -76,14 +75,12 @@ export class ScrollbarVisibilityController extends Disposable {
 		this._domNode = domNode;
 		this._domNode.setClassName(this._invisibleClassName);
 
-		// Now that the flags & the dom node are in a consistent state, ensure the Hidden/Visible configuration
 		this.setShouldBeVisible(false);
 	}
 
 	public ensureVisibility(): void {
 
 		if (!this._isNeeded) {
-			// Nothing to be rendered
 			this._hide(false);
 			return;
 		}
@@ -101,7 +98,6 @@ export class ScrollbarVisibilityController extends Disposable {
 		}
 		this._isVisible = true;
 
-		// The CSS animation doesn't play otherwise
 		this._revealTimer.setIfNotSet(() => {
 			this._domNode?.setClassName(this._visibleClassName);
 		}, 0);

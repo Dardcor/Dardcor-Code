@@ -55,7 +55,6 @@ function getExtensionSchemaAssociations() {
 	};
 }
 
-//
 
 function getSettingsSchemaAssociations(uri: string) {
 	const resourceUri = Uri.parse(uri);
@@ -142,7 +141,7 @@ function showSchemaList(input: ShowSchemasInput) {
 	}
 
 	items.push({ label: '', kind: QuickPickItemKind.Separator });
-	items.push({ label: l10n.t('Learn more about JSON schema configuration...'), uri: Uri.parse('https://code.visualstudio.com/docs/languages/json#_json-schemas-and-settings') });
+	items.push({ label: l10n.t('Learn more about JSON schema configuration...'), uri: Uri.parse('https://www.dardcor-code.web.id/docs/languages/json#_json-schemas-and-settings') });
 
 	const quickPick = window.createQuickPick<ShowSchemasItem>();
 	quickPick.placeholder = items.length ? l10n.t('Select the schema to use for {0}', input.uri) : undefined;

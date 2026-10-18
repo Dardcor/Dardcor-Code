@@ -17,18 +17,12 @@ import { ICodeOrDocsSearchBaseScopingQuery, ICodeOrDocsSearchItem, ICodeOrDocsSe
 import { SearchErrorType, constructSearchError, constructSearchRepoError } from '../common/codeOrDocsSearchErrors';
 import { formatScopingQuery } from '../common/utils';
 
-/**
- * What an error looks like that is returned by docssearch.
- */
 interface IDocsSearchError {
 	message: string;
 	error: string;
 	repo: string;
 }
 
-/**
- * What the response looks like that is returned by docssearch.
- */
 interface IDocsSearchResponse {
 	results: ICodeOrDocsSearchItem[];
 	errors?: IDocsSearchError[];
@@ -68,7 +62,6 @@ export class DocsSearchClient implements IDocsSearchClient {
 		options: ICodeOrDocsSearchOptions = {},
 		token?: CancellationToken,
 	): Promise<ICodeOrDocsSearchItem[] | ICodeOrDocsSearchResult> {
-		// Code search requires at least one repo specified
 		if (Array.isArray(scopingQuery.repo) && !scopingQuery.repo.length) {
 			throw new Error('No repos specified');
 		}
@@ -83,10 +76,8 @@ export class DocsSearchClient implements IDocsSearchClient {
 			throw error;
 		}
 		const errors = result.errors?.map(constructSearchRepoError) ?? [];
-		// If we're in single repo mode, we will throw errors. If not, we're return a similar shape
 		if (!Array.isArray(scopingQuery.repo)) {
 			if (errors.length) {
-				// TODO: Can this happen?
 				if (errors.length > 1) {
 					throw new AggregateError(errors);
 				} else {
@@ -96,7 +87,6 @@ export class DocsSearchClient implements IDocsSearchClient {
 			return result.results;
 		}
 
-		// Multi-repo
 		return {
 			results: result.results,
 			errors
@@ -181,8 +171,6 @@ export class DocsSearchClient implements IDocsSearchClient {
 			modelMaxPromptTokens: 0,
 			getExtraHeaders() {
 				const headers: Record<string, string> = {
-					// needed for errors to be in the right format
-					// TODO: should this be the default of postRequest?
 					Accept: 'application/json',
 					'X-GitHub-Api-Version': '2023-12-12-preview',
 				};
@@ -205,7 +193,6 @@ export class DocsSearchClient implements IDocsSearchClient {
 
 		const text = await response.text();
 		if (response.status === 404 || (response.status === 400 && text.includes('unknown integration'))) {
-			// If the endpoint is not available for this user it will return 404.
 			this._logService.debug(`${this.slug} search endpoint not available for this user.`);
 			const error = constructSearchError({
 				error: SearchErrorType.noAccessToEndpoint,
@@ -216,10 +203,8 @@ export class DocsSearchClient implements IDocsSearchClient {
 
 		let result: IDocsSearchResponse;
 		try {
-			// handle 500s specifically (like blackbird queries)
 			result = JSON.parse(text);
 		} catch (e) {
-			// try again in the 500 case
 			throw new UnknownHttpError(response.status, text);
 		}
 

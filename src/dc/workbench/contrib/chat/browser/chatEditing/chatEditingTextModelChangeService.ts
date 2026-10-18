@@ -185,7 +185,6 @@ export class ChatEditingTextModelChangeService extends Disposable {
 		const source = this._createEditSource(responseModel);
 
 		if (isAtomicEdits) {
-			// EDIT and DONE
 			const minimalEdits = await this._editorWorkerService.computeMoreMinimalEdits(this.modifiedModel.uri, textEdits) ?? textEdits;
 			const ops = minimalEdits.map(TextEdit.asEditOperation);
 			const undoEdits = this._applyEdits(ops, source);
@@ -204,7 +203,7 @@ export class ChatEditingTextModelChangeService extends Disposable {
 
 					const defer = new DeferredPromise<void>();
 					const listener = addDisposableListener(getWindow(undefined), 'animationend', e => {
-						if (e.animationName === 'kf-chat-editing-atomic-edit') { // CHECK with chat.css
+						if (e.animationName === 'kf-chat-editing-atomic-edit') {
 							defer.complete();
 							listener.dispose();
 						}
@@ -215,21 +214,19 @@ export class ChatEditingTextModelChangeService extends Disposable {
 						range
 					}]);
 
-					await Promise.any([defer.p, timeout(500)]); // wait for animation to finish but also time-cap it
+					await Promise.any([defer.p, timeout(500)]);
 					listener.dispose();
 				}
 			}
 
 
 		} else {
-			// EDIT a bit, then DONE
 			const ops = textEdits.map(TextEdit.asEditOperation);
 			const undoEdits = this._applyEdits(ops, source);
 			maxLineNumber = undoEdits.reduce((max, op) => Math.max(max, op.range.startLineNumber), 0);
 			rewriteRatio = Math.min(1, maxLineNumber / this.modifiedModel.getLineCount());
 
 			const newDecorations: IModelDeltaDecoration[] = [
-				// decorate pending edit (region)
 				{
 					options: ChatEditingTextModelChangeService._pendingEditDecorationOptions,
 					range: new Range(maxLineNumber + 1, 1, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)
@@ -237,7 +234,6 @@ export class ChatEditingTextModelChangeService extends Disposable {
 			];
 
 			if (maxLineNumber > 0) {
-				// decorate last edit
 				newDecorations.push({
 					options: ChatEditingTextModelChangeService._lastEditDecorationOptions,
 					range: new Range(maxLineNumber, 1, maxLineNumber, Number.MAX_SAFE_INTEGER)
@@ -297,7 +293,6 @@ export class ChatEditingTextModelChangeService extends Disposable {
 
 		try {
 			this._isEditFromUs = true;
-			// make the actual edit
 			let result: ISingleEditOperation[] = [];
 
 			this.modifiedModel.pushEditOperations(null, edits, (undoEdits) => {
@@ -311,18 +306,12 @@ export class ChatEditingTextModelChangeService extends Disposable {
 		}
 	}
 
-	/**
-	 * Keeps the current modified document as the final contents.
-	 */
 	public keep() {
 		this.notifyHunkAction('accepted', { linesAdded: this.linesAdded, linesRemoved: this.linesRemoved, lineCount: this.lineChangeCount, hasRemainingEdits: false });
 		this.originalModel.setValue(this.modifiedModel.createSnapshot());
 		this._reset();
 	}
 
-	/**
-	 * Undoes the current modified document as the final contents.
-	 */
 	public undo() {
 		this.notifyHunkAction('rejected', { linesAdded: this.linesAdded, linesRemoved: this.linesRemoved, lineCount: this.lineChangeCount, hasRemainingEdits: false });
 		this.modifiedModel.pushStackElement();
@@ -344,7 +333,6 @@ export class ChatEditingTextModelChangeService extends Disposable {
 			didChange = true;
 		}
 		if (newModified !== undefined && this.modifiedModel.getValue() !== newModified) {
-			// NOTE that this isn't done via `setValue` so that the undo stack is preserved
 			this.modifiedModel.pushStackElement();
 			this._applyEdits([(EditOperation.replace(this.modifiedModel.getFullModelRange(), newModified))], EditSources.chatReset());
 			this.modifiedModel.pushStackElement();
@@ -368,28 +356,12 @@ export class ChatEditingTextModelChangeService extends Disposable {
 			}
 		} else {
 
-			//           e_ai
-			//   d0 ---------------> s0
-			//   |                   |
-			//   |                   |
-			//   | e_user_r          | e_user
-			//   |                   |
-			//   |                   |
-			//   v       e_ai_r      v
-			///  d1 ---------------> s1
-			//
-			// d0 - document snapshot
-			// s0 - document
-			// e_ai - ai edits
-			// e_user - user edits
-			//
 			const e_ai = this._originalToModifiedEdit;
 			const e_user = edit;
 
 			const e_user_r = e_user.tryRebase(e_ai.inverse(this.originalModel.getValue()));
 
 			if (e_user_r === undefined) {
-				// user edits overlaps/conflicts with AI edits
 				this._originalToModifiedEdit = e_ai.compose(e_user);
 			} else {
 				const edits = offsetEditToEditOperations(e_user_r, this.originalModel);
@@ -408,7 +380,6 @@ export class ChatEditingTextModelChangeService extends Disposable {
 
 	private async _keepHunk(change: DetailedLineRangeMapping): Promise<boolean> {
 		if (!this._diffInfo.get().changes.includes(change)) {
-			// diffInfo should have model version ids and check them (instead of the caller doing that)
 			return false;
 		}
 		const edits: ISingleEditOperation[] = [];
@@ -480,7 +451,6 @@ export class ChatEditingTextModelChangeService extends Disposable {
 	}
 
 	public hasHunkAt(range: IRange) {
-		// return true if the range overlaps a diff range
 		return this._diffInfo.get().changes.some(c => c.modified.intersectsStrict(LineRange.fromRangeInclusive(range)));
 	}
 
@@ -503,7 +473,7 @@ export class ChatEditingTextModelChangeService extends Disposable {
 			this.originalModel.uri,
 			this.modifiedModel.uri,
 			{
-				ignoreTrimWhitespace: false, // NEVER ignore whitespace so that undo/accept edits are correct and so that all changes (1 of 2) are spelled out
+				ignoreTrimWhitespace: false,
 				computeMoves: false,
 				maxComputationTimeMs: 3000
 			},
@@ -514,7 +484,6 @@ export class ChatEditingTextModelChangeService extends Disposable {
 			return undefined;
 		}
 
-		// only update the diff if the documents didn't change in the meantime
 		if (this.modifiedModel.getVersionId() === docVersionNow && this.originalModel.getVersionId() === snapshotVersionNow) {
 			const diff2 = diff ?? nullDocumentDiff;
 			this._diffInfo.set(diff2, undefined);

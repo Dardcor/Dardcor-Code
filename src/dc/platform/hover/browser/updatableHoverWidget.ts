@@ -24,7 +24,6 @@ export class ManagedHoverWidget implements IDisposable {
 
 	onDidHide() {
 		if (this._cancellationTokenSource) {
-			// there's an computation ongoing, cancel it
 			this._cancellationTokenSource.dispose(true);
 			this._cancellationTokenSource = undefined;
 		}
@@ -32,7 +31,6 @@ export class ManagedHoverWidget implements IDisposable {
 
 	async update(content: IManagedHoverContent, focus?: boolean, options?: IManagedHoverOptions): Promise<void> {
 		if (this._cancellationTokenSource) {
-			// there's an computation ongoing, cancel it
 			this._cancellationTokenSource.dispose(true);
 			this._cancellationTokenSource = undefined;
 		}
@@ -44,7 +42,6 @@ export class ManagedHoverWidget implements IDisposable {
 		if (isString(content) || isHTMLElement(content) || content === undefined) {
 			resolvedContent = content;
 		} else {
-			// compute the content, potentially long-running
 
 			this._cancellationTokenSource = new CancellationTokenSource();
 			const token = this._cancellationTokenSource.token;
@@ -60,10 +57,8 @@ export class ManagedHoverWidget implements IDisposable {
 				managedContent = content.element(token);
 			}
 
-			// compute the content
 			if (managedContent instanceof Promise) {
 
-				// show 'Loading' if no hover is up yet
 				if (!this._hoverWidget) {
 					this.show(localize('iconLabel.loading', "Loading..."), focus, options);
 				}
@@ -74,8 +69,6 @@ export class ManagedHoverWidget implements IDisposable {
 			}
 
 			if (this.isDisposed || token.isCancellationRequested) {
-				// either the widget has been closed in the meantime
-				// or there has been a new call to `update`
 				return;
 			}
 		}
@@ -95,7 +88,7 @@ export class ManagedHoverWidget implements IDisposable {
 				trapFocus: options?.trapFocus,
 				appearance: {
 					showPointer: this.hoverDelegate.placement === 'element',
-					skipFadeInAnimation: !this.fadeInAnimation || !!oldHoverWidget, // do not fade in if the hover is already showing
+					skipFadeInAnimation: !this.fadeInAnimation || !!oldHoverWidget,
 					showHoverHint: options?.appearance?.showHoverHint,
 				},
 				position: {

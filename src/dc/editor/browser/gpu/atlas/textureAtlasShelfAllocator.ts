@@ -8,10 +8,6 @@ import { ensureNonNullable } from '../gpuUtils.js';
 import type { IRasterizedGlyph } from '../raster/raster.js';
 import { UsagePreviewColors, type ITextureAtlasAllocator, type ITextureAtlasPageGlyph } from './atlas.js';
 
-/**
- * The shelf allocator is a simple allocator that places glyphs in rows, starting a new row when the
- * current row is full. Due to its simplicity, it can waste space but it is very fast.
- */
 export class TextureAtlasShelfAllocator implements ITextureAtlasAllocator {
 
 	private readonly _ctx: OffscreenCanvasRenderingContext2D;
@@ -22,7 +18,6 @@ export class TextureAtlasShelfAllocator implements ITextureAtlasAllocator {
 		h: 0
 	};
 
-	/** A set of all glyphs allocated, this is only tracked to enable debug related functionality */
 	private readonly _allocatedGlyphs: Set<Readonly<ITextureAtlasPageGlyph>> = new Set();
 
 	private _nextIndex = 0;
@@ -37,41 +32,34 @@ export class TextureAtlasShelfAllocator implements ITextureAtlasAllocator {
 	}
 
 	public allocate(rasterizedGlyph: IRasterizedGlyph): ITextureAtlasPageGlyph | undefined {
-		// The glyph does not fit into the atlas page
 		const glyphWidth = rasterizedGlyph.boundingBox.right - rasterizedGlyph.boundingBox.left + 1;
 		const glyphHeight = rasterizedGlyph.boundingBox.bottom - rasterizedGlyph.boundingBox.top + 1;
 		if (glyphWidth > this._canvas.width || glyphHeight > this._canvas.height) {
 			throw new BugIndicatingError('Glyph is too large for the atlas page');
 		}
 
-		// Finalize and increment row if it doesn't fix horizontally
 		if (rasterizedGlyph.boundingBox.right - rasterizedGlyph.boundingBox.left + 1 > this._canvas.width - this._currentRow.x) {
 			this._currentRow.x = 0;
 			this._currentRow.y += this._currentRow.h;
 			this._currentRow.h = 1;
 		}
 
-		// Return undefined if there isn't any room left
 		if (this._currentRow.y + rasterizedGlyph.boundingBox.bottom - rasterizedGlyph.boundingBox.top + 1 > this._canvas.height) {
 			return undefined;
 		}
 
-		// Draw glyph
 		this._ctx.drawImage(
 			rasterizedGlyph.source,
-			// source
 			rasterizedGlyph.boundingBox.left,
 			rasterizedGlyph.boundingBox.top,
 			glyphWidth,
 			glyphHeight,
-			// destination
 			this._currentRow.x,
 			this._currentRow.y,
 			glyphWidth,
 			glyphHeight
 		);
 
-		// Create glyph object
 		const glyph: ITextureAtlasPageGlyph = {
 			pageIndex: this._textureIndex,
 			glyphIndex: this._nextIndex++,
@@ -85,11 +73,9 @@ export class TextureAtlasShelfAllocator implements ITextureAtlasAllocator {
 			fontBoundingBoxDescent: rasterizedGlyph.fontBoundingBoxDescent,
 		};
 
-		// Shift current row
 		this._currentRow.x += glyphWidth;
 		this._currentRow.h = Math.max(this._currentRow.h, glyphHeight);
 
-		// Set the glyph
 		this._allocatedGlyphs.add(glyph);
 
 		return glyph;
@@ -103,8 +89,8 @@ export class TextureAtlasShelfAllocator implements ITextureAtlasAllocator {
 		ctx.fillStyle = UsagePreviewColors.Unused;
 		ctx.fillRect(0, 0, w, h);
 
-		const rowHeight: Map<number, number> = new Map(); // y -> h
-		const rowWidth: Map<number, number> = new Map(); // y -> w
+		const rowHeight: Map<number, number> = new Map();
+		const rowWidth: Map<number, number> = new Map();
 		for (const g of this._allocatedGlyphs) {
 			rowHeight.set(g.y, Math.max(rowHeight.get(g.y) ?? 0, g.h));
 			rowWidth.set(g.y, Math.max(rowWidth.get(g.y) ?? 0, g.x + g.w));
@@ -132,8 +118,8 @@ export class TextureAtlasShelfAllocator implements ITextureAtlasAllocator {
 		let wastedPixels = 0;
 		const totalPixels = w * h;
 
-		const rowHeight: Map<number, number> = new Map(); // y -> h
-		const rowWidth: Map<number, number> = new Map(); // y -> w
+		const rowHeight: Map<number, number> = new Map();
+		const rowWidth: Map<number, number> = new Map();
 		for (const g of this._allocatedGlyphs) {
 			rowHeight.set(g.y, Math.max(rowHeight.get(g.y) ?? 0, g.h));
 			rowWidth.set(g.y, Math.max(rowWidth.get(g.y) ?? 0, g.x + g.w));

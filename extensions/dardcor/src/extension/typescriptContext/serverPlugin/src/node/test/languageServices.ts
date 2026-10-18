@@ -131,10 +131,8 @@ class LocalLanguageServiceHost implements tt.LanguageServiceHost {
 		return this.config.projectReferences;
 	}
 	public getScriptVersion(_fileName: string): string {
-		// The files are immutable.
 		return '0';
 	}
-	// The project is immutable
 	public getProjectVersion(): string {
 		return '0';
 	}
@@ -158,9 +156,6 @@ class LocalLanguageServiceHost implements tt.LanguageServiceHost {
 		}
 	}
 	public getDefaultLibFileName(options: tt.CompilerOptions): string {
-		// We need to return the path since the language service needs
-		// to know the full path and not only the name which is return
-		// from ts.getDefaultLibFileName
 		return ts.getDefaultLibFilePath(options);
 	}
 
@@ -169,7 +164,6 @@ class LocalLanguageServiceHost implements tt.LanguageServiceHost {
 	public fileExists = ts.sys.fileExists;
 	public readFile = ts.sys.readFile;
 	public readDirectory = ts.sys.readDirectory;
-	// this is necessary to make source references work.
 	public realpath = ts.sys.realpath;
 
 	public runWithTemporaryFileUpdate(rootFile: string, updatedText: string, cb: (updatedProgram: tt.Program, originalProgram: tt.Program | undefined, updatedFile: tt.SourceFile) => void): void {
@@ -177,8 +171,6 @@ class LocalLanguageServiceHost implements tt.LanguageServiceHost {
 			throw new Error('Language service proxy not set.');
 		}
 
-		// In the test setup we can't update a script snapshot since everything is immutable. Since the
-		// test project are usually small, we simple recreate the language service with the updated content.
 		const overrides = this.overrides ?? new Map<string, string>();
 		overrides.set(rootFile, updatedText);
 

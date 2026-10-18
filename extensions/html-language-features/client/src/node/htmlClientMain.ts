@@ -14,7 +14,6 @@ import TelemetryReporter from '@vscode/extension-telemetry';
 let telemetry: TelemetryReporter | undefined;
 let client: AsyncDisposable | undefined;
 
-// this method is called when vs code is activated
 export async function activate(context: ExtensionContext) {
 
 	const clientPackageJSON = getPackageInfo(context);
@@ -23,11 +22,8 @@ export async function activate(context: ExtensionContext) {
 	const serverMain = `./server/${clientPackageJSON.main.indexOf('/dist/') !== -1 ? 'dist' : 'out'}/node/htmlServerMain`;
 	const serverModule = context.asAbsolutePath(serverMain);
 
-	// The debug options for the server
 	const debugOptions = { execArgv: ['--nolazy', '--inspect=' + (8000 + Math.round(Math.random() * 999))] };
 
-	// If the extension is launch in debug mode the debug server options are use
-	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
@@ -45,7 +41,6 @@ export async function activate(context: ExtensionContext) {
 	};
 
 
-	// pass the location of the localization bundle to the server
 	process.env['VSCODE_L10N_BUNDLE_LOCATION'] = l10n.uri?.toString() ?? '';
 
 	client = await startClient(context, newLanguageClient, { fileFs: getNodeFileFS(), TextDecoder, telemetry, timer });

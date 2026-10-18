@@ -33,7 +33,6 @@ describe('Virtual Tools - Grouping', () => {
 			this._grouper = mockGrouper;
 		}
 
-		// Expose protected member for testing
 		public get grouper() {
 			return this._grouper;
 		}
@@ -135,19 +134,17 @@ describe('Virtual Tools - Grouping', () => {
 			const tools = [makeTool('test1'), makeTool('test2')];
 			grouping.tools = tools;
 
-			// Setting same tools should not trigger recompute
 			grouping.tools = tools;
 			expect(grouping.tools).toEqual(tools);
 		});
 
 		it('should detect tool differences by name', () => {
 			const tools1 = [makeTool('test1')];
-			const tools2 = [makeTool('test1')]; // Same name, different object
+			const tools2 = [makeTool('test1')];
 
 			grouping.tools = tools1;
 			grouping.tools = tools2;
 
-			// Should not be marked as outdated since names are the same
 			expect(grouping.tools).toEqual(tools2);
 		});
 	});
@@ -197,7 +194,7 @@ describe('Virtual Tools - Grouping', () => {
 			grouping.tools = tools;
 
 			const result = await grouping.compute('', CancellationToken.None);
-			expect(result).toHaveLength(3); // 1 group + 2 singles
+			expect(result).toHaveLength(3);
 
 			const groupTool = result.find(t => t.name.startsWith(VIRTUAL_TOOL_NAME_PREFIX));
 			expect(groupTool).toBeDefined();
@@ -247,13 +244,11 @@ describe('Virtual Tools - Grouping', () => {
 			];
 			grouping.tools = tools;
 
-			// First compute to create the virtual tool
 			await grouping.compute('', CancellationToken.None);
 
 			const result = grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}file`);
 			expect(result).toBeDefined();
 
-			// The constructor takes an array of parts, check that text is present
 			const resultString = result?.content[0] as LanguageModelTextPart;
 			expect(resultString.value).toMatchInlineSnapshot(`"Tools activated: file_read, file_write, file_delete"`);
 		});
@@ -269,15 +264,12 @@ describe('Virtual Tools - Grouping', () => {
 			];
 			grouping.tools = tools;
 
-			// First compute - should return virtual tool
 			let result = await grouping.compute('', CancellationToken.None);
 			expect(result).toHaveLength(1);
 			expect(result[0].name).toBe(`${VIRTUAL_TOOL_NAME_PREFIX}file`);
 
-			// Call the virtual tool to expand it
 			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}file`);
 
-			// Second compute - should now return the expanded tools
 			result = await grouping.compute('', CancellationToken.None);
 			expect(result).toEqual(tools);
 		});
@@ -288,7 +280,6 @@ describe('Virtual Tools - Grouping', () => {
 			mockGrouper = createGroupingGrouper();
 			grouping = accessor.get(IInstantiationService).createInstance(TestToolGrouping, []);
 
-			// Create enough tools to exceed TRIM_THRESHOLD
 			const toolGroups: LanguageModelToolInformation[] = [];
 			const groupNumbers: number[] = [];
 			for (let i = 0; i < HARD_TOOL_LIMIT / 2; i++) {
@@ -301,12 +292,9 @@ describe('Virtual Tools - Grouping', () => {
 
 			shuffle(groupNumbers);
 
-			// Initial compute - should create virtual tools for groups
 			let result = await grouping.compute('', CancellationToken.None);
-			expect(result.length).toBeLessThan(toolGroups.length); // Should be grouped
+			expect(result.length).toBeLessThan(toolGroups.length);
 
-			// Expand some virtual tools by calling them at different turns
-			// call and expand until we hit the first trim
 			let i = 0;
 			for (; i < groupNumbers.length && result.length < TRIM_THRESHOLD; i++) {
 				grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group${groupNumbers[i]}`);
@@ -326,7 +314,6 @@ describe('Virtual Tools - Grouping', () => {
 			mockGrouper = createGroupingGrouper();
 			grouping = accessor.get(IInstantiationService).createInstance(TestToolGrouping, []);
 
-			// Create tools that will form groups
 			const tools: LanguageModelToolInformation[] = [];
 			for (let i = 0; i < 40; i++) {
 				tools.push(makeTool(`group${i}_tool1`));
@@ -337,22 +324,18 @@ describe('Virtual Tools - Grouping', () => {
 
 			await grouping.compute('', CancellationToken.None);
 
-			// Expand tools in different order - later calls are more recent
-			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group0`); // Oldest usage
+			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group0`);
 			grouping.didTakeTurn();
 
 			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group1`);
 			grouping.didTakeTurn();
 
-			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group2`); // Most recent usage
+			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group2`);
 			grouping.didTakeTurn();
 
-			// Force trimming
 			grouping.didInvalidateCache();
 			const result = await grouping.compute('', CancellationToken.None);
 
-			// group2 tools should still be expanded (most recent)
-			// group0 tools should be collapsed first (least recent)
 			const expandedTools = result.filter(tool =>
 				tool.name.includes('group2_tool') && !tool.name.startsWith(VIRTUAL_TOOL_NAME_PREFIX)
 			);
@@ -373,47 +356,38 @@ describe('Virtual Tools - Grouping', () => {
 
 			await grouping.compute('', CancellationToken.None);
 
-			// Expand some tools
 			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group0`);
 			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group1`);
 			grouping.didTakeTurn();
 
-			// First cache invalidation
 			grouping.didInvalidateCache();
 			let result = await grouping.compute('', CancellationToken.None);
 			const firstTrimCount = result.length;
 			expect(firstTrimCount).toBeLessThanOrEqual(TRIM_THRESHOLD);
 
-			// Expand more tools
 			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group2`);
 			grouping.didCall(0, `${VIRTUAL_TOOL_NAME_PREFIX}group3`);
 			grouping.didTakeTurn();
 
-			// Second cache invalidation
 			grouping.didInvalidateCache();
 			result = await grouping.compute('', CancellationToken.None);
 
-			// Should still respect TRIM_THRESHOLD
 			expect(result.length).toBeLessThanOrEqual(TRIM_THRESHOLD);
 		});
 
 		it('should stop trimming when no more virtual tools can be collapsed', async () => {
-			mockGrouper = createSimpleGrouper(); // No grouping - all tools individual
+			mockGrouper = createSimpleGrouper();
 			grouping = accessor.get(IInstantiationService).createInstance(TestToolGrouping, []);
 
-			// Create many individual tools (no groups)
 			const tools: LanguageModelToolInformation[] = [];
 			for (let i = 0; i < 150; i++) {
 				tools.push(makeTool(`individual_tool_${i}`));
 			}
 			grouping.tools = tools;
 
-			// Invalidate cache to trigger trimming
 			grouping.didInvalidateCache();
 			const result = await grouping.compute('', CancellationToken.None);
 
-			// Since there are no virtual tools to collapse, should keep all tools
-			// even if exceeding TRIM_THRESHOLD
 			expect(result.length).toBe(150);
 		});
 	});
@@ -427,11 +401,9 @@ describe('Virtual Tools - Grouping', () => {
 			const tools = [makeTool('test1'), makeTool('test2')];
 			grouping.tools = tools;
 
-			// Initial compute should not call recomputeEmbeddingRankings
 			await grouping.compute('query', CancellationToken.None);
 			expect(spy).not.toHaveBeenCalled();
 
-			// Cache invalidation should trigger recomputeEmbeddingRankings
 			grouping.didInvalidateCache();
 			await grouping.compute('query', CancellationToken.None);
 			expect(spy).toHaveBeenCalledWith('query', grouping['_root'], CancellationToken.None);
@@ -445,7 +417,6 @@ describe('Virtual Tools - Grouping', () => {
 					return Promise.resolve();
 				},
 				addGroups(query, root, tools, token) {
-					// Create some virtual tools with different canBeCollapsed settings
 					const collapsibleGroup = new VirtualTool(
 						`${VIRTUAL_TOOL_NAME_PREFIX}collapsible`,
 						'Collapsible group',
@@ -470,28 +441,23 @@ describe('Virtual Tools - Grouping', () => {
 			};
 			grouping = accessor.get(IInstantiationService).createInstance(TestToolGrouping, []);
 
-			// Create many tools to trigger trimming
 			const manyTools: LanguageModelToolInformation[] = [];
 			for (let i = 0; i < TRIM_THRESHOLD + 10; i++) {
 				manyTools.push(makeTool(`tool_${i}`));
 			}
 			grouping.tools = manyTools;
 
-			// Initial compute
 			await grouping.compute('', CancellationToken.None);
 
-			// Force trimming
 			grouping.didInvalidateCache();
 			await grouping.compute('', CancellationToken.None);
 
-			// Non-collapsible group should still be expanded
 			const allResult = await grouping.computeAll('', CancellationToken.None);
 			const nonCollapsibleGroup = allResult.find(tool =>
 				tool instanceof VirtualTool && tool.name === `${VIRTUAL_TOOL_NAME_PREFIX}noncollapsible`
 			) as VirtualTool;
 			expect(nonCollapsibleGroup?.isExpanded).toBe(true);
 
-			// Collapsible group may have been collapsed - just verify it exists
 			const collapsibleGroup = allResult.find(tool =>
 				tool instanceof VirtualTool && tool.name === `${VIRTUAL_TOOL_NAME_PREFIX}collapsible`
 			) as VirtualTool;
@@ -507,7 +473,7 @@ describe('Virtual Tools - Grouping', () => {
 					const nonCollapsibleGroup = new VirtualTool(
 						`${VIRTUAL_TOOL_NAME_PREFIX}noncollapsible`,
 						'Non-collapsible group',
-						5, // Initial lastUsedOnTurn
+						5,
 						{ canBeCollapsed: false, wasExpandedByDefault: true }
 					);
 					nonCollapsibleGroup.contents = tools.slice(0, 3);
@@ -519,21 +485,17 @@ describe('Virtual Tools - Grouping', () => {
 			};
 			grouping = accessor.get(IInstantiationService).createInstance(TestToolGrouping, []);
 
-			// Create many tools to trigger trimming
 			const manyTools: LanguageModelToolInformation[] = [];
 			for (let i = 0; i < TRIM_THRESHOLD + 10; i++) {
 				manyTools.push(makeTool(`tool_${i}`));
 			}
 			grouping.tools = manyTools;
 
-			// Initial compute
 			await grouping.compute('', CancellationToken.None);
 
-			// Force trimming
 			grouping.didInvalidateCache();
 			await grouping.compute('', CancellationToken.None);
 
-			// Check that non-collapsible tool's lastUsedOnTurn was set to Infinity
 			const allResult = await grouping.computeAll('', CancellationToken.None);
 			const nonCollapsibleGroup = allResult.find(tool =>
 				tool instanceof VirtualTool && tool.name === `${VIRTUAL_TOOL_NAME_PREFIX}noncollapsible`
@@ -548,7 +510,6 @@ describe('Virtual Tools - Grouping', () => {
 			mockGrouper = createGroupingGrouper();
 			grouping = accessor.get(IInstantiationService).createInstance(TestToolGrouping, []);
 
-			// Create a large number of tools to test trimming behavior
 			const manyTools: LanguageModelToolInformation[] = [];
 			for (let i = 0; i < 10; i++) {
 				for (let k = 0; k < 20; k++) {

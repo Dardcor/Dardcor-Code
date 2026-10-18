@@ -38,7 +38,7 @@ export class FileStorage extends Disposable {
 	) {
 		super();
 
-		this.flushDelayer = this._register(new ThrottledDelayer<void>(saveStrategy === SaveStrategy.IMMEDIATE ? 0 : 100 /* buffer saves over a short time */));
+		this.flushDelayer = this._register(new ThrottledDelayer<void>(saveStrategy === SaveStrategy.IMMEDIATE ? 0 : 100 ));
 	}
 
 	init(): Promise<void> {
@@ -80,12 +80,10 @@ export class FileStorage extends Disposable {
 
 		for (const { key, data } of items) {
 
-			// Shortcut for data that did not change
 			if (this.storage[key] === data) {
 				continue;
 			}
 
-			// Remove items when they are undefined or null
 			if (isUndefinedOrNull(data)) {
 				if (!isUndefined(this.storage[key])) {
 					this.storage[key] = undefined;
@@ -93,7 +91,6 @@ export class FileStorage extends Disposable {
 				}
 			}
 
-			// Otherwise add an item
 			else {
 				this.storage[key] = data;
 				save = true;
@@ -107,7 +104,6 @@ export class FileStorage extends Disposable {
 
 	removeItem(key: string): void {
 
-		// Only update if the key is actually present (not undefined)
 		if (!isUndefined(this.storage[key])) {
 			this.storage[key] = undefined;
 			this.save();
@@ -116,7 +112,7 @@ export class FileStorage extends Disposable {
 
 	private async save(): Promise<void> {
 		if (this.closing) {
-			return; // already about to close
+			return;
 		}
 
 		return this.flushDelayer.trigger(() => this.doSave());
@@ -124,19 +120,16 @@ export class FileStorage extends Disposable {
 
 	private async doSave(): Promise<void> {
 		if (!this.initializing) {
-			return; // if we never initialized, we should not save our state
+			return;
 		}
 
-		// Make sure to wait for init to finish first
 		await this.initializing;
 
-		// Return early if the database has not changed
 		const serializedDatabase = JSON.stringify(this.storage, null, 4);
 		if (serializedDatabase === this.lastSavedStorageContents) {
 			return;
 		}
 
-		// Write to disk
 		try {
 			await this.fileService.writeFile(this.storagePath, VSBuffer.fromString(serializedDatabase), { atomic: { postfix: '.vsctmp' } });
 			this.lastSavedStorageContents = serializedDatabase;
@@ -147,7 +140,7 @@ export class FileStorage extends Disposable {
 
 	async close(): Promise<void> {
 		if (!this.closing) {
-			this.closing = this.flushDelayer.trigger(() => this.doSave(), 0 /* as soon as possible */);
+			this.closing = this.flushDelayer.trigger(() => this.doSave(), 0 );
 		}
 
 		return this.closing;

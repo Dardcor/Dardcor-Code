@@ -90,7 +90,6 @@ export class InteractiveDocumentContribution extends Disposable implements IWork
 
 		const info = notebookService.getContributedNotebookType('interactive');
 
-		// We need to contribute a notebook type for the Interactive Window to provide notebook models.
 		if (!info) {
 			this._register(notebookService.registerContributedNotebookType('interactive', {
 				providerDisplayName: 'Interactive Notebook',
@@ -443,7 +442,6 @@ registerAction2(class extends Action2 {
 		const editorInput: IUntypedEditorInput = { resource: notebookUri, options: editorOptions };
 		const editorPane = await editorService.openEditor(editorInput, group);
 		const editorControl = editorPane?.getControl() as ReplEditorControl;
-		// Extensions must retain references to these URIs to manipulate the interactive editor
 		logService.debug('New interactive window opened. Notebook editor id', editorControl?.notebookEditor?.getId());
 		return { notebookUri, inputUri, notebookEditorId: editorControl?.notebookEditor?.getId() };
 	}
@@ -456,7 +454,6 @@ registerAction2(class extends Action2 {
 			title: localize2('interactive.execute', 'Execute Code'),
 			category: interactiveWindowCategory,
 			keybinding: [{
-				// when: NOTEBOOK_CELL_LIST_FOCUSED,
 				when: ContextKeyExpr.and(
 					IS_COMPOSITE_NOTEBOOK,
 					ContextKeyExpr.equals('activeEditor', 'workbench.editor.interactive')
@@ -570,12 +567,10 @@ registerAction2(class extends Action2 {
 					)
 				]);
 
-				// reveal the cell into view first
 				const range = { start: index, end: index + 1 };
 				editorControl.notebookEditor.revealCellRangeInView(range);
 				await editorControl.notebookEditor.executeNotebookCells(editorControl.notebookEditor.getCellsInRange({ start: index, end: index + 1 }));
 
-				// update the selection and focus in the extension host model
 				const editor = notebookEditorService.getNotebookEditor(editorControl.notebookEditor.getId());
 				if (editor) {
 					editor.setSelections([range]);
@@ -774,7 +769,6 @@ registerAction2(class extends Action2 {
 			editorService.activeEditorPane?.focus();
 		}
 		else {
-			// find and open the most recent interactive window
 			const openEditors = editorService.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE);
 			const interactiveWindow = Iterable.find(openEditors, identifier => { return identifier.editor.typeId === InteractiveEditorInput.ID; });
 			if (interactiveWindow) {
@@ -802,7 +796,6 @@ registerAction2(class extends Action2 {
 				when: ContextKeyExpr.equals('activeEditor', 'workbench.editor.interactive'),
 			},
 			keybinding: [{
-				// On mac, require that the cursor is at the top of the input, to avoid stealing cmd+up to move the cursor to the top
 				when: ContextKeyExpr.and(
 					INTERACTIVE_INPUT_CURSOR_BOUNDARY.notEqualsTo('bottom'),
 					INTERACTIVE_INPUT_CURSOR_BOUNDARY.notEqualsTo('none')),
@@ -836,7 +829,6 @@ registerColor('interactive.activeCodeBorder', {
 }, localize('interactive.activeCodeBorder', 'The border color for the current interactive code cell when the editor has focus.'));
 
 registerColor('interactive.inactiveCodeBorder', {
-	//dark: theme.getColor(listInactiveSelectionBackground) ?? transparent(listInactiveSelectionBackground, 1),
 	dark: ifDefinedThenElse(listInactiveSelectionBackground, listInactiveSelectionBackground, '#37373D'),
 	light: ifDefinedThenElse(listInactiveSelectionBackground, listInactiveSelectionBackground, '#E4E6F1'),
 	hcDark: PANEL_BORDER,

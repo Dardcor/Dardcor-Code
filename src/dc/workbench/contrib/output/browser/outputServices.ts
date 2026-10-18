@@ -150,7 +150,6 @@ class OutputViewFilters extends Disposable implements IOutputViewFilters {
 		const includePatterns: string[] = [];
 		const excludePatterns: string[] = [];
 
-		// Parse patterns respecting quoted strings
 		const patterns = this.splitByCommaRespectingQuotes(filterText);
 
 		for (const pattern of patterns) {
@@ -160,7 +159,6 @@ class OutputViewFilters extends Disposable implements IOutputViewFilters {
 			}
 
 			if (trimmed.startsWith('!')) {
-				// Negative filter - remove the ! prefix
 				const negativePattern = trimmed.substring(1).trim();
 				if (negativePattern.length > 0) {
 					excludePatterns.push(negativePattern);
@@ -191,16 +189,13 @@ class OutputViewFilters extends Disposable implements IOutputViewFilters {
 			const char = text[i];
 
 			if (!inQuotes && (char === '"')) {
-				// Start of quoted string
 				inQuotes = true;
 				quoteChar = char;
 				current += char;
 			} else if (inQuotes && char === quoteChar) {
-				// End of quoted string
 				inQuotes = false;
 				current += char;
 			} else if (!inQuotes && char === ',') {
-				// Comma outside quotes - split here
 				if (current.length > 0) {
 					patterns.push(current);
 				}
@@ -210,7 +205,6 @@ class OutputViewFilters extends Disposable implements IOutputViewFilters {
 			}
 		}
 
-		// Add the last pattern
 		if (current.length > 0) {
 			patterns.push(current);
 		}
@@ -349,11 +343,9 @@ export class OutputService extends Disposable implements IOutputService, ITextMo
 
 		this.outputLocation = joinPath(environmentService.windowLogsPath, `output_${toLocalISOString(new Date()).replace(/-|:|\.\d+Z$/g, '')}`);
 
-		// Register as text model content provider for output
 		this._register(textModelService.registerTextModelContentProvider(Schemas.outputChannel, this));
 		this._register(instantiationService.createInstance(OutputLinkProvider));
 
-		// Create output channels for already registered channels
 		const registry = Registry.as<IOutputChannelRegistry>(Extensions.OutputChannels);
 		for (const channelIdentifier of registry.getChannels()) {
 			this.onDidRegisterChannel(channelIdentifier.id);
@@ -362,7 +354,6 @@ export class OutputService extends Disposable implements IOutputService, ITextMo
 		this._register(registry.onDidUpdateChannelSources(channel => this.onDidUpdateChannelSources(channel)));
 		this._register(registry.onDidRemoveChannel(channel => this.onDidRemoveChannel(channel)));
 
-		// Set active channel to first channel if not set
 		if (!this.activeChannel) {
 			const channels = this.getChannelDescriptors();
 			this.setActiveChannel(channels && channels.length > 0 ? this.getChannel(channels[0].id) : undefined);

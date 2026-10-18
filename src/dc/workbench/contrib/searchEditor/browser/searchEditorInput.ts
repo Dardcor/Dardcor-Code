@@ -237,7 +237,6 @@ export class SearchEditorInput extends EditorInput {
 				editor: this.instantiationService.invokeFunction(getOrMakeSearchEditorInput, { from: 'existingFile', fileUri: target })
 			};
 		}
-		// Ignore move if editor was renamed to a different file extension
 		return undefined;
 	}
 
@@ -318,15 +317,13 @@ export class SearchEditorInput extends EditorInput {
 	}
 
 	override copy(): EditorInput {
-		// Generate a new modelUri for the split editor
 		const newModelUri = URI.from({ scheme: SearchEditorScheme, fragment: `${Math.random()}` });
 		const config = this._cachedConfigurationModel?.config ?? {};
 		const results = this._cachedResultsModel?.getValue() ?? '';
-		// Use the 'rawData' variant and pass modelUri
 		return this.instantiationService.invokeFunction(
 			getOrMakeSearchEditorInput,
 			// eslint-disable-next-line local/code-no-any-casts
-			{ from: 'rawData', config, resultsContents: results, modelUri: newModelUri } as any // modelUri is not in the type, but we handle it below
+			{ from: 'rawData', config, resultsContents: results, modelUri: newModelUri } as any
 		);
 	}
 }

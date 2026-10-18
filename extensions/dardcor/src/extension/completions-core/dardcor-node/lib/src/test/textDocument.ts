@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { WorkspaceFolder } from '../../../types/src';
-import { CopilotTextDocument, INotebookCell, INotebookDocument, ITextDocument } from '../textDocument';
+import { DardcorTextDocument, INotebookCell, INotebookDocument, ITextDocument } from '../textDocument';
 import {
 	TextDocumentChangeEvent,
 	TextDocumentCloseEvent,
@@ -22,7 +22,7 @@ export function createTextDocument(
 	version: number,
 	text: string
 ): ITextDocument {
-	return CopilotTextDocument.create(
+	return DardcorTextDocument.create(
 		validateUri(uri),
 		clientAndDetectedLanguageId,
 		version,
@@ -63,7 +63,7 @@ export function parseNotebook(doc: ITextDocument): INotebookDocument {
 			(cell.metadata?.['vscode']?.['languageId'] as string) ||
 			(cell.cell_type === 'code' ? 'python' : 'markdown');
 
-		const document = CopilotTextDocument.create(cellUri, languageId, 0, cellText, languageId);
+		const document = DardcorTextDocument.create(cellUri, languageId, 0, cellText, languageId);
 
 		return {
 			index,
@@ -85,9 +85,6 @@ export class InMemoryNotebookDocument implements INotebookDocument {
 	}
 }
 
-/**
- * A concrete implementation of TextDocumentManager intended for use with the FakeFileSystem.
- */
 export class SimpleTestTextDocumentManager extends TextDocumentManager {
 	private _openTextDocuments: ITextDocument[] = [];
 	private _notebookDocuments: Map<string, INotebookDocument> = new Map();
@@ -97,7 +94,6 @@ export class SimpleTestTextDocumentManager extends TextDocumentManager {
 		this._workspaceFolders = workspaceFolders.map(f => ({ uri: f.uri, name: f.name ?? basename(f.uri) }));
 	}
 
-	// Make public to allow for stubbing
 	override async readTextDocumentFromDisk(uri: string): Promise<string | undefined> {
 		return super.readTextDocumentFromDisk(uri);
 	}
@@ -138,7 +134,6 @@ export class SimpleTestTextDocumentManager extends TextDocumentManager {
 	}
 
 	setNotebookDocument(doc: ITextDocument, notebook: INotebookDocument) {
-		// Document URIs in the same notebook differ only by fragment
 		this._notebookDocuments.set(doc.uri.replace(/#.*/, ''), notebook);
 	}
 
@@ -151,11 +146,6 @@ export class SimpleTestTextDocumentManager extends TextDocumentManager {
 	}
 }
 
-/**
- * An implementation of TextDocumentManager that is limited to documents you
- * provide it. It will not attempt to open documents from the file system, but
- * you may provide it with "closed" documents available for opening.
- */
 export class TestTextDocumentManager extends SimpleTestTextDocumentManager {
 	private contents = new Map<string, string>();
 

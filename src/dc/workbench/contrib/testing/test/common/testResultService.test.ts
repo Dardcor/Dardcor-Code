@@ -79,7 +79,6 @@ suite('Workbench - Test Results Service', () => {
 		]);
 		cts.cancel();
 
-		// todo@connor4312: debug for tests #137853:
 		if (!ok) {
 			throw new Error('timed out while expanding, diff: ' + JSON.stringify(tests.collectDiff()));
 		}
@@ -96,7 +95,6 @@ suite('Workbench - Test Results Service', () => {
 		]);
 	});
 
-	// ensureNoDisposablesAreLeakedInTestSuite(); todo@connor4312
 
 	suite('LiveTestResult', () => {
 		test('is empty if no tests are yet present', async () => {
@@ -159,7 +157,6 @@ suite('Workbench - Test Results Service', () => {
 			c[TestResultState.Unset] = 3;
 			assert.deepStrictEqual(r.counts, c);
 			assert.deepStrictEqual(r.getStateById(testId)?.ownComputedState, TestResultState.Running);
-			// update computed state:
 			assert.deepStrictEqual(r.getStateById(tests.root.id)?.computedState, TestResultState.Running);
 			assert.deepStrictEqual(getChangeSummary(), [
 				{ label: 'aa', reason: TestResultItemChangeReason.OwnStateChange },
@@ -234,7 +231,7 @@ suite('Workbench - Test Results Service', () => {
 			results.push(r);
 			r.updateState(new TestId(['ctrlId', 'id-a', 'id-aa']).toString(), 't', TestResultState.Passed, 42);
 			r.markComplete();
-			await timeout(10); // allow persistImmediately async to happen
+			await timeout(10);
 
 			results = ds.add(new TestResultService(
 				new MockContextKeyService(),
@@ -244,7 +241,7 @@ suite('Workbench - Test Results Service', () => {
 			));
 
 			assert.strictEqual(0, results.results.length);
-			await timeout(10); // allow load promise to resolve
+			await timeout(10);
 			assert.strictEqual(1, results.results.length);
 
 			const [rehydrated, actual] = results.getStateById(tests.root.id)!;

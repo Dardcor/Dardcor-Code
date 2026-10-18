@@ -34,7 +34,6 @@ const promptedRecommendationsStorageKey = 'fileBasedRecommendations/promptedReco
 const recommendationsStorageKey = 'extensionsAssistant/recommendations';
 const milliSecondsInADay = 1000 * 60 * 60 * 24;
 
-// Minimum length of untitled file to allow triggering extension recommendations for auto-detected language.
 const untitledFileRecommendationsMinLength = 1000;
 
 export class FileBasedRecommendations extends ExtensionRecommendations {
@@ -109,7 +108,6 @@ export class FileBasedRecommendations extends ExtensionRecommendations {
 
 		const cachedRecommendations = this.getCachedRecommendations();
 		const now = Date.now();
-		// Retire existing recommendations if they are older than a week or are not part of this.productService.extensionTips anymore
 		Object.entries(cachedRecommendations).forEach(([key, value]) => {
 			const diff = (now - value) / milliSecondsInADay;
 			if (diff <= 7 && this.fileOpenRecommendations[key]) {
@@ -132,14 +130,9 @@ export class FileBasedRecommendations extends ExtensionRecommendations {
 			return;
 		}
 
-		// re-schedule this bit of the operation to be off the critical path - in case glob-match is slow
 		disposableTimeout(() => this.promptImportantRecommendations(uri, model), 0, this._store);
 	}
 
-	/**
-	 * Prompt the user to either install the recommended extension for the file type in the current editor model
-	 * or prompt to search the marketplace if it has extensions that can support the file type
-	 */
 	private promptImportantRecommendations(uri: URI, model: ITextModel, extensionRecommendations?: IStringDictionary<IFileOpenCondition[]>): void {
 		if (model.isDisposed()) {
 			return;
@@ -160,7 +153,6 @@ export class FileBasedRecommendations extends ExtensionRecommendations {
 		let listenOnLanguageChange = false;
 		const languageId = model.getLanguageId();
 
-		// Allow language-specific recommendations for untitled files when language is auto-detected only when the file is large.
 		const untitledModel = this.untitledTextEditorService.get(uri);
 		const allowLanguageMatch =
 			!untitledModel ||
@@ -197,7 +189,6 @@ export class FileBasedRecommendations extends ExtensionRecommendations {
 
 				let matched = languageMatched || pathGlobMatched;
 
-				// If the resource has pattern (extension) and not matched, then we don't need to check the other conditions
 				if (pattern && !matched) {
 					continue;
 				}
@@ -251,7 +242,6 @@ export class FileBasedRecommendations extends ExtensionRecommendations {
 			if (listenOnLanguageChange) {
 				const disposables = new DisposableStore();
 				disposables.add(model.onDidChangeLanguage(() => {
-					// re-schedule this bit of the operation to be off the critical path - in case glob-match is slow
 					disposableTimeout(() => {
 						if (!disposables.isDisposed) {
 							this.promptImportantRecommendations(uri, model, unmatchedRecommendations);
@@ -285,7 +275,6 @@ export class FileBasedRecommendations extends ExtensionRecommendations {
 			}
 		}
 
-		// Update file based recommendations
 		for (const recommendation of fileBasedRecommendations) {
 			const filedBasedRecommendation = this.fileBasedRecommendations.get(recommendation) || { recommendedTime: Date.now(), sources: [] };
 			filedBasedRecommendation.recommendedTime = Date.now();
@@ -334,7 +323,7 @@ export class FileBasedRecommendations extends ExtensionRecommendations {
 			if (result === RecommendationsNotificationResult.Accepted) {
 				this.addToPromptedRecommendations(language, extensions);
 			}
-		} catch (error) { /* Ignore */ }
+		} catch (error) { }
 	}
 
 	private getPromptedRecommendations(): IStringDictionary<string[]> {

@@ -10,9 +10,6 @@ import { NotebookDocumentSnapshot } from '../../../editing/common/notebookDocume
 import { TextDocumentSnapshot } from '../../../editing/common/textDocumentSnapshot';
 import { IWorkspaceService } from '../../../workspace/common/workspaceService';
 
-/**
- * A minimal mock implementation of IWorkspaceService for testing.
- */
 export class MockWorkspaceService implements IWorkspaceService {
 	declare readonly _serviceBrand: undefined;
 
@@ -32,9 +29,6 @@ export class MockWorkspaceService implements IWorkspaceService {
 
 	fs: FileSystem = {} as FileSystem;
 
-	/**
-	 * Sets the workspace folders to return from getWorkspaceFolders.
-	 */
 	setWorkspaceFolders(folders: URI[]): void {
 		this._workspaceFolders = folders;
 	}

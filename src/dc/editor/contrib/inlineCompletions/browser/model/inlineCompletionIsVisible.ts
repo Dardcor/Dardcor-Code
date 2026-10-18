@@ -15,12 +15,11 @@ export function inlineCompletionIsVisible(singleTextEdit: TextReplacement, origi
 	if (!editRange
 		|| (originalRange && !originalRange.getStartPosition().equals(editRange.getStartPosition()))
 		|| cursorPosition.lineNumber !== minimizedReplacement.range.startLineNumber
-		|| minimizedReplacement.isEmpty // if the completion is empty after removing the common prefix of the completion and the model, the completion item would not be visible
+		|| minimizedReplacement.isEmpty
 	) {
 		return false;
 	}
 
-	// We might consider comparing by .toLowerText, but this requires GhostTextReplacement
 	const originalValue = model.getValueInRange(minimizedReplacement.range, EndOfLinePreference.LF);
 	const filterText = minimizedReplacement.text;
 
@@ -34,7 +33,6 @@ export function inlineCompletionIsVisible(singleTextEdit: TextReplacement, origi
 
 	const originalValueIndent = model.getLineIndentColumn(minimizedReplacement.range.startLineNumber);
 	if (minimizedReplacement.range.startColumn <= originalValueIndent) {
-		// Remove indentation
 		originalValueBefore = originalValueBefore.trimStart();
 		if (originalValueBefore.length === 0) {
 			originalValueAfter = originalValueAfter.trimStart();

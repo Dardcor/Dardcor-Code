@@ -12,22 +12,8 @@ import { toCommandCompletionAttachmentMeta } from '../common/meta/agentCompletio
 import { CompletionTriggerCharacter, IAgentHostCompletionItemProvider } from './agentHostCompletions.js';
 import { extractLeadingSlashToken, matchesSlashCompletion } from './agentHostSlashCompletion.js';
 
-/** The generic, agent-agnostic `/rename` slash command name. */
 export const RENAME_SLASH_COMMAND = 'rename';
 
-/**
- * Parses a leading `/rename [title]` command at the very start of `prompt`.
- *
- * Mirrors `parseLeadingSlashCommand` (the Copilot CLI slash parser): the
- * command must be `/rename`, followed either by end-of-input or at least one
- * whitespace character. `/renamed`, `/rename-foo`, or a leading-space
- * `/rename` all return `undefined`. Match is case-sensitive.
- *
- * Returns the trimmed new title (possibly an empty string when no title is
- * supplied) when the prompt is a rename command, or `undefined` when it is not.
- * Callers MUST distinguish "not a rename command" (`undefined`) from "rename
- * with empty title" (`''`).
- */
 export function parseRenameCommand(prompt: string): string | undefined {
 	const match = /^\/rename(?:$|\s+([\s\S]*))/.exec(prompt);
 	if (!match) {
@@ -36,16 +22,6 @@ export function parseRenameCommand(prompt: string): string | undefined {
 	return (match[1] ?? '').trim();
 }
 
-/**
- * Generic completion provider that contributes the `/rename` slash command
- * for every agent-host session type. Unlike agent-specific slash commands
- * (e.g. Copilot's `/compact`), `/rename` is not forwarded to any agent SDK;
- * it is intercepted in the agent-host send path and redirected to a
- * `SessionTitleChanged` action (see the rename handling in `AgentSideEffects`).
- *
- * The completion is only offered for sessions that already have history —
- * renaming a session before the first turn has no meaningful target.
- */
 export class AgentHostRenameCompletionProvider implements IAgentHostCompletionItemProvider {
 	readonly kinds: ReadonlySet<CompletionItemKind> = new Set([CompletionItemKind.UserMessage]);
 	readonly triggerCharacters = [CompletionTriggerCharacter.Slash] as const;
@@ -60,7 +36,6 @@ export class AgentHostRenameCompletionProvider implements IAgentHostCompletionIt
 		if (!this._hasHistory(params.channel)) {
 			return [];
 		}
-		// `/abc` → typed = 'abc'; empty after just '/' → typed = ''.
 		const typed = leading.typed;
 		if (!matchesSlashCompletion(typed, RENAME_SLASH_COMMAND)) {
 			return [];

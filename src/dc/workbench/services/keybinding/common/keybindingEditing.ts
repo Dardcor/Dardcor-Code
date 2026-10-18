@@ -55,19 +55,19 @@ export class KeybindingsEditingService extends Disposable implements IKeybinding
 	}
 
 	addKeybinding(keybindingItem: ResolvedKeybindingItem, key: string, when: string | undefined): Promise<void> {
-		return this.queue.queue(() => this.doEditKeybinding(keybindingItem, key, when, true)); // queue up writes to prevent race conditions
+		return this.queue.queue(() => this.doEditKeybinding(keybindingItem, key, when, true));
 	}
 
 	editKeybinding(keybindingItem: ResolvedKeybindingItem, key: string, when: string | undefined): Promise<void> {
-		return this.queue.queue(() => this.doEditKeybinding(keybindingItem, key, when, false)); // queue up writes to prevent race conditions
+		return this.queue.queue(() => this.doEditKeybinding(keybindingItem, key, when, false));
 	}
 
 	resetKeybinding(keybindingItem: ResolvedKeybindingItem): Promise<void> {
-		return this.queue.queue(() => this.doResetKeybinding(keybindingItem)); // queue up writes to prevent race conditions
+		return this.queue.queue(() => this.doResetKeybinding(keybindingItem));
 	}
 
 	removeKeybinding(keybindingItem: ResolvedKeybindingItem): Promise<void> {
-		return this.queue.queue(() => this.doRemoveKeybinding(keybindingItem)); // queue up writes to prevent race conditions
+		return this.queue.queue(() => this.doRemoveKeybinding(keybindingItem));
 	}
 
 	private async doEditKeybinding(keybindingItem: ResolvedKeybindingItem, key: string, when: string | undefined, add: boolean): Promise<void> {
@@ -127,14 +127,12 @@ export class KeybindingsEditingService extends Disposable implements IKeybinding
 		const { tabSize, insertSpaces } = model.getOptions();
 		const eol = model.getEOL();
 		if (userKeybindingEntryIndex !== -1) {
-			// Update the keybinding with new key
 			this.applyEditsToBuffer(setProperty(model.getValue(), [userKeybindingEntryIndex, 'key'], newKey, { tabSize, insertSpaces, eol })[0], model);
 			const edits = setProperty(model.getValue(), [userKeybindingEntryIndex, 'when'], when, { tabSize, insertSpaces, eol });
 			if (edits.length > 0) {
 				this.applyEditsToBuffer(edits[0], model);
 			}
 		} else {
-			// Add the new keybinding with new key
 			this.applyEditsToBuffer(setProperty(model.getValue(), [-1], this.asObject(newKey, keybindingItem.command, when, false), { tabSize, insertSpaces, eol })[0], model);
 		}
 	}
@@ -251,7 +249,6 @@ export class KeybindingsEditingService extends Disposable implements IKeybinding
 
 	private async resolveAndValidate(): Promise<IReference<IResolvedTextEditorModel>> {
 
-		// Target cannot be dirty if not writing into buffer
 		if (this.textFileService.isDirty(this.userDataProfileService.currentProfile.keybindingsResource)) {
 			throw new Error(localize('errorKeybindingsFileDirty', "Unable to write because the keybindings configuration file has unsaved changes. Please save it first and then try again."));
 		}

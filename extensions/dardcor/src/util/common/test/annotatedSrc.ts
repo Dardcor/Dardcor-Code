@@ -15,7 +15,7 @@ export function deannotateSrc(annotatedSrc: string): {
 		throw new Error('No << found in the annotated source');
 	}
 	const endIndex = annotatedSrc.indexOf('>>') - 2;
-	if (endIndex === -3 /* because `-1-2` */) {
+	if (endIndex === -3 ) {
 		throw new Error('No >> found in the annotated source');
 	}
 	return {

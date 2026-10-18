@@ -75,7 +75,6 @@ suite('Truncated file tree', () => {
 			]),
 		];
 
-		// Make sure that dir3 is expanded before dir2
 		assert.deepStrictEqual((await visualFileTree(files, 25)).tree, joinLines(
 			'dir1/',
 			'\tdir2/',

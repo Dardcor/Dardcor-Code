@@ -83,7 +83,6 @@ export default function JcodeToolCard({
         if (provider.default_model) {
           setSelectedModel(provider.default_model);
         }
-        // Try to match API key from env file
         const envApiKey = jcodeStatus.envApiKey;
         if (envApiKey && apiKeys?.some(k => k.key === envApiKey)) {
           setSelectedApiKey(envApiKey);
@@ -143,7 +142,6 @@ export default function JcodeToolCard({
       });
       const data = await res.json();
       if (res.ok) {
-        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkJcodeStatus();
@@ -270,7 +268,7 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
           {!checkingJcode && jcodeStatus?.installed && (
             <>
               <div className="flex flex-col gap-2">
-                {/* Info notes */}
+                {}
                 {tool.notes && tool.notes.length > 0 && (
                   <div className="flex flex-col gap-2 mb-2">
                     {tool.notes.map((note, idx) => (
@@ -288,7 +286,7 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                   </div>
                 )}
 
-                {/* Endpoint (selector) */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Select Endpoint</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -304,7 +302,7 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                   />
                 </div>
 
-                {/* Current configured */}
+                {}
                 {jcodeStatus?.config?.providers?.["dardcor-code"]?.base_url && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
@@ -315,14 +313,14 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                   </div>
                 )}
 
-                {/* API Key */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">API Key</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                   <ApiKeySelect value={selectedApiKey} onChange={setSelectedApiKey} apiKeys={apiKeys} cloudEnabled={cloudEnabled} />
                 </div>
 
-                {/* Default Model */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Default Model</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -333,7 +331,7 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                   <button onClick={() => setModalOpen(true)} disabled={!hasActiveProviders} className={`w-full sm:w-auto rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 whitespace-nowrap sm:shrink-0 ${hasActiveProviders ? "bg-surface border-border text-text-main hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}>Select</button>
                 </div>
 
-                {/* Usage hint */}
+                {}
                 <div className="flex flex-col gap-1 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
                   <p className="text-xs font-medium text-blue-600 dark:text-blue-400">Usage:</p>
                   <code className="text-xs font-mono text-text-muted">jcode --provider-profile dardcor-code</code>

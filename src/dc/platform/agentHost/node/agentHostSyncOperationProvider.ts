@@ -33,18 +33,15 @@ export class AgentHostSyncOperationContribution extends Disposable implements IC
 	}
 
 	getOperations({ sessionKey, gitState }: IChangesetOperationContext): ChangesetOperation[] | undefined {
-		// New Session
 		const state = this._stateManager.getSessionState(sessionKey);
 		if (state?.lifecycle === SessionLifecycle.Creating && (gitState?.uncommittedChanges ?? 0) > 0) {
 			return undefined;
 		}
 
-		// No upstream branch
 		if (!gitState?.upstreamBranchName) {
 			return undefined;
 		}
 
-		// No incoming/outgoing changes
 		const incomingChanges = gitState?.incomingChanges ?? 0;
 		const outgoingChanges = gitState?.outgoingChanges ?? 0;
 		if (incomingChanges === 0 && outgoingChanges === 0) {

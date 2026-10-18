@@ -75,7 +75,6 @@ export class ChatToolPostExecuteConfirmationPart extends AbstractToolConfirmatio
 			return actions;
 		}
 
-		// Get actions from confirmation service
 		const confirmActions = this.confirmationService.getPostConfirmActions({
 			toolId: this.toolInvocation.toolId,
 			source: this.toolInvocation.source,
@@ -114,7 +113,6 @@ export class ChatToolPostExecuteConfirmationPart extends AbstractToolConfirmatio
 
 		for (const [i, part] of contentForModel.entries()) {
 			if (part.kind === 'text') {
-				// Display text parts
 				parts.push({
 					kind: 'code',
 					title: part.title,
@@ -131,7 +129,6 @@ export class ChatToolPostExecuteConfirmationPart extends AbstractToolConfirmatio
 					}
 				});
 			} else if (part.kind === 'promptTsx') {
-				// Display TSX parts as JSON-stringified
 				const stringified = stringifyPromptTsxPart(part);
 
 				parts.push({
@@ -149,17 +146,14 @@ export class ChatToolPostExecuteConfirmationPart extends AbstractToolConfirmatio
 					}
 				});
 			} else if (part.kind === 'data') {
-				// Display data parts
 				const mimeType = part.value.mimeType;
 				const data = part.value.data;
 
-				// Check if it's an image
 				if (mimeType?.startsWith('image/')) {
 					const permalinkBasename = getExtensionForMimeType(mimeType) ? `image${getExtensionForMimeType(mimeType)}` : 'image.bin';
 					const permalinkUri = ChatResponseResource.createUri(this.context.element.sessionResource, toolInvocation.toolCallId, i, permalinkBasename);
 					parts.push({ kind: 'data', value: data.buffer, mimeType, uri: permalinkUri, audience: part.audience });
 				} else {
-					// Try to display as UTF-8 text, otherwise base64
 					const decoder = new TextDecoder('utf-8', { fatal: true });
 					try {
 						const text = decoder.decode(data.buffer);
@@ -179,7 +173,6 @@ export class ChatToolPostExecuteConfirmationPart extends AbstractToolConfirmatio
 							}
 						});
 					} catch {
-						// Not valid UTF-8, show base64
 						const base64 = data.toString();
 
 						parts.push({

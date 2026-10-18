@@ -18,7 +18,6 @@ async function main() {
 	let build = undefined;
 
 	if (args.indexOf('--help') === -1 && args.indexOf('-h') === -1) {
-		// get build arg from args
 		let buildArgIndex = args.indexOf('--build');
 		buildArgIndex = buildArgIndex === -1 ? args.indexOf('-b') : buildArgIndex;
 		if (buildArgIndex === -1) {

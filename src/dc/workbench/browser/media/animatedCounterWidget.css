@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Structural styles for the AnimatedCounterWidget. The stacked incoming/outgoing
-	value elements share a single grid cell so they can cross-fade and slide while
-	the container width tweens. Callers add their own class for color/typography. */
 
 .monaco-animated-counter {
 	position: relative;

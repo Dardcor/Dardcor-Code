@@ -40,18 +40,6 @@ function fileScore(snippets: SnippetWithProviderInfo[], partialFileName: string)
 }
 
 suite('Similar files with subset matching Test Suite', function () {
-	/**
-	 * This test ensures that only tokens from the current method are used when
-	 * computing the score for a chunk.
-	 *
-	 * Compare this to @see FixedWindowSizeJaccardMatcher
-	 * which would use any tokens in the same 60-line-delimited chunk of code that
-	 * the caret fell in.
-	 *
-	 * Scenarios where the caret is in a sub-60-line methods or near a 60 line chunk
-	 * seam would end up getting results that are more related to the neighboring
-	 * methods.
-	 */
 	test('Only current method is considered as part of reference tokens', async function () {
 		const file0 = `
 		public static class TestClass
@@ -108,8 +96,6 @@ suite('Similar files with subset matching Test Suite', function () {
 		}
 		`;
 
-		// **********************************************************
-		// Score with the old 60-line-delimited reference token chunk.
 		const oldScores = await findAndScoreBlocks(
 			{ source: file0, uri: 'file:///home/user/file0.js', languageId: 'csharp', offset: file0.indexOf('|') },
 			[
@@ -120,17 +106,12 @@ suite('Similar files with subset matching Test Suite', function () {
 			false
 		);
 
-		// We expect the old way to prefer the distraction class, which has lots of terms that look like stuff from
-		// the neighboring methods.
 		assert(
 			fileScore(oldScores, 'file3') > fileScore(oldScores, 'file2') &&
 			fileScore(oldScores, 'file2') > fileScore(oldScores, 'file1'),
 			'Expected 60-line-delimited reference chunks to prefer the distraction class because it resembles neighboring methods'
 		);
-		// **********************************************************
 
-		// **********************************************************
-		// Score with the new subset matching mechanism.
 		const newScores = await findAndScoreBlocks(
 			{ source: file0, uri: 'file:///home/user/file0.js', languageId: 'csharp', offset: file0.indexOf('|') },
 			[
@@ -141,27 +122,13 @@ suite('Similar files with subset matching Test Suite', function () {
 			true
 		);
 
-		// We expect the new way to prefer the second file because it contains the most tokens that match
-		// the method enclosing the caret.
 		assert(
 			fileScore(newScores, 'file2') > fileScore(newScores, 'file1') &&
 			fileScore(newScores, 'file1') > fileScore(newScores, 'file3'),
 			'Expected that the file containing IBaz interface would be the best match'
 		);
-		// **********************************************************
 	});
 
-	/**
-	 * This test ensures that methods are matched only based on the tokens from the reference
-	 * chunk that they do contain and are not penalized for containing additional tokens that
-	 * don't appear in the reference set.
-	 *
-	 * Compare this to @see FixedWindowSizeJaccardMatcher which would use Jaccard similarity to
-	 * score. Jaccard similarity gives preferences to chunks with sets of identical tokens.
-	 *
-	 * Intuitively, scenarios where a token is a type or method reference get penalized because
-	 * they have tokens in common for the name of the method but have divergent content.
-	 */
 	test('Methods are not penalized for being supersets of the reference chunk', async function () {
 		const file0 = `
 			public static class TestClass
@@ -203,8 +170,6 @@ suite('Similar files with subset matching Test Suite', function () {
 			}
 			`;
 
-		// **********************************************************
-		// Score with the old 60-line-delimited reference token chunk.
 		const oldScores = await findAndScoreBlocks(
 			{ source: file0, uri: 'file:///home/user/file0.js', languageId: 'csharp', offset: file0.indexOf('|') },
 			[
@@ -215,17 +180,12 @@ suite('Similar files with subset matching Test Suite', function () {
 			false
 		);
 
-		// We expect the old way to prefer the simpler code samples, even when they match fewer tokens,
-		// because there are fewer non-matching additional tokens.
 		assert(
 			fileScore(oldScores, 'file2') > fileScore(oldScores, 'file1') &&
 			fileScore(oldScores, 'file1') === fileScore(oldScores, 'file3'),
 			'Expected 60-line-delimited reference chunks to prefer the distraction class because it resembles neighboring methods'
 		);
-		// **********************************************************
 
-		// **********************************************************
-		// Score with the new method.
 		const newScores = await findAndScoreBlocks(
 			{ source: file0, uri: 'file:///home/user/file0.js', languageId: 'csharp', offset: file0.indexOf('|') },
 			[
@@ -236,28 +196,13 @@ suite('Similar files with subset matching Test Suite', function () {
 			true
 		);
 
-		// We expect the new way to prefer the file with matching class and method names because we're no longer
-		// penalizing samples for having different tokens.
 		assert(
 			fileScore(newScores, 'file1') > fileScore(newScores, 'file2') &&
 			fileScore(newScores, 'file2') > fileScore(newScores, 'file3'),
 			'Expected subset matching method to prefer the file with the most token matches'
 		);
-		// **********************************************************
 	});
 
-	/**
-	 * This test ensures that only tokens from the current class are used when
-	 * computing the score for a chunk.
-	 *
-	 * Compare this to @see FixedWindowSizeJaccardMatcher
-	 * which would use any tokens in the same 60-line-delimited chunk of code that
-	 * the caret fell in.
-	 *
-	 * Scenarios where the caret is in a sub-60-line method or near a 60 line chunk
-	 * seam would end up getting results that are more related to the neighboring
-	 * methods.
-	 */
 	test('Only current class is considered as part of reference tokens', async function () {
 		const file0 = `
 
@@ -322,8 +267,6 @@ suite('Similar files with subset matching Test Suite', function () {
 		}
 		`;
 
-		// **********************************************************
-		// Score with the old 60-line-delimited reference token chunk.
 		const oldScores = await findAndScoreBlocks(
 			{ source: file0, uri: 'file:///home/user/file0.js', languageId: 'csharp', offset: file0.indexOf('|') },
 			[
@@ -334,17 +277,12 @@ suite('Similar files with subset matching Test Suite', function () {
 			false
 		);
 
-		// We expect the old way to prefer the distraction class, which has lots of terms that look like stuff from
-		// the neighboring methods.
 		assert(
 			fileScore(oldScores, 'file3') > fileScore(oldScores, 'file2') &&
 			fileScore(oldScores, 'file2') > fileScore(oldScores, 'file1'),
 			'Expected 60-line-delimited reference chunks to prefer the distraction class because it resembles neighboring methods'
 		);
-		// **********************************************************
 
-		// **********************************************************
-		// Score with the new subset matching mechanism.
 		const newScores = await findAndScoreBlocks(
 			{ source: file0, uri: 'file:///home/user/file0.js', languageId: 'csharp', offset: file0.indexOf('|') },
 			[
@@ -355,13 +293,10 @@ suite('Similar files with subset matching Test Suite', function () {
 			true
 		);
 
-		// We expect the new way to prefer the second file because it contains the most tokens that match
-		// the method enclosing the caret.
 		assert(
 			fileScore(newScores, 'file2') > fileScore(newScores, 'file3') &&
 			fileScore(newScores, 'file3') === fileScore(newScores, 'file1'),
 			'Expected that the file containing IBaz interface would be the best match'
 		);
-		// **********************************************************
 	});
 });

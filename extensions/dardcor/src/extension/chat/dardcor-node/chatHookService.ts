@@ -11,7 +11,7 @@ import { HookCommandResultKind, IHookCommandResult, IHookExecutor } from '../../
 import { IHooksOutputChannel } from '../../../platform/chat/common/hooksOutputChannel';
 import { ISessionTranscriptService } from '../../../platform/chat/common/sessionTranscriptService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { CopilotChatAttr, GenAiAttr, GenAiOperationName, GitHubCopilotAttr, IOTelService, SpanKind, SpanStatusCode, truncateForOTel } from '../../../platform/otel/common/index';
+import { DardcorChatAttr, GenAiAttr, GenAiOperationName, DardcorAttr, IOTelService, SpanKind, SpanStatusCode, truncateForOTel } from '../../../platform/otel/common/index';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { raceTimeout } from '../../../util/dardcor/base/common/async';
 import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
@@ -22,16 +22,6 @@ import { ChatHookTelemetry } from './chatHookTelemetry';
 
 const permissionPriority: Record<string, number> = { 'deny': 2, 'ask': 1, 'allow': 0 };
 
-/**
- * One-way compatible hook event name mappings. When a hook written for one event
- * type is reused under a different type (e.g. a Stop hook scoped to a custom
- * agent runs as SubagentStop), the hookEventName in the output won't match.
- *
- * The map key is the hookEventName from the output; the value is the hook type
- * it should also be accepted for. The mapping is intentionally one-way:
- * a Stop hook is accepted when running as SubagentStop, but a SubagentStop
- * hook's output is NOT accepted when running as a top-level Stop.
- */
 const compatibleHookEventNames: ReadonlyMap<vscode.ChatHookType, vscode.ChatHookType> = new Map([
 	['Stop', 'SubagentStop'],
 	['SessionStart', 'SubagentStart'],
@@ -41,9 +31,6 @@ export function isCompatibleHookEventName(hookEventName: string, hookType: strin
 	return hookEventName === hookType || compatibleHookEventNames.get(hookEventName as vscode.ChatHookType) === hookType;
 }
 
-/**
- * Keys that should be redacted when logging hook input.
- */
 const redactedInputKeys = ['toolArgs', 'tool_input'];
 
 export class ChatHookService implements IChatHookService {
@@ -115,14 +102,12 @@ export class ChatHookService implements IChatHookService {
 		let hasCaughtException = false;
 
 		try {
-			// Flush transcript before running hooks so scripts see up-to-date content
 			let transcriptPath: vscode.Uri | undefined;
 			if (sessionId) {
 				await raceTimeout(this._sessionTranscriptService.flush(sessionId), 500);
 				transcriptPath = this._sessionTranscriptService.getTranscriptPath(sessionId);
 			}
 
-			// Build common input properties merged with caller-specific input
 			const commonInput = {
 				timestamp: new Date().toISOString(),
 				hook_event_name: hookType,
@@ -144,7 +129,6 @@ export class ChatHookService implements IChatHookService {
 
 			for (const hookCommand of hookCommands) {
 				try {
-					// Include per-command cwd in the input
 					const commandInput = hookCommand.cwd
 						? { ...fullInput, cwd: hookCommand.cwd.fsPath }
 						: fullInput;
@@ -160,68 +144,61 @@ export class ChatHookService implements IChatHookService {
 						kind: SpanKind.INTERNAL,
 						attributes: {
 							[GenAiAttr.OPERATION_NAME]: GenAiOperationName.EXECUTE_HOOK,
-							[CopilotChatAttr.HOOK_TYPE]: hookType,
+							[DardcorChatAttr.HOOK_TYPE]: hookType,
 							'dardcor_chat.hook_command': hookCommand.command,
 							...(chatSessionId ? { [GenAiAttr.CONVERSATION_ID]: chatSessionId } : {}),
-							...(chatSessionId ? { [CopilotChatAttr.SESSION_ID]: chatSessionId } : {}),
-							...(chatSessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}),
-							...(hookToolNamesJson ? { [GitHubCopilotAttr.HOOK_TOOL_NAMES]: hookToolNamesJson } : {}),
+							...(chatSessionId ? { [DardcorChatAttr.SESSION_ID]: chatSessionId } : {}),
+							...(chatSessionId ? { [DardcorChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}),
+							...(hookToolNamesJson ? { [DardcorAttr.HOOK_TOOL_NAMES]: hookToolNamesJson } : {}),
 						},
 					});
 
 					try {
-						// Capture hook input for debug panel resolve
 						try {
-							span.setAttribute(CopilotChatAttr.HOOK_INPUT, truncateForOTel(JSON.stringify(commandInput), this._otelService.config.maxAttributeSizeChars));
-						} catch { /* swallow serialization errors */ }
+							span.setAttribute(DardcorChatAttr.HOOK_INPUT, truncateForOTel(JSON.stringify(commandInput), this._otelService.config.maxAttributeSizeChars));
+						} catch { }
 
 						const sw = StopWatch.create();
 						const commandResult = await this._hookExecutor.executeCommand(hookCommand, commandInput, effectiveToken);
 						const elapsed = sw.elapsed();
-						span.setAttribute(GitHubCopilotAttr.HOOK_DURATION_SECONDS, elapsed / 1000);
+						span.setAttribute(DardcorAttr.HOOK_DURATION_SECONDS, elapsed / 1000);
 
 						this._logCommandResult(requestId, hookType, commandResult, elapsed);
 
-						// Record result on OTel span
 						const resultKind = commandResult.kind === HookCommandResultKind.Success ? 'success'
 							: commandResult.kind === HookCommandResultKind.NonBlockingError ? 'non_blocking_error'
 								: 'error';
-						span.setAttribute(CopilotChatAttr.HOOK_RESULT_KIND, resultKind);
+						span.setAttribute(DardcorChatAttr.HOOK_RESULT_KIND, resultKind);
 
 						const hookDecision = commandResult.kind === HookCommandResultKind.Error
 							? 'block'
 							: commandResult.kind === HookCommandResultKind.NonBlockingError
 								? 'non_blocking_error'
 								: 'pass';
-						span.setAttribute(GitHubCopilotAttr.HOOK_DECISION, hookDecision);
+						span.setAttribute(DardcorAttr.HOOK_DECISION, hookDecision);
 
 						if (commandResult.kind === HookCommandResultKind.Error || commandResult.kind === HookCommandResultKind.NonBlockingError) {
 							hasError = true;
-							// Record exit code on error
 							if (commandResult.exitCode !== undefined) {
 								span.setAttribute('dardcor_chat.hook_exit_code', commandResult.exitCode);
 							}
-							// Error output goes to span status message (displayed as errorMessage in resolve)
 							span.setStatus(SpanStatusCode.ERROR, typeof commandResult.result === 'string' ? commandResult.result : undefined);
 						} else {
 							span.setStatus(SpanStatusCode.OK);
-							// Capture hook output for debug panel resolve (success only — errors go to errorMessage)
 							try {
 								const output = typeof commandResult.result === 'string' ? commandResult.result : JSON.stringify(commandResult.result);
 								if (output) {
-									span.setAttribute(CopilotChatAttr.HOOK_OUTPUT, truncateForOTel(output, this._otelService.config.maxAttributeSizeChars));
+									span.setAttribute(DardcorChatAttr.HOOK_OUTPUT, truncateForOTel(output, this._otelService.config.maxAttributeSizeChars));
 								}
-							} catch { /* swallow serialization errors */ }
+							} catch { }
 						}
 
 						const result = this._toHookResult(hookType, commandResult);
 						results.push(result);
 
-						// If stopReason is set (including empty string for "stop without message"), stop processing remaining hooks
 						if (result.stopReason !== undefined) {
-							// A stop signal from a successful hook still counts as a block.
 							if (hookDecision === 'pass') {
-								span.setAttribute(GitHubCopilotAttr.HOOK_DECISION, 'block');
+								span.setAttribute(DardcorAttr.HOOK_DECISION, 'block');
 							}
 							this._log(requestId, hookType, `Stopping: ${result.stopReason}`);
 							this._logService.debug(`[ChatHookService] Stopping after hook: ${result.stopReason}`);
@@ -261,8 +238,6 @@ export class ChatHookService implements IChatHookService {
 	private _toHookResult(hookType: string, commandResult: IHookCommandResult): vscode.ChatHookResult {
 		switch (commandResult.kind) {
 			case HookCommandResultKind.Error: {
-				// Exit code 2 - blocking error
-				// Callers handle this based on hook type (e.g., deny for PreToolUse, blocking reason for Stop)
 				const message = typeof commandResult.result === 'string' ? commandResult.result : JSON.stringify(commandResult.result);
 				return {
 					resultKind: 'error',
@@ -270,7 +245,6 @@ export class ChatHookService implements IChatHookService {
 				};
 			}
 			case HookCommandResultKind.NonBlockingError: {
-				// Non-blocking error - shown to user only as warning
 				const errorMessage = typeof commandResult.result === 'string' ? commandResult.result : JSON.stringify(commandResult.result);
 				return {
 					resultKind: 'warning',
@@ -286,19 +260,16 @@ export class ChatHookService implements IChatHookService {
 					};
 				}
 
-				// Extract common fields (continue, stopReason, systemMessage)
 				const resultObj = commandResult.result as Record<string, unknown>;
 				const stopReason = typeof resultObj['stopReason'] === 'string' ? resultObj['stopReason'] : undefined;
 				const continueFlag = resultObj['continue'];
 				const systemMessage = typeof resultObj['systemMessage'] === 'string' ? resultObj['systemMessage'] : undefined;
 
-				// Handle continue field: when false, stopReason is effective
 				let effectiveStopReason = stopReason;
 				if (continueFlag === false && !effectiveStopReason) {
 					effectiveStopReason = '';
 				}
 
-				// Check hookEventName at top level — if present and mismatched, skip this result
 				const topLevelHookEventName = resultObj['hookEventName'];
 				if (typeof topLevelHookEventName === 'string' && !isCompatibleHookEventName(topLevelHookEventName, hookType)) {
 					this._logService.trace(`[ChatHookService] Ignoring result with mismatched hookEventName '${topLevelHookEventName}' (expected '${hookType}')`);
@@ -308,7 +279,6 @@ export class ChatHookService implements IChatHookService {
 					};
 				}
 
-				// Check hookEventName inside hookSpecificOutput — if mismatched, strip hookSpecificOutput but keep the rest
 				let stripHookSpecificOutput = false;
 				const hookSpecificOutput = resultObj['hookSpecificOutput'];
 				if (typeof hookSpecificOutput === 'object' && hookSpecificOutput !== null) {
@@ -319,7 +289,6 @@ export class ChatHookService implements IChatHookService {
 					}
 				}
 
-				// Extract hook-specific output (everything except common fields)
 				const commonFields = new Set(['continue', 'stopReason', 'systemMessage']);
 				if (stripHookSpecificOutput) {
 					commonFields.add('hookSpecificOutput');
@@ -365,9 +334,6 @@ export class ChatHookService implements IChatHookService {
 			return undefined;
 		}
 
-		// Collapse results: deny > ask > allow (most restrictive wins).
-		// All deny reasons are collected so the user/model see every blocker
-		// when multiple hooks reject. ask/allow keep the first non-deny reason.
 		let mostRestrictiveDecision: 'allow' | 'deny' | 'ask' | undefined;
 		const denyReasons: string[] = [];
 		let askReason: string | undefined;
@@ -426,7 +392,6 @@ export class ChatHookService implements IChatHookService {
 					}
 				}
 			},
-			// Exit code 2 (error) means deny the tool
 			onError: (errorMessage) => {
 				if (errorMessage) {
 					denyReasons.push(errorMessage);
@@ -435,8 +400,6 @@ export class ChatHookService implements IChatHookService {
 			},
 		});
 
-		// Resolve the final reason for the most restrictive decision.
-		// For deny, join all collected deny reasons so every blocker is surfaced.
 		let winningReason: string | undefined;
 		if (mostRestrictiveDecision === 'deny') {
 			winningReason = denyReasons.length > 0 ? denyReasons.join('\n') : undefined;
@@ -446,8 +409,6 @@ export class ChatHookService implements IChatHookService {
 			winningReason = allowReason;
 		}
 
-		// Render a visible block in chat for any deny — whether it came from
-		// exit code 2 or a successful hook with permissionDecision: 'deny'.
 		if (mostRestrictiveDecision === 'deny') {
 			let renderedReason: string;
 			if (denyReasons.length === 0) {
@@ -461,7 +422,6 @@ export class ChatHookService implements IChatHookService {
 			outputStream?.hookProgress('PreToolUse', formatHookErrorMessage(renderedReason));
 		}
 
-		// Validate updatedInput against the tool's input schema before returning it
 		if (lastUpdatedInput) {
 			const validationResult = this._toolsService.validateToolInput(toolName, JSON.stringify(lastUpdatedInput));
 			if (isToolValidationError(validationResult)) {
@@ -503,12 +463,6 @@ export class ChatHookService implements IChatHookService {
 			token
 		);
 
-		// Running the hook can take a long time because it spawns external, user-configured
-		// commands. If the request was cancelled while the hook ran, the response stream is
-		// already closed and writing hook progress to it throws "Response stream has been
-		// closed". The caller only checks cancellation before invoking the hook, so re-check
-		// here after the await and skip result processing - a cancelled turn never consumes
-		// the result anyway.
 		if (token?.isCancellationRequested) {
 			return undefined;
 		}
@@ -517,7 +471,6 @@ export class ChatHookService implements IChatHookService {
 			return undefined;
 		}
 
-		// Collapse results: first block wins, collect all additionalContext
 		let hasBlock = false;
 		let blockReason: string | undefined;
 		const allAdditionalContext: string[] = [];
@@ -538,12 +491,10 @@ export class ChatHookService implements IChatHookService {
 					hookSpecificOutput?: IPostToolUseHookSpecificCommandOutput;
 				};
 
-				// Collect additionalContext from hookSpecificOutput
 				if (hookOutput.hookSpecificOutput?.additionalContext) {
 					allAdditionalContext.push(hookOutput.hookSpecificOutput.additionalContext);
 				}
 
-				// Track the first block decision
 				if (hookOutput.decision === 'block' && !hasBlock) {
 					hasBlock = true;
 					blockReason = hookOutput.reason;
@@ -553,7 +504,6 @@ export class ChatHookService implements IChatHookService {
 					this._outputChannel.appendLine(`[PostToolUse] ${message}`);
 				}
 			},
-			// Exit code 2 (error) means block the tool result
 			onError: (errorMessage) => {
 				if (!hasBlock) {
 					hasBlock = true;

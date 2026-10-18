@@ -45,7 +45,6 @@ export async function createIPCServer(context?: string): Promise<IPCServer> {
 		try {
 			await fs.promises.unlink(ipcHandlePath);
 		} catch {
-			// noop
 		}
 	}
 

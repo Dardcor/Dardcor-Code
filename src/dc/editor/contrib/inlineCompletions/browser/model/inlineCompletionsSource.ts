@@ -137,7 +137,7 @@ export class InlineCompletionsSource extends Disposable {
 	public readonly clearOperationOnTextModelChange = derived(this, reader => {
 		this._versionId.read(reader);
 		this._updateOperation.clear();
-		return undefined; // always constant
+		return undefined;
 	});
 
 	private _log(entry:
@@ -203,10 +203,8 @@ export class InlineCompletionsSource extends Disposable {
 					compareUndefinedSmallest(numberComparator)
 				) ?? recommendedDebounceValue;
 
-				// Debounce in any case if update is ongoing
 				const shouldDebounce = updateOngoing || (withDebounce && context.triggerKind === InlineCompletionTriggerKind.Automatic);
 				if (shouldDebounce) {
-					// This debounces the operation
 					await wait(debounceValue, source.token);
 				}
 
@@ -283,7 +281,6 @@ export class InlineCompletionsSource extends Disposable {
 
 						item.addPerformanceMarker('itemCreated');
 						providerSuggestions.push(i);
-						// Stop after first visible inline completion
 						if (!i.isInlineEdit && !i.showInlineEditMenu && context.triggerKind === InlineCompletionTriggerKind.Automatic) {
 							if (i.isVisible(this._textModel, this._cursorPosition.get())) {
 								shouldStopEarly = true;
@@ -378,7 +375,7 @@ export class InlineCompletionsSource extends Disposable {
 				suggestions.forEach(s => s.addPerformanceMarker('minShowDelayPassed'));
 
 				if (source.token.isCancellationRequested || this._store.isDisposed || this._textModel.getVersionId() !== request.versionId
-					|| userJumpedToActiveCompletion.get()  /* In the meantime the user showed interest for the active completion so dont hide it */) {
+					|| userJumpedToActiveCompletion.get()  ) {
 					const notShownReason =
 						source.token.isCancellationRequested ? 'canceled:afterMinShowDelay' :
 							this._store.isDisposed ? 'canceled:disposed' :
@@ -395,7 +392,6 @@ export class InlineCompletionsSource extends Disposable {
 				const cursorPosition = this._cursorPosition.get();
 				this._updateOperation.clear();
 				transaction(tx => {
-					/** @description Update completions with provider result */
 					const v = this._state.get();
 
 					if (context.selectedSuggestionInfo) {
@@ -449,7 +445,6 @@ export class InlineCompletionsSource extends Disposable {
 			return;
 		}
 		transaction(tx => {
-			/** @description Seed inline completions with (newer) suggest widget inline completions */
 			if (!inlineCompletions || (suggestWidgetInlineCompletions.request?.versionId ?? -1) > (inlineCompletions.request?.versionId ?? -1)) {
 				inlineCompletions?.dispose();
 				const s = this._state.get();
@@ -464,10 +459,6 @@ export class InlineCompletionsSource extends Disposable {
 		});
 	}
 
-	/**
-	 * Seeds the inline completions with an external inline completion item.
-	 * Used when transplanting a completion from one model to another (cross-file edits).
-	 */
 	public seedWithCompletion(item: InlineSuggestionItem, tx: ITransaction): void {
 		const s = this._state.get();
 		this._state.set({
@@ -661,9 +652,6 @@ export class InlineCompletionsState extends Disposable {
 		return this.inlineCompletions.find(i => i.hash === hash);
 	}
 
-	/**
-	 * Applies the edit on the state.
-	*/
 	public createStateWithAppliedEdit(edit: StringEdit, textModel: ITextModel): InlineCompletionsState {
 		const newInlineCompletions = this.inlineCompletions.map(i => i.withEdit(edit, textModel)).filter(isDefined);
 		return new InlineCompletionsState(newInlineCompletions, this.request);
@@ -686,9 +674,7 @@ export class InlineCompletionsState extends Disposable {
 		}
 
 		const preferInlineCompletions = itemToPreserve
-			// itemToPreserve has precedence
 			? !itemToPreserve.isInlineEdit
-			// Otherwise: prefer inline completion if there is a visible one
 			: updatedSuggestions.some(i => !i.isInlineEdit && i.isVisible(textModel, cursorPosition));
 
 		let updatedItems: InlineSuggestionItem[] = [];
@@ -718,7 +704,6 @@ export class InlineCompletionsState extends Disposable {
 	}
 }
 
-/** Keeps the first item in case of duplicates. */
 function distinctByKey<T>(items: T[], key: (item: T) => unknown): T[] {
 	const seen = new Set();
 	return items.filter(item => {

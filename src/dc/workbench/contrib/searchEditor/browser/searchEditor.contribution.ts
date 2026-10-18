@@ -59,7 +59,6 @@ const CleanSearchEditorStateCommandId = 'cleanSearchEditorState';
 const SelectAllSearchEditorMatchesCommandId = 'selectAllSearchEditorMatches';
 
 
-//#region Search Editor Configuration
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).registerConfiguration({
 	...searchConfigurationNode,
 	properties: {
@@ -101,9 +100,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 		},
 	}
 });
-//#endregion
 
-//#region Editor Descriptior
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
 		SearchEditor,
@@ -114,9 +111,7 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 		new SyncDescriptor(SearchEditorInput)
 	]
 );
-//#endregion
 
-//#region Startup Contribution
 class SearchEditorContribution implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.searchEditor';
@@ -147,9 +142,7 @@ class SearchEditorContribution implements IWorkbenchContribution {
 }
 
 registerWorkbenchContribution2(SearchEditorContribution.ID, SearchEditorContribution, WorkbenchPhase.BlockStartup);
-//#endregion
 
-//#region Input Serializer
 type SerializedSearchEditor = { modelUri: string | undefined; dirty: boolean; config?: SearchEditorConstants.SearchConfiguration; name: string; matchRanges: Range[]; backingUri?: string };
 
 class SearchEditorInputSerializer implements IEditorSerializer {
@@ -206,9 +199,7 @@ class SearchEditorInputSerializer implements IEditorSerializer {
 Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerEditorSerializer(
 	SearchEditorInput.ID,
 	SearchEditorInputSerializer);
-//#endregion
 
-//#region Commands
 CommandsRegistry.registerCommand(
 	CleanSearchEditorStateCommandId,
 	(accessor: ServicesAccessor) => {
@@ -217,9 +208,7 @@ CommandsRegistry.registerCommand(
 			activeEditorPane.cleanState();
 		}
 	});
-//#endregion
 
-//#region Actions
 const category = localize2('search', 'Search Editor');
 
 export type LegacySearchEditorArgs = Partial<{
@@ -615,9 +604,7 @@ registerAction2(class OpenSearchEditorAction extends Action2 {
 		return openSearchEditor(accessor);
 	}
 });
-//#endregion
 
-//#region Search Editor Working Copy Editor Handler
 class SearchEditorWorkingCopyEditorHandler extends Disposable implements IWorkbenchContribution, IWorkingCopyEditorHandler {
 
 	static readonly ID = 'workbench.contrib.searchEditorWorkingCopyEditorHandler';
@@ -652,4 +639,3 @@ class SearchEditorWorkingCopyEditorHandler extends Disposable implements IWorkbe
 }
 
 registerWorkbenchContribution2(SearchEditorWorkingCopyEditorHandler.ID, SearchEditorWorkingCopyEditorHandler, WorkbenchPhase.BlockRestore);
-//#endregion

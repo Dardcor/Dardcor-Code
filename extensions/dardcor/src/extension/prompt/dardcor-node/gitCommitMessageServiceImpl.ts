@@ -77,9 +77,6 @@ export class GitCommitMessageServiceImpl implements IGitCommitMessageService {
 
 	private async _doGenerateCommitMessage(repository: Repository, cancellationToken: CancellationToken): Promise<string | undefined> {
 		try {
-			// Explicitly refresh (best effort) the repository state to make
-			// sure that the repository state is up-to-date before generating
-			// the commit message.
 			await repository.status();
 		} catch (err) { }
 
@@ -93,9 +90,7 @@ export class GitCommitMessageServiceImpl implements IGitCommitMessageService {
 		}
 
 		const resources = repository.state.indexChanges.length > 0
-			// Index
 			? repository.state.indexChanges
-			// Working tree, untracked changes
 			: [
 				...repository.state.workingTreeChanges,
 				...repository.state.untrackedChanges ?? []
@@ -117,7 +112,6 @@ export class GitCommitMessageServiceImpl implements IGitCommitMessageService {
 		const gitCommitMessageGenerator = this._instantiationService.createInstance(GitCommitMessageGenerator);
 		const commitMessage = await gitCommitMessageGenerator.generateGitCommitMessage(repositoryName, branchName, changes, recentCommitMessages, attemptCount, cancellationToken);
 
-		// Save generated commit message
 		if (commitMessage && repository.state.HEAD && repository.state.HEAD.commit) {
 			const commitMessages = this._commitMessages.get(repository.rootUri.toString()) ?? new Map<string, CommitMessage>();
 			commitMessages.set(repository.state.HEAD.commit, { attemptCount, changes: diffs, message: commitMessage });
@@ -147,7 +141,6 @@ export class GitCommitMessageServiceImpl implements IGitCommitMessageService {
 			return null;
 		}
 
-		// Refresh repository state
 		await repository.status();
 
 		return repository;
@@ -175,11 +168,9 @@ export class GitCommitMessageServiceImpl implements IGitCommitMessageService {
 		const userCommitMessages: string[] = [];
 
 		try {
-			// Last 5 commit messages (repository)
 			const commits = await repository.log({ maxEntries: 5 });
 			repositoryCommitMessages.push(...commits.map(commit => commit.message.split('\n')[0]));
 
-			// Last 5 commit messages (user)
 			const author =
 				await repository.getConfig('user.name') ??
 				await repository.getGlobalConfig('user.name');
@@ -214,7 +205,6 @@ export class GitCommitMessageServiceImpl implements IGitCommitMessageService {
 			return;
 		}
 
-		// Commit details
 		const commit = await repository.getCommit(HEAD.commit);
 		const commitParent = commit.parents.length > 0 ? commit.parents[0] : '';
 		const commitMessage = commitMessages.get(commitParent);
@@ -223,20 +213,10 @@ export class GitCommitMessageServiceImpl implements IGitCommitMessageService {
 			return;
 		}
 
-		// Compute survival rate
 		const survivalRateFourGram = compute4GramTextSimilarity(commit.message, commitMessage.message);
 
-		/* __GDPR__
-			"git.generateCommitMessageSurvival" : {
-				"owner": "lszomoru",
-				"comment": "Tracks how much of the generated git commit message has survived",
-				"attemptCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many times the user has retried." },
-				"survivalRateFourGram": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the suggested git commit message was used when the code change was committed." }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('git.generateCommitMessageSurvival', undefined, { attemptCount: commitMessage.attemptCount, survivalRateFourGram });
 
-		// Delete commit message
 		commitMessages.delete(commitParent);
 		this._commitMessages.set(repository.rootUri.toString(), commitMessages);
 	}

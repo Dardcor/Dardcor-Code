@@ -6,27 +6,14 @@
 import { GenAiAttr } from '../../../platform/otel/common/genAiAttributes';
 import type { ICompletedSpanData } from '../../../platform/otel/common/otelService';
 
-/**
- * Helpers for extracting file paths and refs from tool calls,
- * plus shared constants for session store truncation limits.
- */
 
-// ── Truncation limits (shared by sessionStoreTracker and sessionReindexer) ──
 
-/** Maximum characters stored for user_message. */
 export const MAX_USER_MESSAGE_LENGTH = 1000;
 
-/** Maximum characters stored for assistant_response. */
 export const MAX_ASSISTANT_RESPONSE_LENGTH = 5000;
 
-/** Maximum characters stored for session summary. */
 export const MAX_SUMMARY_LENGTH = 1000;
 
-/**
- * Truncate a string to at most `maxLength` stored characters, appending '...' if truncated.
- * The returned value, including the truncation suffix, never exceeds `maxLength`.
- * Returns `undefined` for falsy input.
- */
 export function truncateForStore(value: string | undefined, maxLength: number): string | undefined {
 	if (!value) {
 		return undefined;
@@ -41,7 +28,6 @@ export function truncateForStore(value: string | undefined, maxLength: number): 
 	return value.slice(0, maxLength - ellipsis.length).trimEnd() + ellipsis;
 }
 
-/** Terminal/shell tool names that may produce refs. */
 export function isTerminalTool(toolName: string): boolean {
 	return toolName === 'runInTerminal' || toolName === 'run_in_terminal';
 }
@@ -57,15 +43,12 @@ export function extractToolArgs(span: ICompletedSpanData): Record<string, unknow
 		try {
 			return JSON.parse(serialized) as Record<string, unknown>;
 		} catch {
-			// ignore parse errors
 		}
 	}
 	return {};
 }
 
-/** Tools whose arguments contain a file path being modified or read. */
 const FILE_TRACKING_TOOLS = new Set([
-	// VS Code model-facing tool names (from ToolName enum)
 	'replace_string_in_file',
 	'multi_replace_string_in_file',
 	'insert_edit_into_file',
@@ -76,12 +59,10 @@ const FILE_TRACKING_TOOLS = new Set([
 	'read_file',
 	'view_image',
 	'list_dir',
-	// CLI-agent tool names (backward compat)
 	'str_replace_editor',
 	'create',
 ]);
 
-/** GitHub MCP server tool prefixes. */
 const GH_MCP_PREFIXES = ['mcp_github_', 'github-mcp-server-'];
 
 /**
@@ -95,12 +76,9 @@ export function extractFilePath(toolName: string, toolArgs: unknown): string | u
 	if (typeof toolArgs !== 'object' || toolArgs === null) { return undefined; }
 	const args = toolArgs as Record<string, unknown>;
 
-	// VS Code tools use 'filePath', CLI tools use 'path', list_dir uses 'path',
-	// create_directory uses 'dirPath'
 	const filePath = args.filePath ?? args.path ?? args.dirPath;
 	if (typeof filePath === 'string') { return filePath; }
 
-	// multi_replace_string_in_file stores filePath in each replacement item
 	if (toolName === 'multi_replace_string_in_file' && Array.isArray(args.replacements)) {
 		const first = args.replacements[0];
 		if (typeof first === 'object' && first !== null) {
@@ -109,7 +87,6 @@ export function extractFilePath(toolName: string, toolArgs: unknown): string | u
 		}
 	}
 
-	// apply_patch encodes file paths in the patch input text
 	if (toolName === 'apply_patch' && typeof args.input === 'string') {
 		return extractFirstFileFromPatch(args.input);
 	}
@@ -117,27 +94,17 @@ export function extractFilePath(toolName: string, toolArgs: unknown): string | u
 	return undefined;
 }
 
-/**
- * Extract the first file path from an apply_patch input string.
- * Matches lines like `*** Update File: /path/to/file` or `*** Add File: /path`.
- */
 function extractFirstFileFromPatch(input: string): string | undefined {
 	const match = input.match(/^\*\*\*\s+(?:Update|Add|Delete)\s+File:\s*(.+)$/m);
 	return match?.[1]?.trim();
 }
 
-/**
- * Safely extract a string field from an unknown object.
- */
 function getStringField(obj: unknown, field: string): string | undefined {
 	if (typeof obj !== 'object' || obj === null) { return undefined; }
 	const val = (obj as Record<string, unknown>)[field];
 	return typeof val === 'string' ? val : undefined;
 }
 
-/**
- * Safely extract a number field from an unknown object.
- */
 function getNumberField(obj: unknown, field: string): number | undefined {
 	if (typeof obj !== 'object' || obj === null) { return undefined; }
 	const val = (obj as Record<string, unknown>)[field];
@@ -155,7 +122,6 @@ export function extractRefsFromMcpTool(
 ): Array<{ ref_type: 'pr' | 'issue' | 'commit'; ref_value: string }> {
 	const refs: Array<{ ref_type: 'pr' | 'issue' | 'commit'; ref_value: string }> = [];
 
-	// PR tools: pull_request_read, list_pull_requests, search_pull_requests
 	if (toolName.includes('pull_request')) {
 		const pullNumber = getNumberField(toolArgs, 'pullNumber');
 		if (pullNumber) {
@@ -163,7 +129,6 @@ export function extractRefsFromMcpTool(
 		}
 	}
 
-	// Issue tools: issue_read, list_issues, search_issues
 	if (toolName.includes('issue')) {
 		const issueNumber = getNumberField(toolArgs, 'issue_number');
 		if (issueNumber) {
@@ -171,7 +136,6 @@ export function extractRefsFromMcpTool(
 		}
 	}
 
-	// Commit tools: get_commit, list_commits
 	if (toolName.includes('commit')) {
 		const sha = getStringField(toolArgs, 'sha');
 		if (sha) {
@@ -195,7 +159,6 @@ export function extractRefsFromTerminal(
 
 	const refs: Array<{ ref_type: 'pr' | 'issue' | 'commit'; ref_value: string }> = [];
 
-	// Detect PR creation/checkout/view/merge — look for PR URL in result
 	if (/\bgh\s+pr\s+(create|checkout|view|merge)\b/.test(command) && resultText) {
 		const prMatch = resultText.match(/https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)/);
 		if (prMatch?.[1]) {
@@ -203,7 +166,6 @@ export function extractRefsFromTerminal(
 		}
 	}
 
-	// Detect issue creation — look for issue URL in result
 	if (command.includes('gh issue create') && resultText) {
 		const issueMatch = resultText.match(/https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/(\d+)/);
 		if (issueMatch?.[1]) {
@@ -211,7 +173,6 @@ export function extractRefsFromTerminal(
 		}
 	}
 
-	// Detect git commit — extract SHA from "[branch sha]" pattern in output
 	if (/\bgit\s+commit\b/.test(command) && resultText) {
 		const commitMatch = resultText.match(/\[[\w/.-]+\s+([0-9a-f]{7,40})\]/);
 		if (commitMatch?.[1]) {
@@ -233,42 +194,24 @@ export function extractRepoFromMcpTool(toolArgs: unknown): string | undefined {
 	return undefined;
 }
 
-/**
- * Check whether a tool name is a GitHub MCP server tool.
- * Matches both VS Code-style `mcp_github_*` and CLI-style `github-mcp-server-*` prefixes.
- */
 export function isGitHubMcpTool(toolName: string): boolean {
 	return GH_MCP_PREFIXES.some(prefix => toolName.startsWith(prefix));
 }
 
-/** Truncation suffix appended by truncateForOTel. */
 const OTEL_TRUNCATION_MARKER = '...[truncated';
 
-/**
- * Extracts the agent name from an invoke_agent span.
- * Tries the explicit attribute first, then parses it from the span name,
- * finally falls back to 'unknown'.
- */
 export function extractAgentName(span: { name: string; attributes: Record<string, unknown> }): string {
-	// 1. Prefer explicit attribute
 	const attr = span.attributes[GenAiAttr.AGENT_NAME] as string | undefined;
 	if (attr?.trim()) {
 		return attr.trim();
 	}
-	// 2. Parse span name: "invoke_agent dardcor" → "dardcor"
 	const match = span.name.match(/^invoke_agent\s+(.+)/);
 	if (match?.[1]?.trim()) {
 		return match[1].trim();
 	}
-	// 3. Fallback
 	return 'unknown';
 }
 
-/**
- * Extracts human-readable plain text from potentially JSON-encoded content.
- * Returns undefined for unrecognized JSON (tool results, etc.) to skip the summary write.
- * Returns the original string unchanged if it is not JSON.
- */
 export function extractPlainTextFromContent(content: string): string | undefined {
 	const trimmed = content.trim();
 	if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) {
@@ -276,22 +219,19 @@ export function extractPlainTextFromContent(content: string): string | undefined
 	}
 	try {
 		const parsed = JSON.parse(trimmed);
-		// Handle [{type:"text", text:"..."}] multi-modal parts array
 		if (Array.isArray(parsed)) {
 			const textPart = parsed.find((p: unknown) => typeof p === 'object' && p !== null && (p as Record<string, unknown>).type === 'text' && typeof (p as Record<string, unknown>).text === 'string');
 			if (textPart) {
 				return ((textPart as Record<string, unknown>).text as string).trim() || undefined;
 			}
-			return undefined; // Array with no text parts (tool results, images, etc.)
+			return undefined;
 		}
-		// Handle {role:"...", content:"..."} chat messages with string content
-		// Note: content may be an array (multi-modal) — only handle string case
 		if (typeof (parsed as Record<string, unknown>).content === 'string') {
 			return ((parsed as Record<string, unknown>).content as string).trim() || undefined;
 		}
-		return undefined; // Unrecognized JSON structure
+		return undefined;
 	} catch {
-		return undefined; // JSON-looking input that failed to parse — skip to avoid storing raw/truncated JSON
+		return undefined;
 	}
 }
 
@@ -309,7 +249,6 @@ export function extractAssistantResponse(outputMessagesRaw: string | undefined):
 		return undefined;
 	}
 
-	// Fast path: try full JSON parse for non-truncated input
 	try {
 		const messages = JSON.parse(outputMessagesRaw) as { role: string; parts: { type: string; content: string }[] }[];
 		const parts = messages
@@ -319,11 +258,8 @@ export function extractAssistantResponse(outputMessagesRaw: string | undefined):
 			.map(p => p.content);
 		return parts.length > 0 ? parts.join('\n') : undefined;
 	} catch {
-		// JSON parse failed — likely truncated by truncateForOTel
 	}
 
-	// Fallback: extract text from truncated JSON by matching the serialized
-	// assistant text-part prefix, then reading until the truncation marker.
 	if (!outputMessagesRaw.includes(OTEL_TRUNCATION_MARKER)) {
 		return undefined;
 	}
@@ -341,12 +277,9 @@ export function extractAssistantResponse(outputMessagesRaw: string | undefined):
 	if (extracted.length === 0) {
 		return undefined;
 	}
-	// The extracted text is JSON-escaped (e.g. \" \n \\). Unescape by wrapping
-	// in quotes and parsing as a JSON string value.
 	try {
 		return JSON.parse(`"${extracted}"`) as string;
 	} catch {
-		// If unescape fails (e.g. truncation mid-escape), return the raw text
 		return extracted;
 	}
 }

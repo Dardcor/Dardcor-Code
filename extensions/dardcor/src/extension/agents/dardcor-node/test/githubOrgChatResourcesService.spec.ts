@@ -36,7 +36,6 @@ suite('GitHubOrgChatResourcesService', () => {
 	beforeEach(() => {
 		disposables = new DisposableStore();
 
-		// Create a simple mock extension context with only globalStorageUri
 		mockExtensionContext = {
 			globalStorageUri: storageUri,
 		};
@@ -46,7 +45,6 @@ suite('GitHubOrgChatResourcesService', () => {
 		mockWorkspaceService = new MockWorkspaceService();
 		mockAuthService = new MockAuthenticationService();
 
-		// Set up testing services to get log service
 		const testingServiceCollection = createExtensionUnitTestingServices(disposables);
 		const accessor = disposables.add(testingServiceCollection.createTestingAccessor());
 		logService = accessor.get(ILogService);
@@ -145,17 +143,14 @@ suite('GitHubOrgChatResourcesService', () => {
 
 			const service = createService();
 
-			// First call
 			const orgName1 = await service.getPreferredOrganizationName();
 			assert.equal(orgName1, 'cachedorg');
 
-			// Change the mock - should not affect cached result
 			mockGitService.setRepositoryFetchUrls({
 				rootUri: URI.file('/workspace'),
 				remoteFetchUrls: ['https://github.com/neworg/repo.git']
 			});
 
-			// Second call should return cached value
 			const orgName2 = await service.getPreferredOrganizationName();
 			assert.equal(orgName2, 'cachedorg');
 		});
@@ -178,7 +173,7 @@ suite('GitHubOrgChatResourcesService', () => {
 				rootUri: URI.file('/workspace'),
 				remoteFetchUrls: [
 					'https://gitlab.com/notgithub/repo.git',
-					undefined as any, // Skip undefined
+					undefined as any,
 					'https://github.com/foundorg/repo.git'
 				]
 			});
@@ -193,7 +188,6 @@ suite('GitHubOrgChatResourcesService', () => {
 		test('prefers Copilot sign-in org over arbitrary first org when no workspace repo', async () => {
 			mockWorkspaceService.setWorkspaceFolders([]);
 			mockOctoKitService.setUserOrganizations(['firstorg', 'dardcororg', 'thirdorg']);
-			// Set Copilot token with organization_login_list indicating Copilot access through 'dardcororg'
 			mockAuthService.dardcorToken = {
 				organizationLoginList: ['dardcororg'],
 			} as any;
@@ -224,7 +218,6 @@ suite('GitHubOrgChatResourcesService', () => {
 		test('uses Copilot org even when not in paginated user org list', async () => {
 			mockWorkspaceService.setWorkspaceFolders([]);
 			mockOctoKitService.setUserOrganizations(['firstorg', 'secondorg']);
-			// Copilot org may not appear in paginated user org list but is still valid
 			mockAuthService.dardcorToken = {
 				organizationLoginList: ['dardcororg'],
 			} as any;
@@ -232,7 +225,6 @@ suite('GitHubOrgChatResourcesService', () => {
 			const service = createService();
 			const orgName = await service.getPreferredOrganizationName();
 
-			// Copilot token orgs are trusted since they represent validated membership
 			assert.equal(orgName, 'dardcororg');
 		});
 
@@ -257,7 +249,6 @@ suite('GitHubOrgChatResourcesService', () => {
 			const service = createService();
 			const orgName = await service.getPreferredOrganizationName();
 
-			// Should match 'firstdardcororg' first in the dardcor org list iteration
 			assert.equal(orgName, 'firstdardcororg');
 		});
 	});
@@ -280,7 +271,6 @@ suite('GitHubOrgChatResourcesService', () => {
 			});
 			disposables.add(subscription);
 
-			// Wait for initial poll
 			await new Promise(resolve => setTimeout(resolve, 50));
 
 			assert.equal(capturedOrg, 'pollingorg');
@@ -317,17 +307,13 @@ suite('GitHubOrgChatResourcesService', () => {
 				callCount++;
 			});
 
-			// Wait for initial poll
 			await new Promise(resolve => setTimeout(resolve, 30));
 			const initialCount = callCount;
 
-			// Dispose subscription
 			subscription.dispose();
 
-			// Wait longer than poll interval
 			await new Promise(resolve => setTimeout(resolve, 100));
 
-			// Call count should not have increased significantly after disposal
 			assert.isAtMost(callCount - initialCount, 1);
 		});
 
@@ -352,10 +338,8 @@ suite('GitHubOrgChatResourcesService', () => {
 			});
 			disposables.add(subscription);
 
-			// Wait for multiple poll cycles
 			await new Promise(resolve => setTimeout(resolve, 100));
 
-			// Should never have more than 1 concurrent call
 			assert.equal(maxConcurrentCalls, 1);
 		});
 
@@ -378,10 +362,8 @@ suite('GitHubOrgChatResourcesService', () => {
 			});
 			disposables.add(subscription);
 
-			// Wait for multiple poll cycles
 			await new Promise(resolve => setTimeout(resolve, 100));
 
-			// Should continue polling even after error
 			assert.isAtLeast(callCount, 2);
 		});
 	});
@@ -416,7 +398,6 @@ suite('GitHubOrgChatResourcesService', () => {
 		});
 
 		test('sanitizes org name in path', async () => {
-			// dash is preserved, uppercase becomes lowercase
 			const cacheUri = URI.file(`${storagePath}/github/test-org/instructions/default${INSTRUCTION_FILE_EXTENSION}`);
 			mockFileSystem.mockFile(cacheUri, 'Sanitized content');
 
@@ -441,7 +422,6 @@ suite('GitHubOrgChatResourcesService', () => {
 
 			assert.isTrue(result);
 
-			// Verify file was written
 			const cacheUri = URI.file(`${storagePath}/github/testorg/instructions/default${INSTRUCTION_FILE_EXTENSION}`);
 			const content = await mockFileSystem.readFile(cacheUri);
 			assert.equal(new TextDecoder().decode(content), '# New Instructions');
@@ -614,7 +594,6 @@ suite('GitHubOrgChatResourcesService', () => {
 				'Content'
 			);
 
-			// dash is preserved, special chars become underscore, uppercase becomes lowercase
 			const cacheUri = URI.file(`${storagePath}/github/my-org___/instructions/default${INSTRUCTION_FILE_EXTENSION}`);
 			const content = await mockFileSystem.readFile(cacheUri);
 			assert.equal(new TextDecoder().decode(content), 'Content');
@@ -635,7 +614,6 @@ suite('GitHubOrgChatResourcesService', () => {
 			const service = createService();
 			await service.clearCache(PromptsType.instructions, 'testorg');
 
-			// Files should be deleted
 			let file1Exists = true;
 			let file2Exists = true;
 			try {
@@ -665,11 +643,9 @@ suite('GitHubOrgChatResourcesService', () => {
 			const service = createService();
 			await service.clearCache(PromptsType.instructions, 'testorg', new Set([`keep${INSTRUCTION_FILE_EXTENSION}`]));
 
-			// Kept file should still exist
 			const keepContent = await mockFileSystem.readFile(URI.joinPath(cacheDir, `keep${INSTRUCTION_FILE_EXTENSION}`));
 			assert.equal(new TextDecoder().decode(keepContent), 'Keep this');
 
-			// Deleted file should not exist
 			let deleteExists = true;
 			try {
 				await mockFileSystem.readFile(URI.joinPath(cacheDir, `delete${INSTRUCTION_FILE_EXTENSION}`));
@@ -691,7 +667,6 @@ suite('GitHubOrgChatResourcesService', () => {
 			const service = createService();
 			await service.clearCache(PromptsType.instructions, 'testorg');
 
-			// Valid file should be deleted
 			let validExists = true;
 			try {
 				await mockFileSystem.readFile(URI.joinPath(cacheDir, `valid${INSTRUCTION_FILE_EXTENSION}`));
@@ -700,7 +675,6 @@ suite('GitHubOrgChatResourcesService', () => {
 			}
 			assert.isFalse(validExists);
 
-			// Invalid file should still exist
 			const invalidContent = await mockFileSystem.readFile(URI.joinPath(cacheDir, 'invalid.txt'));
 			assert.equal(new TextDecoder().decode(invalidContent), 'Invalid');
 		});
@@ -708,7 +682,6 @@ suite('GitHubOrgChatResourcesService', () => {
 		test('handles non-existent cache directory gracefully', async () => {
 			const service = createService();
 
-			// Should not throw
 			await service.clearCache(PromptsType.instructions, 'nonexistentorg');
 		});
 
@@ -724,7 +697,6 @@ suite('GitHubOrgChatResourcesService', () => {
 			const service = createService();
 			await service.clearCache(PromptsType.instructions, 'testorg');
 
-			// Directory should still exist
 			const dirStat = await mockFileSystem.stat(URI.joinPath(cacheDir, 'subfolder'));
 			assert.ok(dirStat);
 		});
@@ -828,20 +800,15 @@ suite('GitHubOrgChatResourcesService', () => {
 
 			const service = createService();
 
-			// Get initial org name
 			const orgName1 = await service.getPreferredOrganizationName();
 			assert.equal(orgName1, 'org1');
 
-			// Simulate workspace folder change by updating mocks
 			mockWorkspaceService.setWorkspaceFolders([URI.file('/workspace2')]);
 			mockGitService.setRepositoryFetchUrls({
 				rootUri: URI.file('/workspace2'),
 				remoteFetchUrls: ['https://github.com/org2/repo.git']
 			});
 
-			// The cache should be cleared on workspace change event
-			// Since we can't easily fire the event, we verify the subscription is set up
-			// by checking that disposal works
 			service.dispose();
 		});
 	});
@@ -883,7 +850,7 @@ suite('GitHubOrgChatResourcesService', () => {
 			const cacheDir = URI.file(`${storagePath}/github/testorg/instructions`);
 			mockFileSystem.mockDirectory(cacheDir, [
 				[`valid${INSTRUCTION_FILE_EXTENSION}`, FileType.File],
-				['valid.agent.md', FileType.File], // Wrong extension for instructions
+				['valid.agent.md', FileType.File],
 			]);
 
 			const service = createService();
@@ -897,7 +864,7 @@ suite('GitHubOrgChatResourcesService', () => {
 			const cacheDir = URI.file(`${storagePath}/github/testorg/agents`);
 			mockFileSystem.mockDirectory(cacheDir, [
 				[`valid${AGENT_FILE_EXTENSION}`, FileType.File],
-				['valid.instructions.md', FileType.File], // Wrong extension for agents
+				['valid.instructions.md', FileType.File],
 			]);
 
 			const service = createService();

@@ -14,51 +14,21 @@ import { IAgentConfigurationService } from './agentConfigurationService.js';
 
 export const IAgentHostGitHubEndpointService = createDecorator<IAgentHostGitHubEndpointService>('agentHostGitHubEndpointService');
 
-/**
- * Single source of truth for the GitHub endpoints (protected resources + REST /
- * GraphQL hosts) the agent host talks to. Computed from the optional
- * `githubEnterpriseUri` root config so that every consumer — agent
- * `authenticate` / `getProtectedResources`, changeset operation `getAuthToken`
- * lookups, and the REST client — agrees on the same resource identifiers and API
- * base. With no enterprise URI configured, the values are byte-for-byte the
- * github.com defaults.
- */
 export interface IAgentHostGitHubEndpointService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fires when the configured GitHub endpoints change (e.g. `githubEnterpriseUri`
-	 * was set, cleared, or repointed). Does NOT fire for unrelated root-config
-	 * changes.
-	 */
 	readonly onDidChange: Event<void>;
 
-	/** The GitHub Copilot protected resource, computed against the configured endpoints. */
 	getCopilotResource(): ProtectedResourceMetadata;
 
-	/** The GitHub repository protected resource, computed against the configured endpoints. */
 	getRepoResource(): ProtectedResourceMetadata;
 
-	/** The REST API base URI (no trailing slash), e.g. `https://api.github.com`. */
 	getApiBaseUri(): string;
 
-	/** The GraphQL endpoint URI, e.g. `https://api.github.com/graphql`. */
 	getGraphQlUri(): string;
 
-	/**
-	 * The configured GitHub Enterprise host (authority only, e.g. `acme.ghe.com`),
-	 * or `undefined` for github.com. Used to set `COPILOT_GH_HOST` for the Copilot CLI.
-	 */
 	getEnterpriseHost(): string | undefined;
 
-	/**
-	 * The raw configured GitHub Enterprise base URI (e.g. `https://acme.ghe.com`),
-	 * or `undefined` for github.com. This is the value the `@vscode/copilot-api`
-	 * `CAPIClient.updateDomains(..., enterpriseUrlConfig)` expects: it derives the
-	 * GitHub API host (`api.<host>`) used for `copilot_internal` endpoints (token
-	 * mint, etc.) from it. Distinct from {@link getApiBaseUri} (the already-derived
-	 * `api.` host) - the package does that derivation itself.
-	 */
 	getEnterpriseUri(): string | undefined;
 }
 
@@ -82,8 +52,6 @@ export class AgentHostGitHubEndpointService extends Disposable implements IAgent
 		this._enterpriseUri = resolved.enterpriseUri;
 		this._register(this._configurationService.onDidRootConfigChange(() => {
 			const next = this._resolve();
-			// `onDidRootConfigChange` fires for every root-config key; only react
-			// when the derived GitHub endpoints actually change.
 			if (next.endpoints.apiBaseUri === this._endpoints.apiBaseUri
 				&& next.endpoints.graphQlUri === this._endpoints.graphQlUri
 				&& next.endpoints.oauthServer === this._endpoints.oauthServer) {

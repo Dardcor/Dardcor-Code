@@ -154,11 +154,9 @@ const configurationEntrySchema: IJSONSchema = {
 	}
 };
 
-// build up a delta across two ext points and only apply it once
 let _configDelta: IConfigurationDelta | undefined;
 
 
-// BEGIN VSCode extension point `configurationDefaults`
 const defaultConfigurationExtPoint = ExtensionsRegistry.registerExtensionPoint<IStringDictionary<IStringDictionary<unknown>>>({
 	extensionPoint: 'configurationDefaults',
 	jsonSchema: {
@@ -169,12 +167,10 @@ const defaultConfigurationExtPoint = ExtensionsRegistry.registerExtensionPoint<I
 defaultConfigurationExtPoint.setHandler((extensions, { added, removed }) => {
 
 	if (_configDelta) {
-		// HIGHLY unlikely, but just in case
 		configurationRegistry.deltaConfiguration(_configDelta);
 	}
 
 	const configNow = _configDelta = {};
-	// schedule a HIGHLY unlikely task in case only the default configurations EXT point changes
 	queueMicrotask(() => {
 		if (_configDelta === configNow) {
 			configurationRegistry.deltaConfiguration(_configDelta);
@@ -211,10 +207,8 @@ defaultConfigurationExtPoint.setHandler((extensions, { added, removed }) => {
 		_configDelta.addedDefaults = addedDefaultConfigurations;
 	}
 });
-// END VSCode extension point `configurationDefaults`
 
 
-// BEGIN VSCode extension point `configuration`
 const configurationExtPoint = ExtensionsRegistry.registerExtensionPoint<IConfigurationNode>({
 	extensionPoint: 'configuration',
 	deps: [defaultConfigurationExtPoint],
@@ -235,7 +229,6 @@ const extensionConfigurations: ExtensionIdentifierMap<IConfigurationNode[]> = ne
 
 configurationExtPoint.setHandler((extensions, { added, removed }) => {
 
-	// HIGHLY unlikely (only configuration but not defaultConfiguration EXT point changes)
 	_configDelta ??= {};
 
 	if (removed.length) {
@@ -293,9 +286,6 @@ configurationExtPoint.setHandler((extensions, { added, removed }) => {
 				}
 				const policyEntry = extensionConfigurationPolicy?.[key];
 				if (policyEntry) {
-					// A reference entry carries a `policyReference` pointer; a full (owner/"parent")
-					// entry declares the policy inline. References attach this setting to a policy
-					// *owned* by an in-code setting (whose `value` callback JSON cannot carry).
 					if (hasKey(policyEntry, { policyReference: true })) {
 						propertyConfiguration.policyReference = policyEntry.policyReference;
 					} else {
@@ -344,7 +334,6 @@ configurationExtPoint.setHandler((extensions, { added, removed }) => {
 	configurationRegistry.deltaConfiguration(_configDelta);
 	_configDelta = undefined;
 });
-// END VSCode extension point `configuration`
 
 jsonRegistry.registerSchema('vscode://schemas/workspaceConfig', {
 	allowComments: true,

@@ -27,10 +27,6 @@ class ResolvedNotebookOutputEditorInputModel implements IDisposable {
 	}
 }
 
-// TODO @Yoyokrazy -- future feat. for viewing static outputs -- encode mime + data
-// export class NotebookOutputViewerInput extends EditorInput {
-// 	static readonly ID: string = 'workbench.input.notebookOutputViewerInput';
-// }
 
 export class NotebookOutputEditorInput extends EditorInput {
 	static readonly ID: string = 'workbench.input.notebookOutputEditorInput';
@@ -96,8 +92,6 @@ export class NotebookOutputEditorInput extends EditorInput {
 	}
 
 	public getSerializedData(): { notebookUri: URI; cellIndex: number; outputIndex: number } | undefined {
-		// need to translate from uris -> current indexes
-		// uris aren't deterministic across reloads, so indices are best option
 
 		if (!this._notebookRef) {
 			return;

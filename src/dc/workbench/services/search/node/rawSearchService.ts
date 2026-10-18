@@ -189,8 +189,6 @@ export class SearchService implements IRawSearchService {
 			const sortSW = (typeof config.maxResults !== 'number' || config.maxResults > 0) && StopWatch.create(false);
 			return this.sortResults(config, results, scorerCache, token)
 				.then<[ISerializedSearchSuccess, IRawFileMatch[]]>(sortedResults => {
-					// sortingTime: -1 indicates a "sorted" search that was not sorted, i.e. populating the cache when quickaccess is opened.
-					// Contrasting with findFiles which is not sorted and will have sortingTime: undefined
 					const sortingTime = sortSW ? sortSW.elapsed() : -1;
 
 					return [{
@@ -254,10 +252,6 @@ export class SearchService implements IRawSearchService {
 	}
 
 	private sortResults(config: IFileQuery, results: IRawFileMatch[], scorerCache: FuzzyScorerCache, token?: CancellationToken): Promise<IRawFileMatch[]> {
-		// we use the same compare function that is used later when showing the results using fuzzy scoring
-		// this is very important because we are also limiting the number of results by config.maxResults
-		// and as such we want the top items to be included in this result set if the number of items
-		// exceeds config.maxResults.
 		const query = prepareQuery(config.filePattern || '');
 		const compare = (matchA: IRawFileMatch, matchB: IRawFileMatch) => compareItemsByFuzzyScore(matchA, matchB, query, true, FileMatchItemAccessor, scorerCache);
 
@@ -278,14 +272,12 @@ export class SearchService implements IRawSearchService {
 	private getResultsFromCache(cache: Cache, searchValue: string, progressCallback: IFileProgressCallback, token?: CancellationToken): Promise<[ISearchEngineSuccess, IRawFileMatch[], ICachedSearchStats]> | null {
 		const cacheLookupSW = StopWatch.create(false);
 
-		// Find cache entries by prefix of search value
 		const hasPathSep = searchValue.indexOf(sep) >= 0;
 		let cachedRow: ICacheRow | undefined;
 		for (const previousSearch in cache.resultsToSearchCache) {
-			// If we narrow down, we might be able to reuse the cached results
 			if (searchValue.startsWith(previousSearch)) {
 				if (hasPathSep && previousSearch.indexOf(sep) < 0 && previousSearch !== '') {
-					continue; // since a path character widens the search for potential more matches, require it in previous search too
+					continue;
 				}
 
 				const row = cache.resultsToSearchCache[previousSearch];
@@ -317,12 +309,10 @@ export class SearchService implements IRawSearchService {
 				throw canceled();
 			}
 
-			// Pattern match on results
 			const results: IRawFileMatch[] = [];
 			const normalizedSearchValueLowercase = prepareQuery(searchValue).normalizedLowercase;
 			for (const entry of cachedEntries) {
 
-				// Check if this entry is a match for the search value
 				if (!isFilePatternMatch(entry, normalizedSearchValueLowercase)) {
 					continue;
 				}
@@ -381,15 +371,10 @@ export class SearchService implements IRawSearchService {
 		return Promise.resolve(undefined);
 	}
 
-	/**
-	 * Return a CancelablePromise which is not actually cancelable
-	 * TODO@rob - Is this really needed?
-	 */
 	private preventCancellation<C>(promise: CancelablePromise<C>): CancelablePromise<C> {
 		return new class implements CancelablePromise<C> {
 			get [Symbol.toStringTag]() { return this.toString(); }
 			cancel() {
-				// Do nothing
 			}
 			then<TResult1 = C, TResult2 = never>(resolve?: ((value: C) => TResult1 | Promise<TResult1>) | undefined | null, reject?: ((reason: any) => TResult2 | Promise<TResult2>) | undefined | null): Promise<TResult1 | TResult2> {
 				return promise.then(resolve, reject);
@@ -405,7 +390,6 @@ export class SearchService implements IRawSearchService {
 }
 
 interface ICacheRow {
-	// TODO@roblou - never actually canceled
 	promise: CancelablePromise<[ISearchEngineSuccess, IRawFileMatch[]]>;
 	resolved: boolean;
 	readonly event: Event<IFileSearchProgressItem>;
@@ -421,22 +405,22 @@ class Cache {
 const FileMatchItemAccessor = new class implements IItemAccessor<IRawFileMatch> {
 
 	getItemLabel(match: IRawFileMatch): string {
-		return basename(match.relativePath); // e.g. myFile.txt
+		return basename(match.relativePath);
 	}
 
 	getItemDescription(match: IRawFileMatch): string {
-		return dirname(match.relativePath); // e.g. some/path/to/file
+		return dirname(match.relativePath);
 	}
 
 	getItemPath(match: IRawFileMatch): string {
-		return match.relativePath; // e.g. some/path/to/file/myFile.txt
+		return match.relativePath;
 	}
 };
 
 function reviveQuery<U extends IRawQuery>(rawQuery: U): U extends IRawTextQuery ? ITextQuery : IFileQuery {
 	return {
 		// eslint-disable-next-line local/code-no-any-casts
-		...<any>rawQuery, // TODO
+		...<any>rawQuery,
 		...{
 			folderQueries: rawQuery.folderQueries && rawQuery.folderQueries.map(reviveFolderQuery),
 			extraFileResources: rawQuery.extraFileResources && rawQuery.extraFileResources.map(components => URI.revive(components))

@@ -87,7 +87,6 @@ suite('filter recording for sensitive files', () => {
 
 		const result = filterLogForSensitiveFiles(log);
 
-		// Only header and src/index.ts should remain
 		expect(result.filter(e => e.kind === 'documentEncountered')).toHaveLength(1);
 		expect(result.find(e => e.kind === 'documentEncountered')).toMatchObject({
 			relativePath: 'src/index.ts'
@@ -124,7 +123,6 @@ suite('filter recording for sensitive files', () => {
 
 		const result = filterLogForSensitiveFiles(log);
 
-		// Only src/aws/client.ts should remain (it's not in .aws directory)
 		expect(result.filter(e => e.kind === 'documentEncountered')).toHaveLength(1);
 		expect(result.find(e => e.kind === 'documentEncountered')).toMatchObject({
 			relativePath: 'src/aws/client.ts'
@@ -151,12 +149,10 @@ suite('filter recording for sensitive files', () => {
 	test('should filter exact password/token data files but not code files with those words', () => {
 		const log: LogEntry[] = [
 			{ documentType: 'workspaceRecording@1.0', kind: 'header', repoRootUri: 'file:///repo', time: 0, uuid: 'test' },
-			// These should be filtered (exact sensitive data files)
 			{ kind: 'documentEncountered', id: 1, relativePath: 'password.txt', time: 0 },
 			{ kind: 'documentEncountered', id: 2, relativePath: 'passwords.json', time: 0 },
 			{ kind: 'documentEncountered', id: 3, relativePath: 'token.json', time: 0 },
 			{ kind: 'documentEncountered', id: 4, relativePath: 'tokens.txt', time: 0 },
-			// These should NOT be filtered (code files that deal with passwords/tokens)
 			{ kind: 'documentEncountered', id: 5, relativePath: 'passwordValidator.ts', time: 0 },
 			{ kind: 'documentEncountered', id: 6, relativePath: 'tokenAnalyzer.ts', time: 0 },
 			{ kind: 'documentEncountered', id: 7, relativePath: 'auth/refreshToken.service.ts', time: 0 },
@@ -169,7 +165,6 @@ suite('filter recording for sensitive files', () => {
 			.filter((e): e is LogEntry & { kind: 'documentEncountered' } => e.kind === 'documentEncountered')
 			.map(e => e.relativePath);
 
-		// Only code files should remain
 		expect(remainingPaths).toEqual([
 			'passwordValidator.ts',
 			'tokenAnalyzer.ts',
@@ -190,7 +185,6 @@ suite('filter recording for sensitive files', () => {
 
 		const result = filterLogForSensitiveFiles(log);
 
-		// Only tsconfig.json should remain
 		expect(result.filter(e => e.kind === 'documentEncountered')).toHaveLength(1);
 		expect(result.find(e => e.kind === 'documentEncountered')).toMatchObject({
 			relativePath: 'tsconfig.json'
@@ -198,8 +192,6 @@ suite('filter recording for sensitive files', () => {
 	});
 
 	test('should handle Windows-style backslash paths', () => {
-		// Windows paths with backslashes are normalized to forward slashes before processing
-		// This ensures the function works correctly even when processing logs recorded on Windows
 		const log: LogEntry[] = [
 			{ documentType: 'workspaceRecording@1.0', kind: 'header', repoRootUri: 'file:///repo', time: 0, uuid: 'test' },
 			{ kind: 'documentEncountered', id: 1, relativePath: '.vscode\\settings.json', time: 0 },
@@ -210,7 +202,6 @@ suite('filter recording for sensitive files', () => {
 
 		const result = filterLogForSensitiveFiles(log);
 
-		// Only src\index.ts should remain - others are sensitive
 		expect(result.filter(e => e.kind === 'documentEncountered')).toHaveLength(1);
 		expect(result.find(e => e.kind === 'documentEncountered')).toMatchObject({
 			relativePath: 'src\\index.ts'

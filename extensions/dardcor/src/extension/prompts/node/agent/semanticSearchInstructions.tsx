@@ -13,11 +13,6 @@ export interface PreferSemanticSearchInstructionsProps extends BasePromptElement
 	readonly availableTools: readonly LanguageModelToolInformation[] | undefined;
 }
 
-/**
- * Instructions that push the agent to reach for {@link ToolName.Codebase} before spending context on
- * exploratory reads and text searches. Rendered by `AgentPrompt` when the codebase tool is available
- * and {@link ConfigKey.SemanticSearchToolMode} is `preferred`.
- */
 export class PreferSemanticSearchInstructions extends PromptElement<PreferSemanticSearchInstructionsProps> {
 	render() {
 		const tools = detectToolCapabilities(this.props.availableTools);

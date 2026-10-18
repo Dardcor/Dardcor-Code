@@ -14,59 +14,16 @@ import { generateScenarioTestRunner } from './scenarioTest';
 
 const NUM_SCENARIOS = 26;
 
-/**
- * Configuration object for a search test.
- */
 interface ISearchTestConfig {
 
-	/**
-	 * The question to ask the AI.
-	 * ie: question: "find all links"
-	 */
 	question: string;
-	/**
-	 * Whether the search query is a regular expression.
-	 */
 	isRegex: boolean;
-	/**
-	 * Whether to search only in open editors.
-	 */
 	onlyOpenEditors?: boolean;
-	/**
-	 * An array of expected include/exclude globs to use to target search files. This will be used to look for files to search, which will be compared to the list from the actual glob's include/exclude.
-	 * ie:
-	 * ```
-	 * exampleIncludeGlobs: ["*.md", "*.html"]
-	 * exampleExcludeGlobs: ["*.ts"]
-	 * ```
-	 */
 	exampleIncludeGlobs?: string[];
 	exampleExcludeGlobs?: string[];
-	/**
-	 * A map of search queries to the expected text results. If multiple are specified (2D string array), the test can match any of the possibilities.
-	 * Might not include all files that gets searched.
-	 * The actual results will be tested such that they CONTAIN the expected result. Therefore, the expected result should be the minimum-length possible result from the query.
-	 * ie:
-	 * queryShouldFind: "foo.md" -> ["http://google.ca", "http://github.com"]
-	 * where the file "foo.md" matches the text "http://google.ca" and "http://github.com"
-	 *
-	 * or
-	 *
-	 * queryShouldFind: "foo.md" -> [["http://google.ca", "http://github.com"],["http://google.ca"]]
-	 * where the file "foo.md" matches the text "http://google.ca" and "http://github.com" OR only "http://google.ca"
-	 */
 	queryShouldFind: Map<string, string[] | string[][]>;
-	/**
-	 * A map of original file names to the file name of the file containing the expected replace result4
-	 * ie:
-	 * replaceResult: "foo.md" -> "foo.replaced.md"
-	 */
-	replaceResult?: Map<string, string>; // fileName original -> filename expected
+	replaceResult?: Map<string, string>;
 
-	/**
-	 * Whether or not the answer should fail to give a query. Will be false by default.
-	 * Would be true for an answer that says something like "I don't know what you're talking about, please clarify".
-	 */
 	shouldFail?: boolean;
 }
 
@@ -99,7 +56,6 @@ const replaceSamples = path.join(scenarioFolder, 'replace-samples');
 
 (function () {
 	ssuite({ title: 'search', location: 'panel' }, () => {
-		// Dynamically create a test case per each entry
 		for (let i = 0; i < NUM_SCENARIOS; i++) {
 			const testCase = getTestInfoFromFile(`search${i}.testArgs.json`);
 			const testName = testCase.question;

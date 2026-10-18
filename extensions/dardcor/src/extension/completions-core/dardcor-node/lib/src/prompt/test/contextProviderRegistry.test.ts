@@ -74,7 +74,6 @@ suite('ContextProviderRegistry', function () {
 		telemetryData = TelemetryWithExp.createEmptyConfigForTesting();
 		registry = accessor.get(ICompletionsContextProviderRegistryService);
 
-		// Enable all context providers for the suite.
 		telemetryData.filtersAndExp.exp.variables.dardcorcontextproviders = '*';
 		clock = Sinon.useFakeTimers();
 	});
@@ -413,14 +412,14 @@ suite('ContextProviderRegistry', function () {
 
 	test('context items with invalid importance are dropped', async function () {
 		const importances = [
-			-1, // Out of range
-			101, // Out of range
-			99.9, // non-integer
-			0.1, // non-integer
-			50, // valid,
-			0, // valid,
-			100, // valid,
-			undefined, // valid
+			-1,
+			101,
+			99.9,
+			0.1,
+			50,
+			0,
+			100,
+			undefined,
 		];
 
 		const items: TraitWithId[] = [];
@@ -541,9 +540,8 @@ suite('ContextProviderRegistry', function () {
 	test('all providers are enabled in debug mode', async function () {
 		const serviceCollectionClone = serviceCollection.clone();
 
-		// Feature flag doesn't matter in debug mode
 		telemetryData.filtersAndExp.exp.variables.dardcorcontextproviders = '';
-		serviceCollectionClone.define(ICompletionsRuntimeModeService, RuntimeMode.fromEnvironment(false, [], { GITHUB_COPILOT_DEBUG: 'true' }));
+		serviceCollectionClone.define(ICompletionsRuntimeModeService, RuntimeMode.fromEnvironment(false, [], { DARDCOR_DEBUG: 'true' }));
 		const accessor = serviceCollectionClone.createTestingAccessor();
 		const registry = accessor.get(ICompletionsContextProviderRegistryService);
 
@@ -659,7 +657,6 @@ suite('ContextProviderRegistry', function () {
 				data: [],
 			},
 		]);
-		// Logs the error
 		testLogTarget.assertHasMessageMatching(LogLevel.ERROR, /Error resolving context/);
 	});
 
@@ -698,7 +695,6 @@ suite('ContextProviderRegistry', function () {
 				data: [],
 			},
 		]);
-		// In this case, no error is expected
 		assert.ok(testLogTarget.isEmpty());
 	});
 
@@ -708,9 +704,7 @@ suite('ContextProviderRegistry', function () {
 			selector: ['*'],
 			resolver: {
 				async *resolve(_, token) {
-					// Return something, which will be ignored
 					yield { name: 'trait', value: 'value' };
-					// Return promise that rejects
 					return Promise.reject(new Error('Intentional error'));
 				},
 			},
@@ -734,7 +728,6 @@ suite('ContextProviderRegistry', function () {
 				data: [],
 			},
 		]);
-		// Logs the error
 		testLogTarget.assertHasMessageMatching(LogLevel.ERROR, /Error resolving context/);
 	});
 
@@ -744,7 +737,6 @@ suite('ContextProviderRegistry', function () {
 			selector: ['*'],
 			resolver: {
 				async *resolve(_, token) {
-					// Return something, which will be ignored
 					yield { name: 'trait', value: 'value' };
 					return Promise.reject(new CancellationError());
 				},
@@ -769,7 +761,6 @@ suite('ContextProviderRegistry', function () {
 				data: [],
 			},
 		]);
-		// In this case, no error is expected
 		assert.ok(testLogTarget.isEmpty());
 	});
 
@@ -872,7 +863,7 @@ suite('ContextProviderRegistry', function () {
 			},
 		};
 
-		serviceCollectionClone.define(ICompletionsRuntimeModeService, RuntimeMode.fromEnvironment(false, [], { GITHUB_COPILOT_DEBUG: 'true' }));
+		serviceCollectionClone.define(ICompletionsRuntimeModeService, RuntimeMode.fromEnvironment(false, [], { DARDCOR_DEBUG: 'true' }));
 		const accessor = serviceCollectionClone.createTestingAccessor();
 
 		const configProvider = accessor.get(ICompletionsConfigProvider) as InMemoryConfigProvider;
@@ -1006,23 +997,21 @@ suite('ContextProviderRegistry', function () {
 			},
 		};
 
-		// Items from this provider will be processed first.
 		const secondProvider: ContextProvider<Trait> = {
 			id: 'secondProvider',
 			selector: [{ language: 'md' }],
 			resolver: {
 				async *resolve() {
 					await delay(20);
-					yield { name: 'trait3', value: 'value3', id: 'id3' }; // Will make it
+					yield { name: 'trait3', value: 'value3', id: 'id3' };
 					await delay(120);
-					yield { name: 'trait4', value: 'value4', id: 'id4' }; // Will make it
+					yield { name: 'trait4', value: 'value4', id: 'id4' };
 					await delay(20);
-					yield { name: 'trait5', value: 'value5', id: 'id5' }; // Will not make it
+					yield { name: 'trait5', value: 'value5', id: 'id5' };
 				},
 			},
 		};
 
-		// This provider will be ignored because it doesn't match
 		const thirdProvider: ContextProvider<Trait> = {
 			id: 'thirdProvider',
 			selector: [{ language: 'typescript' }],
@@ -1133,7 +1122,7 @@ suite('ContextProviderRegistry', function () {
 				async *resolve() {
 					yield Promise.resolve({ name: 'asynctrait1', value: 'value1', id: 'id1' });
 					yield Promise.resolve({ name: 'asynctrait2', value: 'value2', id: 'id2' });
-					await clock.tickAsync(1000); // Timeout
+					await clock.tickAsync(1000);
 					yield Promise.resolve({ name: 'asynctrait3', value: 'value3', id: 'id3' });
 				},
 				resolveOnTimeout() {
@@ -1176,7 +1165,7 @@ suite('ContextProviderRegistry', function () {
 			selector: ['*'],
 			resolver: {
 				async resolve() {
-					await clock.tickAsync(1000); // Timeout
+					await clock.tickAsync(1000);
 					return { name: 'trait', value: 'value', id: 'id1' };
 				},
 				resolveOnTimeout() {
@@ -1213,7 +1202,7 @@ suite('ContextProviderRegistry', function () {
 			selector: ['*'],
 			resolver: {
 				async resolve() {
-					await clock.tickAsync(1000); // Timeout
+					await clock.tickAsync(1000);
 					return { name: 'trait', value: 'value', id: 'id1' };
 				},
 				resolveOnTimeout() {
@@ -1340,7 +1329,6 @@ suite('ContextProviderRegistry', function () {
 			defaultDocumentContext,
 			telemetryData
 		);
-		// Allowing for a small error, even though we're using fake timers
 		assert.ok(Date.now() - startTime < 151);
 		assert.deepStrictEqual(resolvedContextItems.length, 1);
 		assert.deepStrictEqual(removeResolutionTime(resolvedContextItems), [
@@ -1378,7 +1366,6 @@ suite('ContextProviderRegistry', function () {
 			telemetryData
 		);
 
-		// Allowing for a small error, even though we're using fake timers
 		assert.ok(Date.now() - startTime < 151);
 		assert.deepStrictEqual(resolvedContextItems.length, 1);
 		assert.deepStrictEqual(removeResolutionTime(resolvedContextItems), [
@@ -1444,22 +1431,17 @@ suite('ContextProviderRegistry', function () {
 		};
 		registry.registerContextProvider(slowProvider);
 
-		// record the time that resolution finishes
 		void registry.resolveAllProviders('1234', 'opId', defaultDocumentContext, telemetryData, cts.token).then(() => {
 			resolverEndTime = Date.now();
 		});
-		// trigger the cancellation token after 5ms
 		void delay(2).then(() => {
 			cts.cancel();
 		});
 		await clock.runAllAsync();
 
-		// the provider should have received the cancellation request
 		assert.ok(interceptedCancellation!);
 		assert.ok(interceptedCancellation.isCancellationRequested);
 
-		// regardless of the provider's behavior, we end promptly when we receive the cancellation token
-		// In particular, resolution finishes before the provider
 		assert.ok(resolverEndTime < providerEndTime);
 	});
 
@@ -1548,7 +1530,6 @@ suite('ContextProviderRegistry', function () {
 		assert.ok(anotherResolverSpy.notCalled);
 		assert.deepStrictEqual(firstCall.length, 1);
 
-		// Register another provider between calls to ensure more items are added.
 		registry.registerContextProvider(anotherTraitProvider);
 
 		const secondCall = await registry.resolveAllProviders('1234', 'opId', defaultDocumentContext, telemetryData);
@@ -1566,7 +1547,6 @@ suite('ContextProviderRegistry', function () {
 	});
 });
 
-// Utility function to test context items without worrying about non-deterministic fields
 function removeResolutionTime(resolvedContextItems: ResolvedContextItem[]) {
 	return resolvedContextItems.map(i => {
 		i.resolutionTimeMs = -1;

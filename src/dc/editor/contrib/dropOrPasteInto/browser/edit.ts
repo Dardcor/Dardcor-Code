@@ -10,12 +10,7 @@ import { Range } from '../../../common/core/range.js';
 import { SnippetParser } from '../../snippet/browser/snippetParser.js';
 import { HierarchicalKind } from '../../../../base/common/hierarchicalKind.js';
 
-/**
- * Given a {@link DropOrPasteEdit} and set of ranges, creates a {@link WorkspaceEdit} that applies the insert text from
- * the {@link DropOrPasteEdit} at each range plus any additional edits.
- */
 export function createCombinedWorkspaceEdit(uri: URI, ranges: readonly Range[], edit: DocumentPasteEdit | DocumentDropEdit): WorkspaceEdit {
-	// If the edit insert text is empty, skip applying at each range
 	if (typeof edit.insertText === 'string' ? edit.insertText === '' : edit.insertText.snippet === '') {
 		return {
 			edits: edit.additionalEdit?.edits ?? []
@@ -45,7 +40,6 @@ export function sortEditsByYieldTo<T extends {
 		return !!other.kind && yTo.kind.contains(other.kind);
 	}
 
-	// Build list of nodes each node yields to
 	const yieldsToMap = new Map<T, T[]>();
 	for (const edit of edits) {
 		for (const yTo of edit.yieldTo ?? []) {
@@ -70,7 +64,6 @@ export function sortEditsByYieldTo<T extends {
 		return Array.from(edits);
 	}
 
-	// Topological sort
 	const visited = new Set<T>();
 	const tempStack: T[] = [];
 

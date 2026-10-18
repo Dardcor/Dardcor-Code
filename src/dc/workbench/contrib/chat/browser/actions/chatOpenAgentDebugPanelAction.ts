@@ -28,9 +28,6 @@ import { Codicon } from '../../../../../base/common/codicons.js';
 import { IChatDebugEditorOptions } from '../chatDebug/chatDebugTypes.js';
 import { LocalChatSessionUri } from '../../common/model/chatUri.js';
 
-/**
- * Registers the Open Agent Debug Logs and Show Agent Debug Logs actions.
- */
 export function registerChatOpenAgentDebugPanelAction() {
 	registerAction2(class OpenAgentDebugPanelAction extends Action2 {
 		constructor() {
@@ -47,7 +44,6 @@ export function registerChatOpenAgentDebugPanelAction() {
 			const editorService = accessor.get(IEditorService);
 			const chatDebugService = accessor.get(IChatDebugService);
 
-			// Clear active session so the editor shows the home view
 			chatDebugService.activeSessionResource = undefined;
 
 			const options: IChatDebugEditorOptions = { pinned: true, viewHint: 'home' };
@@ -82,8 +78,6 @@ export function registerChatOpenAgentDebugPanelAction() {
 			const chatWidgetService = accessor.get(IChatWidgetService);
 			const chatDebugService = accessor.get(IChatDebugService);
 
-			// Extract session resource from context — may be a URI directly
-			// or an IChatViewTitleActionContext from the chat config menu
 			let sessionResource: URI | undefined;
 			if (URI.isUri(context)) {
 				sessionResource = context;
@@ -91,7 +85,6 @@ export function registerChatOpenAgentDebugPanelAction() {
 				sessionResource = context.sessionResource;
 			}
 
-			// Fall back to the last focused widget
 			if (!sessionResource) {
 				const widget = chatWidgetService.lastFocusedWidget;
 				sessionResource = widget?.viewModel?.sessionResource;
@@ -216,7 +209,7 @@ export function registerChatOpenAgentDebugPanelAction() {
 				return;
 			}
 
-			const maxImportSize = 50 * 1024 * 1024; // 50 MB
+			const maxImportSize = 50 * 1024 * 1024;
 			const stat = await fileService.stat(result[0]);
 			if (stat.size !== undefined && stat.size > maxImportSize) {
 				telemetryService.publicLog2<ChatDebugImportEvent, ChatDebugImportClassification>('chatDebugLogImported', {
@@ -252,7 +245,6 @@ export function registerChatOpenAgentDebugPanelAction() {
 	});
 }
 
-// Telemetry types
 
 type ChatDebugExportEvent = {
 	fileSizeBytes: number;

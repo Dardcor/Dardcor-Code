@@ -41,7 +41,6 @@ export class InlineSuggestionsView extends Disposable {
 			|| !!this._model.read(reader)?.inlineCompletionState.read(reader)?.inlineSuggestion?.showInlineEditMenu
 	);
 
-	// To break a cyclic dependency
 	private readonly _indicatorIsHoverVisible = observableValue<IObservable<boolean> | undefined>(this, undefined);
 
 	private readonly _showInlineEditCollapsed = derived(this, reader => {
@@ -131,10 +130,9 @@ export class InlineSuggestionsView extends Disposable {
 				const model = this._model.read(reader);
 				const inlineCompletion = model?.inlineCompletionState.read(reader)?.inlineSuggestion;
 				if (!model || !inlineCompletion) {
-					// editor.suggest.preview: true causes situations where we have ghost text, but no suggest preview.
 					return {
 						ghostText: ghostText.read(reader),
-						handleInlineCompletionShown: () => { /* no-op */ },
+						handleInlineCompletionShown: () => { },
 						warning: undefined,
 					};
 				}

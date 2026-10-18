@@ -52,12 +52,9 @@ class TransposeLettersAction extends EditorAction {
 			const lastColumn = model.getLineMaxColumn(lineNumber);
 
 			if (lineNumber === 1 && (column === 1 || (column === 2 && lastColumn === 2))) {
-				// at beginning of file, nothing to do
 				continue;
 			}
 
-			// handle special case: when at end of line, transpose left two chars
-			// otherwise, transpose left and right chars
 			const endPosition = (column === lastColumn) ?
 				selection.getPosition() :
 				MoveOperations.rightPosition(model, selection.getPosition().lineNumber, selection.getPosition().column);

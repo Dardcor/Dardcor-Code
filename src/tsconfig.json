@@ -30,8 +30,8 @@
 		"./*.ts",
 		"./typings/**/*",
 		"./dc/**/*.ts",
-		"./vscode-dts/vscode.proposed.*.d.ts",
-		"./vscode-dts/vscode.d.ts"
+		"./dardcor-dts/dardcor.proposed.*.d.ts",
+		"./dardcor-dts/dardcor.d.ts"
 	],
 	"exclude": [
 		"dc/workbench/contrib/webview/browser/pre/service-worker.js"

@@ -3,15 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Claude Code Session Service
- *
- * This service provides access to Claude Code chat sessions using the
- * `@anthropic-ai/claude-agent-sdk` session APIs. It handles:
- * - Listing sessions via `listSessions()`
- * - Loading full session content via `getSessionInfo()` + `getSessionMessages()`
- * - Subagent loading via `listSubagents()` + `getSubagentMessages()`
- */
 
 import type { CancellationToken } from 'vscode';
 import { ILogService } from '../../../../../platform/log/common/logService';
@@ -32,32 +23,18 @@ import {
 import { buildClaudeCodeSession, sdkSessionInfoToSessionInfo, sdkSubagentMessagesToSubagentSession } from './sdkSessionAdapter';
 import { toErrorMessage } from '../../../../../util/common/errorMessage';
 
-// #region Service Interface
 
 export const IClaudeCodeSessionService = createServiceIdentifier<IClaudeCodeSessionService>('IClaudeCodeSessionService');
 
-/**
- * Service to load and manage Claude Code chat sessions.
- */
 export interface IClaudeCodeSessionService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Get lightweight metadata for all sessions in the current workspace.
-	 * This is optimized for listing sessions without loading full content.
-	 */
 	getAllSessions(token: CancellationToken): Promise<readonly IClaudeCodeSessionInfo[]>;
 
-	/**
-	 * Get a specific session with full content by its resource URI.
-	 * This loads the complete message history and subagents.
-	 */
 	getSession(resource: URI, token: CancellationToken): Promise<IClaudeCodeSession | undefined>;
 }
 
-// #endregion
 
-// #region Service Implementation
 
 export class ClaudeCodeSessionService implements IClaudeCodeSessionService {
 	declare _serviceBrand: undefined;
@@ -70,10 +47,6 @@ export class ClaudeCodeSessionService implements IClaudeCodeSessionService {
 		@IAgentSessionsWorkspace private readonly _agentSessionsWorkspace: IAgentSessionsWorkspace,
 	) { }
 
-	/**
-	 * Get lightweight metadata for all sessions in the current workspace.
-	 * Delegates to the SDK's `listSessions()` and converts results.
-	 */
 	async getAllSessions(token: CancellationToken): Promise<readonly IClaudeCodeSessionInfo[]> {
 		if (this._agentSessionsWorkspace.isAgentSessionsWorkspace) {
 			try {
@@ -108,10 +81,6 @@ export class ClaudeCodeSessionService implements IClaudeCodeSessionService {
 		return items;
 	}
 
-	/**
-	 * Get a specific session with full content by its resource URI.
-	 * Uses SDK APIs for metadata, messages, and subagent transcripts.
-	 */
 	async getSession(resource: URI, token: CancellationToken): Promise<IClaudeCodeSession | undefined> {
 		const sessionId = ClaudeSessionUri.getSessionId(resource);
 
@@ -168,19 +137,12 @@ export class ClaudeCodeSessionService implements IClaudeCodeSessionService {
 		return undefined;
 	}
 
-	// #region Directory Discovery
 
-	/**
-	 * Get the project directory slugs to scan for sessions, along with their
-	 * original folder URIs (needed for badge display).
-	 */
 	private _getProjectFolders() {
 		return getProjectFolders(this._workspace, this._folderRepositoryManager);
 	}
 
-	// #endregion
 
-	// #region Subagent Loading
 
 	private async _loadSubagents(
 		sessionId: string,
@@ -233,7 +195,5 @@ export class ClaudeCodeSessionService implements IClaudeCodeSessionService {
 		}
 	}
 
-	// #endregion
 }
 
-// #endregion

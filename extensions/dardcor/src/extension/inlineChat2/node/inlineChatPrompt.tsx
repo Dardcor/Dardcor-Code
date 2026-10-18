@@ -20,15 +20,10 @@ import { CodeBlock } from '../../prompts/node/panel/safeElements';
 import { ToolResult } from '../../prompts/node/panel/toolCalling';
 
 
-/**
- * Threshold in lines above which a file is considered "large" and gets cropped in the prompt.
- */
 export const LARGE_FILE_LINE_THRESHOLD = 250;
 
-/** How many context lines to show around the cursor/selection in large files. */
 const LARGE_FILE_CONTEXT_LINES = 100;
 
-/** Context lines above/below selection in large files. */
 const LARGE_FILE_SELECTION_CONTEXT_LINES = 25;
 
 export interface ICompletedToolCallRound {
@@ -67,7 +62,6 @@ export class InlineChat2Prompt extends PromptElement<InlineChat2PromptProps> {
 		const variables = new ChatVariablesCollection(this.props.request.references);
 		const filepath = this._promptPathRepresentationService.getFilePath(snapshotAtRequest.uri);
 
-		// TODO@jrieken APPLY_PATCH_INSTRUCTIONS
 		return (
 			<>
 				<SystemMessage priority={1000}>
@@ -138,9 +132,6 @@ type CroppedFileContentElementProps = PromptElementProps<{
 	filepath: string;
 }>;
 
-/**
- * Renders a cropped view of a large file, centered around the cursor/selection.
- */
 class CroppedFileContentElement extends PromptElement<CroppedFileContentElementProps> {
 
 	override render() {
@@ -151,14 +142,12 @@ class CroppedFileContentElement extends PromptElement<CroppedFileContentElementP
 		let cropEnd: number;
 
 		if (selection.isEmpty) {
-			// Cursor only: show LARGE_FILE_CONTEXT_LINES centered on cursor, biased downward
 			const cursorLine = selection.start.line;
 			const linesAbove = Math.floor(LARGE_FILE_CONTEXT_LINES * 0.4);
 			const linesBelow = LARGE_FILE_CONTEXT_LINES - linesAbove;
 			cropStart = Math.max(0, cursorLine - linesAbove);
 			cropEnd = Math.min(totalLines - 1, cursorLine + linesBelow);
 		} else {
-			// Selection: always include the full selection, plus context around it
 			const selStart = selection.start.line;
 			const selEnd = selection.end.line;
 			cropStart = Math.max(0, selStart - LARGE_FILE_SELECTION_CONTEXT_LINES);
@@ -170,7 +159,6 @@ class CroppedFileContentElement extends PromptElement<CroppedFileContentElementP
 			selection.start.with({ line: cropEnd, character: Number.MAX_SAFE_INTEGER }),
 		));
 
-		// 1-based line numbers for the hint
 		const shownFrom = cropStart + 1;
 		const shownTo = cropEnd + 1;
 
@@ -241,9 +229,6 @@ export class FileSelectionElement extends PromptElement<FileSelectionElementProp
 
 	override render(state: void, sizing: PromptSizing, progress?: Progress<ChatResponsePart>, token?: CancellationToken) {
 
-		// the full lines of the selection
-		// TODO@jrieken
-		// * use the true selected text (now we extend to full lines)
 
 		const selectedLines = this.props.snapshot.getText(this.props.selection.with({
 			start: this.props.selection.start.with({ character: 0 }),
@@ -269,10 +254,6 @@ type ToolCallRoundsElementProps = PromptElementProps<{
 	filepath: string;
 }>;
 
-/**
- * Renders all previous tool call rounds in order, each as an AssistantMessage/ToolMessage pair.
- * If any edits failed, appends a single feedback UserMessage at the end.
- */
 export class ToolCallRoundsElement extends PromptElement<ToolCallRoundsElementProps> {
 
 	override render() {

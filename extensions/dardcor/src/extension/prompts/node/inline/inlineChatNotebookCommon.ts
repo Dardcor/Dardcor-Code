@@ -4,22 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 export interface NotebookPromptPriority {
-	/**
-	 * Core information for notebook, e.g., custom rules for Jupyter Notebook.
-	 */
 	core?: number;
 	context?: number;
-	/*
-	 * The priority for runtime core states, e.g., variables.
-	 */
 	runtimeCore?: number;
-	/**
-	 * The priority for Conversation History.
-	 */
 	history?: number;
-	/*
-	 * The priority for the rest, should be dropped first.
-	 */
 	other?: number;
 }
 

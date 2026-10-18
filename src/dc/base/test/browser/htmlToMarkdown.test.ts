@@ -48,7 +48,6 @@ suite('htmlToMarkdown', () => {
 					convertHtmlToMarkdown('<a href="file:///home/user/project/DefaultMeshInterpolator.java#46,62">mx:text</a>'),
 					convertHtmlToMarkdown('<a href="code-oss://file/c:/repo/src/config.ts">src/config.ts</a>'),
 					convertHtmlToMarkdown('<a href="http://_vscodecontentref_/0">index.ts</a>'),
-					// The agent host prompt asks models for bare absolute paths.
 					convertHtmlToMarkdown('<a href="/Users/me/repo/src/a.ts">a.ts</a>'),
 					convertHtmlToMarkdown('<a href="command:workbench.action.files.save">Save</a>'),
 					convertHtmlToMarkdown('<img src="/Users/me/shot.png" alt="screenshot">'),
@@ -61,14 +60,12 @@ suite('htmlToMarkdown', () => {
 				[
 					convertHtmlToMarkdown('<a href="" data-href="file:///home/user/project/a.ts">a.ts</a>'),
 					convertHtmlToMarkdown('<a href="vscode-file://vscode-app/resources/app/out/workbench.html" data-href="https://example.com">Example</a>'),
-					// A page of unknown origin must not redirect a link it displayed as safe.
 					convertHtmlToMarkdown('<a href="https://real.example" data-href="https://evil.example">docs</a>'),
 				],
 				['`a.ts`', '[Example](https://example.com)', '[docs](https://real.example)']);
 		});
 
 		test('uses the plain label when the target cannot be shared', () => {
-			// Emphasis markers would be read literally inside a code span.
 			assert.deepStrictEqual(
 				[
 					convertHtmlToMarkdown('<a href="file:///x"><strong>Foo</strong></a>'),
@@ -247,7 +244,6 @@ suite('htmlToMarkdown', () => {
 	test('falls back to tag-stripping for very large input', () => {
 		const large = '<b>' + 'x'.repeat(200_001) + '</b>';
 		const result = convertHtmlToMarkdown(large);
-		// Should strip tags but NOT apply markdown bold formatting
 		assert.ok(!result.includes('**'));
 		assert.ok(!result.includes('<b>'));
 	});

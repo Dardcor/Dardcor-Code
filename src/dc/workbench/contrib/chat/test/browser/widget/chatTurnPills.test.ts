@@ -80,8 +80,6 @@ suite('ChatTurnPills', () => {
 			['dropdown', disposables.add(instantiationService.createInstance(ChatDropdownPillActionViewItem, action, {}, constObservable<readonly IChatPillSection[]>([{ title: 'Files', entries: [entry] }]), chatArtifactPillOptions))],
 		];
 
-		// Rendering is what caught a `classList.add` crash from a space-separated
-		// class name, so exercise every implementation's render path.
 		const rendered = items.map(([name, item]) => {
 			const container = document.createElement('div');
 			mainWindow.document.body.appendChild(container);
@@ -146,9 +144,6 @@ suite('ChatTurnPills', () => {
 		item.render(container);
 		const button = container.querySelector<HTMLElement>('.chat-pill-button')!;
 
-		// The toolbar makes every non-first item unfocusable, then moves focus with
-		// blur/focus as the arrow keys travel. The item taking focus has to become
-		// the row's tab stop, or Shift+Tab can never return to it.
 		item.setFocusable(false);
 		const afterSetFocusable = button.tabIndex;
 		item.focus();
@@ -174,7 +169,6 @@ suite('ChatTurnPills', () => {
 		assert.strictEqual(labels.length, 2);
 
 		assert.deepStrictEqual({
-			// Resolves from a descendant of the pill, not just the item root.
 			firstLabel: widget.getPill(labels[0])?.action.id,
 			secondLabel: widget.getPill(labels[1])?.action.id,
 			outside: widget.getPill(widget.element)?.action.id,
@@ -196,8 +190,6 @@ suite('ChatTurnPills', () => {
 			mainWindow.document.body.appendChild(widget.element);
 			disposables.add(toDisposable(() => widget.element.remove()));
 
-			// The row's visibility menu listens on an ancestor, so the event has to
-			// bubble past the toolbar item to be seen at all.
 			let escaped = false;
 			const host = widget.element.parentElement!;
 			const probe = () => { escaped = true; };
@@ -241,7 +233,6 @@ suite('ChatTurnPills', () => {
 		mainWindow.document.body.appendChild(widget.element);
 		disposables.add(toDisposable(() => widget.element.remove()));
 
-		// The dropdown pill renders through the shared pill button now.
 		const button = widget.element.querySelector<HTMLElement>('.chat-pill-button');
 		assert.ok(button);
 		button.click();

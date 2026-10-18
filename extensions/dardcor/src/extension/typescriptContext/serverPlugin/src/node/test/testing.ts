@@ -30,7 +30,6 @@ export class SingleLanguageServiceSession extends ComputeContextSession {
 	}
 
 	public logError(_error: Error, _cmd: string): void {
-		// Null logger;
 	}
 
 	public *getLanguageServices(sourceFile?: tt.SourceFile): IterableIterator<tt.LanguageService> {

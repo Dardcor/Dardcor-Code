@@ -45,8 +45,6 @@ class TypeScriptInlayHintsProvider extends Disposable implements vscode.InlayHin
 			}
 		}));
 
-		// When a JS/TS file changes, change inlay hints for all visible editors
-		// since changes in one file can effect the hints the others.
 		this._register(vscode.workspace.onDidChangeTextDocument(e => {
 			if (language.languageIds.includes(e.document.languageId)) {
 				this._onDidChangeInlayHints.fire();
@@ -74,14 +72,6 @@ class TypeScriptInlayHintsProvider extends Disposable implements vscode.InlayHin
 
 		if (!this.hasReportedTelemetry) {
 			this.hasReportedTelemetry = true;
-			/* __GDPR__
-				"inlayHints.provide" : {
-					"owner": "mjbvz",
-					"${include}": [
-						"${TypeScriptCommonProperties}"
-					]
-				}
-			*/
 			this.telemetryReporter.logTelemetry('inlayHints.provide', {});
 		}
 

@@ -17,31 +17,16 @@ import { isAgentHostSession } from './agentHostLogSources.js';
 
 const $ = DOM.$;
 
-/**
- * Returns the debug-log enablement setting that governs a given session.
- * Agent host (Copilot CLI) sessions are gated by the agent-host setting; all
- * other sessions use the local file-logging setting.
- */
 export function getChatDebugLoggingSettingId(sessionResource: URI | undefined): string {
 	return isAgentHostSession(sessionResource)
 		? AgentHostAgentDebugLogEnabledSettingId
 		: AGENT_DEBUG_LOG_FILE_LOGGING_ENABLED_SETTING;
 }
 
-/**
- * Whether agent debug logging is enabled for the given session. When this is
- * `false` no debug data is captured for the session, so the debug views should
- * surface a hint to enable the setting rather than empty content.
- */
 export function isChatDebugLoggingEnabledForSession(configurationService: IConfigurationService, sessionResource: URI | undefined): boolean {
 	return configurationService.getValue<boolean>(getChatDebugLoggingSettingId(sessionResource));
 }
 
-/**
- * Renders an "enable the setting" hint into `container` alongside a button
- * that opens the given setting. Shared by the debug views to explain why no
- * data is shown when the governing setting is turned off.
- */
 function renderEnableSettingMessage(
 	container: HTMLElement,
 	settingId: string,
@@ -60,10 +45,6 @@ function renderEnableSettingMessage(
 	}));
 }
 
-/**
- * Renders a message into `container` explaining that agent debug logging is
- * disabled for the session, alongside a button that opens the relevant setting.
- */
 export function renderChatDebugLoggingDisabledMessage(
 	container: HTMLElement,
 	sessionResource: URI | undefined,
@@ -79,19 +60,10 @@ export function renderChatDebugLoggingDisabledMessage(
 	);
 }
 
-/**
- * Whether AHP (client↔host protocol) logging is enabled. When `false` no
- * protocol frames are captured, so the AHP Log view surfaces a hint to enable
- * the setting instead of empty content.
- */
 export function isWireLogLoggingEnabled(configurationService: IConfigurationService): boolean {
 	return configurationService.getValue<boolean>(AgentHostAhpJsonlLoggingSettingId);
 }
 
-/**
- * Renders a message into `container` explaining that AHP logging is disabled,
- * alongside a button that opens the relevant setting.
- */
 export function renderWireLogLoggingDisabledMessage(
 	container: HTMLElement,
 	preferencesService: IPreferencesService,

@@ -90,8 +90,6 @@ export class ExtHostTelemetry extends Disposable implements ExtHostTelemetryShap
 
 	getBuiltInCommonProperties(extension: IExtensionDescription): ICommonProperties {
 		const commonProperties: ICommonProperties = Object.create(null);
-		// TODO @lramos15, does os info like node arch, platform version, etc exist here.
-		// Or will first party extensions just mix this in
 		commonProperties['common.extname'] = `${extension.publisher}.${extension.name}`;
 		commonProperties['common.extversion'] = extension.version;
 		commonProperties['common.vscodemachineid'] = this.initData.telemetryInfo.machineId;
@@ -124,7 +122,6 @@ export class ExtHostTelemetry extends Disposable implements ExtHostTelemetryShap
 		this._oldTelemetryEnablement = this.getTelemetryConfiguration();
 		this._level = level;
 		const telemetryDetails = this.getTelemetryDetails();
-		// Remove all disposed loggers
 		this._telemetryLoggers.forEach((loggers, key) => {
 			const newLoggers = loggers.filter(l => !l.isDisposed);
 			if (newLoggers.length === 0) {
@@ -133,7 +130,6 @@ export class ExtHostTelemetry extends Disposable implements ExtHostTelemetryShap
 				this._telemetryLoggers.set(key, newLoggers);
 			}
 		});
-		// Loop through all loggers and update their level
 		this._telemetryLoggers.forEach(loggers => {
 			for (const logger of loggers) {
 				logger.updateTelemetryEnablements(telemetryDetails.isUsageEnabled, telemetryDetails.isErrorsEnabled);
@@ -215,11 +211,8 @@ export class ExtHostTelemetryLogger {
 	}
 
 	mixInCommonPropsAndCleanData(data: ExtHostTelemetryEventData): Record<string, any> {
-		// Some telemetry modules prefer to break properties and measurmements up
-		// We mix common properties into the properties tab.
 		let updatedData = data.properties ? (data.properties ?? {}) : data;
 
-		// We don't clean measurements since they are just numbers
 		updatedData = cleanData(updatedData, []);
 
 		if (this._additionalCommonProperties) {
@@ -240,11 +233,9 @@ export class ExtHostTelemetryLogger {
 	}
 
 	private logEvent(eventName: string, data?: Record<string, any>): void {
-		// No sender means likely disposed of, we should no-op
 		if (!this._sender) {
 			return;
 		}
-		// If it's a built-in extension (vscode publisher) we don't prefix the publisher and only the ext name
 		if (this._extension.publisher === 'vscode') {
 			eventName = this._extension.name + '/' + eventName;
 		} else {
@@ -278,7 +269,6 @@ export class ExtHostTelemetryLogger {
 				cause: eventNameOrException.cause
 			};
 			const cleanedErrorData = cleanData(errorData, []);
-			// Reconstruct the error object with the cleaned data
 			const cleanedError = new Error(typeof cleanedErrorData.message === 'string' ? cleanedErrorData.message : undefined, {
 				cause: cleanedErrorData.cause
 			});
@@ -331,7 +321,7 @@ export class ExtHostTelemetryLogger {
 
 export function isNewAppInstall(firstSessionDate: string): boolean {
 	const installAge = Date.now() - new Date(firstSessionDate).getTime();
-	return isNaN(installAge) ? false : installAge < 1000 * 60 * 60 * 24; // install age is less than a day
+	return isNaN(installAge) ? false : installAge < 1000 * 60 * 60 * 24;
 }
 
 export const IExtHostTelemetry = createDecorator<IExtHostTelemetry>('IExtHostTelemetry');

@@ -7,11 +7,6 @@ import type { CancellationToken } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
 import { TelemetryCorrelationId } from '../../../util/common/telemetryCorrelationId';
 
-/**
- * Fully qualified type of the embedding.
- *
- * This includes both the model identifier and the dimensions.
- */
 export class EmbeddingType {
 	public static readonly text3small_512 = new EmbeddingType('text-embedding-3-small-512');
 	public static readonly metis_1024_I16_Binary = new EmbeddingType('metis-1024-I16-Binary');
@@ -29,8 +24,6 @@ export class EmbeddingType {
 	}
 }
 
-// WARNING
-// These values are used in the request and are case sensitive. Do not change them unless advised by CAPI.
 export const enum LEGACY_EMBEDDING_MODEL_ID {
 	TEXT3SMALL = 'text-embedding-3-small',
 	Metis_I16_Binary = 'metis-I16-Binary'
@@ -116,13 +109,6 @@ export interface IEmbeddingsComputer {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Computes embeddings for the given strings.
-	 *
-	 * @param inputs The strings to compute embeddings for.
-	 *
-	 * @returns The embeddings, or if there is a failure/no embeddings, undefined.
-	 */
 	computeEmbeddings(
 		type: EmbeddingType,
 		inputs: readonly string[],
@@ -145,9 +131,6 @@ function dotProduct(a: EmbeddingVector, b: EmbeddingVector): number {
 	return dotProduct;
 }
 
-/**
- * Gets the similarity score from 0-1 between two embeddings.
- */
 export function distance(queryEmbedding: Embedding, otherEmbedding: Embedding): EmbeddingDistance {
 	if (!queryEmbedding.type.equals(otherEmbedding.type)) {
 		throw new Error(`Embeddings must be of the same type to compute similarity. Got: ${queryEmbedding.type.id} and ${otherEmbedding.type.id}`);
@@ -159,11 +142,6 @@ export function distance(queryEmbedding: Embedding, otherEmbedding: Embedding): 
 	};
 }
 
-/**
- * Rank the embedding items by their cosine similarity to a query
- *
- * @returns The top {@linkcode maxResults} items.
- */
 export function rankEmbeddings<T>(
 	queryEmbedding: Embedding,
 	items: ReadonlyArray<readonly [T, Embedding]>,

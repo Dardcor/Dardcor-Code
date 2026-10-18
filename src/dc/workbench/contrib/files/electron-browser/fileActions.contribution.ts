@@ -60,7 +60,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 
 appendEditorTitleContextMenuItem(REVEAL_IN_OS_COMMAND_ID, REVEAL_IN_OS_LABEL.value, REVEAL_IN_OS_WHEN_CONTEXT, '2_files', false, 0);
 
-// Menu registration - open editors
 
 const revealInOsCommand = {
 	id: REVEAL_IN_OS_COMMAND_ID,
@@ -79,7 +78,6 @@ MenuRegistry.appendMenuItem(MenuId.OpenEditorsContextShare, {
 	order: 3,
 });
 
-// Menu registration - explorer
 
 MenuRegistry.appendMenuItem(MenuId.ExplorerContext, {
 	group: 'navigation',
@@ -88,7 +86,6 @@ MenuRegistry.appendMenuItem(MenuId.ExplorerContext, {
 	when: REVEAL_IN_OS_WHEN_CONTEXT
 });
 
-// Command Palette
 
 const category = nls.localize2('filesCategory', "File");
 appendToCommandPalette({
@@ -97,7 +94,6 @@ appendToCommandPalette({
 	category: category
 }, REVEAL_IN_OS_WHEN_CONTEXT);
 
-// Menu registration - chat attachments context
 
 MenuRegistry.appendMenuItem(MenuId.ChatAttachmentsContext, {
 	group: 'navigation',
@@ -106,7 +102,6 @@ MenuRegistry.appendMenuItem(MenuId.ChatAttachmentsContext, {
 	when: REVEAL_IN_OS_WHEN_CONTEXT
 });
 
-// Menu registration - chat inline anchor
 
 MenuRegistry.appendMenuItem(MenuId.ChatInlineResourceAnchorContext, {
 	group: 'navigation',

@@ -50,7 +50,6 @@ export type IChatModelCapabilities = {
 	supports: {
 		parallel_tool_calls?: boolean;
 		tool_calls?: boolean;
-		// Whether or not the model supports streaming, if not explicitly true we will try to parse the response as not streamed
 		streaming: boolean | undefined;
 		vision?: boolean;
 		prediction?: boolean;
@@ -88,11 +87,6 @@ export interface IModelTokenPriceTier {
 	input_price: number;
 	output_price: number;
 	cache_price: number;
-	/**
-	 * The maximum context window size (in tokens) for this pricing tier.
-	 * Present on the `default` tier only when a `long_context` tier also
-	 * exists; always present on the `long_context` tier itself.
-	 */
 	context_max?: number;
 }
 
@@ -143,11 +137,6 @@ export type IChatModelInformation = IModelAPIResponse & {
 	requestHeaders?: Readonly<Record<string, string>>;
 	modelOptions?: Readonly<IChatModelRequestOptions>;
 	zeroDataRetentionEnabled?: boolean;
-	/**
-	 * BYOK-only override that forces the body shape used when forwarding the reasoning effort to the model.
-	 * Honored by `OpenAIEndpoint`. Unset — the body shape follows the API path (Responses API → nested `reasoning.effort`,
-	 * Anthropic Messages API → `output_config.effort`, Chat Completions → top-level `reasoning_effort`).
-	 */
 	reasoningEffortFormat?: 'chat-completions' | 'responses' | 'messages';
 };
 
@@ -171,13 +160,6 @@ export function isCompletionModelInformation(model: IModelAPIResponse): model is
 
 export type ChatEndpointFamily = 'dardcor-utility' | 'dardcor-utility-small';
 
-/**
- * A model family accepted by {@link IEndpointProvider.getChatEndpoint}: either
- * an internal utility alias ({@link ChatEndpointFamily}) or any CAPI model
- * family id (e.g. `gemini-3-flash`, `gpt-5-mini`). The utility literals are
- * kept for editor autocomplete while still allowing arbitrary CAPI family
- * strings.
- */
 export type ChatModelFamily = ChatEndpointFamily | (string & {});
 
 export type EmbeddingsEndpointFamily = 'text3small' | 'metis';
@@ -185,32 +167,14 @@ export type EmbeddingsEndpointFamily = 'text3small' | 'metis';
 export interface IEndpointProvider {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fires whenever model metadata is refreshed from the server.
-	 * Does not always indicate there is a change, just that the data is fresh.
-	 */
 	readonly onDidModelsRefresh: Event<void>;
 
-	/**
-	 * Gets all the completion models known by the endpoint provider.
-	 */
 	getAllCompletionModels(forceRefresh?: boolean): Promise<ICompletionModelInformation[]>;
 
-	/**
-	 * Gets all the chat endpoints known by the endpoint provider. Mainly used by language model access
-	 */
 	getAllChatEndpoints(): Promise<IChatEndpoint[]>;
 
-	/**
-	 * Given a chat request returns the appropriate chat endpoint to serve that request
-	 * @param requestOrFamily The chat request to get the endpoint for, the model family you want the
-	 * endpoint for (an internal utility alias or any CAPI model family id), or the LanguageModelChat.
-	 */
 	getChatEndpoint(requestOrFamily: LanguageModelChat | ChatRequest | ChatModelFamily): Promise<IChatEndpoint>;
 
-	/**
-	 * Get the CAPI embedding endpoint information
-	 */
 	getEmbeddingsEndpoint(family?: EmbeddingsEndpointFamily): Promise<IEmbeddingsEndpoint>;
 }
 

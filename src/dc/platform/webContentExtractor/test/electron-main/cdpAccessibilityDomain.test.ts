@@ -29,7 +29,6 @@ suite('CDP Accessibility Domain', () => {
 		assert.strictEqual(result, '');
 	});
 
-	//#region Heading Tests
 
 	test('simple heading conversion', () => {
 		const nodes: AXNode[] = [
@@ -56,9 +55,7 @@ suite('CDP Accessibility Domain', () => {
 		assert.strictEqual(result.trim(), '## Test Heading');
 	});
 
-	//#endregion
 
-	//#region Paragraph Tests
 
 	test('paragraph with text conversion', () => {
 		const nodes: AXNode[] = [
@@ -99,9 +96,7 @@ suite('CDP Accessibility Domain', () => {
 		assert.strictEqual(result.trim(), longStr.join('\n'));
 	});
 
-	//#endregion
 
-	//#region List Tests
 
 	test('list conversion', () => {
 		const nodes: AXNode[] = [
@@ -250,9 +245,7 @@ ${indent}- Item 1a
 		assert.strictEqual(result, expected);
 	});
 
-	//#endregion
 
-	//#region Links Tests
 
 	test('links conversion', () => {
 		const nodes: AXNode[] = [
@@ -294,9 +287,7 @@ ${indent}- Item 1a
 		assert.strictEqual(result.includes('[Current page link]'), false);
 	});
 
-	//#endregion
 
-	//#region Image Tests
 
 	test('image conversion', () => {
 		const nodes: AXNode[] = [
@@ -329,9 +320,7 @@ ${indent}- Item 1a
 		assert.strictEqual(result.trim(), '[Image: Alt text]');
 	});
 
-	//#endregion
 
-	//#region Description List Tests
 
 	test('description list conversion', () => {
 		const nodes: AXNode[] = [
@@ -396,9 +385,7 @@ ${indent}- Item 1a
 		assert.strictEqual(result.includes('- **Term 2** Definition 2'), true);
 	});
 
-	//#endregion
 
-	//#region Blockquote Tests
 
 	test('blockquote conversion', () => {
 		const nodes: AXNode[] = [
@@ -417,9 +404,7 @@ ${indent}- Item 1a
 		assert.strictEqual(result.trim(), expected);
 	});
 
-	//#endregion
 
-	//#region Code Tests
 
 	test('preformatted text conversion', () => {
 		const nodes: AXNode[] = [
@@ -479,9 +464,7 @@ ${indent}- Item 1a
 		assert.strictEqual(result.includes('`const x = 42;`'), true);
 	});
 
-	//#endregion
 
-	//#region Table Tests
 
 	test('table conversion', () => {
 		const nodes: AXNode[] = [
@@ -800,5 +783,4 @@ ${indent}- Item 1a
 		assert.strictEqual(result.trim(), expected.trim());
 	});
 
-	//#endregion
 });

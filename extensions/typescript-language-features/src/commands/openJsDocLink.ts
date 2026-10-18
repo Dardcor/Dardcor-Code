@@ -20,11 +20,6 @@ export interface OpenJsDocLinkCommand_Args {
 	};
 }
 
-/**
- * Proxy command for opening links in jsdoc comments.
- *
- * This is needed to avoid incorrectly rewriting uris.
- */
 export class OpenJsDocLinkCommand implements Command {
 	public static readonly id = '_typescript.openJsDocLink';
 	public readonly id = OpenJsDocLinkCommand.id;

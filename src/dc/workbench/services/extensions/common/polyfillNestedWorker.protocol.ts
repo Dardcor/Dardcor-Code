@@ -7,9 +7,9 @@
 export interface NewWorkerMessage {
 	type: '_newWorker';
 	id: string;
-	port: any /* MessagePort */;
+	port: any ;
 	url: string;
-	options: any /* WorkerOptions */ | undefined;
+	options: any | undefined;
 }
 
 export interface TerminateWorkerMessage {

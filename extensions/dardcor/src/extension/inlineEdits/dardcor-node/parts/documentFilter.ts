@@ -22,23 +22,18 @@ export class DocumentFilter {
 	}
 
 	public async isTrackingEnabled(document: TextDocument | NotebookDocument): Promise<boolean> {
-		// this should filter out documents coming from output pane, git fs, etc.
 		if (!['file', 'untitled'].includes(document.uri.scheme) && !isNotebookCellOrNotebookChatInput(document.uri)) {
 			return false;
 		}
 		if (isTextDocument(document) && !this.isLanguageEnabled(document.languageId)) {
 			return false;
 		}
-		if (await this._ignoreService.isCopilotIgnored(document.uri)) {
+		if (await this._ignoreService.isIgnored(document.uri)) {
 			return false;
 		}
 		return true;
 	}
 
-	/**
-	 * Whether Copilot inline suggestions (inline completions and next edit suggestions) are
-	 * enabled for the given language according to the per-language `github.dardcor.enable` setting.
-	 */
 	public isLanguageEnabled(languageId: string): boolean {
 		const enabledLanguages = this._enabledLanguages.get();
 		return enabledLanguages.get(languageId) ?? (

@@ -82,7 +82,7 @@ export class IntegrityService implements IIntegrityService {
 	private async _compute(): Promise<void> {
 		const { isPure } = await this.isPure();
 		if (isPure) {
-			return; // all is good
+			return;
 		}
 
 		this.logService.warn(`
@@ -95,7 +95,7 @@ export class IntegrityService implements IIntegrityService {
 
 		const storedData = this.storage.get();
 		if (storedData?.dontShowPrompt && storedData.commit === this.productService.commit) {
-			return; // Do not prompt
+			return;
 		}
 
 		this._showNotification();

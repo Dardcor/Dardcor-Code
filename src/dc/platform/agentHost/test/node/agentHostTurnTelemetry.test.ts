@@ -102,13 +102,6 @@ class CapturingTelemetryService implements ITelemetryService {
 	setCommonProperty(): void { }
 }
 
-/**
- * Integration tests covering the {@link AgentHostTurnTracker} as it is
- * driven through {@link AgentSideEffects}. These tests intentionally
- * exercise the full wiring (turn-started routing, progress dispatch,
- * turn-complete/cancel/error paths) so that we cover both the tracker
- * and its integration with the side-effect dispatch in one place.
- */
 suite('AgentSideEffects — turn tracker telemetry', () => {
 
 	const disposables = new DisposableStore();
@@ -138,11 +131,6 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 	}
 
 	function setSessionConfig(values: { autoApprove?: string; mode?: SessionMode }): void {
-		// Establish config on the authoritative session state via the state
-		// manager API. Mutating the object returned by `getSessionState` would
-		// strand the change on a detached composite copy (session merged with
-		// its default chat). `agentService` registers the schema at session
-		// creation time; tests bypass that wiring with this direct set.
 		stateManager.setSessionConfig(sessionKey, {
 			schema: {
 				type: 'object',
@@ -165,18 +153,10 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 			startedAt: '2025-01-01T00:00:00.000Z',
 			message: { text, origin: { kind: MessageKind.User }, model: modelId ? { id: modelId } : undefined },
 		};
-		// Dispatch into the state manager so `getActiveTurnId` returns the
-		// active turn (the progress-listener path relies on this) and then
-		// invoke `handleAction` so the side-effect (which calls
-		// `agent.sendMessage` and `turnTracker.turnStarted`) runs.
 		stateManager.dispatchClientAction(chatUri, action, { clientId: 'test', clientSeq: 1 });
 		sideEffects.handleAction(chatUri, action, 'test', clientContext);
 	}
 
-	/**
-	 * Starts a turn the way the host does for its own messages (Agent Merge
-	 * prompts): a server action, with no initiating client.
-	 */
 	function startHostTurn(turnId: string, message: Message, chatUri = defaultChatUri): void {
 		const action: ChatAction = { type: ActionType.ChatTurnStarted, turnId, startedAt: '2025-01-01T00:00:00.000Z', message };
 		stateManager.dispatchServerAction(chatUri, action);
@@ -246,7 +226,7 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 				updateSessionWorkspace: async () => { },
 			}],
 		);
-		const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+		const instantiationService = disposables.add(new InstantiationService(services, true));
 		const chatContributions = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 		services.set(IAgentHostChatContributions, chatContributions);
 		services.set(IAgentHostTurnService, new AgentHostTurnService(stateManager, chatContributions, instantiationService));
@@ -268,8 +248,6 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 			sessionDataService,
 			localTurns,
 		}));
-		// Wire the agent's progress signals through side-effects (this is how
-		// progress actions reach the state manager in production).
 		disposables.add(sideEffects.registerProgressListener(agent));
 	});
 
@@ -664,7 +642,6 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 		setupSession();
 		startTurn('turn-1');
 
-		// Usage is not a "visible progress" action — it should not mark first progress.
 		fire({ type: ActionType.ChatUsage, turnId: 'turn-1', usage: { inputTokens: 1, outputTokens: 1 } });
 		fire({ type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1000 });
 
@@ -702,8 +679,6 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 		startTurn('turn-parent');
 		startTurn('turn-subagent', 'hello', undefined, subagentChatUri);
 
-		// The parent aggregate already folds in the subagent's charge; the
-		// subagent chat additionally reports its own component.
 		fire({ type: ActionType.ChatUsage, turnId: 'turn-parent', usage: { _meta: { copilotUsage: { totalNanoAiu: 3_000_000_000 } } } });
 		fire({ type: ActionType.ChatUsage, turnId: 'turn-subagent', usage: { _meta: { copilotUsage: { totalNanoAiu: 1_000_000_000 } } } }, subagentChatUri);
 
@@ -898,8 +873,6 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 		setupSession();
 		startTurn('turn-1');
 		fire({ type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1000 });
-		// A duplicate turn-complete should not produce a second telemetry event because the tracker
-		// drops its per-turn state on the first completion.
 		fire({ type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1000 });
 
 		assert.strictEqual(completedEvents().length, 1);
@@ -910,7 +883,6 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 		setSessionConfig({ autoApprove: 'default' });
 		startTurn('turn-1');
 
-		// Change config mid-turn — should not affect the recorded event.
 		setSessionConfig({ autoApprove: 'autopilot' });
 
 		fire({ type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1000 });
@@ -955,10 +927,6 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 		assert.strictEqual(data.interactionMode, undefined);
 	});
 
-	// The tests below cover completion paths that bypass the agent-progress
-	// signal flow (`_dispatchActionForSession`) — client-initiated cancel
-	// and `sendMessage` rejection both dispatch their terminal action
-	// directly through the state manager.
 
 	test('emits result=cancelled when the client cancels a turn (no agent progress signal)', async () => {
 		setupSession();
@@ -1073,9 +1041,6 @@ suite('AgentSideEffects — turn tracker telemetry', () => {
 	});
 
 	test('emits a single turnCompleted when both the client cancel and a follow-up agent signal arrive', () => {
-		// Some agents emit a `ChatTurnCancelled` signal in response to
-		// `abortSession`; the tracker must dedup across the client-cancel
-		// path and the agent-progress signal path.
 		setupSession();
 		startTurn('turn-1');
 

@@ -60,9 +60,7 @@ export class WSLRelayClientFactory implements IWSLRelayClientFactory {
 		};
 		let seedConnection = true;
 		const establish = async () => {
-			// WSL disconnect is distro-scoped, so handles own no teardown; reconnect supersedes stale channels.
 			if (seedConnection) {
-				// The caller owns teardown of the channel established before the protocol client was created.
 				seedConnection = false;
 				return { connectionId };
 			}
@@ -107,11 +105,6 @@ export class WSLRelayClientFactory implements IWSLRelayClientFactory {
 	}
 }
 
-/**
- * Storage key for the list of WSL distros the user has connected to. Lives
- * at application scope so it is shared across windows, mirroring the tunnel
- * service's cached-tunnels list.
- */
 const CACHED_WSL_DISTROS_KEY = 'agentHost.wsl.cachedDistros';
 
 function readCachedWSLDistros(storageService: IStorageService): readonly IWSLCachedDistro[] {
@@ -139,7 +132,6 @@ function storeCachedWSLDistros(storageService: IStorageService, distros: readonl
 	}
 }
 
-/** Creates WSL relay clients for {@link WSLRemoteAgentHostService}. */
 class WSLConnectionFactory extends Disposable implements IRemoteAgentHostConnectionFactory {
 	readonly kind = RemoteAgentHostEntryType.WSL;
 	readonly entries: IObservable<readonly IRemoteAgentHostEntry[]>;
@@ -210,7 +202,6 @@ class WSLConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 				config = stagedConnection.config;
 				userInitiated = config.userInitiated ?? options.userInitiated;
 			}
-			// A user action may have arrived while the background precondition ran.
 			const userStagedConnection = this._stagedConfigurations.get(address);
 			if (userStagedConnection) {
 				this._stagedConfigurations.delete(address);
@@ -242,8 +233,6 @@ class WSLConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 		if (entry.connection.type !== RemoteAgentHostEntryType.WSL) {
 			return;
 		}
-		// Bind the narrowed connection before the closure: TypeScript does not
-		// carry the discriminant narrowing into the filter callback below.
 		const connection = entry.connection;
 		const cached = readCachedWSLDistros(this._storageService).filter(distro => distro.distro !== connection.distro);
 		storeCachedWSLDistros(this._storageService, [{ distro: connection.distro, name: entry.name }, ...cached]);
@@ -297,7 +286,7 @@ class WSLConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 				this._onDidChangeConnections();
 			}
 			handle.dispose();
-			this._mainService.disconnect(result.distro).catch(() => { /* best effort */ });
+			this._mainService.disconnect(result.distro).catch(() => { });
 			throw err;
 		}
 	}
@@ -342,11 +331,6 @@ class WSLConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 	}
 }
 
-/**
- * Renderer-side implementation of {@link IWSLRemoteAgentHostService} that
- * delegates the actual WSL work to the main process via IPC, then registers
- * a WSL connection factory with the renderer-local {@link IRemoteAgentHostService}.
- */
 export class WSLRemoteAgentHostService extends Disposable implements IWSLRemoteAgentHostService {
 	declare readonly _serviceBrand: undefined;
 
@@ -399,14 +383,6 @@ export class WSLRemoteAgentHostService extends Disposable implements IWSLRemoteA
 				handle.dispose();
 				this._onDidChangeConnections.fire();
 
-				// Defense-in-depth: also signal the protocol client directly.
-				// ReconnectingRelayTransport normally observes `onDidRelayClose`
-				// (fired from the same shared-process code path as this
-				// event) and calls back into the client. If that IPC
-				// delivery is missed for any reason, the renderer-side
-				// client would stay in `Connected` until its liveness
-				// watchdog fires — which can take hours when the renderer
-				// is backgrounded and Chromium throttles `setTimeout`.
 				this._remoteAgentHostService.notifyConnectionClosed(handle.localAddress);
 			}
 		}));
@@ -473,11 +449,6 @@ export class WSLRemoteAgentHostService extends Disposable implements IWSLRemoteA
 		}
 	}
 
-	/**
-	 * Drop cached distros that no longer exist (e.g. uninstalled). We only
-	 * prune when we actually observed some distros, so a transient probe
-	 * failure (which surfaces as an empty list) never wipes the cache.
-	 */
 	private _evictMissingCachedDistros(distros: readonly IWSLDistro[]): void {
 		if (distros.length === 0) {
 			return;
@@ -498,12 +469,6 @@ export class WSLRemoteAgentHostService extends Disposable implements IWSLRemoteA
 		return handle;
 	}
 
-	/**
-	 * Disposable owned by {@link IRemoteAgentHostService} for the lifetime of
-	 * the entry. When the entry is removed (either by the user or by config
-	 * reconciliation), this tears down the renderer-side handle and the
-	 * shared-process WSL relay together so neither is leaked.
-	 */
 	private _createTransportDisposable(connectionId: string, distro: string, handle: WSLAgentHostConnectionHandle): IDisposable {
 		return toDisposable(() => {
 			if (this._connections.get(connectionId) === handle) {
@@ -512,7 +477,7 @@ export class WSLRemoteAgentHostService extends Disposable implements IWSLRemoteA
 			}
 			handle.fireClose();
 			handle.dispose();
-			this._mainService.disconnect(distro).catch(() => { /* best effort */ });
+			this._mainService.disconnect(distro).catch(() => { });
 		});
 	}
 
@@ -529,10 +494,6 @@ export class WSLRemoteAgentHostService extends Disposable implements IWSLRemoteA
 	}
 }
 
-/**
- * Lightweight renderer-side handle that represents a WSL-relayed
- * connection managed by the main process.
- */
 class WSLAgentHostConnectionHandle extends Disposable implements IWSLAgentHostConnection {
 	private readonly _onDidClose = this._register(new Emitter<void>());
 	readonly onDidClose = this._onDidClose.event;
@@ -549,12 +510,11 @@ class WSLAgentHostConnectionHandle extends Disposable implements IWSLAgentHostCo
 
 		this._register(toDisposable(() => {
 			if (!this._closedByMain) {
-				disconnectFn().catch(() => { /* best effort */ });
+				disconnectFn().catch(() => { });
 			}
 		}));
 	}
 
-	/** Called by the service when the main process signals connection closure. */
 	fireClose(): void {
 		this._closedByMain = true;
 		this._onDidClose.fire();

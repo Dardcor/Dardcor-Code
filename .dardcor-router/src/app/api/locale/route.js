@@ -17,7 +17,7 @@ export async function POST(request) {
     const cookieStore = await cookies();
     cookieStore.set(LOCALE_COOKIE, normalized, {
       path: "/",
-      maxAge: 60 * 60 * 24 * 365, // 1 year
+      maxAge: 60 * 60 * 24 * 365,
     });
 
     return NextResponse.json({ success: true, locale: normalized });

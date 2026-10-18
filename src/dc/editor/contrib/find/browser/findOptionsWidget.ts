@@ -128,7 +128,6 @@ export class FindOptionsWidget extends Widget implements IOverlayWidget {
 		super.dispose();
 	}
 
-	// ----- IOverlayWidget API
 
 	public getId(): string {
 		return FindOptionsWidget.ID;

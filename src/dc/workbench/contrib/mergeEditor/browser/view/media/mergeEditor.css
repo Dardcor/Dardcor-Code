@@ -57,7 +57,6 @@
 	font-size: 13px;
 }
 
-/* for input1|2 -> align details to the left  */
 .monaco-workbench .merge-editor .code-view.input > .header > span.detail::before {
 	content: '•';
 	opacity: .5;
@@ -93,7 +92,6 @@
 	background-color: var(--vscode-mergeEditor-change-word-background);
 }
 
-/* BEGIN: .merge-editor-block */
 
 .monaco-workbench .merge-editor .merge-editor-block:not(.handled):not(.focused) {
 	border: 1px solid var(--vscode-mergeEditor-conflict-unhandledUnfocused-border);
@@ -119,7 +117,6 @@
 	background-color: var(--vscode-mergeEditor-conflict-input2-background);
 }
 
-/* END: .merge-editor-block */
 
 .gutter.monaco-editor > div {
 	position: absolute;

@@ -234,7 +234,6 @@ describe('cutoff cost', () => {
 		const viewport = OffsetRange.ofStartAndLength(0, 1323);
 
 		function costFnOverride(n: RemovableNode, currentScore: number) {
-			// view port line 1 to line 49
 			if (n.range.intersectsOrTouches(viewport)) {
 				return 1;
 			} else {
@@ -360,7 +359,6 @@ describe('createSummarizedDocuments', () => {
 			},
 		});
 
-		// small budget, BIASED scores
 
 		expect(docs.length).toBe(2);
 

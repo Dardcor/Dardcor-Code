@@ -141,7 +141,6 @@ export class DebugStorage extends Disposable {
 
 	loadChosenEnvironments(): Record<string, IChosenEnvironment> {
 		const obj = JSON.parse(this.storageService.get(DEBUG_CHOSEN_ENVIRONMENTS_KEY, StorageScope.WORKSPACE, '{}'));
-		// back compat from when this was a string map:
 		return mapValues(obj, (value): IChosenEnvironment => typeof value === 'string' ? { type: value } : value);
 	}
 

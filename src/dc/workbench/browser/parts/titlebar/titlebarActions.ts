@@ -16,15 +16,8 @@ import { IsMainWindowFullscreenContext, IsCompactTitleBarContext, TitleBarStyleC
 import { CustomTitleBarVisibility, TitleBarSetting, TitlebarStyle } from '../../../../platform/window/common/window.js';
 import { NotificationsPosition, NotificationsSettings } from '../../../common/notifications.js';
 
-/**
- * Menu group for actions contributed to {@link MenuId.TitleBar} that should render
- * **before** the layout controls (instead of trailing them like the default group).
- * Use this group to surface a leading affordance that should remain visible even
- * when layout controls are toggled off.
- */
 export const TitleBarLeadingActionsGroup = '0_leading';
 
-// --- Context Menu Actions --- //
 
 export class ToggleTitleBarConfigAction extends Action2 {
 
@@ -251,12 +244,10 @@ registerAction2(class ToggleEditorActions extends Action2 {
 		if (location === 'hidden') {
 			const showTabs = configService.getValue<string>(LayoutSettings.EDITOR_TABS_MODE);
 
-			// If tabs are visible, then set the editor actions to be in the title bar
 			if (showTabs !== 'none') {
 				configService.updateValue(ToggleEditorActions.settingsID, 'titleBar');
 			}
 
-			// If tabs are not visible, then set the editor actions to the last location the were before being hidden
 			else {
 				const storedValue = storageService.get(ToggleEditorActions.settingsID, StorageScope.PROFILE);
 				configService.updateValue(ToggleEditorActions.settingsID, storedValue ?? 'default');
@@ -264,7 +255,6 @@ registerAction2(class ToggleEditorActions extends Action2 {
 
 			storageService.remove(ToggleEditorActions.settingsID, StorageScope.PROFILE);
 		}
-		// Store the current value (titleBar or default) in the storage service for later to restore
 		else {
 			configService.updateValue(ToggleEditorActions.settingsID, 'hidden');
 			storageService.store(ToggleEditorActions.settingsID, location, StorageScope.PROFILE, StorageTarget.USER);
@@ -272,7 +262,6 @@ registerAction2(class ToggleEditorActions extends Action2 {
 	}
 });
 
-// --- Toolbar actions --- //
 
 export const ACCOUNTS_ACTIVITY_TILE_ACTION: IAction = {
 	id: ACCOUNTS_ACTIVITY_ID,

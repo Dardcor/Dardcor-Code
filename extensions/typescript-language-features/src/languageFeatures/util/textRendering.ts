@@ -9,9 +9,6 @@ import type * as Proto from '../../tsServer/protocol/protocol';
 import * as typeConverters from '../../typeConverters';
 
 export interface IFilePathToResourceConverter {
-	/**
-	 * Convert a typescript filepath to a VS Code resource.
-	 */
 	toResource(filepath: string): vscode.Uri;
 }
 
@@ -23,7 +20,6 @@ function getTagBodyText(
 		return undefined;
 	}
 
-	// Convert to markdown code block if it does not already contain one
 	function makeCodeblock(text: string): string {
 		if (/^\s*[~`]{3}/m.test(text)) {
 			return text;
@@ -34,11 +30,8 @@ function getTagBodyText(
 	let text = convertLinkTags(tag.text, filePathConverter);
 	switch (tag.name) {
 		case 'example': {
-			// Example text does not support `{@link}` as it is considered code.
-			// TODO: should we support it if it appears outside of an explicit code block?
 			text = asPlainText(tag.text);
 
-			// check for caption tags, fix for #79704
 			const captionTagMatches = text.match(/<caption>(.*?)<\/caption>\s*(\r\n|\n)/);
 			if (captionTagMatches && captionTagMatches.index === 0) {
 				return captionTagMatches[1] + '\n' + makeCodeblock(text.substr(captionTagMatches[0].length));
@@ -47,7 +40,6 @@ function getTagBodyText(
 			}
 		}
 		case 'author': {
-			// fix obsucated email address, #80898
 			const emailMatch = text.match(/(.+)\s<([-.\w]+@[-.\w]+)>/);
 			if (emailMatch === null) {
 				return text;
@@ -87,7 +79,6 @@ function getTagDocumentation(
 		}
 		case 'return':
 		case 'returns': {
-			// For return(s), we require a non-empty body
 			if (!tag.text?.length) {
 				return undefined;
 			}
@@ -97,7 +88,6 @@ function getTagDocumentation(
 	}
 
 
-	// Generic tag
 	const label = `*@${tag.name}*`;
 	const text = getTagBodyText(tag, filePathConverter);
 	if (!text) {
@@ -132,9 +122,6 @@ export function asPlainTextWithLinks(
 	return convertLinkTags(parts, filePathConverter);
 }
 
-/**
- * Convert `@link` inline tags to markdown links
- */
 function convertLinkTags(
 	parts: readonly Proto.SymbolDisplayPart[] | string | undefined,
 	filePathConverter: IFilePathToResourceConverter,
@@ -157,7 +144,7 @@ function convertLinkTags(
 					if (currentLink.target) {
 						const file = filePathConverter.toResource(currentLink.target.file);
 						const args: OpenJsDocLinkCommand_Args = {
-							file: { ...file.toJSON(), $mid: undefined }, // Prevent VS Code from trying to transform the uri,
+							file: { ...file.toJSON(), $mid: undefined },
 							position: typeConverters.Position.fromLocation(currentLink.target.start)
 						};
 						const command = `command:${OpenJsDocLinkCommand.id}?${encodeURIComponent(JSON.stringify([args]))}`;

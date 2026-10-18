@@ -16,22 +16,11 @@ import { revive } from '../../../common/marshalling.js';
 import * as strings from '../../../common/strings.js';
 import { isFunction, isUndefinedOrNull } from '../../../common/types.js';
 
-/**
- * An `IChannel` is an abstraction over a collection of commands.
- * You can `call` several commands on a channel, each taking at
- * most one single argument. A `call` always returns a promise
- * with at most one single return value.
- */
 export interface IChannel {
 	call<T>(command: string, arg?: any, cancellationToken?: CancellationToken): Promise<T>;
 	listen<T>(event: string, arg?: any): Event<T>;
 }
 
-/**
- * An `IServerChannel` is the counter part to `IChannel`,
- * on the server-side. You should implement this interface
- * if you'd like to handle remote promises or events.
- */
 export interface IServerChannel<TContext = string> {
 	call<T>(ctx: TContext, command: string, arg?: any, cancellationToken?: CancellationToken): Promise<T>;
 	listen<T>(ctx: TContext, event: string, arg?: any): Event<T>;
@@ -99,9 +88,6 @@ interface IHandler {
 export interface IMessagePassingProtocol {
 	send(buffer: VSBuffer): void;
 	readonly onMessage: Event<VSBuffer>;
-	/**
-	 * Wait for the write buffer (if applicable) to become empty.
-	 */
 	drain?(): Promise<void>;
 }
 
@@ -110,18 +96,10 @@ enum State {
 	Idle
 }
 
-/**
- * An `IChannelServer` hosts a collection of channels. You are
- * able to register channels onto it, provided a channel name.
- */
 export interface IChannelServer<TContext = string> {
 	registerChannel(channelName: string, channel: IServerChannel<TContext>): void;
 }
 
-/**
- * An `IChannelClient` has access to a collection of channels. You
- * are able to get those channels, given their channel name.
- */
 export interface IChannelClient {
 	getChannel<T extends IChannel>(channelName: string): T;
 }
@@ -136,23 +114,11 @@ export interface IConnectionHub<TContext> {
 	readonly onDidRemoveConnection: Event<Connection<TContext>>;
 }
 
-/**
- * An `IClientRouter` is responsible for routing calls to specific
- * channels, in scenarios in which there are multiple possible
- * channels (each from a separate client) to pick from.
- */
 export interface IClientRouter<TContext = string> {
 	routeCall(hub: IConnectionHub<TContext>, command: string, arg?: any, cancellationToken?: CancellationToken): Promise<Client<TContext>>;
 	routeEvent(hub: IConnectionHub<TContext>, event: string, arg?: any): Promise<Client<TContext>>;
 }
 
-/**
- * Similar to the `IChannelClient`, you can get channels from this
- * collection of channels. The difference being that in the
- * `IRoutingChannelClient`, there are multiple clients providing
- * the same channel. You'll need to pass in an `IClientRouter` in
- * order to pick the right one.
- */
 export interface IRoutingChannelClient<TContext = string> {
 	getChannel<T extends IChannel>(channelName: string, router?: IClientRouter<TContext>): T;
 }
@@ -166,9 +132,6 @@ interface IWriter {
 }
 
 
-/**
- * @see https://en.wikipedia.org/wiki/Variable-length_quantity
- */
 function readIntVQL(reader: IReader) {
 	let value = 0;
 	for (let n = 0; ; n += 7) {
@@ -182,9 +145,6 @@ function readIntVQL(reader: IReader) {
 
 const vqlZero = createOneByteBuffer(0);
 
-/**
- * @see https://en.wikipedia.org/wiki/Variable-length_quantity
- */
 function writeInt32VQL(writer: IWriter, value: number) {
 	if (value === 0) {
 		writer.write(vqlZero);
@@ -234,7 +194,6 @@ export class BufferWriter implements IWriter, IDisposable {
 	}
 
 	dispose(): void {
-		// Release the buffers so a thrown serialization error's stack can't pin them.
 		this.buffers.length = 0;
 	}
 }
@@ -290,7 +249,6 @@ export function serialize(writer: IWriter, data: any): void {
 			serialize(writer, el);
 		}
 	} else if (typeof data === 'number' && (data | 0) === data) {
-		// write a vql if it's a number that we can do bitwise operations on
 		writer.write(BufferPresets.Uint);
 		writeInt32VQL(writer, data);
 	} else {
@@ -335,8 +293,6 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
 	private activeRequests = new Map<number, IDisposable>();
 	private protocolListener: IDisposable | null;
 
-	// Requests might come in for channels which are not yet registered.
-	// They will timeout after `timeoutDelay`.
 	private pendingRequests = new Map<string, PendingRequest[]>();
 
 	constructor(private protocol: IMessagePassingProtocol, private ctx: TContext, private logger: IIPCLogger | null = null, private timeoutDelay = 1000) {
@@ -347,7 +303,6 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
 	registerChannel(channelName: string, channel: IServerChannel<TContext>): void {
 		this.channels.set(channelName, channel);
 
-		// https://github.com/microsoft/vscode/issues/72531
 		setTimeout(() => this.flushPendingRequests(channelName), 0);
 	}
 
@@ -386,7 +341,6 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
 			this.protocol.send(message);
 			return message.byteLength;
 		} catch (err) {
-			// noop
 			return 0;
 		}
 	}
@@ -622,11 +576,6 @@ export class ChannelClient implements IChannelClient, IDisposable {
 				try {
 					this.sendRequest(request);
 				} catch (err) {
-					// `sendRequest` can throw synchronously while serializing the
-					// request (e.g. an oversized argument). The handler was just
-					// registered but no request went out and it's only removed on a
-					// response, so without this it would leak (along with the rejected
-					// promise and error it retains). Clean up and reject.
 					this.handlers.delete(id);
 					e(err);
 				}
@@ -666,7 +615,7 @@ export class ChannelClient implements IChannelClient, IDisposable {
 		});
 
 		return result.finally(() => {
-			disposable?.dispose(); // Seen as undefined in tests.
+			disposable?.dispose();
 			this.activeRequests.delete(disposableWithRequestCancel);
 		});
 	}
@@ -745,7 +694,6 @@ export class ChannelClient implements IChannelClient, IDisposable {
 			this.protocol.send(message);
 			return message.byteLength;
 		} catch (err) {
-			// noop
 			return 0;
 		}
 	}
@@ -817,14 +765,6 @@ interface Connection<TContext> extends Client<TContext> {
 	readonly channelClient: ChannelClient;
 }
 
-/**
- * An `IPCServer` is both a channel server and a routing channel
- * client.
- *
- * As the owner of a protocol, you should extend both this
- * and the `IPCClient` classes to get IPC implementations
- * for your protocol.
- */
 export class IPCServer<TContext = string> implements IChannelServer<TContext>, IRoutingChannelClient<TContext>, IConnectionHub<TContext>, IDisposable {
 
 	private channels = new Map<string, IServerChannel<TContext>>();
@@ -878,13 +818,6 @@ export class IPCServer<TContext = string> implements IChannelServer<TContext>, I
 		}));
 	}
 
-	/**
-	 * Get a channel from a remote client. When passed a router,
-	 * one can specify which client it wants to call and listen to/from.
-	 * Otherwise, when calling without a router, a random client will
-	 * be selected and when listening without a router, every client
-	 * will be listened to.
-	 */
 	getChannel<T extends IChannel>(channelName: string, router: IClientRouter<TContext>): T;
 	getChannel<T extends IChannel>(channelName: string, clientFilter: (client: Client<TContext>) => boolean): T;
 	getChannel<T extends IChannel>(channelName: string, routerOrClientFilter: IClientRouter<TContext> | ((client: Client<TContext>) => boolean)): T {
@@ -896,13 +829,10 @@ export class IPCServer<TContext = string> implements IChannelServer<TContext>, I
 				let connectionPromise: Promise<Client<TContext>>;
 
 				if (isFunction(routerOrClientFilter)) {
-					// when no router is provided, we go random client picking
 					const connection = getRandomElement(that.connections.filter(routerOrClientFilter));
 
 					connectionPromise = connection
-						// if we found a client, let's call on it
 						? Promise.resolve(connection)
-						// else, let's wait for a client to come along
 						: Event.toPromise(Event.filter(that.onDidAddConnection, routerOrClientFilter));
 				} else {
 					connectionPromise = routerOrClientFilter.routeCall(that, command, arg);
@@ -932,17 +862,10 @@ export class IPCServer<TContext = string> implements IChannelServer<TContext>, I
 		const that = this;
 		let disposables: DisposableStore | undefined;
 
-		// Create an emitter which hooks up to all clients
-		// as soon as first listener is added. It also
-		// disconnects from all clients as soon as the last listener
-		// is removed.
 		const emitter = new Emitter<T>({
 			onWillAddFirstListener: () => {
 				disposables = new DisposableStore();
 
-				// The event multiplexer is useful since the active
-				// client list is dynamic. We need to hook up and disconnection
-				// to/from clients as they come and go.
 				const eventMultiplexer = new EventMultiplexer<T>();
 				const map = new Map<Connection<TContext>, IDisposable>();
 
@@ -1005,13 +928,6 @@ export class IPCServer<TContext = string> implements IChannelServer<TContext>, I
 	}
 }
 
-/**
- * An `IPCClient` is both a channel client and a channel server.
- *
- * As the owner of a protocol, you should extend both this
- * and the `IPCServer` classes to get IPC implementations
- * for your protocol.
- */
 export class IPCClient<TContext = string> implements IChannelClient, IChannelServer<TContext>, IDisposable {
 
 	private channelClient: ChannelClient;
@@ -1113,36 +1029,15 @@ export class StaticRouter<TContext = string> implements IClientRouter<TContext> 
 	}
 }
 
-/**
- * Use ProxyChannels to automatically wrapping and unwrapping
- * services to/from IPC channels, instead of manually wrapping
- * each service method and event.
- *
- * Restrictions:
- * - If marshalling is enabled, only `URI` and `RegExp` is converted
- *   automatically for you
- * - Events must follow the naming convention `onUpperCase`
- * - `CancellationToken` is currently not supported
- * - If a context is provided, you can use `AddFirstParameterToFunctions`
- *   utility to signal this in the receiving side type
- */
 export namespace ProxyChannel {
 
 	export interface IProxyOptions {
 
-		/**
-		 * Disables automatic marshalling of `URI`.
-		 * If marshalling is disabled, `UriComponents`
-		 * must be used instead.
-		 */
 		disableMarshalling?: boolean;
 	}
 
 	export interface ICreateServiceChannelOptions extends IProxyOptions {
 
-		/**
-		 * Events that should subscribe lazily and not replay emissions before the first IPC listener.
-		 */
 		unbufferedEvents?: readonly string[];
 	}
 
@@ -1151,11 +1046,6 @@ export namespace ProxyChannel {
 		const disableMarshalling = options?.disableMarshalling;
 		const unbufferedEvents = options?.unbufferedEvents ? new Set(options.unbufferedEvents) : undefined;
 
-		// Buffer any event that should be supported by
-		// iterating over all property keys and finding them
-		// However, this will not work for services that
-		// are lazy and use a Proxy within. For that we
-		// still need to check later (see below).
 		const mapEventNameToEvent = new Map<string, Event<unknown>>();
 		for (const key in handler) {
 			if (propertyIsEvent(key) && !unbufferedEvents?.has(key)) {
@@ -1195,7 +1085,6 @@ export namespace ProxyChannel {
 				const target = handler[command];
 				if (typeof target === 'function') {
 
-					// Revive unless marshalling disabled
 					if (!disableMarshalling && Array.isArray(args)) {
 						for (let i = 0; i < args.length; i++) {
 							args[i] = revive(args[i]);
@@ -1216,16 +1105,8 @@ export namespace ProxyChannel {
 
 	export interface ICreateProxyServiceOptions extends IProxyOptions {
 
-		/**
-		 * If provided, will add the value of `context`
-		 * to each method call to the target.
-		 */
 		context?: unknown;
 
-		/**
-		 * If provided, will not proxy any of the properties
-		 * that are part of the Map but rather return that value.
-		 */
 		properties?: Map<string, unknown>;
 	}
 
@@ -1236,27 +1117,22 @@ export namespace ProxyChannel {
 			get(_target: T, propKey: PropertyKey) {
 				if (typeof propKey === 'string') {
 
-					// Check for predefined values
 					if (options?.properties?.has(propKey)) {
 						return options.properties.get(propKey);
 					}
 
-					// Dynamic Event
 					if (propertyIsDynamicEvent(propKey)) {
 						return function (arg: unknown) {
 							return channel.listen(propKey, arg);
 						};
 					}
 
-					// Event
 					if (propertyIsEvent(propKey)) {
 						return channel.listen(propKey);
 					}
 
-					// Function
 					return async function (...args: unknown[]) {
 
-						// Add context if any
 						let methodArgs: unknown[];
 						if (options && !isUndefinedOrNull(options.context)) {
 							methodArgs = [options.context, ...args];
@@ -1266,7 +1142,6 @@ export namespace ProxyChannel {
 
 						const result = await channel.call(propKey, methodArgs);
 
-						// Revive unless marshalling disabled
 						if (!disableMarshalling) {
 							return revive(result);
 						}
@@ -1281,12 +1156,10 @@ export namespace ProxyChannel {
 	}
 
 	function propertyIsEvent(name: string): boolean {
-		// Assume a property is an event if it has a form of "onSomething"
 		return name[0] === 'o' && name[1] === 'n' && strings.isUpperAsciiLetter(name.charCodeAt(2));
 	}
 
 	function propertyIsDynamicEvent(name: string): boolean {
-		// Assume a property is a dynamic event (a method that returns an event) if it has a form of "onDynamicSomething"
 		return /^onDynamic/.test(name) && strings.isUpperAsciiLetter(name.charCodeAt(9));
 	}
 }

@@ -46,38 +46,32 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 		const extensionsWorkbenchService = accessor.get(IExtensionsWorkbenchService);
 		const productService = accessor.get(IProductService);
 
-		// Get all registered language models
 		const modelIds = languageModelsService.getLanguageModelIds();
 
-		// Group models by owning extension and collect all allowed extensions
 		const extensionAuth = new Map<string, AllowedExtension[]>();
 
 		const ownerToAccountLabel = new Map<string, string>();
 		for (const modelId of modelIds) {
 			const model = languageModelsService.lookupLanguageModel(modelId);
 			if (!model?.auth) {
-				continue; // Skip if model is not found
+				continue;
 			}
 			const ownerId = model.extension.value;
 			if (extensionAuth.has(ownerId)) {
-				// If the owner already exists, just continue
 				continue;
 			}
 
-			// Get allowed extensions for this model's auth provider
 			try {
-				// Use providerLabel as the providerId and accountLabel (or default)
 				const providerId = INTERNAL_AUTH_PROVIDER_PREFIX + ownerId;
 				const accountLabel = model.auth.accountLabel || 'Language Models';
 				ownerToAccountLabel.set(ownerId, accountLabel);
 				const allowedExtensions = authenticationAccessService.readAllowedExtensions(
 					providerId,
 					accountLabel
-				).filter(ext => !ext.trusted); // Filter out trusted extensions because those should not be modified
+				).filter(ext => !ext.trusted);
 
 				if (productService.trustedExtensionAuthAccess && !Array.isArray(productService.trustedExtensionAuthAccess)) {
 					const trustedExtensions = productService.trustedExtensionAuthAccess[providerId];
-					// If the provider is trusted, add all trusted extensions to the allowed list
 					for (const ext of trustedExtensions) {
 						const index = allowedExtensions.findIndex(a => a.id === ext);
 						if (index !== -1) {
@@ -85,18 +79,17 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 						}
 						const extension = await extensionService.getExtension(ext);
 						if (!extension) {
-							continue; // Skip if the extension is not found
+							continue;
 						}
 						allowedExtensions.push({
 							id: ext,
 							name: extension.displayName || extension.name,
-							allowed: true, // Assume trusted extensions are allowed by default
-							trusted: true // Mark as trusted
+							allowed: true,
+							trusted: true
 						});
 					}
 				}
 
-				// Only grab extensions that are gettable from the extension service
 				const filteredExtensions = new Array<AllowedExtension>();
 				for (const ext of allowedExtensions) {
 					if (await extensionService.getExtension(ext.id)) {
@@ -105,9 +98,7 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 				}
 
 				extensionAuth.set(ownerId, filteredExtensions);
-				// Add all allowed extensions to the set for this owner
 			} catch (error) {
-				// Handle error by ensuring the owner is in the map
 				if (!extensionAuth.has(ownerId)) {
 					extensionAuth.set(ownerId, []);
 				}
@@ -124,14 +115,11 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 		}
 
 		const items: QuickPickInput<IQuickPickItem & { extension?: AllowedExtension; ownerId?: string }>[] = [];
-		// Create QuickPick items grouped by owner extension
 		for (const [ownerId, allowedExtensions] of extensionAuth) {
 			const extension = await extensionService.getExtension(ownerId);
 			if (!extension) {
-				// If the extension is not found, skip it
 				continue;
 			}
-			// Add separator for the owning extension
 			items.push({
 				type: 'separator',
 				id: ownerId,
@@ -142,7 +130,6 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 				}]
 			});
 
-			// Add allowed extensions as checkboxes (visual representation)
 			let addedTrustedSeparator = false;
 			if (allowedExtensions.length > 0) {
 				for (const allowedExt of allowedExtensions) {
@@ -159,7 +146,7 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 						id: allowedExt.id,
 						picked: allowedExt.allowed ?? false,
 						extension: allowedExt,
-						disabled: allowedExt.trusted, // Don't allow toggling trusted extensions
+						disabled: allowedExt.trusted,
 						buttons: [{
 							iconClass: ThemeIcon.asClassName(Codicon.info),
 							tooltip: localize('openExtension', 'Open Extension'),
@@ -175,25 +162,20 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 			}
 		}
 
-		// Show the QuickPick
 		const result = await quickInputService.pick(
 			items,
 			{
 				canPickMany: true,
 				sortByLabel: true,
 				onDidTriggerSeparatorButton(context) {
-					// Handle separator button clicks
 					const extId = context.separator.id;
 					if (extId) {
-						// Open the extension in the editor
 						void extensionsWorkbenchService.open(extId);
 					}
 				},
 				onDidTriggerItemButton(context) {
-					// Handle item button clicks
 					const extId = context.item.id;
 					if (extId) {
-						// Open the extension in the editor
 						void extensionsWorkbenchService.open(extId);
 					}
 				},
@@ -206,11 +188,8 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 		}
 
 		for (const [ownerId, allowedExtensions] of extensionAuth) {
-			// diff with result to find out which extensions are allowed or not
-			// but we need to only look at the result items that have the ownerId
 			const allowedSet = new Set(result
 				.filter(item => item.ownerId === ownerId)
-				// only save items that are not trusted automatically
 				.filter(item => !item.extension?.trusted)
 				.map(item => item.id!));
 

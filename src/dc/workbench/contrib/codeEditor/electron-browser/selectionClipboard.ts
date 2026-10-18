@@ -50,15 +50,12 @@ export class SelectionClipboard extends Disposable implements IEditorContributio
 				let resultLength = 0;
 				for (const sel of selections) {
 					if (sel.isEmpty()) {
-						// Only write if all cursors have selection
 						return;
 					}
 					resultLength += model.getValueLengthInRange(sel);
 				}
 
 				if (resultLength > SelectionClipboard.SELECTION_LENGTH_LIMIT) {
-					// This is a large selection!
-					// => do not write it to the selection clipboard
 					return;
 				}
 
@@ -76,8 +73,6 @@ export class SelectionClipboard extends Disposable implements IEditorContributio
 					return;
 				}
 				if (e.source === 'restoreState') {
-					// do not set selection to clipboard if this selection change
-					// was caused by restoring editors...
 					return;
 				}
 				setSelectionToClipboard.schedule();
@@ -99,11 +94,8 @@ class LinuxSelectionClipboardPastePreventer extends Disposable implements IWorkb
 		this._register(Event.runAndSubscribe(onDidRegisterWindow, ({ window, disposables }) => {
 			disposables.add(addDisposableListener(window.document, 'mouseup', e => {
 				if (e.button === 1) {
-					// middle button
 					const config = configurationService.getValue<{ selectionClipboard: boolean }>('editor');
 					if (!config.selectionClipboard) {
-						// selection clipboard is disabled
-						// try to stop the upcoming paste
 						e.preventDefault();
 					}
 				}
@@ -125,7 +117,6 @@ class PasteSelectionClipboardAction extends EditorAction {
 	public async run(accessor: ServicesAccessor, editor: ICodeEditor, args: unknown): Promise<void> {
 		const clipboardService = accessor.get(IClipboardService);
 
-		// read selection clipboard
 		const text = await clipboardService.readText('selection');
 
 		editor.trigger('keyboard', Handler.Paste, {
@@ -136,8 +127,8 @@ class PasteSelectionClipboardAction extends EditorAction {
 	}
 }
 
-registerEditorContribution(SelectionClipboardContributionID, SelectionClipboard, EditorContributionInstantiation.Eager); // eager because it needs to listen to selection change events
+registerEditorContribution(SelectionClipboardContributionID, SelectionClipboard, EditorContributionInstantiation.Eager);
 if (platform.isLinux) {
-	registerWorkbenchContribution2(LinuxSelectionClipboardPastePreventer.ID, LinuxSelectionClipboardPastePreventer, WorkbenchPhase.BlockRestore); // eager because it listens to mouse-up events globally
+	registerWorkbenchContribution2(LinuxSelectionClipboardPastePreventer.ID, LinuxSelectionClipboardPastePreventer, WorkbenchPhase.BlockRestore);
 	registerEditorAction(PasteSelectionClipboardAction);
 }

@@ -15,7 +15,6 @@ import { AUTOMATION_CATALOG_URI, buildDefaultChatUri, createChatState, createDef
 import { AgentSubscriptionManager, AutomationCatalogSubscription, AutomationRunSubscription, ChangesetStateSubscription, ChatStateSubscription, isActionEnvelopeRelevantToSubscriptionUris, RootStateSubscription, SessionStateSubscription, TerminalStateSubscription } from '../../common/state/agentSubscription.js';
 import { normalizeLegacyActionEnvelope, readLegacyTurnError } from '../../common/state/legacyProtocolCompatibility.js';
 
-// Helpers
 
 function makeRootState(overrides?: Partial<RootState>): RootState {
 	return {
@@ -241,7 +240,6 @@ suite('ChangesetStateSubscription', () => {
 
 });
 
-// RootStateSubscription
 
 suite('RootStateSubscription', () => {
 
@@ -315,14 +313,12 @@ suite('RootStateSubscription', () => {
 
 	test('buffers envelopes before snapshot and replays after', () => {
 		const sub = disposables.add(new RootStateSubscription('c1', noop));
-		// Send envelope before snapshot
 		sub.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.RootActiveSessionsChanged, activeSessions: 7 },
 			2,
 		));
 		assert.strictEqual(sub.value, undefined);
 
-		// Now apply snapshot with fromSeq=1; envelope at seq 2 should replay
 		sub.handleSnapshot(makeRootState(), 1);
 		assert.strictEqual((sub.value! as RootState).activeSessions, 7);
 	});
@@ -334,7 +330,6 @@ suite('RootStateSubscription', () => {
 			1,
 		));
 		sub.handleSnapshot(makeRootState({ activeSessions: 0 }), 1);
-		// Envelope at seq 1 should not replay since fromSeq === 1
 		assert.strictEqual((sub.value as RootState).activeSessions, 0);
 	});
 
@@ -342,8 +337,6 @@ suite('RootStateSubscription', () => {
 		const sub = disposables.add(new RootStateSubscription('c1', noop));
 		sub.handleSnapshot(makeRootState({ activeSessions: 1 }), 10);
 
-		// Re-subscribing an already-seated channel: the snapshot is computed at
-		// seq 23 but a newer action reaches the client first.
 		sub.beginSnapshotRefresh();
 		sub.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.RootActiveSessionsChanged, activeSessions: 7 },
@@ -367,7 +360,6 @@ suite('RootStateSubscription', () => {
 		sub.cancelSnapshotRefresh();
 		assert.strictEqual((sub.value as RootState).activeSessions, 7);
 
-		// Refresh mode is off again: later envelopes apply directly.
 		sub.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.RootActiveSessionsChanged, activeSessions: 9 },
 			25,
@@ -394,7 +386,6 @@ suite('RootStateSubscription', () => {
 	});
 });
 
-// SessionStateSubscription
 
 suite('SessionStateSubscription', () => {
 
@@ -441,7 +432,6 @@ suite('SessionStateSubscription', () => {
 
 		assert.strictEqual(clientSeq, 1);
 		assert.strictEqual((sub.value as SessionState).title, 'Optimistic');
-		// verifiedValue should remain unchanged
 		assert.strictEqual(sub.verifiedValue!.title, 'Test');
 	});
 
@@ -454,16 +444,13 @@ suite('SessionStateSubscription', () => {
 			title: 'Optimistic',
 		});
 
-		// Server confirms the action
 		sub.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.SessionTitleChanged, title: 'Optimistic' },
 			1,
 			{ clientId: 'c1', clientSeq },
 		));
 
-		// After confirmation, verifiedValue should match
 		assert.strictEqual(sub.verifiedValue!.title, 'Optimistic');
-		// No pending, value falls through to confirmed
 		assert.strictEqual((sub.value as SessionState).title, 'Optimistic');
 	});
 
@@ -476,7 +463,6 @@ suite('SessionStateSubscription', () => {
 			title: 'Optimistic',
 		});
 
-		// Server rejects the action
 		sub.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.SessionTitleChanged, title: 'Optimistic' },
 			1,
@@ -484,9 +470,7 @@ suite('SessionStateSubscription', () => {
 			'denied',
 		));
 
-		// Confirmed state unchanged
 		assert.strictEqual(sub.verifiedValue!.title, 'Test');
-		// No more pending, value = confirmed
 		assert.strictEqual((sub.value as SessionState).title, 'Test');
 	});
 
@@ -494,22 +478,18 @@ suite('SessionStateSubscription', () => {
 		const sub = createSub();
 		sub.handleSnapshot(makeSessionState(sessionUri), 0);
 
-		// Local optimistic action
 		sub.applyOptimistic({
 			type: ActionType.SessionTitleChanged,
 			title: 'Local',
 		});
 
-		// Foreign action arrives
 		sub.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.SessionReady, },
 			1,
 			{ clientId: 'other-client', clientSeq: 1 },
 		));
 
-		// Confirmed state should have SessionReady applied
 		assert.strictEqual(sub.verifiedValue!.lifecycle, SessionLifecycle.Ready);
-		// Optimistic should still have 'Local' title on top
 		assert.strictEqual((sub.value as SessionState).title, 'Local');
 	});
 
@@ -536,14 +516,12 @@ suite('SessionStateSubscription', () => {
 			title: 'Temp',
 		});
 
-		// Confirm the pending action
 		sub.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.SessionTitleChanged, title: 'Temp' },
 			1,
 			{ clientId: 'c1', clientSeq },
 		));
 
-		// value and verifiedValue should be the same object reference
 		assert.strictEqual(sub.value, sub.verifiedValue);
 	});
 
@@ -560,7 +538,6 @@ suite('SessionStateSubscription', () => {
 
 		sub.clearPending();
 
-		// Should fall back to confirmed
 		assert.strictEqual((sub.value as SessionState).title, 'Test');
 	});
 
@@ -641,7 +618,6 @@ suite('SessionStateSubscription', () => {
 	});
 });
 
-// ChatStateSubscription
 
 suite('ChatStateSubscription', () => {
 
@@ -769,7 +745,6 @@ suite('ChatStateSubscription', () => {
 	});
 });
 
-// TerminalStateSubscription
 
 suite('TerminalStateSubscription', () => {
 
@@ -803,10 +778,6 @@ suite('TerminalStateSubscription', () => {
 		const sub = disposables.add(new TerminalStateSubscription(terminalUri, 'c1', noop));
 		sub.handleSnapshot(makeTerminalState(), 0);
 
-		// The server dispatches data in stream order relative to command
-		// events, so a command's output arrives between the executed and
-		// finished actions and must land in the command part, not in a
-		// trailing unclassified part.
 		sub.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.TerminalCommandExecuted, commandId: 'cmd-1', commandLine: 'echo hi', timestamp: 1000 },
 			1,
@@ -867,7 +838,6 @@ suite('TerminalStateSubscription', () => {
 	});
 });
 
-// AgentSubscriptionManager
 
 suite('AgentSubscriptionManager', () => {
 
@@ -930,9 +900,8 @@ suite('AgentSubscriptionManager', () => {
 		const ref = mgr.getSubscription<SessionState>(StateComponents.Session, uri, 'test');
 
 		assert.ok(ref.object);
-		assert.strictEqual(ref.object.value, undefined); // not yet initialized (async)
+		assert.strictEqual(ref.object.value, undefined);
 
-		// Wait for async subscribe
 		await new Promise(r => setTimeout(r, 0));
 
 		assert.ok(ref.object.value);
@@ -947,14 +916,11 @@ suite('AgentSubscriptionManager', () => {
 
 		await new Promise(r => setTimeout(r, 0));
 
-		// Should be the same subscription object
 		assert.strictEqual(ref1.object, ref2.object);
 
-		// Disposing one ref should not trigger unsubscribe
 		ref1.dispose();
 		assert.strictEqual(unsubscribedResources.length, 0);
 
-		// Disposing the last ref should trigger unsubscribe
 		ref2.dispose();
 		assert.strictEqual(unsubscribedResources.length, 1);
 	});
@@ -978,14 +944,12 @@ suite('AgentSubscriptionManager', () => {
 		const ref = mgr.getSubscription<SessionState>(StateComponents.Session, uri, 'test');
 		await new Promise(r => setTimeout(r, 0));
 
-		// Send a root action
 		mgr.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.RootActiveSessionsChanged, activeSessions: 10 },
 			1,
 		));
 		assert.strictEqual((mgr.rootState.value as RootState).activeSessions, 10);
 
-		// Send a session action
 		mgr.receiveEnvelope(makeEnvelope(
 			{ type: ActionType.SessionTitleChanged, title: 'Routed' },
 			2,
@@ -1081,7 +1045,6 @@ suite('AgentSubscriptionManager', () => {
 
 		assert.ok(clientSeq > 0);
 		assert.strictEqual((ref.object.value as SessionState).title, 'Dispatched');
-		// verifiedValue unchanged
 		assert.strictEqual(ref.object.verifiedValue!.title, 'Test');
 
 		ref.dispose();
@@ -1128,15 +1091,12 @@ suite('AgentSubscriptionManager', () => {
 		const ref2 = mgr.getSubscription<TerminalState>(StateComponents.Terminal, URI.parse(terminalUri), 'test');
 		await new Promise(r => setTimeout(r, 0));
 
-		// Remove the manager from disposables so we can dispose it manually
-		// without double-dispose
 		disposables.delete(mgr);
 		mgr.dispose();
 
 		assert.ok(unsubscribedResources.includes(sessionUri));
 		assert.ok(unsubscribedResources.includes(terminalUri));
 
-		// Clean up refs (already disposed with manager, but safe to call)
 		ref1.dispose();
 		ref2.dispose();
 	});
@@ -1151,19 +1111,15 @@ suite('AgentSubscriptionManager', () => {
 		const mgr = createManager();
 		const uri = URI.parse(sessionUri);
 
-		// Create a subscription via getSubscription
 		const ref = mgr.getSubscription<SessionState>(StateComponents.Session, uri, 'test');
 		await new Promise(r => setTimeout(r, 0));
 
-		// Get it unmanaged
 		const unmanaged = mgr.getSubscriptionUnmanaged<SessionState>(uri);
 		assert.ok(unmanaged);
 		assert.strictEqual(unmanaged, ref.object);
 
-		// Dispose the ref. Subscription should be released (refcount was 1)
 		ref.dispose();
 
-		// Now unmanaged should return undefined since it was released
 		const after = mgr.getSubscriptionUnmanaged<SessionState>(uri);
 		assert.strictEqual(after, undefined);
 	});
@@ -1253,7 +1209,6 @@ suite('AgentSubscriptionManager', () => {
 		refB.dispose();
 		const afterOneB = mgr.getActiveSubscriptions()[0].holders;
 
-		// Disposing the same reference twice must not over-remove holders.
 		refB.dispose();
 		const afterDoubleDispose = mgr.getActiveSubscriptions()[0].holders;
 
@@ -1261,7 +1216,6 @@ suite('AgentSubscriptionManager', () => {
 		refB2.dispose();
 
 		assert.deepStrictEqual({ withAll, afterOneB, afterDoubleDispose, remaining: mgr.getActiveSubscriptions().length }, {
-			// Sorted by descending count, so HolderB (2) precedes HolderA (1).
 			withAll: [{ owner: 'HolderB', count: 2 }, { owner: 'HolderA', count: 1 }],
 			afterOneB: [{ owner: 'HolderA', count: 1 }, { owner: 'HolderB', count: 1 }],
 			afterDoubleDispose: [{ owner: 'HolderA', count: 1 }, { owner: 'HolderB', count: 1 }],

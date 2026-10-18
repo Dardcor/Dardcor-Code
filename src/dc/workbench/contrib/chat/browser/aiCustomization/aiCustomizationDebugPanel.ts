@@ -13,23 +13,11 @@ import { ICustomizationHarnessService, type ICustomizationItem } from '../../com
 import { IAgentPluginService } from '../../common/plugins/agentPluginService.js';
 import { IAICustomizationItemSource } from './aiCustomizationItemSource.js';
 
-/**
- * Snapshot of the list widget's internal state, passed in to avoid coupling.
- */
 export interface IDebugWidgetState {
 	readonly allItems: readonly { readonly name?: string; readonly source?: AICustomizationSource; readonly groupKey?: string; readonly syncable?: boolean; readonly pluginUri?: URI }[];
 	readonly displayEntries: readonly { type: string; label?: string; count?: number; collapsed?: boolean }[];
 }
 
-/**
- * Generates a debug diagnostics report for the AI Customization list widget.
- *
- * The report follows the unified pipeline:
- *   1. Provider output — what the active provider returns
- *   2. Raw PromptsService data — lower-level service output (when no extension provider)
- *   3. Widget state — normalized items and display entries after grouping
- *   4. Source folders — where files are discovered from
- */
 export async function generateCustomizationDebugReport(
 	section: AICustomizationManagementSection,
 	promptsService: IPromptsService,
@@ -48,7 +36,6 @@ export async function generateCustomizationDebugReport(
 	lines.push(`Active root: ${workspaceService.getActiveProjectRoot()?.fsPath ?? '(none)'}`);
 	lines.push(`Sections: [${workspaceService.managementSections.join(', ')}]`);
 
-	// Active harness descriptor
 	if (activeDescriptor) {
 		lines.push('');
 		lines.push('--- Active Harness ---');
@@ -62,15 +49,12 @@ export async function generateCustomizationDebugReport(
 	}
 	lines.push('');
 
-	// Determine which provider the widget actually uses (mirrors getItemSource logic)
 	const extensionProvider = activeDescriptor.itemProvider;
 
-	// Stage 1: Provider output
 	if (extensionProvider) {
 		const providerLabel = 'Extension Provider';
 		await appendProviderData(lines, itemSource, promptType, providerLabel);
 	} else {
-		// Stage 2: Raw PromptsService data — always useful for diagnostics
 		lines.push('--- Stage 1: No provider available ---');
 		lines.push('');
 		await appendRawServiceData(lines, promptsService, promptType);
@@ -78,18 +62,14 @@ export async function generateCustomizationDebugReport(
 	}
 
 
-	// Stage 3: Widget state
 	appendWidgetState(lines, widgetState);
 
-	// Stage 4: Source folders
 	await appendSourceFolders(lines, promptsService, promptType);
 
-	// Stage 5: All registered harnesses
 	if (harnessService) {
 		appendAllHarnesses(lines, harnessService);
 	}
 
-	// Stage 6: Installed plugins
 	if (agentPluginService) {
 		appendInstalledPlugins(lines, agentPluginService);
 	}
@@ -124,7 +104,6 @@ async function appendProviderData(lines: string[], itemSource: IAICustomizationI
 		lines.push(`  Total items from provider: ${allItems.length}`);
 	}
 
-	// Group by type for summary
 	const byType = new Map<string, ICustomizationItem[]>();
 	for (const item of allItems) {
 		const existing = byType.get(item.type) ?? [];
@@ -281,7 +260,6 @@ async function appendSourceFolders(lines: string[], promptsService: IPromptsServ
 			lines.push(`  [${rf.storage}] ${rf.uri.fsPath} (source=${rf.source})`);
 		}
 	} catch {
-		// getResolvedSourceFolders may not exist for all types
 	}
 }
 

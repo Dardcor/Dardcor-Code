@@ -28,17 +28,8 @@ namespace CustomDataContent {
 }
 
 interface AutoInsertParams {
-	/**
-	 * The auto insert kind
-	 */
 	kind: 'autoQuote' | 'autoClose';
-	/**
-	 * The text document.
-	 */
 	textDocument: TextDocumentIdentifier;
-	/**
-	 * The position inside the text document.
-	 */
 	position: LspPosition;
 }
 
@@ -46,7 +37,6 @@ namespace AutoInsertRequest {
 	export const type: RequestType<AutoInsertParams, string | null, any> = new RequestType('html/autoInsert');
 }
 
-// experimental: semantic tokens
 interface SemanticTokenParams {
 	textDocument: TextDocumentIdentifier;
 	ranges?: LspRange[];
@@ -152,20 +142,18 @@ async function startClientWithParticipants(languageParticipants: LanguagePartici
 
 	let rangeFormatting: Disposable | undefined = undefined;
 
-	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
 		documentSelector,
 		synchronize: {
-			configurationSection: ['html', 'css', 'javascript', 'js/ts'], // the settings to synchronize
+			configurationSection: ['html', 'css', 'javascript', 'js/ts'],
 		},
 		initializationOptions: {
 			embeddedLanguages,
 			handledSchemas: ['file'],
-			provideFormatter: false, // tell the server to not provide formatting capability and ignore the `html.format.enable` setting.
+			provideFormatter: false,
 			customCapabilities: { rangeFormatting: { editLimit: 10000 } }
 		},
 		middleware: {
-			// testing the replace / insert mode
 			provideCompletionItem(document: TextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature): ProviderResult<CompletionItem[] | CompletionList> {
 				function updateRanges(item: CompletionItem) {
 					const range = item.range;
@@ -192,7 +180,6 @@ async function startClientWithParticipants(languageParticipants: LanguagePartici
 	};
 	clientOptions.outputChannel = logOutputChannel;
 
-	// Create the language client and start the client.
 	const client = newLanguageClient('html', languageServerDescription, clientOptions);
 	client.registerProposedFeatures();
 
@@ -226,7 +213,6 @@ async function startClientWithParticipants(languageParticipants: LanguagePartici
 	});
 	toDispose.push(disposable2);
 
-	// manually register / deregister format provider based on the `html.format.enable` setting avoiding issues with late registration. See #71652.
 	updateFormatterRegistration();
 	toDispose.push({ dispose: () => rangeFormatting && rangeFormatting.dispose() });
 	toDispose.push(workspace.onDidChangeConfiguration(e => e.affectsConfiguration(SettingIds.formatEnable) && updateFormatterRegistration()));

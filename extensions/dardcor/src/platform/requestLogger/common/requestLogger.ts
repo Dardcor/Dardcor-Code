@@ -29,7 +29,7 @@ export class ChatRequestScheme {
 			extension = 'dardcormd';
 		} else if (format === 'json') {
 			extension = 'json';
-		} else { // rawrequest
+		} else {
 			extension = 'request.json';
 		}
 		if (data.kind === 'latest') {
@@ -40,32 +40,26 @@ export class ChatRequestScheme {
 	}
 
 	public static parseUri(uri: string): { data: UriData; format: 'markdown' | 'json' | 'rawrequest' } | undefined {
-		// Check for latest markdown
 		if (uri === this.buildUri({ kind: 'latest' }, 'markdown')) {
 			return { data: { kind: 'latest' }, format: 'markdown' };
 		}
-		// Check for latest JSON
 		if (uri === this.buildUri({ kind: 'latest' }, 'json')) {
 			return { data: { kind: 'latest' }, format: 'json' };
 		}
-		// Check for latest rawrequest
 		if (uri === this.buildUri({ kind: 'latest' }, 'rawrequest')) {
 			return { data: { kind: 'latest' }, format: 'rawrequest' };
 		}
 
-		// Check for specific request markdown
 		const mdMatch = uri.match(/ccreq:([^\s]+)\.dardcormd/);
 		if (mdMatch) {
 			return { data: { kind: 'request', id: mdMatch[1] }, format: 'markdown' };
 		}
 
-		// specific raw body json
 		const bodyJsonMatch = uri.match(/ccreq:([^\s]+)\.request\.json/);
 		if (bodyJsonMatch) {
 			return { data: { kind: 'request', id: bodyJsonMatch[1] }, format: 'rawrequest' };
 		}
 
-		// Check for specific request JSON
 		const jsonMatch = uri.match(/ccreq:([^\s]+)\.json/);
 		if (jsonMatch) {
 			return { data: { kind: 'request', id: jsonMatch[1] }, format: 'json' };
@@ -136,7 +130,6 @@ export interface ILoggedPendingRequest {
 	body?: IEndpointBody;
 	ignoreStatefulMarker?: boolean;
 	isConversationRequest?: boolean;
-	/** Custom metadata to be displayed in the log document */
 	customMetadata?: Record<string, string | number | boolean | undefined>;
 }
 
@@ -186,7 +179,6 @@ export interface ILoggedChatMLRequest {
 	startTime: Date;
 	endTime: Date;
 	isConversationRequest?: boolean;
-	/** Custom metadata to be displayed in the log document */
 	customMetadata?: Record<string, string | number | boolean | undefined>;
 }
 
@@ -215,15 +207,7 @@ export interface IMarkdownContentRequest {
 	debugName: string;
 	markdownContent: string | (() => string);
 	isConversationRequest?: boolean;
-	/**
-	 * When set, the log tree and virtual document will refresh when this event fires.
-	 * Used for "live" entries that update over time (e.g. in-progress NES requests).
-	 */
 	onDidChange?: Event<void>;
-	/**
-	 * When set, determines whether this entry should be visible in the log tree.
-	 * Used for live entries that may become hidden (e.g. skipped/cancelled NES requests).
-	 */
 	isVisible?: () => boolean;
 }
 

@@ -9,9 +9,6 @@ import { AccessibilitySignal, IAccessibilitySignalService } from './accessibilit
 
 const PROGRESS_SIGNAL_LOOP_DELAY = 5000;
 
-/**
- * Schedules a signal to play while progress is happening.
- */
 export class AccessibilityProgressSignalScheduler extends Disposable {
 	private _scheduler: RunOnceScheduler;
 	private _signalLoop: IDisposable | undefined;

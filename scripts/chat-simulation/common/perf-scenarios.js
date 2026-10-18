@@ -29,7 +29,6 @@ const FIXTURES_DIR = path.join(__dirname, '..', 'fixtures');
  * }} MultiTurnScenarioDef
  */
 
-// -- Content-only scenarios ---------------------------------------------------
 
 /** @type {Record<string, ContentScenarioDef>} */
 const CONTENT_SCENARIOS = {
@@ -107,7 +106,6 @@ const CONTENT_SCENARIOS = {
 			.build(),
 	},
 
-	// -- Stress-test scenarios --------------------------------------------
 
 	'many-codeblocks': {
 		description: '10 code blocks, 60 lines each',
@@ -217,7 +215,6 @@ const CONTENT_SCENARIOS = {
 			const b = new ScenarioBuilder();
 			const words = [];
 			for (let i = 0; i < 1000; i++) { words.push(`w${i} `); }
-			// Very fast inter-chunk delay to stress the streaming pipeline
 			b.stream(words, 2);
 			return b.build();
 		})(),
@@ -266,7 +263,6 @@ const CONTENT_SCENARIOS = {
 	},
 };
 
-// -- Tool call scenarios ------------------------------------------------------
 
 /** @type {Record<string, MultiTurnScenarioDef>} */
 const TOOL_CALL_SCENARIOS = {
@@ -283,9 +279,6 @@ const TOOL_CALL_SCENARIOS = {
 				'_chatperf_arrays.ts',
 				'_chatperf_types.ts',
 			];
-			// Round 1: parallel read of first 4 files
-			// Round 2: parallel read of next 4 files
-			// Round 3: final content response
 			return {
 				type: 'multi-turn',
 				turns: [
@@ -346,7 +339,6 @@ const TOOL_CALL_SCENARIOS = {
 			return {
 				type: 'multi-turn',
 				turns: [
-					// Round 1: read all 3 files in parallel
 					{
 						kind: 'tool-calls',
 						toolCalls: readFiles.map(f => ({
@@ -354,7 +346,6 @@ const TOOL_CALL_SCENARIOS = {
 							arguments: { filePath: path.join(FIXTURES_DIR, f), startLine: 1, endLine: 40 },
 						})),
 					},
-					// Round 2: edit 2 files in parallel
 					{
 						kind: 'tool-calls',
 						toolCalls: [
@@ -376,7 +367,6 @@ const TOOL_CALL_SCENARIOS = {
 							},
 						],
 					},
-					// Round 3: final content
 					{
 						kind: 'content',
 						chunks: new ScenarioBuilder()
@@ -405,7 +395,6 @@ const TOOL_CALL_SCENARIOS = {
 		scenario: /** @type {import('./mock-llm-server').MultiTurnScenario} */ ({
 			type: 'multi-turn',
 			turns: [
-				// Round 1: run initial commands (install + build)
 				{
 					kind: 'tool-calls',
 					toolCalls: [
@@ -421,7 +410,6 @@ const TOOL_CALL_SCENARIOS = {
 						},
 					],
 				},
-				// Round 2: run test command
 				{
 					kind: 'tool-calls',
 					toolCalls: [
@@ -437,7 +425,6 @@ const TOOL_CALL_SCENARIOS = {
 						},
 					],
 				},
-				// Round 3: read the failing test file for context
 				{
 					kind: 'tool-calls',
 					toolCalls: [
@@ -447,7 +434,6 @@ const TOOL_CALL_SCENARIOS = {
 						},
 					],
 				},
-				// Round 4: fix the issue with an edit
 				{
 					kind: 'tool-calls',
 					toolCalls: [
@@ -461,7 +447,6 @@ const TOOL_CALL_SCENARIOS = {
 						},
 					],
 				},
-				// Round 5: re-run tests to confirm
 				{
 					kind: 'tool-calls',
 					toolCalls: [
@@ -477,7 +462,6 @@ const TOOL_CALL_SCENARIOS = {
 						},
 					],
 				},
-				// Round 6: final summary
 				{
 					kind: 'content',
 					chunks: new ScenarioBuilder()
@@ -507,7 +491,6 @@ const TOOL_CALL_SCENARIOS = {
 	},
 };
 
-// -- Multi-turn user conversation scenarios -----------------------------------
 
 /** @type {Record<string, MultiTurnScenarioDef>} */
 const MULTI_TURN_SCENARIOS = {
@@ -545,7 +528,6 @@ const MULTI_TURN_SCENARIOS = {
 		scenario: /** @type {import('./mock-llm-server').MultiTurnScenario} */ ({
 			type: 'multi-turn',
 			turns: [
-				// Turn 1: Model reads a file
 				{
 					kind: 'tool-calls',
 					toolCalls: [
@@ -559,7 +541,6 @@ const MULTI_TURN_SCENARIOS = {
 						},
 					],
 				},
-				// Turn 2: Model responds with analysis
 				{
 					kind: 'content',
 					chunks: new ScenarioBuilder()
@@ -572,12 +553,10 @@ const MULTI_TURN_SCENARIOS = {
 						], 20)
 						.build(),
 				},
-				// Turn 3: User follow-up (injected by test harness, not served by mock)
 				{
 					kind: 'user',
 					message: 'Yes, explain the MutableDisposable pattern',
 				},
-				// Turn 4: Model responds with thinking, then content
 				{
 					kind: 'thinking',
 					thinkingChunks: new ScenarioBuilder()
@@ -612,12 +591,10 @@ const MULTI_TURN_SCENARIOS = {
 						], 15)
 						.build(),
 				},
-				// Turn 5: Second user follow-up
 				{
 					kind: 'user',
 					message: 'Can you also show me DisposableMap?',
 				},
-				// Turn 6: Final response
 				{
 					kind: 'content',
 					chunks: new ScenarioBuilder()
@@ -661,7 +638,6 @@ const MULTI_TURN_SCENARIOS = {
 			/** @type {import('./mock-llm-server').ScenarioTurn[]} */
 			const turns = [];
 
-			// Turn 1: Initial model response (no user turn needed before the first)
 			const firstTopic = topics[0];
 			turns.push({
 				kind: 'content',
@@ -685,24 +661,19 @@ const MULTI_TURN_SCENARIOS = {
 					.build(),
 			});
 
-			// Turns 2..N: alternating user follow-up + model response
 			for (let i = 1; i < topics.length; i++) {
 				const topic = topics[i];
 
-				// User follow-up
 				turns.push({ kind: 'user', message: topic.question });
 
-				// Model response — vary content type to stress different renderers
 				const b = new ScenarioBuilder();
 				b.wait(20, `## ${topic.heading}\n\n`);
 
-				// Main explanation
 				const sentences = topic.content.split('. ');
 				b.stream(sentences.map(s => s.endsWith('.') ? s + ' ' : s + '. '), 12);
 				b.emit('\n\n');
 
 				if (i % 3 === 0) {
-					// Every 3rd response: large code block
 					b.emit('```typescript\n');
 					for (let j = 0; j < 8; j++) {
 						b.stream([
@@ -720,7 +691,6 @@ const MULTI_TURN_SCENARIOS = {
 					}
 					b.emit('```\n\n');
 				} else if (i % 3 === 1) {
-					// Every 3rd+1 response: bullet list with bold + inline code
 					b.emit('Key points to remember:\n\n');
 					for (let j = 0; j < 6; j++) {
 						b.stream([
@@ -731,7 +701,6 @@ const MULTI_TURN_SCENARIOS = {
 					}
 					b.emit('\n');
 				} else {
-					// Every 3rd+2 response: mixed prose + small code snippet
 					b.stream([
 						'This pattern is used extensively throughout the codebase. ',
 						'The key insight is that resources are always tracked from creation, ',
@@ -764,7 +733,6 @@ const MULTI_TURN_SCENARIOS = {
 	},
 };
 
-// -- Registration helper ------------------------------------------------------
 
 /**
  * Get a brief description of a scenario by ID.

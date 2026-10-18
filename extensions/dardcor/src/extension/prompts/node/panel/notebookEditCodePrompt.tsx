@@ -61,7 +61,6 @@ export class NotebookFormat extends PromptElement<NotebookFormatPromptProps> {
 	}
 
 	public override render(_state: void, _sizing: PromptSizing) {
-		// These could be cell uris or output uris etc.
 		const notebookRelatedUris = this.props.chatVariables instanceof ChatVariablesCollection ?
 			getNotebookUrisFromChatVariables(this.props.chatVariables, this._workspaceService, this.notebookService) :
 			this.props.chatVariables.filter(entry => isNotebookWorkingSetEntry(entry)).map(entry => entry.document.uri);
@@ -128,7 +127,6 @@ function getNotebookUrisFromChatVariables(chatVariables: ChatVariablesCollection
 	for (const chatVar of chatVariables) {
 		let notebookUri: Uri | undefined;
 		if (isNotebookVariable(chatVar.value)) {
-			// Notebook cell or output
 			const [notebook,] = getNotebookAndCellFromUri(chatVar.value, workspaceService.notebookDocuments);
 			if (chatVar.value.scheme === Schemas.vscodeNotebookCellOutput) {
 				continue;

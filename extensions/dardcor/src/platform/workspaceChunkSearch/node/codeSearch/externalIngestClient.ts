@@ -51,9 +51,6 @@ export function computeCheckpointHash(files: readonly { readonly uri: URI; reado
 	return hash.digest().toString('base64');
 }
 
-/**
- * Interface for the external ingest client that handles indexing and searching files.
- */
 export interface IExternalIngestClient {
 	updateIndex(
 		filesetName: string,
@@ -68,14 +65,8 @@ export interface IExternalIngestClient {
 
 	searchFilesets(filesetName: string, prompt: string, limit: number, callTracker: CallTracker, token: CancellationToken): Promise<SearchFilesetsResponse | undefined>;
 
-	/**
-	 * Quickly checks if a file can be ingested based on its path and size.
-	 */
 	canIngestPathAndSize(filePath: string, size: number): boolean;
 
-	/**
-	 * Checks if a file can be ingested based on its path and file contents.
-	 */
 	canIngestDocument(filePath: string, data: Uint8Array): boolean;
 }
 
@@ -156,14 +147,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 			return response;
 		}
 
-		/* __GDPR__
-			"externalIngestClient.post.error" : {
-				"owner": "dardcor-core",
-				"comment": "Logging when a external ingest request fails",
-				"path": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The API path that was called" },
-				"statusCode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The response status code" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('externalIngestClient.post.error', {
 			path: pathId,
 		}, { statusCode: response.status });
@@ -183,8 +166,7 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 
 		const { files: allFiles, checkpoint: newCheckpoint } = fileSet;
 
-		// Initial setup
-		const mappings = new Map</* sha */ string, ExternalIngestFile>();
+		const mappings = new Map< string, ExternalIngestFile>();
 		const geoFilter = new ingestUtils.GeoFilter();
 
 		this.logService.info(`ExternalIngestClient::updateIndex(). Creating ingest for fileset: ${filesetName}`);
@@ -208,12 +190,8 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 
 		this.logService.debug(`ExternalIngestClient::updateIndex(). Found ${mappings.size} ingestable files in ${Math.round(performance.now() - ingestableCheckStart)}ms`,);
 
-		// Coded symbols used during finalization of the fileset.
-		// TODO: this range should be the entire fileset, right?
 		const codedSymbols = ingestUtils.createCodedSymbols(allDocShas, 0, 1).map((cs) => Buffer.from(cs).toString('base64'));
 
-		// Retry loop for 409 Conflict: per the external indexing spec, if any ingestion
-		// endpoint returns 409, discard the ingest_id and restart from CreateCheckpoint.
 		const maxConflictRetries = 3;
 		for (let conflictAttempt = 0; conflictAttempt < maxConflictRetries; conflictAttempt++) {
 			if (conflictAttempt > 0) {
@@ -252,8 +230,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 	): Promise<Result<ExternalIngestUpdateIndexResult, Error>> {
 		onProgress?.(l10n.t('Creating snapshot...'));
 
-		// Create checkpoint (phase 1). A 429 without Retry-After means "too many filesets",
-		// which requires cleaning up old filesets before retrying.
 		const createIngestBody = {
 			fileset_name: filesetName,
 			new_checkpoint: newCheckpoint,
@@ -290,7 +266,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 		}
 		this.logService.debug(`ExternalIngestClient::performIngestion(): Got ingest ID: ${ingestId}`);
 
-		// Phase 2: Set reconciliation
 		onProgress?.(l10n.t('Reconciling with server...'));
 		this.logService.debug('ExternalIngestClient::performIngestion(): Starting set reconciliation...');
 
@@ -331,16 +306,11 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 			}
 		}
 
-		// Phase 3 + 4: Upload documents, then finalize.
 		const maxFinalizeAttempts = 3;
-		// Unique docShas the server accepted across all finalize passes. Using a set (rather
-		// than summing per-pass counts) prevents over-reporting `updatedFileCount` when the
-		// same document is re-uploaded after a finalize 412.
 		const uploadedDocShas = new Set<string>();
 		for (let finalizeAttempt = 0; ; finalizeAttempt++) {
 			const uploadedThisPass = await this.uploadDocuments(authToken, ingestId, mappings, uploadedDocShas, callTracker, token, onProgress);
 
-			// Phase 4: Finalize
 			onProgress?.(l10n.t('Finalizing index...'));
 			try {
 				const resp = await this.makeRequest(authToken, 'POST', '/external/code/ingest/finalize', {
@@ -355,8 +325,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 			} catch (err) {
 				const isPhaseMismatch = err instanceof ExternalIngestRequestError && err.response.status === 412;
 
-				// 412 means the server is not yet in the finalize phase. Re-poll `/batch`,
-				// re-upload anything still missing, back off and retry.
 				if (isPhaseMismatch && finalizeAttempt < maxFinalizeAttempts - 1) {
 					this.logService.warn(`ExternalIngestClient::performIngestion(): Finalize returned 412 (phase mismatch), re-uploading missing documents and retrying (attempt ${finalizeAttempt + 1}/${maxFinalizeAttempts})`);
 					onProgress?.(l10n.t('Reconciling remaining documents...'));
@@ -364,10 +332,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 					continue;
 				}
 
-				// Retries are exhausted. If the final pass uploaded nothing - i.e. the
-				// server reported no missing documents yet still refuses to finalize -
-				// surface a distinct, more diagnostic error: this is most likely a
-				// server-side phase issue that no amount of client retrying can resolve.
 				if (isPhaseMismatch && uploadedThisPass === 0) {
 					const requestId = err.response.headers.get(githubHeaders.requestId);
 					throw new Error(`External ingest finalize still reported a phase mismatch (412) after ${maxFinalizeAttempts} attempts even though the server reported no missing documents${requestId ? ` (requestId: ${requestId})` : ''}. This likely indicates a server-side issue.`);
@@ -380,15 +344,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 		return Result.ok({ checkpoint: newCheckpoint, totalFileCount: mappings.size, updatedFileCount: uploadedDocShas.size });
 	}
 
-	/**
-	 * Uploads every document the server still needs for the given ingest.
-	 *
-	 * Polls `/external/code/ingest/batch` for the set of documents the server is
-	 * missing and uploads them in parallel. A fresh "seen" set is used on every
-	 * call so that re-running this after a finalize phase mismatch re-uploads any
-	 * documents the server is still expecting. Returns the number of documents
-	 * uploaded during this pass.
-	 */
 	private async uploadDocuments(
 		authToken: string,
 		ingestId: string,
@@ -398,7 +353,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 		token: CancellationToken,
 		onProgress?: (message: string) => void,
 	): Promise<number> {
-		// Phase 3: Document upload
 		onProgress?.(l10n.t('Uploading documents...'));
 		this.logService.debug('ExternalIngestClient::performIngestion(): Starting document upload...');
 
@@ -406,14 +360,7 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 		const seenDocShas = new Set<string>();
 		const uploading = new Set<Promise<void>>();
 		let uploaded = 0;
-		// Documents whose upload request ultimately failed (after the HTTP layer's own
-		// 5xx/rate-limit retries). These are NOT counted as uploaded and cause the pass
-		// to fail with a descriptive error rather than silently leaving the server in the
-		// upload phase (which would otherwise surface later as a confusing finalize 412).
 		const failedUploads: Array<{ readonly relativePath: string; readonly status?: number; readonly requestId?: string | null }> = [];
-		// A fatal upload error (e.g. a 404 meaning the ingest itself is gone) aborts the
-		// whole pass. We record it rather than rejecting the pooled upload promise, because
-		// an intermediate `Promise.all(uploading)` could otherwise swallow the rejection.
 		let fatalUploadError: ExternalIngestRequestError | undefined;
 		const uploadStart = performance.now();
 
@@ -424,8 +371,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 					throw new CancellationError();
 				}
 
-				// A fatal upload error (e.g. the ingest is gone) was seen on a previous
-				// page - stop fetching more work and drain what is in flight.
 				if (fatalUploadError) {
 					break;
 				}
@@ -491,14 +436,11 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 								await this.makeRequest(authToken, 'POST', '/external/code/ingest/document', {
 									ingest_id: ingestId,
 
-									// If the file read failed, we still upload but pass empty content and empty path.
-									// This signals that we've completed the upload but the document should be deleted
 									content: typeof content === 'string' ? content : '',
 									file_path: typeof content === 'string' ? fileEntry.relativePath : '',
 									doc_id: requestedDocSha,
 								}, { retriesOn500: 3, retriesOnRateLimiting: 10 }, callTracker, uploadCts.token);
 
-								// Only successful uploads are counted.
 								uploaded += 1;
 								uploadedDocShas.add(requestedDocSha);
 							} catch (e) {
@@ -512,15 +454,9 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 
 									this.logService.error(`ExternalIngestClient::performIngestion(): Document upload for ${fileEntry.relativePath} failed with status: '${e.response.status}', requestId: '${requestId}'${responseBody ? `, body: ${responseBody}` : ''}`);
 
-									// A 404 means the ingest itself is gone server-side; no further
-									// uploads or a finalize can succeed. Record it as fatal so the pass
-									// aborts deterministically after draining (rather than relying on a
-									// rejection that an intermediate `Promise.all` could swallow).
 									if (e.response.status === 404) {
 										fatalUploadError ??= new ExternalIngestRequestError(`Ingest not found (404) for document: ${fileEntry.relativePath}`, e.response);
 									} else {
-										// Record the failure so the pass surfaces a descriptive error after
-										// draining, instead of swallowing it and stranding the server.
 										failedUploads.push({ relativePath: fileEntry.relativePath, status: e.response.status, requestId });
 									}
 								} else {
@@ -564,15 +500,10 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 			`ExternalIngestClient::performIngestion(): Uploaded ${uploaded} ingestable files in ${Math.round(performance.now() - uploadStart)}ms`,
 		);
 
-		// A fatal error (e.g. the ingest is gone) takes precedence and aborts the run.
 		if (fatalUploadError) {
 			throw fatalUploadError;
 		}
 
-		// Surface a descriptive error if any document failed to upload. Doing this here -
-		// rather than swallowing the failure - means the run fails with the real cause
-		// (e.g. a 5xx on a specific document) instead of later masquerading as a finalize
-		// phase mismatch, and prevents the server from being stranded mid-upload.
 		if (failedUploads.length > 0) {
 			const first = failedUploads[0];
 			const detail = `${first.relativePath}${first.status !== undefined ? ` (status ${first.status})` : ''}${first.requestId ? `, requestId: ${first.requestId}` : ''}`;
@@ -599,9 +530,6 @@ export class ExternalIngestClient extends Disposable implements IExternalIngestC
 		return body.filesets ?? [];
 	}
 
-	/**
-	 * Cleans up old filesets to make room for new ones.
-	 */
 	private async cleanupOldFilesets(authToken: string, currentFilesetName: string, inCallTracker: CallTracker, token: CancellationToken): Promise<void> {
 		const callTracker = inCallTracker.add('ExternalIngestClient::cleanupOldFilesets');
 		const filesets = await this.listFilesetsWithDetails(authToken, callTracker, token);

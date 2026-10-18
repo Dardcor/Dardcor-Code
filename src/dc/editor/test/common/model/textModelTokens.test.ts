@@ -67,7 +67,6 @@ suite('RangePriorityQueueImpl', () => {
 		queue.addRange(new OffsetRange(100, 120));
 		queue.addRange(new OffsetRange(200, 220));
 
-		// disjoint
 		queue.addRangeAndResize(new OffsetRange(25, 27), 0);
 
 		assert.deepStrictEqual(

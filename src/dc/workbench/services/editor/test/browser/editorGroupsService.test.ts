@@ -96,7 +96,6 @@ suite('EditorGroupsService', () => {
 			groupMovedCounter++;
 		});
 
-		// always a root group
 		const rootGroup = part.groups[0];
 		assert.strictEqual(isEditorGroup(rootGroup), true);
 		assert.strictEqual(part.groups.length, 1);
@@ -215,7 +214,7 @@ suite('EditorGroupsService', () => {
 		assert.strictEqual(mru.length, 1);
 		assert.strictEqual(mru[0], rootGroup);
 
-		part.removeGroup(rootGroup); // cannot remove root group
+		part.removeGroup(rootGroup);
 		assert.strictEqual(part.groups.length, 1);
 		assert.strictEqual(groupRemovedCounter, 2);
 		assert.ok(part.activeGroup === rootGroup);
@@ -1500,7 +1499,6 @@ suite('EditorGroupsService', () => {
 	test('getLayout', async function () {
 		const [part] = await createPart();
 
-		// 2x2
 		part.applyLayout({ groups: [{ groups: [{}, {}] }, { groups: [{}, {}] }], orientation: GroupOrientation.HORIZONTAL });
 		let layout = part.getLayout();
 
@@ -1509,7 +1507,6 @@ suite('EditorGroupsService', () => {
 		assert.strictEqual(layout.groups[0].groups!.length, 2);
 		assert.strictEqual(layout.groups[1].groups!.length, 2);
 
-		// 3 columns
 		part.applyLayout({ groups: [{}, {}, {}], orientation: GroupOrientation.VERTICAL });
 		layout = part.getLayout();
 
@@ -1667,7 +1664,6 @@ suite('EditorGroupsService', () => {
 			return inputs.length === group.selectedEditors.length;
 		}
 
-		// Active: input1, Selected: input1
 		await group.openEditors([input1, input2, input3].map(editor => ({ editor, options: { pinned: true } })));
 
 		assert.strictEqual(group.isActive(input1), true);
@@ -1677,7 +1673,6 @@ suite('EditorGroupsService', () => {
 
 		assert.strictEqual(isSelection([input1]), true);
 
-		// Active: input1, Selected: input1, input3
 		await group.setSelection(input1, [input3]);
 
 		assert.strictEqual(group.isActive(input1), true);
@@ -1687,7 +1682,6 @@ suite('EditorGroupsService', () => {
 
 		assert.strictEqual(isSelection([input1, input3]), true);
 
-		// Active: input2, Selected: input1, input3
 		await group.setSelection(input2, [input1, input3]);
 
 		assert.strictEqual(group.isSelected(input1), true);
@@ -1699,7 +1693,6 @@ suite('EditorGroupsService', () => {
 
 		await group.setSelection(input1, []);
 
-		// Selected: input3
 		assert.strictEqual(group.isActive(input1), true);
 		assert.strictEqual(group.isSelected(input1), true);
 		assert.strictEqual(group.isSelected(input2), false);
@@ -1805,7 +1798,6 @@ suite('EditorGroupsService', () => {
 		assert.strictEqual(leftFiredCount, 2);
 		assert.strictEqual(rightFiredCount, 1);
 
-		// Ensure move fires the open event too
 		rightGroup.moveEditor(secondInput, group);
 		assert.strictEqual(leftFiredCount, 3);
 		assert.strictEqual(rightFiredCount, 1);
@@ -1961,16 +1953,13 @@ suite('EditorGroupsService', () => {
 		let input1 = createTestFileEditorInput(URI.file('foo/bar1'), TEST_EDITOR_INPUT_ID);
 		let input2 = createTestFileEditorInput(URI.file('foo/bar2'), TEST_EDITOR_INPUT_ID);
 
-		// First editor opens in right group: Locked=true
 		await rightGroup.openEditor(input1, { pinned: true });
 		assert.strictEqual(rightGroup.isLocked, true);
 
-		// Second editors opens in now unlocked right group: Locked=false
 		rightGroup.lock(false);
 		await rightGroup.openEditor(input2, { pinned: true });
 		assert.strictEqual(rightGroup.isLocked, false);
 
-		//First editor opens in root group without other groups being opened: Locked=false
 		await rightGroup.closeAllEditors();
 		part.removeGroup(rightGroup);
 		await rootGroup.closeAllEditors();
@@ -1995,7 +1984,6 @@ suite('EditorGroupsService', () => {
 		const rootGroup = part.activeGroup;
 		const editorPartSize = part.getSize(rootGroup);
 
-		// If there is only one group, it should not be considered maximized
 		assert.strictEqual(part.hasMaximizedGroup(), false);
 
 		const rightGroup = part.addGroup(rootGroup, GroupDirection.RIGHT);
@@ -2016,7 +2004,6 @@ suite('EditorGroupsService', () => {
 
 		assert.strictEqual(part.hasMaximizedGroup(), true);
 
-		// getSize()
 		assert.deepStrictEqual(part.getSize(rootGroup), editorPartSize);
 		assert.deepStrictEqual(part.getSize(rightGroup), { width: 0, height: 0 });
 		assert.deepStrictEqual(part.getSize(rightBottomGroup), { width: 0, height: 0 });
@@ -2027,7 +2014,6 @@ suite('EditorGroupsService', () => {
 
 		assert.strictEqual(part.hasMaximizedGroup(), false);
 
-		// Size is restored
 		assert.deepStrictEqual(part.getSize(rootGroup), sizeRootGroup);
 		assert.deepStrictEqual(part.getSize(rightGroup), sizeRightGroup);
 		assert.deepStrictEqual(part.getSize(rightBottomGroup), sizeRightBottomGroup);
@@ -2058,7 +2044,7 @@ suite('EditorGroupsService', () => {
 		assert.strictEqual(group.isTransient(inputTransient), false);
 
 		await group.openEditor(inputTransient, { transient: true });
-		assert.strictEqual(group.isTransient(inputTransient), false); // cannot make a non-transient editor transient when already opened
+		assert.strictEqual(group.isTransient(inputTransient), false);
 	});
 
 	test('transient editors - pinning clears transient', async () => {
@@ -2144,12 +2130,12 @@ suite('EditorGroupsService', () => {
 		await part.applyState(emptyState);
 
 		assert.strictEqual(part.count, 1);
-		assert.strictEqual(part.groups[0].contains(input3), true); // dirty editors enforce to be there even when state is empty
+		assert.strictEqual(part.groups[0].contains(input3), true);
 
 		await part.applyState('empty');
 
 		assert.strictEqual(part.count, 1);
-		assert.strictEqual(part.groups[0].contains(input3), true); // dirty editors enforce to be there even when state is empty
+		assert.strictEqual(part.groups[0].contains(input3), true);
 
 		input3.dirty = false;
 
@@ -2174,18 +2160,11 @@ suite('EditorGroupsService', () => {
 			await group.closeAllEditors();
 		}
 
-		// Simulate an editor part that has never been laid out (e.g. it stayed
-		// hidden since the window opened, like the Agents window editor area
-		// after a reload with the side pane closed). In that state
-		// `_contentDimension` is still undefined and laying out during the
-		// restore would throw, aborting before the `onDidAddGroup` events fire.
 		(part as unknown as { _contentDimension: unknown })._contentDimension = undefined;
 
 		let addedGroups = 0;
 		const listener = part.onDidAddGroup(() => addedGroups++);
 
-		// Must not throw, must restore the groups, and must fire `onDidAddGroup`
-		// for them so listeners (e.g. the editor service) register them.
 		await part.applyState(state);
 		listener.dispose();
 
@@ -2198,7 +2177,6 @@ suite('EditorGroupsService', () => {
 	test('context key provider', async function () {
 		const disposables = new DisposableStore();
 
-		// Instantiate workbench and setup initial state
 		const instantiationService = workbenchInstantiationService({ contextKeyService: instantiationService => instantiationService.createInstance(MockScopableContextKeyService) }, disposables);
 		const rootContextKeyService = instantiationService.get(IContextKeyService);
 
@@ -2214,7 +2192,6 @@ suite('EditorGroupsService', () => {
 		await group2.openEditor(input2, { pinned: true });
 		await group1.openEditor(input1, { pinned: true });
 
-		// Create context key provider
 		const rawContextKey = new RawContextKey<number>('testContextKey', parts.activeGroup.id);
 		const contextKeyProvider: IEditorGroupContextKeyProvider<number> = {
 			contextKey: rawContextKey,
@@ -2222,7 +2199,6 @@ suite('EditorGroupsService', () => {
 		};
 		disposables.add(parts.registerContextKeyProvider(contextKeyProvider));
 
-		// Initial state: group1 is active
 		assert.strictEqual(parts.activeGroup.id, group1.id);
 
 		let globalContextKeyValue = rootContextKeyService.getContextKeyValue(rawContextKey.key);
@@ -2232,7 +2208,6 @@ suite('EditorGroupsService', () => {
 		assert.strictEqual(group1ContextKeyValue, group1.id);
 		assert.strictEqual(group2ContextKeyValue, group2.id);
 
-		// Make group2 active and ensure both gloabal and local context key values are updated
 		parts.activateGroup(group2);
 
 		globalContextKeyValue = rootContextKeyService.getContextKeyValue(rawContextKey.key);
@@ -2242,8 +2217,6 @@ suite('EditorGroupsService', () => {
 		assert.strictEqual(group1ContextKeyValue, group1.id);
 		assert.strictEqual(group2ContextKeyValue, group2.id);
 
-		// Add a new group and ensure both gloabal and local context key values are updated
-		// Group 3 will be active
 		const group3 = parts.addGroup(group2, GroupDirection.RIGHT);
 		await group3.openEditor(input3, { pinned: true });
 
@@ -2262,7 +2235,6 @@ suite('EditorGroupsService', () => {
 	test('context key provider: onDidChange', async function () {
 		const disposables = new DisposableStore();
 
-		// Instantiate workbench and setup initial state
 		const instantiationService = workbenchInstantiationService({ contextKeyService: instantiationService => instantiationService.createInstance(MockScopableContextKeyService) }, disposables);
 		const rootContextKeyService = instantiationService.get(IContextKeyService);
 
@@ -2277,7 +2249,6 @@ suite('EditorGroupsService', () => {
 		await group2.openEditor(input2, { pinned: true });
 		await group1.openEditor(input1, { pinned: true });
 
-		// Create context key provider
 		let offset = 0;
 		const _onDidChange = new Emitter<void>();
 
@@ -2289,7 +2260,6 @@ suite('EditorGroupsService', () => {
 		};
 		disposables.add(parts.registerContextKeyProvider(contextKeyProvider));
 
-		// Initial state: group1 is active
 		assert.strictEqual(parts.activeGroup.id, group1.id);
 
 		let globalContextKeyValue = rootContextKeyService.getContextKeyValue(rawContextKey.key);
@@ -2299,7 +2269,6 @@ suite('EditorGroupsService', () => {
 		assert.strictEqual(group1ContextKeyValue, group1.id + offset);
 		assert.strictEqual(group2ContextKeyValue, group2.id + offset);
 
-		// Make a change to the context key provider and fire onDidChange such that all context key values are updated
 		offset = 10;
 		_onDidChange.fire();
 
@@ -2316,7 +2285,6 @@ suite('EditorGroupsService', () => {
 	test('context key provider: active editor change', async function () {
 		const disposables = new DisposableStore();
 
-		// Instantiate workbench and setup initial state
 		const instantiationService = workbenchInstantiationService({ contextKeyService: instantiationService => instantiationService.createInstance(MockScopableContextKeyService) }, disposables);
 		const rootContextKeyService = instantiationService.get(IContextKeyService);
 
@@ -2330,7 +2298,6 @@ suite('EditorGroupsService', () => {
 		await group1.openEditor(input2, { pinned: true });
 		await group1.openEditor(input1, { pinned: true });
 
-		// Create context key provider
 		const rawContextKey = new RawContextKey<string>('testContextKey', input1.resource.toString());
 		const contextKeyProvider: IEditorGroupContextKeyProvider<string> = {
 			contextKey: rawContextKey,
@@ -2338,7 +2305,6 @@ suite('EditorGroupsService', () => {
 		};
 		disposables.add(parts.registerContextKeyProvider(contextKeyProvider));
 
-		// Initial state: input1 is active
 		assert.strictEqual(isEqual(group1.activeEditor?.resource, input1.resource), true);
 
 		let globalContextKeyValue = rootContextKeyService.getContextKeyValue(rawContextKey.key);
@@ -2346,7 +2312,6 @@ suite('EditorGroupsService', () => {
 		assert.strictEqual(globalContextKeyValue, input1.resource.toString());
 		assert.strictEqual(group1ContextKeyValue, input1.resource.toString());
 
-		// Make input2 active and ensure both gloabal and local context key values are updated
 		await group1.openEditor(input2);
 
 		globalContextKeyValue = rootContextKeyService.getContextKeyValue(rawContextKey.key);
@@ -2366,21 +2331,18 @@ suite('EditorGroupsService', () => {
 		const rootGroup = part.groups[0];
 		const rightGroup = part.addGroup(rootGroup, GroupDirection.RIGHT);
 
-		// Activate a group explicitly - should carry DEFAULT reason
 		activationEvents.length = 0;
 		part.activateGroup(rightGroup);
 		assert.strictEqual(activationEvents.length, 1);
 		assert.strictEqual(activationEvents[0].group, rightGroup);
 		assert.strictEqual(activationEvents[0].reason, GroupActivationReason.DEFAULT);
 
-		// Activate the same group again - should still fire with DEFAULT reason
 		activationEvents.length = 0;
 		part.activateGroup(rightGroup);
 		assert.strictEqual(activationEvents.length, 1);
 		assert.strictEqual(activationEvents[0].group, rightGroup);
 		assert.strictEqual(activationEvents[0].reason, GroupActivationReason.DEFAULT);
 
-		// Activate root group back
 		activationEvents.length = 0;
 		part.activateGroup(rootGroup);
 		assert.strictEqual(activationEvents.length, 1);

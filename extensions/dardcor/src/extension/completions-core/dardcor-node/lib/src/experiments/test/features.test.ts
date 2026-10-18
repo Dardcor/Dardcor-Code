@@ -18,7 +18,6 @@ suite('updateExPValuesAndAssignments', function () {
 
 	setup(async function () {
 		accessor = createLibTestingContext().createTestingAccessor();
-		// Trigger extractRepoInfoInBackground early + add a sleep to force repo info to be available
 		extractRepoInfoInBackground(accessor, filenameUri);
 		await new Promise(resolve => setTimeout(resolve, 100));
 	});
@@ -31,8 +30,8 @@ suite('updateExPValuesAndAssignments', function () {
 		assert.deepStrictEqual(telemetry.measurements, {});
 
 		const filters = telemetry.filtersAndExp.filters.toHeaders();
-		assert.deepStrictEqual(filters['X-Copilot-Repository'], undefined);
-		assert.deepStrictEqual(filters['X-Copilot-FileType'], undefined);
+		assert.deepStrictEqual(filters['X-Dardcor-Repository'], undefined);
+		assert.deepStrictEqual(filters['X-Dardcor-FileType'], undefined);
 	});
 
 	test('If telemetry data is passed as a parameter, it should be used in the resulting telemetry object', async function () {
@@ -45,7 +44,7 @@ suite('updateExPValuesAndAssignments', function () {
 		assert.deepStrictEqual(telemetry.measurements, { baz: 42 });
 
 		const filters = telemetry.filtersAndExp.filters.toHeaders();
-		assert.deepStrictEqual(filters['X-Copilot-Repository'], undefined);
-		assert.deepStrictEqual(filters['X-Copilot-FileType'], undefined);
+		assert.deepStrictEqual(filters['X-Dardcor-Repository'], undefined);
+		assert.deepStrictEqual(filters['X-Dardcor-FileType'], undefined);
 	});
 });

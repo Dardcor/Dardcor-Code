@@ -20,7 +20,6 @@ export class Graph<T> {
 	private readonly _nodes = new Map<string, Node<T>>();
 
 	constructor(private readonly _hashFn: (element: T) => string) {
-		// empty
 	}
 
 	roots(): Node<T>[] {
@@ -79,10 +78,6 @@ export class Graph<T> {
 		return data.join('\n');
 	}
 
-	/**
-	 * This is brute force and slow and **only** be used
-	 * to trouble shoot.
-	 */
 	findCycleSlow() {
 		for (const [id, node] of this._nodes) {
 			const seen = new Set<string>([id]);

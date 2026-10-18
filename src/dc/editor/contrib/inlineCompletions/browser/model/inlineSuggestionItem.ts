@@ -34,7 +34,7 @@ export namespace InlineSuggestionItem {
 	export function create(
 		data: InlineSuggestData,
 		textModel: TextModelValueReference,
-		shouldDiffEdit: boolean = true, // TODO@benibenj it should only be created once and hence not meeded to be passed here
+		shouldDiffEdit: boolean = true,
 	): InlineSuggestionItem {
 		if (!data.isInlineEdit && !data.action?.uri && data.action?.kind === 'edit') {
 			return InlineCompletionItem.create(data, textModel, data.action);
@@ -79,20 +79,12 @@ abstract class InlineSuggestionItemBase {
 		protected readonly _data: InlineSuggestData,
 		public readonly identity: InlineSuggestionIdentity,
 		public readonly hint: InlineSuggestHint | undefined,
-		/**
-		 * Reference to the text model this item targets.
-		 * For cross-file edits, this may differ from the current editor's model.
-		 */
 		public readonly originalTextRef: TextModelValueReference,
 	) {
 	}
 
 	public abstract get action(): InlineSuggestionAction | undefined;
 
-	/**
-	 * A reference to the original inline completion list this inline completion has been constructed from.
-	 * Used for event data to ensure referential equality.
-	*/
 	public get source(): InlineSuggestionList { return this._data.source; }
 
 	public get isFromExplicitRequest(): boolean { return this._data.context.triggerKind === InlineCompletionTriggerKind.Explicit; }
@@ -119,17 +111,12 @@ abstract class InlineSuggestionItemBase {
 	public get hash(): string {
 		return hashInlineSuggestionAction(this.action);
 	}
-	/** @deprecated */
 	public get shownCommand(): Command | undefined { return this._sourceInlineCompletion.shownCommand; }
 
 	public get requestUuid(): string { return this._data.context.requestUuid; }
 
 	public get partialAccepts(): PartialAcceptance { return this._data.partialAccepts; }
 
-	/**
-	 * A reference to the original inline completion this inline completion has been constructed from.
-	 * Used for event data to ensure referential equality.
-	*/
 	private get _sourceInlineCompletion(): InlineCompletion { return this._data.sourceInlineCompletion; }
 
 
@@ -151,7 +138,7 @@ abstract class InlineSuggestionItemBase {
 	}
 
 	public reportInlineEditShown(commandService: ICommandService, viewKind: InlineCompletionViewKind, viewData: InlineCompletionViewData, model: ITextModel, timeWhenShown: number) {
-		const insertText = this.action?.kind === 'edit' ? this.action.textReplacement.text : ''; // TODO@hediet support insertText === undefined
+		const insertText = this.action?.kind === 'edit' ? this.action.textReplacement.text : '';
 		this._data.reportInlineEditShown(commandService, insertText, viewKind, viewData, this.computeEditKind(model), timeWhenShown);
 	}
 
@@ -175,9 +162,6 @@ abstract class InlineSuggestionItemBase {
 		this._data.setNotShownReason(reason);
 	}
 
-	/**
-	 * Avoid using this method. Instead introduce getters for the needed properties.
-	*/
 	public getSourceCompletion(): InlineCompletion {
 		return this._sourceInlineCompletion;
 	}
@@ -328,9 +312,8 @@ export class InlineCompletionItem extends InlineSuggestionItemBase {
 	}
 
 	override withEdit(textModelEdit: StringEdit, textModel: ITextModel): InlineCompletionItem | undefined {
-		// If the edit is to a different model than our target, it's a noop
 		if (!this.originalTextRef.targets(textModel)) {
-			return this;  // unchanged
+			return this;
 		}
 
 		const newEditRange = applyEditsToRanges([this._edit.replaceRange], textModelEdit);
@@ -366,7 +349,6 @@ export class InlineCompletionItem extends InlineSuggestionItemBase {
 	}
 
 	override canBeReused(model: ITextModel, position: Position): boolean {
-		// TODO@hediet I believe this can be simplified to `return true;`, as applying an edit should kick out this suggestion.
 		const updatedRange = this._textEdit.range;
 		const result = !!updatedRange
 			&& updatedRange.containsPosition(position)
@@ -414,9 +396,9 @@ export class InlineEditItem extends InlineSuggestionItemBase {
 		let action: InlineSuggestionAction | undefined;
 		let edits: SingleUpdatedNextEdit[] = [];
 		if (data.action?.kind === 'edit') {
-			const offsetEdit = shouldDiffEdit ? getDiffedStringEdit(textModel, data.action.range, data.action.insertText) : getStringEdit(textModel, data.action.range, data.action.insertText); // TODO compute async
+			const offsetEdit = shouldDiffEdit ? getDiffedStringEdit(textModel, data.action.range, data.action.insertText) : getStringEdit(textModel, data.action.range, data.action.insertText);
 			const textEdit = TextEdit.fromStringEdit(offsetEdit, textModel);
-			const singleTextEdit = offsetEdit.isEmpty() ? new TextReplacement(new Range(1, 1, 1, 1), '') : textEdit.toReplacement(textModel); // FIXME: .toReplacement() can throw because offsetEdit is empty because we get an empty diff in getStringEdit after diffing
+			const singleTextEdit = offsetEdit.isEmpty() ? new TextReplacement(new Range(1, 1, 1, 1), '') : textEdit.toReplacement(textModel);
 
 			edits = offsetEdit.replacements.map(edit => {
 				const replacedRange = Range.fromPositions(textModel.getPositionAt(edit.replaceRange.start), textModel.getTransformer().getPosition(edit.replaceRange.endExclusive));
@@ -472,7 +454,6 @@ export class InlineEditItem extends InlineSuggestionItemBase {
 	}
 
 	public get updatedEditModelVersion(): number { return this._inlineEditModelVersion; }
-	// public get updatedEdit(): StringEdit { return this._edit; }
 
 	override get action(): InlineSuggestionAction | undefined {
 		return this._action;
@@ -492,14 +473,12 @@ export class InlineEditItem extends InlineSuggestionItemBase {
 	}
 
 	override canBeReused(model: ITextModel, position: Position): boolean {
-		// TODO@hediet I believe this can be simplified to `return true;`, as applying an edit should kick out this suggestion.
 		return this._lastChangePartOfInlineEdit && this.updatedEditModelVersion === model.getVersionId();
 	}
 
 	override withEdit(textModelChanges: StringEdit, textModel: ITextModel): InlineEditItem | undefined {
-		// If the edit is to a different model than our target, it's a noop
 		if (!this.originalTextRef.targets(textModel)) {
-			return this;  // unchanged
+			return this;
 		}
 
 		const edit = this._applyTextModelChanges(textModelChanges, this._edits, textModel);
@@ -515,11 +494,11 @@ export class InlineEditItem extends InlineSuggestionItemBase {
 
 		const updatedTarget = TextModelValueReference.snapshot(textModel);
 
-		if (this.action?.kind === 'edit') { // TODO What about rename?
+		if (this.action?.kind === 'edit') {
 			edits = edits.map(innerEdit => innerEdit.applyTextModelChanges(textModelChanges));
 
 			if (edits.some(edit => edit.edit === undefined)) {
-				return undefined; // change is invalid, so we will have to drop the completion
+				return undefined;
 			}
 
 
@@ -530,12 +509,12 @@ export class InlineEditItem extends InlineSuggestionItemBase {
 			}
 
 			if (newTextModelVersion === null || inlineEditModelVersion + 20 < newTextModelVersion) {
-				return undefined; // the completion has been ignored for a while, remove it
+				return undefined;
 			}
 
 			edits = edits.filter(innerEdit => !innerEdit.edit!.isEmpty);
 			if (edits.length === 0) {
-				return undefined; // the completion has been typed by the user
+				return undefined;
 			}
 
 			const newEdit = new StringEdit(edits.map(edit => edit.edit!));
@@ -686,7 +665,7 @@ class SingleUpdatedNextEdit {
 	}
 
 	private _applyTextModelChanges(textModelChanges: StringEdit) {
-		this._lastChangeUpdatedEdit = false; // TODO @benibenj make immutable
+		this._lastChangeUpdatedEdit = false;
 
 		if (!this._edit) {
 			throw new BugIndicatingError('UpdatedInnerEdits: No edit to apply changes to');
@@ -713,7 +692,6 @@ class SingleUpdatedNextEdit {
 		for (let i = textModelChanges.replacements.length - 1; i >= 0; i--) {
 			const change = textModelChanges.replacements[i];
 
-			// INSERTIONS (only support inserting at start of edit)
 			const isInsertion = change.newText.length > 0 && change.replaceRange.isEmpty;
 
 			if (isInsertion && !shouldPreserveEditShape && change.replaceRange.start === editStart && editReplaceText.startsWith(change.newText)) {
@@ -732,16 +710,13 @@ class SingleUpdatedNextEdit {
 				continue;
 			}
 
-			// DELETIONS
 			const isDeletion = change.newText.length === 0 && change.replaceRange.length > 0;
 			if (isDeletion && change.replaceRange.start >= editStart + this._prefixLength && change.replaceRange.endExclusive <= editEnd - this._suffixLength) {
-				// user deleted text IN-BETWEEN the deletion range
 				editEnd -= change.replaceRange.length;
 				editHasChanged = true;
 				continue;
 			}
 
-			// user did exactly the edit
 			if (change.equals(edit)) {
 				editHasChanged = true;
 				editStart = change.replaceRange.endExclusive;
@@ -749,23 +724,18 @@ class SingleUpdatedNextEdit {
 				continue;
 			}
 
-			// MOVE EDIT
 			if (change.replaceRange.start > editEnd) {
-				// the change happens after the completion range
 				continue;
 			}
 			if (change.replaceRange.endExclusive < editStart) {
-				// the change happens before the completion range
 				editStart += change.newText.length - change.replaceRange.length;
 				editEnd += change.newText.length - change.replaceRange.length;
 				continue;
 			}
 
-			// The change intersects the completion, so we will have to drop the completion
 			return undefined;
 		}
 
-		// the resulting edit is a noop as the original and new text are the same
 		if (this._trimmedNewText.length === 0 && editStart + this._prefixLength === editEnd - this._suffixLength) {
 			return { edit: new StringReplacement(new OffsetRange(editStart + this._prefixLength, editStart + this._prefixLength), ''), editHasChanged: true };
 		}
@@ -775,8 +745,6 @@ class SingleUpdatedNextEdit {
 }
 
 function reshapeInlineCompletion(edit: StringReplacement, textModel: TextModelValueReference): StringReplacement {
-	// If the insertion is a multi line insertion starting on the next line
-	// Move it forwards so that the multi line insertion starts on the current line
 	const eol = textModel.getEOL();
 	if (edit.replaceRange.isEmpty && edit.newText.includes(eol)) {
 		edit = reshapeMultiLineInsertion(edit, textModel);
@@ -786,15 +754,11 @@ function reshapeInlineCompletion(edit: StringReplacement, textModel: TextModelVa
 }
 
 function reshapeInlineEdit(edit: StringReplacement, originalText: string, totalInnerEdits: number, textModel: TextModelValueReference): StringReplacement {
-	// TODO: EOL are not properly trimmed by the diffAlgorithm #12680
 	const eol = textModel.getEOL();
 	if (edit.newText.endsWith(eol) && originalText.endsWith(eol)) {
 		edit = new StringReplacement(edit.replaceRange.deltaEnd(-eol.length), edit.newText.slice(0, -eol.length));
 	}
 
-	// INSERTION
-	// If the insertion ends with a new line and is inserted at the start of a line which has text,
-	// we move the insertion to the end of the previous line if possible
 	if (totalInnerEdits === 1 && edit.replaceRange.isEmpty && edit.newText.includes(eol)) {
 		const startPosition = textModel.getTransformer().getPosition(edit.replaceRange.start);
 		const hasTextOnInsertionLine = textModel.getLineLength(startPosition.lineNumber) !== 0;
@@ -803,18 +767,14 @@ function reshapeInlineEdit(edit: StringReplacement, originalText: string, totalI
 		}
 	}
 
-	// The diff algorithm extended a simple edit to the entire word
-	// shrink it back to a simple edit if it is deletion/insertion only
 	if (totalInnerEdits === 1) {
 		const prefixLength = commonPrefixLength(originalText, edit.newText);
 		const suffixLength = commonSuffixLength(originalText.slice(prefixLength), edit.newText.slice(prefixLength));
 
-		// reshape it back to an insertion
 		if (prefixLength + suffixLength === originalText.length) {
 			return new StringReplacement(edit.replaceRange.deltaStart(prefixLength).deltaEnd(-suffixLength), edit.newText.substring(prefixLength, edit.newText.length - suffixLength));
 		}
 
-		// reshape it back to a deletion
 		if (prefixLength + suffixLength === edit.newText.length) {
 			return new StringReplacement(edit.replaceRange.deltaStart(prefixLength).deltaEnd(-suffixLength), '');
 		}
@@ -837,8 +797,6 @@ function reshapeMultiLineInsertion(edit: StringReplacement, textModel: TextModel
 	const startColumn = startPosition.column;
 	const startLineNumber = startPosition.lineNumber;
 
-	// If the insertion ends with a new line and is inserted at the start of a line which has text,
-	// we move the insertion to the end of the previous line if possible
 	if (startColumn === 1 && startLineNumber > 1 && edit.newText.endsWith(eol) && !edit.newText.startsWith(eol)) {
 		return new StringReplacement(edit.replaceRange.delta(-1), eol + edit.newText.slice(0, -eol.length));
 	}

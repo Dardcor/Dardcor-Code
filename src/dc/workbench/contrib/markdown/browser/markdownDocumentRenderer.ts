@@ -214,12 +214,6 @@ interface IRenderMarkdownDocumentOptions {
 	readonly markedExtensions?: readonly marked.MarkedExtension[];
 }
 
-/**
- * Renders a string of markdown for use in an external document context.
- *
- * Uses VS Code's syntax highlighting code blocks. Also does not attach all the hooks and customization that normal
- * markdown renderer.
- */
 export async function renderMarkdownDocument(
 	text: string,
 	extensionService: IExtensionService,
@@ -253,7 +247,6 @@ export async function renderMarkdownDocument(
 }
 
 namespace MarkedHighlight {
-	// Copied from https://github.com/markedjs/marked-highlight/blob/main/src/index.js
 
 	export function markedHighlight(options: marked.MarkedOptions & { highlight: (code: string, lang: string) => string | Promise<string> }): marked.MarkedExtension {
 		if (typeof options === 'function') {
@@ -304,7 +297,6 @@ namespace MarkedHighlight {
 		};
 	}
 
-	// copied from marked helpers
 	const escapeTest = /[&<>"']/;
 	const escapeReplace = new RegExp(escapeTest.source, 'g');
 	const escapeTestNoEncode = /[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/;

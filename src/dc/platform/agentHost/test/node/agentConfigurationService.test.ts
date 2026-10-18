@@ -81,7 +81,6 @@ suite('AgentConfigurationService', () => {
 		assert.throws(() => service.getSessionConfigValues(buildChatUri(session, 'peer')), /Expected a session URI/);
 	});
 
-	// ---- getEffectiveValue ------------------------------------------------
 
 	suite('getEffectiveValue', () => {
 
@@ -140,7 +139,6 @@ suite('AgentConfigurationService', () => {
 		});
 	});
 
-	// ---- getEffectiveWorkingDirectory -------------------------------------
 
 	suite('getEffectiveWorkingDirectory', () => {
 
@@ -166,7 +164,6 @@ suite('AgentConfigurationService', () => {
 		});
 	});
 
-	// ---- getEffectiveWorkingDirectories -----------------------------------
 
 	suite('getEffectiveWorkingDirectories', () => {
 
@@ -314,8 +311,6 @@ suite('AgentConfigurationService', () => {
 		const resource = URI.file(join(directory, 'agent-host-config.json'));
 		const firstManager = disposables.add(new AgentHostStateManager(new NullLogService()));
 		const firstService = disposables.add(new AgentConfigurationService(firstManager, new NullLogService(), resource));
-		// A permissive snapshot that a user, workspace, or policy could tighten
-		// while the host is stopped.
 		firstService.updateRootConfig({
 			[SessionConfigKey.Permissions]: { allow: ['revoked-rule'], deny: [] },
 			[AgentHostGlobalAutoApproveEnabledConfigKey]: true,
@@ -334,7 +329,6 @@ suite('AgentConfigurationService', () => {
 
 		assert.deepStrictEqual({
 			persistedKeys: [...clientOwnedApprovalRootConfigKeys].filter(key => persisted[key] !== undefined).sort(),
-			// The state manager seeds empty permissions; nothing else survives.
 			restoredKeys: [...clientOwnedApprovalRootConfigKeys].filter(key => restored[key] !== undefined).sort(),
 			permissions: restored[SessionConfigKey.Permissions],
 		}, {

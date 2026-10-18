@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -147,7 +146,6 @@ export class FromEventObservable<TArgs, T> extends BaseObservable<T> {
 			}
 			return this._value!;
 		} else {
-			// no cache, as there are no subscribers to keep it updated
 			const value = this._getValue(undefined);
 			return value;
 		}

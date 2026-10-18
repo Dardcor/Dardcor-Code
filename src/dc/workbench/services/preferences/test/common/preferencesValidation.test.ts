@@ -400,7 +400,6 @@ suite('Preferences Validation', () => {
 	});
 
 	test('array of numbers', () => {
-		// We accept parseable strings since the view handles strings
 		{
 			const arr = new ArrayTester({ type: 'array', items: { type: 'number' } });
 			arr.accepts([]);

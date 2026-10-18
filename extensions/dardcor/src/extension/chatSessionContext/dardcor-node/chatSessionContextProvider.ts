@@ -53,12 +53,10 @@ export class ChatSessionContextContribution extends Disposable {
 	private trackBranchChanges(): IDisposable {
 		const disposables = new DisposableStore();
 
-		// Track branch changes for each repository
 		disposables.add(this.gitService.onDidOpenRepository(repo => {
 			disposables.add(this.watchBranchChanges(repo));
 		}));
 
-		// Watch already opened repositories
 		for (const repo of this.gitService.repositories) {
 			disposables.add(this.watchBranchChanges(repo));
 		}
@@ -73,7 +71,6 @@ export class ChatSessionContextContribution extends Disposable {
 			if (branchName !== this._lastBranchName) {
 				this._lastBranchName = branchName;
 				this._branchChangeTime = Date.now();
-				// Invalidate the cache when the branch changes
 				this._summaryCache = undefined;
 				this.logService.trace(`[ChatSessionContextProvider] Branch changed to: ${branchName}`);
 			}
@@ -126,7 +123,6 @@ class ContextResolver implements Copilot.ContextResolver<Copilot.SupportedContex
 				return [];
 			}
 
-			// Check if the conversation started before the branch change
 			const branchChangeTime = this.getBranchChangeTime();
 			const firstTurnStartTime = this.getFirstTurnStartTime(conversation);
 			if (branchChangeTime !== undefined && firstTurnStartTime < branchChangeTime) {
@@ -134,11 +130,9 @@ class ContextResolver implements Copilot.ContextResolver<Copilot.SupportedContex
 				return [];
 			}
 
-			// Check if we have a cached or in-progress summary for this conversation
 			const existingCache = this.getSummaryCache();
 			const cacheKey = this.getCacheKey(conversation);
 			if (existingCache && existingCache.cacheKey === cacheKey) {
-				// Await the existing promise (whether it's still running or already resolved)
 				const summary = await existingCache.promise;
 				if (summary) {
 					return this.createTraitFromSummary(summary);
@@ -146,8 +140,6 @@ class ContextResolver implements Copilot.ContextResolver<Copilot.SupportedContex
 				return [];
 			}
 
-			// Start a new summary generation and cache the promise immediately
-			// Note: We don't pass the cancellation token to avoid cancelling on subsequent calls
 			const summaryPromise = this.generateSummary(conversation);
 			this.setSummaryCache({
 				cacheKey,
@@ -179,16 +171,13 @@ class ContextResolver implements Copilot.ContextResolver<Copilot.SupportedContex
 
 	private async generateSummary(conversation: Conversation): Promise<string | undefined> {
 		try {
-			// Build a prompt from the conversation
 			const conversationContent = this.buildConversationContent(conversation);
 			if (!conversationContent) {
 				return undefined;
 			}
 
-			// Select a mini model (gpt-4o-mini)
 			const models = await vscode.lm.selectChatModels({ family: 'gpt-4o-mini', vendor: 'dardcor' });
 			if (models.length === 0) {
-				// Fallback to any available model
 				const allModels = await vscode.lm.selectChatModels({ vendor: 'dardcor' });
 				if (allModels.length === 0) {
 					this.logService.trace('[ChatSessionContextProvider] No language models available');
@@ -204,8 +193,6 @@ class ContextResolver implements Copilot.ContextResolver<Copilot.SupportedContex
 				LanguageModelChatMessage.User(`${systemPrompt}\n\nConversation:\n${conversationContent}\n\nSummarize what the user is trying to do in 5 sentences or less:`)
 			];
 
-			// Note: We intentionally don't pass a cancellation token to avoid cancelling
-			// when multiple resolve() calls come in quick succession
 			const response = await model.sendRequest(messages, {});
 
 			let summary = '';
@@ -230,14 +217,11 @@ class ContextResolver implements Copilot.ContextResolver<Copilot.SupportedContex
 
 		const lines: string[] = [];
 		for (const turn of turns) {
-			// Add user message
 			if (turn.request?.message) {
 				lines.push(`User: ${turn.request.message}`);
 			}
 
-			// Add assistant response
 			if (turn.responseMessage?.message) {
-				// Truncate long responses
 				const truncatedIndicator = '\n... (truncated) ...\n';
 				const responseMessage = turn.responseMessage.message;
 				const truncatedMessage = responseMessage.length > SINGLE_TURN_MESSAGE_LIMIT + truncatedIndicator.length
@@ -251,7 +235,6 @@ class ContextResolver implements Copilot.ContextResolver<Copilot.SupportedContex
 			return undefined;
 		}
 
-		// Make sure the total length is within limits
 		let characterCount = 0;
 		const linesToKeep = [];
 		for (let i = lines.length - 1; i >= 0; i--) {

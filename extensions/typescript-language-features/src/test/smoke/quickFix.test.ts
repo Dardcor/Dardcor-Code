@@ -14,7 +14,6 @@ suite.skip('TypeScript Quick Fix', () => {
 	const _disposables: vscode.Disposable[] = [];
 
 	setup(async () => {
-		// the tests assume that typescript features are registered
 		await vscode.extensions.getExtension('vscode.typescript-language-features')!.activate();
 	});
 
@@ -58,7 +57,6 @@ suite.skip('TypeScript Quick Fix', () => {
 			return vscode.commands.executeCommand('editor.action.autoFix');
 		});
 
-		// Document should not have been changed here
 
 		assert.strictEqual(editor.document.getText(), joinLines(
 			`import { foo } from "./foo";`,

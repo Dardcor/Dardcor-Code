@@ -12,9 +12,6 @@ export interface IAccessibleViewImplementation {
 	type: AccessibleViewType;
 	priority: number;
 	name: string;
-	/**
-	 * @returns the provider or undefined if the view should not be shown
-	 */
 	getProvider: (accessor: ServicesAccessor) => AccessibleContentProvider | ExtensionContentProvider | undefined;
 	when?: ContextKeyExpression | undefined;
 }

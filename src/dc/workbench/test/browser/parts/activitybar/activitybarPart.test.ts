@@ -84,12 +84,8 @@ suite('ActivitybarPart', () => {
 		layoutService.floatingPanelsEnabled = floatingPanelsEnabled;
 		layoutService.sideBarPosition = sideBarPosition;
 
-		// Override isVisible to return false so that create() does not call show()
-		// and attempt to instantiate the composite bar (which requires a full DI setup).
 		layoutService.isVisible = (_part: Parts) => false;
 
-		// Stub instantiation service—createCompositeBar is only called in show(),
-		// which we skip in unit tests focused on dimensions / style behaviour.
 		const stubInstantiationService = { createInstance: () => { throw new Error('not expected'); } } as unknown as IInstantiationService;
 
 		const part = disposables.add(new ActivitybarPart(
@@ -111,7 +107,6 @@ suite('ActivitybarPart', () => {
 		} satisfies Partial<IConfigurationChangeEvent> as unknown as IConfigurationChangeEvent);
 	}
 
-	// --- Static constants ---------------------------------------------------
 
 	test('default constants match expected dimensions', () => {
 		assert.deepStrictEqual(
@@ -158,7 +153,6 @@ suite('ActivitybarPart', () => {
 		);
 	});
 
-	// --- Dimension getters --------------------------------------------------
 
 	test('default mode returns default width constraints', () => {
 		const { part } = createActivitybarPart(false);
@@ -206,15 +200,12 @@ suite('ActivitybarPart', () => {
 		);
 	});
 
-	// --- Configuration change: dimension update ----------------------------
 
 	test('toggling compact via config changes width constraints', () => {
 		const { part, configService } = createActivitybarPart(false);
 
-		// Initially default
 		assert.strictEqual(part.minimumWidth, ActivitybarPart.ACTIVITYBAR_WIDTH);
 
-		// Switch to compact
 		configService.setUserConfiguration(LayoutSettings.ACTIVITY_BAR_COMPACT, true);
 		fireConfigChange(configService, LayoutSettings.ACTIVITY_BAR_COMPACT);
 
@@ -223,7 +214,6 @@ suite('ActivitybarPart', () => {
 			{ min: ActivitybarPart.COMPACT_ACTIVITYBAR_WIDTH, max: ActivitybarPart.COMPACT_ACTIVITYBAR_WIDTH }
 		);
 
-		// Switch back to default
 		configService.setUserConfiguration(LayoutSettings.ACTIVITY_BAR_COMPACT, false);
 		fireConfigChange(configService, LayoutSettings.ACTIVITY_BAR_COMPACT);
 
@@ -233,7 +223,6 @@ suite('ActivitybarPart', () => {
 		);
 	});
 
-	// --- onDidChange fires for grid ----------------------------------------
 
 	test('fires onDidChange(undefined) when compact setting changes', () => {
 		const { part, configService } = createActivitybarPart(false);
@@ -241,14 +230,12 @@ suite('ActivitybarPart', () => {
 		const events: (IViewSize | undefined)[] = [];
 		disposables.add(part.onDidChange(e => events.push(e)));
 
-		// Toggle to compact
 		configService.setUserConfiguration(LayoutSettings.ACTIVITY_BAR_COMPACT, true);
 		fireConfigChange(configService, LayoutSettings.ACTIVITY_BAR_COMPACT);
 
 		assert.strictEqual(events.length, 1);
 		assert.strictEqual(events[0], undefined, 'should fire undefined to signal constraint change');
 
-		// Toggle back
 		configService.setUserConfiguration(LayoutSettings.ACTIVITY_BAR_COMPACT, false);
 		fireConfigChange(configService, LayoutSettings.ACTIVITY_BAR_COMPACT);
 
@@ -281,7 +268,6 @@ suite('ActivitybarPart', () => {
 		assert.strictEqual(part.minimumWidth, ActivitybarPart.FLOATING_ACTIVITYBAR_WIDTH + ActivitybarPart.FLOATING_MARGIN * 2);
 	});
 
-	// --- CSS custom properties on element -----------------------------------
 
 	test('updateCompactStyle sets correct CSS custom properties in default mode', () => {
 		const { part } = createActivitybarPart(false);
@@ -329,11 +315,9 @@ suite('ActivitybarPart', () => {
 		fixture.appendChild(el);
 		part.create(el);
 
-		// Default state
 		assert.strictEqual(el.style.getPropertyValue('--activity-bar-width'), `${ActivitybarPart.ACTIVITYBAR_WIDTH}px`);
 		assert.strictEqual(el.classList.contains('compact'), false);
 
-		// Switch to compact
 		configService.setUserConfiguration(LayoutSettings.ACTIVITY_BAR_COMPACT, true);
 		fireConfigChange(configService, LayoutSettings.ACTIVITY_BAR_COMPACT);
 
@@ -342,7 +326,6 @@ suite('ActivitybarPart', () => {
 		assert.strictEqual(el.style.getPropertyValue('--activity-bar-icon-size'), `${ActivitybarPart.COMPACT_ICON_SIZE}px`);
 		assert.strictEqual(el.classList.contains('compact'), true);
 
-		// Switch back
 		configService.setUserConfiguration(LayoutSettings.ACTIVITY_BAR_COMPACT, false);
 		fireConfigChange(configService, LayoutSettings.ACTIVITY_BAR_COMPACT);
 
@@ -352,16 +335,13 @@ suite('ActivitybarPart', () => {
 		assert.strictEqual(el.classList.contains('compact'), false);
 	});
 
-	// --- toJSON ------------------------------------------------------------
 
 	test('toJSON returns correct part type', () => {
 		const { part } = createActivitybarPart(false);
 		assert.deepStrictEqual(part.toJSON(), { type: Parts.ACTIVITYBAR_PART });
 	});
 
-	// --- layout: floating panels gutter reservation -------------------------
 
-	// The part has no title, header or footer, so the content area ends up exactly the height `layout()` reserved.
 	function layoutContentHeight(visibleParts: Parts[], floatingPanelsEnabled = true): number {
 		const { part, layoutService } = createActivitybarPart(false, floatingPanelsEnabled);
 		const el = document.createElement('div');
@@ -379,22 +359,16 @@ suite('ActivitybarPart', () => {
 	test('reserves a doubled gutter on each window edge the activity bar faces', () => {
 		const margin = ActivitybarPart.FLOATING_MARGIN;
 		const actual = {
-			// Windowed default: a title bar above and a status bar below, so neither is a window edge.
 			titleAndStatusBarVisible: layoutContentHeight([Parts.TITLEBAR_PART, Parts.STATUSBAR_PART]),
 
-			// Native fullscreen: nothing above the middle section, so the top is a window edge.
 			titleBarHidden: layoutContentHeight([Parts.STATUSBAR_PART]),
 
-			// A visible banner still occupies the row above, so the top is not a window edge.
 			bannerInsteadOfTitleBar: layoutContentHeight([Parts.BANNER_PART, Parts.STATUSBAR_PART]),
 
-			// Hidden status bar: the activity bar now reaches the window bottom edge.
 			statusBarHidden: layoutContentHeight([Parts.TITLEBAR_PART]),
 
-			// Both edges at once.
 			bothEdgesExposed: layoutContentHeight([]),
 
-			// Experiment disabled: the activity bar is not a floating card, so no gutters at all.
 			floatingPanelsDisabled: layoutContentHeight([], false),
 		};
 

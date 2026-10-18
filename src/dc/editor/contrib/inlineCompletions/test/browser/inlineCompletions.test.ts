@@ -95,7 +95,6 @@ suite('Inline Completions', () => {
 				context.keyboardType('foo');
 				await timeout(1000);
 
-				// Provider is not called, no ghost text is shown.
 				assert.deepStrictEqual(provider.getAndClearCallHistory(), []);
 				assert.deepStrictEqual(context.getAndClearViewStates(), ['']);
 			}
@@ -301,7 +300,6 @@ suite('Inline Completions', () => {
 				context.keyboardType('o');
 				await timeout(40);
 
-				// The provider is not called
 				assert.deepStrictEqual(provider.getAndClearCallHistory(), []);
 
 				await timeout(400);
@@ -343,7 +341,6 @@ suite('Inline Completions', () => {
 
 	suite('Forward Stability', () => {
 		test('Typing agrees', async function () {
-			// The user types the text as suggested and the provider is forward-stable
 			const provider = new MockInlineCompletionsProvider();
 			await withAsyncTestCodeEditorAndInlineCompletionsModel('',
 				{ fakeClock: true, provider },
@@ -390,7 +387,6 @@ suite('Inline Completions', () => {
 		}
 
 		test('Support forward instability', async function () {
-			// The user types the text as suggested and the provider reports a different suggestion.
 			const provider = new MockInlineCompletionsProvider();
 			await withAsyncTestCodeEditorAndInlineCompletionsModel('',
 				{ fakeClock: true, provider },
@@ -411,8 +407,6 @@ suite('Inline Completions', () => {
 
 
 		test('when accepting word by word', async function () {
-			// The user types the text as suggested and the provider reports a different suggestion.
-			// Even when triggering explicitly, we want to keep the suggestion.
 
 			const provider = new MockInlineCompletionsProvider();
 			await withAsyncTestCodeEditorAndInlineCompletionsModel('',
@@ -427,7 +421,7 @@ suite('Inline Completions', () => {
 					assert.deepStrictEqual(provider.getAndClearCallHistory(), ([{ position: '(1,4)', triggerKind: 0, text: 'foo' }]));
 					assert.deepStrictEqual(ctx.context.getAndClearViewStates(), ([]));
 
-					await ctx.model.triggerExplicitly(); // reset to provider truth
+					await ctx.model.triggerExplicitly();
 					await timeout(10000);
 					assert.deepStrictEqual(ctx.context.getAndClearViewStates(), ([]));
 				}
@@ -435,7 +429,6 @@ suite('Inline Completions', () => {
 		});
 
 		test('when accepting undo', async function () {
-			// The user types the text as suggested and the provider reports a different suggestion.
 
 			const provider = new MockInlineCompletionsProvider();
 			await withAsyncTestCodeEditorAndInlineCompletionsModel('',
@@ -464,7 +457,6 @@ suite('Inline Completions', () => {
 		});
 
 		test('Support backward instability', async function () {
-			// The user deletes text and the suggestion changes
 			const provider = new MockInlineCompletionsProvider();
 			await withAsyncTestCodeEditorAndInlineCompletionsModel('',
 				{ fakeClock: true, provider },
@@ -551,8 +543,6 @@ suite('Inline Completions', () => {
 				context.keyboardType('ello');
 				provider.setReturnValue({ insertText: 'helloworld', range: new Range(1, 1, 1, 6) }, 1000);
 
-				// after 20ms: Inline completion provider answers back
-				// after 50ms: Debounce is triggered
 				await timeout(2000);
 
 				assert.deepStrictEqual(context.getAndClearViewStates(), [
@@ -590,7 +580,6 @@ suite('Inline Completions', () => {
 
 				assert.deepStrictEqual(provider.getAndClearCallHistory(), []);
 
-				// Update ghost text
 				context.keyboardType('w');
 				context.leftDelete();
 
@@ -848,7 +837,6 @@ suite('Multi Cursor Support', () => {
 				assert.strictEqual(firstCallHistory.length, 1);
 				assert.strictEqual((firstCallHistory[0] as { changeHint?: unknown }).changeHint, undefined);
 
-				// Change cursor position to avoid cache hit
 				editor.setPosition({ lineNumber: 1, column: 3 });
 
 
@@ -889,7 +877,6 @@ suite('Multi Cursor Support', () => {
 
 				provider.getAndClearCallHistory();
 
-				// Change cursor position to avoid cache hit
 				editor.setPosition({ lineNumber: 1, column: 3 });
 
 				provider.setReturnValue({ insertText: 'foobaz', range: new Range(1, 1, 1, 4) });

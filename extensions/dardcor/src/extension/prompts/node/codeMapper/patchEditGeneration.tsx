@@ -120,7 +120,6 @@ function isWhitespaceOrEmpty(line: string): boolean {
 
 export function findEdit(code: Lines, findLines: Lines, replaceLines: Lines, fallbackInsertLine: number): LinesEdit | OutcomeAnnotation {
 	let firstFindLineIndex = 0;
-	// find first non empty line
 	while (firstFindLineIndex < findLines.length && isWhitespaceOrEmpty(findLines[firstFindLineIndex])) {
 		firstFindLineIndex++;
 	}
@@ -139,7 +138,6 @@ export function findEdit(code: Lines, findLines: Lines, replaceLines: Lines, fal
 
 	outer: while (i < code.length) {
 
-		// find the first find line in the code
 		while (i < code.length && !endsWith(code[i], firstFindLine, firstFindIndentLength)) {
 			i++;
 		}
@@ -152,13 +150,13 @@ export function findEdit(code: Lines, findLines: Lines, replaceLines: Lines, fal
 		while (i < code.length && k < findLines.length) {
 			const codeLine = code[i];
 			const codeIndentLength = getIndentLength(codeLine);
-			if (codeIndentLength === codeLine.length) { // all whitespace
+			if (codeIndentLength === codeLine.length) {
 				i++;
 				continue;
 			}
 			const findLine = findLines[k];
 			const findLineIndentLength = getIndentLength(findLine);
-			if (findLineIndentLength === findLine.length) { // all whitespace
+			if (findLineIndentLength === findLine.length) {
 				k++;
 				continue;
 			}
@@ -167,8 +165,7 @@ export function findEdit(code: Lines, findLines: Lines, replaceLines: Lines, fal
 				i++;
 				k++;
 			} else {
-				// a line in the find lines does not match the line in the code
-				i = firstLineIndex + 1; // try to find the find line again starting on the next line
+				i = firstLineIndex + 1;
 				k = firstFindLineIndex;
 				if (findLine.indexOf('...') !== -1) {
 					lastError = { message: `Find contains ellipses`, label: OutcomeAnnotationLabel.INVALID_PATCH_LAZY, severity: 'error' };
@@ -177,7 +174,7 @@ export function findEdit(code: Lines, findLines: Lines, replaceLines: Lines, fal
 				} else {
 					lastError = { message: `Find line ${k} does not match line ${i}`, label: OutcomeAnnotationLabel.INVALID_PATCH, severity: 'error' };
 				}
-				continue outer; // continue with the outer loop
+				continue outer;
 			}
 		}
 		while (k < findLines.length && isWhitespaceOrEmpty(findLines[k])) {
@@ -211,25 +208,21 @@ function getReplaceString(lines: Lines, newIndentLevel: number, indentInfo: IGue
 	for (end = lines.length; end > start && isWhitespaceOrEmpty(lines[end - 1]); end--) { }
 
 	if (start === end) {
-		// all replace lines are empty or whitespace only
 		return [];
 	}
 
-	// find the line with the smallest indentation and remember the computed indentation level for each line
 	let minIndentLevel = Number.MAX_SAFE_INTEGER;
 	const indentations: Indentation[] = [];
 	for (let i = start; i < end; i++) {
 		const line = lines[i];
 		const indentation = computeIndentation(line, indentInfo.tabSize);
-		if (indentation.length !== line.length /* more than whitespace */ && indentation.level < minIndentLevel) {
+		if (indentation.length !== line.length && indentation.level < minIndentLevel) {
 			minIndentLevel = indentation.level;
 		}
 		indentations.push(indentation);
 	}
 
-	// there is at least one line with non-whitespace characters, so minIndentLevel is less than Number.MAX_SAFE_INTEGER
 
-	// now adjust each line to the requested codeIndentLevel
 	const adjustedLines = [];
 	for (let i = start; i < end; i++) {
 		const line = lines[i];
@@ -254,7 +247,7 @@ function getMinimalIndentLevel(lines: Lines, startLineIndex: number, endLineInde
 	for (let i = startLineIndex; i <= endLineIndex; i++) {
 		const line = lines[i];
 		const indentation = computeIndentation(line, tabSize);
-		if (indentation.length !== line.length /* more than whitespace */ && indentation.level < minIndentLevel) {
+		if (indentation.length !== line.length && indentation.level < minIndentLevel) {
 			minIndentLevel = indentation.level;
 		}
 	}
@@ -298,11 +291,9 @@ function endsWith(line: string, suffix: string, suffixIndentLength: number): boo
 		k--;
 	}
 	if (k >= suffixIndentLength) {
-		// not the full suffix matched
 		return false;
 	}
 
-	// make sure all is whitespace before the suffix
 	while (i >= 0 && isWhiteSpace(line.charCodeAt(i))) {
 		i--;
 	}
@@ -450,7 +441,6 @@ function addEditIfDisjoint(edits: TextEdit[], edit: TextEdit): boolean {
 			return true;
 		}
 		if (edit.range.start.isBefore(existingEdit.range.end)) {
-			// intersecting
 			return false;
 		}
 	}
@@ -462,7 +452,7 @@ function addEditIfDisjoint(edits: TextEdit[], edit: TextEdit): boolean {
 export function getCodeBlock(content: Lines): Lines {
 	const result = [];
 	let inCodeBlock: string | undefined;
-	const codeBlockRegex = /^`{3,}/; // Regex to match 3 or more backticks at the beginning of the line
+	const codeBlockRegex = /^`{3,}/;
 	for (const line of content) {
 		const match = line.match(codeBlockRegex);
 		if (match) {

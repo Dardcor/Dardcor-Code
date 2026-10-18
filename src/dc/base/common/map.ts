@@ -54,24 +54,10 @@ export class ResourceMap<T> implements Map<URI, T> {
 	private readonly map: Map<string, ResourceMapEntry<T>>;
 	private readonly toKey: ResourceMapKeyFn;
 
-	/**
-	 *
-	 * @param toKey Custom uri identity function, e.g use an existing `IExtUri#getComparison`-util
-	 */
 	constructor(toKey?: ResourceMapKeyFn);
 
-	/**
-	 *
-	 * @param other Another resource which this maps is created from
-	 * @param toKey Custom uri identity function, e.g use an existing `IExtUri#getComparison`-util
-	 */
 	constructor(other?: ResourceMap<T>, toKey?: ResourceMapKeyFn);
 
-	/**
-	 *
-	 * @param other Another resource which this maps is created from
-	 * @param toKey Custom uri identity function, e.g use an existing `IExtUri#getComparison`-util
-	 */
 	constructor(entries?: readonly (readonly [URI, T])[], toKey?: ResourceMapKeyFn);
 
 	constructor(arg?: ResourceMap<T> | ResourceMapKeyFn | readonly (readonly [URI, T])[], toKey?: ResourceMapKeyFn) {
@@ -364,7 +350,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			[Symbol.iterator]() {
 				return iterator;
 			},
-			[Symbol.dispose]() { /* no-op */ },
+			[Symbol.dispose]() { },
 			next(): IteratorResult<K> {
 				if (map._state !== state) {
 					throw new Error(`LinkedMap got modified during iteration.`);
@@ -389,7 +375,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			[Symbol.iterator]() {
 				return iterator;
 			},
-			[Symbol.dispose]() { /* no-op */ },
+			[Symbol.dispose]() { },
 			next(): IteratorResult<V> {
 				if (map._state !== state) {
 					throw new Error(`LinkedMap got modified during iteration.`);
@@ -414,7 +400,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			[Symbol.iterator]() {
 				return iterator;
 			},
-			[Symbol.dispose]() { /* no-op */ },
+			[Symbol.dispose]() { },
 			next(): IteratorResult<[K, V]> {
 				if (map._state !== state) {
 					throw new Error(`LinkedMap got modified during iteration.`);
@@ -482,7 +468,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
 	}
 
 	private addItemFirst(item: Item<K, V>): void {
-		// First time Insert
 		if (!this._head && !this._tail) {
 			this._tail = item;
 		} else if (!this._head) {
@@ -496,7 +481,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
 	}
 
 	private addItemLast(item: Item<K, V>): void {
-		// First time Insert
 		if (!this._head && !this._tail) {
 			this._head = item;
 		} else if (!this._tail) {
@@ -515,8 +499,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			this._tail = undefined;
 		}
 		else if (item === this._head) {
-			// This can only happen if size === 1 which is handled
-			// by the case above.
 			if (!item.next) {
 				throw new Error('Invalid list');
 			}
@@ -524,8 +506,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			this._head = item.next;
 		}
 		else if (item === this._tail) {
-			// This can only happen if size === 1 which is handled
-			// by the case above.
 			if (!item.previous) {
 				throw new Error('Invalid list');
 			}
@@ -562,20 +542,15 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			const next = item.next;
 			const previous = item.previous;
 
-			// Unlink the item
 			if (item === this._tail) {
-				// previous must be defined since item was not head but is tail
-				// So there are more than on item in the map
 				previous!.next = undefined;
 				this._tail = previous;
 			}
 			else {
-				// Both next and previous are not undefined since item was neither head nor tail.
 				next!.previous = previous;
 				previous!.next = next;
 			}
 
-			// Insert the node at head
 			item.previous = undefined;
 			item.next = this._head;
 			this._head.previous = item;
@@ -589,14 +564,10 @@ export class LinkedMap<K, V> implements Map<K, V> {
 			const next = item.next;
 			const previous = item.previous;
 
-			// Unlink the item.
 			if (item === this._head) {
-				// next must be defined since item was not tail but is head
-				// So there are more than on item in the map
 				next!.previous = undefined;
 				this._head = next;
 			} else {
-				// Both next and previous are not undefined since item was neither head nor tail.
 				next!.previous = previous;
 				previous!.next = next;
 			}
@@ -747,10 +718,6 @@ export class CounterSet<T> {
 	}
 }
 
-/**
- * A map that allows access both by keys and values.
- * **NOTE**: values need to be unique.
- */
 export class BidirectionalMap<K, V> {
 
 	private readonly _m1 = new Map<K, V>();
@@ -883,21 +850,9 @@ export function mapsStrictEqualIgnoreOrder(a: Map<unknown, unknown>, b: Map<unkn
 	return true;
 }
 
-/**
- * A map that is addressable with an arbitrary number of keys. This is useful in high performance
- * scenarios where creating a composite key whenever the data is accessed is too expensive. For
- * example for a very hot function, constructing a string like `first-second-third` for every call
- * will cause a significant hit to performance.
- */
 export class NKeyMap<TValue, TKeys extends (string | boolean | number)[]> {
 	private _data: Map<any, any> = new Map();
 
-	/**
-	 * Sets a value on the map. Note that unlike a standard `Map`, the first argument is the value.
-	 * This is because the spread operator is used for the keys and must be last..
-	 * @param value The value to set.
-	 * @param keys The keys for the value.
-	 */
 	public set(value: TValue, ...keys: [...TKeys]): void {
 		let currentMap = this._data;
 		for (let i = 0; i < keys.length - 1; i++) {
@@ -998,9 +953,6 @@ export class NKeyMap<TValue, TKeys extends (string | boolean | number)[]> {
 		}
 	}
 
-	/**
-	 * Get a textual representation of the map for debugging purposes.
-	 */
 	public toString(): string {
 		const printMap = (map: Map<any, any>, depth: number): string => {
 			let result = '';

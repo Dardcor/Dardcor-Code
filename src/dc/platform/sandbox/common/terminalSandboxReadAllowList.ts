@@ -78,14 +78,6 @@ const terminalSandboxReadAllowListKeywordMap: ReadonlyMap<string, TerminalSandbo
 	['conan', TerminalSandboxReadAllowListOperation.Conan],
 ]);
 
-/**
- * Paths that common developer tools typically need to read when the user's home
- * directory is broadly denied. Broad keyword-based rules intentionally avoid obvious
- * credential and key material such as ~/.ssh, ~/.gnupg, cloud credentials,
- * package manager auth files, and git credential stores. Sensitive operations
- * should only be referenced by command-detail rules scoped to commands or
- * subcommands that require them.
- */
 
 function getTerminalSandboxReadAllowListForOperation(operation: TerminalSandboxReadAllowListOperation, os: OperatingSystem): readonly string[] {
 	if (os === OperatingSystem.Windows) {
@@ -352,12 +344,6 @@ function getTerminalSandboxReadAllowListForCommandDetails(os: OperatingSystem, c
 	return [...new Set(paths)];
 }
 
-/**
- * Command-detail allow-list rules match parsed command executables.
- *
- * For example, `git rebase main` matches the `git` rule below, while
- * `gpg --list-keys` matches the `gpg` rule.
- */
 const terminalSandboxReadAllowListCommandDetailRules: readonly ITerminalSandboxCommandRule<TerminalSandboxReadAllowListOperation>[] = [
 	{
 		keywords: ['gpg', 'gpg2'],

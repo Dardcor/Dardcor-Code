@@ -1,11 +1,3 @@
-/**
- * Search Dispatcher — routes /v1/search requests to dedicated search APIs
- * or chat-based LLM search wrappers, with retry-friendly error envelope.
- *
- * Dependency map:
- *   provider.searchConfig    → dedicated search API (callers + normalizers)
- *   provider.searchViaChat   → wrap chat-completions (chatSearch.js)
- */
 
 import { buildSearchRequest } from "./callers.js";
 import { normalizeSearchResponse } from "./normalizers.js";
@@ -17,7 +9,6 @@ const NON_RETRIABLE = new Set([400, 401, 403, 404]);
 
 const CONTROL_CHAR_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/;
 
-/** Normalize and validate query string. */
 function sanitizeQuery(query) {
   if (CONTROL_CHAR_RE.test(query)) return { error: "Query contains invalid control characters" };
   const clean = query.normalize("NFKC").trim().replace(/\s+/g, " ");
@@ -25,7 +16,6 @@ function sanitizeQuery(query) {
   return { clean };
 }
 
-// Strip non-ASCII chars from header values (HTTP headers must be ByteString).
 function sanitizeHeaders(headers) {
   if (!headers) return headers;
   const out = {};
@@ -35,7 +25,6 @@ function sanitizeHeaders(headers) {
   return out;
 }
 
-/** Build a JSON Response wrapper used by the auth layer. */
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -43,7 +32,6 @@ function jsonResponse(payload, status = 200) {
   });
 }
 
-/** Wrap an error result with a Response object so the auth wrapper can return it directly. */
 function errorResult(status, error) {
   return {
     success: false,
@@ -53,15 +41,10 @@ function errorResult(status, error) {
   };
 }
 
-/** Wrap a success payload. */
 function successResult(data) {
   return { success: true, data, response: jsonResponse(data, 200) };
 }
 
-/**
- * Run a single dedicated search provider attempt.
- * @returns {Promise<{success:boolean, status?:number, error?:string, data?:object}>}
- */
 async function tryDedicatedProvider({ provider, providerConfig, body, credentials, log, globalStartTime }) {
   const startTime = Date.now();
   const token = credentials?.apiKey || credentials?.accessToken || undefined;
@@ -92,7 +75,6 @@ async function tryDedicatedProvider({ provider, providerConfig, body, credential
     return { success: false, status: 400, error: err?.message || `Invalid request for ${provider.id}` };
   }
 
-  // Timeout = min(provider timeout, remaining global)
   const remaining = GLOBAL_TIMEOUT_MS - (Date.now() - globalStartTime);
   const timeout = Math.min(providerConfig.timeoutMs || 10000, Math.max(remaining, 1000));
   const controller = new AbortController();
@@ -142,26 +124,13 @@ async function tryDedicatedProvider({ provider, providerConfig, body, credential
   }
 }
 
-/**
- * Core search handler. Dispatches to dedicated API or chat-based LLM.
- * Same calling convention as handleEmbeddingsCore: returns `{success, response, status?, error?}`.
- *
- * @param {object}   options
- * @param {object}   options.body            Sanitized body from auth wrapper
- * @param {object}   options.provider        Provider entry from AI_PROVIDERS
- * @param {object}   [options.providerConfig] Provider's searchConfig (if dedicated)
- * @param {object|null} options.credentials  Provider credentials
- * @param {object}   [options.log]           Logger
- */
 export async function handleSearchCore({ body, provider, providerConfig, credentials, log }) {
   const globalStartTime = Date.now();
 
-  // 1. Sanitize query
   const { clean, error: sanitizeError } = sanitizeQuery(body.query || "");
   if (sanitizeError) return errorResult(400, sanitizeError);
   const normalizedBody = { ...body, query: clean };
 
-  // 2. Route: dedicated search API takes priority over chat-based
   let result;
   if (providerConfig) {
     result = await tryDedicatedProvider({

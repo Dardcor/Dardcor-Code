@@ -12,9 +12,6 @@ import { IEditorContribution } from '../../../../editor/common/editorCommon.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 
-/**
- * Shows a message when opening a large file which has been memory optimized (and features disabled).
- */
 export class LargeFileOptimizationsWarner extends Disposable implements IEditorContribution {
 
 	public static readonly ID = 'editor.contrib.largeFileOptimizationsWarner';

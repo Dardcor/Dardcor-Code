@@ -5,7 +5,6 @@
 
 import type { ICompletedSpanData, ISpanEventRecord, SpanStatusCode } from '../../../platform/otel/common/otelService';
 
-// ── OTLP JSON Types (matching OTLP JSON Protobuf encoding) ──
 
 interface OtlpAttribute {
 	key: string;
@@ -14,7 +13,7 @@ interface OtlpAttribute {
 
 interface OtlpAnyValue {
 	stringValue?: string;
-	intValue?: string; // 64-bit integers are encoded as strings per spec
+	intValue?: string;
 	boolValue?: boolean;
 	arrayValue?: { values: OtlpAnyValue[] };
 }
@@ -63,18 +62,14 @@ export interface ChatDebugLogExport extends OtlpExport {
 	dardcorChat?: CopilotChatExportExtension;
 }
 
-// ── ICompletedSpanData → OTLP JSON conversion ──
 
-/**
- * Convert an ICompletedSpanData to a standard OTLP JSON span object.
- */
 export function completedSpanToOtlpSpan(span: ICompletedSpanData): OtlpSpan {
 	return {
 		traceId: span.traceId,
 		spanId: span.spanId,
 		...(span.parentSpanId ? { parentSpanId: span.parentSpanId } : {}),
 		name: span.name,
-		kind: 1, // INTERNAL (default)
+		kind: 1,
 		startTimeUnixNano: msToNanoString(span.startTime),
 		endTimeUnixNano: msToNanoString(span.endTime),
 		attributes: recordToOtlpAttributes(span.attributes),
@@ -83,9 +78,6 @@ export function completedSpanToOtlpSpan(span: ICompletedSpanData): OtlpSpan {
 	};
 }
 
-/**
- * Wrap spans in the OTLP resourceSpans envelope.
- */
 export function wrapInResourceSpans(
 	spans: readonly ICompletedSpanData[],
 	resource: Record<string, string>,
@@ -106,23 +98,17 @@ export function wrapInResourceSpans(
 	};
 }
 
-// ── OTLP JSON → ICompletedSpanData conversion (for import) ──
 
-/**
- * Parse OTLP JSON (single object or .jsonl multi-line) into ICompletedSpanData[].
- */
 export function parseResourceSpans(jsonStr: string): ICompletedSpanData[] {
 	const spans: ICompletedSpanData[] = [];
 
-	// Try as single JSON object first
 	try {
 		const parsed = JSON.parse(jsonStr);
 		if (parsed.resourceSpans) {
 			return extractSpansFromOtlp(parsed as OtlpExport);
 		}
-	} catch { /* not a single object, try jsonl */ }
+	} catch { }
 
-	// Try as JSON lines (.jsonl format)
 	const lines = jsonStr.split('\n').filter(l => l.trim());
 	for (const line of lines) {
 		try {
@@ -130,7 +116,7 @@ export function parseResourceSpans(jsonStr: string): ICompletedSpanData[] {
 			if (parsed.resourceSpans) {
 				spans.push(...extractSpansFromOtlp(parsed as OtlpExport));
 			}
-		} catch { /* skip invalid lines */ }
+		} catch { }
 	}
 
 	return spans;
@@ -148,9 +134,6 @@ function extractSpansFromOtlp(otlp: OtlpExport): ICompletedSpanData[] {
 	return spans;
 }
 
-/**
- * Convert an OTLP JSON span back into an ICompletedSpanData.
- */
 export function otlpSpanToCompletedSpan(otlpSpan: OtlpSpan): ICompletedSpanData {
 	return {
 		name: otlpSpan.name,
@@ -168,7 +151,6 @@ export function otlpSpanToCompletedSpan(otlpSpan: OtlpSpan): ICompletedSpanData 
 	};
 }
 
-// ── Utility converters ──
 
 function recordToOtlpAttributes(attrs: Readonly<Record<string, string | number | boolean | string[]>>): OtlpAttribute[] {
 	return Object.entries(attrs).map(([key, value]) => ({

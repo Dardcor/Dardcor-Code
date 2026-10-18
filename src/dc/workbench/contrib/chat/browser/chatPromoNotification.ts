@@ -11,21 +11,13 @@ import { localChatSessionType } from '../common/chatSessionsService.js';
 import { ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../common/languageModels.js';
 import { addDismissedNotificationId, ChatInputNotificationActionKind, ChatInputNotificationSeverity, IChatInputNotificationContext, IChatInputNotificationService, IChatInputNotificationSwitchToModelAction, matchesModelIdentifier, readDismissedNotificationIds } from './widget/input/chatInputNotificationService.js';
 
-const PROMO_NOTIFICATION_ID = 'copilot.promoNotification';
+const PROMO_NOTIFICATION_ID = 'dardcor.promoNotification';
 const DISMISSED_PROMOS_STORAGE_KEY = 'chat.dismissedPromoIds';
 
 function isPromoVisible(context: IChatInputNotificationContext): boolean {
 	return context.deferredNotificationsEnabled && !context.isTransientChat && !context.sessionStarted;
 }
 
-/**
- * Surfaces a model's promo as a chat input notification, scoped to the harness
- * (chat session type) of the model that carries it. Promos only render where a
- * model switch is still plausible: persistent chat surfaces whose session has
- * not started yet, and only when the promo is banner-eligible (`showBanner` is
- * not `false`). Dismissals are persisted by promo id in application storage,
- * so they survive reloads and apply to every open window.
- */
 export class ChatPromoNotificationContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.chatPromoNotification';
@@ -46,9 +38,6 @@ export class ChatPromoNotificationContribution extends Disposable implements IWo
 			}
 		}));
 
-		// A dismissal in another window writes to the same application-scoped key,
-		// which is broadcast to every window. Re-drive so the promo also disappears
-		// here instead of lingering until this window reloads.
 		this._register(this._storageService.onDidChangeValue(StorageScope.APPLICATION, DISMISSED_PROMOS_STORAGE_KEY, this._store)(() => this._update()));
 
 		this._update();
@@ -60,9 +49,6 @@ export class ChatPromoNotificationContribution extends Disposable implements IWo
 		const dismissed = readDismissedNotificationIds(this._storageService, DISMISSED_PROMOS_STORAGE_KEY);
 		const modelIds = this._languageModelsService.getLanguageModelIds();
 
-		// Bucket one non-dismissed promo per harness (a model's `targetChatSessionType`,
-		// or the local pool when unset), preferring a discounted promo over a message-only one.
-		// Promos that opt out of the banner (`showBanner: false`) stay in the model picker only.
 		const promoByHarness = new Map<string, ILanguageModelChatMetadataAndIdentifier>();
 		for (const id of modelIds) {
 			const meta = this._languageModelsService.lookupLanguageModel(id);
@@ -76,16 +62,12 @@ export class ChatPromoNotificationContribution extends Disposable implements IWo
 			}
 		}
 
-		// Refresh the notification for every harness that has an eligible promo,
-		// scoping each one to its harness so it only renders in matching sessions.
 		const desired = new Set<string>();
 		for (const [harness, model] of promoByHarness) {
 			const promo = model.metadata.promo!;
 			const notificationId = `${PROMO_NOTIFICATION_ID}.${harness}`;
 			desired.add(notificationId);
 
-			// Don't re-push an unchanged notification: re-setting it would clear a
-			// pending user dismissal in the notification service.
 			const shownNotification = this._shownNotifications.get(notificationId);
 			if (shownNotification?.modelIdentifier === model.identifier && shownNotification.promoId === promo.id) {
 				continue;
@@ -112,7 +94,6 @@ export class ChatPromoNotificationContribution extends Disposable implements IWo
 			});
 		}
 
-		// Remove notifications whose promo has been dismissed or is no longer offered.
 		for (const notificationId of [...this._shownNotifications.keys()]) {
 			if (!desired.has(notificationId)) {
 				this._chatInputNotificationService.deleteNotification(notificationId);

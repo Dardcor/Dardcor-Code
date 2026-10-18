@@ -728,7 +728,6 @@ class ExtHostSourceControl implements vscode.SourceControl {
 		this.#proxy.$updateSourceControl(this.handle, { acceptInputCommand: internal });
 	}
 
-	// We know what we're doing here:
 	// eslint-disable-next-line local/code-no-potentially-unsafe-disposables
 	private _actionButtonDisposables = new DisposableStore();
 	private _actionButton: vscode.SourceControlActionButton | undefined;
@@ -740,15 +739,10 @@ class ExtHostSourceControl implements vscode.SourceControl {
 	set actionButton(actionButton: vscode.SourceControlActionButton | undefined) {
 		checkProposedApiEnabled(this._extension, 'scmActionButton');
 
-		// We have to do this check before converting the command to it's internal
-		// representation since that would always create a command with a unique
-		// identifier
 		if (structuralEquals(this._actionButton, actionButton)) {
 			return;
 		}
 
-		// In order to prevent disposing the action button command that are still rendered in the UI
-		// until the next UI update, we ensure to dispose them after the update has been completed.
 		const oldActionButtonDisposables = this._actionButtonDisposables;
 		this._actionButtonDisposables = new DisposableStore();
 
@@ -770,7 +764,6 @@ class ExtHostSourceControl implements vscode.SourceControl {
 			.finally(() => oldActionButtonDisposables.dispose());
 	}
 
-	// We know what we're doing here:
 	// eslint-disable-next-line local/code-no-potentially-unsafe-disposables
 	private _statusBarDisposables = new DisposableStore();
 	private _statusBarCommands: vscode.Command[] | undefined = undefined;
@@ -784,8 +777,6 @@ class ExtHostSourceControl implements vscode.SourceControl {
 			return;
 		}
 
-		// In order to prevent disposing status bar commands that are still rendered in the UI
-		// until the next UI update, we ensure to dispose them after the update has been completed.
 		const oldStatusBarDisposables = this._statusBarDisposables;
 		this._statusBarDisposables = new DisposableStore();
 
@@ -806,7 +797,7 @@ class ExtHostSourceControl implements vscode.SourceControl {
 	private readonly _onDidChangeSelection = new Emitter<boolean>();
 	readonly onDidChangeSelection = this._onDidChangeSelection.event;
 
-	private readonly _artifactCommandsDisposables = new DisposableMap<string /* artifact group */, DisposableStore>();
+	private readonly _artifactCommandsDisposables = new DisposableMap<string , DisposableStore>();
 
 	readonly handle: number = ExtHostSourceControl._handlePool++;
 
@@ -850,7 +841,7 @@ class ExtHostSourceControl implements vscode.SourceControl {
 
 	@debounce(100)
 	eventuallyAddResourceGroups(): void {
-		const groups: [number /*handle*/, string /*id*/, string /*label*/, SCMGroupFeatures, /*multiDiffEditorEnableViewChanges*/ boolean][] = [];
+		const groups: [number , string , string , SCMGroupFeatures, boolean][] = [];
 		const splices: SCMRawResourceSplices[] = [];
 
 		for (const [group, disposable] of this.createdResourceGroups) {
@@ -1047,7 +1038,6 @@ export class ExtHostSCM implements ExtHostSCMShape {
 		return sourceControl;
 	}
 
-	// Deprecated
 	getLastInputBox(extension: IExtensionDescription): ExtHostSCMInputBox | undefined {
 		this.logService.trace('ExtHostSCM#getLastInputBox', extension.identifier.value);
 

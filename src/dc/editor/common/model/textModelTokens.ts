@@ -73,9 +73,7 @@ export class TokenizerWithStateStoreAndTextModel<TState extends IState = IState>
 		}
 	}
 
-	/** assumes state is up to date */
 	public getTokenTypeIfInsertingCharacter(position: Position, character: string): StandardTokenType {
-		// TODO@hediet: use tokenizeLineWithEdit
 		const lineStartState = this.getStartState(position.lineNumber);
 		if (!lineStartState) {
 			return StandardTokenType.Other;
@@ -84,7 +82,6 @@ export class TokenizerWithStateStoreAndTextModel<TState extends IState = IState>
 		const languageId = this._textModel.getLanguageId();
 		const lineContent = this._textModel.getLineContent(position.lineNumber);
 
-		// Create the text as if `character` was inserted
 		const text = (
 			lineContent.substring(0, position.column - 1)
 			+ character
@@ -101,7 +98,6 @@ export class TokenizerWithStateStoreAndTextModel<TState extends IState = IState>
 		return lineTokens.getStandardTokenType(tokenIndex);
 	}
 
-	/** assumes state is up to date */
 	public tokenizeLinesAt(lineNumber: number, lines: string[]): LineTokens[] | null {
 		const lineStartState: IState | null = this.getStartState(lineNumber);
 		if (!lineStartState) {
@@ -139,17 +135,12 @@ export class TokenizerWithStateStoreAndTextModel<TState extends IState = IState>
 		return false;
 	}
 
-	/**
-	 * The result is not cached.
-	 */
 	public tokenizeHeuristically(builder: ContiguousMultilineTokensBuilder, startLineNumber: number, endLineNumber: number): { heuristicTokens: boolean } {
 		if (endLineNumber <= this.store.getFirstInvalidEndStateLineNumberOrMax()) {
-			// nothing to do
 			return { heuristicTokens: false };
 		}
 
 		if (startLineNumber <= this.store.getFirstInvalidEndStateLineNumberOrMax()) {
-			// tokenization has reached the viewport start...
 			this.updateTokensUntilLine(builder, endLineNumber);
 			return { heuristicTokens: false };
 		}
@@ -190,7 +181,6 @@ export function findLikelyRelevantLines(model: ITextModel, lineNumber: number, s
 	let initialState: IState | null | undefined = null;
 	for (let i = lineNumber - 1; nonWhitespaceColumn > 1 && i >= 1; i--) {
 		const newNonWhitespaceIndex = model.getLineFirstNonWhitespaceColumn(i);
-		// Ignore lines full of whitespace
 		if (newNonWhitespaceIndex === 0) {
 			continue;
 		}
@@ -208,11 +198,6 @@ export function findLikelyRelevantLines(model: ITextModel, lineNumber: number, s
 	return { likelyRelevantLines, initialState: initialState ?? undefined };
 }
 
-/**
- * **Invariant:**
- * If the text model is retokenized from line 1 to {@link getFirstInvalidEndStateLineNumber}() - 1,
- * then the recomputed end state for line l will be equal to {@link getEndState}(l).
- */
 export class TrackingTokenizationStateStore<TState extends IState> {
 	private readonly _tokenizationStateStore = new TokenizationStateStore<TState>();
 	private readonly _invalidEndStatesLineNumbers = new RangePriorityQueueImpl();
@@ -225,9 +210,6 @@ export class TrackingTokenizationStateStore<TState extends IState> {
 		return this._tokenizationStateStore.getEndState(lineNumber);
 	}
 
-	/**
-	 * @returns if the end state has changed.
-	 */
 	public setEndState(lineNumber: number, state: TState): boolean {
 		if (!state) {
 			throw new BugIndicatingError('Cannot set null/undefined state');
@@ -236,7 +218,6 @@ export class TrackingTokenizationStateStore<TState extends IState> {
 		this._invalidEndStatesLineNumbers.delete(lineNumber);
 		const r = this._tokenizationStateStore.setEndState(lineNumber, state);
 		if (r && lineNumber < this.lineCount) {
-			// because the state changed, we cannot trust the next state anymore and have to invalidate it.
 			this._invalidEndStatesLineNumbers.addRange(new OffsetRange(lineNumber + 1, lineNumber + 2));
 		}
 
@@ -307,8 +288,6 @@ export class TokenizationStateStore<TState extends IState> {
 	public acceptChange(range: LineRange, newLineCount: number): void {
 		let length = range.length;
 		if (newLineCount > 0 && length > 0) {
-			// Keep the last state, even though it is unrelated.
-			// But if the new state happens to agree with this last state, then we know we can stop tokenizing.
 			length--;
 			newLineCount--;
 		}
@@ -473,37 +452,25 @@ export class DefaultBackgroundTokenizer implements IBackgroundTokenizer {
 		});
 	}
 
-	/**
-	 * Tokenize until the deadline occurs, but try to yield every 1-2ms.
-	 */
 	private _backgroundTokenizeWithDeadline(deadline: IdleDeadline): void {
-		// Read the time remaining from the `deadline` immediately because it is unclear
-		// if the `deadline` object will be valid after execution leaves this function.
 		const endTime = Date.now() + deadline.timeRemaining();
 
 		const execute = () => {
 			if (this._isDisposed || !this._tokenizerWithStateStore._textModel.isAttachedToEditor() || !this._hasLinesToTokenize()) {
-				// disposed in the meantime or detached or finished
 				return;
 			}
 
 			this._backgroundTokenizeForAtLeast1ms();
 
 			if (Date.now() < endTime) {
-				// There is still time before reaching the deadline, so yield to the browser and then
-				// continue execution
 				setTimeout0(execute);
 			} else {
-				// The deadline has been reached, so schedule a new idle callback if necessary
 				this._beginBackgroundTokenization();
 			}
 		};
 		execute();
 	}
 
-	/**
-	 * Tokenize for at least 1ms.
-	 */
 	private _backgroundTokenizeForAtLeast1ms(): void {
 		const lineCount = this._tokenizerWithStateStore._textModel.getLineCount();
 		const builder = new ContiguousMultilineTokensBuilder();
@@ -511,9 +478,6 @@ export class DefaultBackgroundTokenizer implements IBackgroundTokenizer {
 
 		do {
 			if (sw.elapsed() > 1) {
-				// the comparison is intentionally > 1 and not >= 1 to ensure that
-				// a full millisecond has elapsed, given how microseconds are rounded
-				// to milliseconds
 				break;
 			}
 

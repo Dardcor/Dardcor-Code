@@ -1,7 +1,3 @@
-<#
-.SYNOPSIS
-    Symlinks ./node_modules/xterm to provided $XtermFolder.
-#>
 
 Param(
 	[Parameter(Mandatory=$True)]

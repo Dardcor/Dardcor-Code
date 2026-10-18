@@ -46,8 +46,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 	get executingCommand(): string | undefined { return this._currentCommand.command; }
 	get executingCommandObject(): ITerminalCommand | undefined {
 		if (this._currentCommand.commandStartMarker) {
-			// HACK: This does a lot more than the consumer of the API needs. It's also a little
-			//       misleading since it's not promoting the current command yet.
 			return this._currentCommand.promoteToFullCommand(this._cwd, undefined, this._handleCommandStartOptions?.ignoreCommandLine ?? false, undefined);
 		}
 		return undefined;
@@ -88,35 +86,25 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 		this._promptInputModel = this._register(new PromptInputModel(this._terminal, this.onCommandStarted, this.onCommandStartChanged, this.onCommandExecuted, this.onCommandFinished, this._logService));
 		this._register(this._promptInputModel.onDidInterrupt(() => this._isCurrentCommandInterrupted = true));
 
-		// Pull command line from the buffer if it was not set explicitly
 		this._register(this.onCommandExecuted(command => {
 			if (command.commandLineConfidence !== 'high') {
-				// HACK: onCommandExecuted actually fired with PartialTerminalCommand
 				const typedCommand = (command as ITerminalCommand | PartialTerminalCommand);
 				command.command = typedCommand.extractCommandLine();
 				command.commandLineConfidence = 'low';
 
-				// ITerminalCommand
 				if (isFullTerminalCommand(typedCommand)) {
 					if (
-						// Markers exist
 						typedCommand.promptStartMarker && typedCommand.marker && typedCommand.executedMarker &&
-						// Single line command
 						command.command.indexOf('\n') === -1 &&
-						// Start marker is not on the left-most column
 						typedCommand.startX !== undefined && typedCommand.startX > 0
 					) {
 						command.commandLineConfidence = 'medium';
 					}
 				}
-				// PartialTerminalCommand
 				else {
 					if (
-						// Markers exist
 						typedCommand.promptStartMarker && typedCommand.commandStartMarker && typedCommand.commandExecutedMarker &&
-						// Single line command
 						command.command.indexOf('\n') === -1 &&
-						// Start marker is not on the left-most column
 						typedCommand.commandStartX !== undefined && typedCommand.commandStartX > 0
 					) {
 						command.commandLineConfidence = 'medium';
@@ -132,11 +120,9 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 				}
 				this._currentCommand.wasCleared = true;
 			}
-			// We don't want to override xterm.js' default behavior, just augment it
 			return false;
 		}));
 
-		// Set up platform-specific behaviors
 		const that = this;
 		this._ptyHeuristicsHooks = new class implements ICommandDetectionHeuristicsHooks {
 			get onCurrentCommandInvalidatedEmitter() { return that._onCurrentCommandInvalidated; }
@@ -169,16 +155,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 		if (this._store.isDisposed) {
 			return;
 		}
-		// Early versions of conpty do not have real support for an alt buffer, in addition certain
-		// commands such as tsc watch will write to the top of the normal buffer. The following
-		// checks when the cursor has moved while the normal buffer is empty and if it is above the
-		// current command, all decorations within the viewport will be invalidated.
-		//
-		// This function is debounced so that the cursor is only checked when it is stable so
-		// conpty's screen reprinting will not trigger decoration clearing.
-		//
-		// This is mostly a workaround for Windows but applies to all OS' because of the tsc watch
-		// case.
 		if (this._terminal.buffer.active === this._terminal.buffer.normal && this._currentCommand.commandStartMarker) {
 			if (this._terminal.buffer.active.baseY + this._terminal.buffer.active.cursorY < this._currentCommand.commandStartMarker.line) {
 				this._clearCommandsInViewport();
@@ -189,7 +165,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 	}
 
 	private _clearCommandsInViewport(): void {
-		// Find the number of commands on the tail end of the array that are within the viewport
 		let count = 0;
 		for (let i = this._commands.length - 1; i >= 0; i--) {
 			const line = this._commands[i].marker?.line;
@@ -198,7 +173,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 			}
 			count++;
 		}
-		// Remove them
 		if (count > 0) {
 			this._onCommandInvalidated.fire(this._commands.splice(this._commands.length - count, count));
 		}
@@ -208,7 +182,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 		this._promptInputModel.setContinuationPrompt(value);
 	}
 
-	// TODO: Simplify this, can everything work off the last line?
 	setPromptTerminator(promptTerminator: string, lastPromptLine: string) {
 		this._logService.debug('CommandDetectionCapability#setPromptTerminator', promptTerminator);
 		this._promptTerminator = promptTerminator;
@@ -252,23 +225,18 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 	}
 
 	getCommandForLine(line: number): ITerminalCommand | ICurrentPartialCommand | undefined {
-		// Handle the current partial command first, anything below it's prompt is considered part
-		// of the current command
 		if (this._currentCommand.promptStartMarker && line >= this._currentCommand.promptStartMarker?.line) {
 			return this._currentCommand;
 		}
 
-		// No commands
 		if (this._commands.length === 0) {
 			return undefined;
 		}
 
-		// Line is before any registered commands
 		if ((this._commands[0].promptStartMarker ?? this._commands[0].marker!).line > line) {
 			return undefined;
 		}
 
-		// Iterate backwards through commands to find the right one
 		for (let i = this.commands.length - 1; i >= 0; i--) {
 			if ((this.commands[i].promptStartMarker ?? this.commands[i].marker!).line <= line) {
 				return this.commands[i];
@@ -279,8 +247,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 	}
 
 	getCwdForLine(line: number): string | undefined {
-		// Handle the current partial command first, anything below it's prompt is considered part
-		// of the current command
 		if (this._currentCommand.promptStartMarker && line >= this._currentCommand.promptStartMarker?.line) {
 			return this._cwd;
 		}
@@ -295,9 +261,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 
 	handlePromptStart(options?: IHandleCommandOptions): void {
 		this._isCurrentCommandInterrupted = false;
-		// Adjust the last command's finished marker when needed. The standard position for the
-		// finished marker `D` to appear is at the same position as the following prompt started
-		// `A`. Only do this when it would not extend past the current cursor position.
 		const lastCommand = this.commands.at(-1);
 		if (
 			lastCommand?.endMarker &&
@@ -311,10 +274,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 
 		this._currentCommand.promptStartMarker = (
 			options?.marker ||
-			// Generally the prompt start should happen at the exact place the endmarker happened.
-			// However, after ctrl+l is used to clear the display, we want to ensure the actual
-			// prompt start marker position is used. This is mostly a workaround for Windows but we
-			// apply it generally.
 			(!this._currentCommand.wasCleared && lastCommand?.endMarker
 				? cloneMarker(this._terminal, lastCommand.endMarker)
 				: this._terminal.registerMarker(0))
@@ -356,7 +315,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 	handleCommandStart(options?: IHandleCommandOptions): void {
 		this._handleCommandStartOptions = options;
 		this._currentCommand.cwd = this._cwd;
-		// Only update the column if the line has already been set
 		this._currentCommand.commandStartMarker = options?.marker || this._currentCommand.commandStartMarker;
 		if (this._currentCommand.commandStartMarker?.line === this._terminal.buffer.active.cursorY) {
 			this._currentCommand.commandStartX = this._terminal.buffer.active.cursorX;
@@ -367,10 +325,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 		this._ptyHeuristics.value.handleCommandStart(options);
 	}
 
-	/**
-	 * Sets the command ID to use for the next command that starts.
-	 * This is useful when you want to pre-assign an ID before the shell sends the command start sequence.
-	 */
 	setNextCommandId(command: string, commandId: string): void {
 		this._nextCommandId = { command, commandId };
 	}
@@ -382,10 +336,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 	}
 
 	handleCommandFinished(exitCode: number | undefined, options?: IHandleCommandOptions): void {
-		// Command executed may not have happened yet, if not handle it now so the expected events
-		// properly propagate. This may cause the output to show up in the computed command line,
-		// but the command line confidence will be low in the extension host for example and
-		// therefore cannot be trusted anyway.
 		if (!this._currentCommand.commandExecutedMarker) {
 			this.handleCommandExecuted();
 		}
@@ -394,12 +344,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 
 		this._logService.debug('CommandDetectionCapability#handleCommandFinished', this._terminal.buffer.active.cursorX, options?.marker?.line, this._currentCommand.command, this._currentCommand);
 
-		// HACK: Handle a special case on some versions of bash where identical commands get merged
-		// in the output of `history`, this detects that case and sets the exit code to the last
-		// command's exit code. This covered the majority of cases but will fail if the same command
-		// runs with a different exit code, that will need a more robust fix where we send the
-		// command ID and exit code over to the capability to adjust there.
-		// A canceled command's exit code should remain undefined.
 		if (exitCode === undefined && !this._isCurrentCommandInterrupted) {
 			const lastCommand = this.commands.length > 0 ? this.commands[this.commands.length - 1] : undefined;
 			if (this._currentCommand.command && this._currentCommand.command.length > 0 && lastCommand?.command === this._currentCommand.command) {
@@ -420,22 +364,15 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 		if (newCommand) {
 			this._commands.push(newCommand);
 			this._onBeforeCommandFinished.fire(newCommand);
-			// NOTE: onCommandFinished used to not fire if the command was invalid, but this causes
-			// problems especially with the associated execution event never firing in the extension
-			// API. See https://github.com/microsoft/vscode/issues/252489
 			this._logService.debug('CommandDetectionCapability#onCommandFinished', newCommand);
 			this._onCommandFinished.fire(newCommand);
 		}
-		// Create new command for next execution
 		this._currentCommand = new PartialTerminalCommand(this._terminal);
 		this._handleCommandStartOptions = undefined;
 	}
 
 	private _ensureCurrentCommandId(_commandLine: string | undefined): void {
 		if (this._nextCommandId?.commandId) {
-			// Assign the pre-set command ID to the current command. The timing of setNextCommandId
-			// (called right before runCommand) and _ensureCurrentCommandId (called on command
-			// executed) ensures we're matching the right command without needing string comparison.
 			if (this._currentCommand.id !== this._nextCommandId.commandId) {
 				this._currentCommand.id = this._nextCommandId.commandId;
 			}
@@ -477,9 +414,7 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 		}
 		const buffer = this._terminal.buffer.normal;
 		for (const e of serialized.commands) {
-			// Partial command
 			if (!e.endLine) {
-				// Check for invalid command
 				const marker = e.startLine !== undefined ? this._terminal.registerMarker(e.startLine - (buffer.baseY + buffer.cursorY)) : undefined;
 				if (!marker) {
 					continue;
@@ -493,7 +428,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 				continue;
 			}
 
-			// Full command
 			const newCommand = TerminalCommand.deserialize(this._terminal, e, this.__isCommandStorageDisabled);
 			if (!newCommand) {
 				continue;
@@ -509,10 +443,6 @@ export class CommandDetectionCapability extends Disposable implements ICommandDe
 	}
 }
 
-/**
- * Additional hooks to private methods on {@link CommandDetectionCapability} that are needed by the
- * heuristics objects.
- */
 interface ICommandDetectionHeuristicsHooks {
 	readonly onCurrentCommandInvalidatedEmitter: Emitter<ICommandInvalidationRequest>;
 	readonly onCommandStartedEmitter: Emitter<ITerminalCommand>;
@@ -526,16 +456,11 @@ interface ICommandDetectionHeuristicsHooks {
 }
 
 type IPtyHeuristics = (
-	// All optional methods
 	Partial<UnixPtyHeuristics> & Partial<WindowsPtyHeuristics> &
-	// All common methods
 	(UnixPtyHeuristics | WindowsPtyHeuristics) &
 	IDisposable
 );
 
-/**
- * Non-Windows-specific behavior.
- */
 class UnixPtyHeuristics extends Disposable {
 	constructor(
 		private readonly _terminal: Terminal,
@@ -551,7 +476,6 @@ class UnixPtyHeuristics extends Disposable {
 		currentCommand.commandStartX = this._terminal.buffer.active.cursorX;
 		currentCommand.commandStartMarker = options?.marker || this._terminal.registerMarker(0);
 
-		// Clear executed as it must happen after command start
 		currentCommand.commandExecutedMarker?.dispose();
 		currentCommand.commandExecutedMarker = undefined;
 		currentCommand.commandExecutedX = undefined;
@@ -571,7 +495,6 @@ class UnixPtyHeuristics extends Disposable {
 		currentCommand.commandExecutedX = this._terminal.buffer.active.cursorX;
 		this._logService.debug('CommandDetectionCapability#handleCommandExecuted', currentCommand.commandExecutedX, currentCommand.commandExecutedMarker?.line);
 
-		// Sanity check optional props
 		if (!currentCommand.commandStartMarker || !currentCommand.commandExecutedMarker || currentCommand.commandStartX === undefined) {
 			return;
 		}
@@ -587,12 +510,6 @@ const enum AdjustCommandStartMarkerConstants {
 	MaximumPollCount = 10,
 }
 
-/**
- * An object that integrated with and decorates the command detection capability to add heuristics
- * that adjust various markers to work better with Windows and ConPTY. This isn't depended upon the
- * frontend OS, or even the backend OS, but the `IsWindows` property which technically a non-Windows
- * client can emit (for example in tests).
- */
 class WindowsPtyHeuristics extends Disposable {
 
 	private readonly _onCursorMoveListener = this._register(new MutableDisposable());
@@ -610,9 +527,6 @@ class WindowsPtyHeuristics extends Disposable {
 		super();
 
 		this._register(this._capability.onBeforeCommandFinished(command => {
-			// For older Windows backends we cannot listen to CSI J, instead we assume running clear
-			// or cls will clear all commands in the viewport. This is not perfect but it's right
-			// most of the time.
 			if (command.command.trim().toLowerCase() === 'clear' || command.command.trim().toLowerCase() === 'cls') {
 				this._tryAdjustCommandStartMarkerScheduler?.cancel();
 				this._tryAdjustCommandStartMarkerScheduler = undefined;
@@ -624,27 +538,11 @@ class WindowsPtyHeuristics extends Disposable {
 	}
 
 	preHandleResize(e: { cols: number; rows: number }) {
-		// Resize behavior is different under conpty; instead of bringing parts of the scrollback
-		// back into the viewport, new lines are inserted at the bottom (ie. the same behavior as if
-		// there was no scrollback).
-		//
-		// On resize this workaround will wait for a conpty reprint to occur by waiting for the
-		// cursor to move, it will then calculate the number of lines that the commands within the
-		// viewport _may have_ shifted. After verifying the content of the current line is
-		// incorrect, the line after shifting is checked and if that matches delete events are fired
-		// on the xterm.js buffer to move the markers.
-		//
-		// While a bit hacky, this approach is quite safe and seems to work great at least for pwsh.
 		const baseY = this._terminal.buffer.active.baseY;
 		const rowsDifference = e.rows - this._hooks.dimensions.rows;
-		// Only do when rows increase, do in the next frame as this needs to happen after
-		// conpty reprints the screen
 		if (rowsDifference > 0) {
 			this._waitForCursorMove().then(() => {
-				// Calculate the number of lines the content may have shifted, this will max out at
-				// scrollback count since the standard behavior will be used then
 				const potentialShiftedLineCount = Math.min(rowsDifference, baseY);
-				// For each command within the viewport, assume commands are in the correct order
 				for (let i = this._capability.commands.length - 1; i >= 0; i--) {
 					const command = this._capability.commands[i];
 					if (!command.marker || command.marker.line < baseY || command.commandStartLineContent === undefined) {
@@ -659,10 +557,6 @@ class WindowsPtyHeuristics extends Disposable {
 					if (shiftedLine?.translateToString(true) !== command.commandStartLineContent) {
 						continue;
 					}
-					// HACK: xterm.js doesn't expose this by design as it's an internal core
-					// function an embedder could easily do damage with. Additionally, this
-					// can't really be upstreamed since the event relies on shell integration to
-					// verify the shifting is necessary.
 					interface IXtermWithCore extends Terminal {
 						_core: {
 							_bufferService: {
@@ -688,7 +582,6 @@ class WindowsPtyHeuristics extends Disposable {
 	handleCommandStart() {
 		this._capability.currentCommand.commandStartX = this._terminal.buffer.active.cursorX;
 
-		// On Windows track all cursor movements after the command start sequence
 		this._hooks.commandMarkers.length = 0;
 
 		const initialCommandStartMarker = this._capability.currentCommand.commandStartMarker = (
@@ -698,40 +591,12 @@ class WindowsPtyHeuristics extends Disposable {
 		)!;
 		this._capability.currentCommand.commandStartX = 0;
 
-		// DEBUG: Add a decoration for the original unadjusted command start position
-		// if ('registerDecoration' in this._terminal) {
-		// 	const d = (this._terminal as any).registerDecoration({
-		// 		marker: this._capability.currentCommand.commandStartMarker,
-		// 		x: this._capability.currentCommand.commandStartX
-		// 	});
-		// 	d?.onRender((e: HTMLElement) => {
-		// 		e.textContent = 'b';
-		// 		e.classList.add('xterm-sequence-decoration', 'top', 'right');
-		// 		e.title = 'Initial command start position';
-		// 	});
-		// }
 
-		// The command started sequence may be printed before the actual prompt is, for example a
-		// multi-line prompt will typically look like this where D, A and B signify the command
-		// finished, prompt started and command started sequences respectively:
-		//
-		//     D/my/cwdB
-		//     > C
-		//
-		// Due to this, it's likely that this will be called before the line has been parsed.
-		// Unfortunately, it is also the case that the actual command start data may not be parsed
-		// by the end of the task either, so a microtask cannot be used.
-		//
-		// The strategy used is to begin polling and scanning downwards for up to the next 5 lines.
-		// If it looks like a prompt is found, the command started location is adjusted. If the
-		// command executed sequences comes in before polling is done, polling is canceled and the
-		// final polling task is executed synchronously.
 		this._tryAdjustCommandStartMarkerScannedLineCount = 0;
 		this._tryAdjustCommandStartMarkerPollCount = 0;
 		this._tryAdjustCommandStartMarkerScheduler = new RunOnceScheduler(() => this._tryAdjustCommandStartMarker(initialCommandStartMarker), AdjustCommandStartMarkerConstants.Interval);
 		this._tryAdjustCommandStartMarkerScheduler.schedule();
 
-		// TODO: Cache details about polling for the future - eg. if it always fails, stop bothering
 	}
 
 	private _tryAdjustCommandStartMarker(start: IMarker) {
@@ -750,15 +615,12 @@ class WindowsPtyHeuristics extends Disposable {
 						this._logService.debug('CommandDetectionCapability#_tryAdjustCommandStartMarker adjusted promptStart', `${this._capability.currentCommand.promptStartMarker?.line} -> ${this._capability.currentCommand.commandStartMarker.line}`);
 						this._capability.currentCommand.promptStartMarker?.dispose();
 						this._capability.currentCommand.promptStartMarker = cloneMarker(this._terminal, this._capability.currentCommand.commandStartMarker);
-						// Adjust the last command if it's not in the same position as the following
-						// prompt start marker
 						const lastCommand = this._capability.commands.at(-1);
 						if (lastCommand && this._capability.currentCommand.commandStartMarker.line !== lastCommand.endMarker?.line) {
 							lastCommand.endMarker?.dispose();
 							lastCommand.endMarker = cloneMarker(this._terminal, this._capability.currentCommand.commandStartMarker);
 						}
 					}
-					// use the regex to set the position as it's possible input has occurred
 					this._capability.currentCommand.commandStartX = adjustedPrompt.length;
 					this._logService.debug('CommandDetectionCapability#_tryAdjustCommandStartMarker adjusted commandStart', `${start.line} -> ${this._capability.currentCommand.commandStartMarker.line}:${this._capability.currentCommand.commandStartX}`);
 					this._flushPendingHandleCommandStartTask();
@@ -780,9 +642,7 @@ class WindowsPtyHeuristics extends Disposable {
 	}
 
 	private _flushPendingHandleCommandStartTask() {
-		// Perform final try adjust if necessary
 		if (this._tryAdjustCommandStartMarkerScheduler) {
-			// Max out poll count to ensure it's the last run
 			this._tryAdjustCommandStartMarkerPollCount = AdjustCommandStartMarkerConstants.MaximumPollCount;
 			this._tryAdjustCommandStartMarkerScheduler.flush();
 			this._tryAdjustCommandStartMarkerScheduler = undefined;
@@ -814,7 +674,6 @@ class WindowsPtyHeuristics extends Disposable {
 		if (this._tryAdjustCommandStartMarkerScheduler) {
 			this._flushPendingHandleCommandStartTask();
 		}
-		// Use the gathered cursor move markers to correct the command start and executed markers
 		this._onCursorMoveListener.clear();
 		this._evaluateCommandMarkers();
 		this._capability.currentCommand.commandExecutedX = this._terminal.buffer.active.cursorX;
@@ -826,11 +685,7 @@ class WindowsPtyHeuristics extends Disposable {
 		if (this._capability.currentCommand.commandExecutedMarker) {
 			return;
 		}
-		// This is done on command finished just in case command executed never happens (for example
-		// PSReadLine tab completion)
 		if (this._hooks.commandMarkers.length === 0) {
-			// If the command start timeout doesn't happen before command finished, just use the
-			// current marker.
 			if (!this._capability.currentCommand.commandStartMarker) {
 				this._capability.currentCommand.commandStartMarker = this._terminal.registerMarker(0);
 			}
@@ -854,9 +709,6 @@ class WindowsPtyHeuristics extends Disposable {
 			return;
 		}
 
-		// Scan downwards from the command start line and search for every character in the actual
-		// command line. This may end up matching the wrong characters, but it shouldn't matter at
-		// least in the typical case as the entire command will still get matched.
 		let current = 0;
 		let found = false;
 		for (let i = commandLine; i <= executedLine; i++) {
@@ -866,23 +718,15 @@ class WindowsPtyHeuristics extends Disposable {
 			}
 			const text = line.translateToString(true);
 			for (let j = 0; j < text.length; j++) {
-				// Skip whitespace in case it was not actually rendered or could be trimmed from the
-				// end of the line
 				while (commandText.length < current && commandText[current] === ' ') {
 					current++;
 				}
 
-				// Character match
 				if (text[j] === commandText[current]) {
 					current++;
 				}
 
-				// Full command match
 				if (current === commandText.length) {
-					// It's ambiguous whether the command executed marker should ideally appear at
-					// the end of the line or at the beginning of the next line. Since it's more
-					// useful for extracting the command at the end of the current line we go with
-					// that.
 					const wrapsToNextLine = j >= this._terminal.cols - 1;
 					currentCommand.commandExecutedMarker = this._terminal.registerMarker(i - (this._terminal.buffer.active.baseY + this._terminal.buffer.active.cursorY) + (wrapsToNextLine ? 1 : 0));
 					currentCommand.commandExecutedX = wrapsToNextLine ? 0 : j + 1;
@@ -897,8 +741,6 @@ class WindowsPtyHeuristics extends Disposable {
 	}
 
 	private _evaluateCommandMarkers(): void {
-		// On Windows, use the gathered cursor move markers to correct the command start and
-		// executed markers.
 		if (this._hooks.commandMarkers.length === 0) {
 			return;
 		}
@@ -911,20 +753,17 @@ class WindowsPtyHeuristics extends Disposable {
 			}
 		}
 		this._capability.currentCommand.commandExecutedMarker = this._hooks.commandMarkers[this._hooks.commandMarkers.length - 1];
-		// Fire this now to prevent issues like #197409
 		this._hooks.onCommandExecutedEmitter.fire(this._capability.currentCommand as ITerminalCommand);
 	}
 
 	private _cursorOnNextLine(): boolean {
 		const lastCommand = this._capability.commands.at(-1);
 
-		// There is only a single command, so this check is unnecessary
 		if (!lastCommand) {
 			return true;
 		}
 
 		const cursorYAbsolute = this._terminal.buffer.active.baseY + this._terminal.buffer.active.cursorY;
-		// If the cursor position is within the last command, we should poll.
 		const lastCommandYAbsolute = (lastCommand.endMarker ? lastCommand.endMarker.line : lastCommand.marker?.line) ?? -1;
 		return cursorYAbsolute > lastCommandYAbsolute;
 	}
@@ -959,7 +798,6 @@ class WindowsPtyHeuristics extends Disposable {
 			return;
 		}
 
-		// PowerShell
 		const pwshPrompt = lineText.match(/(?<prompt>(\(.+\)\s)?(?:PS.+>\s?))/)?.groups?.prompt;
 		if (pwshPrompt) {
 			const adjustedPrompt = this._adjustPrompt(pwshPrompt, lineText, '>');
@@ -971,7 +809,6 @@ class WindowsPtyHeuristics extends Disposable {
 			}
 		}
 
-		// Custom prompts like starship end in the common \u276f character
 		const customPrompt = lineText.match(/.*\u276f(?=[^\u276f]*$)/g)?.[0];
 		if (customPrompt) {
 			const adjustedPrompt = this._adjustPrompt(customPrompt, lineText, '\u276f');
@@ -980,7 +817,6 @@ class WindowsPtyHeuristics extends Disposable {
 			}
 		}
 
-		// Bash Prompt
 		const bashPrompt = lineText.match(/^(?<prompt>\$)/)?.groups?.prompt;
 		if (bashPrompt) {
 			const adjustedPrompt = this._adjustPrompt(bashPrompt, lineText, '$');
@@ -989,7 +825,6 @@ class WindowsPtyHeuristics extends Disposable {
 			}
 		}
 
-		// Python Prompt
 		const pythonPrompt = lineText.match(/^(?<prompt>>>> )/g)?.groups?.prompt;
 		if (pythonPrompt) {
 			return {
@@ -998,7 +833,6 @@ class WindowsPtyHeuristics extends Disposable {
 			};
 		}
 
-		// Dynamic prompt detection
 		if (this._capability.promptTerminator && (lineText === this._capability.promptTerminator || lineText.trim().endsWith(this._capability.promptTerminator))) {
 			const adjustedPrompt = this._adjustPrompt(lineText, lineText, this._capability.promptTerminator);
 			if (adjustedPrompt) {
@@ -1006,7 +840,6 @@ class WindowsPtyHeuristics extends Disposable {
 			}
 		}
 
-		// Command Prompt
 		const cmdMatch = lineText.match(/^(?<prompt>(\(.+\)\s)?(?:[A-Z]:\\.*>))/);
 		return cmdMatch?.groups?.prompt ? {
 			prompt: cmdMatch.groups.prompt,
@@ -1018,7 +851,6 @@ class WindowsPtyHeuristics extends Disposable {
 		if (!prompt) {
 			return;
 		}
-		// Conpty may not 'render' the space at the end of the prompt
 		if (lineText === prompt && prompt.endsWith(char)) {
 			prompt += ' ';
 		}
@@ -1071,14 +903,10 @@ export function getLinesForCommand(buffer: IBuffer, command: ITerminalCommand, c
 }
 
 function getXtermLineContent(buffer: IBuffer, lineStart: number, lineEnd: number, cols: number): string {
-	// Cap the maximum number of lines generated to prevent potential performance problems. This is
-	// more of a sanity check as the wrapped line should already be trimmed down at this point.
 	const maxLineLength = Math.max(2048 / cols * 2);
 	lineEnd = Math.min(lineEnd, lineStart + maxLineLength);
 	let content = '';
 	for (let i = lineStart; i <= lineEnd; i++) {
-		// Make sure only 0 to cols are considered as resizing when windows mode is enabled will
-		// retain buffer data outside of the terminal width as reflow is disabled.
 		const line = buffer.getLine(i);
 		if (line) {
 			content += line.translateToString(true, 0, cols);

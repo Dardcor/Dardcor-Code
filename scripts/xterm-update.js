@@ -35,7 +35,6 @@ function getLatestModuleVersion(moduleName) {
 				reject(err);
 			}
 			let versions = JSON.parse(stdout);
-			// Fix format if there is only a single version published
 			if (typeof versions === 'string') {
 				versions = [versions];
 			}

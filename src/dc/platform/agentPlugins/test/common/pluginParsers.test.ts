@@ -43,7 +43,6 @@ suite('pluginParsers', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// ---- parseComponentPathConfig ---------------------------------------
 
 	suite('parseComponentPathConfig', () => {
 
@@ -98,7 +97,6 @@ suite('pluginParsers', () => {
 		});
 	});
 
-	// ---- resolveComponentDirs -------------------------------------------
 
 	suite('resolveComponentDirs', () => {
 
@@ -124,7 +122,6 @@ suite('pluginParsers', () => {
 
 		test('rejects paths that escape plugin root', () => {
 			const dirs = resolveComponentDirs(pluginUri, 'skills', { paths: ['../../outside'], exclusive: false });
-			// Should only have the default dir, the traversal path is rejected
 			assert.strictEqual(dirs.length, 1);
 		});
 
@@ -149,7 +146,6 @@ suite('pluginParsers', () => {
 		});
 	});
 
-	// ---- normalizeMcpServerConfiguration --------------------------------
 
 	suite('normalizeMcpServerConfiguration', () => {
 
@@ -262,7 +258,6 @@ suite('pluginParsers', () => {
 		});
 	});
 
-	// ---- shellQuotePluginRootInCommand -----------------------------------
 
 	suite('shellQuotePluginRootInCommand', () => {
 
@@ -326,7 +321,6 @@ suite('pluginParsers', () => {
 		});
 	});
 
-	// ---- convertBareEnvVarsToVsCodeSyntax -------------------------------
 
 	suite('convertBareEnvVarsToVsCodeSyntax', () => {
 
@@ -818,7 +812,6 @@ suite('pluginParsers', () => {
 		});
 	});
 
-	// ---- parseHooksJson -------------------------------------------------
 
 	suite('parseHooksJson', () => {
 

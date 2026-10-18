@@ -142,7 +142,7 @@ export class LanguageFeatureDebounceService implements ILanguageFeatureDebounceS
 					this._logService,
 					name,
 					feature,
-					(this._overallAverage() | 0) || (min * 1.5), // default is overall default or derived from min-value
+					(this._overallAverage() | 0) || (min * 1.5),
 					min,
 					max
 				);
@@ -153,7 +153,6 @@ export class LanguageFeatureDebounceService implements ILanguageFeatureDebounceS
 	}
 
 	private _overallAverage(): number {
-		// Average of all language features. Not a great value but an approximation
 		const result = new MovingAverage();
 		for (const info of this._data.values()) {
 			result.update(info.default());

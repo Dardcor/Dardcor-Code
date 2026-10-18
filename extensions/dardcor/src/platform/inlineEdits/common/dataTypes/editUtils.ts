@@ -32,10 +32,6 @@ export type SerializedEdit = SerializedReplacement[];
 
 export type SerializedReplacement = [startOffset: number, endOffsetEx: number, newText: string];
 
-/**
- * For every single text edit, it creates a new edit.
- * If permutation is not given, decomposed in-order.
- */
 export function decomposeStringEdit<TEdit extends BaseStringEdit<BaseStringReplacement, TEdit>>(edit: TEdit, permutation?: Permutation): SingleEdits<TEdit> {
 	if (permutation === undefined) {
 		const result: BaseStringReplacement[] = [];
@@ -62,7 +58,6 @@ export function decomposeStringEdit<TEdit extends BaseStringEdit<BaseStringRepla
 
 		result.push(singleEdit);
 
-		// move all edits that occur after `singleEdit`
 		for (let j = idxInEdits; j < sortedSingleEdits.length; ++j) {
 			const offsetDelta = singleEdit.newText.length - singleEdit.replaceRange.length;
 			const e = sortedSingleEdits[j];

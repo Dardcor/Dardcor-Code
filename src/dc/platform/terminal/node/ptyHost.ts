@@ -17,8 +17,5 @@ export interface IPtyHostStarter extends IDisposable {
 	readonly onRequestConnection?: Event<void>;
 	readonly onWillShutdown?: Event<void>;
 
-	/**
-	 * Creates a pty host and connects to it.
-	 */
 	start(): IPtyHostConnection;
 }

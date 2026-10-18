@@ -7,16 +7,16 @@ import type { InlineCompletionItemProvider } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
-export interface ICopilotInlineCompletionItemProviderService {
+export interface IDardcorInlineCompletionItemProviderService {
 	readonly _serviceBrand: undefined;
 
 	getOrCreateInstantiationService(): IInstantiationService;
 	getOrCreateProvider(): InlineCompletionItemProvider;
 }
 
-export const ICopilotInlineCompletionItemProviderService = createServiceIdentifier<ICopilotInlineCompletionItemProviderService>('ICopilotInlineCompletionItemProviderService');
+export const IDardcorInlineCompletionItemProviderService = createServiceIdentifier<IDardcorInlineCompletionItemProviderService>('IDardcorInlineCompletionItemProviderService');
 
-export class NullCopilotInlineCompletionItemProviderService implements ICopilotInlineCompletionItemProviderService {
+export class NullDardcorInlineCompletionItemProviderService implements IDardcorInlineCompletionItemProviderService {
 	readonly _serviceBrand: undefined;
 
 	getOrCreateInstantiationService(): IInstantiationService {

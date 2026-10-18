@@ -232,12 +232,10 @@ suite('ChatTerminalToolProgressPart listener ownership', () => {
 suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Mocked events
 	let onCommandExecuted: Emitter<unknown>;
 	let onCommandFinished: Emitter<unknown>;
 	let onWillData: Emitter<string>;
 
-	// State tracking
 	let isExpanded: boolean;
 	let userToggledOutput: boolean;
 	let hasRealOutputValue: boolean;
@@ -251,7 +249,6 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	}
 
 	function setupAutoExpandLogic(): void {
-		// Use the real TerminalToolAutoExpand class with event-based interface
 		const autoExpand = store.add(new TerminalToolAutoExpand({
 			onCommandExecuted: onCommandExecuted.event,
 			onCommandFinished: onCommandFinished.event,
@@ -403,13 +400,10 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	test('fast command without data should not auto-expand (finishes before timeout)', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Command finishes quickly (before timeout)
 		onCommandFinished.fire(undefined);
 
-		// Wait past all timeouts (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.NoData + 100);
 
 		assert.strictEqual(isExpanded, false, 'Should NOT expand for fast command without data');
@@ -418,32 +412,25 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	test('fast command with quick data should not auto-expand (data + finish before timeout)', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Data arrives
 		onWillData.fire('output');
 
-		// Command finishes quickly (before timeout)
 		onCommandFinished.fire(undefined);
 
-		// Wait past all timeouts (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.DataEvent + 100);
 
 		assert.strictEqual(isExpanded, false, 'Should NOT expand when command finishes within timeout of first data');
 	}));
 
 	test('long-running command with data should auto-expand (data received, command still running after timeout)', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		hasRealOutputValue = true; // Has real output
+		hasRealOutputValue = true;
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Data arrives
 		onWillData.fire('output');
 
-		// Wait for timeout to fire (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.DataEvent + 100);
 
 		assert.strictEqual(isExpanded, true, 'Should expand when command still running after first data timeout');
@@ -452,16 +439,13 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	}));
 
 	test('long-running command with data but no real output should NOT auto-expand (like sleep with shell sequences)', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		hasRealOutputValue = false; // Shell integration sequences, not real output
+		hasRealOutputValue = false;
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Shell integration data arrives (not real output)
 		onWillData.fire('shell-sequence');
 
-		// Wait for timeout to fire (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.DataEvent + 100);
 
 		assert.strictEqual(isExpanded, false, 'Should NOT expand when data is shell sequences, not real output');
@@ -470,13 +454,11 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	}));
 
 	test('long-running command without data should NOT auto-expand if no real output (like sleep)', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		hasRealOutputValue = false; // No real output like `sleep 1`
+		hasRealOutputValue = false;
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Wait for timeout to fire (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.NoData + 100);
 
 		assert.strictEqual(isExpanded, false, 'Should NOT expand when no real output even after timeout');
@@ -485,13 +467,11 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	}));
 
 	test('long-running command without data SHOULD auto-expand if real output exists', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		hasRealOutputValue = true; // Has real output in buffer
+		hasRealOutputValue = true;
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Wait for timeout to fire (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.NoData + 100);
 
 		assert.strictEqual(isExpanded, true, 'Should expand when real output exists after timeout');
@@ -502,14 +482,11 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	test('data arriving after command finish should not trigger expand', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		setupAutoExpandLogic();
 
-		// Command executes and finishes immediately
 		onCommandExecuted.fire(undefined);
 		onCommandFinished.fire(undefined);
 
-		// Data arrives after command finished
 		onWillData.fire('late output');
 
-		// Wait past all timeouts (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.NoData + 100);
 
 		assert.strictEqual(isExpanded, false, 'Should NOT expand when data arrives after command finished');
@@ -519,13 +496,10 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 		userToggledOutput = true;
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Data arrives
 		onWillData.fire('output');
 
-		// Wait past all timeouts (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.NoData + 100);
 
 		assert.strictEqual(isExpanded, false, 'Should NOT expand when user has manually toggled output');
@@ -535,7 +509,6 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	test('already expanded output prevents additional auto-expand', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		isExpanded = true;
 
-		// Track if event was fired
 		let eventFired = false;
 		const autoExpand = store.add(new TerminalToolAutoExpand({
 			onCommandExecuted: onCommandExecuted.event,
@@ -548,13 +521,10 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 			eventFired = true;
 		}));
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Data arrives
 		onWillData.fire('output');
 
-		// Wait past all timeouts (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.NoData + 100);
 
 		assert.strictEqual(eventFired, false, 'Should NOT fire expand event when already expanded');
@@ -562,37 +532,30 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 	}));
 
 	test('data arriving cancels no-data timeout', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		hasRealOutputValue = true; // Would have expanded if no-data timeout fired
+		hasRealOutputValue = true;
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Data arrives (cancels no-data timeout)
 		onWillData.fire('output');
 
-		// Command finishes immediately after data (before data timeout would fire)
 		onCommandFinished.fire(undefined);
 
-		// Wait past all timeouts (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.NoData + 100);
 
 		assert.strictEqual(isExpanded, false, 'No-data timeout should be cancelled when data arrives');
 	}));
 
 	test('multiple data events only trigger one timeout', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		hasRealOutputValue = true; // Has real output
+		hasRealOutputValue = true;
 		setupAutoExpandLogic();
 
-		// Command executes
 		onCommandExecuted.fire(undefined);
 
-		// Multiple data events
 		onWillData.fire('output 1');
 		onWillData.fire('output 2');
 		onWillData.fire('output 3');
 
-		// Wait for timeout to fire (faked timers advance instantly)
 		await timeout(TerminalToolAutoExpandTimeout.DataEvent + 100);
 
 		assert.strictEqual(isExpanded, true, 'Should expand exactly once after first data');
@@ -603,10 +566,6 @@ suite('ChatTerminalToolProgressPart Auto-Expand Logic', () => {
 suite('ChatTerminalToolOutputSection layout', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Mounts the real section with the real snapshot mirror over a faked detached terminal,
-	// so the asserted heights are what actually reaches the DOM. Regression coverage for the
-	// sliced-last-row symptom of #328299: the box height must derive from the mirror's
-	// painted cell height, not the configuration-font estimate.
 	let instantiationService: TestInstantiationService;
 	let XTermBaseCtor: typeof Terminal;
 	let fakes: ReturnType<typeof createFakeDetachedTerminal>[];
@@ -620,8 +579,6 @@ suite('ChatTerminalToolOutputSection layout', () => {
 		instantiationService.stub(IThemeService, themeService);
 		XTermBaseCtor = (await importAMDNodeModule<typeof import('@xterm/xterm')>('@xterm/xterm', 'lib/xterm.js')).Terminal;
 		fakes = [];
-		// Mirror metrics deliberately differ from the config estimate below so the tests can
-		// tell which source the layout used
 		mirrorFont = { fontFamily: 'monospace', fontSize: 12, letterSpacing: 0, lineHeight: 1, charWidth: 10, charHeight: 20 };
 		instantiationService.stub(ITerminalService, {
 			createDetachedTerminal: async (options: IDetachedXTermOptions) => {
@@ -663,7 +620,6 @@ suite('ChatTerminalToolOutputSection layout', () => {
 		return scrollable?.style.height ?? '';
 	}
 
-	/** The expected box height for `rows` rows: rows × rowHeight plus the body's real padding. */
 	function expectedHeight(section: ChatTerminalToolOutputSection, rows: number, rowHeight: number): string {
 		const body = section.domNode.querySelector('.chat-terminal-output-body') as HTMLElement;
 		const style = mainWindow.getComputedStyle(body);
@@ -726,9 +682,6 @@ suite('ChatTerminalToolOutputSection layout', () => {
 		await section.toggle(true);
 		assert.strictEqual(boxHeight(section), expectedHeight(section, 3, 20));
 
-		// Simulate the renderer reporting different metrics (first render replacing the
-		// estimate, or a DPR change): mutate the font the fake reports, then open the raw
-		// terminal so xterm fires a real render event
 		mirrorFont.charHeight = 30;
 		const fake = fakes[0];
 		const renderFired = new Promise<void>(resolve => {

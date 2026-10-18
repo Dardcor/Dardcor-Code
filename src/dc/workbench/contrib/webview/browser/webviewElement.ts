@@ -78,14 +78,8 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 
 	protected readonly id = generateUuid();
 
-	/**
-	 * The provided identifier of this webview.
-	 */
 	public readonly providedViewType?: string;
 
-	/**
-	 * The origin this webview itself is loaded from. May not be unique
-	 */
 	public readonly origin: string;
 
 	private _windowId: number | undefined = undefined;
@@ -109,7 +103,7 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 		}
 	});
 
-	private readonly _expectedServiceWorkerVersion = 6; // Keep this in sync with the version in service-worker.js
+	private readonly _expectedServiceWorkerVersion = 6;
 
 	private _element: HTMLIFrameElement | undefined;
 	protected get element(): HTMLIFrameElement | undefined { return this._element; }
@@ -119,14 +113,11 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 		if (!this._focused) {
 			return false;
 		}
-		// code window is only available after the webview is mounted.
 		if (!this.window) {
 			return false;
 		}
 
 		if (this.window.document.activeElement && this.window.document.activeElement !== this.element) {
-			// looks like https://github.com/microsoft/vscode/issues/132641
-			// where the focus is actually not in the `<iframe>`
 			return false;
 		}
 		return true;
@@ -284,12 +275,11 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 
 		this._register(this.on('load-resource', async (entry) => {
 			try {
-				// Restore the authority we previously encoded
 				const authority = decodeAuthority(entry.authority);
 				const uri = URI.from({
 					scheme: entry.scheme,
 					authority: authority,
-					path: decodeURIComponent(entry.path), // This gets re-encoded
+					path: decodeURIComponent(entry.path),
 					query: entry.query ? decodeURIComponent(entry.query) : entry.query,
 				});
 				this.loadResource(entry.id, uri, { ifNoneMatch: entry.ifNoneMatch, range: entry.range }, this._resourceLoadingCts.token);
@@ -355,7 +345,7 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 		this._onDidDispose.fire();
 
 		for (const controller of this._activeStreamControllers) {
-			try { controller.close(); } catch { /* already closed */ }
+			try { controller.close(); } catch { }
 		}
 		this._activeStreamControllers.clear();
 
@@ -413,8 +403,6 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 	}
 
 	private _createElement(options: WebviewOptions, _contentOptions: WebviewContentOptions) {
-		// Do not start loading the webview yet.
-		// Wait the end of the ctor when all listeners have been hooked up.
 		const element = document.createElement('iframe');
 		element.name = this.id;
 		element.className = `webview ${options.customClasses || ''}`;
@@ -438,7 +426,6 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 	}
 
 	private _initElement(encodedWebviewOrigin: string, extension: WebviewExtensionDescription | undefined, options: WebviewOptions, targetWindow: CodeWindow) {
-		// The extensionId and purpose in the URL are used for filtering in js-debug:
 		const params: { [key: string]: string } = {
 			id: this.id,
 			parentId: targetWindow.vscodeWindowId.toString(),
@@ -501,7 +488,7 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 			}));
 		}
 
-		element.id = this.id; // This is used by aria-flow for accessibility order
+		element.id = this.id;
 
 		this.perfMark('mounted');
 		element.appendChild(this.element);
@@ -683,7 +670,7 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 			options: {
 				allowMultipleAPIAcquire: !!this._content.options.allowMultipleAPIAcquire,
 				allowScripts: allowScripts,
-				allowForms: this._content.options.allowForms ?? allowScripts, // For back compat, we allow forms by default when scripts are enabled
+				allowForms: this._content.options.allowForms ?? allowScripts,
 			},
 			state: this._content.state,
 			cspSource: webviewGenericCspSource,
@@ -726,34 +713,22 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 			return;
 		}
 
-		// Electron: workaround for https://github.com/electron/electron/issues/14258
-		// We have to detect keyboard events in the <webview> and dispatch them to our
-		// keybinding service because these events do not bubble to the parent window anymore.
-		// Create a fake KeyboardEvent from the data provided
 		const emulatedKeyboardEvent = new KeyboardEvent(type, event);
-		// Force override the target
 		Object.defineProperty(emulatedKeyboardEvent, 'target', {
 			get: () => this.element,
 		});
-		// And re-dispatch
 		this.window?.dispatchEvent(emulatedKeyboardEvent);
 	}
 
 	private handleDragEvent(type: 'drag', event: WebViewDragEvent) {
-		// Create a fake DragEvent from the data provided
 		const emulatedDragEvent = new DragEvent(type, event);
-		// Force override the target
 		Object.defineProperty(emulatedDragEvent, 'target', {
 			get: () => this.element,
 		});
-		// And re-dispatch
 		this.window?.dispatchEvent(emulatedDragEvent);
 	}
 
 	windowDidDragStart(): void {
-		// Webview break drag and dropping around the main window (no events are generated when you are over them)
-		// Work around this by disabling pointer events during the drag.
-		// https://github.com/electron/electron/issues/18226
 		this._startBlockingIframeDragEvents();
 	}
 
@@ -825,15 +800,12 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 								streamCts?.dispose();
 								if (controller) {
 									this._activeStreamControllers.delete(controller);
-									try { controller.close(); } catch { /* already closed */ }
+									try { controller.close(); } catch { }
 								}
 							}
 						};
 						const stream = new ReadableStream<Uint8Array<ArrayBuffer>>({
 							start: (newController) => {
-								// Track this controller so that the single
-								// cancellation handler in dispose() can close
-								// all active streams without per-stream listeners.
 								controller = newController;
 								this._activeStreamControllers.add(controller);
 
@@ -854,7 +826,7 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 											const currentController = controller;
 											if (currentController) {
 												this._activeStreamControllers.delete(currentController);
-												try { currentController.error(err); } catch { /* already closed */ }
+												try { currentController.error(err); } catch { }
 											}
 										}
 									},
@@ -878,7 +850,6 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 							stream,
 						}, [stream]);
 					} else {
-						// Safari: transferable streams not supported, fall back to chunk messages
 						this._send('did-load-resource', {
 							id,
 							status: range ? 206 : 200,
@@ -890,11 +861,6 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 						});
 						listenStream(result.stream, {
 							onData: (chunk) => {
-								// Copy into a freshly-owned ArrayBuffer before transferring. `chunk`
-								// may be a view into a larger, shared ArrayBuffer (e.g. from the IPC
-								// deserialize pipeline); transferring its underlying ArrayBuffer would
-								// detach every sibling view. WebKit detaches synchronously, which
-								// previously broke webview resource loading in Safari.
 								const data = chunk.buffer.slice();
 								this._send('did-load-resource-chunk', { id, data }, [data.buffer]);
 							},
@@ -911,7 +877,7 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 				case WebviewResourceResponse.Type.NotModified: {
 					return this._send('did-load-resource', {
 						id,
-						status: 304, // not modified
+						status: 304,
 						path: uri.path,
 						mime: result.mimeType,
 						mtime: result.mtime
@@ -920,13 +886,12 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 				case WebviewResourceResponse.Type.AccessDenied: {
 					return this._send('did-load-resource', {
 						id,
-						status: 401, // unauthorized
+						status: 401,
 						path: uri.path,
 					});
 				}
 			}
 		} catch {
-			// noop
 		}
 
 		return this._send('did-load-resource', {
@@ -950,7 +915,6 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 	public focus(): void {
 		this._doFocus();
 
-		// Handle focus change programmatically (do not rely on event from <webview>)
 		this.handleFocusChange(true);
 	}
 
@@ -962,20 +926,8 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 		try {
 			this.element.contentWindow?.focus();
 		} catch {
-			// noop
 		}
 
-		// Workaround for https://github.com/microsoft/vscode/issues/75209
-		// Focusing the inner webview is async so for a sequence of actions such as:
-		//
-		// 1. Open webview
-		// 1. Show quick pick from command palette
-		//
-		// We end up focusing the webview after showing the quick pick, which causes
-		// the quick pick to instantly dismiss.
-		//
-		// Workaround this by debouncing the focus and making sure we are not focused on an input
-		// when we try to re-focus.
 		this._focusDelayer.trigger(async () => {
 			if (!this.isFocused || !this.element) {
 				return;
@@ -985,9 +937,6 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 				return;
 			}
 
-			// It is possible for the webview to be contained in another window
-			// that does not have focus. As such, also focus the body of the
-			// webview's window to ensure it is properly receiving keyboard focus.
 			this.window?.document.body?.focus();
 
 			this._send('focus', undefined);
@@ -1000,13 +949,6 @@ export class WebviewElement extends Disposable implements IWebviewElement, Webvi
 	protected readonly _onDidStopFind = this._register(new Emitter<void>());
 	public readonly onDidStopFind: Event<void> = this._onDidStopFind.event;
 
-	/**
-	 * Webviews expose a stateful find API.
-	 * Successive calls to find will move forward or backward through onFindResults
-	 * depending on the supplied options.
-	 *
-	 * @param value The string to search for. Empty strings are ignored.
-	 */
 	public find(value: string, previous: boolean): void {
 		if (!this.element) {
 			return;

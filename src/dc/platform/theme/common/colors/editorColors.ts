@@ -5,19 +5,16 @@
 
 import * as nls from '../../../../nls.js';
 
-// Import the effects we need
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { registerColor, transparent, lessProminent, darken, lighten } from '../colorUtils.js';
 
-// Import the colors we need
 import { foreground, contrastBorder, activeContrastBorder } from './baseColors.js';
 import { scrollbarShadow, badgeBackground } from './miscColors.js';
 
 
-// ----- editor
 
 export const editorBackground = registerColor('editor.background',
-	{ light: '#ffffff', dark: '#000000', hcDark: Color.black, hcLight: Color.white },
+	{ light: '#ffffff', dark: '#1E1E1E', hcDark: Color.black, hcLight: Color.white },
 	nls.localize('editorBackground', "Editor background color."));
 
 export const editorForeground = registerColor('editor.foreground',
@@ -94,11 +91,11 @@ export const editorInfoBackground = registerColor('editorInfo.background',
 	nls.localize('editorInfo.background', 'Background color of info text in the editor. The color must not be opaque so as not to hide underlying decorations.'), true);
 
 export const editorInfoForeground = registerColor('editorInfo.foreground',
-	{ dark: '#7C4DFF', light: '#0063d3', hcDark: '#7C4DFF', hcLight: '#0063d3' },
+	{ dark: '#59a4f9', light: '#0063d3', hcDark: '#59a4f9', hcLight: '#0063d3' },
 	nls.localize('editorInfo.foreground', 'Foreground color of info squigglies in the editor.'));
 
 export const editorInfoBorder = registerColor('editorInfo.border',
-	{ dark: null, light: null, hcDark: Color.fromHex('#7C4DFF').transparent(0.8), hcLight: '#292929' },
+	{ dark: null, light: null, hcDark: Color.fromHex('#59a4f9').transparent(0.8), hcLight: '#292929' },
 	nls.localize('infoBorder', 'If set, color of double underlines for infos in the editor.'));
 
 
@@ -112,14 +109,13 @@ export const editorHintBorder = registerColor('editorHint.border',
 
 
 export const editorActiveLinkForeground = registerColor('editorLink.activeForeground',
-	{ dark: '#7C4DFF', light: Color.blue, hcDark: Color.cyan, hcLight: '#292929' },
+	{ dark: '#4E94CE', light: Color.blue, hcDark: Color.cyan, hcLight: '#292929' },
 	nls.localize('activeLinkForeground', 'Color of active links.'));
 
 
-// ----- editor selection
 
 export const editorSelectionBackground = registerColor('editor.selectionBackground',
-	{ light: '#ADD6FF', dark: '#4A148C', hcDark: '#f3f518', hcLight: '#0F4A85' },
+	{ light: '#E1BEE7', dark: '#6A1B9A60', hcDark: '#f3f518', hcLight: '#0F4A85' },
 	nls.localize('editorSelectionBackground', "Color of the editor selection."));
 
 export const editorSelectionForeground = registerColor('editor.selectionForeground',
@@ -143,7 +139,6 @@ export const editorCompositionBorder = registerColor('editor.compositionBorder',
 	nls.localize('editorCompositionBorder', "The border color for an IME composition."));
 
 
-// ----- editor find
 
 export const editorFindMatch = registerColor('editor.findMatchBackground',
 	{ light: '#A8AC94', dark: '#515C6A', hcDark: null, hcLight: null },
@@ -178,7 +173,6 @@ export const editorFindRangeHighlightBorder = registerColor('editor.findRangeHig
 	nls.localize('findRangeHighlightBorder', "Border color of the range limiting the search. The color must not be opaque so as not to hide underlying decorations."), true);
 
 
-// ----- editor hover
 
 export const editorHoverHighlight = registerColor('editor.hoverHighlightBackground',
 	{ light: '#ADD6FF26', dark: '#264f7840', hcDark: '#ADD6FF26', hcLight: null },
@@ -201,7 +195,6 @@ export const editorHoverStatusBarBackground = registerColor('editorHoverWidget.s
 	nls.localize('statusBarBackground', "Background color of the editor hover status bar."));
 
 
-// ----- editor inlay hint
 
 export const editorInlayHintForeground = registerColor('editorInlayHint.foreground',
 	{ dark: '#969696', light: '#969696', hcDark: Color.white, hcLight: Color.black },
@@ -228,14 +221,13 @@ export const editorInlayHintParameterBackground = registerColor('editorInlayHint
 	nls.localize('editorInlayHintBackgroundParameter', 'Background color of inline hints for parameters'));
 
 
-// ----- editor lightbulb
 
 export const editorLightBulbForeground = registerColor('editorLightBulb.foreground',
-	{ dark: '#FFCC00', light: '#DDB100', hcDark: '#FFCC00', hcLight: '#007ACC' },
+	{ dark: '#FFCC00', light: '#DDB100', hcDark: '#FFCC00', hcLight: '#6A1B9A' },
 	nls.localize('editorLightBulbForeground', "The color used for the lightbulb actions icon."));
 
 export const editorLightBulbAutoFixForeground = registerColor('editorLightBulbAutoFix.foreground',
-	{ dark: '#75BEFF', light: '#007ACC', hcDark: '#75BEFF', hcLight: '#007ACC' },
+	{ dark: '#B388FF', light: '#6A1B9A', hcDark: '#75BEFF', hcLight: '#6A1B9A' },
 	nls.localize('editorLightBulbAutoFixForeground', "The color used for the lightbulb auto fix actions icon."));
 
 export const editorLightBulbAiForeground = registerColor('editorLightBulbAi.foreground',
@@ -243,7 +235,6 @@ export const editorLightBulbAiForeground = registerColor('editorLightBulbAi.fore
 	nls.localize('editorLightBulbAiForeground', "The color used for the lightbulb AI icon."));
 
 
-// ----- editor snippet
 
 export const snippetTabstopHighlightBackground = registerColor('editor.snippetTabstopHighlightBackground',
 	{ dark: new Color(new RGBA(124, 124, 124, 0.3)), light: new Color(new RGBA(10, 50, 100, 0.2)), hcDark: new Color(new RGBA(124, 124, 124, 0.3)), hcLight: new Color(new RGBA(10, 50, 100, 0.2)) },
@@ -262,7 +253,6 @@ export const snippetFinalTabstopHighlightBorder = registerColor('editor.snippetF
 	nls.localize('snippetFinalTabstopHighlightBorder', "Highlight border color of the final tabstop of a snippet."));
 
 
-// ----- diff editor
 
 export const defaultInsertColor = new Color(new RGBA(155, 185, 85, .2));
 export const defaultRemoveColor = new Color(new RGBA(255, 0, 0, .2));
@@ -334,7 +324,6 @@ export const diffUnchangedTextBackground = registerColor('diffEditor.unchangedCo
 	nls.localize('diffEditor.unchangedCodeBackground', "The background color of unchanged code in the diff editor."));
 
 
-// ----- widget
 
 export const widgetShadow = registerColor('widget.shadow',
 	{ dark: transparent(Color.black, .36), light: transparent(Color.black, .16), hcDark: null, hcLight: null },
@@ -345,7 +334,6 @@ export const widgetBorder = registerColor('widget.border',
 	nls.localize('widgetBorder', 'Border color of widgets such as find/replace inside the editor.'));
 
 
-// ----- toolbar
 
 export const toolbarHoverBackground = registerColor('toolbar.hoverBackground',
 	{ dark: '#5a5d5e50', light: '#b8b8b850', hcDark: null, hcLight: null },
@@ -360,7 +348,6 @@ export const toolbarActiveBackground = registerColor('toolbar.activeBackground',
 	nls.localize('toolbarActiveBackground', "Toolbar background when holding the mouse over actions"));
 
 
-// ----- breadcumbs
 
 export const breadcrumbsForeground = registerColor('breadcrumb.foreground',
 	transparent(foreground, 0.8),
@@ -383,7 +370,6 @@ export const breadcrumbsPickerBackground = registerColor('breadcrumbPicker.backg
 	nls.localize('breadcrumbsSelectedBackground', "Background color of breadcrumb item picker."));
 
 
-// ----- merge
 
 const headerTransparency = 0.5;
 const currentBaseColor = Color.fromHex('#40C8AE').transparent(headerTransparency);
@@ -417,7 +403,7 @@ export const mergeCommonContentBackground = registerColor('merge.commonContentBa
 	nls.localize('mergeCommonContentBackground', 'Common ancestor content background in inline merge-conflicts. The color must not be opaque so as not to hide underlying decorations.'), true);
 
 export const mergeBorder = registerColor('merge.border',
-	{ dark: null, light: null, hcDark: '#C3DF6F', hcLight: '#007ACC' },
+	{ dark: null, light: null, hcDark: '#C3DF6F', hcLight: '#6A1B9A' },
 	nls.localize('mergeBorder', 'Border color on headers and the splitter in inline merge-conflicts.'));
 
 
@@ -442,7 +428,6 @@ export const overviewRulerSelectionHighlightForeground = registerColor('editorOv
 	nls.localize('overviewRulerSelectionHighlightForeground', 'Overview ruler marker color for selection highlights. The color must not be opaque so as not to hide underlying decorations.'), true);
 
 
-// ----- problems
 
 export const problemsErrorIconForeground = registerColor('problemsErrorIcon.foreground',
 	editorErrorForeground,

@@ -79,20 +79,7 @@ struct PortMapRec {
 
 type PortMap = HashMap<u16, PortMapRec>;
 
-/// The PortForwardingHandle is given out to multiple consumers to allow
-/// them to set_ports that they want to be forwarded.
 struct PortForwardingSender {
-	/// Todo: when `SyncUnsafeCell` is no longer nightly, we can use it here with
-	/// the following comment:
-	///
-	/// SyncUnsafeCell is used and safe here because PortForwardingSender is used
-	/// exclusively in synchronous dispatch *and* we create a new sender in the
-	/// context for each connection, in `serve_singleton_rpc`.
-	///
-	/// If PortForwardingSender is ever used in a different context, this should
-	/// be refactored, e.g. to use locks or `&mut self` in set_ports`
-	///
-	/// see https://doc.rust-lang.org/stable/std/cell/struct.SyncUnsafeCell.html
 	current: Mutex<PortList>,
 	sender: Arc<Mutex<watch::Sender<PortMap>>>,
 }
@@ -170,7 +157,6 @@ impl PortForwardingReceiver {
 		(handle, tracker)
 	}
 
-	/// Applies all changes from PortForwardingHandles to the tunnel.
 	pub async fn apply_to(&mut self, log: log::Logger, tunnel: Arc<ActiveTunnel>) {
 		let mut current: PortMap = HashMap::new();
 		while self.receiver.changed().await.is_ok() {
@@ -227,7 +213,6 @@ struct SingletonServerContext {
 	tunnel: Arc<ActiveTunnel>,
 }
 
-/// Serves a client singleton for port forwarding.
 pub async fn client(args: SingletonClientArgs) -> Result<(), std::io::Error> {
 	let mut rpc = new_json_rpc();
 	let (msg_tx, msg_rx) = mpsc::unbounded_channel();
@@ -272,7 +257,6 @@ pub async fn client(args: SingletonClientArgs) -> Result<(), std::io::Error> {
 	}
 }
 
-/// Serves a port-forwarding singleton.
 pub async fn server(
 	log: log::Logger,
 	tunnel: ActiveTunnel,
@@ -325,8 +309,6 @@ async fn serve_singleton_rpc(
 		let log = log.clone();
 		let tunnel = tunnel.clone();
 		tokio::spawn(async move {
-			// we make an rpc for the connection instead of re-using a dispatcher
-			// so that we can have the "handle" drop when the connection drops.
 			let rpc = new_json_rpc();
 			let mut rpc = rpc.methods(SingletonServerContext {
 				log: log.clone(),

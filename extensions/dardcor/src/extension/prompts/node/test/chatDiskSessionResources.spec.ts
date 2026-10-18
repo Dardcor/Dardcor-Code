@@ -10,16 +10,12 @@ import { TestLogService } from '../../../../platform/testing/common/testLogServi
 import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ChatDiskSessionResources } from '../chatDiskSessionResourcesImpl';
 
-/**
- * Mock extension context with a storage URI configured.
- */
 class MockExtensionContextWithStorage {
 	readonly storageUri = URI.file('/test-storage');
 }
 
-// Constants matching the implementation
-const RETENTION_PERIOD_MS = 8 * 60 * 60 * 1000; // 8 hours
-const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const RETENTION_PERIOD_MS = 8 * 60 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
 describe('ChatDiskSessionResources', () => {
 	let mockFs: MockFileSystemService;
@@ -30,10 +26,8 @@ describe('ChatDiskSessionResources', () => {
 		const mockContext = new MockExtensionContextWithStorage();
 		const logService = new TestLogService();
 
-		// Mock the storage directory
 		mockFs.mockDirectory(mockContext.storageUri, []);
 
-		// Create the service directly with mocked dependencies
 		service = new ChatDiskSessionResources(
 			mockContext as any,
 			mockFs,
@@ -66,7 +60,6 @@ describe('ChatDiskSessionResources', () => {
 
 			const resultUri = await service.ensure(sessionId, subdir, content);
 
-			// The path should contain sanitized versions (special chars replaced with underscores)
 			expect(resultUri.path).toContain('session_with_special_chars');
 			expect(resultUri.path).toContain('tool_result_');
 		});
@@ -156,7 +149,6 @@ describe('ChatDiskSessionResources', () => {
 
 			const resultUri = await service.ensure(sessionId, subdir, content);
 
-			// Should still create a valid path
 			expect(resultUri).toBeDefined();
 			expect(resultUri.path).toContain('chat-session-resources');
 		});
@@ -176,7 +168,7 @@ describe('ChatDiskSessionResources', () => {
 		test('handles large content', async () => {
 			const sessionId = 'session-large';
 			const subdir = 'large-content';
-			const content = 'x'.repeat(100000); // 100KB of content
+			const content = 'x'.repeat(100000);
 
 			const resultUri = await service.ensure(sessionId, subdir, content);
 
@@ -203,7 +195,6 @@ describe('ChatDiskSessionResources', () => {
 			mockFs = new MockFileSystemService();
 			mockContext = new MockExtensionContextWithStorage();
 			logService = new TestLogService();
-			// Mock the storage directory AND the session resources subdirectory
 			mockFs.mockDirectory(mockContext.storageUri, [['chat-session-resources', FileType.Directory]]);
 			mockFs.mockDirectory(URI.joinPath(mockContext.storageUri, 'chat-session-resources'), []);
 		});
@@ -213,7 +204,6 @@ describe('ChatDiskSessionResources', () => {
 		});
 
 		test('cleanup runs on scheduled interval', async () => {
-			// Set a specific start time
 			vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
 
 			const testService = new ChatDiskSessionResources(
@@ -222,18 +212,14 @@ describe('ChatDiskSessionResources', () => {
 				logService
 			);
 
-			// Create a resource at time T=0
 			const resultUri = await testService.ensure('session-1', 'tool-1', 'content');
 
-			// Verify directory exists
 			const stat = await mockFs.stat(resultUri);
 			expect(stat.type).toBe(FileType.Directory);
 
-			// Advance time past retention period AND cleanup interval
 			await vi.advanceTimersByTimeAsync(RETENTION_PERIOD_MS + CLEANUP_INTERVAL_MS + 1000);
 			await testService.currentCleanup;
 
-			// The directory should be cleaned up now (cleanup deletes at directory level)
 			await expect(mockFs.stat(resultUri)).rejects.toThrow();
 
 			testService.dispose();
@@ -248,16 +234,12 @@ describe('ChatDiskSessionResources', () => {
 				logService
 			);
 
-			// Create a resource
 			const resultUri = await testService.ensure('session-fresh', 'tool-fresh', 'fresh content');
 
-			// Advance time but not past retention
 			await vi.advanceTimersByTimeAsync(RETENTION_PERIOD_MS / 2);
 
-			// Trigger cleanup
 			await vi.advanceTimersByTimeAsync(CLEANUP_INTERVAL_MS);
 
-			// Fresh resource should still exist
 			const contentUri = URI.joinPath(resultUri, 'content.txt');
 			const stat = await mockFs.stat(contentUri);
 			expect(stat.type).toBe(FileType.File);
@@ -274,18 +256,14 @@ describe('ChatDiskSessionResources', () => {
 				logService
 			);
 
-			// Create a resource
 			const resultUri = await testService.ensure('session-old', 'tool-old', 'old content');
 
-			// Verify directory exists initially
 			const stat = await mockFs.stat(resultUri);
 			expect(stat.type).toBe(FileType.Directory);
 
-			// Advance time past retention period AND trigger cleanup
 			await vi.advanceTimersByTimeAsync(RETENTION_PERIOD_MS + CLEANUP_INTERVAL_MS + 1000);
 			await testService.currentCleanup;
 
-			// Old resource directory should be cleaned up
 			await expect(mockFs.stat(resultUri)).rejects.toThrow();
 
 			testService.dispose();
@@ -300,15 +278,12 @@ describe('ChatDiskSessionResources', () => {
 				logService
 			);
 
-			// Create a resource
 			await testService.ensure('session-empty-dir', 'tool-1', 'content');
 
-			// Advance time past retention to trigger cleanup of the tool
 			await vi.advanceTimersByTimeAsync(RETENTION_PERIOD_MS + CLEANUP_INTERVAL_MS + 1000);
 
 			await testService.currentCleanup;
 
-			// The session directory should be gone since the tool was cleaned up
 			const sessionUri = URI.joinPath(mockContext.storageUri, 'chat-session-resources', 'session-empty-dir');
 			await expect(mockFs.stat(sessionUri)).rejects.toThrow();
 
@@ -324,7 +299,6 @@ describe('ChatDiskSessionResources', () => {
 				logService
 			);
 
-			// Create a resource
 			const resultUri = URI.joinPath(
 				mockContext.storageUri,
 				'chat-session-resources',
@@ -334,15 +308,12 @@ describe('ChatDiskSessionResources', () => {
 			);
 			await testService.ensure('session-dispose', 'tool-1', 'content');
 
-			// Dispose the service BEFORE advancing time
 			testService.dispose();
 
-			// Advance time past retention + cleanup interval
 			await vi.advanceTimersByTimeAsync(RETENTION_PERIOD_MS + CLEANUP_INTERVAL_MS + 1000);
 
 			await testService.currentCleanup;
 
-			// Resource should still exist because cleanup was cancelled
 			const stat = await mockFs.stat(resultUri);
 			expect(stat.type).toBe(FileType.File);
 		});
@@ -356,21 +327,16 @@ describe('ChatDiskSessionResources', () => {
 				logService
 			);
 
-			// Create a resource at T=0
 			const resultUri = await testService.ensure('session-refresh', 'tool-refresh', 'content v1');
 
-			// Advance time to just before retention expires (7.9 hours)
 			await vi.advanceTimersByTimeAsync(RETENTION_PERIOD_MS - 1000);
 
-			// Access/update the resource - this should reset the access timestamp
 			await testService.ensure('session-refresh', 'tool-refresh', 'content v2');
 
-			// Advance time past what would have been the original expiration + cleanup
 			await vi.advanceTimersByTimeAsync(CLEANUP_INTERVAL_MS + 2000);
 
 			await testService.currentCleanup;
 
-			// Resource should still exist because it was refreshed
 			const contentUri = URI.joinPath(resultUri, 'content.txt');
 			const stat = await mockFs.stat(contentUri);
 			expect(stat.type).toBe(FileType.File);

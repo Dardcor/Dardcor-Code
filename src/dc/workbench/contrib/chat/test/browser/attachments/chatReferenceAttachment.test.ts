@@ -17,9 +17,6 @@ suite('ChatReferenceAttachment', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// A chat-reference entry's `value` is the opaque **backend** chat URI
-	// (`ahp-chat://...`), identical to what `MessageChatAttachment.resource`
-	// carries on the wire.
 	const backendSession = AgentSession.uri('claude', 'abc123');
 	const backendDefaultChat = URI.parse(buildDefaultChatUri(backendSession));
 	const backendPeerChat = URI.parse(buildChatUri(backendSession, 'peer1'));
@@ -56,8 +53,6 @@ suite('ChatReferenceAttachment', () => {
 	});
 
 	test('opens the referenced backend chat resource via the window open-session link', () => {
-		// The widget hands the entry's opaque backend chat URI straight to the
-		// AHP-owned link builder; it never parses or constructs the URI itself.
 		assert.deepStrictEqual(
 			{
 				defaultChat: buildOpenSessionLinkForChatResource(backendDefaultChat),

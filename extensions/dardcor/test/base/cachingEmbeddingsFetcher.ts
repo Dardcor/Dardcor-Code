@@ -92,7 +92,6 @@ export class CachingEmbeddingsComputer extends RemoteEmbeddingsComputer {
 		if (nonCached.length) {
 			const embeddingsResult = await super.computeEmbeddings(type, nonCached, options, telemetryInfo, token);
 
-			// Update the cache with the newest entries
 			for (let i = 0; i < nonCached.length; i++) {
 				const embeddingRequest = new CacheableEmbeddingRequest(nonCached[i], model);
 				const embedding = embeddingsResult.values[i];
@@ -101,7 +100,6 @@ export class CachingEmbeddingsComputer extends RemoteEmbeddingsComputer {
 			}
 		}
 
-		// This reconstructs the output array such that each embedding is at the right index to match the input array
 		const out: Embedding[] = [];
 		for (const input of inputs) {
 			const embedding = embeddingEntries.get(input);

@@ -14,13 +14,8 @@ import { NullLogService } from '../../../log/common/log.js';
 import type { IAgent, IAgentDescriptor } from '../../common/agent.js';
 import { AgentModelRefreshScheduler } from '../../node/agentModelRefreshScheduler.js';
 
-/**
- * Minimal stand-in for a provider: the scheduler only ever reads the descriptor
- * (for logging) and calls `refreshModels`.
- */
 class TestAgent {
 	refreshCount = 0;
-	/** When set, `refreshModels` rejects with this instead of resolving. */
 	refreshError: Error | undefined;
 
 	constructor(private readonly _provider: string) { }
@@ -37,7 +32,6 @@ class TestAgent {
 	}
 }
 
-/** A provider that predates `refreshModels` and must simply be skipped. */
 class LegacyTestAgent {
 	getDescriptor(): IAgentDescriptor {
 		return { provider: 'legacy', displayName: 'legacy', description: 'legacy' };
@@ -56,21 +50,10 @@ suite('AgentModelRefreshScheduler', () => {
 	interface ISchedulerContext {
 		readonly scheduler: AgentModelRefreshScheduler;
 		readonly agents: ReturnType<typeof observableValue<readonly IAgent[]>>;
-		/** Simulates a turn starting for `provider`, as `AgentHostTurnTracker` would. */
 		startTurn(provider: string): void;
-		/** Advances virtual time past `count` scheduler intervals. */
 		advanceIntervals(count: number): Promise<void>;
 	}
 
-	/**
-	 * Runs `fn` against a scheduler under a virtual clock.
-	 *
-	 * The scheduler is always disposed before the body returns. That is
-	 * required, not just tidy: `runWithFakedTimers` drains the virtual queue on
-	 * the way out and only stops once the queue is empty, so the scheduler's
-	 * self-re-arming `IntervalTimer` would otherwise tick until the run trips
-	 * its `maxEvents` budget.
-	 */
 	function withScheduler(initialAgents: readonly IAgent[], fn: (ctx: ISchedulerContext) => Promise<void>): Promise<void> {
 		return runWithFakedTimers({ useFakeTimers: true }, async () => {
 			const store = new DisposableStore();
@@ -82,8 +65,6 @@ suite('AgentModelRefreshScheduler', () => {
 					scheduler,
 					agents,
 					startTurn: provider => turnStarted.fire(provider),
-					// A half-interval offset keeps the wait clear of the tick
-					// boundary, so a tick is unambiguously counted or not.
 					advanceIntervals: count => timeout(INTERVAL_MS * count + INTERVAL_MS / 2),
 				});
 			} finally {
@@ -104,16 +85,13 @@ suite('AgentModelRefreshScheduler', () => {
 	test('refreshes on the first turn, then only once per interval while in use', async () => {
 		const copilot = new TestAgent('copilotcli');
 		await withScheduler(asAgents(copilot), async ({ startTurn, advanceIntervals }) => {
-			// First turn: the catalog has never been fetched, so refresh now.
 			startTurn('copilotcli');
 			const afterFirstTurn = copilot.refreshCount;
 
-			// Further turns inside the same interval must not each hit the network.
 			startTurn('copilotcli');
 			startTurn('copilotcli');
 			const afterBurst = copilot.refreshCount;
 
-			// The activity recorded by the burst is honoured by the next tick.
 			await advanceIntervals(1);
 
 			assert.deepStrictEqual({
@@ -131,8 +109,6 @@ suite('AgentModelRefreshScheduler', () => {
 	test('stops refreshing once a provider goes quiet', async () => {
 		const copilot = new TestAgent('copilotcli');
 		await withScheduler(asAgents(copilot), async ({ startTurn, advanceIntervals }) => {
-			// A lone turn is served by the immediate path, which also consumes
-			// the activity — so no catch-up tick follows it.
 			startTurn('copilotcli');
 			const countAfterTurn = copilot.refreshCount;
 			await advanceIntervals(10);
@@ -168,11 +144,9 @@ suite('AgentModelRefreshScheduler', () => {
 		const copilot = new TestAgent('copilotcli');
 		await withScheduler(asAgents(copilot), async ({ startTurn, advanceIntervals }) => {
 			startTurn('copilotcli');
-			// Go quiet long enough that the catalog is older than the interval.
 			await advanceIntervals(5);
 			const countBeforeReturn = copilot.refreshCount;
 
-			// The next turn must not wait up to a full interval for fresh models.
 			startTurn('copilotcli');
 
 			assert.strictEqual(copilot.refreshCount, countBeforeReturn + 1);
@@ -225,7 +199,6 @@ suite('AgentModelRefreshScheduler', () => {
 		failing.refreshError = new Error('boom');
 		const healthy = new TestAgent('healthy');
 		await withScheduler(asAgents(failing, new LegacyTestAgent(), healthy), async ({ startTurn, advanceIntervals }) => {
-			// Keep every provider "in use" so each tick refreshes them all.
 			for (let i = 0; i < 3; i++) {
 				startTurn('failing');
 				startTurn('legacy');

@@ -146,7 +146,6 @@ const TestRunVisualization = mobxlite.observer(
 			run.inlineChatWorkspaceStates.value[1].changedFiles.value.length === 1 &&
 			run.inlineChatWorkspaceStates.value[1].changedFiles.value[0].workspacePath === run.inlineChatWorkspaceStates.value[0].file.value?.workspacePath
 		) {
-			// Optimize rendering for simple case
 			files = files.update(run.inlineChatWorkspaceStates.value[0]);
 			result.push(
 				<InteractionState key={`single-state-step`} test={test} files={files} state={run.inlineChatWorkspaceStates.value[1]} requests={[]} expectedDiff={run.expectedDiff} />
@@ -202,7 +201,6 @@ const TestRunVisualization = mobxlite.observer(
 		result.push(<Requests key='leftover-requests' requests={requestRenderer.take()} />);
 
 		if (run.stdout || run.stderr || (baseline && (baseline.stdout || baseline.stderr))) {
-			// We'll show the OutputView only when there is stdout OR stderr in either run or baseline.
 
 			const outputRenderData = new OutputRenderData(run, baseline, displayOptions.expandPrompts.value);
 			result.push(<OutputView
@@ -274,8 +272,6 @@ const ChangedFiles = mobxlite.observer(
 		for (let changedFileIndex = 0; changedFileIndex < state.changedFiles.value.length; changedFileIndex++) {
 			const changedFile = state.changedFiles.value[changedFileIndex];
 			let prevFile = files.files.get(changedFile.workspacePath);
-			// HACK here [mahuang]
-			// simulator creates a new test file if that doesn't exist and has one line in the file. That ends up showing a diff of the modified file with this line on the UI. We would like to replace prevFile with undefined if there is only one line in the content. So that on the UI we show that the file is created. Any only do this when the intent of the state is tests.
 			if (prevFile && prevFile.split('\n').length === 1 && state.interaction.detectedIntent === 'tests') {
 				prevFile = undefined;
 			}
@@ -501,7 +497,7 @@ const ChosenIntent = ({ detectedIntent, actualIntent }: { detectedIntent: string
 const ErrorMessageBar = mobxlite.observer(({ error }: { error: string }) => {
 
 	let errorTitle: string = 'See below';
-	{ // try extracting first line of error
+	{
 		const firstNewlineIdx = error.indexOf('\n');
 		if (firstNewlineIdx !== -1) {
 			errorTitle = error.substring(0, firstNewlineIdx);
@@ -554,7 +550,6 @@ function dumbDiffParser(diff: string): { original: string; modified: string; pat
 			current = { original: '', modified: '', path };
 			result.push(current);
 		} else if (line.startsWith('+++')) {
-			// ignore
 		} else if (line.startsWith('-')) {
 			if (current) {
 				current.original += line.slice(1) + '\n';

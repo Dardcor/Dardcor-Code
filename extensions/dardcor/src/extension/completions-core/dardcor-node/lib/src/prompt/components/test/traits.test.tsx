@@ -71,7 +71,6 @@ suite('Traits component', function () {
 		const snapshot = await renderTrait(accessor, [trait1, trait2]);
 		const result = querySnapshot(snapshot.snapshot!, 'Traits') as PromptSnapshotNode[];
 
-		// Assert that keys are in the path
 		assert.deepStrictEqual(extractNodesWitPath(snapshot.snapshot!), [
 			'$[0].Traits',
 			'$[0].Traits[0].f',

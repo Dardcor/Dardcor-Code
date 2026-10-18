@@ -5,7 +5,6 @@
 
 import * as nls from '../../../../nls.js';
 
-// base
 import * as browser from '../../../../base/browser/browser.js';
 import { BrowserFeatures, KeyboardSupport } from '../../../../base/browser/canIUse.js';
 import * as dom from '../../../../base/browser/dom.js';
@@ -24,7 +23,6 @@ import * as objects from '../../../../base/common/objects.js';
 import { isMacintosh, OperatingSystem, OS } from '../../../../base/common/platform.js';
 import { dirname } from '../../../../base/common/resources.js';
 
-// platform
 import { ILocalizedString, isLocalizedString } from '../../../../platform/action/common/action.js';
 import { MenuRegistry } from '../../../../platform/actions/common/actions.js';
 import { CommandsRegistry, ICommandService } from '../../../../platform/commands/common/commands.js';
@@ -46,7 +44,6 @@ import { Registry } from '../../../../platform/registry/common/platform.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
 
-// workbench
 import { remove } from '../../../../base/common/arrays.js';
 import { commandsExtensionPoint } from '../../actions/common/menusExtensionPoint.js';
 import { IExtensionService } from '../../extensions/common/extensions.js';
@@ -258,7 +255,6 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 				keyboard?.unlock();
 			}
 
-			// update resolver which will bring back all unbound keyboard shortcuts
 			this._cachedResolver = null;
 			this._onDidUpdateKeybindings.fire();
 		}));
@@ -274,7 +270,6 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 	private _registerKeyListeners(window: Window): IDisposable {
 		const disposables = new DisposableStore();
 
-		// for standard keybindings
 		disposables.add(dom.addDisposableListener(window, dom.EventType.KEY_DOWN, (e: KeyboardEvent) => {
 			if (this._keybindingHoldMode) {
 				return;
@@ -290,7 +285,6 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 			this.isComposingGlobalContextKey.set(false);
 		}));
 
-		// for single modifier chord keybindings (e.g. shift shift)
 		disposables.add(dom.addDisposableListener(window, dom.EventType.KEY_UP, (e: KeyboardEvent) => {
 			this._resetKeybindingHoldMode();
 			this.isComposingGlobalContextKey.set(e.isComposing);
@@ -340,7 +334,6 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 		const padLength = 35;
 		const firstRow = `${input.padStart(padLength, ' ')} => `;
 		if (resolvedKeybindings.length === 0) {
-			// no binding found
 			output.push(`${firstRow}${'[NO BINDING]'.padStart(padLength, ' ')}`);
 			return;
 		}
@@ -449,9 +442,6 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 	}
 
 	protected _documentHasFocus(): boolean {
-		// it is possible that the document has lost focus, but the
-		// window is still focused, e.g. when a <webview> element
-		// has focus
 		return this.hostService.hasFocus;
 	}
 
@@ -462,7 +452,6 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 			const when = item.when || undefined;
 			const keybinding = item.keybinding;
 			if (!keybinding) {
-				// This might be a removal keybinding item in user settings => accept it
 				result[resultLen++] = new ResolvedKeybindingItem(undefined, item.command, item.commandArgs, when, isDefault, item.extensionId, item.isBuiltinExtension);
 			} else {
 				if (this._assertBrowserConflicts(keybinding)) {
@@ -486,7 +475,6 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 		for (const item of items) {
 			const when = item.when || undefined;
 			if (!item.keybinding) {
-				// This might be a removal keybinding item in user settings => accept it
 				result[resultLen++] = new ResolvedKeybindingItem(undefined, item.command, item.commandArgs, when, isDefault, null, false, item.systemWide);
 			} else {
 				const resolvedKeybindings = this._keyboardMapper.resolveKeybinding(item.keybinding);
@@ -534,22 +522,18 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 
 			if ((partModifiersMask & modifiersMask) === (KeyMod.CtrlCmd | KeyMod.Alt)) {
 				if (chord instanceof ScanCodeChord && (chord.scanCode === ScanCode.ArrowLeft || chord.scanCode === ScanCode.ArrowRight)) {
-					// console.warn('Ctrl/Cmd+Arrow keybindings should not be used by default in web. Offender: ', kb.getHashCode(), ' for ', commandId);
 					return true;
 				}
 				if (chord instanceof KeyCodeChord && (chord.keyCode === KeyCode.LeftArrow || chord.keyCode === KeyCode.RightArrow)) {
-					// console.warn('Ctrl/Cmd+Arrow keybindings should not be used by default in web. Offender: ', kb.getHashCode(), ' for ', commandId);
 					return true;
 				}
 			}
 
 			if ((partModifiersMask & modifiersMask) === KeyMod.CtrlCmd) {
 				if (chord instanceof ScanCodeChord && (chord.scanCode >= ScanCode.Digit1 && chord.scanCode <= ScanCode.Digit0)) {
-					// console.warn('Ctrl/Cmd+Num keybindings should not be used by default in web. Offender: ', kb.getHashCode(), ' for ', commandId);
 					return true;
 				}
 				if (chord instanceof KeyCodeChord && (chord.keyCode >= KeyCode.Digit0 && chord.keyCode <= KeyCode.Digit9)) {
-					// console.warn('Ctrl/Cmd+Num keybindings should not be used by default in web. Offender: ', kb.getHashCode(), ' for ', commandId);
 					return true;
 				}
 			}
@@ -694,24 +678,15 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 
 	override mightProducePrintableCharacter(event: IKeyboardEvent): boolean {
 		if (event.ctrlKey || event.metaKey || event.altKey) {
-			// ignore ctrl/cmd/alt-combination but not shift-combinatios
 			return false;
 		}
 		const code = ScanCodeUtils.toEnum(event.code);
 
 		if (NUMPAD_PRINTABLE_SCANCODES.indexOf(code) !== -1) {
-			// This is a numpad key that might produce a printable character based on NumLock.
-			// Let's check if NumLock is on or off based on the event's keyCode.
-			// e.g.
-			// - when NumLock is off, ScanCode.Numpad4 produces KeyCode.LeftArrow
-			// - when NumLock is on, ScanCode.Numpad4 produces KeyCode.NUMPAD_4
-			// However, ScanCode.NumpadAdd always produces KeyCode.NUMPAD_ADD
 			if (event.keyCode === IMMUTABLE_CODE_TO_KEY_CODE[code]) {
-				// NumLock is on or this is /, *, -, + on the numpad
 				return true;
 			}
 			if (isMacintosh && event.keyCode === otherMacNumpadMapping.get(code)) {
-				// on macOS, the numpad keys can also map to keys 1 - 0.
 				return true;
 			}
 			return false;
@@ -719,11 +694,8 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 
 		const keycode = IMMUTABLE_CODE_TO_KEY_CODE[code];
 		if (keycode !== -1) {
-			// https://github.com/microsoft/vscode/issues/74934
 			return false;
 		}
-		// consult the KeyboardMapperFactory to check the given event for
-		// a printable value.
 		const mapping = this.keyboardLayoutService.getRawKeyboardMapping();
 		if (!mapping) {
 			return false;
@@ -795,7 +767,6 @@ class UserKeybindings extends Disposable {
 	private watch(): void {
 		this.watchDisposables.clear();
 		this.watchDisposables.add(this.fileService.watch(dirname(this.userDataProfileService.currentProfile.keybindingsResource)));
-		// Also listen to the resource incase the resource is a symlink - https://github.com/microsoft/vscode/issues/118134
 		this.watchDisposables.add(this.fileService.watch(this.userDataProfileService.currentProfile.keybindingsResource));
 	}
 
@@ -806,7 +777,6 @@ class UserKeybindings extends Disposable {
 	private async reload(): Promise<boolean> {
 		const newKeybindings = await this.readUserKeybindings();
 		if (objects.equals(this._rawKeybindings, newKeybindings)) {
-			// no change
 			return false;
 		}
 
@@ -820,7 +790,7 @@ class UserKeybindings extends Disposable {
 			const content = await this.fileService.readFile(this.userDataProfileService.currentProfile.keybindingsResource);
 			const value = parse(content.value.toString());
 			return Array.isArray(value)
-				? value.filter(v => v && typeof v === 'object' /* just typeof === object doesn't catch `null` */)
+				? value.filter(v => v && typeof v === 'object' )
 				: [];
 		} catch (e) {
 			return [];
@@ -828,11 +798,6 @@ class UserKeybindings extends Disposable {
 	}
 }
 
-/**
- * Registers the `keybindings.json`'s schema with the JSON schema registry. Allows updating the schema, e.g., when new commands are registered (e.g., by extensions).
- *
- * Lifecycle owned by `WorkbenchKeybindingService`. Must be instantiated only once.
- */
 class KeybindingsJsonSchema {
 
 	private static readonly schemaId = 'vscode://schemas/keybindings';
@@ -871,7 +836,7 @@ class KeybindingsJsonSchema {
 				'description': nls.localize('keybindings.json.command', "Name of the command to execute"),
 			},
 			'commandType': {
-				'anyOf': [ // repetition of this clause here and below is intentional: one is for nice diagnostics & one is for code completion
+				'anyOf': [
 					{
 						$ref: '#/definitions/commandNames'
 					},
@@ -943,9 +908,6 @@ class KeybindingsJsonSchema {
 		this.schemaRegistry.registerSchema(KeybindingsJsonSchema.schemaId, this.schema);
 	}
 
-	// TODO@ulugbekna: can updates happen incrementally rather than rebuilding; concerns:
-	// - is just appending additional schemas enough for the registry to pick them up?
-	// - can `CommandsRegistry.getCommands` and `MenuRegistry.getCommands` return different values at different times? ie would just pushing new schemas from `additionalContributions` not be enough?
 	updateSchema(additionalContributions: readonly IJSONSchema[]) {
 		this.commandsSchemas.length = 0;
 		this.commandsEnum.length = 0;
@@ -961,11 +923,10 @@ class KeybindingsJsonSchema {
 					this.commandsEnum.push(commandId);
 					this.commandsEnumDescriptions.push(
 						description === undefined
-							? '' // `enumDescriptions` is an array of strings, so we can't use undefined
+							? ''
 							: (isLocalizedString(description) ? description.value : description)
 					);
 
-					// Also add the negative form for keybinding removal
 					this.removalCommandsEnum.push(`-${commandId}`);
 				}
 			}

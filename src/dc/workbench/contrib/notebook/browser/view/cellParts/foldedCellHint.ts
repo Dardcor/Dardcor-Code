@@ -93,7 +93,6 @@ export class FoldedCellHint extends CellContentPart {
 		const runAllContainer = DOM.$('span.folded-cell-run-section-button');
 		const cells = this._notebookEditor.getCellsInRange(range);
 
-		// Check if any cells are code cells, if not, we won't show the run button
 		const hasCodeCells = cells.some(cell => cell.cellKind === CellKind.Code);
 		if (!hasCodeCells) {
 			return undefined;

@@ -74,7 +74,6 @@ suite('ViewModel', () => {
 			viewLineCount.push(viewModel.getLineCount());
 			const eventHandler = new class extends ViewEventHandler {
 				override handleEvents(events: ViewEvent[]): void {
-					// Access the view model
 					viewLineCount.push(viewModel.getLineCount());
 				}
 			};
@@ -101,12 +100,10 @@ suite('ViewModel', () => {
 		const ed1 = disposables.add(instantiateTestCodeEditor(instantiationService, model));
 		disposables.add(instantiateTestCodeEditor(instantiationService, model));
 
-		// Add a nasty listener which modifies the model during the model change event
 		let isFirst = true;
 		disposables.add(ed1.onDidChangeModelContent((e) => {
 			if (isFirst) {
 				isFirst = false;
-				// delete the \n
 				model.applyEdits([{ range: new Range(1, 6, 2, 1), text: '' }]);
 			}
 		}));
@@ -236,11 +233,6 @@ suite('ViewModel', () => {
 	});
 
 	test('issue #256039: getPlainTextToCopy with multiple cursors and empty selections should return array', () => {
-		// Bug: When copying with multiple cursors (empty selections) with emptySelectionClipboard enabled,
-		// the result should be an array so that pasting with "editor.multiCursorPaste": "full"
-		// correctly distributes each line to the corresponding cursor.
-		// Without the fix, this returns 'line2\nline3\n' (a single string).
-		// With the fix, this returns ['line2\n', 'line3\n'] (an array).
 		assertGetPlainTextToCopy(
 			USUAL_TEXT,
 			[
@@ -386,7 +378,6 @@ suite('ViewModel', () => {
 					},
 				]);
 
-				// just sobarbzme text
 
 				assert.deepStrictEqual(viewModel.normalizePosition(new Position(1, 8), PositionAffinity.None), new Position(1, 8));
 				assert.deepStrictEqual(viewModel.normalizePosition(new Position(1, 9), PositionAffinity.None), new Position(1, 8));
@@ -436,14 +427,12 @@ suite('ViewModel', () => {
 				'line3',
 			];
 			testViewModel(text, {}, (viewModel, model) => {
-				// Hide lines 1 and 3, leaving only line 2 visible
 				viewModel.setHiddenAreas([
 					new Range(1, 1, 1, 1),
 					new Range(3, 1, 3, 1),
 				]);
 				assert.strictEqual(viewModel.getLineCount(), 1);
 
-				// Replace line 2 content entirely
 				model.applyEdits([{
 					range: new Range(2, 1, 2, 6),
 					text: 'new content'
@@ -460,11 +449,9 @@ suite('ViewModel', () => {
 				'line3',
 			];
 			testViewModel(text, {}, (viewModel, model) => {
-				// Hide lines 1-2, leaving only line 3 visible
 				viewModel.setHiddenAreas([new Range(1, 1, 2, 1)]);
 				assert.strictEqual(viewModel.getLineCount(), 1);
 
-				// Delete line 3 by merging it into line 2
 				model.applyEdits([{
 					range: new Range(2, 6, 3, 6),
 					text: null
@@ -483,14 +470,12 @@ suite('ViewModel', () => {
 				'line5',
 			];
 			testViewModel(text, {}, (viewModel, model) => {
-				// Hide lines 1-2 and 4-5, leaving only line 3 visible
 				viewModel.setHiddenAreas([
 					new Range(1, 1, 2, 1),
 					new Range(4, 1, 5, 1),
 				]);
 				assert.strictEqual(viewModel.getLineCount(), 1);
 
-				// Delete line 3 by merging adjacent lines
 				model.applyEdits([{
 					range: new Range(2, 6, 4, 1),
 					text: null
@@ -507,7 +492,6 @@ suite('ViewModel', () => {
 			testViewModel(text, {}, (viewModel, model) => {
 				assert.strictEqual(viewModel.getLineCount(), 1);
 
-				// Insert lines to create content
 				model.pushEditOperations([], [{
 					range: new Range(1, 6, 1, 6),
 					text: '\nline2\nline3\nline4\nline5'
@@ -515,14 +499,12 @@ suite('ViewModel', () => {
 
 				assert.strictEqual(viewModel.getLineCount(), 5);
 
-				// Hide lines 1-2 and 4-5, leaving only line 3 visible
 				viewModel.setHiddenAreas([
 					new Range(1, 1, 2, 1),
 					new Range(4, 1, 5, 1),
 				]);
 				assert.strictEqual(viewModel.getLineCount(), 1);
 
-				// Undo collapses back to 1 line, but hidden area decorations may grow
 				model.undo();
 
 				assert.ok(viewModel.getLineCount() >= 1, `expected at least 1 view line but got ${viewModel.getLineCount()}`);
@@ -543,20 +525,17 @@ suite('ViewModel', () => {
 			testViewModel(text, {}, (viewModel, model) => {
 				assert.strictEqual(viewModel.getLineCount(), 8);
 
-				// Hide lines 1-5 and 7-8, leaving only line 6 visible
 				viewModel.setHiddenAreas([
 					new Range(1, 1, 5, 1),
 					new Range(7, 1, 8, 1),
 				]);
 				assert.strictEqual(viewModel.getLineCount(), 1);
 
-				// Delete lines 6, 7, 8 — the only visible line plus some hidden ones
 				model.applyEdits([{
 					range: new Range(6, 1, 8, 5),
 					text: null
 				}]);
 
-				// The view model must still have at least one visible line
 				assert.ok(viewModel.getLineCount() >= 1, `expected at least 1 view line but got ${viewModel.getLineCount()}`);
 			});
 		});
@@ -577,7 +556,6 @@ suite('ViewModel', () => {
 				]);
 				assert.strictEqual(viewModel.getLineCount(), 2);
 
-				// Delete visible lines 3 and 4
 				model.applyEdits([{
 					range: new Range(2, 8, 5, 1),
 					text: null
@@ -593,20 +571,11 @@ suite('ViewModel', () => {
 				text.push(`line${i}`);
 			}
 			testViewModel(text, {}, (viewModel, model) => {
-				// Source A hides a large range [1-8].
-				// Source B hides small ranges [2-3] and [5-6] that are subsumed by A.
-				// mergeLineRangeArray has a bug where it advances both pointers after
-				// merging [1-8]+[2-3]=[1-8], leaving [5-6] and [8,9] as separate entries
-				// that overlap with or are subsumed by [1-8].
-				// normalizeLineRanges in setHiddenAreas cleans this up, so the result
-				// should still be correct: lines 1-8 hidden, lines 9-10 visible.
 				viewModel.setHiddenAreas([new Range(1, 1, 8, 1)], 'sourceA');
 				viewModel.setHiddenAreas([new Range(2, 1, 3, 1), new Range(5, 1, 6, 1), new Range(8, 1, 9, 1)], 'sourceB');
 
-				// Lines 1-9 should be hidden (merged from [1-8] and [8-9]), line 10 visible
 				assert.strictEqual(viewModel.getLineCount(), 1, 'only line 10 should be visible');
 
-				// The hidden areas returned should be non-overlapping and sorted
 				const hiddenAreas = viewModel.getHiddenAreas();
 				for (let i = 1; i < hiddenAreas.length; i++) {
 					assert.ok(
@@ -624,25 +593,14 @@ suite('ViewModel', () => {
 				'line3',
 			];
 			testViewModel(text, {}, (viewModel, model) => {
-				// Hide lines 1-2, leaving only line 3 visible.
 				viewModel.setHiddenAreas([new Range(1, 1, 2, 1)]);
 				assert.strictEqual(viewModel.getLineCount(), 1);
 
-				// Insert at (2,1) — the end edge of the hidden area decoration.
-				// AlwaysGrowsWhenTypingAtEdges causes the decoration to grow from
-				// [1,1 → 2,1] to [1,1 → 3,1], covering what was the visible line 3.
-				// After this insert, the file has 4 lines, decoration covers [1-3], line 4 visible.
 				model.applyEdits([{ range: new Range(2, 1, 2, 1), text: 'x\n' }]);
-				// Insert again to push decoration further
 				model.applyEdits([{ range: new Range(3, 1, 3, 1), text: 'y\n' }]);
-				// Now file has 5 lines, decoration covers [1-4], line 5 visible.
 
-				// Delete lines 4-5 to collapse back, making decoration cover everything
 				model.applyEdits([{ range: new Range(4, 1, 5, 6), text: '' }]);
-				// Now file has 4 lines. acceptVersionId ensures viewLines >= 1.
 
-				// Tab size change: triggers _constructLines(resetHiddenAreas=false)
-				// which re-reads the decoration ranges (which may cover all lines).
 				model.updateOptions({ tabSize: 8 });
 
 				assert.ok(viewModel.getLineCount() >= 1, `expected at least 1 view line but got ${viewModel.getLineCount()}`);

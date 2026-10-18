@@ -54,7 +54,6 @@ suite('ObjectCollectionBuffer', () => {
 		store.add(buffer.createEntry({ a: 9, b: 10 }));
 		entry1.dispose();
 		entry2.dispose();
-		// Data from disposed entries is stale and doesn't need to be validated
 		assertUsedData(buffer, [1, 2, 5, 6, 9, 10]);
 	});
 

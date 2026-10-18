@@ -7,8 +7,6 @@ import { Prompt } from '../prompt/prompt';
 import { contextualFilterCharacterMap } from './contextualFilterConstants';
 import { multilineModelPredict } from './multilineModelWeights';
 
-// This comment map is based on the preprocessing used in training data.
-// It should not be changed without a corresponding change in model training.
 const commentMap: { [key: string]: string[] } = {
 	javascript: ['//'],
 	typescript: ['//'],
@@ -29,8 +27,6 @@ const commentMap: { [key: string]: string[] } = {
 	css: ['*/'],
 };
 
-// This language map is based on the preprocessing used in training data.
-// It should not be changed without a corresponding change in model training.
 const languageMap: { [key: string]: number } = {
 	javascript: 1,
 	javascriptreact: 2,
@@ -122,10 +118,6 @@ export class MultilineModelFeatures {
 	}
 
 	constructFeatures(): number[] {
-		// These features are ordered according to the features used in model training.
-		// They should not be reordered or revised without a corresponding change in model training.
-		// It is likely that not all of these features are truly necessary. However
-		// for now we use the same features used in the model trained by AIP for initial evaluation.
 		const numFeatures: number[] = new Array<number>(14).fill(0);
 		numFeatures[0] = this.prefixFeatures.length;
 		numFeatures[1] = this.prefixFeatures.firstLineLength;
@@ -180,9 +172,7 @@ function constructMultilineFeatures(prompt: Prompt, language: string): Multiline
 }
 
 export function requestMultilineScore(prompt: Prompt, language: string): number {
-	// Construct features based on the prompt and language
 	const features = constructMultilineFeatures(prompt, language).constructFeatures();
-	// Return the score from the model which is the value at index 1 of the output array
 	const score = multilineModelPredict(features)[1];
 	return score;
 }

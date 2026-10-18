@@ -16,7 +16,6 @@ import { CellContentPart } from '../cellPart.js';
 import { ICellRange } from '../../../common/notebookRange.js';
 
 export class CellComments extends CellContentPart {
-	// keyed by threadId
 	private readonly _commentThreadWidgets: DisposableMap<string, { widget: CommentThreadWidget<ICellRange>; dispose: () => void }>;
 	private currentElement: ICellViewModel | undefined;
 
@@ -34,8 +33,6 @@ export class CellComments extends CellContentPart {
 		this._register(this._commentThreadWidgets = new DisposableMap<string, { widget: CommentThreadWidget<ICellRange>; dispose: () => void }>());
 
 		this._register(this.themeService.onDidColorThemeChange(this._applyTheme, this));
-		// TODO @rebornix onDidChangeLayout (font change)
-		// this._register(this.notebookEditor.onDidchangeLa)
 		this._applyTheme();
 	}
 
@@ -123,7 +120,7 @@ export class CellComments extends CellContentPart {
 		const arrowHeight = Math.round(lineHeight / 3);
 		const frameThickness = Math.round(lineHeight / 9) * 2;
 
-		const computedHeight = headHeight + bodyHeight + arrowHeight + frameThickness + 8 /** margin bottom to avoid margin collapse */;
+		const computedHeight = headHeight + bodyHeight + arrowHeight + frameThickness + 8 ;
 		return computedHeight;
 	}
 

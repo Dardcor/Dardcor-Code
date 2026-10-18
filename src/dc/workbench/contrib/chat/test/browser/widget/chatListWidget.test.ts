@@ -41,9 +41,6 @@ function nextFrame(): Promise<void> {
 	return new Promise<void>(resolve => mainWindow.requestAnimationFrame(() => resolve()));
 }
 
-// Rows measure themselves asynchronously and the list re-layouts across animation frames. Waiting
-// for the measured content height to settle keeps the test independent of a fixed frame count,
-// which otherwise overshoots the mocha timeout when animation frames are throttled in headless CI.
 async function waitForStableLayout(widget: ChatListWidget, maxFrames = 120): Promise<void> {
 	let previousHeight = -1;
 	let stableFrames = 0;
@@ -187,8 +184,6 @@ suite('ChatListWidget', () => {
 		const holds = new AutoScrollHolds();
 		const states = [holds.isHeld];
 
-		// Two unrelated features suppress concurrently (e.g. a request edit and
-		// an open text selection).
 		const first = holds.acquire();
 		const second = holds.acquire();
 		states.push(holds.isHeld);
@@ -196,8 +191,6 @@ suite('ChatListWidget', () => {
 		first.dispose();
 		states.push(holds.isHeld);
 
-		// A redundant dispose must not decrement past the remaining hold and
-		// silently resume auto-scroll for the other caller.
 		first.dispose();
 		states.push(holds.isHeld);
 
@@ -251,16 +244,12 @@ suite('ChatListWidget', () => {
 		});
 	});
 
-	// Regression test for https://github.com/microsoft/vscode/issues/326952: the scroll-down
-	// button must reflect the actual scroll position (shown whenever not at the bottom) even while
-	// the scroll lock is engaged during an agent turn, while the `chat-list-at-bottom` padding
-	// state stays coupled to the scroll lock.
 	test('scroll-down button is decoupled from the at-bottom padding state', () => {
 		assert.deepStrictEqual([
-			computeScrollDownState(/*isScrolledToBottom*/ true, /*scrollLock*/ true),
-			computeScrollDownState(/*isScrolledToBottom*/ true, /*scrollLock*/ false),
-			computeScrollDownState(/*isScrolledToBottom*/ false, /*scrollLock*/ true),
-			computeScrollDownState(/*isScrolledToBottom*/ false, /*scrollLock*/ false),
+			computeScrollDownState( true, true),
+			computeScrollDownState( true, false),
+			computeScrollDownState( false, true),
+			computeScrollDownState( false, false),
 		], [
 			{ showButton: false, atBottom: true },
 			{ showButton: false, atBottom: true },
@@ -269,9 +258,6 @@ suite('ChatListWidget', () => {
 		]);
 	});
 
-	// The bottom padding counts towards the scroll height, so `scrollToEnd` has to
-	// scroll through it or the list never reports being at the bottom - which both
-	// streaming auto-scroll and the scroll-down button depend on.
 	test('updates bottom padding while keeping the list at the end', async () => {
 		const { disposables, model, widget } = createWidget();
 		for (let i = 0; i < 10; i++) {
@@ -294,7 +280,6 @@ suite('ChatListWidget', () => {
 		await waitForStableLayout(widget);
 
 		assert.deepStrictEqual({
-			// Guards the test from passing vacuously on a list that cannot scroll.
 			overflows: widget.scrollHeight > widget.renderHeight,
 			paddingAdded: widget.scrollHeight - scrollHeightWithoutPadding,
 			atBottom: widget.isScrolledToBottom,
@@ -1013,15 +998,9 @@ suite('ChatListWidget', () => {
 		disposables.dispose();
 	});
 
-	// Regression test for the completed-response disclosure ("Completed N steps in ..."): expanding
-	// a collapsible while the transcript is scrolled to the very bottom used to auto-scroll to the
-	// new end, so the revealed content grew *upwards* and pushed the summary off the top of the
-	// viewport. The summary must stay put and the content must grow downwards instead.
 	test('expanding a collapsible at the bottom of the transcript keeps its header anchored', async () => {
 		const { disposables, model, container, widget } = createWidget();
 
-		// Enough completed turns for the transcript to overflow the viewport, each with enough
-		// steps for the renderer to fold them into a completed-response disclosure.
 		for (let turn = 0; turn < 3; turn++) {
 			const text = `question ${turn}`;
 			const request = model.addRequest({
@@ -1049,7 +1028,6 @@ suite('ChatListWidget', () => {
 		widget.refresh();
 		widget.layout(300, 500);
 		await waitForStableLayout(widget);
-		// Re-layout so the scrollable dimensions match the measured content, then scroll to the end.
 		widget.layout(300, 500);
 		widget.scrollToEnd();
 		await waitForStableLayout(widget);

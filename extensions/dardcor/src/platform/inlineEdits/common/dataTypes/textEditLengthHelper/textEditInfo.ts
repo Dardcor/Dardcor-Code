@@ -6,18 +6,6 @@
 import { Length, lengthToObj } from './length';
 
 export class TextEditInfo {
-	/*public static fromModelContentChanges(changes: IModelContentChange[]): TextEditInfo[] {
-		// Must be sorted in ascending order
-		const edits = changes.map(c => {
-			const range = Range.lift(c.range);
-			return new TextEditInfo(
-				positionToLength(range.getStartPosition()),
-				positionToLength(range.getEndPosition()),
-				lengthOfString(c.text)
-			);
-		}).reverse();
-		return edits;
-	}*/
 
 	constructor(
 		public readonly startOffset: Length,

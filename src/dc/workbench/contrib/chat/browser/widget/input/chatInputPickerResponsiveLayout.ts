@@ -23,7 +23,6 @@ export interface IChatInputPickerResponsiveState {
 
 export interface IChatInputPickerResponsiveLayoutItem extends IChatInputPickerResponsiveState {
 	readonly element: HTMLElement | undefined;
-	/** Let the item's CSS minimum width determine when its expanded form compacts. */
 	readonly canShrink?: boolean;
 }
 
@@ -35,9 +34,6 @@ export function isChatInputPickerResponsiveState(candidate: object | undefined):
 		&& typeof candidate.setCompact === 'function';
 }
 
-/**
- * Compacts a picker lane only when its expanded contents no longer fit the width assigned by its surrounding layout.
- */
 export class ChatInputPickerResponsiveLayout extends Disposable {
 
 	private readonly _mutationObserver: MutationObserver;

@@ -11,18 +11,14 @@ import { registerDropOrPasteResourceSupport } from '../dropOrPaste/dropOrPasteRe
 
 let client: BaseLanguageClient | undefined;
 
-// this method is called when vs code is activated
 export async function activate(context: ExtensionContext) {
 	const clientMain = extensions.getExtension('vscode.css-language-features')?.packageJSON?.main || '';
 
 	const serverMain = `./server/${clientMain.indexOf('/dist/') !== -1 ? 'dist' : 'out'}/node/cssServerMain`;
 	const serverModule = context.asAbsolutePath(serverMain);
 
-	// The debug options for the server
 	const debugOptions = { execArgv: ['--nolazy', '--inspect=' + (7000 + Math.round(Math.random() * 999))] };
 
-	// If the extension is launch in debug mode the debug server options are use
-	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
@@ -32,7 +28,6 @@ export async function activate(context: ExtensionContext) {
 		return new LanguageClient(id, name, serverOptions, clientOptions);
 	};
 
-	// pass the location of the localization bundle to the server
 	process.env['VSCODE_L10N_BUNDLE_LOCATION'] = l10n.uri?.toString() ?? '';
 
 	client = await startClient(context, newLanguageClient, { fs: getNodeFSRequestService(), TextDecoder });

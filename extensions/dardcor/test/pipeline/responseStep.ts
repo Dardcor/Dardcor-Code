@@ -10,23 +10,11 @@ import { StringText } from '../../src/util/dardcor/editor/common/core/text/abstr
 
 export interface IGeneratedResponse {
 	readonly assistant: string;
-	/**
-	 * Number of oracle edits dropped because they fell outside the edit window.
-	 * Only meaningful for the `EditWindowOnly` format; `0` (or absent) otherwise.
-	 */
 	readonly droppedEditCount?: number;
 }
 
-/**
- * Logger used by response generation to report non-fatal data-quality issues
- * (e.g. oracle edits dropped because they fell outside the edit window).
- */
 export type ResponseLogger = (message: string) => void;
 
-/**
- * Apply offset-based edits to document content.
- * Edits are sorted by offset descending so earlier positions remain valid.
- */
 export function applyEditsToContent(
 	content: string,
 	edits: readonly (readonly [start: number, endEx: number, text: string])[],
@@ -39,11 +27,6 @@ export function applyEditsToContent(
 	return result;
 }
 
-/**
- * Format edits as PatchBased02 custom diff patches.
- * Applies all edits to get the final document, then does a line-level diff
- * and groups consecutive changed lines into `filename:linenum\n-old\n+new` patches.
- */
 export function formatAsCustomDiffPatch(
 	oracleEdits: readonly (readonly [start: number, endEx: number, text: string])[],
 	docContent: string,
@@ -67,7 +50,6 @@ export function formatAsCustomDiffPatch(
 			continue;
 		}
 
-		// Collect the full run of changed lines
 		const startLine = i;
 		const removedLines: string[] = [];
 		const addedLines: string[] = [];
@@ -89,7 +71,6 @@ export function formatAsCustomDiffPatch(
 			i++;
 		}
 
-		// PatchBased02 handler requires both removed and added lines
 		if (removedLines.length > 0 && addedLines.length > 0) {
 			patches.push([
 				`${filePath}:${startLine}`,
@@ -103,7 +84,6 @@ export function formatAsCustomDiffPatch(
 				`+`,
 			].join('\n'));
 		} else if (addedLines.length > 0) {
-			// Pure insertion — use previous line as anchor
 			const anchorLine = startLine > 0 ? oldLines[startLine - 1] : '';
 			patches.push([
 				`${filePath}:${Math.max(0, startLine - 1)}`,
@@ -117,14 +97,8 @@ export function formatAsCustomDiffPatch(
 	return patches.join('\n');
 }
 
-/**
- * Parse the edit window content from a generated user prompt.
- * Looks for content between `<|code_to_edit|>` and `<|/code_to_edit|>` tags.
- */
 export function parseEditWindowFromPrompt(userPrompt: string): {
-	/** The raw lines between the tags (may include line numbers) */
 	lines: string[];
-	/** Number of lines in the edit window */
 	lineCount: number;
 } | undefined {
 	const startTag = '<|code_to_edit|>';
@@ -140,7 +114,6 @@ export function parseEditWindowFromPrompt(userPrompt: string): {
 	const windowContent = userPrompt.substring(startIdx + startTag.length, endIdx);
 	const lines = windowContent.split('\n');
 
-	// Trim leading/trailing empty lines from tag placement
 	while (lines.length > 0 && lines[0].trim() === '') {
 		lines.shift();
 	}
@@ -151,10 +124,6 @@ export function parseEditWindowFromPrompt(userPrompt: string): {
 	return { lines, lineCount: lines.length };
 }
 
-/**
- * Return the 0-based start/end line numbers (inclusive) for an edit's
- * `[start, endEx)` offset range in the document represented by `transformer`.
- */
 function getEditLineRange(
 	transformer: ReturnType<StringText['getTransformer']>,
 	edit: readonly [start: number, endEx: number, text: string],
@@ -166,26 +135,16 @@ function getEditLineRange(
 	];
 }
 
-/** Count `\n` characters in `s` over the half-open range `[start, endEx)`. */
 function countNewlines(s: string, start: number, endEx: number): number {
 	let n = 0;
 	for (let i = start; i < endEx; i++) {
-		if (s.charCodeAt(i) === 10 /* \n */) {
+		if (s.charCodeAt(i) === 10 ) {
 			n++;
 		}
 	}
 	return n;
 }
 
-/**
- * Filter `oracleEdits` to those fully contained in the line range `[windowStart, windowEnd)`.
- *
- * Oracle edits come from `StringEdit.compose().replacements` upstream
- * ({@link applyEditsToContent} sorts by offset descending and applies to the
- * original doc), so each edit's offsets are independent of every other edit.
- * Each edit is therefore filtered independently — out-of-window edits are
- * dropped without affecting the in-window ones around them.
- */
 export function filterEditsInsideEditWindow(
 	oracleEdits: readonly (readonly [start: number, endEx: number, text: string])[],
 	docContent: string,
@@ -210,23 +169,6 @@ export function filterEditsInsideEditWindow(
 	return { kept, droppedCount };
 }
 
-/**
- * Format edits as Xtab275 edit-window content.
- *
- * The NES model can only edit lines inside the prompt's `<|code_to_edit|>`
- * window `[K, N)`. Oracle edits outside that range are unrepresentable in this
- * response format — including them would cause the assistant text to "spill
- * out" of the window and duplicate surrounding context when applied. Such
- * edits are discarded via {@link filterEditsInsideEditWindow}.
- *
- * @returns
- *   - `assistant`: the edit-window slice of the document with all kept edits
- *     applied, joined by `\n`. Empty string if every oracle edit was dropped.
- *   - `droppedCount`: number of oracle edits discarded because they fell
- *     outside the window (or followed an edit that did). `0` when all edits
- *     were kept. Callers should surface non-zero values so dataset curators
- *     can spot silent data loss.
- */
 export function formatAsEditWindowOnly(
 	oracleEdits: readonly (readonly [start: number, endEx: number, text: string])[],
 	docContent: string,
@@ -243,10 +185,6 @@ export function formatAsEditWindowOnly(
 	const modifiedContent = applyEditsToContent(docContent, kept);
 	const modifiedLines = splitLines(modifiedContent);
 
-	// All kept edits are fully inside the window, so each edit's net line
-	// delta applies directly to the window's line count. We compute the delta
-	// by counting newlines: replacing text containing N newlines with text
-	// containing M newlines changes the document's line count by `M - N`.
 	let netLineChange = 0;
 	for (const [start, endEx, text] of kept) {
 		const oldNewlines = countNewlines(docContent, start, endEx);
@@ -260,10 +198,6 @@ export function formatAsEditWindowOnly(
 	return { assistant: windowLines.join('\n'), droppedCount };
 }
 
-/**
- * Find the edit window start line by matching the edit window content from the
- * prompt against the document content.
- */
 export function findEditWindowStartLine(
 	docContent: string,
 	editWindowLines: string[],
@@ -274,7 +208,6 @@ export function findEditWindowStartLine(
 
 	const docLines = splitLines(docContent);
 
-	// Strip line numbers and <|cursor|> tags for matching against document content
 	const cleanedWindowLines = editWindowLines.map(stripLineNumber);
 	const cursorTag = '<|cursor|>';
 	const matchLines = cleanedWindowLines.map(l => l.replace(cursorTag, ''));
@@ -282,7 +215,6 @@ export function findEditWindowStartLine(
 	const firstWindowLine = matchLines[0];
 	for (let i = 0; i <= docLines.length - matchLines.length; i++) {
 		if (docLines[i] === firstWindowLine) {
-			// Check if all subsequent lines match
 			let allMatch = true;
 			for (let j = 1; j < matchLines.length; j++) {
 				if (docLines[i + j] !== matchLines[j]) {
@@ -296,10 +228,9 @@ export function findEditWindowStartLine(
 		}
 	}
 
-	// Fallback: try to extract line number from the first edit window line
 	const lineNumMatch = editWindowLines[0].match(/^(\d+)\|\s?/);
 	if (lineNumMatch) {
-		return parseInt(lineNumMatch[1], 10) - 1; // Convert 1-based to 0-based
+		return parseInt(lineNumMatch[1], 10) - 1;
 	}
 
 	return 0;
@@ -313,11 +244,6 @@ function stripLineNumber(line: string): string {
 	return line;
 }
 
-/**
- * Format edits as the expected assistant response for the given response format.
- *
- * Only CustomDiffPatch and EditWindowOnly are supported.
- */
 export function generateResponse(
 	responseFormat: ResponseFormat,
 	edits: readonly (readonly [start: number, endEx: number, text: string])[] | undefined,

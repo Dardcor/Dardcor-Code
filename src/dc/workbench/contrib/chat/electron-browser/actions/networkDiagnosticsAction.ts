@@ -183,7 +183,6 @@ function formatDnsResult(dns: IAgentHostDnsResult | undefined): string {
 }
 
 function formatReachability(endpoint: IAgentHostNetworkEndpoint, result: IAgentHostNetworkFetchResult): string {
-	// allow-any-unicode-next-line
 	const PASS_MARK = '✓', FAIL_MARK = '✗';
 	const duration = result.durationMs !== undefined ? ` (${result.durationMs} ms)` : '';
 	if (result.error !== undefined) {

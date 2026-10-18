@@ -45,7 +45,6 @@ export class ChatWorkspaceEditContentPart extends Disposable implements IChatCon
 
 		for (const edit of workspaceEdit.edits) {
 			if (edit.oldResource && !edit.newResource) {
-				// note: not linked because trying to open it would simply error
 				renderEntry(localize('deleted', "Deleted `{0}`", this.labelService.getUriBasenameLabel(edit.oldResource)), Codicon.trash);
 			} else if (!edit.oldResource && edit.newResource) {
 				renderEntry(localize('created', "Created []({0})", edit.newResource.toString()), Codicon.newFile);
@@ -59,7 +58,6 @@ export class ChatWorkspaceEditContentPart extends Disposable implements IChatCon
 		if (other.kind !== 'workspaceEdit') {
 			return false;
 		}
-		// Check if the edits are the same
 		if (other.edits.length !== this.workspaceEdit.edits.length) {
 			return false;
 		}

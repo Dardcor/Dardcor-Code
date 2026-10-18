@@ -1,43 +1,7 @@
-/**
- * Search Provider Request Builders
- *
- * Builds HTTP request `{ url, init }` for 10 search providers.
- *
- * @typedef {Object} SearchProviderConfig
- * @property {string} id
- * @property {string} baseUrl
- * @property {string} [method]
- *
- * @typedef {Object} ContentOptions
- * @property {boolean} [snippet]
- * @property {boolean} [full_page]
- * @property {string}  [format]
- * @property {number}  [max_characters]
- *
- * @typedef {Object} SearchRequestParams
- * @property {string}   query
- * @property {string}   searchType
- * @property {number}   maxResults
- * @property {string}   [token]
- * @property {string}   [country]
- * @property {string}   [language]
- * @property {string}   [timeRange]
- * @property {number}   [offset]
- * @property {string[]} [domainFilter]
- * @property {ContentOptions}        [contentOptions]
- * @property {Record<string,unknown>} [providerOptions]
- * @property {Record<string,unknown>} [providerSpecificData]
- */
 
 import { assertPublicUrl } from "../../../src/shared/utils/ssrfGuard.js";
 
-// ── Helpers ─────────────────────────────────────────────────────────────
 
-/**
- * Split domain filter into includes / excludes (excludes prefixed with "-").
- * @param {string[]} [domainFilter]
- * @returns {{includes: string[], excludes: string[]}}
- */
 export function parseDomainFilter(domainFilter) {
   if (!domainFilter?.length) return { includes: [], excludes: [] };
   const includes = domainFilter.filter((d) => !d.startsWith("-"));
@@ -45,12 +9,6 @@ export function parseDomainFilter(domainFilter) {
   return { includes, excludes };
 }
 
-/**
- * Read string setting from providerOptions first, then providerSpecificData.
- * @param {SearchRequestParams} params
- * @param {string} key
- * @returns {string|undefined}
- */
 export function getProviderSetting(params, key) {
   const fromOptions = params.providerOptions?.[key];
   if (typeof fromOptions === "string" && fromOptions.trim().length > 0) {
@@ -63,22 +21,9 @@ export function getProviderSetting(params, key) {
   return undefined;
 }
 
-/**
- * Resolve base URL with optional override from providerOptions.baseUrl.
- *
- * The override is client-controlled and therefore SSRF-hardened: only public
- * http(s) URLs are accepted (internal/private/loopback/metadata addresses are
- * rejected via assertPublicUrl). The provider's own configured baseUrl is
- * trusted as-is (admin-controlled).
- *
- * @param {SearchProviderConfig} config
- * @param {SearchRequestParams} params
- * @returns {string}
- */
 export function resolveBaseUrl(config, params) {
   const override = getProviderSetting(params, "baseUrl");
   if (override) {
-    // SSRF guard: client-supplied base URLs must be public http(s) only.
     let parsed;
     try {
       parsed = new URL(override);
@@ -93,18 +38,11 @@ export function resolveBaseUrl(config, params) {
   return (override || config.baseUrl).replace(/\/+$/, "");
 }
 
-/**
- * Convert offset+maxResults to 1-indexed page number.
- * @param {number|undefined} offset
- * @param {number} maxResults
- * @returns {number|undefined}
- */
 export function toPageNumber(offset, maxResults) {
   if (typeof offset !== "number" || offset <= 0 || maxResults <= 0) return undefined;
   return Math.floor(offset / maxResults) + 1;
 }
 
-// ── Provider Request Builders ───────────────────────────────────────────
 
 function buildSerperRequest(config, params) {
   const endpoint = params.searchType === "news" ? "/news" : "/search";
@@ -374,9 +312,6 @@ function buildXquikRequest(config, params) {
   };
 }
 
-// ── Ollama Cloud web_search ──────────────────────────────────────────────
-// POST https://ollama.com/api/web_search { query, max_results }
-// Response: { results: [{ title, url, content, published_at? }] }
 function buildOllamaSearchRequest(config, params) {
   const body = { query: params.query, max_results: params.maxResults };
   if (params.country) body.country = params.country;
@@ -394,11 +329,6 @@ function buildOllamaSearchRequest(config, params) {
   };
 }
 
-// ── GLM Coding plan MCP web_search_prime ──────────────────────────────────
-// POST https://api.z.ai/api/mcp/web_search_prime/mcp
-// JSON-RPC envelope: { jsonrpc, id, method: "tools/call",
-//   params: { name: "web_search_prime", arguments: { search_query, count } } }
-// Response: { result: { content: [{ type: "text", text: "<json>" }] } }
 function buildGlmSearchRequest(config, params) {
   const body = {
     jsonrpc: "2.0",
@@ -422,7 +352,6 @@ function buildGlmSearchRequest(config, params) {
   };
 }
 
-// ── Dispatcher ──────────────────────────────────────────────────────────
 
 const BUILDERS = {
   "serper": buildSerperRequest,
@@ -440,13 +369,6 @@ const BUILDERS = {
   "glm": buildGlmSearchRequest,
 };
 
-/**
- * Dispatch to the correct provider builder by `provider.id`.
- * Falls back to generic POST + bearer auth for unknown providers.
- * @param {SearchProviderConfig} provider
- * @param {SearchRequestParams} params
- * @returns {{url: string, init: RequestInit}}
- */
 export function buildSearchRequest(provider, params) {
   const builder = BUILDERS[provider.id];
   if (builder) return builder(provider, params);

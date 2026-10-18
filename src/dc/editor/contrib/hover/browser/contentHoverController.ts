@@ -25,9 +25,7 @@ import { isOnColorDecorator } from '../../colorPicker/browser/hoverColorPicker/h
 import { isModifierKey, KeyCode } from '../../../../base/common/keyCodes.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
 
-// sticky hover widget which doesn't disappear on focus out and such
 const _sticky = false
-	// || Boolean("true") // done "weirdly" so that a lint warning prevents you from pushing this
 	;
 
 interface IHoverSettings {
@@ -199,7 +197,6 @@ export class ContentHoverController extends Disposable implements IEditorContrib
 			const isMaybeChoosingColor = isColorPickerVisible && this._isMouseDown;
 			return isMouseOnHoverWithColorPicker || isMaybeChoosingColor;
 		};
-		// TODO@aiday-mar verify if the following is necessary code
 		const isTextSelectedWithinContentHoverWidget = (mouseEvent: IEditorMouseEvent, sticky: boolean): boolean => {
 			const view = mouseEvent.event.browserEvent.view;
 			if (!view) {
@@ -224,8 +221,6 @@ export class ContentHoverController extends Disposable implements IEditorContrib
 		if (this._ignoreMouseEvents) {
 			return;
 		}
-		// When the user is dragging to select text (mouse down started outside the hover widget),
-		// hide the hover and suppress any new hover computation to avoid covering the selection.
 		if (this._isMouseDown && !this._shouldKeepHoverWidgetVisible(mouseEvent)) {
 			this._cancelSchedulerAndHide();
 			return;
@@ -249,8 +244,6 @@ export class ContentHoverController extends Disposable implements IEditorContrib
 	private _shouldRescheduleHoverComputation(): boolean {
 		const hidingDelay = this._hoverSettings.hidingDelay;
 		const isContentHoverWidgetVisible = this._contentWidget?.isVisible ?? false;
-		// If the mouse is not over the widget, and if sticky is on,
-		// then give it a grace period before reacting to the mouse event
 		return isContentHoverWidgetVisible && this._hoverSettings.sticky && hidingDelay > 0;
 	}
 

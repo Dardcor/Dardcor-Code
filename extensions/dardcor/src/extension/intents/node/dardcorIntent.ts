@@ -72,19 +72,12 @@ class VSCodeResponseProcessor {
 		}
 	}
 
-	/**
-	 * Parses a raw Markdown string containing a code block and either extracts settings and commands to show as buttons for the user, or shows the code block.
-	 * @param codeBlock Markdown string containing a single code block surrounded by "```"
-	 */
-	// textDelta is a string with a single Markdown code block (wrapped by ```). It might or might not be of json type.
 	private async processNonReporting(codeBlock: string, progress: vscode.ChatResponseStream) {
 		const parsedCommands = await parseSettingsAndCommands(this.workbenchService, codeBlock);
 
 		if (parsedCommands.length === 0) {
-			// Show code block
 			progress.markdown('\n' + codeBlock + '\n');
 		} else {
-			// Show buttons for commands to run (which can include commands to change settings)
 			for (const parsedCommand of parsedCommands) {
 				if (parsedCommand.commandToRun) {
 					progress.button(parsedCommand.commandToRun);
@@ -108,7 +101,6 @@ class VSCodeResponseProcessor {
 				this._incodeblock = false;
 				const codeBlock = '```' + textDelta.substring(0, codeblockEnd) + '```';
 				await this.processNonReporting(codeBlock, progress);
-				// Output any text that comes after the code block
 				progress.markdown(textDelta.substring(codeblockEnd + 3));
 			}
 		}
@@ -117,23 +109,18 @@ class VSCodeResponseProcessor {
 			const codeblockEnd = textDelta.indexOf('```', codeblockStart + 3);
 			if (codeblockEnd !== -1) {
 				this._incodeblock = false;
-				// Output any text that comes before the code block
 				progress.markdown(textDelta.substring(0, codeblockStart));
-				// Process the codeblock
 				const codeBlock = '```' + textDelta.substring(codeblockStart + 3, codeblockEnd) + '```';
 				await this.processNonReporting(codeBlock, progress);
-				// Output any text that comes after the code block
 				progress.markdown(textDelta.substring(codeblockEnd + 3));
 			} else {
 				this.stagedTextToApply = textDelta.substring(codeblockStart + 3);
-				// Output any text that comes before the code block
 				const textToReport = textDelta.substring(0, codeblockStart);
 				if (textToReport) {
 					progress.markdown(textToReport);
 				}
 			}
 		} else {
-			// We have no stop word or partial, so apply the text to the progress and turn
 			progress.markdown(textDelta);
 		}
 	}

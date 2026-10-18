@@ -17,6 +17,5 @@ export class NullSurveyService implements ISurveyService {
 	_serviceBrand: undefined;
 
 	async signalUsage(source: string, languageId?: string): Promise<void> {
-		// no-op
 	}
 }

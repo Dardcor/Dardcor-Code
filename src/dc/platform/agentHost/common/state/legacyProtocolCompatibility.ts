@@ -17,10 +17,6 @@ type CompatibleActionEnvelope = Omit<ActionEnvelope, 'action'> & {
 	readonly action: StateAction | ILegacyChatErrorAction;
 };
 
-/**
- * Reads the top-level error field emitted by AHP hosts before durable error
- * response parts were introduced.
- */
 export function readLegacyTurnError(turn: CompatibleTurn): ErrorInfo | undefined {
 	if (!hasKey(turn, { error: true })) {
 		return undefined;
@@ -28,9 +24,6 @@ export function readLegacyTurnError(turn: CompatibleTurn): ErrorInfo | undefined
 	return turn.error;
 }
 
-/**
- * Moves a legacy completed-turn error into its durable response-part position.
- */
 export function normalizeLegacyTurnError(turn: CompatibleTurn): Turn {
 	if (turn.state !== TurnState.Error || !hasKey(turn, { error: true })) {
 		return turn;
@@ -46,9 +39,6 @@ export function normalizeLegacyTurnError(turn: CompatibleTurn): Turn {
 	};
 }
 
-/**
- * Normalizes legacy completed-turn errors in a chat snapshot.
- */
 export function normalizeLegacyChatStateErrors(state: ChatState): ChatState {
 	const turns = state.turns.map(normalizeLegacyTurnError);
 	return turns.some((turn, index) => turn !== state.turns[index])
@@ -56,10 +46,6 @@ export function normalizeLegacyChatStateErrors(state: ChatState): ChatState {
 		: state;
 }
 
-/**
- * Normalizes legacy error payloads before a server action reaches reducers or
- * action observers.
- */
 export function normalizeLegacyActionEnvelope(envelope: CompatibleActionEnvelope): ActionEnvelope {
 	const action = envelope.action;
 	switch (action.type) {

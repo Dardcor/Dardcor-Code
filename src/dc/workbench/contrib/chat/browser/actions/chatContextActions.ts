@@ -66,7 +66,7 @@ export function registerChatContextActions(): DisposableStore {
 	store.add(registerAction2(AttachSearchResultAction));
 	store.add(registerAction2(AttachPinnedEditorsToChatAction));
 	store.add(registerCreatePluginAction());
-	registerPromptActions(); // TODO@jrieken: should also return a DisposableStore
+	registerPromptActions();
 	return store;
 }
 
@@ -75,7 +75,7 @@ async function withChatView(accessor: ServicesAccessor): Promise<IChatWidget | u
 
 	const lastFocusedWidget = chatWidgetService.lastFocusedWidget;
 	if (!lastFocusedWidget || lastFocusedWidget.location === ChatAgentLocation.Chat) {
-		return chatWidgetService.revealWidget(); // only show chat view if we either have no chat view or its located in view container
+		return chatWidgetService.revealWidget();
 	}
 	return lastFocusedWidget;
 }
@@ -346,7 +346,6 @@ class AttachSelectionToChatAction extends Action2 {
 		}
 
 		const [_, matches] = args;
-		// If we have search matches, it means this is coming from the search widget
 		if (matches && matches.length > 0) {
 			const uris = new Map<URI, Range | undefined>();
 			for (const match of matches) {
@@ -362,7 +361,6 @@ class AttachSelectionToChatAction extends Action2 {
 					}
 				}
 			}
-			// Add the root files for all of the ones that didn't have a match
 			for (const uri of uris) {
 				const [resource, range] = uri;
 				if (!range) {
@@ -423,7 +421,6 @@ export class AttachSearchResultAction extends Action2 {
 
 		let insertText = `#${AttachSearchResultAction.Name}`;
 		const varRange = new Range(originalRange.startLineNumber, originalRange.startColumn, originalRange.endLineNumber, originalRange.startLineNumber + insertText.length);
-		// check character before the start of the range. If it's not a space, add a space
 		const model = editor.getModel();
 		if (model && model.getValueInRange(new Range(originalRange.startLineNumber, originalRange.startColumn - 1, originalRange.startLineNumber, originalRange.startColumn)) !== ' ') {
 			insertText = ' ' + insertText;
@@ -436,13 +433,11 @@ export class AttachSearchResultAction extends Action2 {
 	}
 }
 
-/** This is our type */
 interface IContextPickItemItem extends IQuickPickItem {
 	kind: 'contextPick';
 	item: IChatContextValueItem | IChatContextPickerItem;
 }
 
-/** These are the types we get from "platform QP" */
 type IQuickPickServicePickItem = IGotoSymbolQuickPickItem | ISymbolQuickPickItem | IAnythingQuickPickItem;
 
 function isIContextPickItemItem(obj: unknown): obj is IContextPickItemItem {
@@ -644,7 +639,6 @@ export class AttachContextAction extends Action2 {
 					}
 
 					if (!isDone) {
-						// restart picker when sub-picker didn't return anything
 						instantiationService.invokeFunction(this._show.bind(this), widget, additionPicks, placeholder, quickInputServiceOverride);
 						return;
 					}
@@ -683,9 +677,7 @@ export class AttachContextAction extends Action2 {
 			}
 		} else if (isIQuickPickItemWithResource(pick) && pick.resource) {
 			if (/\.(png|jpg|jpeg|bmp|gif|tiff)$/i.test(pick.resource.path)) {
-				// checks if the file is an image
 				if (URI.isUri(pick.resource)) {
-					// read the image and attach a new file context.
 					const readFile = await fileService.readFile(pick.resource);
 					const resizedImage = await resizeImage(readFile.value.buffer);
 					toAttach.push({
@@ -733,8 +725,6 @@ export class AttachContextAction extends Action2 {
 		widget.attachmentModel.addContext(...toAttach);
 
 		if (!isInBackground) {
-			// Set focus back into the input once the user is done attaching items
-			// so that the user can start typing their message
 			widget.focusInput();
 		}
 	}
@@ -779,7 +769,6 @@ export class AttachContextAction extends Action2 {
 		qp.placeholder = pickerConfig.placeholder;
 		qp.matchOnDescription = true;
 		qp.matchOnDetail = true;
-		// qp.ignoreFocusOut = true;
 		qp.canAcceptInBackground = true;
 		qp.busy = true;
 		qp.show();
@@ -805,7 +794,7 @@ export class AttachContextAction extends Action2 {
 
 		if (cts.token.isCancellationRequested) {
 			pickerConfig.dispose?.();
-			return true; // picker got hidden already
+			return true;
 		}
 
 		const defer = new DeferredPromise<boolean>();
@@ -831,10 +820,8 @@ export class AttachContextAction extends Action2 {
 			}
 			if (selected === goBackItem) {
 				if (pickerConfig.goBack?.()) {
-					// Custom goBack handled the navigation, stay in the picker
-					return; // Don't complete, keep picker open
+					return;
 				}
-				// Default behavior: go back to main picker
 				defer.complete(false);
 			}
 			if (selected === configureItem) {
@@ -853,7 +840,7 @@ export class AttachContextAction extends Action2 {
 
 		try {
 			const result = await defer.p;
-			qp.busy = true; // if still visible
+			qp.busy = true;
 			await Promise.all(addPromises);
 			return result;
 		} finally {

@@ -21,15 +21,12 @@ fi
 
 VSCODECRASHDIR=$ROOT/.build/crashes
 
-# Node modules
 test -d node_modules || npm i
 
-# Get electron
 if [[ -z "${VSCODE_SKIP_PRELAUNCH}" ]]; then
 	npm run electron
 fi
 
-# Unit Tests
 if [[ "$OSTYPE" == "darwin"* ]]; then
 	cd $ROOT ; ulimit -n 4096 ; \
 		ELECTRON_ENABLE_LOGGING=1 \

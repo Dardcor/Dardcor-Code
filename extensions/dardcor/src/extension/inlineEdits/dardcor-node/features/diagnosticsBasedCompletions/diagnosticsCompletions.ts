@@ -101,7 +101,6 @@ export abstract class DiagnosticCompletionItem implements vscode.InlineCompletio
 		return transformer.getOffsetRange(range);
 	}
 
-	// TODO: rethink if this needs to be updatable
 	protected _getDisplayLocation(): INextEditDisplayLocation | undefined {
 		return undefined;
 	}
@@ -123,7 +122,6 @@ export interface IDiagnosticCompletionProvider<T extends DiagnosticCompletionIte
 	isCompletionItemStillValid?(item: T, workspaceDocument: IObservableDocument): boolean;
 }
 
-// TODO: Better incorporate diagnostics logging
 export class DiagnosticInlineEditRequestLogContext {
 
 	getLogs(): string[] {
@@ -230,7 +228,6 @@ export function logList(title: string, list: Array<string | { toString(): string
 	log(content, logContext, logger);
 }
 
-// TODO: there must be a utility for this somewhere? Otherwise make them available
 
 function diagnosticDistanceToPosition(workspaceDocument: IObservableDocument, diagnostic: Diagnostic, position: Position) {
 	function positionDistance(a: Position, b: Position) {
@@ -273,8 +270,6 @@ export function sortDiagnosticsByDistance(workspaceDocument: IObservableDocument
 			return aDistance.characterDelta - bDistance.characterDelta;
 		}
 
-		// If both diagnostics are on the same line and are more than 1 line away from the cursor
-		// always prefer the first diagnostic to minimize recomputation and flickering on cursor move
 		return -1;
 	});
 }

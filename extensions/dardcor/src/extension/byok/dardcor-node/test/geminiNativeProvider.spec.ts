@@ -5,7 +5,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
-import { CopilotChatAttr, GenAiAttr, NoopOTelService, resolveOTelConfig } from '../../../../platform/otel/common/index';
+import { DardcorChatAttr, GenAiAttr, NoopOTelService, resolveOTelConfig } from '../../../../platform/otel/common/index';
 import type { IOTelService } from '../../../../platform/otel/common/otelService';
 import { CapturingOTelService } from '../../../../platform/otel/common/test/capturingOTelService';
 import { CapturingToken } from '../../../../platform/requestLogger/common/capturingToken';
@@ -178,8 +178,8 @@ describe('GeminiNativeBYOKLMProvider', () => {
 
 		const chatSpan = otel.spans.find(s => s.name.startsWith('chat '));
 		expect(chatSpan?.attributes[GenAiAttr.CONVERSATION_ID]).toBe('session-xyz');
-		expect(chatSpan?.attributes[CopilotChatAttr.SESSION_ID]).toBe('session-xyz');
-		expect(chatSpan?.attributes[CopilotChatAttr.CHAT_SESSION_ID]).toBe('session-xyz');
+		expect(chatSpan?.attributes[DardcorChatAttr.SESSION_ID]).toBe('session-xyz');
+		expect(chatSpan?.attributes[DardcorChatAttr.CHAT_SESSION_ID]).toBe('session-xyz');
 	}, 30_000);
 
 	it('omits session ids on the chat span when no CapturingToken is available', async () => {
@@ -190,8 +190,8 @@ describe('GeminiNativeBYOKLMProvider', () => {
 		const chatSpan = otel.spans.find(s => s.name.startsWith('chat '));
 		expect(chatSpan).toBeDefined();
 		expect(chatSpan?.attributes[GenAiAttr.CONVERSATION_ID]).toBeUndefined();
-		expect(chatSpan?.attributes[CopilotChatAttr.SESSION_ID]).toBeUndefined();
-		expect(chatSpan?.attributes[CopilotChatAttr.CHAT_SESSION_ID]).toBeUndefined();
+		expect(chatSpan?.attributes[DardcorChatAttr.SESSION_ID]).toBeUndefined();
+		expect(chatSpan?.attributes[DardcorChatAttr.CHAT_SESSION_ID]).toBeUndefined();
 	}, 30_000);
 
 	it('emits response.success telemetry with the forwarded turn measurement', async () => {
@@ -274,100 +274,23 @@ describe('GeminiNativeBYOKLMProvider', () => {
 		)).rejects.toThrow(/No API key configured/i);
 	});
 
-	// it.skip('initializes the Gemini client on API key update and can stream a response', async () => {
-	// 	const { GeminiNativeBYOKLMProvider } = await import('../geminiNativeProvider');
-	// 	const genai = await import('@google/genai');
-	// 	const MockGoogleGenAI = genai.GoogleGenAI as unknown as { createdWithApiKeys: string[]; streamChunks: any[] };
-	// 	MockGoogleGenAI.createdWithApiKeys.length = 0;
-	// 	MockGoogleGenAI.streamChunks.length = 0;
-	// 	MockGoogleGenAI.streamChunks.push({
-	// 		candidates: [{
-	// 			content: { parts: [{ text: 'Hello from Gemini' }] }
-	// 		}]
-	// 	});
 
-	// 	mockHandleAPIKeyUpdate.mockResolvedValue({ apiKey: 'k_test', deleted: false, cancelled: false });
 
-	// 	const storage = createStorageService({ getAPIKey: vi.fn().mockResolvedValue('k_test') });
-	// 	const provider = new GeminiNativeBYOKLMProvider(undefined, storage, new TestLogService(), createRequestLogger());
 
-	// 	await provider.updateAPIKey();
-	// 	expect(MockGoogleGenAI.createdWithApiKeys).toEqual(['k_test']);
 
-	// 	const model: vscode.LanguageModelChatInformation = {
-	// 		id: 'gemini-2.0-flash',
-	// 		name: 'Gemini 2.0 Flash',
-	// 		family: 'Gemini',
-	// 		version: '1.0.0',
-	// 		maxInputTokens: 1000,
-	// 		maxOutputTokens: 1000,
-	// 		capabilities: { toolCalling: false, imageInput: false }
-	// 	};
-	// 	const messages: vscode.LanguageModelChatMessage[] = [
-	// 		new vscode.LanguageModelChatMessage(vscode.LanguageModelChatMessageRole.User, 'hello')
-	// 	];
 
-	// 	const tokenSource = new vscode.CancellationTokenSource();
-	// 	const progress = new TestProgress();
-	// 	await provider.provideLanguageModelChatResponse(
-	// 		model,
-	// 		messages,
-	// 		{ requestInitiator: 'test', tools: [], toolMode: vscode.LanguageModelChatToolMode.Auto },
-	// 		progress,
-	// 		tokenSource.token
-	// 	);
 
-	// 	expect(progress.items.some(p => p instanceof vscode.LanguageModelTextPart && p.value.includes('Hello from Gemini'))).toBe(true);
-	// });
 
-	// it.skip('clears the client when API key is deleted via update flow', async () => {
-	// 	const { GeminiNativeBYOKLMProvider } = await import('../geminiNativeProvider');
-	// 	const genai = await import('@google/genai');
-	// 	const MockGoogleGenAI = genai.GoogleGenAI as unknown as { createdWithApiKeys: string[]; streamChunks: any[] };
-	// 	MockGoogleGenAI.createdWithApiKeys.length = 0;
-	// 	MockGoogleGenAI.streamChunks.length = 0;
 
-	// 	const storage = createStorageService({ getAPIKey: vi.fn().mockResolvedValue(undefined) });
-	// 	const provider = new GeminiNativeBYOKLMProvider(undefined, storage, new TestLogService(), createRequestLogger());
 
-	// 	// First set a key
-	// 	mockHandleAPIKeyUpdate.mockResolvedValueOnce({ apiKey: 'k_initial', deleted: false, cancelled: false });
-	// 	await provider.updateAPIKey();
-	// 	expect(MockGoogleGenAI.createdWithApiKeys).toEqual(['k_initial']);
 
-	// 	// Then delete it
-	// 	mockHandleAPIKeyUpdate.mockResolvedValueOnce({ apiKey: undefined, deleted: true, cancelled: false });
-	// 	await provider.updateAPIKey();
 
-	// 	const model: vscode.LanguageModelChatInformation = {
-	// 		id: 'gemini-2.0-flash',
-	// 		name: 'Gemini 2.0 Flash',
-	// 		family: 'Gemini',
-	// 		version: '1.0.0',
-	// 		maxInputTokens: 1000,
-	// 		maxOutputTokens: 1000,
-	// 		capabilities: { toolCalling: false, imageInput: false }
-	// 	};
-	// 	const messages: vscode.LanguageModelChatMessage[] = [
-	// 		new vscode.LanguageModelChatMessage(vscode.LanguageModelChatMessageRole.User, 'hello')
-	// 	];
 
-	// 	const tokenSource = new vscode.CancellationTokenSource();
-	// 	const progress = new TestProgress();
-	// 	await expect(provider.provideLanguageModelChatResponse(
-	// 		model,
-	// 		messages,
-	// 		{ requestInitiator: 'test', tools: [], toolMode: vscode.LanguageModelChatToolMode.Auto },
-	// 		progress,
-	// 		tokenSource.token
-	// 	)).rejects.toThrow(/No API key configured/i);
-	// });
 
 	it.skip('prompts for a new API key when listing models fails with an invalid key', async () => {
 		const { GeminiNativeBYOKLMProvider } = await import('../geminiNativeProvider');
 		const genai = await import('@google/genai');
 		const MockGoogleGenAI = genai.GoogleGenAI as unknown as { listModelsResult: AsyncIterable<any> };
-		// Simulate the models.list() call throwing an invalid API key error when iterated
 		MockGoogleGenAI.listModelsResult = (async function* () {
 			throw new Error('ApiError: {"error":{"message":"API key not valid. Please pass a valid API key.","details":[{"reason":"API_KEY_INVALID"}]}}');
 		})();
@@ -382,8 +305,6 @@ describe('GeminiNativeBYOKLMProvider', () => {
 		const tokenSource = new vscode.CancellationTokenSource();
 		const models = await provider.provideLanguageModelChatInformation({ silent: false }, tokenSource.token);
 
-		// When the key is invalid, we should re-prompt for a new one
-		// and handle the failure gracefully by returning an empty list.
 		expect(models).toEqual([]);
 		expect(mockHandleAPIKeyUpdate).toHaveBeenCalled();
 	});
@@ -428,8 +349,6 @@ describe('GeminiNativeBYOKLMProvider', () => {
 		const tokenSource = new vscode.CancellationTokenSource();
 		const models = await provider.provideLanguageModelChatInformation({ silent: false }, tokenSource.token);
 
-		// First attempt should fail with invalid key, then after re-prompting
-		// we should retry listing models and succeed with the new key.
 		expect(models.map(m => m.id)).toEqual([modelId]);
 		expect(iterationCount).toBe(2);
 		expect(mockHandleAPIKeyUpdate).toHaveBeenCalled();

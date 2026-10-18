@@ -12,7 +12,6 @@ import { InlineSuggestionAction, InlineSuggestionItem } from '../../model/inline
 import { TextModelValueReference } from '../../model/textModelValueReference.js';
 
 export class InlineEditWithChanges {
-	// TODO@hediet: Move the next 3 fields into the action
 	public get lineEdit(): LineReplacement {
 		if (this.action?.kind === 'jumpTo') {
 			return new LineReplacement(LineRange.ofLength(this.action.position.lineNumber, 0), []);

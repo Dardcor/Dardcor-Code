@@ -8,7 +8,6 @@ import * as path from 'path';
 
 const root = path.resolve(import.meta.dirname, '../..');
 
-// esbuild-based bundle tasks (drop-in replacement for bundle-vscode / minify-vscode)
 
 export function runEsbuildTranspile(outDir: string, excludeTests: boolean): Promise<void> {
 	return new Promise((resolve, reject) => {

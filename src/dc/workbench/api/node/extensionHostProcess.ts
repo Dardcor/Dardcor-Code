@@ -34,10 +34,9 @@ interface ParsedExtHostArgs {
 	transformURIs?: boolean;
 	skipWorkspaceStorageLock?: boolean;
 	supportGlobalNavigator?: boolean; // enable global navigator object in nodejs
-	useHostProxy?: 'true' | 'false'; // use a string, as undefined is also a valid value
+	useHostProxy?: 'true' | 'false';
 }
 
-// silence experimental warnings when in development
 if (process.env.VSCODE_DEV) {
 	const warningListeners = process.listeners('warning');
 	process.removeAllListeners('warning');
@@ -51,8 +50,6 @@ if (process.env.VSCODE_DEV) {
 	});
 }
 
-// workaround for https://github.com/microsoft/vscode/issues/85490
-// remove --inspect-port=0 after start so that it doesn't trigger LSP debugging
 (function removeInspectPort() {
 	for (let i = 0; i < process.execArgv.length; i++) {
 		if (process.execArgv[i] === '--inspect-port=0') {
@@ -69,15 +66,10 @@ const args = minimist(process.argv.slice(2), {
 		'supportGlobalNavigator',
 	],
 	string: [
-		'useHostProxy' // 'true' | 'false' | undefined
+		'useHostProxy'
 	]
 }) as ParsedExtHostArgs;
 
-// With Electron 2.x and node.js 8.x the "natives" module
-// can cause a native crash (see https://github.com/nodejs/node/issues/19891 and
-// https://github.com/electron/electron/issues/10905). To prevent this from
-// happening we essentially blocklist this module from getting loaded in any
-// extension by patching the node require() function.
 (function () {
 	const Module = require('module');
 	const originalLoad = Module._load;
@@ -91,7 +83,6 @@ const args = minimist(process.argv.slice(2), {
 	};
 })();
 
-// custom process.exit logic...
 const nativeExit: IExitFn = process.exit.bind(process);
 const nativeOn = process.on.bind(process);
 function patchProcess(allowExit: boolean) {
@@ -104,17 +95,12 @@ function patchProcess(allowExit: boolean) {
 		}
 	} as (code?: number) => never;
 
-	// override Electron's process.crash() method
 	// eslint-disable-next-line local/code-no-any-casts
-	(process as any /* bypass layer checker */).crash = function () {
+	(process as any ).crash = function () {
 		const err = new Error('An extension called process.crash() and this was prevented.');
 		console.warn(err.stack);
 	};
 
-	// Set ELECTRON_RUN_AS_NODE environment variable for extensions that use
-	// child_process.spawn with process.execPath and expect to run as node process
-	// on the desktop.
-	// Refs https://github.com/microsoft/vscode/issues/151012#issuecomment-1156593228
 	process.env['ELECTRON_RUN_AS_NODE'] = '1';
 
 	// eslint-disable-next-line local/code-no-any-casts
@@ -125,10 +111,6 @@ function patchProcess(allowExit: boolean) {
 				try {
 					return actualListener.apply(undefined, args);
 				} catch {
-					// DO NOT HANDLE NOR PRINT the error here because this can and will lead to
-					// more errors which will cause error handling to be reentrant and eventually
-					// overflowing the stack. Do not be sad, we do handle and annotate uncaught
-					// errors properly in 'extensionHostMain'
 				}
 			};
 		}
@@ -138,11 +120,10 @@ function patchProcess(allowExit: boolean) {
 }
 
 // NodeJS since v21 defines navigator as a global object. This will likely surprise many extensions and potentially break them
-// because `navigator` has historically often been used to check if running in a browser (vs running inside NodeJS)
 if (!args.supportGlobalNavigator) {
 	Object.defineProperty(globalThis, 'navigator', {
 		get: () => {
-			onUnexpectedExternalError(new PendingMigrationError('navigator is now a global in nodejs, please see https://aka.ms/vscode-extensions/navigator for additional info on this error.'));
+			onUnexpectedExternalError(new PendingMigrationError('navigator is now a global in nodejs, please see https://www.dardcor-code.web.id/docs/extensions/api/navigator for additional info on this error.'));
 			return undefined;
 		}
 	});
@@ -154,8 +135,6 @@ interface IRendererConnection {
 	initData: IExtensionHostInitData;
 }
 
-// This calls exit directly in case the initialization is not finished and we need to exit
-// Otherwise, if initialization completed we go to extensionHostMain.terminate()
 let onTerminate = function (reason: string) {
 	nativeExit();
 };
@@ -219,8 +198,6 @@ function _createExtHostProtocol(): Promise<IMessagePassingProtocol> {
 
 			process.on('message', (msg: IExtHostSocketMessage | IExtHostReduceGraceTimeMessage, handle: net.Socket) => {
 				if (msg && msg.type === 'VSCODE_EXTHOST_IPC_SOCKET') {
-					// Disable Nagle's algorithm. We also do this on the server process,
-					// but nodejs doesn't document if this option is transferred with the socket
 					handle.setNoDelay(true);
 
 					const initialDataChunk = VSBuffer.wrap(Buffer.from(msg.initialDataChunk, 'base64'));
@@ -232,7 +209,6 @@ function _createExtHostProtocol(): Promise<IMessagePassingProtocol> {
 						socket = new WebSocketNodeSocket(new NodeSocket(handle, 'extHost-socket'), msg.permessageDeflate, inflateBytes, false);
 					}
 					if (protocol) {
-						// reconnection case
 						disconnectRunner1.cancel();
 						disconnectRunner2.cancel();
 						protocol.beginAcceptReconnection(socket, initialDataChunk);
@@ -245,26 +221,21 @@ function _createExtHostProtocol(): Promise<IMessagePassingProtocol> {
 						Event.once(protocol.onDidDispose)(() => onTerminate('renderer disconnected'));
 						resolve(protocol);
 
-						// Wait for rich client to reconnect
 						protocol.onSocketClose(() => {
-							// The socket has closed, let's give the renderer a certain amount of time to reconnect
 							disconnectRunner1.schedule();
 						});
 					}
 				}
 				if (msg && msg.type === 'VSCODE_EXTHOST_IPC_REDUCE_GRACE_TIME') {
 					if (disconnectRunner2.isScheduled()) {
-						// we are disconnected and already running the short reconnection timer
 						return;
 					}
 					if (disconnectRunner1.isScheduled()) {
-						// we are disconnected and running the long reconnection timer
 						disconnectRunner2.schedule();
 					}
 				}
 			});
 
-			// Now that we have managed to install a message listener, ask the other side to send us the socket
 			const req: IExtHostReadyMessage = { type: 'VSCODE_EXTHOST_IPC_READY' };
 			process.send?.(req);
 		});
@@ -332,7 +303,6 @@ async function createExtHostProtocol(): Promise<IMessagePassingProtocol> {
 function connectToRenderer(protocol: IMessagePassingProtocol): Promise<IRendererConnection> {
 	return new Promise<IRendererConnection>((c) => {
 
-		// Listen init data message
 		const first = protocol.onMessage(raw => {
 			first.dispose();
 
@@ -342,24 +312,19 @@ function connectToRenderer(protocol: IMessagePassingProtocol): Promise<IRenderer
 			const myCommit = product.commit;
 
 			if (rendererCommit && myCommit) {
-				// Running in the built version where commits are defined
 				if (rendererCommit !== myCommit) {
 					nativeExit(ExtensionHostExitCode.VersionMismatch);
 				}
 			}
 
 			if (initData.parentPid) {
-				// Kill oneself if one's parent dies. Much drama.
 				let epermErrors = 0;
 				setInterval(function () {
 					try {
-						process.kill(initData.parentPid, 0); // throws an exception if the main process doesn't exist anymore.
+						process.kill(initData.parentPid, 0);
 						epermErrors = 0;
 					} catch (e) {
 						if (e && e.code === 'EPERM') {
-							// Even if the parent process is still alive,
-							// some antivirus software can lead to an EPERM error to be thrown here.
-							// Let's terminate only if we get 3 consecutive EPERM errors.
 							epermErrors++;
 							if (epermErrors >= 3) {
 								onTerminate(`parent process ${initData.parentPid} does not exist anymore (3 x EPERM): ${e.message} (code: ${e.code}) (errno: ${e.errno})`);
@@ -370,35 +335,26 @@ function connectToRenderer(protocol: IMessagePassingProtocol): Promise<IRenderer
 					}
 				}, 1000);
 
-				// In certain cases, the event loop can become busy and never yield
-				// e.g. while-true or process.nextTick endless loops
-				// So also use the native node module to do it from a separate thread
 				let watchdog: typeof nativeWatchdog;
 				try {
 					watchdog = require('@vscode/native-watchdog');
 					watchdog.start(initData.parentPid);
 				} catch (err) {
-					// no problem...
 					onUnexpectedError(err);
 				}
 			}
 
-			// Tell the outside that we are initialized
 			protocol.send(createMessageOfType(MessageType.Initialized));
 
 			c({ protocol, initData });
 		});
 
-		// Tell the outside that we are ready to receive messages
 		protocol.send(createMessageOfType(MessageType.Ready));
 	});
 }
 
 async function startExtensionHostProcess(): Promise<void> {
 
-	// Print a console message when rejection isn't handled within N seconds. For details:
-	// see https://nodejs.org/api/process.html#process_event_unhandledrejection
-	// and https://nodejs.org/api/process.html#process_event_rejectionhandled
 	const unhandledPromises: Promise<any>[] = [];
 	process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
 		unhandledPromises.push(promise);
@@ -428,7 +384,6 @@ async function startExtensionHostProcess(): Promise<void> {
 		}
 	});
 
-	// Print a console message when an exception isn't handled.
 	process.on('uncaughtException', function (err: Error) {
 		if (!isSigPipeError(err)) {
 			onUnexpectedError(err);
@@ -441,12 +396,10 @@ async function startExtensionHostProcess(): Promise<void> {
 	const renderer = await connectToRenderer(protocol);
 	performance.mark(`code/extHost/didWaitForInitData`);
 	const { initData } = renderer;
-	// setup things
-	patchProcess(!!initData.environment.extensionTestsLocationURI); // to support other test frameworks like Jasmin that use process.exit (https://github.com/microsoft/vscode/issues/37708)
+	patchProcess(!!initData.environment.extensionTestsLocationURI);
 	initData.environment.useHostProxy = args.useHostProxy !== undefined ? args.useHostProxy !== 'false' : undefined;
 	initData.environment.skipWorkspaceStorageLock = boolean(args.skipWorkspaceStorageLock, false);
 
-	// host abstraction
 	const hostUtils = new class NodeHost implements IHostUtils {
 		declare readonly _serviceBrand: undefined;
 		public readonly pid = process.pid;
@@ -455,7 +408,6 @@ async function startExtensionHostProcess(): Promise<void> {
 		fsRealpath(path: string) { return Promises.realpath(path); }
 	};
 
-	// Attempt to load uri transformer
 	let uriTransformer: IURITransformer | null = null;
 	if (initData.remote.authority && args.transformURIs) {
 		uriTransformer = createURITransformer(initData.remote.authority);
@@ -468,7 +420,6 @@ async function startExtensionHostProcess(): Promise<void> {
 		uriTransformer
 	);
 
-	// rewrite onTerminate-function to be a proper shutdown
 	onTerminate = (reason: string) => extensionHostMain.terminate(reason);
 }
 

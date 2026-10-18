@@ -1,12 +1,4 @@
-/**
- * Stream-to-JSON Converter
- * Converts Responses API SSE stream to single JSON response
- * Used when client requests non-streaming but provider forces streaming (e.g., Codex)
- */
 
-/**
- * Process a single SSE message and update state accordingly.
- */
 function processSSEMessage(msg, state) {
   if (!msg.trim()) return;
 
@@ -41,11 +33,6 @@ function processSSEMessage(msg, state) {
 
 const EMPTY_RESPONSE = { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
 
-/**
- * Convert Responses API SSE stream to single JSON response
- * @param {ReadableStream} stream - SSE stream from provider
- * @returns {Promise<Object>} Final JSON response in Responses API format
- */
 export async function convertResponsesStreamToJson(stream) {
   if (!stream || typeof stream.getReader !== "function") {
     return { id: `resp_${Date.now()}`, object: "response", created_at: Math.floor(Date.now() / 1000), status: "failed", output: [], usage: { ...EMPTY_RESPONSE } };
@@ -77,7 +64,6 @@ export async function convertResponsesStreamToJson(stream) {
       }
     }
 
-    // Flush remaining buffer (last event may not end with \n\n)
     if (buffer.trim()) {
       processSSEMessage(buffer, state);
     }
@@ -85,7 +71,6 @@ export async function convertResponsesStreamToJson(stream) {
     reader.releaseLock();
   }
 
-  // Build output array from accumulated items (ordered by index)
   const output = [];
   const maxIndex = state.items.size > 0 ? Math.max(...state.items.keys()) : -1;
   for (let i = 0; i <= maxIndex; i++) {

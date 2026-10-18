@@ -82,7 +82,6 @@ export class DiagnosticsNextEditProvider extends Disposable implements INextEdit
 				return new DiagnosticsNextEditResult(logContext.requestId, undefined);
 			}
 
-			// Check if the last computed edit is still valid
 			const initialResult = this._getResultForCurrentState(docId, logContext, tb);
 			if (initialResult.result) {
 				return initialResult;
@@ -131,7 +130,6 @@ export class DiagnosticsNextEditProvider extends Disposable implements INextEdit
 	private _createNextEditResult(diagnosticEditResult: DiagnosticCompletionState, logContext: InlineEditRequestLogContext, tb: DiagnosticsTelemetryBuilder): DiagnosticsNextEditResult {
 		const { item, telemetry } = diagnosticEditResult;
 
-		// Diagnostics might not have updated yet since accepting a diagnostics based NES
 		if (item && this._hasRecentlyBeenAccepted(item)) {
 			tb.addDroppedReason(`${item.type}:recently-accepted`);
 			this._logger.trace('recently accepted');
@@ -209,7 +207,7 @@ export class DiagnosticsNextEditProvider extends Disposable implements INextEdit
 		this._diagnosticsCompletionHandler.handleEndOfLifetime(completionResult.item, {
 			kind: vscode.InlineCompletionEndOfLifeReasonKind.Ignored,
 			supersededBy: supersededByItem,
-			userTypingDisagreed: false /* TODO: Adopt this*/
+			userTypingDisagreed: false
 		});
 	}
 

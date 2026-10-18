@@ -11,9 +11,6 @@ export const scrollableClass = 'scrollable';
 const softScrollableLineLimit = 5000;
 const hardScrollableLineLimit = 8000;
 
-/**
- * Output is Truncated. View as a [scrollable element] or open in a [text editor]. Adjust cell output [settings...]
- */
 function generateViewMoreElement(outputId: string) {
 
 	const container = document.createElement('div');
@@ -86,7 +83,6 @@ function truncatedArrayOfString(id: string, buffer: string[], linesLimit: number
 
 	container.appendChild(handleANSIOutput(buffer.slice(0, linesLimit - 5).join('\n'), linkOptions));
 
-	// truncated piece
 	const elipses = document.createElement('div');
 	elipses.innerText = '...';
 	container.appendChild(elipses);
@@ -123,7 +119,6 @@ function appendScrollableOutput(element: HTMLElement, id: string, appended: stri
 
 	const buffer = appended.split(/\r\n|\r|\n/g);
 	const appendedLength = buffer.length + outputLengths[id];
-	// Only append outputs up to the hard limit of lines, then replace it with the last softLimit number of lines
 	if (appendedLength > hardScrollableLineLimit) {
 		return false;
 	}
@@ -158,7 +153,6 @@ export function createOutputContent(id: string, outputText: string, options: Out
 export function appendOutput(outputInfo: OutputWithAppend, existingContent: HTMLElement, options: OutputElementOptions) {
 	const appendedText = outputInfo.appendedText?.();
 	const linkOptions = { linkifyFilePaths: options.linkifyFilePaths, trustHtml: options.trustHtml };
-	// appending output only supported for scrollable ouputs currently
 	if (appendedText && options.scrollable) {
 		if (appendScrollableOutput(existingContent, outputInfo.id, appendedText, linkOptions)) {
 			return;
@@ -168,7 +162,6 @@ export function appendOutput(outputInfo: OutputWithAppend, existingContent: HTML
 	const newContent = createOutputContent(outputInfo.id, outputInfo.text(), options);
 	existingContent.replaceWith(newContent);
 	while (newContent.nextSibling) {
-		// clear out any stale content if we had previously combined streaming outputs into this one
 		newContent.nextSibling.remove();
 	}
 

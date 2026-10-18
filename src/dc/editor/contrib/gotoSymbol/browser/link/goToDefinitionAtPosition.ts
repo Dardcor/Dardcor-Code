@@ -83,17 +83,8 @@ export class GotoDefinitionAtPositionEditorContribution implements IEditorContri
 	}
 
 	async startFindDefinitionFromCursor(position: Position) {
-		// For issue: https://github.com/microsoft/vscode/issues/46257
-		// equivalent to mouse move with meta/ctrl key
 
-		// First find the definition and add decorations
-		// to the editor to be shown with the content hover widget
 		await this.startFindDefinition(position);
-		// Add listeners for editor cursor move and key down events
-		// Dismiss the "extended" editor decorations when the user hides
-		// the hover widget. There is no event for the widget itself so these
-		// serve as a best effort. After removing the link decorations, the hover
-		// widget is clean and will only show declarations per next request.
 		this.toUnhookForKeyboard.add(this.editor.onDidChangeCursorPosition(() => {
 			this.currentWordAtPosition = null;
 			this.removeLinkDecorations();
@@ -110,7 +101,6 @@ export class GotoDefinitionAtPositionEditorContribution implements IEditorContri
 
 	private startFindDefinitionFromMouse(mouseEvent: ClickLinkMouseEvent, withKey?: ClickLinkKeyboardEvent): void {
 
-		// check if we are active and on a content widget
 		if (mouseEvent.target.type === MouseTargetType.CONTENT_WIDGET && this.linkDecorations.length > 0) {
 			return;
 		}
@@ -128,10 +118,8 @@ export class GotoDefinitionAtPositionEditorContribution implements IEditorContri
 
 	private async startFindDefinition(position: Position): Promise<void> {
 
-		// Dispose listeners for updating decorations when using keyboard to show definition hover
 		this.toUnhookForKeyboard.clear();
 
-		// Find word at mouse position
 		const word = position ? this.editor.getModel()?.getWordAtPosition(position) : null;
 		if (!word) {
 			this.currentWordAtPosition = null;
@@ -139,14 +127,12 @@ export class GotoDefinitionAtPositionEditorContribution implements IEditorContri
 			return;
 		}
 
-		// Return early if word at position is still the same
 		if (this.currentWordAtPosition && this.currentWordAtPosition.startColumn === word.startColumn && this.currentWordAtPosition.endColumn === word.endColumn && this.currentWordAtPosition.word === word.word) {
 			return;
 		}
 
 		this.currentWordAtPosition = word;
 
-		// Find definition and decorate word if found
 		const state = new EditorState(this.editor, CodeEditorStateFlag.Position | CodeEditorStateFlag.Value | CodeEditorStateFlag.Selection | CodeEditorStateFlag.Scroll);
 
 		if (this.previousPromise) {
@@ -174,7 +160,6 @@ export class GotoDefinitionAtPositionEditorContribution implements IEditorContri
 			? Range.lift(results[0].originSelectionRange)
 			: new Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn);
 
-		// Multiple results
 		if (results.length > 1) {
 
 			let combinedRange = linkRange;
@@ -189,7 +174,6 @@ export class GotoDefinitionAtPositionEditorContribution implements IEditorContri
 				new MarkdownString().appendText(nls.localize('multipleResults', "Click to show {0} definitions.", results.length))
 			);
 		} else {
-			// Single result
 			const result = results[0];
 
 			if (!result.uri) {
@@ -207,7 +191,6 @@ export class GotoDefinitionAtPositionEditorContribution implements IEditorContri
 				const { startLineNumber } = result.range;
 
 				if (startLineNumber < 1 || startLineNumber > textEditorModel.getLineCount()) {
-					// invalid range
 					ref.dispose();
 					return;
 				}

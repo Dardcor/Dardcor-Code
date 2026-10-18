@@ -177,7 +177,6 @@ suite('DomSanitize', () => {
 				]
 			}
 		});
-		// xyz title should be preserved and doubled
 		assert.strictEqual(result.toString(), '<div>text1</div><div title="xyzxyz">text2</div>');
 	});
 
@@ -190,7 +189,7 @@ suite('DomSanitize', () => {
 						attributeName: 'title',
 						shouldKeep: () => false
 					},
-					'title' // Should allow everything since it comes after custom rule
+					'title'
 				]
 			}
 		});

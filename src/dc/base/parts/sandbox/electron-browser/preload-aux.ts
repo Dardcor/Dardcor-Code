@@ -17,10 +17,6 @@
 
 	const globals = {
 
-		/**
-		 * A minimal set of methods exposed from Electron's `ipcRenderer`
-		 * to support communication to main process.
-		 */
 		ipcRenderer: {
 
 			send(channel: string, ...args: unknown[]): void {
@@ -36,9 +32,6 @@
 			}
 		},
 
-		/**
-		 * Support for subset of methods of Electron's `webFrame` type.
-		 */
 		webFrame: {
 
 			setZoomLevel(level: number): void {

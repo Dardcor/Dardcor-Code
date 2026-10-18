@@ -20,7 +20,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 
 class TestKeyboardMapperFactory extends BrowserKeyboardMapperFactoryBase {
 	constructor(configurationService: IConfigurationService, notificationService: INotificationService, storageService: IStorageService, commandService: ICommandService) {
-		// super(notificationService, storageService, commandService);
 		super(configurationService);
 
 		const keymapInfos: IKeymapInfo[] = KeyboardLayoutContribution.INSTANCE.layoutInfos;

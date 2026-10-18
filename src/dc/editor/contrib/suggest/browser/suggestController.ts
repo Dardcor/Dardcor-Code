@@ -46,9 +46,7 @@ import { WindowIdleValue, getWindow } from '../../../../base/browser/dom.js';
 import { ModelDecorationOptions } from '../../../common/model/textModel.js';
 import { EditSources } from '../../../common/textModelEditSource.js';
 
-// sticky suggest widget which doesn't disappear on focus out and such
 const _sticky = false
-	// || Boolean("true") // done "weirdly" so that a lint warning prevents you from pushing this
 	;
 
 class LineSuffix {
@@ -61,9 +59,6 @@ class LineSuffix {
 	private _marker: string | undefined;
 
 	constructor(private readonly _model: ITextModel, private readonly _position: IPosition) {
-		// spy on what's happening right of the cursor. two cases:
-		// 1. end of line -> check that it's still end of line
-		// 2. mid of line -> add a marker and compute the delta
 		const maxColumn = _model.getLineMaxColumn(_position.lineNumber);
 		if (maxColumn !== _position.column) {
 			const offset = _model.getOffsetAt(_position);
@@ -88,11 +83,8 @@ class LineSuffix {
 
 	delta(position: IPosition): number {
 		if (this._model.isDisposed() || this._position.lineNumber !== position.lineNumber) {
-			// bail out early if things seems fishy
 			return 0;
 		}
-		// read the marker (in case suggest was triggered at line end) or compare
-		// the cursor to the line end.
 		if (this._marker) {
 			const range = this._model.getDecorationRange(this._marker);
 			const end = this._model.getOffsetAt(range!.getStartPosition());
@@ -147,13 +139,11 @@ export class SuggestController implements IEditorContribution {
 		this.editor = editor;
 		this.model = _instantiationService.createInstance(SuggestModel, this.editor,);
 
-		// default selector
 		this._selectors.register({
 			priority: 0,
 			select: (model, pos, items) => this._memoryService.select(model, pos, items)
 		});
 
-		// context key: update insert/replace mode
 		const ctxInsertMode = SuggestContext.InsertMode.bindTo(_contextKeyService);
 		ctxInsertMode.set(editor.getOption(EditorOption.suggest).insertMode);
 		this._toDispose.add(this.model.onDidTrigger(() => ctxInsertMode.set(editor.getOption(EditorOption.suggest).insertMode)));
@@ -165,12 +155,10 @@ export class SuggestController implements IEditorContribution {
 			this._toDispose.add(widget);
 			this._toDispose.add(widget.onDidSelect(item => this._insertSuggestion(item, InsertFlags.None), this));
 
-			// Wire up logic to accept a suggestion on certain characters
 			const commitCharacterController = new CommitCharacterController(this.editor, widget, this.model, item => this._insertSuggestion(item, InsertFlags.NoAfterUndoStop));
 			this._toDispose.add(commitCharacterController);
 
 
-			// Wire up makes text edit context key
 			const ctxMakesTextEdit = SuggestContext.MakesTextEdit.bindTo(this._contextKeyService);
 			const ctxHasInsertAndReplace = SuggestContext.HasInsertAndReplaceRange.bindTo(this._contextKeyService);
 			const ctxCanResolve = SuggestContext.CanResolve.bindTo(this._contextKeyService);
@@ -183,7 +171,6 @@ export class SuggestController implements IEditorContribution {
 
 			this._toDispose.add(widget.onDidFocus(({ item }) => {
 
-				// (ctx: makesTextEdit)
 				const position = this.editor.getPosition()!;
 				const startColumn = item.editStart.column;
 				const endColumn = position.column;
@@ -205,10 +192,8 @@ export class SuggestController implements IEditorContribution {
 				}
 				ctxMakesTextEdit.set(value);
 
-				// (ctx: hasInsertAndReplaceRange)
 				ctxHasInsertAndReplace.set(!Position.equals(item.editInsertEnd, item.editReplaceEnd));
 
-				// (ctx: canResolve)
 				ctxCanResolve.set(Boolean(item.provider.resolveCompletionItem) || Boolean(item.completion.documentation) || item.completion.detail !== item.completion.label);
 			}));
 
@@ -219,7 +204,6 @@ export class SuggestController implements IEditorContribution {
 			return widget;
 		}));
 
-		// Wire up text overtyping capture
 		this._overtypingCapturer = this._toDispose.add(new WindowIdleValue(getWindow(editor.getDomNode()), () => {
 			return this._toDispose.add(new OvertypingCapturer(this.editor, this.model));
 		}));
@@ -249,25 +233,18 @@ export class SuggestController implements IEditorContribution {
 				index = 0;
 			}
 			if (this.model.state === State.Idle) {
-				// selecting an item can "pump" out selection/cursor change events
-				// which can cancel suggest halfway through this function. therefore
-				// we need to check again and bail if the session has been canceled
 				return;
 			}
 			let noFocus = false;
 			if (e.triggerOptions.auto) {
-				// don't "focus" item when configured to do
 				const options = this.editor.getOption(EditorOption.suggest);
 				if (options.selectionMode === 'never' || options.selectionMode === 'always') {
-					// simple: always or never
 					noFocus = options.selectionMode === 'never';
 
 				} else if (options.selectionMode === 'whenTriggerCharacter') {
-					// on with trigger character
 					noFocus = e.triggerOptions.triggerKind !== CompletionTriggerKind.TriggerCharacter;
 
 				} else if (options.selectionMode === 'whenQuickSuggestion') {
-					// without trigger character or when refiltering
 					noFocus = e.triggerOptions.triggerKind === CompletionTriggerKind.TriggerCharacter && !e.triggerOptions.refilter;
 				}
 
@@ -286,7 +263,6 @@ export class SuggestController implements IEditorContribution {
 			}
 		}));
 
-		// Manage the acceptSuggestionsOnEnter context key
 		const acceptSuggestionsOnEnter = SuggestContext.AcceptSuggestionsOnEnter.bindTo(_contextKeyService);
 		const updateFromConfig = () => {
 			const acceptSuggestionOnEnter = this.editor.getOption(EditorOption.acceptSuggestionOnEnter);
@@ -329,41 +305,32 @@ export class SuggestController implements IEditorContribution {
 		const modelVersionNow = model.getAlternativeVersionId();
 		const { item } = event;
 
-		//
 		const tasks: Promise<unknown>[] = [];
 		const cts = new CancellationTokenSource();
 
-		// pushing undo stops *before* additional text edits and
-		// *after* the main edit
 		if (!(flags & InsertFlags.NoBeforeUndoStop)) {
 			this.editor.pushUndoStop();
 		}
 
-		// compute overwrite[Before|After] deltas BEFORE applying extra edits
 		const info = this.getOverwriteInfo(item, Boolean(flags & InsertFlags.AlternativeOverwriteConfig));
 
-		// keep item in memory
 		this._memoryService.memorize(model, this.editor.getPosition(), item);
 
 		const isResolved = item.isResolved;
 
-		// telemetry data points: duration of command execution, info about async additional edits (-1=n/a, -2=none, 1=success, 0=failed)
 		let _commandExectionDuration = -1;
 		let _additionalEditsAppliedAsync = -1;
 
 		if (Array.isArray(item.completion.additionalTextEdits)) {
 
-			// cancel -> stops all listening and closes widget
 			this.model.cancel();
 
-			// sync additional edits
 			const scrollState = StableEditorScrollState.capture(this.editor);
 			this.editor.executeEdits(
 				'suggestController.additionalTextEdits.sync',
 				item.completion.additionalTextEdits.map(edit => {
 					let range = Range.lift(edit.range);
 					if (range.startLineNumber === item.position.lineNumber && range.startColumn > item.position.column) {
-						// shift additional edit when it is "after" the completion insertion position
 						const columnDelta = this.editor.getPosition()!.column - item.position.column;
 						const startColumnDelta = columnDelta;
 						const endColumnDelta = Range.spansMultipleLines(range) ? 0 : columnDelta;
@@ -375,7 +342,6 @@ export class SuggestController implements IEditorContribution {
 			scrollState.restoreRelativeVerticalPositionOfCursor(this.editor);
 
 		} else if (!isResolved) {
-			// async additional edits
 			const sw = new StopWatch();
 			let position: IPosition | undefined;
 
@@ -438,7 +404,6 @@ export class SuggestController implements IEditorContribution {
 			insertText = SnippetParser.escape(insertText);
 		}
 
-		// cancel -> stops all listening and closes widget
 		this.model.cancel();
 
 		snippetController.insert(insertText, {
@@ -458,10 +423,8 @@ export class SuggestController implements IEditorContribution {
 
 		if (item.completion.command) {
 			if (item.completion.command.id === TriggerSuggestAction.id) {
-				// retigger
 				this.model.trigger({ auto: true, retrigger: true });
 			} else {
-				// exec command, done
 				const sw = new StopWatch();
 				tasks.push(this._commandService.executeCommand(item.completion.command.id, ...(item.completion.command.arguments ? [...item.completion.command.arguments] : [])).catch(e => {
 					if (item.completion.extensionId) {
@@ -478,12 +441,8 @@ export class SuggestController implements IEditorContribution {
 		if (flags & InsertFlags.KeepAlternativeSuggestions) {
 			this._alternatives.value.set(event, next => {
 
-				// cancel resolving of additional edits
 				cts.cancel();
 
-				// this is not so pretty. when inserting the 'next'
-				// suggestion we undo until we are at the state at
-				// which we were before inserting the previous suggestion...
 				while (model.canUndo()) {
 					if (modelVersionNow !== model.getAlternativeVersionId()) {
 						model.undo();
@@ -499,7 +458,6 @@ export class SuggestController implements IEditorContribution {
 
 		this._alertCompletionItem(item);
 
-		// clear only now - after all tasks are done
 		Promise.all(tasks).finally(() => {
 			this._reportSuggestionAcceptedTelemetry(item, model, isResolved, _commandExectionDuration, _additionalEditsAppliedAsync, event.index, event.model.items);
 
@@ -509,7 +467,7 @@ export class SuggestController implements IEditorContribution {
 	}
 
 	private _reportSuggestionAcceptedTelemetry(item: CompletionItem, model: ITextModel, itemResolved: boolean, commandExectionDuration: number, additionalEditsAppliedAsync: number, index: number, completionItems: CompletionItem[]): void {
-		if (Math.random() > 0.0001) { // 0.01%
+		if (Math.random() > 0.0001) {
 			return;
 		}
 
@@ -621,14 +579,12 @@ export class SuggestController implements IEditorContribution {
 
 		const makesTextEdit = (item: CompletionItem): boolean => {
 			if (item.completion.insertTextRules! & CompletionItemInsertTextRule.InsertAsSnippet || item.completion.additionalTextEdits) {
-				// snippet, other editor -> makes edit
 				return true;
 			}
 			const position = this.editor.getPosition()!;
 			const startColumn = item.editStart.column;
 			const endColumn = position.column;
 			if (endColumn - startColumn !== item.completion.insertText.length) {
-				// unequal lengths -> makes edit
 				return true;
 			}
 			const textNow = this.editor.getModel()!.getValueInRange({
@@ -637,16 +593,13 @@ export class SuggestController implements IEditorContribution {
 				endLineNumber: position.lineNumber,
 				endColumn
 			});
-			// unequal text -> makes edit
 			return textNow !== item.completion.insertText;
 		};
 
 		Event.once(this.model.onDidTrigger)(_ => {
-			// wait for trigger because only then the cancel-event is trustworthy
 			const listener: IDisposable[] = [];
 
 			Event.any<unknown>(this.model.onDidTrigger, this.model.onDidCancel)(() => {
-				// retrigger or cancel -> try to type default text
 				dispose(listener);
 				fallback();
 			}, undefined, listener);
@@ -748,7 +701,6 @@ export class SuggestController implements IEditorContribution {
 		if (this.widget.isInitialized) {
 			this.widget.value.forceRenderingAbove();
 		} else {
-			// Defer this until the widget is created
 			this._wantsForceRenderingAbove = true;
 		}
 	}
@@ -846,12 +798,10 @@ registerEditorCommand(new SuggestCommand({
 		x.acceptSelectedSuggestion(true, false);
 	},
 	kbOpts: [{
-		// normal tab
 		primary: KeyCode.Tab,
 		kbExpr: ContextKeyExpr.and(SuggestContext.Visible, EditorContextKeys.textInputFocus),
 		weight,
 	}, {
-		// accept on enter has special rules
 		primary: KeyCode.Enter,
 		kbExpr: ContextKeyExpr.and(SuggestContext.Visible, EditorContextKeys.textInputFocus, SuggestContext.AcceptSuggestionsOnEnter, SuggestContext.MakesTextEdit),
 		weight,
@@ -905,7 +855,6 @@ registerEditorCommand(new SuggestCommand({
 }));
 
 
-// continue to support the old command
 CommandsRegistry.registerCommandAlias('acceptSelectedSuggestionOnEnter', 'acceptSelectedSuggestion');
 
 registerEditorCommand(new SuggestCommand({
@@ -1059,7 +1008,6 @@ registerEditorCommand(new SuggestCommand({
 	}
 }));
 
-//#region tab completions
 
 registerEditorCommand(new SuggestCommand({
 	id: 'insertBestCompletion',

@@ -37,9 +37,6 @@ import { ILifecycleService, WillShutdownJoinerOrder } from '../../../../services
 export { ITerminalSandboxService, TerminalSandboxPrerequisiteCheck, TerminalSandboxPreCheckRemediation } from '../../../../../platform/sandbox/common/terminalSandboxService.js';
 export type { ISandboxDependencyInstallOptions, ISandboxDependencyInstallResult, ISandboxDependencyInstallTerminal, ITerminalSandboxCommand, ITerminalSandboxFileAccessCheckResult, ITerminalSandboxPrecheckInputs, ITerminalSandboxPrerequisiteCheckResult, ITerminalSandboxResolvedNetworkDomains, ITerminalSandboxWrapResult, TerminalSandboxFileAccessPermission } from '../../../../../platform/sandbox/common/terminalSandboxService.js';
 
-/**
- * Context passed to the password prompt during dependency installation.
- */
 interface ISandboxDependencyInstallTerminalContext {
 	focusTerminal(): Promise<void>;
 	onDidInputData: Event<string>;
@@ -47,7 +44,6 @@ interface ISandboxDependencyInstallTerminalContext {
 	didSendInstallCommand(): boolean;
 }
 
-/** Subdirectory under the user home + product data folder where the engine creates its temp dir. */
 const SANDBOX_TEMP_DIR_NAME = 'tmp';
 
 function affectsSandboxSettings(e: IConfigurationChangeEvent): boolean {
@@ -111,7 +107,6 @@ export class TerminalSandboxService extends Disposable implements ITerminalSandb
 		}));
 	}
 
-	// ---- ITerminalSandboxService forwarders ---------------------------------
 
 	isEnabled(precheckInputs?: ITerminalSandboxPrecheckInputs): Promise<boolean> {
 		return this._engine.isEnabled(precheckInputs);
@@ -157,7 +152,6 @@ export class TerminalSandboxService extends Disposable implements ITerminalSandb
 		return this._engine.getMissingSandboxDependencies();
 	}
 
-	// ---- host adapter helpers -----------------------------------------------
 
 	private async _resolveRemoteEnv(): Promise<IRemoteAgentEnvironment | null> {
 		if (this._remoteEnvDetails === undefined) {
@@ -178,11 +172,8 @@ export class TerminalSandboxService extends Disposable implements ITerminalSandb
 	private async _resolveRuntimeInfo(): Promise<ITerminalSandboxRuntimeInfo> {
 		const remoteEnv = await this._resolveRemoteEnv();
 		if (remoteEnv) {
-			// Remote workbench: server resolves a real `node` binary, no env prefix needed.
 			return { appRoot: remoteEnv.os === OperatingSystem.Windows ? this._toWindowsPath(remoteEnv.appRoot) : remoteEnv.appRoot.path, execPath: remoteEnv.execPath, runAsNode: false, arch: remoteEnv.arch, nativeModulesDir: 'node_modules' };
 		}
-		// Local workbench: app root is local and exec path points at the Electron binary,
-		// so the engine must prefix `ELECTRON_RUN_AS_NODE=1` when invoking it.
 		const localAppRootUri = FileAccess.asFileUri('');
 		const localAppRoot = OS === OperatingSystem.Windows ? dirname(localAppRootUri.fsPath) : dirname(localAppRootUri.path);
 		const nativeEnv = this._environmentService as IEnvironmentService & { execPath?: string };
@@ -284,7 +275,6 @@ export class TerminalSandboxService extends Disposable implements ITerminalSandb
 		return this._sandboxHelperService.buildWindowsMxcSandboxPayload(commandLine, policy, workingDirectory, containerName, containment);
 	}
 
-	// ---- workbench-only flows -----------------------------------------------
 
 	async installMissingSandboxDependencies(missingDependencies: string[], sessionResource: URI | undefined, token: CancellationToken, options: ISandboxDependencyInstallOptions): Promise<ISandboxDependencyInstallResult> {
 		const status = await this._resolveSandboxDependencyStatus();
@@ -310,7 +300,6 @@ export class TerminalSandboxService extends Disposable implements ITerminalSandb
 	private async _runSandboxPrerequisiteCommand(command: string, sessionResource: URI | undefined, token: CancellationToken, options: ISandboxDependencyInstallOptions): Promise<ISandboxDependencyInstallResult> {
 		const instance = await options.createTerminal();
 
-		// Wait for the install command to finish so the chat can proceed automatically.
 		let installCommandSent = false;
 		const completionPromise = new Promise<number | undefined>(resolve => {
 			const store = new DisposableStore();
@@ -338,13 +327,10 @@ export class TerminalSandboxService extends Disposable implements ITerminalSandb
 				}
 			}));
 
-			// Handle terminal disposal
 			store.add(instance.onDisposed(() => resolveOnce(undefined)));
 
-			// Handle cancellation
 			store.add(token.onCancellationRequested(() => resolveOnce(undefined)));
 
-			// Safety timeout — 5 minutes should be enough for package or system-policy remediation.
 			const safetyTimeout = timeout(5 * 60 * 1000);
 			store.add({ dispose: () => safetyTimeout.cancel() });
 			safetyTimeout.then(() => resolveOnce(undefined));
@@ -358,10 +344,6 @@ export class TerminalSandboxService extends Disposable implements ITerminalSandb
 			store.add(passwordPrompt);
 		});
 
-		// Send the command after listeners are attached so we never miss the event.
-		// Set installCommandSent only after sendText completes because sendText
-		// fires onDidInputData internally, and the password-prompt listener would
-		// dismiss the elicitation prematurely if the flag were already true.
 		await instance.sendText(command, true);
 		installCommandSent = true;
 
@@ -372,10 +354,6 @@ export class TerminalSandboxService extends Disposable implements ITerminalSandb
 		return `'${value.replace(/'/g, `'\\''`)}'`;
 	}
 
-	/**
-	 * Shows a chat elicitation that keeps the "Install" flow grounded in chat while
-	 * the user focuses the terminal and types a sudo password.
-	 */
 	private _createMissingDependencyPasswordPrompt(sessionResource: URI | undefined, promptContext: ISandboxDependencyInstallTerminalContext, token: CancellationToken): DisposableStore {
 		const chatModel = sessionResource && this._chatService.getSession(sessionResource);
 		if (!(chatModel instanceof ChatModel)) {

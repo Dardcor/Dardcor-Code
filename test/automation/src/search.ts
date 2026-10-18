@@ -96,7 +96,6 @@ export class Search extends Viewlet {
 	async removeFileMatch(filename: string, expectedText: string): Promise<void> {
 		const fileMatch = FILE_MATCH(filename);
 
-		// Retry this because the click can fail if the search tree is rerendered at the same time
 		await retry(
 			async () => {
 				await this.code.waitAndClick(fileMatch);
@@ -120,7 +119,6 @@ export class Search extends Viewlet {
 	async replaceFileMatch(filename: string, expectedText: string): Promise<void> {
 		const fileMatch = FILE_MATCH(filename);
 
-		// Retry this because the click can fail if the search tree is rerendered at the same time
 		await retry(
 			async () => {
 				await this.code.waitAndClick(fileMatch);
@@ -130,7 +128,6 @@ export class Search extends Viewlet {
 	}
 
 	async waitForResultText(text: string, retryCount?: number): Promise<void> {
-		// The label can end with " - " depending on whether the search editor is enabled
 		await this.code.waitForTextContent(`${VIEWLET} .messages .message`, undefined, result => result.startsWith(text), retryCount);
 	}
 
@@ -141,7 +138,6 @@ export class Search extends Viewlet {
 	private async waitForInputFocus(selector: string): Promise<void> {
 		let retries = 0;
 
-		// other parts of code might steal focus away from input boxes :(
 		while (retries < 5) {
 			await this.code.waitAndClick(INPUT, 2, 2);
 

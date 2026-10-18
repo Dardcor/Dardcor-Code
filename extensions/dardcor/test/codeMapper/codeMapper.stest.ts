@@ -231,11 +231,11 @@ forEditsAndAgent((variant, model, configurations) => {
 					`	"@vscode/test-electron": "^2.4.1",`,
 					`	"@types/vscode": "^1.89.0",`,
 					`	"esbuild": "0.25.0",`,
-					`	"npm-dts": "^1.3.12",`, // removed mocha
+					`	"npm-dts": "^1.3.12",`,
 					`	"prettier": "^2.8.7",`,
 					`	"tsx": "^4.6.2",`,
-					`	"typescript": "^5.5.0",`, // update version
-					`	"vitest": "^0.34.0"`, // inserted
+					`	"typescript": "^5.5.0",`,
+					`	"vitest": "^0.34.0"`,
 					`},`,
 					`"scripts": {`,
 					`	"test": "vitest"`,
@@ -336,12 +336,12 @@ forEditsAndAgent((variant, model, configurations) => {
 					`<!-- ... existing content ... -->`,
 					`## Icon Listing`,
 					``,
-					`Below is a complete listing of the built-in product icons by identifier.`, // modified line
+					`Below is a complete listing of the built-in product icons by identifier.`,
 					``,
 					`The ID of the icon identifies the location where the icon is used. The default codicon ID describes which icon from the codicon library is used by default, and the preview shows what that icon looks like.`,
 					`<!-- ... existing content ... -->`,
 					`|<i class="codicon codicon-wrench"></i>|wrench|`,
-					`|<i class="codicon codicon-wrench-extra"></i>|wrench-extra|`, // added line
+					`|<i class="codicon codicon-wrench-extra"></i>|wrench-extra|`,
 					`|<i class="codicon codicon-x"></i>|ports-stop-forward-icon|x|Icon for the stop forwarding action.|`,
 					`<!-- ... existing content ... -->`,
 				],
@@ -370,12 +370,12 @@ forEditsAndAgent((variant, model, configurations) => {
 					`<!-- ... existing content ... -->`,
 					`## Icon Listing`,
 					``,
-					`Below is a complete listing of the built-in product icons by identifier.`, // modified line
+					`Below is a complete listing of the built-in product icons by identifier.`,
 					``,
 					`The ID of the icon identifies the location where the icon is used. The default codicon ID describes which icon from the codicon library is used by default, and the preview shows what that icon looks like.`,
 					`<!-- ... existing content ... -->`,
 					`|<i class="codicon codicon-wrench-subaction"></i>|wrench-subaction|`,
-					`|<i class="codicon codicon-wrench-extra"></i>|wrench-extra|`, // added line
+					`|<i class="codicon codicon-wrench-extra"></i>|wrench-extra|`,
 					`|<i class="codicon codicon-x"></i>|x|`,
 					`<!-- ... existing content ... -->`,
 				],
@@ -393,7 +393,6 @@ forEditsAndAgent((variant, model, configurations) => {
 		});
 
 		stest({ description: 'other tests updated similarly', language: 'typescript', model }, (testingServiceCollection) => {
-			// the code clock contains a comment: 'other tests updated similarly'
 			const inputFile = fromFixture('codeMapper/extHostExtensionActivator.test.ts');
 			return simulateCodeMapper(testingServiceCollection, {
 				files: [inputFile],
@@ -645,7 +644,7 @@ forEditsAndAgent((variant, model, configurations) => {
 			const originalFileContent = document.getText();
 			const result = await codeMapper.mapCode(input, response, undefined, source.token);
 			if (!result) {
-				return; // cacnelled
+				return;
 			}
 
 

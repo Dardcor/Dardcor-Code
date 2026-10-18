@@ -8,14 +8,10 @@ import { makeBackupDir, backupFile, backupDbLite, pruneOldBackups } from "./back
 import { getAppVersion } from "./version.js";
 import { stringifyJson } from "./helpers/jsonCol.js";
 
-// Marker file: prevents re-importing legacy JSON once migrated.
 const MIGRATED_MARKER = path.join(DB_DIR, ".migrated-from-json");
 
-// Track per-adapter so reusing same adapter skips re-run, but new adapter (after reset) re-runs.
 const _migratedAdapters = new WeakSet();
 
-// Thrown when row-count assertion fails. Outer transaction rolls back,
-// legacy db.json kept intact, marker not written → next boot retries.
 export class MigrationAborted extends Error {
   constructor(message, droppedRows) {
     super(message);
@@ -24,7 +20,6 @@ export class MigrationAborted extends Error {
   }
 }
 
-// Insert rows one-by-one, collect failures, then assert COUNT(*) matches input length.
 function importWithAssertion(adapter, tableName, rows, insertFn, rowMeta) {
   const dropped = [];
   for (const row of rows) {
@@ -44,7 +39,6 @@ function readJsonSafe(file) {
 }
 
 function isFreshDb(adapter) {
-  // Table _meta may not exist yet on truly fresh DB
   try {
     const row = adapter.get(`SELECT COUNT(*) as c FROM _meta`);
     return !row || row.c === 0;
@@ -53,9 +47,7 @@ function isFreshDb(adapter) {
   }
 }
 
-// ─── Versioned migrations runner (skip-version safe) ─────────────────────
 function runVersionedMigrations(adapter) {
-  // Bootstrap _meta first so we can read schemaVersion
   adapter.exec(buildCreateTableSql("_meta", TABLES._meta));
 
   const current = parseInt(getMetaSync(adapter, "schemaVersion", "0"), 10) || 0;
@@ -75,19 +67,14 @@ function runVersionedMigrations(adapter) {
   return { applied: pending.length, from: current, to: lastApplied };
 }
 
-// ─── Auto-sync (additive only): add missing tables/columns/indexes ───────
 function syncSchemaFromTables(adapter) {
   for (const [tableName, def] of Object.entries(TABLES)) {
-    // Create table if absent
     adapter.exec(buildCreateTableSql(tableName, def));
 
-    // Diff columns
     const existing = adapter.all(`PRAGMA table_info(${tableName})`);
     const existingNames = new Set(existing.map((r) => r.name));
     for (const [colName, colDef] of Object.entries(def.columns)) {
       if (!existingNames.has(colName)) {
-        // SQLite ADD COLUMN restrictions: no PRIMARY KEY / UNIQUE w/o NULL ok.
-        // We strip PRIMARY KEY / UNIQUE since those are only valid at create time.
         const safeDef = colDef
           .replace(/PRIMARY KEY( AUTOINCREMENT)?/i, "")
           .replace(/UNIQUE/i, "")
@@ -101,14 +88,12 @@ function syncSchemaFromTables(adapter) {
       }
     }
 
-    // Indexes (idempotent)
     for (const idx of def.indexes || []) {
       try { adapter.exec(idx); } catch {}
     }
   }
 }
 
-// ─── Legacy JSON import (one-time) ───────────────────────────────────────
 function importLegacyMain(adapter, data) {
   if (!data || typeof data !== "object") return;
 
@@ -212,24 +197,16 @@ function importLegacyDetails(adapter, data) {
   }
 }
 
-// ─── Main entry ──────────────────────────────────────────────────────────
 export async function runMigrationOnce(adapter) {
   if (_migratedAdapters.has(adapter)) return;
   _migratedAdapters.add(adapter);
 
-  // Capture freshness BEFORE migrations stamp _meta (otherwise we'd misclassify
-  // a brand-new DB as non-fresh once schemaVersion is written).
   const fresh = isFreshDb(adapter);
 
-  // Prune stale backups every boot so old oversized backups shrink to KEEP.
   pruneOldBackups();
 
-  // Bootstrap _meta so we can read the stored backup schema version below
-  // (runVersionedMigrations also ensures this, but we need it earlier here).
   adapter.exec(buildCreateTableSql("_meta", TABLES._meta));
 
-  // Detect a pending schema change via the central SCHEMA_VERSION const.
-  // A lightweight backup is taken BEFORE any schema mutation below.
   const storedSchemaVer = parseInt(getMetaSync(adapter, "backupSchemaVersion", "0"), 10) || 0;
   const schemaChanging = !fresh && storedSchemaVer < SCHEMA_VERSION;
   if (schemaChanging) {
@@ -243,16 +220,12 @@ export async function runMigrationOnce(adapter) {
     }
   }
 
-  // 1. Always run versioned migrations chain (skip-version safe)
   const migInfo = runVersionedMigrations(adapter);
 
-  // 2. Additive sync (auto add missing columns/indexes declared in TABLES)
   syncSchemaFromTables(adapter);
 
-  // Stamp the schema version we just reached so future boots skip re-backup.
   setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
 
-  // 3. One-time legacy JSON import (only if DB was fresh on entry)
   const alreadyImported = fs.existsSync(MIGRATED_MARKER);
   const legacyMain = readJsonSafe(LEGACY_FILES.main);
   const legacyUsage = readJsonSafe(LEGACY_FILES.usage);
@@ -289,8 +262,6 @@ export async function runMigrationOnce(adapter) {
     return;
   }
 
-  // Track app version for informational purposes only. App version bumps no
-  // longer trigger a DB backup — only real schema changes (SCHEMA_VERSION) do.
   const newVer = getAppVersion();
   const oldVer = getMetaSync(adapter, "appVersion", null);
   if (oldVer !== newVer) setMetaSync(adapter, "appVersion", newVer);

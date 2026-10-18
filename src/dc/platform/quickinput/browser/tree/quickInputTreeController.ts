@@ -63,15 +63,9 @@ export class QuickInputTreeController extends Disposable {
 	readonly onDidChangeCheckedLeafItems = this._onDidCheckedLeafItemsChange.event;
 
 	private readonly _onLeave = this._register(new Emitter<void>());
-	/**
-	 * Event that is fired when the tree would no longer have focus.
-	*/
 	readonly onLeave: Event<void> = this._onLeave.event;
 
 	private readonly _onDidAccept = this._register(new Emitter<void>());
-	/**
-	 * Event that is fired when a non-pickable item is clicked, indicating acceptance.
-	 */
 	readonly onDidAccept: Event<void> = this._onDidAccept.event;
 
 	private readonly _container: HTMLElement;
@@ -197,9 +191,7 @@ export class QuickInputTreeController extends Disposable {
 
 	layout(maxHeight?: number): void {
 		this._tree.getHTMLElement().style.maxHeight = maxHeight ? `${
-			// Make sure height aligns with list item heights
 			Math.floor(maxHeight / 44) * 44
-			// Add some extra height so that it's clear there's more to scroll
 			+ 6
 			}px` : '';
 		this._tree.layout();
@@ -242,7 +234,6 @@ export class QuickInputTreeController extends Disposable {
 			case QuickPickFocus.Previous: {
 				const prevFocus = this._tree.getFocus();
 				this._tree.focusPrevious(undefined, false, undefined, (e) => {
-					// do we want to reveal the parent?
 					this._tree.reveal(e.element);
 					return true;
 				});
@@ -260,14 +251,12 @@ export class QuickInputTreeController extends Disposable {
 				break;
 			case QuickPickFocus.PreviousPage:
 				this._tree.focusPreviousPage(undefined, (e) => {
-					// do we want to reveal the parent?
 					this._tree.reveal(e.element);
 					return true;
 				});
 				break;
 			case QuickPickFocus.NextSeparator:
 			case QuickPickFocus.PreviousSeparator:
-				// These don't make sense for the tree
 				return;
 		}
 	}
@@ -283,9 +272,7 @@ export class QuickInputTreeController extends Disposable {
 				return;
 			}
 
-			// Check if the item is pickable (defaults to true if not specified)
 			if (item.pickable === false) {
-				// For non-pickable items, set it as the active item and fire the accept event
 				this._tree.setFocus([item]);
 				this._onDidAccept.fire();
 				return;
@@ -308,16 +295,14 @@ export class QuickInputTreeController extends Disposable {
 
 	private updateCheckboxState(item: IQuickTreeItem, newState: boolean, skipItemRerender = false): void {
 		if ((item.checked ?? false) === newState) {
-			return; // No change
+			return;
 		}
 
-		// Handle checked item
 		item.checked = newState;
 		if (!skipItemRerender) {
 			this._tree.rerender(item);
 		}
 
-		// Handle children of the checked item
 		const updateSet = new Set<IQuickTreeItem>();
 		const toUpdate = [...this._tree.getNode(item).children];
 		while (toUpdate.length) {
@@ -332,7 +317,6 @@ export class QuickInputTreeController extends Disposable {
 			}
 		}
 
-		// Handle parents of the checked item
 		let parent = this._tree.getParentElement(item);
 		while (parent) {
 			const parentChildren = [...this._tree.getNode(parent).children];
@@ -353,7 +337,6 @@ export class QuickInputTreeController extends Disposable {
 	}
 
 	registerOnDidChangeFocus() {
-		// Ensure that selection follows focus
 		this._register(this._tree.onDidChangeFocus(e => {
 			const item = this._tree.getFocus().findLast(item => item !== null);
 			this._tree.setSelection(item ? [item] : [], e.browserEvent);

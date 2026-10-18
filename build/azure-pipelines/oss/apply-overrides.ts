@@ -41,18 +41,8 @@ import { URL } from 'url';
 
 export interface CglicenseEntry {
 	name: string;
-	/**
-	 * Optional version filter. When present, the override applies only to merged
-	 * entries whose version matches exactly. When absent, the override applies to
-	 * every version of the named package.
-	 */
 	version?: string;
 	fullLicenseText?: string[];
-	/**
-	 * Some legacy cglicenses.json entries supply the full license text under
-	 * `licenseDetail` (an array of lines) instead of `fullLicenseText`. Treated
-	 * as an alias for `fullLicenseText`.
-	 */
 	licenseDetail?: string[];
 	fullLicenseTextUri?: string;
 	prependLicenseText?: string[];
@@ -64,33 +54,18 @@ export interface MergedEntry {
 	license: string;
 	url: string;
 	licenseText: string;
-	/** Provenance marker. Entries injected from an override carry 'cglicenses-override'. */
 	source?: string;
 }
 
 export interface ApplyResult {
-	/** Overrides that matched and edited at least one existing merged entry. */
 	appliedNames: string[];
-	/** Overrides that injected a brand-new merged entry (no prior entry existed). */
 	injectedNames: string[];
-	/** Count of (override × matching merged entry) edits (does not include injects). */
 	appliedEntryCount: number;
-	/** Overrides with no matching entry and no usable license text — nothing to contribute. */
 	unmatchedNames: string[];
-	/**
-	 * Overrides with usable text whose package is not in the presence index —
-	 * almost certainly stale. Skipped (never injected), warn-only, never fails the build.
-	 */
 	staleNames: string[];
 	errors: string[];
 }
 
-/**
- * Strip // line comments from a JSONC file. The existing cglicenses.json uses
- * only `//` line comments (no block comments) and never inside string literals
- * in the top-level structure. Conservative implementation: remove `//` to end
- * of line only when the `//` is not inside a double-quoted string.
- */
 export function stripJsonComments(text: string): string {
 	let out = '';
 	let inString = false;
@@ -114,7 +89,6 @@ export function stripJsonComments(text: string): string {
 			continue;
 		}
 		if (ch === '/' && text[i + 1] === '/') {
-			// Skip until newline
 			while (i < text.length && text[i] !== '\n') {
 				i++;
 			}
@@ -143,10 +117,6 @@ export function readCglicenses(filePath: string): CglicenseEntry[] {
 	return parsed as CglicenseEntry[];
 }
 
-/**
- * Fetch text content from an http/https URL. Returns undefined on any failure
- * so the caller can decide whether to warn or hard-fail.
- */
 export function fetchUriText(uri: string, timeoutMs = 10_000, maxRedirects = 5): Promise<string | undefined> {
 	return new Promise(resolve => {
 		if (maxRedirects <= 0) {
@@ -182,7 +152,7 @@ export function fetchUriText(uri: string, timeoutMs = 10_000, maxRedirects = 5):
 				resolve(undefined);
 				return;
 			}
-			const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB
+			const MAX_BODY_SIZE = 10 * 1024 * 1024;
 			let data = '';
 			res.setEncoding('utf8');
 			res.on('data', chunk => {
@@ -215,15 +185,9 @@ export async function applyOverrides(
 	const errors: string[] = [];
 	let appliedEntryCount = 0;
 
-	// Merged-map key scheme — must match merge-notices.ts so injected entries
-	// slot in alongside CG/scanner entries instead of colliding.
 	const mergeKey = (name: string, version: string | undefined) =>
 		`${name.toLowerCase()}@${version || ''}`;
 
-	// Build a name -> entries[] index. The merged map is keyed by `name@version`
-	// (per CELA guidance to preserve every shipped version), but overrides in
-	// cglicenses.json are keyed by name only — a manual override applies to all
-	// versions of the named package.
 	const byName = new Map<string, MergedEntry[]>();
 	for (const entry of merged.values()) {
 		const k = entry.name.toLowerCase();
@@ -239,14 +203,10 @@ export async function applyOverrides(
 		const key = override.name.toLowerCase();
 		const label = override.version ? `${override.name}@${override.version}` : override.name;
 
-		// Resolve the override body FIRST, before looking for a target. This is
-		// what lets us inject a brand-new entry when no target exists: the
-		// human-authored text is the only source of truth for these packages.
 		let bodyOverride: string | undefined;
 		if (override.fullLicenseText && override.fullLicenseText.length > 0) {
 			bodyOverride = override.fullLicenseText.join('\n');
 		} else if (override.licenseDetail && override.licenseDetail.length > 0) {
-			// `licenseDetail` is an older alias for the full license text.
 			bodyOverride = override.licenseDetail.join('\n');
 		} else if (override.fullLicenseTextUri) {
 			if (options.fetchUris) {
@@ -266,7 +226,6 @@ export async function applyOverrides(
 			? override.prependLicenseText.join('\n')
 			: undefined;
 
-		// Find existing targets (case-insensitive name, exact version when given).
 		const allTargets = byName.get(key);
 		const targets = allTargets
 			? (override.version
@@ -275,7 +234,6 @@ export async function applyOverrides(
 			: undefined;
 
 		if (targets && targets.length > 0) {
-			// EDIT path — at least one merged entry already exists.
 			for (const target of targets) {
 				let body = bodyOverride ?? target.licenseText;
 				if (prefix) {
@@ -288,32 +246,24 @@ export async function applyOverrides(
 			continue;
 		}
 
-		// No existing entry. Decide between INJECT, STALE, or UNMATCHED.
 		const hasUsableText = bodyOverride !== undefined || prefix !== undefined;
 		if (!hasUsableText) {
-			// Override carries no text we could inject — nothing to do.
 			unmatchedNames.push(label);
 			continue;
 		}
 
-		// Presence gate: only inject if the package is actually shipped. When no
-		// presence index is supplied we cannot prove staleness, so we inject
-		// (the conservative choice for a warn-only, never-fail design).
 		const isPresent = options.presentNames ? options.presentNames.has(key) : true;
 		if (!isPresent) {
-			// Stale override — warn + skip. Never injected, never fails the build.
 			staleNames.push(label);
 			continue;
 		}
 
-		// INJECT path — build a new entry from the human-authored text.
 		let body: string;
 		if (bodyOverride !== undefined && prefix !== undefined) {
 			body = prefix + '\n\n' + bodyOverride;
 		} else if (bodyOverride !== undefined) {
 			body = bodyOverride;
 		} else {
-			// prepend-only injection (may be copyright-only text)
 			body = prefix as string;
 		}
 
@@ -326,7 +276,6 @@ export async function applyOverrides(
 			source: 'cglicenses-override',
 		};
 		merged.set(mergeKey(override.name, override.version), injected);
-		// Keep byName in sync in case a later override targets the same name.
 		const list = byName.get(key);
 		if (list) {
 			list.push(injected);

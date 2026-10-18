@@ -123,8 +123,6 @@ class ExtHostWebviewPanel extends Disposable implements vscode.WebviewPanel {
 	get viewColumn(): vscode.ViewColumn | undefined {
 		this.assertNotDisposed();
 		if (typeof this.#viewColumn === 'number' && this.#viewColumn < 0) {
-			// We are using a symbolic view column
-			// Return undefined instead to indicate that the real view column is currently unknown but will be resolved.
 			return undefined;
 		}
 		return this.#viewColumn;
@@ -229,10 +227,6 @@ export class ExtHostWebviewPanels extends Disposable implements extHostProtocol.
 
 	public $onDidChangeWebviewPanelViewStates(newStates: extHostProtocol.WebviewPanelViewStateData): void {
 		const handles = Object.keys(newStates);
-		// Notify webviews of state changes in the following order:
-		// - Non-visible
-		// - Visible
-		// - Active
 		handles.sort((a, b) => {
 			const stateA = newStates[a];
 			const stateB = newStates[b];

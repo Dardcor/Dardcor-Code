@@ -33,7 +33,7 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 
 	declare _serviceBrand: undefined;
 
-	public readonly SIZE_LIMIT = Math.floor(1024 * 1024 * 1.9); // 2 MB
+	public readonly SIZE_LIMIT = Math.floor(1024 * 1024 * 1.9);
 
 	private serverConfiguration;
 	private machineClient: IUserDataSyncMachinesService | undefined;
@@ -68,7 +68,7 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 		return this._lastReadResources;
 	}
 
-	storeClient: EditSessionsStoreClient | undefined; // TODO@joyceerhl lifecycle hack
+	storeClient: EditSessionsStoreClient | undefined;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
@@ -85,10 +85,8 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 	) {
 		super();
 		this.serverConfiguration = this.productService['editSessions.store'];
-		// If the user signs out of the current session, reset our cached auth state in memory and on disk
 		this._register(this.authenticationService.onDidChangeSessions((e) => this.onDidChangeSessions(e.event)));
 
-		// If another window changes the preferred session storage, reset our cached auth state in memory
 		this._register(this.storageService.onDidChangeValue(StorageScope.APPLICATION, EditSessionsWorkbenchService.CACHED_SESSION_STORAGE_KEY, this._store)(() => this.onDidChangeStorage()));
 
 		this.registerSignInAction();
@@ -98,11 +96,6 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 		this.signedInContext.set(this.existingSessionId !== undefined);
 	}
 
-	/**
-	 * @param resource: The resource to retrieve content for.
-	 * @param content An object representing resource state to be restored.
-	 * @returns The ref of the stored state.
-	 */
 	async write(resource: SyncResource, content: string | EditSession): Promise<string> {
 		await this.initialize('write', false);
 		if (!this.initialized) {
@@ -121,13 +114,6 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 		return ref;
 	}
 
-	/**
-	 * @param resource: The resource to retrieve content for.
-	 * @param ref: A specific content ref to retrieve content for, if it exists.
-	 * If undefined, this method will return the latest saved edit session, if any.
-	 *
-	 * @returns An object representing the requested or latest state, if any.
-	 */
 	async read(resource: SyncResource, ref: string | undefined): Promise<{ ref: string; content: string } | undefined> {
 		await this.initialize('read', false);
 		if (!this.initialized) {
@@ -148,7 +134,6 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 			this.logService.error(ex);
 		}
 
-		// TODO@joyceerhl Validate session data, check schema version
 		if (content !== undefined && content !== null && ref !== undefined) {
 			this._lastReadResources.set(resource, { ref, content });
 			return { ref, content };
@@ -197,14 +182,7 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 
 	}
 
-	/**
-	 *
-	 * Ensures that the store client is initialized,
-	 * meaning that authentication is configured and it
-	 * can be used to communicate with the remote storage service
-	 */
 	private async doInitialize(reason: 'read' | 'write', silent: boolean): Promise<boolean> {
-		// Wait for authentication extensions to be registered
 		await this.extensionService.whenInstalledExtensionsRegistered();
 
 		if (!this.serverConfiguration?.url) {
@@ -224,7 +202,6 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 			this.machineClient = new UserDataSyncMachinesService(this.environmentService, this.fileService, this.storageService, this.storeClient, this.logService, this.productService);
 		}
 
-		// If we already have an existing auth session in memory, use that
 		if (this.authenticationInfo !== undefined) {
 			return true;
 		}
@@ -263,7 +240,6 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 	}
 
 	private async getAuthenticationSession(reason: 'read' | 'write', silent: boolean) {
-		// If the user signed in previously and the session is still available, reuse that without prompting the user again
 		if (this.existingSessionId) {
 			this.logService.info(`Searching for existing authentication session with ID ${this.existingSessionId}`);
 			const existingSession = await this.getExistingSession();
@@ -275,7 +251,6 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 			}
 		}
 
-		// If settings sync is already enabled, avoid asking again to authenticate
 		if (this.shouldAttemptEditSessionInit()) {
 			this.logService.info(`Reusing user data sync enablement`);
 			const authenticationSessionInfo = await getCurrentAuthenticationSessionInfo(this.secretStorageService, this.productService);
@@ -286,13 +261,10 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 			}
 		}
 
-		// If we aren't supposed to prompt the user because
-		// we're in a silent flow, just return here
 		if (silent) {
 			return;
 		}
 
-		// Ask the user to pick a preferred account
 		const authenticationSession = await this.getAccountPreference(reason);
 		if (authenticationSession !== undefined) {
 			this.existingSessionId = authenticationSession.id;
@@ -306,10 +278,6 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 		return isWeb && this.storageService.isNew(StorageScope.APPLICATION) && this.storageService.isNew(StorageScope.WORKSPACE);
 	}
 
-	/**
-	 *
-	 * Prompts the user to pick an authentication option for storing and getting edit sessions.
-	 */
 	private async getAccountPreference(reason: 'read' | 'write'): Promise<AuthenticationSession & { providerId: string } | undefined> {
 		const disposables = new DisposableStore();
 		const quickpick = disposables.add(this.quickInputService.createQuickPick<ExistingSession | AuthenticationProviderOption | IQuickPickItem>({ useSeparators: true }));
@@ -356,10 +324,6 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 		return options;
 	}
 
-	/**
-	 *
-	 * Returns all authentication sessions available from {@link getAuthenticationProviders}.
-	 */
 	private async getAllSessions() {
 		const authenticationProviders = await this.getAuthenticationProviders();
 		const accounts = new Map<string, ExistingSession>();
@@ -388,25 +352,17 @@ export class EditSessionsWorkbenchService extends Disposable implements IEditSes
 		return [...accounts.values()].sort((a, b) => a.label.localeCompare(b.label));
 	}
 
-	/**
-	 *
-	 * Returns all authentication providers which can be used to authenticate
-	 * to the remote storage service, based on product.json configuration
-	 * and registered authentication providers.
-	 */
 	private async getAuthenticationProviders() {
 		if (!this.serverConfiguration) {
 			throw new Error('Unable to get configured authentication providers as session sync preference is not configured in product.json.');
 		}
 
-		// Get the list of authentication providers configured in product.json
 		const authenticationProviders = this.serverConfiguration.authenticationProviders;
 		const configuredAuthenticationProviders = Object.keys(authenticationProviders).reduce<IAuthenticationProvider[]>((result, id) => {
 			result.push({ id, scopes: authenticationProviders[id].scopes });
 			return result;
 		}, []);
 
-		// Filter out anything that isn't currently available through the authenticationService
 		const availableAuthenticationProviders = this.authenticationService.declaredProviders;
 
 		return configuredAuthenticationProviders.filter(({ id }) => availableAuthenticationProviders.some(provider => provider.id === id));

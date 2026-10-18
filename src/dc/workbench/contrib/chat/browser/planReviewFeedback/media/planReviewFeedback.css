@@ -85,7 +85,6 @@
 	height: 16px;
 }
 
-/* Overlay toolbar (submit / navigate / clear actions) */
 .plan-review-feedback-overlay-widget {
 	padding: 2px 4px;
 	color: var(--vscode-foreground);
@@ -154,7 +153,6 @@
 	opacity: 1;
 }
 
-/* Gutter decoration for feedback lines */
 .plan-review-feedback-line-number {
 	color: var(--vscode-editorInfo-foreground);
 }

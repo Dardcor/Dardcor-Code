@@ -21,14 +21,12 @@ export class AnthropicAdapterFactory implements IProtocolAdapterFactory {
 class AnthropicAdapter implements IProtocolAdapter {
 	readonly name = 'anthropic';
 
-	// Per-request state
 	private currentBlockIndex = 0;
 	private hasTextBlock = false;
 	private hadToolCalls = false;
 	parseRequest(body: string): IParsedRequest {
 		const requestBody: Anthropic.MessageStreamParams = JSON.parse(body);
 
-		// Build a single system text block from "system" if provided
 		let systemText = '';
 		if (typeof requestBody.system === 'string') {
 			systemText = requestBody.system;
@@ -38,7 +36,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 
 		const type = systemText.includes('You are a helpful AI assistant tasked with summarizing conversations') ? 'summary' : undefined;
 
-		// Convert Anthropic messages to Raw (TSX) messages
 		const rawMessages = anthropicMessagesToRawMessages(requestBody.messages, { type: 'text', text: systemText });
 
 		const options: IMakeChatRequestOptions['requestOptions'] = {
@@ -46,7 +43,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 		};
 
 		if (requestBody.tools && requestBody.tools.length > 0) {
-			// Map Anthropic tools to VS Code chat tools. Provide a no-op invoke since this server doesn't run tools.
 			const tools = coalesce(requestBody.tools.map(tool => {
 				if ('input_schema' in tool) {
 					const chatTool: OpenAiFunctionTool = {
@@ -82,7 +78,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 
 		if (streamData.type === 'text') {
 			if (!this.hasTextBlock) {
-				// Send content_block_start for text
 				const contentBlockStart: Anthropic.RawContentBlockStartEvent = {
 					type: 'content_block_start',
 					index: this.currentBlockIndex,
@@ -99,7 +94,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 				this.hasTextBlock = true;
 			}
 
-			// Send content_block_delta for text
 			const contentDelta: Anthropic.RawContentBlockDeltaEvent = {
 				type: 'content_block_delta',
 				index: this.currentBlockIndex,
@@ -114,7 +108,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 			});
 
 		} else if (streamData.type === 'tool_call') {
-			// End current text block if it exists
 			if (this.hasTextBlock) {
 				const contentBlockStop: Anthropic.RawContentBlockStopEvent = {
 					type: 'content_block_stop',
@@ -130,7 +123,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 
 			this.hadToolCalls = true;
 
-			// Send tool use block
 			const toolBlockStart: Anthropic.RawContentBlockStartEvent = {
 				type: 'content_block_start',
 				index: this.currentBlockIndex,
@@ -147,7 +139,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 				data: this.formatEventData(toolBlockStart)
 			});
 
-			// Send tool use content
 			const toolBlockContent: Anthropic.RawContentBlockDeltaEvent = {
 				type: 'content_block_delta',
 				index: this.currentBlockIndex,
@@ -179,7 +170,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 	generateFinalEvents(context: IStreamingContext, usage?: APIUsage): IStreamEventData[] {
 		const events: IStreamEventData[] = [];
 
-		// Send final events
 		if (this.hasTextBlock) {
 			const contentBlockStop: Anthropic.RawContentBlockStopEvent = {
 				type: 'content_block_stop',
@@ -191,8 +181,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 			});
 		}
 
-		// Adjust token usage to make the agent think it has a 200k context window
-		// when the real one is smaller
 		const adjustedUsage = this.adjustTokenUsageForContextWindow(context, usage);
 
 		const messageDelta: Anthropic.RawMessageDeltaEvent = {
@@ -228,7 +216,6 @@ class AnthropicAdapter implements IProtocolAdapter {
 	}
 
 	private adjustTokenUsageForContextWindow(context: IStreamingContext, usage?: APIUsage): APIUsage {
-		// If we don't have usage, return defaults
 		if (!usage) {
 			return {
 				prompt_tokens: 0,
@@ -237,16 +224,13 @@ class AnthropicAdapter implements IProtocolAdapter {
 			};
 		}
 
-		// If we don't have endpoint info, return the unadjusted usage
 		if (context.endpoint.modelId === 'gpt-4o-mini') {
 			return usage;
 		}
 
 		const realContextLimit = context.endpoint.modelMaxPromptTokens;
-		const agentAssumedContextLimit = 200000; // The agent thinks it has 200k tokens
+		const agentAssumedContextLimit = 200000;
 
-		// Calculate scaling factor to make the agent think it has a larger context window
-		// When the real usage approaches the real limit, the adjusted usage should approach the assumed limit
 		const scalingFactor = agentAssumedContextLimit / realContextLimit;
 
 		const adjustedPromptTokens = Math.floor(usage.prompt_tokens * scalingFactor);
@@ -262,11 +246,8 @@ class AnthropicAdapter implements IProtocolAdapter {
 	}
 
 	generateInitialEvents(context: IStreamingContext): IStreamEventData[] {
-		// Use adjusted token usage for initial events to be consistent
-		// For initial events, we don't have real usage yet, so we'll use defaults
 		const adjustedUsage = this.adjustTokenUsageForContextWindow(context, undefined);
 
-		// Send message_start event
 		const messageStart: Anthropic.RawMessageStartEvent = {
 			type: 'message_start',
 			message: {

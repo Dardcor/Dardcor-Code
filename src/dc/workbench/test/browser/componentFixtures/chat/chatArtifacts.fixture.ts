@@ -93,9 +93,6 @@ function renderArtifactsWidgetFromGroups(context: ComponentFixtureContext, group
 	container.appendChild(widget.domNode);
 }
 
-// ============================================================================
-// Sample artifacts
-// ============================================================================
 
 const singleArtifact: IChatArtifact[] = [
 	{ label: 'Dev Server', uri: 'http://localhost:3000', type: 'devServer' },
@@ -133,9 +130,6 @@ const multiSourceGroups: IArtifactSourceGroup[] = [
 	},
 ];
 
-// ============================================================================
-// Fixtures
-// ============================================================================
 
 export default defineThemedFixtureGroup({ path: 'chat/artifacts/' }, {
 	SingleArtifact: defineComponentFixture({
@@ -161,7 +155,6 @@ export default defineThemedFixtureGroup({ path: 'chat/artifacts/' }, {
 	MultiSourceHoveredRow: defineComponentFixture({
 		render: context => {
 			renderArtifactsWidgetFromGroups(context, multiSourceGroups);
-			// Force hover on a rules-sourced leaf (save only, no clear)
 			const rows = context.container.querySelectorAll<HTMLElement>('.chat-artifacts-list-row');
 			for (const row of rows) {
 				const label = row.querySelector('.chat-artifacts-list-label');

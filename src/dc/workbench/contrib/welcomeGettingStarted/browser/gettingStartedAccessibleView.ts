@@ -99,7 +99,6 @@ class GettingStartedAccessibleProvider extends Disposable implements IAccessible
 						try {
 							args = parse(commandURI.query);
 						} catch {
-							// ignore error
 						}
 					}
 					if (!Array.isArray(args)) {
@@ -121,7 +120,7 @@ class GettingStartedAccessibleProvider extends Disposable implements IAccessible
 				this._currentStepIndex = stepIndex;
 			}
 		}
-		return this._getContent(this._walkthrough, this._activeWalkthroughSteps[this._currentStepIndex], /* includeTitle */true);
+		return this._getContent(this._walkthrough, this._activeWalkthroughSteps[this._currentStepIndex], true);
 	}
 
 	private _getContent(waltkrough: IResolvedWalkthrough, step: IResolvedWalkthroughStep, includeTitle?: boolean): string {

@@ -8,22 +8,15 @@ import * as path from 'path';
 import type * as vscode from 'vscode';
 import { describe, expect, it, vi } from 'vitest';
 import type { ISessionStore } from '../../../../platform/chronicle/common/sessionStore';
-import type { ICopilotTokenManager } from '../../../../platform/authentication/common/dardcorTokenManager';
-import type { IAuthenticationService } from '../../../../platform/authentication/common/authentication';
-import type { IConfigurationService } from '../../../../platform/configuration/common/configurationService';
 import type { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
-import type { IFetcherService } from '../../../../platform/networking/common/fetcherService';
 import type { IChatDebugFileLoggerService } from '../../../../platform/chat/common/chatDebugFileLoggerService';
-import type { IRunCommandExecutionService } from '../../../../platform/commands/common/runCommandExecutionService';
 import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
 import { LanguageModelTextPart } from '../../../../dardcorTypes';
 import { ToolName } from '../../common/toolNames';
 import { ToolRegistry } from '../../common/toolsRegistry';
 
-// Side-effect registration
 import '../sessionStoreSqlTool';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function createMockStore(): ISessionStore {
 	return {
@@ -53,33 +46,10 @@ function createMockStore(): ISessionStore {
 function createMockServices() {
 	const store = createMockStore();
 
-	const tokenManager: ICopilotTokenManager = {
-		_serviceBrand: undefined as any,
-		getCopilotToken: vi.fn(async () => ({ token: 'test-token', endpoints: { api: 'https://api.test.com' } })),
-	} as any;
-
-	const authService: IAuthenticationService = {
-		_serviceBrand: undefined as any,
-		anyGitHubSession: { accessToken: 'gh-token' },
-	} as any;
-
-	const configService: IConfigurationService = {
-		_serviceBrand: undefined as any,
-		getConfig: vi.fn(() => false),
-		getNonExtensionConfig: vi.fn(() => false),
-		getExperimentBasedConfig: vi.fn(() => false),
-		getExperimentBasedConfigObservable: vi.fn(() => ({ read: () => false })),
-	} as any;
-
 	const telemetryService: ITelemetryService = {
 		_serviceBrand: undefined as any,
 		sendMSFTTelemetryEvent: vi.fn(),
 		sendMSFTTelemetryErrorEvent: vi.fn(),
-	} as any;
-
-	const fetcherService: IFetcherService = {
-		_serviceBrand: undefined as any,
-		fetch: vi.fn(),
 	} as any;
 
 	const debugLogService: IChatDebugFileLoggerService = {
@@ -88,27 +58,18 @@ function createMockServices() {
 		streamEntries: vi.fn(),
 	} as any;
 
-	const runCommandService: IRunCommandExecutionService = {
-		_serviceBrand: undefined as any,
-		executeCommand: vi.fn(async () => undefined),
-	} as any;
-
-	return { store, tokenManager, authService, configService, telemetryService, fetcherService, debugLogService, runCommandService };
+	return { store, telemetryService, debugLogService };
 }
 
-function createToolInstance(overrides: Partial<ReturnType<typeof createMockServices>> = {}) {
-	const services = { ...createMockServices(), ...overrides };
+
+function createToolInstance() {
+	const services = createMockServices();
 	const toolCtor = ToolRegistry.getTools().find(t => t.toolName === ToolName.SessionStoreSql)!;
 
 	const tool = new (toolCtor as any)(
 		services.store,
-		services.tokenManager,
-		services.authService,
-		services.configService,
 		services.telemetryService,
-		services.fetcherService,
 		services.debugLogService,
-		services.runCommandService,
 	);
 
 	return { tool, ...services };
@@ -146,7 +107,6 @@ function extractText(result: vscode.LanguageModelToolResult): string {
 	return parts.join('');
 }
 
-// ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('SessionStoreSqlTool', () => {
 	it('is registered', () => {
@@ -211,11 +171,9 @@ describe('SessionStoreSqlTool', () => {
 			const cts = new CancellationTokenSource();
 
 			const unsafe = [
-				// The originally reported bypass: VACUUM INTO copies the DB to a chosen path.
 				`VACUUM INTO '/tmp/copy.db'`,
 				'REINDEX',
 				'ANALYZE',
-				// load_extension would execute native code if SQLite is built with extensions enabled.
 				`SELECT load_extension('/tmp/lib.so')`,
 				'BEGIN',
 				'COMMIT',
@@ -236,9 +194,9 @@ describe('SessionStoreSqlTool', () => {
 			const cts = new CancellationTokenSource();
 
 			const nonQuery = [
-				'PRAGMA data_version', // not blocked by regex carve-out but still not a SELECT/WITH
-				`/* hide me */ VACUUM INTO '/tmp/copy.db'`, // comment prefix must not smuggle
-				'-- comment\nDROP TABLE sessions', // blocklist also catches DROP, but allowlist is the anchor
+				'PRAGMA data_version',
+				`/* hide me */ VACUUM INTO '/tmp/copy.db'`,
+				'-- comment\nDROP TABLE sessions',
 				'EXPLAIN SELECT * FROM sessions',
 			];
 
@@ -296,7 +254,6 @@ describe('SessionStoreSqlTool', () => {
 				cts.token,
 			);
 
-			// Should have called executeReadOnly with the semicolon stripped
 			expect(store.executeReadOnly).toHaveBeenCalledWith('SELECT * FROM sessions');
 		});
 	});
@@ -331,37 +288,12 @@ describe('SessionStoreSqlTool', () => {
 	});
 
 	describe('alternativeDefinition', () => {
-		it('returns tool unchanged when cloud is not enabled', () => {
+		it('keeps the local SQLite definition unchanged', () => {
 			const { tool } = createToolInstance();
 			const base = makeToolInfo();
 			const result = tool.alternativeDefinition(base);
+
 			expect(result).toBe(base);
-		});
-
-		it('swaps description and inputSchema when cloud is enabled', () => {
-			const configService = {
-				_serviceBrand: undefined as any,
-				getConfig: vi.fn(() => false),
-				getNonExtensionConfig: vi.fn((key: string) => {
-					if (key === 'chat.sessionSync.enabled') {
-						return true;
-					}
-					return false;
-				}),
-				getExperimentBasedConfig: vi.fn(() => false),
-				getExperimentBasedConfigObservable: vi.fn(() => ({ read: () => false })),
-			} as any;
-
-			const { tool } = createToolInstance({ configService });
-			const base = makeToolInfo();
-			const result = tool.alternativeDefinition(base);
-
-			expect(result).not.toBe(base);
-			expect(result.description).toContain('DuckDB');
-			expect(result.description).toContain('cloud');
-			// inputSchema query description should reference DuckDB
-			const props = (result.inputSchema as any).properties;
-			expect(props.query.description).toContain('DuckDB');
 		});
 	});
 
@@ -376,7 +308,6 @@ describe('SessionStoreSqlTool', () => {
 				cts.token,
 			);
 
-			// reindexSessions is called via the module — verify through the result
 			const result = await tool.invoke(
 				makeOptions({ action: 'reindex', description: 'Reindex' }),
 				cts.token,
@@ -416,9 +347,6 @@ describe('SessionStoreSqlTool', () => {
 		});
 	});
 
-	// Single source of truth: column-level schema lives in chronicle/SKILL.md.
-	// The tool description only carries small, low-drift signals (dialect, read-only,
-	// date-math anti-pattern, table names, skill pointer) — these tests pin that contract.
 	describe('schema-error regression anchors', () => {
 		const dardcorRoot = path.resolve(__dirname, '..', '..', '..', '..', '..');
 
@@ -438,24 +366,18 @@ describe('SessionStoreSqlTool', () => {
 			expect(required.filter(a => !desc.includes(a))).toEqual([]);
 		});
 
-		it('DuckDB CLOUD_MODEL_DESCRIPTION (via alternativeDefinition) carries required anchors', () => {
-			const configService = {
-				_serviceBrand: undefined as any,
-				getConfig: vi.fn(() => false),
-				getNonExtensionConfig: vi.fn((key: string) => key === 'chat.sessionSync.enabled'),
-				getExperimentBasedConfig: vi.fn(() => false),
-				getExperimentBasedConfigObservable: vi.fn(() => ({ read: () => false })),
-			} as any;
-			const { tool } = createToolInstance({ configService });
-			const desc: string = tool.alternativeDefinition(makeToolInfo()).description;
+		it('chronicle skill describes the local-only session history workflow', () => {
+			const skill = fs.readFileSync(
+				path.join(dardcorRoot, 'assets', 'prompts', 'skills', 'chronicle', 'SKILL.md'),
+				'utf-8',
+			);
 
 			const required = [
-				'DuckDB', 'queries are read-only', 'SELECT', 'WITH',
-				'now() - INTERVAL', `NOT \`datetime('now'`,
-				'ILIKE', 'chronicle',
-				'sessions', 'turns', 'session_files', 'session_refs', 'checkpoints', 'events', 'tool_requests',
+				'local SQLite', 'read-only', `datetime('now'`,
+				'`sessions`', '`turns`', '`session_files`', '`session_refs`', '`checkpoints`', '`search_index`',
 			];
-			expect(required.filter(a => !desc.includes(a))).toEqual([]);
+			expect(required.filter(a => !skill.includes(a))).toEqual([]);
+			expect(skill).not.toContain('remote session store');
 		});
 
 		it('chronicle slash prompts reference the chronicle skill', () => {
@@ -468,20 +390,16 @@ describe('SessionStoreSqlTool', () => {
 			expect(missing).toEqual([]);
 		});
 
-		it('chronicle SKILL.md Cost Tips section carries required anchors', () => {
+		it('chronicle SKILL.md keeps workflow guidance grounded in local data', () => {
 			const skill = fs.readFileSync(
 				path.join(dardcorRoot, 'assets', 'prompts', 'skills', 'chronicle', 'SKILL.md'),
 				'utf-8',
 			);
 			const required = [
-				'### Cost Tips',
-				'usage_input_tokens', 'usage_output_tokens', 'usage_model',
+				'Workflow tips',
+				'local history',
+				'authoritative per-request costs',
 				'agent_name',
-				`'VS Code Chat'`,
-				`'GitHub Copilot Chat'`,
-				'assistant.usage',
-				'local SQLite',
-				'chat.sessionSync.enabled',
 			];
 			expect(required.filter(a => !skill.includes(a))).toEqual([]);
 		});

@@ -11,7 +11,6 @@ import { etagMiddleware } from '../middleware/etagMiddleware';
 import { ServerBackoffError, serverErrorBackoffMiddleware } from '../middleware/serverErrorBackoffMiddleware';
 import { WindowInactiveError, windowActiveMiddleware } from '../middleware/windowActiveMiddleware';
 
-// ── Helpers ─────────────────────────────────────────────────────────────
 
 function makeHeaders(entries: Record<string, string> = {}): HttpHeaders {
 	const map = new Map(Object.entries(entries));
@@ -19,7 +18,6 @@ function makeHeaders(entries: Record<string, string> = {}): HttpHeaders {
 }
 
 function makeResponse(status: number, headers: Record<string, string> = {}, body: unknown = null): HttpResponse {
-	// Normalise header keys to lowercase for realistic behaviour
 	const lower: Record<string, string> = {};
 	for (const [k, v] of Object.entries(headers)) {
 		lower[k.toLowerCase()] = v;
@@ -48,7 +46,6 @@ function stubFetch(response: HttpResponse): HttpFetchFn {
 
 const defaultRequest: HttpRequest = { url: 'https://api.test/data', headers: {} };
 
-// ── etagMiddleware ──────────────────────────────────────────────────────
 
 describe('etagMiddleware', () => {
 	it('does not add conditional headers on first request', async () => {
@@ -68,7 +65,6 @@ describe('etagMiddleware', () => {
 
 		await fetch(defaultRequest);
 
-		// Second call should include conditional header
 		await fetch(defaultRequest);
 		expect(inner).toHaveBeenLastCalledWith(expect.objectContaining({
 			headers: expect.objectContaining({ 'If-None-Match': '"abc"' }),
@@ -100,7 +96,7 @@ describe('etagMiddleware', () => {
 		const second = await fetch(defaultRequest);
 
 		expect(first.status).toBe(200);
-		expect(second.status).toBe(200); // cached response returned on 304
+		expect(second.status).toBe(200);
 	});
 
 	it('updates cache on new 200 response', async () => {
@@ -119,7 +115,6 @@ describe('etagMiddleware', () => {
 	});
 });
 
-// ── authBlockedMiddleware ─────────────────────────────────────────────
 
 describe('authBlockedMiddleware', () => {
 	const authedRequest: HttpRequest = { url: 'https://api.test/data', headers: { 'Authorization': 'Bearer token-a' } };
@@ -154,7 +149,6 @@ describe('authBlockedMiddleware', () => {
 
 		await expect(fetch(authedRequest)).rejects.toThrow(AuthBlockedError);
 
-		// Subsequent request with same token should be blocked without calling inner
 		await expect(fetch(authedRequest)).rejects.toThrow(AuthBlockedError);
 		expect(inner).toHaveBeenCalledTimes(1);
 	});
@@ -167,7 +161,6 @@ describe('authBlockedMiddleware', () => {
 
 		await expect(fetch(authedRequest)).rejects.toThrow(AuthBlockedError);
 
-		// Change token → block should clear
 		const newTokenRequest: HttpRequest = { url: 'https://api.test/data', headers: { 'Authorization': 'Bearer token-new' } };
 		const result = await fetch(newTokenRequest);
 		expect(result.status).toBe(200);
@@ -185,7 +178,6 @@ describe('authBlockedMiddleware', () => {
 		vi.useFakeTimers();
 		try {
 			vi.advanceTimersByTime(150);
-			// Block expired → request should proceed
 			const result = await fetch(authedRequest);
 			expect(result.status).toBe(200);
 		} finally {
@@ -197,13 +189,11 @@ describe('authBlockedMiddleware', () => {
 		const inner = stubFetch(makeResponse(401));
 		const fetch = authBlockedMiddleware()(inner);
 
-		// No Authorization header → middleware passes through the response
 		const result = await fetch(defaultRequest);
 		expect(result.status).toBe(401);
 	});
 });
 
-// ── serverErrorBackoffMiddleware ────────────────────────────────────────
 
 describe('serverErrorBackoffMiddleware', () => {
 	it('allows requests normally on success', async () => {
@@ -229,7 +219,6 @@ describe('serverErrorBackoffMiddleware', () => {
 
 		await expect(fetch(defaultRequest)).rejects.toThrow(ServerBackoffError);
 
-		// Within backoff window → blocked without calling inner
 		await expect(fetch(defaultRequest)).rejects.toThrow(ServerBackoffError);
 		expect(inner).toHaveBeenCalledTimes(1);
 	});
@@ -240,15 +229,12 @@ describe('serverErrorBackoffMiddleware', () => {
 
 		vi.useFakeTimers();
 		try {
-			// First failure → 100ms backoff
 			await expect(fetch(defaultRequest)).rejects.toThrow(ServerBackoffError);
 			vi.advanceTimersByTime(110);
 
-			// Second failure → 200ms backoff
 			await expect(fetch(defaultRequest)).rejects.toThrow(ServerBackoffError);
 			vi.advanceTimersByTime(210);
 
-			// Third failure → 400ms backoff
 			await expect(fetch(defaultRequest)).rejects.toSatisfy(
 				(err: ServerBackoffError) => err.retryAfterMs >= 399,
 			);
@@ -266,7 +252,6 @@ describe('serverErrorBackoffMiddleware', () => {
 			await expect(fetch(defaultRequest)).rejects.toThrow(ServerBackoffError);
 			vi.advanceTimersByTime(110);
 
-			// Second failure → min(100*10, 300) = 300
 			await expect(fetch(defaultRequest)).rejects.toSatisfy(
 				(err: ServerBackoffError) => err.retryAfterMs <= 300,
 			);
@@ -287,11 +272,9 @@ describe('serverErrorBackoffMiddleware', () => {
 			await expect(fetch(defaultRequest)).rejects.toThrow(ServerBackoffError);
 			vi.advanceTimersByTime(110);
 
-			// Success → resets
 			const ok = await fetch(defaultRequest);
 			expect(ok.status).toBe(200);
 
-			// Next 500 → starts at initialDelayMs again
 			await expect(fetch(defaultRequest)).rejects.toSatisfy(
 				(err: ServerBackoffError) => err.retryAfterMs <= 100,
 			);
@@ -301,7 +284,6 @@ describe('serverErrorBackoffMiddleware', () => {
 	});
 });
 
-// ── windowActiveMiddleware ──────────────────────────────────────────────
 
 describe('windowActiveMiddleware', () => {
 	it('calls next when window is active', async () => {
@@ -324,7 +306,6 @@ describe('windowActiveMiddleware', () => {
 	});
 });
 
-// ── composeFetchMiddleware ──────────────────────────────────────────────
 
 describe('composeFetchMiddleware', () => {
 	it('composes middlewares left-to-right (first = outermost)', async () => {
@@ -360,7 +341,6 @@ describe('composeFetchMiddleware', () => {
 	});
 });
 
-// ── createAdvancedFetch ─────────────────────────────────────────────────
 
 describe('createAdvancedFetch', () => {
 	it('creates a () => Promise<T> that parses responses', async () => {
@@ -399,13 +379,10 @@ describe('createAdvancedFetch', () => {
 			middleware: [windowActiveMiddleware(provider)],
 		});
 
-		// Inactive → middleware throws
 		await expect(fetchFn()).rejects.toThrow(WindowInactiveError);
 	});
 
 	it('composes with FetchedValue', async () => {
-		// Integration-level smoke test: createAdvancedFetch produces a function
-		// compatible with FetchedValue's `fetch` option signature.
 		const { FetchedValue } = await import('../fetchedValue');
 
 		const fetchFn = createAdvancedFetch({
@@ -428,7 +405,6 @@ describe('createAdvancedFetch', () => {
 	});
 });
 
-// ── Full-stack integration ──────────────────────────────────────────────
 
 describe('full middleware stack', () => {
 	let provider: { isActive: boolean };
@@ -457,14 +433,12 @@ describe('full middleware stack', () => {
 	});
 
 	it('window inactive throws WindowInactiveError', async () => {
-		// Prime the cache
 		await fetch(authedRequest);
 		expect(inner).toHaveBeenCalledTimes(1);
 
-		// Become inactive → middleware throws before reaching network
 		provider.isActive = false;
 		await expect(fetch(authedRequest)).rejects.toThrow(WindowInactiveError);
-		expect(inner).toHaveBeenCalledTimes(1); // no additional call
+		expect(inner).toHaveBeenCalledTimes(1);
 	});
 
 	it('auth failure blocks all further requests until token changes', async () => {

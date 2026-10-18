@@ -15,20 +15,13 @@ import { safeIntl } from '../../../../../base/common/date.js';
 const $ = DOM.$;
 const numberFormatter = safeIntl.NumberFormat();
 
-/**
- * Render a resolved model turn content with structured display of
- * request metadata, token usage, and timing.
- * When JSON is detected in section content, renders it with syntax highlighting.
- */
 export async function renderModelTurnContent(content: IChatDebugEventModelTurnContent, languageService: ILanguageService, clipboardService?: IClipboardService, scrollable?: { scanDomNode(): void }): Promise<{ element: HTMLElement; disposables: DisposableStore }> {
 	const disposables = new DisposableStore();
 	const container = $('div.chat-debug-message-content');
 	container.tabIndex = 0;
 
-	// Header: Model Turn
 	DOM.append(container, $('div.chat-debug-message-content-title', undefined, localize('chatDebug.modelTurn.title', "Model Turn")));
 
-	// Status summary line
 	const statusParts: string[] = [];
 	if (content.requestName) {
 		statusParts.push(content.requestName);
@@ -46,7 +39,6 @@ export async function renderModelTurnContent(content: IChatDebugEventModelTurnCo
 		DOM.append(container, $('div.chat-debug-message-content-summary', undefined, statusParts.join(' \u00b7 ')));
 	}
 
-	// Token usage details
 	const detailsContainer = DOM.append(container, $('div.chat-debug-model-turn-details'));
 
 	if (content.inputTokens !== undefined) {
@@ -74,7 +66,6 @@ export async function renderModelTurnContent(content: IChatDebugEventModelTurnCo
 		DOM.append(detailsContainer, $('div.chat-debug-model-turn-error', undefined, localize('chatDebug.modelTurn.error', "Error: {0}", content.errorMessage)));
 	}
 
-	// Collapsible sections (e.g., system prompt, user prompt, tools, response)
 	if (content.sections && content.sections.length > 0) {
 		const sectionsContainer = DOM.append(container, $('div.chat-debug-message-sections'));
 		DOM.append(sectionsContainer, $('div.chat-debug-message-sections-label', undefined,
@@ -89,9 +80,6 @@ export async function renderModelTurnContent(content: IChatDebugEventModelTurnCo
 	return { element: container, disposables };
 }
 
-/**
- * Convert a resolved model turn content to plain text for clipboard / editor output.
- */
 export function modelTurnContentToPlainText(content: IChatDebugEventModelTurnContent): string {
 	const lines: string[] = [];
 	lines.push(localize('chatDebug.modelTurn.requestLabel', "Request: {0}", content.requestName));

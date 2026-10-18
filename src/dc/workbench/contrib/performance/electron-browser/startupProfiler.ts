@@ -35,7 +35,6 @@ export class StartupProfiler implements IWorkbenchContribution {
 		@IFileService private readonly _fileService: IFileService,
 		@ILabelService private readonly _labelService: ILabelService,
 	) {
-		// wait for everything to be ready
 		Promise.all([
 			lifecycleService.when(LifecyclePhase.Eventually),
 			extensionService.whenInstalledExtensionsRegistered()
@@ -56,8 +55,8 @@ export class StartupProfiler implements IWorkbenchContribution {
 
 		const removeArgs: string[] = ['--prof-startup'];
 		const markerFile = this._fileService.readFile(profileFilenamePrefix).then(value => removeArgs.push(...value.toString().split('|')))
-			.then(() => this._fileService.del(profileFilenamePrefix, { recursive: true })) // (1) delete the file to tell the main process to stop profiling
-			.then(() => new Promise<void>(resolve => { // (2) wait for main that recreates the fail to signal profiling has stopped
+			.then(() => this._fileService.del(profileFilenamePrefix, { recursive: true }))
+			.then(() => new Promise<void>(resolve => {
 				const check = () => {
 					this._fileService.exists(profileFilenamePrefix).then(exists => {
 						if (exists) {
@@ -69,7 +68,7 @@ export class StartupProfiler implements IWorkbenchContribution {
 				};
 				check();
 			}))
-			.then(() => this._fileService.del(profileFilenamePrefix, { recursive: true })); // (3) finally delete the file again
+			.then(() => this._fileService.del(profileFilenamePrefix, { recursive: true }));
 
 		markerFile.then(() => {
 			return this._fileService.resolve(dir).then(stat => {
@@ -90,14 +89,12 @@ export class StartupProfiler implements IWorkbenchContribution {
 						this._nativeHostService.showItemInFolder(files[0].fsPath),
 						this._createPerfIssue(files.map(file => basename(file)))
 					]).then(() => {
-						// keep window stable until restart is selected
 						return this._dialogService.confirm({
 							type: 'info',
 							message: localize('prof.thanks', "Thanks for helping us."),
 							detail: localize('prof.detail.restart', "A final restart is required to continue to use '{0}'. Again, thank you for your contribution.", this._productService.nameLong),
 							primaryButton: localize({ key: 'prof.restart.button', comment: ['&& denotes a mnemonic'] }, "&&Restart")
 						}).then(res => {
-							// now we are ready to restart
 							if (res.confirmed) {
 								this._nativeHostService.relaunch({ removeArgs });
 							}
@@ -105,7 +102,6 @@ export class StartupProfiler implements IWorkbenchContribution {
 					});
 
 				} else {
-					// simply restart
 					this._nativeHostService.relaunch({ removeArgs });
 				}
 			});

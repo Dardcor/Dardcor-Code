@@ -100,7 +100,6 @@ suite('RichExecuteStrategy', () => {
 			onDisposed: Event.None,
 			onExit: onExitEmitter.event,
 			runCommand: () => {
-				// Simulate process exiting without firing onCommandFinished
 				queueMicrotask(() => onExitEmitter.fire(1));
 			},
 		} as unknown as ITerminalInstance;
@@ -166,10 +165,6 @@ suite('RichExecuteStrategy', () => {
 	});
 
 	test('returns immediately with captured exit code when pty has already exited before execute()', async () => {
-		// Simulates the scenario where the shell process from a previous command
-		// has already died, so onExit has already fired and Event.toPromise(onExit)
-		// would never resolve. The strategy must short-circuit using the
-		// instance's already-captured exitCode.
 		const onCommandFinishedEmitter = new Emitter<{ getOutput(): string; exitCode: number }>();
 		const onExitEmitter = new Emitter<number | undefined>();
 		const instance = {

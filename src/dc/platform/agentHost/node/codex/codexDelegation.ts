@@ -10,7 +10,6 @@ export interface ICodexDelegation {
 
 const CODEX_DELEGATION_PATTERN = /^\s*<codex_delegation>\s*<source_thread_id>\s*(?<sourceThreadId>[\s\S]*?)\s*<\/source_thread_id>\s*<input>\s*(?<input>[\s\S]*?)\s*<\/input>\s*<\/codex_delegation>\s*$/i;
 
-/** Parses the private envelope used when one Codex thread sends a message to another. */
 export function parseCodexDelegation(text: string): ICodexDelegation | undefined {
 	const groups = CODEX_DELEGATION_PATTERN.exec(text)?.groups;
 	if (!groups) {
@@ -26,7 +25,6 @@ export function parseCodexDelegation(text: string): ICodexDelegation | undefined
 	};
 }
 
-/** Returns text suitable for a thread title, hiding malformed private envelopes. */
 export function codexDelegationDisplayText(text: string | null | undefined): string | undefined {
 	if (!text) {
 		return undefined;

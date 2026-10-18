@@ -62,7 +62,6 @@ const enum FlowFinalState {
 	NameMismatch = 'NameMismatch',
 }
 
-// contract with https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/mcp/browser/mcpCommandsAddConfiguration.ts
 export type ValidatePackageResult =
 	{ state: 'ok'; publisher: string; name?: string; version?: string } & IPendingSetupArgs
 	| { state: 'error'; error: string; helpUri?: string; helpUriLabel?: string; errorType: ValidatePackageErrorType };
@@ -109,7 +108,7 @@ export class McpSetupCommands extends Disposable {
 		cts: CancellationTokenSource;
 		canPrompt: DeferredPromise<void>;
 		done: Promise<AssistedServerConfiguration | undefined>;
-		stopwatch: StopWatch; // since the validation began, may include waiting for the user,
+		stopwatch: StopWatch;
 		validateArgs: IValidatePackageArgs;
 		pendingArgs: IPendingSetupArgs;
 	};
@@ -126,7 +125,6 @@ export class McpSetupCommands extends Disposable {
 			let finalState = FlowFinalState.Failed;
 			let result;
 			try {
-				// allow case-insensitive comparison
 				if (this.pendingSetup?.pendingArgs.name.toUpperCase() !== args.name.toUpperCase()) {
 					finalState = FlowFinalState.NameMismatch;
 					vscode.window.showErrorMessage(vscode.l10n.t("Failed to generate MCP server configuration with a matching package name. Expected '{0}' but got '{1}' from generated configuration.", args.name, this.pendingSetup?.pendingArgs.name ?? ''));
@@ -138,18 +136,6 @@ export class McpSetupCommands extends Disposable {
 				finalState = FlowFinalState.Done;
 				return result;
 			} finally {
-				/* __GDPR__
-					"mcp.setup.flow" : {
-						"owner": "joelverhagen",
-						"comment": "Reports the result of the agent-assisted MCP server installation",
-						"finalState": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The final state of the installation (e.g., 'Done', 'Failed')" },
-						"configurationType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Generic configuration typed produced by the installation" },
-						"packageType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Package type (e.g., npm)" },
-						"packageName": { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight", "comment": "Package name used for installation" },
-						"packageVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Package version" },
-						"durationMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Duration of the installation process in milliseconds" }
-					}
-				*/
 				this.telemetryService.sendMSFTTelemetryEvent('mcp.setup.flow', {
 					finalState: finalState,
 					configurationType: result?.type,
@@ -168,18 +154,6 @@ export class McpSetupCommands extends Disposable {
 				this.enqueuePendingSetup(args, result, sw);
 			}
 
-			/* __GDPR__
-				"mcp.setup.validatePackage" : {
-					"owner": "joelverhagen",
-					"comment": "Reports success or failure of agent-assisted MCP server validation step",
-					"state": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Validation state of the package" },
-					"packageType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Package type (e.g., npm)" },
-					"packageName": { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight", "comment": "Package name used for installation" },
-					"packageVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Package version" },
-					"errorType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Generic type of error encountered during validation" },
-					"durationMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Duration of the validation process in milliseconds" }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent(
 				'mcp.setup.validatePackage',
 				result.state === 'ok' ?
@@ -197,8 +171,6 @@ export class McpSetupCommands extends Disposable {
 					},
 				{ durationMs: sw.elapsed() });
 
-			// return the minimal result to avoid leaking implementation details
-			// not all package information is needed to request consent to install the package
 			return result.state === 'ok' ?
 				{ state: 'ok', publisher: result.publisher, name: result.name, version: result.version } :
 				{ state: 'error', error: result.error, helpUri: result.helpUri, helpUriLabel: result.helpUriLabel, errorType: result.errorType };
@@ -217,10 +189,8 @@ export class McpSetupCommands extends Disposable {
 		const canPrompt = new DeferredPromise<void>();
 		const pickRef = new McpPickRef(raceCancellation(canPrompt.p, cts.token));
 
-		// we start doing the prompt in the background so the first call is speedy
 		const done = (async () => {
 
-			// if the package has a server manifest, we can fetch it and use it instead of a tool loop
 			if (pendingArgs.getMcpServer) {
 				let mcpServer: Omit<IInstallableMcpServer, 'name'> | undefined;
 				try {
@@ -242,7 +212,7 @@ Error: ${error}`);
 
 			const fakePrompt = `Generate an MCP configuration for ${validateArgs.name}`;
 			const mcpLoop = this.instantiationService.createInstance(McpToolCallingLoop, {
-				toolCallLimit: 100, // limited via `getAvailableTools` in the loop
+				toolCallLimit: 100,
 				conversation: new Conversation(generateUuid(), [new Turn(undefined, { type: 'user', message: fakePrompt })]),
 				request: {
 					attempt: 0,
@@ -251,7 +221,6 @@ Error: ${error}`);
 					location: VsCodeChatLocation.Panel,
 					command: undefined,
 					location2: undefined,
-					// note: this is not used, model is hardcoded in the McpToolCallingLoop
 					model: (await vscode.lm.selectChatModels())[0],
 					prompt: fakePrompt,
 					references: [],
@@ -265,7 +234,7 @@ Error: ${error}`);
 				},
 				props: {
 					targetSchema: validateArgs.targetConfig,
-					packageName: pendingArgs.name, // prefer the resolved name, not the input
+					packageName: pendingArgs.name,
 					packageVersion: pendingArgs.version,
 					packageType: validateArgs.type,
 					pickRef,
@@ -283,7 +252,6 @@ Error: ${error}`);
 				try {
 					const j = JSON.parse(block.code);
 
-					// Unwrap if the model returns `mcpServers` in a wrapper object
 					if (j && typeof j === 'object' && j.hasOwnProperty('mcpServers')) {
 						const [name, obj] = Object.entries(j.mcpServers)[0] as [string, object];
 						return { ...obj, name };
@@ -356,8 +324,6 @@ Error: ${error}`);
 				const nuGetMcpSetup = new NuGetMcpSetup(logService, fetcherService);
 				return await nuGetMcpSetup.getNuGetPackageMetadata(args.name);
 			} else if (args.type === 'docker') {
-				// Docker Hub API uses namespace/repository format
-				// Handle both formats: 'namespace/repository' or just 'repository' (assumes 'library/' namespace)
 				const [namespace, repository] = args.name.includes('/')
 					? args.name.split('/', 2)
 					: ['library', args.name];

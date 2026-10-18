@@ -11,7 +11,6 @@ export function setup(options?: { skipSuite: boolean }) {
 		let task: Task;
 		let terminal: Terminal;
 
-		// Acquire automation API
 		before(async function () {
 			app = this.app as Application;
 			task = app.workbench.task;
@@ -19,7 +18,6 @@ export function setup(options?: { skipSuite: boolean }) {
 		});
 
 		afterEach(async () => {
-			// Kill all terminals between every test for a consistent testing environment
 			await terminal.runCommand(TerminalCommandId.KillAll);
 		});
 
@@ -55,7 +53,6 @@ export function setup(options?: { skipSuite: boolean }) {
 				await task.assertTasks(label, [{ label, type, command, icon: { id: 'lightbulb', color: 'Red' } }], 'run');
 			});
 		});
-		//TODO: why won't this command run
 		describe.skip('Tasks: Configure Task', () => {
 			const label = 'name';
 			const type = 'shell';

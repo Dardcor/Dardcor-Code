@@ -30,12 +30,6 @@ export interface ISampleMetadataBase {
 	readonly workspaceRecording?: IWorkspaceRecordingSampleProvenance;
 }
 
-/**
- * Per-sample classification + cursor-jump payload. Discriminated on `task`
- * so xtab samples cannot accidentally carry a `jump` field and cursor-*
- * samples cannot omit one. `CursorBoth` is a CLI dispatch mode only — each
- * emitted sample is classified as one of the concrete cursor variants.
- */
 export type SampleClassification =
 	| { readonly task: NesDatagenSampleTask.Xtab }
 	| {
@@ -114,9 +108,6 @@ interface IStructuralValidationResult {
 	readonly reason?: string;
 }
 
-/**
- * Structural check: ensures messages are non-empty before writing.
- */
 export function validateSample(sample: ISample): IStructuralValidationResult {
 	for (const msg of sample.messages) {
 		if (msg.content === undefined || msg.content === null) {
@@ -149,15 +140,6 @@ export function resolveOutputPath(inputPath: string, explicitPath: string | unde
 	return path.join(parsed.dir, `${parsed.name}_output.jsonl`);
 }
 
-/**
- * Write validated samples to a JSON Lines file (one JSON object per line).
- * Samples are sorted by rowIndex for deterministic output.
- *
- * JSONL was chosen over a pretty-printed JSON array specifically so the writer
- * (and any reader) can operate one record at a time, with no surrounding
- * brackets/commas to track. This keeps memory bounded for multi-GB outputs and
- * avoids hitting V8's ~512 MiB max-string-length limit.
- */
 export async function writeSamples(
 	outputPath: string,
 	samples: readonly ISample[],
@@ -197,7 +179,7 @@ export async function writeSamples(
 		}
 		await writer.close();
 	} catch (err) {
-		try { await writer.close(); } catch { /* swallow secondary errors */ }
+		try { await writer.close(); } catch { }
 		throw err;
 	}
 

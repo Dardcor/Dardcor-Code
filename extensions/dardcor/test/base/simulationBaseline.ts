@@ -36,7 +36,6 @@ export class SimulationBaseline {
 		try {
 			baselineFileContents = (await fs.promises.readFile(baselinePath)).toString();
 		} catch {
-			// No baseline file exists yet, create one
 			await fs.promises.writeFile(baselinePath, '[]');
 		}
 		const parsedBaseline = JSON.parse(baselineFileContents) as IBaselineTestSummary[];
@@ -71,14 +70,9 @@ export class SimulationBaseline {
 		await fs.promises.writeFile(path, JSON.stringify(this.testSummaries, undefined, 2));
 	}
 
-	/**
-	 * Returns a sorted array of test summaries.
-	 * This also includes skipped tests as this is meant to represent the baseline.json which would be written to disk.
-	 */
 	private get testSummaries(): IBaselineTestSummary[] {
 		const testSummaries = Array.from(this.currBaseline.values());
 
-		// Skipped tests remain in the baseline
 		for (const name of this.currSkipped) {
 			const prevBaseline = this.prevBaseline.get(name);
 			if (prevBaseline) {
@@ -87,7 +81,6 @@ export class SimulationBaseline {
 		}
 
 		if (!this._runningAllTests) {
-			// When running a subset of tests, we will copy over the old existing test results for tests that were not executed
 			const executedTests = new Set(testSummaries.map(el => el.name));
 			for (const testSummary of this.prevBaseline.values()) {
 				if (!executedTests.has(testSummary.name)) {
@@ -167,7 +160,6 @@ export class SimulationBaseline {
 		for (const [_, prev] of prevMap) {
 			if (!currMap.has(prev.name)) {
 				if (currSkipped.has(prev.name)) {
-					// this test is missing but it was skipped intentionally
 					skippedScenarios++;
 				} else {
 					removedScenarios++;
@@ -232,18 +224,15 @@ export class ExistingBaselineComparison {
 		const prevPassCount = Math.round(this.prevScore * prevN);
 		const currPassCount = Math.round(this.currScore * currN);
 
-		// Here we want to mark a change only if this is clearly a change also when the `prevN` would equal `currN`
 		let prevMinScore = this.prevScore;
 		let prevMaxScore = this.prevScore;
 		let currMinScore = this.currScore;
 		let currMaxScore = this.currScore;
 
 		if (prevN > currN) {
-			// We are now running less iterations than before
 			currMinScore = currPassCount / prevN;
 			currMaxScore = (currPassCount + (prevN - currN)) / prevN;
 		} else if (prevN < currN) {
-			// We are now running more iterations than before
 			prevMinScore = prevPassCount / currN;
 			prevMaxScore = (prevPassCount + (currN - prevN)) / currN;
 		}

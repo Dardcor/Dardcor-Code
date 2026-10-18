@@ -18,9 +18,10 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import { localize } from '../../../../nls.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IJSONEditingService, IJSONValue } from '../../configuration/common/jsonEditing.js';
+import { FOLDER_CONFIG_FOLDER_NAME } from '../../configuration/common/configuration.js';
 import { ResourceMap } from '../../../../base/common/map.js';
 
-export const EXTENSIONS_CONFIG = '.vscode/extensions.json';
+export const EXTENSIONS_CONFIG = `${FOLDER_CONFIG_FOLDER_NAME}/extensions.json`;
 
 export interface IExtensionsConfigContent {
 	recommendations?: string[];
@@ -280,7 +281,7 @@ export class WorkspaceExtensionsConfigService extends Disposable implements IWor
 			const content = await this.fileService.readFile(workspaceConfigurationResource);
 			const extensionsConfigContent = <IExtensionsConfigContent | undefined>parse(content.value.toString())['extensions'];
 			return extensionsConfigContent ? this.parseExtensionConfig(extensionsConfigContent) : undefined;
-		} catch (e) { /* Ignore */ }
+		} catch (e) { }
 		return undefined;
 	}
 
@@ -289,7 +290,7 @@ export class WorkspaceExtensionsConfigService extends Disposable implements IWor
 			const content = await this.fileService.readFile(workspaceFolder.toResource(EXTENSIONS_CONFIG));
 			const extensionsConfigContent = <IExtensionsConfigContent>parse(content.value.toString());
 			return this.parseExtensionConfig(extensionsConfigContent);
-		} catch (e) { /* ignore */ }
+		} catch (e) { }
 		return {};
 	}
 

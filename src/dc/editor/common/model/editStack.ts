@@ -87,13 +87,13 @@ export class SingleModelEditStackData {
 
 	public serialize(): ArrayBuffer {
 		let necessarySize = (
-			+ 4 // beforeVersionId
-			+ 4 // afterVersionId
-			+ 1 // beforeEOL
-			+ 1 // afterEOL
+			+ 4
+			+ 4
+			+ 1
+			+ 1
 			+ SingleModelEditStackData._writeSelectionsSize(this.beforeCursorState)
 			+ SingleModelEditStackData._writeSelectionsSize(this.afterCursorState)
-			+ 4 // change count
+			+ 4
 		);
 		for (const change of this.changes) {
 			necessarySize += change.writeSize();
@@ -210,7 +210,6 @@ export class SingleModelEditStackElement implements IResourceUndoRedoElement {
 
 	public undo(): void {
 		if (URI.isUri(this.model)) {
-			// don't have a model
 			throw new Error(`Invalid SingleModelEditStackElement`);
 		}
 		if (this._data instanceof SingleModelEditStackData) {
@@ -222,7 +221,6 @@ export class SingleModelEditStackElement implements IResourceUndoRedoElement {
 
 	public redo(): void {
 		if (URI.isUri(this.model)) {
-			// don't have a model
 			throw new Error(`Invalid SingleModelEditStackElement`);
 		}
 		if (this._data instanceof SingleModelEditStackData) {
@@ -236,7 +234,7 @@ export class SingleModelEditStackElement implements IResourceUndoRedoElement {
 		if (this._data instanceof SingleModelEditStackData) {
 			this._data = this._data.serialize();
 		}
-		return this._data.byteLength + 168/*heap overhead*/;
+		return this._data.byteLength + 168;
 	}
 }
 
@@ -324,7 +322,6 @@ export class MultiModelEditStackElement implements IWorkspaceUndoRedoElement {
 	}
 
 	public open(): void {
-		// cannot reopen
 	}
 
 	public undo(): void {

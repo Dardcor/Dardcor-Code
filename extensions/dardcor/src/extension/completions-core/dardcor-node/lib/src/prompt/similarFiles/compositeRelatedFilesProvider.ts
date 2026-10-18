@@ -85,10 +85,7 @@ export class CompositeRelatedFilesProvider extends RelatedFilesProvider {
 		try {
 			return this.convert(docInfo.uri, languageProviders, startTime, telemetryData, cancellationToken);
 		} catch (error) {
-			// When the command returns an empty std::optional, we get an Error exception with message:
-			// "Received message which is neither a response nor a notification message: {"jsonrpc": "2.0","id": 22}"
 			this.relatedFileNonresponseTelemetry(languageId, telemetryData);
-			// Return undefined to inform the caller that the command failed.
 			return undefined;
 		}
 	}
@@ -142,10 +139,6 @@ export class CompositeRelatedFilesProvider extends RelatedFilesProvider {
 			}
 		}
 	}
-	/**
-	 * Providers should manage their own telemetry.
-	 * These four methods are for backward compatibility with the C++ provider.
-	 */
 	isActive(languageId: string, telemetryData: TelemetryWithExp): boolean {
 		if (csharpLanguageIds.includes(languageId)) {
 			return (

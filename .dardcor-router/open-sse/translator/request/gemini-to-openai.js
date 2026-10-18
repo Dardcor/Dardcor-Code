@@ -5,7 +5,6 @@ import { encodeDataUri } from "../concerns/image.js";
 import { collapseTextParts } from "../concerns/message.js";
 import { ROLE, GEMINI_ROLE, OPENAI_BLOCK } from "../schema/index.js";
 
-// Convert Gemini request to OpenAI format
 export function geminiToOpenAIRequest(model, body, stream) {
   const result = {
     model: model,
@@ -13,7 +12,6 @@ export function geminiToOpenAIRequest(model, body, stream) {
     stream: stream
   };
 
-  // Generation config
   if (body.generationConfig) {
     const config = body.generationConfig;
     if (config.maxOutputTokens) {
@@ -28,7 +26,6 @@ export function geminiToOpenAIRequest(model, body, stream) {
     }
   }
 
-  // System instruction
   if (body.systemInstruction) {
     const systemText = extractGeminiText(body.systemInstruction);
     if (systemText) {
@@ -39,7 +36,6 @@ export function geminiToOpenAIRequest(model, body, stream) {
     }
   }
 
-  // Convert contents to messages
   if (body.contents && Array.isArray(body.contents)) {
     for (const content of body.contents) {
       const converted = convertGeminiContent(content);
@@ -49,7 +45,6 @@ export function geminiToOpenAIRequest(model, body, stream) {
     }
   }
 
-  // Tools
   if (body.tools && Array.isArray(body.tools)) {
     result.tools = [];
     for (const tool of body.tools) {
@@ -71,7 +66,6 @@ export function geminiToOpenAIRequest(model, body, stream) {
   return result;
 }
 
-// Convert Gemini content to OpenAI message
 function convertGeminiContent(content) {
   const role = content.role === GEMINI_ROLE.USER ? ROLE.USER : ROLE.ASSISTANT;
   
@@ -97,8 +91,6 @@ function convertGeminiContent(content) {
     }
 
     if (part.functionCall) {
-      // Gemini lacks a native call id; derive a deterministic one from the name so the
-      // matching functionResponse maps to the same tool_call_id (providers require pairing).
       toolCalls.push({
         id: part.functionCall.id || `call_${part.functionCall.name}`,
         type: OPENAI_BLOCK.FUNCTION,
@@ -137,7 +129,6 @@ function convertGeminiContent(content) {
   return null;
 }
 
-// Extract text from Gemini content
 function extractGeminiText(content) {
   if (typeof content === "string") return content;
   if (content.parts && Array.isArray(content.parts)) {
@@ -146,7 +137,6 @@ function extractGeminiText(content) {
   return "";
 }
 
-// Register
 register(FORMATS.GEMINI, FORMATS.OPENAI, geminiToOpenAIRequest, null);
 register(FORMATS.GEMINI_CLI, FORMATS.OPENAI, geminiToOpenAIRequest, null);
 

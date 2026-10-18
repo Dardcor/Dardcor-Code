@@ -26,7 +26,7 @@ interface OrganizeImportsCommandMetadata {
 }
 
 const organizeImportsCommand: OrganizeImportsCommandMetadata = {
-	commandIds: [], // We use the generic 'Organize imports' command
+	commandIds: [],
 	title: vscode.l10n.t("Organize Imports"),
 	kind: vscode.CodeActionKind.SourceOrganizeImports,
 	mode: OrganizeImportsMode.All,
@@ -58,14 +58,6 @@ class DidOrganizeImportsCommand implements Command {
 	) { }
 
 	public async execute(): Promise<void> {
-		/* __GDPR__
-			"organizeImports.execute" : {
-				"owner": "mjbvz",
-				"${include}": [
-					"${TypeScriptCommonProperties}"
-				]
-			}
-		*/
 		this.telemetryReporter.logTelemetry('organizeImports.execute', {});
 	}
 }
@@ -127,7 +119,6 @@ class ImportsCodeActionProvider implements vscode.CodeActionProvider<ImportCodeA
 					type: 'file',
 					args: { file }
 				},
-				// Deprecated in 4.9; `mode` takes priority
 				skipDestructiveCodeActions: this.commandMetadata.mode === OrganizeImportsMode.SortAndCombine,
 				mode: typeConverters.OrganizeImportsMode.toProtocolOrganizeImportsMode(this.commandMetadata.mode),
 			};
@@ -169,7 +160,6 @@ export function register(
 						providedCodeActionKinds: [command.kind]
 					}));
 			}),
-			// Always register these commands. We will show a warning if the user tries to run them on an unsupported version
 			...command.commandIds.map(id =>
 				commandManager.register({
 					id,

@@ -34,47 +34,21 @@ class WatchInterestReferenceCollection extends ReferenceCollection<string> {
 	}
 }
 
-/**
- * Keeps static changeset catalogue entries fresh while a client is observing a
- * session or one of its static changeset resources.
- *
- * The generic {@link IAgentHostFileMonitorService} owns folder watching and
- * debounce mechanics; this coordinator owns the changeset-specific lifecycle:
- * subscription interest, session materialization, repository-root resolution,
- * root-level watcher sharing, and refresh fanout.
- *
- * We only monitor roots while at least one client is subscribed to a session or
- * static changeset that needs fresh changeset counts. We do not monitor while a
- * session on that root is actively running a turn: agent/tool edits made during
- * the turn are captured by the turn lifecycle, and the static changesets are
- * recomputed once when the turn completes. Watching during the turn would add
- * duplicate file-system noise without improving correctness.
- */
 export class ChangesetFileMonitorCoordinator extends Disposable {
 
-	/** Per-subscription references into the per-session watch-interest collection. */
 	private readonly _watchInterestReferences = this._register(new DisposableMap<string, IReference<string>>());
 	private readonly _watchInterestCollection = new WatchInterestReferenceCollection(
 		sessionStr => this._attachWatcherIfPossible(sessionStr),
 		sessionStr => this._destroyWatchInterest(sessionStr),
 	);
-	/** Sessions waiting for materialization before a root watcher can attach. */
 	private readonly _pendingWatchInterest = new Set<string>();
-	/** Session URI string to a stable signature of the working-directory set that produced the current root attachments. */
 	private readonly _sessionWorkingDirectories = new Map<string, string>();
-	/** Session URI string to the set of repository-root URI strings it is watching. */
 	private readonly _sessionRoots = new Map<string, Set<string>>();
-	/** Repository-root URI string to sessions currently fanned out from that root. */
 	private readonly _rootSessions = new Map<string, Set<string>>();
-	/** Repository-root URI string to the shared monitor acquisition. */
 	private readonly _rootWatchAcquisitions = this._register(new DisposableMap<string>());
-	/** Repository-root URI string to the canonical repository root URI. */
 	private readonly _rootUris = new Map<string, URI>();
-	/** Active session URI string to repository-root URI string. */
 	private readonly _activeSessionRoots = new Map<string, string>();
-	/** Repository-root URI string to sessions currently active against that root. */
 	private readonly _rootActiveSessions = new Map<string, Set<string>>();
-	/** Active sessions whose repository root cannot yet be resolved. */
 	private readonly _unresolvedActiveSessions = new Set<string>();
 	private readonly _watchAttachmentSequencer = new SequencerByKey<string>();
 	private readonly _activeTurnSequencer = new SequencerByKey<string>();
@@ -107,13 +81,6 @@ export class ChangesetFileMonitorCoordinator extends Disposable {
 		this._retryWatchAttachment(sessionStr);
 	}
 
-	/**
-	 * Re-attach a session's root watchers when its effective working-directory
-	 * set changes (a folder added or removed, e.g. in the Editor Window). The
-	 * signature guard in `_attachWatcherIfPossible` makes an unchanged set a
-	 * no-op, so this is cheap; an active (mid-turn) session is instead re-attached
-	 * by the turn lifecycle on turn end.
-	 */
 	onSessionWorkingDirectoriesChanged(sessionStr: string): void {
 		this._retryWatchAttachment(sessionStr);
 	}
@@ -204,9 +171,6 @@ export class ChangesetFileMonitorCoordinator extends Disposable {
 			desiredRoots.set(repositoryRoot.toString(), repositoryRoot);
 		}
 
-		// Detach from roots this session no longer resolves to (runs on each re-attach). An idle
-		// subscribed session re-attaches as soon as its working-directory set changes (via
-		// `onSessionWorkingDirectoriesChanged`); an active session re-attaches at turn end.
 		const current = this._sessionRoots.get(sessionStr);
 		if (current) {
 			for (const rootStr of [...current]) {
@@ -236,8 +200,6 @@ export class ChangesetFileMonitorCoordinator extends Disposable {
 				allRootsWatched = false;
 			}
 		}
-		// Cache the signature only when every root was watched; a failed
-		// acquisition is then retried on the next re-attach (not skipped).
 		if (allRootsWatched) {
 			this._sessionWorkingDirectories.set(sessionStr, signature);
 		} else {
@@ -257,10 +219,6 @@ export class ChangesetFileMonitorCoordinator extends Disposable {
 		}
 	}
 
-	/**
-	 * Removes a session from one repository root's fan-out set, disposing the
-	 * shared root watcher once the last referencing session drops it.
-	 */
 	private _detachRootSession(sessionStr: string, rootStr: string): void {
 		const sessions = this._rootSessions.get(rootStr);
 		if (!sessions) {
@@ -298,9 +256,6 @@ export class ChangesetFileMonitorCoordinator extends Disposable {
 		}
 
 		for (const session of sessionsToRefresh) {
-			// Always refresh from the PRIMARY working directory, never the changed root: branch/PR is a
-			// primary-repo concept, while the downstream summary recompute re-diffs EVERY repo — so a
-			// secondary change still reflects without mis-attributing its branch/PR. Throttled downstream.
 			const primaryWorkingDirectory = getEffectiveWorkingDirectory(this._stateManager, session);
 			if (!primaryWorkingDirectory) {
 				continue;
@@ -326,11 +281,6 @@ export class ChangesetFileMonitorCoordinator extends Disposable {
 		return (this._rootActiveSessions.get(rootStr)?.size ?? 0) > 0;
 	}
 
-	/**
-	 * Ensures a shared watcher exists for a root. Returns false only when
-	 * acquisition failed (the caller retries that root later); an
-	 * already-watched or turn-suspended active root counts as handled.
-	 */
 	private _ensureRootWatcher(rootStr: string, repositoryRoot: URI): boolean {
 		if (this._isRootActive(rootStr) || this._rootWatchAcquisitions.has(rootStr)) {
 			return true;
@@ -376,8 +326,6 @@ export class ChangesetFileMonitorCoordinator extends Disposable {
 		this._activeSessionRoots.set(sessionStr, rootStr);
 		this._rootUris.set(rootStr, repositoryRoot);
 		this._suspendRootWatcher(rootStr);
-		// Release ALL idle attachments during the turn (turn edits are captured by the turn lifecycle).
-		// Primary active-root tracking above keeps the primary suspended; the summary recomputes at turn end.
 		this._releaseSessionRoots(sessionStr);
 	}
 

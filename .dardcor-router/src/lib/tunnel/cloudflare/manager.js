@@ -43,7 +43,6 @@ export async function enableTunnel(localPort = 21128) {
       const existing = loadState();
       if (existing?.tunnelUrl && existing?.shortId) {
         const publicUrl = `https://r${existing.shortId}.abc-tunnel.us`;
-        // Reuse only if BOTH direct + public URL alive (avoid stale socket after network change)
         const [directOk, publicOk] = await Promise.all([
           probeUrlAlive(existing.tunnelUrl),
           probeUrlAlive(publicUrl),
@@ -71,7 +70,6 @@ export async function enableTunnel(localPort = 21128) {
       await updateSettings({ tunnelEnabled: true, tunnelUrl: url });
     };
 
-    // Register exit handler BEFORE spawn so it fires even on early exit
     setUnexpectedExitHandler(() => {
       console.warn("[Tunnel] cloudflared exited unexpectedly, scheduling respawn");
       if (onUnexpectedExit) onUnexpectedExit();
@@ -87,10 +85,8 @@ export async function enableTunnel(localPort = 21128) {
     await updateSettings({ tunnelEnabled: true, tunnelUrl });
     console.log(`[Tunnel] registered shortId=${shortId} publicUrl=${publicUrl}`);
 
-    // Verify publicUrl first (worker route is reliable; direct *.trycloudflare.com DNS may lag)
     await waitForHealth(publicUrl, token);
     console.log("[Tunnel] public URL healthy");
-    // Direct tunnel probe is best-effort: DNS for *.trycloudflare.com can be slow/blocked
     if (!(await probeUrlAlive(tunnelUrl))) {
       console.warn("[Tunnel] direct URL not reachable yet, continuing via publicUrl");
     } else {
@@ -100,7 +96,6 @@ export async function enableTunnel(localPort = 21128) {
     console.log("[Tunnel] enable success");
     return { success: true, tunnelUrl, shortId, publicUrl };
   } catch (e) {
-    // Suppress noise when spawn was deliberately killed (restart/disable superseded it)
     if (!/cloudflared killed|tunnel cancelled/.test(e.message)) {
       console.error(`[Tunnel] enable error: ${e.message}`);
     }
@@ -112,7 +107,6 @@ export async function enableTunnel(localPort = 21128) {
 
 export async function disableTunnel() {
   console.log("[Tunnel] disable");
-  // Abort any in-flight enable so it cannot resurrect state after we clear it
   svc.cancelToken.cancelled = true;
   setUnexpectedExitHandler(null);
 
@@ -123,7 +117,6 @@ export async function disableTunnel() {
   if (state) saveState({ shortId: state.shortId, tunnelUrl: null });
 
   await updateSettings({ tunnelEnabled: false, tunnelUrl: "" });
-  // Force-clear flags so a subsequent enable is not blocked by a stuck spawnInProgress
   svc.spawnInProgress = false;
   svc.activeLocalPort = null;
   return { success: true };
@@ -137,7 +130,6 @@ export async function getTunnelStatus() {
   const publicUrl = shortId ? `https://r${shortId}.abc-tunnel.us` : "";
   const tunnelUrl = state?.tunnelUrl || "";
 
-  // Lazy: skip PID probe entirely when user disabled tunnel
   const running = settingsEnabled ? isCloudflaredRunning() : false;
 
   return {

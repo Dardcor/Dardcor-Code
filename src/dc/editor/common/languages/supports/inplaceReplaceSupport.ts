@@ -51,9 +51,7 @@ export class BasicInplaceReplace {
 		if (!isNaN(n1) && !isNaN(n2) && n1 === n2) {
 
 			if (n1 === 0 && !up) {
-				return null; // don't do negative
-				//			} else if(n1 === 9 && up) {
-				//				return null; // don't insert 10 into a number
+				return null;
 			} else {
 				n1 = Math.floor(n1 * precision);
 				n1 += up ? precision : -precision;

@@ -13,7 +13,6 @@ describe('OpenAIAdapterFactory', () => {
 		const factory = new OpenAIAdapterFactoryForSTests();
 		const adapter = factory.createAdapter();
 
-		// Verify the adapter has the correct name
 		expect(adapter.name).toBe('openai');
 	});
 

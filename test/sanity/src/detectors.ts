@@ -8,9 +8,6 @@ import os from 'os';
 import { spawnSync } from 'child_process';
 import { webkit } from 'playwright';
 
-/**
- * The capabilities of the current environment.
- */
 export type Capability =
 	| 'linux' | 'darwin' | 'windows' | 'alpine'
 	| 'x64' | 'arm64' | 'arm32'
@@ -20,9 +17,6 @@ export type Capability =
 	| 'wsl'
 	| 'github-account';
 
-/**
- * Detect the capabilities of the current environment.
- */
 export function detectCapabilities(): ReadonlySet<Capability> {
 	const capabilities = new Set<Capability>();
 	detectOS(capabilities);
@@ -35,9 +29,6 @@ export function detectCapabilities(): ReadonlySet<Capability> {
 	return capabilities;
 }
 
-/**
- * Detect the operating system.
- */
 function detectOS(capabilities: Set<Capability>) {
 	switch (os.platform()) {
 		case 'linux':
@@ -58,9 +49,6 @@ function detectOS(capabilities: Set<Capability>) {
 	}
 }
 
-/**
- * Detect the architecture.
- */
 function detectArch(capabilities: Set<Capability>) {
 	let arch = os.arch();
 
@@ -88,9 +76,6 @@ function detectArch(capabilities: Set<Capability>) {
 	}
 }
 
-/**
- * Detect the package managers.
- */
 function detectPackageManagers(capabilities: Set<Capability>) {
 	if (os.platform() !== 'linux') {
 		return;
@@ -106,18 +91,12 @@ function detectPackageManagers(capabilities: Set<Capability>) {
 	}
 }
 
-/**
- * Detect if a desktop environment is available.
- */
 function detectDesktop(capabilities: Set<Capability>) {
 	if (os.platform() !== 'linux' || !!process.env.DISPLAY) {
 		capabilities.add('desktop');
 	}
 }
 
-/**
- * Detect if a browser environment is available.
- */
 function detectBrowser(capabilities: Set<Capability>) {
 	switch (os.platform()) {
 		case 'linux': {
@@ -146,14 +125,10 @@ function detectBrowser(capabilities: Set<Capability>) {
 	}
 }
 
-/**
- * Detect if WSL is available on Windows.
- */
 function detectWSL(capabilities: Set<Capability>) {
 	if (os.platform() === 'win32') {
 		const wslPath = `${process.env.SystemRoot}\\System32\\wsl.exe`;
 		if (fs.existsSync(wslPath)) {
-			// wsl.exe can exist even when WSL isn't installed; ensure the command is usable.
 			const result = spawnSync(wslPath, ['--list', '--quiet'], { encoding: 'utf8', windowsHide: true, timeout: 5000 });
 			if (result.status !== 0 || result.error) {
 				return;
@@ -167,9 +142,6 @@ function detectWSL(capabilities: Set<Capability>) {
 	}
 }
 
-/**
- * Detect if GitHub account and password are available in the environment.
- */
 function detectGitHubAccount(capabilities: Set<Capability>) {
 	if (process.env.GITHUB_ACCOUNT && process.env.GITHUB_PASSWORD) {
 		capabilities.add('github-account');

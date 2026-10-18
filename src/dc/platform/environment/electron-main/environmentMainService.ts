@@ -13,28 +13,19 @@ import { refineServiceDecorator } from '../../instantiation/common/instantiation
 
 export const IEnvironmentMainService = refineServiceDecorator<IEnvironmentService, IEnvironmentMainService>(IEnvironmentService);
 
-/**
- * A subclass of the `INativeEnvironmentService` to be used only in electron-main
- * environments.
- */
 export interface IEnvironmentMainService extends INativeEnvironmentService {
 
-	// --- backup paths
 	readonly backupHome: string;
 
-	// --- V8 code caching
 	readonly codeCachePath: string | undefined;
 	readonly useCodeCache: boolean;
 
-	// --- IPC
 	readonly mainIPCHandle: string;
 	readonly mainLockfile: string;
 
-	// --- config
 	readonly disableUpdates: boolean;
 	readonly isPortable: boolean;
 
-	// TODO@deepak1556 temporary until a real fix lands upstream
 	readonly enableRDPDisplayTracking: boolean;
 
 	unsetSnapExportedVariables(): void;
@@ -78,16 +69,13 @@ export class EnvironmentMainService extends NativeEnvironmentService implements 
 		}
 		for (const key in process.env) {
 			if (key.endsWith('_VSCODE_SNAP_ORIG')) {
-				const originalKey = key.slice(0, -17); // Remove the _VSCODE_SNAP_ORIG suffix
+				const originalKey = key.slice(0, -17);
 				if (this._snapEnv[originalKey]) {
 					continue;
 				}
-				// Preserve the original value in case the snap env is re-entered
 				if (process.env[originalKey]) {
 					this._snapEnv[originalKey] = process.env[originalKey]!;
 				}
-				// Copy the original value from before entering the snap env if available,
-				// if not delete the env variable.
 				if (process.env[key]) {
 					process.env[originalKey] = process.env[key];
 				} else {

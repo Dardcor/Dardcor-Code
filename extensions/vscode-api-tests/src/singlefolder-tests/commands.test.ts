@@ -144,8 +144,6 @@ suite('vscode API - commands', () => {
 		assert.ok(e2);
 
 
-		// we support strings but only http/https. those we cannot test but we can
-		// enforce that other schemes are treated strict
 		try {
 			await commands.executeCommand('vscode.open', 'file:///some/path/not/http');
 			assert.fail('expecting exception');
@@ -159,7 +157,6 @@ suite('vscode API - commands', () => {
 		const uri = Uri.parse(workspace.workspaceFolders![0].uri.toString() + '/untitled-file.txt').with({ scheme: 'untitled' });
 		await commands.executeCommand('vscode.open', uri).then(() => assert.ok(true), () => assert.ok(false));
 
-		// untitled with associated resource are dirty from the beginning
 		assert.ok(window.activeTextEditor?.document.isDirty);
 
 		return closeAllEditors();

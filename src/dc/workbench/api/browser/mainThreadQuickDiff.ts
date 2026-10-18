@@ -58,7 +58,6 @@ export class MainThreadQuickDiff implements MainThreadQuickDiffShape {
 		store.add(reference.object.onDidChange(() => this.sendSourceControlDiffInformation(handle, reference)));
 		this.informationDisposables.set(handle, store);
 
-		// Push the current state so the extension host has an initial value.
 		this.sendSourceControlDiffInformation(handle, reference);
 	}
 

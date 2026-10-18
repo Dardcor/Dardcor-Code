@@ -18,7 +18,6 @@ cd $ROOT
 if [[ "$1" == "" ]]; then
 	AUTHORITY=vscode-remote://test+test
 	EXT_PATH=$ROOT/extensions
-	# Load remote node
 	npm run gulp node
 else
 	AUTHORITY=$1
@@ -28,12 +27,10 @@ fi
 
 export REMOTE_VSCODE=$AUTHORITY$EXT_PATH
 
-# Figure out which Electron to use for running tests
 if [ -z "$INTEGRATION_TEST_ELECTRON_PATH" ]
 then
 	INTEGRATION_TEST_ELECTRON_PATH="./scripts/code.sh"
 
-	# No extra arguments when running out of sources
 	EXTRA_INTEGRATION_TEST_ARGUMENTS=""
 
 	echo "Running remote integration tests out of sources."
@@ -41,7 +38,6 @@ else
 	export VSCODE_CLI=1
 	export ELECTRON_ENABLE_LOGGING=1
 
-	# Running from a build, we need to enable the vscode-test-resolver extension
 	EXTRA_INTEGRATION_TEST_ARGUMENTS="--extensions-dir=$EXT_PATH  --enable-proposed-api=vscode.vscode-test-resolver --enable-proposed-api=vscode.vscode-api-tests"
 
 	echo "Running remote integration tests with $INTEGRATION_TEST_ELECTRON_PATH as build."
@@ -50,7 +46,6 @@ fi
 export TESTRESOLVER_DATA_FOLDER=$TESTRESOLVER_DATA_FOLDER
 export TESTRESOLVER_LOGS_FOLDER=$VSCODELOGSDIR/server
 
-# Figure out which remote server to use for running tests
 if [ -z "$VSCODE_REMOTE_SERVER_PATH" ]
 then
 	echo "Using remote server out of sources for integration tests"
@@ -71,7 +66,6 @@ echo "Storing crash reports into '$VSCODECRASHDIR'."
 echo "Storing log files into '$VSCODELOGSDIR'."
 
 
-# Tests in the extension host
 
 echo
 echo "### API tests (folder)"
@@ -121,7 +115,6 @@ echo
 "$INTEGRATION_TEST_ELECTRON_PATH" --folder-uri=$AUTHORITY$(mktemp -d 2>/dev/null) --extensionDevelopmentPath=$REMOTE_VSCODE/configuration-editing --extensionTestsPath=$REMOTE_VSCODE/configuration-editing/out/test $API_TESTS_EXTRA_ARGS $EXTRA_INTEGRATION_TEST_ARGUMENTS
 kill_app
 
-# Cleanup
 
 if [[ "$3" == "" ]]; then
 	rm -rf $VSCODEUSERDATADIR

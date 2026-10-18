@@ -75,8 +75,8 @@ const resourceLabelFormattersExtPoint = ExtensionsRegistry.registerExtensionPoin
 	}
 });
 
-const posixPathSeparatorRegexp = /\//g; // on Unix, backslash is a valid filename character
-const winPathSeparatorRegexp = /[\\\/]/g; // on Windows, neither slash nor backslash are valid filename characters
+const posixPathSeparatorRegexp = /\//g;
+const winPathSeparatorRegexp = /[\\\/]/g;
 const labelMatchingRegexp = /\$\{(scheme|authoritySuffix|authority|path|(query)\.(.+?))\}/g;
 
 function hasDriveLetterIgnorePlatform(path: string): boolean {
@@ -92,9 +92,6 @@ class ResourceLabelFormattersHandler implements IWorkbenchContribution {
 			for (const added of delta.added) {
 				for (const untrustedFormatter of added.value) {
 
-					// We cannot trust that the formatter as it comes from an extension
-					// adheres to our interface, so for the required properties we fill
-					// in some defaults if missing.
 
 					const formatter = { ...untrustedFormatter };
 					if (typeof formatter.formatting.label !== 'string') {
@@ -105,7 +102,7 @@ class ResourceLabelFormattersHandler implements IWorkbenchContribution {
 					}
 
 					if (!isProposedApiEnabled(added.description, 'contribLabelFormatterWorkspaceTooltip') && formatter.formatting.workspaceTooltip) {
-						formatter.formatting.workspaceTooltip = undefined; // workspaceTooltip is only proposed
+						formatter.formatting.workspaceTooltip = undefined;
 					}
 
 					this.formattersDisposables.set(formatter, labelService.registerFormatter(formatter));
@@ -153,10 +150,6 @@ export class LabelService extends Disposable implements ILabelService {
 	) {
 		super();
 
-		// Find some meaningful defaults until the remote environment
-		// is resolved, by taking the current OS we are running in
-		// and by taking the local `userHome` if we run on a local
-		// file scheme.
 		this.os = OS;
 		this.userHome = pathService.defaultUriScheme === Schemas.file ? this.pathService.userHome({ preferLocal: true }) : undefined;
 
@@ -164,17 +157,14 @@ export class LabelService extends Disposable implements ILabelService {
 		this.storedFormatters = memento.getMemento(StorageScope.PROFILE, StorageTarget.MACHINE);
 		this.formatters = this.storedFormatters?.formatters?.slice() || [];
 
-		// Remote environment is potentially long running
 		this.resolveRemoteEnvironment();
 	}
 
 	private async resolveRemoteEnvironment(): Promise<void> {
 
-		// OS
 		const env = await this.remoteAgentService.getEnvironment();
 		this.os = env?.os ?? OS;
 
-		// User home
 		this.userHome = await this.pathService.userHome();
 	}
 
@@ -210,14 +200,11 @@ export class LabelService extends Disposable implements ILabelService {
 	getUriLabel(resource: URI, options: { relative?: boolean; noPrefix?: boolean; separator?: '/' | '\\'; appendWorkspaceSuffix?: boolean } = {}): string {
 		let formatting = this.findFormatting(resource);
 		if (formatting && options.separator) {
-			// mixin separator if defined from the outside
 			formatting = { ...formatting, separator: options.separator };
 		}
 
 		let label = this.doGetUriLabel(resource, formatting, options);
 
-		// Without formatting we still need to support the separator
-		// as provided in options (https://github.com/microsoft/vscode/issues/130019)
 		if (!formatting && options.separator) {
 			label = this.adjustPathSeparators(label, options.separator);
 		}
@@ -242,16 +229,10 @@ export class LabelService extends Disposable implements ILabelService {
 			});
 		}
 
-		// Relative label
 		if (options.relative && this.contextService) {
 			let folder = this.contextService.getWorkspaceFolder(resource);
 			if (!folder) {
 
-				// It is possible that the resource we want to resolve the
-				// workspace folder for is not using the same scheme as
-				// the folders in the workspace, so we help by trying again
-				// to resolve a workspace folder by trying again with a
-				// scheme that is workspace contained.
 
 				const workspace = this.contextService.getWorkspace();
 				const firstFolder = workspace.folders.at(0);
@@ -275,7 +256,6 @@ export class LabelService extends Disposable implements ILabelService {
 					relativeLabel = relativeLabel.substring(overlap);
 				}
 
-				// always show root basename if there are multiple folders
 				const hasMultipleRoots = this.contextService.getWorkspace().folders.length > 1;
 				if (hasMultipleRoots && !options.noPrefix) {
 					const rootName = folder?.name ?? basenameOrAuthority(folder.uri);
@@ -286,7 +266,6 @@ export class LabelService extends Disposable implements ILabelService {
 			}
 		}
 
-		// Absolute label
 		return this.formatUri(resource, formatting, options.noPrefix);
 	}
 
@@ -316,17 +295,14 @@ export class LabelService extends Disposable implements ILabelService {
 			return '';
 		}
 
-		// Workspace: Single Folder (as URI)
 		if (URI.isUri(workspace)) {
 			return this.doGetSingleFolderWorkspaceLabel(workspace, options);
 		}
 
-		// Workspace: Single Folder (as workspace identifier)
 		if (isSingleFolderWorkspaceIdentifier(workspace)) {
 			return this.doGetSingleFolderWorkspaceLabel(workspace.uri, options);
 		}
 
-		// Workspace: Multi Root
 		if (isWorkspaceIdentifier(workspace)) {
 			return this.doGetWorkspaceLabel(workspace.configPath, options);
 		}
@@ -336,17 +312,14 @@ export class LabelService extends Disposable implements ILabelService {
 
 	private doGetWorkspaceLabel(workspaceUri: URI, options?: { verbose: Verbosity }): string {
 
-		// Workspace: Untitled
 		if (isUntitledWorkspace(workspaceUri, this.environmentService)) {
 			return localize('untitledWorkspace', "Untitled (Workspace)");
 		}
 
-		// Workspace: Temporary
 		if (isTemporaryWorkspace(workspaceUri)) {
 			return localize('temporaryWorkspace', "Workspace");
 		}
 
-		// Workspace: Saved
 		let filename = basename(workspaceUri);
 		if (filename.endsWith(WORKSPACE_EXTENSION)) {
 			filename = filename.substr(0, filename.length - WORKSPACE_EXTENSION.length - 1);
@@ -355,7 +328,7 @@ export class LabelService extends Disposable implements ILabelService {
 		let label: string;
 		switch (options?.verbose) {
 			case Verbosity.SHORT:
-				label = filename; // skip suffix for short label
+				label = filename;
 				break;
 			case Verbosity.LONG:
 				label = localize('workspaceNameVerbose', "{0} (Workspace)", this.getUriLabel(joinPath(dirname(workspaceUri), filename)));
@@ -367,7 +340,7 @@ export class LabelService extends Disposable implements ILabelService {
 		}
 
 		if (options?.verbose === Verbosity.SHORT) {
-			return label; // skip suffix for short label
+			return label;
 		}
 
 		return this.appendWorkspaceSuffix(label, workspaceUri);
@@ -387,7 +360,7 @@ export class LabelService extends Disposable implements ILabelService {
 		}
 
 		if (options?.verbose === Verbosity.SHORT) {
-			return label; // skip suffix for short label
+			return label;
 		}
 
 		return this.appendWorkspaceSuffix(label, folderUri);
@@ -416,7 +389,7 @@ export class LabelService extends Disposable implements ILabelService {
 
 		let replace = list.findIndex(f => f.scheme === formatter.scheme && f.authority === formatter.authority);
 		if (replace === -1 && list.length >= FORMATTER_CACHE_SIZE) {
-			replace = FORMATTER_CACHE_SIZE - 1; // at max capacity, replace the last element
+			replace = FORMATTER_CACHE_SIZE - 1;
 		}
 
 		if (replace === -1) {
@@ -486,7 +459,6 @@ export class LabelService extends Disposable implements ILabelService {
 			}
 		});
 
-		// convert \c:\something => C:\something
 		if (formatting.normalizeDriveLetter && hasDriveLetterIgnorePlatform(label)) {
 			label = label.charAt(1).toUpperCase() + label.substr(2);
 		}

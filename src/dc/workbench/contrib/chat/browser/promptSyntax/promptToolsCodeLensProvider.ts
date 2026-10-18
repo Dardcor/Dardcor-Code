@@ -26,7 +26,6 @@ import { getTarget, isTarget, isVSCodeOrDefaultTarget } from '../../common/promp
 
 class PromptToolsCodeLensProvider extends Disposable implements CodeLensProvider {
 
-	// `_`-prefix marks this as private command
 	private readonly cmdId = `_configure/${generateUuid()}`;
 
 	constructor(
@@ -52,7 +51,6 @@ class PromptToolsCodeLensProvider extends Disposable implements CodeLensProvider
 	async provideCodeLenses(model: ITextModel, token: CancellationToken): Promise<undefined | CodeLensList> {
 		const promptType = getPromptsTypeForLanguageId(model.getLanguageId());
 		if (!promptType || promptType === PromptsType.instructions) {
-			// if the model is not a prompt, we don't provide any code actions
 			return undefined;
 		}
 

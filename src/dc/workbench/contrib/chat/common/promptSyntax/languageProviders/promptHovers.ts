@@ -21,9 +21,6 @@ import { HOOKS_BY_TARGET, HOOK_METADATA } from '../hookTypes.js';
 import { HOOK_COMMAND_FIELD_DESCRIPTIONS } from '../hookSchema.js';
 
 export class PromptHoverProvider implements HoverProvider {
-	/**
-	 * Debug display name for this provider.
-	 */
 	public readonly _debugDisplayName: string = 'PromptHoverProvider';
 
 	constructor(
@@ -45,7 +42,6 @@ export class PromptHoverProvider implements HoverProvider {
 
 		const promptType = getPromptsTypeForLanguageId(model.getLanguageId());
 		if (!promptType) {
-			// if the model is not a prompt, we don't provide any hovers
 			return undefined;
 		}
 
@@ -217,13 +213,11 @@ export class PromptHoverProvider implements HoverProvider {
 			lines.push(baseMessage);
 			lines.push('');
 
-			// Built-in agents
 			lines.push(localize('promptHeader.prompt.agent.builtin', '**Built-in agents:**'));
 			for (const agent of agents.builtin) {
 				lines.push(`- \`${agent.name.get()}\`: ${agent.description.get() || agent.label.get()}`);
 			}
 
-			// Custom agents
 			if (agents.custom.length > 0) {
 				lines.push('');
 				lines.push(localize('promptHeader.prompt.agent.custom', '**Custom agents:**'));
@@ -241,7 +235,6 @@ export class PromptHoverProvider implements HoverProvider {
 		if (value.type === 'map') {
 			const hooksByTarget = HOOKS_BY_TARGET[target] ?? HOOKS_BY_TARGET[Target.Undefined];
 			for (const prop of value.properties) {
-				// Hover on a hook event name key (e.g., SessionStart, PreToolUse)
 				if (prop.key.range.containsPosition(position)) {
 					const hookType = hooksByTarget[prop.key.value];
 					if (hookType) {
@@ -249,7 +242,6 @@ export class PromptHoverProvider implements HoverProvider {
 						return this.createHover(`**${meta.label}**\n\n${meta.description}`, prop.key.range);
 					}
 				}
-				// Hover inside hook command entries
 				if (prop.value.type === 'sequence') {
 					const hover = this.getHookCommandItemHover(prop.value, position);
 					if (hover) {
@@ -261,17 +253,11 @@ export class PromptHoverProvider implements HoverProvider {
 		return this.createHover(baseMessage, attribute.range);
 	}
 
-	/**
-	 * Recursively searches hook command items for hover information.
-	 * Handles both direct command objects and nested matcher format
-	 * (e.g., `{ matcher: "...", hooks: [{ type: command, ... }] }`).
-	 */
 	private getHookCommandItemHover(sequence: ISequenceValue, position: Position): Hover | undefined {
 		for (const item of sequence.items) {
 			if (item.type !== 'map' || !item.range.containsPosition(position)) {
 				continue;
 			}
-			// Check for nested matcher format: { hooks: [...] }
 			const nestedHooks = item.properties.find(p => p.key.value === 'hooks');
 			if (nestedHooks && nestedHooks.value.type === 'sequence') {
 				const hover = this.getHookCommandItemHover(nestedHooks.value, position);
@@ -279,7 +265,6 @@ export class PromptHoverProvider implements HoverProvider {
 					return hover;
 				}
 			}
-			// Check fields of the command object itself
 			for (const field of item.properties) {
 				if (field.key.range.containsPosition(position) || field.value.range.containsPosition(position)) {
 					const desc = HOOK_COMMAND_FIELD_DESCRIPTIONS[field.key.value];

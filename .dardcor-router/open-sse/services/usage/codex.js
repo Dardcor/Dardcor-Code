@@ -1,11 +1,7 @@
-/**
- * Codex (OpenAI) usage handler
- */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { U, parseResetTime, toFiniteNumber } from "./shared.js";
 
-// Codex (OpenAI) API config
 const CODEX_CONFIG = {
   usageUrl: U("codex").url,
   resetCreditsUrl: U("codex").resetCreditsUrl,
@@ -184,7 +180,6 @@ export async function getCodexRateLimitResetCredits(accessToken, proxyOptions = 
   };
 }
 
-// Consume one Codex rate-limit reset credit (irreversible, spends 1 credit)
 export async function consumeCodexRateLimitResetCredit(accessToken, redeemRequestId, proxyOptions = null) {
   if (!accessToken) {
     throw new Error("No Codex access token available. Please re-authorize the connection.");

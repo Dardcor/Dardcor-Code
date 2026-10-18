@@ -104,7 +104,6 @@ export function fillInActionBarActions(
 ): void {
 	const isPrimaryAction = typeof primaryGroup === 'string' ? (actionGroup: string) => actionGroup === primaryGroup : primaryGroup;
 
-	// Action bars handle alternative actions on their own so the alternative actions should be ignored
 	fillInActions(groups, target, false, isPrimaryAction, shouldInlineSubmenu, useSeparatorsInPrimaryActions);
 }
 
@@ -149,20 +148,15 @@ function fillInActions(
 				action = action instanceof MenuItemAction && action.alt ? action.alt : action;
 			}
 			const newLen = target.push(action);
-			// keep submenu info for later inlining
 			if (action instanceof SubmenuAction) {
 				submenuInfo.add({ group, action, index: newLen - 1 });
 			}
 		}
 	}
 
-	// ask the outside if submenu should be inlined or not. only ask when
-	// there would be enough space
 	for (const { group, action, index } of submenuInfo) {
 		const target = isPrimaryAction(group) ? primaryBucket : secondaryBucket;
 
-		// inlining submenus with length 0 or 1 is easy,
-		// larger submenus need to be checked with the overall limit
 		const submenuActions = action.actions;
 		if (shouldInlineSubmenu(action, group, target.length)) {
 			target.splice(index, 1, ...submenuActions);
@@ -309,7 +303,6 @@ export class MenuEntryActionViewItem<T extends IMenuEntryActionViewItemOptions =
 		}
 
 		if (ThemeIcon.isThemeIcon(icon)) {
-			// theme icons
 			const iconClasses = ThemeIcon.asClassNameArray(icon);
 			label.classList.add(...iconClasses);
 			this._itemClassDispose.value = toDisposable(() => {
@@ -317,7 +310,6 @@ export class MenuEntryActionViewItem<T extends IMenuEntryActionViewItemOptions =
 			});
 
 		} else {
-			// icon path/url
 			label.style.backgroundImage = (
 				isDark(this._themeService.getColorTheme().type)
 					? asCSSUrl(icon.dark)
@@ -330,7 +322,6 @@ export class MenuEntryActionViewItem<T extends IMenuEntryActionViewItemOptions =
 					label.classList.remove('icon');
 				}),
 				this._themeService.onDidColorThemeChange(() => {
-					// refresh when the theme changes in case we go between dark <-> light
 					this.updateClass();
 				})
 			);
@@ -416,7 +407,6 @@ export class SubmenuEntryActionViewItem extends DropdownMenuActionViewItem {
 			};
 			setBackgroundImage();
 			this._register(this._themeService.onDidColorThemeChange(() => {
-				// refresh when the theme changes in case we go between dark <-> light
 				setBackgroundImage();
 			}));
 		}
@@ -457,7 +447,6 @@ export class DropdownWithDefaultActionViewItem extends BaseActionViewItem {
 		this._options = options;
 		this._storageKey = `${submenuAction.item.submenu.id}_lastActionId`;
 
-		// determine default action
 		let defaultAction: IAction | undefined;
 		const defaultActionId = options?.togglePrimaryAction ? _storageService.get(this._storageKey, StorageScope.WORKSPACE) : undefined;
 		if (defaultActionId) {
@@ -549,7 +538,6 @@ export class DropdownWithDefaultActionViewItem extends BaseActionViewItem {
 		super.actionRunner = actionRunner;
 
 		this._defaultAction.actionRunner = actionRunner;
-		// Without an allowlist, retain the private runner so only dropdown executions become primary.
 		if (!this._options?.togglePrimaryAction || this._options.primaryActionIds?.length) {
 			this._dropdown.actionRunner = actionRunner;
 		}
@@ -639,9 +627,6 @@ class SubmenuEntrySelectActionViewItem extends SelectActionViewItem {
 
 }
 
-/**
- * Creates action view items for menu actions or submenu actions.
- */
 export function createActionViewItem(instaService: IInstantiationService, action: IAction, options: IDropdownMenuActionViewItemOptions | IMenuEntryActionViewItemOptions | undefined): undefined | MenuEntryActionViewItem | SubmenuEntryActionViewItem | BaseActionViewItem {
 	if (action instanceof MenuItemAction) {
 		return instaService.createInstance(MenuEntryActionViewItem, action, options);

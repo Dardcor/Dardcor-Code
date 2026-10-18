@@ -99,10 +99,6 @@ testFamilies.forEach(family => {
 				promptContext = { ...promptContext, conversation };
 			}
 
-			// Real agent requests always advertise the non-deferred memory tool, which gates
-			// the memory instructions/context blocks. Advertise it here so scenarios that don't
-			// otherwise pass tools still exercise the memory-enabled prompt by default; the
-			// `memory tool disabled` test opts out to cover the gated-off behavior.
 			if (includeMemoryTool && !promptContext.tools?.availableTools.some(t => t.name === ToolName.Memory)) {
 				const memoryTool = accessor.get(IToolsService).tools.find(t => t.name === ToolName.Memory);
 				if (memoryTool) {
@@ -207,7 +203,7 @@ testFamilies.forEach(family => {
 					toolInvocationToken: null as never,
 					toolReferences: [],
 				}
-			}, undefined, /* includeMemoryTool */ false);
+			}, undefined, false);
 			expect(rendered).not.toContain('memoryInstructions');
 			expect(rendered).not.toContain('userMemory');
 			expect(rendered).not.toContain('sessionMemory');
@@ -302,10 +298,6 @@ testFamilies.forEach(family => {
 				})).toMatchFileSnapshot(getSnapshotFile('cache_BPs_multi_round'));
 		});
 
-		// The Messages API path uses summarization without prompt-tsx breakpoints
-		// — placement is owned downstream by messagesApi.ts. This pins the
-		// rendered shape so a regression in the AgentPrompt branch (currently
-		// at line 144: `if (this.props.enableSummarization)`) is caught here.
 		test('summarization without cache breakpoints (Messages API config)', async () => {
 			await expect(await agentPromptToString(
 				accessor,
@@ -349,7 +341,6 @@ testFamilies.forEach(family => {
 				editedFileEvents: [
 					{ eventKind: ChatRequestEditedFileEventKind.Undo, uri: fileTsUri },
 					{ eventKind: ChatRequestEditedFileEventKind.UserModification, uri: otherUri },
-					// duplicate to ensure deduplication within a group
 					{ eventKind: ChatRequestEditedFileEventKind.Undo, uri: fileTsUri },
 				],
 			}, undefined))).toMatchFileSnapshot(getSnapshotFile('edited_file_events_grouped_by_kind'));

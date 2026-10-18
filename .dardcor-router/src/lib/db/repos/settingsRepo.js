@@ -70,7 +70,6 @@ async function readRaw() {
   return row ? parseJson(row.data, {}) : {};
 }
 
-// Merge raw settings with defaults; backward-compat for missing keys
 export function mergeWithDefaults(raw) {
   const merged = { ...DEFAULT_SETTINGS, ...(raw || {}) };
   for (const [key, defVal] of Object.entries(DEFAULT_SETTINGS)) {
@@ -94,7 +93,6 @@ export async function getSettings() {
   return mergeWithDefaults(raw);
 }
 
-// Atomic read-merge-write inside transaction (prevents losing concurrent updates)
 export async function updateSettings(updates) {
   const db = await getAdapter();
   let next;

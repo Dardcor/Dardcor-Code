@@ -9,9 +9,6 @@ import { TestLogService } from '../../../../platform/testing/common/testLogServi
 import { ChatHookType } from '../../../../dardcorTypes';
 import { formatHookErrorMessage, HookAbortError, HookResult, isHookAbortError, processHookResults, ProcessHookResultsOptions } from '../../node/hookResultProcessor';
 
-/**
- * Mock implementation of ChatResponseStream that tracks hookProgress calls.
- */
 class MockChatResponseStream {
 	readonly hookProgressCalls: Array<{ hookType: ChatHookType; stopReason?: string; systemMessage?: string }> = [];
 
@@ -80,7 +77,6 @@ describe('hookResultProcessor', () => {
 					expect(() => processHookResults(options)).toThrow(
 						`Hook ${hookType} aborted: Build failed, fix errors before continuing`
 					);
-					// Verify hookProgress is called with the stopReason
 					expect(mockStream.hookProgressCalls.length).toBeGreaterThan(0);
 					expect(mockStream.hookProgressCalls[0].hookType).toBe(hookType);
 					expect(mockStream.hookProgressCalls[0].stopReason).toContain('Build failed, fix errors before continuing');
@@ -107,7 +103,6 @@ describe('hookResultProcessor', () => {
 					try {
 						processHookResults(options);
 					} catch {
-						// Expected to throw
 					}
 
 					expect(onSuccess).not.toHaveBeenCalled();
@@ -137,7 +132,6 @@ describe('hookResultProcessor', () => {
 
 					expect(() => processHookResults(options)).toThrow('First hook aborted');
 					expect(onSuccess).not.toHaveBeenCalled();
-					// Verify hookProgress is called with the stopReason
 					expect(mockStream.hookProgressCalls).toHaveLength(1);
 					expect(mockStream.hookProgressCalls[0].hookType).toBe(hookType);
 					expect(mockStream.hookProgressCalls[0].stopReason).toContain('First hook aborted');
@@ -169,7 +163,6 @@ describe('hookResultProcessor', () => {
 	});
 
 	describe('UserPromptSubmit exit codes', () => {
-		// Exit code 0 - stdout shown to Claude (onSuccess called)
 		it('should call onSuccess with output on exit code 0 (success)', () => {
 			const results: HookResult[] = [
 				{
@@ -190,7 +183,6 @@ describe('hookResultProcessor', () => {
 			expect(onSuccess).toHaveBeenCalledWith('Additional context for Claude');
 		});
 
-		// Exit code 2 - block processing, erase original prompt, and show stderr to user only
 		it('should throw HookAbortError and push hookProgress on exit code 2 (error)', () => {
 			const results: HookResult[] = [
 				{
@@ -216,7 +208,6 @@ describe('hookResultProcessor', () => {
 			expect(mockStream.hookProgressCalls[0].stopReason).toContain('Validation failed: missing required field');
 		});
 
-		// Other exit codes - show stderr to user only (warnings flow)
 		it('should show warning to user on other exit codes', () => {
 			const results: HookResult[] = [
 				{
@@ -262,7 +253,6 @@ describe('hookResultProcessor', () => {
 	});
 
 	describe('SessionStart exit codes', () => {
-		// Exit code 0 - stdout shown to Claude
 		it('should call onSuccess with output on exit code 0 (success)', () => {
 			const results: HookResult[] = [
 				{
@@ -283,7 +273,6 @@ describe('hookResultProcessor', () => {
 			expect(onSuccess).toHaveBeenCalledWith({ additionalContext: 'Session context data' });
 		});
 
-		// Blocking errors are silently ignored (ignoreErrors: true) - no throw, no hookProgress
 		it('should silently ignore errors when ignoreErrors is true (no throw, no hookProgress)', () => {
 			const results: HookResult[] = [
 				{
@@ -305,11 +294,9 @@ describe('hookResultProcessor', () => {
 			).not.toThrow();
 
 			expect(onSuccess).not.toHaveBeenCalled();
-			// hookProgress should NOT be called when ignoreErrors is true
 			expect(mockStream.hookProgressCalls).toHaveLength(0);
 		});
 
-		// stopReason (continue: false) is silently ignored (ignoreErrors: true)
 		it('should silently ignore stopReason when ignoreErrors is true', () => {
 			const results: HookResult[] = [
 				{
@@ -331,13 +318,10 @@ describe('hookResultProcessor', () => {
 				})
 			).not.toThrow();
 
-			// stopReason means the result is ignored entirely, so onSuccess is NOT called
 			expect(onSuccess).not.toHaveBeenCalled();
-			// hookProgress should NOT be called when ignoreErrors is true
 			expect(mockStream.hookProgressCalls).toHaveLength(0);
 		});
 
-		// Other exit codes - show stderr to user only (warnings)
 		it('should show warning to user on other exit codes', () => {
 			const results: HookResult[] = [
 				{
@@ -361,7 +345,6 @@ describe('hookResultProcessor', () => {
 	});
 
 	describe('Stop exit codes', () => {
-		// Exit code 0 - stdout/stderr not shown (success silently processed)
 		it('should call onSuccess with output on exit code 0 (success)', () => {
 			const results: HookResult[] = [
 				{
@@ -380,11 +363,9 @@ describe('hookResultProcessor', () => {
 			});
 
 			expect(onSuccess).toHaveBeenCalledWith({ decision: 'allow' });
-			// No hookProgress for success
 			expect(mockStream.hookProgressCalls).toHaveLength(0);
 		});
 
-		// Exit code 2 - show stderr to model and continue conversation (onError callback)
 		it('should call onError callback on exit code 2 (error) instead of throwing', () => {
 			const results: HookResult[] = [
 				{
@@ -406,7 +387,6 @@ describe('hookResultProcessor', () => {
 
 			expect(onSuccess).not.toHaveBeenCalled();
 			expect(onError).toHaveBeenCalledWith('Stop hook blocking reason');
-			// hookProgress should NOT be called when onError is provided
 			expect(mockStream.hookProgressCalls).toHaveLength(0);
 		});
 
@@ -443,7 +423,6 @@ describe('hookResultProcessor', () => {
 			expect(onSuccess).toHaveBeenCalledWith({ reason: 'keep going' });
 		});
 
-		// Other exit codes - show stderr to user only (warnings)
 		it('should show warning to user on other exit codes', () => {
 			const results: HookResult[] = [
 				{
@@ -467,7 +446,6 @@ describe('hookResultProcessor', () => {
 	});
 
 	describe('SubagentStart exit codes', () => {
-		// Exit code 0 - stdout shown to subagent
 		it('should call onSuccess with output on exit code 0 (success)', () => {
 			const results: HookResult[] = [
 				{
@@ -488,7 +466,6 @@ describe('hookResultProcessor', () => {
 			expect(onSuccess).toHaveBeenCalledWith({ additionalContext: 'Subagent context' });
 		});
 
-		// Blocking errors are silently ignored (ignoreErrors: true) - no throw, no hookProgress
 		it('should silently ignore errors when ignoreErrors is true (no throw, no hookProgress)', () => {
 			const results: HookResult[] = [
 				{
@@ -510,11 +487,9 @@ describe('hookResultProcessor', () => {
 			).not.toThrow();
 
 			expect(onSuccess).not.toHaveBeenCalled();
-			// hookProgress should NOT be called when ignoreErrors is true
 			expect(mockStream.hookProgressCalls).toHaveLength(0);
 		});
 
-		// stopReason (continue: false) is silently ignored (ignoreErrors: true)
 		it('should silently ignore stopReason when ignoreErrors is true', () => {
 			const results: HookResult[] = [
 				{
@@ -536,13 +511,10 @@ describe('hookResultProcessor', () => {
 				})
 			).not.toThrow();
 
-			// stopReason means the result is ignored entirely, so onSuccess is NOT called
 			expect(onSuccess).not.toHaveBeenCalled();
-			// hookProgress should NOT be called when ignoreErrors is true
 			expect(mockStream.hookProgressCalls).toHaveLength(0);
 		});
 
-		// Other exit codes - show stderr to user only (warnings)
 		it('should show warning to user on other exit codes', () => {
 			const results: HookResult[] = [
 				{
@@ -566,7 +538,6 @@ describe('hookResultProcessor', () => {
 	});
 
 	describe('SubagentStop exit codes', () => {
-		// Exit code 0 - stdout/stderr not shown (success silently processed)
 		it('should call onSuccess with output on exit code 0 (success)', () => {
 			const results: HookResult[] = [
 				{
@@ -588,7 +559,6 @@ describe('hookResultProcessor', () => {
 			expect(mockStream.hookProgressCalls).toHaveLength(0);
 		});
 
-		// Exit code 2 - show stderr to subagent and continue having it run (onError callback)
 		it('should call onError callback on exit code 2 (error) instead of throwing', () => {
 			const results: HookResult[] = [
 				{
@@ -610,11 +580,9 @@ describe('hookResultProcessor', () => {
 
 			expect(onSuccess).not.toHaveBeenCalled();
 			expect(onError).toHaveBeenCalledWith('Subagent stop blocking reason');
-			// hookProgress should NOT be called when onError is provided
 			expect(mockStream.hookProgressCalls).toHaveLength(0);
 		});
 
-		// Other exit codes - show stderr to user only (warnings)
 		it('should show warning to user on other exit codes', () => {
 			const results: HookResult[] = [
 				{
@@ -671,7 +639,6 @@ describe('hookResultProcessor', () => {
 				{ resultKind: 'warning', warningMessage: 'Warning message', output: undefined },
 			];
 
-			// Should not throw when outputStream is undefined
 			expect(() =>
 				processHookResults({
 					hookType: 'UserPromptSubmit',
@@ -745,7 +712,6 @@ describe('hookResultProcessor', () => {
 				})
 			).toThrow(HookAbortError);
 
-			// Empty error message when output is not a string
 			expect(mockStream.hookProgressCalls).toHaveLength(1);
 		});
 

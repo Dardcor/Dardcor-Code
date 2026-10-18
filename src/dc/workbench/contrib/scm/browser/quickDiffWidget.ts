@@ -215,8 +215,6 @@ class QuickDiffWidget extends PeekViewWidget {
 
 		const onFirstDiffUpdate = Event.once(this.diffEditor.onDidUpdateDiff);
 
-		// TODO@joao TODO@alex need this setTimeout probably because the
-		// non-side-by-side diff still hasn't created the view zones
 		onFirstDiffUpdate(() => setTimeout(() => this.revealChange(change), 0));
 
 		const diffEditorModel = this.model.getDiffEditorModel(labeledChange.original);
@@ -231,7 +229,7 @@ class QuickDiffWidget extends PeekViewWidget {
 		const editorHeight = this.editor.getLayoutInfo().height;
 		const editorHeightInLines = Math.floor(editorHeight / lineHeight);
 		const height = Math.min(
-			getChangeHeight(change) + 2 /* arrow, frame, header */ + 6 /* 3 lines above/below the change */,
+			getChangeHeight(change) + 2 + 6 ,
 			Math.floor(editorHeightInLines / 3));
 
 		this.renderTitle();
@@ -253,9 +251,6 @@ class QuickDiffWidget extends PeekViewWidget {
 		}
 		this._actionbarWidget!.context = [diffEditorModel.modified.uri, providerSpecificChanges, contextIndex];
 		if (usePosition) {
-			// In order to account for the 1px border-top of the content element we
-			// have to add 1px. The pixel value needs to be expressed as a fraction
-			// of the line height.
 			this.show(position, height + (1 / lineHeight));
 			this.editor.setPosition(position);
 			this.editor.focus();
@@ -356,7 +351,6 @@ class QuickDiffWidget extends PeekViewWidget {
 	protected override _fillHead(container: HTMLElement): void {
 		super._fillHead(container, true);
 
-		// Render an empty picker which will be populated later
 		const action = new QuickDiffPickerBaseAction((event?: IQuickDiffSelectItem) => this.switchQuickDiff(event));
 		this._disposables.add(action);
 
@@ -369,7 +363,6 @@ class QuickDiffWidget extends PeekViewWidget {
 		const actionRunner = new QuickDiffWidgetActionRunner();
 		this._disposables.add(actionRunner);
 
-		// close widget on successful action
 		this._disposables.add(actionRunner.onDidRun(e => {
 			if (!(e.action instanceof QuickDiffWidgetEditorAction) && !e.error) {
 				this.dispose();
@@ -430,13 +423,13 @@ class QuickDiffWidget extends PeekViewWidget {
 	private revealChange(change: IChange): void {
 		let start: number, end: number;
 
-		if (change.modifiedEndLineNumber === 0) { // deletion
+		if (change.modifiedEndLineNumber === 0) {
 			start = change.modifiedStartLineNumber;
 			end = change.modifiedStartLineNumber + 1;
-		} else if (change.originalEndLineNumber > 0) { // modification
+		} else if (change.originalEndLineNumber > 0) {
 			start = change.modifiedStartLineNumber - 1;
 			end = change.modifiedEndLineNumber + 1;
-		} else { // insertion
+		} else {
 			start = change.modifiedStartLineNumber;
 			end = change.modifiedEndLineNumber;
 		}
@@ -704,8 +697,7 @@ export class QuickDiffEditorController extends Disposable implements IEditorCont
 		const offsetLeftInGutter = e.target.element.offsetLeft;
 		const gutterOffsetX = data.offsetX - offsetLeftInGutter;
 
-		// TODO@joao TODO@alex TODO@martin this is such that we don't collide with folding
-		if (gutterOffsetX < -3 || gutterOffsetX > 3) { // dirty diff decoration on hover is 6px wide
+		if (gutterOffsetX < -3 || gutterOffsetX > 3) {
 			return;
 		}
 

@@ -31,17 +31,12 @@ export const SEARCH_RESULT_LANGUAGE_ID = 'search-result';
 export const SEARCH_EXCLUDE_CONFIG = 'search.exclude';
 export const DEFAULT_MAX_SEARCH_RESULTS = 20000;
 
-// Warning: this pattern is used in the search editor to detect offsets. If you
-// change this, also change the search-result built-in extension
 const SEARCH_ELIDED_PREFIX = '⟪ ';
 const SEARCH_ELIDED_SUFFIX = ' characters skipped ⟫';
 const SEARCH_ELIDED_MIN_LEN = (SEARCH_ELIDED_PREFIX.length + SEARCH_ELIDED_SUFFIX.length + 5) * 2;
 
 export const ISearchService = createDecorator<ISearchService>('searchService');
 
-/**
- * A service that enables to search for files or with in files.
- */
 export interface ISearchService {
 	readonly _serviceBrand: undefined;
 	textSearch(query: ITextQuery, token?: CancellationToken, onProgress?: (result: ISearchProgressItem) => void): Promise<ISearchComplete>;
@@ -54,9 +49,6 @@ export interface ISearchService {
 	registerSearchResultProvider(scheme: string, type: SearchProviderType, provider: ISearchResultProvider): IDisposable;
 }
 
-/**
- * TODO@roblou - split text from file search entirely, or share code in a more natural way.
- */
 export const enum SearchProviderType {
 	file,
 	text,
@@ -90,12 +82,9 @@ export interface IFolderQuery<U extends UriComponents = URI> {
 }
 
 export interface ICommonQueryProps<U extends UriComponents> {
-	/** For telemetry - indicates what is triggering the source */
 	_reason?: string;
 
 	folderQueries: IFolderQuery<U>[];
-	// The include pattern for files that gets passed into ripgrep.
-	// Note that this will override any ignore files if applicable.
 	includePattern?: glob.IExpression;
 	excludePattern?: glob.IExpression;
 	ignoreGlobCase?: boolean;
@@ -112,14 +101,8 @@ export interface IFileQueryProps<U extends UriComponents> extends ICommonQueryPr
 	type: QueryType.File;
 	filePattern?: string;
 
-	// when walking through the tree to find the result, don't use the filePattern to fuzzy match.
-	// Instead, should use glob matching.
 	shouldGlobMatchFilePattern?: boolean;
 
-	/**
-	 * If true no results will be returned. Instead `limitHit` will indicate if at least one result exists or not.
-	 * Currently does not work with queries including a 'siblings clause'.
-	 */
 	exists?: boolean;
 	sortByScore?: boolean;
 	cacheKey?: string;
@@ -164,16 +147,6 @@ export const enum QueryType {
 	aiText = 3
 }
 
-/* __GDPR__FRAGMENT__
-	"IPatternInfo" : {
-		"isRegExp": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-		"isWordMatch": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-		"wordSeparators": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"isMultiline": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-		"isCaseSensitive": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-		"isSmartCase": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true }
-	}
-*/
 export interface IPatternInfo {
 	pattern: string;
 	isRegExp?: boolean;
@@ -308,7 +281,6 @@ export interface IFileSearchProviderStats {
 export class FileMatch implements IFileMatch {
 	results: ITextSearchResult[] = [];
 	constructor(public resource: URI) {
-		// empty
 	}
 }
 
@@ -325,13 +297,9 @@ export class TextSearchMatch implements ITextSearchMatch {
 	constructor(text: string, ranges: ISearchRange | ISearchRange[], previewOptions?: ITextSearchPreviewOptions, webviewIndex?: number) {
 		this.webviewIndex = webviewIndex;
 
-		// Trim preview if this is one match and a single-line match with a preview requested.
-		// Otherwise send the full text, like for replace or for showing multiple previews.
-		// TODO this is fishy.
 		const rangesArr = Array.isArray(ranges) ? ranges : [ranges];
 
 		if (previewOptions && previewOptions.matchLines === 1 && isSingleLineRangeList(rangesArr)) {
-			// 1 line preview requested
 			text = getNLines(text, previewOptions.matchLines);
 
 			let result = '';
@@ -425,9 +393,6 @@ export const enum SemanticSearchBehavior {
 
 export interface ISearchConfigurationProperties {
 	exclude: glob.IExpression;
-	/**
-	 * Use ignore file for file search.
-	 */
 	useIgnoreFiles: boolean;
 	useGlobalIgnoreFiles: boolean;
 	useParentIgnoreFiles: boolean;
@@ -490,7 +455,6 @@ export function getExcludes(configuration: ISearchConfiguration, includeSearchEx
 	}
 
 	let allExcludes: glob.IExpression = Object.create(null);
-	// clone the config as it could be frozen
 	allExcludes = objects.mixin(allExcludes, objects.deepClone(fileExcludes));
 	allExcludes = objects.mixin(allExcludes, objects.deepClone(searchExcludes), true);
 
@@ -508,7 +472,6 @@ export function pathIncludedInQuery(queryProps: ICommonQueryProps<URI>, fsPath: 
 			return true;
 		}
 
-		// If searchPaths are being used, the extra file must be in a subfolder and match the pattern, if present
 		if (queryProps.usingSearchPaths) {
 			return !!queryProps.folderQueries && queryProps.folderQueries.some(fq => {
 				const searchPath = fq.folder.fsPath;
@@ -575,18 +538,7 @@ export interface IRawSearchService {
 
 export interface IRawFileMatch {
 	base?: string;
-	/**
-	 * The path of the file relative to the containing `base` folder.
-	 * This path is exactly as it appears on the filesystem.
-	 */
 	relativePath: string;
-	/**
-	 * This path is transformed for search purposes. For example, this could be
-	 * the `relativePath` with the workspace folder name prepended. This way the
-	 * search algorithm would also match against the name of the containing folder.
-	 *
-	 * If not given, the search algorithm should use `relativePath`.
-	 */
 	searchPath: string | undefined;
 }
 
@@ -653,7 +605,6 @@ export interface ISerializedFileMatch {
 	numMatches?: number;
 }
 
-// Type of the possible values for progress calls from the engine
 export type ISerializedSearchProgressItem = ISerializedFileMatch | ISerializedFileMatch[] | IProgressMessage;
 export type IFileSearchProgressItem = IRawFileMatch | IRawFileMatch[] | IProgressMessage;
 
@@ -680,9 +631,6 @@ export class SerializableFileMatch implements ISerializedFileMatch {
 	}
 }
 
-/**
- *  Computes the patterns that the provider handles. Discards sibling clauses and 'false' patterns
- */
 export function resolvePatternsForProvider(globalPattern: glob.IExpression | undefined, folderPattern: glob.IExpression | undefined): string[] {
 	const merged = {
 		...(globalPattern || {}),
@@ -698,7 +646,7 @@ export function resolvePatternsForProvider(globalPattern: glob.IExpression | und
 
 export class QueryGlobTester {
 
-	private _excludeExpression: glob.IExpression[]; // TODO: evaluate globs based on baseURI of pattern
+	private _excludeExpression: glob.IExpression[];
 	private _parsedExcludeExpression: glob.ParsedExpression[];
 
 	private _parsedIncludeExpression: glob.ParsedExpression | null = null;
@@ -706,7 +654,6 @@ export class QueryGlobTester {
 	constructor(config: ISearchQuery, folderQuery: IFolderQuery) {
 		const globOptions = config.ignoreGlobCase || folderQuery.ignoreGlobCase ? { ignoreCase: true } : undefined;
 
-		// todo: try to incorporate folderQuery.excludePattern.folder if available
 		this._excludeExpression = folderQuery.excludePattern?.map(excludePattern => {
 			return {
 				...(config.excludePattern || {}),
@@ -721,7 +668,6 @@ export class QueryGlobTester {
 
 		this._parsedExcludeExpression = this._excludeExpression.map(e => glob.parse(e, globOptions));
 
-		// Empty includeExpression means include nothing, so no {} shortcuts
 		let includeExpression: glob.IExpression | undefined = config.includePattern;
 		if (folderQuery.includePattern) {
 			if (includeExpression) {
@@ -740,12 +686,10 @@ export class QueryGlobTester {
 	}
 
 	private _evalParsedExcludeExpression(testPath: string, basename: string | undefined, hasSibling?: (name: string) => boolean): string | null {
-		// todo: less hacky way of evaluating sync vs async sibling clauses
 		let result: string | null = null;
 
 		for (const folderExclude of this._parsedExcludeExpression) {
 
-			// find first non-null result
 			const evaluation = folderExclude(testPath, basename, hasSibling);
 
 			if (typeof evaluation === 'string') {
@@ -765,9 +709,6 @@ export class QueryGlobTester {
 		return false;
 	}
 
-	/**
-	 * Guaranteed sync - siblingsFn should not return a promise.
-	 */
 	includedInQuerySync(testPath: string, basename?: string, hasSibling?: (name: string) => boolean): boolean {
 		if (this._parsedExcludeExpression && this._evalParsedExcludeExpression(testPath, basename, hasSibling)) {
 			return false;
@@ -780,10 +721,6 @@ export class QueryGlobTester {
 		return true;
 	}
 
-	/**
-	 * Evaluating the exclude expression is only async if it includes sibling clauses. As an optimization, avoid doing anything with Promises
-	 * unless the expression is async.
-	 */
 	includedInQuery(testPath: string, basename?: string, hasSibling?: (name: string) => boolean | Promise<boolean>): Promise<boolean> | boolean {
 
 		const isIncluded = () => {

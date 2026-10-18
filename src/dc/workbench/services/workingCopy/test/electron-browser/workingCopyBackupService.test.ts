@@ -219,9 +219,6 @@ suite('WorkingCopyBackupService', () => {
 		test('should correctly hash the identifier for untitled scheme URIs', () => {
 			const uri = URI.from({ scheme: Schemas.untitled, path: 'Untitled-1' });
 
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// If these hashes change people will lose their backed up files
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			const untypedBackupHash = hashIdentifier(toUntypedWorkingCopyId(uri));
 			assert.strictEqual(untypedBackupHash, '-7f9c1a2e');
@@ -234,9 +231,6 @@ suite('WorkingCopyBackupService', () => {
 				assert.strictEqual(typedBackupHash, '-8ad5f4f');
 			}
 
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// If these hashes collide people will lose their backed up files
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			assert.notStrictEqual(untypedBackupHash, typedBackupHash);
 		});
@@ -244,9 +238,6 @@ suite('WorkingCopyBackupService', () => {
 		test('should correctly hash the identifier for file scheme URIs', () => {
 			const uri = URI.file('/foo');
 
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// If these hashes change people will lose their backed up files
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			const untypedBackupHash = hashIdentifier(toUntypedWorkingCopyId(uri));
 			if (isWindows) {
@@ -263,9 +254,6 @@ suite('WorkingCopyBackupService', () => {
 				assert.strictEqual(typedBackupHash, '51e56bf');
 			}
 
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// If these hashes collide people will lose their backed up files
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			assert.notStrictEqual(untypedBackupHash, typedBackupHash);
 		});
@@ -276,9 +264,6 @@ suite('WorkingCopyBackupService', () => {
 				path: 'somePath'
 			});
 
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// If these hashes change people will lose their backed up files
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			const untypedBackupHash = hashIdentifier(toUntypedWorkingCopyId(uri));
 			assert.strictEqual(untypedBackupHash, '-44972d98');
@@ -287,9 +272,6 @@ suite('WorkingCopyBackupService', () => {
 			const typedBackupHash = hashIdentifier({ typeId: 'hashTest', resource: uri });
 			assert.strictEqual(typedBackupHash, '502149c7');
 
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// If these hashes collide people will lose their backed up files
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			assert.notStrictEqual(untypedBackupHash, typedBackupHash);
 		});
@@ -300,9 +282,6 @@ suite('WorkingCopyBackupService', () => {
 				fragment: 'frag'
 			});
 
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// If these hashes change people will lose their backed up files
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			const untypedBackupHash = hashIdentifier(toUntypedWorkingCopyId(uri));
 			assert.strictEqual(untypedBackupHash, '-2f6b2f1b');
@@ -311,9 +290,6 @@ suite('WorkingCopyBackupService', () => {
 			const typedBackupHash = hashIdentifier({ typeId: 'hashTest', resource: uri });
 			assert.strictEqual(typedBackupHash, '6e82ca57');
 
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// If these hashes collide people will lose their backed up files
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			assert.notStrictEqual(untypedBackupHash, typedBackupHash);
 		});
@@ -322,17 +298,14 @@ suite('WorkingCopyBackupService', () => {
 	suite('getBackupResource', () => {
 		test('should get the correct backup path for text files', () => {
 
-			// Format should be: <backupHome>/<workspaceHash>/<scheme>/<filePathHash>
 			const backupResource = fooFile;
 			const workspaceHash = hash(workspaceResource.fsPath).toString(16);
 
-			// No Type ID
 			let backupId = toUntypedWorkingCopyId(backupResource);
 			let filePathHash = hashIdentifier(backupId);
 			let expectedPath = joinPath(backupHome, workspaceHash, Schemas.file, filePathHash).with({ scheme: Schemas.vscodeUserData }).toString();
 			assert.strictEqual(service.toBackupResource(backupId).toString(), expectedPath);
 
-			// With Type ID
 			backupId = toTypedWorkingCopyId(backupResource);
 			filePathHash = hashIdentifier(backupId);
 			expectedPath = joinPath(backupHome, workspaceHash, Schemas.file, filePathHash).with({ scheme: Schemas.vscodeUserData }).toString();
@@ -341,17 +314,14 @@ suite('WorkingCopyBackupService', () => {
 
 		test('should get the correct backup path for untitled files', () => {
 
-			// Format should be: <backupHome>/<workspaceHash>/<scheme>/<filePathHash>
 			const backupResource = URI.from({ scheme: Schemas.untitled, path: 'Untitled-1' });
 			const workspaceHash = hash(workspaceResource.fsPath).toString(16);
 
-			// No Type ID
 			let backupId = toUntypedWorkingCopyId(backupResource);
 			let filePathHash = hashIdentifier(backupId);
 			let expectedPath = joinPath(backupHome, workspaceHash, Schemas.untitled, filePathHash).with({ scheme: Schemas.vscodeUserData }).toString();
 			assert.strictEqual(service.toBackupResource(backupId).toString(), expectedPath);
 
-			// With Type ID
 			backupId = toTypedWorkingCopyId(backupResource);
 			filePathHash = hashIdentifier(backupId);
 			expectedPath = joinPath(backupHome, workspaceHash, Schemas.untitled, filePathHash).with({ scheme: Schemas.vscodeUserData }).toString();
@@ -360,17 +330,14 @@ suite('WorkingCopyBackupService', () => {
 
 		test('should get the correct backup path for custom files', () => {
 
-			// Format should be: <backupHome>/<workspaceHash>/<scheme>/<filePathHash>
 			const backupResource = URI.from({ scheme: 'custom', path: 'custom/file.txt' });
 			const workspaceHash = hash(workspaceResource.fsPath).toString(16);
 
-			// No Type ID
 			let backupId = toUntypedWorkingCopyId(backupResource);
 			let filePathHash = hashIdentifier(backupId);
 			let expectedPath = joinPath(backupHome, workspaceHash, 'custom', filePathHash).with({ scheme: Schemas.vscodeUserData }).toString();
 			assert.strictEqual(service.toBackupResource(backupId).toString(), expectedPath);
 
-			// With Type ID
 			backupId = toTypedWorkingCopyId(backupResource);
 			filePathHash = hashIdentifier(backupId);
 			expectedPath = joinPath(backupHome, workspaceHash, 'custom', filePathHash).with({ scheme: Schemas.vscodeUserData }).toString();
@@ -962,7 +929,6 @@ suite('WorkingCopyBackupService', () => {
 
 			await testResolveBackup(fooFile, contents, meta);
 
-			// Change meta and test again
 			meta.size = 999;
 			await testResolveBackup(fooFile, contents, meta);
 		});
@@ -1107,13 +1073,6 @@ suite('WorkingCopyBackupService', () => {
 
 			const backupPath = joinPath(workspaceBackupPath, identifier.resource.scheme, hashIdentifier(identifier));
 
-			// Simulate the condition of the backups model loading initially without
-			// meta data information and then getting the meta data updated on the
-			// first call to resolve the backup. We simulate this by explicitly changing
-			// the meta data in the file and then verifying that the updated meta data
-			// is persisted back into the model (verified via `hasBackupSync`).
-			// This is not really something that would happen in real life because any
-			// backup that is made via backup service will update the model accordingly.
 
 			const originalFileContents = (await fileService.readFile(backupPath)).value.toString();
 			await fileService.writeFile(backupPath, VSBuffer.fromString(originalFileContents.replace(meta.etag, updatedMeta.etag)));
@@ -1274,7 +1233,6 @@ suite('WorkingCopyBackupService', () => {
 			const untitledBackupPath = joinPath(workspaceBackupPath, untitledFile.scheme, hashIdentifier(untitledBackupId));
 			const customFileBackupPath = joinPath(workspaceBackupPath, customFile.scheme, hashIdentifier(customBackupId));
 
-			// Prepare backups of the old format without meta
 			await fileService.createFolder(joinPath(workspaceBackupPath, fooFile.scheme));
 			await fileService.createFolder(joinPath(workspaceBackupPath, untitledFile.scheme));
 			await fileService.createFolder(joinPath(workspaceBackupPath, customFile.scheme));
@@ -1301,7 +1259,6 @@ suite('WorkingCopyBackupService', () => {
 			const untitledBackupPath = joinPath(workspaceBackupPath, untitledFile.scheme, hashIdentifier(untitledBackupId));
 			const customFileBackupPath = joinPath(workspaceBackupPath, customFile.scheme, hashIdentifier(customBackupId));
 
-			// Prepare backups of the old format without meta
 			await fileService.createFolder(joinPath(workspaceBackupPath, fooFile.scheme));
 			await fileService.createFolder(joinPath(workspaceBackupPath, untitledFile.scheme));
 			await fileService.createFolder(joinPath(workspaceBackupPath, customFile.scheme));

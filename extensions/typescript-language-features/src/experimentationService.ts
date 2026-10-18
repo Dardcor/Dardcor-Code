@@ -24,7 +24,7 @@ export class ExperimentationService {
 	public async getTreatmentVariable<K extends keyof ExperimentTypes>(name: K, defaultValue: ExperimentTypes[K]): Promise<ExperimentTypes[K]> {
 		const experimentationService = await this._experimentationServicePromise;
 		try {
-			const treatmentVariable = await experimentationService.getTreatmentVariableAsync('vscode', name, /*checkCache*/ true) as ExperimentTypes[K];
+			const treatmentVariable = await experimentationService.getTreatmentVariableAsync('vscode', name, true) as ExperimentTypes[K];
 			return treatmentVariable ?? defaultValue;
 		} catch {
 			return defaultValue;

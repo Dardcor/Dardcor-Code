@@ -35,7 +35,6 @@ interface IRemoteAgentHostServiceTestAccess {
 	_cancelReconnect(address: string): void;
 }
 
-// ---- Mock transport ---------------------------------------------------------
 
 class MockTransport extends Disposable {
 	readonly onMessage = Event.None;
@@ -46,7 +45,6 @@ class MockTransport extends Disposable {
 	send(): boolean { return true; }
 }
 
-// ---- Mock protocol client ---------------------------------------------------
 
 class MockProtocolClient extends Disposable {
 	private static _nextId = 1;
@@ -129,7 +127,6 @@ class TestConnectionFactory extends Disposable implements IRemoteAgentHostConnec
 		this._entries.set([...this._entries.get(), entry], undefined);
 	}
 
-	/** Stages a factory-level rejection, as a failed precondition check would produce. */
 	stageFailure(entry: IRemoteAgentHostEntry, error: Error): void {
 		const address = getEntryAddress(entry);
 		this._failures.set(address, [...(this._failures.get(address) ?? []), error]);
@@ -155,7 +152,6 @@ class TestConnectionFactory extends Disposable implements IRemoteAgentHostConnec
 	}
 }
 
-// ---- Test configuration service ---------------------------------------------
 
 class TestConfigurationService {
 	private readonly _onDidChangeConfiguration = new Emitter<Partial<IConfigurationChangeEvent>>();
@@ -279,11 +275,6 @@ suite('RemoteAgentHostService', () => {
 			},
 		} as Partial<ILabelService>);
 
-		// Mock the instantiation service to capture created protocol clients.
-		// `WebSocketConnectionFactory` calls `createInstance` for
-		// `WebSocketClientTransport` and `AgentHostProtocolClient`. We only care about tracking
-		// the protocol client; for the transport we return a no-op
-		// disposable so the test can keep asserting on `createdClients.length`.
 		const mockInstantiationService: Partial<IInstantiationService> = {
 			createInstance: (ctor: unknown, ...args: unknown[]) => {
 				const ctorName = (ctor as { name?: string }).name;
@@ -317,14 +308,12 @@ suite('RemoteAgentHostService', () => {
 	teardown(() => disposables.clear());
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** Wait for a connection to reach Connected status. */
 	async function waitForConnected(): Promise<void> {
 		while (!service.connections.some(c => RemoteAgentHostConnectionStatus.isConnected(c.status))) {
 			await Event.toPromise(service.onDidChangeConnections);
 		}
 	}
 
-	/** Wait for factories to build the requested number of protocol clients. */
 	async function waitForCreatedClients(count: number): Promise<void> {
 		while (createdClients.length < count) {
 			await Event.toPromise(service.onDidChangeConnections);
@@ -364,7 +353,6 @@ suite('RemoteAgentHostService', () => {
 	test('creates connection when setting is updated', async () => {
 		configService.setEntries([{ name: 'Host 1', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'ws://host1:8080' } }]);
 
-		// Resolve the connect promise
 		await waitForCreatedClients(1);
 		assert.strictEqual(createdClients.length, 1);
 		createdClients[0].connectDeferred.complete();
@@ -392,13 +380,11 @@ suite('RemoteAgentHostService', () => {
 	});
 
 	test('removes connection when setting entry is removed', async () => {
-		// Add a connection
 		configService.setEntries([{ name: 'Host 1', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'ws://host1:8080' } }]);
 		await waitForCreatedClients(1);
 		createdClients[0].connectDeferred.complete();
 		await waitForConnected();
 
-		// Remove it
 		const removedEvent = Event.toPromise(service.onDidChangeConnections);
 		configService.setEntries([]);
 		await removedEvent;
@@ -413,12 +399,10 @@ suite('RemoteAgentHostService', () => {
 		createdClients[0].connectDeferred.complete();
 		await waitForConnected();
 
-		// Simulate connection close — entry transitions to Disconnected
 		const closedEvent = Event.toPromise(service.onDidChangeConnections);
 		createdClients[0].fireClose();
 		await closedEvent;
 
-		// Connection is still tracked (for reconnect) but getConnection returns undefined
 		assert.strictEqual(service.getConnection('ws://host1:8080'), undefined);
 		const entry = service.connections.find(c => c.address === 'host1:8080');
 		assert.ok(entry);
@@ -430,7 +414,6 @@ suite('RemoteAgentHostService', () => {
 		await waitForCreatedClients(1);
 		assert.strictEqual(createdClients.length, 1);
 
-		// Fail the connection and wait for the service to react
 		const connectionChanged = Event.toPromise(service.onDidChangeConnections);
 		createdClients[0].connectDeferred.error(new Error('Connection refused'));
 		await connectionChanged;
@@ -487,18 +470,14 @@ suite('RemoteAgentHostService', () => {
 
 		const firstClientId = createdClients[0].clientId;
 
-		// Update setting with same address (but different name)
 		configService.setEntries([{ name: 'Renamed', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'ws://host1:8080' } }]);
 
-		// Should NOT have created a second client
 		assert.strictEqual(createdClients.length, 1);
 
-		// Connection should still work with same client
 		const conn = service.getConnection('ws://host1:8080');
 		assert.ok(conn);
 		assert.strictEqual(conn.clientId, firstClientId);
 
-		// But name should be updated
 		const entry = service.connections.find(c => c.address === 'host1:8080');
 		assert.strictEqual(entry?.name, 'Renamed');
 	});
@@ -560,7 +539,6 @@ suite('RemoteAgentHostService', () => {
 	});
 
 	test('configured WebSocket entries append a second host', async () => {
-		// Add first host
 		await addWebSocketRemoteAgentHostEntry(configService as unknown as IConfigurationService, {
 			name: 'Host 1',
 			connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'host1:8080' },
@@ -570,7 +548,6 @@ suite('RemoteAgentHostService', () => {
 		createdClients[0].connectDeferred.complete();
 		await firstPromise;
 
-		// Add second host
 		await addWebSocketRemoteAgentHostEntry(configService as unknown as IConfigurationService, {
 			name: 'Host 2',
 			connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'host2:9090' },
@@ -589,8 +566,6 @@ suite('RemoteAgentHostService', () => {
 	});
 
 	test('waitForConnection resolves when connection completes before it is called', async () => {
-		// Simulate a fast connect: the mock client resolves during the
-		// configuration update, before waitForConnection is called.
 		const originalUpdateValue = configService.updateValue.bind(configService);
 		configService.updateValue = async (key: string, value: unknown) => {
 			await originalUpdateValue(key, value);
@@ -633,8 +608,6 @@ suite('RemoteAgentHostService', () => {
 		configService.setEntries([{ name: 'Host 1', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'host1:8080' } }]);
 		await waitForCreatedClients(1);
 
-		// The protocol client schedules its own retry and only then rejects the
-		// original connect(), so the service must not tear the entry down.
 		createdClients[0].fireConnectionState('reconnecting');
 		createdClients[0].connectDeferred.error(new Error('transport closed'));
 		await new Promise<void>(resolve => setTimeout(resolve, 0));
@@ -672,7 +645,7 @@ suite('RemoteAgentHostService', () => {
 
 		configService.setEnabled(true);
 		await waitForCreatedClients(2);
-		assert.strictEqual(createdClients.length, 2); // new client created
+		assert.strictEqual(createdClients.length, 2);
 		createdClients[1].connectDeferred.complete();
 		await waitForConnected();
 		assert.strictEqual(service.connections.filter(c => RemoteAgentHostConnectionStatus.isConnected(c.status)).length, 1);
@@ -743,8 +716,6 @@ suite('RemoteAgentHostService', () => {
 		}
 
 		async function reconnectStagedConnection(factory: TestConnectionFactory, entry: IRemoteAgentHostEntry, client: MockProtocolClient, transportDisposable?: IDisposable, reconnectTransfersTransportOwnership = false): Promise<void> {
-			// Capture the target before staging: `reconnect` dials asynchronously and
-			// may already have created the connection by the time we start waiting.
 			const expectedConnectionCount = factory.createdConnectionCount + 1;
 			factory.stage(entry, client, transportDisposable, reconnectTransfersTransportOwnership);
 			service.reconnect(getEntryAddress(entry));
@@ -765,8 +736,6 @@ suite('RemoteAgentHostService', () => {
 
 			factory.stage(entry, automaticClient);
 			service.reconnect(address, false);
-			// An automatic retry never spends the budget it depends on, whether
-			// it starts the dial or joins one already in flight.
 			service.reconnect(address, false);
 			assert.deepStrictEqual({
 				automaticAttempts: internals._reconnectAttempts.get(address),
@@ -778,9 +747,6 @@ suite('RemoteAgentHostService', () => {
 
 			service.reconnect(address, true);
 
-			// The user request joins the in-flight dial rather than starting a
-			// second one, but still restores the budget so a later failure is
-			// retried instead of being reported as exhausted.
 			assert.deepStrictEqual({
 				automaticAttempts: internals._reconnectAttempts.get(address),
 				pendingReconnectCreates: factory.createdConnectionCount,
@@ -849,8 +815,6 @@ suite('RemoteAgentHostService', () => {
 			client.fireConnectionState('reconnecting');
 			const armed = service.connections.find(connection => connection.address === 'cloud:backoff-refresh')?.status;
 
-			// The client stays `reconnecting` across rounds, so only the schedule
-			// event reports the new deadline.
 			client.nextReconnectAt = 5_000;
 			client.fireScheduleReconnect();
 
@@ -939,10 +903,6 @@ suite('RemoteAgentHostService', () => {
 			};
 			const address = getEntryAddress(entry);
 
-			// A stopped distro is rejected by the factory's precondition check before
-			// any protocol client exists — the path a real WSL outage actually takes.
-			// The status must survive with no client, or the UI cannot tell a
-			// resolvable outage from a generic one and offers no recovery action.
 			factory.stageFailure(entry, new NonReconnectableTransportError(`WSL distro 'Ubuntu' is not running.`, AgentHostTransportFailureReason.HostNotRunning));
 			while (service.connections.find(connection => connection.address === address)?.status.kind !== 'disconnected') {
 				await Event.toPromise(service.onDidChangeConnections);
@@ -969,10 +929,6 @@ suite('RemoteAgentHostService', () => {
 			const address = getEntryAddress(entry);
 			const client = new MockProtocolClient(address);
 
-			// An automatic start reacts to this notification synchronously, while
-			// the failing dial is still on the stack. If its in-flight marker were
-			// still set, `reconnect` would join that dead dial instead of opening a
-			// new one, so the host would never come up and the wait never settle.
 			const listener = disposables.add(service.onDidChangeConnections(() => {
 				if (service.connections.find(connection => connection.address === address)?.status.kind !== 'disconnected') {
 					return;
@@ -983,8 +939,6 @@ suite('RemoteAgentHostService', () => {
 			}));
 
 			factory.stageFailure(entry, new NonReconnectableTransportError(`WSL distro 'Ubuntu' is not running.`, AgentHostTransportFailureReason.HostNotRunning));
-			// Waiting only once the fresh dial exists: waiters registered earlier are
-			// rejected by the failure itself, which is not what this pins.
 			await waitForFactoryConnection(factory, 1);
 			client.connectDeferred.complete();
 			const info = await service.waitForConnection(address);
@@ -1013,7 +967,6 @@ suite('RemoteAgentHostService', () => {
 
 			const afterClose = service.connections.find(connection => connection.address === 'wsl:Ubuntu')?.status;
 
-			// A host that comes back must stop claiming it is not running.
 			await reconnectStagedConnection(factory, entry, new MockProtocolClient('wsl:Ubuntu'));
 
 			assert.deepStrictEqual({

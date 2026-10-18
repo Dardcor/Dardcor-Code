@@ -1,7 +1,7 @@
 {
 	"$schema": "vscode://schemas/color-theme",
 	"name": "Dark+",
-	"include": "./dark_vs.json",
+	"include": "./dark_dardcor.json",
 	"tokenColors": [
 		{
 			"name": "Function declarations",
@@ -10,7 +10,7 @@
 				"support.function",
 				"support.constant.handlebars",
 				"source.powershell variable.other.member",
-				"entity.name.operator.custom-literal"
+				"entity.name.operator.custom-literal" // See https://en.cppreference.com/w/cpp/language/user_literal
 			],
 			"settings": {
 				"foreground": "#DCDCAA"
@@ -93,7 +93,7 @@
 				"meta.definition.variable.name",
 				"support.variable",
 				"entity.name.variable",
-				"constant.other.placeholder"
+				"constant.other.placeholder", // placeholders in strings
 			],
 			"settings": {
 				"foreground": "#9CDCFE"
@@ -106,7 +106,7 @@
 				"variable.other.enummember"
 			],
 			"settings": {
-				"foreground": "#4FC1FF"
+				"foreground": "#4FC1FF",
 			}
 		},
 		{
@@ -197,88 +197,9 @@
 		}
 	],
 	"semanticTokenColors": {
-		"newOperator": "#C586C0",
-		"stringLiteral": "#ce9178",
+		"newOperator":"#C586C0",
+		"stringLiteral":"#ce9178",
 		"customLiteral": "#DCDCAA",
-		"numberLiteral": "#b5cea8"
-	},
-	"colors": {
-		"editor.background": "#000000",
-		"sideBar.background": "#000000",
-		"activityBar.background": "#000000",
-		"panel.background": "#000000",
-		"statusBar.background": "#000000",
-		"titleBar.activeBackground": "#000000",
-		"titleBar.inactiveBackground": "#000000",
-		"menu.background": "#000000",
-		"dropdown.background": "#000000",
-		"input.background": "#000000",
-		"quickInput.background": "#000000",
-		"editorWidget.background": "#000000",
-		"tab.activeBackground": "#000000",
-		"tab.inactiveBackground": "#000000",
-		"editorGroupHeader.tabsBackground": "#000000",
-		"list.activeSelectionBackground": "#000000",
-		"list.inactiveSelectionBackground": "#000000",
-		"list.hoverBackground": "#000000",
-		"welcomePage.background": "#000000",
-		"breadcrumb.background": "#000000",
-		"editorGroup.emptyBackground": "#000000",
-		"activityBar.border": "#4a0072",
-		"sideBar.border": "#4a0072",
-		"editorGroup.border": "#4a0072",
-		"panel.border": "#4a0072",
-		"statusBar.border": "#4a0072",
-		"menu.border": "#7C4DFF",
-		"button.border": "#7C4DFF",
-		"input.border": "#7C4DFF",
-		"tab.border": "#7C4DFF",
-		"tab.inactiveBorder": "#7C4DFF",
-		"editorGroupHeader.tabsBorder": "#7C4DFF",
-		"editorGroupHeader.border": "#7C4DFF",
-		"titleBar.border": "#7C4DFF",
-		"titleBar.inactiveBorder": "#7C4DFF",
-		"dropdown.border": "#7C4DFF",
-		"dialog.border": "#7C4DFF",
-		"notificationCenter.border": "#7C4DFF",
-		"notificationToast.border": "#7C4DFF",
-		"editorBracketMatch.border": "#7C4DFF",
-		"editorRuler.foreground": "#7C4DFF",
-		"tab.unfocusedActiveBorder": "#7C4DFF",
-		"window.activeBorder": "#7C4DFF",
-		"window.inactiveBorder": "#7C4DFF",
-		"widget.border": "#7C4DFF",
-		"editorWidget.border": "#4a0072",
-		"contrastBorder": "#7C4DFF",
-		"pickerGroup.border": "#7C4DFF",
-		"sideBarSectionHeader.border": "#7C4DFF",
-		"panelSectionHeader.border": "#7C4DFF",
-		"menu.separatorBackground": "#7C4DFF",
-		"editorIndentGuide.background": "#7C4DFF",
-		"tree.indentGuidesStroke": "#7C4DFF",
-		"editor.selectionHighlightBorder": "#7C4DFF",
-		"editorIndentGuide.activeBackground": "#7C4DFF",
-		"tab.activeBorder": "#7C4DFF",
-		"focusBorder": "#7C4DFF",
-		"list.focusOutline": "#7C4DFF",
-		"list.activeSelectionIconForeground": "#7C4DFF",
-		"settings.textInputBackground": "#000000",
-		"settings.numberInputBackground": "#000000",
-		"settings.dropdownBackground": "#000000",
-		"editorSuggestWidget.background": "#000000",
-		"peekViewResult.background": "#000000",
-		"peekViewTitle.background": "#000000",
-		"notifications.background": "#000000",
-		"list.dropBackground": "#000000",
-		"editorHoverWidget.background": "#000000",
-		"dropdown.listBackground": "#000000",
-		"terminal.background": "#000000",
-		"chat.slashCommandBackground": "#000000",
-		"peekViewEditor.background": "#000000",
-		"checkbox.background": "#000000",
-		"debugToolBar.background": "#000000",
-		"extensionButton.prominentBackground": "#000000",
-		"settings.headerBackground": "#000000",
-		"editor.lineHighlightBorder": "#4a0072"
+		"numberLiteral": "#b5cea8",
 	}
 }

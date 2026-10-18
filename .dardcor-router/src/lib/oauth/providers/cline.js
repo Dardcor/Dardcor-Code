@@ -13,7 +13,6 @@ const cline = {
   },
   exchangeToken: async (config, code, redirectUri) => {
     try {
-      // Cline encodes token data as base64 in the code param
       let base64 = code;
       const padding = 4 - (base64.length % 4);
       if (padding !== 4) base64 += "=".repeat(padding);

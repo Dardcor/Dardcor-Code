@@ -6,17 +6,11 @@
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import type { IConfigurationValue } from '../../../configuration/common/configuration.js';
-import { AgentHostActiveAgentTitleGenerationConfigKey, AgentHostAutoAttachPullRequestsConfigKey, AgentHostGitHubMcpServerEnabledConfigKey, AgentHostMarkdownPlanRichLinksEnabledConfigKey, createSchema, migrateLegacyAutopilotConfig, normalizeAgentHostTerminalAutoApproveRulesConfig, platformRootSchema, platformSessionSchema, schemaProperty, type AgentHostTerminalAutoApproveRules, type AutoApproveLevel, type IPermissionsValue, type SessionMode } from '../../common/agentHostSchema.js';
+import { AgentHostActiveAgentTitleGenerationConfigKey, AgentHostAutoAttachPullRequestsConfigKey, AgentHostMarkdownPlanRichLinksEnabledConfigKey, createSchema, migrateLegacyAutopilotConfig, normalizeAgentHostTerminalAutoApproveRulesConfig, platformRootSchema, platformSessionSchema, schemaProperty, type AgentHostTerminalAutoApproveRules, type AutoApproveLevel, type IPermissionsValue, type SessionMode } from '../../common/agentHostSchema.js';
 import { SessionConfigKey } from '../../common/sessionConfigKeys.js';
 import type { IShellInitScript } from '../../common/shellInitScript.js';
 import { JsonRpcErrorCodes, ProtocolError } from '../../common/state/sessionProtocol.js';
 
-/**
- * Invokes `fn` and returns the thrown {@link ProtocolError}. Avoids
- * passing an arrow-function validator to `assert.throws` — the unit-test
- * assert shim does `actual instanceof expected` with that validator, and
- * arrow functions have no `prototype` property, which WebKit rejects.
- */
 function captureProtocolError(fn: () => void): ProtocolError {
 	try {
 		fn();
@@ -43,19 +37,12 @@ suite('agentHostSchema', () => {
 		assert.strictEqual(property.default, false);
 	});
 
-	test('GitHub MCP is an additive enabled-by-default root setting', () => {
-		const property = platformRootSchema.toProtocol().properties[AgentHostGitHubMcpServerEnabledConfigKey];
-		assert.strictEqual(property.type, 'boolean');
-		assert.strictEqual(property.default, true);
-	});
-
 	test('automatic pull request attachment is an additive enabled-by-default root setting', () => {
 		const property = platformRootSchema.toProtocol().properties[AgentHostAutoAttachPullRequestsConfigKey];
 		assert.strictEqual(property.type, 'boolean');
 		assert.strictEqual(property.default, true);
 	});
 
-	// ---- schemaProperty / individual validators ---------------------------
 
 	suite('schemaProperty', () => {
 
@@ -179,7 +166,6 @@ suite('agentHostSchema', () => {
 		});
 	});
 
-	// ---- createSchema ------------------------------------------------------
 
 	suite('createSchema', () => {
 
@@ -250,7 +236,6 @@ suite('agentHostSchema', () => {
 		});
 	});
 
-	// ---- validateOrDefault -------------------------------------------------
 
 	suite('validateOrDefault', () => {
 
@@ -286,10 +271,6 @@ suite('agentHostSchema', () => {
 		});
 
 		test('omits schema keys that are missing from both values and defaults', () => {
-			// Regression coverage for the partial-defaults contract that
-			// underpins host-level inheritance: if the caller doesn't supply
-			// a default and no incoming value is valid, the key is left out
-			// entirely so higher-scope defaults can fill in.
 			const schema = fixture();
 			const result = schema.validateOrDefault({ count: 9 }, { count: 0 });
 			assert.deepStrictEqual(result, { count: 9 });
@@ -300,12 +281,10 @@ suite('agentHostSchema', () => {
 			const schema = fixture();
 			// @ts-expect-error: test that invalid values are dropped even when the caller doesn't provide a default.
 			const result = schema.validateOrDefault({ name: 42, count: 3 }, { count: 0 });
-			// `name` has no default and the incoming value is invalid → dropped.
 			assert.deepStrictEqual(result, { count: 3 });
 		});
 	});
 
-	// ---- platformSessionSchema sanity --------------------------------------
 
 	suite('platformSessionSchema', () => {
 
@@ -369,9 +348,6 @@ suite('agentHostSchema', () => {
 
 		test('keeps a pushed shellInitScripts value and has no default of its own', () => {
 			const scripts = [{ shell: 'bash', script: 'x' }];
-			// Mirrors `resolveChatConfig`, which supplies defaults only for
-			// autoApprove and mode. An absent value must stay absent so it is
-			// distinguishable from an explicit empty array (clear).
 			const defaults: { [SessionConfigKey.AutoApprove]: AutoApproveLevel;[SessionConfigKey.Mode]: SessionMode;[SessionConfigKey.ShellInitScripts]?: readonly IShellInitScript[] } = {
 				[SessionConfigKey.AutoApprove]: 'default',
 				[SessionConfigKey.Mode]: 'interactive',
@@ -381,12 +357,10 @@ suite('agentHostSchema', () => {
 				[SessionConfigKey.ShellInitScripts]: scripts,
 			});
 			assert.deepStrictEqual(platformSessionSchema.validateOrDefault({}, defaults), defaults);
-			// An invalid pushed value must not survive into the resolved config.
 			assert.deepStrictEqual(platformSessionSchema.validateOrDefault({ [SessionConfigKey.ShellInitScripts]: 'nope' }, defaults), defaults);
 		});
 	});
 
-	// ---- legacy autopilot migration ----------------------------------------
 
 	suite('migrateLegacyAutopilotConfig', () => {
 
@@ -422,7 +396,6 @@ suite('agentHostSchema', () => {
 		});
 	});
 
-	// ---- terminal auto-approve rule forwarding -----------------------------
 
 	suite('normalizeAgentHostTerminalAutoApproveRulesConfig', () => {
 

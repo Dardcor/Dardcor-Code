@@ -137,11 +137,9 @@ suite('Buffer Content Tracker', () => {
 		await writeP(xterm.raw, content);
 		bufferTracker.update();
 		const expected = content.split('\r\n');
-		// delete the 6 lines that should be trimmed
 		for (let i = 0; i < 6; i++) {
 			expected.pop();
 		}
-		// insert a new character
 		await writeP(xterm.raw, '\x1b[2Ainsertion');
 		bufferTracker.update();
 		expected[1027] = `${prompt}insertion`;

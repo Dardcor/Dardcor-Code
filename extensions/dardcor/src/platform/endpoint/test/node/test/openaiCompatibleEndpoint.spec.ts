@@ -22,7 +22,6 @@ import { ITokenizerProvider } from '../../../../../platform/tokenizer/node/token
 import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IModelConfig, OpenAICompatibleTestEndpoint } from '../openaiCompatibleEndpoint';
 
-// Test fixtures for thinking content
 const createThinkingMessage = (thinkingId: string, thinkingText: string): Raw.ChatMessage => ({
 	role: Raw.ChatRole.Assistant,
 	content: [
@@ -48,7 +47,6 @@ const createTestOptions = (messages: Raw.ChatMessage[]): ICreateEndpointBodyOpti
 	location: undefined as any
 });
 
-// Mock implementations
 const createMockServices = () => ({
 	fetcherService: {} as IFetcherService,
 	domainService: {} as IDomainService,
@@ -172,11 +170,9 @@ describe('OpenAICompatibleTestEndpoint - Reasoning Properties', () => {
 			const messages = body.messages as any[];
 			expect(messages).toHaveLength(2);
 
-			// User message should not have reasoning properties
 			expect(messages[0].cot_id).toBeUndefined();
 			expect(messages[0].cot_summary).toBeUndefined();
 
-			// Assistant message should have reasoning properties
 			expect(messages[1].cot_id).toBe('compat-reasoning-456');
 			expect(messages[1].cot_summary).toBe('thinking about the code generation');
 		});

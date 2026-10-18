@@ -47,10 +47,6 @@ class MockWebSocket {
 	}
 }
 
-/**
- * In-process WSL service double that controls platform detection, process
- * output, and WebSocket creation without spawning WSL or loading `ws`.
- */
 class TestableWSLRemoteAgentHostMainService extends WSLRemoteAgentHostMainService {
 	readonly children: MockWSLChild[] = [];
 

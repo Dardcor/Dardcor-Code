@@ -138,14 +138,14 @@ suite('Folding Model', () => {
 
 	test('getRegionAtLine', () => {
 		const lines = [
-		/* 1*/	'/**',
-		/* 2*/	' * Comment',
-		/* 3*/	' */',
-		/* 4*/	'class A {',
-		/* 5*/	'  void foo() {',
-		/* 6*/	'    // comment {',
-		/* 7*/	'  }',
-		/* 8*/	'}'];
+		'/**',
+		' * Comment',
+		' */',
+		'class A {',
+		'  void foo() {',
+		'    // comment {',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -177,14 +177,14 @@ suite('Folding Model', () => {
 
 	test('collapse', () => {
 		const lines = [
-		/* 1*/	'/**',
-		/* 2*/	' * Comment',
-		/* 3*/	' */',
-		/* 4*/	'class A {',
-		/* 5*/	'  void foo() {',
-		/* 6*/	'    // comment {',
-		/* 7*/	'  }',
-		/* 8*/	'}'];
+		'/**',
+		' * Comment',
+		' */',
+		'class A {',
+		'  void foo() {',
+		'    // comment {',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -223,14 +223,14 @@ suite('Folding Model', () => {
 
 	test('update', () => {
 		const lines = [
-		/* 1*/	'/**',
-		/* 2*/	' * Comment',
-		/* 3*/	' */',
-		/* 4*/	'class A {',
-		/* 5*/	'  void foo() {',
-		/* 6*/	'    // comment {',
-		/* 7*/	'  }',
-		/* 8*/	'}'];
+		'/**',
+		' * Comment',
+		' */',
+		'class A {',
+		'  void foo() {',
+		'    // comment {',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -258,19 +258,19 @@ suite('Folding Model', () => {
 
 	test('delete', () => {
 		const lines = [
-		/* 1*/	'function foo() {',
-		/* 2*/	'  switch (x) {',
-		/* 3*/	'    case 1:',
-		/* 4*/	'      //hello1',
-		/* 5*/	'      break;',
-		/* 6*/	'    case 2:',
-		/* 7*/	'      //hello2',
-		/* 8*/	'      break;',
-		/* 9*/	'    case 3:',
-		/* 10*/	'      //hello3',
-		/* 11*/	'      break;',
-		/* 12*/	'  }',
-		/* 13*/	'}'];
+		'function foo() {',
+		'  switch (x) {',
+		'    case 1:',
+		'      //hello1',
+		'      break;',
+		'    case 2:',
+		'      //hello2',
+		'      break;',
+		'    case 3:',
+		'      //hello3',
+		'      break;',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -300,14 +300,14 @@ suite('Folding Model', () => {
 
 	test('getRegionsInside', () => {
 		const lines = [
-		/* 1*/	'/**',
-		/* 2*/	' * Comment',
-		/* 3*/	' */',
-		/* 4*/	'class A {',
-		/* 5*/	'  void foo() {',
-		/* 6*/	'    // comment {',
-		/* 7*/	'  }',
-		/* 8*/	'}'];
+		'/**',
+		' * Comment',
+		' */',
+		'class A {',
+		'  void foo() {',
+		'    // comment {',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -337,18 +337,18 @@ suite('Folding Model', () => {
 
 	test('getRegionsInsideWithLevel', () => {
 		const lines = [
-			/* 1*/	'//#region',
-			/* 2*/	'//#endregion',
-			/* 3*/	'class A {',
-			/* 4*/	'  void foo() {',
-			/* 5*/	'    if (true) {',
-			/* 6*/	'        return;',
-			/* 7*/	'    }',
-			/* 8*/	'    if (true) {',
-			/* 9*/	'      return;',
-			/* 10*/	'    }',
-			/* 11*/	'  }',
-			/* 12*/	'}'];
+			'//#region',
+			'//#endregion',
+			'class A {',
+			'  void foo() {',
+			'    if (true) {',
+			'        return;',
+			'    }',
+			'    if (true) {',
+			'      return;',
+			'    }',
+			'  }',
+			'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -389,17 +389,17 @@ suite('Folding Model', () => {
 
 	test('getRegionAtLine2', () => {
 		const lines = [
-		/* 1*/	'//#region',
-		/* 2*/	'class A {',
-		/* 3*/	'  void foo() {',
-		/* 4*/	'    if (true) {',
-		/* 5*/	'      //hello',
-		/* 6*/	'    }',
-		/* 7*/	'',
-		/* 8*/	'  }',
-		/* 9*/	'}',
-		/* 10*/	'//#endregion',
-		/* 11*/	''];
+		'//#region',
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'      //hello',
+		'    }',
+		'',
+		'  }',
+		'}',
+		'//#endregion',
+		''];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -433,19 +433,19 @@ suite('Folding Model', () => {
 
 	test('setCollapseStateRecursivly', () => {
 		const lines = [
-		/* 1*/	'//#region',
-		/* 2*/	'//#endregion',
-		/* 3*/	'class A {',
-		/* 4*/	'  void foo() {',
-		/* 5*/	'    if (true) {',
-		/* 6*/	'        return;',
-		/* 7*/	'    }',
-		/* 8*/	'',
-		/* 9*/	'    if (true) {',
-		/* 10*/	'      return;',
-		/* 11*/	'    }',
-		/* 12*/	'  }',
-		/* 13*/	'}'];
+		'//#region',
+		'//#endregion',
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'        return;',
+		'    }',
+		'',
+		'    if (true) {',
+		'      return;',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -486,22 +486,22 @@ suite('Folding Model', () => {
 
 	test('setCollapseStateAtLevel', () => {
 		const lines = [
-		/* 1*/	'//#region',
-		/* 2*/	'//#endregion',
-		/* 3*/	'class A {',
-		/* 4*/	'  void foo() {',
-		/* 5*/	'    if (true) {',
-		/* 6*/	'        return;',
-		/* 7*/	'    }',
-		/* 8*/	'',
-		/* 9*/	'    if (true) {',
-		/* 10*/	'      return;',
-		/* 11*/	'    }',
-		/* 12*/	'  }',
-		/* 13*/	'  //#region',
-		/* 14*/	'  const bar = 9;',
-		/* 15*/	'  //#endregion',
-		/* 16*/	'}'];
+		'//#region',
+		'//#endregion',
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'        return;',
+		'    }',
+		'',
+		'    if (true) {',
+		'      return;',
+		'    }',
+		'  }',
+		'  //#region',
+		'  const bar = 9;',
+		'  //#endregion',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -545,19 +545,19 @@ suite('Folding Model', () => {
 
 	test('setCollapseStateLevelsDown', () => {
 		const lines = [
-		/* 1*/	'//#region',
-		/* 2*/	'//#endregion',
-		/* 3*/	'class A {',
-		/* 4*/	'  void foo() {',
-		/* 5*/	'    if (true) {',
-		/* 6*/	'        return;',
-		/* 7*/	'    }',
-		/* 8*/	'',
-		/* 9*/	'    if (true) {',
-		/* 10*/	'      return;',
-		/* 11*/	'    }',
-		/* 12*/	'  }',
-		/* 13*/	'}'];
+		'//#region',
+		'//#endregion',
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'        return;',
+		'    }',
+		'',
+		'    if (true) {',
+		'      return;',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -597,19 +597,19 @@ suite('Folding Model', () => {
 
 	test('setCollapseStateLevelsUp', () => {
 		const lines = [
-		/* 1*/	'//#region',
-		/* 2*/	'//#endregion',
-		/* 3*/	'class A {',
-		/* 4*/	'  void foo() {',
-		/* 5*/	'    if (true) {',
-		/* 6*/	'        return;',
-		/* 7*/	'    }',
-		/* 8*/	'',
-		/* 9*/	'    if (true) {',
-		/* 10*/	'      return;',
-		/* 11*/	'    }',
-		/* 12*/	'  }',
-		/* 13*/	'}'];
+		'//#region',
+		'//#endregion',
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'        return;',
+		'    }',
+		'',
+		'    if (true) {',
+		'      return;',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -644,19 +644,19 @@ suite('Folding Model', () => {
 
 	test('setCollapseStateUp', () => {
 		const lines = [
-		/* 1*/	'//#region',
-		/* 2*/	'//#endregion',
-		/* 3*/	'class A {',
-		/* 4*/	'  void foo() {',
-		/* 5*/	'    if (true) {',
-		/* 6*/	'        return;',
-		/* 7*/	'    }',
-		/* 8*/	'',
-		/* 9*/	'    if (true) {',
-		/* 10*/	'      return;',
-		/* 11*/	'    }',
-		/* 12*/	'  }',
-		/* 13*/	'}'];
+		'//#region',
+		'//#endregion',
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'        return;',
+		'    }',
+		'',
+		'    if (true) {',
+		'      return;',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -689,19 +689,19 @@ suite('Folding Model', () => {
 
 	test('setCollapseStateForMatchingLines', () => {
 		const lines = [
-		/* 1*/	'/**',
-		/* 2*/	' * the class',
-		/* 3*/	' */',
-		/* 4*/	'class A {',
-		/* 5*/	'  /**',
-		/* 6*/	'   * the foo',
-		/* 7*/	'   */',
-		/* 8*/	'  void foo() {',
-		/* 9*/	'    /*',
-		/* 10*/	'     * the comment',
-		/* 11*/	'     */',
-		/* 12*/	'  }',
-		/* 13*/	'}'];
+		'/**',
+		' * the class',
+		' */',
+		'class A {',
+		'  /**',
+		'   * the foo',
+		'   */',
+		'  void foo() {',
+		'    /*',
+		'     * the comment',
+		'     */',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -729,19 +729,19 @@ suite('Folding Model', () => {
 
 	test('setCollapseStateForRest', () => {
 		const lines = [
-		/* 1*/	'//#region',
-		/* 2*/	'//#endregion',
-		/* 3*/	'class A {',
-		/* 4*/	'  void foo() {',
-		/* 5*/	'    if (true) {',
-		/* 6*/	'        return;',
-		/* 7*/	'    }',
-		/* 8*/	'',
-		/* 9*/	'    if (true) {',
-		/* 10*/	'      return;',
-		/* 11*/	'    }',
-		/* 12*/	'  }',
-		/* 13*/	'}'];
+		'//#region',
+		'//#endregion',
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'        return;',
+		'    }',
+		'',
+		'    if (true) {',
+		'      return;',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -778,13 +778,13 @@ suite('Folding Model', () => {
 
 	test('folding decoration', () => {
 		const lines = [
-		/* 1*/	'class A {',
-		/* 2*/	'  void foo() {',
-		/* 3*/	'    if (true) {',
-		/* 4*/	'      hoo();',
-		/* 5*/	'    }',
-		/* 6*/	'  }',
-		/* 7*/	'}'];
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'      hoo();',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -839,19 +839,19 @@ suite('Folding Model', () => {
 
 	test('fold jumping', () => {
 		const lines = [
-			/* 1*/	'class A {',
-			/* 2*/	'  void foo() {',
-			/* 3*/	'    if (1) {',
-			/* 4*/	'      a();',
-			/* 5*/	'    } else if (2) {',
-			/* 6*/	'      if (true) {',
-			/* 7*/	'        b();',
-			/* 8*/	'      }',
-			/* 9*/	'    } else {',
-			/* 10*/	'      c();',
-			/* 11*/	'    }',
-			/* 12*/	'  }',
-			/* 13*/	'}'
+			'class A {',
+			'  void foo() {',
+			'    if (1) {',
+			'      a();',
+			'    } else if (2) {',
+			'      if (true) {',
+			'        b();',
+			'      }',
+			'    } else {',
+			'      c();',
+			'    }',
+			'  }',
+			'}'
 		];
 
 		const textModel = createTextModel(lines.join('\n'));
@@ -869,28 +869,23 @@ suite('Folding Model', () => {
 			const r6 = r(9, 10, false);
 			assertRanges(foldingModel, [r1, r2, r3, r4, r5, r6]);
 
-			// Test jump to parent.
 			assert.strictEqual(getParentFoldLine(7, foldingModel), 6);
 			assert.strictEqual(getParentFoldLine(6, foldingModel), 5);
 			assert.strictEqual(getParentFoldLine(5, foldingModel), 2);
 			assert.strictEqual(getParentFoldLine(2, foldingModel), 1);
 			assert.strictEqual(getParentFoldLine(1, foldingModel), null);
 
-			// Test jump to previous.
 			assert.strictEqual(getPreviousFoldLine(10, foldingModel), 9);
 			assert.strictEqual(getPreviousFoldLine(9, foldingModel), 5);
 			assert.strictEqual(getPreviousFoldLine(5, foldingModel), 3);
 			assert.strictEqual(getPreviousFoldLine(3, foldingModel), null);
-			// Test when not on a folding region start line.
 			assert.strictEqual(getPreviousFoldLine(4, foldingModel), 3);
 			assert.strictEqual(getPreviousFoldLine(7, foldingModel), 6);
 			assert.strictEqual(getPreviousFoldLine(8, foldingModel), 6);
 
-			// Test jump to next.
 			assert.strictEqual(getNextFoldLine(3, foldingModel), 5);
 			assert.strictEqual(getNextFoldLine(5, foldingModel), 9);
 			assert.strictEqual(getNextFoldLine(9, foldingModel), null);
-			// Test when not on a folding region start line.
 			assert.strictEqual(getNextFoldLine(4, foldingModel), 5);
 			assert.strictEqual(getNextFoldLine(7, foldingModel), 9);
 			assert.strictEqual(getNextFoldLine(8, foldingModel), 9);
@@ -903,12 +898,12 @@ suite('Folding Model', () => {
 
 	test('fold jumping issue #129503', () => {
 		const lines = [
-			/* 1*/	'',
-			/* 2*/	'if True:',
-			/* 3*/	'  print(1)',
-			/* 4*/	'if True:',
-			/* 5*/	'  print(1)',
-			/* 6*/	''
+			'',
+			'if True:',
+			'  print(1)',
+			'if True:',
+			'  print(1)',
+			''
 		];
 
 		const textModel = createTextModel(lines.join('\n'));
@@ -922,7 +917,6 @@ suite('Folding Model', () => {
 			const r2 = r(4, 6, false);
 			assertRanges(foldingModel, [r1, r2]);
 
-			// Test jump to next.
 			assert.strictEqual(getNextFoldLine(1, foldingModel), 2);
 			assert.strictEqual(getNextFoldLine(2, foldingModel), 4);
 			assert.strictEqual(getNextFoldLine(3, foldingModel), 4);
@@ -930,7 +924,6 @@ suite('Folding Model', () => {
 			assert.strictEqual(getNextFoldLine(5, foldingModel), null);
 			assert.strictEqual(getNextFoldLine(6, foldingModel), null);
 
-			// Test jump to previous.
 			assert.strictEqual(getPreviousFoldLine(1, foldingModel), null);
 			assert.strictEqual(getPreviousFoldLine(2, foldingModel), null);
 			assert.strictEqual(getPreviousFoldLine(3, foldingModel), 2);
@@ -944,19 +937,18 @@ suite('Folding Model', () => {
 
 	test('removeManualRanges - cursor on manual range removes innermost only', () => {
 		const lines = [
-		/* 1*/	'class A {',
-		/* 2*/	'  void foo() {',
-		/* 3*/	'    if (true) {',
-		/* 4*/	'      return;',
-		/* 5*/	'    }',
-		/* 6*/	'  }',
-		/* 7*/	'}'];
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'      return;',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
 			const foldingModel = new FoldingModel(textModel, new TestDecorationProvider(textModel));
 
-			// Set up ranges: outer provider range + two nested manual ranges
 			const ranges: FoldRange[] = [
 				{ startLineNumber: 1, endLineNumber: 6, type: undefined, isCollapsed: false, source: FoldSource.provider },
 				{ startLineNumber: 2, endLineNumber: 5, type: undefined, isCollapsed: false, source: FoldSource.userDefined },
@@ -965,11 +957,9 @@ suite('Folding Model', () => {
 			foldingModel.update(FoldingRegions.fromFoldRanges(ranges));
 			assertRanges(foldingModel, [r(1, 6), r(2, 5), r(3, 4)]);
 
-			// Cursor on line 4 (inside innermost manual range 3-4): should remove only 3-4
 			foldingModel.removeManualRanges([new Range(4, 1, 4, 1)]);
 			assertRanges(foldingModel, [r(1, 6), r(2, 5)]);
 
-			// Cursor on line 3 (inside remaining manual range 2-5): should remove only 2-5
 			foldingModel.removeManualRanges([new Range(3, 1, 3, 1)]);
 			assertRanges(foldingModel, [r(1, 6)]);
 		} finally {
@@ -979,11 +969,11 @@ suite('Folding Model', () => {
 
 	test('removeManualRanges - cursor skips provider ranges to remove nearest manual range', () => {
 		const lines = [
-		/* 1*/	'class A {',
-		/* 2*/	'  void foo() {',
-		/* 3*/	'    return;',
-		/* 4*/	'  }',
-		/* 5*/	'}'];
+		'class A {',
+		'  void foo() {',
+		'    return;',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -1003,18 +993,17 @@ suite('Folding Model', () => {
 
 	test('removeManualRanges - cursor not on manual range removes all manual ranges', () => {
 		const lines = [
-		/* 1*/	'// header',
-		/* 2*/	'class A {',
-		/* 3*/	'  void foo() {',
-		/* 4*/	'  }',
-		/* 5*/	'}',
-		/* 6*/	'// footer'];
+		'// header',
+		'class A {',
+		'  void foo() {',
+		'  }',
+		'}',
+		'// footer'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
 			const foldingModel = new FoldingModel(textModel, new TestDecorationProvider(textModel));
 
-			// Provider range at 2-4, manual range at 3-4
 			const ranges: FoldRange[] = [
 				{ startLineNumber: 2, endLineNumber: 4, type: undefined, isCollapsed: false, source: FoldSource.provider },
 				{ startLineNumber: 3, endLineNumber: 4, type: undefined, isCollapsed: false, source: FoldSource.userDefined },
@@ -1022,11 +1011,9 @@ suite('Folding Model', () => {
 			foldingModel.update(FoldingRegions.fromFoldRanges(ranges));
 			assertRanges(foldingModel, [r(2, 4), r(3, 4)]);
 
-			// A single-line selection outside manual ranges should preserve them
 			foldingModel.removeManualRanges([new Range(6, 1, 6, 2)]);
 			assertRanges(foldingModel, [r(2, 4), r(3, 4)]);
 
-			// Cursor on line 6 (not inside any manual range): should remove all manual ranges
 			foldingModel.removeManualRanges([new Range(6, 1, 6, 1)]);
 			assertRanges(foldingModel, [r(2, 4)]);
 		} finally {
@@ -1036,13 +1023,13 @@ suite('Folding Model', () => {
 
 	test('removeManualRanges - single-line selection removes all intersecting manual ranges', () => {
 		const lines = [
-		/* 1*/	'class A {',
-		/* 2*/	'  void foo() {',
-		/* 3*/	'    if (true) {',
-		/* 4*/	'      return;',
-		/* 5*/	'    }',
-		/* 6*/	'  }',
-		/* 7*/	'}'];
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'      return;',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -1063,12 +1050,12 @@ suite('Folding Model', () => {
 
 	test('removeManualRanges - selection range removes intersecting manual ranges', () => {
 		const lines = [
-		/* 1*/	'class A {',
-		/* 2*/	'  void foo() {',
-		/* 3*/	'  }',
-		/* 4*/	'  void bar() {',
-		/* 5*/	'  }',
-		/* 6*/	'}'];
+		'class A {',
+		'  void foo() {',
+		'  }',
+		'  void bar() {',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		try {
@@ -1082,7 +1069,6 @@ suite('Folding Model', () => {
 			foldingModel.update(FoldingRegions.fromFoldRanges(ranges));
 			assertRanges(foldingModel, [r(1, 5), r(2, 3), r(4, 5)]);
 
-			// Selection spanning lines 2-3: removes only the first manual range
 			foldingModel.removeManualRanges([new Range(2, 1, 3, 1)]);
 			assertRanges(foldingModel, [r(1, 5), r(4, 5)]);
 		} finally {

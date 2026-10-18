@@ -89,7 +89,7 @@ suite('Snapshot Walker', function () {
 			return true;
 		});
 
-		assert.deepStrictEqual(weights, [0.5, 0.25]); // root: 0.5, child: 0.5 * 0.5
+		assert.deepStrictEqual(weights, [0.5, 0.25]);
 	});
 
 	test('propagates chunks to children', function () {
@@ -216,7 +216,6 @@ suite('Snapshot Walker', function () {
 		const children: PromptSnapshotNode[] = [];
 		const nodeIndex = currentPath || '0';
 
-		// Create configurable number of children at each level
 		for (let i = 0; i < childrenCount; i++) {
 			const childPath = `${nodeIndex}.${i}`;
 			children.push(createTestSnapshot(depth - 1, childrenCount, childPath));

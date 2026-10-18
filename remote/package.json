@@ -2,6 +2,14 @@
   "name": "vscode-reh",
   "version": "0.0.0",
   "private": true,
+  "dardcorBuild": {
+    "nodeGyp": {
+      "target": "24.18.0",
+      "disturl": "https://nodejs.org/dist",
+      "runtime": "node"
+    },
+    "nodeBuildId": "455160"
+  },
   "dependencies": {
     "@github/copilot": "^1.0.76",
     "@github/copilot-sdk": "^1.0.9-preview.0",

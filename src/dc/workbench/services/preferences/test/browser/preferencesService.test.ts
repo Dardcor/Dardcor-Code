@@ -41,7 +41,6 @@ suite('PreferencesService', () => {
 			override async openEditor(editor: EditorInput | IUntypedEditorInput, optionsOrGroup?: IEditorOptions | PreferredGroup, group?: PreferredGroup): Promise<undefined> {
 				lastOpenEditorOptions = optionsOrGroup as IEditorOptions;
 				lastOpenEditorGroup = group;
-				// openEditor takes ownership of the input
 				if (isEditorInput(editor)) {
 					editor.dispose();
 				}
@@ -58,7 +57,6 @@ suite('PreferencesService', () => {
 			testInstantiationService.stub(IEditorGroupsService, editorGroupsService);
 		}
 
-		// PreferencesService creates a PreferencesEditorInput which depends on IPreferencesService, add the real one, not a stub
 		const collection = new ServiceCollection();
 		collection.set(IPreferencesService, new SyncDescriptor(PreferencesService));
 		const instantiationService = disposables.add(testInstantiationService.createChild(collection));
@@ -90,8 +88,6 @@ suite('PreferencesService', () => {
 			override readonly activeModalEditorPart = modalEditorPart;
 		}([modalGroup]);
 
-		// Modal editors are turned off in settings to prove the routing comes from the
-		// active modal editor part the action was invoked from and not from the modal default.
 		const configurationService = new TestConfigurationService({ workbench: { editor: { useModal: 'off' } } });
 		const testObject = createTestObject(editorGroupsService, configurationService);
 

@@ -94,7 +94,6 @@ function getIncludeExcludeDisplayValue(element: SettingsTreeSettingElement): IIn
 		.map(key => {
 			const defaultValue = elementDefaultValue[key];
 
-			// Get source if it's a default value
 			let source: string | undefined;
 			if (defaultValue === data[key] && element.setting.type === 'object' && element.defaultValueSource instanceof Map) {
 				const defaultSource = element.defaultValueSource.get(`${element.setting.key}.${key}`);
@@ -194,7 +193,6 @@ function getObjectDisplayValue(element: SettingsTreeSettingElement): IObjectData
 	return Object.keys(data).map(key => {
 		const defaultValue = elementDefaultValue[key];
 
-		// Get source if it's a default value
 		let source: string | undefined;
 		if (defaultValue === data[key] && element.setting.type === 'object' && element.defaultValueSource instanceof Map) {
 			const defaultSource = element.defaultValueSource.get(`${element.setting.key}.${key}`);
@@ -217,8 +215,6 @@ function getObjectDisplayValue(element: SettingsTreeSettingElement): IObjectData
 			} satisfies IObjectDataItem;
 		}
 
-		// The row is removable if it doesn't have a default value assigned or the setting supports removing the default value.
-		// If a default value is assigned and the user modified the default, it can be reset back to the default.
 		const removable = defaultValue === undefined || objectSettingSupportsRemoveDefaultValue(element.setting.key);
 		const resetable = !!defaultValue && defaultValue !== data[key];
 		const schema = patternsAndSchemas.find(({ pattern }) => pattern.test(key))?.schema;
@@ -273,7 +269,6 @@ function getBoolObjectDisplayValue(element: SettingsTreeSettingElement): IBoolOb
 	for (const key in objectProperties) {
 		const defaultValue = elementDefaultValue[key];
 
-		// Get source if it's a default value
 		let source: string | undefined;
 		if (defaultValue === data[key] && element.setting.type === 'object' && element.defaultValueSource instanceof Map) {
 			const defaultSource = element.defaultValueSource.get(key);
@@ -304,7 +299,6 @@ function createArraySuggester(element: SettingsTreeSettingElement): IObjectKeySu
 
 		if (element.setting.enum) {
 			element.setting.enum.forEach((key, i) => {
-				// include the currently selected value, even if uniqueItems is true
 				if (!element.setting.uniqueItems || (idx !== undefined && key === keys[idx]) || !keys.includes(key)) {
 					const description = element.setting.enumDescriptions?.[i];
 					enumOptions.push({ value: key, description });
@@ -387,13 +381,11 @@ function isNonNullableNumericType(type: unknown): type is 'number' | 'integer' {
 function parseNumericObjectValues(dataElement: SettingsTreeSettingElement, v: Record<string, unknown>): Record<string, unknown> {
 	const newRecord: Record<string, unknown> = {};
 	for (const key in v) {
-		// Set to true/false once we're sure of the answer
 		let keyMatchesNumericProperty: boolean | undefined;
 		const patternProperties = dataElement.setting.objectPatternProperties;
 		const properties = dataElement.setting.objectProperties;
 		const additionalProperties = dataElement.setting.objectAdditionalProperties;
 
-		// Match the current record key against the properties of the object
 		if (properties) {
 			for (const propKey in properties) {
 				if (propKey === key) {
@@ -499,10 +491,6 @@ export async function createTocTreeForExtensionSettings(extensionService: IExten
 		const extension = await extensionService.getExtension(extensionId);
 		const extensionName = extension?.displayName ?? extension?.name ?? extensionId;
 
-		// There could be multiple groups with the same extension id that all belong to the same extension.
-		// To avoid highlighting all groups upon expanding the extension's ToC entry,
-		// use the group ID only if it is non-empty and isn't the extension ID.
-		// Ref https://github.com/microsoft/vscode/issues/241521.
 		const settingGroupId = (group.id && group.id !== extensionId) ? group.id : group.title;
 
 		const childEntry: ITOCEntry<ISetting> = {
@@ -519,23 +507,16 @@ export async function createTocTreeForExtensionSettings(extensionService: IExten
 		const extGroups: ITOCEntry<ISetting>[] = [];
 		for (const extensionRootEntry of extGroupTree.values()) {
 			if (extensionRootEntry.children!.length === 1) {
-				// There is a single category for this extension.
-				// Push a flattened setting.
 				extGroups.push({
 					id: extensionRootEntry.id,
 					label: extensionRootEntry.children![0].label,
 					settings: extensionRootEntry.children![0].settings
 				});
 			} else {
-				// Sort the categories.
-				// Leave the undefined order categories untouched.
 				extensionRootEntry.children!.sort((a, b) => {
 					return compareTwoNullableNumbers(a.order, b.order);
 				});
 
-				// If there is a category that matches the setting name,
-				// add the settings in manually as "ungrouped" settings.
-				// https://github.com/microsoft/vscode/issues/137259
 				const ungroupedChild = extensionRootEntry.children!.find(child => child.label === extensionRootEntry.label);
 				if (ungroupedChild && !ungroupedChild.children) {
 					const groupedChildren = extensionRootEntry.children!.filter(child => child !== ungroupedChild);
@@ -546,13 +527,11 @@ export async function createTocTreeForExtensionSettings(extensionService: IExten
 						children: groupedChildren
 					});
 				} else {
-					// Push all the groups as-is.
 					extGroups.push(extensionRootEntry);
 				}
 			}
 		}
 
-		// Sort the outermost settings.
 		extGroups.sort((a, b) => a.label.localeCompare(b.label));
 
 		return {
@@ -596,10 +575,6 @@ function _resolveSettingsTree(tocData: ITOCEntry<string>, allSettings: Set<ISett
 	};
 }
 
-/**
- * Sort settings so that preview and experimental settings are deprioritized.
- * Within each tier, sort the settings by order, then alphabetically.
- */
 function sortSettings(settings: ISetting[]): void {
 	const SETTING_STATUS_NORMAL = 0;
 	const SETTING_STATUS_PREVIEW = 1;
@@ -633,7 +608,6 @@ function getMatchingSettings(allSettings: Set<ISetting>, filter: ITOCFilter): IS
 		let shouldInclude = false;
 		let shouldExclude = false;
 
-		// Check include filters
 		if (filter.include?.keyPatterns) {
 			shouldInclude = filter.include.keyPatterns.some(pattern => {
 				if (pattern.startsWith('@tag:')) {
@@ -651,7 +625,6 @@ function getMatchingSettings(allSettings: Set<ISetting>, filter: ITOCFilter): IS
 			shouldInclude = filter.include.tags.some(tag => setting.tags?.includes(tag));
 		}
 
-		// Check exclude filters (takes precedence)
 		if (filter.exclude?.keyPatterns) {
 			shouldExclude = filter.exclude.keyPatterns.some(pattern => {
 				if (pattern.startsWith('@tag:')) {
@@ -667,7 +640,6 @@ function getMatchingSettings(allSettings: Set<ISetting>, filter: ITOCFilter): IS
 			shouldExclude = filter.exclude.tags.some(tag => setting.tags?.includes(tag));
 		}
 
-		// Include if matches include filter and doesn't match exclude filter
 		if (shouldInclude && !shouldExclude) {
 			result.push(setting);
 			if (!multiGroupTocSettings.has(setting.key)) {
@@ -807,7 +779,7 @@ const SETTINGS_EXTENSION_TOGGLE_TEMPLATE_ID = 'settings.extensionToggle.template
 
 export interface ISettingChangeEvent {
 	key: string;
-	value: unknown; // undefined => reset/unconfigure
+	value: unknown;
 	type: SettingValueType | SettingValueType[];
 	manualReset: boolean;
 	scope: ConfigurationScope | undefined;
@@ -854,7 +826,6 @@ export interface HeightChangeParams {
 }
 
 export abstract class AbstractSettingRenderer extends Disposable implements ITreeRenderer<SettingsTreeElement, never, any> {
-	/** To override */
 	abstract get templateId(): string;
 
 	static readonly CONTROL_CLASS = 'setting-control-focus-target';
@@ -966,7 +937,6 @@ export abstract class AbstractSettingRenderer extends Disposable implements ITre
 			toolbar
 		};
 
-		// Prevent clicks from being handled by list
 		toDispose.add(DOM.addDisposableListener(controlElement, DOM.EventType.MOUSE_DOWN, e => e.stopPropagation()));
 
 		toDispose.add(DOM.addDisposableListener(titleElement, DOM.EventType.MOUSE_ENTER, e => container.classList.add('mouseover')));
@@ -1009,8 +979,6 @@ export abstract class AbstractSettingRenderer extends Disposable implements ITre
 	protected renderSettingElement(node: ITreeNode<SettingsTreeSettingElement, never>, index: number, template: ISettingItemTemplate | ISettingBoolItemTemplate): void {
 		const element = node.element;
 
-		// The element must inspect itself to get information for
-		// the modified indicator and the overridden Settings indicators.
 		element.inspectSelf();
 
 		template.context = element;
@@ -1090,7 +1058,6 @@ export abstract class AbstractSettingRenderer extends Disposable implements ITre
 	}
 
 	private renderSettingMarkdown(element: SettingsTreeSettingElement, container: HTMLElement, text: string, disposables: DisposableStore): HTMLElement {
-		// Rewrite `#editor.fontSize#` to link format
 		text = fixSettingLinks(text);
 
 		const renderedMarkdown = disposables.add(this._markdownRendererService.render({ value: text, isTrusted: true }, {
@@ -1360,7 +1327,6 @@ class SettingArrayRenderer extends AbstractSettingRenderer implements ITreeRende
 			}
 
 			if (e.type === 'move') {
-				// A drag and drop occurred
 				const sourceIndex = e.sourceIndex;
 				const targetIndex = e.targetIndex;
 				const splicedElem = newValue.splice(sourceIndex, 1)[0];
@@ -1370,12 +1336,9 @@ class SettingArrayRenderer extends AbstractSettingRenderer implements ITreeRende
 			} else if (e.type === 'change') {
 				const itemValueData = e.newItem.value.data.toString();
 
-				// Update value
 				if (e.targetIndex > -1) {
 					newValue[e.targetIndex] = itemValueData;
 				}
-				// For some reason, we are updating and cannot find original value
-				// Just append the value in this case
 				else {
 					newValue.push(itemValueData);
 				}
@@ -1420,8 +1383,6 @@ class SettingArrayRenderer extends AbstractSettingRenderer implements ITreeRende
 				const arrToSave = isNonNullableNumericType(itemType) ? v.map(a => +a) : v;
 				onChange(arrToSave);
 			} else {
-				// Save the setting unparsed and containing the errors.
-				// renderArrayValidations will render relevant error messages.
 				onChange(v);
 			}
 		};
@@ -1485,13 +1446,11 @@ class SettingObjectRenderer extends AbstractSettingObjectRenderer implements ITr
 				? template.context.scopeValue ?? {}
 				: {};
 
-			const newValue: Record<string, unknown> = { ...template.context.scopeValue }; // Initialize with scoped values as removed default values are not rendered
+			const newValue: Record<string, unknown> = { ...template.context.scopeValue };
 			const newItems: IObjectDataItem[] = [];
 
 			widget.items.forEach((item, idx) => {
-				// Item was updated
 				if ((e.type === 'change' || e.type === 'move') && e.targetIndex === idx) {
-					// If the key of the default value is changed, remove the default value
 					if (e.originalItem.key.data !== e.newItem.key.data && settingSupportsRemoveDefault && e.originalItem.key.data in defaultValue) {
 						newValue[e.originalItem.key.data] = null;
 					} else {
@@ -1500,14 +1459,12 @@ class SettingObjectRenderer extends AbstractSettingObjectRenderer implements ITr
 					newValue[e.newItem.key.data] = e.newItem.value.data;
 					newItems.push(e.newItem);
 				}
-				// All remaining items, but skip the one that we just updated
 				else if ((e.type !== 'change' && e.type !== 'move') || e.newItem.key.data !== item.key.data) {
 					newValue[item.key.data] = item.value.data;
 					newItems.push(item);
 				}
 			});
 
-			// Item was deleted
 			if (e.type === 'remove' || e.type === 'reset') {
 				const objectKey = e.originalItem.key.data;
 				const removingDefaultValue = e.type === 'remove' && settingSupportsRemoveDefault && defaultValue[objectKey] === e.originalItem.value.data;
@@ -1520,21 +1477,18 @@ class SettingObjectRenderer extends AbstractSettingObjectRenderer implements ITr
 				const itemToDelete = newItems.findIndex(item => item.key.data === objectKey);
 				const defaultItemValue = defaultValue[objectKey] as string | boolean;
 
-				// Item does not have a default or default is bing removed
 				if (removingDefaultValue || isUndefinedOrNull(defaultValue[objectKey]) && itemToDelete > -1) {
 					newItems.splice(itemToDelete, 1);
 				} else if (!removingDefaultValue && itemToDelete > -1) {
 					newItems[itemToDelete].value.data = defaultItemValue;
 				}
 			}
-			// New item was added
 			else if (e.type === 'add') {
 				newValue[e.newItem.key.data] = e.newItem.value.data;
 				newItems.push(e.newItem);
 			}
 
 			Object.entries(newValue).forEach(([key, value]) => {
-				// value from the scope has changed back to the default
 				if (scopeValue[key] !== value && defaultValue[key] === value && !(settingSupportsRemoveDefault && value === null)) {
 					delete newValue[key];
 				}
@@ -1574,8 +1528,6 @@ class SettingObjectRenderer extends AbstractSettingObjectRenderer implements ITr
 				const parsedRecord = parseNumericObjectValues(dataElement, v);
 				onChange(parsedRecord);
 			} else {
-				// Save the setting unparsed and containing the errors.
-				// renderArrayValidations will render relevant error messages.
 				onChange(v);
 			}
 		};
@@ -1607,7 +1559,7 @@ class SettingBoolObjectRenderer extends AbstractSettingObjectRenderer implements
 				? template.context.scopeValue ?? {}
 				: {};
 
-			const newValue: Record<string, unknown> = { ...template.context.scopeValue }; // Initialize with scoped values as removed default values are not rendered
+			const newValue: Record<string, unknown> = { ...template.context.scopeValue };
 			const newItems: IBoolObjectDataItem[] = [];
 
 			if (e.type !== 'change') {
@@ -1616,12 +1568,10 @@ class SettingBoolObjectRenderer extends AbstractSettingObjectRenderer implements
 			}
 
 			widget.items.forEach((item, idx) => {
-				// Item was updated
 				if (e.targetIndex === idx) {
 					newValue[e.newItem.key.data] = e.newItem.value.data;
 					newItems.push(e.newItem);
 				}
-				// All remaining items, but skip the one that we just updated
 				else if (e.newItem.key.data !== item.key.data) {
 					newValue[item.key.data] = item.value.data;
 					newItems.push(item);
@@ -1629,7 +1579,6 @@ class SettingBoolObjectRenderer extends AbstractSettingObjectRenderer implements
 			});
 
 			Object.entries(newValue).forEach(([key, value]) => {
-				// value from the scope has changed back to the default
 				if (scopeValue[key] !== value && defaultValue[key] === value) {
 					delete newValue[key];
 				}
@@ -1639,9 +1588,6 @@ class SettingBoolObjectRenderer extends AbstractSettingObjectRenderer implements
 			template.objectCheckboxWidget!.setValue(newItems);
 			template.onChange?.(newObject);
 
-			// Focus this setting explicitly, in case we were previously
-			// focused on another setting and clicked a checkbox/value container
-			// for this setting.
 			this._onDidFocusSetting.fire(template.context);
 		}
 	}
@@ -1688,20 +1634,16 @@ abstract class SettingIncludeExcludeRenderer extends AbstractSettingRenderer imp
 		if (template.context) {
 			const newValue = { ...template.context.scopeValue };
 
-			// first delete the existing entry, if present
 			if (e.type !== 'add') {
 				if (e.originalItem.value.data.toString() in template.context.defaultValue) {
-					// delete a default by overriding it
 					newValue[e.originalItem.value.data.toString()] = false;
 				} else {
 					delete newValue[e.originalItem.value.data.toString()];
 				}
 			}
 
-			// then add the new or updated entry, if present
 			if (e.type === 'change' || e.type === 'add' || e.type === 'move') {
 				if (e.newItem.value.data.toString() in template.context.defaultValue && !e.newItem.sibling) {
-					// add a default by deleting its override
 					delete newValue[e.newItem.value.data.toString()];
 				} else {
 					newValue[e.newItem.value.data.toString()] = e.newItem.sibling ? { when: e.newItem.sibling } : true;
@@ -1824,8 +1766,6 @@ class SettingTextRenderer extends AbstractSettingTextRenderer implements ITreeRe
 	override renderTemplate(_container: HTMLElement): ISettingTextItemTemplate {
 		const template = super.renderTemplate(_container, false);
 
-		// TODO@9at8: listWidget filters out all key events from input boxes, so we need to come up with a better way
-		// Disable ArrowUp and ArrowDown behaviour in favor of list navigation
 		template.toDispose.add(DOM.addStandardDisposableListener(template.inputBox.inputElement, DOM.EventType.KEY_DOWN, e => {
 			if (e.equals(KeyCode.UpArrow) || e.equals(KeyCode.DownArrow)) {
 				e.preventDefault();
@@ -1845,7 +1785,6 @@ class SettingMultilineTextRenderer extends AbstractSettingTextRenderer implement
 
 	protected override renderValue(dataElement: SettingsTreeSettingElement, template: ISettingTextItemTemplate, onChange: (value: string) => void) {
 		const onChangeOverride = (value: string) => {
-			// Ensure the model is up to date since a different value will be rendered as different height when probing the height.
 			dataElement.value = value;
 			onChange(value);
 		};
@@ -1853,8 +1792,6 @@ class SettingMultilineTextRenderer extends AbstractSettingTextRenderer implement
 		template.elementDisposables.add(
 			template.inputBox.onDidHeightChange(e => {
 				const height = template.containerElement.clientHeight;
-				// Don't fire event if height is reported as 0,
-				// which sometimes happens when clicking onto a new setting.
 				if (height) {
 					this._onDidChangeSettingHeight.fire({
 						element: dataElement,
@@ -1917,7 +1854,6 @@ class SettingEnumRenderer extends AbstractSettingRenderer implements ITreeRender
 	}
 
 	protected renderValue(dataElement: SettingsTreeSettingElement, template: ISettingEnumItemTemplate, onChange: (value: string) => void): void {
-		// Make shallow copies here so that we don't modify the actual dataElement later
 		const enumItemLabels = dataElement.setting.enumItemLabels ? [...dataElement.setting.enumItemLabels] : [];
 		const enumDescriptions = dataElement.setting.enumDescriptions ? [...dataElement.setting.enumDescriptions] : [];
 		const settingEnum = [...dataElement.setting.enum!];
@@ -1928,14 +1864,12 @@ class SettingEnumRenderer extends AbstractSettingRenderer implements ITreeRender
 
 		let createdDefault = false;
 		if (!settingEnum.includes(dataElement.defaultValue)) {
-			// Add a new potentially blank default setting
 			settingEnum.unshift(dataElement.defaultValue);
 			enumDescriptions.unshift('');
 			enumItemLabels.unshift('');
 			createdDefault = true;
 		}
 
-		// Use String constructor in case of null or undefined values
 		const stringifiedDefaultValue = escapeInvisibleChars(String(dataElement.defaultValue));
 		const displayOptions: ISelectOptionItem[] = settingEnum
 			.map(String)
@@ -2095,7 +2029,6 @@ class SettingBoolRenderer extends AbstractSettingRenderer implements ITreeRender
 
 		this.addSettingElementFocusHandler(template);
 
-		// Prevent clicks from being handled by list
 		toDispose.add(DOM.addDisposableListener(controlElement, 'mousedown', (e: IMouseEvent) => e.stopPropagation()));
 		toDispose.add(DOM.addDisposableListener(titleElement, DOM.EventType.MOUSE_ENTER, e => container.classList.add('mouseover')));
 		toDispose.add(DOM.addDisposableListener(titleElement, DOM.EventType.MOUSE_LEAVE, e => container.classList.remove('mouseover')));
@@ -2117,12 +2050,9 @@ class SettingBoolRenderer extends AbstractSettingRenderer implements ITreeRender
 			template.checkbox.enable();
 			template.descriptionElement.classList.remove('disabled');
 
-			// Need to listen for mouse clicks on description and toggle checkbox - use target ID for safety
-			// Also have to ignore embedded links - use closest('a') to handle clicks on child elements of links (e.g. SVG icons inside <a> tags)
 			template.elementDisposables.add(DOM.addDisposableListener(template.descriptionElement, DOM.EventType.MOUSE_DOWN, (e) => {
 				const targetElement: Element | null = e.target instanceof Element ? e.target : null;
 
-				// Toggle target checkbox
 				if (!targetElement || !targetElement.closest('a')) {
 					template.checkbox.checked = !template.checkbox.checked;
 					template.onChange!(template.checkbox.checked);
@@ -2352,9 +2282,6 @@ export class SettingTreeRenderers extends Disposable {
 	}
 }
 
-/**
- * Validate and render any error message. Returns true if the value is invalid.
- */
 function renderValidations(dataElement: SettingsTreeSettingElement, template: ISettingTextItemTemplate, calledOnStartup: boolean): boolean {
 	if (dataElement.setting.validator) {
 		const errMsg = dataElement.setting.validator(template.inputBox.value);
@@ -2373,9 +2300,6 @@ function renderValidations(dataElement: SettingsTreeSettingElement, template: IS
 	return false;
 }
 
-/**
- * Validate and render any error message for arrays. Returns true if the value is invalid.
- */
 function renderArrayValidations(
 	dataElement: SettingsTreeSettingElement,
 	template: ISettingListItemTemplate | ISettingObjectItemTemplate,
@@ -2439,14 +2363,12 @@ export class SettingsTreeFilter implements ITreeFilter<SettingsTreeElement> {
 	) { }
 
 	filter(element: SettingsTreeElement, parentVisibility: TreeVisibility): TreeFilterResult<void> {
-		// Filter during search
 		if (this.viewState.categoryFilter && element instanceof SettingsTreeSettingElement) {
 			if (!this.settingContainedInGroup(element.setting, this.viewState.categoryFilter)) {
 				return false;
 			}
 		}
 
-		// Non-user scope selected
 		if (element instanceof SettingsTreeSettingElement && this.viewState.settingsTarget !== ConfigurationTarget.USER_LOCAL) {
 			const isRemote = !!this.environmentService.remoteAuthority;
 			if (!element.matchesScope(this.viewState.settingsTarget, isRemote)) {
@@ -2454,15 +2376,11 @@ export class SettingsTreeFilter implements ITreeFilter<SettingsTreeElement> {
 			}
 		}
 
-		// Group with no visible children
 		if (element instanceof SettingsTreeGroupElement) {
-			// When filtering to a specific category, only show that category and its descendants
 			if (this.isFilteringGroups && this.viewState.categoryFilter) {
 				if (!this.groupIsRelatedToCategory(element, this.viewState.categoryFilter)) {
 					return false;
 				}
-				// For groups related to the category, skip the count check and recurse
-				// to let child settings be filtered
 				return TreeVisibility.Recurse;
 			}
 
@@ -2473,7 +2391,6 @@ export class SettingsTreeFilter implements ITreeFilter<SettingsTreeElement> {
 			return TreeVisibility.Recurse;
 		}
 
-		// Filtered "new extensions" button
 		if (element instanceof SettingsTreeNewExtensionsElement) {
 			if (this.viewState.tagFilters?.size || this.viewState.categoryFilter) {
 				return false;
@@ -2495,17 +2412,11 @@ export class SettingsTreeFilter implements ITreeFilter<SettingsTreeElement> {
 		});
 	}
 
-	/**
-	 * Checks if a group is related to the filtered category.
-	 * A group is related if it's the category itself, a descendant of it, or an ancestor of it.
-	 */
 	private groupIsRelatedToCategory(group: SettingsTreeGroupElement, category: SettingsTreeGroupElement): boolean {
-		// Check if this group is the category itself
 		if (group.id === category.id) {
 			return true;
 		}
 
-		// Check if this group is a descendant of the category
 		let parent = group.parent;
 		while (parent) {
 			if (parent.id === category.id) {
@@ -2514,7 +2425,6 @@ export class SettingsTreeFilter implements ITreeFilter<SettingsTreeElement> {
 			parent = parent.parent;
 		}
 
-		// Check if this group is an ancestor of the category
 		let categoryParent = category.parent;
 		while (categoryParent) {
 			if (categoryParent.id === group.id) {
@@ -2695,7 +2605,7 @@ export class SettingsTree extends WorkbenchObjectTree<SettingsTreeElement> {
 				multipleSelectionSupport: false,
 				findWidgetEnabled: false,
 				renderIndentGuides: RenderIndentGuides.None,
-				transformOptimization: false // Disable transform optimization #177470
+				transformOptimization: false
 			},
 			instantiationService,
 			contextKeyService,
@@ -2820,7 +2730,6 @@ class SyncSettingAction extends Action {
 	}
 
 	override async run(): Promise<void> {
-		// first remove the current setting completely from ignored settings
 		let currentValue = [...this.configService.getValue<string[]>('settingsSync.ignoredSettings')];
 		currentValue = currentValue.filter(v => v !== this.setting.key && v !== `-${this.setting.key}`);
 
@@ -2828,12 +2737,10 @@ class SyncSettingAction extends Action {
 		const isDefaultIgnored = defaultIgnoredSettings.includes(this.setting.key);
 		const askedToSync = !this.checked;
 
-		// If asked to sync, then add only if it is ignored by default
 		if (askedToSync && isDefaultIgnored) {
 			currentValue.push(`-${this.setting.key}`);
 		}
 
-		// If asked not to sync, then add only if it is not ignored by default
 		if (!askedToSync && !isDefaultIgnored) {
 			currentValue.push(this.setting.key);
 		}
@@ -2864,7 +2771,6 @@ class ApplySettingToAllProfilesAction extends Action {
 	}
 
 	override async run(): Promise<void> {
-		// first remove the current setting completely from ignored settings
 		const value = this.configService.getValue<string[]>(APPLY_ALL_PROFILES_SETTING) ?? [];
 
 		if (this.checked) {

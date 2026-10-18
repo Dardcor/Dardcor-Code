@@ -314,8 +314,6 @@ const completionSpec: Fig.Spec = {
 					args: {
 						generators: {
 							custom: async (ctx) => {
-								// if anything provided after the subcommand does not begin with '-'
-								// then a formula has been provided and we should provide info on it
 								if (
 									ctx.slice(2, ctx.length - 1).some((token) => token[0] !== "-")
 								) {
@@ -326,7 +324,6 @@ const completionSpec: Fig.Spec = {
 									);
 								}
 
-								// if no formulas are specified, then we should provide system info
 								return ["cask-install", "os-version"].map((sugg) => ({
 									name: sugg,
 								}));
@@ -1216,7 +1213,6 @@ const completionSpec: Fig.Spec = {
 			},
 		},
 		{
-			// NOTE: this is actually a command even if it has the double dash in the front
 			name: "--prefix",
 			description: "Prefix of <formula>",
 			args: {

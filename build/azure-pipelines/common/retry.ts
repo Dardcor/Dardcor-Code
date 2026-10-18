@@ -16,7 +16,6 @@ export async function retry<T>(fn: (attempt: number) => Promise<T>): Promise<T> 
 
 			lastError = err;
 
-			// maximum delay is 10th retry: ~3 seconds
 			const millis = Math.floor((Math.random() * 200) + (50 * Math.pow(1.5, run)));
 			await new Promise(c => setTimeout(c, millis));
 		}

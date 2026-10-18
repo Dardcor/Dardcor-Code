@@ -50,9 +50,6 @@ export class SettingsSearchFilterDropdownMenuActionViewItem extends DropdownMenu
 		}
 	}
 
-	/**
-	 * The created action appends a query to the search widget search string. It optionally triggers suggestions.
-	 */
 	private createAction(id: string, label: string, tooltip: string, queryToAppend: string, triggerSuggest: boolean): IAction {
 		return {
 			id,
@@ -64,11 +61,6 @@ export class SettingsSearchFilterDropdownMenuActionViewItem extends DropdownMenu
 		};
 	}
 
-	/**
-	 * The created action appends a query to the search widget search string, if the query does not exist.
-	 * Otherwise, it removes the query from the search widget search string.
-	 * The action does not trigger suggestions after adding or removing the query.
-	 */
 	private createToggleAction(id: string, label: string, tooltip: string, queryToAppend: string): IAction {
 		const splitCurrentQuery = this.searchWidget.getValue().split(' ');
 		const queryContainsQueryToAppend = splitCurrentQuery.includes(queryToAppend);

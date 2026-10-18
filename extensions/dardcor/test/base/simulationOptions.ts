@@ -6,7 +6,6 @@ import minimist from 'minimist';
 import { EmbeddingType } from '../../src/platform/embeddings/common/embeddingsComputer';
 import { CacheMode } from './simulationContext';
 
-/** Number of runs that are stored in baseline.json */
 export const BASELINE_RUN_COUNT = 10;
 
 export enum NesDatagenSampleTask {
@@ -16,27 +15,15 @@ export enum NesDatagenSampleTask {
 	CursorBoth = 'cursor-both',
 }
 
-/**
- * Shape of the recordings in the nes-datagen input file.
- */
 export enum NesDatagenInputFormat {
-	/** Per-request "alternative action" recordings bookmarked at the NES request time. */
 	AlternativeAction = 'alternative-action',
-	/** Continuous enhanced-telemetry slices with no request bookmark; a pivot is synthesized. */
 	Continuous = 'continuous',
-	/** A raw, stateful local workspaceRecording@1.0 JSONL timeline. */
 	WorkspaceRecording = 'workspace-recording',
 }
 
 export const DEFAULT_WORKSPACE_RECORDING_SAMPLE_CAP = 100;
 
-/**
- * How to choose the pivot in a continuous recording (only meaningful when
- * `--input-format=continuous`). The pivot splits the timeline into context and
- * the oracle (next user edit).
- */
 export enum PivotStrategy {
-	/** Pick a single eligible pivot uniformly at random. */
 	Random = 'random',
 }
 
@@ -46,23 +33,12 @@ export type NesDatagen = {
 	readonly rowOffset: number;
 	readonly workerMode: boolean;
 	readonly sampleTask: NesDatagenSampleTask;
-	/** Shape of the input recordings. */
 	readonly inputFormat: NesDatagenInputFormat;
-	/** Pivot selection strategy for continuous recordings. Ignored for alternative-action input. */
 	readonly pivotStrategy: PivotStrategy;
-	/**
-	 * Seed for the continuous pivot RNG. Resolved once (random when `--seed` is
-	 * omitted) so it can be propagated to all parallel workers for reproducible
-	 * output. Ignored for alternative-action input.
-	 */
 	readonly seed: number;
-	/** Minimum same-file lines above the request cursor for a move to count as a jump. */
 	readonly sameFileJumpMinAbove: number;
-	/** Minimum same-file lines below the request cursor for a move to count as a jump. */
 	readonly sameFileJumpMinBelow: number;
-	/** Maximum number of samples selected from one raw workspace recording. */
 	readonly maxSamplesPerRecording?: number;
-	/** Internal worker-only subset of selected workspace-recording operation indices. */
 	readonly workspacePivotOperationIndices?: readonly number[];
 };
 
@@ -110,14 +86,10 @@ export class SimulationOptions {
 	public readonly grep: string[] | string | undefined;
 	public readonly omitGrep: string | undefined;
 	public readonly heapSnapshots: boolean | string | undefined;
-	/**   --scenario-test, --scenarioTest          Run tests from provided scenario test file name */
 	public readonly scenarioTest: string | undefined;
 	public readonly isUpdateBaseline: boolean;
 	public readonly noFetch: boolean;
 	public readonly noCachePointer: boolean;
-	/**
-	 * A label for the current simulation run, to be displayed in the UI for distinguishing between runs.
-	 */
 	public readonly label: string;
 	public readonly runServerPoweredNesProvider: boolean;
 	public readonly nes: 'external' | 'coffe' | undefined;
@@ -130,29 +102,19 @@ export class SimulationOptions {
 
 	public readonly disabledTools: Set<string>;
 
-	/** If true, all tests are run in the extension host */
 	public readonly inExtensionHost: boolean;
-	/** Extensions to ensure are available in the extension host */
 	public readonly installExtensions: string[];
-	/** Whether to run headless (defaults to false) */
 	public readonly headless: boolean;
 	/** @internal Only run a single test number */
 	public readonly runNumber: number;
-	/** Explicit workspace URI to use for stest --in-extension-host */
 	public readonly useScenarioWorkspace: boolean;
 
-	/** If true, will try to use code search using our service. */
 	public readonly useExperimentalCodeSearchService: boolean;
 
 	public readonly configFile: string | undefined;
 
 	public readonly modelConfigFile: string | undefined;
 
-	/**
-	 * Path to a JSON file describing an adhoc chat request to send (used by the
-	 * simulation workbench "Adhoc request sender" mode). The file contains
-	 * `{ system: string; user: string; model: string }`.
-	 */
 	public readonly adhocRequestFile: string | undefined;
 
 	protected constructor(processArgv: readonly string[]) {
@@ -166,9 +128,9 @@ export class SimulationOptions {
 		this.isUpdateBaseline = boolean(argv['update-baseline'] ?? argv['u'], false);
 		this.boost = boolean(argv['boost'], false);
 		const fetch = boolean(argv['fetch'], true);
-		this.noFetch = !fetch; // `--no-fetch` becomes argv[`fetch`] because of how minimist works
+		this.noFetch = !fetch;
 		const cachePointer = boolean(argv['cache-pointer'], true);
-		this.noCachePointer = !cachePointer; // `--no-cache-pointer` becomes argv[`cache-pointer`] because of how minimist works
+		this.noCachePointer = !cachePointer;
 		this.nRuns = typeof argv['n'] === 'number' ? argv['n'] : (this.isUpdateBaseline || argv['ci'] ? BASELINE_RUN_COUNT : 10);
 		this.chatModel = this.argv['model'];
 		this.smartChatModel = this.argv['smart-model'];
@@ -187,7 +149,7 @@ export class SimulationOptions {
 			this.argv['skip-resources-cache'] ? CacheMode.Disable : CacheMode.Default
 		);
 		this.externalScenarios = this.argv['external-scenarios'];
-		this.externalBaseline = this.argv['external-baseline']; // must be set after `externalScenarios`
+		this.externalBaseline = this.argv['external-baseline'];
 		this.validateExternalBaseline();
 		this.output = this.argv['output'];
 		this.cachePath = this.argv['cache-location'];
@@ -215,7 +177,6 @@ export class SimulationOptions {
 		this.nes = SimulationOptions.validateNesArgument(argv['nes']);
 
 		this.nesUrl = argv['nes-url'];
-		// [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="used for local simulation tests")]
 		this.nesApiKey = argv['nes-api-key'];
 		SimulationOptions.validateNesUrlOverride(this.nesUrl, this.nesApiKey);
 
@@ -373,7 +334,7 @@ export class SimulationOptions {
 		if (nes === undefined || nes === null) {
 			return undefined;
 		}
-		if (typeof nes === 'boolean') { // this's for backward compat because previously it was possible to just pass `--nes` to run external stests against NES
+		if (typeof nes === 'boolean') {
 			return 'external';
 		}
 		if (typeof nes !== 'string') {
@@ -469,11 +430,6 @@ export class SimulationOptions {
 		return indices;
 	}
 
-	/**
-	 * Resolve the continuous pivot seed. When `--seed` is omitted a random
-	 * 32-bit seed is generated so that the parent can log it and propagate it to
-	 * every worker, keeping output reproducible.
-	 */
 	private static resolveSeed(value: unknown): number {
 		if (value === undefined || value === null) {
 			return Math.floor(Math.random() * 0x100000000);
@@ -508,7 +464,6 @@ function boolean(value: any, defaultValue: boolean): boolean {
 		return defaultValue;
 	}
 	if (value === 'false') {
-		// treat the string 'false' as false
 		return false;
 	}
 	return Boolean(value);

@@ -37,9 +37,6 @@ const textMimeType: { [ext: string]: string | undefined } = {
 	'.svg': 'image/svg+xml',
 };
 
-/**
- * Return an error to the client.
- */
 export async function serveError(req: http.IncomingMessage, res: http.ServerResponse, errorCode: number, errorMessage: string): Promise<void> {
 	res.writeHead(errorCode, { 'Content-Type': 'text/plain' });
 	res.end(errorMessage);
@@ -49,16 +46,12 @@ export const enum CacheControl {
 	NO_CACHING, ETAG, NO_EXPIRY
 }
 
-/**
- * Serve a file at a given path or 404 if the file is missing.
- */
 export async function serveFile(filePath: string, cacheControl: CacheControl, logService: ILogService, req: http.IncomingMessage, res: http.ServerResponse, responseHeaders: Record<string, string>): Promise<void> {
 	try {
-		const stat = await promises.stat(filePath); // throws an error if file doesn't exist
+		const stat = await promises.stat(filePath);
 		if (cacheControl === CacheControl.ETAG) {
 
-			// Check if file modified since
-			const etag = `W/"${[stat.ino, stat.size, stat.mtime.getTime()].join('-')}"`; // weak validator (https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag)
+			const etag = `W/"${[stat.ino, stat.size, stat.mtime.getTime()].join('-')}"`;
 			if (req.headers['if-none-match'] === etag) {
 				res.writeHead(304);
 				return void res.end();
@@ -73,21 +66,14 @@ export async function serveFile(filePath: string, cacheControl: CacheControl, lo
 
 		responseHeaders['Content-Type'] = textMimeType[extname(filePath)] || getMediaMime(filePath) || 'text/plain';
 
-		// Create the stream first and wait for it to open before sending
-		// headers so that errors (e.g. ENOENT race) can still produce a
-		// proper 404 response instead of aborting a half-sent 200.
 		const fileStream = createReadStream(filePath);
 		await new Promise<void>((resolve, reject) => {
 			fileStream.on('error', reject);
 			fileStream.on('open', () => {
-				// File opened successfully - send headers and pipe
 				res.writeHead(200, responseHeaders);
 				fileStream.pipe(res);
-				// Destroy the read stream if the response is closed prematurely
-				// (e.g. client disconnect) to avoid leaking the file descriptor.
 				res.once('close', () => fileStream.destroy());
 				fileStream.on('end', resolve);
-				// Replace the initial error handler now that headers are sent
 				fileStream.removeAllListeners('error');
 				fileStream.on('error', error => {
 					logService.error(error);
@@ -132,13 +118,6 @@ export class WebClientServer {
 		this._webExtensionResourceUrlTemplate = this._productService.extensionsGallery?.resourceUrlTemplate ? URI.parse(this._productService.extensionsGallery.resourceUrlTemplate) : undefined;
 	}
 
-	/**
-	 * Handle web resources (i.e. only needed by the web client).
-	 * **NOTE**: This method is only invoked when the server has web bits.
-	 * **NOTE**: This method is only invoked after the connection token has been validated.
-	 * @param parsedUrl The URL to handle, including base and product path
-	 * @param pathname The pathname of the URL, without base and product path
-	 */
 	async handle(req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery, pathname: string): Promise<void> {
 		try {
 			if (pathname.startsWith(STATIC_PATH) && pathname.charCodeAt(STATIC_PATH.length) === CharCode.Slash) {
@@ -148,11 +127,9 @@ export class WebClientServer {
 				return this._handleRoot(req, res, parsedUrl);
 			}
 			if (pathname === CALLBACK_PATH) {
-				// callback support
 				return this._handleCallback(res);
 			}
 			if (pathname.startsWith(WEB_EXTENSION_PATH) && pathname.charCodeAt(WEB_EXTENSION_PATH.length) === CharCode.Slash) {
-				// extension resource support
 				return this._handleWebExtensionResource(req, res, pathname.substring(WEB_EXTENSION_PATH.length));
 			}
 
@@ -164,17 +141,12 @@ export class WebClientServer {
 			return serveError(req, res, 500, 'Internal Server Error.');
 		}
 	}
-	/**
-	 * Handle HTTP requests for /static/*
-	 * @param resourcePath The path after /static/
-	 */
 	private async _handleStatic(req: http.IncomingMessage, res: http.ServerResponse, resourcePath: string): Promise<void> {
 		const headers: Record<string, string> = Object.create(null);
 
-		// Strip the this._staticRoute from the path
-		const normalizedPathname = decodeURIComponent(resourcePath); // support paths that are uri-encoded (e.g. spaces => %20)
+		const normalizedPathname = decodeURIComponent(resourcePath);
 
-		const filePath = join(APP_ROOT, normalizedPathname); // join also normalizes the path
+		const filePath = join(APP_ROOT, normalizedPathname);
 		if (!isEqualOrParent(filePath, APP_ROOT, !isLinux)) {
 			return serveError(req, res, 400, `Bad request.`);
 		}
@@ -187,16 +159,12 @@ export class WebClientServer {
 		return index !== -1 ? uri.authority.substring(index + 1) : undefined;
 	}
 
-	/**
-	 * Handle extension resources
-	 * @param resourcePath The path after /web-extension-resource/
-	 */
 	private async _handleWebExtensionResource(req: http.IncomingMessage, res: http.ServerResponse, resourcePath: string): Promise<void> {
 		if (!this._webExtensionResourceUrlTemplate) {
 			return serveError(req, res, 500, 'No extension gallery service configured.');
 		}
 
-		const normalizedPathname = decodeURIComponent(resourcePath); // support paths that are uri-encoded (e.g. spaces => %20)
+		const normalizedPathname = decodeURIComponent(resourcePath);
 		const path = normalize(normalizedPathname);
 		const uri = URI.parse(path).with({
 			scheme: this._webExtensionResourceUrlTemplate.scheme,
@@ -234,7 +202,7 @@ export class WebClientServer {
 			let text: string | null = null;
 			try {
 				text = await asTextOrError(context);
-			} catch (error) {/* Ignore */ }
+			} catch (error) { }
 			return serveError(req, res, status, text || `Request failed with status ${status}`);
 		}
 
@@ -254,9 +222,6 @@ export class WebClientServer {
 		return void res.end(buffer.buffer);
 	}
 
-	/**
-	 * Handle HTTP requests for /
-	 */
 	private async _handleRoot(req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
 
 		const getFirstHeader = (headerName: string) => {
@@ -264,20 +229,17 @@ export class WebClientServer {
 			return Array.isArray(val) ? val[0] : val;
 		};
 
-		// Prefix routes with basePath for clients
 		const basePath = getFirstHeader('x-forwarded-prefix') || this._basePath;
 
 		const queryConnectionToken = parsedUrl.query[connectionTokenQueryName];
 		if (typeof queryConnectionToken === 'string') {
-			// We got a connection token as a query parameter.
-			// We want to have a clean URL, so we strip it
 			const responseHeaders: Record<string, string> = Object.create(null);
 			responseHeaders['Set-Cookie'] = cookie.serialize(
 				connectionTokenCookieName,
 				queryConnectionToken,
 				{
 					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 /* 1 week */
+					maxAge: 60 * 60 * 24 * 7
 				}
 			);
 
@@ -323,8 +285,6 @@ export class WebClientServer {
 
 		let _wrapWebWorkerExtHostInIframe: undefined | false = undefined;
 		if (this._environmentService.args['enable-smoke-test-driver']) {
-			// integration tests run at a time when the built output is not yet published to the CDN
-			// so we must disable the iframe wrapping because the iframe URL will give a 404
 			_wrapWebWorkerExtHostInIframe = false;
 		}
 
@@ -369,7 +329,7 @@ export class WebClientServer {
 			try {
 				const productOverrides = JSON.parse((await promises.readFile(join(APP_ROOT, 'product.overrides.json'))).toString());
 				Object.assign(productConfiguration, productOverrides);
-			} catch (err) {/* Ignore Error */ }
+			} catch (err) { }
 		}
 
 		const workbenchWebConfiguration = {
@@ -394,7 +354,7 @@ export class WebClientServer {
 			WORKBENCH_NLS_BASE_URL = this._productService.nlsCoreBaseUrl;
 			WORKBENCH_NLS_URL = `${WORKBENCH_NLS_BASE_URL}${this._productService.commit}/${this._productService.version}/${locale}/nls.messages.js`;
 		} else {
-			WORKBENCH_NLS_URL = ''; // fallback will apply
+			WORKBENCH_NLS_URL = '';
 		}
 
 		const values: { [key: string]: string } = {
@@ -405,11 +365,6 @@ export class WebClientServer {
 			WORKBENCH_NLS_FALLBACK_URL: `${staticRoute}/out/nls.messages.js`
 		};
 
-		// DEV ---------------------------------------------------------------------------------------
-		// DEV: This is for development and enables loading CSS via import-statements via import-maps.
-		// DEV: The server needs to send along all CSS modules so that the client can construct the
-		// DEV: import-map.
-		// DEV ---------------------------------------------------------------------------------------
 		if (this._cssDevService.isEnabled) {
 			const cssModules = await this._cssDevService.getCssModules();
 			values['WORKBENCH_DEV_CSS_MODULES'] = JSON.stringify(cssModules);
@@ -439,7 +394,7 @@ export class WebClientServer {
 			'default-src \'self\';',
 			'img-src \'self\' https: data: blob:;',
 			'media-src \'self\';',
-			`script-src 'self' 'unsafe-eval' ${WORKBENCH_NLS_BASE_URL ?? ''} blob: 'nonce-1nline-m4p' ${this._getScriptCspHashes(data).join(' ')} '${webWorkerExtensionHostIframeScriptSHA}' 'sha256-/r7rqQ+yrxt57sxLuQ6AMYcy/lUpvAIzHjIJt/OeLWU=' ${useTestResolver ? '' : `http://${remoteAuthority}`};`,  // the sha is the same as in src/vs/workbench/services/extensions/worker/webWorkerExtensionHostIframe.html
+			`script-src 'self' 'unsafe-eval' ${WORKBENCH_NLS_BASE_URL ?? ''} blob: 'nonce-1nline-m4p' ${this._getScriptCspHashes(data).join(' ')} '${webWorkerExtensionHostIframeScriptSHA}' 'sha256-/r7rqQ+yrxt57sxLuQ6AMYcy/lUpvAIzHjIJt/OeLWU=' ${useTestResolver ? '' : `http://${remoteAuthority}`};`,
 			'child-src \'self\';',
 			`frame-src 'self' https://*.vscode-cdn.net data:;`,
 			'worker-src \'self\' data: blob:;',
@@ -454,15 +409,12 @@ export class WebClientServer {
 			'Content-Security-Policy': cspDirectives
 		};
 		if (this._connectionToken.type !== ServerConnectionTokenType.None) {
-			// At this point we know the client has a valid cookie
-			// and we want to set it prolong it to ensure that this
-			// client is valid for another 1 week at least
 			headers['Set-Cookie'] = cookie.serialize(
 				connectionTokenCookieName,
 				this._connectionToken.value,
 				{
 					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 /* 1 week */
+					maxAge: 60 * 60 * 24 * 7
 				}
 			);
 		}
@@ -472,14 +424,11 @@ export class WebClientServer {
 	}
 
 	private _getScriptCspHashes(content: string): string[] {
-		// Compute the CSP hashes for line scripts. Uses regex
-		// which means it isn't 100% good.
 		const regex = /<script>([\s\S]+?)<\/script>/img;
 		const result: string[] = [];
 		let match: RegExpExecArray | null;
 		while (match = regex.exec(content)) {
 			const hasher = crypto.createHash('sha256');
-			// This only works on Windows if we strip `\r` from `\r\n`.
 			const script = match[1].replace(/\r\n/g, '\n');
 			const hash = hasher
 				.update(Buffer.from(script))
@@ -490,9 +439,6 @@ export class WebClientServer {
 		return result;
 	}
 
-	/**
-	 * Handle HTTP requests for /callback
-	 */
 	private async _handleCallback(res: http.ServerResponse): Promise<void> {
 		const filePath = FileAccess.asFileUri('vs/code/browser/workbench/callback.html').fsPath;
 		const data = (await promises.readFile(filePath)).toString();

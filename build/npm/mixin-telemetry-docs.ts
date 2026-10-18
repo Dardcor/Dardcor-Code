@@ -12,14 +12,12 @@ const repoUrl = 'https://github.com/microsoft/vscode-telemetry-docs';
 
 console.log('Cloning vscode-telemetry-docs repository...');
 
-// Remove existing directory if it exists
 if (existsSync(telemetryDocsPath)) {
 	console.log('Removing existing vscode-telemetry-docs directory...');
 	rmSync(telemetryDocsPath, { recursive: true, force: true });
 }
 
 try {
-	// Clone the repository (shallow clone of main branch only)
 	console.log(`Cloning ${repoUrl} to ${telemetryDocsPath}...`);
 	execSync(`git clone --depth 1 --branch main --single-branch ${repoUrl} vscode-telemetry-docs`, {
 		cwd: rootPath,

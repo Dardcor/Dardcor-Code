@@ -6,7 +6,6 @@ import { verifyDashboardPassword } from "@/lib/auth/dashboardSession";
 const CLI_TOKEN_HEADER = "x-9r-cli-token";
 const PASSWORD_HEADER = "x-9r-password";
 
-// CLI token requests are already trusted (local machine); skip password re-auth.
 function isCliRequest(request) {
   return Boolean(request.headers.get(CLI_TOKEN_HEADER));
 }
@@ -32,7 +31,6 @@ export async function POST(request) {
     }
     await importDb(payload);
 
-    // Ensure proxy settings take effect immediately after a DB import.
     try {
       const settings = await getSettings();
       applyOutboundProxyEnv(settings);

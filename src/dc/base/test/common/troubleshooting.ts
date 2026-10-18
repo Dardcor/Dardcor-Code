@@ -27,7 +27,6 @@ class DisposableTracker implements IDisposableTracker {
 		}
 	}
 	markAsSingleton(disposable: IDisposable): void {
-		// noop
 	}
 }
 

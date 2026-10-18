@@ -17,7 +17,6 @@ const root = path.dirname(path.dirname(import.meta.dirname));
 const commit = process.env['BUILD_SOURCEVERSION'];
 const credential = new ClientAssertionCredential(process.env['AZURE_TENANT_ID']!, process.env['AZURE_CLIENT_ID']!, () => Promise.resolve(process.env['AZURE_ID_TOKEN']!));
 
-// optionally allow to pass in explicit base/maps to upload
 const [, , base, maps] = process.argv;
 
 function src(base: string, maps = `${base}/**/*.map`) {
@@ -31,9 +30,8 @@ function src(base: string, maps = `${base}/**/*.map`) {
 function main(): Promise<void> {
 	const sources: Stream[] = [];
 
-	// vscode client maps (default)
 	if (!base) {
-		const vs = src('out-dardcor-code-min'); // client source-maps only
+		const vs = src('out-dardcor-code-min');
 		sources.push(vs);
 
 		const productionDependencies = getProductionDependencies(root);
@@ -47,7 +45,6 @@ function main(): Promise<void> {
 		sources.push(extensionsOut);
 	}
 
-	// specific client base/maps
 	else {
 		sources.push(src(base, maps));
 	}
@@ -55,7 +52,7 @@ function main(): Promise<void> {
 	return new Promise((c, e) => {
 		es.merge(...sources)
 			.pipe(es.through(function (data: Vinyl) {
-				console.log('Uploading Sourcemap', data.relative); // debug
+				console.log('Uploading Sourcemap', data.relative);
 				this.emit('data', data);
 			}))
 			.pipe(azureStorage.upload({

@@ -17,7 +17,6 @@ suite('debug', () => {
 		const myObservable2 = observableValue('myObservable2', 0);
 
 		const myComputed1 = derived(reader => {
-			/** @description myComputed1 */
 			const value1 = myObservable1.read(reader);
 			const value2 = myObservable2.read(reader);
 			const sum = value1 + value2;
@@ -25,7 +24,6 @@ suite('debug', () => {
 		});
 
 		const myComputed2 = derived(reader => {
-			/** @description myComputed2 */
 			const value1 = myComputed1.read(reader);
 			const value2 = myObservable1.read(reader);
 			const value3 = myObservable2.read(reader);
@@ -34,7 +32,6 @@ suite('debug', () => {
 		});
 
 		const myComputed3 = derived(reader => {
-			/** @description myComputed3 */
 			const value1 = myComputed2.read(reader);
 			const value2 = myObservable1.read(reader);
 			const value3 = myObservable2.read(reader);
@@ -43,7 +40,6 @@ suite('debug', () => {
 		});
 
 		ds.add(autorun(reader => {
-			/** @description myAutorun */
 			myComputed3.read(reader);
 		}));
 

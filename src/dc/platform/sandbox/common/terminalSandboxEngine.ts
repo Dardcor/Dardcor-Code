@@ -38,90 +38,30 @@ interface ITerminalSandboxFileSystemAccessPaths {
 	denyWritePaths: string[] | undefined;
 }
 
-/** Runtime information needed to launch the sandbox-runtime CLI. */
 export interface ITerminalSandboxRuntimeInfo {
-	/** Directory that contains `node_modules/@vscode/sandbox-runtime` and `node_modules/@vscode/ripgrep`. */
 	appRoot: string;
-	/**
-	 * Name of the directory (relative to {@link appRoot}) that holds the native
-	 * binaries `ripgrep-universal` and `@microsoft/mxc-sdk`. In a packaged desktop
-	 * build these are unpacked from the archive into `node_modules.asar.unpacked`;
-	 * in dev and on remote they live in plain `node_modules`. Defaults to
-	 * `node_modules`. Note the sandbox-runtime CLI itself is always resolved from
-	 * plain `node_modules` (it is duplicated out of the archive) because it is
-	 * spawned as a standalone Node subprocess without the ASAR resolution hook.
-	 */
 	nativeModulesDir?: string;
-	/** Path of the node/electron executable used to run sandbox-runtime. */
 	execPath?: string;
-	/**
-	 * When true the engine prefixes the wrapped command with `ELECTRON_RUN_AS_NODE=1`
-	 * so the Electron binary acts as a Node.js executable. Set by hosts that resolve
-	 * an Electron-based exec path (the local workbench); leave undefined / false when
-	 * `execPath` already points at a real `node` binary (remote, agent host).
-	 */
 	runAsNode?: boolean;
-	/** CPU architecture of the environment that runs the sandbox runtime. */
 	arch?: string;
 }
 
-/**
- * Host adapter that supplies the engine with environment/workspace data the
- * platform layer cannot resolve on its own. Hosts (workbench, agent host)
- * implement this to bridge their per-environment services (`IRemoteAgentService`,
- * `IWorkspaceContextService`, `IEnvironmentService`, `IProductService`,
- * `ISandboxHelperService`, …) into the engine.
- */
 export interface ITerminalSandboxEngineHost {
-	/** Effective OS used by sandbox decisions. May be the remote OS in workbench. */
 	getOS(): Promise<OperatingSystem>;
-	/** Resolves app root + node/electron exec path (after the remote env is known, if applicable). */
 	getRuntimeInfo(): Promise<ITerminalSandboxRuntimeInfo>;
-	/** Resolves the user home used for `~`-expansion and the default deny-read entry. */
 	getUserHome(): Promise<URI | undefined>;
-	/**
-	 * Resolves the directory the engine creates and uses as its sandbox temp dir
-	 * (sandbox-settings JSON file lives here). May return undefined when no
-	 * suitable location exists, in which case sandboxing is disabled.
-	 */
 	getSandboxTempDir(): Promise<URI | undefined>;
-	/** Path added to `allowRead` and `allowWrite` for the engine's workspace/session storage area. */
 	getWorkspaceStorageReadRoot(): Promise<URI | undefined>;
-	/** Roots that must be writable inside the sandbox (workspace folders / session cwds). */
 	getWriteRoots(): readonly URI[];
-	/** Fires when {@link getWriteRoots} or {@link getWorkspaceStorageReadRoot} change. */
 	readonly onDidChangeRoots: Event<void>;
-	/** Resolves the installed sandbox-dependency status (bubblewrap, socat). */
 	checkSandboxDependencies(): Promise<ISandboxDependencyStatus | undefined>;
-	/** Resolves host filesystem policy fragments needed by the Windows MXC process container. */
 	getWindowsMxcFilesystemPolicy(): Promise<IWindowsMxcFilesystemPolicy | undefined>;
-	/** Resolves host environment variables needed by the Windows MXC process container. */
 	getWindowsMxcEnvironment(): Promise<string[] | undefined>;
-	/** Builds a Windows MXC payload from a target-environment MXC sandbox policy. */
 	buildWindowsMxcSandboxPayload(commandLine: string, policy: IWindowsMxcSandboxPolicy, workingDirectory?: string, containerName?: string, containment?: IWindowsMxcPolicyContainment): Promise<IWindowsMxcConfig | undefined>;
-	/**
-	 * Returns the effective value of a sandbox-related configuration setting,
-	 * or `undefined` when the setting is not configured.
-	 */
 	getSandboxSetting<T>(settingId: AgentSandboxSettingId | AgentNetworkDomainSettingId): T | undefined;
-	/**
-	 * Fires when any value returned by {@link getSandboxSetting} may have
-	 * changed. The engine invalidates its sandbox-config file on each event.
-	 * Implementations should pre-filter to sandbox-relevant keys.
-	 */
 	readonly onDidChangeSandboxSettings: Event<void>;
 }
 
-/**
- * Core sandbox engine. Encapsulates the platform-agnostic logic for wrapping
- * commands in a sandbox runtime: enabledness checks, command-line wrapping,
- * sandbox-config generation, network-domain extraction and prerequisite checks.
- *
- * Hosts (workbench / agent host) construct an engine with a host adapter that
- * supplies workspace/remote-specific data, then forward their public service
- * methods to the engine and add their own host-specific concerns
- * (chat elicitation, lifecycle hooks, …) on top.
- */
 export class TerminalSandboxEngine extends Disposable {
 	private static readonly _urlRegex = /(?:https?|wss?):\/\/[^\s'"`|&;<>]+/gi;
 	private static readonly _sshRemoteRegex = /(?:^|[\s'"`])(?:[^\s@:'"`]+@)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?::[^\s'"`|&;<>]+)(?=$|[\s'"`|&;<>])/gi;
@@ -240,8 +180,6 @@ export class TerminalSandboxEngine extends Disposable {
 			throw new Error('Sandbox config path or temp dir not initialized');
 		}
 
-		// If per-command network relaxation is disabled, preserve the existing
-		// unsandbox fallback for commands with statically-detected blocked domains.
 		if (!requestUnsandboxedExecution && !retryWithAllowNetworkRequests && allowUnsandboxedCommands && blockedDomainResult.blockedDomains.length > 0) {
 			return {
 				command: this._wrapUnsandboxedCommand(command, shell, cwd),
@@ -252,7 +190,6 @@ export class TerminalSandboxEngine extends Disposable {
 			};
 		}
 
-		// If requestUnsandboxedExecution is true, need to ensure env variables set during sandbox still apply.
 		if (requestUnsandboxedExecution && allowUnsandboxedCommands) {
 			return {
 				command: this._wrapUnsandboxedCommand(command, shell, cwd),
@@ -286,14 +223,8 @@ export class TerminalSandboxEngine extends Disposable {
 		if (!this._rgPath) {
 			throw new Error('Ripgrep path not resolved');
 		}
-		// Use ELECTRON_RUN_AS_NODE=1 to make Electron executable behave as Node.js
-		// TMPDIR must be set as environment variable before the command
-		// Quote shell arguments so the wrapped command cannot break out of the outer shell.
 		const commandToRunInSandbox = this._getSandboxCommandWithPreservedCwd(command, cwd);
 		const sandboxRuntimeCommand = `PATH="$PATH:${this._pathDirname(this._rgPath)}" TMPDIR="${this._tempDir.path}" CLAUDE_TMPDIR="${this._tempDir.path}" "${this._execPath}" "${this._srtPath}" --settings "${this._sandboxConfigPath}" -c ${this._quoteShellArgument(commandToRunInSandbox)}`;
-		// On workbench Electron builds the exec path points at the Electron binary, so we
-		// prefix `ELECTRON_RUN_AS_NODE=1` to make it behave as Node.js. Remote workbench and
-		// the agent host already resolve a real `node` binary and the host clears the flag.
 		if (this._runAsNode) {
 			const nodeSandboxRuntimeCommand = `ELECTRON_RUN_AS_NODE=1 ${sandboxRuntimeCommand}`;
 			return {
@@ -422,12 +353,6 @@ export class TerminalSandboxEngine extends Disposable {
 		return missing;
 	}
 
-	/**
-	 * Deletes the sandbox temp directory if one was created. Hosts are expected
-	 * to invoke this from their shutdown / disposal path; the engine itself does
-	 * not delete the directory on `dispose()` because shutdown joiners need to
-	 * be coordinated externally.
-	 */
 	async cleanupTempDir(): Promise<void> {
 		if (!this._tempDir) {
 			return;
@@ -439,7 +364,6 @@ export class TerminalSandboxEngine extends Disposable {
 		}
 	}
 
-	// ---- private helpers ----------------------------------------------------
 
 	private async _checkSandboxDependencies(forceRefresh = false): Promise<boolean> {
 		const os = await this.getOS();
@@ -782,19 +706,6 @@ export class TerminalSandboxEngine extends Disposable {
 		return paths.some(path => matchers.some(matcher => this._matchesFileSystemPath(path, matcher)));
 	}
 
-	/**
-	 * Returns whether a candidate filesystem path is covered by a sandbox allow/deny
-	 * matcher. Both values are normalized with the target sandbox OS semantics before
-	 * comparison. Non-glob matchers are treated as exact-or-parent matches; glob
-	 * matchers are evaluated with VS Code's glob matcher.
-	 *
-	 * Examples:
-	 * - Linux/macOS: `/workspace/project/src/file.ts` matches `/workspace/project`.
-	 * - Linux/macOS: `/workspace/project2/file.ts` does not match `/workspace/project`.
-	 * - Windows: `C:\Repo\src\file.ts` matches `c:/repo` because matching is
-	 *   case-insensitive and backslashes are normalized to `/`.
-	 * - Glob: `/workspace/project/package.json` matches `/workspace/project/*.json`.
-	 */
 	private _matchesFileSystemPath(path: string, matcher: string): boolean {
 		const normalizedPath = this._normalizeFileSystemAccessPath(path);
 		const normalizedMatcher = this._normalizeFileSystemAccessPath(matcher, true);
@@ -805,36 +716,10 @@ export class TerminalSandboxEngine extends Disposable {
 		return this._fileSystemPathExtUri.isEqualOrParent(this._toFileSystemAccessUri(normalizedPath), this._toFileSystemAccessUri(normalizedMatcher));
 	}
 
-	/**
-	 * Converts a normalized sandbox filesystem path into a pseudo URI so the common
-	 * `ExtUri.isEqualOrParent` comparer can be used instead of deprecated string
-	 * path helpers. A non-`file` scheme is intentional: it keeps comparison on the
-	 * URI path component and avoids converting through the host OS' native `fsPath`
-	 * rules, which may differ from the sandbox target OS.
-	 *
-	 * Examples:
-	 * - `/workspace/project` becomes `terminal-sandbox-path:/workspace/project`.
-	 * - `C:/Repo` becomes `terminal-sandbox-path:/C:/Repo` so Windows drive paths
-	 *   are still valid URI paths for comparison.
-	 */
 	private _toFileSystemAccessUri(path: string): URI {
 		return URI.from({ scheme: 'terminal-sandbox-path', path: path.startsWith('/') ? path : `/${path}` });
 	}
 
-	/**
-	 * Normalizes a path or matcher into the form used for sandbox access checks.
-	 * On Windows, backslashes are converted to `/` and URI-shaped drive paths like
-	 * `/C:/Users/me` are converted to `C:/Users/me`. Unless `preserveGlob` is true
-	 * for a glob matcher, the path is POSIX-normalized to remove redundant `.`/`..`
-	 * segments. Trailing slashes are removed except for filesystem roots.
-	 *
-	 * Examples:
-	 * - Linux/macOS: `/workspace/../workspace/app/` becomes `/workspace/app`.
-	 * - Windows: `C:\Users\me\project\` becomes `C:/Users/me/project`.
-	 * - Windows: `/C:/Users/me/project` becomes `C:/Users/me/project`.
-	 * - Glob with `preserveGlob=true`: `/workspace/project/*.json` keeps the glob
-	 *   pattern intact for `globMatch`.
-	 */
 	private _normalizeFileSystemAccessPath(path: string, preserveGlob: boolean = false): string {
 		let normalizedPath = this._os === OperatingSystem.Windows ? path.replace(/\\/g, '/') : path;
 		if (this._os === OperatingSystem.Windows && /^\/[a-zA-Z]:($|\/)/.test(normalizedPath)) {
@@ -936,7 +821,6 @@ export class TerminalSandboxEngine extends Disposable {
 	}
 
 	private _updateDenyReadPathsWithHome(configuredDenyRead: string[] | undefined): string[] {
-		// TODO: On Windows, deny read on home directory.
 		if (this._os === OperatingSystem.Windows) {
 			return [...new Set(configuredDenyRead ?? [])];
 		}
@@ -974,8 +858,6 @@ export class TerminalSandboxEngine extends Disposable {
 		try {
 			const realpath = await this._fileService.realpath(this._toFileSystemResource(expandedPath));
 			const resolvedPath = realpath ? this._getUriPath(realpath) : undefined;
-			// Keep the expanded path (the configured path after home expansion) so permissions apply when accessed through the symlink.
-			// Also include the resolved path (the canonical symlink target) so the same permissions apply when accessed directly.
 			return resolvedPath && resolvedPath !== expandedPath ? [expandedPath, resolvedPath] : [expandedPath];
 		} catch {
 			return [expandedPath];
@@ -994,9 +876,7 @@ export class TerminalSandboxEngine extends Disposable {
 	}
 
 	private _toWindowsFileSystemResource(path: string): URI {
-		// Normalize Windows separators for URI parsing, e.g. `C:\Users\me` becomes `C:/Users/me`.
 		const normalizedPath = path.replace(/\\/g, '/');
-		// Match UNC paths, e.g. `//server/share/folder` becomes `file://server/share/folder`.
 		if (/^\/\/[^/]/.test(normalizedPath)) {
 			const firstPathSeparator = normalizedPath.indexOf('/', 2);
 			if (firstPathSeparator === -1) {
@@ -1004,11 +884,9 @@ export class TerminalSandboxEngine extends Disposable {
 			}
 			return URI.from({ scheme: 'file', authority: normalizedPath.slice(2, firstPathSeparator), path: normalizedPath.slice(firstPathSeparator) || '/' });
 		}
-		// Match drive-letter paths, e.g. `C:/Users/me` becomes `file:///c:/Users/me`.
 		if (/^[a-zA-Z]:($|\/)/.test(normalizedPath)) {
 			return URI.from({ scheme: 'file', path: `/${normalizedPath[0].toLowerCase()}${normalizedPath.slice(1)}` });
 		}
-		// Match URI-shaped drive paths, e.g. `/C:/Users/me` becomes `file:///c:/Users/me`.
 		if (/^\/[a-zA-Z]:($|\/)/.test(normalizedPath)) {
 			return URI.from({ scheme: 'file', path: `/${normalizedPath[1].toLowerCase()}${normalizedPath.slice(2)}` });
 		}

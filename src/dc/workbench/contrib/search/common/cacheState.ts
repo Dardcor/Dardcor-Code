@@ -95,7 +95,6 @@ export class FileQueryCacheState {
 				try {
 					await this.loadPromise;
 				} catch (error) {
-					// ignore
 				}
 
 				this.loadingPhase = LoadingPhase.Disposed;

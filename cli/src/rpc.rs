@@ -37,15 +37,11 @@ pub enum Method {
 	Duplex(Duplex),
 }
 
-/// Serialization is given to the RpcBuilder and defines how data gets serialized
-/// when callinth methods.
 pub trait Serialization: Send + Sync + 'static {
 	fn serialize(&self, value: impl Serialize) -> Vec<u8>;
 	fn deserialize<P: DeserializeOwned>(&self, b: &[u8]) -> Result<P, AnyError>;
 }
 
-/// RPC is a basic, transport-agnostic builder for RPC methods. You can
-/// register methods to it, then call `.build()` to get a "dispatcher" type.
 pub struct RpcBuilder<S> {
 	serializer: Arc<S>,
 	methods: HashMap<&'static str, Method>,
@@ -53,7 +49,6 @@ pub struct RpcBuilder<S> {
 }
 
 impl<S: Serialization> RpcBuilder<S> {
-	/// Creates a new empty RPC builder.
 	pub fn new(serializer: S) -> Self {
 		Self {
 			serializer: Arc::new(serializer),
@@ -62,8 +57,6 @@ impl<S: Serialization> RpcBuilder<S> {
 		}
 	}
 
-	/// Creates a caller that will be connected to any eventual dispatchers,
-	/// and that sends data to the "tx" channel.
 	pub fn get_caller(&mut self, sender: mpsc::UnboundedSender<Vec<u8>>) -> RpcCaller<S> {
 		RpcCaller {
 			serializer: self.serializer.clone(),
@@ -72,7 +65,6 @@ impl<S: Serialization> RpcBuilder<S> {
 		}
 	}
 
-	/// Gets a method builder.
 	pub fn methods<C: Send + Sync + 'static>(self, context: C) -> RpcMethodBuilder<S, C> {
 		RpcMethodBuilder {
 			context: Arc::new(context),
@@ -97,7 +89,6 @@ struct DuplexStreamStarted {
 }
 
 impl<S: Serialization, C: Send + Sync + 'static> RpcMethodBuilder<S, C> {
-	/// Registers a synchronous rpc call that returns its result directly.
 	pub fn register_sync<P, R, F>(&mut self, method_name: &'static str, callback: F)
 	where
 		P: DeserializeOwned,
@@ -144,7 +135,6 @@ impl<S: Serialization, C: Send + Sync + 'static> RpcMethodBuilder<S, C> {
 		);
 	}
 
-	/// Registers an async rpc call that returns a Future.
 	pub fn register_async<P, R, Fut, F>(&mut self, method_name: &'static str, callback: F)
 	where
 		P: DeserializeOwned + Send + 'static,
@@ -198,8 +188,6 @@ impl<S: Serialization, C: Send + Sync + 'static> RpcMethodBuilder<S, C> {
 		);
 	}
 
-	/// Registers an async rpc call that returns a Future containing a duplex
-	/// stream that should be handled by the client.
 	pub fn register_duplex<P, R, Fut, F>(
 		&mut self,
 		method_name: &'static str,
@@ -271,7 +259,6 @@ impl<S: Serialization, C: Send + Sync + 'static> RpcMethodBuilder<S, C> {
 		);
 	}
 
-	/// Builds into a usable, sync rpc dispatcher.
 	pub fn build(mut self, log: log::Logger) -> RpcDispatcher<S, C> {
 		let streams = Streams::default();
 
@@ -303,9 +290,6 @@ impl<S: Serialization, C: Send + Sync + 'static> RpcMethodBuilder<S, C> {
 
 type DispatchMethod = Box<dyn Send + Sync + FnOnce(Outcome)>;
 
-/// Dispatcher returned from a Builder that provides a transport-agnostic way to
-/// deserialize and dispatch RPC calls. This structure may get more advanced as
-/// time goes on...
 #[derive(Clone)]
 pub struct RpcCaller<S: Serialization> {
 	serializer: Arc<S>,
@@ -327,7 +311,6 @@ impl<S: Serialization> RpcCaller<S> {
 		})
 	}
 
-	/// Enqueues an outbound call. Returns whether the message was enqueued.
 	pub fn notify<M, A>(&self, method: M, params: A) -> bool
 	where
 		M: AsRef<str> + serde::Serialize,
@@ -338,7 +321,6 @@ impl<S: Serialization> RpcCaller<S> {
 			.is_ok()
 	}
 
-	/// Enqueues an outbound call, returning its result.
 	pub fn call<M, A, R>(&self, method: M, params: A) -> oneshot::Receiver<Result<R, ResponseError>>
 	where
 		M: AsRef<str> + serde::Serialize,
@@ -381,9 +363,6 @@ impl<S: Serialization> RpcCaller<S> {
 	}
 }
 
-/// Dispatcher returned from a Builder that provides a transport-agnostic way to
-/// deserialize and handle RPC calls. This structure may get more advanced as
-/// time goes on...
 #[derive(Clone)]
 pub struct RpcDispatcher<S, C> {
 	log: log::Logger,
@@ -400,12 +379,6 @@ fn next_message_id() -> u32 {
 }
 
 impl<S: Serialization, C: Send + Sync> RpcDispatcher<S, C> {
-	/// Runs the incoming request, returning the result of the call synchronously
-	/// or in a future. (The caller can then decide whether to run the future
-	/// sequentially in its receive loop, or not.)
-	///
-	/// The future or return result will be optional bytes that should be sent
-	/// back to the socket.
 	pub fn dispatch(&self, body: &[u8]) -> MaybeSync {
 		match self.serializer.deserialize::<PartialIncoming>(body) {
 			Ok(partial) => self.dispatch_with_partial(body, partial),
@@ -416,7 +389,6 @@ impl<S: Serialization, C: Send + Sync> RpcDispatcher<S, C> {
 		}
 	}
 
-	/// Like dispatch, but allows passing an existing PartialIncoming.
 	pub fn dispatch_with_partial(&self, body: &[u8], partial: PartialIncoming) -> MaybeSync {
 		let id = partial.id;
 
@@ -449,7 +421,6 @@ impl<S: Serialization, C: Send + Sync> RpcDispatcher<S, C> {
 		}
 	}
 
-	/// Registers a stream call returned from dispatch().
 	pub async fn register_stream(
 		&self,
 		write_tx: mpsc::Sender<impl 'static + From<Vec<u8>> + Send>,
@@ -550,12 +521,11 @@ impl Streams {
 					map.remove(&id);
 					remove = Some(w);
 				} else {
-					s.ended = true; // will shut down in write loop
+					s.ended = true;
 				}
 			}
 		}
 
-		// do this outside of the sync lock:
 		if let Some(mut w) = remove {
 			let _ = w.shutdown().await;
 		}
@@ -584,15 +554,6 @@ impl Streams {
 	}
 }
 
-/// Write loop started by `Streams.write`. It takes the WriteHalf, and
-/// runs until there's no more items in the 'write queue'. At that point, if the
-/// record still exists in the `streams` (i.e. we haven't shut down), it'll
-/// return the WriteHalf so that the next `write` call starts
-/// the loop again. Otherwise, it'll shut down the WriteHalf.
-///
-/// This is the equivalent of the same write_loop in the server_multiplexer.
-/// I couldn't figure out a nice way to abstract it without introducing
-/// performance overhead...
 async fn write_loop(
 	id: u32,
 	mut w: WriteHalf<DuplexStream>,
@@ -627,18 +588,17 @@ async fn write_loop(
 		}
 	}
 
-	let _ = w.shutdown().await; // got here from `break` above, meaning our record got cleared. Close the bridge if so
+	let _ = w.shutdown().await;
 }
 
 const METHOD_STREAMS_STARTED: &str = "streams_started";
 const METHOD_STREAM_DATA: &str = "stream_data";
 const METHOD_STREAM_ENDED: &str = "stream_ended";
 
-#[allow(dead_code)] // false positive
+#[allow(dead_code)]
 trait AssertIsSync: Sync {}
 impl<S: Serialization, C: Send + Sync> AssertIsSync for RpcDispatcher<S, C> {}
 
-/// Approximate shape that is used to determine what kind of data is incoming.
 #[derive(Deserialize, Debug)]
 pub struct PartialIncoming {
 	pub id: Option<u32>,
@@ -744,9 +704,9 @@ mod tests {
 		let streams = Streams::default();
 		let (writer, mut reader) = tokio::io::duplex(1);
 		streams.insert(1, tokio::io::split(writer).1);
-		streams.write(1, vec![1, 2, 3]); // spawn write loop
-		streams.write(1, vec![4, 5, 6]); // enqueued while writing
-		streams.remove(1).await; // end stream
+		streams.write(1, vec![1, 2, 3]);
+		streams.write(1, vec![4, 5, 6]);
+		streams.remove(1).await;
 
 		let mut buffer = Vec::new();
 		assert_eq!(reader.read_to_end(&mut buffer).await.unwrap(), 6);

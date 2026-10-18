@@ -13,7 +13,7 @@ import { ICopilotTokenManager } from '../../../../platform/authentication/common
 import { IAutomodeService } from '../../../../platform/endpoint/node/automodeService';
 import { IEndpointProvider } from '../../../../platform/endpoint/common/endpointProvider';
 import { CustomDataPartMimeTypes } from '../../../../platform/endpoint/common/endpointTypes';
-import { CopilotChatEndpoint } from '../../../../platform/endpoint/node/dardcorChatEndpoint';
+import { DardcorChatEndpoint } from '../../../../platform/endpoint/node/dardcorChatEndpoint';
 import { IEnvService } from '../../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
@@ -24,11 +24,11 @@ import { CancellationToken } from '../../../../util/dardcor/base/common/cancella
 import { Event } from '../../../../util/dardcor/base/common/event';
 import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionTestingServices } from '../../../test/dardcor-node/services';
-import { buildUtilityAliasModelInfo, CopilotLanguageModelWrapper, LanguageModelAccess } from '../languageModelAccess';
+import { buildUtilityAliasModelInfo, DardcorLanguageModelWrapper, LanguageModelAccess } from '../languageModelAccess';
 import { buildReasoningEffortSchemaProperty, formatPricingLabel, normalizeTokenPrices, pickDefaultReasoningEffort } from '../../common/languageModelAccess';
 
 
-suite('CopilotLanguageModelWrapper', () => {
+suite('DardcorLanguageModelWrapper', () => {
 	let accessor: ITestingServicesAccessor;
 	let instaService: IInstantiationService;
 
@@ -41,12 +41,12 @@ suite('CopilotLanguageModelWrapper', () => {
 	}
 
 	suite('validateRequest - invalid', () => {
-		let wrapper: CopilotLanguageModelWrapper;
+		let wrapper: DardcorLanguageModelWrapper;
 		let endpoint: IChatEndpoint;
 		setup(async () => {
 			createAccessor();
 			endpoint = await accessor.get(IEndpointProvider).getChatEndpoint('dardcor-utility');
-			wrapper = instaService.createInstance(CopilotLanguageModelWrapper);
+			wrapper = instaService.createInstance(DardcorLanguageModelWrapper);
 		});
 
 		const runTest = async (messages: vscode.LanguageModelChatMessage[], tools?: vscode.LanguageModelChatTool[], errMsg?: string) => {
@@ -71,12 +71,12 @@ suite('CopilotLanguageModelWrapper', () => {
 	});
 
 	suite('validateRequest - valid', () => {
-		let wrapper: CopilotLanguageModelWrapper;
+		let wrapper: DardcorLanguageModelWrapper;
 		let endpoint: IChatEndpoint;
 		setup(async () => {
 			createAccessor();
 			endpoint = await accessor.get(IEndpointProvider).getChatEndpoint('dardcor-utility');
-			wrapper = instaService.createInstance(CopilotLanguageModelWrapper);
+			wrapper = instaService.createInstance(DardcorLanguageModelWrapper);
 		});
 		const runTest = async (messages: vscode.LanguageModelChatMessage[], tools?: vscode.LanguageModelChatTool[]) => {
 			await wrapper.provideLanguageModelResponse(endpoint, messages, { tools, requestInitiator: 'unknown', toolMode: vscode.LanguageModelChatToolMode.Auto }, vscode.extensions.all[0].id, { report: () => { } }, CancellationToken.None);
@@ -100,14 +100,14 @@ suite('CopilotLanguageModelWrapper', () => {
 	});
 
 	suite('usage emission', () => {
-		let wrapper: CopilotLanguageModelWrapper;
+		let wrapper: DardcorLanguageModelWrapper;
 		let endpoint: IChatEndpoint;
 		let fetcher: MockChatMLFetcher;
 		setup(async () => {
 			createAccessor();
 			fetcher = accessor.get(IChatMLFetcher) as MockChatMLFetcher;
 			endpoint = await accessor.get(IEndpointProvider).getChatEndpoint('dardcor-utility');
-			wrapper = instaService.createInstance(CopilotLanguageModelWrapper);
+			wrapper = instaService.createInstance(DardcorLanguageModelWrapper);
 		});
 
 		test('reports usage as a LanguageModelDataPart', async () => {
@@ -145,21 +145,17 @@ suite('CopilotLanguageModelWrapper', () => {
 	});
 
 	suite('length finish reason', () => {
-		let wrapper: CopilotLanguageModelWrapper;
+		let wrapper: DardcorLanguageModelWrapper;
 		let endpoint: IChatEndpoint;
 		let fetcher: MockChatMLFetcher;
 		setup(async () => {
 			createAccessor();
 			fetcher = accessor.get(IChatMLFetcher) as MockChatMLFetcher;
 			endpoint = await accessor.get(IEndpointProvider).getChatEndpoint('dardcor-utility');
-			wrapper = instaService.createInstance(CopilotLanguageModelWrapper);
+			wrapper = instaService.createInstance(DardcorLanguageModelWrapper);
 		});
 
 		test('does not throw when the response is truncated due to length', async () => {
-			// A model (e.g. a custom/BYOK endpoint) can legitimately stop generating
-			// because it hit the context window ceiling, returning finish_reason "length"
-			// together with the partial text it already streamed. This must not surface
-			// as a hard "Response too long." failure that discards the generated text.
 			fetcher.setNextResponse({
 				type: ChatFetchResponseType.Length,
 				reason: 'Response too long.',
@@ -229,10 +225,6 @@ suite('LanguageModelAccess model info', () => {
 			getEmbeddingsEndpoint: async () => { throw new Error('Not implemented in test'); },
 		} as unknown as IEndpointProvider);
 		const accessor = testingServiceCollection.createTestingAccessor();
-		// Pre-populate the prompt base-count cache so that
-		// `_provideLanguageModelChatInfo`'s per-endpoint base-count lookup
-		// resolves synchronously from cache rather than spinning up the
-		// real tokenizer (which is slow and not relevant to this test).
 		const extensionContext = accessor.get(IVSCodeExtensionContext);
 		const baseCountCacheKey = 'lmBaseCount/gpt-4o-mini';
 		await extensionContext.globalState.update(baseCountCacheKey, { extensionVersion: accessor.get(IEnvService).getVersion(), baseCount: 0 });
@@ -306,11 +298,9 @@ suite('LanguageModelAccess model info', () => {
 		internals._promptBaseCountCache = { getBaseCount: async () => 0 };
 
 		try {
-			// The provider gates every utility family, so nothing is resolved or cached.
 			await internals._refreshUtilityOverrides();
 			assert.strictEqual(internals._resolvedUtilityEndpoints.size, 0);
 
-			// With an empty cache, no aliases are published into the model list.
 			const models: vscode.LanguageModelChatInformation[] = [];
 			internals._registerUtilityAliasModels(models);
 			assert.deepStrictEqual(models.map(model => model.id), []);
@@ -386,7 +376,7 @@ suite('buildUtilityAliasModelInfo', () => {
 
 	function makeCopilotEndpoint(overrides: Partial<IChatEndpoint>): IChatEndpoint {
 		const endpoint = makeEndpoint(overrides);
-		Object.setPrototypeOf(endpoint, CopilotChatEndpoint.prototype);
+		Object.setPrototypeOf(endpoint, DardcorChatEndpoint.prototype);
 		return endpoint;
 	}
 
@@ -407,7 +397,7 @@ suite('buildUtilityAliasModelInfo', () => {
 	test('clones an existing dardcor-provider entry, overriding id/family/selectable/default', () => {
 		const endpoint = makeCopilotEndpoint({ model: 'gpt-4o-mini' });
 		const base = makeBaseModelInfo({ id: 'gpt-4o-mini', requiresAuthorization: { label: 'octocat' } });
-		const result = buildUtilityAliasModelInfo('dardcor-utility-small', endpoint, [base], /* baseCount */ 50, undefined);
+		const result = buildUtilityAliasModelInfo('dardcor-utility-small', endpoint, [base], 50, undefined);
 
 		assert.strictEqual(result.synthesized, false);
 		assert.deepStrictEqual(result.info, {
@@ -428,7 +418,7 @@ suite('buildUtilityAliasModelInfo', () => {
 			supportsVision: true,
 		});
 		const base = makeBaseModelInfo({ id: 'gpt-4o-mini', requiresAuthorization: { label: 'octocat' } });
-		const result = buildUtilityAliasModelInfo('dardcor-utility-small', endpoint, [base], /* baseCount */ 50, { label: 'octocat' });
+		const result = buildUtilityAliasModelInfo('dardcor-utility-small', endpoint, [base], 50, { label: 'octocat' });
 
 		assert.deepStrictEqual({
 			synthesized: result.synthesized,
@@ -455,7 +445,7 @@ suite('buildUtilityAliasModelInfo', () => {
 			supportsToolCalls: false,
 			supportsVision: true,
 		});
-		const result = buildUtilityAliasModelInfo('dardcor-utility', endpoint, [], /* baseCount */ 100, { label: 'octocat' });
+		const result = buildUtilityAliasModelInfo('dardcor-utility', endpoint, [], 100, { label: 'octocat' });
 
 		assert.strictEqual(result.synthesized, true);
 		assert.strictEqual(result.info.id, 'dardcor-utility');
@@ -466,13 +456,7 @@ suite('buildUtilityAliasModelInfo', () => {
 		assert.strictEqual(result.info.isUserSelectable, false);
 		assert.strictEqual(result.info.isDefault, false);
 		assert.deepStrictEqual(result.info.capabilities, { toolCalling: false, imageInput: true });
-		// Synthesized alias must carry requiresAuthorization so consumers using
-		// `vscode.lm.selectChatModels({ vendor: 'dardcor', id: 'dardcor-utility' })`
-		// against a BYOK override still go through model-access authorization.
 		assert.deepStrictEqual(result.info.requiresAuthorization, { label: 'octocat' });
-		// 32_000 - 100 (baseCount) - BaseTokensPerCompletion. Use a strict
-		// upper bound to assert the subtraction happened without re-importing
-		// the constant in the test.
 		assert.ok(result.info.maxInputTokens! < 32_000 - 100, `expected maxInputTokens to subtract baseCount and completion reserve, got ${result.info.maxInputTokens}`);
 	});
 });
@@ -492,9 +476,7 @@ suite('reasoning effort schema', () => {
 	});
 
 	test('falls back to first advertised level when preferred is missing', () => {
-		// Claude without 'high' → first
 		assert.strictEqual(pickDefaultReasoningEffort(['low', 'medium'], 'claude-haiku'), 'low');
-		// Other family without 'medium' → first
 		assert.strictEqual(pickDefaultReasoningEffort(['low', 'high'], 'unknown-family'), 'low');
 	});
 
@@ -570,7 +552,6 @@ suite('normalizeTokenPrices', () => {
 	});
 
 	test('converts legacy flat nano-AIU prices to credits per 1M tokens', () => {
-		// Shape returned by the cloud agents endpoint (/agents/swe/models)
 		const result = normalizeTokenPrices({
 			batch_size: 1_000_000,
 			input_price: 500_000_000_000,

@@ -59,7 +59,6 @@ function shouldMergeProviderSpecificData(existing, incoming, hasLegacyProxy, has
   return existing !== undefined || incoming !== undefined || hasLegacyProxy || hasProxyPoolField;
 }
 
-// GET /api/providers/[id] - Get single connection
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
@@ -69,7 +68,6 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Connection not found" }, { status: 404 });
     }
 
-    // Hide sensitive fields
     const result = { ...connection };
     delete result.apiKey;
     delete result.accessToken;
@@ -83,7 +81,6 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT /api/providers/[id] - Update connection
 export async function PUT(request, { params }) {
   try {
     const { id } = await params;
@@ -157,7 +154,6 @@ export async function PUT(request, { params }) {
 
     const updated = await updateProviderConnection(id, updateData);
 
-    // Hide sensitive fields
     const result = { ...updated };
     delete result.apiKey;
     delete result.accessToken;
@@ -171,7 +167,6 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE /api/providers/[id] - Delete connection
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;

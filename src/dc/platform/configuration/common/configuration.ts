@@ -139,13 +139,7 @@ export function isConfigured<T>(configValue: IConfigurationValue<T>): configValu
 }
 
 export interface IConfigurationUpdateOptions {
-	/**
-	 * If `true`, do not notifies the error to user by showing the message box. Default is `false`.
-	 */
 	donotNotifyError?: boolean;
-	/**
-	 * How to handle dirty file when updating the configuration.
-	 */
 	handleDirtyFile?: 'save' | 'revert';
 }
 
@@ -156,37 +150,11 @@ export interface IConfigurationService {
 
 	getConfigurationData(): IConfigurationData | null;
 
-	/**
-	 * Fetches the value of the section for the given overrides.
-	 * Value can be of native type or an object keyed off the section name.
-	 *
-	 * @param section - Section of the configuration. Can be `null` or `undefined`.
-	 * @param overrides - Overrides that has to be applied while fetching
-	 *
-	 */
 	getValue<T>(): T;
 	getValue<T>(section: string): T;
 	getValue<T>(overrides: IConfigurationOverrides): T;
 	getValue<T>(section: string, overrides: IConfigurationOverrides): T;
 
-	/**
-	 * Update a configuration value.
-	 *
-	 * Use `target` to update the configuration in a specific `ConfigurationTarget`.
-	 *
-	 * Use `overrides` to update the configuration for a resource or for override identifiers or both.
-	 *
-	 * Passing a resource through overrides will update the configuration in the workspace folder containing that resource.
-	 *
-	 * *Note 1:* Updating configuration to a default value will remove the configuration from the requested target. If not target is passed, it will be removed from all writeable targets.
-	 *
-	 * *Note 2:* Use `undefined` value to remove the configuration from the given target. If not target is passed, it will be removed from all writeable targets.
-	 *
-	 * Use `donotNotifyError` and set it to `true` to surpresss errors.
-	 *
-	 * @param key setting to be updated
-	 * @param value The new value
-	 */
 	updateValue(key: string, value: unknown): Promise<void>;
 	updateValue(key: string, value: unknown, target: ConfigurationTarget): Promise<void>;
 	updateValue(key: string, value: unknown, overrides: IConfigurationOverrides | IConfigurationUpdateOverrides): Promise<void>;
@@ -273,7 +241,7 @@ export function addToValueTree(settingsTreeRoot: IStringDictionary<unknown>, key
 
 	if (typeof curr === 'object' && curr !== null) {
 		try {
-			(curr as IStringDictionary<unknown>)[last] = value; // workaround https://github.com/microsoft/vscode/issues/13606
+			(curr as IStringDictionary<unknown>)[last] = value;
 		} catch (e) {
 			conflictReporter(`Ignoring ${key} as ${segments.join('.')} is ${JSON.stringify(curr)}`);
 		}
@@ -295,7 +263,6 @@ function doRemoveFromValueTree(valueTree: IStringDictionary<unknown> | unknown, 
 	const valueTreeRecord = valueTree as IStringDictionary<unknown>;
 	const first = segments.shift()!;
 	if (segments.length === 0) {
-		// Reached last segment
 		delete valueTreeRecord[first];
 		return;
 	}
@@ -311,9 +278,6 @@ function doRemoveFromValueTree(valueTree: IStringDictionary<unknown> | unknown, 
 	}
 }
 
-/**
- * A helper function to get the configuration value with a specific settings path (e.g. config.some.setting)
- */
 export function getConfigurationValue<T>(config: IStringDictionary<unknown>, settingPath: string): T | undefined;
 export function getConfigurationValue<T>(config: IStringDictionary<unknown>, settingPath: string, defaultValue: T): T;
 export function getConfigurationValue<T>(config: IStringDictionary<unknown>, settingPath: string, defaultValue?: T): T | undefined {

@@ -18,8 +18,6 @@ suite('Menu', () => {
 		sinon.restore();
 	});
 
-	// A menu positioned under a resting pointer can receive synthetic pointer events,
-	// so hover must react only when the pointer coordinates actually change.
 	test('stationary mouse does not change focus (#110594, #148158)', () => {
 		const host = append(document.body, $('div'));
 		disposables.add(toDisposable(() => host.remove()));

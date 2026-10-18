@@ -51,14 +51,12 @@ export function extractEditor(options: tss.ITreeShakingOptions & { destRoot: str
 
 	console.log(`Running tree shaker with shakeLevel ${tss.toStringShakeLevel(options.shakeLevel)}`);
 
-	// Take the extra included .d.ts files from `tsconfig.monaco.json`
 	options.typings = (tsConfig.include as string[]).filter(includedFile => /\.d\.ts$/.test(includedFile));
 
 	const result = tss.shake(options);
 	for (const fileName in result) {
 		if (result.hasOwnProperty(fileName)) {
 			let fileContents = result[fileName];
-			// Replace .ts? with .js? in new URL() patterns
 			fileContents = fileContents.replace(
 				/(new\s+URL\s*\(\s*['"`][^'"`]*?)\.ts(\?[^'"`]*['"`])/g,
 				'$1.js$2'
@@ -131,7 +129,7 @@ function transportCSS(module: string, enqueue: (module: string) => void, write: 
 	}
 
 	const fileContents = fs.readFileSync(module).toString();
-	const inlineResources = 'base64'; // see https://github.com/microsoft/monaco-editor/issues/148
+	const inlineResources = 'base64';
 
 	const newContents = _rewriteOrInlineUrls(fileContents, inlineResources === 'base64');
 	write(module, newContents);
@@ -141,7 +139,7 @@ function transportCSS(module: string, enqueue: (module: string) => void, write: 
 		return _replaceURL(contents, (url) => {
 			const fontMatch = url.match(/^(.*)\.ttf(\?.*)?$/);
 			if (fontMatch) {
-				const relativeFontPath = `${fontMatch[1]}.ttf`; // trim the optional query parameter
+				const relativeFontPath = `${fontMatch[1]}.ttf`;
 				const fontPath = path.join(path.dirname(module), relativeFontPath);
 				enqueue(fontPath);
 				return relativeFontPath;
@@ -153,7 +151,6 @@ function transportCSS(module: string, enqueue: (module: string) => void, write: 
 			let DATA = ';base64,' + fileContents.toString('base64');
 
 			if (!forceBase64 && /\.svg$/.test(url)) {
-				// .svg => url encode as explained at https://codepen.io/tigt/post/optimizing-svgs-in-data-uris
 				const newText = fileContents.toString()
 					.replace(/"/g, '\'')
 					.replace(/</g, '%3C')
@@ -171,18 +168,14 @@ function transportCSS(module: string, enqueue: (module: string) => void, write: 
 	}
 
 	function _replaceURL(contents: string, replacer: (url: string) => string): string {
-		// Use ")" as the terminator as quotes are oftentimes not used at all
 		return contents.replace(/url\(\s*([^\)]+)\s*\)?/g, (_: string, ...matches: string[]) => {
 			let url = matches[0];
-			// Eliminate starting quotes (the initial whitespace is not captured)
 			if (url.charAt(0) === '"' || url.charAt(0) === '\'') {
 				url = url.substring(1);
 			}
-			// The ending whitespace is captured
 			while (url.length > 0 && (url.charAt(url.length - 1) === ' ' || url.charAt(url.length - 1) === '\t')) {
 				url = url.substring(0, url.length - 1);
 			}
-			// Eliminate ending quotes
 			if (url.charAt(url.length - 1) === '"' || url.charAt(url.length - 1) === '\'') {
 				url = url.substring(0, url.length - 1);
 			}

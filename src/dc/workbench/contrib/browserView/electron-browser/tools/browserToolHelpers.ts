@@ -22,10 +22,6 @@ import type { Page } from 'playwright-core';
 
 export const DEFAULT_ELEMENT_LABEL = localize('browser.element', 'element');
 
-/**
- * Extracts the session ID from a tool invocation context.
- * Falls back to a default string when no session context is available.
- */
 export function getSessionId(invocation: IToolInvocation): string {
 	return invocation.context?.sessionResource?.toString() ?? '<default>';
 }
@@ -37,15 +33,6 @@ export interface FormatBrowserEditorLinesOptions {
 	agentNetworkFilterService?: IAgentNetworkFilterService;
 }
 
-/**
- * Formats a list of browser editors as summary lines such as
- * `- [pageId] Title (url) (active)`. Active/visible hints are
- * derived from the editor service automatically.
- *
- * When {@link FormatBrowserEditorLinesOptions.agentNetworkFilterService} is
- * provided, pages whose URL is blocked by network policy are masked to avoid
- * leaking title or URL to the model.
- */
 export function formatBrowserEditorList(editorService: IEditorService, editors: readonly BrowserEditorInput[], options?: FormatBrowserEditorLinesOptions): string {
 	const activeEditor = editorService.activeEditor;
 	const visibleEditors = new Set(editorService.visibleEditors);
@@ -54,7 +41,6 @@ export function formatBrowserEditorList(editorService: IEditorService, editors: 
 	return editors.map((editor, index) => {
 		const url = editor.url || 'about:blank';
 
-		// If the page URL is blocked by network policy, mask its details.
 		let blocked = false;
 		if (filterService && url !== 'about:blank') {
 			try { blocked = !filterService.isUriAllowed(URI.parse(url)); } catch { }
@@ -65,7 +51,6 @@ export function formatBrowserEditorList(editorService: IEditorService, editors: 
 		const hint = editor === activeEditor ? ' (active)' : visibleEditors.has(editor) ? ' (visible)' : ' (not visible)';
 		const id = options?.excludeIds ? '' : `[${editor.id}] `;
 
-		// By default, use numbers only if we're excluding IDs, so models don't get confused about which ID to use.
 		const bullet = (options?.numbered ?? options?.excludeIds) ? `${index + 1}. ` : '- ';
 		return `${indent}${bullet}${id}${title}${displayUrl}${hint}`;
 	}).join('\n');
@@ -107,9 +92,6 @@ export function getBrowserPagesContext(
 	return value;
 }
 
-/**
- * Creates a markdown link to a browser page.
- */
 export function createBrowserPageLink(pageId: string | URI): string {
 	if (typeof pageId === 'string') {
 		pageId = BrowserViewUri.forId(pageId);
@@ -117,9 +99,6 @@ export function createBrowserPageLink(pageId: string | URI): string {
 	return `[${BrowserEditorInput.DEFAULT_LABEL}](${pageId.toString()}?vscodeLinkType=browser)`;
 }
 
-/**
- * Shared helper for running a Playwright function against a page and returning its result.
- */
 export async function playwrightInvokeRaw<TArgs extends unknown[], TReturn>(
 	playwrightService: IPlaywrightService,
 	sessionId: string,
@@ -130,13 +109,6 @@ export async function playwrightInvokeRaw<TArgs extends unknown[], TReturn>(
 	return playwrightService.invokeFunctionRaw(sessionId, pageId, fn.toString(), ...args);
 }
 
-/**
- * Shared helper for running a Playwright function against a page and returning
- * a tool result. Handles success/error formatting.
- *
- * Calls {@link IPlaywrightService.invokeFunction} without a timeout so the
- * action runs to completion — no deferred results are ever produced.
- */
 export async function playwrightInvoke<TArgs extends unknown[], TReturn>(
 	playwrightService: IPlaywrightService,
 	sessionId: string,
@@ -152,10 +124,6 @@ export async function playwrightInvoke<TArgs extends unknown[], TReturn>(
 	}
 }
 
-/**
- * Convert an {@link IInvokeFunctionResult} to an {@link IToolResult},
- * including any {@link IInvokeFunctionResult.deferredResultId}.
- */
 export function invokeFunctionResultToToolResult(result: IInvokeFunctionResult, code?: string): IToolResult {
 	const content: IToolResult['content'] = [];
 	if (result.result !== undefined) {
@@ -190,57 +158,37 @@ export function errorResult(message: string): IToolResult {
 	};
 }
 
-/**
- * In a remote workspace where remote proxying is not enabled, the integrated
- * browser runs on the local machine and cannot reach the remote's localhost
- * directly. This rewrites a remote localhost URL to the local address of an
- * already-forwarded port so the browser can reach it.
- *
- * Returns the original URL and `rewritten: false` when not applicable (remote
- * proxying is enabled, the URL is not a localhost URL, or the remote port has
- * not been forwarded).
- */
 export function rewriteRemoteLocalhostUrl(
 	url: string,
 	browserViewService: IBrowserViewWorkbenchService,
 	remoteExplorerService: IRemoteExplorerService,
 ): { url: string; rewritten: boolean } {
-	// When proxying is enabled (or we are not in a remote workspace) the browser
-	// can reach the remote host directly, so no rewriting is needed.
 	if (browserViewService.willUseRemoteProxy()) {
 		return { url, rewritten: false };
 	}
 
 	let uri = URI.parse(url);
 
-	// Hostnames are case-insensitive, but the localhost port-mapping matcher is
-	// case-sensitive. Normalize the authority so e.g. `http://LOCALHOST:3000` matches.
 	if (uri.authority) {
 		uri = uri.with({ authority: uri.authority.toLowerCase() });
 	}
 
 	const portMapping = extractLocalHostUriMetaDataForPortMapping(uri);
 	if (!portMapping) {
-		return { url, rewritten: false }; // Not a localhost http(s) URL
+		return { url, rewritten: false };
 	}
 
 	const tunnelModel = remoteExplorerService.tunnelModel;
 	const forwarded = mapHasAddressLocalhostOrAllInterfaces(tunnelModel.forwarded, portMapping.address, portMapping.port)
 		?? mapHasAddressLocalhostOrAllInterfaces(tunnelModel.detected, portMapping.address, portMapping.port);
 	if (!forwarded?.localUri) {
-		return { url, rewritten: false }; // The remote port has not been forwarded; leave the URL as-is
+		return { url, rewritten: false };
 	}
 
-	// The forwarded tunnel's `localUri` carries the configured scheme (e.g. https)
-	// and local authority; keep the original request's path, query and fragment.
 	const rewritten = forwarded.localUri.with({ path: uri.path, query: uri.query, fragment: uri.fragment });
 	return { url: rewritten.toString(), rewritten: true };
 }
 
-/**
- * Builds a text tool-result item informing the agent that a remote localhost
- * URL was rewritten to its forwarded local address.
- */
 export function remoteUrlRewriteNotice(originalUrl: string, rewrittenUrl: string): { kind: 'text'; value: string } {
 	return {
 		kind: 'text',
@@ -248,11 +196,6 @@ export function remoteUrlRewriteNotice(originalUrl: string, rewrittenUrl: string
 	};
 }
 
-/**
- * Checks whether a browser editor with the same host (hostname + port) already exists.
- *
- * @returns All matching {@link BrowserEditorInput}s.
- */
 export function findExistingPagesByHost(
 	browserViewService: IBrowserViewWorkbenchService,
 	url: string,
@@ -277,10 +220,6 @@ export function findExistingPagesByHost(
 	return results;
 }
 
-/**
- * Builds the "already open" tool result returned when an existing page with the
- * same host is found by {@link findExistingPagesByHost}.
- */
 export async function getExistingPagesResult(
 	editorService: IEditorService,
 	existing: BrowserEditorInput[],

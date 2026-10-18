@@ -12,11 +12,6 @@ import { parseRenameCommand } from '../agentHostRenameCommand.js';
 import { AGENT_HOST_TITLE_SOURCE_USER, customChatTitleMetadataKey, customChatTitleSourceMetadataKey, SESSION_CUSTOM_TITLE_KEY, SESSION_CUSTOM_TITLE_SOURCE_KEY } from '../shared/persistSessionMetadata.js';
 import { ILocalChatCommand, ILocalChatCommandContext, ILocalChatCommandHandling, ILocalChatCommandRequest, LocalChatCommandRegistry } from './localChatCommand.js';
 
-/**
- * The generic `/rename [title]` command: renames the session (or an individual
- * peer chat) instead of forwarding the message to the agent SDK. Intercepted
- * for every agent-host session type.
- */
 export class RenameLocalCommand extends Disposable implements ILocalChatCommand {
 
 	readonly name = 'rename';
@@ -36,8 +31,6 @@ export class RenameLocalCommand extends Disposable implements ILocalChatCommand 
 
 	private _run(channel: ProtocolURI, turnId: string, title: string): void {
 		if (title.length === 0) {
-			// `/rename` with no title: nothing to change; the dispatcher still
-			// completes the turn.
 			return;
 		}
 		const chatTarget = isAhpChatChannel(channel) ? channel : undefined;
@@ -56,14 +49,9 @@ export class RenameLocalCommand extends Disposable implements ILocalChatCommand 
 		} else {
 			this._context.dispatch(sessionChannel, { type: ActionType.SessionTitleChanged, title });
 			this._context.markTitleRenamed(sessionChannel);
-			// Server-dispatched actions bypass `handleAction`, so persist the
-			// new title here directly (the client-dispatched rename path relies
-			// on the `SessionTitleChanged` case in `handleAction` instead).
 			this._context.persistSessionFlag(sessionChannel, SESSION_CUSTOM_TITLE_KEY, title);
 			this._context.persistSessionFlag(sessionChannel, SESSION_CUSTOM_TITLE_SOURCE_KEY, AGENT_HOST_TITLE_SOURCE_USER);
 		}
-		// Acknowledge the rename with a brief response so the turn has visible
-		// content in the transcript.
 		this._context.dispatch(channel, {
 			type: ActionType.ChatResponsePart,
 			turnId,

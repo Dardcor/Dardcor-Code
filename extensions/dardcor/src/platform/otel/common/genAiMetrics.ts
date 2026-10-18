@@ -3,16 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CopilotChatAttr, type EditOutcome, type EditSource, GenAiAttr, GitHubCopilotAttr, StdAttr } from './genAiAttributes';
+import { DardcorChatAttr, type EditOutcome, type EditSource, GenAiAttr, DardcorAttr, StdAttr } from './genAiAttributes';
 import type { IOTelService } from './otelService';
 
-/**
- * Pre-configured OTel GenAI metric instruments.
- * All methods are static to avoid per-call allocations (aligned with gemini-cli pattern).
- */
 export class GenAiMetrics {
 
-	// ── GenAI Convention Metrics ──
 
 	static recordOperationDuration(
 		otel: IOTelService,
@@ -60,7 +55,6 @@ export class GenAiMetrics {
 		});
 	}
 
-	// ── Extension-Specific Metrics ──
 
 	static recordToolCallCount(otel: IOTelService, toolName: string, success: boolean): void {
 		otel.incrementCounter('dardcor_chat.tool.call.count', 1, {
@@ -93,10 +87,6 @@ export class GenAiMetrics {
 		});
 	}
 
-	/**
-	 * GenAI-convention time-to-first-chunk histogram (seconds). Emitted for streaming
-	 * responses alongside the legacy `dardcor_chat.time_to_first_token` metric.
-	 */
 	static recordTimeToFirstChunk(
 		otel: IOTelService,
 		ttfcSec: number,
@@ -115,10 +105,6 @@ export class GenAiMetrics {
 		});
 	}
 
-	/**
-	 * GenAI-convention inter-chunk latency histogram (seconds). Recorded once per
-	 * streamed output chunk after the first, measuring the gap since the prior chunk.
-	 */
 	static recordTimePerOutputChunk(
 		otel: IOTelService,
 		interChunkSec: number,
@@ -141,52 +127,45 @@ export class GenAiMetrics {
 		otel.incrementCounter('dardcor_chat.session.count');
 	}
 
-	// ── Agent Activity & Outcome Metrics ──
 
-	/** Accept/reject counter for inline chat and chat editing edits */
 	static recordEditAcceptance(otel: IOTelService, source: EditSource, outcome: EditOutcome, languageId?: string): void {
 		otel.incrementCounter('dardcor_chat.edit.acceptance.count', 1, {
-			[CopilotChatAttr.EDIT_SOURCE]: source,
-			[CopilotChatAttr.EDIT_OUTCOME]: outcome,
-			...(languageId ? { [CopilotChatAttr.LANGUAGE_ID]: languageId } : {}),
+			[DardcorChatAttr.EDIT_SOURCE]: source,
+			[DardcorChatAttr.EDIT_OUTCOME]: outcome,
+			...(languageId ? { [DardcorChatAttr.LANGUAGE_ID]: languageId } : {}),
 		});
 	}
 
-	/** File-level chat editing session outcome (accepted/rejected/saved) */
 	static recordChatEditOutcome(otel: IOTelService, source: EditSource, outcome: EditOutcome, languageId?: string, hasRemainingEdits?: boolean): void {
 		otel.incrementCounter('dardcor_chat.chat_edit.outcome.count', 1, {
-			[CopilotChatAttr.EDIT_SOURCE]: source,
-			[CopilotChatAttr.EDIT_OUTCOME]: outcome,
-			...(languageId ? { [CopilotChatAttr.LANGUAGE_ID]: languageId } : {}),
-			...(hasRemainingEdits !== undefined ? { [CopilotChatAttr.HAS_REMAINING_EDITS]: hasRemainingEdits } : {}),
+			[DardcorChatAttr.EDIT_SOURCE]: source,
+			[DardcorChatAttr.EDIT_OUTCOME]: outcome,
+			...(languageId ? { [DardcorChatAttr.LANGUAGE_ID]: languageId } : {}),
+			...(hasRemainingEdits !== undefined ? { [DardcorChatAttr.HAS_REMAINING_EDITS]: hasRemainingEdits } : {}),
 		});
 	}
 
-	/** 4-gram text similarity survival score */
 	static recordEditSurvivalFourGram(otel: IOTelService, source: EditSource, score: number, timeDelayMs: number): void {
 		otel.recordMetric('dardcor_chat.edit.survival.four_gram', score, {
-			[CopilotChatAttr.EDIT_SOURCE]: source,
-			[CopilotChatAttr.TIME_DELAY_MS]: timeDelayMs,
+			[DardcorChatAttr.EDIT_SOURCE]: source,
+			[DardcorChatAttr.TIME_DELAY_MS]: timeDelayMs,
 		});
 	}
 
-	/** No-revert survival score */
 	static recordEditSurvivalNoRevert(otel: IOTelService, source: EditSource, score: number, timeDelayMs: number): void {
 		otel.recordMetric('dardcor_chat.edit.survival.no_revert', score, {
-			[CopilotChatAttr.EDIT_SOURCE]: source,
-			[CopilotChatAttr.TIME_DELAY_MS]: timeDelayMs,
+			[DardcorChatAttr.EDIT_SOURCE]: source,
+			[DardcorChatAttr.TIME_DELAY_MS]: timeDelayMs,
 		});
 	}
 
-	/** Lines of code added/removed by accepted agent edits */
 	static incrementLinesOfCode(otel: IOTelService, type: 'added' | 'removed', languageId: string | undefined, count: number): void {
 		otel.incrementCounter('dardcor_chat.lines_of_code.count', count, {
 			'type': type,
-			...(languageId ? { [CopilotChatAttr.LANGUAGE_ID]: languageId } : {}),
+			...(languageId ? { [DardcorChatAttr.LANGUAGE_ID]: languageId } : {}),
 		});
 	}
 
-	// ── User Engagement Metrics ──
 
 	static incrementUserActionCount(otel: IOTelService, action: string): void {
 		otel.incrementCounter('dardcor_chat.user.action.count', 1, {
@@ -200,7 +179,6 @@ export class GenAiMetrics {
 		});
 	}
 
-	// ── Agent Internals Metrics ──
 
 	static incrementAgentEditResponseCount(otel: IOTelService, outcome: string): void {
 		otel.incrementCounter('dardcor_chat.agent.edit_response.count', 1, {
@@ -214,7 +192,6 @@ export class GenAiMetrics {
 		});
 	}
 
-	// ── Background/Cloud Metrics ──
 
 	static incrementPullRequestCount(otel: IOTelService): void {
 		otel.incrementCounter('dardcor_chat.pull_request.count');
@@ -223,38 +200,32 @@ export class GenAiMetrics {
 	static incrementCloudSessionCount(otel: IOTelService, partnerAgent: string, backendVersion?: string): void {
 		otel.incrementCounter('dardcor_chat.cloud.session.count', 1, {
 			'partner_agent': partnerAgent,
-			...(backendVersion ? { [GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: backendVersion } : {}),
+			...(backendVersion ? { [DardcorAttr.CLOUD_BACKEND_VERSION]: backendVersion } : {}),
 		});
 	}
 
 	static incrementCloudPrReadyCount(otel: IOTelService, backendVersion?: string): void {
-		otel.incrementCounter('dardcor_chat.cloud.pr_ready.count', 1, backendVersion ? { [GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: backendVersion } : undefined);
+		otel.incrementCounter('dardcor_chat.cloud.pr_ready.count', 1, backendVersion ? { [DardcorAttr.CLOUD_BACKEND_VERSION]: backendVersion } : undefined);
 	}
 
-	/**
-	 * Cloud backend funnel metric: records a single backend operation outcome (e.g. createSession,
-	 * fetchSessionList, followUp) tagged with the backend version so v1 (Jobs API) and v2 (Task API) can
-	 * be compared apples-to-apples. Emits a count and, when provided, an operation-duration histogram.
-	 */
 	static recordCloudOperation(otel: IOTelService, operation: string, backendVersion: string, success: boolean, durationMs?: number): void {
 		otel.incrementCounter('dardcor_chat.cloud.operation.count', 1, {
 			'operation': operation,
-			[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: backendVersion,
+			[DardcorAttr.CLOUD_BACKEND_VERSION]: backendVersion,
 			'success': success,
 		});
 		if (durationMs !== undefined) {
 			otel.recordMetric('dardcor_chat.cloud.operation.duration', durationMs, {
 				'operation': operation,
-				[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: backendVersion,
+				[DardcorAttr.CLOUD_BACKEND_VERSION]: backendVersion,
 			});
 		}
 	}
 
-	/** Cloud backend guardrail metric: increments the per-backend-version error counter for a failed backend operation. */
 	static incrementCloudError(otel: IOTelService, operation: string, backendVersion: string, errorType: string): void {
 		otel.incrementCounter('dardcor_chat.cloud.error.count', 1, {
 			'operation': operation,
-			[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: backendVersion,
+			[DardcorAttr.CLOUD_BACKEND_VERSION]: backendVersion,
 			[StdAttr.ERROR_TYPE]: errorType,
 		});
 	}

@@ -7,17 +7,12 @@ import * as assert from 'assert';
 import { commands, ConfigurationTarget, CustomExecution, Disposable, env, Event, EventEmitter, Pseudoterminal, ShellExecution, Task, TaskDefinition, TaskProcessStartEvent, tasks, TaskScope, Terminal, UIKind, window, workspace } from 'vscode';
 import { assertNoRpc } from '../utils';
 
-// Disable tasks tests:
-// - Web https://github.com/microsoft/vscode/issues/90528
 ((env.uiKind === UIKind.Web) ? suite.skip : suite)('vscode API - tasks', () => {
 
 	suiteSetup(async () => {
 		const config = workspace.getConfiguration('terminal.integrated');
-		// Disable exit alerts as tests may trigger then and we're not testing the notifications
 		await config.update('showExitAlert', false, ConfigurationTarget.Global);
-		// Canvas may cause problems when running in a container
 		await config.update('gpuAcceleration', 'off', ConfigurationTarget.Global);
-		// Disable env var relaunch for tests to prevent terminals relaunching themselves
 		await config.update('environmentChangesRelaunch', false, ConfigurationTarget.Global);
 	});
 
@@ -77,8 +72,6 @@ import { assertNoRpc } from '../utils';
 			});
 
 			test.skip('dependsOn task should start with a different processId (#118256)', async () => {
-				// Set up dependsOn task by creating tasks.json since this is not possible via the API
-				// Tasks API
 				const tasksConfig = workspace.getConfiguration('tasks');
 				await tasksConfig.update('version', '2.0.0', ConfigurationTarget.Workspace);
 				await tasksConfig.update('tasks', [
@@ -106,7 +99,6 @@ import { assertNoRpc } from '../utils';
 				});
 
 				const waitForStartEvent1 = new Promise<TaskProcessStartEvent>(r => {
-					// Listen for first task and verify valid process ID
 					const listener = tasks.onDidStartTaskProcess(async (e) => {
 						if (e.execution.task.name === 'taskToDependOn') {
 							listener.dispose();
@@ -116,8 +108,6 @@ import { assertNoRpc } from '../utils';
 				});
 
 				const waitForStartEvent2 = new Promise<TaskProcessStartEvent>(r => {
-					// Listen for second task, verify valid process ID and that it's not the process ID of
-					// the first task
 					const listener = tasks.onDidStartTaskProcess(async (e) => {
 						if (e.execution.task.name === 'Run this task') {
 							listener.dispose();
@@ -126,7 +116,6 @@ import { assertNoRpc } from '../utils';
 					});
 				});
 
-				// Run the task
 				commands.executeCommand('workbench.action.tasks.runTask', 'Run this task');
 
 				const startEvent1 = await waitForStartEvent1;
@@ -136,7 +125,6 @@ import { assertNoRpc } from '../utils';
 				assert.ok(startEvent2.processId);
 				assert.notStrictEqual(startEvent1.processId, startEvent2.processId);
 				await waitForTaskToFinish;
-				// Clear out tasks config
 				await tasksConfig.update('tasks', []);
 			});
 		});
@@ -145,18 +133,11 @@ import { assertNoRpc } from '../utils';
 			test('task should start and shutdown successfully', async () => {
 				window.terminals.forEach(terminal => terminal.dispose());
 				interface ICustomTestingTaskDefinition extends TaskDefinition {
-					/**
-					 * One of the task properties. This can be used to customize the task in the tasks.json
-					 */
 					customProp1: string;
 				}
 				const taskType: string = 'customTesting';
 				const taskName = 'First custom task';
 				let isPseudoterminalClosed = false;
-				// There's a strict order that should be observed here:
-				// 1. The terminal opens
-				// 2. The terminal is written to.
-				// 3. The terminal is closed.
 				enum TestOrder {
 					Start,
 					TerminalOpened,
@@ -166,7 +147,6 @@ import { assertNoRpc } from '../utils';
 
 				let testOrder = TestOrder.Start;
 
-				// Launch the task
 				const terminal = await new Promise<Terminal>(r => {
 					disposables.push(window.onDidOpenTerminal(e => {
 						assert.strictEqual(testOrder, TestOrder.Start);
@@ -200,7 +180,6 @@ import { assertNoRpc } from '../utils';
 					commands.executeCommand('workbench.action.tasks.runTask', `${taskType}: ${taskName}`);
 				});
 
-				// Verify the output
 				await new Promise<void>(r => {
 					disposables.push(window.onDidWriteTerminalData(e => {
 						if (e.terminal !== terminal) {
@@ -214,7 +193,6 @@ import { assertNoRpc } from '../utils';
 					}));
 				});
 
-				// Dispose the terminal
 				await new Promise<void>(r => {
 					disposables.push(window.onDidCloseTerminal((e) => {
 						if (e !== terminal) {
@@ -222,8 +200,6 @@ import { assertNoRpc } from '../utils';
 						}
 						assert.strictEqual(testOrder, TestOrder.TerminalWritten);
 						testOrder = TestOrder.TerminalClosed;
-						// Pseudoterminal.close should have fired by now, additionally we want
-						// to make sure all events are flushed before continuing with more tests
 						assert.ok(isPseudoterminalClosed);
 						r();
 					}));
@@ -233,15 +209,11 @@ import { assertNoRpc } from '../utils';
 
 			test('sync task should flush all data on close', async () => {
 				interface ICustomTestingTaskDefinition extends TaskDefinition {
-					/**
-					 * One of the task properties. This can be used to customize the task in the tasks.json
-					 */
 					customProp1: string;
 				}
 				const taskType: string = 'customTesting';
 				const taskName = 'First custom task';
 
-				// Launch the task
 				const terminal = await new Promise<Terminal>(r => {
 					disposables.push(window.onDidOpenTerminal(e => r(e)));
 					disposables.push(tasks.registerTaskProvider(taskType, {
@@ -276,7 +248,6 @@ import { assertNoRpc } from '../utils';
 					commands.executeCommand('workbench.action.tasks.runTask', `${taskType}: ${taskName}`);
 				});
 
-				// Verify the output
 				await new Promise<void>(r => {
 					disposables.push(window.onDidWriteTerminalData(e => {
 						if (e.terminal !== terminal) {
@@ -287,7 +258,6 @@ import { assertNoRpc } from '../utils';
 					}));
 				});
 
-				// Dispose the terminal
 				await new Promise<void>(r => {
 					disposables.push(window.onDidCloseTerminal(() => r()));
 					terminal.dispose();
@@ -355,7 +325,6 @@ import { assertNoRpc } from '../utils';
 			});
 
 			test('A task can be fetched with default task group information', async () => {
-				// Add default to tasks.json since this is not possible using an API yet.
 				const tasksConfig = workspace.getConfiguration('tasks');
 				await tasksConfig.update('version', '2.0.0', ConfigurationTarget.Workspace);
 				await tasksConfig.update('tasks', [
@@ -379,7 +348,6 @@ import { assertNoRpc } from '../utils';
 				} else {
 					assert.fail('fetched task can\'t be undefined');
 				}
-				// Reset tasks.json
 				await tasksConfig.update('tasks', []);
 			});
 

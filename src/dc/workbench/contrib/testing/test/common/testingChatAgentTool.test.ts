@@ -277,7 +277,7 @@ suite('Workbench - RunTestTool', () => {
 			const summary = await getCoverageSummary(result, undefined);
 			assert.ok(summary.includes('<coverageSummary>'));
 			assert.ok(summary.includes(fileA.fsPath));
-			assert.ok(!summary.includes(fileB.fsPath)); // 100% covered, excluded
+			assert.ok(!summary.includes(fileB.fsPath));
 		});
 
 		test('returns detailed summary for specified coverageFiles', async () => {
@@ -474,7 +474,7 @@ suite('Workbench - RunTestTool', () => {
 				makeStatement(45, 0),
 				makeStatement(67, 0, 72),
 				makeStatement(100, 0, 105),
-				makeStatement(50, 5), // covered
+				makeStatement(50, 5),
 			];
 			const file = createFileCov(uri, { covered: 5, total: 11 }, details);
 			const output = await getFileCoverageDetails(file, uri.fsPath);

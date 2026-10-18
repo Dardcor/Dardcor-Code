@@ -72,8 +72,6 @@ class UpdateImportsOnFileRenameHandler extends Disposable {
 					continue;
 				}
 
-				// Try to get a js/ts file that is being moved
-				// For directory moves, this returns a js/ts file under the directory.
 				const jsTsFileThatIsBeingMoved = await this.getJsTsFileBeingMoved(newUri);
 				if (!jsTsFileThatIsBeingMoved || !this.client.toTsFilePath(jsTsFileThatIsBeingMoved)) {
 					continue;
@@ -101,7 +99,6 @@ class UpdateImportsOnFileRenameHandler extends Disposable {
 			for (const { oldUri, newUri, newFilePath, oldFilePath, jsTsFileThatIsBeingMoved } of group) {
 				const document = await vscode.workspace.openTextDocument(jsTsFileThatIsBeingMoved);
 
-				// Make sure TS knows about file
 				this.client.bufferSyncSupport.closeResource(oldUri);
 				this.client.bufferSyncSupport.openTextDocument(document);
 
@@ -234,7 +231,6 @@ class UpdateImportsOnFileRenameHandler extends Disposable {
 		const groups = new Map<string, Set<RenameAction>>();
 
 		for (const rename of renames) {
-			// Group renames by type (js/ts) and by workspace.
 			const key = `${this.client.getWorkspaceRootForResource(rename.jsTsFileThatIsBeingMoved)?.fsPath}@@@${doesResourceLookLikeATypeScriptFile(rename.jsTsFileThatIsBeingMoved)}`;
 			if (!groups.has(key)) {
 				groups.set(key, new Set());

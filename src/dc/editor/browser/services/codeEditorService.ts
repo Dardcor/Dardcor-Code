@@ -38,9 +38,6 @@ export interface ICodeEditorService {
 	removeDiffEditor(editor: IDiffEditor): void;
 	listDiffEditors(): readonly IDiffEditor[];
 
-	/**
-	 * Returns the current focused code editor (if the focus is in the editor or in an editor widget) or null.
-	 */
 	getFocusedCodeEditor(): ICodeEditor | null;
 
 	registerDecorationType(description: string, key: string, options: IDecorationRenderOptions, parentTypeKey?: string, editor?: ICodeEditor): IDisposable;

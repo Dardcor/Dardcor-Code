@@ -54,9 +54,7 @@ function parseArgs(args: string[]): { logTopic: string; filePath: string } | 'he
 	return { logTopic, filePath };
 }
 
-// Matches the start of a log line: timestamp [level] [TOPIC]...
 const LOG_LINE_PATTERN = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \[/;
-// Matches the timestamp prefix to strip it
 const TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} /;
 
 function stripTimestamp(line: string): string {
@@ -77,7 +75,6 @@ function filterLogByTopic(content: string, topic: string): string {
 
 	function flushEntry() {
 		if (keepCurrentEntry && currentLogEntry.length > 0) {
-			// Strip timestamp from the first line of the entry
 			currentLogEntry[0] = stripTimestamp(currentLogEntry[0]);
 			result.push(...currentLogEntry);
 		}
@@ -87,17 +84,14 @@ function filterLogByTopic(content: string, topic: string): string {
 
 	for (const line of lines) {
 		if (LOG_LINE_PATTERN.test(line)) {
-			// New log entry starts - flush the previous one
 			flushEntry();
 			currentLogEntry.push(line);
 			keepCurrentEntry = topicPattern.test(line);
 		} else {
-			// Continuation line (like "- `ERROR: ...`")
 			currentLogEntry.push(line);
 		}
 	}
 
-	// Flush the last entry
 	flushEntry();
 
 	return result.join('\n');

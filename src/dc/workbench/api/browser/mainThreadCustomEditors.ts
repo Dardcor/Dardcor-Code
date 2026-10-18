@@ -122,7 +122,6 @@ export class MainThreadCustomEditors extends Disposable implements extHostProtoc
 			return matchedWorkingCopies;
 		}));
 
-		// This reviver's only job is to activate custom editor extensions.
 		this._register(_webviewWorkbenchService.registerResolver({
 			canResolve: (webview: WebviewInput) => {
 				if (webview instanceof CustomEditorInput || webview instanceof CustomEditorDiffInput || webview instanceof CustomEditorSideBySideDiffInput) {
@@ -133,7 +132,6 @@ export class MainThreadCustomEditors extends Disposable implements extHostProtoc
 			resolveWebview: () => { throw new Error('not implemented'); }
 		}));
 
-		// Working copy operations
 		this._register(workingCopyFileService.onWillRunWorkingCopyFileOperation(async e => this.onWillRunWorkingCopyFileOperation(e)));
 	}
 
@@ -202,8 +200,6 @@ export class MainThreadCustomEditors extends Disposable implements extHostProtoc
 
 				const resource = webviewInput instanceof CustomEditorDiffInput ? webviewInput.modifiedResource : webviewInput.resource;
 
-				// If there's an old resource this was a move and we must resolve the backup at the same time as the webview
-				// This is because the backup must be ready upon model creation, and the input resolve method comes after
 				let backupId: string | undefined;
 				if (webviewInput instanceof CustomEditorInput) {
 					backupId = webviewInput.backupId;
@@ -249,7 +245,6 @@ export class MainThreadCustomEditors extends Disposable implements extHostProtoc
 				const disposeModelRefs = () => {
 					additionalModelRefs.dispose();
 
-					// If the model is still dirty, make sure we have time to save it
 					if (resolvedModelRef.object.isDirty()) {
 						const sub = resolvedModelRef.object.onDidChangeDirty(() => {
 							if (!resolvedModelRef.object.isDirty()) {
@@ -269,8 +264,6 @@ export class MainThreadCustomEditors extends Disposable implements extHostProtoc
 					disposeModelRefs();
 				});
 
-				// Also listen for when the input is disposed (e.g., during SaveAs when the webview is transferred to a new editor).
-				// In this case, webview.onDidDispose won't fire because the webview is reused.
 				const inputDisposeSub = webviewInput.onWillDispose(() => {
 					inputDisposeSub.dispose();
 					disposeSub.dispose();
@@ -452,7 +445,6 @@ export class MainThreadCustomEditors extends Disposable implements extHostProtoc
 		return model;
 	}
 
-	//#region Working Copy
 	private async onWillRunWorkingCopyFileOperation(e: WorkingCopyFileEvent) {
 		if (e.operation !== FileOperation.MOVE) {
 			return;
@@ -468,14 +460,12 @@ export class MainThreadCustomEditors extends Disposable implements extHostProtoc
 				if (model instanceof MainThreadCustomEditorModel && model.isDirty()) {
 					const workingCopy = await model.backup(CancellationToken.None);
 					if (workingCopy.meta) {
-						// This cast is safe because we do an instanceof check above and a custom document backup data is always returned
 						this._editorRenameBackups.set(model.editorResource.toString(), workingCopy.meta as CustomDocumentBackupData);
 					}
 				}
 			}
 		})());
 	}
-	//#endregion
 }
 
 namespace HotExitState {
@@ -513,16 +503,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 
 	private _ongoingSave?: CancelablePromise<void>;
 
-	// TODO@mjbvz consider to enable a `typeId` that is specific for custom
-	// editors. Using a distinct `typeId` allows the working copy to have
-	// any resource (including file based resources) even if other working
-	// copies exist with the same resource.
-	//
-	// IMPORTANT: changing the `typeId` has an impact on backups for this
-	// working copy. Any value that is not the empty string will be used
-	// as seed to the backup. Only change the `typeId` if you have implemented
-	// a fallback solution to resolve any existing backups that do not have
-	// this seed.
 	readonly typeId = NO_TYPE_ID;
 
 	public static async create(
@@ -543,9 +523,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 		}
 		const { editable } = await proxy.$createCustomDocument(resource, viewType, options.backupId, untitledDocumentData, cancellation);
 
-		// Now that the extension has received the untitledDocumentData, revert
-		// the untitled text model so it is no longer tracked as a separate dirty
-		// working copy (avoids double-dirty prompts, see #125293).
 		if (untitledDocumentData && resource.scheme === Schemas.untitled) {
 			untitledTextEditorService.get(resource)?.revert();
 		}
@@ -574,8 +551,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 
 		this._fromBackup = fromBackup;
 
-		// Normally means we're re-opening an untitled file (set this before registering the working copy
-		// so that dirty state is correct when first queried).
 		this._isDirtyFromContentChange = startDirty;
 
 		if (_editable) {
@@ -601,9 +576,7 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 		super.dispose();
 	}
 
-	//#region IWorkingCopy
 
-	// Make sure each custom editor has a unique resource for backup and edits
 	private static toWorkingCopyResource(viewType: string, resource: URI) {
 		const authority = viewType.replace(/[^a-z0-9\-_]/gi, '-');
 		const path = `/${multibyteAwareBtoa(resource.with({ query: null, fragment: null }).toString(true))}`;
@@ -648,7 +621,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 
 	readonly onDidChangeReadonly = Event.None;
 
-	//#endregion
 
 	public isReadonly(): boolean {
 		return !this._editable;
@@ -694,7 +666,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 		}
 
 		if (this._currentEditIndex < 0) {
-			// nothing to undo
 			return;
 		}
 
@@ -711,7 +682,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 		}
 
 		if (this._currentEditIndex >= this._edits.length - 1) {
-			// nothing to redo
 			return;
 		}
 
@@ -769,7 +739,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 	public async save(options?: ISaveOptions): Promise<boolean> {
 		const result = !!await this.saveCustomEditor(options);
 
-		// Emit Save Event
 		if (result) {
 			this._onDidSave.fire({ reason: options?.reason, source: options?.source });
 		}
@@ -799,7 +768,7 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 		try {
 			await savePromise;
 
-			if (this._ongoingSave === savePromise) { // Make sure we are still doing the same save
+			if (this._ongoingSave === savePromise) {
 				this.change(() => {
 					this._isDirtyFromContentChange = false;
 					this._savePoint = this._currentEditIndex;
@@ -807,7 +776,7 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 				});
 			}
 		} finally {
-			if (this._ongoingSave === savePromise) { // Make sure we are still doing the same save
+			if (this._ongoingSave === savePromise) {
 				this._ongoingSave = undefined;
 			}
 		}
@@ -828,7 +797,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 
 	public async saveCustomEditorAs(resource: URI, targetResource: URI, _options?: ISaveOptions): Promise<boolean> {
 		if (this._editable) {
-			// TODO: handle cancellation
 			await createCancelablePromise(token => this._proxy.$onSaveAs(this._editorResource, this.viewType, targetResource, token));
 			this.change(() => {
 				this._isDirtyFromContentChange = false;
@@ -837,8 +805,7 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 			});
 			return true;
 		} else {
-			// Since the editor is readonly, just copy the file over
-			await this.fileService.copy(resource, targetResource, false /* overwrite */);
+			await this.fileService.copy(resource, targetResource, false );
 			return true;
 		}
 	}
@@ -893,7 +860,6 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 		let errorMessage = '';
 		try {
 			const backupId = await pendingState.operation;
-			// Make sure state has not changed in the meantime
 			if (this._hotExitState === pendingState) {
 				this._hotExitState = HotExitState.Allowed;
 				backupData.meta!.backupId = backupId;
@@ -901,11 +867,9 @@ class MainThreadCustomEditorModel extends ResourceWorkingCopy implements ICustom
 			}
 		} catch (e) {
 			if (isCancellationError(e)) {
-				// This is expected
 				throw e;
 			}
 
-			// Otherwise it could be a real error. Make sure state has not changed in the meantime.
 			if (this._hotExitState === pendingState) {
 				this._hotExitState = HotExitState.NotAllowed;
 			}

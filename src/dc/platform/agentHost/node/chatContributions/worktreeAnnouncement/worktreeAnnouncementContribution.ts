@@ -9,7 +9,6 @@ import { type IAgentHostChatContribution, type IAgentHostChatContributionContext
 import { isDefaultChatUri, type Turn } from '../../../common/state/sessionState.js';
 import { IAgentHostWorktreeIsolation } from '../../shared/worktreeIsolation.js';
 
-/** Restores the worktree notice on the default chat when isolation is configured. */
 export class WorktreeAnnouncementContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'worktreeAnnouncement';

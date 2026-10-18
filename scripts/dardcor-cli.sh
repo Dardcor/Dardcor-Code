@@ -19,18 +19,15 @@ function dardcor_cli() {
 		CODE=".build/electron/$NAME"
 	fi
 
-	# Get electron, compile, built-in extensions
 	if [[ -z "${DARDCOR_SKIP_PRELAUNCH}" ]] && [[ -z "${VSCODE_SKIP_PRELAUNCH}" ]]; then
 		node build/lib/preLaunch.ts
 	fi
 
-	# Manage built-in extensions
 	if [[ "$1" == "--builtin" ]]; then
 		exec "$CODE" build/builtin
 		return
 	fi
 
-	# Disable test extension
 	DISABLE_TEST_EXTENSION="--disable-extension=dardcor.dardcor-api-tests"
 	if [[ "$@" == *"--extensionTestsPath"* ]]; then
 		DISABLE_TEST_EXTENSION=""

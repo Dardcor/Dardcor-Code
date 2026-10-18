@@ -3,15 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Action and notification types for the sessions process protocol.
-// Re-exports from the auto-generated protocol layer with local aliases.
-//
-// VS Code-specific additions:
-//   - IToolCallStartAction extends protocol with `toolKind` and `language`
-//   - isRootAction / isSessionAction type guards
-//   - INotification alias for ProtocolNotification
 
-// ---- Re-exports from protocol -----------------------------------------------
 
 export {
 	ActionType,
@@ -92,12 +84,6 @@ export {
 	type AuthRequiredParams,
 } from './protocol/notifications.js';
 
-/**
- * String discriminants for the protocol notification methods that previously
- * lived inside a `notification` wrapper. These values are the JSON-RPC method
- * names sent over the wire by a channels-era server; they are also the `type`
- * discriminant on {@link ProtocolNotification} variants.
- */
 export const NotificationType = {
 	SessionAdded: 'root/sessionAdded',
 	SessionRemoved: 'root/sessionRemoved',
@@ -107,8 +93,6 @@ export const NotificationType = {
 } as const;
 export type NotificationType = typeof NotificationType[keyof typeof NotificationType];
 
-// ---- Local aliases for short names ------------------------------------------
-// Consumers use these shorter names; they're type-only aliases.
 
 import {
 	ActionType,
@@ -149,7 +133,6 @@ import type { SessionAddedParams, SessionRemovedParams, SessionSummaryChangedPar
 import type { RootAction as IRootAction_, SessionAction as ISessionAction_, ChatAction as IChatAction_, ClientSessionAction as IClientSessionAction_, ServerSessionAction as IServerSessionAction_, ClientChatAction as IClientChatAction_, ServerChatAction as IServerChatAction_, TerminalAction as ITerminalAction_, ClientTerminalAction as IClientTerminalAction_, ChangesetAction as IChangesetAction_, ClientChangesetAction as IClientChangesetAction_, AnnotationsAction as IAnnotationsAction_, ClientAnnotationsAction as IClientAnnotationsAction_, AutomationAction as IAutomationAction_, ClientAutomationAction as IClientAutomationAction_, AutomationRunAction as IAutomationRunAction_, ClientAutomationRunAction as IClientAutomationRunAction_ } from './protocol/action-origin.generated.js';
 
 export type SessionSummaryChanges = Omit<Partial<SessionSummary>, 'activity'> & {
-	/** `null` explicitly clears activity; omission leaves it unchanged. */
 	activity?: string | null;
 };
 
@@ -157,12 +140,6 @@ export type SessionSummaryChangedParams = Omit<ProtocolSessionSummaryChangedPara
 	readonly changes: SessionSummaryChanges;
 };
 
-/**
- * Discriminated union of all server→client protocol notifications other than
- * the action envelope. Each variant carries its protocol `method` so callers
- * can switch on `type` the same way they did against the old `NotificationType`
- * enum.
- */
 export type ProtocolNotification =
 	| ({ type: 'root/sessionAdded' } & SessionAddedParams)
 	| ({ type: 'root/sessionRemoved' } & SessionRemovedParams)
@@ -188,12 +165,10 @@ export type ClientAutomationAction = IClientAutomationAction_;
 export type AutomationRunAction = IAutomationRunAction_;
 export type ClientAutomationRunAction = IClientAutomationRunAction_;
 
-// Root actions
 export type IAgentsChangedAction = RootAgentsChangedAction;
 export type IActiveSessionsChangedAction = RootActiveSessionsChangedAction;
 export type IRootConfigChangedAction = RootConfigChangedAction;
 
-// Chat/turn actions — short aliases (turns now live on the chat channel)
 export type ITurnStartedAction = ChatTurnStartedAction;
 export type IDeltaAction = ChatDeltaAction;
 export type IResponsePartAction = ChatResponsePartAction;
@@ -221,16 +196,13 @@ export type IQueuedMessagesReorderedAction = ChatQueuedMessagesReorderedAction;
 export type IIsReadChangedAction = SessionIsReadChangedAction;
 export type IIsArchivedChangedAction = SessionIsArchivedChangedAction;
 
-/** Session-level working-directory mutations. */
 export type SessionWorkingDirectoryAction =
 	| SessionWorkingDirectorySetAction
 	| SessionWorkingDirectoryRemovedAction
 	| SessionWorkingDirectoryReplacedAction;
 
-// Notifications
 export type INotification = ProtocolNotification;
 
-// ---- Type guards ------------------------------------------------------------
 
 export function isRootAction(action: StateAction): action is RootAction {
 	return action.type.startsWith('root/');
@@ -264,11 +236,6 @@ export function isAutomationRunAction(action: StateAction): action is Automation
 	return action.type.startsWith('automationRun/');
 }
 
-/**
- * Whether `action` only toggles durable session metadata (archived / read)
- * rather than mutating the conversation. These carry no intent to open a
- * session, so the host applies them without materializing it.
- */
 export function isPassiveSessionMetadataAction(action: StateAction): action is SessionIsArchivedChangedAction | SessionIsReadChangedAction {
 	return action.type === ActionType.SessionIsArchivedChanged
 		|| action.type === ActionType.SessionIsReadChanged;

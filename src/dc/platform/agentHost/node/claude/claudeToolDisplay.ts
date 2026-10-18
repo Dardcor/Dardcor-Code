@@ -13,27 +13,7 @@ import { toToolCallMeta, type IToolCallMeta, type ToolKind } from '../../common/
 import type { StringOrMarkdown } from '../../common/state/protocol/state.js';
 import { getServerToolDisplay } from '../shared/serverToolGroups.js';
 
-/**
- * Phase 7 S4 — pure tool-name → display/permission helpers for Claude.
- *
- * Mirrors the shape of [copilotToolDisplay.ts](../copilot/copilotToolDisplay.ts)
- * but is keyed off the SDK's built-in tool list. The mapping table lives
- * here (and is snapshot-tested in
- * [claudeToolDisplay.test.ts](../../test/node/claudeToolDisplay.test.ts))
- * so renames of either the SDK tool names or the host's `permissionKind`
- * union flow through compile-checks and the snapshot diff.
- *
- * No I/O, no DI; safe to import from any layer of `agentHost`.
- */
 
-/**
- * Auto-approval kind reported alongside `pending_confirmation` signals
- * (see `IAgentToolPendingConfirmationSignal.permissionKind` in
- * [agentService.ts:317](../../common/agentService.ts#L317)).
- *
- * Phase 7 only emits the subset relevant to Claude's built-in tools —
- * `hook` and `memory` are reserved for later phases.
- */
 export type ClaudePermissionKind =
 	| 'shell'
 	| 'write'
@@ -43,20 +23,8 @@ export type ClaudePermissionKind =
 	| 'skill'
 	| 'custom-tool';
 
-/**
- * Phase 8.5 — rendering hint for the workbench. Drives terminal /
- * search / subagent renderers (the workbench picks a renderer off
- * `_meta.toolKind`; unknown values fall through to the generic tool
- * renderer). Mirror of
- * [`copilotToolDisplay.getToolKind`](../copilot/copilotToolDisplay.ts).
- */
 export type ClaudeToolKind = ToolKind;
 
-/**
- * Which field on the SDK's `tool_input` carries the path/url surfaced
- * to the user (and tracked by Phase 8 for file-edit tools). One field
- * per tool — tools without a path-bearing field omit this.
- */
 type ClaudeToolPathField = 'file_path' | 'notebook_path' | 'path' | 'url';
 
 /**
@@ -74,59 +42,36 @@ type ClaudeToolPathField = 'file_path' | 'notebook_path' | 'path' | 'url';
  */
 interface ClaudeToolRow {
 	readonly permissionKind: ClaudePermissionKind;
-	/** Field on `tool_input` carrying the path/url for this tool, if any. */
 	readonly pathField?: ClaudeToolPathField;
-	/** True for tools whose execution writes to disk and is tracked by `FileEditTracker` (Phase 8). */
 	readonly isFileEdit?: true;
-	/**
-	 * True for tools the SDK never auto-approves under any
-	 * `permissionMode` (so they always reach `canUseTool`). Drives
-	 * {@link INTERACTIVE_CLAUDE_TOOLS}.
-	 */
 	readonly interactive?: true;
-	/**
-	 * Phase 8.5 — rendering hint for the workbench. Omit for tools that
-	 * use the generic renderer without specialized streaming behavior.
-	 */
 	readonly toolKind?: ClaudeToolKind;
 }
 
 const TOOL_ROWS: { readonly [toolName: string]: ClaudeToolRow } = {
-	// shell tools — no `language` is carried: the workbench picks
-	// `'shellscript'` from the tool name (it only special-cases
-	// `'powershell'`), and the SDK's `Bash` tool is the generic shell
-	// entry point (bash on POSIX, Git Bash on Windows), so claiming a
-	// specific dialect here would be misleading and unused.
 	Bash: { permissionKind: 'shell', toolKind: 'terminal' },
 	BashOutput: { permissionKind: 'shell', toolKind: 'terminal' },
 	KillBash: { permissionKind: 'shell', toolKind: 'terminal' },
 
-	// read tools
 	Read: { permissionKind: 'read', pathField: 'file_path', toolKind: 'read' },
 	Glob: { permissionKind: 'read', pathField: 'path', toolKind: 'search' },
 	Grep: { permissionKind: 'read', pathField: 'path', toolKind: 'search' },
 	LS: { permissionKind: 'read', pathField: 'path' },
 	NotebookRead: { permissionKind: 'read', pathField: 'notebook_path', toolKind: 'read' },
 
-	// write tools
 	Write: { permissionKind: 'write', pathField: 'file_path', isFileEdit: true },
 	Edit: { permissionKind: 'write', pathField: 'file_path', isFileEdit: true },
 	MultiEdit: { permissionKind: 'write', pathField: 'file_path', isFileEdit: true },
 	NotebookEdit: { permissionKind: 'write', pathField: 'notebook_path', isFileEdit: true },
 	TodoWrite: { permissionKind: 'write' },
 
-	// network tools
 	WebFetch: { permissionKind: 'url', pathField: 'url' },
 
-	// host-routed / custom
 	Task: { permissionKind: 'custom-tool', toolKind: 'subagent' },
 	Agent: { permissionKind: 'custom-tool', toolKind: 'subagent' },
 	ExitPlanMode: { permissionKind: 'custom-tool', interactive: true },
 	AskUserQuestion: { permissionKind: 'custom-tool', interactive: true },
 
-	// skill + task-list family — host-routed custom tools that render in the
-	// generic tool renderer (no `toolKind`) but carry rich invocation /
-	// past-tense messages so their collapsed row is self-explanatory.
 	Skill: { permissionKind: 'skill' },
 	TaskCreate: { permissionKind: 'custom-tool' },
 	TaskUpdate: { permissionKind: 'custom-tool' },
@@ -136,10 +81,6 @@ const TOOL_ROWS: { readonly [toolName: string]: ClaudeToolRow } = {
 
 const MCP_TOOL_PREFIX = 'mcp__';
 
-/**
- * S4 row lookup. Falls back to `'custom-tool'` for unknown tools so
- * Claude's growing built-in list never breaks the host.
- */
 export function getClaudePermissionKind(toolName: string): ClaudePermissionKind {
 	const row = TOOL_ROWS[toolName];
 	if (row) {
@@ -151,12 +92,6 @@ export function getClaudePermissionKind(toolName: string): ClaudePermissionKind 
 	return 'custom-tool';
 }
 
-/**
- * Localized display name for the SDK's built-in tools (S4). Falls back
- * to the raw tool name so unknown tools still render something
- * sensible. For `mcp__server__tool` the prefix is stripped to surface
- * the server/tool pair.
- */
 export function getClaudeToolDisplayName(toolName: string): string {
 	const serverDisplay = getServerToolDisplay(toolName, undefined)?.displayName;
 	if (serverDisplay !== undefined) {
@@ -193,15 +128,6 @@ export function getClaudeToolDisplayName(toolName: string): string {
 	return toolName;
 }
 
-/**
- * Read the `pathField` named on the tool's row from `input`. Returns
- * `undefined` for tools without a path field, for missing fields, or
- * for wrong-typed fields (defensive against malformed SDK input).
- *
- * Used both for `pending_confirmation.permissionPath` (S4) and Phase 8
- * file-edit tracking — callers that only care about edits gate with
- * {@link isClaudeFileEditTool} first.
- */
 export function getClaudeToolPath(toolName: string, input: unknown): string | undefined {
 	const row = TOOL_ROWS[toolName];
 	if (!row?.pathField || typeof input !== 'object' || input === null) {
@@ -211,46 +137,16 @@ export function getClaudeToolPath(toolName: string, input: unknown): string | un
 	return typeof value === 'string' ? value : undefined;
 }
 
-/**
- * Phase 8 — true for tools that produce on-disk file edits tracked by
- * `FileEditTracker`. Excludes `TodoWrite` (in-memory) and `Bash` (edits
- * not surfaced as canonical SDK `tool_use` blocks the host can pair
- * with `tool_result`).
- */
 export function isClaudeFileEditTool(toolName: string): boolean {
 	return TOOL_ROWS[toolName]?.isFileEdit === true;
 }
 
-/**
- * Phase 7 S3.5. Tools whose `canUseTool` invocation is satisfied by a
- * host-driven round-trip rather than the SDK's auto-approval:
- * - `AskUserQuestion` — carousel (S3.5a).
- * - `ExitPlanMode` — `pending_confirmation` with custom Approve/Deny
- *   labels and the plan body as `invocationMessage` (S3.5b).
- *
- * Membership only signals that the SDK does not auto-approve under any
- * `permissionMode`, ensuring the call always reaches the host.
- * `_handleCanUseTool` dispatches via `INTERACTIVE_CLAUDE_TOOLS.has(toolName)`.
- *
- * Derived from the `interactive: true` rows above so the table stays
- * the single source of truth.
- */
 export const INTERACTIVE_CLAUDE_TOOLS: ReadonlySet<string> = new Set(
 	Object.entries(TOOL_ROWS)
 		.filter(([, row]) => row.interactive)
 		.map(([name]) => name),
 );
 
-/**
- * Confirmation-card title shown when a tool needs explicit user
- * approval (S3.4 `pending_confirmation` flow). Mirrors the per-kind
- * titles in {@link getPermissionDisplay} for CopilotAgent so both
- * agents render identical wording. The workbench keys off
- * `confirmationTitle` to render the Approve/Deny buttons — when it
- * is absent, the tool card silently flips to "auto-approved" state
- * even though the agent is parked. See `sessionPermissions.ts`'s
- * `createToolReadyAction`.
- */
 export function getClaudeConfirmationTitle(toolName: string): string {
 	switch (getClaudePermissionKind(toolName)) {
 		case 'shell':
@@ -277,37 +173,16 @@ export function getClaudeConfirmationTitle(toolName: string): string {
 	}
 }
 
-// #region Phase 8.5 — rich tool-call rendering helpers
 
-/**
- * Phase 8.5 — workbench rendering hint. One-liner over `TOOL_ROWS`.
- * Returns `'terminal'` for shell tools (drives the terminal renderer),
- * `'search'` for `Grep` / `Glob` (drives the search renderer),
- * `'subagent'` for `Task` / `Agent` (drives the subagent renderer), and
- * `'read'` for file reads (defers incomplete resource arguments).
- */
 export function getClaudeToolKind(toolName: string): ClaudeToolKind | undefined {
 	return TOOL_ROWS[toolName]?.toolKind;
 }
 
-/**
- * Phase 8.5 — build the `_meta` bag stamped at the tool-open seam.
- * Returns `undefined` for tools that have no `toolKind` hint so the
- * resulting envelope stays minimal. Mirrors Copilot's
- * [`mapSessionEvents.ts:197`](../copilot/mapSessionEvents.ts#L197)
- * single-write pattern.
- */
 export function buildClaudeToolMeta(toolName: string): Record<string, unknown> | undefined {
 	const meta = buildClaudeToolCallMeta(toolName);
 	return meta ? toToolCallMeta(meta) : undefined;
 }
 
-/**
- * Typed variant of {@link buildClaudeToolMeta} that returns the
- * {@link IToolCallMeta} directly, for callers that consume the typed view
- * rather than the serialized `_meta` bag. Returns `undefined` for tools that
- * have no `toolKind` hint.
- */
 export function buildClaudeToolCallMeta(toolName: string): IToolCallMeta | undefined {
 	const row = TOOL_ROWS[toolName];
 	if (!row?.toolKind) {
@@ -325,10 +200,6 @@ function formatPathAsMarkdownLink(path: string): string {
 	return `[${escapeMarkdownLinkLabel(basename(uri))}](${uri})`;
 }
 
-/**
- * Defensive string-field access. Returns the field value when it is
- * a non-empty string, otherwise `undefined`.
- */
 function readStringField(input: unknown, field: string): string | undefined {
 	if (input === null || typeof input !== 'object') {
 		return undefined;
@@ -337,31 +208,16 @@ function readStringField(input: unknown, field: string): string | undefined {
 	return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
-/**
- * Phase 8.5 — first-line command extractor for shell tools. Mirrors
- * Copilot's `command.split('\n')[0]` pattern.
- */
 function firstShellLine(input: unknown): string | undefined {
 	const command = readStringField(input, 'command');
 	return command ? command.split('\n')[0] : undefined;
 }
 
-/**
- * Narrows a `TaskUpdate` call's `status` to the values that change the rendered
- * verb; any other or absent value yields `undefined` (generic "Updating" verb).
- */
 function readTaskUpdateStatus(input: unknown): 'in_progress' | 'completed' | 'deleted' | undefined {
 	const status = readStringField(input, 'status');
 	return status === 'in_progress' || status === 'completed' || status === 'deleted' ? status : undefined;
 }
 
-/**
- * Phase 8.5 — rich invocation message for a `pending_confirmation`
- * card or a streaming `ChatToolCallStart` action. Reads the
- * SDK's `tool_use.input` defensively and falls back to the static
- * `displayName` on any shape mismatch. Mirror of
- * [`copilotToolDisplay.getInvocationMessage`](../copilot/copilotToolDisplay.ts#L473).
- */
 export function getClaudeInvocationMessage(
 	toolName: string,
 	displayName: string,
@@ -505,13 +361,6 @@ export function getClaudeStreamingInvocationMessage(toolName: string, input: Rec
 	}
 }
 
-/**
- * Phase 8.5 — success-aware rich past-tense message. Mirror of
- * [`copilotToolDisplay.getPastTenseMessage`](../copilot/copilotToolDisplay.ts#L572).
- * Failure path returns a generic "failed" message; success path
- * mirrors the {@link getClaudeInvocationMessage} structure with
- * past-tense verbs.
- */
 export function getClaudePastTenseMessage(
 	toolName: string,
 	displayName: string,
@@ -558,12 +407,6 @@ export function getClaudePastTenseMessage(
 	}
 }
 
-/**
- * Phase 8.5 — canonical "input as code" string rendered under the
- * tool-call row. Shell tools surface the raw `command`; search tools
- * surface the `pattern`; everything else falls back to pretty-printed
- * JSON. Returns `undefined` only when the input is itself absent.
- */
 export function getClaudeToolInputString(toolName: string, input: unknown): string | undefined {
 	if (input === undefined) {
 		return undefined;
@@ -587,4 +430,3 @@ export function getClaudeToolInputString(toolName: string, input: unknown): stri
 	}
 }
 
-// #endregion

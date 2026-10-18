@@ -123,9 +123,6 @@
 		"github.dardcor-chat": {
 			"default": true
 		},
-		"github.copilot-chat": {
-			"default": true
-		},
 		"dardcor.dardcor-ai": {
 			"default": true
 		}

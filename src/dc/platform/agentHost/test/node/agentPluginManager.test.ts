@@ -19,10 +19,6 @@ import { customizationId, type ClientPluginCustomization, type PluginCustomizati
 import { CustomizationType } from '../../common/state/protocol/state.js';
 import { AgentPluginManager } from '../../node/agentPluginManager.js';
 
-/**
- * In-memory provider that can simulate a locked (undeletable) resource, like a
- * directory still held by a running session, so eviction fails with an error.
- */
 class LockableInMemoryFileSystemProvider extends InMemoryFileSystemProvider {
 	readonly lockedPaths = new Set<string>();
 	readonly cacheReadStarted = new DeferredPromise<void>();
@@ -106,7 +102,6 @@ suite('AgentPluginManager', () => {
 		return new Set(entries.map(entry => entry.nonce));
 	}
 
-	// ---- syncCustomizations -------------------------------------------------
 
 	suite('syncCustomizations', () => {
 
@@ -162,7 +157,6 @@ suite('AgentPluginManager', () => {
 			const result1 = await manager.syncCustomizations('test-client', [ref]);
 			assert.ok(result1[0].pluginDir);
 
-			// Second sync with same nonce should still succeed (from cache)
 			const result2 = await manager.syncCustomizations('test-client', [ref]);
 			assert.ok(result2[0].pluginDir);
 			assert.strictEqual(result1[0].pluginDir!.toString(), result2[0].pluginDir!.toString());
@@ -174,7 +168,6 @@ suite('AgentPluginManager', () => {
 			const r1 = await manager.syncCustomizations('test-client', [makeRef('rev', 'nonce-1')]);
 			const dir1 = r1[0].pluginDir!;
 
-			// Re-seed with new content and sync with a different nonce.
 			await seedPluginDir('rev', { 'index.js': 'v2' });
 			const r2 = await manager.syncCustomizations('test-client', [makeRef('rev', 'nonce-2')]);
 			const dir2 = r2[0].pluginDir!;
@@ -193,8 +186,6 @@ suite('AgentPluginManager', () => {
 			await seedPluginDir('rev', { 'index.js': 'v2' });
 			await manager.syncCustomizations('test-client', [makeRef('rev', 'nonce-2')]);
 
-			// Back to the original content. The source no longer matters: a hit
-			// must reuse the retained directory rather than re-copying.
 			await fileService.del(toAgentClientUri(URI.from({ scheme: Schemas.inMemory, path: '/plugins/rev' }), 'test-client'), { recursive: true });
 			const r3 = await manager.syncCustomizations('test-client', [makeRef('rev', 'nonce-1')]);
 
@@ -204,7 +195,6 @@ suite('AgentPluginManager', () => {
 		});
 
 		test('evicts the oldest revision once the per-plugin retention window is exceeded', async () => {
-			// One more revision than the retention window (8).
 			for (let i = 1; i <= 9; i++) {
 				await seedPluginDir('rev', { 'index.js': `v${i}` });
 				await manager.syncCustomizations('test-client', [makeRef('rev', `nonce-${i}`)]);
@@ -221,7 +211,6 @@ suite('AgentPluginManager', () => {
 			const r1 = await manager.syncCustomizations('test-client', [makeRef('rev', 'nonce-1')]);
 			const dir1 = r1[0].pluginDir!;
 
-			// Simulate a session still holding the first revision.
 			provider.lockedPaths.add(dir1.path);
 
 			await seedPluginDir('rev', { 'index.js': 'v2' });
@@ -239,15 +228,12 @@ suite('AgentPluginManager', () => {
 			const dir1 = r1[0].pluginDir!;
 			provider.lockedPaths.add(dir1.path);
 
-			// Push the locked revision out of the retention window so eviction
-			// is attempted (and fails) while the lock is held.
 			for (let i = 2; i <= 9; i++) {
 				await seedPluginDir('rev', { 'index.js': `v${i}` });
 				await manager.syncCustomizations('test-client', [makeRef('rev', `nonce-${i}`)]);
 			}
 			assert.strictEqual(await fileService.exists(dir1), true, 'locked nonce should survive while held');
 
-			// Release the lock and start a fresh manager against the same base path.
 			provider.lockedPaths.clear();
 			const manager2 = new AgentPluginManager(basePath, fileService, new NullLogService());
 			await manager2.syncCustomizations('test-client', [makeRef('rev', 'nonce-9')]);
@@ -264,8 +250,6 @@ suite('AgentPluginManager', () => {
 			await seedPluginDir('rev', { 'index.js': 'v2' });
 			await manager.syncCustomizations('test-client', [makeRef('rev', 'nonce-2')]);
 
-			// nonce-1 is still inside the retention window, so only the missing
-			// directory itself can tell us the entry is worthless.
 			await fileService.del(dir1, { recursive: true });
 			const manager2 = new AgentPluginManager(basePath, fileService, new NullLogService());
 			await manager2.syncCustomizations('test-client', [makeRef('rev', 'nonce-2')]);
@@ -277,13 +261,11 @@ suite('AgentPluginManager', () => {
 			await seedPluginDir('concurrent', { 'index.js': 'v1' });
 			const ref = makeRef('concurrent', 'n1');
 
-			// Fire two syncs concurrently
 			const [r1, r2] = await Promise.all([
 				manager.syncCustomizations('test-client', [ref]),
 				manager.syncCustomizations('test-client', [ref]),
 			]);
 
-			// Both should succeed without error
 			assert.strictEqual(r1[0].customization.load?.kind, 'loaded');
 			assert.strictEqual(r2[0].customization.load?.kind, 'loaded');
 		});
@@ -305,7 +287,6 @@ suite('AgentPluginManager', () => {
 		});
 	});
 
-	// ---- LRU eviction -------------------------------------------------------
 
 	suite('LRU eviction', () => {
 
@@ -317,7 +298,6 @@ suite('AgentPluginManager', () => {
 				await smallManager.syncCustomizations('test-client', [makeRef(`plugin-${i}`, `n${i}`)]);
 			}
 
-			// The evicted dir should no longer exist on disk (cache.json + 3 plugin dirs)
 			const evictedDir = URI.joinPath(basePath, 'agentPlugins');
 			const listing = await fileService.resolve(evictedDir);
 			assert.ok(listing.children);
@@ -336,19 +316,16 @@ suite('AgentPluginManager', () => {
 			const r2 = await smallManager.syncCustomizations('client-2', [makeRef('plugin-2', 'n2')]);
 			const dir2 = r2[0].pluginDir!;
 
-			// Lock the LRU head so its directory can't be deleted.
 			provider.lockedPaths.add(dir1.path);
 
 			await seedPluginDir('plugin-3', { 'index.js': 'p3' });
 			await smallManager.syncCustomizations('client-3', [makeRef('plugin-3', 'n3')]);
 
-			// plugin-1 should survive (locked) and plugin-2 should be evicted instead.
 			assert.strictEqual(await fileService.exists(dir1), true, 'locked plugin-1 should be retained');
 			assert.strictEqual(await fileService.exists(dir2), false, 'unlocked plugin-2 should be evicted');
 		});
 	});
 
-	// ---- cache persistence --------------------------------------------------
 
 	suite('cache persistence', () => {
 
@@ -356,14 +333,11 @@ suite('AgentPluginManager', () => {
 			await seedPluginDir('persist1', { 'index.js': 'v1' });
 			const ref = makeRef('persist1', 'nonce-persist');
 
-			// Sync with first manager
 			await manager.syncCustomizations('test-client', [ref]);
 
-			// Create a new manager pointing to the same base path
 			const manager2 = new AgentPluginManager(basePath, fileService, new NullLogService());
 			const result = await manager2.syncCustomizations('test-client', [ref]);
 
-			// Should be loaded from cache (nonce match), not error
 			assert.strictEqual((result[0].customization as PluginCustomization).load?.kind, 'loaded');
 			assert.ok(result[0].pluginDir);
 		});

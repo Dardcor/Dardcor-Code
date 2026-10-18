@@ -12,7 +12,6 @@
 .search-view .results {
 	flex-grow: 1;
 	min-height: 0;
-	/* Allow it to be smaller than its contents */
 }
 
 .search-view .search-widgets-container {
@@ -61,10 +60,8 @@
 	padding: 3px 0px 3px 6px;
 }
 
-/* NOTE: height is also used in searchWidget.ts as a constant*/
 .search-view .search-widget .monaco-inputbox > .ibwrapper > textarea.input {
 	overflow: initial;
-	/* set initial height before measure */
 	height: 26px;
 }
 
@@ -73,7 +70,6 @@
 }
 
 .search-view .monaco-inputbox > .ibwrapper > textarea.input {
-	/* Firefox: hide scrollbar */
 	scrollbar-width: none;
 }
 
@@ -128,7 +124,6 @@
 	width: 25px;
 	height: 16px;
 	color: inherit;
-	/* Force it above the search results message, which has a negative top margin */
 	z-index: 2;
 }
 
@@ -324,7 +319,6 @@
 	padding: 2px;
 }
 
-/* Adjusts spacing in high contrast mode so that actions are vertically centered */
 .monaco-workbench.hc-black .search-view .monaco-list .monaco-list-row .monaco-action-bar .action-label,
 .monaco-workbench.hc-light .search-view .monaco-list .monaco-list-row .monaco-action-bar .action-label {
 	margin-top: 2px;
@@ -349,7 +343,6 @@
 	border: 1px solid var(--vscode-diffEditor-removedTextBackground);
 }
 
-/* High Contrast Theming */
 .monaco-workbench.hc-light .search-view .replace.findInFileMatch,
 .monaco-workbench.hc-black .search-view .replace.findInFileMatch {
 	border: 1px dashed var(--vscode-diffEditor-removedTextBackground);
@@ -365,7 +358,6 @@
 	border: 1px solid var(--vscode-editor-findMatchHighlightBorder);
 }
 
-/* High Contrast Theming */
 .monaco-workbench.hc-light .search-view .findInFileMatch,
 .monaco-workbench.hc-black .search-view .findInFileMatch {
 	border: 1px dashed var(--vscode-editor-findMatchHighlightBorder);
@@ -375,7 +367,6 @@
 	background-color: var(--vscode-diffEditor-insertedTextBackground);
 }
 
-/* High Contrast Theming */
 .monaco-workbench.hc-black .search-view .replaceMatch,
 .monaco-workbench.hc-black .search-view .findInFileMatch,
 .monaco-workbench.hc-light .search-view .replaceMatch,
@@ -388,13 +379,11 @@
 	border: 1px solid var(--vscode-diffEditor-insertedLineBackground);
 }
 
-/* High Contrast Theming */
 .monaco-workbench.hc-light .search-view .replaceMatch:not(:empty),
 .monaco-workbench.hc-black .search-view .replaceMatch:not(:empty) {
 	border: 1px dashed var(--vscode-diffEditor-insertedLineBackground);
 }
 
-/* High Contrast Theming */
 .monaco-workbench.hc-black .search-view .foldermatch,
 .monaco-workbench.hc-black .search-view .filematch,
 .monaco-workbench.hc-black .search-view .linematch,
@@ -408,7 +397,6 @@
 	border: 1px solid transparent;
 }
 
-/* shared with search editor's message element */
 .text-search-provider-messages .providerMessage {
 	padding-top: 4px;
 }

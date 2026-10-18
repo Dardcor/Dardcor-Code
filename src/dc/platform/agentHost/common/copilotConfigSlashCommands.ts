@@ -7,23 +7,6 @@ import { matchesFuzzy2 } from '../../../base/common/filters.js';
 import { localize } from '../../../nls.js';
 import { SessionConfigKey } from './sessionConfigKeys.js';
 
-/**
- * Copilot agent-host "config action" slash commands: workbench-defined slash
- * commands that toggle a well-known session-config property (the `autoApprove`
- * permissions axis and/or the `mode` axis) instead of driving a chat turn.
- *
- * The Copilot agent owns the `autoApprove`/`mode` schema, so these commands are
- * produced server-side (see the Copilot slash-command completion provider) and
- * carry an `action` bag on their completion `_meta`. The workbench interprets
- * that bag on accept — applying the config via the active session's provider so
- * the permission/mode pickers update reactively — while the send path
- * (`CopilotAgentSession.send`) re-applies the change and strips the leading
- * token so it is not dispatched to the runtime as a runtime command.
- *
- * Values below are the well-known enum members of the Copilot platform session
- * schema (`autoApprove`: `default` | `autoApprove`; `mode`: `interactive` |
- * `plan` | `autopilot`).
- */
 
 const AUTO_APPROVE_BYPASS = 'autoApprove';
 const AUTO_APPROVE_DEFAULT = 'default';
@@ -31,43 +14,20 @@ const MODE_INTERACTIVE = 'interactive';
 const MODE_PLAN = 'plan';
 const MODE_AUTOPILOT = 'autopilot';
 
-/**
- * A single flattened completion form of a config-action slash command (the bare
- * command or one of its named sub-arguments), ready to be emitted as a
- * completion item.
- */
 export interface ICopilotConfigSlashCommandItem {
-	/**
-	 * The text inserted when accepted. Empty for a pure toggle (nothing is left
-	 * in the input); `/command ` (trailing space) for an item that keeps the text
-	 * so an argument can be typed.
-	 */
 	readonly insertText: string;
-	/** The display label shown in the picker (e.g. `/autopilot on`). */
 	readonly label: string;
-	/** The command name (without the leading `/`). */
 	readonly command: string;
-	/** Human-readable description shown in completion detail. */
 	readonly description: string;
-	/** Argument hint (ghost text) shown after acceptance for keep-text items. */
 	readonly argumentHint?: string;
-	/** The session-config change applied when accepted. */
 	readonly applyConfig: Readonly<Record<string, string>>;
-	/** Sort key used to order completions. */
 	readonly sortText: string;
 }
 
-/** Internal catalog descriptor for one form of a config-action command. */
 interface IConfigSlashOption {
-	/** Named sub-argument (e.g. `on`/`off`), or `undefined` for the bare command. */
 	readonly arg?: string;
 	readonly detail: string;
 	readonly config: Readonly<Record<string, string>>;
-	/**
-	 * When set, the option is a keep-text form: it inserts `/command ` and shows
-	 * this hint as ghost text so an argument can be typed. When omitted, the
-	 * option is a pure toggle that inserts nothing.
-	 */
 	readonly argumentHint?: string;
 }
 
@@ -125,33 +85,16 @@ function getConfigSlashCommands(): readonly IConfigSlashCommand[] {
 	];
 }
 
-/**
- * The set of command names that are config-action commands. Used by the send
- * path to decide whether a leading slash command should be intercepted (applied
- * + stripped) rather than dispatched to the runtime.
- */
 export function isCopilotConfigSlashCommand(command: string): boolean {
 	return getConfigSlashCommands().some(c => c.command.toLowerCase() === command.toLowerCase());
 }
 
-/**
- * The current session-config state used to filter config-action slash command
- * completions so only the state-changing forms are offered (e.g. `/autopilot on`
- * is hidden while already in autopilot mode).
- */
 export interface ICopilotConfigSlashCommandState {
-	/** The session's current `mode` axis value (e.g. `interactive` / `plan` / `autopilot`). */
 	readonly mode?: string;
-	/** The session's current `autoApprove` axis value (e.g. `default` / `autoApprove`). */
 	readonly autoApprove?: string;
 }
 
-/**
- * Returns whether the option should be offered for the current session state.
- * Unknown state and keep-text options are always offered.
- */
 function shouldOfferOption(option: IConfigSlashOption, state: ICopilotConfigSlashCommandState | undefined): boolean {
-	// Keep-text forms carry a typed prompt/objective and are always relevant.
 	if (option.argumentHint !== undefined || !state) {
 		return true;
 	}
@@ -170,15 +113,6 @@ function shouldOfferOption(option: IConfigSlashOption, state: ICopilotConfigSlas
 	return true;
 }
 
-/**
- * Returns the flattened completion items (one per command form) whose command
- * name fuzzy matches `typed` (the text after the leading `/`, case-insensitive).
- * When `typed` is empty, all items are returned.
- *
- * When `state` (the session's current config values) is provided, pure toggle
- * forms that would be a no-op are filtered out so only the state-changing forms
- * are offered (see {@link shouldOfferOption}).
- */
 export function getCopilotConfigSlashCommandItems(typed: string, state?: ICopilotConfigSlashCommandState): ICopilotConfigSlashCommandItem[] {
 	const typedLower = typed.trim().toLowerCase();
 	const items: ICopilotConfigSlashCommandItem[] = [];
@@ -193,9 +127,6 @@ export function getCopilotConfigSlashCommandItems(typed: string, state?: ICopilo
 			if (!shouldOfferOption(option, state)) {
 				continue;
 			}
-			// Keep-text items (those expecting a typed argument) insert `/command `
-			// and show the argument hint; pure toggles insert nothing (the display
-			// comes from `label`).
 			const keep = option.argumentHint !== undefined;
 			const insertText = keep ? `/${command.command} ` : '';
 			const label = keep
@@ -215,27 +146,11 @@ export function getCopilotConfigSlashCommandItems(typed: string, state?: ICopilo
 	return items;
 }
 
-/**
- * Result of resolving a config-action slash command on send.
- */
 export interface ICopilotConfigSlashCommandSendResult {
-	/** The session-config change to (re-)apply. */
 	readonly applyConfig: Readonly<Record<string, string>>;
-	/**
-	 * The prompt text that should be forwarded to the runtime after stripping the
-	 * command token (and any recognized sub-argument). Empty when the command is a
-	 * pure toggle with no trailing prompt.
-	 */
 	readonly strippedPrompt: string;
 }
 
-/**
- * Resolves a leading config-action slash command for the send path: maps the
- * command (and any recognized `on`/`off` sub-argument) to the session-config
- * change to apply, and returns the remaining prompt text to forward with the
- * command token stripped. Returns `undefined` for non-config-action commands so
- * callers fall through to their normal (runtime) handling.
- */
 export function resolveCopilotConfigSlashCommandOnSend(command: string, rest: string): ICopilotConfigSlashCommandSendResult | undefined {
 	const descriptor = getConfigSlashCommands().find(c => c.command.toLowerCase() === command.toLowerCase());
 	if (!descriptor) {
@@ -255,7 +170,6 @@ export function resolveCopilotConfigSlashCommandOnSend(command: string, rest: st
 			return undefined;
 		}
 	}
-	// Fall back to the bare command form (the base/prompt option or the sole option).
 	const fallback = baseOption ?? descriptor.options[0];
 	return { applyConfig: fallback.config, strippedPrompt: trimmedRest };
 }

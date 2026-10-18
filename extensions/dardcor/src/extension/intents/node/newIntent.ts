@@ -131,7 +131,6 @@ export class NewWorkspaceCopilotContentManager {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) { }
 
-	// TODO@joyceerhl persistence between reloads
 	set(responseId: string, projectName: string, fileTree: ChatResponseFileTreePart, serviceArgs: any) {
 		const { userPrompt, projectStructure, chatMessages } = serviceArgs;
 		const promptArgs: NewWorkspaceContentsPromptProps = {
@@ -171,8 +170,6 @@ export class NewWorkspaceCopilotContentManager {
 		if (fileTree.children) {
 			return { ...fileTree, type: FileType.Directory, children: fileTree.children.map((child) => this._prefetch(userPrompt, projectStructure, projectSpecification, child, chatMessages)), ctime };
 		}
-		// Disable prefetching for now
-		// node.content = this._getFileContent(userPrompt, projectStructure, projectSpecification, fileTreeData.uri.path, chatMessages).catch(() => node.content = undefined);
 		return { ...fileTree, type: FileType.File, content: undefined, ctime };
 	}
 
@@ -198,7 +195,6 @@ export class NewWorkspaceCopilotContentManager {
 	}
 
 	private _getProjectMetadata(fullPath: string) {
-		// Format: vscode-dardcor-workspace://<sessionId>/<projectName>/<filePath>
 		const [, projectName, ...path] = fullPath.split('/');
 		return { projectName, path };
 	}
@@ -243,7 +239,6 @@ class NewWorkspaceGitHubContentManager {
 	}
 
 	private _getProjectMetadata(fullPath: string) {
-		// Format: vscode-dardcor-github-workspace://<sessionId>/<projectName>/<filePath>
 		const [, projectName, ...path] = fullPath.split('/');
 		return { projectName, path };
 	}
@@ -293,7 +288,6 @@ class NewWorkspaceFileContentManager {
 	}
 
 	private _getFileMetadata(fullPath: string) {
-		// Format: vscode-dardcor-file://<sessionId>/<projectName>/<filePath>
 		const [, projectName, ...path] = fullPath.split('/');
 		return { projectName, path };
 	}
@@ -389,7 +383,6 @@ export class NewWorkspaceIntentInvocation implements IIntentInvocation {
 	}
 
 	async buildPrompt(promptContext: IBuildPromptContext, progress: vscode.Progress<vscode.ChatResponseProgressPart | vscode.ChatResponseReferencePart>, token: vscode.CancellationToken) {
-		// TODO: @bhavyaus enable using project templates with variables
 		const { query, history, chatVariables } = promptContext;
 		const useTemplates = !chatVariables.hasVariables() && history[history.length - 1]?.request?.message !== query && await this.getShouldUseProjectTemplate();
 		const renderer = PromptRenderer.create(this.instantiationService, this.endpoint, NewWorkspacePrompt, {
@@ -481,7 +474,7 @@ class NewWorkspaceResponseProcessor {
 		let isBufferingFileTree = false;
 		let projectStructure = '';
 		const fileTreeStartRegex = /```filetree\n/;
-		const chatMessages = messages.filter(message => message.role !== Raw.ChatRole.System); // Exclude system messages as we want to use a different identity for the additional prompts we run
+		const chatMessages = messages.filter(message => message.role !== Raw.ChatRole.System);
 		let hasReportingStarted = false;
 
 		for await (const { delta } of inputStream) {
@@ -506,8 +499,6 @@ class NewWorkspaceResponseProcessor {
 						isBufferingFileTree = false;
 						const [before, after] = this._appliedText.split(hasWholeCodeBlock[0]);
 						if (!hasReportingStarted) {
-							// We have the whole codeblock but we haven't started reporting yet.
-							// This only happens in test when the entire response is in the incomingText.
 							outputStream.markdown(before);
 						}
 
@@ -595,7 +586,6 @@ class NewWorkspaceResponseProcessor {
 	}
 
 	pushCommands(turnRequestId: string, outputStream: vscode.ChatResponseStream): void {
-		// Extract the Repo structure here
 		const fileTree = this.newWorkspacePreviewContentManager.getFileTree(turnRequestId);
 		if (!fileTree) {
 			return;

@@ -31,15 +31,12 @@ import { isCustomizationsIndex, isInstructionFile, toCustomizationsIndexReferenc
 import { getToolReferencePromptContent } from '../../../extension/prompt/dardcor-node/promptVariablesService';
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
 import { getChatSessionType, matchesSessionType } from '../../chat/common/sessionUtils';
-import { CopilotChatAttr, GenAiAttr, GenAiOperationName, IOTelService } from '../../otel/common';
+import { DardcorChatAttr, GenAiAttr, GenAiOperationName, IOTelService } from '../../otel/common';
 import { ICustomInstructionsService } from '../../customInstructions/common/customInstructionsService';
 import { IPromptVariablesService } from '../../../extension/prompt/node/promptVariablesService';
 import { arrayEqual } from 'diff/lib/util/array.js';
 import { structuralEquals } from '../../../util/dardcor/base/common/equals';
 
-/**
- * Telemetry payload (parity with core's `instructionsCollected` event).
- */
 export interface InstructionsCollectionEvent {
 	[key: string]: number;
 	applyingInstructionsCount: number;
@@ -67,12 +64,8 @@ export interface IAutomaticInstructionsCollector {
 
 export const IAutomaticInstructionsCollector = createServiceIdentifier<IAutomaticInstructionsCollector>('IAutomaticInstructionsCollector');
 
-// Path suffix of the built-in troubleshoot skill. Excluded from the
-// customizations index when agent debug log file logging is disabled,
-// matching the behavior of core.
 const TROUBLESHOOT_SKILL_PATH = 'troubleshoot/SKILL.md';
 
-// Folder fragments used to detect Claude-style customizations.
 const CLAUDE_AGENTS_FOLDER_PATH = '/.claude/agents';
 const CLAUDE_RULES_FOLDER_PATH = '/.claude/rules/';
 
@@ -86,7 +79,6 @@ function isInClaudeRulesFolder(uri: URI): boolean {
 }
 
 
-/** Recognizes the file extensions that core treats as instruction/prompt files. */
 function isPromptOrInstructionsFile(uri: URI): boolean {
 	const filename = basename(uri).toLowerCase();
 	if (filename.endsWith('.instructions.md') || filename.endsWith('.prompt.md') || filename.endsWith('.agent.md')) {
@@ -98,32 +90,16 @@ function isPromptOrInstructionsFile(uri: URI): boolean {
 	if (filename === 'skill.md') {
 		return true;
 	}
-	// Markdown files inside `.claude/rules/` are treated as instruction files.
 	if (filename.endsWith('.md') && filename !== 'readme.md' && isInClaudeRulesFolder(uri)) {
 		return true;
 	}
 	return false;
 }
 
-/**
- * Extension-side equivalent of core's `ComputeAutomaticInstructions`.
- *
- * Mirrors the four steps performed by core today:
- *   1. `applyTo` glob match against currently attached files.
- *   2. Workspace-level agent instruction files (`AGENTS.md`, `CLAUDE.md`,
- *      `dardcor-instructions.md`).
- *   3. Transitive instruction-file references followed from any file
- *      already in the variable set.
- *   4. The `<instructions>…<skills>…<agents>…` customizations index text
- *      variable consumed by `CustomInstructions` /
- *      `SkillAdherenceReminder` / `skillTool`.
- */
 export class AutomaticInstructionsCollector implements IAutomaticInstructionsCollector {
 
 	declare readonly _serviceBrand: undefined;
 
-	// Cached parse results keyed by URI to avoid re-reading instruction files
-	// when several references resolve to the same target during one call.
 	private readonly _parseResults = new ResourceMap<ParsedPromptFile | undefined>();
 
 	constructor(
@@ -147,40 +123,31 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 		const newEntries: vscode.ChatPromptReference[] = [];
 		const sessionType = getChatSessionType(sessionResource);
 
-		// Reset per-call parse cache.
 		this._parseResults.clear();
 
 		const instructionFiles = await this._promptsService.getInstructions(token);
 		const context = collectAttachedContext(references);
 
-		// Track instruction URIs already known to the collector so the
-		// applying / referenced steps don't add duplicates.
 		const seenInstructionUris = new ResourceSet();
 		for (const uri of context.instructions) {
 			seenInstructionUris.add(uri);
 		}
 
-		// Step 1: applying instructions (applyTo glob match).
 		await this._addApplyingInstructions(instructionFiles, context.files, seenInstructionUris, sessionType, telemetry, newEntries, token);
 		if (token.isCancellationRequested) {
 			return [];
 		}
 
-		// Step 3 (run before agent instructions to match core ordering).
-		// Follow references from anything currently attached as instruction.
 		await this._addReferencedInstructions(seenInstructionUris, telemetry, newEntries, token, seenInstructionUris);
 		if (token.isCancellationRequested) {
 			return [];
 		}
 
-		// Step 2: workspace-level agent instructions, plus referenced
-		// instructions starting from dardcor-instructions.md only.
 		await this._addAgentInstructions(seenInstructionUris, telemetry, newEntries, token);
 		if (token.isCancellationRequested) {
 			return [];
 		}
 
-		// Step 4: customizations index text variable.
 		const indexEntry = await this._buildCustomizationsIndex(instructionFiles, tools, modeInstructions2?.allowedSubagents, sessionType, telemetry, token);
 		if (indexEntry) {
 			newEntries.push(indexEntry);
@@ -191,7 +158,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 		return newEntries;
 	}
 
-	// ─── Step 1: applyTo matching ─────────────────────────────────────────
 	private async _addApplyingInstructions(
 		instructionFiles: readonly vscode.ChatInstruction[],
 		attachedFiles: ResourceSet,
@@ -230,7 +196,7 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 				? l10n.t('automatically attached as pattern is **')
 				: l10n.t('automatically attached as pattern {0} matches {1}', pattern, this._workspaceService.asRelativePath(matchInfo.file));
 
-			newEntries.push(toInstructionFileReference(uri, /* isRoot */ true, reason));
+			newEntries.push(toInstructionFileReference(uri, true, reason));
 			seenInstructionUris.add(uri);
 			telemetry.applyingInstructionsCount++;
 			if (isInClaudeRulesFolder(uri)) {
@@ -239,7 +205,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 		}
 	}
 
-	// ─── Step 2: workspace agent instructions ────────────────────────────
 	private async _addAgentInstructions(
 		seenInstructionUris: ResourceSet,
 		telemetry: InstructionsCollectionEvent,
@@ -254,15 +219,13 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 			return;
 		}
 
-		// Track dardcor-instructions.md entries separately so we can follow
-		// their transitive references afterwards (matches core behavior).
 		const dardcorUris = new ResourceSet();
 		for (const candidate of allCandidates) {
 			if (seenInstructionUris.has(candidate.uri)) {
 				continue;
 			}
 			seenInstructionUris.add(candidate.uri);
-			newEntries.push(toInstructionFileReference(candidate.uri, /* isRoot */ true, /* reason */ undefined));
+			newEntries.push(toInstructionFileReference(candidate.uri, true, undefined));
 			telemetry.agentInstructionsCount++;
 			if (candidate.type === AgentInstructionFileType.claudeMd) {
 				telemetry.claudeMdCount++;
@@ -273,11 +236,10 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 		}
 
 		if (dardcorUris.size > 0) {
-			await this._addReferencedInstructions(dardcorUris, telemetry, newEntries, token, /* additionalSeen */ seenInstructionUris);
+			await this._addReferencedInstructions(dardcorUris, telemetry, newEntries, token, seenInstructionUris);
 		}
 	}
 
-	// ─── Step 3: transitive instruction-file references ───────────────────
 	private async _addReferencedInstructions(
 		startingFrom: ResourceSet,
 		telemetry: InstructionsCollectionEvent,
@@ -313,15 +275,12 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 				continue;
 			}
 
-			// Resolve all referenced URIs from this file's body.
 			const candidates: URI[] = [];
 			for (const ref of parsed.body.fileReferences) {
 				const resolved = parsed.body.resolveFilePath(ref.content);
 				if (!resolved || seen.has(resolved)) {
 					continue;
 				}
-				// Only follow references that are either prompt/instruction
-				// files or live inside one of the workspace folders.
 				const inWorkspace = this._workspaceService.getWorkspaceFolder(resolved) !== undefined;
 				if (!isPromptOrInstructionsFile(resolved) && !inWorkspace) {
 					continue;
@@ -334,8 +293,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 				continue;
 			}
 
-			// Verify each candidate exists and is a regular file before
-			// adding it to the variable set.
 			const stats = await Promise.all(candidates.map(async uri => {
 				try {
 					const stat = await this._fileSystemService.stat(uri);
@@ -352,7 +309,7 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 					queue.push(uri);
 				}
 				const reason = l10n.t('Referenced by {0}', basename(next));
-				newEntries.push(toInstructionFileReference(uri, /* isRoot */ false, reason));
+				newEntries.push(toInstructionFileReference(uri, false, reason));
 				if (additionalSeen) {
 					additionalSeen.add(uri);
 				}
@@ -362,7 +319,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 		}
 	}
 
-	// ─── Step 4: customizations index ─────────────────────────────────────
 	private async _buildCustomizationsIndex(
 		instructionFiles: readonly vscode.ChatInstruction[],
 		tools: Map<vscode.LanguageModelToolInformation, boolean>,
@@ -388,7 +344,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 		const filePath = (uri: URI) => this._promptPathRepresentationService.getFilePath(uri);
 		const lines: string[] = [];
 
-		// ── <instructions> section ──────────────────────────────────────
 		if (readTool) {
 			const useNestedAgentMd = this._configurationService.getNonExtensionConfig<boolean>(PromptConfig.USE_NESTED_AGENT_MD) === true;
 			const nestedAgentsMdPromise = useNestedAgentMd ? this._promptsService.listNestedAgentMDs(token) : Promise.resolve([] as IAgentInstructionFile[]);
@@ -432,12 +387,11 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 			}
 
 			if (!hasContent) {
-				lines.length = 0; // discard instructions block
+				lines.length = 0;
 			} else {
 				lines.push('</instructions>', '', '');
 			}
 
-			// ── <skills> section (lives inside the readTool branch) ───────
 			const allSkills = await this._promptsService.getSkills(token);
 			const isFileLoggingEnabled = this._configurationService.getExperimentBasedConfig<boolean>(ConfigKey.Advanced.ChatDebugFileLogging, this._experimentationService) === true;
 			const modelInvocableSkills = allSkills.filter(skill => {
@@ -459,8 +413,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 				this._logSkillLoadedTelemetry(modelInvocableSkills);
 
 				const useSkillAdherencePrompt = this._configurationService.getNonExtensionConfig<boolean>(PromptConfig.USE_SKILL_ADHERENCE_PROMPT) === true;
-				// Direct the model to invoke skills via the dedicated skill
-				// tool when available, falling back to readFile otherwise.
 				const skillLoadTool = skillTool ?? readTool;
 				lines.push('<skills>');
 				if (useSkillAdherencePrompt) {
@@ -534,7 +486,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 			}
 		}
 
-		// ── <agents> section ────────────────────────────────────────────
 		if (runSubagentTool) {
 			const customAgents = (await this._promptsService.getCustomAgents(token)).filter(a => a.enabled);
 
@@ -545,7 +496,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 				if (enabledSubagents && !enabledSubagents.includes('*')) {
 					return enabledSubagents.includes(agent.name);
 				}
-				// Default visibility: agent must be invocable by the model.
 				return !agent.disableModelInvocation;
 			};
 
@@ -599,7 +549,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 		}
 	}
 
-	// Mirror of core's `skillLoadedIntoContext` per-skill telemetry.
 	private _logSkillLoadedTelemetry(skills: readonly vscode.ChatSkill[]): void {
 		try {
 			const hashOrEmpty = (value: string | undefined) => value !== undefined ? String(hash(value)) : '';
@@ -611,8 +560,6 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 					skillStorage: skill.source,
 					extensionIdHash: hashOrEmpty(skill.extensionId),
 					extensionVersion,
-					// Plugin-name/version is not exposed on `ChatSkill` today
-					// — leave empty until the API surfaces it.
 					pluginNameHash: '',
 					pluginVersion: '',
 				});
@@ -623,27 +570,12 @@ export class AutomaticInstructionsCollector implements IAutomaticInstructionsCol
 	}
 	private sendTelemetry(telemetryEvent: InstructionsCollectionEvent): void {
 		telemetryEvent.totalInstructionsCount = telemetryEvent.agentInstructionsCount + telemetryEvent.referencedInstructionsCount + telemetryEvent.applyingInstructionsCount + telemetryEvent.listedInstructionsCount;
-		/* __GDPR__
-			"instructionsCollected" : {
-				"owner": "digitarald",
-				"comment": "Tracks automatic instruction collection usage in chat prompt system.",
-				"applyingInstructionsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of instructions added via pattern matching." },
-				"referencedInstructionsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of instructions added via references from other instruction files." },
-				"agentInstructionsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of agent instructions added (dardcor-instructions.md and agents.md)." },
-				"listedInstructionsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of instruction patterns added." },
-				"totalInstructionsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of instruction entries added to variables." },
-				"claudeRulesCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of Claude rules files (.claude/rules/) added via pattern matching." },
-				"claudeMdCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of CLAUDE.md agent instruction files added." },
-				"claudeAgentsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of Claude agent files (.claude/agents/) listed as subagents." }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('instructionsCollected', undefined, telemetryEvent);
 	}
 
 
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
 
 
 function newTelemetryEvent(): InstructionsCollectionEvent {
@@ -659,7 +591,6 @@ function newTelemetryEvent(): InstructionsCollectionEvent {
 	};
 }
 
-/** Splits the existing variable set into attached files vs. instructions. */
 function collectAttachedContext(references: readonly vscode.ChatPromptReference[]): { files: ResourceSet; instructions: ResourceSet } {
 	const files = new ResourceSet();
 	const instructions = new ResourceSet();
@@ -675,10 +606,6 @@ function collectAttachedContext(references: readonly vscode.ChatPromptReference[
 	return { files, instructions };
 }
 
-/**
- * Returns the matched glob pattern (and optionally the matching file URI)
- * for `applyToPattern` against `attachedFiles`. Mirrors core's `_matches`.
- */
 function matchesAttachedFiles(attachedFiles: ResourceSet, applyToPattern: string): { pattern: string; file?: URI } | undefined {
 	const patterns = splitGlobAware(applyToPattern, ',');
 	for (const raw of patterns) {
@@ -686,11 +613,9 @@ function matchesAttachedFiles(attachedFiles: ResourceSet, applyToPattern: string
 		if (pattern.length === 0) {
 			continue;
 		}
-		// Special wildcards apply even when there are no attached files.
 		if (pattern === '**' || pattern === '**/*' || pattern === '*') {
 			return { pattern };
 		}
-		// Allow relative globs like `src/**/*.ts`.
 		if (!pattern.startsWith('/') && !pattern.startsWith('**/')) {
 			pattern = '**/' + pattern;
 		}
@@ -752,8 +677,6 @@ function formatStringDiff(original: string, modified: string): string {
 	const originalStarts = toLineStarts(original);
 	const modifiedStarts = toLineStarts(modified);
 
-	// Convert character-level changes into line-level ranges so logs can show
-	// compact unified-style hunks with surrounding unchanged context lines.
 	const changes = rawChanges.map(change => {
 		const originalStart = charIndexToLine(change.originalStart, originalStarts);
 		const modifiedStart = charIndexToLine(change.modifiedStart, modifiedStarts);
@@ -847,11 +770,11 @@ export class CustomInstructionsReferenceLogger {
 		const span = this._otelService.startSpan('collect_automatic_instructions', {
 			attributes: {
 				[GenAiAttr.OPERATION_NAME]: GenAiOperationName.CONTENT_EVENT,
-				...(sessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: sessionId } : {}),
+				...(sessionId ? { [DardcorChatAttr.CHAT_SESSION_ID]: sessionId } : {}),
 			},
 		});
 		span.setAttributes({
-			[CopilotChatAttr.DEBUG_NAME]: `Custom Instructions`,
+			[DardcorChatAttr.DEBUG_NAME]: `Custom Instructions`,
 			'dardcor_chat.event_category': 'discovery',
 			'dardcor_chat.event_details': ICustomInstructionsDebugInfo.formatAgentDebugLog(customInstructionsDebugInfo) + (collectInstructionsInExtension ? '\n(collected in extension)' : '\n(collected in core)'),
 		});
@@ -874,7 +797,6 @@ export class CustomInstructionsReferenceLogger {
 			this._logService.info(`[AutomaticInstructionsCollector] Core vs extension instructions match (${core.length} entries)`);
 		}
 
-		// Internal-only parity signal for comparing core vs extension instruction collection.
 		const simpleDiff = isMatch ? ICustomInstructionsDebugInfo.formatDiff(coreInfo, extInfo, false) : '';
 		this._telemetryService.sendInternalMSFTTelemetryEvent('automaticInstructionsCollectionComparison', { diff: simpleDiff }, { isMatch: isMatch ? 1 : 0 });
 	}

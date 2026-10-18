@@ -43,19 +43,12 @@ type ChatTipClassification = {
 	comment: 'Tracks user interactions with chat tips to understand which tips resonate and which are dismissed.';
 };
 
-// Re-export tracking commands for backwards compatibility
 export { TipTrackingCommands };
-/** @deprecated Use TipTrackingCommands.AttachFilesReferenceUsed */
 export const ATTACH_FILES_REFERENCE_TRACKING_COMMAND = TipTrackingCommands.AttachFilesReferenceUsed;
-/** @deprecated Use TipTrackingCommands.CreateAgentInstructionsUsed */
 export const CREATE_AGENT_INSTRUCTIONS_TRACKING_COMMAND = TipTrackingCommands.CreateAgentInstructionsUsed;
-/** @deprecated Use TipTrackingCommands.CreatePromptUsed */
 export const CREATE_PROMPT_TRACKING_COMMAND = TipTrackingCommands.CreatePromptUsed;
-/** @deprecated Use TipTrackingCommands.CreateAgentUsed */
 export const CREATE_AGENT_TRACKING_COMMAND = TipTrackingCommands.CreateAgentUsed;
-/** @deprecated Use TipTrackingCommands.CreateSkillUsed */
 export const CREATE_SKILL_TRACKING_COMMAND = TipTrackingCommands.CreateSkillUsed;
-/** @deprecated Use TipTrackingCommands.ForkConversationUsed */
 export const FORK_CONVERSATION_TRACKING_COMMAND = TipTrackingCommands.ForkConversationUsed;
 
 export const IChatTipService = createDecorator<IChatTipService>('chatTipService');
@@ -69,99 +62,41 @@ export interface IChatTip {
 export interface IChatTipService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fired when the current tip is dismissed.
-	 */
 	readonly onDidDismissTip: Event<void>;
 
-	/**
-	 * Fired when the user navigates to a different tip (previous/next).
-	 */
 	readonly onDidNavigateTip: Event<IChatTip>;
 
-	/**
-	 * Fired when the tip widget is hidden without dismissing the tip.
-	 */
 	readonly onDidHideTip: Event<void>;
 
-	/**
-	 * Fired when tips are disabled.
-	 */
 	readonly onDidDisableTips: Event<void>;
 
-	/**
-	 * Gets a tip to show on the welcome/getting-started view.
-	 * Returns the same tip on repeated calls for stable rerenders.
-	 */
 	getWelcomeTip(contextKeyService: IContextKeyService): IChatTip | undefined;
 
-	/**
-	 * Resets tip state for a new conversation.
-	 * Call this when the chat widget binds to a new model.
-	 */
 	resetSession(): void;
 
-	/**
-	 * Dismisses the current tip and allows a new one to be picked for the same request.
-	 * The dismissed tip will not be shown again for this user on this application installation.
-	 */
 	dismissTip(): void;
 
-	/**
-	 * Dismisses the current tip and hides all tips for the rest of the current chat session.
-	 */
 	dismissTipForSession(): void;
 
-	/**
-	 * Hides the tip widget without permanently dismissing the tip.
-	 * The tip may be shown again in a future session.
-	 */
 	hideTip(): void;
 
-	/**
-	 * Hides all tips for the rest of the current chat session.
-	 */
 	hideTipsForSession(): void;
 
-	/**
-	 * Disables tips permanently by setting the `chat.tips.enabled` configuration to false.
-	 */
 	disableTips(): Promise<void>;
 
-	/**
-	 * Navigates to the next tip in the catalog without permanently dismissing the current one.
-	 */
 	navigateToNextTip(): IChatTip | undefined;
 
-	/**
-	 * Navigates to the previous tip in the catalog without permanently dismissing the current one.
-	 */
 	navigateToPreviousTip(): IChatTip | undefined;
 
-	/**
-	 * Gets the next eligible tip after the current one, without requiring multiple tips.
-	 * Used after dismissing a tip to show the next available tip (even if it's the only one left).
-	 */
 	getNextEligibleTip(): IChatTip | undefined;
 
-	/**
-	 * Returns whether there are multiple eligible tips for navigation.
-	 */
 	hasMultipleTips(): boolean;
 
-	/**
-	 * Records usage of a slash command to update tip eligibility for flows where
-	 * the slash command text is transformed before request submission.
-	 */
 	recordSlashCommandUsage(command: string): void;
 
-	/**
-	 * Clears all dismissed tips so they can be shown again.
-	 */
 	clearDismissedTips(): void;
 }
 
-// Re-export types for backwards compatibility
 export type { ITipDefinition } from './chatTipCatalog.js';
 export { TipEligibilityTracker } from './chatTipEligibilityTracker.js';
 
@@ -180,21 +115,10 @@ export class ChatTipService extends Disposable implements IChatTipService {
 	private readonly _onDidDisableTips = this._register(new Emitter<void>());
 	readonly onDidDisableTips = this._onDidDisableTips.event;
 
-	/**
-	 * The request ID that was assigned a tip (for stable rerenders).
-	 */
 	private _tipRequestId: string | undefined;
 
-	/**
-	 * The tip that was shown (for stable rerenders).
-	 */
 	private _shownTip: ITipDefinition | undefined;
 
-	/**
-	 * The scoped context key service from the chat widget, stored when
-	 * {@link getWelcomeTip} is first called so that navigation methods
-	 * can evaluate when-clause eligibility against the correct context.
-	 */
 	private _contextKeyService: IContextKeyService | undefined;
 
 
@@ -261,16 +185,8 @@ export class ChatTipService extends Disposable implements IChatTipService {
 			}));
 		}
 
-		// Dynamic commands (e.g. 'workbench.action.chat.openPlan') are registered at
-		// WorkbenchPhase.Eventually and may be removed when the focused modes change.
-		// Re-evaluate the shown tip whenever any command is registered so that tips are
-		// neither shown with dead links nor permanently blocked from appearing due to a
-		// registration race at startup.
 		this._register(CommandsRegistry.onDidRegisterCommand(commandId => {
 			this._hideShownTipIfNowIneligible();
-			// If the newly registered command was a requirement that blocked a tip from
-			// being selected, reset the cached selection so the next getWelcomeTip call
-			// can re-pick the most suitable tip.
 			if (this._tipRequestId === 'welcome' && TIP_CATALOG.some(tip => tip.requiresCommands?.includes(commandId))) {
 				this._tipRequestId = undefined;
 			}
@@ -348,8 +264,6 @@ export class ChatTipService extends Disposable implements IChatTipService {
 			dismissed.add(this._shownTip.id);
 			this._storageService.store(ChatTipStorageKeys.DismissedTips, JSON.stringify([...dismissed]), StorageScope.APPLICATION, StorageTarget.MACHINE);
 		}
-		// Keep the current tip reference so callers can navigate relative to it
-		// (for example, dismiss -> next should mirror next/previous behavior).
 		this._tipRequestId = undefined;
 		this._onDidDismissTip.fire();
 	}
@@ -427,13 +341,9 @@ export class ChatTipService extends Disposable implements IChatTipService {
 
 	getWelcomeTip(contextKeyService: IContextKeyService): IChatTip | undefined {
 		this._createSlashCommandsUsageTracker.syncContextKey(contextKeyService);
-		// Always record the current mode so that mode-based exclusions are
-		// persisted even on stable-rerender paths (e.g. user switches to Plan
-		// mode while viewing the Plan tip).
 		this._tracker.recordCurrentMode(contextKeyService);
 
 		this._tracker.refreshPromptFileExclusions();
-		// Check if tips are enabled
 		if (!this._configurationService.getValue<boolean>('chat.tips.enabled')) {
 			return undefined;
 		}
@@ -442,20 +352,16 @@ export class ChatTipService extends Disposable implements IChatTipService {
 			return undefined;
 		}
 
-		// Store the scoped context key service for later navigation calls
 		this._contextKeyService = contextKeyService;
 
-		// Only show tips for Copilot
 		if (!this._isCopilotEnabled()) {
 			return undefined;
 		}
 
-		// Tips are only relevant after sign-in has completed.
 		if (this._chatEntitlementService.entitlement === ChatEntitlement.Unknown && !this._chatEntitlementService.hasByokModels) {
 			return undefined;
 		}
 
-		// Only show tips in the main chat panel, not in terminal/editor inline chat
 		if (!this._isChatLocation(contextKeyService)) {
 			return undefined;
 		}
@@ -464,12 +370,10 @@ export class ChatTipService extends Disposable implements IChatTipService {
 			return undefined;
 		}
 
-		// Don't show tips when chat quota is exceeded, the upgrade widget is more relevant
 		if (this._isChatQuotaExceeded(contextKeyService)) {
 			return undefined;
 		}
 
-		// Return the already-shown tip for stable rerenders
 		if (this._tipRequestId === 'welcome' && this._shownTip) {
 			if (this._shownTip.id !== 'tip.switchToAuto') {
 				const switchToAutoTip = TIP_CATALOG.find(tip => tip.id === 'tip.switchToAuto');
@@ -550,9 +454,6 @@ export class ChatTipService extends Disposable implements IChatTipService {
 		try {
 			eligible = this._isEligible(this._shownTip, this._contextKeyService);
 		} catch (err) {
-			// The stored scoped context key service may have been disposed
-			// (e.g. its owning chat widget was torn down). Drop the stale
-			// reference and bail out — there is nothing meaningful to hide.
 			this._contextKeyService = undefined;
 			return;
 		}
@@ -566,7 +467,6 @@ export class ChatTipService extends Disposable implements IChatTipService {
 
 	private _pickTip(sourceId: string, contextKeyService: IContextKeyService): IChatTip | undefined {
 		this._createSlashCommandsUsageTracker.syncContextKey(contextKeyService);
-		// Record the current mode for future eligibility decisions.
 		this._tracker.recordCurrentMode(contextKeyService);
 
 		const dismissedIds = new Set(this._getDismissedTipIds());
@@ -578,10 +478,8 @@ export class ChatTipService extends Disposable implements IChatTipService {
 			return undefined;
 		}
 
-		// Persist the selected tip ID for compatibility with existing storage consumers.
 		this._storageService.store(ChatTipStorageKeys.LastTipId, selectedTip.id, StorageScope.APPLICATION, StorageTarget.USER);
 
-		// Record that we've shown a tip this session
 		this._tipRequestId = sourceId;
 		this._shownTip = selectedTip;
 
@@ -636,7 +534,6 @@ export class ChatTipService extends Disposable implements IChatTipService {
 		const currentIndex = orderedTips.findIndex(tip => tip.id === currentTipId);
 		const candidate = this._getNextTipFromOrderedList(orderedTips, currentIndex, currentTipId);
 		if (candidate) {
-			// Found the next eligible tip - update state and return it
 			this._shownTip = candidate;
 			this._tipRequestId = 'welcome';
 			this._storageService.store(ChatTipStorageKeys.LastTipId, candidate.id, StorageScope.APPLICATION, StorageTarget.USER);
@@ -855,14 +752,11 @@ export class ChatTipService extends Disposable implements IChatTipService {
 	}
 
 	private _createTip(tipDef: ITipDefinition): IChatTip {
-		// Build the tip message with dynamic keybindings and command labels
 		const ctx: ITipBuildContext = { keybindingService: this._keybindingService };
 		const rawMessage = tipDef.buildMessage(ctx);
 
-		// Add "Tip:" prefix once here, avoiding duplication in individual tip definitions
 		const prefixedMessage = localize('tipPrefix', "**Tip:** {0}", rawMessage.value);
 
-		// Auto-extract enabled commands from the built message
 		const enabledCommands = extractCommandIds(prefixedMessage);
 
 		const markdown = new MarkdownString(prefixedMessage, {
@@ -886,7 +780,6 @@ export class ChatTipService extends Disposable implements IChatTipService {
 	private _trackTipCommandClicks(tip: ITipDefinition): void {
 		this._tipCommandListener.clear();
 
-		// Build message to extract enabled commands dynamically
 		const ctx: ITipBuildContext = { keybindingService: this._keybindingService };
 		const rawMessage = tip.buildMessage(ctx);
 		const enabledCommands = extractCommandIds(rawMessage.value);

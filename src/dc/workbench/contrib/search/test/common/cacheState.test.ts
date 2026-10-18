@@ -36,7 +36,7 @@ suite('FileQueryCacheState', () => {
 		assert.strictEqual(second.isLoaded, true);
 		assert.strictEqual(second.isUpdating, true);
 		await cache.awaitDisposal(0);
-		assert.strictEqual(second.cacheKey, firstKey); // still using old cacheKey
+		assert.strictEqual(second.cacheKey, firstKey);
 
 		const secondKey = cache.cacheKeys[1];
 		await cache.loading[secondKey].complete(null);
@@ -62,7 +62,7 @@ suite('FileQueryCacheState', () => {
 		assert.strictEqual(second.isLoaded, false);
 		assert.strictEqual(second.isUpdating, true);
 		assert.strictEqual(cache.cacheKeys.length, 2);
-		assert.strictEqual(Object.keys(cache.loading).length, 1); // still only one loading
+		assert.strictEqual(Object.keys(cache.loading).length, 1);
 		assert.strictEqual(second.cacheKey, firstKey);
 
 		await cache.loading[firstKey].complete(null);
@@ -92,7 +92,7 @@ suite('FileQueryCacheState', () => {
 		second.load();
 		assert.strictEqual(second.isLoaded, false);
 		assert.strictEqual(second.isUpdating, true);
-		assert.notStrictEqual(second.cacheKey, firstKey); // not using old cacheKey
+		assert.notStrictEqual(second.cacheKey, firstKey);
 		const secondKey = cache.cacheKeys[1];
 		assert.strictEqual(second.cacheKey, secondKey);
 
@@ -145,7 +145,7 @@ suite('FileQueryCacheState', () => {
 		assert.strictEqual(second.isUpdating, false);
 		assert.strictEqual(Object.keys(cache.loading).length, 2);
 		await cache.awaitDisposal(0);
-		assert.strictEqual(second.cacheKey, firstKey); // keep using old cacheKey
+		assert.strictEqual(second.cacheKey, firstKey);
 
 		const third = createCacheState(cache, second);
 		third.load();
@@ -161,7 +161,7 @@ suite('FileQueryCacheState', () => {
 		assert.strictEqual(third.isUpdating, false);
 		assert.strictEqual(Object.keys(cache.loading).length, 3);
 		await cache.awaitDisposal(2);
-		assert.strictEqual(third.cacheKey, thirdKey); // recover with next successful load
+		assert.strictEqual(third.cacheKey, thirdKey);
 	});
 
 	function createCacheState(cache: MockCache, previous?: FileQueryCacheState): FileQueryCacheState {

@@ -125,7 +125,6 @@ export abstract class FilterViewPaneContainer extends ViewPaneContainer {
 				panes[i].setExpanded(false);
 			}
 		}
-		// Check that allViews is ready
 		if (this.allViews.size === 0) {
 			this.updateAllViews(this.viewContainerModel.activeViewDescriptors);
 		}

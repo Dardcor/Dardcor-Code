@@ -82,7 +82,6 @@ export class ViewportSemanticTokensContribution extends Disposable implements IE
 			scheduleTokenizeViewport();
 		}));
 		this._register(this._editor.onDidChangeModelLanguage(() => {
-			// The cleanup of the model's semantic tokens happens in the DocumentSemanticTokensFeature
 			bindRangeProvidersChangeListeners();
 			this._cancelAll();
 			scheduleTokenizeViewport();

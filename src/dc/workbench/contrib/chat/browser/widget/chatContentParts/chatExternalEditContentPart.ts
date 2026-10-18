@@ -21,34 +21,9 @@ import { ChatTreeItem } from '../../chat.js';
 import { ChatEditPillElement, isResourceContentEmpty } from './chatEditPillElement.js';
 import { IChatContentPart, IChatContentPartDiffData, IChatContentPartRenderContext } from './chatContentParts.js';
 
-/**
- * Renders an {@link IChatExternalEdit} progress part as a static "edit pill".
- *
- * Unlike {@link CollapsedCodeBlock}, this part receives all of its data
- * (URI, edit kind, diff stats, before/after content URIs) up-front from the
- * producer (the agent host) and never reads from an
- * {@link IChatEditingSession}. It exists because agent hosts already know
- * the diff metadata for a completed tool call and there's no value in
- * re-deriving it through the chat editing pipeline.
- *
- * Activation (click / Enter) opens the side-by-side diff editor when both
- * `beforeContentUri` and `afterContentUri` are present, falling back to
- * opening the resulting file otherwise. A pure addition into an empty (or
- * non-existent) original is treated as the fallback case, since there is
- * nothing meaningful to diff against.
- */
 export class ChatExternalEditContentPart extends ChatEditPillElement implements IChatContentPart {
 
 	private readonly _onDidChangeDiff = this._register(new Emitter<IChatContentPartDiffData>());
-	/**
-	 * Fires once with the static diff data from the part data. Wired up by
-	 * the list renderer so {@link ChatThinkingContentPart} can aggregate
-	 * per-file changes into the thinking title.
-	 *
-	 * The fire is deferred to the next microtask so that consumers
-	 * subscribing immediately after construction (e.g. via
-	 * `ChatThinkingContentPart.appendItem`) still receive the initial value.
-	 */
 	readonly onDidChangeDiff: Event<IChatContentPartDiffData> = this._onDidChangeDiff.event;
 
 	get domNode(): HTMLElement { return this.element; }
@@ -87,12 +62,6 @@ export class ChatExternalEditContentPart extends ChatEditPillElement implements 
 				? localize('chat.codeblock.deletions.one', "1 deletion")
 				: localize('chat.codeblock.deletions', "{0} deletions", edit.diff.removed);
 			this.setAriaLabel(localize('summary', 'Edited {0}, {1}, {2}', fileName, insertionsFragment, deletionsFragment));
-			// Fire the aggregated stats event on the next microtask so
-			// listeners attached immediately after construction (the
-			// `ChatThinkingContentPart.appendItem` path subscribes after
-			// `createInstance` returns) still observe the value. The
-			// `Emitter` is not replayable on subscribe, so a synchronous
-			// fire would drop the initial stats on the floor.
 			const diff = edit.diff;
 			queueMicrotask(() => {
 				if (this._store.isDisposed) {
@@ -117,9 +86,6 @@ export class ChatExternalEditContentPart extends ChatEditPillElement implements 
 	private async openEdit({ editorOptions: options, openToSide }: IOpenEditorOptions): Promise<void> {
 		const group = openToSide ? SIDE_GROUP : undefined;
 		if (this.edit.beforeContentUri && this.edit.afterContentUri) {
-			// If the change is a pure addition into a file whose original version did not
-			// exist or was empty, there is nothing meaningful to diff against. Open the
-			// resulting file in a normal editor instead of a diff editor.
 			if (this.edit.editKind === 'edit' && (this.edit.diff?.removed ?? 0) === 0 && await isResourceContentEmpty(this.textModelService, this.edit.beforeContentUri)) {
 				this.editorService.openEditor({ resource: this.edit.uri, options }, group);
 				return;
@@ -130,8 +96,6 @@ export class ChatExternalEditContentPart extends ChatEditPillElement implements 
 				options,
 			}, group);
 		} else if (this.edit.editKind === 'delete' && this.edit.beforeContentUri) {
-			// The file no longer exists on disk; show the pre-deletion
-			// content from the snapshot instead of opening the missing URI.
 			this.editorService.openEditor({ resource: this.edit.beforeContentUri, options }, group);
 		} else if (this.edit.editKind !== 'delete') {
 			this.editorService.openEditor({ resource: this.edit.uri, options }, group);

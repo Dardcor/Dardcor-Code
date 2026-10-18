@@ -371,7 +371,6 @@ export default function BasicChatPageClient() {
       globalThis.localStorage.setItem(STORAGE_KEYS.activeProviderId, activeProviderId);
       globalThis.localStorage.setItem(STORAGE_KEYS.draft, draft);
     } catch {
-      // Ignore storage errors.
     }
   }, [isHydrated, sessions, activeSessionId, activeProviderId, draft]);
 
@@ -699,7 +698,6 @@ export default function BasicChatPageClient() {
               updatedAt: new Date().toISOString(),
             }));
           } catch {
-            // Ignore malformed chunks.
           }
         }
       }

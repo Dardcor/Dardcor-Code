@@ -17,22 +17,8 @@ import { IThemeService } from '../../../../../platform/theme/common/themeService
 import { getVoiceModeHoverContent } from '../speechToText/micButtonHovers.js';
 import { addMicButtonContextMenuListener, getVoiceModeContextMenuActions } from '../speechToText/micButtonMenuActions.js';
 
-/**
- * Stable command the "Configure Keybinding" entry targets. Voice Mode swaps the
- * rendered action between start and push-to-talk-stop while listening, but the
- * keybinding lives on the start command, so target it in both states.
- */
 const VOICE_START_COMMAND = 'agentsVoice.startVoiceInChat';
 
-/**
- * Action view item for the chat-input Voice Mode button. Behaves like the normal
- * toolbar voice-mode toggle (click to start/stop) but adds a right-click context
- * menu with voice-specific entries — "Configure Keybinding" (mirroring the
- * standard toolbar affordance), "Select Microphone" and "Disable Voice Mode" —
- * instead of the generic toolbar context menu. Its hover also explains that
- * Voice Mode is a spoken conversation driven by its own online model, distinct
- * from dictation. Mirrors {@link DictationActionViewItem}.
- */
 export class VoiceModeActionViewItem extends MenuEntryActionViewItem {
 
 	constructor(

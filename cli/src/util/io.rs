@@ -21,15 +21,12 @@ pub trait ReportCopyProgress {
 	fn report_progress(&mut self, bytes_so_far: u64, total_bytes: u64);
 }
 
-/// Type that doesn't emit anything for download progress.
 pub struct SilentCopyProgress();
 
 impl ReportCopyProgress for SilentCopyProgress {
 	fn report_progress(&mut self, _bytes_so_far: u64, _total_bytes: u64) {}
 }
 
-/// Copies from the reader to the writer, reporting progress to the provided
-/// reporter every so often.
 pub async fn copy_async_progress<T, R, W>(
 	mut reporter: T,
 	reader: &mut R,
@@ -68,18 +65,14 @@ where
 
 	Ok(bytes_so_far)
 }
-/// Helper used when converting Future interfaces to poll-based interfaces.
-/// Stores excess data that can be reused on future polls.
 #[derive(Default)]
 pub(crate) struct ReadBuffer(Option<(Vec<u8>, usize)>);
 
 impl ReadBuffer {
-	/// Removes any data stored in the read buffer
 	pub fn take_data(&mut self) -> Option<(Vec<u8>, usize)> {
 		self.0.take()
 	}
 
-	/// Writes as many bytes as possible to the readbuf, stashing any extra.
 	pub fn put_data(
 		&mut self,
 		target: &mut tokio::io::ReadBuf<'_>,
@@ -88,8 +81,6 @@ impl ReadBuffer {
 	) -> Poll<std::io::Result<()>> {
 		if bytes.is_empty() {
 			self.0 = None;
-			// should not return Ok(), since if nothing is written to the target
-			// it signals EOF. Instead wait for more data from the source.
 			return Poll::Pending;
 		}
 
@@ -108,16 +99,11 @@ impl ReadBuffer {
 
 #[derive(Debug)]
 pub enum TailEvent {
-	/// A new line was read from the file. The line includes its trailing newline character.
 	Line(String),
-	/// The file appears to have been rewritten (size shrunk)
 	Reset,
-	/// An error was encountered with the file.
 	Err(io::Error),
 }
 
-/// Simple, naive implementation of `tail -f -n <n> <path>`. Uses polling, so
-/// it's not the fastest, but simple and working for easy cases.
 pub fn tailf(file: File, n: usize) -> mpsc::UnboundedReceiver<TailEvent> {
 	let (tx, rx) = mpsc::unbounded_channel();
 	let mut last_len = match file.metadata() {
@@ -131,8 +117,6 @@ pub fn tailf(file: File, n: usize) -> mpsc::UnboundedReceiver<TailEvent> {
 	let mut reader = io::BufReader::new(file);
 	let mut pos = 0;
 
-	// Read the initial "n" lines back from the request. initial_lines
-	// is a small ring buffer.
 	let mut initial_lines = RingBuffer::new(n);
 	loop {
 		let mut line = String::new();
@@ -146,7 +130,6 @@ pub fn tailf(file: File, n: usize) -> mpsc::UnboundedReceiver<TailEvent> {
 		};
 
 		if !line.ends_with('\n') {
-			// EOF
 			break;
 		}
 
@@ -158,7 +141,6 @@ pub fn tailf(file: File, n: usize) -> mpsc::UnboundedReceiver<TailEvent> {
 		tx.send(TailEvent::Line(line)).ok();
 	}
 
-	// now spawn the poll process to keep reading new lines
 	tokio::spawn(async move {
 		let poll_interval = Duration::from_millis(500);
 
@@ -279,12 +261,11 @@ mod tests {
 		let mut rx = tailf(read_file, 0);
 		assert!(rx.try_recv().is_err());
 
-		let mut append_file = File::create(&file_path).unwrap(); // truncates
+		let mut append_file = File::create(&file_path).unwrap();
 		writeln!(&mut append_file, "some line").unwrap();
 
 		let recv = rx.recv().await;
 		if let Some(TailEvent::Reset) = recv {
-			// ok
 		} else {
 			unreachable!("expect a reset event, got {:?}", recv)
 		}

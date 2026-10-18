@@ -115,22 +115,16 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 	private registerViews(): void {
 		const viewDescriptors: IViewDescriptor[] = [];
 
-		/* Default views */
 		viewDescriptors.push(...this.createDefaultExtensionsViewDescriptors());
 
-		/* Search views */
 		viewDescriptors.push(...this.createSearchExtensionsViewDescriptors());
 
-		/* Recommendations views */
 		viewDescriptors.push(...this.createRecommendedExtensionsViewDescriptors());
 
-		/* Built-in extensions views */
 		viewDescriptors.push(...this.createBuiltinExtensionsViewDescriptors());
 
-		/* Trust Required extensions views */
 		viewDescriptors.push(...this.createUnsupportedWorkspaceExtensionsViewDescriptors());
 
-		/* Other Local Filtered extensions views */
 		viewDescriptors.push(...this.createOtherLocalFilteredExtensionsViewDescriptors());
 
 
@@ -168,9 +162,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 	private createDefaultExtensionsViewDescriptors(): IViewDescriptor[] {
 		const viewDescriptors: IViewDescriptor[] = [];
 
-		/*
-		 * Default installed extensions views - Shows all user installed extensions.
-		 */
 		const servers: IExtensionManagementServer[] = [];
 		if (this.extensionManagementServerService.localExtensionManagementServer) {
 			servers.push(this.extensionManagementServerService.localExtensionManagementServer);
@@ -195,7 +186,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			const getInstalledViewName = (): string => getViewName(localize('installed', "Installed"), server);
 			const onDidChangeTitle = Event.map<void, string>(serverLabelChangeEvent, () => getInstalledViewName());
 			const id = servers.length > 1 ? `workbench.views.extensions.${server.id}.installed` : `workbench.views.extensions.installed`;
-			/* Installed extensions view */
 			viewDescriptors.push({
 				id,
 				get name() {
@@ -208,7 +198,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 				order: 1,
 				when: ContextKeyExpr.and(DefaultViewsContext),
 				ctorDescriptor: new SyncDescriptor(ServerInstalledExtensionsView, [{ server, flexibleHeight: true, onDidChangeTitle }]),
-				/* Installed extensions views shall not be allowed to hidden when there are more than one server */
 				canToggleVisibility: servers.length === 1
 			});
 
@@ -253,11 +242,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			}));
 		}
 
-		/*
-		 * Default popular extensions view
-		 * Separate view for popular extensions required as we need to show popular and recommended sections
-		 * in the default view when there is no search text, and user has no installed extensions.
-		 */
 		viewDescriptors.push({
 			id: 'workbench.views.extensions.popular',
 			name: localize2('popularExtensions', "Popular"),
@@ -268,11 +252,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			canToggleVisibility: false
 		});
 
-		/*
-		 * Default recommended extensions view
-		 * When user has installed extensions, this is shown along with the views for enabled & disabled extensions
-		 * When user has no installed extensions, this is shown along with the view for popular extensions
-		 */
 		viewDescriptors.push({
 			id: 'extensions.recommendedList',
 			name: localize2('recommendedExtensions', "Recommended"),
@@ -283,12 +262,7 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			canToggleVisibility: true
 		});
 
-		/* Installed views shall be default in multi server window  */
 		if (servers.length === 1) {
-			/*
-			 * Default enabled extensions view - Shows all user installed enabled extensions.
-			 * Hidden by default
-			 */
 			viewDescriptors.push({
 				id: 'workbench.views.extensions.enabled',
 				name: localize2('enabledExtensions', "Enabled"),
@@ -300,10 +274,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 				canToggleVisibility: true
 			});
 
-			/*
-			 * Default disabled extensions view - Shows all disabled extensions.
-			 * Hidden by default
-			 */
 			viewDescriptors.push({
 				id: 'workbench.views.extensions.disabled',
 				name: localize2('disabledExtensions', "Disabled"),
@@ -323,9 +293,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 	private createSearchExtensionsViewDescriptors(): IViewDescriptor[] {
 		const viewDescriptors: IViewDescriptor[] = [];
 
-		/*
-		 * View used for searching Marketplace
-		 */
 		viewDescriptors.push({
 			id: 'workbench.views.extensions.marketplace',
 			name: localize2('marketPlace', "Marketplace"),
@@ -333,9 +300,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			when: ContextKeyExpr.and(ContextKeyExpr.has('searchMarketplaceExtensions'), CONTEXT_HAS_GALLERY)
 		});
 
-		/*
-		 * View used for searching all installed extensions
-		 */
 		viewDescriptors.push({
 			id: 'workbench.views.extensions.searchInstalled',
 			name: localize2('installed', "Installed"),
@@ -343,9 +307,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			when: ContextKeyExpr.or(ContextKeyExpr.has('searchInstalledExtensions'), ContextKeyExpr.has('installedExtensions')),
 		});
 
-		/*
-		 * View used for searching recently updated extensions
-		 */
 		viewDescriptors.push({
 			id: 'workbench.views.extensions.searchRecentlyUpdated',
 			name: localize2('recently updated', "Recently Updated"),
@@ -354,9 +315,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			order: 2,
 		});
 
-		/*
-		 * View used for searching enabled extensions
-		 */
 		viewDescriptors.push({
 			id: 'workbench.views.extensions.searchEnabled',
 			name: localize2('enabled', "Enabled"),
@@ -364,9 +322,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			when: ContextKeyExpr.and(ContextKeyExpr.has('searchEnabledExtensions')),
 		});
 
-		/*
-		 * View used for searching disabled extensions
-		 */
 		viewDescriptors.push({
 			id: 'workbench.views.extensions.searchDisabled',
 			name: localize2('disabled', "Disabled"),
@@ -374,9 +329,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			when: ContextKeyExpr.and(ContextKeyExpr.has('searchDisabledExtensions')),
 		});
 
-		/*
-		 * View used for searching outdated extensions
-		 */
 		viewDescriptors.push({
 			id: OUTDATED_EXTENSIONS_VIEW_ID,
 			name: localize2('availableUpdates', "Available Updates"),
@@ -385,9 +337,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			order: 1,
 		});
 
-		/*
-		 * View used for searching builtin extensions
-		 */
 		viewDescriptors.push({
 			id: 'workbench.views.extensions.searchBuiltin',
 			name: localize2('builtin', "Builtin"),
@@ -395,9 +344,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			when: ContextKeyExpr.and(ContextKeyExpr.has('searchBuiltInExtensions')),
 		});
 
-		/*
-		 * View used for searching workspace unsupported extensions
-		 */
 		viewDescriptors.push({
 			id: 'workbench.views.extensions.searchWorkspaceUnsupported',
 			name: localize2('workspaceUnsupported', "Workspace Unsupported"),
@@ -668,7 +614,6 @@ export class ExtensionsViewPaneContainer extends ViewPaneContainer<IExtensionsVi
 			actionViewItemProvider: (action, options) => createActionViewItem(this.instantiationService, action, options)
 		}));
 
-		// Register DragAndDrop support
 		this._register(new DragAndDropObserver(this.root, {
 			onDragEnter: (e: DragEvent) => {
 				if (this.isSupportedDragElement(e)) {
@@ -694,7 +639,6 @@ export class ExtensionsViewPaneContainer extends ViewPaneContainer<IExtensionsVi
 
 					if (vsixs.length > 0) {
 						try {
-							// Attempt to install the extension(s)
 							await this.commandService.executeCommand(INSTALL_EXTENSION_FROM_VSIX_COMMAND_ID, vsixs);
 						}
 						catch (err) {
@@ -737,9 +681,9 @@ export class ExtensionsViewPaneContainer extends ViewPaneContainer<IExtensionsVi
 			this.root.classList.toggle('narrow', dimension.width <= 250);
 			this.root.classList.toggle('mini', dimension.width <= 200);
 		}
-		this.searchBox?.layout(new Dimension(dimension.width - 34 - /*padding*/8 - (24 * 2), 20));
-		const searchBoxHeight = 20 + 21 /*margin*/;
-		const headerHeight = this.header && !!this.notificationContainer?.childNodes.length ? this.notificationContainer.clientHeight + searchBoxHeight + 10 /*margin*/ : searchBoxHeight;
+		this.searchBox?.layout(new Dimension(dimension.width - 34 - 8 - (24 * 2), 20));
+		const searchBoxHeight = 20 + 21 ;
+		const headerHeight = this.header && !!this.notificationContainer?.childNodes.length ? this.notificationContainer.clientHeight + searchBoxHeight + 10 : searchBoxHeight;
 		this.header!.style.height = `${headerHeight}px`;
 		super.layout(new Dimension(dimension.width, dimension.height - headerHeight));
 	}
@@ -1084,7 +1028,7 @@ export class MaliciousExtensionChecker implements IWorkbenchContribution {
 
 	private loopCheckForMaliciousExtensions(): void {
 		this.checkForMaliciousExtensions()
-			.then(() => timeout(1000 * 60 * 5)) // every five minutes
+			.then(() => timeout(1000 * 60 * 5))
 			.then(() => this.loopCheckForMaliciousExtensions());
 	}
 

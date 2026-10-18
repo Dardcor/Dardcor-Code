@@ -27,10 +27,6 @@ export interface IColumnSelectData {
 	toViewVisualColumn: number;
 }
 
-/**
- * This is an operation type that will be recorded for undo/redo purposes.
- * The goal is to introduce an undo stop when the controller switches between different operation types.
- */
 export const enum EditOperationType {
 	Other = 0,
 	DeletingLeft = 2,
@@ -184,9 +180,6 @@ export class CursorConfiguration {
 		return InputMode.getInputMode();
 	}
 
-	/**
-	 * Should return opening bracket type to match indentation with
-	 */
 	public onElectricCharacter(character: string, context: LineTokens, column: number): IElectricAction | null {
 		const scopedLineTokens = createScopedLineTokens(context, column - 1);
 		const electricCharacterSupport = this.languageConfigurationService.getLanguageConfiguration(scopedLineTokens.languageId).electricCharacter;
@@ -218,18 +211,10 @@ export class CursorConfiguration {
 		return c => autoCloseBeforeSet.indexOf(c) !== -1;
 	}
 
-	/**
-	 * Returns a visible column from a column.
-	 * @see {@link CursorColumns}
-	 */
 	public visibleColumnFromColumn(model: ICursorSimpleModel, position: Position): number {
 		return CursorColumns.visibleColumnFromColumn(model.getLineContent(position.lineNumber), position.column, this.tabSize);
 	}
 
-	/**
-	 * Returns a visible column from a column.
-	 * @see {@link CursorColumns}
-	 */
 	public columnFromVisibleColumn(model: ICursorSimpleModel, lineNumber: number, visibleColumn: number): number {
 		const result = CursorColumns.columnFromVisibleColumn(model.getLineContent(lineNumber), visibleColumn, this.tabSize);
 
@@ -247,9 +232,6 @@ export class CursorConfiguration {
 	}
 }
 
-/**
- * Represents a simple model (either the model or the view model).
- */
 export interface ICursorSimpleModel {
 	getLineCount(): number;
 	getLineContent(lineNumber: number): string;
@@ -336,9 +318,6 @@ export const enum SelectionStartKind {
 	Line
 }
 
-/**
- * Represents the cursor state on either the model or on the view model.
- */
 export class SingleCursorState {
 	_singleCursorStateBrand: void = undefined;
 
@@ -370,7 +349,6 @@ export class SingleCursorState {
 
 	public move(inSelectionMode: boolean, lineNumber: number, column: number, leftoverVisibleColumns: number): SingleCursorState {
 		if (inSelectionMode) {
-			// move just position
 			return new SingleCursorState(
 				this.selectionStart,
 				this.selectionStartKind,
@@ -379,7 +357,6 @@ export class SingleCursorState {
 				leftoverVisibleColumns
 			);
 		} else {
-			// move everything
 			return new SingleCursorState(
 				new Range(lineNumber, column, lineNumber, column),
 				SelectionStartKind.Simple,

@@ -82,12 +82,10 @@ export class StartSessionAction extends Action2 {
 		const codeEditorService = accessor.get(ICodeEditorService);
 		const editor = codeEditorService.getActiveCodeEditor();
 		if (!editor || editor.isSimpleWidget) {
-			// well, at least we tried...
 			return;
 		}
 
 
-		// precondition does hold
 		return editor.invokeWithinContext((editorAccessor) => {
 			const kbService = editorAccessor.get(IContextKeyService);
 			const logService = editorAccessor.get(ILogService);
@@ -117,7 +115,6 @@ export class StartSessionAction extends Action2 {
 	}
 }
 
-// --- InlineChatEditorAffordance menu ---
 
 MenuRegistry.appendMenuItem(MenuId.InlineChatEditorAffordance, {
 	group: '0_chat',
@@ -141,11 +138,11 @@ export class FocusInlineChat extends EditorAction2 {
 			category: AbstractInlineChatAction.category,
 			precondition: ContextKeyExpr.and(EditorContextKeys.editorTextFocus, CTX_INLINE_CHAT_VISIBLE, CTX_INLINE_CHAT_FOCUSED.negate(), CONTEXT_ACCESSIBILITY_MODE_ENABLED.negate()),
 			keybinding: [{
-				weight: KeybindingWeight.EditorCore + 10, // win against core_command
+				weight: KeybindingWeight.EditorCore + 10,
 				when: ContextKeyExpr.and(CTX_INLINE_CHAT_OUTER_CURSOR_POSITION.isEqualTo('above'), EditorContextKeys.isEmbeddedDiffEditor.negate()),
 				primary: KeyMod.CtrlCmd | KeyCode.DownArrow,
 			}, {
-				weight: KeybindingWeight.EditorCore + 10, // win against core_command
+				weight: KeybindingWeight.EditorCore + 10,
 				when: ContextKeyExpr.and(CTX_INLINE_CHAT_OUTER_CURSOR_POSITION.isEqualTo('below'), EditorContextKeys.isEmbeddedDiffEditor.negate()),
 				primary: KeyMod.CtrlCmd | KeyCode.UpArrow,
 			}]
@@ -157,7 +154,6 @@ export class FocusInlineChat extends EditorAction2 {
 	}
 }
 
-//#region --- VERSION 2
 export abstract class AbstractInlineChatAction extends EditorAction2 {
 
 	static readonly category = localize2('cat', "Inline Chat");

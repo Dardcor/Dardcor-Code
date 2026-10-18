@@ -35,7 +35,6 @@
 }
 
 .monaco-editor-pane-placeholder.max-height-200px .editor-placeholder-icon-container {
-	/* Hide the icon when height is limited */
 	display: none;
 }
 

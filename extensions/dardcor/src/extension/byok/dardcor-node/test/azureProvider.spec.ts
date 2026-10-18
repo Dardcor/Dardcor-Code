@@ -17,7 +17,6 @@ describe('AzureBYOKModelProvider', () => {
 	beforeEach(() => {
 		const testingServiceCollection = createExtensionUnitTestingServices();
 
-		// Add IBlockedExtensionService which is required by CopilotLanguageModelWrapper
 		testingServiceCollection.define(IBlockedExtensionService, new SyncDescriptor(BlockedExtensionService));
 	});
 

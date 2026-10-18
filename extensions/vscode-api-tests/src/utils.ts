@@ -129,7 +129,7 @@ export function assertNoRpcFromEntry(entry: [obj: any, name: string]) {
 		assert.fail(err);
 	}
 	assert.strictEqual(rpcPaths.length, 0, rpcPaths.join('\n'));
-	assert.strictEqual(proxyPaths.length, 0, proxyPaths.join('\n')); // happens...
+	assert.strictEqual(proxyPaths.length, 0, proxyPaths.join('\n'));
 }
 
 export async function asPromise<T>(event: vscode.Event<T>, timeout = vscode.env.uiKind === vscode.UIKind.Desktop ? 5000 : 15000): Promise<T> {
@@ -166,7 +166,7 @@ export async function poll<T>(
 	acceptFn: (result: T) => boolean,
 	timeoutMessage: string,
 	retryCount: number = 200,
-	retryInterval: number = 100 // millis
+	retryInterval: number = 100
 ): Promise<T> {
 	let trial = 1;
 	let lastError: string = '';
@@ -195,9 +195,6 @@ export async function poll<T>(
 
 export type ValueCallback<T = unknown> = (value: T | Promise<T>) => void;
 
-/**
- * Creates a promise whose resolution or rejection can be controlled imperatively.
- */
 export class DeferredPromise<T> {
 
 	private completeCallback!: ValueCallback<T>;

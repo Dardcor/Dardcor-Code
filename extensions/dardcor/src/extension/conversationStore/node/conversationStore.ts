@@ -20,7 +20,7 @@ export interface IConversationStore {
 	lastConversation: Conversation | undefined;
 }
 
-const CLEANUP_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const CLEANUP_TIMEOUT_MS = 10 * 60 * 1000;
 
 export class ConversationStore extends Disposable implements IConversationStore {
 	readonly _serviceBrand: undefined;

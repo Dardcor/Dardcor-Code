@@ -274,12 +274,12 @@ describe('responseApiInputToRawMessagesForLogging', () => {
 		const result = responseApiInputToRawMessagesForLogging(body);
 
 		expect(result).toHaveLength(5);
-		expect(result[0].role).toBe(Raw.ChatRole.System); // instructions
-		expect(result[1].role).toBe(Raw.ChatRole.User); // first user message
-		expect(result[2].role).toBe(Raw.ChatRole.Assistant); // function call
+		expect(result[0].role).toBe(Raw.ChatRole.System);
+		expect(result[1].role).toBe(Raw.ChatRole.User);
+		expect(result[2].role).toBe(Raw.ChatRole.Assistant);
 		expect((result[2] as Raw.AssistantChatMessage).toolCalls).toHaveLength(1);
-		expect(result[3].role).toBe(Raw.ChatRole.Tool); // function output
-		expect(result[4].role).toBe(Raw.ChatRole.User); // thanks message
+		expect(result[3].role).toBe(Raw.ChatRole.Tool);
+		expect(result[4].role).toBe(Raw.ChatRole.User);
 	});
 
 	it('returns empty array for undefined input', () => {
@@ -314,7 +314,6 @@ describe('responseApiInputToRawMessagesForLogging', () => {
 
 		const result = responseApiInputToRawMessagesForLogging(body);
 
-		// Two consecutive function calls should be grouped into one assistant message
 		expect(result).toHaveLength(1);
 		expect(result[0].role).toBe(Raw.ChatRole.Assistant);
 		expect((result[0] as Raw.AssistantChatMessage).toolCalls).toHaveLength(2);
@@ -393,10 +392,6 @@ describe('createResponsesRequestBody', () => {
 	});
 
 	it('drops foreign thinking (Messages API "thinking_N" id) so it cannot 400 the Responses request', () => {
-		// Reproduces "400 invalid_request_body: Invalid 'input[N].id': 'thinking_0'. Expected an
-		// ID that begins with 'rs'." Anthropic Messages-API thinking leaks into a Responses
-		// request (e.g. via the vscode.lm path); its id and encrypted payload are foreign and
-		// must not be round-tripped.
 		const services = createPlatformServices();
 		const accessor = services.createTestingAccessor();
 		const instantiationService = accessor.get(IInstantiationService);
@@ -893,19 +888,16 @@ describe('createResponsesRequestBody', () => {
 				role: Raw.ChatRole.User,
 				content: [{ type: Raw.ChatCompletionContentPartKind.Text, text: 'find something' }],
 			},
-			// Assistant calls tool_search
 			{
 				role: Raw.ChatRole.Assistant,
 				content: [],
 				toolCalls: [{ id: 'ts_1', type: 'function', function: { name: 'tool_search', arguments: '{"query":"search"}' } }],
 			},
-			// tool_search returns some_mcp_tool
 			{
 				role: Raw.ChatRole.Tool,
 				content: [{ type: Raw.ChatCompletionContentPartKind.Text, text: '["some_mcp_tool"]' }],
 				toolCallId: 'ts_1',
 			},
-			// Assistant calls some_mcp_tool (loaded via tool_search) and read_file (not loaded via tool_search)
 			{
 				role: Raw.ChatRole.Assistant,
 				content: [],
@@ -920,12 +912,10 @@ describe('createResponsesRequestBody', () => {
 
 		const input = body.input as OpenAI.Responses.ResponseInputItem[];
 
-		// some_mcp_tool was loaded via tool_search_output — should have namespace
 		const mcpCall = input.find(item => isFunctionCallInputItem(item, 'some_mcp_tool'));
 		expect(mcpCall).toBeDefined();
 		expect(mcpCall?.namespace).toBe('some_mcp_tool');
 
-		// read_file was NOT loaded via tool_search — should NOT have namespace
 		const readCall = input.find(item => isFunctionCallInputItem(item, 'read_file'));
 		expect(readCall).toBeDefined();
 		expect(readCall).not.toHaveProperty('namespace');
@@ -1195,7 +1185,6 @@ describe('processResponseFromChatEndpoint telemetry', () => {
 		);
 
 		for await (const _ of stream) {
-			// consume all completions to flush telemetry side effects
 		}
 
 		const events = telemetryService.getEvents().telemetryServiceEvents.filter(e => e.eventName === 'engine.messages');
@@ -1275,7 +1264,6 @@ describe('processResponseFromChatEndpoint telemetry', () => {
 		);
 
 		for await (const _ of stream) {
-			// consume stream
 		}
 
 		expect(streamedCompactions.map(item => item.id)).toEqual(['cmp_old', 'cmp_new']);
@@ -1351,7 +1339,6 @@ describe('processResponseFromChatEndpoint telemetry', () => {
 		);
 
 		for await (const _ of stream) {
-			// consume stream
 		}
 
 		const event = telemetryService.getEvents().telemetryServiceEvents.find(e => e.eventName === 'responsesApi.compactionOutcome');
@@ -1417,7 +1404,6 @@ describe('processResponseFromChatEndpoint telemetry', () => {
 		);
 
 		for await (const _ of stream) {
-			// consume stream
 		}
 
 		expect(streamedCompactions.map(item => item.id)).toEqual(['cmp_early']);
@@ -1488,7 +1474,6 @@ describe('processResponseFromChatEndpoint telemetry', () => {
 		);
 
 		for await (const _ of stream) {
-			// consume stream
 		}
 
 		const event = telemetryService.getEvents().telemetryServiceEvents.find(e => e.eventName === 'responsesApi.compactionOutcome');
@@ -1551,7 +1536,6 @@ describe('processResponseFromChatEndpoint telemetry', () => {
 		);
 
 		for await (const _ of stream) {
-			// consume stream
 		}
 
 		const event = telemetryService.getEvents().telemetryServiceEvents.find(e => e.eventName === 'responsesApi.compactionOutcome');
@@ -1727,9 +1711,6 @@ describe('phase commentary followed by phase final_answer', () => {
 		const commentaryText = 'Responding directly in commentary as requested. My name is GitHub Copilot.';
 		const finalText = 'My name is GitHub Copilot.';
 
-		// Real-world Responses API stream: commentary message (output_index 0)
-		// followed by final_answer message (output_index 1), with incremental
-		// text deltas for each.
 		const events = [
 			{ type: 'response.output_item.added', output_index: 0, item: { type: 'message', role: 'assistant', content: [], phase: 'commentary', status: 'in_progress' }, sequence_number: 2 },
 			{ type: 'response.content_part.added', output_index: 0, content_index: 0, item_id: 'item-0', part: { type: 'output_text', text: '', annotations: [], logprobs: [] }, sequence_number: 3 },
@@ -1802,12 +1783,10 @@ describe('phase commentary followed by phase final_answer', () => {
 		);
 
 		for await (const _ of stream) {
-			// consume stream
 		}
 
 		expect(phases).toEqual(['commentary', 'final_answer']);
 
-		// The accumulated text must separate commentary and final_answer text
 		const finalAccumulatedText = accumulatedTexts[accumulatedTexts.length - 1];
 		expect(finalAccumulatedText).toBe(
 			commentaryText + '\n\n' + finalText
@@ -1922,11 +1901,6 @@ describe('processResponseFromChatEndpoint terminal events', () => {
 	});
 
 	it('maps a raw error stream event to a terminal ServerError completion', async () => {
-		// Root cause of #322209: a raw Responses API `error` stream event is only
-		// surfaced as a `dardcorErrors` progress delta and never yields a terminal
-		// completion. With no completion, the downstream chat fetcher falls through
-		// to the generic `RESPONSE_CONTAINED_NO_CHOICES` ("Response contained no
-		// choices") instead of a meaningful server-error message.
 		const errorEvent = {
 			type: 'error',
 			code: 'server_error',

@@ -42,14 +42,14 @@ export class InlineChatNotebookGeneratePrompt extends PromptElement<InlineChatEd
 
 	override async prepare(sizing: PromptSizing): Promise<InlineChatNotebookBasePromptState> {
 		const { documentContext: context } = this.props;
-		const isIgnored = await this.ignoreService.isCopilotIgnored(context.document.uri);
+		const isIgnored = await this.ignoreService.isIgnored(context.document.uri);
 		const wholeRange = context.document.validateRange(context.wholeRange);
 		const summarizedDocument = await createPromptingSummarizedDocument(
 			this.parserService,
 			context.document,
 			context.fileIndentInfo,
 			wholeRange,
-			sizing.endpoint.modelMaxPromptTokens / 3 // consume one 3rd of the model window
+			sizing.endpoint.modelMaxPromptTokens / 3
 		);
 
 		const isTagBasedDocumentSummary = this.experimentationService.getTreatmentVariable<boolean>('dardcorchat.tagBasedDocumentSummary') ?? false;
@@ -154,7 +154,6 @@ class InlineChatNotebookGenerateSelection extends PromptElement<InlineChatNotebo
 
 		let executedCells: vscode.NotebookCell[] | undefined = undefined;
 		if (inSummaryExperiment && this.tabsAndEditorsService.activeNotebookEditor?.notebook && this.tabsAndEditorsService.activeNotebookEditor?.notebook.uri.path === document.uri.path) {
-			// experiment new notebook summary
 			executedCells = this.notebookService.getCellExecutions(this.tabsAndEditorsService.activeNotebookEditor.notebook.uri);
 		}
 
@@ -170,7 +169,7 @@ class InlineChatNotebookGenerateSelection extends PromptElement<InlineChatNotebo
 		}
 		const { wholeRange } = state;
 		const contextInfo = generateSelectionContextInNotebook(
-			sizing.endpoint.modelMaxPromptTokens / 3, // consume one 3rd of the model window
+			sizing.endpoint.modelMaxPromptTokens / 3,
 			this.props.documentContext,
 			wholeRange,
 			this.tabsAndEditorsService,

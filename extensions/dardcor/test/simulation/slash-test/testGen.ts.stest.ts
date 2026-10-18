@@ -166,7 +166,6 @@ forInline((strategy, nonExtensionConfigurations, suffix) => {
 	});
 });
 
-// the folloing tests test the intent-detection. Inline2 does not do intent-detection.
 
 forInline((strategy, nonExtensionConfigurations) => {
 
@@ -225,9 +224,7 @@ forInline((strategy, nonExtensionConfigurations) => {
 							assert.strictEqual(outcome.type, 'inlineEdit');
 							const lines = outcome.fileContents.split(/\r\n|\r|\n/g);
 							assert.ok(lines.length >= 132 + 276);
-							// remove first 132 lines
 							lines.splice(0, 132);
-							// remove last 276 lines
 							lines.splice(lines.length - 276, 276);
 							const text = lines.join('\n');
 							return assertContainsAllSnippets(text, ['withTestNotebook', 'assert'], 'tests/in-suite-issue-3701');
@@ -347,7 +344,6 @@ forInline((strategy, nonExtensionConfigurations) => {
 	});
 });
 
-// the folloing tests are panel tests
 
 ssuite({ title: `/tests`, location: 'panel', language: 'typescript' }, function () {
 

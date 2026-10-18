@@ -90,7 +90,6 @@ suite('AgentHostFileCompletionProvider', () => {
 		});
 
 		test('returns undefined when @ is not preceded by whitespace', () => {
-			// e.g. an email-like token
 			assert.strictEqual(extractAtToken('user@example', 12), undefined);
 		});
 
@@ -99,7 +98,6 @@ suite('AgentHostFileCompletionProvider', () => {
 		});
 
 		test('honours offset (token = chars between @ and cursor)', () => {
-			// Cursor is mid-token: "look at @fo|o"
 			assert.deepStrictEqual(extractAtToken('look at @foo', 11), { token: 'fo', triggerChar: '@', rangeStart: 8, rangeEnd: 11 });
 		});
 

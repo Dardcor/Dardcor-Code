@@ -13,7 +13,6 @@ import { NullCommandService } from '../../../commands/test/common/nullCommandSer
 import { MockContextKeyService, MockKeybindingService } from '../../../keybinding/test/common/mockKeybindingService.js';
 import { InMemoryStorageService } from '../../../storage/common/storage.js';
 
-// --- service instances
 
 const contextKeyService = new class extends MockContextKeyService {
 	override contextMatchesRules() {
@@ -21,7 +20,6 @@ const contextKeyService = new class extends MockContextKeyService {
 	}
 };
 
-// --- tests
 
 suite('MenuService', function () {
 

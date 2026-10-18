@@ -7,11 +7,7 @@ import { ShutdownReason } from '../../../services/lifecycle/common/lifecycle.js'
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { localize } from '../../../../nls.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
-import { AgentSessionProviders } from '../browser/agentSessions/agentSessions.js';
-import { type IAgentSession, isSessionInProgressStatus } from '../browser/agentSessions/agentSessionsModel.js';
-import { isLocalAgentHostTarget, isRemoteAgentHostTarget } from '../common/chatSessionsService.js';
-
-type ShutdownWarningSession = Pick<IAgentSession, 'isArchived' | 'providerType' | 'status'>;
+import { isLocalAgentHostTarget } from '../common/chatSessionsService.js';
 
 export function getEffectiveSessionShutdownReason(reason: ShutdownReason, windowCount: number, macintosh: boolean): ShutdownReason {
 	return reason === ShutdownReason.CLOSE && !macintosh && windowCount === 1 ? ShutdownReason.QUIT : reason;
@@ -44,20 +40,4 @@ export async function confirmSessionShutdown(dialogService: IDialogService, reas
 
 export function shouldWarnForInFlightSessionShutdown(sessionTypes: readonly string[], reason: ShutdownReason): boolean {
 	return reason === ShutdownReason.QUIT && sessionTypes.some(isLocalAgentHostTarget);
-}
-
-export function shouldWarnForSessionShutdown(session: ShutdownWarningSession, reason: ShutdownReason): boolean {
-	if (!isSessionInProgressStatus(session.status) || session.providerType === AgentSessionProviders.Cloud || session.isArchived()) {
-		return false;
-	}
-
-	if (isRemoteAgentHostTarget(session.providerType)) {
-		return false;
-	}
-
-	if (isLocalAgentHostTarget(session.providerType)) {
-		return reason === ShutdownReason.QUIT;
-	}
-
-	return true;
 }

@@ -22,9 +22,6 @@ import {
 	UnifiedXmlInsertContext,
 } from '../../node/responseFormatHandlers';
 
-// ============================================================================
-// Helpers
-// ============================================================================
 
 function createMockLogger(): ILogger {
 	return {
@@ -62,9 +59,6 @@ async function collectLines(iter: AsyncIterable<string>): Promise<string[]> {
 	return AsyncIterUtils.toArray(iter);
 }
 
-/**
- * Creates an async iterable that yields `items` and then throws `error`.
- */
 async function* asyncIterableWithError(items: string[], error: Error): AsyncGenerator<string> {
 	for (const item of items) {
 		yield item;
@@ -85,9 +79,6 @@ async function consumeDirectEdits(
 	}
 }
 
-// ============================================================================
-// handleEditWindowOnly
-// ============================================================================
 
 describe('handleEditWindowOnly', () => {
 	it('passes lines through unchanged', async () => {
@@ -105,9 +96,6 @@ describe('handleEditWindowOnly', () => {
 	});
 });
 
-// ============================================================================
-// handleCodeBlock
-// ============================================================================
 
 describe('handleCodeBlock', () => {
 	it('strips opening and closing backtick fences', async () => {
@@ -131,9 +119,6 @@ describe('handleCodeBlock', () => {
 	});
 });
 
-// ============================================================================
-// handleEditWindowWithEditIntent
-// ============================================================================
 
 describe('handleEditWindowWithEditIntent', () => {
 	it('parses tag-based intent and returns EditWindowLines with metadata', async () => {
@@ -191,15 +176,11 @@ describe('handleEditWindowWithEditIntent', () => {
 		expect(result).toBeInstanceOf(ResponseParseResult.EditWindowLines);
 		const ewl = result as ResponseParseResult.EditWindowLines;
 		expect(ewl.editIntentMetadata?.parseError).toBeDefined();
-		// Default to High on parse error — first line is re-emitted as content
 		expect(ewl.editIntentMetadata?.intent).toBe(EditIntent.High);
 		expect(await collectLines(ewl.lines)).toEqual(['no intent here', 'line1']);
 	});
 });
 
-// ============================================================================
-// handleUnifiedWithXml
-// ============================================================================
 
 describe('handleUnifiedWithXml', () => {
 	it('<NO_CHANGE> returns Done(NoSuggestions)', async () => {
@@ -307,12 +288,9 @@ describe('handleUnifiedWithXml', () => {
 			expect(result).toBeInstanceOf(ResponseParseResult.DirectEdits);
 			const { edits, returnValue } = await consumeDirectEdits((result as ResponseParseResult.DirectEdits).stream);
 
-			// First edit: cursor line replacement with inserted text spliced in
-			// cursor_line with cursorColumnZeroBased=6: 'cursor' + 'inserted_text' + '_line'
 			expect(edits.length).toBeGreaterThanOrEqual(1);
 			expect(edits[0].edit.newLines).toEqual(['cursorinserted_text_line']);
 
-			// Second edit: empty insertion (no additional lines between INSERT tags)
 			expect(edits[1].edit.newLines).toEqual([]);
 
 			expect(returnValue).toBeInstanceOf(NoNextEditReason.NoSuggestions);
@@ -331,9 +309,7 @@ describe('handleUnifiedWithXml', () => {
 			const { edits } = await consumeDirectEdits((result as ResponseParseResult.DirectEdits).stream);
 
 			expect(edits).toHaveLength(2);
-			// First edit splices 'first' into cursor line: 'cursor' + 'first' + '_line'
 			expect(edits[0].edit.newLines).toEqual(['cursorfirst_line']);
-			// Second edit inserts remaining lines
 			expect(edits[1].edit.newLines).toEqual(['second', 'third']);
 		});
 
@@ -365,7 +341,6 @@ describe('handleUnifiedWithXml', () => {
 			);
 
 			expect(result).toBeInstanceOf(ResponseParseResult.DirectEdits);
-			// The stream should throw FetchStreamError when trying to read after the second item
 			await expect(consumeDirectEdits((result as ResponseParseResult.DirectEdits).stream)).rejects.toThrow(FetchStreamError);
 		});
 	});

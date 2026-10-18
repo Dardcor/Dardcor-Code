@@ -7,7 +7,6 @@ import type { ConfigurationScope } from 'vscode';
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
 import { AbstractConfigurationService, BaseConfig, Config, ConfigTarget, ExperimentBasedConfig, ExperimentBasedConfigType, globalConfigRegistry, InspectConfigResult } from './configurationService';
 
-/** Provides only the default values, ignoring the user's settings or exp. */
 
 export class DefaultsOnlyConfigurationService extends AbstractConfigurationService {
 
@@ -37,14 +36,11 @@ export class DefaultsOnlyConfigurationService extends AbstractConfigurationServi
 			}
 		}
 
-		// This is the pattern we've been using for a while now. We need to maintain it for older experiments.
 		const expValue = experimentationService.getTreatmentVariable<Exclude<T, undefined>>(`dardcorchat.config.${key.id}`);
 		if (expValue !== undefined) {
 			return expValue;
 		}
 
-		// This is the pattern vscode uses for settings using the `onExp` tag. But vscode only supports it for
-		// settings defined in package.json, so this is why we're also reading the value from exp here.
 		const expValue2 = experimentationService.getTreatmentVariable<Exclude<T, undefined>>(`config.${key.fullyQualifiedId}`);
 		if (expValue2 !== undefined) {
 			return expValue2;
@@ -70,7 +66,6 @@ export class DefaultsOnlyConfigurationService extends AbstractConfigurationServi
 			return;
 		}
 
-		// Fire simulated event which checks if a configuration is affected in the treatments
 		this._onDidChangeConfiguration.fire({
 			affectsConfiguration: (section: string, _scope?: ConfigurationScope) => {
 				if (treatments.some(t => t.startsWith(`config.${section}`))) {

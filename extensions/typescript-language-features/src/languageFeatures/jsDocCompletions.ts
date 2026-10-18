@@ -71,9 +71,6 @@ class JsDocCompletionProvider implements vscode.CompletionItemProvider {
 
 		const item = new JsDocCompletionItem(document, position);
 
-		// Workaround for #43619
-		// docCommentTemplate previously returned undefined for empty jsdoc templates.
-		// TS 2.7 now returns a single line doc comment, which breaks indentation.
 		if (response.body.newText === '/** */') {
 			item.insertText = defaultJsDoc;
 		} else {
@@ -87,22 +84,18 @@ class JsDocCompletionProvider implements vscode.CompletionItemProvider {
 		document: vscode.TextDocument,
 		position: vscode.Position
 	): boolean {
-		// Only show the JSdoc completion when the everything before the cursor is whitespace
-		// or could be the opening of a comment
 		const line = document.lineAt(position.line).text;
 		const prefix = line.slice(0, position.character);
 		if (!/^\s*$|\/\*\*\s*$|^\s*\/\*\*+\s*$/.test(prefix)) {
 			return false;
 		}
 
-		// And everything after is possibly a closing comment or more whitespace
 		const suffix = line.slice(position.character);
 		return /^\s*(\*+\/)?\s*$/.test(suffix);
 	}
 }
 
 export function templateToSnippet(template: string): vscode.SnippetString {
-	// TODO: use append placeholder
 	let snippetIndex = 1;
 	template = template.replace(/\$/g, '\\$'); // CodeQL [SM02383] This is only used for text which is put into the editor. It is not for rendered html
 	template = template.replace(/^[ \t]*(?=(\/|[ ]\*))/gm, '');

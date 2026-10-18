@@ -114,7 +114,6 @@ export class LanguageDetectionWorker implements ILanguageDetectionWorker {
 			return this._regexpModel;
 		} catch (e) {
 			this._regexpLoadFailed = true;
-			// console.warn('error loading language detection model', e);
 			return;
 		}
 	}
@@ -124,7 +123,6 @@ export class LanguageDetectionWorker implements ILanguageDetectionWorker {
 		if (!regexpModel) { return; }
 
 		if (supportedLangs?.length) {
-			// When using supportedLangs, normally computed biases are too extreme. Just use a "bitmask" of sorts.
 			for (const lang of Object.keys(langBiases)) {
 				if (supportedLangs.includes(lang)) {
 					langBiases[lang] = 1;
@@ -166,14 +164,8 @@ export class LanguageDetectionWorker implements ILanguageDetectionWorker {
 		return this._modelOperations;
 	}
 
-	// This adjusts the language confidence scores to be more accurate based on:
-	// * VS Code's language usage
-	// * Languages with 'problematic' syntaxes that have caused incorrect language detection
 	private adjustLanguageConfidence(modelResult: ModelResult): ModelResult {
 		switch (modelResult.languageId) {
-			// For the following languages, we increase the confidence because
-			// these are commonly used languages in VS Code and supported
-			// by the model.
 			case 'js':
 			case 'html':
 			case 'json':
@@ -184,7 +176,6 @@ export class LanguageDetectionWorker implements ILanguageDetectionWorker {
 			case 'php':
 				modelResult.confidence += LanguageDetectionWorker.positiveConfidenceCorrectionBucket1;
 				break;
-			// case 'yaml': // YAML has been know to cause incorrect language detection because the language is pretty simple. We don't want to increase the confidence for this.
 			case 'cpp':
 			case 'sh':
 			case 'java':
@@ -193,22 +184,13 @@ export class LanguageDetectionWorker implements ILanguageDetectionWorker {
 				modelResult.confidence += LanguageDetectionWorker.positiveConfidenceCorrectionBucket2;
 				break;
 
-			// For the following languages, we need to be extra confident that the language is correct because
-			// we've had issues like #131912 that caused incorrect guesses. To enforce this, we subtract the
-			// negativeConfidenceCorrection from the confidence.
 
-			// languages that are provided by default in VS Code
 			case 'bat':
 			case 'ini':
 			case 'makefile':
 			case 'sql':
-			// languages that aren't provided by default in VS Code
 			case 'csv':
 			case 'toml':
-				// Other considerations for negativeConfidenceCorrection that
-				// aren't built in but suported by the model include:
-				// * Assembly, TeX - These languages didn't have clear language modes in the community
-				// * Markdown, Dockerfile - These languages are simple but they embed other languages
 				modelResult.confidence -= LanguageDetectionWorker.negativeConfidenceCorrection;
 				break;
 

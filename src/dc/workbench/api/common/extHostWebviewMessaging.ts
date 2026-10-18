@@ -24,7 +24,6 @@ export function serializeWebviewMessage(
 	options: { serializeBuffersForPostMessage?: boolean }
 ): { message: string; buffers: VSBuffer[] } {
 	if (options.serializeBuffersForPostMessage) {
-		// Extract all ArrayBuffers from the message and replace them with references.
 		const arrayBuffers = new ArrayBufferSet();
 
 		const replacer = (_key: string, value: any) => {

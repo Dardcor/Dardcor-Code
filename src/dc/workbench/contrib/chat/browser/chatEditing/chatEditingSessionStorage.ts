@@ -125,7 +125,6 @@ export class ChatEditingSessionStorage {
 		const storageFolder = this._getStorageLocation();
 		const contentsFolder = URI.joinPath(storageFolder, STORAGE_CONTENTS_FOLDER);
 
-		// prepare the content folder
 		const existingContents = new Set<string>();
 		try {
 			const stat = await this._fileService.resolve(contentsFolder);
@@ -136,7 +135,6 @@ export class ChatEditingSessionStorage {
 			});
 		} catch (e) {
 			try {
-				// does not exist, create
 				await this._fileService.createFolder(contentsFolder);
 			} catch (e) {
 				this._logService.error(`Error creating chat editing session content folder ${contentsFolder.toString()}`, e);
@@ -146,8 +144,6 @@ export class ChatEditingSessionStorage {
 
 		const contentWritePromises = new Map<string, Promise<string>>();
 
-		// saves a file content under a path containing a hash of the content.
-		// Returns the hash to represent the content.
 		const writeContent = async (content: string): Promise<string> => {
 			const buffer = VSBuffer.fromString(content);
 			const hash = (await hashAsync(buffer)).substring(0, 7);
@@ -216,24 +212,13 @@ export class ChatEditingSessionStorage {
 }
 
 export interface IChatEditingSessionSnapshot {
-	/**
-	 * Index of this session in the linear history. It's the sum of the lengths
-	 * of all {@link stops} prior this one.
-	 */
 	readonly startIndex: number;
 
 	readonly requestId: string | undefined;
-	/**
-	 * Edit stops in the request. Always initially populatd with stopId: undefind
-	 * for th request's initial state.
-	 *
-	 * Invariant: never empty.
-	 */
 	readonly stops: IChatEditingSessionStop[];
 }
 
 export interface IChatEditingSessionStop {
-	/** Edit stop ID, first for a request is always undefined. */
 	stopId: string | undefined;
 
 	readonly entries: ResourceMap<ISnapshotEntry>;
@@ -259,7 +244,6 @@ interface ISnapshotEntryDTO {
 	readonly state: ModifiedFileEntryState;
 	readonly snapshotUri: string;
 	readonly telemetryInfo: IModifiedEntryTelemetryInfoDTO;
-	/** True if this entry represents a deleted file */
 	readonly isDeleted?: boolean;
 }
 
@@ -279,7 +263,6 @@ type ResourceMapDTO<T> = [string, T][];
 const COMPATIBLE_STORAGE_VERSIONS = [1, 2];
 const STORAGE_VERSION = 2;
 
-/** Old history uses IChatEditingSessionSnapshotDTO, new history uses IChatEditingSessionSnapshotDTO. */
 interface IChatEditingSessionDTO {
 	readonly version: number;
 	readonly recentSnapshot: (IChatEditingSessionStopDTO | IChatEditingSessionSnapshotDTO);

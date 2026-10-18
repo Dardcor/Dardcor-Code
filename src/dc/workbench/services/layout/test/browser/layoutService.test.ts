@@ -32,7 +32,6 @@ suite('LayoutService - isFloatingTopEdgeExposed', () => {
 			bothVisible: topEdgeExposed([Parts.TITLEBAR_PART, Parts.BANNER_PART]),
 		};
 
-		// A visible banner gives the cards a top edge to sit against, same as a visible title bar.
 		assert.deepStrictEqual(actual, {
 			bothHidden: true,
 			titleBarVisible: false,
@@ -83,38 +82,22 @@ suite('LayoutService - getFloatingOuterEdgeOwners', () => {
 
 	test('edge ownership across layouts', () => {
 		const actual = {
-			// Experiment disabled: no owners regardless of layout.
 			disabled: owners(s => { s.floatingPanelsEnabled = false; s.visibleParts = new Set([Parts.AUXILIARYBAR_PART]); }),
 
-			// Default full layout (side bar left): activity bar hugs the left edge (no owner),
-			// the secondary side bar owns the right edge.
 			defaultFull: owners(s => { s.visibleParts = new Set([Parts.ACTIVITYBAR_PART, Parts.SIDEBAR_PART, Parts.EDITOR_PART, Parts.AUXILIARYBAR_PART]); }),
 
-			// Maximized aux bar with the activity bar in its default (visible) position: the
-			// activity bar still hugs the left edge, the aux bar owns the right edge.
 			maximizedAuxWithActivityBar: owners(s => { s.visibleParts = new Set([Parts.ACTIVITYBAR_PART, Parts.AUXILIARYBAR_PART]); }),
 
-			// Maximized aux bar with the activity bar not in its default position (hidden from
-			// the side column): the aux bar spans the full width and owns both edges.
 			maximizedAuxNoActivityBar: owners(s => { s.visibleParts = new Set([Parts.AUXILIARYBAR_PART]); }),
 
-			// Same, but the side bar is on the right: the aux bar still spans and owns both edges.
 			maximizedAuxNoActivityBarSideBarRight: owners(s => { s.sideBarPosition = Position.RIGHT; s.visibleParts = new Set([Parts.AUXILIARYBAR_PART]); }),
 
-			// Only the editor visible with the activity bar hidden: the editor is the sole card
-			// and owns both edges.
 			editorOnly: owners(s => { s.visibleParts = new Set([Parts.EDITOR_PART]); }),
 
-			// Full layout with a visible left vertical panel: the panel sits between the editor
-			// and the side bar, so it never reaches an edge.
 			verticalPanelFull: owners(s => { s.panelPosition = Position.LEFT; s.visibleParts = new Set([Parts.ACTIVITYBAR_PART, Parts.SIDEBAR_PART, Parts.PANEL_PART, Parts.EDITOR_PART, Parts.AUXILIARYBAR_PART]); }),
 
-			// Maximized left vertical panel with the activity bar hidden: the panel spans the
-			// full width and owns both edges.
 			maximizedVerticalPanel: owners(s => { s.panelPosition = Position.LEFT; s.visibleParts = new Set([Parts.PANEL_PART]); }),
 
-			// Visible horizontal (bottom) panel: not part of the vertical order, so it owns no
-			// edge; the secondary side bar still owns the right edge.
 			horizontalPanelVisible: owners(s => { s.panelPosition = Position.BOTTOM; s.visibleParts = new Set([Parts.SIDEBAR_PART, Parts.EDITOR_PART, Parts.PANEL_PART, Parts.AUXILIARYBAR_PART]); }),
 		};
 
@@ -152,19 +135,13 @@ suite('LayoutService - getFloatingSidebarSiblingToEditorStatus', () => {
 
 	test('sibling-to-editor status across alignment and sidebar-position combinations', () => {
 		const actual = {
-			// center: neither bar is a sibling (both span full height)
 			centerLeft: siblingStatus(s => { s.sideBarPosition = Position.LEFT; s.panelAlignment = 'center'; }),
 			centerRight: siblingStatus(s => { s.sideBarPosition = Position.RIGHT; s.panelAlignment = 'center'; }),
-			// justify: both bars are siblings (panel spans the full width)
 			justifyLeft: siblingStatus(s => { s.sideBarPosition = Position.LEFT; s.panelAlignment = 'justify'; }),
 			justifyRight: siblingStatus(s => { s.sideBarPosition = Position.RIGHT; s.panelAlignment = 'justify'; }),
-			// left alignment, sidebar on LEFT: sidebar IS sibling, aux bar is NOT
 			leftAlignSidebarLeft: siblingStatus(s => { s.sideBarPosition = Position.LEFT; s.panelAlignment = 'left'; }),
-			// left alignment, sidebar on RIGHT: sidebar is NOT sibling, aux bar IS
 			leftAlignSidebarRight: siblingStatus(s => { s.sideBarPosition = Position.RIGHT; s.panelAlignment = 'left'; }),
-			// right alignment, sidebar on LEFT: sidebar is NOT sibling, aux bar IS
 			rightAlignSidebarLeft: siblingStatus(s => { s.sideBarPosition = Position.LEFT; s.panelAlignment = 'right'; }),
-			// right alignment, sidebar on RIGHT: sidebar IS sibling, aux bar is NOT
 			rightAlignSidebarRight: siblingStatus(s => { s.sideBarPosition = Position.RIGHT; s.panelAlignment = 'right'; }),
 		};
 
@@ -181,10 +158,6 @@ suite('LayoutService - getFloatingSidebarSiblingToEditorStatus', () => {
 	});
 });
 
-/**
- * The margins below must stay in step with `floatingPanels.css`; a mismatch shows up as a
- * card whose contents overflow or fall short of its own gap.
- */
 class VerticalMarginLayoutService extends TestLayoutService {
 	floatingPanelsEnabled = true;
 	panelPosition = Position.BOTTOM;
@@ -214,16 +187,12 @@ suite('LayoutService - getFloatingPaneCompositeVerticalMargins', () => {
 	test('bottom panel top margin across editor visibility and top edge', () => {
 		const bottomPanel = (configure: (s: VerticalMarginLayoutService) => void) => margins(Parts.PANEL_PART, s => { s.visibleParts.add(Parts.PANEL_PART); configure(s); });
 		const actual = {
-			// Editor above the panel: the gap is between two cards.
 			editorVisible: bottomPanel(() => { }),
 
-			// Maximized panel (editor hidden) below a title bar: it takes over that row.
 			maximizedUnderTitleBar: bottomPanel(s => { s.visibleParts.delete(Parts.EDITOR_PART); }),
 
-			// Maximized panel with nothing above it: the top is now a window edge.
 			maximizedAtTopEdge: bottomPanel(s => { s.visibleParts.delete(Parts.EDITOR_PART); s.visibleParts.delete(Parts.TITLEBAR_PART); }),
 
-			// Maximized panel with a banner above it: still not a window edge.
 			maximizedUnderBanner: bottomPanel(s => { s.visibleParts.delete(Parts.EDITOR_PART); s.visibleParts.delete(Parts.TITLEBAR_PART); s.visibleParts.add(Parts.BANNER_PART); }),
 		};
 
@@ -237,25 +206,18 @@ suite('LayoutService - getFloatingPaneCompositeVerticalMargins', () => {
 
 	test('margins across panel positions', () => {
 		const actual = {
-			// Top panel: its bottom faces the editor, so it never reaches the window bottom.
 			topPanelStatusBarHidden: margins(Parts.PANEL_PART, s => { s.panelPosition = Position.TOP; s.visibleParts.add(Parts.PANEL_PART); s.visibleParts.delete(Parts.STATUSBAR_PART); }),
 
-			// Vertical panel: full height, so both edges are window edges.
 			leftPanelAtBothEdges: margins(Parts.PANEL_PART, s => { s.panelPosition = Position.LEFT; s.visibleParts.add(Parts.PANEL_PART); s.visibleParts.delete(Parts.TITLEBAR_PART); s.visibleParts.delete(Parts.STATUSBAR_PART); }),
 
-			// Side bar beside a top panel, center alignment: full height, so it starts at the top edge.
 			sideBarTopPanelCentered: margins(Parts.SIDEBAR_PART, s => { s.panelPosition = Position.TOP; s.visibleParts.add(Parts.PANEL_PART); s.visibleParts.delete(Parts.TITLEBAR_PART); }),
 
-			// Same but justified: the bar is a sibling, so its top faces the panel card.
 			sideBarTopPanelJustified: margins(Parts.SIDEBAR_PART, s => { s.panelPosition = Position.TOP; s.panelAlignment = 'justify'; s.visibleParts.add(Parts.PANEL_PART); s.visibleParts.delete(Parts.TITLEBAR_PART); }),
 
-			// Sibling bar above a bottom panel: its bottom faces the panel, not the window.
 			sideBarBottomPanelJustified: margins(Parts.SIDEBAR_PART, s => { s.panelAlignment = 'justify'; s.visibleParts.add(Parts.PANEL_PART); s.visibleParts.delete(Parts.STATUSBAR_PART); }),
 
-			// Full-height bar with the status bar hidden: it does reach the window bottom.
 			sideBarBottomPanelCentered: margins(Parts.SIDEBAR_PART, s => { s.visibleParts.add(Parts.PANEL_PART); s.visibleParts.delete(Parts.STATUSBAR_PART); }),
 
-			// Experiment off: the parts are not cards at all.
 			disabled: margins(Parts.SIDEBAR_PART, s => { s.floatingPanelsEnabled = false; s.visibleParts.clear(); }),
 		};
 
@@ -287,25 +249,18 @@ suite('LayoutService - getFloatingEditorVerticalMargins', () => {
 
 	test('margins across panel positions, title bar, banner and status bar', () => {
 		const actual = {
-			// Windowed default: a title bar above and a status bar below.
 			titleAndStatusBarVisible: margins(() => { }),
 
-			// Native fullscreen: nothing above the editor.
 			titleBarHidden: margins(s => { s.visibleParts.delete(Parts.TITLEBAR_PART); }),
 
-			// A banner keeps the editor off the window edge.
 			bannerInsteadOfTitleBar: margins(s => { s.visibleParts.delete(Parts.TITLEBAR_PART); s.visibleParts.add(Parts.BANNER_PART); }),
 
-			// A top panel takes the place of the title bar, so the gap stays an inter-card one.
 			topPanelAtTopEdge: margins(s => { s.panelPosition = Position.TOP; s.visibleParts.add(Parts.PANEL_PART); s.visibleParts.delete(Parts.TITLEBAR_PART); }),
 
-			// Status bar hidden: the editor reaches the window bottom.
 			statusBarHidden: margins(s => { s.visibleParts.delete(Parts.STATUSBAR_PART); }),
 
-			// A bottom panel takes the place of the status bar.
 			bottomPanelStatusBarHidden: margins(s => { s.visibleParts.add(Parts.PANEL_PART); s.visibleParts.delete(Parts.STATUSBAR_PART); }),
 
-			// Experiment off.
 			disabled: margins(s => { s.floatingPanelsEnabled = false; s.visibleParts.clear(); }),
 		};
 

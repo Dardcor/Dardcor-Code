@@ -39,7 +39,6 @@ export class SuggestWidgetAdaptor extends Disposable {
 	) {
 		super();
 
-		// See the command acceptAlternativeSelectedSuggestion that is bound to shift+tab
 		this._register(editor.onKeyDown(e => {
 			if (e.shiftKey && !this.isShiftKeyPressed) {
 				this.isShiftKeyPressed = true;
@@ -60,7 +59,6 @@ export class SuggestWidgetAdaptor extends Disposable {
 				select: (model, pos, suggestItems) => {
 					const textModel = this.editor.getModel();
 					if (!textModel) {
-						// Should not happen
 						return -1;
 					}
 
@@ -185,7 +183,6 @@ export class SuggestItemInfo {
 			const snippet = new SnippetParser().parse(insertText);
 
 			if (snippet.children.length < 100) {
-				// Adjust whitespace is expensive.
 				SnippetSession.adjustWhitespace(model, position, true, snippet);
 			}
 
@@ -260,7 +257,6 @@ export class ObservableSuggestWidgetAdapter extends Disposable {
 				return this._suggestControllerPreselector();
 			},
 			(item) => this._editorObs.forceUpdate(_tx => {
-				/** @description InlineCompletionsController.handleSuggestAccepted */
 				this._handleSuggestAccepted(item);
 			})
 		));

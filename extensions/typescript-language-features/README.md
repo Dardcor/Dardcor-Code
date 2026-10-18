@@ -4,4 +4,4 @@
 
 ## Features
 
-See [TypeScript in Visual Studio Code](https://code.visualstudio.com/docs/languages/typescript) and [JavaScript in Visual Studio Code](https://code.visualstudio.com/docs/languages/javascript) to learn about the features of this extension.
+See [TypeScript in Visual Studio Code](https://www.dardcor-code.web.id/docs/languages/typescript) and [JavaScript in Visual Studio Code](https://www.dardcor-code.web.id/docs/languages/javascript) to learn about the features of this extension.

@@ -11,17 +11,11 @@ const enum ReplacePatternKind {
 	DynamicPieces = 1
 }
 
-/**
- * Assigned when the replace pattern is entirely static.
- */
 class StaticValueReplacePattern {
 	public readonly kind = ReplacePatternKind.StaticValue;
 	constructor(public readonly staticValue: string) { }
 }
 
-/**
- * Assigned when the replace pattern has replacement patterns.
- */
 class DynamicPiecesReplacePattern {
 	public readonly kind = ReplacePatternKind.DynamicPieces;
 	constructor(public readonly pieces: ReplacePiece[]) { }
@@ -62,12 +56,10 @@ export class ReplacePattern {
 		for (let i = 0, len = this._state.pieces.length; i < len; i++) {
 			const piece = this._state.pieces[i];
 			if (piece.staticValue !== null) {
-				// static value ReplacePiece
 				result += piece.staticValue;
 				continue;
 			}
 
-			// match index ReplacePiece
 			let match: string = ReplacePattern._substitute(piece.matchIndex, matches);
 			if (piece.caseOps !== null && piece.caseOps.length > 0) {
 				const repl: string[] = [];
@@ -116,7 +108,6 @@ export class ReplacePattern {
 		let remainder = '';
 		while (matchIndex > 0) {
 			if (matchIndex < matches.length) {
-				// A match can be undefined
 				const match = (matches[matchIndex] || '');
 				return match + remainder;
 			}
@@ -127,9 +118,6 @@ export class ReplacePattern {
 	}
 }
 
-/**
- * A replace piece can either be a static string or an index to a specific match.
- */
 export class ReplacePiece {
 
 	public static staticValue(value: string): ReplacePiece {
@@ -212,21 +200,6 @@ class ReplacePieceBuilder {
 	}
 }
 
-/**
- * \n			=> inserts a LF
- * \t			=> inserts a TAB
- * \\			=> inserts a "\".
- * \u			=> upper-cases one character in a match.
- * \U			=> upper-cases ALL remaining characters in a match.
- * \l			=> lower-cases one character in a match.
- * \L			=> lower-cases ALL remaining characters in a match.
- * $$			=> inserts a "$".
- * $& and $0	=> inserts the matched substring.
- * $n			=> Where n is a non-negative integer lesser than 100, inserts the nth parenthesized submatch string
- * everything else stays untouched
- *
- * Also see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_string_as_a_parameter
- */
 export function parseReplaceString(replaceString: string): ReplacePattern {
 	if (!replaceString || replaceString.length === 0) {
 		return new ReplacePattern(null);
@@ -240,43 +213,31 @@ export function parseReplaceString(replaceString: string): ReplacePattern {
 
 		if (chCode === CharCode.Backslash) {
 
-			// move to next char
 			i++;
 
 			if (i >= len) {
-				// string ends with a \
 				break;
 			}
 
 			const nextChCode = replaceString.charCodeAt(i);
-			// let replaceWithCharacter: string | null = null;
 
 			switch (nextChCode) {
 				case CharCode.Backslash:
-					// \\ => inserts a "\"
 					result.emitUnchanged(i - 1);
 					result.emitStatic('\\', i + 1);
 					break;
 				case CharCode.n:
-					// \n => inserts a LF
 					result.emitUnchanged(i - 1);
 					result.emitStatic('\n', i + 1);
 					break;
 				case CharCode.t:
-					// \t => inserts a TAB
 					result.emitUnchanged(i - 1);
 					result.emitStatic('\t', i + 1);
 					break;
-				// Case modification of string replacements, patterned after Boost, but only applied
-				// to the replacement text, not subsequent content.
 				case CharCode.u:
-				// \u => upper-cases one character.
 				case CharCode.U:
-				// \U => upper-cases ALL following characters.
 				case CharCode.l:
-				// \l => lower-cases one character.
 				case CharCode.L:
-					// \L => lower-cases ALL following characters.
 					result.emitUnchanged(i - 1);
 					result.emitStatic('', i + 1);
 					caseOps.push(String.fromCharCode(nextChCode));
@@ -288,25 +249,21 @@ export function parseReplaceString(replaceString: string): ReplacePattern {
 
 		if (chCode === CharCode.DollarSign) {
 
-			// move to next char
 			i++;
 
 			if (i >= len) {
-				// string ends with a $
 				break;
 			}
 
 			const nextChCode = replaceString.charCodeAt(i);
 
 			if (nextChCode === CharCode.DollarSign) {
-				// $$ => inserts a "$"
 				result.emitUnchanged(i - 1);
 				result.emitStatic('$', i + 1);
 				continue;
 			}
 
 			if (nextChCode === CharCode.Digit0 || nextChCode === CharCode.Ampersand) {
-				// $& and $0 => inserts the matched substring.
 				result.emitUnchanged(i - 1);
 				result.emitMatchIndex(0, i + 1, caseOps);
 				caseOps.length = 0;
@@ -314,17 +271,13 @@ export function parseReplaceString(replaceString: string): ReplacePattern {
 			}
 
 			if (CharCode.Digit1 <= nextChCode && nextChCode <= CharCode.Digit9) {
-				// $n
 
 				let matchIndex = nextChCode - CharCode.Digit0;
 
-				// peek next char to probe for $nn
 				if (i + 1 < len) {
 					const nextNextChCode = replaceString.charCodeAt(i + 1);
 					if (CharCode.Digit0 <= nextNextChCode && nextNextChCode <= CharCode.Digit9) {
-						// $nn
 
-						// move to next char
 						i++;
 						matchIndex = matchIndex * 10 + (nextNextChCode - CharCode.Digit0);
 

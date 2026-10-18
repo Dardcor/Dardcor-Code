@@ -1,14 +1,3 @@
-/**
- * gRPC-web frame decoder for xAI GetGrokCreditsConfig
- * (grok_api_v2.GrokBuildBilling/GetGrokCreditsConfig).
- *
- * Real response shape (live capture 2026-07-20):
- *   top-level field 1 (length-delimited) — nested credits info
- *     subfield 1  (fixed32 float)            — usage ratio 0..1
- *     subfield 5  (Timestamp{seconds,nanos}) — credit-pool reset time
- *
- * Fail-open: any malformed buffer returns null, never throws.
- */
 
 const FIELD_CREDITS_INFO = 1;
 const CREDITS_FIELD_USAGE_RATIO = 1;
@@ -24,10 +13,6 @@ const WIRE_TYPE_FIXED32 = 5;
 const GRPC_WEB_TRAILER_FLAG_BIT = 0x80;
 const MAX_VARINT_SHIFT_BITS = 70n;
 
-/**
- * Validate a gRPC-web frame header at `offset`.
- * @returns {{ flag: number, payloadStart: number, payloadLength: number } | null}
- */
 export function probeFrameHeader(buffer, offset = 0) {
   if (!Buffer.isBuffer(buffer) || offset < 0 || buffer.length - offset < 5) return null;
   const flag = buffer[offset];
@@ -137,7 +122,7 @@ function extractNestedMessage(field) {
 }
 
 function extractUsageRatio(field) {
-  if (!field) return 0; // proto3 omission = 0% used
+  if (!field) return 0;
   if (field.wireType === WIRE_TYPE_FIXED32) return field.bytes.readFloatLE(0);
   if (field.wireType === WIRE_TYPE_FIXED64) return field.bytes.readDoubleLE(0);
   return null;
@@ -159,11 +144,6 @@ function extractResetAt(field) {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
-/**
- * Decode GetGrokCreditsConfig response → `{ percentUsed: 0-100, resetAt }` or null.
- * @param {Buffer} buffer
- * @returns {{ percentUsed: number, resetAt: string|null } | null}
- */
 export function decodeGrokCreditsFrame(buffer) {
   if (!buffer || !Buffer.isBuffer(buffer) || buffer.length === 0) return null;
 

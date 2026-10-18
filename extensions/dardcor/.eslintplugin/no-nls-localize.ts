@@ -20,7 +20,6 @@ export default new class implements eslint.Rule.RuleModule {
 
 	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 		return createImportRuleListener((node, path) => {
-			// Match paths ending with /nls, /nls.js, /vs/nls, etc.
 			if (path.endsWith('/nls') || path.endsWith('/nls.js') || path === 'vs/nls') {
 				context.report({
 					loc: node.parent!.loc,

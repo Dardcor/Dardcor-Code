@@ -54,8 +54,6 @@ export class ExtHostDecorations implements ExtHostDecorationsShape {
 				return;
 			}
 
-			// too many resources per event. pick one resource per folder, starting
-			// with parent folders
 			this._logService.warn('[Decorations] CAPPING events from decorations provider', extensionDescription.identifier.value, array.length);
 			const mapped = array.map(uri => ({ uri, rank: count(uri.path, '/') }));
 			const groups = groupBy(mapped, (a, b) => a.rank - b.rank || compare(a.uri.path, b.uri.path));
@@ -85,7 +83,6 @@ export class ExtHostDecorations implements ExtHostDecorationsShape {
 	async $provideDecorations(handle: number, requests: DecorationRequest[], token: CancellationToken): Promise<DecorationReply> {
 
 		if (!this._provider.has(handle)) {
-			// might have been unregistered in the meantime
 			return Object.create(null);
 		}
 

@@ -82,13 +82,11 @@ suite('Suggest Inline Completions', function () {
 		const completions: SuggestInlineCompletions = disposables.add(insta.createInstance(SuggestInlineCompletions));
 
 		{
-			// (1,3), end of word -> suggestions
 			const result = await completions.provideInlineCompletions(model, new Position(1, 3), context, CancellationToken.None);
 			assert.strictEqual(result?.items.length, 3);
 			completions.disposeInlineCompletions(result);
 		}
 		{
-			// (1,2), middle of word -> NO suggestions
 			const result = await completions.provideInlineCompletions(model, new Position(1, 2), context, CancellationToken.None);
 			assert.ok(result === undefined);
 		}
@@ -98,14 +96,12 @@ suite('Suggest Inline Completions', function () {
 		const completions: SuggestInlineCompletions = disposables.add(insta.createInstance(SuggestInlineCompletions));
 
 		{
-			// unfiltered
 			const result = await completions.provideInlineCompletions(model, new Position(1, 3), context, CancellationToken.None);
 			assert.strictEqual(result?.items.length, 3);
 			completions.disposeInlineCompletions(result);
 		}
 
 		{
-			// filtered
 			editor.updateOptions({ suggest: { showSnippets: false } });
 			const result = await completions.provideInlineCompletions(model, new Position(1, 3), context, CancellationToken.None);
 			assert.strictEqual(result?.items.length, 2);

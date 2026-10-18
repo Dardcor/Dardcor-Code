@@ -44,7 +44,6 @@ export class ClaudeCodeFolderMruService implements IChatFolderMruService {
 	private async getRecentlyUsedFoldersImpl(token: CancellationToken): Promise<FolderRepositoryMRUEntry[]> {
 		const mruEntries = new ResourceMap<Mutable<FolderRepositoryMRUEntry>>();
 
-		// We're getting MRU, don't delay session retrieve by more than 5s
 		const sessions = await raceTimeout(this.sessionService.getAllSessions(token), 5_000);
 
 		for (const session of (sessions ?? [])) {
@@ -63,7 +62,6 @@ export class ClaudeCodeFolderMruService implements IChatFolderMruService {
 			});
 		}
 
-		// Add recent git repositories
 		for (const repo of this.gitService.getRecentRepositories()) {
 			if (isWorktreePath(repo.rootUri.path)) {
 				continue;
@@ -81,7 +79,6 @@ export class ClaudeCodeFolderMruService implements IChatFolderMruService {
 			});
 		}
 
-		// If in multi-root folder add the folders as well, but on top.
 		for (const folder of this.workspaceService.getWorkspaceFolders()) {
 			const existingEntry = mruEntries.get(folder);
 			if (existingEntry) {

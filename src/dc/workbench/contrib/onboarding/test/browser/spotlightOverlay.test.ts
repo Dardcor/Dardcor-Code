@@ -10,7 +10,6 @@ import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { ISpotlightContent, SpotlightOverlay } from '../../browser/spotlight/spotlightOverlay.js';
 
-/** Minimal fake ResizeObserver so the widget can be tested without real layout churn. */
 class FakeResizeObserver implements ResizeObserver {
 	readonly observed: Element[] = [];
 	constructor(private readonly _callback: ResizeObserverCallback) { }
@@ -125,7 +124,6 @@ suite('SpotlightOverlay', () => {
 
 		overlay.show(target, content());
 
-		// Buttons are appended in order: Skip, Back, Next.
 		const [skip, back, next] = getButtons(container);
 		skip.click();
 		back.click();
@@ -197,7 +195,7 @@ suite('SpotlightOverlay', () => {
 		const root = container.getElementsByClassName('spotlight-overlay')[0] as HTMLElement;
 		next.focus();
 		const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true });
-		Object.defineProperty(event, 'keyCode', { get: () => 9 /* Tab */ });
+		Object.defineProperty(event, 'keyCode', { get: () => 9 });
 		next.dispatchEvent(event);
 
 		assert.deepStrictEqual({
@@ -222,7 +220,7 @@ suite('SpotlightOverlay', () => {
 		overlay.show(target, content(), { hideNext: true });
 		const [skip, , next] = getButtons(container);
 		const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true });
-		Object.defineProperty(event, 'keyCode', { get: () => 9 /* Tab */ });
+		Object.defineProperty(event, 'keyCode', { get: () => 9 });
 		target.dispatchEvent(event);
 
 		assert.deepStrictEqual({
@@ -261,13 +259,9 @@ suite('SpotlightOverlay', () => {
 		const link = callout.getElementsByTagName('a')[0] as HTMLAnchorElement | undefined;
 		assert.ok(link, 'expected a link to be rendered from the markdown description');
 
-		// With the link focused, Shift+Tab should cycle to the last button (Next),
-		// proving the link participates in the trap rather than being skipped.
 		link!.focus();
 		const event = new KeyboardEvent('keydown', { shiftKey: true, bubbles: true, cancelable: true });
-		// The KeyboardEvent constructor does not honor `keyCode` from the init dict
-		// in all engines, so set it explicitly (StandardKeyboardEvent reads keyCode).
-		Object.defineProperty(event, 'keyCode', { get: () => 9 /* Tab */ });
+		Object.defineProperty(event, 'keyCode', { get: () => 9 });
 		callout.dispatchEvent(event);
 
 		assert.strictEqual(mainWindow.document.activeElement, getButtons(container).at(-1));

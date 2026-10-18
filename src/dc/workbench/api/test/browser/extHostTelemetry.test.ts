@@ -81,7 +81,6 @@ suite('ExtHostTelemetry', function () {
 
 	const createLogger = (functionSpy: TelemetryLoggerSpy, extHostTelemetry?: ExtHostTelemetry, options?: TelemetryLoggerOptions) => {
 		const extensionTelemetry = extHostTelemetry ?? createExtHostTelemetry();
-		// This is the appender which the extension would contribute
 		const appender: TelemetrySender = {
 			sendEventData: (eventName: string, data) => {
 				functionSpy.dataArr.push({ eventName, data });
@@ -141,7 +140,6 @@ suite('ExtHostTelemetry', function () {
 		assert.strictEqual(config.isUsageEnabled, true);
 		assert.strictEqual(config.isErrorsEnabled, true);
 
-		// Initialize would never be called twice, but this is just for testing
 		extensionTelemetry.$initializeTelemetryLevel(TelemetryLevel.ERROR, true, { usage: true, error: true });
 		config = extensionTelemetry.getTelemetryDetails();
 		assert.strictEqual(config.isCrashEnabled, true);
@@ -183,10 +181,8 @@ suite('ExtHostTelemetry', function () {
 		assert.strictEqual(functionSpy.exceptionArr.length, 1);
 
 
-		// Assert not flushed
 		assert.strictEqual(functionSpy.flushCalled, false);
 
-		// Call flush and assert that flush occurs
 		logger.dispose();
 		assert.strictEqual(functionSpy.flushCalled, true);
 
@@ -214,10 +210,8 @@ suite('ExtHostTelemetry', function () {
 		assert.strictEqual(functionSpy.exceptionArr.length, 1);
 
 
-		// Assert not flushed
 		assert.strictEqual(functionSpy.flushCalled, false);
 
-		// Call flush and assert that flush occurs
 		logger.dispose();
 		assert.strictEqual(functionSpy.flushCalled, true);
 
@@ -257,7 +251,6 @@ suite('ExtHostTelemetry', function () {
 
 		const logger = createLogger(functionSpy);
 
-		// Log an event with a bunch of PII, this should all get cleaned out
 		logger.logUsage('test-event', {
 			'fake-password': 'pwd=123',
 			'fake-email': 'no-reply@example.com',
@@ -277,7 +270,6 @@ suite('ExtHostTelemetry', function () {
 
 	test('Ensure output channel is logged to', function () {
 
-		// Have to re-duplicate code here because I the logger service isn't exposed in the simple setup functions
 		const loggerService = new TestTelemetryLoggerService(LogLevel.Trace);
 		const extensionTelemetry = new ExtHostTelemetry(false, new class extends mock<IExtHostInitDataService>() {
 			override environment: IEnvironment = mockEnvironment;
@@ -290,11 +282,9 @@ suite('ExtHostTelemetry', function () {
 
 		const logger = createLogger(functionSpy, extensionTelemetry);
 
-		// Ensure headers are logged on instantiation
 		assert.strictEqual(loggerService.createLogger().logs.length, 0);
 
 		logger.logUsage('test-event', { 'test-data': 'test-data' });
-		// Initial header is logged then the event
 		assert.strictEqual(loggerService.createLogger().logs.length, 1);
 		assert.ok(loggerService.createLogger().logs[0].startsWith('test-extension/test-event'));
 	});

@@ -9,5 +9,5 @@ import { WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/
 
 export function registerContributions(): void {
 	registerSingleton(IReplaceService, ReplaceService, InstantiationType.Delayed);
-	registerWorkbenchContribution2(ReplacePreviewContentProvider.ID, ReplacePreviewContentProvider, WorkbenchPhase.BlockStartup /* registration only */);
+	registerWorkbenchContribution2(ReplacePreviewContentProvider.ID, ReplacePreviewContentProvider, WorkbenchPhase.BlockStartup );
 }

@@ -39,7 +39,6 @@ export class McpServerConnection extends Disposable implements IMcpServerConnect
 		super();
 	}
 
-	/** @inheritdoc */
 	public async start(methods: IMcpClientMethods): Promise<McpConnectionState> {
 		const currentState = this._state.get();
 		if (!McpConnectionState.canBeStarted(currentState.state)) {

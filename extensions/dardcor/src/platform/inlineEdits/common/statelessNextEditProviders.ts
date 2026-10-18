@@ -19,12 +19,10 @@ export class IgnoreEmptyLineAndLeadingTrailingWhitespaceChanges {
 
 		const isRemoval = newLines.length === 0;
 
-		// is removing empty lines
 		if (isRemoval && originalLines.every(line => line.trim() === '')) {
 			return true;
 		}
 
-		// is adding empty lines
 		if (!isRemoval && newLines.every(line => line.trim() === '')) {
 			return true;
 		}
@@ -49,9 +47,6 @@ export class IgnoreWhitespaceOnlyChanges {
 		return singleEdits.filter(e => !IgnoreWhitespaceOnlyChanges._isFormattingOnlyChange(resultDocument.documentAfterEditsLines, e));
 	}
 
-	/**
-	 * @remarks public only for testing
-	 */
 	public static _isFormattingOnlyChange(baseLines: string[], singleEdit: LineReplacement): boolean {
 		const originalLines = singleEdit.lineRange.toOffsetRange().slice(baseLines).join('').replace(/\s/g, '');
 		const newLines = singleEdit.newLines.join('').replace(/\s/g, '');
@@ -61,17 +56,14 @@ export class IgnoreWhitespaceOnlyChanges {
 
 export function editWouldDeleteWhatWasJustInserted(activeDocument: StatelessNextEditDocument, lineEdit: LineEdit) {
 	let edit = lineEdit.toEdit(activeDocument.documentAfterEdits);
-	// ! important: reduce it to the minimal set of changes
 	edit = edit.normalizeOnSource(activeDocument.documentAfterEdits.value);
 	if (!editIsDeletion(edit)) {
 		return false;
 	}
-	// We are deleting something. Is it what was just inserted?
 	for (let i = activeDocument.recentEdits.edits.length - 1; i >= 0; i--) {
 		const recentEdit = activeDocument.recentEdits.edits[i];
 		const rebaseResult = edit.tryRebase(recentEdit);
 		if (!rebaseResult) {
-			// the edit we want to do cannot be rebased, which indicates that it would interfere with a recent edit
 			return true;
 		}
 		edit = rebaseResult;
@@ -86,7 +78,6 @@ export function editIsDeletion(edit: StringEdit): boolean {
 
 export function editWouldDeleteWhatWasJustInserted2(activeDocument: StatelessNextEditDocument, lineEdit: LineEdit) {
 	let edit = lineEdit.toEdit(activeDocument.documentAfterEdits);
-	// ! important: reduce it to the minimal set of changes
 	edit = edit.normalizeOnSource(activeDocument.documentAfterEdits.value);
 	if (!editIsDeletion(edit)) {
 		return false;

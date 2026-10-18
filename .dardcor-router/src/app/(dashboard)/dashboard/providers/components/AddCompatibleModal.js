@@ -50,7 +50,6 @@ function AddCompatibleModal({ variant, isOpen, onClose, onCreated }) {
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState(null);
 
-  // openai: reset baseUrl when apiType changes; anthropic: reset checks when opened
   useEffect(() => {
     if (config.hasApiType) {
       setFormData((prev) => ({ ...prev, baseUrl: config.defaultBaseUrl }));

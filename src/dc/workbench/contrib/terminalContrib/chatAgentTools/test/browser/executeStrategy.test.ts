@@ -65,7 +65,7 @@ user@host:~$ `;
 
 	test('detectsCommonPromptPattern should handle edge cases', () => {
 		strictEqual(detectsCommonPromptPattern('output\n\n\n').detected, false);
-		strictEqual(detectsCommonPromptPattern('\n\n$ \n\n').detected, true); // prompt with surrounding whitespace
-		strictEqual(detectsCommonPromptPattern('output\nPS C:\\> ').detected, true); // prompt at end after output
+		strictEqual(detectsCommonPromptPattern('\n\n$ \n\n').detected, true);
+		strictEqual(detectsCommonPromptPattern('output\nPS C:\\> ').detected, true);
 	});
 });

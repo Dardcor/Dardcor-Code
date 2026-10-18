@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -12,9 +11,6 @@ export interface IOffsetRange {
 	readonly endExclusive: number;
 }
 
-/**
- * A range of offsets (0-based).
-*/
 export class OffsetRange implements IOffsetRange {
 	public static fromTo(start: number, endExclusive: number): OffsetRange {
 		return new OffsetRange(start, endExclusive);
@@ -103,20 +99,10 @@ export class OffsetRange implements IOffsetRange {
 		return this.start <= offset && offset < this.endExclusive;
 	}
 
-	/**
-	 * for all numbers n: range1.contains(n) or range2.contains(n) => range1.join(range2).contains(n)
-	 * The joined range is the smallest range that contains both ranges.
-	 */
 	public join(other: OffsetRange): OffsetRange {
 		return new OffsetRange(Math.min(this.start, other.start), Math.max(this.endExclusive, other.endExclusive));
 	}
 
-	/**
-	 * for all numbers n: range1.contains(n) and range2.contains(n) <=> range1.intersect(range2).contains(n)
-	 *
-	 * The resulting range is empty if the ranges do not intersect, but touch.
-	 * If the ranges don't even touch, the result is undefined.
-	 */
 	public intersect(other: OffsetRange): OffsetRange | undefined {
 		const start = Math.max(this.start, other.start);
 		const end = Math.min(this.endExclusive, other.endExclusive);
@@ -132,10 +118,6 @@ export class OffsetRange implements IOffsetRange {
 		return Math.max(0, end - start);
 	}
 
-	/**
-	 * `a.intersects(b)` iff there exists a number n so that `a.contains(n)` and `b.contains(n)`.
-	 * Warning: If one range is empty, this method returns always false.
-	*/
 	public intersects(other: OffsetRange): boolean {
 		const start = Math.max(this.start, other.start);
 		const end = Math.min(this.endExclusive, other.endExclusive);
@@ -164,10 +146,6 @@ export class OffsetRange implements IOffsetRange {
 		return str.substring(this.start, this.endExclusive);
 	}
 
-	/**
-	 * Returns the given value if it is contained in this instance, otherwise the closest value that is contained.
-	 * The range must not be empty.
-	 */
 	public clip(value: number): number {
 		if (this.isEmpty) {
 			throw new BugIndicatingError(`Invalid clipping range: ${this.toString()}`);
@@ -175,12 +153,6 @@ export class OffsetRange implements IOffsetRange {
 		return Math.max(this.start, Math.min(this.endExclusive - 1, value));
 	}
 
-	/**
-	 * Returns `r := value + k * length` such that `r` is contained in this range.
-	 * The range must not be empty.
-	 *
-	 * E.g. `[5, 10).clipCyclic(10) === 5`, `[5, 10).clipCyclic(11) === 6` and `[5, 10).clipCyclic(4) === 9`.
-	 */
 	public clipCyclic(value: number): number {
 		if (this.isEmpty) {
 			throw new BugIndicatingError(`Invalid clipping range: ${this.toString()}`);
@@ -208,10 +180,6 @@ export class OffsetRange implements IOffsetRange {
 		}
 	}
 
-	/**
-	 * this: [ 5, 10), range: [10, 15) => [5, 15)]
-	 * Throws if the ranges are not touching.
-	*/
 	public joinRightTouching(range: OffsetRange): OffsetRange {
 		if (this.endExclusive !== range.start) {
 			throw new BugIndicatingError(`Invalid join: ${this.toString()} and ${range.toString()}`);
@@ -258,11 +226,7 @@ export class OffsetRangeSet {
 		return this._sortedRanges.map(r => r.toString()).join(', ');
 	}
 
-	/**
-	 * Returns if there is a value that is contained in this instance and the given range.
-	 */
 	public intersectsStrict(other: OffsetRange): boolean {
-		// TODO use binary search
 		let i = 0;
 		while (i < this._sortedRanges.length && this._sortedRanges[i].endExclusive <= other.start) {
 			i++;
@@ -271,7 +235,6 @@ export class OffsetRangeSet {
 	}
 
 	public intersectWithRange(other: OffsetRange): OffsetRangeSet {
-		// TODO use binary search + slice
 		const result = new OffsetRangeSet();
 		for (const range of this._sortedRanges) {
 			const intersection = range.intersect(other);

@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface IUniversalRulesParams {
 	action: 'discoverRules' | 'loadRules' | 'toggleRule';
@@ -24,7 +24,7 @@ export interface IRuleEntry {
 	contentSnippet: string;
 }
 
-export class UniversalRulesIngestorTool implements ICopilotTool<IUniversalRulesParams> {
+export class UniversalRulesIngestorTool implements IAgentTool<IUniversalRulesParams> {
 	public static readonly toolName = ToolName.UniversalRulesIngestor;
 
 	private static disabledRules = new Set<string>();

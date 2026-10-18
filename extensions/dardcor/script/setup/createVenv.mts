@@ -14,7 +14,6 @@ function findPython(): void {
 		return;
 	}
 
-	// check if a venv already exists
 	const pythonPath = isWindows ? '.venv\\Scripts\\python.exe' : '.venv/bin/python';
 	if (fs.existsSync(pythonPath)) {
 		python = pythonPath;
@@ -39,7 +38,6 @@ function findPython(): void {
 function checkPythonVersion() {
 	try {
 		console.log(`Checking python: ${python} --version`);
-		// Version must match `pyproject.toml` requirements
 		execSync(`${python} -c "import sys;version=sys.version_info;print(version);assert (3,10) <= version < (3,13),'Python version must be >=3.10, < 3.13'"`, { encoding: 'utf8', stdio: 'inherit' });
 	} catch (error) {
 		process.exit(1);
@@ -53,11 +51,9 @@ function findUv(): void {
 		execSync(`${uvPath} --version`, { stdio: 'ignore' });
 		uv = uvPath;
 	} catch {
-		// ignore
 	}
 
 	try {
-		// look for global `uv`
 		execSync(`uv --version`, { stdio: 'ignore' });
 		uv = 'uv';
 	} catch {

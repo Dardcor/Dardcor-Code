@@ -11,13 +11,6 @@ import { IAgentHostGitHubEndpointService } from '../agentHostGitHubEndpointServi
 
 export type FetchFunction = typeof globalThis.fetch;
 
-/**
- * Successful result of {@link IAgentHostOctoKitService.createPullRequest}.
- *
- * Mirrors the `CreatedPullRequest` type returned by `OctoKitService` in
- * `extensions/copilot/src/platform/github/common/githubService.ts` so the
- * shapes line up if/when the two are ported together.
- */
 export interface CreatedPullRequest {
 	readonly url: string;
 	readonly number: number;
@@ -26,10 +19,6 @@ export interface CreatedPullRequest {
 	readonly state?: 'open' | 'closed';
 }
 
-/**
- * Merge strategy used when enabling auto-merge on a pull request.
- * Mirrors the GitHub GraphQL `PullRequestMergeMethod` enum.
- */
 export type AutoMergeMethod = 'MERGE' | 'SQUASH' | 'REBASE';
 
 interface GitHubPullRequestResponseItem {
@@ -89,31 +78,9 @@ export interface IGitHubApiResponse<T> {
 	readonly etag?: string;
 }
 
-/**
- * Minimal GitHub REST client living in the agent-host process.
- *
- * The agent host runs headless and has no access to the workbench
- * `IOctoKitService` / Octokit / VS Code auth providers. This service is a
- * deliberately small re-implementation of the bits we need, modelled on
- * `OctoKitService` from the Copilot extension so the API surface is
- * familiar. Only operations the agent host actually needs are exposed —
- * extend this interface as new changeset operations are added.
- *
- * The caller is responsible for supplying a GitHub OAuth token with the
- * scopes required by the operation (e.g. `repo` for {@link createPullRequest}).
- * Tokens are typically obtained from the agent host's
- * `authenticate(resource, token)` token store, which the workbench pushes
- * on session create via the same channel used for `ICopilotApiService`.
- */
 export interface IAgentHostOctoKitService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Creates a pull request on github.com.
-	 *
-	 * Mirrors `OctoKitService.createPullRequest` from the Copilot extension.
-	 * Throws on non-2xx responses or malformed payloads.
-	 */
 	createPullRequest(
 		owner: string,
 		repo: string,
@@ -126,24 +93,10 @@ export interface IAgentHostOctoKitService {
 		signal: AbortSignal,
 	): Promise<CreatedPullRequest>;
 
-	/**
-	 * Finds a pull request for `headOwner:branch`, if any. When
-	 * `allowedPullRequestUrls` is supplied, only those pull requests qualify;
-	 * open candidates win, followed by the order of the supplied URLs.
-	 */
 	findPullRequestByHeadBranch(owner: string, repo: string, branch: string, token: string, signal: AbortSignal, headOwner?: string, allowedPullRequestUrls?: readonly string[]): Promise<CreatedPullRequest | undefined>;
 
-	/**
-	 * Finds the pull request whose head commit is exactly `sha`, if any.
-	 *
-	 * Unlike {@link findPullRequestByHeadBranch} this does not depend on the
-	 * local branch carrying the same name as the remote head branch, so it also
-	 * resolves branches checked out from a pull request head under a different
-	 * name or pushed with an explicit refspec.
-	 */
 	findPullRequestByHeadSha(owner: string, repo: string, sha: string, token: string, signal: AbortSignal, allowedPullRequestUrls?: readonly string[]): Promise<CreatedPullRequest | undefined>;
 
-	/** Fetches the title and body of an issue or pull request. */
 	getIssueOrPullRequest(owner: string, repo: string, number: number, token: string, signal: AbortSignal): Promise<GitHubIssueOrPullRequest>;
 
 	/**
@@ -164,7 +117,6 @@ export const IAgentHostOctoKitService = createDecorator<IAgentHostOctoKitService
 const GITHUB_API_VERSION = '2022-11-28';
 const MAX_ERROR_RESPONSE_BODY_LENGTH = 500;
 
-/** Page size, and therefore upper bound, for the pull requests read per commit. */
 const MAX_COMMIT_PULL_REQUESTS = 100;
 
 const COMMIT_PULL_REQUESTS_ROUTE = /^repos\/[^/]+\/[^/]+\/commits\/[^/]+\/pulls\?per_page=\d+$/;
@@ -195,11 +147,6 @@ export class AgentHostOctoKitService implements IAgentHostOctoKitService {
 
 	private readonly _fetch: FetchFunction;
 
-	/**
-	 * Cached pull request listings keyed by route, with the ETag that validated
-	 * them. The items are kept alongside the ETag because a `304` response
-	 * carries no body: without them a revalidated route would look empty.
-	 */
 	private readonly pullRequestSearchCache = new LRUCache<string, { readonly etag: string; readonly items: readonly GitHubPullRequestResponseItem[] }>(100);
 
 	constructor(
@@ -256,19 +203,11 @@ export class AgentHostOctoKitService implements IAgentHostOctoKitService {
 		const routeSlug = `repos/${owner}/${repo}/commits/${encodeURIComponent(sha)}/pulls?per_page=${MAX_COMMIT_PULL_REQUESTS}`;
 		const items = await this._searchPullRequests(routeSlug, token, signal);
 
-		// Only the first page is read. A full page means later pages could hold
-		// further candidates, so neither the match nor its uniqueness can be
-		// established — a commit associated with this many pull requests is not
-		// one this lookup can speak for anyway.
 		if (items.length >= MAX_COMMIT_PULL_REQUESTS) {
 			this._logService.warn(`[AgentHostOctoKitService] Not resolving a pull request for ${sha}: more than ${MAX_COMMIT_PULL_REQUESTS} are associated with it`);
 			return undefined;
 		}
 
-		// The endpoint also lists pull requests that merely *contain* the
-		// commit, such as those of the branches below a stacked branch. Only a
-		// pull request whose head is exactly this commit describes the branch
-		// that is checked out.
 		const atHead = items.filter(item => item?.head?.sha === sha);
 		if (allowedPullRequestUrls) {
 			return toCreatedPullRequest(selectAllowedPullRequest(atHead, allowedPullRequestUrls));
@@ -276,18 +215,10 @@ export class AgentHostOctoKitService implements IAgentHostOctoKitService {
 		const open = atHead.filter(item => item.state === 'open');
 		const candidates = open.length > 0 ? open : atHead;
 
-		// Branches that point at the same commit are indistinguishable by
-		// commit alone, so report none rather than guess at one of them.
 		return candidates.length === 1 ? toCreatedPullRequest(candidates[0]) : undefined;
 	}
 
-	/**
-	 * Issues a conditional GET for a pull request listing route, serving the
-	 * previously cached listing when the ETag still validates.
-	 */
 	private async _searchPullRequests(routeSlug: string, token: string, signal: AbortSignal): Promise<readonly GitHubPullRequestResponseItem[]> {
-		// Validators and bodies are scoped to the host that issued them, which
-		// can change when the endpoint is repointed at another GitHub instance.
 		const cacheKey = `${this._endpoint.getApiBaseUri()}/${routeSlug}`;
 		const cached = this.pullRequestSearchCache.get(cacheKey);
 		const response = await this._makeGHAPIRequest<GitHubPullRequestResponseItem[]>(routeSlug, 'GET', token, signal, undefined, cached?.etag);
@@ -359,7 +290,6 @@ export class AgentHostOctoKitService implements IAgentHostOctoKitService {
 			throw err;
 		}
 
-		// Inspect rate limit header
 		const rateLimitHeader = response.headers.get('x-ratelimit-remaining');
 		if (rateLimitHeader) {
 			const rateLimitRemaining = parseRateLimitHeader(rateLimitHeader);
@@ -372,8 +302,8 @@ export class AgentHostOctoKitService implements IAgentHostOctoKitService {
 		const responseETag = response.headers.get('etag') ?? undefined;
 
 		if (
-			statusCode === 204 /* No Content */ ||
-			statusCode === 304 /* Not Modified */
+			statusCode === 204 ||
+			statusCode === 304
 		) {
 			return { data: undefined, statusCode, etag: responseETag };
 		}
@@ -442,7 +372,6 @@ export class AgentHostOctoKitService implements IAgentHostOctoKitService {
 			throw err;
 		}
 
-		// GraphQL reports failures with a 200 status code and an `errors` array.
 		if (Array.isArray(json.errors) && json.errors.length > 0) {
 			const message = json.errors.map(error => {
 				return typeof error?.message === 'string'

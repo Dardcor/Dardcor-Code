@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -11,31 +10,12 @@ import { LinkedList } from '../../../base/common/linkedList';
 
 export const USUAL_WORD_SEPARATORS = '`~!@#$%^&*()-=+[{]}\\|;:\'",.<>/?';
 
-/**
- * Word inside a model.
- */
 export interface IWordAtPosition {
-	/**
-	 * The word.
-	 */
 	readonly word: string;
-	/**
-	 * The column where the word starts.
-	 */
 	readonly startColumn: number;
-	/**
-	 * The column where the word ends.
-	 */
 	readonly endColumn: number;
 }
 
-/**
- * Create a word definition regular expression based on default word separators.
- * Optionally provide allowed separators that should be included in words.
- *
- * The default would look like this:
- * /(-?\d*\.\d\w*)|([^\`\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g
- */
 function createWordRegExp(allowInWords: string = ''): RegExp {
 	let source = '(-?\\d*\\.\\d\\w*)|([^';
 	for (const sep of USUAL_WORD_SEPARATORS) {
@@ -48,7 +28,6 @@ function createWordRegExp(allowInWords: string = ''): RegExp {
 	return new RegExp(source, 'g');
 }
 
-// catches numbers (including floating numbers) in the first group, and alphanum in the second
 export const DEFAULT_WORD_REGEXP = createWordRegExp();
 
 export function ensureValidWordDefinition(wordDefinition?: RegExp | null): RegExp {
@@ -98,7 +77,6 @@ export function setDefaultGetWordAtTextConfig(value: IGetWordAtTextConfig) {
 }
 
 export function getWordAtText(column: number, wordDefinition: RegExp, text: string, textOffset: number, config?: IGetWordAtTextConfig): IWordAtPosition | null {
-	// Ensure the regex has the 'g' flag, otherwise this will loop forever
 	wordDefinition = ensureValidWordDefinition(wordDefinition);
 
 	if (!config) {
@@ -106,8 +84,6 @@ export function getWordAtText(column: number, wordDefinition: RegExp, text: stri
 	}
 
 	if (text.length > config.maxLen) {
-		// don't throw strings that long at the regexp
-		// but use a sub-string in which a word must occur
 		let start = column - config.maxLen / 2;
 		if (start < 0) {
 			start = 0;
@@ -125,25 +101,20 @@ export function getWordAtText(column: number, wordDefinition: RegExp, text: stri
 	let match: RegExpExecArray | null = null;
 
 	for (let i = 1; ; i++) {
-		// check time budget
 		if (Date.now() - t1 >= config.timeBudget) {
 			break;
 		}
 
-		// reset the index at which the regexp should start matching, also know where it
-		// should stop so that subsequent search don't repeat previous searches
 		const regexIndex = pos - config.windowSize * i;
 		wordDefinition.lastIndex = Math.max(0, regexIndex);
 		const thisMatch = _findRegexMatchEnclosingPosition(wordDefinition, text, pos, prevRegexIndex);
 
 		if (!thisMatch && match) {
-			// stop: we have something
 			break;
 		}
 
 		match = thisMatch;
 
-		// stop: searched at start
 		if (regexIndex <= 0) {
 			break;
 		}

@@ -14,10 +14,8 @@ const getCodexDir = () => path.join(os.homedir(), ".codex");
 const getCodexConfigPath = () => path.join(getCodexDir(), "config.toml");
 const getCodexAuthPath = () => path.join(getCodexDir(), "auth.json");
 
-// Flatten confbox-parsed TOML into a writable object, preserving nested tables
 const parsedToWritable = (obj) => obj ?? {};
 
-// Set a nested key from a flat dotted path, creating intermediate objects as needed
 const setNestedSection = (obj, dottedKey, value) => {
   const keys = dottedKey.split(".");
   let cur = obj;
@@ -30,7 +28,6 @@ const setNestedSection = (obj, dottedKey, value) => {
   cur[keys[keys.length - 1]] = value;
 };
 
-// Delete a nested key from a flat dotted path
 const deleteNestedSection = (obj, dottedKey) => {
   const keys = dottedKey.split(".");
   let cur = obj;
@@ -41,7 +38,6 @@ const deleteNestedSection = (obj, dottedKey) => {
   delete cur[keys[keys.length - 1]];
 };
 
-// Check if codex CLI is installed (via which/where or config file exists)
 const checkCodexInstalled = async () => {
   try {
     const isWindows = os.platform() === "win32";
@@ -61,7 +57,6 @@ const checkCodexInstalled = async () => {
   }
 };
 
-// Read current config.toml
 const readConfig = async () => {
   try {
     const configPath = getCodexConfigPath();
@@ -73,13 +68,11 @@ const readConfig = async () => {
   }
 };
 
-// Check if config has Dardcor Code settings
 const hasDardcorCodeConfig = (config) => {
   if (!config) return false;
   return config.includes("model_provider = \"dardcor-code\"") || config.includes("[model_providers.dardcor]");
 };
 
-// GET - Check codex CLI and read current settings
 export async function GET() {
   try {
     const isInstalled = await checkCodexInstalled();
@@ -106,7 +99,6 @@ export async function GET() {
   }
 }
 
-// POST - Update Dardcor Code settings (merge with existing config)
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, model, subagentModel } = await request.json();
@@ -118,24 +110,18 @@ export async function POST(request) {
     const codexDir = getCodexDir();
     const configPath = getCodexConfigPath();
 
-    // Ensure directory exists
     await fs.mkdir(codexDir, { recursive: true });
 
-    // Read and parse existing config
     let parsed = {};
     try {
       const existingConfig = await fs.readFile(configPath, "utf-8");
       parsed = parsedToWritable(parseTOML(existingConfig));
-    } catch { /* No existing config */ }
+    } catch { }
 
-    // Update only Dardcor Code related fields (api_key goes to auth.json, not config.toml)
     parsed.model = model;
     parsed.model_provider = "dardcor-code";
 
-    // Update or create dardcor-code provider section (no api_key - Codex reads from auth.json)
-    // Ensure /v1 suffix is added only once
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    // Custom providers ignore auth.json - the key must travel as a static header
     setNestedSection(parsed, "model_providers.dardcor", {
       name: "Dardcor Code",
       base_url: normalizedBaseUrl,
@@ -143,11 +129,9 @@ export async function POST(request) {
       http_headers: { Authorization: `Bearer ${apiKey}` },
     });
 
-    // Subagent model is a scalar under [agents]; agents.<role> now means a custom role
     deleteNestedSection(parsed, "agents.subagent");
     setNestedSection(parsed, "agents.default_subagent_model", subagentModel || model);
 
-    // Write merged config
     const configContent = stringifyTOML(parsed);
     await fs.writeFile(configPath, configContent);
 
@@ -162,12 +146,10 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove Dardcor Code settings only (keep other settings)
 export async function DELETE() {
   try {
     const configPath = getCodexConfigPath();
 
-    // Read and parse existing config
     let parsed = {};
     try {
       const existingConfig = await fs.readFile(configPath, "utf-8");
@@ -182,24 +164,19 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Dardcor Code related root fields only if they point to dardcor-code
     if (parsed.model_provider === "dardcor-code") {
       delete parsed.model;
       delete parsed.model_provider;
     }
 
-    // Remove dardcor-code provider section
     deleteNestedSection(parsed, "model_providers.dardcor");
 
-    // Remove subagent configuration (both the current key and the legacy role form)
     deleteNestedSection(parsed, "agents.default_subagent_model");
     deleteNestedSection(parsed, "agents.subagent");
 
-    // Write updated config
     const configContent = stringifyTOML(parsed);
     await fs.writeFile(configPath, configContent);
 
-    // Remove OPENAI_API_KEY from auth.json
     const authPath = getCodexAuthPath();
     try {
       const existingAuth = await fs.readFile(authPath, "utf-8");
@@ -207,13 +184,12 @@ export async function DELETE() {
       delete authData.OPENAI_API_KEY;
       delete authData.auth_mode;
 
-      // Write back or delete if empty
       if (Object.keys(authData).length === 0) {
         await fs.unlink(authPath);
       } else {
         await fs.writeFile(authPath, JSON.stringify(authData, null, 2));
       }
-    } catch { /* No auth file */ }
+    } catch { }
 
     return NextResponse.json({
       success: true,

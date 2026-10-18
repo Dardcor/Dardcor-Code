@@ -85,7 +85,6 @@ suite('HoverService', () => {
 		instantiationService.stub(IHoverService, hoverService);
 	});
 
-	// #region Helper functions
 
 	function createTarget(): HTMLElement {
 		const target = document.createElement('div');
@@ -109,40 +108,24 @@ suite('HoverService', () => {
 		return hover as HoverWidget;
 	}
 
-	/**
-	 * Checks if a hover's DOM node is present in the document.
-	 */
 	function isInDOM(hover: IHoverWidget): boolean {
 		return mainWindow.document.body.contains(asHoverWidget(hover).domNode);
 	}
 
-	/**
-	 * Asserts that a hover is in the DOM.
-	 */
 	function assertInDOM(hover: IHoverWidget, message?: string): void {
 		assert.ok(isInDOM(hover), message ?? 'Hover should be in the DOM');
 	}
 
-	/**
-	 * Asserts that a hover is NOT in the DOM.
-	 */
 	function assertNotInDOM(hover: IHoverWidget, message?: string): void {
 		assert.ok(!isInDOM(hover), message ?? 'Hover should not be in the DOM');
 	}
 
-	/**
-	 * Creates a nested hover by appending a target element inside the parent hover's DOM.
-	 */
 	function createNestedHover(parentHover: IHoverWidget, content: string): IHoverWidget {
 		const nestedTarget = document.createElement('div');
 		asHoverWidget(parentHover).domNode.appendChild(nestedTarget);
 		return showHover(content, nestedTarget);
 	}
 
-	/**
-	 * Creates a chain of nested hovers up to the specified depth.
-	 * Returns the array of hovers from outermost to innermost.
-	 */
 	function createHoverChain(depth: number): HoverWidget[] {
 		const hovers: HoverWidget[] = [];
 		let currentTarget: HTMLElement = createTarget();
@@ -169,7 +152,6 @@ suite('HoverService', () => {
 		}
 	}
 
-	// #endregion
 
 	suite('showInstantHover', () => {
 		test('should not show hover with empty content', () => {
@@ -304,7 +286,6 @@ suite('HoverService', () => {
 			assertInDOM(hover1, 'First hover should be in DOM');
 			assert.strictEqual(hover2, undefined, 'Second hover with same id should not be created');
 
-			// Different id should create new hover
 			const hover3 = hoverService.showInstantHover({
 				content: 'Content 3',
 				target,
@@ -398,15 +379,12 @@ suite('HoverService', () => {
 			const hovers = createHoverChain(3);
 			assert.strictEqual(hovers.length, 3, 'Should create 3 hovers');
 
-			// Verify all hovers are in DOM
 			for (let i = 0; i < hovers.length; i++) {
 				assert.ok(mainWindow.document.body.contains(hovers[i].domNode), `Hover ${i + 1} should be in DOM`);
 			}
 
-			// Dispose the root hover
 			hovers[0].dispose();
 
-			// All hovers in the chain should be disposed and removed from DOM
 			for (let i = 0; i < hovers.length; i++) {
 				assert.strictEqual(hovers[i].isDisposed, true, `Hover ${i + 1} should be disposed`);
 				assert.ok(!mainWindow.document.body.contains(hovers[i].domNode), `Hover ${i + 1} should be removed from DOM`);
@@ -417,12 +395,10 @@ suite('HoverService', () => {
 			const hovers = createHoverChain(3);
 			assert.strictEqual(hovers.length, 3, 'Should create 3 hovers');
 
-			// Verify all hovers are in DOM
 			for (const h of hovers) {
 				assert.ok(mainWindow.document.body.contains(h.domNode), 'All hovers should be in DOM initially');
 			}
 
-			// Dispose the middle hover
 			hovers[1].dispose();
 
 			assert.strictEqual(hovers[0].isDisposed, false, 'Root hover should remain');
@@ -438,16 +414,13 @@ suite('HoverService', () => {
 		});
 
 		test('should enforce maximum nesting depth', () => {
-			// Create hovers up to the max depth (3)
 			const hovers = createHoverChain(3);
 			assert.strictEqual(hovers.length, 3, 'Should create exactly 3 hovers (max depth)');
 
-			// Verify all 3 hovers are in DOM
 			for (const h of hovers) {
 				assert.ok(mainWindow.document.body.contains(h.domNode), 'Hover should be in DOM');
 			}
 
-			// Try to create a 4th nested hover - should fail
 			const nestedTarget = document.createElement('div');
 			hovers[2].domNode.appendChild(nestedTarget);
 			const fourthHover = hoverService.showInstantHover({
@@ -461,7 +434,6 @@ suite('HoverService', () => {
 		});
 
 		test('should allow new hover chain after disposing previous chain', () => {
-			// Create and dispose a chain
 			const firstChain = createHoverChain(3);
 			for (const h of firstChain) {
 				assert.ok(mainWindow.document.body.contains(h.domNode), 'First chain hover should be in DOM');
@@ -471,7 +443,6 @@ suite('HoverService', () => {
 				assert.ok(!mainWindow.document.body.contains(h.domNode), 'First chain hover should be removed from DOM');
 			}
 
-			// Should be able to create a new chain
 			const secondChain = createHoverChain(3);
 			assert.strictEqual(secondChain.length, 3, 'Should create new chain after disposing previous');
 			for (const h of secondChain) {
@@ -484,13 +455,11 @@ suite('HoverService', () => {
 		test('hideHover should close innermost hover first', () => {
 			const hovers = createHoverChain(2);
 
-			// Verify both are in DOM
 			assert.ok(mainWindow.document.body.contains(hovers[0].domNode), 'Outer hover should be in DOM');
 			assert.ok(mainWindow.document.body.contains(hovers[1].domNode), 'Inner hover should be in DOM');
 
 			hoverService.hideHover();
 
-			// Innermost hover should be disposed and removed from DOM
 			assert.strictEqual(hovers[1].isDisposed, true, 'Innermost hover should be disposed');
 			assert.ok(!mainWindow.document.body.contains(hovers[1].domNode), 'Innermost hover should be removed from DOM');
 			assert.strictEqual(hovers[0].isDisposed, false, 'Outer hover should remain');
@@ -513,14 +482,12 @@ suite('HoverService', () => {
 				return { content: `Call ${callCount}` };
 			});
 
-			// First mouseover
 			target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 			assert.strictEqual(callCount, 1, 'Options function should be called on first mouseover');
 
 			await timeout(0);
 			hoverService.hideHover(true);
 
-			// Second mouseover should call function again
 			target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 			assert.strictEqual(callCount, 2, 'Options function should be called on second mouseover');
 
@@ -546,20 +513,16 @@ suite('HoverService', () => {
 		test('should use reduced delay when reducedDelay is true', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 			const target = createTarget();
 
-			// Configure reducedDelay to 150ms for this test
 			(instantiationService.get(IConfigurationService) as TestConfigurationService).setUserConfiguration('workbench.hover.reducedDelay', 150);
 
 			const disposable = hoverService.setupDelayedHover(target, { content: 'Reduced delay' }, { reducedDelay: true });
 
-			// Trigger mouseover
 			target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
-			// Hover should not be visible before delay
 			await timeout(75);
 			const hoversBefore = mainWindow.document.querySelectorAll('.monaco-hover');
 			assert.strictEqual(hoversBefore.length, 0, 'Hover should not be visible before delay completes');
 
-			// Hover should be visible after delay
 			await timeout(150);
 			const hoversAfter = mainWindow.document.querySelectorAll('.monaco-hover');
 			assert.strictEqual(hoversAfter.length, 1, 'Hover should be visible after reduced delay');
@@ -609,17 +572,14 @@ suite('HoverService', () => {
 			const delegate = store.add(instantiationService.createInstance(WorkbenchHoverDelegate, 'element', undefined, {}));
 			store.add(hoverService.setupManagedHover(delegate, target, 'Test'));
 
-			// Show hover explicitly
 			target.dispatchEvent(new FocusEvent('focus', { bubbles: true, relatedTarget: document.body }));
 			await timeout(500);
 			const hoversBefore = fixture.querySelectorAll('.monaco-hover');
 			assert.ok(hoversBefore.length > 0, 'Hover should be visible after focus');
 
-			// Dismiss via hoverService (simulates Esc / external dismissal)
 			hoverService.hideHover(true);
 			await timeout(0);
 
-			// Simulate focus returning from the hover element
 			const hoverElement = document.createElement('div');
 			hoverElement.classList.add('monaco-hover');
 			target.dispatchEvent(new FocusEvent('focus', { bubbles: true, relatedTarget: hoverElement }));
@@ -634,13 +594,11 @@ suite('HoverService', () => {
 			const delegate = store.add(instantiationService.createInstance(WorkbenchHoverDelegate, 'element', undefined, {}));
 			store.add(hoverService.setupManagedHover(delegate, target, 'Test'));
 
-			// Show hover via focus and dismiss externally
 			target.dispatchEvent(new FocusEvent('focus', { bubbles: true, relatedTarget: document.body }));
 			await timeout(500);
 			hoverService.hideHover(true);
 			await timeout(0);
 
-			// Simulate focus from window reactivation (relatedTarget is null)
 			target.dispatchEvent(new FocusEvent('focus', { bubbles: true, relatedTarget: null }));
 			await timeout(500);
 
@@ -673,7 +631,6 @@ suite('HoverService', () => {
 			const target = createTarget();
 			const reducedDelay = 100;
 
-			// Configure reducedDelay setting for this test
 			(instantiationService.get(IConfigurationService) as TestConfigurationService).setUserConfiguration('workbench.hover.reducedDelay', reducedDelay);
 
 			const hover = hoverService.showDelayedHover({
@@ -684,11 +641,9 @@ suite('HoverService', () => {
 			assert.ok(hover, 'Hover should be created');
 			assertNotInDOM(hover, 'Hover should not be visible immediately');
 
-			// Wait less than reduced delay - hover should still not be visible
 			await timeout(reducedDelay / 2);
 			assertNotInDOM(hover, 'Hover should not be visible before delay completes');
 
-			// Wait for full delay - hover should now be visible
 			await timeout(reducedDelay);
 			assertInDOM(hover, 'Hover should be visible after reduced delay');
 
@@ -697,7 +652,6 @@ suite('HoverService', () => {
 
 		test('should use default delay when custom delay is undefined', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 			const target = createTarget();
-			// Default delay is set to 0 in test setup
 			const hover = hoverService.showDelayedHover({
 				content: 'Default delay hover',
 				target
@@ -705,7 +659,6 @@ suite('HoverService', () => {
 
 			assert.ok(hover, 'Hover should be created');
 
-			// Since default delay is 0 in tests, hover should appear after minimal timeout
 			await timeout(0);
 			assertInDOM(hover, 'Hover should be visible with default delay');
 
@@ -758,17 +711,13 @@ suite('HoverService', () => {
 			hover.dispose();
 			assertNotInDOM(hover, 'Hover should be removed from DOM after dispose');
 
-			// Should recreate the hover - verify a new hover is shown
 			hoverService.showAndFocusLastHover();
 
-			// Verify there is a hover in the DOM (it's a new hover instance)
 			const hoverElements = mainWindow.document.querySelectorAll('.monaco-hover');
 			assert.ok(hoverElements.length > 0, 'A hover should be recreated and in the DOM');
 
-			// Clean up
 			hoverService.hideHover(true);
 
-			// Verify cleanup
 			const remainingHovers = mainWindow.document.querySelectorAll('.monaco-hover');
 			assert.strictEqual(remainingHovers.length, 0, 'No hovers should remain in DOM after cleanup');
 		});
@@ -789,16 +738,12 @@ suite('HoverService', () => {
 
 			const widget = asHoverWidget(hover);
 
-			// Simulate a mouseleave on the hover container (as happens when content shrinks)
 			widget.domNode.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
 
-			// Before the debounce timer fires, trigger a layout (as ResizeObserver would)
 			widget.layout();
 
-			// Wait longer than the CompositeMouseTracker debounce (200ms)
 			await timeout(300);
 
-			// The hover should still be in the DOM because layout() cancelled the pending mouseout
 			assertInDOM(hover, 'Hover should remain in DOM after layout suppresses mouseout');
 
 			hover.dispose();
@@ -819,13 +764,10 @@ suite('HoverService', () => {
 
 			const widget = asHoverWidget(hover);
 
-			// Simulate a mouseleave without a subsequent layout
 			widget.domNode.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
 
-			// Wait for the debounce to fire
 			await timeout(300);
 
-			// Without layout suppression, the hover should be dismissed
 			assertNotInDOM(hover, 'Hover should be dismissed after mouseout without layout');
 		}));
 
@@ -843,16 +785,13 @@ suite('HoverService', () => {
 
 			const widget = asHoverWidget(hover);
 
-			// Simulate mouseleave + layout to suppress
 			widget.domNode.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
 			widget.layout();
 			await timeout(300);
 			assertInDOM(hover, 'Hover should remain after suppressed mouseout');
 
-			// Mouse re-enters, clearing the suppression flag
 			widget.domNode.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
-			// Mouse leaves again — this time no layout, so it should dismiss
 			widget.domNode.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
 			await timeout(300);
 
@@ -871,7 +810,6 @@ suite('HoverService', () => {
 			assert.ok(hover);
 			assertInDOM(hover, 'Hover should be in DOM');
 
-			// Click outside the hover
 			document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
 
 			assertNotInDOM(hover, 'Non-sticky hover should be dismissed after clicking outside');

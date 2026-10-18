@@ -13,14 +13,8 @@ export const IChatInputNoticeHubService = createDecorator<IChatInputNoticeHubSer
 export interface IChatInputNoticeHubService {
 	readonly _serviceBrand: undefined;
 
-	/** Track a chat input's notice host so commands can reach whichever one is in use. */
 	registerHost(host: ChatInputNoticeHost, focusRoot: HTMLElement): IDisposable;
 
-	/**
-	 * Move focus into the notice showing in the most recently used chat input,
-	 * or back to its input when the notice already has focus. Returns false when
-	 * no notice is showing anywhere.
-	 */
 	toggleNoticeFocus(): boolean;
 }
 
@@ -28,12 +22,6 @@ interface ITrackedHost extends IChatInputSurface {
 	readonly host: ChatInputNoticeHost;
 }
 
-/**
- * Window-level registry of chat input notice hosts. Chat inputs exist in several
- * surfaces (panel and editor) that do not share a widget service, so
- * notice commands resolve their target through here rather than through any one
- * surface's widget registry.
- */
 class ChatInputNoticeHubService extends Disposable implements IChatInputNoticeHubService {
 
 	declare readonly _serviceBrand: undefined;
@@ -51,8 +39,6 @@ class ChatInputNoticeHubService extends Disposable implements IChatInputNoticeHu
 	}
 
 	toggleNoticeFocus(): boolean {
-		// Inputs with nothing to focus are skipped rather than selected and then
-		// declined, so a notice showing elsewhere is still reachable.
 		const active = pickActiveChatInput(this._hosts, tracked => tracked.host.hasFocusableNotice());
 		return active?.host.toggleFocus() ?? false;
 	}

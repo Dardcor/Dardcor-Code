@@ -56,7 +56,6 @@ export abstract class AbstractVariableResolverService implements IConfigurationR
 	}
 
 	private prepareEnv(envVariables: IProcessEnvironment): IProcessEnvironment {
-		// windows env variables are case insensitive
 		if (isWindows) {
 			const ev: IProcessEnvironment = Object.create(null);
 			Object.keys(envVariables).forEach(key => {
@@ -124,7 +123,6 @@ export abstract class AbstractVariableResolverService implements IConfigurationR
 
 		const { name: variable, arg: argument } = replacement;
 
-		// common error handling for all variables that require an open editor
 		const getFilePath = (variableKind: VariableKind): string => {
 			const filePath = this._context.getFilePath();
 			if (filePath) {
@@ -133,9 +131,8 @@ export abstract class AbstractVariableResolverService implements IConfigurationR
 			throw new VariableError(variableKind, (localize('canNotResolveFile', "Variable {0} can not be resolved. Please open an editor.", replacement.id)));
 		};
 
-		// common error handling for all variables that require an open editor
 		const getFolderPathForFile = (variableKind: VariableKind): string => {
-			const filePath = getFilePath(variableKind);		// throws error if no editor open
+			const filePath = getFilePath(variableKind);
 			if (this._context.getWorkspaceFolderPathForFile) {
 				const folderPath = this._context.getWorkspaceFolderPathForFile();
 				if (folderPath) {
@@ -145,7 +142,6 @@ export abstract class AbstractVariableResolverService implements IConfigurationR
 			throw new VariableError(variableKind, localize('canNotResolveFolderForFile', "Variable {0}: can not find workspace folder of '{1}'.", replacement.id, paths.basename(filePath)));
 		};
 
-		// common error handling for all variables that require an open folder and accept a folder name argument
 		const getFolderUri = (variableKind: VariableKind): uri => {
 			if (argument) {
 				const folder = this._context.getFolderUri(argument);

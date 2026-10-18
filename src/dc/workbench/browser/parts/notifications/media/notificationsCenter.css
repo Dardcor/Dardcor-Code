@@ -5,9 +5,9 @@
 
 .monaco-workbench > .notifications-center {
 	position: absolute;
-	z-index: 2545; /* above modal editor backdrop (2540), below quick input (2550) and dialogs (2575) */
-	right: 7px; /* attempt to position at same location as a toast */
-	bottom: 29px; /* 22px status bar height + 7px (attempt to position at same location as a toast) */
+	z-index: 2545;
+	right: 7px;
+	bottom: 29px;
 	display: none;
 	overflow: hidden;
 	border: 1px solid var(--vscode-editorWidget-border);
@@ -16,7 +16,7 @@
 }
 
 .monaco-workbench.nostatusbar > .notifications-center {
-	bottom: 11px; /* attempt to position at same location as a toast */
+	bottom: 11px;
 }
 
 .monaco-workbench > .notifications-center.bottom-left {
@@ -33,7 +33,6 @@
 	display: block;
 }
 
-/* Header */
 
 .monaco-workbench > .notifications-center > .notifications-center-header {
 	display: flex;
@@ -61,10 +60,9 @@
 }
 
 .monaco-workbench > .notifications-center .notifications-list-container .monaco-list-row:last-child {
-	border-radius: 0px 0px var(--vscode-cornerRadius-small) var(--vscode-cornerRadius-small); /* adopt the border radius at the end of the notifications center */
+	border-radius: 0px 0px var(--vscode-cornerRadius-small) var(--vscode-cornerRadius-small);
 }
 
-/* Icons */
 
 .monaco-workbench > .notifications-center .codicon.codicon-error {
 	color: var(--vscode-notificationsErrorIcon-foreground) !important;

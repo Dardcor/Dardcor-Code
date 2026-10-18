@@ -49,7 +49,6 @@ export interface IResolvedRepoInfoRemote {
 	readonly repoType: 'github' | 'ado';
 }
 
-/** Resolves a GitHub, GitHub Enterprise, or Azure DevOps fetch URL. */
 export function resolveRepoInfoRemote(remoteUrl: string, enterpriseHost: string | undefined): IResolvedRepoInfoRemote | undefined {
 	const scpMatch = remoteUrl.includes('://') ? undefined : /^(?:[^@\s]+@)?(?<host>[^:\s]+):(?<path>.+)$/.exec(remoteUrl);
 	let host: string;
@@ -108,7 +107,6 @@ export function resolveRepoInfoRemote(remoteUrl: string, enterpriseHost: string 
 	};
 }
 
-/** Measures a serialized diff payload using the two limits applied by the legacy extension. */
 export function measureRepoInfoDiffsJSON(diffsJSON: string): { readonly diffSizeBytes: number; readonly tooLarge: boolean } {
 	const diffSizeBytes = Buffer.byteLength(diffsJSON, 'utf8');
 	return {

@@ -206,12 +206,8 @@ export async function simulateEditingScenario(
 	let range: Range | undefined;
 	let isFirst = true;
 	const history: (ChatRequestTurn | ChatResponseTurn)[] = [];
-	/**
-	 * A map from doc to relative path with initial contents which is populated right before modifying a document.
-	 */
 	const changedDocsInitialStates = new Map<vscode.TextDocument, Promise<IWorkspaceStateFile> | null>();
 
-	// run each query for the scenario
 	try {
 		const seenFiles: vscode.ChatPromptReference[] = [];
 
@@ -264,7 +260,6 @@ export async function simulateEditingScenario(
 			let initialDiagnostics: ResourceMap<vscode.Diagnostic[]> | undefined;
 
 			if (typeof query.diagnostics === 'string') {
-				// diagnostics are computed
 				try {
 					initialDiagnostics = await fetchDiagnostics(accessor, workspace, query.diagnostics);
 					workspace.setDiagnostics(initialDiagnostics);
@@ -275,7 +270,6 @@ export async function simulateEditingScenario(
 				if (!activeEditor) {
 					throw new Error(`diagnostics can only be an array if there's an active editor (is 'file' specified?)`);
 				}
-				// diagnostics are set explicitly
 				const diagnostics = new ResourceMap<vscode.Diagnostic[]>();
 				diagnostics.set(activeEditor.document.uri, convertToDiagnostics(workspace, query.diagnostics));
 				workspace.setDiagnostics(diagnostics);
@@ -298,11 +292,11 @@ export async function simulateEditingScenario(
 						throw new Error(`Missing notebook document ${documentUri}`);
 					}
 
-					relativeDiskPath = await testRuntime.writeFile(workspacePath + '.txt', notebookDocument.getText(), INLINE_INITIAL_DOC_TAG); // using .txt instead of real file extension to avoid breaking automation scripts
+					relativeDiskPath = await testRuntime.writeFile(workspacePath + '.txt', notebookDocument.getText(), INLINE_INITIAL_DOC_TAG);
 				} else {
-					relativeDiskPath = await testRuntime.writeFile(workspacePath + '.txt', activeEditor.document.getText(), INLINE_INITIAL_DOC_TAG); // using .txt instead of real file extension to avoid breaking automation scripts
+					relativeDiskPath = await testRuntime.writeFile(workspacePath + '.txt', activeEditor.document.getText(), INLINE_INITIAL_DOC_TAG);
 				}
-				changedDocsInitialStates.set(activeEditor.document, null); // just mark that it doesn't get written twice
+				changedDocsInitialStates.set(activeEditor.document, null);
 
 				if (!relativeDiskPath) {
 					throw new Error(`Failed to write initial document to disk`);
@@ -360,7 +354,6 @@ export async function simulateEditingScenario(
 
 				toolReferences.push(...parsedQuery.toolReferences);
 			} catch (error) {
-				// No problem!
 			}
 
 			references.push(...(host.contributeAdditionalReferences?.(accessor, references) ?? []));
@@ -374,10 +367,10 @@ export async function simulateEditingScenario(
 				references,
 				attempt: 0,
 				isParticipantDetected: false,
-				enableCommandDetection: true, // TODO@ulugbekna: add support for disabling intent detection?
+				enableCommandDetection: true,
 				toolReferences,
 				toolInvocationToken: (isInExtensionHost ? undefined : {}) as never,
-				model: null!, // https://github.com/microsoft/vscode-dardcor/issues/9475
+				model: null!,
 				tools: new Map(),
 				id: '1',
 				sessionId: '1',
@@ -385,7 +378,6 @@ export async function simulateEditingScenario(
 				hasHooksEnabled: false,
 			};
 
-			// Run intent detection
 			if (!request.command) {
 				const intentDetector = instaService.createInstance(IntentDetector);
 				const participants = readBuiltinIntents(location);
@@ -404,7 +396,6 @@ export async function simulateEditingScenario(
 
 					let doc: IExtHostDocumentData;
 					if (!workspace.hasDocument(uri)) {
-						// this is a new file
 						const language = getLanguageForResource(uri);
 						doc = createTextDocumentData(uri, '', language.languageId);
 						workspace.addDocument(doc);
@@ -435,7 +426,6 @@ export async function simulateEditingScenario(
 						workingCopyDocument.applyOffsetEdits(offsetEdits);
 						changedDocs.push(doc.document);
 						if (activeEditor && isEqual(doc.document.uri, activeEditor.document.uri)) {
-							// edit in the same document, adjust the range
 							range = applyEditsAndExpandRange(workspace, activeEditor.document, edits, range);
 						} else {
 							workspace.applyEdits(doc.document.uri, edits);
@@ -499,14 +489,12 @@ export async function simulateEditingScenario(
 
 			let interactionOutcomeKind = interactionOutcomeComputer.interactionOutcome.kind;
 			if (interactionOutcomeKind === 'inlineEdit' || interactionOutcomeKind === 'workspaceEdit') {
-				// sometimes we push noop edits which can trick the outcome computer
 				if (!hasActualEdits) {
 					interactionOutcomeKind = 'noopEdit';
 				}
 			}
 			let intent: IIntent | undefined;
 			{
-				// TODO@Alex: extract to host object
 				const response = requestHandler.conversation.getLatestTurn()?.getMetadata(CopilotInteractiveEditorResponse);
 				intent = (response ? response.promptQuery.intent : undefined);
 			}
@@ -540,7 +528,6 @@ export async function simulateEditingScenario(
 					const offsetEdits = workingCopyDoc.appliedEdits;
 					const textEdits = workingCopyDoc.transformer.toTextEdits(offsetEdits);
 					if (activeEditor && isEqual(uri, activeEditor.document.uri)) {
-						// edit in the same document
 						for (let i = 0; i < offsetEdits.replacements.length; i++) {
 							const offsetEdit = offsetEdits.replacements[i];
 							const textEdit = textEdits[i];
@@ -614,7 +601,6 @@ export async function simulateEditingScenario(
 					}
 				}
 
-				// We managed to edit some files!
 				testRuntime.setOutcome({
 					kind: 'edit',
 					files: changedFilePaths.map(f => ({ srcUri: f.workspacePath, post: f.relativeDiskPath })),
@@ -699,7 +685,7 @@ export async function simulateEditingScenario(
 		}
 	} finally {
 		await teardownSimulationWorkspace(accessor, workspace);
-		await testRuntime.writeFile('inline-simulator.txt', JSON.stringify(states, undefined, 2), INLINE_STATE_TAG); // TODO@test: using .txt instead of .json to avoid breaking test scripts
+		await testRuntime.writeFile('inline-simulator.txt', JSON.stringify(states, undefined, 2), INLINE_STATE_TAG);
 	}
 }
 

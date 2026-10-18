@@ -40,7 +40,6 @@ export class Context implements IContext {
 	}
 
 	public setValue(key: string, value: any): boolean {
-		// console.log('SET ' + key + ' = ' + value + ' ON ' + this._id);
 		if (!equals(this._value[key], value)) {
 			this._value[key] = value;
 			return true;
@@ -49,7 +48,6 @@ export class Context implements IContext {
 	}
 
 	public removeValue(key: string): boolean {
-		// console.log('REMOVE ' + key + ' FROM ' + this._id);
 		if (key in this._value) {
 			delete this._value[key];
 			return true;
@@ -117,7 +115,6 @@ class ConfigAwareContextValuesContainer extends Context {
 
 		this._listener = this._configurationService.onDidChangeConfiguration(event => {
 			if (event.source === ConfigurationTarget.DEFAULT) {
-				// new setting, reset everything
 				const allKeys = Array.from(this._values, ([k]) => k);
 				this._values.clear();
 				emitter.fire(new ArrayContextKeyChangeEvent(allKeys));
@@ -323,9 +320,6 @@ export abstract class AbstractContextKeyService extends Disposable implements IC
 		}
 		const context = this.getContextValuesContainer(this._myContextId);
 		const result = (rules ? rules.evaluate(context) : true);
-		// console.group(rules.serialize() + ' -> ' + result);
-		// rules.keys().forEach(key => { console.log(key, ctx[key]); });
-		// console.groupEnd();
 		return result;
 	}
 
@@ -391,16 +385,6 @@ export class ContextKeyService extends AbstractContextKeyService implements ICon
 		const myContext = this._register(new ConfigAwareContextValuesContainer(this._myContextId, configurationService, this._onDidChangeContext));
 		this._contexts.set(this._myContextId, myContext);
 
-		// Uncomment this to see the contexts continuously logged
-		// let lastLoggedValue: string | null = null;
-		// setInterval(() => {
-		// 	let values = Object.keys(this._contexts).map((key) => this._contexts[key]);
-		// 	let logValue = values.map(v => JSON.stringify(v._value, null, '\t')).join('\n');
-		// 	if (lastLoggedValue !== logValue) {
-		// 		lastLoggedValue = logValue;
-		// 		console.log(lastLoggedValue);
-		// 	}
-		// }, 2000);
 
 		this._register(Event.runAndSubscribe(onDidRegisterWindow, ({ window, disposables }) => {
 			const onFocusDisposables = disposables.add(new MutableDisposable<DisposableStore>());
@@ -424,13 +408,6 @@ export class ContextKeyService extends AbstractContextKeyService implements ICon
 			const tracker = disposables.add(trackFocus(ownerDocument.activeElement as HTMLElement));
 			Event.once(tracker.onDidBlur)(() => {
 
-				// Ensure we are only updating the context key if we are
-				// still in the same document that we are tracking. This
-				// fixes a race condition in multi-window setups where
-				// the blur event arrives in the inactive window overwriting
-				// the context key of the active window. This is because
-				// blur events from the focus tracker are emitted with a
-				// timeout of 0.
 
 				if (getActiveWindow().document === ownerDocument) {
 					this.inputFocusedContext.set(activeElementIsInput());
@@ -493,7 +470,6 @@ class ScopedContextKeyService extends AbstractContextKeyService {
 	}
 
 	private _updateParentChangeListener(): void {
-		// Forward parent events to this listener. Parent will change.
 		this._parentChangeListener.value = this._parent.onDidChangeContext(e => {
 			const thisContainer = this._parent.getContextValuesContainer(this._myContextId);
 			const thisContextValues = thisContainer.value;
@@ -509,8 +485,6 @@ class ScopedContextKeyService extends AbstractContextKeyService {
 			return;
 		}
 
-		// Clear the parent change listener before disposeContext to avoid
-		// forwarding parent events after this service has begun tearing down.
 		this._parentChangeListener.clear();
 		this._parent.disposeContext(this._myContextId);
 		this._domNode.removeAttribute(KEYBINDING_CONTEXT_ATTR);
@@ -532,9 +506,6 @@ class ScopedContextKeyService extends AbstractContextKeyService {
 	}
 
 	public disposeContext(contextId: number): void {
-		// Always forward to parent even after disposal — a child context may
-		// be disposed after us and must still reach the root ContextKeyService
-		// to delete its entry from _contexts.
 		this._parent.disposeContext(contextId);
 	}
 

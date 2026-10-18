@@ -20,10 +20,6 @@ namespace Severity {
 	const _info = 'info';
 	const _ignore = 'ignore';
 
-	/**
-	 * Parses 'error', 'warning', 'warn', 'info' in call casings
-	 * and falls back to ignore.
-	 */
 	export function fromValue(value: string): Severity {
 		if (!value) {
 			return Severity.Ignore;

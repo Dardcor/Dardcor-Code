@@ -34,7 +34,7 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 	private readonly _onDidTriggerSystemContextMenu = this._register(new Emitter<{ window: IAuxiliaryWindow; x: number; y: number }>());
 	readonly onDidTriggerSystemContextMenu = this._onDidTriggerSystemContextMenu.event;
 
-	private readonly windows = new Map<number /* webContents ID */, AuxiliaryWindow>();
+	private readonly windows = new Map<number , AuxiliaryWindow>();
 
 	private readonly pendingWindowOptionsQueue: BrowserWindowConstructorOptions[] = [];
 
@@ -49,15 +49,9 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 
 	private registerListeners(): void {
 
-		// We have to ensure that an auxiliary window gets to know its
-		// containing `BrowserWindow` so that it can apply listeners to it
-		// Unfortunately we cannot rely on static `BrowserWindow` methods
-		// because we might call the methods too early before the window
-		// is created.
 
 		app.on('browser-window-created', (_event, browserWindow) => {
 
-			// This is an auxiliary window, try to claim it
 			const auxiliaryWindow = this.getWindowByWebContents(browserWindow.webContents);
 			if (auxiliaryWindow) {
 				this.logService.trace('[aux window] app.on("browser-window-created"): Trying to claim auxiliary window');
@@ -65,7 +59,6 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 				auxiliaryWindow.tryClaimWindow();
 			}
 
-			// This is a main window, listen to child windows getting created to claim it
 			else {
 				const disposables = new DisposableStore();
 				disposables.add(Event.fromNodeEventEmitter(browserWindow.webContents, 'did-create-window', (browserWindow, details) => ({ browserWindow, details }))(({ browserWindow, details }) => {
@@ -105,7 +98,7 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 		const windowState: IWindowState = {};
 		const overrides: IDefaultBrowserWindowOptionsOverrides = {};
 
-		const features = details.features.split(','); // for example: popup=yes,left=270,top=14.5,width=1024,height=768
+		const features = details.features.split(',');
 		for (const feature of features) {
 			const [key, value] = feature.split('=');
 			switch (key) {

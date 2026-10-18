@@ -83,7 +83,6 @@ class ManyHorizontalOffsetRangeVisualizer implements IVisualizationEffect {
 		const d: IDisposable[] = [];
 		const keys = Object.keys(this._rects);
 		keys.forEach((key, index) => {
-			// Stagger labels: odd indices go above, even indices go below
 			const labelPosition = index % 2 === 0 ? 'above' : 'below';
 			const v = new HtmlHorizontalOffsetRangeVisualizer(this._rects[key], this._elem, key, index * 12, labelPosition);
 			d.push(v.visualize());
@@ -112,7 +111,6 @@ class HtmlHorizontalOffsetRangeVisualizer implements IVisualizationEffect {
 		container.style.pointerEvents = 'none';
 		container.style.zIndex = '100000';
 
-		// Create horizontal line
 		const horizontalLine = document.createElement('div');
 		horizontalLine.style.position = 'absolute';
 		horizontalLine.style.height = '2px';
@@ -120,7 +118,6 @@ class HtmlHorizontalOffsetRangeVisualizer implements IVisualizationEffect {
 		horizontalLine.style.top = '50%';
 		horizontalLine.style.transform = 'translateY(-50%)';
 
-		// Create start vertical bar
 		const startBar = document.createElement('div');
 		startBar.style.position = 'absolute';
 		startBar.style.width = '2px';
@@ -130,7 +127,6 @@ class HtmlHorizontalOffsetRangeVisualizer implements IVisualizationEffect {
 		startBar.style.top = '50%';
 		startBar.style.transform = 'translateY(-50%)';
 
-		// Create end vertical bar
 		const endBar = document.createElement('div');
 		endBar.style.position = 'absolute';
 		endBar.style.width = '2px';
@@ -140,19 +136,17 @@ class HtmlHorizontalOffsetRangeVisualizer implements IVisualizationEffect {
 		endBar.style.top = '50%';
 		endBar.style.transform = 'translateY(-50%)';
 
-		// Create label
 		const label = document.createElement('div');
 		label.textContent = this._name;
 		label.style.position = 'absolute';
 
-		// Position label above or below the line to avoid overlaps
 		if (this._labelPosition === 'above') {
 			label.style.bottom = '12px';
 		} else {
 			label.style.top = '12px';
 		}
 
-		label.style.left = '2px'; // Slight offset from start
+		label.style.left = '2px';
 		label.style.color = 'green';
 		label.style.fontSize = '10px';
 		label.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
@@ -182,7 +176,6 @@ class HtmlHorizontalOffsetRangeVisualizer implements IVisualizationEffect {
 			horizontalLine.style.width = width + 'px';
 		};
 
-		// This is for debugging only
 		// eslint-disable-next-line no-restricted-syntax
 		document.body.appendChild(container);
 		updatePosition();
@@ -233,7 +226,6 @@ class HtmlRectVisualizer implements IVisualizationEffect {
 			div.style.height = this._rect.height + 'px';
 		};
 
-		// This is for debugging only
 		// eslint-disable-next-line no-restricted-syntax
 		document.body.appendChild(div);
 		updatePosition();

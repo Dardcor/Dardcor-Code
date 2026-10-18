@@ -1,6 +1,4 @@
-#---------------------------------------------------------------------------------------------
 #  Copyright (c) Dardcor Corporation. All rights reserved.
-#---------------------------------------------------------------------------------------------
 
 function Show-Help {
     Write-Host "Usage: dardcor-debug [--print] [--no-cache] [--save] [--help] <args...>"
@@ -48,7 +46,7 @@ function Watch-Client {
     $writer = [System.IO.StreamWriter]::new($pipe)
     $writer.AutoFlush = $true
 
-    $nonce = if ($env:COPILOT_DEBUG_NONCE) { $env:COPILOT_DEBUG_NONCE } else { "" }
+    $nonce = if ($env:DARDCOR_DEBUG_NONCE) { $env:DARDCOR_DEBUG_NONCE } else { "" }
     $request = @{
         id = 0
         method = "start"

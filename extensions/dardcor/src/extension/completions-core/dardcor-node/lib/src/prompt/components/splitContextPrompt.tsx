@@ -17,10 +17,6 @@ import { RecentEdits } from './recentEdits';
 import { SimilarFiles } from './similarFiles';
 import { Traits } from './traits';
 
-/**
- * Function that returns the prompt structure for a code completion request following the split context prompt design
- * that optimizes for cache hits.
- */
 export function splitContextCompletionsPrompt(accessor: ServicesAccessor) {
 	const instantiationService = accessor.get(IInstantiationService);
 	const tdms = accessor.get(ICompletionsTextDocumentManagerService);

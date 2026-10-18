@@ -34,7 +34,6 @@ import { generateScenarioTestRunner } from './scenarioTest';
 						const files: IQualifiedFile[] = [];
 						for (const command of commands) {
 							if (command.command === 'github.dardcor.createProject') {
-								// validate project structure and contents in files
 								const projectItems: ChatResponseFileTreePart = command.arguments?.[0];
 								if (!projectItems || projectItems.value?.length === 0) {
 									return Promise.resolve({ success: false, errorMessage: 'Invalid projectItems' });
@@ -87,14 +86,12 @@ import { generateScenarioTestRunner } from './scenarioTest';
 	});
 })();
 
-// TODO @aiday-mar add possibility to execute python files and find the diagnostics or errors upon execution
 async function compileWorkspace(accessor: ITestingServicesAccessor, projectRoot: string, files: IQualifiedFile[]): Promise<{ success: boolean; errorMessage?: string }> {
 	for (const file of files) {
 		const language = getLanguageForFile(file);
 		switch (language.languageId) {
 			case 'typescript':
 				{
-					// compute diagnostics
 					const tsDiagnostics = await compileTSWorkspace(accessor, projectRoot);
 					if (tsDiagnostics.length === 0) {
 						return { success: true };

@@ -105,7 +105,6 @@ suite('BrowserHistoryEntriesStore', () => {
 		store.update(1, { title: 'A2' });
 		store.delete(1);
 		store.clear();
-		// clear on already-empty store should be a no-op
 		store.clear();
 
 		assert.strictEqual(count, 4);
@@ -148,10 +147,6 @@ suite('BrowserHistoryEntriesStore.hydrate backwards-compat', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('accepts data matching prior snapshot shapes', () => {
-		// Pretend this came off disk: typed as `unknown`, deliberately untrusted
-		// so the test guards against accidental future changes to required fields.
-		// IMPORTANT: Don't change the shape of this. It ensures compatibility with the earliest versions of the history interface.
-		//            When updating the interface, simply extend or add a test for the new shape.
 		const raw: unknown = {
 			items: [
 				{ id: 1, url: 'https://a/', time: 100, title: 'A' },
@@ -167,7 +162,6 @@ suite('BrowserHistoryEntriesStore.hydrate backwards-compat', () => {
 			{ id: 2, url: 'https://b/', time: 200, title: 'B', icon: 'h1' },
 			{ id: 4, url: 'https://c/', time: 300, title: 'C', explicit: true },
 		]);
-		// Next add must not collide with restored ids.
 		assert.strictEqual(store.add('https://d/', 'D', undefined, false).id, 5);
 
 		store.dispose();
@@ -179,8 +173,8 @@ suite('BrowserHistoryEntriesStore.hydrate backwards-compat', () => {
 				{ id: 1, url: 'https://a/', time: 100, title: 'A' },
 				{ id: 'bad', url: 'https://b/', time: 200, title: 'B' },
 				null,
-				{ id: 2 }, // missing required fields
-				{ id: 3, url: 'https://c/', time: 300, title: 'C', explicit: 'yes' }, // bad explicit
+				{ id: 2 },
+				{ id: 3, url: 'https://c/', time: 300, title: 'C', explicit: 'yes' },
 			],
 		};
 
@@ -227,7 +221,7 @@ suite('BrowserFaviconsStore', () => {
 		const sub = store.onDidChange(() => count++);
 
 		store.register('a');
-		store.register('a'); // duplicate — no event
+		store.register('a');
 		store.register('b');
 
 		assert.strictEqual(count, 2);
@@ -248,7 +242,6 @@ suite('BrowserFaviconsStore', () => {
 		assert.strictEqual(store.get(h1), 'a');
 		assert.strictEqual(count, 1);
 
-		// Nothing to remove → no event.
 		store.gc(new Set([h1]));
 		assert.strictEqual(count, 1);
 
@@ -275,7 +268,6 @@ suite('BrowserFaviconsStore', () => {
 			map: {
 				abc: 'data:image/png;base64,AAA',
 				def: 'data:image/png;base64,BBB',
-				// non-string values dropped silently
 				bad: 123,
 			},
 		};
@@ -309,7 +301,6 @@ suite('BrowserHistoryStore', () => {
 
 		assert.deepStrictEqual(store.entries.items, []);
 		assert.deepStrictEqual(store.favicons.serialize().map, {});
-		// Handle should be safely callable.
 		handle.update({ title: 'B' });
 		handle.delete();
 
@@ -383,11 +374,10 @@ suite('BrowserHistoryStore', () => {
 		const sub = store.onDidChange(() => count++);
 
 		const handle = store.add('https://a/', 'A', 'data:image/png;base64,XXX');
-		// add fired: register favicon (+1), add entry (+1), favicon GC may also fire
 		const after1 = count;
 		assert.ok(after1 >= 2);
 
-		handle.update({ title: 'A2' }); // entry change → at least one more
+		handle.update({ title: 'A2' });
 		assert.ok(count > after1);
 
 		sub.dispose();

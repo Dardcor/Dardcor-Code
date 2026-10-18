@@ -36,23 +36,16 @@ impl SingletonServer {
 }
 
 pub enum SingletonConnection {
-	/// This instance got the singleton lock. It started listening on a socket
-	/// and has the read/write pair. If this gets dropped, the lock is released.
 	Singleton(SingletonServer),
-	/// Another instance is a singleton, and this client connected to it.
 	Client(AsyncPipe),
 }
 
-/// Contents of the lock file; the listening socket ID and process ID
-/// doing the listening.
 #[derive(Deserialize, Serialize)]
 struct LockFileMatter {
 	socket_path: String,
 	pid: u32,
 }
 
-/// Tries to acquire the singleton homed at the given lock file, either starting
-/// a new singleton if it doesn't exist, or connecting otherwise.
 pub async fn acquire_singleton(lock_file: &Path) -> Result<SingletonConnection, CodeError> {
 	let file = OpenOptions::new()
 		.read(true)
@@ -73,7 +66,6 @@ pub async fn acquire_singleton(lock_file: &Path) -> Result<SingletonConnection, 
 	}
 }
 
-/// Tries to connect to the singleton homed at the given file as a client.
 pub async fn connect_as_client(lock_file: &Path) -> Result<AsyncPipe, CodeError> {
 	let mut file = OpenOptions::new()
 		.read(true)
@@ -110,8 +102,6 @@ async fn start_singleton_server(mut lock: FileLock) -> Result<SingletonServer, C
 const MAX_CLIENT_ATTEMPTS: i32 = 10;
 
 async fn connect_as_client_with_file(mut file: &mut File) -> Result<AsyncPipe, CodeError> {
-	// retry, since someone else could get a lock and we could read it before
-	// the JSON info was finished writing out
 	let mut attempt = 0;
 	loop {
 		let _ = file.seek(SeekFrom::Start(PREFIX_LOCKED_BYTES as u64));

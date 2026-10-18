@@ -30,18 +30,15 @@ export class MergeConflictServiceImpl extends Disposable implements IMergeConfli
 			return;
 		}
 
-		// Attachments
 		const attachFiles: vscode.Uri[] = [];
 		const attachHistoryItemChanges: HistoryItemChange[] = [];
 		const attachHistoryItemChangeRanges: HistoryItemChangeRange[] = [];
 
 		for (const resource of resources) {
-			// Copilot ignored
-			if (await this.ignoreService.isCopilotIgnored(resource, cancellationToken)) {
+			if (await this.ignoreService.isIgnored(resource, cancellationToken)) {
 				continue;
 			}
 
-			// No merge conflicts
 			const textDocument = await vscode.workspace.openTextDocument(resource);
 			if (!MergeConflictParser.containsConflict(textDocument)) {
 				continue;
@@ -52,22 +49,18 @@ export class MergeConflictServiceImpl extends Disposable implements IMergeConfli
 				continue;
 			}
 
-			// Attach file
 			attachFiles.push(resource);
 
 			const currentName = conflicts[0].current.name;
 			const incomingName = conflicts[0].incoming.name;
 
-			// Get merge base
 			const mergeBase = await this.gitService.getMergeBase(resource, currentName, incomingName);
 			if (mergeBase) {
-				// Attach merge base
 				attachHistoryItemChanges.push({
 					uri: toGitUri(resource, mergeBase),
 					historyItemId: mergeBase
 				});
 
-				// Attach merge base -> current
 				attachHistoryItemChangeRanges.push({
 					start: {
 						uri: toGitUri(resource, mergeBase),
@@ -79,7 +72,6 @@ export class MergeConflictServiceImpl extends Disposable implements IMergeConfli
 					}
 				});
 
-				// Attach merge base -> incoming
 				attachHistoryItemChangeRanges.push({
 					start: {
 						uri: toGitUri(resource, mergeBase),

@@ -248,8 +248,6 @@ export class ChatMultiDiffContentPart extends Disposable implements IChatContent
 						this.editorService.openEditor({ resource: fileURI, options: { preserveFocus: true } });
 						return;
 					}
-					// The file's origin cannot be recovered (e.g. legacy snapshot URIs):
-					// fall back to the diff editor.
 				}
 
 				if (e.element.diff) {

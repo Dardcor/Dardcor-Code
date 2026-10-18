@@ -44,13 +44,11 @@ export class TestWorkbenchService implements IWorkbenchService {
 	}
 
 	getAllExtensions(): readonly Extension<any>[] {
-		// TODO: Implement this
 		return [];
 	}
 
 	async getAllCommands(filterByPreCondition?: boolean): Promise<{ label: string; command: string; keybinding: string }[]> {
 		const commands = await this.commandsTestData.getCache() as Command[];
-		// Commands that are not contributed by extensions. Update list as needed for tests
 		const filteredCommands = commands.filter((command) =>
 			command.command.startsWith('workbench') ||
 			command.command.startsWith('telemetry') ||
@@ -146,7 +144,6 @@ class RemoteTestDataCache<T extends Command[] | Settings | string[]> {
 		}
 		try {
 			const buffer = await this.fileSystem.readFile(URI.joinPath(this.cacheStorageUri, `${this.cacheKey}.json`));
-			// Convert the buffer to a string and JSON parse it
 			return JSON.parse(buffer.toString()) as T;
 		} catch {
 			return undefined;
@@ -157,21 +154,17 @@ class RemoteTestDataCache<T extends Command[] | Settings | string[]> {
 		if (!this.cacheStorageUri) {
 			return;
 		}
-		// Cannot write to readonly file system
 		if (!this.fileSystem.isWritableFileSystem(this.cacheStorageUri.scheme)) {
 			return;
 		}
-		// Create directory at stoageUri if it doesn't exist
 		try {
 			await this.fileSystem.stat(this.cacheStorageUri);
 		} catch (e) {
 			if (e.code === 'ENOENT') {
-				// Directory doesn't exist we should create it
 				await this.fileSystem.createDirectory(this.cacheStorageUri);
 			}
 		}
 
-		// Update cache version
 		await this.cacheVersionMementoStorage.update(this.cacheVersionKey, this.cacheVersion);
 		const hasOldCache = this.cacheVersionMementoStorage.get(this.cacheKey);
 		if (hasOldCache) {

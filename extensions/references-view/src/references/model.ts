@@ -105,7 +105,6 @@ export class ReferencesModel implements SymbolItemNavigation<FileItem | Referenc
 		}
 	}
 
-	// --- adapter
 
 	get message() {
 		if (this.items.length === 0) {
@@ -135,16 +134,13 @@ export class ReferencesModel implements SymbolItemNavigation<FileItem | Referenc
 		if (this.items.length === 0) {
 			return;
 		}
-		// NOTE: this.items is sorted by location (uri/range)
 		for (const item of this.items) {
 			if (item.uri.toString() === uri.toString()) {
-				// (1) pick the item at the request position
 				for (const ref of item.references) {
 					if (ref.location.range.contains(position)) {
 						return ref;
 					}
 				}
-				// (2) pick the first item after or last before the request position
 				let lastBefore: ReferenceItem | undefined;
 				for (const ref of item.references) {
 					if (ref.location.range.end.isAfter(position)) {
@@ -160,7 +156,6 @@ export class ReferencesModel implements SymbolItemNavigation<FileItem | Referenc
 			}
 		}
 
-		// (3) pick the file with the longest common prefix
 		let best = 0;
 		const bestValue = ReferencesModel._prefixLen(this.items[best].toString(), uri.toString());
 
@@ -274,7 +269,6 @@ class ReferencesTreeDataProvider implements vscode.TreeDataProvider<FileItem | R
 
 	async getTreeItem(element: FileItem | ReferenceItem) {
 		if (element instanceof FileItem) {
-			// files
 			const result = new vscode.TreeItem(element.uri);
 			result.contextValue = 'file-item';
 			result.description = true;
@@ -283,7 +277,6 @@ class ReferencesTreeDataProvider implements vscode.TreeDataProvider<FileItem | R
 			return result;
 
 		} else {
-			// references
 			const { range } = element.location;
 			const doc = await element.getDocument(true);
 			const { before, inside, after } = getPreviewChunks(doc, range);
@@ -331,7 +324,6 @@ export class FileItem {
 		readonly model: ReferencesModel
 	) { }
 
-	// --- adapter
 
 	remove(): void {
 		this.model.remove(this);
@@ -360,7 +352,6 @@ export class ReferenceItem {
 			this._document = vscode.workspace.openTextDocument(this.location.uri);
 		}
 		if (warmUpNext) {
-			// load next document once this document has been loaded
 			const next = this.file.model.next(this.file);
 			if (next instanceof FileItem && next !== this.file) {
 				vscode.workspace.openTextDocument(next.uri);
@@ -371,7 +362,6 @@ export class ReferenceItem {
 		return this._document;
 	}
 
-	// --- adapter
 
 	remove(): void {
 		this.file.model.remove(this);

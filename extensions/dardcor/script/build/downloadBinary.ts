@@ -33,7 +33,7 @@ export async function ensureBinary(binary: IBinary) {
 	const tempPath = path.join(path.dirname(binaryPath), crypto.randomUUID() + '.tgz');
 	try {
 		await downloadFile(binary.url, tempPath);
-		await untar(tempPath, path.dirname(binaryPath), /*strip*/2);
+		await untar(tempPath, path.dirname(binaryPath), 2);
 		const sha256 = await computeSha256(binaryPath);
 		if (sha256 !== binary.sha256) {
 			throw new Error(`Downloaded binary ${binary.destination} does not match expected checksum. Expected: ${binary.sha256}, actual: ${sha256}.`);

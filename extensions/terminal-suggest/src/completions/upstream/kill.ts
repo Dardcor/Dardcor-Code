@@ -1,4 +1,3 @@
-// Compatibility: macOS
 
 function processIcon(path: string): string {
 	const idx = path.indexOf(".app/");
@@ -37,7 +36,6 @@ const completionSpec: Fig.Spec = {
 			args: {
 				name: "signal_name",
 				generators: {
-					// Bash's `kill` builtin has different output to /bin/kill
 					script: ["env", "kill", "-l"],
 					postProcess: (out) =>
 						out.match(/\w+/g)?.map((name) => ({

@@ -170,8 +170,6 @@ suite('AhpJsonlLogger', () => {
 		const lines = content.split('\n').filter(Boolean);
 		const ids = lines.map(line => JSON.parse(line).id);
 
-		// All 50 log() calls are queued synchronously, so they all land in the
-		// first drain and must be coalesced into exactly one writeFile.
 		assert.deepStrictEqual({
 			lineCount: lines.length,
 			idsInOrder: ids,
@@ -193,8 +191,6 @@ suite('AhpJsonlLogger', () => {
 			new NullLogService(),
 		));
 
-		// Submit a batch, partially flush, then submit another batch interleaved
-		// with the flush — ordering must be preserved.
 		logger.log({ jsonrpc: '2.0', id: 1, result: 'a' }, 's2c');
 		logger.log({ jsonrpc: '2.0', id: 2, result: 'b' }, 's2c');
 		const firstFlush = logger.flush();
@@ -218,24 +214,19 @@ suite('AhpJsonlLogger', () => {
 			new NullLogService(),
 		));
 
-		// A normal small message is written verbatim and is not marked truncated.
 		logger.log({ jsonrpc: '2.0', id: 1, method: 'ping' }, 'c2s');
-		// A message carrying a multi-MB string (e.g. a base64 resourceRead) is trimmed.
 		const huge = 'x'.repeat(4 * 1024 * 1024);
 		logger.log({ jsonrpc: '2.0', id: 2, result: { data: huge } }, 's2c');
 		await logger.flush();
 
 		const content = (await fileService.readFile(logger.resource)).value.toString();
 		const lines = content.split('\n').filter(Boolean);
-		// Both lines must be valid JSON (the trimmed line stays well-formed JSONL).
 		const parsed = lines.map(line => JSON.parse(line));
 
 		assert.strictEqual(parsed[0]._ahpLog.truncated, undefined);
 		assert.strictEqual(parsed[1]._ahpLog.truncated, true);
-		// The huge string was elided rather than written in full.
 		assert.ok(parsed[1].result.data.length < huge.length);
 		assert.ok(parsed[1].result.data.includes('chars elided'));
-		// The whole serialized line stays modest in size.
 		assert.ok(lines[1].length < 1024 * 1024);
 	});
 
@@ -263,14 +254,11 @@ suite('AhpJsonlLogger', () => {
 		test('round-trips raw UriComponents marked with $mid', () => {
 			const uri = URI.parse('vscode://example/path');
 			const components = uri.toJSON();
-			// Simulate a value that came back over IPC and was never revived
 			const result = JSON.parse(stringifyAhpLogEntry({ uri: components }));
 			assert.strictEqual(result.uri, uri.toString());
 		});
 
 		test('leaves URI-shaped objects without $mid as plain objects', () => {
-			// A user payload that happens to have URI-like fields but is not a
-			// URI must not be silently rewritten.
 			const payload = {
 				scheme: 'not-a-uri',
 				path: '/something',
@@ -280,9 +268,6 @@ suite('AhpJsonlLogger', () => {
 		});
 
 		test('does not misidentify non-URI objects that carry $mid: 1', () => {
-			// $mid is only safely a URI marker when the object also has the
-			// UriComponents shape (scheme: string). Non-conforming payloads
-			// must pass through unchanged.
 			const payload = { $mid: 1, label: 'not a uri' };
 			const result = JSON.parse(stringifyAhpLogEntry(payload));
 			assert.deepStrictEqual(result, payload);

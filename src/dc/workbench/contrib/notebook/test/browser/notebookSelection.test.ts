@@ -60,23 +60,18 @@ suite('NotebookSelection', () => {
 			eventCount++;
 		}));
 
-		// Change focus
 		selectionCollection.setState({ start: 1, end: 1 }, [{ start: 1, end: 2 }], false, 'model');
 		assert.strictEqual(eventCount, 1);
 
-		// Change selections
 		selectionCollection.setState({ start: 1, end: 1 }, [{ start: 1, end: 2 }, { start: 2, end: 3 }], false, 'model');
 		assert.strictEqual(eventCount, 2);
 
-		// no change
 		selectionCollection.setState({ start: 1, end: 1 }, [{ start: 1, end: 2 }, { start: 2, end: 3 }], false, 'model');
 		assert.strictEqual(eventCount, 2);
 
-		// change to empty focus
 		selectionCollection.setState({ start: 0, end: 0 }, [{ start: 4, end: 5 }], false, 'model');
 		assert.strictEqual(eventCount, 3);
 
-		// change to empty selections
 		selectionCollection.setState({ start: 0, end: 0 }, [], false, 'model');
 		assert.strictEqual(eventCount, 4);
 
@@ -135,10 +130,8 @@ suite('NotebookCellList focus/selection', () => {
 
 				assert.strictEqual(cellList.length, 2);
 				cellList.setSelection([0]);
-				// the only selection is also the focus
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 0, end: 1 }]);
 
-				// set selection does not modify focus
 				cellList.setSelection([1]);
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 1, end: 2 }]);
 			});
@@ -183,19 +176,16 @@ suite('NotebookCellList focus/selection', () => {
 				assert.deepStrictEqual(viewModel.getFocus(), { start: 0, end: 1 });
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 0, end: 1 }]);
 
-				// arrow down, move both focus and selections
 				cellList.setFocus([1], new KeyboardEvent('keydown'), undefined);
 				cellList.setSelection([1], new KeyboardEvent('keydown'), undefined);
 				assert.deepStrictEqual(viewModel.getFocus(), { start: 1, end: 2 });
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 1, end: 2 }]);
 
-				// shift+arrow down, expands selection
 				cellList.setFocus([2], new KeyboardEvent('keydown'), undefined);
 				cellList.setSelection([1, 2]);
 				assert.deepStrictEqual(viewModel.getFocus(), { start: 2, end: 3 });
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 1, end: 3 }]);
 
-				// arrow down, will move focus but not expand selection
 				cellList.setFocus([3], new KeyboardEvent('keydown'), undefined);
 				assert.deepStrictEqual(viewModel.getFocus(), { start: 3, end: 4 });
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 1, end: 3 }]);
@@ -229,16 +219,13 @@ suite('NotebookCellList focus/selection', () => {
 				cellList.setHiddenAreas(viewModel.getHiddenRanges(), true);
 				assert.strictEqual(cellList.length, 3);
 
-				// currently, focus on a folded cell will only focus the cell itself, excluding its "inner" cells
 				assert.deepStrictEqual(viewModel.getFocus(), { start: 0, end: 1 });
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 0, end: 1 }]);
 
 				cellList.focusNext(1, false);
-				// focus next should skip the folded items
 				assert.deepStrictEqual(viewModel.getFocus(), { start: 2, end: 3 });
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 0, end: 1 }]);
 
-				// unfold
 				updateFoldingStateAtIndex(foldingModel, 2, false);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 				cellList.setHiddenAreas(viewModel.getHiddenRanges(), true);
@@ -283,7 +270,6 @@ suite('NotebookCellList focus/selection', () => {
 				assert.strictEqual(cellList.getModelIndex2(0), 0);
 				assert.strictEqual(cellList.getModelIndex2(1), 3);
 
-				// mimic undo
 				editor.textModel.applyEdits([{
 					editType: CellEditType.Replace, index: 0, count: 0, cells: [
 						ds.add(new TestCell(viewModel.viewType, 7, '# header f', 'markdown', CellKind.Code, [], languageService)),
@@ -367,7 +353,6 @@ suite('NotebookCellList focus/selection', () => {
 			(editor, viewModel) => {
 				viewModel.updateSelectionsState({ kind: SelectionStateType.Index, focus: { start: 1, end: 2 }, selections: [{ start: 1, end: 2 }] });
 				runDeleteAction(editor, viewModel.cellAt(1)!);
-				// viewModel.deleteCell(1, true, false);
 				assert.deepStrictEqual(viewModel.getFocus(), { start: 0, end: 1 });
 				assert.deepStrictEqual(viewModel.getSelections(), [{ start: 0, end: 1 }]);
 				runDeleteAction(editor, viewModel.cellAt(0)!);

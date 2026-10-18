@@ -257,7 +257,6 @@ export class InteractiveEditor extends EditorPane implements IEditorPaneWithScro
 				}
 			`);
 		} else {
-			// border
 			styleSheets.push(`
 				.interactive-editor .input-cell-container {
 					border-top: 1px solid var(--vscode-notebook-inactiveFocusedCellBorder);
@@ -340,8 +339,6 @@ export class InteractiveEditor extends EditorPane implements IEditorPaneWithScro
 		if (result) {
 			return result;
 		}
-		// when we don't have a view state for the group/input-tuple then we try to use an existing
-		// editor for the same resource.
 		for (const group of this._editorGroupService.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE)) {
 			if (group.activeEditorPane !== this && group.activeEditorPane === this && group.activeEditor?.matches(input)) {
 				const notebook = this._notebookWidget.value?.getEditorViewState();
@@ -358,8 +355,6 @@ export class InteractiveEditor extends EditorPane implements IEditorPaneWithScro
 	override async setInput(input: InteractiveEditorInput, options: InteractiveEditorOptions | undefined, context: IEditorOpenContext, token: CancellationToken): Promise<void> {
 		const notebookInput = input.notebookEditorInput;
 
-		// there currently is a widget which we still own so
-		// we need to hide it before getting a new widget
 		this._notebookWidget.value?.onWillHide();
 
 		this._codeEditorWidget?.dispose();
@@ -449,7 +444,6 @@ export class InteractiveEditor extends EditorPane implements IEditorPaneWithScro
 		this._widgetDisposableStore.add(this._notebookWidget.value!.onDidFocusWidget(() => this._onDidFocusWidget.fire()));
 		this._widgetDisposableStore.add(this._notebookOptions.onDidChangeOptions(e => {
 			if (e.compactView || e.focusIndicator) {
-				// update the styling
 				this._styleElement?.remove();
 				this._createLayoutStyles();
 			}
@@ -592,7 +586,6 @@ export class InteractiveEditor extends EditorPane implements IEditorPaneWithScro
 	private _scrollIfNecessary(cvm: ICellViewModel) {
 		const index = this._notebookWidget.value!.getCellIndex(cvm);
 		if (index === this._notebookWidget.value!.getLength() - 1) {
-			// If we're already at the bottom or auto scroll is enabled, scroll to the bottom
 			if (this._configurationService.getValue<boolean>(ReplEditorSettings.interactiveWindowAlwaysScrollOnNewCell) || this._cellAtBottom(cvm)) {
 				this._notebookWidget.value!.scrollToBottom();
 			}
@@ -611,7 +604,6 @@ export class InteractiveEditor extends EditorPane implements IEditorPaneWithScro
 
 			if (selectedOrSuggested) {
 				const language = selectedOrSuggested.supportedLanguages[0];
-				// All kernels will initially list plaintext as the supported language before they properly initialized.
 				if (language && language !== 'plaintext') {
 					const newMode = this._languageService.createById(language).languageId;
 					textModel.setLanguage(newMode);

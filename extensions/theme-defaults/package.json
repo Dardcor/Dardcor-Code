@@ -14,6 +14,12 @@
   "contributes": {
     "themes": [
       {
+        "id": "Dardcor Code Default",
+        "label": "%dardcorCodeDefaultThemeLabel%",
+        "uiTheme": "vs-dark",
+        "path": "./themes/dardcor_code_default.json"
+      },
+      {
         "id": "Light 2026",
         "label": "%light2026ThemeLabel%",
         "uiTheme": "vs",
@@ -50,16 +56,16 @@
         "path": "./themes/light_modern.json"
       },
       {
-        "id": "Visual Studio Dark",
+        "id": "Dark (Dardcor Classic)",
         "label": "%darkColorThemeLabel%",
         "uiTheme": "vs-dark",
-        "path": "./themes/dark_vs.json"
+        "path": "./themes/dark_dardcor.json"
       },
       {
-        "id": "Visual Studio Light",
+        "id": "Light (Dardcor Classic)",
         "label": "%lightColorThemeLabel%",
         "uiTheme": "vs",
-        "path": "./themes/light_vs.json"
+        "path": "./themes/light_dardcor.json"
       },
       {
         "id": "Default High Contrast",

@@ -55,7 +55,6 @@ export class SmartSnippetInserter {
 
 		const desiredPosition = model.getValueLengthInRange(new Range(1, 1, _position.lineNumber, _position.column));
 
-		// <INVALID> [ <BEFORE_OBJECT> { <INVALID> } <AFTER_OBJECT>, <BEFORE_OBJECT> { <INVALID> } <AFTER_OBJECT> ] <INVALID>
 		enum State {
 			INVALID = 0,
 			AFTER_OBJECT = 1,
@@ -146,7 +145,6 @@ export class SmartSnippetInserter {
 			}
 		}
 
-		// no valid position found!
 		const modelLineCount = model.getLineCount();
 		return {
 			position: new Position(modelLineCount, model.getLineMaxColumn(modelLineCount)),

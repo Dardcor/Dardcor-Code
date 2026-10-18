@@ -18,15 +18,9 @@ export class BaselineJSONProvider extends Disposable {
 	@mobx.observable
 	public workingTreeBaselineJSON: IBaselineTestSummary[] = [];
 
-	/**
-	 * Baseline produced by current run
-	 */
 	@mobx.observable
 	public baselineJSONProducedByRun: IBaselineTestSummary[] = [];
 
-	/**
-	 * Baseline snapshotted before current run
-	 */
 	@mobx.observable
 	public baselineJSONBeforeCurrentRun: IBaselineTestSummary[] = [];
 
@@ -36,7 +30,6 @@ export class BaselineJSONProvider extends Disposable {
 		super();
 		mobx.makeObservable(this);
 
-		// watch for working-tree baseline.json that's checked into git
 		const listener = () => this._updateWorkingTreeBaselineJSON();
 		fs.watchFile(BASELINE_PATH, listener);
 		this._register(toDisposable(() => fs.unwatchFile(BASELINE_PATH, listener)));
@@ -77,7 +70,6 @@ export class BaselineJSONProvider extends Disposable {
 			return;
 		}
 
-		// TODO@ulugbekna: a baseline.old.json.txt is written only if `casUseBaseline` is true, so we need to make sure it doesn't throw here
 		const [bjBeforeCurrentRunR, bjProducedByRunR] = await Promise.allSettled([
 			this._readBaselineJSON(this.oldBaselineJSONPath),
 			this._readBaselineJSON(this.baselineJSONProducedByRunPath),

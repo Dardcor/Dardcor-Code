@@ -2,7 +2,6 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-//
 import { DeferredPromise } from '../../../base/common/async.js';
 import * as errors from '../../../base/common/errors.js';
 import { Emitter } from '../../../base/common/event.js';
@@ -32,7 +31,7 @@ export class RemoteAuthorityResolverService extends Disposable implements IRemot
 		this._canonicalURIRequests = new Map();
 		this._canonicalURIProvider = null;
 
-		RemoteAuthorities.setServerRootPath(productService, undefined); // on the desktop we don't support custom server base paths
+		RemoteAuthorities.setServerRootPath(productService, undefined);
 	}
 
 	resolveAuthority(authority: string): Promise<ResolverResult> {
@@ -96,7 +95,6 @@ export class RemoteAuthorityResolverService extends Disposable implements IRemot
 	_setResolvedAuthorityError(authority: string, err: any): void {
 		if (this._resolveAuthorityRequests.has(authority)) {
 			const request = this._resolveAuthorityRequests.get(authority)!;
-			// Avoid that this error makes it to telemetry
 			request.error(errors.ErrorNoTelemetry.fromError(err));
 		}
 	}

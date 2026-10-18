@@ -5,9 +5,6 @@
 
 import { AuthOptions, CCAEnabledResult, CustomAgentDetails, CustomAgentListItem, CustomAgentListOptions, GitHubOutageStatus, IOctoKitService, PermissiveAuthRequiredError } from '../../../../platform/github/common/githubService';
 
-/**
- * Mock implementation of IOctoKitService for testing
- */
 export class MockOctoKitService implements IOctoKitService {
 	_serviceBrand: undefined;
 
@@ -62,7 +59,6 @@ export class MockOctoKitService implements IOctoKitService {
 		return this.agentDetails.get(agentName);
 	}
 
-	// Helper methods for test setup
 
 	setOrgInstructions(orgLogin: string, instructions: string | undefined) {
 		if (instructions === undefined) {
@@ -93,9 +89,6 @@ export class MockOctoKitService implements IOctoKitService {
 		this.agentDetails.clear();
 	}
 
-	/**
-	 * Resets all mock state
-	 */
 	reset() {
 		this.clearInstructions();
 		this.clearAgents();

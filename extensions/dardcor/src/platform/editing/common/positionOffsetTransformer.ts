@@ -44,10 +44,8 @@ export class PositionOffsetTransformer {
 
 		if (range.start.line === range.end.line) {
 			if (range.start.character === range.end.character) {
-				// Nothing to delete
 				return;
 			}
-			// Delete text on the affected line
 			this._setLineText(range.start.line,
 				this._lines[range.start.line].substring(0, range.start.character)
 				+ this._lines[range.start.line].substring(range.end.character)
@@ -55,25 +53,21 @@ export class PositionOffsetTransformer {
 			return;
 		}
 
-		// Take remaining text on last line and append it to remaining text on first line
 		this._setLineText(range.start.line,
 			this._lines[range.start.line].substring(0, range.start.character)
 			+ this._lines[range.end.line].substring(range.end.character)
 		);
 
-		// Delete middle lines
 		this._lines.splice(range.start.line + 1, range.end.line - range.start.line);
 		this._lineStarts.removeValues(range.start.line + 1, range.end.line - range.start.line);
 	}
 
 	private _acceptInsertText(position: vscode.Position, insertText: string): void {
 		if (insertText.length === 0) {
-			// Nothing to insert
 			return;
 		}
 		const insertLines = splitLines(insertText);
 		if (insertLines.length === 1) {
-			// Inserting text on one line
 			this._setLineText(position.line,
 				this._lines[position.line].substring(0, position.character)
 				+ insertLines[0]
@@ -82,16 +76,13 @@ export class PositionOffsetTransformer {
 			return;
 		}
 
-		// Append overflowing text from first line to the end of text to insert
 		insertLines[insertLines.length - 1] += this._lines[position.line].substring(position.character);
 
-		// Delete overflowing text from first line and insert text on first line
 		this._setLineText(position.line,
 			this._lines[position.line].substring(0, position.character)
 			+ insertLines[0]
 		);
 
-		// Insert new lines & store lengths
 		const newLengths = new Uint32Array(insertLines.length - 1);
 		for (let i = 1; i < insertLines.length; i++) {
 			this._lines.splice(position.line + 1 + i - 1, 0, insertLines[i]);
@@ -101,9 +92,6 @@ export class PositionOffsetTransformer {
 		this._lineStarts.insertValues(position.line + 1, newLengths);
 	}
 
-	/**
-	 * All changes to a line's text go through this method
-	 */
 	private _setLineText(lineIndex: number, newValue: string): void {
 		this._lines[lineIndex] = newValue;
 		this._lineStarts.setValue(lineIndex, this._lines[lineIndex].length + this._eol.length);
@@ -126,7 +114,6 @@ export class PositionOffsetTransformer {
 
 		const lineLength = this._lines[out.index].length;
 
-		// Ensure we return a valid position
 		return new Position(out.index, Math.min(out.remainder, lineLength));
 	}
 

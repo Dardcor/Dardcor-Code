@@ -32,7 +32,6 @@ class MockChatDebugFileLoggerService extends NullChatDebugFileLoggerService {
 function createServicesWithLogger(mockLogger?: MockChatDebugFileLoggerService): { testingServiceCollection: TestingServiceCollection; mockLogger: MockChatDebugFileLoggerService } {
 	const logger = mockLogger ?? new MockChatDebugFileLoggerService();
 	const testingServiceCollection = createExtensionUnitTestingServices();
-	// Provide a globalStorageUri so VSCODE_USER_PROMPTS_FOLDER can resolve
 	const ctx = new MockExtensionContext(join(tmpdir(), 'dardcor-test-globalStorage'));
 	testingServiceCollection.define(IVSCodeExtensionContext, ctx as any);
 	testingServiceCollection.define(IChatDebugFileLoggerService, logger);
@@ -46,7 +45,6 @@ describe('PromptVariablesServiceImpl', () => {
 	beforeEach(() => {
 		const testingServiceCollection = createExtensionUnitTestingServices();
 		accessor = testingServiceCollection.createTestingAccessor();
-		// Create the service via DI so its dependencies (fs + workspace) come from the test container
 		service = accessor.get(IInstantiationService).createInstance(PromptVariablesServiceImpl);
 	});
 
@@ -70,7 +68,6 @@ describe('PromptVariablesServiceImpl', () => {
 	});
 
 	test('replaces multiple tool references (deduplicating identical ranges) in reverse-sorted order', async () => {
-		// message with two target substrings we will replace: TOOLX and TOOLY
 		const message = 'Call #TOOLX then maybe #TOOLY finally done';
 
 		const toolRefs: ChatLanguageModelToolReference[] = [];
@@ -89,7 +86,6 @@ describe('PromptVariablesServiceImpl', () => {
 		});
 
 		const rewritten = await service.resolveToolReferencesInPrompt(message, toolRefs);
-		// Expect TOOLY replaced, then TOOLX replaced; duplicates ignored
 		expect(rewritten).toBe('Call \'tool0\' then maybe \'tool1\' finally done');
 	});
 
@@ -102,14 +98,10 @@ describe('PromptVariablesServiceImpl', () => {
 
 	describe('buildTemplateVariablesContext', () => {
 		test('returns empty string when no session id and no debug target session ids are given', () => {
-			// Default NullChatDebugFileLoggerService returns undefined for every getSessionDir,
-			// so VSCODE_TARGET_SESSION_LOG resolves to undefined.
-			// VSCODE_USER_PROMPTS_FOLDER always resolves, so build a fresh service with the default null logger.
 			const { testingServiceCollection } = createServicesWithLogger();
 			const acc = testingServiceCollection.createTestingAccessor();
 			const svc = acc.get(IInstantiationService).createInstance(PromptVariablesServiceImpl);
 			const result = svc.buildTemplateVariablesContext(undefined);
-			// Only VSCODE_USER_PROMPTS_FOLDER should be present
 			expect(result).toContain('VSCODE_USER_PROMPTS_FOLDER');
 			expect(result).not.toContain('VSCODE_TARGET_SESSION_LOG');
 		});
@@ -136,7 +128,6 @@ describe('PromptVariablesServiceImpl', () => {
 
 			const result = svc.buildTemplateVariablesContext('session-1', ['target-1']);
 			expect(result).toContain('/logs/target-1');
-			// session-1 should NOT appear because debugTargetSessionIds takes precedence
 			expect(result).not.toContain('/logs/session-1');
 		});
 
@@ -152,13 +143,11 @@ describe('PromptVariablesServiceImpl', () => {
 			expect(result).toContain('VSCODE_TARGET_SESSION_LOG');
 			expect(result).toContain('/logs/target-1');
 			expect(result).toContain('/logs/target-2');
-			// Both paths joined with comma
 			expect(result).toMatch(/\/logs\/target-1, \/logs\/target-2/);
 		});
 
 		test('skips debugTargetSessionIds whose session dirs are missing', () => {
 			const mockLogger = new MockChatDebugFileLoggerService();
-			// Only target-2 has a session dir; target-1 does not
 			mockLogger.setSessionDir('target-2', URI.file('/logs/target-2'));
 			const { testingServiceCollection } = createServicesWithLogger(mockLogger);
 			const acc = testingServiceCollection.createTestingAccessor();
@@ -171,14 +160,11 @@ describe('PromptVariablesServiceImpl', () => {
 
 		test('includes VSCODE_TARGET_SESSION_LOG with empty value when all debugTargetSessionIds have missing dirs', () => {
 			const mockLogger = new MockChatDebugFileLoggerService();
-			// No session dirs set at all
 			const { testingServiceCollection } = createServicesWithLogger(mockLogger);
 			const acc = testingServiceCollection.createTestingAccessor();
 			const svc = acc.get(IInstantiationService).createInstance(PromptVariablesServiceImpl);
 
 			const result = svc.buildTemplateVariablesContext(undefined, ['no-such-session']);
-			// The resolver returns '' (empty string) when all dirs are missing, not undefined,
-			// so the variable is still present in the output with an empty value.
 			expect(result).toContain('VSCODE_TARGET_SESSION_LOG');
 			expect(result).toMatch(/VSCODE_TARGET_SESSION_LOG:\s*$/m);
 		});
@@ -190,21 +176,17 @@ describe('PromptVariablesServiceImpl', () => {
 
 			const result = svc.buildTemplateVariablesContext(undefined);
 			expect(result).toContain('VSCODE_USER_PROMPTS_FOLDER');
-			// The path should end with /prompts
 			expect(result).toMatch(/prompts/);
 		});
 
 		test('returns empty string when sessionId has no session dir and no debugTargetSessionIds', () => {
 			const mockLogger = new MockChatDebugFileLoggerService();
-			// session-missing has no dir registered
 			const { testingServiceCollection } = createServicesWithLogger(mockLogger);
 			const acc = testingServiceCollection.createTestingAccessor();
 			const svc = acc.get(IInstantiationService).createInstance(PromptVariablesServiceImpl);
 
 			const result = svc.buildTemplateVariablesContext('session-missing');
-			// VSCODE_USER_PROMPTS_FOLDER still resolves
 			expect(result).toContain('VSCODE_USER_PROMPTS_FOLDER');
-			// But session log should not be present
 			expect(result).not.toContain('VSCODE_TARGET_SESSION_LOG');
 		});
 	});

@@ -22,13 +22,13 @@ export const ModelPickerSection = {
 } as const;
 
 export const RESTRICTED_MODE_TRUST_ACTION_ID = 'restrictedModeTrust';
-export const SETUP_REQUIRED_SIGN_IN_ACTION_ID = 'setupRequiredSignIn';
+export const CONFIGURE_ROUTER_ACTION_ID = 'configureRouter';
 
 function createConfigureRouterItem(openerService: IOpenerService): IActionListItem<IActionWidgetDropdownAction> {
 	const hover = new MarkdownString(localize('chat.modelPicker.configureRouterHover', "Configure providers and models in Dardcor Router (http://localhost:25128/)"), { isTrusted: true });
 	return {
 		item: {
-			id: 'configureRouter',
+			id: CONFIGURE_ROUTER_ACTION_ID,
 			enabled: true,
 			checked: false,
 			class: undefined,
@@ -72,26 +72,12 @@ export function buildUnavailableStateItems(options: IBuildModelPickerItemsOption
 		];
 	}
 	if (setupRequired) {
-		const enabled = !!options.actions.onRequestSetup;
 		const items: IActionListItem<IActionWidgetDropdownAction>[] = [
-			{ kind: ActionListItemKind.Header, label: localize('chat.modelPicker.setupRequired', "Sign in to use Copilot") },
-			{
-				item: {
-					id: SETUP_REQUIRED_SIGN_IN_ACTION_ID,
-					enabled,
-					checked: false,
-					class: undefined,
-					tooltip: localize('chat.modelPicker.setupRequired.signInTooltip', "Sign in to GitHub Copilot to choose a model."),
-					label: localize('chat.modelPicker.setupRequired.signIn', "Sign in to use Copilot..."),
-					run: () => options.actions.onRequestSetup?.(),
-				},
-				kind: ActionListItemKind.Action,
-				label: localize('chat.modelPicker.setupRequired.signIn', "Sign in to use Copilot..."),
-				group: { title: '', icon: ThemeIcon.fromId(Codicon.signIn.id) },
-				disabled: !enabled,
-				hideIcon: false,
-			},
+			{ kind: ActionListItemKind.Header, label: localize('chat.modelPicker.setupRequired', "Configure Dardcor Router") },
 		];
+		if (options.openerService) {
+			items.push({ kind: ActionListItemKind.Separator }, createConfigureRouterItem(options.openerService));
+		}
 		if (options.presentation.showManageModelsInSetupRequired && options.manageModelsAction) {
 			items.push(
 				{ kind: ActionListItemKind.Separator },
@@ -224,7 +210,6 @@ function appendPinnedModels(context: IGroupedContext): Set<string> {
 }
 
 function appendPromotedModels(_context: IGroupedContext, _autoModel: ILanguageModelChatMetadataAndIdentifier | undefined, _pinnedSet: Set<string>): void {
-	// Top section strictly displays pinned models only.
 	return;
 }
 
@@ -261,8 +246,8 @@ function appendOtherModels(context: IGroupedContext): boolean {
 		groups.set(key, bucket);
 	}
 	const sortedGroups = [...groups.values()].sort((left, right) => {
-		if (left.vendor === 'copilot' && right.vendor !== 'copilot') { return -1; }
-		if (right.vendor === 'copilot' && left.vendor !== 'copilot') { return 1; }
+		if (left.vendor === 'dardcor' && right.vendor !== 'dardcor') { return -1; }
+		if (right.vendor === 'dardcor' && left.vendor !== 'dardcor') { return 1; }
 		return left.groupName.localeCompare(right.groupName);
 	});
 	const showHeaders = sortedGroups.length > 1;

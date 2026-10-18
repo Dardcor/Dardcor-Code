@@ -8,17 +8,10 @@ import { BugIndicatingError, CancellationError } from '../dardcor/base/common/er
 
 export type Task<T = void> = () => (Promise<T> | T);
 
-/**
- * Processes tasks in the order they were scheduled.
-*/
 export class TaskQueue {
 	private _runningTask: Task<any> | undefined = undefined;
 	private _pendingTasks: { task: Task<any>; deferred: DeferredPromise<any>; setUndefinedWhenCleared: boolean }[] = [];
 
-	/**
-	 * Waits for the current and pending tasks to finish, then runs and awaits the given task.
-	 * If the task is skipped because of clearPending, the promise is rejected with a CancellationError.
-	*/
 	public schedule<T>(task: Task<T>): Promise<T> {
 		const deferred = new DeferredPromise<T>();
 		this._pendingTasks.push({ task, deferred, setUndefinedWhenCleared: false });
@@ -26,10 +19,6 @@ export class TaskQueue {
 		return deferred.p;
 	}
 
-	/**
-	 * Waits for the current and pending tasks to finish, then runs and awaits the given task.
-	 * If the task is skipped because of clearPending, the promise is resolved with undefined.
-	*/
 	public scheduleSkipIfCleared<T>(task: Task<T>): Promise<T | undefined> {
 		const deferred = new DeferredPromise<T>();
 		this._pendingTasks.push({ task, deferred, setUndefinedWhenCleared: true });
@@ -70,9 +59,6 @@ export class TaskQueue {
 		}
 	}
 
-	/**
-	 * Clears all pending tasks. Does not cancel the currently running task.
-	*/
 	public clearPending(): void {
 		const tasks = this._pendingTasks;
 		this._pendingTasks = [];
@@ -145,7 +131,6 @@ export function raceFilter<T>(promises: Promise<T>[], filter: (result: T) => boo
 						resolved = true;
 						resolve(result);
 					} else if (unresolvedCount === 0) {
-						// Last one has to resolve the promise
 						resolve(undefined);
 					}
 				}

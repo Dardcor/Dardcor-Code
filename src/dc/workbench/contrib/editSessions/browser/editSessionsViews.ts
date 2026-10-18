@@ -271,7 +271,6 @@ class EditSessionDataViewDataProvider implements ITreeViewDataProvider {
 			const cloudChangeUri = URI.from({ scheme: EDIT_SESSIONS_SCHEME, authority: 'remote-session-content', path: `/${data.ref}/${folderName}/${change.relativeFilePath}` });
 
 			if (currentWorkspaceFolder?.uri) {
-				// find the corresponding file in the workspace
 				const localCopy = joinPath(currentWorkspaceFolder.uri, change.relativeFilePath);
 				if (change.type === ChangeType.Addition && await this.fileService.exists(localCopy)) {
 					return {

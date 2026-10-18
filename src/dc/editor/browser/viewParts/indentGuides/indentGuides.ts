@@ -18,10 +18,6 @@ import { isDefined } from '../../../../base/common/types.js';
 import { BracketPairGuidesClassNames } from '../../../common/model/guidesTextModelPart.js';
 import { IndentGuide, HorizontalGuidesState } from '../../../common/textModelGuides.js';
 
-/**
- * Indent guides are vertical lines that help identify the indentation level of
- * the code.
- */
 export class IndentGuidesOverlay extends DynamicViewOverlay {
 
 	private readonly _context: ViewContext;
@@ -55,7 +51,6 @@ export class IndentGuidesOverlay extends DynamicViewOverlay {
 		super.dispose();
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -79,7 +74,6 @@ export class IndentGuidesOverlay extends DynamicViewOverlay {
 		return false;
 	}
 	public override onDecorationsChanged(e: viewEvents.ViewDecorationsChangedEvent): boolean {
-		// true for inline decorations
 		return true;
 	}
 	public override onFlushed(e: viewEvents.ViewFlushedEvent): boolean {
@@ -95,7 +89,7 @@ export class IndentGuidesOverlay extends DynamicViewOverlay {
 		return true;
 	}
 	public override onScrollChanged(e: viewEvents.ViewScrollChangedEvent): boolean {
-		return e.scrollTopChanged;// || e.scrollWidthChanged;
+		return e.scrollTopChanged;
 	}
 	public override onZonesChanged(e: viewEvents.ViewZonesChangedEvent): boolean {
 		return true;
@@ -104,7 +98,6 @@ export class IndentGuidesOverlay extends DynamicViewOverlay {
 		return true;
 	}
 
-	// --- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
 		if (!this._bracketPairGuideOptions.indentation && this._bracketPairGuideOptions.bracketPairs === false) {
@@ -212,7 +205,6 @@ export class IndentGuidesOverlay extends DynamicViewOverlay {
 			for (let indentLvl = 1; indentLvl <= indentGuidesInLine; indentLvl++) {
 				const indentGuide = (indentLvl - 1) * indentSize + 1;
 				const isActive =
-					// Disable active indent guide if there are bracket guides.
 					(this._bracketPairGuideOptions.highlightActiveIndentation === 'always' || bracketGuidesInLine.length === 0) &&
 					activeIndentStartLineNumber <= lineNumber &&
 					lineNumber <= activeIndentEndLineNumber &&

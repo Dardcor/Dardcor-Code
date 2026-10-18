@@ -158,9 +158,6 @@ suite('ChatService', () => {
 	let chatAgentService: IChatAgentService;
 	const testServices: ChatService[] = [];
 
-	/**
-	 * Ensure we wait for model disposals from all created ChatServices
-	 */
 	function createChatService(): ChatService {
 		const service = testDisposables.add(instantiationService.createInstance(ChatService));
 		testServices.push(service);
@@ -220,7 +217,6 @@ suite('ChatService', () => {
 			}
 		});
 
-		// Configure test file service with tracking and in-memory storage
 		testFileService = testDisposables.add(new InMemoryTestFileService());
 		instantiationService.stub(IFileService, testFileService);
 
@@ -348,7 +344,6 @@ suite('ChatService', () => {
 
 	test('retrieveSession', async () => {
 		const testService = createChatService();
-		// Don't add refs to testDisposables so we can control disposal
 		const session1Ref = testService.startNewLocalSession(ChatAgentLocation.Chat);
 		const session1 = session1Ref.object as ChatModel;
 		session1.addRequest({ parts: [], text: 'request 1' }, { variables: [] }, 0);
@@ -357,14 +352,11 @@ suite('ChatService', () => {
 		const session2 = session2Ref.object as ChatModel;
 		session2.addRequest({ parts: [], text: 'request 2' }, { variables: [] }, 0);
 
-		// Dispose refs to trigger persistence to file service
 		session1Ref.dispose();
 		session2Ref.dispose();
 
-		// Wait for async persistence to complete
 		await testService.waitForModelDisposals();
 
-		// Verify that sessions were written to the file service
 		assert.strictEqual(testFileService.writeOperations.length, 2, 'Should have written 2 sessions to file service');
 
 		const session1WriteOp = testFileService.writeOperations.find((op: { resource: URI; content: string }) =>
@@ -375,10 +367,8 @@ suite('ChatService', () => {
 		assert.ok(session1WriteOp, 'Session 1 should have been written to file service');
 		assert.ok(session2WriteOp, 'Session 2 should have been written to file service');
 
-		// Create a new service instance to simulate app restart
 		const testService2 = createChatService();
 
-		// Retrieve sessions and verify they're loaded from file service
 		const retrieved1 = await getOrRestoreModel(testService2, session1.sessionResource);
 		const retrieved2 = await getOrRestoreModel(testService2, session2.sessionResource);
 
@@ -498,21 +488,18 @@ suite('ChatService', () => {
 		const modelRef = testDisposables.add(startSessionModel(testService));
 		const model = modelRef.object;
 
-		// Send a request to default agent
 		const response = await testService.sendRequest(model.sessionResource, `test request`, { agentId: 'defaultAgent' });
 		ChatSendResult.assertSent(response);
 		await response.data.responseCompletePromise;
 		assert.strictEqual(model.getRequests().length, 1);
 		assert.strictEqual(model.getRequests()[0].response?.result?.metadata?.historyLength, 0);
 
-		// Send a request to agent2- it can't see the default agent's message
 		const response2 = await testService.sendRequest(model.sessionResource, `test request`, { agentId: 'agent2' });
 		ChatSendResult.assertSent(response2);
 		await response2.data.responseCompletePromise;
 		assert.strictEqual(model.getRequests().length, 2);
 		assert.strictEqual(model.getRequests()[1].response?.result?.metadata?.historyLength, 0);
 
-		// Send a request to defaultAgent - the default agent can see agent2's message
 		const response3 = await testService.sendRequest(model.sessionResource, `test request`, { agentId: 'defaultAgent' });
 		ChatSendResult.assertSent(response3);
 		await response3.data.responseCompletePromise;
@@ -548,8 +535,7 @@ suite('ChatService', () => {
 		let serializedChatData: ISerializableChatData;
 		testDisposables.add(chatAgentService.registerAgentImplementation(chatAgentWithUsedContextId, chatAgentWithUsedContext));
 
-		// create the first service, send request, get response, and serialize the state
-		{  // serapate block to not leak variables in outer scope
+		{
 			const testService = createChatService();
 
 			const chatModel1Ref = testDisposables.add(startSessionModel(testService));
@@ -564,7 +550,6 @@ suite('ChatService', () => {
 			serializedChatData = JSON.parse(JSON.stringify(chatModel1));
 		}
 
-		// try deserializing the state into a new service
 
 		const testService2 = createChatService();
 
@@ -624,7 +609,6 @@ suite('ChatService', () => {
 			serializedChatData = JSON.parse(JSON.stringify(chatModel1));
 		}
 
-		// try deserializing the state into a new service
 
 		const testService2 = createChatService();
 
@@ -713,22 +697,22 @@ suite('ChatService', () => {
 			{ parts: [], text: 'delegated request' },
 			{ variables: [] },
 			0,
-			undefined, // modeInfo
-			undefined, // chatAgent
-			undefined, // slashCommand
-			undefined, // confirmation
-			undefined, // locationData
-			undefined, // attachments
-			undefined, // isCompleteAddedRequest
-			undefined, // modelId
-			undefined, // userSelectedTools
-			undefined, // id
-			undefined, // isSystemInitiated
-			undefined, // systemInitiatedLabel
-			undefined, // terminalExecutionId
-			undefined, // isTerminalCommand
-			undefined, // timestamp
-			undefined, // hideFromTranscript
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
 			{
 				kind: ChatRequestOriginKind.Delegation,
 				sourceSessionResource,
@@ -792,22 +776,18 @@ suite('ChatService', () => {
 		const modelRef = startSessionModel(testService);
 		const sessionResource = modelRef.object.sessionResource;
 
-		// Acquire a keep-alive reference (what the fix does)
 		const keepAliveRef = testDisposables.add(testService.acquireExistingSession(sessionResource, 'test#keepAlive')!);
 		assert.ok(keepAliveRef, 'acquireExistingSession should return a reference');
 
-		// Release the original reference to simulate user navigating away
 		modelRef.dispose();
 		await testService.waitForModelDisposals();
 
-		// Model should still be accessible because keepAliveRef holds it
 		const response = await testService.sendRequest(sessionResource, 'terminal completed', {
 			queue: ChatRequestQueueKind.Steering,
 			isSystemInitiated: true,
 		});
 		assert.strictEqual(response.kind, 'queued');
 
-		// Clean up
 		keepAliveRef.dispose();
 	});
 
@@ -885,24 +865,19 @@ suite('ChatService', () => {
 		const modelRef = testDisposables.add(startSessionModel(testService));
 		const model = modelRef.object;
 
-		// Start a request that will wait
 		const response = await testService.sendRequest(model.sessionResource, 'first request', { agentId: 'slowAgent' });
 		ChatSendResult.assertSent(response);
 
-		// Wait for the agent to start processing
 		await requestStarted.p;
 
-		// Queue a steering message while the first request is still in progress
 		const steeringResponse = await testService.sendRequest(model.sessionResource, 'steering message', {
 			agentId: 'slowAgent',
 			queue: ChatRequestQueueKind.Steering
 		});
 		assert.strictEqual(steeringResponse.kind, 'queued');
 
-		// setYieldRequested should have been called on the agent
 		assert.strictEqual(setYieldRequestedCalled, true, 'setYieldRequested should be called when a steering message is queued');
 
-		// Complete the first request
 		completeRequest.complete();
 		await response.data.responseCompletePromise;
 	});
@@ -930,14 +905,11 @@ suite('ChatService', () => {
 		const modelRef = testDisposables.add(startSessionModel(testService));
 		const model = modelRef.object;
 
-		// Start a request that will wait
 		const response = await testService.sendRequest(model.sessionResource, 'first request', { agentId: 'slowAgent' });
 		ChatSendResult.assertSent(response);
 
-		// Wait for the agent to start processing
 		await requestStarted.p;
 
-		// Queue 3 steering messages while the first request is in progress
 		const steering1 = await testService.sendRequest(model.sessionResource, 'steering1', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Steering });
 		const steering2 = await testService.sendRequest(model.sessionResource, 'steering2', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Steering });
 		const steering3 = await testService.sendRequest(model.sessionResource, 'steering3', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Steering });
@@ -945,18 +917,14 @@ suite('ChatService', () => {
 		assert.ok(ChatSendResult.isQueued(steering2));
 		assert.ok(ChatSendResult.isQueued(steering3));
 
-		// Complete the first request - should trigger processing of combined steering requests
 		completeRequest.complete();
 		await response.data.responseCompletePromise;
 
-		// Wait for all deferred promises to resolve
 		await steering1.deferred;
 		await steering2.deferred;
 		await steering3.deferred;
 
-		// Should have only invoked 2 requests: the initial and the combined steering
 		assert.strictEqual(invokedRequests.length, 2, 'Should have only 2 invocations (initial + combined steering)');
-		// The combined message includes all steering texts joined with \n\n
 		assert.ok(invokedRequests[1].includes('steering1'), 'Combined message should include steering1');
 		assert.ok(invokedRequests[1].includes('steering2'), 'Combined message should include steering2');
 		assert.ok(invokedRequests[1].includes('steering3'), 'Combined message should include steering3');
@@ -964,9 +932,6 @@ suite('ChatService', () => {
 	});
 
 	test('steering message on a streamed (activeResponseCallback) session dispatches immediately, mid-turn', async () => {
-		// True mid-turn steering: a steering message sent while a streamed turn is in progress is
-		// dispatched to the participant immediately (which POSTs the steer server-side), instead of
-		// waiting for the turn to complete.
 		const sessionType = 'remote-streamed-steer';
 		const sessionResource = URI.from({ scheme: sessionType, path: '/streamed-session' });
 
@@ -976,7 +941,6 @@ suite('ChatService', () => {
 		testDisposables.add(mockSessionsService.registerChatSessionContentProvider(sessionType, {
 			provideChatSessionContent: (resource: URI): Promise<IChatSession> => Promise.resolve({
 				sessionResource: resource,
-				// History ends with a request, so the session has an in-progress (cancellable) turn.
 				history: [{ type: 'request', prompt: 'initial task', participant: sessionType }],
 				progressObs: constObservable<IChatProgress[]>([]),
 				isCompleteObs,
@@ -1007,28 +971,23 @@ suite('ChatService', () => {
 		const steering = await testService.sendRequest(sessionResource, 'steering message', { agentId: sessionType, queue: ChatRequestQueueKind.Steering });
 		assert.ok(ChatSendResult.isQueued(steering));
 
-		// Dispatched immediately, without the streamed turn completing (isCompleteObs stays false).
 		await steeringInvoked.p;
 		await steering.deferred;
-		await timeout(0); // let the post-dispatch tracking restore run
+		await timeout(0);
 
 		assert.strictEqual(invokedMessages.filter(m => m.includes('steering message')).length, 1, 'steering message should be dispatched exactly once, immediately');
 		const model = testService.getSession(sessionResource) as ChatModel;
 		assert.strictEqual(model.getPendingRequests().length, 0, 'steering message should be dispatched, not left queued');
 
-		// In-progress tracking is preserved for the still-active stream: a plain send is rejected.
 		const plain = await testService.sendRequest(sessionResource, 'plain message', { agentId: sessionType });
 		assert.strictEqual(plain.kind, 'rejected');
 
-		// Completing the streamed turn must not re-dispatch the already-sent steering message.
 		isCompleteObs.set(true, undefined);
 		await timeout(0);
 		assert.strictEqual(invokedMessages.filter(m => m.includes('steering message')).length, 1, 'steering message must not be dispatched again on completion');
 	});
 
 	test('queued (non-steering) message is flushed when a streamed (activeResponseCallback) turn completes (fix for cloud-session queue limbo)', async () => {
-		// A non-steering queued message is not dispatched mid-turn; it must be flushed when the
-		// streamed turn completes (previously it was stranded in the pending queue forever).
 		const sessionType = 'remote-streamed-queue';
 		const sessionResource = URI.from({ scheme: sessionType, path: '/streamed-session' });
 
@@ -1079,7 +1038,6 @@ suite('ChatService', () => {
 	});
 
 	test('disabled Claude hooks hint is shown once per workspace (fix for #295079)', async () => {
-		// Set up a prompts service that reports disabled Claude hooks
 		const mockPromptsService = new class extends MockPromptsService {
 			override getHooks(_token: CancellationToken): Promise<IConfiguredHooksInfo> {
 				return Promise.resolve({ hooks: {}, hasDisabledClaudeHooks: true });
@@ -1090,29 +1048,24 @@ suite('ChatService', () => {
 		const storageService = instantiationService.get(IStorageService);
 		const disabledHintsKey = 'chat.disabledClaudeHooks.notification';
 
-		// Before any request, the storage key should not be set
 		assert.strictEqual(storageService.getBoolean(disabledHintsKey, StorageScope.WORKSPACE), undefined);
 
 		const testService = createChatService();
 		const modelRef = testDisposables.add(startSessionModel(testService));
 		const model = modelRef.object;
 
-		// Disabled hooks are reported for every request, but the hint should only be shown once per workspace.
 		const response = await testService.sendRequest(model.sessionResource, 'test request');
 		ChatSendResult.assertSent(response);
 		await response.data.responseCompletePromise;
 
-		// The hint should have been shown, and the key set to true
 		assert.strictEqual(storageService.getBoolean(disabledHintsKey, StorageScope.WORKSPACE), true, 'Flag should be set after showing the hint');
 
-		// Verify the response contains the disabledClaudeHooks part
 		const requests = model.getRequests();
 		assert.strictEqual(requests.length, 1);
 		const responseParts = requests[0].response?.response.value ?? [];
 		const hasHookHint = responseParts.some(part => part.kind === 'disabledClaudeHooks');
 		assert.ok(hasHookHint, 'Response should contain the disabledClaudeHooks hint');
 
-		// Sending another request should NOT show the hint again (shown only once per workspace)
 		const response2 = await testService.sendRequest(model.sessionResource, 'second request');
 		ChatSendResult.assertSent(response2);
 		await response2.data.responseCompletePromise;
@@ -1125,14 +1078,10 @@ suite('ChatService', () => {
 	});
 
 	test('disabled Claude hooks hint is not consumed when no disabled hooks (fix for #295079)', async () => {
-		// Set up a prompts service that simulates the setup agent first pass (no disabled hooks)
-		// followed by the real resent request (with disabled hooks).
 		const mockPromptsService = new class extends MockPromptsService {
 			private _callCount = 0;
 			override getHooks(_token: CancellationToken): Promise<IConfiguredHooksInfo> {
 				this._callCount++;
-				// First call (setup agent): no disabled hooks
-				// Second call (real request after resend): disabled hooks present
 				return Promise.resolve({ hooks: {}, hasDisabledClaudeHooks: this._callCount > 1 });
 			}
 		}();
@@ -1141,7 +1090,6 @@ suite('ChatService', () => {
 		const storageService = instantiationService.get(IStorageService);
 		const disabledHintsKey = 'chat.disabledClaudeHooks.notification';
 
-		// First request: no disabled hooks (simulates setup agent pass)
 		const testService = createChatService();
 		const modelRef = testDisposables.add(startSessionModel(testService));
 		const model = modelRef.object;
@@ -1150,7 +1098,6 @@ suite('ChatService', () => {
 		ChatSendResult.assertSent(response);
 		await response.data.responseCompletePromise;
 
-		// Flag should NOT be set because no hint was shown
 		assert.strictEqual(storageService.getBoolean(disabledHintsKey, StorageScope.WORKSPACE), undefined, 'Flag should not be set when no disabled hooks');
 
 		const firstRequest = model.getRequests()[0];
@@ -1162,10 +1109,8 @@ suite('ChatService', () => {
 			}
 		}));
 
-		// Resend the original request: now disabled hooks are present (simulates resend after setup)
 		await testService.resendRequest(firstRequest, undefined, true);
 
-		// Now the flag should be set and the hint shown
 		assert.strictEqual(storageService.getBoolean(disabledHintsKey, StorageScope.WORKSPACE), true, 'Flag should be set after showing the hint');
 
 		const requests = model.getRequests();
@@ -1220,7 +1165,6 @@ suite('ChatService', () => {
 				requestStarted.complete();
 				const listener = token.onCancellationRequested(() => {
 					listener.dispose();
-					// Simulate some cleanup delay before completing
 					setTimeout(() => completeRequest.complete(), 10);
 				});
 				await completeRequest.p;
@@ -1240,10 +1184,8 @@ suite('ChatService', () => {
 
 		await requestStarted.p;
 
-		// Cancel and await - should wait for the response to complete
 		await testService.cancelCurrentRequestForSession(model.sessionResource, 'test');
 
-		// After cancel resolves, the response model should have a result
 		const lastRequest = model.getRequests()[0];
 		assert.ok(lastRequest.response, 'Response should exist after cancellation completes');
 		assert.strictEqual(lastRequest.response.state, ResponseModelState.Cancelled, 'Response should be in Cancelled state');
@@ -1256,7 +1198,6 @@ suite('ChatService', () => {
 		const hangingAgent: IChatAgentImplementation = {
 			async invoke(request, progress, history, token) {
 				requestStarted.complete();
-				// Wait for external signal, ignoring cancellation to simulate a hung agent
 				await completeRequest.p;
 				return {};
 			},
@@ -1274,13 +1215,10 @@ suite('ChatService', () => {
 
 		await requestStarted.p;
 
-		// Cancel should return after timeout even though the agent has not completed.
-		// Use faked timers so raceTimeout's 1s setTimeout fires instantly.
 		await runWithFakedTimers({ useFakeTimers: true }, async () => {
 			await testService.cancelCurrentRequestForSession(model.sessionResource, 'test');
 		});
 
-		// Let the agent finish so the test cleans up properly
 		completeRequest.complete();
 		await response.data.responseCompletePromise;
 	});
@@ -1308,38 +1246,31 @@ suite('ChatService', () => {
 		const sourceRef = testDisposables.add(startSessionModel(testService));
 		const source = sourceRef.object;
 
-		// Start a blocking request on source
 		const response = await testService.sendRequest(source.sessionResource, 'first request', { agentId: 'slowAgent' });
 		ChatSendResult.assertSent(response);
 		await requestStarted.p;
 
-		// Queue a request while the first is in progress
 		const queued = await testService.sendRequest(source.sessionResource, 'queued request', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Queued });
 		assert.ok(ChatSendResult.isQueued(queued));
 
-		// Remove the queued request from source
 		const pendingId = source.getPendingRequests()[0].request.id;
 		testService.removePendingRequest(source.sessionResource, pendingId);
 		assert.strictEqual(source.getPendingRequests().length, 0);
 
-		// Re-send it on a new target session through the normal queue path
 		const targetRef = testDisposables.add(startSessionModel(testService));
 		const target = targetRef.object;
 		const resent = await testService.sendRequest(target.sessionResource, 'queued request', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Queued, pauseQueue: true });
 		assert.ok(ChatSendResult.isQueued(resent));
 		assert.strictEqual(target.getPendingRequests().length, 1);
 
-		// Complete the first request so the source loop finishes
 		completeRequest.complete();
 		await response.data.responseCompletePromise;
 
-		// Process the target queue — the re-sent request should be invoked
 		testService.processPendingRequests(target.sessionResource);
 		const result = await resent.deferred;
 		assert.ok(ChatSendResult.isSent(result));
 		await result.data.responseCompletePromise;
 
-		// The agent should have been invoked twice: first request + re-sent queued request
 		assert.strictEqual(invokedMessages.length, 2);
 		assert.ok(invokedMessages[1].includes('queued request'));
 	});
@@ -1363,7 +1294,6 @@ suite('ChatService', () => {
 
 		const firstRequest = model.getPendingRequests()[0].request;
 
-		// Reorder, drop one, add a steering message and update text of the survivor.
 		testService.syncPendingRequestsFromRemote(model.sessionResource, [
 			{ id: 'remote-steer', kind: ChatRequestQueueKind.Steering, message: 'steer now' },
 			{ id: 'remote-1', kind: ChatRequestQueueKind.Queued, message: 'first remote message' },
@@ -1561,7 +1491,6 @@ suite('ChatService', () => {
 		ChatSendResult.assertSent(response);
 		await firstStarted.p;
 
-		// Steering stays pending here since agent host queues are server-managed.
 		const steering = await testService.sendRequest(sessionResource, 'steering message', { agentId: sessionType, queue: ChatRequestQueueKind.Steering });
 		assert.ok(ChatSendResult.isQueued(steering));
 
@@ -1569,7 +1498,6 @@ suite('ChatService', () => {
 		assert.strictEqual(model.getPendingRequests().length, 1);
 		const pendingId = model.getPendingRequests()[0].request.id;
 
-		// Must cancel the current turn AND send the steering message (was dropped before).
 		await testService.sendPendingRequestImmediately(sessionResource, pendingId);
 		await secondInvoked.p;
 
@@ -1579,11 +1507,6 @@ suite('ChatService', () => {
 	});
 
 	test('race condition: processNextPendingRequest dequeues before commit handler runs', async () => {
-		// This reproduces the race where:
-		// 1. Request 1 completes → .finally() calls processNextPendingRequest immediately
-		// 2. processNextPendingRequest dequeues queued-request-1 and starts it on the OLD session
-		// 3. Commit event arrives later → only sees remaining queued requests (one was already dequeued)
-		// The fix: detect the in-flight request on the old session, cancel it, and re-send on the new session.
 
 		const invocationOrder: string[] = [];
 		const firstRequestStarted = new DeferredPromise<void>();
@@ -1594,11 +1517,9 @@ suite('ChatService', () => {
 				invocationOrder.push(request.message);
 
 				if (invocationOrder.length === 1) {
-					// First request — block until we say go
 					firstRequestStarted.complete();
 					await firstRequestGate.p;
 				}
-				// All subsequent requests complete immediately
 				return {};
 			},
 		};
@@ -1610,12 +1531,10 @@ suite('ChatService', () => {
 		const sourceRef = testDisposables.add(startSessionModel(testService));
 		const source = sourceRef.object;
 
-		// Step 1: Send request 1 (blocks on firstRequestGate)
 		const response1 = await testService.sendRequest(source.sessionResource, 'request-1', { agentId: 'slowAgent' });
 		ChatSendResult.assertSent(response1);
 		await firstRequestStarted.p;
 
-		// Step 2: Queue 3 more requests while request 1 is in progress
 		const q1 = await testService.sendRequest(source.sessionResource, 'queued-1', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Queued });
 		const q2 = await testService.sendRequest(source.sessionResource, 'queued-2', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Queued });
 		const q3 = await testService.sendRequest(source.sessionResource, 'queued-3', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Queued });
@@ -1625,33 +1544,24 @@ suite('ChatService', () => {
 		assert.strictEqual(source.getPendingRequests().length, 3);
 		assert.strictEqual(source.getRequests().length, 1, 'Only request-1 should be a real request');
 
-		// Step 3: Complete request 1 → .finally() runs processNextPendingRequest
-		// This dequeues "queued-1" and starts it on the source (old) session
 		firstRequestGate.complete();
 		await response1.data.responseCompletePromise;
 
-		// processNextPendingRequest dequeued one from the queue synchronously
 		assert.strictEqual(source.getPendingRequests().length, 2, 'Should have 2 remaining after auto-dequeue');
 
-		// Yield to let the dequeued request's async chain progress (extension activation, addRequest, etc.)
 		await new Promise(resolve => setTimeout(resolve, 0));
 
-		// Step 4: Simulate what _resendPendingRequests does (the commit handler)
-		// This is the recovery: cancel the in-flight, remove remaining, re-send all on target
 		const targetRef = testDisposables.add(startSessionModel(testService));
 		const target = targetRef.object;
 
-		// Cancel whatever is in-flight on the old session
 		await testService.cancelCurrentRequestForSession(source.sessionResource);
 
-		// Remove remaining pending requests from old session
 		const remaining = [...source.getPendingRequests()];
 		for (const p of remaining) {
 			testService.removePendingRequest(source.sessionResource, p.request.id);
 		}
 		assert.strictEqual(source.getPendingRequests().length, 0);
 
-		// Re-send ALL 3 on the target through the normal queue path
 		const resent1 = await testService.sendRequest(target.sessionResource, 'queued-1', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Queued, pauseQueue: true });
 		const resent2 = await testService.sendRequest(target.sessionResource, 'queued-2', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Queued, pauseQueue: true });
 		const resent3 = await testService.sendRequest(target.sessionResource, 'queued-3', { agentId: 'slowAgent', queue: ChatRequestQueueKind.Queued, pauseQueue: true });
@@ -1660,7 +1570,6 @@ suite('ChatService', () => {
 		assert.ok(ChatSendResult.isQueued(resent3));
 		assert.strictEqual(target.getPendingRequests().length, 3, 'Target should have all 3 queued requests');
 
-		// Step 5: Process the target queue and verify all 3 get sent
 		testService.processPendingRequests(target.sessionResource);
 		const result1 = await resent1.deferred;
 		assert.ok(ChatSendResult.isSent(result1));
@@ -1674,7 +1583,6 @@ suite('ChatService', () => {
 		assert.ok(ChatSendResult.isSent(result3));
 		await result3.data.responseCompletePromise;
 
-		// Verify the agent received all 3 queued messages on the target session
 		const queuedInvocations = invocationOrder.filter(m => m.includes('queued-'));
 		assert.ok(queuedInvocations.length >= 3, `Expected at least 3 queued invocations, got ${queuedInvocations.length}`);
 		const lastThree = queuedInvocations.slice(-3);
@@ -1684,9 +1592,6 @@ suite('ChatService', () => {
 	});
 
 	test('external sessions from transient surfaces are not persisted to chat history (inline chat)', async () => {
-		// Inline chat and terminal chat create throwaway agent-host sessions. Their
-		// resources are not local, so they used to fall into the external-session
-		// persistence path and show up in the chat session list.
 		const remoteScheme = 'transient-surface-provider';
 
 		const mockSessionsService = new MockChatSessionsService();
@@ -1734,7 +1639,6 @@ suite('ChatService', () => {
 		const unregisteredScheme = 'unregistered-provider';
 		const sessionResource = URI.from({ scheme: unregisteredScheme, path: '/orphaned-session' });
 
-		// Use a mock sessions service with NO content provider registered for the scheme
 		const mockSessionsService = new MockChatSessionsService();
 		instantiationService.stub(IChatSessionsService, mockSessionsService);
 
@@ -1757,10 +1661,8 @@ suite('ChatService', () => {
 			}
 		});
 
-		// Set up the mock chat sessions service
 		const mockSessionsService = new MockChatSessionsService();
 
-		// Register a content provider so loadRemoteSession can resolve sessions
 		testDisposables.add(mockSessionsService.registerChatSessionContentProvider(remoteScheme, {
 			provideChatSessionContent: (_resource: URI, _token: CancellationToken) => {
 				return Promise.resolve({
@@ -1772,11 +1674,9 @@ suite('ChatService', () => {
 			},
 		}));
 
-		// Set session options for the untitled resource
 		mockSessionsService.setSessionOption(untitledResource, 'model', 'claude-3.5-sonnet');
 		mockSessionsService.setSessionOption(untitledResource, 'repo', 'my-repo');
 
-		// Override createNewChatSessionItem to return a real resource
 		mockSessionsService.createNewChatSessionItem = async () => ({
 			resource: realResource,
 			label: 'Test Session',
@@ -1785,7 +1685,6 @@ suite('ChatService', () => {
 
 		instantiationService.stub(IChatSessionsService, mockSessionsService);
 
-		// Register the remote agent
 		const remoteAgent: IChatAgentImplementation = {
 			async invoke(request, progress, history, token) {
 				return {};
@@ -1796,17 +1695,14 @@ suite('ChatService', () => {
 
 		const testService = createChatService();
 
-		// Load the untitled session to create the initial model
 		const untitledRef = await testService.acquireOrLoadSession(untitledResource, ChatAgentLocation.Chat, CancellationToken.None, undefined, 'rememberedSelection');
 		assert.ok(untitledRef, 'Should load untitled session');
 		testDisposables.add(untitledRef);
 
-		// Send a request - this triggers the untitled → real session conversion
 		const response = await testService.sendRequest(untitledResource, 'hello', { agentId: remoteScheme });
 		ChatSendResult.assertSent(response);
 		await response.data.responseCompletePromise;
 
-		// The new model (with real resource) should have initialSessionOptions set
 		const newModel = testService.getSession(realResource) as ChatModel;
 		assert.ok(newModel, 'New model should exist at the real resource');
 		assert.deepStrictEqual({
@@ -1826,11 +1722,6 @@ suite('ChatService', () => {
 	suite('untitled session materialization is idempotent/serialized (avoids duplicate sessions)', () => {
 		const remoteScheme = 'remoteProvider';
 
-		/**
-		 * Registers a content provider + default agent for `remoteScheme`, wires the
-		 * given `createNewChatSessionItem`/`invoke` implementations, and returns a
-		 * freshly created (but not-yet-acquired) ChatService plus an untitled resource.
-		 */
 		function setupUntitledRemote(opts: {
 			createItem: IChatSessionsService['createNewChatSessionItem'];
 			invoke?: IChatAgentImplementation['invoke'];
@@ -1864,9 +1755,6 @@ suite('ChatService', () => {
 		test('two concurrent sends create a single real session and reject the duplicate', async () => {
 			const realResource = URI.from({ scheme: remoteScheme, path: '/real-concurrent' });
 			let createCount = 0;
-			// Keep the agent turn pending so the first send's request stays in
-			// `_pendingRequests`, making the converged second send's rejection
-			// deterministic.
 			const agentGate = new DeferredPromise<void>();
 			const { service, untitledResource } = setupUntitledRemote({
 				createItem: async () => { createCount++; return realItem(realResource); },
@@ -1874,8 +1762,6 @@ suite('ChatService', () => {
 			});
 			testDisposables.add((await service.acquireOrLoadSession(untitledResource, ChatAgentLocation.Chat, CancellationToken.None))!);
 
-			// Fire two sends on the same untitled resource without awaiting between
-			// them, so both reach the materialization path concurrently.
 			const p1 = service.sendRequest(untitledResource, 'hello', { agentId: remoteScheme });
 			const p2 = service.sendRequest(untitledResource, 'hello', { agentId: remoteScheme });
 			const [r1, r2] = await Promise.all([p1, p2]);
@@ -1958,10 +1844,6 @@ suite('ChatService', () => {
 			assert.ok(realModel, 'real session exists after first send');
 			const requestsAfterFirst = realModel.getRequests().length;
 
-			// A second send arriving on the stale untitled resource (before the UI
-			// swapped to the real resource) must NOT materialize a second session,
-			// and must report the real resource as the new session so the caller
-			// swaps its UI to the real session (mirroring the first send).
 			const r2 = await service.sendRequest(untitledResource, 'second', { agentId: remoteScheme });
 			ChatSendResult.assertSent(r2);
 			await r2.data.responseCompletePromise;
@@ -2020,7 +1902,6 @@ suite('ChatService', () => {
 
 			await assert.rejects(service.sendRequest(untitledResource, 'first', { agentId: remoteScheme }), /boom/);
 
-			// The in-flight entry must have been cleared so a retry materializes.
 			const r2 = await service.sendRequest(untitledResource, 'second', { agentId: remoteScheme });
 			ChatSendResult.assertSent(r2);
 			await r2.data.responseCompletePromise;
@@ -2065,8 +1946,6 @@ suite('ChatService', () => {
 			await r1.data.responseCompletePromise;
 			assert.ok(service.getSession(realResource), 'real session exists after first send');
 
-			// Disposing the untitled session (the UI swap in production) must drop
-			// the untitled→real mapping so it cannot grow unbounded or redirect.
 			untitledRef.dispose();
 			await timeout(0);
 
@@ -2076,7 +1955,6 @@ suite('ChatService', () => {
 				'the stale untitled resource no longer re-targets the real session',
 			);
 
-			// The real session remains usable.
 			const r3 = await service.sendRequest(realResource, 'third', { agentId: remoteScheme });
 			ChatSendResult.assertSent(r3);
 			await r3.data.responseCompletePromise;
@@ -2089,8 +1967,6 @@ suite('ChatService', () => {
 			let failRealLoad = true;
 			const { service, untitledResource, mockSessionsService } = setupUntitledRemote({
 				createItem: async () => { createCount++; return realItem(realResource); },
-				// Fail the first load of the real session (e.g. provider raced/unregistered),
-				// then succeed so a retry can complete.
 				provideContent: (resource: URI) => {
 					if (resource.toString() === realResource.toString() && failRealLoad) {
 						failRealLoad = false;
@@ -2101,15 +1977,9 @@ suite('ChatService', () => {
 			});
 			testDisposables.add((await service.acquireOrLoadSession(untitledResource, ChatAgentLocation.Chat, CancellationToken.None))!);
 
-			// First send registers the inverse alias, then the real session's load
-			// fails. The forward mapping must NOT have been published (it is only
-			// published after a successful load), so nothing re-targets a session
-			// that was never created.
 			await assert.rejects(service.sendRequest(untitledResource, 'first', { agentId: remoteScheme }), /load boom/);
 			assert.strictEqual(mockSessionsService.getMaterializedSessionResource(untitledResource), undefined, 'no poisoned untitled→real mapping after a load failure');
 
-			// A subsequent send must NOT throw `Unknown session` (the poisoning
-			// symptom); it re-materializes cleanly now that the load succeeds.
 			const r2 = await service.sendRequest(untitledResource, 'second', { agentId: remoteScheme });
 			ChatSendResult.assertSent(r2);
 			await r2.data.responseCompletePromise;
@@ -2675,7 +2545,6 @@ suite('ChatService', () => {
 	test('switching between sessions disposes previous models and releases all references', async () => {
 		const testService = createChatService();
 
-		// Create 3 sessions with some content
 		const sessions: { resource: URI; ref: IChatModelReference }[] = [];
 		for (let i = 0; i < 3; i++) {
 			const ref = testService.startNewLocalSession(ChatAgentLocation.Chat);
@@ -2684,30 +2553,24 @@ suite('ChatService', () => {
 			sessions.push({ resource: model.sessionResource, ref });
 		}
 
-		// Save all sessions so they can be restored later
 		for (const s of sessions) {
 			s.ref.dispose();
 		}
 		await testService.waitForModelDisposals();
 
-		// Verify all models are disposed
 		for (const s of sessions) {
 			assert.strictEqual(testService.getSession(s.resource), undefined, `Session ${s.resource} should be disposed after ref release`);
 		}
 
-		// Now simulate "clicking through sessions" — load each one, switch to next
-		// This mimics chatViewPane.loadSession() pattern: acquire new, release old
 		let currentRef: IChatModelReference | undefined;
 		for (const s of sessions) {
 			const newRef = await testService.acquireOrLoadSession(s.resource, ChatAgentLocation.Chat, CancellationToken.None, 'test#switch');
 			assert.ok(newRef, `Should be able to restore session ${s.resource}`);
 
-			// Release old ref (like ChatViewPane.showModel does)
 			currentRef?.dispose();
 			currentRef = newRef;
 		}
 
-		// At this point, only the last session should have a live model
 		await testService.waitForModelDisposals();
 		const debugInfo = testService.getChatModelReferenceDebugInfo();
 		assert.deepStrictEqual({
@@ -2734,7 +2597,6 @@ suite('ChatService', () => {
 		assert.strictEqual(debugInfo.models[0].sessionResource.toString(), sessions[2].resource.toString(),
 			'The live model should be the last session we switched to');
 
-		// Verify the first two sessions' models are gone
 		await testService.waitForModelDisposals();
 		assert.strictEqual(testService.getSession(sessions[0].resource), undefined, 'Session 0 model should be disposed');
 		assert.strictEqual(testService.getSession(sessions[1].resource), undefined, 'Session 1 model should be disposed');
@@ -2747,7 +2609,6 @@ suite('ChatService', () => {
 	test('previousModelRef pattern in ChatViewPane does not cause double-reference retention', async () => {
 		const testService = createChatService();
 
-		// Create 3 sessions
 		const sessions: { resource: URI }[] = [];
 		for (let i = 0; i < 3; i++) {
 			const ref = testService.startNewLocalSession(ChatAgentLocation.Chat);
@@ -2758,42 +2619,26 @@ suite('ChatService', () => {
 		}
 		await testService.waitForModelDisposals();
 
-		// Simulate the ChatViewPane._previousModelRef pattern:
-		// showModel() does:
-		//   this._previousModelRef.value = this.modelRef.value;  // <-- stores ref
-		//   this.modelRef.value = undefined;                      // <-- disposes same ref!
-		// This should NOT cause the model to stay alive because the
-		// MutableDisposable setter disposes the old value after assigning the new one.
 
-		// Load session 0
 		const ref0 = await testService.acquireOrLoadSession(sessions[0].resource, ChatAgentLocation.Chat, CancellationToken.None, 'test');
 		assert.ok(ref0);
 
-		// "Switch" to session 1 using the buggy pattern
-		const previousRef = ref0; // save reference (like _previousModelRef.value = modelRef.value)
-		// Now dispose the ref (like modelRef.value = undefined which disposes via setter)
+		const previousRef = ref0;
 		ref0.dispose();
 
-		// The previousRef IS ref0 — same object. It's now disposed.
-		// So previousRef is holding a dead reference.
 
-		// Load session 1
 		const ref1 = await testService.acquireOrLoadSession(sessions[1].resource, ChatAgentLocation.Chat, CancellationToken.None, 'test');
 		assert.ok(ref1);
 
 		await testService.waitForModelDisposals();
 
-		// Session 0 should be disposed because its ref was disposed and
-		// previousRef is the same object (also disposed)
 		assert.strictEqual(testService.getSession(sessions[0].resource), undefined,
 			'Session 0 should be disposed -- the "previous ref" pattern did not keep it alive');
 
-		// Only session 1 should be alive
 		const debugInfo = testService.getChatModelReferenceDebugInfo();
 		assert.strictEqual(debugInfo.totalModels, 1, 'Only session 1 should be alive');
 
 		ref1.dispose();
-		// Clean up previousRef — it's already disposed, calling again should be a no-op
 		previousRef.dispose();
 		await testService.waitForModelDisposals();
 	});
@@ -2801,21 +2646,16 @@ suite('ChatService', () => {
 	test('serializer _previous field does not retain data after model disposal', async () => {
 		const testService = createChatService();
 
-		// Create a session with content
 		const ref = testService.startNewLocalSession(ChatAgentLocation.Chat);
 		const model = ref.object as ChatModel;
 		const sessionResource = model.sessionResource;
 		model.addRequest({ parts: [], text: 'some request with data' }, { variables: [] }, 0);
 
-		// Force serialization to populate dataSerializer._previous
-		// (happens in willDisposeModel)
 		ref.dispose();
 		await testService.waitForModelDisposals();
 
-		// Model should be gone
 		assert.strictEqual(testService.getSession(sessionResource), undefined);
 
-		// Restore and dispose again to verify clean disposal cycle
 		const ref2 = await testService.acquireOrLoadSession(sessionResource, ChatAgentLocation.Chat, CancellationToken.None, 'test');
 		assert.ok(ref2);
 		const model2 = ref2.object as ChatModel;
@@ -2829,31 +2669,24 @@ suite('ChatService', () => {
 	test('model becomes unreachable after all references released', async () => {
 		const testService = createChatService();
 
-		// Create a session with non-trivial content to track
 		const ref = testService.startNewLocalSession(ChatAgentLocation.Chat);
 		let model: ChatModel | undefined = ref.object as ChatModel;
 		const sessionResource = model.sessionResource;
 		model.addRequest({ parts: [], text: 'a request' }, { variables: [] }, 0);
 
-		// Use WeakRef to detect GC
 		const weakModel = new WeakRef(model);
 
-		// Dispose the reference and clear the local strong reference
 		ref.dispose();
 		model = undefined;
 		await testService.waitForModelDisposals();
 
-		// Model should not be in the store
 		assert.strictEqual(testService.getSession(sessionResource), undefined, 'Model should be gone from store');
 
-		// The reference debug snapshot should show no models
 		const debugInfo = testService.getChatModelReferenceDebugInfo();
 		assert.strictEqual(debugInfo.totalModels, 0, 'No models should be tracked');
 
-		// Force GC and check weak ref
 		if (typeof globalThis.gc === 'function') {
 			globalThis.gc();
-			// After GC, the weak reference should be cleared
 			assert.strictEqual(weakModel.deref(), undefined, 'Model should be GC\'d after all references released');
 		}
 	});
@@ -2861,7 +2694,6 @@ suite('ChatService', () => {
 	test('rapid session switching accumulates at most 2 live models', async () => {
 		const testService = createChatService();
 
-		// Create 5 sessions with content
 		const sessionResources: URI[] = [];
 		for (let i = 0; i < 5; i++) {
 			const ref = testService.startNewLocalSession(ChatAgentLocation.Chat);
@@ -2872,7 +2704,6 @@ suite('ChatService', () => {
 		}
 		await testService.waitForModelDisposals();
 
-		// Now rapidly switch through all sessions without waiting for disposal
 		let currentRef: IChatModelReference | undefined;
 		for (const resource of sessionResources) {
 			const newRef = await testService.acquireOrLoadSession(resource, ChatAgentLocation.Chat, CancellationToken.None, 'test#rapid');
@@ -2881,7 +2712,6 @@ suite('ChatService', () => {
 			currentRef = newRef;
 		}
 
-		// After waiting for disposals, should be exactly 1
 		await testService.waitForModelDisposals();
 		const finalDebugInfo = testService.getChatModelReferenceDebugInfo();
 		assert.strictEqual(finalDebugInfo.totalModels, 1, 'Should have exactly 1 model after waiting for disposals');
@@ -3289,7 +3119,6 @@ suite('ChatService', () => {
 			const lastRequest = model.lastRequest!;
 			assert.strictEqual(lastRequest.response?.isComplete, true, 'Response should be completed through the isComplete autorun');
 
-			// No pending request should exist — cancelling is a noop and must not call the interrupt callback.
 			await testService.cancelCurrentRequestForSession(resource, 'test');
 			assert.strictEqual(interruptCalls, 0, 'Interrupt callback should not be invoked when there is no pending request');
 		});
@@ -3335,12 +3164,10 @@ suite('ChatService', () => {
 			const lastRequest = model.lastRequest!;
 			assert.strictEqual(lastRequest.response?.isComplete, false);
 
-			// Simulate server finishing the turn.
 			isCompleteObs.set(true, undefined);
 
 			assert.strictEqual(lastRequest.response?.isComplete, true, 'Response should complete when isCompleteObs transitions to true');
 
-			// Pending request entry should now be gone — cancel must be a noop.
 			await testService.cancelCurrentRequestForSession(resource, 'test');
 			assert.strictEqual(interruptCalls, 0, 'Interrupt should not fire after the turn has completed');
 		});
@@ -3365,10 +3192,8 @@ suite('ChatService', () => {
 			assert.ok(ref);
 			testDisposables.add(ref);
 
-			// First cancel: user rejects the interruption, so a new pending request is wired up.
 			await testService.cancelCurrentRequestForSession(resource, 'test-first');
 
-			// Second cancel: should find the freshly-installed pending request and fire the callback again.
 			await testService.cancelCurrentRequestForSession(resource, 'test-second');
 
 			assert.strictEqual(interruptInvocations.length, 2, 'Interrupt callback should be invoked on both cancel attempts');
@@ -3376,7 +3201,6 @@ suite('ChatService', () => {
 
 		test('non-streaming session with isCompleteObs=true at load: response completes synchronously', async () => {
 			const isCompleteObs = observableValue<boolean>('isComplete', true);
-			// Deliberately no progressObs / interruptActiveResponseCallback — falls through to the non-streaming branch.
 			const { resource } = setupRemoteProvider({ isCompleteObs });
 
 			const testService = createChatService();
@@ -3393,7 +3217,6 @@ suite('ChatService', () => {
 
 			const testService = createChatService();
 
-			// Load the session and seed an unsent draft on its inputModel.
 			const ref1 = await testService.acquireOrLoadSession(resource, ChatAgentLocation.Chat, CancellationToken.None);
 			assert.ok(ref1, 'Should load remote session');
 			const model1 = ref1.object as ChatModel;
@@ -3402,11 +3225,9 @@ suite('ChatService', () => {
 				selections: [{ selectionStartLineNumber: 1, selectionStartColumn: 1, positionLineNumber: 1, positionColumn: 12 }],
 			});
 
-			// Release the only reference -> willDisposeModel runs and persists metadata.
 			ref1.dispose();
 			await testService.waitForModelDisposals();
 
-			// Reload the same session. The draft must be restored from metadata.
 			const ref2 = await testService.acquireOrLoadSession(resource, ChatAgentLocation.Chat, CancellationToken.None);
 			assert.ok(ref2, 'Should re-load remote session');
 			testDisposables.add(ref2);
@@ -3418,11 +3239,10 @@ suite('ChatService', () => {
 		test('restored draft uses the session history model, not the persisted (stale) one', async () => {
 			const historyModelId = 'history-model';
 			const historyMetadata: ILanguageModelChatMetadata = {
-				id: historyModelId, name: 'History Model', vendor: 'copilot', version: '1.0', family: 'history',
+				id: historyModelId, name: 'History Model', vendor: 'dardcor', version: '1.0', family: 'history',
 				extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024,
 				isDefaultForLocation: { [ChatAgentLocation.Chat]: true }
 			};
-			// Resolve only the model the session actually used in its history.
 			instantiationService.stub(ILanguageModelsService, new class extends NullLanguageModelsService {
 				override lookupLanguageModel(id: string): ILanguageModelChatMetadata | undefined {
 					return id === historyModelId ? historyMetadata : undefined;
@@ -3435,7 +3255,6 @@ suite('ChatService', () => {
 
 			const testService = createChatService();
 
-			// Load, then seed an unsent draft AND a stale model selection that must NOT survive reload.
 			const ref1 = await testService.acquireOrLoadSession(resource, ChatAgentLocation.Chat, CancellationToken.None);
 			assert.ok(ref1, 'Should load remote session');
 			(ref1.object as ChatModel).inputModel.setState({
@@ -3504,7 +3323,7 @@ suite('ChatService', () => {
 		test('restored draft preserves the model configuration (effort/context) of the history model', async () => {
 			const historyModelId = 'history-model';
 			const historyMetadata: ILanguageModelChatMetadata = {
-				id: historyModelId, name: 'History Model', vendor: 'copilot', version: '1.0', family: 'history',
+				id: historyModelId, name: 'History Model', vendor: 'dardcor', version: '1.0', family: 'history',
 				extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024,
 				isDefaultForLocation: { [ChatAgentLocation.Chat]: true }
 			};
@@ -3520,8 +3339,6 @@ suite('ChatService', () => {
 
 			const testService = createChatService();
 
-			// Load, then seed an unsent draft together with the per-model configuration the
-			// user picked (e.g. high thinking effort + 1M context window) for that same model.
 			const modelConfiguration = { thinkingEffort: 'high', contextSize: 1_000_000 };
 			const ref1 = await testService.acquireOrLoadSession(resource, ChatAgentLocation.Chat, CancellationToken.None);
 			assert.ok(ref1, 'Should load remote session');
@@ -3550,19 +3367,12 @@ suite('ChatService', () => {
 		const testService = createChatService();
 		const storageService = instantiationService.get(IStorageService) as TestStorageService;
 
-		// Create a session with a request so it qualifies for persistence
 		const ref = testService.startNewLocalSession(ChatAgentLocation.Chat);
 		const model = ref.object as ChatModel;
 		model.addRequest({ parts: [], text: 'hello world' }, { variables: [] }, 0);
 
-		// Simulate what the storage service does before shutdown:
-		// fire onWillSaveState synchronously, then flush.
 		storageService.testEmitWillSaveState(WillSaveStateReason.SHUTDOWN);
 
-		// Create a second ChatService from the same storage (simulating
-		// window reload). The session must be discoverable in history
-		// IMMEDIATELY — no async work from the first service needs to
-		// have completed.
 		const testService2 = createChatService();
 		const historyItems = await testService2.getHistorySessionItems();
 		assert.ok(
@@ -3570,7 +3380,6 @@ suite('ChatService', () => {
 			`Session ${model.sessionResource} should appear in history after onWillSaveState. Got: ${historyItems.map(i => i.sessionResource.toString()).join(', ')}`
 		);
 
-		// Clean up
 		ref.dispose();
 	});
 
@@ -3579,7 +3388,6 @@ suite('ChatService', () => {
 
 		const testService = createChatService();
 
-		// Create a session and send a message so it has requests
 		const ref = testDisposables.add(startSessionModel(testService));
 		const model = ref.object;
 		const response = await testService.sendRequest(model.sessionResource, `@${chatAgentWithMarkdownId} test request`);
@@ -3587,25 +3395,20 @@ suite('ChatService', () => {
 		await response.data.responseCompletePromise;
 		assert.strictEqual(model.getRequests().length, 1);
 
-		// Verify the session appears in live session items
 		const liveItemsBefore = await testService.getLiveSessionItems();
 		assert.ok(
 			liveItemsBefore.some(item => item.sessionResource.toString() === model.sessionResource.toString()),
 			'Session should appear in getLiveSessionItems before deletion'
 		);
 
-		// Delete the session
 		await testService.removeHistoryEntry(model.sessionResource);
 
-		// Verify the session no longer appears in live session items
 		const liveItemsAfter = await testService.getLiveSessionItems();
 		assert.ok(
 			!liveItemsAfter.some(item => item.sessionResource.toString() === model.sessionResource.toString()),
 			'Session should NOT appear in getLiveSessionItems after deletion'
 		);
 
-		// Verify onDidDisposeSession was fired
-		// (model is still alive because ref holds it, but it's marked deleted)
 		assert.strictEqual((model as ChatModel).isDeleted, true);
 	});
 
@@ -3614,21 +3417,17 @@ suite('ChatService', () => {
 
 		const testService = createChatService();
 
-		// Create a session with a request
 		const ref = testDisposables.add(startSessionModel(testService));
 		const model = ref.object;
 		const response = await testService.sendRequest(model.sessionResource, `@${chatAgentWithMarkdownId} test request`);
 		ChatSendResult.assertSent(response);
 		await response.data.responseCompletePromise;
 
-		// Delete the history entry
 		await testService.removeHistoryEntry(model.sessionResource);
 
-		// Release the model reference — this triggers willDisposeModel
 		ref.dispose();
 		await testService.waitForModelDisposals();
 
-		// Verify the session does NOT reappear in history after disposal
 		const testService2 = createChatService();
 		const historyItems = await testService2.getHistorySessionItems();
 		assert.ok(
@@ -3645,7 +3444,7 @@ suite('backfillRestoredPickerState', () => {
 	const model = (identifier: string): ISerializableChatModelInputState['selectedModel'] => ({
 		identifier,
 		metadata: {
-			id: identifier, name: identifier, vendor: 'copilot', version: '1.0', family: 'test',
+			id: identifier, name: identifier, vendor: 'dardcor', version: '1.0', family: 'test',
 			extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024,
 			isDefaultForLocation: {}
 		}
@@ -3683,7 +3482,7 @@ suite('backfillTransferredModel', () => {
 	const model = (identifier: string): ISerializableChatModelInputState['selectedModel'] => ({
 		identifier,
 		metadata: {
-			id: identifier, name: identifier, vendor: 'copilot', version: '1.0', family: 'test',
+			id: identifier, name: identifier, vendor: 'dardcor', version: '1.0', family: 'test',
 			extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024,
 			isDefaultForLocation: {}
 		}
@@ -3720,7 +3519,6 @@ function toSnapshotExportData(model: IChatModel) {
 	return {
 		...exp,
 		requests: exp.requests.map(r => {
-			// Destructure properties after `vote` so we can insert `voteDownReason` in the correct position for snapshot compat
 			const { slashCommand, usedContext, contentReferences, codeCitations, timeSpentWaiting, isSystemInitiated: _isSystemInitiated, systemInitiatedLabel: _systemInitiatedLabel, responseTimestamp: _responseTimestamp, elapsedMs: _elapsedMs, completionTokens: _completionTokens, promptTokens: _promptTokens, outputBuffer: _outputBuffer, promptTokenDetails: _promptTokenDetails, copilotCredits: _copilotCredits, ...rest } = r;
 			return {
 				...rest,
@@ -3729,9 +3527,9 @@ function toSnapshotExportData(model: IChatModel) {
 					completedAt: undefined
 				},
 				timestamp: undefined,
-				requestId: undefined, // id contains a random part
-				responseId: undefined, // id contains a random part
-				voteDownReason: undefined, // removed from model, kept for snapshot compat
+				requestId: undefined,
+				responseId: undefined,
+				voteDownReason: undefined,
 				slashCommand,
 				usedContext,
 				contentReferences,

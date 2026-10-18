@@ -32,7 +32,7 @@ suite('QueryBuilder', () => {
 	const ROOT_1 = fixPath('/foo/root1');
 	const ROOT_1_URI = getUri(ROOT_1);
 	const ROOT_1_NAMED_FOLDER = toWorkspaceFolder(ROOT_1_URI);
-	const WS_CONFIG_PATH = getUri('/bar/test.code-workspace'); // location of the workspace file (not important except that it is a file URI)
+	const WS_CONFIG_PATH = getUri('/bar/test.code-workspace');
 
 	let instantiationService: TestInstantiationService;
 	let queryBuilder: QueryBuilder;
@@ -203,7 +203,7 @@ suite('QueryBuilder', () => {
 				PATTERN_INFO,
 				[ROOT_1_URI],
 				{
-					expandPatterns: true // verify that this doesn't affect patterns from configuration
+					expandPatterns: true
 				}
 			),
 			{
@@ -369,7 +369,6 @@ suite('QueryBuilder', () => {
 			exclude: { 'bar': true }
 		}, ROOT_2_URI);
 
-		// There are 3 roots, the first two have search.exclude settings, test that the correct basic query is returned
 		assertEqualTextQueries(
 			queryBuilder.text(
 				PATTERN_INFO,
@@ -386,7 +385,6 @@ suite('QueryBuilder', () => {
 			}
 		);
 
-		// Now test that it merges the root excludes when an 'include' is used
 		assertEqualTextQueries(
 			queryBuilder.text(
 				PATTERN_INFO,
@@ -819,7 +817,7 @@ suite('QueryBuilder', () => {
 			const ROOT_2 = '/project/root2';
 			const ROOT_2_URI = getUri(ROOT_2);
 			const ROOT_1_FOLDERNAME = 'folder/one';
-			const ROOT_2_FOLDERNAME = 'folder/two+'; // And another regex character, #126003
+			const ROOT_2_FOLDERNAME = 'folder/two+';
 			mockWorkspace.folders = toWorkspaceFolders([{ path: ROOT_1_URI.fsPath, name: ROOT_1_FOLDERNAME }, { path: ROOT_2_URI.fsPath, name: ROOT_2_FOLDERNAME }], WS_CONFIG_PATH, extUriBiasedIgnorePathCase);
 			mockWorkspace.configuration = uri.file(fixPath('config'));
 
@@ -1152,7 +1150,6 @@ suite('QueryBuilder', () => {
 			assert.strictEqual(query.folderQueries.length, 1);
 		});
 		test.skip('text query with multiple comma-separated excludes', () => {
-			// TODO: Fix. Will require `ICommonQueryProps.excludePattern` to support an array.
 			const query = queryBuilder.text(
 				{ pattern: `` },
 				[ROOT_1_NAMED_FOLDER.uri],
@@ -1179,7 +1176,6 @@ suite('QueryBuilder', () => {
 			assert.strictEqual(query.folderQueries.length, 1);
 		});
 		test.skip('text query with base URI on exclud', () => {
-			// TODO: Fix. Will require `ICommonQueryProps.excludePattern` to support an baseURI.
 			const query = queryBuilder.text(
 				{ pattern: `` },
 				[ROOT_1_NAMED_FOLDER.uri],
@@ -1188,7 +1184,6 @@ suite('QueryBuilder', () => {
 					expandPatterns: true
 				}
 			);
-			// todo: incorporate the base URI into the pattern
 			assert.deepEqual(query.excludePattern, {
 				uri: ROOT_1_URI,
 				pattern: {
@@ -1229,7 +1224,6 @@ export function assertEqualQueries(actual: ITextQuery | IFileQuery, expected: IT
 		};
 	};
 
-	// Avoid comparing URI objects, not a good idea
 	if (expected.folderQueries) {
 		assert.deepStrictEqual(actual.folderQueries.map(folderQueryToCompareObject), expected.folderQueries.map(folderQueryToCompareObject));
 		actual.folderQueries = [];
@@ -1264,10 +1258,6 @@ export function assertEqualSearchPathResults(actual: ISearchPathsInfo, expected:
 	}
 }
 
-/**
- * Recursively delete all undefined property values from the search query, to make it easier to
- * assert.deepStrictEqual with some expected object.
- */
 export function cleanUndefinedQueryValues(q: any): void {
 	for (const key in q) {
 		if (q[key] === undefined) {

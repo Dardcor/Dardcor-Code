@@ -27,52 +27,24 @@ export const enum ChatTipTier {
 	Qol = 'qol',
 }
 
-/**
- * Treatment names for tip messages overridable via the workbench assignment service.
- */
-/**
- * Context provided to tip builders for dynamic message construction.
- */
 export interface ITipBuildContext {
-	/**
-	 * Keybinding service for looking up keyboard shortcuts.
-	 */
 	readonly keybindingService: IKeybindingService;
-	/**
-	 * Experimental tip message overrides keyed by treatment name (see {@link ChatTipExperiment}).
-	 * Builders should fall back to their default localized strings when a treatment is not set.
-	 */
 }
 
-/**
- * Gets the display label for a command, looking it up from MenuRegistry.
- * Falls back to extracting a readable name from the command ID.
- */
 export function getCommandLabel(commandId: string): string {
 	const command = MenuRegistry.getCommand(commandId);
 	if (command?.title) {
-		// Handle both string and ILocalizedString formats
 		return typeof command.title === 'string' ? command.title : command.title.value;
 	}
-	// Fallback: extract readable name from command ID
-	// e.g., 'workbench.action.chat.openEditSession' -> 'openEditSession'
 	const parts = commandId.split('.');
 	return parts[parts.length - 1];
 }
 
-/**
- * Formats a keybinding for display in a tip message.
- * Returns empty string if no keybinding is bound.
- */
 function formatKeybinding(ctx: ITipBuildContext, commandId: string): string {
 	const kb = ctx.keybindingService.lookupKeybinding(commandId);
 	return kb ? ` (${kb.getLabel()})` : '';
 }
 
-/**
- * Extracts command IDs from command: links in a markdown string.
- * Used to automatically populate enabledCommands for trusted markdown.
- */
 export function extractCommandIds(markdown: string): string[] {
 	const commandPattern = /\[.*?\]\(command:([^?\s)]+)/g;
 	const commands = new Set<string>();
@@ -83,58 +55,20 @@ export function extractCommandIds(markdown: string): string[] {
 	return [...commands];
 }
 
-/**
- * Interface for tip definitions in the catalog.
- */
 export interface ITipDefinition extends ITipExclusionConfig {
 	readonly id: string;
 	readonly tier: ChatTipTier;
-	/**
-	 * Optional priority for ordering tips within the same tier.
-	 * Lower values are shown first.
-	 */
 	readonly priority?: number;
-	/**
-	 * Builds the tip message dynamically at runtime.
-	 * This enables keybindings and command labels to be looked up fresh.
-	 * The returned MarkdownString should NOT include the "Tip:" prefix.
-	 */
 	buildMessage(ctx: ITipBuildContext): MarkdownString;
-	/**
-	 * When clause expression that determines if this tip is eligible to be shown.
-	 */
 	readonly when?: ContextKeyExpression;
-	/**
-	 * Command IDs that must be registered for this tip to be eligible.
-	 */
 	readonly requiresCommands?: readonly string[];
-	/**
-	 * Chat mode names that must be available in the current widget for this tip to
-	 * be eligible.
-	 */
 	readonly requiresModeNames?: readonly string[];
-	/**
-	 * Chat model IDs for which this tip is eligible (lowercase).
-	 */
 	readonly onlyWhenModelIds?: readonly string[];
-	/**
-	 * Setting keys that, if changed from default, make this tip ineligible.
-	 */
 	readonly excludeWhenSettingsChanged?: readonly string[];
-	/**
-	 * Command IDs that dismiss this tip when clicked from the tip markdown.
-	 */
 	readonly dismissWhenCommandsClicked?: readonly string[];
 }
 
-// -----------------------------------------------------------------------------
-// Tip Catalog
-// -----------------------------------------------------------------------------
 
-/**
- * Static catalog of tips. Tips are built dynamically at runtime to enable
- * keybindings and command labels to be resolved fresh.
- */
 export const TIP_CATALOG: readonly ITipDefinition[] = [
 	{
 		id: 'tip.switchToAuto',

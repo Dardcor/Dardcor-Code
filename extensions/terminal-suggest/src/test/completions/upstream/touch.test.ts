@@ -24,14 +24,11 @@ export const touchTestSuiteSpec: ISuiteSpec = {
 	completionSpecs: touchSpec,
 	availableCommands: 'touch',
 	testSpecs: [
-		// Empty input
 		{ input: '|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Typing the command
 		{ input: 't|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'touch|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Basic options
 		{ input: 'touch |', expectedCompletions: allOptions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
 	]
 };

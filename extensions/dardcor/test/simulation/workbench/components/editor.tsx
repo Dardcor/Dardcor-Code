@@ -57,7 +57,7 @@ export const Editor = (({ contents, languageId, lineNumbers, range, selection, d
 			cursorBlinking: 'solid',
 			overviewRulerLanes: 0,
 			scrollbar: {
-				alwaysConsumeMouseWheel: true, // setting to false allows scrolling in window when scroll reaches end of the editor
+				alwaysConsumeMouseWheel: true,
 			},
 			lineNumbers: lineNumbers ? 'on' : 'off',
 			folding: lineNumbers ? true : false,

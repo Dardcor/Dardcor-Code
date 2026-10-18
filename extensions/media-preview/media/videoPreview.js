@@ -23,10 +23,8 @@
 
 	const settings = getSettings();
 
-	// State
 	let hasLoadedMedia = false;
 
-	// Elements
 	const video = document.createElement('video');
 	if (settings.src !== null) {
 		video.src = settings.src;

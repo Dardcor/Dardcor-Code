@@ -16,7 +16,6 @@ import { IToolEmbeddingsComputer } from '../common/virtualTools/toolEmbeddingsCo
 export interface IToolSearchParams {
 	query: string;
 	limit?: number;
-	/** Internal Agent Host corpus; not part of the model-facing schema. */
 	candidateTools?: readonly IToolSearchCandidate[];
 }
 
@@ -64,9 +63,6 @@ export class ToolSearchTool implements ICopilotModelSpecificTool<IToolSearchPara
 
 		this._logService.trace(`[custom-tool-search] Query "${query}" matched ${matchedToolNames.length} tools: ${JSON.stringify(matchedToolNames)}`);
 
-		// Return matched tool names as a JSON array. messagesApi.ts identifies results
-		// from this tool via the toolCallId→name map and converts them into
-		// tool_reference content blocks for the Anthropic API.
 		return new LanguageModelToolResult([
 			new LanguageModelTextPart(JSON.stringify(matchedToolNames)),
 		]);

@@ -7,17 +7,6 @@ import * as vscode from 'vscode';
 import { IChatSessionMetadataStore } from '../common/chatSessionMetadataStore';
 import { IChatSessionWorkspaceFolderService } from '../common/chatSessionWorkspaceFolderService';
 
-/**
- * Returns the ids of "blocking" sibling sessions that share the same worktree
- * (or workspace folder) as `excludeSessionId` and would be broken if the
- * worktree directory were deleted.
- *
- * A candidate is treated as blocking iff it is *not* the excluded session, *not*
- * a `sub-session` (sub-sessions don't independently keep a worktree alive — they
- * follow their parent), and *not* archived (archived sessions have their
- * worktree reconstructed via `recreateWorktreeOnUnarchive`, so they don't block
- * cleanup either).
- */
 export async function getBlockingSiblingSessionsForFolder(
 	folder: vscode.Uri,
 	excludeSessionId: string,

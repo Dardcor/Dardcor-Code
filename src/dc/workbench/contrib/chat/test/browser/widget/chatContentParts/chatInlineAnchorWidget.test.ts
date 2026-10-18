@@ -31,7 +31,6 @@ suite('ChatInlineAnchorWidget Metadata Validation', () => {
 		disposables = store.add(new DisposableStore());
 		instantiationService = workbenchInstantiationService(undefined, store);
 
-		// Mock the anchor service
 		mockAnchorService = {
 			_serviceBrand: undefined,
 			register: () => ({ dispose: () => { } }),
@@ -170,7 +169,7 @@ suite('ChatInlineAnchorWidget Metadata Validation', () => {
 	});
 
 	test('does not render widget when URI scheme is missing', () => {
-		const element = createTestElement('mySkill', ''); // Empty href
+		const element = createTestElement('mySkill', '');
 		renderFileWidgets(element, instantiationService, mockAnchorService, disposables);
 
 		const widget = element.querySelector('.chat-inline-anchor-widget');
@@ -196,19 +195,16 @@ suite('ChatInlineAnchorWidget Metadata Validation', () => {
 	test('handles multiple links in same element', () => {
 		const container = mainWindow.document.createElement('div');
 
-		// Add link with vscodeLinkType query parameter
 		const validAnchor = mainWindow.document.createElement('a');
 		validAnchor.textContent = 'validSkill';
 		validAnchor.setAttribute('data-href', 'file:///valid.txt?vscodeLinkType=skill');
 		container.appendChild(validAnchor);
 
-		// Add link without vscodeLinkType query parameter
 		const invalidAnchor = mainWindow.document.createElement('a');
 		invalidAnchor.textContent = 'regular text';
 		invalidAnchor.setAttribute('data-href', 'file:///invalid.txt');
 		container.appendChild(invalidAnchor);
 
-		// Add empty link text
 		const emptyAnchor = mainWindow.document.createElement('a');
 		emptyAnchor.textContent = '';
 		emptyAnchor.setAttribute('data-href', 'file:///empty.txt');
@@ -226,7 +222,6 @@ suite('ChatInlineAnchorWidget Metadata Validation', () => {
 
 		const widget = element.querySelector('.chat-inline-anchor-widget');
 		assert.ok(widget, 'Widget should be rendered');
-		// The link text becomes the fileName which is used as the label
 		const labelElement = widget?.querySelector('.icon-label');
 		assert.ok(labelElement?.textContent?.includes('myCustomFileName'), 'Label should contain the link text as fileName');
 	});

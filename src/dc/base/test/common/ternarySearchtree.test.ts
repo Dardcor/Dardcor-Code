@@ -46,7 +46,6 @@ suite('Ternary Search Tree', () => {
 		assert.strictEqual(iter.value(), '');
 		assert.strictEqual(iter.hasNext(), false);
 
-		//
 		iter.reset('/foo/bar/');
 		assert.strictEqual(iter.value(), 'foo');
 		assert.strictEqual(iter.hasNext(), true);
@@ -61,7 +60,6 @@ suite('Ternary Search Tree', () => {
 		iter.reset(URI.parse('file:///usr/bin/file.txt'));
 
 		assert.strictEqual(iter.value(), 'file');
-		// assert.strictEqual(iter.cmp('FILE'), 0);
 		assert.strictEqual(iter.cmp('file'), 0);
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
@@ -80,35 +78,28 @@ suite('Ternary Search Tree', () => {
 
 		iter.reset(URI.parse('file://share/usr/bin/file.txt?foo'));
 
-		// scheme
 		assert.strictEqual(iter.value(), 'file');
-		// assert.strictEqual(iter.cmp('FILE'), 0);
 		assert.strictEqual(iter.cmp('file'), 0);
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// authority
 		assert.strictEqual(iter.value(), 'share');
 		assert.strictEqual(iter.cmp('SHARe'), 0);
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// path
 		assert.strictEqual(iter.value(), 'usr');
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// path
 		assert.strictEqual(iter.value(), 'bin');
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// path
 		assert.strictEqual(iter.value(), 'file.txt');
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// query
 		assert.strictEqual(iter.value(), 'foo');
 		assert.strictEqual(iter.cmp('z') > 0, true);
 		assert.strictEqual(iter.cmp('a') < 0, true);
@@ -120,7 +111,6 @@ suite('Ternary Search Tree', () => {
 		iter.reset(URI.parse('file:///usr/bin/file.txt'));
 
 		assert.strictEqual(iter.value(), 'file');
-		// assert.strictEqual(iter.cmp('FILE'), 0);
 		assert.strictEqual(iter.cmp('file'), 0);
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
@@ -139,30 +129,24 @@ suite('Ternary Search Tree', () => {
 
 		iter.reset(URI.parse('file://share/usr/bin/file.txt?foo'));
 
-		// scheme
 		assert.strictEqual(iter.value(), 'file');
-		// assert.strictEqual(iter.cmp('FILE'), 0);
 		assert.strictEqual(iter.cmp('file'), 0);
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// authority
 		assert.strictEqual(iter.value(), 'share');
 		assert.strictEqual(iter.cmp('SHARe'), 0);
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// path
 		assert.strictEqual(iter.value(), 'usr');
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// path
 		assert.strictEqual(iter.value(), 'bin');
 		assert.strictEqual(iter.hasNext(), true);
 		iter.next();
 
-		// path
 		assert.strictEqual(iter.value(), 'file.txt');
 		assert.strictEqual(iter.hasNext(), false);
 	});
@@ -189,7 +173,6 @@ suite('Ternary Search Tree', () => {
 			assert.strictEqual(trie.get(key), value);
 		});
 
-		// forEach
 		let forEachCount = 0;
 		trie.forEach((element, key) => {
 			assert.strictEqual(element, map.get(key));
@@ -197,7 +180,6 @@ suite('Ternary Search Tree', () => {
 		});
 		assert.strictEqual(map.size, forEachCount);
 
-		// iterator
 		let iterCount = 0;
 		for (const [key, value] of trie) {
 			assert.strictEqual(value, map.get(key));
@@ -213,12 +195,12 @@ suite('Ternary Search Tree', () => {
 		trie.set('foobar', 1);
 		trie.set('foobaz', 2);
 
-		assertTstDfs(trie, ['foobar', 1], ['foobaz', 2]); // longer
+		assertTstDfs(trie, ['foobar', 1], ['foobaz', 2]);
 
 		trie = TernarySearchTree.forStrings<number>();
 		trie.set('foobar', 1);
 		trie.set('fooba', 2);
-		assertTstDfs(trie, ['fooba', 2], ['foobar', 1]); // shorter
+		assertTstDfs(trie, ['fooba', 2], ['foobar', 1]);
 
 		trie = TernarySearchTree.forStrings<number>();
 		trie.set('foo', 1);
@@ -255,7 +237,7 @@ suite('Ternary Search Tree', () => {
 		assert.ok(trie.has('foobar'));
 		assert.ok(!trie.has('NOT HERE'));
 
-		assertTstDfs(trie, ['foobar', undefined], ['foobaz', 2]); // should check for undefined value
+		assertTstDfs(trie, ['foobar', undefined], ['foobaz', 2]);
 
 		const oldValue = trie.set('foobar', 3);
 		assert.strictEqual(oldValue, undefined);
@@ -311,7 +293,6 @@ suite('Ternary Search Tree', () => {
 	});
 
 	test('TernarySearchTree - delete & cleanup', function () {
-		// normal delete
 		let trie = new TernarySearchTree<string, number>(new StringIterator());
 		trie.set('foo', 1);
 		trie.set('foobar', 2);
@@ -322,7 +303,6 @@ suite('Ternary Search Tree', () => {
 		trie.delete('foobar');
 		assertTstDfs(trie, ['bar', 3]);
 
-		// superstr-delete
 		trie = new TernarySearchTree<string, number>(new StringIterator());
 		trie.set('foo', 1);
 		trie.set('foobar', 2);
@@ -339,12 +319,6 @@ suite('Ternary Search Tree', () => {
 		trie.deleteSuperstr('fo');
 		assertTstDfs(trie, ['bar', 3]);
 
-		// trie = new TernarySearchTree<string, number>(new StringIterator());
-		// trie.set('foo', 1);
-		// trie.set('foobar', 2);
-		// trie.set('bar', 3);
-		// trie.deleteSuperStr('f');
-		// assertTernarySearchTree(trie, ['bar', 3]);
 	});
 
 	test('TernarySearchTree (PathSegments) - basics', function () {
@@ -372,7 +346,6 @@ suite('Ternary Search Tree', () => {
 
 	test('TernarySearchTree - (AVL) set', function () {
 		{
-			// rotate left
 			const trie = new TernarySearchTree<string, number>(new PathIterator());
 			trie.set('/fileA', 1);
 			trie.set('/fileB', 2);
@@ -381,7 +354,6 @@ suite('Ternary Search Tree', () => {
 		}
 
 		{
-			// rotate left (inside middle)
 			const trie = new TernarySearchTree<string, number>(new PathIterator());
 			trie.set('/foo/fileA', 1);
 			trie.set('/foo/fileB', 2);
@@ -390,7 +362,6 @@ suite('Ternary Search Tree', () => {
 		}
 
 		{
-			// rotate right
 			const trie = new TernarySearchTree<string, number>(new PathIterator());
 			trie.set('/fileC', 3);
 			trie.set('/fileB', 2);
@@ -399,7 +370,6 @@ suite('Ternary Search Tree', () => {
 		}
 
 		{
-			// rotate right (inside middle)
 			const trie = new TernarySearchTree<string, number>(new PathIterator());
 			trie.set('/mid/fileC', 3);
 			trie.set('/mid/fileB', 2);
@@ -408,7 +378,6 @@ suite('Ternary Search Tree', () => {
 		}
 
 		{
-			// rotate right, left
 			const trie = new TernarySearchTree<string, number>(new PathIterator());
 			trie.set('/fileD', 7);
 			trie.set('/fileB', 2);
@@ -420,7 +389,6 @@ suite('Ternary Search Tree', () => {
 		}
 
 		{
-			// rotate left, right
 			const trie = new TernarySearchTree<string, number>(new PathIterator());
 			trie.set('/fileJ', 42);
 			trie.set('/fileZ', 73);
@@ -436,13 +404,11 @@ suite('Ternary Search Tree', () => {
 
 		const trie = new TernarySearchTree<string, number>(new StringIterator());
 
-		// delete root
 		trie.set('d', 1);
 		assertTstDfs(trie, ['d', 1]);
 		trie.delete('d');
 		assertTstDfs(trie);
 
-		// delete node with two element
 		trie.clear();
 		trie.set('d', 1);
 		trie.set('b', 1);
@@ -451,7 +417,6 @@ suite('Ternary Search Tree', () => {
 		trie.delete('d');
 		assertTstDfs(trie, ['b', 1], ['f', 1]);
 
-		// single child node
 		trie.clear();
 		trie.set('d', 1);
 		trie.set('b', 1);
@@ -474,7 +439,6 @@ suite('Ternary Search Tree', () => {
 		trie.set('z', 1);
 		assertTstDfs(trie, ['b', 1], ['d', 1], ['e', 1], ['f', 1], ['z', 1]);
 
-		// right, right
 		trie.delete('b');
 		assertTstDfs(trie, ['d', 1], ['e', 1], ['f', 1], ['z', 1]);
 
@@ -486,11 +450,9 @@ suite('Ternary Search Tree', () => {
 		trie.set('b', 1);
 		assertTstDfs(trie, ['a', 1], ['b', 1], ['c', 1], ['d', 1], ['f', 1]);
 
-		// left, left
 		trie.delete('f');
 		assertTstDfs(trie, ['a', 1], ['b', 1], ['c', 1], ['d', 1]);
 
-		// mid
 		trie.clear();
 		trie.set('a', 1);
 		trie.set('ad', 1);
@@ -722,7 +684,6 @@ suite('Ternary Search Tree', () => {
 			['/usr/foo', 4],
 		);
 
-		// not a segment
 		map.deleteSuperstr('/user/fo');
 		assertTstDfs(map,
 			['/user/foo', 2],
@@ -731,7 +692,6 @@ suite('Ternary Search Tree', () => {
 			['/usr/foo', 4],
 		);
 
-		// delete a segment
 		map.set('/user/foo/bar', 1);
 		map.set('/user/foo', 2);
 		map.set('/user/foo/flip/flop', 3);
@@ -934,7 +894,6 @@ suite('Ternary Search Tree', () => {
 			['config.foo.flip.flop', 3],
 		);
 
-		// not a segment
 		map.deleteSuperstr('config.fo');
 		assertTstDfs(map,
 			['boo', 4],
@@ -943,7 +902,6 @@ suite('Ternary Search Tree', () => {
 			['config.foo.flip.flop', 3],
 		);
 
-		// delete a segment
 		map.set('config.foo.bar', 1);
 		map.set('config.foo', 2);
 		map.set('config.foo.flip.flop', 3);
@@ -982,7 +940,6 @@ suite.skip('TST, perf', function () {
 			return result;
 		}
 
-		// generate 10000 random words
 		const words: string[] = [];
 		for (let i = 0; i < 10000; i++) {
 			words.push(randomWord());

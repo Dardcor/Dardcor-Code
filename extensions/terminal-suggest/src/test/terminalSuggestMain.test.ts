@@ -39,14 +39,12 @@ const testSpecs2: ISuiteSpec[] = [
 
 	...figGenericTestSuites,
 
-	// completions/
 	cdTestSuite,
 	codeTestSuite,
 	codeInsidersTestSuite,
 	codeTunnelTestSuite,
 	codeTunnelInsidersTestSuite,
 
-	// completions/upstream/
 	echoTestSuiteSpec,
 	lsTestSuiteSpec,
 	mkdirTestSuiteSpec,
@@ -109,7 +107,6 @@ suite('Terminal Suggest', () => {
 						new MockFigExecuteExternals()
 					);
 					deepStrictEqual(
-						// Add detail to the label if it exists
 						result.items.map(i => {
 							if (typeof i.label === 'object' && i.label.detail) {
 								return `${i.label.label}${i.label.detail}`;

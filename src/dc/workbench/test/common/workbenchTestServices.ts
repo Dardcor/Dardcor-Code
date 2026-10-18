@@ -520,7 +520,7 @@ export class TestMarkerService implements IMarkerService {
 	remove(owner: string, resources: URI[]): void { }
 	read(filter?: { owner?: string | undefined; resource?: URI | undefined; severities?: number | undefined; take?: number | undefined } | undefined): IMarker[] { return []; }
 	installResourceFilter(resource: URI, reason: string): IDisposable {
-		return { dispose: () => { /* TODO: Implement cleanup logic */ } };
+		return { dispose: () => { } };
 	}
 }
 
@@ -549,7 +549,6 @@ export class TestFileService implements IFileService {
 
 	readonly = false;
 
-	// Tracking functionality for tests
 	readonly writeOperations: Array<{ resource: URI; content: string }> = [];
 	readonly readOperations: Array<{ resource: URI }> = [];
 
@@ -557,7 +556,6 @@ export class TestFileService implements IFileService {
 	getContent(): string { return this.content; }
 	getLastReadFileUri(): URI { return this.lastReadFileUri; }
 
-	// Clear tracking data for tests
 	clearTracking(): void {
 		this.writeOperations.length = 0;
 		this.readOperations.length = 0;
@@ -632,7 +630,6 @@ export class TestFileService implements IFileService {
 			try {
 				content = readableToBuffer(bufferOrReadable);
 			} catch {
-				// Some preexisting tests are writing with invalid objects
 			}
 		}
 
@@ -712,10 +709,6 @@ export class TestFileService implements IFileService {
 	async canDelete(resource: URI, options?: { useTrash?: boolean | undefined; recursive?: boolean | undefined } | undefined): Promise<Error | true> { return true; }
 }
 
-/**
- * TestFileService with in-memory file storage.
- * Use this when your test needs to write files and read them back.
- */
 export class InMemoryTestFileService extends TestFileService {
 
 	private files = new ResourceMap<VSBuffer>();
@@ -733,7 +726,6 @@ export class InMemoryTestFileService extends TestFileService {
 		this.lastReadFileUri = resource;
 		this.readOperations.push({ resource });
 
-		// Check if we have content in our in-memory store
 		const content = this.files.get(resource);
 		if (content) {
 			return {
@@ -762,7 +754,6 @@ export class InMemoryTestFileService extends TestFileService {
 			content = readableToBuffer(bufferOrReadable);
 		}
 
-		// Store in memory and track
 		this.files.set(resource, content);
 		this.writeOperations.push({ resource, content: content.toString() });
 
@@ -893,7 +884,7 @@ export class TestLifecycleService extends Disposable implements ILifecycleServic
 				this.shutdownJoiners.push(typeof p === 'function' ? p() : p);
 			},
 			joiners: () => [],
-			force: () => { /* No-Op in tests */ },
+			force: () => { },
 			token: CancellationToken.None,
 			reason
 		});

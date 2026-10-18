@@ -8,11 +8,6 @@ import { CancellationToken } from '../../common/cancellation.js';
 import { TfIdfCalculator, TfIdfDocument, TfIdfScore } from '../../common/tfIdf.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from './utils.js';
 
-/**
- * Generates all permutations of an array.
- *
- * This is useful for testing to make sure order does not effect the result.
- */
 function permutate<T>(arr: T[]): T[][] {
 	if (arr.length === 0) {
 		return [[]];

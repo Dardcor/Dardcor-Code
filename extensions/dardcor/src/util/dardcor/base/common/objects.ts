@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -84,10 +83,6 @@ function _cloneAndChange(obj: any, changer: (orig: any) => any, seen: Set<any>):
 	return obj;
 }
 
-/**
- * Copies all properties of source into destination. The optional parameter "overwrite" allows to control
- * if existing properties on the destination should be overwritten or not. Defaults to true (overwrite).
- */
 export function mixin(destination: any, source: any, overwrite: boolean = true): any {
 	if (!isObject(destination)) {
 		return source;
@@ -164,11 +159,6 @@ export function equals(one: any, other: any): boolean {
 	return true;
 }
 
-/**
- * Calls `JSON.Stringify` with a replacer to break apart any circular references.
- * This prevents `JSON`.stringify` from throwing the exception
- *  "Uncaught TypeError: Converting circular structure to JSON"
- */
 export function safeStringify(obj: any): string {
 	const seen = new Set<any>();
 	return JSON.stringify(obj, (key, value) => {
@@ -186,18 +176,6 @@ export function safeStringify(obj: any): string {
 	});
 }
 
-/**
- * Like `JSON.stringify`, but with deterministic ordering of object keys so that
- * structurally equal inputs always produce the same string. Useful for cache
- * keys derived from arbitrary object payloads.
- *
- * - Object keys are sorted at every level of nesting.
- * - Properties whose value is `undefined` are omitted (matching `JSON.stringify`).
- * - Circular references are replaced with the string `"[Circular]"` to avoid
- *   throwing.
- * - A top-level `undefined` returns the string `'undefined'`; any other
- *   stringification failure returns the empty string.
- */
 export function stableStringify(value: unknown): string {
 	if (value === undefined) {
 		return 'undefined';
@@ -233,16 +211,6 @@ function _stableStringify(value: unknown, seen: WeakSet<object>): string {
 }
 
 type obj = { [key: string]: any };
-/**
- * Returns an object that has keys for each value that is different in the base object. Keys
- * that do not exist in the target but in the base object are not considered.
- *
- * Note: This is not a deep-diffing method, so the values are strictly taken into the resulting
- * object if they differ.
- *
- * @param base the object to diff against
- * @param obj the object to use for diffing
- */
 export function distinct(base: obj, target: obj): obj {
 	const result = Object.create(null);
 

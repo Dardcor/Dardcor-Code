@@ -55,8 +55,6 @@ export class NativeAuxiliaryWindow extends AuxiliaryWindow {
 		super(window, container, stylesHaveLoaded, configurationService, hostService, environmentService, contextMenuService, layoutService);
 
 		if (!isMacintosh) {
-			// For now, limit this to platforms that have clear maximised
-			// transitions (Windows, Linux) via window buttons.
 			this.handleMaximizedState();
 		}
 
@@ -169,7 +167,6 @@ export class NativeAuxiliaryWindowService extends BrowserAuxiliaryWindowService 
 
 	protected override createContainer(auxiliaryWindow: NativeCodeWindow, disposables: DisposableStore, options?: IAuxiliaryWindowOpenOptions) {
 
-		// Zoom level (either explicitly provided or inherited from main window)
 		let windowZoomLevel: number;
 		if (typeof options?.zoomLevel === 'number') {
 			windowZoomLevel = options.zoomLevel;

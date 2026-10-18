@@ -150,19 +150,6 @@ export class FeedbackReporter extends Disposable implements IFeedbackReporter {
 	}
 
 	async reportSearch(kind: SearchFeedbackKind): Promise<void> {
-		/* __GDPR__
-			"dardcor.search.feedback" : {
-				"owner": "osortega",
-				"comment": "Feedback telemetry for dardcor search",
-				"kind": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Feedback provided by the user." },
-				"chunkCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of dardcor search code chunks." },
-				"rankResult": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Result of the dardcor search ranking." },
-				"rankResultsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of the results from dardcor search ranking." },
-				"combinedResultsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of combined results from dardcor search." },
-				"chunkSearchDuration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Duration of the chunk search" },
-				"llmFilteringDuration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Duration of the LLM filtering" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('dardcor.search.feedback', {
 			kind,
 			rankResult: SemanticSearchTextSearchProvider.feedBackTelemetry.rankResult,
@@ -207,7 +194,7 @@ function appendPromptDetailsSection(output: string[], ...dumps: string[]): void 
 	output.push(
 		`<details><summary>Prompt Details</summary>`,
 		`<p>`,
-		'', // Necessary for the indentation to render as a codeblock inside the <p>
+		'',
 		...dumps,
 		`</p>`,
 		`</details>`,

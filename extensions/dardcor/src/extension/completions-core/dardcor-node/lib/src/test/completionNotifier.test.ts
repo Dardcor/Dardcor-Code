@@ -50,14 +50,13 @@ suite('Completion Notifier', function () {
 			assert.strictEqual(notifiedEvent.completionId, completionId);
 			assert.strictEqual(notifiedEvent.completionState, completionState);
 			assert.strictEqual(notifiedEvent.telemetryData, telemetryData);
-			notifiedEvent = undefined; // Reset for each iteration
+			notifiedEvent = undefined;
 		}
 
 		disposable.dispose();
 	});
 
 	test('should not propagate errors from listeners', function () {
-		// The telemetryCatch wrapper should handle errors, so the test should not throw
 		let errorThrown = false;
 		const disposable = notifier.onRequest(() => {
 			throw new Error('Test error from listener');
@@ -65,7 +64,6 @@ suite('Completion Notifier', function () {
 
 		try {
 			notifier.notifyRequest(completionState, 'test-completion-id', telemetryData);
-			// If we reach here, the error was caught and handled properly
 		} catch (error) {
 			errorThrown = true;
 		}
@@ -81,10 +79,8 @@ suite('Completion Notifier', function () {
 			requestCount++;
 		});
 
-		// Dispose listeners before making any requests
 		requestDisposable.dispose();
 
-		// Make a request - should not trigger any listeners
 		notifier.notifyRequest(completionState, 'test-completion-id', telemetryData);
 
 		assert.strictEqual(requestCount, 0, 'Request listener should be disposed');

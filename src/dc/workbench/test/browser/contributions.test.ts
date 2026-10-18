@@ -150,7 +150,7 @@ suite('Contributions', () => {
 		assert.ok(aCreated);
 	});
 
-	(isCI ? test.skip /* runWhenIdle seems flaky in CI on Windows */ : test)('lifecycle phase instantiation works for late phases', async () => {
+	(isCI ? test.skip : test)('lifecycle phase instantiation works for late phases', async () => {
 		const registry = disposables.add(new WorkbenchContributionsRegistry());
 
 		const instantiationService = workbenchInstantiationService(undefined, disposables);

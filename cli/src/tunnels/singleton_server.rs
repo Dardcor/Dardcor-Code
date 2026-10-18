@@ -58,11 +58,6 @@ struct SingletonServerContext {
 	log: log::Logger,
 	shutdown_tx: broadcast::Sender<ShutdownSignal>,
 	broadcast_tx: broadcast::Sender<Vec<u8>>,
-	// ugly: a lock in a lock. current_status needs to be provided only
-	// after we set up the tunnel, however the tunnel is created after the
-	// singleton server starts to avoid a gap in singleton availability.
-	// However, this should be safe, as the lock is only used for immediate
-	// data reads (in the `status` method).
 	current_status: Arc<Mutex<Option<StatusInfo>>>,
 }
 
@@ -130,8 +125,6 @@ pub fn make_singleton_server(
 		},
 	);
 
-	// we tokio spawn instead of keeping a future, since we want it to progress
-	// even outside of the start_singleton_server loop (i.e. while the tunnel restarts)
 	let fut = tokio::spawn(async move {
 		serve_singleton_rpc(log_broadcast, server, rpc.build(log), shutdown_rx).await
 	});
@@ -172,9 +165,6 @@ pub async fn start_singleton_server(
 
 	match futures::future::select(Pin::new(&mut args.server.fut), &mut serve_fut).await {
 		Either::Left((rpc_result, fut)) => {
-			// the rpc server will only end as a result of a graceful shutdown, or
-			// with an error. Return the result of the eventual shutdown of the
-			// control server.
 			rpc_result.unwrap()?;
 			fut.await
 		}
@@ -208,10 +198,6 @@ async fn serve_singleton_rpc<C: Clone + Send + Sync + 'static>(
 	}
 }
 
-/// Log sink that can broadcast and replay log events. Used for transmitting
-/// logs from the singleton to all clients. This should be created and injected
-/// into other services, like the tunnel, before `start_singleton_server`
-/// is called.
 #[derive(Clone)]
 pub struct BroadcastLogSink {
 	recent: Arc<Mutex<RingBuffer<Vec<u8>>>>,

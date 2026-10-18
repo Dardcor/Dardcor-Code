@@ -53,7 +53,6 @@ export class CommentGlyphWidget extends Disposable {
 	}
 
 	private createDecorationOptions(): ModelDecorationOptions {
-		// Priority: draft > unresolved > resolved
 		let className: string;
 		if (this._threadHasDraft) {
 			className = 'comment-range-glyph comment-thread-draft';

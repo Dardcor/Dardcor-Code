@@ -40,7 +40,6 @@ class EditorScopedQuickInputService extends QuickInputService {
 			configurationService,
 		);
 
-		// Use the passed in code editor as host for the quick input widget
 		const contribution = QuickInputEditorContribution.get(editor);
 		if (contribution) {
 			const widget = contribution.widget;
@@ -83,8 +82,6 @@ export class StandaloneQuickInputService implements IQuickInputService {
 			throw new Error('Quick input service needs a focused editor to work.');
 		}
 
-		// Find the quick input implementation for the focused
-		// editor or create it lazily if not yet created
 		let quickInputService = this.mapEditorToService.get(editor);
 		if (!quickInputService) {
 			const newQuickInputService = quickInputService = this.instantiationService.createInstance(EditorScopedQuickInputService, editor);
@@ -113,7 +110,7 @@ export class StandaloneQuickInputService implements IQuickInputService {
 	}
 
 	pick<T extends IQuickPickItem, O extends IPickOptions<T>>(picks: Promise<QuickPickInput<T>[]> | QuickPickInput<T>[], options?: O, token: CancellationToken = CancellationToken.None): Promise<(O extends { canPickMany: true } ? T[] : T) | undefined> {
-		return (this.activeService as unknown as QuickInputController /* TS fail */).pick(picks, options, token);
+		return (this.activeService as unknown as QuickInputController ).pick(picks, options, token);
 	}
 
 	input(options?: IInputOptions | undefined, token?: CancellationToken | undefined): Promise<string | undefined> {

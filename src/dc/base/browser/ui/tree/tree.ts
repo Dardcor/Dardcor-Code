@@ -11,61 +11,24 @@ import { Event } from '../../../common/event.js';
 
 export const enum TreeVisibility {
 
-	/**
-	 * The tree node should be hidden.
-	 */
 	Hidden,
 
-	/**
-	 * The tree node should be visible.
-	 */
 	Visible,
 
-	/**
-	 * The tree node should be visible if any of its descendants is visible.
-	 */
 	Recurse
 }
 
-/**
- * A composed filter result containing the visibility result as well as
- * metadata.
- */
 export interface ITreeFilterDataResult<TFilterData> {
 
-	/**
-	 * Whether the node should be visible.
-	 */
 	visibility: boolean | TreeVisibility;
 
-	/**
-	 * Metadata about the element's visibility which gets forwarded to the
-	 * renderer once the element gets rendered.
-	 */
 	data: TFilterData;
 }
 
-/**
- * The result of a filter call can be a boolean value indicating whether
- * the element should be visible or not, a value of type `TreeVisibility` or
- * an object composed of the visibility result as well as additional metadata
- * which gets forwarded to the renderer once the element gets rendered.
- */
 export type TreeFilterResult<TFilterData> = boolean | TreeVisibility | ITreeFilterDataResult<TFilterData>;
 
-/**
- * A tree filter is responsible for controlling the visibility of
- * elements in a tree.
- */
 export interface ITreeFilter<T, TFilterData = void> {
 
-	/**
-	 * Returns whether this elements should be visible and, if affirmative,
-	 * additional metadata which gets forwarded to the renderer once the element
-	 * gets rendered.
-	 *
-	 * @param element The tree element.
-	 */
 	filter(element: T, parentVisibility: TreeVisibility): TreeFilterResult<TFilterData>;
 }
 
@@ -84,14 +47,8 @@ export enum ObjectTreeElementCollapseState {
 	Expanded,
 	Collapsed,
 
-	/**
-	 * If the element is already in the tree, preserve its current state. Else, expand it.
-	 */
 	PreserveOrExpanded,
 
-	/**
-	 * If the element is already in the tree, preserve its current state. Else, collapse it.
-	 */
 	PreserveOrCollapsed,
 }
 
@@ -164,7 +121,6 @@ export interface ITreeElementRenderDetails extends IListElementRenderDetails {
 }
 
 export interface ITreeRenderer<T, TFilterData = void, TTemplateData = void> extends IListRenderer<ITreeNode<T, TFilterData>, TTemplateData> {
-	/** CSS class applied to list rows created for this renderer. */
 	readonly rowClassName?: string;
 	renderElement(element: ITreeNode<T, TFilterData>, index: number, templateData: TTemplateData, details?: ITreeElementRenderDetails): void;
 	disposeElement?(element: ITreeNode<T, TFilterData>, index: number, templateData: TTemplateData, details?: ITreeElementRenderDetails): void;

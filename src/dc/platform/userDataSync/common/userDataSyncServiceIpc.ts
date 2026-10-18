@@ -38,7 +38,6 @@ export class UserDataSyncServiceChannel implements IServerChannel {
 
 	listen(_: unknown, event: string): Event<any> {
 		switch (event) {
-			// sync
 			case 'onDidChangeStatus': return this.service.onDidChangeStatus;
 			case 'onDidChangeConflicts': return this.service.onDidChangeConflicts;
 			case 'onDidChangeLocal': return this.service.onDidChangeLocal;
@@ -47,7 +46,6 @@ export class UserDataSyncServiceChannel implements IServerChannel {
 			case 'onDidResetLocal': return this.service.onDidResetLocal;
 			case 'onDidResetRemote': return this.service.onDidResetRemote;
 
-			// manual sync
 			case 'manualSync/onSynchronizeResources': return this.onManualSynchronizeResources.event;
 		}
 
@@ -67,7 +65,6 @@ export class UserDataSyncServiceChannel implements IServerChannel {
 	private async _call(context: any, command: string, args?: any): Promise<any> {
 		switch (command) {
 
-			// sync
 			case '_getInitialData': return Promise.resolve([this.service.status, this.service.conflicts, this.service.lastSyncTime]);
 			case 'reset': return this.service.reset();
 			case 'resetRemote': return this.service.resetRemote();
@@ -84,7 +81,6 @@ export class UserDataSyncServiceChannel implements IServerChannel {
 			case 'createManualSyncTask': return this.createManualSyncTask();
 		}
 
-		// manual sync
 		if (command.startsWith('manualSync/')) {
 			const manualSyncTaskCommand = command.substring('manualSync/'.length);
 			const manualSyncTaskId = args[0];
@@ -243,7 +239,6 @@ export class UserDataSyncServiceChannelClient extends Disposable implements IUse
 	}
 
 	private async updateConflicts(conflicts: IUserDataSyncResourceConflicts[]): Promise<void> {
-		// Revive URIs
 		this._conflicts = conflicts.map(syncConflict =>
 		({
 			syncResource: syncConflict.syncResource,

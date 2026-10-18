@@ -246,25 +246,19 @@ suite('ObjectTreeModel', function () {
 		model.setChildren(null, data);
 		assert.deepStrictEqual(toArray(list), ['cars', 'sedan', 'convertible', 'compact', 'airplanes', 'passenger', 'jet', 'bicycles', 'dutch', 'mountain', 'electric']);
 
-		// lexicographical
 		compare = (a, b) => a < b ? -1 : 1;
 
-		// non-recursive
 		model.resort(null, false);
 		assert.deepStrictEqual(toArray(list), ['airplanes', 'passenger', 'jet', 'bicycles', 'dutch', 'mountain', 'electric', 'cars', 'sedan', 'convertible', 'compact']);
 
-		// recursive
 		model.resort();
 		assert.deepStrictEqual(toArray(list), ['airplanes', 'jet', 'passenger', 'bicycles', 'dutch', 'electric', 'mountain', 'cars', 'compact', 'convertible', 'sedan']);
 
-		// reverse
 		compare = (a, b) => a < b ? 1 : -1;
 
-		// scoped
 		model.resort('cars');
 		assert.deepStrictEqual(toArray(list), ['airplanes', 'jet', 'passenger', 'bicycles', 'dutch', 'electric', 'mountain', 'cars', 'sedan', 'convertible', 'compact']);
 
-		// recursive
 		model.resort();
 		assert.deepStrictEqual(toArray(list), ['cars', 'sedan', 'convertible', 'compact', 'bicycles', 'mountain', 'electric', 'dutch', 'airplanes', 'passenger', 'jet']);
 
@@ -318,15 +312,15 @@ suite('ObjectTreeModel', function () {
 		assert.deepStrictEqual(toArray(list), []);
 
 		model.setChildren('file', [{ element: 'world' }]);
-		await timeout(0); // wait for refilter microtask
+		await timeout(0);
 		assert.deepStrictEqual(toArray(list), ['file', 'world']);
 
 		model.setChildren('file', [{ element: 'hello' }]);
-		await timeout(0); // wait for refilter microtask
+		await timeout(0);
 		assert.deepStrictEqual(toArray(list), []);
 
 		model.setChildren('file', [{ element: 'world' }]);
-		await timeout(0); // wait for refilter microtask
+		await timeout(0);
 		assert.deepStrictEqual(toArray(list), ['file', 'world']);
 
 		disposable.dispose();

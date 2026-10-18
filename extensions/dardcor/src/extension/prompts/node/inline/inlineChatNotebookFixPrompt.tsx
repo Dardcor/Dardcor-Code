@@ -66,7 +66,7 @@ export class InlineFixNotebookPrompt extends PromptElement<InlineFixProps, Inlin
 
 	override async prepare(sizing: PromptSizing): Promise<InlineChatNotebookFixPromptState> {
 		const { documentContext: context } = this.props;
-		const isIgnored = await this._ignoreService.isCopilotIgnored(context.document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(context.document.uri);
 
 		return {
 			isIgnored,
@@ -88,7 +88,6 @@ export class InlineFixNotebookPrompt extends PromptElement<InlineFixProps, Inlin
 		const { query, history, chatVariables } = this.props.promptContext;
 		const selection = documentContext.selection;
 
-		// find the diagnostics of interest and the selection of interest surrounding the diagnostics
 		const diagnostics = findDiagnosticForSelectionAndPrompt(this._languageDiagnosticsService, documentContext.document.uri, documentContext.selection, query);
 		const range = diagnostics.length > 0 ? rangeSpanningDiagnostics(diagnostics) : documentContext.selection;
 
@@ -96,11 +95,10 @@ export class InlineFixNotebookPrompt extends PromptElement<InlineFixProps, Inlin
 		const rangeOfInterest = treeSitterAST ? await findFixRangeOfInterest(treeSitterAST, range, FIX_SELECTION_LENGTH_THRESHOLD) : range;
 
 		const fixContext = generateFixContext(this._promptEndpoint, documentContext, range, rangeOfInterest);
-		const inputDocCharLimit = (sizing.endpoint.modelMaxPromptTokens / 3) * 4; // consume one 3rd of the model window, estimating roughly 4 chars per token;
+		const inputDocCharLimit = (sizing.endpoint.modelMaxPromptTokens / 3) * 4;
 		let projectedDocument: ProjectedDocument;
 		let isSummarized = false;
 		if (documentContext.document.getText().length > inputDocCharLimit) {
-			// only compute the summarized document if needed
 			const structure = await getStructure(this._parserService, documentContext.document, documentContext.fileIndentInfo);
 			projectedDocument = summarizeDocumentSync(inputDocCharLimit, documentContext.document, documentContext.wholeRange, structure, { tryPreserveTypeChecking: true });
 			isSummarized = true;
@@ -114,7 +112,6 @@ export class InlineFixNotebookPrompt extends PromptElement<InlineFixProps, Inlin
 		const contextInfo = generateNotebookCellContext(this._tabsAndEditorsService, this._workspaceService, documentContext, fixContext.contextInfo, fixContext.tracker);
 		const replyInterpreter = this._instantiationService.createInstance(PatchEditFixReplyInterpreter, projectedDocument, documentContext.document.uri, adjustedSelection);
 
-		// const replyInterpreter = this._instantiationService.createInstance(FixNotebookReplyInterpreter, range, contextInfo, documentContext);
 		const exampleUri = Uri.file('/someFolder/myFile.ts');
 		const priorities = state.priorities;
 		return (
@@ -189,8 +186,8 @@ export class InlineFixNotebookPrompt extends PromptElement<InlineFixProps, Inlin
 				/>
 				<InlineChatNotebookVariables notebookURI={this.props.documentContext.document.uri} priority={priorities.runtimeCore} priorities={priorities} query={query} />
 				<UserMessage priority={priorities.core}>
-					{/* <Diagnostics documentContext={documentContext} diagnostics={diagnostics} /> */}
-					{/* Describe in a single sentence how you would solve the problem. After that sentence, add an empty line. Then add a code block with the fix. */}
+					{}
+					{}
 					Please find a fix for my code so that the result is without any errors.<br />
 					<UserQuery chatVariables={chatVariables} query={query} /><br />
 				</UserMessage>
@@ -320,18 +317,6 @@ interface InlineChatFixNotebookCellsContextRendererProps extends BasePromptEleme
 	belowCells: CodeContextRegion[];
 }
 
-/**
- * Notebook cell context renderer. Used by Fix intents.
- * It's using following example for llm response:
- * 	---FILEPATH Untitled-1<br />
-	---FIND<br />
-	---REPLACE<br />
-	```python<br />
-	df.plot(x='Name', y='Age', kind='bar')<br />
-	```<br />
-	---COMPLETE<br />
- * However, we don't use this in Generate and Edit intents yet.
- */
 class InlineChatFixNotebookCellsContextRenderer extends PromptElement<InlineChatFixNotebookCellsContextRendererProps> {
 	render(state: void, sizing: PromptSizing) {
 		if (!isNotebookCellOrNotebookChatInput(this.props.documentContext.document.uri)) {

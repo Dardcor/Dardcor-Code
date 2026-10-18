@@ -6,25 +6,10 @@
 import { isString } from '../../../../base/common/types.js';
 import { MessageAttachmentKind, type MessageAttachment } from '../state/protocol/state.js';
 
-/**
- * Namespaced `_meta` slot marking a {@link MessageAttachmentKind.Resource} attachment as a
- * host-created snapshot: an on-disk copy the agent host wrote under the session attachments
- * directory to carry client-resident or derived content (pasted text/images, unsaved editors,
- * read-only `git:` diff views) that cannot be referenced as a real workspace file.
- *
- * Such snapshots are **read-only context** — the model should consume their content, not edit
- * the copy. Providers use {@link isHostSnapshotAttachment} / {@link readHostSnapshotAttachmentMeta}
- * to signal read-only: Copilot still sends the file path (so the model can read it on demand) but
- * conveys the read-only intent out-of-band on the prompt (an `additionalContext` / `<reminder>`
- * note), while Codex/Claude annotate the path reference inline as read-only. The `contentType` is
- * preserved because the on-disk `Resource` no longer carries the original MIME type.
- */
 export const HostSnapshotAttachmentMetadataKey = 'vscode.agentHost.snapshotAttachment';
 
 export interface IHostSnapshotAttachmentMetadata {
-	/** Always `true`; marks the attachment as a host-created read-only snapshot. */
 	readonly isSnapshot: true;
-	/** The original content MIME type, preserved so consumers can inline without re-sniffing. */
 	readonly contentType?: string;
 }
 

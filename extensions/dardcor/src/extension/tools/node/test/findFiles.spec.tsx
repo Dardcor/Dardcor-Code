@@ -17,7 +17,7 @@ import { URI } from '../../../../util/dardcor/base/common/uri';
 import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
-import { CopilotToolMode } from '../../common/toolsRegistry';
+import { AgentToolMode } from '../../common/toolsRegistry';
 import { FindFilesTool, IFindFilesToolParams } from '../findFilesTool';
 import { createMockEndpointProvider, mockLanguageModelChat } from './searchToolTestUtils';
 
@@ -113,30 +113,30 @@ suite('FindFiles', () => {
 			setup('hello');
 		});
 
-		async function testIt(input: IFindFilesToolParams, context: CopilotToolMode) {
+		async function testIt(input: IFindFilesToolParams, context: AgentToolMode) {
 			const tool = accessor.get(IInstantiationService).createInstance(FindFilesTool);
 			const resolved = await tool.resolveInput(input, null!, context);
 			expect(resolved).toMatchSnapshot();
 		}
 
 		test('resolveInput with FullContext and no maxResults', async () => {
-			await testIt({ query: 'hello' }, CopilotToolMode.FullContext);
+			await testIt({ query: 'hello' }, AgentToolMode.FullContext);
 		});
 
 		test('resolveInput with FullContext and maxResults < 200', async () => {
-			await testIt({ query: 'hello', maxResults: 50 }, CopilotToolMode.FullContext);
+			await testIt({ query: 'hello', maxResults: 50 }, AgentToolMode.FullContext);
 		});
 
 		test('resolveInput with FullContext and maxResults > 200', async () => {
-			await testIt({ query: 'hello', maxResults: 300 }, CopilotToolMode.FullContext);
+			await testIt({ query: 'hello', maxResults: 300 }, AgentToolMode.FullContext);
 		});
 
 		test('resolveInput with PartialContext and no maxResults', async () => {
-			await testIt({ query: 'hello' }, CopilotToolMode.PartialContext);
+			await testIt({ query: 'hello' }, AgentToolMode.PartialContext);
 		});
 
 		test('resolveInput with PartialContext and maxResults defined', async () => {
-			await testIt({ query: 'hello', maxResults: 123 }, CopilotToolMode.PartialContext);
+			await testIt({ query: 'hello', maxResults: 123 }, AgentToolMode.PartialContext);
 		});
 	});
 });
@@ -190,7 +190,7 @@ suite('FindFiles - absolute workspace folder path', () => {
 		const searchService = setup();
 		const tool = accessor.get(IInstantiationService).createInstance(FindFilesTool);
 
-		const resolved = await tool.resolveInput({ query: folder1 }, null!, CopilotToolMode.PartialContext);
+		const resolved = await tool.resolveInput({ query: folder1 }, null!, AgentToolMode.PartialContext);
 		await tool.invoke({ input: resolved, toolInvocationToken: null! }, CancellationToken.None);
 
 		expect(searchService.lastFilePattern).toHaveLength(1);
@@ -202,7 +202,7 @@ suite('FindFiles - absolute workspace folder path', () => {
 		const searchService = setup();
 		const tool = accessor.get(IInstantiationService).createInstance(FindFilesTool);
 
-		const resolved = await tool.resolveInput({ query: `${folder1}/**/*.ts` }, null!, CopilotToolMode.PartialContext);
+		const resolved = await tool.resolveInput({ query: `${folder1}/**/*.ts` }, null!, AgentToolMode.PartialContext);
 		await tool.invoke({ input: resolved, toolInvocationToken: null! }, CancellationToken.None);
 
 		expect(searchService.lastFilePattern).toHaveLength(1);
@@ -234,7 +234,6 @@ class TestSearchService extends AbstractSearchService {
 	}
 
 	override async findFiles(filePattern: vscode.GlobPattern | vscode.GlobPattern[], options?: vscode.FindFiles2Options | undefined, token?: vscode.CancellationToken | undefined): Promise<vscode.Uri[]> {
-		// Verify pattern and baseUri paths match structurally
 		const expected = Array.isArray(this.expectedPattern) ? this.expectedPattern : [this.expectedPattern];
 		const actual = Array.isArray(filePattern) ? filePattern : [filePattern];
 		expect(actual.length).toBe(expected.length);

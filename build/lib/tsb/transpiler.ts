@@ -25,7 +25,6 @@ function transpile(tsSrc: string, options: ts.TranspileOptions): { jsSrc: string
 
 	const isAmd = /\n(import|export)/m.test(tsSrc);
 	if (!isAmd && options.compilerOptions?.module === ts.ModuleKind.AMD) {
-		// enforce NONE module-system for not-amd cases
 		options = { ...options, ...{ compilerOptions: { ...options.compilerOptions, module: ts.ModuleKind.None } } };
 	}
 	const out = ts.transpileModule(tsSrc, options);
@@ -36,7 +35,6 @@ function transpile(tsSrc: string, options: ts.TranspileOptions): { jsSrc: string
 }
 
 if (!threads.isMainThread) {
-	// WORKER
 	threads.parentPort?.addListener('message', (req: TranspileReq) => {
 		const res: TranspileRes = {
 			jsSrcs: [],
@@ -56,8 +54,6 @@ class OutputFileNameOracle {
 	readonly getOutputFileName: (name: string) => string;
 
 	constructor(cmdLine: ts.ParsedCommandLine, configFilePath: string) {
-		// very complicated logic to re-use TS internal functions to know the output path
-		// given a TS input path and its config
 		type InternalTsApi = typeof ts & {
 			normalizePath(path: string): string;
 			getOutputFileNames(commandLine: ts.ParsedCommandLine, inputFileName: string, ignoreCase: boolean): readonly string[];
@@ -65,11 +61,9 @@ class OutputFileNameOracle {
 		this.getOutputFileName = (file) => {
 			try {
 
-				// windows: path-sep normalizing
 				file = (ts as InternalTsApi).normalizePath(file);
 
 				if (!cmdLine.options.configFilePath) {
-					// this is needed for the INTERNAL getOutputFileNames-call below...
 					cmdLine.options.configFilePath = configFilePath;
 				}
 				const isDts = file.endsWith('.d.ts');
@@ -116,7 +110,6 @@ class TranspileWorker {
 			const diag: ts.Diagnostic[] = [];
 
 			for (let i = 0; i < res.jsSrcs.length; i++) {
-				// inputs and outputs are aligned across the arrays
 				const file = files[i];
 				const jsSrc = res.jsSrcs[i];
 				const diag = res.diagnostics[i];
@@ -134,8 +127,6 @@ class TranspileWorker {
 					: file.path.endsWith('.ts') ? SuffixTypes.Ts
 						: SuffixTypes.Unknown;
 
-				// check if output of a DTS-files isn't just "empty" and iff so
-				// skip this file
 				if (suffixLen === SuffixTypes.Dts && _isDefaultEmpty(jsSrc)) {
 					continue;
 				}
@@ -162,7 +153,6 @@ class TranspileWorker {
 	}
 
 	terminate() {
-		// console.log(`Worker#${this.id} ENDS after ${this._durations.length} jobs (total: ${this._durations.reduce((p, c) => p + c, 0)}, avg: ${this._durations.reduce((p, c) => p + c, 0) / this._durations.length})`);
 		this._worker.terminate();
 	}
 
@@ -222,12 +212,10 @@ export class TscTranspiler implements ITranspiler {
 	}
 
 	async join() {
-		// wait for all penindg jobs
 		this._consumeQueue();
 		await Promise.allSettled(this._allJobs);
 		this._allJobs.length = 0;
 
-		// terminate all worker
 		this._workerPool.forEach(w => w.terminate());
 		this._workerPool.length = 0;
 	}
@@ -236,7 +224,6 @@ export class TscTranspiler implements ITranspiler {
 	transpile(file: Vinyl) {
 
 		if (this._cmdLine.options.noEmit) {
-			// not doing ANYTHING here
 			return;
 		}
 
@@ -249,11 +236,9 @@ export class TscTranspiler implements ITranspiler {
 	private _consumeQueue(): void {
 
 		if (this._queue.length === 0) {
-			// no work...
 			return;
 		}
 
-		// kinda LAZYily create workers
 		if (this._workerPool.length === 0) {
 			for (let i = 0; i < TscTranspiler.P; i++) {
 				this._workerPool.push(new TranspileWorker(file => this._outputFileNames.getOutputFileName(file)));
@@ -262,7 +247,6 @@ export class TscTranspiler implements ITranspiler {
 
 		const freeWorker = this._workerPool.filter(w => !w.isBusy);
 		if (freeWorker.length === 0) {
-			// OK, they will pick up work themselves
 			return;
 		}
 
@@ -276,12 +260,9 @@ export class TscTranspiler implements ITranspiler {
 				const consume = () => {
 					const files = this._queue.splice(0, TscTranspiler.P);
 					if (files.length === 0) {
-						// DONE
 						resolve(undefined);
 						return;
 					}
-					// work on the NEXT file
-					// const [inFile, outFn] = req;
 					worker.next(files, { compilerOptions: this._cmdLine.options }).then(outFiles => {
 						if (this.onOutfile) {
 							outFiles.map(this.onOutfile, this);
@@ -324,9 +305,6 @@ export class ESBuildTranspiler implements ITranspiler {
 		this._logFn('Transpile', `will use ESBuild to transpile source files`);
 		this._outputFileNames = new OutputFileNameOracle(this._cmdLine, configFilePath);
 
-		// Determine whether this project is a built-in extension by looking for an `extensions`
-		// path *segment* (not a substring, so a checkout/worktree folder whose name merely contains
-		// "extensions" is not mistaken for the `extensions/` directory).
 		const isExtension = configFilePath.split(path.sep).includes('extensions');
 
 		const target = getTargetStringFromTsConfig(configFilePath);
@@ -346,8 +324,8 @@ export class ESBuildTranspiler implements ITranspiler {
 				}
 			}),
 			supported: {
-				'class-static-blocks': false, // SEE https://github.com/evanw/esbuild/issues/3823,
-				'dynamic-import': !isExtension, // see https://github.com/evanw/esbuild/issues/1281
+				'class-static-blocks': false,
+				'dynamic-import': !isExtension,
 				'class-field': !isExtension
 			}
 		};
@@ -369,8 +347,6 @@ export class ESBuildTranspiler implements ITranspiler {
 			sourcefile: file.path,
 		}).then(result => {
 
-			// check if output of a DTS-files isn't just "empty" and iff so
-			// skip this file
 			if (file.path.endsWith('.d.ts') && _isDefaultEmpty(result.code)) {
 				return;
 			}

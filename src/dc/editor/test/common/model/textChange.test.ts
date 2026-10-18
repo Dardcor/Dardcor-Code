@@ -69,7 +69,6 @@ suite('TextChangeCompressor', () => {
 
 		const compressedTextChanges = compressConsecutiveTextChanges(chg1, chg2);
 
-		// Check that the compression was correct
 		const compressedDoTextEdits: IGeneratedEdit[] = compressedTextChanges.map((change) => {
 			return {
 				offset: change.oldPosition,
@@ -122,18 +121,6 @@ suite('TextChangeCompressor', () => {
 		);
 	});
 
-	// test('issue #118041', () => {
-	// 	assertCompression(
-	// 		'﻿',
-	// 		[
-	// 			{ offset: 0, length: 1, text: '' },
-	// 		],
-	// 		[
-	// 			{ offset: 1, length: 0, text: 'Z' },
-	// 			{ offset: 3, length: 3, text: 'Y' },
-	// 		]
-	// 	);
-	// })
 
 	test('gen1', () => {
 		assertCompression(

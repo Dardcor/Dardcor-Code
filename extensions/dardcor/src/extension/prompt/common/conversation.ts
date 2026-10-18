@@ -33,7 +33,7 @@ export enum TurnStatus {
 export type TurnMessage = {
 	readonly type: 'user' | 'follow-up' | 'template' | 'offtopic-detection' | 'model' | 'meta' | 'server';
 	readonly name?: string;
-	/* readonly  */message: string;
+	message: string;
 };
 
 
@@ -63,7 +63,6 @@ export class Turn {
 
 	private readonly _metadata = new Map<unknown, unknown[]>();
 
-	/** Summaries applied during the tool-call loop, before setResponse is called. */
 	private _pendingSummaries: { toolCallRoundId: string; text: string }[] = [];
 
 	public readonly startTime = Date.now();
@@ -111,7 +110,6 @@ export class Turn {
 		this._references = getUniqueReferences([...this._references, ...newReferences]);
 	}
 
-	// --- response
 
 	get responseMessage(): TurnMessage | undefined {
 		return this._responseInfo?.message;
@@ -138,9 +136,6 @@ export class Turn {
 		return metadata?.renderedUserMessage;
 	}
 
-	// TODO@roblourens Tracking result data in "agent as chat participant" is difficult and will be replaced in the future.
-	// This is likely a Turn from Ask mode that does not have tool call rounds.
-	// Use consistent instances so we can save state on them.
 	private _filledInMissingRounds: IToolCallRound[] | undefined;
 
 	get rounds(): readonly IToolCallRound[] {
@@ -151,7 +146,6 @@ export class Turn {
 				return this._filledInMissingRounds;
 			}
 
-			// Should always have at least one round
 			const response = this.responseMessage?.message ?? '';
 			this._filledInMissingRounds = [new ToolCallRound(response, [], undefined, this.id)];
 			return this._filledInMissingRounds;
@@ -162,7 +156,6 @@ export class Turn {
 
 	setResponse(status: TurnStatus, message: TurnMessage | undefined, responseId: string | undefined, chatResult: ChatResult | undefined) {
 		if (this._responseInfo?.status === TurnStatus.Cancelled) {
-			// The cancelled result can be assigned from inside ToolCallingLoop
 			return;
 		}
 
@@ -171,9 +164,6 @@ export class Turn {
 	}
 
 
-	// --- metadata
-	// Using 'any' for constructor args here because TS will complain about passing any class if 'unknown' is used, I'm not totally sure why.
-	// The idea of this is that you pass in a class and we return instances of that class.
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	getMetadata<T extends object>(key: new (...args: any[]) => T): T | undefined {
@@ -192,11 +182,6 @@ export class Turn {
 		this._metadata.set(key, arr);
 	}
 
-	/**
-	 * Store a background-compaction summary on this turn so it can be picked up
-	 * by `normalizeSummariesOnRounds` even before `setResponse` is called
-	 * (i.e. while the tool-call loop is still running).
-	 */
 	addPendingSummary(toolCallRoundId: string, text: string): void {
 		this._pendingSummaries.push({ toolCallRoundId, text });
 	}
@@ -206,20 +191,9 @@ export class Turn {
 	}
 }
 
-// TODO handle persisted 'previous' and '' IDs (?)
-// 'previous' -> last tool call round of previous turn
-// '' -> current turn, but with user message
-/**
- * Move summaries from metadata onto rounds.
- * This is needed for summaries that were produced for a different turn than the current one, because we can only
- * return resultMetadata from a particular request for the current turn, and can't modify the data for previous turns.
- */
 export function normalizeSummariesOnRounds(turns: readonly Turn[]): void {
 	for (const [idx, turn] of turns.entries()) {
-		// Try persisted summaries from resultMetadata first, fall back to pending
-		// summaries that were stored during the tool-call loop (before setResponse).
 		const turnSummaries = turn.resultMetadata?.summaries ?? (turn.resultMetadata?.summary ? [turn.resultMetadata.summary] : turn.pendingSummaries);
-		// Each summary supersedes all previous ones, so only the last one matters for restoration
 		const turnSummary = turnSummaries.at(-1);
 		if (!turnSummary) {
 			continue;
@@ -261,7 +235,7 @@ export class Conversation {
 	}
 
 	getLatestTurn(): Turn {
-		return this._turns.at(-1)!; // safe, we checked for length in the ctor
+		return this._turns.at(-1)!;
 	}
 }
 
@@ -282,7 +256,6 @@ export function getUniqueReferences(references: PromptReference[]): PromptRefere
 		}
 
 		const [firstRange, lastRange] = (a.start.line < b.start.line) ? [a, b] : [b, a];
-		// check if a is before b
 		if (firstRange.end.line >= (lastRange.start.line - 1)) {
 			return new Range(firstRange.start, lastRange.end);
 		}
@@ -290,7 +263,6 @@ export function getUniqueReferences(references: PromptReference[]): PromptRefere
 		return undefined;
 	};
 
-	// remove overlaps from within the same promptContext
 	references.forEach(targetReference => {
 		const refAnchor = targetReference.anchor;
 		if ('variableName' in refAnchor) {
@@ -298,7 +270,6 @@ export function getUniqueReferences(references: PromptReference[]): PromptRefere
 		} else if (!isLocation(refAnchor)) {
 			groupedPromptReferences.set(refAnchor, targetReference);
 		} else {
-			// reference is a range
 			const existingRefs = groupedPromptReferences.get(refAnchor.uri);
 			const asValidLocation = toLocation(refAnchor);
 			if (!asValidLocation) {
@@ -307,7 +278,6 @@ export function getUniqueReferences(references: PromptReference[]): PromptRefere
 			if (!existingRefs) {
 				groupedPromptReferences.set(refAnchor.uri, [new PromptReference(asValidLocation, undefined, targetReference.options)]);
 			} else if (!(existingRefs instanceof PromptReference)) {
-				// check if existingRefs isn't already a full file
 				const oldLocationsToKeep: Location[] = [];
 				let newRange = asValidLocation.range;
 				existingRefs.forEach(existingRef => {
@@ -316,7 +286,6 @@ export function getUniqueReferences(references: PromptReference[]): PromptRefere
 					}
 
 					if (!isLocation(existingRef.anchor)) {
-						// this shouldn't be the case, since all PromptReferences added as part of an array should be ranges
 						return;
 					}
 					const existingRange = toLocation(existingRef.anchor);
@@ -325,7 +294,6 @@ export function getUniqueReferences(references: PromptReference[]): PromptRefere
 					}
 					const combinedRange = getCombinedRange(newRange, existingRange.range);
 					if (combinedRange) {
-						// if we can consume this range, incorporate it into the new range and don't add it to the locations to keep
 						newRange = combinedRange;
 					} else {
 						oldLocationsToKeep.push(existingRange);
@@ -345,13 +313,11 @@ export function getUniqueReferences(references: PromptReference[]): PromptRefere
 		}
 	});
 
-	// sort values
 	const finalValues = Array.from(groupedPromptReferences.keys())
 		.sort((a, b) => a.toString().localeCompare(b.toString()))
 		.map(e => {
 			const values = groupedPromptReferences.get(e);
 			if (!values) {
-				// should not happen, these are all keys
 				return [];
 			}
 			return values;
@@ -370,27 +336,17 @@ export interface IResultMetadata {
 	responseId: string;
 	sessionId: string;
 	agentId: string;
-	/** The user message exactly as it must be rendered in history. Should not be optional, but not every prompt will adopt this immediately */
 	renderedUserMessage?: Raw.ChatCompletionContentPart[];
 	renderedGlobalContext?: Raw.ChatCompletionContentPart[];
 	globalContextCacheKey?: string;
 	command?: string;
 	filterCategory?: FilterReason;
 
-	/**
-	 * All code blocks that were in the response
-	*/
 	codeBlocks?: readonly CodeBlock[];
 
 	toolCallRounds?: readonly IToolCallRound[];
 	toolCallResults?: Record<string, LanguageModelToolResult>;
 	maxToolCallsExceeded?: boolean;
-	/**
-	 * @deprecated Use `summaries` instead. Kept for backward compatibility with
-	 * persisted messages that were saved before `summaries` was introduced.
-	 * `normalizeSummariesOnRounds` falls back to this field when `summaries` is absent.
-	 * Safe to remove once all persisted conversations have migrated.
-	 */
 	summary?: {
 		toolCallRoundId: string;
 		text: string;
@@ -423,7 +379,6 @@ export interface IResultMetadata {
 	shouldAutoSwitchToAuto?: boolean;
 }
 
-/** There may be no metadata for results coming from old persisted messages, or from messages that are currently in progress (TODO, try to handle this case) */
 export interface ICopilotChatResultIn extends ChatResult {
 	metadata?: Partial<IResultMetadata>;
 }
@@ -445,19 +400,6 @@ export class GlobalContextMessageMetadata {
 	) { }
 }
 
-/**
- * Captures the customizations-index variable value (the bundled
- * `<instructions>`/`<skills>`/`<agents>` text) as it appeared on the first
- * turn of the conversation. Reused on subsequent turns so per-turn churn in
- * any of those listings (e.g. the active mode swapping which subagent entry
- * appears in `<agents>`) does not invalidate the system prompt cache. The
- * cacheKey invalidates the snapshot when something genuinely changed (e.g.
- * the user opened a different workspace mid-conversation).
- *
- * The {@link toolReferences} carry byte offsets into {@link value} and must
- * be captured together — current-turn references built against current-turn
- * text would mis-slice the frozen value.
- */
 export class CustomizationsIndexMetadata {
 	constructor(
 		readonly value: string,
@@ -466,19 +408,9 @@ export class CustomizationsIndexMetadata {
 	) { }
 }
 
-/**
- * Captures `prompt_tokens` and `completion_tokens` from the most recent
- * successful fetch on a turn. All providers return these values in their
- * `usage` payload, so this metadata is the authoritative source for
- * "how many tokens did we actually send last turn" — used by the agent
- * loop to floor its local context-size estimate when deciding whether to
- * trigger summarization.
- */
 export class TurnTokenUsageMetadata {
 	constructor(
-		/** Total number of prompt input tokens reported by the server. */
 		readonly promptTokens: number,
-		/** Number of output/completion tokens reported by the server. */
 		readonly outputTokens: number,
 	) { }
 }

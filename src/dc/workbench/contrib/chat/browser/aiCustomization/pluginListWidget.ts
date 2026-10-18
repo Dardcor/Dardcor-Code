@@ -113,26 +113,16 @@ export function isCurrentPluginMarketplaceRequest(
 		&& requestBrowseMode === currentBrowseMode;
 }
 
-//#region Entry types
 
-/**
- * Represents a collapsible group header in the plugin list.
- */
 interface IPluginGroupHeaderEntry extends ICustomizationGroupHeaderEntry {
 	readonly group: string;
 }
 
-/**
- * Represents an installed plugin item in the list.
- */
 interface IPluginInstalledItemEntry {
 	readonly type: 'plugin-item';
 	readonly item: IInstalledPluginItem;
 }
 
-/**
- * Represents a marketplace plugin item in the list (browse mode).
- */
 interface IPluginMarketplaceItemEntry {
 	readonly type: 'marketplace-item';
 	readonly item: IMarketplacePluginItem;
@@ -158,9 +148,7 @@ interface IPluginSectionList {
 	readonly key: string;
 }
 
-//#endregion
 
-//#region Delegate
 
 class PluginItemDelegate implements IListVirtualDelegate<IPluginListEntry> {
 	getHeight(element: IPluginListEntry): number {
@@ -193,11 +181,8 @@ class PluginItemDelegate implements IListVirtualDelegate<IPluginListEntry> {
 	}
 }
 
-//#endregion
 
-//#endregion
 
-//#region Search Header Renderer
 
 interface IPluginSearchHeaderTemplateData {
 	readonly container: HTMLElement;
@@ -221,9 +206,7 @@ class PluginSearchHeaderRenderer implements IListRenderer<IPluginSearchHeaderEnt
 	disposeTemplate(): void { }
 }
 
-//#endregion
 
-//#region Installed Plugin Renderer (reuses .mcp-server-item CSS)
 
 interface IPluginInstalledItemTemplateData {
 	readonly container: HTMLElement;
@@ -283,10 +266,6 @@ class PluginInstalledItemRenderer implements IListRenderer<IPluginInstalledItemE
 		templateData.metadata.textContent = getInstalledPluginMetadata(element.item);
 		templateData.metadata.style.display = templateData.metadata.textContent ? '' : 'none';
 
-		// Reflect enabled/disabled state on the container for visual styling. The
-		// inline status badge ("Enabled"/"Disabled") is intentionally omitted —
-		// items are already grouped under "Enabled Locally" / "Disabled Locally"
-		// section headers, and the row's aria-label conveys state to screen readers.
 		templateData.disposables.add(autorun(reader => {
 			const enabled = isContributionEnabled(element.item.plugin.enablement.read(reader));
 			templateData.container.classList.toggle('disabled', !enabled);
@@ -327,9 +306,7 @@ class PluginInstalledItemRenderer implements IListRenderer<IPluginInstalledItemE
 	}
 }
 
-//#endregion
 
-//#region Remote Plugin Renderer
 
 interface IPluginRemoteItemTemplateData {
 	readonly container: HTMLElement;
@@ -443,9 +420,7 @@ export function getRemotePluginDisabledLabel(item: Pick<ICustomizationItem, 'dis
 	return getCustomizationDisabledLabel(item.disabledReason);
 }
 
-//#endregion
 
-//#region Marketplace Plugin Renderer (reuses .mcp-gallery-item CSS)
 
 interface IPluginMarketplaceItemTemplateData {
 	readonly container: HTMLElement;
@@ -582,14 +557,9 @@ class PluginMarketplaceItemRenderer implements IListRenderer<IPluginMarketplaceI
 	}
 }
 
-//#endregion
 
-//#region Helpers
 
 function installedPluginToItem(plugin: IAgentPlugin, labelService: ILabelService): IInstalledPluginItem {
-	// Use `||` (not `??`) so an empty `label` also falls back to the URI basename.
-	// The items model's `getPluginCount` dedupes against this same fallback; using
-	// `??` here would silently break dedup for plugins whose label is `''`.
 	const name = plugin.label || basename(plugin.uri);
 	const description = plugin.fromMarketplace?.description ?? labelService.getUriLabel(dirname(plugin.uri), { relative: true });
 	const marketplace = plugin.fromMarketplace?.marketplace;
@@ -694,12 +664,7 @@ export function getToggledPluginEnablementState(state: ContributionEnablementSta
 	}
 }
 
-//#endregion
 
-/**
- * Widget that displays a list of agent plugins with marketplace browsing.
- * Follows the same patterns as {@link McpListWidget}.
- */
 export class PluginListWidget extends Disposable {
 
 	readonly element: HTMLElement;
@@ -785,7 +750,7 @@ export class PluginListWidget extends Disposable {
 		@INotificationService private readonly notificationService: INotificationService,
 	) {
 		super();
-		this.element = $('.mcp-list-widget.plugin-list-widget'); // reuse MCP shell, add plugin-specific row styling
+		this.element = $('.mcp-list-widget.plugin-list-widget');
 		this.create();
 		const resizeObserver = this._register(new DOM.DisposableResizeObserver(
 			'PluginListWidget',
@@ -812,7 +777,6 @@ export class PluginListWidget extends Disposable {
 	}
 
 	private create(): void {
-		// Section title header (title + description with inline learn more) at the top.
 		this.sectionTitleHeader = DOM.append(this.element, $('.section-title-header'));
 		const titleRow = DOM.append(this.sectionTitleHeader, $('.section-title-row'));
 		const sectionTitle = DOM.append(titleRow, $('h2.section-title'));
@@ -820,12 +784,10 @@ export class PluginListWidget extends Disposable {
 		const sectionTitleDescription = DOM.append(this.sectionTitleHeader, $('p.section-title-description'));
 		const sectionTitleDescriptionText = DOM.append(sectionTitleDescription, $('span.section-title-description-text'));
 		sectionTitleDescriptionText.textContent = localize('pluginsDescription', "Extend your AI agent with plugins that add commands, skills, agents, hooks, and MCP servers from reusable packages.");
-		// Real whitespace text node between description and link so the gap collapses
-		// when the link wraps to a new line (a CSS margin-left would push it inward).
 		sectionTitleDescription.appendChild(document.createTextNode(' '));
 		this.sectionLink = DOM.append(sectionTitleDescription, $('a.section-title-link')) as HTMLAnchorElement;
 		this.sectionLink.textContent = localize('learnMorePlugins', "Learn more about agent plugins");
-		this.sectionLink.href = 'https://code.visualstudio.com/docs/agent-customization/agent-plugins?referrer=in-product';
+		this.sectionLink.href = 'https://www.dardcor-code.web.id/docs/agent-customization/agent-plugins';
 		this._register(DOM.addDisposableListener(this.sectionLink, 'click', (e) => {
 			e.preventDefault();
 			const href = this.sectionLink.href;
@@ -833,10 +795,6 @@ export class PluginListWidget extends Disposable {
 				this.openerService.open(URI.parse(href));
 			}
 		}));
-		// Re-layout when the header height changes so the list's allotted
-		// height stays in sync with the actual on-screen header size. Only
-		// relayout when the header height actually changed to avoid redundant
-		// work on DPR changes or width-only resizes.
 		const targetWindow = DOM.getWindow(this.element);
 		const headerObserver = this._register(new DOM.DisposableResizeObserver(
 			'PluginListWidget.sectionTitleHeader',
@@ -874,10 +832,8 @@ export class PluginListWidget extends Disposable {
 		this.backButton.label = `$(${Codicon.arrowLeft.id}) ${backToInstalledLabel}`;
 		this._register(this.backButton.onDidClick(() => this.toggleBrowseMode(false)));
 
-		// Search and button container
 		this.searchAndButtonContainer = DOM.append(this.element, $('.list-search-and-button-container'));
 
-		// Search container
 		const searchContainer = DOM.append(this.searchAndButtonContainer, $('.list-search-container'));
 		this.searchInput = this._register(new InputBox(searchContainer, this.contextViewService, {
 			placeholder: localize('searchPluginsPlaceholder', "Type to search..."),
@@ -900,7 +856,6 @@ export class PluginListWidget extends Disposable {
 			}
 		}));
 
-		// Button container (Browse Marketplace + Add actions + Create Plugin + Update Plugins)
 		this.buttonContainer = DOM.append(this.searchAndButtonContainer, $('.list-button-group'));
 
 		const browseButtonContainer = DOM.append(this.buttonContainer, $('.list-add-button-container'));
@@ -933,14 +888,11 @@ export class PluginListWidget extends Disposable {
 		this.updatePluginsButton.label = `$(${Codicon.refresh.id})`;
 		this._register(this.updatePluginsButton.onDidClick(() => this.runUpdatePluginsAction()));
 
-		// Empty state
 		this.emptyContainer = DOM.append(this.element, $('.mcp-empty-state'));
 		const emptyHeader = DOM.append(this.emptyContainer, $('.empty-state-header'));
 		this.emptyText = DOM.append(emptyHeader, $('.empty-text'));
 		this.emptySubtext = DOM.append(this.emptyContainer, $('.empty-subtext'));
 
-		// Disabled (access blocked) state — shown when chat.plugins.enabled is false,
-		// either by user setting or by enterprise policy.
 		this.disabledContainer = DOM.append(this.element, $('.mcp-disabled-state'));
 		const disabledHeader = DOM.append(this.disabledContainer, $('.empty-state-header'));
 		this.disabledIcon = DOM.append(disabledHeader, $('.empty-icon'));
@@ -967,12 +919,9 @@ export class PluginListWidget extends Disposable {
 		));
 		this._register(cardResizeObserver.observe(this.cardScrollableNode));
 
-		// List container
 		this.listContainer = DOM.append(this.element, $('.mcp-list-container'));
 
-		// Section footer (removed — see section-title-header at top)
 
-		// Create list
 		const delegate = new PluginItemDelegate();
 		const groupHeaderRenderer = new CustomizationGroupHeaderRenderer<IPluginGroupHeaderEntry>('pluginGroupHeader', this.hoverService);
 		const searchHeaderRenderer = new PluginSearchHeaderRenderer();
@@ -1058,12 +1007,9 @@ export class PluginListWidget extends Disposable {
 				if (e.element.type === 'group-header') {
 					this.toggleGroup(e.element);
 				} else if (e.element.type === 'search-header') {
-					// Section label only.
 				} else if (e.element.type === 'plugin-item') {
 					this._onDidSelectPlugin.fire(e.element.item);
 				} else if (e.element.type === 'remote-item') {
-					// Keep row activation inert for remote-configured plugins. Management
-					// actions are surfaced via the context menu and toolbar.
 				} else if (e.element.type === 'marketplace-item') {
 					this._onDidSelectPlugin.fire(e.element.item);
 				}
@@ -1076,10 +1022,8 @@ export class PluginListWidget extends Disposable {
 			marketplaceRenderer.setFocusedIndex(index);
 		}));
 
-		// Handle context menu
 		this._register(this.list.onContextMenu(e => this.onContextMenu(e as IListContextMenuEvent<IPluginListEntry>)));
 
-		// Listen to plugin service changes
 		this._register(autorun(reader => {
 			this.agentPluginService.plugins.read(reader);
 			void this.refresh();
@@ -1099,7 +1043,6 @@ export class PluginListWidget extends Disposable {
 			}
 		}));
 
-		// Re-render when the active harness changes (sync checkboxes may appear/disappear)
 		this._register(autorun(reader => {
 			this.harnessService.activeHarness.read(reader);
 			this.updateToolbarActions();
@@ -1108,7 +1051,6 @@ export class PluginListWidget extends Disposable {
 			}
 		}));
 
-		// Re-render when the active harness's remote item provider reports changes
 		const itemProviderChangeDisposable = this._register(new MutableDisposable());
 		this._register(autorun(reader => {
 			this.harnessService.activeHarness.read(reader);
@@ -1126,7 +1068,6 @@ export class PluginListWidget extends Disposable {
 
 		this.updateToolbarActions();
 
-		// Initial refresh
 		void this.refresh();
 	}
 
@@ -1244,8 +1185,6 @@ export class PluginListWidget extends Disposable {
 				tooltip: localize('installFromSource', "Install Plugin from Source"),
 				run: async () => {
 					const installed = await this.commandService.executeCommand<boolean>('workbench.action.chat.installPluginFromSource', { skipReveal: true });
-					// Return to the installed list so the newly installed plugin is
-					// visible — source-installed plugins may not appear in the marketplace.
 					if (installed && this.browseMode) {
 						this.exitBrowseMode();
 					}
@@ -2024,7 +1963,6 @@ export class PluginListWidget extends Disposable {
 			void this.filterPlugins();
 		}
 
-		// Re-layout to account for the back link height change
 		if (this.lastHeight > 0) {
 			this.layout(this.lastHeight, this.lastWidth);
 		}
@@ -2036,7 +1974,6 @@ export class PluginListWidget extends Disposable {
 		const query = this.searchQuery.toLowerCase().trim();
 		const browseMode = this.browseMode;
 
-		// Show loading state
 		this.showEmptySurface();
 		this.emptyText.textContent = localize('loadingMarketplace', "Loading marketplace...");
 		this.emptySubtext.textContent = '';
@@ -2065,7 +2002,6 @@ export class PluginListWidget extends Disposable {
 				? plugins.filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query) || p.marketplace.toLowerCase().includes(query))
 				: plugins;
 
-			// Filter out already-installed plugins
 			const installedUris = new Set(this.agentPluginService.plugins.get().map(p => p.uri.toString()));
 			this.marketplaceItems = filtered
 				.filter(p => {
@@ -2266,14 +2202,9 @@ export class PluginListWidget extends Disposable {
 
 		this.updateSearchResultsList();
 
-		// Compute sidebar badge directly from the data array (same source as group headers)
 		this._onDidChangeItemCount.fire(this.itemCount);
 	}
 
-	/**
-	 * Gets the total item count from the underlying data array
-	 * (the same source used to build group headers).
-	 */
 	get itemCount(): number {
 		const installedNames = new Set(this.installedItems.map(item => item.name.toLowerCase()));
 		const uniqueRemote = this.remoteItems.filter(item => {
@@ -2288,10 +2219,6 @@ export class PluginListWidget extends Disposable {
 		return uniqueRemote.length + this.installedItems.length;
 	}
 
-	/**
-	 * Re-fires the current item count. Call after subscribing to onDidChangeItemCount
-	 * to ensure the subscriber receives the latest count.
-	 */
 	fireItemCount(): void {
 		this._onDidChangeItemCount.fire(this.itemCount);
 	}
@@ -2305,16 +2232,10 @@ export class PluginListWidget extends Disposable {
 		void this.filterPlugins();
 	}
 
-	/**
-	 * Whether the widget is currently in marketplace browse mode.
-	 */
 	isInBrowseMode(): boolean {
 		return this.browseMode;
 	}
 
-	/**
-	 * Exits marketplace browse mode and returns to the installed plugins list.
-	 */
 	exitBrowseMode(): void {
 		if (this.browseMode) {
 			this.toggleBrowseMode(false);
@@ -2331,11 +2252,6 @@ export class PluginListWidget extends Disposable {
 		this.element.style.height = `${height}px`;
 		this.updateResponsiveLayout(width);
 
-		// Measure sibling elements to calculate the list height.
-		// When offsetHeight returns 0 the container may have just become visible
-		// after display:none and the browser hasn't reflowed yet — defer layout
-		// once so measurements are accurate. Only retry once to avoid an endless
-		// loop when the widget is created while permanently hidden.
 		const searchBarHeight = this.searchAndButtonContainer.offsetHeight;
 		if (searchBarHeight === 0 && !this._layoutDeferred) {
 			this._layoutDeferred = true;

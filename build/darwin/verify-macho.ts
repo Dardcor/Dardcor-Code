@@ -21,37 +21,15 @@ const MACHO_X86_64_CPU_TYPE = new Set([
 	0x01000007,
 ]);
 
-// Files to skip during architecture validation
 const FILES_TO_SKIP = [
-	// MSAL runtime files are only present in ARM64 builds
 	'**/extensions/microsoft-authentication/dist/libmsalruntime.dylib',
 	'**/extensions/microsoft-authentication/dist/msal-node-runtime.node',
-	// Copilot SDK: universal app has both x64 and arm64 platform packages
-	'**/node_modules/@github/copilot-darwin-x64/**',
-	'**/node_modules/@github/copilot-darwin-arm64/**',
-	'**/node_modules.asar.unpacked/@github/copilot-darwin-x64/**',
-	'**/node_modules.asar.unpacked/@github/copilot-darwin-arm64/**',
-	// Copilot prebuilds: single-arch binaries in per-platform directories
-	'**/node_modules/@github/copilot/prebuilds/darwin-*/**',
-	'**/node_modules.asar.unpacked/@github/copilot/prebuilds/darwin-*/**',
-	// Copilot SDK (extensions/copilot): single-arch prebuilds and ripgrep binaries
-	'**/node_modules/@github/copilot/sdk/prebuilds/darwin-*/**',
-	'**/node_modules/@github/copilot/sdk/ripgrep/bin/darwin-*/**',
-	// ripgrep-universal: single-arch binaries in per-platform directories
 	'**/node_modules/@vscode/ripgrep-universal/bin/darwin-*/**',
 	'**/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/darwin-*/**',
-	// OS proxy resolver: universal app has separate x64 and arm64 packages
 	'**/node_modules/@vscode/os-proxy-resolver-darwin-*/**',
 	'**/node_modules.asar.unpacked/@vscode/os-proxy-resolver-darwin-*/**',
-	// MXC SDK ships per-arch native binaries under bin/<arch>; the package
-	// includes both arm64 and x64 trees regardless of host arch.
 	'**/node_modules/@microsoft/mxc-sdk/bin/**',
 	'**/node_modules.asar.unpacked/@microsoft/mxc-sdk/bin/**',
-	// Copilot SDK tgrep prebuilds: single-arch binaries in per-platform directories
-	'**/node_modules/@github/copilot/tgrep/bin/darwin-*/**',
-	'**/node_modules.asar.unpacked/@github/copilot/tgrep/bin/darwin-*/**',
-	'**/node_modules/@github/copilot/sdk/tgrep/bin/darwin-*/**',
-	'**/node_modules.asar.unpacked/@github/copilot/sdk/tgrep/bin/darwin-*/**',
 ];
 
 
@@ -94,7 +72,6 @@ async function checkMachOFiles(appPath: string, arch: string) {
 				fileOutput = await spawn('file', ['--brief', '--no-pad', p]);
 			} catch (e) {
 				if (e instanceof ExitCodeError) {
-					/* silently accept error codes from "file" */
 				} else {
 					throw e;
 				}
@@ -144,7 +121,6 @@ const archToCheck = process.argv[2];
 assert(process.env['APP_PATH'], 'APP_PATH not set');
 assert(archToCheck === 'x64' || archToCheck === 'arm64' || archToCheck === 'universal', `Invalid architecture ${archToCheck} to check`);
 checkMachOFiles(process.env['APP_PATH'], archToCheck).then(invalidFiles => {
-	// Filter out files that should be skipped
 	const actualInvalidFiles = invalidFiles.filter(file => !isFileSkipped(file));
 	if (actualInvalidFiles.length > 0) {
 		console.error('\x1b[31mThese files are built for the wrong architecture:\x1b[0m');

@@ -29,7 +29,6 @@ export interface IExplorerService {
 	setEditable(stat: ExplorerItem, data: IEditableData | null): Promise<void>;
 	getEditable(): { stat: ExplorerItem; data: IEditableData } | undefined;
 	getEditableData(stat: ExplorerItem): IEditableData | undefined;
-	// If undefined is passed checks if any element is currently being edited.
 	isEditable(stat: ExplorerItem | undefined): boolean;
 	findClosest(resource: URI): ExplorerItem | null;
 	findClosestRoot(resource: URI): ExplorerItem | null;
@@ -38,19 +37,10 @@ export interface IExplorerService {
 	isCut(stat: ExplorerItem): boolean;
 	applyBulkEdit(edit: ResourceFileEdit[], options: { undoLabel: string; progressLabel: string; confirmBeforeUndo?: boolean; progressLocation?: ProgressLocation.Explorer | ProgressLocation.Window }): Promise<void>;
 
-	/**
-	 * Selects and reveal the file element provided by the given resource if its found in the explorer.
-	 * Will try to resolve the path in case the explorer is not yet expanded to the file yet.
-	 */
 	select(resource: URI, reveal?: boolean | string): Promise<void>;
 
 	registerView(contextAndRefreshProvider: IExplorerView): void;
 
-	/**
-	 * The id of the currently registered explorer view, if any. This differs between
-	 * the default workbench window and the agents (sessions) window, where the explorer
-	 * view is re-registered under a different id.
-	 */
 	getViewId(): string | undefined;
 }
 
@@ -97,8 +87,6 @@ function getFocus(listService: IListService): unknown | undefined {
 	return undefined;
 }
 
-// Commands can get executed from a command palette, from a context menu or from some list using a keybinding
-// To cover all these cases we need to properly compute the resource on which the command is being executed
 export function getResourceForCommand(commandArg: unknown, editorService: IEditorService, listService: IListService): URI | undefined {
 	if (URI.isUri(commandArg)) {
 		return commandArg;
@@ -118,16 +106,13 @@ export function getMultiSelectedResources(commandArg: unknown, listService: ILis
 	const list = listService.lastFocusedList;
 	const element = list?.getHTMLElement();
 	if (element && isActiveElement(element)) {
-		// Explorer
 		if (list instanceof AsyncDataTree && list.getFocus().every(item => item instanceof ExplorerItem)) {
-			// Explorer
 			const context = explorerService.getContext(true, true);
 			if (context.length) {
 				return context.map(c => c.resource);
 			}
 		}
 
-		// Open editors view
 		if (list instanceof List) {
 			const selection = coalesce(list.getSelectedElements().filter(s => s instanceof OpenEditor).map((oe: OpenEditor) => oe.getResource()));
 			const focusedElements = list.getFocusedElements();
@@ -139,10 +124,8 @@ export function getMultiSelectedResources(commandArg: unknown, listService: ILis
 				const focusedResource = focus.getResource();
 				mainUriStr = focusedResource ? focusedResource.toString() : undefined;
 			}
-			// We only respect the selection if it contains the main element.
 			const mainIndex = selection.findIndex(s => s.toString() === mainUriStr);
 			if (mainIndex !== -1) {
-				// Move the main resource to the front of the selection.
 				const mainResource = selection[mainIndex];
 				selection.splice(mainIndex, 1);
 				selection.unshift(mainResource);
@@ -151,12 +134,9 @@ export function getMultiSelectedResources(commandArg: unknown, listService: ILis
 		}
 	}
 
-	// Check for tabs multiselect
 	const activeGroup = editorGroupService.activeGroup;
 	const selection = activeGroup.selectedEditors;
 	if (selection.length > 1 && URI.isUri(commandArg)) {
-		// If the resource is part of the tabs selection, return all selected tabs/resources.
-		// It's possible that multiple tabs are selected but the action was applied to a resource that is not part of the selection.
 		const mainEditorSelectionIndex = selection.findIndex(e => e.matches({ resource: commandArg }));
 		if (mainEditorSelectionIndex !== -1) {
 			const mainEditor = selection[mainEditorSelectionIndex];
@@ -174,7 +154,6 @@ export function getOpenEditorsViewMultiSelection(accessor: ServicesAccessor): Ar
 	const list = accessor.get(IListService).lastFocusedList;
 	const element = list?.getHTMLElement();
 	if (element && isActiveElement(element)) {
-		// Open editors view
 		if (list instanceof List) {
 			const selection = coalesce(list.getSelectedElements().filter(s => s instanceof OpenEditor));
 			const focusedElements = list.getFocusedElements();
@@ -183,7 +162,6 @@ export function getOpenEditorsViewMultiSelection(accessor: ServicesAccessor): Ar
 			if (focus instanceof OpenEditor) {
 				mainEditor = focus;
 			}
-			// We only respect the selection if it contains the main element.
 			if (selection.some(s => s === mainEditor)) {
 				return selection;
 			}

@@ -65,7 +65,6 @@ export class GitServiceImpl extends Disposable implements IGitService {
 					}
 				}
 
-				// Extension is disabled / git is not available so we say all repositories are discovered
 				this._onDidFinishInitialRepositoryDiscovery.fire();
 				this._isInitialized.set(true, undefined);
 			}));
@@ -80,7 +79,6 @@ export class GitServiceImpl extends Disposable implements IGitService {
 			this.doOpenRepository(repository);
 		}
 
-		// Initial repository discovery
 		const stateObs = observableFromEvent(this,
 			gitAPI.onDidChangeState as Event<APIState>, () => gitAPI.state);
 
@@ -90,7 +88,6 @@ export class GitServiceImpl extends Disposable implements IGitService {
 				return;
 			}
 
-			// Wait for all discovered repositories to be initialized
 			await Promise.all(gitAPI.repositories.map(repository => {
 				const HEAD = observableFromEvent(this, repository.state.onDidChange as Event<void>, () => repository.state.HEAD);
 				return waitForState(HEAD, state => state !== undefined, undefined, cancelOnDispose(this._store));
@@ -159,16 +156,11 @@ export class GitServiceImpl extends Disposable implements IGitService {
 			}
 
 			if (!(uri instanceof vscode.Uri)) {
-				// The git extension API expects a vscode.Uri, so we convert it if necessary
 				uri = vscode.Uri.parse(uri.toString());
 			}
 
-			// Ensure that the initial
-			// repository discovery is
-			// finished
 			await this.initialize();
 
-			// Query opened repositories
 			let repository = gitAPI.getRepository(uri);
 			if (repository) {
 				return repository;
@@ -178,7 +170,6 @@ export class GitServiceImpl extends Disposable implements IGitService {
 				return undefined;
 			}
 
-			// Open repository
 			repository = await gitAPI.openRepository(uri);
 			if (!repository) {
 				return undefined;
@@ -196,7 +187,6 @@ export class GitServiceImpl extends Disposable implements IGitService {
 			return undefined;
 		}
 
-		// Query opened repositories
 		const repository = gitAPI.getRepository(uri);
 		if (repository) {
 			await this.waitForRepositoryState(repository);
@@ -216,7 +206,6 @@ export class GitServiceImpl extends Disposable implements IGitService {
 				uri = URI.file(path.dirname(uri.fsPath));
 			}
 
-			// Get repository root
 			const repositoryRoot = await gitAPI.getRepositoryRoot(uri);
 			if (!repositoryRoot) {
 				this.logService.trace(`[GitServiceImpl][getRepositoryFetchUrls] No repository root found`);
@@ -430,15 +419,11 @@ export class GitServiceImpl extends Disposable implements IGitService {
 	private async doOpenRepository(repository: Repository): Promise<void> {
 		this.logService.trace(`[GitServiceImpl][doOpenRepository] Repository: ${repository.rootUri.toString()}`);
 
-		// The `gitAPI.onDidOpenRepository` event is fired before `git status` completes and the repository
-		// state is initialized. `IGitService.onDidOpenRepository` will only fire after the repository state
-		// is initialized.
 		const HEAD = observableFromEvent(this, repository.state.onDidChange as Event<void>, () => repository.state.HEAD);
 		await waitForState(HEAD, state => state !== undefined, undefined, cancelOnDispose(this._store));
 
 		this.logService.trace(`[GitServiceImpl][doOpenRepository] Repository initialized: ${JSON.stringify(HEAD.get())}`);
 
-		// Active repository
 		const selectedObs = observableFromEvent(this,
 			repository.ui.onDidChange as Event<void>, () => repository.ui.selected);
 
@@ -459,7 +444,6 @@ export class GitServiceImpl extends Disposable implements IGitService {
 			this.activeRepository.set(repositoryContext, undefined);
 		}));
 
-		// Open repository event
 		const repositoryContext = GitServiceImpl.repoToRepoContext(repository);
 		if (repositoryContext) {
 			this._onDidOpenRepository.fire(repositoryContext);

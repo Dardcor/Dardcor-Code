@@ -70,7 +70,6 @@ export class ExtHostLanguages implements ExtHostLanguagesShape {
 			range: document.getWordRangeAtPosition(position) ?? new Range(position.line, position.character, position.line, position.character)
 		};
 		if (!info) {
-			// no result
 			return defaultRange;
 		}
 		const result = {
@@ -78,11 +77,9 @@ export class ExtHostLanguages implements ExtHostLanguagesShape {
 			type: typeConvert.TokenType.to(info.type)
 		};
 		if (!result.range.contains(<Position>position)) {
-			// bogous result
 			return defaultRange;
 		}
 		if (versionNow !== document.version) {
-			// concurrent change
 			return defaultRange;
 		}
 		return result;
@@ -97,7 +94,6 @@ export class ExtHostLanguages implements ExtHostLanguagesShape {
 		const proxy = this._proxy;
 		const ids = this._ids;
 
-		// enforce extension unique identifier
 		const fullyQualifiedId = `${extension.identifier.value}/${id}`;
 		if (ids.has(fullyQualifiedId)) {
 			throw new Error(`LanguageStatusItem with id '${id}' ALREADY exists`);
@@ -123,7 +119,7 @@ export class ExtHostLanguages implements ExtHostLanguagesShape {
 
 			if (!ids.has(fullyQualifiedId)) {
 				console.warn(`LanguageStatusItem (${id}) from ${extension.identifier.value} has been disposed and CANNOT be updated anymore`);
-				return; // disposed in the meantime
+				return;
 			}
 
 			soonHandle = disposableTimeout(() => {

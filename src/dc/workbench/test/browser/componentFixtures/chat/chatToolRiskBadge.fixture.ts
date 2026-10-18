@@ -37,7 +37,6 @@ function renderBadge(context: ComponentFixtureContext, state: RenderState): void
 	container.style.backgroundColor = 'var(--vscode-sideBar-background, var(--vscode-editor-background))';
 	container.classList.add('interactive-session');
 
-	// Wrap in `.chat-confirmation-widget2` so the production CSS rules apply.
 	const itemContainer = dom.$('.interactive-item-container');
 	const widgetContainer = dom.$('.chat-confirmation-widget2');
 	widgetContainer.appendChild(widget.domNode);
@@ -45,13 +44,6 @@ function renderBadge(context: ComponentFixtureContext, state: RenderState): void
 	container.appendChild(itemContainer);
 }
 
-/**
- * Renders the badge in a production-like wrapper, then renders the markdown
- * that the trailing info icon's hover would display in a `.monaco-hover`-styled
- * panel beside it. The fixture infrastructure stubs `IHoverService` so real
- * hover popups don't render; this preview gives a stable visual review of the
- * hover content for screenshot testing.
- */
 function renderBadgeWithHoverPreview(
 	context: ComponentFixtureContext,
 	assessment: IToolRiskAssessment,

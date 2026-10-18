@@ -45,7 +45,6 @@ suite('checkCyclicDependencies', () => {
 
 		test('no false positives with shared dependencies', () => {
 			const graph = new Graph();
-			// diamond: a -> b, a -> c, b -> d, c -> d
 			graph.inertEdge('a', 'b');
 			graph.inertEdge('a', 'c');
 			graph.inertEdge('b', 'd');
@@ -85,7 +84,6 @@ suite('checkCyclicDependencies', () => {
 			assert.ok(cyclePath);
 			assert.ok(cyclePath.includes('b'));
 			assert.ok(cyclePath.includes('c'));
-			// cycle should start and end with same node
 			assert.strictEqual(cyclePath[0], cyclePath[cyclePath.length - 1]);
 		});
 	});
@@ -138,7 +136,6 @@ suite('checkCyclicDependencies', () => {
 			fs.writeFileSync(path.join(tmpDir, 'a.js'), 'import fs from "fs";');
 			const graph = new Graph();
 			processFile(path.join(tmpDir, 'a.js'), graph);
-			// no relative imports, so no edges and no node created
 			assert.strictEqual(graph.lookup(normalize(path.join(tmpDir, 'a.js'))), undefined);
 		});
 
@@ -146,7 +143,6 @@ suite('checkCyclicDependencies', () => {
 			fs.writeFileSync(path.join(tmpDir, 'a.js'), 'import "./styles.css";');
 			const graph = new Graph();
 			processFile(path.join(tmpDir, 'a.js'), graph);
-			// CSS imports are ignored, so no edges and no node created
 			assert.strictEqual(graph.lookup(normalize(path.join(tmpDir, 'a.js'))), undefined);
 		});
 

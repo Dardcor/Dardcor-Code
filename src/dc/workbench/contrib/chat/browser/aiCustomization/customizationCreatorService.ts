@@ -21,14 +21,6 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { getChatSessionType } from '../../common/model/chatUri.js';
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 
-/**
- * Service that opens an AI-guided chat session to help the user create
- * a new customization (agent, skill, instructions, prompt, hook).
- *
- * Opens a new chat in agent mode, then sends a request with hidden
- * system instructions (modeInstructions) that guide the AI through
- * the creation process. The user sees only their message.
- */
 export class CustomizationCreatorService {
 
 	constructor(
@@ -47,7 +39,6 @@ export class CustomizationCreatorService {
 		const currentSessionResource = this.harnessService.activeSessionResource.get();
 
 
-		// Ask for the name before entering chat
 		const typeLabel = getTypeLabel(type);
 		const name = await this.quickInputService.input({
 			prompt: localize('generateName', "Name for the new {0}", typeLabel),
@@ -64,12 +55,7 @@ export class CustomizationCreatorService {
 		}
 		const trimmedName = name.trim();
 
-		// TODO: The 'Generate X' flow currently opens a new chat that is not connected
-		// to the active workspace. For this to fully work, the background agent needs to
-		// accept a workspace parameter so the new session can write files into the correct
-		// directory and have those changes tracked.
 
-		// Capture project root BEFORE opening new chat (which may change active session)
 		const picker = this.instantiationService.createInstance(CustomizationLocationPicker);
 		const targetDir = await picker.resolveTargetDirectoryWithPicker(
 			currentSessionResource,
@@ -77,15 +63,13 @@ export class CustomizationCreatorService {
 			'local',
 		);
 		if (targetDir === null) {
-			return; // User cancelled the picker
+			return;
 		}
 		const systemInstructions = buildAgentInstructions(type, targetDir, trimmedName);
 		const userMessage = buildUserMessage(type, targetDir, trimmedName);
 
-		// Start a new chat, then send the request with hidden instructions
 		await this.commandService.executeCommand('workbench.action.chat.newChat');
 
-		// Grab the now-active widget's session and send with hidden instructions
 		const widget = this.chatWidgetService.lastFocusedWidget;
 		const sessionResource = widget?.viewModel?.sessionResource;
 		if (!sessionResource) {
@@ -108,17 +92,10 @@ export class CustomizationCreatorService {
 		});
 	}
 
-	/**
-	 * Resolves the workspace directory for a new customization file based on the
-	 * active project root.
-	 */
 	resolveTargetDirectory(type: PromptsType): URI | undefined {
 		return resolveWorkspaceTargetDirectory(this.workspaceService, type);
 	}
 
-	/**
-	 * Resolves the user-level directory for a new customization file.
-	 */
 	async resolveUserDirectory(type: PromptsType): Promise<URI | undefined> {
 		return resolveUserTargetDirectory(this.promptsService, type);
 	}
@@ -133,18 +110,6 @@ export class CustomizationLocationPicker {
 		@ILabelService private readonly labelService: ILabelService
 	) { }
 
-	/**
-	 * Resolves the target directory for creating a new customization file.
-	 * If multiple source folders exist for the given storage type, shows a
-	 * picker to let the user choose. Otherwise, returns the single match.
-	 *
-	 * Source folders come from the active harness's item provider (via the
-	 * items model) — each session can supply its own set of customization
-	 * locations through `ICustomizationItemProvider.provideSourceFolders`.
-	 *
-	 * @returns the resolved URI, `undefined` when no folder is available,
-	 *          or `null` when the user cancelled the picker.
-	 */
 	public async resolveTargetDirectoryWithPicker(sessionResource: URI, type: PromptsType, target: 'local' | 'user'): Promise<URI | undefined | null> {
 		const sessionType = getChatSessionType(sessionResource);
 		const descriptor = this.harnessService.findHarnessById(sessionType);
@@ -154,14 +119,11 @@ export class CustomizationLocationPicker {
 		}
 		const allFolders = await provider.provideSourceFolders(sessionResource, type, CancellationToken.None);
 		if (!allFolders) {
-			// Provider returned no source folders for this type/session.
 			return undefined;
 		}
 
 		const matchingFolders = allFolders.filter(f => f.source === target);
 		if (matchingFolders.length === 0) {
-			// No matching folders — return undefined so the command can fall
-			// back to askForPromptSourceFolder (not null which means cancellation)
 			return undefined;
 		}
 
@@ -169,7 +131,6 @@ export class CustomizationLocationPicker {
 			return matchingFolders[0].uri;
 		}
 
-		// Multiple directories — ask the user which one to use
 		const items: (IQuickPickItem & { uri: URI })[] = matchingFolders.map(folder => ({
 			label: folder.label,
 			description: this.labelService.getUriLabel(folder.uri, { relative: true }),
@@ -184,9 +145,6 @@ export class CustomizationLocationPicker {
 	}
 }
 
-/**
- * Resolves the workspace directory for a new customization file based on the active project root.
- */
 export function resolveWorkspaceTargetDirectory(workspaceService: IAICustomizationWorkspaceService, type: PromptsType): URI | undefined {
 	const basePath = workspaceService.getActiveProjectRoot();
 	if (!basePath) {
@@ -200,11 +158,6 @@ export function resolveWorkspaceTargetDirectory(workspaceService: IAICustomizati
 	return URI.joinPath(basePath, localLocation.path);
 }
 
-/**
- * Resolves the user-level directory for a new customization file.
- * Delegates to IPromptsService.getSourceFolders() which returns the appropriate
- * user root (VS Code profile in core, ~/.copilot in sessions).
- */
 export async function resolveUserTargetDirectory(
 	promptsService: IPromptsService,
 	type: PromptsType,
@@ -214,12 +167,7 @@ export async function resolveUserTargetDirectory(
 	return userFolder?.uri;
 }
 
-//#region Agent Instructions
 
-/**
- * Builds the hidden system instructions for the customization creator agent.
- * Sent as modeInstructions - invisible to the user.
- */
 function buildAgentInstructions(type: PromptsType, targetDir: URI | undefined, name: string): string {
 	const targetHint = targetDir
 		? `\nIMPORTANT: Save the file to this directory: ${targetDir.fsPath}. The name is "${name}".`
@@ -265,14 +213,8 @@ Ask the user what they want to create, then guide them step by step.`;
 	}
 }
 
-//#endregion
 
-//#region User Messages
 
-/**
- * Builds the user-visible message that opens the chat.
- * Includes the target path so the agent knows where to write the file.
- */
 function buildUserMessage(type: PromptsType, targetDir: URI | undefined, name: string): string {
 	const pathHint = targetDir ? ` Write it to \`${targetDir.fsPath}\`.` : '';
 
@@ -303,4 +245,3 @@ function getTypeLabel(type: PromptsType): string {
 	}
 }
 
-//#endregion

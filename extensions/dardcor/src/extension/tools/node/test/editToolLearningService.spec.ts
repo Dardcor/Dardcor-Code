@@ -18,7 +18,6 @@ describe('EditToolLearningService', () => {
 	let mockContext: MockExtensionContext;
 	let mockEndpointProvider: IEndpointProvider;
 
-	// Helper to create mock language model
 	const createMockModel = (id = 'test-model'): LanguageModelChat => ({
 		id,
 		name: 'Test Model',
@@ -34,7 +33,6 @@ describe('EditToolLearningService', () => {
 		sendRequest: vi.fn(),
 	});
 
-	// Helper to create mock endpoint
 	const createMockEndpoint = (isExtensionContributed: boolean, family = 'test-family', model: LanguageModelChat, supportedEditTools?: readonly string[]): IChatEndpoint => ({
 		family,
 		model: model.id,
@@ -59,7 +57,6 @@ describe('EditToolLearningService', () => {
 		createChatCompletionRequest: vi.fn(),
 	} as any);
 
-	// Helper to simulate multiple edits for a tool
 	const simulateEdits = async (model: LanguageModelChat, tool: EditTools, successes: number, failures: number) => {
 		for (let i = 0; i < successes; i++) {
 			await service.didMakeEdit(model, tool, true);
@@ -160,7 +157,6 @@ describe('EditToolLearningService', () => {
 		});
 
 		it('should honor BYOK editTools over hardcoded family preference', async () => {
-			// Model name would otherwise trigger the hardcoded gpt -> ApplyPatch preference.
 			const model = createMockModel('gpt-byok');
 			vi.mocked(mockEndpointProvider.getChatEndpoint).mockResolvedValue(
 				createMockEndpoint(true, 'gpt', model, ['code-rewrite'])
@@ -181,7 +177,6 @@ describe('EditToolLearningService', () => {
 
 			await service.didMakeEdit(model, ToolName.ReplaceString, true);
 
-			// Should not have saved anything to storage
 			expect(mockContext.globalState.get).not.toHaveBeenCalled();
 		});
 
@@ -193,7 +188,6 @@ describe('EditToolLearningService', () => {
 
 			await service.didMakeEdit(model, ToolName.ApplyPatch, true);
 
-			// Should not have saved anything to storage since GPT models have hardcoded preferences
 			expect(mockContext.globalState.update).not.toHaveBeenCalled();
 		});
 
@@ -227,7 +221,6 @@ describe('EditToolLearningService', () => {
 		});
 
 		it('should transition from Initial to ReplaceStringMaybeMulti on successful ReplaceString usage', async () => {
-			// Simulate enough successful ReplaceString edits
 			const successfulEdits = Math.ceil(LearningConfig.MIN_SAMPLE_SIZE);
 			await simulateEdits(model, ToolName.ReplaceString, successfulEdits, 0);
 
@@ -237,7 +230,6 @@ describe('EditToolLearningService', () => {
 		});
 
 		it('should transition from Initial to EditFileOnly on failed ReplaceString usage', async () => {
-			// Simulate enough failed ReplaceString edits to fall below failure threshold
 			const totalEdits = Math.ceil(LearningConfig.MIN_SAMPLE_SIZE);
 			const failedEdits = Math.ceil(totalEdits * (1 - LearningConfig.SR_FAILURE_THRESHOLD + 0.1));
 			const successfulEdits = totalEdits - failedEdits;
@@ -250,7 +242,6 @@ describe('EditToolLearningService', () => {
 		});
 
 		it('should transition from Initial to ReplaceStringForced when EditFile is overused', async () => {
-			// Simulate excessive EditFile usage
 			await simulateEdits(model, ToolName.EditFile, LearningConfig.WINDOW_SIZE, 0);
 
 			const result = await service.getPreferredEditTool(model);
@@ -259,11 +250,9 @@ describe('EditToolLearningService', () => {
 		});
 
 		it('should transition from ReplaceStringMaybeMulti to ReplaceStringWithMulti on successful MultiReplaceString usage', async () => {
-			// First, get to ReplaceStringMaybeMulti state
 			const successfulReplaceEdits = Math.ceil(LearningConfig.MIN_SAMPLE_SIZE);
 			await simulateEdits(model, ToolName.ReplaceString, successfulReplaceEdits, 0);
 
-			// Then, simulate successful MultiReplaceString usage
 			const successfulMultiEdits = Math.ceil(LearningConfig.MIN_SAMPLE_SIZE);
 			await simulateEdits(model, ToolName.MultiReplaceString, successfulMultiEdits, 0);
 
@@ -273,17 +262,13 @@ describe('EditToolLearningService', () => {
 		});
 
 		it('should transition from ReplaceStringMaybeMulti to ReplaceStringOnly on failed MultiReplaceString usage', async () => {
-			// First, get to ReplaceStringMaybeMulti state
 			const successfulReplaceEdits = Math.ceil(LearningConfig.MIN_SAMPLE_SIZE);
 			await simulateEdits(model, ToolName.ReplaceString, successfulReplaceEdits, 0);
 
-			// Verify we're in ReplaceStringMaybeMulti state
 			let result = await service.getPreferredEditTool(model);
 			expect(result).toEqual([ToolName.ReplaceString, ToolName.MultiReplaceString]);
 
-			// Then, simulate failed MultiReplaceString usage to get below MULTISR_FAILURE_THRESHOLD (0.4)
 			const totalMultiEdits = Math.ceil(LearningConfig.MIN_SAMPLE_SIZE);
-			// We want success rate to be below 0.4, so let's use 0.3 (30% success rate)
 			const successfulMultiEdits = Math.floor(totalMultiEdits * 0.3);
 			const failedMultiEdits = totalMultiEdits - successfulMultiEdits;
 
@@ -291,7 +276,6 @@ describe('EditToolLearningService', () => {
 
 			result = await service.getPreferredEditTool(model);
 
-			// Should transition to ReplaceStringOnly state which only allows ReplaceString
 			expect(result).toEqual([ToolName.ReplaceString]);
 		});
 	});
@@ -303,21 +287,16 @@ describe('EditToolLearningService', () => {
 				createMockEndpoint(true, 'persistent-family', model)
 			);
 
-			// Record some edits
 			await simulateEdits(model, ToolName.ReplaceString, 10, 5);
 
-			// Create a new service instance with the same context
 			const newService = new EditToolLearningService(mockContext as any, mockEndpointProvider, new NullTelemetryService());
 
-			// The new service should have access to the persisted data
 			const result = await newService.getPreferredEditTool(model);
 
-			// Should still be in initial state since we haven't reached MIN_SAMPLE_SIZE
 			expect(result).toEqual([ToolName.EditFile, ToolName.ReplaceString]);
 		});
 
 		it('should handle empty storage gracefully', async () => {
-			// Ensure no stored data (already set up in beforeEach)
 			const model = createMockModel('new-model');
 			vi.mocked(mockEndpointProvider.getChatEndpoint).mockResolvedValue(
 				createMockEndpoint(true, 'new-family', model)
@@ -347,7 +326,6 @@ describe('EditToolLearningService', () => {
 				createMockEndpoint(true, 'concurrent-family', model)
 			);
 
-			// Simulate concurrent edits
 			const promises = [
 				service.didMakeEdit(model, ToolName.ReplaceString, true),
 				service.didMakeEdit(model, ToolName.ReplaceString, false),
@@ -356,18 +334,15 @@ describe('EditToolLearningService', () => {
 
 			await Promise.all(promises);
 
-			// Should not throw and should have recorded all edits
 			const result = await service.getPreferredEditTool(model);
 			expect(result).toBeDefined();
 		});
 
 		it('should respect LRU cache size limits', async () => {
 
-			// Create more models than cache size
 			const modelsToCreate = LearningConfig.CACHE_SIZE + 5;
 			const models = Array.from({ length: modelsToCreate }, (_, i) => createMockModel(`model-${i}`));
 
-			// Record edits for all models
 			for (const model of models) {
 				vi.mocked(mockEndpointProvider.getChatEndpoint).mockResolvedValueOnce(
 					createMockEndpoint(true, 'test-family', model)
@@ -375,8 +350,6 @@ describe('EditToolLearningService', () => {
 				await service.didMakeEdit(model, ToolName.ReplaceString, true);
 			}
 
-			// All operations should complete without error
-			// The LRU cache should handle the overflow gracefully
 			const lastModel = models[models.length - 1];
 			vi.mocked(mockEndpointProvider.getChatEndpoint).mockResolvedValueOnce(
 				createMockEndpoint(true, 'test-family', lastModel)

@@ -14,7 +14,7 @@ import '../../../../platform/agentHost/browser/agentHostEnablementService.js';
 import '../../../../platform/agentHost/common/agentHostStarter.config.contribution.js';
 import { AgentHostAhpJsonlLoggingSettingId, AgentHostAllowSignedOutWhenUsableSettingId, AgentHostSdkSandboxEnabledSettingId, CodexPreferAgentHostEditorSettingId } from '../../../../platform/agentHost/common/agentService.js';
 import { AgentHostCopilotSdkLogLevelSettingId, AgentHostCustomTerminalToolEnabledSettingId, AgentHostModelCapabilityOverridesSettingId, AgentHostOpus48PromptEnabledSettingId, AgentHostReasoningEffortOverrideSettingId, AgentHostToolSearchDeferThresholdSettingId, AgentHostToolSearchEnabledSettingId, copilotSdkLogLevelSettingValues } from '../../../../platform/agentHost/common/copilotCliConfig.js';
-import { AgentHostAutoReplyEnabledConfigKey, AgentHostGlobalAutoApproveEnabledConfigKey, AgentHostMigrateLegacyCopilotCliEnabledConfigKey, AgentHostSessionSyncEnabledConfigKey } from '../../../../platform/agentHost/common/agentHostSchema.js';
+import { AgentHostAutoReplyEnabledConfigKey, AgentHostGlobalAutoApproveEnabledConfigKey, AgentHostMigrateLegacyCopilotCliEnabledConfigKey } from '../../../../platform/agentHost/common/agentHostSchema.js';
 import { DEFAULT_LOCAL_TRANSCRIPTION_MODEL } from '../../../../platform/localTranscription/common/localTranscription.js';
 import { AgentNetworkFilterService, IAgentNetworkFilterService } from '../../../../platform/networkFilter/common/networkFilterService.js';
 import { AgentNetworkDomainSettingId } from '../../../../platform/networkFilter/common/settings.js';
@@ -61,6 +61,7 @@ import { ChatSlashCommandService, IChatSlashCommandService } from '../common/par
 import { ChatArtifactsService, IChatArtifactsService } from '../common/tools/chatArtifactsService.js';
 import { IVoiceCodeTranscriptionClient, VoiceCodeTranscriptionClient } from './speechToText/voiceCodeTranscriptionClient.js';
 import { ChatTodoListService, IChatTodoListService } from '../common/tools/chatTodoListService.js';
+import { ChatAgentRunStateService, IChatAgentRunStateService } from '../common/tools/agentRunStateService.js';
 import { ChatTransferService, IChatTransferService } from '../common/model/chatTransferService.js';
 import { IChatVariablesService } from '../common/attachments/chatVariables.js';
 import { ChatWidgetHistoryService, IChatWidgetHistoryService } from '../common/widget/chatWidgetHistoryService.js';
@@ -141,7 +142,7 @@ import { ChatDebugEditor } from './chatDebug/chatDebugEditor.js';
 import { PromptsDebugContribution } from './promptsDebugContribution.js';
 import { AgentHostChatDebugContribution } from './chatDebug/agentHostChatDebugProvider.js';
 import { ChatDebugEditorInput, ChatDebugEditorInputSerializer } from './chatDebug/chatDebugEditorInput.js';
-import './agentSessions/agentSessions.contribution.js';
+
 
 import { ChatContextKeys } from '../common/actions/chatContextKeys.js';
 
@@ -196,7 +197,6 @@ import { ChatDynamicVariableModel } from './attachments/chatDynamicVariables.js'
 import { ChatImplicitContextContribution } from './attachments/chatImplicitContext.js';
 import './widget/input/chatInputNoticeHub.js';
 import './widget/input/editor/chatInputCompletions.js';
-import './widget/input/editor/agentHostInputCompletions.js';
 import './widget/input/editor/chatInputEditorContrib.js';
 import './widget/input/editor/chatInputCommandArgumentHint.js';
 import './widget/input/editor/chatInputEditorHover.js';
@@ -241,9 +241,9 @@ import { ExploreAgentDefaultModel } from './exploreAgentDefaultModel.js';
 import { PlanAgentDefaultModel } from './planAgentDefaultModel.js';
 import { UtilityModelContribution, UtilitySmallModelContribution } from './utilityModelContribution.js';
 import { ChatImageCarouselService, IChatImageCarouselService } from './chatImageCarouselService.js';
-import { AgentHostImportConversationStore, IAgentHostImportConversationStore } from './agentSessions/agentHost/agentHostImportConversationStore.js';
+
 import { ChatRequestOriginService, IChatRequestOriginService } from '../common/chatRequestOrigin.js';
-import { SessionSummaryHoverService, ISessionSummaryHoverService } from './agentSessions/sessionSummaryHoverService.js';
+
 
 CommandsRegistry.registerCommand('_chat.notifyQuestionCarouselAnswer', (accessor: ServicesAccessor, resolveId: string, answers?: import('../common/chatService/chatService.js').IChatQuestionAnswers) => {
 	accessor.get(IChatService).notifyQuestionCarouselAnswer('', resolveId, answers);
@@ -252,11 +252,9 @@ CommandsRegistry.registerCommand('_chat.notifyQuestionCarouselAnswer', (accessor
 const toolReferenceNameEnumValues: string[] = [];
 const toolReferenceNameEnumDescriptions: string[] = [];
 
-// Register JSON schema for hook files
 const jsonContributionRegistry = Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONContribution);
 jsonContributionRegistry.registerSchema(HOOK_SCHEMA_URI, hookFileSchema);
 
-// Register configuration
 const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 configurationRegistry.registerConfiguration({
 	id: 'chatSidebar',
@@ -546,7 +544,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[ChatConfiguration.EditorAssociations]: {
 			type: 'object',
-			markdownDescription: nls.localize('chat.editorAssociations', "Configure [glob patterns](https://aka.ms/vscode-glob-patterns) to editors for opening files from chat (for example `\"*.md\": \"vscode.markdown.preview.editor\"`)."),
+			markdownDescription: nls.localize('chat.editorAssociations', "Configure [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) to editors for opening files from chat (for example `\"*.md\": \"vscode.markdown.preview.editor\"`)."),
 			additionalProperties: {
 				type: 'string'
 			},
@@ -688,47 +686,19 @@ configurationRegistry.registerConfiguration({
 				},
 			}
 		},
-		[ChatConfiguration.SessionSyncEnabled]: {
-			default: false,
-			markdownDescription: nls.localize('chat.sessionSync.enabled', "Enable session sync to GitHub.com. When enabled, Dardcor AI session data is synced to your GitHub account for cross-device access and richer insights. Requires `#github.copilot.chat.localIndex.enabled#` to also be enabled."),
-			type: 'boolean',
-			tags: ['experimental'],
-			experiment: {
-				mode: 'auto'
-			},
-			policy: {
-				name: 'CopilotSessionSync',
-				category: PolicyCategory.InteractiveSession,
-				minimumVersion: '1.121',
-				value: (policyData) => policyData.cloud_session_storage_enabled === false ? false : undefined,
-				localization: {
-					description: {
-						key: 'chat.sessionSync.enabled.policy',
-						value: nls.localize('chat.sessionSync.enabled.policy', "Enable session sync to GitHub.com for cross-device Dardcor AI session history. When disabled by organization policy, session data is kept local only."),
-					}
-				},
-			},
-			agentHost: { key: AgentHostSessionSyncEnabledConfigKey },
-		},
-		[ChatConfiguration.SessionSyncExcludeRepositories]: {
-			type: 'array',
-			items: { type: 'string' },
-			default: [],
-			markdownDescription: nls.localize('chat.sessionSync.excludeRepositories', "Repository patterns to exclude from session sync. Use exact `owner/repo` names or glob patterns like `my-org/*`. Sessions from matching repositories will only be stored locally."),
-			tags: ['experimental', 'advanced'],
-		},
 		[ChatConfiguration.AutoApproveEdits]: {
 			default: {
 				'**/*': true,
+				'**/.dardcor-code/*.json': false,
 				'**/.vscode/*.json': false,
 				'**/.git/**': false,
 				'**/{package.json,server.xml,build.rs,web.config,.gitattributes,.env,Cargo.toml}': false,
 				'**/{.npmrc,.yarnrc,.yarnrc.yml,.pnpmfile.js,.pnpmfile.cjs,.pnpmfile.mjs,pnpm-workspace.yaml}': false,
 				'**/*.{code-workspace,csproj,fsproj,vbproj,vcxproj,proj,targets,props,gradle,gradle.kts}': false,
 				'**/gradle.properties': false,
-				'**/ruby_lsp/*/addon': false, // Auto-included Ruby addons
-				'**/*.lock': false, // yarn.lock, bun.lock, etc.
-				'**/*-lock.{yaml,json}': false, // pnpm-lock.yaml, package-lock.json
+				'**/ruby_lsp/*/addon': false,
+				'**/*.lock': false,
+				'**/*-lock.{yaml,json}': false,
 			},
 			markdownDescription: nls.localize('chat.tools.autoApprove.edits', "Controls whether edits made by the agent are automatically approved. The default is to approve all edits except those made to certain files which have the potential to cause immediate unintended side-effects, such as `**/.vscode/*.json`.\n\nSet to `true` to automatically approve edits to matching files, `false` to always require explicit approval. The last pattern matching a given file will determine whether the edit is automatically approved."),
 			type: 'object',
@@ -738,7 +708,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[ChatConfiguration.AutoApprovedUrls]: {
 			default: {
-				'https://code.visualstudio.com': true,
+				'https://www.dardcor-code.web.id': true,
 				'https://github.com/microsoft/vscode/wiki/*': true,
 			},
 			markdownDescription: nls.localize('chat.tools.fetchPage.approvedUrls', "Controls which URLs are automatically approved when requested by chat tools. Keys are URL patterns and values can be `true` to approve both requests and responses, `false` to deny, or an object with `approveRequest` and `approveResponse` properties for granular control.\n\nExamples:\n- `\"https://example.com\": true` - Approve all requests to example.com\n- `\"https://*.example.com\": true` - Approve all requests to any subdomain of example.com\n- `\"https://example.com/api/*\": { \"approveRequest\": true, \"approveResponse\": false }` - Approve requests but not responses for example.com/api paths"),
@@ -1021,8 +991,6 @@ configurationRegistry.registerConfiguration({
 			markdownDescription: nls.localize('chat.mcp.allowedServers', "Enterprise-managed allowlist that controls which Model Context Protocol servers may be installed and run. When set, only servers matching an entry are permitted; any other server is blocked. Servers can be matched by name, remote URL pattern (with `*` wildcards), or local command invocation. Omit entirely to allow all servers (subject to the deny list). Delivered via enterprise policy for governance; this setting is not surfaced to end users."),
 			default: null,
 			scope: ConfigurationScope.APPLICATION,
-			// Governance-only: delivered via the `ChatAllowedMcpServers` enterprise policy and hidden
-			// from the Settings UI so it is not configurable by end users.
 			included: false,
 			policy: {
 				name: 'ChatAllowedMcpServers',
@@ -1059,8 +1027,6 @@ configurationRegistry.registerConfiguration({
 			markdownDescription: nls.localize('chat.mcp.deniedServers', "Enterprise-managed denylist of Model Context Protocol servers. Servers matching any entry are unconditionally blocked from being installed or run, even if they also match the allow list — deny rules always take precedence. Servers can be matched by name, remote URL pattern (with `*` wildcards), or local command invocation. Delivered via enterprise policy for governance; this setting is not surfaced to end users."),
 			default: null,
 			scope: ConfigurationScope.APPLICATION,
-			// Governance-only: delivered via the `ChatDeniedMcpServers` enterprise policy and hidden
-			// from the Settings UI so it is not configurable by end users.
 			included: false,
 			policy: {
 				name: 'ChatDeniedMcpServers',
@@ -1249,7 +1215,7 @@ configurationRegistry.registerConfiguration({
 		[ChatConfiguration.EnabledPlugins]: {
 			type: 'object',
 			additionalProperties: { type: 'boolean' },
-			markdownDescription: nls.localize('chat.plugins.enabledPlugins', "Controls which [agent plugins](https://aka.ms/vscode-agent-plugins) are enabled or disabled. Keys are plugin IDs in `<plugin>@<marketplace>` form (where marketplace is defined in {1}); values enable (`true`) or disable (`false`) the plugin. Discovered alongside the path-keyed entries in {0}. When set by policy, entries are additive: plugins mapped to `true` are enabled in addition to the user's own plugins, and only plugins mapped to `false` are blocked from loading.", `\`#${ChatConfiguration.PluginLocations}#\``, `\`#${ChatConfiguration.PluginMarketplaces}#\``),
+			markdownDescription: nls.localize('chat.plugins.enabledPlugins', "Controls which [agent plugins](https://www.dardcor-code.web.id/docs/agent-customization/agent-plugins) are enabled or disabled. Keys are plugin IDs in `<plugin>@<marketplace>` form (where marketplace is defined in {1}); values enable (`true`) or disable (`false`) the plugin. Discovered alongside the path-keyed entries in {0}. When set by policy, entries are additive: plugins mapped to `true` are enabled in addition to the user's own plugins, and only plugins mapped to `false` are blocked from loading.", `\`#${ChatConfiguration.PluginLocations}#\``, `\`#${ChatConfiguration.PluginMarketplaces}#\``),
 			scope: ConfigurationScope.APPLICATION,
 			policy: {
 				name: 'ChatEnabledPlugins',
@@ -1278,16 +1244,6 @@ configurationRegistry.registerConfiguration({
 			tags: ['experimental'],
 		},
 		[ChatConfiguration.ExtraMarketplaces]: {
-			// Policy-only delivery slot for enterprise-managed marketplace entries (via the
-			// `ChatExtraMarketplaces` policy). Consumers union this with `chat.plugins.marketplaces`.
-			//
-			// Stored as a named string map. Explicit update overrides are JSON-encoded
-			// inside the value string so the Settings Editor can use its inline object renderer.
-			// This ensures:
-			//   - The Settings Editor (ComplexObject renderer) can display entries inline when
-			//     managed by policy, rather than only showing "Edit in settings.json".
-			//   - Marketplace names are preserved for `enabledPlugins["plugin@<name>"]` resolution.
-			//
 			type: 'object',
 			additionalProperties: { type: ['string'] as ['string'] },
 			default: {},
@@ -1592,7 +1548,7 @@ configurationRegistry.registerConfiguration({
 		[ChatConfiguration.ToolRiskAssessmentModel]: {
 			type: 'string',
 			description: nls.localize('chat.tools.riskAssessment.model', "The language model id used to generate tool risk assessments. Should be a small, fast model."),
-			default: 'copilot-utility-small',
+			default: 'dardcor-utility-small',
 			tags: ['experimental', 'advanced'],
 			experiment: {
 				mode: 'auto'
@@ -1617,18 +1573,18 @@ configurationRegistry.registerConfiguration({
 		[ChatConfiguration.BYOKUtilityModelDefault]: {
 			type: 'string',
 			markdownDescription: nls.localize('chat.byokUtilityModelDefault.description', "Controls the default model used by built-in utility flows when the selected main agent model is a bring your own key (BYOK) model. This setting has no effect when the selected main agent model is provided by Dardcor AI. A specific model configured in {0} or {1} takes precedence.", '`#chat.utilityModel#`', '`#chat.utilitySmallModel#`'),
-			enum: [BYOKUtilityModelDefault.None, BYOKUtilityModelDefault.MainAgent, BYOKUtilityModelDefault.Copilot],
+			enum: [BYOKUtilityModelDefault.None, BYOKUtilityModelDefault.MainAgent, BYOKUtilityModelDefault.DardcorRouter],
 			enumItemLabels: [
 				nls.localize('chat.byokUtilityModelDefault.none.label', "None"),
 				nls.localize('chat.byokUtilityModelDefault.mainAgent.label', "Main Agent Model"),
-				nls.localize('chat.byokUtilityModelDefault.copilot.label', "Dardcor AI"),
+				nls.localize('chat.byokUtilityModelDefault.dardcorRouter.label', "Dardcor Router"),
 			],
 			markdownEnumDescriptions: [
 				nls.localize('chat.byokUtilityModelDefault.none.description', "Do not use a default utility model."),
 				nls.localize('chat.byokUtilityModelDefault.mainAgent.description', "Use the selected BYOK main agent model."),
-				nls.localize('chat.byokUtilityModelDefault.copilot.description', "Use the default Dardcor AI utility models."),
+				nls.localize('chat.byokUtilityModelDefault.dardcorRouter.description', "Use the default Dardcor Router utility models."),
 			],
-			default: BYOKUtilityModelDefault.Copilot,
+			default: BYOKUtilityModelDefault.DardcorRouter,
 		},
 		[ChatConfiguration.UtilityModel]: {
 			type: 'string',
@@ -1862,7 +1818,7 @@ configurationRegistry.registerConfiguration({
 		[PromptsConfig.USE_AGENT_SKILLS]: {
 			type: 'boolean',
 			title: nls.localize('chat.useAgentSkills.title', "Use Agent skills",),
-			markdownDescription: nls.localize('chat.useAgentSkills.description', "Controls whether skills are provided as specialized capabilities to the chat requests. Skills are loaded from the folders configured in `#chat.agentSkillsLocations#`. The language model can load these skills on-demand if the `read` tool is available. Learn more about [Agent Skills](https://aka.ms/vscode-agent-skills). This setting is only used by the Local agent harness.",),
+			markdownDescription: nls.localize('chat.useAgentSkills.description', "Controls whether skills are provided as specialized capabilities to the chat requests. Skills are loaded from the folders configured in `#chat.agentSkillsLocations#`. The language model can load these skills on-demand if the `read` tool is available. Learn more about [Agent Skills](https://www.dardcor-code.web.id/docs/agent-customization/agent-skills). This setting is only used by the Local agent harness.",),
 			default: true,
 			restricted: true,
 			disallowConfigurationDefault: true,
@@ -2005,7 +1961,7 @@ configurationRegistry.registerConfiguration({
 			),
 			markdownDescription: nls.localize(
 				'chat.promptFilesRecommendations.description',
-				"Configure which prompt files to recommend in the chat welcome view. Each key is a prompt file name, and the value can be `true` to always recommend, `false` to never recommend, or a [when clause](https://aka.ms/vscode-when-clause) expression like `resourceExtname == .js` or `resourceLangId == markdown`.",
+				"Configure which prompt files to recommend in the chat welcome view. Each key is a prompt file name, and the value can be `true` to always recommend, `false` to never recommend, or a [when clause](https://www.dardcor-code.web.id/docs/configuration/when-clauses) expression like `resourceExtname == .js` or `resourceLangId == markdown`.",
 			),
 			default: {},
 			additionalProperties: {
@@ -2137,7 +2093,7 @@ configurationRegistry.registerConfiguration({
 				}
 			}
 		},
-		'chat.allowAnonymousAccess': { // TODO@bpasero remove me eventually
+		'chat.allowAnonymousAccess': {
 			type: 'boolean',
 			description: nls.localize('chat.allowAnonymousAccess', "Controls whether anonymous access is allowed in chat."),
 			default: false,
@@ -2285,7 +2241,7 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration).
 		migrateFn: (value: unknown, valueAccessor) => {
 			const result: ConfigurationKeyValuePairs = [['chat.useCopilotModelsForUtilityModels', { value: undefined }]];
 			if (typeof value === 'boolean' && valueAccessor(ChatConfiguration.BYOKUtilityModelDefault) === undefined) {
-				result.push([ChatConfiguration.BYOKUtilityModelDefault, { value: value ? BYOKUtilityModelDefault.Copilot : BYOKUtilityModelDefault.None }]);
+				result.push([ChatConfiguration.BYOKUtilityModelDefault, { value: value ? BYOKUtilityModelDefault.DardcorRouter : BYOKUtilityModelDefault.None }]);
 			}
 			return result;
 		}
@@ -2337,11 +2293,6 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration).
 		])
 	},
 	{
-		// The on-device dictation runtime moved to Foundry Local; the old
-		// transformers.js/onnxruntime model IDs no longer resolve and would fail
-		// with an unknown-model error. Map any explicitly-stored legacy value to
-		// the new default so existing users keep working. Also migrate the setting
-		// from its old `chat.speechToText.model` id to `dictation.model`.
 		key: 'chat.speechToText.model',
 		migrateFn: (value: unknown, accessor) => {
 			const legacyModelIds = [
@@ -2355,8 +2306,6 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration).
 				? DEFAULT_LOCAL_TRANSCRIPTION_MODEL
 				: value;
 			const pairs: ConfigurationKeyValuePairs = [['chat.speechToText.model', { value: undefined }]];
-			// Never clobber an explicitly configured new key (e.g. after settings
-			// sync brought both keys across versions).
 			if (accessor('dictation.model') === undefined) {
 				pairs.push(['dictation.model', { value: migrated }]);
 			}
@@ -2364,8 +2313,6 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration).
 		}
 	},
 	{
-		// Existing users may have the former English-only default stored
-		// explicitly. Move them to the multilingual replacement as well.
 		key: 'dictation.model',
 		migrateFn: value => ({
 			value: value === 'nemotron-speech-streaming-en-0.6b'
@@ -2374,8 +2321,6 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration).
 		})
 	},
 	{
-		// Dictation settings were regrouped under the top-level `dictation.*`
-		// namespace (they govern dictation across chat, editor, and terminal).
 		key: 'chat.speechToText.enabled',
 		migrateFn: (value: unknown, accessor) => {
 			const pairs: ConfigurationKeyValuePairs = [['chat.speechToText.enabled', { value: undefined }]];
@@ -2386,8 +2331,6 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration).
 		}
 	},
 	{
-		// `chat.speechToText.mode` was removed (the shortcut is always tap-toggle /
-		// hold-to-talk); clear it so it does not linger as an unknown setting.
 		key: 'chat.speechToText.mode',
 		migrateFn: () => ([['chat.speechToText.mode', { value: undefined }]])
 	},
@@ -2466,7 +2409,6 @@ class CopilotTelemetryContribution extends Disposable implements IWorkbenchContr
 	private updateCommonProperties(): void {
 		const copilotTrackingId = this.chatEntitlementService.copilotTrackingId;
 		if (copilotTrackingId) {
-			// __GDPR__COMMON__ "common.copilotTrackingId" : { "endPoint": "GoogleAnalyticsID", "classification": "EndUserPseudonymizedInformation", "purpose": "BusinessInsight", "comment": "The anonymized Copilot analytics tracking ID from the entitlement API." }
 			this.telemetryService.setCommonProperty('common.copilotTrackingId', copilotTrackingId);
 		}
 
@@ -2553,7 +2495,7 @@ class ChatAgentSettingContribution extends Disposable implements IWorkbenchContr
 
 	private registerNewChatButtonIcon(): void {
 		this.experimentService.getTreatment<string>('chatNewButtonIcon').then((value) => {
-			const supportedValues = ['copilot', 'new-session', 'comment'];
+			const supportedValues = ['dardcor', 'new-session', 'comment'];
 			if (typeof value === 'string' && supportedValues.includes(value)) {
 				this.newChatButtonExperimentIcon.set(value);
 			} else {
@@ -2634,11 +2576,6 @@ class ChatForegroundSessionCountContribution extends Disposable implements IWork
 }
 
 
-/**
- * Given builtin and custom modes, returns only the custom mode IDs that should have actions registered.
- * Custom modes whose names conflict with builtin modes are excluded.
- * If there are name collisions among custom modes, the later mode in the list wins.
- */
 function getCustomModesWithUniqueNames(builtinModes: readonly IChatMode[], customModes: readonly IChatMode[]): Set<string> {
 	const customModeIds = new Set<string>();
 	const builtinNames = new Set(builtinModes.map(mode => mode.name.get()));
@@ -2647,12 +2584,10 @@ function getCustomModesWithUniqueNames(builtinModes: readonly IChatMode[], custo
 	for (const mode of customModes) {
 		const modeName = mode.name.get();
 
-		// Skip custom modes that conflict with builtin mode names
 		if (builtinNames.has(modeName)) {
 			continue;
 		}
 
-		// If there is a name collision among custom modes, the later one in the list wins
 		const existingId = customNameToId.get(modeName);
 		if (existingId) {
 			customModeIds.delete(existingId);
@@ -2665,9 +2600,6 @@ function getCustomModesWithUniqueNames(builtinModes: readonly IChatMode[], custo
 	return customModeIds;
 }
 
-/**
- * Workbench contribution to register actions for custom chat modes via events
- */
 class ChatAgentActionsContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.chatAgentActions';
@@ -2697,14 +2629,12 @@ class ChatAgentActionsContribution extends Disposable implements IWorkbenchContr
 		const { builtin, custom } = chatModes;
 		const currentModeIds = getCustomModesWithUniqueNames(builtin, custom);
 
-		// Remove modes that no longer exist and those replaced by modes later in the list with same name.
 		for (const modeId of this._modeActionDisposables.keys()) {
 			if (!currentModeIds.has(modeId)) {
 				this._modeActionDisposables.deleteAndDispose(modeId);
 			}
 		}
 
-		// Register new modes.
 		for (const mode of custom) {
 			if (currentModeIds.has(mode.id) && !this._modeActionDisposables.has(mode.id)) {
 				this._registerModeAction(mode);
@@ -2749,17 +2679,14 @@ class HookSchemaAssociationContribution extends Disposable implements IWorkbench
 		const userHome = userHomeUri.fsPath ?? userHomeUri.path;
 
 		for (const folder of folders) {
-			// Skip Claude settings files — they use a different schema format
 			if (folder.source === PromptFileSource.ClaudeWorkspace || folder.source === PromptFileSource.ClaudeWorkspaceLocal || folder.source === PromptFileSource.ClaudePersonal) {
 				continue;
 			}
 
-			// Expand tilde paths to absolute paths so the JSON language service can match them
 			const resolvedPath = isTildePath(folder.path)
 				? userHome + folder.path.substring(1)
 				: folder.path;
 
-			// If it's a specific .json file, use it directly; otherwise treat as directory
 			const glob = resolvedPath.toLowerCase().endsWith('.json')
 				? resolvedPath
 				: `${resolvedPath}/*.json`;
@@ -2808,12 +2735,6 @@ class ToolReferenceNamesContribution extends Disposable implements IWorkbenchCon
 	}
 }
 
-/**
- * Forces the eager {@link ChatSpeechToTextService} to instantiate at startup so
- * it can publish the `chatSpeechToTextConfigured` context key that gates the
- * dictation (mic) button. Registered singletons are created lazily on first
- * access, so without this the key would never be set and the button never shows.
- */
 class ChatSpeechToTextInitContribution implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.chatSpeechToTextInit';
@@ -2821,7 +2742,6 @@ class ChatSpeechToTextInitContribution implements IWorkbenchContribution {
 	constructor(
 		@IChatSpeechToTextService _chatSpeechToTextService: IChatSpeechToTextService,
 	) {
-		// Injecting the service is enough to construct it.
 	}
 }
 
@@ -2973,6 +2893,7 @@ registerSingleton(IChatModeService, ChatModeService, InstantiationType.Delayed);
 registerSingleton(IChatAttachmentResolveService, ChatAttachmentResolveService, InstantiationType.Delayed);
 registerSingleton(IChatAttachmentWidgetRegistry, ChatAttachmentWidgetRegistry, InstantiationType.Delayed);
 registerSingleton(IChatTodoListService, ChatTodoListService, InstantiationType.Delayed);
+registerSingleton(IChatAgentRunStateService, ChatAgentRunStateService, InstantiationType.Delayed);
 registerSingleton(IChatArtifactsService, ChatArtifactsService, InstantiationType.Delayed);
 registerSingleton(IChatOutputRendererService, ChatOutputRendererService, InstantiationType.Delayed);
 registerSingleton(IChatLayoutService, ChatLayoutService, InstantiationType.Delayed);
@@ -2980,10 +2901,8 @@ registerSingleton(IPlanReviewFeedbackService, PlanReviewFeedbackService, Instant
 registerSingleton(IChatTipService, ChatTipService, InstantiationType.Delayed);
 registerSingleton(IChatDebugService, ChatDebugServiceImpl, InstantiationType.Delayed);
 registerSingleton(IChatImageCarouselService, ChatImageCarouselService, InstantiationType.Delayed);
-registerSingleton(IAgentHostImportConversationStore, AgentHostImportConversationStore, InstantiationType.Delayed);
 registerSingleton(ISessionChatPillVisibilityService, SessionChatPillVisibility, InstantiationType.Delayed);
 registerSingleton(IChatRequestOriginService, ChatRequestOriginService, InstantiationType.Delayed);
-registerSingleton(ISessionSummaryHoverService, SessionSummaryHoverService, InstantiationType.Delayed);
 registerSingleton(IChatPetWidgetService, ChatPetWidgetService, InstantiationType.Delayed);
 registerSingleton(IChatModelFeedbackSurveyService, ChatModelFeedbackSurveyService, InstantiationType.Delayed);
 registerSingleton(IChatPasteTargetService, ChatPasteTargetService, InstantiationType.Delayed);

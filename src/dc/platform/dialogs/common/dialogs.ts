@@ -26,33 +26,12 @@ export interface IBaseDialogOptions {
 	readonly title?: string;
 	readonly message: string;
 
-	/**
-	 * Supporting copy shown below the message. Can be an {@link IMarkdownString}
-	 * to emphasize part of the text (e.g. a command name) or to offer a
-	 * command link, in addition to plain text.
-	 *
-	 * Native and other non-browser dialog handlers cannot render Markdown and
-	 * degrade a Markdown detail to its plain-text equivalent, stripping
-	 * formatting and link syntax rather than showing it verbatim.
-	 */
 	readonly detail?: string | IMarkdownString;
 
 	readonly checkbox?: ICheckbox;
 
-	/**
-	 * Allows to enforce use of custom dialog even in native environments.
-	 */
 	readonly custom?: boolean | ICustomDialogOptions;
 
-	/**
-	 * An optional cancellation token that can be used to dismiss the dialog
-	 * programmatically for custom dialog implementations.
-	 *
-	 * When cancelled, the custom dialog resolves as if the cancel button was
-	 * pressed. Native dialog handlers cannot currently be dismissed
-	 * programmatically and ignore this option unless a custom dialog is
-	 * explicitly enforced via the {@link custom} option.
-	 */
 	readonly token?: CancellationToken;
 }
 
@@ -62,22 +41,13 @@ export interface IConfirmDialogArgs {
 
 export interface IConfirmation extends IBaseDialogOptions {
 
-	/**
-	 * If not provided, defaults to `Yes`.
-	 */
 	readonly primaryButton?: string;
 
-	/**
-	 * If not provided, defaults to `Cancel`.
-	 */
 	readonly cancelButton?: string;
 }
 
 export interface IConfirmationResult extends ICheckboxResult {
 
-	/**
-	 * Will be true if the dialog was confirmed with the primary button pressed.
-	 */
 	readonly confirmed: boolean;
 }
 
@@ -88,9 +58,6 @@ export interface IInputDialogArgs {
 export interface IInput extends IConfirmation {
 	readonly inputs: IInputElement[];
 
-	/**
-	 * If not provided, defaults to `Ok`.
-	 */
 	readonly primaryButton?: string;
 }
 
@@ -102,9 +69,6 @@ export interface IInputElement {
 
 export interface IInputResult extends IConfirmationResult {
 
-	/**
-	 * Values for the input fields as provided by the user or `undefined` if none.
-	 */
 	readonly values?: string[];
 }
 
@@ -114,10 +78,6 @@ export interface IPromptDialogArgs {
 
 export interface IPromptBaseButton<T> {
 
-	/**
-	 * @returns the result of the prompt button will be returned
-	 * as result from the `prompt()` call.
-	 */
 	run(checkbox: ICheckboxResult): T | Promise<T>;
 }
 
@@ -127,25 +87,13 @@ export interface IPromptButton<T> extends IPromptBaseButton<T> {
 
 export interface IPromptCancelButton<T> extends IPromptBaseButton<T> {
 
-	/**
-	 * The cancel button to show in the prompt. Defaults to
-	 * `Cancel` if not provided.
-	 */
 	readonly label?: string;
 }
 
 export interface IPrompt<T> extends IBaseDialogOptions {
 
-	/**
-	 * The buttons to show in the prompt. Defaults to `OK`
-	 * if no buttons or cancel button is provided.
-	 */
 	readonly buttons?: IPromptButton<T>[];
 
-	/**
-	 * The cancel button to show in the prompt. Defaults to
-	 * `Cancel` if set to `true`.
-	 */
 	readonly cancelButton?: IPromptCancelButton<T> | true | string;
 }
 
@@ -159,9 +107,6 @@ export interface IPromptWithDefaultCancel<T> extends IPrompt<T> {
 
 export interface IPromptResult<T> extends ICheckboxResult {
 
-	/**
-	 * The result of the `IPromptButton` that was pressed or `undefined` if none.
-	 */
 	readonly result?: T;
 }
 
@@ -171,9 +116,6 @@ export interface IPromptResultWithCancel<T> extends IPromptResult<T> {
 
 export interface IAsyncPromptResult<T> extends ICheckboxResult {
 
-	/**
-	 * The result of the `IPromptButton` that was pressed or `undefined` if none.
-	 */
 	readonly result?: Promise<T>;
 }
 
@@ -192,10 +134,6 @@ export interface ICheckbox {
 
 export interface ICheckboxResult {
 
-	/**
-	 * This will only be defined if the confirmation was created
-	 * with the checkbox option defined.
-	 */
 	readonly checkboxChecked?: boolean;
 }
 
@@ -214,76 +152,33 @@ export interface FileFilter {
 
 export interface ISaveDialogOptions {
 
-	/**
-	 * A human-readable string for the dialog title
-	 */
 	title?: string;
 
-	/**
-	 * The resource the dialog shows when opened.
-	 */
 	defaultUri?: URI;
 
-	/**
-	 * A set of file filters that are used by the dialog. Each entry is a human readable label,
-	 * like "TypeScript", and an array of extensions.
-	 */
 	filters?: FileFilter[];
 
-	/**
-	 * A human-readable string for the ok button
-	 */
 	readonly saveLabel?: { readonly withMnemonic: string; readonly withoutMnemonic: string } | string;
 
-	/**
-	 * Specifies a list of schemas for the file systems the user can save to. If not specified, uses the schema of the defaultURI or, if also not specified,
-	 * the schema of the current window.
-	 */
 	availableFileSystems?: readonly string[];
 }
 
 export interface IOpenDialogOptions {
 
-	/**
-	 * A human-readable string for the dialog title
-	 */
 	readonly title?: string;
 
-	/**
-	 * The resource the dialog shows when opened.
-	 */
 	defaultUri?: URI;
 
-	/**
-	 * A human-readable string for the open button.
-	 */
 	readonly openLabel?: { readonly withMnemonic: string; readonly withoutMnemonic: string } | string;
 
-	/**
-	 * Allow to select files, defaults to `true`.
-	 */
 	canSelectFiles?: boolean;
 
-	/**
-	 * Allow to select folders, defaults to `false`.
-	 */
 	canSelectFolders?: boolean;
 
-	/**
-	 * Allow to select many files or folders.
-	 */
 	readonly canSelectMany?: boolean;
 
-	/**
-	 * A set of file filters that are used by the dialog. Each entry is a human readable label,
-	 * like "TypeScript", and an array of extensions.
-	 */
 	filters?: FileFilter[];
 
-	/**
-	 * Specifies a list of schemas for the file systems the user can load from. If not specified, uses the schema of the defaultURI or, if also not available,
-	 * the schema of the current window.
-	 */
 	availableFileSystems?: readonly string[];
 }
 
@@ -296,45 +191,23 @@ export interface ICustomDialogOptions {
 	readonly icon?: ThemeIcon;
 	readonly disableCloseAction?: boolean;
 
-	/**
-	 * Aligns the dialog's icon, message, and buttons vertically (full-width
-	 * stacked buttons) instead of the default horizontal layout. Defaults to
-	 * `'horizontal'`. Implemented by the browser dialog handler via the base
-	 * dialog widget's alignment option.
-	 */
 	readonly alignment?: 'horizontal' | 'vertical';
 }
 
 export interface ICustomDialogMarkdown {
 	readonly markdown: IMarkdownString;
 	readonly classes?: string[];
-	/** Custom link handler for markdown content, see {@link IContentActionHandler}. Defaults to {@link openLinkFromMarkdown}. */
 	actionHandler?(link: string): Promise<boolean>;
 }
 
-/**
- * A handler to bring up modal dialogs.
- */
 export interface IDialogHandler {
 
-	/**
-	 * Ask the user for confirmation with a modal dialog.
-	 */
 	confirm(confirmation: IConfirmation): Promise<IConfirmationResult>;
 
-	/**
-	 * Prompt the user with a modal dialog.
-	 */
 	prompt<T>(prompt: IPrompt<T>): Promise<IAsyncPromptResult<T>>;
 
-	/**
-	 * Present a modal dialog to the user asking for input.
-	 */
 	input(input: IInput): Promise<IInputResult>;
 
-	/**
-	 * Present the about dialog to the user.
-	 */
 	about(title: string, details: string, detailsToCopy: string): Promise<void>;
 }
 
@@ -363,9 +236,6 @@ export abstract class AbstractDialogHandler implements IDialogHandler {
 	private getButtons(dialog: IInput, kind: DialogKind.Input): string[];
 	private getButtons(dialog: IConfirmation | IInput | IPrompt<unknown>, kind: DialogKind): string[] {
 
-		// We put buttons in the order of "default" button first and "cancel"
-		// button last. There maybe later processing when presenting the buttons
-		// based on OS standards.
 
 		const buttons: string[] = [];
 
@@ -468,146 +338,59 @@ export abstract class AbstractDialogHandler implements IDialogHandler {
 	abstract about(title: string, details: string, detailsToCopy: string): Promise<void>;
 }
 
-/**
- * A service to bring up modal dialogs.
- *
- * Note: use the `INotificationService.prompt()` method for a non-modal way to ask
- * the user for input.
- */
 export interface IDialogService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * An event that fires when a dialog is about to show.
-	 */
 	readonly onWillShowDialog: Event<void>;
 
-	/**
-	 * An event that fires when a dialog did show (closed).
-	 */
 	readonly onDidShowDialog: Event<void>;
 
-	/**
-	 * Ask the user for confirmation with a modal dialog.
-	 */
 	confirm(confirmation: IConfirmation): Promise<IConfirmationResult>;
 
-	/**
-	 * Prompt the user with a modal dialog. Provides a bit
-	 * more control over the dialog compared to the simpler
-	 * `confirm` method. Specifically, allows to show more
-	 * than 2 buttons and makes it easier to just show a
-	 * message to the user.
-	 *
-	 * @returns a promise that resolves to the `T` result
-	 * from the provided `IPromptButton<T>` or `undefined`.
-	 */
 	prompt<T>(prompt: IPromptWithCustomCancel<T>): Promise<IPromptResultWithCancel<T>>;
 	prompt<T>(prompt: IPromptWithDefaultCancel<T>): Promise<IPromptResult<T>>;
 	prompt<T>(prompt: IPrompt<T>): Promise<IPromptResult<T>>;
 
-	/**
-	 * Present a modal dialog to the user asking for input.
-	 */
 	input(input: IInput): Promise<IInputResult>;
 
-	/**
-	 * Show a modal info dialog.
-	 */
 	info(message: string, detail?: string): Promise<void>;
 
-	/**
-	 * Show a modal warning dialog.
-	 */
 	warn(message: string, detail?: string): Promise<void>;
 
-	/**
-	 * Show a modal error dialog.
-	 */
 	error(message: string, detail?: string): Promise<void>;
 
-	/**
-	 * Present the about dialog to the user.
-	 */
 	about(): Promise<void>;
 }
 
 export const IFileDialogService = createDecorator<IFileDialogService>('fileDialogService');
 
-/**
- * A service to bring up file dialogs.
- */
 export interface IFileDialogService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * The default path for a new file based on previously used files.
-	 * @param schemeFilter The scheme of the file path. If no filter given, the scheme of the current window is used.
-	 * Falls back to user home in the absence of enough information to find a better URI.
-	 */
 	defaultFilePath(schemeFilter?: string): Promise<URI>;
 
-	/**
-	 * The default path for a new folder based on previously used folders.
-	 * @param schemeFilter The scheme of the folder path. If no filter given, the scheme of the current window is used.
-	 * Falls back to user home in the absence of enough information to find a better URI.
-	 */
 	defaultFolderPath(schemeFilter?: string): Promise<URI>;
 
-	/**
-	 * The default path for a new workspace based on previously used workspaces.
-	 * @param schemeFilter The scheme of the workspace path. If no filter given, the scheme of the current window is used.
-	 * Falls back to user home in the absence of enough information to find a better URI.
-	 */
 	defaultWorkspacePath(schemeFilter?: string): Promise<URI>;
 
-	/**
-	 * Shows a file-folder selection dialog and opens the selected entry.
-	 */
 	pickFileFolderAndOpen(options: IPickAndOpenOptions): Promise<void>;
 
-	/**
-	 * Shows a file selection dialog and opens the selected entry.
-	 */
 	pickFileAndOpen(options: IPickAndOpenOptions): Promise<void>;
 
-	/**
-	 * Shows a folder selection dialog and opens the selected entry.
-	 */
 	pickFolderAndOpen(options: IPickAndOpenOptions): Promise<void>;
 
-	/**
-	 * Shows a workspace selection dialog and opens the selected entry.
-	 */
 	pickWorkspaceAndOpen(options: IPickAndOpenOptions): Promise<void>;
 
-	/**
-	 * Shows a save file dialog and save the file at the chosen file URI.
-	 */
 	pickFileToSave(defaultUri: URI, availableFileSystems?: string[]): Promise<URI | undefined>;
 
-	/**
-	 * The preferred folder path to open the dialog at.
-	 * @param schemeFilter The scheme of the file path. If no filter given, the scheme of the current window is used.
-	 * Falls back to user home in the absence of a setting.
-	 */
 	preferredHome(schemeFilter?: string): Promise<URI>;
 
-	/**
-	 * Shows a save file dialog and returns the chosen file URI.
-	 */
 	showSaveDialog(options: ISaveDialogOptions): Promise<URI | undefined>;
 
-	/**
-	 * Shows a confirm dialog for saving 1-N files.
-	 */
 	showSaveConfirm(fileNamesOrResources: (string | URI)[]): Promise<ConfirmResult>;
 
-	/**
-	 * Shows a open file dialog and returns the chosen file URI.
-	 */
 	showOpenDialog(options: IOpenDialogOptions): Promise<URI[] | undefined>;
 }
 

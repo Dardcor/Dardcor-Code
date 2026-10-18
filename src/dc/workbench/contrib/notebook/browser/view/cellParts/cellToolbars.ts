@@ -223,7 +223,6 @@ export class CellTitleToolbarPart extends CellOverlayPart {
 	}
 
 	private setupChangeListeners(toolbar: ToolBar, menu: IMenu, initActions: { primary: IAction[]; secondary: IAction[] }): void {
-		// #103926
 		let dropdownIsVisible = false;
 		let deferredUpdate: (() => void) | undefined;
 

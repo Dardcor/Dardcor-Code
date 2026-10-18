@@ -34,7 +34,6 @@ import { IWorkbenchContribution, IWorkbenchContributionsRegistry, Extensions as 
 import { INotebookService } from '../../../common/notebookService.js';
 import { CodeActionParticipantUtils } from '../saveParticipants/saveParticipants.js';
 
-// format notebook
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
@@ -105,7 +104,7 @@ registerAction2(class extends Action2 {
 					return [];
 				}));
 
-				await bulkEditService.apply(/* edit */allCellEdits.flat(), { label: localize('label', "Format Notebook"), code: 'undoredo.formatNotebook', });
+				await bulkEditService.apply(allCellEdits.flat(), { label: localize('label', "Format Notebook"), code: 'undoredo.formatNotebook', });
 			}
 		} finally {
 			disposable.dispose();
@@ -113,7 +112,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// format cell
 registerEditorAction(class FormatCellAction extends EditorAction {
 	constructor() {
 		super({
@@ -200,7 +198,7 @@ class FormatOnCellExecutionParticipant implements ICellExecutionParticipant {
 				return [];
 			}));
 
-			await this.bulkEditService.apply(/* edit */allCellEdits.flat(), { label: localize('formatCells.label', "Format Cells"), code: 'undoredo.notebooks.onWillExecuteFormat', });
+			await this.bulkEditService.apply(allCellEdits.flat(), { label: localize('formatCells.label', "Format Cells"), code: 'undoredo.notebooks.onWillExecuteFormat', });
 
 		} finally {
 			disposable.dispose();

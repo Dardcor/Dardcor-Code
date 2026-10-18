@@ -11,7 +11,7 @@ import { createFencedCodeBlock } from '../../../util/common/markdown';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { createEditConfirmation } from './editFileToolUtils';
 import { resolveToolInputPath } from './toolUtils';
@@ -20,7 +20,7 @@ export interface ICreateDirectoryParams {
 	dirPath: string;
 }
 
-export class CreateDirectoryTool implements ICopilotTool<ICreateDirectoryParams> {
+export class CreateDirectoryTool implements IAgentTool<ICreateDirectoryParams> {
 	public static toolName = ToolName.CreateDirectory;
 
 	constructor(

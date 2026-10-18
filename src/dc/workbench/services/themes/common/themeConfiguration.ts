@@ -19,7 +19,6 @@ import { ColorScheme } from '../../../../platform/theme/common/theme.js';
 import { IHostColorSchemeService } from './hostColorSchemeService.js';
 import { IColorScheme } from '../../../../platform/window/common/window.js';
 
-// Configuration: Themes
 const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 
 const colorThemeSettingEnum: string[] = [];
@@ -43,7 +42,7 @@ const colorThemeSettingSchema: IConfigurationPropertySchema = {
 	errorMessage: nls.localize('colorThemeError', "Theme is unknown or not installed."),
 };
 const preferredDarkThemeSettingSchema: IConfigurationPropertySchema = {
-	type: 'string', //
+	type: 'string',
 	markdownDescription: nls.localize({ key: 'preferredDarkColorTheme', comment: ['{0} will become a link to another setting.'] }, 'Specifies the color theme when system color mode is dark and {0} is enabled.', formatSettingAsLink(ThemeSettings.DETECT_COLOR_SCHEME)),
 	default: ThemeSettingDefaults.COLOR_THEME_DARK,
 	tags: [COLOR_THEME_CONFIGURATION_SETTINGS_TAG],
@@ -229,7 +228,6 @@ const tokenColorCustomizationConfiguration: IConfigurationNode = {
 configurationRegistry.registerConfiguration(tokenColorCustomizationConfiguration);
 
 export function updateColorThemeConfigurationSchemas(themes: IWorkbenchColorTheme[]) {
-	// updates enum for the 'workbench.colorTheme` setting
 	themes.sort((a, b) => a.label.localeCompare(b.label));
 	colorThemeSettingEnum.splice(0, colorThemeSettingEnum.length, ...themes.map(t => t.settingsId));
 	colorThemeSettingEnumDescriptions.splice(0, colorThemeSettingEnumDescriptions.length, ...themes.map(t => t.description || ''));
@@ -242,7 +240,6 @@ export function updateColorThemeConfigurationSchemas(themes: IWorkbenchColorThem
 	const workbenchColors = { $ref: workbenchColorsSchemaId, additionalProperties: false };
 	const tokenColors = { properties: tokenColorSchema.properties, additionalProperties: false };
 	for (const t of themes) {
-		// add theme specific color customization ("[Abyss]":{ ... })
 		const themeId = `[${t.settingsId}]`;
 		themeSpecificWorkbenchColors.properties![themeId] = workbenchColors;
 		themeSpecificTokenColors.properties![themeId] = tokenColors;
@@ -411,16 +408,16 @@ export class ThemeConfiguration {
 
 		if (settingsTarget === ConfigurationTarget.USER) {
 			if (value === settings.userValue) {
-				return Promise.resolve(undefined); // nothing to do
+				return Promise.resolve(undefined);
 			} else if (value === settings.defaultValue) {
 				if (types.isUndefined(settings.userValue)) {
-					return Promise.resolve(undefined); // nothing to do
+					return Promise.resolve(undefined);
 				}
-				value = undefined; // remove configuration from user settings
+				value = undefined;
 			}
 		} else if (settingsTarget === ConfigurationTarget.WORKSPACE || settingsTarget === ConfigurationTarget.WORKSPACE_FOLDER || settingsTarget === ConfigurationTarget.USER_REMOTE) {
 			if (value === settings.value) {
-				return Promise.resolve(undefined); // nothing to do
+				return Promise.resolve(undefined);
 			}
 		}
 		return this.configurationService.updateValue(key, value, settingsTarget);

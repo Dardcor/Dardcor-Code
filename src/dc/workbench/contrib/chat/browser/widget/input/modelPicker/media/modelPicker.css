@@ -60,8 +60,6 @@
 	color: var(--vscode-foreground);
 }
 
-/* Sized by its content: growing would pad the chip with empty space beside a short
- * model name. It still shrinks, which is what ellipsises a long one. */
 .chat-input-picker-item .action-label.model-picker-split .model-picker-name {
 	flex: 0 1 auto;
 	min-width: 0;
@@ -465,7 +463,6 @@
 	align-items: center;
 	min-width: 0;
 	height: var(--vscode-spacing-size280);
-	/* The row's own bottom margin would centre this half a margin above the search button. */
 	margin: var(--vscode-spacing-sizeNone);
 	padding: var(--vscode-spacing-sizeNone);
 	border: none;
@@ -521,7 +518,6 @@
 	margin: var(--vscode-spacing-sizeNone);
 }
 
-/* Let the active tab label yield space first, and clip the label rather than its underline. */
 .action-widget .chat-model-picker-tabbar .monaco-custom-radio > .monaco-button.active {
 	flex: 0 1 auto;
 	width: auto;
@@ -619,7 +615,6 @@
 	line-height: var(--vscode-codiconFontSize-compact);
 }
 
-/* Override the shared separator rule so section headings have no rule line. */
 .action-widget .chat-model-picker-tabbed .monaco-scrollable-element .monaco-list-rows .monaco-list-row.separator,
 .action-widget .chat-model-picker-tabbed .monaco-list-row.group-header {
 	box-sizing: border-box;
@@ -744,14 +739,11 @@
 	white-space: nowrap;
 }
 
-/* Align the smaller badge text by baseline; keep icons and chevrons centered. */
 .action-widget .chat-model-picker-tabbed .monaco-list-row.action > .title,
 .action-widget .chat-model-picker-tabbed .monaco-list-row.action > .action-item-badge {
 	align-self: baseline;
 }
 
-/* A filled pill reads as a box, so it centres with the icon and chevron. Sharing a
- * baseline would leave it a pixel low, since its type is smaller than the model name's. */
 .action-widget .chat-model-picker-tabbed .monaco-list-row.action.chat-model-picker-section-toggle > .action-item-badge,
 .action-widget .chat-model-picker-tabbed .monaco-list-row.chat-model-picker-badge-promo > .action-item-badge,
 .action-widget .chat-model-picker-tabbed .monaco-list-row.chat-model-picker-badge-warning > .action-item-badge {
@@ -796,8 +788,6 @@
 	outline-offset: calc(-1 * var(--vscode-strokeThickness));
 }
 
-/* These colours are authored for squigglies, so they fall below 4.5:1 as small text on
- * their own tint. The tone stays in the fill and the label takes the regular foreground. */
 .action-widget .chat-model-picker-tabbed .monaco-list-row.chat-model-picker-badge-promo .action-item-badge {
 	padding: var(--vscode-spacing-sizeNone) var(--vscode-spacing-size60);
 	color: var(--vscode-foreground);
@@ -830,7 +820,6 @@
 	font-weight: var(--vscode-fontWeight-semiBold);
 }
 
-/* The switch stays pinned right on its own line above the tiers. */
 .chat-model-picker-auto-row .monaco-switch {
 	margin-left: auto;
 }
@@ -873,7 +862,6 @@
 	justify-content: center;
 	gap: var(--vscode-spacing-size240);
 	padding: var(--vscode-spacing-size320) var(--vscode-spacing-size160);
-	/* Holds the popup near its list height so switching destinations doesn't jump. */
 	min-height: 200px;
 	text-align: center;
 }
@@ -947,8 +935,6 @@
 	white-space: nowrap;
 }
 
-/* Pinning sits with the model's name rather than on its row: a control that only
- * appears on hover makes the list twitch as the pointer crosses it. */
 .chat-model-card-pin {
 	display: flex;
 	flex: 0 0 auto;

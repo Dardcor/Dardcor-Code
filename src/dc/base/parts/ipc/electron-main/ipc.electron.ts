@@ -23,9 +23,6 @@ function createScopedOnMessageEvent(senderId: number, eventName: string): Event<
 	return Event.map(onMessageFromSender, ({ message }) => message ? VSBuffer.wrap(message) : message);
 }
 
-/**
- * An implementation of `IPCServer` on top of Electron `ipcMain` API.
- */
 export class Server extends IPCServer {
 
 	private static readonly Clients = new Map<number, IDisposable>();

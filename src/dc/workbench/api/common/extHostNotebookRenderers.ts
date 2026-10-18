@@ -12,7 +12,7 @@ import * as vscode from 'vscode';
 
 
 export class ExtHostNotebookRenderers implements ExtHostNotebookRenderersShape {
-	private readonly _rendererMessageEmitters = new Map<string /* rendererId */, Emitter<{ editor: vscode.NotebookEditor; message: unknown }>>();
+	private readonly _rendererMessageEmitters = new Map<string , Emitter<{ editor: vscode.NotebookEditor; message: unknown }>>();
 	private readonly proxy: MainThreadNotebookRenderersShape;
 
 	constructor(mainContext: IMainContext, private readonly _extHostNotebook: ExtHostNotebookController) {
@@ -34,7 +34,7 @@ export class ExtHostNotebookRenderers implements ExtHostNotebookRenderersShape {
 				return this.getOrCreateEmitterFor(rendererId).event(listener, thisArg, disposables);
 			},
 			postMessage: (message, editorOrAlias) => {
-				if (ExtHostNotebookEditor.apiEditorsToExtHost.has(message)) { // back compat for swapped args
+				if (ExtHostNotebookEditor.apiEditorsToExtHost.has(message)) {
 					[message, editorOrAlias] = [editorOrAlias, message];
 				}
 

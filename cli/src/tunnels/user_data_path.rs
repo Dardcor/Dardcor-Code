@@ -3,27 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-//! Resolves the platform "user data" directory used to home the
-//! agent-host discovery registry (`<userDataPath>/agent-host/local-endpoint/entries/`,
-//! a directory of one atomic entry file per agent host instance).
-//!
-//! Mirrors the precedence and per-platform rules implemented by the
-//! TypeScript resolver in `src/vs/platform/environment/node/userDataPath.ts`
-//! (which is passed `product.nameShort`), with one deliberate ordering
-//! change: an explicit `--user-data-dir` always wins here. In the Electron
-//! main process, `VSCODE_PORTABLE`/`VSCODE_APPDATA` are checked *before* the
-//! CLI argument only to work around Electron implicitly re-injecting
-//! `--user-data-dir` into argv; that quirk does not apply to this
-//! standalone-CLI-only flag, so we can use the simpler, more predictable
-//! "explicit flag always wins" order.
 
 use std::path::PathBuf;
 
 use crate::constants::PRODUCT_NAME_SHORT;
 
-/// The platform family used to select default user-data directory rules.
-/// Kept distinct from `std::env::consts::OS` so unit tests can exercise all
-/// three branches regardless of the host running the tests.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UserDataOs {
 	Windows,
@@ -43,9 +27,6 @@ impl UserDataOs {
 	}
 }
 
-/// Snapshot of the environment variables (and home directory) consulted by
-/// the resolver. Injectable so tests never need to mutate real process-wide
-/// environment variables (which would make tests order-dependent / racy).
 #[derive(Debug, Clone, Default)]
 pub struct UserDataPathEnv {
 	pub vscode_portable: Option<String>,
@@ -57,7 +38,6 @@ pub struct UserDataPathEnv {
 }
 
 impl UserDataPathEnv {
-	/// Reads the real process environment / home directory.
 	pub fn from_process() -> Self {
 		Self {
 			vscode_portable: non_empty_env("VSCODE_PORTABLE"),
@@ -77,8 +57,6 @@ fn non_empty_env(name: &str) -> Option<String> {
 	}
 }
 
-/// Resolves the user data directory using the real process environment and
-/// the built-in [`PRODUCT_NAME_SHORT`].
 pub fn resolve_user_data_path(explicit: Option<&str>) -> PathBuf {
 	resolve_user_data_path_with(
 		explicit,
@@ -88,15 +66,6 @@ pub fn resolve_user_data_path(explicit: Option<&str>) -> PathBuf {
 	)
 }
 
-/// Core, dependency-injected resolver. Precedence:
-///  1. Explicit `--user-data-dir`, if provided.
-///  2. `VSCODE_PORTABLE` -> `<portable>/user-data`.
-///  3. `VSCODE_APPDATA` -> `<appdata>/<productName>`.
-///  4. The platform default (see [`default_user_data_path_with`]).
-///
-/// Relative paths (explicit or portable) are resolved against the current
-/// working directory, matching the TypeScript resolver's behavior of
-/// resolving non-absolute paths against `process.cwd()`.
 pub fn resolve_user_data_path_with(
 	explicit: Option<&str>,
 	product_name: &str,
@@ -118,8 +87,6 @@ pub fn resolve_user_data_path_with(
 	default_user_data_path_with(product_name, os, env)
 }
 
-/// Resolves the platform default user data directory using the real process
-/// environment and the built-in [`PRODUCT_NAME_SHORT`].
 pub fn default_user_data_path() -> PathBuf {
 	default_user_data_path_with(
 		PRODUCT_NAME_SHORT,
@@ -128,12 +95,6 @@ pub fn default_user_data_path() -> PathBuf {
 	)
 }
 
-/// Core, dependency-injected platform-default resolver, mirroring
-/// `getDefaultUserDataPath` in the TypeScript resolver:
-///  - Windows: `%APPDATA%\<productName>`, falling back to
-///    `%USERPROFILE%\AppData\Roaming\<productName>`.
-///  - macOS: `~/Library/Application Support/<productName>`.
-///  - Linux: `${XDG_CONFIG_HOME:-~/.config}/<productName>`.
 pub fn default_user_data_path_with(
 	product_name: &str,
 	os: UserDataOs,
@@ -171,14 +132,6 @@ fn home_dir_or_empty(env: &UserDataPathEnv) -> PathBuf {
 	env.home_dir.clone().unwrap_or_else(|| PathBuf::from(""))
 }
 
-/// Returns whether `path` is absolute under the *given* platform's rules,
-/// independent of the host the code is actually compiled/running on. Plain
-/// `Path::is_absolute` can't be used here because on Windows it returns
-/// `false` for POSIX-style rooted paths like `/mnt/portable` (they're
-/// "drive-relative", not absolute), which would otherwise let a supposedly
-/// absolute override silently get re-rooted under the current directory.
-/// This only matters for exercising all three `UserDataOs` branches from a
-/// single test host; in production `os` always matches the real host.
 fn is_absolute_for_os(path: &str, os: UserDataOs) -> bool {
 	match os {
 		UserDataOs::Windows => {
@@ -193,9 +146,6 @@ fn is_absolute_for_os(path: &str, os: UserDataOs) -> bool {
 	}
 }
 
-/// Joins `component` onto `base` using the path separator for `os`, without
-/// going through `PathBuf::join`'s host-native (and, for a rooted-but-no-prefix
-/// `base` on Windows, surprising) semantics.
 fn join_component(base: PathBuf, component: &str, os: UserDataOs) -> PathBuf {
 	let sep = match os {
 		UserDataOs::Windows => '\\',
@@ -236,11 +186,6 @@ mod tests {
 		let mut env = env_with_home(r"C:\Users\test");
 		env.appdata = Some(r"C:\Users\test\AppData\Roaming".to_string());
 		let path = default_user_data_path_with("Code - OSS", UserDataOs::Windows, &env);
-		// Compared as a raw string (not `PathBuf`) so the assertion still
-		// catches host-native (as opposed to target-OS-aware) joins on
-		// hosts where `Path`'s separator-normalizing `PartialEq` would
-		// otherwise mask a wrong separator (e.g. Windows treats `/` and
-		// `\` as equivalent component separators).
 		assert_eq!(
 			path.to_string_lossy(),
 			r"C:\Users\test\AppData\Roaming\Code - OSS"

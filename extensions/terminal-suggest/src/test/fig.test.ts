@@ -16,13 +16,11 @@ export const figGenericTestSuites: ISuiteSpec[] = [
 		],
 		availableCommands: 'foo',
 		testSpecs: [
-			// Typing a path
 			{ input: '|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 			{ input: 'f|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 			{ input: 'fo|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 			{ input: 'foo|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-			// Basic arguments (fallback)
 			{ input: 'foo |', expectedCompletions: [], expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } }
 		]
 	},
@@ -221,15 +219,10 @@ export const figGenericTestSuites: ISuiteSpec[] = [
 		],
 		availableCommands: 'foo',
 		testSpecs: [
-			// Top-level should show all options including persistent
 			{ input: 'foo |', expectedCompletions: ['--help', '--docs', '--version', 'bar', 'baz'] },
-			// First-level subcommand should only inherit persistent options (not --docs or --version)
 			{ input: 'foo bar |', expectedCompletions: ['--help', '--local'] },
-			// Another first-level subcommand should also inherit only persistent options
 			{ input: 'foo baz |', expectedCompletions: ['--help', '--another', 'nested'] },
-			// Nested subcommand should inherit persistent options from top level
 			{ input: 'foo baz nested |', expectedCompletions: ['--help'] },
-			// Persistent options should be available even after using local options
 			{ input: 'foo bar --local |', expectedCompletions: ['--help'] },
 		]
 	}

@@ -123,7 +123,6 @@ export class FileIconThemeData implements IWorkbenchFileIconTheme {
 						(theme as any)[key] = data[key];
 						break;
 					case 'location':
-						// ignore, no longer restore
 						break;
 					case 'extensionData':
 						theme.extensionData = ExtensionData.fromJSONObject(data.extensionData);
@@ -354,7 +353,7 @@ export class FileIconThemeLoader {
 							for (let i = 0; i < segments.length; i++) {
 								selectors.push(css.inline`.${classSelectorPart(segments.slice(i).join('.'))}-ext-file-icon`);
 							}
-							selectors.push(css.inline`.ext-file-icon`); // extra segment to increase file-ext score
+							selectors.push(css.inline`.ext-file-icon`);
 						}
 						addSelector(css.inline`${qualifier} ${selectors.join('')}.file-icon::before`, fileExtensions[key]);
 						result.hasFileIcons = true;
@@ -367,13 +366,13 @@ export class FileIconThemeLoader {
 						const selectors = new css.Builder();
 						const fileName = handleParentFolder(key.toLowerCase(), selectors);
 						selectors.push(css.inline`.${classSelectorPart(fileName)}-name-file-icon`);
-						selectors.push(css.inline`.name-file-icon`); // extra segment to increase file-name score
+						selectors.push(css.inline`.name-file-icon`);
 						const segments = fileName.split('.');
 						if (segments.length) {
 							for (let i = 1; i < segments.length; i++) {
 								selectors.push(css.inline`.${classSelectorPart(segments.slice(i).join('.'))}-ext-file-icon`);
 							}
-							selectors.push(css.inline`.ext-file-icon`); // extra segment to increase file-ext score
+							selectors.push(css.inline`.ext-file-icon`);
 						}
 						addSelector(css.inline`${qualifier} ${selectors.join('')}.file-icon::before`, fileNames[key]);
 						result.hasFileIcons = true;
@@ -412,10 +411,8 @@ export class FileIconThemeLoader {
 			cssRules.push(css.inline`.show-file-icons .file-icon::before, .show-file-icons .folder-icon::before, .show-file-icons .rootfolder-icon::before { font-family: ${css.stringValue(fonts[0].id)}; font-size: ${css.sizeValue(defaultFontSize)}; }`);
 		}
 
-		// Use emQuads to prevent the icon from collapsing to zero height for image icons
 		const emQuad = css.stringValue('\\2001');
 
-		// When usesCurrentColor is set, image icons are rendered as masks filled with the current text color
 		const imageIconStyle = (iconPath: css.CssFragment): css.CssFragment => iconThemeDocument.usesCurrentColor
 			? css.inline`background-color: currentColor; background-image: none; mask: ${iconPath} no-repeat left center; mask-size: 16px; -webkit-mask: ${iconPath} no-repeat left center; -webkit-mask-size: 16px;`
 			: css.inline`background-image: ${iconPath};`;
@@ -443,7 +440,7 @@ export class FileIconThemeLoader {
 						body.push(css.inline`font-family: ${css.stringValue(definition.fontId)};`);
 					}
 					if (showLanguageModeIcons) {
-						body.push(css.inline`background-image: unset;`); // potentially set by the language default
+						body.push(css.inline`background-image: unset;`);
 					}
 					cssRules.push(css.inline`${selectors.join(', ')} { ${body.join(' ')} }`);
 				}
@@ -467,11 +464,6 @@ export class FileIconThemeLoader {
 		return result;
 	}
 
-	/**
-	 * Try converting absolute font sizes to relative values.
-	 *
-	 * This allows them to be scaled nicely depending on where they are used.
-	 */
 	private tryNormalizeFontSize(size: string | undefined): string | undefined {
 		if (!size) {
 			return undefined;

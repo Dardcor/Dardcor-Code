@@ -6,16 +6,6 @@
 import { z, type ZodTypeAny } from 'zod';
 import type { ToolDefinition } from '../../../common/state/protocol/state.js';
 
-/**
- * Converts the narrow JSON Schema subset that
- * {@link ToolDefinition.inputSchema} carries into the `Record<string, ZodType>`
- * "raw shape" expected by the Anthropic SDK's `tool()` factory
- * (`AnyZodRawShape`).
- *
- * Per-property failures fall back to {@link z.any} so a single malformed
- * property never rejects an entire tool — clients always get *some* tool
- * surface to bind against.
- */
 export function jsonSchemaToZodRawShape(
 	inputSchema: ToolDefinition['inputSchema'] | undefined
 ): Record<string, ZodTypeAny> {

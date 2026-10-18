@@ -49,14 +49,12 @@ export class MultiRowEditorControl extends Disposable implements IEditorTabsCont
 
 	private handleTabBarsLayoutChange(): void {
 		if (this.groupView.count === 0) {
-			// Do nothing as no tab bar is visible
 			return;
 		}
 
 		const hadTwoTabBars = this.parent.classList.contains('two-tab-bars');
 		const hasTwoTabBars = this.groupView.count !== this.groupView.stickyCount && this.groupView.stickyCount > 0;
 
-		// Ensure action toolbar is only visible once
 		this.parent.classList.toggle('two-tab-bars', hasTwoTabBars);
 
 		if (hadTwoTabBars !== hasTwoTabBars) {
@@ -108,7 +106,6 @@ export class MultiRowEditorControl extends Disposable implements IEditorTabsCont
 	}
 
 	closeEditor(editor: EditorInput): void {
-		// Has to be called on both tab bars as the editor could be either sticky or not
 		this.stickyEditorTabsControl.closeEditor(editor);
 		this.unstickyEditorTabsControl.closeEditor(editor);
 
@@ -131,7 +128,6 @@ export class MultiRowEditorControl extends Disposable implements IEditorTabsCont
 
 	moveEditor(editor: EditorInput, fromIndex: number, targetIndex: number, stickyStateChange: boolean): void {
 		if (stickyStateChange) {
-			// If sticky state changes, move editor between tab bars
 			if (this.model.isSticky(editor)) {
 				this.stickyEditorTabsControl.openEditor(editor);
 				this.unstickyEditorTabsControl.closeEditor(editor);

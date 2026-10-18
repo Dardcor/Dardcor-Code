@@ -166,7 +166,6 @@ suite('FoundryLocalModelImport', () => {
 		await fs.promises.writeFile(join(source, 'index.json'), JSON.stringify({ manifests: [{ digest: manifestDigest }] }));
 		await fs.promises.writeFile(join(source, 'blobs', 'sha256', manifestDigest.slice('sha256:'.length)), manifestContents);
 		await fs.promises.writeFile(join(source, 'blobs', 'sha256', configDigest.slice('sha256:'.length)), configContents);
-		// Content that does not hash to the digest used as its blob filename.
 		await fs.promises.writeFile(join(source, 'blobs', 'sha256', modelDigest.slice('sha256:'.length)), 'tampered');
 
 		await assert.rejects(

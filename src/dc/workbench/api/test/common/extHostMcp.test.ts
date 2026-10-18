@@ -9,14 +9,10 @@ import { LogLevel } from '../../../../platform/log/common/log.js';
 import { createAuthMetadata, CommonResponse, IAuthMetadata } from '../../common/extHostMcp.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 
-// Test constants to avoid magic strings
 const TEST_MCP_URL = 'https://example.com/mcp';
 const TEST_AUTH_SERVER = 'https://auth.example.com';
 const TEST_RESOURCE_METADATA_URL = 'https://example.com/.well-known/oauth-protected-resource';
 
-/**
- * Creates a mock CommonResponse for testing.
- */
 function createMockResponse(options: {
 	status?: number;
 	statusText?: string;
@@ -36,10 +32,6 @@ function createMockResponse(options: {
 	};
 }
 
-/**
- * Helper to create an IAuthMetadata instance for testing via the factory function.
- * Uses a mock fetch that returns the provided server metadata.
- */
 async function createTestAuthMetadata(options: {
 	scopes?: string[];
 	serverMetadataIssuer?: string;
@@ -52,7 +44,6 @@ async function createTestAuthMetadata(options: {
 
 	const mockFetch = sinon.stub();
 
-	// Mock resource metadata fetch
 	mockFetch.onCall(0).resolves(createMockResponse({
 		status: 200,
 		url: TEST_RESOURCE_METADATA_URL,
@@ -62,7 +53,6 @@ async function createTestAuthMetadata(options: {
 		})
 	}));
 
-	// Mock server metadata fetch
 	mockFetch.onCall(1).resolves(createMockResponse({
 		status: 200,
 		url: `${issuer}/.well-known/oauth-authorization-server`,
@@ -284,7 +274,6 @@ suite('ExtHostMcp', () => {
 		test('should create IAuthMetadata with fetched server metadata', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch
 			mockFetch.onCall(0).resolves(createMockResponse({
 				status: 200,
 				url: TEST_RESOURCE_METADATA_URL,
@@ -295,7 +284,6 @@ suite('ExtHostMcp', () => {
 				})
 			}));
 
-			// Mock server metadata fetch
 			mockFetch.onCall(1).resolves(createMockResponse({
 				status: 200,
 				url: `${TEST_AUTH_SERVER}/.well-known/oauth-authorization-server`,
@@ -333,10 +321,8 @@ suite('ExtHostMcp', () => {
 		test('should fall back to default metadata when server metadata fetch fails', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch - fails
 			mockFetch.onCall(0).rejects(new Error('Network error'));
 
-			// Mock server metadata fetch - also fails
 			mockFetch.onCall(1).rejects(new Error('Network error'));
 
 			const originalResponse = createMockResponse({
@@ -355,13 +341,11 @@ suite('ExtHostMcp', () => {
 				}
 			);
 
-			// Should use default metadata based on the URL
 			assert.ok(authMetadata.authorizationServer.toString().startsWith('https://example.com'));
 			assert.ok(authMetadata.serverMetadata.issuer.startsWith('https://example.com'));
 			assert.ok(authMetadata.serverMetadata.authorization_endpoint?.startsWith('https://example.com/authorize'));
 			assert.ok(authMetadata.serverMetadata.token_endpoint?.startsWith('https://example.com/token'));
 
-			// Should log the fallback
 			assert.ok(logMessages.some(m =>
 				m.level === LogLevel.Info &&
 				m.message.includes('Using default auth metadata')
@@ -371,7 +355,6 @@ suite('ExtHostMcp', () => {
 		test('should use scopes from WWW-Authenticate header when resource metadata has none', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch - no scopes_supported
 			mockFetch.onCall(0).resolves(createMockResponse({
 				status: 200,
 				url: TEST_RESOURCE_METADATA_URL,
@@ -381,7 +364,6 @@ suite('ExtHostMcp', () => {
 				})
 			}));
 
-			// Mock server metadata fetch
 			mockFetch.onCall(1).resolves(createMockResponse({
 				status: 200,
 				url: `${TEST_AUTH_SERVER}/.well-known/oauth-authorization-server`,
@@ -417,7 +399,6 @@ suite('ExtHostMcp', () => {
 		test('should use scopes from WWW-Authenticate header even when resource metadata has scopes_supported', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch - has scopes_supported
 			mockFetch.onCall(0).resolves(createMockResponse({
 				status: 200,
 				url: TEST_RESOURCE_METADATA_URL,
@@ -428,7 +409,6 @@ suite('ExtHostMcp', () => {
 				})
 			}));
 
-			// Mock server metadata fetch
 			mockFetch.onCall(1).resolves(createMockResponse({
 				status: 200,
 				url: `${TEST_AUTH_SERVER}/.well-known/oauth-authorization-server`,
@@ -458,14 +438,12 @@ suite('ExtHostMcp', () => {
 				}
 			);
 
-			// WWW-Authenticate header scopes take precedence over resource metadata scopes_supported
 			assert.deepStrictEqual(authMetadata.scopes, ['header.scope']);
 		});
 
 		test('should use resource_metadata challenge URL from WWW-Authenticate header', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch from challenge URL
 			mockFetch.onCall(0).resolves(createMockResponse({
 				status: 200,
 				url: 'https://example.com/custom-resource-metadata',
@@ -475,7 +453,6 @@ suite('ExtHostMcp', () => {
 				})
 			}));
 
-			// Mock server metadata fetch
 			mockFetch.onCall(1).resolves(createMockResponse({
 				status: 200,
 				url: `${TEST_AUTH_SERVER}/.well-known/oauth-authorization-server`,
@@ -507,7 +484,6 @@ suite('ExtHostMcp', () => {
 
 			assert.ok(authMetadata.authorizationServer.toString().startsWith(TEST_AUTH_SERVER));
 
-			// Verify the resource_metadata URL was logged
 			assert.ok(logMessages.some(m =>
 				m.level === LogLevel.Debug &&
 				m.message.includes('resource_metadata challenge')
@@ -517,7 +493,6 @@ suite('ExtHostMcp', () => {
 		test('should pass launch headers when fetching metadata from same origin', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch to succeed so we can verify headers
 			mockFetch.onCall(0).resolves(createMockResponse({
 				status: 200,
 				url: TEST_RESOURCE_METADATA_URL,
@@ -527,7 +502,6 @@ suite('ExtHostMcp', () => {
 				})
 			}));
 
-			// Mock server metadata fetch
 			mockFetch.onCall(1).resolves(createMockResponse({
 				status: 200,
 				url: `${TEST_AUTH_SERVER}/.well-known/oauth-authorization-server`,
@@ -560,10 +534,8 @@ suite('ExtHostMcp', () => {
 				}
 			);
 
-			// Verify fetch was called
 			assert.ok(mockFetch.called, 'fetch should have been called');
 
-			// Verify the first call (resource metadata) included the launch headers
 			const firstCallArgs = mockFetch.firstCall.args;
 			assert.ok(firstCallArgs.length >= 2, 'fetch should have been called with options');
 			const fetchOptions = firstCallArgs[1] as RequestInit;
@@ -573,7 +545,6 @@ suite('ExtHostMcp', () => {
 		test('should handle empty scope string in WWW-Authenticate header', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch
 			mockFetch.onCall(0).resolves(createMockResponse({
 				status: 200,
 				url: TEST_RESOURCE_METADATA_URL,
@@ -583,7 +554,6 @@ suite('ExtHostMcp', () => {
 				})
 			}));
 
-			// Mock server metadata fetch
 			mockFetch.onCall(1).resolves(createMockResponse({
 				status: 200,
 				url: `${TEST_AUTH_SERVER}/.well-known/oauth-authorization-server`,
@@ -613,7 +583,6 @@ suite('ExtHostMcp', () => {
 				}
 			);
 
-			// Empty scope string should result in empty array or undefined
 			assert.ok(
 				authMetadata.scopes === undefined ||
 				(Array.isArray(authMetadata.scopes) && authMetadata.scopes.length === 0) ||
@@ -625,7 +594,6 @@ suite('ExtHostMcp', () => {
 		test('should handle malformed WWW-Authenticate header gracefully', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch
 			mockFetch.onCall(0).resolves(createMockResponse({
 				status: 200,
 				url: TEST_RESOURCE_METADATA_URL,
@@ -635,7 +603,6 @@ suite('ExtHostMcp', () => {
 				})
 			}));
 
-			// Mock server metadata fetch
 			mockFetch.onCall(1).resolves(createMockResponse({
 				status: 200,
 				url: `${TEST_AUTH_SERVER}/.well-known/oauth-authorization-server`,
@@ -651,12 +618,10 @@ suite('ExtHostMcp', () => {
 				status: 401,
 				url: TEST_MCP_URL,
 				headers: {
-					// Malformed header - missing closing quote
 					'WWW-Authenticate': 'Bearer scope="unclosed'
 				}
 			});
 
-			// Should not throw - should handle gracefully
 			const authMetadata = await createAuthMetadata(
 				TEST_MCP_URL,
 				originalResponse.headers,
@@ -667,7 +632,6 @@ suite('ExtHostMcp', () => {
 				}
 			);
 
-			// Should still create valid auth metadata
 			assert.ok(authMetadata.authorizationServer);
 			assert.ok(authMetadata.serverMetadata);
 		});
@@ -675,14 +639,12 @@ suite('ExtHostMcp', () => {
 		test('should handle invalid JSON in resource metadata response', async () => {
 			const mockFetch = sandbox.stub();
 
-			// Mock resource metadata fetch - returns invalid JSON
 			mockFetch.onCall(0).resolves(createMockResponse({
 				status: 200,
 				url: TEST_RESOURCE_METADATA_URL,
 				body: 'not valid json {'
 			}));
 
-			// Mock server metadata fetch - also returns invalid JSON
 			mockFetch.onCall(1).resolves(createMockResponse({
 				status: 200,
 				url: 'https://example.com/.well-known/oauth-authorization-server',
@@ -695,7 +657,6 @@ suite('ExtHostMcp', () => {
 				headers: {}
 			});
 
-			// Should fall back to default metadata, not throw
 			const authMetadata = await createAuthMetadata(
 				TEST_MCP_URL,
 				originalResponse.headers,
@@ -706,7 +667,6 @@ suite('ExtHostMcp', () => {
 				}
 			);
 
-			// Should use default metadata
 			assert.ok(authMetadata.authorizationServer);
 			assert.ok(authMetadata.serverMetadata);
 		});
@@ -716,7 +676,6 @@ suite('ExtHostMcp', () => {
 				scopes: ['read']
 			});
 
-			// Response with 403 instead of 401
 			const response = createMockResponse({
 				status: 403,
 				headers: {
@@ -724,11 +683,8 @@ suite('ExtHostMcp', () => {
 				}
 			});
 
-			// update() should still process the WWW-Authenticate header regardless of status
 			const result = authMetadata.update(response.headers);
 
-			// The behavior depends on implementation - either it updates or ignores non-401
-			// This test documents the actual behavior
 			assert.strictEqual(typeof result, 'boolean');
 		});
 	});

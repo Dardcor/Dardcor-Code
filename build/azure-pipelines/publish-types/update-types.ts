@@ -80,7 +80,7 @@ function getNewFileHeader(shorttag: string) {
 		``,
 		`/**`,
 		` * Type Definition for Visual Studio Code ${shorttag} Extension API`,
-		` * See https://code.visualstudio.com/api for more information`,
+		` * See https://www.dardcor-code.web.id/api for more information`,
 		` */`
 	].join('\n');
 

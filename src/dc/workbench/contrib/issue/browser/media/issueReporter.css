@@ -13,9 +13,6 @@
 	appearance: auto;
 }
 
-/**
- * Table
- */
 
 .issue-reporter-body table {
 	width: 100%;
@@ -56,9 +53,6 @@
 	margin-bottom: .5em;
 }
 
-/**
- * Forms
- */
 .issue-reporter-body input[type="text"],
 .issue-reporter-body textarea {
 	display: block;
@@ -74,9 +68,6 @@
 	resize: vertical;
 }
 
-/**
- * Button
- */
 .issue-reporter-body .monaco-text-button {
 	display: block;
 	width: auto;
@@ -121,7 +112,6 @@
 	margin-left: 2px;
 }
 
-/* Font Families (with CJK support) */
 
 .issue-reporter-body .mac.web {
 	font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -164,7 +154,6 @@
 }
 
 
-/* Linux: add `system-ui` as first font and not `Ubuntu` to allow other distribution pick their standard OS font */
 .issue-reporter-body .linux.web {
 	font-family: system-ui, "Ubuntu", "Droid Sans", sans-serif;
 }
@@ -245,7 +234,7 @@ body.issue-reporter-body  {
 
 .issue-reporter-body #github-submit-btn {
 	flex-shrink: 0;
-	margin: 0; /* Reset margin since parent container handles spacing */
+	margin: 0;
 }
 
 .issue-reporter-body .two-col {
@@ -556,7 +545,6 @@ body.issue-reporter-body  {
 	z-index: 1000;
 }
 
-/* Public elements section styling */
 .issue-reporter-body .public-elements {
 	display: flex;
 	flex-direction: column;
@@ -582,7 +570,6 @@ body.issue-reporter-body  {
 	font-size: 12px;
 }
 
-/* Internal elements section styling */
 .issue-reporter-body .internal-elements {
 	display: flex;
 	flex-direction: column;
@@ -605,7 +592,7 @@ body.issue-reporter-body  {
 	white-space: nowrap;
 	display: inline-flex;
 	align-items: center;
-	line-height: 15px; /* approximate button height for vertical centering */
+	line-height: 15px;
 }
 
 

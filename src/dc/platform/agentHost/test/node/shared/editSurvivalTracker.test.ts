@@ -63,8 +63,6 @@ suite('agentHost editSurvivalTracker', () => {
 			const current = 'function add(a: number, b: number): number {\n\treturn a + b;\n}\n';
 			const scores = computeWholeFileEditSurvival(before, after, current);
 			assert.ok(scores.fourGram > 0.5 && scores.fourGram < 1, `fourGram expected mid-range, got ${scores.fourGram}`);
-			// Refinement diverges from AI text but stays equally far from
-			// the original — should not be counted as a revert.
 			assert.strictEqual(scores.noRevert, 1);
 		});
 
@@ -120,14 +118,10 @@ suite('agentHost editSurvivalTracker', () => {
 		});
 
 		test('multiple chunks weighted by length', () => {
-			// A long chunk fully present, a short chunk fully absent.
-			// The long chunk should dominate, dragging the average up.
 			const longChunk = 'a'.repeat(200);
-			const shortChunk = 'xyz9'; // 4-gram absent from file
+			const shortChunk = 'xyz9';
 			const file = longChunk;
 			const score = computeChunkedFourGramSurvival([longChunk, shortChunk], file);
-			// long ≈ 200 ngrams * 1.0 + short ≈ 1 ngram * 0.0,
-			// weighted: 200 / 201 ≈ 0.995
 			assert.ok(score > 0.99, `expected near 1, got ${score}`);
 		});
 
@@ -139,11 +133,6 @@ suite('agentHost editSurvivalTracker', () => {
 		});
 
 		test('scales linearly with chunks: file n-gram set is built once', () => {
-			// Regression guard: a previous implementation rebuilt the
-			// file n-gram set inside the per-chunk loop, making cost
-			// O(|chunks| × |file|). With the set built once, scoring
-			// 50 chunks against a 500 KB file should finish well
-			// under a second on any developer machine.
 			const file = 'x'.repeat(500_000);
 			const chunks = Array.from({ length: 50 }, (_, i) => `chunk${i}-${'x'.repeat(40)}`);
 			const start = Date.now();
@@ -164,9 +153,6 @@ suite('agentHost editSurvivalTracker', () => {
 		});
 
 		test('fourGram from chunks, noRevert still from whole-file', () => {
-			// File grows around the chunk — chunked fourGram stays at 1
-			// while noRevert stays at 1 because the file did not move
-			// back toward `before`.
 			const before = '// empty\n';
 			const chunk = 'export function greet() { return "hello"; }\n';
 			const after = before + chunk;
@@ -178,29 +164,11 @@ suite('agentHost editSurvivalTracker', () => {
 	});
 
 	suite('multi-tracker scenarios', () => {
-		// Each scenario simulates several reporters running concurrently
-		// against the same file, the way the agent host launches one
-		// per `takeCompletedEdit`. We snapshot the scores each reporter
-		// would compute at every subsequent file state — i.e. what
-		// telemetry would show across the 7 timer ticks if those ticks
-		// landed at the corresponding file states.
-		//
-		// Each table cell is `fourGram/noRevert`, both rounded to 2dp.
 
 		interface IEdit {
 			readonly id: string;
-			/** File content right before this edit landed. */
 			readonly before: string;
-			/** File content right after this edit landed. */
 			readonly after: string;
-			/**
-			 * Optional explicit AI-written text chunks for this edit
-			 * (the way the Claude observer extracts them from
-			 * `Edit.new_string`, `MultiEdit.edits[*].new_string`, or
-			 * `Write.content`). When provided, the simulation uses the
-			 * chunked scoring path so the snapshot mirrors what the
-			 * reporter would actually emit.
-			 */
 			readonly aiChunks?: readonly string[];
 		}
 
@@ -208,21 +176,11 @@ suite('agentHost editSurvivalTracker', () => {
 			return Math.round(n * 100) / 100;
 		}
 
-		/**
-		 * For each edit, sample its survival scores against every later
-		 * file state (the state when that edit completed, then each
-		 * state produced by subsequent edits). Returns a `Map<editId, scores[]>`
-		 * where `scores[i]` is the score the reporter for `editId` would
-		 * emit if a timer tick landed on file state `i` (counting from
-		 * when that edit completed).
-		 */
 		function simulate(edits: ReadonlyArray<IEdit>): Map<string, ReadonlyArray<string>> {
 			const result = new Map<string, string[]>();
 			for (let i = 0; i < edits.length; i++) {
 				const edit = edits[i];
 				const samples: string[] = [];
-				// The reporter samples at t=0 (its own `after`) and then
-				// at each later edit's `after`.
 				const stream = [edit.after, ...edits.slice(i + 1).map(e => e.after)];
 				for (const currentText of stream) {
 					const { fourGram, noRevert } = edit.aiChunks
@@ -236,8 +194,6 @@ suite('agentHost editSurvivalTracker', () => {
 		}
 
 		test('two non-overlapping additions both survive (whole-file scoring)', () => {
-			// Agent adds a line at the bottom, then adds another at the
-			// top. Neither edit disturbs the other's content.
 			const base = 'alpha\nbravo\ncharlie\n';
 			const afterE1 = base + 'delta added by e1\n';
 			const afterE2 = 'echo added by e2\n' + afterE1;
@@ -248,23 +204,12 @@ suite('agentHost editSurvivalTracker', () => {
 			]);
 
 			assert.deepStrictEqual(Object.fromEntries(samples), {
-				// e1: t=0 perfect. After e2 lands, e1's added line is
-				// still present (noRevert=1) but the file has *more*
-				// text than e1 wrote, so the fourGram ratio falls.
-				// This is the whole-file scoring artifact — chunked
-				// scoring fixes it (see the chunked test below).
 				e1: ['1/1', '0.8/1'],
 				e2: ['1/1'],
 			});
 		});
 
 		test('two non-overlapping additions both survive (chunked scoring)', () => {
-			// Same scenario as above, but each edit now carries its
-			// AI-written chunk (mirroring what `Edit.new_string` /
-			// `Write.content` extraction passes through to the reporter).
-			// The chunked path scores each edit against its own
-			// AI-written text, so file growth elsewhere does not drag
-			// the score down.
 			const base = 'alpha\nbravo\ncharlie\n';
 			const e1Chunk = 'delta added by e1\n';
 			const e2Chunk = 'echo added by e2\n';
@@ -277,20 +222,12 @@ suite('agentHost editSurvivalTracker', () => {
 			]);
 
 			assert.deepStrictEqual(Object.fromEntries(samples), {
-				// e1's chunk is still entirely present after e2 lands
-				// (it's just deeper in the file) → fourGram stays at 1.
 				e1: ['1/1', '1/1'],
 				e2: ['1/1'],
 			});
 		});
 
 		test('write then edit that appends — write stays at 1 under chunked scoring', () => {
-			// The motivating case: agent writes a file at T1, then a
-			// later Edit appends new content. Whole-file scoring would
-			// drag the Write's fourGram down because the file is now
-			// bigger than what the Write produced; chunked scoring
-			// keeps the Write at 1 because its content is still fully
-			// present.
 			const original = 'export function a() { return 1; }\n';
 			const appended = 'export function b() { return 2; }\n';
 			const afterWrite = original;
@@ -308,9 +245,6 @@ suite('agentHost editSurvivalTracker', () => {
 		});
 
 		test('MultiEdit with several chunks survives a later unrelated append', () => {
-			// MultiEdit lands three new functions. A subsequent Edit
-			// appends a fourth function. Each MultiEdit chunk is still
-			// fully present, so the length-weighted average stays at 1.
 			const base = '// existing module\n';
 			const chunkA = 'export function alpha() { return 1; }\n';
 			const chunkB = 'export function bravo() { return 2; }\n';
@@ -341,22 +275,16 @@ suite('agentHost editSurvivalTracker', () => {
 			]);
 
 			assert.deepStrictEqual(Object.fromEntries(samples), {
-				// e1: at t=0 perfect; once e2 lands the modified line
-				// is no longer e1's text → fourGram drops. noRevert
-				// holds at 1 because the file did not move back toward
-				// `base`, it moved further away.
 				e1: ['1/1', '0.54/1'],
 				e2: ['1/1'],
 			});
 		});
 
 		test('change a line, add a line, delete a line — mixed survival', () => {
-			// Three disjoint edits in different regions. The final file
-			// reflects all three; everyone should look healthy.
 			const base = 'first\nsecond\nthird\nfourth\nfifth\n';
 			const afterE1 = 'first\nSECOND CHANGED\nthird\nfourth\nfifth\n';
 			const afterE2 = afterE1 + 'sixth added\n';
-			const afterE3 = 'first\nSECOND CHANGED\nthird\nfifth\nsixth added\n'; // 'fourth' removed
+			const afterE3 = 'first\nSECOND CHANGED\nthird\nfifth\nsixth added\n';
 
 			const samples = simulate([
 				{ id: 'e1-change', before: base, after: afterE1 },
@@ -365,12 +293,6 @@ suite('agentHost editSurvivalTracker', () => {
 			]);
 
 			assert.deepStrictEqual(Object.fromEntries(samples), {
-				// All three edits keep noRevert at 1 throughout — none
-				// of the later edits pulled the file back toward an
-				// earlier `before` state. fourGram for the earlier
-				// edits drops as later edits add or remove content
-				// elsewhere in the file (whole-file scoring is not
-				// region-aware).
 				'e1-change': ['1/1', '0.86/1', '0.73/1'],
 				'e2-add': ['1/1', '0.9/1'],
 				'e3-delete': ['1/1'],
@@ -378,11 +300,6 @@ suite('agentHost editSurvivalTracker', () => {
 		});
 
 		test('agent supersedes its own work — first reporter falsely reports a revert', () => {
-			// This is the failure mode observed in production telemetry:
-			// e1 shrinks the file, e2 replaces it with the original
-			// content. e1's reporter cannot tell the difference between
-			// "user reverted" and "next AI edit overwrote me" → noRevert
-			// collapses to 0 even though the user never touched it.
 			const original = 'line one\nline two\nline three\nline four\n';
 			const shrunken = 'line one\nline two\n';
 
@@ -392,35 +309,23 @@ suite('agentHost editSurvivalTracker', () => {
 			]);
 
 			assert.deepStrictEqual(Object.fromEntries(samples), {
-				// e1 at t=0: identical to its `after` → 1/1.
-				// e1 after e2 lands: current ≡ original ≡ e1's `before`
-				// → noRevert collapses to 0. fourGram is the similarity
-				// between e1's `after` (shrunken) and the restored file,
-				// which still overlaps on the first two lines.
 				'e1-shrink': ['1/1', '0.59/0'],
 				'e2-restore': ['1/1'],
 			});
 		});
 
 		test('user refines after AI edit — noRevert holds at 1', () => {
-			// One AI edit, then the user tweaks the added text. The
-			// refinement does not move content back toward `before`.
 			const base = 'function add(a, b) { return a + b; }\n';
 			const afterAI = 'function add(a: number, b: number): number { return a + b; }\n';
 			const afterUser = 'function add(a: number, b: number): number {\n\treturn a + b;\n}\n';
 
 			const samples = simulate([
 				{ id: 'ai-edit', before: base, after: afterAI },
-				// Treat the user refinement as a synthetic "edit" so
-				// simulate() advances the reporter through that state.
 				{ id: 'user-refine', before: afterAI, after: afterUser },
 			]);
 
 			const aiSamples = samples.get('ai-edit')!;
 			assert.strictEqual(aiSamples[0], '1/1', 'AI edit perfect at t=0');
-			// After the user refines, fourGram drops a bit but noRevert
-			// stays at 1 because the file moved further from `base`,
-			// not back toward it.
 			const [fg, nr] = aiSamples[1].split('/').map(Number);
 			assert.ok(fg > 0.4 && fg < 1, `expected fourGram in (0.4, 1), got ${fg}`);
 			assert.strictEqual(nr, 1, 'noRevert should remain 1 after a refinement');
@@ -432,7 +337,6 @@ suite('agentHost editSurvivalTracker', () => {
 
 			const samples = simulate([
 				{ id: 'ai-edit', before, after },
-				// User reverts to original.
 				{ id: 'user-revert', before: after, after: before },
 			]);
 

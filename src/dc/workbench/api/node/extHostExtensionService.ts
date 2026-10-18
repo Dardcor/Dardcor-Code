@@ -64,10 +64,6 @@ class NodeModuleRequireInterceptor extends RequireInterceptor {
 		const originalResolveFilename = node_module._resolveFilename;
 		node_module._resolveFilename = function resolveFilename(request: string, parent: unknown, isMain: boolean, options?: { paths?: string[] }) {
 			if (request === 'vsda' && Array.isArray(options?.paths) && options.paths.length === 0) {
-				// ESM: ever since we moved to ESM, `require.main` will be `undefined` for extensions
-				// Some extensions have been using `require.resolve('vsda', { paths: require.main.paths })`
-				// to find the `vsda` module in our app root. To be backwards compatible with this pattern,
-				// we help by filling in the `paths` array with the node modules paths of the current module.
 				options.paths = node_module._nodeModulePaths(import.meta.dirname);
 			}
 			return originalResolveFilename.call(this, request, parent, isMain, options);
@@ -100,8 +96,6 @@ class NodeModuleRequireInterceptor extends RequireInterceptor {
 		let apiModuleFactory: INodeModuleFactory | undefined;
 
 		const lookup = (url: string): string => {
-			// Get the vscode-module factory - which is the same logic that's also used by
-			// the CommonJS require interceptor
 			if (!apiModuleFactory) {
 				apiModuleFactory = this._factories.get('vscode');
 				assertType(apiModuleFactory);
@@ -109,8 +103,6 @@ class NodeModuleRequireInterceptor extends RequireInterceptor {
 
 			const uri = URI.parse(url);
 
-			// Get or create the API instance. The interface is per extension and extensions are
-			// looked up by the uri (e.data.url) and path containment.
 			const apiInstance = apiModuleFactory.load('_not_used', uri, () => { throw new Error('CANNOT LOAD MODULE from here.'); });
 			let key = apiInstances.get(apiInstance);
 			if (!key) {
@@ -118,7 +110,6 @@ class NodeModuleRequireInterceptor extends RequireInterceptor {
 				apiInstances.set(apiInstance, key);
 			}
 
-			// Create and cache a data-url which is the import script for the API instance
 			let scriptDataUrlSrc = apiImportDataUrl.get(key);
 			if (!scriptDataUrlSrc) {
 				const jsCode = `const _vscodeInstance = globalThis.${NodeModuleRequireInterceptor._vscodeImportFnName}('${key}');\n\n${Object.keys(apiInstance).map((name => `export const ${name} = _vscodeInstance['${name}'];`)).join('\n')}`;
@@ -148,34 +139,24 @@ export class ExtHostExtensionService extends AbstractExtHostExtensionService {
 	readonly extensionRuntime = ExtensionRuntime.Node;
 
 	protected async _beforeAlmostReadyToRunExtensions(): Promise<void> {
-		// make sure console.log calls make it to the render
 		this._instaService.createInstance(ExtHostConsoleForwarder);
 
-		// initialize API and register actors
 		const extensionApiFactory = this._instaService.invokeFunction(createApiFactoryAndRegisterActors);
 
-		// Register Download command
 		this._instaService.createInstance(ExtHostDownloadService);
 
-		// Register CLI Server for ipc
 		if (this._initData.remote.isRemote && this._initData.remote.authority) {
 			const cliServer = this._instaService.createInstance(CLIServer);
 			process.env['VSCODE_IPC_HOOK_CLI'] = cliServer.ipcHandlePath;
 		}
 
-		// Register local file system shortcut
 		this._instaService.createInstance(ExtHostDiskFileSystemProvider);
 
-		// Module loading tricks based on `module._load`.
-		// `module._load` intercepts `require(...)`.
-		// Module loading tricks based on `module.registerHooks`.
-		// `module.registerHooks` is a generic interceptor that intercepts `require(...)`, `import ...`, and `import(...)`.
 		await this._store.add(this._instaService.createInstance(NodeModuleRequireInterceptor, extensionApiFactory, { mine: this._myRegistry, all: this._globalRegistry }))
 			.install();
 
 		performance.mark('code/extHost/didInitAPI');
 
-		// Do this when extension service exists, but extensions are not being activated yet.
 		const configProvider = await this._extHostConfiguration.getConfigProvider();
 		await connectProxyResolver(this._extHostWorkspace, configProvider, this, this._logService, this._mainThreadTelemetryProxy, this._initData, this._store);
 		performance.mark('code/extHost/didInitProxyResolver');

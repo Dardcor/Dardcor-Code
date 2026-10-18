@@ -189,8 +189,8 @@ suite('AgentHostTelemetryService', () => {
 		const fileService = localDisposables.add(new FileService(logService));
 		const fileSystemProvider = localDisposables.add(new InMemoryFileSystemProvider());
 		localDisposables.add(fileService.registerProvider(Schemas.file, fileSystemProvider));
-		await fileService.createFolder(URI.file('/extensions/copilot'));
-		await fileService.writeFile(URI.file('/extensions/copilot/package.json'), VSBuffer.fromString(JSON.stringify({ version: '0.58.0' })));
+		await fileService.createFolder(URI.file('/extensions/dardcor'));
+		await fileService.writeFile(URI.file('/extensions/dardcor/package.json'), VSBuffer.fromString(JSON.stringify({ version: '0.58.0' })));
 
 		const service = await createAgentHostTelemetryService({
 			environmentService: {
@@ -223,7 +223,7 @@ suite('AgentHostTelemetryService', () => {
 
 	test('uses the launch telemetry level before a client connects and only becomes more restrictive', () => {
 		const delegate = new TestTelemetryService();
-		const service = disposables.add(new AgentHostTelemetryService(delegate, undefined, undefined, undefined, TelemetryLevel.USAGE));
+		const service = disposables.add(new AgentHostTelemetryService(delegate, undefined, TelemetryLevel.USAGE));
 
 		service.publicLog('beforeClientLevel', { count: 1 });
 		service.updateTelemetryLevel(TelemetryLevel.ERROR);
@@ -295,16 +295,6 @@ suite('AgentHostTelemetryService', () => {
 		assert.strictEqual(service.telemetryLevel, TelemetryLevel.ERROR);
 	});
 
-	test('adds the Copilot SDK and runtime versions as common properties', () => {
-		const delegate = new TestTelemetryService();
-		disposables.add(new AgentHostTelemetryService(delegate, undefined, '1.0.9-preview.3', '1.0.78'));
-
-		assert.deepStrictEqual(delegate.commonProperties, {
-			'common.copilotSdkVersion': '1.0.9-preview.3',
-			'common.copilotRuntimeVersion': '1.0.78',
-		});
-	});
-
 	test('updates telemetry level from root config string enum', () => {
 		const service = disposables.add(new AgentHostTelemetryService(new TestTelemetryService()));
 
@@ -320,10 +310,10 @@ suite('AgentHostTelemetryService', () => {
 		const service = disposables.add(new AgentHostTelemetryService(new TestTelemetryService(), restricted));
 		service.updateTelemetryLevel(TelemetryLevel.USAGE);
 
-		service.sendEnhancedGHTelemetryEvent('request.options.tools'); // dropped: rt disabled by default
-		service.sendGHTelemetryEvent('completion'); // sent: standard GH telemetry is not rt-gated
+		service.sendEnhancedGHTelemetryEvent('request.options.tools');
+		service.sendGHTelemetryEvent('completion');
 		service.setRestrictedTelemetryEnabled(true);
-		service.sendEnhancedGHTelemetryEvent('request.options.tools'); // sent: rt now enabled
+		service.sendEnhancedGHTelemetryEvent('request.options.tools');
 		service.setCopilotTrackingId('tid-1');
 		service.setRestrictedTelemetryEndpoint('https://ghe.example/telemetry');
 
@@ -338,23 +328,20 @@ suite('AgentHostTelemetryService', () => {
 			trackingIds: ['tid-1'],
 			endpoints: ['https://ghe.example/telemetry'],
 		});
-		// The rt opt-in is mirrored onto the sender (defense in depth), matching the extension's
-		// opted-in-only restricted reporter.
 		assert.deepStrictEqual(restricted.enabledFlags, [true]);
 	});
 
 	test('enhanced GH telemetry stays suppressed when telemetry is disabled, even for an rt=1 user', () => {
 		const delegate = new TestTelemetryService();
-		delegate.telemetryLevel = TelemetryLevel.ERROR; // user opted below USAGE
+		delegate.telemetryLevel = TelemetryLevel.ERROR;
 		const restricted = new TestRestrictedSink();
 		const service = disposables.add(new AgentHostTelemetryService(delegate, restricted));
 		service.updateTelemetryLevel(TelemetryLevel.USAGE);
 
-		service.setRestrictedTelemetryEnabled(true); // rt=1
+		service.setRestrictedTelemetryEnabled(true);
 		service.sendEnhancedGHTelemetryEvent('request.options.tools');
 		service.sendGHTelemetryEvent('completion');
 
-		// Neither standard nor enhanced GH telemetry is delegated below USAGE, regardless of rt.
 		assert.deepStrictEqual({ enhanced: restricted.enhanced, standard: restricted.standard }, { enhanced: [], standard: [] });
 	});
 

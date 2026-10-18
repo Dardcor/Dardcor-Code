@@ -5,9 +5,6 @@ import { formatResetTime, getRemainingPercentage } from "./utils";
 
 const PAGE_SIZE = 10;
 
-/**
- * Format reset time display (Today, 12:00 PM)
- */
 function formatResetTimeDisplay(resetTime) {
   if (!resetTime) return null;
 
@@ -39,9 +36,6 @@ function formatResetTimeDisplay(resetTime) {
   }
 }
 
-/**
- * Get color classes based on remaining percentage
- */
 function getColorClasses(remainingPercentage) {
   if (remainingPercentage > 70) {
     return {
@@ -81,9 +75,6 @@ function sortQuotas(quotas, sortMode) {
   return quotas;
 }
 
-/**
- * Quota Table Component - Table-based display for quota data
- */
 export default function QuotaTable({
   quotas = [],
   compact = false,
@@ -154,9 +145,6 @@ export default function QuotaTable({
           const colors = getColorClasses(quota.remaining);
           const countdown = formatResetTime(quota.resetAt);
           const resetDisplay = formatResetTimeDisplay(quota.resetAt);
-          // recurring defaults true: a missing flag means the quota
-          // refreshes at resetAt. Bonus/one-shot packs set recurring:false
-          // and their resetAt is a hard expiry, so word it as "expires".
           const recurring = quota.recurring !== false;
           const countdownLabel = recurring ? `in ${countdown}` : `expires in ${countdown}`;
 
@@ -165,7 +153,7 @@ export default function QuotaTable({
               key={`${quota.name}-${quota.index}`}
               className={`flex items-center gap-2 border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${cellPad}`}
             >
-              {/* Name */}
+              {}
               <div className="flex w-36 min-w-0 items-center gap-1.5">
                 <span className="text-[10px] shrink-0">{colors.emoji}</span>
                 <span className={`${nameText} font-medium text-text-primary truncate`}>
@@ -173,7 +161,7 @@ export default function QuotaTable({
                 </span>
               </div>
 
-              {/* Progress + used/total */}
+              {}
               <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
                 {!isUnlimited && (
                 <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden border ${colors.bgLight} ${
@@ -205,7 +193,7 @@ export default function QuotaTable({
                 </div>
               </div>
 
-              {/* Reset time */}
+              {}
               <div className="min-w-0 shrink">
                 {countdown !== "-" || resetDisplay ? (
                   compact ? (
@@ -234,7 +222,7 @@ export default function QuotaTable({
                 )}
               </div>
 
-              {/* Hide action */}
+              {}
               {hasHideAction && (
                 <button
                   type="button"

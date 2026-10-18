@@ -14,7 +14,6 @@ type Pair<K, V> = {
 	value: V;
 };
 
-// Map(filename, Pair(fileVersion, rootNodeOfParsedContent))
 const _parseCache = new Map<string, Pair<number, FlatNode> | undefined>();
 
 export function getRootNode(document: TextDocument, useCache: boolean): FlatNode {

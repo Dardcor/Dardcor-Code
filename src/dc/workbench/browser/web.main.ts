@@ -122,31 +122,23 @@ export class BrowserMain extends Disposable {
 
 	private init(): void {
 
-		// Browser config
 		setFullscreen(!!detectFullscreen(mainWindow), mainWindow);
 	}
 
 	async open(): Promise<IWorkbench> {
 
-		// Init services and wait for DOM to be ready in parallel
 		const [services] = await Promise.all([this.initServices(), domContentLoaded(getWindow(this.domElement))]);
 
-		// Create Workbench
 		const workbench = this.createWorkbench(this.domElement, services.serviceCollection, services.logService);
 
-		// Listeners
 		this.registerListeners(workbench);
 
-		// Startup
 		const instantiationService = workbench.startup();
 
-		// Window
 		this._register(instantiationService.createInstance(BrowserWindow));
 
-		// Logging
 		services.logService.trace('workbench#open with configuration', safeStringify(this.configuration));
 
-		// Return API Facade
 		return instantiationService.invokeFunction(accessor => {
 			const commandService = accessor.get(ICommandService);
 			const lifecycleService = accessor.get(ILifecycleService);
@@ -264,7 +256,6 @@ export class BrowserMain extends Disposable {
 
 	private registerListeners(workbench: IBrowserMainWorkbench): void {
 
-		// Workbench Lifecycle
 		this._register(workbench.onWillShutdown(() => this.onWillShutdownDisposables.clear()));
 		this._register(workbench.onDidShutdown(() => this.dispose()));
 	}
@@ -273,37 +264,24 @@ export class BrowserMain extends Disposable {
 		const serviceCollection = new ServiceCollection();
 
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		//
-		// NOTE: Please do NOT register services here. Use `registerSingleton()`
-		//       from `workbench.common.main.ts` if the service is shared between
-		//       desktop and web or `workbench.web.main.ts` if the service
-		//       is web only.
-		//
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 		const workspace = this.resolveWorkspace();
 
-		// Product
 		const productService: IProductService = mixin({ _serviceBrand: undefined, ...product }, this.configuration.productConfiguration);
 		serviceCollection.set(IProductService, productService);
 
-		// Environment
 		const logsPath = URI.file(toLocalISOString(new Date()).replace(/-|:|\.\d+Z$/g, '')).with({ scheme: 'vscode-log' });
 		const environmentService = new BrowserWorkbenchEnvironmentService(workspace.id, logsPath, this.configuration, productService);
 		serviceCollection.set(IBrowserWorkbenchEnvironmentService, environmentService);
 
-		// Files
 		const fileLogger = new BufferLogger();
 		const fileService = this._register(new FileService(fileLogger));
 		serviceCollection.set(IFileService, fileService);
 
-		// Logger
 		const loggerService = new FileLoggerService(getLogLevel(environmentService), logsPath, fileService);
 		serviceCollection.set(ILoggerService, loggerService);
 
-		// Log Service
 		const otherLoggers: ILogger[] = [new ConsoleLogger(loggerService.getLogLevel())];
 		if (environmentService.isExtensionDevelopment && !!environmentService.extensionTestsLocationURI) {
 			otherLoggers.push(new ConsoleLogInAutomationLogger(loggerService.getLogLevel()));
@@ -312,12 +290,8 @@ export class BrowserMain extends Disposable {
 		const logService = new LogService(logger, otherLoggers);
 		serviceCollection.set(ILogService, logService);
 
-		// Set the logger of the fileLogger after the log service is ready.
-		// This is to avoid cyclic dependency
 		fileLogger.logger = logService;
 
-		// Register File System Providers depending on IndexedDB support
-		// Register them early because they are needed for the profiles initialization
 		await this.registerIndexedDBFileSystemProviders(environmentService, fileService, logService, loggerService, logsPath);
 
 
@@ -327,26 +301,15 @@ export class BrowserMain extends Disposable {
 		const remoteAuthorityResolverService = new RemoteAuthorityResolverService(!environmentService.expectsResolverExtension, connectionToken, resourceUriProvider, this.configuration.serverBasePath, productService, logService);
 		serviceCollection.set(IRemoteAuthorityResolverService, remoteAuthorityResolverService);
 
-		// Signing
 		const signService = new SignService(productService);
 		serviceCollection.set(ISignService, signService);
 
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		//
-		// NOTE: Please do NOT register services here. Use `registerSingleton()`
-		//       from `workbench.common.main.ts` if the service is shared between
-		//       desktop and web or `workbench.web.main.ts` if the service
-		//       is web only.
-		//
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-		// URI Identity
 		const uriIdentityService = new UriIdentityService(fileService);
 		serviceCollection.set(IUriIdentityService, uriIdentityService);
 
-		// User Data Profiles
 		const userDataProfilesService = new BrowserUserDataProfilesService(environmentService, fileService, uriIdentityService, logService);
 		serviceCollection.set(IUserDataProfilesService, userDataProfilesService);
 
@@ -355,7 +318,6 @@ export class BrowserMain extends Disposable {
 		const userDataProfileService = new UserDataProfileService(currentProfile);
 		serviceCollection.set(IUserDataProfileService, userDataProfileService);
 
-		// Remote Agent
 		const remoteSocketFactoryService = new RemoteSocketFactoryService();
 		remoteSocketFactoryService.register(RemoteConnectionType.WebSocket, new BrowserSocketFactory(this.configuration.webSocketFactory));
 		serviceCollection.set(IRemoteSocketFactoryService, remoteSocketFactoryService);
@@ -363,11 +325,9 @@ export class BrowserMain extends Disposable {
 		serviceCollection.set(IRemoteAgentService, remoteAgentService);
 		this._register(RemoteFileSystemProviderClient.register(remoteAgentService, fileService, logService));
 
-		// Default Account
 		const defaultAccountService = this._register(new DefaultAccountService(productService));
 		serviceCollection.set(IDefaultAccountService, defaultAccountService);
 
-		// Policies
 		serviceCollection.set(INativeManagedSettingsService, new NullNativeManagedSettingsService());
 		const policyService = new AccountPolicyService(logService, defaultAccountService);
 		serviceCollection.set(IPolicyService, policyService);
@@ -395,39 +355,20 @@ export class BrowserMain extends Disposable {
 	): Promise<IWorkbenchConfigurationService> {
 		const { configurationService, storageService } = await this.createWorkspaceConfigAndStorageServices(serviceCollection, workspace, environmentService, userDataProfileService, userDataProfilesService, fileService, remoteAgentService, uriIdentityService, policyService, logService, remoteAuthorityResolverService);
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		//
-		// NOTE: Please do NOT register services here. Use `registerSingleton()`
-		//       from `workbench.common.main.ts` if the service is shared between
-		//       desktop and web or `workbench.web.main.ts` if the service
-		//       is web only.
-		//
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-		// Request Service
 		const requestService = new BrowserRequestService(remoteAgentService, configurationService, loggerService);
 		serviceCollection.set(IRequestService, requestService);
 
-		// Userdata Sync Store Management Service
 		const userDataSyncStoreManagementService = new UserDataSyncStoreManagementService(productService, configurationService, storageService);
 		serviceCollection.set(IUserDataSyncStoreManagementService, userDataSyncStoreManagementService);
 
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		//
-		// NOTE: Please do NOT register services here. Use `registerSingleton()`
-		//       from `workbench.common.main.ts` if the service is shared between
-		//       desktop and web or `workbench.web.main.ts` if the service
-		//       is web only.
-		//
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 		const encryptionService = new EncryptionService();
 		serviceCollection.set(IEncryptionService, encryptionService);
 		const secretStorageService = new BrowserSecretStorageService(storageService, encryptionService, environmentService, logService);
 		serviceCollection.set(ISecretStorageService, secretStorageService);
 
-		// Userdata Initialize Service
 		const userDataInitializers: IUserDataInitializer[] = [];
 		userDataInitializers.push(new UserDataSyncInitializer(environmentService, secretStorageService, userDataSyncStoreManagementService, fileService, userDataProfilesService, storageService, productService, requestService, logService, uriIdentityService));
 		if (environmentService.options?.profile) {
@@ -438,7 +379,6 @@ export class BrowserMain extends Disposable {
 
 		try {
 			await Promise.race([
-				// Do not block more than 5s
 				timeout(5000),
 				this.initializeUserData(userDataInitializationService, configurationService)]
 			);
@@ -449,12 +389,6 @@ export class BrowserMain extends Disposable {
 		return configurationService;
 	}
 
-	/**
-	 * Creates and registers the workspace context, configuration, storage,
-	 * and workspace trust services. Override this to provide different
-	 * workspace/configuration implementations (e.g., sessions in-memory
-	 * workspace). Overrides must also register workspace trust services.
-	 */
 	protected async createWorkspaceConfigAndStorageServices(
 		serviceCollection: ServiceCollection,
 		workspace: IAnyWorkspaceIdentifier,
@@ -480,14 +414,12 @@ export class BrowserMain extends Disposable {
 			})
 		]);
 
-		// Workspace Trust Service
 		const workspaceTrustEnablementService = new WorkspaceTrustEnablementService(configurationService, environmentService);
 		serviceCollection.set(IWorkspaceTrustEnablementService, workspaceTrustEnablementService);
 
 		const workspaceTrustManagementService = new WorkspaceTrustManagementService(configurationService, remoteAuthorityResolverService, storageService, uriIdentityService, environmentService, configurationService, workspaceTrustEnablementService, fileService);
 		serviceCollection.set(IWorkspaceTrustManagementService, workspaceTrustManagementService);
 
-		// Update workspace trust so that configuration is updated accordingly
 		configurationService.updateWorkspaceTrust(workspaceTrustManagementService.isWorkspaceTrusted());
 		this._register(workspaceTrustManagementService.onDidChangeTrust(() => configurationService.updateWorkspaceTrust(workspaceTrustManagementService.isWorkspaceTrusted())));
 
@@ -501,8 +433,6 @@ export class BrowserMain extends Disposable {
 			// Initialize required resources - settings & global state
 			await userDataInitializationService.initializeRequiredResources();
 
-			// Important: Reload only local user configuration after initializing
-			// Reloading complete configuration blocks workbench until remote configuration is loaded.
 			if (configurationService instanceof WorkspaceService) {
 				await configurationService.reloadLocalUserConfiguration();
 			}
@@ -513,7 +443,6 @@ export class BrowserMain extends Disposable {
 
 	private async registerIndexedDBFileSystemProviders(environmentService: IWorkbenchEnvironmentService, fileService: IFileService, logService: ILogService, loggerService: ILoggerService, logsPath: URI): Promise<void> {
 
-		// IndexedDB is used for logging and user data
 		let indexedDB: IndexedDB | undefined;
 		const userDataStore = 'vscode-userdata-store';
 		const logsStore = 'vscode-logs-store';
@@ -521,13 +450,11 @@ export class BrowserMain extends Disposable {
 		try {
 			indexedDB = await IndexedDB.create('vscode-web-db', 3, [userDataStore, logsStore, handlesStore]);
 
-			// Close onWillShutdown
 			this.onWillShutdownDisposables.add(toDisposable(() => indexedDB?.close()));
 		} catch (error) {
 			logService.error('Error while creating IndexedDB', error);
 		}
 
-		// Logger
 		if (indexedDB) {
 			const logFileSystemProvider = new IndexedDBFileSystemProvider(logsPath.scheme, indexedDB, logsStore, false);
 			this.indexedDBFileSystemProviders.push(logFileSystemProvider);
@@ -536,7 +463,6 @@ export class BrowserMain extends Disposable {
 			fileService.registerProvider(logsPath.scheme, new InMemoryFileSystemProvider());
 		}
 
-		// User data
 		let userDataProvider;
 		if (indexedDB) {
 			userDataProvider = new IndexedDBFileSystemProvider(Schemas.vscodeUserData, indexedDB, userDataStore, true);
@@ -548,12 +474,10 @@ export class BrowserMain extends Disposable {
 		}
 		fileService.registerProvider(Schemas.vscodeUserData, userDataProvider);
 
-		// Local file access (if supported by browser)
 		if (WebFileSystemAccess.supported(mainWindow)) {
 			fileService.registerProvider(Schemas.file, new HTMLFileSystemProvider(indexedDB, handlesStore, logService));
 		}
 
-		// In-memory
 		fileService.registerProvider(Schemas.tmp, new InMemoryFileSystemProvider());
 	}
 
@@ -602,7 +526,6 @@ export class BrowserMain extends Disposable {
 		try {
 			await storageService.initialize();
 
-			// Register to close on shutdown
 			this.onWillShutdownDisposables.add(toDisposable(() => storageService.close()));
 
 			return storageService;
@@ -616,20 +539,16 @@ export class BrowserMain extends Disposable {
 
 	private async createWorkspaceService(workspace: IAnyWorkspaceIdentifier, environmentService: IBrowserWorkbenchEnvironmentService, userDataProfileService: IUserDataProfileService, userDataProfilesService: IUserDataProfilesService, fileService: FileService, remoteAgentService: IRemoteAgentService, uriIdentityService: IUriIdentityService, policyService: IPolicyService, logService: ILogService): Promise<WorkspaceService> {
 
-		// Temporary workspaces do not exist on startup because they are
-		// just in memory. As such, detect this case and eagerly create
-		// the workspace file empty so that it is a valid workspace.
 
 		if (isWorkspaceIdentifier(workspace) && isTemporaryWorkspace(workspace.configPath)) {
 			try {
 				const emptyWorkspace: IStoredWorkspace = { folders: [] };
 				await fileService.createFile(workspace.configPath, VSBuffer.fromString(JSON.stringify(emptyWorkspace, null, '\t')), { overwrite: false });
 			} catch (error) {
-				// ignore if workspace file already exists
 			}
 		}
 
-		const configurationCache = new ConfigurationCache([Schemas.file, Schemas.vscodeUserData, Schemas.tmp] /* Cache all non native resources */, environmentService, fileService);
+		const configurationCache = new ConfigurationCache([Schemas.file, Schemas.vscodeUserData, Schemas.tmp] , environmentService, fileService);
 		const workspaceService = new WorkspaceService({ remoteAuthority: this.configuration.remoteAuthority, configurationCache }, environmentService, userDataProfileService, userDataProfilesService, fileService, remoteAgentService, uriIdentityService, logService, policyService);
 
 		try {
@@ -662,17 +581,14 @@ export class BrowserMain extends Disposable {
 			workspace = this.configuration.workspaceProvider.workspace;
 		}
 
-		// Multi-root workspace
 		if (workspace && isWorkspaceToOpen(workspace)) {
 			return getWorkspaceIdentifier(workspace.workspaceUri);
 		}
 
-		// Single-folder workspace
 		if (workspace && isFolderToOpen(workspace)) {
 			return getSingleFolderWorkspaceIdentifier(workspace.folderUri);
 		}
 
-		// Empty window workspace
 		return UNKNOWN_EMPTY_WINDOW_WORKSPACE;
 	}
 }

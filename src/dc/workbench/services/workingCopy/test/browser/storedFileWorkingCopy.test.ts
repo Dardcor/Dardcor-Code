@@ -173,12 +173,10 @@ suite('StoredFileWorkingCopy (with custom save)', function () {
 			saveErrorCounter++;
 		}));
 
-		// unresolved
 		await workingCopy.save();
 		assert.strictEqual(savedCounter, 0);
 		assert.strictEqual(saveErrorCounter, 0);
 
-		// simple
 		await workingCopy.resolve();
 		workingCopy.model?.updateContents('hello save');
 		await workingCopy.save();
@@ -192,7 +190,6 @@ suite('StoredFileWorkingCopy (with custom save)', function () {
 		assert.strictEqual(workingCopy.model?.pushedStackElement, true);
 		assert.strictEqual((workingCopy.model as TestStoredFileWorkingCopyModelWithCustomSave).saveCounter, 1);
 
-		// error
 		workingCopy.model?.updateContents('hello save error');
 		(workingCopy.model as TestStoredFileWorkingCopyModelWithCustomSave).throwOnSave = true;
 		await workingCopy.save();
@@ -220,7 +217,6 @@ suite('StoredFileWorkingCopy (with custom save)', function () {
 
 		workingCopy.model?.updateContents('first');
 		const firstSave = workingCopy.save();
-		// cancel the first save by requesting a second while it is still mid operation
 		workingCopy.model?.updateContents('second');
 		const secondSave = workingCopy.save();
 		resolve!();
@@ -324,7 +320,6 @@ suite('StoredFileWorkingCopy', function () {
 			savedCounter++;
 		}));
 
-		// Dirty from: Model content change
 		workingCopy.model?.updateContents('hello dirty');
 		assert.strictEqual(contentChangeCounter, 1);
 
@@ -341,10 +336,9 @@ suite('StoredFileWorkingCopy', function () {
 		assert.strictEqual(changeDirtyCounter, 2);
 		assert.strictEqual(savedCounter, 1);
 
-		// Dirty from: Initial contents
 		await workingCopy.resolve({ contents: bufferToStream(VSBuffer.fromString('hello dirty stream')) });
 
-		assert.strictEqual(contentChangeCounter, 2); // content of model did not change
+		assert.strictEqual(contentChangeCounter, 2);
 		assert.strictEqual(workingCopy.isModified(), true);
 		assert.strictEqual(workingCopy.isDirty(), true);
 		assert.strictEqual(workingCopy.hasState(StoredFileWorkingCopyState.DIRTY), true);
@@ -357,7 +351,6 @@ suite('StoredFileWorkingCopy', function () {
 		assert.strictEqual(workingCopy.hasState(StoredFileWorkingCopyState.DIRTY), false);
 		assert.strictEqual(changeDirtyCounter, 4);
 
-		// Modified from: API
 		workingCopy.markModified();
 
 		assert.strictEqual(workingCopy.isModified(), true);
@@ -383,7 +376,6 @@ suite('StoredFileWorkingCopy', function () {
 		workingCopy.model?.updateContents('changing content once');
 		assert.strictEqual(workingCopy.isDirty(), true);
 
-		// Simulate an undo that goes back to the last (saved) version ID
 		workingCopy.model!.versionId--;
 
 		workingCopy.model?.fireContentChangeEvent({ isRedoing: false, isUndoing: true });
@@ -396,26 +388,22 @@ suite('StoredFileWorkingCopy', function () {
 			onDidResolveCounter++;
 		}));
 
-		// resolve from file
 		await workingCopy.resolve();
 		assert.strictEqual(workingCopy.isResolved(), true);
 		assert.strictEqual(onDidResolveCounter, 1);
 		assert.strictEqual(workingCopy.model?.contents, 'Hello Html');
 
-		// dirty resolve returns early
 		workingCopy.model?.updateContents('hello resolve');
 		assert.strictEqual(workingCopy.isDirty(), true);
 		await workingCopy.resolve();
 		assert.strictEqual(onDidResolveCounter, 1);
 		assert.strictEqual(workingCopy.model?.contents, 'hello resolve');
 
-		// dirty resolve with contents updates contents
 		await workingCopy.resolve({ contents: bufferToStream(VSBuffer.fromString('hello initial contents')) });
 		assert.strictEqual(workingCopy.isDirty(), true);
 		assert.strictEqual(workingCopy.model?.contents, 'hello initial contents');
 		assert.strictEqual(onDidResolveCounter, 2);
 
-		// resolve with pending save returns directly
 		const pendingSave = workingCopy.save();
 		await workingCopy.resolve();
 		await pendingSave;
@@ -423,7 +411,6 @@ suite('StoredFileWorkingCopy', function () {
 		assert.strictEqual(workingCopy.model?.contents, 'hello initial contents');
 		assert.strictEqual(onDidResolveCounter, 2);
 
-		// disposed resolve is not throwing an error
 		workingCopy.dispose();
 		await workingCopy.resolve();
 		assert.strictEqual(workingCopy.isDisposed(), true);
@@ -440,7 +427,6 @@ suite('StoredFileWorkingCopy', function () {
 
 		workingCopy.dispose();
 
-		// first resolve loads from backup
 		workingCopy = createWorkingCopy();
 		await workingCopy.resolve();
 
@@ -451,7 +437,6 @@ suite('StoredFileWorkingCopy', function () {
 		workingCopy.model.updateContents('hello updated');
 		await workingCopy.save();
 
-		// subsequent resolve ignores any backups
 		await workingCopy.resolve();
 
 		assert.strictEqual(workingCopy.isDirty(), false);
@@ -499,12 +484,10 @@ suite('StoredFileWorkingCopy', function () {
 			await orphanedPromise;
 			assert.strictEqual(workingCopy.hasState(StoredFileWorkingCopyState.ORPHAN), true);
 
-			// resolving clears orphaned state when successful
 			accessor.fileService.notExistsSet.delete(resource);
 			await workingCopy.resolve({ forceReadFromFile: true });
 			assert.strictEqual(workingCopy.hasState(StoredFileWorkingCopyState.ORPHAN), false);
 
-			// resolving adds orphaned state when fail to read
 			try {
 				accessor.fileService.readShouldThrowError = new FileOperationError('file not found', FileOperationResult.FILE_NOT_FOUND);
 				await workingCopy.resolve();
@@ -622,12 +605,10 @@ suite('StoredFileWorkingCopy', function () {
 			saveErrorCounter++;
 		}));
 
-		// unresolved
 		await workingCopy.save();
 		assert.strictEqual(savedCounter, 0);
 		assert.strictEqual(saveErrorCounter, 0);
 
-		// simple
 		await workingCopy.resolve();
 		workingCopy.model?.updateContents('hello save');
 		await workingCopy.save();
@@ -654,7 +635,6 @@ suite('StoredFileWorkingCopy', function () {
 			saveErrorCounter++;
 		}));
 
-		// save reason
 		await workingCopy.resolve();
 		workingCopy.model?.updateContents('hello save');
 
@@ -679,8 +659,6 @@ suite('StoredFileWorkingCopy', function () {
 			saveErrorCounter++;
 		}));
 
-		// multiple saves in parallel are fine and result
-		// in a single save when content does not change
 		await workingCopy.resolve();
 		workingCopy.model?.updateContents('hello save');
 		await Promises.settled([
@@ -705,9 +683,6 @@ suite('StoredFileWorkingCopy', function () {
 			saveErrorCounter++;
 		}));
 
-		// multiple saves in parallel are fine and result
-		// in just one save operation (the second one
-		// cancels the first)
 		await workingCopy.resolve();
 		workingCopy.model?.updateContents('hello save');
 		const firstSave = workingCopy.save();
@@ -731,7 +706,6 @@ suite('StoredFileWorkingCopy', function () {
 			saveErrorCounter++;
 		}));
 
-		// no save when not forced and not dirty
 		await workingCopy.resolve();
 		await workingCopy.save();
 		assert.strictEqual(savedCounter, 0);
@@ -750,7 +724,6 @@ suite('StoredFileWorkingCopy', function () {
 			saveErrorCounter++;
 		}));
 
-		// save when forced even when not dirty
 		await workingCopy.resolve();
 		await workingCopy.save({ force: true });
 		assert.strictEqual(savedCounter, 1);
@@ -772,7 +745,6 @@ suite('StoredFileWorkingCopy', function () {
 
 			await workingCopy.resolve();
 
-			// save clears orphaned
 			const orphanedPromise = Event.toPromise(workingCopy.onDidChangeOrphaned);
 
 			accessor.fileService.notExistsSet.set(resource, true);
@@ -802,7 +774,6 @@ suite('StoredFileWorkingCopy', function () {
 
 		await workingCopy.resolve();
 
-		// save error: any error marks working copy dirty
 		try {
 			accessor.fileService.writeShouldThrowError = new FileOperationError('write error', FileOperationResult.FILE_PERMISSION_DENIED);
 
@@ -819,7 +790,6 @@ suite('StoredFileWorkingCopy', function () {
 		assert.strictEqual(workingCopy.hasState(StoredFileWorkingCopyState.CONFLICT), false);
 		assert.strictEqual(workingCopy.isDirty(), true);
 
-		// save is a no-op unless forced when in error case
 		await workingCopy.save({ reason: SaveReason.AUTO });
 		assert.strictEqual(savedCounter, 0);
 		assert.strictEqual(saveErrorCounter, 1);
@@ -829,7 +799,6 @@ suite('StoredFileWorkingCopy', function () {
 		assert.strictEqual(workingCopy.hasState(StoredFileWorkingCopyState.CONFLICT), false);
 		assert.strictEqual(workingCopy.isDirty(), true);
 
-		// save clears error flags when successful
 		await workingCopy.save({ reason: SaveReason.EXPLICIT });
 		assert.strictEqual(savedCounter, 1);
 		assert.strictEqual(saveErrorCounter, 1);
@@ -839,13 +808,11 @@ suite('StoredFileWorkingCopy', function () {
 		assert.strictEqual(workingCopy.hasState(StoredFileWorkingCopyState.CONFLICT), false);
 		assert.strictEqual(workingCopy.isDirty(), false);
 
-		// save error: conflict
 		try {
 			accessor.fileService.writeShouldThrowError = new FileOperationError('write error conflict', FileOperationResult.FILE_MODIFIED_SINCE);
 
 			await workingCopy.save({ force: true });
 		} catch (error) {
-			// error is expected
 		} finally {
 			accessor.fileService.writeShouldThrowError = undefined;
 		}
@@ -858,7 +825,6 @@ suite('StoredFileWorkingCopy', function () {
 		assert.strictEqual(workingCopy.hasState(StoredFileWorkingCopyState.CONFLICT), true);
 		assert.strictEqual(workingCopy.isDirty(), true);
 
-		// save clears error flags when successful
 		await workingCopy.save({ reason: SaveReason.EXPLICIT });
 		assert.strictEqual(savedCounter, 2);
 		assert.strictEqual(saveErrorCounter, 2);
@@ -1003,31 +969,26 @@ suite('StoredFileWorkingCopy', function () {
 			revertedCounter++;
 		}));
 
-		// revert: soft
 		await workingCopy.revert({ soft: true });
 
 		assert.strictEqual(revertedCounter, 1);
 		assert.strictEqual(workingCopy.isDirty(), false);
 		assert.strictEqual(workingCopy.model?.contents, 'hello revert');
 
-		// revert: not forced
 		await workingCopy.revert();
 		assert.strictEqual(revertedCounter, 1);
 		assert.strictEqual(workingCopy.model?.contents, 'hello revert');
 
-		// revert: forced
 		await workingCopy.revert({ force: true });
 		assert.strictEqual(revertedCounter, 2);
 		assert.strictEqual(workingCopy.model?.contents, 'Hello Html');
 
-		// revert: forced, error
 		try {
 			workingCopy.model?.updateContents('hello revert');
 			accessor.fileService.readShouldThrowError = new FileOperationError('error', FileOperationResult.FILE_PERMISSION_DENIED);
 
 			await workingCopy.revert({ force: true });
 		} catch (error) {
-			// expected (our error)
 		} finally {
 			accessor.fileService.readShouldThrowError = undefined;
 		}
@@ -1035,14 +996,12 @@ suite('StoredFileWorkingCopy', function () {
 		assert.strictEqual(revertedCounter, 2);
 		assert.strictEqual(workingCopy.isDirty(), true);
 
-		// revert: forced, file not found error is ignored
 		try {
 			workingCopy.model?.updateContents('hello revert');
 			accessor.fileService.readShouldThrowError = new FileOperationError('error', FileOperationResult.FILE_NOT_FOUND);
 
 			await workingCopy.revert({ force: true });
 		} catch (error) {
-			// expected (our error)
 		} finally {
 			accessor.fileService.readShouldThrowError = undefined;
 		}

@@ -37,14 +37,12 @@ import { NativeGitHubUploadService } from './nativeGitHubUploadService.js';
 import { IssueReporterEditorPane } from './issueReporterEditorPane.js';
 import { IssueReporterEditorInput } from '../browser/issueReporterEditorInput.js';
 
-//#region Issue Contribution
 registerSingleton(IWorkbenchIssueService, NativeIssueService, InstantiationType.Delayed);
 registerSingleton(IIssueFormService, NativeIssueFormService, InstantiationType.Delayed);
 registerSingleton(IScreenshotService, NativeScreenshotService, InstantiationType.Delayed);
 registerSingleton(IRecordingService, NativeRecordingService, InstantiationType.Delayed);
 registerSingleton(IGitHubUploadService, NativeGitHubUploadService, InstantiationType.Delayed);
 
-// Settings
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).registerConfiguration({
 	id: 'issueReporter',
 	title: localize('issueReporterConfigurationTitle', "Issue Reporter"),
@@ -65,7 +63,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 	}
 });
 
-// Editor pane for tab display mode
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
 		IssueReporterEditorPane,
@@ -136,7 +133,7 @@ class ReportPerformanceIssueUsingReporterAction extends Action2 {
 	}
 
 	override async run(accessor: ServicesAccessor): Promise<void> {
-		const issueService = accessor.get(IWorkbenchIssueService); // later can just get IIssueFormService
+		const issueService = accessor.get(IWorkbenchIssueService);
 
 		return issueService.openReporter({ issueType: IssueType.PerformanceIssue });
 	}
@@ -146,4 +143,3 @@ CommandsRegistry.registerCommand('_issues.getSystemStatus', (accessor) => {
 	return accessor.get(IProcessService).getSystemStatus();
 });
 
-// #endregion

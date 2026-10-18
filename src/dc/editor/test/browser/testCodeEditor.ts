@@ -84,12 +84,10 @@ export interface ITestEditorAction {
 
 export class TestCodeEditor extends CodeEditorWidget implements ICodeEditor {
 
-	//#region testing overrides
 	protected override _createConfiguration(isSimpleWidget: boolean, contextMenuId: MenuId, options: Readonly<TestCodeEditorCreationOptions>): EditorConfiguration {
 		return new TestConfiguration(options);
 	}
 	protected override _createView(viewModel: ViewModel): [View, boolean] {
-		// Never create a view
 		return [null! as View, false];
 	}
 	private _hasTextFocus = false;
@@ -99,9 +97,7 @@ export class TestCodeEditor extends CodeEditorWidget implements ICodeEditor {
 	public override hasTextFocus(): boolean {
 		return this._hasTextFocus;
 	}
-	//#endregion
 
-	//#region Testing utils
 	public getViewModel(): ViewModel | undefined {
 		return this._modelData ? this._modelData.viewModel : undefined;
 	}
@@ -138,21 +134,11 @@ class TestEditorDomElement {
 }
 
 export interface TestCodeEditorCreationOptions extends editorOptions.IEditorOptions {
-	/**
-	 * If the editor has text focus.
-	 * Defaults to true.
-	 */
 	hasTextFocus?: boolean;
-	/**
-	 * Env configuration
-	 */
 	envConfig?: ITestEnvConfiguration;
 }
 
 export interface TestCodeEditorInstantiationOptions extends TestCodeEditorCreationOptions {
-	/**
-	 * Services to use.
-	 */
 	serviceCollection?: ServiceCollection;
 }
 
@@ -184,7 +170,6 @@ function _withTestCodeEditor(arg: ITextModel | string | string[] | ITextBufferFa
 	const instantiationService = createCodeEditorServices(disposables, options.serviceCollection);
 	delete options.serviceCollection;
 
-	// create a model if necessary
 	let model: ITextModel;
 	if (isTextModel(arg)) {
 		model = arg;

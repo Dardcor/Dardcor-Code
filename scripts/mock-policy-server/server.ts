@@ -3,20 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Standalone dev tool: a local mock of the Copilot "policy" endpoints that
- * `DefaultAccountService` calls (entitlements, token, MCP registry, managed
- * settings), plus a small web GUI to author each response and to wire/unwire
- * `product.overrides.json`.
- *
- * This tool is NOT part of the shipped product. Run it from sources with:
- *
- *     npm run mock-policy-server
- *
- * Then open the printed URL, pick an endpoint, edit the JSON, Save, and Wire.
- * Reload Code OSS and run "Developer: Sync Account Policy" +
- * "Developer: Policy Diagnostics".
- */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { EndpointDef } from './endpoints';
@@ -35,14 +21,6 @@ const PRODUCT_OVERRIDES_JSON = path.join(ROOT, 'product.overrides.json');
 const PRODUCT_OVERRIDES_BACKUP = path.join(ROOT, 'product.overrides.json.pre-mock-server');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
-/**
- * Default location of the managed-settings JSON schema, resolved against the
- * app's current working directory (i.e. where `npm run mock-policy-server` is
- * invoked — normally the vscode repo root). On dev machines the schema sits at
- * `./copilot-agent-runtime/schema/managed-settings-schema.json`. Override with
- * `--schema <url|file-uri|path>` or the `MANAGED_SETTINGS_SCHEMA` env var; web
- * (`http(s)://`) and `file://` URIs are both accepted.
- */
 const DEFAULT_SCHEMA_SOURCE = 'copilot-agent-runtime/schema/managed-settings-schema.json';
 
 const args = parseArgs(process.argv.slice(2));
@@ -50,7 +28,6 @@ const PORT = Number(args.port || process.env.PORT || 3000);
 const HOST = args.host || '127.0.0.1';
 const SCHEMA_SOURCE = args.schema || process.env.MANAGED_SETTINGS_SCHEMA || DEFAULT_SCHEMA_SOURCE;
 
-/** Path -> endpoint definition. */
 const endpointByPath = new Map(endpoints.map(e => [e.path, e]));
 
 const currentBodies: Record<string, unknown> = {};
@@ -63,11 +40,6 @@ const server = http.createServer((req, res) => {
 	const pathname = url.pathname;
 
 	try {
-		// Mocked Copilot endpoints. Only these get permissive CORS, so the web
-		// build (browser) of Code OSS can call them cross-origin. The control API
-		// (/api/*) and static assets stay same-origin: that avoids a CSRF surface
-		// where an unrelated website could drive /api/wire and rewrite the local
-		// product.overrides.json.
 		const endpoint = endpointByPath.get(pathname);
 		if (endpoint) {
 			res.setHeader('Access-Control-Allow-Origin', '*');
@@ -83,7 +55,6 @@ const server = http.createServer((req, res) => {
 			}
 		}
 
-		// GUI control API (same-origin only — no CORS).
 		if (pathname === '/api/state' && req.method === 'GET') {
 			return sendJson(res, 200, getState());
 		}
@@ -161,17 +132,10 @@ server.listen(PORT, HOST, () => {
 	console.log('');
 });
 
-/** The URL Code OSS should call for a given endpoint. */
 function endpointUrl(endpoint: EndpointDef): string {
 	return `http://${HOST}:${PORT}${endpoint.path}`;
 }
 
-/**
- * Resolve and load the managed-settings JSON schema from {@link SCHEMA_SOURCE}.
- * Accepts a web URL (`http(s)://`), a `file://` URI, or a filesystem path
- * (relative paths are resolved against the app's cwd). Re-reads on every call so
- * a dev can edit the schema and refresh the GUI without restarting the server.
- */
 async function loadSchema(sourceOverride?: string): Promise<{ source: string; resolved: string; ok: boolean; schema?: unknown; error?: string }> {
 	const source = sourceOverride || SCHEMA_SOURCE;
 	try {
@@ -187,7 +151,6 @@ async function loadSchema(sourceOverride?: string): Promise<{ source: string; re
 			? fileURLToPath(source)
 			: path.resolve(process.cwd(), source);
 
-		// Guard against relative path traversal.
 		if (!path.isAbsolute(source) && filePath.includes('..')) {
 			return { source, resolved: filePath, ok: false, error: 'Relative paths must not contain ".."' };
 		}
@@ -202,7 +165,6 @@ async function loadSchema(sourceOverride?: string): Promise<{ source: string; re
 	}
 }
 
-/** Build the state object the GUI renders. */
 function getState() {
 	return {
 		endpoints: endpoints.map(e => ({
@@ -221,14 +183,12 @@ function getState() {
 	};
 }
 
-/** Build the full overrides JSON a user would paste into product.overrides.json. */
 function buildOverridesSnippet() {
 	const product = JSON.parse(fs.readFileSync(PRODUCT_JSON, 'utf8'));
 	const baseAgent = product?.defaultChatAgent ?? {};
 	return JSON.stringify({ defaultChatAgent: { ...baseAgent, ...overrideUrls() } }, null, '\t');
 }
 
-/** The `defaultChatAgent` URL overrides this server provides. */
 function overrideUrls(): Record<string, string> {
 	const urls: Record<string, string> = {};
 	for (const endpoint of endpoints) {
@@ -237,7 +197,6 @@ function overrideUrls(): Record<string, string> {
 	return urls;
 }
 
-/** Whether `product.overrides.json` currently points every endpoint at this server. */
 function isWired(): boolean {
 	let overrides;
 	try {
@@ -253,21 +212,10 @@ function isWired(): boolean {
 	return Object.keys(urls).every(key => agent[key] === urls[key]);
 }
 
-/**
- * Write `product.overrides.json` so Code OSS calls this server for every policy
- * endpoint.
- *
- * `src/bootstrap-meta.ts` merges overrides via `Object.assign` (shallow,
- * top-level), so overriding nested keys requires writing back the whole
- * `defaultChatAgent` object. We seed it from `product.json` and flip only the
- * endpoint URLs, preserving every other key. Any other top-level overrides
- * already present are kept untouched.
- */
 function wireOverrides(): void {
 	const product = JSON.parse(fs.readFileSync(PRODUCT_JSON, 'utf8'));
 	const baseAgent = product?.defaultChatAgent ?? {};
 
-	// Back up existing overrides before touching them.
 	if (fs.existsSync(PRODUCT_OVERRIDES_JSON)) {
 		fs.copyFileSync(PRODUCT_OVERRIDES_JSON, PRODUCT_OVERRIDES_BACKUP);
 		console.log(`  Backed up ${PRODUCT_OVERRIDES_JSON} -> ${PRODUCT_OVERRIDES_BACKUP}`);
@@ -291,13 +239,7 @@ function wireOverrides(): void {
 	console.log(`  Wired ${PRODUCT_OVERRIDES_JSON} -> ${HOST}:${PORT}`);
 }
 
-/**
- * Revert the endpoint overrides: restore each URL to its `product.json` value
- * (or drop the key if absent). If `defaultChatAgent` ends up identical to
- * `product.json`, drop it; if the overrides file ends up empty, remove it.
- */
 function unwireOverrides(): void {
-	// If we have a backup, restore it wholesale instead of surgically reverting.
 	if (fs.existsSync(PRODUCT_OVERRIDES_BACKUP)) {
 		fs.copyFileSync(PRODUCT_OVERRIDES_BACKUP, PRODUCT_OVERRIDES_JSON);
 		fs.rmSync(PRODUCT_OVERRIDES_BACKUP, { force: true });
@@ -309,7 +251,7 @@ function unwireOverrides(): void {
 	try {
 		overrides = JSON.parse(fs.readFileSync(PRODUCT_OVERRIDES_JSON, 'utf8'));
 	} catch {
-		return; // nothing to unwire
+		return;
 	}
 	if (!overrides.defaultChatAgent) {
 		return;
@@ -342,12 +284,6 @@ function unwireOverrides(): void {
 	}
 }
 
-/** Serve a file from the public/ directory (plus the shared endpoints.js). */
-/**
- * Read a `.ts` source file, strip type annotations via Node's built-in
- * `module.stripTypeScriptTypes()`, and serve the result as plain JavaScript.
- * This lets the browser GUI stay in TypeScript without a build step.
- */
 function serveTypeStripped(tsPath: string, res: ServerResponse): void {
 	const source = fs.readFileSync(tsPath, 'utf8');
 	const stripped = stripTypeScriptTypes(source);
@@ -356,14 +292,12 @@ function serveTypeStripped(tsPath: string, res: ServerResponse): void {
 }
 
 function serveStatic(pathname: string, res: ServerResponse): void {
-	// The GUI loads the shared endpoints module that lives one level up.
 	if (pathname === '/endpoints.js') {
 		return serveTypeStripped(path.join(__dirname, 'endpoints.ts'), res);
 	}
 
 	const rel = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
 
-	// Serve .ts sources as type-stripped JS when the browser requests .js.
 	if (rel.endsWith('.js')) {
 		const tsPath = path.normalize(path.join(PUBLIC_DIR, rel.replace(/\.js$/, '.ts')));
 		if (tsPath.startsWith(PUBLIC_DIR + path.sep) && fs.existsSync(tsPath)) {
@@ -373,7 +307,6 @@ function serveStatic(pathname: string, res: ServerResponse): void {
 
 	const filePath = path.normalize(path.join(PUBLIC_DIR, rel));
 
-	// Guard against path traversal outside public/.
 	if (!filePath.startsWith(PUBLIC_DIR + path.sep) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
 		return sendJson(res, 404, { error: 'Not found' });
 	}

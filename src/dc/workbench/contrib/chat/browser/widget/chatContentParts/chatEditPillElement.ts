@@ -24,20 +24,6 @@ import './media/chatCodeBlockPill.css';
 
 const $ = dom.$;
 
-/**
- * The shared DOM + styling for a "code block pill" — the small chip rendered in
- * chat output that announces a file edit (e.g. "file.ts Edited +5 -2").
- *
- * This class is intentionally agnostic of where the diff information comes
- * from. Subclasses or callers feed in URI, status icon/label, +/- counts, and
- * an optional progress percentage. Two consumers exist today:
- *
- * - {@link CollapsedCodeBlock} (chat editing pipeline) wires the pill to an
- *   {@link IChatEditingSession} so the status and diff update as edits stream
- *   in.
- * - {@link ChatExternalEditContentPart} (agent host pipeline) renders a static
- *   pill from data already provided by the agent host.
- */
 export class ChatEditPillElement extends Disposable {
 
 	readonly element: HTMLElement;
@@ -63,11 +49,9 @@ export class ChatEditPillElement extends Disposable {
 	private _labelRemovedEl: HTMLElement | undefined;
 
 	private readonly _onDidClick = this._register(new Emitter<IOpenEditorOptions>());
-	/** Fires when the pill is activated (click / keyboard). Carries the standard open-editor options. */
 	readonly onDidClick: Event<IOpenEditorOptions> = this._onDidClick.event;
 
 	private readonly _onDidContextMenu = this._register(new Emitter<StandardMouseEvent>());
-	/** Fires on right-click. Subclasses can present a context menu. */
 	readonly onDidContextMenu: Event<StandardMouseEvent> = this._onDidContextMenu.event;
 
 	constructor(
@@ -105,11 +89,6 @@ export class ChatEditPillElement extends Disposable {
 		}));
 	}
 
-	/**
-	 * Renders or updates the file icon + name. Call this whenever the URI
-	 * changes; also resets the +added / -removed counters since they no
-	 * longer apply to the previous file.
-	 */
 	setUri(uri: URI): void {
 		this._uri = uri;
 		const iconText = this.labelService.getUriBasenameLabel(uri);
@@ -121,10 +100,6 @@ export class ChatEditPillElement extends Disposable {
 		this.setTooltip(this.labelService.getUriLabel(uri, { relative: true }));
 	}
 
-	/**
-	 * Updates the leading status indicator (icon + textual label). Pass
-	 * `undefined` to clear the icon.
-	 */
 	setStatus(icon: ThemeIcon | undefined, label: string): void {
 		this.statusIconEl.classList.remove(...this._statusIconClasses);
 		this._statusIconClasses = icon ? ThemeIcon.asClassNameArray(getCompactCodicon(icon)) : [];
@@ -134,18 +109,10 @@ export class ChatEditPillElement extends Disposable {
 		this.statusLabelEl.textContent = label;
 	}
 
-	/**
-	 * Sets the trailing detail label (e.g. "Generating edits...", "(35%)").
-	 * Pass an empty string to clear.
-	 */
 	setLabelDetail(text: string): void {
 		this.labelDetailEl.textContent = text;
 	}
 
-	/**
-	 * Renders the progress-fill animation behind the pill. `percent` is in
-	 * the range [0, 100]. Pass `undefined` (or omit) to clear.
-	 */
 	setProgressFill(percent: number | undefined): void {
 		if (typeof percent === 'number') {
 			this.progressFillEl.style.width = `${percent}%`;
@@ -156,11 +123,6 @@ export class ChatEditPillElement extends Disposable {
 		}
 	}
 
-	/**
-	 * Renders the +added / -removed counters at the trailing end of the pill
-	 * and sets the aria label to a localized summary. Pass `undefined` to
-	 * hide the counters.
-	 */
 	setDiff(diff: { added: number; removed: number } | undefined): void {
 		if (!diff) {
 			this._labelAddedEl?.remove();
@@ -179,17 +141,10 @@ export class ChatEditPillElement extends Disposable {
 		this._labelRemovedEl.textContent = `-${diff.removed}`;
 	}
 
-	/**
-	 * Sets the screen-reader announcement for the pill.
-	 */
 	setAriaLabel(label: string): void {
 		this.element.ariaLabel = label;
 	}
 
-	/**
-	 * Sets the delayed hover tooltip text. Re-using the existing hover binding
-	 * so subsequent calls just swap the displayed text.
-	 */
 	setTooltip(tooltip: string): void {
 		this._tooltip = tooltip;
 		if (!this._hover.value) {
@@ -203,15 +158,6 @@ export class ChatEditPillElement extends Disposable {
 	}
 }
 
-/**
- * Resolves the given resource and reports whether it has no content, which is
- * the case when a file was newly created or was empty before an edit.
- *
- * The pill consumers use this to decide whether opening a diff editor is
- * meaningful: a pure addition into an empty (or non-existent) original has
- * nothing to diff against, so the resulting file should open in a normal
- * editor instead.
- */
 export async function isResourceContentEmpty(textModelService: ITextModelService, uri: URI): Promise<boolean> {
 	try {
 		const ref = await textModelService.createModelReference(uri);

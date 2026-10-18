@@ -53,13 +53,12 @@ export class BrowserTextFileService extends AbstractTextFileService {
 
 	private registerListeners(): void {
 
-		// Lifecycle
 		this._register(this.lifecycleService.onBeforeShutdown(event => event.veto(this.onBeforeShutdown(), 'veto.textFiles')));
 	}
 
 	private onBeforeShutdown(): boolean {
 		if (this.files.models.some(model => model.hasState(TextFileEditorModelState.PENDING_SAVE))) {
-			return true; // files are pending to be saved: veto (as there is no support for long running operations on shutdown)
+			return true;
 		}
 
 		return false;

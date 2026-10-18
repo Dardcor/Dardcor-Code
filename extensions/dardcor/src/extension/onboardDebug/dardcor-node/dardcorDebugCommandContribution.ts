@@ -11,10 +11,6 @@ import * as vscode from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
-import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
-import { IGitExtensionService } from '../../../platform/git/common/gitExtensionService';
-import { IGitService } from '../../../platform/git/common/gitService';
-import { IOctoKitService } from '../../../platform/github/common/githubService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { ITasksService } from '../../../platform/tasks/common/tasksService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
@@ -25,13 +21,12 @@ import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import * as path from '../../../util/dardcor/base/common/path';
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
-import { ChatSessionsUriHandler, CustomUriHandler } from '../../chatSessions/dardcor/chatSessionsUriHandler';
 import { EXTENSION_ID } from '../../common/constants';
 import { ILaunchConfigService, needsWorkspaceFolderForTaskError } from '../common/launchConfigService';
-import { CopilotDebugCommandSessionFactory } from '../node/dardcorDebugCommandSessionFactory';
+import { DardcorDebugCommandSessionFactory } from '../node/dardcorDebugCommandSessionFactory';
 import { SimpleRPC } from '../node/dardcorDebugWorker/rpc';
 import { IStartOptions, StartResultKind } from '../node/dardcorDebugWorker/shared';
-import { CopilotDebugCommandHandle } from './dardcorDebugCommandHandle';
+import { DardcorDebugCommandHandle } from './dardcorDebugCommandHandle';
 import { handleDebugSession } from './dardcorDebugCommandSession';
 
 //@ts-ignore
@@ -41,13 +36,12 @@ import powershellScript from '../node/dardcorDebugWorker/dardcorDebugWorker.ps1'
 const WAS_REGISTERED_STORAGE_KEY = 'dardcor-chat.terminalToDebugging.registered';
 // Nonce exposed to terminals so the legitimate `dardcor-debug` worker can
 // authenticate itself against the URI handler (see VSCODE-410).
-const COPILOT_DEBUG_NONCE_STORAGE_KEY = 'dardcor-chat.terminalToDebugging.nonce';
-export const COPILOT_DEBUG_NONCE_ENV_VAR = 'COPILOT_DEBUG_NONCE';
-export const COPILOT_DEBUG_COMMAND = `dardcor-debug`;
+const DARDCOR_DEBUG_NONCE_STORAGE_KEY = 'dardcor-chat.terminalToDebugging.nonce';
+export const DARDCOR_DEBUG_NONCE_ENV_VAR = 'DARDCOR_DEBUG_NONCE';
+export const DARDCOR_DEBUG_COMMAND = `dardcor-debug`;
 const DEBUG_COMMAND_JS = 'dardcorDebugCommand.js';
 
-export class CopilotDebugCommandContribution extends Disposable implements vscode.UriHandler {
-	private chatSessionsUriHandler: CustomUriHandler;
+export class DardcorDebugCommandContribution extends Disposable implements vscode.UriHandler {
 	private registerSerializer: Promise<void>;
 	private readonly nonce: string;
 
@@ -61,10 +55,6 @@ export class CopilotDebugCommandContribution extends Disposable implements vscod
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@ITasksService private readonly tasksService: ITasksService,
 		@ITerminalService private readonly terminalService: ITerminalService,
-		@IOctoKitService private readonly _octoKitService: IOctoKitService,
-		@IGitService private readonly _gitService: IGitService,
-		@IGitExtensionService private readonly _gitExtensionService: IGitExtensionService,
-		@IFileSystemService private readonly fileSystemService: IFileSystemService,
 	) {
 		super();
 
@@ -75,38 +65,16 @@ export class CopilotDebugCommandContribution extends Disposable implements vscod
 				this.registerSerializer = this.registerSerializer.then(() => this.registerEnvironment());
 			}
 		}));
-		this._register(vscode.commands.registerCommand('github.dardcor.chat.startCopilotDebugCommand', async () => {
+		this._register(vscode.commands.registerCommand('github.dardcor.chat.startDardcorDebugCommand', async () => {
 			const term = vscode.window.createTerminal();
 			term.show(false);
 			term.sendText('dardcor-debug <your command here>', false);
 		}));
 
 		this.registerSerializer = this.registerEnvironment();
-		// Initialize ChatSessionsUriHandler with extension context for storage
-		this.chatSessionsUriHandler = new ChatSessionsUriHandler(this._octoKitService, this._gitService, this._gitExtensionService, this.context, this.logService, this.fileSystemService, this.telemetryService);
-		// Check for pending chat sessions when this contribution is initialized
-		(this.chatSessionsUriHandler as ChatSessionsUriHandler).openPendingSession().catch((err) => {
-			this.logService.error('Failed to check for pending chat sessions from debug command contribution:', err);
-		});
-		const globPattern = new vscode.RelativePattern(this.context.globalStorageUri, '.pendingSession');
-		const fileWatcher = vscode.workspace.createFileSystemWatcher(globPattern);
-		this._register(fileWatcher);
-		const pendingFileHandling = async () => {
-			this.logService.info('Detected creation of pending session file from debug command contribution.');
-			// A new pending session file was created, try to open it
-			(this.chatSessionsUriHandler as ChatSessionsUriHandler).openPendingSession().catch((err) => {
-				this.logService.error('Failed to open pending chat session after pending session file creation:', err);
-			});
-		};
-		this._register(fileWatcher.onDidCreate(async () => {
-			await pendingFileHandling();
-		}));
-		this._register(fileWatcher.onDidChange(async () => {
-			await pendingFileHandling();
-		}));
 	}
 
-	private async ensureTask(workspaceFolder: URI | undefined, def: vscode.TaskDefinition, handle: CopilotDebugCommandHandle): Promise<boolean> {
+	private async ensureTask(workspaceFolder: URI | undefined, def: vscode.TaskDefinition, handle: DardcorDebugCommandHandle): Promise<boolean> {
 		if (!workspaceFolder) {
 			handle.printLabel('red', needsWorkspaceFolderForTaskError());
 			return false;
@@ -132,9 +100,6 @@ export class CopilotDebugCommandContribution extends Disposable implements vscod
 	}
 
 	handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-		if (this.chatSessionsUriHandler.canHandleUri(uri)) {
-			return this.chatSessionsUriHandler.handleUri(uri);
-		}
 		const pipePath = process.platform === 'win32' ? '\\\\.\\pipe\\' + uri.path.slice(1) : uri.path;
 		const cts = new CancellationTokenSource();
 
@@ -155,11 +120,11 @@ export class CopilotDebugCommandContribution extends Disposable implements vscod
 			this.logService.info(`Got a debug connection on ${pipePath}`);
 
 			const rpc = new SimpleRPC(socket);
-			const handle = new CopilotDebugCommandHandle(rpc);
+			const handle = new DardcorDebugCommandHandle(rpc);
 			const { launchConfigService, authService, nonce } = this;
 			const logService = this.logService;
 			const exit = (code: number, error?: string) => handle.exit(code, error);
-			const factory = this.instantiationService.createInstance(CopilotDebugCommandSessionFactory, {
+			const factory = this.instantiationService.createInstance(DardcorDebugCommandSessionFactory, {
 				ensureTask: (wf, def) => this.ensureTask(wf || vscode.workspace.workspaceFolders?.[0].uri, def, handle),
 				isGenerating: () => handle.printLabel('blue', l10n.t('Generating debug configuration...')),
 				prompt: async (text, defaultValue) =>
@@ -246,14 +211,14 @@ export class CopilotDebugCommandContribution extends Disposable implements vscod
 	}
 
 	private ensureNonce(): string {
-		let nonce = this.context.workspaceState.get<string>(COPILOT_DEBUG_NONCE_STORAGE_KEY);
+		let nonce = this.context.workspaceState.get<string>(DARDCOR_DEBUG_NONCE_STORAGE_KEY);
 		if (!nonce || typeof nonce !== 'string' || nonce.length < 32) {
 			nonce = randomBytes(16).toString('hex');
-			this.context.workspaceState.update(COPILOT_DEBUG_NONCE_STORAGE_KEY, nonce);
+			this.context.workspaceState.update(DARDCOR_DEBUG_NONCE_STORAGE_KEY, nonce);
 		}
 
-		if (this.context.environmentVariableCollection.get(COPILOT_DEBUG_NONCE_ENV_VAR)?.value !== nonce) {
-			this.context.environmentVariableCollection.replace(COPILOT_DEBUG_NONCE_ENV_VAR, nonce);
+		if (this.context.environmentVariableCollection.get(DARDCOR_DEBUG_NONCE_ENV_VAR)?.value !== nonce) {
+			this.context.environmentVariableCollection.replace(DARDCOR_DEBUG_NONCE_ENV_VAR, nonce);
 		}
 
 		return nonce;
@@ -282,15 +247,15 @@ export class CopilotDebugCommandContribution extends Disposable implements vscod
 			}
 		} else if (!previouslyStoredAt) {
 			// 2. enabling a disabled state
-			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: COPILOT_DEBUG_COMMAND });
+			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: DARDCOR_DEBUG_COMMAND });
 			await this.fillStoragePath(storageLocation);
 		} else if (previouslyStoredAt.version !== versionNonce) {
 			// 3. upgrading the worker
-			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: COPILOT_DEBUG_COMMAND });
+			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: DARDCOR_DEBUG_COMMAND });
 			await this.fillStoragePath(storageLocation);
 		} else if (enabled) {
 			// 4. already enabled and up to date, just ensure PATH contribution
-			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: COPILOT_DEBUG_COMMAND });
+			this.terminalService.contributePath('dardcor-debug', storageLocation, { command: DARDCOR_DEBUG_COMMAND });
 		}
 
 		this.context.globalState.update(WAS_REGISTERED_STORAGE_KEY, enabled ? {
@@ -313,13 +278,13 @@ export class CopilotDebugCommandContribution extends Disposable implements vscod
 		await fs.mkdir(storagePath, { recursive: true });
 
 		if (process.platform === 'win32') {
-			const ps1Path = path.join(storagePath, `${COPILOT_DEBUG_COMMAND}.ps1`);
+			const ps1Path = path.join(storagePath, `${DARDCOR_DEBUG_COMMAND}.ps1`);
 			await fs.writeFile(ps1Path, powershellScript
 				.replaceAll('__CALLBACK_URL_PLACEHOLDER__', callbackUri)
 				.replaceAll('__REMOTE_COMMAND_PLACEHOLDER__', remoteCommand));
-			await fs.writeFile(path.join(storagePath, `${COPILOT_DEBUG_COMMAND}.bat`), makeBatScript(ps1Path));
+			await fs.writeFile(path.join(storagePath, `${DARDCOR_DEBUG_COMMAND}.bat`), makeBatScript(ps1Path));
 		} else {
-			const shPath = path.join(storagePath, COPILOT_DEBUG_COMMAND);
+			const shPath = path.join(storagePath, DARDCOR_DEBUG_COMMAND);
 			await fs.writeFile(shPath, makeShellScript(remoteCommand, storagePath, callbackUri));
 			await fs.chmod(shPath, 0o750);
 		}

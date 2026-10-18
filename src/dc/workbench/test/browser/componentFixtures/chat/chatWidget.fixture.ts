@@ -46,14 +46,12 @@ export interface IFixtureFileChange {
 	readonly name: string;
 	readonly added: number;
 	readonly removed: number;
-	/** Whether the file was created (vs. edited) during the turn. */
 	readonly created: boolean;
-	/** Whether the file is outside the owning session workspace. */
 	readonly isOutsideWorkspace?: boolean;
 }
 
 export interface IFixtureMessage {
-	readonly user: string; // user prompt text
+	readonly user: string;
 	readonly timestamp?: number;
 	readonly assistant?: ReadonlyArray<
 		| { kind: 'markdown'; text: string }
@@ -65,15 +63,8 @@ export interface IFixtureMessage {
 	>;
 	readonly details?: string;
 	readonly responseComplete?: boolean;
-	/** Whether the request is a host-initiated turn rendered with its specialized presentation. */
 	readonly isSystemInitiated?: boolean;
-	/** Whether the request half of the turn stays out of the transcript. */
 	readonly requestHidden?: boolean;
-	/**
-	 * Per-turn file changes surfaced via {@link IChatResponseFileChangesService},
-	 * used by the turn changes summary. Requires `agentHostSession` on the fixture
-	 * options to be rendered.
-	 */
 	readonly fileChanges?: ReadonlyArray<IFixtureFileChange>;
 }
 
@@ -82,38 +73,16 @@ export interface IChatWidgetFixtureOptions {
 	readonly width?: number;
 	readonly height?: number;
 	readonly listHeight?: number;
-	/** Whether to render the main chat input. Defaults to `true`. */
 	readonly inputVisible?: boolean;
-	/** Whether to populate the response footer with an action. */
 	readonly responseFooterAction?: boolean;
-	/** Whether to show request and response timing details. */
 	readonly verbose?: boolean;
-	/**
-	 * When `false`, registers a stub `IChatToolRiskAssessmentService` whose
-	 * `isEnabled()` returns `false`, exercising the "feature off" code path.
-	 * When omitted, behaves like today (auto-detected from message risk data).
-	 */
 	readonly riskAssessmentEnabled?: boolean;
-	/**
-	 * Optional hook invoked after the chat input part renders, e.g. to mount
-	 * widgets above the input. Receives the rendered input part and the fixture's
-	 * instantiation service so callers can create instances against the same
-	 * service graph.
-	 */
 	readonly decorateInputPart?: (inputPart: ChatInputPart, instantiationService: IInstantiationService) => void;
-	/**
-	 * When set, renders the chat as an agent host session, so completed turns with
-	 * {@link IFixtureMessage.fileChanges} show workspace changes and external
-	 * Markdown previews under the response.
-	 */
 	readonly agentHostSession?: boolean;
 	readonly linkPresentationService?: ILinkPresentationService;
-	/** Registers fixture-specific services after the shared chat service graph. */
 	readonly additionalServices?: (registration: ServiceRegistration) => void;
 	readonly onRendered?: (handle: IChatWidgetFixtureHandle) => void;
-	/** Selects the input-height consumer used by the ResizeObserver harness. */
 	readonly hostLayoutMode?: 'none' | 'listOnly' | 'stackedFull' | 'stackedTargeted';
-	/** Mirrors `IChatWidgetViewOptions.persistentContentHeight` for content mounted by {@link IChatWidgetFixtureOptions.decorateInputPart}. */
 	readonly persistentContentHeight?: number;
 }
 
@@ -126,9 +95,6 @@ interface IChatWidgetFixtureHandle {
 }
 
 function makeFileDiff(change: IFixtureFileChange): IChatResponseFileEdit {
-	// A created file has no before-content, so the agent host provider maps its
-	// `originalURI` to the `modifiedURI` (equal URIs); an edited file keeps a
-	// distinct original.
 	const root = change.isOutsideWorkspace ? '/home/user' : '/repo';
 	const modifiedURI = URI.file(`${root}/${change.name}`);
 	const originalURI = change.created ? modifiedURI : URI.file(`${root}/.original/${change.name}`);
@@ -154,15 +120,11 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 		source: ToolDataSource.Internal,
 	};
 
-	// Collect risk assessments from messages so the risk badge service can
-	// return them synchronously via getCached().
 	const hasRiskAssessment = options.messages.some(m => m.assistant?.some(p => (p.kind === 'terminalConfirmation' || p.kind === 'elicitation') && p.riskAssessment));
 	const hasRiskLoading = options.messages.some(m => m.assistant?.some(p => (p.kind === 'terminalConfirmation' || p.kind === 'elicitation') && p.riskLoading));
 	const riskFeatureExplicitlyDisabled = options.riskAssessmentEnabled === false;
 	const needsRiskService = hasRiskAssessment || hasRiskLoading || riskFeatureExplicitlyDisabled;
 
-	// Maps a completed turn's requestId to its per-turn file diffs, consumed by
-	// the turn changes summary via the stubbed IChatResponseFileChangesService.
 	const requestDiffs = new Map<string, readonly IEditSessionEntryDiff[]>();
 	const requestFileEdits = new Map<string, readonly IChatResponseFileEdit[]>();
 	const isAgentHostSession = options.agentHostSession === true;
@@ -177,8 +139,6 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 			if (options.linkPresentationService) {
 				reg.defineInstance(ILinkPresentationService, options.linkPresentationService);
 			}
-			// Override widget service so the chat list renderer can route tool
-			// confirmations to the carousel attached to our input part.
 			reg.defineInstance(IChatWidgetService, new class extends mock<IChatWidgetService>() {
 				override readonly lastFocusedWidget = undefined;
 				override readonly onDidAddWidget = Event.None;
@@ -213,7 +173,6 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 				reg.defineInstance(IChatToolRiskAssessmentService, new class extends mock<IChatToolRiskAssessmentService>() {
 					override isEnabled() { return !riskFeatureExplicitlyDisabled; }
 					override getCached() {
-						// Return the first risk assessment found in the fixture messages.
 						for (const m of options.messages) {
 							for (const p of m.assistant ?? []) {
 								if ((p.kind === 'terminalConfirmation' || p.kind === 'elicitation') && p.riskAssessment) {
@@ -223,7 +182,6 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 						}
 						return undefined;
 					}
-					// For riskLoading: assess() never resolves, keeping the badge in loading state.
 					override async assess(): Promise<IToolRiskAssessment | undefined> { return new Promise(() => { }); }
 				}());
 			}
@@ -240,11 +198,6 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 	if (options.verbose !== undefined) {
 		configService.setUserConfiguration(ChatConfiguration.Verbose, options.verbose);
 	}
-	// Build a real ChatModel populated with hand-crafted requests/responses, then drive a
-	// real ChatViewModel + ChatListWidget — the same components used in production.
-	// The turn changes summary only renders for agent host sessions, whose frontend
-	// resource uses the session type as the scheme (e.g. `agent-host-copilotcli:/…`),
-	// which is what `getChatSessionType` / `toAgentHostBackendSessionUri` recognize.
 	const sessionResource = isAgentHostSession
 		? URI.from({ scheme: SessionType.AgentHostCopilot, path: '/turn-pills-session' })
 		: undefined;
@@ -357,9 +310,6 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 	container.style.backgroundColor = 'var(--vscode-sideBar-background, var(--vscode-editor-background))';
 	container.classList.add('monaco-workbench');
 
-	// Mirror the product DOM ancestry: the chat widget lives inside
-	// `.part.auxiliarybar > .content`, where auxiliaryBarPart.css recolors
-	// inline editors with `--vscode-sideBar-background` (used by the carousel).
 	const auxBar = dom.$('.part.auxiliarybar');
 	auxBar.style.width = '100%';
 	auxBar.style.height = '100%';
@@ -372,17 +322,11 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 	const session = dom.$('.interactive-session');
 	session.style.setProperty('--vscode-chat-list-background', listBackground);
 	if (options.persistentContentHeight) {
-		// Same switch `ChatWidget.render` flips.
 		session.classList.add(chatFloatingPersistentContentClass);
 		session.style.setProperty(chatPersistentContentHeightVariable, `${options.persistentContentHeight}px`);
 	}
 	auxContent.appendChild(session);
 
-	// Build the input part FIRST so the widget (with its inputPart) is registered
-	// in IChatWidgetService before the list widget renders. The renderer queries
-	// the service synchronously when routing tool confirmations to the carousel.
-	// In production a chat widget always has an inputPart, so the fixture creates
-	// one unconditionally; `withInput` only controls whether it is rendered in DOM.
 	const menuService = instantiationService.get(IMenuService) as FixtureMenuService;
 	menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.attachContext', title: '+', icon: Codicon.add }, group: 'navigation', order: -1 });
 	menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.openModePicker', title: 'Agent' }, group: 'navigation', order: 1 });
@@ -432,7 +376,6 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 	listContainer.style.flex = options.hostLayoutMode ? '0 0 auto' : '1 1 auto';
 	listContainer.style.minHeight = '0';
 	listContainer.style.position = 'relative';
-	// Prepend the list before the input so the visual order matches production.
 	session.insertBefore(listContainer, session.firstChild);
 
 	const listWidget = disposableStore.add(instantiationService.createInstance(
@@ -472,8 +415,6 @@ export async function renderChatWidget(context: ComponentFixtureContext, options
 			layouting = true;
 			try {
 				if (options.hostLayoutMode === 'stackedFull') {
-					// Mirrors ChatViewPane's stacked-sessions convergence path:
-					// the host synchronously lays out the input again.
 					inputPart.setMaxHeight(Math.max(0, height - 50));
 					inputPart.layout(width);
 				}
@@ -671,7 +612,6 @@ const PENDING_TOOL_APPROVAL: IFixtureMessage[] = [
 	},
 ];
 
-// https://github.com/microsoft/vscode/issues/309796
 const ISSUE_309796_MISSING_BACKSLASH: IFixtureMessage[] = [
 	{
 		user: 'install dependencies in the server directory',
@@ -722,9 +662,6 @@ const MULTI_TURN: IFixtureMessage[] = [
 	},
 ];
 
-// Code blocks that follow or are nested in list items should have symmetric spacing
-// above and below. This also covers tight lists, where prose before a code block is a
-// text node and the code block is therefore still the first element child.
 const CODE_BLOCK_IN_LIST: IFixtureMessage[] = [
 	{
 		user: 'Why do the files appear while diffs fail?',

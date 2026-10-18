@@ -8,11 +8,6 @@ import { resolveVoiceGlowColors, VoiceGlowState } from '../../../../contrib/chat
 import { createVoiceGlowController } from '../../../../contrib/chat/browser/voiceClient/voiceGlowController.js';
 import { ComponentFixtureContext, defineComponentFixture, defineThemedFixtureGroup } from '../fixtureUtils.js';
 
-/**
- * The Voice Mode ambient glow on a stand-in chat input box. Every state is pinned
- * to a representative still frame (the reduced-motion path), so the screenshots
- * are stable while still exercising the real controller and CSS.
- */
 function renderVoiceGlow(state: VoiceGlowState, level: number) {
 	return (context: ComponentFixtureContext): void => {
 		const { container, disposableStore, theme } = context;
@@ -39,15 +34,6 @@ function renderVoiceGlow(state: VoiceGlowState, level: number) {
 	};
 }
 
-/**
- * The rim's two moods. Both are pinned to a representative still frame (the
- * reduced-motion path), so the screenshots are stable while still exercising the
- * real controller and CSS.
- *
- * The high-contrast variants matter here: HC replaces the soft light with a
- * solid line, so it needs covering rather than being assumed to follow from the
- * dark theme.
- */
 export default defineThemedFixtureGroup({ path: 'chat/' }, {
 	'Voice glow (listening)': defineComponentFixture({
 		render: renderVoiceGlow('listening', 0.7),

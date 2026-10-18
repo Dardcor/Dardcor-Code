@@ -37,18 +37,8 @@ export interface IRectangle extends IPoint {
 
 export interface IBaseOpenWindowsOptions {
 
-	/**
-	 * Whether to reuse the window or open a new one.
-	 */
 	readonly forceReuseWindow?: boolean;
 
-	/**
-	 * The remote authority to use when windows are opened with either
-	 * - no workspace (empty window)
-	 * - a workspace that is neither `file://` nor `vscode-remote://`
-	 * Use 'null' for a local window.
-	 * If not set, defaults to the remote authority of the current window.
-	 */
 	readonly remoteAuthority?: string | null;
 
 	readonly forceProfile?: string;
@@ -70,11 +60,6 @@ export interface IOpenWindowOptions extends IBaseOpenWindowsOptions {
 
 	readonly waitMarkerFileURI?: URI;
 
-	/**
-	 * When set, the opened window is asked to open the chat session identified
-	 * by this resource once it is ready. Used to hand off a session (e.g. from
-	 * the Agents window) so the new window restores both the folder and session.
-	 */
 	readonly chatSessionToOpen?: URI;
 }
 
@@ -154,7 +139,6 @@ export function hasNativeContextMenu(configurationService: IConfigurationService
 	const windowConfigurations = configurationService.getValue<IWindowSettings | undefined>('window');
 
 	if (windowConfigurations?.menuStyle === MenuStyleConfiguration.NATIVE) {
-		// Do not support native menu with custom title bar
 		if (!isMacintosh && !nativeTitle) {
 			return false;
 		}
@@ -165,7 +149,7 @@ export function hasNativeContextMenu(configurationService: IConfigurationService
 		return false;
 	}
 
-	return nativeTitle; // Default to inherit from title bar style
+	return nativeTitle;
 }
 
 export function hasNativeMenu(configurationService: IConfigurationService, titleBarStyle?: TitlebarStyle): boolean {
@@ -217,7 +201,7 @@ export interface IWindowSettings {
 	readonly clickThroughInactive: boolean;
 	readonly newWindowProfile: string;
 	readonly density: IDensitySettings;
-	readonly border: 'off' | 'default' | 'system' | string /* color in RGB or other formats */;
+	readonly border: 'off' | 'default' | 'system' | string ;
 }
 
 export interface IDensitySettings {
@@ -247,8 +231,6 @@ export const enum CustomTitleBarVisibility {
 }
 
 export function hasCustomTitlebar(configurationService: IConfigurationService, titleBarStyle?: TitlebarStyle): boolean {
-	// Returns if it possible to have a custom title bar in the curren session
-	// Does not imply that the title bar is visible
 	return true;
 }
 
@@ -269,12 +251,12 @@ export function getTitleBarStyle(configurationService: IConfigurationService): T
 	if (configuration) {
 		const useNativeTabs = isMacintosh && configuration.nativeTabs === true;
 		if (useNativeTabs) {
-			return TitlebarStyle.NATIVE; // native tabs on macOS do not work with custom title style
+			return TitlebarStyle.NATIVE;
 		}
 
 		const useSimpleFullScreen = isMacintosh && configuration.nativeFullScreen === false;
 		if (useSimpleFullScreen) {
-			return TitlebarStyle.NATIVE; // simple fullscreen does not work well with custom title style (https://github.com/microsoft/vscode/issues/63291)
+			return TitlebarStyle.NATIVE;
 		}
 
 		const style = configuration.titleBarStyle;
@@ -283,12 +265,12 @@ export function getTitleBarStyle(configurationService: IConfigurationService): T
 		}
 	}
 
-	return TitlebarStyle.CUSTOM; // default to custom on all OS
+	return TitlebarStyle.CUSTOM;
 }
 
 export function getWindowControlsStyle(configurationService: IConfigurationService): WindowControlsStyle {
 	if (isWeb || isMacintosh || getTitleBarStyle(configurationService) === TitlebarStyle.NATIVE) {
-		return WindowControlsStyle.NATIVE; // only supported on Windows/Linux desktop with custom titlebar
+		return WindowControlsStyle.NATIVE;
 	}
 
 	const configuration = configurationService.getValue<IWindowSettings | undefined>('window');
@@ -297,38 +279,38 @@ export function getWindowControlsStyle(configurationService: IConfigurationServi
 		return style;
 	}
 
-	return WindowControlsStyle.NATIVE; // default to native on all OS
+	return WindowControlsStyle.NATIVE;
 }
 
-export const DEFAULT_CUSTOM_TITLEBAR_HEIGHT = 35; // includes space for command center
+export const DEFAULT_CUSTOM_TITLEBAR_HEIGHT = 35;
 
 export function useWindowControlsOverlay(configurationService: IConfigurationService): boolean {
 	if (isWeb) {
-		return false; // only supported on desktop instances
+		return false;
 	}
 
 	if (hasNativeTitlebar(configurationService)) {
-		return false; // only supported when title bar is custom
+		return false;
 	}
 
 	if (!isMacintosh) {
 		const setting = getWindowControlsStyle(configurationService);
 		if (setting === WindowControlsStyle.CUSTOM || setting === WindowControlsStyle.HIDDEN) {
-			return false; // explicitly disabled by choice
+			return false;
 		}
 	}
 
-	return true; // default
+	return true;
 }
 
 export function useNativeFullScreen(configurationService: IConfigurationService): boolean {
 	const windowConfig = configurationService.getValue<IWindowSettings | undefined>('window');
 	if (!windowConfig || typeof windowConfig.nativeFullScreen !== 'boolean') {
-		return true; // default
+		return true;
 	}
 
 	if (windowConfig.nativeTabs) {
-		return true; // https://github.com/electron/electron/issues/16142
+		return true;
 	}
 
 	return windowConfig.nativeFullScreen !== false;
@@ -337,41 +319,19 @@ export function useNativeFullScreen(configurationService: IConfigurationService)
 
 export interface IPath<T = IEditorOptions> extends IPathData<T> {
 
-	/**
-	 * The file path to open within the instance
-	 */
 	fileUri?: URI;
 }
 
 export interface IPathData<T = IEditorOptions> {
 
-	/**
-	 * The file path to open within the instance
-	 */
 	readonly fileUri?: UriComponents;
 
-	/**
-	 * Optional editor options to apply in the file
-	 */
 	readonly options?: T;
 
-	/**
-	 * A hint that the file exists. if true, the
-	 * file exists, if false it does not. with
-	 * `undefined` the state is unknown.
-	 */
 	readonly exists?: boolean;
 
-	/**
-	 * A hint about the file type of this path.
-	 * with `undefined` the type is unknown.
-	 */
 	readonly type?: FileType;
 
-	/**
-	 * Specifies if the file should be only be opened
-	 * if it exists.
-	 */
 	readonly openOnlyIfExists?: boolean;
 }
 
@@ -391,9 +351,6 @@ export interface IOpenFileRequest {
 	readonly filesToMerge?: IPathData[];
 }
 
-/**
- * Additional context for the request on native only.
- */
 export interface INativeOpenFileRequest extends IOpenFileRequest {
 	readonly termProgram?: string;
 	readonly filesToWait?: IPathsToWaitForData;
@@ -474,10 +431,6 @@ export interface INativeWindowConfiguration extends IWindowConfiguration, Native
 	policiesData?: IStringDictionary<{ definition: PolicyDefinition; value: PolicyValue }>;
 }
 
-/**
- * According to Electron docs: `scale := 1.2 ^ level`.
- * https://github.com/electron/electron/blob/master/docs/api/web-contents.md#contentssetzoomlevellevel
- */
 export function zoomLevelToZoomFactor(zoomLevel = 0): number {
 	return 1.2 ** zoomLevel;
 }

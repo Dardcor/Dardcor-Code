@@ -341,19 +341,15 @@ suite('multilineModel tests', function () {
 
 		const multilineFeatures = new MultilineModelFeatures(prefix, suffix, language);
 		const multilineFeatureArray = multilineFeatures.constructFeatures();
-		// Numeric features match
 		assert.deepStrictEqual(multilineFeatureArray.slice(0, expectedNumericFeatures.length), expectedNumericFeatures);
-		// Language features match
 		assert.deepStrictEqual(
 			multilineFeatureArray.slice(expectedNumericFeatures.length, expectedNumericFeatures.length + 8),
 			expectedLangFeatures
 		);
-		// Prefix last char features match
 		assert.deepStrictEqual(
 			multilineFeatureArray.slice(expectedNumericFeatures.length + 8, expectedNumericFeatures.length + 8 + 96),
 			expectedPrefixLastCharFeatures
 		);
-		// Prefix rstrip last char features match
 		assert.deepStrictEqual(
 			multilineFeatureArray.slice(
 				expectedNumericFeatures.length + 8 + 96,
@@ -361,7 +357,6 @@ suite('multilineModel tests', function () {
 			),
 			expectedPrefiRstripLastCharFeatures
 		);
-		// Suffix first char features match
 		assert.deepStrictEqual(
 			multilineFeatureArray.slice(
 				expectedNumericFeatures.length + 8 + 96 * 2,
@@ -369,7 +364,6 @@ suite('multilineModel tests', function () {
 			),
 			expectedSuffixFirstCharFeatures
 		);
-		// Suffix lstrip first char features match
 		assert.deepStrictEqual(
 			multilineFeatureArray.slice(
 				expectedNumericFeatures.length + 8 + 96 * 3,
@@ -377,7 +371,6 @@ suite('multilineModel tests', function () {
 			),
 			expectedSuffixLstripFirstCharFeatures
 		);
-		// All features match
 		assert.deepStrictEqual(
 			multilineFeatureArray,
 			expectedNumericFeatures.concat(

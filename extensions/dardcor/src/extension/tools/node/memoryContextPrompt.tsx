@@ -98,7 +98,6 @@ export class MemoryContextPrompt extends PromptElement<MemoryContextPromptProps>
 				const text = new TextDecoder().decode(content);
 				lines.push(`## ${name}`, ...text.split('\n'));
 			} catch {
-				// Skip unreadable files
 			}
 		}
 
@@ -114,7 +113,6 @@ export class MemoryContextPrompt extends PromptElement<MemoryContextPromptProps>
 		if (!storageUri || !sessionResource) {
 			return undefined;
 		}
-		// Use the same logic as the memory tool to resolve the current session directory
 		const sessionId = extractSessionId(sessionResource);
 		const sessionDirUri = URI.joinPath(URI.from(storageUri), MEMORY_BASE_DIR, sessionId);
 		try {
@@ -164,16 +162,6 @@ export class MemoryContextPrompt extends PromptElement<MemoryContextPromptProps>
 	}
 
 	private _sendContextReadTelemetry(hasUserMemory: boolean, userMemoryLength: number, sessionFileCount: number, sessionMemoryLength: number): void {
-		/* __GDPR__
-			"memoryContextRead" : {
-				"owner": "digitarald",
-				"comment": "Tracks automatic memory context reads during prompt construction",
-				"hasUserMemory": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether user memory content was loaded" },
-				"userMemoryLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "String length of user memory content" },
-				"sessionFileCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of session memory files listed" },
-				"sessionMemoryLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "String length of session memory file listing" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('memoryContextRead', {
 			hasUserMemory: String(hasUserMemory),
 		}, {
@@ -184,10 +172,6 @@ export class MemoryContextPrompt extends PromptElement<MemoryContextPromptProps>
 	}
 }
 
-/**
- * Prompt component that provides comprehensive instructions for using the memory tool.
- * Covers all three memory tiers: user, session, and repository.
- */
 export class MemoryInstructionsPrompt extends PromptElement<BasePromptElementProps> {
 	constructor(
 		props: PromptElementProps<BasePromptElementProps>,

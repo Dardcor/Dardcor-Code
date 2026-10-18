@@ -21,16 +21,6 @@ export interface CancelablePromise<T> extends Promise<T> {
 	cancel(): void;
 }
 
-/**
- * Returns a promise that can be cancelled using the provided cancellation token.
- *
- * @remarks When cancellation is requested, the promise will be rejected with a {@link CancellationError}.
- * If the promise resolves to a disposable object, it will be automatically disposed when cancellation
- * is requested.
- *
- * @param callback A function that accepts a cancellation token and returns a promise
- * @returns A promise that can be cancelled
- */
 export function createCancelablePromise<T>(callback: (token: CancellationToken) => Promise<T>): CancelablePromise<T> {
 	const source = new CancellationTokenSource();
 
@@ -52,8 +42,6 @@ export function createCancelablePromise<T>(callback: (token: CancellationToken) 
 				resolve(value);
 
 			} else if (isDisposable(value)) {
-				// promise has been cancelled, result is disposable and will
-				// be cleaned up
 				value.dispose();
 			}
 		}, err => {
@@ -80,16 +68,8 @@ export function createCancelablePromise<T>(callback: (token: CancellationToken) 
 	};
 }
 
-/**
- * Returns a promise that resolves with `undefined` as soon as the passed token is cancelled.
- * @see {@link raceCancellationError}
- */
 export function raceCancellation<T>(promise: Promise<T>, token: CancellationToken): Promise<T | undefined>;
 
-/**
- * Returns a promise that resolves with `defaultValue` as soon as the passed token is cancelled.
- * @see {@link raceCancellationError}
- */
 export function raceCancellation<T>(promise: Promise<T>, token: CancellationToken, defaultValue: T): Promise<T>;
 
 export function raceCancellation<T>(promise: Promise<T>, token: CancellationToken, defaultValue?: T): Promise<T | undefined> {
@@ -102,10 +82,6 @@ export function raceCancellation<T>(promise: Promise<T>, token: CancellationToke
 	});
 }
 
-/**
- * Returns a promise that rejects with an {@CancellationError} as soon as the passed token is cancelled.
- * @see {@link raceCancellation}
- */
 export function raceCancellationError<T>(promise: Promise<T>, token: CancellationToken): Promise<T> {
 	return new Promise((resolve, reject) => {
 		const ref = token.onCancellationRequested(() => {
@@ -123,20 +99,12 @@ export function rejectIfNotCanceled(err: unknown): undefined {
 	return Promise.reject(err) as never;
 }
 
-/**
- * Wraps a cancellable promise such that it is no cancellable. Can be used to
- * avoid issues with shared promises that would normally be returned as
- * cancellable to consumers.
- */
 export function notCancellablePromise<T>(promise: CancelablePromise<T>): Promise<T> {
 	return new Promise<T>((resolve, reject) => {
 		promise.then(resolve, reject);
 	});
 }
 
-/**
- * Returns as soon as one of the promises resolves or rejects and cancels remaining promises
- */
 export function raceCancellablePromises<T>(cancellablePromises: (CancelablePromise<T> | Promise<T>)[]): CancelablePromise<T> {
 	let resolvedPromiseIndex = -1;
 	const promises = cancellablePromises.map((promise, index) => promise.then(result => { resolvedPromiseIndex = index; return result; }));
@@ -179,11 +147,6 @@ export function asPromise<T>(callback: () => T | Thenable<T>): Promise<T> {
 	});
 }
 
-/**
- * Creates and returns a new promise, plus its `resolve` and `reject` callbacks.
- *
- * Replace with standardized [`Promise.withResolvers`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/withResolvers) once it is supported
- */
 export function promiseWithResolvers<T>(): { promise: Promise<T>; resolve: (value: T | PromiseLike<T>) => void; reject: (err?: any) => void } {
 	let resolve: (value: T | PromiseLike<T>) => void;
 	let reject: (reason?: any) => void;
@@ -202,32 +165,6 @@ export interface ICancellableTask<T> {
 	(token: CancellationToken): T;
 }
 
-/**
- * A helper to prevent accumulation of sequential async tasks.
- *
- * Imagine a mail man with the sole task of delivering letters. As soon as
- * a letter submitted for delivery, he drives to the destination, delivers it
- * and returns to his base. Imagine that during the trip, N more letters were submitted.
- * When the mail man returns, he picks those N letters and delivers them all in a
- * single trip. Even though N+1 submissions occurred, only 2 deliveries were made.
- *
- * The throttler implements this via the queue() method, by providing it a task
- * factory. Following the example:
- *
- * 		const throttler = new Throttler();
- * 		const letters = [];
- *
- * 		function deliver() {
- * 			const lettersToDeliver = letters;
- * 			letters = [];
- * 			return makeTheTrip(lettersToDeliver);
- * 		}
- *
- * 		function onLetterReceived(l) {
- * 			letters.push(l);
- * 			throttler.queue(deliver);
- * 		}
- */
 export class Throttler implements IDisposable {
 
 	private activePromise: Promise<any> | null;
@@ -302,11 +239,6 @@ export class Sequencer {
 	}
 }
 
-/**
- * A {@link Throttler} per key. Calls for the same key coalesce (only the most
- * recently queued task runs after the active one settles); calls for different
- * keys are independent. Idle keys are cleaned up automatically.
- */
 export class ThrottlerByKey<TKey> implements IDisposable {
 
 	private readonly throttlers = new Map<TKey, { throttler: Throttler; count: number }>();
@@ -396,29 +328,6 @@ const microtaskDeferred = (fn: () => void): IScheduledLater => {
 	};
 };
 
-/**
- * A helper to delay (debounce) execution of a task that is being requested often.
- *
- * Following the throttler, now imagine the mail man wants to optimize the number of
- * trips proactively. The trip itself can be long, so he decides not to make the trip
- * as soon as a letter is submitted. Instead he waits a while, in case more
- * letters are submitted. After said waiting period, if no letters were submitted, he
- * decides to make the trip. Imagine that N more letters were submitted after the first
- * one, all within a short period of time between each other. Even though N+1
- * submissions occurred, only 1 delivery was made.
- *
- * The delayer offers this behavior via the trigger() method, into which both the task
- * to be executed and the waiting period (delay) must be passed in as arguments. Following
- * the example:
- *
- * 		const delayer = new Delayer(WAITING_PERIOD);
- * 		const letters = [];
- *
- * 		function letterReceived(l) {
- * 			letters.push(l);
- * 			delayer.trigger(() => { return makeTheTrip(); });
- * 		}
- */
 export class Delayer<T> implements IDisposable {
 
 	private deferred: IScheduledLater | null;
@@ -488,15 +397,6 @@ export class Delayer<T> implements IDisposable {
 	}
 }
 
-/**
- * A helper to delay execution of a task that is being requested often, while
- * preventing accumulation of consecutive executions, while the task runs.
- *
- * The mail man is clever and waits for a certain amount of time, before going
- * out to deliver letters. While the mail man is going out, more letters arrive
- * and can only be delivered once he is back. Once he is back the mail man will
- * do one more trip to deliver the letters that have accumulated while he was out.
- */
 export class ThrottledDelayer<T> {
 
 	private delayer: Delayer<Promise<T>>;
@@ -525,9 +425,6 @@ export class ThrottledDelayer<T> {
 	}
 }
 
-/**
- * A barrier that is initially closed and then becomes opened permanently.
- */
 export class Barrier {
 	private _isOpen: boolean;
 	private _promise: Promise<boolean>;
@@ -554,10 +451,6 @@ export class Barrier {
 	}
 }
 
-/**
- * A barrier that is initially closed and then becomes opened permanently after a certain period of
- * time or when open is called explicitly
- */
 export class AutoOpenBarrier extends Barrier {
 
 	private readonly _timeout: Timeout;
@@ -593,23 +486,6 @@ export function timeout(millis: number, token?: CancellationToken): CancelablePr
 	});
 }
 
-/**
- * Creates a timeout that can be disposed using its returned value.
- * @param handler The timeout handler.
- * @param timeout An optional timeout in milliseconds.
- * @param store An optional {@link DisposableStore} that will have the timeout disposable managed automatically.
- *
- * @example
- * const store = new DisposableStore;
- * // Call the timeout after 1000ms at which point it will be automatically
- * // evicted from the store.
- * const timeoutDisposable = disposableTimeout(() => {}, 1000, store);
- *
- * if (foo) {
- *   // Cancel the timeout and evict it from store.
- *   timeoutDisposable.dispose();
- * }
- */
 export function disposableTimeout(handler: () => void, timeout = 0, store?: DisposableStore): IDisposable {
 	const timer = setTimeout(() => {
 		handler();
@@ -625,26 +501,8 @@ export function disposableTimeout(handler: () => void, timeout = 0, store?: Disp
 	return disposable;
 }
 
-/**
- * The largest delay (in milliseconds) a single `setTimeout` can represent.
- * Larger values overflow its internal 32-bit signed integer and fire (almost)
- * immediately instead of waiting.
- */
-export const MAX_TIMEOUT_DELAY = 2 ** 31 - 1; // ~24.8 days
+export const MAX_TIMEOUT_DELAY = 2 ** 31 - 1;
 
-/**
- * Like {@link disposableTimeout}, but supports delays larger than
- * {@link MAX_TIMEOUT_DELAY} (~24.8 days), which a single `setTimeout` cannot
- * represent. The wait is split into chunks and re-armed until the target time is
- * reached, so the handler fires at approximately `Date.now() + timeout`.
- *
- * Note: like `setTimeout`, firing is best-effort and may drift across system
- * sleep or wall-clock changes; do not rely on it for precise scheduling.
- *
- * @param handler The timeout handler.
- * @param timeout The timeout in milliseconds. May exceed {@link MAX_TIMEOUT_DELAY}.
- * @param store An optional {@link DisposableStore} that will have the timeout disposable managed automatically.
- */
 export function disposableLongTimeout(handler: () => void, timeout: number, store?: DisposableStore): IDisposable {
 	const target = Date.now() + timeout;
 	let timer: Timeout;
@@ -671,10 +529,6 @@ export function disposableLongTimeout(handler: () => void, timeout: number, stor
 	return disposable;
 }
 
-/**
- * Runs the provided list of promise factories in sequential order. The returned
- * promise will complete to an array of results from each promise.
- */
 
 export function sequence<T>(promiseFactories: ITask<Promise<T>>[]): Promise<T[]> {
 	const results: T[] = [];
@@ -725,10 +579,6 @@ export function first<T>(promiseFactories: ITask<Promise<T>>[], shouldStop: (t: 
 	return loop();
 }
 
-/**
- * Returns the result of the first promise that matches the "shouldStop",
- * running all promises in parallel. Supports cancelable promises.
- */
 export function firstParallel<T>(promiseList: Promise<T>[], shouldStop?: (t: T) => boolean, defaultValue?: T | null): Promise<T | null>;
 export function firstParallel<T, R extends T>(promiseList: Promise<T>[], shouldStop: (t: T) => t is R, defaultValue?: R | null): Promise<R | null>;
 export function firstParallel<T>(promiseList: Promise<T>[], shouldStop: (t: T) => boolean = t => !!t, defaultValue: T | null = null) {
@@ -779,10 +629,6 @@ export interface ILimiter<T> {
 	clear(): void;
 }
 
-/**
- * A helper to queue N promises and run them all with a max degree of parallelism. The helper
- * ensures that at any time no more than M promises are running at the same time.
- */
 export class Limiter<T> implements ILimiter<T> {
 
 	private _size = 0;
@@ -799,11 +645,6 @@ export class Limiter<T> implements ILimiter<T> {
 		this._onDrained = new Emitter<void>();
 	}
 
-	/**
-	 *
-	 * @returns A promise that resolved when all work is done (onDrained) or when
-	 * there is nothing to do
-	 */
 	whenIdle(): Promise<void> {
 		return this.size > 0
 			? Event.toPromise(this.onDrained)
@@ -865,15 +706,12 @@ export class Limiter<T> implements ILimiter<T> {
 
 	dispose(): void {
 		this._isDisposed = true;
-		this.outstandingPromises.length = 0; // stop further processing
+		this.outstandingPromises.length = 0;
 		this._size = 0;
 		this._onDrained.dispose();
 	}
 }
 
-/**
- * A queue is handles one promise at a time and guarantees that at any time only one promise is executing.
- */
 export class Queue<T> extends Limiter<T> {
 
 	constructor() {
@@ -881,14 +719,6 @@ export class Queue<T> extends Limiter<T> {
 	}
 }
 
-/**
- * Same as `Queue`, ensures that only 1 task is executed at the same time. The difference to `Queue` is that
- * there is only 1 task about to be scheduled next. As such, calling `queue` while a task is executing will
- * replace the currently queued task until it executes.
- *
- * As such, the returned promise may not be from the factory that is passed in but from the next factory that
- * is running after having called `queue`.
- */
 export class LimitedQueue {
 
 	private readonly sequentializer = new TaskSequentializer();
@@ -906,10 +736,6 @@ export class LimitedQueue {
 	}
 }
 
-/**
- * A helper to organize queues per resource. The ResourceQueue makes sure to manage queues per resource
- * by disposing them once the queue is empty.
- */
 export class ResourceQueue implements IDisposable {
 
 	private readonly queues = new Map<string, Queue<void>>();
@@ -979,7 +805,7 @@ export class ResourceQueue implements IDisposable {
 
 	private onDidQueueDrain(): void {
 		if (!this.isDrained()) {
-			return; // not done yet
+			return;
 		}
 
 		this.releaseDrainers();
@@ -1000,12 +826,6 @@ export class ResourceQueue implements IDisposable {
 
 		this.queues.clear();
 
-		// Even though we might still have pending
-		// tasks queued, after the queues have been
-		// disposed, we can no longer track them, so
-		// we release drainers to prevent hanging
-		// promises when the resource queue is being
-		// disposed.
 		this.releaseDrainers();
 
 		this.drainListeners?.dispose();
@@ -1014,23 +834,12 @@ export class ResourceQueue implements IDisposable {
 
 export type Task<T = void> = () => (Promise<T> | T);
 
-/**
- * Wrap a type in an optional promise. This can be useful to avoid the runtime
- * overhead of creating a promise.
- */
 export type MaybePromise<T> = Promise<T> | T;
 
-/**
- * Processes tasks in the order they were scheduled.
-*/
 export class TaskQueue {
 	private _runningTask: Task<any> | undefined = undefined;
 	private _pendingTasks: { task: Task<any>; deferred: DeferredPromise<any>; setUndefinedWhenCleared: boolean }[] = [];
 
-	/**
-	 * Waits for the current and pending tasks to finish, then runs and awaits the given task.
-	 * If the task is skipped because of clearPending, the promise is rejected with a CancellationError.
-	*/
 	public schedule<T>(task: Task<T>): Promise<T> {
 		const deferred = new DeferredPromise<T>();
 		this._pendingTasks.push({ task, deferred, setUndefinedWhenCleared: false });
@@ -1038,10 +847,6 @@ export class TaskQueue {
 		return deferred.p;
 	}
 
-	/**
-	 * Waits for the current and pending tasks to finish, then runs and awaits the given task.
-	 * If the task is skipped because of clearPending, the promise is resolved with undefined.
-	*/
 	public scheduleSkipIfCleared<T>(task: Task<T>): Promise<T | undefined> {
 		const deferred = new DeferredPromise<T>();
 		this._pendingTasks.push({ task, deferred, setUndefinedWhenCleared: true });
@@ -1082,9 +887,6 @@ export class TaskQueue {
 		}
 	}
 
-	/**
-	 * Clears all pending tasks. Does not cancel the currently running task.
-	*/
 	public clearPending(): void {
 		const tasks = this._pendingTasks;
 		this._pendingTasks = [];
@@ -1142,7 +944,6 @@ export class TimeoutTimer implements IDisposable {
 		}
 
 		if (this._token !== undefined) {
-			// timer is already set
 			return;
 		}
 		this._token = setTimeout(() => {
@@ -1199,17 +1000,11 @@ export class RunOnceScheduler<Runner extends (...args: any[]) => any = () => any
 		this.timeoutHandler = this.onTimeout.bind(this);
 	}
 
-	/**
-	 * Dispose RunOnceScheduler
-	 */
 	dispose(): void {
 		this.cancel();
 		this.runner = null;
 	}
 
-	/**
-	 * Cancel current scheduled runner (if any).
-	 */
 	cancel(): void {
 		if (this.isScheduled()) {
 			clearTimeout(this.timeoutToken);
@@ -1217,9 +1012,6 @@ export class RunOnceScheduler<Runner extends (...args: any[]) => any = () => any
 		}
 	}
 
-	/**
-	 * Cancel previous runner (if any) & schedule a new runner.
-	 */
 	schedule(delay = this.timeout): void {
 		this.cancel();
 		this.timeoutToken = setTimeout(this.timeoutHandler, delay);
@@ -1233,9 +1025,6 @@ export class RunOnceScheduler<Runner extends (...args: any[]) => any = () => any
 		this.timeout = value;
 	}
 
-	/**
-	 * Returns true if scheduled.
-	 */
 	isScheduled(): boolean {
 		return this.timeoutToken !== undefined;
 	}
@@ -1259,14 +1048,6 @@ export class RunOnceScheduler<Runner extends (...args: any[]) => any = () => any
 	}
 }
 
-/**
- * Same as `RunOnceScheduler`, but doesn't count the time spent in sleep mode.
- * > **NOTE**: Only offers 1s resolution.
- *
- * When calling `setTimeout` with 3hrs, and putting the computer immediately to sleep
- * for 8hrs, `setTimeout` will fire **as soon as the computer wakes from sleep**. But
- * this scheduler will execute 3hrs **after waking the computer from sleep**.
- */
 export class ProcessTimeRunOnceScheduler {
 
 	private runner: (() => void) | null;
@@ -1299,9 +1080,6 @@ export class ProcessTimeRunOnceScheduler {
 		}
 	}
 
-	/**
-	 * Cancel previous runner (if any) & schedule a new runner.
-	 */
 	schedule(delay = this.timeout): void {
 		if (delay % 1000 !== 0) {
 			console.warn(`ProcessTimeRunOnceScheduler resolution is 1s, ${delay}ms is not a multiple of 1000ms.`);
@@ -1311,9 +1089,6 @@ export class ProcessTimeRunOnceScheduler {
 		this.intervalToken = setInterval(this.intervalHandler, 1000);
 	}
 
-	/**
-	 * Returns true if scheduled.
-	 */
 	isScheduled(): boolean {
 		return this.intervalToken !== undefined;
 	}
@@ -1321,11 +1096,9 @@ export class ProcessTimeRunOnceScheduler {
 	private onInterval() {
 		this.counter--;
 		if (this.counter > 0) {
-			// still need to wait
 			return;
 		}
 
-		// time elapsed
 		clearInterval(this.intervalToken);
 		this.intervalToken = undefined;
 		this.runner?.();
@@ -1364,36 +1137,15 @@ export class RunOnceWorker<T> extends RunOnceScheduler<(units: T[]) => void> {
 
 export interface IThrottledWorkerOptions {
 
-	/**
-	 * maximum of units the worker will pass onto handler at once
-	 */
 	maxWorkChunkSize: number;
 
-	/**
-	 * maximum of units the worker will keep in memory for processing
-	 */
 	maxBufferedWork: number | undefined;
 
-	/**
-	 * delay before processing the next round of chunks when chunk size exceeds limits
-	 */
 	throttleDelay: number;
 
-	/**
-	 * When enabled will guarantee that two distinct calls to `work()` are not executed
-	 * without throttle delay between them.
-	 * Otherwise if the worker isn't currently throttling it will execute work immediately.
-	 */
 	waitThrottleDelayBetweenWorkUnits?: boolean;
 }
 
-/**
- * The `ThrottledWorker` will accept units of work `T`
- * to handle. The contract is:
- * * there is a maximum of units the worker can handle at once (via `maxWorkChunkSize`)
- * * there is a maximum of units the worker will keep in memory for processing (via `maxBufferedWork`)
- * * after having handled `maxWorkChunkSize` units, the worker needs to rest (via `throttleDelay`)
- */
 export class ThrottledWorker<T> extends Disposable {
 
 	private readonly pendingWork: T[] = [];
@@ -1409,46 +1161,28 @@ export class ThrottledWorker<T> extends Disposable {
 		super();
 	}
 
-	/**
-	 * The number of work units that are pending to be processed.
-	 */
 	get pending(): number { return this.pendingWork.length; }
 
-	/**
-	 * Add units to be worked on. Use `pending` to figure out
-	 * how many units are not yet processed after this method
-	 * was called.
-	 *
-	 * @returns whether the work was accepted or not. If the
-	 * worker is disposed, it will not accept any more work.
-	 * If the number of pending units would become larger
-	 * than `maxPendingWork`, more work will also not be accepted.
-	 */
 	work(units: readonly T[]): boolean {
 		if (this.disposed) {
-			return false; // work not accepted: disposed
+			return false;
 		}
 
-		// Check for reaching maximum of pending work
 		if (typeof this.options.maxBufferedWork === 'number') {
 
-			// Throttled: simple check if pending + units exceeds max pending
 			if (this.throttler.value) {
 				if (this.pending + units.length > this.options.maxBufferedWork) {
-					return false; // work not accepted: too much pending work
+					return false;
 				}
 			}
 
-			// Unthrottled: same as throttled, but account for max chunk getting
-			// worked on directly without being pending
 			else {
 				if (this.pending + units.length - this.options.maxWorkChunkSize > this.options.maxBufferedWork) {
-					return false; // work not accepted: too much pending work
+					return false;
 				}
 			}
 		}
 
-		// Add to pending units first
 		for (const unit of units) {
 			this.pendingWork.push(unit);
 		}
@@ -1456,26 +1190,20 @@ export class ThrottledWorker<T> extends Disposable {
 		const timeSinceLastExecution = Date.now() - this.lastExecutionTime;
 
 		if (!this.throttler.value && (!this.options.waitThrottleDelayBetweenWorkUnits || timeSinceLastExecution >= this.options.throttleDelay)) {
-			// Work directly if we are not throttling and we are not
-			// enforced to throttle between `work()` calls.
 			this.doWork();
 		} else if (!this.throttler.value && this.options.waitThrottleDelayBetweenWorkUnits) {
-			// Otherwise, schedule the throttler to work.
 			this.scheduleThrottler(Math.max(this.options.throttleDelay - timeSinceLastExecution, 0));
 		} else {
-			// Otherwise, our work will be picked up by the running throttler
 		}
 
-		return true; // work accepted
+		return true;
 	}
 
 	private doWork(): void {
 		this.lastExecutionTime = Date.now();
 
-		// Extract chunk to handle and handle it
 		this.handler(this.pendingWork.splice(0, this.options.maxWorkChunkSize));
 
-		// If we have remaining work, schedule it after a delay
 		if (this.pendingWork.length > 0) {
 			this.scheduleThrottler();
 		}
@@ -1498,7 +1226,6 @@ export class ThrottledWorker<T> extends Disposable {
 	}
 }
 
-//#region -- run on idle tricks ------------
 
 export interface IdleDeadline {
 	readonly didTimeout: boolean;
@@ -1508,27 +1235,6 @@ export interface IdleDeadline {
 type IdleApi = Pick<typeof globalThis, 'requestIdleCallback' | 'cancelIdleCallback'>;
 
 
-/**
- * Execute the callback the next time the browser is idle, returning an
- * {@link IDisposable} that will cancel the callback when disposed. This wraps
- * [requestIdleCallback] so it will fallback to [setTimeout] if the environment
- * doesn't support it.
- *
- * @param callback The callback to run when idle, this includes an
- * [IdleDeadline] that provides the time alloted for the idle callback by the
- * browser. Not respecting this deadline will result in a degraded user
- * experience.
- * @param timeout A timeout at which point to queue no longer wait for an idle
- * callback but queue it on the regular event loop (like setTimeout). Typically
- * this should not be used.
- *
- * [IdleDeadline]: https://developer.mozilla.org/en-US/docs/Web/API/IdleDeadline
- * [requestIdleCallback]: https://developer.mozilla.org/en-US/docs/Web/API/Window/requestIdleCallback
- * [setTimeout]: https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout
- *
- * **Note** that there is `dom.ts#runWhenWindowIdle` which is better suited when running inside a browser
- * context
- */
 export let runWhenGlobalIdle: (callback: (idle: IdleDeadline) => void, timeout?: number) => IDisposable;
 
 export let _runWhenIdle: (targetWindow: IdleApi, callback: (idle: IdleDeadline) => void, timeout?: number) => IDisposable;
@@ -1541,7 +1247,7 @@ export let _runWhenIdle: (targetWindow: IdleApi, callback: (idle: IdleDeadline) 
 				if (disposed) {
 					return;
 				}
-				const end = Date.now() + 15; // one frame at 64fps
+				const end = Date.now() + 15;
 				const deadline: IdleDeadline = {
 					didTimeout: true,
 					timeRemaining() {
@@ -1631,12 +1337,6 @@ export abstract class AbstractIdleValue<T> {
 	}
 }
 
-/**
- * An `IdleValue` that always uses the current window (which might be throttled or inactive)
- *
- * **Note** that there is `dom.ts#WindowIdleValue` which is better suited when running inside a browser
- * context
- */
 export class GlobalIdleValue<T> extends AbstractIdleValue<T> {
 
 	constructor(executor: () => T) {
@@ -1644,7 +1344,6 @@ export class GlobalIdleValue<T> extends AbstractIdleValue<T> {
 	}
 }
 
-//#endregion
 
 export async function retry<T>(task: ITask<Promise<T>>, delay: number, retries: number): Promise<T> {
 	let lastError: Error | undefined;
@@ -1662,7 +1361,6 @@ export async function retry<T>(task: ITask<Promise<T>>, delay: number, retries: 
 	throw lastError;
 }
 
-//#region Task Sequentializer
 
 interface IRunningTask {
 	readonly taskId: number;
@@ -1685,9 +1383,6 @@ export interface ITaskSequentializerWithQueuedTask {
 	readonly queued: IQueuedTask;
 }
 
-/**
- * @deprecated use `LimitedQueue` instead for an easier to use API
- */
 export class TaskSequentializer {
 
 	private _running?: IRunningTask;
@@ -1720,10 +1415,8 @@ export class TaskSequentializer {
 	private doneRunning(taskId: number): void {
 		if (this._running && taskId === this._running.taskId) {
 
-			// only set running to done if the promise finished that is associated with that taskId
 			this._running = undefined;
 
-			// schedule the queued task now that we are free if we have any
 			this.runQueued();
 		}
 	}
@@ -1733,22 +1426,12 @@ export class TaskSequentializer {
 			const queued = this._queued;
 			this._queued = undefined;
 
-			// Run queued task and complete on the associated promise
 			queued.run().then(queued.promiseResolve, queued.promiseReject);
 		}
 	}
 
-	/**
-	 * Note: the promise to schedule as next run MUST itself call `run`.
-	 *       Otherwise, this sequentializer will report `false` for `isRunning`
-	 *       even when this task is running. Missing this detail means that
-	 *       suddenly multiple tasks will run in parallel.
-	 */
 	queue(run: ITask<Promise<void>>): Promise<void> {
 
-		// this is our first queued task, so we create associated promise with it
-		// so that we can return a promise that completes when the task has
-		// completed.
 		if (!this._queued) {
 			const { promise, resolve: promiseResolve, reject: promiseReject } = promiseWithResolvers<void>();
 			this._queued = {
@@ -1759,7 +1442,6 @@ export class TaskSequentializer {
 			};
 		}
 
-		// we have a previous queued task, just overwrite it
 		else {
 			this._queued.run = run;
 		}
@@ -1776,17 +1458,8 @@ export class TaskSequentializer {
 	}
 }
 
-//#endregion
 
-//#region
 
-/**
- * The `IntervalCounter` allows to count the number
- * of calls to `increment()` over a duration of
- * `interval`. This utility can be used to conditionally
- * throttle a frequent task when a certain threshold
- * is reached.
- */
 export class IntervalCounter {
 
 	private lastIncrementTime = 0;
@@ -1798,8 +1471,6 @@ export class IntervalCounter {
 	increment(): number {
 		const now = this.nowFn();
 
-		// We are outside of the range of `interval` and as such
-		// start counting from 0 and remember the time
 		if (now - this.lastIncrementTime > this.interval) {
 			this.lastIncrementTime = now;
 			this.value = 0;
@@ -1811,9 +1482,7 @@ export class IntervalCounter {
 	}
 }
 
-//#endregion
 
-//#region
 
 export type ValueCallback<T = unknown> = (value: T | Promise<T>) => void;
 
@@ -1822,9 +1491,6 @@ const enum DeferredOutcome {
 	Rejected
 }
 
-/**
- * Creates a promise whose resolution or rejection can be controlled imperatively.
- */
 export class DeferredPromise<T> {
 
 	public static fromPromise<T>(promise: Promise<T>): DeferredPromise<T> {
@@ -1898,19 +1564,10 @@ export class DeferredPromise<T> {
 	}
 }
 
-//#endregion
 
-//#region Promises
 
 export namespace Promises {
 
-	/**
-	 * A drop-in replacement for `Promise.all` with the only difference
-	 * that the method awaits every promise to either fulfill or reject.
-	 *
-	 * Similar to `Promise.all`, only the first error will be returned
-	 * if any.
-	 */
 	export async function settled<T>(promises: Promise<T>[]): Promise<T[]> {
 		let firstError: Error | undefined = undefined;
 
@@ -1919,26 +1576,16 @@ export namespace Promises {
 				firstError = error;
 			}
 
-			return undefined; // do not rethrow so that other promises can settle
+			return undefined;
 		})));
 
 		if (typeof firstError !== 'undefined') {
 			throw firstError;
 		}
 
-		return result as unknown as T[]; // cast is needed and protected by the `throw` above
+		return result as unknown as T[];
 	}
 
-	/**
-	 * A helper to create a new `Promise<T>` with a body that is a promise
-	 * itself. By default, an error that raises from the async body will
-	 * end up as a unhandled rejection, so this utility properly awaits the
-	 * body and rejects the promise as a normal promise does without async
-	 * body.
-	 *
-	 * This method should only be used in rare cases where otherwise `async`
-	 * cannot be used (e.g. when callbacks are involved that require this).
-	 */
 	export function withAsyncBody<T, E = Error>(bodyFn: (resolve: (value: T) => unknown, reject: (error: E) => unknown) => Promise<unknown>): Promise<T> {
 		// eslint-disable-next-line no-async-promise-executor
 		return new Promise<T>(async (resolve, reject) => {
@@ -1978,10 +1625,6 @@ export class StatefulPromise<T> {
 		);
 	}
 
-	/**
-	 * Returns the resolved value.
-	 * Throws if the promise is not resolved yet.
-	 */
 	public requireValue(): T {
 		if (!this._isResolved) {
 			throw new BugIndicatingError('Promise is not resolved yet');
@@ -2000,32 +1643,20 @@ export class LazyStatefulPromise<T> {
 		private readonly _compute: () => Promise<T>,
 	) { }
 
-	/**
-	 * Returns the resolved value.
-	 * Throws if the promise is not resolved yet.
-	 */
 	public requireValue(): T {
 		return this._promise.value.requireValue();
 	}
 
-	/**
-	 * Returns the promise (and triggers a computation of the promise if not yet done so).
-	 */
 	public getPromise(): Promise<T> {
 		return this._promise.value.promise;
 	}
 
-	/**
-	 * Reads the current value without triggering a computation of the promise.
-	 */
 	public get currentValue(): T | undefined {
 		return this._promise.rawValue?.value;
 	}
 }
 
-//#endregion
 
-//#region
 
 const enum AsyncIterableSourceState {
 	Initial,
@@ -2033,45 +1664,16 @@ const enum AsyncIterableSourceState {
 	DoneError,
 }
 
-/**
- * An object that allows to emit async values asynchronously or bring the iterable to an error state using `reject()`.
- * This emitter is valid only for the duration of the executor (until the promise returned by the executor settles).
- */
 export interface AsyncIterableEmitter<T> {
-	/**
-	 * The value will be appended at the end.
-	 *
-	 * **NOTE** If `reject()` has already been called, this method has no effect.
-	 */
 	emitOne(value: T): void;
-	/**
-	 * The values will be appended at the end.
-	 *
-	 * **NOTE** If `reject()` has already been called, this method has no effect.
-	 */
 	emitMany(values: T[]): void;
-	/**
-	 * Writing an error will permanently invalidate this iterable.
-	 * The current users will receive an error thrown, as will all future users.
-	 *
-	 * **NOTE** If `reject()` have already been called, this method has no effect.
-	 */
 	reject(error: Error): void;
 }
 
-/**
- * An executor for the `AsyncIterableObject` that has access to an emitter.
- */
 export interface AsyncIterableExecutor<T> {
-	/**
-	 * @param emitter An object that allows to emit async values valid only for the duration of the executor.
-	 */
 	(emitter: AsyncIterableEmitter<T>): unknown | Promise<unknown>;
 }
 
-/**
- * A rich implementation for an `AsyncIterable<T>`.
- */
 export class AsyncIterableObject<T> implements AsyncIterable<T> {
 
 	public static fromArray<T>(items: T[]): AsyncIterableObject<T> {
@@ -2129,8 +1731,6 @@ export class AsyncIterableObject<T> implements AsyncIterable<T> {
 			} catch (err) {
 				this.reject(err);
 			} finally {
-				// The executor has settled; emitting afterwards must be a no-op per the
-				// documented "no effect after resolve()/reject()" contract (see emitOne).
 				writer.emitOne = () => { };
 				writer.emitMany = () => { };
 				writer.reject = () => { };
@@ -2210,42 +1810,22 @@ export class AsyncIterableObject<T> implements AsyncIterable<T> {
 		return AsyncIterableObject.toPromise(this);
 	}
 
-	/**
-	 * The value will be appended at the end.
-	 *
-	 * **NOTE** If `resolve()` or `reject()` have already been called, this method has no effect.
-	 */
 	private emitOne(value: T): void {
 		if (this._state !== AsyncIterableSourceState.Initial) {
 			return;
 		}
-		// it is important to add new values at the end,
-		// as we may have iterators already running on the array
 		this._results.push(value);
 		this._onStateChanged.fire();
 	}
 
-	/**
-	 * The values will be appended at the end.
-	 *
-	 * **NOTE** If `resolve()` or `reject()` have already been called, this method has no effect.
-	 */
 	private emitMany(values: T[]): void {
 		if (this._state !== AsyncIterableSourceState.Initial) {
 			return;
 		}
-		// it is important to add new values at the end,
-		// as we may have iterators already running on the array
 		this._results = this._results.concat(values);
 		this._onStateChanged.fire();
 	}
 
-	/**
-	 * Calling `resolve()` will mark the result array as complete.
-	 *
-	 * **NOTE** `resolve()` must be called, otherwise all consumers of this iterable will hang indefinitely, similar to a non-resolved promise.
-	 * **NOTE** If `resolve()` or `reject()` have already been called, this method has no effect.
-	 */
 	private resolve(): void {
 		if (this._state !== AsyncIterableSourceState.Initial) {
 			return;
@@ -2254,12 +1834,6 @@ export class AsyncIterableObject<T> implements AsyncIterable<T> {
 		this._onStateChanged.fire();
 	}
 
-	/**
-	 * Writing an error will permanently invalidate this iterable.
-	 * The current users will receive an error thrown, as will all future users.
-	 *
-	 * **NOTE** If `resolve()` or `reject()` have already been called, this method has no effect.
-	 */
 	private reject(error: Error) {
 		if (this._state !== AsyncIterableSourceState.Initial) {
 			return;
@@ -2284,7 +1858,6 @@ export function createCancelableAsyncIterableProducer<T>(callback: (token: Cance
 		try {
 			for await (const item of innerIterable) {
 				if (source.token.isCancellationRequested) {
-					// canceled in the meantime
 					return;
 				}
 				emitter.emitOne(item);
@@ -2308,12 +1881,6 @@ export class AsyncIterableSource<T> {
 	private _emitOneFn: (item: T) => void;
 	private _emitManyFn: (item: T[]) => void;
 
-	/**
-	 *
-	 * @param onReturn A function that will be called when consuming the async iterable
-	 * has finished by the consumer, e.g the for-await-loop has be existed (break, return) early.
-	 * This is NOT called when resolving this source by its owner.
-	 */
 	constructor(onReturn?: () => Promise<void> | void) {
 		this._asyncIterable = new AsyncIterableObject(emitter => {
 
@@ -2461,10 +2028,6 @@ class ProducerConsumer<T> {
 	}
 }
 
-/**
- * Important difference to AsyncIterableObject:
- * If it is iterated two times, the second iterator will not see the values emitted by the first iterator.
- */
 export class AsyncIterableProducer<T> implements AsyncIterable<T> {
 	private readonly _producerConsumer = new ProducerConsumer<IteratorResult<T>>();
 
@@ -2537,7 +2100,7 @@ export class AsyncIterableProducer<T> implements AsyncIterable<T> {
 
 		const start = async () => {
 			if (!emitter1 || !emitter2) {
-				return; // not yet ready
+				return;
 			}
 			try {
 				for await (const item of iterable) {
@@ -2603,7 +2166,6 @@ export class AsyncIterableProducer<T> implements AsyncIterable<T> {
 		if (!this._producerConsumer.hasFinalValue) {
 			this._producerConsumer.produceFinal({ ok: false, error: error });
 		}
-		// Warning: this can cause to dropped errors.
 	}
 
 	private readonly _iterator: AsyncIterator<T, void, void> = {
@@ -2636,7 +2198,6 @@ export class CancelableAsyncIterableProducer<T> extends AsyncIterableProducer<T>
 	}
 }
 
-//#endregion
 
 export const AsyncReaderEndOfStream = Symbol('AsyncReaderEndOfStream');
 
@@ -2671,7 +2232,7 @@ export class AsyncReader<T> {
 			if (!predicate(piece)) {
 				break;
 			}
-			await this.read(); // consume
+			await this.read();
 			await callback(piece);
 		} while (true);
 	}

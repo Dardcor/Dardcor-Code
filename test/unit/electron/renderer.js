@@ -70,16 +70,13 @@ const util = require('util');
 const coverage = require('../coverage');
 const { pathToFileURL } = require('url');
 
-// Disabled custom inspect. See #38847
 if (util.inspect && util.inspect['defaultOptions']) {
 	util.inspect['defaultOptions'].customInspect = false;
 }
 
-// VSCODE_GLOBALS: package/product.json
 globalThis._VSCODE_PRODUCT_JSON = require('../../../product.json');
 globalThis._VSCODE_PACKAGE_JSON = require('../../../package.json');
 
-// Test file operations that are common across platforms. Used for test infra, namely snapshot tests
 Object.assign(globalThis, {
 	__readFileInTests: path => fs.promises.readFile(path, 'utf-8'),
 	__writeFileInTests: (path, contents) => fs.promises.writeFile(path, contents),
@@ -105,9 +102,6 @@ const _loaderErrors = [];
 
 function initNls(opts) {
 	if (opts.build) {
-		// when running from `out-build`, ensure to load the default
-		// messages file, because all `nls.localize` calls have their
-		// english values removed and replaced by an index.
 		globalThis._VSCODE_NLS_MESSAGES = require(`../../../out-build/nls.messages.json`);
 	}
 }
@@ -119,7 +113,6 @@ function initLoadFn(opts) {
 	const baseUrl = pathToFileURL(path.join(__dirname, `../../../${outdir}/`));
 	globalThis._VSCODE_FILE_ROOT = baseUrl.href;
 
-	// set loader
 	function importModules(modules) {
 		const moduleArray = Array.isArray(modules) ? modules : [modules];
 		const tasks = moduleArray.map(mod => {
@@ -187,13 +180,11 @@ let currentTest;
 
 async function loadTests(opts) {
 
-	//#region Unexpected Output
 
 	const _allowedTestOutput = [
 		/The vm module of Node\.js is deprecated in the renderer process and will be removed./,
 	];
 
-	// allow snapshot mutation messages locally
 	if (!IS_CI) {
 		_allowedTestOutput.push(/Creating new snapshot in/);
 		_allowedTestOutput.push(/Deleting [0-9]+ old snapshots/);
@@ -202,16 +193,16 @@ async function loadTests(opts) {
 	const perTestCoverage = opts['per-test-coverage'] ? await PerTestCoverage.init() : undefined;
 
 	const _allowedTestsWithOutput = new Set([
-		'creates a snapshot', // self-testing
-		'validates a snapshot', // self-testing
-		'cleans up old snapshots', // self-testing
-		'issue #149412: VS Code hangs when bad semantic token data is received', // https://github.com/microsoft/vscode/issues/192440
-		'issue #134973: invalid semantic tokens should be handled better', // https://github.com/microsoft/vscode/issues/192440
-		'issue #148651: VSCode UI process can hang if a semantic token with negative values is returned by language service', // https://github.com/microsoft/vscode/issues/192440
-		'issue #149130: vscode freezes because of Bracket Pair Colorization', // https://github.com/microsoft/vscode/issues/192440
-		'property limits', // https://github.com/microsoft/vscode/issues/192443
-		'Error events', // https://github.com/microsoft/vscode/issues/192443
-		'fetch returns keybinding with user first if title and id matches', //
+		'creates a snapshot',
+		'validates a snapshot',
+		'cleans up old snapshots',
+		'issue #149412: VS Code hangs when bad semantic token data is received',
+		'issue #134973: invalid semantic tokens should be handled better',
+		'issue #148651: VSCode UI process can hang if a semantic token with negative values is returned by language service',
+		'issue #149130: vscode freezes because of Bracket Pair Colorization',
+		'property limits',
+		'Error events',
+		'fetch returns keybinding with user first if title and id matches',
 		'throw ListenerLeakError'
 	]);
 
@@ -232,25 +223,21 @@ async function loadTests(opts) {
 		};
 	}
 
-	//#endregion
 
-	//#region Unexpected / Loader Errors
 
 	const _unexpectedErrors = [];
 
 	const _allowedTestsWithUnhandledRejections = new Set([
-		// Lifecycle tests
 		'onWillShutdown - join with error is handled',
 		'onBeforeShutdown - veto with error is treated as veto',
 		'onBeforeShutdown - final veto with error is treated as veto',
-		// Search tests
 		'Search Model: Search reports timed telemetry on search when error is called'
 	]);
 
 	const errors = await loadFn('dc/base/common/errors');
 	const onUnexpectedError = function (err) {
 		if (err.name === 'Canceled') {
-			return; // ignore canceled errors that are common
+			return;
 		}
 
 		let stack = (err ? err.stack : null);
@@ -267,7 +254,7 @@ async function loadTests(opts) {
 		promise.catch(() => { });
 	});
 	window.addEventListener('unhandledrejection', event => {
-		event.preventDefault(); // Do not log to test output, we show an error later when test ends
+		event.preventDefault();
 		event.stopPropagation();
 
 		if (!_allowedTestsWithUnhandledRejections.has(currentTest.title)) {
@@ -276,7 +263,6 @@ async function loadTests(opts) {
 	});
 
 	errors.setUnexpectedErrorHandler(onUnexpectedError);
-	//#endregion
 
 	const { assertCleanState } = await loadFn('dc/workbench/test/common/utils');
 
@@ -293,12 +279,10 @@ async function loadTests(opts) {
 	teardown(async () => {
 		await perTestCoverage?.finishTest(currentTest.file, currentTest.fullTitle());
 
-		// should not have unexpected output
 		if (_testsWithUnexpectedOutput && !opts.dev) {
 			assert.ok(false, 'Error: Unexpected console output in test run. Please ensure no console.[log|error|info|warn] usage in tests or runtime errors.');
 		}
 
-		// should not have unexpected errors
 		const errors = _unexpectedErrors.concat(_loaderErrors);
 		if (errors.length) {
 			const msg = [];
@@ -310,9 +294,8 @@ async function loadTests(opts) {
 		}
 	});
 
-	suiteTeardown(() => { // intentionally not in teardown because some tests only cleanup in suiteTeardown
+	suiteTeardown(() => {
 
-		// should have cleaned up in registries
 		assertCleanState();
 	});
 
@@ -378,9 +361,6 @@ function safeStringify(obj) {
 }
 
 function isObject(obj) {
-	// The method can't do a type cast since there are type (like strings) which
-	// are subclasses of any put not positively matched by the function. Hence type
-	// narrowing results in wrong results.
 	return typeof obj === 'object'
 		&& obj !== null
 		&& !Array.isArray(obj)
@@ -453,10 +433,9 @@ async function runTests(opts) {
 		reporter: opts.dev ? 'html' : IPCReporter,
 		grep: opts.grep,
 		timeout: opts.timeout ?? (IS_CI ? 30000 : 5000),
-		forbidOnly: IS_CI // disallow .only() when running on build machine
+		forbidOnly: IS_CI
 	});
 
-	// this *must* come before loadTests, or it doesn't work.
 	if (opts.timeout !== undefined) {
 		mocha.timeout(opts.timeout);
 	}

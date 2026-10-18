@@ -412,10 +412,11 @@ export default function ProvidersPage() {
         matchSearch(info.name) &&
         matchStatus(getProviderStats(key, dualAuthTypes(info, key)), info.noAuth),
     )
-    .sort(([, a], [, b]) => (b.noAuth ? 1 : 0) - (a.noAuth ? 1 : 0));
-  // Free Tier cards may be oauth-only (e.g. kimchi) or dual-auth, so count via
-  // dualAuthTypes per provider instead of a fixed "apikey" — otherwise oauth
-  // connections are invisible here (mismatch with the detail page).
+    .sort(
+      ([, a], [, b]) =>
+        (b.noAuth ? 1 : 0) - (a.noAuth ? 1 : 0) ||
+        (a.priority ?? 999) - (b.priority ?? 999),
+    );
   const freeTierEntries = Object.entries(FREE_TIER_PROVIDERS)
     .filter(
       ([key, info]) =>
@@ -435,7 +436,6 @@ export default function ProvidersPage() {
       if (ca !== cb) return ca - cb;
       return (a.name || "").localeCompare(b.name || "");
     });
-  // API Key: connected providers first, then alphabetical by name
   const apikeyEntries = Object.entries(APIKEY_PROVIDERS)
     .filter(
       ([key, info]) =>
@@ -502,7 +502,7 @@ export default function ProvidersPage() {
         </div>
       )}
 
-      {/* Custom Providers (OpenAI/Anthropic Compatible) — dynamic */}
+      {}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
@@ -556,7 +556,7 @@ export default function ProvidersPage() {
         )}
       </div>
 
-      {/* OAuth Providers */}
+      {}
       {oauthEntries.length > 0 && (
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -605,7 +605,7 @@ export default function ProvidersPage() {
       </div>
       )}
 
-      {/* Free Tier Providers */}
+      {}
       {(freeEntries.length > 0 || freeTierEntries.length > 0) && (
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -633,8 +633,6 @@ export default function ProvidersPage() {
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {freeEntries.map(([key, info]) => {
-            // Dual-auth (e.g. kiro): count/toggle oauth + apikey/api_key so the
-            // card total matches the provider detail page.
             const freeAuthTypes = dualAuthTypes(info, key);
             return (
               <ProviderCard
@@ -670,7 +668,7 @@ export default function ProvidersPage() {
       </div>
       )}
 
-      {/* API Key Providers — fixed list */}
+      {}
       {apikeyEntries.length > 0 && (
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -722,26 +720,9 @@ export default function ProvidersPage() {
       </div>
       )}
 
-      {/* Web Cookie Providers — use browser subscription cookie instead of API key */}
-      {/* <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            Web Cookie Providers{" "}
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Object.entries(WEB_COOKIE_PROVIDERS).map(([key, info]) => (
-            <ApiKeyProviderCard
-              key={key}
-              providerId={key}
-              provider={info}
-              stats={getProviderStats(key, "apikey")}
-              authType="apikey"
-              onToggle={(active) => handleToggleProvider(key, "apikey", active)}
-            />
-          ))}
-        </div>
-      </div> */}
+      {}
+      {
+}
 
       <AddCompatibleModal
         variant="openai"
@@ -762,7 +743,7 @@ export default function ProvidersPage() {
         }}
       />
 
-      {/* Test Results Modal */}
+      {}
       {testResults && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-[6vh] sm:pt-[10vh]"

@@ -32,7 +32,6 @@ const useProviderStore = create((set, get) => ({
 
   setError: (error) => set({ error }),
 
-  // Skips network when cache is fresh (< CLIENT_STORE_TTL_MS). Pass {force:true} to override.
   fetchProviders: async ({ force = false } = {}) => {
     const { lastFetched, providers } = get();
     if (!force && providers.length > 0 && Date.now() - lastFetched < CLIENT_STORE_TTL_MS) return;

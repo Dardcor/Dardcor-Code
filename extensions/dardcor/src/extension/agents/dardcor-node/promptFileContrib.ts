@@ -26,23 +26,18 @@ export class PromptFileContribution extends Disposable implements IExtensionCont
 	) {
 		super();
 
-		// Register custom agent provider
 		if ('registerCustomAgentProvider' in vscode.chat) {
-			// Only register the provider if the setting is enabled
 			if (configurationService.getConfig(ConfigKey.EnableOrganizationCustomAgents)) {
 				const githubOrgAgentProvider: vscode.ChatCustomAgentProvider = instantiationService.createInstance(new SyncDescriptor(GitHubOrgCustomAgentProvider));
 				this._register(vscode.chat.registerCustomAgentProvider(githubOrgAgentProvider));
 			}
 
-			// Register Plan agent provider for dynamic settings-based customization
 			const planProvider = instantiationService.createInstance(PlanAgentProvider);
 			this._register(vscode.chat.registerCustomAgentProvider(planProvider));
 
-			// Register Ask agent provider for read-only Q&A mode
 			const askProvider = instantiationService.createInstance(AskAgentProvider);
 			this._register(vscode.chat.registerCustomAgentProvider(askProvider));
 
-			// Register Explore agent provider for code research subagent
 			const exploreProviderRegistration = this._register(new MutableDisposable<vscode.Disposable>());
 			const updateExploreProvider = () => {
 				const isEnabled = configurationService.getExperimentBasedConfig(ConfigKey.ExploreAgentEnabled, experimentationService);
@@ -64,9 +59,7 @@ export class PromptFileContribution extends Disposable implements IExtensionCont
 			}));
 		}
 
-		// Register instructions provider
 		if ('registerInstructionsProvider' in vscode.chat) {
-			// Only register the provider if the setting is enabled
 			if (configurationService.getConfig(ConfigKey.EnableOrganizationInstructions)) {
 				const githubOrgInstructionsProvider: vscode.ChatInstructionsProvider = instantiationService.createInstance(new SyncDescriptor(GitHubOrgInstructionsProvider));
 				this._register(vscode.chat.registerInstructionsProvider(githubOrgInstructionsProvider));

@@ -16,9 +16,6 @@ import { getLineTokensWithInjections } from '../model/textModel.js';
 export interface IModelLineProjection {
 	isVisible(): boolean;
 
-	/**
-	 * This invalidates the current instance (potentially reuses and returns it again).
-	*/
 	setVisible(isVisible: boolean): IModelLineProjection;
 
 	getProjectionData(): ModelLineProjectionData | null;
@@ -51,7 +48,6 @@ export interface ISimpleModel {
 
 export function createModelLineProjection(lineBreakData: ModelLineProjectionData | null, isVisible: boolean): IModelLineProjection {
 	if (lineBreakData === null) {
-		// No mapping needed
 		if (isVisible) {
 			return IdentityModelLineProjection.INSTANCE;
 		}
@@ -61,11 +57,6 @@ export function createModelLineProjection(lineBreakData: ModelLineProjectionData
 	}
 }
 
-/**
- * This projection is used to
- * * wrap model lines
- * * inject text
- */
 class ModelLineProjection implements IModelLineProjection {
 	private readonly _projectionData: ModelLineProjectionData;
 	private _isVisible: boolean;
@@ -148,9 +139,6 @@ class ModelLineProjection implements IModelLineProjection {
 		return this._projectionData.getMaxOutputOffset(outputLineIndex) + 1;
 	}
 
-	/**
-	 * Try using {@link getViewLinesData} instead.
-	*/
 	public getViewLineData(model: ISimpleModel, modelLineNumber: number, outputLineIndex: number, baseViewLineNumber: number): ViewLineData {
 		const arr = new Array<ViewLineData>();
 		this.getViewLinesData(model, modelLineNumber, outputLineIndex, 1, baseViewLineNumber, 0, [true], arr);
@@ -252,9 +240,6 @@ class ModelLineProjection implements IModelLineProjection {
 	}
 }
 
-/**
- * This projection does not change the model line.
-*/
 class IdentityModelLineProjection implements IModelLineProjection {
 	public static readonly INSTANCE = new IdentityModelLineProjection();
 
@@ -338,9 +323,6 @@ class IdentityModelLineProjection implements IModelLineProjection {
 	}
 }
 
-/**
- * This projection hides the model line.
- */
 class HiddenModelLineProjection implements IModelLineProjection {
 	public static readonly INSTANCE = new HiddenModelLineProjection();
 

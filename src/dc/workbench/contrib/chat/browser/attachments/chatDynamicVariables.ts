@@ -32,14 +32,6 @@ export class ChatDynamicVariableModel extends Disposable implements IChatWidgetC
 	private _variables: IDynamicVariable[] = [];
 
 	private readonly _onDidChangeReferences = this._register(new Emitter<void>());
-	/**
-	 * Fires whenever the set of dynamic-variable references changes (added,
-	 * removed, moved, or restored). Consumers that render UI derived from the
-	 * references should listen to this instead of relying on
-	 * `onDidChangeParsedInput`, which does not fire when a reference is added
-	 * without changing the parsed request (e.g. a `/command` reference that the
-	 * parser resolves as a slash-prompt part).
-	 */
 	readonly onDidChangeReferences: Event<void> = this._onDidChangeReferences.event;
 
 	get variables(): ReadonlyArray<IDynamicVariable> {
@@ -74,7 +66,6 @@ export class ChatDynamicVariableModel extends Disposable implements IChatWidgetC
 			const removed: IDynamicVariable[] = [];
 			let didChange = false;
 
-			// Don't mutate entries in _variables, since they will be returned from the getter
 			this._variables = coalesce(this._variables.map((ref, idx): IDynamicVariable | null => {
 				const model = this.widget.inputEditor.getModel();
 
@@ -91,7 +82,6 @@ export class ChatDynamicVariableModel extends Disposable implements IChatWidgetC
 				const newRange = model.getDecorationRange(data.id);
 
 				if (!newRange) {
-					// gone
 					removed.push(ref);
 					return null;
 				}
@@ -121,7 +111,6 @@ export class ChatDynamicVariableModel extends Disposable implements IChatWidgetC
 				}
 
 				if (newRange.equalsRange(ref.range)) {
-					// all good
 					return ref;
 				}
 
@@ -130,7 +119,6 @@ export class ChatDynamicVariableModel extends Disposable implements IChatWidgetC
 				return { ...ref, range: newRange };
 			}));
 
-			// cleanup disposable variables
 			dispose(removed.filter(isDisposable));
 
 			if (didChange || removed.length > 0) {
@@ -265,9 +253,6 @@ export class ChatDynamicVariableModel extends Disposable implements IChatWidgetC
 		return new MarkdownString().appendText(label);
 	}
 
-	/**
-	 * Dispose all existing variables.
-	 */
 	private disposeVariables(): void {
 		for (const variable of this._variables) {
 			if (isDisposable(variable)) {
@@ -282,9 +267,6 @@ export class ChatDynamicVariableModel extends Disposable implements IChatWidgetC
 	}
 }
 
-/**
- * Loose check to filter objects that are obviously missing data
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isDynamicVariable(obj: any): obj is IDynamicVariable {
 	return obj &&
@@ -333,7 +315,7 @@ export class AddDynamicVariableAction extends Action2 {
 	constructor() {
 		super({
 			id: AddDynamicVariableAction.ID,
-			title: '' // not displayed
+			title: ''
 		});
 	}
 
@@ -347,13 +329,10 @@ export class AddDynamicVariableAction extends Action2 {
 		const variableData = context.variableData;
 
 		const doCleanup = () => {
-			// Failed, remove the dangling variable prefix
 			context.widget.inputEditor.executeEdits('chatInsertDynamicVariableWithArguments', [{ range: context.range, text: `` }]);
 		};
 
-		// If this completion item has no command, return it directly
 		if (context.command) {
-			// Invoke the command on this completion item along with its args and return the result
 			const commandService = accessor.get(ICommandService);
 			const selection: string | undefined = await commandService.executeCommand(context.command.id, ...(context.command.arguments ?? []));
 			if (!selection) {
@@ -361,7 +340,6 @@ export class AddDynamicVariableAction extends Action2 {
 				return;
 			}
 
-			// Compute new range and variableData
 			const insertText = ':' + selection;
 			const insertRange = new Range(range.startLineNumber, range.endColumn, range.endLineNumber, range.endColumn + insertText.length);
 			range = new Range(range.startLineNumber, range.startColumn, range.endLineNumber, range.endColumn + insertText.length);

@@ -58,9 +58,6 @@ class ServerKeyedAESCrypto implements ISecretStorageCrypto {
 
 	private serverKey: Uint8Array | undefined;
 
-	/**
-	 * Gets whether the algorithm is supported; requires a secure context
-	 */
 	static supported() {
 		return !!crypto.subtle;
 	}
@@ -68,10 +65,7 @@ class ServerKeyedAESCrypto implements ISecretStorageCrypto {
 	constructor(private readonly authEndpoint: string) { }
 
 	async seal(data: string): Promise<string> {
-		// Get a new key and IV on every change, to avoid the risk of reusing the same key and IV pair with AES-GCM
-		// (see also: https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams#properties)
 		const iv = mainWindow.crypto.getRandomValues(new Uint8Array(AESConstants.IV_LENGTH));
-		// crypto.getRandomValues isn't a good-enough PRNG to generate crypto keys, so we need to use crypto.subtle.generateKey and export the key instead
 		const clientKeyObj = await mainWindow.crypto.subtle.generateKey(
 			{ name: AESConstants.ALGORITHM as const, length: AESConstants.KEY_LENGTH as const },
 			true,
@@ -87,15 +81,11 @@ class ServerKeyedAESCrypto implements ISecretStorageCrypto {
 			dataUint8Array
 		);
 
-		// Base64 encode the result and store the ciphertext, the key, and the IV in localStorage
-		// Note that the clientKey and IV don't need to be secret
 		const result = new Uint8Array([...clientKey, ...iv, ...new Uint8Array(cipherText)]);
 		return encodeBase64(VSBuffer.wrap(result));
 	}
 
 	async unseal(data: string): Promise<string> {
-		// encrypted should contain, in order: the key (32-byte), the IV for AES-GCM (12-byte) and the ciphertext (which has the GCM auth tag at the end)
-		// Minimum length must be 44 (key+IV length) + 16 bytes (1 block encrypted with AES - regardless of key size)
 		const dataUint8Array = decodeBase64(data);
 
 		if (dataUint8Array.byteLength < 60) {
@@ -107,7 +97,6 @@ class ServerKeyedAESCrypto implements ISecretStorageCrypto {
 		const iv = dataUint8Array.slice(keyLength, keyLength + AESConstants.IV_LENGTH);
 		const cipherText = dataUint8Array.slice(keyLength + AESConstants.IV_LENGTH);
 
-		// Do the decryption and parse the result as JSON
 		const key = await this.getKey(clientKey.buffer);
 		const decrypted = await mainWindow.crypto.subtle.decrypt(
 			{ name: AESConstants.ALGORITHM as const, iv: iv.buffer as Uint8Array<ArrayBuffer> },
@@ -118,10 +107,6 @@ class ServerKeyedAESCrypto implements ISecretStorageCrypto {
 		return new TextDecoder().decode(new Uint8Array(decrypted));
 	}
 
-	/**
-	 * Given a clientKey, returns the CryptoKey object that is used to encrypt/decrypt the data.
-	 * The actual key is (clientKey XOR serverKey)
-	 */
 	private async getKey(clientKey: Uint8Array): Promise<CryptoKey> {
 		if (!clientKey || clientKey.byteLength !== AESConstants.KEY_LENGTH / 8) {
 			throw Error('Invalid length for clientKey');
@@ -173,7 +158,6 @@ class ServerKeyedAESCrypto implements ISecretStorageCrypto {
 				lastError = e instanceof Error ? e : new Error(String(e));
 				attempt++;
 
-				// exponential backoff
 				await new Promise(resolve => setTimeout(resolve, attempt * attempt * 100));
 			}
 		}
@@ -210,7 +194,6 @@ export class LocalStorageSecretStorageProvider implements ISecretStorageProvider
 
 				return { ...record, ...decrypted };
 			} catch (err) {
-				// TODO: send telemetry
 				console.error('Failed to decrypt secrets from localStorage', err);
 				if (!(err instanceof NetworkError)) {
 					localStorage.removeItem(this.storageKey);
@@ -229,7 +212,7 @@ export class LocalStorageSecretStorageProvider implements ISecretStorageProvider
 		if (authSessionElementAttribute) {
 			try {
 				authSessionInfo = JSON.parse(authSessionElementAttribute);
-			} catch (error) { /* Invalid session is passed. Ignore. */ }
+			} catch (error) { }
 		}
 
 		if (!authSessionInfo) {
@@ -238,10 +221,8 @@ export class LocalStorageSecretStorageProvider implements ISecretStorageProvider
 
 		const record: Record<string, string> = {};
 
-		// Settings Sync Entry
 		record[`${product.urlProtocol}.loginAccount`] = JSON.stringify(authSessionInfo);
 
-		// Auth extension Entry
 		if (authSessionInfo.providerId !== 'github') {
 			console.error(`Unexpected auth provider: ${authSessionInfo.providerId}. Expected 'github'.`);
 			return record;
@@ -328,9 +309,6 @@ class LocalStorageURLCallbackProvider extends Disposable implements IURLCallback
 			}
 		}
 
-		// TODO@joao remove eventually
-		// https://github.com/microsoft/vscode-dev/issues/62
-		// https://github.com/microsoft/vscode/blob/159479eb5ae451a66b5dac3c12d564f32f454796/extensions/github-authentication/src/githubServer.ts#L50-L50
 		if (!(options.authority === 'vscode.github-authentication' && options.path === '/dummy')) {
 			const key = `vscode-web.url-callbacks[${id}]`;
 			localStorage.removeItem(key);
@@ -355,8 +333,6 @@ class LocalStorageURLCallbackProvider extends Disposable implements IURLCallback
 		this.onDidChangeLocalStorageDisposable = undefined;
 	}
 
-	// this fires every time local storage changes, but we
-	// don't want to check more often than once a second
 	private async onDidChangeLocalStorage(): Promise<void> {
 		const ellapsed = Date.now() - this.lastTimeChecked;
 
@@ -425,12 +401,8 @@ class WorkspaceProvider implements IWorkspaceProvider {
 		query.forEach((value, key) => {
 			switch (key) {
 
-				// Folder
 				case WorkspaceProvider.QUERY_PARAM_FOLDER:
 					if (config.remoteAuthority && value.startsWith(posix.sep)) {
-						// when connected to a remote and having a value
-						// that is a path (begins with a `/`), assume this
-						// is a vscode-remote resource as simplified URL.
 						workspace = { folderUri: URI.from({ scheme: Schemas.vscodeRemote, path: value, authority: config.remoteAuthority }) };
 					} else {
 						workspace = { folderUri: URI.parse(value) };
@@ -438,12 +410,8 @@ class WorkspaceProvider implements IWorkspaceProvider {
 					foundWorkspace = true;
 					break;
 
-				// Workspace
 				case WorkspaceProvider.QUERY_PARAM_WORKSPACE:
 					if (config.remoteAuthority && value.startsWith(posix.sep)) {
-						// when connected to a remote and having a value
-						// that is a path (begins with a `/`), assume this
-						// is a vscode-remote resource as simplified URL.
 						workspace = { workspaceUri: URI.from({ scheme: Schemas.vscodeRemote, path: value, authority: config.remoteAuthority }) };
 					} else {
 						workspace = { workspaceUri: URI.parse(value) };
@@ -451,25 +419,21 @@ class WorkspaceProvider implements IWorkspaceProvider {
 					foundWorkspace = true;
 					break;
 
-				// Empty
 				case WorkspaceProvider.QUERY_PARAM_EMPTY_WINDOW:
 					workspace = undefined;
 					foundWorkspace = true;
 					break;
 
-				// Payload
 				case WorkspaceProvider.QUERY_PARAM_PAYLOAD:
 					try {
-						payload = parse(value); // use marshalling#parse() to revive potential URIs
+						payload = parse(value);
 					} catch (error) {
-						console.error(error); // possible invalid JSON
+						console.error(error);
 					}
 					break;
 			}
 		});
 
-		// If no workspace is provided through the URL, check for config
-		// attribute from server
 		if (!foundWorkspace) {
 			if (config.folderUri) {
 				workspace = { folderUri: URI.revive(config.folderUri) };
@@ -492,7 +456,7 @@ class WorkspaceProvider implements IWorkspaceProvider {
 
 	async open(workspace: IWorkspace, options?: { reuse?: boolean; payload?: object }): Promise<boolean> {
 		if (options?.reuse && !options.payload && this.isSame(this.workspace, workspace)) {
-			return true; // return early if workspace and environment is not changing and we are reusing window
+			return true;
 		}
 
 		const targetHref = this.createTargetUrl(workspace, options);
@@ -503,7 +467,7 @@ class WorkspaceProvider implements IWorkspaceProvider {
 			} else {
 				let result;
 				if (isStandalone()) {
-					result = mainWindow.open(targetHref, '_blank', 'toolbar=no'); // ensures to open another 'standalone' window!
+					result = mainWindow.open(targetHref, '_blank', 'toolbar=no');
 				} else {
 					result = mainWindow.open(targetHref);
 				}
@@ -517,25 +481,21 @@ class WorkspaceProvider implements IWorkspaceProvider {
 
 	private createTargetUrl(workspace: IWorkspace, options?: { reuse?: boolean; payload?: object }): string | undefined {
 
-		// Empty
 		let targetHref: string | undefined = undefined;
 		if (!workspace) {
 			targetHref = `${document.location.origin}${document.location.pathname}?${WorkspaceProvider.QUERY_PARAM_EMPTY_WINDOW}=true`;
 		}
 
-		// Folder
 		else if (isFolderToOpen(workspace)) {
 			const queryParamFolder = this.encodeWorkspacePath(workspace.folderUri);
 			targetHref = `${document.location.origin}${document.location.pathname}?${WorkspaceProvider.QUERY_PARAM_FOLDER}=${queryParamFolder}`;
 		}
 
-		// Workspace
 		else if (isWorkspaceToOpen(workspace)) {
 			const queryParamWorkspace = this.encodeWorkspacePath(workspace.workspaceUri);
 			targetHref = `${document.location.origin}${document.location.pathname}?${WorkspaceProvider.QUERY_PARAM_WORKSPACE}=${queryParamWorkspace}`;
 		}
 
-		// Append payload if any
 		if (options?.payload) {
 			targetHref += `&${WorkspaceProvider.QUERY_PARAM_PAYLOAD}=${encodeURIComponent(JSON.stringify(options.payload))}`;
 		}
@@ -546,12 +506,6 @@ class WorkspaceProvider implements IWorkspaceProvider {
 	private encodeWorkspacePath(uri: URI): string {
 		if (this.config.remoteAuthority && uri.scheme === Schemas.vscodeRemote) {
 
-			// when connected to a remote and having a folder
-			// or workspace for that remote, only use the path
-			// as query value to form shorter, nicer URLs.
-			// however, we still need to `encodeURIComponent`
-			// to ensure to preserve special characters, such
-			// as `+` in the path.
 
 			return encodeURIComponent(`${posix.sep}${ltrim(uri.path, posix.sep)}`).replaceAll('%2F', '/');
 		}
@@ -561,15 +515,15 @@ class WorkspaceProvider implements IWorkspaceProvider {
 
 	private isSame(workspaceA: IWorkspace, workspaceB: IWorkspace): boolean {
 		if (!workspaceA || !workspaceB) {
-			return workspaceA === workspaceB; // both empty
+			return workspaceA === workspaceB;
 		}
 
 		if (isFolderToOpen(workspaceA) && isFolderToOpen(workspaceB)) {
-			return isEqual(workspaceA.folderUri, workspaceB.folderUri); // same workspace
+			return isEqual(workspaceA.folderUri, workspaceB.folderUri);
 		}
 
 		if (isWorkspaceToOpen(workspaceA) && isWorkspaceToOpen(workspaceB)) {
-			return isEqual(workspaceA.workspaceUri, workspaceB.workspaceUri); // same workspace
+			return isEqual(workspaceA.workspaceUri, workspaceB.workspaceUri);
 		}
 
 		return false;
@@ -603,7 +557,6 @@ function readCookie(name: string): string | undefined {
 
 (function () {
 
-	// Find config by checking for DOM
 	// eslint-disable-next-line no-restricted-syntax
 	const configElement = mainWindow.document.getElementById('vscode-workbench-web-configuration');
 	const configElementAttribute = configElement ? configElement.getAttribute('data-settings') : undefined;
@@ -615,7 +568,6 @@ function readCookie(name: string): string | undefined {
 	const secretStorageCrypto = secretStorageKeyPath && ServerKeyedAESCrypto.supported()
 		? new ServerKeyedAESCrypto(secretStorageKeyPath) : new TransparentCrypto();
 
-	// Create workbench
 	create(mainWindow.document.body, {
 		...config,
 		windowIndicator: config.windowIndicator ?? { label: '$(remote)', tooltip: `${product.nameShort} Web` },
@@ -623,7 +575,7 @@ function readCookie(name: string): string | undefined {
 		workspaceProvider: WorkspaceProvider.create(config),
 		urlCallbackProvider: new LocalStorageURLCallbackProvider(config.callbackRoute),
 		secretStorageProvider: config.remoteAuthority && !secretStorageKeyPath
-			? undefined /* with a remote without embedder-preferred storage, store on the remote */
+			? undefined
 			: new LocalStorageSecretStorageProvider(secretStorageCrypto),
 	});
 })();

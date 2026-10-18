@@ -44,9 +44,6 @@ function applyResolution(customization: McpServerCustomization, resolution: Cust
 function applyResolution(customization: PluginCustomization | McpServerCustomization, resolution: CustomizationEnablementResolution): { readonly customization: PluginCustomization | McpServerCustomization; readonly pending: boolean } {
 	if (resolution.kind === 'pending') {
 		return {
-			// Publication must not fabricate a scope while the host's durable
-			// decision is loading. SDK-boundary consumers use `pending` to fail
-			// closed; step 5 republishes when the enablement service settles.
 			customization,
 			pending: true,
 		};
@@ -73,10 +70,6 @@ function applyClientGlobal(
 	return service.applyClientGlobalEnablement(session.toString(), target, enablement);
 }
 
-/**
- * Resolves the truthful published customization state. SDK-boundary consumers
- * must use {@link isCustomizationSdkEligible} to fail closed while pending.
- */
 export function resolveCustomizationEnablement(
 	service: IAgentHostCustomizationEnablementService,
 	session: URI,
@@ -125,8 +118,6 @@ export function resolveCustomizationEnablement(
 			const resolved = applyResolution(child, resolution);
 			pending ||= resolved.pending;
 			if (resolved.pending) {
-				// A plugin directory can cause the SDK to discover its child, so
-				// exclude the container at the SDK handoff until it settles.
 				pendingCustomizationIds.add(customization.id);
 				pendingCustomizationIds.add(child.id);
 			}
@@ -142,10 +133,6 @@ export function isCustomizationSdkEligible(resolved: IResolvedCustomizationEnabl
 	return !resolved.pendingCustomizationIds.has(customization.id);
 }
 
-/**
- * Resolves every MCP server's SDK enablement, failing closed for an unresolved
- * decision or an ineligible containing plugin.
- */
 export function getSdkMcpServerEnablement(resolved: IResolvedCustomizationEnablement): ReadonlyMap<string, boolean> {
 	const result = new Map<string, boolean>();
 	for (const customization of resolved.customizations) {
@@ -164,10 +151,6 @@ export function getSdkMcpServerEnablement(resolved: IResolvedCustomizationEnable
 	return result;
 }
 
-/**
- * Records the client-authoritative Global decisions on a parsed plugin and its
- * discovered MCP children without touching host-owned Workspace or Session data.
- */
 export function recordClientPluginEnablement(
 	service: IAgentHostCustomizationEnablementService,
 	session: URI,

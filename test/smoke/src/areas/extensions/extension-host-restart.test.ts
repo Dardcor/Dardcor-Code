@@ -9,10 +9,6 @@ import * as path from 'path';
 import { Application, Logger } from '../../../../automation';
 import { installAllHandlers, timeout } from '../../utils';
 
-/**
- * Verifies that window reload kills the extension host even when blocked.
- *
- */
 export function setup(logger: Logger) {
 	describe('Extension Host Restart', () => {
 
@@ -39,7 +35,6 @@ export function setup(logger: Logger) {
 
 			await app.workbench.quickaccess.runCommand('smoketest.getExtensionHostPidAndBlock');
 
-			// Wait for PID file to be created
 			let retries = 0;
 			while (!fs.existsSync(pidFile) && retries < 20) {
 				await timeout(500);
@@ -53,12 +48,10 @@ export function setup(logger: Logger) {
 			const pid = parseInt(fs.readFileSync(pidFile, 'utf-8'), 10);
 			logger.log(`Old extension host PID: ${pid}`);
 
-			// Reload window while extension host is blocked
 			await app.workbench.quickaccess.runCommand('Developer: Reload Window', { keepOpen: true });
 			await app.code.whenWorkbenchRestored();
 			logger.log('Window reloaded');
 
-			// Verify old process is gone, allowing for slower teardown on busy machines
 			const maxWaitMs = 10_000;
 			const pollIntervalMs = 500;
 			let waitedMs = 0;
@@ -82,7 +75,6 @@ export function setup(logger: Logger) {
 			const pidFile = path.join(os.tmpdir(), 'vscode-ext-host-pid-graceful.txt');
 			const markerFile = path.join(os.tmpdir(), 'vscode-ext-host-deactivated.txt');
 
-			// Clean up any existing files
 			if (fs.existsSync(pidFile)) {
 				fs.unlinkSync(pidFile);
 			}
@@ -90,10 +82,8 @@ export function setup(logger: Logger) {
 				fs.unlinkSync(markerFile);
 			}
 
-			// Setup the extension to write a marker file on deactivation
 			await app.workbench.quickaccess.runCommand('smoketest.setupGracefulDeactivation');
 
-			// Wait for PID file to be created (confirms extension is ready)
 			let retries = 0;
 			while (!fs.existsSync(pidFile) && retries < 20) {
 				await timeout(500);
@@ -107,12 +97,10 @@ export function setup(logger: Logger) {
 			const pid = parseInt(fs.readFileSync(pidFile, 'utf-8'), 10);
 			logger.log(`Extension host PID for graceful deactivation test: ${pid}`);
 
-			// Reload window - this should trigger graceful deactivation
 			await app.workbench.quickaccess.runCommand('Developer: Reload Window', { keepOpen: true });
 			await app.code.whenWorkbenchRestored();
 			logger.log('Window reloaded');
 
-			// Wait for the process to exit and marker file to be written
 			const maxWaitMs = 10_000;
 			const pollIntervalMs = 500;
 			let waitedMs = 0;
@@ -127,7 +115,6 @@ export function setup(logger: Logger) {
 
 			logger.log('Extension was given time to gracefully deactivate on reload');
 
-			// Also verify the old process is gone
 			waitedMs = 0;
 			while (processExists(pid) && waitedMs < maxWaitMs) {
 				await timeout(pollIntervalMs);

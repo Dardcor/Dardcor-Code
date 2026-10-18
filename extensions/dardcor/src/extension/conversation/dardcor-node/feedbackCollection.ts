@@ -54,7 +54,6 @@ export function startFeedbackCollection(accessor: ServicesAccessor) {
 
 				const selection = vscode.window.activeTextEditor?.selection;
 
-				// TODO: Use all changes in the current document.
 				const change = await instantiationService.invokeFunction(CurrentChange.getCurrentChange, event.document, selection.start);
 				if (!change) {
 					logService.trace('No change found in the current document at the current position.');

@@ -30,10 +30,6 @@ import {
 	shouldRestorePerTypeModelOnSessionSwitch,
 } from '../../../../browser/widget/input/chatInputModelUtils.js';
 
-/**
- * Test helper that composes the full startup pipeline: merge live+cache → sort → filter by session/mode.
- * This mirrors what `chatInputPart.getModels()` does, but without the storage side effects.
- */
 function computeAvailableModels(
 	liveModels: ILanguageModelChatMetadataAndIdentifier[],
 	cachedModels: ILanguageModelChatMetadataAndIdentifier[],
@@ -48,12 +44,6 @@ function computeAvailableModels(
 	return filterModelsForSession(merged, sessionType, currentModeKind, location);
 }
 
-/**
- * The model a reset lands on, mirroring what `ChatInputPart` supplies as the runtime's
- * `getDeclaredDefaultModel` plus the controller's own `?? models[0]` fallback. Composed here
- * because these tests assert what a reset *would* pick; the rule itself is exercised against the
- * real thing in `chatInputModelSelectionController.test.ts`.
- */
 function findDefaultModel(
 	models: ILanguageModelChatMetadataAndIdentifier[],
 	location: ChatAgentLocation,
@@ -72,7 +62,7 @@ function createModel(
 			extension: new ExtensionIdentifier('test.ext'),
 			id,
 			name,
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			version: '1.0',
 			family: 'copilot',
 			maxInputTokens: 128000,
@@ -109,10 +99,6 @@ function createSessionModel(
 	});
 }
 
-/**
- * Creates a model served by a specific (typically BYOK) vendor, with the identifier prefixed by that vendor
- * (e.g. `ollama/deepseek`). Mirrors how the language model registry qualifies non-Copilot models.
- */
 function createVendorModel(
 	vendor: string,
 	id: string,
@@ -123,8 +109,6 @@ function createVendorModel(
 	return { identifier: `${vendor}/${id}`, metadata: model.metadata };
 }
 
-// What each surface answers for "can I run this model at all"; the pool and session checks stay in
-// the functions under test, so these tests state only the surface-specific part.
 function supportedHere(location = ChatAgentLocation.Chat, mode = ChatModeKind.Ask) {
 	return (model: ILanguageModelChatMetadataAndIdentifier) =>
 		isModelSupportedForMode(model, mode) && isModelSupportedForInlineChat(model, location);
@@ -281,7 +265,6 @@ suite('ChatInputModelUtils', () => {
 				ChatModeKind.Agent,
 				ChatAgentLocation.Chat,
 			);
-			// Session-type filtering also checks mode and inline chat support
 			assert.deepStrictEqual(result.map(m => m.metadata.id), ['cloud-gpt']);
 		});
 
@@ -332,8 +315,6 @@ suite('ChatInputModelUtils', () => {
 			}, {
 				boundAndEmpty: false,
 				boundWithRequests: true,
-				// A session switch unbinds the model for the duration of an async
-				// load; staying "started" keeps notices out of that window.
 				unbound: true,
 			});
 		});
@@ -418,9 +399,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('matches across vendors by raw model id (the issue #319583 case)', () => {
-			// Previous selection from the in-extension copilotcli participant,
-			// switching to the agent-host pool where the same model exists with
-			// a different identifier/vendor.
 			const prev = createModel('claude-sonnet-4.6', 'Claude Sonnet 4.6', { vendor: 'copilotcli', family: 'claude-sonnet-4.6' });
 			const target = createSessionModel('claude-sonnet-4.6', 'Claude Sonnet 4.6', 'agent-host-copilotcli', { family: 'claude-sonnet-4.6' });
 			const other = createSessionModel('gpt-5', 'GPT-5', 'agent-host-copilotcli', { family: 'gpt-5' });
@@ -434,8 +412,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('prefers id over family when both could match different pool entries', () => {
-			// Family is shared across distinct models (e.g. all Claude variants share `claude`),
-			// so the id match must win over the family match.
 			const prev = createModel('claude-sonnet-4.6', 'Claude Sonnet 4.6', { family: 'claude' });
 			const familyMatch = createSessionModel('claude-opus-4.7', 'Claude Opus 4.7', 'agent-host-copilotcli', { family: 'claude' });
 			const idMatch = createSessionModel('claude-sonnet-4.6', 'Claude Sonnet 4.6', 'agent-host-copilotcli', { family: 'claude-sonnet' });
@@ -461,8 +437,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('never carries a selection across the BYOK billing boundary', () => {
-			// A bridged BYOK copy shares id, family and display name with the first-party model, so
-			// treating it as the same selection would silently change which account is billed.
 			const prev = createSessionModel('claude-opus-5', 'Claude Opus 5', 'agent-host-copilotcli', { family: 'claude-opus-5' });
 			const byokNamesake = createSessionModel('anthropic/Anthropic/claude-opus-5', 'Claude Opus 5', 'agent-host-copilotcli', {
 				family: 'claude-opus-5',
@@ -473,8 +447,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('still carries a BYOK selection onto the agent host copy of the same key', () => {
-			// The renderer original sets `isBYOK`; the agent-host copy carries its identifier as
-			// `byokModelIdentifier`. Same key, so this is the carry-over the function exists for.
 			const original = { ...createModel('claude-opus-5', 'Claude Opus 5', { vendor: 'anthropic', family: 'claude-opus-5', isBYOK: true }), identifier: 'anthropic/Anthropic/claude-opus-5' };
 			const bridged = createSessionModel('anthropic/Anthropic/claude-opus-5', 'Claude Opus 5', 'agent-host-copilotcli', {
 				family: 'claude-opus-5',
@@ -494,8 +466,6 @@ suite('ChatInputModelUtils', () => {
 
 
 		test('does not reset when nothing is selected yet', () => {
-			// Validation must not invent a selection: with an empty catalog there is nothing to
-			// reset to, and with a partly-published one the first arrival is an arbitrary stand-in.
 			const model = createModel('gpt', 'GPT');
 			assert.deepStrictEqual({
 				emptyCatalog: shouldResetModelToDefault(undefined, [], anywhere, [], undefined),
@@ -560,7 +530,7 @@ suite('ChatInputModelUtils', () => {
 
 		test('uses default when state model not valid for session', () => {
 			const current = createSessionModel('cloud-gpt', 'Cloud GPT', 'cloud');
-			const stateModel = createModel('gpt', 'GPT'); // general model, not valid for cloud session
+			const stateModel = createModel('gpt', 'GPT');
 			const allModels = [current, stateModel];
 			const result = resolveModelFromSyncState(stateModel, current, allModels, 'cloud');
 			assert.strictEqual(result.action, 'default');
@@ -608,12 +578,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('returns default when current and state share an identifier but neither belongs to the new session pool', () => {
-			// Regression for #319583: switching from a general pool (`local`) to a
-			// session-targeted pool (`agent-host-copilotcli`) while the picker
-			// still holds a general model. The general model's identifier matches
-			// both `currentModel` and the persisted `stateModel`, but it is not
-			// valid for the new pool — the resolver must fall through to
-			// `'default'` rather than short-circuit to `'keep'`.
 			const generalModel = createModel('claude', 'Claude');
 			const sessionModel = createSessionModel('claude', 'Claude', 'agent-host-copilotcli');
 			const allModels = [generalModel, sessionModel];
@@ -652,8 +616,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('a vendor publishing only bridged BYOK copies keeps its cached own models', () => {
-			// The incident: the host's own models briefly dropped while its bridged BYOK copies stayed,
-			// and counting those as live evicted — then re-persisted over — the real pool.
 			const host = 'agent-host-copilotcli';
 			const bridged = createSessionModel('anthropic/Anthropic/claude-opus-5', 'Claude Opus 5', host, {
 				vendor: host,
@@ -666,7 +628,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('a vendor that has published its own models drops its cache as before', () => {
-			// Once the host's own catalog lands it is authoritative, so stale cache must not linger.
 			const host = 'agent-host-copilotcli';
 			const liveOwn = createSessionModel('gpt-5.6-terra', 'GPT-5.6 Terra', host, { vendor: host });
 			const staleCached = createSessionModel('gpt-5.5-retired', 'GPT-5.5 Retired', host, { vendor: host });
@@ -681,7 +642,7 @@ suite('ChatInputModelUtils', () => {
 			const result = mergeModelsWithCache(
 				[liveModel],
 				[cachedRemovedVendor],
-				new Set(['copilot']), // removed-vendor is NOT contributed
+				new Set(['copilot']),
 			);
 			assert.strictEqual(result.length, 1);
 			assert.strictEqual(result[0].metadata.id, 'gpt');
@@ -695,7 +656,6 @@ suite('ChatInputModelUtils', () => {
 				[cachedSameVendor],
 				new Set(['copilot']),
 			);
-			// Both are vendor 'copilot', live vendor takes priority
 			assert.strictEqual(result.length, 1);
 			assert.strictEqual(result[0].metadata.id, 'gpt');
 		});
@@ -712,16 +672,13 @@ suite('ChatInputModelUtils', () => {
 			const result = mergeModelsWithCache(
 				[liveA],
 				[cachedB, cachedC],
-				new Set(['vendor-a', 'vendor-b']), // vendor-c not contributed
+				new Set(['vendor-a', 'vendor-b']),
 			);
 			assert.strictEqual(result.length, 2);
 			assert.deepStrictEqual(result.map(m => m.metadata.vendor).sort(), ['vendor-a', 'vendor-b']);
 		});
 
 		test('evicts cached entries for a resolved vendor that returned zero models (BYOK delete)', () => {
-			// vendor-a is resolved with one live model; vendor-b is resolved with no live models
-			// (e.g. the user removed their BYOK API key). Cached vendor-b entries must NOT
-			// resurrect those models in the picker.
 			const liveA = createModel('a-model', 'A Model', { vendor: 'vendor-a' });
 			const staleB = createModel('b-model', 'B Model', { vendor: 'vendor-b' });
 			const result = mergeModelsWithCache(
@@ -735,24 +692,19 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('keeps cached entries for an unresolved vendor (extension reload race)', () => {
-			// vendor-b is contributed but its provider hasn't completed a resolution yet
-			// (e.g. extension is mid-reload). Cache must bridge the gap so the picker
-			// keeps showing the user's previously-seen models.
 			const liveA = createModel('a-model', 'A Model', { vendor: 'vendor-a' });
 			const cachedB = createModel('b-model', 'B Model', { vendor: 'vendor-b' });
 			const result = mergeModelsWithCache(
 				[liveA],
 				[cachedB],
 				new Set(['vendor-a', 'vendor-b']),
-				new Set(['vendor-a']), // vendor-b not yet resolved
+				new Set(['vendor-a']),
 			);
 			assert.strictEqual(result.length, 2);
 			assert.deepStrictEqual(result.map(m => m.metadata.vendor).sort(), ['vendor-a', 'vendor-b']);
 		});
 
 		test('evicts cache for a resolved vendor even when all live models are zero', () => {
-			// Edge case: the only resolved vendor returns zero models (user deleted all
-			// configurations). Cache must be ignored — the picker should be empty.
 			const stale = createModel('b-model', 'B Model', { vendor: 'vendor-b' });
 			const result = mergeModelsWithCache(
 				[],
@@ -764,10 +716,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('preserves full cache when no vendors are contributed yet (startup race)', () => {
-			// During startup or an extension reload, vendor descriptors may not be
-			// registered yet. contributedVendors is empty and so is resolvedVendors.
-			// We must NOT drop the cache — that would reset the user's selected model
-			// before the vendors come back.
 			const cachedA = createModel('a-model', 'A Model', { vendor: 'vendor-a' });
 			const cachedB = createModel('b-model', 'B Model', { vendor: 'vendor-b' });
 			const result = mergeModelsWithCache(
@@ -780,11 +728,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('evicts cached agent-host entries when the vendor is resolved with zero live models', () => {
-			// The agent-host "empty is transient" grace is scoped to restore *resolution* only
-			// (resolveModelIdentifierFromCatalog); it must NOT relax cache-retention. A resolved
-			// agent-host vendor with no live models is authoritative here, so its cache is evicted
-			// like any other vendor — otherwise a removed/unentitled agent-host model could be
-			// offered from cache (and the input's "no models"/send-blocked state would be masked).
 			const liveCopilot = createModel('gpt', 'GPT');
 			const staleAgentHost = createVendorModel('agent-host-copilotcli', 'gpt-5.6-sol', 'GPT 5.6 Sol');
 			const result = mergeModelsWithCache(
@@ -807,13 +750,11 @@ suite('ChatInputModelUtils', () => {
 			const toolModel = createModel('tool-model', 'Tool Model');
 			const allModels = [noToolsModel, toolModel];
 
-			// In Ask mode, model is fine
 			assert.strictEqual(
 				shouldResetModelToDefault(noToolsModel, allModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Ask), allModels, undefined),
 				false,
 			);
 
-			// After switching to Agent mode, model should be reset
 			assert.strictEqual(
 				shouldResetModelToDefault(noToolsModel, allModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Agent), allModels, undefined),
 				true,
@@ -825,25 +766,21 @@ suite('ChatInputModelUtils', () => {
 			const generalModel = createModel('gpt', 'GPT');
 			const allModels = [generalModel, cloudModel];
 
-			// Cloud model is valid in cloud session
 			assert.strictEqual(
 				isModelValidForSession(cloudModel, allModels, 'cloud'),
 				true,
 			);
 
-			// Cloud model is NOT valid in general session (no session type)
 			assert.strictEqual(
 				isModelValidForSession(cloudModel, allModels, undefined),
 				false,
 			);
 
-			// General model is NOT valid in cloud session (when cloud models exist)
 			assert.strictEqual(
 				isModelValidForSession(generalModel, allModels, 'cloud'),
 				false,
 			);
 
-			// General model IS valid in general session
 			assert.strictEqual(
 				isModelValidForSession(generalModel, allModels, undefined),
 				true,
@@ -854,13 +791,11 @@ suite('ChatInputModelUtils', () => {
 			const gpt = createModel('gpt', 'GPT');
 			const claude = createModel('claude', 'Claude');
 
-			// Initially both available, GPT is selected
 			assert.strictEqual(
 				shouldResetModelToDefault(gpt, [gpt, claude], anywhere, [gpt, claude], undefined),
 				false,
 			);
 
-			// GPT is removed from available models
 			assert.strictEqual(
 				shouldResetModelToDefault(gpt, [claude], anywhere, [claude], undefined),
 				true,
@@ -872,7 +807,6 @@ suite('ChatInputModelUtils', () => {
 			const generalModel = createModel('gpt', 'GPT');
 			const allModels = [generalModel, cloudModel];
 
-			// State has a cloud model, but we are in a general session
 			const result = resolveModelFromSyncState(cloudModel, generalModel, allModels, undefined);
 			assert.strictEqual(result.action, 'default');
 		});
@@ -882,7 +816,6 @@ suite('ChatInputModelUtils', () => {
 			const generalModel = createModel('gpt', 'GPT');
 			const allModels = [generalModel, cloudModel];
 
-			// State has a cloud model and we are in a cloud session
 			const result = resolveModelFromSyncState(cloudModel, generalModel, allModels, 'cloud');
 			assert.strictEqual(result.action, 'apply');
 		});
@@ -896,14 +829,11 @@ suite('ChatInputModelUtils', () => {
 			});
 			const allCloudModels = [cloudToolModel, cloudNoToolModel];
 
-			// In cloud session, Agent mode — tool model is valid
 			assert.strictEqual(
 				shouldResetModelToDefault(cloudToolModel, allCloudModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Agent), allCloudModels, 'cloud'),
 				false,
 			);
 
-			// The no-tool model should be reset in Agent mode
-			// Both filterModelsForSession and shouldResetModelToDefault enforce mode support
 			assert.strictEqual(
 				shouldResetModelToDefault(cloudNoToolModel, allCloudModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Agent), allCloudModels, 'cloud'),
 				true,
@@ -917,24 +847,17 @@ suite('ChatInputModelUtils', () => {
 			const gpt = createModel('gpt', 'GPT');
 			const claude = createModel('claude', 'Claude');
 
-			// Step 1: User has GPT selected, both models available
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', [gpt, claude]), false);
 
-			// Step 2: Extension reloads, GPT temporarily disappears from model list
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', [claude]), true);
-			// → ChatInputPart resets to default (Claude)
 
-			// Step 3: GPT comes back — but the handler just checks if current is still valid.
-			// By now the current is Claude (from step 2), so it stays.
 			assert.strictEqual(shouldResetOnModelListChange('copilot/claude', [gpt, claude]), false);
-			// → User's original GPT choice is lost! This is the "random switch" bug pattern.
 		});
 
 		test('model stays when model list refreshes with it still present', () => {
 			const gpt = createModel('gpt', 'GPT');
 			const claude = createModel('claude', 'Claude');
 
-			// Model list refreshes but GPT is still there
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', [gpt, claude]), false);
 		});
 
@@ -959,19 +882,15 @@ suite('ChatInputModelUtils', () => {
 			const cachedGpt = createModel('gpt', 'GPT');
 			const cachedClaude = createModel('claude', 'Claude');
 
-			// Step 1: Extension unloaded, no live models. Cache fills the gap.
 			const merged = mergeModelsWithCache([], [cachedGpt, cachedClaude], new Set(['copilot']));
 			assert.strictEqual(merged.length, 2);
 
-			// Selected model is still found in the cached list
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', merged), false);
 		});
 
 		test('cache kept even for uncontributed vendors when no live models exist', () => {
 			const cachedGpt = createModel('gpt', 'GPT');
 
-			// When liveModels is empty, mergeModelsWithCache returns ALL cached
-			// because it can't distinguish "startup not ready" from "vendor removed"
 			const merged = mergeModelsWithCache([], [cachedGpt], new Set());
 			assert.strictEqual(merged.length, 1);
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', merged), false);
@@ -981,7 +900,6 @@ suite('ChatInputModelUtils', () => {
 			const cachedGpt = createModel('gpt', 'GPT');
 			const liveOther = createModel('other', 'Other', { vendor: 'other-vendor' });
 
-			// Once live models exist, the vendor filter kicks in
 			const merged = mergeModelsWithCache([liveOther], [cachedGpt], new Set(['other-vendor']));
 			assert.strictEqual(merged.length, 1);
 			assert.strictEqual(merged[0].metadata.id, 'other');
@@ -994,7 +912,7 @@ suite('ChatInputModelUtils', () => {
 		test('startup with only cached models returns filtered cache', () => {
 			const cached = createModel('gpt', 'GPT');
 			const result = computeAvailableModels(
-				[], // no live models yet
+				[],
 				[cached],
 				new Set(['copilot']),
 				undefined,
@@ -1006,12 +924,10 @@ suite('ChatInputModelUtils', () => {
 
 		test('startup with cached models from removed vendor still returns them (no live to compare)', () => {
 			const cached = createModel('gpt', 'GPT');
-			// When liveModels is empty, mergeModelsWithCache returns ALL cached
-			// because it cannot tell startup-delay from vendor removal
 			const result = computeAvailableModels(
-				[], // no live models
+				[],
 				[cached],
-				new Set(), // vendor no longer contributed
+				new Set(),
 				undefined,
 				ChatModeKind.Ask,
 				ChatAgentLocation.Chat,
@@ -1107,10 +1023,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('startup/extension reload with no contributors yet preserves cache (production path)', () => {
-			// Mirrors chatInputPart.getAllMergedModels at a moment when getVendors()
-			// is temporarily empty (extension host reloading). resolvedVendors is
-			// also empty because nothing has resolved. The picker must continue to
-			// show cached models so the user's selection isn't reset.
 			const cachedA = createModel('a-model', 'A Model', { vendor: 'vendor-a' });
 			const cachedB = createModel('b-model', 'B Model', { vendor: 'vendor-b' });
 			const result = computeAvailableModels(
@@ -1130,17 +1042,11 @@ suite('ChatInputModelUtils', () => {
 
 		test('sync state with undefined selectedModel keeps current', () => {
 			const current = createModel('gpt', 'GPT');
-			// When state has no selectedModel, _syncFromModel skips the model sync
-			// (the code checks `if (state?.selectedModel)`)
-			// This means the current model stays — test that resolveModelFromSyncState
-			// correctly identifies "keep" for same model
 			const result = resolveModelFromSyncState(current, current, [current], undefined);
 			assert.strictEqual(result.action, 'keep');
 		});
 
 		test('sync state model from different session does not apply', () => {
-			// Scenario: User is in session A with cloud model, switches to session B (general)
-			// Session B's state still has the cloud model reference
 			const cloudModel = createSessionModel('cloud-gpt', 'Cloud GPT', 'cloud');
 			const generalModel = createModel('gpt', 'GPT');
 			const allModels = [generalModel, cloudModel];
@@ -1154,14 +1060,12 @@ suite('ChatInputModelUtils', () => {
 			const cloudModel = createSessionModel('cloud-gpt', 'Cloud GPT', 'cloud');
 			const allModels = [cloudModel, enterpriseModel];
 
-			// State has enterprise model, but we're in cloud session
 			const result = resolveModelFromSyncState(enterpriseModel, cloudModel, allModels, 'cloud');
 			assert.strictEqual(result.action, 'default');
 		});
 
 		test('sync identical model reference returns keep', () => {
 			const model = createModel('gpt', 'GPT');
-			// Same object reference
 			const result = resolveModelFromSyncState(model, model, [model], undefined);
 			assert.strictEqual(result.action, 'keep');
 		});
@@ -1169,7 +1073,6 @@ suite('ChatInputModelUtils', () => {
 		test('sync same identifier but different object returns keep', () => {
 			const model1 = createModel('gpt', 'GPT');
 			const model2 = createModel('gpt', 'GPT');
-			// Different objects, same identifier
 			const result = resolveModelFromSyncState(model1, model2, [model1, model2], undefined);
 			assert.strictEqual(result.action, 'keep');
 		});
@@ -1208,10 +1111,8 @@ suite('ChatInputModelUtils', () => {
 			});
 			const toolModel = createModel('tool', 'Tool');
 
-			// In Ask mode: fine
 			assert.strictEqual(shouldResetModelToDefault(noToolModel, [noToolModel, toolModel], askContext, [noToolModel, toolModel], undefined), false);
 
-			// Switch to Agent mode: not fine
 			assert.strictEqual(shouldResetModelToDefault(noToolModel, [noToolModel, toolModel], agentContext, [noToolModel, toolModel], undefined), true);
 		});
 
@@ -1220,15 +1121,12 @@ suite('ChatInputModelUtils', () => {
 			const otherModel = createModel('other', 'Other');
 			const allModels = [defaultModel, otherModel];
 
-			// First reset: picks default
 			const result1 = findDefaultModel(allModels, ChatAgentLocation.Chat);
 			assert.strictEqual(result1?.metadata.id, 'default');
 
-			// "Second reset" — same call, same result
 			const result2 = findDefaultModel(allModels, ChatAgentLocation.Chat);
 			assert.strictEqual(result2?.metadata.id, 'default');
 
-			// Default model continues to pass validation
 			assert.strictEqual(shouldResetModelToDefault(result1!, allModels, askContext, allModels, undefined), false);
 		});
 	});
@@ -1241,11 +1139,8 @@ suite('ChatInputModelUtils', () => {
 			const generalModel = createModel('gpt', 'GPT');
 			const allModels = [generalModel, cloudModel, enterpriseModel];
 
-			// Cloud model not valid in enterprise session
 			assert.strictEqual(isModelValidForSession(cloudModel, allModels, 'enterprise'), false);
-			// Enterprise model not valid in cloud session
 			assert.strictEqual(isModelValidForSession(enterpriseModel, allModels, 'cloud'), false);
-			// General model not valid when session-targeted models exist
 			assert.strictEqual(isModelValidForSession(generalModel, allModels, 'cloud'), false);
 		});
 
@@ -1254,7 +1149,6 @@ suite('ChatInputModelUtils', () => {
 			const generalModel = createModel('gpt', 'GPT');
 			const allModels = [generalModel, cloudModel];
 
-			// 'enterprise' session has no targeted models
 			assert.strictEqual(isModelValidForSession(generalModel, allModels, 'enterprise'), true);
 		});
 
@@ -1279,10 +1173,8 @@ suite('ChatInputModelUtils', () => {
 			const generalModel = createModel('gpt', 'GPT');
 			const allModels = [generalModel, cloudModel];
 
-			// In cloud session, cloud model is valid
 			assert.strictEqual(shouldResetModelToDefault(cloudModel, [cloudModel], supportedHere(ChatAgentLocation.Chat, ChatModeKind.Ask), allModels, 'cloud'), false);
 
-			// Switch to general session — cloud model should be reset
 			assert.strictEqual(shouldResetModelToDefault(cloudModel, [generalModel], anywhere, allModels, undefined), true);
 		});
 	});
@@ -1294,8 +1186,6 @@ suite('ChatInputModelUtils', () => {
 			const claude = createModel('claude', 'Claude');
 			const allModels = [gpt, claude];
 
-			// The autorun calls switchModelByQualifiedName which checks ILanguageModelChatMetadata.matchesQualifiedName
-			// Simulate: mode wants "GPT-4o (copilot)"
 			const qualifiedName = 'GPT-4o (copilot)';
 			const match = allModels.find(m => ILanguageModelChatMetadata.matchesQualifiedName(qualifiedName, m.metadata));
 			assert.strictEqual(match?.metadata.id, 'gpt-4o');
@@ -1303,7 +1193,6 @@ suite('ChatInputModelUtils', () => {
 
 		test('mode forces model — copilot vendor shorthand works', () => {
 			const gpt = createModel('gpt-4o', 'GPT-4o');
-			// For copilot vendor, just the name works
 			const match = [gpt].find(m => ILanguageModelChatMetadata.matchesQualifiedName('GPT-4o', m.metadata));
 			assert.strictEqual(match?.metadata.id, 'gpt-4o');
 		});
@@ -1315,12 +1204,10 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('mode forces model that is then checked for support', () => {
-			// Mode forces a model, then checkModelSupported runs
 			const forcedModel = createModel('forced', 'Forced', {
 				capabilities: { toolCalling: false, agentMode: false },
 			});
 
-			// Mode forced this model but we're in Agent mode — should be reset
 			assert.strictEqual(shouldResetModelToDefault(forcedModel, [forcedModel], supportedHere(ChatAgentLocation.Chat, ChatModeKind.Agent), [forcedModel], undefined), true);
 		});
 	});
@@ -1331,12 +1218,9 @@ suite('ChatInputModelUtils', () => {
 			const partialModel = createModel('partial', 'Partial', {
 				capabilities: { toolCalling: true, agentMode: false },
 			});
-			// Fails Agent mode check
 			assert.strictEqual(isModelSupportedForMode(partialModel, ChatModeKind.Agent), false);
-			// Passes inline chat check (has toolCalling)
 			assert.strictEqual(isModelSupportedForInlineChat(partialModel, ChatAgentLocation.EditorInline), true);
 
-			// Combined: should reset because Agent mode fails
 			assert.strictEqual(shouldResetModelToDefault(partialModel, [partialModel], supportedHere(ChatAgentLocation.EditorInline, ChatModeKind.Agent), [partialModel], undefined), true);
 		});
 
@@ -1359,7 +1243,6 @@ suite('ChatInputModelUtils', () => {
 			const cachedGpt = createModel('gpt', 'GPT');
 			const cachedClaude = createModel('claude', 'Claude');
 
-			// Step 1: Startup with only cache. User had GPT selected.
 			const cachedModels = computeAvailableModels(
 				[],
 				[cachedGpt, cachedClaude],
@@ -1368,10 +1251,8 @@ suite('ChatInputModelUtils', () => {
 				ChatModeKind.Ask,
 				ChatAgentLocation.Chat,
 			);
-			// GPT is in the cached list
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', cachedModels), false);
 
-			// Step 2: Live models arrive (same models)
 			const liveModels = computeAvailableModels(
 				[cachedGpt, cachedClaude],
 				[cachedGpt, cachedClaude],
@@ -1380,7 +1261,6 @@ suite('ChatInputModelUtils', () => {
 				ChatModeKind.Ask,
 				ChatAgentLocation.Chat,
 			);
-			// GPT still in the list — no reset needed
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', liveModels), false);
 		});
 
@@ -1388,15 +1268,11 @@ suite('ChatInputModelUtils', () => {
 			const gpt = createModel('gpt', 'GPT');
 			const claude = createModel('claude', 'Claude');
 
-			// Step 1: GPT is selected
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', [gpt, claude]), false);
 
-			// Step 2: Extension reloads, copilot vendor has no live models
-			// But cache bridges the gap
 			const duringReload = mergeModelsWithCache([], [gpt, claude], new Set(['copilot']));
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', duringReload), false);
 
-			// Step 3: Extension finishes loading, live models back
 			const afterReload = mergeModelsWithCache([gpt, claude], [gpt, claude], new Set(['copilot']));
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', afterReload), false);
 		});
@@ -1404,18 +1280,12 @@ suite('ChatInputModelUtils', () => {
 		test('extension reload without cache: model lost', () => {
 			const gpt = createModel('gpt', 'GPT');
 
-			// Step 1: GPT selected, no cache
-			// Step 2: Extension reloads with no models and no cache
 			const duringReload = mergeModelsWithCache([], [], new Set(['copilot']));
 			assert.strictEqual(duringReload.length, 0);
 			assert.strictEqual(shouldResetOnModelListChange('copilot/gpt', duringReload), true);
-			// → Model is lost, reset to default
 
-			// Step 3: Models come back but user's choice is already gone
 			const afterReload = mergeModelsWithCache([gpt], [], new Set(['copilot']));
 			assert.strictEqual(afterReload.length, 1);
-			// User's selection was already reset to something else
-			// This is expected behavior — cache is the mitigation
 		});
 
 		test('session switch race: mode + session change together', () => {
@@ -1425,28 +1295,22 @@ suite('ChatInputModelUtils', () => {
 			});
 			const allModels = [generalDefault, cloudModel];
 
-			// User is in general session with GPT in Agent mode
 			assert.strictEqual(shouldResetModelToDefault(generalDefault, [generalDefault], anywhere, allModels, undefined), false);
 
-			// Switch to cloud session — general model should be reset
 			assert.strictEqual(shouldResetModelToDefault(generalDefault, [cloudModel], supportedHere(ChatAgentLocation.Chat, ChatModeKind.Agent), allModels, 'cloud'), true);
 
-			// The default for cloud session should be the cloud model
 			const cloudDefault = findDefaultModel([cloudModel], ChatAgentLocation.Chat);
 			assert.strictEqual(cloudDefault?.metadata.id, 'cloud-gpt');
 		});
 
 		test('rapid mode changes: ask → agent → ask preserves compatible model', () => {
-			const model = createModel('gpt', 'GPT'); // Compatible with all modes
+			const model = createModel('gpt', 'GPT');
 			const allModels = [model];
 
-			// Ask mode: fine
 			assert.strictEqual(shouldResetModelToDefault(model, allModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Ask), allModels, undefined), false);
 
-			// → Agent mode: model has toolCalling, still fine
 			assert.strictEqual(shouldResetModelToDefault(model, allModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Agent), allModels, undefined), false);
 
-			// → Back to Ask: still fine
 			assert.strictEqual(shouldResetModelToDefault(model, allModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Ask), allModels, undefined), false);
 		});
 
@@ -1457,42 +1321,27 @@ suite('ChatInputModelUtils', () => {
 			const toolModel = createDefaultModelForLocation('tool', 'Tool', ChatAgentLocation.Chat);
 			const allModels = [noToolModel, toolModel];
 
-			// Ask mode with noToolModel: fine
 			assert.strictEqual(shouldResetModelToDefault(noToolModel, allModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Ask), allModels, undefined), false);
 
-			// → Agent mode: noToolModel fails, reset picks default (toolModel)
 			assert.strictEqual(shouldResetModelToDefault(noToolModel, allModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Agent), allModels, undefined), true);
 			const defaultAfterReset = findDefaultModel(allModels, ChatAgentLocation.Chat);
 			assert.strictEqual(defaultAfterReset?.metadata.id, 'tool');
 
-			// → Back to Ask: toolModel is fine in Ask mode, stays as toolModel
-			// The original noToolModel is NOT restored — this is expected and matches ChatInputPart behavior
 			assert.strictEqual(shouldResetModelToDefault(toolModel, allModels, supportedHere(ChatAgentLocation.Chat, ChatModeKind.Ask), allModels, undefined), false);
 		});
 
-		// Repro for #321037: on first launch the restored Copilot selection is reset to a BYOK model. The Copilot
-		// vendor depends on the Copilot token, which round-trips slower than fast/local BYOK providers (Ollama,
-		// Cerebras). So the Copilot vendor resolves an EMPTY live list first while the BYOK vendors already have live
-		// models. `mergeModelsWithCache` then treats Copilot's empty resolution as authoritative and evicts the cached
-		// Copilot models that were used to restore the selection — leaving only BYOK models, which triggers a
-		// reset-to-default that clobbers the user's persisted Copilot choice.
 		test('startup race #321037: Copilot vendor resolves empty before BYOK, restored selection must survive', () => {
-			// The user's persisted choice (a Copilot model) and its siblings, seeded into the cache from the previous
-			// session.
 			const persistedId = 'copilot/claude-opus-4.6-1m';
 			const cachedCopilot = [
 				createModel('claude-opus-4.6-1m', 'Claude Opus 4.6 (1M)'),
 				createModel('gpt-5.5', 'GPT-5.5'),
 			];
 
-			// Fast/local BYOK providers that publish live models immediately.
 			const liveByok = [
 				createVendorModel('ollama', 'deepseek-v3.1', 'DeepSeek V3.1'),
 				createVendorModel('cerebras', 'zai-glm-4.7', 'GLM 4.7'),
 			];
 
-			// Copilot contributed a vendor but resolved an EMPTY live list (token not ready yet); the BYOK vendors
-			// resolved with models. All three are therefore "resolved".
 			const contributedVendors = new Set(['copilot', 'ollama', 'cerebras']);
 			const resolvedVendors = new Set(['copilot', 'ollama', 'cerebras']);
 
@@ -1506,9 +1355,6 @@ suite('ChatInputModelUtils', () => {
 				resolvedVendors,
 			);
 
-			// DESIRED: the user's restored Copilot model is still selectable during the race, so no reset-to-BYOK
-			// happens and the persisted choice is kept. CURRENT (bug): Copilot cache is evicted, only BYOK remains, the
-			// model is considered unavailable and gets reset to a BYOK default.
 			assert.ok(
 				available.some(m => m.identifier === persistedId),
 				'restored Copilot model should remain available while its vendor is still activating',
@@ -1519,8 +1365,6 @@ suite('ChatInputModelUtils', () => {
 				'must not reset the restored Copilot selection during the startup race',
 			);
 
-			// And the fallback default must not be a BYOK model (which is what gets persisted today, clobbering the user
-			// choice on the next launch).
 			const fallback = findDefaultModel(available, ChatAgentLocation.Chat);
 			assert.notStrictEqual(
 				fallback?.metadata.isBYOK,
@@ -1578,11 +1422,6 @@ suite('ChatInputModelUtils', () => {
 
 	suite('BYOK agent-host visibility (isModelHiddenInPicker / getAgentHostByokManageModelsIdentifier)', () => {
 
-		// Mirrors the agent-host copy produced by `AgentHostLanguageModelProvider` after a
-		// BYOK model round-trips the bridge: it is surfaced under the agent-host vendor with
-		// `identifier = <agent-host-vendor>:<vendor>/<id>` and carries the original LM service
-		// identifier (`byokModelIdentifier`, the "Manage Models" visibility key) that the node
-		// agent host forwarded across the bridge via `_meta`.
 		function createAgentHostByokModel(vendor: string, modelId: string, manageModelsIdentifier: string): ILanguageModelChatMetadataAndIdentifier {
 			const sessionType = 'agent-host-copilotcli';
 			const appendedId = `${vendor}/${modelId}`;
@@ -1607,8 +1446,6 @@ suite('ChatInputModelUtils', () => {
 			};
 		}
 
-		// A native harness model (e.g. Copilot CLI's own model) carries no
-		// `byokModelIdentifier`; it is toggled under its own identifier.
 		function createNativeAgentHostModel(modelId: string): ILanguageModelChatMetadataAndIdentifier {
 			const sessionType = 'agent-host-copilotcli';
 			return {
@@ -1637,7 +1474,6 @@ suite('ChatInputModelUtils', () => {
 		});
 
 		test('returns the carried grouped identifier verbatim (group name + slashes preserved)', () => {
-			// OpenRouter under a user-configured group "OpenRouter 2"; the model id itself has a slash.
 			const model = createAgentHostByokModel('openrouter', 'ai21/jamba-large-1.7', 'openrouter/OpenRouter 2/ai21/jamba-large-1.7');
 			assert.strictEqual(getAgentHostByokManageModelsIdentifier(model.metadata), 'openrouter/OpenRouter 2/ai21/jamba-large-1.7');
 		});
@@ -1654,7 +1490,6 @@ suite('ChatInputModelUtils', () => {
 
 		test('hides a grouped BYOK copy via its carried registered identifier', () => {
 			const model = createAgentHostByokModel('openrouter', 'ai21/jamba-large-1.7', 'openrouter/OpenRouter 2/ai21/jamba-large-1.7');
-			// The user hid the model in Manage Models, which stored the grouped identifier.
 			const hidden = new Set(['openrouter/OpenRouter 2/ai21/jamba-large-1.7']);
 			assert.strictEqual(isModelHiddenInPicker(model, id => hidden.has(id)), true);
 		});
@@ -1688,9 +1523,6 @@ suite('ChatInputModelUtils', () => {
 	suite('resolveEditedRequestSelection', () => {
 
 		test('a resubmit uses the inline editor\'s selection, not the composer\'s', () => {
-			// Issue #319743: the inline editor is torn down before the request is built, so its
-			// selection is captured first and must win. Falling back to the composer resubmits with
-			// a model the user did not choose — and bills them for it.
 			assert.deepStrictEqual({
 				edited: resolveEditedRequestSelection('gpt-5.5', 'claude-opus-4.8'),
 				noEditInFlight: resolveEditedRequestSelection(undefined, 'claude-opus-4.8'),

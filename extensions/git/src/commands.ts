@@ -383,14 +383,6 @@ function command(commandId: string, options: ScmCommandOptions = {}): MethodDeco
 	};
 }
 
-// const ImageMimetypes = [
-// 	'image/png',
-// 	'image/gif',
-// 	'image/jpeg',
-// 	'image/webp',
-// 	'image/tiff',
-// 	'image/bmp'
-// ];
 
 async function categorizeResourceByResolution(resources: Resource[]): Promise<{ merge: Resource[]; resolved: Resource[]; unresolved: Resource[]; deletionConflicts: Resource[] }> {
 	const selection = resources.filter(s => s instanceof Resource) as Resource[];
@@ -426,7 +418,6 @@ async function createCheckoutItems(repository: Repository, detached = false): Pr
 	}
 
 	if (detached) {
-		// Remove tags when in detached mode
 		checkoutTypes = checkoutTypes.filter(t => t !== 'tags');
 	}
 
@@ -447,7 +438,6 @@ type RemoteSourceActionButton = {
 };
 
 async function getRemoteRefItemButtons(repository: Repository) {
-	// Compute actions for all known remotes
 	const remoteUrlsToActions = new Map<string, RemoteSourceActionButton[]>();
 
 	const getButtons = async (remoteUrl: string) => (await getRemoteSourceActions(remoteUrl)).map((action) => ({ iconPath: new ThemeIcon(action.icon), tooltip: action.label, actual: action }));
@@ -571,7 +561,6 @@ class CheckoutItemsProcessor extends RefItemsProcessor {
 		private readonly detached = false) {
 		super(repository, processors);
 
-		// Default button(s)
 		const remote = repository.remotes.find(r => r.pushUrl === repository.HEAD?.remote || r.fetchUrl === repository.HEAD?.remote) ?? repository.remotes[0];
 		const remoteUrl = remote?.pushUrl ?? remote?.fetchUrl;
 		if (remoteUrl) {
@@ -600,7 +589,6 @@ class CheckoutItemsProcessor extends RefItemsProcessor {
 					continue;
 				}
 
-				// Button(s)
 				if (item.refRemote) {
 					const matchingRemote = this.repository.remotes.find((remote) => remote.name === item.refRemote);
 					const buttons = [];
@@ -704,15 +692,12 @@ async function evaluateDiagnosticsCommitHook(repository: Repository, options: Co
 
 	const resources: Uri[] = [];
 	if (repository.indexGroup.resourceStates.length > 0) {
-		// Staged files
 		resources.push(...repository.indexGroup.resourceStates.map(r => r.resourceUri));
 	} else if (options.all === 'tracked') {
-		// Tracked files
 		resources.push(...repository.workingTreeGroup.resourceStates
 			.filter(r => r.type !== Status.UNTRACKED && r.type !== Status.IGNORED)
 			.map(r => r.resourceUri));
 	} else {
-		// All files
 		resources.push(...repository.workingTreeGroup.resourceStates.map(r => r.resourceUri));
 		resources.push(...repository.untrackedGroup.resourceStates.map(r => r.resourceUri));
 	}
@@ -724,19 +709,16 @@ async function evaluateDiagnosticsCommitHook(repository: Repository, options: Co
 			.filter(d => {
 				logger.trace(`[CommandCenter][evaluateDiagnosticsCommitHook] Evaluating diagnostic for ${resource.fsPath}: source='${d.source}', severity='${d.severity}'`);
 
-				// No source or ignored source
 				if (!d.source || (Object.keys(sourceSeverity).includes(d.source) && sourceSeverity[d.source] === 'none')) {
 					logger.trace(`[CommandCenter][evaluateDiagnosticsCommitHook] Ignoring diagnostic for ${resource.fsPath}: source='${d.source}', severity='${d.severity}'`);
 					return false;
 				}
 
-				// Source severity
 				if (Object.keys(sourceSeverity).includes(d.source) && d.severity <= toDiagnosticSeverity(sourceSeverity[d.source])) {
 					logger.trace(`[CommandCenter][evaluateDiagnosticsCommitHook] Found unresolved diagnostic for ${resource.fsPath}: source='${d.source}', severity='${d.severity}'`);
 					return true;
 				}
 
-				// Wildcard severity
 				if (Object.keys(sourceSeverity).includes('*') && d.severity <= toDiagnosticSeverity(sourceSeverity['*'])) {
 					logger.trace(`[CommandCenter][evaluateDiagnosticsCommitHook] Found unresolved diagnostic for ${resource.fsPath}: source='${d.source}', severity='${d.severity}'`);
 					return true;
@@ -755,7 +737,6 @@ async function evaluateDiagnosticsCommitHook(repository: Repository, options: Co
 		return true;
 	}
 
-	// Show dialog
 	const commit = l10n.t('Commit Anyway');
 	const view = l10n.t('View Problems');
 
@@ -765,12 +746,10 @@ async function evaluateDiagnosticsCommitHook(repository: Repository, options: Co
 
 	const choice = await window.showWarningMessage(message, { modal: true }, commit, view);
 
-	// Commit Anyway
 	if (choice === commit) {
 		return true;
 	}
 
-	// View Problems
 	if (choice === view) {
 		commands.executeCommand('workbench.panel.markers.view.focus');
 	}
@@ -841,7 +820,6 @@ export class CommandCenter {
 	@command('git.openMergeEditor')
 	async openMergeEditor(uri: unknown) {
 		if (uri === undefined) {
-			// fallback to active editor...
 			if (window.tabGroups.activeTabGroup.activeTab?.input instanceof TabInputText) {
 				uri = window.tabGroups.activeTabGroup.activeTab.input.uri;
 			}
@@ -861,7 +839,6 @@ export class CommandCenter {
 
 		let isStashConflict = false;
 		try {
-			// Look at the conflict markers to check if this is a stash conflict
 			const document = await workspace.openTextDocument(uri);
 			const firstConflictInfo = findFirstConflictMarker(document);
 			isStashConflict = firstConflictInfo?.incomingChangeLabel === 'Stashed changes';
@@ -887,28 +864,23 @@ export class CommandCenter {
 			const oursDiffFile = oursDiff?.find(diff => diff.uri.fsPath === uri.fsPath);
 			const theirsDiffFile = theirsDiff?.find(diff => diff.uri.fsPath === uri.fsPath);
 
-			// ours (current branch and commit)
 			current.detail = head.refNames.map(s => s.replace(/^HEAD ->/, '')).join(', ');
 			current.description = '$(git-commit) ' + head.hash.substring(0, 7);
 			if (theirsDiffFile) {
-				// use the original uri in case the file was renamed by theirs
 				current.uri = toGitUri(theirsDiffFile.originalUri, head.hash);
 			} else {
 				current.uri = toGitUri(uri, head.hash);
 			}
 
-			// theirs
 			incoming.detail = rebaseOrMergeHead.refNames.join(', ');
 			incoming.description = '$(git-commit) ' + rebaseOrMergeHead.hash.substring(0, 7);
 			if (oursDiffFile) {
-				// use the original uri in case the file was renamed by ours
 				incoming.uri = toGitUri(oursDiffFile.originalUri, rebaseOrMergeHead.hash);
 			} else {
 				incoming.uri = toGitUri(uri, rebaseOrMergeHead.hash);
 			}
 
 		} catch (error) {
-			// not so bad, can continue with just uris
 			console.error('FAILED to read HEAD, MERGE_HEAD commits');
 			console.error(error);
 		}
@@ -973,10 +945,8 @@ export class CommandCenter {
 	async continueInLocalClone(): Promise<Uri | void> {
 		if (this.model.repositories.length === 0) { return; }
 
-		// Pick a single repository to continue working on in a local clone if there's more than one
 		let items = this.getRepositoriesWithRemote(this.model.repositories);
 
-		// We have a repository but there is no remote URL (e.g. git init)
 		if (items.length === 0) {
 			const pick = this.model.repositories.length === 1
 				? { repository: this.model.repositories[0] }
@@ -1012,19 +982,15 @@ export class CommandCenter {
 				}
 
 				if (isWeb) {
-					// Launch desktop client if currently in web
 					return Uri.parse(target);
 				}
 
 				if (isRemote) {
-					// If already in desktop client but in a remote window, we need to force a new window
-					// so that the git extension can access the local filesystem for cloning
 					target += `&windowId=_blank`;
 					return Uri.parse(target);
 				}
 			}
 
-			// Otherwise, directly clone
 			void this.clone(uri, undefined, { ref: ref });
 		}
 	}
@@ -1254,10 +1220,8 @@ export class CommandCenter {
 		}
 
 		if (repositoryItem === allRepositoriesQuickPickItem) {
-			// All Repositories
 			closedRepositories.push(...this.model.closedRepositories.values());
 		} else {
-			// One Repository
 			closedRepositories.push((repositoryItem as RepositoryItem).path);
 		}
 
@@ -1308,7 +1272,6 @@ export class CommandCenter {
 			let resource = arg;
 
 			if (!(resource instanceof Resource)) {
-				// can happen when called from a keybinding
 				resource = this.getSCMResource();
 			}
 
@@ -1326,7 +1289,6 @@ export class CommandCenter {
 		}
 
 		const activeTextEditor = window.activeTextEditor;
-		// Must extract these now because opening a new document will change the activeTextEditor reference
 		const previousVisibleRanges = activeTextEditor?.visibleRanges;
 		const previousURI = activeTextEditor?.document.uri;
 		const previousSelection = activeTextEditor?.selection;
@@ -1345,23 +1307,16 @@ export class CommandCenter {
 
 			const document = window.activeTextEditor?.document;
 
-			// If the document doesn't match what we opened then don't attempt to select the range
-			// Additionally if there was no previous document we don't have information to select a range
 			if (document?.uri.toString() !== uri.toString() || !activeTextEditor || !previousURI || !previousSelection) {
 				continue;
 			}
 
-			// Check if active text editor has same path as other editor. we cannot compare via
-			// URI.toString() here because the schemas can be different. Instead we just go by path.
 			if (previousURI.path === uri.path && document) {
-				// preserve not only selection but also visible range
 				opts.selection = previousSelection;
 				const editor = await window.showTextDocument(document, opts);
-				// This should always be defined but just in case
 				if (previousVisibleRanges && previousVisibleRanges.length > 0) {
 					let rangeToReveal = previousVisibleRanges[0];
 					if (previousSelection && previousVisibleRanges.length > 1) {
-						// In case of multiple visible ranges, find the one that intersects with the selection
 						rangeToReveal = previousVisibleRanges.find(r => r.intersection(previousSelection)) ?? rangeToReveal;
 					}
 					editor.revealRange(rangeToReveal);
@@ -1471,7 +1426,6 @@ export class CommandCenter {
 
 		await repository.move(from, to);
 
-		// Close active editor and open the renamed file
 		await commands.executeCommand('workbench.action.closeActiveEditor');
 		await commands.executeCommand('vscode.open', Uri.file(path.join(repository.root, to)), { viewColumn: ViewColumn.Active });
 	}
@@ -1496,7 +1450,6 @@ export class CommandCenter {
 			...repository.untrackedGroup.resourceStates
 		];
 
-		// Check if file has uncommitted changes
 		const uriString = uri.toString();
 		if (allChangedResources.some(o => pathEquals(o.resourceUri.toString(), uriString))) {
 			window.showInformationMessage(l10n.t('Git: Delete can only be performed on committed files without uncommitted changes.'));
@@ -1505,7 +1458,6 @@ export class CommandCenter {
 
 		await repository.rm([uri]);
 
-		// Close the active editor if it's not dirty
 		if (activeDocument && !activeDocument.isDirty && pathEquals(activeDocument.uri.toString(), uriString)) {
 			await commands.executeCommand('workbench.action.closeActiveEditor');
 		}
@@ -1752,7 +1704,6 @@ export class CommandCenter {
 		const modifiedDocument = textEditor.document;
 		const cursorPosition = textEditor.selection.active;
 
-		// Find the hunk that contains the cursor position
 		const hunkAtCursor = workingTreeLineChanges.find(change => {
 			const hunkRange = getModifiedRange(modifiedDocument, change);
 			return hunkRange.contains(cursorPosition);
@@ -1851,37 +1802,6 @@ export class CommandCenter {
 			await commands.executeCommand('workbench.view.scm');
 		}
 
-		/*
-		if (!(uri instanceof Uri)) {
-			return;
-		}
-
-
-
-
-		// make sure to save the merged document
-		const doc = workspace.textDocuments.find(doc => doc.uri.toString() === uri.toString());
-		if (!doc) {
-			console.log(`FAILED to complete merge because uri ${uri.toString()} doesn't match a document`);
-			return;
-		}
-		if (doc.isDirty) {
-			await doc.save();
-		}
-
-		// find the merge editor tabs for the resource in question and close them all
-		let didCloseTab = false;
-		const mergeEditorTabs = window.tabGroups.all.map(group => group.tabs.filter(tab => tab.input instanceof TabInputTextMerge && tab.input.result.toString() === uri.toString())).flat();
-		if (mergeEditorTabs.includes(activeTab)) {
-			didCloseTab = await window.tabGroups.close(mergeEditorTabs, true);
-		}
-
-		// Only stage if the merge editor has been successfully closed. That means all conflicts have been
-		// handled or unhandled conflicts are OK by the user.
-		if (didCloseTab) {
-			await repository.add([uri]);
-			await commands.executeCommand('workbench.view.scm');
-		}*/
 	}
 
 	@command('git.runGitMerge')
@@ -2099,12 +2019,6 @@ export class CommandCenter {
 
 		this.logger.trace(`[CommandCenter][unstageSelectedRanges] selectedDiffs: ${JSON.stringify(selectedDiffs)}`);
 
-		// if (modifiedUri.scheme === 'file') {
-		// 	// Editor
-		// 	this.logger.trace(`[CommandCenter][unstageSelectedRanges] changes: ${JSON.stringify(selectedDiffs)}`);
-		// 	await this._unstageChanges(textEditor, selectedDiffs);
-		// 	return;
-		// }
 
 		const selectedDiffsInverted = selectedDiffs.map(invertLineChange);
 		this.logger.trace(`[CommandCenter][unstageSelectedRanges] selectedDiffsInverted: ${JSON.stringify(selectedDiffsInverted)}`);
@@ -2164,10 +2078,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// Approach to unstage change(s):
-		// - use file on disk as original document
-		// - revert all changes from the working tree
-		// - revert the specify change(s) from the index
 		const workingTreeDiffs = toLineChanges(workingTreeDiffInformation);
 		const workingTreeDiffsInverted = workingTreeDiffs.map(invertLineChange);
 		const changesInverted = changes.map(invertLineChange);
@@ -2183,7 +2093,6 @@ export class CommandCenter {
 
 	@command('git.clean')
 	async clean(...resourceStates: SourceControlResourceState[]): Promise<void> {
-		// Remove duplicate resources
 		const resourceUris = new Set<string>();
 		resourceStates = resourceStates.filter(s => {
 			if (s === undefined) {
@@ -2256,13 +2165,10 @@ export class CommandCenter {
 		const untrackedResources = resources.filter(r => r.type === Status.UNTRACKED || r.type === Status.IGNORED);
 
 		if (untrackedResources.length === 0) {
-			// Tracked files only
 			await this._cleanTrackedChanges(resources);
 		} else if (trackedResources.length === 0) {
-			// Untracked files only
 			await this._cleanUntrackedChanges(resources);
 		} else {
-			// Tracked & Untracked files
 			const [untrackedMessage, untrackedMessageDetail] = this.getDiscardUntrackedChangesDialogDetails(untrackedResources);
 
 			const trackedMessage = trackedResources.length === 1
@@ -2371,7 +2277,6 @@ export class CommandCenter {
 		const config = workspace.getConfiguration('git', Uri.file(repository.root));
 		let promptToSaveFilesBeforeCommit = config.get<'always' | 'staged' | 'never'>('promptToSaveFilesBeforeCommit');
 
-		// migration
 		if (typeof promptToSaveFilesBeforeCommit === 'boolean') {
 			promptToSaveFilesBeforeCommit = promptToSaveFilesBeforeCommit ? 'always' : 'never';
 		}
@@ -2401,8 +2306,6 @@ export class CommandCenter {
 					if (pick === saveAndCommit) {
 						await Promise.all(documents.map(d => d.save()));
 
-						// After saving the dirty documents, if there are any documents that are part of the
-						// index group we have to add them back in order for the saved changes to be committed
 						documents = documents
 							.filter(d => repository.indexGroup.resourceStates.some(s => pathEquals(s.resourceUri.fsPath, d.uri.fsPath)));
 						await repository.add(documents.map(d => d.uri));
@@ -2410,12 +2313,11 @@ export class CommandCenter {
 						noStagedChanges = repository.indexGroup.resourceStates.length === 0;
 						noUnstagedChanges = repository.workingTreeGroup.resourceStates.length === 0;
 					} else if (pick !== commit) {
-						return; // do not commit on cancel
+						return;
 					}
 				}
 			}
 
-			// no changes, and the user has not configured to commit all in this case
 			if (!noUnstagedChanges && noStagedChanges && !enableSmartCommit && !opts.all && !opts.amend) {
 				const suggestSmartCommit = config.get<boolean>('suggestSmartCommit') === true;
 
@@ -2423,7 +2325,6 @@ export class CommandCenter {
 					return;
 				}
 
-				// prompt the user if we want to commit all or not
 				const message = l10n.t('There are no staged changes to commit.\n\nWould you like to stage all your changes and commit them directly?');
 				const yes = l10n.t('Yes');
 				const always = l10n.t('Always');
@@ -2439,18 +2340,15 @@ export class CommandCenter {
 				} else if (pick === yes) {
 					enableSmartCommit = true;
 				} else {
-					// Cancel
 					return;
 				}
 			}
 
-			// smart commit
 			if (enableSmartCommit && !opts.all) {
 				opts = { ...opts, all: noStagedChanges };
 			}
 		}
 
-		// Enable signing of commits if the setting is enabled. If the setting is not enabled,
 		// we set the option to undefined so that we let git use the repository/global config.
 		opts.signCommit = config.get<boolean>('enableCommitSigning') === true ? true : undefined;
 
@@ -2470,19 +2368,13 @@ export class CommandCenter {
 
 		if (
 			(
-				// no changes
 				(noStagedChanges && noUnstagedChanges)
-				// or no staged changes and not `all`
 				|| (!opts.all && noStagedChanges)
-				// no staged changes and no tracked unstaged changes
 				|| (noStagedChanges && smartCommitChanges === 'tracked' && repository.workingTreeGroup.resourceStates.every(r => r.type === Status.UNTRACKED))
 			)
-			// amend allows changing only the commit message
 			&& !opts.amend
 			&& !opts.empty
-			// merge not in progress
 			&& !repository.mergeInProgress
-			// rebase not in progress
 			&& repository.rebaseCommit === undefined
 		) {
 			const commitAnyway = l10n.t('Create Empty Commit');
@@ -2529,13 +2421,11 @@ export class CommandCenter {
 			opts.all = 'tracked';
 		}
 
-		// Diagnostics commit hook
 		const diagnosticsResult = await evaluateDiagnosticsCommitHook(repository, opts, this.logger);
 		if (!diagnosticsResult) {
 			return;
 		}
 
-		// Branch protection commit hook
 		const branchProtectionPrompt = config.get<'alwaysCommit' | 'alwaysCommitToNewBranch' | 'alwaysPrompt'>('branchProtectionPrompt')!;
 		if (repository.isBranchProtected() && (branchProtectionPrompt === 'alwaysPrompt' || branchProtectionPrompt === 'alwaysCommitToNewBranch')) {
 			const commitToNewBranch = l10n.t('Commit to a New Branch');
@@ -2653,7 +2543,6 @@ export class CommandCenter {
 		if (!arg && !window.activeTextEditor) { return; }
 		arg ??= window.activeTextEditor!.document.uri;
 
-		// Close the tab
 		this._closeEditorTab(arg);
 	}
 
@@ -2662,7 +2551,6 @@ export class CommandCenter {
 		if (!arg && !window.activeTextEditor) { return; }
 		arg ??= window.activeTextEditor!.document.uri;
 
-		// Clear the contents of the editor
 		const editors = window.visibleTextEditors
 			.filter(e => e.document.languageId === 'git-commit' && e.document.uri.toString() === arg!.toString());
 
@@ -2680,11 +2568,9 @@ export class CommandCenter {
 
 		if (!editResult) { return; }
 
-		// Save the document
 		const saveResult = await commitMsgDocument.save();
 		if (!saveResult) { return; }
 
-		// Close the tab
 		this._closeEditorTab(arg);
 	}
 
@@ -2821,13 +2707,11 @@ export class CommandCenter {
 		const config = workspace.getConfiguration('git', Uri.file(repository.root));
 		const pullBeforeCheckout = config.get<boolean>('pullBeforeCheckout', false) === true;
 
-		// Branch, tag
 		if (historyItemRef.id.startsWith('refs/heads/') || historyItemRef.id.startsWith('refs/tags/')) {
 			await repository.checkout(historyItemRef.name, { pullBeforeCheckout });
 			return;
 		}
 
-		// Remote branch
 		const branches = await repository.findTrackingBranches(historyItemRef.name);
 		if (branches.length > 0) {
 			await repository.checkout(branches[0].name!, { pullBeforeCheckout });
@@ -2936,13 +2820,11 @@ export class CommandCenter {
 				}
 
 				if (err.gitErrorCode === GitErrorCodes.WorktreeBranchAlreadyUsed) {
-					// Not checking out in a worktree (use standard error handling)
 					if (!repository.dotGit.commonPath) {
 						await this.handleWorktreeBranchAlreadyUsed(err);
 						return false;
 					}
 
-					// Check out in a worktree (check if worktree's main repository is open in workspace and if branch is already checked out in main repository)
 					const commonPath = path.dirname(repository.dotGit.commonPath);
 					if (workspace.workspaceFolders && workspace.workspaceFolders.some(folder => pathEquals(folder.uri.fsPath, commonPath))) {
 						const mainRepository = this.model.getRepository(commonPath);
@@ -2953,7 +2835,6 @@ export class CommandCenter {
 						}
 					}
 
-					// Check out in a worktree, (branch is already checked out in existing worktree)
 					await this.handleWorktreeBranchAlreadyUsed(err);
 					return false;
 				}
@@ -3015,16 +2896,12 @@ export class CommandCenter {
 			const validateName = new RegExp(branchValidationRegex);
 			const sanitizedName = sanitizeBranchName(name, branchWhitespaceChar);
 
-			// Check if branch name already exists
 			const existingBranch = refs.find(ref => ref.name === sanitizedName);
 			if (existingBranch) {
 				return l10n.t('Branch "{0}" already exists', sanitizedName);
 			}
 
 			if (validateName.test(sanitizedName)) {
-				// If the sanitized name that we will use is different than what is
-				// in the input box, show an info message to the user informing them
-				// the branch name that will be used.
 				return name === sanitizedName
 					? undefined
 					: {
@@ -3151,7 +3028,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// Local branch
 		if (historyItemRef.id.startsWith('refs/heads/')) {
 			if (historyItemRef.id === repository.historyProvider.currentHistoryItemRef?.id) {
 				window.showInformationMessage(l10n.t('The active branch cannot be deleted.'));
@@ -3162,7 +3038,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// Remote branch
 		if (historyItemRef.id === repository.historyProvider.currentHistoryItemRemoteRef?.id) {
 			window.showInformationMessage(l10n.t('The remote branch of the active branch cannot be deleted.'));
 			return;
@@ -3293,10 +3168,8 @@ export class CommandCenter {
 		const showRefDetails = config.get<boolean>('showReferenceDetails') === true;
 
 		if (!options.remote && typeof name === 'string') {
-			// Local branch
 			run = force => repository.deleteBranch(name!, force);
 		} else if (options.remote && typeof remote === 'string' && typeof name === 'string') {
-			// Remote branch
 			run = force => repository.deleteRemoteRef(remote, name!, { force });
 		} else {
 			const getBranchPicks = async () => {
@@ -3527,7 +3400,6 @@ export class CommandCenter {
 		const config = workspace.getConfiguration('git');
 		const branchPrefix = config.get<string>('branchPrefix')!;
 
-		// Get commitish and branch for the new worktree
 		const worktreeDetails = await this.getWorktreeCommitishAndBranch(repository);
 		if (!worktreeDetails) {
 			return;
@@ -3538,7 +3410,6 @@ export class CommandCenter {
 			? (branch ?? commitish).substring(branchPrefix.length).replace(/\//g, '-')
 			: (branch ?? commitish).replace(/\//g, '-'));
 
-		// Get path for the new worktree
 		const worktreePath = await this.getWorktreePath(repository, worktreeName);
 		if (!worktreePath) {
 			return;
@@ -3581,7 +3452,6 @@ export class CommandCenter {
 		}
 
 		if (choice === createBranch) {
-			// Create new branch
 			const branch = await this.promptForBranchName(repository);
 			if (!branch) {
 				return undefined;
@@ -3589,7 +3459,6 @@ export class CommandCenter {
 
 			return { commitish: 'HEAD', branch };
 		} else {
-			// Existing reference
 			if (!(choice instanceof RefItem) || !choice.refName) {
 				return undefined;
 			}
@@ -3610,7 +3479,6 @@ export class CommandCenter {
 					return undefined;
 				}
 			} else {
-				// Check whether the selected branch is checked out in an existing worktree
 				const worktree = repository.worktrees.find(worktree => worktree.ref === choice.refId);
 				if (worktree) {
 					const message = l10n.t('Branch "{0}" is already checked out in the worktree at "{1}".', choice.refName, worktree.path);
@@ -3659,7 +3527,6 @@ export class CommandCenter {
 			} : undefined;
 		};
 
-		// Default worktree path is based on the last worktree location or a worktree folder for the repository
 		const defaultWorktreeRoot = this.globalState.get<string>(`${Repository.WORKTREE_ROOT_STORAGE_KEY}:${repository.root}`);
 		const defaultWorktreePath = defaultWorktreeRoot
 			? path.join(defaultWorktreeRoot, worktreeName)
@@ -3843,7 +3710,6 @@ export class CommandCenter {
 		const remoteTagPicks = async (): Promise<RemoteTagDeleteItem[] | QuickPickItem[]> => {
 			const remoteTagsRaw = await repository.getRemoteRefs(remoteName, { tags: true });
 
-			// Deduplicate annotated and lightweight tags
 			const remoteTagNames = new Set<string>();
 			const remoteTags: Ref[] = [];
 
@@ -3883,7 +3749,6 @@ export class CommandCenter {
 		const remoteItems: RemoteItem[] = repository.remotes.map(r => new RemoteItem(repository, r));
 
 		if (repository.HEAD?.upstream?.remote) {
-			// Move default remote to the top
 			const defaultRemoteIndex = remoteItems
 				.findIndex(r => r.remoteName === repository.HEAD!.upstream!.remote);
 
@@ -4505,7 +4370,7 @@ export class CommandCenter {
 				if (pick === saveAndStash) {
 					await Promise.all(documents.map(d => d.save()));
 				} else if (pick !== stash) {
-					return false; // do not stash on cancel
+					return false;
 				}
 			}
 		}
@@ -4648,7 +4513,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// request confirmation for the operation
 		const yes = l10n.t('Yes');
 		const question = stashes.length === 1 ?
 			l10n.t('Are you sure you want to drop ALL stashes? There is 1 stash that will be subject to pruning, and MAY BE IMPOSSIBLE TO RECOVER.') :
@@ -4720,13 +4584,11 @@ export class CommandCenter {
 
 		const stashUri = fromGitUri(uri);
 
-		// Repository
 		const repository = this.model.getRepository(stashUri.path);
 		if (!repository) {
 			return undefined;
 		}
 
-		// Stash
 		const regex = /^stash@{(\d+)}$/;
 		const match = regex.exec(stashUri.ref);
 		if (!match) {
@@ -4749,10 +4611,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// A stash commit can have up to 3 parents:
-		// 1. The first parent is the commit that was HEAD when the stash was created.
-		// 2. The second parent is the commit that represents the index when the stash was created.
-		// 3. The third parent (when present) represents the untracked files when the stash was created.
 		const stashFirstParentCommit = stash.parents.length > 0 ? stash.parents[0] : `${stash.hash}^`;
 		const stashUntrackedFilesParentCommit = stash.parents.length === 3 ? stash.parents[2] : undefined;
 		const stashUntrackedFiles: string[] = [];
@@ -4946,7 +4804,6 @@ export class CommandCenter {
 	closeUnmodifiedEditors(): void {
 		const editorTabsToClose: Tab[] = [];
 
-		// Collect all modified files
 		const modifiedFiles: string[] = [];
 		for (const repository of this.model.repositories) {
 			modifiedFiles.push(...repository.indexGroup.resourceStates.map(r => r.resourceUri.fsPath));
@@ -4955,7 +4812,6 @@ export class CommandCenter {
 			modifiedFiles.push(...repository.mergeGroup.resourceStates.map(r => r.resourceUri.fsPath));
 		}
 
-		// Collect all editor tabs that are not dirty and not modified
 		for (const tab of window.tabGroups.all.map(g => g.tabs).flat()) {
 			if (tab.isDirty) {
 				continue;
@@ -4969,7 +4825,6 @@ export class CommandCenter {
 			}
 		}
 
-		// Close editors
 		window.tabGroups.close(editorTabsToClose, true);
 	}
 
@@ -4994,10 +4849,8 @@ export class CommandCenter {
 		}
 
 		if (repositoryItem === allRepositoriesQuickPickItem) {
-			// All Repositories
 			parentRepositories.push(...this.model.parentRepositories);
 		} else {
-			// One Repository
 			parentRepositories.push((repositoryItem as RepositoryItem).path);
 		}
 
@@ -5035,18 +4888,14 @@ export class CommandCenter {
 		}
 
 		if (repositoryItem.label === allRepositoriesLabel) {
-			// All Repositories
 			unsafeRepositories.push(...this.model.unsafeRepositories);
 		} else {
-			// One Repository
 			unsafeRepositories.push((repositoryItem as RepositoryItem).path);
 		}
 
 		for (const unsafeRepository of unsafeRepositories) {
-			// Mark as Safe
 			await this.git.addSafeDirectory(this.model.getUnsafeRepositoryPath(unsafeRepository)!);
 
-			// Open Repository
 			await this.model.openRepository(unsafeRepository);
 			this.model.deleteUnsafeRepository(unsafeRepository);
 		}
@@ -5328,7 +5177,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// Extract stash index from artifact id
 		const regex = /^stash@\{(\d+)\}$/;
 		const match = regex.exec(artifact.id);
 		if (!match) {
@@ -5350,7 +5198,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// Extract stash index from artifact id (format: "stash@{index}")
 		const regex = /^stash@\{(\d+)\}$/;
 		const match = regex.exec(artifact.id);
 		if (!match) {
@@ -5367,7 +5214,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// Extract stash index from artifact id (format: "stash@{index}")
 		const regex = /^stash@\{(\d+)\}$/;
 		const match = regex.exec(artifact.id);
 		if (!match) {
@@ -5384,7 +5230,6 @@ export class CommandCenter {
 			return;
 		}
 
-		// Extract stash index from artifact id
 		const regex = /^stash@\{(\d+)\}$/;
 		const match = regex.exec(artifact.id);
 		if (!match) {
@@ -5521,7 +5366,6 @@ export class CommandCenter {
 			if (!options.repository) {
 				result = Promise.resolve(method.apply(this, args));
 			} else {
-				// try to guess the repository based on the first argument
 				const repository = this.model.getRepository(args[0]);
 				let repositoryPromise: Promise<Repository | undefined>;
 
@@ -5540,12 +5384,6 @@ export class CommandCenter {
 				});
 			}
 
-			/* __GDPR__
-				"git.command" : {
-					"owner": "lszomoru",
-					"command" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The command id of the command being executed" }
-				}
-			*/
 			this.telemetryReporter.sendTelemetryEvent('git.command', { command: id });
 
 			return result.catch(err => {
@@ -5623,7 +5461,7 @@ export class CommandCenter {
 					case GitErrorCodes.NoUserNameConfigured:
 					case GitErrorCodes.NoUserEmailConfigured:
 						message = l10n.t('Make sure you configure your "user.name" and "user.email" in git.');
-						choices.set(l10n.t('Learn More'), () => commands.executeCommand('vscode.open', Uri.parse('https://aka.ms/vscode-setup-git')));
+						choices.set(l10n.t('Learn More'), () => commands.executeCommand('vscode.open', Uri.parse('https://www.dardcor-code.web.id/docs/getting-started/git')));
 						break;
 					case GitErrorCodes.EmptyCommitMessage:
 						message = l10n.t('Commit operation was cancelled due to empty commit message.');
@@ -5663,14 +5501,10 @@ export class CommandCenter {
 					return;
 				}
 
-				// We explicitly do not await this promise, because we do not
-				// want the command execution to be stuck waiting for the user
-				// to take action on the notification.
 				this.showErrorNotification(type, message, options, choices);
 			});
 		};
 
-		// patch this object, so people can call methods directly
 		(this as Record<string, unknown>)[key] = result;
 
 		return result;
@@ -5702,8 +5536,6 @@ export class CommandCenter {
 	private getSCMResource(uri?: Uri): Resource | undefined {
 		uri = uri ?? window.activeNotebookEditor?.notebook.uri ?? window.activeTextEditor?.document.uri;
 
-		// A notebook diff editor is neither the active text nor notebook editor, so
-		// fall back to its modified resource.
 		if (!uri && window.tabGroups.activeTabGroup.activeTab?.input instanceof TabInputNotebookDiff) {
 			uri = window.tabGroups.activeTabGroup.activeTab.input.modified;
 		}
@@ -5752,7 +5584,6 @@ export class CommandCenter {
 				return result;
 			}
 
-			// Could it be a submodule?
 			if (pathEquals(resource.fsPath, repository.root)) {
 				repository = this.model.getRepositoryForSubmodule(resource) || repository;
 			}

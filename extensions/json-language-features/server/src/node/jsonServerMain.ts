@@ -14,7 +14,6 @@ import * as l10n from '@vscode/l10n';
 
 const { xhr, configure: configureHttpRequests, getErrorStatusDescription } = requestLight;
 
-// Create a connection for the server.
 const connection: Connection = createConnection();
 
 console.log = connection.console.log.bind(connection.console);

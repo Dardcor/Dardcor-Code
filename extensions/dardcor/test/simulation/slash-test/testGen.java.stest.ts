@@ -34,8 +34,8 @@ forInline((strategy, nonExtensionConfigurations, suffix) => {
 						assertWorkspaceEdit(outcome);
 						assert.strictEqual(outcome.files.length, 1, 'Expected one file to be created');
 						assert.ok(
-							getFileContent(outcome.files[0]).includes('import org.junit.jupiter.api.Test;') || // JUnit 5 -- TODO@ulugbekna: we can't yet parse versions of test frameworks
-							getFileContent(outcome.files[0]).includes('import org.junit.Test;') // JUnit 4
+							getFileContent(outcome.files[0]).includes('import org.junit.jupiter.api.Test;') ||
+							getFileContent(outcome.files[0]).includes('import org.junit.Test;')
 						);
 					}
 				}],

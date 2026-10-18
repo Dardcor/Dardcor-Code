@@ -48,7 +48,6 @@ class MockLanguageModelsService implements ILanguageModelsService {
 		models.push(identifier);
 		this.modelsByVendor.set(vendorId, models);
 
-		// Add to model groups - create a single default group per vendor
 		const groups = this.modelGroups.get(vendorId) || [];
 		let group = groupName ? groups.find(candidate => candidate.group?.name === groupName) : groups[0];
 		if (!group) {
@@ -74,7 +73,7 @@ class MockLanguageModelsService implements ILanguageModelsService {
 	}
 
 	getVendors(): ILanguageModelProviderDescriptor[] {
-		return this.vendors.map(v => ({ ...v, isDefault: v.vendor === 'copilot' }));
+		return this.vendors.map(v => ({ ...v, isDefault: v.vendor === 'dardcor' }));
 	}
 
 	getLanguageModelIds(): string[] {
@@ -213,10 +212,9 @@ suite('ChatModelsViewModel', () => {
 		}));
 		languageModelsService = new MockLanguageModelsService();
 
-		// Setup test data
 		languageModelsService.addVendor({
-			vendor: 'copilot',
-			displayName: 'GitHub Copilot',
+			vendor: 'dardcor',
+			displayName: 'Dardcor Router',
 			managementCommand: undefined,
 			when: undefined,
 			configuration: undefined
@@ -230,13 +228,13 @@ suite('ChatModelsViewModel', () => {
 			configuration: undefined
 		});
 
-		languageModelsService.addModel('copilot', 'copilot-gpt-4', {
-			extension: new ExtensionIdentifier('github.copilot'),
+		languageModelsService.addModel('dardcor', 'dardcor-gpt-4', {
+			extension: new ExtensionIdentifier('github.dardcor'),
 			id: 'gpt-4',
 			name: 'GPT-4',
 			family: 'gpt-4',
 			version: '1.0',
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			maxInputTokens: 8192,
 			maxOutputTokens: 4096,
 			isUserSelectable: true,
@@ -250,13 +248,13 @@ suite('ChatModelsViewModel', () => {
 			}
 		});
 
-		languageModelsService.addModel('copilot', 'copilot-gpt-4o', {
-			extension: new ExtensionIdentifier('github.copilot'),
+		languageModelsService.addModel('dardcor', 'dardcor-gpt-4o', {
+			extension: new ExtensionIdentifier('github.dardcor'),
 			id: 'gpt-4o',
 			name: 'GPT-4o',
 			family: 'gpt-4',
 			version: '1.0',
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			maxInputTokens: 8192,
 			maxOutputTokens: 4096,
 			isUserSelectable: true,
@@ -318,7 +316,6 @@ suite('ChatModelsViewModel', () => {
 	test('should fetch all models without filters', () => {
 		const results = viewModel.filter('');
 
-		// Should have 2 vendor entries and 4 model entries (grouped by vendor)
 		assert.strictEqual(results.length, 6);
 
 		const vendors = results.filter(isLanguageModelProviderEntry);
@@ -465,12 +462,11 @@ suite('ChatModelsViewModel', () => {
 	});
 
 	test('the default provider Auto model is never listed, so a group toggle cannot hide it', async () => {
-		// A non-default provider's Auto does get a row and stays hideable.
 		const service = new MockLanguageModelsService();
-		service.addVendor({ vendor: 'copilot', displayName: 'GitHub Copilot', managementCommand: undefined, when: undefined, configuration: undefined });
-		service.addVendor({ vendor: 'copilotcli', displayName: 'Copilot CLI', managementCommand: undefined, when: undefined, configuration: undefined });
+		service.addVendor({ vendor: 'dardcor', displayName: 'Dardcor Router', managementCommand: undefined, when: undefined, configuration: undefined });
+		service.addVendor({ vendor: 'dardcorcli', displayName: 'Dardcor CLI', managementCommand: undefined, when: undefined, configuration: undefined });
 		const metadata = {
-			extension: new ExtensionIdentifier('github.copilot'),
+			extension: new ExtensionIdentifier('github.dardcor'),
 			name: 'Auto',
 			family: 'auto',
 			version: '1.0',
@@ -478,35 +474,35 @@ suite('ChatModelsViewModel', () => {
 			maxOutputTokens: 4096,
 			isDefaultForLocation: {},
 		};
-		service.addModel('copilot', 'copilot/auto', { ...metadata, id: 'auto', vendor: 'copilot' });
-		service.addModel('copilot', 'copilot/gpt-5', { ...metadata, id: 'gpt-5', name: 'GPT-5', family: 'gpt-5', vendor: 'copilot' });
-		service.addModel('copilotcli', 'copilotcli/auto', { ...metadata, id: 'auto', vendor: 'copilotcli' });
+		service.addModel('dardcor', 'dardcor/auto', { ...metadata, id: 'auto', vendor: 'dardcor' });
+		service.addModel('dardcor', 'dardcor/gpt-5', { ...metadata, id: 'gpt-5', name: 'GPT-5', family: 'gpt-5', vendor: 'dardcor' });
+		service.addModel('dardcorcli', 'dardcorcli/auto', { ...metadata, id: 'auto', vendor: 'dardcorcli' });
 
 		const model = store.add(new ChatModelsViewModel(service));
 		await model.refresh();
-		const copilotGroup = model.filter('').find(entry => isLanguageModelProviderEntry(entry) && entry.vendorEntry.vendor.vendor === 'copilot');
-		assert.ok(copilotGroup && isLanguageModelProviderEntry(copilotGroup));
+		const dardcorGroup = model.filter('').find(entry => isLanguageModelProviderEntry(entry) && entry.vendorEntry.vendor.vendor === 'dardcor');
+		assert.ok(dardcorGroup && isLanguageModelProviderEntry(dardcorGroup));
 
-		model.toggleGroupHidden(copilotGroup);
+		model.toggleGroupHidden(dardcorGroup);
 
 		assert.deepStrictEqual({
 			renderedModelIds: model.filter('').filter(entry => entry.type === 'model').map(entry => entry.model.identifier),
 			setModelsHiddenCalls: service.setModelsHiddenCalls,
 		}, {
-			renderedModelIds: ['copilot/gpt-5', 'copilotcli/auto'],
-			setModelsHiddenCalls: [{ modelIdentifiers: ['copilot/gpt-5'], hidden: true }],
+			renderedModelIds: ['dardcor/gpt-5', 'dardcorcli/auto'],
+			setModelsHiddenCalls: [{ modelIdentifiers: ['dardcor/gpt-5'], hidden: true }],
 		});
 	});
 
 	test('should filter by provider name (vendor ID and display name)', () => {
-		const resultsByCopilotId = viewModel.filter('@provider:copilot');
-		assert.strictEqual(resultsByCopilotId.length, 3);
-		assert.strictEqual(resultsByCopilotId[0].type, 'vendor');
-		assert.strictEqual(resultsByCopilotId[0].vendorEntry.vendor.vendor, 'copilot');
-		assert.strictEqual(resultsByCopilotId[1].type, 'model');
-		assert.strictEqual(resultsByCopilotId[1].model.identifier, 'copilot-gpt-4');
-		assert.strictEqual(resultsByCopilotId[2].type, 'model');
-		assert.strictEqual(resultsByCopilotId[2].model.identifier, 'copilot-gpt-4o');
+		const resultsByDardcorId = viewModel.filter('@provider:dardcor');
+		assert.strictEqual(resultsByDardcorId.length, 3);
+		assert.strictEqual(resultsByDardcorId[0].type, 'vendor');
+		assert.strictEqual(resultsByDardcorId[0].vendorEntry.vendor.vendor, 'dardcor');
+		assert.strictEqual(resultsByDardcorId[1].type, 'model');
+		assert.strictEqual(resultsByDardcorId[1].model.identifier, 'dardcor-gpt-4');
+		assert.strictEqual(resultsByDardcorId[2].type, 'model');
+		assert.strictEqual(resultsByDardcorId[2].model.identifier, 'dardcor-gpt-4o');
 
 		const resultsByOpenAIName = viewModel.filter('@provider:OpenAI');
 		assert.strictEqual(resultsByOpenAIName.length, 3);
@@ -519,7 +515,7 @@ suite('ChatModelsViewModel', () => {
 	});
 
 	test('should filter by multiple providers with OR logic', () => {
-		const results = viewModel.filter('@provider:copilot @provider:openai');
+		const results = viewModel.filter('@provider:dardcor @provider:openai');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
 		assert.strictEqual(models.length, 4);
@@ -553,7 +549,6 @@ suite('ChatModelsViewModel', () => {
 		const results = viewModel.filter('@capability:tools @capability:vision');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
-		// Should only return models that have BOTH tools and vision
 		assert.strictEqual(models.length, 2);
 		assert.ok(models.every(m =>
 			m.model.metadata.capabilities?.toolCalling === true &&
@@ -565,7 +560,6 @@ suite('ChatModelsViewModel', () => {
 		const results = viewModel.filter('@capability:tools @capability:vision @capability:agent');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
-		// Should only return gpt-4o which has all three
 		assert.strictEqual(models.length, 1);
 		assert.strictEqual(models[0].model.metadata.id, 'gpt-4o');
 	});
@@ -574,18 +568,17 @@ suite('ChatModelsViewModel', () => {
 		const results = viewModel.filter('@capability:vision @capability:agent');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
-		// Only gpt-4o has both vision and agent, but gpt-4-vision doesn't have agent
 		assert.strictEqual(models.length, 1);
 		assert.strictEqual(models[0].model.metadata.id, 'gpt-4o');
 	});
 
 	test('should combine provider and capability filters', () => {
-		const results = viewModel.filter('@provider:copilot @capability:vision');
+		const results = viewModel.filter('@provider:dardcor @capability:vision');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
 		assert.strictEqual(models.length, 2);
 		assert.ok(models.every(m =>
-			m.model.provider.vendor.vendor === 'copilot' &&
+			m.model.provider.vendor.vendor === 'dardcor' &&
 			m.model.metadata.capabilities?.vision === true
 		));
 	});
@@ -604,7 +597,7 @@ suite('ChatModelsViewModel', () => {
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
 		assert.strictEqual(models.length, 1);
-		assert.strictEqual(models[0].model.identifier, 'copilot-gpt-4o');
+		assert.strictEqual(models[0].model.identifier, 'dardcor-gpt-4o');
 		assert.ok(models[0].modelIdMatches);
 	});
 
@@ -613,14 +606,13 @@ suite('ChatModelsViewModel', () => {
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
 		assert.strictEqual(models.length, 2);
-		assert.ok(models.every(m => m.model.provider.group.name === 'GitHub Copilot'));
+		assert.ok(models.every(m => m.model.provider.group.name === 'Dardcor Router'));
 	});
 
 	test('should combine text search with capability filter', () => {
 		const results = viewModel.filter('@capability:tools GPT');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
-		// Should match all models with tools capability and 'GPT' in name
 		assert.strictEqual(models.length, 3);
 		assert.ok(models.every(m => m.model.metadata.capabilities?.toolCalling === true));
 	});
@@ -628,14 +620,12 @@ suite('ChatModelsViewModel', () => {
 	test('should handle empty search value', () => {
 		const results = viewModel.filter('');
 
-		// Should return all models grouped by vendor
 		assert.ok(results.length > 0);
 	});
 
 	test('should handle search value with only whitespace', () => {
 		const results = viewModel.filter('   ');
 
-		// Should return all models grouped by vendor
 		assert.ok(results.length > 0);
 	});
 
@@ -643,7 +633,6 @@ suite('ChatModelsViewModel', () => {
 		const results = viewModel.filter('vision');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
-		// Should match models that have vision capability or "vision" in their name
 		assert.ok(models.length > 0);
 		assert.ok(models.every(m =>
 			m.model.metadata.capabilities?.vision === true ||
@@ -652,47 +641,39 @@ suite('ChatModelsViewModel', () => {
 	});
 
 	test('should toggle vendor collapsed state', () => {
-		const vendorEntry = viewModel.viewModelEntries.find(r => isLanguageModelProviderEntry(r) && r.vendorEntry.vendor.vendor === 'copilot') as ILanguageModelProviderEntry;
+		const vendorEntry = viewModel.viewModelEntries.find(r => isLanguageModelProviderEntry(r) && r.vendorEntry.vendor.vendor === 'dardcor') as ILanguageModelProviderEntry;
 		viewModel.toggleCollapsed(vendorEntry);
 
 		const results = viewModel.filter('');
-		const copilotVendor = results.find(r => isLanguageModelProviderEntry(r) && (r as ILanguageModelProviderEntry).vendorEntry.vendor.vendor === 'copilot') as ILanguageModelProviderEntry;
-		assert.ok(copilotVendor);
-		assert.strictEqual(copilotVendor.collapsed, true);
+		const dardcorVendor = results.find(r => isLanguageModelProviderEntry(r) && (r as ILanguageModelProviderEntry).vendorEntry.vendor.vendor === 'dardcor') as ILanguageModelProviderEntry;
+		assert.ok(dardcorVendor);
+		assert.strictEqual(dardcorVendor.collapsed, true);
 
-		// Models should not be shown when vendor is collapsed
-		const copilotModelsAfterCollapse = results.filter(r =>
-			!isLanguageModelProviderEntry(r) && (r as ILanguageModelEntry).model.provider.vendor.vendor === 'copilot'
+		const dardcorModelsAfterCollapse = results.filter(r =>
+			!isLanguageModelProviderEntry(r) && (r as ILanguageModelEntry).model.provider.vendor.vendor === 'dardcor'
 		);
-		assert.strictEqual(copilotModelsAfterCollapse.length, 0);
+		assert.strictEqual(dardcorModelsAfterCollapse.length, 0);
 
-		// Toggle back
 		viewModel.toggleCollapsed(vendorEntry);
 		const resultsAfterExpand = viewModel.filter('');
-		const copilotModelsAfterExpand = resultsAfterExpand.filter(r =>
-			!isLanguageModelProviderEntry(r) && (r as ILanguageModelEntry).model.provider.vendor.vendor === 'copilot'
+		const dardcorModelsAfterExpand = resultsAfterExpand.filter(r =>
+			!isLanguageModelProviderEntry(r) && (r as ILanguageModelEntry).model.provider.vendor.vendor === 'dardcor'
 		);
-		assert.strictEqual(copilotModelsAfterExpand.length, 2);
+		assert.strictEqual(dardcorModelsAfterExpand.length, 2);
 	});
 
 	test('should handle quoted search strings', () => {
-		// When a search string is fully quoted (starts and ends with quotes),
-		// the completeMatch flag is set to true, which currently skips all matching
-		// This test verifies the quotes are processed without errors
 		const results = viewModel.filter('"GPT"');
 
-		// The function should complete without error
-		// Note: complete match logic (both quotes) currently doesn't perform matching
 		assert.ok(Array.isArray(results));
 	});
 
 	test('should remove filter keywords from text search', () => {
-		const results = viewModel.filter('@provider:copilot @capability:vision GPT');
+		const results = viewModel.filter('@provider:dardcor @capability:vision GPT');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
-		// Should only search 'GPT' in model names, not the filter keywords
 		assert.strictEqual(models.length, 2);
-		assert.ok(models.every(m => m.model.provider.vendor.vendor === 'copilot'));
+		assert.ok(models.every(m => m.model.provider.vendor.vendor === 'dardcor'));
 	});
 
 	test('should handle case-insensitive capability matching', () => {
@@ -737,7 +718,6 @@ suite('ChatModelsViewModel', () => {
 		for (const model of models) {
 			assert.ok(model.capabilityMatches);
 			assert.ok(model.capabilityMatches.length > 0);
-			// Should include both toolCalling and vision
 			assert.ok(model.capabilityMatches.some(c => c === 'toolCalling' || c === 'vision'));
 		}
 	});
@@ -745,20 +725,20 @@ suite('ChatModelsViewModel', () => {
 	function createSingleVendorViewModel(includeSecondModel: boolean = true): { service: MockLanguageModelsService; viewModel: ChatModelsViewModel } {
 		const service = new MockLanguageModelsService();
 		service.addVendor({
-			vendor: 'copilot',
-			displayName: 'GitHub Copilot',
+			vendor: 'dardcor',
+			displayName: 'Dardcor Router',
 			managementCommand: undefined,
 			when: undefined,
 			configuration: undefined
 		});
 
-		service.addModel('copilot', 'copilot-gpt-4', {
-			extension: new ExtensionIdentifier('github.copilot'),
+		service.addModel('dardcor', 'dardcor-gpt-4', {
+			extension: new ExtensionIdentifier('github.dardcor'),
 			id: 'gpt-4',
 			name: 'GPT-4',
 			family: 'gpt-4',
 			version: '1.0',
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			maxInputTokens: 8192,
 			maxOutputTokens: 4096,
 			isUserSelectable: true,
@@ -773,13 +753,13 @@ suite('ChatModelsViewModel', () => {
 		});
 
 		if (includeSecondModel) {
-			service.addModel('copilot', 'copilot-gpt-4o', {
-				extension: new ExtensionIdentifier('github.copilot'),
+			service.addModel('dardcor', 'dardcor-gpt-4o', {
+				extension: new ExtensionIdentifier('github.dardcor'),
 				id: 'gpt-4o',
 				name: 'GPT-4o',
 				family: 'gpt-4',
 				version: '1.0',
-				vendor: 'copilot',
+				vendor: 'dardcor',
 				maxInputTokens: 8192,
 				maxOutputTokens: 4096,
 				isUserSelectable: true,
@@ -804,20 +784,17 @@ suite('ChatModelsViewModel', () => {
 
 		const results = singleVendorViewModel.filter('');
 
-		// Should have only model entries, no vendor entry
 		const vendors = results.filter(isLanguageModelProviderEntry);
 		assert.strictEqual(vendors.length, 0, 'Should not show vendor header when only one vendor exists');
 
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
 		assert.strictEqual(models.length, 2, 'Should show all models');
-		assert.ok(models.every(m => m.model.provider.vendor.vendor === 'copilot'));
+		assert.ok(models.every(m => m.model.provider.vendor.vendor === 'dardcor'));
 	});
 
 	test('should show vendor headers when multiple vendors exist', () => {
-		// This is the existing behavior test
 		const results = viewModel.filter('');
 
-		// Should have 2 vendor entries and 4 model entries (grouped by vendor)
 		const vendors = results.filter(isLanguageModelProviderEntry);
 		assert.strictEqual(vendors.length, 2, 'Should show vendor headers when multiple vendors exist');
 
@@ -831,23 +808,19 @@ suite('ChatModelsViewModel', () => {
 
 		const results = singleVendorViewModel.filter('@capability:agent');
 
-		// Should not show vendor header
 		const vendors = results.filter(isLanguageModelProviderEntry);
 		assert.strictEqual(vendors.length, 0, 'Should not show vendor header');
 
-		// Should only show the model with agent capability
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
 		assert.strictEqual(models.length, 1);
 		assert.strictEqual(models[0].model.metadata.id, 'gpt-4o');
 	});
 
-	test('should always place copilot vendor at the top when multiple vendors exist', async () => {
-		// Test with default setup (copilot and openai)
+	test('should always place dardcor vendor at the top when multiple vendors exist', async () => {
 		let results = viewModel.filter('');
 		let vendors = results.filter(isLanguageModelProviderEntry) as ILanguageModelProviderEntry[];
-		assert.strictEqual(vendors[0].vendorEntry.vendor.vendor, 'copilot');
+		assert.strictEqual(vendors[0].vendorEntry.vendor.vendor, 'dardcor');
 
-		// Add more vendors to ensure sorting works correctly
 		languageModelsService.addVendor({
 			vendor: 'anthropic',
 			displayName: 'Anthropic',
@@ -906,28 +879,24 @@ suite('ChatModelsViewModel', () => {
 
 		await viewModel.refresh();
 
-		// Test with all filters and searches
 		results = viewModel.filter('');
 		vendors = results.filter(isLanguageModelProviderEntry) as ILanguageModelProviderEntry[];
 		assert.strictEqual(vendors.length, 4);
-		assert.strictEqual(vendors[0].vendorEntry.vendor.vendor, 'copilot');
-		// Other vendors should be alphabetically sorted: anthropic, azure, openai
+		assert.strictEqual(vendors[0].vendorEntry.vendor.vendor, 'dardcor');
 		assert.strictEqual(vendors[1].vendorEntry.vendor.vendor, 'anthropic');
 		assert.strictEqual(vendors[2].vendorEntry.vendor.vendor, 'azure');
 		assert.strictEqual(vendors[3].vendorEntry.vendor.vendor, 'openai');
 
-		// Test with text search
 		results = viewModel.filter('GPT');
 		vendors = results.filter(isLanguageModelProviderEntry) as ILanguageModelProviderEntry[];
 		if (vendors.length > 1) {
-			assert.strictEqual(vendors[0].vendorEntry.vendor.vendor, 'copilot');
+			assert.strictEqual(vendors[0].vendorEntry.vendor.vendor, 'dardcor');
 		}
 
-		// Test with capability filter
 		results = viewModel.filter('@capability:tools');
 		vendors = results.filter(isLanguageModelProviderEntry) as ILanguageModelProviderEntry[];
 		if (vendors.length > 1) {
-			assert.strictEqual(vendors[0].vendorEntry.vendor.vendor, 'copilot');
+			assert.strictEqual(vendors[0].vendorEntry.vendor.vendor, 'dardcor');
 		}
 	});
 
@@ -949,31 +918,25 @@ suite('ChatModelsViewModel', () => {
 	test('should get configured vendors', () => {
 		const vendors = viewModel.getConfiguredVendors();
 		assert.ok(vendors.length > 0);
-		assert.ok(vendors.some(v => v.vendor.vendor === 'copilot'));
+		assert.ok(vendors.some(v => v.vendor.vendor === 'dardcor'));
 		assert.ok(vendors.some(v => v.vendor.vendor === 'openai'));
 	});
 
 	test('should return true for shouldRefilter when models not sorted', () => {
-		// After a new filter call, models should be sorted
 		viewModel.filter('');
 		assert.strictEqual(viewModel.shouldRefilter(), false);
 
-		// Simulate unsorted state by accessing private property indirectly
-		// This is a simple test that shouldRefilter works
 		const result = viewModel.shouldRefilter();
 		assert.strictEqual(typeof result, 'boolean');
 	});
 
 	test('should collapse all groups and models', () => {
-		// Expand everything first
 		const results1 = viewModel.filter('');
 		let models = results1.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
 		assert.ok(models.length > 0);
 
-		// Collapse all
 		viewModel.collapseAll();
 
-		// After collapse all, only group/vendor headers should be shown
 		const results2 = viewModel.filter('');
 		const vendors = results2.filter(isLanguageModelProviderEntry);
 		models = results2.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
@@ -983,15 +946,13 @@ suite('ChatModelsViewModel', () => {
 	});
 
 	test('should match quoted search strings with filters', () => {
-		// Test that quotes don't break when combined with other filters
 		const results = viewModel.filter('@capability:tools "GPT"');
 		assert.ok(Array.isArray(results));
-		// Should handle without error
 	});
 
 	test('should filter by case-insensitive provider name', () => {
 		const results1 = viewModel.filter('@provider:COPILOT');
-		const results2 = viewModel.filter('@provider:copilot');
+		const results2 = viewModel.filter('@provider:dardcor');
 		const results3 = viewModel.filter('@provider:CopiloT');
 
 		const models1 = results1.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
@@ -1007,7 +968,6 @@ suite('ChatModelsViewModel', () => {
 		const results = viewModel.filter('');
 		assert.ok(results.length > 0);
 
-		// Should include vendor headers and models
 		const vendors = results.filter(isLanguageModelProviderEntry);
 		const models = results.filter(r => !isLanguageModelProviderEntry(r) && !isLanguageModelGroupEntry(r)) as ILanguageModelEntry[];
 
@@ -1028,43 +988,36 @@ suite('ChatModelsViewModel', () => {
 	});
 
 	test('should filter out agent-host BYOK model copies but keep native agent-host models', async () => {
-		// An agent host (e.g. Copilot CLI) surfaces the user's own BYOK models as copies
-		// under its own vendor. Those copies carry `byokModelIdentifier` — the id of the
-		// original BYOK model — so they must not appear in Manage Models: they already show
-		// under their real provider group, and listing them again duplicates the whole BYOK
-		// catalogue under the agent host.
 		const service = new MockLanguageModelsService();
-		service.addVendor({ vendor: 'agent-host-copilotcli', displayName: 'Copilot', managementCommand: undefined, when: undefined, configuration: undefined });
+		service.addVendor({ vendor: 'agent-host-dardcorcli', displayName: 'Dardcor', managementCommand: undefined, when: undefined, configuration: undefined });
 
-		// Native agent-host model — no `byokModelIdentifier`; kept.
-		service.addModel('agent-host-copilotcli', 'agent-host-copilotcli:claude-haiku-4.5', {
+		service.addModel('agent-host-dardcorcli', 'agent-host-dardcorcli:claude-haiku-4.5', {
 			extension: new ExtensionIdentifier('vscode.chat'),
 			id: 'claude-haiku-4.5',
 			name: 'Claude Haiku 4.5',
 			family: 'claude-haiku-4.5',
 			version: '1.0',
-			vendor: 'agent-host-copilotcli',
+			vendor: 'agent-host-dardcorcli',
 			maxInputTokens: 128000,
 			maxOutputTokens: 4096,
 			isUserSelectable: true,
-			targetChatSessionType: 'agent-host-copilotcli',
-			modelGroup: { id: 'copilotcli' },
+			targetChatSessionType: 'agent-host-dardcorcli',
+			modelGroup: { id: 'dardcorcli' },
 			capabilities: { toolCalling: true, vision: false, agentMode: true },
 			isDefaultForLocation: {},
 		});
 
-		// Agent-host BYOK copy — carries the original model identifier; filtered out.
-		service.addModel('agent-host-copilotcli', 'agent-host-copilotcli:openrouter/aion-labs/aion-3.0', {
+		service.addModel('agent-host-dardcorcli', 'agent-host-dardcorcli:openrouter/aion-labs/aion-3.0', {
 			extension: new ExtensionIdentifier('vscode.chat'),
 			id: 'openrouter/aion-labs/aion-3.0',
 			name: 'AionLabs: Aion-3.0',
 			family: 'openrouter/aion-labs/aion-3.0',
 			version: '1.0',
-			vendor: 'agent-host-copilotcli',
+			vendor: 'agent-host-dardcorcli',
 			maxInputTokens: 128000,
 			maxOutputTokens: 4096,
 			isUserSelectable: true,
-			targetChatSessionType: 'agent-host-copilotcli',
+			targetChatSessionType: 'agent-host-dardcorcli',
 			modelGroup: { id: 'openrouter' },
 			byokModelIdentifier: 'openrouter/OpenRouter 2/aion-labs/aion-3.0',
 			capabilities: { toolCalling: true, vision: false, agentMode: true },

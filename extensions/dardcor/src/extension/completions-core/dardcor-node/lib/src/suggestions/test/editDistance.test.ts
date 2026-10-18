@@ -45,15 +45,11 @@ suite('Edit-Distance Test Suite', function () {
 	});
 
 	test('prefer substitution over equals + insertion', function () {
-		// Same distance in edit operations. This is a convention
 		test_alignment('aXbc', 'abc', 1, 'Xbc');
-		// Alternative: match "aXbc" as equals on 'a' + insertion of 'X'
 	});
 
 	test('prefer deletion over substitution', function () {
-		// Same distance in edit operations. This is a convention
 		test_alignment('abcS', 'abcd', 1, 'abc');
-		// Alternative: match "abcS" as subst 'd' by 'S'
 	});
 
 	test('deletions', function () {
@@ -193,7 +189,6 @@ suite('Lexical Analyzer for Edit-Distance Test Suite', function () {
 	});
 
 	test('lex alternative alphabets form words', function () {
-		// Write some greek letters
 		test_lexing(
 			'a\u03B1\u03B2\u03B3\u03B4\u03B5\u03B6\u03B7\u03B8\u03B9\u03BA\u03BB\u03BC\u03BD\u03BE\u03BF\u03C0\u03C1\u03C2\u03C3\u03C4\u03C5',
 			[
@@ -260,10 +255,6 @@ suite('Lexical Analyzer for Edit-Distance Test Suite', function () {
 		test_lex_alignment('aabb', 'cc aab', 1, 'aabb');
 	});
 
-	// The following tests are equivalent to those for character-based
-	// edit-distance, but all characters have been replaced by multi-character
-	// tokens. This is more test of offset-adjustment rather than the
-	// edit-distance algorithm itself.
 
 	test('lexed almost non-match beginning', function () {
 		test_lex_alignment('aa XX XX XX ', 'YY YY aa', 2, 'aa');
@@ -278,7 +269,6 @@ suite('Lexical Analyzer for Edit-Distance Test Suite', function () {
 	});
 
 	test('lexed prefer deletion over substitution', function () {
-		// Same distance in edit operations. This is a convention
 		test_lex_alignment('aa bb cc SS ', 'aa bb cc dd', 1, 'aa bb cc');
 	});
 

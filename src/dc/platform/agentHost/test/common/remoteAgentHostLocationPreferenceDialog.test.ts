@@ -17,7 +17,6 @@ import {
 	promptRemoteAgentHostLocationPreference,
 } from '../../common/remoteAgentHostLocationPreferenceDialog.js';
 
-/** Captures the last `prompt()` call so tests can assert its exact shape without a real dialog UI. */
 class CapturingDialogService implements IDialogService {
 	declare readonly _serviceBrand: undefined;
 	readonly onWillShowDialog = Event.None;
@@ -25,7 +24,6 @@ class CapturingDialogService implements IDialogService {
 
 	lastPrompt: IPrompt<unknown> | undefined;
 
-	/** Index of the button to invoke, or `undefined` to invoke the cancel button (simulating a user cancel). */
 	constructor(private readonly buttonIndexToInvoke: number | undefined) { }
 
 	async confirm(confirmation: IConfirmation): Promise<IConfirmationResult> {
@@ -64,8 +62,6 @@ suite('promptRemoteAgentHostLocationPreference', () => {
 	});
 
 	test('exports the exact command id registered by the sessions-layer "Chat: Change Preferred Remote Agent Location" command', () => {
-		// The sessions layer cannot be imported here (platform cannot depend
-		// on it), so this literal is the contract the sessions-layer command
 		// registration must match when it consumes this exported constant.
 		assert.strictEqual(ChangeRemoteAgentHostLocationPreferenceCommandId, 'workbench.action.sessions.changeRemoteAgentHostLocationPreference');
 	});
@@ -84,9 +80,6 @@ suite('promptRemoteAgentHostLocationPreference', () => {
 
 		assert.strictEqual(typeof detail, 'object', 'detail should be an IMarkdownString, not a plain string');
 		assert.strictEqual(detail.value, `You can change this later with the **${expectedLink}** command.`);
-		// The command link is bold and only its own command id is trusted -
-		// not a blanket `isTrusted: true` - so no other command can be invoked
-		// from this detail text.
 		assert.deepStrictEqual(detail.isTrusted, { enabledCommands: [ChangeRemoteAgentHostLocationPreferenceCommandId] });
 	});
 

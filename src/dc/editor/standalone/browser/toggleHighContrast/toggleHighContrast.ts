@@ -28,7 +28,6 @@ class ToggleHighContrast extends EditorAction {
 		const standaloneThemeService = accessor.get(IStandaloneThemeService);
 		const currentTheme = standaloneThemeService.getColorTheme();
 		if (isHighContrast(currentTheme.type)) {
-			// We must toggle back to the integrator's theme
 			standaloneThemeService.setTheme(this._originalThemeName || (isDark(currentTheme.type) ? VS_DARK_THEME_NAME : VS_LIGHT_THEME_NAME));
 			this._originalThemeName = null;
 		} else {

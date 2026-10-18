@@ -82,7 +82,7 @@ export class MainThreadSecretState extends Disposable implements MainThreadSecre
 		const keys = allKeys
 			.map(key => this.parseKey(key))
 			.filter((parsedKey): parsedKey is { extensionId: string; key: string } => parsedKey !== undefined && parsedKey.extensionId === extensionId)
-			.map(({ key }) => key); // Return only my keys
+			.map(({ key }) => key);
 		this.logService.trace(`[mainThreadSecretState] Got ${keys.length}key(s) for: `, extensionId);
 		return keys;
 	}

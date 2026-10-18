@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -125,7 +124,6 @@ export class StringText extends AbstractText {
 		return this._t.textLength;
 	}
 
-	// Override the getTransformer method to return the cached transformer
 	override getTransformer() {
 		return this._t;
 	}

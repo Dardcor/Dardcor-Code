@@ -51,9 +51,6 @@ export class InlineCompletionsController extends Disposable {
 	public static hot = createHotClass(this);
 	public static ID = 'editor.contrib.inlineCompletionsController';
 
-	/**
-	 * Find the controller in the focused editor or in the outer editor (if applicable)
-	 */
 	public static getInFocusedEditorOrParent(accessor: ServicesAccessor): InlineCompletionsController | null {
 		const outerEditor = getOuterEditor(accessor);
 		if (!outerEditor) {
@@ -157,21 +154,17 @@ export class InlineCompletionsController extends Disposable {
 		this._register(toDisposable(() => InlineCompletionsController._instances.delete(this)));
 
 		this._register(autorun(reader => {
-			// Cancel all other inline completions when a new one starts
 			const model = this.model.read(reader);
 			if (!model) { return; }
 			const state = model.state.read(reader);
 			if (!state) { return; }
 			if (!this._focusIsInEditorOrMenu.read(undefined)) { return; }
 
-			// This controller is in focus, hence reject others.
-			// However if we display a NES that relates to another edit then trigger NES on that related controller
 			const nextEditUri = state.kind === 'inlineEdit' ? state.nextEditUri : undefined;
 			for (const ctrl of InlineCompletionsController._instances) {
 				if (ctrl === this) {
 					continue;
 				} else if (nextEditUri && isEqual(nextEditUri, ctrl.editor.getModel()?.uri)) {
-					// The next edit in other edito is related to this controller, trigger it.
 					ctrl.model.read(undefined)?.trigger();
 				} else {
 					ctrl.reject();
@@ -179,20 +172,15 @@ export class InlineCompletionsController extends Disposable {
 			}
 		}));
 		this._register(autorun(reader => {
-			// Cancel all other inline completions when a new one starts
 			const model = this.model.read(reader);
 			const uri = this.editor.getModel()?.uri;
 			if (!model || !uri) { return; }
 
-			// This NES was accepted, its possible there is an NES that points to this editor.
-			// I.e. there's an NES that reads `Go To Next Edit`,
-			// If there is one that points to this editor, then we need to hide that as this NES was accepted.
 			reader.store.add(model.onDidAccept(() => {
 				for (const ctrl of InlineCompletionsController._instances) {
 					if (ctrl === this) {
 						continue;
 					}
-					// Find the nes from another editor that points to this.
 					const state = ctrl.model.read(undefined)?.state.read(undefined);
 					if (state?.kind === 'inlineEdit' && isEqual(state.nextEditUri, uri)) {
 						ctrl.model.read(undefined)?.stop('automatic');
@@ -214,7 +202,6 @@ export class InlineCompletionsController extends Disposable {
 			}
 		}));
 
-		// These commands don't trigger onDidType.
 		const triggerCommands = new Set([
 			CoreEditingCommands.Tab.id,
 			CoreEditingCommands.DeleteLeft.id,
@@ -237,7 +224,6 @@ export class InlineCompletionsController extends Disposable {
 					noDelay = true;
 				}
 				this._editorObs.forceUpdate(tx => {
-					/** @description onDidExecuteCommand */
 					this.model.get()?.trigger(tx, { noDelay });
 				});
 			}
@@ -260,8 +246,6 @@ export class InlineCompletionsController extends Disposable {
 			const isFocused = this._focusIsInEditorOrMenu.read(reader);
 			const model = this.model.read(undefined);
 			if (isFocused) {
-				// If this model already has an NES for another editor, then leave as is
-				// Else stop other models.
 				const state = model?.state.read(undefined);
 				if (!state || state.kind !== 'inlineEdit' || !state.nextEditUri) {
 					transaction(tx => {
@@ -275,7 +259,6 @@ export class InlineCompletionsController extends Disposable {
 				return;
 			}
 
-			// This is a hidden setting very useful for debugging
 			if (this._contextKeyService.getContextKeyValue<boolean>('accessibleViewIsShown')
 				|| this._configurationService.getValue('editor.inlineSuggest.keepOnBlur')
 				|| editor.getOption(EditorOption.inlineSuggest).keepOnBlur
@@ -285,18 +268,15 @@ export class InlineCompletionsController extends Disposable {
 
 			if (!model) { return; }
 			if (model.state.read(undefined)?.inlineSuggestion?.isFromExplicitRequest && model.inlineEditAvailable.read(undefined)) {
-				// dont hide inline edits on blur when requested explicitly
 				return;
 			}
 
 			transaction(tx => {
-				/** @description InlineCompletionsController.onDidBlurEditorWidget */
 				model.stop('automatic', tx);
 			});
 		}));
 
 		this._register(autorun(reader => {
-			/** @description InlineCompletionsController.forceRenderingAbove */
 			const state = this.model.read(reader)?.inlineCompletionState.read(reader);
 			if (state?.suggestItem) {
 				if (state.primaryGhostText.lineCount >= 2) {
@@ -323,7 +303,6 @@ export class InlineCompletionsController extends Disposable {
 			currentInlineCompletionBySemanticId.read(reader);
 			return {};
 		}), async (_value, _, _deltas, store) => {
-			/** @description InlineCompletionsController.playAccessibilitySignalAndReadSuggestion */
 			let model = this.model.get();
 			let state = model?.state.get();
 			if (!state || !model) { return; }
@@ -363,7 +342,6 @@ export class InlineCompletionsController extends Disposable {
 			}
 		}));
 
-		// TODO@hediet
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('accessibility.verbosity.inlineCompletions')) {
 				this.editor.updateOptions({ inlineCompletionsAccessibilityVerbose: this._configurationService.getValue('accessibility.verbosity.inlineCompletions') });
@@ -461,7 +439,6 @@ export class InlineCompletionsController extends Disposable {
 			const m = this.model.get();
 			if (m) {
 				m.stop('explicitCancel', tx);
-				// Only if this controller is in focus can we cancel others.
 				if (this._focusIsInEditorOrMenu.get()) {
 					for (const ctrl of InlineCompletionsController._instances) {
 						if (ctrl !== this && !ctrl._focusIsInEditorOrMenu.get()) {

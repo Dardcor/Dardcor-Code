@@ -11,8 +11,6 @@ import { NotebookLayoutChangeEvent, NotebookLayoutInfo } from '../notebookViewEv
 export enum NotebookDiffViewEventType {
 	LayoutChanged = 1,
 	CellLayoutChanged = 2
-	// MetadataChanged = 2,
-	// CellStateChanged = 3
 }
 
 export class NotebookDiffLayoutChangedEvent {

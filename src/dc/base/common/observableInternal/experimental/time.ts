@@ -9,7 +9,6 @@ import { DisposableStore, IDisposable, toDisposable } from '../commonFacade/deps
 import { observableValue } from '../observables/observableValue.js';
 import { autorun } from '../reactions/autorun.js';
 
-/** Measures the total time an observable had the value "true". */
 export class TotalTrueTimeObservable extends Disposable {
 	private _totalTime = 0;
 	private _startTime: number | undefined = undefined;
@@ -32,10 +31,6 @@ export class TotalTrueTimeObservable extends Disposable {
 		}));
 	}
 
-	/**
-	 * Reports the total time the observable has been true in milliseconds.
-	 * E.g. `true` for 100ms, then `false` for 50ms, then `true` for 200ms results in 300ms.
-	*/
 	public totalTimeMs(): number {
 		if (this._startTime !== undefined) {
 			return this._totalTime + (Date.now() - this._startTime);
@@ -43,9 +38,6 @@ export class TotalTrueTimeObservable extends Disposable {
 		return this._totalTime;
 	}
 
-	/**
-	 * Runs the callback when the total time the observable has been true increased by the given delta in milliseconds.
-	*/
 	public fireWhenTimeIncreasedBy(deltaTimeMs: number, callback: () => void): IDisposable {
 		const store = new DisposableStore();
 		let accumulatedTime = 0;
@@ -85,9 +77,6 @@ export class TotalTrueTimeObservable extends Disposable {
 	}
 }
 
-/**
- * Returns an observable that is true when the input observable was true within the last `timeMs` milliseconds.
- */
 export function wasTrueRecently(obs: IObservable<boolean>, timeMs: number, store: DisposableStore): IObservable<boolean> {
 	const result = observableValue('wasTrueRecently', false);
 	let timeout: ReturnType<typeof setTimeout> | undefined;

@@ -123,7 +123,6 @@ export class MarkerList {
 
 		let idx = this._markers.findIndex(marker => isEqual(marker.resource, model.uri));
 		if (idx < 0) {
-			// ignore model, position because this will be a different file
 			idx = binarySearch2(this._markers.length, idx => compare(this._markers[idx].resource.toString(), model.uri.toString()));
 			if (idx < 0) {
 				idx = ~idx;
@@ -134,7 +133,6 @@ export class MarkerList {
 				this._nextIdx = (this._markers.length + idx - 1) % this._markers.length;
 			}
 		} else {
-			// find marker for file
 			let found = false;
 			let wentPast = false;
 			for (let i = idx; i < this._markers.length; i++) {
@@ -160,10 +158,8 @@ export class MarkerList {
 			}
 
 			if (!found) {
-				// after the last change
 				this._nextIdx = fwd ? 0 : this._markers.length - 1;
 			} else if (wentPast && !fwd) {
-				// we went past and have to go one back
 				this._nextIdx -= 1;
 			}
 		}
@@ -246,7 +242,6 @@ class MarkerNavigationService implements IMarkerNavigationService, IMarkerListPr
 				return result;
 			}
 		}
-		// default
 		return new MarkerList(resource, this._markerService, this._configService);
 	}
 }

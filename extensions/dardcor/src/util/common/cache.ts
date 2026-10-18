@@ -66,11 +66,6 @@ export class LRUCache<T> {
 		this._tail.prev = this._head;
 	}
 
-	/**
-	 * Deletes the cache entry for the given key, if it exists.
-	 * @param key The key of the cache entry to delete.
-	 * @returns The value of the deleted cache entry, or undefined if the key was not found.
-	 */
 	deleteKey(key: string): T | undefined {
 		const node = this._cache.get(key);
 		if (!node) {
@@ -90,12 +85,6 @@ export class LRUCache<T> {
 		return node.value;
 	}
 
-	/**
-	 * Return a copy of all the keys stored in the LRU cache, in LRU order.
-	 *
-	 * The returned array is safe to modify, as this call allocates a copy of a
-	 * private array used to represent those keys.
-	 */
 	keys(): string[] {
 		const keys: string[] = [];
 		let current = this._head.next;
@@ -116,7 +105,6 @@ export class LRUCache<T> {
 		return values;
 	}
 
-	/** @returns the evicted [key, value]  */
 	put(key: string, value: T): [string, T] | undefined {
 		let node = this._cache.get(key);
 		if (node) {

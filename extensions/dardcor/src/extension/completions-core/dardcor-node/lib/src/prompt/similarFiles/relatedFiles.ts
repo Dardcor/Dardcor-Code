@@ -59,17 +59,12 @@ const EmptyRelatedFiles: RelatedFiles = {
 };
 
 type TimestampEntry = { timestamp: number; retryCount: number };
-// A map with an expiration time for each key. Keys are removed upon get() time.
-// Note: the size() function is not being used, but if it does, be aware that it is
-// counting expired keys. This ensures a constant time execution time.
 export class PromiseExpirationCacheMap<T> extends LRUCacheMap<string, Promise<T>> {
-	// Hold the time an entry is cached the first time. The entries in this map are only removed
-	// upon a get() call when the eviction time elapsed.
 	_cacheTimestamps: Map<string, TimestampEntry> = new Map();
 
 	constructor(
 		size: number,
-		private readonly defaultEvictionTimeMs: number = 2 * 60 * 1000 // 2 minutes
+		private readonly defaultEvictionTimeMs: number = 2 * 60 * 1000
 	) {
 		super(size);
 	}
@@ -116,7 +111,6 @@ export class PromiseExpirationCacheMap<T> extends LRUCacheMap<string, Promise<T>
 		this._cacheTimestamps.clear();
 	}
 
-	// A cache entry is considered valid if its lifetime is less than the default cache eviction time.
 	private isValid(key: string): boolean {
 		const ts = this._cacheTimestamps.get(key);
 		return ts !== undefined && Date.now() - ts.timestamp < this.defaultEvictionTimeMs;
@@ -154,9 +148,6 @@ export interface ICompletionsRelatedFilesProviderService {
 	): Promise<RelatedFiles | undefined>;
 }
 
-/**
- * Class for getting the related files to the current active file (implemented in the extension or the agent).
- */
 export abstract class RelatedFilesProvider implements ICompletionsRelatedFilesProviderService {
 	declare _serviceBrand: undefined;
 	constructor(
@@ -166,8 +157,6 @@ export abstract class RelatedFilesProvider implements ICompletionsRelatedFilesPr
 		@ICompletionsFileSystemService protected readonly fileSystemService: ICompletionsFileSystemService,
 	) { }
 
-	// Returns the related files for the given document.
-	// An exception or `undefined` may be returned if a return value cannot be provided for some reason (e.g. failures).
 	abstract getRelatedFilesResponse(
 		docInfo: RelatedFilesDocumentInfo,
 		telemetryData: TelemetryWithExp,
@@ -179,10 +168,6 @@ export abstract class RelatedFilesProvider implements ICompletionsRelatedFilesPr
 		telemetryData: TelemetryWithExp,
 		cancellationToken: ICancellationToken | undefined
 	): Promise<RelatedFiles | undefined> {
-		// Try/catch-ing around getRelatedFilesResponse is not useful: it is up to the
-		// concrete implementation of getRelatedFilesResponse to handle exceptions. If
-		// they are thrown at this point, let them pass through up to the memoize() to
-		// handle cache eviction.
 		const response = await this.getRelatedFilesResponse(docInfo, telemetryData, cancellationToken);
 		if (response === undefined) { return undefined; }
 
@@ -235,18 +220,15 @@ export abstract class RelatedFilesProvider implements ICompletionsRelatedFilesPr
 
 	private async isContentExcluded(uri: string, content: string): Promise<boolean> {
 		try {
-			return this.ignoreService.isCopilotIgnored(URI.parse(uri));
+			return this.ignoreService.isIgnored(URI.parse(uri));
 		} catch (e) {
 			this.instantiationService.invokeFunction(acc => relatedFilesLogger.exception(acc, e, 'isContentExcluded'));
 		}
 
-		// Default to being excluded if encountered error
 		return true;
 	}
 
 	private static dropBOM(content: string): string {
-		// Note: charCodeAt() converts the UTF8 BOM to UTF16 BOM (`0xefbbbf` to `0xfeff`),
-		// so only the latter must be checked.
 		if (content.charCodeAt(0) === 0xfeff) {
 			return content.slice(1);
 		}
@@ -255,13 +237,9 @@ export abstract class RelatedFilesProvider implements ICompletionsRelatedFilesPr
 	}
 }
 
-const defaultMaxRetryCount: number = 3; // times the cache may be evicted and refreshed (e.g. a retry)
+const defaultMaxRetryCount: number = 3;
 const lruCache: PromiseExpirationCacheMap<RelatedFiles> = new PromiseExpirationCacheMap(lruCacheSize);
 
-/**
- * Given a document, gets a list of related files which are cached (memoized).
- * If the result is not already cached, then the lookup is made based purely upon docInfo and then cached.
- * */
 async function getRelatedFiles(
 	accessor: ServicesAccessor,
 	docInfo: RelatedFilesDocumentInfo,
@@ -283,7 +261,6 @@ async function getRelatedFiles(
 	if (result === undefined) {
 		const retryCount = lruCache.bumpRetryCount(docInfo.uri);
 		if (retryCount >= defaultMaxRetryCount) {
-			// Retry limit reached, cache and return an empty list.
 			result = EmptyRelatedFiles;
 		} else {
 			result = undefined;
@@ -300,7 +277,6 @@ async function getRelatedFiles(
 			: `Failing fetching files for '${docInfo.uri}' in ${elapsedTime}ms.`
 	);
 
-	// If the provider failed, throwing will let memoize() evict the key from the cache, and will be tried again.
 	if (result === undefined) {
 		throw new RelatedFilesProviderFailure();
 	}
@@ -331,20 +307,10 @@ let getRelatedFilesWithCacheAndTimeout = function (
 
 getRelatedFilesWithCacheAndTimeout = shortCircuit(
 	getRelatedFilesWithCacheAndTimeout,
-	200, // max milliseconds
+	200,
 	EmptyRelatedFiles
 );
 
-/**
- * For a given document, it provides a list of related files and traits
- * @param ctx The context.
- * @param doc The document information.
- * @param telemetryData Object used to send telemetry and check experimentation options.
- * @param cancellationToken The cancellation token.
- * @param data Additional arbitrary data to be passed to the provider.
- * @param forceComputation Set true to force computation by skipping cache and timeout.
- * @returns Related files and traits.
- */
 export async function getRelatedFilesAndTraits(
 	accessor: ServicesAccessor,
 	doc: RelatedFilesTextDocument,

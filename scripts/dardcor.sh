@@ -7,7 +7,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 	ROOT=$(dirname "$(dirname "$(realpath "$0")")")
 else
 	ROOT=$(dirname "$(dirname "$(readlink -f $0)")")
-	# If the script is running in Docker using the WSL2 engine, powershell.exe won't exist
 	if grep -qi Microsoft /proc/version && type powershell.exe > /dev/null 2>&1; then
 		IN_WSL=true
 	fi
@@ -25,18 +24,15 @@ function dardcor() {
 		CODE=".build/electron/$NAME"
 	fi
 
-	# Get electron, compile, built-in extensions
 	if [[ -z "${DARDCOR_SKIP_PRELAUNCH}" ]] && [[ -z "${VSCODE_SKIP_PRELAUNCH}" ]]; then
 		node build/lib/preLaunch.ts
 	fi
 
-	# Manage built-in extensions
 	if [[ "$1" == "--builtin" ]]; then
 		exec "$CODE" build/builtin
 		return
 	fi
 
-	# Configuration
 	export NODE_ENV=development
 	export DARDCOR_DEV=1
 	export VSCODE_DEV=1
@@ -51,7 +47,6 @@ function dardcor() {
 		DISABLE_TEST_EXTENSION=""
 	fi
 
-	# Launch Dardcor Code
 	exec "$CODE" . $DISABLE_TEST_EXTENSION "$@"
 }
 
@@ -60,7 +55,6 @@ function dardcor-wsl()
 	HOST_IP=$(echo "" | powershell.exe -noprofile -Command "& {(Get-NetIPAddress | Where-Object {\$_.InterfaceAlias -like '*WSL*' -and \$_.AddressFamily -eq 'IPv4'}).IPAddress | Write-Host -NoNewline}")
 	export DISPLAY="$HOST_IP:0"
 
-	# in a wsl shell
 	ELECTRON="$ROOT/.build/electron/Dardcor Code.exe"
 	if [ ! -f "$ELECTRON" ]; then
 		ELECTRON="$ROOT/.build/electron/Code - OSS.exe"

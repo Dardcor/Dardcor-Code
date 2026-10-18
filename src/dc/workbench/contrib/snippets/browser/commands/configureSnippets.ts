@@ -45,7 +45,6 @@ async function computePicks(snippetService: ISnippetsService, userDataProfileSer
 	for (const file of await snippetService.getSnippetFiles()) {
 
 		if (file.source === SnippetSource.Extension) {
-			// skip extension snippets
 			continue;
 		}
 
@@ -97,7 +96,6 @@ async function computePicks(snippetService: ISnippetsService, userDataProfileSer
 			added.set(basename(file.location), { snippet, detail });
 
 		} else {
-			// language snippet
 			const mode = basename(file.location).replace(/\.json$/, '');
 			existing.push({
 				label: basename(file.location),

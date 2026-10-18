@@ -8,8 +8,6 @@ import { CancellationToken } from '../../src/util/dardcor/base/common/cancellati
 import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { ISimulationTestRuntime, ssuite, stest } from '../base/stest';
 
-// Use to print the model's suggested tool list for all languages.
-// Set to true and run with: npm run simulate -- --grep "print all languages" -n=1
 const PRINT_LANGUAGE_TOOLS = false;
 
 ssuite({ title: 'Debug tools list', location: 'context' }, () => {
@@ -65,8 +63,6 @@ ssuite({ title: 'Debug tools list', location: 'context' }, () => {
 	});
 
 	stest({ description: 'go' }, async (testingServiceCollection) => {
-		// it's a short list, because everything in Go is invoked with `go`.
-		// Amusingly the model sometimes just lists "go" 10 times.
 		await score(testingServiceCollection, ['go'], ['go']);
 	});
 
@@ -102,7 +98,6 @@ ssuite({ title: 'Debug tools list', location: 'context' }, () => {
 	}
 });
 
-// Some additional languages popular in the 2024 SO developer survey
 const additionalLanguageIds = [
 	'dart',
 	'zig',
@@ -110,9 +105,6 @@ const additionalLanguageIds = [
 	'matlab',
 ];
 
-// Languages we don't want to bother getting tools for. These are text
-// languages, markup languages that aren't specific to any one set of tools,
-// or duplicates (e.g. vue and vue-html).
 const omittedLanguages = [
 	'bat',
 	'bibtex',
@@ -153,7 +145,6 @@ const omittedLanguages = [
 	'yaml',
 ];
 
-// Base language list seeded from https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers
 const baseLanguageIds = [
 	'abap',
 	'bat',

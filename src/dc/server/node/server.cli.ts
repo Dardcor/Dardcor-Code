@@ -17,13 +17,6 @@ import { hasStdinWithoutTty, getStdinFilePath, readFromStdin } from '../../platf
 import { DeferredPromise } from '../../base/common/async.js';
 import { FileAccess } from '../../base/common/network.js';
 
-/*
- * Implements a standalone CLI app that opens VS Code from a remote terminal.
- *  - In integrated terminals for remote windows this connects to the remote server though a pipe.
- *    The pipe is passed in env VSCODE_IPC_HOOK_CLI.
- *  - In external terminals for WSL this calls VS Code on the Windows side.
- *    The VS Code desktop executable path is passed in env VSCODE_CLIENT_COMMAND.
- */
 
 
 interface ProductDescription {
@@ -95,7 +88,6 @@ export async function main(desc: ProductDescription, args: string[]): Promise<vo
 		return;
 	}
 
-	// take the local options and remove the ones that don't apply
 	const options: OptionDescriptions<Required<RemoteParsedArgs>> = { ...OPTIONS, gitCredential: { type: 'string' }, openExternal: { type: 'boolean' } };
 	const isSupported = cliCommand ? isSupportedForCmd : isSupportedForPipe;
 	for (const optionId in OPTIONS) {
@@ -140,13 +132,9 @@ export async function main(desc: ProductDescription, args: string[]): Promise<vo
 	if (parsedArgs['locate-shell-integration-path']) {
 		let file: string;
 		switch (parsedArgs['locate-shell-integration-path']) {
-			// Usage: `[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path bash)"`
 			case 'bash': file = 'shellIntegration-bash.sh'; break;
-			// Usage: `if ($env:TERM_PROGRAM -eq "vscode") { . "$(code --locate-shell-integration-path pwsh)" }`
 			case 'pwsh': file = 'shellIntegration.ps1'; break;
-			// Usage: `[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"`
 			case 'zsh': file = 'shellIntegration-rc.zsh'; break;
-			// Usage: `string match -q "$TERM_PROGRAM" "vscode"; and . (code --locate-shell-integration-path fish)`
 			case 'fish': file = 'shellIntegration.fish'; break;
 			default: throw new Error('Error using --locate-shell-integration-path: Invalid shell type');
 		}
@@ -162,7 +150,7 @@ export async function main(desc: ProductDescription, args: string[]): Promise<vo
 
 	let remote: string | null | undefined = parsedArgs.remote;
 	if (remote === 'local' || remote === 'false' || remote === '') {
-		remote = null; // null represent a local window
+		remote = null;
 	}
 
 	const folderURIs = (parsedArgs['folder-uri'] || []).map(mapFileUri);
@@ -192,19 +180,14 @@ export async function main(desc: ProductDescription, args: string[]): Promise<vo
 			if (!stdinFilePath) {
 				stdinFilePath = getStdinFilePath();
 				const readFromStdinDone = new DeferredPromise<void>();
-				await readFromStdin(stdinFilePath, verbose, () => readFromStdinDone.complete()); // throws error if file can not be written
+				await readFromStdin(stdinFilePath, verbose, () => readFromStdinDone.complete());
 				if (!parsedArgs.wait) {
-					// if `--wait` is not provided, we keep this process alive
-					// for at least as long as the stdin stream is open to
-					// ensure that we read all the data.
 					readFromStdinPromise = readFromStdinDone.p;
 				}
 			}
 
-			// Make sure to open tmp file
 			translatePath(stdinFilePath, mapFileUri, folderURIs, fileURIs);
 
-			// Ignore adding this to history
 			parsedArgs['skip-add-to-recently-opened'] = true;
 
 			console.log(`Reading from stdin via: ${stdinFilePath}`);
@@ -365,7 +348,6 @@ export async function main(desc: ProductDescription, args: string[]): Promise<vo
 			try {
 				fs.unlinkSync(stdinFilePath);
 			} catch (e) {
-				//ignore
 			}
 		}
 	}
@@ -377,7 +359,6 @@ function runningInWSL2(): boolean {
 		try {
 			return cp.execSync('uname -r', { encoding: 'utf8' }).includes('-microsoft-');
 		} catch (_e) {
-			// Ignore
 		}
 	}
 	return false;
@@ -478,7 +459,7 @@ function fatal(message: string, err: unknown): void {
 	process.exit(1);
 }
 
-const preferredCwd = process.env.PWD || cwd(); // prefer process.env.PWD as it does not follow symlinks
+const preferredCwd = process.env.PWD || cwd();
 
 function pathToURI(input: string): url.URL {
 	input = input.trim();
@@ -498,7 +479,6 @@ function translatePath(input: string, mapFileUri: (input: string) => string, fol
 		} else if (stat.isDirectory()) {
 			folderURIS.push(mappedUri);
 		} else if (input === '/dev/null') {
-			// handle /dev/null passed to us by external tools such as `git difftool`
 			fileURIS.push(mappedUri);
 		}
 	} catch (e) {

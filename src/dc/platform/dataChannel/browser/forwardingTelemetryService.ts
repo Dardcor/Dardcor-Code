@@ -87,7 +87,6 @@ export class DataChannelForwardingTelemetryService extends InterceptingTelemetry
 		@IDataChannelService dataChannelService: IDataChannelService,
 	) {
 		super(telemetryService, (eventName, data) => {
-			// filter for extension
 			let forward = true;
 			if (data && shouldForwardToChannel in data) {
 				forward = Boolean(data[shouldForwardToChannel]);
@@ -103,7 +102,6 @@ export class DataChannelForwardingTelemetryService extends InterceptingTelemetry
 const shouldForwardToChannel = Symbol('shouldForwardToChannel');
 export function forwardToChannelIf(value: boolean): Record<string, unknown> {
 	return {
-		// This will not be sent via telemetry, it is just a marker
 		[shouldForwardToChannel]: value
 	};
 }

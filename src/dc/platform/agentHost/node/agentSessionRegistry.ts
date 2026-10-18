@@ -9,17 +9,12 @@ import { URI } from '../../../base/common/uri.js';
 import { AgentProvider } from '../common/agent.js';
 import { AgentSessionRegistrationSource, IAgentHostDatabase, IAgentHostDatabaseExternalUpdate, IAgentHostDatabaseRegisterOptions, IAgentHostDatabaseSessionOptions } from './agentHostDatabase.js';
 
-/** A session recorded in the orchestrator-owned {@link AgentSessionRegistry}. */
 export interface IRegisteredSession {
 	readonly session: URI;
 	readonly provider: AgentProvider;
-	/** Session creation time (ms since epoch) as first observed by the orchestrator. */
 	readonly startTime: number;
-	/** Most recent provider modification time observed by the orchestrator. */
 	readonly modifiedTime: number;
-	/** Whether the session was first discovered from the provider's native catalog. */
 	readonly external: boolean;
-	/** Durable registration source used to protect external provenance. */
 	readonly source: AgentSessionRegistrationSource;
 }
 
@@ -66,56 +61,34 @@ export class AgentSessionRegistry extends Disposable {
 		super();
 	}
 
-	/** Records a session using source-aware provenance and tombstone behavior. */
 	register(session: URI, sessionOptions: IAgentHostDatabaseSessionOptions, registerOptions: IAgentHostDatabaseRegisterOptions): Promise<boolean> {
 		return this._database.registerSession(session.toString(), sessionOptions, registerOptions);
 	}
 
-	/** Removes any registry entry for `session` without writing a tombstone. */
 	async unregister(session: URI): Promise<void> {
 		await this._database.unregisterSession(session.toString());
 	}
 
-	/**
-	 * Removes any registry entry for `session` (a true delete) and durably
-	 * tombstones it so discovery cannot register it. Used both to delete a
-	 * session the user explicitly removed and to keep a session that must never
-	 * be listed (e.g. a throwaway chat surface) out of the registry entirely.
-	 * No-op on the registry entry if absent; the tombstone is still written.
-	 */
 	async tombstone(session: URI): Promise<void> {
 		await this._database.tombstoneAndUnregisterSession(session.toString());
 	}
 
-	/** Advances the durable last-observed provider modification time. */
 	updateModifiedTime(session: URI, modifiedTime: number): Promise<boolean> {
 		return this._database.updateSessionModifiedTime(session.toString(), modifiedTime);
 	}
 
-	/** Advances the durable last-observed provider modification time for many sessions in one transaction. */
 	updateModifiedTimes(updates: readonly { readonly session: URI; readonly modifiedTime: number }[]): Promise<void> {
 		return this._database.updateSessionModifiedTimes(updates.map(({ session, modifiedTime }) => ({ session: session.toString(), modifiedTime })));
 	}
 
-	/** Every registered session URI key without running legacy metadata migration. */
 	async listSessionKeys(): Promise<ReadonlySet<string>> {
 		return new Set((await this._database.listSessions()).map(entry => entry.session));
 	}
 
-	/**
-	 * Every registered session URI mapped to its durable last-observed
-	 * modification time, without running legacy metadata migration. Lets a
-	 * caller skip no-op recency writes for sessions the provider re-reports
-	 * unchanged.
-	 */
 	async listSessionModifiedTimes(): Promise<ReadonlyMap<string, number>> {
 		return new Map((await this._database.listSessions()).map(entry => [entry.session, entry.modifiedTime]));
 	}
 
-	/**
-	 * Every session currently recorded, in no particular order. Legacy entries
-	 * are passed through `migrate`, when provided, before the resolved list is returned.
-	 */
 	async list(migrate?: RegisteredSessionMigration): Promise<IRegisteredSession[]> {
 		const entries: IStoredRegisteredSession[] = (await this._database.listSessions()).map(entry => ({
 			session: URI.parse(entry.session),
@@ -153,7 +126,6 @@ export class AgentSessionRegistry extends Disposable {
 		return result;
 	}
 
-	/** Returns the session registered under `session`, or `undefined` when it is unknown. */
 	async get(session: URI, migrate?: RegisteredSessionMigration): Promise<IRegisteredSession | undefined> {
 		const stored = await this._database.getSession(session.toString());
 		if (!stored) {
@@ -181,7 +153,6 @@ export class AgentSessionRegistry extends Disposable {
 		};
 	}
 
-	/** Whether the registry has ever been populated. Retained for compatibility. */
 	async isEmpty(): Promise<boolean> {
 		return this._database.isSessionRegistryEmpty();
 	}
@@ -203,32 +174,26 @@ export class AgentSessionRegistry extends Disposable {
 		await this._database.markSessionRegistryBackfilled();
 	}
 
-	/** Whether a specific provider has completed native discovery at least once. */
 	async isProviderBackfilled(provider: AgentProvider): Promise<boolean> {
 		return this._database.isProviderBackfilled(provider);
 	}
 
-	/** Records a provider-native discovery pass idempotently. */
 	async markProviderBackfilled(provider: AgentProvider): Promise<void> {
 		await this._database.markProviderBackfilled(provider);
 	}
 
-	/** Whether `session` was explicitly deleted and must not be resurrected by backfill. */
 	async isTombstoned(session: URI): Promise<boolean> {
 		return this._database.isSessionTombstoned(session.toString());
 	}
 
-	/** Clears an explicit-deletion tombstone for `session` (used on explicit create/restore). */
 	async clearTombstone(session: URI): Promise<void> {
 		await this._database.clearSessionTombstone(session.toString());
 	}
 
-	/** Maintains the host-owned index of Agent-Merge-enabled sessions. */
 	async setAgentMergeEnabled(session: URI, enabled: boolean): Promise<void> {
 		await this._database.setSessionAgentMergeEnabled(session.toString(), enabled);
 	}
 
-	/** Session URIs the index marks Agent-Merge-enabled, without opening any session database. */
 	async listAgentMergeEnabled(): Promise<readonly URI[]> {
 		const sessions = await this._database.listAgentMergeEnabledSessions();
 		return sessions.map(session => URI.parse(session));

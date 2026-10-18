@@ -35,14 +35,12 @@ suite('platform - terminalEnvironment', async () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 	suite('getShellIntegrationInjection', async () => {
 		suite('should not enable', async () => {
-			// This test is only expected to work on Windows 10 build 18309 and above
 			(getWindowsBuildNumberSync() < 18309 ? test.skip : test)('when isFeatureTerminal or when no executable is provided', async () => {
 				strictEqual((await getShellIntegrationInjection({ executable: pwshExe, args: ['-l', '-NoLogo'], isFeatureTerminal: true }, enabledProcessOptions, defaultEnvironment, logService, productService, true)).type, 'failure');
 				strictEqual((await getShellIntegrationInjection({ executable: pwshExe, args: ['-l', '-NoLogo'], isFeatureTerminal: false }, enabledProcessOptions, defaultEnvironment, logService, productService, true)).type, 'injection');
 			});
 		});
 
-		// These tests are only expected to work on Windows 10 build 18309 and above
 		(getWindowsBuildNumberSync() < 18309 ? suite.skip : suite)('pwsh', async () => {
 			const expectedPs1 = process.platform === 'win32'
 				? `try { . "${shellIntegrationScriptRoot}\\shellIntegration.ps1" } catch {}`
@@ -269,7 +267,6 @@ suite('platform - terminalEnvironment', async () => {
 					isScreenReaderOptimized: false
 				};
 
-				// Test with an unsupported shell (julia)
 				const result = await getShellIntegrationInjection(
 					{ executable: 'julia', args: ['-i'] },
 					customProcessOptions,
@@ -279,10 +276,8 @@ suite('platform - terminalEnvironment', async () => {
 					true
 				);
 
-				// Should fail due to unsupported shell
 				strictEqual(result.type, 'failure');
 
-				// But the nonce should be available in the process options for the terminal process to use
 				strictEqual(customProcessOptions.shellIntegration.nonce, 'custom-nonce-12345');
 			});
 		});

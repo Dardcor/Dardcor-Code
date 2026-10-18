@@ -50,25 +50,14 @@ export class LaunchMainService implements ILaunchMainService {
 	async start(args: NativeParsedArgs, userEnv: IProcessEnvironment): Promise<void> {
 		this.logService.trace('Received data from other instance: ', args, userEnv);
 
-		// macOS: Electron > 7.x changed its behaviour to not
-		// bring the application to the foreground when a window
-		// is focused programmatically. Only via `app.focus` and
-		// the option `steal: true` can you get the previous
-		// behaviour back. The only reason to use this option is
-		// when a window is getting focused while the application
-		// is not in the foreground and since we got instructed
-		// to open a new window from another instance, we ensure
-		// that the app has focus.
 		if (isMacintosh) {
 			app.focus({ steal: true });
 		}
 
-		// Check early for open-url which is handled in URL service
 		const urlsToOpen = this.parseOpenUrl(args);
 		if (urlsToOpen.length) {
 			let whenWindowReady: Promise<unknown> = Promise.resolve();
 
-			// Create a window if there is none
 			if (this.windowsMainService.getWindowCount() === 0) {
 				const window = (await this.windowsMainService.openEmptyWindow({ context: OpenContext.DESKTOP })).at(0);
 				if (window) {
@@ -76,7 +65,6 @@ export class LaunchMainService implements ILaunchMainService {
 				}
 			}
 
-			// Make sure a window is open, ready to receive the url event
 			whenWindowReady.then(() => {
 				for (const { uri, originalUrl } of urlsToOpen) {
 					this.urlService.open(uri, { originalUrl });
@@ -84,7 +72,6 @@ export class LaunchMainService implements ILaunchMainService {
 			});
 		}
 
-		// Otherwise handle in windows service
 		else {
 			return this.startOpenWindow(args, userEnv);
 		}
@@ -93,8 +80,6 @@ export class LaunchMainService implements ILaunchMainService {
 	private parseOpenUrl(args: NativeParsedArgs): IProtocolUrl[] {
 		if (args['open-url'] && args._urls && args._urls.length > 0) {
 
-			// --open-url must contain -- followed by the url(s)
-			// process.argv is used over args._ as args._ are resolved to file paths at this point
 
 			return coalesce(args._urls
 				.map(url => {
@@ -120,17 +105,6 @@ export class LaunchMainService implements ILaunchMainService {
 		const baseConfig: IOpenConfiguration = {
 			context,
 			cli: args,
-			/**
-			 * When opening a new window from a second instance that sent args and env
-			 * over to this instance, we want to preserve the environment only if that second
-			 * instance was spawned from the CLI or used the `--preserve-env` flag (example:
-			 * when using `open -n "VSCode.app" --args --preserve-env WORKSPACE_FOLDER`).
-			 *
-			 * This is done to ensure that the second window gets treated exactly the same
-			 * as the first window, for example, it gets the same resolved user shell environment.
-			 *
-			 * https://github.com/microsoft/vscode/issues/194736
-			 */
 			userEnv: (args['preserve-env'] || context === OpenContext.CLI) ? userEnv : undefined,
 			waitMarkerFileURI,
 			remoteAuthority,
@@ -138,29 +112,24 @@ export class LaunchMainService implements ILaunchMainService {
 			forceTempProfile: args['profile-temp']
 		};
 
-		// Special case extension development
 		if (args.extensionDevelopmentPath) {
 			await this.windowsMainService.openExtensionDevelopmentHostWindow(args.extensionDevelopmentPath, baseConfig);
 		}
 
-		// Start without file/folder arguments
 		else if (!args._.length && !args['folder-uri'] && !args['file-uri']) {
 			let openNewWindow = false;
 
-			// Force new window
 			if (args['new-window'] || baseConfig.forceProfile || baseConfig.forceTempProfile) {
 				openNewWindow = true;
 			}
 
-			// Force reuse window
 			else if (args['reuse-window']) {
 				openNewWindow = false;
 			}
 
-			// Otherwise check for settings
 			else {
 				const windowConfig = this.configurationService.getValue<IWindowSettings | undefined>('window');
-				const openWithoutArgumentsInNewWindowConfig = windowConfig?.openWithoutArgumentsInNewWindow || 'default' /* default */;
+				const openWithoutArgumentsInNewWindowConfig = windowConfig?.openWithoutArgumentsInNewWindow || 'default' ;
 				switch (openWithoutArgumentsInNewWindowConfig) {
 					case 'on':
 						openNewWindow = true;
@@ -169,11 +138,10 @@ export class LaunchMainService implements ILaunchMainService {
 						openNewWindow = false;
 						break;
 					default:
-						openNewWindow = !isMacintosh; // prefer to restore running instance on macOS
+						openNewWindow = !isMacintosh;
 				}
 			}
 
-			// Open new Window
 			if (openNewWindow) {
 				usedWindows = await this.windowsMainService.open({
 					...baseConfig,
@@ -182,7 +150,6 @@ export class LaunchMainService implements ILaunchMainService {
 				});
 			}
 
-			// Focus existing window or open if none opened
 			else {
 				const lastActive = this.windowsMainService.getLastActiveWindow();
 				if (lastActive) {
@@ -198,7 +165,6 @@ export class LaunchMainService implements ILaunchMainService {
 			}
 		}
 
-		// Start with file/folder arguments
 		else {
 			usedWindows = await this.windowsMainService.open({
 				...baseConfig,
@@ -214,9 +180,6 @@ export class LaunchMainService implements ILaunchMainService {
 			});
 		}
 
-		// If the other instance is waiting to be killed, we hook up a window listener if one window
-		// is being used and only then resolve the startup promise which will kill this second instance.
-		// In addition, we poll for the wait marker file to be deleted to return.
 		if (waitMarkerFileURI && usedWindows.length === 1 && usedWindows[0]) {
 			return Promise.race([
 				usedWindows[0].whenClosedOrLoaded,

@@ -224,7 +224,6 @@ export const EscapeNormalizedReplacer: Replacer = function* (content, find) {
 		}
 	}
 
-	// Handle case where find has unescaped quotes/slashes but content has escaped ones
 	const quoteNormalizedFind = find.replace(/\\(["'`])/g, '$1');
 	for (let i = 0; i <= lines.length - findLines.length; i++) {
 		const block = lines.slice(i, i + findLines.length).join('\n');

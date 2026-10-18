@@ -75,7 +75,6 @@ export async function getCodeLensModel(registry: LanguageFeatureRegistry<CodeLen
 	}
 
 	result.lenses = result.lenses.sort((a, b) => {
-		// sort by lineNumber, provider-rank, and column
 		if (a.symbol.range.startLineNumber < b.symbol.range.startLineNumber) {
 			return -1;
 		} else if (a.symbol.range.startLineNumber > b.symbol.range.startLineNumber) {
@@ -127,8 +126,6 @@ CommandsRegistry.registerCommand('_executeCodeLensProvider', function (accessor,
 	}).then(() => {
 		return result;
 	}).finally(() => {
-		// make sure to return results, then (on next tick)
-		// dispose the results
 		setTimeout(() => disposables.dispose(), 100);
 	});
 });

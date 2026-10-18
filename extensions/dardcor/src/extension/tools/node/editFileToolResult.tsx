@@ -111,9 +111,7 @@ export class EditFileResult extends PromptElement<IEditFileResultProps> {
 
 		let retryMessage = <>You may use the {ToolName.EditFile} tool to retry these edits.</>;
 		if (!notebookEditFailures) {
-			// No notebook files failed to edit
 		} else if (notebookEditFailures === editingErrors.length) {
-			// All notebook files failed to edit
 			retryMessage = <>You may use the {ToolName.EditNotebook} tool to retry editing the Notebook files.</>;
 		} else if (notebookEditFailures && notebookEditFailures !== editingErrors.length) {
 			retryMessage = <>
@@ -158,7 +156,6 @@ export class EditFileResult extends PromptElement<IEditFileResultProps> {
 				continue;
 			}
 
-			// Won't help if edit caused lines to move around, but better than nothing
 			const isDuplicate = existingDiagnostics.some(existing =>
 				existing.message === diagnostic.message &&
 				existing.range.start.line === diagnostic.range.start.line &&
@@ -178,18 +175,6 @@ export class EditFileResult extends PromptElement<IEditFileResultProps> {
 	private async sendEditFileResultTelemetry(totalNewDiagnostics: number, filesWithNewDiagnostics: number) {
 		const model = this.props.model && (await this.endpointProvider.getChatEndpoint(this.props.model)).model;
 
-		/* __GDPR__
-			"editFileResult.diagnostics" : {
-				"owner": "roblourens",
-				"comment": "Tracks whether new diagnostics were found after editing files",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"toolName": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The name of the tool that performed the edit" },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-				"totalNewDiagnostics": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of new diagnostics found across all files" },
-				"filesWithNewDiagnostics": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of files that had new diagnostics" },
-				"totalFilesEdited": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of files that were edited" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('editFileResult.diagnostics',
 			{
 				requestId: this.props.requestId!,

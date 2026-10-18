@@ -20,10 +20,6 @@ export async function OPTIONS() {
   });
 }
 
-/**
- * POST /v1/responses/compact - Compact conversation context
- * Reuses the same handleChat pipeline, signals compact via body._compact
- */
 export async function POST(request) {
   await ensureInitialized();
   const body = await request.json();

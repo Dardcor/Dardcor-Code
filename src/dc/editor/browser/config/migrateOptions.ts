@@ -71,9 +71,6 @@ function registerSimpleEditorSettingMigration(key: string, values: [unknown, unk
 	});
 }
 
-/**
- * Compatibility with old options
- */
 export function migrateOptions(options: IEditorOptions): void {
 	EditorSettingMigration.items.forEach(migration => migration.apply(options));
 }
@@ -177,7 +174,6 @@ registerEditorSettingMigration('quickSuggestions', (input, read, write) => {
 	}
 });
 
-// Sticky Scroll
 
 registerEditorSettingMigration('experimental.stickyScroll.enabled', (value, read, write) => {
 	if (typeof value === 'boolean') {
@@ -197,7 +193,6 @@ registerEditorSettingMigration('experimental.stickyScroll.maxLineCount', (value,
 	}
 });
 
-// Edit Context
 
 registerEditorSettingMigration('editor.experimentalEditContextEnabled', (value, read, write) => {
 	if (typeof value === 'boolean') {
@@ -208,7 +203,6 @@ registerEditorSettingMigration('editor.experimentalEditContextEnabled', (value, 
 	}
 });
 
-// Code Actions on Save
 registerEditorSettingMigration('codeActionsOnSave', (value, read, write) => {
 	if (value && typeof value === 'object') {
 		let toBeModified = false;
@@ -227,7 +221,6 @@ registerEditorSettingMigration('codeActionsOnSave', (value, read, write) => {
 	}
 });
 
-// Migrate Quick Fix Settings
 registerEditorSettingMigration('codeActionWidget.includeNearbyQuickfixes', (value, read, write) => {
 	if (typeof value === 'boolean') {
 		write('codeActionWidget.includeNearbyQuickfixes', undefined);
@@ -237,14 +230,12 @@ registerEditorSettingMigration('codeActionWidget.includeNearbyQuickfixes', (valu
 	}
 });
 
-// Migrate the lightbulb settings
 registerEditorSettingMigration('lightbulb.enabled', (value, read, write) => {
 	if (typeof value === 'boolean') {
 		write('lightbulb.enabled', value ? undefined : 'off');
 	}
 });
 
-// NES Code Shifting
 registerEditorSettingMigration('inlineSuggest.edits.codeShifting', (value, read, write) => {
 	if (typeof value === 'boolean') {
 		write('inlineSuggest.edits.codeShifting', undefined);
@@ -252,7 +243,6 @@ registerEditorSettingMigration('inlineSuggest.edits.codeShifting', (value, read,
 	}
 });
 
-// Migrate Hover
 registerEditorSettingMigration('hover.enabled', (value, read, write) => {
 	if (typeof value === 'boolean') {
 		write('hover.enabled', value ? 'on' : 'off');

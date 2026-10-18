@@ -7,10 +7,6 @@ import { describe, expect, it } from 'vitest';
 import { SpanStatusCode } from '../otelService';
 import { CapturingOTelService } from './capturingOTelService';
 
-/**
- * Tests service robustness: buffer cap behavior, runWithTraceContext propagation,
- * and capturing service correctness.
- */
 describe('OTel Service Robustness', () => {
 
 	describe('CapturingOTelService basics', () => {

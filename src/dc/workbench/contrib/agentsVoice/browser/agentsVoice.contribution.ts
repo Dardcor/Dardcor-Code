@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Register voice client services
 import '../../chat/browser/voiceClient/micCaptureService.js';
 import '../../chat/browser/voiceClient/ttsPlaybackService.js';
 import '../../chat/browser/voiceClient/voiceClientService.js';
@@ -13,10 +12,8 @@ import { normalizeAgentsVoiceId, VOICE_AGENT_PROGRESS_SETTING } from '../../chat
 import '../../chat/browser/voiceClient/voiceToolDispatchService.js';
 import '../../chat/common/voicePlaybackService.js';
 
-// Register the voice transcript store singleton
 import '../common/voiceTranscriptStore.js';
 
-// Register the Voice Transcripts view + show-command + chat-menu entry
 import './transcriptsView/voiceTranscripts.contribution.js';
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
@@ -55,16 +52,10 @@ import { CONFIGURE_VOICE_INSTRUCTIONS_ACTION_ID } from '../../chat/browser/actio
 import { IVoiceModeOnboardingService } from './voiceModeOnboarding.js';
 import { SHOW_VOICE_MODE_ONBOARDING_COMMAND } from '../../chat/browser/speechToText/micButtonMenuActions.js';
 
-// --- Context Keys ---
 
 export const AGENTS_VOICE_WIDGET_FOCUSED = new RawContextKey<boolean>('agentsVoiceWidgetFocused', false);
 
-// --- Context Key Binding ---
 
-// Reflects Copilot entitlement into a single `agentsVoiceEntitled` context key.
-// Kept as one imperatively-set key (rather than an OR-of-plans expression) so
-// that negating `AGENTS_VOICE_ENABLED` (e.g. for the standalone voice controls)
-// does not distribute the plan disjunction into thousands of terms.
 class AgentsVoiceEntitlementKeyContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.agentsVoiceEntitlementKey';
@@ -84,8 +75,6 @@ class AgentsVoiceEntitlementKeyContribution extends Disposable implements IWorkb
 
 registerWorkbenchContribution2(AgentsVoiceEntitlementKeyContribution.ID, AgentsVoiceEntitlementKeyContribution, WorkbenchPhase.AfterRestored);
 
-// Separate contribution for voice connected state — runs later to avoid
-// forcing IVoiceSessionController instantiation too early.
 class AgentsVoiceConnectedKeyContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.agentsVoiceConnectedKey';
@@ -109,7 +98,6 @@ class AgentsVoiceConnectedKeyContribution extends Disposable implements IWorkben
 
 registerWorkbenchContribution2(AgentsVoiceConnectedKeyContribution.ID, AgentsVoiceConnectedKeyContribution, WorkbenchPhase.Eventually);
 
-// --- Telemetry: track enable/disable ---
 
 class AgentsVoiceTelemetryContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.agentsVoiceTelemetry';
@@ -122,7 +110,6 @@ class AgentsVoiceTelemetryContribution extends Disposable implements IWorkbenchC
 	) {
 		super();
 
-		// Track when the setting is toggled
 		this._register(configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('agents.voice.enabled')) {
 				const enabled = configurationService.getValue<boolean>('agents.voice.enabled');
@@ -142,14 +129,7 @@ class AgentsVoiceTelemetryContribution extends Disposable implements IWorkbenchC
 
 registerWorkbenchContribution2(AgentsVoiceTelemetryContribution.ID, AgentsVoiceTelemetryContribution, WorkbenchPhase.AfterRestored);
 
-// --- First-run introduction ---
 
-/**
- * Shows the Voice Mode introduction the first time a session starts. This
- * watches the connection state rather than any one entry point, because Voice
- * Mode can be started from the input-mode pill, a command, a keybinding or the
- * Agents window - all of which land here.
- */
 class AgentsVoiceOnboardingContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.agentsVoiceOnboarding';
 
@@ -167,14 +147,8 @@ class AgentsVoiceOnboardingContribution extends Disposable implements IWorkbench
 	}
 }
 
-// Registered at the same late phase as the connected-key contribution so it
-// does not force `IVoiceSessionController` to instantiate early.
 registerWorkbenchContribution2(AgentsVoiceOnboardingContribution.ID, AgentsVoiceOnboardingContribution, WorkbenchPhase.Eventually);
 
-// --- Voice mode button in Chat toolbar ---
-// Shows the voice mode icon in both idle and active states.
-// Click to connect if disconnected, or toggle PTT if connected.
-// The disconnect button (shown when connected) indicates active voice mode.
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -201,7 +175,6 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(): Promise<void> {
-		// No-op — just a visual indicator
 	}
 });
 
@@ -222,8 +195,6 @@ registerAction2(class extends Action2 {
 					ChatContextKeys.currentlyEditing.negate(),
 					AGENTS_VOICE_LISTENING.negate(),
 					AGENTS_VOICE_CONNECTING.negate(),
-					// Hide Voice Mode while dictation is active (recording or the
-					// model is loading) so the two mic affordances never compete.
 					ChatContextKeys.speechToTextRecording.negate(),
 					ChatContextKeys.speechToTextPreparing.negate(),
 				),
@@ -249,18 +220,8 @@ registerAction2(class extends Action2 {
 		const activeWindow = getActiveWindow();
 		voiceController.setActiveWindow(activeWindow);
 
-		// Capture hold-mode FIRST, synchronously, before any `await`. The
-		// keybinding service only reports a held chord while it is still
-		// dispatching this command; the moment `run()` first suspends on an
-		// await it clears `_currentlyDispatchingCommandId`, after which
-		// `enableKeybindingHoldMode` returns `undefined`. Calling it up-front is
-		// what makes press-and-hold work even on the very first (cold) press
-		// where we still have to connect. `undefined` here means the action was
-		// invoked without a held key (toolbar mic button / command palette).
 		const holdMode = keybindingService.enableKeybindingHoldMode('agentsVoice.startVoiceInChat');
 
-		// An explicit press in another composer transfers Voice Mode ownership to
-		// that composer. The draft sentinel deliberately clears the concrete target.
 		const currentSession = omniHasFocus
 			? undefined
 			: await accessor.get(ICommandService).executeCommand<string | undefined>('_chat.voice.getCurrentSession');
@@ -277,16 +238,9 @@ registerAction2(class extends Action2 {
 					voiceController.activateSession(resource);
 				}
 			} catch {
-				// The routing command owns validation; leave the current target unchanged.
 			}
 		}
 
-		// Ensure the session is connected before we start recording. The mic
-		// button's first press connects; a held keybinding also connects here so
-		// that press-and-hold works on the very first invocation. If the user
-		// releases the key while we're still connecting, `holdMode` resolves
-		// early and the awaited release below fires right after pttDown() — the
-		// controller then treats it as a quick tap (toggle on).
 		const wasConnected = voiceController.isConnected.get();
 		if (!wasConnected) {
 			await voiceController.connect(activeWindow);
@@ -296,18 +250,8 @@ registerAction2(class extends Action2 {
 			return;
 		}
 
-		// Map the physical key/button gesture directly onto the controller's
-		// push-to-talk model: press => pttDown(), release => pttUp(). The
-		// controller itself decides tap-vs-hold based on how long the key was
-		// held (a quick tap enters toggle mode and keeps recording; a real hold
-		// records only while held). `enableKeybindingHoldMode` also swallows OS
-		// key-repeat while held, so holding the shortcut no longer rapidly
-		// toggles.
 		voiceController.pttDown();
 		if (!holdMode) {
-			// Not invoked via a held keybinding (toolbar mic button or command
-			// palette): emulate a tap so the controller enters toggle mode and
-			// keeps listening. Pressing the button/shortcut again stops.
 			voiceController.pttUp();
 			return;
 		}
@@ -340,23 +284,14 @@ registerAction2(class extends Action2 {
 				group: 'navigation',
 				order: -10
 			},
-			// NOTE: intentionally no keybinding. The Cmd+Shift+Space chord is
-			// owned solely by `agentsVoice.startVoiceInChat`, which handles both
-			// starting and stopping (via the controller's push-to-talk model).
-			// Binding the same chord here as well caused the two actions to
-			// fight on every OS key-repeat, producing rapid start/stop toggling.
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const voiceController = accessor.get(IVoiceSessionController);
-		// Stop recording and the auto-listen loop but keep the WebSocket
-		// connected so the user can resume without reconnecting. Use the
-		// separate "Disconnect Voice Mode" button to fully end the session.
 		voiceController.stopListening();
 	}
 });
 
-// --- Disconnect Voice (command palette + separate toolbar button when connected) ---
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -377,27 +312,18 @@ registerAction2(class extends Action2 {
 					ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
 					ChatContextKeys.currentlyEditing.negate(),
 					AGENTS_VOICE_CONNECTED.isEqualTo(true),
-					// The segmented voice pill's voice cell is itself the on/off toggle,
-					// so a separate disconnect button would be redundant there.
 					SegmentedVoiceInputModePillInactive,
 				),
 				group: 'navigation',
 				order: -9
 			},
 			keybinding: {
-				// Keep this below the editor widgets and negate their contexts so
-				// Escape still dismisses IntelliSense/hover and clears selections
-				// while the user is typing in the chat input.
 				weight: KeybindingWeight.EditorContrib - 5,
 				primary: KeyCode.Escape,
 				when: ContextKeyExpr.and(
 					AGENTS_VOICE_ENABLED,
 					ChatContextKeys.inChatInput,
 					AGENTS_VOICE_CONNECTED.isEqualTo(true),
-					// Don't disconnect voice while a request is running — pressing
-					// Escape there is meant to interrupt/cancel that request, not
-					// tear down the voice session (which is especially disruptive
-					// in hands-free mode where there is no reconnect button).
 					ChatContextKeys.hasActiveRequest.negate(),
 					EditorContextKeys.hoverVisible.toNegated(),
 					EditorContextKeys.hasNonEmptySelection.toNegated(),
@@ -412,14 +338,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Cancel Active Request via Escape (while voice-connected in the chat input) ---
-//
-// The Disconnect-on-Escape action above deliberately does NOTHING while a
-// request is running (its `when` negates hasActiveRequest) so it doesn't tear
-// down the voice session mid-turn. But the built-in Cancel action is bound to
-// Cmd/Ctrl+Escape (Alt+Backspace on Windows), so plain Escape would otherwise
-// be a no-op there. Restore the expected behavior: plain Escape cancels the
-// in-flight request while leaving the idle-only disconnect intact.
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -434,8 +352,6 @@ registerAction2(class extends Action2 {
 					AGENTS_VOICE_ENABLED,
 					ChatContextKeys.inChatInput,
 					AGENTS_VOICE_CONNECTED.isEqualTo(true),
-					// Mirror the disconnect binding's editor negations so Escape
-					// still dismisses IntelliSense/hover and clears selections first.
 					ChatContextKeys.hasActiveRequest,
 					EditorContextKeys.hoverVisible.toNegated(),
 					EditorContextKeys.hasNonEmptySelection.toNegated(),
@@ -449,7 +365,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Open Voice Mode Settings ---
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -483,7 +398,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Simulate Voice Connection (dev utility, backend down) ---
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -499,7 +413,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Reset Onboarding Command (dev utility) ---
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -516,7 +429,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Push-to-Talk Command ---
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -539,10 +451,8 @@ registerAction2(class extends Action2 {
 		const voiceController = accessor.get(IVoiceSessionController);
 		const keybindingService = accessor.get(IKeybindingService);
 
-		// Capture hold mode before awaiting so the dispatching command is still available.
 		const holdMode = keybindingService.enableKeybindingHoldMode('agentsVoice.pushToTalk');
 
-		// Auto-connect on first PTT press
 		if (!voiceController.isConnected.get() && !voiceController.isConnecting.get()) {
 			await voiceController.connect(getActiveWindow());
 		}
@@ -553,24 +463,16 @@ registerAction2(class extends Action2 {
 		voiceController.pttDown();
 
 		if (!holdMode) {
-			// Not invoked via a held keybinding: emulate a tap so the controller
-			// enters toggle mode and keeps listening. Pressing again stops.
 			voiceController.pttUp();
 			return;
 		}
 
-		// The shortcut is being held: wait for release, then finish the turn.
-		// The controller decides tap-vs-hold based on how long it was held.
 		await holdMode;
 		voiceController.pttUp();
 	}
 });
 
-// Microphone selection is shared with dictation via the single
-// `workbench.action.chat.selectSpeechToTextMicrophone` command (see
-// chatSpeechToTextActions.ts), so Voice Mode no longer registers its own.
 
-// --- Settings ---
 
 const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 configurationRegistry.registerConfiguration({
@@ -694,11 +596,6 @@ configurationRegistry.registerConfiguration({
 	}
 });
 
-// Migrate the removed `agents.voice.turn.autoEndMode` setting onto the two
-// settings that now govern turn-ending, preserving the previous behavior:
-// silence ending is disabled (`silenceMs: -1`) unless the old mode was `vad`
-// or `both`, and stop-phrase ending is disabled (`stopPhrases: []`) unless the
-// old mode was `phrase` or `both`.
 Registry.as<IConfigurationMigrationRegistry>(WorkbenchConfigurationExtensions.ConfigurationMigration)
 	.registerConfigurationMigrations([{
 		key: 'agents.voice.voice',

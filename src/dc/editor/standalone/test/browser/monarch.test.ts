@@ -210,7 +210,7 @@ suite('Monarch', () => {
 				],
 
 				comments: [
-					[/\/\/$/, 'comment'], // empty single-line comment
+					[/\/\/$/, 'comment'],
 					[/\/\//, 'comment', '@comment_cpp'],
 				],
 
@@ -218,7 +218,6 @@ suite('Monarch', () => {
 					[/(?:[^\\]|(?:\\.))+$/, 'comment', '@pop'],
 					[/.+$/, 'comment'],
 					[/$/, 'comment', '@pop']
-					// No possible rule to detect an empty line and @pop?
 				],
 			},
 		}, configurationService));
@@ -403,7 +402,6 @@ suite('Monarch', () => {
 		const configurationService = new StandaloneConfigurationService(new NullLogService());
 		const languageService = disposables.add(new LanguageService());
 
-		// Set maxTokenizationLineLength to 4 so that "ham" works but "hamham" would fail
 		await configurationService.updateValue('editor.maxTokenizationLineLength', 4);
 
 		const tokenizer = disposables.add(createMonarchTokenizer(languageService, 'test', {
@@ -418,8 +416,8 @@ suite('Monarch', () => {
 		}, configurationService));
 
 		const lines = [
-			'ham', // length 3, should be tokenized
-			'hamham' // length 6, should NOT be tokenized
+			'ham',
+			'hamham'
 		];
 
 		const actualTokens = getTokens(tokenizer, lines);
@@ -444,7 +442,6 @@ suite('Monarch', () => {
 			encoding: /u|u8|U|L/,
 			tokenizer: {
 				root: [
-					// C++ 11 Raw String
 					[/@encoding?R\"(?:([^ ()\\\t]*))\(/, { token: 'string.raw.begin', next: '@raw.$1' }],
 				],
 
@@ -493,7 +490,6 @@ suite('Monarch', () => {
 			encoding: /u|u8|U|L/,
 			tokenizer: {
 				root: [
-					// C++ 11 Raw String
 					[/@encoding?R\"(?:([^ ()\\\t]*))\(/, { token: 'string.raw.begin', next: '@raw.$1' }],
 				],
 

@@ -36,8 +36,6 @@ export class InlayHintItem {
 			return;
 		}
 		if (this._currentResolve) {
-			// wait for an active resolve operation and try again
-			// when that's done.
 			await this._currentResolve;
 			if (token.isCancellationRequested) {
 				return;
@@ -108,7 +106,6 @@ export class InlayHintsFragments {
 			this.provider.add(provider);
 
 			for (const hint of list.hints) {
-				// compute the range to which the item should be attached to
 				const position = model.validatePosition(hint.position);
 				let direction: 'before' | 'after' = 'before';
 
@@ -137,7 +134,6 @@ export class InlayHintsFragments {
 		const line = position.lineNumber;
 		const word = model.getWordAtPosition(position);
 		if (word) {
-			// always prefer the word range
 			return new Range(line, word.startColumn, line, word.endColumn);
 		}
 
@@ -150,13 +146,10 @@ export class InlayHintsFragments {
 		let end = tokens.getEndOffset(idx);
 
 		if (end - start === 1) {
-			// single character token, when at its end try leading/trailing token instead
 			if (start === offset && idx > 1) {
-				// leading token
 				start = tokens.getStartOffset(idx - 1);
 				end = tokens.getEndOffset(idx - 1);
 			} else if (end === offset && idx < tokens.getCount() - 1) {
-				// trailing token
 				start = tokens.getStartOffset(idx + 1);
 				end = tokens.getEndOffset(idx + 1);
 			}

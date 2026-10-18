@@ -4,9 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-// UTILITY
 
-// Object.create compatible in IE
 const create = Object.create || function (p) {
 	if (!p) { throw Error('no type'); }
 	function f() { }
@@ -14,7 +12,6 @@ const create = Object.create || function (p) {
 	return new f();
   };
 
-  // UTILITY
   var util = {
 	inherits: function (ctor, superCtor) {
 	  ctor.super_ = superCtor;
@@ -72,7 +69,7 @@ const create = Object.create || function (p) {
 		typeof arg === 'boolean' ||
 		typeof arg === 'number' ||
 		typeof arg === 'string' ||
-		typeof arg === 'symbol' ||  // ES6 symbol
+		typeof arg === 'symbol' ||
 		typeof arg === 'undefined';
 	},
 	objectToString: function (o) {
@@ -82,7 +79,6 @@ const create = Object.create || function (p) {
 
   const pSlice = Array.prototype.slice;
 
-  // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
   const Object_keys = typeof Object.keys === 'function' ? Object.keys : (function () {
 	const hasOwnProperty = Object.prototype.hasOwnProperty,
 	  hasDontEnumBug = !({ toString: null }).propertyIsEnumerable('toString'),
@@ -121,16 +117,9 @@ const create = Object.create || function (p) {
 	};
   })();
 
-  // 1. The assert module provides functions that throw
-  // AssertionError's when particular conditions are not met. The
-  // assert module must conform to the following interface.
 
   const assert = ok;
 
-  // 2. The AssertionError is defined in assert.
-  // new assert.AssertionError({ message: message,
-  //                             actual: actual,
-  //                             expected: expected })
 
   assert.AssertionError = function AssertionError(options) {
 	this.name = 'AssertionError';
@@ -148,15 +137,12 @@ const create = Object.create || function (p) {
 	if (Error.captureStackTrace) {
 	  Error.captureStackTrace(this, stackStartFunction);
 	} else {
-	  // try to throw an error now, and from the stack property
-	  // work out the line that called in to assert.js.
 	  try {
 		this.stack = (new Error).stack.toString();
 	  } catch (e) { }
 	}
   };
 
-  // assert.AssertionError instanceof Error
   util.inherits(assert.AssertionError, Error);
 
   function replacer(key, value) {
@@ -186,16 +172,7 @@ const create = Object.create || function (p) {
 	  truncate(JSON.stringify(self.expected, replacer), 128);
   }
 
-  // At present only the three keys mentioned above are used and
-  // understood by the spec. Implementations or sub modules can pass
-  // other keys to the AssertionError's constructor - they will be
-  // ignored.
 
-  // 3. All of the following functions must throw an AssertionError
-  // when a corresponding condition is not met, with a message that
-  // may be undefined if not provided.  All assertion methods provide
-  // both the actual and expected values to the assertion error for
-  // display purposes.
 
   export function fail(actual, expected, message, operator, stackStartFunction) {
 	throw new assert.AssertionError({
@@ -207,31 +184,19 @@ const create = Object.create || function (p) {
 	});
   }
 
-  // EXTENSION! allows for well behaved errors defined elsewhere.
   assert.fail = fail;
 
-  // 4. Pure assertion tests whether a value is truthy, as determined
-  // by !!guard.
-  // assert.ok(guard, message_opt);
-  // This statement is equivalent to assert.equal(true, !!guard,
-  // message_opt);. To test strictly for the value true, use
-  // assert.strictEqual(true, guard, message_opt);.
 
   export function ok(value, message) {
 	if (!value) { fail(value, true, message, '==', assert.ok); }
   }
   assert.ok = ok;
 
-  // 5. The equality assertion tests shallow, coercive equality with
-  // ==.
-  // assert.equal(actual, expected, message_opt);
 
   assert.equal = function equal(actual, expected, message) {
 	if (actual != expected) { fail(actual, expected, message, '==', assert.equal); }
   };
 
-  // 6. The non-equality assertion tests for whether two objects are not equal
-  // with != assert.notEqual(actual, expected, message_opt);
 
   assert.notEqual = function notEqual(actual, expected, message) {
 	if (actual == expected) {
@@ -239,8 +204,6 @@ const create = Object.create || function (p) {
 	}
   };
 
-  // 7. The equivalence assertion tests a deep equality relation.
-  // assert.deepEqual(actual, expected, message_opt);
 
   assert.deepEqual = function deepEqual(actual, expected, message) {
 	if (!_deepEqual(actual, expected, false)) {
@@ -255,20 +218,12 @@ const create = Object.create || function (p) {
   };
 
   function _deepEqual(actual, expected, strict) {
-	// 7.1. All identical values are equivalent, as determined by ===.
 	if (actual === expected) {
 	  return true;
-	  // } else if (actual instanceof Buffer && expected instanceof Buffer) {
-	  //   return compare(actual, expected) === 0;
 
-	  // 7.2. If the expected value is a Date object, the actual value is
-	  // equivalent if it is also a Date object that refers to the same time.
 	} else if (util.isDate(actual) && util.isDate(expected)) {
 	  return actual.getTime() === expected.getTime();
 
-	  // 7.3 If the expected value is a RegExp object, the actual value is
-	  // equivalent if it is also a RegExp object with the same source and
-	  // properties (`global`, `multiline`, `lastIndex`, `ignoreCase`).
 	} else if (util.isRegExp(actual) && util.isRegExp(expected)) {
 	  return actual.source === expected.source &&
 		actual.global === expected.global &&
@@ -276,18 +231,10 @@ const create = Object.create || function (p) {
 		actual.lastIndex === expected.lastIndex &&
 		actual.ignoreCase === expected.ignoreCase;
 
-	  // 7.4. Other pairs that do not both pass typeof value == 'object',
-	  // equivalence is determined by ==.
 	} else if ((actual === null || typeof actual !== 'object') &&
 	  (expected === null || typeof expected !== 'object')) {
 	  return strict ? actual === expected : actual == expected;
 
-	  // 7.5 For all other Object pairs, including Array objects, equivalence is
-	  // determined by having the same number of owned properties (as verified
-	  // with Object.prototype.hasOwnProperty.call), the same set of keys
-	  // (although not necessarily the same order), equivalent values for every
-	  // corresponding key, and an identical 'prototype' property. Note: this
-	  // accounts for both named and indexed properties on Arrays.
 	} else {
 	  return objEquiv(actual, expected, strict);
 	}
@@ -299,7 +246,6 @@ const create = Object.create || function (p) {
 
   function objEquiv(a, b, strict) {
 	if (a === null || a === undefined || b === null || b === undefined) { return false; }
-	// if one is a primitive, the other must be same
 	if (util.isPrimitive(a) || util.isPrimitive(b)) { return a === b; }
 	if (strict && Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) { return false; }
 	const aIsArgs = isArguments(a),
@@ -313,18 +259,12 @@ const create = Object.create || function (p) {
 	let ka = Object.keys(a),
 	  kb = Object.keys(b),
 	  key, i;
-	// having the same number of owned properties (keys incorporates
-	// hasOwnProperty)
 	if (ka.length !== kb.length) { return false; }
-	//the same set of keys (although not necessarily the same order),
 	ka.sort();
 	kb.sort();
-	//~~~cheap key test
 	for (i = ka.length - 1; i >= 0; i--) {
 	  if (ka[i] !== kb[i]) { return false; }
 	}
-	//equivalent values for every corresponding key, and
-	//~~~possibly expensive deep test
 	for (i = ka.length - 1; i >= 0; i--) {
 	  key = ka[i];
 	  if (!_deepEqual(a[key], b[key], strict)) { return false; }
@@ -332,8 +272,6 @@ const create = Object.create || function (p) {
 	return true;
   }
 
-  // 8. The non-equivalence assertion tests for any deep inequality.
-  // assert.notDeepEqual(actual, expected, message_opt);
 
   assert.notDeepEqual = function notDeepEqual(actual, expected, message) {
 	if (_deepEqual(actual, expected, false)) {
@@ -349,8 +287,6 @@ const create = Object.create || function (p) {
   }
 
 
-  // 9. The strict equality assertion tests strict equality, as determined by ===.
-  // assert.strictEqual(actual, expected, message_opt);
 
   assert.strictEqual = function strictEqual(actual, expected, message) {
 	if (actual !== expected) {
@@ -358,8 +294,6 @@ const create = Object.create || function (p) {
 	}
   };
 
-  // 10. The strict non-equality assertion tests for strict inequality, as
-  // determined by !==.  assert.notStrictEqual(actual, expected, message_opt);
 
   assert.notStrictEqual = function notStrictEqual(actual, expected, message) {
 	if (actual === expected) {
@@ -418,15 +352,12 @@ const create = Object.create || function (p) {
 	}
   }
 
-  // 11. Expected to throw an error:
-  // assert.throws(block, Error_opt, message_opt);
 
-  assert.throws = function (block, /*optional*/error, /*optional*/message) {
+  assert.throws = function (block, error, message) {
 	_throws.apply(this, [true].concat(pSlice.call(arguments)));
   };
 
-  // EXTENSION! This is annoying to write outside this module.
-  assert.doesNotThrow = function (block, /*optional*/message) {
+  assert.doesNotThrow = function (block, message) {
 	_throws.apply(this, [false].concat(pSlice.call(arguments)));
   };
 
@@ -442,9 +373,7 @@ const create = Object.create || function (p) {
   async function waitForActual(promiseFn) {
 	let resultPromise;
 	if (typeof promiseFn === 'function') {
-	  // Return a rejected promise if `promiseFn` throws synchronously.
 	  resultPromise = promiseFn();
-	  // Fail in case no promise is returned.
 	  if (!checkIsPromise(resultPromise)) {
 		throw new Error('ERR_INVALID_RETURN_VALUE: promiseFn did not return Promise. ' + resultPromise);
 	  }
@@ -506,17 +435,13 @@ const create = Object.create || function (p) {
 		}
 	};
 
-  // ESM export
   export default assert;
   export const AssertionError = assert.AssertionError
-  // export const fail = assert.fail
-  // export const ok = assert.ok
   export const equal = assert.equal
   export const notEqual = assert.notEqual
   export const deepEqual = assert.deepEqual
   export const deepStrictEqual = assert.deepStrictEqual
   export const notDeepEqual = assert.notDeepEqual
-  // export const notDeepStrictEqual = assert.notDeepStrictEqual
   export const strictEqual = assert.strictEqual
   export const notStrictEqual = assert.notStrictEqual
   export const throws = assert.throws

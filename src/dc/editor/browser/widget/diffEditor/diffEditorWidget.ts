@@ -338,7 +338,7 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 			);
 		}).recomputeInitiallyAndOnChange(this._store);
 
-		const unchangedRangesFeature = derivedDisposable(this, reader => /** @description UnchangedRangesFeature */
+		const unchangedRangesFeature = derivedDisposable(this, reader =>
 			this._instantiationService.createInstance(
 				readHotReloadableExport(HideUnchangedRegionsFeature, reader),
 				this._editors, this._diffModel, this._options,
@@ -347,7 +347,7 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 			)
 		).recomputeInitiallyAndOnChange(this._store);
 
-		derivedDisposable(this, reader => /** @description DiffEditorDecorations */
+		derivedDisposable(this, reader =>
 			this._instantiationService.createInstance(
 				readHotReloadableExport(DiffEditorDecorations, reader),
 				this._editors, this._diffModel, this._options, this,
@@ -357,7 +357,7 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 		const origViewZoneIdsToIgnore = new Set<string>();
 		const modViewZoneIdsToIgnore = new Set<string>();
 		let isUpdatingViewZones = false;
-		const viewZoneManager = derivedDisposable(this, reader => /** @description ViewZoneManager */
+		const viewZoneManager = derivedDisposable(this, reader =>
 			this._instantiationService.createInstance(
 				readHotReloadableExport(DiffEditorViewZones, reader),
 				getWindow(this._domElement),
@@ -371,12 +371,12 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 			)
 		).recomputeInitiallyAndOnChange(this._store);
 
-		const originalViewZones = derived(this, (reader) => { /** @description originalViewZones */
+		const originalViewZones = derived(this, (reader) => {
 			const orig = viewZoneManager.read(reader).viewZones.read(reader).orig;
 			const orig2 = unchangedRangesFeature.read(reader).viewZones.read(reader).origViewZones;
 			return orig.concat(orig2);
 		});
-		const modifiedViewZones = derived(this, (reader) => { /** @description modifiedViewZones */
+		const modifiedViewZones = derived(this, (reader) => {
 			const mod = viewZoneManager.read(reader).viewZones.read(reader).mod;
 			const mod2 = unchangedRangesFeature.read(reader).viewZones.read(reader).modViewZones;
 			return mod.concat(mod2);
@@ -436,7 +436,7 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 
 		this._register(recomputeInitiallyAndOnChange(this._layoutInfo));
 
-		derivedDisposable(this, reader => /** @description MovedBlocksLinesPart */
+		derivedDisposable(this, reader =>
 			new (readHotReloadableExport(MovedBlocksLinesFeature, reader))(
 				this.elements.root,
 				this._diffModel,
@@ -445,7 +445,6 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 				this._editors,
 			)
 		).recomputeInitiallyAndOnChange(this._store, value => {
-			// This is to break the layout info <-> moved blocks lines part dependency cycle.
 			this._movedBlocksLinesPart.set(value, undefined);
 		});
 
@@ -453,12 +452,10 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 		this._register(Event.runAndSubscribe(this._editors.original.onDidChangeCursorPosition, e => this._handleCursorPositionChange(e, false)));
 
 		const isInitializingDiff = this._diffModel.map(this, (m, reader) => {
-			/** @isInitializingDiff isDiffUpToDate */
 			if (!m) { return undefined; }
 			return m.diff.read(reader) === undefined && !m.isDiffUpToDate.read(reader);
 		});
 		this._register(autorunWithStore((reader, store) => {
-			/** @description DiffEditorWidgetHelper.ShowProgress */
 			if (isInitializingDiff.read(reader) === true) {
 				const r = this._editorProgressService.show(true, 1000);
 				store.add(toDisposable(() => r.done()));
@@ -516,7 +513,6 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 	override getEditorType(): string { return EditorType.IDiffEditor; }
 
 	override onVisible(): void {
-		// TODO: Only compute diffs when diff editor is visible
 		this._editors.original.onVisible();
 		this._editors.modified.onVisible();
 	}
@@ -576,7 +572,6 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 		const currentModel = this._diffModel.get();
 
 		if (!viewModel && currentModel) {
-			// Transitioning from a model to no-model
 			this._accessibleDiffViewer.get().close();
 		}
 
@@ -589,7 +584,6 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 				) {
 					this._options.resetWidthBasedLayout(tx);
 				}
-				/** @description DiffEditorWidget.setModel */
 				observableFromEvent.batchEventsGlobally(tx, () => {
 					this._editors.original.setModel(vm ? vm.model.original : null);
 					this._editors.modified.setModel(vm ? vm.model.modified : null);
@@ -599,8 +593,6 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 				if (prevValueRef) {
 					this._deferredDiffModelRefDisposals.add(prevValueRef);
 					setTimeout(() => {
-						// async, so that this runs after the transaction finished.
-						// TODO: use the transaction to schedule disposal
 						this._deferredDiffModelRefDisposals.delete(prevValueRef);
 					}, 0);
 				}
@@ -608,9 +600,6 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 		}
 	}
 
-	/**
-	 * @param changedOptions Only has values for top-level options that have actually changed.
-	 */
 	override updateOptions(changedOptions: IDiffEditorOptions): void {
 		this._options.updateOptions(changedOptions);
 	}
@@ -641,9 +630,6 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 		this._options.resetWidthBasedLayout();
 	}
 
-	/**
-	 * @deprecated Use `this.getDiffComputationResult().changes2` instead.
-	 */
 	getLineChanges(): ILineChange[] | null {
 		const diffState = this._diffModel.get()?.diff.get();
 		if (!diffState) { return null; }
@@ -757,7 +743,6 @@ export class DiffEditorWidget extends DelegatingEditor implements IDiffEditor {
 		if (!diffModel) {
 			return;
 		}
-		// wait for the diff computation to finish
 		this.waitForDiff().then(() => {
 			const diffs = diffModel.diff.get()?.mappings;
 			if (!diffs || diffs.length === 0) {
@@ -854,7 +839,6 @@ export function toLineChanges(state: DiffState): ILineChange[] {
 		let innerChanges = m.innerChanges;
 
 		if (m.original.isEmpty) {
-			// Insertion
 			originalStartLineNumber = m.original.startLineNumber - 1;
 			originalEndLineNumber = 0;
 			innerChanges = undefined;
@@ -864,7 +848,6 @@ export function toLineChanges(state: DiffState): ILineChange[] {
 		}
 
 		if (m.modified.isEmpty) {
-			// Deletion
 			modifiedStartLineNumber = m.modified.startLineNumber - 1;
 			modifiedEndLineNumber = 0;
 			innerChanges = undefined;

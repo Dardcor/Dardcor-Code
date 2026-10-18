@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Return a hash value for an object.
- */
 export function hash(obj: any, hashVal = 0): number {
 	switch (typeof obj) {
 		case 'object':
@@ -29,7 +26,7 @@ export function hash(obj: any, hashVal = 0): number {
 }
 
 function numberHash(val: number, initialHashVal: number): number {
-	return (((initialHashVal << 5) - initialHashVal) + val) | 0;  // hashVal * 31 + ch, keep as int32
+	return (((initialHashVal << 5) - initialHashVal) + val) | 0;
 }
 
 function booleanHash(b: boolean, initialHashVal: number): number {

@@ -145,8 +145,6 @@ export class TerminalTabList extends WorkbenchList<ITerminalInstance> {
 			this._storageService.onDidChangeValue(StorageScope.APPLICATION, TerminalStorageKeys.TabsShowDetailed, this.disposables)(() => this.refresh()),
 		];
 
-		// Dispose of instance listeners on shutdown to avoid extra work and so tabs don't disappear
-		// briefly
 		this.disposables.add(lifecycleService.onWillShutdown(e => {
 			dispose(instanceDisposables);
 			instanceDisposables.length = 0;
@@ -175,8 +173,6 @@ export class TerminalTabList extends WorkbenchList<ITerminalInstance> {
 			}
 		}));
 
-		// on left click, if focus mode = single click, focus the element
-		// unless multi-selection is in progress
 		this.disposables.add(this.onMouseClick(async e => {
 			if (this._terminalEditingService.getEditingTerminal()?.instanceId === e.element?.instanceId) {
 				return;
@@ -191,8 +187,6 @@ export class TerminalTabList extends WorkbenchList<ITerminalInstance> {
 			}
 		}));
 
-		// on right click, set the focus to that element
-		// unless multi-selection is in progress
 		this.disposables.add(this.onContextMenu(e => {
 			if (!e.element) {
 				this.setSelection([]);
@@ -374,7 +368,6 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 		let label: string = '';
 		if (!hasText) {
 			const primaryStatus = instance.statusList.primary;
-			// Don't show ignore severity
 			if (primaryStatus && primaryStatus.severity > Severity.Ignore) {
 				label = `${prefix}$(${primaryStatus.icon?.id || iconId})`;
 			} else {
@@ -383,8 +376,6 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 		} else {
 			this.fillActionBar(instance, template);
 			label = prefix;
-			// Only add the title if the icon is set, this prevents the title jumping around for
-			// example when launching with a ShellLaunchConfig.name and no icon
 			if (instance.icon) {
 				label += `$(${iconId}) ${instance.title}`;
 			}
@@ -394,10 +385,9 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 			template.actionBar.clear();
 		}
 
-		// Kill terminal on middle click
 		template.elementDisposables.add(DOM.addDisposableListener(template.element, DOM.EventType.AUXCLICK, e => {
 			e.stopImmediatePropagation();
-			if (e.button === 1/*middle*/) {
+			if (e.button === 1) {
 				this._terminalService.safeDisposeTerminal(instance);
 			}
 		}));
@@ -523,7 +513,6 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 	}
 
 	fillActionBar(instance: ITerminalInstance, template: ITerminalTabEntryTemplate): void {
-		// If the instance is within the selection, split all selected
 		const actions = [
 			template.elementDisposables.add(new Action(TerminalCommandId.SplitActiveTab, terminalStrings.split.short, ThemeIcon.asClassName(Codicon.splitHorizontal), true, async () => {
 				this._runForSelectionOrInstance(instance, async e => {
@@ -541,7 +530,6 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 		actions.push(template.elementDisposables.add(new Action(TerminalCommandId.KillActiveTab, terminalStrings.kill.short, ThemeIcon.asClassName(Codicon.trashcan), true, async () => {
 			this._runForSelectionOrInstance(instance, e => this._terminalService.safeDisposeTerminal(e));
 		})));
-		// TODO: Cache these in a way that will use the correct instance
 		template.actionBar.clear();
 		for (const action of actions) {
 			template.actionBar.push(action, { icon: true, label: false, keybinding: this._keybindingService.lookupKeybinding(action.id)?.getLabel() });
@@ -658,7 +646,6 @@ class TerminalTabsDragAndDrop extends Disposable implements IListDragAndDrop<ITe
 		if (!Array.isArray(dndData)) {
 			return;
 		}
-		// Attach terminals type to event
 		const terminals = (dndData as unknown[]).filter(isTerminalInstance);
 		if (terminals.length > 0) {
 			originalEvent.dataTransfer.setData(TerminalDataTransfers.Terminals, JSON.stringify(terminals.map(e => e.resource.toString())));
@@ -779,7 +766,6 @@ class TerminalTabsDragAndDrop extends Disposable implements IListDragAndDrop<ITe
 			return;
 		}
 
-		// Check if files were dragged from the tree explorer
 		let resource: URI | undefined;
 		const rawResources = e.dataTransfer.getData(DataTransfers.RESOURCES);
 		if (rawResources) {
@@ -792,7 +778,6 @@ class TerminalTabsDragAndDrop extends Disposable implements IListDragAndDrop<ITe
 		}
 
 		if (!resource && e.dataTransfer.files.length > 0 && getPathForFile(e.dataTransfer.files[0])) {
-			// Check if the file was dragged from the filesystem
 			resource = URI.file(getPathForFile(e.dataTransfer.files[0])!);
 		}
 

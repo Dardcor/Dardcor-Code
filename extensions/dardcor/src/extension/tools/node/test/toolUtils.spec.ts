@@ -37,7 +37,7 @@ class TestIgnoreService extends NullIgnoreService {
 		}
 	}
 
-	override async isCopilotIgnored(file: URI, _token?: CancellationToken): Promise<boolean> {
+	override async isIgnored(file: URI, _token?: CancellationToken): Promise<boolean> {
 		return this._ignoredUris.has(file.toString());
 	}
 }
@@ -173,7 +173,6 @@ suite('toolUtils - additionalReadAccessPaths', () => {
 		});
 
 		test('non-existent workspace file does not need confirmation', async () => {
-			// Non-existent files within the workspace should also not trigger confirmation
 			expect(await invokeIsFileExternalAndNeedsConfirmation(URI.file('/workspace/nonexistent.ts'))).toBe(false);
 		});
 
@@ -250,7 +249,6 @@ suite('toolUtils - additionalReadAccessPaths', () => {
 		});
 
 		test('assertFileOkForTool rejects workspace file when workingDirectory is set', async () => {
-			// /workspace is the workspace folder, but workingDirectory overrides it
 			await expect(invokeAssertFileOkWithWd(URI.file('/workspace/file.ts')))
 				.rejects.toThrow(/outside of the workspace/);
 		});
@@ -381,25 +379,21 @@ suite('toolUtils - external file existence', () => {
 	}
 
 	test('external file that exists needs confirmation', async () => {
-		// Mock an external file that actually exists
 		mockFs.mockFile(URI.file('/external/existing-file.ts'), 'content');
 		expect(await invokeIsFileExternalAndNeedsConfirmation(URI.file('/external/existing-file.ts'))).toBe(true);
 	});
 
 	test('external file that does not exist throws', async () => {
-		// File doesn't exist in mock file system
 		await expect(invokeIsFileExternalAndNeedsConfirmation(URI.file('/external/nonexistent.ts')))
 			.rejects.toThrow(/does not exist/);
 	});
 
 	test('workspace file does not need confirmation even if it exists', async () => {
-		// Mock a workspace file
 		mockFs.mockFile(URI.file('/workspace/file.ts'), 'content');
 		expect(await invokeIsFileExternalAndNeedsConfirmation(URI.file('/workspace/file.ts'))).toBe(false);
 	});
 
 	test('workspace file does not need confirmation even if it does not exist', async () => {
-		// Non-existent workspace file
 		expect(await invokeIsFileExternalAndNeedsConfirmation(URI.file('/workspace/nonexistent.ts'))).toBe(false);
 	});
 });
@@ -569,15 +563,13 @@ describe('encodeUrlHostname', () => {
 
 	describe('homograph attack prevention', () => {
 		it('encodes Cyrillic "a" that looks like Latin "a"', () => {
-			// Cyrillic а (U+0430) vs Latin a (U+0061)
-			const result = encodeUrlHostname('https://exаmple.com'); // Contains Cyrillic а
+			const result = encodeUrlHostname('https://exаmple.com');
 			expect(result.isDifferent).toBe(true);
 			expect(result.encoded).toContain('xn--');
 		});
 
 		it('encodes Greek omicron that looks like Latin "o"', () => {
-			// Greek ο (U+03BF) vs Latin o (U+006F)
-			const result = encodeUrlHostname('https://gοοgle.com'); // Contains Greek ο
+			const result = encodeUrlHostname('https://gοοgle.com');
 			expect(result.isDifferent).toBe(true);
 			expect(result.encoded).toContain('xn--');
 		});
@@ -595,7 +587,6 @@ describe('inputGlobToPattern - multi-root workspace', () => {
 	const folder2 = URI.file('/workspace/vscode-dardcor-chat');
 	const workspaceService = new MultiRootWorkspaceService([folder1, folder2]);
 
-	// Absolute path cases
 	test('absolute path to workspace folder root resolves to empty relative pattern', () => {
 		const result = inputGlobToPattern('/workspace/vscode', new WorkingDirectory(undefined, workspaceService), undefined);
 		expect(result.patterns).toHaveLength(1);
@@ -627,7 +618,6 @@ describe('inputGlobToPattern - multi-root workspace', () => {
 		expect(result.folderRelativePattern).toBe('src/**/*.ts');
 	});
 
-	// Folder name cases (multi-root only)
 	test('bare folder name resolves to ** pattern', () => {
 		const result = inputGlobToPattern('vscode', new WorkingDirectory(undefined, workspaceService), undefined);
 		expect(result.patterns).toHaveLength(1);
@@ -671,7 +661,6 @@ describe('inputGlobToPattern - multi-root workspace', () => {
 		expect(result.folderName).toBe('vscode-dardcor-chat');
 	});
 
-	// Non-folder cases
 	test('does not rewrite when folder name is unknown', () => {
 		const result = inputGlobToPattern('**/unknown-folder/src/**', new WorkingDirectory(undefined, workspaceService), undefined);
 		expect(result.patterns).toHaveLength(1);
@@ -736,7 +725,6 @@ describe('inputGlobToPattern - workingDirectory', () => {
 	test('absolute path outside workingDirectory is not rewritten to relative', () => {
 		const result = inputGlobToPattern('/other/path/file.ts', new WorkingDirectory(workingDirUri, workspaceService), undefined);
 		expect(result.patterns).toHaveLength(1);
-		// Still scoped to workingDirectory as an unscoped string pattern
 		expect(result.patterns[0]).toMatchObject({ baseUri: workingDirUri, pattern: '/other/path/file.ts' });
 		expect(result.folderRelativePattern).toBeUndefined();
 	});
@@ -744,7 +732,6 @@ describe('inputGlobToPattern - workingDirectory', () => {
 	test('absolute path in workspace folder is NOT resolved against workspace when workingDirectory is set', () => {
 		const result = inputGlobToPattern('/workspace/other-project/src', new WorkingDirectory(workingDirUri, workspaceService), undefined);
 		expect(result.patterns).toHaveLength(1);
-		// Should NOT resolve against the workspace folder — workingDirectory takes precedence
 		expect(result.folderName).toBeUndefined();
 	});
 
@@ -752,7 +739,6 @@ describe('inputGlobToPattern - workingDirectory', () => {
 		const multiRoot = new MultiRootWorkspaceService([folder1, URI.file('/workspace/vscode')]);
 		const result = inputGlobToPattern('vscode/src/**', new WorkingDirectory(workingDirUri, multiRoot), undefined);
 		expect(result.patterns).toHaveLength(1);
-		// Should NOT rewrite to the workspace folder — scoped to workingDirectory instead
 		expect(result.patterns[0]).toMatchObject({ baseUri: workingDirUri, pattern: 'vscode/src/**' });
 		expect(result.folderName).toBeUndefined();
 	});

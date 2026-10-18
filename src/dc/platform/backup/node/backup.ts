@@ -37,7 +37,6 @@ export function deserializeWorkspaceInfos(serializedBackupWorkspaces: ISerialize
 			));
 		}
 	} catch {
-		// ignore URI parsing exceptions
 	}
 
 	return workspaceBackupInfos;
@@ -60,7 +59,6 @@ export function deserializeFolderInfos(serializedBackupWorkspaces: ISerializedBa
 			));
 		}
 	} catch {
-		// ignore URI parsing exceptions
 	}
 
 	return folderBackupInfos;

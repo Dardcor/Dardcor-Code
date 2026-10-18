@@ -28,7 +28,6 @@ pub fn is_wsl_installed(log: &log::Logger) -> bool {
 		system32
 	};
 
-	// Windows builds < 22000
 	let mut maybe_lxss = system32.join("lxss");
 	maybe_lxss.push("LxssManager.dll");
 	if maybe_lxss.exists() {
@@ -36,7 +35,6 @@ pub fn is_wsl_installed(log: &log::Logger) -> bool {
 		return true;
 	}
 
-	// Windows builds >= 22000
 	let maybe_wsl = system32.join("wsl.exe");
 	if maybe_wsl.exists() {
 		if let Ok(s) = new_std_command(maybe_wsl).arg("--status").output() {

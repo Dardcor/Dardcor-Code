@@ -13,7 +13,6 @@ import { type RawSourceMap, SourceMapConsumer } from 'source-map';
 import { nlsPlugin, createNLSCollector, finalizeNLS, postProcessNLS } from '../nls-plugin.ts';
 import { adjustSourceMap } from '../private-to-property.ts';
 
-// analyzeLocalizeCalls requires the import path to end with `/nls`
 const NLS_STUB = [
 	'export function localize(key: string, message: string, ...args: any[]): string {',
 	'\treturn message;',
@@ -30,11 +29,6 @@ interface BundleResult {
 	cleanup: () => void;
 }
 
-/**
- * Helper: create a temp directory with source files, bundle with NLS, and return
- * the generated JS + parsed source map. The NLS stub is automatically placed at
- * `dc/nls.ts` so test files can import from `../dc/nls` (when placed in `test/`).
- */
 async function bundleWithNLS(
 	files: Record<string, string>,
 	entryPoint: string,
@@ -46,7 +40,6 @@ async function bundleWithNLS(
 	await fs.promises.mkdir(srcDir, { recursive: true });
 	await fs.promises.mkdir(outDir, { recursive: true });
 
-	// Write source files (always include the NLS stub at dc/nls.ts)
 	const allFiles = { 'dc/nls.ts': NLS_STUB, ...files };
 	for (const [name, content] of Object.entries(allFiles)) {
 		const filePath = path.join(srcDir, name);
@@ -91,14 +84,12 @@ async function bundleWithNLS(
 		}
 	}
 
-	// Optionally apply NLS post-processing (replaces placeholders with indices)
 	if (opts?.postProcess) {
 		const nlsResult = await finalizeNLS(collector, outDir);
 		const preNLSCode = jsContent;
 		const nlsProcessed = postProcessNLS(jsContent, nlsResult.indexMap, false);
 		jsContent = nlsProcessed.code;
 
-		// Adjust source map for NLS edits
 		if (nlsProcessed.edits.length > 0) {
 			const mapJson = JSON.parse(mapContent);
 			const adjusted = adjustSourceMap(mapJson, preNLSCode, nlsProcessed.edits);
@@ -118,22 +109,16 @@ async function bundleWithNLS(
 	return { js: jsContent, mapJson, map, cleanup };
 }
 
-/**
- * Find the 1-based line number in `text` that contains `needle`.
- */
 function findLine(text: string, needle: string): number {
 	const lines = text.split('\n');
 	for (let i = 0; i < lines.length; i++) {
 		if (lines[i].includes(needle)) {
-			return i + 1; // 1-based
+			return i + 1;
 		}
 	}
 	throw new Error(`Could not find "${needle}" in text`);
 }
 
-/**
- * Find the 0-based column of `needle` within the line that contains it.
- */
 function findColumn(text: string, needle: string): number {
 	const lines = text.split('\n');
 	for (const line of lines) {
@@ -245,12 +230,12 @@ suite('NLS plugin source maps', () => {
 
 	test('line mapping correct for code after localize calls', async () => {
 		const source = [
-			'import { localize } from "../dc/nls";',                         // 1
-			'const label = localize("key1", "A long message");',            // 2
-			'const label2 = localize("key2", "Another message");',          // 3
-			'export function computeResult(x: number): number {',           // 4
-			'\treturn x * 42;',                                              // 5
-			'}',                                                             // 6
+			'import { localize } from "../dc/nls";',
+			'const label = localize("key1", "A long message");',
+			'const label2 = localize("key2", "Another message");',
+			'export function computeResult(x: number): number {',
+			'\treturn x * 42;',
+			'}',
 		].join('\n');
 
 		const { js, map, cleanup } = await bundleWithNLS(
@@ -270,9 +255,6 @@ suite('NLS plugin source maps', () => {
 	});
 
 	test('column mapping for code on same line after localize call', async () => {
-		// The NLS placeholder is longer than the original key, so column offsets
-		// for tokens AFTER the localize call on the same line will drift if
-		// source map mappings point to the NLS-transformed source positions.
 		const source = [
 			'import { localize } from "../dc/nls";',
 			'const x = localize("k", "m"); const z = "FINDME"; export { x, z };',
@@ -293,12 +275,8 @@ suite('NLS plugin source maps', () => {
 			assert.ok(pos.source, 'Should have source');
 			assert.strictEqual(pos.line, 2, 'Should map to line 2');
 
-			// The original column of "FINDME" in the source
 			const originalCol = findColumn(source, '"FINDME"');
 
-			// The mapped column should match the ORIGINAL source positions.
-			// Allow drift from TS->JS transform (const->var, export removal, etc.)
-			// but NOT the large NLS placeholder drift (~100+ chars) from before the fix.
 			const columnDrift = Math.abs(pos.column! - originalCol);
 			assert.ok(columnDrift <= 20,
 				`Column should be close to original. Expected ~${originalCol}, got ${pos.column} (drift: ${columnDrift}). ` +
@@ -310,21 +288,21 @@ suite('NLS plugin source maps', () => {
 
 	test('class with localize - method positions map correctly', async () => {
 		const source = [
-			'import { localize } from "../dc/nls";',                                       // 1
-			'',                                                                             // 2
-			'export class MyWidget {',                                                      // 3
-			'\tprivate readonly label = localize("widgetLabel", "My Cool Widget");',        // 4
-			'',                                                                             // 5
-			'\tconstructor(private readonly name: string) {}',                              // 6
-			'',                                                                             // 7
-			'\tgetDescription(): string {',                                                 // 8
-			'\t\treturn this.name + ": " + this.label;',                                   // 9
-			'\t}',                                                                          // 10
-			'',                                                                             // 11
-			'\tdispose(): void {',                                                         // 12
-			'\t\tconsole.log("disposed");',                                                // 13
-			'\t}',                                                                          // 14
-			'}',                                                                            // 15
+			'import { localize } from "../dc/nls";',
+			'',
+			'export class MyWidget {',
+			'\tprivate readonly label = localize("widgetLabel", "My Cool Widget");',
+			'',
+			'\tconstructor(private readonly name: string) {}',
+			'',
+			'\tgetDescription(): string {',
+			'\t\treturn this.name + ": " + this.label;',
+			'\t}',
+			'',
+			'\tdispose(): void {',
+			'\t\tconsole.log("disposed");',
+			'\t}',
+			'}',
 		].join('\n');
 
 		const { js, map, cleanup } = await bundleWithNLS(
@@ -345,17 +323,17 @@ suite('NLS plugin source maps', () => {
 
 	test('many localize calls - line mappings remain correct', async () => {
 		const source = [
-			'import { localize } from "../dc/nls";',                        // 1
-			'',                                                              // 2
-			'const a = localize("a", "Alpha");',                            // 3
-			'const b = localize("b", "Bravo with a longer message");',      // 4
-			'const c = localize("c", "Charlie");',                          // 5
-			'const d = localize("d", "Delta is the fourth");',              // 6
-			'const e = localize("e", "Echo");',                             // 7
-			'',                                                              // 8
-			'export function getAll(): string {',                           // 9
-			'\treturn [a, b, c, d, e].join(", ");',                         // 10
-			'}',                                                             // 11
+			'import { localize } from "../dc/nls";',
+			'',
+			'const a = localize("a", "Alpha");',
+			'const b = localize("b", "Bravo with a longer message");',
+			'const c = localize("c", "Charlie");',
+			'const d = localize("d", "Delta is the fourth");',
+			'const e = localize("e", "Echo");',
+			'',
+			'export function getAll(): string {',
+			'\treturn [a, b, c, d, e].join(", ");',
+			'}',
 		].join('\n');
 
 		const { js, map, cleanup } = await bundleWithNLS(
@@ -406,12 +384,9 @@ suite('NLS plugin source maps', () => {
 	});
 
 	test('post-processed NLS - column mappings correct after placeholder replacement', async () => {
-		// NLS placeholders like "%%NLS:test/drift#k%%" are much longer than their
-		// replacements (e.g. "0"). Without source map adjustment the columns for
-		// tokens AFTER the replacement drift by the cumulative length delta.
 		const source = [
-			'import { localize } from "../dc/nls";',                                   // 1
-			'export const a = localize("k1", "Alpha"); export const MARKER = "FINDME";',   // 2
+			'import { localize } from "../dc/nls";',
+			'export const a = localize("k1", "Alpha"); export const MARKER = "FINDME";',
 		].join('\n');
 
 		const { js, map, cleanup } = await bundleWithNLS(
@@ -442,20 +417,17 @@ suite('NLS plugin source maps', () => {
 	});
 
 	test('minified bundle with NLS - end-to-end column mapping', async () => {
-		// With minification, the entire output is (roughly) on one line.
-		// Multiple NLS replacements compound their column shifts. A function
-		// defined after several localize() calls must still map correctly.
 		const source = [
-			'import { localize } from "../dc/nls";',                               // 1
-			'',                                                                     // 2
-			'export const a = localize("k1", "Alpha message");',                   // 3
-			'export const b = localize("k2", "Bravo message that is quite long");', // 4
-			'export const c = localize("k3", "Charlie");',                         // 5
-			'export const d = localize("k4", "Delta is the fourth letter");',      // 6
-			'',                                                                     // 7
-			'export function computeResult(x: number): number {',                  // 8
-			'\treturn x * 42;',                                                     // 9
-			'}',                                                                    // 10
+			'import { localize } from "../dc/nls";',
+			'',
+			'export const a = localize("k1", "Alpha message");',
+			'export const b = localize("k2", "Bravo message that is quite long");',
+			'export const c = localize("k3", "Charlie");',
+			'export const d = localize("k4", "Delta is the fourth letter");',
+			'',
+			'export function computeResult(x: number): number {',
+			'\treturn x * 42;',
+			'}',
 		].join('\n');
 
 		const { js, map, cleanup } = await bundleWithNLS(
@@ -467,9 +439,6 @@ suite('NLS plugin source maps', () => {
 		try {
 			assert.ok(!js.includes('%%NLS:'), 'Placeholders should be replaced');
 
-			// Find the computeResult function in the minified output.
-			// esbuild minifies `x * 42` and may rename the parameter, so
-			// search for `*42` which survives both minification and renaming.
 			const needle = '*42';
 			const bundleLine = findLine(js, needle);
 			const bundleCol = findColumn(js, needle);

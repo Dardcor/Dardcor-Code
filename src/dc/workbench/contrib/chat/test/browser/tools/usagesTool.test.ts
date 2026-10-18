@@ -193,14 +193,13 @@ suite('UsagesTool', () => {
 			disposables.add(langFeatures.definitionProvider.register('typescript', defProvider));
 			disposables.add(langFeatures.implementationProvider.register('typescript', implProvider));
 
-			// Model is open for testUri so IModelService returns it; otherUri needs search
 			const searchCalled: ITextQuery[] = [];
 			const searchService = createMockSearchService(query => {
 				searchCalled.push(query);
 				const fileMatch = new FileMatch(otherUri);
 				fileMatch.results = [new TextSearchMatch(
 					'export class MyClass implements IMyClass {',
-					new OneLineRange(4, 0, 7) // 0-based line 4 = 1-based line 5
+					new OneLineRange(4, 0, 7)
 				)];
 				return { results: [fileMatch], messages: [] };
 			});
@@ -214,25 +213,19 @@ suite('UsagesTool', () => {
 
 			const text = getTextContent(result);
 
-			// Check overall structure
 			assert.ok(text.includes('3 usages of `MyClass`'));
 
-			// Check usage tag format
 			assert.ok(text.includes(`<usage type="definition" uri="${testUri.toString()}" line="1">`));
 			assert.ok(text.includes(`<usage type="reference" uri="${testUri.toString()}" line="4">`));
 			assert.ok(text.includes(`<usage type="implementation" uri="${otherUri.toString()}" line="5">`));
 
-			// Check that previews from open model are included (testUri lines)
 			assert.ok(text.includes('import { MyClass } from "./myClass"'));
 			assert.ok(text.includes('const instance = new MyClass()'));
 
-			// Check that preview from search service is included (otherUri)
 			assert.ok(text.includes('export class MyClass implements IMyClass {'));
 
-			// Check closing tags
 			assert.ok(text.includes('</usage>'));
 
-			// Verify search service was called for the non-open file
 			assert.strictEqual(searchCalled.length, 1);
 			assert.ok(searchCalled[0].contentPattern.pattern.includes('MyClass'));
 			assert.ok(searchCalled[0].contentPattern.isWordMatch);
@@ -248,7 +241,6 @@ suite('UsagesTool', () => {
 				]
 			}));
 
-			// Search returns no results for this file (symbol renamed/aliased)
 			const searchService = createMockSearchService(() => ({ results: [], messages: [] }));
 
 			const tool = disposables.add(createTool(createMockTextModelService(model), createMockWorkspaceService(), { searchService }));

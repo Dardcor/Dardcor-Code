@@ -4,21 +4,14 @@ import { refreshTokenByProvider } from "../services/tokenRefresh.js";
 import { PROVIDER_MEDIA } from "../providers/index.js";
 import { getVideoAdapter } from "./videoProviders/index.js";
 
-// Upstream fetch deadline for video job submission/polling (the job itself is
-// async upstream — this only bounds the HTTP round-trip, not video rendering).
 const VIDEO_FETCH_TIMEOUT_MS = Number(process.env.VIDEO_FETCH_TIMEOUT_MS || 120000);
 
-// POST /videos/* creates a billable upstream job. A network error after the
-// request left the socket may still have created the job, so creation is NEVER
-// auto-retried (the only re-send is the auth retry after a 401/403 refresh,
-// which upstream rejects before job creation).
 export const VIDEO_ACTIONS = new Set(["generations", "edits", "extensions"]);
 
 export function getVideoConfig(provider) {
   return PROVIDER_MEDIA[provider]?.videoConfig || null;
 }
 
-/** Strip bearer tokens / obvious secrets from text destined for clients or logs. */
 export function sanitizeSecrets(text, credentials = null) {
   if (!text) return text;
   let out = String(text).replace(/Bearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, "Bearer [redacted]");
@@ -52,28 +45,6 @@ function combineSignals(signal, timeoutMs) {
   return signal || timeoutSignal || undefined;
 }
 
-/**
- * Transparent proxy for async video jobs (xAI Grok Imagine shape).
- *
- * - Forwards the raw body byte-for-byte (JSON or multipart) — no reshaping.
- * - Passes upstream JSON (request_id, status, video.url, error) back verbatim.
- * - 401/403 with a refresh token: refresh ONCE, retry ONCE. No other retry.
- * - Upstream error text is sanitized before it reaches the client.
- *
- * @param {object} options
- * @param {string} options.provider - Provider id (must have registry videoConfig)
- * @param {"generations"|"edits"|"extensions"|null} options.action - Creation action (POST)
- * @param {string|null} [options.requestId] - Poll target (GET /videos/{id})
- * @param {Buffer|string|null} [options.rawBody] - Exact body to forward
- * @param {string|null} [options.contentType] - Original Content-Type header
- * @param {string|null} [options.idempotencyKey] - Forwarded Idempotency-Key
- * @param {object} options.credentials - { accessToken?, apiKey?, refreshToken?, authType? }
- * @param {AbortSignal} [options.signal] - Client cancellation signal
- * @param {number} [options.timeoutMs]
- * @param {object} [options.log]
- * @param {function} [options.onCredentialsRefreshed]
- * @returns {Promise<{ success: boolean, response: Response, status?: number, error?: string }>}
- */
 export async function handleVideoProxyCore({
   provider,
   action = null,
@@ -98,7 +69,6 @@ export async function handleVideoProxyCore({
   const adapter = getVideoAdapter(provider);
   const fetchSignal = combineSignals(signal, timeoutMs);
 
-  // Default (xAI shape) request plan; adapters override URL/method/headers/body.
   const defaultPlan = () => {
     const method = requestId ? "GET" : "POST";
     return {
@@ -113,7 +83,6 @@ export async function handleVideoProxyCore({
     };
   };
 
-  // Rebuilt per attempt so the auth retry below picks up the refreshed token.
   const doFetch = async () => {
     const plan = adapter
       ? await adapter.buildRequest({
@@ -142,11 +111,9 @@ export async function handleVideoProxyCore({
     if (error?.name === "AbortError" || error?.name === "TimeoutError") {
       return createErrorResult(HTTP_STATUS.REQUEST_TIMEOUT, `[${provider}] video ${method} aborted: ${error.message}`);
     }
-    // Never re-send a creation POST on network error — the job may already exist upstream.
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, sanitizeSecrets(`[${provider}] video upstream fetch failed: ${error.message}`, credentials));
   }
 
-  // 401/403 → refresh once → retry once (OAuth accounts only; API keys can't refresh)
   if (
     (upstream.status === HTTP_STATUS.UNAUTHORIZED || upstream.status === HTTP_STATUS.FORBIDDEN) &&
     credentials?.refreshToken
@@ -163,7 +130,7 @@ export async function handleVideoProxyCore({
       if (onCredentialsRefreshed) await onCredentialsRefreshed(refreshed);
       try {
         await upstream.body?.cancel?.();
-      } catch { /* noop */ }
+      } catch { }
       try {
         const retry = await doFetch();
         if (retry.planError) return createErrorResult(HTTP_STATUS.BAD_REQUEST, `[${provider}] ${retry.planError}`);
@@ -183,8 +150,6 @@ export async function handleVideoProxyCore({
     return createErrorResult(upstream.status, `[${provider}] ${message.slice(0, 2000)}`);
   }
 
-  // Success: pass the upstream JSON through untouched (request_id / status / video.url),
-  // unless the adapter maps a provider-native shape onto it (Vertex operations).
   let outBody = bodyText;
   let outType = upstream.headers.get("content-type") || "application/json";
   if (adapter?.transformResponse) {
@@ -192,7 +157,6 @@ export async function handleVideoProxyCore({
       outBody = JSON.stringify(adapter.transformResponse(JSON.parse(bodyText)));
       outType = "application/json";
     } catch {
-      // Non-JSON or unexpected shape — fall back to the raw upstream body.
     }
   }
 

@@ -87,7 +87,6 @@ class Settings {
 		this.domWidth = position.width;
 		this.domHeight = position.height;
 		if (this.overviewRulerLanes === 0) {
-			// overview ruler is off
 			this.canvasWidth = 0;
 			this.canvasHeight = 0;
 		} else {
@@ -114,22 +113,22 @@ class Settings {
 			return [
 				[
 					0,
-					leftOffset, // Left
-					centerOffset, // Center
-					leftOffset, // Left | Center
-					rightOffset, // Right
-					leftOffset, // Left | Right
-					centerOffset, // Center | Right
-					leftOffset, // Left | Center | Right
+					leftOffset,
+					centerOffset,
+					leftOffset,
+					rightOffset,
+					leftOffset,
+					centerOffset,
+					leftOffset,
 				], [
 					0,
-					leftWidth, // Left
-					centerWidth, // Center
-					leftWidth + centerWidth, // Left | Center
-					rightWidth, // Right
-					leftWidth + centerWidth + rightWidth, // Left | Right
-					centerWidth + rightWidth, // Center | Right
-					leftWidth + centerWidth + rightWidth, // Left | Center | Right
+					leftWidth,
+					centerWidth,
+					leftWidth + centerWidth,
+					rightWidth,
+					leftWidth + centerWidth + rightWidth,
+					centerWidth + rightWidth,
+					leftWidth + centerWidth + rightWidth,
 				]
 			];
 		} else if (laneCount === 2) {
@@ -141,22 +140,22 @@ class Settings {
 			return [
 				[
 					0,
-					leftOffset, // Left
-					leftOffset, // Center
-					leftOffset, // Left | Center
-					rightOffset, // Right
-					leftOffset, // Left | Right
-					leftOffset, // Center | Right
-					leftOffset, // Left | Center | Right
+					leftOffset,
+					leftOffset,
+					leftOffset,
+					rightOffset,
+					leftOffset,
+					leftOffset,
+					leftOffset,
 				], [
 					0,
-					leftWidth, // Left
-					leftWidth, // Center
-					leftWidth, // Left | Center
-					rightWidth, // Right
-					leftWidth + rightWidth, // Left | Right
-					leftWidth + rightWidth, // Center | Right
-					leftWidth + rightWidth, // Left | Center | Right
+					leftWidth,
+					leftWidth,
+					leftWidth,
+					rightWidth,
+					leftWidth + rightWidth,
+					leftWidth + rightWidth,
+					leftWidth + rightWidth,
 				]
 			];
 		} else {
@@ -166,22 +165,22 @@ class Settings {
 			return [
 				[
 					0,
-					offset, // Left
-					offset, // Center
-					offset, // Left | Center
-					offset, // Right
-					offset, // Left | Right
-					offset, // Center | Right
-					offset, // Left | Center | Right
+					offset,
+					offset,
+					offset,
+					offset,
+					offset,
+					offset,
+					offset,
 				], [
 					0,
-					width, // Left
-					width, // Center
-					width, // Left | Center
-					width, // Right
-					width, // Left | Right
-					width, // Center | Right
-					width, // Left | Center | Right
+					width,
+					width,
+					width,
+					width,
+					width,
+					width,
+					width,
 				]
 			];
 		}
@@ -273,7 +272,6 @@ export class DecorationsOverviewRuler extends ViewPart {
 	private _updateSettings(renderNow: boolean): boolean {
 		const newSettings = new Settings(this._context.configuration, this._context.theme);
 		if (this._settings && this._settings.equals(newSettings)) {
-			// nothing to do
 			return false;
 		}
 
@@ -293,7 +291,6 @@ export class DecorationsOverviewRuler extends ViewPart {
 		return true;
 	}
 
-	// ---- begin view event handlers
 
 	private _markRenderingIsNeeded(): true {
 		this._actualShouldRender = ShouldRenderValue.Needed;
@@ -339,14 +336,12 @@ export class DecorationsOverviewRuler extends ViewPart {
 		return this._updateSettings(false) ? this._markRenderingIsNeeded() : false;
 	}
 
-	// ---- end view event handlers
 
 	public getDomNode(): HTMLElement {
 		return this._domNode.domNode;
 	}
 
 	public prepareRender(ctx: RenderingContext): void {
-		// Nothing to read
 	}
 
 	public render(editorCtx: RestrictedRenderingContext): void {
@@ -357,7 +352,6 @@ export class DecorationsOverviewRuler extends ViewPart {
 	private _render(): void {
 		const backgroundColor = this._settings.backgroundColor;
 		if (this._settings.overviewRulerLanes === 0) {
-			// overview ruler is off
 			this._domNode.setBackgroundColor(backgroundColor ? Color.Format.CSS.formatHexA(backgroundColor) : '');
 			this._domNode.setDisplay('none');
 			return;
@@ -373,7 +367,6 @@ export class DecorationsOverviewRuler extends ViewPart {
 			this._actualShouldRender = ShouldRenderValue.Needed;
 		}
 		if (this._actualShouldRender === ShouldRenderValue.Maybe) {
-			// both decorations and cursor positions are unchanged, nothing to do
 			return;
 		}
 		this._renderedDecorations = decorations;
@@ -393,18 +386,14 @@ export class DecorationsOverviewRuler extends ViewPart {
 		const canvasCtx = this._domNode.domNode.getContext('2d')!;
 		if (backgroundColor) {
 			if (backgroundColor.isOpaque()) {
-				// We have a background color which is opaque, we can just paint the entire surface with it
 				canvasCtx.fillStyle = Color.Format.CSS.formatHexA(backgroundColor);
 				canvasCtx.fillRect(0, 0, canvasWidth, canvasHeight);
 			} else {
-				// We have a background color which is transparent, we need to first clear the surface and
-				// then fill it
 				canvasCtx.clearRect(0, 0, canvasWidth, canvasHeight);
 				canvasCtx.fillStyle = Color.Format.CSS.formatHexA(backgroundColor);
 				canvasCtx.fillRect(0, 0, canvasWidth, canvasHeight);
 			}
 		} else {
-			// We don't have a background color
 			canvasCtx.clearRect(0, 0, canvasWidth, canvasHeight);
 		}
 
@@ -442,7 +431,6 @@ export class DecorationsOverviewRuler extends ViewPart {
 				}
 
 				if (y1 > prevY2 + 1 || lane !== prevLane) {
-					// flush prev
 					if (i !== 0) {
 						canvasCtx.fillRect(x[prevLane], prevY1, w[prevLane], prevY2 - prevY1);
 					}
@@ -450,7 +438,6 @@ export class DecorationsOverviewRuler extends ViewPart {
 					prevY1 = y1;
 					prevY2 = y2;
 				} else {
-					// merge into prev
 					if (y2 > prevY2) {
 						prevY2 = y2;
 					}
@@ -459,7 +446,6 @@ export class DecorationsOverviewRuler extends ViewPart {
 			canvasCtx.fillRect(x[prevLane], prevY1, w[prevLane], prevY2 - prevY1);
 		}
 
-		// Draw cursors
 		if (!this._settings.hideCursor) {
 			const cursorHeight = (2 * this._settings.pixelRatio) | 0;
 			const halfCursorHeight = (cursorHeight / 2) | 0;
@@ -486,14 +472,12 @@ export class DecorationsOverviewRuler extends ViewPart {
 				const y2 = y1 + cursorHeight;
 
 				if (y1 > prevY2 + 1 || color !== prevColor) {
-					// flush prev
 					if (i !== 0 && prevColor) {
 						canvasCtx.fillRect(cursorX, prevY1, cursorW, prevY2 - prevY1);
 					}
 					prevY1 = y1;
 					prevY2 = y2;
 				} else {
-					// merge into prev
 					if (y2 > prevY2) {
 						prevY2 = y2;
 					}

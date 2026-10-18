@@ -117,7 +117,6 @@ export class ReplDocumentContribution extends Disposable implements IWorkbenchCo
 		super();
 
 		editorResolverService.registerEditor(
-			// don't match anything, we don't need to support re-opening files as REPL editor at this point
 			` `,
 			{
 				id: 'repl',
@@ -125,8 +124,6 @@ export class ReplDocumentContribution extends Disposable implements IWorkbenchCo
 				priority: RegisteredEditorPriority.option
 			},
 			{
-				// We want to support all notebook types which could have any file extension,
-				// so we just check if the resource corresponds to a notebook
 				canSupportResource: uri => notebookService.getNotebookTextModel(uri) !== undefined,
 				singlePerResource: true
 			},
@@ -145,8 +142,6 @@ export class ReplDocumentContribution extends Disposable implements IWorkbenchCo
 
 					const notebookUri = ref.object.notebook.uri;
 
-					// untitled notebooks are disposed when they get saved. we should not hold a reference
-					// to such a disposed notebook and therefore dispose the reference as well
 					Event.once(ref.object.notebook.onWillDispose)(() => {
 						ref.dispose();
 					});
@@ -275,7 +270,6 @@ registerAction2(class extends Action2 {
 
 		const viewModel = notebookEditor?.getViewModel();
 		if (notebookEditor && viewModel) {
-			// last cell of the viewmodel is the last cell history
 			const lastCellIndex = viewModel.length - 1;
 			if (lastCellIndex >= 0) {
 				const cell = viewModel.viewCells[lastCellIndex];
@@ -431,7 +425,6 @@ async function executeReplInput(
 				return;
 			}
 
-			// Just accept any existing inline chat hunk
 			const ctrl = InlineChatController.get(editorControl.activeCodeEditor);
 			if (ctrl) {
 				ctrl.acceptSession();
@@ -468,12 +461,10 @@ async function executeReplInput(
 				)
 			]);
 
-			// reveal the cell into view first
 			const range = { start: index, end: index + 1 };
 			editorControl.notebookEditor.revealCellRangeInView(range);
 			await editorControl.notebookEditor.executeNotebookCells(editorControl.notebookEditor.getCellsInRange({ start: index, end: index + 1 }));
 
-			// update the selection and focus in the extension host model
 			const editor = notebookEditorService.getNotebookEditor(editorControl.notebookEditor.getId());
 			if (editor) {
 				editor.setSelections([range]);

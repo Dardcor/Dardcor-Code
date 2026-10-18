@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IInteractionService } from '../../../platform/chat/common/interactionService';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
@@ -22,20 +21,13 @@ import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { enforceNamingConvention, guessNamingConvention, NamingConvention } from '../common/namingConvention';
 import { RenameSuggestionsPrompt } from './renameSuggestionsPrompt';
 
-/**
- * The format of the reply from the model.
- */
 type ReplyFormat =
-	/** When the reply was a JSON array of strings as instructed in the prompt */
 	| 'jsonStringArray'
 
-	/** When there were multiple JSON array's matched by the regex */
 	| 'multiJsonStringArray'
 
-	/** When the reply was an ordered or unordered list */
 	| 'list'
 
-	/** When we couldn't parse the response */
 	| 'unknown'
 	;
 
@@ -59,7 +51,6 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IEndpointProvider private readonly _endpointProvider: IEndpointProvider,
 		@ISimulationTestContext private readonly _simulationTestContext: ISimulationTestContext,
-		@IAuthenticationService private readonly _authService: IAuthenticationService,
 		@INotificationService private readonly _notificationService: INotificationService,
 		@IInteractionService private readonly _interactionService: IInteractionService
 	) {
@@ -70,17 +61,10 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 	protected isEnabled(triggerKind: NewSymbolNameTriggerKind) {
 		if (triggerKind === NewSymbolNameTriggerKind.Invoke) {
 			return true;
-		} else if (this._authService.dardcorToken?.isFreeUser || this._authService.dardcorToken?.isNoAuthUser) {
-			return false;
-		} else {
-			return this._configurationService.getConfig(ConfigKey.AutomaticRenameSuggestions);
 		}
+		return this._configurationService.getConfig(ConfigKey.AutomaticRenameSuggestions);
 	}
 
-	/**
-	 * @throws {Error} with `message = 'CopilotFeatureUnavailableOrDisabled' if the feature is not available
-	 * @throws {Error} with `message = 'CopilotIgnoredDocument' if the document is Copilot-ignored
-	 */
 	async provideNewSymbolNames(_document: vscode.TextDocument, range: vscode.Range, triggerKind: NewSymbolNameTriggerKind, token: vscode.CancellationToken): Promise<NewSymbolName[] | null> {
 		const document = TextDocumentSnapshot.create(_document);
 
@@ -88,15 +72,14 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 
 		const beforeDelaySW = new StopWatch();
 
-		// @ulugbekna: capture the symbol name that is being renamed before an await to avoid document being changed under us
 		const currentSymbolName = document.getText(range);
 
 		if (!this.isEnabled(triggerKind)) {
-			throw new Error('CopilotFeatureUnavailableOrDisabled');
+			throw new Error('DardcorFeatureUnavailableOrDisabled');
 		}
 
-		if (await this._ignoreService.isCopilotIgnored(document.uri)) {
-			throw new Error('CopilotIgnoredDocument');
+		if (await this._ignoreService.isIgnored(document.uri)) {
+			throw new Error('DardcorIgnoredDocument');
 		}
 
 		const languageId = document.languageId;
@@ -143,7 +126,7 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 						const fetchResult = await endpoint.makeChatRequest(
 							'renameSuggestionsProvider',
 							promptRenderResult.messages,
-							undefined, // TODO@ulugbekna: should we terminate on `]` (closing for JSON array that we expect to receive from the model)
+							undefined,
 							token,
 							ChatLocation.Other,
 							undefined,
@@ -155,11 +138,8 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 						);
 						const fetchTime = sw.elapsed();
 
-						// @ulugbekna: only show the quota exceeded dialog when the user manually invoked rename suggestions.
-						// For automatic triggers (e.g., when pressing F2), showing a modal dialog steals focus from the
-						// rename widget and cancels the user's rename action - see https://github.com/microsoft/vscode/issues/319414
-						if (RenameSuggestionsProvider.shouldShowQuotaExceededDialog(triggerKind, fetchResult.type, this._authService.dardcorToken?.isNoAuthUser ?? false)) {
-							await this._notificationService.showQuotaExceededDialog({ isNoAuthUser: this._authService.dardcorToken?.isNoAuthUser ?? false });
+						if (RenameSuggestionsProvider.shouldShowRouterLimitWarning(triggerKind, fetchResult.type)) {
+							await this._notificationService.showWarningMessage('Dardcor Router is rate limited or the selected model has reached its quota. Check the Router provider or retry later.');
 						}
 
 						if (token.isCancellationRequested) {
@@ -224,23 +204,15 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 		return null;
 	}
 
-	/**
-	 * The delay before fetching from the model.
-	 */
 	private get delayBeforeFetchMs() {
 		if (this._simulationTestContext.isInSimulationTests) {
 			return 0;
 		} else {
-			const DELAY_BEFORE_FETCH = 250 /* milliseconds */;
+			const DELAY_BEFORE_FETCH = 250 ;
 			return DELAY_BEFORE_FETCH;
 		}
 	}
 
-	// @ulugbekna: notes:
-	// - FIXME: currently, we fail with very large definitions such as big classes or functions -- we need summarization by category, e.g., remove method implementations if we're renaming a class
-	// - idea: include hover info (i.e., usually type info & corresponding document) of the symbol being renamed in the prompt
-	// - idea: include usages of the symbol being renamed in the prompt
-	// - idea: include peer symbols (e.g., other methods in the same class) in the prompt for dardcor to see conventions in the code
 	private _computePrompt(document: TextDocumentSnapshot, range: vscode.Range, chatEndpoint: IChatEndpoint, token: vscode.CancellationToken) {
 		const promptRenderer = PromptRenderer.create(
 			this._instaService,
@@ -291,19 +263,12 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 		return newSymbolNames.map(newSymbolName => enforceNamingConvention(newSymbolName, targetNamingConvention));
 	}
 
-	/**
-	 * Determines whether to show the quota exceeded dialog for a rename suggestions fetch result.
-	 *
-	 * The dialog is only shown for manually-invoked rename suggestions ({@link NewSymbolNameTriggerKind.Invoke}).
-	 * For automatic triggers (e.g., when pressing F2), showing a modal dialog steals focus from the rename
-	 * widget and cancels the user's rename action - see https://github.com/microsoft/vscode/issues/319414
-	 */
-	public static shouldShowQuotaExceededDialog(triggerKind: NewSymbolNameTriggerKind, fetchResultType: ChatFetchResponseType, isNoAuthUser: boolean): boolean {
+	public static shouldShowRouterLimitWarning(triggerKind: NewSymbolNameTriggerKind, fetchResultType: ChatFetchResponseType): boolean {
 		if (triggerKind !== NewSymbolNameTriggerKind.Invoke) {
 			return false;
 		}
 		return fetchResultType === ChatFetchResponseType.QuotaExceeded
-			|| (fetchResultType === ChatFetchResponseType.RateLimited && isNoAuthUser);
+			|| fetchResultType === ChatFetchResponseType.RateLimited;
 	}
 
 	public static parseResponse(reply: string): { replyFormat: ReplyFormat; redundantCharCount: number; symbolNames: string[] } {
@@ -320,10 +285,9 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 		return { replyFormat: 'unknown', symbolNames: [], redundantCharCount: reply.length };
 	}
 
-	/** try extracting from JSON string array */
 	private static _parseReplyAsJSONStringArray(reply: string) {
 
-		const jsonArrayRe = /\[.*?\]/gs; // `s` regex flag allows matching newlines using `.`
+		const jsonArrayRe = /\[.*?\]/gs;
 
 		const matches = [...reply.matchAll(jsonArrayRe)];
 
@@ -348,7 +312,6 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 	}
 
 	private static _parseReplyAsList(reply: string) {
-		// try extracting from an ordered or unordered list
 		const listLineRe = /(?:\d+[\.|\)]|[\*\-])\s*(.*)/g;
 		const matches = reply.matchAll(listLineRe);
 
@@ -407,26 +370,6 @@ export class RenameSuggestionsProvider implements vscode.NewSymbolNamesProvider 
 		replyFormat?: ReplyFormat;
 		symbolNamesCount?: number;
 	}) {
-		/* __GDPR__
-			"provideRenameSuggestions" : {
-				"owner": "ulugbekna",
-				"comment": "Telemetry for rename suggestions provided",
-				"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language ID of the document." },
-				"cancellationReason": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Specify when exactly during the provider call the cancellation happened. Empty string if the cancellation didn't happen." },
-				"fetchResultType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Result of a fetch to endpoint" },
-				"replyFormat": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Copilot reply format: 'jsonStringArray' | 'multiJsonStringArray' | 'list' | 'unknown'" },
-				"triggerKind": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Rename suggestion trigger kind - 'automatic' | 'manual'" },
-				"promptConstructionTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time it took to construct the prompt", "isMeasurement": true },
-				"timeElapsedBeforeDelay": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time elapsed before delay starts", "isMeasurement": true },
-				"promptTokenCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Token count of the prompt", "isMeasurement": true },
-				"expectedDelayBeforeFetch": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Expected delay before fetch dictated by the experiment 'renameSuggestionsDelayBeforeFetch'", "isMeasurement": true },
-				"actualDelayBeforeFetch": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Actual delay before fetch computed as 'expectedDelay - promptComputationTime'", "isMeasurement": true },
-				"successResponseCharCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Character count in model response (for response.type == 'success')", "isMeasurement": true },
-				"responseUnusedCharCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Character count in model response that was unused, e.g., rename explanations, response format overhead", "isMeasurement": true },
-				"fetchTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time it took to fetch from endpoint", "isMeasurement": true },
-				"symbolNamesCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of suggested names", "isMeasurement": true }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent(
 			'provideRenameSuggestions',
 			{

@@ -52,7 +52,6 @@ export class BlockDecorations extends ViewPart {
 	}
 
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		return this.update();
@@ -68,9 +67,7 @@ export class BlockDecorations extends ViewPart {
 		return true;
 	}
 
-	// --- end event handlers
 	public prepareRender(ctx: RenderingContext): void {
-		// Nothing to read
 	}
 
 	public render(ctx: RestrictedRenderingContext): void {
@@ -91,7 +88,6 @@ export class BlockDecorations extends ViewPart {
 			let bottom: number;
 
 			if (decoration.options.blockIsAfterEnd) {
-				// range must be empty
 				top = ctx.getVerticalOffsetAfterLineNumber(decoration.range.endLineNumber, false);
 				bottom = ctx.getVerticalOffsetAfterLineNumber(decoration.range.endLineNumber, true);
 			} else {

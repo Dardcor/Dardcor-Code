@@ -19,21 +19,6 @@ const HEX_RE = /^[0-9a-fA-F]+$/;
 const ALL_ZERO_TRACE_ID = '00000000000000000000000000000000';
 const ALL_ZERO_SPAN_ID = '0000000000000000';
 
-/**
- * Decode an OTLP/HTTP JSON `ExportTraceServiceRequest` into flat
- * {@link ICompletedSpanData} records.
- *
- * The decoder is intentionally lenient: malformed individual spans are skipped
- * and reported via `partialFailures`, so the receiver can return a 200 with
- * `partial_success` populated (per OTLP/HTTP spec) rather than failing the
- * whole batch.
- *
- * Resource attributes (e.g. `service.name`) are merged into each span's
- * attribute map. Span-level attributes win on key collision. This keeps the
- * SQLite schema flat and avoids a separate resource table.
- *
- * Unknown OTLP fields (e.g. `links`, `traceState`) are dropped silently.
- */
 export interface IDecodeResult {
 	readonly spans: readonly ICompletedSpanData[];
 	readonly rejected: number;
@@ -197,7 +182,6 @@ function decodeAnyValue(v: IOtlpAnyValue | undefined): AttrValue | undefined {
 		return v.boolValue;
 	}
 	if (v.intValue !== undefined) {
-		// intValue is a stringified int64; precision beyond Number.MAX_SAFE_INTEGER is lost
 		const n = typeof v.intValue === 'string' ? Number(v.intValue) : v.intValue;
 		return Number.isFinite(n) ? n : undefined;
 	}
@@ -205,8 +189,6 @@ function decodeAnyValue(v: IOtlpAnyValue | undefined): AttrValue | undefined {
 		return v.doubleValue;
 	}
 	if (v.arrayValue?.values) {
-		// Only flat arrays of strings are first-class in ICompletedSpanData.attributes.
-		// For mixed/numeric/nested arrays, fall back to JSON for fidelity.
 		const items = v.arrayValue.values.map(decodeAnyValue);
 		if (items.every((x): x is string => typeof x === 'string')) {
 			return items;
@@ -214,7 +196,6 @@ function decodeAnyValue(v: IOtlpAnyValue | undefined): AttrValue | undefined {
 		return JSON.stringify(items);
 	}
 	if (v.kvlistValue?.values) {
-		// Rare; preserve as JSON.
 		const obj: Record<string, AttrValue | undefined> = {};
 		for (const kv of v.kvlistValue.values) {
 			if (kv && typeof kv.key === 'string') {
@@ -233,8 +214,6 @@ function nanosToMillis(s: string | undefined): number | undefined {
 	if (s === undefined || s === '' || s === '0') {
 		return undefined;
 	}
-	// Avoid BigInt churn: parse as decimal string, truncate the last 6 digits (ns → ms).
-	// `s` is a non-negative integer per the spec.
 	const trimmed = s.length <= 6 ? '0' : s.slice(0, -6);
 	const n = Number(trimmed);
 	return Number.isFinite(n) ? n : undefined;

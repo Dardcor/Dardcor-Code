@@ -40,8 +40,6 @@ export class TaskProblemMonitor extends Disposable {
 		store.add(problemMatcher.onDidFindErrors((markers: ITaskMarker[]) => {
 			const markerData = this.terminalMarkerMap.get(terminal.instanceId);
 			if (markerData) {
-				// Clear existing markers for a new set, otherwise older compilation
-				// issues will be included
 				markerData.markers.clear();
 				markerData.resources.clear();
 
@@ -71,11 +69,6 @@ export class TaskProblemMonitor extends Disposable {
 		}));
 	}
 
-	/**
-	 * Gets the task problems for a specific terminal instance
-	 * @param instanceId The terminal instance ID
-	 * @returns Map of problem matchers to their resources and marker data, or undefined if no problems found
-	 */
 	public getTaskProblems(instanceId: number): Map<string, { resources: URI[]; markers: IMarkerData[] }> | undefined {
 		const markerData = this.terminalMarkerMap.get(instanceId);
 		if (!markerData) {

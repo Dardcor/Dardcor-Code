@@ -13,26 +13,9 @@ import { ChatEntitlementContextKeys } from '../../../services/chat/common/chatEn
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { ChatContextKeys } from '../common/actions/chatContextKeys.js';
 import { ChatAIDisabledSettingId } from '../common/constants.js';
-import { COPILOT_VENDOR_ID } from '../common/languageModels.js';
+import { DARD_COR_VENDOR_ID } from '../common/languageModels.js';
 import { ILanguageModelsConfigurationService } from '../common/languageModelsConfiguration.js';
 
-/**
- * Owns the `github.copilot.hasByokModels` context key. The key is true iff:
- *  - `github.copilot.clientByokEnabled` is true (set by `ChatEntitlementService` + Copilot extension),
- *  - `chat.aiDisabled` is off, and
- *  - the language-models configuration has at least one non-Copilot vendor group (at any time),
- *    or — pre extension scan — the `chatNonCopilotModelsAreUserSelectable` signal is on.
- *
- * Strategy (avoids activating BYOK extensions just to gate UI):
- *  1. Restore the last persisted answer for correct warm-reload UI.
- *  2. Configured non-Copilot vendor groups are a positive signal at any time.
- *  3. Pre-registration only, also trust the `chatNonCopilotModelsAreUserSelectable` signal
- *     (post-registration it can be stale — model cache lags behind group removal).
- *  4. Only persist `false` after both extension scan and first config load complete, so startup
- *     latency doesn't clobber a previously-true answer.
- *
- * Eager so the key is bound before any sign-in UI renders.
- */
 export class HasByokModelsContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.hasByokModels';
@@ -107,20 +90,17 @@ export class HasByokModelsContribution extends Disposable implements IWorkbenchC
 			return;
 		}
 
-		const hasByokVendor = this._languageModelsConfigurationService.getLanguageModelsProviderGroups().some(g => g.vendor !== COPILOT_VENDOR_ID);
+		const hasByokVendor = this._languageModelsConfigurationService.getLanguageModelsProviderGroups().some(g => g.vendor !== DARD_COR_VENDOR_ID);
 		if (hasByokVendor) {
 			this._setResult(true);
 			return;
 		}
 
-		// Pre-registration only: trust the user-selectable signal as an optimistic positive.
-		// Post-registration it can be stale (model cache lags behind group removal), so ignore.
 		if (!this._extensionsRegistered && this._contextKeyService.getContextKeyValue<boolean>(ChatContextKeys.nonCopilotLanguageModelsAreUserSelectable.key)) {
 			this._setResult(true);
 			return;
 		}
 
-		// Defer negative result until startup signals have settled.
 		if (this._extensionsRegistered && this._configurationLoaded) {
 			this._setResult(false);
 		}

@@ -9,7 +9,6 @@ import { IDebugValueEditorGlobals, IPlaygroundRunnerGlobals } from '../src/util/
 enableHotReload({ loggingEnabled: true });
 
 
-/** See {@link file://./../.vscode/extensions/visualization-runner/README.md}, this is for stests and jsx tree visualization */
 
 function run(args: { fileName: string; path: string }) {
 	console.log('> Running test: ' + args.path);

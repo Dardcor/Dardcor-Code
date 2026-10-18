@@ -43,11 +43,6 @@ const TEST_PERMISSION_MODE = 'acceptEdits' as const;
 const TEST_FOLDER_INFO: ClaudeFolderInfo = { cwd: '/test/project', additionalDirectories: [] };
 const TEST_SESSION_ID = 'test-session-id';
 
-/**
- * Commits test state to the session state service for a given session ID.
- * This is required before calling handleRequest() since the agent manager
- * now reads state from the service instead of accepting it as parameters.
- */
 function commitTestState(
 	sessionStateService: IClaudeSessionStateService,
 	sessionId: string,
@@ -71,7 +66,6 @@ describe('ClaudeAgentManager', () => {
 		const accessor = services.createTestingAccessor();
 		instantiationService = accessor.get(IInstantiationService);
 
-		// Reset mock service call count
 		mockService = accessor.get(IClaudeCodeSdkService) as MockClaudeCodeSdkService;
 		mockService.queryCallCount = 0;
 
@@ -86,7 +80,6 @@ describe('ClaudeAgentManager', () => {
 	it('reuses a live session across requests and streams assistant text', async () => {
 		const manager = instantiationService.createInstance(ClaudeAgentManager);
 
-		// Use MockChatResponseStream to capture markdown output
 		const stream1 = new MockChatResponseStream();
 
 		commitTestState(sessionStateService, TEST_SESSION_ID);
@@ -95,7 +88,6 @@ describe('ClaudeAgentManager', () => {
 
 		expect(stream1.output.join('\n')).toContain('Hello from mock!');
 
-		// Second request should reuse the same live session (SDK query created only once)
 		const stream2 = new MockChatResponseStream();
 
 		const req2 = new TestChatRequest('Again');
@@ -103,7 +95,6 @@ describe('ClaudeAgentManager', () => {
 
 		expect(stream2.output.join('\n')).toContain('Hello from mock!');
 
-		// Verify session continuity: the service's query method was called only once (proving session reuse)
 		expect(mockService.queryCallCount).toBe(1);
 	});
 
@@ -111,7 +102,7 @@ describe('ClaudeAgentManager', () => {
 		const manager = instantiationService.createInstance(ClaudeAgentManager);
 		const stream = new MockChatResponseStream();
 
-		const imageData = new Uint8Array([0x89, 0x50, 0x4E, 0x47]); // PNG magic bytes
+		const imageData = new Uint8Array([0x89, 0x50, 0x4E, 0x47]);
 		const imageRef: vscode.ChatPromptReference = {
 			id: 'image-1',
 			name: 'image-1',
@@ -135,7 +126,6 @@ describe('ClaudeAgentManager', () => {
 		expect(source.media_type).toBe('image/png');
 		expect(source.data).toBe(Buffer.from(imageData).toString('base64'));
 
-		// The text prompt should still be present
 		const textBlocks = blocks.filter(b => b.type === 'text') as Anthropic.TextBlockParam[];
 		expect(textBlocks.some(b => b.text === 'What is in this image?')).toBe(true);
 	});
@@ -200,9 +190,7 @@ describe('ClaudeAgentManager', () => {
 		const imageBlocks = blocks.filter(b => b.type === 'image');
 		const textBlocks = blocks.filter(b => b.type === 'text') as Anthropic.TextBlockParam[];
 		expect(imageBlocks).toHaveLength(1);
-		// File reference should appear in system-reminder text block (use fsPath for cross-platform)
 		expect(textBlocks.some(b => b.text.includes(fileUri.fsPath))).toBe(true);
-		// User prompt should still be present
 		expect(textBlocks.some(b => b.text === 'Explain both')).toBe(true);
 	});
 });
@@ -243,14 +231,11 @@ describe('ClaudeCodeSession', () => {
 		const stream1 = new MockChatResponseStream();
 		const stream2 = new MockChatResponseStream();
 
-		// Start both requests simultaneously
 		const promise1 = session.invoke(createMockChatRequest('First'), stream1, undefined, CancellationToken.None);
 		const promise2 = session.invoke(createMockChatRequest('Second'), stream2, undefined, CancellationToken.None);
 
-		// Wait for both to complete
 		await Promise.all([promise1, promise2]);
 
-		// Both should have received responses
 		expect(stream1.output.join('\n')).toContain('Hello from mock!');
 		expect(stream2.output.join('\n')).toContain('Hello from mock!');
 	});
@@ -271,10 +256,8 @@ describe('ClaudeCodeSession', () => {
 		commitTestState(sessionStateService, 'test-session');
 		const session = instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true);
 
-		// Dispose the session immediately
 		session.dispose();
 
-		// Any new requests should be rejected
 		const stream = new MockChatResponseStream();
 		await expect(session.invoke(createMockChatRequest('Hello'), stream, undefined, CancellationToken.None))
 			.rejects.toThrow('Session disposed');
@@ -294,7 +277,6 @@ describe('ClaudeCodeSession', () => {
 		const stream1 = new MockChatResponseStream();
 		const stream2 = new MockChatResponseStream();
 
-		// Both sessions should work independently
 		await Promise.all([
 			session1.invoke(createMockChatRequest('Hello from session 1'), stream1, undefined, CancellationToken.None),
 			session2.invoke(createMockChatRequest('Hello from session 2'), stream2, undefined, CancellationToken.None)
@@ -324,19 +306,16 @@ describe('ClaudeCodeSession', () => {
 		commitTestState(sessionStateService, 'test-session', TEST_MODEL_ID);
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request with initial model
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
 
-		// Update model in session state service for the second request
 		sessionStateService.setModelIdForSession('test-session', TEST_MODEL_ID_ALT);
 
-		// Second request with different model should call setModel on existing session
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
-		expect(mockService.queryCallCount).toBe(1); // Same query reused
-		expect(mockService.setModelCallCount).toBe(1); // setModel was called
+		expect(mockService.queryCallCount).toBe(1);
+		expect(mockService.setModelCallCount).toBe(1);
 		expect(mockService.lastSetModel).toBe(TEST_MODEL_ID_ALT.toSdkModelId());
 	});
 
@@ -348,15 +327,13 @@ describe('ClaudeCodeSession', () => {
 		commitTestState(sessionStateService, 'test-session', TEST_MODEL_ID);
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
 
-		// Second request with same model should reuse session
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
-		expect(mockService.queryCallCount).toBe(1); // Same query reused
+		expect(mockService.queryCallCount).toBe(1);
 	});
 
 	it('uses session state model for initial Options when starting a new session', async () => {
@@ -369,7 +346,6 @@ describe('ClaudeCodeSession', () => {
 
 		await session.invoke(createMockChatRequest('Hello'), stream, undefined, CancellationToken.None);
 
-		// The Options passed to the SDK should reflect the session state model
 		expect(mockService.lastQueryOptions?.model).toBe(TEST_MODEL_ID_ALT.toSdkModelId());
 	});
 
@@ -377,14 +353,12 @@ describe('ClaudeCodeSession', () => {
 		const mockServer = createMockLangModelServer();
 		const mockService = instantiationService.invokeFunction(accessor => accessor.get(IClaudeCodeSdkService)) as MockClaudeCodeSdkService;
 
-		// Session state overrides the default permission mode
 		commitTestState(sessionStateService, 'test-session', TEST_MODEL_ID, 'bypassPermissions');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 		const stream = new MockChatResponseStream();
 
 		await session.invoke(createMockChatRequest('Hello'), stream, undefined, CancellationToken.None);
 
-		// The Options passed to the SDK should reflect the session state permission mode
 		expect(mockService.lastQueryOptions?.permissionMode).toBe('bypassPermissions');
 	});
 
@@ -396,11 +370,9 @@ describe('ClaudeCodeSession', () => {
 		commitTestState(sessionStateService, 'test-session', TEST_MODEL_ID);
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request establishes the session
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 
-		// Second request with same model should not call setModel
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 
@@ -415,11 +387,9 @@ describe('ClaudeCodeSession', () => {
 		commitTestState(sessionStateService, 'test-session', TEST_MODEL_ID, 'acceptEdits');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request establishes the session
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 
-		// Second request with same permission mode should not call setPermissionMode
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 
@@ -434,14 +404,11 @@ describe('ClaudeCodeSession', () => {
 		commitTestState(sessionStateService, 'test-session', TEST_MODEL_ID, 'acceptEdits');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request establishes the session
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 
-		// Change permission mode in session state for the second request
 		sessionStateService.setPermissionModeForSession('test-session', 'bypassPermissions');
 
-		// Second request should call setPermissionMode
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 
@@ -459,7 +426,6 @@ describe('ClaudeCodeSession', () => {
 
 		await session.invoke(createMockChatRequest('Hello'), stream, undefined, CancellationToken.None);
 
-		// New session should use sessionId, not resume
 		expect(mockService.lastQueryOptions?.sessionId).toBe('new-session');
 		expect(mockService.lastQueryOptions?.resume).toBeUndefined();
 	});
@@ -474,7 +440,6 @@ describe('ClaudeCodeSession', () => {
 
 		await session.invoke(createMockChatRequest('Hello'), stream, undefined, CancellationToken.None);
 
-		// Resumed session should use resume, not sessionId
 		expect(mockService.lastQueryOptions?.resume).toBe('existing-session');
 		expect(mockService.lastQueryOptions?.sessionId).toBeUndefined();
 	});
@@ -515,15 +480,12 @@ describe('ClaudeCodeSession', () => {
 		commitTestState(sessionStateService, 'test-session', TEST_MODEL_ID);
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request with no effort
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
 
-		// Change effort level
 		sessionStateService.setReasoningEffortForSession('test-session', 'high');
 
-		// Second request should hot-swap effort, not restart the session
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
@@ -541,12 +503,10 @@ describe('ClaudeCodeSession', () => {
 		sessionStateService.setReasoningEffortForSession('test-session', 'medium');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
 
-		// Second request with same effort level
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
@@ -573,11 +533,9 @@ describe('ClaudeAgentManager - error handling', () => {
 		const manager = instantiationService.createInstance(ClaudeAgentManager);
 		const stream = new MockChatResponseStream();
 
-		// Do NOT commit state - handleRequest should fail
 		const req = new TestChatRequest('Hello');
 		const result = await manager.handleRequest('no-state-session', req, stream, CancellationToken.None, true);
 
-		// Should return an error result (the error is caught and streamed)
 		expect(result.errorDetails).toBeDefined();
 	});
 });
@@ -608,12 +566,9 @@ describe('ClaudeCodeSession - yield flow', () => {
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
 		const stream1 = new MockChatResponseStream();
-		// yieldRequested is set before _processMessages runs (async session start),
-		// so the yield check triggers on the first dispatched message
 		const promise1 = session.invoke(createMockChatRequest('First'), stream1, () => true, CancellationToken.None);
 		await promise1;
 
-		// Session should still be alive — send a second request
 		const stream2 = new MockChatResponseStream();
 		const promise2 = session.invoke(createMockChatRequest('Second'), stream2, undefined, CancellationToken.None);
 		await promise2;
@@ -633,7 +588,6 @@ describe('ClaudeCodeSession - yield flow', () => {
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Second'), stream2, undefined, CancellationToken.None);
 
-		// The second message yielded to the SDK should have priority 'now'
 		expect(mockService.receivedMessages.length).toBeGreaterThanOrEqual(2);
 		expect(mockService.receivedMessages[1].priority).toBe('now');
 	});
@@ -643,7 +597,6 @@ describe('ClaudeCodeSession - yield flow', () => {
 		commitTestState(sessionStateService, 'test-session');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// A → yield → B → yield → C
 		const streamA = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('A'), streamA, () => true, CancellationToken.None);
 
@@ -686,16 +639,13 @@ describe('ClaudeCodeSession - settings change restart', () => {
 		commitTestState(sessionStateService, 'test-session');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request establishes the session and takes a settings snapshot
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
 
-		// Simulate a CLAUDE.md file being created (settings change)
 		const claudeMdUri = URI.joinPath(URI.file('/home/testuser'), '.claude', 'CLAUDE.md');
 		mockFs.mockFile(claudeMdUri, '# Instructions', 2000);
 
-		// Second request should trigger settings change → restart (new query created)
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(2);
@@ -706,16 +656,13 @@ describe('ClaudeCodeSession - settings change restart', () => {
 		commitTestState(sessionStateService, 'test-session');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request — new session
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.lastQueryOptions?.sessionId).toBe('test-session');
 
-		// Trigger settings change
 		const claudeMdUri = URI.joinPath(URI.file('/home/testuser'), '.claude', 'CLAUDE.md');
 		mockFs.mockFile(claudeMdUri, '# Instructions', 2000);
 
-		// Second request — should use resume, not sessionId
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 		expect(mockService.lastQueryOptions?.resume).toBe('test-session');
@@ -731,7 +678,6 @@ describe('ClaudeCodeSession - settings change restart', () => {
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
 
-		// No file changes — session should be reused
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
@@ -763,16 +709,13 @@ describe('ClaudeCodeSession - tools restart', () => {
 		commitTestState(sessionStateService, 'test-session');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request — new session
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.lastQueryOptions?.sessionId).toBe('test-session');
 		expect(mockService.queryCallCount).toBe(1);
 
-		// Change effort
 		sessionStateService.setReasoningEffortForSession('test-session', 'high');
 
-		// Same query is reused via applyFlagSettings
 		const stream2 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello again'), stream2, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
@@ -785,12 +728,10 @@ describe('ClaudeCodeSession - tools restart', () => {
 		commitTestState(sessionStateService, 'test-session');
 		const session = store.add(instantiationService.createInstance(ClaudeCodeSession, mockServer, 'test-session', true));
 
-		// First request with no MCP tools
 		const stream1 = new MockChatResponseStream();
 		await session.invoke(createMockChatRequest('Hello'), stream1, undefined, CancellationToken.None);
 		expect(mockService.queryCallCount).toBe(1);
 
-		// Second request with a new MCP tool
 		const stream2 = new MockChatResponseStream();
 		const mcpTool = { name: 'mcp-tool', source: new LanguageModelToolMCPSource('test-server', 'test-server', undefined) } as unknown as vscode.LanguageModelChatTool;
 		const reqWithTool: vscode.ChatRequest = {
@@ -853,7 +794,6 @@ describe('ClaudeCodeSession - edge cases', () => {
 		const stream = new MockChatResponseStream();
 		const promise = session.invoke(createMockChatRequest('Hello'), stream, undefined, CancellationToken.None);
 
-		// Dispose immediately — the in-flight request should be rejected
 		session.dispose();
 
 		await expect(promise).rejects.toThrow();

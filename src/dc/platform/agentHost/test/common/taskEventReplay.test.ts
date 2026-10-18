@@ -11,16 +11,10 @@ import { parseTaskEventsResponse, replayTaskAhpEvents, TaskEventReplayError } fr
 const SESSION_A = 'ahp-session:/aaaaaaaa-0000-4000-8000-000000000001';
 const SESSION_B = 'ahp-session:/bbbbbbbb-0000-4000-8000-000000000002';
 
-/**
- * The default chat channel as Mission Control's recorded frames name it. Deliberately NOT
- * `buildDefaultChatUri`: the host writes `<session>/chat`, while a client builds
- * `ahp-chat://default/<base64>` for the same chat. Replay must accept what was recorded.
- */
 function defaultChat(sessionId: string): string {
 	return `${sessionId}/chat`;
 }
 
-/** A persisted event carrying a whole (unchunked) action envelope. */
 function event(sessionId: string, seq: number, channel: string, action: object, extra?: object): object {
 	return {
 		ns: 'ahp',
@@ -31,7 +25,6 @@ function event(sessionId: string, seq: number, channel: string, action: object, 
 	};
 }
 
-/** Split one envelope across `parts` chunk events, mirroring the relay's chunk codec. */
 function chunkedEvents(sessionId: string, startSeq: number, channel: string, action: object, parts: number): object[] {
 	const json = JSON.stringify({ channel, serverSeq: startSeq, action });
 	const bytes = VSBuffer.fromString(json).buffer;
@@ -72,10 +65,6 @@ function turnComplete(turnId: string): object {
 	return { type: 'chat/turnComplete', turnId, duration: 1200 };
 }
 
-/**
- * The two events a finished turn is recorded as. A turn only lands in `ChatState.turns` once it
- * completes; while it is running it lives in `activeTurn`.
- */
 function completedTurn(sessionId: string, startSeq: number, chat: string, turnId: string, text: string): object[] {
 	return [
 		event(sessionId, startSeq, chat, turnStarted(turnId, text)),
@@ -126,7 +115,6 @@ suite('Task event replay', () => {
 
 	test('reports a truncated tail instead of dropping it silently', () => {
 		const chat = defaultChat(SESSION_A);
-		// Record only the first half of a two-part group: the recording stops mid-action.
 		const partial = chunkedEvents(SESSION_A, 2, chat, turnStarted('t2', 'lost to truncation'), 2)[0];
 
 		const history = replayTaskAhpEvents([...completedTurn(SESSION_A, 0, chat, 't1', 'complete'), partial]);
@@ -140,8 +128,6 @@ suite('Task event replay', () => {
 	});
 
 	test('reports truncation even when an abandoned group is followed by a complete action', () => {
-		// A single "last pending group" marker would be cleared by the later complete event and
-		// wrongly report the history as whole.
 		const chat = defaultChat(SESSION_A);
 		const abandoned = chunkedEvents(SESSION_A, 0, chat, turnStarted('t-lost', 'never finished'), 2)[0];
 		const history = replayTaskAhpEvents([abandoned, ...completedTurn(SESSION_A, 1, chat, 't1', 'later turn')]);
@@ -155,8 +141,6 @@ suite('Task event replay', () => {
 	});
 
 	test('keeps multiple sessions under one task', () => {
-		// ADR 0016 registers a forked child session under its source task, so a task's history can
-		// legitimately span more than one session.
 		const history = replayTaskAhpEvents([
 			event(SESSION_A, 0, SESSION_A, titleChanged('source')),
 			event(SESSION_B, 0, SESSION_B, titleChanged('fork')),
@@ -172,7 +156,6 @@ suite('Task event replay', () => {
 		const history = replayTaskAhpEvents([
 			...completedTurn(SESSION_A, 0, chat, 't1', 'before restart'),
 			...completedTurn(SESSION_A, 2, chat, 't2', 'still before'),
-			// Mission Control re-hosted the session; the transport sequence restarts at 0.
 			...completedTurn(SESSION_A, 0, chat, 't3', 'after restart'),
 		]);
 
@@ -182,8 +165,6 @@ suite('Task event replay', () => {
 	});
 
 	test('reports truncation from an epoch whose reassembler was replaced by a restart', () => {
-		// The restart installs a fresh reassembler, so the incomplete group from the first epoch is
-		// no longer buffered — the loss has to be remembered or the transcript reads as whole.
 		const chat = defaultChat(SESSION_A);
 		const partial = chunkedEvents(SESSION_A, 2, chat, turnStarted('t2', 'lost to the restart'), 2)[0];
 
@@ -223,8 +204,6 @@ suite('Task event replay', () => {
 	});
 
 	test('honours a host-announced default chat channel', () => {
-		// The host may name its default chat anything and announce it via `session/defaultChatChanged`.
-		// Routing by action type (not channel scheme) is what makes this work.
 		const announced = 'ahp-chat://default/some-opaque-id';
 		const history = replayTaskAhpEvents([
 			event(SESSION_A, 0, SESSION_A, { type: 'session/defaultChatChanged', defaultChat: announced }),

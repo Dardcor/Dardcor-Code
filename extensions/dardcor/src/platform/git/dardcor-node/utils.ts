@@ -26,24 +26,23 @@ export function parseGitChangesRaw(repositoryRoot: string, raw: string): DiffCha
 		}
 
 		if (segment.startsWith(':')) {
-			// Parse --raw output
 			const [, , , , change] = segment.split(' ');
 			const filePath = segments[index++];
 			const originalUri = Uri.file(path.isAbsolute(filePath) ? filePath : path.join(repositoryRoot, filePath));
 
 			let uri = originalUri;
 			let renameUri = originalUri;
-			let status = 7; /* Status.UNTRACKED */
+			let status = 7;
 
 			switch (change[0]) {
 				case 'A':
-					status = 1; /* Status.INDEX_ADDED */
+					status = 1;
 					break;
 				case 'M':
-					status = 5; /* Status.MODIFIED */
+					status = 5;
 					break;
 				case 'D':
-					status = 6; /* Status.DELETED */
+					status = 6;
 					break;
 				case 'R': {
 					if (index >= segments.length) {
@@ -54,25 +53,20 @@ export function parseGitChangesRaw(repositoryRoot: string, raw: string): DiffCha
 						break;
 					}
 
-					status = 3; /* Status.INDEX_RENAMED */
+					status = 3;
 					uri = renameUri = Uri.file(path.isAbsolute(newPath) ? newPath : path.join(repositoryRoot, newPath));
 					break;
 				}
 				default:
-					// Unknown status
 					break segmentsLoop;
 			}
 
 			changes.push({ status, uri, originalUri, renameUri });
 		} else {
-			// Parse --numstat output
 			const [insertions, deletions, filePath] = segment.split('\t');
 
 			let numstatPath: string;
 			if (filePath === '') {
-				// For renamed files, filePath is empty and the old/new paths
-				// are in the next two null-terminated segments. We skip the
-				// old path and use the new path for the stats key.
 				index++;
 
 				const renamePath = segments[index++];
@@ -117,7 +111,6 @@ export function getUncommittedFilePaths(repository: RepoContext): string[] {
 	const relativePaths = coalesce(Array.from(resources)
 		.map(uri => relativePath(repository.rootUri, uri)));
 
-	// Git expects forward slashes even on Windows
 	return relativePaths.map(p => p.replace(/\\/g, '/'));
 }
 
@@ -126,9 +119,6 @@ export function buildTempIndexEnv(repository: RepoContext, indexFile: string): R
 		return { GIT_INDEX_FILE: indexFile };
 	}
 
-	// In GVFS repos, the command hook acquires a lock that blocks file writes  while
-	// any git command runs. By setting COMMAND_HOOK_LOCK, temp index operations (ex:
-	// add, read-tree, write-tree, diff --cached) won't hold the main lock.
 	return {
 		COMMAND_HOOK_LOCK: '1',
 		GIT_INDEX_FILE: indexFile

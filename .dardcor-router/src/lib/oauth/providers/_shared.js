@@ -1,4 +1,3 @@
-// Shared helpers used across provider entry files (currently trae + windsurf).
 
 export function extractJsonPath(root, paths) {
   for (const path of paths) {

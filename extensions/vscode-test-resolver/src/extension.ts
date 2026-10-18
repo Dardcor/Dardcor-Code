@@ -119,7 +119,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const match = lastProgressLine.match(/Extension host agent listening on (\d+)/);
 						if (match) {
 							isResolved = true;
-							res(new vscode.ResolvedAuthority('127.0.0.1', parseInt(match[1], 10), connectionToken)); // success!
+							res(new vscode.ResolvedAuthority('127.0.0.1', parseInt(match[1], 10), connectionToken));
 						}
 						lastProgressLine = '';
 					} else if (chr === CharCode.Backspace) {
@@ -168,11 +168,6 @@ export function activate(context: vscode.ExtensionContext) {
 				typeof agentHostPort === 'number' && agentHostPort > 0 &&
 				typeof agentHostBridgePort === 'number' && agentHostBridgePort > 0
 			) {
-				// `agentHostPort` spawns an agent host inside the server;
-				// `agentHostBridgePort` bridges the renderer to an
-				// externally-running one. They contradict each other —
-				// reject up front so the user notices instead of getting
-				// two agent hosts and silently confusing failure modes.
 				throw new Error(
 					`testResolver: 'agentHostPort' and 'agentHostBridgePort' are mutually exclusive. ` +
 					`Configure at most one (got port=${agentHostPort}, bridge=${agentHostBridgePort}).`
@@ -182,9 +177,6 @@ export function activate(context: vscode.ExtensionContext) {
 				commandArgs.push('--agent-host-port', String(agentHostPort));
 			}
 
-			// Bridge to an externally-running agent host (e.g. one started
-			// by `code agent host`). Mutually exclusive with `agentHostPort`
-			// — that one spawns its own agent host.
 			if (typeof agentHostBridgePort === 'number' && agentHostBridgePort > 0) {
 				commandArgs.push('--agent-host-bridge-port', String(agentHostBridgePort));
 			}
@@ -193,14 +185,13 @@ export function activate(context: vscode.ExtensionContext) {
 				commandArgs.push('--agent-host-bridge-connection-token', agentHostBridgeToken);
 			}
 
-			if (!commit) { // dev mode
+			if (!commit) {
 				const serverCommand = process.platform === 'win32' ? 'code-server.bat' : 'code-server.sh';
 				const vscodePath = path.resolve(path.join(context.extensionPath, '..', '..'));
 				const serverCommandPath = path.join(vscodePath, 'scripts', serverCommand);
 
 				outputChannel.appendLine(`Launching server: "${serverCommandPath}" ${commandArgs.join(' ')}`);
 				const shell = (process.platform === 'win32');
-				// Skip prelaunch to avoid redownloading electron while it may be in use
 				env['VSCODE_SKIP_PRELAUNCH'] = '1';
 				extHostProcess = cp.spawn(serverCommandPath, commandArgs, { env, cwd: vscodePath, shell });
 			} else {
@@ -210,7 +201,7 @@ export function activate(context: vscode.ExtensionContext) {
 					commandArgs.push('--start-server');
 				}
 				const serverCommand = `${serverApplicationName}${process.platform === 'win32' ? '.cmd' : ''}`;
-				let serverLocation = env['VSCODE_REMOTE_SERVER_PATH']; // support environment variable to specify location of server on disk
+				let serverLocation = env['VSCODE_REMOTE_SERVER_PATH'];
 				if (!serverLocation) {
 					const serverBin = path.join(remoteDataDir, 'bin');
 					progress.report({ message: 'Installing VSCode Server' });
@@ -229,9 +220,6 @@ export function activate(context: vscode.ExtensionContext) {
 				extHostProcess = undefined;
 			});
 			extHostProcess.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
-				// Logged separately from 'close' so we capture the signal (if any)
-				// that terminated the server. A non-null signal indicates the
-				// server was killed externally rather than exiting on its own.
 				outputChannel.appendLine(`[${new Date().toISOString()}] server process exited (code: ${code}, signal: ${signal}).`);
 			});
 			extHostProcess.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
@@ -512,7 +500,7 @@ function getActions(): ActionItem[] {
 		title: 'Ignore',
 		isCloseAffordance: true,
 		execute: async () => {
-			vscode.commands.executeCommand('vscode-testresolver.showLog'); // no need to wait
+			vscode.commands.executeCommand('vscode-testresolver.showLog');
 		}
 	});
 	return actions;
@@ -591,9 +579,6 @@ async function tunnelFactory(tunnelOptions: vscode.TunnelOptions, tunnelCreation
 			let localPort = 0;
 
 			if (tunnelOptions.localAddressPort) {
-				// When the tunnelOptions include a localAddressPort, we should use that.
-				// However, the test resolver all runs on one machine, so if the localAddressPort is the same as the remote port,
-				// then we must use a different port number.
 				localPort = tunnelOptions.localAddressPort;
 			} else {
 				localPort = tunnelOptions.remoteAddress.port;
@@ -603,7 +588,6 @@ async function tunnelFactory(tunnelOptions: vscode.TunnelOptions, tunnelCreation
 				localPort += 1;
 			}
 
-			// The test resolver can't actually handle privileged ports, it only pretends to.
 			if (localPort < 1024 && process.platform !== 'win32') {
 				localPort = 0;
 			}

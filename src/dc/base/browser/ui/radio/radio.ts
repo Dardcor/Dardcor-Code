@@ -28,7 +28,6 @@ export interface IRadioStyles {
 export interface IRadioOptionItem {
 	readonly text: string;
 	readonly tooltip?: string;
-	/** Accessible name. Defaults to {@link tooltip} ?? {@link text}. Set it when {@link text} is icon-only. */
 	readonly ariaLabel?: string;
 	readonly isActive?: boolean;
 	readonly disabled?: boolean;
@@ -38,15 +37,8 @@ export interface IRadioOptions {
 	readonly items: ReadonlyArray<IRadioOptionItem>;
 	readonly activeIcon?: ThemeIcon;
 	readonly hoverDelegate?: IHoverDelegate;
-	/** Accessible name of the radio group. */
 	readonly ariaLabel?: string;
-	/** Extra class added to {@link Radio.domNode}, e.g. `segmented` for the pill appearance. */
 	readonly className?: string;
-	/**
-	 * How arrow keys behave. `select` (default) moves focus and selects, matching the
-	 * ARIA radiogroup pattern. `focus` only moves focus, and Enter or Space selects —
-	 * use it when selecting has a side effect the user should be able to travel past.
-	 */
 	readonly arrowKeyBehavior?: 'select' | 'focus';
 }
 
@@ -56,7 +48,6 @@ export class Radio extends Widget {
 	readonly onDidSelect = this._onDidSelect.event;
 
 	private readonly _onDidActivate = this._register(new Emitter<number>());
-	/** Fires on click, Enter, or Space, even when the item is already selected. */
 	readonly onDidActivate = this._onDidActivate.event;
 
 	readonly domNode: HTMLElement;
@@ -88,11 +79,9 @@ export class Radio extends Widget {
 		this.setItems(opts.items);
 	}
 
-	/** The option buttons in item order, for callers that need to measure or decorate them. */
 	get optionElements(): readonly HTMLElement[] {
 		return this.orderedButtons.map(button => button.element);
 	}
-	/** Shows `text` on an option until the returned disposable puts the item's own label back. */
 	overrideOptionLabel(index: number, text: string): IDisposable {
 		const button = this.orderedButtons[index];
 		const item = this.items[index];
@@ -154,7 +143,6 @@ export class Radio extends Widget {
 		this.updateButtons();
 	}
 
-	/** Moves focus to the active item, for callers that rebuild the row after a selection. */
 	focusActiveItem(): void {
 		const index = this.activeItem ? this.items.indexOf(this.activeItem) : -1;
 		if (index !== -1) {
@@ -162,7 +150,6 @@ export class Radio extends Widget {
 		}
 	}
 
-	/** Moves focus to an item without selecting it. */
 	focusItem(index: number): void {
 		if (!this.orderedButtons[index]) {
 			throw new Error('Invalid Index');
@@ -183,7 +170,6 @@ export class Radio extends Widget {
 		this._onDidSelect.fire(index);
 	}
 
-	/** Moves to the next enabled item in `delta` direction, wrapping around the ends. */
 	private navigate(from: number, delta: number): void {
 		const count = this.items.length;
 		for (let offset = 1; offset <= count; offset++) {

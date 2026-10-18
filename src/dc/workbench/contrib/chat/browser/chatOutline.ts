@@ -23,16 +23,6 @@ import { IChatRequestViewModel, isRequestVM } from '../common/model/chatViewMode
 import { isChatFollowup } from '../common/chatService/chatService.js';
 import { getExplicitFileOrImageAttachmentSummary } from '../common/attachments/chatVariableEntries.js';
 
-/**
- * Derives the display label for a chat request. Reads the prompt text the same
- * way the chat list renders it (followup message, else the parsed request
- * parts) rather than relying on `messageText`, which some providers (e.g.
- * agent-host sessions) leave empty. When there is no prompt text, falls back to
- * an attachment summary (matching the chat list) and finally a numbered label.
- * Collapses whitespace so multi-line prompts render on a single row. Returns raw
- * text; callers that render into an icon-parsing surface (e.g. the quick pick)
- * must escape `$(...)` codicon markup themselves via `escapeIcons`.
- */
 export function getChatRequestLabel(request: IChatRequestViewModel, index: number): string {
 	const message = request.message;
 	let raw: string;
@@ -48,11 +38,6 @@ export function getChatRequestLabel(request: IChatRequestViewModel, index: numbe
 	return getExplicitFileOrImageAttachmentSummary(request.variables) ?? localize('chatOutline.emptyRequest', "Request {0}", index + 1);
 }
 
-/**
- * A single navigable element in a chat outline. Each entry maps to a user
- * request (prompt) in the chat, acting as the top-level "symbol" the user can
- * jump to via Go to Symbol, the Outline pane, and Breadcrumbs.
- */
 export class ChatOutlineEntry {
 
 	constructor(
@@ -150,9 +135,6 @@ class ChatOutlineQuickPickDataSource implements IQuickPickDataSource<ChatOutline
 	getQuickPickElements(): IQuickPickOutlineElement<ChatOutlineEntry>[] {
 		return this._outline.entries.map(entry => ({
 			element: entry,
-			// Codicons cannot be passed via `iconClasses` in this quick pick (only
-			// file icons can); embed the icon inline in the label instead and
-			// escape only the request text so `$(...)` in it stays literal.
 			label: `$(${entry.icon.id}) ${escapeIcons(entry.label)}`,
 			ariaLabel: entry.label,
 		}));
@@ -219,9 +201,6 @@ export class ChatOutline implements IOutline<ChatOutlineEntry> {
 		const viewModel = this._widget.viewModel;
 		if (viewModel) {
 			this._viewModelDisposables.add(viewModel.onDidChange(() => {
-				// The view model fires on every response update (including each
-				// streamed chunk). Request symbols don't change during streaming,
-				// so only refresh the outline when the entries actually change.
 				if (this._recomputeEntries()) {
 					this._onDidChange.fire({});
 				}

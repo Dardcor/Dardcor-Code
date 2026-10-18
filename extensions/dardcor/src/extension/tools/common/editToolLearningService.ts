@@ -38,7 +38,6 @@ export interface IEditToolLearningService {
 }
 
 function addToWindow(window: bigint, bit: bigint): bigint {
-	// Shift left to make room for new bit, add the bit, then mask to WINDOW_SIZE
 	const mask = (1n << BigInt(LearningConfig.WINDOW_SIZE)) - 1n;
 	return ((window << 1n) | bit) & mask;
 }
@@ -71,8 +70,6 @@ export class EditToolLearningService implements IEditToolLearningService {
 			return fromEndpoint;
 		}
 
-		// Note: looking at the 'name' rather than 'model' is intentional, 'model' is the user-
-		// provided model ID whereas the 'name' is the name of the model on the BYOK provider.
 		const hardcoded = this._getHardcodedPreferences(endpoint.name);
 		if (hardcoded) {
 			return hardcoded;
@@ -126,14 +123,6 @@ export class EditToolLearningService implements IEditToolLearningService {
 
 			const target = Number(targetState) as State;
 
-			/* __GDPR__
-				"editToolLearning.transition" : {
-					"owner": "connor4312",
-					"comment": "Tracks state transitions in the edit tool learning system.",
-					"modelId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Model ID" },
-					"state": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "State the model transitioned to", "isMeasurement": true }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('editToolLearning.transition', { modelId }, {
 				state: target,
 			});
@@ -141,7 +130,7 @@ export class EditToolLearningService implements IEditToolLearningService {
 			return target;
 		}
 
-		return data.state; // No transition
+		return data.state;
 	}
 
 	private _recordEdit(modelId: string, data: IEditToolLearningData, tool: EditTools, success: boolean): void {

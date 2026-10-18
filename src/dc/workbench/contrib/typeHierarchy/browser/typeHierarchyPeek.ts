@@ -34,7 +34,6 @@ import * as typeHTree from './typeHierarchyTree.js';
 import { TypeHierarchyDirection, TypeHierarchyModel } from '../common/typeHierarchy.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 
-// Todo: copied from call hierarchy, to extract
 const enum State {
 	Loading = 'loading',
 	Message = 'message',
@@ -158,7 +157,6 @@ export class TypeHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 		this._splitView = new SplitView(container, { orientation: Orientation.HORIZONTAL });
 
-		// editor stuff
 		const editorContainer = document.createElement('div');
 		editorContainer.classList.add('editor');
 		container.appendChild(editorContainer);
@@ -186,7 +184,6 @@ export class TypeHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 			this.editor
 		);
 
-		// tree stuff
 		const treeContainer = document.createElement('div');
 		treeContainer.classList.add('tree');
 		container.appendChild(treeContainer);
@@ -209,7 +206,6 @@ export class TypeHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 			options
 		);
 
-		// split stuff
 		this._splitView.addView({
 			onDidChange: Event.None,
 			element: editorContainer,
@@ -240,7 +236,6 @@ export class TypeHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 			}
 		}));
 
-		// update editor
 		this._disposables.add(this._tree.onDidChangeFocus(this._updatePreview, this));
 
 		this._disposables.add(this._editor.onMouseDown(e => {
@@ -276,7 +271,6 @@ export class TypeHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 		this._disposables.add(this._tree.onDidChangeSelection(e => {
 			const [element] = e.elements;
-			// don't close on click
 			if (element && isKeyboardEvent(e.browserEvent)) {
 				this.dispose();
 				this._editorService.openEditor({
@@ -295,7 +289,6 @@ export class TypeHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 		this._previewDisposable.clear();
 
-		// update: editor and editor highlights
 		const options: IModelDecorationOptions = {
 			description: 'type-hierarchy-decoration',
 			stickiness: TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
@@ -308,17 +301,14 @@ export class TypeHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 		let previewUri: URI;
 		if (this._direction === TypeHierarchyDirection.Supertypes) {
-			// supertypes: show super types and highlight focused type
 			previewUri = element.parent ? element.parent.item.uri : element.model.root.uri;
 		} else {
-			// subtypes: show sub types and highlight focused type
 			previewUri = element.item.uri;
 		}
 
 		const value = await this._textModelService.createModelReference(previewUri);
 		this._editor.setModel(value.object.textEditorModel);
 
-		// set decorations for type ranges
 		const decorations: IModelDeltaDecoration[] = [];
 		let fullRange: IRange | undefined;
 		const loc = { uri: element.item.uri, range: element.item.selectionRange };
@@ -333,7 +323,6 @@ export class TypeHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 		}
 		this._previewDisposable.add(value);
 
-		// update: title
 		const title = this._direction === TypeHierarchyDirection.Supertypes
 			? localize('supertypes', "Supertypes of '{0}'", element.model.root.name)
 			: localize('subtypes', "Subtypes of '{0}'", element.model.root.name);

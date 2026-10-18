@@ -16,8 +16,6 @@ export class ToolResultContentRenderer implements IToolResultContentRenderer {
 			if (part instanceof LanguageModelTextPart) {
 				parts.push(part.value);
 			} else if (part instanceof LanguageModelPromptTsxPart) {
-				// Use lightweight JSON serialization instead of expensive renderPrompt().
-				// This runs on every tool call, so avoid async TSX rendering overhead.
 				try {
 					parts.push(JSON.stringify(part.value, null, 2));
 				} catch {

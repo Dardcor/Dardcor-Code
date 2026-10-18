@@ -20,7 +20,6 @@ import { SearchStateKey, SearchUIState } from '../common/search.js';
 import { category, getSearchView } from './searchActionsBase.js';
 import { isSearchTreeMatch, RenderableMatch, ISearchResult, isSearchTreeFolderMatch, isSearchTreeFolderMatchNoRoot, isSearchTreeFolderMatchWorkspaceRoot, isSearchResult, isTextSearchHeading, isSearchTreeFileMatch } from './searchTreeModel/searchTreeCommon.js';
 
-//#region Actions
 registerAction2(class ClearSearchHistoryCommandAction extends Action2 {
 
 	constructor(
@@ -229,9 +228,7 @@ registerAction2(class SearchWithAIAction extends Action2 {
 	}
 });
 
-//#endregion
 
-//#region Helpers
 const clearHistoryCommand: ICommandHandler = accessor => {
 	const searchHistoryService = accessor.get(ISearchHistoryService);
 	searchHistoryService.clearHistory();
@@ -246,10 +243,6 @@ async function expandAll(accessor: ServicesAccessor) {
 	}
 }
 
-/**
- * Recursively expand all nodes in the search results tree that are a child of `element`
- * If `element` is not provided, it is the root node.
- */
 export async function forcedExpandRecursively(
 	viewer: WorkbenchCompressibleAsyncDataTree<ISearchResult, RenderableMatch, void>,
 	element: RenderableMatch | undefined
@@ -298,10 +291,6 @@ function collapseDeepestExpandedLevel(accessor: ServicesAccessor) {
 	if (searchView) {
 		const viewer = searchView.getControl();
 
-		/**
-		 * one level to collapse so collapse everything. If FolderMatch, check if there are visible grandchildren,
-		 * i.e. if Matches are returned by the navigator, and if so, collapse to them, otherwise collapse all levels.
-		 */
 		const navigator = viewer.navigate();
 		let node = navigator.first();
 		let canCollapseFileMatchLevel = false;
@@ -310,7 +299,6 @@ function collapseDeepestExpandedLevel(accessor: ServicesAccessor) {
 		do {
 			node = navigator.next();
 		} while (isTextSearchHeading(node));
-		// go to the first non-TextSearchResult node
 
 		if (isSearchTreeFolderMatchWorkspaceRoot(node) || searchView.isTreeLayoutViewVisible) {
 			while (node = navigator.next()) {
@@ -326,7 +314,6 @@ function collapseDeepestExpandedLevel(accessor: ServicesAccessor) {
 
 					if (isSearchTreeFolderMatch(node)) {
 						const compressionStartNode = viewer.getCompressedTreeNode(node)?.elements[0].element;
-						// Match elements should never be compressed, so `!(compressionStartNode instanceof Match)` should always be true here. Same with `!(compressionStartNode instanceof TextSearchResult)`
 						nodeToTest = compressionStartNode && !(isSearchTreeMatch(compressionStartNode)) && !isTextSearchHeading(compressionStartNode) && !(isSearchResult(compressionStartNode)) ? compressionStartNode : node;
 					}
 
@@ -355,7 +342,6 @@ function collapseDeepestExpandedLevel(accessor: ServicesAccessor) {
 
 					if (isSearchTreeFolderMatch(node)) {
 						const compressionStartNode = viewer.getCompressedTreeNode(node)?.elements[0].element;
-						// Match elements should never be compressed, so !(compressionStartNode instanceof Match) should always be true here
 						nodeToTest = (compressionStartNode && !(isSearchTreeMatch(compressionStartNode)) && !(isSearchResult(compressionStartNode)) ? compressionStartNode : node);
 					}
 					const immediateParent = nodeToTest.parent();
@@ -370,7 +356,6 @@ function collapseDeepestExpandedLevel(accessor: ServicesAccessor) {
 				} while (node = navigator.next());
 			}
 		} else if (isTextSearchHeading(navigator.first())) {
-			// if AI results are visible, just collapse everything under the TextSearchResult.
 			node = navigator.first();
 			do {
 				if (!node) {
@@ -398,4 +383,3 @@ function collapseDeepestExpandedLevel(accessor: ServicesAccessor) {
 	}
 }
 
-//#endregion

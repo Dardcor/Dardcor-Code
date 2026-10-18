@@ -119,7 +119,7 @@ export class ReleaseNotesManager extends Disposable {
 				},
 				'releaseNotes',
 				title,
-				Codicon.vscode,
+				Codicon.dardcorCode,
 				{ group: ACTIVE_GROUP, preserveFocus: false });
 
 			const disposables = new DisposableStore();
@@ -219,14 +219,13 @@ export class ReleaseNotesManager extends Disposable {
 				throw new Error('Failed to fetch release notes');
 			}
 
-			if (!text || (!/^#\s/.test(text) && !useCurrentFile)) { // release notes always starts with `#` followed by whitespace, except when using the current file
+			if (!text || (!/^#\s/.test(text) && !useCurrentFile)) {
 				throw new Error('Invalid release notes');
 			}
 
 			return patchKeybindings(text);
 		};
 
-		// Don't cache the current file
 		if (useCurrentFile) {
 			return fetchReleaseNotes();
 		}
@@ -246,7 +245,6 @@ export class ReleaseNotesManager extends Disposable {
 
 	private async onDidClickLink(uri: URI) {
 		if (uri.scheme === Schemas.codeSetting) {
-			// handled in receive message
 		} else {
 			this.addGAParameters(uri, 'ReleaseNotes')
 				.then(updated => this._openerService.open(updated, { allowCommands: ['workbench.action.openSettings', 'summarize.release.notes'] }))
@@ -612,35 +610,13 @@ export class ReleaseNotesManager extends Disposable {
 	}
 }
 
-/**
- * Processes conditional blocks in the release notes markdown.
- *
- * Conditional blocks use a single HTML comment with the format:
- * ```
- * <!-- %IF CONDITION %
- * Content only visible when CONDITION is active.
- * %ENDIF % -->
- * ```
- *
- * Supported conditions:
- * - `IN_PRODUCT` - Content shown in VS Code (both Stable and Insiders)
- * - `WEB` - Content shown on the website only
- * - `STABLE` - Content shown in VS Code Stable only
- * - `INSIDERS` - Content shown in VS Code Insiders only
- *
- * On the website, the entire block is a single HTML comment, so the
- * content is hidden by default. The website renderer would activate
- * `WEB` blocks by stripping the comment markers.
- */
 export function processConditionalBlocks(text: string, activeConditions: ReadonlySet<string>): string {
 	return text.replace(
 		/<!--\s*%IF\s+(\w+)\s*%([\s\S]*?)%ENDIF\s*%\s*-->/gi,
 		(_match, condition: string, content: string) => {
 			if (activeConditions.has(condition.toUpperCase())) {
-				// Strip comment markers, reveal content
 				return content;
 			}
-			// Remove the entire block
 			return '';
 		}
 	);
@@ -653,13 +629,11 @@ export async function renderReleaseNotesMarkdown(
 	simpleSettingRenderer: SimpleSettingRenderer,
 	quality?: string,
 ): Promise<TrustedHTML> {
-	// Remove HTML comment markers around table of contents navigation
 	text = text
 		.toString()
 		.replace(/<!--\s*TOC\s*/gi, '')
 		.replace(/\s*Navigation End\s*-->/gi, '');
 
-	// Process conditional blocks based on active conditions
 	const activeConditions = new Set<string>(['IN_PRODUCT']);
 	if (quality === 'stable') {
 		activeConditions.add('STABLE');

@@ -131,7 +131,6 @@ export class DropdownMenuActionViewItem extends BaseActionViewItem {
 			classNames = this.options.classNames;
 		}
 
-		// todo@aeschli: remove codicon, should come through `this.options.classNames`
 		if (!classNames.find(c => c === 'icon')) {
 			classNames.push('codicon');
 		}
@@ -214,7 +213,7 @@ export class ActionWithDropdownActionViewItem extends ActionViewItem {
 			const menuActionsProvider = {
 				getActions: () => {
 					const actionsProvider = (<IActionWithDropdownActionViewItemOptions>this.options).menuActionsOrProvider;
-					return Array.isArray(actionsProvider) ? actionsProvider : (actionsProvider as IActionProvider).getActions(); // TODO: microsoft/TypeScript#42768
+					return Array.isArray(actionsProvider) ? actionsProvider : (actionsProvider as IActionProvider).getActions();
 				}
 			};
 
@@ -231,7 +230,6 @@ export class ActionWithDropdownActionViewItem extends ActionViewItem {
 			this.dropdownMenuActionViewItem.render(this.element);
 
 			this._register(addDisposableListener(this.element, EventType.KEY_DOWN, e => {
-				// If we don't have any actions then the dropdown is hidden so don't try to focus it #164050
 				if (menuActionsProvider.getActions().length === 0) {
 					return;
 				}

@@ -10,11 +10,6 @@ import { escapeRegExpCharacters } from '../dardcor/base/common/strings';
 import { URI } from '../dardcor/base/common/uri';
 import { getLanguage, wellKnownLanguages } from './languages';
 
-/**
- *
- * @param code A block of source code that might contain markdown code block fences
- * @returns A fence with the required number of backticks to avoid prematurely terminating the code block
- */
 export function getFenceForCodeBlock(code: string, minNumberOfBackticks = 3) {
 	const backticks = code.matchAll(/^\s*(```+)/gm);
 	const backticksNeeded = Math.max(minNumberOfBackticks, ...Array.from(backticks, d => d[1].length + 1));
@@ -25,7 +20,7 @@ export const filepathCodeBlockMarker = 'filepath:';
 
 export function createFilepathRegexp(languageId?: string): RegExp {
 	const language = getLanguage(languageId);
-	const prefixes: string[] = ['#', '\\/\\/']; // always allow # and // as comment start
+	const prefixes: string[] = ['#', '\\/\\/'];
 	const suffixes: string[] = [];
 	function add(lineComment: { start: string; end?: string }) {
 		prefixes.push(escapeRegExpCharacters(lineComment.start));
@@ -40,10 +35,6 @@ export function createFilepathRegexp(languageId?: string): RegExp {
 	return new RegExp(`^\\s*${startMatch}\\s*${filepathCodeBlockMarker}\\s*(.*?)${optionalEndMatch}\\s*$`);
 }
 
-/**
- * Create a markdown code block with an optional language id and an optional file path.
- * @param filePath The file path to include in the code block. To create the file path use the {@link IPromptPathRepresentationService}
- */
 export function createFencedCodeBlock(languageId: string, code: string, shouldTrim = true, filePath?: string, minNumberOfBackticksOrStyle: string | number = 3): string {
 	const fence = typeof minNumberOfBackticksOrStyle === 'number'
 		? getFenceForCodeBlock(code, minNumberOfBackticksOrStyle)
@@ -110,13 +101,10 @@ export function getMdCodeBlockLanguage(uri: URI) {
 }
 
 export interface MarkdownCodeBlock {
-	/** The fence characters used to start the block. */
 	readonly startMarkup: string;
 
-	/** The markdown language id of the code block, e.g. 'typescript'. May be empty */
 	readonly language: string;
 
-	/** The code content of the block. */
 	readonly code: string;
 
 	readonly startLine: number;
@@ -131,7 +119,6 @@ export function extractCodeBlocks(text: string): MarkdownCodeBlock[] {
 		if (token.map && token.type === 'fence') {
 			out.push({
 				startMarkup: token.markup,
-				// Trim trailing newline since this is always included
 				code: token.content.replace(/\n$/, ''),
 				language: token.info.trim(),
 				startLine: token.map[0],

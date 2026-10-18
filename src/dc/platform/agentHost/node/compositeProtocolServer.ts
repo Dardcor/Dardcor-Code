@@ -7,9 +7,6 @@ import { Emitter } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 import type { IProtocolServer, IProtocolTransport } from '../common/state/sessionTransport.js';
 
-/**
- * Presents multiple protocol listeners as one server.
- */
 export class CompositeProtocolServer extends Disposable implements IProtocolServer {
 
 	private readonly _onConnection = this._register(new Emitter<IProtocolTransport>());

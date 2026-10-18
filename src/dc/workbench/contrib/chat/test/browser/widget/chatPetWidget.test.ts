@@ -2526,7 +2526,6 @@ suite('ChatPetWidget', () => {
 	test('stands on the topmost surface showing above the input', () => {
 		const container = mainWindow.document.createElement('div');
 		container.style.cssText = 'position:absolute;top:100px;left:0;width:200px';
-		// Offset above the host, so it would win if the walk did not skip it.
 		const overlay = mainWindow.document.createElement('div');
 		overlay.className = CHAT_PET_OVERLAY_CLASS;
 		overlay.style.cssText = 'position:absolute;top:-10px;left:0;width:200px;height:20px';

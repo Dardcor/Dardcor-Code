@@ -128,7 +128,7 @@ suite('GitCommitFoldingProvider', () => {
 		assert.strictEqual(ranges.length, 1);
 		assert.strictEqual(ranges[0].start, 0);
 		assert.strictEqual(ranges[0].end, 3);
-		assert.strictEqual(ranges[0].kind, undefined); // Diff blocks don't have a specific kind
+		assert.strictEqual(ranges[0].kind, undefined);
 	});
 
 	test('multiple diff blocks', () => {
@@ -201,20 +201,16 @@ suite('GitCommitFoldingProvider', () => {
 		const doc = createMockDocument(content);
 		const ranges = provider.provideFoldingRanges(doc, mockContext, mockToken) as vscode.FoldingRange[];
 
-		// Should have one comment block and two diff blocks
 		assert.strictEqual(ranges.length, 3);
 
-		// Comment block (lines 2-12)
 		assert.strictEqual(ranges[0].start, 2);
 		assert.strictEqual(ranges[0].end, 12);
 		assert.strictEqual(ranges[0].kind, vscode.FoldingRangeKind.Comment);
 
-		// First diff block (lines 13-20)
 		assert.strictEqual(ranges[1].start, 13);
 		assert.strictEqual(ranges[1].end, 20);
 		assert.strictEqual(ranges[1].kind, undefined);
 
-		// Second diff block (lines 21-25)
 		assert.strictEqual(ranges[2].start, 21);
 		assert.strictEqual(ranges[2].end, 25);
 		assert.strictEqual(ranges[2].kind, undefined);
@@ -240,17 +236,14 @@ suite('GitCommitFoldingProvider', () => {
 
 		assert.strictEqual(ranges.length, 3);
 
-		// First comment block
 		assert.strictEqual(ranges[0].start, 2);
 		assert.strictEqual(ranges[0].end, 3);
 		assert.strictEqual(ranges[0].kind, vscode.FoldingRangeKind.Comment);
 
-		// Diff block
 		assert.strictEqual(ranges[1].start, 5);
 		assert.strictEqual(ranges[1].end, 8);
 		assert.strictEqual(ranges[1].kind, undefined);
 
-		// Second comment block
 		assert.strictEqual(ranges[2].start, 9);
 		assert.strictEqual(ranges[2].end, 10);
 		assert.strictEqual(ranges[2].kind, vscode.FoldingRangeKind.Comment);

@@ -21,7 +21,7 @@ export async function openPanelChatAndGetWidget(viewsService: IViewsService, cha
 
 	return await raceTimeout(
 		eventPromise,
-		10000, // should be enough time for chat to initialize...
+		10000,
 		() => eventPromise.cancel()
 	);
 }

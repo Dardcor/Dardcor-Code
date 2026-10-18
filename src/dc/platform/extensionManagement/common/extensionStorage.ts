@@ -58,7 +58,6 @@ export class ExtensionStorageService extends Disposable implements IExtensionSto
 		return undefined;
 	}
 
-	/* TODO @sandy081: This has to be done across all profiles */
 	static async removeOutdatedExtensionVersions(extensionManagementService: IExtensionManagementService, storageService: IStorageService): Promise<void> {
 		const extensions = await extensionManagementService.getInstalled();
 		const extensionVersionsToRemove: string[] = [];
@@ -108,13 +107,11 @@ export class ExtensionStorageService extends Disposable implements IExtensionSto
 
 	private onDidChangeStorageValue(e: IProfileStorageValueChangeEvent): void {
 
-		// State of extension with keys for sync has changed
 		if (this.extensionsWithKeysForSync.has(e.key.toLowerCase())) {
 			this._onDidChangeExtensionStorageToSync.fire();
 			return;
 		}
 
-		// Keys for sync of an extension has changed
 		const extensionIdWithVersion = ExtensionStorageService.fromKey(e.key);
 		if (extensionIdWithVersion) {
 			if (this.storageService.get(e.key, StorageScope.PROFILE) === undefined) {
@@ -147,8 +144,6 @@ export class ExtensionStorageService extends Disposable implements IExtensionSto
 			try {
 				return JSON.parse(jsonValue);
 			} catch (error) {
-				// Do not fail this call but log it for diagnostics
-				// https://github.com/microsoft/vscode/issues/132777
 				this.logService.error(`[mainThreadStorage] unexpected error parsing storage contents (extensionId: ${extensionId}, global: ${global}): ${error}`);
 			}
 		}
@@ -172,7 +167,7 @@ export class ExtensionStorageService extends Disposable implements IExtensionSto
 		if (state === undefined) {
 			this.storageService.remove(extensionId, global ? StorageScope.PROFILE : StorageScope.WORKSPACE);
 		} else {
-			this.storageService.store(extensionId, JSON.stringify(state), global ? StorageScope.PROFILE : StorageScope.WORKSPACE, StorageTarget.MACHINE /* Extension state is synced separately through extensions */);
+			this.storageService.store(extensionId, JSON.stringify(state), global ? StorageScope.PROFILE : StorageScope.WORKSPACE, StorageTarget.MACHINE );
 		}
 	}
 
@@ -192,7 +187,6 @@ export class ExtensionStorageService extends Disposable implements IExtensionSto
 
 	addToMigrationList(from: string, to: string): void {
 		if (from !== to) {
-			// remove the duplicates
 			const migrationList: [string, string][] = this.migrationList.filter(entry => !entry.includes(from) && !entry.includes(to));
 			migrationList.push([from, to]);
 			this.migrationList = migrationList;
@@ -211,7 +205,7 @@ export class ExtensionStorageService extends Disposable implements IExtensionSto
 			if (Array.isArray(migrationList)) {
 				return migrationList;
 			}
-		} catch (error) { /* ignore */ }
+		} catch (error) { }
 		return [];
 	}
 

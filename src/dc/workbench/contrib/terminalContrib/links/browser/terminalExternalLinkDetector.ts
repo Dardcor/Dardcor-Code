@@ -19,7 +19,6 @@ export class TerminalExternalLinkDetector implements ITerminalLinkDetector {
 	}
 
 	async detect(lines: IBufferLine[], startLine: number, endLine: number): Promise<ITerminalSimpleLink[]> {
-		// Get the text representation of the wrapped line
 		const text = getXtermLineContent(this.xterm.buffer.active, startLine, endLine, this.xterm.cols);
 		if (text === '' || text.length > this.maxLinkLength) {
 			return [];

@@ -27,10 +27,6 @@ function computeTokens(s: string) {
 	return Math.ceil(s.length / 4);
 }
 
-/**
- * Helper to create PromptOptions with partial overrides.
- * Supports nested partial updates for recentlyViewedDocuments and pagedClipping.
- */
 function makeOpts(overrides: {
 	maxTokens?: number;
 	recentlyViewedFilesIncludeLineNumbers?: IncludeLineNumbersOption;
@@ -62,9 +58,6 @@ suite('Paged clipping - recently viewed files', () => {
 		editEntryCount?: number;
 	};
 
-	/**
-		 * Helper to build code snippets with less boilerplate.
-		 */
 	function buildSnippets(
 		files: FileEntry[],
 		opts: PromptOptions,
@@ -150,9 +143,7 @@ suite('Paged clipping - recently viewed files', () => {
 		});
 
 		test('includes line numbers with correct offset when using visible ranges', () => {
-			// Create content: line0\nline1\n...\nline9 (each line is 6 chars including newline)
 			const content = new StringText('line0\nline1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9');
-			// line4 starts at offset 24 (4 lines * 6 chars each)
 			const focalRanges = [new OffsetRange(24, 30)];
 
 			const { snippets } = buildSnippets(
@@ -160,7 +151,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 15, recentlyViewedFilesIncludeLineNumbers: IncludeLineNumbersOption.WithSpaceAfter, pageSize: 2, clippingStrategy: RecentFileClippingStrategy.AroundEditRange }),
 			);
 
-			// Line numbers start from 4 (not 0) because lines 0-3 are truncated
 			expect(snippets).toMatchInlineSnapshot(`
 				[
 				  "<|recently_viewed_code_snippet|>
@@ -184,7 +174,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 50, recentlyViewedFilesIncludeLineNumbers: IncludeLineNumbersOption.WithSpaceAfter, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.AroundEditRange }),
 			);
 
-			// Line numbers start from 10 (page containing line 10)
 			expect(snippets).toMatchInlineSnapshot(`
 				[
 				  "<|recently_viewed_code_snippet|>
@@ -254,7 +243,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 10, recentlyViewedFilesIncludeLineNumbers: IncludeLineNumbersOption.WithSpaceAfter, pageSize: 2 }),
 			);
 
-			// First file gets truncated, second file doesn't fit in budget
 			expect(snippets).toMatchInlineSnapshot(`
 				[
 				  "<|recently_viewed_code_snippet|>
@@ -274,7 +262,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 2000, recentlyViewedFilesIncludeLineNumbers: IncludeLineNumbersOption.WithSpaceAfter, pageSize: 2 }),
 			);
 
-			// Empty string content produces a single empty line
 			expect(snippets.map(splitLines)).toMatchInlineSnapshot(`
 				[
 				  [
@@ -337,11 +324,9 @@ suite('Paged clipping - recently viewed files', () => {
 	suite('AroundEditRange strategy', () => {
 
 		test('centers snippet on focal range instead of top of file', () => {
-			// 100-line file with a "focal range" (edit) near the bottom
 			const lines = Array.from({ length: 100 }, (_, i) => `line_${String(i).padStart(3, '0')}`);
 			const content = new StringText(lines.join('\n'));
 			const lineLen = 'line_000\n'.length;
-			// Focal range at line 80
 			const focalRanges = [new OffsetRange(80 * lineLen, 81 * lineLen)];
 
 			const { snippets } = buildSnippets(
@@ -349,7 +334,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 30, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.AroundEditRange }),
 			);
 
-			// Should include lines around line 80, not from the top
 			const snippet = snippets[0];
 			expect(snippet).toContain('line_080');
 			expect(snippet).not.toContain('line_000');
@@ -361,7 +345,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 10, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.AroundEditRange }),
 			);
 
-			// No focal ranges → falls through to clipFullDocument (top-to-bottom)
 			const snippet = snippets[0];
 			expect(snippet).toContain('1\n2\n3\n4\n5');
 		});
@@ -370,12 +353,12 @@ suite('Paged clipping - recently viewed files', () => {
 			const lines1 = Array.from({ length: 50 }, (_, i) => `fileA_${i}`);
 			const content1 = new StringText(lines1.join('\n'));
 			const lineLen1 = 'fileA_0\n'.length;
-			const focalRanges1 = [new OffsetRange(40 * lineLen1, 41 * lineLen1)]; // near bottom
+			const focalRanges1 = [new OffsetRange(40 * lineLen1, 41 * lineLen1)];
 
 			const lines2 = Array.from({ length: 50 }, (_, i) => `fileB_${i}`);
 			const content2 = new StringText(lines2.join('\n'));
 			const lineLen2 = 'fileB_0\n'.length;
-			const focalRanges2 = [new OffsetRange(10 * lineLen2, 11 * lineLen2)]; // near top
+			const focalRanges2 = [new OffsetRange(10 * lineLen2, 11 * lineLen2)];
 
 			const { snippets, docsInPrompt } = buildSnippets(
 				[
@@ -386,9 +369,7 @@ suite('Paged clipping - recently viewed files', () => {
 			);
 
 			expect(docsInPrompt.size).toBe(2);
-			// File 1 should contain content near line 40, not line 0
 			expect(snippets.find(s => s.includes('fileA_40'))).toBeDefined();
-			// File 2 should contain content near line 10
 			expect(snippets.find(s => s.includes('fileB_10'))).toBeDefined();
 		});
 	});
@@ -396,8 +377,6 @@ suite('Paged clipping - recently viewed files', () => {
 	suite('Proportional strategy', () => {
 
 		test('distributes budget across files instead of greedily consuming', () => {
-			// Two files, each 50 lines. With greedy, the first file would consume everything.
-			// With proportional, each gets ~half.
 			const content1 = new StringText(Array.from({ length: 50 }, (_, i) => `A${i}`).join('\n'));
 			const lineLen1 = 'A0\n'.length;
 			const content2 = new StringText(Array.from({ length: 50 }, (_, i) => `B${i}`).join('\n'));
@@ -411,13 +390,11 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 40, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.Proportional }),
 			);
 
-			// Both files should be represented in the prompt
 			expect(docsInPrompt.size).toBe(2);
 			expect(snippets.length).toBe(2);
 		});
 
 		test('gives more budget to files with more edit locations', () => {
-			// File A has 3 edits, File B has 1 edit. File A should get more content.
 			const content = new StringText(Array.from({ length: 40 }, (_, i) => `x${i}`).join('\n'));
 			const lineLen = 'x0\n'.length;
 
@@ -429,17 +406,13 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 60, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.Proportional }),
 			);
 
-			// Both files should appear
 			expect(snippets.length).toBe(2);
-			// File A (first in order = id, 3 edits) should have more content than File B (id2, 1 edit)
 			const fileASnippet = snippets.find(s => s.includes('/src/first.txt'))!;
 			const fileBSnippet = snippets.find(s => s.includes('/src/second.txt'))!;
 			expect(fileASnippet.length).toBeGreaterThan(fileBSnippet.length);
 		});
 
 		test('ensures minimum budget per file', () => {
-			// File A has many edits, File B has 1 edit. Even with skewed distribution,
-			// File B should still get at least some content.
 			const smallContent = new StringText('hello\nworld');
 
 			const { snippets, docsInPrompt } = buildSnippets(
@@ -450,7 +423,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 100, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.Proportional }),
 			);
 
-			// Both files should be included even though weights are heavily skewed
 			expect(docsInPrompt.size).toBe(2);
 			expect(snippets.length).toBe(2);
 		});
@@ -473,10 +445,7 @@ suite('Paged clipping - recently viewed files', () => {
 		});
 
 		test('does not cascade negative budget to subsequent files', () => {
-			// First file's focal page is very large, exceeding the budget.
-			// Both files should be skipped — the first because its focal pages
-			// exceed the budget, the second because there's nothing left.
-			const bigLine = 'x'.repeat(400); // ~100 tokens per line
+			const bigLine = 'x'.repeat(400);
 			const bigContent = new StringText(Array.from({ length: 50 }, () => bigLine).join('\n'));
 			const bigLineLen = bigLine.length + 1;
 			const bigFocalRanges = [new OffsetRange(0, bigLineLen)];
@@ -493,7 +462,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 5, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.AroundEditRange }),
 			);
 
-			// Neither file fits — first file's focal pages exceed budget, loop breaks.
 			expect(snippets.length).toBe(0);
 		});
 
@@ -513,20 +481,11 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens: 100, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.Proportional }),
 			);
 
-			// The big file's focal pages alone exceed the budget, so the
-			// oldest file (id2) is dropped first.  If even the big file's
-			// focal pages don't fit solo, it will also be dropped.
-			// With 100 tokens and ~500 tokens per page of big file,
-			// neither file's focal pages fit → both are dropped.
 			expect(docsInPrompt.size).toBe(0);
 			expect(snippets.length).toBe(0);
 		});
 
 		test('proportional strategy total tokens never exceed budget', () => {
-			// 3 files, each 30 lines, focal ranges near the start.
-			// Budget is generous so that formatting overhead (tags, file path)
-			// doesn't cause the total to exceed it — the budget controls raw
-			// code tokens, not the formatted wrapper.
 			const id3 = DocumentId.create('file:///src/third.txt');
 			const makeContent = (prefix: string) =>
 				new StringText(Array.from({ length: 30 }, (_, i) => `${prefix}${i}`).join('\n'));
@@ -547,14 +506,12 @@ suite('Paged clipping - recently viewed files', () => {
 		});
 
 		test('proportional strategy drops oldest files first when over budget', () => {
-			// 3 files ordered most-recent-first. If we can only fit 2, the third (oldest) is dropped.
 			const id3 = DocumentId.create('file:///src/third.txt');
 			const content = new StringText(Array.from({ length: 20 }, (_, i) => `line${i}`).join('\n'));
 			const lineLen = 'line0\n'.length;
 
-			// Budget is enough for 2 files' focal pages but not 3
 			const focalCost = computeFocalPageCost(content, [new OffsetRange(0, lineLen)], 5, computeTokens)!;
-			const maxTokens = focalCost * 2 + 1; // fits exactly 2 focal costs
+			const maxTokens = focalCost * 2 + 1;
 
 			const { docsInPrompt } = buildSnippets(
 				[
@@ -565,7 +522,6 @@ suite('Paged clipping - recently viewed files', () => {
 				makeOpts({ maxTokens, pageSize: 5, clippingStrategy: RecentFileClippingStrategy.Proportional }),
 			);
 
-			// Third (oldest) file dropped; first two included
 			expect(docsInPrompt.size).toBe(2);
 			expect(docsInPrompt.has(id)).toBe(true);
 			expect(docsInPrompt.has(id2)).toBe(true);
@@ -583,7 +539,6 @@ suite('Paged clipping - recently viewed files', () => {
 
 			expect(docsInPrompt.size).toBe(1);
 			expect(snippets.length).toBe(1);
-			// Should contain content well beyond the focal page
 			expect(snippets[0]).toContain('x20');
 		});
 	});
@@ -591,14 +546,10 @@ suite('Paged clipping - recently viewed files', () => {
 	suite('RC3: focal range span capping', () => {
 
 		test('wide-scatter focal ranges are capped to prioritize the most recent', () => {
-			// File with edits at line 5 and line 95, spanning nearly the whole file.
-			// With the span cap, only the most recent focal range (first in array)
-			// determines the clip center.
 			const lines = Array.from({ length: 100 }, (_, i) => `line_${String(i).padStart(3, '0')}`);
 			const content = new StringText(lines.join('\n'));
 			const lineLen = 'line_000\n'.length;
 
-			// Most recent at line 5, older at line 95
 			const focalRanges = [
 				new OffsetRange(5 * lineLen, 6 * lineLen),
 				new OffsetRange(95 * lineLen, 96 * lineLen),
@@ -619,7 +570,6 @@ suite('Paged clipping - recently viewed files', () => {
 			const content = new StringText(lines.join('\n'));
 			const lineLen = 'line_000\n'.length;
 
-			// Both near line 50
 			const focalRanges = [
 				new OffsetRange(50 * lineLen, 51 * lineLen),
 				new OffsetRange(52 * lineLen, 53 * lineLen),
@@ -643,8 +593,8 @@ suite('selectFocalRangesWithinSpanCap', () => {
 
 	test('returns all ranges when span fits within cap', () => {
 		const ranges = [
-			new OffsetRange(10, 20),  // line 2
-			new OffsetRange(20, 30),  // line 3
+			new OffsetRange(10, 20),
+			new OffsetRange(20, 30),
 		];
 		const result = selectFocalRangesWithinSpanCap(ranges, getLineNumber, 10);
 		expect(result).toEqual(ranges);
@@ -652,8 +602,8 @@ suite('selectFocalRangesWithinSpanCap', () => {
 
 	test('returns only the first range when adding the second exceeds span cap', () => {
 		const ranges = [
-			new OffsetRange(10, 20),   // line 2
-			new OffsetRange(500, 510), // line 51
+			new OffsetRange(10, 20),
+			new OffsetRange(500, 510),
 		];
 		const result = selectFocalRangesWithinSpanCap(ranges, getLineNumber, 10);
 		expect(result).toEqual([ranges[0]]);
@@ -661,10 +611,10 @@ suite('selectFocalRangesWithinSpanCap', () => {
 
 	test('includes ranges greedily until cap is exceeded', () => {
 		const ranges = [
-			new OffsetRange(100, 110), // line 11
-			new OffsetRange(120, 130), // line 13
-			new OffsetRange(150, 160), // line 16
-			new OffsetRange(500, 510), // line 51 — too far
+			new OffsetRange(100, 110),
+			new OffsetRange(120, 130),
+			new OffsetRange(150, 160),
+			new OffsetRange(500, 510),
 		];
 		const result = selectFocalRangesWithinSpanCap(ranges, getLineNumber, 10);
 		expect(result).toEqual([ranges[0], ranges[1], ranges[2]]);
@@ -686,9 +636,6 @@ suite('historyEntriesToCodeSnippet', () => {
 
 	const docId = DocumentId.create('file:///src/example.txt');
 
-	/**
-	 * Helper to create an edit entry from a base text and a StringEdit.
-	 */
 	function makeEditEntry(base: string, edit: StringEdit): IXtabHistoryEditEntry {
 		return {
 			kind: 'edit',
@@ -697,9 +644,6 @@ suite('historyEntriesToCodeSnippet', () => {
 		};
 	}
 
-	/**
-	 * Helper to create a visibleRanges entry.
-	 */
 	function makeVisibleEntry(content: string, visibleRanges: readonly OffsetRange[]): IXtabHistoryVisibleRangesEntry {
 		return {
 			kind: 'visibleRanges',
@@ -710,55 +654,34 @@ suite('historyEntriesToCodeSnippet', () => {
 	}
 
 	test('single edit entry returns its new ranges directly', () => {
-		// "hello" → insert " world" at offset 5 → "hello world"
 		const edit = StringEdit.insert(5, ' world');
 		const entry = makeEditEntry('hello', edit);
 
 		const result = historyEntriesToCodeSnippet([entry]);
 
 		expect(result.content.value).toBe('hello world');
-		expect(result.focalRanges).toEqual([new OffsetRange(5, 11)]); // " world" occupies [5,11)
+		expect(result.focalRanges).toEqual([new OffsetRange(5, 11)]);
 		expect(result.editEntryCount).toBe(1);
 	});
 
 	test('two edit entries: older ranges are transformed through the newer edit', () => {
-		// Start: "AABB"
-		// Older edit: replace [0,2) "AA" → "XXX"  ⇒  "XXXBB"
-		//   New ranges in older post-edit: [0,3) for "XXX"
-		// Newer edit (base = "XXXBB"): insert "YY" at offset 0  ⇒  "YYXXXBB"
-		//   New ranges in newer post-edit: [0,2) for "YY"
-		//
-		// After transformation, the older edit's [0,3) should be shifted by the
-		// newer edit's insertion of 2 chars at offset 0 → [2,5) in the final content.
 		const olderEdit = StringEdit.replace(new OffsetRange(0, 2), 'XXX');
 		const newerEdit = StringEdit.insert(0, 'YY');
 
 		const olderEntry = makeEditEntry('AABB', olderEdit);
 		const newerEntry = makeEditEntry('XXXBB', newerEdit);
 
-		// entries[0] = most recent, entries[1] = older
 		const result = historyEntriesToCodeSnippet([newerEntry, olderEntry]);
 
 		expect(result.content.value).toBe('YYXXXBB');
-		// Newer edit's own range: [0,2) for "YY"
-		// Older edit's range transformed forward: [0,3) → applyToOffsetRange via newerEdit → [2,5)
 		expect(result.focalRanges).toEqual([
-			new OffsetRange(0, 2),  // from newerEntry
-			new OffsetRange(2, 5),  // from olderEntry, transformed
+			new OffsetRange(0, 2),
+			new OffsetRange(2, 5),
 		]);
 		expect(result.editEntryCount).toBe(2);
 	});
 
 	test('three edit entries: ranges chain through two edits', () => {
-		// Start: "abcdef"
-		// E2 (oldest): delete [0,3) "abc"  ⇒  "def"
-		//   New ranges in E2 post-edit: [0,0) (empty, deletion)
-		// E1 (middle): insert "XY" at offset 0  ⇒  "XYdef"
-		//   E1.base = "def"
-		//   New ranges in E1 post-edit: [0,2) for "XY"
-		// E0 (newest): insert "Z" at offset 5  ⇒  "XYdefZ"
-		//   E0.base = "XYdef"
-		//   New ranges in E0 post-edit: [5,6) for "Z"
 		const e2 = makeEditEntry('abcdef', StringEdit.delete(new OffsetRange(0, 3)));
 		const e1 = makeEditEntry('def', StringEdit.insert(0, 'XY'));
 		const e0 = makeEditEntry('XYdef', StringEdit.insert(5, 'Z'));
@@ -766,31 +689,22 @@ suite('historyEntriesToCodeSnippet', () => {
 		const result = historyEntriesToCodeSnippet([e0, e1, e2]);
 
 		expect(result.content.value).toBe('XYdefZ');
-		// E0's own range: [5,6)
-		// E1's range [0,2) transformed through E0: E0 inserts at 5, so [0,2) stays [0,2)
-		// E2's range [0,0) transformed through E1 then E0:
-		//   Through E1 (insert 2 chars at 0): [0,0) → [2,2)
-		//   Through E0 (insert 1 char at 5): [2,2) → [2,2) (before insertion point)
 		expect(result.focalRanges).toEqual([
-			new OffsetRange(5, 6),  // E0
-			new OffsetRange(0, 2),  // E1, transformed through E0
-			new OffsetRange(2, 2),  // E2, transformed through E1 and E0
+			new OffsetRange(5, 6),
+			new OffsetRange(0, 2),
+			new OffsetRange(2, 2),
 		]);
 		expect(result.editEntryCount).toBe(3);
 	});
 
 	test('visibleRanges entries are skipped for focal range collection', () => {
-		// Most recent is a visibleRanges entry, followed by an edit entry.
-		// Only the edit entry should contribute focal ranges.
 		const edit = StringEdit.insert(5, ' world');
 		const editEntry = makeEditEntry('hello', edit);
 		const visibleEntry = makeVisibleEntry('hello world', [new OffsetRange(0, 5)]);
 
-		// visibleEntry is most recent
 		const result = historyEntriesToCodeSnippet([visibleEntry, editEntry]);
 
 		expect(result.content.value).toBe('hello world');
-		// Only the edit entry's range should appear; the visibleRanges entry's [0,5) is excluded
 		expect(result.focalRanges).toEqual([new OffsetRange(5, 11)]);
 		expect(result.editEntryCount).toBe(1);
 	});
@@ -802,19 +716,10 @@ suite('historyEntriesToCodeSnippet', () => {
 
 		expect(result.content.value).toBe('hello');
 		expect(result.focalRanges).toBeUndefined();
-		expect(result.editEntryCount).toBe(1); // Math.max(0, 1)
+		expect(result.editEntryCount).toBe(1);
 	});
 
 	test('edit after deletion: ranges are correctly shifted', () => {
-		// Start: "aaa_bbb_ccc"
-		// Older edit: delete middle part [3,8) "_bbb_" → "aaaccc"
-		//   New ranges: [3,3) (empty, deletion)
-		// Newer edit (base = "aaaccc"): replace [0,3) "aaa" → "XX" → "XXccc"
-		//   New ranges: [0,2) for "XX"
-		//
-		// Older's [3,3) through newer: newer replaces [0,3)→"XX" (delta = -1)
-		//   offset 3 is at the end of the replaced range → maps to 2
-		//   So [3,3) → [2,2)
 		const olderEdit = StringEdit.delete(new OffsetRange(3, 8));
 		const newerEdit = StringEdit.replace(new OffsetRange(0, 3), 'XX');
 
@@ -825,8 +730,8 @@ suite('historyEntriesToCodeSnippet', () => {
 
 		expect(result.content.value).toBe('XXccc');
 		expect(result.focalRanges).toEqual([
-			new OffsetRange(0, 2),  // newerEntry's "XX"
-			new OffsetRange(2, 2),  // olderEntry's deletion point, shifted
+			new OffsetRange(0, 2),
+			new OffsetRange(2, 2),
 		]);
 	});
 });
@@ -878,7 +783,7 @@ suite('appendNeighborFileSnippets', () => {
 			[makeNeighbor('file:///src/n1.ts', 'a\nb', 5)],
 			snippets,
 			docsInPrompt,
-			/*tokenBudget*/ 100,
+			100,
 			computeTokens,
 			IncludeLineNumbersOption.WithSpaceAfter,
 		);
@@ -900,7 +805,7 @@ suite('appendNeighborFileSnippets', () => {
 			[makeNeighbor('file:///src/n1.ts', 'a\nb', 12)],
 			snippets,
 			new Set<DocumentId>(),
-			/*tokenBudget*/ 100,
+			100,
 			computeTokens,
 			IncludeLineNumbersOption.WithoutSpace,
 		);
@@ -918,10 +823,10 @@ suite('appendNeighborFileSnippets', () => {
 	test('omits line numbers for related-file snippets even when line numbers are requested', () => {
 		const snippets: string[] = [];
 		appendNeighborFileSnippets(
-			[makeNeighbor('file:///src/related.ts', 'a\nb', 5, /*score*/ 0.5, /*isFromRelatedFile*/ true)],
+			[makeNeighbor('file:///src/related.ts', 'a\nb', 5, 0.5, true)],
 			snippets,
 			new Set<DocumentId>(),
-			/*tokenBudget*/ 100,
+			100,
 			computeTokens,
 			IncludeLineNumbersOption.WithSpaceAfter,
 		);
@@ -939,7 +844,6 @@ suite('appendNeighborFileSnippets', () => {
 	test('skips oversize snippets but keeps trying smaller ones', () => {
 		const snippets: string[] = [];
 		const docsInPrompt = new Set<DocumentId>();
-		// First snippet ~= 8 tokens (32 chars / 4); second ~= 1 token. Budget 5 only allows the second.
 		appendNeighborFileSnippets(
 			[
 				makeNeighbor('file:///src/big.ts', 'b'.repeat(32), 0),
@@ -947,7 +851,7 @@ suite('appendNeighborFileSnippets', () => {
 			],
 			snippets,
 			docsInPrompt,
-			/*tokenBudget*/ 5,
+			5,
 			computeTokens,
 			IncludeLineNumbersOption.None,
 		);
@@ -966,7 +870,7 @@ suite('appendNeighborFileSnippets', () => {
 			],
 			snippets,
 			docsInPrompt,
-			/*tokenBudget*/ 100,
+			100,
 			computeTokens,
 			IncludeLineNumbersOption.None,
 		);
@@ -985,16 +889,14 @@ suite('appendNeighborFileSnippets', () => {
 	test('selects highest-score snippets first when budget is tight', () => {
 		const snippets: string[] = [];
 		const docsInPrompt = new Set<DocumentId>();
-		// Each snippet ~= 8 tokens (32 chars / 4); budget 10 only fits one.
-		// The highest-score one (last in input) must win.
 		appendNeighborFileSnippets(
 			[
-				makeNeighbor('file:///src/low.ts', 'l'.repeat(32), 0, /*score*/ 0.1),
-				makeNeighbor('file:///src/high.ts', 'h'.repeat(32), 0, /*score*/ 0.9),
+				makeNeighbor('file:///src/low.ts', 'l'.repeat(32), 0, 0.1),
+				makeNeighbor('file:///src/high.ts', 'h'.repeat(32), 0, 0.9),
 			],
 			snippets,
 			docsInPrompt,
-			/*tokenBudget*/ 10,
+			10,
 			computeTokens,
 			IncludeLineNumbersOption.None,
 		);
@@ -1007,13 +909,13 @@ suite('appendNeighborFileSnippets', () => {
 		const docsInPrompt = new Set<DocumentId>();
 		appendNeighborFileSnippets(
 			[
-				makeNeighbor('file:///src/low.ts', 'low', 0, /*score*/ 0.1),
-				makeNeighbor('file:///src/mid.ts', 'mid', 0, /*score*/ 0.5),
-				makeNeighbor('file:///src/high.ts', 'high', 0, /*score*/ 0.9),
+				makeNeighbor('file:///src/low.ts', 'low', 0, 0.1),
+				makeNeighbor('file:///src/mid.ts', 'mid', 0, 0.5),
+				makeNeighbor('file:///src/high.ts', 'high', 0, 0.9),
 			],
 			snippets,
 			docsInPrompt,
-			/*tokenBudget*/ 100,
+			100,
 			computeTokens,
 			IncludeLineNumbersOption.None,
 		);
@@ -1024,24 +926,21 @@ suite('appendNeighborFileSnippets', () => {
 	});
 
 	test('reports included indices, skipping oversize and budget-exhausted entries', () => {
-		// Indices: 0 (small low score), 1 (small low score), 2 (small low score), 3 (small mid), 4 (small mid), 5 (huge), 6 (small high)
-		// Budget allows ~4 small snippets (each ~1 token, big takes ~16 tokens, budget=4).
-		// Iteration order: 6, 5 (skipped — too big), 4, 3, 2, 1 (skipped — out of budget), 0 (skipped — out of budget).
 		const snippets: string[] = [];
 		const docsInPrompt = new Set<DocumentId>();
 		const result = appendNeighborFileSnippets(
 			[
-				makeNeighbor('file:///src/i0.ts', 'a', 0, /*score*/ 0.1),
-				makeNeighbor('file:///src/i1.ts', 'b', 0, /*score*/ 0.2),
-				makeNeighbor('file:///src/i2.ts', 'c', 0, /*score*/ 0.3),
-				makeNeighbor('file:///src/i3.ts', 'd', 0, /*score*/ 0.4),
-				makeNeighbor('file:///src/i4.ts', 'e', 0, /*score*/ 0.5),
-				makeNeighbor('file:///src/i5.ts', 'h'.repeat(64), 0, /*score*/ 0.6),
-				makeNeighbor('file:///src/i6.ts', 'g', 0, /*score*/ 0.9),
+				makeNeighbor('file:///src/i0.ts', 'a', 0, 0.1),
+				makeNeighbor('file:///src/i1.ts', 'b', 0, 0.2),
+				makeNeighbor('file:///src/i2.ts', 'c', 0, 0.3),
+				makeNeighbor('file:///src/i3.ts', 'd', 0, 0.4),
+				makeNeighbor('file:///src/i4.ts', 'e', 0, 0.5),
+				makeNeighbor('file:///src/i5.ts', 'h'.repeat(64), 0, 0.6),
+				makeNeighbor('file:///src/i6.ts', 'g', 0, 0.9),
 			],
 			snippets,
 			docsInPrompt,
-			/*tokenBudget*/ 4,
+			4,
 			computeTokens,
 			IncludeLineNumbersOption.None,
 		);

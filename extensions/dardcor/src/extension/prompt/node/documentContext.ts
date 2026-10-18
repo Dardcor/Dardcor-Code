@@ -93,7 +93,6 @@ export namespace IDocumentContext {
 			}
 		}
 
-		// DEFAULT - use the active editor's indent settings if none are set yet and if the editor and context document match
 		if (activeEditor && activeEditor?.document.uri.toString() === result?.document.uri.toString() && !result.fileIndentInfo) {
 			result.fileIndentInfo = {
 				insertSpaces: activeEditor.options.insertSpaces as boolean,

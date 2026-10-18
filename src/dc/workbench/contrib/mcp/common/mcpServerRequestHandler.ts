@@ -28,22 +28,12 @@ export interface McpRoot {
 }
 
 export interface IMcpServerRequestHandlerOptions extends IMcpClientMethods {
-	/** MCP message transport */
 	launch: IMcpMessageTransport;
-	/** Logger instance. */
 	logger: ILogger;
-	/** Log level MCP messages is logged at */
 	requestLogLevel?: LogLevel;
-	/** Task manager for server-side MCP tasks (shared across reconnections) */
 	taskManager: McpTaskManager;
 }
 
-/**
- * Request handler for communicating with an MCP server.
- *
- * Handles sending requests and receiving responses, with automatic
- * handling of ping requests and typed client request methods.
- */
 export class McpServerRequestHandler extends Disposable {
 	private readonly _rpc: JsonRpcProtocol;
 
@@ -73,7 +63,6 @@ export class McpServerRequestHandler extends Disposable {
 		return this._serverInit.instructions;
 	}
 
-	// Event emitters for server notifications
 	private readonly _onDidReceiveCancelledNotification = this._register(new Emitter<MCP.CancelledNotification>());
 	readonly onDidReceiveCancelledNotification = this._onDidReceiveCancelledNotification.event;
 
@@ -95,10 +84,6 @@ export class McpServerRequestHandler extends Disposable {
 	private readonly _onDidChangePromptList = this._register(new Emitter<void>());
 	readonly onDidChangePromptList = this._onDidChangePromptList.event;
 
-	/**
-	 * Connects to the MCP server and does the initialization handshake.
-	 * @throws MpcResponseError if the server fails to initialize.
-	 */
 	public static async create(instaService: IInstantiationService, opts: IMcpServerRequestHandlerOptions, token?: CancellationToken) {
 		const mcp = new McpServerRequestHandler(opts);
 		const store = new DisposableStore();
@@ -186,7 +171,6 @@ export class McpServerRequestHandler extends Disposable {
 			}
 		));
 
-		// Attach this handler to the task manager
 		this._taskManager.setHandler(this);
 		this._register(this._taskManager.onDidUpdateTask(task => {
 			this.send({
@@ -205,27 +189,16 @@ export class McpServerRequestHandler extends Disposable {
 		}));
 		this._register(autorun(reader => {
 			const state = launch.state.read(reader).state;
-			// the handler will get disposed when the launch stops, but if we're still
-			// create()'ing we need to make sure to cancel the initialize request.
 			if (state === McpConnectionState.Kind.Error || state === McpConnectionState.Kind.Stopped) {
 				this.cancelAllRequests();
 			}
 		}));
 
-		// Listen for log level changes and forward them to the MCP server
 		this._register(logger.onDidChangeLogLevel((logLevel) => {
 			this._sendLogLevelToServer(logLevel);
 		}));
 	}
 
-	/**
-	 * Send a client request to the server and return the response.
-	 *
-	 * @param request The request to send
-	 * @param token Cancellation token
-	 * @param timeoutMs Optional timeout in milliseconds
-	 * @returns A promise that resolves with the response
-	 */
 	private async sendRequest<T extends MCP.ClientRequest, R extends MCP.ServerResult>(
 		request: Pick<T, 'params' | 'method'>,
 		token: CancellationToken = CancellationToken.None
@@ -247,22 +220,13 @@ export class McpServerRequestHandler extends Disposable {
 	}
 
 	private send(mcp: MCP.JSONRPCMessage) {
-		if (canLog(this.logger.getLevel(), this._requestLogLevel)) { // avoid building the string if we don't need to
+		if (canLog(this.logger.getLevel(), this._requestLogLevel)) {
 			log(this.logger, this._requestLogLevel, `[editor -> server] ${JSON.stringify(mcp)}`);
 		}
 
 		this._launch.send(mcp);
 	}
 
-	/**
-	 * Handles paginated requests by making multiple requests until all items are retrieved.
-	 *
-	 * @param method The method name to call
-	 * @param getItems Function to extract the array of items from a result
-	 * @param initialParams Initial parameters
-	 * @param token Cancellation token
-	 * @returns Promise with all items combined
-	 */
 	private async *sendRequestPaginated<T extends MCP.PaginatedRequest & MCP.ClientRequest, R extends MCP.PaginatedResult, I>(method: T['method'], getItems: (result: R) => I[], initialParams?: Omit<T['params'], 'jsonrpc' | 'id'>, token: CancellationToken = CancellationToken.None): AsyncIterable<I[]> {
 		let nextCursor: MCP.Cursor | undefined = undefined;
 
@@ -282,9 +246,6 @@ export class McpServerRequestHandler extends Disposable {
 		this.send({ ...notification, jsonrpc: MCP.JSONRPC_VERSION });
 	}
 
-	/**
-	 * Handle incoming server requests
-	 */
 	private handleServerRequest(request: MCP.JSONRPCRequest & MCP.ServerRequest, token: CancellationToken): MCP.Result | Promise<MCP.Result> {
 		const mapError = (error: unknown): JsonRpcError => {
 			if (error instanceof McpError) {
@@ -303,7 +264,6 @@ export class McpServerRequestHandler extends Disposable {
 			} else if (request.method === 'roots/list') {
 				result = this.handleRootsList(request);
 			} else if (request.method === 'sampling/createMessage' && this._createMessageRequestHandler) {
-				// Check if this is a task-augmented request
 				if (request.params.task) {
 					const taskResult = this._taskManager.createTask(
 						request.params.task.ttl ?? null,
@@ -316,7 +276,6 @@ export class McpServerRequestHandler extends Disposable {
 					result = this._createMessageRequestHandler(request.params, token);
 				}
 			} else if (request.method === 'elicitation/create' && this._elicitationRequestHandler) {
-				// Check if this is a task-augmented request
 				if (request.params.task) {
 					const taskResult = this._taskManager.createTask(
 						request.params.task.ttl ?? null,
@@ -351,9 +310,6 @@ export class McpServerRequestHandler extends Disposable {
 			throw mapError(e);
 		}
 	}
-	/**
-	 * Handle incoming server notifications
-	 */
 	private handleServerNotification(request: MCP.JSONRPCNotification & MCP.ServerNotification): void {
 		try {
 			switch (request.method) {
@@ -401,16 +357,10 @@ export class McpServerRequestHandler extends Disposable {
 		translateMcpLogMessage(this.logger, request.params);
 	}
 
-	/**
-	 * Send a response to a ping request
-	 */
 	private handlePing(_request: MCP.PingRequest): {} {
 		return {};
 	}
 
-	/**
-	 * Send a response to a roots/list request
-	 */
 	private handleRootsList(_request: MCP.ListRootsRequest): MCP.ListRootsResult {
 		this._hasAnnouncedRoots = true;
 		return { roots: this._roots };
@@ -425,12 +375,8 @@ export class McpServerRequestHandler extends Disposable {
 		super.dispose();
 	}
 
-	/**
-	 * Forwards log level changes to the MCP server if it supports logging
-	 */
 	private async _sendLogLevelToServer(logLevel: LogLevel): Promise<void> {
 		try {
-			// Only send if the server supports logging capabilities
 			if (!this.capabilities.logging) {
 				return;
 			}
@@ -441,79 +387,46 @@ export class McpServerRequestHandler extends Disposable {
 		}
 	}
 
-	/**
-	 * Send an initialize request
-	 */
 	initialize(params: MCP.InitializeRequest['params'], token?: CancellationToken): Promise<MCP.InitializeResult> {
 		return this.sendRequest<MCP.InitializeRequest, MCP.InitializeResult>({ method: 'initialize', params }, token);
 	}
 
-	/**
-	 * List available resources
-	 */
 	listResources(params?: MCP.ListResourcesRequest['params'], token?: CancellationToken): Promise<MCP.Resource[]> {
 		return Iterable.asyncToArrayFlat(this.listResourcesIterable(params, token));
 	}
 
-	/**
-	 * List available resources (iterable)
-	 */
 	listResourcesIterable(params?: MCP.ListResourcesRequest['params'], token?: CancellationToken): AsyncIterable<MCP.Resource[]> {
 		return this.sendRequestPaginated<MCP.ListResourcesRequest, MCP.ListResourcesResult, MCP.Resource>('resources/list', result => result.resources, params, token);
 	}
 
-	/**
-	 * Read a specific resource
-	 */
 	readResource(params: MCP.ReadResourceRequest['params'], token?: CancellationToken): Promise<MCP.ReadResourceResult> {
 		return this.sendRequest<MCP.ReadResourceRequest, MCP.ReadResourceResult>({ method: 'resources/read', params }, token);
 	}
 
-	/**
-	 * List available resource templates
-	 */
 	listResourceTemplates(params?: MCP.ListResourceTemplatesRequest['params'], token?: CancellationToken): Promise<MCP.ResourceTemplate[]> {
 		return Iterable.asyncToArrayFlat(this.sendRequestPaginated<MCP.ListResourceTemplatesRequest, MCP.ListResourceTemplatesResult, MCP.ResourceTemplate>('resources/templates/list', result => result.resourceTemplates, params, token));
 	}
 
-	/**
-	 * Subscribe to resource updates
-	 */
 	subscribe(params: MCP.SubscribeRequest['params'], token?: CancellationToken): Promise<MCP.EmptyResult> {
 		return this.sendRequest<MCP.SubscribeRequest, MCP.EmptyResult>({ method: 'resources/subscribe', params }, token);
 	}
 
-	/**
-	 * Unsubscribe from resource updates
-	 */
 	unsubscribe(params: MCP.UnsubscribeRequest['params'], token?: CancellationToken): Promise<MCP.EmptyResult> {
 		return this.sendRequest<MCP.UnsubscribeRequest, MCP.EmptyResult>({ method: 'resources/unsubscribe', params }, token);
 	}
 
-	/**
-	 * List available prompts
-	 */
 	listPrompts(params?: MCP.ListPromptsRequest['params'], token?: CancellationToken): Promise<MCP.Prompt[]> {
 		return Iterable.asyncToArrayFlat(this.sendRequestPaginated<MCP.ListPromptsRequest, MCP.ListPromptsResult, MCP.Prompt>('prompts/list', result => result.prompts, params, token));
 	}
 
-	/**
-	 * Get a specific prompt
-	 */
 	getPrompt(params: MCP.GetPromptRequest['params'], token?: CancellationToken): Promise<MCP.GetPromptResult> {
 		return this.sendRequest<MCP.GetPromptRequest, MCP.GetPromptResult>({ method: 'prompts/get', params }, token);
 	}
 
-	/**
-	 * List available tools
-	 */
 	listTools(params?: MCP.ListToolsRequest['params'], token?: CancellationToken): Promise<MCP.Tool[]> {
 		return Iterable.asyncToArrayFlat(this.sendRequestPaginated<MCP.ListToolsRequest, MCP.ListToolsResult, MCP.Tool>('tools/list', result => result.tools, params, token));
 	}
 
-	/**
-	 * Call a specific tool. Supports tasks automatically if `task` is set on the request.
-	 */
 	async callTool(params: MCP.CallToolRequest['params'] & MCP.Request['params'], token?: CancellationToken, onStatusMessage?: (message: string) => void): Promise<MCP.CallToolResult> {
 		const response = await this.sendRequest<MCP.CallToolRequest, MCP.CallToolResult | MCP.CreateTaskResult>({ method: 'tools/call', params }, token);
 
@@ -530,44 +443,26 @@ export class McpServerRequestHandler extends Disposable {
 
 	}
 
-	/**
-	 * Set the logging level
-	 */
 	setLevel(params: MCP.SetLevelRequest['params'], token?: CancellationToken): Promise<MCP.EmptyResult> {
 		return this.sendRequest<MCP.SetLevelRequest, MCP.EmptyResult>({ method: 'logging/setLevel', params }, token);
 	}
 
-	/**
-	 * Find completions for an argument
-	 */
 	complete(params: MCP.CompleteRequest['params'], token?: CancellationToken): Promise<MCP.CompleteResult> {
 		return this.sendRequest<MCP.CompleteRequest, MCP.CompleteResult>({ method: 'completion/complete', params }, token);
 	}
 
-	/**
-	 * Get task status
-	 */
 	getTask(params: { taskId: string }, token?: CancellationToken): Promise<MCP.GetTaskResult> {
 		return this.sendRequest<MCP.GetTaskRequest, MCP.GetTaskResult>({ method: 'tasks/get', params }, token);
 	}
 
-	/**
-	 * Get task result
-	 */
 	getTaskResult(params: { taskId: string }, token?: CancellationToken): Promise<MCP.GetTaskPayloadResult> {
 		return this.sendRequest<MCP.GetTaskPayloadRequest, MCP.GetTaskPayloadResult>({ method: 'tasks/result', params }, token);
 	}
 
-	/**
-	 * Cancel a task
-	 */
 	cancelTask(params: { taskId: string }, token?: CancellationToken): Promise<MCP.CancelTaskResult> {
 		return this.sendRequest<MCP.CancelTaskRequest, MCP.CancelTaskResult>({ method: 'tasks/cancel', params }, token);
 	}
 
-	/**
-	 * List all tasks
-	 */
 	listTasks(params?: MCP.ListTasksRequest['params'], token?: CancellationToken): Promise<MCP.Task[]> {
 		return Iterable.asyncToArrayFlat(
 			this.sendRequestPaginated<MCP.ListTasksRequest, MCP.ListTasksResult, MCP.Task>(
@@ -613,7 +508,6 @@ export class McpTask<T extends MCP.Result> extends Disposable implements IMcpTas
 
 		const store = this._register(new DisposableStore());
 
-		// Handle external cancellation token
 		if (_token.isCancellationRequested) {
 			this._lastTaskState.set({ ...this._task, status: 'cancelled' }, undefined);
 		} else {
@@ -625,7 +519,6 @@ export class McpTask<T extends MCP.Result> extends Disposable implements IMcpTas
 			}));
 		}
 
-		// Handle TTL expiration with an explicit timeout
 		if (expiresAt) {
 			const ttlTimeout = expiresAt - Date.now();
 			if (ttlTimeout <= 0) {
@@ -640,26 +533,19 @@ export class McpTask<T extends MCP.Result> extends Disposable implements IMcpTas
 			}
 		}
 
-		// A `tasks/result` call triggered by an input_required state.
 		const inputRequiredLookup = observableValue<ObservablePromise<MCP.Task> | undefined>('activeResultLookup', undefined);
 
-		// 1. Poll for task updates when the task isn't in a terminal state
 		store.add(autorun(reader => {
 			const current = this._lastTaskState.read(reader);
 			if (isTaskInTerminalState(current)) {
 				return;
 			}
 
-			// When a task goes into the input_required state, by spec we should call
-			// `tasks/result` which can return an SSE stream of task updates. No need
-			// to poll while such a lookup is going on, but once it resolves we should
-			// clear and update our state.
 			const lookup = inputRequiredLookup.read(reader);
 			if (lookup) {
 				const result = lookup.promiseResult.read(reader);
 				return transaction(tx => {
 					if (!result) {
-						// still ongoing
 					} else if (result.data) {
 						inputRequiredLookup.set(undefined, tx);
 						this._lastTaskState.set(result.data, tx);
@@ -668,7 +554,6 @@ export class McpTask<T extends MCP.Result> extends Disposable implements IMcpTas
 						if (result.error instanceof McpError && result.error.code === MCP.INVALID_PARAMS) {
 							this._lastTaskState.set({ ...current, status: 'cancelled' }, undefined);
 						} else {
-							// Maybe a connection error -- start polling again
 							this._lastTaskState.set({ ...current, status: 'working' }, undefined);
 						}
 					}
@@ -689,7 +574,7 @@ export class McpTask<T extends MCP.Result> extends Disposable implements IMcpTas
 						if (e instanceof McpError && e.code === MCP.INVALID_PARAMS) {
 							return { ...current, status: 'cancelled' };
 						} else {
-							return { ...current }; // errors are already logged, keep in current state
+							return { ...current };
 						}
 					})
 					.then(r => {
@@ -700,8 +585,6 @@ export class McpTask<T extends MCP.Result> extends Disposable implements IMcpTas
 			}, pollInterval));
 		}));
 
-		// 2. Get the result once it's available (or propagate errors). Trigger
-		// input_required handling as needed. Only react when the status itself changes.
 		const lastStatus = this._lastTaskState.map(task => task.status);
 		store.add(autorun(reader => {
 			const status = lastStatus.read(reader);
@@ -727,7 +610,6 @@ export class McpTask<T extends MCP.Result> extends Disposable implements IMcpTas
 					store.dispose();
 				}
 			} else if (status === 'working') {
-				// no-op
 			} else {
 				softAssertNever(status);
 			}
@@ -746,13 +628,10 @@ export class McpTask<T extends MCP.Result> extends Disposable implements IMcpTas
 	}
 }
 
-/**
- * Maps VSCode LogLevel to MCP LoggingLevel
- */
 function mapLogLevelToMcp(logLevel: LogLevel): MCP.LoggingLevel {
 	switch (logLevel) {
 		case LogLevel.Trace:
-			return 'debug'; // MCP doesn't have trace, use debug
+			return 'debug';
 		case LogLevel.Debug:
 			return 'debug';
 		case LogLevel.Info:
@@ -762,8 +641,8 @@ function mapLogLevelToMcp(logLevel: LogLevel): MCP.LoggingLevel {
 		case LogLevel.Error:
 			return 'error';
 		case LogLevel.Off:
-			return 'emergency'; // MCP doesn't have off, use emergency
+			return 'emergency';
 		default:
-			return assertNever(logLevel); // Off and other levels are not supported
+			return assertNever(logLevel);
 	}
 }

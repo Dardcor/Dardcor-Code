@@ -39,9 +39,6 @@ import { OffsetRange } from '../../common/core/ranges/offsetRange.js';
 import { FileAccess } from '../../../base/common/network.js';
 import { isCompletionsEnabledWithTextResourceConfig } from '../../common/services/completionsEnablement.js';
 
-/**
- * Stop the worker if it was not needed for 5 min.
- */
 const STOP_WORKER_DELTA_TIME_MS = 5 * 60 * 1000;
 
 function canSyncModel(modelService: IModelService, resource: URI): boolean {
@@ -83,11 +80,10 @@ export class EditorWorkerService extends Disposable implements IEditorWorkerServ
 		this._workerManager = this._register(new WorkerManager(EditorWorkerService.workerDescriptor, this._modelService, this._webWorkerService));
 		this._logService = logService;
 
-		// register default link-provider and default completions-provider
 		this._register(languageFeaturesService.linkProvider.register({ language: '*', hasAccessToAllModels: true }, {
 			provideLinks: async (model, token) => {
 				if (!canSyncModel(this._modelService, model.uri)) {
-					return Promise.resolve({ links: [] }); // File too large
+					return Promise.resolve({ links: [] });
 				}
 				const worker = await this._workerWithResources([model.uri]);
 				const links = await worker.$computeLinks(model.uri.toString());
@@ -108,12 +104,11 @@ export class EditorWorkerService extends Disposable implements IEditorWorkerServ
 	}
 
 	public async computeDiff(original: URI, modified: URI, options: IDocumentDiffProviderOptions, algorithm: DiffAlgorithmName): Promise<IDocumentDiff | null> {
-		const worker = await this._workerWithResources([original, modified], /* forceLargeModels */true);
+		const worker = await this._workerWithResources([original, modified], true);
 		const result = await worker.$computeDiff(original.toString(), modified.toString(), options, algorithm);
 		if (!result) {
 			return null;
 		}
-		// Convert from space efficient JSON data to rich objects.
 		const diff: IDocumentDiff = {
 			identical: result.identical,
 			quitEarly: result.quitEarly,
@@ -153,7 +148,7 @@ export class EditorWorkerService extends Disposable implements IEditorWorkerServ
 	public async computeMoreMinimalEdits(resource: URI, edits: languages.TextEdit[] | null | undefined, pretty: boolean = false): Promise<languages.TextEdit[] | undefined> {
 		if (isNonEmptyArray(edits)) {
 			if (!canSyncModel(this._modelService, resource)) {
-				return Promise.resolve(edits); // File too large
+				return Promise.resolve(edits);
 			}
 			const sw = StopWatch.create();
 			const result = this._workerWithResources([resource]).then(worker => worker.$computeMoreMinimalEdits(resource.toString(), edits, pretty));
@@ -168,7 +163,7 @@ export class EditorWorkerService extends Disposable implements IEditorWorkerServ
 	public computeHumanReadableDiff(resource: URI, edits: languages.TextEdit[] | null | undefined): Promise<languages.TextEdit[] | undefined> {
 		if (isNonEmptyArray(edits)) {
 			if (!canSyncModel(this._modelService, resource)) {
-				return Promise.resolve(edits); // File too large
+				return Promise.resolve(edits);
 			}
 			const sw = StopWatch.create();
 			const opts: ILinesDiffComputerOptions = { ignoreTrimWhitespace: false, maxComputationTimeMs: 1000, computeMoves: false };
@@ -177,7 +172,6 @@ export class EditorWorkerService extends Disposable implements IEditorWorkerServ
 					.then(worker => worker.$computeHumanReadableDiff(resource.toString(), edits, opts))
 					.catch((err) => {
 						onUnexpectedError(err);
-						// In case of an exception, fall back to computeMoreMinimalEdits
 						return this.computeMoreMinimalEdits(resource, edits, true);
 					})
 			);
@@ -196,7 +190,7 @@ export class EditorWorkerService extends Disposable implements IEditorWorkerServ
 			return StringEdit.fromJson(edit);
 		} catch (e) {
 			onUnexpectedError(e);
-			return StringEdit.replace(OffsetRange.ofLength(original.length), modified); // approximation
+			return StringEdit.replace(OffsetRange.ofLength(original.length), modified);
 		}
 	}
 
@@ -286,12 +280,10 @@ class WordBasedCompletionItemProvider implements languages.CompletionItemProvide
 
 		const models: URI[] = [];
 		if (config.wordBasedSuggestions === 'currentDocument') {
-			// only current file and only if not too large
 			if (canSyncModel(this._modelService, model.uri)) {
 				models.push(model.uri);
 			}
 		} else {
-			// either all files or files of same language
 			for (const candidate of this._modelService.getModels()) {
 				if (!canSyncModel(this._modelService, candidate.uri)) {
 					continue;
@@ -306,7 +298,7 @@ class WordBasedCompletionItemProvider implements languages.CompletionItemProvide
 		}
 
 		if (models.length === 0) {
-			return undefined; // File too large, no other files
+			return undefined;
 		}
 
 		const wordDefRegExp = this.languageConfigurationService.getLanguageConfiguration(model.getLanguageId()).getWordDefinition();
@@ -314,7 +306,6 @@ class WordBasedCompletionItemProvider implements languages.CompletionItemProvide
 		const replace = !word ? Range.fromPositions(position) : new Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn);
 		const insert = replace.setEndPosition(position.lineNumber, position.column);
 
-		// Trace logging about the word and replace/insert ranges
 		this.logService.trace('[WordBasedCompletionItemProvider]', `word: "${word?.word || ''}", wordDef: "${wordDefRegExp}", replace: [${replace.toString()}], insert: [${insert.toString()}]`);
 
 		const client = await this._workerManager.withWorker();
@@ -369,9 +360,6 @@ class WorkerManager extends Disposable {
 		super.dispose();
 	}
 
-	/**
-	 * Check if the model service has no more models and stop the worker if that is the case.
-	 */
 	private _checkStopEmptyWorker(): void {
 		if (!this._editorWorkerClient) {
 			return;
@@ -379,15 +367,11 @@ class WorkerManager extends Disposable {
 
 		const models = this._modelService.getModels();
 		if (models.length === 0) {
-			// There are no more models => nothing possible for me to do
 			this._editorWorkerClient.dispose();
 			this._editorWorkerClient = null;
 		}
 	}
 
-	/**
-	 * Check if the worker has been idle for a while and then stop it.
-	 */
 	private _checkStopIdleWorker(): void {
 		if (!this._editorWorkerClient) {
 			return;
@@ -458,7 +442,6 @@ export class EditorWorkerClient extends Disposable implements IEditorWorkerClien
 		this._modelManager = null;
 	}
 
-	// foreign host request
 	public fhr(method: string, args: unknown[]): Promise<unknown> {
 		throw new Error(`Not implemented!`);
 	}

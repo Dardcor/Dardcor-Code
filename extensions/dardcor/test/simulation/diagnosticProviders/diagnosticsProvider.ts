@@ -16,17 +16,11 @@ export abstract class DiagnosticsProvider {
 	protected isInstalled(): boolean { return true; }
 }
 
-/**
- * This is serialized in the cache.
- */
 export interface ITestDiagnostic extends ITestDiagnosticLocation {
 	code: string | number | undefined;
 	message: string;
 	relatedInformation: ITSDiagnosticRelatedInformation[] | undefined;
 	source: string;
-	/**
-	 * For typescript, this is used to differentiate between semantic and syntax errors.
-	 */
 	kind?: string;
 }
 

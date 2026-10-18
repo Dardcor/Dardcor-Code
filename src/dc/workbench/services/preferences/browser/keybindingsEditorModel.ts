@@ -70,13 +70,11 @@ export class KeybindingsEditorModel extends EditorModel {
 	fetch(searchValue: string, sortByPrecedence: boolean = false): IKeybindingItemEntry[] {
 		let keybindingItems = sortByPrecedence ? this._keybindingItemsSortedByPrecedence : this._keybindingItems;
 
-		// @command:COMMAND_ID
 		const commandIdMatches = COMMAND_REGEX.exec(searchValue);
 		if (commandIdMatches && commandIdMatches[1]) {
 			const command = commandIdMatches[1].trim();
 			let filteredKeybindingItems = keybindingItems.filter(k => k.command === command);
 
-			// +when:WHEN_EXPRESSION
 			if (filteredKeybindingItems.length) {
 				const whenMatches = WHEN_REGEX.exec(searchValue);
 				if (whenMatches && whenMatches[1]) {
@@ -88,19 +86,16 @@ export class KeybindingsEditorModel extends EditorModel {
 			return filteredKeybindingItems.map((keybindingItem): IKeybindingItemEntry => ({ id: KeybindingsEditorModel.getId(keybindingItem), keybindingItem, templateId: KEYBINDING_ENTRY_TEMPLATE_ID }));
 		}
 
-		// @source:SOURCE
 		if (SOURCE_REGEX.test(searchValue)) {
 			keybindingItems = this.filterBySource(keybindingItems, searchValue);
 			searchValue = searchValue.replace(SOURCE_REGEX, '');
 		} else {
-			// @ext:EXTENSION_ID
 			const extensionMatches = EXTENSION_REGEX.exec(searchValue);
 			if (extensionMatches && (extensionMatches[2] || extensionMatches[3])) {
 				const extensionId = extensionMatches[2] ? extensionMatches[2].substring(1, extensionMatches[2].length - 1) : extensionMatches[3];
 				keybindingItems = this.filterByExtension(keybindingItems, extensionId);
 				searchValue = searchValue.replace(EXTENSION_REGEX, '');
 			} else {
-				// @keybinding:KEYBINDING
 				const keybindingMatches = KEYBINDING_REGEX.exec(searchValue);
 				if (keybindingMatches && (keybindingMatches[2] || keybindingMatches[3])) {
 					searchValue = keybindingMatches[2] || `"${keybindingMatches[3]}"`;
@@ -183,14 +178,11 @@ export class KeybindingsEditorModel extends EditorModel {
 			return [];
 		}
 
-		// Check if a keybinding with the same command id and when clause exists
 		const keybindingItemsWithWhen = keybindingItems.filter(k => k.when === when);
 		if (keybindingItemsWithWhen.length) {
 			return keybindingItemsWithWhen;
 		}
 
-		// Create a new entry with the when clause which does not live in the model
-		// We can reuse some of the properties from the same command with different when clause
 		const commandLabel = keybindingItems[0].commandLabel;
 
 		const keybindingItem = new ResolvedKeybindingItem(undefined, command, null, ContextKeyExpr.deserialize(when), false, null, false);
@@ -212,7 +204,7 @@ export class KeybindingsEditorModel extends EditorModel {
 		this._keybindingItemsSortedByPrecedence = [];
 		const boundCommands: Map<string, boolean> = new Map<string, boolean>();
 		for (const keybinding of this.keybindingsService.getKeybindings()) {
-			if (keybinding.command) { // Skip keybindings without commands
+			if (keybinding.command) {
 				this._keybindingItemsSortedByPrecedence.push(KeybindingsEditorModel.toKeybindingEntry(keybinding.command, keybinding, actionLabels, extensions));
 				boundCommands.set(keybinding.command, true);
 			}

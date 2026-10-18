@@ -53,7 +53,6 @@ suite('ShellIntegrationAddon', () => {
 
 		test('should pass cwd sequence to the capability as trusted when nonce matches', async () => {
 			const mock = shellIntegrationAddon.getCwdDectionMock();
-			// The addon is constructed with nonce '' so a trailing ';' produces args[1]==='' which matches
 			mock.expects('updateCwd').once().withExactArgs('/foo', true);
 			await writeP(xterm, '\x1b]633;P;Cwd=/foo;\x07');
 			mock.verify();
@@ -92,11 +91,9 @@ suite('ShellIntegrationAddon', () => {
 			test('should accept well-formatted URLs', async () => {
 				type TestCase = [title: string, input: string, expected: string];
 				const cases: TestCase[] = [
-					// Different hostname values:
 					['empty hostname, pointing root', 'file:///', '/'],
 					['empty hostname', 'file:///test-root/local', '/test-root/local'],
 					['non-empty hostname', 'file://some-hostname/test-root/local', '/test-root/local'],
-					// URL-encoded chars:
 					['URL-encoded value (1)', 'file:///test-root/%6c%6f%63%61%6c', '/test-root/local'],
 					['URL-encoded value (2)', 'file:///test-root/local%22', '/test-root/local"'],
 					['URL-encoded value (3)', 'file:///test-root/local"', '/test-root/local"'],
@@ -113,9 +110,7 @@ suite('ShellIntegrationAddon', () => {
 			test('should ignore ill-formatted URLs', async () => {
 				type TestCase = [title: string, input: string];
 				const cases: TestCase[] = [
-					// Different hostname values:
 					['no hostname, pointing root', 'file://'],
-					// Non-`file` scheme values:
 					['no scheme (1)', '/test-root'],
 					['no scheme (2)', '//test-root'],
 					['no scheme (3)', '///test-root'],
@@ -276,7 +271,6 @@ suite('ShellIntegrationAddon', () => {
 	});
 
 	suite('deserializeMessage', () => {
-		// A single literal backslash, in order to avoid confusion about whether we are escaping test data or testing escapes.
 		const Backslash = '\\' as const;
 		const Newline = '\n' as const;
 		const Semicolon = ';' as const;
@@ -313,7 +307,6 @@ suite('ShellIntegrationAddon', () => {
 	});
 
 	suite('serializeVSCodeOscMessage', () => {
-		// A single literal backslash, in order to avoid confusion about whether we are escaping test data or testing escapes.
 		const Backslash = '\\' as const;
 		const Newline = '\n' as const;
 		const Semicolon = ';' as const;

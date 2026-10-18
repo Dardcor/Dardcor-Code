@@ -36,10 +36,7 @@ export interface RuntimeEnvironment {
 
 export function startServer(connection: Connection, runtime: RuntimeEnvironment) {
 
-	// Create a text document manager.
 	const documents = new TextDocuments(TextDocument);
-	// Make the text document manager listen on the connection
-	// for open, change and close text document events
 	documents.listen(connection);
 
 	const stylesheets = getLanguageModelCache<Stylesheet>(10, 60, document => getLanguageService(document).parseStylesheet(document));
@@ -64,8 +61,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 	const notReady = () => Promise.reject('Not Ready');
 	let requestService: RequestService = { getContent: notReady, stat: notReady, readDirectory: notReady };
 
-	// After the server has started the client sends an initialize request. The server receives
-	// in the passed params the rootPath of the workspace plus the client capabilities.
 	connection.onInitialize((params: InitializeParams): InitializeResult => {
 
 		const initializationOptions = params.initializationOptions || {};
@@ -148,7 +143,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 	}
 
 	let documentSettings: { [key: string]: Thenable<LanguageSettings | undefined> } = {};
-	// remove document settings on close
 	documents.onDidClose(e => {
 		delete documentSettings[e.document.uri];
 	});
@@ -165,7 +159,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		return Promise.resolve(undefined);
 	}
 
-	// The settings have changed. Is send on server activation as well.
 	connection.onDidChangeConfiguration(change => {
 		updateConfiguration(change.settings as { [languageId: string]: LanguageSettings });
 	});
@@ -174,7 +167,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		for (const languageId in languageServices) {
 			languageServices[languageId].configure(settings[languageId]);
 		}
-		// reset all document settings
 		documentSettings = {};
 		diagnosticsSupport?.requestRefresh();
 	}
@@ -379,7 +371,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 
 	connection.onNotification(CustomDataChangedNotification.type, updateDataProviders);
 
-	// Listen on the connection
 	connection.listen();
 
 }

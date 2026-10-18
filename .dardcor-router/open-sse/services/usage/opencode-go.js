@@ -1,7 +1,3 @@
-/**
- * OpenCode Go usage — GET https://opencode.ai/zen/go/v1/usage
- * Auth: Bearer <apiKey>
- */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { parseResetTime, toFiniteNumber, U } from "./shared.js";

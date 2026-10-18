@@ -43,25 +43,21 @@
 	touch-action: none;
 }
 
-/* Make sure the scrollbar renders above overlays (sticky scroll) */
 .monaco-list .monaco-scrollable-element > .scrollbar.vertical,
 .monaco-pane-view > .monaco-split-view2.vertical > .monaco-scrollable-element > .scrollbar.vertical {
 	z-index: 14;
 }
 
-/* for OS X ballistic scrolling */
 .monaco-list-row.scrolling {
 	display: none !important;
 }
 
-/* Focus */
 .monaco-list.element-focused,
 .monaco-list.selection-single,
 .monaco-list.selection-multiple {
 	outline: 0 !important;
 }
 
-/* Filter */
 
 .monaco-list-type-filter-message {
 	position: absolute;

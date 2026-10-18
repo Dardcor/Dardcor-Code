@@ -28,7 +28,6 @@ export type ObsDebuggerApi = {
 			setValue(instanceId: ObsInstanceId, jsonValue: unknown): void;
 			getValue(instanceId: ObsInstanceId): unknown;
 
-			// For autorun and deriveds
 			rerun(instanceId: ObsInstanceId): void;
 
 			logValue(instanceId: ObsInstanceId): void;
@@ -48,7 +47,6 @@ export interface IObsDeclarations {
 	decls: Record<ObsDeclarationId, IObsDeclaration>;
 }
 
-/** Immutable */
 export interface IObsDeclaration {
 	id: ObsDeclarationId;
 	type: ObsDeclarationType;
@@ -65,7 +63,7 @@ export interface IObsPushState {
 
 export interface IObsDeclarationSummary {
 	activeInstances: number;
-	recentInstances: ObsInstanceId[]; // Limited
+	recentInstances: ObsInstanceId[];
 }
 
 export type ObsInstancePushState = IObservableValueInstancePushState | IDerivedObservableInstancePushState | IAutorunInstancePushState;

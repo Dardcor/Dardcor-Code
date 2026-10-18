@@ -5,10 +5,6 @@
 import { Disposable } from '../../types/src';
 import { ICompletionsTextDocumentManagerService } from './textDocumentManager';
 
-/**
- * A tracker which can take an arbitrary number of actions to run after a given timeout
- * When all pushed timeouts have been resolved, the tracker disposes of itself.
- */
 export class ChangeTracker {
 	private _offset: number;
 	get offset(): number {

@@ -77,8 +77,6 @@ class RenameSkeleton {
 			return res;
 		}
 
-		// we are here when no provider prepared a location which means we can
-		// just rely on the word under cursor and start with the first provider
 		this._providerRenameIdx = 0;
 
 		const word = this.model.getWordAtPosition(this.position);
@@ -143,7 +141,6 @@ export async function rename(registry: LanguageFeatureRegistry<RenameProvider>, 
 	return skeleton.provideRenameEdits(newName, CancellationToken.None);
 }
 
-// ---  register actions and commands
 
 class RenameController implements IEditorContribution {
 
@@ -179,8 +176,6 @@ class RenameController implements IEditorContribution {
 
 		const trace = this._logService.trace.bind(this._logService, '[rename]');
 
-		// set up cancellation token to prevent reentrant rename, this
-		// is the parent to the resolve- and rename-tokens
 		this._cts.dispose(true);
 		this._cts = new CancellationTokenSource();
 
@@ -197,7 +192,6 @@ class RenameController implements IEditorContribution {
 			return undefined;
 		}
 
-		// part 1 - resolve rename location
 		const cts1 = new EditorStateCancellationTokenSource(this.editor, CodeEditorStateFlag.Position | CodeEditorStateFlag.Value, undefined, this._cts.token);
 
 		let loc: RenameLocation & Rejection | undefined;
@@ -238,10 +232,9 @@ class RenameController implements IEditorContribution {
 			return undefined;
 		}
 
-		// part 2 - do rename at location
 		const cts2 = new EditorStateCancellationTokenSource(this.editor, CodeEditorStateFlag.Position | CodeEditorStateFlag.Value, loc.range, this._cts.token);
 
-		const model = this.editor.getModel(); // @ulugbekna: assumes editor still has a model, otherwise, cts1 should've been cancelled
+		const model = this.editor.getModel();
 
 		const newSymbolNamesProviders = this._languageFeaturesService.newSymbolNamesProvider.all(model);
 
@@ -268,7 +261,6 @@ class RenameController implements IEditorContribution {
 		);
 		trace('received response from rename input field');
 
-		// no result, only hint to focus the editor or not
 		if (typeof inputFieldResult === 'boolean') {
 			trace(`returning early - rename input field response - ${inputFieldResult}`);
 			if (inputFieldResult) {
@@ -298,7 +290,6 @@ class RenameController implements IEditorContribution {
 				return;
 			}
 
-			// collapse selection to active end
 			this.editor.setSelection(Range.fromPositions(this.editor.getSelection().getPosition()));
 
 			trace('applying edits');
@@ -356,7 +347,6 @@ class RenameController implements IEditorContribution {
 	}
 }
 
-// ---- action implementation
 
 export class RenameAction extends EditorAction {
 
@@ -507,7 +497,6 @@ registerAction2(class FocusPreviousRenameSuggestion extends Action2 {
 	}
 });
 
-// ---- api bridge command
 
 registerModelAndPositionCommand('_executeDocumentRenameProvider', function (accessor, model, position, ...args) {
 	const [newName] = args;
@@ -527,7 +516,6 @@ registerModelAndPositionCommand('_executePrepareRename', async function (accesso
 });
 
 
-//todo@jrieken use editor options world
 Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration({
 	id: 'editor',
 	properties: {

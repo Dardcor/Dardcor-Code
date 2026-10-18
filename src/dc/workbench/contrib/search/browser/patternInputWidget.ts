@@ -42,7 +42,7 @@ export class PatternInputWidget extends Widget {
 	protected inputBox!: HistoryInputBox;
 
 	private _onSubmit = this._register(new Emitter<boolean>());
-	onSubmit: CommonEvent<boolean /* triggeredOnType */> = this._onSubmit.event;
+	onSubmit: CommonEvent<boolean > = this._onSubmit.event;
 
 	private _onCancel = this._register(new Emitter<void>());
 	onCancel: CommonEvent<void> = this._onCancel.event;
@@ -101,7 +101,7 @@ export class PatternInputWidget extends Widget {
 	}
 
 	private setInputWidth(): void {
-		this.inputBox.width = this.width - this.getSubcontrolsWidth() - 2; // 2 for input box border
+		this.inputBox.width = this.width - this.getSubcontrolsWidth() - 2;
 	}
 
 	protected getSubcontrolsWidth(): number {

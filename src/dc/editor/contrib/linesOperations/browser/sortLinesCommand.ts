@@ -67,14 +67,12 @@ function getSortData(model: ITextModel, selection: Selection, descending: boolea
 		endLineNumber--;
 	}
 
-	// Nothing to sort if user didn't select anything.
 	if (startLineNumber >= endLineNumber) {
 		return null;
 	}
 
 	const linesToSort: string[] = [];
 
-	// Get the contents of the selection to be sorted.
 	for (let lineNumber = startLineNumber; lineNumber <= endLineNumber; lineNumber++) {
 		linesToSort.push(model.getLineContent(lineNumber));
 	}
@@ -82,7 +80,6 @@ function getSortData(model: ITextModel, selection: Selection, descending: boolea
 	let sorted = linesToSort.slice(0);
 	sorted.sort(SortLinesCommand._COLLATOR.value.compare);
 
-	// If descending, reverse the order.
 	if (descending === true) {
 		sorted = sorted.reverse();
 	}
@@ -95,9 +92,6 @@ function getSortData(model: ITextModel, selection: Selection, descending: boolea
 	};
 }
 
-/**
- * Generate commands for sorting lines on a model.
- */
 function sortLines(model: ITextModel, selection: Selection, descending: boolean): ISingleEditOperation | null {
 	const data = getSortData(model, selection, descending);
 

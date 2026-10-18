@@ -5,7 +5,6 @@
 
 import { LanguageModelChatMessage, LanguageModelChatMessage2, LanguageModelChatMessageRole, LanguageModelTextPart, LanguageModelToolCallPart, LanguageModelToolResultPart } from 'vscode';
 
-/** A single content part inside an OTel `gen_ai.input.messages` entry. */
 export interface OTelInputMessagePart {
 	type: string;
 	content?: string;
@@ -15,7 +14,6 @@ export interface OTelInputMessagePart {
 	response?: string;
 }
 
-/** A single OTel `gen_ai.input.messages` entry. */
 export interface OTelInputMessage {
 	role: string;
 	parts: OTelInputMessagePart[];
@@ -30,12 +28,6 @@ function roleName(role: LanguageModelChatMessageRole | number): string {
 	}
 }
 
-/**
- * Convert provider chat messages into OTel `gen_ai.system_instructions` text
- * and `gen_ai.input.messages` entries. System-role messages are surfaced via
- * `systemTexts` and excluded from `inputMsgs` to avoid double-rendering in
- * trace viewers. Non-text parts inside system messages are dropped.
- */
 export function buildOTelInputFromChatMessages(
 	messages: ReadonlyArray<LanguageModelChatMessage | LanguageModelChatMessage2>
 ): { systemTexts: string[]; inputMsgs: OTelInputMessage[] } {

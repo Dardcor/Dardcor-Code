@@ -19,7 +19,6 @@ suite('extractCdPrefix', () => {
 		isPowerShell: boolean;
 		expected: { directory: string; command: string } | undefined;
 	}> = [
-			// bash matches
 			{ name: 'bash: simple cd', commandLine: 'cd /tmp && ls', isPowerShell: false, expected: { directory: '/tmp', command: 'ls' } },
 			{ name: 'bash: quoted dir', commandLine: 'cd "/path with spaces" && ls -la', isPowerShell: false, expected: { directory: '/path with spaces', command: 'ls -la' } },
 			{ name: 'bash: extra spaces after &&', commandLine: 'cd /tmp &&  echo hi', isPowerShell: false, expected: { directory: '/tmp', command: 'echo hi' } },
@@ -27,13 +26,11 @@ suite('extractCdPrefix', () => {
 			{ name: 'bash: newline separator multi-line suffix', commandLine: 'cd /tmp\necho hi\nls -la', isPowerShell: false, expected: { directory: '/tmp', command: 'echo hi\nls -la' } },
 			{ name: 'bash: && separator multi-line suffix', commandLine: 'cd /tmp &&\necho hi\nls -la', isPowerShell: false, expected: { directory: '/tmp', command: 'echo hi\nls -la' } },
 
-			// bash non-matches
 			{ name: 'bash: no cd prefix', commandLine: 'ls -la', isPowerShell: false, expected: undefined },
 			{ name: 'bash: cd with semicolon (not allowed in bash variant)', commandLine: 'cd /tmp; ls', isPowerShell: false, expected: undefined },
 			{ name: 'bash: cd alone', commandLine: 'cd /tmp', isPowerShell: false, expected: undefined },
 			{ name: 'bash: Set-Location not bash', commandLine: 'Set-Location /tmp && ls', isPowerShell: false, expected: undefined },
 
-			// powershell matches
 			{ name: 'pwsh: cd && ', commandLine: 'cd C:\\foo && dir', isPowerShell: true, expected: { directory: 'C:\\foo', command: 'dir' } },
 			{ name: 'pwsh: cd ;', commandLine: 'cd C:\\foo; dir', isPowerShell: true, expected: { directory: 'C:\\foo', command: 'dir' } },
 			{ name: 'pwsh: cd /d', commandLine: 'cd /d C:\\foo && dir', isPowerShell: true, expected: { directory: 'C:\\foo', command: 'dir' } },
@@ -44,7 +41,6 @@ suite('extractCdPrefix', () => {
 			{ name: 'pwsh: newline separator', commandLine: 'cd C:\\foo\ndir', isPowerShell: true, expected: { directory: 'C:\\foo', command: 'dir' } },
 			{ name: 'pwsh: newline separator multi-line suffix', commandLine: 'cd C:\\foo\nWrite-Host hi\ndir', isPowerShell: true, expected: { directory: 'C:\\foo', command: 'Write-Host hi\ndir' } },
 
-			// powershell non-matches
 			{ name: 'pwsh: no cd prefix', commandLine: 'dir', isPowerShell: true, expected: undefined },
 			{ name: 'pwsh: cd alone', commandLine: 'cd C:\\foo', isPowerShell: true, expected: undefined },
 		];
@@ -78,8 +74,6 @@ suite('stripRedundantCdPrefix', () => {
 	});
 
 	test('rewrites multi-line bash command with newline separator', () => {
-		// The model frequently emits `cd <dir>` on its own line followed by a
-		// multi-line script rather than `cd <dir> && …` on a single line.
 		const params: Record<string, unknown> = { command: 'cd /repo/project\necho "=== start ==="\ngrep -n foo src/*.ts | head' };
 		const changed = stripRedundantCdPrefix('bash', params, wd);
 		assert.strictEqual(changed, true);
@@ -132,11 +126,6 @@ suite('stripRedundantCdPrefix', () => {
 	});
 
 	test('matches mixed path separators (forward-slash extracted vs native fsPath wd)', () => {
-		// On Windows, the model may emit `cd C:/repo/project && …` while
-		// URI.file('C:\\repo\\project').fsPath uses backslashes. The helper
-		// must normalize separators so the prefix is still recognized.
-		// On POSIX, `C:\…` is not a meaningful path, so the cross-separator
-		// test only makes sense on Windows.
 		if (!isWindows) {
 			return;
 		}
@@ -148,9 +137,6 @@ suite('stripRedundantCdPrefix', () => {
 	});
 
 	test('matches backslash extracted dir against backslash native wd on Windows', () => {
-		// Inverse direction: the model emits backslashes and the native wd is
-		// also backslashes. This is the most common Windows case and must
-		// match without relying on POSIX-shape paths.
 		if (!isWindows) {
 			return;
 		}

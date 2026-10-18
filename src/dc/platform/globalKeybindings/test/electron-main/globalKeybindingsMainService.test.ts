@@ -152,7 +152,6 @@ suite('GlobalKeybindingsMainService', () => {
 		const { failed } = service.updateKeybindings(1, [binding('Control+Cmd+A', 'a', undefined, 'ctrl+cmd+a')]);
 		assert.deepStrictEqual(failed, ['ctrl+cmd+a']);
 
-		// Now the accelerator becomes available; a re-sync should register it.
 		shortcut.failFor.delete('Control+Cmd+A');
 		const { failed: failedAgain } = service.updateKeybindings(1, [binding('Control+Cmd+A', 'a', undefined, 'ctrl+cmd+a')]);
 		assert.deepStrictEqual(failedAgain, []);
@@ -174,8 +173,6 @@ suite('GlobalKeybindingsMainService', () => {
 
 		shortcut.trigger('Control+Cmd+A');
 
-		// The command controls what is surfaced and focused, so the routing window must not be pulled to
-		// the foreground; doing so would flicker the wrong window.
 		assert.strictEqual(window.focusCalls, 0);
 		assert.deepStrictEqual(window.sent, [{
 			channel: 'vscode:runAction',

@@ -41,7 +41,6 @@ export class ReplFilter implements ITreeFilter<IReplElement, FuzzyScore> {
 
 	filter(element: IReplElement, parentVisibility: TreeVisibility): TreeFilterResult<FuzzyScore> {
 		if (element instanceof ReplEvaluationInput || element instanceof ReplEvaluationResult || element instanceof Variable) {
-			// Only filter the output events, everything else is visible https://github.com/microsoft/vscode/issues/105863
 			return TreeVisibility.Visible;
 		}
 
@@ -52,7 +51,6 @@ export class ReplFilter implements ITreeFilter<IReplElement, FuzzyScore> {
 
 		for (const { type, query } of this._parsedQueries) {
 			if (type === 'exclude' && ReplFilter.matchQuery(query, text)) {
-				// If exclude query matches, ignore all other queries and hide
 				return false;
 			} else if (type === 'include') {
 				includeQueryPresent = true;

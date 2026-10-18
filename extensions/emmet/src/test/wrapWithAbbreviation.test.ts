@@ -81,8 +81,6 @@ const wrapMultiLineAbbrExpected = `
 	</ul>
 `;
 
-// technically a bug, but also a feature (requested behaviour)
-// https://github.com/microsoft/vscode/issues/78015
 const wrapInlineElementExpectedFormatFalse = `
 	<ul class="nav main">
 		<h1>
@@ -282,7 +280,6 @@ suite('Tests for Wrap with Abbreviations', () => {
 		hello
 	</div>
 	`;
-		// this result occurs because no selection on the open/close p tag was given
 		const expectedContents = `
 	<div class="nav main">
 		<div><![CDATA[<p>Test here</p>]]></div>
@@ -293,7 +290,6 @@ suite('Tests for Wrap with Abbreviations', () => {
 	});
 
 	test('Wrap with multiline abbreviation doesnt add extra spaces', () => {
-		// Issue #29898
 		const contents = `
 	hello
 	`;

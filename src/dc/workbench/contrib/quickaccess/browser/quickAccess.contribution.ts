@@ -16,7 +16,6 @@ import { inQuickPickContext, getQuickNavigateHandler } from '../../../browser/qu
 import { KeybindingsRegistry, KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { EditorContextKeys } from '../../../../editor/common/editorContextKeys.js';
 
-//#region Quick Access Proviers
 
 const quickAccessRegistry = Registry.as<IQuickAccessRegistry>(Extensions.Quickaccess);
 
@@ -47,10 +46,8 @@ quickAccessRegistry.registerQuickAccessProvider({
 	helpEntries: [{ description: localize('commandsQuickAccess', "Show and Run Commands"), commandId: ShowAllCommandsAction.ID, commandCenterOrder: 20 }]
 });
 
-//#endregion
 
 
-//#region Menu contributions
 
 MenuRegistry.appendMenuItem(MenuId.MenubarViewMenu, {
 	group: '1_open',
@@ -107,10 +104,8 @@ MenuRegistry.appendMenuItem(MenuId.EditorContext, {
 	order: 1
 });
 
-//#endregion
 
 
-//#region Workbench actions and commands
 
 registerAction2(ClearCommandHistoryAction);
 registerAction2(ShowAllCommandsAction);
@@ -145,4 +140,3 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	}
 });
 
-//#endregion

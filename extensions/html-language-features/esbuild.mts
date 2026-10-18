@@ -8,7 +8,6 @@ import { run } from '../esbuild-extension-common.mts';
 const extensionRoot = import.meta.dirname;
 
 await Promise.all([
-	// Build client
 	run({
 		platform: 'node',
 		entryPoints: {
@@ -21,7 +20,6 @@ await Promise.all([
 		},
 	}, process.argv),
 
-	// Build server
 	run({
 		platform: 'node',
 		format: 'esm',
@@ -34,8 +32,6 @@ await Promise.all([
 			tsconfig: path.join(extensionRoot, 'server', 'tsconfig.json'),
 			external: ['vscode', 'typescript', 'fs'],
 			banner: {
-				// `@vscode/l10n` is bundled as CommonJS and still calls `require('fs')` internally.
-				// Provide Node's `require` in the generated ESM output so those imports keep working.
 				js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
 			},
 		},

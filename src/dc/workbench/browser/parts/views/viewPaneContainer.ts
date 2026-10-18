@@ -77,7 +77,6 @@ class ViewPaneDropOverlay extends Themable {
 
 	private _currentDropOperation: DropDirection | undefined;
 
-	// private currentDropOperation: IDropOperation | undefined;
 	private _disposed: boolean | undefined;
 
 	private cleanupOverlayScheduler: RunOnceScheduler;
@@ -105,11 +104,9 @@ class ViewPaneDropOverlay extends Themable {
 
 	private create(): void {
 
-		// Container
 		this.container = $('div', { id: ViewPaneDropOverlay.OVERLAY_ID });
 		this.container.style.top = '0px';
 
-		// Parent
 		this.paneElement.appendChild(this.container);
 		this.paneElement.classList.add('dragged-over');
 		this._register(toDisposable(() => {
@@ -117,23 +114,18 @@ class ViewPaneDropOverlay extends Themable {
 			this.paneElement.classList.remove('dragged-over');
 		}));
 
-		// Overlay
 		this.overlay = $('.pane-overlay-indicator');
 		this.container.appendChild(this.overlay);
 
-		// Overlay Event Handling
 		this.registerListeners();
 
-		// Styles
 		this.updateStyles();
 	}
 
 	override updateStyles(): void {
 
-		// Overlay drop background
 		this.overlay.style.backgroundColor = this.getColor(this.location === ViewContainerLocation.Panel ? PANEL_SECTION_DRAG_AND_DROP_BACKGROUND : SIDE_BAR_DRAG_AND_DROP_BACKGROUND) || '';
 
-		// Overlay contrast border (if any)
 		const activeContrastBorderColor = this.getColor(activeContrastBorder);
 		this.overlay.style.outlineColor = activeContrastBorderColor || '';
 		this.overlay.style.outlineOffset = activeContrastBorderColor ? '-2px' : '';
@@ -149,10 +141,8 @@ class ViewPaneDropOverlay extends Themable {
 		this._register(new DragAndDropObserver(this.container, {
 			onDragOver: e => {
 
-				// Position overlay
 				this.positionOverlay(e.offsetX, e.offsetY);
 
-				// Make sure to stop any running cleanup scheduler to remove the overlay
 				if (this.cleanupOverlayScheduler.isScheduled()) {
 					this.cleanupOverlayScheduler.cancel();
 				}
@@ -162,19 +152,11 @@ class ViewPaneDropOverlay extends Themable {
 			onDragEnd: e => this.dispose(),
 
 			onDrop: e => {
-				// Dispose overlay
 				this.dispose();
 			}
 		}));
 
 		this._register(addDisposableListener(this.container, EventType.MOUSE_OVER, () => {
-			// Under some circumstances we have seen reports where the drop overlay is not being
-			// cleaned up and as such the editor area remains under the overlay so that you cannot
-			// type into the editor anymore. This seems related to using VMs and DND via host and
-			// guest OS, though some users also saw it without VMs.
-			// To protect against this issue we always destroy the overlay as soon as we detect a
-			// mouse event over it. The delay is used to guarantee we are not interfering with the
-			// actual DROP event that can also trigger a mouse over event.
 			if (!this.cleanupOverlayScheduler.isScheduled()) {
 				this.cleanupOverlayScheduler.schedule();
 			}
@@ -204,7 +186,6 @@ class ViewPaneDropOverlay extends Themable {
 			}
 		}
 
-		// Draw overlay based on split direction
 		switch (dropDirection) {
 			case DropDirection.UP:
 				this.doPositionOverlay({ top: '0', left: '0', width: '100%', height: '50%' });
@@ -219,8 +200,6 @@ class ViewPaneDropOverlay extends Themable {
 				this.doPositionOverlay({ top: '0', right: '0', width: '50%', height: '100%' });
 				break;
 			default: {
-				// const top = this.bounds?.top || 0;
-				// const left = this.bounds?.bottom || 0;
 
 				let top = '0';
 				let left = '0';
@@ -245,13 +224,10 @@ class ViewPaneDropOverlay extends Themable {
 			this.doUpdateOverlayBorder(undefined);
 		}
 
-		// Make sure the overlay is visible now
 		this.overlay.style.opacity = '1';
 
-		// Enable transition after a timeout to prevent initial animation
 		setTimeout(() => this.overlay.classList.add('overlay-move-transition'), 0);
 
-		// Remember as current split direction
 		this._currentDropOperation = dropDirection;
 	}
 
@@ -264,10 +240,8 @@ class ViewPaneDropOverlay extends Themable {
 
 	private doPositionOverlay(options: { top?: string; bottom?: string; left?: string; right?: string; width: string; height: string }): void {
 
-		// Container
 		this.container.style.height = '100%';
 
-		// Overlay
 		this.overlay.style.top = options.top || '';
 		this.overlay.style.left = options.left || '';
 		this.overlay.style.bottom = options.bottom || '';
@@ -524,7 +498,6 @@ export class ViewPaneContainer<MementoType extends object = object> extends Comp
 			this.onDidAddViewDescriptors(addedViews);
 		}
 
-		// Update headers after and title contributed views after available, since we read from cache in the beginning to know if the viewlet has single view or not. Ref #29609
 		this.extensionService.whenInstalledExtensionsRegistered().then(() => {
 			this.areExtensionsReady = true;
 			if (this.panes.length) {
@@ -563,7 +536,6 @@ export class ViewPaneContainer<MementoType extends object = object> extends Comp
 
 	private showContextMenu(event: StandardMouseEvent): void {
 		for (const paneItem of this.paneItems) {
-			// Do not show context menu if target is coming from inside pane views
 			if (isAncestor(event.target, paneItem.pane.element)) {
 				return;
 			}
@@ -628,12 +600,6 @@ export class ViewPaneContainer<MementoType extends object = object> extends Comp
 				this.paneview.flipOrientation(dimension.height, dimension.width);
 			}
 
-			// In Modern UI (floating panels) reserve a small bottom gap so the last
-			// pane does not sit flush against the part edge, matching the 4px
-			// horizontal margins on the pane headers. Add 1px for the part's bottom
-			// border so the visible gap lines up with the horizontal margins.
-			// Exception: when the panel is at the TOP, its bottom faces the editor
-			// card, so the tighter inner card gap is sufficient.
 			const bottomGap = !this.layoutService.isFloatingPanelsEnabled() ? 0
 				: (this.viewDescriptorService.getViewContainerLocation(this.viewContainer) === ViewContainerLocation.Panel
 					&& this.layoutService.getPanelPosition() === Position.TOP) ? 1
@@ -704,19 +670,15 @@ export class ViewPaneContainer<MementoType extends object = object> extends Comp
 	}
 
 	private saveViewSizes(): void {
-		// Save size only when the layout has happened
 		if (this.didLayout) {
 			this.viewContainerModel.setSizes(this.panes.map(view => ({ id: view.id, size: this.getPaneSize(view) })));
 		}
 	}
 
 	private restoreViewSizes(): void {
-		// Restore sizes only when the layout has happened
 		if (this.didLayout) {
 			let initialSizes;
 			for (const viewDescriptor of this.viewContainerModel.visibleViewDescriptors) {
-				// Look up the pane by id rather than by index since a view descriptor
-				// may be visible without a corresponding pane (e.g. when its pane failed to render)
 				const pane = this.getView(viewDescriptor.id);
 				if (!pane) {
 					continue;
@@ -845,7 +807,6 @@ export class ViewPaneContainer<MementoType extends object = object> extends Comp
 	}
 
 	toggleViewVisibility(viewId: string): void {
-		// Check if view is active
 		if (this.viewContainerModel.activeViewDescriptors.some(viewDescriptor => viewDescriptor.id === viewId)) {
 			const visible = !this.viewContainerModel.isVisible(viewId);
 			this.viewContainerModel.setVisible(viewId, visible);
@@ -1120,7 +1081,6 @@ export class ViewPaneContainer<MementoType extends object = object> extends Comp
 			if (this.visibleViewsCountFromCache === undefined) {
 				return this.paneItems[0].pane.isExpanded();
 			}
-			// Check in cache so that view do not jump. See #29609
 			return this.visibleViewsCountFromCache === 1;
 		}
 		return true;
@@ -1136,7 +1096,6 @@ export class ViewPaneContainer<MementoType extends object = object> extends Comp
 		let firstPane = undefined;
 		let secondPane = undefined;
 
-		// Deal with collapsed views: to be clever, we split the space taken by the nearest uncollapsed views
 		for (let i = index; i >= 0; i--) {
 			if (this.paneItems[i].pane?.isVisible() && this.paneItems[i]?.pane.isExpanded()) {
 				firstPane = this.paneItems[i].pane;
@@ -1155,13 +1114,9 @@ export class ViewPaneContainer<MementoType extends object = object> extends Comp
 			const firstPaneSize = this.getPaneSize(firstPane);
 			const secondPaneSize = this.getPaneSize(secondPane);
 
-			// Avoid rounding errors and be consistent when resizing
-			// The first pane always get half rounded up and the second is half rounded down
 			const newFirstPaneSize = Math.ceil((firstPaneSize + secondPaneSize) / 2);
 			const newSecondPaneSize = Math.floor((firstPaneSize + secondPaneSize) / 2);
 
-			// Shrink the larger pane first, then grow the smaller pane
-			// This prevents interfering with other view sizes
 			if (firstPaneSize > secondPaneSize) {
 				this.resizePane(firstPane, newFirstPaneSize);
 				this.resizePane(secondPane, newSecondPaneSize);
@@ -1313,7 +1268,6 @@ registerAction2(class MoveViews extends Action2 {
 			return;
 		}
 
-		// FYI, don't use `moveViewsToContainer` in 1 shot, because it expects all views to have the same current location
 		for (const viewId of options.viewIds) {
 			const viewDescriptor = viewDescriptorService.getViewDescriptorById(viewId);
 			if (viewDescriptor?.canMoveView) {

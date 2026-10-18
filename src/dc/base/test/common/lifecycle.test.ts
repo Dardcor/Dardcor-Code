@@ -13,7 +13,6 @@ class Disposable implements IDisposable {
 	dispose() { this.isDisposed = true; }
 }
 
-// Leaks are allowed here since we test lifecycle stuff:
 // eslint-disable-next-line local/code-ensure-no-disposables-leak-in-test
 suite('Lifecycle', () => {
 	test('dispose single disposable', () => {
@@ -257,7 +256,6 @@ suite('DisposableSet', () => {
 		assert.ok(disposedValues.has(1));
 		assert.strictEqual(set.size, 0);
 
-		// Can still add new values
 		const d2 = toDisposable(() => { disposedValues.add(2); });
 		set.add(d2);
 		assert.strictEqual(set.size, 1);
@@ -321,7 +319,6 @@ suite('DisposableSet', () => {
 		assert.ok(!disposedValues.has(1));
 		assert.ok(disposedValues.has(2));
 
-		// Caller is responsible for disposing
 		d1.dispose();
 	});
 
@@ -429,7 +426,6 @@ suite('No Leakage Utilities', () => {
 			assertThrows(() => {
 				throwIfDisposablesAreLeaked(() => {
 					eventEmitter.event(() => {
-						// noop
 					});
 				}, false);
 			}, e => e.message.indexOf('undisposed disposables') !== -1);
@@ -447,20 +443,16 @@ suite('No Leakage Utilities', () => {
 			const eventEmitter = new Emitter();
 			throwIfDisposablesAreLeaked(() => {
 				eventEmitter.event(() => {
-					// noop
 				}).dispose();
 			});
 		});
 
 		test('does not throw if all disposables are disposed', () => {
-			// This disposable is reported before the test and not tracked.
 			toDisposable(() => { });
 
 			throwIfDisposablesAreLeaked(() => {
-				// This disposable is marked as singleton
 				markAsSingleton(toDisposable(() => { }));
 
-				// These disposables are also marked as singleton
 				const disposableStore = new DisposableStore();
 				disposableStore.add(toDisposable(() => { }));
 				markAsSingleton(disposableStore);

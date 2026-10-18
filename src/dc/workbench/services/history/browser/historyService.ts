@@ -49,11 +49,6 @@ interface IRecentlyClosedEditor {
 	readonly index: number;
 	readonly sticky: boolean;
 
-	/**
-	 * Identifies the batch of editors that were closed together (e.g. via
-	 * "Close All Editors" or "Close Others"). Editors sharing the same batch
-	 * identifier are reopened together by "Reopen Closed Editor".
-	 */
 	readonly batchId: number;
 }
 
@@ -100,9 +95,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 		this.registerListeners();
 
-		// if the service is created late enough that an editor is already opened
-		// make sure to trigger the onActiveEditorChanged() to track the editor
-		// properly (fixes https://github.com/microsoft/vscode/issues/59908)
 		if (this.editorService.activeEditorPane) {
 			this.onDidActiveEditorChange();
 		}
@@ -110,29 +102,22 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private registerListeners(): void {
 
-		// Mouse back/forward support
 		this.registerMouseNavigationListener();
 
-		// Editor changes
 		this._register(this.editorService.onDidActiveEditorChange(() => this.onDidActiveEditorChange()));
 		this._register(this.editorService.onDidOpenEditorFail(event => this.remove(event.editor)));
 		this._register(this.editorService.onDidCloseEditor(event => this.onDidCloseEditor(event)));
 		this._register(this.editorService.onDidMostRecentlyActiveEditorsChange(() => this.handleEditorEventInRecentEditorsStack()));
 
-		// Editor group changes
 		this._register(this.editorGroupService.onDidRemoveGroup(e => this.onDidRemoveGroup(e)));
 
-		// File changes
 		this._register(this.fileService.onDidFilesChange(event => this.onDidFilesChange(event)));
 		this._register(this.fileService.onDidRunOperation(event => this.onDidFilesChange(event)));
 
-		// Storage
 		this._register(this.storageService.onWillSaveState(() => this.saveState()));
 
-		// Configuration
 		this.registerEditorNavigationScopeChangeListener();
 
-		// Context keys
 		this._register(this.onDidChangeEditorNavigationStack(() => this.updateContextKeys()));
 		this._register(this.editorGroupService.onDidChangeActiveGroup(() => this.updateContextKeys()));
 	}
@@ -169,10 +154,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private onMouseDownOrUp(event: MouseEvent, isMouseDown: boolean): void {
 
-		// Support to navigate in history when mouse buttons 4/5 are pressed
-		// We want to trigger this on mouse down for a faster experience
-		// but we also need to prevent mouse up from triggering the default
-		// which is to navigate in the browser history.
 
 		switch (event.button) {
 			case 3:
@@ -200,18 +181,13 @@ export class HistoryService extends Disposable implements IHistoryService {
 		const activeEditorPane = activeEditorGroup.activeEditorPane;
 
 		if (this.lastActiveEditor && this.editorHelper.matchesEditorIdentifier(this.lastActiveEditor, activeEditorPane)) {
-			return; // return if the active editor is still the same
+			return;
 		}
 
-		// Remember as last active editor (can be undefined if none opened)
 		this.lastActiveEditor = activeEditorPane?.input ? { editor: activeEditorPane.input, groupId: activeEditorPane.group.id } : undefined;
 
-		// Dispose old listeners
 		this.activeEditorListeners.clear();
 
-		// Handle editor change unless the editor is transient. In that case
-		// setup a listener to see if the transient editor becomes non-transient
-		// (https://github.com/microsoft/vscode/issues/211769)
 		if (!activeEditorPane?.group.isTransient(activeEditorPane.input)) {
 			this.handleActiveEditorChange(activeEditorGroup, activeEditorPane);
 		} else {
@@ -228,7 +204,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 			this.activeEditorListeners.add(transientListener);
 		}
 
-		// Listen to selection changes unless the editor is transient
 		if (isEditorPaneWithSelection(activeEditorPane)) {
 			this.activeEditorListeners.add(activeEditorPane.onDidChangeSelection(e => {
 				if (!activeEditorPane.group.isTransient(activeEditorPane.input)) {
@@ -239,28 +214,23 @@ export class HistoryService extends Disposable implements IHistoryService {
 			}));
 		}
 
-		// Context keys
 		this.updateContextKeys();
 	}
 
 	private onDidFilesChange(event: FileChangesEvent | FileOperationEvent): void {
 
-		// External file changes (watcher)
 		if (event instanceof FileChangesEvent) {
 			if (event.gotDeleted()) {
 				this.remove(event);
 			}
 		}
 
-		// Internal file changes (e.g. explorer)
 		else {
 
-			// Delete
 			if (event.isOperation(FileOperation.DELETE)) {
 				this.remove(event);
 			}
 
-			// Move
 			else if (event.isOperation(FileOperation.MOVE) && event.target.isFile) {
 				this.move(event);
 			}
@@ -296,7 +266,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 		if (isEditorInput(arg1)) {
 			resource = EditorResourceAccessor.getOriginalUri(arg1);
 		} else if (arg1 instanceof FileChangesEvent) {
-			// Ignore for now (recently opened are most often out of workspace files anyway for which there are no file events)
 		} else {
 			resource = arg1.resource;
 		}
@@ -308,20 +277,15 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	clear(): void {
 
-		// History
 		this.clearRecentlyOpened();
 
-		// Navigation (next, previous)
 		this.clearEditorNavigationStacks();
 
-		// Recently closed editors
 		this.recentlyClosedEditors = [];
 
-		// Context Keys
 		this.updateContextKeys();
 	}
 
-	//#region History Context Keys
 
 	private readonly canNavigateBackContextKey: IContextKey<boolean>;
 	private readonly canNavigateForwardContextKey: IContextKey<boolean>;
@@ -355,9 +319,7 @@ export class HistoryService extends Disposable implements IHistoryService {
 		});
 	}
 
-	//#endregion
 
-	//#region Editor History Navigation (limit: 50)
 
 	private readonly _onDidChangeEditorNavigationStack = this._register(new Emitter<void>());
 	readonly onDidChangeEditorNavigationStack = this._onDidChangeEditorNavigationStack.event;
@@ -371,10 +333,8 @@ export class HistoryService extends Disposable implements IHistoryService {
 	private registerEditorNavigationScopeChangeListener(): void {
 		const handleEditorNavigationScopeChange = () => {
 
-			// Ensure to start fresh when setting changes
 			this.disposeEditorNavigationStacks();
 
-			// Update scope
 			const configuredScope = this.configurationService.getValue(HistoryService.NAVIGATION_SCOPE_SETTING);
 			if (configuredScope === 'editorGroup') {
 				this.editorNavigationScope = GoScope.EDITOR_GROUP;
@@ -397,7 +357,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 	private getStack(group = this.editorGroupService.activeGroup, editor = group.activeEditor): IEditorNavigationStacks {
 		switch (this.editorNavigationScope) {
 
-			// Per Editor
 			case GoScope.EDITOR: {
 				if (!editor) {
 					return new NoOpEditorNavigationStacks();
@@ -422,7 +381,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 				return stack;
 			}
 
-			// Per Editor Group
 			case GoScope.EDITOR_GROUP: {
 				let stack = this.editorGroupScopedNavigationStacks.get(group.id)?.stack;
 				if (!stack) {
@@ -437,7 +395,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 				return stack;
 			}
 
-			// Global
 			case GoScope.DEFAULT: {
 				if (!this.defaultScopedEditorNavigationStack) {
 					this.defaultScopedEditorNavigationStack = this._register(this.instantiationService.createInstance(EditorNavigationStacks, GoScope.DEFAULT));
@@ -491,10 +448,8 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private handleEditorGroupRemoveInNavigationStacks(group: IEditorGroup): void {
 
-		// Global
 		this.defaultScopedEditorNavigationStack?.remove(group.id);
 
-		// Editor groups
 		const editorGroupStack = this.editorGroupScopedNavigationStacks.get(group.id);
 		if (editorGroupStack) {
 			editorGroupStack.disposable.dispose();
@@ -516,17 +471,14 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private withEachEditorNavigationStack(fn: (stack: IEditorNavigationStacks) => void): void {
 
-		// Global
 		if (this.defaultScopedEditorNavigationStack) {
 			fn(this.defaultScopedEditorNavigationStack);
 		}
 
-		// Per editor group
 		for (const [, entry] of this.editorGroupScopedNavigationStacks) {
 			fn(entry.stack);
 		}
 
-		// Per editor
 		for (const [, entries] of this.editorScopedNavigationStacks) {
 			for (const [, entry] of entries) {
 				fn(entry.stack);
@@ -536,17 +488,14 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private disposeEditorNavigationStacks(): void {
 
-		// Global
 		this.defaultScopedEditorNavigationStack?.dispose();
 		this.defaultScopedEditorNavigationStack = undefined;
 
-		// Per Editor group
 		for (const [, stack] of this.editorGroupScopedNavigationStacks) {
 			stack.disposable.dispose();
 		}
 		this.editorGroupScopedNavigationStacks.clear();
 
-		// Per Editor
 		for (const [, stacks] of this.editorScopedNavigationStacks) {
 			for (const [, stack] of stacks) {
 				stack.disposable.dispose();
@@ -555,9 +504,7 @@ export class HistoryService extends Disposable implements IHistoryService {
 		this.editorScopedNavigationStacks.clear();
 	}
 
-	//#endregion
 
-	//#region Navigation: Next/Previous Used Editor
 
 	private recentlyUsedEditorsStack: readonly IEditorIdentifier[] | undefined = undefined;
 	private recentlyUsedEditorsStackIndex = 0;
@@ -609,19 +556,16 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 		const group = typeof groupId === 'number' ? this.editorGroupService.getGroup(groupId) : undefined;
 
-		// Across groups
 		if (!group) {
 			editors = this.recentlyUsedEditorsStack || this.editorService.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE);
 			index = this.recentlyUsedEditorsStackIndex;
 		}
 
-		// Within group
 		else {
 			editors = this.recentlyUsedEditorsInGroupStack || group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).map(editor => ({ groupId: group.id, editor }));
 			index = this.recentlyUsedEditorsInGroupStackIndex;
 		}
 
-		// Adjust index
 		let newIndex = indexModifier(index);
 		if (newIndex < 0) {
 			newIndex = 0;
@@ -629,7 +573,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 			newIndex = editors.length - 1;
 		}
 
-		// Remember index and editors
 		if (!group) {
 			this.recentlyUsedEditorsStack = editors;
 			this.recentlyUsedEditorsStackIndex = newIndex;
@@ -643,22 +586,18 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private handleEditorEventInRecentEditorsStack(): void {
 
-		// Drop all-editors stack unless navigating in all editors
 		if (!this.navigatingInRecentlyUsedEditorsStack) {
 			this.recentlyUsedEditorsStack = undefined;
 			this.recentlyUsedEditorsStackIndex = 0;
 		}
 
-		// Drop in-group-editors stack unless navigating in group
 		if (!this.navigatingInRecentlyUsedEditorsInGroupStack) {
 			this.recentlyUsedEditorsInGroupStack = undefined;
 			this.recentlyUsedEditorsInGroupStackIndex = 0;
 		}
 	}
 
-	//#endregion
 
-	//#region File: Reopen Closed Editor (limit: 20)
 
 	private static readonly MAX_RECENTLY_CLOSED_EDITORS = 20;
 
@@ -670,21 +609,21 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private handleEditorCloseEventInReopen(event: IEditorCloseEvent): void {
 		if (this.ignoreEditorCloseEvent) {
-			return; // blocked
+			return;
 		}
 
 		const { editor, context } = event;
 		if (context === EditorCloseContext.REPLACE || context === EditorCloseContext.MOVE) {
-			return; // ignore if editor was replaced or moved
+			return;
 		}
 
 		if (!editor.canReopen()) {
-			return; // only editors that can be reopened
+			return;
 		}
 
 		const untypedEditor = editor.toUntyped();
 		if (!untypedEditor) {
-			return; // we need a untyped editor to restore from going forward
+			return;
 		}
 
 		const associatedResources: URI[] = [];
@@ -695,10 +634,8 @@ export class HistoryService extends Disposable implements IHistoryService {
 			associatedResources.push(...coalesce([editorResource.primary, editorResource.secondary]));
 		}
 
-		// Remove from list of recently closed before...
 		this.removeFromRecentlyClosedEditors(editor);
 
-		// ...adding it as last recently closed
 		this.recentlyClosedEditors.push({
 			editorId: editor.editorId,
 			editor: untypedEditor,
@@ -709,22 +646,15 @@ export class HistoryService extends Disposable implements IHistoryService {
 			batchId: this.currentRecentlyClosedEditorsBatchId()
 		});
 
-		// Bounding
 		if (this.recentlyClosedEditors.length > HistoryService.MAX_RECENTLY_CLOSED_EDITORS) {
 			this.recentlyClosedEditors.shift();
 		}
 
-		// Context
 		this.canReopenClosedEditorContextKey.set(true);
 	}
 
 	private currentRecentlyClosedEditorsBatchId(): number {
 
-		// All editors that are closed within the same synchronous turn
-		// (e.g. "Close All Editors" or "Close Others") share the same batch
-		// identifier so that they are reopened together. We open a new batch
-		// on the first close event and reset it on the next microtask, after
-		// all synchronously fired close events have been handled.
 		if (!this.recentlyClosedEditorsBatchScheduled) {
 			this.recentlyClosedEditorsBatchScheduled = true;
 			this.recentlyClosedEditorsBatchId++;
@@ -736,14 +666,12 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	async reopenLastClosedEditor(): Promise<void> {
 
-		// Reopen the last batch of editors that were closed together
 		const lastClosedEditors = this.takeLastClosedEditorsBatch();
 		let reopenClosedEditorPromise: Promise<void> | undefined = undefined;
 		if (lastClosedEditors.length) {
 			reopenClosedEditorPromise = this.doReopenLastClosedEditors(lastClosedEditors);
 		}
 
-		// Update context
 		this.canReopenClosedEditorContextKey.set(this.recentlyClosedEditors.length > 0);
 
 		return reopenClosedEditorPromise;
@@ -755,9 +683,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 			return [];
 		}
 
-		// Collect all trailing editors that belong to the same batch. They are
-		// contiguous at the end of the list because editors are appended in the
-		// order they are closed.
 		const batch: IRecentlyClosedEditor[] = [];
 		while (this.recentlyClosedEditors.length && this.recentlyClosedEditors[this.recentlyClosedEditors.length - 1].batchId === lastClosedEditor.batchId) {
 			batch.unshift(this.recentlyClosedEditors.pop()!);
@@ -768,7 +693,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private async doReopenLastClosedEditors(lastClosedEditors: IRecentlyClosedEditor[]): Promise<void> {
 
-		// Reopen all editors of the batch in the order they were originally closed
 		let anyReopened = false;
 		for (const lastClosedEditor of lastClosedEditors) {
 			const editorPane = await this.doReopenLastClosedEditor(lastClosedEditor);
@@ -777,10 +701,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 			}
 		}
 
-		// Fix for https://github.com/microsoft/vscode/issues/67882
-		// If none of the editors in the batch could be reopened, make sure to
-		// try the previous batch. The failing editors have already been removed
-		// from the list of recently closed editors to prevent endless loops.
 		if (!anyReopened && this.recentlyClosedEditors.length) {
 			return this.reopenLastClosedEditor();
 		}
@@ -789,9 +709,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 	private async doReopenLastClosedEditor(lastClosedEditor: IRecentlyClosedEditor): Promise<IEditorPane | undefined> {
 		const options: IEditorOptions = { pinned: true, sticky: lastClosedEditor.sticky, index: lastClosedEditor.index, ignoreError: true };
 
-		// Special sticky handling: remove the index property from options
-		// if that would result in sticky state to not preserve or apply
-		// wrongly.
 		if (
 			(lastClosedEditor.sticky && !this.editorGroupService.activeGroup.isSticky(lastClosedEditor.index)) ||
 			(!lastClosedEditor.sticky && this.editorGroupService.activeGroup.isSticky(lastClosedEditor.index))
@@ -799,15 +716,9 @@ export class HistoryService extends Disposable implements IHistoryService {
 			options.index = undefined;
 		}
 
-		// Re-open editor unless already opened
 		let editorPane: IEditorPane | undefined = undefined;
 		if (!this.editorGroupService.activeGroup.contains(lastClosedEditor.editor)) {
 
-			// Fix for https://github.com/microsoft/vscode/issues/107850
-			// If opening an editor fails, it is possible that we get
-			// another editor-close event as a result. But we really do
-			// want to ignore that in our list of recently closed editors
-			//  to prevent endless loops.
 
 			this.ignoreEditorCloseEvent = true;
 			try {
@@ -829,27 +740,24 @@ export class HistoryService extends Disposable implements IHistoryService {
 	private removeFromRecentlyClosedEditors(arg1: EditorInput | FileChangesEvent | FileOperationEvent): void {
 		this.recentlyClosedEditors = this.recentlyClosedEditors.filter(recentlyClosedEditor => {
 			if (isEditorInput(arg1) && recentlyClosedEditor.editorId !== arg1.editorId) {
-				return true; // keep: different editor identifiers
+				return true;
 			}
 
 			if (recentlyClosedEditor.resource && this.editorHelper.matchesFile(recentlyClosedEditor.resource, arg1)) {
-				return false; // remove: editor matches directly
+				return false;
 			}
 
 			if (recentlyClosedEditor.associatedResources.some(associatedResource => this.editorHelper.matchesFile(associatedResource, arg1))) {
-				return false; // remove: an associated resource matches
+				return false;
 			}
 
-			return true; // keep
+			return true;
 		});
 
-		// Update context
 		this.canReopenClosedEditorContextKey.set(this.recentlyClosedEditors.length > 0);
 	}
 
-	//#endregion
 
-	//#region Go to: Recently Opened Editor (limit: 200, persisted)
 
 	private static readonly MAX_HISTORY_ITEMS = 200;
 	private static readonly HISTORY_STORAGE_KEY = 'history.entries';
@@ -872,13 +780,11 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private handleActiveEditorChangeInHistory(editorPane?: IEditorPane): void {
 
-		// Ensure we have not configured to exclude input and don't track invalid inputs
 		const editor = editorPane?.input;
 		if (!editor || editor.isDisposed() || !this.includeInHistory(editor)) {
 			return;
 		}
 
-		// Remove any existing entry and add to the beginning
 		this.removeFromHistory(editor);
 		this.addToHistory(editor);
 	}
@@ -891,19 +797,16 @@ export class HistoryService extends Disposable implements IHistoryService {
 			return;
 		}
 
-		// Insert based on preference
 		if (insertFirst) {
 			this.history.unshift(historyInput);
 		} else {
 			this.history.push(historyInput);
 		}
 
-		// Respect max entries setting
 		if (this.history.length > HistoryService.MAX_HISTORY_ITEMS) {
 			this.editorHelper.clearOnEditorDispose(this.history.pop()!, this.editorHistoryListeners);
 		}
 
-		// React to editor input disposing
 		if (isEditorInput(editor)) {
 			this.editorHelper.onEditorDispose(editor, () => this.updateHistoryOnEditorDispose(historyInput), this.editorHistoryListeners);
 		}
@@ -912,15 +815,10 @@ export class HistoryService extends Disposable implements IHistoryService {
 	private updateHistoryOnEditorDispose(editor: EditorInput | IResourceEditorInput): void {
 		if (isEditorInput(editor)) {
 
-			// Any non side-by-side editor input gets removed directly on dispose
 			if (!isSideBySideEditorInput(editor)) {
 				this.removeFromHistory(editor);
 			}
 
-			// Side-by-side editors get special treatment: we try to distill the
-			// possibly untyped resource inputs from both sides to be able to
-			// offer these entries from the history to the user still unless
-			// they are excluded.
 			else {
 				const resourceInputs: IResourceEditorInput[] = [];
 				const sideInputs = editor.primary.matches(editor.secondary) ? [editor.primary] : [editor.primary, editor.secondary];
@@ -931,13 +829,10 @@ export class HistoryService extends Disposable implements IHistoryService {
 					}
 				}
 
-				// Insert the untyped resource inputs where our disposed
-				// side-by-side editor input is in the history stack
 				this.replaceInHistory(editor, ...resourceInputs);
 			}
 		} else {
 
-			// Remove any editor that should not be included in history
 			if (!this.includeInHistory(editor)) {
 				this.removeFromHistory(editor);
 			}
@@ -946,7 +841,7 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private includeInHistory(editor: EditorInput | IResourceEditorInput): boolean {
 		if (isEditorInput(editor)) {
-			return true; // include any non files
+			return true;
 		}
 
 		return !this.resourceExcludeMatcher.value.matches(editor.resource);
@@ -958,7 +853,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 		this.history = this.history.filter(entry => {
 			const include = this.includeInHistory(entry);
 
-			// Cleanup any listeners associated with the input when removing from history
 			if (!include) {
 				this.editorHelper.clearOnEditorDispose(entry, this.editorHistoryListeners);
 			}
@@ -984,7 +878,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 		this.history = this.history.filter(entry => {
 			const matches = this.editorHelper.matchesEditor(arg1, entry);
 
-			// Cleanup any listeners associated with the input when removing from history
 			if (matches) {
 				this.editorHelper.clearOnEditorDispose(arg1, this.editorHistoryListeners);
 				removed = true;
@@ -1004,28 +897,21 @@ export class HistoryService extends Disposable implements IHistoryService {
 		const newHistory: Array<EditorInput | IResourceEditorInput> = [];
 		for (const entry of this.history) {
 
-			// Entry matches and is going to be disposed + replaced
 			if (this.editorHelper.matchesEditor(editor, entry)) {
 
-				// Cleanup any listeners associated with the input when replacing from history
 				this.editorHelper.clearOnEditorDispose(editor, this.editorHistoryListeners);
 
-				// Insert replacements but only once
 				if (!replaced) {
 					newHistory.push(...replacements);
 					replaced = true;
 				}
 			}
 
-			// Entry does not match, but only add it if it didn't match
-			// our replacements already
 			else if (!replacements.some(replacement => this.editorHelper.matchesEditor(replacement, entry))) {
 				newHistory.push(entry);
 			}
 		}
 
-		// If the target editor to replace was not found, make sure to
-		// insert the replacements to the end to ensure we got them
 		if (!replaced) {
 			newHistory.push(...replacements);
 		}
@@ -1048,12 +934,8 @@ export class HistoryService extends Disposable implements IHistoryService {
 	private ensureHistoryLoaded(history: Array<EditorInput | IResourceEditorInput> | undefined): asserts history {
 		if (!this.history) {
 
-			// Until history is loaded, it is just empty
 			this.history = [];
 
-			// We want to seed history from opened editors
-			// too as well as previous stored state, so we
-			// need to wait for the editor groups being ready
 			if (this.editorGroupService.isReady) {
 				this.loadHistory();
 			} else {
@@ -1068,51 +950,32 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private loadHistory(): void {
 
-		// Init as empty before adding - since we are about to
-		// populate the history from opened editors, we capture
-		// the right order here.
 		this.history = [];
 
-		// All stored editors from previous session
 		const storedEditorHistory = this.loadHistoryFromStorage();
 
-		// All restored editors from previous session
-		// in reverse editor from least to most recently
-		// used.
 		const openedEditorsLru = [...this.editorService.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE)].reverse();
 
-		// We want to merge the opened editors from the last
-		// session with the stored editors from the last
-		// session. Because not all editors can be serialised
-		// we want to make sure to include all opened editors
-		// too.
-		// Opened editors should always be first in the history
 
-		const handledEditors = new Set<string /* resource + editorId */>();
+		const handledEditors = new Set<string >();
 
-		// Add all opened editors first
 		for (const { editor } of openedEditorsLru) {
 			if (!this.includeInHistory(editor)) {
 				continue;
 			}
 
-			// Make sure to skip duplicates from the editors LRU
 			if (editor.resource) {
 				const historyEntryId = `${editor.resource.toString()}/${editor.editorId}`;
 				if (handledEditors.has(historyEntryId)) {
-					continue; // already added
+					continue;
 				}
 
 				handledEditors.add(historyEntryId);
 			}
 
-			// Add into history
 			this.addToHistory(editor);
 		}
 
-		// Add remaining from storage if not there already
-		// We check on resource and `editorId` (from `override`)
-		// to figure out if the editor has been already added.
 		for (const editor of storedEditorHistory) {
 			const historyEntryId = `${editor.resource.toString()}/${editor.options?.override}`;
 			if (
@@ -1120,7 +983,7 @@ export class HistoryService extends Disposable implements IHistoryService {
 				this.includeInHistory(editor)
 			) {
 				handledEditors.add(historyEntryId);
-				this.addToHistory(editor, false /* at the end */);
+				this.addToHistory(editor, false );
 			}
 		}
 	}
@@ -1134,22 +997,22 @@ export class HistoryService extends Disposable implements IHistoryService {
 				const entriesParsed: ISerializedEditorHistoryEntry[] = JSON.parse(entriesRaw);
 				for (const entryParsed of entriesParsed) {
 					if (!entryParsed.editor || !entryParsed.editor.resource) {
-						continue; // unexpected data format
+						continue;
 					}
 
 					try {
 						entries.push({
 							...entryParsed.editor,
 							resource: typeof entryParsed.editor.resource === 'string' ?
-								URI.parse(entryParsed.editor.resource) :  	//  from 1.67.x: URI is stored efficiently as URI.toString()
-								URI.from(entryParsed.editor.resource)		// until 1.66.x: URI was stored very verbose as URI.toJSON()
+								URI.parse(entryParsed.editor.resource) :
+								URI.from(entryParsed.editor.resource)
 						});
 					} catch (error) {
-						onUnexpectedError(error); // do not fail entire history when one entry fails
+						onUnexpectedError(error);
 					}
 				}
 			} catch (error) {
-				onUnexpectedError(error); // https://github.com/microsoft/vscode/issues/99075
+				onUnexpectedError(error);
 			}
 		}
 
@@ -1158,13 +1021,13 @@ export class HistoryService extends Disposable implements IHistoryService {
 
 	private saveState(): void {
 		if (!this.history) {
-			return; // nothing to save because history was not used
+			return;
 		}
 
 		const entries: ISerializedEditorHistoryEntry[] = [];
 		for (const editor of this.history) {
 			if (isEditorInput(editor) || !isResourceEditorInput(editor)) {
-				continue; // only save resource editor inputs
+				continue;
 			}
 
 			entries.push({
@@ -1178,19 +1041,15 @@ export class HistoryService extends Disposable implements IHistoryService {
 		this.storageService.store(HistoryService.HISTORY_STORAGE_KEY, JSON.stringify(entries), StorageScope.WORKSPACE, StorageTarget.MACHINE);
 	}
 
-	//#endregion
 
-	//#region Last Active Workspace/File
 
 	getLastActiveWorkspaceRoot(schemeFilter?: string, authorityFilter?: string): URI | undefined {
 
-		// No Folder: return early
 		const folders = this.contextService.getWorkspace().folders;
 		if (folders.length === 0) {
 			return undefined;
 		}
 
-		// Single Folder: return early
 		if (folders.length === 1) {
 			const resource = folders[0].uri;
 			if ((!schemeFilter || resource.scheme === schemeFilter) && (!authorityFilter || resource.authority === authorityFilter)) {
@@ -1200,7 +1059,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 			return undefined;
 		}
 
-		// Multiple folders: find the last active one
 		for (const input of this.getHistory()) {
 			if (isEditorInput(input)) {
 				continue;
@@ -1220,7 +1078,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 			}
 		}
 
-		// Fallback to first workspace matching scheme filter if any
 		for (const folder of folders) {
 			const resource = folder.uri;
 			if ((!schemeFilter || resource.scheme === schemeFilter) && (!authorityFilter || resource.authority === authorityFilter)) {
@@ -1248,7 +1105,6 @@ export class HistoryService extends Disposable implements IHistoryService {
 		return undefined;
 	}
 
-	//#endregion
 
 	override dispose(): void {
 		super.dispose();
@@ -1281,22 +1137,20 @@ class EditorSelectionState {
 
 	justifiesNewNavigationEntry(other: EditorSelectionState): boolean {
 		if (this.editorIdentifier.groupId !== other.editorIdentifier.groupId) {
-			return true; // different group
+			return true;
 		}
 
 		if (!this.editorIdentifier.editor.matches(other.editorIdentifier.editor)) {
-			return true; // different editor
+			return true;
 		}
 
 		if (!this.selection || !other.selection) {
-			return true; // unknown selections
+			return true;
 		}
 
 		const result = this.selection.compare(other.selection);
 
 		if (result === EditorPaneSelectionCompareResult.SIMILAR && (other.reason === EditorPaneSelectionChangeReason.NAVIGATION || other.reason === EditorPaneSelectionChangeReason.JUMP)) {
-			// let navigation sources win even if the selection is `SIMILAR`
-			// (e.g. "Go to definition" should add a history entry)
 			return true;
 		}
 
@@ -1394,35 +1248,23 @@ class EditorNavigationStacks extends Disposable implements IEditorNavigationStac
 
 	handleActiveEditorChange(editorPane?: IEditorPane): void {
 
-		// Always send to selections navigation stack
 		this.selectionsStack.notifyNavigation(editorPane);
 	}
 
 	handleActiveEditorSelectionChange(editorPane: IEditorPaneWithSelection, event: IEditorPaneSelectionChangeEvent): void {
 		const previous = this.selectionsStack.current;
 
-		// Always send to selections navigation stack
 		this.selectionsStack.notifyNavigation(editorPane, event);
 
-		// Check for edits
 		if (event.reason === EditorPaneSelectionChangeReason.EDIT) {
 			this.editsStack.notifyNavigation(editorPane, event);
 		}
 
-		// Check for navigations
-		//
-		// Note: ignore if selections navigation stack is navigating because
-		// in that case we do not want to receive repeated entries in
-		// the navigation stack.
 		else if (
 			(event.reason === EditorPaneSelectionChangeReason.NAVIGATION || event.reason === EditorPaneSelectionChangeReason.JUMP) &&
 			!this.selectionsStack.isNavigating()
 		) {
 
-			// A "JUMP" navigation selection change always has a source and
-			// target. As such, we add the previous entry of the selections
-			// navigation stack so that our navigation stack receives both
-			// entries unless the user is currently navigating.
 
 			if (event.reason === EditorPaneSelectionChangeReason.JUMP && !this.navigationsStack.isNavigating()) {
 				if (previous) {
@@ -1616,24 +1458,22 @@ ${entryLabels.join('\n')}
 		this.trace('onWillMoveEditor()', e.editor);
 
 		if (this.scope === GoScope.EDITOR_GROUP) {
-			return; // ignore move events if our scope is group based
+			return;
 		}
 
 		for (const entry of this.stack) {
 			if (entry.groupId !== e.groupId) {
-				continue; // not in the group that reported the event
+				continue;
 			}
 
 			if (!this.editorHelper.matchesEditor(e.editor, entry.editor)) {
-				continue; // not the editor this event is about
+				continue;
 			}
 
-			// Update to target group
 			entry.groupId = e.target;
 		}
 	}
 
-	//#region Stack Mutation
 
 	notifyNavigation(editorPane: IEditorPane | undefined, event?: IEditorPaneSelectionChangeEvent): void {
 		this.trace('notifyNavigation()', editorPane?.input, event);
@@ -1641,10 +1481,6 @@ ${entryLabels.join('\n')}
 		const isSelectionAwareEditorPane = isEditorPaneWithSelection(editorPane);
 		const hasValidEditor = editorPane?.input && !editorPane.input.isDisposed();
 
-		// Treat editor changes that happen as part of stack navigation specially
-		// we do not want to add a new stack entry as a matter of navigating the
-		// stack but we need to keep our currentEditorSelectionState up to date
-		// with the navigtion that occurs.
 		if (this.navigating) {
 			this.trace(`notifyNavigation() ignoring (navigating)`, editorPane?.input, event);
 
@@ -1655,22 +1491,19 @@ ${entryLabels.join('\n')}
 			} else {
 				this.trace('notifyNavigation() dropping current selection state', editorPane?.input, event);
 
-				this.currentSelectionState = undefined; // we navigated to a non-selection aware or disposed editor
+				this.currentSelectionState = undefined;
 			}
 		}
 
-		// Normal navigation not part of stack navigation
 		else {
 			this.trace(`notifyNavigation() not ignoring`, editorPane?.input, event);
 
-			// Navigation inside selection aware editor
 			if (isSelectionAwareEditorPane && hasValidEditor) {
 				this.onSelectionAwareEditorNavigation(editorPane.group.id, editorPane.input, editorPane.getSelection(), event);
 			}
 
-			// Navigation to non-selection aware or disposed editor
 			else {
-				this.currentSelectionState = undefined; // at this time we have no active selection aware editor
+				this.currentSelectionState = undefined;
 
 				if (hasValidEditor) {
 					this.onNonSelectionAwareEditorNavigation(editorPane.group.id, editorPane.input);
@@ -1681,30 +1514,27 @@ ${entryLabels.join('\n')}
 
 	private onSelectionAwareEditorNavigation(groupId: GroupIdentifier, editor: EditorInput, selection: IEditorPaneSelection | undefined, event?: IEditorPaneSelectionChangeEvent): void {
 		if (this.current?.groupId === groupId && !selection && this.editorHelper.matchesEditor(this.current.editor, editor)) {
-			return; // do not push same editor input again of same group if we have no valid selection
+			return;
 		}
 
 		this.trace('onSelectionAwareEditorNavigation()', editor, event);
 
 		const stateCandidate = new EditorSelectionState({ groupId, editor }, selection, event?.reason);
 
-		// Add to stack if we dont have a current state or this new state justifies a push
 		if (!this.currentSelectionState || this.currentSelectionState.justifiesNewNavigationEntry(stateCandidate)) {
 			this.doAdd(groupId, editor, stateCandidate.selection);
 		}
 
-		// Otherwise we replace the current stack entry with this one
 		else {
 			this.doReplace(groupId, editor, stateCandidate.selection);
 		}
 
-		// Update our current navigation editor state
 		this.currentSelectionState = stateCandidate;
 	}
 
 	private onNonSelectionAwareEditorNavigation(groupId: GroupIdentifier, editor: EditorInput): void {
 		if (this.current?.groupId === groupId && this.editorHelper.matchesEditor(this.current.editor, editor)) {
-			return; // do not push same editor input again of same group
+			return;
 		}
 
 		this.trace('onNonSelectionAwareEditorNavigation()', editor);
@@ -1720,22 +1550,20 @@ ${entryLabels.join('\n')}
 
 	private doReplace(groupId: GroupIdentifier, editor: EditorInput | IResourceEditorInput, selection?: IEditorPaneSelection): void {
 		if (!this.navigating) {
-			this.addOrReplace(groupId, editor, selection, true /* force replace */);
+			this.addOrReplace(groupId, editor, selection, true );
 		}
 	}
 
 	addOrReplace(groupId: GroupIdentifier, editorCandidate: EditorInput | IResourceEditorInput, selection?: IEditorPaneSelection, forceReplace?: boolean): void {
 
-		// Ensure we listen to changes in group
 		this.registerGroupListeners(groupId);
 
-		// Check whether to replace an existing entry or not
 		let replace = false;
 		if (this.current) {
 			if (forceReplace) {
-				replace = true; // replace if we are forced to
+				replace = true;
 			} else if (this.shouldReplaceStackEntry(this.current, { groupId, editor: editorCandidate, selection })) {
-				replace = true; // replace if the group & input is the same and selection indicates as such
+				replace = true;
 			}
 		}
 
@@ -1752,7 +1580,6 @@ ${entryLabels.join('\n')}
 
 		const newStackEntry: IEditorNavigationStackEntry = { groupId, editor, selection };
 
-		// Replace at current position
 		const removedEntries: IEditorNavigationStackEntry[] = [];
 		if (replace) {
 			if (this.current) {
@@ -1761,10 +1588,8 @@ ${entryLabels.join('\n')}
 			this.current = newStackEntry;
 		}
 
-		// Add to stack at current position
 		else {
 
-			// If we are not at the end of history, we remove anything after
 			if (this.stack.length > this.index + 1) {
 				for (let i = this.index + 1; i < this.stack.length; i++) {
 					removedEntries.push(this.stack[i]);
@@ -1773,53 +1598,46 @@ ${entryLabels.join('\n')}
 				this.stack = this.stack.slice(0, this.index + 1);
 			}
 
-			// Insert entry at index
 			this.stack.splice(this.index + 1, 0, newStackEntry);
 
-			// Check for limit
 			if (this.stack.length > EditorNavigationStack.MAX_STACK_SIZE) {
-				removedEntries.push(this.stack.shift()!); // remove first
+				removedEntries.push(this.stack.shift()!);
 				if (this.previousIndex >= 0) {
 					this.previousIndex--;
 				}
 			} else {
-				this.setIndex(this.index + 1, true /* skip event, we fire it later */);
+				this.setIndex(this.index + 1, true );
 			}
 		}
 
-		// Clear editor listeners from removed entries
 		for (const removedEntry of removedEntries) {
 			this.editorHelper.clearOnEditorDispose(removedEntry.editor, this.mapEditorToDisposable);
 		}
 
-		// Remove this from the stack unless the stack input is a resource
-		// that can easily be restored even when the input gets disposed
 		if (isEditorInput(editor)) {
 			this.editorHelper.onEditorDispose(editor, () => this.remove(editor), this.mapEditorToDisposable);
 		}
 
-		// Event
 		this._onDidChange.fire();
 	}
 
 	private shouldReplaceStackEntry(entry: IEditorNavigationStackEntry, candidate: IEditorNavigationStackEntry): boolean {
 		if (entry.groupId !== candidate.groupId) {
-			return false; // different group
+			return false;
 		}
 
 		if (!this.editorHelper.matchesEditor(entry.editor, candidate.editor)) {
-			return false; // different editor
+			return false;
 		}
 
 		if (!entry.selection) {
-			return true; // always replace when we have no specific selection yet
+			return true;
 		}
 
 		if (!candidate.selection) {
-			return false; // otherwise, prefer to keep existing specific selection over new unspecific one
+			return false;
 		}
 
-		// Finally, replace when selections are considered identical
 		return entry.selection.compare(candidate.selection) === EditorPaneSelectionCompareResult.IDENTICAL;
 	}
 
@@ -1836,11 +1654,9 @@ ${entryLabels.join('\n')}
 	remove(arg1: EditorInput | FileChangesEvent | FileOperationEvent | GroupIdentifier): void {
 		const previousStackSize = this.stack.length;
 
-		// Remove all stack entries that match `arg1`
 		this.stack = this.stack.filter(entry => {
 			const matches = typeof arg1 === 'number' ? entry.groupId === arg1 : this.editorHelper.matchesEditor(arg1, entry.editor);
 
-			// Cleanup any listeners associated with the input when removing
 			if (matches) {
 				this.editorHelper.clearOnEditorDispose(entry.editor, this.mapEditorToDisposable);
 			}
@@ -1849,24 +1665,18 @@ ${entryLabels.join('\n')}
 		});
 
 		if (previousStackSize === this.stack.length) {
-			return; // nothing removed
+			return;
 		}
 
-		// Given we just removed entries, we need to make sure
-		// to remove entries that are now identical and next
-		// to each other to prevent no-op navigations.
 		this.flatten();
 
-		// Reset indeces
 		this.index = this.stack.length - 1;
 		this.previousIndex = -1;
 
-		// Clear group listener
 		if (typeof arg1 === 'number') {
 			this.mapGroupToDisposable.deleteAndDispose(arg1);
 		}
 
-		// Event
 		this._onDidChange.fire();
 	}
 
@@ -1876,7 +1686,7 @@ ${entryLabels.join('\n')}
 		let previousEntry: IEditorNavigationStackEntry | undefined = undefined;
 		for (const entry of this.stack) {
 			if (previousEntry && this.shouldReplaceStackEntry(entry, previousEntry)) {
-				continue; // skip over entry when it is considered the same
+				continue;
 			}
 
 			previousEntry = entry;
@@ -1901,9 +1711,7 @@ ${entryLabels.join('\n')}
 		super.dispose();
 	}
 
-	//#endregion
 
-	//#region Navigation
 
 	canGoForward(): boolean {
 		return this.stack.length > this.index + 1;
@@ -1947,12 +1755,10 @@ ${entryLabels.join('\n')}
 			return;
 		}
 
-		// If we never navigated, just go back
 		if (this.previousIndex === -1) {
 			return this.goBack();
 		}
 
-		// Otherwise jump to previous stack entry
 		this.setIndex(this.previousIndex);
 		return this.navigate();
 	}
@@ -1972,21 +1778,15 @@ ${entryLabels.join('\n')}
 
 	private async maybeGoCurrent(): Promise<boolean> {
 
-		// When this navigation stack works with a specific
-		// filter where not every selection change is added
-		// to the stack, we want to first reveal the current
-		// selection before attempting to navigate in the
-		// stack.
 
 		if (this.filter === GoFilter.NONE) {
-			return false; // only applies when  we are a filterd stack
+			return false;
 		}
 
 		if (this.isCurrentSelectionActive()) {
-			return false; // we are at the current navigation stop
+			return false;
 		}
 
-		// Go to current selection
 		await this.navigate();
 
 		return true;
@@ -1994,25 +1794,25 @@ ${entryLabels.join('\n')}
 
 	private isCurrentSelectionActive(): boolean {
 		if (!this.current?.selection) {
-			return false; // we need a current selection
+			return false;
 		}
 
 		const pane = this.editorService.activeEditorPane;
 		if (!isEditorPaneWithSelection(pane)) {
-			return false; // we need an active editor pane with selection support
+			return false;
 		}
 
 		if (pane.group.id !== this.current.groupId) {
-			return false; // we need matching groups
+			return false;
 		}
 
 		if (!pane.input || !this.editorHelper.matchesEditor(pane.input, this.current.editor)) {
-			return false; // we need matching editors
+			return false;
 		}
 
 		const paneSelection = pane.getSelection();
 		if (!paneSelection) {
-			return false; // we need a selection to compare with
+			return false;
 		}
 
 		return paneSelection.compare(this.current.selection) === EditorPaneSelectionCompareResult.IDENTICAL;
@@ -2022,7 +1822,6 @@ ${entryLabels.join('\n')}
 		this.previousIndex = this.index;
 		this.index = newIndex;
 
-		// Event
 		if (!skipEvent) {
 			this._onDidChange.fire();
 		}
@@ -2043,7 +1842,6 @@ ${entryLabels.join('\n')}
 	private doNavigate(location: IEditorNavigationStackEntry): Promise<IEditorPane | undefined> {
 		let options: IEditorOptions = Object.create(null);
 
-		// Apply selection if any
 		if (location.selection) {
 			options = location.selection.restore(options);
 		}
@@ -2065,7 +1863,6 @@ ${entryLabels.join('\n')}
 		return this.navigating;
 	}
 
-	//#endregion
 }
 
 class EditorHelper {
@@ -2083,20 +1880,12 @@ class EditorHelper {
 	preferResourceEditorInput(editor: EditorInput | IResourceEditorInput): EditorInput | IResourceEditorInput | undefined {
 		const resource = EditorResourceAccessor.getOriginalUri(editor);
 
-		// For now, only prefer well known schemes that we control to prevent
-		// issues such as https://github.com/microsoft/vscode/issues/85204
-		// from being used as resource inputs
-		// resource inputs survive editor disposal and as such are a lot more
-		// durable across editor changes and restarts
 		const hasValidResourceEditorInputScheme =
 			resource?.scheme === Schemas.file ||
 			resource?.scheme === Schemas.vscodeRemote ||
 			resource?.scheme === Schemas.vscodeUserData ||
 			resource?.scheme === this.pathService.defaultUriScheme;
 
-		// Scheme is valid: prefer the untyped input
-		// over the typed input if possible to keep
-		// the entry across restarts
 		if (hasValidResourceEditorInputScheme) {
 			if (isEditorInput(editor)) {
 				const untypedInput = editor.toUntyped();
@@ -2108,8 +1897,6 @@ class EditorHelper {
 			return editor;
 		}
 
-		// Scheme is invalid: allow the editor input
-		// for as long as it is not disposed
 		else {
 			return isEditorInput(editor) ? editor : undefined;
 		}
@@ -2118,7 +1905,7 @@ class EditorHelper {
 	matchesEditor(arg1: EditorInput | IResourceEditorInput | FileChangesEvent | FileOperationEvent, inputB: EditorInput | IResourceEditorInput): boolean {
 		if (arg1 instanceof FileChangesEvent || arg1 instanceof FileOperationEvent) {
 			if (isEditorInput(inputB)) {
-				return false; // we only support this for `IResourceEditorInputs` that are file based
+				return false;
 			}
 
 			if (arg1 instanceof FileChangesEvent) {
@@ -2159,7 +1946,7 @@ class EditorHelper {
 			}
 
 			if (this.lifecycleService.phase >= LifecyclePhase.Restored && !this.fileService.hasProvider(inputResource)) {
-				return false; // make sure to only check this when workbench has restored (for https://github.com/microsoft/vscode/issues/48275)
+				return false;
 			}
 
 			return this.uriIdentityService.extUri.isEqual(inputResource, resource);
@@ -2197,7 +1984,7 @@ class EditorHelper {
 
 	clearOnEditorDispose(editor: EditorInput | IResourceEditorInput | FileChangesEvent | FileOperationEvent, mapEditorToDispose: DisposableMap<EditorInput, DisposableStore>): void {
 		if (!isEditorInput(editor)) {
-			return; // only supported when passing in an actual editor input
+			return;
 		}
 
 		mapEditorToDispose.deleteAndDispose(editor);

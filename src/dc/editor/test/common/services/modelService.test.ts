@@ -66,20 +66,20 @@ suite('ModelService', () => {
 
 		const model = disposables.add(createTextModel(
 			[
-				'This is line one', //16
-				'and this is line number two', //27
-				'it is followed by #3', //20
-				'and finished with the fourth.', //29
+				'This is line one',
+				'and this is line number two',
+				'it is followed by #3',
+				'and finished with the fourth.',
 			].join('\n')
 		));
 
 		const textBuffer = createAndRegisterTextBuffer(
 			disposables,
 			[
-				'This is line one', //16
-				'and this is line number two', //27
-				'it is followed by #3', //20
-				'and finished with the fourth.', //29
+				'This is line one',
+				'and this is line number two',
+				'it is followed by #3',
+				'and finished with the fourth.',
 			].join('\n'),
 			DefaultEndOfLine.LF
 		);
@@ -93,20 +93,20 @@ suite('ModelService', () => {
 
 		const model = disposables.add(createTextModel(
 			[
-				'This is line one', //16
-				'and this is line number two', //27
-				'it is followed by #3', //20
-				'and finished with the fourth.', //29
+				'This is line one',
+				'and this is line number two',
+				'it is followed by #3',
+				'and finished with the fourth.',
 			].join('\n')
 		));
 
 		const textBuffer = createAndRegisterTextBuffer(
 			disposables,
 			[
-				'This is line One', //16
-				'and this is line number two', //27
-				'it is followed by #3', //20
-				'and finished with the fourth.', //29
+				'This is line One',
+				'and this is line number two',
+				'it is followed by #3',
+				'and finished with the fourth.',
 			].join('\n'),
 			DefaultEndOfLine.LF
 		);
@@ -122,20 +122,20 @@ suite('ModelService', () => {
 
 		const model = disposables.add(createTextModel(
 			[
-				'This is line one', //16
-				'and this is line number two', //27
-				'it is followed by #3', //20
-				'and finished with the fourth.', //29
+				'This is line one',
+				'and this is line number two',
+				'it is followed by #3',
+				'and finished with the fourth.',
 			].join('\n')
 		));
 
 		const textBuffer = createAndRegisterTextBuffer(
 			disposables,
 			[
-				'This is line one', //16
-				'and this is line number two', //27
-				'it is followed by #3', //20
-				'and finished with the fourth.', //29
+				'This is line one',
+				'and this is line number two',
+				'it is followed by #3',
+				'and finished with the fourth.',
 			].join('\r\n'),
 			DefaultEndOfLine.LF
 		);
@@ -149,20 +149,20 @@ suite('ModelService', () => {
 
 		const model = disposables.add(createTextModel(
 			[
-				'This is line one', //16
-				'and this is line number two', //27
-				'it is followed by #3', //20
-				'and finished with the fourth.', //29
+				'This is line one',
+				'and this is line number two',
+				'it is followed by #3',
+				'and finished with the fourth.',
 			].join('\n')
 		));
 
 		const textBuffer = createAndRegisterTextBuffer(
 			disposables,
 			[
-				'This is line One', //16
-				'and this is line number two', //27
-				'It is followed by #3', //20
-				'and finished with the fourth.', //29
+				'This is line One',
+				'and this is line number two',
+				'It is followed by #3',
+				'and finished with the fourth.',
 			].join('\r\n'),
 			DefaultEndOfLine.LF
 		);
@@ -186,18 +186,18 @@ suite('ModelService', () => {
 
 		const model = disposables.add(createTextModel(
 			[
-				'package main',	// 1
-				'func foo() {',	// 2
-				'}'				// 3
+				'package main',
+				'func foo() {',
+				'}'
 			].join('\n')
 		));
 
 		const textBuffer = createAndRegisterTextBuffer(
 			disposables,
 			[
-				'package main',	// 1
-				'func foo() {',	// 2
-				'}',			// 3
+				'package main',
+				'func foo() {',
+				'}',
 				''
 			].join('\r\n'),
 			DefaultEndOfLine.LF
@@ -315,11 +315,10 @@ suite('ModelService', () => {
 			'line 5',
 		];
 		const file2 = [
-			'line 0', // insert line 0
+			'line 0',
 			'line 1',
-			'replace line 2', // replace line 2
+			'replace line 2',
 			'line 3',
-			// delete line 4
 			'line 5',
 		];
 		assertComputeEdits(file1, file2);
@@ -328,61 +327,44 @@ suite('ModelService', () => {
 	test('maintains undo for same resource and same content', () => {
 		const resource = URI.parse('file://test.txt');
 
-		// create a model
 		const model1 = modelService.createModel('text', null, resource);
-		// make an edit
 		model1.pushEditOperations(null, [{ range: new Range(1, 5, 1, 5), text: '1' }], () => [new Selection(1, 5, 1, 5)]);
 		assert.strictEqual(model1.getValue(), 'text1');
-		// dispose it
 		modelService.destroyModel(resource);
 
-		// create a new model with the same content
 		const model2 = modelService.createModel('text1', null, resource);
-		// undo
 		model2.undo();
 		assert.strictEqual(model2.getValue(), 'text');
-		// dispose it
 		modelService.destroyModel(resource);
 	});
 
 	test('maintains version id and alternative version id for same resource and same content', () => {
 		const resource = URI.parse('file://test.txt');
 
-		// create a model
 		const model1 = modelService.createModel('text', null, resource);
-		// make an edit
 		model1.pushEditOperations(null, [{ range: new Range(1, 5, 1, 5), text: '1' }], () => [new Selection(1, 5, 1, 5)]);
 		assert.strictEqual(model1.getValue(), 'text1');
 		const versionId = model1.getVersionId();
 		const alternativeVersionId = model1.getAlternativeVersionId();
-		// dispose it
 		modelService.destroyModel(resource);
 
-		// create a new model with the same content
 		const model2 = modelService.createModel('text1', null, resource);
 		assert.strictEqual(model2.getVersionId(), versionId);
 		assert.strictEqual(model2.getAlternativeVersionId(), alternativeVersionId);
-		// dispose it
 		modelService.destroyModel(resource);
 	});
 
 	test('does not maintain undo for same resource and different content', () => {
 		const resource = URI.parse('file://test.txt');
 
-		// create a model
 		const model1 = modelService.createModel('text', null, resource);
-		// make an edit
 		model1.pushEditOperations(null, [{ range: new Range(1, 5, 1, 5), text: '1' }], () => [new Selection(1, 5, 1, 5)]);
 		assert.strictEqual(model1.getValue(), 'text1');
-		// dispose it
 		modelService.destroyModel(resource);
 
-		// create a new model with the same content
 		const model2 = modelService.createModel('text2', null, resource);
-		// undo
 		model2.undo();
 		assert.strictEqual(model2.getValue(), 'text2');
-		// dispose it
 		modelService.destroyModel(resource);
 	});
 
@@ -396,7 +378,6 @@ suite('ModelService', () => {
 		model.setValue('text2');
 		model.undo();
 		assert.strictEqual(model.getValue(), 'text2');
-		// dispose it
 		modelService.destroyModel(resource);
 	});
 });
@@ -405,12 +386,8 @@ function assertComputeEdits(lines1: string[], lines2: string[]): void {
 	const model = createTextModel(lines1.join('\n'));
 	const { disposable, textBuffer } = createTextBuffer(lines2.join('\n'), DefaultEndOfLine.LF);
 
-	// compute required edits
-	// let start = Date.now();
 	const edits = ModelService._computeEdits(model, textBuffer);
-	// console.log(`took ${Date.now() - start} ms.`);
 
-	// apply edits
 	model.pushEditOperations([], edits, null);
 
 	assert.strictEqual(model.getValue(), lines2.join('\n'));

@@ -60,8 +60,6 @@ suite('ChatClipboard', () => {
 	});
 
 	test('uses the rendered label of an inline anchor widget', () => {
-		// The widget renders an icon plus a label, and appends the line number as a suffix
-		// span. Both parts of the label are what the reader saw.
 		assert.strictEqual(
 			sanitizeToHtml('<a class="chat-inline-anchor-widget show-file-icons" href="" data-href="file:///repo/foo.js#42,1"><span class="icon"></span><span class="icon-label">foo.js<span class="label-suffix">:42</span></span></a>'),
 			'<code>foo.js:42</code>');
@@ -118,7 +116,6 @@ suite('ChatClipboard', () => {
 		test('reduces non-portable link targets to their label', () => {
 			assert.deepStrictEqual(
 				[
-					// Agent host sessions are instructed to emit absolute filesystem targets.
 					toPortableMarkdown('Updated [src/a.ts](/Users/me/repo/src/a.ts) and [b.ts](c:/repo/b.ts).'),
 					toPortableMarkdown('See [config](file:///repo/config.json).'),
 					toPortableMarkdown('See [index.ts](http://_vscodecontentref_/0).'),
@@ -128,15 +125,12 @@ suite('ChatClipboard', () => {
 		});
 
 		test('keeps links that stay meaningful wherever the markdown lands', () => {
-			// Document-relative targets name no machine, so sharing them loses nothing.
 			const markdown = 'See [the docs](https://example.com/docs), [mail us](mailto:team@example.com), '
 				+ '[details](#details) and [guide](../CONTRIBUTING.md).';
 			assert.strictEqual(toPortableMarkdown(markdown), markdown);
 		});
 
 		test('scrubs the target of a link whose source cannot be located', () => {
-			// A label spanning lines inside a quote or list loses its block prefixes in the
-			// token source, so the link cannot be rewritten in place.
 			assert.deepStrictEqual(
 				[
 					toPortableMarkdown('> [foo\n> bar](/Users/alice/private/a.ts)\n'),
@@ -173,8 +167,6 @@ suite('ChatClipboard', () => {
 		});
 
 		test('keeps a reference working by giving it its own target', () => {
-			// Definitions are dropped wholesale, so a shareable reference has to carry its
-			// target inline or it would decay into literal text.
 			assert.deepStrictEqual(
 				[
 					toPortableMarkdown('A [x][1] B [y][2].\n\n[1]: /p/a.ts\n[2]: https://ok.com\n'),
@@ -195,7 +187,6 @@ suite('ChatClipboard', () => {
 		});
 
 		test('leaves a definition the parser accounted for as content', () => {
-			// Inside a fence it is a sample, and directly under a paragraph it is literal text.
 			assert.deepStrictEqual(
 				[
 					toPortableMarkdown('```\n[r]: /Users/alice/a.ts\n```\n'),
@@ -211,8 +202,6 @@ suite('ChatClipboard', () => {
 		});
 
 		test('rewrites the real link rather than a lookalike inside code', () => {
-			// Searching for the link source would match the sample in the code span first,
-			// corrupting it and leaving the actual target behind.
 			assert.deepStrictEqual(
 				[
 					toPortableMarkdown('Use `[a.ts](/repo/a.ts)` and then [a.ts](/repo/a.ts) for real.'),
@@ -233,7 +222,6 @@ suite('ChatClipboard', () => {
 			assert.deepStrictEqual(
 				[
 					toPortableMarkdown('See [docs][ref].\n\n[ref]: /repo/a.ts\n'),
-					// CommonMark allows the destination to continue on an indented line.
 					toPortableMarkdown('See [docs][ref].\n\n[ref]:\n  /Users/alice/private/a.ts\n'),
 				],
 				['See `docs`.\n\n', 'See `docs`.\n\n']);
@@ -247,9 +235,6 @@ suite('ChatClipboard', () => {
 		});
 
 		test('leaves raw html verbatim', () => {
-			// Chat markdown renders without `supportHtml`, so a tag the model wrote was never a
-			// live link. Editing its attributes would only corrupt text the reader was shown —
-			// the same spelling appears in prose whenever a response explains the syntax.
 			assert.deepStrictEqual(
 				[
 					toPortableMarkdown('<a href="file:///Users/alice/private/a.ts">a.ts</a>'),

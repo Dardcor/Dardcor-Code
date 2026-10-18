@@ -32,25 +32,22 @@ export namespace DocumentLogEntry {
 	}
 }
 
-/** First entry of the log */
 export type HeaderLogEntry = {
 	documentType: 'workspaceRecording@1.0';
 	kind: 'header';
 	repoRootUri: string;
 	time: number;
 	uuid: string;
-	/** Increments on non-breaking changes */
 	revision?: number;
 };
 
 export type ApplicationStartLogEntry = { kind: 'applicationStart'; time: number; commitHash?: string };
 
-export type DocumentSetContentLogEntry = DocumentLogEntry & { kind: 'setContent'; content: string; /* if undefined, is 0 */ v: number | undefined };
+export type DocumentSetContentLogEntry = DocumentLogEntry & { kind: 'setContent'; content: string; v: number | undefined };
 
-export type DocumentStoreContentLogEntry = DocumentLogEntry & { kind: 'storeContent'; contentId: string; /* if undefined, is 0 */ v: number | undefined };
+export type DocumentStoreContentLogEntry = DocumentLogEntry & { kind: 'storeContent'; contentId: string; v: number | undefined };
 
-/** Can only restore from a content id set by any previous store content log entry */
-export type DocumentRestoreContentLogEntry = DocumentLogEntry & { kind: 'restoreContent'; contentId: string; /* if undefined, is 0 */ v: number | undefined };
+export type DocumentRestoreContentLogEntry = DocumentLogEntry & { kind: 'restoreContent'; contentId: string; v: number | undefined };
 
 export type DocumentOpenedLogEntry = DocumentLogEntry & { kind: 'opened' };
 
@@ -74,7 +71,6 @@ export type MetaLogEntry = { kind: 'meta'; data: unknown | { repoRootUri: string
 export type BookmarkLogEntry = { kind: 'bookmark'; time: number };
 
 
-// Edit functions
 
 export type ISerializedOffsetRange = [start: number, endEx: number];
 export type ISerializedEdit = [start: number, endEx: number, text: string][];

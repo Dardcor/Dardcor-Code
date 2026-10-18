@@ -101,7 +101,6 @@ suite('Notebook Symbols', function () {
 		assert.equal(entries.length, 3, 'wrong number of outline entries');
 		assert.equal(entries[0].label, '# code');
 		assert.equal(entries[1].label, 'var1');
-		// 6 levels for markdown, all code symbols are greater than the max markdown level
 		assert.equal(entries[1].level, 8);
 		assert.equal(entries[1].index, 1);
 		assert.equal(entries[2].label, 'var2');

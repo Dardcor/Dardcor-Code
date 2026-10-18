@@ -78,7 +78,7 @@ export abstract class CommontExtensionManagementService extends Disposable imple
 		}
 
 		if (!(await this.isExtensionPlatformCompatible(extension))) {
-			const learnLink = isWeb ? 'https://aka.ms/vscode-web-extensions-guide' : 'https://aka.ms/vscode-platform-specific-extensions';
+			const learnLink = isWeb ? 'https://www.dardcor-code.web.id/docs/extensions/web' : 'https://www.dardcor-code.web.id/docs/extensions/platform-specific';
 			return new MarkdownString(`${nls.localize('incompatible platform', "The '{0}' extension is not available in {1} for the {2} platform.",
 				extension.displayName ?? extension.identifier.id, this.productService.nameLong, TargetPlatformToString(await this.getTargetPlatform()))} [${nls.localize('learn why', "Learn Why")}](${learnLink})`);
 		}
@@ -171,8 +171,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 			if (result?.error) {
 				throw result.error;
 			}
-			// Extension might have been redirected due to deprecation (e.g., github.copilot -> github.copilot-chat)
-			// In this case, the result will have the redirected extension's identifier
 			const redirectedResult = results[0];
 			if (redirectedResult?.local) {
 				return redirectedResult.local;
@@ -252,7 +250,7 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 	getExtensionsControlManifest(): Promise<IExtensionsControlManifest> {
 		const now = new Date().getTime();
 
-		if (!this.extensionsControlManifest || now - this.lastReportTimestamp > 1000 * 60 * 5) { // 5 minute cache freshness
+		if (!this.extensionsControlManifest || now - this.lastReportTimestamp > 1000 * 60 * 5) {
 			this.extensionsControlManifest = this.updateControlCache();
 			this.lastReportTimestamp = now;
 		}
@@ -300,23 +298,17 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 						const identifier = existingInstallingExtension.task.identifier;
 						this.logService.info('Waiting for already requested installing extension', identifier.id, root.identifier.id, options.profileLocation.toString());
 						existingInstallingExtension.waitingTasks.push(root);
-						// add promise that waits until the extension is completely installed, ie., onDidInstallExtensions event is triggered for this extension
 						const waitForInstallation = Event.toPromise(
 							Event.filter(this.onDidInstallExtensions, results => results.some(result => areSameExtensions(result.identifier, identifier)))
 						).then(results => {
 							this.logService.info('Finished waiting for already requested installing extension', identifier.id, root.identifier.id, options.profileLocation.toString());
 							const result = results.find(result => areSameExtensions(result.identifier, identifier));
 							if (!result?.local) {
-								// Extension failed to install
 								throw new Error(`Extension ${identifier.id} is not installed`);
 							}
 							return result.local;
 						});
 						alreadyRequestedInstallations.push(waitForInstallation);
-						// Attach a no-op rejection handler to prevent an unhandledRejection if the
-						// outer try throws before `alreadyRequestedInstallations` is awaited below.
-						// The original promise is still observed via `joinAllSettled` on the happy path,
-						// and the underlying install failure is already reported by the primary task.
 						waitForInstallation.catch(() => { });
 					}
 					return;
@@ -328,7 +320,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 			installingExtensionsMap.set(key, { task: installExtensionTask, root, uninstallTaskToWaitFor });
 			this._onInstallExtension.fire({ identifier: installExtensionTask.identifier, source: extension, profileLocation: options.profileLocation });
 			this.logService.info('Installing extension:', installExtensionTask.identifier.id, options);
-			// only cache gallery extensions tasks
 			if (!URI.isUri(extension)) {
 				this.installingExtensions.set(getInstallExtensionTaskKey(extension, options.profileLocation), { task: installExtensionTask, waitingTasks: [] });
 			}
@@ -336,7 +327,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 
 		try {
 			const systemExtensions = await this.getInstalled(ExtensionType.System);
-			// Start installing extensions
 			for (const { manifest, extension, options } of extensions) {
 				const extensionId = getGalleryExtensionId(manifest.publisher, manifest.name);
 				const isSystemExtension = systemExtensions.some(e => areSameExtensions(e.identifier, { id: extensionId }));
@@ -354,9 +344,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 				if (existingInstallExtensionTask) {
 					const existingTask = existingInstallExtensionTask.task;
 					this.logService.info('Extension is already requested to install', existingTask.identifier.id, installExtensionTaskOptions.profileLocation.toString());
-					// Record the result of the in-flight install into our results map so callers
-					// (e.g. installFromGallery) can find the actual local extension or real error
-					// instead of falling through to a generic "Unknown error".
 					const resultKey = `${existingTask.identifier.id.toLowerCase()}-${installExtensionTaskOptions.profileLocation.toString()}`;
 					const waitForInstallation = existingTask.waitUntilTaskIsFinished().then(local => {
 						installExtensionResultsMap.set(resultKey, {
@@ -381,16 +368,12 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 						throw error;
 					});
 					alreadyRequestedInstallations.push(waitForInstallation);
-					// Attach a no-op rejection handler to prevent an unhandledRejection if the
-					// outer try throws before `alreadyRequestedInstallations` is awaited below.
-					// The original promise is still observed via `joinAllSettled` on the happy path.
 					waitForInstallation.catch(() => { });
 				} else {
 					createInstallExtensionTask(manifest, extension, installExtensionTaskOptions, undefined);
 				}
 			}
 
-			// collect and start installing all dependencies and pack extensions
 			await Promise.all([...installingExtensionsMap.values()].map(async ({ task }) => {
 				if (task.options.donotIncludePackAndDependencies) {
 					this.logService.info('Installing the extension without checking dependencies and pack', task.identifier.id);
@@ -400,7 +383,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 						if (task.options.installPreReleaseVersion) {
 							preferPreRelease = true;
 						} else if (!URI.isUri(task.source) && task.source.hasPreReleaseVersion) {
-							// Explicitly asked to install the release version
 							preferPreRelease = false;
 						}
 						const installed = await this.getInstalled(undefined, task.options.profileLocation, task.options.productVersion);
@@ -408,16 +390,13 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 						const options: InstallExtensionTaskOptions = { ...task.options, pinned: false, installGivenVersion: false, context: { ...task.options.context, [EXTENSION_INSTALL_DEP_PACK_CONTEXT]: true } };
 						for (const { gallery, manifest } of distinct(allDepsAndPackExtensionsToInstall, ({ gallery }) => gallery.identifier.id)) {
 							const existing = installed.find(e => areSameExtensions(e.identifier, gallery.identifier));
-							// Skip if the extension is already installed and has the same application scope
 							if (existing && existing.isApplicationScoped === !!options.isApplicationScoped) {
 								continue;
 							}
 							createInstallExtensionTask(manifest, gallery, options, task);
 						}
 					} catch (error) {
-						// Installing through VSIX
 						if (URI.isUri(task.source)) {
-							// Ignore installing dependencies and packs
 							if (isNonEmptyArray(task.manifest.extensionDependencies)) {
 								this.logService.warn(`Cannot install dependencies of extension:`, task.identifier.id, error.message);
 							}
@@ -437,7 +416,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 				createInstallExtensionTask(task.manifest, task.source, { ...task.options, profileLocation }, undefined);
 			}
 
-			// Install extensions in parallel and wait until all extensions are installed / failed
 			await this.joinAllSettled([...installingExtensionsMap.entries()].map(async ([key, { task, uninstallTaskToWaitFor }]) => {
 				const startTime = new Date().getTime();
 				let local: ILocalExtension;
@@ -514,7 +492,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 					task.cancel();
 					installExtensionResultsMap.set(key, getErrorResult(task));
 				}
-				// If the extension is installed by a root task and the root task is failed, then uninstall the extension
 				else if (result.local && root && !installExtensionResultsMap.get(`${root.identifier.id.toLowerCase()}-${task.options.profileLocation.toString()}`)?.local) {
 					rollbackTasks.push(this.createUninstallExtensionTask(result.local, { versionOnly: true, profileLocation: task.options.profileLocation }));
 					installExtensionResultsMap.set(key, getErrorResult(task));
@@ -546,7 +523,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 				}));
 			}
 		} finally {
-			// Finally, remove all the tasks from the cache
 			for (const { task } of installingExtensionsMap.values()) {
 				if (task.source && !URI.isUri(task.source)) {
 					this.installingExtensions.delete(getInstallExtensionTaskKey(task.source, task.options.profileLocation));
@@ -596,17 +572,13 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 	private canWaitForTask(taskToWait: IInstallExtensionTask, taskToWaitFor: IInstallExtensionTask): boolean {
 		for (const [, { task, waitingTasks }] of this.installingExtensions.entries()) {
 			if (task === taskToWait) {
-				// Cannot be waited, If taskToWaitFor is waiting for taskToWait
 				if (waitingTasks.includes(taskToWaitFor)) {
 					return false;
 				}
-				// Cannot be waited, If taskToWaitFor is waiting for tasks waiting for taskToWait
 				if (waitingTasks.some(waitingTask => this.canWaitForTask(waitingTask, taskToWaitFor))) {
 					return false;
 				}
 			}
-			// Cannot be waited, if the taskToWait cannot be waited for the task created the taskToWaitFor
-			// Because, the task waits for the tasks it created
 			if (task === taskToWaitFor && waitingTasks[0] && !this.canWaitForTask(taskToWait, waitingTasks[0])) {
 				return false;
 			}
@@ -630,7 +602,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 			return results;
 		}
 
-		// Throw if there are errors
 		if (errors.length === 1) {
 			throw errors[0];
 		}
@@ -660,7 +631,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 			if (manifest.extensionPack) {
 				const existing = installed.find(e => areSameExtensions(e.identifier, extensionIdentifier));
 				for (const extension of manifest.extensionPack) {
-					// add only those extensions which are new in currently installed extension
 					if (!(existing && existing.manifest.extensionPack && existing.manifest.extensionPack.some(old => areSameExtensions({ id: old }, { id: extension })))) {
 						if (dependenciesAndPackExtensions.every(e => !areSameExtensions({ id: e }, { id: extension }))) {
 							dependenciesAndPackExtensions.push(extension);
@@ -670,7 +640,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 			}
 
 			if (dependenciesAndPackExtensions.length) {
-				// filter out known extensions
 				const ids = dependenciesAndPackExtensions.filter(id => knownIdentifiers.every(galleryIdentifier => !areSameExtensions(galleryIdentifier, { id })));
 				if (ids.length) {
 					const galleryExtensions = await this.galleryService.getExtensions(ids.map(id => ({ id, preRelease: preferPreRelease })), CancellationToken.None);
@@ -726,7 +695,6 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 
 			compatibleExtension = await this.getCompatibleVersion(extension, sameVersion, installPreRelease, productVersion);
 			if (!compatibleExtension) {
-				/** If no compatible release version is found, check if the extension has a release version or not and throw relevant error */
 				if (!installPreRelease && extension.hasPreReleaseVersion && extension.properties.isPreReleaseVersion && (await this.galleryService.getExtensions([extension.identifier], CancellationToken.None))[0]) {
 					throw new ExtensionManagementError(nls.localize('notFoundReleaseExtension', "Can't install release version of '{0}' extension because it has no release version.", extension.displayName ?? extension.identifier.id), ExtensionManagementErrorCode.ReleaseVersionNotFound);
 				}
@@ -877,10 +845,8 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 				}
 			}
 
-			// Uninstall extensions in parallel and wait until all extensions are uninstalled / failed
 			await this.joinAllSettled(allTasks.map(async ({ task, installTaskToWaitFor }) => {
 				try {
-					// Wait for opposite task if it exists
 					if (installTaskToWaitFor) {
 						this.logService.info('Waiting for existing install task to complete before uninstalling', task.extension.identifier.id);
 						try {
@@ -893,11 +859,10 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 
 					await task.run();
 					await this.joinAllSettled(this.participants.map(participant => participant.postUninstall(task.extension, task.options, CancellationToken.None)));
-					// only report if extension has a mapped gallery extension and not in web. UUID identifies the gallery extension.
 					if (task.extension.identifier.uuid && !isWeb) {
 						try {
 							await this.galleryService.reportStatistic(task.extension.manifest.publisher, task.extension.manifest.name, task.extension.manifest.version, StatisticType.Uninstall);
-						} catch (error) { /* ignore */ }
+						} catch (error) { }
 					}
 				} catch (e) {
 					const error = toExtensionManagementError(e);
@@ -922,15 +887,13 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 		} catch (e) {
 			const error = toExtensionManagementError(e);
 			for (const { task } of allTasks) {
-				// cancel the tasks
-				try { task.cancel(); } catch (error) { /* ignore */ }
+				try { task.cancel(); } catch (error) { }
 				if (!processedTasks.includes(task)) {
 					postUninstallExtension(task.extension, task.options, error);
 				}
 			}
 			throw error;
 		} finally {
-			// Remove tasks from cache
 			for (const { task } of allTasks) {
 				if (!this.uninstallingExtensions.delete(getUninstallExtensionTaskKey(task.extension, task.options))) {
 					this.logService.warn('Uninstallation task is not found in the cache', task.extension.identifier.id);
@@ -1054,45 +1017,6 @@ function reportTelemetry(telemetryService: ITelemetryService, eventName: string,
 		error?: ExtensionManagementError | ExtensionGalleryError;
 	}): void {
 
-	/* __GDPR__
-		"extensionGallery:install" : {
-			"owner": "sandy081",
-			"success": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-			"duration" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-			"durationSinceUpdate" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-			"errorcode": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth" },
-			"recommendationReason": { "retiredFromVersion": "1.23.0", "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-			"verificationStatus" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-			"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-			"${include}": [
-				"${GalleryExtensionTelemetryData}"
-			]
-		}
-	*/
-	/* __GDPR__
-		"extensionGallery:uninstall" : {
-			"owner": "sandy081",
-			"success": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-			"duration" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-			"errorcode": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth" },
-			"${include}": [
-				"${GalleryExtensionTelemetryData}"
-			]
-		}
-	*/
-	/* __GDPR__
-		"extensionGallery:update" : {
-			"owner": "sandy081",
-			"success": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-			"duration" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-			"errorcode": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth" },
-			"verificationStatus" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-			"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-			"${include}": [
-				"${GalleryExtensionTelemetryData}"
-			]
-		}
-	*/
 	telemetryService.publicLog(eventName, {
 		...extensionData,
 		source,

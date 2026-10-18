@@ -11,10 +11,6 @@ import { isAbsolute } from '../../../util/dardcor/base/common/path';
 import { isObject } from '../../../util/dardcor/base/common/types';
 import { URI } from '../../../util/dardcor/base/common/uri';
 
-/**
- * Resolves skill directory locations from the `chat.agentSkillsLocations` config setting.
- * Handles `~/` expansion, absolute paths, and relative paths (joined to each workspace folder).
- */
 export function resolveSkillConfigLocations(
 	configurationService: IConfigurationService,
 	envService: INativeEnvService,

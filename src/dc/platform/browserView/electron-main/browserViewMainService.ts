@@ -34,33 +34,22 @@ export interface IBrowserViewMainService extends IBrowserViewService {
 
 	tryGetBrowserView(id: string): BrowserView | undefined;
 
-	/** Create a new target and return it. */
 	createTarget(url: string, contextOrOwner: IBrowserViewCreationContext | IBrowserViewOwner, browserContextId?: string): Promise<BrowserView>;
 
-	/** Validate that a view can be exposed to an agent audience. */
 	validateAgentAccess(view: BrowserView): void;
 
-	/** Validate that a storage scope can be exposed to an agent. */
 	validateAgentStorageScope(storageScope: BrowserViewStorageScope): void;
 }
 
 export class BrowserViewMainService extends Disposable implements IBrowserViewMainService {
 	declare readonly _serviceBrand: undefined;
 
-	/**
-	 * Check if a webContents belongs to an integrated browser view.
-	 * Delegates to {@link BrowserSession.isBrowserViewWebContents}.
-	 */
 	static isBrowserViewWebContents(contents: Electron.WebContents): boolean {
 		return BrowserSession.isBrowserViewWebContents(contents);
 	}
 
 	private readonly browserViews = this._register(new DisposableMap<string, BrowserView>());
 
-	/**
-	 * Per-window configuration applied to the browser views that window owns.
-	 * Entries are dropped when the window is destroyed.
-	 */
 	private readonly _windowConfigurations = new Map<number, IBrowserViewWindowConfiguration>();
 	private readonly _windowCloseSubscriptions = this._register(new DisposableMap<number>());
 
@@ -133,9 +122,6 @@ export class BrowserViewMainService extends Disposable implements IBrowserViewMa
 		);
 	}
 
-	/**
-	 * Get a browser view or throw if not found
-	 */
 	private _getBrowserView(id: string): BrowserView {
 		const view = this.browserViews.get(id);
 		if (!view) {
@@ -457,9 +443,6 @@ export class BrowserViewMainService extends Disposable implements IBrowserViewMa
 		BrowserSession.setTrustedFileRoots([...roots], trustAllFiles);
 	}
 
-	/**
-	 * Create a browser view backed by the given {@link BrowserSession}.
-	 */
 	private _createNativeBrowserView(id: string, host: IBrowserViewCreationContext['host'], owner: IBrowserViewOwner, browserSession: BrowserSession, associatedResource?: URI, options?: Electron.WebContentsViewConstructorOptions): BrowserView {
 		if (this.browserViews.has(id)) {
 			throw new Error(`Browser view with id ${id} already exists`);
@@ -471,7 +454,6 @@ export class BrowserViewMainService extends Disposable implements IBrowserViewMa
 			browserSession.history.setMaxEntries(windowConfiguration.maxHistoryEntries);
 		}
 
-		// Hold a ref to the tunnel proxy for as long as this view is alive.
 		browserSession.remote.acquire(id, windowConfiguration?.proxyInfo);
 
 		const view = this.instantiationService.createInstance(
@@ -481,7 +463,6 @@ export class BrowserViewMainService extends Disposable implements IBrowserViewMa
 			owner,
 			associatedResource,
 			browserSession,
-			// Child views share their host, owner, and storage, but do not implicitly inherit agent access.
 			(childOwner, url, electronOptions, editorOptions) => {
 				return this._createBrowserView(generateUuid(), {
 					host,
@@ -664,7 +645,6 @@ export class BrowserViewMainService extends Disposable implements IBrowserViewMa
 			menu.append(new MenuItem({ role: 'copy' }));
 		}
 
-		// Add navigation items as defaults
 		if (menu.items.length === 0) {
 			if (webContents.navigationHistory.canGoBack()) {
 				menu.append(new MenuItem({

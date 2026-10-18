@@ -1,6 +1,5 @@
 import { AI_PROVIDERS } from "@/shared/constants/providers";
 
-// Provider → internal voices API. Edge/local-device share the generic endpoint.
 const PROVIDER_API = {
   elevenlabs: (origin) => `${origin}/api/media-providers/tts/elevenlabs/voices`,
   deepgram: (origin) => `${origin}/api/media-providers/tts/deepgram/voices`,
@@ -15,8 +14,6 @@ export async function OPTIONS() {
   });
 }
 
-// GET /v1/audio/voices?provider={p}[&lang=xx]
-// Returns OpenAI-style list with each voice's full model id ready for /v1/audio/speech
 export async function GET(request) {
   try {
     const { searchParams, origin } = new URL(request.url);
@@ -41,12 +38,10 @@ export async function GET(request) {
       );
     }
 
-    // Internal API shape: { voices } when lang filter, else { byLang, languages }
     const rawVoices = lang
       ? (data.voices || [])
       : Object.values(data.byLang || {}).flatMap((l) => l.voices || []);
 
-    // Use provider alias for /v1/audio/speech model param (matches skill convention e.g. el/, dg/, edge-tts/)
     const alias = AI_PROVIDERS[provider]?.alias || provider;
     const data_out = rawVoices.map((v) => ({
       id: v.id,

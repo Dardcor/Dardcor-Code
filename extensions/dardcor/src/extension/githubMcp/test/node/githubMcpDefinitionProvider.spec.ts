@@ -21,9 +21,6 @@ import { Emitter, Event } from '../../../../util/dardcor/base/common/event';
 import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { GitHubMcpDefinitionProvider } from '../../common/githubMcpDefinitionProvider';
 
-/**
- * Test implementation of authentication service that allows setting sessions dynamically
- */
 class TestAuthenticationService extends BaseAuthenticationService {
 	private readonly _onDidChange = new Emitter<void>();
 
@@ -73,9 +70,6 @@ describe('GitHubMcpDefinitionProvider', () => {
 	let authService: TestAuthenticationService;
 	let provider: GitHubMcpDefinitionProvider;
 
-	/**
-	 * Helper to create a provider with specific configuration values.
-	 */
 	async function createProvider(configOverrides?: {
 		authProvider?: AuthProviderId;
 		gheUri?: string;
@@ -88,7 +82,6 @@ describe('GitHubMcpDefinitionProvider', () => {
 		const serviceCollection = new TestingServiceCollection();
 		configService = new InMemoryConfigurationService(new DefaultsOnlyConfigurationService());
 
-		// Set configuration values before creating the provider
 		if (configOverrides?.authProvider) {
 			await configService.setConfig(ConfigKey.Shared.AuthProvider, configOverrides.authProvider);
 		}
@@ -115,7 +108,6 @@ describe('GitHubMcpDefinitionProvider', () => {
 		serviceCollection.define(ILogService, new LogServiceImpl([]));
 		const accessor = serviceCollection.createTestingAccessor();
 
-		// Get the auth service and set up permissive token if needed
 		authService = accessor.get(IAuthenticationService) as TestAuthenticationService;
 		if (configOverrides?.hasPermissiveToken !== false) {
 			authService.setPermissiveGitHubSession({ accessToken: 'test-token', id: 'test-id', account: { id: 'test-account', label: 'test' }, scopes: [] });
@@ -152,7 +144,6 @@ describe('GitHubMcpDefinitionProvider', () => {
 
 			expect(definitions).toHaveLength(1);
 			expect(definitions[0].label).toBe('GitHub Enterprise');
-			// Should include the dardcor-api. prefix
 			expect(definitions[0].uri.toString()).toBe('https://dardcor-api.github.enterprise.com/mcp/');
 		});
 
@@ -177,14 +168,12 @@ describe('GitHubMcpDefinitionProvider', () => {
 			const toolsets = ['pull_requests', 'code_search', 'issues'];
 			const providerWithToolsets = await createProvider({ toolsets });
 			const definitions = providerWithToolsets.provideMcpServerDefinitions();
-			// Sorted toolsets string
 			expect(definitions[0].version).toBe('code_search,issues,pull_requests');
 		});
 
 		test('throws when GHE is configured but URI is missing', async () => {
 			const gheProviderWithoutUri = await createProvider({
 				authProvider: AuthProviderId.GitHubEnterprise
-				// Don't set the GHE URI
 			});
 
 			expect(() => gheProviderWithoutUri.provideMcpServerDefinitions()).toThrow('GitHub Enterprise URI is not configured.');
@@ -395,8 +384,6 @@ describe('GitHubMcpDefinitionProvider', () => {
 			const providerWithoutToken = await createProvider({ hasPermissiveToken: false });
 			const definitions = providerWithoutToken.provideMcpServerDefinitions();
 
-			// Since the mock returns undefined and the implementation uses session!.accessToken,
-			// this will throw when trying to access accessToken on undefined
 			await expect(providerWithoutToken.resolveMcpServerDefinition(definitions[0], CancellationToken.None)).rejects.toThrow();
 		});
 	});
@@ -426,7 +413,6 @@ describe('GitHubMcpDefinitionProvider', () => {
 			};
 			const disposable = provider.onDidChangeMcpServerDefinitions(handler);
 
-			// Change the token value but keep it defined
 			authService.setPermissiveGitHubSession({ accessToken: 'different-token', id: 'different-id', account: { id: 'different-account', label: 'different' }, scopes: [] });
 
 			await raceTimeout(Promise.resolve(), 50);

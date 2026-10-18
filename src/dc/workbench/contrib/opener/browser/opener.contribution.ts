@@ -40,7 +40,6 @@ class WorkbenchOpenerContribution extends Disposable implements IOpener {
 				}
 			}
 		} catch {
-			// noop
 		}
 
 		return false;

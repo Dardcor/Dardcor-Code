@@ -99,7 +99,7 @@ class TsconfigLinkProvider implements vscode.DocumentLinkProvider {
 		return node
 			&& node.type === 'string'
 			&& node.value
-			&& !(node.value as string).includes('*'); // don't treat globs as links.
+			&& !(node.value as string).includes('*');
 	}
 
 	private getFileTarget(document: vscode.TextDocument, node: jsonc.Node): vscode.Uri {
@@ -129,13 +129,11 @@ async function resolveNodeModulesPath(baseDirUri: vscode.Uri, pathCandidates: st
 		try {
 			moduleStat = await vscode.workspace.fs.stat(moduleAbsoluteUrl);
 		} catch (err) {
-			// noop
 		}
 
 		if (moduleStat && (moduleStat.type & vscode.FileType.Directory)) {
 			for (const uriCandidate of pathCandidates
 				.map((relativePath) => relativePath.split(posix.sep).slice(sepIndex).join(posix.sep))
-				// skip empty paths within module
 				.filter(Boolean)
 				.map((relativeModulePath) => vscode.Uri.joinPath(moduleAbsoluteUrl, relativeModulePath))
 			) {
@@ -143,24 +141,17 @@ async function resolveNodeModulesPath(baseDirUri: vscode.Uri, pathCandidates: st
 					return uriCandidate;
 				}
 			}
-			// Continue to looking for potentially another version
 		}
 
 		const oldUri = currentUri;
 		currentUri = vscode.Uri.joinPath(currentUri, '..');
 
-		// Can't go next. Reached the system root
 		if (oldUri.path === currentUri.path) {
 			return;
 		}
 	}
 }
 
-// Reference Extends:https://github.com/microsoft/TypeScript/blob/febfd442cdba343771f478cf433b0892f213ad2f/src/compiler/commandLineParser.ts#L3005
-// Reference Project References: https://github.com/microsoft/TypeScript/blob/7377f5cb9db19d79a6167065b323a45611c812b5/src/compiler/tsbuild.ts#L188C1-L194C2
-/**
-* @returns Returns undefined in case of lack of result while trying to resolve from node_modules
-*/
 async function getTsconfigPath(baseDirUri: vscode.Uri, pathValue: string, linkType: TsConfigLinkType): Promise<vscode.Uri | undefined> {
 	async function resolve(absolutePath: vscode.Uri): Promise<vscode.Uri> {
 		if (absolutePath.path.endsWith('.json') || await exists(absolutePath)) {
@@ -180,7 +171,6 @@ async function getTsconfigPath(baseDirUri: vscode.Uri, pathValue: string, linkTy
 		return resolve(vscode.Uri.file(pathValue));
 	}
 
-	// Otherwise resolve like a module
 	return resolveNodeModulesPath(baseDirUri, [
 		pathValue,
 		...pathValue.endsWith('.json') ? [] : [
@@ -209,7 +199,6 @@ export function register() {
 				vscode.window.showErrorMessage(vscode.l10n.t("Failed to resolve {0} as module", extendsValue));
 				return;
 			}
-			// Will suggest to create a .json variant if it doesn't exist yet (but only for relative paths)
 			await vscode.commands.executeCommand('vscode.open', tsconfigPath);
 		}),
 		vscode.languages.registerDocumentLinkProvider(selector, new TsconfigLinkProvider()),

@@ -272,12 +272,10 @@ export abstract class AbstractExtensionsScannerService extends Disposable implem
 		if (this.environmentService.isExtensionDevelopment && this.environmentService.extensionDevelopmentLocationURI) {
 			const extensions = (await Promise.all(this.environmentService.extensionDevelopmentLocationURI.filter(extLoc => extLoc.scheme === Schemas.file)
 				.map(async extensionDevelopmentLocationURI => {
-					const input = await this.createExtensionScannerInput(extensionDevelopmentLocationURI, false, ExtensionType.User, scanOptions.language, false /* do not validate */, undefined, this.getProductVersion());
+					const input = await this.createExtensionScannerInput(extensionDevelopmentLocationURI, false, ExtensionType.User, scanOptions.language, false , undefined, this.getProductVersion());
 					const extensions = await this.extensionsScanner.scanOneOrMultipleExtensions(input);
 					return extensions.map(extension => {
-						// Override the extension type from the existing extensions
 						extension.type = existingExtensions.find(e => areSameExtensions(e.identifier, extension.identifier))?.type ?? extension.type;
-						// Validate the extension
 						return this.extensionsScanner.validate(extension, input);
 					});
 				})))
@@ -528,7 +526,6 @@ export abstract class AbstractExtensionsScannerService extends Disposable implem
 				return stat.mtime;
 			}
 		} catch (err) {
-			// That's ok...
 		}
 		return undefined;
 	}
@@ -560,7 +557,6 @@ export class ExtensionScannerInput {
 		public readonly language: string | undefined,
 		public readonly translations: Translations
 	) {
-		// Keep empty!! (JSON.parse)
 	}
 
 	public static createNlsConfiguration(input: ExtensionScannerInput): NlsConfiguration {
@@ -633,7 +629,6 @@ class ExtensionsScanner extends Disposable {
 				if (!c.isDirectory) {
 					return null;
 				}
-				// Do not consider user extension folder starting with `.`
 				if (input.type === ExtensionType.User && basename(c.resource).indexOf('.') === 0) {
 					return null;
 				}
@@ -641,7 +636,6 @@ class ExtensionsScanner extends Disposable {
 				return this.scanExtension(extensionScannerInput);
 			}));
 		return coalesce(extensions)
-			// Sort: Make sure extensions are in the same order always. Helps cache invalidation even if the order changes.
 			.sort((a, b) => a.location.path < b.location.path ? -1 : 1);
 	}
 
@@ -712,7 +706,6 @@ class ExtensionsScanner extends Disposable {
 			}
 		}
 
-		// allow publisher to be undefined to make the initial extension authoring experience smoother
 		if (!manifest.publisher) {
 			manifest.publisher = UNDEFINED_PUBLISHER;
 		}
@@ -794,7 +787,6 @@ class ExtensionsScanner extends Disposable {
 		try {
 			manifest = JSON.parse(content);
 		} catch (err) {
-			// invalid JSON, let's get good errors
 			const errors: ParseError[] = [];
 			parse(content, errors);
 			for (const e of errors) {
@@ -815,7 +807,6 @@ class ExtensionsScanner extends Disposable {
 		if (localizedMessages) {
 			try {
 				const errors: ParseError[] = [];
-				// resolveOriginalMessageBundle returns null if localizedMessages.default === undefined;
 				const defaults = await this.resolveOriginalMessageBundle(localizedMessages.default, errors);
 				if (errors.length > 0) {
 					errors.forEach((error) => {
@@ -829,7 +820,6 @@ class ExtensionsScanner extends Disposable {
 				const localized = localizedMessages.values || Object.create(null);
 				return localizeManifest(this.logService, extensionManifest, localized, defaults);
 			} catch (error) {
-				/*Ignore Error*/
 			}
 		}
 		return extensionManifest;
@@ -900,25 +890,17 @@ class ExtensionsScanner extends Disposable {
 		}
 	}
 
-	/**
-	 * Parses original message bundle, returns null if the original message bundle is null.
-	 */
 	private async resolveOriginalMessageBundle(originalMessageBundle: URI | null, errors: ParseError[]): Promise<{ [key: string]: string } | undefined> {
 		if (originalMessageBundle) {
 			try {
 				const originalBundleContent = (await this.fileService.readFile(originalMessageBundle)).value.toString();
 				return parse(originalBundleContent, errors);
 			} catch (error) {
-				/* Ignore Error */
 			}
 		}
 		return;
 	}
 
-	/**
-	 * Finds localized message bundle and the original (unlocalized) one.
-	 * If the localized file is not present, returns null for the original and marks original as localized.
-	 */
 	private findMessageBundles(extensionLocation: URI, nlsConfiguration: NlsConfiguration): Promise<{ localized: URI; original: URI | null }> {
 		return new Promise<{ localized: URI; original: URI | null }>((c, e) => {
 			const loop = (locale: string): void => {
@@ -983,7 +965,6 @@ class CachedExtensionsScanner extends ExtensionsScanner {
 			this.logService.debug('Using cached extensions scan result', input.type === ExtensionType.System ? 'system' : 'user', input.location.toString());
 			this.cacheValidatorThrottler.trigger(() => this.validateCache());
 			return cacheContents.result.map((extension) => {
-				// revive URI object
 				extension.location = URI.revive(extension.location);
 				return extension;
 			});
@@ -1016,27 +997,23 @@ class CachedExtensionsScanner extends ExtensionsScanner {
 
 	private async validateCache(): Promise<void> {
 		if (!this.input) {
-			// Input has been unset by the time we get here, so skip validation
 			return;
 		}
 
 		const cacheFile = this.getCacheFile(this.input);
 		const cacheContents = await this.readExtensionCache(cacheFile);
 		if (!cacheContents) {
-			// Cache has been deleted by someone else, which is perfectly fine...
 			return;
 		}
 
 		const actual = cacheContents.result;
 		const expected = JSON.parse(JSON.stringify(await super.scanExtensions(this.input)));
 		if (objects.equals(expected, actual)) {
-			// Cache is valid and running with it is perfectly fine...
 			return;
 		}
 
 		try {
 			this.logService.info('Invalidating Cache', actual, expected);
-			// Cache is invalid, delete it
 			await this.fileService.del(cacheFile);
 			this._onDidChangeCache.fire();
 		} catch (error) {
@@ -1110,7 +1087,7 @@ export class NativeExtensionsScannerService extends AbstractExtensionsScannerSer
 				try {
 					const content = await this.fileService.readFile(URI.file(platform.translationsConfigFile));
 					return JSON.parse(content.value.toString());
-				} catch (err) { /* Ignore Error */ }
+				} catch (err) { }
 			}
 			return Object.create(null);
 		})();

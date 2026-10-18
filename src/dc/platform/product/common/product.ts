@@ -6,23 +6,8 @@
 import { IProductConfiguration } from '../../../base/common/product.js';
 import { ISandboxConfiguration } from '../../../base/parts/sandbox/common/sandboxTypes.js';
 
-interface IPackageConfiguration {
-	readonly version: string;
-	readonly dependencies?: Readonly<Record<string, string>>;
-}
-
-function getDependencyVersion(packageConfiguration: IPackageConfiguration, packageName: string): string | undefined {
-	return packageConfiguration.dependencies?.[packageName]?.replace(/^[~^]/, '');
-}
-
-/**
- * @deprecated It is preferred that you use `IProductService` if you can. This
- * allows web embedders to override our defaults. But for things like `product.quality`,
- * the use is fine because that property is not overridable.
- */
 let product: IProductConfiguration;
 
-// Native sandbox environment
 const vscodeGlobal = (globalThis as { vscode?: { context?: { configuration(): ISandboxConfiguration | undefined } } }).vscode;
 if (typeof vscodeGlobal !== 'undefined' && typeof vscodeGlobal.context !== 'undefined') {
 	const configuration: ISandboxConfiguration | undefined = vscodeGlobal.context.configuration();
@@ -32,33 +17,20 @@ if (typeof vscodeGlobal !== 'undefined' && typeof vscodeGlobal.context !== 'unde
 		throw new Error('Sandbox: unable to resolve product configuration from preload script.');
 	}
 }
-// _VSCODE environment
 else if ((globalThis as any)._VSCODE_PRODUCT_JSON && (globalThis as any)._VSCODE_PACKAGE_JSON) {
 	product = (globalThis as any)._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
-	const packageConfiguration = (globalThis as any)._VSCODE_PACKAGE_JSON as unknown as IPackageConfiguration;
 	if (!product.version) {
 		Object.assign(product, {
-			version: packageConfiguration.version
+			version: (globalThis as any)._VSCODE_PACKAGE_JSON.version
 		});
-	}
-
-	if (!product.copilotVersions) {
-		const runtime = getDependencyVersion(packageConfiguration, '@github/copilot');
-		const sdk = getDependencyVersion(packageConfiguration, '@github/copilot-sdk');
-		if (runtime && sdk) {
-			Object.assign(product, { copilotVersions: { runtime, sdk } });
-		}
 	}
 }
 
-// Web environment or unknown
 else {
 
-	// Built time configuration (do NOT modify)
 	// eslint-disable-next-line local/code-no-dangerous-type-assertions
-	product = { /*BUILD->INSERT_PRODUCT_CONFIGURATION*/ } as unknown as IProductConfiguration;
+	product = { } as unknown as IProductConfiguration;
 
-	// Running out of sources
 	if (Object.keys(product).length === 0) {
 		Object.assign(product, {
 			version: '1.104.0-dev',
@@ -76,21 +48,18 @@ else {
 				chatExtensionId: 'github.dardcor-chat',
 				provider: {
 					default: {
-						id: 'github',
-						name: 'GitHub',
+						id: 'dardcor',
+						name: 'Dardcor',
 					},
 					enterprise: {
-						id: 'github-enterprise',
-						name: 'GitHub Enterprise',
+						id: 'dardcor-enterprise',
+						name: 'Dardcor Enterprise',
 					}
 				},
 				providerScopes: []
 			},
 			extensionUntrustedWorkspaceSupport: {
 				'github.dardcor-chat': {
-					default: true
-				},
-				'github.copilot-chat': {
 					default: true
 				},
 				'dardcor.dardcor-ai': {

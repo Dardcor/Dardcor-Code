@@ -50,7 +50,6 @@ export class CustomNesEndpoint extends ChatEndpoint {
 				family: 'custom-nes',
 				tokenizer: TokenizerType.O200K,
 				limits: {
-					// TODO@ulugbekna: copied from CAPI's 4o-mini
 					max_prompt_tokens: 12285,
 					max_output_tokens: 4096,
 				},

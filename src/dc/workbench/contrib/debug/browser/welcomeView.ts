@@ -134,7 +134,6 @@ viewsRegistry.registerViewWelcomeContent(WelcomeView.ID, {
 	content: `[${localize('runAndDebugAction', "Run and Debug")}${debugKeybindingLabel}](command:${DEBUG_START_COMMAND_ID})`,
 	when: CONTEXT_DEBUGGERS_AVAILABLE,
 	group: ViewContentGroups.Debug,
-	// Allow inserting more buttons directly after this one (by setting order to 1).
 	order: 1
 });
 

@@ -17,17 +17,14 @@ import { createAgentModelSourceMeta, readAgentModelSourceId } from '../../common
 import { URI } from '../../../../base/common/uri.js';
 import { hasClientPluginMcpDefaultCwd, hasClientPluginMcpDefaultCwds, readClientPluginMcpDefaultCwd, toClientPluginMcpDefaultCwdsMeta } from '../../common/meta/clientPluginCustomizationMeta.js';
 
-/** Wraps a `_meta` bag in a minimal {@link ToolCallState} so the reader sees the right source type. */
 function toolCall(meta: Record<string, unknown> | undefined): ToolCallState {
 	return { status: ToolCallStatus.Streaming, toolCallId: 't', toolName: 'n', displayName: 'd', _meta: meta };
 }
 
-/** Wraps a `_meta` bag in a minimal {@link AgentCustomization}. */
 function agentCustomization(meta: Record<string, unknown> | undefined): AgentCustomization {
 	return { type: CustomizationType.Agent, id: 'a', uri: 'file:///a', name: 'n', _meta: meta };
 }
 
-/** Wraps a `_meta` bag in a minimal {@link SimpleMessageAttachment}. */
 function attachment(meta: Record<string, unknown> | undefined): SimpleMessageAttachment {
 	return { type: MessageAttachmentKind.Simple, label: 'l', _meta: meta };
 }
@@ -51,8 +48,8 @@ suite('Agent host _meta readers', () => {
 				mcpToolName: 'tool',
 				autoApproveBySetting: true,
 				ui: { resourceUri: 'ui://app', channel: 'mcp://c' },
-				language2: 123,            // unknown key, ignored
-				somethingElse: 5,          // unknown key, ignored
+				language2: 123,
+				somethingElse: 5,
 			}));
 			assert.deepStrictEqual(result, {
 				toolKind: 'terminal',
@@ -304,7 +301,6 @@ suite('Agent host _meta readers', () => {
 	});
 
 	suite('agent model BYOK identifier meta', () => {
-		/** Wraps a `_meta` bag in a minimal {@link SessionModelInfo}. */
 		function model(meta: Record<string, unknown> | undefined): SessionModelInfo {
 			return { id: 'm', provider: 'p', name: 'n', _meta: meta };
 		}
@@ -346,7 +342,6 @@ suite('Agent host _meta readers', () => {
 	});
 
 	suite('usage info turn token totals', () => {
-		/** Wraps a `_meta` bag in a minimal {@link UsageInfo}. */
 		function usage(meta: Record<string, unknown> | undefined): UsageInfo {
 			return { _meta: meta };
 		}
@@ -387,9 +382,6 @@ suite('Agent host _meta readers', () => {
 		});
 
 		test('totals alone do not make a usage report count as reported consumption', () => {
-			// Totals always accompany per-call tokens or credits, and treating them as
-			// consumption on their own would make the restore path skip merging the
-			// richer persisted usage over a token-less stub.
 			assert.strictEqual(hasReportedUsage(usage({ turnTokenTotals: [{ model: 'gpt-5', inputTokens: 7, cachedTokens: 0, outputTokens: 3 }] })), false);
 		});
 	});

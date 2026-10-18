@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -33,9 +32,6 @@ export function signalFromObservable<T>(owner: DebugOwner | undefined, observabl
 	});
 }
 
-/**
- * Creates an observable that debounces the input observable.
- */
 export function debouncedObservable<T>(observable: IObservable<T>, debounceMs: number | ((lastValue: T | undefined, newValue: T) => number), debugLocation = DebugLocation.ofCaller()): IObservable<T> {
 	let hasValue = false;
 	let lastValue: T | undefined;
@@ -81,11 +77,6 @@ export function debouncedObservable<T>(observable: IObservable<T>, debounceMs: n
 	}, debugLocation);
 }
 
-/**
- * Creates an observable that throttles the input observable.
- * Unlike {@link debouncedObservable}, the timer starts on the first change
- * and is not reset by subsequent changes, preventing starvation.
- */
 export function throttledObservable<T>(observable: IObservable<T>, throttleMs: number, debugLocation = DebugLocation.ofCaller()): IObservable<T> {
 	let hasValue = false;
 	let lastValue: T | undefined;
@@ -100,7 +91,6 @@ export function throttledObservable<T>(observable: IObservable<T>, throttleMs: n
 				hasValue = true;
 				lastValue = value;
 			} else if (!timeout) {
-				// Only start a timer if one isn't already running
 				timeout = setTimeout(() => {
 					timeout = undefined;
 					lastValue = observable.read(undefined);
@@ -128,9 +118,6 @@ export function throttledObservable<T>(observable: IObservable<T>, throttleMs: n
 	}, debugLocation);
 }
 
-/**
- * Creates an observable that debounces the input observable.
- */
 export function debouncedObservable2<T>(observable: IObservable<T>, debounceMs: number | ((currentValue: T | undefined, newValue: T) => number), debugLocation = DebugLocation.ofCaller()): IObservable<T> {
 	const s = observableSignal('handleTimeout');
 
@@ -188,9 +175,6 @@ export function wasEventTriggeredRecently(event: Event<any>, timeoutMs: number, 
 	return observable;
 }
 
-/**
- * This makes sure the observable is being observed and keeps its cache alive.
- */
 export function keepObserved<T>(observable: IObservable<T>): IDisposable {
 	const o = new KeepAliveObserver(false, undefined);
 	observable.addObserver(o);
@@ -201,9 +185,6 @@ export function keepObserved<T>(observable: IObservable<T>): IDisposable {
 
 _setKeepObserved(keepObserved);
 
-/**
- * This converts the given observable into an autorun.
- */
 export function recomputeInitiallyAndOnChange<T>(observable: IObservable<T>, handleValue?: (value: T) => void): IDisposable {
 	const o = new KeepAliveObserver(true, handleValue);
 	observable.addObserver(o);
@@ -244,11 +225,9 @@ export class KeepAliveObserver implements IObserver {
 	}
 
 	handlePossibleChange<T>(observable: IObservable<T>): void {
-		// NO OP
 	}
 
 	handleChange<T, TChange>(observable: IObservableWithChange<T, TChange>, change: TChange): void {
-		// NO OP
 	}
 }
 
@@ -282,9 +261,6 @@ export function derivedObservableWithWritableCache<T>(owner: object, computeFn: 
 	});
 }
 
-/**
- * When the items array changes, referential equal items are not mapped again.
- */
 export function mapObservableArrayCached<TIn, TOut, TKey = TIn>(owner: DebugOwner, items: IObservable<readonly TIn[]>, map: (input: TIn, store: DisposableStore) => TOut, keySelector?: (input: TIn) => TKey): IObservable<readonly TOut[]> {
 	let m = new ArrayMap(map, keySelector);
 	const self = derivedOpts({

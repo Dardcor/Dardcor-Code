@@ -37,18 +37,15 @@ export class NewFilePathGenerator {
 				continue;
 			}
 
-			// Try overwriting if it already exists
 			if (config.overwriteBehavior === 'overwrite') {
 				this.#usedPaths.add(uri.toString());
 				return { uri, overwrite: true };
 			}
 
-			// Otherwise we need to check the fs to see if it exists
 			try {
 				await vscode.workspace.fs.stat(uri);
 			} catch {
 				if (!this.#wasPathAlreadyUsed(uri)) {
-					// Does not exist
 					this.#usedPaths.add(uri.toString());
 					return { uri, overwrite: false };
 				}
@@ -71,7 +68,6 @@ export function getDesiredNewFilePath(config: CopyFileConfiguration, document: v
 		}
 	}
 
-	// Default to next to current file
 	return vscode.Uri.joinPath(Utils.dirname(docUri), file.name);
 }
 

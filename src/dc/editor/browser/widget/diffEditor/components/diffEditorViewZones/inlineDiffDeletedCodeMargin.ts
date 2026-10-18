@@ -51,7 +51,6 @@ export class InlineDiffDeletedCodeMargin extends Disposable {
 	) {
 		super();
 
-		// make sure the diff margin shows above overlay.
 		this._marginDomNode.style.zIndex = '10';
 
 		this._diffActions = document.createElement('div');
@@ -66,7 +65,7 @@ export class InlineDiffDeletedCodeMargin extends Disposable {
 
 		let currentLineNumberOffset = 0;
 
-		const useShadowDOM = _modifiedEditor.getOption(EditorOption.useShadowDOM) && !isIOS; // Do not use shadow dom on IOS #122035
+		const useShadowDOM = _modifiedEditor.getOption(EditorOption.useShadowDOM) && !isIOS;
 		const showContextMenu = (anchor: { x: number; y: number }, baseActions?: Action[], onHide?: () => void) => {
 			this._contextMenuService.showContextMenu({
 				domForShadowRoot: useShadowDOM ? _modifiedEditor.getDomNode() ?? undefined : undefined,
@@ -76,7 +75,6 @@ export class InlineDiffDeletedCodeMargin extends Disposable {
 					const actions: Action[] = baseActions ?? [];
 					const isDeletion = _diff.modified.isEmpty;
 
-					// default action
 					actions.push(new Action(
 						'diff.clipboard.copyDeletedContent',
 						isDeletion
@@ -107,7 +105,6 @@ export class InlineDiffDeletedCodeMargin extends Disposable {
 							async () => {
 								let lineContent = this._originalTextModel.getLineContent(_diff.original.startLineNumber + currentLineNumberOffset);
 								if (lineContent === '') {
-									// empty line -> new line
 									const eof = this._originalTextModel.getEndOfLineSequence();
 									lineContent = eof === EndOfLineSequence.LF ? '\n' : '\r\n';
 								}

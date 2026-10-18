@@ -8,37 +8,11 @@ import { createSchema, schemaProperty } from './agentHostSchema.js';
 import { CustomizationType, type Customization, type PluginCustomization } from './state/protocol/state.js';
 import { customizationId } from './state/sessionState.js';
 
-/**
- * Well-known root-config keys used by the platform to configure agent-host
- * customizations.
- */
 export const enum AgentHostConfigKey {
-	/** Host-owned Open Plugins available to remote sessions. */
 	Customizations = 'customizations',
-	/**
-	 * Absolute path to the shell executable for host-managed terminals.
-	 * TODO: revisit magic key in config; refine into a dedicated typed channel. https://github.com/microsoft/vscode/issues/313812
-	 */
 	DefaultShell = 'defaultShell',
-	/**
-	 * Experimentation flag for conditional Agent Host auth. When true, session
-	 * types that are usable without GitHub remain available to signed-out users
-	 * instead of forcing GitHub sign-in. The workbench forwards it here from the
-	 * `chat.agentHost.allowSignedOutWhenUsable` VS Code setting; when unset the
-	 * feature is dark (today's always-proxy behavior).
-	 */
 	AllowSignedOutWhenUsable = 'allowSignedOutWhenUsable',
-	/** Controls whether session-scoped file customizations come from local scan or SDK discovery. */
 	SessionCustomizationDiscoveryMode = 'sessionCustomizationDiscoveryMode',
-	/**
-	 * Optional GitHub Enterprise base URI (e.g. `https://ghe.example.com` for a
-	 * GitHub Enterprise Server, or `https://tenant.ghe.com` for GitHub Enterprise
-	 * Cloud). When set, the agent host computes its GitHub protected resources and
-	 * REST/GraphQL endpoints from this base instead of github.com. Normally pushed
-	 * by the local VS Code client from the workbench `github-enterprise.uri`
-	 * setting; remote operators set it directly in the remote
-	 * `agent-host-config.json`.
-	 */
 	GithubEnterpriseUri = 'githubEnterpriseUri',
 }
 
@@ -46,13 +20,6 @@ export const SESSION_CUSTOMIZATION_DISCOVERY_MODES = ['scan', 'discover'] as con
 export type SessionCustomizationDiscoveryMode = typeof SESSION_CUSTOMIZATION_DISCOVERY_MODES[number];
 export const DEFAULT_SESSION_CUSTOMIZATION_DISCOVERY_MODE: SessionCustomizationDiscoveryMode = 'discover';
 
-/**
- * Persisted on-disk shape for a host-configured plugin. Kept stable across
- * the customization protocol refactor so existing `agent-host-config.json`
- * files keep working; entries are mapped to the new
- * {@link Customization} shape at read time by
- * {@link getAgentHostConfiguredCustomizations}.
- */
 interface IPersistedCustomizationConfigEntry {
 	uri: string;
 	displayName: string;
@@ -114,11 +81,6 @@ export const defaultAgentHostCustomizationConfigValues = {
 	[AgentHostConfigKey.Customizations]: [] as IPersistedCustomizationConfigEntry[],
 };
 
-/**
- * Reads the persisted (legacy-shaped) plugin entries from the agent-host
- * root config and lifts them into the new {@link Customization} container
- * shape used by the rest of the platform.
- */
 export function getAgentHostConfiguredCustomizations(values: Record<string, unknown> | undefined): readonly Customization[] {
 	const raw = values?.[AgentHostConfigKey.Customizations];
 	const entries = agentHostCustomizationConfigSchema.validate(AgentHostConfigKey.Customizations, raw)
@@ -127,10 +89,6 @@ export function getAgentHostConfiguredCustomizations(values: Record<string, unkn
 	return entries.map(toContainerCustomization);
 }
 
-/**
- * Lifts a persisted plugin config entry into the new
- * {@link Customization} container shape.
- */
 export function toContainerCustomization(entry: IPersistedCustomizationConfigEntry): PluginCustomization {
 	return {
 		type: CustomizationType.Plugin,

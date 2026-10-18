@@ -28,12 +28,10 @@ function stackToString(stack: string[] | string | undefined): string | undefined
 
 function detectSystemErrorMessage(exception: any): string {
 
-	// Custom node.js error from us
 	if (exception.code === 'ERR_UNC_HOST_NOT_ALLOWED') {
 		return l10n.t("{0}. Please update the '{1}' setting if you want to allow this host.", exception.message, 'security.allowedUNCHosts');
 	}
 
-	// See https://nodejs.org/api/errors.html#errors_class_system_error
 	if (typeof exception.code === 'string' && typeof exception.errno === 'number' && typeof exception.syscall === 'string') {
 		return l10n.t('A system error occurred ({0})', exception.message);
 	}
@@ -41,12 +39,6 @@ function detectSystemErrorMessage(exception: any): string {
 	return exception.message || l10n.t('An unknown error occurred. Please consult the log for more details.');
 }
 
-/**
- * Tries to generate a human readable error message out of the error. If the verbose parameter
- * is set to true, the error message will include stacktrace details if provided.
- *
- * @returns A string containing the error message.
- */
 export function toErrorMessage(error: any = null, verbose: boolean = false): string {
 	if (!error) {
 		return l10n.t('An unknown error occurred. Please consult the log for more details.');

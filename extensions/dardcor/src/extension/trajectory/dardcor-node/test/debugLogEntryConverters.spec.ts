@@ -185,7 +185,6 @@ describe('debugLogEntryToDebugEvent skipCoreEvents', () => {
 			name: 'Custom Event',
 			attrs: { details: 'something' },
 		});
-		// Both should attempt conversion (not return undefined)
 		expect(() => debugLogEntryToDebugEvent(entry, true)).toThrow();
 		expect(() => debugLogEntryToDebugEvent(entry, false)).toThrow();
 	});

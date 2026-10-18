@@ -29,13 +29,13 @@ suite('LRUCacheMap', function () {
 		const cache = new LRUCacheMap<string, number>(2);
 		cache.set('a', 1);
 		cache.set('b', 2);
-		assert.equal(cache.get('a'), 1); // this should make 'b' the most recently used
-		assert.equal(cache.peek('b'), 2); // this should not change the order
-		assert.ok(cache.has('b')); // b should still be in the cache
+		assert.equal(cache.get('a'), 1);
+		assert.equal(cache.peek('b'), 2);
+		assert.ok(cache.has('b'));
 		cache.set('c', 3);
 		assert.deepEqual([...cache.keys()], ['a', 'c']);
 		assert.deepEqual([...cache.values()], [1, 3]);
-		assert.ok(!cache.has('b')); // b should have been removed from the cache
+		assert.ok(!cache.has('b'));
 		assert.equal(cache.get('b'), undefined, 'b should have been removed from the cache');
 		assert.equal(cache.get('z'), undefined, 'z was never added to the cache');
 		assert.equal(cache.size, 2);
@@ -67,9 +67,8 @@ suite('LRUCacheMap', function () {
 		const entries: [string, number][] = [];
 		for (const [key, value] of cache) {
 			entries.push([key, value]);
-			// touch a should not change for loop contents even though it becomes most recently used in the LRU
 			cache.get('a');
-			cache.set('c', 3); // similarly, adding a new entry should not change the for loop contents
+			cache.set('c', 3);
 		}
 		assert.deepEqual(entries, [
 			['a', 1],
@@ -84,9 +83,8 @@ suite('LRUCacheMap', function () {
 		const entries: [string, number][] = [];
 		for (const [key, value] of cache.entries()) {
 			entries.push([key, value]);
-			// touch a should not change for loop contents even though it becomes most recently used in the LRU
 			cache.get('a');
-			cache.set('c', 3); // similarly, adding a new entry should not change the for loop contents
+			cache.set('c', 3);
 		}
 		assert.deepEqual(entries, [
 			['a', 1],
@@ -101,7 +99,7 @@ suite('LRUCacheMap', function () {
 		const entries: [string, number][] = [];
 		cache.forEach((value, key) => {
 			entries.push([key, value]);
-			cache.clear(); // shouldn't affect contents of forEach loop
+			cache.clear();
 		});
 		assert.deepEqual(entries, [
 			['a', 1],
@@ -116,9 +114,8 @@ suite('LRUCacheMap', function () {
 		const values: number[] = [];
 		for (const value of cache.values()) {
 			values.push(value);
-			// touch a should not change for loop contents even though it becomes most recently used in the LRU
 			cache.get('a');
-			cache.set('c', 3); // similarly, adding a new entry should not change the for loop contents
+			cache.set('c', 3);
 		}
 		assert.deepEqual(values, [1, 2]);
 	});
@@ -130,7 +127,7 @@ suite('LRUCacheMap', function () {
 		const keys: string[] = [];
 		for (const key of cache.keys()) {
 			keys.push(key);
-			cache.clear(); // shouldn't affect contents of forEach loop
+			cache.clear();
 		}
 		assert.deepEqual(keys, ['a', 'b']);
 	});

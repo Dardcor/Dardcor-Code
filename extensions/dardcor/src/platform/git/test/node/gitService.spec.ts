@@ -59,7 +59,6 @@ suite('parseRemoteUrl', () => {
 			'https, name only');
 
 		assert.deepStrictEqual(
-			// [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="test credentials")]
 			parseRemoteUrl('https://myname:ghp_1234556@github.com/owner/repo.git'),
 			{ host: 'github.com', rawHost: 'github.com', path: '/owner/repo.git' },
 			'https, with name and PAT');
@@ -199,14 +198,12 @@ suite('getGithubRepoIdFromFetchUrl', () => {
 	});
 
 	test('should support github url that uses www subdomain', () => {
-		// Likely a mistake but we can parse it easily
 		assertGitIdEquals(
 			getGithubRepoIdFromFetchUrl('https://www.github.com/owner/repo.git'),
 			{ org: 'owner', repo: 'repo' });
 	});
 
 	test('should support github url using http', () => {
-		// This is a mistake but we can parse it easily
 		assertGitIdEquals(
 			getGithubRepoIdFromFetchUrl('http://github.com/owner/repo.git'),
 			{ org: 'owner', repo: 'repo' });
@@ -219,7 +216,6 @@ suite('getGithubRepoIdFromFetchUrl', () => {
 			'https, name only');
 
 		assertGitIdEquals(
-			// [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="test credentials")]
 			getGithubRepoIdFromFetchUrl('https://myname:ghp_1234556@github.com/owner/repo.git'),
 			{ org: 'owner', repo: 'repo' },
 			'https, with name and PAT');
@@ -293,7 +289,6 @@ suite('getGithubRepoIdFromFetchUrl', () => {
 	});
 
 	test('should resolve host and org/repo correctly for real-world GHE SSH shorthand', () => {
-		// Real-world scenario: msdemo-eu@msdemo-eu.ghe.com:sandbox/repo.git
 		const result = getGithubRepoIdFromFetchUrl('msdemo-eu@msdemo-eu.ghe.com:sandbox/repo.git');
 		assert.ok(result, 'Should parse successfully');
 		assert.strictEqual(result.org, 'sandbox');

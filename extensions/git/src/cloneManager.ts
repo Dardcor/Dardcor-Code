@@ -36,13 +36,6 @@ export class CloneManager {
 		}
 
 		if (!url) {
-			/* __GDPR__
-				"clone" : {
-					"owner": "lszomoru",
-					"outcome" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the git operation" },
-					"openFolder": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Indicates whether the folder is opened following the clone operation" }
-				}
-			*/
 			this.telemetryReporter.sendTelemetryEvent('clone', { outcome: 'no_URL' });
 			return;
 		}
@@ -72,13 +65,6 @@ export class CloneManager {
 			});
 
 			if (!uris || uris.length === 0) {
-				/* __GDPR__
-					"clone" : {
-						"owner": "lszomoru",
-						"outcome" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the git operation" },
-						"openFolder": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Indicates whether the folder is opened following the clone operation" }
-					}
-				*/
 				this.telemetryReporter.sendTelemetryEvent('clone', { outcome: 'no_directory' });
 				return;
 			}
@@ -104,24 +90,10 @@ export class CloneManager {
 			return repositoryPath;
 		} catch (err) {
 			if (/already exists and is not an empty directory/.test(err && err.stderr || '')) {
-				/* __GDPR__
-					"clone" : {
-						"owner": "lszomoru",
-						"outcome" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the git operation" },
-						"openFolder": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Indicates whether the folder is opened following the clone operation" }
-					}
-				*/
 				this.telemetryReporter.sendTelemetryEvent('clone', { outcome: 'directory_not_empty' });
 			} else if (/Cancelled/i.test(err && (err.message || err.stderr || ''))) {
 				return;
 			} else {
-				/* __GDPR__
-					"clone" : {
-						"owner": "lszomoru",
-						"outcome" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the git operation" },
-						"openFolder": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Indicates whether the folder is opened following the clone operation" }
-					}
-				*/
 				this.telemetryReporter.sendTelemetryEvent('clone', { outcome: 'error' });
 			}
 
@@ -166,13 +138,6 @@ export class CloneManager {
 					: result === addToWorkspace ? PostCloneAction.AddToWorkspace : undefined;
 		}
 
-		/* __GDPR__
-			"clone" : {
-				"owner": "lszomoru",
-				"outcome" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the git operation" },
-				"openFolder": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Indicates whether the folder is opened following the clone operation" }
-			}
-		*/
 		this.telemetryReporter.sendTelemetryEvent('clone', { outcome: 'success' }, { openFolder: action === PostCloneAction.Open || action === PostCloneAction.OpenNewWindow ? 1 : 0 });
 
 		const uri = Uri.file(target);
@@ -210,7 +175,6 @@ export class CloneManager {
 	}
 
 	private async tryOpenExistingRepository(cachedRepository: RepositoryCacheInfo[], url: string, postCloneAction?: ApiPostCloneAction, parentPath?: string, ref?: string): Promise<string | undefined> {
-		// Gather existing folders/workspace files (ignore ones that no longer exist)
 		const existingCachedRepositories: RepositoryCacheInfo[] = (await Promise.all<RepositoryCacheInfo | undefined>(cachedRepository.map(async folder => {
 			const stat = await fs.promises.stat(folder.workspacePath).catch(() => undefined);
 			if (stat) {
@@ -221,11 +185,9 @@ export class CloneManager {
 		))).filter<RepositoryCacheInfo>((folder): folder is RepositoryCacheInfo => folder !== undefined);
 
 		if (!existingCachedRepositories.length) {
-			// fallback to clone
 			return (await this.cloneRepository(url, parentPath, { ref, postCloneAction }) ?? undefined);
 		}
 
-		// First, find the cached repo that exists in the current workspace
 		const matchingInCurrentWorkspace = existingCachedRepositories?.find(cachedRepo => {
 			return workspace.workspaceFolders?.some(workspaceFolder => workspaceFolder.uri.fsPath === cachedRepo.workspacePath);
 		});

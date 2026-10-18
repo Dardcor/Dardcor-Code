@@ -17,10 +17,6 @@ import { IExtensionPointDescriptor } from '../../../services/extensions/common/e
 
 const mcpActivationEventPrefix = 'onMcpCollection:';
 
-/**
- * note: `contributedCollectionId` is _not_ the collection ID. The collection
- * ID is formed by passing the contributed ID through `extensionPrefixedIdentifier`
- */
 export const mcpActivationEvent = (contributedCollectionId: string) =>
 	mcpActivationEventPrefix + contributedCollectionId;
 
@@ -60,20 +56,8 @@ export const mcpDiscoverySection = 'chat.mcp.discovery.enabled';
 export const mcpWorkspaceRootConfig = 'chat.mcp.workspaceRootConfig.enabled';
 export const mcpServerSamplingSection = 'chat.mcp.serverSampling';
 export const mcpServerCollisionBehaviorSection = 'chat.mcp.collisionBehavior';
-/**
- * Configuration key for the enterprise-managed MCP IdP bag. The setting is
- * registered with `included: false` so it is hidden from the Settings UI and
- * settings.json IntelliSense; it is intended to be delivered through enterprise
- * policy (Windows Group Policy / macOS managed preferences / Linux
- * `/etc/vscode/policy.json`), with hand-editing of `settings.json` as a
- * developer escape hatch.
- */
 export const mcpEnterpriseManagedAuthIdpSection = 'mcp.enterpriseManagedAuth.idp';
 
-/**
- * Shape of the {@link mcpEnterpriseManagedAuthIdpSection} setting. All fields
- * are optional so partial configurations (e.g. just the issuer) remain valid.
- */
 export interface IMcpEnterpriseManagedAuthIdpConfig {
 	readonly issuer?: string;
 	readonly clientId?: string;

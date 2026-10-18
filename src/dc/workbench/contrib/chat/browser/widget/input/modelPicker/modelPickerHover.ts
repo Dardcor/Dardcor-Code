@@ -154,8 +154,6 @@ export function getModelHoverContent(
 		container.appendChild(contextSection);
 	}
 
-	// Auto has no per-model pricing to show, but it does expose an "Optimize for" preference,
-	// so the configurable section is not gated on `isAuto`.
 	if (model.metadata.configurationSchema?.properties) {
 		const configButtons: { group: string; label: string }[] = [];
 		const seenGroups = new Set<string>();
@@ -189,10 +187,6 @@ export function getModelHoverContent(
 	return container.children.length > 0 ? { element: container, disposable: disposables } : undefined;
 }
 
-/**
- * Builds one bordered message banner (an icon plus a rendered markdown message)
- * for the warning, info and promo notices shown at the top of the hover.
- */
 export function createMessageBanner(message: string, className: string, icon: ThemeIcon, disposables: DisposableStore, openerService: IOpenerService): HTMLElement {
 	const banner = dom.$(`.${className}`);
 	banner.appendChild(renderIcon(icon));

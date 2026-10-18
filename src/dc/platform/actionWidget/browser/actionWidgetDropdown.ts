@@ -48,40 +48,15 @@ export interface IActionWidgetDropdownAction extends IAction {
 	category?: { label: string; order: number; showHeader?: boolean };
 	icon?: ThemeIcon;
 	description?: string | IMarkdownString;
-	/**
-	 * Optional detail text displayed as a second line below the label.
-	 */
 	detail?: string;
-	/**
-	 * Optional description used in the accessible label instead of the visual description.
-	 */
 	ariaDescription?: string;
-	/**
-	 * Optional flyout hover configuration shown when focusing/hovering over the action.
-	 */
 	hover?: IActionListItemHover;
-	/**
-	 * Optional toolbar actions shown when the item is focused or hovered.
-	 */
 	toolbarActions?: IAction[];
-	/**
-	 * Optional CSS class name applied to the action list row container.
-	 */
 	className?: string;
-	/**
-	 * Optional inline toggle switch rendered on its own row inside the item.
-	 */
 	inlineToggle?: IActionListItemInlineToggle;
-	/**
-	 * Optional keybinding to display next to the action. When provided, this overrides the
-	 * keybinding that would otherwise be looked up via {@link IKeybindingService.lookupKeybinding}.
-	 * Useful when the active keybinding depends on a scoped context (e.g. focus state) that the
-	 * dropdown cannot evaluate at display time.
-	 */
 	keybinding?: ResolvedKeybinding;
 }
 
-// TODO @lramos15 - Should we just make IActionProvider templated?
 export interface IActionWidgetDropdownActionProvider {
 	getActions(): IActionWidgetDropdownAction[];
 }
@@ -91,36 +66,21 @@ export interface IActionWidgetDropdownListOptionsProvider {
 }
 
 export interface IActionWidgetDropdownOptions extends IBaseDropdownOptions {
-	// These are the actions that are shown in the action widget split up by category
 	readonly actions?: IActionWidgetDropdownAction[];
 	readonly actionProvider?: IActionWidgetDropdownActionProvider;
 
-	// These actions are those shown at the bottom of the action widget
 	readonly actionBarActions?: IAction[];
 	readonly actionBarActionProvider?: IActionProvider;
 	readonly showItemKeybindings?: boolean;
 
-	// Function that returns the anchor element for the dropdown
 	getAnchor?: () => HTMLElement;
 
-	/**
-	 * Telemetry reporter configuration used when the dropdown closes. The `id` field is required
-	 * and is used as the telemetry identifier; `name` is optional additional context. If not
-	 * provided, no telemetry will be sent.
-	 */
 	readonly reporter?: { id: string; name?: string; includeOptions?: boolean };
 
-	/**
-	 * Options for the underlying ActionList (filter, collapsible sections).
-	 */
 	readonly listOptions?: IActionListOptions;
 	readonly listOptionsProvider?: IActionWidgetDropdownListOptionsProvider;
 }
 
-/**
- * Action widget dropdown is a dropdown that uses the action widget under the hood to simulate a native dropdown menu
- * The benefits of this include non native features such as headers, descriptions, icons, and button bar
- */
 export class ActionWidgetDropdown extends BaseDropdown {
 
 	private _enabled: boolean = true;
@@ -143,7 +103,6 @@ export class ActionWidgetDropdown extends BaseDropdown {
 		const actionBarActions = this._options.actionBarActions ?? this._options.actionBarActionProvider?.getActions() ?? [];
 		const actions = this._options.actions ?? this._options.actionProvider?.getActions() ?? [];
 
-		// Track the currently selected option before opening
 		const optionBeforeOpen: IActionWidgetDropdownAction | undefined = actions.find(a => a.checked);
 		let selectedOption: IActionWidgetDropdownAction | undefined = optionBeforeOpen;
 
@@ -161,7 +120,6 @@ export class ActionWidgetDropdown extends BaseDropdown {
 			actionsByCategory.get(category.label)!.push(action);
 		}
 
-		// Sort categories by order
 		const sortedCategories = Array.from(actionsByCategory.entries())
 			.sort((a, b) => {
 				const aOrder = a[1][0]?.category?.order ?? Number.MAX_SAFE_INTEGER;
@@ -182,7 +140,6 @@ export class ActionWidgetDropdown extends BaseDropdown {
 				});
 			}
 
-			// Push actions for each category
 			for (const action of categoryActions) {
 				actionWidgetItems.push({
 					item: action,
@@ -206,7 +163,6 @@ export class ActionWidgetDropdown extends BaseDropdown {
 				});
 			}
 
-			// Add separator after each category except the last one
 			if (i < sortedCategories.length - 1) {
 				actionWidgetItems.push({
 					label: '',
@@ -273,8 +229,6 @@ export class ActionWidgetDropdown extends BaseDropdown {
 			},
 			getSetSize: () => nonSeparatorItems.length,
 			getPosInSet: (_element, index) => {
-				// Count only Action items up to this index; clamp to at least 1
-				// since aria-posinset must be in the range 1..aria-setsize
 				let pos = 0;
 				for (let i = 0; i <= index && i < actionWidgetItems.length; i++) {
 					if (actionWidgetItems[i].kind === ActionListItemKind.Action) {
@@ -286,8 +240,6 @@ export class ActionWidgetDropdown extends BaseDropdown {
 			getRole: (e) => {
 				switch (e.kind) {
 					case ActionListItemKind.Action:
-						// Auxiliary actions are not checkable options, so use 'menuitem' to
-						// avoid screen readers announcing them as unchecked checkboxes.
 						return e.item && auxiliaryActionIds.has(e.item.id) ? 'menuitem' : 'menuitemcheckbox';
 					case ActionListItemKind.Separator:
 						return 'separator';

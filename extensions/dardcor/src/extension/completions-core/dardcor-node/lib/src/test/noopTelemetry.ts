@@ -3,14 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CopilotTelemetryReporter } from '../telemetry';
+import { DardcorTelemetryReporter } from '../telemetry';
 
-export class NoopCopilotTelemetryReporter implements CopilotTelemetryReporter {
+export class NoopDardcorTelemetryReporter implements DardcorTelemetryReporter {
 	sendTelemetryEvent(): void {
-		// noop
 	}
 	sendTelemetryErrorEvent(): void {
-		// noop
 	}
 	dispose(): Promise<void> {
 		return Promise.resolve();

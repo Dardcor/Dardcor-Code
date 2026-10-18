@@ -63,18 +63,18 @@ suite('CancellationToken', function () {
 
 		let source = new CancellationTokenSource();
 		let token = source.token;
-		assert.ok(token === source.token); // doesn't change on get
+		assert.ok(token === source.token);
 
 		source.cancel();
-		assert.ok(token === source.token); // doesn't change after cancel
+		assert.ok(token === source.token);
 
 		source.cancel();
-		assert.ok(token === source.token); // doesn't change after 2nd cancel
+		assert.ok(token === source.token);
 
 		source = new CancellationTokenSource();
 		source.cancel();
 		token = source.token;
-		assert.ok(token === source.token); // doesn't change on get
+		assert.ok(token === source.token);
 	});
 
 	test('dispose calls no listeners', function () {
@@ -97,7 +97,6 @@ suite('CancellationToken', function () {
 		store.add(source.token.onCancellationRequested(() => count++));
 
 		source.dispose(true);
-		// source.cancel();
 		assert.strictEqual(count, 1);
 	});
 
@@ -193,15 +192,15 @@ suite('CancellationTokenPool', function () {
 		const source1 = new CancellationTokenSource();
 		const source2 = new CancellationTokenSource();
 
-		source1.cancel(); // Cancel before adding to pool
+		source1.cancel();
 
 		pool.add(source1.token);
-		assert.strictEqual(pool.token.isCancellationRequested, true); // 1 of 1 cancelled, so pool is cancelled
-
-		pool.add(source2.token); // Adding after pool is done should have no effect
 		assert.strictEqual(pool.token.isCancellationRequested, true);
 
-		source2.cancel(); // This should have no effect since pool is already done
+		pool.add(source2.token);
+		assert.strictEqual(pool.token.isCancellationRequested, true);
+
+		source2.cancel();
 		assert.strictEqual(pool.token.isCancellationRequested, true);
 
 		source1.dispose();
@@ -216,7 +215,7 @@ suite('CancellationTokenPool', function () {
 		source.cancel();
 
 		pool.add(source.token);
-		assert.strictEqual(pool.token.isCancellationRequested, true); // 1 of 1 cancelled
+		assert.strictEqual(pool.token.isCancellationRequested, true);
 
 		source.dispose();
 	});
@@ -229,11 +228,10 @@ suite('CancellationTokenPool', function () {
 		const source2 = new CancellationTokenSource();
 
 		pool.add(source1.token);
-		source1.cancel(); // Pool should be done now
+		source1.cancel();
 
 		assert.strictEqual(pool.token.isCancellationRequested, true);
 
-		// Adding another token should have no effect
 		pool.add(source2.token);
 		source2.cancel();
 

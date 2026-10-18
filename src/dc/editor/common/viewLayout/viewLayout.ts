@@ -204,7 +204,6 @@ export class ViewLayout extends Disposable implements IViewLayout {
 		this._scrollable.setSmoothScrollDuration(this._configuration.options.get(EditorOption.smoothScrolling) ? SMOOTH_SCROLLING_TIME : 0);
 	}
 
-	// ---- begin view event handlers
 
 	public onConfigurationChanged(e: ConfigurationChangedEvent): void {
 		const options = this._configuration.options;
@@ -244,17 +243,14 @@ export class ViewLayout extends Disposable implements IViewLayout {
 		this._linesLayout.onLinesInserted(fromLineNumber, toLineNumber);
 	}
 
-	// ---- end view event handlers
 
 	private _getHorizontalScrollbarHeight(width: number, scrollWidth: number): number {
 		const options = this._configuration.options;
 		const scrollbar = options.get(EditorOption.scrollbar);
 		if (scrollbar.horizontal === ScrollbarVisibility.Hidden) {
-			// horizontal scrollbar not visible
 			return 0;
 		}
 		if (width >= scrollWidth) {
-			// horizontal scrollbar not visible
 			return 0;
 		}
 		return scrollbar.horizontalScrollbarSize;
@@ -286,7 +282,6 @@ export class ViewLayout extends Disposable implements IViewLayout {
 		));
 	}
 
-	// ---- Layouting logic
 
 	public getCurrentViewport(): Viewport {
 		const scrollDimensions = this._scrollable.getScrollDimensions();
@@ -319,9 +314,7 @@ export class ViewLayout extends Disposable implements IViewLayout {
 		if (wrappingInfo.isViewportWrapping) {
 			const minimap = options.get(EditorOption.minimap);
 			if (maxLineWidth > layoutInfo.contentWidth + fontInfo.typicalHalfwidthCharacterWidth) {
-				// This is a case where viewport wrapping is on, but the line extends above the viewport
 				if (minimap.enabled && minimap.side === 'right') {
-					// We need to accommodate the scrollbar width
 					return maxLineWidth + layoutInfo.verticalScrollbarWidth;
 				}
 			}
@@ -352,11 +345,9 @@ export class ViewLayout extends Disposable implements IViewLayout {
 			scrollDimensions.contentHeight
 		));
 
-		// The height might depend on the fact that there is a horizontal scrollbar or not
 		this._updateHeight();
 	}
 
-	// ---- view state
 
 	public saveState(): { scrollTop: number; scrollTopWithoutViewZones: number; scrollLeft: number } {
 		const currentScrollPosition = this._scrollable.getFutureScrollPosition();
@@ -370,7 +361,6 @@ export class ViewLayout extends Disposable implements IViewLayout {
 		};
 	}
 
-	// ----
 	public changeWhitespace(callback: (accessor: IWhitespaceChangeAccessor) => void): boolean {
 		const hadAChange = this._linesLayout.changeWhitespace(callback);
 		if (hadAChange) {
@@ -418,7 +408,6 @@ export class ViewLayout extends Disposable implements IViewLayout {
 		return this._linesLayout.getLinesViewportData(visibleBox.top, visibleBox.top + visibleBox.height);
 	}
 	public getLinesViewportDataAtScrollTop(scrollTop: number): IPartialViewLinesViewportData {
-		// do some minimal validations on scrollTop
 		const scrollDimensions = this._scrollable.getScrollDimensions();
 		if (scrollTop + scrollDimensions.height > scrollDimensions.scrollHeight) {
 			scrollTop = scrollDimensions.scrollHeight - scrollDimensions.height;
@@ -436,7 +425,6 @@ export class ViewLayout extends Disposable implements IViewLayout {
 		return this._linesLayout.getWhitespaces();
 	}
 
-	// ----
 
 	public getContentWidth(): number {
 		const scrollDimensions = this._scrollable.getScrollDimensions();

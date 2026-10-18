@@ -12,7 +12,6 @@ suite('chat input stack', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** Build a stack of slots and report which of them continue the run above. */
 	function stack(...states: readonly ChatInputStackSlot[]) {
 		const root = dom.$(`.${chatInputStackClass}`);
 		const slots = states.map(state => {
@@ -45,14 +44,12 @@ suite('chat input stack', () => {
 	});
 
 	test('a standalone slot breaks the run rather than passing it on', () => {
-		// The card closes its own box, so the input below keeps its own frame.
 		const { continues } = stack(Docked, Standalone, Empty);
 
 		assert.deepStrictEqual(continues(), [false, true, false]);
 	});
 
 	test('a standalone slot still joins a run it sits inside', () => {
-		// Squaring its own top and closing its own bottom are separate questions.
 		const { continues } = stack(Docked, Standalone, Docked, Empty);
 
 		assert.deepStrictEqual(continues(), [false, true, false, true]);
@@ -75,9 +72,6 @@ suite('chat input stack', () => {
 	});
 
 	test('a nested stack continues the run its container is in', () => {
-		// The sub-session tip docks above the whole composer and has to reach the
-		// input inside it. Inner members are added after the outer notice docks,
-		// which is the real ordering.
 		const outer = stack(Docked, Empty);
 		const inner = outer.slots[1];
 		inner.classList.add(chatInputStackClass);
@@ -87,7 +81,6 @@ suite('chat input stack', () => {
 		refreshChatInputStack(outer.root);
 
 		const seeded = [first, second].map(s => s.classList.contains('chat-input-stack-continues'));
-		// Standing the outer notice down has to reach through into the inner stack.
 		outer.set(0, ChatInputStackSlot.Empty);
 		const afterStandDown = [first, second].map(s => s.classList.contains('chat-input-stack-continues'));
 
@@ -108,8 +101,6 @@ suite('chat input stack', () => {
 	});
 
 	test('a slot appended after another has docked still joins the run', () => {
-		// Hosts dock a notice before rendering the surface it docks to, and nothing
-		// reports for a child being added.
 		const s = stack(Docked);
 
 		const late = dom.append(s.root, dom.$('div'));
@@ -122,8 +113,6 @@ suite('chat input stack', () => {
 	});
 
 	test('a standalone slot ends the run, so nothing below it is squared', () => {
-		// The composer joins a notice above it, but the controls row below keeps
-		// its own spacing.
 		const s = stack(Docked, Standalone);
 		const below = dom.append(s.root, dom.$('div'));
 		refreshChatInputStack(s.root);
@@ -134,7 +123,6 @@ suite('chat input stack', () => {
 	});
 
 	test('a docked slot removed without standing down leaves the run stale', () => {
-		// The one rule a slot owner must follow: report Empty before detaching.
 		const s = stack(Docked, Empty);
 
 		s.slots[0].remove();
@@ -148,8 +136,6 @@ suite('chat input stack', () => {
 	});
 
 	test('the input reports focus and progress to the stack independently', () => {
-		// Two bits on one element, written from two different places, so setting
-		// one must not clear the other.
 		const s = stack(Docked);
 		const input = dom.append(s.root, dom.$('.interactive-input-and-side-toolbar', undefined, dom.$('.chat-input-container')));
 		const inner = input.firstElementChild as HTMLElement;

@@ -11,7 +11,7 @@ import { InMemoryConfigurationService } from '../../../platform/configuration/te
 import { DefaultsOnlyConfigurationService } from '../../../platform/configuration/common/defaultsOnlyConfigurationService';
 import { IChatModelInformation, ICompletionModelInformation, IEmbeddingModelInformation } from '../../../platform/endpoint/common/endpointProvider';
 import { IModelMetadataFetcher } from '../../../platform/endpoint/node/modelMetadataFetcher';
-import { CopilotChatEndpoint } from '../../../platform/endpoint/node/dardcorChatEndpoint';
+import { DardcorChatEndpoint } from '../../../platform/endpoint/node/dardcorChatEndpoint';
 import { ExtensionContributedChatEndpoint } from '../../../platform/endpoint/dardcor-node/extChatEndpoint';
 import { ITestingServicesAccessor } from '../../../platform/test/node/services';
 import { TokenizerType } from '../../../util/common/tokenizer';
@@ -31,10 +31,10 @@ class FakeModelMetadataFetcher implements IModelMetadataFetcher {
 	async getChatModelFromApiModel(model: LanguageModelChat): Promise<IChatModelInformation | undefined> {
 		return undefined;
 	}
-	async getCopilotUtilityModel(): Promise<IChatModelInformation> {
+	async getDardcorUtilityModel(): Promise<IChatModelInformation> {
 		return this._fakeChatModel('dardcor-utility');
 	}
-	async getChatModelFromCapiFamily(family: string): Promise<IChatModelInformation> {
+	async getChatModelFromRouterModel(family: string): Promise<IChatModelInformation> {
 		return this._fakeChatModel(family);
 	}
 
@@ -98,7 +98,7 @@ suite('Endpoint Class Test', function () {
 	});
 });
 
-class CopilotMatchableModelMetadataFetcher implements IModelMetadataFetcher {
+class RouterAwareModelMetadataFetcher implements IModelMetadataFetcher {
 	public onDidModelsRefresh = Event.None;
 	constructor(private readonly _models: IChatModelInformation[]) { }
 	async getAllChatModels(): Promise<IChatModelInformation[]> {
@@ -110,10 +110,10 @@ class CopilotMatchableModelMetadataFetcher implements IModelMetadataFetcher {
 	async getChatModelFromApiModel(): Promise<IChatModelInformation | undefined> {
 		return undefined;
 	}
-	async getCopilotUtilityModel(): Promise<IChatModelInformation> {
+	async getDardcorUtilityModel(): Promise<IChatModelInformation> {
 		return makeChatModel('dardcor-utility');
 	}
-	async getChatModelFromCapiFamily(family: string): Promise<IChatModelInformation> {
+	async getChatModelFromRouterModel(family: string): Promise<IChatModelInformation> {
 		return makeChatModel(family);
 	}
 	async getEmbeddingsModel(): Promise<IEmbeddingModelInformation> {
@@ -174,7 +174,7 @@ suite('ProductionEndpointProvider — utility model overrides', () => {
 
 	function setFetcher(models: IChatModelInformation[]): void {
 		// @ts-expect-error — replacing private member for the test.
-		endpointProvider._modelFetcher = new CopilotMatchableModelMetadataFetcher(models);
+		endpointProvider._modelFetcher = new RouterAwareModelMetadataFetcher(models);
 	}
 
 	function makeFakeLanguageModelChat(overrides: Partial<LanguageModelChat>): LanguageModelChat {
@@ -196,7 +196,7 @@ suite('ProductionEndpointProvider — utility model overrides', () => {
 		assert.strictEqual(endpoint.model, 'dardcor-utility');
 	});
 
-	test('no override configured — uses the Copilot utility model when the selected main agent model is BYOK and a Copilot token is available', async () => {
+	test('no override configured — uses the Router utility model for a BYOK main agent', async () => {
 		setFetcher([makeChatModel('dardcor-utility')]);
 		await endpointProvider.getChatEndpoint(makeFakeLanguageModelChat({ vendor: 'anthropic' }));
 
@@ -205,20 +205,15 @@ suite('ProductionEndpointProvider — utility model overrides', () => {
 		assert.strictEqual(endpoint.model, 'dardcor-utility');
 	});
 
-	test('no override configured — rejects when the selected main agent model is BYOK and no Copilot token is available (air-gapped)', async () => {
+	test('Router utility models work for a BYOK main agent without GitHub authentication', async () => {
 		setFetcher([makeChatModel('dardcor-utility')]);
-		// Simulate a signed-out / air-gapped BYOK session with no Copilot token source.
-		// @ts-expect-error — access the protected auth service to stub its token-source signal.
-		sandbox.stub(endpointProvider._authService, 'hasCopilotTokenSource').get(() => false);
 		await endpointProvider.getChatEndpoint(makeFakeLanguageModelChat({ vendor: 'anthropic' }));
 
-		await assert.rejects(
-			() => endpointProvider.getChatEndpoint('dardcor-utility'),
-			/No utility model is configured/
-		);
+		const endpoint = await endpointProvider.getChatEndpoint('dardcor-utility');
+		assert.strictEqual(endpoint.model, 'dardcor-utility');
 	});
 
-	test('Copilot default applies when the selected main agent model is BYOK', async () => {
+	test('Router default applies when the selected main agent model is BYOK', async () => {
 		setFetcher([makeChatModel('dardcor-utility')]);
 		await endpointProvider.getChatEndpoint(makeFakeLanguageModelChat({ vendor: 'anthropic' }));
 		await configService.setNonExtensionConfig('chat.byokUtilityModelDefault', 'dardcor');
@@ -242,14 +237,14 @@ suite('ProductionEndpointProvider — utility model overrides', () => {
 		assert.strictEqual(smallUtilityEndpoint.model, 'qwen3.6');
 	});
 
-	test('BYOK utility default does not replace utility models for a Copilot main agent model', async () => {
+	test('BYOK utility default does not replace utility models for a Dardcor main agent model', async () => {
 		setFetcher([makeChatModel('dardcor-utility')]);
 		await endpointProvider.getChatEndpoint(makeFakeLanguageModelChat({ vendor: 'dardcor', id: 'gpt-5' }));
 		await configService.setNonExtensionConfig('chat.byokUtilityModelDefault', 'mainAgent');
 
 		const endpoint = await endpointProvider.getChatEndpoint('dardcor-utility');
 
-		assert.ok(endpoint instanceof CopilotChatEndpoint);
+		assert.ok(endpoint instanceof DardcorChatEndpoint);
 		assert.strictEqual(endpoint.model, 'dardcor-utility');
 	});
 
@@ -284,7 +279,7 @@ suite('ProductionEndpointProvider — utility model overrides', () => {
 		await configService.setNonExtensionConfig('chat.utilityModel', 'dardcor/gpt-4o-mini');
 
 		const endpoint = await endpointProvider.getChatEndpoint('dardcor-utility');
-		assert.ok(endpoint instanceof CopilotChatEndpoint);
+		assert.ok(endpoint instanceof DardcorChatEndpoint);
 		assert.strictEqual(endpoint.model, 'gpt-4o-mini');
 	});
 
@@ -318,8 +313,6 @@ suite('ProductionEndpointProvider — utility model overrides', () => {
 
 	test('non-string override values fall back to default and do not throw', async () => {
 		setFetcher([makeChatModel('dardcor-utility')]);
-		// Users can hand-edit settings.json with arbitrary JSON; the
-		// `getNonExtensionConfig<string>` API is only a TS cast.
 		await configService.setNonExtensionConfig('chat.utilityModel', 42 as unknown as string);
 
 		const endpoint = await endpointProvider.getChatEndpoint('dardcor-utility');
@@ -381,16 +374,11 @@ suite('ProductionEndpointProvider — utility model overrides', () => {
 	});
 
 	test('arbitrary CAPI model family resolves to that model (execution/search subagent override)', async () => {
-		// Regression for https://github.com/microsoft/vscode/issues/320231: the
-		// execution and search subagents pass their `*.model` override (e.g.
-		// 'gemini-3-flash') straight to getChatEndpoint(). It must resolve the CAPI
-		// family rather than throwing 'Unrecognized chat endpoint family' and
-		// silently falling back to the parent model.
 		const subagentModel = 'gemini-3-flash';
 		setFetcher([makeChatModel('dardcor-utility'), makeChatModel(subagentModel)]);
 
 		const endpoint = await endpointProvider.getChatEndpoint(subagentModel);
-		assert.ok(endpoint instanceof CopilotChatEndpoint);
+		assert.ok(endpoint instanceof DardcorChatEndpoint);
 		assert.strictEqual(endpoint.model, subagentModel);
 	});
 });

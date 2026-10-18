@@ -507,11 +507,9 @@ export class ContextResult {
 		}
 		const key = item.key;
 		if (this.context.clientHasContextItem(key)) {
-			// The item is already known on the client side.
 			return ContextItemReference.create(key);
 		}
 		if (this.contextItems.has(key)) {
-			// The item is already known on the server side.
 			return ContextItemReference.create(key);
 		}
 		this.contextItems.set(key, item);
@@ -532,7 +530,6 @@ export class ContextResult {
 			for (const item of runnableResult.items) {
 				if (item.kind === ContextKind.Reference) {
 					if (seen.has(item.key)) {
-						// We have already seen this item, skip it.
 						continue;
 					}
 					seen.add(item.key);
@@ -674,7 +671,6 @@ class CacheBasedContextRunnable implements ContextRunnable {
 		if (this.tokenBudget === undefined) {
 			return;
 		}
-		// Update the token budget.
 		for (const item of this.cached.items) {
 			this.tokenBudget.spent(item.sizeInChars ?? 0);
 		}
@@ -958,8 +954,6 @@ export abstract class AbstractContextRunnable implements ContextRunnable {
 			for (const decl of declarations) {
 				if (ts.isTypeAliasDeclaration(decl)) {
 					declaration = decl;
-					// Multiple type aliases declarations with the same name
-					// and different types are not possible.
 					break;
 				}
 			}
@@ -995,8 +989,6 @@ export abstract class AbstractContextRunnable implements ContextRunnable {
 						if (seen.has(symbol)) {
 							continue;
 						}
-						// We can't name type literals on that level and we have included
-						// the type alias itself, so we don't need to emit it again.
 						if (!Symbols.isTypeLiteral(symbol)) {
 							this.doGetEmitDataForSymbol(result, seen, level + 1, symbol, name);
 						}

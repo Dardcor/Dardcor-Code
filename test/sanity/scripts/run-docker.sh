@@ -25,9 +25,6 @@ IMAGE="$REGISTRY:$CONTAINER-$ARCH"
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 
-# The container runs as root and writes into the bind-mounted volume, leaving
-# files owned by root on the host. Restore host ownership so the agent user
-# can read/publish artifacts (crash dumps).
 fix_ownership() {
 	docker run \
 		--rm \

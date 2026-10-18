@@ -14,20 +14,12 @@ export interface ITestDepsResolver {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * @returns The list of test dependencies for the current file based on the language either using language knowledge or by using Copilot.
-	 */
 	getTestDeps(languageId: string): Promise<string[]>;
 }
 
 export class TestDepsResolver implements ITestDepsResolver {
 	declare readonly _serviceBrand: undefined;
 
-	/**
-	 * languageId -> test dependencies
-	 *
-	 * TODO@ulugbekna: this can be outdated if package.json changes or a new workspace folder with a different package.json is added
-	 */
 	private _cachedResults: Map<string, string[]>;
 
 	private readonly _textDecoder: TextDecoder;
@@ -102,9 +94,6 @@ class JsTsTestDepsFinder implements ITestDepsFinder {
 	) {
 	}
 
-	/**
-	 * Search for test dependencies in package.json files in the workspace.
-	 */
 	public async findTestDeps(): Promise<string[]> {
 		const packageJsonUris = await this._searchService.findFiles('**/package.json', { exclude: ['**/node_modules/**'], useExcludeSettings: ExcludeSettingOptions.FilesExclude });
 		const testDeps = await Promise.allSettled(
@@ -132,9 +121,6 @@ class PyTestDepsFinder implements ITestDepsFinder {
 	) {
 	}
 
-	/**
-	 * Search for test dependencies in package.json files in the workspace.
-	 */
 	public async findTestDeps(): Promise<string[]> {
 		const testDeps = new Set<string>();
 
@@ -147,19 +133,15 @@ class PyTestDepsFinder implements ITestDepsFinder {
 			const contentStr = this._textDecoder.decode(content);
 
 			if (uri.path.endsWith('pyproject.toml')) {
-				// pyproject.toml
 				const deps = this._getPyProjectTomlDeps(contentStr);
 				deps.forEach((dep: string) => testDeps.add(dep));
 			} else if (uri.path.endsWith('setup.py')) {
-				// setup.py
 				const deps = this._getSetupPyDeps(contentStr);
 				deps.forEach((dep: string) => testDeps.add(dep));
 			} else if (uri.path.endsWith('requirements.txt')) {
-				// requirements.txt
 				const deps = this._getRequirementsTxtDeps(contentStr);
 				deps.forEach((dep: string) => testDeps.add(dep));
 			} else if (uri.path.endsWith('tox.ini')) {
-				// tox.ini
 				testDeps.add('tox');
 			}
 		}));

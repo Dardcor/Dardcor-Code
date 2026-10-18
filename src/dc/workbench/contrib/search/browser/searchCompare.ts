@@ -14,10 +14,6 @@ import { isSearchTreeAIFileMatch } from './AISearch/aiSearchModelBase.js';
 let elemAIndex: number = -1;
 let elemBIndex: number = -1;
 
-/**
- * Compares instances of the same match type. Different match types should not be siblings
- * and their sort order is undefined.
- */
 export function searchMatchComparer(elementA: RenderableMatch, elementB: RenderableMatch, sortOrder: SearchSortOrder = SearchSortOrder.Default): number {
 	if (isSearchTreeFileMatch(elementA) && isSearchTreeFolderMatch(elementB)) {
 		return 1;
@@ -46,7 +42,6 @@ export function searchMatchComparer(elementA: RenderableMatch, elementB: Rendera
 				return compareFileExtensions(elementA.name(), elementB.name());
 			case SearchSortOrder.FileNames:
 				return compareFileNames(elementA.name(), elementB.name());
-			// Fall through otherwise
 			default:
 				if (!elementA.resource || !elementB.resource) {
 					return 0;
@@ -73,7 +68,6 @@ export function searchMatchComparer(elementA: RenderableMatch, elementB: Rendera
 
 				}
 			}
-			// Fall through otherwise
 			default:
 				return comparePaths(elementA.resource.fsPath, elementB.resource.fsPath) || compareFileNames(elementA.name(), elementB.name());
 		}
@@ -98,7 +92,6 @@ function compareNotebookPos(match1: IMatchInNotebook, match2: IMatchInNotebook):
 		} else if (match1.webviewIndex === undefined && match2.webviewIndex === undefined) {
 			return Range.compareRangesUsingStarts(match1.range(), match2.range());
 		} else {
-			// webview matches should always be after content matches
 			if (match1.webviewIndex !== undefined) {
 				return 1;
 			} else {

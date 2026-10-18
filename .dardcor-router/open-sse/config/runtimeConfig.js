@@ -1,4 +1,3 @@
-// HTTP status codes
 export const HTTP_STATUS = {
   BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
@@ -14,16 +13,13 @@ export const HTTP_STATUS = {
   GATEWAY_TIMEOUT: 504
 };
 
-// Re-export error config (backward compat)
 export { ERROR_TYPES, DEFAULT_ERROR_MESSAGES, BACKOFF_CONFIG, COOLDOWN_MS } from "./errorConfig.js";
 
-// Cache TTLs (seconds)
 export const CACHE_TTL = {
-  userInfo: 300,    // 5 minutes
-  modelAlias: 3600  // 1 hour
+  userInfo: 300,
+  modelAlias: 3600
 };
 
-// Memory management config
 export const MEMORY_CONFIG = {
   sessionTtlMs: 2 * 60 * 60 * 1000,
   sessionCleanupIntervalMs: 30 * 60 * 1000,
@@ -31,7 +27,6 @@ export const MEMORY_CONFIG = {
   proxyDispatchersMaxSize: 20,
 };
 
-// Parse a positive integer env override, falling back to a default.
 function envMs(name, def) {
   const raw = process.env[name];
   if (raw == null || raw === "") return def;
@@ -44,37 +39,26 @@ function envUrl(name, def) {
   return raw || def;
 }
 
-// SearXNG endpoint used by the unauthenticated web-search provider.
-// Configure this for a separate Docker service or remote SearXNG instance.
 export const SEARXNG_URL = envUrl("SEARXNG_URL", "http://localhost:8888/search");
 
-// Inter-chunk stall timeout (once tokens are flowing). Generous headroom so
-// slow reasoning models aren't aborted mid-stream. Env: STREAM_STALL_TIMEOUT_MS.
 export const STREAM_STALL_TIMEOUT_MS = envMs("STREAM_STALL_TIMEOUT_MS", 360 * 1000);
 
-// Time-to-first-token timeout (prompt prefill). Env: STREAM_FIRST_CHUNK_TIMEOUT_MS.
 export const STREAM_FIRST_CHUNK_TIMEOUT_MS = envMs("STREAM_FIRST_CHUNK_TIMEOUT_MS", 200 * 1000);
 
-// Fetch connect timeout: abort if upstream doesn't return response headers within this duration
 export const FETCH_CONNECT_TIMEOUT_MS = envMs("FETCH_CONNECT_TIMEOUT_MS", 60 * 1000);
 
-// Gemini native TTS fetch timeout: abort if Google does not return response headers in time.
 export const GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS = envMs("GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS", 45 * 1000);
 
-// Default token limits
 export const DEFAULT_MAX_TOKENS = 64000;
 export const DEFAULT_MIN_TOKENS = 32000;
 
 export const TOKEN_SAVER_HEADER = "x-dardcor-code-token-saver";
 
-// Retry config for 429 responses (legacy - kept for backward compatibility)
 export const RETRY_CONFIG = {
   maxAttempts: 2,
   delayMs: 2000
 };
 
-// Default retry config by status code: { attempts, delayMs }
-// Backward compat: if value is a number, treated as attempts with RETRY_CONFIG.delayMs
 export const DEFAULT_RETRY_CONFIG = {
   429: { attempts: 0, delayMs: 0 },
   502: { attempts: 3, delayMs: 3000 },
@@ -82,7 +66,6 @@ export const DEFAULT_RETRY_CONFIG = {
   504: { attempts: 2, delayMs: 3000 }
 };
 
-// Normalize a retry entry to { attempts, delayMs }
 export function resolveRetryEntry(entry) {
   if (entry == null) return { attempts: 0, delayMs: RETRY_CONFIG.delayMs };
   if (typeof entry === "number") return { attempts: entry, delayMs: RETRY_CONFIG.delayMs };
@@ -92,7 +75,6 @@ export function resolveRetryEntry(entry) {
   };
 }
 
-// Requests containing these texts will bypass provider
 export const SKIP_PATTERNS = [
   "Please write a 5-10 word title for the following conversation:"
 ];

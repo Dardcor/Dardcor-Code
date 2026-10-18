@@ -220,7 +220,6 @@ class RuntimeStatusMarkdownRenderer extends Disposable implements IExtensionFeat
 			const dateString = `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}`;
 			const x = (i / 30) * innerWidth;
 
-			// Add vertical line
 			const tick = $.SVG('line');
 			tick.setAttribute('x1', `${x}`);
 			tick.setAttribute('y1', `${innerHeight}`);
@@ -241,7 +240,7 @@ class RuntimeStatusMarkdownRenderer extends Disposable implements IExtensionFeat
 
 			const xAxisDate = $.SVG('text');
 			xAxisDate.setAttribute('x', `${x}`);
-			xAxisDate.setAttribute('y', `${height}`); // Adjusted y position to be within the SVG view port
+			xAxisDate.setAttribute('y', `${height}`);
 			xAxisDate.setAttribute('text-anchor', 'middle');
 			xAxisDate.setAttribute('fill', asCssVariable(foreground));
 			xAxisDate.setAttribute('font-size', '10px');

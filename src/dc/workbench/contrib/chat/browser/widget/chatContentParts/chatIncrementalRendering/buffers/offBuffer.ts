@@ -5,10 +5,6 @@
 
 import { IIncrementalRenderingBuffer } from './buffer.js';
 
-/**
- * No buffering — renders everything immediately as tokens arrive.
- * Content is still rAF-coalesced by the orchestrator.
- */
 export class OffBuffer implements IIncrementalRenderingBuffer {
 	readonly handlesFlush = false;
 

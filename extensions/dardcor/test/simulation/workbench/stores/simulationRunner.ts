@@ -28,7 +28,6 @@ export interface RunConfig {
 	n: number;
 	noFetch: boolean;
 	additionalArgs: string;
-	/** NES external scenarios path. When set, `--nes=external` and `--external-scenarios` are added. */
 	nesExternalScenariosPath?: string;
 }
 
@@ -43,7 +42,6 @@ type State =
 	| { kind: StateKind.Running }
 	| { kind: StateKind.Stopped };
 
-/** Constructors for {@link State} discriminated union */
 const State = {
 	Initializing: () => ({ kind: StateKind.Initializing }),
 	Running: () => ({ kind: StateKind.Running }),
@@ -163,7 +161,6 @@ export class SimulationRunner extends Disposable {
 	constructor(storage: SimulationStorage, private readonly runnerOptions: RunnerOptions) {
 		super();
 
-		// TODO: add support for init args (parseInitEventArgs)
 		this._selectedRun = new SelectedRun(storage);
 		this._diskSelectedRun = new DiskSelectedRun(this._selectedRun);
 		this._simulationExecutor = new SimulationExecutor(this._selectedRun);
@@ -205,7 +202,6 @@ export class SimulationRunner extends Disposable {
 		const newPath = path.join(SIMULATION_FOLDER_PATH, newName);
 
 		try {
-			// Check if old path exists and new path doesn't
 			const oldExists = await fs.promises.stat(oldPath).then(() => true).catch(() => false);
 			const newExists = await fs.promises.stat(newPath).then(() => true).catch(() => false);
 
@@ -218,12 +214,10 @@ export class SimulationRunner extends Disposable {
 				return false;
 			}
 
-			// Rename the directory
 			console.log('Renaming directory from', oldPath, 'to', newPath);
 			await fs.promises.rename(oldPath, newPath);
 			console.log('Successfully renamed directory');
 
-			// Update selected run if it was the renamed one
 			if (this._selectedRun.name === oldName) {
 				console.log('Updating selected run name from', oldName, 'to', newName);
 				mobx.runInAction(() => {
@@ -251,15 +245,11 @@ class SelectedRun {
 	}
 
 	constructor(storage: SimulationStorage) {
-		// TODO: add support for init args (parseInitEventArgs)
 		this._name = new SimulationStorageValue(storage, 'selectedRun', '');
 
 		mobx.makeObservable(this);
 	}
 
-	/**
-	 * Should be called in a MobX action.
-	 */
 	set(name: string, isFromDisk: boolean): void {
 		this._name.value = name;
 		this.isFromDisk = isFromDisk;
@@ -341,7 +331,6 @@ class SimulationExecutor {
 	@mobx.observable
 	public runningTestStatus: Map<string, RunnerTestStatus> = new Map<string, RunnerTestStatus>();
 
-	/** Tests registered for the current run via `initialTestSummary`. Used to scope incompleteness checks. */
 	private currentRunTests: Set<string> = new Set();
 
 	@mobx.computed
@@ -414,7 +403,7 @@ class SimulationExecutor {
 			console.warn('currentCancellationTokenSource is undefined');
 			return;
 		}
-		try { this.currentCancellationTokenSource!.cancel(); } catch (_) { } // to avoid unhandled promise rejection
+		try { this.currentCancellationTokenSource!.cancel(); } catch (_) { }
 		mobx.runInAction(() => {
 			this.state = State.Stopped();
 			for (const [_, status] of this.runningTestStatus) {
@@ -432,7 +421,7 @@ class SimulationExecutor {
 		try {
 			for await (const entry of stream) {
 				entries.push(entry);
-				mobx.runInAction(() => this.interpretOutputEntry(writtenFilesBaseDir, entry)); // TODO@ulugbekna: we should batch updates
+				mobx.runInAction(() => this.interpretOutputEntry(writtenFilesBaseDir, entry));
 			}
 		} catch (e) {
 			console.error('interpretOutput', JSON.stringify(e, null, '\t'));
@@ -461,7 +450,6 @@ class SimulationExecutor {
 		}
 	}
 
-	/** @remarks MUST be called within `mobx.runInAction` */
 	private interpretOutputEntry(writtenFilesBaseDir: string, entry: RunOutput): void {
 		switch (entry.type) {
 			case OutputType.initialTestSummary:

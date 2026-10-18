@@ -54,13 +54,6 @@
 	width: 100%;
 }
 
-/*
- * The frame, row layout, type and link colours come from `.chat-input-notice`;
- * only what is particular to this tip is styled here. This one line is a single
- * row of text, so it centres rather than taking the variant's top alignment.
- * Prefixed with the base class deliberately: without it this ties the base rule
- * on specificity and which one wins would depend on stylesheet order.
- */
 .chat-getting-started-tip-container .chat-input-notice.chat-tip-widget {
 	align-items: center;
 }

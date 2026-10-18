@@ -13,7 +13,6 @@ export class ReportExtensionIssueAction extends Action {
 	private static readonly _id = 'workbench.extensions.action.reportExtensionIssue';
 	private static readonly _label = nls.localize('reportExtensionIssue', "Report Issue");
 
-	// TODO: Consider passing in IExtensionStatus or IExtensionHostProfile for additional data
 	constructor(
 		private extension: IExtensionDescription,
 		@IWorkbenchIssueService private readonly issueService: IWorkbenchIssueService

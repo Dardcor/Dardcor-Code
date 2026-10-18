@@ -43,10 +43,6 @@ function renderVoiceModeOnboarding(width: string) {
 	};
 }
 
-/**
- * The introduction at the width of a default chat panel (the common case), a
- * wide auxiliary bar, and the narrowest panel the card has to survive.
- */
 export default defineThemedFixtureGroup({ path: 'agentsVoice/' }, {
 	'Voice Mode onboarding (panel)': defineComponentFixture({
 		render: renderVoiceModeOnboarding('280px'),

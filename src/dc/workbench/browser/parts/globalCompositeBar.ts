@@ -191,15 +191,12 @@ abstract class AbstractGlobalActivityActionViewItem extends CompositeBarActionVi
 		this._register(addDisposableListener(this.container, EventType.MOUSE_DOWN, async (e: MouseEvent) => {
 			EventHelper.stop(e, true);
 			const isLeftClick = e?.button !== 2;
-			// Left-click run
 			if (isLeftClick) {
 				this.run();
 			}
 		}));
 
-		// The rest of the activity bar uses context menu event for the context menu, so we match this
 		this._register(addDisposableListener(this.container, EventType.CONTEXT_MENU, async (e: MouseEvent) => {
-			// Let the item decide on the context menu instead of the toolbar
 			e.stopPropagation();
 
 			const disposables = new DisposableStore();
@@ -333,11 +330,7 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		}));
 	}
 
-	// This function exists to ensure that the accounts are added for auth providers that had already been registered
-	// before the menu was created.
 	private async initialize(): Promise<void> {
-		// Resolving the menu doesn't need to happen immediately, so we can wait until after the workbench has been restored
-		// and only run this when the system is idle.
 		await this.lifecycleService.when(LifecyclePhase.Restored);
 		if (this._store.isDisposed) {
 			return;
@@ -352,7 +345,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		const providerIds = this.authenticationService.getProviderIds();
 		const results = await Promise.allSettled(providerIds.map(providerId => this.addAccountsFromProvider(providerId)));
 
-		// Log any errors that occurred while initializing. We try to be best effort here to show the most amount of accounts
 		for (const result of results) {
 			if (result.status === 'rejected') {
 				this.logService.error(result.reason);
@@ -360,7 +352,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		}
 	}
 
-	//#region overrides
 
 	protected override async resolveMainMenuActions(_accountsMenu: IMenu, _disposables: DisposableStore): Promise<IAction[]> {
 		return [];
@@ -370,9 +361,7 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		return [];
 	}
 
-	//#endregion
 
-	//#region groupedAccounts helpers
 
 	private async addOrUpdateAccount(providerId: string, account: AuthenticationSessionAccount): Promise<void> {
 		let accounts = this.groupedAccounts.get(providerId);
@@ -384,9 +373,9 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		const sessionFromEmbedder = await this.sessionFromEmbedder.value;
 		let canSignOut = true;
 		if (
-			sessionFromEmbedder												// if we have a session from the embedder
-			&& !sessionFromEmbedder.canSignOut								// and that session says we can't sign out
-			&& (await this.authenticationService.getSessions(providerId))	// and that session is associated with the account we are adding/updating
+			sessionFromEmbedder
+			&& !sessionFromEmbedder.canSignOut
+			&& (await this.authenticationService.getSessions(providerId))
 				.some(s =>
 					s.id === sessionFromEmbedder.id
 					&& s.account.id === account.id
@@ -397,8 +386,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 
 		const existingAccount = accounts.find(a => a.label === account.label);
 		if (existingAccount) {
-			// if we have an existing account and we discover that we
-			// can't sign out of it, update the account to mark it as "can't sign out"
 			if (!canSignOut) {
 				existingAccount.canSignOut = canSignOut;
 			}
@@ -442,7 +429,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		}
 	}
 
-	//#endregion
 }
 
 export class GlobalActivityActionViewItem extends AbstractGlobalActivityActionViewItem {

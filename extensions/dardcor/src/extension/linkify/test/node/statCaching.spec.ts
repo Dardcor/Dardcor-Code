@@ -33,19 +33,15 @@ suite('Stat Caching - FilePathLinkifier', () => {
 
 		const linkifier = service.createLinkifier({ requestId: undefined, references: [] }, []);
 
-		// First append: linkify `file.ts`
 		const r1 = await linkifier.append('`file.ts` ', CancellationToken.None);
 		const countAfterFirst = statCallCount();
 
-		// Second append: linkify `file.ts` again — should reuse cached stat
 		const r2 = await linkifier.append('`file.ts` ', CancellationToken.None);
 		const countAfterSecond = statCallCount();
 
-		// Both should produce file links
 		assertPartsEqual(r1.parts, [new LinkifyLocationAnchor(workspaceFile('file.ts')), ' ']);
 		assertPartsEqual(r2.parts, [new LinkifyLocationAnchor(workspaceFile('file.ts')), ' ']);
 
-		// The second call should not have increased the stat count
 		expect(countAfterSecond).toBe(countAfterFirst);
 	});
 
@@ -56,11 +52,9 @@ suite('Stat Caching - FilePathLinkifier', () => {
 
 		const linkifier = service.createLinkifier({ requestId: undefined, references: [] }, []);
 
-		// Two references to the same file in one chunk
 		await linkifier.append('`file.ts` and file.ts ', CancellationToken.None);
 		await linkifier.flush(CancellationToken.None);
 
-		// The stat should be cached, so only 1 stat call for the same URI
 		expect(statCallCount()).toBe(1);
 	});
 
@@ -77,7 +71,6 @@ suite('Stat Caching - FilePathLinkifier', () => {
 		await linkifier.append('`other.ts` ', CancellationToken.None);
 		const countAfterSecond = statCallCount();
 
-		// Different files should each get their own stat call
 		expect(countAfterSecond).toBeGreaterThan(countAfterFirst);
 	});
 });
@@ -91,15 +84,12 @@ suite('Stat Caching - ModelFilePathLinkifier', () => {
 
 		const linkifier = service.createLinkifier({ requestId: undefined, references: [] }, []);
 
-		// First link
 		await linkifier.append('[src/file.ts](src/file.ts) ', CancellationToken.None);
 		const countAfterFirst = statCallCount();
 
-		// Same link again — should reuse cache
 		await linkifier.append('[src/file.ts](src/file.ts) ', CancellationToken.None);
 		const countAfterSecond = statCallCount();
 
-		// Second should not add more stat calls
 		expect(countAfterSecond).toBe(countAfterFirst);
 	});
 });
@@ -113,15 +103,12 @@ suite('Stat Caching - Shared across linkifiers', () => {
 
 		const linkifier = service.createLinkifier({ requestId: undefined, references: [] }, []);
 
-		// ModelFilePathLinkifier processes this markdown link first
 		await linkifier.append('[src/file.ts](src/file.ts) ', CancellationToken.None);
 		const countAfterModel = statCallCount();
 
-		// FilePathLinkifier processes same path as inline code — should reuse shared cache
 		await linkifier.append('`src/file.ts` ', CancellationToken.None);
 		const countAfterFile = statCallCount();
 
-		// The shared cache should prevent additional stat calls
 		expect(countAfterFile).toBe(countAfterModel);
 	});
 });

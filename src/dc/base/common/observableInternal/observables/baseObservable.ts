@@ -48,7 +48,6 @@ export abstract class ConvenientObservable<T, TChange> implements IObservableWit
 	public abstract addObserver(observer: IObserver): void;
 	public abstract removeObserver(observer: IObserver): void;
 
-	/** @sealed */
 	public read(reader: IReader | undefined): T {
 		if (reader) {
 			return reader.readObservable(this);
@@ -57,7 +56,6 @@ export abstract class ConvenientObservable<T, TChange> implements IObservableWit
 		}
 	}
 
-	/** @sealed */
 	public map<TNew>(fn: (value: T, reader: IReader) => TNew): IObservable<TNew>;
 	public map<TNew>(owner: DebugOwner, fn: (value: T, reader: IReader) => TNew): IObservable<TNew>;
 	public map<TNew>(fnOrOwner: DebugOwner | ((value: T, reader: IReader) => TNew), fnOrUndefined?: (value: T, reader: IReader) => TNew, debugLocation: DebugLocation = DebugLocation.ofCaller()): IObservable<TNew> {
@@ -73,7 +71,6 @@ export abstract class ConvenientObservable<T, TChange> implements IObservableWit
 						return name;
 					}
 
-					// regexp to match `x => x.y` or `x => x?.y` where x and y can be arbitrary identifiers (uses backref):
 					const regexp = /^\s*\(?\s*([a-zA-Z_$][a-zA-Z_$0-9]*)\s*\)?\s*=>\s*\1(?:\??)\.([a-zA-Z_$][a-zA-Z_$0-9]*)\s*$/;
 					const match = regexp.exec(fn.toString());
 					if (match) {
@@ -93,10 +90,6 @@ export abstract class ConvenientObservable<T, TChange> implements IObservableWit
 
 	public abstract log(): IObservableWithChange<T, TChange>;
 
-	/**
-	 * @sealed
-	 * Converts an observable of an observable value into a direct observable of the value.
-	*/
 	public flatten<TNew>(this: IObservable<IObservableWithChange<TNew, any>>): IObservable<TNew> {
 		return _derived(
 			{
@@ -112,11 +105,6 @@ export abstract class ConvenientObservable<T, TChange> implements IObservableWit
 		return this;
 	}
 
-	/**
-	 * Ensures that this observable is observed. This keeps the cache alive.
-	 * However, in case of deriveds, it does not force eager evaluation (only when the value is read/get).
-	 * Use `recomputeInitiallyAndOnChange` for eager evaluation.
-	 */
 	public keepObserved(store: DisposableStore): IObservable<T> {
 		store.add(_keepObserved!(this));
 		return this;

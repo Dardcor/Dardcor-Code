@@ -255,7 +255,6 @@ export class NotebookDocumentMetadataElement extends Disposable {
 		this._diffEditorContainer = this.templateData.diffEditorContainer;
 
 		this._editorViewStateChanged = false;
-		// init
 		this._register(viewModel.onDidLayoutChange(e => {
 			this.layout(e);
 			this.updateBorders();
@@ -319,10 +318,6 @@ export class NotebookDocumentMetadataElement extends Disposable {
 				return;
 			}
 
-			// If there is only 1 line, then ensure we have the necessary padding to display the button for whitespaces.
-			// E.g. assume we have a cell with 1 line and we add some whitespace,
-			// Then diff editor displays the button `Show Whitespace Differences`, however with 12 paddings on the top, the
-			// button can get cut off.
 			const lineCount = this.viewModel.modifiedMetadata.textBuffer.getLineCount();
 			const options: IDiffEditorOptions = {
 				padding: getEditorPadding(lineCount)
@@ -416,9 +411,6 @@ export class NotebookDocumentMetadataElement extends Disposable {
 			modified: modifiedRef.object.textEditorModel,
 		}));
 
-		// Reduces flicker (compute this before setting the model)
-		// Else when the model is set, the height of the editor will be x, after diff is computed, then height will be y.
-		// & that results in flicker.
 		await vm.waitForDiff();
 		this._editor.setModel(vm);
 
@@ -546,7 +538,6 @@ abstract class AbstractElementRenderer extends Disposable {
 		protected readonly textConfigurationService: ITextResourceConfigurationService
 	) {
 		super();
-		// init
 		this._isDisposed = false;
 		this._metadataEditorDisposeStore = this._register(new DisposableStore());
 		this._outputEditorDisposeStore = this._register(new DisposableStore());
@@ -652,20 +643,16 @@ abstract class AbstractElementRenderer extends Disposable {
 
 	updateMetadataRendering() {
 		if (this.cell.metadataFoldingState === PropertyFoldingState.Expanded) {
-			// we should expand the metadata editor
 			this._metadataInfoContainer.style.display = 'block';
 
 			if (!this._metadataEditorContainer || !this._metadataEditor) {
-				// create editor
 				this._metadataEditorContainer = DOM.append(this._metadataInfoContainer, DOM.$('.metadata-editor-container'));
 				this._buildMetadataEditor();
 			} else {
 				this.cell.metadataHeight = this._metadataEditor.getContentHeight();
 			}
 		} else {
-			// we should collapse the metadata editor
 			this._metadataInfoContainer.style.display = 'none';
-			// this._metadataEditorDisposeStore.clear();
 			this.cell.metadataHeight = 0;
 		}
 	}
@@ -734,7 +721,6 @@ abstract class AbstractElementRenderer extends Disposable {
 				switch (key as keyof NotebookCellMetadata) {
 					case 'inputCollapsed':
 					case 'outputCollapsed':
-						// boolean
 						if (typeof newMetadataObj[key] === 'boolean') {
 							result[key] = newMetadataObj[key];
 						} else {
@@ -815,9 +801,6 @@ abstract class AbstractElementRenderer extends Disposable {
 				modified: modifiedMetadataModel.object.textEditorModel
 			});
 			this._metadataEditor.setModel(vm);
-			// Reduces flicker (compute this before setting the model)
-			// Else when the model is set, the height of the editor will be x, after diff is computed, then height will be y.
-			// & that results in flicker.
 			await vm.waitForDiff();
 
 			if (this._isDisposed) {
@@ -1733,7 +1716,6 @@ export class ModifiedElement extends AbstractElementRenderer {
 			this.cell.layoutChange();
 
 			this._register(this.cell.modified.textModel.onDidChangeOutputs(() => {
-				// currently we only allow outputs change to the modified cell
 				if (!this.cell.checkIfOutputsModified() && this.cell.modified.outputs.length === 0) {
 					this._outputEmptyElement!.style.display = 'block';
 				} else {
@@ -1772,7 +1754,6 @@ export class ModifiedElement extends AbstractElementRenderer {
 				this._register(modifiedOutputRenderListener);
 			}
 
-			// We should use the original text model here
 			this._outputLeftView = this.instantiationService.createInstance(OutputContainer, this.notebookEditor, this.notebookEditor.textModel!, this.cell, this.cell.original, DiffSide.Original, this._outputLeftContainer);
 			this._outputLeftView.render();
 			this._register(this._outputLeftView);
@@ -1787,7 +1768,6 @@ export class ModifiedElement extends AbstractElementRenderer {
 			if (outputMetadataChangeOnly) {
 
 				this._outputMetadataContainer.style.top = `${this.cell.layoutInfo.rawOutputHeight}px`;
-				// single output, metadata change, let's render a diff editor for metadata
 				this._outputMetadataEditor = this.instantiationService.createInstance(DiffEditorWidget, this._outputMetadataContainer, {
 					...fixedDiffEditorOptions,
 					overflowWidgetsDomNode: this.notebookEditor.getOverflowContainerDomNode(),
@@ -1892,10 +1872,6 @@ export class ModifiedElement extends AbstractElementRenderer {
 			}
 
 			this._editor = this.templateData.sourceEditor;
-			// If there is only 1 line, then ensure we have the necessary padding to display the button for whitespaces.
-			// E.g. assume we have a cell with 1 line and we add some whitespace,
-			// Then diff editor displays the button `Show Whitespace Differences`, however with 12 paddings on the top, the
-			// button can get cut off.
 			const options: IDiffEditorOptions = {
 				padding: getEditorPadding(lineCount)
 			};
@@ -1997,9 +1973,6 @@ export class ModifiedElement extends AbstractElementRenderer {
 			modified: modifiedRef.object.textEditorModel,
 		}));
 
-		// Reduces flicker (compute this before setting the model)
-		// Else when the model is set, the height of the editor will be x, after diff is computed, then height will be y.
-		// & that results in flicker.
 		await vm.waitForDiff();
 		this._editor!.setModel(vm);
 
@@ -2096,8 +2069,6 @@ export class ModifiedElement extends AbstractElementRenderer {
 	}
 
 	override dispose() {
-		// The editor isn't disposed yet, it can be re-used.
-		// However the model can be disposed before the editor & that causes issues.
 		if (this._editor) {
 			this._editor.setModel(null);
 		}

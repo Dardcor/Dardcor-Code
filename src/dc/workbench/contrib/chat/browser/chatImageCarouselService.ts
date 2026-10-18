@@ -24,17 +24,9 @@ export const IChatImageCarouselService = createDecorator<IChatImageCarouselServi
 export interface IChatImageCarouselService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Opens the image carousel for the given resource URI, collecting all images
-	 * from the focused chat widget's responses to populate the carousel.
-	 *
-	 * @param resource The URI of the clicked image to start the carousel at.
-	 * @param data Optional raw image data (e.g. for input attachment images that are Uint8Arrays).
-	 */
 	openCarouselAtResource(resource: URI, data?: Uint8Array, options?: { readonly preferCurrentInput?: boolean }): Promise<void>;
 }
 
-//#region Carousel data types
 
 export interface ICarouselImage {
 	readonly id: string;
@@ -65,15 +57,8 @@ export interface ICarouselSingleImageArgs {
 	readonly title: string;
 }
 
-//#endregion
 
-//#region Testable helper functions
 
-/**
- * Collects all carousel image sections from chat items.
- * Each request/response pair with images becomes one section containing
- * user attachment images, tool invocation images, and inline reference images.
- */
 export async function collectCarouselSections(
 	items: (IChatRequestViewModel | IChatResponseViewModel)[],
 	readFile: (uri: URI) => Promise<Uint8Array>,
@@ -81,7 +66,6 @@ export async function collectCarouselSections(
 ): Promise<ICarouselSection[]> {
 	const sections: ICarouselSection[] = [];
 
-	// Build a map from request id to request VM for pairing
 	const requestMap = new Map<string, IChatRequestViewModel>();
 	for (const item of items) {
 		if (isRequestVM(item)) {
@@ -96,7 +80,6 @@ export async function collectCarouselSections(
 
 		const { title: extractedTitle, images: responseImages } = await extractImagesFromChatResponse(item, async uri => VSBuffer.wrap(await readFile(uri)));
 
-		// Also collect images from the corresponding user request
 		const request = requestMap.get(item.requestId);
 		const requestImages = request ? extractImagesFromChatRequest(request) : [];
 
@@ -110,7 +93,6 @@ export async function collectCarouselSections(
 		}
 	}
 
-	// Handle requests that have no response yet (e.g. pending requests with image attachments)
 	const respondedRequestIds = new Set(
 		items.filter(isResponseVM).map(r => r.requestId)
 	);
@@ -141,11 +123,6 @@ export async function collectCarouselSections(
 	return sections;
 }
 
-/**
- * Converts an extracted image caption to plain display text, stripping
- * Markdown syntax (e.g. "Viewed image [](file:///path/img.png)" becomes
- * "Viewed image img.png") the same way chat renders tool invocation messages.
- */
 function toCaptionText(caption: string | IMarkdownString | undefined): string | undefined {
 	if (caption === undefined) {
 		return undefined;
@@ -153,10 +130,6 @@ function toCaptionText(caption: string | IMarkdownString | undefined): string | 
 	return typeof caption === 'string' ? caption : stripIcons(renderAsPlaintext(caption, { useLinkFormatter: true }));
 }
 
-/**
- * Removes consecutive images with the same URI, keeping only the first occurrence
- * of each run of duplicates.
- */
 function deduplicateConsecutiveImages(images: IChatExtractedImage[]): IChatExtractedImage[] {
 	return images.filter((img, index) => {
 		if (index === 0) {
@@ -215,14 +188,12 @@ function findImageInListByUri(
 	images: ICarouselImage[],
 	resource: URI,
 ): number {
-	// Try matching by URI string (for inline references and tool images with URIs)
 	const uriStr = resource.toString();
 	const byUri = images.findIndex(img => img.id === uriStr);
 	if (byUri >= 0) {
 		return byUri;
 	}
 
-	// Try matching by parsed URI equality (for tool invocation images with generated URIs)
 	const byParsedUri = images.findIndex(img => {
 		try {
 			return isEqual(URI.parse(img.id), resource);
@@ -242,9 +213,6 @@ function findImageInListByData(images: ICarouselImage[], data: Uint8Array): numb
 	return images.findIndex(img => VSBuffer.wrap(img.data).equals(wrapped));
 }
 
-/**
- * Builds the collection arguments for the carousel command.
- */
 export function buildCollectionArgs(
 	sections: ICarouselSection[],
 	clickedGlobalIndex: number,
@@ -264,21 +232,16 @@ export function buildCollectionArgs(
 	};
 }
 
-/**
- * Builds the single-image arguments for the carousel command.
- */
 export function buildSingleImageArgs(resource: URI, data: Uint8Array): ICarouselSingleImageArgs {
 	let name = resource.path.split('/').pop() ?? 'image';
 	try {
 		name = decodeURIComponent(name);
 	} catch {
-		// keep raw segment if it isn't valid percent-encoding
 	}
 	const mimeType = getMediaMime(resource.path) ?? getMediaMime(name) ?? 'image/png';
 	return { name, mimeType, data, title: name };
 }
 
-//#endregion
 
 const CAROUSEL_COMMAND = 'workbench.action.chat.openImageInCarousel';
 

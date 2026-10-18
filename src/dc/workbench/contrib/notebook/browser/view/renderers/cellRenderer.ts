@@ -266,7 +266,6 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 		const focusIndicatorTop = new FastDomNode(DOM.append(container, $('.cell-focus-indicator.cell-focus-indicator-top')));
 		const titleToolbarContainer = DOM.append(container, $('.cell-title-toolbar'));
 
-		// This is also the drag handle
 		const focusIndicatorLeft = new FastDomNode(DOM.append(container, DOM.$('.cell-focus-indicator.cell-focus-indicator-side.cell-focus-indicator-left')));
 		const cellChatPart = DOM.append(container, $('.cell-chat-part'));
 		const cellContainer = DOM.append(container, $('.cell.code'));
@@ -279,7 +278,6 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 		const editorContainer = DOM.append(editorPart, $('.cell-editor-container'));
 		const cellCommentPartContainer = DOM.append(container, $('.cell-comment-container'));
 
-		// create a special context key service that set the inCompositeEditor-contextkey
 		const editorContextKeyService = templateDisposables.add(this.contextKeyServiceProvider(editorPart));
 		const editorInstaService = templateDisposables.add(this.instantiationService.createChild(new ServiceCollection([IContextKeyService, editorContextKeyService])));
 		EditorContextKeys.inCompositeEditor.bindTo(editorContextKeyService).set(true);
@@ -372,8 +370,6 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 			toJSON: () => { return {}; }
 		};
 
-		// focusIndicatorLeft covers the left margin area
-		// code/outputFocusIndicator need to be registered as drag handlers so their click handlers don't take over
 		const dragHandles = [focusIndicatorLeft.domNode, focusIndicatorPart.codeFocusIndicator.domNode, focusIndicatorPart.outputFocusIndicator.domNode];
 		this.dndController?.registerDragHandle(templateData, rootContainer, dragHandles, () => new CodeCellDragImageRenderer().getDragImage(templateData, templateData.editor, 'code'));
 		return templateData;

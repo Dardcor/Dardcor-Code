@@ -20,25 +20,13 @@ import { AgentHostLaunchKind, AgentHostLaunchKindEnvVar, telemetryLevelToAgentHo
 import { AgentHostClaudeAgentEnabledSettingId, AgentHostCodexAgentBinaryArgsSettingId, AgentHostCodexAgentEnabledSettingId, AgentHostCodexAgentSdkRootSettingId, AgentHostCodexAgentCodexHomeSettingId, AgentHostIpcChannels, AgentHostOTelCaptureContentSettingId, AgentHostOTelDbSpanExporterEnabledSettingId, AgentHostOTelEnabledSettingId, AgentHostOTelExporterTypeSettingId, AgentHostOTelOtlpEndpointSettingId, AgentHostOTelOtlpProtocolSettingId, AgentHostOTelOutfileSettingId, AgentHostOTelResourceAttributesSettingId, AgentHostOTelServiceNameSettingId, buildAgentHostOTelEnv, buildAgentSdkEnv, IAgentHostManagementService } from '../common/agentService.js';
 import '../common/agentHostStarter.config.contribution.js';
 
-/**
- * Options for configuring the agent host WebSocket server in the child process.
- * When set, the agent host exposes a WebSocket endpoint for external clients.
- */
 export interface IAgentHostWebSocketConfig {
-	/** TCP port to listen on. Mutually exclusive with `socketPath`. */
 	readonly port?: string;
-	/** Unix domain socket / named pipe path. Takes precedence over `port`. */
 	readonly socketPath?: string;
-	/** Host/IP to bind to. */
 	readonly host?: string;
-	/** Connection token value. When set, WebSocket clients must present this token. */
 	readonly connectionToken?: string;
 }
 
-/**
- * Spawns the agent host as a Node child process (fallback when
- * Electron utility process is unavailable, e.g. dev/test).
- */
 export class NodeAgentHostStarter extends Disposable implements IAgentHostStarter {
 
 	private _wsConfig: IAgentHostWebSocketConfig | undefined;
@@ -52,24 +40,15 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 		super();
 	}
 
-	/**
-	 * Configures the child process to also start a WebSocket server.
-	 * Must be called before {@link start}.
-	 */
 	setWebSocketConfig(config: IAgentHostWebSocketConfig): void {
 		this._wsConfig = config;
 	}
 
 	async start(): Promise<IAgentHostConnection> {
-		// Resolve user shell environment so spawned tools/terminals inherit
-		// PATH and other vars from the user's login shell (macOS/Linux).
 		const shellEnv = await this._resolveShellEnv();
 
 		const env: Record<string, string> = {
 			...shellEnv as Record<string, string>,
-			// Announce that everything spawned below this process is driven by
-			// VS Code's agent, so `gh` inherits it. Set after the inherited
-			// env so it wins.
 			[AiAgentEnvVar]: AiAgentEnvValue,
 			VSCODE_ESM_ENTRYPOINT: 'vs/platform/agentHost/node/agentHostMain',
 			VSCODE_PIPE_LOGGING: 'true',
@@ -77,9 +56,6 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 			[AgentHostLaunchKindEnvVar]: AgentHostLaunchKind.VSCodeCLI,
 		};
 
-		// Forward the Claude/Codex SDK overrides + codex home/args from
-		// workbench settings to the agent host process. Parent env wins on
-		// collision — see `buildAgentSdkEnv` for the precedence rule.
 		const sdkEnv = buildAgentSdkEnv({
 			codexSdkRoot: this._configurationService.getValue<string>(AgentHostCodexAgentSdkRootSettingId),
 			codexHome: this._configurationService.getValue<string>(AgentHostCodexAgentCodexHomeSettingId),
@@ -89,10 +65,6 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 		}, process.env);
 		Object.assign(env, sdkEnv);
 
-		// Translate `chat.agentHost.otel.*` settings into the env vars consumed by
-		// the agent host process. Any value already present on `process.env` wins
-		// for user settings, while enterprise policy values win over inherited env —
-		// see `buildAgentHostOTelEnv`.
 		const policyValue = <T>(key: string): T | undefined => this._configurationService.inspect<T>(key).policyValue;
 		const otelEnv = buildAgentHostOTelEnv({
 			enabled: this._configurationService.getValue<boolean>(AgentHostOTelEnabledSettingId),
@@ -113,7 +85,6 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 		});
 		Object.assign(env, otelEnv);
 
-		// Forward WebSocket server configuration to the child process via env vars
 		if (this._wsConfig) {
 			if (this._wsConfig.port) {
 				env['VSCODE_AGENT_HOST_PORT'] = this._wsConfig.port;
@@ -165,13 +136,6 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 		};
 	}
 
-	/**
-	 * Unix domain sockets outlive the process that bound them, so an agent host
-	 * that crashed leaves its socket file behind and the replacement's `listen`
-	 * fails with `EADDRINUSE` — which would burn the whole crash-restart budget
-	 * without ever recovering. Windows named pipes are refcounted by the OS and
-	 * disappear with the process, so they need no cleanup.
-	 */
 	private async _removeStaleSocket(): Promise<void> {
 		const socketPath = this._wsConfig?.socketPath;
 		if (!socketPath || process.platform === 'win32') {
@@ -181,8 +145,6 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 		try {
 			await fs.promises.unlink(socketPath);
 		} catch (error) {
-			// Nothing to clean up in the common case; a genuinely undeletable
-			// path surfaces as a bind failure from the child instead.
 			if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
 				this._logService.warn(`AgentHostStarter could not remove stale socket at ${socketPath}`, error);
 			}

@@ -11,7 +11,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 
@@ -23,7 +23,7 @@ export interface ICodeModeParams {
 	maxOutputBytes?: number;
 }
 
-export class CodeModeOrchestratorTool implements ICopilotTool<ICodeModeParams> {
+export class CodeModeOrchestratorTool implements IAgentTool<ICodeModeParams> {
 	public static readonly toolName = ToolName.CodeModeOrchestrator;
 
 	constructor(

@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * ModelAvailabilityBadge — compact inline status indicator
- *
- * Shows green when all models are operational, or amber/red when there are
- * issues, with a hover popover for details and cooldown clearing.
- */
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/shared/components";
@@ -34,7 +28,6 @@ export default function ModelAvailabilityBadge() {
         setData(json);
       }
     } catch {
-      // silent fail — will retry
     } finally {
       setLoading(false);
     }
@@ -46,7 +39,6 @@ export default function ModelAvailabilityBadge() {
     return () => clearInterval(interval);
   }, [fetchStatus]);
 
-  // Close popover on outside click
   useEffect(() => {
     const handleClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setExpanded(false);
@@ -82,7 +74,6 @@ export default function ModelAvailabilityBadge() {
   const unavailableCount = data?.unavailableCount || models.filter((m) => m.status !== "available").length;
   const isHealthy = unavailableCount === 0;
 
-  // Group unhealthy models by provider
   const byProvider = {};
   models.forEach((m) => {
     if (m.status === "available") return;
@@ -93,21 +84,8 @@ export default function ModelAvailabilityBadge() {
 
   return (
     <div className="relative" ref={ref}>
-      {/* <button
-        onClick={() => setExpanded(!expanded)}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-          isHealthy
-            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/15"
-            : "bg-amber-500/10 border-amber-500/20 text-amber-500 hover:bg-amber-500/15"
-        }`}
-      >
-        <span className="material-symbols-outlined text-[14px]">
-          {isHealthy ? "verified" : "warning"}
-        </span>
-        {isHealthy
-          ? "All models operational"
-          : `${unavailableCount} model${unavailableCount !== 1 ? "s" : ""} with issues`}
-      </button> */}
+      {
+}
 
       {expanded && (
         <div className="absolute top-full right-0 mt-2 w-80 bg-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden">

@@ -11,28 +11,11 @@ import { ActiveExperiments } from './contextProviderRegistry';
 
 const MULTI_LANGUAGE_CONTEXT_PROVIDER_ID = 'fallbackContextProvider';
 
-/**
- * Parameters for configuring the multi-language context provider.
- */
 interface MultiLanguageContextProviderParams {
-	/**
-	 * The maximum number of context items to include in the multi-language context.
-	 * This controls the number of relevant context entries that can be retrieved
-	 * and processed by the provider.
-	 */
 	mlcpMaxContextItems: number;
 
-	/**
-	 * The maximum number of symbol matches to include in the multi-language context.
-	 * This determines the upper limit on the number of symbol-based matches that
-	 * can be considered by the provider.
-	 */
 	mlcpMaxSymbolMatches: number;
 
-	/**
-	 * Enable imports in the multi-language context provider.
-	 * If set to true, the provider will include import statements in the context.
-	 */
 	mlcpEnableImports: boolean;
 }
 

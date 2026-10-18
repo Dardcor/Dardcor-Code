@@ -10,10 +10,6 @@ import { PositionOffsetTransformer } from '../../../util/dardcor/editor/common/c
 import { Range, Position as VSCodePos } from '../../../dardcorTypes';
 import { TextDocumentSnapshot } from './textDocumentSnapshot';
 
-/**
- * Represents an immutable view of a string with line/column characteristics.
- * Offers many methods to work with various data types (ranges, positions, offsets, ...).
-*/
 export abstract class AbstractDocument {
 	abstract getText(): string;
 

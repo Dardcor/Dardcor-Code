@@ -137,7 +137,6 @@ class GitDecorationProvider implements FileDecorationProvider {
 			const decoration = r.resourceDecoration;
 
 			if (decoration) {
-				// not deleted and has a decoration
 				bucket.set(r.original.toString(), decoration);
 
 				if (r.type === Status.DELETED && r.rightUri) {

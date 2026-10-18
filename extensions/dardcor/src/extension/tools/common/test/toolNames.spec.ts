@@ -13,7 +13,6 @@ describe('ToolNames', () => {
 	});
 
 	it('returns original name for unmapped core tools', () => {
-		// Core tool without a contributed alias
 		const unmapped = ToolName.CoreRunInTerminal;
 		const mapped = getContributedToolName(unmapped);
 		expect(mapped).toBe(unmapped);

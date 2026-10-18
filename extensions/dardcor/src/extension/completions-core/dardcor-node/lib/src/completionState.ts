@@ -78,9 +78,6 @@ export class CompletionState {
 			const oldText = textDocument.getText(range);
 			const oldEndOffset = textDocument.offsetAt(range.end);
 			textDocument = textDocument.applyEdits([{ range, newText }]);
-			// We err on the side of updating the position if it's exactly aligned with the start of the range.  This is
-			// what we want in the context of applying a completion, but it does make some operations impossible, like
-			// preserving a position at the start of the document (line 0 column 0).
 			if (offset < textDocument.offsetAt(range.start)) {
 				const edit: ProposedTextEdit = {
 					range,

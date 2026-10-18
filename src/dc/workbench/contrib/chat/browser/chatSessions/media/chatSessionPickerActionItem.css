@@ -3,16 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* .chat-session-option-picker {
-	align-items: center;
-} */
 
-/* .chat-session-option-picker .chat-session-option-label {
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.chat-session-option-picker */
 
 .monaco-action-bar .action-item.chat-sessionPicker-item {
 	overflow: hidden;
@@ -43,7 +34,6 @@
 	}
 }
 
-/* Locked state styling - matches disabled action item styling */
 .monaco-action-bar .action-item.locked .chat-session-option-picker {
 	color: var(--vscode-disabledForeground);
 	cursor: default;

@@ -68,7 +68,6 @@ class ManageTrustedMcpServersForAccountActionImpl {
 		picker.show();
 	}
 
-	//#region Account Query Resolution
 
 	private async _resolveAccountQuery(providerId: string | undefined, accountLabel: string | undefined): Promise<IAccountQuery | undefined> {
 		if (providerId && accountLabel) {
@@ -105,9 +104,7 @@ class ManageTrustedMcpServersForAccountActionImpl {
 		return accounts;
 	}
 
-	//#endregion
 
-	//#region Item Retrieval and Quick Pick Creation
 
 	private async _getItems(accountQuery: IAccountQuery) {
 		const allowedMcpServers = accountQuery.mcpServers().getAllowedMcpServers();
@@ -117,15 +114,10 @@ class ManageTrustedMcpServersForAccountActionImpl {
 			return { ...server, lastUsed: usage.length > 0 ? Math.max(...usage.map(u => u.lastUsed)) : server.lastUsed };
 		};
 
-		// Agent-host MCP servers run inside the agent-host process and are not registered with the
-		// workbench `IMcpService`, so they are kept regardless of the registry and surfaced in their
-		// own per-host section(s) rather than being filtered out.
 		const agentHostServers = allowedMcpServers
 			.filter((server): server is AllowedMcpServer & { agentHost: NonNullable<AllowedMcpServer['agentHost']> } => !!server.agentHost)
 			.map(withLastUsed);
 
-		// Workbench MCP servers: filter out any not in the current list of servers, and use the
-		// server name from the MCP service.
 		const workbenchServers = allowedMcpServers
 			.filter(server => !server.agentHost && serverIdToLabel.has(server.id))
 			.map(server => withLastUsed({ ...server, name: serverIdToLabel.get(server.id)! }));
@@ -143,8 +135,6 @@ class ManageTrustedMcpServersForAccountActionImpl {
 			...otherServers.sort(sortByLastUsed).map(this._toQuickPickItem)
 		];
 
-		// One section per distinct agent host, keyed by the stable authority
-		// (labels can collide across hosts) but displayed using the label.
 		const byAuthority = new Map<string, { label: string; servers: AllowedMcpServer[] }>();
 		for (const server of agentHostServers) {
 			const group = byAuthority.get(server.agentHost.authority) ?? { label: server.agentHost.label, servers: [] };
@@ -192,7 +182,6 @@ class ManageTrustedMcpServersForAccountActionImpl {
 		const disposableStore = new DisposableStore();
 		const quickPick = disposableStore.add(this._quickInputService.createQuickPick<TrustedMcpServersQuickPickItem>({ useSeparators: true }));
 
-		// Configure quick pick
 		quickPick.canSelectMany = true;
 		quickPick.customButton = true;
 		quickPick.customLabel = localize('manageTrustedMcpServers.cancel', 'Cancel');
@@ -200,7 +189,6 @@ class ManageTrustedMcpServersForAccountActionImpl {
 		quickPick.title = localize('manageTrustedMcpServers', "Manage Trusted MCP Servers");
 		quickPick.placeholder = localize('manageMcpServers', "Choose which MCP servers can access this account");
 
-		// Set up event handlers
 		disposableStore.add(quickPick.onDidAccept(() => {
 			quickPick.hide();
 			const allServers = quickPick.items
@@ -223,5 +211,4 @@ class ManageTrustedMcpServersForAccountActionImpl {
 		return quickPick;
 	}
 
-	//#endregion
 }

@@ -6,40 +6,25 @@
 import type * as vscode from 'vscode';
 import { ReviewComment, ReviewSuggestion } from './reviewService';
 
-/**
- * A single file to review, specified by URI pairs.
- */
 export interface CodeReviewFileInput {
 	readonly currentUri: vscode.Uri;
 	readonly baseUri?: vscode.Uri;
 }
 
-/**
- * Input for the `github.dardcor.chat.codeReview.run` command.
- */
 export interface CodeReviewInput {
 	readonly files: readonly CodeReviewFileInput[];
 }
 
-/**
- * A simplified suggestion change for the public API.
- */
 export interface CodeReviewSuggestionChange {
 	readonly range: vscode.Range;
 	readonly newText: string;
 	readonly oldText: string;
 }
 
-/**
- * A simplified suggestion for the public API.
- */
 export interface CodeReviewSuggestion {
 	readonly edits: readonly CodeReviewSuggestionChange[];
 }
 
-/**
- * A review comment returned by the public API — stripped of internal metadata.
- */
 export interface CodeReviewComment {
 	readonly uri: vscode.Uri;
 	readonly range: vscode.Range;
@@ -49,9 +34,6 @@ export interface CodeReviewComment {
 	readonly suggestion?: CodeReviewSuggestion;
 }
 
-/**
- * Result of the `github.dardcor.chat.codeReview.run` command.
- */
 export type CodeReviewResult =
 	| { readonly type: 'success'; readonly comments: readonly CodeReviewComment[] }
 	| { readonly type: 'error'; readonly reason: string }
@@ -74,9 +56,6 @@ async function resolveSuggestion(suggestion: ReviewSuggestion | Promise<ReviewSu
 	return await suggestion;
 }
 
-/**
- * Converts internal `ReviewComment[]` to the public `CodeReviewResult` shape.
- */
 export async function toCodeReviewResult(comments: readonly ReviewComment[]): Promise<CodeReviewResult> {
 	return {
 		type: 'success',

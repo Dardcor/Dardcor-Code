@@ -70,7 +70,6 @@ export class StandardMouseEvent implements IMouseEvent {
 		this.posx = e.pageX;
 		this.posy = e.pageY;
 
-		// Find the position of the iframe this code is executing in relative to the iframe where the event was captured.
 		const iframeOffsets = IframeUtils.getPositionOfChildWindowRelativeToAncestorWindow(targetWindow, e.view);
 		this.posx -= iframeOffsets.left;
 		this.posy -= iframeOffsets.top;
@@ -137,25 +136,20 @@ export class StandardWheelEvent {
 
 		let shouldFactorDPR: boolean = false;
 		if (browser.isChrome) {
-			// Chrome version >= 123 contains the fix to factor devicePixelRatio into the wheel event.
-			// See https://chromium.googlesource.com/chromium/src.git/+/be51b448441ff0c9d1f17e0f25c4bf1ab3f11f61
 			const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
 			const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1]) : 123;
 			shouldFactorDPR = chromeMajorVersion <= 122;
 		}
 
 		if (e) {
-			// Old (deprecated) wheel events
 			// eslint-disable-next-line local/code-no-any-casts
 			const e1 = <IWebKitMouseWheelEvent><any>e;
 			// eslint-disable-next-line local/code-no-any-casts
 			const e2 = <IGeckoMouseWheelEvent><any>e;
 			const devicePixelRatio = e.view?.devicePixelRatio || 1;
 
-			// vertical delta scroll
 			if (typeof e1.wheelDeltaY !== 'undefined') {
 				if (shouldFactorDPR) {
-					// Refs https://github.com/microsoft/vscode/issues/146403#issuecomment-1854538928
 					this.deltaY = e1.wheelDeltaY / (120 * devicePixelRatio);
 				} else {
 					this.deltaY = e1.wheelDeltaY / 120;
@@ -163,12 +157,9 @@ export class StandardWheelEvent {
 			} else if (typeof e2.VERTICAL_AXIS !== 'undefined' && e2.axis === e2.VERTICAL_AXIS) {
 				this.deltaY = -e2.detail / 3;
 			} else if (e.type === 'wheel') {
-				// Modern wheel event
-				// https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent
 				const ev = <WheelEvent><unknown>e;
 
 				if (ev.deltaMode === ev.DOM_DELTA_LINE) {
-					// the deltas are expressed in lines
 					if (browser.isFirefox && !platform.isMacintosh) {
 						this.deltaY = -e.deltaY / 3;
 					} else {
@@ -179,12 +170,10 @@ export class StandardWheelEvent {
 				}
 			}
 
-			// horizontal delta scroll
 			if (typeof e1.wheelDeltaX !== 'undefined') {
 				if (browser.isSafari && platform.isWindows) {
 					this.deltaX = - (e1.wheelDeltaX / 120);
 				} else if (shouldFactorDPR) {
-					// Refs https://github.com/microsoft/vscode/issues/146403#issuecomment-1854538928
 					this.deltaX = e1.wheelDeltaX / (120 * devicePixelRatio);
 				} else {
 					this.deltaX = e1.wheelDeltaX / 120;
@@ -192,12 +181,9 @@ export class StandardWheelEvent {
 			} else if (typeof e2.HORIZONTAL_AXIS !== 'undefined' && e2.axis === e2.HORIZONTAL_AXIS) {
 				this.deltaX = -e.detail / 3;
 			} else if (e.type === 'wheel') {
-				// Modern wheel event
-				// https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent
 				const ev = <WheelEvent><unknown>e;
 
 				if (ev.deltaMode === ev.DOM_DELTA_LINE) {
-					// the deltas are expressed in lines
 					if (browser.isFirefox && !platform.isMacintosh) {
 						this.deltaX = -e.deltaX / 3;
 					} else {
@@ -208,10 +194,8 @@ export class StandardWheelEvent {
 				}
 			}
 
-			// Assume a vertical scroll if nothing else worked
 			if (this.deltaY === 0 && this.deltaX === 0 && e.wheelDelta) {
 				if (shouldFactorDPR) {
-					// Refs https://github.com/microsoft/vscode/issues/146403#issuecomment-1854538928
 					this.deltaY = e.wheelDelta / (120 * devicePixelRatio);
 				} else {
 					this.deltaY = e.wheelDelta / 120;

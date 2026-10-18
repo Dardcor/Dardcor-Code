@@ -24,7 +24,7 @@ function workspaceFile(...segments: string[]) {
 
 async function getLinksForFile(file: vscode.Uri): Promise<vscode.DocumentLink[]> {
 	debugLog('getting links', file.toString(), Date.now());
-	const r = (await vscode.commands.executeCommand<vscode.DocumentLink[]>('vscode.executeLinkProvider', file, /*linkResolveCount*/ 100))!;
+	const r = (await vscode.commands.executeCommand<vscode.DocumentLink[]>('vscode.executeLinkProvider', file, 100))!;
 	debugLog('got links', file.toString(), Date.now());
 	return r;
 }
@@ -32,7 +32,6 @@ async function getLinksForFile(file: vscode.Uri): Promise<vscode.DocumentLink[]>
 (vscode.env.uiKind === vscode.UIKind.Web ? suite.skip : suite)('Markdown Document links', () => {
 
 	setup(async () => {
-		// the tests make the assumption that link providers are already registered
 		await vscode.extensions.getExtension('vscode.markdown-language-features')!.activate();
 	});
 
@@ -134,7 +133,7 @@ async function getLinksForFile(file: vscode.Uri): Promise<vscode.DocumentLink[]>
 		}
 	});
 
-	test.skip('Should navigate to fragment within current untitled file', async () => { // TODO: skip for now for ls migration
+	test.skip('Should navigate to fragment within current untitled file', async () => {
 		const testFile = workspaceFile('x.md').with({ scheme: 'untitled' });
 		await withFileContents(testFile, joinLines(
 			'[](#second)',

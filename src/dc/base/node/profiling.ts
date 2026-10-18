@@ -114,7 +114,6 @@ export async function startProfiling(options: StartOptions): Promise<ProfilingSe
 	const { Runtime, Profiler } = client;
 
 	if (options.checkForPaused) {
-		// ensure the runtime isn't being debugged
 		const { Debugger } = client;
 		let isPaused = false;
 		client.on('event', (message) => {
@@ -124,19 +123,12 @@ export async function startProfiling(options: StartOptions): Promise<ProfilingSe
 		});
 		await Debugger.enable();
 		if (isPaused) {
-			// client.close();
-			// ^ this leaks the connection but there is an issue in
-			// chrome that it will resume the runtime whenever a client
-			// disconnects. Because things are relatively short-lived
-			// we trade the leakage for being able to debug
 			throw new Error('runtime is paused');
 		}
 	} else {
-		// resume from inspect-brk
 		await Runtime.runIfWaitingForDebugger();
 	}
 
-	// now start profiling
 	await Profiler.enable();
 	await Profiler.setSamplingInterval({ interval: 100 });
 	await Profiler.start();

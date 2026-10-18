@@ -55,12 +55,10 @@ class SearchAccessibilityHelpProvider extends Disposable implements IAccessibleV
 		const resultCount = this._searchModel.searchResult.count();
 		const isReplaceMode = this._searchModel.replaceActive;
 
-		// Header
 		content.push(localize('search.header', "Accessibility Help: Search Across Files"));
 		content.push(localize('search.context', "You are in the Search view. This workspace-wide tool lets you find text or patterns across all files in your workspace."));
 		content.push('');
 
-		// Current Search Status
 		content.push(localize('search.statusHeader', "Current Search Status:"));
 		content.push(localize('search.statusIntro', "You are searching across your workspace."));
 		if (resultCount !== undefined) {
@@ -74,12 +72,10 @@ class SearchAccessibilityHelpProvider extends Disposable implements IAccessibleV
 		}
 		content.push('');
 
-		// Inside the Search Input
 		content.push(localize('search.inputHeader', "Inside the Search Input (What It Does):"));
 		content.push(localize('search.inputDesc', "While you are in the Search input, your focus stays in the field. You can type your search term and navigate the search results list without leaving the input. When you navigate to a result, the editor updates in the background to show the match."));
 		content.push('');
 
-		// What You Hear
 		content.push(localize('search.hearHeader', "What You Hear Each Time You Move to a Result:"));
 		content.push(localize('search.hearDesc', "Each navigation step gives you a complete spoken update:"));
 		content.push(localize('search.hear1', "1) The file name where the result is located is read first, so you know which file contains the match."));
@@ -88,14 +84,12 @@ class SearchAccessibilityHelpProvider extends Disposable implements IAccessibleV
 		content.push(localize('search.hear4', "4) The exact line and column are announced, so you know precisely where the match is in the file."));
 		content.push('');
 
-		// Focus Behavior
 		content.push(localize('search.focusHeader', "Focus Behavior (Important):"));
 		content.push(localize('search.focusDesc1', "When you navigate from the Search input, the editor updates while your focus stays in the search field. This is intentional, so you can keep refining your search without losing your place."));
 		content.push(localize('search.focusDesc2', "If you press Tab, focus moves to the results tree below the input, and you can navigate results and open them. When you press Enter on a result, the match is shown in the editor."));
 		content.push(localize('search.focusDesc3', "If you want to focus the editor to edit text at a search result, use {0} to navigate to the result and automatically focus the editor there.", '<keybinding:search.action.focusNextSearchResult>'));
 		content.push('');
 
-		// Keyboard Navigation Summary
 		content.push(localize('search.keyboardHeader', "Keyboard Navigation Summary:"));
 		content.push('');
 		content.push(localize('search.keyNavSearchHeader', "While focused IN the Search input:"));
@@ -111,14 +105,12 @@ class SearchAccessibilityHelpProvider extends Disposable implements IAccessibleV
 		content.push(localize('search.keyShiftF4', "- {0}: Jump to the previous result and focus the editor.", '<keybinding:search.action.focusPreviousSearchResult>'));
 		content.push('');
 
-		// Search Options
 		content.push(localize('search.optionsHeader', "Search Options in the Dialog:"));
 		content.push(localize('search.optionCase', "- Match Case: Only exact case matches are included."));
 		content.push(localize('search.optionWord', "- Whole Word: Only full words are matched."));
 		content.push(localize('search.optionRegex', "- Regular Expression: Use pattern matching for advanced searches."));
 		content.push('');
 
-		// Replace Mode
 		if (isReplaceMode) {
 			content.push(localize('search.replaceHeader', "Replace Across Files (Replace Mode Active):"));
 			content.push(localize('search.replaceDesc1', "Tab to the Replace input and type your replacement text."));
@@ -127,7 +119,6 @@ class SearchAccessibilityHelpProvider extends Disposable implements IAccessibleV
 			content.push('');
 		}
 
-		// Settings
 		content.push(localize('search.settingsHeader', "Settings You Can Adjust ({0} opens Settings):", '<keybinding:workbench.action.openSettings>'));
 		content.push(localize('search.settingsIntro', "These settings affect how Search across files behaves."));
 		content.push(localize('search.settingVerbosity', "- `accessibility.verbosity.find`: Controls whether the Search input announces the Accessibility Help hint."));
@@ -142,12 +133,10 @@ class SearchAccessibilityHelpProvider extends Disposable implements IAccessibleV
 		content.push(localize('search.settingViewMode', "- `search.defaultViewMode`: Show results as list or tree."));
 		content.push(localize('search.settingActions', "- `search.actionsPosition`: Position of action buttons."));
 
-		// Replace-specific setting
 		if (isReplaceMode) {
 			content.push(localize('search.settingReplacePreview', "- `search.useReplacePreview`: Open preview when replacing matches."));
 		}
 
-		// Platform-specific setting
 		if (isMacintosh) {
 			content.push('');
 			content.push(localize('search.macSettingHeader', "Platform-Specific Setting (macOS only):"));

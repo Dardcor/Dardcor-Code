@@ -30,7 +30,6 @@ export interface IInlineEditsView {
 	readonly onDidClick: Event<InlineEditClickEvent>;
 }
 
-// TODO: Move this out of here as it is also includes ghosttext
 export enum InlineCompletionViewKind {
 	GhostText = 'ghostText',
 	Custom = 'custom',
@@ -48,10 +47,6 @@ export class InlineCompletionViewData {
 
 	public longDistanceHintVisible: boolean | undefined = undefined;
 	public longDistanceHintDistance: number | undefined = undefined;
-	/**
-	 * Whether the suggestion targets a different text model (URI) than the active editor's,
-	 * i.e. a cross-document Next Edit Suggestion. `undefined` for inline completions / ghost text.
-	 */
 	public isForAnotherDocument: boolean | undefined = undefined;
 
 	constructor(

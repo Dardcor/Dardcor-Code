@@ -51,7 +51,6 @@ export class LanguageModelAccessPrompt extends PromptElement<Props> {
 
 		for (const message of this.props.messages) {
 			if (message.role === vscode.LanguageModelChatMessageRole.System) {
-				// Filter out DataPart since it does not share the same value type and does not have callId, function, etc.
 				const filteredContent = message.content.filter(part => !(part instanceof vscode.LanguageModelDataPart));
 				systemMessages.push(filteredContent
 					.filter(part => part instanceof vscode.LanguageModelTextPart)
@@ -94,9 +93,7 @@ export class LanguageModelAccessPrompt extends PromptElement<Props> {
 			<>
 				<SystemMessage>
 					{this.props.noSafety
-						// Only custom system message
 						? systemMessages
-						// Our and custom system message
 						: <>
 							<SafetyRules />
 							<EditorIntegrationRules />

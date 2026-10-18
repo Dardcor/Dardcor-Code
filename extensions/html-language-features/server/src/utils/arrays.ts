@@ -15,10 +15,6 @@ export function contains<T>(arr: T[], val: T) {
 	return arr.indexOf(val) !== -1;
 }
 
-/**
- * Like `Array#sort` but always stable. Usually runs a little slower `than Array#sort`
- * so only use this when actually needing stable sort.
- */
 export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
 	_divideAndMerge(data, compare);
 	return data;
@@ -26,7 +22,6 @@ export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
 
 function _divideAndMerge<T>(data: T[], compare: (a: T, b: T) => number): void {
 	if (data.length <= 1) {
-		// sorted
 		return;
 	}
 	const p = (data.length / 2) | 0;
@@ -42,10 +37,8 @@ function _divideAndMerge<T>(data: T[], compare: (a: T, b: T) => number): void {
 	while (leftIdx < left.length && rightIdx < right.length) {
 		const ret = compare(left[leftIdx], right[rightIdx]);
 		if (ret <= 0) {
-			// smaller_equal -> take left to preserve order
 			data[i++] = left[leftIdx++];
 		} else {
-			// greater -> take right
 			data[i++] = right[rightIdx++];
 		}
 	}

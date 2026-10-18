@@ -31,13 +31,6 @@ export interface CreatePullRequestOptions {
 export interface IPullRequestCreationService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Pushes the session branch to its remote, generates a title and description,
-	 * and creates a pull request for the session.
-	 *
-	 * @returns The URL of the created pull request, or `undefined` if creation was
-	 * cancelled before completion. Throws on any unrecoverable error.
-	 */
 	createPullRequest(options: CreatePullRequestOptions, token: vscode.CancellationToken): Promise<string | undefined>;
 }
 
@@ -64,7 +57,6 @@ export class PullRequestCreationService extends Disposable implements IPullReque
 			throw new Error(l10n.t('Could not find the repository for branch \'{0}\'.', branchName));
 		}
 
-		// Resolve owner/repo from the (preferred upstream's) remote.
 		const githubRepoInfo = getGitHubRepoInfoFromContext(repositoryContext);
 		const remoteInformation = githubRepoInfo
 			? repository.state.remotes.find(remote =>
@@ -75,7 +67,6 @@ export class PullRequestCreationService extends Disposable implements IPullReque
 			throw new Error(l10n.t('Could not determine the GitHub remote for branch \'{0}\'.', branchName));
 		}
 
-		// Push the branch (set upstream when missing).
 		const head = repository.state.HEAD;
 		const setUpstream = !head?.upstream;
 		await repository.push(remoteInformation.name, branchName, setUpstream);
@@ -84,7 +75,6 @@ export class PullRequestCreationService extends Disposable implements IPullReque
 			return undefined;
 		}
 
-		// Collect commits and patches.
 		const context = await collectPullRequestContext(repository, baseBranchName, branchName, token);
 		if (token.isCancellationRequested) {
 			return undefined;
@@ -112,8 +102,6 @@ export class PullRequestCreationService extends Disposable implements IPullReque
 			return undefined;
 		}
 
-		// Base branch name may contain the remote name as a prefix, so we
-		// need to remove it since the API expects just the branch name.
 		const normalizedBaseBranchName = baseBranchName.replace(
 			new RegExp(`^${escapeRegExpCharacters(remoteInformation.name)}/`),
 			''
@@ -157,9 +145,6 @@ async function collectPullRequestContext(
 		return undefined;
 	}
 
-	// Use `mergeBase..branchName` so that reverse merges from the base
-	// branch are excluded; `reverse: true` returns commits oldest-first to
-	// match the shape consumed by the PR title/description prompt.
 	const commits = await repository.log({ range: `${mergeBase}..${branchName}`, reverse: true });
 	const commitMessages = commits.map(commit => commit.message);
 

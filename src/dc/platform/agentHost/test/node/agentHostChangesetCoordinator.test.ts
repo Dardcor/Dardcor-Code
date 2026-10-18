@@ -93,7 +93,7 @@ suite('ChangesetSessionCoordinator', () => {
 			[IAgentHostFileMonitorService, monitor],
 			[IAgentHostGitService, gitService],
 			[IAgentHostGitStateService, gitStateService],
-		), /*strict*/ true));
+		), true));
 		const coordinator = disposables.add(instantiationService.createInstance(AgentHostChangesetCoordinator));
 		return { stateManager, changesets, subscriptions, monitor, gitService, gitStateService, coordinator, updateOperationsCalls };
 	}
@@ -104,16 +104,13 @@ suite('ChangesetSessionCoordinator', () => {
 		createSession(environment.stateManager, session, 'file:///repoA');
 		const baseline = environment.updateOperationsCalls.length;
 
-		// Editor Window adds a second root -> multi-root: operations must refresh.
 		environment.stateManager.dispatchServerAction(session, { type: ActionType.SessionWorkingDirectorySet, directory: 'file:///repoB' });
 		assert.deepStrictEqual(environment.updateOperationsCalls.slice(baseline), [session], 'adding a root refreshes the session operations');
 
-		// A no-op working-directory action (same root) must not refresh again.
 		const afterAdd = environment.updateOperationsCalls.length;
 		environment.stateManager.dispatchServerAction(session, { type: ActionType.SessionWorkingDirectorySet, directory: 'file:///repoB' });
 		assert.strictEqual(environment.updateOperationsCalls.length, afterAdd, 'a no-op working-directory action does not refresh');
 
-		// Removing the second root -> back to single-root: operations refresh again (restore).
 		environment.stateManager.dispatchServerAction(session, { type: ActionType.SessionWorkingDirectoryRemoved, directory: 'file:///repoB' });
 		assert.deepStrictEqual(environment.updateOperationsCalls.slice(afterAdd), [session], 'removing a root refreshes the session operations');
 	});
@@ -156,8 +153,6 @@ suite('ChangesetSessionCoordinator', () => {
 		const subagentSession = buildSubagentSessionUri(parentSession, 'tool-1');
 		const environment = createEnvironment();
 		createSession(environment.stateManager, parentSession, 'file:///repoA');
-		// A subagent with NO own working directories inherits the parent's set,
-		// so a parent root change flips its multi-root state too.
 		createSession(environment.stateManager, subagentSession);
 		const baseline = environment.updateOperationsCalls.length;
 
@@ -440,9 +435,6 @@ suite('ChangesetSessionCoordinator', () => {
 		await environment.monitor.waitForAcquisitions(2);
 		environment.changesets.clearRefreshes();
 
-		// An external edit in the SECONDARY repo must refresh the all-folder
-		// summary, sourcing git state from the PRIMARY working directory (never
-		// the secondary root that changed).
 		environment.monitor.fire(secondaryRoot);
 		await tick();
 
@@ -570,9 +562,6 @@ suite('ChangesetSessionCoordinator', () => {
 		await tick();
 		environment.changesets.clearRefreshes();
 
-		// While the turn runs, every root watcher is released; external edits to
-		// any root must not trigger a mid-turn refresh (turn edits are captured
-		// by the turn lifecycle instead).
 		environment.monitor.fire(rootA);
 		environment.monitor.fire(rootB);
 		await tick();
@@ -595,7 +584,6 @@ suite('ChangesetSessionCoordinator', () => {
 			[sharedRoot.toString(), sharedRoot],
 			[rootB.toString(), rootB],
 		])));
-		// A's primary is the shared repo; B watches the shared repo as a secondary.
 		createMultiRootSession(environment.stateManager, sessionA, [sharedRoot.toString()]);
 		createMultiRootSession(environment.stateManager, sessionB, [rootB.toString(), sharedRoot.toString()]);
 
@@ -607,9 +595,6 @@ suite('ChangesetSessionCoordinator', () => {
 		await tick();
 		environment.changesets.clearRefreshes();
 
-		// While A runs a turn the shared root is active, so an external edit
-		// there must NOT refresh the idle sharer B (documented, accepted
-		// shared-root suspension — decision D4).
 		environment.monitor.fire(sharedRoot);
 		await tick();
 
@@ -621,12 +606,9 @@ suite('ChangesetSessionCoordinator', () => {
 		const environment = createEnvironment();
 		createSession(environment.stateManager, session, 'file:///repo/worktree');
 
-		// Subscribe via the BRANCH changeset URI (tracks the branch subscription key).
 		environment.coordinator.onFirstSubscriber(URI.parse(buildBranchChangesetUri(session)));
 		await environment.monitor.waitForAcquisitions(1);
 
-		// An abrupt dispose (no onLastSubscriber) must clear the branch watch
-		// interest, so a later materialization retry cannot resurrect a watcher.
 		environment.coordinator.onSessionDisposed(session);
 		environment.coordinator.onSessionMaterialized(session);
 		await tick();
@@ -650,8 +632,6 @@ suite('ChangesetSessionCoordinator', () => {
 		environment.coordinator.onFirstSubscriber(URI.parse(session));
 		await environment.monitor.waitForAcquisitions(2);
 
-		// repoB drops out of the session's working directories; the next
-		// re-attach must detach and dispose only repoB's watcher.
 		environment.stateManager.dispatchServerAction(session, { type: ActionType.SessionWorkingDirectoryRemoved, directory: rootB.toString() });
 		environment.coordinator.onSessionMaterialized(session);
 		await environment.gitService.waitForRootLookups(3);
@@ -677,7 +657,6 @@ suite('ChangesetSessionCoordinator', () => {
 			[rootB.toString(), rootB],
 			[sharedRoot.toString(), sharedRoot],
 		])));
-		// The shared repo is a SECONDARY root for A (primary repoA) and for B.
 		createMultiRootSession(environment.stateManager, sessionA, [rootA.toString(), sharedRoot.toString()]);
 		createMultiRootSession(environment.stateManager, sessionB, [rootB.toString(), sharedRoot.toString()]);
 
@@ -689,8 +668,6 @@ suite('ChangesetSessionCoordinator', () => {
 		await tick();
 		environment.changesets.clearRefreshes();
 
-		// A's active root is its PRIMARY (repoA); the shared secondary stays
-		// watched for the idle sharer B, so an edit there still refreshes B (D4).
 		environment.monitor.fire(sharedRoot);
 		await tick();
 
@@ -707,14 +684,11 @@ suite('ChangesetSessionCoordinator', () => {
 		])));
 		createMultiRootSession(environment.stateManager, session, [rootA.toString(), rootB.toString()]);
 
-		// repoB's watcher acquisition fails on the first attempt.
 		environment.monitor.failAcquireFor.add(rootB.toString());
 		environment.coordinator.onFirstSubscriber(URI.parse(session));
 		await environment.monitor.waitForAcquisitions(2);
 		await tick();
 
-		// The failure clears; a re-attach must retry repoB (not short-circuit on
-		// a cached signature) so an edit there then refreshes the summary.
 		environment.monitor.failAcquireFor.delete(rootB.toString());
 		environment.coordinator.onSessionMaterialized(session);
 		await environment.monitor.waitForAcquisitions(3);
@@ -744,12 +718,9 @@ suite('ChangesetSessionCoordinator', () => {
 		environment.coordinator.onFirstSubscriber(URI.parse(session));
 		await environment.monitor.waitForAcquisitions(1);
 
-		// Adding a second root mid-session must start watching it (no lifecycle
-		// event required) so external edits there refresh the summary.
 		environment.stateManager.dispatchServerAction(session, { type: ActionType.SessionWorkingDirectorySet, directory: rootB.toString() });
 		await environment.monitor.waitForAcquisitions(2);
 
-		// Removing it again must stop watching that root.
 		environment.stateManager.dispatchServerAction(session, { type: ActionType.SessionWorkingDirectoryRemoved, directory: rootB.toString() });
 		await environment.monitor.waitForDisposals(1);
 
@@ -772,15 +743,12 @@ suite('ChangesetSessionCoordinator', () => {
 			[secondaryRoot.toString(), secondaryRoot],
 		])));
 		createMultiRootSession(environment.stateManager, parentSession, [primaryRoot.toString(), secondaryRoot.toString()]);
-		// The subagent has NO own working directories, so it inherits the parent's set.
 		createSession(environment.stateManager, subagentSession);
 
 		environment.coordinator.onFirstSubscriber(URI.parse(subagentSession));
 		await environment.monitor.waitForAcquisitions(2);
 		environment.changesets.clearRefreshes();
 
-		// An external edit in the parent's SECONDARY repo refreshes the subagent,
-		// sourcing git state from the parent's PRIMARY working directory.
 		environment.monitor.fire(secondaryRoot);
 		await tick();
 
@@ -804,15 +772,12 @@ suite('ChangesetSessionCoordinator', () => {
 			[rootA.toString(), rootA],
 			[rootB.toString(), rootB],
 		])));
-		// The parent starts single-root; the subagent inherits its set.
 		createSession(environment.stateManager, parentSession, rootA.toString());
 		createSession(environment.stateManager, subagentSession);
 
 		environment.coordinator.onFirstSubscriber(URI.parse(subagentSession));
 		await environment.monitor.waitForAcquisitions(1);
 
-		// The PARENT gains a second root mid-session: the inheriting subagent must
-		// start watching it too (fan-out to subagents on a parent change).
 		environment.stateManager.dispatchServerAction(parentSession, { type: ActionType.SessionWorkingDirectorySet, directory: rootB.toString() });
 		await environment.monitor.waitForAcquisitions(2);
 
@@ -870,9 +835,6 @@ class TestGitStateService extends Disposable implements IAgentHostGitStateServic
 	readonly refreshedWith: Array<{ readonly sessionKey: string; readonly workingDirectory: string | undefined }> = [];
 
 	async refreshSessionGitState(sessionKey: string, workingDirectory?: URI): Promise<void> {
-		// Mirror the production service: record the refresh (and the working
-		// directory it was asked to refresh from) and notify listeners so the
-		// coordinator recomputes the subscribed changesets.
 		this.refreshed.push(sessionKey);
 		this.refreshedWith.push({ sessionKey, workingDirectory: workingDirectory?.toString() });
 		this._onDidRefreshSessionGitState.fire(sessionKey);

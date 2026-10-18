@@ -25,8 +25,6 @@ class ExtHostSaveParticipant implements ITextFileSaveParticipant {
 	async participate(editorModel: ITextFileEditorModel, context: ITextFileSaveParticipantContext, _progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
 
 		if (!editorModel.textEditorModel || !shouldSynchronizeModel(editorModel.textEditorModel)) {
-			// the model never made it to the extension
-			// host meaning we cannot participate in its save
 			return undefined;
 		}
 
@@ -48,7 +46,6 @@ class ExtHostSaveParticipant implements ITextFileSaveParticipant {
 	}
 }
 
-// The save participant can change a model before its saved to support various scenarios like trimming trailing whitespace
 @extHostCustomer
 export class SaveParticipant {
 

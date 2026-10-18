@@ -13,15 +13,8 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import * as log from "../utils/logger.js";
 
-// Video generation is xAI-only today; requests without a provider prefix
-// (bare model id, or multipart bodies we deliberately don't parse) land here.
 const DEFAULT_VIDEO_PROVIDER = "xai";
 
-/**
- * Poll requests carry no model, so the provider comes from the pinned
- * connection (`x-connection-id`, returned on create) or an explicit
- * `?provider=` — falling back to the historical xAI default.
- */
 async function resolveGetProvider(request, connectionId) {
   if (connectionId) {
     const conn = await getProviderConnectionById(connectionId).catch(() => null);
@@ -32,9 +25,6 @@ async function resolveGetProvider(request, connectionId) {
   return DEFAULT_VIDEO_PROVIDER;
 }
 
-// Creation POSTs are billable jobs — only rotate to another account for
-// errors that upstream rejects BEFORE creating a job (auth/quota). A 5xx may
-// have created the job, so it is returned to the caller instead of re-sent.
 const CREATE_ROTATION_STATUSES = new Set([
   HTTP_STATUS.UNAUTHORIZED,
   HTTP_STATUS.FORBIDDEN,
@@ -52,11 +42,6 @@ async function requireValidApiKey(request) {
   return null;
 }
 
-/**
- * Read the request body once, byte-preserving.
- * JSON bodies are additionally parsed so the `model` provider prefix can be
- * resolved (and stripped) — everything else is forwarded exactly as received.
- */
 async function readForwardableBody(request) {
   const contentType = request.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -69,8 +54,6 @@ async function readForwardableBody(request) {
     }
     return { raw, parsed, contentType };
   }
-  // Multipart (or any other content type): forward the exact bytes — parsing
-  // and re-encoding FormData would change the multipart boundary.
   const buf = Buffer.from(await request.arrayBuffer());
   return { raw: buf, parsed: null, contentType };
 }
@@ -84,8 +67,6 @@ async function resolveVideoProvider(parsedBody) {
     return { error: errorResponse(HTTP_STATUS.BAD_REQUEST, "Combos are not supported for video generation") };
   }
   if (!getVideoConfig(modelInfo.provider)) {
-    // Bare model ids (no explicit "provider/" prefix) fall back to the default
-    // video provider — the prefix-less inference targets chat providers only.
     if (!modelStr.includes("/")) {
       return { provider: DEFAULT_VIDEO_PROVIDER, model: modelStr };
     }
@@ -97,15 +78,10 @@ async function resolveVideoProvider(parsedBody) {
 function withConnectionHeader(response, connectionId) {
   if (!connectionId) return response;
   const headers = new Headers(response.headers);
-  // Video jobs are account-bound upstream — clients echo this back as
-  // `x-connection-id` on GET polls so the same account is used.
   headers.set("x-dardcor-connection-id", String(connectionId));
   return new Response(response.body, { status: response.status, headers });
 }
 
-/**
- * POST /v1/videos/{generations|edits|extensions} — async job creation proxy.
- */
 export async function handleVideoCreate(request, action) {
   const authError = await requireValidApiKey(request);
   if (authError) return authError;
@@ -117,8 +93,6 @@ export async function handleVideoCreate(request, action) {
   if (resolved.error) return resolved.error;
   const { provider, model } = resolved;
 
-  // Strip the provider prefix (e.g. "xai/grok-imagine-video") before forwarding;
-  // otherwise forward the original bytes untouched.
   let forwardBody = bodyInfo.raw;
   if (bodyInfo.parsed && model && bodyInfo.parsed.model !== model) {
     forwardBody = JSON.stringify({ ...bodyInfo.parsed, model });
@@ -173,7 +147,6 @@ export async function handleVideoCreate(request, action) {
       return withConnectionHeader(result.response, credentials.connectionId);
     }
 
-    // Record the failure (dashboard shows lastError/errorCode → user sees re-auth is needed)
     const { shouldFallback } = await markAccountUnavailable(
       credentials.connectionId, result.status, sanitizeSecrets(result.error, refreshedCredentials), provider, model
     );
@@ -189,11 +162,6 @@ export async function handleVideoCreate(request, action) {
   }
 }
 
-/**
- * GET /v1/videos/{request_id} — poll job status.
- * Jobs are account-bound upstream, so no cross-account rotation here: the
- * caller pins the creating account via `x-connection-id` (returned on create).
- */
 export async function handleVideoGet(request, requestId) {
   const authError = await requireValidApiKey(request);
   if (authError) return authError;

@@ -38,7 +38,6 @@ export interface IEnvironmentVariableCollection {
 	readonly descriptionMap?: ReadonlyMap<string, IEnvironmentVariableCollectionDescription>;
 }
 
-/** [variable, mutator] */
 export type ISerializableEnvironmentVariableCollection = [string, IEnvironmentVariableMutator][];
 
 export type ISerializableEnvironmentDescriptionMap = [string, IEnvironmentVariableCollectionDescription][];
@@ -46,7 +45,6 @@ export interface IExtensionOwnedEnvironmentDescriptionMutator extends IEnvironme
 	readonly extensionIdentifier: string;
 }
 
-/** [extension, collection, description] */
 export type ISerializableEnvironmentVariableCollections = [string, ISerializableEnvironmentVariableCollection, ISerializableEnvironmentDescriptionMap][];
 
 export interface IExtensionOwnedEnvironmentVariableMutator extends IEnvironmentVariableMutator {
@@ -61,10 +59,6 @@ export interface IMergedEnvironmentVariableCollectionDiff {
 
 type VariableResolver = (str: string) => Promise<string>;
 
-/**
- * Represents an environment variable collection that results from merging several collections
- * together.
- */
 export interface IMergedEnvironmentVariableCollection {
 	readonly collections: ReadonlyMap<string, IEnvironmentVariableCollection>;
 	/**
@@ -78,16 +72,7 @@ export interface IMergedEnvironmentVariableCollection {
 	 * global scope is returned.
 	 */
 	getDescriptionMap(scope: EnvironmentVariableScope | undefined): Map<string, string | undefined>;
-	/**
-	 * Applies this collection to a process environment.
-	 * @param variableResolver An optional function to use to resolve variables within the
-	 * environment values.
-	 */
 	applyToProcessEnvironment(env: IProcessEnvironment, scope: EnvironmentVariableScope | undefined, variableResolver?: VariableResolver): Promise<void>;
 
-	/**
-	 * Generates a diff of this collection against another. Returns undefined if the collections are
-	 * the same.
-	 */
 	diff(other: IMergedEnvironmentVariableCollection, scope: EnvironmentVariableScope | undefined): IMergedEnvironmentVariableCollectionDiff | undefined;
 }

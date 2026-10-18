@@ -88,7 +88,6 @@ const DECORATION_KEY = 'replinputdecoration';
 
 function revealLastElement(tree: WorkbenchAsyncDataTree<any, any, any>) {
 	tree.scrollTop = tree.scrollHeight - tree.renderHeight;
-	// tree.scrollTop = 1e6;
 }
 
 const sessionsToIgnore = new Set<IDebugSession>();
@@ -97,7 +96,7 @@ const identityProvider = { getId: (element: IReplElement) => element.getId() };
 export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 	declare readonly _serviceBrand: undefined;
 
-	private static readonly REFRESH_DELAY = 50; // delay in ms to refresh the repl for new elements to show
+	private static readonly REFRESH_DELAY = 50;
 	private static readonly URI = uri.parse(`${DEBUG_SCHEME}:replinput`);
 
 	private history: HistoryNavigator<string>;
@@ -184,7 +183,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 			}
 		}));
 		this._register(this.debugService.onWillNewSession(async newSession => {
-			// Need to listen to output events for sessions which are not yet fully initialised
 			const input = this.tree?.getInput();
 			if (!input || input.state === State.Inactive) {
 				await this.selectSession(newSession);
@@ -192,8 +190,7 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 			this.multiSessionRepl.set(this.isMultiSessionView);
 		}));
 		this._register(this.debugService.onDidEndSession(async () => {
-			// Update view, since orphaned sessions might now be separate
-			await Promise.resolve(); // allow other listeners to go first, so sessions can update parents
+			await Promise.resolve();
 			this.multiSessionRepl.set(this.isMultiSessionView);
 		}));
 		this._register(this.themeService.onDidColorThemeChange(() => {
@@ -222,9 +219,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 
 			if (this.styleChangedWhenInvisible) {
 				this.styleChangedWhenInvisible = false;
-				// Only update children when the tree has an input - it may not yet
-				// (no debug session has been focused since this view was created),
-				// in which case `_updateChildren` would throw `Tree input not set`.
 				if (this.tree?.getInput()) {
 					this.tree.updateChildren(undefined, true, false);
 				}
@@ -268,7 +262,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 					_debugDisplayName: 'debugConsole',
 					triggerCharacters: session.capabilities.completionTriggerCharacters || ['.'],
 					provideCompletionItems: async (_: ITextModel, position: Position, _context: CompletionContext, token: CancellationToken): Promise<CompletionList> => {
-						// Disable history navigation because up and down are used to navigate through the suggest widget
 						this.setHistoryNavigationEnablement(false);
 
 						const model = this.replInput.getModel();
@@ -286,7 +279,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 										let insertTextRules: CompletionItemInsertTextRule | undefined = undefined;
 										let insertText = item.text || item.label;
 										if (typeof item.selectionStart === 'number') {
-											// If a debug completion item sets a selection we need to use snippets to make sure the selection is selected #90974
 											insertTextRules = CompletionItemInsertTextRule.InsertAsSnippet;
 											const selectionLength = typeof item.selectionLength === 'number' ? item.selectionLength : 0;
 											const placeholder = selectionLength > 0 ? '${1:' + insertText.substring(item.selectionStart, item.selectionStart + selectionLength) + '}$0' : '$0';
@@ -334,7 +326,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 	}
 
 	getFilterStats(): { total: number; filtered: number } {
-		// This could be called before the tree is created when setting this.filterState.filterText value
 		return {
 			total: this.tree?.getNode().children.length ?? 0,
 			filtered: this.tree?.getNode().children.filter(c => c.visible).length ?? 0
@@ -342,7 +333,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 	}
 
 	get isReadonly(): boolean {
-		// Do not allow to edit inactive sessions
 		const session = this.tree?.getInput();
 		if (session && session.state !== State.Inactive) {
 			return false;
@@ -400,7 +390,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 
 			const replInputLineHeight = this.replInput.getOption(EditorOption.lineHeight);
 
-			// Set the font size, font family, line height and align the twistie to be centered, and input theme color
 			this.styleElement.textContent = `
 				.repl .repl-input-wrapper .repl-input-chevron {
 					line-height: ${replInputLineHeight}px
@@ -430,7 +419,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 			?? '';
 		this.replInput.setValue(historyInput);
 		aria.status(historyInput);
-		// always leave cursor at the end.
 		this.replInput.setPosition({ lineNumber: 1, column: historyInput.length + 1 });
 		this.setHistoryNavigationEnablement(true);
 	}
@@ -439,7 +427,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 		const treeInput = this.tree?.getInput();
 		if (!session) {
 			const focusedSession = this.debugService.getViewModel().focusedSession;
-			// If there is a focusedSession focus on that one, otherwise just show any other not ignored session
 			if (focusedSession) {
 				session = focusedSession;
 			} else if (!treeInput || sessionsToIgnore.has(treeInput)) {
@@ -456,8 +443,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 				try {
 					await this.tree.setInput(session);
 				} catch (err) {
-					// Ignore error because this may happen multiple times while refreshing,
-					// then changing the root may fail. Log to help with debugging if needed.
 					this.logService.error(err);
 				}
 				revealLastElement(this.tree);
@@ -473,7 +458,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 		if (session) {
 			session.removeReplExpressions();
 			if (session.state === State.Inactive) {
-				// Ignore inactive sessions which got cleared - so they are not shown any more
 				sessionsToIgnore.add(session);
 				await this.selectSession();
 				this.multiSessionRepl.set(this.isMultiSessionView);
@@ -490,7 +474,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 			this.history.add(this.replInput.getValue());
 			this.replInput.setValue('');
 			if (this.bodyContentDimension) {
-				// Trigger a layout to shrink a potential multi line input
 				this.layoutBodyContent(this.bodyContentDimension.height, this.bodyContentDimension.width);
 			}
 		}
@@ -568,7 +551,7 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 
 	override async focus(): Promise<void> {
 		super.focus();
-		await timeout(0); // wait a task for the repl to get attached to the DOM, #83387
+		await timeout(0);
 		this.replInput.focus();
 	}
 
@@ -585,7 +568,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 		return this.debugService.getModel().getSessions(true).filter(s => s.hasSeparateRepl() && !sessionsToIgnore.has(s)).length > 1;
 	}
 
-	// --- Cached locals
 
 	@memoize
 	private get refreshScheduler(): RunOnceScheduler {
@@ -599,7 +581,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 
 			const session = this.tree.getInput();
 			if (session) {
-				// Automatically expand repl group elements when specified
 				const autoExpandElements = async (elements: IReplElement[]) => {
 					for (const element of elements) {
 						if (element instanceof ReplGroup) {
@@ -608,7 +589,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 								await this.tree!.expand(element);
 							}
 							if (!this.tree!.isCollapsed(element)) {
-								// Repl groups can have children which are repl groups thus we might need to expand those as well
 								await autoExpandElements(element.getChildren());
 							}
 						}
@@ -616,13 +596,11 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 				};
 				await autoExpandElements(session.getReplElements());
 			}
-			// Repl elements count changed, need to update filter stats on the badge
 			const { total, filtered } = this.getFilterStats();
 			this.filterWidget.updateBadge(total === filtered || total === 0 ? undefined : localize('showing filtered repl lines', "Showing {0} of {1}", filtered, total));
 		}, Repl.REFRESH_DELAY);
 	}
 
-	// --- Creation
 
 	override render(): void {
 		super.render();
@@ -693,12 +671,9 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 
 		this._register(tree.onDidChangeContentHeight(() => {
 			if (tree.scrollHeight !== this.previousTreeScrollHeight) {
-				// Due to rounding, the scrollTop + renderHeight will not exactly match the scrollHeight.
-				// Consider the tree to be scrolled all the way down if it is within 2px of the bottom.
 				const lastElementWasVisible = tree.scrollTop + tree.renderHeight >= this.previousTreeScrollHeight - 2;
 				if (lastElementWasVisible) {
 					setTimeout(() => {
-						// Can't set scrollTop during this event listener, the list might overwrite the change
 						revealLastElement(tree);
 					}, 0);
 				}
@@ -717,12 +692,10 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 			}
 			const selection = dom.getWindow(this.treeContainer).getSelection();
 			if (!selection || selection.type !== 'Range' || lastSelectedString === selection.toString()) {
-				// only focus the input if the user is not currently selecting and find isn't open.
 				this.replInput.focus();
 			}
 			lastSelectedString = selection ? selection.toString() : '';
 		}));
-		// Make sure to select the session if debugging is already active
 		this.selectSession();
 		this.styleElement = domStylesheetsJs.createStyleSheet(this.container, undefined, this._store);
 		this.onDidStyleChange();
@@ -762,7 +735,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 				}
 			}
 		}));
-		// We add the input decoration only when the focus is in the input #61126
 		this._register(this.replInput.onDidFocusEditorText(() => this.updateInputDecoration()));
 		this._register(this.replInput.onDidBlurEditorText(() => this.updateInputDecoration()));
 
@@ -794,7 +766,6 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 		});
 	}
 
-	// --- Update
 
 	private refreshReplElements(noDelay: boolean): void {
 		if (this.tree && this.isVisible()) {
@@ -857,7 +828,7 @@ export class Repl extends FilterViewPane implements IHistoryNavigationWidget {
 	}
 
 	override dispose(): void {
-		this.replInput?.dispose(); // Disposed before rendered? #174558
+		this.replInput?.dispose();
 		this.replElementsChangeListener?.dispose();
 		this.refreshScheduler.dispose();
 		this.modelChangeListener.dispose();
@@ -913,7 +884,6 @@ class ReplOptions extends Disposable implements IReplOptions {
 	}
 }
 
-// Repl actions and commands
 
 class AcceptReplInputAction extends EditorAction {
 
@@ -1053,12 +1023,10 @@ registerAction2(class extends ViewAction<Repl> {
 
 	async runInView(accessor: ServicesAccessor, view: Repl, session: IDebugSession | undefined) {
 		const debugService = accessor.get(IDebugService);
-		// If session is already the focused session we need to manualy update the tree since view model will not send a focused change event
 		if (session && session.state !== State.Inactive && session !== debugService.getViewModel().focusedSession) {
 			session = resolveChildSession(session, debugService.getModel().getSessions());
 			await debugService.focusStackFrame(undefined, undefined, session, { explicit: true });
 		}
-		// Need to select the session in the view since the focussed session might not have changed
 		await view.selectSession(session);
 	}
 });
@@ -1087,8 +1055,6 @@ registerAction2(class extends ViewAction<Repl> {
 			keybinding: [{
 				primary: 0,
 				mac: { primary: KeyMod.CtrlCmd | KeyCode.KeyK },
-				// Weight is higher than work workbench contributions so the keybinding remains
-				// highest priority when chords are registered afterwards
 				weight: KeybindingWeight.WorkbenchContrib + 1,
 				when: ContextKeyExpr.equals('focusedView', 'workbench.panel.repl.view')
 			}],
@@ -1202,7 +1168,6 @@ registerAction2(class extends Action2 {
 	}
 
 	private async tryEvaluateAndCopy(debugService: IDebugService, element: IReplElement): Promise<string | undefined> {
-		// todo: we should expand DAP to allow copying more types here (#187784)
 		if (!(element instanceof ReplEvaluationResult)) {
 			return;
 		}

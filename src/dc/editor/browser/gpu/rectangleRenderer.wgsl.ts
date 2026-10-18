@@ -9,7 +9,7 @@ export const enum RectangleRendererBindingId {
 	ScrollOffset,
 }
 
-export const rectangleRendererWgsl = /*wgsl*/ `
+export const rectangleRendererWgsl = `
 
 struct Vertex {
 	@location(0) position: vec2f,

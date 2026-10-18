@@ -31,7 +31,6 @@ export const testResultStateToContextValues: { [K in TestResultState]: string } 
 	[TestResultState.Errored]: 'errored',
 };
 
-/** note: keep in sync with TestRunProfileKind in vscode.d.ts */
 export const enum ExtTestRunProfileKind {
 	Run = 1,
 	Debug = 2,
@@ -59,9 +58,6 @@ export const testProfileBitset = {
 	[TestRunProfileBitset.Coverage]: localize('testing.runProfileBitset.coverage', 'Coverage'),
 };
 
-/**
- * List of all test run profile bitset values.
- */
 export const testRunProfileBitsetList = [
 	TestRunProfileBitset.Run,
 	TestRunProfileBitset.Debug,
@@ -71,9 +67,6 @@ export const testRunProfileBitsetList = [
 	TestRunProfileBitset.SupportsContinuousRun,
 ];
 
-/**
- * DTO for a controller's run profiles.
- */
 export interface ITestRunProfile {
 	controllerId: string;
 	profileId: number;
@@ -91,10 +84,6 @@ export interface ITestRunProfileReference {
 	group: TestRunProfileBitset;
 }
 
-/**
- * A fully-resolved request to run tests, passsed between the main thread
- * and extension host.
- */
 export interface ResolvedTestRunRequest {
 	group: TestRunProfileBitset;
 	targets: {
@@ -103,15 +92,10 @@ export interface ResolvedTestRunRequest {
 		profileId: number;
 	}[];
 	exclude?: string[];
-	/** Whether this is a continuous test run */
 	continuous?: boolean;
-	/** Whether this was trigged by a user action in UI. Default=true */
 	preserveFocus?: boolean;
 }
 
-/**
- * Request to the main thread to run a set of tests.
- */
 export interface ExtensionRunTestsRequest {
 	id: string;
 	include: string[];
@@ -120,17 +104,9 @@ export interface ExtensionRunTestsRequest {
 	profile?: { group: TestRunProfileBitset; id: number };
 	persist: boolean;
 	preserveFocus: boolean;
-	/** Whether this is a result of a continuous test run request */
 	continuous: boolean;
 }
 
-/**
- * Request parameters a controller run handler. This is different than
- * {@link IStartControllerTests}. The latter is used to ask for one or more test
- * runs tracked directly by the renderer.
- *
- * This alone can be used to start an autorun, without a specific associated runId.
- */
 export interface ICallProfileRunHandler {
 	controllerId: string;
 	profileId: number;
@@ -140,9 +116,6 @@ export interface ICallProfileRunHandler {
 
 export const isStartControllerTests = (t: ICallProfileRunHandler | IStartControllerTests): t is IStartControllerTests => ('runId' as keyof IStartControllerTests) in t;
 
-/**
- * Request from the main thread to run tests for a single controller.
- */
 export interface IStartControllerTests extends ICallProfileRunHandler {
 	runId: string;
 }
@@ -151,17 +124,12 @@ export interface IStartControllerTestsResult {
 	error?: string;
 }
 
-/**
- * Location with a fully-instantiated Range and URI.
- */
 export interface IRichLocation {
 	range: Range;
 	uri: URI;
 }
 
-/** Subset of the IUriIdentityService */
 export interface ITestUriCanonicalizer {
-	/** @link import('dc/platform/uriIdentity/common/uriIdentity').IUriIdentityService */
 	asCanonicalUri(uri: URI): URI;
 }
 
@@ -264,10 +232,6 @@ export interface ITestOutputMessage {
 	location: IRichLocation | undefined;
 }
 
-/**
- * Gets the TTY marker ID for either starting or ending
- * an ITestOutputMessage.marker of the given ID.
- */
 export const getMarkId = (marker: number, start: boolean) => `${start ? 's' : 'e'}${marker}`;
 
 export namespace ITestOutputMessage {
@@ -368,11 +332,7 @@ export interface ITestTagDisplayInfo {
 	id: string;
 }
 
-/**
- * The TestItem from .d.ts, as a plain object without children.
- */
 export interface ITestItem {
-	/** ID of the test given by the test controller */
 	extId: string;
 	label: string;
 	tags: string[];
@@ -433,15 +393,9 @@ export const enum TestItemExpandState {
 	Expanded,
 }
 
-/**
- * TestItem-like shape, but with an ID and children as strings.
- */
 export interface InternalTestItem {
-	/** Controller ID from whence this test came */
 	controllerId: string;
-	/** Expandability state */
 	expand: TestItemExpandState;
-	/** Raw test item properties */
 	item: ITestItem;
 }
 
@@ -457,18 +411,12 @@ export namespace InternalTestItem {
 	});
 
 	export const deserialize = (uriIdentity: ITestUriCanonicalizer, serialized: Serialized): InternalTestItem => ({
-		// the `controllerId` is derived from the test.item.extId. It's redundant
-		// in the non-serialized InternalTestItem too, but there just because it's
-		// checked against in many hot paths.
 		controllerId: TestId.root(serialized.item.extId),
 		expand: serialized.expand,
 		item: ITestItem.deserialize(uriIdentity, serialized.item)
 	});
 }
 
-/**
- * A partial update made to an existing InternalTestItem.
- */
 export interface ITestItemUpdate {
 	extId: string;
 	expand?: TestItemExpandState;
@@ -526,7 +474,6 @@ export const applyTestItemUpdate = (internal: InternalTestItem | ITestItemUpdate
 	}
 };
 
-/** Request to an ext host to get followup messages for a test failure. */
 export interface TestMessageFollowupRequest {
 	resultId: string;
 	extId: string;
@@ -534,33 +481,20 @@ export interface TestMessageFollowupRequest {
 	messageIndex: number;
 }
 
-/** Request to an ext host to get followup messages for a test failure. */
 export interface TestMessageFollowupResponse {
 	id: number;
 	title: string;
 }
 
-/**
- * Test result item used in the main thread.
- */
 export interface TestResultItem extends InternalTestItem {
-	/** State of this test in various tasks */
 	tasks: ITestTaskState[];
-	/** State of this test as a computation of its tasks */
 	ownComputedState: TestResultState;
-	/** Computed state based on children */
 	computedState: TestResultState;
-	/** Max duration of the item's tasks (if run directly) */
 	ownDuration?: number;
-	/** Whether this test item is outdated */
 	retired?: boolean;
 }
 
 export namespace TestResultItem {
-	/**
-	 * Serialized version of the TestResultItem. Note that 'retired' is not
-	 * included since all hydrated items are automatically retired.
-	 */
 	export interface Serialized extends InternalTestItem.Serialized {
 		tasks: ITestTaskState.Serialized[];
 		ownComputedState: TestResultState;
@@ -591,17 +525,11 @@ export namespace TestResultItem {
 }
 
 export interface ISerializedTestResults {
-	/** ID of these test results */
 	id: string;
-	/** Time the results were compelted */
 	completedAt: number;
-	/** Subset of test result items */
 	items: TestResultItem.Serialized[];
-	/** Tasks involved in the run. */
 	tasks: { id: string; name: string | undefined; ctrlId: string; hasCoverage: boolean }[];
-	/** Human-readable name of the test run. */
 	name: string;
-	/** Test trigger informaton */
 	request: ResolvedTestRunRequest;
 }
 
@@ -678,7 +606,6 @@ function deserializeThingWithLocation<T extends { location?: IRange | IPosition 
 	return serialized as T & { location?: Range | Position };
 }
 
-/** Number of recent runs in which coverage reports should be retained. */
 export const KEEP_N_LAST_COVERAGE_REPORTS = 3;
 
 export const enum DetailType {
@@ -762,21 +689,13 @@ export namespace IStatementCoverage {
 }
 
 export const enum TestDiffOpType {
-	/** Adds a new test (with children) */
 	Add,
-	/** Shallow-updates an existing test */
 	Update,
-	/** Ranges of some tests in a document were synced, so it should be considered up-to-date */
 	DocumentSynced,
-	/** Removes a test (and all its children) */
 	Remove,
-	/** Changes the number of controllers who are yet to publish their collection roots. */
 	IncrementPendingExtHosts,
-	/** Retires a test/result */
 	Retire,
-	/** Add a new test tag */
 	AddTag,
-	/** Remove a test tag */
 	RemoveTag,
 }
 
@@ -824,106 +743,48 @@ export namespace TestsDiffOp {
 	};
 }
 
-/**
- * Context for actions taken in the test explorer view.
- */
 export interface ITestItemContext {
-	/** Marshalling marker */
 	$mid: MarshalledId.TestItemContext;
-	/** Tests and parents from the root to the current items */
 	tests: InternalTestItem.Serialized[];
 }
 
-/**
- * Context for actions taken in the test explorer view.
- */
 export interface ITestMessageMenuArgs {
-	/** Marshalling marker */
 	$mid: MarshalledId.TestMessageMenuArgs;
-	/** Tests ext ID */
 	test: InternalTestItem.Serialized;
-	/** Serialized test message */
 	message: ITestMessage.Serialized;
 }
 
-/**
- * Request from the ext host or main thread to indicate that tests have
- * changed. It's assumed that any item upserted *must* have its children
- * previously also upserted, or upserted as part of the same operation.
- * Children that no longer exist in an upserted item will be removed.
- */
 export type TestsDiff = TestsDiffOp[];
 
-/**
- * @private
- */
 export interface IncrementalTestCollectionItem extends InternalTestItem {
 	children: Set<string>;
 }
 
-/**
- * The IncrementalChangeCollector is used in the IncrementalTestCollection
- * and called with diff changes as they're applied. This is used in the
- * ext host to create a cohesive change event from a diff.
- */
 export interface IncrementalChangeCollector<T> {
-	/**
-	 * A node was added.
-	 */
 	add?(node: T): void;
 
-	/**
-	 * A node in the collection was updated.
-	 */
 	update?(node: T): void;
 
-	/**
-	 * A node was removed.
-	 */
 	remove?(node: T, isNestedOperation: boolean): void;
 
-	/**
-	 * Called when the diff has been applied.
-	 */
 	complete?(): void;
 }
 
-/**
- * Maintains tests in this extension host sent from the main thread.
- */
 export abstract class AbstractIncrementalTestCollection<T extends IncrementalTestCollectionItem> {
 	private readonly _tags = new Map<string, ITestTagDisplayInfo>();
 
-	/**
-	 * Map of item IDs to test item objects.
-	 */
 	protected readonly items = new Map<string, T>();
 
-	/**
-	 * ID of test root items.
-	 */
 	protected readonly roots = new Set<T>();
 
-	/**
-	 * Number of 'busy' controllers.
-	 */
 	protected busyControllerCount = 0;
 
-	/**
-	 * Number of pending roots.
-	 */
 	protected pendingRootCount = 0;
 
-	/**
-	 * Known test tags.
-	 */
 	public readonly tags: ReadonlyMap<string, ITestTagDisplayInfo> = this._tags;
 
 	constructor(private readonly uriIdentity: ITestUriCanonicalizer) { }
 
-	/**
-	 * Applies the diff to the collection.
-	 */
 	public apply(diff: TestsDiff) {
 		const changes = this.createChangeCollector();
 
@@ -1040,31 +901,16 @@ export abstract class AbstractIncrementalTestCollection<T extends IncrementalTes
 		}
 	}
 
-	/**
-	 * Called when the extension signals a test result should be retired.
-	 */
 	protected retireTest(testId: string) {
-		// no-op
 	}
 
-	/**
-	 * Updates the number of test root sources who are yet to report. When
-	 * the total pending test roots reaches 0, the roots for all controllers
-	 * will exist in the collection.
-	 */
 	public updatePendingRoots(delta: number) {
 		this.pendingRootCount += delta;
 	}
 
-	/**
-	 * Called before a diff is applied to create a new change collector.
-	 */
 	protected createChangeCollector(): IncrementalChangeCollector<T> {
 		return {};
 	}
 
-	/**
-	 * Creates a new item for the collection from the internal test item.
-	 */
 	protected abstract createItem(internal: InternalTestItem, parent?: T): T;
 }

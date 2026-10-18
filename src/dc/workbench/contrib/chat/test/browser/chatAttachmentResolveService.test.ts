@@ -31,16 +31,8 @@ suite('ChatAttachmentResolveService', () => {
 	let instantiationService: TestInstantiationService;
 	let service: ChatAttachmentResolveService;
 
-	/**
-	 * Map from directory URI string to children, simulating a file tree.
-	 * Populated per-test to control the mock directory structure.
-	 */
 	let directoryTree: Map<string, { resource: URI; isFile: boolean; isDirectory: boolean }[]>;
 
-	/**
-	 * Set of file URI strings that should be treated as valid images
-	 * by the mocked resolveImageEditorAttachContext.
-	 */
 	let imageFileUris: Set<string>;
 	let knownBrowserViews: Map<string, BrowserEditorInput>;
 	let fileStatCalls: number;
@@ -52,7 +44,6 @@ suite('ChatAttachmentResolveService', () => {
 		knownBrowserViews = new Map();
 		fileStatCalls = 0;
 
-		// Stub IFileService with resolve() that uses the directoryTree map
 		instantiationService.stub(IFileService, {
 			stat: async (resource: URI): Promise<IFileStatWithMetadata> => {
 				fileStatCalls++;
@@ -63,7 +54,6 @@ suite('ChatAttachmentResolveService', () => {
 				if (children !== undefined) {
 					return createFileStat(resource, false, false, true, false, children);
 				}
-				// Treat as a file
 				return createFileStat(resource, false, true, false);
 			}
 		});
@@ -79,8 +69,6 @@ suite('ChatAttachmentResolveService', () => {
 
 		service = instantiationService.createInstance(ChatAttachmentResolveService);
 
-		// Override resolveImageEditorAttachContext to avoid DOM dependencies (canvas, Image, etc.)
-		// and return a predictable image entry for files in the imageFileUris set.
 		service.resolveImageEditorAttachContext = async (resource: URI): Promise<IChatRequestVariableEntry | undefined> => {
 			if (imageFileUris.has(resource.toString())) {
 				return {
@@ -218,7 +206,6 @@ suite('ChatAttachmentResolveService', () => {
 
 	test('handles unreadable directory gracefully', async () => {
 		const dirUri = URI.file('/test/unreadable');
-		// Override resolve to throw for this URI
 		instantiationService.stub(IFileService, {
 			resolve: async (resource: URI): Promise<IFileStatWithMetadata> => {
 				if (resource.toString() === dirUri.toString()) {
@@ -227,7 +214,6 @@ suite('ChatAttachmentResolveService', () => {
 				return createFileStat(resource, false, true, false);
 			}
 		});
-		// Re-create service with the new stub
 		service = instantiationService.createInstance(ChatAttachmentResolveService);
 		service.resolveImageEditorAttachContext = async (resource: URI): Promise<IChatRequestVariableEntry | undefined> => {
 			if (imageFileUris.has(resource.toString())) {
@@ -258,8 +244,6 @@ suite('ChatAttachmentResolveService', () => {
 		]);
 		imageFileUris.add(gifUri.toString());
 		imageFileUris.add(bmpUri.toString());
-		// bmp is NOT in CHAT_ATTACHABLE_IMAGE_MIME_TYPES (only png, jpg, jpeg, gif, webp)
-		// so it should be skipped by the regex even though it would resolve successfully
 
 		const result = await service.resolveDirectoryImages(dirUri);
 		assert.strictEqual(result.length, 1);
@@ -383,7 +367,7 @@ suite('ChatAttachmentResolveService - resolveBrowserViewAttachContext', () => {
 		const editor: Partial<BrowserEditorInput> = {
 			id: 'b4',
 			resource,
-			model: undefined, // model not yet resolved
+			model: undefined,
 			getName: () => 'Unresolved Page',
 			getTitle: () => 'Unresolved Title',
 			resolve: async () => {

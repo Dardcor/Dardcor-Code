@@ -9,7 +9,6 @@ import { IHeaders } from './fetcherService';
 import { ChoiceLogProbs, FilterReason, openAIContextManagementCompactionType, OpenAIContextManagementResponse } from './openai';
 
 
-// Request helpers
 
 export interface RequestId {
 	headerRequestId: string;
@@ -35,7 +34,6 @@ export function getRequestId(headers: IHeaders, json?: any): RequestId {
 	};
 }
 
-// Request methods
 
 export interface ICodeVulnerabilityAnnotation {
 	details: {
@@ -52,7 +50,7 @@ export interface IIPCodeCitation {
 	};
 }
 
-export function isCopilotAnnotation(thing: unknown): thing is ICodeVulnerabilityAnnotation {
+export function isDardcorAnnotation(thing: unknown): thing is ICodeVulnerabilityAnnotation {
 	if (typeof thing !== 'object' || thing === null || !('details' in thing)) {
 		return false;
 	}
@@ -100,9 +98,6 @@ export interface ICopilotBeginToolCall {
 	id?: string;
 }
 
-/**
- * @deprecated
- */
 export interface ICopilotFunctionCall {
 	name: string;
 	arguments: string;
@@ -147,9 +142,7 @@ export interface IResponseDelta {
 	thinking?: ThinkingDelta | EncryptedThinkingDelta;
 	phase?: string;
 	retryReason?: FilterReason | 'network_error' | 'server_error';
-	/** Marker for the current response, which should be presented in `IMakeChatRequestOptions` on the next call */
 	statefulMarker?: string;
-	/** Context management information from Anthropic Messages API */
 	contextManagement?: ContextManagementResponse | OpenAIContextManagementResponse;
 }
 
@@ -173,50 +166,35 @@ export const enum ResponsePartKind {
 	ThinkingDelta,
 }
 
-/** Part that contains incremental data added to the output */
 export interface IContentDeltaResponsePart {
 	kind: ResponsePartKind.ContentDelta;
-	/** Part ID corresponds to the later IContentResponsePart  */
 	partId: string;
-	/** Incremental content chunk */
 	delta: string;
 }
 
-/** Part that is emitted once the content is finished */
 export interface IContentResponsePart {
 	kind: ResponsePartKind.Content;
-	/** Part ID of the IContentDeltaResponsePart */
 	partId: string;
-	/** Finalized content */
 	content: string;
-	/** Log probabilities, if requested */
 	logProbs?: ChoiceLogProbs;
 }
 
-/** Part that contains incremental data for a tool call that's being generated */
 export interface IToolCallDeltaResponsePart {
 	kind: ResponsePartKind.ToolCallDelta;
-	/** Part ID corresponds to the later IToolCallResponsePart  */
 	partId: string;
-	/** Name of the function being called */
 	name: string;
-	/** Arguments delta */
 	delta: string;
 }
 
-/** Part that is emitted once a tool call is ready. */
 export interface IToolCallResponsePart extends ICopilotToolCall {
 	kind: ResponsePartKind.ToolCall;
-	/** Part ID of the IToolCallDeltaResponsePart */
 	partId: string;
 }
 
-/** Part that is emitted when the model wants to ask the user for confirmation. */
 export interface IConfirmationResponsePart extends ICopilotConfirmation {
 	kind: ResponsePartKind.Confirmation;
 }
 
-/** Part that is emitted when the model want to add annotations to a response. */
 export interface IAnnotationResponsePart {
 	kind: ResponsePartKind.Annotation;
 	codeVulnAnnotations?: ICodeVulnerabilityAnnotation[];
@@ -224,28 +202,18 @@ export interface IAnnotationResponsePart {
 	dardcorReferences?: ICopilotReference[];
 }
 
-/** Part that is emitted when the model begins thinking. */
 export interface IThinkingResponseDeltaPart {
 	kind: ResponsePartKind.ThinkingDelta;
-	/** Part ID of the IThinkingResponsePart */
 	partId: string;
-	/** Delta of the thinking process */
 	delta: ThinkingDelta;
 }
 
-/**
- * Part that is emitted when the model finishes thinking.
- * WARN: currently CAPI never signals the end of thinking.
- */
 export interface IThinkingResponsePart {
 	kind: ResponsePartKind.Thinking;
-	/** Part ID of IThinkingResponseDeltaPart */
 	partId: string;
-	/** Summary text shown to the user. */
 	data: ThinkingData;
 }
 
-/** Part that is emitted when the model encounters an error. */
 export interface IErrorResponsePart {
 	kind: ResponsePartKind.Error;
 	error: ICopilotError;
@@ -264,12 +232,6 @@ export type ResponsePart =
 
 
 export interface FinishedCallback {
-	/**
-	 * @param text The full concatenated text of the response
-	 * @param index The index of the choice to which the completion chunk belongs
-	 * @param delta A delta for the latest chunk
-	 * @returns A number to stop reading data from the server, `undefined` to continue
-	 */
 	(text: string, index: number, delta: IResponseDelta): Promise<number | undefined>;
 }
 
@@ -288,13 +250,10 @@ export interface OpenAiResponsesFunctionTool extends OpenAiFunctionDef {
 	type: 'function';
 }
 
-/** OpenAI Responses API client-executed tool_search tool declaration. See https://developers.openai.com/api/docs/guides/tools-tool-search */
 export interface OpenAiToolSearchTool {
 	type: 'tool_search';
 	execution: 'client';
-	/** Description for client-executed tool search. */
 	description?: string;
-	/** Parameters schema for client-executed tool search. */
 	parameters?: Record<string, unknown>;
 }
 
@@ -302,17 +261,7 @@ export function isOpenAiFunctionTool(tool: OpenAiResponsesFunctionTool | OpenAiF
 	return (tool as OpenAiFunctionTool).function !== undefined;
 }
 
-/**
- * Options for streaming response. Only set this when you set stream: true.
- *
- * @remarks Proxy has `include_usage` hard-coded to true.
- */
 export type StreamOptions = {
-	/**
-	 * If set, an additional chunk will be streamed before the data: [DONE] message. The usage field on this chunk shows the token usage statistics for the entire request, and the choices field will always be an empty array.
-	 *
-	 * All other chunks will also include a usage field, but with a null value. NOTE: If the stream is interrupted, you may not receive the final usage chunk which contains the total token usage for the request.
-	 */
 	include_usage?: boolean;
 };
 
@@ -321,54 +270,39 @@ export type Prediction = {
 	content: string | { type: string; text: string }[];
 };
 
-/** based on https://platform.openai.com/docs/api-reference/chat/create */
 export interface OptionalChatRequestParams {
 
-	/** Non-negative temperature sampling parameter (default 1). */
 	temperature?: number;
 
-	/** Non-negative temperature sampling parameter (default 1). */
 	top_p?: number;
 
-	/** How many parallel completions the model should generate (default 1). */
 	n?: number;
 
-	/** Whether to stream back a response in SSE format. */
 	stream?: boolean;
 
-	/** Options for streaming response. Only set this when you set stream: true. */
 	stream_options?: StreamOptions;
 
-	/** Strings that will cause the model to stop generating text. */
 	stop?: string[];
 
-	/** The maximum number of tokens to return for a completion request */
 	max_tokens?: number;
 
-	/** Likelihood of specified tokens appearing in the completion. */
 	logit_bias?: number;
 
-	// TODO@ulugbekna: not sure params below are supported by Copilot proxy
 	presence_penalty?: number;
 	frequency_penalty?: number;
 
 	secretKey?: string;
 
-	/** For github remote agents */
 	dardcor_thread_id?: string;
 	dardcor_skills?: string[];
 
 	functions?: OpenAiFunctionDef[];
 	function_call?: { name: string };
 	tools?: OpenAiFunctionTool[];
-	/**
-	 * Note: 'required' is not supported
-	 */
 	tool_choice?: 'none' | 'auto' | { type: 'function'; function: { name: string } };
 
 	prediction?: Prediction;
 	logprobs?: boolean;
 
-	/** Responses API */
 	previous_response_id?: string;
 }

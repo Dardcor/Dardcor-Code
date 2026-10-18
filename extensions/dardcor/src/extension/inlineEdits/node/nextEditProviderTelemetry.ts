@@ -28,14 +28,6 @@ import { DebugRecorder } from './debugRecorder';
 import { INesConfigs } from './nesConfigs';
 import { INextEditDisplayLocation, INextEditResult } from './nextEditResult';
 
-/**
- * GitHub telemetry event name for NES (Next Edit Suggestion) telemetry.
- *
- * Used for both the standard event ({@link ITelemetryService.sendGHTelemetryEvent}) emitted per
- * suggestion, and the enhanced events ({@link ITelemetryService.sendEnhancedGHTelemetryEvent})
- * emitted both per-suggestion (here) and periodically (see `ContinuousEnhancedTelemetrySender`).
- * Enhanced continuous events are disambiguated by a `continuous: 'true'` property.
- */
 export const NES_GH_TELEMETRY_EVENT_NAME = 'dardcor-nes/provideInlineEdit';
 
 export type NextEditTelemetryStatus = 'new' | 'requested' | `noEdit:${string}` | 'docChanged' | 'emptyEdits' | 'emptyEditsButHasNextCursorPosition' | 'previouslyRejected' | 'previouslyRejectedCache' | 'accepted' | 'notAccepted' | 'rejected';
@@ -55,7 +47,7 @@ export interface IEnhancedTelemetrySendingReason {
 }
 
 export interface IAlternativeAction {
-	readonly text: string | undefined; // undefined if the text is too long
+	readonly text: string | undefined;
 	readonly textLength: number;
 	readonly selection: ITelemetryRange[];
 	readonly edits: ITelemetryEdit[];
@@ -86,7 +78,7 @@ export const enum ReusedRequestKind {
 	Async = 'async',
 }
 
-export interface ILlmNESTelemetry extends Partial<IStatelessNextEditTelemetry> { // it's partial because the next edit can be pulled from cache resulting in no stateless provider telemetry
+export interface ILlmNESTelemetry extends Partial<IStatelessNextEditTelemetry> {
 	readonly providerId: string;
 	readonly headerRequestId: string | undefined;
 	readonly nextEditProviderDuration: number | undefined;
@@ -119,7 +111,6 @@ export interface IDiagnosticsTelemetry {
 	readonly diagnosticDistanceToAlternativeDiagnostic: number | undefined;
 	readonly diagnosticHasAlternativeDiagnosticForSameRange: boolean | undefined;
 
-	// imports
 	readonly diagnosticHasExistingSameFileImport: boolean | undefined;
 	readonly diagnosticIsLocalImport: boolean | undefined;
 	readonly diagnosticAlternativeImportsCount: number | undefined;
@@ -145,10 +136,6 @@ export interface INextEditProviderTelemetry extends ILlmNESTelemetry, IDiagnosti
 	readonly notebookCellLines: string | undefined;
 	readonly isActiveDocument?: boolean;
 	readonly isMultilineEdit?: boolean;
-	/**
-	 * Signed line distance from the cursor line to the suggested edit's range start line
-	 * (`rangeStartLine - cursorLine`, 0-based). Undefined for cross-document suggestions.
-	 */
 	readonly suggestionLineDistanceToCursor?: number;
 	readonly isEolDifferent?: boolean;
 	readonly isNextEditorVisible?: boolean;
@@ -278,7 +265,6 @@ export class LlmNESTelemetryBuilder extends Disposable {
 
 	private _startTime: number;
 
-	/** Dependent on the observable document to track edits and selections */
 	private editCollectingInfo: undefined | {
 		originalDoc: StringText;
 		originalSelection: readonly OffsetRange[];
@@ -290,15 +276,10 @@ export class LlmNESTelemetryBuilder extends Disposable {
 		return this.editCollectingInfo?.originalSelectionLine;
 	}
 
-	/** Refresh the request bookmark so the telemetry `requestTime` lines up with the
-	 * moment the document/selection were snapshotted for prompt construction. */
 	public setRequestBookmark(bookmark: DebugRecorderBookmark): void {
 		this._requestBookmark = bookmark;
 	}
 
-	/**
-	 * @param _doc passing an observable document allows to track edits and selections
-	 */
 	constructor(
 		private readonly _gitExtensionService: IGitExtensionService | undefined,
 		private readonly _notebookService: INotebookService | undefined,
@@ -474,11 +455,8 @@ export class DiagnosticsTelemetryBuilder {
 
 export class NextEditProviderTelemetryBuilder extends Disposable {
 
-	private static providerIdToReqN = new Map<string /* providerId */, number>();
+	private static providerIdToReqN = new Map<string , number>();
 
-	/**
-	 * Whether telemetry for this builder has been sent -- only for ordinary telemetry, not enhanced telemetry
-	 */
 	private _isSent: boolean = false;
 	public get isSent(): boolean {
 		return this._isSent;
@@ -534,9 +512,6 @@ export class NextEditProviderTelemetryBuilder extends Disposable {
 		return this._diagnosticsBuilder;
 	}
 
-	/**
-	 * @param _doc passing an observable document allows to track edits and selections
-	 */
 	constructor(
 		gitExtensionService: IGitExtensionService | undefined,
 		notebookService: INotebookService | undefined,
@@ -617,11 +592,6 @@ export class NextEditProviderTelemetryBuilder extends Disposable {
 	}
 
 	private _suggestionLineDistanceToCursor?: number;
-	/**
-	 * @param distance Signed line distance from the cursor line to the suggested edit's range
-	 * start line (`rangeStartLine - cursorLine`, 0-based). Pass `undefined` for cross-document
-	 * suggestions where the distance is not meaningful.
-	 */
 	public setSuggestionLineDistanceToCursor(distance: number | undefined): this {
 		this._suggestionLineDistanceToCursor = distance;
 		return this;
@@ -719,29 +689,12 @@ export class NextEditProviderTelemetryBuilder extends Disposable {
 	}
 }
 
-/**
- * Watches all documents in the {@link ObservableWorkspace} for idle periods and cursor jumps.
- *
- * Only documents tracked by the workspace are monitored. Documents in languages where
- * Copilot completions are disabled (e.g. markdown, plaintext), non-file URI schemes,
- * and dardcor-ignored files are excluded. This matches the scope of {@link DebugRecorder}.
- *
- * Fires `onIdle` after 5 seconds of no document edits across the workspace,
- * and `onUserJump` when the user moves their cursor to a different line or file
- * (ignoring selection changes within 200ms of an edit, which are likely side-effects of typing).
- *
- * Ref-counted via {@link RefCountedDisposable}: call {@link acquire} when a telemetry entry
- * starts using this detector, {@link release} when it's done. Auto-disposes when all
- * references are released. Use {@link forceDispose} on owner shutdown.
- */
 class IdleDetector {
 	private readonly _store = new DisposableStore();
 	private readonly _disposalTracker = new RefCountedDisposable(this._store);
 
-	/** Snapshot of each document's primarySelectionLine to detect which doc's cursor actually moved. */
 	private readonly _selectionSnapshots = new Map<string, number | undefined>();
 
-	/** Timestamp of the last document edit, used to suppress selection changes caused by typing. */
 	private _lastEditTime = 0;
 
 	get isDisposed(): boolean { return this._store.isDisposed; }
@@ -753,15 +706,11 @@ class IdleDetector {
 	) {
 		const idleTimeMs = 5_000;
 
-		// Idle timer: resets each time any tracked document changes, fires after 5s of inactivity
 		const idleScheduler = this._store.add(new RunOnceScheduler(() => {
 			this._onIdle(idleTimeMs);
 		}, idleTimeMs));
 		this._idleScheduler = idleScheduler;
 
-		// Watch for document content changes across the workspace.
-		// Skip scheduling on the first (initialization) run — the idle timer is started
-		// explicitly via scheduleIdleTimer() when the first entry acquires the detector.
 		let isFirstDocRun = true;
 		this._store.add(autorun(reader => {
 			workspace.onDidOpenDocumentChange.read(reader);
@@ -773,9 +722,6 @@ class IdleDetector {
 			idleScheduler.schedule();
 		}));
 
-		// Watch for selection (cursor) changes across all documents to detect user jumps.
-		// Uses autorunHandleChanges to get the `removed` list from openDocuments change data
-		// so we can clean up stale selection snapshots when documents are closed.
 		let isFirstSelectionRun = true;
 		this._store.add(autorunHandleChanges({
 			owner: this,
@@ -791,13 +737,11 @@ class IdleDetector {
 		}, (reader, changeSummary) => {
 			if (this._store.isDisposed) { return; }
 
-			// Subscribe to all document primarySelectionLine observables to detect line changes
 			const docs = workspace.openDocuments.read(reader);
 			for (const doc of docs) {
 				doc.primarySelectionLine.read(reader);
 			}
 
-			// On the first run, snapshot all current selection lines as baseline
 			if (isFirstSelectionRun) {
 				isFirstSelectionRun = false;
 				for (const doc of docs) {
@@ -807,16 +751,12 @@ class IdleDetector {
 				return;
 			}
 
-			// Clean up snapshots for closed documents
 			for (const removed of changeSummary.removed) {
 				this._selectionSnapshots.delete(removed.id.uri);
 			}
 
-			// If a document was edited very recently (within 200ms), this selection change
-			// is likely a side-effect of the edit (e.g. cursor moves when typing) — not a deliberate jump
 			if (Date.now() - this._lastEditTime < 200) { return; }
 
-			// Find the doc whose selection line actually changed from what we last saw
 			for (const doc of docs) {
 				const currentDocId = doc.id.uri;
 				// eslint-disable-next-line local/code-no-observable-get-in-reactive-context
@@ -834,7 +774,6 @@ class IdleDetector {
 
 	private _idleScheduler: RunOnceScheduler | undefined;
 
-	/** Start the idle timer. Called when an entry first acquires this detector. */
 	scheduleIdleTimer(): void { this._idleScheduler?.schedule(); }
 
 	acquire(): void { this._disposalTracker.acquire(); }
@@ -853,21 +792,6 @@ export class TelemetrySender implements IDisposable {
 	) {
 	}
 
-	/**
-	 * Schedule sending enhanced telemetry for a NES suggestion.
-	 *
-	 * After a 2-minute initial delay, enters an idle-detection phase that monitors all workspace documents
-	 * and finally sends the telemetry event when one of these conditions is met:
-	 *
-	 * - **idle** (5s): No document edits across the entire workspace for 5 seconds.
-	 * - **user_jump**: User moves cursor to a different line or different file (detected via
-	 *   {@link IObservableDocument.primarySelectionLine} snapshot diffs.
-	 * - **hard_cap** (30s): Forced send after 30 seconds regardless of activity.
-	 *
-	 * Note: only documents tracked by the {@link ObservableWorkspace} are monitored. Documents in
-	 * languages where Copilot completions are disabled (e.g. markdown) and dardcor-ignored files are excluded,
-	 * so activity in those files won't reset the idle timer. This matches the scope of {@link DebugRecorder}.
-	 */
 	public scheduleSendingEnhancedTelemetry(nextEditResult: INextEditResult, builder: NextEditProviderTelemetryBuilder): void {
 		const existing = this._map.get(nextEditResult);
 		if (existing) {
@@ -879,7 +803,7 @@ export class TelemetrySender implements IDisposable {
 
 		const timeout = setTimeout(() => {
 			this._enterIdleDetection(nextEditResult, builder);
-		}, /* 2 minutes */ 2 * 60 * 1000);
+		}, 2 * 60 * 1000);
 		this._map.set(nextEditResult, { builder, timeout });
 	}
 
@@ -896,12 +820,9 @@ export class TelemetrySender implements IDisposable {
 				idleTimeoutMs => this._sendAllPendingInIdlePhase({ reason: 'idle', details: { idleTimeoutMs } }),
 				(toDocId, toLine) => this._sendAllPendingInIdlePhaseWithJump(toDocId, toLine),
 			);
-			// RefCountedDisposable starts at count=1, which covers this first entry.
-			// Only subsequent entries need acquire().
 		} else {
 			this._idleDetector.acquire();
 		}
-		// Start/restart the idle timer so this entry gets a fresh 5s window
 		this._idleDetector.scheduleIdleTimer();
 
 		const hardCapMs = 30_000;
@@ -922,7 +843,6 @@ export class TelemetrySender implements IDisposable {
 		}
 	}
 
-	/** Send all entries that are in the idle-detection phase (have no initial timeout pending) with a shared reason. */
 	private _sendAllPendingInIdlePhase(reason: IEnhancedTelemetrySendingReason): void {
 		const entriesToSend: INextEditResult[] = [];
 		for (const [result, data] of this._map) {
@@ -935,7 +855,6 @@ export class TelemetrySender implements IDisposable {
 		}
 	}
 
-	/** Send all entries in idle-detection phase with user_jump, using per-entry `from` positions. */
 	private _sendAllPendingInIdlePhaseWithJump(toDocId: string, toLine: number | undefined): void {
 		const entriesToSend: [INextEditResult, NextEditProviderTelemetryBuilder][] = [];
 		for (const [result, data] of this._map) {
@@ -959,7 +878,6 @@ export class TelemetrySender implements IDisposable {
 		}
 	}
 
-	/** Send enhanced telemetry for a single entry that's in the idle-detection phase. */
 	private _sendForEntry(nextEditResult: INextEditResult, reason: IEnhancedTelemetrySendingReason): void {
 		const data = this._map.get(nextEditResult);
 		if (!data) { return; }
@@ -999,9 +917,6 @@ export class TelemetrySender implements IDisposable {
 		this._doSendEnhancedTelemetry(telemetry, sendingReason);
 	}
 
-	/**
-	 * Send telemetry for the next edit result in case it has already been rejected or contains no edits to be shown.
-	 */
 	public sendTelemetry(nextEditResult: INextEditResult | undefined, builder: NextEditProviderTelemetryBuilder): void {
 		if (nextEditResult) {
 			const data = this._map.get(nextEditResult);
@@ -1021,7 +936,7 @@ export class TelemetrySender implements IDisposable {
 		if (builder.isSent) {
 			return;
 		}
-		const telemetry = builder.build(false); // disposal is done by enhanced telemetry sending in a setTimeout callback
+		const telemetry = builder.build(false);
 		this._doSendTelemetry(telemetry);
 		builder.markAsSent();
 	}
@@ -1113,114 +1028,6 @@ export class TelemetrySender implements IDisposable {
 			fetchTime_ = fetchTime;
 		}
 
-		/* __GDPR__
-			"provideInlineEdit" : {
-				"owner": "ulugbekna",
-				"comment": "Telemetry for inline edit (NES) provided",
-				"opportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Unique identifier for an opportunity to show an NES." },
-				"headerRequestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Unique identifier of the network request which is also included in the fetch request header." },
-				"providerId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "NES provider identifier (StatelessNextEditProvider)" },
-				"modelName": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Name of the model used to provide the NES" },
-				"activeDocumentLanguageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "LanguageId of the active document" },
-				"mergeConflictExpanded": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "If and how edit window expanded to include merge conflict lines ('normal' or 'only' or undefined if not expanded)" },
-				"acceptance": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "User acceptance of the edit" },
-				"disposalReason": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Reason for disposal of NES" },
-				"supersededByOpportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "UUID of the opportunity that superseded this edit" },
-				"endpoint": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Endpoint for the request" },
-				"noNextEditReasonKind": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Reason kind for no next edit" },
-				"noNextEditReasonMessage": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Reason message for no next edit" },
-				"fetchResult": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Fetch result" },
-				"fetchError": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Fetch error message" },
-				"pickedNES": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request had picked NES" },
-				"nextEditProviderError": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Error message from next edit provider" },
-				"diagnosticType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Type of diagnostics" },
-				"diagnosticDroppedReasons": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Reasons for dropping diagnostics NES suggestions" },
-				"requestN": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Request number", "isMeasurement": true },
-				"hadStatelessNextEditProviderCall": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request had a stateless next edit provider call", "isMeasurement": true },
-				"statelessNextEditProviderDuration": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Duration of stateless next edit provider", "isMeasurement": true },
-				"nextEditProviderDuration": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Duration of next edit provider", "isMeasurement": true },
-				"isFromCache": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the edit was provided from cache", "isMeasurement": true },
-				"reusedRequest": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the result was obtained by joining a pending request ('speculative' or 'async'), undefined for fresh requests and cache hits" },
-				"subsequentEditOrder": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Order of the subsequent edit", "isMeasurement": true },
-				"sourcePatchIndex": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Zero-based index of the model-emitted patch this served edit originated from (diff-patch format). A single model patch can expand into multiple edits that share this index; undefined for formats without explicit patches.", "isMeasurement": true },
-				"activeDocumentOriginalLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of lines in the active document before shortening", "isMeasurement": true },
-				"activeDocumentNLinesInPrompt": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of lines in the active document included in prompt", "isMeasurement": true },
-				"wasPreviouslyRejected": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the edit was previously rejected", "isMeasurement": true },
-				"isShown": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the edit was shown", "isMeasurement": true },
-				"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the document is a notebook", "isMeasurement": true },
-				"isNESForAnotherDoc": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the NES if for another document", "isMeasurement": true },
-				"isMultilineEdit": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the NES is for a multiline edit", "isMeasurement": true },
-				"suggestionLineDistanceToCursor": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Signed line distance from the cursor line to the suggested edit's range start line (rangeStartLine - cursorLine), 0-based; positive means the suggestion starts below the cursor, negative above, 0 on the same line. Uses the inline-completion request cursor position; undefined for cross-document suggestions.", "isMeasurement": true },
-				"isEolDifferent": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the NES edit and original text have different end of lines", "isMeasurement": true },
-				"isNextEditorVisible": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the next editor is visible", "isMeasurement": true },
-				"isNextEditorRangeVisible": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the next editor range is visible", "isMeasurement": true },
-				"notebookCellMarkerIndex": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Index of the notebook cell marker in the edit", "isMeasurement": true },
-				"isActiveDocument": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the document is the active document", "isMeasurement": true },
-				"hasNotebookCellMarker": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the edit has a notebook cell marker", "isMeasurement": true },
-				"notebookCellMarkerCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Count of notebook cell markers in the edit", "isMeasurement": true },
-				"notebookId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id of notebook" },
-				"notebookCellLines": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Line counts of notebook cells" },
-				"notebookType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Type of notebook, if any" },
-				"logProbThreshold": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Log probability threshold for the edit", "isMeasurement": true },
-				"documentsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of documents", "isMeasurement": true },
-				"editsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of edits", "isMeasurement": true },
-				"activeDocumentEditsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of edits in the active document", "isMeasurement": true },
-				"promptLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of lines in the prompt", "isMeasurement": true },
-				"promptCharCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of characters in the prompt", "isMeasurement": true },
-				"nDiffsInPrompt": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of diffs included in the prompt", "isMeasurement": true },
-				"promptSectionTokensSystemPrompt": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the system prompt section", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSectionTokensRecentlyViewed": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the recently-viewed code snippets section of the user prompt", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSubsectionTokensRecentlyViewedFiles": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the recently-viewed/edited files (from xtab history) subsection of the recently-viewed section; does not sum exactly to promptSectionTokensRecentlyViewed because of the section tags and inter-snippet newline glue", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSubsectionTokensLanguageContext": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the language-context snippets subsection of the recently-viewed section (Snippet-kind items from the language server; distinct from the related-information traits section)", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSubsectionTokensNeighborFiles": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the neighbor (similar) files subsection of the recently-viewed section", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSectionTokensCurrentFile": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the current-file section of the user prompt", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSectionTokensLintErrors": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the lint-errors section of the user prompt", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSectionTokensEditHistory": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the rendered edit-diff-history section of the user prompt (including its section tags)", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSectionTokensAreaAroundCodeToEdit": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the area-around-code-to-edit section of the user prompt (0 when absent for the strategy)", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSectionTokensCursorLocation": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the cursor-location section of the user prompt (0 when absent for the strategy)", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSectionTokensRelatedInformation": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the related-information (language traits) section of the user prompt", "isMeasurement": true, "owner": "ulugbekna" },
-				"promptSectionTokensPostScript": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the post-script section of the user prompt", "isMeasurement": true, "owner": "ulugbekna" },
-				"userPromptOverheadTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of user-prompt formatting glue not attributed to a section (joining newlines, backtick fences, trim); userPromptTotalTokens minus the sum of the section counts", "isMeasurement": true, "owner": "ulugbekna" },
-				"userPromptTotalTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Approximate (char/4) token count of the whole trimmed user prompt (summary total, not a section)", "isMeasurement": true, "owner": "ulugbekna" },
-				"nNeighborSnippetsComputed": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Total number of neighbor (similar files) snippets computed before budget filtering", "isMeasurement": true },
-				"nNeighborSnippetsInPrompt": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of neighbor (similar files) snippets actually included in the prompt", "isMeasurement": true },
-				"neighborSnippetIndicesInPrompt": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "JSON-encoded array of original input indices (ascending) of neighbor snippets included in the prompt" },
-				"hadLowLogProbSuggestion": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the suggestion had low log probability", "isMeasurement": true },
-				"nEditsSuggested": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of edits suggested", "isMeasurement": true },
-				"hasNextEdit": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether next edit provider returned an edit (if an edit was previously rejected, this field is false)", "isMeasurement": true },
-				"nextEditLogprob": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Log probability of the next edit", "isMeasurement": true },
-				"lineDistanceToMostRecentEdit": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Line distance to most recent edit", "isMeasurement": true },
-				"isCursorAtEndOfLine": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the cursor is at the end of the line", "isMeasurement": true },
-				"isInlineSuggestion": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the cursor is at a valid inline suggestion position (middle of line with valid trailing characters)", "isMeasurement": true },
-				"debounceTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Debounce time", "isMeasurement": true },
-				"artificialDelay": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Artificial delay (aka backoff) on the response based on previous user acceptance/rejection in milliseconds", "isMeasurement": true },
-				"fetchStartedAfterMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time from inline edit provider invocation to fetch init", "isMeasurement": true },
-				"ttft": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time to first token", "isMeasurement": true },
-				"fetchTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time from fetch init to end of stream", "isMeasurement": true },
-				"promptTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of tokens in the prompt", "isMeasurement": true },
-				"responseTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of tokens in the response", "isMeasurement": true },
-				"cachedTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of cached tokens in the response", "isMeasurement": true },
-				"acceptedPredictionTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of tokens in the prediction that appeared in the completion", "isMeasurement": true },
-				"rejectedPredictionTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of tokens in the prediction that appeared in the completion", "isMeasurement": true },
-				"hadDiagnosticsNES": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request had diagnostics NES", "isMeasurement": true },
-				"hadLlmNES": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request had LLM NES", "isMeasurement": true },
-				"configIsDiagnosticsNESEnabled": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether diagnostics NES is enabled", "isMeasurement": true },
-				"isNaturalLanguageDominated": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the context is dominated by natural language", "isMeasurement": true },
-				"diagnosticHasExistingSameFileImport": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the diagnostic has an existing same file import", "isMeasurement": true },
-				"diagnosticIsLocalImport": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the diagnostic is a local import", "isMeasurement": true },
-				"diagnosticAlternativeImportsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of alternative imports for the diagnostic", "isMeasurement": true },
-				"diagnosticDistanceToUnknownDiagnostic": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Distance to the unknown diagnostic", "isMeasurement": true },
-				"diagnosticDistanceToAlternativeDiagnostic": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Distance to the alternative diagnostic", "isMeasurement": true },
-				"diagnosticHasAlternativeDiagnosticForSameRange": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether there is an alternative diagnostic for the same range", "isMeasurement": true },
-				"nextCursorLineDistance": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Distance from next cursor line to current cursor line: newCursorLineNumber - currentCursorLineNumber", "isMeasurement": true },
-				"nextCursorLineError": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Error in the predicted next cursor line" },
-				"xtabAggressivenessLevel": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The aggressiveness level used for xtabAggressiveness prompting strategy (low, medium, high)" },
-				"userAggressivenessSetting": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The raw user-facing aggressiveness setting value (only set when user changed from default)" },
-				"xtabUserHappinessScore": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "User happiness score (0-1) when using xtabAggressiveness prompting strategy", "isMeasurement": true },
-				"userTypingDisagreed": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the user typing disagreed with the suggestion", "isMeasurement": true },
-				"modelConfig": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "JSON-encoded model configuration from the model service" }
-			}
-		*/
 		this._sendTelemetryToBoth(
 			{
 				opportunityId,
@@ -1362,13 +1169,6 @@ export class TelemetrySender implements IDisposable {
 		const modelResponse = response === undefined ? response : await response;
 		const resolvedSimilarFilesContext = await similarFilesContext?.catch(() => undefined);
 
-		// `modelResponse` is only set when the fetch succeeded. Empty string responses
-		// (e.g. diff-patch model emitting "" to indicate "no edit") are dropped by
-		// `eventPropertiesToSimpleObject` because it filters out falsy values, which makes
-		// them indistinguishable from cancellations, failures, or no-fetch paths in the
-		// restricted telemetry table. `fetchResult` carries the underlying
-		// `ChatFetchResponseType` so consumers can tell `success` + empty `modelResponse`
-		// (model responded with nothing) apart from other reasons `modelResponse` is empty.
 		const fetchResult: ChatFetchResponseType | undefined = modelResponse?.fetchResult;
 
 		void multiplexProperties({
@@ -1398,12 +1198,9 @@ export class TelemetrySender implements IDisposable {
 			{
 				isFromCache: this._boolToNum(isFromCache),
 			}
-		)).catch(() => { /* best-effort telemetry */ });
+		)).catch(() => { });
 	}
 
-	/**
-	 * If `value` is undefined, return undefined, otherwise return 1 if `value` is true, 0 otherwise.
-	 */
 	private _boolToNum(value: boolean | undefined): number | undefined {
 		return value === undefined ? undefined : (value ? 1 : 0);
 	}

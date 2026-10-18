@@ -8,9 +8,8 @@ import { VSBuffer, encodeBase64 } from '../../../../../base/common/buffer.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { type ChunkEnvelope, ChunkingError, Reassembler, chunk } from '../../../common/webPubSub/chunking.js';
 
-/** Standard base64 (padded) of an ASCII string — equivalent to `btoa(s)` for ASCII input. */
 function b64(s: string): string {
-	return encodeBase64(VSBuffer.fromString(s), true /* padded */, false /* urlSafe */);
+	return encodeBase64(VSBuffer.fromString(s), true , false );
 }
 
 function reassembleAll(envelopes: ChunkEnvelope[], r = new Reassembler()): unknown {

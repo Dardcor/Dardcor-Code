@@ -33,7 +33,7 @@
 .monaco-editor .inline-folded:after {
 	color: var(--vscode-editor-foldPlaceholderForeground);
 	margin: 0.1em 0.2em 0 0.2em;
-	content: "\22EF"; /* ellipses unicode character */
+	content: "\22EF";
 	display: inline;
 	line-height: 1em;
 	cursor: pointer;

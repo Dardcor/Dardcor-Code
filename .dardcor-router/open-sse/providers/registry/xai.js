@@ -38,8 +38,6 @@ export default {
   ],
   serviceKinds: ["llm","imageToText","webSearch","image","video"],
   imageConfig: { baseUrl: "https://api.x.ai/v1/images/generations", bodyFields: ["model","prompt","n","response_format"] },
-  // Async video jobs (POST returns { request_id }, GET polls until done/failed).
-  // Docs: https://docs.x.ai/developers/rest-api-reference/inference/videos
   videoConfig: { baseUrl: "https://api.x.ai/v1/videos" },
   searchViaChat: {
     defaultModel: "grok-4.20-reasoning",

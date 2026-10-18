@@ -68,14 +68,12 @@ export class ExtensionRunningLocationTracker {
 	}
 
 	private _computeAffinity(inputExtensions: IExtensionDescription[], extensionHostKind: ExtensionHostKind, isInitialAllocation: boolean): { affinities: ExtensionIdentifierMap<number>; maxAffinity: number } {
-		// Only analyze extensions that can execute
 		const extensions = new ExtensionIdentifierMap<IExtensionDescription>();
 		for (const extension of inputExtensions) {
 			if (extension.main || extension.browser) {
 				extensions.set(extension.identifier, extension);
 			}
 		}
-		// Also add existing extensions of the same kind that can execute
 		for (const extension of this._registry.getAllExtensionDescriptions()) {
 			if (extension.main || extension.browser) {
 				const runningLocation = this._runningLocation.get(extension.identifier);
@@ -85,7 +83,6 @@ export class ExtensionRunningLocationTracker {
 			}
 		}
 
-		// Initially, each extension belongs to its own group
 		const groups = new ExtensionIdentifierMap<number>();
 		let groupNumber = 0;
 		for (const [_, extension] of extensions) {
@@ -100,7 +97,6 @@ export class ExtensionRunningLocationTracker {
 			}
 		};
 
-		// We will group things together when there are dependencies
 		for (const [_, extension] of extensions) {
 			if (!extension.extensionDependencies) {
 				continue;
@@ -109,12 +105,10 @@ export class ExtensionRunningLocationTracker {
 			for (const depId of extension.extensionDependencies) {
 				const depGroup = groups.get(depId);
 				if (!depGroup) {
-					// probably can't execute, so it has no impact
 					continue;
 				}
 
 				if (depGroup === myGroup) {
-					// already in the same group
 					continue;
 				}
 
@@ -122,7 +116,6 @@ export class ExtensionRunningLocationTracker {
 			}
 		}
 
-		// We will also group things together when there are extensionAffinity declarations
 		for (const [_, extension] of extensions) {
 			if (!extension.extensionAffinity) {
 				continue;
@@ -135,12 +128,10 @@ export class ExtensionRunningLocationTracker {
 			for (const colocateId of extension.extensionAffinity) {
 				const colocateGroup = groups.get(colocateId);
 				if (!colocateGroup) {
-					// the extension is not installed or can't execute, so it has no impact
 					continue;
 				}
 
 				if (colocateGroup === myGroup) {
-					// already in the same group
 					continue;
 				}
 
@@ -148,7 +139,6 @@ export class ExtensionRunningLocationTracker {
 			}
 		}
 
-		// Initialize with existing affinities
 		const resultingAffinities = new Map<number, number>();
 		let lastAffinity = 0;
 		for (const [_, extension] of extensions) {
@@ -160,10 +150,7 @@ export class ExtensionRunningLocationTracker {
 			}
 		}
 
-		// When doing extension host debugging, we will ignore the configured affinity
-		// because we can currently debug a single extension host
 		if (!this._environmentService.isExtensionDevelopment) {
-			// Go through each configured affinity and try to accomodate it
 			const configuredAffinities = this._configurationService.getValue<{ [extensionId: string]: number } | undefined>('extensions.experimental.affinity') || {};
 			const configuredExtensionIds = Object.keys(configuredAffinities);
 			const configuredAffinityToResultingAffinity = new Map<number, number>();
@@ -175,20 +162,17 @@ export class ExtensionRunningLocationTracker {
 				}
 				const group = groups.get(extensionId);
 				if (!group) {
-					// The extension is not known or cannot execute for this extension host kind
 					continue;
 				}
 
 				const affinity1 = resultingAffinities.get(group);
 				if (affinity1) {
-					// Affinity for this group is already established
 					configuredAffinityToResultingAffinity.set(configuredAffinity, affinity1);
 					continue;
 				}
 
 				const affinity2 = configuredAffinityToResultingAffinity.get(configuredAffinity);
 				if (affinity2) {
-					// Affinity for this configuration is already established
 					resultingAffinities.set(group, affinity2);
 					continue;
 				}
@@ -231,7 +215,6 @@ export class ExtensionRunningLocationTracker {
 	}
 
 	private _doComputeRunningLocation(existingRunningLocation: ExtensionIdentifierMap<ExtensionRunningLocation | null>, localExtensions: IExtensionDescription[], remoteExtensions: IExtensionDescription[], isInitialAllocation: boolean): { runningLocation: ExtensionIdentifierMap<ExtensionRunningLocation | null>; maxLocalProcessAffinity: number; maxLocalWebWorkerAffinity: number } {
-		// Skip extensions that have an existing running location
 		localExtensions = localExtensions.filter(extension => !existingRunningLocation.has(extension.identifier));
 		remoteExtensions = remoteExtensions.filter(extension => !existingRunningLocation.has(extension.identifier));
 
@@ -282,7 +265,6 @@ export class ExtensionRunningLocationTracker {
 			result.set(extension.identifier, new LocalWebWorkerRunningLocation(affinity));
 		}
 
-		// Add extensions that already have an existing running location
 		for (const [extensionIdKey, runningLocation] of existingRunningLocation) {
 			if (runningLocation) {
 				result.set(extensionIdKey, runningLocation);
@@ -299,11 +281,7 @@ export class ExtensionRunningLocationTracker {
 		this._maxLocalWebWorkerAffinity = maxLocalWebWorkerAffinity;
 	}
 
-	/**
-	 * Returns the running locations for the removed extensions.
-	 */
 	public deltaExtensions(toAdd: IExtensionDescription[], toRemove: ExtensionIdentifier[]): ExtensionIdentifierMap<ExtensionRunningLocation | null> {
-		// Remove old running location
 		const removedRunningLocation = new ExtensionIdentifierMap<ExtensionRunningLocation | null>();
 		for (const extensionId of toRemove) {
 			const extensionKey = extensionId;
@@ -311,17 +289,12 @@ export class ExtensionRunningLocationTracker {
 			this._runningLocation.delete(extensionKey);
 		}
 
-		// Determine new running location
 		this._updateRunningLocationForAddedExtensions(toAdd);
 
 		return removedRunningLocation;
 	}
 
-	/**
-	 * Update `this._runningLocation` with running locations for newly enabled/installed extensions.
-	 */
 	private _updateRunningLocationForAddedExtensions(toAdd: IExtensionDescription[]): void {
-		// Determine new running location
 		const localProcessExtensions: IExtensionDescription[] = [];
 		const localWebWorkerExtensions: IExtensionDescription[] = [];
 		for (const extension of toAdd) {

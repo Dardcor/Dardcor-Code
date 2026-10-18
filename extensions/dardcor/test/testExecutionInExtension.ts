@@ -231,7 +231,6 @@ export class TestExecutionInExtension {
 				runNumber,
 			} satisfies IRunTestParams);
 
-			// For running in an explicit folder, don't let other connections reuse it
 			if (explicitWorkspaceFolder) {
 				await workspace.dispose();
 				this._available.delete(workspace);
@@ -239,7 +238,7 @@ export class TestExecutionInExtension {
 				await workspace.clean();
 			}
 
-			this._onDidChangeWorkspaces.fire(); // wake up any tests waiting for a workspace
+			this._onDidChangeWorkspaces.fire();
 
 			const afterTest = Date.now();
 			logger.trace(`[TestExecutionInExtension] Workspace acquired in ${afterWorkspace - beforeWorkspace}ms, test run in ${afterTest - afterWorkspace}ms`);
@@ -261,8 +260,6 @@ export class TestExecutionInExtension {
 	}
 
 	private async _acquireWorkspace(ctx: SimulationTestContext, explicitWorkspaceFolder?: string) {
-		// Get a workspace if one is available. If not and there are no pending
-		// workspaces, make one. And then wait for a workspace to be available.
 		while (true) {
 			const available = Iterable.find(this._available, v => !v.busy && (!explicitWorkspaceFolder || v.dir === explicitWorkspaceFolder));
 			if (available) {
@@ -312,7 +309,6 @@ export class TestExecutionInExtension {
 
 			const argv = [...process.argv, '--in-extension-host', 'false'];
 			if (!argv.some(a => a.startsWith('--output'))) {
-				// Ensure output is stable otherwise it's regenerated
 				argv.push('--output', this._ctx.outputPath);
 			}
 
@@ -339,15 +335,11 @@ type ProxiedWorkspaceWithConnection = ProxiedWorkspace & { connection: SimpleRPC
 
 class ProxiedWorkspace extends Disposable {
 	public static async create(dir: string, context: BrowserContext, serverPort: number, connectionToken: string) {
-		// swebench runs run on the 'real' working directory and expect to be modified
-		// in-place. If it looks like this is happening, don't clear the directory
-		// afte each run.
 
 		let isReused = false;
 		try {
 			isReused = (await fs.readdir(dir)).length > 0;
 		} catch {
-			// ignore
 		}
 		await fs.mkdir(dir, { recursive: true });
 
@@ -410,7 +402,6 @@ class ProxiedWorkspace extends Disposable {
 		await this._connection.value?.callMethod('close', {}).catch(() => { });
 		this._connection.value?.dispose();
 		await this._page.close();
-		// retry because the folder will be locked until the EH gets shut down
 		if (!this._dirIsReused) {
 			await retry(() => fs.rm(this.dir, { recursive: true, force: true }).catch(() => { }), 400, 10);
 		}

@@ -31,20 +31,16 @@ import { isString } from '../../../../../../base/common/types.js';
 import { TestXtermLogger } from '../../../../../../platform/terminal/test/common/terminalTestHelpers.js';
 
 const unixLinks: (string | { link: string; resource: URI })[] = [
-	// Absolute
 	'/foo',
 	'/foo/bar',
 	'/foo/[bar]',
 	'/foo/[bar].baz',
 	'/foo/[bar]/baz',
 	'/foo/bar+more',
-	// URI file://
 	{ link: 'file:///foo', resource: URI.file('/foo') },
 	{ link: 'file:///foo/bar', resource: URI.file('/foo/bar') },
 	{ link: 'file:///foo/bar%20baz', resource: URI.file('/foo/bar baz') },
-	// User home
 	{ link: '~/foo', resource: URI.file('/home/foo') },
-	// Relative
 	{ link: './foo', resource: URI.file('/parent/cwd/foo') },
 	{ link: './$foo', resource: URI.file('/parent/cwd/$foo') },
 	{ link: '../foo', resource: URI.file('/parent/foo') },
@@ -53,12 +49,10 @@ const unixLinks: (string | { link: string; resource: URI })[] = [
 ];
 
 const unixLinksWithIso: (string | { link: string; resource: URI })[] = [
-	// ISO 8601 timestamps - tested separately to avoid line/column suffix conflicts
 	{ link: './test-2025-04-28T11:03:09+02:00.log', resource: URI.file('/parent/cwd/test-2025-04-28T11:03:09+02:00.log') },
 ];
 
 const windowsLinks: (string | { link: string; resource: URI })[] = [
-	// Absolute
 	'c:\\foo',
 	{ link: '\\\\?\\C:\\foo', resource: URI.file('C:\\foo') },
 	'c:/foo',
@@ -66,14 +60,11 @@ const windowsLinks: (string | { link: string; resource: URI })[] = [
 	'c:\\foo\\bar',
 	'c:\\foo\\bar+more',
 	'c:\\foo/bar\\baz',
-	// URI file://
 	{ link: 'file:///c:/foo', resource: URI.file('c:\\foo') },
 	{ link: 'file:///c:/foo/bar', resource: URI.file('c:\\foo\\bar') },
 	{ link: 'file:///c:/foo/bar%20baz', resource: URI.file('c:\\foo\\bar baz') },
-	// User home
 	{ link: '~\\foo', resource: URI.file('C:\\Home\\foo') },
 	{ link: '~/foo', resource: URI.file('C:\\Home\\foo') },
-	// Relative
 	{ link: '.\\foo', resource: URI.file('C:\\Parent\\Cwd\\foo') },
 	{ link: './foo', resource: URI.file('C:\\Parent\\Cwd\\foo') },
 	{ link: './$foo', resource: URI.file('C:\\Parent\\Cwd\\$foo') },
@@ -90,21 +81,12 @@ const windowsLinks: (string | { link: string; resource: URI })[] = [
 ];
 
 const windowsLinksWithIso: (string | { link: string; resource: URI })[] = [
-	// ISO 8601 timestamps - tested separately to avoid line/column suffix conflicts
 	{ link: '.\\test-2025-04-28T11:03:09+02:00.log', resource: URI.file('C:\\Parent\\Cwd\\test-2025-04-28T11:03:09+02:00.log') },
 ];
 
 interface LinkFormatInfo {
 	urlFormat: string;
-	/**
-	 * The start offset to the buffer range that is not in the actual link (but is in the matched
-	 * area.
-	 */
 	linkCellStartOffset?: number;
-	/**
-	 * The end offset to the buffer range that is not in the actual link (but is in the matched
-	 * area.
-	 */
 	linkCellEndOffset?: number;
 	line?: string;
 	column?: string;
@@ -156,14 +138,11 @@ const windowsFallbackLinks: (string | { link: string; resource: URI })[] = [
 ];
 
 const supportedFallbackLinkFormats: LinkFormatInfo[] = [
-	// Python style error: File "<path>", line <line>
 	{ urlFormat: 'File "{0}"', linkCellStartOffset: 5 },
 	{ urlFormat: 'File "{0}", line {1}', line: '5', linkCellStartOffset: 5 },
-	// Unknown tool #200166: FILE  <path>:<line>:<col>
 	{ urlFormat: ' FILE  {0}', linkCellStartOffset: 7 },
 	{ urlFormat: ' FILE  {0}:{1}', line: '5', linkCellStartOffset: 7 },
 	{ urlFormat: ' FILE  {0}:{1}:{2}', line: '5', column: '3', linkCellStartOffset: 7 },
-	// Some C++ compile error formats
 	{ urlFormat: '{0}({1}) :', line: '5', linkCellEndOffset: -2 },
 	{ urlFormat: '{0}({1},{2}) :', line: '5', column: '3', linkCellEndOffset: -2 },
 	{ urlFormat: '{0}({1}, {2}) :', line: '5', column: '3', linkCellEndOffset: -2 },
@@ -174,11 +153,8 @@ const supportedFallbackLinkFormats: LinkFormatInfo[] = [
 	{ urlFormat: '{0}:{1}:{2} :', line: '5', column: '3', linkCellEndOffset: -2 },
 	{ urlFormat: '{0}:{1}:', line: '5', linkCellEndOffset: -1 },
 	{ urlFormat: '{0}:{1}:{2}:', line: '5', column: '3', linkCellEndOffset: -1 },
-	// PowerShell prompt
 	{ urlFormat: 'PS {0}>', linkCellStartOffset: 3, linkCellEndOffset: -1 },
-	// Cmd prompt
 	{ urlFormat: '{0}>', linkCellEndOffset: -1 },
-	// The whole line is the path
 	{ urlFormat: '{0}' },
 ];
 
@@ -233,7 +209,6 @@ suite('Workbench - TerminalLocalLinkDetector', () => {
 		configurationService = new TestConfigurationService();
 		fileService = store.add(new TestFileService(new NullLogService()));
 		instantiationService.stub(IConfigurationService, configurationService);
-		// Override the setFiles method to work with validResources for testing
 		fileService.setFiles(validResources);
 		instantiationService.set(IFileService, fileService);
 		instantiationService.set(IWorkspaceContextService, new TestContextService());
@@ -332,9 +307,6 @@ suite('Workbench - TerminalLocalLinkDetector', () => {
 			await assertLinks(TerminalBuiltinLinkType.LocalFile, `+++ b/foo/bar`, [{ uri: validResources[0], range: [[7, 1], [13, 1]] }]);
 		});
 
-		// Test ISO 8601 links separately with only base format to avoid suffix conflicts
-		// Note: Only test plain format as colons are excluded path characters in the regex,
-		// so wrapped contexts (spaces, parentheses, brackets) won't work
 		for (const l of unixLinksWithIso) {
 			const baseLink = typeof l === 'string' ? l : l.link;
 			const resource = typeof l === 'string' ? URI.file(l) : l.resource;
@@ -346,8 +318,6 @@ suite('Workbench - TerminalLocalLinkDetector', () => {
 		}
 	});
 
-	// Only test these when on Windows because there is special behavior around replacing separators
-	// in URI that cannot be changed
 	if (isWindows) {
 		suite('Windows', () => {
 			const wslUnixToWindowsPathMap: Map<string, string> = new Map();
@@ -416,9 +386,6 @@ suite('Workbench - TerminalLocalLinkDetector', () => {
 				await assertLinks(TerminalBuiltinLinkType.LocalFile, `+++ b/foo/bar`, [{ uri: resource, range: [[7, 1], [13, 1]] }]);
 			});
 
-			// Test ISO 8601 links separately with only base format to avoid suffix conflicts
-			// Note: Only test plain format as colons are excluded path characters in the regex,
-			// so wrapped contexts (spaces, parentheses, brackets) won't work
 			for (const l of windowsLinksWithIso) {
 				const baseLink = typeof l === 'string' ? l : l.link;
 				const resource = typeof l === 'string' ? URI.file(l) : l.resource;

@@ -141,7 +141,6 @@ suite('Editor ViewModel - SplitLinesCollection', () => {
 		withSplitLinesCollection(text, (model, linesCollection) => {
 			assert.strictEqual(linesCollection.getViewLineCount(), 6);
 
-			// getOutputIndentGuide
 			assert.deepStrictEqual(linesCollection.getViewLinesIndentGuides(-1, -1), [0]);
 			assert.deepStrictEqual(linesCollection.getViewLinesIndentGuides(0, 0), [0]);
 			assert.deepStrictEqual(linesCollection.getViewLinesIndentGuides(1, 1), [0]);
@@ -154,7 +153,6 @@ suite('Editor ViewModel - SplitLinesCollection', () => {
 
 			assert.deepStrictEqual(linesCollection.getViewLinesIndentGuides(0, 7), [0, 1, 0, 0, 1, 0]);
 
-			// getOutputLineContent
 			assert.strictEqual(linesCollection.getViewLineContent(-1), 'int main() {');
 			assert.strictEqual(linesCollection.getViewLineContent(0), 'int main() {');
 			assert.strictEqual(linesCollection.getViewLineContent(1), 'int main() {');
@@ -165,7 +163,6 @@ suite('Editor ViewModel - SplitLinesCollection', () => {
 			assert.strictEqual(linesCollection.getViewLineContent(6), '}');
 			assert.strictEqual(linesCollection.getViewLineContent(7), '}');
 
-			// getOutputLineMinColumn
 			assert.strictEqual(linesCollection.getViewLineMinColumn(-1), 1);
 			assert.strictEqual(linesCollection.getViewLineMinColumn(0), 1);
 			assert.strictEqual(linesCollection.getViewLineMinColumn(1), 1);
@@ -176,7 +173,6 @@ suite('Editor ViewModel - SplitLinesCollection', () => {
 			assert.strictEqual(linesCollection.getViewLineMinColumn(6), 1);
 			assert.strictEqual(linesCollection.getViewLineMinColumn(7), 1);
 
-			// getOutputLineMaxColumn
 			assert.strictEqual(linesCollection.getViewLineMaxColumn(-1), 13);
 			assert.strictEqual(linesCollection.getViewLineMaxColumn(0), 13);
 			assert.strictEqual(linesCollection.getViewLineMaxColumn(1), 13);
@@ -187,7 +183,6 @@ suite('Editor ViewModel - SplitLinesCollection', () => {
 			assert.strictEqual(linesCollection.getViewLineMaxColumn(6), 2);
 			assert.strictEqual(linesCollection.getViewLineMaxColumn(7), 2);
 
-			// convertOutputPositionToInputPosition
 			assert.deepStrictEqual(linesCollection.convertViewPositionToModelPosition(-1, 1), new Position(1, 1));
 			assert.deepStrictEqual(linesCollection.convertViewPositionToModelPosition(0, 1), new Position(1, 1));
 			assert.deepStrictEqual(linesCollection.convertViewPositionToModelPosition(1, 1), new Position(1, 1));
@@ -228,7 +223,6 @@ suite('Editor ViewModel - SplitLinesCollection', () => {
 				for (let column = lineMinColumn - 1; column <= lineMaxColumn + 1; column++) {
 					const viewPosition = linesCollection.convertModelPositionToViewPosition(lineNumber, column);
 
-					// validate view position
 					let viewLineNumber = viewPosition.lineNumber;
 					let viewColumn = viewPosition.column;
 					if (viewLineNumber < 1) {
@@ -352,7 +346,6 @@ suite('SplitLinesCollection', () => {
 		const LANGUAGE_ID = 'modelModeTest1';
 		languageRegistration = languages.TokenizationRegistry.register(LANGUAGE_ID, tokenizationSupport);
 		model = createTextModel(_text.join('\n'), LANGUAGE_ID);
-		// force tokenization
 		model.tokenization.forceTokenization(model.getLineCount());
 	});
 
@@ -426,7 +419,6 @@ suite('SplitLinesCollection', () => {
 					const actual = splitLinesCollection.getViewLinesData(start, end, needed);
 
 					assertMinimapLinesRenderingData(actual, expected);
-					// Comment out next line to test all possible combinations
 					break;
 				}
 			}

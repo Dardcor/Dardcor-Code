@@ -11,8 +11,6 @@ suite('reasoningEffort', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// A newly-introduced tier that nobody adds a string for would otherwise reach
-	// the picker as a raw, unlocalized value with no description.
 	test('every level has a localized label and description', () => {
 		assert.deepStrictEqual(
 			reasoningEffortLevels.map(level => [level, getReasoningEffortLabel(level), getReasoningEffortDescription(level)]),

@@ -11,9 +11,6 @@ import { createTempDir } from '../stestUtil';
 import { IFile, ITestDiagnostic } from './diagnosticsProvider';
 import { CachingDiagnosticsProvider, findIfInstalled, setupTemporaryWorkspace } from './utils';
 
-/**
- * Class which finds clang diagnostics after compilation of C++ files
- */
 export class CppDiagnosticsProvider extends CachingDiagnosticsProvider {
 	override readonly id = 'cpp';
 	override readonly cacheSalt = TestingCacheSalts.cppCacheSalt;
@@ -46,7 +43,6 @@ export class CppDiagnosticsProvider extends CachingDiagnosticsProvider {
 	override async computeDiagnostics(_files: IFile[]): Promise<ITestDiagnostic[]> {
 		const temporaryDirectory = await this.setupWorkspace(_files);
 		const diagnostics = await this.processDiagnostics(temporaryDirectory, _files);
-		//await cleanTempDir(temporaryDirectory);
 		return diagnostics;
 	}
 
@@ -57,7 +53,6 @@ export class CppDiagnosticsProvider extends CachingDiagnosticsProvider {
 	}
 
 	async processDiagnostics(temporaryDirectory: string, _files: IFile[]): Promise<ITestDiagnostic[]> {
-		// Validate that the diagnostics provider is installed
 		if (!this.isInstalled()) {
 			throw new Error('clang or docker must be available in this environment for c++ diagnostics.');
 		}
@@ -69,24 +64,15 @@ export class CppDiagnosticsProvider extends CachingDiagnosticsProvider {
 			let spawnResult;
 			if (this._isInstalled === 'docker') {
 				const args = ['run', '--rm', '-v', `${temporaryDirectory}:/${basename}`, 'mcr.microsoft.com/devcontainers/cpp:latest', 'clang++', `/${basename}/${file.fileName}`];
-				//console.log('docker ' + args.map(arg => `'${arg}'`).join(' '));
 				spawnResult = cp.spawnSync('docker', args, { shell: true, encoding: 'utf-8' });
 			} else {
 				spawnResult = cp.spawnSync('clang++', [`${temporaryDirectory}/${file.fileName}`]);
 			}
 
-			// If compilation was successful, no diagnostics are needed.
 			if (spawnResult.status === 0) {
 				return [];
 			}
 
-			// Need to capture the output of clang and convert it into diagnostics
-			// Grab the diagnostic info from the error and turn it into a diagnostic object.
-			// Example error:
-			// /workspaceFolder/main.cpp:5:10: error: expected ';' after return statement
-			// /workspaceFolder/LyraHealthComponent.cpp:3:10: fatal error: 'LyraHealthComponent.h' file not found
-			// Format:
-			// /${filePath}:${line}:${col}: ${code}: ${message}
 			const regexp = new RegExp(`^\/${basename}\/([A-Za-z_\\-\\s0-9\\.]+):(\\d+):(\\d+): ([^:]+): (.*)`);
 			let hasErrors = false;
 			const lines = spawnResult.stderr.toString().split('\n');
@@ -94,7 +80,6 @@ export class CppDiagnosticsProvider extends CachingDiagnosticsProvider {
 				const m = line.match(regexp);
 				if (m) {
 					const [, filePath, line, col, code, message] = m;
-					// TODO: Add support for related information
 					diagnostics.push({
 						file: filePath,
 						startLine: +line - 1,

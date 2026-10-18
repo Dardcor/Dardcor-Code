@@ -117,16 +117,13 @@ export class CSSExtensionPoint {
 			this.stylesheetsByExtension.clear();
 		}));
 
-		// Apply cached CSS immediately on startup if a theme from the cached extension is active
 		this.applyCachedCSS();
 
-		// Listen to theme changes to activate/deactivate CSS
 		this.disposables.add(this.themeService.onDidColorThemeChange(() => this.onThemeChange()));
 		this.disposables.add(this.themeService.onDidFileIconThemeChange(() => this.onThemeChange()));
 		this.disposables.add(this.themeService.onDidProductIconThemeChange(() => this.onThemeChange()));
 
 		cssExtensionPoint.setHandler((extensions, delta) => {
-			// Handle removed extensions
 			for (const extension of delta.removed) {
 				const extensionId = extension.description.identifier.value;
 				this.pendingExtensions.delete(extensionId);
@@ -134,7 +131,6 @@ export class CSSExtensionPoint {
 				this.clearCacheForExtension(extensionId);
 			}
 
-			// Handle added extensions
 			for (const extension of delta.added) {
 				if (!isProposedApiEnabled(extension.description, 'css')) {
 					extension.collector.error(`The '${cssExtensionPoint.name}' contribution point is proposed API.`);
@@ -151,14 +147,11 @@ export class CSSExtensionPoint {
 
 				const extensionId = extension.description.identifier.value;
 
-				// Store the extension for later activation
 				this.pendingExtensions.set(extensionId, extension);
 
-				// Check if this extension's theme is currently active
 				if (this.isExtensionThemeActive(extensionId)) {
 					this.activateExtensionCSS(extension);
 				} else if (this.stylesheetsByExtension.has(extensionId)) {
-					// Theme is no longer active but cached CSS is still loaded — remove it
 					this.removeStylesheets(extensionId);
 					this.clearCacheForExtension(extensionId);
 				}
@@ -177,15 +170,12 @@ export class CSSExtensionPoint {
 	}
 
 	private onThemeChange(): void {
-		// Activate pending extensions whose theme just became active
 		for (const [extensionId, extension] of this.pendingExtensions) {
 			if (!this.stylesheetsByExtension.has(extensionId) && this.isExtensionThemeActive(extensionId)) {
 				this.activateExtensionCSS(extension);
 			}
 		}
 
-		// Deactivate all extensions whose theme is no longer active,
-		// including cached CSS that may not yet be in pendingExtensions
 		for (const extensionId of this.stylesheetsByExtension.keys()) {
 			if (!this.isExtensionThemeActive(extensionId)) {
 				this.removeStylesheets(extensionId);
@@ -197,7 +187,6 @@ export class CSSExtensionPoint {
 	private activateExtensionCSS(extension: IExtensionPointUser<ICSSExtensionPoint[]>): void {
 		const extensionId = extension.description.identifier.value;
 
-		// Already activated (e.g., from cache on startup)
 		if (this.stylesheetsByExtension.has(extensionId)) {
 			return;
 		}
@@ -217,7 +206,6 @@ export class CSSExtensionPoint {
 
 			const cssLocation = resources.joinPath(extensionLocation, cssContribution.path);
 
-			// Validate that the CSS file is within the extension folder
 			if (!resources.isEqualOrParent(cssLocation, extensionLocation)) {
 				collector.warn(nls.localize('invalid.css.path.location', "Expected 'contributes.css.path' ({0}) to be included inside extension's folder ({1}).", cssLocation.path, extensionLocation.path));
 				continue;
@@ -228,14 +216,12 @@ export class CSSExtensionPoint {
 			entries.push({ uri: cssLocation, element, disposables: entryDisposables });
 			cssLocations.push(cssLocation.toString());
 
-			// Watch for changes
 			this.watcher.watch(cssLocation);
 		}
 
 		if (entries.length > 0) {
 			this.stylesheetsByExtension.set(extensionId, entries);
 
-			// Cache the CSS locations for faster startup next time
 			this.cacheExtensionCSS(extensionId, cssLocations);
 		}
 	}
@@ -257,14 +243,11 @@ export class CSSExtensionPoint {
 			return;
 		}
 
-		// Check if a theme from the cached extension is active
 		if (!this.isExtensionThemeActive(cached.extensionId)) {
-			// Theme changed, invalidate the cache
 			this.clearCacheForExtension(cached.extensionId);
 			return;
 		}
 
-		// Apply cached CSS immediately
 		const entries: { readonly uri: URI; readonly element: HTMLLinkElement; readonly disposables: DisposableStore }[] = [];
 
 		for (const cssLocationString of cached.cssLocations) {
@@ -273,7 +256,6 @@ export class CSSExtensionPoint {
 			const element = this.createCSSLinkElement(cssLocation, cached.extensionId, entryDisposables);
 			entries.push({ uri: cssLocation, element, disposables: entryDisposables });
 
-			// Watch for changes
 			this.watcher.watch(cssLocation);
 		}
 
@@ -321,7 +303,6 @@ export class CSSExtensionPoint {
 		for (const entries of this.stylesheetsByExtension.values()) {
 			for (const entry of entries) {
 				if (entry.uri.toString() === uriString) {
-					// Cache-bust by adding a timestamp query parameter
 					const browserUri = FileAccess.uriToBrowserUri(uri);
 					entry.element.href = browserUri.with({ query: `v=${Date.now()}` }).toString(true);
 				}

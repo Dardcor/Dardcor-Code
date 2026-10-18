@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Live, non-deterministic Codex scenarios that depend on real-time app-server behavior.
- */
 
 import assert from 'assert';
 import { mkdtempSync, readFileSync, rmSync } from 'fs';
@@ -22,12 +19,6 @@ import { CODEX_CONFIG, CODEX_SDK_ROOT } from './codexTestConfiguration.js';
 
 const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 
-// Codex-specific steering coverage. Steering is wired via `turn/steer`; the
-// agent buffers the message and promotes the codex `userMessage` echo into a
-// fresh visible turn (clearing the pending bubble). These exercise real-time,
-// stateful app-server behaviors (mid-turn steering, late tool registration,
-// truncate) that are not deterministically reproducible, so they run only
-// against the live app-server (`AGENT_HOST_REAL_CODEX=1`).
 (REAL_CODEX_ENABLED && !!CODEX_SDK_ROOT ? suite : suite.skip)('Agent Host E2E — Codex - steering', function () {
 
 	let server: IServerHandle;
@@ -137,11 +128,9 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 		const session = await createRealSession(client, CODEX_CONFIG, 'steer-client', createdSessions, URI.file(workingDirectory));
 		const chat = buildDefaultChatUri(session);
 
-		// A long, slow turn gives us a window to steer before it completes.
 		const turnId = generateUuid();
 		dispatchTurn(client, session, turnId, 'Count slowly from 1 to 40. Put each number on its own line and think briefly between each.', 1);
 
-		// Wait until the turn is visibly in progress.
 		await client.waitForNotification(n =>
 			isActionNotification(n, 'chat/responsePart')
 			&& getActionEnvelope(n).channel === chat
@@ -149,7 +138,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 			90_000,
 		);
 
-		// Inject a steering message with a distinctive marker.
 		const steerText = 'IMPORTANT: also include the exact word PINEAPPLE in your reply.';
 		client.dispatch({
 			channel: chat,
@@ -162,10 +150,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 			},
 		});
 
-		// The fix promotes the steering into its own visible turn (preferred)
-		// OR — if codex never echoes the userMessage — drains it on turn
-		// completion. Either way the pending bubble must clear. Assert the
-		// stronger promotion outcome, falling back to the removal signal.
 		await client.waitForNotification(n => {
 			if (isActionNotification(n, 'chat/turnStarted')) {
 				if (getActionEnvelope(n).channel !== chat) {
@@ -183,7 +167,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 				&& (getActionEnvelope(n).action as { id?: string; kind?: PendingMessageKind }).kind === PendingMessageKind.Steering;
 		}, 120_000);
 
-		// Drive remaining turns to completion so teardown is clean.
 		await client.waitForNotification(n =>
 			isActionNotification(n, 'chat/turnComplete')
 			&& getActionEnvelope(n).channel === chat
@@ -191,7 +174,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 			120_000,
 		);
 
-		// Regardless of path, the steering bubble must not be stuck in state.
 		const snapshot = await chatState(chat);
 		assert.strictEqual(snapshot.steeringMessage, undefined);
 	});
@@ -203,8 +185,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 		const session = await createRealSession(client, CODEX_CONFIG, 'tool-client', createdSessions, URI.file(workingDirectory));
 		const chat = buildDefaultChatUri(session);
 
-		// Register a client-provided tool BEFORE the first turn so it lands in
-		// `thread/start.dynamicTools`.
 		client.dispatch({
 			channel: session,
 			clientSeq: 1,
@@ -224,9 +204,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 		const turnId = generateUuid();
 		dispatchTurn(client, session, turnId, 'Call the get_magic_word tool and then tell me the exact magic word it returned.', 2);
 
-		// Surface and complete the client tool call, then wait for the turn to
-		// finish. `chat/toolCallStart` carries the tool name; `chat/toolCallReady`
-		// (keyed only by toolCallId) is when the client may run it.
 		const seen = new Set<object>();
 		let toolCallId: string | undefined;
 		let sawToolCall = false;
@@ -293,8 +270,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 		const session = await createRealSession(client, CODEX_CONFIG, 'tool-client-2', createdSessions, URI.file(workingDirectory));
 		const chat = buildDefaultChatUri(session);
 
-		// Register after the session exists but before the first turn. There is
-		// no public AHP signal for Codex thread-prewarm readiness.
 		client.dispatch({
 			channel: session,
 			clientSeq: 1,
@@ -376,16 +351,9 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 		const session = await createRealSession(client, CODEX_CONFIG, 'servertool-client', createdSessions, URI.file(workingDirectory));
 		const chat = buildDefaultChatUri(session);
 
-		// No client tools are registered. The agent host's server tools
-		// (feedback "comments") are wired automatically by the server and must
-		// be registered with codex at `thread/start` without any client.
 		const turnId = generateUuid();
 		dispatchTurn(client, session, turnId, 'Call your listComments tool to list existing comments, then tell me exactly how many comments there are.', 1);
 
-		// Drive the turn to completion WITHOUT ever dispatching a
-		// `chat/toolCallComplete`: a server tool executes in-process, so the
-		// agent host answers codex's `item/tool/call` itself. If the harness had
-		// to round-trip to a client, the turn would hang and time out.
 		const seen = new Set<object>();
 		let sawServerToolCall = false;
 		let serverToolHadClientContributor = false;
@@ -406,8 +374,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 				if (a.turnId === turnId && a.toolName === 'listComments') {
 					sawServerToolCall = true;
 					serverToolCallId = a.toolCallId;
-					// A server tool executes in-process, so it must NOT advertise
-					// a client contributor (which would route execution away).
 					serverToolHadClientContributor = a.contributor?.kind === 'client';
 				}
 				continue;
@@ -447,8 +413,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 		const session = await createRealSession(client, CODEX_CONFIG, 'fileapprove-client', createdSessions, URI.file(workingDirectory));
 		const chat = buildDefaultChatUri(session);
 
-		// Read-only sandbox + on-request approval forces codex to ask before
-		// applying any file edit (an `item/fileChange/requestApproval`).
 		client.dispatch({
 			channel: session,
 			clientSeq: 1,
@@ -532,9 +496,6 @@ const REAL_CODEX_ENABLED = process.env['AGENT_HOST_REAL_CODEX'] === '1';
 		const session = await createRealSession(client, CODEX_CONFIG, 'planmode-client', createdSessions, URI.file(workingDirectory));
 		const chat = buildDefaultChatUri(session);
 
-		// Switch the session to Plan mode via the platform-generic Agent Mode
-		// control — codex only exposes `request_user_input` in plan collaboration
-		// mode, so this is the user-facing switch that makes ask_user reachable.
 		client.dispatch({
 			channel: session,
 			clientSeq: 1,

@@ -5,7 +5,7 @@
 
 import { ITelemetryService } from '../../../../../../../platform/telemetry/common/telemetry.js';
 import { TelemetryTrustedValue } from '../../../../../../../platform/telemetry/common/telemetryUtils.js';
-import { COPILOT_VENDOR_ID, ILanguageModelChatMetadataAndIdentifier } from '../../../../common/languageModels.js';
+import { DARD_COR_VENDOR_ID, ILanguageModelChatMetadataAndIdentifier } from '../../../../common/languageModels.js';
 import { MODEL_CONFIG_GROUP_CONTEXT, MODEL_CONFIG_GROUP_EFFORT } from './modelPickerModelConfig.js';
 
 type ChatThinkingEffortChangeClassification = {
@@ -38,10 +38,6 @@ type ChatContextSizeChangeEvent = {
 	toValue: string;
 };
 
-/**
- * Reports a model configuration change. Shared by both model pickers so the same
- * change reports identically wherever the user makes it.
- */
 export function logModelConfigurationChange(
 	telemetryService: ITelemetryService,
 	model: ILanguageModelChatMetadataAndIdentifier,
@@ -50,9 +46,7 @@ export function logModelConfigurationChange(
 	fromValue: unknown,
 	toValue: unknown,
 ): void {
-	// Third-party providers choose their own property keys and model ids, so only
-	// first-party ones are reported as a controlled vocabulary.
-	const isFirstParty = model.metadata.vendor === COPILOT_VENDOR_ID;
+	const isFirstParty = model.metadata.vendor === DARD_COR_VENDOR_ID;
 	const modelValue = isFirstParty ? new TelemetryTrustedValue(model.identifier) : 'unknown';
 	if (group === MODEL_CONFIG_GROUP_CONTEXT) {
 		telemetryService.publicLog2<ChatContextSizeChangeEvent, ChatContextSizeChangeClassification>('chat.contextSizeChange', {

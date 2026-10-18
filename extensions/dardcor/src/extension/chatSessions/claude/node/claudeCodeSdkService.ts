@@ -10,77 +10,29 @@ import { IClaudeAgentSdkLoaderService } from '../common/claudeAgentSdkLoaderServ
 export interface IClaudeCodeSdkService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Creates a new Claude Code query generator
-	 * @param options Query options including prompt and configuration
-	 * @returns Query instance for Claude Code responses
-	 */
 	query(options: {
 		prompt: AsyncIterable<SDKUserMessage>;
 		options: Options;
 	}): Promise<Query>;
 
-	/**
-	 * Lists all Claude Code sessions for the specified project directory
-	 * @param dir Workspace/project directory path (the SDK resolves this to the session storage location internally)
-	 * @returns Array of session info objects
-	 */
 	listSessions(dir?: string): Promise<SDKSessionInfo[]>;
 
-	/**
-	 * Gets detailed information for a specific session
-	 * @param sessionId Session ID
-	 * @param dir Workspace/project directory path (the SDK resolves this to the session storage location internally)
-	 * @returns Session info object, or undefined if not found
-	 */
 	getSessionInfo(sessionId: string, dir?: string): Promise<SDKSessionInfo | undefined>;
 
-	/**
-	 * Gets all messages for a specific session
-	 * @param sessionId Session ID
-	 * @param dir Workspace/project directory path (the SDK resolves this to the session storage location internally)
-	 * @returns Array of session messages
-	 */
 	getSessionMessages(sessionId: string, dir?: string): Promise<SessionMessage[]>;
 
-	/**
-	 * Renames a session by setting a custom title
-	 * @param sessionId Session ID
-	 * @param title New title for the session
-	 */
 	renameSession(sessionId: string, title: string): Promise<void>;
 
-	/**
-	 * Forks an existing session to create a new one, optionally with a subset of messages
-	 * @param sessionId Session ID
-	 * @param options Fork session options
-	 */
 	forkSession(sessionId: string, options?: ForkSessionOptions): Promise<ForkSessionResult>;
 
-	/**
-	 * Lists subagent IDs for a given session
-	 * @param sessionId Session ID
-	 * @param options Optional dir to narrow the project search
-	 * @returns Array of subagent ID strings
-	 */
 	listSubagents(sessionId: string, options?: ListSubagentsOptions): Promise<string[]>;
 
-	/**
-	 * Gets messages for a specific subagent in a session
-	 * @param sessionId Parent session ID
-	 * @param agentId Subagent ID
-	 * @param options Optional dir, limit, and offset
-	 * @returns Array of session messages
-	 */
 	getSubagentMessages(sessionId: string, agentId: string, options?: GetSubagentMessagesOptions): Promise<SessionMessage[]>;
 }
 
 
 export const IClaudeCodeSdkService = createServiceIdentifier<IClaudeCodeSdkService>('IClaudeCodeSdkService');
 
-/**
- * Service that wraps the Claude Code SDK for DI in tests and lazy loading
- */
 export class ClaudeCodeSdkService implements IClaudeCodeSdkService {
 	readonly _serviceBrand: undefined;
 

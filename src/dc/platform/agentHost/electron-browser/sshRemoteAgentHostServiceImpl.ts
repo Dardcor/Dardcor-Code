@@ -56,10 +56,6 @@ import {
 import { ISSHHostKeyTrustService } from '../common/sshHostKeyTrust.js';
 import { decideHostKeyTrust, type SSHHostKeyDenial } from '../common/sshHostKeyPolicy.js';
 
-/**
- * Human-readable name for a host key algorithm, matching how OpenSSH labels
- * them in its own prompts (e.g. "ED25519 key fingerprint is ...").
- */
 export function describeHostKeyType(keyType: string): string {
 	switch (keyType) {
 		case 'ssh-ed25519': return 'ED25519';
@@ -97,7 +93,6 @@ export class SSHRelayClientFactory implements ISSHRelayClientFactory {
 		const establish = async () => {
 			if (seedConnection) {
 				seedConnection = false;
-				// The initial channel is owned by the connection handle registered by the caller.
 				return { connectionId };
 			}
 			try {
@@ -114,8 +109,6 @@ export class SSHRelayClientFactory implements ISSHRelayClientFactory {
 			}
 		};
 		return this._instantiationService.createInstance(AgentHostProtocolClient, address, () => {
-			// Logged under the seed channel id: the re-established id is not known
-			// until `establish()` resolves, after the logger has to exist.
 			const createLogger = () => ahpLoggingEnabled ? this._instantiationService.createInstance(
 				AhpJsonlLogger,
 				{ logsHome: this._environmentService.logsHome, connectionId, transport: 'ssh' },
@@ -132,14 +125,11 @@ export class SSHRelayClientFactory implements ISSHRelayClientFactory {
 	}
 }
 
-/** Creates SSH relay clients for {@link SSHRemoteAgentHostService}. */
 class SSHConnectionFactory extends Disposable implements IRemoteAgentHostConnectionFactory {
 	readonly kind = RemoteAgentHostEntryType.SSH;
 	readonly entries: IObservable<readonly IRemoteAgentHostEntry[]>;
 
 	private readonly _stagedConfigurations = new Map<string, ISSHAgentHostConfig>();
-	// Survives connection cleanup so an automatic reconnect can identify an
-	// editor-to-standalone endpoint failover after a successful handshake.
 	private readonly _lastConnectedServerTypeByAddress = new Map<string, AgentHostServerType>();
 
 	constructor(
@@ -216,11 +206,6 @@ class SSHConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 						userInitiated: options.userInitiated,
 					}));
 		} catch (error) {
-			// A refused host key is the user's decision, not a transient fault.
-			// Report it in the shared vocabulary for "do not retry" while keeping
-			// the host-key-denial name, which `isSSHHostKeyDeniedError` matches
-			// across IPC — telemetry and the contribution's pause policy both
-			// depend on that identity surviving.
 			if (isSSHHostKeyDeniedError(error)) {
 				const denied = new NonReconnectableTransportError(error instanceof Error ? error.message : String(error));
 				denied.name = SSH_HOST_KEY_DENIED_ERROR_NAME;
@@ -259,8 +244,6 @@ class SSHConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 			}
 			this._logService.info(`[SSHRemoteAgentHost] Replacing stale connection handle for ${result.address}`);
 			this._connections.delete(result.connectionId);
-			// The main service retained the SSH client while replacing its relay.
-			// Marking this handle closed keeps disposal from disconnecting it.
 			existing.fireClose();
 			existing.dispose();
 			this._onDidChangeConnections();
@@ -293,7 +276,7 @@ class SSHConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 				this._onDidChangeConnections();
 			}
 			handle.dispose();
-			this._mainService.disconnect(result.connectionId).catch(() => { /* best effort */ });
+			this._mainService.disconnect(result.connectionId).catch(() => { });
 			throw err;
 		}
 	}
@@ -341,7 +324,7 @@ class SSHConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 			}
 			handle.fireClose();
 			handle.dispose();
-			this._mainService.disconnect(connectionId).catch(() => { /* best effort */ });
+			this._mainService.disconnect(connectionId).catch(() => { });
 		});
 	}
 
@@ -406,10 +389,6 @@ class SSHConnectionFactory extends Disposable implements IRemoteAgentHostConnect
 	}
 }
 
-/**
- * Renderer-side implementation of {@link ISSHRemoteAgentHostService} that
- * delegates the actual SSH work to the main process via IPC.
- */
 export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteAgentHostService {
 	declare readonly _serviceBrand: undefined;
 
@@ -423,12 +402,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 
 	private readonly _connections = new Map<string, SSHAgentHostConnectionHandle>();
 
-	/**
-	 * The host key that authenticated the most recent session for a given
-	 * connection key. Used to decide whether an `UpdateHostKeys` announcement
-	 * may be trusted (see {@link _handleAnnouncedHostKeys}). Bounded by the
-	 * number of distinct SSH hosts, and each entry is overwritten on reconnect.
-	 */
 	private readonly _sessionHostKeys = new Map<string, { keyType: string; fingerprint: string }>();
 
 	constructor(
@@ -466,9 +439,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 
 		this.onDidReportConnectProgress = this._mainService.onDidReportConnectProgress;
 
-		// When shared process fires onDidCloseConnection, clean up the renderer-side handle.
-		// Do NOT remove the configured entry — it stays persisted so startup reconnect
-		// can re-establish the SSH tunnel on next launch.
 		this._register(this._mainService.onDidCloseConnection(connectionId => {
 			this._logService.info(`[SSHRemoteAgentHost] onDidCloseConnection: connectionId=${connectionId}`);
 			const handle = this._connections.get(connectionId);
@@ -479,15 +449,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 				handle.dispose();
 				this._onDidChangeConnections.fire();
 
-				// Defense-in-depth: also signal the protocol client directly. The
-				// ReconnectingRelayTransport normally observes `onDidRelayClose` (fired from
-				// the same shared-process code path as this event) and calls back
-				// into the client. If that IPC delivery is missed for any reason,
-				// the renderer-side client would stay in `Connected` until its
-				// liveness watchdog fires — which can take hours when the
-				// renderer is backgrounded and Chromium throttles `setTimeout`.
-				// Use the handle's address (e.g., "ssh:macbook-air") since
-				// RemoteAgentHostService keys its clients by address, not connectionId.
 				this._logService.info(`[SSHRemoteAgentHost] onDidCloseConnection: notifying protocol client for ${handle.localAddress}`);
 				this._remoteAgentHostService.notifyConnectionClosed(handle.localAddress);
 			} else {
@@ -495,31 +456,18 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 			}
 		}));
 
-		// Bridge keyboard-interactive prompts from the shared process to the
-		// quick input UI so password / 2FA fallbacks work for SSH config hosts
-		// where key-based auth fails.
 		this._register(this._mainService.onDidRequestKeyboardInteractive(request => {
 			this._handleKeyboardInteractiveRequest(request);
 		}));
 
-		// Bridge endpoint-selection requests (multiple live remote agent
-		// hosts found on the remote) to the stored per-host location
-		// preference, prompting with the shared preference modal only when
-		// no preference is stored and an editor-owned endpoint is live.
 		this._register(this._mainService.onDidRequestEndpointSelection(request => {
 			this._handleEndpointSelectionRequest(request);
 		}));
 
-		// Verify server host keys. Without this the shared process would accept
-		// any key from any server, so this is what actually makes SSH agent
-		// host connections resistant to impersonation.
 		this._register(this._mainService.onDidRequestHostKeyVerification(request => {
 			this._trackHostKeyVerification(this._handleHostKeyVerificationRequest(request));
 		}));
 
-		// Learn host keys a server proves it owns over an already-authenticated
-		// connection (OpenSSH's UpdateHostKeys), so a legitimate key rotation
-		// is picked up silently rather than becoming a hard failure later.
 		this._register(this._mainService.onDidAnnounceHostKeys(announcement => {
 			this._handleAnnouncedHostKeys(announcement);
 		}));
@@ -588,10 +536,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 	private async _handleKeyboardInteractiveRequest(request: ISSHKeyboardInteractiveRequest): Promise<void> {
 		this._logService.info(`[SSHRemoteAgentHost] Keyboard-interactive prompt for ${request.displayHost} (${request.prompts.length} prompt(s))`);
 
-		// Honor cancellation if the underlying connect attempt fails or
-		// completes while we're still gathering responses. Pass the
-		// CancellationToken into quickInput so an in-flight prompt is
-		// dismissed immediately rather than lingering on screen.
 		const cts = new CancellationTokenSource();
 		const cancelListener = this._mainService.onDidCancelKeyboardInteractive(requestId => {
 			if (requestId === request.requestId) {
@@ -611,8 +555,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 					return;
 				}
 				const prompt = request.prompts[i];
-				// Trim trailing whitespace/colons from the server-supplied
-				// prompt for a cleaner title (e.g. "Password: " -> "Password").
 				const cleanedPrompt = prompt.prompt.replace(/[\s:]+$/, '');
 				const title = request.prompts.length > 1
 					? `${request.displayHost} (${i + 1}/${request.prompts.length})`
@@ -627,7 +569,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 					return;
 				}
 				if (value === undefined) {
-					// User cancelled — abort the owning connection attempt.
 					await this._mainService.respondKeyboardInteractive(request.requestId, undefined);
 					return;
 				}
@@ -640,30 +581,15 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 			await this._mainService.respondKeyboardInteractive(request.requestId, responses);
 		} catch (err) {
 			this._logService.error('[SSHRemoteAgentHost] Failed handling keyboard-interactive prompt', err);
-			// Best effort: tell the main service to give up on this attempt
-			// so the SSH connect promise rejects rather than hanging.
 			try {
 				await this._mainService.respondKeyboardInteractive(request.requestId, undefined);
-			} catch { /* swallow */ }
+			} catch { }
 		} finally {
 			cancelListener.dispose();
 			cts.dispose();
 		}
 	}
 
-	/**
-	 * Decide whether to trust a server's host key, and tell the shared process.
-	 *
-	 * Policy lives in {@link decideHostKeyTrust}; this method owns the UI and
-	 * the storage writes. Every path must respond exactly once — the SSH
-	 * handshake is suspended until it hears back.
-	 */
-	/**
-	 * Hook for observing when a host key verification has fully settled.
-	 * Overridden by tests so they can await the real operation instead of
-	 * sleeping for a fixed interval, which is load-dependent and flaky —
-	 * particularly for the cases that assert *nothing* happened.
-	 */
 	protected _trackHostKeyVerification(handled: Promise<void>): void {
 		void handled;
 	}
@@ -709,17 +635,13 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 			if (cts.token.isCancellationRequested) {
 				return;
 			}
-			// Remember which host key actually authenticated this session, so
-			// a later UpdateHostKeys announcement can be checked against it.
 			this._sessionHostKeys.set(request.connectionKey, { keyType: request.keyType, fingerprint: request.fingerprint });
 			await this._mainService.respondHostKeyVerification(request.requestId, trusted);
 		} catch (err) {
 			this._logService.error('[SSHRemoteAgentHost] Failed handling host key verification', err);
-			// Fail closed: an error here must never become a way to connect to
-			// an unverified server.
 			try {
 				await this._mainService.respondHostKeyVerification(request.requestId, false);
-			} catch { /* swallow */ }
+			} catch { }
 		} finally {
 			cancelListener.dispose();
 			cts.dispose();
@@ -735,17 +657,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 		});
 	}
 
-	/**
-	 * Ask the user whether to trust an unrecognized host key, echoing OpenSSH's
-	 * wording so it is recognizable to anyone who has used `ssh` directly.
-	 * Cancel is the default so the safe answer is the one you get by dismissing.
-	 *
-	 * Uses a custom dialog so the prompt can be dismissed programmatically when
-	 * the connection dies underneath it — a native dialog cannot be, and would
-	 * strand the user with a question about a connection that no longer exists.
-	 * Answering a stale prompt was always safe (the caller re-checks
-	 * cancellation before acting), but leaving it on screen is confusing.
-	 */
 	private async _promptForHostKey(request: ISSHHostKeyVerificationRequest, reason: 'unknown' | 'ca-only', token: CancellationToken): Promise<boolean> {
 		if (token.isCancellationRequested) {
 			return false;
@@ -768,23 +679,13 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 			primaryButton: localize('sshHostKeyConnect', "&&Connect"),
 			cancelButton: localize('sshHostKeyCancel', "Cancel"),
 			custom: { icon: Codicon.shield },
-			// Cancellation resolves the dialog as if Cancel was pressed, which
-			// is also the answer we want for a connection that is already gone.
 			token,
 		});
 		return confirmed;
 	}
 
-	/**
-	 * Explain a refusal. A changed or revoked key gets an error notification
-	 * with no "trust anyway" affordance — recovering requires explicitly
-	 * forgetting the host, so a possible impersonation cannot be dismissed
-	 * with a single reflexive click.
-	 */
 	private _reportHostKeyDenied(request: ISSHHostKeyVerificationRequest, denial: SSHHostKeyDenial): void {
 		if (denial.reason === 'not-user-initiated') {
-			// A background reconnect: log it, but do not interrupt with UI the
-			// user did not ask for. Connecting manually surfaces the prompt.
 			this._logService.warn(`[SSHRemoteAgentHost] Declining unknown host key for ${request.displayHost} during a background reconnect; connect manually to review it.`);
 			return;
 		}
@@ -797,11 +698,7 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 			return;
 		}
 
-		// Forgetting our stored key only helps when our store is what
-		// disagreed. A revoked marker, or a conflicting `known_hosts` entry,
-		// lives in the user's own files and would keep winning afterwards — so
-		// offering the action there would send them in circles.
-		if (denial.reason !== 'mismatch') { // 'revoked'
+		if (denial.reason !== 'mismatch') {
 			this._notificationService.error(localize(
 				'sshHostKeyRevoked',
 				"Host key verification failed for '{0}'. This host's {1} key has been marked as revoked in your known_hosts file. Remove the @revoked line from known_hosts if this key should be trusted again.",
@@ -833,31 +730,9 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 		});
 	}
 
-	/**
-	 * Persist host keys the server proved it owns, so a legitimate key
-	 * rotation is invisible to the user instead of a hard failure on the next
-	 * connect.
-	 *
-	 * ssh2 verifies the `hostkeys-prove` signatures before surfacing these,
-	 * but that only proves the keys belong to *whoever we are currently
-	 * talking to* — it says nothing about whether that party is the real host.
-	 * So we additionally require that the host key which authenticated this
-	 * very session is itself currently trusted. This mirrors OpenSSH, whose
-	 * `UpdateHostKeys` documentation states additional host keys are accepted
-	 * only "if the key used to authenticate the host was already trusted or
-	 * explicitly accepted by the user".
-	 *
-	 * Without that check, a session accepted through
-	 * `StrictHostKeyChecking=no` — where we deliberately did not verify
-	 * anything — could announce keys that overwrite the user's genuine stored
-	 * key, leaving an impostor's key trusted once strict checking is restored.
-	 */
 	private _handleAnnouncedHostKeys(announcement: ISSHHostKeysAnnouncement): void {
 		const existing = this._hostKeyTrustService.getTrustedKeys(announcement.host, announcement.port);
 		if (!existing.length) {
-			// Only extend trust we already have. Recording keys for a host the
-			// user has never accepted would turn an announcement into a way to
-			// establish trust without any verification at all.
 			return;
 		}
 
@@ -879,15 +754,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 		}
 	}
 
-	/**
-	 * Resolve which live remote agent host endpoint (or "start a new one")
-	 * to connect to and forward the choice (or cancellation) back to the
-	 * main service. Consults the stored per-host {@link IRemoteAgentHostLocationPreferenceService}
-	 * preference for `request.connectionKey` first; only opens the shared
-	 * preference modal ({@link promptRemoteAgentHostLocationPreference})
-	 * when no preference is stored and an `editor`-owned endpoint is live,
-	 * since otherwise there's no ambiguity worth interrupting the user for.
-	 */
 	private async _handleEndpointSelectionRequest(request: ISSHEndpointSelectionRequest): Promise<void> {
 		this._logService.info(`[SSHRemoteAgentHost] Endpoint selection requested for ${request.displayHost} (${request.candidates.length} candidate(s))`);
 
@@ -905,28 +771,18 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 			this._logService.error('[SSHRemoteAgentHost] Failed handling endpoint selection prompt', err);
 			try {
 				await this._mainService.respondEndpointSelection(request.requestId, undefined);
-			} catch { /* swallow */ }
+			} catch { }
 		} finally {
 			cancelListener.dispose();
 			cts.dispose();
 		}
 	}
 
-	/**
-	 * Apply the preference-resolution rules described on
-	 * {@link _handleEndpointSelectionRequest}. Returns `undefined` only when
-	 * the shared preference modal was shown and the user cancelled it.
-	 */
 	private async _resolveEndpointSelection(request: ISSHEndpointSelectionRequest, token: CancellationToken): Promise<ISSHEndpointSelection | undefined> {
 		const hasLiveEditor = request.candidates.some(candidate => candidate.type === 'editor');
 		const preference = this._locationPreferenceService.getPreference(request.connectionKey);
 
 		if (preference === 'editor') {
-			// Explicit consent to run in an editor. If none is live right
-			// now, fall back to a dedicated selection without touching the
-			// saved preference — see the class-level comment on
-			// `_lastConnectedServerTypeByAddress` for why a future connect
-			// should still be able to prefer an editor again.
 			return hasLiveEditor ? this._deterministicSelection(request.candidates, 'editor') : this._dedicatedSelection(request.candidates);
 		}
 
@@ -935,9 +791,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 		}
 
 		if (!hasLiveEditor) {
-			// No stored preference and no editor to disambiguate against —
-			// nothing here can steal a session from another open window,
-			// so resolve silently without prompting.
 			return this._dedicatedSelection(request.candidates);
 		}
 
@@ -949,17 +802,10 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 		return chosen === 'editor' ? this._deterministicSelection(request.candidates, 'editor') : this._dedicatedSelection(request.candidates);
 	}
 
-	/** Reuse a live standalone endpoint if one exists, or spawn a new dedicated one. */
 	private _dedicatedSelection(candidates: readonly ISSHEndpointCandidate[]): ISSHEndpointSelection {
 		return this._deterministicSelection(candidates, 'standalone') ?? { kind: 'spawn' };
 	}
 
-	/**
-	 * Pick the candidate of `type` deterministically when several are live,
-	 * by sorting on `instanceId` so every renderer resolving the same
-	 * request (e.g. multiple open editor windows) converges on the same
-	 * choice without needing to coordinate.
-	 */
 	private _deterministicSelection(candidates: readonly ISSHEndpointCandidate[], type: AgentHostServerType): ISSHEndpointSelection | undefined {
 		const matching = candidates.filter(candidate => candidate.type === type);
 		if (matching.length === 0) {
@@ -970,10 +816,6 @@ export class SSHRemoteAgentHostService extends Disposable implements ISSHRemoteA
 	}
 }
 
-/**
- * Lightweight renderer-side handle that represents a connection
- * managed by the main process.
- */
 class SSHAgentHostConnectionHandle extends Disposable implements ISSHAgentHostConnection {
 	private readonly _onDidClose = this._register(new Emitter<void>());
 	readonly onDidClose = this._onDidClose.event;
@@ -992,16 +834,13 @@ class SSHAgentHostConnectionHandle extends Disposable implements ISSHAgentHostCo
 	) {
 		super();
 
-		// When this handle is disposed, tear down the main-process tunnel
-		// (skip if already closed from the main process side)
 		this._register(toDisposable(() => {
 			if (!this._closedByMain) {
-				disconnectFn().catch(() => { /* best effort */ });
+				disconnectFn().catch(() => { });
 			}
 		}));
 	}
 
-	/** Called by the service when the main process signals connection closure. */
 	fireClose(): void {
 		this._closedByMain = true;
 		this._onDidClose.fire();

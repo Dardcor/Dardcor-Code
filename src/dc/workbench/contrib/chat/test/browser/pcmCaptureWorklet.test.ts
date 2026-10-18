@@ -11,7 +11,6 @@ suite('PcmCaptureWorklet', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** A fake worklet port plus manually-fired timers, driven by the test. */
 	function createHarness(onChunk: (samples: Float32Array) => void) {
 		const posted: unknown[] = [];
 		const port = {
@@ -43,7 +42,6 @@ suite('PcmCaptureWorklet', () => {
 		h.deliver(audio);
 
 		const flushed = h.flush();
-		// The tail chunk is delivered before the acknowledgment arrives.
 		const tail = new Float32Array([0.3]);
 		h.deliver(tail);
 		h.deliver({ type: PCM_FLUSH_ACK });

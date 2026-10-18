@@ -107,7 +107,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 
 		let hasWorkspaces = false;
 
-		// Identify all folders and workspaces with unsaved files
 		const dirtyFolders = new ResourceMap<boolean>();
 		const dirtyWorkspaces = new ResourceMap<IWorkspaceIdentifier>();
 		for (const dirtyWorkspace of dirtyWorkspacesAndFolders) {
@@ -119,7 +118,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 			}
 		}
 
-		// Identify all folders and workspaces opened in main windows
 		const activeWindowId = getActiveWindow().vscodeWindowId;
 		const openedInWindows = new ResourceMap<{ isActive: boolean }>();
 		for (const window of mainWindows) {
@@ -131,7 +129,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 			}
 		}
 
-		// Identify all recently opened folders and workspaces
 		const recentFolders = new ResourceMap<boolean>();
 		const recentWorkspaces = new ResourceMap<IWorkspaceIdentifier>();
 		for (const recent of recentlyOpened.workspaces) {
@@ -143,7 +140,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 			}
 		}
 
-		// Fill in all known recently opened workspaces
 		const workspacePicks: IRecentlyOpenedPick[] = [];
 		for (const recent of recentlyOpened.workspaces) {
 			const isDirty = isRecentFolder(recent) ? dirtyFolders.has(recent.folderUri) : dirtyWorkspaces.has(recent.workspace.configPath);
@@ -152,7 +148,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 			workspacePicks.push(this.toQuickPick(modelService, languageService, labelService, environmentService, recent, { isDirty, windowState }));
 		}
 
-		// Fill any backup workspace that is not yet shown at the end
 		for (const dirtyWorkspaceOrFolder of dirtyWorkspacesAndFolders) {
 			if (isFolderBackupInfo(dirtyWorkspaceOrFolder) && !recentFolders.has(dirtyWorkspaceOrFolder.folderUri)) {
 				workspacePicks.push(this.toQuickPick(modelService, languageService, labelService, environmentService, dirtyWorkspaceOrFolder, { isDirty: true, windowState: undefined }));
@@ -163,7 +158,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 
 		const filePicks = recentlyOpened.files.map(p => this.toQuickPick(modelService, languageService, labelService, environmentService, p, { isDirty: false, windowState: undefined }));
 
-		// Focus the second entry when the first one represents the current workspace.
 		const firstEntry = recentlyOpened.workspaces[0];
 		const autoFocusSecondEntry: boolean = firstEntry && (
 			contextService.isCurrentWorkspace(isRecentWorkspace(firstEntry) ? firstEntry.workspace : firstEntry.folderUri)
@@ -186,13 +180,11 @@ abstract class BaseOpenRecentAction extends Action2 {
 			hideInput: this.isQuickNavigate(),
 			onDidTriggerItemButton: async context => {
 
-				// Remove
 				if (context.button === this.removeFromRecentlyOpened || context.button === this.windowOpenedRecentlyOpenedFolder || context.button === this.windowOpenedRecentlyOpenedWorkspace) {
 					await workspacesService.removeRecentlyOpened([context.item.resource]);
 					context.removeItem();
 				}
 
-				// Dirty Folder/Workspace
 				else if (context.button === this.dirtyRecentlyOpenedFolder || context.button === this.dirtyRecentlyOpenedWorkspace) {
 					const isDirtyWorkspace = context.button === this.dirtyRecentlyOpenedWorkspace;
 					const { confirmed } = await dialogService.confirm({
@@ -204,7 +196,7 @@ abstract class BaseOpenRecentAction extends Action2 {
 					if (confirmed) {
 						hostService.openWindow(
 							[context.item.openable], {
-							remoteAuthority: context.item.remoteAuthority || null // local window if remoteAuthority is not set or can not be deducted from the openable
+							remoteAuthority: context.item.remoteAuthority || null
 						});
 						quickInputService.cancel();
 					}
@@ -216,7 +208,7 @@ abstract class BaseOpenRecentAction extends Action2 {
 			return hostService.openWindow([pick.openable], {
 				forceNewWindow: keyMods?.ctrlCmd,
 				forceReuseWindow: keyMods?.alt,
-				remoteAuthority: pick.remoteAuthority || null // local window if remoteAuthority is not set or can not be deducted from the openable
+				remoteAuthority: pick.remoteAuthority || null
 			});
 		}
 	}
@@ -228,7 +220,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 		let resource: URI | undefined;
 		let isWorkspace = false;
 
-		// Folder
 		if (isRecentFolder(recent)) {
 			resource = recent.folderUri;
 			iconClasses = getIconClasses(modelService, languageService, resource, FileKind.FOLDER);
@@ -236,7 +227,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 			fullLabel = recent.label || labelService.getWorkspaceLabel(resource, { verbose: Verbosity.LONG });
 		}
 
-		// Workspace
 		else if (isRecentWorkspace(recent)) {
 			resource = recent.workspace.configPath;
 			iconClasses = getIconClasses(modelService, languageService, resource, FileKind.ROOT_FOLDER);
@@ -245,7 +235,6 @@ abstract class BaseOpenRecentAction extends Action2 {
 			isWorkspace = true;
 		}
 
-		// File
 		else {
 			resource = recent.fileUri;
 			iconClasses = getIconClasses(modelService, languageService, resource, FileKind.FILE);
@@ -319,7 +308,7 @@ class QuickPickRecentAction extends BaseOpenRecentAction {
 			id: 'workbench.action.quickOpenRecent',
 			title: localize2('quickOpenRecent', 'Quick Open Recent...'),
 			category: Categories.File,
-			f1: false // hide quick pickers from command palette to not confuse with the other entry that shows a input field
+			f1: false
 		});
 	}
 
@@ -457,7 +446,6 @@ class BlurAction extends Action2 {
 	}
 }
 
-// --- Actions Registration
 
 registerAction2(NewWindowAction);
 registerAction2(ToggleFullScreenAction);
@@ -467,7 +455,6 @@ registerAction2(ReloadWindowAction);
 registerAction2(ShowAboutDialogAction);
 registerAction2(BlurAction);
 
-// --- Commands/Keybindings Registration
 
 const recentFilesPickerContext = ContextKeyExpr.and(inQuickPickContext, ContextKeyExpr.has(inRecentFilesPickerContextKey));
 
@@ -498,7 +485,6 @@ CommandsRegistry.registerCommand('workbench.action.toggleConfirmBeforeClose', ac
 	return configurationService.updateValue('window.confirmBeforeClose', setting === 'never' ? 'keyboardOnly' : 'never');
 });
 
-// --- Menu Registration
 
 MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 	group: 'z_ConfirmClose',

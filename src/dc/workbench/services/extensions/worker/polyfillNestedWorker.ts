@@ -12,14 +12,10 @@ declare type MessageEventHandler = ((ev: MessageEvent<any>) => any) | null;
 const _bootstrapFnSource = (function _bootstrapFn(workerUrl: string) {
 
 	const listener: EventListener = (event: Event): void => {
-		// uninstall handler
 		globalThis.removeEventListener('message', listener);
 
-		// get data
 		const port = <MessagePort>(<MessageEvent>event).data;
 
-		// postMessage
-		// onmessage
 		Object.defineProperties(globalThis, {
 			'postMessage': {
 				value(data: any, transferOrOptions?: any) {
@@ -34,7 +30,6 @@ const _bootstrapFnSource = (function _bootstrapFn(workerUrl: string) {
 					port.onmessage = value;
 				}
 			}
-			// todo onerror
 		});
 
 		port.addEventListener('message', msg => {
@@ -43,11 +38,9 @@ const _bootstrapFnSource = (function _bootstrapFn(workerUrl: string) {
 
 		port.start();
 
-		// fake recursively nested worker
 		// eslint-disable-next-line local/code-no-any-casts
 		globalThis.Worker = <any>class { constructor() { throw new TypeError('Nested workers from within nested worker are NOT supported.'); } };
 
-		// load module
 		importScripts(workerUrl);
 	};
 
@@ -67,13 +60,12 @@ export class NestedWorker extends EventTarget implements Worker {
 	constructor(nativePostMessage: typeof postMessage, stringOrUrl: string | URL, options?: WorkerOptions) {
 		super();
 
-		// create bootstrap script
 		const bootstrap = `((${_bootstrapFnSource})('${stringOrUrl}'))`;
 		const blob = new Blob([bootstrap], { type: 'application/javascript' });
 		const blobUrl = URL.createObjectURL(blob);
 
 		const channel = new MessageChannel();
-		const id = blobUrl; // works because blob url is unique, needs ID pool otherwise
+		const id = blobUrl;
 
 		const msg: NewWorkerMessage = {
 			type: '_newWorker',
@@ -84,7 +76,6 @@ export class NestedWorker extends EventTarget implements Worker {
 		};
 		nativePostMessage(msg, [channel.port2]);
 
-		// worker-impl: functions
 		this.postMessage = channel.port1.postMessage.bind(channel.port1);
 		this.terminate = () => {
 			const msg: TerminateWorkerMessage = {
@@ -98,7 +89,6 @@ export class NestedWorker extends EventTarget implements Worker {
 			channel.port2.close();
 		};
 
-		// worker-impl: events
 		Object.defineProperties(this, {
 			'onmessage': {
 				get() {
@@ -116,7 +106,6 @@ export class NestedWorker extends EventTarget implements Worker {
 					channel.port1.onmessageerror = value;
 				}
 			},
-			// todo onerror
 		});
 
 		channel.port1.addEventListener('messageerror', evt => {

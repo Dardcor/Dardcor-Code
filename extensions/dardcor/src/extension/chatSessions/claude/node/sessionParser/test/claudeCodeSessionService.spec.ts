@@ -21,7 +21,6 @@ import { IClaudeCodeSdkService } from '../../claudeCodeSdkService';
 import { MockClaudeCodeSdkService } from '../../test/mockClaudeCodeSdkService';
 import { ClaudeCodeSessionService } from '../claudeCodeSessionService';
 
-// #region Test Data Factories
 
 function createSdkSessionInfo(overrides?: Partial<SDKSessionInfo>): SDKSessionInfo {
 	return {
@@ -57,9 +56,7 @@ function createAssistantSessionMessage(overrides?: Partial<SessionMessage>): Ses
 	};
 }
 
-// #endregion
 
-// #region Mock Implementations
 
 class MockFolderRepositoryManager implements IFolderRepositoryManager {
 	declare _serviceBrand: undefined;
@@ -78,7 +75,6 @@ class MockFolderRepositoryManager implements IFolderRepositoryManager {
 	async getFolderMRU(): Promise<FolderRepositoryMRUEntry[]> { return this._mruEntries; }
 }
 
-// #endregion
 
 describe('ClaudeCodeSessionService', () => {
 	const workspaceFolderPath = '/project';
@@ -109,7 +105,6 @@ describe('ClaudeCodeSessionService', () => {
 		service = instaService.createInstance(ClaudeCodeSessionService);
 	});
 
-	// #region getAllSessions
 
 	describe('getAllSessions', () => {
 		it('returns sessions from SDK for workspace folder', async () => {
@@ -237,7 +232,7 @@ describe('ClaudeCodeSessionService', () => {
 
 			const sessions = await service.getAllSessions(CancellationToken.None);
 
-			expect(sessions[0].label.length).toBeLessThanOrEqual(51); // 50 + ellipsis char
+			expect(sessions[0].label.length).toBeLessThanOrEqual(51);
 			expect(sessions[0].label).toMatch(/^A{50}\u2026$/);
 		});
 
@@ -265,7 +260,6 @@ describe('ClaudeCodeSessionService', () => {
 		});
 
 		it('handles SDK errors gracefully', async () => {
-			// Override listSessions to throw
 			mockSdkService.listSessions = async () => { throw new Error('SDK error'); };
 
 			const sessions = await service.getAllSessions(CancellationToken.None);
@@ -380,9 +374,7 @@ describe('ClaudeCodeSessionService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region getSession
 
 	describe('getSession', () => {
 		it('returns full session with messages from SDK', async () => {
@@ -542,7 +534,6 @@ describe('ClaudeCodeSessionService', () => {
 
 			const tokenSource = new CancellationTokenSource();
 
-			// Override getSessionMessages to cancel the token before returning
 			const originalGetMessages = mockSdkService.getSessionMessages.bind(mockSdkService);
 			mockSdkService.getSessionMessages = async (id, dir) => {
 				tokenSource.cancel();
@@ -556,9 +547,7 @@ describe('ClaudeCodeSessionService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Workspace Scenarios
 
 	describe('no-workspace scenario (MRU folders)', () => {
 		const mruFolder = URI.file('/recent/project');
@@ -639,7 +628,7 @@ describe('ClaudeCodeSessionService', () => {
 			const multiMruService = accessor.get(IInstantiationService).createInstance(ClaudeCodeSessionService);
 			const sessions = await multiMruService.getAllSessions(CancellationToken.None);
 
-			expect(sessions).toHaveLength(4); // 2 sessions returned per folder (listSessions called for each)
+			expect(sessions).toHaveLength(4);
 			const ids = sessions.map(s => s.id);
 			expect(ids).toContain('mru-1');
 			expect(ids).toContain('mru-2');
@@ -675,7 +664,6 @@ describe('ClaudeCodeSessionService', () => {
 
 			const sessions = await multiRootService.getAllSessions(CancellationToken.None);
 
-			// SDK returns the same mock sessions for each folder scan
 			expect(sessions.length).toBeGreaterThan(0);
 			expect(sessions[0].id).toBe('multi-1');
 		});
@@ -689,9 +677,7 @@ describe('ClaudeCodeSessionService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Subagent Loading
 
 	describe('subagent loading', () => {
 		it('loads subagents for a session when SDK returns subagent IDs', async () => {
@@ -704,7 +690,6 @@ describe('ClaudeCodeSessionService', () => {
 				createUserSessionMessage({ uuid: 'uuid-main', session_id: sessionId }),
 			];
 
-			// Configure subagent data via SDK mock
 			mockSdkService.mockSubagentIds = ['a139fcf'];
 			mockSdkService.mockSubagentMessages.set('a139fcf', [
 				createUserSessionMessage({ uuid: 'uuid-subagent', session_id: 'subagent-session', message: { role: 'user', content: 'subagent task' } }),
@@ -795,5 +780,4 @@ describe('ClaudeCodeSessionService', () => {
 		});
 	});
 
-	// #endregion
 });

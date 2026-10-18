@@ -19,32 +19,14 @@ const PR_DETECTION_INITIAL_DELAY_MS = 2_000;
 export interface IPullRequestDetectionService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fired when a pull request is detected or updated for a session.
-	 * Consumers should refresh the session UI in response.
-	 */
 	readonly onDidDetectPullRequest: Event<string>;
 
-	/**
-	 * Detects a pull request for a session when the user opens it.
-	 * If a PR is found, persists the URL and notifies the UI.
-	 */
 	detectPullRequest(sessionId: string): void;
 
-	/**
-	 * Called after a request completes to persist PR metadata on the session.
-	 * If a PR URL is provided, uses that; otherwise attempts detection
-	 * via the GitHub API with exponential-backoff retry.
-	 */
 	handlePullRequestCreated(sessionId: string, createdPullRequestUrl: string | undefined): void;
 }
 export const IPullRequestDetectionService = createServiceIdentifier<IPullRequestDetectionService>('IPullRequestDetectionService');
 
-/**
- * Queries the GitHub API to find a pull request whose head branch matches the
- * given worktree branch. This covers cases where the MCP tool failed to report
- * a PR URL, or the user created the PR externally (e.g., via github.com).
- */
 async function detectPullRequestFromGitHubAPI(
 	branchName: string,
 	repositoryPath: string,
@@ -83,9 +65,6 @@ async function detectPullRequestFromGitHubAPI(
 	return undefined;
 }
 
-/**
- * Encapsulates all pull-request detection and persistence logic for chat sessions.
- */
 export class PullRequestDetectionService extends Disposable implements IPullRequestDetectionService {
 	declare readonly _serviceBrand: undefined;
 
@@ -101,10 +80,6 @@ export class PullRequestDetectionService extends Disposable implements IPullRequ
 		super();
 	}
 
-	/**
-	 * Detects a pull request for a session when the user opens it.
-	 * If a PR is found, persists the URL and notifies the UI.
-	 */
 	detectPullRequest(sessionId: string): void {
 		this.doDetectPullRequestOnSessionOpen(sessionId).catch(ex =>
 			this.logService.error(ex instanceof Error ? ex : new Error(String(ex)), `Failed to detect pull request on session open for ${sessionId}`));
@@ -125,12 +100,11 @@ export class PullRequestDetectionService extends Disposable implements IPullRequ
 		const prResult = await this.detectPullRequestForSession(sessionId);
 
 		if (prResult) {
-			// Re-read to get the latest information.
 			const currentProperties = await this.chatSessionWorktreeService.getWorktreeProperties(sessionId);
 			if (currentProperties?.version === 2
 				&& (currentProperties.pullRequestUrl !== prResult.url || currentProperties.pullRequestState !== prResult.state)) {
 				await this.chatSessionWorktreeService.setWorktreeProperties(sessionId, {
-					...currentProperties,  // use fresh copy
+					...currentProperties,
 					pullRequestUrl: prResult.url,
 					pullRequestState: prResult.state,
 					changes: undefined,
@@ -144,12 +118,6 @@ export class PullRequestDetectionService extends Disposable implements IPullRequ
 		}
 	}
 
-	/**
-	 * Called after a request completes to persist PR metadata on the session.
-	 * If the session reported a PR URL, uses that; otherwise attempts detection
-	 * via the GitHub API with exponential-backoff retry.
-	 * Fires {@link onDidDetectPullRequest} if a PR is detected and persisted.
-	 */
 	handlePullRequestCreated(sessionId: string, createdPullRequestUrl: string | undefined): void {
 		this.doHandlePullRequestCreated(sessionId, createdPullRequestUrl).catch(ex =>
 			this.logService.error(ex instanceof Error ? ex : new Error(String(ex)), `Failed to handle pull request creation for session ${sessionId}`));
@@ -195,12 +163,6 @@ export class PullRequestDetectionService extends Disposable implements IPullRequ
 		}
 	}
 
-	/**
-	 * Attempts to detect a pull request for a freshly-completed session using
-	 * exponential backoff. The GitHub API may not have indexed the PR immediately
-	 * after `gh pr create` returns, so we retry with increasing delays:
-	 * attempt 1: 2s, attempt 2: 4s, attempt 3: 8s, ...
-	 */
 	private async detectPullRequestWithRetry(sessionId: string): Promise<{ url: string; state: string } | undefined> {
 		for (let attempt = 0; attempt < PR_DETECTION_RETRY_COUNT; attempt++) {
 			const delay = PR_DETECTION_INITIAL_DELAY_MS * Math.pow(2, attempt);
@@ -218,10 +180,6 @@ export class PullRequestDetectionService extends Disposable implements IPullRequ
 		return undefined;
 	}
 
-	/**
-	 * Queries the GitHub API to find a pull request whose head branch matches the
-	 * session's worktree branch.
-	 */
 	private async detectPullRequestForSession(sessionId: string): Promise<{ url: string; state: string } | undefined> {
 		try {
 			const worktreeProperties = await this.chatSessionWorktreeService.getWorktreeProperties(sessionId);

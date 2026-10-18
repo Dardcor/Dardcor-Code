@@ -8,7 +8,7 @@ import { IVSCodeExtensionContext } from '../../../platform/extContext/common/ext
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { extractSessionId } from './memoryTool';
 
 const MEMORY_BASE_DIR = 'memory-tool/memories';
@@ -17,7 +17,7 @@ interface IResolveMemoryFileUriParams {
 	readonly path: string;
 }
 
-export class ResolveMemoryFileUriTool implements ICopilotTool<IResolveMemoryFileUriParams> {
+export class ResolveMemoryFileUriTool implements IAgentTool<IResolveMemoryFileUriParams> {
 	public static toolName = ToolName.ResolveMemoryFileUri;
 
 	constructor(

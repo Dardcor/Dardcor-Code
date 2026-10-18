@@ -10,105 +10,39 @@ import { ITerminalOutputMatch, ITerminalOutputMatcher } from '../terminal.js';
 import { ReplayEntry } from '../terminalProcess.js';
 import type { IMarker } from '@xterm/headless';
 
-/**
- * Primarily driven by the shell integration feature, a terminal capability is the mechanism for
- * progressively enhancing various features that may not be supported in all terminals/shells.
- */
 export const enum TerminalCapability {
-	/**
-	 * The terminal can reliably detect the current working directory as soon as the change happens
-	 * within the buffer.
-	 */
 	CwdDetection,
-	/**
-	 * The terminal can reliably detect the current working directory when requested.
-	 */
 	NaiveCwdDetection,
-	/**
-	 * The terminal can reliably identify prompts, commands and command outputs within the buffer.
-	 */
 	CommandDetection,
-	/**
-	 * The terminal can often identify prompts, commands and command outputs within the buffer. It
-	 * may not be so good at remembering the position of commands that ran in the past. This state
-	 * may be enabled when something goes wrong or when using conpty for example.
-	 */
 	PartialCommandDetection,
 
-	/**
-	 * Manages buffer marks that can be used for terminal navigation. The source of
-	 * the request (task, debug, etc) provides an ID, optional marker, hoverMessage, and hidden property. When
-	 * hidden is not provided, a generic decoration is added to the buffer and overview ruler.
-	 */
 	BufferMarkDetection,
 
-	/**
-	 * The terminal can detect the latest environment of user's current shell.
-	 */
 	ShellEnvDetection,
 
-	/**
-	 * The terminal can detect the prompt type being used (e.g., p10k, posh-git).
-	 */
 	PromptTypeDetection,
 }
 
-/**
- * An object that keeps track of additional capabilities and their implementations for features that
- * are not available for all terminals.
- */
 export interface ITerminalCapabilityStore {
-	/**
-	 * An iterable of all capabilities in the store.
-	 */
 	readonly items: IterableIterator<TerminalCapability>;
 
-	/**
-	 * Fired when a capability is added.
-	 */
 	readonly onDidAddCapability: Event<AnyTerminalCapabilityChangeEvent>;
 
-	/**
-	 * Fired when a capability is removed.
-	*/
 	readonly onDidRemoveCapability: Event<AnyTerminalCapabilityChangeEvent>;
 
-	/**
-	 * Fired when a capability if added or removed.
-	 */
 	readonly onDidChangeCapabilities: Event<void>;
 
-	/** Fired when the command detection capability is added. */
 	readonly onDidAddCommandDetectionCapability: Event<ICommandDetectionCapability>;
-	/** Fired when the command detection capability is removed. */
 	readonly onDidRemoveCommandDetectionCapability: Event<void>;
-	/** Fired when the cwd detection capability is added. */
 	readonly onDidAddCwdDetectionCapability: Event<ICwdDetectionCapability>;
-	/** Fired when the cwd detection capability is removed. */
 	readonly onDidRemoveCwdDetectionCapability: Event<void>;
 
-	/**
-	 * Create an event that's fired when a specific capability type is added. Use this over
-	 * {@link onDidAddCapability} when the generic type needs to be retained.
-	 * @param type The capability type.
-	 */
 	createOnDidAddCapabilityOfTypeEvent<T extends TerminalCapability>(type: T): Event<ITerminalCapabilityImplMap[T]>;
 
-	/**
-	 * Create an event that's fired when a specific capability type is removed. Use this over
-	 * {@link onDidRemoveCapability} when the generic type needs to be retained.
-	 * @param type The capability type.
-	 */
 	createOnDidRemoveCapabilityOfTypeEvent<T extends TerminalCapability>(type: T): Event<ITerminalCapabilityImplMap[T]>;
 
-	/**
-	 * Gets whether the capability exists in the store.
-	 */
 	has(capability: TerminalCapability): boolean;
 
-	/**
-	 * Gets the implementation of a capability if it has been added to the store.
-	 */
 	get<T extends TerminalCapability>(capability: T): ITerminalCapabilityImplMap[T] | undefined;
 }
 
@@ -121,10 +55,6 @@ export type AnyTerminalCapabilityChangeEvent = {
 	[K in TerminalCapability]: TerminalCapabilityChangeEvent<K>
 }[TerminalCapability];
 
-/**
- * Maps capability types to their implementation, enabling strongly typed fetching of
- * implementations.
- */
 export interface ITerminalCapabilityImplMap {
 	[TerminalCapability.CwdDetection]: ICwdDetectionCapability;
 	[TerminalCapability.CommandDetection]: ICommandDetectionCapability;
@@ -139,11 +69,6 @@ export interface ICwdDetectionCapability {
 	readonly type: TerminalCapability.CwdDetection;
 	readonly onDidChangeCwd: Event<string>;
 	readonly cwds: string[];
-	/**
-	 * Whether the current cwd came from a trusted source. This is `true` only when the cwd was
-	 * reported by the VS Code shell integration with a valid nonce. OSC 7, OSC 9;9 and OSC 1337
-	 * cwd updates are always considered untrusted because their protocols have no nonce.
-	 */
 	readonly isTrusted: boolean;
 	getCwd(): string;
 	updateCwd(cwd: string, isTrusted?: boolean): void;
@@ -168,28 +93,12 @@ export interface IPromptTypeDetectionCapability {
 }
 
 export interface TerminalShellIntegrationEnvironment {
-	/**
-	 * The dictionary of environment variables.
-	 */
 	value: { [key: string]: string | undefined } | undefined;
 
-	/**
-	 * Whether the environment came from a trusted source and is therefore safe to use its
-	 * values in a manner that could lead to execution of arbitrary code. If this value is
-	 * `false`, {@link value} should either not be used for something that could lead to arbitrary
-	 * code execution, or the user should be warned beforehand.
-	 *
-	 * This is `true` only when the environment was reported explicitly and it used a nonce for
-	 * verification.
-	 */
 	isTrusted: boolean;
 }
 
 export interface TerminalShellIntegration {
-	/**
-	 * The environment of the shell process. This is undefined if the shell integration script
-	 * does not send the environment.
-	 */
 	readonly env: TerminalShellIntegrationEnvironment;
 }
 
@@ -214,11 +123,9 @@ export interface ICommandDetectionCapability {
 	readonly type: TerminalCapability.CommandDetection;
 	readonly promptInputModel: IPromptInputModel;
 	readonly commands: readonly ITerminalCommand[];
-	/** The command currently being executed, otherwise undefined. */
 	readonly executingCommand: string | undefined;
 	readonly executingCommandObject: ITerminalCommand | undefined;
 	readonly executingCommandConfidence: 'low' | 'medium' | 'high' | undefined;
-	/** The current cwd at the cursor's position. */
 	readonly cwd: string | undefined;
 	readonly hasRichCommandDetection: boolean;
 	readonly currentCommand: ICurrentPartialCommand | undefined;
@@ -233,10 +140,6 @@ export interface ICommandDetectionCapability {
 	setCwd(value: string): void;
 	setIsWindowsPty(value: boolean): void;
 	setIsCommandStorageDisabled(): void;
-	/**
-	 * Gets the working directory for a line, this will return undefined if it's unknown in which
-	 * case the terminal's initial cwd should be used.
-	 */
 	getCwdForLine(line: number): string | undefined;
 	getCommandForLine(line: number): ITerminalCommand | ICurrentPartialCommand | undefined;
 	handlePromptStart(options?: IHandleCommandOptions): void;
@@ -248,39 +151,16 @@ export interface ICommandDetectionCapability {
 	handleCommandExecuted(options?: IHandleCommandOptions): void;
 	handleCommandFinished(exitCode?: number, options?: IHandleCommandOptions): void;
 	setHasRichCommandDetection(value: boolean): void;
-	/**
-	 * Set the command line explicitly.
-	 * @param commandLine The command line being set.
-	 * @param isTrusted Whether the command line is trusted via the optional nonce is send in order
-	 * to prevent spoofing. This is important as some interactions do not require verification
-	 * before re-running a command. Note that this is optional according to the spec, it should
-	 * always be present when running the _builtin_ SI scripts.
-	 */
 	setCommandLine(commandLine: string, isTrusted: boolean): void;
-	/**
-	 * Sets the command ID to use for the next command that starts.
-	 * This allows pre-assigning an ID before the shell sends the command start sequence,
-	 * which is useful for linking commands across renderer and ptyHost.
-	 */
 	setNextCommandId(command: string, commandId: string): void;
 	serialize(): ISerializedCommandDetectionCapability;
 	deserialize(serialized: ISerializedCommandDetectionCapability): void;
 }
 
 export interface IHandleCommandOptions {
-	/**
-	 * Whether to allow an empty command to be registered. This should be used to support certain
-	 * shell integration scripts/features where tracking the command line may not be possible.
-	 */
 	ignoreCommandLine?: boolean;
-	/**
-	 * The marker to use
-	 */
 	marker?: IMarker;
 
-	/**
-	 * Properties for the mark
-	 */
 	markProperties?: IMarkProperties;
 }
 
@@ -297,7 +177,6 @@ export interface IPartialCommandDetectionCapability {
 }
 
 interface IBaseTerminalCommand {
-	// Mandatory
 	command: string;
 	commandLineConfidence: 'low' | 'medium' | 'high';
 	isTrusted: boolean;
@@ -305,7 +184,6 @@ interface IBaseTerminalCommand {
 	duration: number;
 	id: string | undefined;
 
-	// Optional serializable
 	cwd: string | undefined;
 	exitCode: number | undefined;
 	commandStartLineContent: string | undefined;
@@ -315,7 +193,6 @@ interface IBaseTerminalCommand {
 }
 
 export interface ITerminalCommand extends IBaseTerminalCommand {
-	// Optional non-serializable
 	readonly promptStartMarker?: IMarker;
 	readonly marker?: IMarker;
 	endMarker?: IMarker;
@@ -332,25 +209,12 @@ export interface ITerminalCommand extends IBaseTerminalCommand {
 }
 
 export interface ISerializedTerminalCommand extends IBaseTerminalCommand {
-	// Optional non-serializable converted for serialization
 	startLine: number | undefined;
 	promptStartLine: number | undefined;
 	endLine: number | undefined;
 	executedLine: number | undefined;
 }
 
-/**
- * A clone of the IMarker from xterm which cannot be imported from common
- */
-// export interface IMarker {
-// 	readonly id: number;
-// 	readonly isDisposed: boolean;
-// 	readonly line: number;
-// 	dispose(): void;
-// 	onDispose: {
-// 		(listener: () => any): { dispose(): void };
-// 	};
-// }
 
 export interface IMarkProperties {
 	hoverMessage?: string;

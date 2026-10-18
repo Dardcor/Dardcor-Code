@@ -7,15 +7,14 @@ import fs from 'fs';
 import path from 'path';
 import { sign, type SignOptions } from '@electron/osx-sign';
 import { spawn } from '@malept/cross-spawn-promise';
+import { getElectronVersion as getBuildElectronVersion } from '../lib/util.ts';
 
 const root = path.dirname(path.dirname(import.meta.dirname));
 const baseDir = path.dirname(import.meta.dirname);
 const product = JSON.parse(fs.readFileSync(path.join(root, 'product.json'), 'utf8'));
 
 function getElectronVersion(): string {
-	const npmrc = fs.readFileSync(path.join(root, '.npmrc'), 'utf8');
-	const target = /^(?:npm_config_)?target="(.*)"$/m.exec(npmrc)![1];
-	return target;
+	return getBuildElectronVersion().electronVersion;
 }
 
 function getEntitlementsForFile(filePath: string): string {
@@ -40,7 +39,6 @@ async function retrySignOnKeychainError<T>(fn: () => Promise<T>, maxRetries: num
 		} catch (error) {
 			lastError = error as Error;
 
-			// Check if this is the specific keychain error we want to retry
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			const isKeychainError = errorMessage.includes('The specified item could not be found in the keychain.');
 
@@ -91,8 +89,6 @@ async function main(buildDir?: string): Promise<void> {
 		identity,
 	};
 
-	// Only overwrite plist entries for x64 and arm64 builds,
-	// universal will get its copy from the x64 build.
 	if (arch !== 'universal') {
 		await spawn('plutil', [
 			'-insert',

@@ -64,7 +64,6 @@ function renderCodeActionList(options: CodeActionFixtureOptions): void {
 		anchor,
 	));
 
-	// Render the list directly into the container instead of using context view
 	const wrapper = document.createElement('div');
 	wrapper.classList.add('action-widget');
 	wrapper.appendChild(list.domNode);

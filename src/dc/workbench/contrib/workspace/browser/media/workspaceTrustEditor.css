@@ -67,7 +67,6 @@
 	height: 100%;
 }
 
-/** Features List */
 .workspace-trust-editor .workspace-trust-features {
 	padding: 24px;
 	cursor: default;
@@ -165,18 +164,16 @@
 	padding-bottom: 8px;
 }
 
-/** Buttons Container */
 .workspace-trust-editor .workspace-trust-features .workspace-trust-buttons-row {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	padding: 5px 0 10px 0;
-	overflow: hidden; /* buttons row should never overflow */
+	overflow: hidden;
 	white-space: nowrap;
 	margin-top: auto;
 }
 
-/** Buttons */
 .workspace-trust-editor .workspace-trust-features .workspace-trust-buttons-row .workspace-trust-buttons,
 .workspace-trust-editor .workspace-trust-settings .trusted-uris-button-bar {
 	display: flex;
@@ -197,7 +194,7 @@
 .workspace-trust-editor .workspace-trust-features .workspace-trust-buttons-row .workspace-trust-buttons > .monaco-button,
 .workspace-trust-editor .workspace-trust-features .workspace-trust-buttons-row .workspace-trust-buttons > .monaco-button-dropdown,
 .workspace-trust-editor .workspace-trust-settings .trusted-uris-button-bar .monaco-button {
-	margin: 8px 4px; /* allows button focus outline to be visible */
+	margin: 8px 4px;
 }
 
 .workspace-trust-editor .workspace-trust-features .workspace-trust-buttons-row .workspace-trust-buttons .monaco-button-dropdown .monaco-dropdown-button {
@@ -313,7 +310,6 @@
 	display: flex;
 }
 
-/** Responsive: single-column layout for narrow widths */
 @container (max-width: 600px) {
 	.workspace-trust-editor .workspace-trust-features {
 		flex-direction: column;

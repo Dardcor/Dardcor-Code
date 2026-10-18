@@ -1,8 +1,3 @@
-// Daily refresh of model capabilities from models.dev.
-//
-// Downloads the catalog, keeps only what differs from the hand-written tables,
-// and writes it next to the database. Failures are swallowed on purpose: a
-// stale or missing file just means those tables keep deciding on their own.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -12,19 +7,13 @@ const CATALOG_URL = "https://models.dev/api.json";
 const FETCH_TIMEOUT_MS = 60000;
 
 export const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const STARTUP_DELAY_MS = 60 * 1000;   // let the server boot and serve first requests
+const STARTUP_DELAY_MS = 60 * 1000;
 const RETRY_DELAY_MS = 30 * 60 * 1000;
 
 const MODALITY_BY_INPUT = { image: "vision", pdf: "pdf", audio: "audioInput", video: "videoInput" };
-// Gateways disagree about the same model, so a modality needs a majority of
-// them to declare it — one reseller mislabelling a text model must not win.
 const MIN_SHARE = 0.5;
-// Ignore limit differences below this: gateways round 200000 vs 202752.
 const LIMIT_TOLERANCE = 0.1;
 
-// dardcor-code provider id -> models.dev provider id, for context/maxOutput only.
-// Providers absent here keep whatever the local pattern table resolves; names
-// that already match are resolved automatically.
 const PROVIDER_ALIASES = {
   "glm": "zai",
   "glm-cn": "zhipuai",
@@ -47,7 +36,6 @@ export function getSyncState() {
   return { ...state, file: CATALOG_FILE, url: CATALOG_URL, intervalMs: SYNC_INTERVAL_MS };
 }
 
-// "zai-org/GLM-4.6V:free" -> "glm-4.6v"
 function baseId(modelId) {
   const withoutVendor = modelId.includes("/") ? modelId.split("/").pop() : modelId;
   return withoutVendor.toLowerCase().split(":")[0];
@@ -59,8 +47,6 @@ function writeAtomic(file, contents) {
   fs.renameSync(`${file}.tmp`, file);
 }
 
-// Trimmed copy of the upstream catalog, kept for the add-models skill: same
-// models, ~470KB instead of 4.3MB.
 function slim(catalog) {
   const out = {};
   for (const [providerId, provider] of Object.entries(catalog)) {
@@ -79,8 +65,6 @@ function slim(catalog) {
 }
 
 function build(catalog, entries) {
-  // Index once: per provider for limits, and tallied across all of them for
-  // modalities.
   const byProvider = {};
   const tally = {};
   for (const [providerId, provider] of Object.entries(catalog)) {
@@ -89,8 +73,6 @@ function build(catalog, entries) {
     for (const [modelId, model] of Object.entries(provider?.models || {})) {
       const id = baseId(modelId);
       models[id] = model;
-      // One vote per provider: several ids can normalize to the same model
-      // (claude-opus-4-thinking:1024, :8192, :32768 …) and must not stack.
       if (counted.has(id)) continue;
       counted.add(id);
       const counts = tally[id] || (tally[id] = { total: 0 });
@@ -103,8 +85,6 @@ function build(catalog, entries) {
     byProvider[providerId] = models;
   }
 
-  // Modalities belong to the model — every gateway serving it has the same
-  // weights — so they are keyed by model id and shared across providers.
   const models = {};
   for (const [id, counts] of Object.entries(tally)) {
     const declared = {};
@@ -114,8 +94,6 @@ function build(catalog, entries) {
     if (Object.keys(declared).length) models[id] = declared;
   }
 
-  // Limits belong to the gateway — each truncates differently — so only the
-  // matching provider's own numbers are used, keyed by provider + model.
   const providers = {};
   for (const { provider, model, contextLength, current } of entries) {
     const alias = PROVIDER_ALIASES[provider];
@@ -139,12 +117,6 @@ function build(catalog, entries) {
   return { models, providers };
 }
 
-// Snapshot every registered model with the capabilities the hand-written tables
-// resolve on their own, so build() can tell which upstream values are a change.
-//
-// The previous catalog MUST be detached first. Leaving it installed makes each
-// delta relative to the last one, so a value that still agrees with upstream
-// looks like "no change" and is dropped — the file erases itself over two runs.
 async function collectEntries() {
   const [{ default: registry }, { getCapabilitiesForModel, setCatalogSource }] = await Promise.all([
     import("open-sse/providers/registry/index.js"),
@@ -166,7 +138,6 @@ async function collectEntries() {
   return entries;
 }
 
-// Run one sync. Returns a summary, or null when it could not complete.
 export async function syncModelCatalog() {
   if (state.running) return null;
   state.running = true;
@@ -181,8 +152,6 @@ export async function syncModelCatalog() {
     } else if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     } else {
-      // ~23ms to parse, once a day, on a server that is otherwise idle at this
-      // point — not worth a worker thread.
       const catalog = await response.json();
       const etag = response.headers.get("etag") || null;
       const entries = await collectEntries();
@@ -213,14 +182,11 @@ export async function syncModelCatalog() {
     console.log(`[modelCatalog] sync failed: ${state.lastError}`);
     return null;
   } finally {
-    // collectEntries() detaches the reader; put it back whatever happened.
     await installCatalogSource().catch(() => {});
     state.running = false;
   }
 }
 
-// The etag lives in the file we wrote, so a restart can resume from it instead
-// of re-downloading 4.3MB to be told nothing changed.
 function restoreEtag() {
   try {
     state.etag = JSON.parse(fs.readFileSync(CATALOG_FILE, "utf8")).etag || null;
@@ -230,7 +196,6 @@ function restoreEtag() {
   }
 }
 
-// Schedule the recurring sync. Disable entirely with MODEL_CATALOG_SYNC=off.
 export function startModelCatalogSync() {
   if (timer) return;
   if (String(process.env.MODEL_CATALOG_SYNC || "").toLowerCase() === "off") return;

@@ -88,10 +88,6 @@ class InputEditorDecorations extends Disposable {
 		this.triggerInputEditorDecorationsUpdate();
 		this._register(this.widget.inputEditor.onDidChangeModelContent(() => this.triggerInputEditorDecorationsUpdate()));
 		this._register(this.widget.inputEditor.onDidChangeConfiguration(e => {
-			// The editor's placeholder option is set/cleared by features such as
-			// dictation ("Listening…"). When it is set, PlaceholderTextContribution
-			// renders it, so the decoration placeholder must yield to avoid two
-			// overlapping placeholders; re-run when the option changes.
 			if (e.hasChanged(EditorOption.placeholder)) {
 				this.triggerInputEditorDecorationsUpdate();
 			}
@@ -145,13 +141,10 @@ class InputEditorDecorations extends Disposable {
 			}
 		}));
 		this._register(autorun(reader => {
-			// Watch for changes to the current mode and its properties
 			const currentMode = this.widget.input.currentModeObs.read(reader);
 			if (currentMode) {
-				// Also watch the mode's description to react to any changes
 				currentMode.description.read(reader);
 			}
-			// Trigger decoration update when mode or its properties change
 			this.triggerInputEditorDecorationsUpdate();
 		}));
 
@@ -192,12 +185,9 @@ class InputEditorDecorations extends Disposable {
 	}
 
 	private triggerInputEditorDecorationsUpdate(): void {
-		// update placeholder decorations immediately, in sync
 		this.updateInputPlaceholderDecoration();
 
-		// with a delay, update the rest of the decorations
 		this.updateThrottle.trigger(token => this.updateAsyncInputEditorDecorations(token)).catch(err => {
-			// Throttled delayers reject with CancellationError when disposed mid-flight.
 			if (!isCancellationError(err)) {
 				throw err;
 			}
@@ -210,8 +200,6 @@ class InputEditorDecorations extends Disposable {
 		const viewModel = this.widget.viewModel;
 		if (!viewModel) {
 			this.updateAriaPlaceholder(undefined);
-			// No bound view model yet (e.g. session still loading): clear any stale
-			// placeholder decoration so it doesn't render over typed text. See #325323.
 			if (inputValue) {
 				this.widget.inputEditor.setDecorationsByType(decorationDescription, placeholderDecorationType, []);
 			}
@@ -219,10 +207,6 @@ class InputEditorDecorations extends Disposable {
 		}
 
 		if (!inputValue) {
-			// If the editor's placeholder option is set (e.g. dictation shows
-			// "Listening…"), PlaceholderTextContribution renders it already; skip
-			// the decoration placeholder so the two don't render on top of each
-			// other.
 			if (this.widget.inputEditor.getOption(EditorOption.placeholder)) {
 				this.updateAriaPlaceholder(undefined);
 				this.widget.inputEditor.setDecorationsByType(decorationDescription, placeholderDecorationType, []);
@@ -264,7 +248,6 @@ class InputEditorDecorations extends Disposable {
 
 		const onlyAgentAndWhitespace = agentPart && parsedRequest.every(p => p instanceof ChatRequestTextPart && !p.text.trim().length || p instanceof ChatRequestAgentPart);
 		if (onlyAgentAndWhitespace) {
-			// Agent reference with no other text - show the placeholder
 			const isFollowupSlashCommand = this.previouslyUsedAgents.has(agentAndCommandToKey(agentPart.agent, undefined));
 			const shouldRenderFollowupPlaceholder = isFollowupSlashCommand && agentPart.agent.metadata.followupPlaceholder;
 			if (agentPart.agent.description && exactlyOneSpaceAfterPart(parsedRequest, agentPart)) {
@@ -282,7 +265,6 @@ class InputEditorDecorations extends Disposable {
 
 		const onlyAgentAndAgentCommandAndWhitespace = agentPart && agentSubcommandPart && parsedRequest.every(p => p instanceof ChatRequestTextPart && !p.text.trim().length || p instanceof ChatRequestAgentPart || p instanceof ChatRequestAgentSubcommandPart);
 		if (onlyAgentAndAgentCommandAndWhitespace) {
-			// Agent reference and subcommand with no other text - show the placeholder
 			const isFollowupSlashCommand = this.previouslyUsedAgents.has(agentAndCommandToKey(agentPart.agent, agentSubcommandPart.command.name));
 			const shouldRenderFollowupPlaceholder = isFollowupSlashCommand && agentSubcommandPart.command.followupPlaceholder;
 			if (agentSubcommandPart?.command.description && exactlyOneSpaceAfterPart(parsedRequest, agentSubcommandPart)) {
@@ -300,7 +282,6 @@ class InputEditorDecorations extends Disposable {
 
 		const onlyAgentCommandAndWhitespace = agentSubcommandPart && parsedRequest.every(p => p instanceof ChatRequestTextPart && !p.text.trim().length || p instanceof ChatRequestAgentSubcommandPart);
 		if (onlyAgentCommandAndWhitespace) {
-			// Agent subcommand with no other text - show the placeholder
 			if (agentSubcommandPart?.command.description && exactlyOneSpaceAfterPart(parsedRequest, agentSubcommandPart)) {
 				placeholderDecoration = [{
 					range: getRangeForPlaceholder(agentSubcommandPart.editorRange),
@@ -331,10 +312,8 @@ class InputEditorDecorations extends Disposable {
 		const slashCommandPart = parsedRequest.find((p): p is ChatRequestSlashCommandPart => p instanceof ChatRequestSlashCommandPart);
 		const slashPromptPart = parsedRequest.find((p): p is ChatRequestSlashPromptPart => p instanceof ChatRequestSlashPromptPart);
 
-		// first, fetch all async context
 		const promptSlashCommand = slashPromptPart ? await this.customizationHarnessService.resolvePromptSlashCommand(slashPromptPart.name, viewModel.sessionResource, token) : undefined;
 		if (token.isCancellationRequested) {
-			// a new update came in while we were waiting
 			return;
 		}
 
@@ -451,7 +430,6 @@ class InputEditorSlashCommandMode extends Disposable {
 	}
 
 	private async repopulateAgentCommand(agent: IChatAgentData, slashCommand: IChatAgentCommand | undefined) {
-		// Make sure we don't repopulate if the user already has something in the input
 		if (this.widget.inputEditor.getValue().trim()) {
 			return;
 		}
@@ -483,15 +461,12 @@ class ChatTokenDeleter extends Disposable {
 
 		let prevInsertTokenRange: Range | undefined;
 
-		// A simple heuristic to delete the previous insert token when the user presses backspace.
 		this._register(this.widget.inputEditor.onDidChangeModelContent(e => {
 			let insertedTokenRange: Range | undefined;
 
-			// Don't try to handle multi-cursor edits right now
 			if (e.changes.length === 1) {
 				const change = e.changes[0];
 				if (change.text.length > 0 && change.rangeLength === 1) {
-					// A full slash command or agent reference was just inserted - store it so that if the user immediately deletes it, we can delete the whole thing instead of just one character
 					if (slashReg.test(change.text) || agentReg.test(change.text) || variableReg.test(change.text)) {
 						insertedTokenRange = new Range(change.range.startLineNumber, change.range.startColumn, change.range.endLineNumber, change.range.startColumn + change.text.length);
 					}

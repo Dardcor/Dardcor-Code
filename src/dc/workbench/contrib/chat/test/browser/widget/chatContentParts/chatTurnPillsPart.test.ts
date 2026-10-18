@@ -57,7 +57,6 @@ suite('ChatTurnPillsContentPart', () => {
 		], undefined);
 		states.push(readState());
 
-		// The changeset recompute at turn end briefly reports no files.
 		diffs.set([], undefined);
 		states.push(readState());
 		diffs.set(AUTHORITATIVE_EMPTY_CHAT_RESPONSE_FILE_CHANGES, undefined);
@@ -179,13 +178,11 @@ suite('ChatTurnPillsContentPart', () => {
 		});
 		const collapsed = readState();
 
-		// `<details>` does not toggle on a synthetic click, so mirror what the browser does.
 		header.click();
 		details.open = true;
 		details.dispatchEvent(new Event('toggle'));
 		const expanded = readState();
 
-		// The counts button opens the changes view instead of toggling the disclosure.
 		counts.click();
 
 		assert.deepStrictEqual({ collapsed, expanded, afterCountsClick: readState() }, {

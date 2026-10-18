@@ -155,7 +155,6 @@ class Point {
 			const edit3 = StringReplacement.replace(OffsetRange.fromTo(100, 100), 'A');
 			expect(rejectionCollector.isRejected(doc.id, edit3)).toBe(false);
 			doc.applyEdit(StringEdit.single(edit3));
-			// now evicted
 			expect(rejectionCollector.isRejected(doc.id, StringReplacement.replace(OffsetRange.fromTo(101, 101), 'r'))).toBe(false);
 		} finally {
 			rejectionCollector.dispose();
@@ -164,9 +163,6 @@ class Point {
 });
 
 
-/**
- * Match is context[[valueToReplace]]context
-*/
 function createEdit(base: string, match: string, newValue: string): StringReplacement | undefined {
 	let cleanedMatch: string;
 	const idxStart = match.indexOf('[[');

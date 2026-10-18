@@ -13,7 +13,6 @@ export class DisposableStore {
 
 	add(disposable: vscode.Disposable): void {
 		if (this.isDisposed) {
-			// The store was already disposed, so nothing would ever dispose this.
 			disposable.dispose();
 			return;
 		}
@@ -103,7 +102,6 @@ export function getRepositoryDefaultRemoteUrl(repository: Repository, order: str
 		}
 	}
 
-	// Fallback to first remote
 	return remotes[0].fetchUrl;
 }
 

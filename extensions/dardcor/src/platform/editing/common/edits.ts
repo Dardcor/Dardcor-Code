@@ -6,14 +6,6 @@
 import type * as vscode from 'vscode';
 import { Range } from '../../../dardcorTypes';
 
-/**
- * For the given initial range, find the approximate range after the edits are applied on it.
- * If the start of the initial range is modified by the edits, the start of the transformed range will be the start of the edits.
- * If the end of the initial range is modified by the edits, the end of the transformed range will be the end of the edits.
- * @param initialRange initial range before transformation with edits
- * @param edits edits to apply
- * @returns range after the transformation with the edits
- */
 export function computeUpdatedRange(initialRange: vscode.Range, edits: vscode.TextEdit[]) {
 	let range: vscode.Range = initialRange;
 	for (const edit of edits) {

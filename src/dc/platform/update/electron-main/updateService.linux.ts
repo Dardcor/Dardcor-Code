@@ -52,7 +52,6 @@ export class LinuxUpdateService extends AbstractUpdateService {
 		this.requestService.request({ url, callSite: 'updateService.linux.checkForUpdates' }, CancellationToken.None)
 			.then<any>(asJson)
 			.then(rawPayload => {
-				// If updates were disabled mid-check, ignore the result so we don't leave the Disabled state.
 				if (this.state.type !== StateType.CheckingForUpdates) {
 					return;
 				}
@@ -91,15 +90,12 @@ export class LinuxUpdateService extends AbstractUpdateService {
 				}
 
 				this.logService.error(err);
-				// only show message when explicitly checking for updates
 				const message: string | undefined = explicit ? (err.message || err) : undefined;
 				this.setState(State.Idle(UpdateType.Archive, message));
 			});
 	}
 
 	protected override async doDownloadUpdate(state: AvailableForDownload): Promise<void> {
-		// Use the download URL if available as we don't currently detect the package type that was
-		// installed and the website download page is more useful than the tarball generally.
 		if (this.productService.downloadUrl && this.productService.downloadUrl.length > 0) {
 			this.nativeHostMainService.openExternal(undefined, this.productService.downloadUrl);
 		} else if (state.update.url) {

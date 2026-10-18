@@ -139,7 +139,6 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 		notebookEditorService.onDidRemoveNotebookEditor(this._onEditorRemove, this, this._disposables);
 
 		this._disposables.add(toDisposable(() => {
-			// EH shut down, complete all executions started by this EH
 			this._executions.forEach(e => {
 				e.complete({});
 			});
@@ -171,7 +170,6 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 		this._editors.dispose();
 	}
 
-	// --- kernel ipc
 
 	private _onEditorAdd(editor: INotebookEditor) {
 
@@ -209,15 +207,12 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 				continue;
 			}
 			if (this._notebookKernelService.getMatchingKernel(editor.textModel).selected !== kernel) {
-				// different kernel
 				continue;
 			}
 			if (editorId === undefined) {
-				// all editors
 				editor.postMessage(message);
 				didSend = true;
 			} else if (editor.getId() === editorId) {
-				// selected editors
 				editor.postMessage(message);
 				didSend = true;
 				break;
@@ -235,7 +230,6 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 		}
 	}
 
-	// --- kernel adding/updating/removal
 
 	async $addKernel(handle: number, data: INotebookKernelDto2): Promise<void> {
 		const that = this;
@@ -262,7 +256,6 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 		}(data, this._languageService);
 
 		const disposables = this._disposables.add(new DisposableStore());
-		// Ensure _kernels is up to date before we register a kernel.
 		this._kernels.set(handle, [kernel, disposables]);
 		disposables.add(this._notebookKernelService.registerKernel(kernel));
 	}
@@ -289,7 +282,6 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 		}
 	}
 
-	// --- Cell execution
 
 	$createExecution(handle: number, controllerId: string, rawUri: UriComponents, cellHandle: number): void {
 		const uri = URI.revive(rawUri);
@@ -328,7 +320,6 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 		}
 	}
 
-	// --- Notebook execution
 
 	$createNotebookExecution(handle: number, controllerId: string, rawUri: UriComponents): void {
 		const uri = URI.revive(rawUri);
@@ -366,7 +357,6 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 		}
 	}
 
-	// --- notebook kernel detection task
 	async $addKernelDetectionTask(handle: number, notebookType: string): Promise<void> {
 		const kernelDetectionTask = new MainThreadKernelDetectionTask(notebookType);
 		const registration = this._notebookKernelService.registerNotebookKernelDetectionTask(kernelDetectionTask);
@@ -381,7 +371,6 @@ export class MainThreadNotebookKernels implements MainThreadNotebookKernelsShape
 		}
 	}
 
-	// --- notebook kernel source action provider
 
 	async $addKernelSourceActionProvider(handle: number, eventHandle: number, notebookType: string): Promise<void> {
 		const kernelSourceActionProvider: IKernelSourceActionProvider = {

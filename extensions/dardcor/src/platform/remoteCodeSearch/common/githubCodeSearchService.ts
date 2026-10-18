@@ -38,14 +38,13 @@ type SemanticSearchResult = {
 	chunk: {
 		hash: string;
 		text: string;
-		// Byte offset range of the chunk
 		range: { start: number; end: number };
 		line_range: { start: number; end: number };
 		embedding?: { embedding: number[] };
 	};
 	distance: number;
 	location: {
-		path: string; // file path
+		path: string;
 		commit_sha: string;
 		ref_name: string;
 		repo: {
@@ -74,9 +73,6 @@ export const IGithubCodeSearchService = createDecorator('IGithubCodeSearchServic
 export interface IGithubCodeSearchService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Gets the state of the remote index for a given repo.
-	 */
 	getRemoteIndexState(
 		authOptions: { readonly silent: boolean },
 		githubRepoId: GithubRepoId,
@@ -84,9 +80,6 @@ export interface IGithubCodeSearchService {
 		token: CancellationToken,
 	): Promise<Result<RemoteCodeSearchIndexState, RemoteCodeSearchError>>;
 
-	/**
-	 * Requests that a given repo be indexed.
-	 */
 	triggerIndexing(
 		authOptions: { readonly silent: boolean },
 		triggerReason: 'auto' | 'manual' | 'tool',
@@ -94,11 +87,6 @@ export interface IGithubCodeSearchService {
 		telemetryInfo: TelemetryCorrelationId,
 	): Promise<Result<true, RemoteCodeSearchError>>;
 
-	/**
-	 * Semantic searches a given github repo for relevant code snippets
-	 *
-	 * The repo must have been indexed first. Make sure to check {@link getRemoteIndexState} or call {@link triggerIndexing}.
-	 */
 	semanticSearch(
 		authOptions: { readonly silent: boolean },
 		embeddingType: EmbeddingType,
@@ -110,9 +98,6 @@ export interface IGithubCodeSearchService {
 		token: CancellationToken,
 	): Promise<SemanticCodeSearchResult>;
 
-	/**
-	 * Lexical searches a given github repo or org for relevant code snippets
-	 */
 	lexicalSearch(
 		authOptions: { readonly silent: boolean },
 		scope: GithubCodeSearchScope,
@@ -161,13 +146,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 				}
 			}, { type: RequestType.EmbeddingsIndex, repoWithOwner: repoNwo }), token);
 			if (!statusRequest.ok) {
-				/* __GDPR__
-					"githubCodeSearch.getRemoteIndexState.error" : {
-						"owner": "mjbvz",
-						"comment": "Information about failed remote index state requests",
-						"statusCode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The response status code" }
-					}
-				*/
 				this._telemetryService.sendMSFTTelemetryEvent('githubCodeSearch.getRemoteIndexState.error', {}, {
 					statusCode: statusRequest.status,
 				});
@@ -242,16 +220,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 		if (!response.ok) {
 			this._logService.error(`GithubCodeSearchService.triggerIndexing(${triggerReason}). Failed to request indexing for '${githubRepoId}'. Response: ${response.status}. ${await response.text()}`);
 
-			/* __GDPR__
-				"githubCodeSearch.triggerIndexing.error" : {
-					"owner": "mjbvz",
-					"comment": "Information about failed trigger indexing requests",
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"triggerReason": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Reason why the indexing was triggered" },
-					"statusCode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The response status code" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('githubCodeSearch.triggerIndexing.error', {
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
 				workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -267,15 +235,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 			return Result.error({ type: 'generic-error', error: new Error(`Failed to request indexing for '${githubRepoId}'. Response: ${response.status}.`) });
 		}
 
-		/* __GDPR__
-			"githubCodeSearch.getRemoteIndexState.success" : {
-				"owner": "mjbvz",
-				"comment": "Information about failed remote index state requests",
-				"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-				"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-				"triggerReason": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Reason why the indexing was triggered" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('githubCodeSearch.getRemoteIndexState.success', {
 			workspaceSearchSource: telemetryInfo.callTracker.toString(),
 			workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -308,9 +267,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 				requestId: '',
 				body: {
 					scoping_query: `repo:${toGithubNwo(repo.githubRepoId)}`,
-					// The semantic search endpoint only supports prompts of up to 8k bytes (in utf8)
-					// For now just truncate but we should consider a better way to handle this, such as having a model
-					// generate a short prompt
 					prompt: truncateToMaxUtf8Length(searchQuery, 7800),
 					include_embeddings: false,
 					limit: maxResults,
@@ -328,15 +284,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 			token);
 
 		if (!response.ok) {
-			/* __GDPR__
-				"githubCodeSearch.searchRepo.error" : {
-					"owner": "mjbvz",
-					"comment": "Information about failed code searches",
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"statusCode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The response status code" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('githubCodeSearch.searchRepo.error', {
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
 				workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -354,16 +301,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 
 		const result = await raceCancellationError(parseGithubCodeSearchResponse(body, repo, options, this._ignoreService), token);
 
-		/* __GDPR__
-			"githubCodeSearch.searchRepo.success" : {
-				"owner": "mjbvz",
-				"comment": "Information about successful code searches",
-				"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-				"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-				"resultCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of returned chunks from the search" },
-				"resultOutOfSync": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Tracks if the commit we think code search has indexed matches the commit code search returns results from" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('githubCodeSearch.searchRepo.success', {
 			workspaceSearchSource: telemetryInfo.callTracker.toString(),
 			workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -409,14 +346,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 		), token);
 
 		if (!body) {
-			/* __GDPR__
-				"githubCodeSearch.lexicalSearch.error" : {
-					"owner": "mjbvz",
-					"comment": "Information about failed lexical code searches",
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('githubCodeSearch.lexicalSearch.error', {
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
 				workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -430,15 +359,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 
 		const result = await raceCancellationError(parseLexicalSearchResponse(body, scope, options, this._ignoreService), token);
 
-		/* __GDPR__
-			"githubCodeSearch.lexicalSearch.success" : {
-				"owner": "mjbvz",
-				"comment": "Information about successful lexical code searches",
-				"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-				"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-				"resultCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of returned items from the search" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('githubCodeSearch.lexicalSearch.success', {
 			workspaceSearchSource: telemetryInfo.callTracker.toString(),
 			workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -470,9 +390,6 @@ export class GithubCodeSearchService implements IGithubCodeSearchService {
 
 		const data: any = await response.json();
 
-		// Check multiple indicators of an empty repo:
-		// - size of 0 indicates no content
-		// - missing default_branch often means no commits
 		return data.size === 0 || !data.default_branch;
 	}
 }
@@ -491,11 +408,10 @@ export async function parseGithubCodeSearchResponse(body: ResponseShape, repo: G
 		let fileUri: URI;
 		if (repo.localRepoRoot) {
 			fileUri = URI.joinPath(repo.localRepoRoot, result.location.path);
-			if (await ignoreService.isCopilotIgnored(fileUri)) {
+			if (await ignoreService.isIgnored(fileUri)) {
 				return;
 			}
 		} else {
-			// Non-local repo, make up a URI
 			fileUri = URI.from({
 				scheme: 'githubRepoResult',
 				path: '/' + result.location.path
@@ -513,7 +429,7 @@ export async function parseGithubCodeSearchResponse(body: ResponseShape, repo: G
 				text: stripChunkTextMetadata(result.chunk.text),
 				rawText: undefined,
 				range: new Range(result.chunk.line_range.start, 0, result.chunk.line_range.end, 0),
-				isFullFile: false, // TODO: get this from github
+				isFullFile: false,
 			},
 			distance: {
 				embeddingType: embeddingsType,
@@ -522,12 +438,10 @@ export async function parseGithubCodeSearchResponse(body: ResponseShape, repo: G
 		});
 	}));
 
-	// Extract the remote URL and ref name from the first result
 	const firstResult = body.results[0];
 	let remoteUrl: string | undefined;
 	let refName: string | undefined;
 	if (firstResult) {
-		// Derive the web URL from the API URL (e.g. https://api.github.com/repos/o/r -> https://github.com/o/r)
 		const apiUrl = firstResult.location.repo.url;
 		const nwo = firstResult.location.repo.nwo;
 		try {
@@ -535,11 +449,9 @@ export async function parseGithubCodeSearchResponse(body: ResponseShape, repo: G
 			const host = parsed.authority === 'api.github.com' ? 'github.com' : parsed.authority.replace(/^api\./, '');
 			remoteUrl = `https://${host}/${nwo}`;
 		} catch {
-			// Fall back to constructing from nwo
 			remoteUrl = `https://github.com/${nwo}`;
 		}
 
-		// Extract branch name from ref_name (e.g. "refs/heads/main" -> "main")
 		const rawRef = firstResult.location.ref_name;
 		if (rawRef?.startsWith('refs/heads/')) {
 			refName = rawRef.slice('refs/heads/'.length);
@@ -586,7 +498,7 @@ export async function parseLexicalSearchResponse(body: LexicalSearchResponseShap
 		let fileUri: URI;
 		if (localRepoRoot) {
 			fileUri = URI.joinPath(localRepoRoot, item.path);
-			if (await ignoreService.isCopilotIgnored(fileUri)) {
+			if (await ignoreService.isIgnored(fileUri)) {
 				return;
 			}
 		} else {
@@ -612,7 +524,6 @@ export async function parseLexicalSearchResponse(body: LexicalSearchResponseShap
 				});
 			}
 		} else {
-			// No text matches, include the file as a whole-file result
 			outChunks.push({
 				file: fileUri,
 				text: '',

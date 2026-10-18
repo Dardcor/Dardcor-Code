@@ -34,42 +34,28 @@ import { ConfigureToolSets, deleteToolSetFromFileContents } from '../tools/toolS
 
 const enum BucketOrdinal { User, BuiltIn, Mcp, Extension }
 
-// Legacy QuickPick types (existing implementation)
 type BucketPick = IQuickPickItem & { picked: boolean; ordinal: BucketOrdinal; status?: string; toolset?: ToolSet; children: (ToolPick | ToolSetPick)[] };
 type ToolSetPick = IQuickPickItem & { picked: boolean; toolset: ToolSet; parent: BucketPick };
 type ToolPick = IQuickPickItem & { picked: boolean; tool: IToolData; parent: BucketPick };
 type ActionableButton = IQuickInputButton & { action: () => void; keepOpen?: boolean };
 
-// New QuickTree types for tree-based implementation
 
-/**
- * Base interface for all tree items in the QuickTree implementation.
- * Extends IQuickTreeItem with common properties for tool picker items.
- */
 interface IToolTreeItem extends IQuickTreeItem {
 	readonly itemType: 'bucket' | 'toolset' | 'tool' | 'callback';
 	readonly ordinal?: BucketOrdinal;
 	readonly buttons?: readonly ActionableButton[];
 }
 
-/**
- * Bucket tree item - represents a category of tools (User, BuiltIn, MCP Server, Extension).
- * For MCP servers, the bucket directly represents the server and stores the toolset.
- */
 interface IBucketTreeItem extends IToolTreeItem {
 	readonly itemType: 'bucket';
 	readonly ordinal: BucketOrdinal;
-	toolset?: IToolSet; // For MCP servers where the bucket represents the ToolSet - mutable
+	toolset?: IToolSet;
 	readonly status?: string;
 	readonly children: AnyTreeItem[];
 	checked: boolean | 'mixed' | undefined;
 	readonly sortOrder: number;
 }
 
-/**
- * ToolSet tree item - represents a collection of tools that can be managed together.
- * Used for regular (non-MCP) toolsets that appear as intermediate nodes in the tree.
- */
 interface IToolSetTreeItem extends IToolTreeItem {
 	readonly itemType: 'toolset';
 	readonly toolset: IToolSet;
@@ -77,10 +63,6 @@ interface IToolSetTreeItem extends IToolTreeItem {
 	checked: boolean | 'mixed';
 }
 
-/**
- * Tool tree item - represents an individual tool that can be selected/deselected.
- * This is a leaf node in the tree structure.
- */
 interface IToolTreeItemData extends IToolTreeItem {
 	readonly itemType: 'tool';
 	readonly tool: IToolData;
@@ -88,11 +70,6 @@ interface IToolTreeItemData extends IToolTreeItem {
 	checked: boolean;
 }
 
-/**
- * Callback tree item - represents action items like "Add MCP Server" or "Configure Tool Sets".
- * These are non-selectable items that execute actions when clicked. Can return
- * false to keep the picker open.
- */
 interface ICallbackTreeItem extends IToolTreeItem {
 	readonly itemType: 'callback';
 	readonly run: () => boolean | void;
@@ -101,7 +78,6 @@ interface ICallbackTreeItem extends IToolTreeItem {
 
 type AnyTreeItem = IBucketTreeItem | IToolSetTreeItem | IToolTreeItemData | ICallbackTreeItem;
 
-// Type guards for new QuickTree types
 function isBucketTreeItem(item: AnyTreeItem): item is IBucketTreeItem {
 	return item.itemType === 'bucket';
 }
@@ -115,15 +91,6 @@ function isCallbackTreeItem(item: AnyTreeItem): item is ICallbackTreeItem {
 	return item.itemType === 'callback';
 }
 
-/**
- * Maps different icon types (ThemeIcon or URI-based) to QuickTreeItem icon properties.
- * Handles the conversion between ToolSet/IToolData icon formats and tree item requirements.
- * Provides a default tool icon when no icon is specified.
- *
- * @param icon - Icon to map (ThemeIcon, URI object, or undefined)
- * @param useDefaultToolIcon - Whether to use a default tool icon when none is provided
- * @returns Object with iconClass (for ThemeIcon) or iconPath (for URIs) properties
- */
 function mapIconToTreeItem(icon: ThemeIcon | { dark: URI; light?: URI } | undefined, useDefaultToolIcon: boolean = false): Pick<IQuickTreeItem, 'iconClass' | 'iconPath'> {
 	if (!icon) {
 		if (useDefaultToolIcon) {
@@ -204,23 +171,6 @@ function createToolSetTreeItem(toolset: IToolSet, checked: boolean, editorServic
 	};
 }
 
-/**
- * New QuickTree implementation of the tools picker.
- * Uses IQuickTree to provide a true hierarchical tree structure with:
- * - Collapsible nodes for buckets and toolsets
- * - Checkbox state management with parent-child relationships
- * - Special handling for MCP servers (server as bucket, tools as direct children)
- * - Built-in filtering and search capabilities
- *
- * @param accessor - Service accessor for dependency injection
- * @param placeHolder - Placeholder text shown in the picker
- * @param description - Optional description text shown in the picker
- * @param toolsEntries - Optional initial selection state for tools and toolsets
- * @param modelId - Optional model ID to filter tools by supported models
- * @param onUpdate - Optional callback fired when the selection changes
- * @param token - Optional cancellation token to close the picker when cancelled
- * @returns Promise resolving to the final selection map, or undefined if cancelled
- */
 export async function showToolsPicker(
 	accessor: ServicesAccessor,
 	placeHolder: string,
@@ -270,7 +220,6 @@ export async function showToolsPicker(
 			}
 
 			if (updated.isEmpty) {
-				// No tool sets remain in the file, so remove the file entirely.
 				const useTrash = fileService.hasCapability(toolSet.source.file, FileSystemProviderCapabilities.Trash);
 				await fileService.del(toolSet.source.file, { useTrash });
 			} else {
@@ -289,7 +238,6 @@ export async function showToolsPicker(
 	}
 
 	function computeItems(previousToolsEntries?: ToolAndToolSetEnablementMap) {
-		// Create default entries if none provided
 		let toolsEntries = getToolsEntries ? new Map([...getToolsEntries()].map(([k, enabled]) => [k.id, enabled])) : undefined;
 		if (!toolsEntries) {
 			const defaultEntries = new Map();
@@ -310,7 +258,6 @@ export async function showToolsPicker(
 			toolsEntries.set(entry.id, enabled);
 		}
 
-		// Build tree structure
 		const treeItems: AnyTreeItem[] = [];
 		const bucketMap = new Map<string, IBucketTreeItem>();
 
@@ -473,12 +420,10 @@ export async function showToolsPicker(
 			}
 			const toolSetChecked = toolsEntries.get(toolSet.id) === true;
 			if (toolSet.source.type === 'mcp') {
-				// bucket represents the toolset
 				bucket.toolset = toolSet;
 				if (toolSetChecked) {
 					bucket.checked = toolSetChecked;
 				}
-				// all mcp tools are part of toolsService.getTools()
 			} else {
 				const treeItem = createToolSetTreeItem(toolSet, toolSetChecked, editorService, toolSet => void removeToolSet(toolSet));
 				bucket.children.push(treeItem);
@@ -493,7 +438,6 @@ export async function showToolsPicker(
 				}
 			}
 		}
-		// getting potentially disabled tools is fine here because we filter `toolsEntries.has`
 		for (const tool of toolsService.getAllToolsIncludingDisabled()) {
 			if (!tool.canBeReferencedInPrompt || !toolsEntries.has(tool.id)) {
 				continue;
@@ -507,7 +451,6 @@ export async function showToolsPicker(
 			bucket.children.push(toolTreeItem);
 		}
 
-		// Show entries for MCP servers that don't have any tools in them and might need to be started.
 		for (const { server, seen } of mcpServers.values()) {
 			const cacheState = server.cacheState.get();
 			if (!seen && (cacheState === McpServerCacheState.Unknown || cacheState === McpServerCacheState.Outdated)) {
@@ -515,7 +458,6 @@ export async function showToolsPicker(
 			}
 		}
 
-		// Convert bucket map to sorted tree items
 		const sortedBuckets = Array.from(bucketMap.values()).sort((a, b) => {
 			if (a.sortOrder !== b.sortOrder) {
 				return a.sortOrder - b.sortOrder;
@@ -524,7 +466,6 @@ export async function showToolsPicker(
 		});
 		for (const bucket of sortedBuckets) {
 			treeItems.push(bucket);
-			// Sort children alphabetically
 			bucket.children.sort((a, b) => a.label.localeCompare(b.label));
 			for (const child of bucket.children) {
 				if (isToolSetTreeItem(child) && child.children) {
@@ -532,7 +473,6 @@ export async function showToolsPicker(
 				}
 			}
 		}
-		// Add approval management buttons to tool items that support confirmation
 		for (const bucket of sortedBuckets) {
 			const isMcpBucket = bucket.ordinal === BucketOrdinal.Mcp;
 			const addConfirmationButton = (toolItem: IToolTreeItemData) => {
@@ -572,7 +512,6 @@ export async function showToolsPicker(
 		treePicker.setItemTree(treeItems);
 	}
 
-	// Create and configure the tree picker
 	const store = new DisposableStore();
 	const treePicker = store.add(quickPickService.createQuickTree<AnyTreeItem>());
 
@@ -584,7 +523,6 @@ export async function showToolsPicker(
 
 	computeItems();
 
-	// Handle button triggers
 	store.add(treePicker.onDidTriggerItemButton(e => {
 		if (e.button && typeof (e.button as ActionableButton).action === 'function') {
 			const actionableButton = e.button as ActionableButton;
@@ -599,8 +537,7 @@ export async function showToolsPicker(
 		const traverse = (items: readonly AnyTreeItem[]) => {
 			for (const item of items) {
 				if (isBucketTreeItem(item)) {
-					if (item.toolset) { // MCP server
-						// MCP toolset is enabled only if all tools are enabled
+					if (item.toolset) {
 						const allChecked = item.checked === true;
 						result.set(item.toolset, allChecked);
 					}
@@ -618,8 +555,6 @@ export async function showToolsPicker(
 				} else if (isToolTreeItem(item)) {
 					const checked = item.checked === true;
 					const previous = result.get(item.tool);
-					// Tools can show up in multiple places (e.g. buckets and tool sets). If a tool is
-					// explicitly unchecked anywhere, preserve that deselection.
 					result.set(item.tool, previous === undefined ? checked : previous && checked);
 				}
 			}
@@ -629,11 +564,9 @@ export async function showToolsPicker(
 		return ToolAndToolSetEnablementMap.fromMap(result);
 	};
 
-	// Handle acceptance
 	let didAccept = false;
 	const didAcceptFinalItem = store.add(new Emitter<void>());
 	store.add(treePicker.onDidAccept(() => {
-		// Check if a callback item was activated
 		const activeItems = treePicker.activeItems;
 		const callbackItem = activeItems.find(isCallbackTreeItem);
 		if (!callbackItem) {
@@ -673,21 +606,18 @@ export async function showToolsPicker(
 		treePicker.hide();
 	}));
 
-	// Close picker when cancelled (e.g., when mode changes)
 	if (token) {
 		store.add(token.onCancellationRequested(() => {
 			treePicker.hide();
 		}));
 	}
 
-	// Capture initial state for telemetry comparison
 	const initialState = collectResults();
 
 	treePicker.show();
 
 	await Promise.race([Event.toPromise(Event.any(treePicker.onDidHide, didAcceptFinalItem.event), store)]);
 
-	// Send telemetry about tool selection changes
 	sendDidChangeEvent(source, telemetryService, initialState, collectResults(), mcpRegistry);
 
 	store.dispose();
@@ -695,38 +625,23 @@ export async function showToolsPicker(
 	return didAccept ? collectResults() : undefined;
 }
 
-/**
- * Categorizes a tool or toolset source for privacy-safe telemetry.
- * Returns identifying info only for built-in/extension tools where names are public.
- * For user-defined and user MCP tools, only the category is returned.
- *
- * @param item - The tool or toolset to categorize
- * @param mcpRegistry - The MCP registry to look up collection sources for MCP tools
- */
 function categorizeTool(item: IToolData | IToolSet, mcpRegistry: IMcpRegistry): { category: 'builtin' | 'extension' | 'extension-mcp' | 'user-mcp' | 'user-toolset'; name?: string; extensionId?: string } {
 	const source = item.source;
 	switch (source.type) {
 		case 'internal':
-			// Built-in tools are safe to identify by name
 			return { category: 'builtin', name: item.id };
 		case 'extension':
-			// Extension tools are public, safe to include name and extension ID
 			return { category: 'extension', name: item.id, extensionId: source.extensionId.value };
 		case 'mcp': {
-			// MCP tools: check if the collection comes from an extension
-			// Never include tool names for privacy, but include extension ID if from an extension
 			const collection = mcpRegistry.collections.get().find(c => c.id === source.collectionId);
 			if (collection?.source instanceof ExtensionIdentifier) {
 				return { category: 'extension-mcp', extensionId: collection.source.value };
 			}
-			// User-configured MCP server - don't include any identifying info
 			return { category: 'user-mcp' };
 		}
 		case 'user':
-			// User-defined tool sets: don't include names for privacy
 			return { category: 'user-toolset' };
 		case 'external':
-			// External tools shouldn't appear in the picker, treat as user-defined for safety
 			return { category: 'user-toolset' };
 		default:
 			assertNever(source);
@@ -734,27 +649,16 @@ function categorizeTool(item: IToolData | IToolSet, mcpRegistry: IMcpRegistry): 
 }
 
 interface IToolToggleSummary {
-	/** Number of built-in tools enabled */
 	builtinEnabled: number;
-	/** Number of built-in tools disabled */
 	builtinDisabled: number;
-	/** Number of extension tools enabled */
 	extensionEnabled: number;
-	/** Number of extension tools disabled */
 	extensionDisabled: number;
-	/** Number of extension MCP tools enabled */
 	extensionMcpEnabled: number;
-	/** Number of extension MCP tools disabled */
 	extensionMcpDisabled: number;
-	/** Number of user MCP tools enabled */
 	userMcpEnabled: number;
-	/** Number of user MCP tools disabled */
 	userMcpDisabled: number;
-	/** Number of user tool sets enabled */
 	userToolsetEnabled: number;
-	/** Number of user tool sets disabled */
 	userToolsetDisabled: number;
-	/** Detailed list of toggled items (only safe-to-log items include names) */
 	details: string;
 }
 
@@ -779,11 +683,10 @@ function computeToolToggleSummary(
 
 	const detailItems: { category: string; name?: string; extensionId?: string; enabled: boolean }[] = [];
 
-	// Compare states and record changes
 	for (const [item, finalEnabled] of finalState) {
 		const initialEnabled = initialState.get(item) ?? false;
 		if (initialEnabled === finalEnabled) {
-			continue; // No change
+			continue;
 		}
 
 		const categorized = categorizeTool(item, mcpRegistry);
@@ -804,18 +707,15 @@ function computeToolToggleSummary(
 				break;
 			case 'user-mcp':
 				if (enabled) { summary.userMcpEnabled++; } else { summary.userMcpDisabled++; }
-				// Don't include name for privacy
 				detailItems.push({ category: 'user-mcp', enabled });
 				break;
 			case 'user-toolset':
 				if (enabled) { summary.userToolsetEnabled++; } else { summary.userToolsetDisabled++; }
-				// Don't include name for privacy
 				detailItems.push({ category: 'user-toolset', enabled });
 				break;
 		}
 	}
 
-	// Serialize details as JSON
 	summary.details = JSON.stringify(detailItems);
 	return summary;
 }

@@ -8,10 +8,6 @@ import { IDebugAdapter } from './debug.js';
 import { timeout } from '../../../../base/common/async.js';
 import { localize } from '../../../../nls.js';
 
-/**
- * Abstract implementation of the low level API for a debug adapter.
- * Missing is how this API communicates with the debug adapter.
- */
 export abstract class AbstractDebugAdapter implements IDebugAdapter {
 	private sequence: number;
 	private pendingRequests = new Map<number, (e: DebugProtocol.Response) => void>();
@@ -98,7 +94,6 @@ export abstract class AbstractDebugAdapter implements IDebugAdapter {
 			this.pendingRequestTimers.set(request.seq, timer);
 		}
 		if (clb) {
-			// store callback for this request
 			this.pendingRequests.set(request.seq, clb);
 		}
 
@@ -111,38 +106,15 @@ export abstract class AbstractDebugAdapter implements IDebugAdapter {
 		} else {
 			this.queue.push(message);
 			if (this.queue.length === 1) {
-				// first item = need to start processing loop
 				this.processQueue();
 			}
 		}
 	}
 
-	/**
-	 * Returns whether we should insert a timeout between processing messageA
-	 * and messageB. Artificially queueing protocol messages guarantees that any
-	 * microtasks for previous message finish before next message is processed.
-	 * This is essential ordering when using promises anywhere along the call path.
-	 *
-	 * For example, take the following, where `chooseAndSendGreeting` returns
-	 * a person name and then emits a greeting event:
-	 *
-	 * ```
-	 * let person: string;
-	 * adapter.onGreeting(() => console.log('hello', person));
-	 * person = await adapter.chooseAndSendGreeting();
-	 * ```
-	 *
-	 * Because the event is dispatched synchronously, it may fire before person
-	 * is assigned if they're processed in the same task. Inserting a task
-	 * boundary avoids this issue.
-	 */
 	protected needsTaskBoundaryBetween(messageA: DebugProtocol.ProtocolMessage, messageB: DebugProtocol.ProtocolMessage) {
 		return messageA.type !== 'event' || messageB.type !== 'event';
 	}
 
-	/**
-	 * Reads and dispatches items from the queue until it is empty.
-	 */
 	private async processQueue() {
 		let message: DebugProtocol.ProtocolMessage | undefined;
 		while (this.queue.length) {
@@ -152,7 +124,7 @@ export abstract class AbstractDebugAdapter implements IDebugAdapter {
 
 			message = this.queue.shift();
 			if (!message) {
-				return; // may have been disposed of
+				return;
 			}
 
 			switch (message.type) {

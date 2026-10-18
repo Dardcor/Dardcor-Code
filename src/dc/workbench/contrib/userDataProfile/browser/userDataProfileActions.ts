@@ -30,7 +30,6 @@ class CreateTransientProfileAction extends Action2 {
 
 registerAction2(CreateTransientProfileAction);
 
-// Developer Actions
 
 registerAction2(class CleanupProfilesAction extends Action2 {
 	constructor() {

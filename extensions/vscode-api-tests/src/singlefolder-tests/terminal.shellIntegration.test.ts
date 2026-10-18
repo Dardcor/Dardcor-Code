@@ -8,9 +8,6 @@ import { platform } from 'os';
 import { env, TerminalShellExecutionCommandLineConfidence, UIKind, window, workspace, type Disposable, type Terminal, type TerminalShellExecution, type TerminalShellExecutionCommandLine, type TerminalShellExecutionEndEvent, type TerminalShellIntegration } from 'vscode';
 import { assertNoRpc } from '../utils';
 
-// Terminal integration tests are disabled on web https://github.com/microsoft/vscode/issues/92826
-// Windows images will often not have functional shell integration
-// TODO: Linux https://github.com/microsoft/vscode/issues/221399
 (env.uiKind === UIKind.Web || platform() === 'win32' || platform() === 'linux' ? suite.skip : suite)('vscode API - Terminal.shellIntegration', () => {
 	const disposables: Disposable[] = [];
 
@@ -50,7 +47,6 @@ import { assertNoRpc } from '../utils';
 	function executeCommandAsync(shellIntegration: TerminalShellIntegration, command: string, args?: string[]): { execution: Promise<TerminalShellExecution>; endEvent: Promise<TerminalShellExecutionEndEvent> } {
 		return {
 			execution: new Promise<TerminalShellExecution>(resolve => {
-				// Await a short period as pwsh's first SI prompt can fail when launched in quick succession
 				setTimeout(() => {
 					if (args) {
 						resolve(shellIntegration.executeCommand(command, args));
@@ -88,7 +84,6 @@ import { assertNoRpc } from '../utils';
 	});
 
 	if (platform() === 'darwin' || platform() === 'linux') {
-		// TODO: Enable when this is enabled in stable, otherwise it will break the stable product builds only
 		test.skip('Test if env is set', async () => {
 			const { shellIntegration } = await createTerminalAndWaitForShellIntegration();
 			await new Promise<void>(r => {
@@ -231,9 +226,6 @@ import { assertNoRpc } from '../utils';
 	});
 
 	test('executeCommand(executable, args)', async function () {
-		// HACK: This test has flaked before where the `value` was `e`, not `echo hello`. After an
-		// investigation it's not clear how this happened, so in order to keep some of the value
-		// that the test adds, it will retry after a failure.
 		this.retries(3);
 
 		const { terminal, shellIntegration } = await createTerminalAndWaitForShellIntegration();

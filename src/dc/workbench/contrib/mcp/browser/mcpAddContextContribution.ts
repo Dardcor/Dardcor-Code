@@ -28,7 +28,7 @@ export class McpAddContextContribution extends Disposable implements IWorkbenchC
 			for (const server of mcpService.servers.read(reader)) {
 				const cap = server.capabilities.read(undefined);
 				if (cap === undefined) {
-					enabled = true; // until we know more
+					enabled = true;
 				} else if (cap & McpCapability.Resources) {
 					enabled = true;
 					break;

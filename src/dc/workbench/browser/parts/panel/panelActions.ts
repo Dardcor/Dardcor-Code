@@ -114,12 +114,10 @@ registerAction2(class extends Action2 {
 		const layoutService = accessor.get(IWorkbenchLayoutService);
 		const paneCompositeService = accessor.get(IPaneCompositePartService);
 
-		// Show panel
 		if (!layoutService.isVisible(Parts.PANEL_PART)) {
 			layoutService.setPartHidden(false, Parts.PANEL_PART);
 		}
 
-		// Focus into active panel
 		const panel = paneCompositeService.getActivePaneComposite(ViewContainerLocation.Panel);
 		panel?.focus();
 	}
@@ -306,7 +304,6 @@ registerAction2(class extends Action2 {
 
 		if (!layoutService.isVisible(Parts.PANEL_PART)) {
 			layoutService.setPartHidden(false, Parts.PANEL_PART);
-			// If the panel is not already maximized, maximize it
 			if (!layoutService.isPanelMaximized()) {
 				layoutService.toggleMaximizedPanel();
 			}
@@ -367,7 +364,6 @@ class MoveViewsBetweenPanelsAction extends Action2 {
 	}
 }
 
-// --- Move Panel Views To Secondary Side Bar
 
 class MovePanelToSidePanelAction extends MoveViewsBetweenPanelsAction {
 	static readonly ID = 'workbench.action.movePanelToSidePanel';
@@ -396,7 +392,6 @@ export class MovePanelToSecondarySideBarAction extends MoveViewsBetweenPanelsAct
 registerAction2(MovePanelToSidePanelAction);
 registerAction2(MovePanelToSecondarySideBarAction);
 
-// --- Move Secondary Side Bar Views To Panel
 
 class MoveSidePanelToPanelAction extends MoveViewsBetweenPanelsAction {
 	static readonly ID = 'workbench.action.moveSidePanelToPanel';

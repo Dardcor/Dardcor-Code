@@ -249,11 +249,9 @@ class HelpItemValue {
 					this._url = this.urlOrCommandOrId;
 				} else {
 					const urlCommand = this.commandService.executeCommand<string>(this.urlOrCommandOrId).then((result) => {
-						// if executing this command times out, cache its value whenever it eventually resolves
 						this._url = result;
 						return this._url;
 					});
-					// We must be defensive. The command may never return, meaning that no help at all is ever shown!
 					const emptyString: Promise<string> = new Promise(resolve => setTimeout(() => resolve(''), 500));
 					this._url = await Promise.race([urlCommand, emptyString]);
 				}
@@ -778,10 +776,7 @@ class ReconnectionTimer implements IDisposable {
 	}
 }
 
-/**
- * The time when a prompt is shown to the user
- */
-const DISCONNECT_PROMPT_TIME = 40 * 1000; // 40 seconds
+const DISCONNECT_PROMPT_TIME = 40 * 1000;
 
 export class RemoteAgentConnectionStatusListener extends Disposable implements IWorkbenchContribution {
 
@@ -821,7 +816,6 @@ export class RemoteAgentConnectionStatusListener extends Disposable implements I
 				return new VisibleProgress(
 					progressService, location, initialReport, buttons.map(button => button.label),
 					(choice, lastReport) => {
-						// Handle choice from dialog
 						if (typeof choice !== 'undefined' && buttons[choice]) {
 							buttons[choice].callback();
 						} else {
@@ -882,11 +876,6 @@ export class RemoteAgentConnectionStatusListener extends Disposable implements I
 				}
 			};
 
-			// Possible state transitions:
-			// ConnectionGain      -> ConnectionLost
-			// ConnectionLost      -> ReconnectionWait, ReconnectionRunning
-			// ReconnectionWait    -> ReconnectionRunning
-			// ReconnectionRunning -> ConnectionGain, ReconnectionPermanentFailure
 
 			this._register(connection.onDidStateChange((e) => {
 				visibleProgress?.stopTimer();
@@ -959,9 +948,7 @@ export class RemoteAgentConnectionStatusListener extends Disposable implements I
 							visibleProgress = showProgress(null, [reloadButton]);
 							visibleProgress.report(nls.localize('reconnectionRunning', "Disconnected. Attempting to reconnect..."));
 
-							// Register to listen for quick input is opened
 							disposableListener.value = quickInputService.onShow(() => {
-								// Need to move from dialog if being shown and user needs to type in a prompt
 								if (visibleProgress && visibleProgress.location === ProgressLocation.Dialog) {
 									visibleProgress = showProgress(ProgressLocation.Notification, [reloadButton], visibleProgress.lastReport);
 								}

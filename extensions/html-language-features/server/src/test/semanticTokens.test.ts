@@ -55,18 +55,18 @@ suite('HTML Semantic Tokens', () => {
 
 	test('Variables', async () => {
 		const input = [
-			/*0*/'<html>',
-			/*1*/'<head>',
-			/*2*/'<script>',
-			/*3*/'  var x = 9, y1 = [x];',
-			/*4*/'  try {',
-			/*5*/'    for (const s of y1) { x = s }',
-			/*6*/'  } catch (e) {',
-			/*7*/'    throw y1;',
-			/*8*/'  }',
-			/*9*/'</script>',
-			/*10*/'</head>',
-			/*11*/'</html>',
+			'<html>',
+			'<head>',
+			'<script>',
+			'  var x = 9, y1 = [x];',
+			'  try {',
+			'    for (const s of y1) { x = s }',
+			'  } catch (e) {',
+			'    throw y1;',
+			'  }',
+			'</script>',
+			'</head>',
+			'</html>',
 		];
 		await assertTokens(input, [
 			t(3, 6, 1, 'variable.declaration'), t(3, 13, 2, 'variable.declaration'), t(3, 19, 1, 'variable'),
@@ -78,16 +78,16 @@ suite('HTML Semantic Tokens', () => {
 
 	test('Functions', async () => {
 		const input = [
-			/*0*/'<html>',
-			/*1*/'<head>',
-			/*2*/'<script>',
-			/*3*/'  function foo(p1) {',
-			/*4*/'    return foo(Math.abs(p1))',
-			/*5*/'  }',
-			/*6*/'  `/${window.location}`.split("/").forEach(s => foo(s));',
-			/*7*/'</script>',
-			/*8*/'</head>',
-			/*9*/'</html>',
+			'<html>',
+			'<head>',
+			'<script>',
+			'  function foo(p1) {',
+			'    return foo(Math.abs(p1))',
+			'  }',
+			'  `/${window.location}`.split("/").forEach(s => foo(s));',
+			'</script>',
+			'</head>',
+			'</html>',
 		];
 		await assertTokens(input, [
 			t(3, 11, 3, 'function.declaration'), t(3, 15, 2, 'parameter.declaration'),
@@ -98,20 +98,20 @@ suite('HTML Semantic Tokens', () => {
 
 	test('Members', async () => {
 		const input = [
-			/*0*/'<html>',
-			/*1*/'<head>',
-			/*2*/'<script>',
-			/*3*/'  class A {',
-			/*4*/'    static x = 9;',
-			/*5*/'    f = 9;',
-			/*6*/'    async m() { return A.x + await this.m(); };',
-			/*7*/'    get s() { return this.f; ',
-			/*8*/'    static t() { return new A().f; };',
-			/*9*/'    constructor() {}',
-			/*10*/'  }',
-			/*11*/'</script>',
-			/*12*/'</head>',
-			/*13*/'</html>',
+			'<html>',
+			'<head>',
+			'<script>',
+			'  class A {',
+			'    static x = 9;',
+			'    f = 9;',
+			'    async m() { return A.x + await this.m(); };',
+			'    get s() { return this.f; ',
+			'    static t() { return new A().f; };',
+			'    constructor() {}',
+			'  }',
+			'</script>',
+			'</head>',
+			'</html>',
 		];
 
 
@@ -127,15 +127,15 @@ suite('HTML Semantic Tokens', () => {
 
 	test('Interfaces', async () => {
 		const input = [
-			/*0*/'<html>',
-			/*1*/'<head>',
-			/*2*/'<script type="text/typescript">',
-			/*3*/'  interface Position { x: number, y: number };',
-			/*4*/'  const p = { x: 1, y: 2 } as Position;',
-			/*5*/'  const foo = (o: Position) => o.x + o.y;',
-			/*6*/'</script>',
-			/*7*/'</head>',
-			/*8*/'</html>',
+			'<html>',
+			'<head>',
+			'<script type="text/typescript">',
+			'  interface Position { x: number, y: number };',
+			'  const p = { x: 1, y: 2 } as Position;',
+			'  const foo = (o: Position) => o.x + o.y;',
+			'</script>',
+			'</head>',
+			'</html>',
 		];
 		await assertTokens(input, [
 			t(3, 12, 8, 'interface.declaration'), t(3, 23, 1, 'property.declaration'), t(3, 34, 1, 'property.declaration'),
@@ -146,16 +146,16 @@ suite('HTML Semantic Tokens', () => {
 
 	test('Readonly', async () => {
 		const input = [
-			/*0*/'<html>',
-			/*1*/'<head>',
-			/*2*/'<script type="text/typescript">',
-			/*3*/'  const f = 9;',
-			/*4*/'  class A { static readonly t = 9; static url: URL; }',
-			/*5*/'  const enum E { A = 9, B = A + 1 }',
-			/*6*/'  console.log(f + A.t + A.url.origin);',
-			/*7*/'</script>',
-			/*8*/'</head>',
-			/*9*/'</html>',
+			'<html>',
+			'<head>',
+			'<script type="text/typescript">',
+			'  const f = 9;',
+			'  class A { static readonly t = 9; static url: URL; }',
+			'  const enum E { A = 9, B = A + 1 }',
+			'  console.log(f + A.t + A.url.origin);',
+			'</script>',
+			'</head>',
+			'</html>',
 		];
 		await assertTokens(input, [
 			t(3, 8, 1, 'variable.declaration.readonly'),
@@ -168,19 +168,19 @@ suite('HTML Semantic Tokens', () => {
 
 	test('Type aliases and type parameters', async () => {
 		const input = [
-			/*0*/'<html>',
-			/*1*/'<head>',
-			/*2*/'<script type="text/typescript">',
-			/*3*/'  type MyMap = Map<string, number>;',
-			/*4*/'  function f<T extends MyMap>(t: T | number) : T { ',
-			/*5*/'    return <T> <unknown> new Map<string, MyMap>();',
-			/*6*/'  }',
-			/*7*/'</script>',
-			/*8*/'</head>',
-			/*9*/'</html>',
+			'<html>',
+			'<head>',
+			'<script type="text/typescript">',
+			'  type MyMap = Map<string, number>;',
+			'  function f<T extends MyMap>(t: T | number) : T { ',
+			'    return <T> <unknown> new Map<string, MyMap>();',
+			'  }',
+			'</script>',
+			'</head>',
+			'</html>',
 		];
 		await assertTokens(input, [
-			t(3, 7, 5, 'type.declaration'), t(3, 15, 3, 'interface.defaultLibrary') /* to investiagte */,
+			t(3, 7, 5, 'type.declaration'), t(3, 15, 3, 'interface.defaultLibrary') ,
 			t(4, 11, 1, 'function.declaration'), t(4, 13, 1, 'typeParameter.declaration'), t(4, 23, 5, 'type'), t(4, 30, 1, 'parameter.declaration'), t(4, 33, 1, 'typeParameter'), t(4, 47, 1, 'typeParameter'),
 			t(5, 12, 1, 'typeParameter'), t(5, 29, 3, 'class.defaultLibrary'), t(5, 41, 5, 'type'),
 		]);
@@ -188,16 +188,16 @@ suite('HTML Semantic Tokens', () => {
 
 	test('TS and JS', async () => {
 		const input = [
-			/*0*/'<html>',
-			/*1*/'<head>',
-			/*2*/'<script type="text/typescript">',
-			/*3*/'  function f<T>(p1: T): T[] { return [ p1 ]; }',
-			/*4*/'</script>',
-			/*5*/'<script>',
-			/*6*/'  window.alert("Hello");',
-			/*7*/'</script>',
-			/*8*/'</head>',
-			/*9*/'</html>',
+			'<html>',
+			'<head>',
+			'<script type="text/typescript">',
+			'  function f<T>(p1: T): T[] { return [ p1 ]; }',
+			'</script>',
+			'<script>',
+			'  window.alert("Hello");',
+			'</script>',
+			'</head>',
+			'</html>',
 		];
 		await assertTokens(input, [
 			t(3, 11, 1, 'function.declaration'), t(3, 13, 1, 'typeParameter.declaration'), t(3, 16, 2, 'parameter.declaration'), t(3, 20, 1, 'typeParameter'), t(3, 24, 1, 'typeParameter'), t(3, 39, 2, 'parameter'),
@@ -207,16 +207,16 @@ suite('HTML Semantic Tokens', () => {
 
 	test('Ranges', async () => {
 		const input = [
-			/*0*/'<html>',
-			/*1*/'<head>',
-			/*2*/'<script>',
-			/*3*/'  window.alert("Hello");',
-			/*4*/'</script>',
-			/*5*/'<script>',
-			/*6*/'  window.alert("World");',
-			/*7*/'</script>',
-			/*8*/'</head>',
-			/*9*/'</html>',
+			'<html>',
+			'<head>',
+			'<script>',
+			'  window.alert("Hello");',
+			'</script>',
+			'<script>',
+			'  window.alert("World");',
+			'</script>',
+			'</head>',
+			'</html>',
 		];
 		await assertTokens(input, [
 			t(3, 2, 6, 'variable.defaultLibrary'), t(3, 9, 5, 'method.defaultLibrary')

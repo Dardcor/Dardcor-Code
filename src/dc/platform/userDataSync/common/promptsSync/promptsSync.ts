@@ -33,10 +33,6 @@ export function parsePrompts(syncData: ISyncData): IStringDictionary<string> {
 	return JSON.parse(syncData.content);
 }
 
-/**
- * Synchronizer class for the "user" prompt files.
- * Adopted from {@link SnippetsSynchroniser}.
- */
 export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDataSynchroniser {
 
 	protected readonly version: number = 1;
@@ -83,7 +79,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 		const localPrompts = this.toPromptContents(local);
 		const remotePrompts: IStringDictionary<string> | null = remoteUserData.syncData ? this.parsePrompts(remoteUserData.syncData) : null;
 
-		// Use remote data as last sync data if last sync data does not exist and remote data is from same machine
 		lastSyncUserData = lastSyncUserData === null && isRemoteDataFromCurrentMachine ? remoteUserData : lastSyncUserData;
 		const lastSyncPrompts: IStringDictionary<string> | null = lastSyncUserData && lastSyncUserData.syncData ? this.parsePrompts(lastSyncUserData.syncData) : null;
 
@@ -114,7 +109,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 
 	protected async getAcceptResult(resourcePreview: IPromptsResourcePreview, resource: URI, content: string | null | undefined, token: CancellationToken): Promise<IAcceptResult> {
 
-		/* Accept local resource */
 		if (this.extUri.isEqualOrParent(resource, this.syncPreviewFolder.with({ scheme: USER_DATA_SYNC_SCHEME, authority: 'local' }))) {
 			return {
 				content: resourcePreview.fileContent ? resourcePreview.fileContent.value.toString() : null,
@@ -125,7 +119,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			};
 		}
 
-		/* Accept remote resource */
 		if (this.extUri.isEqualOrParent(resource, this.syncPreviewFolder.with({ scheme: USER_DATA_SYNC_SCHEME, authority: 'remote' }))) {
 			return {
 				content: resourcePreview.remoteContent,
@@ -136,7 +129,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			};
 		}
 
-		/* Accept preview resource */
 		if (this.extUri.isEqualOrParent(resource, this.syncPreviewFolder)) {
 			if (content === undefined) {
 				return {
@@ -167,7 +159,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 		}
 
 		if (accptedResourcePreviews.some(({ localChange }) => localChange !== Change.None)) {
-			// back up all prompts
 			await this.updateLocalBackup(accptedResourcePreviews);
 			await this.updateLocalPrompts(accptedResourcePreviews, force);
 		}
@@ -177,17 +168,15 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 		}
 
 		if (lastSyncUserData?.ref !== remoteUserData.ref) {
-			// update last sync
 			this.logService.trace(`${this.syncResourceLogLabel}: Updating last synchronized prompts...`);
 			await this.updateLastSyncUserData(remoteUserData);
 			this.logService.info(`${this.syncResourceLogLabel}: Updated last synchronized prompts`);
 		}
 
 		for (const { previewResource } of accptedResourcePreviews) {
-			// Delete the preview
 			try {
 				await this.fileService.del(previewResource);
-			} catch (e) { /* ignore */ }
+			} catch (e) { }
 		}
 
 	}
@@ -200,7 +189,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 	): IPromptsResourcePreview[] {
 		const resourcePreviews: Map<string, IPromptsResourcePreview> = new Map<string, IPromptsResourcePreview>();
 
-		/* Prompts added remotely -> add locally */
 		for (const key of Object.keys(mergeResult.local.added)) {
 			const previewResult: IMergeResult = {
 				content: mergeResult.local.added[key],
@@ -224,7 +212,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			});
 		}
 
-		/* Prompts updated remotely -> update locally */
 		for (const key of Object.keys(mergeResult.local.updated)) {
 			const previewResult: IMergeResult = {
 				content: mergeResult.local.updated[key],
@@ -249,7 +236,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			});
 		}
 
-		/* Prompts removed remotely -> remove locally */
 		for (const key of mergeResult.local.removed) {
 			const previewResult: IMergeResult = {
 				content: null,
@@ -274,7 +260,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			});
 		}
 
-		/* Prompts added locally -> add remotely */
 		for (const key of Object.keys(mergeResult.remote.added)) {
 			const previewResult: IMergeResult = {
 				content: mergeResult.remote.added[key],
@@ -299,7 +284,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			});
 		}
 
-		/* Prompts updated locally -> update remotely */
 		for (const key of Object.keys(mergeResult.remote.updated)) {
 			const previewResult: IMergeResult = {
 				content: mergeResult.remote.updated[key],
@@ -324,7 +308,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			});
 		}
 
-		/* Prompts removed locally -> remove remotely */
 		for (const key of mergeResult.remote.removed) {
 			const previewResult: IMergeResult = {
 				content: null,
@@ -348,7 +331,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			});
 		}
 
-		/* Prompts with conflicts */
 		for (const key of mergeResult.conflicts) {
 			const previewResult: IMergeResult = {
 				content: base[key] ?? null,
@@ -373,7 +355,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 			});
 		}
 
-		/* Unmodified Prompts */
 		for (const key of Object.keys(localFileContent)) {
 			if (!resourcePreviews.has(key)) {
 				const previewResult: IMergeResult = {
@@ -420,7 +401,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 				return true;
 			}
 		} catch (error) {
-			/* ignore error */
 		}
 		return false;
 	}
@@ -441,21 +421,18 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 				const key = remoteResource ? this.extUri.basename(remoteResource) : this.extUri.basename(localResource);
 				const resource = this.extUri.joinPath(this.promptsFolder, key);
 
-				// Removed
 				if (localChange === Change.Deleted) {
 					this.logService.trace(`${this.syncResourceLogLabel}: Deleting prompt...`, this.extUri.basename(resource));
 					await this.fileService.del(resource);
 					this.logService.info(`${this.syncResourceLogLabel}: Deleted prompt`, this.extUri.basename(resource));
 				}
 
-				// Added
 				else if (localChange === Change.Added) {
 					this.logService.trace(`${this.syncResourceLogLabel}: Creating prompt...`, this.extUri.basename(resource));
 					await this.fileService.createFile(resource, VSBuffer.fromString(acceptResult.content!), { overwrite: force });
 					this.logService.info(`${this.syncResourceLogLabel}: Created prompt`, this.extUri.basename(resource));
 				}
 
-				// Updated
 				else {
 					this.logService.trace(`${this.syncResourceLogLabel}: Updating prompt...`, this.extUri.basename(resource));
 					await this.fileService.writeFile(resource, VSBuffer.fromString(acceptResult.content!), force ? undefined : fileContent!);
@@ -481,7 +458,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 		}
 
 		if (!areSame(currentPrompts, newPrompts)) {
-			// update remote
 			this.logService.trace(`${this.syncResourceLogLabel}: Updating remote prompts...`);
 			remoteUserData = await this.updateRemoteUserData(JSON.stringify(newPrompts), forcePush ? null : remoteUserData.ref);
 			this.logService.info(`${this.syncResourceLogLabel}: Updated remote prompts`);
@@ -507,7 +483,6 @@ export class PromptsSynchronizer extends AbstractSynchroniser implements IUserDa
 		try {
 			stat = await this.fileService.resolve(this.promptsFolder);
 		} catch (e) {
-			// No prompts
 			if (e instanceof FileOperationError && e.fileOperationResult === FileOperationResult.FILE_NOT_FOUND) {
 				return prompts;
 			} else {

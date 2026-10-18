@@ -5,7 +5,6 @@
 
 import { IEnvironmentVariableCollectionDescription, IEnvironmentVariableCollection, IEnvironmentVariableMutator, ISerializableEnvironmentDescriptionMap, ISerializableEnvironmentVariableCollection, ISerializableEnvironmentVariableCollections } from './environmentVariable.js';
 
-// This file is shared between the renderer and extension host
 
 export function serializeEnvironmentVariableCollection(collection: ReadonlyMap<string, IEnvironmentVariableMutator>): ISerializableEnvironmentVariableCollection {
 	return [...collection.entries()];

@@ -5,15 +5,6 @@
 
 import * as eslint from 'eslint';
 
-/**
- * Disallows `declare const enum` declarations. esbuild does not inline
- * `declare const enum` values, leaving the enum identifier in the output
- * which causes a ReferenceError at runtime.
- *
- * Use `const enum` (without `declare`) instead.
- *
- * See https://github.com/evanw/esbuild/issues/4394
- */
 export default new class NoDeclareConstEnum implements eslint.Rule.RuleModule {
 
 	readonly meta: eslint.Rule.RuleMetaData = {
@@ -32,7 +23,6 @@ export default new class NoDeclareConstEnum implements eslint.Rule.RuleModule {
 						node,
 						messageId: 'noDeclareConstEnum',
 						fix: (fixer) => {
-							// Remove "declare " from "declare const enum"
 							const sourceCode = context.sourceCode;
 							const text = sourceCode.getText(node);
 							const declareIndex = text.indexOf('declare');

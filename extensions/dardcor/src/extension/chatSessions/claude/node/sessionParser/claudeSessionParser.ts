@@ -3,21 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Claude Code Session Parser
- *
- * Parses JSONL session files for subagent transcripts. The main session
- * metadata and messages are now loaded via the `@anthropic-ai/claude-agent-sdk`
- * session APIs (see `sdkSessionAdapter.ts`).
- *
- * **Layer 2** — `parseSessionFileContent`
- * Builds a linked list from JSONL. Every UUID-bearing entry becomes a ChainNode
- * in a single map. No classification into buckets — just chain metadata + raw JSON.
- *
- * **Layer 3** — `buildSubagentSession`
- * Walks the linked list from leaf to root, validates visible entries, and
- * produces StoredMessage[] for display.
- */
 
 import {
 	AssistantMessageEntry,
@@ -34,11 +19,7 @@ import {
 	vUserMessageEntry,
 } from './claudeSessionSchema';
 
-// #region Types
 
-/**
- * Detailed error for failed parsing.
- */
 interface ParseError {
 	lineNumber: number;
 	message: string;
@@ -46,25 +27,14 @@ interface ParseError {
 	parsedType?: string;
 }
 
-/**
- * Result of parsing a session file (Layer 2 output).
- */
 export interface LinkedListParseResult {
-	/** All UUID-bearing entries indexed by UUID */
 	readonly nodes: ReadonlyMap<string, ChainNode>;
-	/** Summary entries indexed by leaf UUID */
 	readonly summaries: ReadonlyMap<string, SummaryEntry>;
-	/** Custom title entry from /rename command, if present */
 	readonly customTitle: CustomTitleEntry | undefined;
-	/** Errors encountered during parsing */
 	readonly errors: readonly ParseError[];
-	/** Statistics about the parse */
 	readonly stats: ParseStats;
 }
 
-/**
- * Statistics from parsing a session file.
- */
 interface ParseStats {
 	readonly totalLines: number;
 	readonly chainNodes: number;
@@ -75,22 +45,8 @@ interface ParseStats {
 	readonly skippedEmpty: number;
 }
 
-// #endregion
 
-// #region Layer 2 — Linked List Parser
 
-/**
- * Parse a session file's content into a linked list of chain nodes.
- *
- * This is Layer 2 of the parser architecture. Every JSONL line with a `uuid`
- * becomes a ChainNode in a single map. No classification into separate buckets.
- * The effective parent is `logicalParentUuid ?? parentUuid`, which handles
- * compact boundaries transparently.
- *
- * @param content The raw UTF-8 content of a .jsonl session file
- * @param fileIdentifier Optional identifier for error messages (e.g., file path)
- * @returns LinkedListParseResult with nodes, summaries, and errors
- */
 export function parseSessionFileContent(
 	content: string,
 	fileIdentifier?: string
@@ -123,7 +79,6 @@ export function parseSessionFileContent(
 
 		const lineNumber = i + 1;
 
-		// Parse JSON
 		let parsed: unknown;
 		try {
 			parsed = JSON.parse(line);
@@ -154,7 +109,6 @@ export function parseSessionFileContent(
 
 		const raw = parsed as Record<string, unknown>;
 
-		// Try custom title entry (user-assigned session name via /rename)
 		const customTitleResult = vCustomTitleEntry.validate(parsed);
 		if (!customTitleResult.error) {
 			stats.customTitles++;
@@ -162,7 +116,6 @@ export function parseSessionFileContent(
 			continue;
 		}
 
-		// Try summary entry first (has no uuid/parentUuid chain)
 		const summaryResult = vSummaryEntry.validate(parsed);
 		if (!summaryResult.error) {
 			stats.summaries++;
@@ -173,7 +126,6 @@ export function parseSessionFileContent(
 			continue;
 		}
 
-		// Try extracting chain node fields (uuid + parent info)
 		const chainResult = vChainNodeFields.validate(parsed);
 		if (!chainResult.error) {
 			stats.chainNodes++;
@@ -187,11 +139,9 @@ export function parseSessionFileContent(
 			continue;
 		}
 
-		// No uuid — likely a queue-operation or other non-chain entry
 		if ('type' in raw && raw.type === 'queue-operation') {
 			stats.queueOperations++;
 		} else {
-			// Unknown entry — not a hard error, just skip
 			stats.queueOperations++;
 		}
 	}
@@ -205,29 +155,17 @@ export function parseSessionFileContent(
 	};
 }
 
-// #endregion
 
-// #region Layer 3 — Session Building
 
-/**
- * Check if a chain node represents a visible entry.
- *
- * The generalized rule: if the entry has displayable content (a `message`
- * field for user/assistant entries or a string `content` field for system
- * entries), it is visible — unless one of the hiding booleans is set.
- */
 function isVisibleNode(raw: Record<string, unknown>): boolean {
-	// Must have displayable content
 	const hasMessage = 'message' in raw && (raw.type === 'user' || raw.type === 'assistant');
 	const hasSystemContent = typeof raw.content === 'string' && (raw.content as string).length > 0 && raw.type !== 'user' && raw.type !== 'assistant';
 	if (!hasMessage && !hasSystemContent) {
 		return false;
 	}
-	// Compact summaries are synthetic and should not be rendered
 	if (raw.isCompactSummary === true) {
 		return false;
 	}
-	// Meta entries and transcript-only entries are not rendered
 	if (raw.isVisibleInTranscriptOnly === true) {
 		return false;
 	}
@@ -237,10 +175,6 @@ function isVisibleNode(raw: Record<string, unknown>): boolean {
 	return true;
 }
 
-/**
- * Validate a visible node's raw data and produce a StoredMessage.
- * Returns null if validation fails.
- */
 function validateAndReviveNode(node: ChainNode): StoredMessage | null {
 	const raw = node.raw;
 
@@ -260,7 +194,6 @@ function validateAndReviveNode(node: ChainNode): StoredMessage | null {
 		return reviveAssistantMessage(result.content);
 	}
 
-	// System entries (e.g., compact_boundary) with string content
 	if (typeof raw.content === 'string') {
 		return reviveSystemMessage(node);
 	}
@@ -268,13 +201,8 @@ function validateAndReviveNode(node: ChainNode): StoredMessage | null {
 	return null;
 }
 
-// #endregion
 
-// #region Message Revival
 
-/**
- * Convert a validated user message entry into a StoredMessage.
- */
 function reviveUserMessage(entry: UserMessageEntry): StoredMessage {
 	return {
 		uuid: entry.uuid,
@@ -293,9 +221,6 @@ function reviveUserMessage(entry: UserMessageEntry): StoredMessage {
 	};
 }
 
-/**
- * Convert a validated assistant message entry into a StoredMessage.
- */
 function reviveAssistantMessage(entry: AssistantMessageEntry): StoredMessage {
 	return {
 		uuid: entry.uuid,
@@ -314,10 +239,6 @@ function reviveAssistantMessage(entry: AssistantMessageEntry): StoredMessage {
 	};
 }
 
-/**
- * Convert a system chain node into a StoredMessage.
- * System entries (e.g., compact_boundary) carry a plain string `content` field.
- */
 function reviveSystemMessage(node: ChainNode): StoredMessage | null {
 	const raw = node.raw;
 	const sessionId = typeof raw.sessionId === 'string' ? raw.sessionId : undefined;
@@ -339,21 +260,14 @@ function reviveSystemMessage(node: ChainNode): StoredMessage | null {
 	};
 }
 
-// #endregion
 
-// #region Subagent Building
 
-/**
- * Build an ISubagentSession from parsed file content.
- * Subagent files have the same JSONL format as main session files.
- */
 export function buildSubagentSession(
 	agentId: string,
 	parseResult: LinkedListParseResult
 ): ISubagentSession | null {
 	const { nodes } = parseResult;
 
-	// Find leaf nodes
 	const referencedAsParent = new Set<string>();
 	for (const node of nodes.values()) {
 		if (node.parentUuid !== null) {
@@ -372,7 +286,6 @@ export function buildSubagentSession(
 		return null;
 	}
 
-	// Build chain from the leaf with the most visible messages
 	let bestChain: StoredMessage[] = [];
 
 	for (const leafUuid of leafUuids) {
@@ -417,4 +330,3 @@ export function buildSubagentSession(
 	};
 }
 
-// #endregion

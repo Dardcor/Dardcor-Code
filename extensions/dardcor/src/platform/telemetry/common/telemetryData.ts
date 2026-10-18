@@ -38,11 +38,6 @@ export class TelemetryData {
 		return new TelemetryData(properties || {}, measurements || {}, Date.now());
 	}
 
-	/**
-	 * @param properties new properties, which will overwrite old ones in case of a clash
-	 * @param measurements new measurements, which will overwrite old ones in case of a clash
-	 * @returns a TelemetryData object whose contents extend (copies of) the current one's and whose creation date is not updated
-	 */
 	extendedBy(properties?: TelemetryProperties, measurements?: { [key: string]: number | undefined }): TelemetryData {
 		const newProperties = { ...this.properties, ...properties };
 		const newMeasurements = { ...this.measurements, ...measurements };
@@ -52,10 +47,6 @@ export class TelemetryData {
 		return newData;
 	}
 
-	/**
-	 * registers current time as the point where this was displayed
-	 * (no-op if a display time is already registered)
-	 */
 	markAsDisplayed(): void {
 		if (this.displayedTime === undefined) {
 			this.displayedTime = Date.now();
@@ -74,12 +65,6 @@ export class TelemetryData {
 		this.properties['common_vscodeversion'] = envService.getEditorInfo().format();
 	}
 
-	/**
-	 * Iterate config keys defined in the package.json, lookup current config
-	 * value and return as telemetry property. Property name in dotted notation
-	 * and value is a json string.
-	 * e.g. { 'dardcor.autocompletion.count': 3 }
-	 */
 	extendWithConfigProperties(configService: IConfigurationService, envService: IEnvService, telemetryConfig: ITelemetryUserConfig): void {
 		const configProperties: { [key: string]: string } = configService.dumpConfig();
 		configProperties['dardcor.build'] = envService.getBuild();
@@ -95,7 +80,6 @@ export class TelemetryData {
 			configProperties['enterprise_list'] = telemetryConfig.enterpriseList;
 		}
 
-		// By being the second argument, configProperties will always override
 		this.properties = { ...this.properties, ...configProperties };
 	}
 
@@ -121,15 +105,10 @@ export class TelemetryData {
 		'userKind',
 	];
 
-	/**
-	 * Remove the known properties relating to repository information from the telemetry data if necessary
-	 */
 	static maybeRemoveRepoInfoFromPropertiesHack(secure: boolean, map: { [key: string]: any }): { [key: string]: any } {
 		if (secure) {
-			// We want to keep including these properties in secure/enhanced telemetry.
 			return map;
 		}
-		// deliberately written in the same style as `sanitizeKeys` to minimise risk
 		const returnValue: { [key: string]: any } = {};
 		for (const key in map) {
 			if (!TelemetryData.keysToRemoveFromStandardTelemetry.includes(key)) {
@@ -145,10 +124,8 @@ export class TelemetryData {
 	}
 
 	static sanitizeKeys(map?: { [key: string]: any }): { [key: string]: any } {
-		// We need all keys to not have dots in them for telemetry to function
 		map = map || {};
 		const returnValue: { [key: string]: any } = {};
-		// Iterate over all keys in the map and replace dots with underscores
 		for (const key in map) {
 			const newKey = TelemetryData.keysExemptedFromSanitization.includes(key) ? key : key.replace(/\./g, '_');
 			returnValue[newKey] = map[key];
@@ -173,7 +150,6 @@ export class TelemetryData {
 		this.extendWithEditorAgnosticFields(envService);
 		this.sanitizeKeys();
 		this.updateTimeSinceIssuedAndDisplayed();
-		// Remove undefined values from the telemetry data
 		for (const key in this.properties) {
 			if (this.properties[key] === undefined) {
 				delete this.properties[key];
@@ -203,7 +179,7 @@ export function eventPropertiesToSimpleObject(properties?: TelemetryEventPropert
 }
 
 function addRequiredProperties(envService: IEnvService, properties: { [key: string]: string }) {
-	properties['unique_id'] = generateUuid(); // add a unique id to the telemetry event so dardcor-foundations can correlate with duplicate events
+	properties['unique_id'] = generateUuid();
 	properties['common_extname'] = envService.getEditorPluginInfo().name;
 	properties['common_extversion'] = envService.getEditorPluginInfo().version;
 	properties['common_vscodeversion'] = envService.getEditorInfo().format();

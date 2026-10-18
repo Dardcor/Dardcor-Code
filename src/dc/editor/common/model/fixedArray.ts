@@ -5,10 +5,6 @@
 
 import { arrayInsert } from '../../../base/common/arrays.js';
 
-/**
- * An array that avoids being sparse by always
- * filling up unused indices with a default value.
- */
 export class FixedArray<T> {
 	private _store: T[] = [];
 

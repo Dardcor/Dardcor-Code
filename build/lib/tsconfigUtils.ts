@@ -5,9 +5,6 @@
 import { dirname } from 'path';
 import ts from 'typescript';
 
-/**
- * Get the target (e.g. 'ES2024') from a tsconfig.json file.
- */
 export function getTargetStringFromTsConfig(configFilePath: string): string {
 	const parsed = ts.readConfigFile(configFilePath, ts.sys.readFile);
 	if (parsed.error) {

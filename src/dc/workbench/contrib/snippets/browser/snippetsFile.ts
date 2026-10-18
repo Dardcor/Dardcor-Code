@@ -23,10 +23,8 @@ class SnippetBodyInsights {
 
 	readonly codeSnippet: string;
 
-	/** The snippet uses bad placeholders which collide with variable names */
 	readonly isBogous: boolean;
 
-	/** The snippet has no placeholder of the final placeholder is at the end */
 	readonly isTrivial: boolean;
 
 	readonly usesClipboardVariable: boolean;
@@ -34,14 +32,12 @@ class SnippetBodyInsights {
 
 	constructor(body: string) {
 
-		// init with defaults
 		this.isBogous = false;
 		this.isTrivial = false;
 		this.usesClipboardVariable = false;
 		this.usesSelectionVariable = false;
 		this.codeSnippet = body;
 
-		// check snippet...
 		const textmateSnippet = new SnippetParser().parse(body, false);
 
 		const placeholders = new Map<string, number>();
@@ -50,8 +46,6 @@ class SnippetBodyInsights {
 			placeholderMax = Math.max(placeholderMax, placeholder.index);
 		}
 
-		// mark snippet as trivial when there is no placeholders or when the only
-		// placeholder is the final tabstop and it is at the very end.
 		if (textmateSnippet.placeholders.length === 0) {
 			this.isTrivial = true;
 		} else if (placeholderMax === 0) {
@@ -65,9 +59,6 @@ class SnippetBodyInsights {
 			if (marker instanceof Variable) {
 
 				if (marker.children.length === 0 && !KnownSnippetVariableNames[marker.name]) {
-					// a 'variable' without a default value and not being one of our supported
-					// variables is automatically turned into a placeholder. This is to restore
-					// a bug we had before. So `${foo}` becomes `${N:foo}`
 					const index = placeholders.has(marker.name) ? placeholders.get(marker.name)! : ++placeholderMax;
 					placeholders.set(marker.name, index);
 
@@ -87,7 +78,6 @@ class SnippetBodyInsights {
 				}
 
 			} else {
-				// recurse
 				stack.push(...marker.children);
 			}
 		}
@@ -226,26 +216,22 @@ export class SnippetFile {
 	}
 
 	private _filepathSelect(selector: string, bucket: Snippet[]): void {
-		// for `fooLang.json` files apply inclusion/exclusion rules only
 		if (selector + '.json' === basename(this.location.path)) {
 			bucket.push(...this.data);
 		}
 	}
 
 	private _scopeSelect(selector: string, bucket: Snippet[]): void {
-		// for `my.code-snippets` files we need to look at each snippet
 		for (const snippet of this.data) {
 			const len = snippet.scopes.length;
 			if (len === 0) {
-				// always accept
 				bucket.push(snippet);
 
 			} else {
 				for (let i = 0; i < len; i++) {
-					// match
 					if (snippet.scopes[i] === selector) {
 						bucket.push(snippet);
-						break; // match only once!
+						break;
 					}
 				}
 			}
@@ -340,14 +326,11 @@ export class SnippetFile {
 
 		let source: string;
 		if (this._extension) {
-			// extension snippet -> show the name of the extension
 			source = this._extension.displayName || this._extension.name;
 
 		} else if (this.source === SnippetSource.Workspace) {
-			// workspace -> only *.code-snippets files
 			source = localize('source.workspaceSnippetGlobal', "Workspace Snippet");
 		} else {
-			// user -> global (*.code-snippets) and language snippets
 			if (this.isGlobalSnippets) {
 				source = localize('source.userSnippetGlobal', "Global User Snippet");
 			} else {

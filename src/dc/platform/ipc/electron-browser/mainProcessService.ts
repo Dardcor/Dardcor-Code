@@ -8,9 +8,6 @@ import { IChannel, IServerChannel } from '../../../base/parts/ipc/common/ipc.js'
 import { Client as IPCElectronClient } from '../../../base/parts/ipc/electron-browser/ipc.electron.js';
 import { IMainProcessService } from '../common/mainProcessService.js';
 
-/**
- * An implementation of `IMainProcessService` that leverages Electron's IPC.
- */
 export class ElectronIPCMainProcessService extends Disposable implements IMainProcessService {
 
 	declare readonly _serviceBrand: undefined;

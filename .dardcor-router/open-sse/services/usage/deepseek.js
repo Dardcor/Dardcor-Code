@@ -1,7 +1,3 @@
-/**
- * DeepSeek usage — GET https://api.deepseek.com/user/balance
- * Auth: Bearer <apiKey>
- */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { toFiniteNumber } from "./shared.js";
@@ -36,10 +32,6 @@ function parseBalanceInfos(data) {
   return results;
 }
 
-/**
- * @param {string|null|undefined} apiKey
- * @param {object|null} proxyOptions
- */
 export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
   if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
     return { message: "DeepSeek API key not available. Add a key to view usage." };
@@ -91,8 +83,6 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
     const quotas = {};
     for (const b of balances) {
       const total = Math.max(0, b.totalBalance);
-      // Credit pot: show full remaining against current balance; never set absolute
-      // `remaining` — QuotaTable treats it as a 0–100 percentage.
       quotas[`Balance (${b.currency})`] = {
         used: 0,
         total,

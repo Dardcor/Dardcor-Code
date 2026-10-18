@@ -14,10 +14,6 @@ const MODAL_MIN_WIDTH = 400;
 const MODAL_SIDEBAR_MIN_WIDTH = 160;
 const MODAL_SIDEBAR_DEFAULT_WIDTH = 220;
 
-/**
- * Minimal sidebar model that mirrors the `createSidebar` / `updateOptions`
- * logic in ModalEditorPart without requiring DOM or instantiation services.
- */
 class TestModalEditorSidebarHost extends Disposable {
 
 	private readonly _onDidResize = this._register(new Emitter<void>());
@@ -41,10 +37,8 @@ class TestModalEditorSidebarHost extends Disposable {
 	private _renderCount = 0;
 	get renderCount(): number { return this._renderCount; }
 
-	/** Container width the modal occupies (simulates container.clientWidth). */
 	containerWidth = 800;
 
-	/** Remembered sidebar width from previous modal session (mirrors editorPart.sidebarWidth). */
 	private _customWidth: number | undefined;
 	get customWidth(): number | undefined { return this._customWidth; }
 
@@ -54,7 +48,6 @@ class TestModalEditorSidebarHost extends Disposable {
 		this._sidebarVisible = !sidebarHidden;
 	}
 
-	// --- sidebar management (mirrors createSidebar / updateContent) ---------
 
 	addSidebar(content: IModalEditorSidebar): void {
 		this._hasSidebar = true;
@@ -78,17 +71,15 @@ class TestModalEditorSidebarHost extends Disposable {
 		this._onDidResize.fire();
 	}
 
-	/** Returns actual width taking visibility into account (mirrors getWidth in controller). */
 	get effectiveSidebarWidth(): number {
 		return this._sidebarVisible ? this._sidebarWidth : 0;
 	}
 
 	private renderContent(content: IModalEditorSidebar): void {
 		this._renderCount++;
-		this.contentDisposable.value = content.render({} /* stub container */, this._onDidLayout.event, this.contextKeyService);
+		this.contentDisposable.value = content.render({} , this._onDidLayout.event, this.contextKeyService);
 	}
 
-	// --- resize (mirrors sash logic) ----------------------------------------
 
 	resizeSidebar(delta: number): void {
 		const maxWidth = Math.max(MODAL_SIDEBAR_MIN_WIDTH, this.containerWidth - MODAL_MIN_WIDTH);
@@ -112,13 +103,11 @@ class TestModalEditorSidebarHost extends Disposable {
 		}
 	}
 
-	// --- min-size computation (mirrors create method) -----------------------
 
 	get effectiveMinWidth(): number {
 		return MODAL_MIN_WIDTH + (this._hasSidebar ? MODAL_SIDEBAR_MIN_WIDTH : 0);
 	}
 
-	// --- option propagation (mirrors updateOptions behaviour) ---------------
 
 	updateOptions(options: IModalEditorPartOptions): void {
 		if (options.sidebar) {
@@ -128,7 +117,6 @@ class TestModalEditorSidebarHost extends Disposable {
 				this.updateSidebarContent(options.sidebar);
 			}
 		} else if (options.sidebar === undefined && this._hasSidebar) {
-			// sidebar explicitly removed when key is absent and host has one
 		}
 	}
 
@@ -153,7 +141,6 @@ suite('Modal Editor Sidebar', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// --- option propagation -------------------------------------------------
 
 	test('addSidebar sets hasSidebar and default width', () => {
 		const host = disposables.add(new TestModalEditorSidebarHost());
@@ -222,7 +209,6 @@ suite('Modal Editor Sidebar', () => {
 		);
 	});
 
-	// --- min-size constraints -----------------------------------------------
 
 	test('effectiveMinWidth accounts for sidebar', () => {
 		const host = disposables.add(new TestModalEditorSidebarHost());
@@ -247,7 +233,6 @@ suite('Modal Editor Sidebar', () => {
 		assert.strictEqual(host.effectiveMinWidth, MODAL_MIN_WIDTH);
 	});
 
-	// --- resize constraints -------------------------------------------------
 
 	test('resizeSidebar clamps to min width', () => {
 		const host = disposables.add(new TestModalEditorSidebarHost());
@@ -306,14 +291,12 @@ suite('Modal Editor Sidebar', () => {
 		host.containerWidth = 1000;
 		host.addSidebar(stubSidebarContent());
 
-		// Shrink container so that default width exceeds max
 		host.containerWidth = MODAL_MIN_WIDTH + MODAL_SIDEBAR_MIN_WIDTH;
 		host.resetSidebarWidth();
 
 		assert.strictEqual(host.sidebarWidth, MODAL_SIDEBAR_MIN_WIDTH);
 	});
 
-	// --- width persistence ---------------------------------------------------
 
 	test('addSidebar restores custom width when present', () => {
 		const host = disposables.add(new TestModalEditorSidebarHost(300));
@@ -353,7 +336,6 @@ suite('Modal Editor Sidebar', () => {
 		assert.strictEqual(host.customWidth, undefined);
 	});
 
-	// --- clampWidth ---------------------------------------------------------
 
 	test('clampWidth resets to default when sidebar is too wide for modal', () => {
 		const host = disposables.add(new TestModalEditorSidebarHost(500));
@@ -362,7 +344,7 @@ suite('Modal Editor Sidebar', () => {
 
 		assert.strictEqual(host.sidebarWidth, 500);
 
-		host.clampWidth(800); // 500 + 400 (MODAL_MIN_WIDTH) > 800, default 260 fits
+		host.clampWidth(800);
 
 		assert.deepStrictEqual(
 			{ sidebarWidth: host.sidebarWidth, customWidth: host.customWidth },
@@ -375,7 +357,7 @@ suite('Modal Editor Sidebar', () => {
 		host.containerWidth = 1000;
 		host.addSidebar(stubSidebarContent());
 
-		host.clampWidth(1000); // 300 + 400 (MODAL_MIN_WIDTH) <= 1000
+		host.clampWidth(1000);
 
 		assert.deepStrictEqual(
 			{ sidebarWidth: host.sidebarWidth, customWidth: host.customWidth },
@@ -411,7 +393,7 @@ suite('Modal Editor Sidebar', () => {
 		const host = disposables.add(new TestModalEditorSidebarHost(400));
 		host.addSidebar(stubSidebarContent());
 
-		host.clampWidth(500); // 400 + 400 > 500, default 260 + 400 > 500 too
+		host.clampWidth(500);
 
 		assert.deepStrictEqual(
 			{ sidebarWidth: host.sidebarWidth, customWidth: host.customWidth },
@@ -419,13 +401,11 @@ suite('Modal Editor Sidebar', () => {
 		);
 	});
 
-	// --- layout propagation -------------------------------------------------
 
 	test('layout fires onDidLayout with current dimensions', () => {
 		const host = disposables.add(new TestModalEditorSidebarHost());
 		host.addSidebar(stubSidebarContent());
 
-		// Capture layout event by re-adding content that tracks it
 		const layouts: { height: number; width: number }[] = [];
 		const trackedContent: IModalEditorSidebar = {
 			render: (_container, onDidLayout) => {
@@ -440,7 +420,6 @@ suite('Modal Editor Sidebar', () => {
 		assert.deepStrictEqual(layouts, [{ height: 500, width: MODAL_SIDEBAR_DEFAULT_WIDTH }]);
 	});
 
-	// --- sidebar visibility -------------------------------------------------
 
 	test('sidebar is visible by default', () => {
 		const host = disposables.add(new TestModalEditorSidebarHost());

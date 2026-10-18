@@ -40,10 +40,8 @@ export class ExtHostExtensionService extends AbstractExtHostExtensionService {
 	private _fakeModules?: WorkerRequireInterceptor;
 
 	protected async _beforeAlmostReadyToRunExtensions(): Promise<void> {
-		// make sure console.log calls make it to the render
 		this._instaService.createInstance(ExtHostConsoleForwarder);
 
-		// initialize API and register actors
 		const apiFactory = this._instaService.invokeFunction(createApiFactoryAndRegisterActors);
 		this._fakeModules = this._instaService.createInstance(WorkerRequireInterceptor, apiFactory, { mine: this._myRegistry, all: this._globalRegistry });
 		await this._fakeModules.install();
@@ -63,9 +61,6 @@ export class ExtHostExtensionService extends AbstractExtHostExtensionService {
 			performance.mark(`code/extHost/willFetchExtensionCode/${extensionId}`);
 		}
 
-		// First resolve the extension entry point URI to something we can load using `fetch`
-		// This needs to be done on the main thread due to a potential `resourceUriProvider` (workbench api)
-		// which is only available in the main thread
 		const browserUri = URI.revive(await this._mainThreadExtensionsProxy.$asBrowserUri(module));
 		const response = await fetch(browserUri.toString(true));
 		if (extensionId) {
@@ -76,10 +71,7 @@ export class ExtHostExtensionService extends AbstractExtHostExtensionService {
 			throw new Error(response.statusText);
 		}
 
-		// fetch JS sources as text and create a new function around it
 		const source = await response.text();
-		// Here we append #vscode-extension to serve as a marker, such that source maps
-		// can be adjusted for the extra wrapping function.
 		const sourceURL = `${module.toString(true)}#vscode-extension`;
 		const fullSource = `${source}\n//# sourceURL=${sourceURL}`;
 		let initFn: Function;
@@ -100,7 +92,6 @@ export class ExtHostExtensionService extends AbstractExtHostExtensionService {
 			await this._extHostLocalizationService.initializeLocalizedMessages(extension);
 		}
 
-		// define commonjs globals: `module`, `exports`, and `require`
 		const _exports = {};
 		const _module = { exports: _exports };
 		const _require = (request: string) => {
@@ -135,7 +126,6 @@ export class ExtHostExtensionService extends AbstractExtHostExtensionService {
 	}
 
 	private async _waitForDebuggerAttachment(waitTimeout = 5000) {
-		// debugger attaches async, waiting for it fixes #106698 and #99222
 		if (!this._initData.environment.isExtensionDevelopmentDebug) {
 			return;
 		}

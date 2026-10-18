@@ -15,42 +15,13 @@ import type { IShellInitScript } from './shellInitScript.js';
 import type { SessionConfigPropertySchema, SessionConfigSchema } from './state/protocol/commands.js';
 import { JsonRpcErrorCodes, ProtocolError } from './state/sessionProtocol.js';
 
-// ---- Schema builder --------------------------------------------------------
 
-/**
- * A schema property with a phantom TypeScript type and a precomputed
- * runtime validator.
- *
- * The `<T>` type parameter is the developer's assertion about the
- * property's runtime shape; the validator derived from `protocol`
- * (`type`, `enum`, `items`, `properties`, `required`) enforces it at
- * runtime.
- */
 export interface ISchemaProperty<T> {
 	readonly protocol: SessionConfigPropertySchema;
-	/**
-	 * Returns `true` iff `value` conforms to {@link protocol}. Narrows
-	 * the type to `T` for callers. The boolean form is preferred for
-	 * control flow; use {@link assertValid} when you want a descriptive
-	 * error for the offending path.
-	 */
 	validate(value: unknown): value is T;
-	/**
-	 * Throws a {@link ProtocolError} with `JsonRpcErrorCodes.InvalidParams`
-	 * describing the offending path (e.g. `'permissions.allow[2]'`) when
-	 * `value` does not conform to {@link protocol}. Otherwise returns and
-	 * narrows the type to `T`.
-	 *
-	 * @param path Dotted path prefix to embed in error messages. Defaults
-	 * to empty (the value itself).
-	 */
 	assertValid(value: unknown, path?: string): asserts value is T;
 }
 
-/**
- * Defines a strongly-typed schema property whose runtime validator is
- * derived from the supplied JSON-schema descriptor.
- */
 export function schemaProperty<T>(protocol: SessionConfigPropertySchema): ISchemaProperty<T> {
 	const assertFn = buildAssert(protocol);
 	const assertValid = (value: unknown, path: string = ''): asserts value is T => assertFn(value, path);
@@ -74,56 +45,12 @@ export type SchemaValues<D extends SchemaDefinition> = {
 	[K in keyof D]?: SchemaValue<D[K]>;
 };
 
-/**
- * A bundle of named schema properties plus helpers for serializing to the
- * protocol shape, validating a values bag at write sites, and validating
- * a single key at read sites.
- */
 export interface ISchema<D extends SchemaDefinition> {
 	readonly definition: D;
-	/** Returns the protocol-serializable schema for this bundle. */
 	toProtocol(): SessionConfigSchema;
-	/**
-	 * Validates each known key in `values` against its schema and returns
-	 * a new plain record. Throws a {@link ProtocolError} with a path like
-	 * `'permissions.allow[2]'` when any supplied value fails validation.
-	 * Unknown keys are passed through untouched for forward-compatibility.
-	 */
 	values(values: SchemaValues<D>): Record<string, unknown>;
-	/**
-	 * Returns `true` iff `value` validates against the schema for `key`.
-	 * Unknown keys return `false`.
-	 */
 	validate<K extends keyof D & string>(key: K, value: unknown): value is SchemaValue<D[K]>;
-	/**
-	 * Throws a {@link ProtocolError} describing the offending path when
-	 * `value` does not validate against the schema for `key`, or when
-	 * `key` is not defined in the schema.
-	 */
 	assertValid<K extends keyof D & string>(key: K, value: unknown): asserts value is SchemaValue<D[K]>;
-	/**
-	 * Returns a fully-typed values bag by validating each key of the
-	 * schema against `values` and falling back to the default when
-	 * the incoming value is missing or fails validation.
-	 *
-	 * Semantics: for every key declared in the schema `definition`:
-	 * - if `values[key]` validates, it is kept;
-	 * - else if `key` is present in `defaults`, the default is used;
-	 * - else the key is omitted from the result.
-	 *
-	 * This means callers MAY supply defaults for only a subset of the
-	 * schema — keys not present in `defaults` are simply left unset
-	 * when the incoming value is missing or invalid. This is useful
-	 * when some properties (e.g. per-session `permissions`) should be
-	 * inherited from a higher scope rather than materialized on every
-	 * new session.
-	 *
-	 * Intended for sanitizing untrusted input at protocol boundaries
-	 * (e.g. `resolveSessionConfig`). Keys that fail validation are
-	 * silently replaced with their default or dropped; use
-	 * {@link values} or {@link assertValid} when you want a descriptive
-	 * {@link ProtocolError} instead.
-	 */
 	validateOrDefault<T extends Partial<{ [K in keyof D]: SchemaValue<D[K]> }>>(values: { [K in keyof T]?: unknown } | undefined, defaults: T): T;
 }
 
@@ -144,8 +71,6 @@ export function createSchema<D extends SchemaDefinition>(definition: D): ISchema
 				if (value === undefined) {
 					continue;
 				}
-				// Local with explicit annotation so TypeScript accepts the
-				// assertion-signature call (per TS4104).
 				const prop: ISchemaProperty<unknown> = definition[key];
 				prop.assertValid(value, key);
 			}
@@ -160,8 +85,6 @@ export function createSchema<D extends SchemaDefinition>(definition: D): ISchema
 			if (!prop) {
 				throw new ProtocolError(JsonRpcErrorCodes.InvalidParams, `Unknown schema key '${key}'`);
 			}
-			// Re-bind post-narrowing to keep the call target explicitly typed
-			// (required for assertion-signature calls, TS4104).
 			const narrowed: ISchemaProperty<unknown> = prop;
 			narrowed.assertValid(value, key);
 		},
@@ -176,21 +99,13 @@ export function createSchema<D extends SchemaDefinition>(definition: D): ISchema
 				} else if (Object.prototype.hasOwnProperty.call(defaults, key)) {
 					result[key] = (defaults as Record<string, unknown>)[key];
 				}
-				// else: key not in defaults and incoming value missing/invalid
-				// → leave unset so higher-scope defaults can fill in.
 			}
 			return result as T;
 		},
 	};
 }
 
-// ---- Validator derivation --------------------------------------------------
 
-/**
- * A validator that throws a {@link ProtocolError} annotated with the
- * offending path when `value` does not conform, or returns normally
- * when it does.
- */
 type AssertValidator = (value: unknown, path: string) => void;
 
 function buildAssert(schema: SessionConfigPropertySchema): AssertValidator {
@@ -263,7 +178,6 @@ function safeStringify(value: unknown): string {
 	}
 }
 
-// ---- Platform-owned schema -------------------------------------------------
 
 export type AutoApproveLevel = 'default' | 'assisted' | 'autoApprove';
 
@@ -300,17 +214,6 @@ const permissionsProperty = schemaProperty<IPermissionsValue>({
 	sessionMutable: true,
 });
 
-/**
- * Scripts the client generated for this session, sourced before every built-in
- * shell tool command (see `common/shellInitScript.ts`). Written by the
- * workbench and consumed by the Copilot provider; `readOnly` because no user
- * edits it directly, `sessionMutable` because the selected Python environment
- * can change while a session is live. The value is transient and omitted from
- * persisted session config.
- *
- * Deliberately has no `default`: an absent value means "nothing to apply",
- * which must stay distinguishable from an explicit empty array (clear).
- */
 const shellInitScriptsProperty = schemaProperty<readonly IShellInitScript[]>({
 	type: 'array',
 	title: localize('agentHost.sessionConfig.shellInitScripts', "Shell Init Script"),
@@ -335,14 +238,6 @@ const shellInitScriptsProperty = schemaProperty<readonly IShellInitScript[]>({
 	sessionMutable: true,
 });
 
-/**
- * Session-config properties owned by the platform itself — i.e. consumed
- * by the agent host rather than by any particular agent.
- *
- * Agents extend this schema by spreading `platformSessionSchema.definition`
- * into their own {@link createSchema} call together with any
- * provider-specific properties.
- */
 export const platformSessionSchema = createSchema({
 	[SessionConfigKey.AutoApprove]: schemaProperty<AutoApproveLevel>({
 		type: 'string',
@@ -384,24 +279,6 @@ export const platformSessionSchema = createSchema({
 	[SessionConfigKey.ShellInitScripts]: shellInitScriptsProperty,
 });
 
-/**
- * Rewrites a legacy `autoApprove='autopilot'` config value — used before
- * Autopilot moved from the `autoApprove` axis onto the orthogonal `mode`
- * axis — into the current two-axis shape:
- *
- *  - `autoApprove='autopilot'` + `mode='plan'`  → `mode='plan'`, `autoApprove='default'`
- *    (legacy `plan` took precedence over autopilot when resolving the SDK mode).
- *  - `autoApprove='autopilot'` + any other mode → `mode='autopilot'`, `autoApprove='default'`.
- *
- * Returns a shallow copy with the migration applied, or the original
- * reference unchanged when no legacy value is present. Safe to call on
- * `undefined`.
- *
- * Without this, a session persisted (or a "remembered" picker value seeded)
- * with `autoApprove='autopilot'` would fail the new schema's enum validation
- * and silently fall back to `default`, downgrading the session from
- * autonomous Autopilot to manual per-tool confirmation.
- */
 export function migrateLegacyAutopilotConfig<T extends Record<string, unknown> | undefined>(config: T): T {
 	if (!config || config[SessionConfigKey.AutoApprove] !== 'autopilot') {
 		return config;
@@ -414,99 +291,38 @@ export function migrateLegacyAutopilotConfig<T extends Record<string, unknown> |
 	return migrated as T;
 }
 
-/**
- * Root (agent host) config properties owned by the platform itself.
- *
- * Root config acts as the baseline that applies to every session:
- *
- * - {@link SessionConfigKey.Permissions} — host-wide allow/deny lists
- *   unioned with each session's own permissions when evaluating tool
- *   auto-approval. See `SessionPermissionManager` for the evaluation
- *   rules.
- */
 export const AgentHostTelemetryLevelConfigKey = 'telemetryLevel';
 
-/** Whether Agent Host edit attribution telemetry is enabled. */
 export const AgentHostEditTelemetryEnabledConfigKey = 'editTelemetryEnabled';
 
-/** Legacy Copilot Chat debug switch that disables `request.repoInfo` collection. */
 export const AgentHostDisableRepoInfoTelemetryConfigKey = 'disableRepoInfoTelemetry';
 
-/** VS Code setting forwarded into {@link AgentHostDisableRepoInfoTelemetryConfigKey}. */
 export const DISABLE_REPO_INFO_TELEMETRY_SETTING_ID = 'chat.advanced.debug.disableRepoInfoTelemetry';
 
-/**
- * Root config key forwarded from the renderer when VS Code's
- * `chat.sessionSync.enabled` setting changes. Controls the `remote` flag
- * passed to the copilot-sdk `CopilotClientOptions`.
- */
-export const AgentHostSessionSyncEnabledConfigKey = 'sessionSyncEnabled';
-
-/** Whether extension-provided BYOK models are enabled. */
 export const AgentHostByokModelsEnabledConfigKey = 'byokModelsEnabled';
 
-/**
- * Root config key forwarded from the renderer carrying the experiment-aware
- * value of `chat.agentHost.codexAgent.enabled`. The host registers the Codex
- * provider when this is `true`; disabling requires an agent host restart.
- */
 export const AgentHostCodexEnabledConfigKey = 'codexAgentEnabled';
 
-/** Root config key carrying the effective edit auto-approve patterns. */
 export const AgentHostEditAutoApprovePatternsConfigKey = 'editAutoApprovePatterns';
 
-/**
- * Root config key forwarded from the renderer when VS Code's
- * `chat.tools.terminal.enableAutoApprove` setting changes. Controls whether
- * agent-host shell permission checks may apply terminal auto-approve rules.
- */
 export const AgentHostTerminalAutoApproveEnabledConfigKey = 'terminalAutoApproveEnabled';
 
-/**
- * The VS Code setting ID for terminal auto approve enablement. Defined here so
- * renderer-side agent-host clients can forward it without importing from
- * workbench terminal contributions.
- */
 export const TERMINAL_AUTO_APPROVE_ENABLED_SETTING_ID = 'chat.tools.terminal.enableAutoApprove';
 
 /** The VS Code setting ID for global auto approve enablement. */
 export const GLOBAL_AUTO_APPROVE_SETTING_ID = 'chat.tools.global.autoApprove';
 
-/** The VS Code setting ID for per-tool auto-approval eligibility. */
 export const ELIGIBLE_FOR_AUTO_APPROVAL_SETTING_ID = 'chat.tools.eligibleForAutoApproval';
 
-/**
- * Root config key forwarded from the renderer when VS Code's
- * `chat.tools.global.autoApprove` setting changes. When `true`, the global
- * auto-approve ("approve everything") setting is enabled and the agent host
- * treats every tool call as auto-approved — equivalent to a session running
- * with Allow all.
- */
 export const AgentHostGlobalAutoApproveEnabledConfigKey = 'globalAutoApproveEnabled';
-/** Whether managed policy forbids elevated session auto-approval modes. */
 export const AgentHostAutoApprovePolicyRestrictedConfigKey = 'autoApprovePolicyRestricted';
 
-/**
- * Root config key forwarded from the renderer when VS Code's `chat.autoReply`
- * setting changes. When `true`, the agent host auto-answers `ask_user`
- * questions instead of blocking on the user — the user is treated as
- * unavailable and the agent is told to use its best judgment, mirroring the
- * behavior of `autopilot` mode.
- */
 export const AgentHostAutoReplyEnabledConfigKey = 'autoReplyEnabled';
 
 export const AgentHostAutoReplyAnswer = 'The user is not available to answer your question. Choose a pragmatic option best aligned with the context of the request.';
 
-/** Root config key forwarded from the renderer for automatic OS system proxy discovery. */
 export const AgentHostSystemProxyEnabledConfigKey = 'systemProxyEnabled';
 
-/** Root config key forwarded from the renderer for the GitHub MCP server. */
-export const AgentHostGitHubMcpServerEnabledConfigKey = 'githubMcpServerEnabled';
-
-/**
- * Independently synchronized proxy settings retain their VS Code `http.*`
- * names, matching other flat namespaced root keys such as `agentMerge.*`.
- */
 export const AgentHostProxyConfigKey = {
 	Proxy: 'http.proxy',
 	ProxyKerberosServicePrincipal: 'http.proxyKerberosServicePrincipal',
@@ -534,51 +350,26 @@ const agentHostProxyConfigDefinition = {
 };
 export const agentHostProxyConfigSchema = createSchema(agentHostProxyConfigDefinition);
 
-/** Root config key forwarded from the renderer for active-agent title generation. */
 export const AgentHostActiveAgentTitleGenerationConfigKey = 'activeAgentTitleGeneration';
 
-/** Root config key controlling rich-link guidance for Markdown plan documents. */
 export const AgentHostMarkdownPlanRichLinksEnabledConfigKey = 'markdownPlanRichLinksEnabled';
 
-/** Root config key forwarded from the renderer for the artifact tools and their instruction. */
 export const AgentHostArtifactToolsConfigKey = 'artifactTools';
 
-/** Root config key controlling automatic pull request association for the checked-out branch. */
 export const AgentHostAutoAttachPullRequestsConfigKey = 'autoAttachPullRequests';
 
-// Root config key forwarded from the renderer when the `chat.agentSessions.migrateLegacyCopilotCli`
-// setting changes. When `true`, `listSessions` surfaces un-adopted extension-host Copilot CLI
-// sessions as adoptable agent-host sessions, and opening one adopts it in place. Experimental; off.
 export const AgentHostMigrateLegacyCopilotCliEnabledConfigKey = 'migrateLegacyCopilotCliEnabled';
 
 export const AgentHostShowExternalSessionsConfigKey = 'showExternalSessions';
 
 export { ChatExternalSessionsMode as AgentHostExternalSessionsMode };
 
-/**
- * Root config key forwarded from the renderer that gates multiple-working-directory
- * support for the Copilot provider. When `true`, the Copilot provider advertises
- * the `multipleWorkingDirectories` capability. Mirrors the hidden
- * `chat.agentHost.copilotAgent.multiRootEnabled` VS Code setting.
- */
 export const AgentHostCopilotMultiRootEnabledConfigKey = 'copilotMultiRootEnabled';
 
-/**
- * Root config key forwarded from the renderer that gates multiple-working-directory
- * support for the Claude provider. When `true`, the Claude provider advertises
- * the `multipleWorkingDirectories` capability. Mirrors the hidden
- * `chat.agentHost.claudeAgent.multiRootEnabled` VS Code setting.
- */
 export const AgentHostClaudeMultiRootEnabledConfigKey = 'claudeMultiRootEnabled';
 
-/** Root config key forwarded from the renderer that gates Codex multiple-working-directory support. */
 export const AgentHostCodexMultiRootEnabledConfigKey = 'codexMultiRootEnabled';
 
-/**
- * Root config key forwarded from the renderer when VS Code's
- * `chat.tools.terminal.autoApprove` setting changes. Holds the effective
- * terminal auto-approve rule object for agent-host shell permission checks.
- */
 export const AgentHostTerminalAutoApproveRulesConfigKey = 'terminalAutoApproveRules';
 
 export interface IAgentHostTerminalAutoApproveRule {
@@ -589,11 +380,6 @@ export interface IAgentHostTerminalAutoApproveRule {
 export type AgentHostTerminalAutoApproveRuleValue = boolean | null | IAgentHostTerminalAutoApproveRule;
 export type AgentHostTerminalAutoApproveRules = Record<string, AgentHostTerminalAutoApproveRuleValue>;
 
-/**
- * The VS Code setting IDs for terminal auto approve rules. Defined here so
- * renderer-side agent-host clients can forward them without importing from
- * workbench terminal contributions.
- */
 export const TERMINAL_AUTO_APPROVE_SETTING_ID = 'chat.tools.terminal.autoApprove';
 export const TERMINAL_IGNORE_DEFAULT_AUTO_APPROVE_RULES_SETTING_ID = 'chat.tools.terminal.ignoreDefaultAutoApproveRules';
 
@@ -657,20 +443,8 @@ function hasMatchingRule(config: Readonly<AgentHostTerminalAutoApproveRules> | u
 	return !!config && Object.prototype.hasOwnProperty.call(config, key) && structuralEquals(config[key], value);
 }
 
-/**
- * Root config key holding agent-host-level MCP server definitions.
- *
- * The value is a map of server name → {@link IMcpServerConfiguration}
- * (the same `servers` shape used by `mcp.json`). These servers are
- * exposed to every session created by the host, merged with any
- * plugin-provided MCP servers when launching the copilot-sdk client.
- */
 export const AgentHostMcpServersConfigKey = 'mcpServers';
 
-/**
- * Map of server name → MCP server configuration, as stored in the
- * {@link AgentHostMcpServersConfigKey} root config value.
- */
 export type AgentHostMcpServers = Record<string, IMcpServerConfiguration>;
 
 export function telemetryLevelToAgentHostConfigValue(telemetryLevel: TelemetryLevel): TelemetryConfiguration {
@@ -692,12 +466,6 @@ export function agentHostConfigValueToTelemetryLevel(value: unknown): TelemetryL
 	}
 }
 
-/**
- * Field descriptors for a single MCP server entry, shared by the stdio and
- * http shapes. The agent-host config schema has no `oneOf`, so both variants'
- * fields are described together; `type` selects which fields apply
- * (`stdio` uses `command`/`args`/`env`/`cwd`, `http` uses `url`/`headers`).
- */
 const mcpServerConfigProperties: Record<string, SessionConfigPropertySchema> = {
 	type: {
 		type: 'string',
@@ -738,16 +506,6 @@ const mcpServerConfigProperties: Record<string, SessionConfigPropertySchema> = {
 	},
 };
 
-/**
- * Documents the value shape of the {@link AgentHostMcpServersConfigKey} map.
- *
- * The config value is a map of server name → server config. The schema
- * language has no `additionalProperties`, so the per-entry shape is attached
- * under a placeholder key (`<serverName>`) rather than at the map level —
- * this keeps the field descriptions discoverable without the runtime
- * validator mistaking a real server named e.g. `command` for the `command`
- * field. Real entries (keyed by actual server names) are passed through.
- */
 const mcpServersValueProperties: Record<string, SessionConfigPropertySchema> = {
 	'<serverName>': {
 		type: 'object',
@@ -778,12 +536,6 @@ export const platformRootSchema = createSchema({
 		title: localize('agentHost.config.editTelemetryEnabled.title', "Edit Telemetry"),
 		description: localize('agentHost.config.editTelemetryEnabled.description', "Whether edit attribution telemetry is enabled for Agent Host sessions."),
 		default: true,
-	}),
-	[AgentHostSessionSyncEnabledConfigKey]: schemaProperty<boolean>({
-		type: 'boolean',
-		title: localize('agentHost.config.sessionSyncEnabled.title', "Session Sync"),
-		description: localize('agentHost.config.sessionSyncEnabled.description', "Whether remote session sync is enabled for the copilot-sdk CLI."),
-		default: false,
 	}),
 	[AgentHostByokModelsEnabledConfigKey]: schemaProperty<boolean>({
 		type: 'boolean',
@@ -825,12 +577,6 @@ export const platformRootSchema = createSchema({
 		type: 'boolean',
 		title: localize('agentHost.config.systemProxyEnabled.title', "System Proxy Discovery"),
 		description: localize('agentHost.config.systemProxyEnabled.description', "Whether Copilot sessions automatically discover and use the operating system's proxy configuration."),
-		default: true,
-	}),
-	[AgentHostGitHubMcpServerEnabledConfigKey]: schemaProperty<boolean>({
-		type: 'boolean',
-		title: localize('agentHost.config.githubMcpServerEnabled.title', "GitHub MCP Server"),
-		description: localize('agentHost.config.githubMcpServerEnabled.description', "Whether agent sessions include a GitHub MCP server by default."),
 		default: true,
 	}),
 	[AgentHostActiveAgentTitleGenerationConfigKey]: schemaProperty<boolean>({
@@ -916,16 +662,6 @@ export const platformRootSchema = createSchema({
 	}),
 });
 
-/**
- * Root config keys the connected client re-pushes on every connect and
- * reconnect, and which gate permission prompts or policy restrictions.
- *
- * These must NOT be restored from `agent-host-config.json` on startup. Their
- * persisted value is a snapshot of one client's settings, so reviving it would
- * re-grant approvals that a user, workspace, or policy tightened while the host
- * was stopped. Falling back to the schema default until the client republishes
- * is the fail-safe direction.
- */
 export const clientOwnedApprovalRootConfigKeys: ReadonlySet<string> = new Set([
 	SessionConfigKey.Permissions,
 	AgentHostGlobalAutoApproveEnabledConfigKey,

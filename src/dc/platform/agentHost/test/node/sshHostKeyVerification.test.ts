@@ -14,7 +14,6 @@ import { isSSHHostKeyDeniedError, SSHAuthMethod, type ISSHAgentHostConfig, type 
 import { SSHRemoteAgentHostMainService, type SSHAuthAttempt } from '../../node/sshRemoteAgentHostService.js';
 import { computeHostKeyFingerprint, parseKnownHosts, type IKnownHostsEntry } from '../../node/sshKnownHosts.js';
 
-/** Build a syntactically valid SSH wire-format public key blob. */
 function makeKeyBlob(keyType: string, material: Buffer): Buffer {
 	const type = Buffer.from(keyType, 'ascii');
 	const header = Buffer.alloc(4);
@@ -26,24 +25,13 @@ function makeKeyBlob(keyType: string, material: Buffer): Buffer {
 
 const HOST_KEY = makeKeyBlob('ssh-ed25519', Buffer.alloc(32, 0xaa));
 
-/**
- * Mock client that drives only the host key verification path: on `connect` it
- * invokes `hostVerifier` and records the verdict, without attempting auth.
- */
 class HostKeyMockSSHClient {
 	ended = false;
-	/** The verdict `hostVerifier` produced, once it settles. */
 	verdict: boolean | undefined;
 	verdictCount = 0;
-	/** The `readyTimeout` ssh2 was configured with for this attempt. */
 	readyTimeout: number | undefined;
-	/**
-	 * When set, the connection is not driven to ready/error by the verdict, so
-	 * a test can control what happens while verification is still pending.
-	 */
 	deferVerification = false;
 
-	/** Resolves once ssh2 has entered `hostVerifier` for this connection. */
 	readonly verifierEntered: Promise<void>;
 	private _verifierEntered!: () => void;
 
@@ -70,7 +58,6 @@ class HostKeyMockSSHClient {
 		return this;
 	}
 
-	/** ssh2's auth callback, so tests can drive the interactive prompt paths. */
 	authHandler: ((methodsLeft: string[] | null, partialSuccess: boolean, cb: (next: unknown) => void) => void) | undefined;
 
 	connect(config: ConnectConfig): void {
@@ -109,19 +96,13 @@ class HostKeyMockSSHClient {
 class HostKeyTestService extends SSHRemoteAgentHostMainService {
 	readonly client = new HostKeyMockSSHClient();
 	knownHostsContents = '';
-	/** Set to make the known_hosts read throw, exercising the fail-closed path. */
 	knownHostsError: Error | undefined;
-	/**
-	 * When set, the known_hosts read blocks on this promise, so a test can
-	 * make the connection die while evidence gathering is still in flight.
-	 */
 	knownHostsGate: Promise<void> | undefined;
 
 	protected override async _createSSHClient() {
 		return this.client as never;
 	}
 
-	/** Auth attempts to offer; set to exercise the interactive prompt paths. */
 	authAttempts: SSHAuthAttempt[] = [];
 
 	protected override async _buildAuthAttempts(_config: ISSHAgentHostConfig): Promise<SSHAuthAttempt[]> {
@@ -138,14 +119,11 @@ class HostKeyTestService extends SSHRemoteAgentHostMainService {
 		return { entries: parseKnownHosts(this.knownHostsContents), strictHostKeyChecking: undefined };
 	}
 
-	/** Expose the pending-request map so tests can assert nothing is leaked. */
 	get pendingHostKeyRequestCount(): number {
 		return this['_pendingHostKeyRequests'].size;
 	}
 
-	/** Every deadline armed during the connect, in order. */
 	readonly deadlineHistory: number[] = [];
-	/** The currently armed deadline, or undefined when no timer is running. */
 	currentDeadlineMs: number | undefined;
 
 	protected override _armHandshakeDeadline(ms: number, onExpired: () => void): ReturnType<typeof setTimeout> {
@@ -188,7 +166,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 		return disposables.add(new HostKeyTestService(new NullLogService(), productService as IProductService, NullTelemetryService));
 	}
 
-	/** Run a connect attempt, answering the verification request with `trusted`. */
 	async function connectAnswering(service: HostKeyTestService, trusted: boolean, config = makeConfig()) {
 		const requests: ISSHHostKeyVerificationRequest[] = [];
 		const store = new DisposableStore();
@@ -238,9 +215,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 	});
 
 	test('declining fails the connection with a clean host key error', async () => {
-		// ssh2 reports this as "Host denied (verification failed)". That is
-		// jargon, and the host key UI has already explained what happened, so
-		// the connect attempt surfaces a recognizable error instead.
 		const service = createService();
 		const { result, error } = await connectAnswering(service, false);
 
@@ -279,12 +253,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 	});
 
 	test('bounds the handshake, and only widens it while a prompt is outstanding', async () => {
-		// ssh2's own readyTimeout is disabled because it keeps running while
-		// hostVerifier waits on a human. We arm the short network deadline up
-		// front, widen it only for the interval a prompt is actually
-		// outstanding, and restore it once the verdict arrives — so a user
-		// gets time to compare a fingerprint without an unreachable host
-		// taking minutes to fail.
 		const service = createService();
 		const observed: number[] = [];
 		const store = new DisposableStore();
@@ -300,17 +268,12 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 				ssh2TimerDisabled: service.client.readyTimeout,
 				armedBeforeConnect: service.deadlineHistory[0],
 				whilePrompting: observed[0],
-				// Cleared once the connect settles — no timer left running.
 				afterSettle: service.currentDeadlineMs,
 			},
 			{ ssh2TimerDisabled: 0, armedBeforeConnect: 30_000, whilePrompting: 300_000, afterSettle: undefined });
 	});
 
 	test('widens the deadline for the password prompt too, not just the host key dialog', async () => {
-		// The interactive window must bracket *every* human prompt. A user
-		// typing a password is no faster than one comparing a fingerprint, and
-		// holding them to the 30s network deadline would abort the connection
-		// out from under them.
 		const service = createService();
 		service.authAttempts = [{ type: 'keyboard-interactive', username: 'test' }];
 		service.client.deferVerification = true;
@@ -331,8 +294,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 
 		const connectPromise = service.connectSSHForTest(makeConfig());
 		await service.client.verifierEntered;
-		// Drive ssh2's auth flow the way the real client would: ask for the
-		// next method, then invoke that method's `prompt` callback.
 		service.client.authHandler?.(['keyboard-interactive'], false, next => {
 			const method = next as { prompt: (name: string, instructions: string, lang: string, prompts: readonly { prompt: string; echo?: boolean }[], finish: (responses: string[]) => void) => void };
 			method.prompt('', '', '', [{ prompt: 'Password:', echo: false }], () => { });
@@ -340,9 +301,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 		await prompted;
 		const afterAnswering = service.currentDeadlineMs;
 
-		// Settle the connect so its deadline timer is cleared. Leaving it armed
-		// would fire ~30s later, long after this test finished, and surface as
-		// an unexpected error in whichever suite happened to be running.
 		service.client.fireError(new Error('Connection lost'));
 		await connectPromise.catch(() => undefined);
 		store.dispose();
@@ -353,10 +311,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 	});
 
 	test('a connection that dies during evidence gathering leaves nothing pending', async () => {
-		// `_verifyHostKey` awaits the known_hosts read, so the connection can
-		// die before the request is ever registered for cancellation. If that
-		// window isn't handled, we leak a pending entry forever and pop a
-		// dialog for a connection that is already gone.
 		const service = createService();
 		let openGate = () => { };
 		service.knownHostsGate = new Promise<void>(resolve => { openGate = resolve; });
@@ -366,13 +320,10 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 		store.add(service.onDidRequestHostKeyVerification(request => requests.push(request)));
 
 		const connectPromise = service.connectSSHForTest(makeConfig());
-		// Wait until ssh2 has actually entered hostVerifier and blocked inside
-		// the known_hosts read, then kill the connection underneath it.
 		await service.client.verifierEntered;
 		service.client.fireError(new Error('Connection lost'));
 		const result = await connectPromise.then(() => 'resolved', err => `rejected: ${err.message}`);
 
-		// Now release the read: verification resumes on a dead connection.
 		openGate();
 		await new Promise(resolve => setTimeout(resolve, 10));
 		store.dispose();
@@ -380,7 +331,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 		assert.deepStrictEqual(
 			{
 				result,
-				// No orphaned prompt, and no leaked map entry.
 				requestCount: requests.length,
 				pending: service.pendingHostKeyRequestCount,
 				verdict: service.client.verdict,
@@ -389,8 +339,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 	});
 
 	test('fails closed when gathering evidence throws', async () => {
-		// A transient error must never become a way to reach a server without
-		// verification, so no request is raised and the key is refused.
 		const service = createService();
 		service.knownHostsError = new Error('boom');
 		const requests: ISSHHostKeyVerificationRequest[] = [];
@@ -405,9 +353,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 	});
 
 	test('cancelling an in-flight verification denies rather than hanging', async () => {
-		// If the connection drops while we're still waiting on a verdict, ssh2
-		// must still be told "no" — otherwise the handshake stalls until
-		// readyTimeout elapses, and the renderer's prompt is left orphaned.
 		const service = createService();
 		service.client.deferVerification = true;
 
@@ -417,7 +362,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 		store.add(service.onDidCancelHostKeyVerification(requestId => cancelled.push(requestId)));
 		store.add(service.onDidRequestHostKeyVerification(request => {
 			requests.push(request);
-			// Simulate the connection dying while the user is still deciding.
 			service.client.fireError(new Error('Connection lost'));
 		}));
 
@@ -444,9 +388,6 @@ suite('SSHRemoteAgentHostMainService - host key verification', () => {
 		const rotated = makeKeyBlob('ssh-ed25519', Buffer.alloc(32, 0xcc));
 		service.client.announceHostKeys([
 			{ getPublicSSH: () => rotated, type: 'ssh-ed25519' },
-			// A certificate: ssh2 misparses these (it returns the cert's nonce
-			// as the key material), so the blob's embedded type disagrees with
-			// the declared type and it must be skipped rather than trusted.
 			{ getPublicSSH: () => makeKeyBlob('ssh-ed25519', Buffer.alloc(32, 0xdd)), type: 'ssh-ed25519-cert-v01@openssh.com' },
 		]);
 		store.dispose();

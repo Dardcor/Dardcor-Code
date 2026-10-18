@@ -9,12 +9,6 @@ import { IWorkbenchContribution } from '../../../../common/contributions.js';
 import { IChatWidget, IChatWidgetService } from '../chat.js';
 import { IChatModelFeedbackSurveyService } from './chatModelFeedbackSurveyService.js';
 
-/**
- * Watches the model picker of every chat widget and reports switches to the survey service.
- *
- * It sits outside the picker so model selection knows nothing about surveys, and outside the
- * service so the service stays free of widget lifecycle and easy to test.
- */
 export class ChatModelFeedbackSurveyPromptContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'chat.modelFeedbackSurveyPrompt';
@@ -37,8 +31,6 @@ export class ChatModelFeedbackSurveyPromptContribution extends Disposable implem
 	private trackWidget(widget: IChatWidget): void {
 		const listeners = new DisposableStore();
 
-		// The widget loads its session after it registers, and the model resolves around the same
-		// time. Re-running on that event keeps the pairing below anchored to the right session.
 		const viewModelChanged = observableSignalFromEvent('chatFeedbackSurveyViewModel', widget.onDidChangeViewModel);
 		let previous: { readonly modelId: string; readonly session: string } | undefined;
 
@@ -51,15 +43,11 @@ export class ChatModelFeedbackSurveyPromptContribution extends Disposable implem
 			const last = previous;
 			previous = modelId && session ? { modelId, session } : undefined;
 
-			// Loading a different session restores that session's own model, so the next change is
-			// measured from there rather than from whatever the previous session was using.
 			if (last && last.session !== session) {
 				previous = undefined;
 				return;
 			}
 
-			// Only a move between two known models counts. The first resolution and any gap while
-			// models load are not the user rejecting anything.
 			if (!last || !modelId || !sessionResource || last.modelId === modelId) {
 				return;
 			}

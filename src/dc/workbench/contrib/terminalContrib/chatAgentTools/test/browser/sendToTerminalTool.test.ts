@@ -118,7 +118,6 @@ suite('SendToTerminalTool', () => {
 			assert.ok(value.includes('Successfully sent command'));
 			assert.ok(value.includes(KNOWN_TERMINAL_ID));
 
-			// Verify sendText was called with shouldExecute=true
 			assert.strictEqual(mockExecution.sentTexts.length, 1);
 			assert.strictEqual(mockExecution.sentTexts[0].text, 'ls');
 			assert.strictEqual(mockExecution.sentTexts[0].shouldExecute, true);
@@ -290,8 +289,6 @@ suite('SendToTerminalTool', () => {
 			],
 			data: { q1: 'my-package', q2: 'src/index.ts' },
 		};
-		// Simulate one prior send_to_terminal invocation after the carousel
-		// so that positional matching targets question[1] (entry point)
 		const priorSendInvocation = {
 			kind: 'toolInvocation' as const,
 			toolId: 'send_to_terminal',
@@ -338,7 +335,6 @@ suite('SendToTerminalTool', () => {
 			data: { q1: '', q2: '', q3: '' },
 		};
 
-		// First call: no prior send_to_terminal → positional index 0 → "package name?"
 		const mockSession0 = {
 			getRequests: () => [{
 				response: { response: { value: [carousel] } }
@@ -356,7 +352,6 @@ suite('SendToTerminalTool', () => {
 		const firstMsg = first.pastTenseMessage as IMarkdownString;
 		assert.ok(firstMsg.value.includes('package'), 'first call should show package name question');
 
-		// Second call: one prior send_to_terminal → positional index 1 → "version?"
 		const priorSend1 = { kind: 'toolInvocation' as const, toolId: 'send_to_terminal' };
 		const mockSession1 = {
 			getRequests: () => [{
@@ -375,7 +370,6 @@ suite('SendToTerminalTool', () => {
 		const secondMsg = second.pastTenseMessage as IMarkdownString;
 		assert.ok(secondMsg.value.includes('version'), 'second call should show version question');
 
-		// Third call: two prior send_to_terminal → positional index 2 → "description?"
 		const priorSend2 = { kind: 'toolInvocation' as const, toolId: 'send_to_terminal' };
 		const mockSession2 = {
 			getRequests: () => [{
@@ -463,7 +457,6 @@ suite('SendToTerminalTool', () => {
 			const mockExecution = createMockExecution('output');
 			RunInTerminalTool.getExecution = () => mockExecution;
 
-			// Emit some data shortly after invocation starts, then stop
 			const dataDelay = setTimeout(() => {
 				mockExecution.dataEmitter.fire('some response data');
 			}, 100);

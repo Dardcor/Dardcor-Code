@@ -133,34 +133,26 @@ export async function setupServerServices(connectionToken: ServerConnectionToken
 		logService.info(`\n\n${productService.serverGreeting.join('\n')}\n\n`);
 	}
 
-	// ExtensionHost Debug broadcast service
 	socketServer.registerChannel(ExtensionHostDebugBroadcastChannel.ChannelName, new ExtensionHostDebugBroadcastChannel());
 
-	// TODO: @Sandy @Joao need dynamic context based router
 	const router = new StaticRouter<RemoteAgentConnectionContext>(ctx => ctx.clientId === 'renderer');
 
-	// Files
 	const fileService = disposables.add(new FileService(logService));
 	services.set(IFileService, fileService);
 	fileService.registerProvider(Schemas.file, disposables.add(new DiskFileSystemProvider(logService)));
 
-	// URI Identity
 	const uriIdentityService = new UriIdentityService(fileService);
 	services.set(IUriIdentityService, uriIdentityService);
 
-	// Configuration
 	const configurationService = new ConfigurationService(environmentService.machineSettingsResource, fileService, new NullPolicyService(), logService);
 	services.set(IConfigurationService, configurationService);
 
-	// User Data Profiles
 	const userDataProfilesService = new ServerUserDataProfilesService(uriIdentityService, environmentService, fileService, logService);
 	services.set(IUserDataProfilesService, userDataProfilesService);
 	socketServer.registerChannel('userDataProfiles', new RemoteUserDataProfilesServiceChannel(userDataProfilesService, (ctx: RemoteAgentConnectionContext) => getUriTransformer(ctx.remoteAuthority)));
 
-	// Dev Only: CSS service (for ESM)
 	services.set(ICSSDevelopmentService, new SyncDescriptor(CSSDevelopmentService, undefined, true));
 
-	// Initialize
 	const [, , machineId, sqmId, devDeviceId] = await Promise.all([
 		configurationService.initialize(),
 		userDataProfilesService.init(),
@@ -172,7 +164,6 @@ export async function setupServerServices(connectionToken: ServerConnectionToken
 	const extensionHostStatusService = new ExtensionHostStatusService();
 	services.set(IExtensionHostStatusService, extensionHostStatusService);
 
-	// Request
 	const requestService = new RequestService('remote', configurationService, environmentService, logService);
 	services.set(IRequestService, requestService);
 
@@ -181,7 +172,7 @@ export async function setupServerServices(connectionToken: ServerConnectionToken
 	if (supportsTelemetry(productService, environmentService)) {
 		if (!isLoggingOnly(productService, environmentService) && productService.aiConfig?.ariaKey) {
 			oneDsAppender = new OneDataSystemAppender(requestService, isInternal, eventPrefix, null, productService.aiConfig.ariaKey);
-			disposables.add(toDisposable(() => oneDsAppender?.flush())); // Ensure the AI appender is disposed so that it flushes remaining data
+			disposables.add(toDisposable(() => oneDsAppender?.flush()));
 		}
 
 		const config: ITelemetryServiceConfig = {
@@ -191,7 +182,6 @@ export async function setupServerServices(connectionToken: ServerConnectionToken
 		};
 		const initialTelemetryLevelArg = environmentService.args['telemetry-level'];
 		let injectedTelemetryLevel: TelemetryLevel = TelemetryLevel.USAGE;
-		// Convert the passed in CLI argument into a telemetry level for the telemetry service
 		if (initialTelemetryLevelArg === 'all') {
 			injectedTelemetryLevel = TelemetryLevel.USAGE;
 		} else if (initialTelemetryLevelArg === 'error') {
@@ -211,7 +201,7 @@ export async function setupServerServices(connectionToken: ServerConnectionToken
 	services.set(IExtensionGalleryService, new SyncDescriptor(ExtensionGalleryServiceWithNoStorageService));
 
 	const downloadChannel = socketServer.getChannel('download', router);
-	services.set(IDownloadService, new DownloadServiceChannelClient(downloadChannel, () => getUriTransformer('renderer') /* TODO: @Sandy @Joao need dynamic context based router */));
+	services.set(IDownloadService, new DownloadServiceChannelClient(downloadChannel, () => getUriTransformer('renderer') ));
 
 	services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService));
 	services.set(IExtensionsScannerService, new SyncDescriptor(ExtensionsScannerService));
@@ -241,20 +231,6 @@ export async function setupServerServices(connectionToken: ServerConnectionToken
 	});
 	services.set(IServerLifetimeService, serverLifetimeService);
 
-	// ---- Agent host wiring -------------------------------------------------
-	//
-	// Two independent concerns:
-	//
-	// 1. SPAWN: when `--agent-host-port` / `--agent-host-path` is set, this
-	//    server spawns and owns an agent host child process.
-	// 2. BRIDGE: register the `agentHostProxy` IPC channel so renderers can
-	//    reach the agent host over the remote-agent connection. The upstream
-	//    is either the agent host we just spawned, or one specified via
-	//    `--agent-host-bridge-port` / `--agent-host-bridge-path` (e.g. when
-	//    a CLI sidecar manages the agent host lifecycle).
-	//
-	// The two concerns are deliberately separable so that scenarios with an
-	// externally-managed agent host don't accidentally fork a duplicate.
 
 	const spawnPort = args['agent-host-port'];
 	const spawnPath = args['agent-host-path'];
@@ -270,16 +246,6 @@ export async function setupServerServices(connectionToken: ServerConnectionToken
 		disposables.add(instantiationService.createInstance(ServerAgentHostManager, agentHostStarter));
 	}
 
-	// The bridge upstream defaults to the agent host this server just
-	// spawned, but ONLY when that endpoint is dialable at configuration
-	// time — i.e. an explicit non-zero port or a socket path. When
-	// `--agent-host-port=0` is used the OS picks a port at runtime that
-	// this server has no way of learning, so we refuse to register a
-	// bridge against a placeholder `0`; in that case the caller (the CLI
-	// `code tunnel` flow) is expected to capture the bound port from the
-	// AH's readiness line and pass it back as `--agent-host-bridge-port`
-	// on the renderer-serving servers. Explicit `--agent-host-bridge-*`
-	// always wins over the spawn fallback.
 	const spawnPortNumber = spawnPort ? parseInt(spawnPort, 10) : NaN;
 	const hasUsableSpawnPort = Number.isFinite(spawnPortNumber) && spawnPortNumber > 0;
 	const bridgePort = args['agent-host-bridge-port'] ?? (hasUsableSpawnPort ? spawnPort : undefined);
@@ -344,7 +310,6 @@ export async function setupServerServices(connectionToken: ServerConnectionToken
 
 		socketServer.registerChannel('mcpManagement', new McpManagementChannel(mcpManagementService, (ctx: RemoteAgentConnectionContext) => getUriTransformer(ctx.remoteAuthority)));
 
-		// clean up extensions folder
 		remoteExtensionsScanner.whenExtensionsReady().then(() => extensionManagementService.cleanUp());
 
 		disposables.add(new ErrorTelemetry(accessor.get(ITelemetryService)));
@@ -441,7 +406,6 @@ class ServerLogger extends AbstractLogger {
 	}
 
 	flush(): void {
-		// noop
 	}
 }
 
@@ -457,15 +421,12 @@ function twodigits(n: number): string {
 	return String(n);
 }
 
-/**
- * Cleans up older logs, while keeping the 10 most recent ones.
- */
 async function cleanupOlderLogs(logsPath: string): Promise<void> {
 	const currentLog = path.basename(logsPath);
 	const logsRoot = path.dirname(logsPath);
 
 	if (!await Promises.exists(logsRoot)) {
-		return; // Logs root doesn't exist yet, nothing to clean up
+		return;
 	}
 
 	const children = await Promises.readdir(logsRoot);

@@ -18,12 +18,6 @@ export const EXTENSION_IDENTIFIER_WITH_LOG_REGEX = /^([^.]+\..+)[:=](.+)$/;
 
 export interface INativeEnvironmentPaths {
 
-	/**
-	 * The user data directory to use for anything that should be
-	 * persisted except for the content that is meant for the `homeDir`.
-	 *
-	 * Only one instance of VSCode can use the same `userDataDir`.
-	 */
 	userDataDir: string;
 
 	/**
@@ -33,9 +27,6 @@ export interface INativeEnvironmentPaths {
 	 */
 	homeDir: string;
 
-	/**
-	 * OS tmp dir.
-	 */
 	tmpDir: string;
 }
 
@@ -316,7 +307,6 @@ export function parseDebugParams(debugArg: string | undefined, debugBrkArg: stri
 		try {
 			env = JSON.parse(environmentString);
 		} catch {
-			// ignore
 		}
 	}
 

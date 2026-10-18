@@ -112,16 +112,12 @@ class DocumentPasteProvider implements vscode.DocumentPasteEditProvider<TsPasteE
 
 		if (response) {
 			if (response.type !== 'response' || !response.body) {
-				// We got a response which told us no to bother with the paste
-				// Don't store anything so that we don't trigger on paste
 				return;
 			}
 
 			dataTransfer.set(DocumentPasteProvider.metadataMimeType,
 				new vscode.DataTransferItem(new CopyMetadata(document.uri, ranges, undefined)));
 		} else {
-			// We are still waiting on the response. Store the pending request so that we can try checking it on paste
-			// when it has hopefully resolved
 			dataTransfer.set(DocumentPasteProvider.metadataMimeType,
 				new vscode.DataTransferItem(new CopyMetadata(document.uri, ranges, copyRequest)));
 		}
@@ -148,7 +144,6 @@ class DocumentPasteProvider implements vscode.DocumentPasteEditProvider<TsPasteE
 			return;
 		}
 
-		// Get optional metadata
 		const metadata = await this.extractMetadata(dataTransfer, token);
 		if (token.isCancellationRequested) {
 			return;
@@ -167,20 +162,17 @@ class DocumentPasteProvider implements vscode.DocumentPasteEditProvider<TsPasteE
 		}
 
 		if (copiedFrom?.file === file) {
-			// We are pasting in the same file we copied from. No need to do anything
 			return;
 		}
 
 		const pasteCts = new vscode.CancellationTokenSource();
 		token.onCancellationRequested(() => pasteCts.cancel());
 
-		// If we have a copy operation, use that to potentially eagerly cancel the paste if it resolves to false
 		metadata?.copyOperation?.then(copyResponse => {
 			if (copyResponse.type !== 'response' || !copyResponse.body) {
 				pasteCts.cancel();
 			}
 		}, (_err) => {
-			// Expected. May have been cancelled.
 		});
 
 		try {
@@ -189,7 +181,6 @@ class DocumentPasteProvider implements vscode.DocumentPasteEditProvider<TsPasteE
 
 				return this._client.execute('getPasteEdits', {
 					file,
-					// TODO: only supports a single paste for now
 					pastedText: [text],
 					pasteLocations: ranges.map(typeConverters.Range.toTextSpan),
 					copiedFrom
@@ -199,12 +190,9 @@ class DocumentPasteProvider implements vscode.DocumentPasteEditProvider<TsPasteE
 			const pasteTimeout = 200;
 			const response = await raceTimeout(pasteOperation, pasteTimeout);
 			if (response) {
-				// Success, can return real paste edit.
 				const edit = TsPasteEdit.tryCreateFromResponse(this._client, response);
 				return edit ? [edit] : undefined;
 			} else {
-				// Still waiting on the response. Eagerly return a paste edit that we will resolve when we
-				// really need to apply it
 				return [new TsPendingPasteEdit(text, pasteOperation)];
 			}
 		} finally {

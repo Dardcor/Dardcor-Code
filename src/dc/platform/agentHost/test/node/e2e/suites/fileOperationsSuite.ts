@@ -62,7 +62,6 @@ export function defineFileOperationsTests(context: IAgentHostE2ETestContext): vo
 	const shellOutputOracleAvailable = shellResultTextAvailable && !(isWindows && config.provider === 'copilotcli');
 	const BEHAVIOR_SNAPSHOT = {
 		profile: 'behavior',
-		// Codex occasionally omits command completion; direct filesystem and response assertions are the success oracle.
 		omitToolCallSuccessForToolNames: config.provider === 'codex' ? ['shell'] : [],
 	} as const;
 
@@ -262,9 +261,6 @@ export function defineFileOperationsTests(context: IAgentHostE2ETestContext): vo
 			const workspace = mkdtempSync(join(tmpdir(), 'ahp-shell-init-'));
 			tempDirs.push(workspace);
 			const sessionUri = await createRealSession(context.client, config, 'shell-init-script', createdSessions, URI.file(workspace));
-			// The host applies a published script only while the client's setting
-			// is forwarded as root config. Set it before the recorded round so the
-			// snapshot stays limited to the session config and the turn.
 			await context.client.call('subscribe', { channel: ROOT_STATE_URI });
 			context.client.dispatch({
 				channel: ROOT_STATE_URI,
@@ -277,15 +273,8 @@ export function defineFileOperationsTests(context: IAgentHostE2ETestContext): vo
 				&& (getActionEnvelope(n).action as { readonly config?: Record<string, unknown> }).config?.[CopilotCliConfigKey.EnableShellInitScript] === true,
 				30_000,
 			);
-			// Leave the root channel so its later notifications stay out of the
-			// recorded round, then drop the root exchange from the recorder.
 			context.client.notify('unsubscribe', { channel: ROOT_STATE_URI });
 			context.client.clearAhpSnapshot();
-			// Session config carries script text; the host materializes the file
-			// and registers it through the SDK's `shell.initScripts`. The first
-			// turn is dispatched immediately afterward: dispatch is ordered per
-			// connection and the host applies config before starting the turn,
-			// so no server echo is awaited.
 			context.client.beginAhpSnapshotRound();
 			context.client.dispatch({
 				channel: sessionUri,
@@ -296,8 +285,6 @@ export function defineFileOperationsTests(context: IAgentHostE2ETestContext): vo
 				},
 			});
 
-			// `node -e` keeps the recorded command platform-neutral; the marker can
-			// only be present if the registered init script ran first.
 			const markerCommand = `node -e "console.log('marker=' + process.env.AHP_E2E_INIT_MARKER)"`;
 			const result = await driveTurnToCompletion(context.client, sessionUri, 'turn-shell-init', `Run exactly this shell command, with no modifications: \`${markerCommand}\`. Then reply with its exact output only.`, 2);
 			assert.match(result.responseText, /marker=init_marker_91/);
@@ -377,9 +364,6 @@ export function defineFileOperationsTests(context: IAgentHostE2ETestContext): vo
 		const sessionUri = await createRealSession(context.client, config, `coverage-list-${config.provider}`, createdSessions, URI.file(workspace));
 
 		context.client.beginAhpSnapshotRound();
-		// Pinned rather than steered: Copilot honors the file-tool hint here but
-		// Claude still runs `ls`, and its flags differ under cmd. Pinning keeps
-		// the two providers on one portable capture.
 		const listCommand = `node -e "console.log(require('fs').readdirSync('.').join(' '))"`;
 		const result = await driveTurnToCompletion(context.client, sessionUri, 'turn-list', `Run exactly this shell command, with no modifications: \`${listCommand}\`. Then reply with the filenames it printed and nothing else.`, 1);
 		assert.match(result.responseText, /first\.txt/);
@@ -475,10 +459,6 @@ Use your file creation tool; do not run a shell command. Then reply exactly "don
 		this.timeout(180_000);
 		const workspace = mkdtempSync(join(tmpdir(), 'ahp-coverage-lines-'));
 		tempDirs.push(workspace);
-		// No trailing newline: with one, "how many lines" is genuinely ambiguous
-		// (four content lines, or five fields when splitting on the separator).
-		// `wc -l` resolved that by counting separators; an agent reading the file
-		// reasonably answers either way, so remove the ambiguity from the input.
 		writeFileSync(join(workspace, 'lines.txt'), 'one\ntwo\nthree\nfour');
 		const sessionUri = await createRealSession(context.client, config, `coverage-lines-${config.provider}`, createdSessions, URI.file(workspace));
 
@@ -540,7 +520,6 @@ Use your file creation tool; do not run a shell command. Then reply exactly "don
 			'Create result.txt containing exactly CREATED_VALUE.',
 			`node -e "require('fs').writeFileSync('result.txt','CREATED_VALUE')"`,
 			'Then reply exactly "done".',
-			// Copilot does not consistently emit completion for its native create tool.
 			config.provider === 'copilotcli' ? 'shell' : config.fileOperationStrategy,
 		);
 		await driveTurnToCompletion(context.client, sessionUri, 'turn-create', prompt, 1);
@@ -561,7 +540,6 @@ Use your file creation tool; do not run a shell command. Then reply exactly "don
 			`Replace the complete contents of edit.txt with exactly AFTER_VALUE and no trailing newline.${PREFER_FILE_TOOLS}`,
 			`node -e "require('fs').writeFileSync('edit.txt','AFTER_VALUE')"`,
 			'Then reply exactly "done".',
-			// Copilot searches with a POSIX-only shell command despite the file-tool instruction.
 			config.provider === 'copilotcli' ? 'shell' : config.fileOperationStrategy,
 		);
 		await driveTurnToCompletion(context.client, sessionUri, 'turn-edit', prompt, 1);
@@ -627,10 +605,6 @@ Use your file creation tool; do not run a shell command. Then reply exactly "don
 		const sessionUri = await createRealSession(context.client, config, `coverage-nested-create-${config.provider}`, createdSessions, URI.file(workspace));
 
 		context.client.beginAhpSnapshotRound();
-		// Pinned rather than steered: creating the parent directory has no file
-		// tool, so the provider always reaches for the shell and picks `mkdir -p`,
-		// whose `-p` is a directory name rather than a flag under cmd. Steering
-		// harder made it skip the creation entirely.
 		const nestedCreateCommand = `node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/report.txt','NESTED_CREATED')"`;
 		await driveTurnToCompletion(context.client, sessionUri, 'turn-nested-create', `Run exactly this shell command, with no modifications: \`${nestedCreateCommand}\`. Then reply with exactly "created".`, 1);
 		assert.strictEqual(readFileSync(join(workspace, 'output', 'report.txt'), 'utf8'), 'NESTED_CREATED');
@@ -645,10 +619,6 @@ Use your file creation tool; do not run a shell command. Then reply exactly "don
 		const sessionUri = await createRealSession(context.client, config, `coverage-rename-${config.provider}`, createdSessions, URI.file(workspace));
 
 		context.client.beginAhpSnapshotRound();
-		// Pinned rather than steered: there is no file tool for a rename, so the
-		// provider always reaches for the shell here and picks a POSIX command
-		// (`mv`, and once `xxd`/`rm`). `node` is guaranteed present since the
-		// suite runs under it, and this quoting works in both cmd and POSIX shells.
 		const renameCommand = `node -e "require('fs').renameSync('before.txt','after.txt')"`;
 		await driveTurnToCompletion(context.client, sessionUri, 'turn-rename', `Run exactly this shell command, with no modifications: \`${renameCommand}\`. Do not run any other command or tool. Then reply with exactly "renamed".`, 1);
 		assert.strictEqual(existsSync(join(workspace, 'before.txt')), false);
@@ -664,8 +634,6 @@ Use your file creation tool; do not run a shell command. Then reply exactly "don
 		const sessionUri = await createRealSession(context.client, config, `coverage-delete-${config.provider}`, createdSessions, URI.file(workspace));
 
 		context.client.beginAhpSnapshotRound();
-		// Pinned rather than steered: there is no file tool for a delete, so the
-		// provider reaches for `rm`, which cmd does not have.
 		const deleteCommand = `node -e "require('fs').unlinkSync('delete-me.txt')"`;
 		await driveTurnToCompletion(context.client, sessionUri, 'turn-delete', `Run exactly this shell command, with no modifications: \`${deleteCommand}\`. Do not run any other command or tool. Then reply with exactly "deleted".`, 1);
 		assert.strictEqual(existsSync(join(workspace, 'delete-me.txt')), false);
@@ -679,11 +647,6 @@ Use your file creation tool; do not run a shell command. Then reply exactly "don
 		const sessionUri = await createRealSession(context.client, config, `coverage-shell-${config.provider}`, createdSessions, URI.file(workspace));
 
 		context.client.beginAhpSnapshotRound();
-		// The command is pinned rather than described so the recorded capture is
-		// platform-neutral: `echo` behaves the same under cmd/PowerShell and
-		// POSIX shells. Left to its own devices the model picks a different
-		// command per provider (Copilot chose `echo`, Claude chose `printf`),
-		// and whichever it picks is frozen into the fixture.
 		const result = await driveTurnToCompletion(context.client, sessionUri, 'turn-shell', 'Run exactly this shell command, with no modifications: `echo SHELL_VALUE_73`. Then reply with that exact value only.', 1);
 		assert.match(result.responseText, /SHELL_VALUE_73/);
 		assertToolCallCompleteText(context.client, {

@@ -21,20 +21,12 @@ suite('Debug - Link Detector', () => {
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 	let linkDetector: LinkDetector;
 
-	/**
-	 * Instantiate a {@link LinkDetector} for use by the functions being tested.
-	 */
 	setup(() => {
 		const instantiationService: TestInstantiationService = <TestInstantiationService>workbenchInstantiationService(undefined, disposables);
 		instantiationService.stub(ITunnelService, { canTunnel: () => false });
 		linkDetector = instantiationService.createInstance(LinkDetector);
 	});
 
-	/**
-	 * Assert that a given Element is an anchor element.
-	 *
-	 * @param element The Element to verify.
-	 */
 	function assertElementIsLink(element: Element) {
 		assert(isHTMLAnchorElement(element));
 	}
@@ -313,7 +305,6 @@ suite('Debug - Link Detector', () => {
 		const hoverBehavior = { type: DebugLinkHoverBehavior.None, store: new DisposableStore() };
 		const input = isWindows ? 'C:\\foo\\bar.js:12:34 and C:\\baz\\qux.cs:line 6' :
 			'/Users/foo/bar.js:12:34 and /Users/baz/qux.cs:line 6';
-		// Use flexible path separator matching for cross-platform compatibility
 		const expectedOutput = isWindows ?
 			/^<span><a tabindex="0">.*\\foo\\bar\.js:12:34<\/a> and <a tabindex="0">.*\\baz\\qux\.cs:line 6<\/a><\/span>$/ :
 			/^<span><a tabindex="0">.*\/foo\/bar\.js:12:34<\/a> and <a tabindex="0">.*\/baz\/qux\.cs:line 6<\/a><\/span>$/;

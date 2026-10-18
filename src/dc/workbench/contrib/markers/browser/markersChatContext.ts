@@ -53,28 +53,24 @@ class MarkerChatContextPick implements IChatContextPickerItem {
 		const markers = this._markerService.read({ severities: MarkerSeverity.Error | MarkerSeverity.Warning | MarkerSeverity.Info });
 		const grouped = groupBy(markers, (a, b) => extUri.compare(a.resource, b.resource));
 
-		// Get the active editor URI for prioritization
 		const activeEditorUri = EditorResourceAccessor.getCanonicalUri(this._editorService.activeEditor);
 
-		// Sort groups to prioritize active file
 		const sortedGroups = grouped.sort((groupA, groupB) => {
 			const resourceA = groupA[0].resource;
 			const resourceB = groupB[0].resource;
 
-			// If one group is from the active file, prioritize it
 			if (activeEditorUri) {
 				const isAActiveFile = extUri.isEqual(resourceA, activeEditorUri);
 				const isBActiveFile = extUri.isEqual(resourceB, activeEditorUri);
 
 				if (isAActiveFile && !isBActiveFile) {
-					return -1; // A comes first
+					return -1;
 				}
 				if (!isAActiveFile && isBActiveFile) {
-					return 1; // B comes first
+					return 1;
 				}
 			}
 
-			// Otherwise, sort by resource URI as before
 			return extUri.compare(resourceA, resourceB);
 		});
 

@@ -72,7 +72,6 @@ export class LoggerChannel extends Disposable implements IServerChannel {
 	private log(file: URI, messages: [LogLevel, string][]): void {
 		const logger = this.loggers.get(file);
 		if (!logger) {
-			// Logger may have been removed while IPC messages were still in flight
 			return;
 		}
 		for (const [level, message] of messages) {

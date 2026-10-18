@@ -38,7 +38,6 @@ export class GitHubCanonicalUriProvider implements CanonicalUriProvider {
 
 function toHttpsGitHubRemote(uri: Uri) {
 	if (uri.scheme === 'ssh' && uri.authority === 'git@github.com') {
-		// if this is a git@github.com URI, return the HTTPS equivalent
 		const [owner, repo] = (uri.path.endsWith('.git') ? uri.path.slice(0, -4) : uri.path).split('/').filter((segment) => segment.length > 0);
 		return Uri.parse(`https://github.com/${owner}/${repo}`);
 	}

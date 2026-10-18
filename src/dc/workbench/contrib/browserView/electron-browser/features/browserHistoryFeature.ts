@@ -38,11 +38,6 @@ import { CONTEXT_BROWSER_STORAGE_SCOPE } from './browserDataStorageFeatures.js';
 const MAX_RECENTS = 3;
 const MAX_HISTORY = 6;
 
-/**
- * Surfaces history from the active model's {@link BrowserHistoryStore} as
- * URL bar suggestions (deduped by host+path) and exposes a full history
- * management picker via the {@link BrowserViewCommandId.ShowHistory} action.
- */
 export class BrowserHistoryFeature extends BrowserEditorContribution {
 
 	private readonly _modelDisposables = this._register(new DisposableStore());
@@ -104,7 +99,7 @@ export class BrowserHistoryFeature extends BrowserEditorContribution {
 		if (text.trim().length > 0) {
 			return [];
 		}
-		return this._buildList(currentUrl, '', /* onlyUserInitiated */ true, MAX_RECENTS);
+		return this._buildList(currentUrl, '', true, MAX_RECENTS);
 	}
 
 	private _buildHistory(currentUrl: string | undefined, text: string): IBrowserUrlSuggestion[] {
@@ -112,7 +107,7 @@ export class BrowserHistoryFeature extends BrowserEditorContribution {
 		if (needle.length === 0) {
 			return [];
 		}
-		return this._buildList(currentUrl, needle, /* onlyUserInitiated */ false, MAX_HISTORY);
+		return this._buildList(currentUrl, needle, false, MAX_HISTORY);
 	}
 
 	private _buildList(currentUrl: string | undefined, needle: string, onlyUserInitiated: boolean, max: number): IBrowserUrlSuggestion[] {
@@ -131,9 +126,6 @@ export class BrowserHistoryFeature extends BrowserEditorContribution {
 			seen.add(dedupKey(currentUrl));
 		}
 
-		// Walk newest-first; the persisted list is append-ordered. Dedup by
-		// host+path so e.g. ?foo=1 and ?foo=2 collapse into a single entry
-		// (newest wins because we walk in reverse).
 		const out: IBrowserUrlSuggestion[] = [];
 		for (let i = entries.length - 1; i >= 0 && out.length < max; i--) {
 			const entry = entries[i];
@@ -156,7 +148,6 @@ export class BrowserHistoryFeature extends BrowserEditorContribution {
 
 BrowserEditor.registerContribution(BrowserHistoryFeature);
 
-// -- Suggestion helpers ----------------------------------------------
 
 function toSuggestion(model: IBrowserViewModel, history: BrowserHistoryStore, entry: IBrowserHistoryEntry): IBrowserUrlSuggestion {
 	const label = entry.title || entry.url;
@@ -204,7 +195,6 @@ function resolveFavicon(history: BrowserHistoryStore, hash: string): URI | undef
 	}
 }
 
-// -- Management picker -----------------------------------------------
 
 interface HistoryQuickPickItem extends IQuickPickItem {
 	readonly entryId: number;
@@ -274,7 +264,6 @@ function showHistoryPicker(quickInputService: IQuickInputService, model: IBrowse
 }
 
 function buildPickerItems(history: BrowserHistoryStore, clearDayButton: IQuickInputButton, removeEntryButton: IQuickInputButton): (HistoryQuickPickItem | HistorySeparator)[] {
-	// Group by calendar day, newest-first within each day and across days.
 	const sorted = [...history.entries.items].sort((a, b) => b.time - a.time);
 	const groups = new Map<string, { label: string; entries: IBrowserHistoryEntry[] }>();
 	const orderedKeys: string[] = [];
@@ -340,7 +329,6 @@ function isSameDay(a: Date, b: Date): boolean {
 		&& a.getDate() === b.getDate();
 }
 
-// -- Actions ----------------------------------------------------------
 
 class ShowBrowserHistoryAction extends Action2 {
 	static readonly ID = BrowserViewCommandId.ShowHistory;

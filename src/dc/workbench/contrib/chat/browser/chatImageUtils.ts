@@ -12,12 +12,6 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 
-/**
- * Resizes an image provided as a UInt8Array string. Resizing is based on Open AI's algorithm for tokenzing images.
- * https://platform.openai.com/docs/guides/vision#calculating-costs
- * @param data - The UInt8Array string of the image to resize.
- * @returns A promise that resolves to the UInt8Array string of the resized image.
- */
 
 export async function resizeImage(data: Uint8Array | string, mimeType?: string): Promise<Uint8Array> {
 	const isGif = mimeType === 'image/gif';
@@ -41,7 +35,6 @@ export async function resizeImage(data: Uint8Array | string, mimeType?: string):
 				return;
 			}
 
-			// Calculate the new dimensions while maintaining the aspect ratio
 			if (width > 2048 || height > 2048) {
 				const scaleFactor = 2048 / Math.max(width, height);
 				width = Math.round(width * scaleFactor);
@@ -85,18 +78,6 @@ export async function resizeImage(data: Uint8Array | string, mimeType?: string):
 	});
 }
 
-/**
- * Creates a small downscaled thumbnail of an image. Useful for compact previews
- * (e.g. attachment pills) where the UI should retain a small rendered image
- * instead of a full-resolution object URL.
- *
- * The thumbnail is re-encoded as JPEG when the source is a JPEG and as PNG
- * otherwise, so that photographic images don't balloon in size from being
- * re-encoded as PNG.
- * @param data The image bytes.
- * @param maxSize The maximum width or height of the thumbnail, in pixels.
- * @returns A promise that resolves to a {@link Blob} of the thumbnail, or `undefined` on failure.
- */
 function createImageThumbnail(data: Uint8Array, maxSize: number): Promise<Blob | undefined> {
 	return new Promise((resolve) => {
 		const blob = new Blob([data as Uint8Array<ArrayBuffer>]);
@@ -121,7 +102,6 @@ function createImageThumbnail(data: Uint8Array, maxSize: number): Promise<Blob |
 			}
 
 			ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-			// JPEG (FF D8 FF) re-encodes far smaller than PNG for photos, so keep it as JPEG.
 			const outputMimeType = data.length >= 3 && data[0] === 0xFF && data[1] === 0xD8 && data[2] === 0xFF ? 'image/jpeg' : 'image/png';
 			canvas.toBlob(thumbnail => resolve(thumbnail ?? undefined), outputMimeType);
 		};
@@ -132,42 +112,12 @@ function createImageThumbnail(data: Uint8Array, maxSize: number): Promise<Blob |
 	});
 }
 
-/**
- * Bounded cache of generated image thumbnails, keyed by a caller-provided stable
- * identifier (e.g. an attachment id). Attachment widgets are torn down and
- * recreated whenever the attachment list re-renders, so memoizing the downscaled
- * blob avoids re-decoding and re-resizing the full-resolution image every time.
- *
- * Only the small thumbnail bytes are retained, and the cache is bounded so memory
- * stays predictable. The cached value is a `Promise` so concurrent renders of the
- * same image share a single in-flight decode.
- */
 const thumbnailCache = new LRUCache<string, Promise<Blob | undefined>>(50);
 
-/**
- * Safety net so a cached decode always settles. {@link createImageThumbnail}
- * only resolves via the image element's load/error events, which may never fire
- * if the {@link Window} it decodes in is torn down mid-decode. Without this, the
- * cached (pending) promise would never resolve, blocking every later render of
- * that image. The value is far larger than any real decode of an already-resized
- * image, so it never trips in the normal path. The timer is cleared the instant
- * the decode settles, so this adds negligible cost.
- */
 const THUMBNAIL_DECODE_TIMEOUT_MS = 10_000;
 export const CHAT_IMAGE_HOVER_THUMBNAIL_MAX_SIZE = 768;
 
-/**
- * Memoized variant of {@link createImageThumbnail}. Repeated calls with the same
- * {@link cacheKey} (and matching size/byte length) reuse the previously generated
- * thumbnail instead of decoding and resizing the original image again.
- * @param cacheKey A stable identifier for the source image (e.g. the attachment id).
- * @param data The image bytes.
- * @param maxSize The maximum width or height of the thumbnail, in pixels.
- * @returns A promise that resolves to a {@link Blob} of the thumbnail, or `undefined` on failure.
- */
 export function getOrCreateImageThumbnail(cacheKey: string, data: Uint8Array, maxSize: number): Promise<Blob | undefined> {
-	// Include the size and byte length so a reused id with different content or a
-	// different target size doesn't return a stale thumbnail.
 	const key = `${cacheKey}:${maxSize}:${data.byteLength}`;
 	const cached = thumbnailCache.get(key);
 	if (cached) {
@@ -175,8 +125,6 @@ export function getOrCreateImageThumbnail(cacheKey: string, data: Uint8Array, ma
 	}
 
 	const thumbnail: Promise<Blob | undefined> = raceTimeout(createImageThumbnail(data, maxSize), THUMBNAIL_DECODE_TIMEOUT_MS).then(blob => {
-		// Don't keep failures cached so a later render can retry. Only evict our own
-		// entry in case LRU eviction already replaced it with a newer decode.
 		if (!blob && thumbnailCache.peek(key) === thumbnail) {
 			thumbnailCache.delete(key);
 		}
@@ -194,7 +142,6 @@ export function convertStringToUInt8Array(data: string): Uint8Array {
 	return new TextEncoder().encode(data);
 }
 
-// Only used for URLs
 export function convertUint8ArrayToString(data: Uint8Array): string {
 	try {
 		const decoder = new TextDecoder();
@@ -206,7 +153,6 @@ export function convertUint8ArrayToString(data: Uint8Array): string {
 }
 
 function isValidBase64(str: string): boolean {
-	// checks if the string is a valid base64 string that is NOT encoded
 	return /^[A-Za-z0-9+/]*={0,2}$/.test(str) && (() => {
 		try {
 			atob(str);
@@ -239,7 +185,7 @@ export async function cleanupOldImages(fileService: IFileService, logService: IL
 		return;
 	}
 
-	const duration = 7 * 24 * 60 * 60 * 1000; // 7 days
+	const duration = 7 * 24 * 60 * 60 * 1000;
 	const files = await fileService.resolve(imagesFolder);
 	if (!files.children) {
 		return;

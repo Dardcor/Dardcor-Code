@@ -48,8 +48,6 @@ suite('NotebookCellAnchor', () => {
 		cellAnchor = store.add(new NotebookCellAnchor(executionService, config, scrollEvent.event));
 	});
 
-	// for the current implementation the code under test only cares about the focused cell
-	// initial setup with focused cell at the bottom of the view
 	class MockListView {
 		focusedCellTop = 100;
 		focusedCellHeight = 50;
@@ -111,10 +109,8 @@ suite('NotebookCellAnchor', () => {
 		focusedCell.focusMode = CellFocusMode.Editor;
 		assert(cellAnchor.shouldAnchor(listView, 1, 10, resizingCell), 'cell should always anchor if the editor is focused');
 
-		// fully visible focused cell would be pushed partially out of view
 		assert(cellAnchor.shouldAnchor(listView, 1, 150, resizingCell), 'cell should be anchored if focused cell will be pushed out of view');
 		mockListView.focusedCellTop = 110;
-		// partially visible focused cell would be pushed further out of view
 		assert(cellAnchor.shouldAnchor(listView, 1, 10, resizingCell), 'cell should be anchored if focused cell will be pushed out of view');
 	});
 });

@@ -56,7 +56,6 @@ export class Link implements ILink {
 			return Promise.resolve(this._provider.resolveLink(this._link, token)).then(value => {
 				this._link = value || this._link;
 				if (this._link.url) {
-					// recurse
 					return this.resolve(token);
 				}
 
@@ -80,10 +79,8 @@ export class LinksList {
 
 		let links: Link[] = [];
 		for (const [list, provider] of tuples) {
-			// merge all links
 			const newLinks = list.links.map(link => new Link(link, provider));
 			links = LinksList._union(links, newLinks);
-			// register disposables
 			if (isDisposable(list)) {
 				this._disposables ??= new DisposableStore();
 				this._disposables.add(list);
@@ -98,7 +95,6 @@ export class LinksList {
 	}
 
 	private static _union(oldLinks: Link[], newLinks: Link[]): Link[] {
-		// reunite oldLinks with newLinks and remove duplicates
 		const result: Link[] = [];
 		let oldIndex: number;
 		let oldLen: number;
@@ -110,7 +106,6 @@ export class LinksList {
 			const newLink = newLinks[newIndex];
 
 			if (Range.areIntersectingOrTouching(oldLink.range, newLink.range)) {
-				// Remove the oldLink
 				oldIndex++;
 				continue;
 			}
@@ -118,11 +113,9 @@ export class LinksList {
 			const comparisonResult = Range.compareRangesUsingStarts(oldLink.range, newLink.range);
 
 			if (comparisonResult < 0) {
-				// oldLink is before
 				result.push(oldLink);
 				oldIndex++;
 			} else {
-				// newLink is before
 				result.push(newLink);
 				newIndex++;
 			}
@@ -143,7 +136,6 @@ export class LinksList {
 export async function getLinks(providers: LanguageFeatureRegistry<LinkProvider>, model: ITextModel, token: CancellationToken): Promise<LinksList> {
 	const lists: [ILinksList, LinkProvider][] = [];
 
-	// ask all providers for links in parallel
 	const promises = providers.ordered(model).reverse().map(async (provider, i) => {
 		try {
 			const result = await provider.provideLinks(model, token);
@@ -186,7 +178,6 @@ CommandsRegistry.registerCommand('_executeLinkProvider', async (accessor, ...arg
 		return [];
 	}
 
-	// resolve links
 	for (let i = 0; i < Math.min(resolveCount as number, list.links.length); i++) {
 		await list.links[i].resolve(CancellationToken.None);
 	}

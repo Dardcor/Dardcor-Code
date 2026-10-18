@@ -56,11 +56,6 @@ function getConfiguredDisplayLanguage(): string | undefined {
 	return Language.value();
 }
 
-/**
- * Resolve the on-device dictation language using the same setting semantics as
- * Voice Mode. Automatic follows the configured display language when supported,
- * then the system or browser locale, then the model's language detection.
- */
 export function resolveDictationLanguage(configuredLanguage: unknown, browserLanguage: string | undefined, displayLanguage = getConfiguredDisplayLanguage()): string {
 	const configured = typeof configuredLanguage === 'string' ? configuredLanguage.trim() : '';
 	if (configured && configured.toLowerCase() !== 'auto') {

@@ -125,7 +125,6 @@ export class ShowAccessibilityAnnouncementHelp extends Action2 {
 		const screenReaderOptimized = accessibilityService.isScreenReaderOptimized();
 		disposables.add(qp.onDidAccept(() => {
 			if (!screenReaderOptimized) {
-				// announcements are off by default when screen reader is not active
 				qp.hide();
 				return;
 			}

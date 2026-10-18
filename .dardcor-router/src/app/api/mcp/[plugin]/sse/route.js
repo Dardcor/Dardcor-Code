@@ -16,7 +16,6 @@ export async function GET(request, { params }) {
     start(controller) {
       const send = (chunk) => controller.enqueue(encoder.encode(chunk));
       sid = registerSession(plugin, send);
-      // MCP SSE handshake: tell client where to POST messages.
       send(`event: endpoint\ndata: /api/mcp/${plugin}/message?sessionId=${sid}\n\n`);
     },
     cancel() {

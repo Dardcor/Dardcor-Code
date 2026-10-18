@@ -45,12 +45,6 @@ const decoratorQuickDiffModelOptions: QuickDiffModelOptions = {
 export interface IQuickDiffModelService {
 	_serviceBrand: undefined;
 
-	/**
-	 * Returns `undefined` if the editor model is not resolved.
-	 * Model refrence has to be disposed once not needed anymore.
-	 * @param resource
-	 * @param options
-	 */
 	createQuickDiffModelReference(resource: URI, options?: QuickDiffModelOptions): IReference<QuickDiffModel> | undefined;
 }
 
@@ -116,15 +110,8 @@ export class QuickDiffModel extends Disposable {
 	get changes(): QuickDiffChange[] { return this._changes; }
 
 	private _changesVersionId: number = 0;
-	/**
-	 * The version id of the modified text model that {@link changes} were
-	 * computed against. Matches {@link ITextModel.getVersionId}.
-	 */
 	get changesVersionId(): number { return this._changesVersionId; }
 
-	/**
-	 * Map of quick diff name to the index of the change in `this.changes`
-	 */
 	private _quickDiffChanges: Map<string, number[]> = new Map();
 	get quickDiffChanges(): Map<string, number[]> { return this._quickDiffChanges; }
 
@@ -171,7 +158,7 @@ export class QuickDiffModel extends Disposable {
 			for (const session of this._chatEditingService.editingSessionsObs.read(reader)) {
 				reader.store.add(autorun(r => {
 					for (const entry of session.entries.read(r)) {
-						entry.state.read(r); // signal
+						entry.state.read(r);
 					}
 					this.triggerDiff();
 				}));
@@ -234,7 +221,7 @@ export class QuickDiffModel extends Disposable {
 
 				const editorModels = Array.from(this._originalEditorModels.values());
 				if (!result || this._disposed || this._model.isDisposed() || editorModels.some(editorModel => editorModel.isDisposed())) {
-					return; // disposed
+					return;
 				}
 
 				this.setChanges(result.allChanges, result.changes, result.mapChanges, result.versionId);
@@ -261,14 +248,12 @@ export class QuickDiffModel extends Disposable {
 			const versionId = this._model.textEditorModel.getVersionId();
 			const originalURIs = await this.getQuickDiffsPromise();
 			if (this._disposed || this._model.isDisposed() || (originalURIs.length === 0)) {
-				// Disposed
 				return Promise.resolve({ allChanges: [], changes: [], mapChanges: new Map(), versionId });
 			}
 
 			const quickDiffs = originalURIs
 				.filter(quickDiff => this.editorWorkerService.canComputeDirtyDiff(quickDiff.originalResource, this._model.resource));
 			if (quickDiffs.length === 0) {
-				// All files are too large
 				return Promise.resolve({ allChanges: [], changes: [], mapChanges: new Map(), versionId });
 			}
 
@@ -288,19 +273,12 @@ export class QuickDiffModel extends Disposable {
 					for (let index = 0; index < diff.changes.length; index++) {
 						const change2 = diff.changes2[index];
 
-						// The secondary diffs are complimentary to the primary diffs, and
-						// they can overlap. We need to remove the secondary quick diffs that
-						// overlap for the UI, but we need to expose all diffs through the API.
 						if (quickDiffPrimary && quickDiff.kind === 'secondary') {
-							// Check whether the:
-							// 1. the modified line range is equal
-							// 2. the original line range length is equal
 							const primaryQuickDiffChange = diffs
 								.find(d => d.change2.modified.equals(change2.modified) &&
 									d.change2.original.length === change2.original.length);
 
 							if (primaryQuickDiffChange) {
-								// Check whether the original content matches
 								const primaryModel = this._originalEditorModels.get(quickDiffPrimary.originalResource)?.textEditorModel;
 								const primaryContent = primaryModel?.getValueInRange(primaryQuickDiffChange.change2.toRangeMapping().originalRange);
 
@@ -363,7 +341,7 @@ export class QuickDiffModel extends Disposable {
 		}
 
 		this._quickDiffsPromise = this.getOriginalResource().then(async (quickDiffs) => {
-			if (this._disposed) { // disposed
+			if (this._disposed) {
 				return [];
 			}
 
@@ -388,7 +366,7 @@ export class QuickDiffModel extends Disposable {
 			return (await Promise.all(quickDiffs.map(async (quickDiff) => {
 				try {
 					const ref = await this.textModelResolverService.createModelReference(quickDiff.originalResource);
-					if (this._disposed) { // disposed
+					if (this._disposed) {
 						ref.dispose();
 						return [];
 					}
@@ -408,7 +386,7 @@ export class QuickDiffModel extends Disposable {
 
 					return quickDiff;
 				} catch (error) {
-					return []; // possibly invalid reference
+					return [];
 				}
 			}))).flat();
 		});
@@ -424,7 +402,6 @@ export class QuickDiffModel extends Disposable {
 		}
 		const uri = this._model.resource;
 
-		// disable dirty diff when doing chat edits
 		const isBeingModifiedByChatEdits = this._chatEditingService.editingSessionsObs.get()
 			.some(session => session.getEntry(uri)?.state.get() === ModifiedFileEntryState.Modified);
 		if (isBeingModifiedByChatEdits) {
@@ -445,7 +422,6 @@ export class QuickDiffModel extends Disposable {
 				continue;
 			}
 
-			// Skip quick diffs that are not visible
 			if (!visibleQuickDiffIds.has(this.changes[i].providerId)) {
 				continue;
 			}
@@ -476,7 +452,6 @@ export class QuickDiffModel extends Disposable {
 				continue;
 			}
 
-			// Skip quick diffs that are not visible
 			if (!visibleQuickDiffIds.has(this.changes[i].providerId)) {
 				continue;
 			}

@@ -12,9 +12,6 @@ import { ITestDiagnostic } from './diagnosticsProvider';
 import { ensurePythonVEnv } from './python';
 import { LintingDiagnosticsProvider } from './utils';
 
-/**
- * Class which finds python rule tooling diagnostic erors
- */
 export class RuffDiagnosticsProvider extends LintingDiagnosticsProvider {
 
 	override readonly id = 'ruff';
@@ -22,7 +19,6 @@ export class RuffDiagnosticsProvider extends LintingDiagnosticsProvider {
 	override readonly cacheScope = CacheScope.Ruff;
 
 	private get ruffConfig(): string {
-		// pyproject.toml
 		return `
 [tool.ruff]
 select = ["ALL"]

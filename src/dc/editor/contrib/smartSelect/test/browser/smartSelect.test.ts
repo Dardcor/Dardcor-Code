@@ -31,7 +31,7 @@ suite('SmartSelect', () => {
 	const OriginalBracketSelectionRangeProviderMaxDuration = BracketSelectionRangeProvider._maxDuration;
 
 	suiteSetup(() => {
-		BracketSelectionRangeProvider._maxDuration = 5000; // 5 seconds
+		BracketSelectionRangeProvider._maxDuration = 5000;
 	});
 
 	suiteTeardown(() => {
@@ -87,20 +87,20 @@ suite('SmartSelect', () => {
 			'\t}',
 			'}'
 		], 3, 20, [
-			new Range(1, 1, 5, 2), // all
-			new Range(1, 21, 5, 2), // {} outside
-			new Range(1, 22, 5, 1), // {} inside
-			new Range(2, 1, 4, 3), // block
+			new Range(1, 1, 5, 2),
+			new Range(1, 21, 5, 2),
+			new Range(1, 22, 5, 1),
+			new Range(2, 1, 4, 3),
 			new Range(2, 1, 4, 3),
 			new Range(2, 2, 4, 3),
 			new Range(2, 11, 4, 3),
 			new Range(2, 12, 4, 2),
-			new Range(3, 1, 3, 27), // line w/ triva
-			new Range(3, 3, 3, 27), // line w/o triva
-			new Range(3, 10, 3, 27), // () outside
-			new Range(3, 11, 3, 26), // () inside
-			new Range(3, 17, 3, 26), // () outside
-			new Range(3, 18, 3, 25), // () inside
+			new Range(3, 1, 3, 27),
+			new Range(3, 3, 3, 27),
+			new Range(3, 10, 3, 27),
+			new Range(3, 11, 3, 26),
+			new Range(3, 17, 3, 26),
+			new Range(3, 18, 3, 25),
 		]);
 	});
 
@@ -111,9 +111,9 @@ suite('SmartSelect', () => {
 			'\tbbb',
 			''
 		], 2, 3, [
-			new Range(1, 1, 3, 1), // all
-			new Range(2, 1, 2, 5), // line w/ triva
-			new Range(2, 2, 2, 5), // bbb
+			new Range(1, 1, 3, 1),
+			new Range(2, 1, 2, 5),
+			new Range(2, 2, 2, 5),
 		], true);
 
 		await assertGetRangesToPosition([
@@ -121,8 +121,8 @@ suite('SmartSelect', () => {
 			'\tbbb',
 			''
 		], 2, 3, [
-			new Range(1, 1, 3, 1), // all
-			new Range(2, 2, 2, 5), // () inside
+			new Range(1, 1, 3, 1),
+			new Range(2, 2, 2, 5),
 		], false);
 	});
 
@@ -155,16 +155,16 @@ suite('SmartSelect', () => {
 			'\t}',
 			'}'
 		], 3, 1, [
-			new Range(1, 1, 5, 2), // all
-			new Range(1, 21, 5, 2), // {} outside
-			new Range(1, 22, 5, 1), // {} inside
+			new Range(1, 1, 5, 2),
+			new Range(1, 21, 5, 2),
+			new Range(1, 22, 5, 1),
 			new Range(2, 1, 4, 3),
 			new Range(2, 1, 4, 3),
 			new Range(2, 2, 4, 3),
 			new Range(2, 11, 4, 3),
 			new Range(2, 12, 4, 2),
-			new Range(3, 1, 3, 2), // block
-			new Range(3, 1, 3, 2) // empty line
+			new Range(3, 1, 3, 2),
+			new Range(3, 1, 3, 2)
 		]);
 	});
 
@@ -176,9 +176,9 @@ suite('SmartSelect', () => {
 			'( ) '
 		], 2, 3, [
 			new Range(1, 1, 3, 5),
-			new Range(2, 1, 2, 6), // line w/ triava
-			new Range(2, 2, 2, 5), // {} inside, line w/o triva
-			new Range(2, 3, 2, 4) // {} inside
+			new Range(2, 1, 2, 6),
+			new Range(2, 2, 2, 5),
+			new Range(2, 3, 2, 4)
 		]);
 	});
 
@@ -189,10 +189,10 @@ suite('SmartSelect', () => {
 			' { } ',
 			'  ( ) '
 		], 1, 3, [
-			new Range(1, 1, 3, 7), // all
-			new Range(1, 1, 1, 5), // line w/ trival
-			new Range(1, 2, 1, 4), // [] outside, line w/o trival
-			new Range(1, 3, 1, 3), // [] inside
+			new Range(1, 1, 3, 7),
+			new Range(1, 1, 1, 5),
+			new Range(1, 2, 1, 4),
+			new Range(1, 3, 1, 3),
 		]);
 	});
 
@@ -203,14 +203,13 @@ suite('SmartSelect', () => {
 			' { } ',
 			'selectthis( ) '
 		], 3, 11, [
-			new Range(1, 1, 3, 15), // all
-			new Range(3, 1, 3, 15), // line w/ trivia
-			new Range(3, 1, 3, 14), // line w/o trivia
-			new Range(3, 1, 3, 11) // word
+			new Range(1, 1, 3, 15),
+			new Range(3, 1, 3, 15),
+			new Range(3, 1, 3, 14),
+			new Range(3, 1, 3, 11)
 		]);
 	});
 
-	// -- bracket selections
 
 	async function assertRanges(provider: SelectionRangeProvider, value: string, ...expected: IRange[]): Promise<void> {
 		const index = value.indexOf('|');
@@ -236,9 +235,9 @@ suite('SmartSelect', () => {
 		);
 
 		await assertRanges(new BracketSelectionRangeProvider(), '[[[](|)]]',
-			new Range(1, 6, 1, 6), new Range(1, 5, 1, 7), // ()
-			new Range(1, 3, 1, 7), new Range(1, 2, 1, 8), // [[]()]
-			new Range(1, 2, 1, 8), new Range(1, 1, 1, 9), // [[[]()]]
+			new Range(1, 6, 1, 6), new Range(1, 5, 1, 7),
+			new Range(1, 3, 1, 7), new Range(1, 2, 1, 8),
+			new Range(1, 2, 1, 8), new Range(1, 1, 1, 9),
 		);
 
 		await assertRanges(new BracketSelectionRangeProvider(), '[a[](|)a]',
@@ -246,14 +245,11 @@ suite('SmartSelect', () => {
 			new Range(1, 2, 1, 8), new Range(1, 1, 1, 9),
 		);
 
-		// no bracket
 		await assertRanges(new BracketSelectionRangeProvider(), 'fofof|fofo');
 
-		// empty
 		await assertRanges(new BracketSelectionRangeProvider(), '[[[]()]]|');
 		await assertRanges(new BracketSelectionRangeProvider(), '|[[[]()]]');
 
-		// edge
 		await assertRanges(new BracketSelectionRangeProvider(), '[|[[]()]]', new Range(1, 2, 1, 8), new Range(1, 1, 1, 9));
 		await assertRanges(new BracketSelectionRangeProvider(), '[[[]()]|]', new Range(1, 2, 1, 8), new Range(1, 1, 1, 9));
 
@@ -279,9 +275,9 @@ suite('SmartSelect', () => {
 	test('in-word ranges', async () => {
 
 		await assertRanges(new WordSelectionRangeProvider(), 'f|ooBar',
-			new Range(1, 1, 1, 4), // foo
-			new Range(1, 1, 1, 7), // fooBar
-			new Range(1, 1, 1, 7), // doc
+			new Range(1, 1, 1, 4),
+			new Range(1, 1, 1, 7),
+			new Range(1, 1, 1, 7),
 		);
 
 		await assertRanges(new WordSelectionRangeProvider(), 'f|oo_Ba',
@@ -367,9 +363,9 @@ suite('SmartSelect', () => {
 		});
 
 		await assertGetRangesToPosition(['type T = {', '\tx: number', '}'], 1, 10, [
-			new Range(1, 1, 3, 2), // all
-			new Range(1, 10, 3, 2), // { ... }
-			new Range(1, 10, 1, 11), // {
+			new Range(1, 1, 3, 2),
+			new Range(1, 10, 3, 2),
+			new Range(1, 10, 1, 11),
 		]);
 
 		reg.dispose();

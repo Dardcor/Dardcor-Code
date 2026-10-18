@@ -219,7 +219,6 @@ suite('ExtHostTypes', function () {
 	});
 
 	test('Range, sorting', function () {
-		// sorts start/end
 		let range = new types.Range(1, 0, 0, 0);
 		assert.strictEqual(range.start.line, 0);
 		assert.strictEqual(range.end.line, 1);
@@ -619,7 +618,6 @@ suite('ExtHostTypes', function () {
 
 	test('CancellationError', function () {
 		// The CancellationError-type is used internally and exported as API. Make sure that at
-		// its name and message are `Canceled`
 		const err = new CancellationError();
 		assert.strictEqual(err.name, 'Canceled');
 		assert.strictEqual(err.message, 'Canceled');
@@ -725,18 +723,15 @@ suite('ExtHostTypes', function () {
 	test('NotebookCellOutputItem - factories', function () {
 
 		assert.throws(() => {
-			// invalid mime type
 			new types.NotebookCellOutputItem(new Uint8Array(), 'invalid');
 		});
 
-		// --- err
 
 		let item = types.NotebookCellOutputItem.error(new Error());
 		assert.strictEqual(item.mime, 'application/vnd.code.notebook.error');
 		item = types.NotebookCellOutputItem.error({ name: 'Hello' });
 		assert.strictEqual(item.mime, 'application/vnd.code.notebook.error');
 
-		// --- JSON
 
 		item = types.NotebookCellOutputItem.json(1);
 		assert.strictEqual(item.mime, 'text/x-json');
@@ -754,7 +749,6 @@ suite('ExtHostTypes', function () {
 		assert.strictEqual(item.mime, 'text/x-json');
 		assert.deepStrictEqual(item.data, new TextEncoder().encode(JSON.stringify([true, 1, 'ddd'], undefined, '\t')));
 
-		// --- text
 
 		item = types.NotebookCellOutputItem.text('Hęłlö');
 		assert.strictEqual(item.mime, Mimes.text);
@@ -782,7 +776,6 @@ suite('ExtHostTypes', function () {
 	});
 
 	test('runtime stable, type-def changed', function () {
-		// see https://github.com/microsoft/vscode/issues/231938
 		const m = new types.LanguageModelChatMessage(types.LanguageModelChatMessageRole.User, []);
 		assert.deepStrictEqual(m.content, []);
 		m.content = 'Hello';

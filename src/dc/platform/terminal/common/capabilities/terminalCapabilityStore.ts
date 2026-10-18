@@ -57,7 +57,6 @@ export class TerminalCapabilityStore extends Disposable implements ITerminalCapa
 	}
 
 	get<T extends TerminalCapability>(capability: T): ITerminalCapabilityImplMap[T] | undefined {
-		// HACK: This isn't totally safe since the Map key and value are not connected
 		return this._map.get(capability) as ITerminalCapabilityImplMap[T] | undefined;
 	}
 
@@ -158,8 +157,6 @@ export class TerminalCapabilityStoreMultiplexer extends Disposable implements IT
 }
 
 function createCapabilityEvent<T extends TerminalCapability>(capability: T, impl: ITerminalCapabilityImplMap[T]): AnyTerminalCapabilityChangeEvent {
-	// HACK: This cast is required to convert a generic type to a discriminated union, this is
-	// necessary in order to enable type narrowing on the event consumer side.
 	// eslint-disable-next-line local/code-no-dangerous-type-assertions
 	return { id: capability, capability: impl } as AnyTerminalCapabilityChangeEvent;
 }

@@ -27,17 +27,14 @@ suite.skip('TypeScript Completions', () => {
 	let oldConfig: { [key: string]: any } = {};
 
 	setup(async () => {
-		// the tests assume that typescript features are registered
 		await vscode.extensions.getExtension('vscode.typescript-language-features')!.activate();
 
-		// Save off config and apply defaults
 		oldConfig = await updateConfig(testDocumentUri, configDefaults);
 	});
 
 	teardown(async () => {
 		disposeAll(_disposables);
 
-		// Restore config
 		await updateConfig(testDocumentUri, oldConfig);
 
 		return vscode.commands.executeCommand('workbench.action.closeAllEditors');
@@ -139,7 +136,6 @@ suite.skip('TypeScript Completions', () => {
 
 	test('Should not prioritize bracket accessor completions. #63100', async () => {
 		await enumerateConfig(testDocumentUri, Config.insertMode, insertModes, async config => {
-			// 'a' should be first entry in completion list
 			const editor = await createTestEditor(testDocumentUri,
 				'const x = { "z-z": 1, a: 1 };',
 				'x.$0'
@@ -182,7 +178,6 @@ suite.skip('TypeScript Completions', () => {
 	test('completeFunctionCalls should complete function parameters when at end of word', async () => {
 		await updateConfig(testDocumentUri, { [Config.completeFunctionCalls]: true });
 
-		// Complete with-in word
 		const editor = await createTestEditor(testDocumentUri,
 			`function abcdef(x, y, z) { }`,
 			`abcdef$0`
@@ -427,7 +422,6 @@ suite.skip('TypeScript Completions', () => {
 			));
 	});
 
-	// Waiting on https://github.com/microsoft/TypeScript/issues/35602
 	test.skip('Accepting string completion inside string using insert mode should insert', async () => {
 		await updateConfig(testDocumentUri, { [Config.insertMode]: 'replace' });
 

@@ -12,12 +12,8 @@ type MessageToSend = { editorId: string; rendererId: string; message: unknown };
 
 export class NotebookRendererMessagingService extends Disposable implements INotebookRendererMessagingService {
 	declare _serviceBrand: undefined;
-	/**
-	 * Activation promises. Maps renderer IDs to a queue of messages that should
-	 * be sent once activation finishes, or undefined if activation is complete.
-	 */
-	private readonly activations = new Map<string /* rendererId */, undefined | MessageToSend[]>();
-	private readonly scopedMessaging = new Map</* editorId */ string, IScopedRendererMessaging>();
+	private readonly activations = new Map<string , undefined | MessageToSend[]>();
+	private readonly scopedMessaging = new Map< string, IScopedRendererMessaging>();
 	private readonly postMessageEmitter = this._register(new Emitter<MessageToSend>());
 	public readonly onShouldPostMessage = this.postMessageEmitter.event;
 
@@ -27,7 +23,6 @@ export class NotebookRendererMessagingService extends Disposable implements INot
 		super();
 	}
 
-	/** @inheritdoc */
 	public receiveMessage(editorId: string | undefined, rendererId: string, message: unknown): Promise<boolean> {
 		if (editorId === undefined) {
 			const sends = [...this.scopedMessaging.values()].map(e => e.receiveMessageHandler?.(rendererId, message));
@@ -37,7 +32,6 @@ export class NotebookRendererMessagingService extends Disposable implements INot
 		return this.scopedMessaging.get(editorId)?.receiveMessageHandler?.(rendererId, message) ?? Promise.resolve(false);
 	}
 
-	/** @inheritdoc */
 	public prepare(rendererId: string) {
 		if (this.activations.has(rendererId)) {
 			return;
@@ -55,7 +49,6 @@ export class NotebookRendererMessagingService extends Disposable implements INot
 		});
 	}
 
-	/** @inheritdoc */
 	public getScoped(editorId: string): IScopedRendererMessaging {
 		const existing = this.scopedMessaging.get(editorId);
 		if (existing) {

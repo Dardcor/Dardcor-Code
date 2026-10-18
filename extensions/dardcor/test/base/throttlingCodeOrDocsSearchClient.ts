@@ -21,7 +21,7 @@ export class ThrottlingCodeOrDocsSearchClient implements IDocsSearchClient {
 	) {
 		this.searchClient = instantiationService.createInstance(descriptor);
 		this._throttler = new ThrottledWorker({
-			maxBufferedWork: undefined, // We want to hold as many requests as possible
+			maxBufferedWork: undefined,
 			maxWorkChunkSize: 1,
 			waitThrottleDelayBetweenWorkUnits: true,
 			throttleDelay: 1000

@@ -70,13 +70,10 @@ export class NativeMenubarControl extends MenubarControl {
 	}
 
 	protected doUpdateMenubar(): void {
-		// Since the native menubar is shared between windows (main process)
-		// only allow the focused window to update the menubar
 		if (!this.hostService.hasFocus) {
 			return;
 		}
 
-		// Send menus to main process to be rendered by Electron
 		const menubarData = { menus: {}, keybindings: {} };
 		if (this.getMenubarMenus(menubarData)) {
 			this.menubarService.updateMenubar(this.nativeHostService.windowId, menubarData);
@@ -96,7 +93,7 @@ export class NativeMenubarControl extends MenubarControl {
 				const menuActions = getFlatContextMenuActions(menu.getActions({ shouldForwardArgs: true }));
 				this.populateMenuItems(menuActions, menubarMenu, menubarData.keybindings);
 				if (menubarMenu.items.length === 0) {
-					return false; // Menus are incomplete
+					return false;
 				}
 				menubarData.menus[topLevelMenuName] = menubarMenu;
 			}
@@ -111,7 +108,6 @@ export class NativeMenubarControl extends MenubarControl {
 				menuToPopulate.items.push({ id: 'vscode.menubar.separator' });
 			} else if (menuItem instanceof MenuItemAction || menuItem instanceof SubmenuItemAction) {
 
-				// use mnemonicTitle whenever possible
 				const title = typeof menuItem.item.title === 'string'
 					? menuItem.item.title
 					: menuItem.item.title.mnemonicTitle ?? menuItem.item.title.value;
@@ -192,13 +188,11 @@ export class NativeMenubarControl extends MenubarControl {
 			return undefined;
 		}
 
-		// first try to resolve a native accelerator
 		const electronAccelerator = binding.getElectronAccelerator();
 		if (electronAccelerator) {
 			return { label: electronAccelerator, userSettingsLabel: binding.getUserSettingsLabel() ?? undefined };
 		}
 
-		// we need this fallback to support keybindings that cannot show in electron menus (e.g. chords)
 		const acceleratorLabel = binding.getLabel();
 		if (acceleratorLabel) {
 			return { label: acceleratorLabel, isNative: false, userSettingsLabel: binding.getUserSettingsLabel() ?? undefined };

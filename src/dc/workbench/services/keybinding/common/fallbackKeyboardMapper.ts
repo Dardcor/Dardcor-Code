@@ -9,9 +9,6 @@ import { IKeyboardEvent } from '../../../../platform/keybinding/common/keybindin
 import { USLayoutResolvedKeybinding } from '../../../../platform/keybinding/common/usLayoutResolvedKeybinding.js';
 import { IKeyboardMapper } from '../../../../platform/keyboardLayout/common/keyboardMapper.js';
 
-/**
- * A keyboard mapper to be used when reading the keymap from the OS fails.
- */
 export class FallbackKeyboardMapper implements IKeyboardMapper {
 
 	constructor(

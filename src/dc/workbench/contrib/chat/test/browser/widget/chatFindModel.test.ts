@@ -10,12 +10,10 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/
 import { ChatFindModel } from '../../../browser/widget/chatFind/chatFindModel.js';
 import { ChatTreeItem } from '../../../browser/chat.js';
 
-/** Builds a minimal fake request item satisfying `isRequestVM` (`'message' in item`). */
 function fakeRequest(id: string, messageText: string): ChatTreeItem {
 	return { id, message: {}, messageText } as unknown as ChatTreeItem;
 }
 
-/** Builds a minimal fake response item satisfying `isResponseVM` (`typeof item.setVote !== 'undefined'`). */
 function fakeResponse(id: string, value: unknown[], errorDetails?: { message: string; responseIsFiltered?: boolean }, codeCitations?: unknown[]): ChatTreeItem {
 	const response = { value };
 	return {
@@ -25,7 +23,6 @@ function fakeResponse(id: string, value: unknown[], errorDetails?: { message: st
 		errorDetails,
 		codeCitations,
 		isCanceled: false,
-		// Error details only render for a final, uncanceled response; see `isErrorDetailsRendered`.
 		model: { response, entireResponse: response },
 	} as unknown as ChatTreeItem;
 }
@@ -57,8 +54,6 @@ suite('ChatFindModel', () => {
 		const model = new ChatFindModel(() => items);
 		model.setQuery('array', { isRegex: false, matchCase: false, wholeWord: false });
 
-		// One "array" in the request, two in the response markdown text. Navigation runs newest
-		// first, so the response's matches come before the request's, in reverse order.
 		assert.deepStrictEqual(model.matches.map(match => ({ itemId: match.itemId, occurrenceIndex: match.occurrenceIndex })), [
 			{ itemId: 'resp1', occurrenceIndex: 1 },
 			{ itemId: 'resp1', occurrenceIndex: 0 },
@@ -68,8 +63,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('does not index reasoning or tool invocations', () => {
-		// Where a tool renders is decided during rendering, and reasoning bodies are built on
-		// expansion, so indexing either makes the count depend on how far the transcript has drawn.
 		const items = [
 			fakeResponse('resp1', [
 				thinking('I should check the needle in this haystack first.'),
@@ -86,8 +79,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('match count does not change when the renderer marks a tool as grouped', () => {
-		// `isAttachedToThinking` is assigned while rendering; the index must not read it, or the
-		// count would drop as rows draw and navigation would target vanishing matches.
 		const tool = toolInvocation('Searching needle', 'Searched needle') as Record<string, unknown>;
 		const items = [fakeResponse('resp1', [tool, markdown('needle in prose')])];
 		const model = new ChatFindModel(() => items);
@@ -103,8 +94,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('does not index error details the renderer replaces or omits', () => {
-		// Canceled responses drop the error part, and the quota/rate-limit variants render fixed
-		// copy instead of the message, so indexing it would count unreachable matches.
 		const canceled = fakeResponse('resp1', [], { message: 'needle failure' }) as unknown as Record<string, unknown>;
 		canceled.isCanceled = true;
 		const quota = fakeResponse('resp2', [], { message: 'needle failure' }) as unknown as Record<string, unknown>;
@@ -119,8 +108,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('caps the total match count, keeping the newest', () => {
-		// Two segments that each exceed the cap on their own: the total must still be bounded,
-		// and truncation must drop the oldest rather than the most recent.
 		const many = new Array(9000).fill('needle').join(' ');
 		const items = [
 			fakeResponse('resp1', [markdown(many)]),
@@ -136,8 +123,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('a single over-limit segment keeps its newest occurrences', () => {
-		// Truncating a segment from the front would retain occurrences 0..9998 and drop the very
-		// matches navigation reaches first.
 		const items = [fakeResponse('resp1', [markdown(new Array(10_500).fill('needle').join(' '))])];
 		const model = new ChatFindModel(() => items);
 		model.setQuery('needle', { isRegex: false, matchCase: false, wholeWord: false });
@@ -155,7 +140,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('starts at the match nearest the viewport rather than the end of the transcript', () => {
-		// Most of a chat is in the past, so Find starts from what the user is looking at.
 		const items = [
 			fakeResponse('resp1', [markdown('needle one')]),
 			fakeResponse('resp2', [markdown('needle two')]),
@@ -223,9 +207,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('does not index markdown link targets, which never render as text', () => {
-		// Reproduces a real transcript: a response listing edited files as markdown links whose
-		// targets repeat the branch name. Only the link label is rendered, so counting the target
-		// inflates the total with matches navigation can never reach.
 		const items = [
 			fakeRequest('req1', 'Change port to 1242'),
 			fakeResponse('resp1', [markdown([
@@ -239,7 +220,6 @@ suite('ChatFindModel', () => {
 		const model = new ChatFindModel(() => items);
 		model.setQuery('chang', { isRegex: false, matchCase: false, wholeWord: false });
 
-		// "Change port to 1242" and "Changes include:" — not the three link targets.
 		assert.deepStrictEqual(model.matches.map(match => match.itemId), ['resp1', 'req1']);
 		model.dispose();
 	});
@@ -254,9 +234,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('does not fuse parts the renderer merges into one block', () => {
-		// An inline reference splits the surrounding markdown into three parts that render as one
-		// line. Concatenating their trimmed text would index `Seefoo.tsfor details`, hiding the
-		// sentence that is actually on screen.
 		const items = [fakeResponse('resp1', [
 			markdown('See '),
 			inlineReference('/repo/foo.ts'),
@@ -282,8 +259,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('does not index a filtered response, whose content the renderer drops', () => {
-		// A filtered response renders only its error message; the references slot, the body and
-		// the citations are all dropped, so indexing the body counts unreachable matches.
 		const items = [fakeResponse(
 			'resp1',
 			[markdown('needle in the body')],
@@ -310,7 +285,6 @@ suite('ChatFindModel', () => {
 			partIndex: match.partIndex,
 			scopeStartPartIndex: match.scopeStartPartIndex,
 		})), [
-			// Row-level text starts at 0: nothing of the response body precedes it.
 			{ partIndex: -1, scopeStartPartIndex: 0 },
 		]);
 		model.dispose();
@@ -402,8 +376,6 @@ suite('ChatFindModel', () => {
 	});
 
 	test('scopes error-detail matches past code citations as well as the response body', () => {
-		// The same word appears in the body and in the error, so the error match must not be
-		// resolved against the body or citation occurrences when it is revealed.
 		const items = [fakeResponse('resp1', [markdown('needle in the body')], { message: 'failed: needle' }, [{ value: 'cite' }])];
 		const model = new ChatFindModel(() => items);
 		model.setQuery('needle', { isRegex: false, matchCase: false, wholeWord: false });
@@ -427,7 +399,6 @@ suite('ChatFindModel', () => {
 		const anchoredMatch = model.activeMatch;
 		assert.ok(anchoredMatch);
 
-		// Simulate a streaming update that adds more content before the match.
 		items = [fakeResponse('resp1', [markdown('prefix content'), markdown('alpha needle beta')])];
 		model.recompute();
 
@@ -444,7 +415,6 @@ suite('ChatFindModel', () => {
 		model.setQuery('needle', { isRegex: false, matchCase: false, wholeWord: false });
 		assert.strictEqual(model.matches.length, 1);
 		model.dispose();
-		// clear() after dispose should be a safe no-op (no listeners are dispatched).
 		model.clear();
 		assert.strictEqual(model.matches.length, 0);
 	});

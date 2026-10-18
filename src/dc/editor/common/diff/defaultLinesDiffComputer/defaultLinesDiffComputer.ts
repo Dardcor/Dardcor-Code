@@ -65,7 +65,6 @@ export class DefaultLinesDiffComputer implements ILinesDiffComputer {
 
 		const lineAlignmentResult = (() => {
 			if (sequence1.length + sequence2.length < 1700) {
-				// Use the improved algorithm for small files
 				return this.dynamicProgrammingDiffing.compute(
 					sequence1,
 					sequence2,
@@ -102,7 +101,6 @@ export class DefaultLinesDiffComputer implements ILinesDiffComputer {
 				const seq1Offset = seq1LastStart + i;
 				const seq2Offset = seq2LastStart + i;
 				if (originalLines[seq1Offset] !== modifiedLines[seq2Offset]) {
-					// This is because of whitespace changes, diff these lines
 					const characterDiffs = this.refineDiff(originalLines, modifiedLines, new SequenceDiff(
 						new OffsetRange(seq1Offset, seq1Offset + 1),
 						new OffsetRange(seq2Offset, seq2Offset + 1),
@@ -151,7 +149,6 @@ export class DefaultLinesDiffComputer implements ILinesDiffComputer {
 			moves = this.computeMoves(changes, originalLines, modifiedLines, originalLinesHashes, modifiedLinesHashes, timeout, considerWhitespaceChanges, options);
 		}
 
-		// Make sure all ranges are valid
 		assertFn(() => {
 			function validatePosition(pos: Position, lines: string[]): boolean {
 				if (pos.lineNumber < 1 || pos.lineNumber > lines.length) { return false; }
@@ -254,7 +251,6 @@ export class DefaultLinesDiffComputer implements ILinesDiffComputer {
 
 		if (check) { RangeMapping.assertSorted(result); }
 
-		// Assert: result applied on original should be the same as diff applied to original
 
 		return {
 			mappings: result,

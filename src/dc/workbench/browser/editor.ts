@@ -21,33 +21,16 @@ import { IEditorGroup } from '../services/editor/common/editorGroupsService.js';
 import { Iterable } from '../../base/common/iterator.js';
 import { Emitter } from '../../base/common/event.js';
 
-//#region Editor Pane Registry
 
 export interface IEditorPaneDescriptor extends ICommonEditorDescriptor<EditorPane> { }
 
 export interface IEditorPaneRegistry {
 
-	/**
-	 * Registers an editor pane to the platform for the given editor type. The second parameter also supports an
-	 * array of input classes to be passed in. If the more than one editor is registered for the same editor
-	 * input, the input itself will be asked which editor it prefers if this method is provided. Otherwise
-	 * the first editor in the list will be returned.
-	 *
-	 * @param editorDescriptors A set of constructor functions that return an instance of `EditorInput` for which the
-	 * registered editor should be used for.
-	 */
 	registerEditorPane(editorPaneDescriptor: IEditorPaneDescriptor, editorDescriptors: readonly SyncDescriptor<EditorInput>[]): IDisposable;
 
-	/**
-	 * Returns the editor pane descriptor for the given editor or `undefined` if none.
-	 */
 	getEditorPane(editor: EditorInput): IEditorPaneDescriptor | undefined;
 }
 
-/**
- * A lightweight descriptor of an editor pane. The descriptor is deferred so that heavy editor
- * panes can load lazily in the workbench.
- */
 export class EditorPaneDescriptor implements IEditorPaneDescriptor {
 
 	private static readonly instantiatedEditorPanes = new Set<string>();
@@ -120,13 +103,11 @@ export class EditorPaneRegistry implements IEditorPaneRegistry {
 			for (const editorDescriptor of editorDescriptors) {
 				const editorClass = editorDescriptor.ctor;
 
-				// Direct check on constructor type (ignores prototype chain)
 				if (!byInstanceOf && editor.constructor === editorClass) {
 					matchingEditorPaneDescriptors.push(editorPane);
 					break;
 				}
 
-				// Normal instanceof check
 				else if (byInstanceOf && editor instanceof editorClass) {
 					matchingEditorPaneDescriptors.push(editorPane);
 					break;
@@ -134,7 +115,6 @@ export class EditorPaneRegistry implements IEditorPaneRegistry {
 			}
 		}
 
-		// If no descriptors found, continue search using instanceof and prototype chain
 		if (!byInstanceOf && matchingEditorPaneDescriptors.length === 0) {
 			return this.findEditorPaneDescriptors(editor, true);
 		}
@@ -142,7 +122,6 @@ export class EditorPaneRegistry implements IEditorPaneRegistry {
 		return matchingEditorPaneDescriptors;
 	}
 
-	//#region Used for tests only
 
 	getEditorPaneByType(typeId: string): EditorPaneDescriptor | undefined {
 		return Iterable.find(this.mapEditorPanesToEditors.keys(), editor => editor.typeId === typeId);
@@ -164,14 +143,11 @@ export class EditorPaneRegistry implements IEditorPaneRegistry {
 		return editorClasses;
 	}
 
-	//#endregion
 }
 
 Registry.add(EditorExtensions.EditorPane, new EditorPaneRegistry());
 
-//#endregion
 
-//#region Editor Close Tracker
 
 export function whenEditorClosed(accessor: ServicesAccessor, resources: URI[]): Promise<void> {
 	const editorService = accessor.get(IEditorService);
@@ -181,19 +157,14 @@ export function whenEditorClosed(accessor: ServicesAccessor, resources: URI[]): 
 	return new Promise(resolve => {
 		let remainingResources = [...resources];
 
-		// Observe any editor closing from this moment on
 		const listener = editorService.onDidCloseEditor(async event => {
 			if (event.context === EditorCloseContext.MOVE) {
-				return; // ignore move events where the editor will open in another group
+				return;
 			}
 
 			let primaryResource = EditorResourceAccessor.getOriginalUri(event.editor, { supportSideBySide: SideBySideEditor.PRIMARY });
 			let secondaryResource = EditorResourceAccessor.getOriginalUri(event.editor, { supportSideBySide: SideBySideEditor.SECONDARY });
 
-			// Specially handle an editor getting replaced: if the new active editor
-			// matches any of the resources from the closed editor, ignore those
-			// resources because they were actually not closed, but replaced.
-			// (see https://github.com/microsoft/vscode/issues/134299)
 			if (event.context === EditorCloseContext.REPLACE) {
 				const newPrimaryResource = EditorResourceAccessor.getOriginalUri(editorService.activeEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
 				const newSecondaryResource = EditorResourceAccessor.getOriginalUri(editorService.activeEditor, { supportSideBySide: SideBySideEditor.SECONDARY });
@@ -207,21 +178,12 @@ export function whenEditorClosed(accessor: ServicesAccessor, resources: URI[]): 
 				}
 			}
 
-			// Remove from resources to wait for being closed based on the
-			// resources from editors that got closed
 			remainingResources = remainingResources.filter(resource => {
 
-				// Closing editor matches resource directly: remove from remaining
 				if (uriIdentityService.extUri.isEqual(resource, primaryResource) || uriIdentityService.extUri.isEqual(resource, secondaryResource)) {
 					return false;
 				}
 
-				// Closing editor is untitled with associated resource
-				// that matches resource directly: remove from remaining
-				// but only if the editor was not replaced, otherwise
-				// saving an untitled with associated resource would
-				// release the `--wait` call.
-				// (see https://github.com/microsoft/vscode/issues/141237)
 				if (event.context !== EditorCloseContext.REPLACE) {
 					if (
 						(primaryResource?.scheme === Schemas.untitled && uriIdentityService.extUri.isEqual(resource, primaryResource.with({ scheme: resource.scheme }))) ||
@@ -231,25 +193,18 @@ export function whenEditorClosed(accessor: ServicesAccessor, resources: URI[]): 
 					}
 				}
 
-				// Editor is not yet closed, so keep it in waiting mode
 				return true;
 			});
 
-			// All resources to wait for being closed are closed
 			if (remainingResources.length === 0) {
 
-				// If auto save is configured with the default delay (1s) it is possible
-				// to close the editor while the save still continues in the background. As such
-				// we have to also check if the editors to track for are dirty and if so wait
-				// for them to get saved.
 				const dirtyResources = resources.filter(resource => workingCopyService.isDirty(resource));
 				if (dirtyResources.length > 0) {
 					await Promises.settled(dirtyResources.map(async resource => await new Promise<void>(resolve => {
 						if (!workingCopyService.isDirty(resource)) {
-							return resolve(); // return early if resource is not dirty
+							return resolve();
 						}
 
-						// Otherwise resolve promise when resource is saved
 						const listener = workingCopyService.onDidChangeDirty(workingCopy => {
 							if (!workingCopy.isDirty() && uriIdentityService.extUri.isEqual(resource, workingCopy.resource)) {
 								listener.dispose();
@@ -268,9 +223,7 @@ export function whenEditorClosed(accessor: ServicesAccessor, resources: URI[]): 
 	});
 }
 
-//#endregion
 
-//#region ARIA
 
 export function computeEditorAriaLabel(input: EditorInput, index: number | undefined, group: IEditorGroup | undefined, groupCount: number | undefined): string {
 	let ariaLabel = input.getAriaLabel();
@@ -282,9 +235,6 @@ export function computeEditorAriaLabel(input: EditorInput, index: number | undef
 		ariaLabel = localize('pinned', "{0}, pinned", ariaLabel);
 	}
 
-	// Apply group information to help identify in
-	// which group we are (only if more than one group
-	// is actually opened)
 	if (group && typeof groupCount === 'number' && groupCount > 1) {
 		ariaLabel = `${ariaLabel}, ${group.ariaLabel}`;
 	}
@@ -292,4 +242,3 @@ export function computeEditorAriaLabel(input: EditorInput, index: number | undef
 	return ariaLabel;
 }
 
-//#endregion

@@ -48,7 +48,7 @@ export class InlineChatGenerateMarkdownPrompt extends PromptElement<InlineChatGe
 			throw illegalArgument('InlineChatGenerateMarkdownPrompt should only be used with markdown documents!');
 		}
 
-		const isIgnored = await this._ignoreService.isCopilotIgnored(context.document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(context.document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[this.props.documentContext.document.uri]} />;
 		}
@@ -73,7 +73,7 @@ export class InlineChatGenerateMarkdownPrompt extends PromptElement<InlineChatGe
 
 		return (
 			<>
-				{/* <meta value={new ReplyInterpreterMetaData(replyInterpreter)} /> */}
+				{}
 				<SystemMessage priority={1000}>
 					You are an AI programming assistant.<br />
 					When asked for your name, you must respond with "Dardcor Code".<br />
@@ -123,7 +123,7 @@ export class MarkdownBlock extends SafePromptElement<MarkdownBlockProps> {
 	public static FenceSequence = `-+-+-+-+-+`;
 
 	async render(state: void) {
-		const isIgnored = this.props.uri ? await this._ignoreService.isCopilotIgnored(this.props.uri) : false;
+		const isIgnored = this.props.uri ? await this._ignoreService.isIgnored(this.props.uri) : false;
 		if (isIgnored) {
 			return this._handleFoulPrompt();
 		}

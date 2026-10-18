@@ -4,15 +4,15 @@
 	<metadata_license>@@LICENSE@@</metadata_license>
 	<project_license>@@LICENSE@@</project_license>
 	<name>@@NAME_LONG@@</name>
-	<url type="homepage">https://code.visualstudio.com</url>
-	<summary>Visual Studio Code. Code editing. Redefined.</summary>
+	<url type="homepage">https://www.dardcor-code.web.id</url>
+	<summary>Dardcor Code. Editor AI yang cepat dan fleksibel.</summary>
 	<description>
-		<p>Visual Studio Code is a new choice of tool that combines the simplicity of a code editor with what developers need for the core edit-build-debug cycle. See https://code.visualstudio.com/docs/setup/linux for installation instructions and FAQ.</p>
+		<p>Dardcor Code adalah editor pengembangan yang menggabungkan pengalaman mengedit, membangun, men-debug, dan menggunakan agent AI. Lihat https://www.dardcor-code.web.id/docs/setup/linux untuk petunjuk instalasi dan tanya jawab.</p>
 	</description>
 	<screenshots>
 		<screenshot type="default">
-			<image>https://code.visualstudio.com/home/home-screenshot-linux-lg.png</image>
-			<caption>Editing TypeScript and searching for extensions</caption>
+			<image>https://www.dardcor-code.web.id/showcase.png</image>
+			<caption>Mengedit kode dan menjelajahi fitur Dardcor Code</caption>
 		</screenshot>
 	</screenshots>
 </component>

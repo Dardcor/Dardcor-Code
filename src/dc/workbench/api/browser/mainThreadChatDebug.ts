@@ -55,7 +55,6 @@ export class MainThreadChatDebug extends Disposable implements MainThreadChatDeb
 				return dto ? this._reviveResolvedContent(dto) : undefined;
 			},
 			provideChatDebugLogExport: async (sessionResource, token) => {
-				// Gather core events and session title to pass to the extension.
 				const coreEventDtos = this._chatDebugService.getEvents(sessionResource)
 					.filter(e => this._chatDebugService.isCoreEvent(e))
 					.map(e => this._serializeEvent(e));
@@ -76,8 +75,6 @@ export class MainThreadChatDebug extends Disposable implements MainThreadChatDeb
 			}
 		}));
 
-		// Register a lazy fetcher so historical sessions are loaded from the
-		// extension only when the debug panel home page first needs them.
 		disposables.add(this._chatDebugService.registerAvailableSessionsFetcher(async (token) => {
 			const entries = await this._proxy.$getAvailableDebugSessionResources(handle, token);
 			return entries.map(e => ({ uri: URI.revive(e.uri), title: e.title }));

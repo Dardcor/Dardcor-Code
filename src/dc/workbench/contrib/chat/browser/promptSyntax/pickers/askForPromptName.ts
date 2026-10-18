@@ -13,9 +13,6 @@ import Severity from '../../../../../../base/common/severity.js';
 import { isValidBasename } from '../../../../../../base/common/extpath.js';
 import { ServicesAccessor } from '../../../../../../editor/browser/editorExtensions.js';
 
-/**
- * Asks the user for a file name.
- */
 export async function askForPromptFileName(
 	accessor: ServicesAccessor,
 	type: PromptsType,

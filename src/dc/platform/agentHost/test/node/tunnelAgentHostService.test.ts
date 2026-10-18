@@ -21,9 +21,6 @@ import {
 	withTimeout,
 } from '../../node/tunnelAgentHostService.js';
 
-/**
- * Minimal message-socket double for gateway selection tests.
- */
 class FakeGatewaySocket implements ITunnelMessageSocket {
 	private readonly _onDidReceiveMessage = new Emitter<string>();
 	readonly onDidReceiveMessage: Event<string> = this._onDidReceiveMessage.event;
@@ -100,11 +97,6 @@ suite('TunnelAgentHostService - withTimeout', () => {
 	});
 
 	test('throws a step-named timeout error when the operation hangs past the deadline', async () => {
-		// This is the exact production scenario: a dev-tunnels SDK call (relay
-		// connect / waitForForwardedPort / connectToForwardedPort / WebSocket
-		// open) that never settles after a silent network drop. Without the
-		// timeout the renderer's _tunnelService.connect await would hang
-		// forever, leaving _pendingConnects set and disabling auto-reconnect.
 		return runWithFakedTimers({ useFakeTimers: true, maxTaskCount: 10_000 }, async () => {
 			const hanging = new DeferredPromise<never>();
 			const promise = withTimeout(() => hanging.p, 5_000, 'tunnel relay connect');
@@ -113,17 +105,11 @@ suite('TunnelAgentHostService - withTimeout', () => {
 			const err = await rejected;
 			assert.ok(err instanceof Error, `Expected Error, got ${String(err)}`);
 			assert.match(err.message, /tunnel relay connect timed out after 5000ms/);
-			// Settle the never-resolving promise so the timer/test cleans up
-			// without leaving an unhandled rejection/leaked promise.
 			hanging.complete(undefined as never);
 		});
 	});
 
 	test('production constant is large enough to cover SDK keepalive windows', () => {
-		// Sanity guard: this constant is consumed at four call sites in
-		// connect(). If someone shrinks it below ssh2/dev-tunnels' own
-		// keepalive failure window, the timeout would start firing on
-		// healthy-but-slow connections. Keep it in a sensible range.
 		assert.ok(TUNNEL_STEP_TIMEOUT_MS >= 10_000, 'must be at least 10s');
 		assert.ok(TUNNEL_STEP_TIMEOUT_MS <= 120_000, 'must be at most 2min');
 	});
@@ -147,10 +133,6 @@ suite('TunnelAgentHostService - gateway selection', () => {
 
 			const resultPromise = service.completeSelection('sel1', { instanceId: 'abc-123' });
 
-			// An async function's body runs synchronously up to its first
-			// `await`, so the selection message is already sent and the
-			// gateway's reply listener already attached — no need to wait
-			// for a microtask/timeout to assert on this.
 			assert.deepStrictEqual(ws.sent, [JSON.stringify({ instanceId: 'abc-123' })]);
 
 			ws.emitMessage(JSON.stringify({
@@ -164,14 +146,12 @@ suite('TunnelAgentHostService - gateway selection', () => {
 			assert.strictEqual(result.connectionToken, 'tok123');
 			assert.deepStrictEqual(result.selected, { serverType: 'editor', instanceId: 'abc-123', role: 'primary', lifecycle: 'external' });
 
-			// Steady-state: the same socket now proxies subsequent AHP frames.
 			const relayed: string[] = [];
 			const relayListener = service.onDidRelayMessage(m => relayed.push(m.data));
 			ws.emitMessage('{"hello":"world"}');
 			assert.deepStrictEqual(relayed, ['{"hello":"world"}']);
 			relayListener.dispose();
 
-			// Simulate the socket closing to dispose the resulting TunnelConnection.
 			ws.emitClose(1000, '');
 		} finally {
 			service.dispose();
@@ -244,7 +224,6 @@ suite('TunnelAgentHostService - gateway selection', () => {
 			assert.strictEqual(ws.closeCalls, 1);
 			assert.strictEqual(relayClient.disposeCalls, 1);
 
-			// Repeated/unknown cancellation must be a safe no-op, not throw.
 			await service.cancelSelection('sel1');
 			await service.cancelSelection('does-not-exist');
 			assert.strictEqual(ws.closeCalls, 1);
@@ -257,14 +236,9 @@ suite('TunnelAgentHostService - gateway selection', () => {
 	test('completeSelection fails once the pending socket has already closed unexpectedly', async () => {
 		const service = new TunnelAgentHostMainService(new NullLogService());
 		try {
-			// Wire the unexpected-close callback the same way prepareSelection
-			// does in production: remove the entry from the pending map.
 			const { ws, pending } = createPending(() => deletePendingGatewaySelectionForTests(service, 'sel1'));
 			setPendingGatewaySelectionForTests(service, 'sel1', pending);
 
-			// Simulate the gateway socket dropping before a selection was made:
-			// the close listener above removes it from the pending map, so a
-			// later completeSelection sees no pending entry.
 			ws.emitClose(1000, 'network drop');
 
 			await assert.rejects(

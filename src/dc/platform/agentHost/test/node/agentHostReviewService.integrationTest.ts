@@ -3,11 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Integration tests for {@link AgentHostReviewService} that spawn real `git`
- * against temporary on-disk repositories, exercising the reviewed-ref based
- * review model end to end. Run via `scripts/test-integration.sh`.
- */
 
 import assert from 'assert';
 import * as cp from 'child_process';
@@ -32,7 +27,7 @@ function rmDirWithRetry(path: string | undefined): void {
 	if (!path) {
 		return;
 	}
-	try { rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } catch { /* best-effort */ }
+	try { rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } catch { }
 }
 
 suite.skip('AgentHostReviewService (real git)', () => {
@@ -72,9 +67,6 @@ suite.skip('AgentHostReviewService (real git)', () => {
 
 	async function initRepo(files: Record<string, string>): Promise<string> {
 		const fs = await import('fs/promises');
-		// Canonicalize the temp root so it matches the path `git rev-parse
-		// --show-toplevel` reports (macOS symlinks /var -> /private/var); the
-		// review service computes repo-relative paths against that root.
 		tmpRoot = await fs.realpath(mkdtempSync(join(tmpdir(), 'agent-host-review-')));
 		const run = (...args: string[]) => cp.execFileSync('git', args, { cwd: tmpRoot!, env, stdio: 'pipe' });
 		run('init', '-q', '-b', 'main');
@@ -90,8 +82,6 @@ suite.skip('AgentHostReviewService (real git)', () => {
 	const reviewedPaths = async () => [...await svc!.getReviewedPaths(sessionUri.toString(), wd(), undefined)].sort();
 	const chainLength = () => {
 		const ref = buildReviewedRefName('review-test-session');
-		// Count only the review commits layered on top of the baseline (HEAD),
-		// excluding the baseline's own history.
 		try { return Number(cp.execFileSync('git', ['rev-list', '--count', `HEAD..${ref}`], { cwd: tmpRoot!, env, encoding: 'utf8' }).trim()); } catch { return 0; }
 	};
 
@@ -118,8 +108,6 @@ suite.skip('AgentHostReviewService (real git)', () => {
 		await svc!.markFileReviewed(sessionUri.toString(), wd(), undefined, URI.file(join(tmpRoot!, 'a.txt')));
 		const reviewed = await reviewedPaths();
 
-		// Agent edits the file again -> its working content no longer matches
-		// the reviewed tree, so it flips back to unreviewed.
 		await fs.writeFile(join(tmpRoot!, 'a.txt'), 'a-v3\n');
 		const afterReedit = await reviewedPaths();
 
@@ -146,7 +134,6 @@ suite.skip('AgentHostReviewService (real git)', () => {
 		const initial = chainLength();
 		await svc!.markFileReviewed(sessionUri.toString(), wd(), undefined, URI.file(join(tmpRoot!, 'a.txt')));
 		const afterMark = chainLength();
-		// Marking the same content again is a no-op and must not grow the chain.
 		await svc!.markFileReviewed(sessionUri.toString(), wd(), undefined, URI.file(join(tmpRoot!, 'a.txt')));
 		const afterDup = chainLength();
 		await svc!.markFileUnreviewed(sessionUri.toString(), wd(), undefined, URI.file(join(tmpRoot!, 'a.txt')));

@@ -21,7 +21,6 @@ import { ISessionWorkspaceConversionService } from '../sessionWorkspaceConversio
 
 const QueuedSender = createChatMementoKey<IQueuedMessageSender | undefined, [messageId: string]>('queueDrain.sender', () => undefined);
 
-/** Owns queued-message sender state and decides when a queued turn can be admitted. */
 export class QueueDrainContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'queueDrain';
@@ -117,8 +116,6 @@ export class QueueDrainContribution extends Disposable implements IAgentHostChat
 				hostLaunchKind: host.hostLaunchKind,
 			},
 		};
-		// Drop the entry rather than blanking it: the memento is keyed by message
-		// id, so a long-lived chat would otherwise retain one per message queued.
 		this._context.deleteMemento(QueuedSender, channel, message.id);
 		this._admitQueuedTurn(host, channel, message.message, message.id, sender);
 	}

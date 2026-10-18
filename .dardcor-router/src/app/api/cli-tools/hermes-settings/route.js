@@ -16,13 +16,11 @@ const getHermesDir = () => path.join(os.homedir(), ".hermes");
 const getHermesConfigPath = () => path.join(getHermesDir(), "config.yaml");
 const getHermesEnvPath = () => path.join(getHermesDir(), ".env");
 
-// Match top-level "model:" block (until next non-indented, non-empty line)
 const MODEL_BLOCK_RE = /^model:[ \t]*\r?\n((?:[ \t]+.*\r?\n?|[ \t]*\r?\n)*)/m;
 
 const buildModelBlock = (model, baseUrl) =>
   `model:\n  default: "${model}"\n  provider: "custom"\n  base_url: "${baseUrl}"\n  api_key: \${OPENAI_API_KEY}\n`;
 
-// Parse current model block back to fields (best-effort, simple key:value)
 const parseModelBlock = (yaml) => {
   const match = yaml.match(MODEL_BLOCK_RE);
   if (!match) return null;
@@ -46,7 +44,6 @@ const upsertModelBlock = (yaml, newBlock) => {
 
 const removeModelBlock = (yaml) => yaml.replace(MODEL_BLOCK_RE, "").replace(/^\n+/, "");
 
-// .env helpers — upsert/remove single KEY=VALUE line
 const upsertEnvVar = (envText, key, value) => {
   const re = new RegExp(`^${key}=.*$`, "m");
   const line = `${key}=${value}`;
@@ -93,7 +90,6 @@ const readEnvFile = async () => {
   }
 };
 
-// Detect dardcor-code by base_url containing localhost/127.0.0.1 or matching tunnel URL
 const hasDardcorCodeConfig = (modelCfg) => {
   if (!modelCfg?.base_url) return false;
   return modelCfg.provider === "custom" && /localhost|127\.0\.0\.1|0\.0\.0\.0/.test(modelCfg.base_url);
@@ -131,12 +127,10 @@ export async function POST(request) {
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
 
-    // Update config.yaml — replace/insert model: block, keep everything else
     const existingYaml = await readConfigYaml();
     const newYaml = upsertModelBlock(existingYaml, buildModelBlock(model, normalizedBaseUrl));
     await fs.writeFile(getHermesConfigPath(), newYaml);
 
-    // Update .env — upsert OPENAI_API_KEY only when caller provides one
     if (apiKey) {
       const existingEnv = await readEnvFile();
       const newEnv = upsertEnvVar(existingEnv, API_KEY_ENV, apiKey);

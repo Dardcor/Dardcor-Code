@@ -8,15 +8,10 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IPowerService, PowerSaveBlockerType, SystemIdleState, ThermalState } from '../common/powerService.js';
 
-/**
- * Browser stub implementation of IPowerService.
- * Power APIs are not available in web environments.
- */
 export class BrowserPowerService extends Disposable implements IPowerService {
 
 	declare readonly _serviceBrand: undefined;
 
-	// Events never fire in browser
 	readonly onDidSuspend = Event.None;
 	readonly onDidResume = Event.None;
 	readonly onDidChangeOnBatteryPower = Event.None;
@@ -43,7 +38,6 @@ export class BrowserPowerService extends Disposable implements IPowerService {
 	}
 
 	async startPowerSaveBlocker(_type: PowerSaveBlockerType): Promise<number> {
-		// Return a fake ID (no-op in browser)
 		return -1;
 	}
 

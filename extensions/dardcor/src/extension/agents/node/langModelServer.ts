@@ -42,7 +42,7 @@ export class LanguageModelServer implements ILanguageModelServer {
 		@IEndpointProvider protected readonly endpointProvider: IEndpointProvider
 	) {
 		this.config = {
-			port: 0, // Will be set to random available port
+			port: 0,
 			nonce: 'vscode-lm-' + generateUuid()
 		};
 		this.adapterFactories = new Map();
@@ -71,11 +71,9 @@ export class LanguageModelServer implements ILanguageModelServer {
 				const adapterFactory = this.getAdapterFactoryForPath(req.url || '');
 				if (adapterFactory) {
 					try {
-						// Create new adapter instance for this request
 						const adapter = adapterFactory.createAdapter();
 						const body = await this.readRequestBody(req);
 
-						// Verify nonce for authentication
 						const authKey = adapter.extractAuthKey(req.headers);
 						if (authKey !== this.config.nonce) {
 							this.logService.trace(`[LanguageModelServer] Invalid auth key`);
@@ -161,17 +159,14 @@ export class LanguageModelServer implements ILanguageModelServer {
 				return;
 			}
 
-			// Set up streaming response
 			res.writeHead(200, {
 				'Content-Type': adapter.getContentType(),
 				'Cache-Control': 'no-cache',
 				'Connection': 'keep-alive',
 			});
 
-			// Create cancellation token for the request
 			const tokenSource = new CancellationTokenSource();
 
-			// Handle client disconnect
 			let requestComplete = false;
 			res.on('close', () => {
 				if (!requestComplete) {
@@ -182,7 +177,6 @@ export class LanguageModelServer implements ILanguageModelServer {
 			});
 
 			try {
-				// Create streaming context with only essential shared data
 				const context: IStreamingContext = {
 					requestId: `req_${Math.random().toString(36).substr(2, 20)}`,
 					endpoint: {
@@ -191,7 +185,6 @@ export class LanguageModelServer implements ILanguageModelServer {
 					}
 				};
 
-				// Send initial events if adapter supports them
 				if (adapter.generateInitialEvents) {
 					const initialEvents = adapter.generateInitialEvents(context);
 					for (const event of initialEvents) {
@@ -205,9 +198,8 @@ export class LanguageModelServer implements ILanguageModelServer {
 					messages: parsedRequest.messages as Raw.ChatMessage[],
 					finishedCb: async (_fullText, _index, delta) => {
 						if (tokenSource.token.isCancellationRequested) {
-							return 0; // stop
+							return 0;
 						}
-						// Emit text deltas
 						if (delta.text) {
 							const textData: IAgentStreamBlock = {
 								type: 'text',
@@ -217,7 +209,6 @@ export class LanguageModelServer implements ILanguageModelServer {
 								res.write(`event: ${event.event}\ndata: ${event.data}\n\n`);
 							}
 						}
-						// Emit tool calls if present
 						if (delta.dardcorToolCalls && delta.dardcorToolCalls.length > 0) {
 							for (const call of delta.dardcorToolCalls) {
 								let input: object = {};
@@ -243,7 +234,6 @@ export class LanguageModelServer implements ILanguageModelServer {
 					}
 				}, tokenSource.token);
 
-				// Capture usage information if available
 				let usage: APIUsage | undefined;
 				if (fetchResult.type === ChatFetchResponseType.Success && fetchResult.usage) {
 					usage = fetchResult.usage;
@@ -251,7 +241,6 @@ export class LanguageModelServer implements ILanguageModelServer {
 
 				requestComplete = true;
 
-				// Send final events
 				const finalEvents = adapter.generateFinalEvents(context, usage);
 				for (const event of finalEvents) {
 					res.write(`event: ${event.event}\ndata: ${event.data}\n\n`);
@@ -289,7 +278,6 @@ export class LanguageModelServer implements ILanguageModelServer {
 
 	private selectEndpoint(endpoints: readonly IChatEndpoint[], requestedModel?: string): IChatEndpoint | undefined {
 		if (requestedModel) {
-			// Handle model mapping
 			let mappedModel = requestedModel;
 			if (requestedModel.startsWith('claude-haiku')) {
 				mappedModel = 'claude-haiku-4.5';
@@ -301,10 +289,8 @@ export class LanguageModelServer implements ILanguageModelServer {
 				mappedModel = 'claude-opus-4.5';
 			}
 
-			// Try to find exact match first
 			let selectedEndpoint = endpoints.find(e => e.family === mappedModel || e.model === mappedModel);
 
-			// If not found, try to find by partial match for Anthropic models
 			if (!selectedEndpoint && requestedModel.startsWith('claude-haiku-4')) {
 				selectedEndpoint = endpoints.find(e => e.model.includes('claude-haiku-4-5')) ?? endpoints.find(e => e.model.includes('claude'));
 			} else if (!selectedEndpoint && requestedModel.startsWith('claude-sonnet-4')) {
@@ -316,7 +302,6 @@ export class LanguageModelServer implements ILanguageModelServer {
 			return selectedEndpoint;
 		}
 
-		// Use first available model if no criteria specified
 		return endpoints[0];
 	}
 

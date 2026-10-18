@@ -125,9 +125,6 @@ export class NavigateBrowserTool implements IToolImpl {
 			case 'forward':
 				return playwrightInvoke(this.playwrightService, sessionId, params.pageId, (page) => page.goForward({ waitUntil: 'domcontentloaded' }));
 			default: {
-				// In a remote workspace without the remote proxy, the integrated
-				// browser runs locally and cannot reach the remote's localhost directly.
-				// Rewrite to the forwarded local address (if any) so the page can be reached.
 				const rewrite = rewriteRemoteLocalhostUrl(params.url!, this.browserViewService, this.remoteExplorerService);
 				const result = await playwrightInvoke(this.playwrightService, sessionId, params.pageId, (page, target) => {
 					return page.goto(target, { waitUntil: 'domcontentloaded' });

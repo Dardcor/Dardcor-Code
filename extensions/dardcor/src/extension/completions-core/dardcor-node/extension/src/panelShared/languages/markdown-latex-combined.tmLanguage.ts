@@ -5,10 +5,6 @@
 /* eslint-disable local/code-no-unexternalized-strings */
 import { LanguageInput } from 'shiki/core';
 
-// This file has been converted from https://github.com/jlelong/vscode-latex-basics/blob/master/syntaxes/markdown-latex-combined.tmLanguage.json
-// If you want to provide a fix or improvement, please create a pull request against the original repository.
-// Once accepted there, we are happy to receive an update request.
-// version: https://github.com/jlelong/vscode-latex-basics/commit/002278bd5484c278587a2aa3cafc1616538a20bc
 export const markdownLatexCombined: LanguageInput = {
 	name: 'markdown_latex_combined',
 	scopeName: 'text.tex.markdown_latex_combined',
@@ -2398,7 +2394,6 @@ export const markdownLatexCombined: LanguageInput = {
 							name: 'punctuation.definition.list.begin.markdown',
 						},
 					},
-					// comment: 'Currently does not support un-indented second lines.',
 					name: 'markup.list.unnumbered.markdown',
 					patterns: [
 						{
@@ -2518,7 +2513,6 @@ export const markdownLatexCombined: LanguageInput = {
 			],
 		},
 		ampersand: {
-			// comment: 'Markdown will convert this for us. We match it so that the HTML grammar will not mark it up as invalid.',
 			match: '&(?!([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+);)',
 			name: 'meta.other.valid-ampersand.markdown',
 		},
@@ -2590,7 +2584,6 @@ export const markdownLatexCombined: LanguageInput = {
 			],
 		},
 		bracket: {
-			// comment: 'Markdown will convert this for us. We match it so that the HTML grammar will not mark it up as invalid.',
 			match: '<(?![a-zA-Z/?\\$!])',
 			name: 'meta.other.valid-bracket.markdown',
 		},

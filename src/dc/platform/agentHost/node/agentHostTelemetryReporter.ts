@@ -23,21 +23,12 @@ import { AgentHostClientConnectionKind, AgentHostLaunchKind, AgentHostTransportK
 
 export type AgentHostUserMessageSentSource = 'direct' | 'queued';
 
-/**
- * The message origin used for telemetry. Extends the protocol's
- * {@link MessageKind} with host-owned classifications for Agent Merge repair
- * turns and VS Code sessions marked ephemeral, which telemetry reports as
- * `inline`.
- */
 export type AgentHostMessageOriginTelemetryKind = MessageKind | 'agentMerge' | 'inline';
 
-/** Classifies a turn's message origin, including host-owned session classifications. */
 export function getMessageOriginTelemetryKind(message: Message, isEphemeralSession: boolean): AgentHostMessageOriginTelemetryKind {
 	if (isEphemeralSession) {
 		return 'inline';
 	}
-	// The marker only counts on the origin the host stamps it with, so a client
-	// cannot dress a user message up as automated merge work.
 	if (message.origin.kind === MessageKind.SystemNotification && isAgentMergeMessage(message)) {
 		return 'agentMerge';
 	}
@@ -339,28 +330,6 @@ export interface IAgentHostTurnCompletedReport extends IAgentHostTurnAttributedR
 	modelCallCount: number;
 }
 
-/**
- * Why a turn was quiet when the hang watchdog fired.
- *
- * Unexpected (these are real bugs and are what dashboards should alert on):
- *  - `noProgress`: the turn started but literally nothing was ever observed for
- *    it — no text, no reasoning, no tool call, no error, no completion. This is
- *    the signature of a lost turn (e.g. a dropped provider callback
- *    registration) where the UI sits on "Working…" forever.
- *  - `stalledAfterProgress`: the turn made progress and then went quiet without
- *    anything outstanding to explain the silence.
- *
- * Expected (the turn is legitimately waiting; reported so the two populations
- * can be told apart in queries rather than silently dropped):
- *  - `waitingOnUser`: a request that blocks on a *human* is outstanding — a
- *    tool confirmation, a tool authentication, or an elicitation. Client tool
- *    execution is deliberately excluded: it is delegated running work rather
- *    than a prompt, and is reported as `runningTool` instead.
- *  - `runningTool`: a tool call is still in flight. Covers genuinely long tool
- *    invocations (builds, test runs), client-executed tools, and subagents,
- *    whose work is reported on the subagent's own chat channel rather than the
- *    parent turn's.
- */
 export type AgentHostTurnHangReason = 'noProgress' | 'stalledAfterProgress' | 'waitingOnUser' | 'runningTool';
 
 const turnActivityKindsByActionType = {
@@ -663,11 +632,8 @@ export interface IAgentHostToolCallDetailsReport extends IAgentHostTurnAttribute
 	clientType: AgentHostClientType;
 	model: string | undefined;
 	responseType: AgentHostToolCallResponseType;
-	/** Count of invocations keyed by tool name, across all rounds in the turn. */
 	toolCounts: Record<string, number>;
-	/** Names of the tools offered to the model for this turn. */
 	availableTools: readonly string[];
-	/** Number of model-call rounds in the turn, including the final tool-free response round (matches the extension's `toolCallRounds.length`). */
 	numRequests: number;
 	turnIndex: number;
 	turnDuration: number;
@@ -750,17 +716,11 @@ export interface IAgentHostAutoModeRouterDecisionReport {
 
 export interface IAgentHostSkillContentReadReport {
 	clientType: AgentHostClientType;
-	/** The skill name. */
 	name: string;
-	/** Path to the SKILL.md file. */
 	path: string;
-	/** Full skill content; hashed (never sent raw), matching the extension. */
 	content: string;
-	/** Where the skill was discovered (project, personal-copilot, plugin, builtin, …). */
 	source: string | undefined;
-	/** Name of the plugin the skill came from, when applicable (AH-native analog of the extension's skill extension id). */
 	pluginName: string | undefined;
-	/** Version of the plugin the skill came from, when applicable. */
 	pluginVersion: string | undefined;
 }
 
@@ -895,7 +855,6 @@ export class AgentHostTelemetryReporter {
 
 	constructor(@ITelemetryService private readonly _telemetryService: ITelemetryService) { }
 
-	/** The restricted GH/MSFT telemetry surface, present when the agent-host telemetry service is wired. */
 	private get _restricted(): IAgentHostRestrictedTelemetry | undefined {
 		const ts = this._telemetryService as Partial<IAgentHostRestrictedTelemetry>;
 		return typeof ts.sendEnhancedGHTelemetryEvent === 'function' ? ts as IAgentHostRestrictedTelemetry : undefined;
@@ -969,18 +928,6 @@ export class AgentHostTelemetryReporter {
 		});
 	}
 
-	/**
-	 * Mirrors the Copilot extension's enhanced GH `request.options.tools` event for the agent-host
-	 * flow. The extension emits it per LLM request from its model fetcher; the agent host observes
-	 * the equivalent boundary when an `assistant.message` arrives (one per model call). The
-	 * `headerRequestId` is the client-minted `x-request-id`, matching the extension. `messagesJson`
-	 * is the raw tool definitions offered for the call, multiplexed across ~8192-char chunks like
-	 * the extension, so it lands identically downstream.
-	 *
-	 * @param session Session URI string; its id becomes `conversationId`.
-	 * @param clientRequestId The model call's client-minted `x-request-id`, mapped to the extension's `headerRequestId`. No-ops when absent (e.g. providers that don't surface it).
-	 * @param tools The tool definitions offered to the model for this call.
-	 */
 	async assistantMessageReceived(session: string, clientType: AgentHostClientType, clientRequestId: string | undefined, tools: readonly ToolDefinition[]): Promise<void> {
 		const restricted = this._restricted;
 		if (!restricted || !clientRequestId || tools.length === 0) {
@@ -994,19 +941,6 @@ export class AgentHostTelemetryReporter {
 		}));
 	}
 
-	/**
-	 * Mirrors the Copilot extension's restricted `conversation.messageText` event (the panel-chat
-	 * prefix of `sendConversationalMessageTelemetry`) for the user's prompt. The extension emits it
-	 * for every user and model message, carrying the raw message text to the enhanced GH
-	 * (`copilot_v0_restricted_copilot_event`) and internal MSFT pipelines; the agent host observes
-	 * the same boundary at the SDK `user.message` event. The text is multiplexed across ~8192-char
-	 * chunks (`messageText`, `messageText_02`, …) so long prompts land untruncated, matching the
-	 * extension's `multiplexProperties`.
-	 *
-	 * @param session Session URI string; its id becomes `conversationId`.
-	 * @param content The user's prompt text. No-ops when empty.
-	 * @param turnIndex The 0-based ordinal of the turn this message belongs to, matching the extension's numeric `turnIndex` (`conversation.turns.length`). CTS parses `turn_index` as an integer, so a numeric ordinal is required here (a non-numeric id lands empty).
-	 */
 	async userMessageText(session: string, clientType: AgentHostClientType, content: string, turnIndex: number): Promise<void> {
 		const restricted = this._restricted;
 		if (!restricted || !content) {
@@ -1024,17 +958,6 @@ export class AgentHostTelemetryReporter {
 		restricted.sendInternalMSFTTelemetryEvent('conversation.messageText', properties, measurements);
 	}
 
-	/**
-	 * The model-message counterpart to {@link userMessageText}. Emitted when an `assistant.message`
-	 * arrives (the agent host's per-model-call boundary), carrying the assistant's response text.
-	 * `headerRequestId` is filled with the model call's client-minted `x-request-id`, matching the
-	 * extension. VS Code-only enrichment dims (code-block languages/counts) are not reconstructed here.
-	 *
-	 * @param session Session URI string; its id becomes `conversationId`.
-	 * @param content The assistant's response text. No-ops when empty.
-	 * @param turnIndex The 0-based ordinal of the turn this message belongs to, matching the extension's numeric `turnIndex` (`conversation.turns.length`). CTS parses `turn_index` as an integer, so a numeric ordinal is required here.
-	 * @param clientRequestId The model call's client-minted `x-request-id`, mapped to `headerRequestId`.
-	 */
 	async modelMessageText(session: string, clientType: AgentHostClientType, content: string, turnIndex: number, clientRequestId: string | undefined): Promise<void> {
 		const restricted = this._restricted;
 		if (!restricted || !content) {
@@ -1053,9 +976,6 @@ export class AgentHostTelemetryReporter {
 		restricted.sendInternalMSFTTelemetryEvent('conversation.messageText', properties, measurements);
 	}
 
-	/**
-	 * Emits the local-compatible tool-call aggregate on standard and restricted telemetry channels.
-	 */
 	async toolCallDetails(report: IAgentHostToolCallDetailsReport): Promise<void> {
 		if (report.availableTools.length === 0) {
 			return;
@@ -1111,7 +1031,6 @@ export class AgentHostTelemetryReporter {
 		restricted.sendInternalMSFTTelemetryEvent('toolCallDetailsInternal', properties, measurements);
 	}
 
-	/** Emits the workbench-compatible tool-approval telemetry from the agent host on the standard telemetry channel. */
 	toolApproval(report: IAgentHostToolApprovalReport): void {
 		const session = isAhpChatChannel(report.session) ? parseRequiredSessionUriFromChatUri(report.session) : report.session;
 		const agentSessionId = AgentSession.id(session);
@@ -1135,7 +1054,6 @@ export class AgentHostTelemetryReporter {
 		});
 	}
 
-	/** Emits the extension's restricted `automode.routerDecisionRestricted` event from authoritative SDK fields. */
 	autoModeRouterDecision(report: IAgentHostAutoModeRouterDecisionReport): void {
 		const restricted = this._restricted;
 		if (!restricted) {
@@ -1176,18 +1094,6 @@ export class AgentHostTelemetryReporter {
 		restricted.sendEnhancedGHTelemetryEvent('automode.routerDecisionRestricted', properties, measurements);
 	}
 
-	/**
-	 * Mirrors the Copilot extension's restricted `skillContentRead` event (`skillTelemetry.ts` ->
-	 * `sendSkillContentReadTelemetry`) — records which skill file was loaded into the conversation.
-	 * The extension emits it from the skill/readFile tools; the agent host observes the equivalent
-	 * boundary at the SDK `skill.invoked` event, whose payload already carries the content (hashed
-	 * here, never sent raw), the discovery `source`, and the plugin identity. The extension's
-	 * `skillExtensionId` / `skillExtensionVersion` encode the contributing *VS Code extension*, which
-	 * does not exist in the agent host; the AH-native provenance is the plugin, so `pluginName` /
-	 * `pluginVersion` fill those columns. No-ops when the skill name is empty.
-	 *
-	 * @param report The invoked skill's metadata (from the SDK `skill.invoked` payload).
-	 */
 	skillContentRead(report: IAgentHostSkillContentReadReport): void {
 		const restricted = this._restricted;
 		if (!restricted || !report.name) {
@@ -1195,8 +1101,6 @@ export class AgentHostTelemetryReporter {
 		}
 		const contentHash = report.content ? String(hash(report.content)) : '';
 		const skillStorage = report.source ?? '';
-		// Match the extension: the version is only reported when the (plugin) id is known, so we
-		// never emit a `skillExtensionVersion` without a corresponding `skillExtensionId`.
 		const skillExtensionVersion = report.pluginName ? (report.pluginVersion ?? '') : '';
 		const plaintextProps = {
 			initiatorClientType: report.clientType,
@@ -1311,11 +1215,6 @@ export class AgentHostTelemetryReporter {
 		}
 	}
 
-	/**
-	 * Reports a turn that has stopped producing activity for longer than the
-	 * hang threshold. See {@link AgentHostTurnHangReason} for which reasons are
-	 * expected waits and which indicate a real hang.
-	 */
 	turnHung(report: IAgentHostTurnHungReport): void {
 		const session = isAhpChatChannel(report.session) ? parseRequiredSessionUriFromChatUri(report.session) : report.session;
 		this._telemetryService.publicLog2<IAgentHostTurnHungEvent, IAgentHostTurnHungClassification>('agentHost.turnHung', {
@@ -1350,7 +1249,6 @@ export class AgentHostTelemetryReporter {
 		});
 	}
 
-	/** Paired recovery event for a turn previously reported by {@link turnHung}. */
 	hungTurnCompleted(report: IAgentHostHungTurnCompletedReport): void {
 		const session = isAhpChatChannel(report.session) ? parseRequiredSessionUriFromChatUri(report.session) : report.session;
 		this._telemetryService.publicLog2<IAgentHostHungTurnCompletedEvent, IAgentHostHungTurnCompletedClassification>('agentHost.hungTurnCompleted', {
@@ -1370,9 +1268,6 @@ export class AgentHostTelemetryReporter {
 	}
 
 	toolInvoked(report: IAgentHostToolInvokedReport): void {
-		// `chatSessionId` is the full session URI string (matching the value
-		// previously emitted by `CopilotAgentSession`). Action signals are keyed
-		// by their chat-channel URI, so normalize it back to the session URI.
 		const session = isAhpChatChannel(report.session) ? parseRequiredSessionUriFromChatUri(report.session) : report.session;
 		this._telemetryService.publicLog2<IAgentHostLanguageModelToolInvokedEvent, IAgentHostLanguageModelToolInvokedClassification>('languageModelToolInvoked', {
 			...toInitiatorTelemetry(report.clientContext),

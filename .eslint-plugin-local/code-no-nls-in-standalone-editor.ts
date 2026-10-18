@@ -27,7 +27,6 @@ export default new class NoNlsInStandaloneEditorRule implements eslint.Rule.Rule
 			|| /vs(\/|\\)editor(\/|\\)editor.worker.start/.test(fileName)
 		) {
 			return createImportRuleListener((node, path) => {
-				// resolve relative paths
 				if (path[0] === '.') {
 					path = join(context.getFilename(), path);
 				}

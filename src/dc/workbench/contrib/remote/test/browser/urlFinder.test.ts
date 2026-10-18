@@ -11,10 +11,8 @@ import { UrlFinder } from '../../browser/urlFinder.js';
 import { ITerminalInstance, ITerminalService } from '../../../terminal/browser/terminal.js';
 import { IDebugService } from '../../../debug/common/debug.js';
 
-// Wait time for debounce tests - should be greater than the UrlFinder debounce timeout (500ms)
 const DEBOUNCE_WAIT_MS = 600;
 
-// Mock implementations for testing
 class MockTerminalInstance implements IDisposable {
 	private readonly _onData = new Emitter<string>();
 	readonly onData = this._onData.event;
@@ -62,17 +60,13 @@ suite('UrlFinder', () => {
 		const matchedUrls: { host: string; port: number }[] = [];
 		store.add(urlFinder.onDidMatchLocalUrl((url: { host: string; port: number }) => matchedUrls.push(url)));
 
-		// Fire data events rapidly - data is accumulated and processed together after debounce
 		mockInstance.fireData('http://localhost:3000/\n');
 		mockInstance.fireData('http://127.0.0.1:8080/\n');
 
-		// Initially, no matches should be processed (debounced)
 		assert.strictEqual(matchedUrls.length, 0, 'URLs should not be processed immediately');
 
-		// Wait for debounce timeout
 		await new Promise(resolve => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
-		// Both URLs should be processed after debounce
 		assert.strictEqual(matchedUrls.length, 2, 'Both URLs should be processed after debounce');
 		assert.strictEqual(matchedUrls[0].host, 'localhost');
 		assert.strictEqual(matchedUrls[0].port, 3000);
@@ -91,18 +85,13 @@ suite('UrlFinder', () => {
 		const matchedUrls: { host: string; port: number }[] = [];
 		store.add(urlFinder.onDidMatchLocalUrl((url: { host: string; port: number }) => matchedUrls.push(url)));
 
-		// Fire a valid URL
 		mockInstance.fireData('http://localhost:3000/');
 
-		// Then flood with lots of data (simulating high-throughput like games)
-		// Generate 10001 characters to exceed the 10000 character threshold (uses > comparison)
 		const largeData = 'x'.repeat(10001);
 		mockInstance.fireData(largeData);
 
-		// Wait for debounce timeout
 		await new Promise(resolve => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
-		// URL should not be processed because total data exceeded threshold
 		assert.strictEqual(matchedUrls.length, 0, 'URLs should not be processed when data exceeds threshold');
 	});
 
@@ -119,7 +108,6 @@ suite('UrlFinder', () => {
 
 		mockInstance.fireData('Server running at http://localhost:3000/');
 
-		// Wait for debounce timeout
 		await new Promise(resolve => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
 		assert.strictEqual(matchedUrls.length, 1);
@@ -140,7 +128,6 @@ suite('UrlFinder', () => {
 
 		mockInstance.fireData('https://127.0.0.1:5001/api');
 
-		// Wait for debounce timeout
 		await new Promise(resolve => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
 		assert.strictEqual(matchedUrls.length, 1);
@@ -161,7 +148,6 @@ suite('UrlFinder', () => {
 
 		mockInstance.fireData('http://0.0.0.0:4000');
 
-		// Wait for debounce timeout
 		await new Promise(resolve => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
 		assert.strictEqual(matchedUrls.length, 1);

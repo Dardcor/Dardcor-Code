@@ -101,9 +101,6 @@ import { TestChatAgentService } from './testChatAgentService';
 import { TestWorkbenchService } from './testWorkbenchService';
 import { TestWorkspaceService } from './testWorkspaceService';
 
-/**
- * Collects descriptors for services to use in testing.
- */
 export class TestingServiceCollection implements IDisposable, IInstantiationServiceBuilder {
 
 	private readonly _services = new Map<ServiceIdentifier<any>, any>();
@@ -150,9 +147,6 @@ export class TestingServiceCollection implements IDisposable, IInstantiationServ
 	}
 }
 
-/**
- * OK to be used in tests to get services
- */
 export interface ITestingServicesAccessor {
 	get<T>(id: ServiceIdentifier<T>): T;
 	getIfExists<T>(id: ServiceIdentifier<T>): T | undefined;
@@ -183,12 +177,6 @@ export class TestingServicesAccessor implements ITestingServicesAccessor {
 	}
 }
 
-/**
- * Baseline for an accessor. Tests should prefer the specific variants outlined below.
- *
- * @see createPlatformServices
- * @see createExtensionTestingServices
- */
 export function _createBaselineServices(): TestingServiceCollection {
 	const testingServiceCollection = new TestingServiceCollection();
 	testingServiceCollection.define(IChatQuotaService, new SyncDescriptor(ChatQuotaService));
@@ -197,10 +185,9 @@ export function _createBaselineServices(): TestingServiceCollection {
 	testingServiceCollection.define(IDiffService, new SyncDescriptor(DiffServiceImpl));
 	testingServiceCollection.define(ISimulationTestContext, new SyncDescriptor(NulSimulationTestContext));
 	testingServiceCollection.define(ILogService, new SyncDescriptor(LogServiceImpl, [[new ConsoleLog()]]));
-	testingServiceCollection.define(IParserService, new SyncDescriptor(ParserServiceImpl, [/*useWorker*/ false]));
+	testingServiceCollection.define(IParserService, new SyncDescriptor(ParserServiceImpl, [ false]));
 	testingServiceCollection.define(IFetcherService, new SyncDescriptor(NodeFetcherService));
 	testingServiceCollection.define(ITelemetryUserConfig, new SyncDescriptor(TelemetryUserConfigImpl, ['tid=test', true]));
-	// Notifications from the monolith when fetching a token can trigger behaviour that require these objects.
 	testingServiceCollection.define(IUrlOpener, new SyncDescriptor(NullUrlOpener));
 	testingServiceCollection.define(ICopilotTokenManager, new SyncDescriptor(SimulationTestCopilotTokenManager));
 	testingServiceCollection.define(IAuthenticationService, new SyncDescriptor(StaticGitHubAuthenticationService, [createStaticGitHubTokenProvider()]));
@@ -230,9 +217,6 @@ export function _createBaselineServices(): TestingServiceCollection {
 	return testingServiceCollection;
 }
 
-/**
- * @returns an accessor suitable for simulation and unit tests.
- */
 export function createPlatformServices(disposables: Pick<DisposableStore, 'add'> = new DisposableStore()): TestingServiceCollection {
 	const testingServiceCollection = _createBaselineServices();
 	testingServiceCollection.define(IConfigurationService, new SyncDescriptor(InMemoryConfigurationService, [disposables.add(new DefaultsOnlyConfigurationService())]));

@@ -82,8 +82,6 @@ export class ConfirmTerminalCommandTool extends RunInTerminalTool {
 		if (preparedInvocation) {
 			preparedInvocation.presentation = ToolInvocationPresentation.HiddenAfterComplete;
 
-			// Always force a confirmation when the LLM wants to bypass the sandbox: leaving the sandbox is an
-			// elevation of privilege the user must approve, even if the command would otherwise be auto-approved.
 			const params = context.parameters as { sandboxBypass?: boolean; sandboxBypassReason?: string };
 			if (params.sandboxBypass === true) {
 				const title = localize('confirmTerminalCommandTool.sandboxBypass.title', "Run in terminal outside the sandbox?");
@@ -102,7 +100,6 @@ export class ConfirmTerminalCommandTool extends RunInTerminalTool {
 		return preparedInvocation;
 	}
 	override async invoke(invocation: IToolInvocation, countTokens: CountTokensCallback, progress: ToolProgress, token: CancellationToken): Promise<IToolResult> {
-		// This is a confirmation-only tool - just return success
 		return {
 			content: [{
 				kind: 'text',

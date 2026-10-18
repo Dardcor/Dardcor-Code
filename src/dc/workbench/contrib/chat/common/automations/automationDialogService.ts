@@ -19,11 +19,6 @@ export type IAutomationDialogResult =
 
 export const IAutomationDialogService = createDecorator<IAutomationDialogService>('automationDialogService');
 
-/**
- * Bridges the workbench Automations UI (list widget) to the Sessions-layer
- * dialog implementation without a cross-layer import: the widget depends only
- * on this interface, while {@link AutomationDialogService} (sessions) provides it.
- */
 export interface IAutomationDialogService {
 	readonly _serviceBrand: undefined;
 	showAutomationDialog(options: IShowAutomationDialogOptions): Promise<IAutomationDialogResult | undefined>;

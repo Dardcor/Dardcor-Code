@@ -7,23 +7,10 @@ import { PROTOCOL_VERSION } from './state/protocol/version/registry.js';
 
 export const remoteAgentHostStateSchemaVersion = 1;
 
-/**
- * Persisted record describing a running `code agent host` proxy, written to
- * the per-quality lockfile (`~/<serverDataFolderName>/cli/agent-host-<quality>.lock`).
- *
- * This schema is shared with the Rust CLI in
- * `cli/src/tunnels/agent_host_metadata.rs`; field renames or removals MUST be
- * coordinated across both languages.
- */
 export interface IRemoteAgentHostState {
 	readonly schemaVersion: typeof remoteAgentHostStateSchemaVersion;
 	readonly pid: number;
 	readonly port: number;
-	/**
-	 * Host the supervisor's TCP listener was bound to (e.g. `127.0.0.1`,
-	 * `0.0.0.0`). Optional so older lockfiles still parse; consumers fall
-	 * back to loopback when absent.
-	 */
 	readonly host?: string;
 	readonly connectionToken?: string | null;
 	readonly protocolVersion: string;

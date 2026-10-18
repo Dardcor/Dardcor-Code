@@ -28,13 +28,6 @@ export class AgentHostSkillCompletionProvider extends Disposable implements IAge
 
 	constructor(
 		private readonly _getAgent: (session: URI | string) => IAgent | undefined,
-		/**
-		 * The owning session's last host-published customization snapshot.
-		 * Supplied by Agent Host so the provider hands it to
-		 * `getChatCustomizations` explicitly instead of the agent reading it
-		 * from shared host state. `undefined` when the host has published no
-		 * snapshot for the session yet.
-		 */
 		private readonly _getHostCustomizations: (session: URI | string) => readonly Customization[] | undefined = () => undefined,
 	) {
 		super();
@@ -56,9 +49,7 @@ export class AgentHostSkillCompletionProvider extends Disposable implements IAge
 			return [];
 		}
 
-		// `/abc` → typed = 'abc'; empty after just '/' → typed = ''.
 		const typed = leading.typed;
-		// A skill's synced-bundle copy has a different URI than its on-disk file, so dedupe by name + description, not URI.
 		const skillsSeen = new Set<string>();
 		return candidates
 			.filter(skill => {
@@ -104,7 +95,6 @@ export class AgentHostSkillCompletionProvider extends Disposable implements IAge
 	}
 
 	private _toSlashCommandCandidate(container: PluginCustomization | DirectoryCustomization, skill: SkillCustomization): SlashCommmandCandidate {
-		// see getCanonicalPluginCommandId
 		let slashCommandName = skill.name;
 		if (container.type === CustomizationType.Plugin && !isSyncedCustomization(container) && skill.name !== container.name) {
 			slashCommandName = `${container.name}:${skill.name}`;

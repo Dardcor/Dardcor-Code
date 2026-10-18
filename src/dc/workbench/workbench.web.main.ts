@@ -4,35 +4,23 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-// #######################################################################
-// ###                                                                 ###
-// ### !!! PLEASE ADD COMMON IMPORTS INTO WORKBENCH.COMMON.MAIN.TS !!! ###
-// ###                                                                 ###
-// #######################################################################
 
 
-//#region --- workbench common
 
 import './workbench.common.main.js';
 
-//#endregion
 
 
-//#region --- workbench parts
 
 import './browser/parts/dialogs/dialog.web.contribution.js';
 
-//#endregion
 
 
-//#region --- workbench (web main)
 
 import './browser/web.main.js';
 
-//#endregion
 
 
-//#region --- workbench services
 
 import './services/integrity/browser/integrityService.js';
 import './services/search/browser/searchService.js';
@@ -117,7 +105,7 @@ registerSingleton(IUserDataSyncLocalStoreService, UserDataSyncLocalStoreService,
 registerSingleton(IUserDataSyncAccountService, UserDataSyncAccountService, InstantiationType.Delayed);
 registerSingleton(IUserDataSyncService, UserDataSyncService, InstantiationType.Delayed);
 registerSingleton(IUserDataSyncResourceProviderService, UserDataSyncResourceProviderService, InstantiationType.Delayed);
-registerSingleton(IUserDataAutoSyncService, UserDataAutoSyncService, InstantiationType.Eager /* Eager to start auto sync */);
+registerSingleton(IUserDataAutoSyncService, UserDataAutoSyncService, InstantiationType.Eager );
 registerSingleton(ITitleService, BrowserTitleService, InstantiationType.Eager);
 registerSingleton(IExtensionTipsService, ExtensionTipsService, InstantiationType.Delayed);
 registerSingleton(ITimerService, TimerService, InstantiationType.Delayed);
@@ -131,62 +119,42 @@ registerSingleton(IAgentHostService, EditorRemoteAgentHostServiceClient, Instant
 registerSingleton(IRemoteAgentHostService, NullRemoteAgentHostService, InstantiationType.Delayed);
 registerSingleton(IAgentHostDebugLogsExportService, BrowserAgentHostDebugLogsExportService, InstantiationType.Delayed);
 
-//#endregion
 
 
-//#region --- workbench contributions
 
-// Logs
 import './contrib/logs/browser/logs.contribution.js';
 
-// Localization
 import './contrib/localization/browser/localization.contribution.js';
 
-// Performance
 import './contrib/performance/browser/performance.web.contribution.js';
 
-// Preferences
 import './contrib/preferences/browser/keyboardLayoutPicker.js';
 
-// Debug
 import './contrib/debug/browser/extensionHostDebugService.js';
 
-// Welcome Banner
 import './contrib/welcomeBanner/browser/welcomeBanner.contribution.js';
 
-// Webview
 import './contrib/webview/browser/webview.web.contribution.js';
 
-// Extensions Management
 import './contrib/extensions/browser/extensions.web.contribution.js';
 
-// Terminal
 import './contrib/terminal/browser/terminal.web.contribution.js';
 import './contrib/externalTerminal/browser/externalTerminal.contribution.js';
 import './contrib/terminal/browser/terminalInstanceService.js';
 
-// Tasks
 import './contrib/tasks/browser/taskService.js';
 
-// Tags
 import './contrib/tags/browser/workspaceTagsService.js';
 
-// Issues
 import './contrib/issue/browser/issue.contribution.js';
 
-// Surveys
 import './contrib/surveys/browser/survey.contribution.js';
 
-// Splash
 import './contrib/splash/browser/splash.contribution.js';
 
-// Remote Start Entry for the Web
 import './contrib/remote/browser/remoteStartEntry.contribution.js';
 
-// Process Explorer
 import './contrib/processExplorer/browser/processExplorer.web.contribution.js';
 
-// Browser View
 import './contrib/browserView/browser/browserView.contribution.js';
 
-//#endregion

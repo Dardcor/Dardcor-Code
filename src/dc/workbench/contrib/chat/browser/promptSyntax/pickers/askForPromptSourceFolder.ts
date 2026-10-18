@@ -20,9 +20,6 @@ interface IFolderQuickPickItem extends IQuickPickItem {
 	readonly folder: IPromptPath;
 }
 
-/**
- * Asks the user for a specific prompt folder, if multiple folders provided.
- */
 export async function askForPromptSourceFolder(
 	accessor: ServicesAccessor,
 	type: PromptsType,
@@ -35,12 +32,8 @@ export async function askForPromptSourceFolder(
 	const labelService = accessor.get(ILabelService);
 	const workspaceService = accessor.get(IWorkspaceContextService);
 
-	// get resolved source folders with full metadata (source, isDefault, displayPath)
 	const resolvedFolders = await promptsService.getResolvedSourceFolders(type);
 
-	// if no source folders found, show 'learn more' dialog
-	// note! this is a temporary solution and must be replaced with a dialog to select
-	//       a custom folder path, or switch to a different prompt type
 	if (resolvedFolders.length === 0) {
 		await instantiationService.invokeFunction(accessor => showNoFoldersDialog(accessor, type));
 		return;
@@ -52,21 +45,17 @@ export async function askForPromptSourceFolder(
 		matchOnDescription: true,
 	};
 
-	// The first folder in the resolved list is the default for new files
 	const defaultFolder = !existingFolder ? resolvedFolders[0] : undefined;
 
 	const { folders: workspaceFolders } = workspaceService.getWorkspace();
 	const isMultiRoot = workspaceFolders.length > 1;
 
-	// create list of source folder locations
 	const foldersList = resolvedFolders.map<IFolderQuickPickItem>(resolved => {
 		const folderUri = resolved.searchRoot;
 		const isDefault = defaultFolder && isEqual(folderUri, defaultFolder.searchRoot);
 		const sourceDescription = getSourceDescription(resolved.source);
 		const detail = (existingFolder && isEqual(folderUri, existingFolder)) ? localize('current.folder', "Current Location") : undefined;
 
-		// In multi-root workspaces, use workspace-relative labels (which include
-		// the workspace folder name prefix). Otherwise use displayPath.
 		const basePath = (isMultiRoot && resolved.storage === PromptsStorage.local)
 			? labelService.getUriLabel(folderUri, { relative: true })
 			: resolved.displayPath ?? labelService.getUriLabel(folderUri, { relative: resolved.storage === PromptsStorage.local });
@@ -85,8 +74,6 @@ export async function askForPromptSourceFolder(
 		};
 	});
 
-	// In multi-root workspaces, sort so items from the same workspace folder
-	// are grouped together instead of being interleaved by source type.
 	if (isMultiRoot) {
 		const getWorkspaceFolderIndex = (uri: URI, storage: PromptsStorage): number => {
 			if (storage !== PromptsStorage.local) {
@@ -161,12 +148,6 @@ function getPlaceholderStringforMove(type: PromptsType, isMove: boolean): string
 	}
 }
 
-/**
- * Shows a dialog to the user when no prompt source folders are found.
- *
- * Note! this is a temporary solution and must be replaced with a dialog to select
- *       a custom folder path, or switch to a different prompt type
- */
 export async function showNoFoldersDialog(accessor: ServicesAccessor, type: PromptsType): Promise<void> {
 	const quickInputService = accessor.get(IQuickInputService);
 	const openerService = accessor.get(IOpenerService);

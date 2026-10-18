@@ -19,10 +19,6 @@ import { IChatSessionMetadataStore, RepositoryProperties, WorkspaceFolderEntry }
 import { IChatSessionWorkspaceFolderService } from '../common/chatSessionWorkspaceFolderService';
 import { ChatSessionWorktreeFile } from '../common/chatSessionWorktreeService';
 
-/**
- * Service for tracking workspace folder selections for chat sessions.
- * This is used in multi-root workspaces where some folders may not have git repositories.
- */
 export class ChatSessionWorkspaceFolderService extends Disposable implements IChatSessionWorkspaceFolderService {
 	declare _serviceBrand: undefined;
 
@@ -66,7 +62,6 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 		};
 		this.workspaceState.set(sessionId, entry);
 
-		// Associate session with workspace folder for cache invalidation
 		const folderUri = vscode.Uri.file(workspaceFolderUri);
 		const sessionIds = this.sessionsAssociatedWithFolders.get(folderUri) ?? new Set<string>();
 		sessionIds.add(sessionId);
@@ -106,7 +101,6 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 	}
 
 	async handleRequestCompleted(sessionId: string): Promise<void> {
-		// Clear changes cache
 		this.invalidateSessionCache(sessionId);
 	}
 
@@ -117,22 +111,18 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 	}
 
 	async refreshWorkspaceChanges(sessionId: string): Promise<void> {
-		// Clear the cache
 		this.clearWorkspaceChanges(sessionId);
 
-		// Populate the cache
 		await this.getWorkspaceChanges(sessionId);
 	}
 
 	async getWorkspaceChanges(sessionId: string): Promise<readonly ChatSessionWorktreeFile[] | undefined> {
 		return this.workspaceChangesSequencer.queue(sessionId, async () => {
 
-			// Fast path: session previously had no repository properties
 			if (this.sessionsWithNoRepoProperties.has(sessionId)) {
 				return [];
 			}
 
-			// Fast path: check if we already have the repo key and a cached result
 			const existingRepoKey = this.sessionRepoKeys.get(sessionId);
 			const cachedChanges = existingRepoKey ? this.workspaceFolderChanges.get(existingRepoKey) : undefined;
 			if (cachedChanges) {
@@ -150,7 +140,6 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 			this.sessionRepoKeys.set(sessionId, repoKey);
 
 			return this.repoChangesSequencer.queue(repoKey, async () => {
-				// Check cache again — another session may have computed it while we waited in the repo sequencer
 				const cachedChanges = this.workspaceFolderChanges.get(repoKey);
 				if (cachedChanges) {
 					return cachedChanges;
@@ -196,18 +185,15 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 			return undefined;
 		}
 
-		// Check for untracked changes, only if the session branch matches the current branch
 		const hasUntrackedChanges = repositoryProperties.branchName === repository.headBranchName
 			? [
 				...repository.changes?.workingTree ?? [],
 				...repository.changes?.untrackedChanges ?? [],
-			].some(change => change.status === 7 /* UNTRACKED */)
+			].some(change => change.status === 7 )
 			: false;
 
 		const diffChanges: DiffChange[] = [];
 
-		// If the repository is using a virtual file system, we need to
-		// disable rename detection to avoid expensive git operations
 		const noRenamesArg = repository.isUsingVirtualFileSystem
 			? ['--no-renames']
 			: [];
@@ -217,7 +203,6 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 			: [];
 
 		if (hasUntrackedChanges) {
-			// Tracked + untracked changes
 			const tmpDirName = `vscode-sessions-${generateUuid()}`;
 			const diffIndexFile = path.join(this.extensionContext.globalStorageUri.fsPath, tmpDirName, 'diff.index');
 			const pathspecFile = path.join(this.extensionContext.globalStorageUri.fsPath, tmpDirName, `pathspec.txt`);
@@ -225,23 +210,18 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 			const env = buildTempIndexEnv(repository, diffIndexFile);
 
 			try {
-				// Create temp index file directory
 				await fs.mkdir(path.dirname(diffIndexFile), { recursive: true });
 
 				try {
-					// Populate temp index from HEAD, fall back to empty tree if no commits exist
 					await this.gitService.exec(repository.rootUri, ['read-tree', 'HEAD'], env);
 				} catch {
-					// Fall back to empty tree for repositories with no commits
 					await this.gitService.exec(repository.rootUri, ['read-tree', ChatSessionWorkspaceFolderService.EMPTY_TREE_OBJECT], env);
 				}
 
-				// Stage entire working directory into temp index
 				const uncommittedFilePaths = getUncommittedFilePaths(repository);
 				await fs.writeFile(pathspecFile, uncommittedFilePaths.join('\n'), 'utf8');
 				await this.gitService.exec(repository.rootUri, ['add', '-A', `--pathspec-from-file=${pathspecFile}`], env);
 
-				// Diff the temp index with the base branch
 				const result = await this.gitService.exec(repository.rootUri, ['diff', '--cached', '--raw', '--numstat', '--diff-filter=ADMR', ...noRenamesArg, '-z', ...mergeBaseArg, '--'], env);
 				diffChanges.push(...parseGitChangesRaw(repository.rootUri.fsPath, result));
 			} catch (error) {
@@ -255,7 +235,6 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 				}
 			}
 		} else {
-			// Tracked changes
 			try {
 				const result = await this.gitService.exec(repository.rootUri, ['diff', '--raw', '--numstat', '--diff-filter=ADMR', ...noRenamesArg, '-z', ...mergeBaseArg, '--']);
 				diffChanges.push(...parseGitChangesRaw(repository.rootUri.fsPath, result));
@@ -265,9 +244,6 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 			}
 		}
 
-		// Since the diff may be computed using the merge base commit of the current
-		// branch and the base branch, we need to compute it as well so that we can use
-		// it as the originalRef (left-hand side) of the diff editor
 		let mergeBaseCommit: string | undefined;
 		try {
 			if (repositoryProperties.branchName && repositoryProperties.baseBranchName) {
@@ -279,10 +255,10 @@ export class ChatSessionWorkspaceFolderService extends Disposable implements ICh
 
 		const changes = diffChanges.map(change => ({
 			filePath: change.uri.fsPath,
-			originalFilePath: change.status !== 1 /* INDEX_ADDED */
+			originalFilePath: change.status !== 1
 				? change.originalUri?.fsPath
 				: undefined,
-			modifiedFilePath: change.status !== 6 /* DELETED */
+			modifiedFilePath: change.status !== 6
 				? change.uri.fsPath
 				: undefined,
 			statistics: {

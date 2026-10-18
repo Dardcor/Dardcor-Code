@@ -33,8 +33,8 @@ describe.runIf(RUN_DOTNET_CLI_TESTS).skip('get nuget MCP server info using dotne
 			logService,
 			fetcherService,
 			commandExecutor,
-			{ command: 'dotnet', args: [] }, // allow dotnet command to be overridden for testing
-			path.join(__dirname, 'fixtures', 'nuget') // file based package source for testing
+			{ command: 'dotnet', args: [] },
+			path.join(__dirname, 'fixtures', 'nuget')
 		);
 	});
 

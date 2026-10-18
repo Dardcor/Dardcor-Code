@@ -1,4 +1,4 @@
-# [Prompts (.prompt.md)](https://code.visualstudio.com/docs/dardcor/customization/prompt-files)
+# [Prompts (.prompt.md)](https://www.dardcor-code.web.id/docs/dardcor/customization/prompt-files)
 
 Reusable task templates triggered on-demand in chat. Single focused task with parameterized inputs.
 

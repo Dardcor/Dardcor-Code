@@ -32,17 +32,12 @@ suite('QueryBuilderCommon', () => {
 	});
 
 	test('escapeGlobPattern properly escapes square brackets for literal matching', () => {
-		// This test verifies the fix for issue #233049 where files with square brackets in names
-		// were not found when using "Search Only in Open Editors"
 
-		// Test file name with square brackets
 		const fileName = 'file[test].txt';
 
-		// Without escaping, the pattern treats [test] as a character class
 		const unescapedResult = glob.match(fileName, fileName);
 		assert.strictEqual(unescapedResult, false, 'Unescaped pattern should not match due to character class interpretation');
 
-		// With escaping, the pattern matches literally
 		const escapedPattern = escapeGlobPattern(fileName);
 		const escapedResult = glob.match(escapedPattern, fileName);
 		assert.strictEqual(escapedResult, true, 'Escaped pattern should match literally');

@@ -73,8 +73,6 @@ export class LazyPromise implements Promise<any> {
 		if (this._actual) {
 			this._actualErr!(err);
 		} else {
-			// If nobody's listening at this point, it is safe to assume they never will,
-			// since resolving this promise is always "async"
 			onUnexpectedError(err);
 		}
 	}

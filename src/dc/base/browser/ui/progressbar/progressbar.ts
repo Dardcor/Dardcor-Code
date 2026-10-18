@@ -30,19 +30,8 @@ export const unthemedProgressBarOptions: IProgressBarOptions = {
 	progressBarBackground: undefined
 };
 
-/**
- * A progress bar with support for infinite or discrete progress.
- */
 export class ProgressBar extends Disposable {
 
-	/**
-	 * After a certain time of showing the progress bar, switch
-	 * to long-running mode and throttle animations to reduce
-	 * the pressure on the GPU process.
-	 *
-	 * https://github.com/microsoft/vscode/issues/97900
-	 * https://github.com/microsoft/vscode/issues/138396
-	 */
 	private static readonly LONG_RUNNING_INFINITE_THRESHOLD = 10000;
 
 	private static readonly PROGRESS_SIGNAL_DEFAULT_DELAY = 3000;
@@ -92,16 +81,10 @@ export class ProgressBar extends Disposable {
 		this.progressSignal.clear();
 	}
 
-	/**
-	 * Indicates to the progress bar that all work is done.
-	 */
 	done(): ProgressBar {
 		return this.doDone(true);
 	}
 
-	/**
-	 * Stops the progressbar from showing any progress instantly without fading out.
-	 */
 	stop(): ProgressBar {
 		return this.doDone(false);
 	}
@@ -109,7 +92,6 @@ export class ProgressBar extends Disposable {
 	private doDone(delayed: boolean): ProgressBar {
 		this.element.classList.add(CSS_DONE);
 
-		// discrete: let it grow to 100% width and hide afterwards
 		if (!this.element.classList.contains(CSS_INFINITE)) {
 			this.bit.style.width = 'inherit';
 
@@ -120,7 +102,6 @@ export class ProgressBar extends Disposable {
 			}
 		}
 
-		// infinite: let it fade out and hide afterwards
 		else {
 			this.bit.style.opacity = '0';
 			if (delayed) {
@@ -133,9 +114,6 @@ export class ProgressBar extends Disposable {
 		return this;
 	}
 
-	/**
-	 * Use this mode to indicate progress that has no total number of work units.
-	 */
 	infinite(): ProgressBar {
 		this.bit.style.width = '2%';
 		this.bit.style.opacity = '1';
@@ -152,10 +130,6 @@ export class ProgressBar extends Disposable {
 		this.element.classList.add(CSS_INFINITE_LONG_RUNNING);
 	}
 
-	/**
-	 * Tells the progress bar the total number of work. Use in combination with workedVal() to let
-	 * the progress bar show the actual progress based on the work that is done.
-	 */
 	total(value: number): ProgressBar {
 		this.workedVal = 0;
 		this.totalWork = value;
@@ -164,25 +138,16 @@ export class ProgressBar extends Disposable {
 		return this;
 	}
 
-	/**
-	 * Finds out if this progress bar is configured with total work
-	 */
 	hasTotal(): boolean {
 		return isNumber(this.totalWork);
 	}
 
-	/**
-	 * Tells the progress bar that an increment of work has been completed.
-	 */
 	worked(value: number): ProgressBar {
 		value = Math.max(1, Number(value));
 
 		return this.doSetWorked(this.workedVal + value);
 	}
 
-	/**
-	 * Tells the progress bar the total amount of work (0 to 100) that has been completed.
-	 */
 	setWorked(value: number): ProgressBar {
 		value = Math.max(1, Number(value));
 

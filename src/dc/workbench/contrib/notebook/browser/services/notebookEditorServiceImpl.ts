@@ -73,7 +73,7 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 					this._disposeWidget(value.widget);
 					value.disposableStore.dispose();
 					// eslint-disable-next-line local/code-no-any-casts
-					value.widget = (<any>undefined); // unset the widget so that others that still hold a reference don't harm us
+					value.widget = (<any>undefined);
 				});
 			}));
 			listeners.push(group.onWillMoveEditor(e => {
@@ -92,7 +92,6 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 		this._disposables.add(editorGroupService.onDidAddGroup(onNewGroup));
 		editorGroupService.whenReady.then(() => editorGroupService.groups.forEach(onNewGroup));
 
-		// group removed -> clean up listeners, clean up widgets
 		this._disposables.add(editorGroupService.onDidRemoveGroup(group => {
 			const listeners = this.groupListener.get(group.id);
 			if (listeners) {
@@ -142,7 +141,6 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 		});
 	}
 
-	// --- group-based editor borrowing...
 
 	private _disposeWidget(widget: NotebookEditorWidget): void {
 		widget.onWillHide();
@@ -161,7 +159,6 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 
 		const target = this._borrowableEditors.get(targetID)?.get(input.resource)?.findIndex(widget => widget.editorType === input.typeId);
 		if (target !== undefined && target !== -1) {
-			// not needed, a separate widget is already there
 			return;
 		}
 
@@ -170,7 +167,6 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 			throw new Error('no widget at source group');
 		}
 
-		// don't allow the widget to be retrieved at its previous location any more
 		const sourceWidgets = this._borrowableEditors.get(sourceID)?.get(input.resource);
 		if (sourceWidgets) {
 			const indexToRemove = sourceWidgets.findIndex(widget => widget.editorType === input.typeId);
@@ -179,7 +175,6 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 			}
 		}
 
-		// allow the widget to be retrieved at its new location
 		let targetMap = this._borrowableEditors.get(targetID);
 		if (!targetMap) {
 			targetMap = new ResourceMap();
@@ -217,7 +212,6 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 		let value = this._borrowableEditors.get(groupId)?.get(input.resource)?.find(widget => widget.editorType === input.typeId);
 
 		if (!value) {
-			// NEW widget
 			const editorGroupContextKeyService = accessor.get(IContextKeyService);
 			const editorGroupEditorProgressService = accessor.get(IEditorProgressService);
 			const widgetDisposeStore = new DisposableStore();
@@ -234,15 +228,12 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 			values.push(value);
 			map.set(input.resource, values);
 		} else {
-			// reuse a widget which was either free'ed before or which
-			// is simply being reused...
 			value.token = this._tokenPool++;
 		}
 
 		return this._createBorrowValue(value.token!, value);
 	}
 
-	// protected for unit testing overrides
 	protected createWidget(editorGroupContextKeyService: IContextKeyService, widgetDisposeStore: DisposableStore, editorGroupEditorProgressService: IEditorProgressService, creationOptions?: INotebookEditorCreationOptions, codeWindow?: CodeWindow, initialDimension?: Dimension) {
 		const notebookInstantiationService = widgetDisposeStore.add(this.instantiationService.createChild(new ServiceCollection(
 			[IContextKeyService, editorGroupContextKeyService],
@@ -263,7 +254,6 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 		};
 	}
 
-	// --- editor management
 
 	addNotebookEditor(editor: INotebookEditor): void {
 		this._notebookEditors.set(editor.getId(), editor);

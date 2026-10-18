@@ -491,8 +491,6 @@ describe('completeToolInvocation', () => {
 				prompt: 'run the tests'
 			});
 			const toolResult = createToolResultBlock('test-tool-id-123', 'All 42 tests passed');
-			// Simulate the live agent flow: createFormattedToolInvocation sets toolSpecificData,
-			// then completeToolInvocation is called with the result
 			const invocation = createFormattedToolInvocation(toolUse)!;
 
 			completeToolInvocation(toolUse, toolResult, invocation);

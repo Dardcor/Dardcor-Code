@@ -22,19 +22,12 @@ export const rmTestSuiteSpec: ISuiteSpec = {
 	completionSpecs: rmSpec,
 	availableCommands: 'rm',
 	testSpecs: [
-		// Empty input
 		{ input: '|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Typing the command
 		{ input: 'r|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'rm|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Basic options
 		{ input: 'rm |', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Duplicate option
-		// TODO: Duplicate options should not be presented https://github.com/microsoft/vscode/issues/239607
-		// { input: `rm -${allOptions[0]} -|`, expectedCompletions: removeArrayEntries(allOptions, allOptions[0]) },
-		// { input: `rm -${allOptions[0]} -${allOptions[1]} -|`, expectedCompletions: removeArrayEntries(allOptions, allOptions[0], allOptions[1]) },
 	]
 };

@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -22,9 +21,6 @@ export function register(id: string, fontCharacter: number | string): ThemeIcon 
 	return { id };
 }
 
-/**
- * Only to be used by the iconRegistry.
- */
 export function getCodiconFontCharacters(): { [id: string]: number } {
 	return _codiconFontCharacters;
 }

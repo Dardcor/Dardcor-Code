@@ -68,7 +68,6 @@ suite('Microsoft Telemetry Sender', function () {
 			sku: 'testSku',
 			expires_at: 9999999999,
 			refresh_in: 180000,
-			// Make the token part of the GH org so it works for internal people
 			organization_list: ['4535c7beffc844b46bb1ed4aa04d759a'],
 			isVscodeTeamMember: true,
 			username: 'testUser',
@@ -148,7 +147,6 @@ suite('GitHub Telemetry Sender', function () {
 	let mockToken: CopilotToken;
 	let mockEnhancedLogger: TelemetryLogger;
 
-	// These are all common properties & measurements that the telemetry sender will add to every event
 	const commonTelemetryData = {
 		properties: {
 			dardcor_build: new TelemetryTrustedValue('1'),
@@ -171,7 +169,6 @@ suite('GitHub Telemetry Sender', function () {
 			sku: 'testSku',
 			expires_at: 9999999999,
 			refresh_in: 180000,
-			// Make the token part of the GH org so it works for internal people
 			organization_list: ['4535c7beffc844b46bb1ed4aa04d759a'],
 			isVscodeTeamMember: true,
 			username: 'testUser',
@@ -356,20 +353,14 @@ suite('GitHub Telemetry Sender', function () {
 
 suite('multiplexProperties compression', function () {
 	test('chunks a long value in compressed form only and round-trips', async () => {
-		const original = 'x'.repeat(20000); // > 8192 and highly compressible.
+		const original = 'x'.repeat(20000);
 		const result = await multiplexProperties({ diffsJSON: original, short: 'hi' }, gzipBase64);
 
-		// The original column carries just the first uncompressed chunk.
 		expect(result.diffsJSON).toBe(original.slice(0, 8192));
-		// No redundant plain continuation family is produced.
 		expect(result.diffsJSON_02).toBeUndefined();
-		// First compressed column has no numeric suffix.
 		expect(result.diffsJSONChunk).toBeDefined();
-		// Round-trips back to the original value.
 		expect(gunzipFromBase64(joinCompressedChunks(result as { [key: string]: string }, 'diffsJSONChunk'))).toBe(original);
-		// No zero-padded suffixes on the compressed family.
 		expect(Object.keys(result).every(key => !/Chunk_0\d$/.test(key))).toBe(true);
-		// Short (non-chunked) properties pass through untouched with no compressed family.
 		expect(result.short).toBe('hi');
 		expect(result.shortChunk).toBeUndefined();
 	});
@@ -382,15 +373,12 @@ suite('multiplexProperties compression', function () {
 	test('always emits a compressed chunk family for known-large fields even when they fit', async () => {
 		const result = await multiplexProperties({ diffsJSON: 'small', messagesJson: 'tiny', other: 'x' }, gzipBase64) as { [key: string]: string };
 
-		// Known-large fields are always chunked in compressed form for backend uniformity.
 		expect(result.diffsJSONChunk).toBeDefined();
 		expect(result.messagesJsonChunk).toBeDefined();
 		expect(gunzipFromBase64(joinCompressedChunks(result, 'diffsJSONChunk'))).toBe('small');
 		expect(gunzipFromBase64(joinCompressedChunks(result, 'messagesJsonChunk'))).toBe('tiny');
-		// The original columns still carry the (short) uncompressed value.
 		expect(result.diffsJSON).toBe('small');
 		expect(result.messagesJson).toBe('tiny');
-		// Other short fields are left untouched.
 		expect(result.other).toBe('x');
 		expect(result.otherChunk).toBeUndefined();
 	});
@@ -404,15 +392,13 @@ suite('multiplexProperties compression', function () {
 	});
 
 	test('splits large compressed payloads across multiple non-zero-padded columns', async () => {
-		const original = pseudoRandomString(60000); // Poorly compressible -> compressed base64 > 8192.
+		const original = pseudoRandomString(60000);
 		const result = await multiplexProperties({ diffsJSON: original }, gzipBase64) as { [key: string]: string };
 
-		// The original column carries just the first uncompressed chunk; no plain continuation family.
 		expect(result.diffsJSON).toBe(original.slice(0, 8192));
 		expect(result.diffsJSON_02).toBeUndefined();
 		expect(result.diffsJSONChunk).toBeDefined();
 		expect(result.diffsJSONChunk_2).toBeDefined();
-		// Every compressed column stays within the Application Insights per-property limit.
 		const chunkValues = Object.keys(result).filter(key => key.startsWith('diffsJSONChunk')).map(key => result[key]);
 		expect(chunkValues.every(value => value.length <= 8192)).toBe(true);
 		expect(gunzipFromBase64(joinCompressedChunks(result, 'diffsJSONChunk'))).toBe(original);

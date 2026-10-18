@@ -41,7 +41,6 @@ export class TimelinePaneDescriptor implements IViewDescriptor {
 	focusCommand = { id: 'timeline.focus' };
 }
 
-// Configuration
 const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 configurationRegistry.registerConfiguration({
 	id: 'timeline',

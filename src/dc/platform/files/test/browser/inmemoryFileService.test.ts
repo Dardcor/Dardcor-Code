@@ -180,7 +180,7 @@ suite('InMemory File Service', () => {
 
 		const fd = await provider.open(resource, { create: true, unlock: false, append: true });
 		try {
-			await provider.write(fd, 123 /* ignored in append mode */, suffix.buffer, 0, suffix.byteLength);
+			await provider.write(fd, 123 , suffix.buffer, 0, suffix.byteLength);
 		} finally {
 			await provider.close(fd);
 		}
@@ -261,7 +261,7 @@ suite('InMemory File Service', () => {
 		await service.writeFile(resource, VSBuffer.fromString('2'));
 		await service.del(resource);
 
-		await timeout(20); // provider fires changes async
+		await timeout(20);
 		assert.ok(changeCount > 0);
 	});
 

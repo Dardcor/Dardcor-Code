@@ -64,7 +64,6 @@ export class TestWorkerService extends mock<IEditorWorkerService>() implements I
 		if (!result) {
 			return result;
 		}
-		// Convert from space efficient JSON data to rich objects.
 		const diff: IDocumentDiff = {
 			identical: result.identical,
 			quitEarly: result.quitEarly,

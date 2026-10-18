@@ -8,12 +8,6 @@ import * as strings from './strings.js';
 
 type NotSyncHashable = ArrayBufferLike | ArrayBufferView;
 
-/**
- * Return a hash value for an object.
- *
- * Note that this should not be used for binary data types. Instead,
- * prefer {@link hashAsync}.
- */
 export function hash<T>(obj: T extends NotSyncHashable ? never : T): number {
 	return doHash(obj, 0);
 }
@@ -41,7 +35,7 @@ export function doHash(obj: unknown, hashVal: number): number {
 }
 
 export function numberHash(val: number, initialHashVal: number): number {
-	return (((initialHashVal << 5) - initialHashVal) + val) | 0;  // hashVal * 31 + ch, keep as int32
+	return (((initialHashVal << 5) - initialHashVal) + val) | 0;
 }
 
 function booleanHash(b: boolean, initialHashVal: number): number {
@@ -76,13 +70,8 @@ function objectHash(obj: object, initialHashVal: number): number {
 
 
 
-/** Hashes the input as SHA-1, returning a hex-encoded string. */
 export const hashAsync = (input: string | ArrayBufferView | VSBuffer) => {
-	// Note: I would very much like to expose a streaming interface for hashing
-	// generally, but this is not available in web crypto yet, see
-	// https://github.com/w3c/webcrypto/issues/73
 
-	// StringSHA1 is faster for small string input, use it since we have it:
 	if (typeof input === 'string' && input.length < 250) {
 		const sha = new StringSHA1();
 		sha.update(input);
@@ -102,18 +91,15 @@ export const hashAsync = (input: string | ArrayBufferView | VSBuffer) => {
 };
 
 const enum SHA1Constant {
-	BLOCK_SIZE = 64, // 512 / 8
+	BLOCK_SIZE = 64,
 	UNICODE_REPLACEMENT = 0xFFFD,
 }
 
 function leftRotate(value: number, bits: number, totalBits: number = 32): number {
-	// delta + bits = totalBits
 	const delta = totalBits - bits;
 
-	// All ones, expect `delta` zeros aligned to the right
 	const mask = ~((1 << delta) - 1);
 
-	// Join (value left-shifted `bits` bits) with (masked value right-shifted `delta` bits)
 	return ((value << bits) | ((mask & value) >>> delta)) >>> 0;
 }
 
@@ -127,13 +113,8 @@ function toHexString(bufferOrValue: ArrayBuffer | number, bitsize: number = 32):
 	return (bufferOrValue >>> 0).toString(16).padStart(bitsize / 4, '0');
 }
 
-/**
- * A SHA1 implementation that works with strings and does not allocate.
- *
- * Prefer to use {@link hashAsync} in async contexts
- */
 export class StringSHA1 {
-	private static _bigBlock32 = new DataView(new ArrayBuffer(320)); // 80 * 4 = 320
+	private static _bigBlock32 = new DataView(new ArrayBuffer(320));
 
 	private _h0 = 0x67452301;
 	private _h1 = 0xEFCDAB89;
@@ -149,7 +130,7 @@ export class StringSHA1 {
 	private _finished: boolean;
 
 	constructor() {
-		this._buff = new Uint8Array(SHA1Constant.BLOCK_SIZE + 3 /* to fit any utf-8 */);
+		this._buff = new Uint8Array(SHA1Constant.BLOCK_SIZE + 3 );
 		this._buffDV = new DataView(this._buff.buffer);
 		this._buffLen = 0;
 		this._totalLen = 0;
@@ -187,16 +168,13 @@ export class StringSHA1 {
 						offset++;
 						codePoint = strings.computeCodePoint(charCode, nextCharCode);
 					} else {
-						// illegal => unicode replacement character
 						codePoint = SHA1Constant.UNICODE_REPLACEMENT;
 					}
 				} else {
-					// last character is a surrogate pair
 					leftoverHighSurrogate = charCode;
 					break;
 				}
 			} else if (strings.isLowSurrogate(charCode)) {
-				// illegal => unicode replacement character
 				codePoint = SHA1Constant.UNICODE_REPLACEMENT;
 			}
 
@@ -234,7 +212,6 @@ export class StringSHA1 {
 			this._step();
 			buffLen -= SHA1Constant.BLOCK_SIZE;
 			this._totalLen += SHA1Constant.BLOCK_SIZE;
-			// take last 3 in case of UTF8 overflow
 			buff[0] = buff[SHA1Constant.BLOCK_SIZE + 0];
 			buff[1] = buff[SHA1Constant.BLOCK_SIZE + 1];
 			buff[2] = buff[SHA1Constant.BLOCK_SIZE + 2];
@@ -247,7 +224,6 @@ export class StringSHA1 {
 		if (!this._finished) {
 			this._finished = true;
 			if (this._leftoverHighSurrogate) {
-				// illegal => unicode replacement character
 				this._leftoverHighSurrogate = 0;
 				this._buffLen = this._push(this._buff, this._buffLen, SHA1Constant.UNICODE_REPLACEMENT);
 			}
@@ -267,7 +243,6 @@ export class StringSHA1 {
 			this._buff.fill(0);
 		}
 
-		// this will fit because the mantissa can cover up to 52 bits
 		const ml = 8 * this._totalLen;
 
 		this._buffDV.setUint32(56, Math.floor(ml / 4294967296), false);
@@ -280,11 +255,11 @@ export class StringSHA1 {
 		const bigBlock32 = StringSHA1._bigBlock32;
 		const data = this._buffDV;
 
-		for (let j = 0; j < 64 /* 16*4 */; j += 4) {
+		for (let j = 0; j < 64 ; j += 4) {
 			bigBlock32.setUint32(j, data.getUint32(j, false), false);
 		}
 
-		for (let j = 64; j < 320 /* 80*4 */; j += 4) {
+		for (let j = 64; j < 320 ; j += 4) {
 			bigBlock32.setUint32(j, leftRotate((bigBlock32.getUint32(j - 12, false) ^ bigBlock32.getUint32(j - 32, false) ^ bigBlock32.getUint32(j - 56, false) ^ bigBlock32.getUint32(j - 64, false)), 1), false);
 		}
 

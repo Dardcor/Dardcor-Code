@@ -3,10 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Heavily lifted from https://github.com/microsoft/vscode/tree/main/src/vs/workbench/common/configuration.ts
- * It is a little simplified and does not handle overrides, but currently we are only migrating experimental configurations
- */
 
 
 import { ConfigurationTarget, l10n, Uri, window, workspace, WorkspaceFolder } from 'vscode';
@@ -90,7 +86,6 @@ export class ConfigurationMigrationContribution implements IExtensionContributio
 			}
 
 			if (migrationValues.length) {
-				// apply migrations
 				await Promise.allSettled(migrationValues.map(async ([key, value]) => {
 					configuration.update(key, value.value, target);
 				}));
@@ -166,8 +161,8 @@ const oldCursorJumpKey = 'github.dardcor.chat.advanced.inlineEdits.nextCursorPre
 const newCursorJumpKey = 'github.dardcor.nextEditSuggestions.extendedRange';
 ConfigurationMigrationRegistry.registerConfigurationMigrations([{
 	key: oldCursorJumpKey,
-	migrateFn: async (value: boolean |  /* the rest is for backward compat: */ NextCursorLinePrediction | 'labelOnlyWithEdit' | boolean | undefined) => {
-		if (typeof value === 'string') { // for backward compatibility -- one of 'onlyWithEdit' | 'jump' | 'labelOnlyWithEdit'
+	migrateFn: async (value: boolean | NextCursorLinePrediction | 'labelOnlyWithEdit' | boolean | undefined) => {
+		if (typeof value === 'string') {
 			value = true;
 		} else if (value === undefined) {
 			value = false;

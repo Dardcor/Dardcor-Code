@@ -25,18 +25,6 @@ import {
 } from '../indentation';
 import { compareTreeWithSpec } from './testHelpers';
 
-/**
- * Parse a tree according to indentation, where lines
- * with content "-> virtual" are translated into virtual nodes
- * E.g.
- * A
- *   -> virtual
- *      B
- *      C
- * Will be parsed as: A having a virtual child, whose children are B and C
- * @param sourceParsedAsIf
- * @returns
- */
 function parseAsIfVirtual(sourceParsedAsIf: string) {
 	const treeExpected = parseRaw(sourceParsedAsIf);
 	visitTree(
@@ -99,9 +87,6 @@ H`;
 	});
 
 	test('groupBlocks advanced cases', function () {
-		// tests consecutive blank lines, first child blank lines,
-		// blank lines after last child, lone blank lines,
-		// consecutive lone blank lines, offside blocks
 		let tree = parseRaw(dedent`
 A
 
@@ -314,17 +299,12 @@ C {
 				]),
 			])
 		);
-		// Running the optimisation twice doesn't change the result
 		let newTree = <IndentationTree<string>>JSON.parse(JSON.stringify(tree));
 		newTree = combineClosersAndOpeners(newTree);
 		compareTreeWithSpec(newTree, tree);
 	});
 });
 
-/**
- * Many examples in this suite are taken from
- * https://docs.google.com/document/d/1WxjTDzx8Qbf4Bklrp9KwiQsB4-kTOloAR5h86np3_OM/edit#
- */
 suite('Test bracket indentation spec', function () {
 	test('Opener merged to older sibling', function () {
 		const source = dedent`
@@ -335,13 +315,11 @@ A
 		const treeRaw = parseRaw(source);
 		const treeCode = parseTree(source, '');
 
-		// the raw indentation indicates line 1 is the parent of the following lines
 		compareTreeWithSpec(
 			treeRaw,
 			topNode([lineNode(0, 0, 'A', []), lineNode(0, 1, '(', [lineNode(4, 2, 'B', []), lineNode(4, 3, 'C', [])])])
 		);
 
-		// the bracket parsing indicates line 0 is the parent
 		compareTreeWithSpec(
 			treeCode,
 			topNode([
@@ -362,13 +340,11 @@ A
 		const treeRaw = parseRaw(source);
 		const treeCode = parseTree(source, '');
 
-		// the raw indentation indicates line 2 is the sibling of 0
 		compareTreeWithSpec(
 			treeRaw,
 			topNode([lineNode(0, 0, 'A', [lineNode(4, 1, 'B', [])]), lineNode(0, 2, ')', [])])
 		);
 
-		// the bracket parsing indicates line 2 actually another child
 		compareTreeWithSpec(
 			treeCode,
 			topNode([lineNode(0, 0, 'A', [lineNode(4, 1, 'B', []), lineNode(0, 2, ')', [], 'closer')])])
@@ -387,12 +363,10 @@ A
 		const treeRaw = parseRaw(source);
 		const treeCode = parseTree(source, '');
 
-		// before bracket parsing, A had two children, B and C
 		assert.strictEqual(
 			treeRaw.subs[0].subs.map(x => (x.type === 'line' ? x.sourceLine.trim() : 'v')).join(),
 			'B,C'
 		);
-		// after, it had three children, a virtual node, line node 3 and the closer 6
 		assert.strictEqual(
 			treeCode.subs[0].subs.map(x => (x.type === 'line' ? x.sourceLine.trim() : 'v')).join(),
 			'v,) + (,)'
@@ -457,7 +431,6 @@ suite('Special indentation styles', function () {
 		const treeRaw = parseRaw(source);
 		const treeCode = parseTree(source, '');
 
-		// the bracket parsing indicates line 0 is the parent
 		compareTreeWithSpec(
 			treeCode,
 			topNode([
@@ -470,7 +443,6 @@ suite('Special indentation styles', function () {
 			])
 		);
 
-		// the next line is also moved, but by the closing partof the spec, so not tested here
 		compareTreeWithSpec(
 			treeRaw,
 			topNode([
@@ -481,7 +453,6 @@ suite('Special indentation styles', function () {
 		);
 	});
 
-	/** This test is a case where our parsing isn't yet optimal */
 	test('Allman style example (if-then-else)', function () {
 		const source = dedent`
         if (condition)
@@ -498,8 +469,6 @@ suite('Special indentation styles', function () {
 
 		const treeCode = parseTree(source, '');
 
-		// Currently, this is parsed the same as two consecutive if-statements,
-		// Because generic languages do not understand `else` should continue.
 		compareTreeWithSpec(
 			treeCode,
 			topNode([
@@ -532,8 +501,6 @@ suite('Special indentation styles', function () {
 
 		const treeCode = parseTree(source, '');
 
-		// Currently, this is parsed the same as two consecutive if-statements,
-		// Because generic languages do not understand `else` should continue.
 		compareTreeWithSpec(
 			treeCode,
 			topNode([

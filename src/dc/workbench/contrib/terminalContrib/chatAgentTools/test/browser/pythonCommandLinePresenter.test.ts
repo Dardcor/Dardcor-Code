@@ -57,7 +57,6 @@ suite('extractPythonCommand', () => {
 
 	suite('single quotes - literal content', () => {
 		test('should preserve content literally in single quotes (no unescaping)', () => {
-			// Single quotes in bash are literal - backslashes are not escape sequences
 			const result = extractPythonCommand(`python -c 'print(\\"hello\\")'`, 'bash', OperatingSystem.Linux);
 			strictEqual(result, 'print(\\"hello\\")');
 		});

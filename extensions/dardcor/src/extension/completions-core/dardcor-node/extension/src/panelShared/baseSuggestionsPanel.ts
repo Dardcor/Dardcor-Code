@@ -21,7 +21,6 @@ import { BasePanelCompletion, ISuggestionsPanel, PanelConfig } from './basePanel
 import { Highlighter } from './highlighter';
 import { getNonce, pluralize } from './utils';
 
-//import { IPCitationDetail } from '#lib/citationManager';
 interface IPCitationDetail {
 	license: string;
 	url: string;
@@ -35,7 +34,7 @@ export interface SuggestionsPanelManagerInterface {
 export interface SolutionContent {
 	htmlSnippet: string;
 	citation?: { message: string; url: string };
-	[key: string]: unknown; // Allow additional properties for panel-specific content
+	[key: string]: unknown;
 }
 
 export interface BaseWebviewMessage {
@@ -111,7 +110,6 @@ export abstract class BaseSuggestionsPanel<TPanelCompletion extends BasePanelCom
 		});
 
 		webviewPanel.webview.onDidReceiveMessage(async (message: WebviewMessage) => {
-			// First lest the subclass handle custom messages
 			if ((await this.handleCustomMessage(message)) === true) {
 				return;
 			}
@@ -120,7 +118,6 @@ export abstract class BaseSuggestionsPanel<TPanelCompletion extends BasePanelCom
 					this._focusedSolution = this.#items[message.solutionIndex];
 					return;
 				case 'webviewReady':
-					// Send the config to the webview
 					void this.postMessage({
 						command: 'updateConfig',
 						config: {
@@ -215,8 +212,6 @@ export abstract class BaseSuggestionsPanel<TPanelCompletion extends BasePanelCom
 	}
 
 	onItem(item: TPanelCompletion) {
-		// If rendering mode is 'batch', we collect items and render them later
-		// Otherwise, we render immediately
 		if (this.config.renderingMode === 'batch') {
 			this.#batchItems.push(item);
 		} else {
@@ -226,12 +221,9 @@ export abstract class BaseSuggestionsPanel<TPanelCompletion extends BasePanelCom
 	}
 
 	clearSolutions() {
-		// Cancel any ongoing operations
 		this.#cts.cancel();
-		// Create a new cancellation token source for the next operation
 		this.#cts = new CancellationTokenSource();
 
-		// Clear all solutions and reset state
 		this.#items = [];
 		this.#batchItems = [];
 		this._focusedSolution = undefined;
@@ -242,7 +234,6 @@ export abstract class BaseSuggestionsPanel<TPanelCompletion extends BasePanelCom
 	onFinished() {
 		this.#percentage = 100;
 
-		// If we have batch items, add them to the main items list, shuffle if needed, and render
 		if (this.#batchItems.length > 0) {
 			this.#items.push(...this.#batchItems);
 
@@ -312,7 +303,6 @@ export abstract class BaseSuggestionsPanel<TPanelCompletion extends BasePanelCom
 		await this.postMessage(message);
 	}
 
-	// Subclasses must implement this to create their specific message format
 	protected abstract createSolutionsMessage(content: SolutionContent[], percentage: number): unknown;
 
 	render = debounce(10, () => this.renderSolutions());

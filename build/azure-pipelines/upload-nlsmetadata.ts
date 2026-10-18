@@ -23,9 +23,6 @@ interface NlsMetadata {
 function main(): Promise<void> {
 	return new Promise((c, e) => {
 		const combinedMetadataJson = es.merge(
-			// vscode: we are not using `out-build/nls.metadata.json` here because
-			// it includes metadata for translators for `keys`. but for our purpose
-			// we want only the `keys` and `messages` as `string`.
 			es.merge(
 				vfs.src('out-build/nls.keys.json', { base: 'out-build' }),
 				vfs.src('out-build/nls.messages.json', { base: 'out-build' }))
@@ -44,7 +41,6 @@ function main(): Promise<void> {
 					}
 				})),
 
-			// extensions
 			vfs.src('.build/extensions/**/nls.metadata.json', { base: '.build/extensions' }),
 			vfs.src('.build/extensions/**/nls.metadata.header.json', { base: '.build/extensions' }),
 			vfs.src('.build/extensions/**/package.nls.json', { base: '.build/extensions' })
@@ -57,12 +53,8 @@ function main(): Promise<void> {
 					return { vscode: parsedJson };
 				}
 
-				// Handle extensions and follow the same structure as the Core nls file.
 				switch (file.basename) {
 					case 'package.nls.json':
-						// put package.nls.json content in Core NlsMetadata format
-						// language packs use the key "package" to specify that
-						// translations are for the package.json file
 						parsedJson = {
 							messages: {
 								package: Object.values(parsedJson)
@@ -81,7 +73,6 @@ function main(): Promise<void> {
 						break;
 
 					case 'nls.metadata.json': {
-						// put nls.metadata.json content in Core NlsMetadata format
 						const modules = Object.keys(parsedJson);
 
 						const json: NlsMetadata = {
@@ -101,7 +92,6 @@ function main(): Promise<void> {
 					}
 				}
 
-				// Get extension id and use that as the key
 				const folderPath = path.join(file.base, file.relative.split('/')[0]);
 				const manifest = readFileSync(path.join(folderPath, 'package.json'), 'utf-8');
 				const manifestJson = JSON.parse(manifest);
@@ -117,7 +107,6 @@ function main(): Promise<void> {
 			.pipe(vfs.dest('./nlsMetadata'))
 			.pipe(es.through(function (data: Vinyl) {
 				console.log(`Uploading ${data.path}`);
-				// trigger artifact upload
 				console.log(`##vso[artifact.upload containerfolder=nlsmetadata;artifactname=${data.basename}]${data.path}`);
 				this.emit('data', data);
 			}))

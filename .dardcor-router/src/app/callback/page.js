@@ -3,9 +3,6 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-/**
- * OAuth Callback Page Content
- */
 function CallbackContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState("processing");
@@ -28,7 +25,6 @@ function CallbackContent() {
 
     let relayed = false;
 
-    // Send to backend relay API so dashboard modal can fetch it immediately
     fetch("/api/oauth/callback-relay", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,7 +49,6 @@ function CallbackContent() {
       "http://127.0.0.1:3000",
     ];
 
-    // Method 1: postMessage to opener
     if (window.opener) {
       try {
         window.opener.postMessage({ type: "oauth_callback", data: callbackData }, "*");
@@ -66,12 +61,10 @@ function CallbackContent() {
           window.opener.postMessage({ type: "oauth_callback", data: callbackData }, origin);
           relayed = true;
         } catch (e) {
-          // ignore
         }
       }
     }
 
-    // Method 2: BroadcastChannel (same origin tabs)
     try {
       const channel = new BroadcastChannel("oauth_callback");
       channel.postMessage(callbackData);
@@ -81,7 +74,6 @@ function CallbackContent() {
       console.log("BroadcastChannel failed:", e);
     }
 
-    // Method 3: localStorage event (fallback)
     try {
       localStorage.setItem("oauth_callback", JSON.stringify({ ...callbackData, timestamp: Date.now() }));
       relayed = true;
@@ -145,10 +137,6 @@ function CallbackContent() {
   );
 }
 
-/**
- * OAuth Callback Page
- * Receives callback from OAuth providers and sends data back via multiple methods
- */
 export default function CallbackPage() {
   return (
     <Suspense fallback={

@@ -41,10 +41,6 @@ const SHELL_EXECUTABLE_REGEXES = [
 	/^python(\d(\.\d{0,2})?)?\.exe$/,
 ];
 
-/**
- * npm-installed agent CLIs appear in the process tree as plain `node.exe`, so we identify
- * them by matching the package folder in node's command line.
- */
 const NODE_AGENT_CLI_PATTERNS: ReadonlyArray<{ regex: RegExp; executable: string }> = [
 	{ regex: /[\\/]claude-code[\\/]/i, executable: 'claude.exe' },
 	{ regex: /[\\/]codex[\\/]/i, executable: 'codex.exe' },
@@ -88,9 +84,6 @@ export class WindowsShellHelper extends Disposable implements IWindowsShellHelpe
 	@debounce(500)
 	async checkShell(): Promise<void> {
 		if (isWindows) {
-			// Wait to give the shell some time to actually launch a process, this
-			// could lead to a race condition but it would be recovered from when
-			// data stops and should cover the majority of cases
 			await timeout(300);
 			this.getShellName().then(title => {
 				const type = this.getShellType(title);
@@ -108,8 +101,6 @@ export class WindowsShellHelper extends Disposable implements IWindowsShellHelpe
 		if (!tree) {
 			return '';
 		}
-		// Detect npm-installed agent CLIs running inside `node.exe` by inspecting the command line
-		// passed to Node. Without this we'd treat them as a generic Node shell.
 		if (tree.name === 'node.exe' && tree.commandLine) {
 			for (const { regex, executable } of NODE_AGENT_CLI_PATTERNS) {
 				if (regex.test(tree.commandLine)) {
@@ -144,14 +135,10 @@ export class WindowsShellHelper extends Disposable implements IWindowsShellHelpe
 		return this.traverseTree(tree.children[favouriteChild]);
 	}
 
-	/**
-	 * Returns the innermost shell executable running in the terminal
-	 */
 	async getShellName(): Promise<string> {
 		if (this._store.isDisposed) {
 			return Promise.resolve('');
 		}
-		// Prevent multiple requests at once, instead return current request
 		if (this._currentRequest) {
 			return this._currentRequest;
 		}

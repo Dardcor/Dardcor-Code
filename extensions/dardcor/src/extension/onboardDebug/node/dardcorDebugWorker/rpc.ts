@@ -7,14 +7,12 @@ import { Duplex } from 'stream';
 import type { IDisposable } from '../../../../util/dardcor/base/common/lifecycle';
 import { StreamSplitter } from './streamSplitter';
 
-// JSON-RPC request object
 interface Request {
 	id: number;
 	method: string;
 	params?: any;
 }
 
-// JSON-RPC response object
 interface Response {
 	id: number;
 	result?: any;
@@ -73,7 +71,6 @@ export class SimpleRPC implements ISimpleRPC {
 	}
 
 	private async handleData(data: Buffer) {
-		// -1 to remove trailing split match
 		const incoming: Response | Request = JSON.parse(data.toString());
 
 		if (!('method' in incoming)) {

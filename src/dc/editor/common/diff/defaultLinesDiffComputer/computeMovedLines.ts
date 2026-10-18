@@ -31,7 +31,6 @@ export function computeMovedLines(
 	pushMany(moves, unchangedMoves);
 
 	moves = joinCloseConsecutiveMoves(moves);
-	// Ignore too short moves
 	moves = moves.filter(current => {
 		const lines = current.original.toOffsetRange().slice(originalLines).map(l => l.trim());
 		const originalText = lines.join('\n');
@@ -132,7 +131,6 @@ function computeUnchangedMoves(
 			const nextMappings: PossibleMapping[] = [];
 			original3LineHashes.forEach(key, ({ range }) => {
 				for (const lastMapping of lastMappings) {
-					// does this match extend some last match?
 					if (lastMapping.originalLineRange.endLineNumberExclusive + 1 === range.endLineNumberExclusive &&
 						lastMapping.modifiedLineRange.endLineNumberExclusive + 1 === currentModifiedRange.endLineNumberExclusive) {
 						lastMapping.originalLineRange = new LineRange(lastMapping.originalLineRange.startLineNumber, range.endLineNumberExclusive);

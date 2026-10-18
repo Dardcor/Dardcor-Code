@@ -13,9 +13,6 @@ import { registerAction2 } from '../../../../../platform/actions/common/actions.
 import { SaveAsAgentFileAction, SaveAsInstructionsFileAction, SaveAsPromptFileAction } from './saveAsPromptFileActions.js';
 
 
-/**
- * Helper to register all actions related to reusable prompt files.
- */
 export function registerPromptActions(): void {
 	registerRunPromptActions();
 	registerAttachPromptActions();

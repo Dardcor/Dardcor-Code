@@ -152,7 +152,6 @@ export class SuggestDetailsWidget {
 
 		this.domNode.classList.remove('no-docs', 'no-type');
 
-		// --- details
 
 		if (detail) {
 			const cappedDetail = detail.length > 100000 ? `${detail.substr(0, 100000)}…` : detail;
@@ -167,7 +166,6 @@ export class SuggestDetailsWidget {
 			this.domNode.classList.add('no-type');
 		}
 
-		// --- documentation
 		dom.clearNode(this._docs);
 		if (typeof documentation === 'string') {
 			this._docs.classList.remove('markdown-docs');
@@ -390,7 +388,6 @@ export class SuggestDetailsOverlay implements IOverlayWidget {
 
 		type Placement = { top: number; left: number; fit: number; maxSizeTop: dom.Dimension; maxSizeBottom: dom.Dimension; minSize: dom.Dimension };
 
-		// EAST
 		const eastPlacement: Placement = (function () {
 			const width = bodyBox.width - (anchorBox.left + anchorBox.width + info.borderWidth + info.horizontalPadding);
 			const left = -info.borderWidth + anchorBox.left + anchorBox.width;
@@ -399,7 +396,6 @@ export class SuggestDetailsOverlay implements IOverlayWidget {
 			return { top: defaultTop, left, fit: width - size.width, maxSizeTop, maxSizeBottom, minSize: defaultMinSize.with(Math.min(width, defaultMinSize.width)) };
 		})();
 
-		// WEST
 		const westPlacement: Placement = (function () {
 			const width = anchorBox.left - info.borderWidth - info.horizontalPadding;
 			const left = Math.max(info.horizontalPadding, anchorBox.left - size.width - info.borderWidth);
@@ -408,7 +404,6 @@ export class SuggestDetailsOverlay implements IOverlayWidget {
 			return { top: defaultTop, left, fit: width - size.width, maxSizeTop, maxSizeBottom, minSize: defaultMinSize.with(Math.min(width, defaultMinSize.width)) };
 		})();
 
-		// SOUTH
 		const southPlacement: Placement = (function () {
 			const left = anchorBox.left;
 			const top = -info.borderWidth + anchorBox.top + anchorBox.height;
@@ -416,7 +411,6 @@ export class SuggestDetailsOverlay implements IOverlayWidget {
 			return { top, left, fit: maxSizeBottom.height - size.height, maxSizeBottom, maxSizeTop: maxSizeBottom, minSize: defaultMinSize.with(maxSizeBottom.width) };
 		})();
 
-		// NORTH
 		const northPlacement: Placement = (function () {
 			const left = anchorBox.left;
 			const maxSizeTop = new dom.Dimension(anchorBox.width - info.borderHeight, anchorBox.top - info.verticalPadding);
@@ -424,12 +418,9 @@ export class SuggestDetailsOverlay implements IOverlayWidget {
 			return { top, left, fit: maxSizeTop.height - size.height, maxSizeTop, maxSizeBottom: maxSizeTop, minSize: defaultMinSize.with(maxSizeTop.width) };
 		})();
 
-		// take first placement that fits or the first with "least bad" fit
-		// when the suggest widget is rendering above the cursor (preferAlignAtTop=false), prefer NORTH over SOUTH
 		const verticalPlacement = preferAlignAtTop ? southPlacement : northPlacement;
 		const placements = [eastPlacement, westPlacement, verticalPlacement];
 		const placement = placements.find(p => p.fit >= 0) ?? placements.sort((a, b) => b.fit - a.fit)[0];
-		// top/bottom placement
 		const bottom = anchorBox.top + anchorBox.height - info.borderHeight;
 		let alignAtTop: boolean;
 		let height = size.height;
@@ -457,24 +448,18 @@ export class SuggestDetailsOverlay implements IOverlayWidget {
 		}
 		let { top, left } = placement;
 		if (placement === northPlacement) {
-			// For NORTH placement, position the details above the anchor
 			top = anchorBox.top - height + info.borderWidth;
 		} else if (!alignAtTop && height > anchorBox.height) {
 			top = bottom - height;
 		}
 		const editorDomNode = this._editor.getDomNode();
 		if (editorDomNode) {
-			// get bounding rectangle of the suggest widget relative to the editor
 			const editorBoundingBox = editorDomNode.getBoundingClientRect();
 			top -= editorBoundingBox.top;
 			left -= editorBoundingBox.left;
 		}
 		this._applyTopLeft({ left, top });
 
-		// enableSashes(north, east, south, west)
-		// For NORTH placement: enable north sash (resize upward from top), disable south (can't resize into the anchor)
-		// Also enable west sash for horizontal resizing, consistent with SOUTH placement
-		// For SOUTH placement and EAST/WEST placements: use existing logic based on alignAtTop
 		if (placement === northPlacement) {
 			this._resizable.enableSashes(true, false, false, true);
 		} else {

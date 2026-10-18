@@ -73,9 +73,6 @@ export class MockInlineCompletionsProvider implements InlineCompletionsProvider 
 		}
 	}
 
-	/**
-	 * Fire an onDidChange event with an optional change hint.
-	 */
 	public fireOnDidChange(changeHint?: IInlineCompletionChangeHint): void {
 		this._onDidChangeEmitter.fire(changeHint);
 	}
@@ -125,7 +122,6 @@ export class MockSearchReplaceCompletionsProvider implements InlineCompletionsPr
 		const text = model.getValue();
 		for (const [search, replace] of this._map) {
 			const idx = text.indexOf(search);
-			// replace idx...idx+text.length with replace
 			if (idx !== -1) {
 				const range = Range.fromPositions(model.getPositionAt(idx), model.getPositionAt(idx + search.length));
 				return {
@@ -153,7 +149,6 @@ export class InlineEditContext extends Disposable {
 		});
 
 		this._register(autorun(reader => {
-			/** @description update */
 			const e = edit.read(reader);
 			let view: string | undefined;
 
@@ -186,7 +181,6 @@ export class GhostTextContext extends Disposable {
 		super();
 
 		this._register(autorun(reader => {
-			/** @description update */
 			const ghostText = model.primaryGhostText.read(reader);
 			let view: string | undefined;
 			if (ghostText) {
@@ -262,7 +256,6 @@ export async function withAsyncTestCodeEditorAndInlineCompletionsModel<T>(
 			const out: string = history.length === 0 && logs.length === 0
 				? `[time trace ${mode}] (no events)`
 				: `[time trace ${mode}] ${history.length} events, ${logs.length} log lines\n${renderSwimlanes(buildHistoryFromTasks(history, history[0]?.time ?? 0, logs))}`;
-			// Prefix is allowlisted in the test renderer's diagnostic-output filter.
 			console.log(out);
 		} : undefined,
 	}, async () => {

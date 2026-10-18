@@ -31,23 +31,14 @@ const isDominatedByLongLinesKey = 'isDominatedByLongLines';
 const CAN_TOGGLE_WORD_WRAP = new RawContextKey<boolean>('canToggleWordWrap', false, true);
 const EDITOR_WORD_WRAP = new RawContextKey<boolean>('editorWordWrap', false, nls.localize('editorWordWrap', 'Whether the editor is currently using word wrapping.'));
 
-/**
- * State written/read by the toggle word wrap action and associated with a particular model.
- */
 export interface IWordWrapTransientState {
 	readonly wordWrapOverride: 'on' | 'off';
 }
 
-/**
- * Store (in memory) the word wrap state for a particular model.
- */
 export function writeTransientState(model: ITextModel, state: IWordWrapTransientState | null, codeEditorService: ICodeEditorService): void {
 	codeEditorService.setTransientModelProperty(model, transientWordWrapState, state);
 }
 
-/**
- * Read (in memory) the word wrap state for a particular model.
- */
 export function readTransientState(model: ITextModel, codeEditorService: ICodeEditorService): IWordWrapTransientState | null {
 	return codeEditorService.getTransientModelProperty(model, transientWordWrapState) as IWordWrapTransientState | null;
 }
@@ -78,10 +69,8 @@ class ToggleWordWrapAction extends EditorAction {
 
 		const model = editor.getModel();
 
-		// Read the current state
 		const transientState = readTransientState(model, codeEditorService);
 
-		// Compute the new state
 		let newState: IWordWrapTransientState | null;
 		if (transientState) {
 			newState = null;
@@ -91,11 +80,8 @@ class ToggleWordWrapAction extends EditorAction {
 			newState = { wordWrapOverride };
 		}
 
-		// Write the new state
-		// (this will cause an event and the controller will apply the state)
 		writeTransientState(model, newState, codeEditorService);
 
-		// if we are in a diff editor, update the other editor (if possible)
 		const diffEditor = instaService.invokeFunction(findDiffEditorContainingCodeEditor, editor);
 		if (diffEditor) {
 			const originalEditor = diffEditor.getOriginalEditor();
@@ -135,7 +121,6 @@ class ToggleWordWrapController extends Disposable implements IEditorContribution
 			isWordWrapMinified.set(wrappingInfo.isWordWrapMinified);
 			isDominatedByLongLines.set(wrappingInfo.isDominatedByLongLines);
 			if (!currentlyApplyingEditorConfig) {
-				// I am not the cause of the word wrap getting changed
 				ensureWordWrapSettings();
 			}
 		}));
@@ -155,7 +140,6 @@ class ToggleWordWrapController extends Disposable implements IEditorContribution
 
 			const transientState = readTransientState(this._editor.getModel(), this._codeEditorService);
 
-			// Apply the state
 			try {
 				currentlyApplyingEditorConfig = true;
 				this._applyWordWrapState(transientState);
@@ -215,19 +199,15 @@ function canToggleWordWrap(codeEditorService: ICodeEditorService, editor: ICodeE
 		return false;
 	}
 	if (editor.isSimpleWidget) {
-		// in a simple widget...
 		return false;
 	}
-	// Ensure correct word wrap settings
 	const model = editor.getModel();
 	if (!model) {
 		return false;
 	}
 	if (editor.getOption(EditorOption.inDiffEditor)) {
-		// this editor belongs to a diff editor
 		for (const diffEditor of codeEditorService.listDiffEditors()) {
 			if (diffEditor.getOriginalEditor() === editor && !diffEditor.renderSideBySide) {
-				// this editor is the left side of an inline diff editor
 				return false;
 			}
 		}
@@ -266,7 +246,6 @@ class EditorWordWrapContextKeyTracker extends Disposable implements IWorkbenchCo
 	private _update(): void {
 		const activeEditor = this._codeEditorService.getFocusedCodeEditor() || this._codeEditorService.getActiveCodeEditor();
 		if (this._activeEditor === activeEditor) {
-			// no change
 			return;
 		}
 		this._activeEditorListener.clear();
@@ -300,7 +279,7 @@ class EditorWordWrapContextKeyTracker extends Disposable implements IWorkbenchCo
 
 registerWorkbenchContribution2(EditorWordWrapContextKeyTracker.ID, EditorWordWrapContextKeyTracker, WorkbenchPhase.AfterRestored);
 
-registerEditorContribution(ToggleWordWrapController.ID, ToggleWordWrapController, EditorContributionInstantiation.Eager); // eager because it needs to change the editor word wrap configuration
+registerEditorContribution(ToggleWordWrapController.ID, ToggleWordWrapController, EditorContributionInstantiation.Eager);
 registerDiffEditorContribution(DiffToggleWordWrapController.ID, DiffToggleWordWrapController);
 registerEditorAction(ToggleWordWrapAction);
 
@@ -333,7 +312,6 @@ MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
 });
 
 
-// View menu
 MenuRegistry.appendMenuItem(MenuId.MenubarViewMenu, {
 	command: {
 		id: TOGGLE_WORD_WRAP_ID,

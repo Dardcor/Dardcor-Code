@@ -49,7 +49,6 @@ export class NotebookDeletedCellDecorator extends Disposable implements INoteboo
 			return;
 		}
 		if (info.previousIndex === -1) {
-			// deleted cell is before the first real cell
 			return 0;
 		}
 		const cells = this._notebookEditor.getCellsInRange({ start: info.previousIndex, end: info.previousIndex + 1 });
@@ -175,7 +174,6 @@ export class NotebookDeletedCellDecorator extends Disposable implements INoteboo
 
 export class NotebookDeletedCellWidget extends Disposable {
 	private readonly container: HTMLElement;
-	// private readonly toolbar: HTMLElement;
 
 	constructor(
 		private readonly _notebookEditor: INotebookEditor,
@@ -199,12 +197,10 @@ export class NotebookDeletedCellWidget extends Disposable {
 		const languageId = this.language;
 		const codeHtml = await tokenizeToString(this.languageService, code, languageId);
 
-		// const colorMap = this.getDefaultColorMap();
 		const fontInfo = this._notebookEditor.getBaseCellEditorOptions(languageId).value;
 		const fontFamilyVar = '--notebook-editor-font-family';
 		const fontSizeVar = '--notebook-editor-font-size';
 		const fontWeightVar = '--notebook-editor-font-weight';
-		// If we have any editors, then use left layout of one of those.
 		const editor = this._notebookEditor.codeEditors.map(c => c[1]).find(c => c);
 		const layoutInfo = editor?.getOptions().get(EditorOption.layoutInfo);
 
@@ -240,11 +236,11 @@ export class NotebookDeletedCellWidget extends Disposable {
 			toolbar.style.position = 'absolute';
 			toolbar.style.right = '40px';
 			toolbar.style.zIndex = '10';
-			toolbar.classList.add('hover'); // Show by default
+			toolbar.classList.add('hover');
 		}
 
 		const container = DOM.append(rootContainer, DOM.$('.cell-inner-container'));
-		container.style.position = 'relative'; // Add this line
+		container.style.position = 'relative';
 
 		const focusIndicatorLeft = DOM.append(container, DOM.$('.cell-focus-indicator.cell-focus-indicator-side.cell-focus-indicator-left'));
 		const cellContainer = DOM.append(container, DOM.$('.cell.code'));
@@ -264,7 +260,7 @@ export class NotebookDeletedCellWidget extends Disposable {
 		editorContainer.innerHTML = (ttPolicy?.createHTML(codeHtml) || codeHtml) as string;
 
 		const lineCount = splitLines(code).length;
-		const height = (lineCount * (fontInfo.lineHeight || DefaultLineHeight)) + 12 + 12; // We have 12px top and bottom in generated code HTML;
+		const height = (lineCount * (fontInfo.lineHeight || DefaultLineHeight)) + 12 + 12;
 		const totalHeight = height + 16 + 16;
 
 		return totalHeight;

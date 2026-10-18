@@ -93,11 +93,9 @@ export class View extends ViewEventHandler {
 	private readonly _viewGpuContext?: ViewGpuContext;
 	private _selections: Selection[];
 
-	// The view lines
 	private readonly _viewLines: ViewLines;
 	private readonly _viewLinesGpu?: ViewLinesGpu;
 
-	// These are parts, but we must do some API related calls on them, so we keep a reference
 	private readonly _viewZones: ViewZones;
 	private readonly _contentWidgets: ViewContentWidgets;
 	private readonly _overlayWidgets: ViewOverlayWidgets;
@@ -112,7 +110,6 @@ export class View extends ViewEventHandler {
 	private readonly _editContextClipboardListeners = new DisposableStore();
 	private readonly _pointerHandler: PointerHandler;
 
-	// Clipboard events relayed from editContext
 	private readonly _onWillCopy = this._register(new Emitter<IClipboardCopyEvent>());
 	public readonly onWillCopy: Event<IClipboardCopyEvent> = this._onWillCopy.event;
 
@@ -122,12 +119,10 @@ export class View extends ViewEventHandler {
 	private readonly _onWillPaste = this._register(new Emitter<IClipboardPasteEvent>());
 	public readonly onWillPaste: Event<IClipboardPasteEvent> = this._onWillPaste.event;
 
-	// Dom nodes
 	private readonly _linesContent: FastDomNode<HTMLElement>;
 	public readonly domNode: FastDomNode<HTMLElement>;
 	private readonly _overflowGuardContainer: FastDomNode<HTMLElement>;
 
-	// Actual mutable state
 	private _shouldRecomputeGlyphMarginLanes: boolean = false;
 	private _renderAnimationFrame: IDisposable | null;
 	private _ownerID: string;
@@ -163,15 +158,12 @@ export class View extends ViewEventHandler {
 
 		this._viewController = new ViewController(configuration, model, userInputEvents, commandDelegate);
 
-		// The view context is passed on to most classes (basically to reduce param. counts in ctors)
 		this._context = new ViewContext(configuration, colorTheme, model);
 
-		// Ensure the view is the first event handler in order to update the layout
 		this._context.addEventHandler(this);
 
 		this._viewParts = [];
 
-		// Keyboard handler
 		this._editContextEnabled = this._context.configuration.options.get(EditorOption.effectiveEditContext);
 		this._accessibilitySupport = this._context.configuration.options.get(EditorOption.accessibilitySupport);
 		this._editContext = this._instantiateEditContext();
@@ -179,14 +171,12 @@ export class View extends ViewEventHandler {
 
 		this._viewParts.push(this._editContext);
 
-		// These two dom nodes must be constructed up front, since references are needed in the layout provider (scrolling & co.)
 		this._linesContent = createFastDomNode(document.createElement('div'));
 		this._linesContent.setClassName('lines-content' + ' monaco-editor-background');
 		this._linesContent.setPosition('absolute');
 
 		this.domNode = createFastDomNode(document.createElement('div'));
 		this.domNode.setClassName(this._getEditorClassName());
-		// Set role 'code' for better screen reader support https://github.com/microsoft/vscode/issues/93438
 		this.domNode.setAttribute('role', 'code');
 
 		if (this._context.configuration.options.get(EditorOption.experimentalGpuAcceleration) === 'on') {
@@ -196,17 +186,14 @@ export class View extends ViewEventHandler {
 		this._scrollbar = new EditorScrollbar(this._context, this._linesContent, this.domNode, this._overflowGuardContainer);
 		this._viewParts.push(this._scrollbar);
 
-		// View Lines
 		this._viewLines = new ViewLines(this._context, this._viewGpuContext, this._linesContent);
 		if (this._viewGpuContext) {
 			this._viewLinesGpu = this._instantiationService.createInstance(ViewLinesGpu, this._context, this._viewGpuContext);
 		}
 
-		// View Zones
 		this._viewZones = new ViewZones(this._context);
 		this._viewParts.push(this._viewZones);
 
-		// Decorations overview ruler
 		const decorationsOverviewRuler = new DecorationsOverviewRuler(this._context);
 		this._viewParts.push(decorationsOverviewRuler);
 
@@ -233,7 +220,6 @@ export class View extends ViewEventHandler {
 			marginViewOverlays.addDynamicOverlay(new GpuMarkOverlay(this._context, this._viewGpuContext));
 		}
 
-		// Glyph margin widgets
 		this._glyphMarginWidgets = new GlyphMarginWidgets(this._context);
 		this._viewParts.push(this._glyphMarginWidgets);
 
@@ -243,14 +229,12 @@ export class View extends ViewEventHandler {
 		margin.getDomNode().appendChild(this._glyphMarginWidgets.domNode);
 		this._viewParts.push(margin);
 
-		// Content widgets
 		this._contentWidgets = new ViewContentWidgets(this._context, this.domNode);
 		this._viewParts.push(this._contentWidgets);
 
 		this._viewCursors = new ViewCursors(this._context);
 		this._viewParts.push(this._viewCursors);
 
-		// Overlay widgets
 		this._overlayWidgets = new ViewOverlayWidgets(this._context, this.domNode);
 		this._viewParts.push(this._overlayWidgets);
 
@@ -265,7 +249,6 @@ export class View extends ViewEventHandler {
 		const minimap = new Minimap(this._context);
 		this._viewParts.push(minimap);
 
-		// -------------- Wire dom nodes up
 
 		if (decorationsOverviewRuler) {
 			const overviewRulerData = this._scrollbar.getOverviewRulerLayoutInfo();
@@ -301,7 +284,6 @@ export class View extends ViewEventHandler {
 
 		this._applyLayout();
 
-		// Pointer handler
 		this._pointerHandler = this._register(new PointerHandler(this._context, this._viewController, this._createPointerHandlerHelper()));
 	}
 
@@ -336,10 +318,8 @@ export class View extends ViewEventHandler {
 	}
 
 	private _connectEditContextClipboardEvents(): void {
-		// Dispose old listeners
 		this._editContextClipboardListeners.clear();
 
-		// Connect to current edit context's clipboard events
 		this._editContextClipboardListeners.add(this._editContext.onWillCopy(e => this._onWillCopy.fire(e)));
 		this._editContextClipboardListeners.add(this._editContext.onWillCut(e => this._onWillCut.fire(e)));
 		this._editContextClipboardListeners.add(this._editContext.onWillPaste(e => this._onWillPaste.fire(e)));
@@ -352,21 +332,18 @@ export class View extends ViewEventHandler {
 		let glyphs: Glyph[] = [];
 		let maxLineNumber = 0;
 
-		// Add all margin decorations
 		glyphs = glyphs.concat(model.getAllMarginDecorations().map((decoration) => {
 			const lane = decoration.options.glyphMargin?.position ?? GlyphMarginLane.Center;
 			maxLineNumber = Math.max(maxLineNumber, decoration.range.endLineNumber);
 			return { range: decoration.range, lane, persist: decoration.options.glyphMargin?.persistLane };
 		}));
 
-		// Add all glyph margin widgets
 		glyphs = glyphs.concat(this._glyphMarginWidgets.getWidgets().map((widget) => {
 			const range = model.validateRange(widget.preference.range);
 			maxLineNumber = Math.max(maxLineNumber, range.endLineNumber);
 			return { range, lane: widget.preference.lane };
 		}));
 
-		// Sorted by their start position
 		glyphs.sort((a, b) => Range.compareRangesUsingStarts(a.range, b.range));
 
 		laneModel.reset(maxLineNumber);
@@ -453,7 +430,6 @@ export class View extends ViewEventHandler {
 		this._overflowGuardContainer.setWidth(layoutInfo.width);
 		this._overflowGuardContainer.setHeight(layoutInfo.height);
 
-		// https://stackoverflow.com/questions/38905916/content-in-google-chrome-larger-than-16777216-px-not-being-rendered
 		this._linesContent.setWidth(16777216);
 		this._linesContent.setHeight(16777216);
 	}
@@ -463,7 +439,6 @@ export class View extends ViewEventHandler {
 		return this._context.configuration.options.get(EditorOption.editorClassName) + ' ' + getThemeTypeSelector(this._context.theme.type) + focused;
 	}
 
-	// --- begin event handlers
 	public override handleEvents(events: viewEvents.ViewEvent[]): void {
 		super.handleEvents(events);
 		this._scheduleRender();
@@ -494,7 +469,6 @@ export class View extends ViewEventHandler {
 		return false;
 	}
 
-	// --- end event handlers
 
 	public override dispose(): void {
 		if (this._renderAnimationFrame !== null) {
@@ -502,7 +476,6 @@ export class View extends ViewEventHandler {
 			this._renderAnimationFrame = null;
 		}
 
-		// Dispose clipboard event listeners
 		this._editContextClipboardListeners.dispose();
 
 		this._contentWidgets.overflowingContentWidgetsDomNode.domNode.remove();
@@ -514,7 +487,6 @@ export class View extends ViewEventHandler {
 		this._viewLines.dispose();
 		this._viewLinesGpu?.dispose();
 
-		// Destroy view parts
 		for (const viewPart of this._viewParts) {
 			viewPart.dispose();
 		}
@@ -527,7 +499,6 @@ export class View extends ViewEventHandler {
 			throw new BugIndicatingError();
 		}
 		if (this._renderAnimationFrame === null) {
-			// TODO: workaround fix for https://github.com/microsoft/vscode/issues/229825
 			if (this._editContext instanceof NativeEditContext) {
 				this._editContext.setEditContextOnDomNode();
 			}
@@ -609,7 +580,6 @@ export class View extends ViewEventHandler {
 				const viewPartsToRender = this._getViewPartsToRender();
 				const viewLinesShouldRender = this._viewLines.shouldRender();
 				if (!viewLinesShouldRender && viewPartsToRender.length === 0) {
-					// Nothing to render
 					return null;
 				}
 
@@ -643,7 +613,6 @@ export class View extends ViewEventHandler {
 					this._viewLinesGpu.onDidRender();
 				}
 
-				// Rendering of viewLines might cause scroll events to occur, so collect view parts to render again
 				const viewPartsToRender = this._getViewPartsToRender();
 
 				return [viewPartsToRender, new RenderingContext(this._context.viewLayout, viewportData, this._viewLines, this._viewLinesGpu)];
@@ -662,7 +631,6 @@ export class View extends ViewEventHandler {
 		};
 	}
 
-	// --- BEGIN CodeEditor helpers
 
 	public delegateVerticalScrollbarPointerDown(browserEvent: PointerEvent): void {
 		this._scrollbar.delegateVerticalScrollbarPointerDown(browserEvent);
@@ -726,7 +694,6 @@ export class View extends ViewEventHandler {
 
 	public render(now: boolean, everything: boolean): void {
 		if (everything) {
-			// Force everything to render...
 			this._viewLines.forceShouldRender();
 			for (const viewPart of this._viewParts) {
 				viewPart.forceShouldRender();
@@ -827,7 +794,6 @@ export class View extends ViewEventHandler {
 		this._scheduleRender();
 	}
 
-	// --- END CodeEditor helpers
 
 }
 
@@ -869,7 +835,6 @@ class EditorRenderingCoordinator {
 				this._coordinatedRenderings.splice(renderingIndex, 1);
 
 				if (this._coordinatedRenderings.length === 0) {
-					// There are no more renderings to coordinate => cancel animation frames
 					for (const [_, disposable] of this._animationFrameRunners) {
 						disposable.dispose();
 					}

@@ -69,11 +69,8 @@ class SimpleDiffEditorModel extends EditorModel {
 export interface IPeekOutputRenderer extends IDisposable {
 	readonly onDidContentSizeChange?: Event<void>;
 	onScrolled?(evt: ScrollEvent): void;
-	/** Updates the displayed test. Should clear if it cannot display the test. */
 	update(subject: InspectSubject): Promise<boolean>;
-	/** Recalculate content layout. Returns the height it should be rendered at. */
 	layout(dimension: dom.IDimension, hasMultipleFrames: boolean): number | undefined;
-	/** Dispose the content provider. */
 	dispose(): void;
 }
 
@@ -422,9 +419,7 @@ export class TerminalMessagePeek extends Disposable implements IPeekOutputRender
 	private readonly terminalCwd = this._register(new MutableObservableValue<string>(''));
 	private readonly xtermLayoutDelayer = this._register(new Delayer(50));
 
-	/** Active terminal instance. */
 	private readonly terminal = this._register(new MutableDisposable<IDetachedTerminalInstance>());
-	/** Listener for streaming result data */
 	private readonly outputDataListener = this._register(new MutableDisposable());
 
 	constructor(
@@ -442,7 +437,6 @@ export class TerminalMessagePeek extends Disposable implements IPeekOutputRender
 		if (prev) {
 			prev.xterm.clearBuffer();
 			prev.xterm.clearSearchDecorations();
-			// clearBuffer tries to retain the prompt. Reset prompt, scrolling state, etc.
 			prev.xterm.write(`\x1bc`);
 			return prev;
 		}
@@ -526,7 +520,7 @@ export class TerminalMessagePeek extends Disposable implements IPeekOutputRender
 		});
 
 		if (subject instanceof MessageSubject && subject.message.type === TestMessageType.Output && subject.message.marker !== undefined) {
-			terminal?.xterm.selectMarkedRange(getMarkId(subject.message.marker, true), getMarkId(subject.message.marker, false), /* scrollIntoView= */ true);
+			terminal?.xterm.selectMarkedRange(getMarkId(subject.message.marker, true), getMarkId(subject.message.marker, false), true);
 		}
 	}
 
@@ -536,8 +530,6 @@ export class TerminalMessagePeek extends Disposable implements IPeekOutputRender
 			noOutputMessage: localize('runNoOutput', 'The test run did not record any output.'),
 			getTarget: result => result?.tasks[subject.taskIndex],
 			doInitialWrite: (task, result) => {
-				// Update the cwd and use the first test to try to hint at the correct cwd,
-				// but often this will fall back to the first workspace folder.
 				this.updateCwd(Iterable.find(result.tests, t => !!t.item.uri)?.item.uri);
 				return task.output.buffers;
 			},
@@ -594,8 +586,6 @@ export class TerminalMessagePeek extends Disposable implements IPeekOutputRender
 			this.writeNotice(terminal, opts.noOutputMessage);
 		}
 
-		// Ensure pending writes finish, otherwise the selection in `updateForTestSubject`
-		// can happen before the markers are processed.
 		if (pendingWrites.value > 0) {
 			await new Promise<void>(resolve => {
 				const l = pendingWrites.onDidChange(() => {
@@ -623,7 +613,7 @@ export class TerminalMessagePeek extends Disposable implements IPeekOutputRender
 	}
 
 	private attachTerminalToDom(terminal: IDetachedTerminalInstance) {
-		terminal.xterm.write('\x1b[?25l'); // hide cursor
+		terminal.xterm.write('\x1b[?25l');
 		dom.scheduleAtNextAnimationFrame(dom.getWindow(this.container), () => this.layoutTerminal(terminal));
 		terminal.attachToElement(this.container, { enableGpu: false });
 	}
@@ -649,7 +639,7 @@ export class TerminalMessagePeek extends Disposable implements IPeekOutputRender
 		width = this.dimensions?.width ?? this.container.clientWidth,
 		height = this.dimensions?.height ?? this.container.clientHeight
 	) {
-		width -= 10 + 20; // scrollbar width + margin
+		width -= 10 + 20;
 		this.xtermLayoutDelayer.trigger(() => {
 			const scaled = getXtermScaledDimensions(dom.getWindow(this.container), xterm.getFont(), width, height);
 			if (scaled) {

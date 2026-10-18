@@ -79,10 +79,6 @@ export function isSameContextUsageData(a: IChatContextUsageData | undefined, b: 
 			x.category === y.category && x.label === y.label && x.percentageOfPrompt === y.percentageOfPrompt);
 }
 
-/**
- * A reusable circular progress indicator that displays a ring.
- * The ring fills clockwise from the top based on the percentage value.
- */
 export class CircularProgressIndicator {
 
 	readonly domNode: SVGSVGElement;
@@ -102,7 +98,6 @@ export class CircularProgressIndicator {
 		this.domNode.setAttribute('viewBox', '0 0 36 36');
 		this.domNode.classList.add('circular-progress');
 
-		// Background circle
 		const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
 		bgCircle.setAttribute('cx', String(CircularProgressIndicator.CENTER_X));
 		bgCircle.setAttribute('cy', String(CircularProgressIndicator.CENTER_Y));
@@ -110,7 +105,6 @@ export class CircularProgressIndicator {
 		bgCircle.classList.add('progress-bg');
 		this.domNode.appendChild(bgCircle);
 
-		// Progress arc (stroke-based ring)
 		this.progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
 		this.progressCircle.setAttribute('cx', String(CircularProgressIndicator.CENTER_X));
 		this.progressCircle.setAttribute('cy', String(CircularProgressIndicator.CENTER_Y));
@@ -121,10 +115,6 @@ export class CircularProgressIndicator {
 		this.domNode.appendChild(this.progressCircle);
 	}
 
-	/**
-	 * Updates the ring to display the given percentage (0-100).
-	 * @param percentage The percentage of the ring to fill (clamped to 0-100)
-	 */
 	setProgress(percentage: number): void {
 		const clamped = Math.max(0, Math.min(100, percentage));
 		const offset = this.circumference - (clamped / 100) * this.circumference;
@@ -132,11 +122,6 @@ export class CircularProgressIndicator {
 	}
 }
 
-/**
- * Widget that displays the context/token usage for the current chat session.
- * Shows a circular progress icon that expands on hover/focus to show token counts,
- * and on click shows the detailed context usage widget.
- */
 export class ChatContextUsageWidget extends Disposable {
 
 	private readonly _onDidChangeVisibility = this._register(new Emitter<void>());
@@ -154,12 +139,6 @@ export class ChatContextUsageWidget extends Disposable {
 	private readonly _modelConfigurationListener = this._register(new MutableDisposable());
 	private _currentResponse: IChatResponseModel | undefined;
 	private _currentModelId: string | undefined;
-	/**
-	 * The model the user currently has selected in the picker. When set it
-	 * overrides the last request's model for computing the context-window
-	 * denominator, so switching models updates the widget before the next
-	 * request is sent. The usage numerator still comes from the last response.
-	 */
 	private _selectedModelId: string | undefined;
 	private readonly _hoverDisposable = this._register(new MutableDisposable<DisposableStore>());
 	private readonly _contextUsageDetails = this._register(new MutableDisposable<ChatContextUsageDetails>());
@@ -174,12 +153,6 @@ export class ChatContextUsageWidget extends Disposable {
 
 	private _enabled: boolean;
 
-	/**
-	 * Per-editor resolver for a model's configuration (e.g. user-selected
-	 * context size). When unset the widget falls back to the profile-global
-	 * value from {@link ILanguageModelsService.getModelConfiguration}, which can
-	 * lag the editor's actual selection (see issue #320393).
-	 */
 	private _modelConfigurationResolver: ((modelId: string) => IStringDictionary<unknown> | undefined) | undefined;
 
 	constructor(
@@ -198,23 +171,18 @@ export class ChatContextUsageWidget extends Disposable {
 		this.domNode.setAttribute('role', 'button');
 		this.domNode.setAttribute('aria-label', localize('contextUsageLabel', "Context window usage"));
 
-		// Icon container (always visible, contains the pie chart)
 		const iconContainer = this.domNode.appendChild($('.icon-container'));
 		this.progressIndicator = new CircularProgressIndicator();
 		iconContainer.appendChild(this.progressIndicator.domNode);
 
-		// Percentage label (visible on hover/focus)
 		this.percentageLabel = this.domNode.appendChild($('.percentage-label'));
 
-		// Track context usage opened state
 		this._contextUsageOpenedKey = ChatContextKeys.contextUsageHasBeenOpened.bindTo(this.contextKeyService);
 
-		// Restore persisted state
 		if (this.storageService.getBoolean(ChatContextUsageWidget._OPENED_STORAGE_KEY, StorageScope.WORKSPACE, false)) {
 			this._contextUsageOpenedKey.set(true);
 		}
 
-		// Track enabled state from configuration
 		this._enabled = this.configurationService.getValue<boolean>(ChatConfiguration.ChatContextUsageEnabled) !== false;
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ChatConfiguration.ChatContextUsageEnabled)) {
@@ -227,7 +195,6 @@ export class ChatContextUsageWidget extends Disposable {
 			}
 		}));
 
-		// Set up hover - will be configured when data is available
 		this.setupHover();
 	}
 
@@ -236,10 +203,6 @@ export class ChatContextUsageWidget extends Disposable {
 		this._contextUsageDetails.value?.setChatWidget(widget);
 	}
 
-	/**
-	 * Shows the sticky context usage details hover and records that the user
-	 * has opened it. Returns `true` if the details were shown.
-	 */
 	showDetails(): boolean {
 		const details = this._createDetails();
 		if (!details) {
@@ -265,7 +228,6 @@ export class ChatContextUsageWidget extends Disposable {
 			return undefined;
 		}
 		if (!this._contextUsageDetails.value) {
-			// Details subscribes to `_currentData` and re-renders reactively.
 			this._contextUsageDetails.value = this.instantiationService.createInstance(ChatContextUsageDetails, this._chatWidget, this._currentData);
 		}
 		return this._contextUsageDetails.value;
@@ -286,13 +248,11 @@ export class ChatContextUsageWidget extends Disposable {
 			content: this._createDetails()?.domNode ?? ''
 		})));
 
-		// Show sticky + focused hover on click
 		store.add(addDisposableListener(this.domNode, EventType.CLICK, e => {
 			e.stopPropagation();
 			this.showDetails();
 		}));
 
-		// Show sticky + focused hover on keyboard activation (Space/Enter)
 		store.add(addDisposableListener(this.domNode, EventType.KEY_DOWN, e => {
 			const evt = new StandardKeyboardEvent(e);
 			if (evt.equals(KeyCode.Space) || evt.equals(KeyCode.Enter)) {
@@ -302,25 +262,18 @@ export class ChatContextUsageWidget extends Disposable {
 		}));
 	}
 
-	/**
-	 * Updates the widget with the latest request/response data.
-	 * The model is retrieved from the request's modelId.
-	 * @param lastRequest The last request in the session
-	 */
 	update(lastRequest: IChatRequestModel | undefined): void {
 		this._lastRequestDisposable.clear();
 		this._currentResponse = undefined;
 		this._currentModelId = undefined;
 
 		if (!lastRequest) {
-			// New/empty chat session clear everything
 			this._currentData.set(undefined, undefined);
 			this.hide();
 			return;
 		}
 
 		if (!lastRequest.response || !lastRequest.modelId) {
-			// Pending request keep old data visible if available
 			if (!this._currentData.get()) {
 				this.hide();
 			}
@@ -332,10 +285,8 @@ export class ChatContextUsageWidget extends Disposable {
 		this._currentResponse = response;
 		this._currentModelId = modelId;
 
-		// Update immediately if usage data is already available
 		this.updateFromResponse(response, modelId);
 
-		// Subscribe to response changes to update whenever usage data changes
 		this._lastRequestDisposable.value = response.onDidChange(() => {
 			this.updateFromResponse(response, modelId);
 		});
@@ -368,12 +319,6 @@ export class ChatContextUsageWidget extends Disposable {
 		});
 	}
 
-	/**
-	 * Sets the model the user currently has selected in the picker. The
-	 * context-window denominator then reflects this model immediately, even
-	 * before a request is sent with it. The usage numerator still comes from the
-	 * last completed response.
-	 */
 	setSelectedModel(modelId: string | undefined): void {
 		if (this._selectedModelId === modelId) {
 			return;
@@ -384,27 +329,15 @@ export class ChatContextUsageWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Resolves a model's context-window dimensions, or `undefined` when it has no usable window. A meta-model such as
-	 * "auto" advertises a zero-sized window, so it resolves to `undefined` and the caller falls back to the model that
-	 * actually served the request (see issue #321781).
-	 */
 	private resolveContextWindow(modelId: string | undefined): { maxOutputTokens: number | undefined; totalContextWindow: number } | undefined {
 		if (!modelId) {
 			return undefined;
 		}
 		const modelMetadata = this.languageModelsService.lookupLanguageModel(modelId);
-		// Computing the total context window needs the model's metadata, notably its output-token budget
-		// (`maxOutputTokens`), which — unlike the input window — has no configuration fallback. Right after a reload the
-		// model provider may not have registered the selected model yet while a persisted `contextSize` is already
-		// resolvable, so the window would be computed input-only (e.g. 272K instead of 272K + 128K for GPT-5). Bail out
-		// until metadata is available rather than render a misleading partial value; the widget re-renders on model
-		// registration (`onDidChangeLanguageModels`) and on model selection.
 		if (!modelMetadata) {
 			return undefined;
 		}
 		const modelConfiguration = this._modelConfigurationResolver?.(modelId) ?? this.languageModelsService.getModelConfiguration(modelId);
-		// Prefer the schema default context-size tier when config is missing (keeps denominator aligned with the request path).
 		const maxInputTokens = resolveContextWindowInputTokens(modelConfiguration, modelMetadata.configurationSchema, modelMetadata.maxInputTokens);
 		const maxOutputTokens = modelMetadata.maxOutputTokens;
 		const totalContextWindow = (maxInputTokens ?? 0) + (maxOutputTokens ?? 0);
@@ -417,13 +350,8 @@ export class ChatContextUsageWidget extends Disposable {
 	private updateFromResponse(response: IChatResponseModel, modelId: string): void {
 		const usage = response.usage;
 
-		// When a meta-model (e.g. "auto") routes to a concrete model, the
-		// usage reports the actual model that served the request.
 		const effectiveModelId = usage?.actualModelId ?? modelId;
 
-		// The denominator (context window) follows the currently selected model so switching models updates the widget
-		// immediately; the numerator (usage) still comes from the last response. A meta-model such as "auto" has no
-		// context window of its own, so fall back to the model that actually served the request (see issue #321781).
 		const contextWindow = this.resolveContextWindow(this._selectedModelId) ?? this.resolveContextWindow(effectiveModelId);
 		if (!usage || !contextWindow) {
 			if (!this._currentData.get()) {
@@ -440,12 +368,6 @@ export class ChatContextUsageWidget extends Disposable {
 		const usedTokens = promptTokens + completionTokens;
 		const percentage = (usedTokens / totalContextWindow) * 100;
 
-		// The reserve band is a property of the model the user currently has
-		// selected (how much of its window is set aside for output), not of the
-		// past response, so it is derived from the selected model's max output
-		// tokens rather than `usage`. Remaining reserve = that reserve minus what
-		// completions have already consumed; once completions exceed it, it drops
-		// to 0.
 		const outputBufferPercentage = maxOutputTokens !== undefined
 			? (Math.max(0, maxOutputTokens - completionTokens) / totalContextWindow) * 100
 			: undefined;
@@ -461,15 +383,12 @@ export class ChatContextUsageWidget extends Disposable {
 	private render(data: IChatContextUsageData): void {
 		this._currentData.set(data, undefined);
 
-		// Pie chart shows actual usage percentage only
 		this.progressIndicator.setProgress(data.percentage);
 
-		// Update percentage label and aria-label (clamp display to 100)
 		const roundedPercentage = Math.min(100, Math.round(data.percentage));
 		this.percentageLabel.textContent = `${roundedPercentage}%`;
 		this.domNode.setAttribute('aria-label', localize('contextUsagePercentageLabel', "Context window usage: {0}%", roundedPercentage));
 
-		// Color based on actual usage percentage
 		this.domNode.classList.remove('warning', 'error');
 		if (data.percentage >= 90) {
 			this.domNode.classList.add('error');

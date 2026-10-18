@@ -132,7 +132,7 @@ impl ServiceContainer for TunnelServiceContainer {
 			launcher_paths,
 			log,
 			TunnelServeArgs {
-				random_name: true, // avoid prompting
+				random_name: true,
 				..Default::default()
 			},
 			csa,
@@ -150,14 +150,6 @@ pub async fn command_shell(ctx: CommandContext, args: CommandShellArgs) -> Resul
 		shutdown_reqs.push(ShutdownRequest::ParentProcessKilled(p));
 	}
 
-	// Kick off the agent host supervisor in the background. The supervisor
-	// is what lets the renderer reach the agent host via the
-	// `agentHostProxy` IPC channel on the spawned VS Code server. We do
-	// NOT await it here — `command-shell` needs to start listening
-	// immediately. `handle_serve` awaits the shared future on demand and
-	// mixes the bridge endpoint into the per-request `code_server_args`.
-	// On failure the renderer just won't see `agentHostProxy`; editing
-	// and the extension host still work.
 	let active_agent_host: SharedActiveAgentHost = {
 		let paths = ctx.paths.clone();
 		let log = ctx.log.clone();
@@ -249,7 +241,6 @@ pub async fn command_shell(ctx: CommandContext, args: CommandShellArgs) -> Resul
 				}
 			},
 			_ = params.exit_barrier.wait() => {
-				// wait for all servers to finish up:
 				while (servers.next().await).is_some() { }
 				return Ok(0);
 			}
@@ -301,16 +292,13 @@ pub async fn service(
 			let auth = Auth::new(&ctx.paths, ctx.log.clone());
 
 			if let Some(name) = &args.name {
-				// ensure the name matches, and tunnel exists
 				dev_tunnels::DevTunnels::new_remote_tunnel(&ctx.log, auth, &ctx.paths)
 					.rename_tunnel(name)
 					.await?;
 			} else {
-				// still ensure they're logged in, otherwise subsequent serving will fail
 				auth.get_credential().await?;
 			}
 
-			// likewise for license consent
 			legal::require_consent(&ctx.paths, args.accept_server_license_terms)?;
 
 			let current_exe = canonical_exe().map_err(|e| wrap(e, "could not get current exe"))?;
@@ -367,7 +355,6 @@ pub async fn user(ctx: CommandContext, user_args: TunnelUserSubCommands) -> Resu
 	Ok(0)
 }
 
-/// Remove the tunnel used by this tunnel, if any.
 pub async fn rename(ctx: CommandContext, rename_args: TunnelRenameArgs) -> Result<i32, AnyError> {
 	let auth = Auth::new(&ctx.paths, ctx.log.clone());
 	let mut dt = dev_tunnels::DevTunnels::new_remote_tunnel(&ctx.log, auth, &ctx.paths);
@@ -380,7 +367,6 @@ pub async fn rename(ctx: CommandContext, rename_args: TunnelRenameArgs) -> Resul
 	Ok(0)
 }
 
-/// Remove the tunnel used by this tunnel, if any.
 pub async fn unregister(ctx: CommandContext) -> Result<i32, AnyError> {
 	let auth = Auth::new(&ctx.paths, ctx.log.clone());
 	let mut dt = dev_tunnels::DevTunnels::new_remote_tunnel(&ctx.log, auth, &ctx.paths);
@@ -447,7 +433,6 @@ pub async fn status(ctx: CommandContext) -> Result<i32, AnyError> {
 	Ok(0)
 }
 
-/// Removes unused servers.
 pub async fn prune(ctx: CommandContext) -> Result<i32, AnyError> {
 	get_all_servers(&ctx.paths)
 		.into_iter()
@@ -465,7 +450,6 @@ pub async fn prune(ctx: CommandContext) -> Result<i32, AnyError> {
 	Ok(0)
 }
 
-/// Starts the gateway server.
 pub async fn serve(ctx: CommandContext, gateway_args: TunnelServeArgs) -> Result<i32, AnyError> {
 	let CommandContext {
 		log, paths, args, ..
@@ -492,23 +476,14 @@ pub async fn serve(ctx: CommandContext, gateway_args: TunnelServeArgs) -> Result
 	result
 }
 
-/// Internal command used by port forwarding. It reads requests for forwarded ports
-/// on lines from stdin, as JSON. It uses singleton logic as well (though on
-/// a different tunnel than the main one used for the control server) so that
-/// all forward requests on a single machine go through a single hosted tunnel
-/// process. Without singleton logic, requests could get routed to processes
-/// that aren't forwarding a given port and then fail.
 pub async fn forward(
 	ctx: CommandContext,
 	mut forward_args: TunnelForwardArgs,
 ) -> Result<i32, AnyError> {
-	// Spooky: check IS_A_TTY before starting the stdin reader, since IS_A_TTY will
-	// access stdin but a lock will later be held on stdin by the line-reader.
 	if *IS_A_TTY {
 		trace!(ctx.log, "port forwarding is an internal preview feature");
 	}
 
-	// #region stdin reading logic:
 	let (own_ports_tx, own_ports_rx) = watch::channel(vec![]);
 	let ports_process_log = ctx.log.clone();
 	tokio::spawn(async move {
@@ -523,7 +498,6 @@ pub async fn forward(
 		}
 	});
 
-	// #region singleton acquisition
 	let shutdown = ShutdownRequest::create_rx([ShutdownRequest::CtrlC]);
 	let server = loop {
 		if shutdown.is_open() {
@@ -552,7 +526,6 @@ pub async fn forward(
 		}
 	};
 
-	// #region singleton handler
 	let auth = Auth::new(&ctx.paths, ctx.log.clone());
 	if let (Some(p), Some(at)) = (
 		forward_args.login.provider.take(),
@@ -582,7 +555,7 @@ fn get_connection_token(tunnel: &ActiveTunnel) -> String {
 	let result = hash.finalize();
 	let mut result = b64::URL_SAFE_NO_PAD.encode(result);
 	if result.starts_with('-') {
-		result.insert(0, 'a'); // avoid arg parsing issue
+		result.insert(0, 'a');
 	}
 
 	result
@@ -597,7 +570,7 @@ async fn serve_with_csa(
 ) -> Result<i32, AnyError> {
 	let log_broadcast = BroadcastLogSink::new();
 	log = log.tee(log_broadcast.clone());
-	log::install_global_logger(log.clone()); // re-install so that library logs are captured
+	log::install_global_logger(log.clone());
 
 	debug!(
 		log,
@@ -606,9 +579,6 @@ async fn serve_with_csa(
 		std::env::args().collect::<Vec<_>>().join(" ")
 	);
 
-	// Intentionally read before starting the server. If the server updated and
-	// respawn is requested, the old binary will get renamed, and then
-	// current_exe will point to the wrong path.
 	let current_exe = std::env::current_exe().unwrap();
 
 	let mut vec = vec![
@@ -698,8 +668,6 @@ async fn serve_with_csa(
 		match r.next {
 			Next::Respawn => {
 				warning!(log, "respawn requested, starting new server");
-				// reuse current args, but specify no-forward since tunnels will
-				// already be running in this process, and we cannot do a login
 				let args = std::env::args().skip(1).collect::<Vec<String>>();
 				let exit = new_std_command(current_exe)
 					.args(args)

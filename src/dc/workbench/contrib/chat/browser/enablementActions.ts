@@ -8,10 +8,6 @@ import { localize } from '../../../../nls.js';
 import { IWorkspaceContextService, WorkbenchState } from '../../../../platform/workspace/common/workspace.js';
 import { ContributionEnablementState, IEnablementModel, isContributionDisabled } from '../common/enablement.js';
 
-/**
- * Creates the four standard enablement actions (Enable, Enable Workspace,
- * Disable, Disable Workspace) for a contribution identified by a string key.
- */
 export function createEnablementActions(
 	key: string,
 	enablementModel: IEnablementModel,
@@ -29,12 +25,6 @@ export function createEnablementActions(
 	];
 }
 
-/**
- * Builds the standard enablement context-menu action group for a
- * contribution. Returns either the enable or disable actions depending
- * on the current state, with workspace variants included only when a
- * workspace is open.
- */
 export function buildEnablementContextMenuGroup(
 	enablementState: ContributionEnablementState,
 	key: string,

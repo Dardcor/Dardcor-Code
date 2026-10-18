@@ -16,7 +16,7 @@ import { buildDefaultChatUri, isAhpChatChannel, isDefaultChatUri, type Turn, typ
 import { buildConversationContext, renderResponseMarkdown, truncateMiddle } from '../common/agentHostConversationContext.js';
 import { AgentHostStateManager } from './agentHostStateManager.js';
 import type { GitHubIssueOrPullRequest, IAgentHostOctoKitService } from './shared/agentHostOctoKitService.js';
-import { ICopilotApiService, type ICopilotUtilityChatMessage } from './shared/copilotApiService.js';
+import { IDardcorRouterService, type IDardcorUtilityChatMessage } from './shared/dardcorRouterService.js';
 import { AGENT_HOST_TITLE_SOURCE_AGENT, AGENT_HOST_TITLE_SOURCE_AUTO, AGENT_HOST_TITLE_SOURCE_USER, customChatTitleMetadataKey, customChatTitleSourceMetadataKey, persistSessionMetadata, SESSION_CUSTOM_TITLE_KEY, SESSION_CUSTOM_TITLE_SOURCE_KEY } from './shared/persistSessionMetadata.js';
 
 const MAX_TITLE_LENGTH = 200;
@@ -34,18 +34,8 @@ const TRAILING_HAN_SUFFIX = /(?<!\p{sc=Han})\p{sc=Han}{2,3}$/u;
 const GITHUB_ISSUE_OR_PULL_REQUEST_URL_PATTERN = /\bhttps?:\/\/(?<host>[\w.-]+)\/(?<owner>[\w.-]+)\/(?<repo>[\w.-]+)\/(?<kind>issues|pull)\/(?<number>\d+)\b/gi;
 const CHAT_RENAME_REMINDER = 'Reminder: This chat currently has an auto-generated or placeholder title. If the user references an issue or PR, fetch it first. Please give the chat a short, descriptive title based on the user\'s intent by calling `rename_chat` with `automatic: true`, silently and without a preamble. The user must not know that you are renaming. Do not skip it.';
 
-/**
- * Soft upper bound, in characters, for the whole context fed to the utility
- * model when titling a session, including any appended GitHub context. Sized
- * to stay well within the small model's context window while leaving room for
- * the prompt scaffolding.
- */
 const MAX_TITLE_CONTEXT_CHARS = 20000;
 
-/**
- * Slice of {@link MAX_TITLE_CONTEXT_CHARS} always available to GitHub context,
- * so a referenced issue title survives even a budget-filling conversation.
- */
 const MIN_GITHUB_CONTEXT_CHARS = 4_000;
 
 type GitHubReferenceKind = 'issue' | 'pull request';
@@ -62,32 +52,25 @@ interface IGitHubReferenceContext {
 	readonly value: GitHubIssueOrPullRequest;
 }
 
-/** Everything the utility model is told about when asked for a title. */
 interface ITitlePromptContext {
-	/** The request or conversation to title. */
 	readonly content: string;
-	/** Whether {@link content} is a whole conversation rather than a single request. */
 	readonly isConversation: boolean;
-	/** Text scanned for GitHub links to enrich {@link content} with, or `undefined` to skip enrichment. */
 	readonly gitHubReferenceSource?: string;
-	/** The title in place already, offered to the model as the incumbent. */
 	readonly currentTitle?: string;
 }
 
 export interface IAgentHostSessionTitleControllerOptions {
 	readonly sessionDataService: ISessionDataService;
-	readonly getGitHubCopilotToken?: () => string | undefined;
 	readonly getGitHubToken?: () => string | undefined;
 	readonly getGitHubHost?: () => string | undefined;
 	readonly gitHubContextRequestTimeout?: number;
 	readonly octoKitService?: IAgentHostOctoKitService;
-	readonly copilotApiService?: ICopilotApiService;
+	readonly dardcorRouterService?: IDardcorRouterService;
 	readonly isActiveAgentTitleGenerationEnabled?: () => boolean;
 }
 
 export const IAgentHostSessionTitleController = createDecorator<IAgentHostSessionTitleController>('agentHostSessionTitleController');
 
-/** Coordinates automatic, generated, and user-renamed session and chat titles. */
 export interface IAgentHostSessionTitleController {
 	readonly _serviceBrand: undefined;
 	seedTitleFromFirstMessage(channel: ProtocolURI, userPrompt: string, chatChannel?: ProtocolURI): void;
@@ -108,21 +91,8 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 
 	private readonly _titleGenerationCancellationSources = new Map<ProtocolURI, CancellationTokenSource>();
 
-	/**
-	 * The most recent title this controller applied for a given session/chat
-	 * key. Used to detect whether the title was changed (e.g. a manual
-	 * `/rename` or user edit) since we last set it, so we never clobber a
-	 * deliberate title with an auto-generated one.
-	 */
 	private readonly _lastAppliedTitle = new Map<ProtocolURI, string>();
 
-	/**
-	 * Session/chat keys whose current title is a provisional placeholder set by
-	 * {@link seedProvisionalTitle} (e.g. from a `!command`). Such a title does
-	 * not describe the session's topic, so the first subsequent request that
-	 * carries real intent replaces it with a generated title via
-	 * {@link seedTitleFromFirstMessage}.
-	 */
 	private readonly _provisionalTitles = new Set<ProtocolURI>();
 	private readonly _autoTitles = new Set<ProtocolURI>();
 	private readonly _renamedTitles = new Set<ProtocolURI>();
@@ -173,7 +143,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		);
 	}
 
-	/** Seeds and persists a provisional title suggested by a locally handled command. */
 	seedProvisionalTitle(channel: ProtocolURI, suggestedTitle: string, chatChannel?: ProtocolURI): void {
 		if (this._isEphemeralSession(channel)) {
 			return;
@@ -194,7 +163,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		this._persistAutoTitle(channel, independentChat, title);
 	}
 
-	/** Trims, collapses whitespace, and length-caps a candidate title. */
 	private _normalizeTitle(text: string, maxLength = MAX_TITLE_LENGTH): string {
 		return Array.from(text.trim().replace(/\s+/g, ' ')).slice(0, maxLength).join('').trim();
 	}
@@ -220,10 +188,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 			: normalized;
 	}
 
-	/**
-	 * The independently titled chat a seed should target, or `undefined` to
-	 * title the session-backed sole default chat.
-	 */
 	private _independentChatChannel(channel: ProtocolURI, chatChannel?: ProtocolURI): ProtocolURI | undefined {
 		if (!chatChannel || !isAhpChatChannel(chatChannel)) {
 			return undefined;
@@ -233,10 +197,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 			: undefined;
 	}
 
-	/**
-	 * Applies `title` to the independently titled chat (`independentChat`) or, when
-	 * that is `undefined`, to the session itself, recording it as last-applied.
-	 */
 	private _applySeedTitle(channel: ProtocolURI, independentChat: ProtocolURI | undefined, title: string): void {
 		if (independentChat) {
 			this._applyTitle(independentChat, title, t => this._stateManager.updateChatTitle(channel, independentChat, t));
@@ -250,7 +210,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		}
 	}
 
-	/** Persists `title` as the custom title of the addressed independent chat or session. */
 	private _persistAutoTitle(channel: ProtocolURI, independentChat: ProtocolURI | undefined, title: string): void {
 		if (independentChat) {
 			this._persistSessionFlag(channel, customChatTitleMetadataKey(independentChat), title);
@@ -265,17 +224,10 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		this._persistSessionFlag(channel, independentChat ? customChatTitleSourceMetadataKey(independentChat) : SESSION_CUSTOM_TITLE_SOURCE_KEY, AGENT_HOST_TITLE_SOURCE_AUTO);
 	}
 
-	/** The live title of the addressed independent chat or session. */
 	private _currentSeedTitle(channel: ProtocolURI, independentChat: ProtocolURI | undefined): string | undefined {
 		return independentChat ? this._stateManager.getChatState(independentChat)?.title : this._stateManager.getSessionState(channel)?.title;
 	}
 
-	/**
-	 * Whether {@link seedTitleFromFirstMessage} may (re)title `key`: true for a
-	 * fresh, untitled target (its first message) or when its title is a
-	 * provisional placeholder we applied and no one has changed it since — the
-	 * first real request supersedes the placeholder.
-	 */
 	private _canSeedFirstMessageTitle(key: ProtocolURI, turnsLength: number, currentTitle: string | undefined): boolean {
 		if (turnsLength === 0 && !currentTitle) {
 			return true;
@@ -283,13 +235,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		return this._provisionalTitles.has(key) && !!currentTitle && currentTitle === this._lastAppliedTitle.get(key);
 	}
 
-	/**
-	 * Whether {@link seedProvisionalTitle} may (re)title `key`: true when it is
-	 * untitled (the first message carried a suggestion) or when its title is a
-	 * provisional placeholder we applied and no one has changed it since —
-	 * successive suggestions keep the newest one visible without clobbering a
-	 * manual rename.
-	 */
 	private _canSeedProvisionalTitle(key: ProtocolURI, currentTitle: string | undefined): boolean {
 		if (!currentTitle) {
 			return true;
@@ -297,19 +242,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		return this._provisionalTitles.has(key) && currentTitle === this._lastAppliedTitle.get(key);
 	}
 
-	/**
-	 * Re-generates the title once the first turn has completed, this time
-	 * using the full first-turn context (the user request plus the agent's
-	 * textual response) rather than just the opening message. This only runs
-	 * for the very first turn and only when the current title is still the one
-	 * this controller last applied — a manual `/rename`, a user edit, or a
-	 * forked session's inherited title all suppress it.
-	 *
-	 * Only normal text response parts are considered (tool calls, reasoning,
-	 * and other parts are ignored). If the context still exceeds the budget
-	 * the middle is removed (marked with `...`). The user's first request is
-	 * always preserved.
-	 */
 	refineTitleFromFirstTurn(channel: ProtocolURI, chatChannel?: ProtocolURI): void {
 		if (this._isEphemeralSession(channel)) {
 			return;
@@ -377,22 +309,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		);
 	}
 
-	/**
-	 * Generates a title for a freshly forked session or chat from its
-	 * inherited conversation context. Forks copy the source history up to the
-	 * fork point, so neither {@link seedTitleFromFirstMessage} nor
-	 * {@link refineTitleFromFirstTurn} (which require an empty / single-turn
-	 * state) ever fire for them. This is the fork equivalent, run once at fork
-	 * time over the kept turns, so the new chat gets a content-derived title
-	 * instead of permanently inheriting the source's `Forked: …` title.
-	 *
-	 * `fallbackTitle` is the title the caller already applied to the new
-	 * session/chat (e.g. `Forked: <source>`); it is recorded as the
-	 * last-applied title so a concurrent manual rename suppresses the
-	 * generated title, and stays visible until generation completes. The
-	 * context is bounded to {@link MAX_TITLE_CONTEXT_CHARS} (middle-truncated),
-	 * so generation costs at most a single small-model call.
-	 */
 	generateForkedTitle(channel: ProtocolURI, chatChannel: ProtocolURI | undefined, turns: readonly Turn[], fallbackTitle: string, sourceTitle?: string): void {
 		if (this._isEphemeralSession(channel)) {
 			return;
@@ -444,16 +360,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		dispatch(title);
 	}
 
-	/**
-	 * Generates a title for an external session whose provider surfaced it
-	 * without one, from the user's first prompt. Such a session usually has no
-	 * live state (it is materialized when opened), so the generated title is
-	 * persisted and pushed onto its surfaced summary. A session that already
-	 * carries a persisted title keeps it; a rename during generation cancels it.
-	 *
-	 * Unlike the other entry points this awaits generation, so the caller's
-	 * deferred-work lane stays serialized against it.
-	 */
 	async generateExternalSessionTitle(session: ProtocolURI, userPrompt: string): Promise<void> {
 		if (this._isEphemeralSession(session) || await this._readPersistedTitleMetadata(session, SESSION_CUSTOM_TITLE_KEY)) {
 			return;
@@ -543,7 +449,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		void this._startTitleGeneration(key, prompt, fallbackTitle, apply, currentTitleMatchesFallback, persist);
 	}
 
-	/** Starts generation and resolves once the title has been applied and persisted. */
 	private _startTitleGeneration(
 		key: ProtocolURI,
 		prompt: ITitlePromptContext,
@@ -596,9 +501,8 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 			return undefined;
 		}
 
-		const githubToken = this._options.getGitHubCopilotToken?.();
-		const copilotApiService = this._options.copilotApiService;
-		if (!githubToken || !copilotApiService) {
+		const dardcorRouterService = this._options.dardcorRouterService;
+		if (!dardcorRouterService) {
 			return undefined;
 		}
 
@@ -611,7 +515,7 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 			if (token.isCancellationRequested) {
 				return undefined;
 			}
-			const rawTitle = await copilotApiService.utilityChatCompletion(githubToken, {
+			const rawTitle = await dardcorRouterService.utilityChatCompletion({
 				messages: this._buildTitlePrompt(titlePromptContent, prompt),
 				maxTokens: MAX_TITLE_TOKENS,
 			}, {
@@ -629,14 +533,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		}
 	}
 
-	/**
-	 * Appends the GitHub issue / pull requests linked from `referenceSource` to
-	 * `promptContent`, keeping the combined text within
-	 * {@link MAX_TITLE_CONTEXT_CHARS}. Enrichment is guaranteed
-	 * {@link MIN_GITHUB_CONTEXT_CHARS}; whatever it leaves over bounds
-	 * `promptContent`, whose middle is dropped so the request at its head and
-	 * the response tail both survive.
-	 */
 	private async _appendGitHubContext(promptContent: string, referenceSource: string, cancellationSignal: AbortSignal, token: CancellationToken): Promise<string> {
 		const references = this._parseGitHubReferences(referenceSource);
 		const githubToken = this._options.getGitHubToken?.();
@@ -739,7 +635,7 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		].join('\n');
 	}
 
-	private _buildTitlePrompt(promptContent: string, prompt: ITitlePromptContext): ICopilotUtilityChatMessage[] {
+	private _buildTitlePrompt(promptContent: string, prompt: ITitlePromptContext): IDardcorUtilityChatMessage[] {
 		const request = prompt.isConversation
 			? `Please write a brief title for the following conversation:\n\n${promptContent}`
 			: `Please write a brief title for the following request:\n\n${promptContent}`;
@@ -806,17 +702,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		return prefix;
 	}
 
-	/**
-	 * Builds the first-turn context string for title refinement. The user's
-	 * request is always kept (truncated in the middle only if it alone exceeds
-	 * half the budget). Only normal text (markdown) response parts are
-	 * considered — tool calls, reasoning, and other parts are ignored. If the
-	 * combined text is over budget, the middle of the response is removed.
-	 *
-	 * @returns the context string, or `undefined` when the turn has no text
-	 * response worth refining from (the opening message already produced a
-	 * title in that case).
-	 */
 	private _buildFirstTurnContext(turn: Turn): string | undefined {
 		const response = renderResponseMarkdown(turn.responseParts);
 		if (!response) {
@@ -837,20 +722,6 @@ export class AgentHostSessionTitleController extends Disposable implements IAgen
 		return trimmedResponse ? `${userBlock}${responseLabel}${trimmedResponse}` : userBlock;
 	}
 
-	/**
-	 * Builds a conversation context string for forked-title generation by
-	 * concatenating each kept turn's user request and textual response. Only
-	 * normal text (markdown) response parts are considered — tool calls,
-	 * reasoning, and other parts are ignored, mirroring
-	 * {@link _buildFirstTurnContext}. When the fork's `sourceTitle` is known, a
-	 * short framing note is prepended so the model understands the conversation
-	 * is a branch continued from an earlier chat. The conversation is
-	 * middle-truncated to {@link MAX_TITLE_CONTEXT_CHARS} to bound model cost;
-	 * the framing note is always preserved in full.
-	 *
-	 * @returns the context string, or `undefined` when no turn carries any
-	 * text worth titling from.
-	 */
 	private _buildConversationContext(turns: readonly Turn[], sourceTitle?: string): string | undefined {
 		const framedTitle = sourceTitle?.trim();
 		const framing = framedTitle

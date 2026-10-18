@@ -307,7 +307,6 @@ suite('PersistentProtocol reconnection', () => {
 			const b = new PersistentProtocol({ socket: bSocket, loadEstimator });
 			const bMessages = new MessageStream(b);
 
-			// send one message A -> B
 			a.send(VSBuffer.fromString('a1'));
 			assert.strictEqual(a.unacknowledgedCount, 1);
 			assert.strictEqual(b.unacknowledgedCount, 0);
@@ -316,7 +315,6 @@ suite('PersistentProtocol reconnection', () => {
 			assert.strictEqual(a.unacknowledgedCount, 1);
 			assert.strictEqual(b.unacknowledgedCount, 0);
 
-			// wait for ack to arrive B -> A
 			await timeout(2 * ProtocolConstants.AcknowledgeTime);
 			assert.strictEqual(a.unacknowledgedCount, 0);
 			assert.strictEqual(b.unacknowledgedCount, 0);
@@ -336,9 +334,6 @@ suite('PersistentProtocol reconnection', () => {
 				maxTaskCount: 1000
 			},
 			async () => {
-				// Date.now() in fake timers starts at 0, which is very inconvenient
-				// since we want to test exactly that a certain field is not initialized with Date.now()
-				// As a workaround we wait such that Date.now() starts producing more realistic values
 				await timeout(60 * 60 * 1000);
 
 				const loadEstimator: ILoadEstimator = {
@@ -352,29 +347,24 @@ suite('PersistentProtocol reconnection', () => {
 				const b = new PersistentProtocol({ socket: bSocket, loadEstimator, sendKeepAlive: false });
 				const bMessages = new MessageStream(b);
 
-				// send message a1 before reconnection to get _recvAckCheck() scheduled
 				a.send(VSBuffer.fromString('a1'));
 				assert.strictEqual(a.unacknowledgedCount, 1);
 				assert.strictEqual(b.unacknowledgedCount, 0);
 
-				// read message a1 at B
 				const a1 = await bMessages.waitForOne();
 				assert.strictEqual(a1.toString(), 'a1');
 				assert.strictEqual(a.unacknowledgedCount, 1);
 				assert.strictEqual(b.unacknowledgedCount, 0);
 
-				// send message b1 to send the ack for a1
 				b.send(VSBuffer.fromString('b1'));
 				assert.strictEqual(a.unacknowledgedCount, 1);
 				assert.strictEqual(b.unacknowledgedCount, 1);
 
-				// read message b1 at A to receive the ack for a1
 				const b1 = await aMessages.waitForOne();
 				assert.strictEqual(b1.toString(), 'b1');
 				assert.strictEqual(a.unacknowledgedCount, 0);
 				assert.strictEqual(b.unacknowledgedCount, 1);
 
-				// begin reconnection
 				aSocket.dispose();
 				const aSocket2 = new NodeSocket(ether.a);
 				a.beginAcceptReconnection(aSocket2, null);
@@ -384,12 +374,10 @@ suite('PersistentProtocol reconnection', () => {
 					timeoutListenerCalled = true;
 				});
 
-				// send message 2 during reconnection
 				a.send(VSBuffer.fromString('a2'));
 				assert.strictEqual(a.unacknowledgedCount, 1);
 				assert.strictEqual(b.unacknowledgedCount, 1);
 
-				// wait for scheduled _recvAckCheck() to execute
 				await timeout(2 * ProtocolConstants.TimeoutTime);
 
 				assert.strictEqual(a.unacknowledgedCount, 1);
@@ -434,24 +422,19 @@ suite('PersistentProtocol reconnection', () => {
 				const b = new PersistentProtocol({ socket: bSocket, loadEstimator });
 				const bMessages = new MessageStream(b);
 
-				// send message a1 to have something unacknowledged
 				a.send(VSBuffer.fromString('a1'));
 				assert.strictEqual(a.unacknowledgedCount, 1);
 				assert.strictEqual(b.unacknowledgedCount, 0);
 
-				// read message a1 at B
 				const a1 = await bMessages.waitForOne();
 				assert.strictEqual(a1.toString(), 'a1');
 				assert.strictEqual(a.unacknowledgedCount, 1);
 				assert.strictEqual(b.unacknowledgedCount, 0);
 
-				// wait for B to send an ACK message,
-				// but resume before A receives it
 				await timeout(ProtocolConstants.AcknowledgeTime + wireLatency / 2);
 				assert.strictEqual(a.unacknowledgedCount, 1);
 				assert.strictEqual(b.unacknowledgedCount, 0);
 
-				// simulate complete reconnection
 				aSocket.dispose();
 				bSocket.dispose();
 				const ether2 = new Ether(wireLatency);
@@ -462,7 +445,6 @@ suite('PersistentProtocol reconnection', () => {
 				a.beginAcceptReconnection(aSocket2, null);
 				a.endAcceptReconnection();
 
-				// wait for quite some time
 				await timeout(2 * ProtocolConstants.AcknowledgeTime + wireLatency);
 				assert.strictEqual(a.unacknowledgedCount, 0);
 				assert.strictEqual(b.unacknowledgedCount, 0);
@@ -495,13 +477,10 @@ suite('PersistentProtocol reconnection', () => {
 				const b = new PersistentProtocol({ socket: bSocket, loadEstimator });
 				const bMessages = new MessageStream(b);
 
-				// never receive acks
 				b.pauseSocketWriting();
 
-				// send message a1 to have something unacknowledged
 				a.send(VSBuffer.fromString('a1'));
 
-				// wait for the first timeout to fire
 				await Event.toPromise(a.onSocketTimeout);
 
 				let timeoutFiredAgain = false;
@@ -509,11 +488,9 @@ suite('PersistentProtocol reconnection', () => {
 					timeoutFiredAgain = true;
 				});
 
-				// send more messages
 				a.send(VSBuffer.fromString('a2'));
 				a.send(VSBuffer.fromString('a3'));
 
-				// wait for 10s
 				await timeout(ProtocolConstants.TimeoutTime / 2);
 
 				assert.strictEqual(timeoutFiredAgain, false);
@@ -547,27 +524,20 @@ suite('PersistentProtocol reconnection', () => {
 				const b = new PersistentProtocol({ socket: bSocket, loadEstimator });
 				const bMessages = new MessageStream(b);
 
-				// exchange a message so both sides are in a good state
 				a.send(VSBuffer.fromString('a1'));
 				const a1 = await bMessages.waitForOne();
 				assert.strictEqual(a1.toString(), 'a1');
 
-				// wait for ack to arrive
 				await timeout(ProtocolConstants.AcknowledgeTime * 2);
 
-				// confirm no unacknowledged messages
 				assert.strictEqual(a.unacknowledgedCount, 0);
 
-				// now kill b's ability to send anything (simulates a dead connection
-				// where the remote side's keepalives stop arriving)
 				b.pauseSocketWriting();
 
-				// wait for timeout to be detected via keepalive
 				const socketTimeoutEvent = await Event.toPromise(a.onSocketTimeout);
 
 				assert.strictEqual(socketTimeoutEvent.reason, SocketTimeoutReason.KEEP_ALIVE);
 				assert.ok(socketTimeoutEvent.timeSinceLastReceivedSomeData >= ProtocolConstants.TimeoutTime);
-				// no regular messages were pending
 				assert.strictEqual(socketTimeoutEvent.unacknowledgedMsgCount, 0);
 				assert.strictEqual(socketTimeoutEvent.timeSinceOldestUnacknowledgedMsg, undefined);
 
@@ -592,35 +562,27 @@ suite('PersistentProtocol reconnection', () => {
 			const b = new PersistentProtocol({ socket: bSocket, loadEstimator });
 			const bMessages = new MessageStream(b);
 
-			// send one message A -> B
 			a.send(VSBuffer.fromString('a1'));
 			const a1 = await bMessages.waitForOne();
 			assert.strictEqual(a1.toString(), 'a1');
 
-			// ask A to pause writing
 			b.sendPause();
 
-			// send a message B -> A
 			b.send(VSBuffer.fromString('b1'));
 			const b1 = await aMessages.waitForOne();
 			assert.strictEqual(b1.toString(), 'b1');
 
-			// send a message A -> B (this should be blocked at A)
 			a.send(VSBuffer.fromString('a2'));
 
-			// wait a long time and check that not even acks are written
 			await timeout(2 * ProtocolConstants.AcknowledgeTime);
 			assert.strictEqual(a.unacknowledgedCount, 1);
 			assert.strictEqual(b.unacknowledgedCount, 1);
 
-			// ask A to resume writing
 			b.sendResume();
 
-			// check that B receives message
 			const a2 = await bMessages.waitForOne();
 			assert.strictEqual(a2.toString(), 'a2');
 
-			// wait a long time and check that acks are written
 			await timeout(2 * ProtocolConstants.AcknowledgeTime);
 			assert.strictEqual(a.unacknowledgedCount, 0);
 			assert.strictEqual(b.unacknowledgedCount, 0);
@@ -750,7 +712,7 @@ suite('WebSocketNodeSocket', () => {
 
 	test('A single-frame unmasked text message', async () => {
 		const frames = [
-			[0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f] // contains "Hello"
+			[0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f]
 		];
 		const actual = await testReading(frames, false);
 		assert.deepStrictEqual(actual, 'Hello');
@@ -758,17 +720,16 @@ suite('WebSocketNodeSocket', () => {
 
 	test('A single-frame masked text message', async () => {
 		const frames = [
-			[0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58] // contains "Hello"
+			[0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58]
 		];
 		const actual = await testReading(frames, false);
 		assert.deepStrictEqual(actual, 'Hello');
 	});
 
 	test('A fragmented unmasked text message', async () => {
-		// contains "Hello"
 		const frames = [
-			[0x01, 0x03, 0x48, 0x65, 0x6c], // contains "Hel"
-			[0x80, 0x02, 0x6c, 0x6f], // contains "lo"
+			[0x01, 0x03, 0x48, 0x65, 0x6c],
+			[0x80, 0x02, 0x6c, 0x6f],
 		];
 		const actual = await testReading(frames, false);
 		assert.deepStrictEqual(actual, 'Hello');
@@ -776,9 +737,8 @@ suite('WebSocketNodeSocket', () => {
 
 	suite('compression', () => {
 		test('A single-frame compressed text message', async () => {
-			// contains "Hello"
 			const frames = [
-				[0xc1, 0x07, 0xf2, 0x48, 0xcd, 0xc9, 0xc9, 0x07, 0x00], // contains "Hello"
+				[0xc1, 0x07, 0xf2, 0x48, 0xcd, 0xc9, 0xc9, 0x07, 0x00],
 			];
 			const actual = await testReading(frames, true);
 			assert.deepStrictEqual(actual, 'Hello');
@@ -826,8 +786,7 @@ suite('WebSocketNodeSocket', () => {
 		});
 
 		test('A fragmented compressed text message', async () => {
-			// contains "Hello"
-			const frames = [  // contains "Hello"
+			const frames = [
 				[0x41, 0x03, 0xf2, 0x48, 0xcd],
 				[0x80, 0x04, 0xc9, 0xc9, 0x07, 0x00]
 			];
@@ -837,7 +796,7 @@ suite('WebSocketNodeSocket', () => {
 
 		test('A single-frame non-compressed text message', async () => {
 			const frames = [
-				[0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f] // contains "Hello"
+				[0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f]
 			];
 			const actual = await testReading(frames, true);
 			assert.deepStrictEqual(actual, 'Hello');
@@ -845,8 +804,8 @@ suite('WebSocketNodeSocket', () => {
 
 		test('A single-frame compressed text message followed by a single-frame non-compressed text message', async () => {
 			const frames = [
-				[0xc1, 0x07, 0xf2, 0x48, 0xcd, 0xc9, 0xc9, 0x07, 0x00], // contains "Hello"
-				[0x81, 0x05, 0x77, 0x6f, 0x72, 0x6c, 0x64] // contains "world"
+				[0xc1, 0x07, 0xf2, 0x48, 0xcd, 0xc9, 0xc9, 0x07, 0x00],
+				[0x81, 0x05, 0x77, 0x6f, 0x72, 0x6c, 0x64]
 			];
 			const actual = await testReading(frames, true);
 			assert.deepStrictEqual(actual, 'Helloworld');
@@ -860,7 +819,6 @@ suite('WebSocketNodeSocket', () => {
 		const receivingSideSocketClosedBarrier = new Barrier();
 
 		const server = await listenOnRandomPort((socket) => {
-			// stop the server when the first connection is received
 			server.close();
 
 			const webSocketNodeSocket = new WebSocketNodeSocket(new NodeSocket(socket), true, null, false);
@@ -904,20 +862,16 @@ suite('WebSocketNodeSocket', () => {
 			receivedData += fromCharCodeArray(fromUint8Array(buff.buffer));
 		}));
 
-		// A single-frame non-compressed text message that contains "Hello"
 		socket.fireData([0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f]);
 
-		// A ping message that contains "data"
 		socket.fireData([0x89, 0x04, 0x64, 0x61, 0x74, 0x61]);
 
-		// Another single-frame non-compressed text message that contains "Hello"
 		socket.fireData([0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f]);
 
 		assert.strictEqual(receivedData, 'HelloHello');
 		assert.deepStrictEqual(
 			socket.writtenData.map(x => fromUint8Array(x.buffer)),
 			[
-				// A pong message that contains "data"
 				[0x8A, 0x04, 0x64, 0x61, 0x74, 0x61]
 			]
 		);

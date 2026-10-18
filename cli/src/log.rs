@@ -16,12 +16,10 @@ use crate::constants::COLORS_ENABLED;
 
 static INSTANCE_COUNTER: AtomicU32 = AtomicU32::new(0);
 
-// Gets a next incrementing number that can be used in logs
 pub fn next_counter() -> u32 {
 	INSTANCE_COUNTER.fetch_add(1, Ordering::SeqCst)
 }
 
-// Log level
 #[derive(
 	clap::ValueEnum, PartialEq, Eq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize, Default,
 )]
@@ -96,14 +94,12 @@ pub fn new_rpc_prefix() -> String {
 	format!("[rpc.{}]", next_counter())
 }
 
-// Base logger implementation
 #[derive(Clone)]
 pub struct Logger {
 	sink: Vec<Box<dyn LogSink>>,
 	prefix: Option<String>,
 }
 
-// Copy trick from https://stackoverflow.com/a/30353928
 pub trait LogSinkClone {
 	fn clone_box(&self) -> Box<dyn LogSink>;
 }
@@ -128,7 +124,6 @@ impl Clone for Box<dyn LogSink> {
 	}
 }
 
-/// The basic log sink that writes output to stdout, with colors when relevant.
 #[derive(Clone)]
 pub struct StdioLogSink {
 	level: Level,
@@ -154,13 +149,11 @@ pub struct FileLogSink {
 	file: Arc<std::sync::Mutex<std::fs::File>>,
 }
 
-const FILE_LOG_SIZE_LIMIT: u64 = 1024 * 1024 * 10; // 10MB
+const FILE_LOG_SIZE_LIMIT: u64 = 1024 * 1024 * 10;
 
 impl FileLogSink {
 	pub fn new(level: Level, path: &Path) -> std::io::Result<Self> {
-		// Truncate the service log occasionally to avoid growing infinitely
 		if matches!(path.metadata(), Ok(m) if m.len() > FILE_LOG_SIZE_LIMIT) {
-			// ignore errors, can happen if another process is writing right now
 			let _ = std::fs::remove_file(path);
 		}
 
@@ -184,7 +177,6 @@ impl LogSink for FileLogSink {
 
 		let line = format(level, prefix, message, false);
 
-		// ignore any errors, not much we can do if logging fails...
 		self.file.lock().unwrap().write_all(line.as_bytes()).ok();
 	}
 
@@ -229,7 +221,6 @@ impl Logger {
 		}
 	}
 
-	/// Creates a new logger with the additional log sink added.
 	pub fn tee<T>(&self, sink: T) -> Logger
 	where
 		T: LogSink + 'static,
@@ -243,7 +234,6 @@ impl Logger {
 		}
 	}
 
-	/// Creates a new logger with the sink replace with the given sink.
 	pub fn with_sink<T>(&self, sink: T) -> Logger
 	where
 		T: LogSink + 'static,
@@ -314,15 +304,12 @@ pub fn emit(level: Level, prefix: &str, message: &str) {
 }
 
 /// Installs the logger instance as the global logger for the 'log' service.
-/// Replaces any existing registered logger. Note that the logger will be leaked/
 pub fn install_global_logger(log: Logger) {
 	log::set_logger(Box::leak(Box::new(RustyLogger(log))))
 		.map(|()| log::set_max_level(log::LevelFilter::Debug))
 		.expect("expected to make logger");
 }
 
-/// Logger that uses the common rust "log" crate and directs back to one of
-/// our managed loggers.
 struct RustyLogger(Logger);
 
 impl log::Log for RustyLogger {
@@ -335,7 +322,6 @@ impl log::Log for RustyLogger {
 			return;
 		}
 
-		// exclude noisy log modules:
 		let src = match record.module_path() {
 			Some("russh::cipher" | "russh::negotiation" | "russh::kex::dh") => return,
 			Some(s) => s,

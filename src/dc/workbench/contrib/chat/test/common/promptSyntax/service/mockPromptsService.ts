@@ -32,7 +32,6 @@ export class MockPromptsService implements IPromptsService {
 		return this._customModes;
 	}
 
-	// Stub implementations for required interface methods
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	getSyntaxParserFor(_model: any): any { throw new Error('Not implemented'); }
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any

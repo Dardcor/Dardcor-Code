@@ -73,7 +73,6 @@ export class WebviewInput extends EditorInput {
 		this._webview = webview;
 
 		this._register(_themeService.onDidColorThemeChange(() => {
-			// Potentially update icon
 			this._onDidChangeLabel.fire();
 		}));
 	}

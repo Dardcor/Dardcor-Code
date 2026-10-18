@@ -83,7 +83,6 @@ export class WorkspaceEdit implements vscode.WorkspaceEdit {
 		return this._edits;
 	}
 
-	// --- file
 	renameFile(from: vscode.Uri, to: vscode.Uri, options?: { readonly overwrite?: boolean; readonly ignoreIfExists?: boolean }, metadata?: vscode.WorkspaceEditEntryMetadata): void {
 		this._edits.push({ _type: FileEditType.File, from, to, options, metadata });
 	}
@@ -96,7 +95,6 @@ export class WorkspaceEdit implements vscode.WorkspaceEdit {
 		this._edits.push({ _type: FileEditType.File, from: uri, to: undefined, options, metadata });
 	}
 
-	// --- notebook
 	private replaceNotebookMetadata(uri: URI, value: Record<string, unknown>, metadata?: vscode.WorkspaceEditEntryMetadata): void {
 		this._edits.push({ _type: FileEditType.Cell, metadata, uri, edit: { editType: CellEditType.DocumentMetadata, metadata: value } });
 	}
@@ -114,7 +112,6 @@ export class WorkspaceEdit implements vscode.WorkspaceEdit {
 		this._edits.push({ _type: FileEditType.Cell, metadata, uri, edit: { editType: CellEditType.Metadata, index, metadata: cellMetadata } });
 	}
 
-	// --- text
 	replace(uri: URI, range: Range, newText: string, metadata?: vscode.WorkspaceEditEntryMetadata): void {
 		this._edits.push({ _type: FileEditType.Text, uri, edit: new TextEdit(range, newText), metadata });
 	}
@@ -127,7 +124,6 @@ export class WorkspaceEdit implements vscode.WorkspaceEdit {
 		this.replace(resource, range, '', metadata);
 	}
 
-	// --- text (Maplike)
 	has(uri: URI): boolean {
 		return this._edits.some(edit => edit._type === FileEditType.Text && edit.uri.toString() === uri.toString());
 	}
@@ -139,7 +135,6 @@ export class WorkspaceEdit implements vscode.WorkspaceEdit {
 
 	set(uri: URI, edits: null | undefined | ReadonlyArray<TextEdit | SnippetTextEdit | NotebookEdit | [NotebookEdit, vscode.WorkspaceEditEntryMetadata | undefined] | [TextEdit | SnippetTextEdit, vscode.WorkspaceEditEntryMetadata | undefined]>): void {
 		if (!edits) {
-			// remove all text, snippet, or notebook edits for `uri`
 			for (let i = 0; i < this._edits.length; i++) {
 				const element = this._edits[i];
 				switch (element._type) {
@@ -148,14 +143,13 @@ export class WorkspaceEdit implements vscode.WorkspaceEdit {
 					case FileEditType.Cell:
 					case FileEditType.CellReplace:
 						if (element.uri.toString() === uri.toString()) {
-							this._edits[i] = undefined!; // will be coalesced down below
+							this._edits[i] = undefined!;
 						}
 						break;
 				}
 			}
 			coalesceInPlace(this._edits);
 		} else {
-			// append edit to the end
 			for (const editOrTuple of edits) {
 				if (!editOrTuple) {
 					continue;

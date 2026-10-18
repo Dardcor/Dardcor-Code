@@ -24,58 +24,34 @@ interface TaskEntry extends IDisposable {
 	result?: MCP.Result;
 	error?: MCP.Error;
 	cts: CancellationTokenSource;
-	/** Time when the task was created (client time), used to calculate TTL expiration */
 	createdAtTime: number;
-	/** Promise that resolves when the task execution completes */
 	executionPromise: Promise<void>;
 }
 
-/**
- * Manages in-memory task state for server-side MCP tasks (sampling and elicitation).
- * Also tracks client-side tasks to survive handler reconnections.
- * Lifecycle is tied to the McpServer instance.
- */
 export class McpTaskManager extends Disposable {
 	private readonly _serverTasks = this._register(new DisposableMap<string, TaskEntry>());
 	private readonly _clientTasks = this._register(new DisposableMap<string, IMcpTaskInternal>());
 	private readonly _onDidUpdateTask = this._register(new Emitter<MCP.Task>());
 	public readonly onDidUpdateTask = this._onDidUpdateTask.event;
 
-	/**
-	 * Attach a new handler to this task manager.
-	 * Updates all client tasks to use the new handler.
-	 */
 	setHandler(handler: McpServerRequestHandler | undefined): void {
 		for (const task of this._clientTasks.values()) {
 			task.setHandler(handler);
 		}
 	}
 
-	/**
-	 * Get a client task by ID for status notification handling.
-	 */
 	getClientTask(taskId: string): IMcpTaskInternal | undefined {
 		return this._clientTasks.get(taskId);
 	}
 
-	/**
-	 * Track a new client task.
-	 */
 	adoptClientTask(task: IMcpTaskInternal): void {
 		this._clientTasks.set(task.id, task);
 	}
 
-	/**
-	 * Untracks a client task.
-	 */
 	abandonClientTask(taskId: string): void {
 		this._clientTasks.deleteAndDispose(taskId);
 	}
 
-	/**
-	 * Create a new task and execute it asynchronously.
-	 * Returns the task immediately while execution continues in the background.
-	 */
 	public createTask<TResult extends MCP.Result>(
 		ttl: number | null,
 		executor: (token: CancellationToken) => Promise<TResult>
@@ -90,7 +66,7 @@ export class McpTaskManager extends Disposable {
 			createdAt,
 			ttl,
 			lastUpdatedAt: new Date().toISOString(),
-			pollInterval: 1000, // Suggest 1 second polling interval
+			pollInterval: 1000,
 		};
 
 		const store = new DisposableStore();
@@ -99,7 +75,6 @@ export class McpTaskManager extends Disposable {
 
 		const executionPromise = this._executeTask(taskId, executor, cts.token);
 
-		// Delete the task after its TTL. Or, if no TTL is given, delete it shortly after the task completes.
 		if (ttl) {
 			store.add(disposableTimeout(() => this._serverTasks.deleteAndDispose(taskId), ttl));
 		} else {
@@ -122,9 +97,6 @@ export class McpTaskManager extends Disposable {
 		return { task };
 	}
 
-	/**
-	 * Execute a task asynchronously and update its state.
-	 */
 	private async _executeTask<TResult extends MCP.Result>(
 		taskId: string,
 		executor: (token: CancellationToken) => Promise<TResult>,
@@ -156,9 +128,6 @@ export class McpTaskManager extends Disposable {
 		}
 	}
 
-	/**
-	 * Update task status and optionally store result or error.
-	 */
 	private _updateTaskStatus(
 		taskId: string,
 		status: MCP.TaskStatus,
@@ -187,10 +156,6 @@ export class McpTaskManager extends Disposable {
 		this._onDidUpdateTask.fire({ ...entry.task });
 	}
 
-	/**
-	 * Get the current state of a task.
-	 * Returns an error if the task doesn't exist or has expired.
-	 */
 	public getTask(taskId: string): MCP.GetTaskResult {
 		const entry = this._serverTasks.get(taskId);
 		if (!entry) {
@@ -200,10 +165,6 @@ export class McpTaskManager extends Disposable {
 		return { ...entry.task };
 	}
 
-	/**
-	 * Get the result of a completed task.
-	 * Blocks until the task completes if it's still in progress.
-	 */
 	public async getTaskResult(taskId: string): Promise<MCP.GetTaskPayloadResult> {
 		const entry = this._serverTasks.get(taskId);
 		if (!entry) {
@@ -214,7 +175,6 @@ export class McpTaskManager extends Disposable {
 			await entry.executionPromise;
 		}
 
-		// Refresh entry after waiting
 		const updatedEntry = this._serverTasks.get(taskId);
 		if (!updatedEntry) {
 			throw new McpError(MCP.INVALID_PARAMS, `Task not found: ${taskId}`);
@@ -231,16 +191,12 @@ export class McpTaskManager extends Disposable {
 		return updatedEntry.result;
 	}
 
-	/**
-	 * Cancel a task.
-	 */
 	public cancelTask(taskId: string): MCP.CancelTaskResult {
 		const entry = this._serverTasks.get(taskId);
 		if (!entry) {
 			throw new McpError(MCP.INVALID_PARAMS, `Task not found: ${taskId}`);
 		}
 
-		// Check if already in terminal status
 		if (entry.task.status === 'completed' || entry.task.status === 'failed' || entry.task.status === 'cancelled') {
 			throw new McpError(MCP.INVALID_PARAMS, `Cannot cancel task in ${entry.task.status} status`);
 		}
@@ -252,9 +208,6 @@ export class McpTaskManager extends Disposable {
 		return { ...entry.task };
 	}
 
-	/**
-	 * List all tasks.
-	 */
 	public listTasks(): MCP.ListTasksResult {
 		const tasks: MCP.Task[] = [];
 

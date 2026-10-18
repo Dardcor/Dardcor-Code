@@ -51,10 +51,6 @@ export class TextModelEditReason {
 		}
 	}
 
-	/**
-	 * Converts the metadata to a key string.
-	 * Only includes properties/values that have `level` many `$` prefixes or less.
-	*/
 	public toKey(level: number): string {
 		const metadata = this.metadata;
 		const keys = Object.entries(metadata).filter(([key, value]) => {

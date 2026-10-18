@@ -5,11 +5,6 @@
 
 import { CharCode } from '../../../base/common/charCode.js';
 
-/**
- * Returns:
- *  - -1 => the line consists of whitespace
- *  - otherwise => the indent level is returned value
- */
 export function computeIndentLevel(line: string, tabSize: number): number {
 	let indent = 0;
 	let i = 0;
@@ -28,7 +23,7 @@ export function computeIndentLevel(line: string, tabSize: number): number {
 	}
 
 	if (i === len) {
-		return -1; // line only consists of whitespace
+		return -1;
 	}
 
 	return indent;

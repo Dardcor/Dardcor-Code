@@ -39,11 +39,6 @@ export function createLockfileRegenerationSeed(base: IPackageLock | undefined, s
 	return seed;
 }
 
-/**
- * Package records the pull request touched. Deleting these from the seed is what forces npm to
- * refetch their manifests; npm reports "up to date" and reuses whatever the lockfile already says
- * for records it leaves in place, which is how stripped `libc`/`os`/`cpu` metadata survives.
- */
 export function findChangedPackageKeys(base: IPackageLock | undefined, submitted: IPackageLock): string[] {
 	const basePackages = base?.packages ?? {};
 	const submittedPackages = submitted.packages ?? {};
@@ -58,12 +53,6 @@ function isRecord(value: JsonValue | undefined): value is { [key: string]: JsonV
 
 const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies'] as const;
 
-/**
- * Rewrites the declared range of every changed dependency to the exact version the lockfile commits,
- * so regeneration resolves what the pull request submitted instead of whatever the registry has
- * published since. npm rejects `overrides` for direct dependencies (EOVERRIDE), so the range itself
- * has to carry the pin.
- */
 export function pinChangedPackages(packageJson: JsonValue, changedKeys: readonly string[], submitted: IPackageLock): JsonValue {
 	if (!isRecord(packageJson)) {
 		return packageJson;
@@ -117,7 +106,6 @@ function normalizeForComparison(value: JsonValue, key?: string): JsonValue {
 		const tarballPathIndex = value.indexOf('/-/');
 		return tarballPathIndex >= 0 ? value.slice(tarballPathIndex) : value;
 	}
-	// Registry mirrors can describe the same tarball with different integrity algorithms (for example, sha1 versus sha512).
 	if (key === 'integrity') {
 		return '<registry integrity>';
 	}

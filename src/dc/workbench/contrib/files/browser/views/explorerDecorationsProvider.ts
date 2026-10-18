@@ -44,13 +44,6 @@ export function provideDecorations(fileStat: ExplorerItem): IDecorationData | un
 	return undefined;
 }
 
-/**
- * Provides the explorer specific file decorations (symbolic link, unknown file
- * type, excluded, unresolvable root). The decorations are computed from the
- * explorer model and therefore apply to the whole window: register this provider
- * only once per window, otherwise every registration contributes its own badge
- * and decorations render multiple times.
- */
 export class ExplorerDecorationsProvider implements IDecorationsProvider {
 
 	readonly label: string = localize('label', "Explorer");

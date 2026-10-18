@@ -27,7 +27,6 @@ export class CharacterPairSupport {
 
 		if (config.__electricCharacterSupport && config.__electricCharacterSupport.docComment) {
 			const docComment = config.__electricCharacterSupport.docComment;
-			// IDocComment is legacy, only partially supported
 			this._autoClosingPairs.push(new StandardAutoClosingPairConditional({ open: docComment.open, close: docComment.close || '' }));
 		}
 

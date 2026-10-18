@@ -51,7 +51,6 @@ fn set_env_vars_from_map_keys(prefix: &str, map: impl IntoIterator<Item = (Strin
 	let mut win32_app_ids = vec![];
 
 	for (key, value) in map {
-		//#region special handling
 		let value = match key.as_str() {
 			"tunnelServerQualities" | "serverLicense" => {
 				Value::String(serde_json::to_string(&value).unwrap())
@@ -81,7 +80,6 @@ fn set_env_vars_from_map_keys(prefix: &str, map: impl IntoIterator<Item = (Strin
 				continue;
 			}
 		}
-		//#endregion
 
 		if let Value::String(s) = value {
 			println!(
@@ -221,7 +219,6 @@ fn ensure_file_headers(files: &[PathBuf]) -> Result<(), io::Error> {
 	Ok(())
 }
 
-/// Gets all "rs" files in the source directory
 fn enumerate_source_files() -> Result<Vec<PathBuf>, io::Error> {
 	let mut files = vec![];
 	let mut queue = vec![];

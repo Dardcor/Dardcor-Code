@@ -30,13 +30,6 @@ export interface Params {
 	detectEncodingByBOM(fsPath: string): Promise<typeof UTF16be | typeof UTF16le | typeof UTF8_with_bom | null>;
 }
 
-/**
- * Allows us to reuse test suite across different environments.
- *
- * It introduces a bit of complexity with setup and teardown, however
- * it helps us to ensure that tests are added for all environments at once,
- * hence helps us catch bugs better.
- */
 export default function createSuite(params: Params) {
 	let service: ITextFileService;
 	let testDir = '';
@@ -60,7 +53,7 @@ export default function createSuite(params: Params) {
 		await service.create([{ resource }]);
 
 		const res = await readFile(resource.fsPath);
-		assert.strictEqual(res.byteLength, 0 /* no BOM */);
+		assert.strictEqual(res.byteLength, 0 );
 	});
 
 	test('create - no encoding - content provided (string)', async () => {
@@ -108,7 +101,7 @@ export default function createSuite(params: Params) {
 		assert.strictEqual(detectedEncoding, UTF16le);
 
 		const res = await readFile(resource.fsPath);
-		assert.strictEqual(res.byteLength, 'Hello World'.length * 2 /* UTF16 2bytes per char */ + UTF16le_BOM.length);
+		assert.strictEqual(res.byteLength, 'Hello World'.length * 2 + UTF16le_BOM.length);
 	});
 
 	test('create - UTF 16 BE - no content', async () => {
@@ -136,7 +129,7 @@ export default function createSuite(params: Params) {
 		assert.strictEqual(detectedEncoding, UTF16be);
 
 		const res = await readFile(resource.fsPath);
-		assert.strictEqual(res.byteLength, 'Hello World'.length * 2 /* UTF16 2bytes per char */ + UTF16be_BOM.length);
+		assert.strictEqual(res.byteLength, 'Hello World'.length * 2 + UTF16be_BOM.length);
 	});
 
 	test('create - UTF 8 BOM - no content', async () => {
@@ -325,17 +318,14 @@ export default function createSuite(params: Params) {
 		detectedEncoding = await detectEncodingByBOM(resource.fsPath);
 		assert.strictEqual(detectedEncoding, UTF8_with_bom);
 
-		// ensure BOM preserved if enforced
 		await service.write(resource, content, { encoding: UTF8_with_bom });
 		detectedEncoding = await detectEncodingByBOM(resource.fsPath);
 		assert.strictEqual(detectedEncoding, UTF8_with_bom);
 
-		// allow to remove BOM
 		await service.write(resource, content, { encoding: UTF8 });
 		detectedEncoding = await detectEncodingByBOM(resource.fsPath);
 		assert.strictEqual(detectedEncoding, null);
 
-		// BOM does not come back
 		await service.write(resource, content, { encoding: UTF8 });
 		detectedEncoding = await detectEncodingByBOM(resource.fsPath);
 		assert.strictEqual(detectedEncoding, null);
@@ -353,17 +343,14 @@ export default function createSuite(params: Params) {
 		detectedEncoding = await detectEncodingByBOM(resource.fsPath);
 		assert.strictEqual(detectedEncoding, UTF8_with_bom);
 
-		// ensure BOM preserved if enforced
 		await service.write(resource, model.createSnapshot(), { encoding: UTF8_with_bom });
 		detectedEncoding = await detectEncodingByBOM(resource.fsPath);
 		assert.strictEqual(detectedEncoding, UTF8_with_bom);
 
-		// allow to remove BOM
 		await service.write(resource, model.createSnapshot(), { encoding: UTF8 });
 		detectedEncoding = await detectEncodingByBOM(resource.fsPath);
 		assert.strictEqual(detectedEncoding, null);
 
-		// BOM does not come back
 		await service.write(resource, model.createSnapshot(), { encoding: UTF8 });
 		detectedEncoding = await detectEncodingByBOM(resource.fsPath);
 		assert.strictEqual(detectedEncoding, null);
@@ -543,7 +530,6 @@ export default function createSuite(params: Params) {
 	async function testLargeEncoding(encoding: string, needle: string): Promise<void> {
 		const resource = URI.file(join(testDir, `lorem_${encoding}.txt`));
 
-		// Verify via `ITextFileService.readStream`
 		const result = await service.readStream(resource, { encoding });
 		assert.strictEqual(result.encoding, encoding);
 
@@ -553,7 +539,6 @@ export default function createSuite(params: Params) {
 		assert.strictEqual(contents.indexOf(needle), 0);
 		assert.ok(contents.indexOf(needle, 10) > 0);
 
-		// Verify via `ITextFileService.getDecodedTextFactory`
 		const rawFile = await params.readFile(resource.fsPath);
 		let rawFileVSBuffer: VSBuffer;
 		if (rawFile instanceof VSBuffer) {
@@ -593,7 +578,6 @@ export default function createSuite(params: Params) {
 	});
 
 	test('readStream - autoguessEncoding (candidateGuessEncodings)', async () => {
-		// This file is determined to be Windows-1252 unless candidateDetectEncoding is set.
 		const resource = URI.file(join(testDir, 'some.shiftjis.1.txt'));
 
 		const result = await service.readStream(resource, { autoGuessEncoding: true, candidateGuessEncodings: ['utf-8', 'shiftjis', 'euc-jp'] });

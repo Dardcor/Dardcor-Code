@@ -157,12 +157,8 @@ export class EditCodeReadonlyInstructions extends PromptElement<EditCodeReadonly
 		</TextChunk>;
 	}
 
-	/**
-	 * List of {@link Uri}s for all `readonly` variables, if any.
-	 */
 	private get readonlyUris(): Uri[] {
 
-		// get list of URIs for readonly variables inside the working set
 		const readonlyUris = [];
 		for (const entry of this.props.workingSet) {
 			if (entry.isMarkedReadonly) {
@@ -201,15 +197,12 @@ class EditCodeConversationHistory extends PromptElement<EditCodeConversationHist
 
 
 	override async render(state: void, sizing: PromptSizing) {
-		// Here we will keep track of which [file,version] pairs that are already in the prompt
 		const includedFilesAtVersions = new ResourceMap<number[]>();
 
-		// Populate with the current state
 		for (const entry of this.props.workingSet) {
 			includedFilesAtVersions.set(entry.document.uri, [entry.document.version]);
 		}
 
-		// Ditto for prompt instruction files
 		const includedPromptInstructions = new ResourceMap<number[]>();
 		for (const promptInstruction of this.props.promptInstructions) {
 			includedPromptInstructions.set(promptInstruction.uri, [promptInstruction.version]);
@@ -388,7 +381,7 @@ class TextDocumentWorkingSetEntry extends PromptElement<TextDocumentWorkingSetEn
 	async render(state: void, sizing: PromptSizing) {
 		const { document, range: selection, state: workingSetEntryState } = this.props.entry;
 
-		const isIgnored = await this._ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}
@@ -449,12 +442,11 @@ class NotebookWorkingSetEntry extends PromptElement<NotebookWorkingSetEntryPromp
 	async render(state: void, sizing: PromptSizing) {
 		const { document, range: selection, state: workingSetEntryState } = this.props.entry;
 
-		const isIgnored = await this._ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}
 
-		// TODO@rebornix ensure notebook is open
 		const s = this.instantiationService.createInstance(NotebookDocumentSummarizer);
 		const summarized = await s.summarizeDocument(document, undefined, selection, sizing.tokenBudget, {
 			costFnOverride: fileVariableCostFn,
@@ -472,8 +464,6 @@ class NotebookWorkingSetEntry extends PromptElement<NotebookWorkingSetEntryPromp
 		} else if (workingSetEntryState === WorkingSetEntryState.Undecided) {
 			userActionStateFragment = 'I applied your suggestions for this file but haven\'t decided yet if I accept or reject them. Here is the updated file:';
 		}
-		// Kernel variables are useful only if we're in inline chat mode.
-		// This is the logic we used to have with inline chat for notebooks.
 		return (
 			<CompositeElement priority={this.props.priority}>
 				<Chunk priority={2}>
@@ -518,7 +508,7 @@ class FileSelection extends PromptElement<CurrentFileSelectionPromptProps> {
 			return undefined;
 		}
 
-		const isIgnored = await this._ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}
@@ -540,7 +530,6 @@ class FileSelection extends PromptElement<CurrentFileSelectionPromptProps> {
 				const line = document.lineAt(i);
 				selectionLines.push(line.text);
 			}
-			// render at least 4 lines as selected
 			let above = selectionStartLine - 1;
 			let below = selectionEndLine + 1;
 			while (selectionLines.length < 4 && charactersInSelectionLines() < 10) {
@@ -554,7 +543,6 @@ class FileSelection extends PromptElement<CurrentFileSelectionPromptProps> {
 				}
 			}
 
-			// TODO@tags: adopt tags here once <Tag> fixes whitespace problems
 			return (
 				<Chunk>
 					&lt;file-selection&gt;

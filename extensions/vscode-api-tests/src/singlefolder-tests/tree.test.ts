@@ -98,8 +98,6 @@ suite('vscode API - tree', () => {
 		await provider.resolveNextRequest();
 
 		const [firstResult, secondResult] = await Promise.all([revealFirst, revealSecond]);
-		// Two concurrent root fetches race: the stale one gets invalidated and
-		// its reveal fails with "Cannot resolve". The other succeeds.
 		const errors = [firstResult.error, secondResult.error].filter((e): e is Error => !!e);
 		assert.strictEqual(errors.length, 1, 'Exactly one reveal should fail from the stale fetch');
 		assert.ok(/Cannot resolve tree item/.test(errors[0].message), `Expected "Cannot resolve" error but got: ${errors[0].message}`);
@@ -108,14 +106,6 @@ suite('vscode API - tree', () => {
 	test('TreeView - element already registered after rapid root refresh', async function () {
 		this.timeout(60_000);
 
-		// This test reproduces a race condition where rapid concurrent getChildren calls
-		// return different element object instances that have the same ID in their TreeItem,
-		// causing "Element with id ... is already registered" error.
-		//
-		// The bug: When _addChildrenToClear(undefined) is called, it clears _childrenFetchTokens.
-		// If two fetches are pending, both may reset the requestId counter to 1, so both think
-		// they are the current request. When both try to register elements with the same ID
-		// but different object instances, the error is thrown.
 
 		type TreeElement = { readonly kind: 'leaf'; readonly instance: number };
 
@@ -123,7 +113,6 @@ suite('vscode API - tree', () => {
 			private readonly changeEmitter = new vscode.EventEmitter<TreeElement | undefined>();
 			private readonly requestEmitter = new vscode.EventEmitter<number>();
 			private readonly pendingRequests: DeferredPromise<TreeElement[]>[] = [];
-			// Return different element instance each time
 			private element1: TreeElement = { kind: 'leaf', instance: 1 };
 			private element2: TreeElement = { kind: 'leaf', instance: 2 };
 
@@ -140,7 +129,6 @@ suite('vscode API - tree', () => {
 			}
 
 			getTreeItem(): vscode.TreeItem {
-				// Both element instances return the same id
 				const item = new vscode.TreeItem('test element', vscode.TreeItemCollapsibleState.None);
 				item.id = 'same-id-each-time';
 				return item;
@@ -186,8 +174,6 @@ suite('vscode API - tree', () => {
 		const treeView = vscode.window.createTreeView('test.treeRapidRefresh', { treeDataProvider: provider });
 		disposables.push(treeView);
 
-		// Start two concurrent reveal operations - this should trigger two getChildren calls
-		// Similar to the first test
 		const firstReveal = (treeView.reveal(provider.getElement1(), { expand: true })
 			.then(() => ({ error: undefined as Error | undefined })) as Promise<{ error: Error | undefined }>)
 			.catch(error => ({ error }));
@@ -196,12 +182,8 @@ suite('vscode API - tree', () => {
 			.then(() => ({ error: undefined as Error | undefined })) as Promise<{ error: Error | undefined }>)
 			.catch(error => ({ error }));
 
-		// Wait for both getChildren calls to be pending
 		await provider.waitForRequestCount(2);
 
-		// Resolve requests returning DIFFERENT element instances with SAME id
-		// First request returns element1, second returns element2
-		// Both elements have the same id 'same-id-each-time' in getTreeItem
 		provider.resolveRequestWithElement(0, provider.getElement1());
 		await delay(0);
 		provider.resolveRequestWithElement(1, provider.getElement2());
@@ -215,12 +197,6 @@ suite('vscode API - tree', () => {
 	test('TreeView - element already registered during switch and update', async function () {
 		this.timeout(60_000);
 
-		// This test reproduces a race condition where the tree is being "switched to"
-		// (via reveal, which triggers getChildren) while simultaneously the tree data
-		// is being updated with a new element being added. Both operations trigger
-		// concurrent getChildren calls. The first resolves with the old set of elements,
-		// the second resolves with a new set that includes a new element. If both try
-		// to register elements with the same ID, the error is thrown.
 
 		type TreeElement = { readonly kind: 'leaf'; readonly instance: number };
 
@@ -291,8 +267,6 @@ suite('vscode API - tree', () => {
 		const treeView = vscode.window.createTreeView('test.treeSwitchUpdate', { treeDataProvider: provider });
 		disposables.push(treeView);
 
-		// Two concurrent reveals simulate the tree being "switched to" while also
-		// being updated: both trigger getChildren calls on the ext host directly.
 		const revealFirst = (treeView.reveal(provider.getExistingOld(), { expand: true })
 			.then(() => ({ error: undefined as Error | undefined })) as Promise<{ error: Error | undefined }>)
 			.catch(error => ({ error }));
@@ -300,14 +274,11 @@ suite('vscode API - tree', () => {
 			.then(() => ({ error: undefined as Error | undefined })) as Promise<{ error: Error | undefined }>)
 			.catch(error => ({ error }));
 
-		// Wait for both getChildren calls to be pending
 		await provider.waitForRequestCount(2);
 
-		// Resolve first request with old data (just the existing element, old instance)
 		provider.resolveRequestAt(0, [provider.getExistingOld()]);
 		await delay(0);
 
-		// Resolve second request with new data: different instance of existing + added element
 		provider.resolveRequestAt(1, [provider.getExistingNew(), provider.getAddedElement()]);
 
 		const [firstResult, secondResult] = await Promise.all([revealFirst, revealSecond]);

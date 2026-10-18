@@ -139,14 +139,11 @@ suite('BrowserUrlBarWidget', () => {
 		readonly inputState: { url: string; navigate(url: string): void };
 		readonly navigated: readonly string[];
 		readonly ensureBrowserFocusCalls: () => number;
-		/** Simulate another picker (e.g. command palette) taking over. */
 		setReplaced(active: boolean): void;
 	}
 
 	function makeHarness(): ITestHarness {
 		const picker = new FakeQuickPick<IQuickPickItem>();
-		// Ensure the picker hides before the widget is disposed so the widget's
-		// per-picker DisposableStore (released in onDidHide) doesn't leak.
 		store.add({
 			dispose: () => {
 				if (picker.visible) {
@@ -325,7 +322,7 @@ suite('BrowserUrlBarWidget', () => {
 		const { widget, picker, display } = harness;
 		widget.openUrlPicker();
 		picker.type('https://typed.test/');
-		picker.accept(); // onDidAccept handler calls picker.hide() synchronously
+		picker.accept();
 		assert.deepStrictEqual(
 			{
 				display: display.textContent,
@@ -404,9 +401,6 @@ suite('BrowserUrlBarWidget', () => {
 		picker.type('https://abandoned.test/');
 		setReplaced(true);
 		picker.hide(QuickInputHideReason.Other);
-		// Display has reverted to canonical; refocusing the display (which is
-		// what the QuickInputController does on the replacement's hide) must
-		// NOT reopen the picker thanks to the armed suppress flag.
 		display.focus();
 		assert.deepStrictEqual(
 			{ display: display.textContent, pickerVisible: picker.visible },
@@ -536,13 +530,8 @@ suite('BrowserUrlBarWidget', () => {
 		const { widget, display, navigated } = harness;
 		widget.focusUrlInput();
 		display.textContent = 'https://typed-into-display.test/';
-		// `StandardKeyboardEvent` reads the (deprecated) numeric `keyCode`,
-		// so pass it explicitly (Enter == 13) rather than relying on `key`.
 		display.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 13, key: 'Enter', bubbles: true, cancelable: true } as KeyboardEventInit));
 		display.blur();
-		// `model.url` (canonical) hasn't caught up to the typed URL yet, but
-		// the BLUR-revert should be suppressed for an Enter-commit so the
-		// destination stays visible until the navigation commits.
 		assert.deepStrictEqual(
 			{
 				navigated: [...navigated],
@@ -665,10 +654,8 @@ suite('BrowserUrlBarWidget', () => {
 
 		widget.openUrlPicker();
 		picker.type('https://typed.test/');
-		// The synchronous default item ("Go to <value>") is the active item.
 		assert.strictEqual(picker.activeItems[0]?.id, 'https://typed.test/');
 
-		// Once the asynchronous suggestion streams in, focus must NOT jump to it.
 		await waitForProviderRender();
 		assert.ok(picker.items.some(i => i.type !== 'separator' && i.id === 'tab-1'), 'suggestion streamed in');
 		assert.strictEqual(picker.activeItems[0]?.id, 'https://typed.test/');
@@ -689,16 +676,13 @@ suite('BrowserUrlBarWidget', () => {
 		picker.type('https://typed.test/');
 		await waitForProviderRender();
 
-		// User arrow-keys onto the streamed-in suggestion.
 		const suggestion = picker.items.find((i): i is IQuickPickItem => i.type !== 'separator' && i.id === 'tab-1')!;
 		picker.activeItems = [suggestion];
 
-		// A background provider refresh must keep the user's selection.
 		refresh.fire();
 		await waitForProviderRender();
 		assert.strictEqual(picker.activeItems[0]?.id, 'tab-1', 'background refresh preserves selection');
 
-		// Typing, however, resets focus back to the default "Go to" item.
 		picker.type('https://typed.test/x');
 		assert.strictEqual(picker.activeItems[0]?.id, 'https://typed.test/x', 'typing resets to the default item');
 	});

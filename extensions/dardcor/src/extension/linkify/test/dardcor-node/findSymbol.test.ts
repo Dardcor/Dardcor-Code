@@ -84,8 +84,6 @@ suite('Find symbol', () => {
 	});
 
 	test('Should prefer rightmost symbol in flat symbols', () => {
-		// When symbols are flat (SymbolInformation), prefer the rightmost match
-		// This handles cases like `TextModel.undo()` where we want `undo`, not `TextModel`
 		assert.strictEqual(
 			findBestSymbolByPath([
 				symbolInfo('TextModel'),
@@ -96,7 +94,6 @@ suite('Find symbol', () => {
 	});
 
 	test('Should fall back to leftmost symbol if rightmost not found in flat symbols', () => {
-		// If the rightmost part isn't found, fall back to leftmost matches
 		assert.strictEqual(
 			findBestSymbolByPath([
 				symbolInfo('TextModel'),
@@ -107,18 +104,16 @@ suite('Find symbol', () => {
 	});
 
 	test('Should prefer hierarchical match over flat last part match', () => {
-		// When both hierarchical and flat symbols exist, prefer the hierarchical match
 		assert.strictEqual(
 			findBestSymbolByPath([
 				docSymbol('TextModel', docSymbol('undo')),
-				symbolInfo('undo')  // This is a different undo from a different class
+				symbolInfo('undo')
 			], 'TextModel.undo()')?.name,
 			'undo'
 		);
 	});
 
 	test('Should handle deeply qualified names', () => {
-		// Test multiple levels of qualification
 		assert.strictEqual(
 			findBestSymbolByPath([
 				docSymbol('namespace', docSymbol('TextModel', docSymbol('undo')))
@@ -126,7 +121,6 @@ suite('Find symbol', () => {
 			'undo'
 		);
 
-		// With flat symbols, prefer the rightmost part
 		assert.strictEqual(
 			findBestSymbolByPath([
 				symbolInfo('namespace'),
@@ -136,7 +130,6 @@ suite('Find symbol', () => {
 			'undo'
 		);
 
-		// Middle part should be preferred over leftmost
 		assert.strictEqual(
 			findBestSymbolByPath([
 				symbolInfo('namespace'),
@@ -147,7 +140,6 @@ suite('Find symbol', () => {
 	});
 
 	test('Should handle mixed flat and hierarchical symbols', () => {
-		// Some symbols are flat, some are nested
 		assert.strictEqual(
 			findBestSymbolByPath([
 				symbolInfo('Model'),
@@ -159,7 +151,6 @@ suite('Find symbol', () => {
 	});
 
 	test('Should handle Python-style naming conventions', () => {
-		// Python uses underscores instead of camelCase
 		assert.strictEqual(
 			findBestSymbolByPath([
 				docSymbol('MyClass', docSymbol('my_method'))
@@ -167,7 +158,6 @@ suite('Find symbol', () => {
 			'my_method'
 		);
 
-		// Python dunder methods
 		assert.strictEqual(
 			findBestSymbolByPath([
 				docSymbol('MyClass', docSymbol('__init__'))
@@ -175,7 +165,6 @@ suite('Find symbol', () => {
 			'__init__'
 		);
 
-		// Python private methods
 		assert.strictEqual(
 			findBestSymbolByPath([
 				docSymbol('MyClass', docSymbol('_private_method'))
@@ -185,7 +174,6 @@ suite('Find symbol', () => {
 	});
 
 	test('Should handle Python module qualified names', () => {
-		// Python: module.Class.method
 		assert.strictEqual(
 			findBestSymbolByPath([
 				docSymbol('my_module', docSymbol('MyClass', docSymbol('my_method')))
@@ -195,34 +183,29 @@ suite('Find symbol', () => {
 	});
 
 	test('Should prefer rightmost match in flat symbols using position-based priority', () => {
-		// When both class and method exist as flat symbols, prefer rightmost
 		assert.strictEqual(
 			findBestSymbolByPath([
-				symbolInfo('TextModel'),  // matchCount=1 (index 0)
-				symbolInfo('undo')        // matchCount=2 (index 1)
+				symbolInfo('TextModel'),
+				symbolInfo('undo')
 			], 'TextModel.undo()')?.name,
 			'undo'
 		);
 
-		// Reverse order - should still prefer undo due to higher matchCount
 		assert.strictEqual(
 			findBestSymbolByPath([
-				symbolInfo('undo'),       // matchCount=2 (index 1)
-				symbolInfo('TextModel')   // matchCount=1 (index 0)
+				symbolInfo('undo'),
+				symbolInfo('TextModel')
 			], 'TextModel.undo()')?.name,
 			'undo'
 		);
 
-		// Works for longer qualified names too
-		// For 'a.b.c.d' => ['a', 'b', 'c', 'd']:
-		// 'd' (index 3, matchCount=4) > 'c' (index 2, matchCount=3) > 'b' (index 1, matchCount=2) > 'a' (index 0, matchCount=1)
 		assert.strictEqual(
 			findBestSymbolByPath([
-				symbolInfo('a'),  // matchCount=1
-				symbolInfo('b'),  // matchCount=2
-				symbolInfo('c'),  // matchCount=3
+				symbolInfo('a'),
+				symbolInfo('b'),
+				symbolInfo('c'),
 			], 'a.b.c.d')?.name,
-			'c'  // Highest matchCount among available symbols
+			'c'
 		);
 	});
 });

@@ -46,7 +46,6 @@ export class BasicCodeSearchAuthenticationService implements ICodeSearchAuthenti
 	}
 
 	async promptForExpandedLocalIndexing(fileCount: number): Promise<boolean> {
-		// Can't show prompt here
 		return false;
 	}
 }

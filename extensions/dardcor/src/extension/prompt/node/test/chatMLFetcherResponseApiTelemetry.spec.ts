@@ -84,7 +84,6 @@ describe('ChatMLFetcherImpl Response API telemetry', () => {
 	});
 
 	it('logs non-empty messagesJson for Response API requests (input field)', async () => {
-		// Create an endpoint that returns Response API format (input instead of messages)
 		const responseApiEndpoint = createResponseApiEndpoint();
 
 		mockFetcherService.queueResponse(createSuccessResponse('Hello!'));
@@ -100,7 +99,6 @@ describe('ChatMLFetcherImpl Response API telemetry', () => {
 
 		await fetcher.fetchMany(opts, cancellationTokenSource.token);
 
-		// Find the engine.messages telemetry event
 		const events = spyingTelemetryService.getEvents();
 		const engineMessagesEvents = events.telemetryServiceEvents.filter(
 			e => e.eventName === 'engine.messages'
@@ -108,31 +106,25 @@ describe('ChatMLFetcherImpl Response API telemetry', () => {
 
 		expect(engineMessagesEvents.length).toBeGreaterThan(0);
 
-		// Find the input telemetry event (the one sent for input messages)
-		// Input events are sent in the .finally() block of _fetchWithInstrumentation
-		// which happens before the response processing that sends output events
-		const inputTelemetry = engineMessagesEvents[0]; // First event should be the input
+		const inputTelemetry = engineMessagesEvents[0];
 		expect(inputTelemetry).toBeDefined();
 		const inputProperties = inputTelemetry!.properties as Record<string, string>;
 		expect(inputProperties.messagesJson).toBeDefined();
 
-		// Parse the messagesJson and verify it's not empty
 		const messagesJson = JSON.parse(inputProperties.messagesJson);
 		expect(messagesJson.length).toBeGreaterThan(0);
 
-		// Verify the message content was properly converted from Response API input format
 		expect(messagesJson[0].role).toBe('user');
 	});
 
 	it('logs empty messagesJson when ChatCompletion API messages array is empty', async () => {
-		// Create an endpoint that returns ChatCompletion API format with empty messages
 		const chatCompletionEndpoint = createChatCompletionEndpointWithEmptyMessages();
 
 		mockFetcherService.queueResponse(createSuccessResponse('Hello!'));
 
 		const opts: IFetchMLOptions = {
 			debugName: 'test-empty-messages',
-			messages: [], // Empty messages
+			messages: [],
 			endpoint: chatCompletionEndpoint,
 			location: ChatLocation.Panel,
 			requestOptions: {},
@@ -141,17 +133,14 @@ describe('ChatMLFetcherImpl Response API telemetry', () => {
 
 		await fetcher.fetchMany(opts, cancellationTokenSource.token);
 
-		// Find the engine.messages telemetry event
 		const events = spyingTelemetryService.getEvents();
 		const engineMessagesEvents = events.telemetryServiceEvents.filter(
 			e => e.eventName === 'engine.messages'
 		);
 
-		// First event should be the input messages telemetry
 		const inputTelemetry = engineMessagesEvents[0];
 
 		if (inputTelemetry) {
-			// For ChatCompletion API with empty messages, messagesJson should be "[]"
 			const props = inputTelemetry.properties as Record<string, string>;
 			const messagesJson = JSON.parse(props.messagesJson);
 			expect(messagesJson.length).toBe(0);
@@ -280,11 +269,9 @@ describe('ChatMLFetcherImpl request.options.tools telemetry', () => {
 		expect(toolsEvents.length).toBe(1);
 		const props = toolsEvents[0]!.properties as Record<string, string>;
 
-		// The messagesJson value exceeds 8192 chars, so multiplexProperties should chunk it
 		expect(props.messagesJson).toBeDefined();
 		expect(props.messagesJson_02).toBeDefined();
 
-		// Reassemble the chunked value and verify it's valid JSON
 		let fullJson = props.messagesJson;
 		let i = 2;
 		while (props[`messagesJson_${String(i).padStart(2, '0')}`]) {
@@ -297,7 +284,6 @@ describe('ChatMLFetcherImpl request.options.tools telemetry', () => {
 	});
 });
 
-// --- Test Helpers ---
 
 function createEndpointWithTools(): IChatEndpoint {
 	return {
@@ -386,7 +372,6 @@ function createChatCompletionEndpointWithoutTools(): IChatEndpoint {
 			model: 'test-model',
 			messages: [{ role: 'user', content: 'Hello' }],
 			stream: true,
-			// No tools field
 		}),
 		acquireTokenizer: () => ({
 			countMessagesTokens: async () => 100,
@@ -429,7 +414,6 @@ function createChatCompletionEndpointWithoutTools(): IChatEndpoint {
 }
 
 function createEndpointWithLargeTools(): IChatEndpoint {
-	// Generate tools with schemas large enough to exceed 8192 chars when JSON.stringified
 	const largeTools = Array.from({ length: 20 }, (_, i) => ({
 		type: 'function' as const,
 		function: {
@@ -504,9 +488,6 @@ function createEndpointWithLargeTools(): IChatEndpoint {
 	} as unknown as IChatEndpoint;
 }
 
-/**
- * Creates an endpoint that returns Response API format request body (with input instead of messages)
- */
 function createResponseApiEndpoint(): IChatEndpoint {
 	return {
 		url: 'https://api.github.com/dardcor/chat/responses',
@@ -522,19 +503,16 @@ function createResponseApiEndpoint(): IChatEndpoint {
 		isFallback: false,
 		policy: 'enabled',
 		getHeaders: async () => ({}),
-		// This is the key part - return Response API format with input instead of messages
 		createRequestBody: (): IEndpointBody => {
 			const body: IEndpointBody & OpenAI.Responses.ResponseCreateParams = {
 				model: 'gpt-5-mini',
 				stream: true,
-				// Response API uses 'input' instead of 'messages'
 				input: [
 					{
 						role: 'user',
 						content: [{ type: 'input_text', text: 'Hello from Response API' }]
 					}
 				],
-				// No 'messages' field - this is what distinguishes Response API
 			};
 			return body;
 		},
@@ -578,9 +556,6 @@ function createResponseApiEndpoint(): IChatEndpoint {
 	} as unknown as IChatEndpoint;
 }
 
-/**
- * Creates an endpoint that returns ChatCompletion API format with empty messages
- */
 function createChatCompletionEndpointWithEmptyMessages(): IChatEndpoint {
 	return {
 		url: 'https://api.github.com/dardcor/chat/completions',
@@ -598,7 +573,7 @@ function createChatCompletionEndpointWithEmptyMessages(): IChatEndpoint {
 		getHeaders: async () => ({}),
 		createRequestBody: (): IEndpointBody => ({
 			model: 'test-model',
-			messages: [], // Empty messages array - ChatCompletion API format
+			messages: [],
 			stream: true
 		}),
 		acquireTokenizer: () => ({

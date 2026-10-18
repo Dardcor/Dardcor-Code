@@ -22,9 +22,6 @@ import { CodeActionKind } from '../../../../../../editor/contrib/codeAction/comm
 import { getTarget, isVSCodeOrDefaultTarget } from './promptFileAttributes.js';
 
 export class PromptCodeActionProvider implements CodeActionProvider {
-	/**
-	 * Debug display name for this provider.
-	 */
 	public readonly _debugDisplayName: string = 'PromptCodeActionProvider';
 
 	constructor(
@@ -38,7 +35,6 @@ export class PromptCodeActionProvider implements CodeActionProvider {
 	async provideCodeActions(model: ITextModel, range: Range | Selection, context: CodeActionContext, token: CancellationToken): Promise<CodeActionList | undefined> {
 		const promptType = getPromptsTypeForLanguageId(model.getLanguageId());
 		if (!promptType || promptType === PromptsType.instructions) {
-			// if the model is not a prompt, we don't provide any code actions
 			return undefined;
 		}
 
@@ -209,7 +205,6 @@ export class PromptCodeActionProvider implements CodeActionProvider {
 		}
 		const target = getTarget(promptType, promptFile.header);
 		if (!isVSCodeOrDefaultTarget(target)) {
-			// GitHub Copilot and Claude custom agents use a fixed set of tool names that are not deprecated
 			return;
 		}
 		let value = toolsAttr.value;
@@ -243,7 +238,6 @@ export class PromptCodeActionProvider implements CodeActionProvider {
 						));
 					}
 				} else {
-					// Multiple new names - expand to include all of them
 					const newNamesArray = Array.from(newNames).sort((a, b) => a.localeCompare(b));
 					const separator = model.getValueInRange(new Range(item.range.startLineNumber, item.range.endColumn, item.range.endLineNumber, item.range.endColumn + 2));
 					const useCommaSpace = separator.includes(',');

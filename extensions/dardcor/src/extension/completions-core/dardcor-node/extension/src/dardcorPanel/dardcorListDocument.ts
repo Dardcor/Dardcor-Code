@@ -12,11 +12,7 @@ import { BaseListDocument } from '../panelShared/baseListDocument';
 import { BasePanelCompletion, ISuggestionsPanel } from '../panelShared/basePanelTypes';
 import { PanelCompletion } from './common';
 
-/**
- * Class representing a Open Copilot list using a ITextDocument as a way of displaying results.
- * Currently only used in the VSCode extension.
- */
-export class CopilotListDocument extends BaseListDocument<PanelCompletion> {
+export class DardcorListDocument extends BaseListDocument<PanelCompletion> {
 	constructor(
 		textDocument: ITextDocument,
 		position: IPosition,

@@ -20,19 +20,15 @@ import {
 } from "@/lib/oauth/constants/oauth";
 import { buildClineHeaders } from "@/shared/utils/clineAuth";
 
-// OAuth provider test endpoints
 const OAUTH_TEST_CONFIG = {
   claude: { checkExpiry: true, refreshable: true },
-  "chatgpt-web": { checkExpiry: true, refreshable: false },
   codex: {
     url: "https://chatgpt.com/backend-api/codex/responses",
     method: "POST",
     authHeader: "Authorization",
     authPrefix: "Bearer ",
     extraHeaders: { "Content-Type": "application/json", "originator": "codex_cli_rs", "User-Agent": `codex_cli_rs/${CODEX_CLI_VERSION}` },
-    // Minimal invalid body — triggers fast 400 without consuming quota
     body: JSON.stringify({ model: "gpt-5.3-codex", input: [], stream: false, store: false }),
-    // 400 (bad request) means auth succeeded; only 401/403 means token is bad
     acceptStatuses: [400],
     refreshable: true,
   },
@@ -58,17 +54,12 @@ const OAUTH_TEST_CONFIG = {
     extraHeaders: { "User-Agent": "Dardcor Code", "Accept": "application/vnd.github+json" },
   },
   iflow: {
-    // iFlow getUserInfo requires accessToken as query param, not header
     buildUrl: (token) => `https://iflow.cn/api/oauth/getUserInfo?accessToken=${encodeURIComponent(token)}`,
     method: "GET",
     noAuth: true,
   },
   kiro: { checkExpiry: true, refreshable: true },
   qoder: {
-    // Test by hitting Qoder's userinfo endpoint with the device token.
-    // refreshable: false because the device-flow refresh endpoint returns
-    // 403 for our flow (users re-login when expired). No checkExpiry —
-    // we want the actual URL probe to run so revoked tokens surface.
     url: "https://openapi.qoder.sh/api/v1/userinfo",
     method: "GET",
     authHeader: "Authorization",
@@ -85,8 +76,14 @@ const OAUTH_TEST_CONFIG = {
     authPrefix: "Bearer ",
   },
   cline: { refreshable: true },
+  opencode: {
+    url: "https://opencode.ai/console/api/user",
+    method: "GET",
+    authHeader: "Authorization",
+    authPrefix: "Bearer ",
+    refreshable: true,
+  },
   gitlab: {
-    // Test by hitting the GitLab user API — requires api or read_user scope
     url: "https://gitlab.com/api/v4/user",
     method: "GET",
     authHeader: "Authorization",
@@ -104,7 +101,6 @@ const OAUTH_TEST_CONFIG = {
     },
     refreshable: false,
   },
-  // Grok CLI / Grok Build — probe /v1/user (no inference quota). Headers mirror official CLI.
   "grok-cli": {
     url: PROVIDERS["grok-cli"]?.userUrl || "https://cli-chat-proxy.grok.com/v1/user",
     method: "GET",
@@ -120,8 +116,6 @@ const OAUTH_TEST_CONFIG = {
       }),
     },
     refreshable: true,
-    // Subscription spending-limit is not an auth failure — token is fine, credits aren't.
-    // Accept 402 so the connection stays "active" with a warning (same idea as Codex 400).
     acceptStatuses: [402],
     softFailMessage: {
       402: "Connected, but Grok Build credits are exhausted (spending limit). Add credits or upgrade SuperGrok.",
@@ -129,12 +123,6 @@ const OAUTH_TEST_CONFIG = {
   },
 };
 
-/**
- * Classify an OAuth probe response as success / soft-success / hard-fail.
- * Soft success (e.g. 402 spending-limit on Grok CLI) means auth works but the
- * account cannot spend — keep connection active and surface a warning.
- * Exported for unit tests.
- */
 export function classifyOAuthProbeResult(res, config, bodyText = "") {
   if (!res) return { valid: false, error: "No response", soft: false };
   const status = res.status;
@@ -145,9 +133,6 @@ export function classifyOAuthProbeResult(res, config, bodyText = "") {
     return { valid: false, error: `API returned ${status}`, soft: false };
   }
 
-  // Soft success only when the provider configured an explicit message for this
-  // status (e.g. Grok CLI 402 spending-limit). Codex-style acceptStatuses:[400]
-  // stays silent success — 400 there only proves auth, not a user-facing warning.
   if (!res.ok && config?.acceptStatuses?.includes(status)) {
     const softMap = config.softFailMessage || {};
     if (softMap[status]) {
@@ -187,7 +172,6 @@ function parseProviderErrorMessage(bodyText, fallback) {
     if (typeof message === "string" && message.trim()) return message.trim();
     if (message) return JSON.stringify(message);
   } catch {
-    // fall through
   }
   return bodyText.trim() || fallback;
 }
@@ -324,7 +308,6 @@ async function testOAuthConnection(connection, effectiveProxy = null) {
   if (!config) return { valid: false, error: "Provider test not supported", refreshed: false };
   if (!connection.accessToken) return { valid: false, error: "No access token", refreshed: false };
 
-  // Cursor uses protobuf API - can only verify token exists, not test endpoint
   if (config.tokenExists) {
     return { valid: true, error: null, refreshed: false, newTokens: null };
   }
@@ -346,19 +329,6 @@ async function testOAuthConnection(connection, effectiveProxy = null) {
   }
 
   if (config.checkExpiry) {
-    if (connection.provider === "chatgpt-web") {
-      try {
-        const parts = String(accessToken || "").split(".");
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-          const now = Math.floor(Date.now() / 1000);
-          if (payload.exp && payload.exp < now) {
-            return { valid: false, error: "Sesi ChatGPT Web telah kadaluarsa. Silakan klik Connect untuk memperbarui.", refreshed: false };
-          }
-          return { valid: true, error: null, refreshed: false, newTokens: null };
-        }
-      } catch {}
-    }
     if (refreshed) return { valid: true, error: null, refreshed, newTokens };
     if (tokenExpired) return { valid: false, error: "Token expired", refreshed: false };
     return { valid: true, error: null, refreshed: false, newTokens: null };
@@ -406,6 +376,59 @@ async function testOAuthConnection(connection, effectiveProxy = null) {
     return await tryProbe(accessToken);
   }
 
+  if (connection.provider === "github") {
+    const res = await fetchWithConnectionProxy(config.url, {
+      method: config.method,
+      headers: {
+        [config.authHeader]: `${config.authPrefix}${accessToken}`,
+        ...config.extraHeaders,
+      },
+    }, effectiveProxy);
+
+    if (!res.ok) {
+      if (res.status === 401) return { valid: false, error: "GitHub token invalid or revoked", refreshed: false };
+      return { valid: false, error: `GitHub API returned ${res.status}`, refreshed: false };
+    }
+
+    try {
+      const { refreshCopilotToken } = await import("@/sse/services/tokenRefresh.js");
+      const psd = connection.providerSpecificData || {};
+      let copilotToken = psd.copilotToken;
+      let copilotExpiresAt = psd.copilotTokenExpiresAt;
+      let copilotNeedsRefresh = !copilotToken;
+
+      if (copilotExpiresAt) {
+        let expMs = typeof copilotExpiresAt === "number" && copilotExpiresAt < 1e12 ? copilotExpiresAt * 1000 : new Date(copilotExpiresAt).getTime();
+        if (isNaN(expMs) || expMs - Date.now() < 5 * 60 * 1000) copilotNeedsRefresh = true;
+      }
+
+      if (copilotNeedsRefresh) {
+        const refreshedCopilot = await refreshCopilotToken(accessToken);
+        if (refreshedCopilot?.token) {
+          return {
+            valid: true,
+            error: null,
+            refreshed: true,
+            newTokens: {
+              accessToken,
+              providerSpecificData: {
+                ...psd,
+                copilotToken: refreshedCopilot.token,
+                copilotTokenExpiresAt: refreshedCopilot.expiresAt,
+              },
+            },
+          };
+        } else {
+          return { valid: false, error: "GitHub token valid, but failed to obtain Copilot token (check Copilot subscription)", refreshed: false };
+        }
+      }
+
+      return { valid: true, error: null, refreshed, newTokens };
+    } catch (copilotErr) {
+      return { valid: false, error: `GitHub Copilot check failed: ${copilotErr.message}`, refreshed: false };
+    }
+  }
+
   try {
     const testUrl = config.buildUrl ? config.buildUrl(accessToken) : config.url;
     const headers = config.noAuth
@@ -420,7 +443,6 @@ async function testOAuthConnection(connection, effectiveProxy = null) {
     if (classified.valid) {
       return {
         valid: true,
-        // soft success surfaces warning text without marking connection error
         error: classified.soft ? classified.error : null,
         warning: classified.soft ? classified.error : null,
         refreshed,
@@ -460,13 +482,10 @@ async function testOAuthConnection(connection, effectiveProxy = null) {
 }
 
 async function fetchWithConnectionProxy(url, options = {}, effectiveProxy = null) {
-  // Add a 15-second timeout to prevent connection testing from hanging indefinitely
-  // and exhausting the browser/Node.js connection pools.
   if (!options.signal) {
     options.signal = AbortSignal.timeout(15000);
   }
 
-  // Vercel relay: forward via relay URL
   if (effectiveProxy?.vercelRelayUrl) {
     const { proxyAwareFetch } = await import("open-sse/utils/proxyFetch.js");
     return proxyAwareFetch(url, options, {
@@ -522,7 +541,6 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
           messages: [{ role: "user", content: "test" }],
         }),
       }, effectiveProxy);
-      // 400/529 still confirms key accepted; only 401/403 = bad key
       const valid = res.status !== 401 && res.status !== 403;
       return { valid, error: valid ? null : "Invalid API key or base URL" };
     } catch (err) {
@@ -626,7 +644,6 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
       case "alicode":
       case "alicode-intl":
       case "alims-intl": {
-        // Aliyun Coding Plan uses OpenAI-compatible API; alims-intl uses Model Studio compatible-mode
         const aliBaseUrl = connection.provider === "alicode-intl"
           ? "https://coding-intl.dashscope.aliyuncs.com/v1/chat/completions"
           : connection.provider === "alims-intl"
@@ -765,21 +782,6 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
         const valid = !!(data && data.user);
         return { valid, error: valid ? null : "Session expired — re-paste cookie" };
       }
-      case "chatgpt-web": {
-        const token = connection.accessToken || connection.apiKey || "";
-        try {
-          const parts = String(token).split(".");
-          if (parts.length === 3) {
-            const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-            const now = Math.floor(Date.now() / 1000);
-            if (payload.exp && payload.exp < now) {
-              return { valid: false, error: "Sesi ChatGPT Web telah kadaluarsa. Silakan klik Connect untuk memperbarui." };
-            }
-            return { valid: true, error: null };
-          }
-        } catch {}
-        return { valid: !!token, error: token ? null : "Token sesi tidak ditemukan" };
-      }
       case "opencode-go": {
         const res = await fetchWithConnectionProxy("https://opencode.ai/zen/go/v1/chat/completions", {
           method: "POST",
@@ -805,7 +807,6 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
         return { valid: res.ok, error: res.ok ? null : "Invalid API key" };
       }
       case "qoder": {
-        // PAT (pt-...) exchange → job token. A successful exchange proves the PAT.
         const raw = connection.apiKey || "";
         const pat = raw.startsWith("pt-") ? raw : `pt-${raw}`;
         const exRes = await fetchWithConnectionProxy(
@@ -832,8 +833,6 @@ case "llm7": {
         return { valid: res.ok, error: res.ok ? null : "Invalid API key or base URL" };
       }
       case "kimchi": {
-        // Dual-auth: same validation endpoint as the OAuth flow — the token (API key
-        // or OAuth access token) is sent as Authorization: Bearer.
         const url = KIMCHI_CONFIG.validationUrl || "https://api.cast.ai/v1/llm/openai/supported-providers";
         const res = await fetchWithConnectionProxy(url, {
           method: "GET",
@@ -853,9 +852,6 @@ case "llm7": {
   }
 }
 
-/**
- * Test a single connection by ID, update DB, and return result.
- */
 export async function testSingleConnection(id) {
   const connection = await getProviderConnectionById(id);
   if (!connection) return { valid: false, error: "Connection not found", latencyMs: 0, testedAt: new Date().toISOString() };
@@ -886,9 +882,6 @@ export async function testSingleConnection(id) {
 
   const latencyMs = Date.now() - start;
 
-  // Soft success (e.g. Grok CLI 402 spending-limit): credentials are good, account is
-  // out of credits. Keep testStatus active; surface the message as lastError so the
-  // dashboard can show a warning without marking the connection broken.
   const softWarning = result.valid && (result.warning || result.error);
   const updateData = {
     testStatus: result.valid ? "active" : "error",

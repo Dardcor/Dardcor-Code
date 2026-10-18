@@ -52,10 +52,8 @@ export class PreferencesContribution extends Disposable implements IWorkbenchCon
 
 	private handleSettingsEditorRegistration(): void {
 
-		// dispose any old listener we had
 		dispose(this.editorOpeningListener);
 
-		// install editor opening listener unless user has disabled this
 		if (!!this.configurationService.getValue(USE_SPLIT_JSON_SETTING) || !!this.configurationService.getValue(DEFAULT_SETTINGS_EDITOR_SETTING)) {
 			this.editorOpeningListener = this.editorResolverService.registerEditor(
 				'**/settings.json',
@@ -67,12 +65,10 @@ export class PreferencesContribution extends Disposable implements IWorkbenchCon
 				{},
 				{
 					createEditorInput: ({ resource, options }): EditorInputWithOptions => {
-						// Global User Settings File
 						if (isEqual(resource, this.userDataProfileService.currentProfile.settingsResource)) {
 							return { editor: this.preferencesService.createSplitJsonEditorInput(ConfigurationTarget.USER_LOCAL, resource), options };
 						}
 
-						// Single Folder Workspace Settings File
 						const state = this.workspaceService.getWorkbenchState();
 						if (state === WorkbenchState.FOLDER) {
 							const folders = this.workspaceService.getWorkspace().folders;
@@ -81,7 +77,6 @@ export class PreferencesContribution extends Disposable implements IWorkbenchCon
 							}
 						}
 
-						// Multi Folder Workspace Settings File
 						else if (state === WorkbenchState.WORKSPACE) {
 							const folders = this.workspaceService.getWorkspace().folders;
 							for (const folder of folders) {

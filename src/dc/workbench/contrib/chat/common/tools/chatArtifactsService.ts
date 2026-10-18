@@ -7,13 +7,15 @@ import { Disposable, DisposableMap } from '../../../../../base/common/lifecycle.
 import { derived, IObservable, observableFromEvent, observableSignalFromEvent, observableValueOpts } from '../../../../../base/common/observable.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
-import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
 import { Memento } from '../../../../common/memento.js';
+import { IChatArtifactsService } from './chatArtifactsServiceId.js';
 import { extractArtifactsFromResponse } from '../chatArtifactExtraction.js';
 import { IChatToolInvocation, IChatService } from '../chatService/chatService.js';
 import { ChatConfiguration } from '../constants.js';
 import { chatSessionResourceToId } from '../model/chatUri.js';
+
+export { IChatArtifactsService } from './chatArtifactsServiceId.js';
 
 export interface IArtifactGroupConfig {
 	readonly groupName: string;
@@ -44,13 +46,6 @@ export interface IArtifactRuleOverrides {
 	readonly byMimeType?: Record<string, IArtifactGroupConfig>;
 	readonly byFilePath?: Record<string, IArtifactGroupConfig>;
 	readonly byMemoryFilePath?: Record<string, IArtifactGroupConfig>;
-}
-
-export const IChatArtifactsService = createDecorator<IChatArtifactsService>('chatArtifactsService');
-
-export interface IChatArtifactsService {
-	readonly _serviceBrand: undefined;
-	getArtifacts(sessionResource: URI): IChatArtifacts;
 }
 
 export interface IChatArtifacts {
@@ -116,8 +111,7 @@ class UnifiedChatArtifacts extends Disposable implements IChatArtifacts {
 		new Map(),
 	);
 
-	/** Sequence counter for ordering sources by first-set time. */
-	private _nextSequence = 1; // 0 is reserved for rules
+	private _nextSequence = 1;
 	private readonly _sourceSequences = new Map<string, number>();
 
 	readonly artifactGroups: IObservable<readonly IArtifactSourceGroup[]>;
@@ -131,7 +125,6 @@ class UnifiedChatArtifacts extends Disposable implements IChatArtifacts {
 	) {
 		super();
 
-		// Restore persisted agent artifacts
 		const restored = this._storage.get(this._storageKey);
 		this._agentArtifacts.set(restored, undefined);
 		this._sourceSequences.set('rules', 0);
@@ -139,7 +132,6 @@ class UnifiedChatArtifacts extends Disposable implements IChatArtifacts {
 			this._sourceSequences.set('agent', this._nextSequence++);
 		}
 
-		// Config-based rules (defaults)
 		const configByMimeType = observableFromEvent<Record<string, IArtifactGroupConfig>>(
 			this,
 			configurationService.onDidChangeConfiguration,
@@ -164,7 +156,6 @@ class UnifiedChatArtifacts extends Disposable implements IChatArtifacts {
 			() => chatService.getSession(sessionResource),
 		);
 
-		// Derived: rules-based artifacts
 		const rulesArtifacts = derived<readonly IChatArtifact[]>(reader => {
 			const overrides = this._ruleOverrides.read(reader);
 			const byMimeType = overrides?.byMimeType ?? configByMimeType.read(reader);
@@ -235,7 +226,6 @@ class UnifiedChatArtifacts extends Disposable implements IChatArtifacts {
 			return allArtifacts;
 		});
 
-		// Combined: all sources as groups, deduplicated by URI
 		this.artifactGroups = derived<readonly IArtifactSourceGroup[]>(reader => {
 			const entries: { key: string; seq: number; group: IArtifactSourceGroup }[] = [];
 
@@ -261,7 +251,6 @@ class UnifiedChatArtifacts extends Disposable implements IChatArtifacts {
 				}
 			}
 
-			// Sort by sequence so the first source to set artifacts wins duplicates
 			entries.sort((a, b) => a.seq - b.seq);
 
 			const seenKeys = new Set<string>();

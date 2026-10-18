@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Extracted from json.ts to keep json nls free.
- */
 import { localize } from '../../nls.js';
 import { ParseErrorCode } from './json.js';
 

@@ -47,47 +47,39 @@ class ReplAccessibilityHelpProvider extends Disposable implements IAccessibleVie
 	public provideContent(): string {
 		const content: string[] = [];
 
-		// Header
 		content.push(localize('repl.header', "Accessibility Help: Debug Console Filter"));
 		content.push(localize('repl.context', "You are in the Debug Console filter input. This is a filter that instantly hides console messages that do not match your filter, showing only the messages you want to see."));
 		content.push('');
 
-		// Current Filter Status
 		content.push(localize('repl.statusHeader', "Current Filter Status:"));
 		content.push(localize('repl.statusDesc', "You are filtering the console output."));
 		content.push('');
 
-		// Inside the Filter Input
 		content.push(localize('repl.inputHeader', "Inside the Filter Input (What It Does):"));
 		content.push(localize('repl.inputDesc', "While you are in the filter input, your focus stays in the field. You can type, edit, or adjust your filter without leaving the input. As you type, the console instantly updates to show only messages matching your filter."));
 		content.push('');
 
-		// What Happens When You Filter
 		content.push(localize('repl.filterHeader', "What Happens When You Filter:"));
 		content.push(localize('repl.filterDesc', "Each time you change the filter text, the console instantly regenerates to show only matching messages. Your screen reader announces how many messages are now visible. This is live feedback: text searches console output, variable values, and log messages."));
 		content.push('');
 
-		// Focus Behavior
 		content.push(localize('repl.focusHeader', "Focus Behavior (Important):"));
 		content.push(localize('repl.focusDesc1', "Your focus stays in the filter input while the console updates in the background. This is intentional, so you can keep typing without losing your place."));
 		content.push(localize('repl.focusDesc2', "If you want to review the filtered console output, press Down Arrow to move focus from the filter into the console messages above."));
 		content.push(localize('repl.focusDesc3', "Important: The console input area is at the bottom of the console, separate from the filter. To evaluate expressions, navigate to the console input (after the filtered messages) and type your expression."));
 		content.push('');
 
-		// Distinguishing Filter from Console Input
 		content.push(localize('repl.distinguishHeader', "Distinguishing Filter from Console Input:"));
 		content.push(localize('repl.distinguishFilter', "The filter input is where you are now. It hides or shows messages without running code."));
 		content.push(localize('repl.distinguishConsole', "The console input is at the bottom of the console, after all displayed messages. That is where you type and press Enter to evaluate expressions during debugging."));
 		content.push(localize('repl.distinguishSwitch', "To switch to the console input and evaluate an expression, use {0} to focus the console input.", '<keybinding:workbench.panel.repl.view.focus>'));
 		content.push('');
 
-		// Filter Syntax
 		content.push(localize('repl.syntaxHeader', "Filter Syntax and Patterns:"));
 		content.push(localize('repl.syntaxText', "- Type text: Shows only messages containing that text."));
 		content.push(localize('repl.syntaxExclude', "- !text (exclude): Hides messages containing the text, showing all others."));
 		content.push('');
 
-		// Keyboard Navigation Summary
 		content.push(localize('repl.keyboardHeader', "Keyboard Navigation Summary:"));
 		content.push(localize('repl.keyDown', "- Down Arrow: Move focus from filter into the console output."));
 		content.push(localize('repl.keyTab', "- Tab: Move to other console controls if available."));
@@ -95,7 +87,6 @@ class ReplAccessibilityHelpProvider extends Disposable implements IAccessibleVie
 		content.push(localize('repl.keyFocus', "- {0}: Focus the console input to evaluate expressions.", '<keybinding:workbench.panel.repl.view.focus>'));
 		content.push('');
 
-		// Settings
 		content.push(localize('repl.settingsHeader', "Settings You Can Adjust ({0} opens Settings):", '<keybinding:workbench.action.openSettings>'));
 		content.push(localize('repl.settingsIntro', "These settings affect the Debug Console."));
 		content.push(localize('repl.settingVerbosity', "- `accessibility.verbosity.find`: Controls whether the filter input announces the Accessibility Help hint."));
@@ -108,7 +99,6 @@ class ReplAccessibilityHelpProvider extends Disposable implements IAccessibleVie
 		content.push(localize('repl.settingMaxLines', "- `debug.console.maximumLines`: Maximum number of messages to keep in the console."));
 		content.push('');
 
-		// Closing
 		content.push(localize('repl.closingHeader', "Closing:"));
 		content.push(localize('repl.closingDesc', "Press Escape to clear the filter, or close the Debug Console. Your filter text is preserved if you reopen the console."));
 

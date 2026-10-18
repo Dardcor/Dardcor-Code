@@ -8,13 +8,6 @@ import { baseActivate } from '../dardcor/extension';
 import { vscodeWebContributions } from './contributions';
 import { registerServices } from './services';
 
-// ###############################################################################################
-// ###                                                                                         ###
-// ###                 Web extension that runs ONLY in web worker extension host.              ###
-// ###                                                                                         ###
-// ### !!! Prefer to add code in ../vscode/extension.ts to support all extension runtimes !!!  ###
-// ###                                                                                         ###
-// ###############################################################################################
 
 export function activate(context: ExtensionContext, forceActivation?: boolean) {
 	return baseActivate({

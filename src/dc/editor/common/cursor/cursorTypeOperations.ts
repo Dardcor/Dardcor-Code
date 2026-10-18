@@ -69,12 +69,8 @@ export class TypeOperations {
 		return CompositionOperation.getEdits(prevEditOperationType, config, model, selections, text, replacePrevCharCnt, replaceNextCharCnt, positionDelta);
 	}
 
-	/**
-	 * This is very similar with typing, but the character is already in the text buffer!
-	 */
 	public static compositionEndWithInterceptors(prevEditOperationType: EditOperationType, config: CursorConfiguration, model: ITextModel, compositions: CompositionOutcome[] | null, selections: Selection[], autoClosedCharacters: Range[]): EditOperationResult | null {
 		if (!compositions) {
-			// could not deduce what the composition did
 			return null;
 		}
 
@@ -83,13 +79,11 @@ export class TypeOperations {
 			if (insertedText === null) {
 				insertedText = composition.insertedText;
 			} else if (insertedText !== composition.insertedText) {
-				// not all selections agree on what was typed
 				return null;
 			}
 		}
 
 		if (!insertedText || insertedText.length !== 1) {
-			// we're only interested in the case where a single character was inserted
 			return CompositionEndOvertypeOperation.getEdits(config, compositions);
 		}
 
@@ -104,7 +98,6 @@ export class TypeOperations {
 		}
 
 		if (hasDeletion) {
-			// Check if this could have been a surround selection
 
 			if (!shouldSurroundChar(config, ch) || !config.surroundingPairs.hasOwnProperty(ch)) {
 				return null;
@@ -114,15 +107,12 @@ export class TypeOperations {
 
 			for (const composition of compositions) {
 				if (composition.deletedSelectionStart !== 0 || composition.deletedSelectionEnd !== composition.deletedText.length) {
-					// more text was deleted than was selected, so this could not have been a surround selection
 					return null;
 				}
 				if (/^[ \t]+$/.test(composition.deletedText)) {
-					// deleted text was only whitespace
 					return null;
 				}
 				if (isTypingAQuoteCharacter && isQuote(composition.deletedText)) {
-					// deleted text was a quote
 					return null;
 				}
 			}

@@ -14,10 +14,6 @@ export interface IRangedGroup {
 	size: number;
 }
 
-/**
- * Returns the intersection between a ranged group and a range.
- * Returns `[]` if the intersection is empty.
- */
 export function groupIntersect(range: IRange, groups: IRangedGroup[]): IRangedGroup[] {
 	const result: IRangedGroup[] = [];
 
@@ -45,19 +41,10 @@ export function groupIntersect(range: IRange, groups: IRangedGroup[]): IRangedGr
 	return result;
 }
 
-/**
- * Shifts a range by that `much`.
- */
 export function shift({ start, end }: IRange, much: number): IRange {
 	return { start: start + much, end: end + much };
 }
 
-/**
- * Consolidates a collection of ranged groups.
- *
- * Consolidation is the process of merging consecutive ranged groups
- * that share the same `size`.
- */
 export function consolidate(groups: IRangedGroup[]): IRangedGroup[] {
 	const result: IRangedGroup[] = [];
 	let previousGroup: IRangedGroup | null = null;
@@ -79,10 +66,6 @@ export function consolidate(groups: IRangedGroup[]): IRangedGroup[] {
 	return result;
 }
 
-/**
- * Concatenates several collections of ranged groups into a single
- * collection.
- */
 function concat(...groups: IRangedGroup[][]): IRangedGroup[] {
 	return consolidate(groups.reduce((r, g) => r.concat(g), []));
 }
@@ -132,9 +115,6 @@ export class RangeMap implements IRangeMap {
 		this._size = this._paddingTop + this.groups.reduce((t, g) => t + (g.size * (g.range.end - g.range.start)), 0);
 	}
 
-	/**
-	 * Returns the number of items in the range map.
-	 */
 	get count(): number {
 		const len = this.groups.length;
 
@@ -145,16 +125,10 @@ export class RangeMap implements IRangeMap {
 		return this.groups[len - 1].range.end;
 	}
 
-	/**
-	 * Returns the sum of the sizes of all items in the range map.
-	 */
 	get size(): number {
 		return this._size;
 	}
 
-	/**
-	 * Returns the index of the item at the given position.
-	 */
 	indexAt(position: number): number {
 		if (position < 0) {
 			return -1;
@@ -182,17 +156,10 @@ export class RangeMap implements IRangeMap {
 		return index;
 	}
 
-	/**
-	 * Returns the index of the item right after the item at the
-	 * index of the given position.
-	 */
 	indexAfter(position: number): number {
 		return Math.min(this.indexAt(position) + 1, this.count);
 	}
 
-	/**
-	 * Returns the start position of the item at the given index.
-	 */
 	positionAt(index: number): number {
 		if (index < 0) {
 			return -1;

@@ -116,7 +116,6 @@ export class SettingsEditor2 extends EditorPane {
 	private static TOC_MIN_WIDTH: number = 100;
 	private static TOC_RESET_WIDTH: number = 200;
 	private static EDITOR_MIN_WIDTH: number = 500;
-	// Below NARROW_TOTAL_WIDTH, we only render the editor rather than the ToC.
 	private static NARROW_TOTAL_WIDTH: number = this.TOC_RESET_WIDTH + this.EDITOR_MIN_WIDTH;
 
 	private static SUGGESTIONS: string[] = [
@@ -153,7 +152,6 @@ export class SettingsEditor2 extends EditorPane {
 
 	private static shouldSettingUpdateFast(type: SettingValueType | SettingValueType[]): boolean {
 		if (Array.isArray(type)) {
-			// nullable integer/number or complex
 			return false;
 		}
 		return type === SettingValueType.Enum ||
@@ -166,7 +164,6 @@ export class SettingsEditor2 extends EditorPane {
 			type === SettingValueType.Include;
 	}
 
-	// (!) Lots of props that are set once on the first render
 	private defaultSettingsEditorModel!: Settings2EditorModel;
 	private readonly modelDisposables: DisposableStore;
 
@@ -196,11 +193,6 @@ export class SettingsEditor2 extends EditorPane {
 	private searchInProgress: CancellationTokenSource | null = null;
 	private aiSearchPromise: CancelablePromise<void> | null = null;
 
-	/**
-	 * The trimmed query value that the currently rendered results reflect. Used to determine
-	 * whether the displayed results are up to date with the current search input value before
-	 * moving focus into the results.
-	 */
 	private renderedSearchQuery: string | undefined = '';
 
 	private showAiResultsAction: Action | null = null;
@@ -228,11 +220,9 @@ export class SettingsEditor2 extends EditorPane {
 	private scheduledRefreshes: Map<string, DisposableStore>;
 	private _currentFocusContext: SettingsFocusContext = SettingsFocusContext.Search;
 
-	/** Don't spam warnings */
 	private hasWarnedMissingSettings = false;
 	private tocTreeDisposed = false;
 
-	/** Persist the search query upon reloads */
 	private editorMemento: IEditorMemento<ISettingsEditor2State>;
 
 	private tocFocusedElement: SettingsTreeGroupElement | null = null;
@@ -370,14 +360,6 @@ export class SettingsEditor2 extends EditorPane {
 		return this.viewState.tagFilters?.has(ADVANCED_SETTING_TAG) ?? false;
 	}
 
-	/**
-	 * Determines whether a setting should be shown even when advanced settings are filtered out.
-	 * Returns true if:
-	 * - The setting is not tagged as advanced, OR
-	 * - The setting matches an ID filter (@id:settingKey), OR
-	 * - The setting key appears in the search query, OR
-	 * - The @hasPolicy filter is active (policy settings should always be shown when filtering by policy)
-	 */
 	private shouldShowSetting(setting: ISetting): boolean {
 		if (!setting.tags?.includes(ADVANCED_SETTING_TAG)) {
 			return true;
@@ -432,9 +414,8 @@ export class SettingsEditor2 extends EditorPane {
 	override get maximumWidth(): number { return Number.POSITIVE_INFINITY; }
 	override get minimumHeight() { return 180; }
 
-	// these setters need to exist because this extends from EditorPane
-	override set minimumWidth(value: number) { /*noop*/ }
-	override set maximumWidth(value: number) { /*noop*/ }
+	override set minimumWidth(value: number) { }
+	override set maximumWidth(value: number) { }
 
 	private get currentSettingsModel(): SettingsTreeModel | undefined {
 		return this.searchResultModel || this.settingsTreeModel.value;
@@ -517,14 +498,11 @@ export class SettingsEditor2 extends EditorPane {
 		}
 		this._setOptions(options);
 
-		// Don't block setInput on render (which can trigger an async search)
 		this.onConfigUpdate(undefined, true).then(() => {
-			// This event runs when the editor closes.
 			this.inputChangeListener.value = input.onWillDispose(() => {
 				this.searchWidget.setValue('');
 			});
 
-			// Init TOC selection
 			this.updateTreeScrollSync();
 		});
 
@@ -574,7 +552,6 @@ export class SettingsEditor2 extends EditorPane {
 
 	private _setOptions(options: ISettingsEditorOptions): void {
 		if (options.focusSearch && !platform.isIOS) {
-			// isIOS - #122044
 			this.focusSearch();
 		}
 
@@ -607,8 +584,7 @@ export class SettingsEditor2 extends EditorPane {
 
 		this.layoutSplitView(dimension);
 
-		const innerWidth = Math.min(this.headerContainer.clientWidth, dimension.width) - 24 * 2; // 24px padding on left and right;
-		// minus padding inside inputbox, controls width, and extra padding before countElement
+		const innerWidth = Math.min(this.headerContainer.clientWidth, dimension.width) - 24 * 2;
 		const monacoWidth = innerWidth - 10 - this.controlsElement.clientWidth - 12;
 		this.searchWidget.layout(new DOM.Dimension(monacoWidth, 20));
 
@@ -620,7 +596,6 @@ export class SettingsEditor2 extends EditorPane {
 
 		if (this._currentFocusContext === SettingsFocusContext.Search) {
 			if (!platform.isIOS) {
-				// #122044
 				this.focusSearch();
 			}
 		} else if (this._currentFocusContext === SettingsFocusContext.SettingControl) {
@@ -644,7 +619,6 @@ export class SettingsEditor2 extends EditorPane {
 		super.setEditorVisible(visible);
 
 		if (!visible) {
-			// Wait for editor to be removed from DOM #106303
 			setTimeout(() => {
 				this.searchWidget.onHide();
 				this.settingRenderers.cancelSuggesters();
@@ -673,11 +647,6 @@ export class SettingsEditor2 extends EditorPane {
 		this.tocTree.domFocus();
 	}
 
-	/**
-	 * Invoked when the user presses the down arrow while the search input is focused.
-	 * Navigates forward through the search history first; only once there are no more
-	 * recent history entries does focus move down into the settings results.
-	 */
 	navigateSearchHistoryNextOrFocusSettings(): void {
 		if (this.searchWidget.isNavigatingHistory()) {
 			this.searchWidget.showNextValue();
@@ -686,29 +655,14 @@ export class SettingsEditor2 extends EditorPane {
 		}
 	}
 
-	/**
-	 * Invoked when the user presses the up arrow while the search input is focused.
-	 * Navigates backward through the search history.
-	 */
 	navigateSearchHistoryPrevious(): void {
 		this.searchWidget.showPreviousValue();
 	}
 
-	/**
-	 * Whether the currently rendered results reflect the current search input value.
-	 * Returns false while a search is still pending (debounced) or in progress, so that
-	 * focus is not moved into stale results.
-	 */
 	private isSearchUpToDate(): boolean {
 		return !this.searchInputDelayer.isTriggered && this.renderedSearchQuery === this.searchWidget.getValue().trim();
 	}
 
-	/**
-	 * Moves focus from the search input into the first settings result, but only when the
-	 * displayed results are up to date with the current search input. If the results are
-	 * stale (a search is still pending or in progress), this does nothing so that focus does
-	 * not land on results from a previous query.
-	 */
 	focusFirstSettingFromSearch(): void {
 		if (!this.isSearchUpToDate()) {
 			return;
@@ -733,7 +687,6 @@ export class SettingsEditor2 extends EditorPane {
 			this.searchWidget.setValue(filter);
 		}
 
-		// Do not select all if the user is already searching.
 		this.searchWidget.focus(selectAll && !this.searchInputDelayer.isTriggered);
 	}
 
@@ -753,11 +706,6 @@ export class SettingsEditor2 extends EditorPane {
 		this.searchWidget.setValue(splitQuery.join(' '));
 	}
 
-	/**
-	 * Updates the search input placeholder so that it hints at history navigation
-	 * (up/down arrows) once the user has search history, similar to the keyboard
-	 * shortcuts editor.
-	 */
 	private updateSearchPlaceholder(): void {
 		const hasHistory = this.searchWidget.getHistory().length > 0;
 		this.searchWidget.setPlaceHolder(hasHistory ? searchBoxPlaceholderWithHistory : searchBoxLabel);
@@ -776,9 +724,6 @@ export class SettingsEditor2 extends EditorPane {
 		this.searchWidget.updateAriaLabel(label);
 	}
 
-	/**
-	 * Render the header of the Settings editor, which includes the content above the splitview.
-	 */
 	private createHeader(parent: HTMLElement): void {
 		this.headerContainer = DOM.append(parent, $('.settings-header'));
 		this.searchContainer = DOM.append(this.headerContainer, $('.search-container'));
@@ -808,8 +753,6 @@ export class SettingsEditor2 extends EditorPane {
 			suggestionProvider: {
 				triggerCharacters: ['@', ':'],
 				provideResults: (query: string) => {
-					// Based on testing, the trigger character is always at the end of the query.
-					// for the ':' trigger, only return suggestions if there was a '@' before it in the same word.
 					const queryParts = query.split(/\s/g);
 					if (queryParts[queryParts.length - 1].startsWith(`@${LANGUAGE_SETTING_TAG}`)) {
 						const sortedLanguages = this.languageService.getRegisteredLanguageIds().map(languageId => {
@@ -833,7 +776,6 @@ export class SettingsEditor2 extends EditorPane {
 				styleOverrides: {
 					inputBorder: settingsTextInputBorder
 				}
-				// TODO: Aria-live
 			},
 			history: this.loadSearchHistory()
 		}));
@@ -913,7 +855,6 @@ export class SettingsEditor2 extends EditorPane {
 	private onDidSettingsTargetChange(target: SettingsTarget): void {
 		this.viewState.settingsTarget = target;
 
-		// TODO Instead of rebuilding the whole model, refresh and uncache the inspected setting value
 		this.onConfigUpdate(undefined, true);
 	}
 
@@ -942,30 +883,18 @@ export class SettingsEditor2 extends EditorPane {
 					sourceTop = _sourceTop;
 				}
 			} catch {
-				// e.g. clicked a searched element, now the search has been cleared
 			}
 
-			// If we search for something and focus on a category, the settings tree
-			// only renders settings in that category.
-			// If the target display category is different than the source's, unfocus the category
-			// so that we can render all found settings again.
-			// Then, the reveal call will correctly find the target setting.
 			if (this.viewState.categoryFilter && evt.source.displayCategory !== targetElement.displayCategory) {
 				this.tocTree.setFocus([]);
 			}
 			try {
 				this.settingsTree.reveal(targetElement, sourceTop);
 			} catch (_) {
-				// The listwidget couldn't find the setting to reveal,
-				// even though it's in the model, meaning there might be a filter
-				// preventing it from showing up.
 				revealFailed = true;
 			}
 
 			if (!revealFailed) {
-				// We need to shift focus from the setting that contains the link to the setting that's
-				// linked. Clicking on the link sets focus on the setting that contains the link,
-				// which is why we need the setTimeout.
 				setTimeout(() => {
 					this.settingsTree.setFocus([targetElement]);
 				}, 50);
@@ -982,11 +911,7 @@ export class SettingsEditor2 extends EditorPane {
 		}
 
 		if (!recursed && (!targetElement || revealFailed)) {
-			// Search for the target setting by ID so it becomes visible,
-			// even if it's an advanced setting that would be hidden with an empty query.
 			const idQuery = `@id:${evt.targetKey}`;
-			// Set the widget value first, then cancel the debounced search it triggers,
-			// so that only the direct triggerSearch call below runs.
 			this.searchWidget.setValue(idQuery);
 			this.searchInputDelayer.cancel();
 			const p = this.triggerSearch(idQuery, true);
@@ -1096,7 +1021,6 @@ export class SettingsEditor2 extends EditorPane {
 				(platform.isMacintosh ? e.metaKey : e.ctrlKey) &&
 				!DOM.isEditableElement(e.target)
 			) {
-				// Avoid browser ctrl+a
 				e.browserEvent.stopPropagation();
 				e.browserEvent.preventDefault();
 			}
@@ -1127,11 +1051,8 @@ export class SettingsEditor2 extends EditorPane {
 			this.tocFocusedElement = element;
 			this.tocTree.setSelection(element ? [element] : []);
 
-			// Filter to show only the selected category
 			if (this.viewState.categoryFilter !== element) {
 				this.viewState.categoryFilter = element ?? undefined;
-				// Force render in this case, because
-				// onDidClickSetting relies on the updated view.
 				this.renderTree(undefined, true);
 				this.settingsTree.scrollTop = 0;
 			}
@@ -1152,7 +1073,6 @@ export class SettingsEditor2 extends EditorPane {
 
 	private applyFilter(filter: string) {
 		if (this.searchWidget && !this.searchWidget.getValue().includes(filter)) {
-			// Prepend the filter to the query.
 			const newQuery = `${filter} ${this.searchWidget.getValue().trimStart()}`;
 			this.focusSearch(newQuery, false);
 		}
@@ -1184,7 +1104,6 @@ export class SettingsEditor2 extends EditorPane {
 			try {
 				this.settingsTree.updateElementHeight(element, height);
 			} catch (e) {
-				// the element was not found
 			}
 		}));
 		this._register(this.settingRenderers.onApplyFilter((filter) => this.applyFilter(filter)));
@@ -1216,8 +1135,6 @@ export class SettingsEditor2 extends EditorPane {
 
 			this.settingsTreeScrollTop = this.settingsTree.scrollTop;
 
-			// setTimeout because calling setChildren on the settingsTree can trigger onDidScroll, so it fires when
-			// setChildren has called on the settings tree but not the toc tree yet, so their rendered elements are out of sync
 			setTimeout(() => {
 				this.updateTreeScrollSync();
 			}, 0);
@@ -1239,12 +1156,9 @@ export class SettingsEditor2 extends EditorPane {
 		this._register(this.settingsTree.onDidBlur(() => {
 			this.settingRowFocused.set(false);
 			this.settingFirstRowFocused.set(false);
-			// Clear out the focused element, otherwise it could be
-			// out of date during the next onDidFocus event.
 			this.treeFocusedElement = null;
 		}));
 
-		// There is no different select state in the settings tree
 		this._register(this.settingsTree.onDidChangeFocus(e => {
 			const element = e.elements[0];
 			this.updateSettingFirstRowFocusedContext(element ?? null);
@@ -1286,8 +1200,6 @@ export class SettingsEditor2 extends EditorPane {
 	}
 
 	private updateChangedSetting(key: string, value: unknown, manualReset: boolean, languageFilter: string | undefined, scope: ConfigurationScope | undefined): Promise<void> {
-		// ConfigurationService displays the error if this fails.
-		// Force a render afterwards because onDidConfigurationUpdate doesn't fire if the update doesn't result in an effective setting value change.
 		const settingsTarget = this.settingsTargetsWidget.settingsTarget;
 		const resource = URI.isUri(settingsTarget) ? settingsTarget : undefined;
 		const configurationTarget = <ConfigurationTarget | null>(resource ? ConfigurationTarget.WORKSPACE_FOLDER : settingsTarget) ?? ConfigurationTarget.USER_LOCAL;
@@ -1298,7 +1210,6 @@ export class SettingsEditor2 extends EditorPane {
 		const userPassedInManualReset = configurationTargetIsWorkspace || !!languageFilter;
 		const isManualReset = userPassedInManualReset ? manualReset : value === undefined;
 
-		// If the user is changing the value back to the default, and we're not targeting a workspace scope, do a 'reset' instead
 		const inspected = this.configurationService.inspect(key, overrides);
 		if (!userPassedInManualReset && inspected.defaultValue === value) {
 			value = undefined;
@@ -1308,7 +1219,6 @@ export class SettingsEditor2 extends EditorPane {
 			.then(() => {
 				const query = this.searchWidget.getValue();
 				if (query.includes(`@${MODIFIED_SETTING_TAG}`)) {
-					// The user might have reset a setting.
 					this.refreshTOCTree();
 				}
 				this.renderTree(key, isManualReset);
@@ -1434,7 +1344,6 @@ export class SettingsEditor2 extends EditorPane {
 	}
 
 	private refreshModels(resolvedSettingsRoot: ITOCEntry<ISetting>) {
-		// Both calls to refreshModels require a valid settingsTreeModel.
 		this.settingsTreeModel.value!.update(resolvedSettingsRoot);
 		this.tocTreeModel.settingsTreeRoot = this.settingsTreeModel.value!.root;
 		this.settingsOrderByTocIndex = this.createSettingsOrderByTocIndex(resolvedSettingsRoot);
@@ -1449,7 +1358,7 @@ export class SettingsEditor2 extends EditorPane {
 			return;
 		}
 
-		const groups = this.defaultSettingsEditorModel.settingsGroups.slice(1); // Without commonlyUsed
+		const groups = this.defaultSettingsEditorModel.settingsGroups.slice(1);
 		const coreSettingsGroups = [], extensionSettingsGroups = [];
 		for (const group of groups) {
 			if (group.extensionInfo) {
@@ -1463,7 +1372,6 @@ export class SettingsEditor2 extends EditorPane {
 		const settingsResult = resolveSettingsTree(tocData, coreSettingsGroups, filter, this.logService);
 		const resolvedSettingsRoot = settingsResult.tree;
 
-		// Warn for settings not included in layout
 		if (settingsResult.leftoverSettings.size && !this.hasWarnedMissingSettings) {
 			const settingKeyList: string[] = [];
 			settingsResult.leftoverSettings.forEach(s => {
@@ -1478,8 +1386,6 @@ export class SettingsEditor2 extends EditorPane {
 		let setAdditionalGroups = false;
 		const toggleData = await getExperimentalExtensionToggleData(this.chatEntitlementService, this.extensionGalleryService, this.productService);
 		if (toggleData && groups.filter(g => g.extensionInfo).length && Object.keys(toggleData.settingsEditorRecommendedExtensions).length) {
-			// Refresh installed extensions once per onConfigUpdate invocation for performance,
-			// instead of per extension. The installed list may still change while iterating.
 			await this.refreshInstalledExtensionsList();
 			for (const key in toggleData.settingsEditorRecommendedExtensions) {
 				const extension: IGalleryExtension = toggleData.recommendedExtensionsGalleryInfo[key];
@@ -1490,8 +1396,6 @@ export class SettingsEditor2 extends EditorPane {
 				const extensionId = extension.identifier.id;
 				const extensionInstalled = this.installedExtensionIds.includes(extensionId);
 
-				// Drill down to see whether the group and setting already exist
-				// and need to be removed.
 				const matchingGroupIndex = groups.findIndex(g =>
 					g.extensionInfo && g.extensionInfo!.id.toLowerCase() === extensionId.toLowerCase() &&
 					g.sections.length === 1 && g.sections[0].settings.length === 1 && g.sections[0].settings[0].displayExtensionId
@@ -1508,7 +1412,6 @@ export class SettingsEditor2 extends EditorPane {
 					continue;
 				}
 
-				// Create the entry. extensionInstalled is false in this case.
 				let manifest: IExtensionManifest | null = null;
 				try {
 					manifest = await raceTimeout(
@@ -1516,8 +1419,6 @@ export class SettingsEditor2 extends EditorPane {
 						EXTENSION_FETCH_TIMEOUT_MS
 					) ?? null;
 				} catch (e) {
-					// Likely a networking issue.
-					// Skip adding a button for this extension to the Settings editor.
 					continue;
 				}
 
@@ -1577,7 +1478,6 @@ export class SettingsEditor2 extends EditorPane {
 		resolvedSettingsRoot.children!.unshift(getCommonlyUsedData(groups));
 
 		if (toggleData && setAdditionalGroups) {
-			// Add the additional groups to the model to help with searching.
 			this.defaultSettingsEditorModel.setAdditionalGroups(additionalGroups);
 		}
 
@@ -1607,7 +1507,6 @@ export class SettingsEditor2 extends EditorPane {
 			this.refreshModels(resolvedSettingsRoot);
 
 			if (triggerSearch && this.searchResultModel) {
-				// If an extension's settings were just loaded and a search is active, retrigger the search so it shows up
 				return await this.onSearchInputChanged(false);
 			}
 
@@ -1648,7 +1547,6 @@ export class SettingsEditor2 extends EditorPane {
 					try {
 						this.settingsTree.reveal(newElement, 0);
 					} catch (e) {
-						// Ignore the error
 					}
 				}
 			}
@@ -1656,14 +1554,12 @@ export class SettingsEditor2 extends EditorPane {
 			this.settingsTreeModel.value = this.instantiationService.createInstance(SettingsTreeModel, this.viewState, this.workspaceTrustManagementService.isWorkspaceTrusted());
 			this.refreshModels(resolvedSettingsRoot);
 
-			// Don't restore the cached state if we already have a query value from calling _setOptions().
 			const cachedState = !this.viewState.query ? this.restoreCachedState() : undefined;
 			if (cachedState?.searchQuery || this.searchWidget.getValue()) {
 				await this.onSearchInputChanged(true);
 			} else {
 				this.refreshTOCTree();
 
-				// Set initial category to the first one (Commonly Used)
 				const rootChildren = this.settingsTreeModel.value.root.children;
 				if (Array.isArray(rootChildren) && rootChildren.length > 0) {
 					const firstCategory = rootChildren[0];
@@ -1710,7 +1606,6 @@ export class SettingsEditor2 extends EditorPane {
 			return;
 		}
 
-		// If the context view is focused, delay rendering settings
 		if (this.contextViewFocused()) {
 			// eslint-disable-next-line no-restricted-syntax
 			const element = this.window.document.querySelector('.context-view');
@@ -1720,15 +1615,12 @@ export class SettingsEditor2 extends EditorPane {
 			return;
 		}
 
-		// If a setting control is currently focused, schedule a refresh for later
 		const activeElement = this.getActiveControlInSettingsTree();
 		const focusedSetting = activeElement && this.settingRenderers.getSettingDOMElementForDOMElement(activeElement);
 		if (focusedSetting && !force) {
-			// If a single setting is being refreshed, it's ok to refresh now if that is not the focused setting
 			if (key) {
 				const focusedKey = focusedSetting.getAttribute(AbstractSettingRenderer.SETTING_KEY_ATTR);
 				if (focusedKey === key &&
-					// update `list`s live, as they have a separate "submit edit" step built in before this
 					(focusedSetting.parentElement && !focusedSetting.parentElement.classList.contains('setting-item-list'))
 				) {
 					this.updateModifiedLabelForKey(key);
@@ -1752,7 +1644,6 @@ export class SettingsEditor2 extends EditorPane {
 				}
 				this.refreshSingleElement(elements[0]);
 			} else {
-				// Refresh requested for a key that we don't know about
 				return;
 			}
 		} else {
@@ -1793,7 +1684,7 @@ export class SettingsEditor2 extends EditorPane {
 		}
 		// eslint-disable-next-line no-restricted-syntax
 		const dataElements = this.currentSettingsModel.getElementsByName(key);
-		const isModified = dataElements && dataElements[0] && dataElements[0].isConfigured; // all elements are either configured or not
+		const isModified = dataElements && dataElements[0] && dataElements[0].isConfigured;
 		const elements = this.settingRenderers.getDOMElementsForSettingKey(this.settingsTree.getHTMLElement(), key);
 		if (elements && elements[0]) {
 			elements[0].classList.toggle('is-configured', !!isModified);
@@ -1802,7 +1693,6 @@ export class SettingsEditor2 extends EditorPane {
 
 	private async onSearchInputChanged(expandResults: boolean): Promise<void> {
 		if (!this.currentSettingsModel) {
-			// Initializing search widget value
 			return;
 		}
 
@@ -1846,10 +1736,6 @@ export class SettingsEditor2 extends EditorPane {
 		return match && match[1];
 	}
 
-	/**
-	 * Toggles the visibility of the Settings editor table of contents during a search
-	 * depending on the behavior.
-	 */
 	private toggleTocBySearchBehaviorType() {
 		const tocBehavior = this.configurationService.getValue<'filter' | 'hide'>(SEARCH_TOC_BEHAVIOR_KEY);
 		const hideToc = tocBehavior === 'hide';
@@ -1912,7 +1798,6 @@ export class SettingsEditor2 extends EditorPane {
 			this.renderedSearchQuery = this.viewState.query;
 
 			if (this.searchResultModel) {
-				// Added a filter model
 				if (expandResults) {
 					this.tocTree.setSelection([]);
 					this.tocTree.expandAll();
@@ -1922,7 +1807,6 @@ export class SettingsEditor2 extends EditorPane {
 				this.refreshTree();
 				this.toggleTocBySearchBehaviorType();
 			} else if (!this.tocTreeDisposed) {
-				// Leaving search mode
 				this.tocTree.collapseAll();
 				this.refreshTOCTree();
 				this.renderResultCountMessages(false);
@@ -1933,9 +1817,6 @@ export class SettingsEditor2 extends EditorPane {
 		}
 	}
 
-	/**
-	 * Return a fake SearchResultModel which can hold a flat list of all settings, to be filtered (@modified etc)
-	 */
 	private createFilterModel(): SearchResultModel {
 		const filterModel = this.instantiationService.createInstance(SearchResultModel, this.viewState, this.settingsOrderByTocIndex, this.workspaceTrustManagementService.isWorkspaceTrusted());
 
@@ -1985,9 +1866,6 @@ export class SettingsEditor2 extends EditorPane {
 			this.searchResultModel.showAiResults = false;
 
 			if (localResults && localResults.filterMatches.length > 0) {
-				// The remote results might take a while and
-				// are always appended to the end anyway, so
-				// show some results now.
 				this.onDidFinishSearch(expandResults, undefined);
 			}
 
@@ -2002,8 +1880,6 @@ export class SettingsEditor2 extends EditorPane {
 				this.aiSearchPromise.cancel();
 			}
 
-			// Kick off an AI search in the background if the toggle is shown.
-			// We purposely do not await it.
 			if (this.searchInputActionBar && this.showAiResultsAction && this.searchInputActionBar.hasAction(this.showAiResultsAction)) {
 				this.aiSearchPromise = createCancelablePromise(token => {
 					return this.doAiSearch(query, token).then((results) => {
@@ -2088,7 +1964,6 @@ export class SettingsEditor2 extends EditorPane {
 			return null;
 		}
 
-		// Only log the elapsed time if there are actual results.
 		if (result && result.filterMatches.length > 0) {
 			const elapsed = stopWatch.elapsed();
 			this.logSearchPerformance(LLM_RANKED_SEARCH_PROVIDER_NAME, elapsed);
@@ -2104,16 +1979,13 @@ export class SettingsEditor2 extends EditorPane {
 		stopWatch.stop();
 
 		if (token.isCancellationRequested) {
-			// Handle cancellation like this because cancellation is lost inside the search provider due to async/await
 			return null;
 		}
 
-		// Filter out advanced settings unless the advanced tag is explicitly set or setting matches an ID filter
 		if (result && !this.canShowAdvancedSettings()) {
 			result.filterMatches = result.filterMatches.filter(match => this.shouldShowSetting(match.setting));
 		}
 
-		// Only log the elapsed time if there are actual results.
 		if (result && result.filterMatches.length > 0) {
 			const elapsed = stopWatch.elapsed();
 			this.logSearchPerformance(providerName, elapsed);
@@ -2210,14 +2082,10 @@ export class SettingsEditor2 extends EditorPane {
 		if (!this.isVisible()) {
 			return;
 		}
-		const listHeight = dimension.height - (72 + 11 + 14 /* header height + editor padding */);
+		const listHeight = dimension.height - (72 + 11 + 14 );
 
 		this.splitView.el.style.height = `${listHeight}px`;
 
-		// We call layout first so the splitView has an idea of how much
-		// space it has, otherwise setViewVisible results in the first panel
-		// showing up at the minimum size whenever the Settings editor
-		// opens for the first time.
 		this.splitView.layout(this.bodyContainer.clientWidth, listHeight);
 
 		const tocBehavior = this.configurationService.getValue<'filter' | 'hide'>(SEARCH_TOC_BEHAVIOR_KEY);
@@ -2227,8 +2095,6 @@ export class SettingsEditor2 extends EditorPane {
 			const firstViewVisible = this.bodyContainer.clientWidth >= SettingsEditor2.NARROW_TOTAL_WIDTH;
 
 			this.splitView.setViewVisible(0, firstViewVisible);
-			// If the first view is again visible, and we have enough space, immediately set the
-			// editor to use the reset width rather than the cached min width
 			if (!firstViewWasVisible && firstViewVisible && this.bodyContainer.clientWidth >= SettingsEditor2.EDITOR_MIN_WIDTH + SettingsEditor2.TOC_RESET_WIDTH) {
 				this.splitView.resizeView(0, SettingsEditor2.TOC_RESET_WIDTH);
 			}

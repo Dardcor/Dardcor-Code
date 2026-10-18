@@ -11,19 +11,11 @@ import { IColorTheme } from './themeService.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { RunOnceScheduler } from '../../../base/common/async.js';
 
-//  ------ API types
 
 export type SizeIdentifier = string;
 
-/**
- * Size value unit types supported by the registry.
- * Use `''` for unitless values such as font weights.
- */
 export type SizeUnit = 'px' | 'rem' | 'em' | '%' | '';
 
-/**
- * A size value with a numeric amount and unit
- */
 export interface SizeValue {
 	readonly value: number;
 	readonly unit: SizeUnit;
@@ -36,12 +28,6 @@ export interface SizeContribution {
 	readonly deprecationMessage: string | undefined;
 }
 
-/**
- * Returns the css variable name for the given size identifier. Dots (`.`) are replaced with hyphens (`-`) and
- * everything is prefixed with `--vscode-`.
- *
- * @sample `editor.fontSize` is `--vscode-editor-fontSize`.
- */
 export function asCssVariableName(sizeIdent: SizeIdentifier): string {
 	return `--vscode-${sizeIdent.replace(/\./g, '-')}`;
 }
@@ -65,16 +51,10 @@ export function isSizeDefaults(value: unknown): value is SizeDefaults {
 	return value !== null && typeof value === 'object' && 'light' in value && 'dark' in value;
 }
 
-/**
- * Helper function to create a size value
- */
 export function size(value: number, unit: SizeUnit = 'px'): SizeValue {
 	return { value, unit };
 }
 
-/**
- * Helper function to create size defaults that use the same value for all themes
- */
 export function sizeForAllThemes(value: number, unit: SizeUnit = 'px'): SizeDefaults {
 	const sizeValue = size(value, unit);
 	return {
@@ -85,15 +65,10 @@ export function sizeForAllThemes(value: number, unit: SizeUnit = 'px'): SizeDefa
 	};
 }
 
-/**
- * Convert a size value to a CSS string.
- * When the unit is `''` the raw numeric value is returned (e.g. font weights).
- */
 export function sizeValueToCss(sizeValue: SizeValue): string {
 	return sizeValue.unit === '' ? `${sizeValue.value}` : `${sizeValue.value}${sizeValue.unit}`;
 }
 
-// size registry
 export const Extensions = {
 	SizeContribution: 'base.contributions.sizes'
 };
@@ -104,42 +79,18 @@ export interface ISizeRegistry {
 
 	readonly onDidChangeSchema: Event<void>;
 
-	/**
-	 * Register a size to the registry.
-	 * @param id The size id as used in theme description files
-	 * @param defaults The default values
-	 * @param description the description
-	 */
 	registerSize(id: string, defaults: SizeDefaults | SizeValue | null, description: string): SizeIdentifier;
 
-	/**
-	 * Deregister a size from the registry.
-	 */
 	deregisterSize(id: string): void;
 
-	/**
-	 * Get all size contributions
-	 */
 	getSizes(): SizeContribution[];
 
-	/**
-	 * Gets the default size of the given id
-	 */
 	resolveDefaultSize(id: SizeIdentifier, theme: IColorTheme): SizeValue | undefined;
 
-	/**
-	 * JSON schema for an object to assign size values to one of the size contributions.
-	 */
 	getSizeSchema(): IJSONSchema;
 
-	/**
-	 * JSON schema for a reference to a size contribution.
-	 */
 	getSizeReferenceSchema(): IJSONSchema;
 
-	/**
-	 * Notify when the color theme or settings change.
-	 */
 	notifyThemeUpdate(theme: IColorTheme): void;
 
 }
@@ -174,8 +125,6 @@ class SizeRegistry extends Disposable implements ISizeRegistry {
 		const sizeContribution: SizeContribution = { id, description, defaults, deprecationMessage };
 		this.sizesById[id] = sizeContribution;
 
-		// Determine whether this token uses unitless values (e.g. font weights).
-		// The pattern is chosen per-token so that length tokens still require a unit.
 		const isUnitless = (() => {
 			if (!defaults) { return false; }
 			if (isSizeDefaults(defaults)) {

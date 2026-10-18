@@ -62,7 +62,7 @@ class ManagedCodeActionSet extends Disposable implements CodeActionSet {
 		} else if (isNonEmptyArray(b.diagnostics)) {
 			return 1;
 		} else {
-			return ManagedCodeActionSet.codeActionsPreferredComparator(a, b); // both have no diagnostics
+			return ManagedCodeActionSet.codeActionsPreferredComparator(a, b);
 		}
 	}
 
@@ -117,7 +117,6 @@ export async function getCodeActions(
 	};
 
 	const cts = new TextModelCancellationTokenSource(model, token);
-	// if the trigger is auto (autosave, lightbulb, etc), we should exclude notebook codeActions
 	const excludeNotebookCodeActions = (trigger.type === languages.CodeActionTriggerType.Auto);
 	const providers = getCodeActionProviders(registry, model, (excludeNotebookCodeActions) ? notebookFilter : filter);
 
@@ -184,10 +183,8 @@ function getCodeActionProviders(
 	filter: CodeActionFilter
 ) {
 	return registry.all(model)
-		// Don't include providers that we know will not return code actions of interest
 		.filter(provider => {
 			if (!provider.providedCodeActionKinds) {
-				// We don't know what type of actions this provider will return.
 				return true;
 			}
 			return provider.providedCodeActionKinds.some(kind => mayIncludeActionsOfKind(filter, new HierarchicalKind(kind)));
@@ -227,7 +224,6 @@ function getDocumentationFromProvider(
 				if (!currentBest) {
 					currentBest = entry;
 				} else {
-					// Take best match
 					if (currentBest.kind.contains(entry.kind)) {
 						currentBest = entry;
 					}
@@ -239,7 +235,6 @@ function getDocumentationFromProvider(
 		}
 	}
 
-	// Otherwise, check to see if any of the provided actions match.
 	for (const action of providedCodeActions) {
 		if (!action.kind) {
 			continue;
@@ -258,7 +253,7 @@ export enum ApplyCodeActionReason {
 	OnSave = 'onSave',
 	FromProblemsView = 'fromProblemsView',
 	FromCodeActions = 'fromCodeActions',
-	FromAILightbulb = 'fromAILightbulb', // direct invocation when clicking on the AI lightbulb
+	FromAILightbulb = 'fromAILightbulb',
 	FromProblemsHover = 'fromProblemsHover'
 }
 
@@ -329,7 +324,6 @@ export async function applyCodeAction(
 					: nls.localize('applyCodeActionFailed', "An unknown error occurred while applying the code action"));
 		}
 	}
-	// ensure the start sound and end sound do not overlap
 	setTimeout(() => accessibilitySignalService.playSignal(AccessibilitySignal.codeActionApplied), CODE_ACTION_SOUND_APPLIED_DURATION);
 }
 

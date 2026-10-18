@@ -16,11 +16,6 @@ export interface IInteractionService {
 	startInteraction(): void;
 }
 
-/**
- * Simple service that tracks an interaction with a chat service
- * This is used for grouping requests to a logical interaction with the UI
- * It is just used for telemetry collection so is not 100% accurate, especially in the case of parallel interactions
- */
 export class InteractionService implements IInteractionService {
 	_serviceBrand: undefined;
 	private _interactionId: string = generateUuid();

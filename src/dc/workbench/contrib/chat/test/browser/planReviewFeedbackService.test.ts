@@ -162,7 +162,6 @@ suite('PlanReviewFeedbackService - Navigation', () => {
 		service.addFeedback(planUri, 5, 1, 'line 5');
 		service.addFeedback(planUri, 10, 1, 'line 10');
 
-		// Expected order: 5, 10, 20
 		const first = service.getNextFeedback(planUri, true)!;
 		assert.strictEqual(first.line, 5);
 
@@ -172,7 +171,6 @@ suite('PlanReviewFeedbackService - Navigation', () => {
 		const third = service.getNextFeedback(planUri, true)!;
 		assert.strictEqual(third.line, 20);
 
-		// Wraps around
 		const fourth = service.getNextFeedback(planUri, true)!;
 		assert.strictEqual(fourth.line, 5);
 	});
@@ -182,7 +180,6 @@ suite('PlanReviewFeedbackService - Navigation', () => {
 		service.addFeedback(planUri, 10, 1, 'line 10');
 		service.addFeedback(planUri, 20, 1, 'line 20');
 
-		// First backward nav goes to last item
 		const first = service.getNextFeedback(planUri, false)!;
 		assert.strictEqual(first.line, 20);
 
@@ -192,7 +189,6 @@ suite('PlanReviewFeedbackService - Navigation', () => {
 		const third = service.getNextFeedback(planUri, false)!;
 		assert.strictEqual(third.line, 5);
 
-		// Wraps around
 		const fourth = service.getNextFeedback(planUri, false)!;
 		assert.strictEqual(fourth.line, 20);
 	});
@@ -202,22 +198,18 @@ suite('PlanReviewFeedbackService - Navigation', () => {
 		service.addFeedback(planUri, 5, 1, 'line 5');
 		service.addFeedback(planUri, 10, 1, 'line 10');
 
-		// Before navigation, no anchor
 		let bearing = service.getNavigationBearing(planUri);
 		assert.strictEqual(bearing.activeIdx, -1);
 		assert.strictEqual(bearing.totalCount, 3);
 
-		// Navigate to first (5)
 		service.getNextFeedback(planUri, true);
 		bearing = service.getNavigationBearing(planUri);
 		assert.strictEqual(bearing.activeIdx, 0);
 
-		// Navigate to second (10)
 		service.getNextFeedback(planUri, true);
 		bearing = service.getNavigationBearing(planUri);
 		assert.strictEqual(bearing.activeIdx, 1);
 
-		// Navigate to third (20)
 		service.getNextFeedback(planUri, true);
 		bearing = service.getNavigationBearing(planUri);
 		assert.strictEqual(bearing.activeIdx, 2);

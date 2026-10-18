@@ -20,15 +20,11 @@ suite('Buffer', () => {
 	});
 
 	test('issue #251527 - VSBuffer#toString preserves BOM character in filenames', () => {
-		// BOM character (U+FEFF) is a zero-width character that was being stripped
-		// when deserializing messages in the IPC layer. This test verifies that
-		// the BOM character is preserved when using VSBuffer.toString().
 		const bomChar = '\uFEFF';
 		const filename = `${bomChar}c.txt`;
 		const buffer = VSBuffer.fromString(filename);
 		const result = buffer.toString();
 
-		// Verify the BOM character is preserved
 		assert.strictEqual(result, filename);
 		assert.strictEqual(result.charCodeAt(0), 0xFEFF);
 	});
@@ -392,39 +388,36 @@ suite('Buffer', () => {
 		assert.strictEqual(errors.length, 0);
 	});
 
-	test('Performance issue with VSBuffer#slice #76076', function () { // TODO@alexdima this test seems to fail in web (https://github.com/microsoft/vscode/issues/114042)
-		// Buffer#slice creates a view
+	test('Performance issue with VSBuffer#slice #76076', function () {
 		if (typeof Buffer !== 'undefined') {
 			const buff = Buffer.from([10, 20, 30, 40]);
 			const b2 = buff.slice(1, 3);
 			assert.strictEqual(buff[1], 20);
 			assert.strictEqual(b2[0], 20);
 
-			buff[1] = 17; // modify buff AND b2
+			buff[1] = 17;
 			assert.strictEqual(buff[1], 17);
 			assert.strictEqual(b2[0], 17);
 		}
 
-		// TypedArray#slice creates a copy
 		{
 			const unit = new Uint8Array([10, 20, 30, 40]);
 			const u2 = unit.slice(1, 3);
 			assert.strictEqual(unit[1], 20);
 			assert.strictEqual(u2[0], 20);
 
-			unit[1] = 17; // modify unit, NOT b2
+			unit[1] = 17;
 			assert.strictEqual(unit[1], 17);
 			assert.strictEqual(u2[0], 20);
 		}
 
-		// TypedArray#subarray creates a view
 		{
 			const unit = new Uint8Array([10, 20, 30, 40]);
 			const u2 = unit.subarray(1, 3);
 			assert.strictEqual(unit[1], 20);
 			assert.strictEqual(u2[0], 20);
 
-			unit[1] = 17; // modify unit AND b2
+			unit[1] = 17;
 			assert.strictEqual(unit[1], 17);
 			assert.strictEqual(u2[0], 17);
 		}
@@ -474,11 +467,9 @@ suite('Buffer', () => {
 			VSBuffer.fromString('ghi')
 		];
 
-		// Test without total length
 		const result1 = VSBuffer.concat(chunks);
 		assert.strictEqual(result1.toString(), 'abcdefghi');
 
-		// Test with total length
 		const result2 = VSBuffer.concat(chunks, 9);
 		assert.strictEqual(result2.toString(), 'abcdefghi');
 	});
@@ -504,15 +495,12 @@ suite('Buffer', () => {
 	test('set', () => {
 		const buff = VSBuffer.alloc(5);
 
-		// Test setting from VSBuffer
 		buff.set(VSBuffer.fromString('ab'), 0);
 		assert.strictEqual(buff.toString().substring(0, 2), 'ab');
 
-		// Test setting from Uint8Array
-		buff.set(new Uint8Array([99, 100]), 2); // 'cd'
+		buff.set(new Uint8Array([99, 100]), 2);
 		assert.strictEqual(buff.toString().substring(2, 4), 'cd');
 
-		// Test invalid input
 		assert.throws(() => {
 			// eslint-disable-next-line local/code-no-any-casts
 			buff.set({} as any);
@@ -534,32 +522,18 @@ suite('Buffer', () => {
 	test('read/write methods', () => {
 		const buff = VSBuffer.alloc(8);
 
-		// Test UInt32BE
 		buff.writeUInt32BE(0x12345678, 0);
 		assert.strictEqual(buff.readUInt32BE(0), 0x12345678);
 
-		// Test UInt32LE
 		buff.writeUInt32LE(0x12345678, 4);
 		assert.strictEqual(buff.readUInt32LE(4), 0x12345678);
 
-		// Test UInt8
 		const buff2 = VSBuffer.alloc(1);
 		buff2.writeUInt8(123, 0);
 		assert.strictEqual(buff2.readUInt8(0), 123);
 	});
 
 	suite('encoding', () => {
-		/*
-		Generated with:
-
-		const crypto = require('crypto');
-
-		for (let i = 0; i < 16; i++) {
-			const buf =  crypto.randomBytes(i);
-			console.log(`[new Uint8Array([${Array.from(buf).join(', ')}]), '${buf.toString('base64')}'],`)
-		}
-
-		*/
 
 		const testCases: [Uint8Array, base64: string, hex: string][] = [
 			[new Uint8Array([]), '', ''],

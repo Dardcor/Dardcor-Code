@@ -3,12 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*
- * The widget supplies its own padding and border-radius via `.post-update-widget`,
- * so we strip the compact hover's contents padding. The selector below is at least as
- * specific as `.monaco-hover.workbench-hover.compact .hover-contents` and loads after it,
- * so it wins without `!important`.
- */
 .monaco-hover.workbench-hover.post-update-widget-hover .hover-contents {
 	padding: 0;
 }
@@ -25,7 +19,6 @@
 	overflow: hidden;
 }
 
-/* Banner */
 .post-update-widget .banner {
 	position: relative;
 	aspect-ratio: 16 / 5;
@@ -33,7 +26,6 @@
 	background-position: center;
 	background-size: cover;
 	background-repeat: no-repeat;
-	/* Default: VS Code "copilot free" gradient (recreated with layered radial gradients) */
 	background-color: #0b1020;
 	background-image:
 		radial-gradient(ellipse 60% 80% at 12% 90%, rgba(132, 204, 22, 0.55), transparent 60%),
@@ -65,7 +57,6 @@
 	background-color: var(--vscode-toolbar-hoverBackground);
 }
 
-/* Body */
 .post-update-widget .body {
 	display: flex;
 	flex-direction: column;
@@ -73,7 +64,6 @@
 	padding: 16px;
 }
 
-/* Badge */
 .post-update-widget .badge {
 	align-self: flex-start;
 	padding: 2px 8px;
@@ -86,7 +76,6 @@
 	text-transform: none;
 }
 
-/* Title */
 .post-update-widget .title {
 	font-weight: 600;
 	font-size: 16px;
@@ -94,7 +83,6 @@
 	color: var(--vscode-foreground);
 }
 
-/* Features */
 .post-update-widget .features {
 	display: flex;
 	flex-direction: column;
@@ -135,12 +123,10 @@
 	line-height: 1.4;
 }
 
-/* Markdown fallback */
 .post-update-widget .update-markdown {
 	color: var(--vscode-foreground);
 }
 
-/* Button bar */
 .post-update-widget .button-bar {
 	display: flex;
 	justify-content: flex-end;

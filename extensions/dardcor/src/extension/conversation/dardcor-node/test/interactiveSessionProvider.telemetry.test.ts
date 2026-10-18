@@ -37,15 +37,13 @@ suite('Conversation telemetry tests - Integration tests', function () {
 				{ agentName: '', agentId: '' },
 				() => false,
 				undefined);
-			await session.getResult(); // and throw away the result
+			await session.getResult();
 		});
 		assert.ok(allEvents(messages));
 		const names = messages
 			.map(message => message.data.baseData.name.split('/')[1])
-			// in case we need a new Copilot token, we don't care about the messages that triggers
 			.filter(name => !['auth.new_login', 'auth.new_token'].includes(name));
 
-		// Check client telemetry events
 		orderMatches(
 			[
 				'conversation.message',
@@ -63,71 +61,57 @@ suite('Conversation telemetry tests - Integration tests', function () {
 			names.filter(name => name !== 'log').sort()
 		);
 
-		// Check there exists a conversation.message event for the user with the correct properties and measurements
 		const userMessage = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'conversation.message' &&
 				message.data.baseData.properties.source === 'user'
 		);
 		const userMessageId = userMessage?.data.baseData.properties.messageId;
-		// conversation.message event exists
 		assert.ok(userMessage, 'conversation.message event for user message does not exist');
-		// Turn index is 0 because this is the first message in the conversation
 		assert.ok(
 			userMessage.data.baseData.properties.turnIndex === '0',
 			'conversation.message event for user message has turn index != 0'
 		);
-		// Message length equals the length of the message text
 		assert.ok(
 			userMessage.data.baseData.measurements.messageCharLen === messageText.length,
 			'conversation.message event for user message has incorrect message length'
 		);
-		// Check there exists a conversation.messageText event for the user with the correct properties and measurements
 		const userMessageText = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'conversation.messageText' &&
 				message.data.baseData.properties.messageId === userMessageId
 		);
-		// conversation.messageText event exists with matching messageId
 		assert.ok(userMessageText, 'conversation.messageText event for user message does not exist');
 		assert.ok(
 			userMessageText.data.baseData.properties.messageText === messageText,
 			'conversation.messageText event for user message has incorrect message text'
 		);
 
-		// Check there exists a request.sent event with matching messageId
 		const userMessageRequest = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'request.sent' &&
 				message.data.baseData.properties.messageId === userMessageId
 		);
-		// request.sent event exists with matching messageId
 		assert.ok(userMessageRequest, 'request.sent event for user message does not exist');
 
-		// Check there exists a request.response event with matching messageId
 		const userMessageResponse = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'request.response' &&
 				message.data.baseData.properties.messageId === userMessageId
 		);
-		// request.sent event exists with matching messageId
 		assert.ok(userMessageResponse, 'request.response event for user message does not exist');
 
-		// Check there exists a engine.messages event with matching messageId
 		const userMessageEngine = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'engine.messages' &&
 				message.data.baseData.properties.messageId === userMessageId
 		);
-		// engine.messages event exists with matching messageId
 		assert.ok(userMessageEngine, 'engine.messages event for user message does not exist');
-		// Check that the engine.messages event has a messagesJson property with length greater than or equal to message
 		assert.ok(
 			userMessageEngine.data.baseData.properties.messagesJson.length >= messageText.length,
 			'engine.messages event for user message has messagesJson property with length < message length'
 		);
 
-		// Check there exists a engine.messages.length event with matching messageId
 		const userMessageEngineLength = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'engine.messages.length' &&
@@ -135,7 +119,6 @@ suite('Conversation telemetry tests - Integration tests', function () {
 		);
 		assert.ok(userMessageEngineLength, 'engine.messages.length event for user message does not exist');
 
-		// Check there exists a model.request.added event with matching headerRequestId
 		const modelRequestAdded = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'model.request.added' &&
@@ -143,7 +126,6 @@ suite('Conversation telemetry tests - Integration tests', function () {
 		);
 		assert.ok(modelRequestAdded, 'model.request.added event for user message does not exist');
 
-		// Check there exists a model.message.added event with messageUuid
 		const modelMessageAdded = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'model.message.added' &&
@@ -151,7 +133,6 @@ suite('Conversation telemetry tests - Integration tests', function () {
 		);
 		assert.ok(modelMessageAdded, 'model.message.added event for user message does not exist');
 
-		// Check there exists a model.modelCall.input event with modelCallId
 		const modelCallInput = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'model.modelCall.input' &&
@@ -159,7 +140,6 @@ suite('Conversation telemetry tests - Integration tests', function () {
 		);
 		assert.ok(modelCallInput, 'model.modelCall.input event for user message does not exist');
 
-		// Check there exists a model.request.options.added event with requestOptionsId
 		const modelRequestOptionsAdded = messages.find(
 			message =>
 				message.data.baseData.name.split('/')[1] === 'model.request.options.added' &&

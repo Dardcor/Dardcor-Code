@@ -10,7 +10,6 @@ import { IModelContentChange } from '../../mirrorTextModel.js';
 
 export class TextEditInfo {
 	public static fromModelContentChanges(changes: IModelContentChange[]): TextEditInfo[] {
-		// Must be sorted in ascending order
 		const edits = changes.map(c => {
 			const range = Range.lift(c.range);
 			return new TextEditInfo(
@@ -41,27 +40,17 @@ export class BeforeEditPositionMapper {
 	private deltaLineIdxInOld = -1;
 	private readonly edits: readonly TextEditInfoCache[];
 
-	/**
-	 * @param edits Must be sorted by offset in ascending order.
-	*/
 	constructor(
 		edits: readonly TextEditInfo[],
 	) {
 		this.edits = edits.map(edit => TextEditInfoCache.from(edit));
 	}
 
-	/**
-	 * @param offset Must be equal to or greater than the last offset this method has been called with.
-	*/
 	getOffsetBeforeChange(offset: Length): Length {
 		this.adjustNextEdit(offset);
 		return this.translateCurToOld(offset);
 	}
 
-	/**
-	 * @param offset Must be equal to or greater than the last offset this method has been called with.
-	 * Returns null if there is no edit anymore.
-	*/
 	getDistanceToNextChange(offset: Length): Length | null {
 		this.adjustNextEdit(offset);
 
@@ -95,16 +84,13 @@ export class BeforeEditPositionMapper {
 		while (this.nextEditIdx < this.edits.length) {
 			const nextEdit = this.edits[this.nextEditIdx];
 
-			// After applying the edit, what is its end offset (considering all previous edits)?
 			const nextEditEndOffsetInCur = this.translateOldToCur(nextEdit.endOffsetAfterObj);
 
 			if (lengthLessThanEqual(nextEditEndOffsetInCur, offset)) {
-				// We are after the edit, skip it
 				this.nextEditIdx++;
 
 				const nextEditEndOffsetInCurObj = lengthToObj(nextEditEndOffsetInCur);
 
-				// Before applying the edit, what is its end offset (considering all previous edits)?
 				const nextEditEndOffsetBeforeInCurObj = lengthToObj(this.translateOldToCur(nextEdit.endOffsetBeforeObj));
 
 				const lineDelta = nextEditEndOffsetInCurObj.lineCount - nextEditEndOffsetBeforeInCurObj.lineCount;
@@ -115,7 +101,6 @@ export class BeforeEditPositionMapper {
 				this.deltaOldToNewColumnCount = previousColumnDelta + columnDelta;
 				this.deltaLineIdxInOld = nextEdit.endOffsetBeforeObj.lineCount;
 			} else {
-				// We are in or before the edit.
 				break;
 			}
 		}

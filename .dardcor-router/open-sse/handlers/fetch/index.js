@@ -1,24 +1,8 @@
-// Web Fetch handler — dispatches to firecrawl, jina-reader, tavily, exa, ollama
-// Returns normalized shape across all providers
 
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_FORMAT = "markdown";
 
-/**
- * @typedef {Object} FetchResult
- * @property {boolean} success
- * @property {number} [status]
- * @property {string} [error]
- * @property {Object} [data]
- */
 
-/**
- * Fetch with timeout abort.
- * @param {string} url
- * @param {RequestInit} init
- * @param {number} timeoutMs
- */
-// Strip non-ASCII chars from header values (HTTP headers must be ByteString).
 function sanitizeHeaders(headers) {
   if (!headers) return headers;
   const out = {};
@@ -78,18 +62,6 @@ async function readJsonOrText(res) {
   return { text: await res.text() };
 }
 
-/**
- * Main handler.
- * @param {Object} params
- * @param {string} params.url
- * @param {string} [params.format]
- * @param {number} [params.maxCharacters]
- * @param {string} params.provider
- * @param {Object} [params.providerConfig]
- * @param {Object} [params.credentials]
- * @param {Function} [params.log]
- * @returns {Promise<FetchResult>}
- */
 export async function handleFetchCore({ url, format, maxCharacters, provider, providerConfig, credentials, log }) {
   if (!url || typeof url !== "string") {
     return { success: false, status: 400, error: "url is required" };

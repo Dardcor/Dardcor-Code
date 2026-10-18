@@ -35,13 +35,13 @@ suite('LineTokens', () => {
 		return createLineTokens(
 			'Hello world, this is a lovely day',
 			[
-				{ startIndex: 0, foreground: 1 }, // Hello_
-				{ startIndex: 6, foreground: 2 }, // world,_
-				{ startIndex: 13, foreground: 3 }, // this_
-				{ startIndex: 18, foreground: 4 }, // is_
-				{ startIndex: 21, foreground: 5 }, // a_
-				{ startIndex: 23, foreground: 6 }, // lovely_
-				{ startIndex: 30, foreground: 7 }, // day
+				{ startIndex: 0, foreground: 1 },
+				{ startIndex: 6, foreground: 2 },
+				{ startIndex: 13, foreground: 3 },
+				{ startIndex: 18, foreground: 4 },
+				{ startIndex: 21, foreground: 5 },
+				{ startIndex: 23, foreground: 6 },
+				{ startIndex: 30, foreground: 7 },
 			]
 		);
 	}

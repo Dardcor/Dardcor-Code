@@ -15,27 +15,19 @@ import {
 	type ICodexAppServerTransport,
 } from '../../../node/codex/codexAppServerClient.js';
 
-// #region In-memory fake transport
-//
-// Two `PassThrough` streams paired so the test's "peer" side reads what
-// the client writes, and vice versa. Mirrors the shape of a real spawned
-// process from the client's perspective.
 
 interface IFakePeer {
 	readonly transport: ICodexAppServerTransport;
-	/** Lines the client wrote (sent to the server). */
 	readonly outbound: PassThrough;
 	readonly killCount: number;
-	/** Inject a wire message from server → client. Newline-terminated. */
 	push(message: object): void;
-	/** Simulate the codex process exiting. */
 	exit(code: number | null, signal?: NodeJS.Signals | null): void;
 	dispose(): void;
 }
 
 function makeFakePeer(): IFakePeer {
-	const clientStdin = new PassThrough();   // client writes here, peer reads
-	const clientStdout = new PassThrough();  // peer writes here, client reads
+	const clientStdin = new PassThrough();
+	const clientStdout = new PassThrough();
 	const exitEmitter = new Emitter<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>();
 	const onceExitListeners: ((e: { readonly code: number | null; readonly signal: NodeJS.Signals | null }) => void)[] = [];
 	let killed = false;
@@ -84,10 +76,6 @@ function makeFakePeer(): IFakePeer {
 	};
 }
 
-/**
- * Consume newline-delimited JSON from a stream. Resolves with the next
- * complete message; rejects if `timeoutMs` elapses or the stream ends.
- */
 function readNextMessage(stream: PassThrough, timeoutMs = 1_000): Promise<unknown> {
 	return new Promise((resolve, reject) => {
 		let buf = '';
@@ -123,7 +111,6 @@ function readNextMessage(stream: PassThrough, timeoutMs = 1_000): Promise<unknow
 	});
 }
 
-// #endregion
 
 suite('CodexAppServerClient', () => {
 
@@ -133,14 +120,12 @@ suite('CodexAppServerClient', () => {
 		const peer = makeFakePeer();
 		const client = new CodexAppServerClient(peer.transport);
 		try {
-			// Issue a request and capture what's written on the wire.
 			const responsePromise = client.request<'getAuthStatus'>('getAuthStatus', { refreshToken: false, includeToken: false });
 			const sent = await readNextMessage(peer.outbound) as { id: number; method: string; params: unknown };
 			assert.strictEqual(sent.method, 'getAuthStatus');
 			assert.deepStrictEqual(sent.params, { refreshToken: false, includeToken: false });
 			assert.strictEqual(typeof sent.id, 'number');
 
-			// Reply with success.
 			peer.push({ id: sent.id, result: { authMode: 'apikey' } });
 			const result = await responsePromise as { authMode: string };
 			assert.deepStrictEqual(result, { authMode: 'apikey' });
@@ -234,7 +219,6 @@ suite('CodexAppServerClient', () => {
 			const received: unknown[] = [];
 			const handle = client.onNotification('thread/started', params => received.push(params));
 			peer.push({ method: 'thread/started', params: { thread: { id: 'thr_x' } } });
-			// Give the data event a tick.
 			await new Promise(r => setImmediate(r));
 			assert.deepStrictEqual(received, [{ thread: { id: 'thr_x' } }]);
 			handle.dispose();
@@ -319,7 +303,6 @@ suite('CodexAppServerClient', () => {
 		const client = new CodexAppServerClient(peer.transport);
 		try {
 			const responsePromise = client.request('getAuthStatus', { refreshToken: false, includeToken: false });
-			// Consume the outbound write so the request is fully dispatched.
 			await readNextMessage(peer.outbound);
 			peer.exit(1);
 			await assert.rejects(responsePromise, (err: unknown) => {
@@ -359,7 +342,6 @@ suite('CodexAppServerClient', () => {
 			const received: string[] = [];
 			const h1 = client.onNotification('thread/started', () => received.push('a'));
 			const h2 = client.onNotification('turn/started', () => received.push('b'));
-			// Two NDJSON lines in one chunk.
 			peer.transport.stdout.emit('data', JSON.stringify({ method: 'thread/started', params: { thread: { id: 't' } } }) + '\n' + JSON.stringify({ method: 'turn/started', params: { turn: { id: 'x' } } }) + '\n');
 			await new Promise(r => setImmediate(r));
 			assert.deepStrictEqual(received, ['a', 'b']);

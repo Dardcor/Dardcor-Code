@@ -30,7 +30,6 @@ export class Location {
 		this.uri = uri;
 
 		if (!rangeOrPosition) {
-			//that's OK
 		} else if (Range.isRange(rangeOrPosition)) {
 			this.range = Range.of(rangeOrPosition);
 		} else if (Position.isPosition(rangeOrPosition)) {

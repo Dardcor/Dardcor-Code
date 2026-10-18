@@ -13,28 +13,13 @@ import { extractIdentifier, isDocumentableNode, unwrapPythonDecoratedDefinition 
 
 export type NodeToDocumentContext = {
 
-	/** is undefined when we couldn't determine the identifier */
 	nodeIdentifier: string | undefined;
 
 	nodeToDocument: Node;
 
-	/**
-	 * 'expanding' - selection was expanded to a wrapping node
-	 * 'matchingSelection' - node was picked by observing range overlap with the selection
-	 */
 	nodeSelectionBy: 'expanding' | 'matchingSelection';
 };
 
-/**
- * Starting from the smallest AST node that wraps `selection` and climbs up the AST until it sees a "documentable" node.
- * See {@link isDocumentableNode} for definition of a "documentable" node.
- *
- * @param language The language ID of the source code.
- * @param source The source code to parse.
- * @param selection The range to document.
- * @returns An object containing the smallest node containing the selection range, its parent node, the node to document, and the number of nodes climbed up to reach the documentable node.
- * 			Returns undefined if the language ID is not supported.
- */
 export async function _getNodeToDocument(
 	language: WASMLanguage,
 	source: string,
@@ -45,8 +30,6 @@ export async function _getNodeToDocument(
 
 	try {
 
-		// if selection is non-empty, try identify a documentable AST node that most matches the selection
-		// otherwise, try to find the smallest documentable AST node that wraps the selection
 
 		const isSelectionEmpty = selection.startIndex === selection.endIndex;
 
@@ -67,7 +50,6 @@ export async function _getNodeToDocument(
 		let nodeToDocument: SyntaxNode = nodeContainingCursor;
 		let nNodesClimbedUp = 0;
 
-		// ascend the parse tree until we find a declaration/definition (documentable) node or reach the root node
 		while (!isDocumentableNode(nodeToDocument, language) && nodeToDocument.parent !== null) {
 			nodeToDocument = nodeToDocument.parent;
 			++nNodesClimbedUp;

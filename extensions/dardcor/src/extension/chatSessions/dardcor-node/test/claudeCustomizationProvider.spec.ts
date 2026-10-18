@@ -64,7 +64,7 @@ class MockFileSystemService extends mock<IFileSystemService>() {
 		if (!this._files.has(uri.toString())) {
 			throw new Error(`File not found: ${uri.toString()}`);
 		}
-		return { type: 1 /* File */, ctime: 0, mtime: 0, size: this._files.get(uri.toString())!.length };
+		return { type: 1 , ctime: 0, mtime: 0, size: this._files.get(uri.toString())!.length };
 	}
 	override async readFile(uri: URI): Promise<Uint8Array> {
 		const content = this._files.get(uri.toString());
@@ -269,7 +269,6 @@ describe('ClaudeCustomizationProvider', () => {
 		});
 
 		it('only reports instruction files that exist', async () => {
-			// Only set one of the five possible paths
 			const uri = URI.joinPath(URI.file('/workspace'), 'CLAUDE.md');
 			mockFileSystemService.setFile(uri, '# Only this one');
 

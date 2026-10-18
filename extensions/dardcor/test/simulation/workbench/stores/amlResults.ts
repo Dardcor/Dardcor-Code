@@ -8,7 +8,6 @@ import type * as vscode from 'vscode';
 import { OutputAnnotation } from '../../shared/sharedTypes';
 import { AMLRunKind } from './amlSimulations';
 
-/** Copied from src/base/conversation/context/resolvers/gitRepository.ts */
 interface RepoContext {
 	readonly name: string;
 	readonly headBranchName: string | undefined;
@@ -17,10 +16,6 @@ interface RepoContext {
 	readonly remotes: string[];
 }
 
-/*
- * Copied from src/base/conversation/context/promptContextModel.ts
- * because workbench tsconfig restricts importing from `promptContextModel` for some reason.
- */
 interface ISerializedWorkspaceState {
 	readonly workspaceFoldersFilePaths: string[] | undefined;
 	readonly activeTextEditor: {
@@ -45,7 +40,6 @@ interface ISerializedWorkspaceState {
 	readonly terminalSelection: string;
 }
 
-/** Type for `response` field of `<experiment>_scored_predictions.csv` */
 export type Response = {
 	originalFilePath: string;
 	fileBefore: string;
@@ -53,10 +47,6 @@ export type Response = {
 	logFileContents: string;
 	conversationFileContents: string;
 
-	/**
-	 * This needs to be of type `promptContextModel.ISerializedWorkspaceState`,
-	 * but workbench tsconfig restricts importing from `promptContextModel` for some reason.
-	 * We don't need this property for now, so we can leave it as an `object` for now. */
 	workspaceStateFileContents: ISerializedWorkspaceState;
 };
 
@@ -72,7 +62,6 @@ export type EvaluationError = {
 
 export type TestRunEvaluation = {
 	caseName: string;
-	/** the n-th run for this case? 0-based */
 	nId: number;
 	languageId: string;
 	isSuccess: boolean;
@@ -87,11 +76,10 @@ export type TestRunEvaluation = {
 	expectedDiff?: string;
 };
 
-// parses each line in `<component>_scored_predictions.csv` into a TestRunEvaluation
 function _parseScoredPredictionsCsv(kind: AMLRunKind, fileContents: string[]): TestRunEvaluation[] {
 	return fileContents.map((line, i) => {
 
-		const json: any = JSON.parse(line); // may throw but not sure if we should have a way to recover
+		const json: any = JSON.parse(line);
 
 		let stdout: string | undefined;
 		let stderr: string | undefined;
@@ -219,8 +207,6 @@ export type TestRunsEvaluation = {
 	expectedDiff?: string;
 };
 
-// parses lines in `<component>_scored_predictions.csv` and aggregates them into
-// a format that is easier to use for our purposes
 export function parseScoredPredictionsCsv(kind: AMLRunKind, fileContents: string[]): TestRunsEvaluation[] {
 
 	const testRunEvals = _parseScoredPredictionsCsv(kind, fileContents);

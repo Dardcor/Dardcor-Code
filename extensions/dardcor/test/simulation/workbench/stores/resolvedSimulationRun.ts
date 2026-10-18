@@ -8,9 +8,6 @@ import { ObservablePromise } from '../utils/utils';
 import { SimulationRunsProvider } from './simulationBaseline';
 import { SimulationRunner, TestRuns } from './simulationRunner';
 
-/**
- * Provides the current selected baseline (resolved with test runs info)
- */
 
 export class ResolvedSimulationRun {
 

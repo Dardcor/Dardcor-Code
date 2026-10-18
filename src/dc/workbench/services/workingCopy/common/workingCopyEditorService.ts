@@ -16,20 +16,10 @@ export const IWorkingCopyEditorService = createDecorator<IWorkingCopyEditorServi
 
 export interface IWorkingCopyEditorHandler {
 
-	/**
-	 * Whether the handler is capable of opening the specific backup in
-	 * an editor.
-	 */
 	handles(workingCopy: IWorkingCopyIdentifier): boolean | Promise<boolean>;
 
-	/**
-	 * Whether the provided working copy is opened in the provided editor.
-	 */
 	isOpen(workingCopy: IWorkingCopyIdentifier, editor: EditorInput): boolean;
 
-	/**
-	 * Create an editor that is suitable of opening the provided working copy.
-	 */
 	createEditor(workingCopy: IWorkingCopyIdentifier): EditorInput | Promise<EditorInput>;
 }
 
@@ -37,19 +27,10 @@ export interface IWorkingCopyEditorService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * An event fired whenever a handler is registered.
-	 */
 	readonly onDidRegisterHandler: Event<IWorkingCopyEditorHandler>;
 
-	/**
-	 * Register a handler to the working copy editor service.
-	 */
 	registerHandler(handler: IWorkingCopyEditorHandler): IDisposable;
 
-	/**
-	 * Finds the first editor that can handle the provided working copy.
-	 */
 	findEditor(workingCopy: IWorkingCopy): IEditorIdentifier | undefined;
 }
 
@@ -68,7 +49,6 @@ export class WorkingCopyEditorService extends Disposable implements IWorkingCopy
 
 	registerHandler(handler: IWorkingCopyEditorHandler): IDisposable {
 
-		// Add to registry and emit as event
 		this.handlers.add(handler);
 		this._onDidRegisterHandler.fire(handler);
 
@@ -96,5 +76,4 @@ export class WorkingCopyEditorService extends Disposable implements IWorkingCopy
 	}
 }
 
-// Register Service
 registerSingleton(IWorkingCopyEditorService, WorkingCopyEditorService, InstantiationType.Delayed);

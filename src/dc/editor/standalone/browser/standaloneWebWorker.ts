@@ -8,46 +8,19 @@ import { IWebWorkerService } from '../../../platform/webWorker/browser/webWorker
 import { EditorWorkerClient } from '../../browser/services/editorWorkerService.js';
 import { IModelService } from '../../common/services/model.js';
 
-/**
- * Create a new web worker that has model syncing capabilities built in.
- * Specify an AMD module to load that will `create` an object that will be proxied.
- */
 export function createWebWorker<T extends object>(modelService: IModelService, webWorkerService: IWebWorkerService, opts: IInternalWebWorkerOptions): MonacoWebWorker<T> {
 	return new MonacoWebWorkerImpl<T>(modelService, webWorkerService, opts);
 }
 
-/**
- * A web worker that can provide a proxy to an arbitrary file.
- */
 export interface MonacoWebWorker<T> {
-	/**
-	 * Terminate the web worker, thus invalidating the returned proxy.
-	 */
 	dispose(): void;
-	/**
-	 * Get a proxy to the arbitrary loaded code.
-	 */
 	getProxy(): Promise<T>;
-	/**
-	 * Synchronize (send) the models at `resources` to the web worker,
-	 * making them available in the monaco.worker.getMirrorModels().
-	 */
 	withSyncedResources(resources: URI[]): Promise<T>;
 }
 
 export interface IInternalWebWorkerOptions {
-	/**
-	 * The worker.
-	 */
 	worker: Worker | Promise<Worker>;
-	/**
-	 * An object that can be used by the web worker to make calls back to the main thread.
-	 */
 	host?: Record<string, Function>;
-	/**
-	 * Keep idle models.
-	 * Defaults to false, which means that idle models will stop syncing after a while.
-	 */
 	keepIdleModels?: boolean;
 }
 
@@ -63,7 +36,6 @@ class MonacoWebWorkerImpl<T extends object> extends EditorWorkerClient implement
 			return new Proxy({}, {
 				get(target, prop, receiver) {
 					if (prop === 'then') {
-						// Don't forward the call when the proxy is returned in an async function and the runtime tries to .then it.
 						return undefined;
 					}
 					if (typeof prop !== 'string') {
@@ -77,7 +49,6 @@ class MonacoWebWorkerImpl<T extends object> extends EditorWorkerClient implement
 		});
 	}
 
-	// foreign host request
 	public override fhr(method: string, args: unknown[]): Promise<unknown> {
 		if (!this._foreignModuleHost || typeof this._foreignModuleHost[method] !== 'function') {
 			return Promise.reject(new Error('Missing method ' + method + ' or missing main thread foreign host.'));

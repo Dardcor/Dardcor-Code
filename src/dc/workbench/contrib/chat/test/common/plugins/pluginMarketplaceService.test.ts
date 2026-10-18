@@ -188,8 +188,6 @@ suite('PluginMarketplaceService', () => {
 		assert.strictEqual(ssh?.kind, MarketplaceReferenceKind.GitUri);
 		assert.strictEqual(ssh?.canonicalId, 'git:git@example.com/org/repo.git');
 
-		// SCP-style (git@host:path) still requires .git because the colon-path syntax is
-		// unambiguous only for traditional git SSH URLs where .git is conventional.
 		assert.strictEqual(parseMarketplaceReference('git@example.com:org/repo'), undefined);
 	});
 
@@ -202,7 +200,6 @@ suite('PluginMarketplaceService', () => {
 		assert.deepStrictEqual(parsed?.cacheSegments, ['plugins.internal.example.com']);
 		assert.strictEqual(parsed?.githubRepo, undefined);
 
-		// Trailing slash collapses to the host-only form.
 		const withSlash = parseMarketplaceReference('https://plugins.internal.example.com/');
 		assert.strictEqual(withSlash?.canonicalId, 'git:plugins.internal.example.com/');
 	});
@@ -223,7 +220,6 @@ suite('PluginMarketplaceService', () => {
 		assert.strictEqual(refs[0].kind, MarketplaceReferenceKind.GitUri);
 		assert.strictEqual(refs[2].kind, MarketplaceReferenceKind.GitHubShorthand);
 		assert.deepStrictEqual(refs.map(r => r.autoUpdate), [true, false, undefined]);
-		// Effective values union user + extra
 		assert.strictEqual(effectiveValues.length, extraValues.length);
 	});
 
@@ -283,14 +279,6 @@ suite('PluginMarketplaceService', () => {
 	});
 
 	test('extraKnownMarketplacesToConfigDict: end-to-end policy → config dict → readConfiguredMarketplaces → parseMarketplaceReferences', () => {
-		// Simulates the full ChatExtraMarketplaces policy delivery pipeline:
-		//  1. managed_settings response is adapted into IExtraKnownMarketplaceEntry[]
-		//  2. extraKnownMarketplacesToConfigDict converts to the dict shape the
-		//     `chat.plugins.extraMarketplaces` setting stores
-		//  3. The policy framework serializes/deserializes that as JSON
-		//  4. readConfiguredMarketplaces reverses it back to nested entry shape
-		//  5. parseMarketplaceReferences resolves marketplace references that
-		//     preserve `displayLabel = name` (required for `plugin@<name>` keys)
 		const policyEntries = [
 			{ name: 'acme-internal', source: { source: 'git' as const, url: 'https://plugins.internal.acme.com' } },
 			{ name: 'acme-public', source: { source: 'git' as const, url: 'https://copilot-plugins.acme.io' } },
@@ -300,7 +288,6 @@ suite('PluginMarketplaceService', () => {
 		const dict = extraKnownMarketplacesToConfigDict(policyEntries);
 		assert.ok(dict);
 
-		// JSON round-trip mirrors what AccountPolicyService / PolicyConfiguration do.
 		const roundTripped = JSON.parse(JSON.stringify(dict));
 
 		const configService = new TestConfigurationService({
@@ -339,11 +326,6 @@ suite('PluginMarketplaceService', () => {
 	});
 
 	test('github.com URI form and GitHub shorthand form share the same canonicalId (policy trust comparisons must match)', () => {
-		// Regression: under strictMarketplaces, isMarketplaceTrusted compares
-		// canonicalId. A plugin discovered from `https://github.com/microsoft/vscode-team-kit.git`
-		// was being blocked even though `microsoft/vscode-team-kit` was in the
-		// trusted list, because the URI parser produced a `git:` canonicalId
-		// while the shorthand parser produced a `github:` one.
 		const shorthand = parseMarketplaceReference('microsoft/vscode-team-kit');
 		const httpsWithGit = parseMarketplaceReference('https://github.com/microsoft/vscode-team-kit.git');
 		const httpsWithoutGit = parseMarketplaceReference('https://github.com/microsoft/vscode-team-kit');
@@ -356,7 +338,6 @@ suite('PluginMarketplaceService', () => {
 		assert.strictEqual(httpsWithoutGit!.canonicalId, shorthand!.canonicalId);
 		assert.strictEqual(scp!.canonicalId, shorthand!.canonicalId);
 
-		// All four forms should collapse to a single entry when deduplicated.
 		const deduped = parseMarketplaceReferences([
 			'microsoft/vscode-team-kit',
 			'https://github.com/microsoft/vscode-team-kit.git',
@@ -378,8 +359,6 @@ suite('PluginMarketplaceService', () => {
 	});
 
 	test('deduplicates github.com URI, SSH, and shorthand to the same canonical id', () => {
-		// All three forms refer to the same marketplace, so policy trust
-		// comparisons (which match by canonicalId) must collapse them.
 		const parsed = parseMarketplaceReferences([
 			'microsoft/vscode',
 			'https://github.com/microsoft/vscode.git',
@@ -415,8 +394,6 @@ suite('PluginMarketplaceService', () => {
 			'https://github.com/microsoft/vscode.git#marketplace',
 		]);
 
-		// `https://github.com/...#marketplace` collapses with the shorthand
-		// (same canonical id), so we expect 2 distinct refs not 3.
 		assert.deepStrictEqual(parsed.map(r => r.canonicalId), [
 			'github:microsoft/vscode#main',
 			'github:microsoft/vscode#marketplace',
@@ -1128,7 +1105,6 @@ suite('PluginMarketplaceService - hydration after restart', () => {
 				return descriptor.path ? URI.joinPath(base, descriptor.path) : base;
 			}
 			if (descriptor.kind === PluginSourceKind.RelativePath) {
-				// Tests using this stub only exercise non-relative descriptors via this entry point.
 				throw new Error('RelativePath should not reach getPluginSourceInstallUri in hydration tests');
 			}
 			throw new Error(`Unhandled source kind in test stub: ${descriptor.kind}`);
@@ -1171,11 +1147,6 @@ suite('PluginMarketplaceService - hydration after restart', () => {
 	}
 
 	test('hydrates a github-sourced plugin from installed.json name and marketplace cache after restart', async () => {
-		// Simulates: user installs the "azure" plugin from the
-		// "github/awesome-copilot#marketplace" marketplace (fetched via HTTP, never
-		// cloned). After restart, installed.json contains only the durable
-		// identity for that plugin; the full descriptor is recovered from
-		// marketplace data cached from the prior fetch.
 
 		const storageService = store.add(new InMemoryStorageService());
 		const fileService = new TestFileService();
@@ -1221,7 +1192,6 @@ suite('PluginMarketplaceService - hydration after restart', () => {
 
 		const service = store.add(instantiationService.createInstance(PluginMarketplaceService));
 
-		// FileBackedInstalledPluginsStore initialises asynchronously.
 		for (let i = 0; i < 50; i++) {
 			if (service.installedPlugins.get().length === 1) {
 				break;
@@ -1237,17 +1207,6 @@ suite('PluginMarketplaceService - hydration after restart', () => {
 	});
 
 	test('hydrates a single-plugin GitHub repo installed from source after restart', async () => {
-		// Simulates: user runs "Install from Source" on a repository that
-		// contains a single plugin manifest and no marketplace.json (e.g.
-		// microsoft/vscode-corpus). There is no marketplace index to look the
-		// plugin up in, so the descriptor must be recovered from the manifest
-		// in the recorded install directory.
-		//
-		// A `#ref` reference is used so the recorded clone directory and the
-		// marketplace directory derived from the reference differ: the clone
-		// lands in `github.com/microsoft/vscode-corpus` (the source descriptor
-		// carries no ref) while the reference derives a `ref_main` suffix.
-		// Only reading the manifest from the recorded `pluginUri` finds it.
 		const storageService = store.add(new InMemoryStorageService());
 		const fileService = new TestFileService();
 
@@ -1312,11 +1271,6 @@ suite('PluginMarketplaceService - hydration after restart', () => {
 	});
 
 	test('does not reclassify a marketplace plugin that the marketplace no longer lists', async () => {
-		// A plugin renamed or removed in its marketplace must stay unhydrated.
-		// Marketplace plugin directories usually carry a manifest too, so
-		// falling back to it would rebuild the entry as a direct source rooted
-		// at the marketplace repository and send later updates to the wrong
-		// repository and path.
 		const storageService = store.add(new InMemoryStorageService());
 		const fileService = new TestFileService();
 
@@ -1371,9 +1325,6 @@ suite('PluginMarketplaceService - hydration after restart', () => {
 	});
 
 	test('persists plugin name when a plugin is added so it survives a restart', async () => {
-		// First service writes installed.json, second service (sharing the
-		// same file system + storage) reads it back and must reconstruct
-		// the plugin from its stored name plus marketplace data.
 		const storageService = store.add(new InMemoryStorageService());
 		const fileService = new TestFileService();
 
@@ -1409,13 +1360,9 @@ suite('PluginMarketplaceService - hydration after restart', () => {
 			return store.add(instantiationService.createInstance(PluginMarketplaceService));
 		}
 
-		// First session: install the plugin.
 		const first = makeService();
-		// Wait for FileBackedInstalledPluginsStore to finish initialisation
-		// so that subsequent writes are flushed to the file service.
 		await timeout(20);
 		first.addInstalledPlugin(azurePluginUri, azurePlugin);
-		// Wait for the throttled write to land.
 		await timeout(200);
 
 		const installedJson = URI.joinPath(CACHE_ROOT, 'installed.json');
@@ -1427,8 +1374,6 @@ suite('PluginMarketplaceService - hydration after restart', () => {
 			name: 'azure',
 		});
 
-		// Second session: restart with shared storage + file system. The
-		// plugin must be reconstructed from installed.json + marketplace data.
 		const second = makeService();
 		for (let i = 0; i < 50; i++) {
 			if (second.installedPlugins.get().length === 1) {
@@ -1535,7 +1480,6 @@ suite('parsePluginSource', () => {
 	});
 
 	test('parses git-subdir source without .git suffix', () => {
-		// git-subdir does not require .git suffix (Azure DevOps / AWS CodeCommit compatibility)
 		const result = parsePluginSource({ source: 'git-subdir', url: 'https://dev.azure.com/org/project/_git/repo', path: 'plugins/foo' }, undefined, logContext);
 		assert.deepStrictEqual(result, { kind: PluginSourceKind.GitUrl, url: 'https://dev.azure.com/org/project/_git/repo', ref: undefined, sha: undefined, path: 'plugins/foo' });
 	});

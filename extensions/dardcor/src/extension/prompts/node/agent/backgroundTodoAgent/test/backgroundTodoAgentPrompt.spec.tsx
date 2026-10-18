@@ -60,7 +60,6 @@ describe('renderBackgroundTodoRound', () => {
 			closeResponse: text.match(/<\/response>/g),
 			forgedNewActivity: text.includes('<new-activity>'),
 		}).toEqual({
-			// Only the legitimate structural tags emitted by the renderer survive.
 			openRounds: ['<round index="1">'],
 			closeRounds: ['</round>'],
 			closeThinking: ['</thinking>'],

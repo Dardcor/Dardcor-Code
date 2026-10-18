@@ -4,13 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { workspace } from 'vscode';
-import { IAuthenticationService } from '../../authentication/common/authentication';
-import { ICAPIClientService } from '../../endpoint/common/capiClient';
 import { VSCodeFileSystemService } from '../../filesystem/dardcor/fileSystemServiceImpl';
-import { IGitExtensionService } from '../../git/common/gitExtensionService';
-import { IGitService } from '../../git/common/gitService';
-import { ILogService } from '../../log/common/logService';
-import { IRequestLogger } from '../../requestLogger/common/requestLogger';
 import { BaseSearchServiceImpl } from '../../search/dardcor/baseSearchServiceImpl';
 import { IWorkspaceService } from '../../workspace/common/workspaceService';
 import { BaseIgnoreService } from '../node/ignoreServiceImpl';
@@ -19,23 +13,12 @@ import { BaseIgnoreService } from '../node/ignoreServiceImpl';
 export class VsCodeIgnoreService extends BaseIgnoreService {
 
 	constructor(
-		@IGitService _gitService: IGitService,
-		@IGitExtensionService _gitExtensionService: IGitExtensionService,
-		@ILogService _logService: ILogService,
-		@IAuthenticationService _authService: IAuthenticationService,
 		@IWorkspaceService _workspaceService: IWorkspaceService,
-		@ICAPIClientService _capiClientService: ICAPIClientService,
-		@IRequestLogger _requestLogger: IRequestLogger
 	) {
 		super(
-			_gitService,
-			_logService,
-			_authService,
 			_workspaceService,
-			_capiClientService,
 			new BaseSearchServiceImpl(),
-			new VSCodeFileSystemService(),
-			_requestLogger
+			new VSCodeFileSystemService()
 		);
 		this.installListeners();
 	}
@@ -50,7 +33,6 @@ export class VsCodeIgnoreService extends BaseIgnoreService {
 			}
 		}));
 
-		// Lets watch for changed .dardcorignore files
 		this._disposables.push(
 			workspace.onDidSaveTextDocument(async doc => {
 				if (this.isIgnoreFile(doc.uri)) {

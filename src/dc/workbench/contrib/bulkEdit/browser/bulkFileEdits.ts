@@ -59,7 +59,6 @@ class RenameOperation implements IFileOperation {
 		const moves: IMoveOperation[] = [];
 		const undoes: RenameEdit[] = [];
 		for (const edit of this._edits) {
-			// check: not overwriting, but ignoring, and the target file exists
 			const skip = edit.options.overwrite === undefined && edit.options.ignoreIfExists && await this._fileService.exists(edit.newUri);
 			if (!skip) {
 				moves.push({
@@ -67,7 +66,6 @@ class RenameOperation implements IFileOperation {
 					overwrite: edit.options.overwrite
 				});
 
-				// reverse edit
 				undoes.push(new RenameEdit(edit.oldUri, edit.newUri, edit.options));
 			}
 		}
@@ -110,10 +108,8 @@ class CopyOperation implements IFileOperation {
 
 	async perform(token: CancellationToken): Promise<IFileOperation> {
 
-		// (1) create copy operations, remove noops
 		const copies: ICopyOperation[] = [];
 		for (const edit of this._edits) {
-			//check: not overwriting, but ignoring, and the target file exists
 			const skip = edit.options.overwrite === undefined && edit.options.ignoreIfExists && await this._fileService.exists(edit.newUri);
 			if (!skip) {
 				copies.push({ file: { source: edit.oldUri, target: edit.newUri }, overwrite: edit.options.overwrite });
@@ -124,7 +120,6 @@ class CopyOperation implements IFileOperation {
 			return new Noop();
 		}
 
-		// (2) perform the actual copy and use the return stats to build undo edits
 		const stats = await this._workingCopyFileService.copy(copies, token, this._undoRedoInfo);
 		const undoes: DeleteEdit[] = [];
 
@@ -174,15 +169,14 @@ class CreateOperation implements IFileOperation {
 
 		for (const edit of this._edits) {
 			if (edit.newUri.scheme === Schemas.untitled) {
-				continue; // ignore, will be handled by a later edit
+				continue;
 			}
 			if (edit.options.overwrite === undefined && edit.options.ignoreIfExists && await this._fileService.exists(edit.newUri)) {
-				continue; // not overwriting, but ignoring, and the target file exists
+				continue;
 			}
 			if (edit.options.folder) {
 				folderCreates.push({ resource: edit.newUri });
 			} else {
-				// If the contents are part of the edit they include the encoding, thus use them. Otherwise get the encoding for a new empty file.
 				const encodedReadable = typeof edit.contents !== 'undefined' ? edit.contents : await this._textFileService.getEncodedReadable(edit.newUri);
 				fileCreates.push({ resource: edit.newUri, contents: encodedReadable, overwrite: edit.options.overwrite });
 			}
@@ -230,7 +224,6 @@ class DeleteOperation implements IFileOperation {
 	}
 
 	async perform(token: CancellationToken): Promise<IFileOperation> {
-		// delete file
 
 		const deletes: IDeleteOperation[] = [];
 		const undoes: CreateEdit[] = [];
@@ -253,7 +246,6 @@ class DeleteOperation implements IFileOperation {
 			});
 
 
-			// read file contents for undo operation. when a file is too large it won't be restored
 			let fileContent: IFileContent | undefined;
 			let fileContentExceedsMaxSize = false;
 			if (!edit.undoesCreate && !edit.options.folder) {

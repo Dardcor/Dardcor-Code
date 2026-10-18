@@ -79,11 +79,8 @@ export class PathExecutableCache implements vscode.Disposable {
 	}
 
 	private async _doGetExecutablesInPath(env: ITerminalEnvironment, shellType?: TerminalShellType): Promise<IExecutablesInPath | undefined> {
-		// Create cache key
 		let pathValue: string | undefined;
 		if (shellType === TerminalShellType.GitBash) {
-			// TODO: figure out why shellIntegration.env.PATH
-			// regressed from using \ to / (correct)
 			pathValue = process.env.PATH;
 		} else if (isWindows) {
 			const caseSensitivePathKey = Object.keys(env).find(key => key.toLowerCase() === 'path');
@@ -97,7 +94,6 @@ export class PathExecutableCache implements vscode.Disposable {
 			return;
 		}
 
-		// Extract executables from PATH
 		const paths = pathValue.split(isWindows ? ';' : ':');
 		const pathSeparator = isWindows ? '\\' : '/';
 		const promisePaths: string[] = [];
@@ -105,7 +101,6 @@ export class PathExecutableCache implements vscode.Disposable {
 		const labels: Set<string> = new Set<string>();
 
 		for (const pathDir of paths) {
-			// Check if this directory is already cached
 			const cachedExecutables = this._cachedExes.get(pathDir);
 			if (cachedExecutables) {
 				for (const executable of cachedExecutables) {
@@ -113,13 +108,11 @@ export class PathExecutableCache implements vscode.Disposable {
 					labels.add(labelText);
 				}
 			} else {
-				// Not cached, need to scan this directory
 				promisePaths.push(pathDir);
 				promises.push(this._getExecutablesInSinglePath(pathDir, pathSeparator, labels));
 			}
 		}
 
-		// Process uncached directories
 		if (promises.length > 0) {
 			const resultSets = await Promise.all(promises);
 			for (const [i, resultSet] of resultSets.entries()) {
@@ -130,7 +123,6 @@ export class PathExecutableCache implements vscode.Disposable {
 			}
 		}
 
-		// Merge all results from all directories
 		const executables = new Set<ICompletionResource>();
 		const processedPaths: Set<string> = new Set();
 		for (const pathDir of paths) {
@@ -165,7 +157,6 @@ export class PathExecutableCache implements vscode.Disposable {
 					let formattedPath: string | undefined;
 					const resource = vscode.Uri.joinPath(fileResource, file);
 
-					// Skip unknown or directory file types early
 					if (fileType === vscode.FileType.Unknown || fileType === vscode.FileType.Directory) {
 						return;
 					}
@@ -186,13 +177,11 @@ export class PathExecutableCache implements vscode.Disposable {
 							}
 						}
 					} catch {
-						// Ignore errors for unreadable files
 						return;
 					}
 
 					formattedPath = formattedPath ?? getFriendlyResourcePath(resource, pathSeparator);
 
-					// Check if already added or not executable
 					if (labels.has(file)) {
 						return;
 					}
@@ -212,7 +201,6 @@ export class PathExecutableCache implements vscode.Disposable {
 			);
 			return result;
 		} catch (e) {
-			// Ignore errors for directories that can't be read
 			return undefined;
 		}
 	}

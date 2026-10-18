@@ -12,7 +12,6 @@ import { ITestFailure, ITestProvider } from '../common/testProvider';
 
 export class TestProvider extends Disposable implements ITestProvider {
 	public readonly _serviceBrand: undefined;
-	/** Position then status-ordered arrays of tests in the document for the last test result */
 	private readonly resultsDocs = new ResourceMap<Readonly<vscode.TestResultSnapshot>[]>();
 	private resultsDocsAreForTestRun: vscode.TestRunResult | undefined;
 
@@ -39,7 +38,6 @@ export class TestProvider extends Disposable implements ITestProvider {
 		return vscode.tests.testResults.find(r => r.completedAt && r.results.length)?.completedAt;
 	}
 
-	/** @inheritdoc */
 	public getAllFailures(): Iterable<ITestFailure> {
 		const r = vscode.tests.testResults.find(r => r.results.length);
 		if (!r) {
@@ -49,7 +47,6 @@ export class TestProvider extends Disposable implements ITestProvider {
 		return this.dfsFailures(r.results);
 	}
 
-	/** @inheritdoc */
 	public getLastFailureFor(testItem: vscode.TestItem): ITestFailure | undefined {
 		const chain: string[] = [];
 		for (let i: vscode.TestItem | undefined = testItem; i; i = i.parent) {
@@ -75,7 +72,6 @@ export class TestProvider extends Disposable implements ITestProvider {
 		}
 	}
 
-	/** @inheritdoc */
 	public getFailureAtPosition(uri: vscode.Uri, position: vscode.Position): ITestFailure | undefined {
 		const r = vscode.tests.testResults.find(r => r.results.length);
 		if (this.resultsDocsAreForTestRun !== r) {
@@ -86,10 +82,6 @@ export class TestProvider extends Disposable implements ITestProvider {
 			return undefined;
 		}
 
-		// Some frameworks only mark the test declaration and not the entire body.
-		// If a test is a failure before the cursor position, still return it
-		// unless there's another passed test below it and before the cursor.
-		// Only compare the line numbers for #5292
 		const results = this.resultsDocs.get(uri) || [];
 		const test = findLast(results, i => !!i.range && i.range.start.line <= position.line);
 		if (!test) {
@@ -105,7 +97,6 @@ export class TestProvider extends Disposable implements ITestProvider {
 		return undefined;
 	}
 
-	/** @inheritdoc */
 	public async hasAnyTests(): Promise<boolean> {
 		try {
 			return !!(await vscode.commands.executeCommand<string[]>('vscode.testing.getControllersWithTests')).length;
@@ -114,7 +105,6 @@ export class TestProvider extends Disposable implements ITestProvider {
 		}
 	}
 
-	/** @inheritdoc */
 	public async hasTestsInUri(uri: vscode.Uri): Promise<boolean> {
 		try {
 			const r = await vscode.commands.executeCommand<string[][]>('vscode.testing.getTestsInFile', uri);
@@ -124,10 +114,6 @@ export class TestProvider extends Disposable implements ITestProvider {
 		}
 	}
 
-	/**
-	 * DFS is important because we want to get the most-granular tests possible
-	 * rather then e.g. suites that would be less relevant.
-	 */
 	private *dfsFailures(tests: readonly Readonly<vscode.TestResultSnapshot>[]): Iterable<ITestFailure> {
 		for (const test of tests) {
 			yield* this.dfsFailures(test.children);
@@ -166,9 +152,7 @@ export class TestProvider extends Disposable implements ITestProvider {
 		const zeroRange = new vscode.Range(0, 0, 0, 0);
 		for (const results of this.resultsDocs.values()) {
 			results.sort((a, b) =>
-				// sort by location  (ascending)
 				(a.range || zeroRange).start.compareTo((b.range || zeroRange).start)
-				// sort by test status (passed first)
 				|| compareTaskStates(a.taskStates, b.taskStates)
 			);
 		}

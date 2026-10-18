@@ -3,14 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// IPC channel transport for the agent host protocol. Wraps an `IChannel`
-// (typically obtained via `IRemoteAgentConnection.getChannel('agentHost')`)
-// to satisfy the same `IClientTransport` interface as `WebSocketClientTransport`,
-// so the existing `AgentHostProtocolClient` can be reused unchanged.
-//
-// The server-side counterpart (`AgentHostChannel`) opens an AHP WebSocket
-// upstream to the local agent host process and pipes raw JSON frames over
-// the IPC channel.
 
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
@@ -23,17 +15,6 @@ import { MALFORMED_FRAMES_FORCE_CLOSE_THRESHOLD, MALFORMED_FRAMES_LOG_CAP } from
 
 const REDACTED_TOKEN = '<redacted>';
 
-/**
- * Wraps an {@link IChannel} as an {@link IClientTransport} for the agent
- * host protocol. Frames are passed as JSON strings to avoid the IPC layer's
- * URI revival (URIs in AHP are string-typed on the wire).
- *
- * Wire shape:
- * - `listen('frame')` → emits each upstream JSON frame as a string.
- * - `listen('close')` → fires when the upstream connection closes.
- * - `call('connect')` → opens the upstream connection; resolves when ready.
- * - `call('send', frame)` → forwards a JSON frame upstream.
- */
 export class AgentHostIpcChannelTransport extends Disposable implements IClientTransport {
 
 	private readonly _onMessage = this._register(new Emitter<ProtocolMessage>());
@@ -62,8 +43,6 @@ export class AgentHostIpcChannelTransport extends Disposable implements IClientT
 		if (this._store.isDisposed) {
 			throw new Error('Transport is disposed');
 		}
-		// Subscribe before connecting so we don't miss any frames the upstream
-		// host emits between open and our listener attaching.
 		this._register(this._channel.listen<string>('frame')(text => this._handleFrame(text)));
 		this._register(this._channel.listen<void>('close')(() => this._fireClose()));
 		await this._channel.call('connect');
@@ -72,12 +51,9 @@ export class AgentHostIpcChannelTransport extends Disposable implements IClientT
 
 	send(message: ProtocolMessage | AhpServerNotification | JsonRpcResponse): void {
 		if (!this._isOpen || this._closeFired) {
-			// Surface the failure via the close event; callers observe that.
 			this._fireClose();
 			return;
 		}
-		// Fire-and-forget. The channel call resolves asynchronously; failures
-		// are surfaced via the close event from the server side.
 		const text = JSON.stringify(message);
 		this._logFrame(message, 'c2s', text);
 		this._channel.call('send', text).catch(() => this._fireClose());
@@ -85,7 +61,6 @@ export class AgentHostIpcChannelTransport extends Disposable implements IClientT
 
 	override dispose(): void {
 		if (this._isOpen && !this._closeFired) {
-			// Best-effort close — ignore any rejection since we're tearing down.
 			this._channel.call('close').catch(() => { });
 		}
 		this._fireClose();

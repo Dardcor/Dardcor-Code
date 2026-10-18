@@ -42,7 +42,6 @@ class RemoteConnectionFailureNotificationContribution implements IWorkbenchContr
 		@IDialogService private readonly _dialogService: IDialogService,
 		@IHostService private readonly _hostService: IHostService,
 	) {
-		// Let's cover the case where connecting to fetch the remote extension info fails
 		remoteAgentService.getRawEnvironment()
 			.then(undefined, (err) => {
 				if (!RemoteAuthorityResolverError.isHandled(err)) {

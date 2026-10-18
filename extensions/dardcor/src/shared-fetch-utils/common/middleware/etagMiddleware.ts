@@ -6,11 +6,6 @@
 import type { FetchMiddleware, HttpResponse } from '../fetchTypes';
 import { cloneResponse } from '../httpResponse';
 
-/**
- * Adds `If-None-Match` / `If-Modified-Since` conditional request headers
- * and transparently handles `304 Not Modified` responses by returning the
- * previously cached response body.
- */
 export function etagMiddleware(): FetchMiddleware {
 	let cachedEtag: string | undefined;
 	let cachedLastModified: string | undefined;
@@ -46,8 +41,6 @@ export function etagMiddleware(): FetchMiddleware {
 			cachedLastModified = lastModified;
 		}
 
-		// Only clone and cache when the server provided conditional headers,
-		// otherwise there is no point paying the cost of cloning the stream.
 		if (etag || lastModified) {
 			const [returnCopy, cacheCopy] = cloneResponse(response);
 			cachedResponse = cacheCopy;

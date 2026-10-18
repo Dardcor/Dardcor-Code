@@ -48,7 +48,6 @@ export class MinimapTokensColorTracker extends Disposable {
 		this._colors = [RGBA8.Empty];
 		for (let colorId = 1; colorId < colorMap.length; colorId++) {
 			const source = colorMap[colorId].rgba;
-			// Use a VM friendly data-type
 			this._colors[colorId] = new RGBA8(source.r, source.g, source.b, Math.round(source.a * 255));
 		}
 		const backgroundLuminosity = colorMap[ColorId.DefaultBackground].getRelativeLuminance();
@@ -58,7 +57,6 @@ export class MinimapTokensColorTracker extends Disposable {
 
 	public getColor(colorId: ColorId): RGBA8 {
 		if (colorId < 1 || colorId >= this._colors.length) {
-			// background color (basically invisible)
 			colorId = ColorId.DefaultBackground;
 		}
 		let color = this._colors[colorId];

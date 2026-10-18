@@ -15,28 +15,8 @@ import { SUBAGENT_TOOL_NAMES, type SubagentRegistry } from './claudeSubagentRegi
 import { buildClaudeToolCallMeta, buildClaudeToolMeta, getClaudeInvocationMessage, getClaudeToolDisplayName, getClaudeToolInputString } from './claudeToolDisplay.js';
 import { hasClientToolNamePrefix, stripClientToolNamePrefix } from './clientTools/claudeClientToolMcpServer.js';
 
-/**
- * Phase 12 — SDK tool names that spawn subagent sessions. Re-exported
- * from the registry's canonical set so callers can keep importing it
- * from this signals module (the live mapper, replay handling, etc.).
- */
 export const SUBAGENT_SPAWNING_TOOL_NAMES: ReadonlySet<string> = SUBAGENT_TOOL_NAMES;
 
-/**
- * Phase 12 — post-process the signals produced from a single SDK
- * message envelope. When the envelope's `parent_tool_use_id` is set,
- * every action / pending_confirmation gets tagged with
- * `parentToolCallId` so {@link import('../agentSideEffects.js').AgentSideEffects}
- * can re-route it to the subagent session. The first inner emission
- * for a given parent additionally prepends an `IAgentSubagentStartedSignal`
- * so the child session exists before any of its actions arrive.
- *
- * The Started signal's labels come straight off the parent's
- * {@link SubagentSpawn}: `subagentType` (e.g. `"Explore"`) for both
- * the agent name and display name, and `description` for the
- * description. When the spawn is missing (rare race) or has no
- * metadata yet, falls back to the literal `"subagent"` / `"Subagent"`.
- */
 export function tagWithParent(
 	signals: AgentSignal[],
 	chat: URI,
@@ -69,34 +49,13 @@ export function tagWithParent(
 		agentName: spawn.subagentType ?? 'subagent',
 		agentDisplayName: spawn.subagentType ?? 'Subagent',
 		agentDescription: spawn.description,
-		// The Task tool's short `description` input doubles as the concise
-		// per-task tab title for the subagent's read-only chat.
 		taskDescription: spawn.description,
-		// The Task tool's `prompt` input is the full delegated instruction
-		// that seeds the subagent chat's opening request.
 		taskPrompt: spawn.prompt,
-		// When the spawning Task tool is itself an inner tool of another
-		// subagent, its parent Task (one level up) is the tool call in
-		// whose chat this spawning tool lives. The host uses it to route
-		// the discovery content block to that immediate parent chat, at
-		// any nesting depth.
 		parentToolCallId: registry.getParentSpawn(parentToolUseId)?.toolUseId,
 	};
 	return [started, ...tagged];
 }
 
-/**
- * Phase 12 step 7 — handle the two `type: 'system'` subtypes that drive
- * background-subagent lifecycle. `task_started` flips the matching
- * spawning entry to background so the foreground `tool_result` path
- * skips its `subagent_completed`. `task_notification` (with a terminal
- * status) is the deferred completion trigger for those background
- * entries.
- *
- * All other system subtypes (`compact_boundary`, `task_progress`,
- * `task_updated`, hooks, etc.) fall through with `[]`; non-subagent
- * system handling stays in the mapper proper.
- */
 export function mapSubagentSystemMessage(
 	message: Extract<SDKMessage, { type: 'system' }>,
 	chat: URI,
@@ -131,29 +90,6 @@ export function mapSubagentSystemMessage(
 	return [];
 }
 
-/**
- * Phase 12 fix — build the `ChatToolCallReady` signal for a top-level
- * Task/Agent tool_use block AND record the spawn's metadata onto the
- * registry. The workbench's
- * [stateToProgressAdapter.ts](../../../../workbench/contrib/chat/browser/agentSessions/agentHost/stateToProgressAdapter.ts)
- * reads `_meta.subagentDescription` and `_meta.subagentAgentName` to
- * render the subagent UI before any inner content arrives.
- *
- * The metadata side effect (`spawn.description = ...`,
- * `spawn.subagentType = ...`) is written here because the canonical
- * `assistant` envelope is the first place where `block.input` is
- * complete (the early `content_block_start` carries an empty input bag
- * that gets filled in via `input_json_delta` events).
- *
- * Inputs:
- *   - `block.id` / `block.name` — SDK-supplied tool_use identifiers.
- *   - `block.input.description` → `spawn.description` and
- *     `_meta.subagentDescription` and `action.invocationMessage`.
- *   - `block.input.subagent_type` → `spawn.subagentType` and
- *     `_meta.subagentAgentName`.
- *   - `block.input.prompt` → `spawn.prompt` (seeds the subagent's
- *     opening request via the `subagent_started` signal's `taskPrompt`).
- */
 export function buildTopLevelSubagentReadyAction(
 	block: Extract<import('@anthropic-ai/claude-agent-sdk').SDKAssistantMessage['message']['content'][number], { type: 'tool_use' }>,
 	chat: URI,
@@ -191,26 +127,6 @@ export function buildTopLevelSubagentReadyAction(
 	};
 }
 
-/**
- * Phase 12 fix — walk an inner subagent canonical assistant message
- * (`parent_tool_use_id !== null`) and emit one signal per content block.
- *
- * The SDK does NOT deliver inner subagent content via `stream_event`
- * partials, only via canonical `assistant` (and `user` for tool_result)
- * envelopes. So this canonical envelope IS the only signal source for
- * inner content. We emit:
- *
- *   - `text` / `thinking` → `ChatResponsePart` (Markdown / Reasoning)
- *     with the full block content.
- *   - `tool_use` → `ChatToolCallStart` + `ChatToolCallReady`
- *     (`confirmed: NotNeeded`, since the SDK runs inner tools in
- *     `bypassPermissions` and the parent's `canUseTool` is skipped),
- *     plus side effects on `state` (cross-message lookup) and
- *     `registry` (inner→parent edge for the canUseTool bridge).
- *
- * Returns the emitted signals; the caller (`tagWithParent`) is
- * responsible for stamping `parentToolCallId` on every action.
- */
 export function emitInnerAssistantSignals(
 	message: Extract<SDKMessage, { type: 'assistant' }>,
 	chat: URI,
@@ -257,19 +173,10 @@ export function emitInnerAssistantSignals(
 			continue;
 		}
 		if (block.type === 'tool_use') {
-			// Strip the in-process MCP server prefix so subagent client-tool
-			// calls render with their real name (matches the top-level stream
-			// mapper). SDK-owned tools and Task/Agent passes through unchanged.
 			const toolName = stripClientToolNamePrefix(block.name);
 			const isClientTool = hasClientToolNamePrefix(block.name);
 			const clientId = isClientTool ? clientToolOwner?.(toolName) : undefined;
 			state.startToolBlock(index, block.id, toolName, turnId, isClientTool);
-			// Inner tool input arrives pre-parsed on the synthesized
-			// `assistant` message (not via `input_json_delta` chunks), so
-			// seed the registry directly. Without this the live
-			// `tool_result` handler falls back to a generic
-			// `"{displayName} finished"` past-tense and replay (which
-			// always computes rich text) drifts from live — violating D6.
 			state.toolCalls.seedParsedInput(block.id, block.input);
 			registry.noteInnerTool(block.id, parentToolUseId);
 			const displayName = isClientTool ? toolName : getClaudeToolDisplayName(toolName);
@@ -303,9 +210,6 @@ export function emitInnerAssistantSignals(
 			});
 			continue;
 		}
-		// Unknown inner block kind — skip silently (caller will trace at
-		// the mapper level if needed; we don't want to import ILogService
-		// here just for one trace).
 	}
 	return signals;
 }

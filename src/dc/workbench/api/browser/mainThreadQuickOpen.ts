@@ -101,7 +101,6 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 		return Promise.resolve();
 	}
 
-	// ---- input
 
 	$input(options: IInputBoxOptions | undefined, validateInput: boolean, token: CancellationToken): Promise<string | undefined> {
 		const inputOptions: IInputOptions = Object.create(null);
@@ -125,7 +124,6 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 		return this._quickInputService.input(inputOptions, token);
 	}
 
-	// ---- QuickInput
 
 	private sessions = new Map<number, QuickInputSession>();
 
@@ -150,7 +148,6 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 			}));
 
 			if (params.type === 'quickPick') {
-				// Add extra events specific for quick pick
 				const quickPick = input as IQuickPick<IQuickPickItem>;
 				store.add(quickPick.onDidChangeActive(items => {
 					this._proxy.$onDidChangeActive(sessionId, items.map(item => (item as TransferQuickPickItem).handle));
@@ -250,9 +247,6 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 		return Promise.resolve(undefined);
 	}
 
-	/**
-	* Derives icon, label and description for Quick Pick items that represent a resource URI.
-	*/
 	private expandItemProps(item: TransferQuickPickItemOrSeparator) {
 		if (item.type === 'separator') {
 			return;
@@ -263,7 +257,6 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 			return;
 		}
 
-		// Derive missing label and description from resourceUri.
 		const resourceUri = URI.from(item.resourceUri);
 		item.label ??= this.customEditorLabelService.getName(resourceUri) || '';
 		if (item.label) {
@@ -273,7 +266,6 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 			item.description ??= this.labelService.getUriLabel(dirname(resourceUri), { relative: true });
 		}
 
-		// Derive icon props from resourceUri if icon is set to ThemeIcon.File or ThemeIcon.Folder.
 		const icon = item.iconPathDto;
 		if (ThemeIcon.isThemeIcon(icon) && (ThemeIcon.isFile(icon) || ThemeIcon.isFolder(icon))) {
 			const fileKind = ThemeIcon.isFolder(icon) || hasTrailingPathSeparator(resourceUri) ? FileKind.FOLDER : FileKind.FILE;
@@ -284,17 +276,11 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 		}
 	}
 
-	/**
-	* Converts IconPath DTO into iconPath/iconClass properties.
-	*/
 	private expandIconPath(target: Pick<TransferQuickPickItem, 'iconPathDto' | 'iconPath' | 'iconClass'>) {
 		const icon = target.iconPathDto;
 		if (!icon) {
 			return;
 		} else if (ThemeIcon.isThemeIcon(icon)) {
-			// TODO: Since IQuickPickItem and IQuickInputButton do not support ThemeIcon directly, the color ID is lost here.
-			// We should consider changing changing iconPath/iconClass to IconPath in both interfaces.
-			// Request for color support: https://github.com/microsoft/vscode/issues/185356..
 			target.iconClass = ThemeIcon.asClassName(icon);
 		} else if (isUriComponents(icon)) {
 			const uri = URI.from(icon);

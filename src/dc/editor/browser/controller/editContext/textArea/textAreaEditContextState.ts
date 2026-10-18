@@ -33,13 +33,9 @@ export class TextAreaState {
 
 	constructor(
 		public readonly value: string,
-		/** the offset where selection starts inside `value` */
 		public readonly selectionStart: number,
-		/** the offset where selection ends inside `value` */
 		public readonly selectionEnd: number,
-		/** the editor range in the view coordinate system that matches the selection inside `value` */
 		public readonly selection: Range | null,
-		/** the visible line count (wrapped, not necessarily matching \n characters) for the text in `value` before `selectionStart` */
 		public readonly newlineCountBeforeSelection: number | undefined,
 	) { }
 
@@ -116,7 +112,6 @@ export class TextAreaState {
 
 	public static deduceInput(previousState: TextAreaState, currentState: TextAreaState, couldBeEmojiInput: boolean): ITypeData {
 		if (!previousState) {
-			// This is the EMPTY state
 			return {
 				text: '',
 				replacePrevCharCnt: 0,
@@ -154,7 +149,6 @@ export class TextAreaState {
 		}
 
 		if (currentSelectionStart === currentSelectionEnd) {
-			// no current selection
 			const replacePreviousCharacters = (previousState.selectionStart - prefixLength);
 			if (_debugComposition) {
 				console.log(`REMOVE PREVIOUS: ${replacePreviousCharacters} chars`);
@@ -168,7 +162,6 @@ export class TextAreaState {
 			};
 		}
 
-		// there is a current selection => composition case
 		const replacePreviousCharacters = previousSelectionEnd - previousSelectionStart;
 		return {
 			text: currentValue,
@@ -180,7 +173,6 @@ export class TextAreaState {
 
 	public static deduceAndroidCompositionInput(previousState: TextAreaState, currentState: TextAreaState): ITypeData {
 		if (!previousState) {
-			// This is the EMPTY state
 			return {
 				text: '',
 				replacePrevCharCnt: 0,

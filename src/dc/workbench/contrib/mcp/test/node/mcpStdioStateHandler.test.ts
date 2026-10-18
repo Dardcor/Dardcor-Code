@@ -9,8 +9,6 @@ import * as assert from 'assert';
 import { McpStdioStateHandler } from '../../node/mcpStdioStateHandler.js';
 import { isWindows } from '../../../../../base/common/platform.js';
 
-// Must be comfortably larger than the time it takes to spawn the helper shell
-// script that signals the process tree, otherwise SIGKILL can race SIGTERM.
 const GRACE_TIME = 1000;
 
 suite('McpStdioStateHandler', () => {
@@ -42,7 +40,7 @@ suite('McpStdioStateHandler', () => {
 		};
 	}
 
-	test.skip('stdin ends process', async () => { // TODO: https://github.com/microsoft/vscode/issues/330134
+	test.skip('stdin ends process', async () => {
 		const { child, handler, output } = run(`
 			const data = require('fs').readFileSync(0, 'utf-8');
 			process.stdout.write('Data received: ' + data);
@@ -56,7 +54,7 @@ suite('McpStdioStateHandler', () => {
 	});
 
 	if (!isWindows) {
-		test.skip('sigterm after grace', async () => { // TODO@connor4312 https://github.com/microsoft/vscode/issues/330134
+		test.skip('sigterm after grace', async () => {
 			const { handler, output } = run(`
 			setInterval(() => {}, 1000);
 			process.stdin.on('end', () => process.stdout.write('stdin ended\\n'));

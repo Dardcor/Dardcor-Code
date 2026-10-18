@@ -146,7 +146,6 @@ suite('NotebookDiff Diff Service', () => {
 		assert.deepStrictEqual(diff.cellsDiff.changes, [
 			{ originalStart: 0, originalLength: 0, modifiedStart: 0, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 1, originalLength: 1, modifiedStart: 2, modifiedLength: 0 } satisfies IDiffChange,
-			// { originalStart: 1, originalLength: 1, modifiedStart: 2, modifiedLength: 0 } satisfies IDiffChange
 		]);
 	});
 
@@ -469,7 +468,7 @@ suite('NotebookDiff Diff Service', () => {
 			{ modified: 1, original: 1 },
 			{ modified: 2, original: 2 },
 			{ modified: 3, original: 3 },
-			{ modified: 4, original: -1 },//
+			{ modified: 4, original: -1 },
 			{ modified: 5, original: 4 },
 			{ modified: 6, original: 5 },
 			{ modified: 7, original: 6 }
@@ -561,7 +560,6 @@ suite('NotebookDiff Diff Service', () => {
 			{ modified: 0, original: 0 }
 		]);
 		assert.deepStrictEqual(diff.cellsDiff.changes, [
-			// { originalStart: 0, originalLength: 0, modifiedStart: 0, modifiedLength: 0 } satisfies IDiffChange,
 		]);
 	});
 	test('One changes with 1 cell', async () => {
@@ -593,7 +591,6 @@ suite('NotebookDiff Diff Service', () => {
 			{ modified: 1, original: 1 },
 		]);
 		assert.deepStrictEqual(diff.cellsDiff.changes, [
-			// { originalStart: 0, originalLength: 1, modifiedStart: 0, modifiedLength: 1 } satisfies IDiffChange,
 		]);
 	});
 	test('One changes with 2 cells, 1st cell changed', async () => {
@@ -841,7 +838,6 @@ suite('NotebookDiff Diff Service', () => {
 				[['print("Hello world")'], 'python', CellKind.Code, [], undefined],
 				[['# Foo Bar'], 'markdown', CellKind.Markup, [], undefined],
 				[['# New Markdown cell'], 'markdown', CellKind.Markup, [], undefined],
-				// [['print("Foo BaZ")'], 'python', CellKind.Code, [], undefined],
 				[['print("bar baz Modified")'], 'python', CellKind.Code, [], undefined],
 				[['print("Fox Trots")'], 'python', CellKind.Code, [], undefined]
 			]
@@ -875,7 +871,6 @@ suite('NotebookDiff Diff Service', () => {
 				[['print("Hello world")'], 'python', CellKind.Code, [], undefined],
 				[['import sys'], 'python', CellKind.Code, [], undefined],
 				[['sys.executable'], 'python', CellKind.Code, [], undefined],
-				// [['print("Foo BaZ")'], 'python', CellKind.Code, [], undefined],
 				[['print("bar baz Modified")'], 'python', CellKind.Code, [], undefined],
 				[['print("Fox Trot")'], 'python', CellKind.Code, [], undefined]
 			]
@@ -935,7 +930,6 @@ suite('NotebookDiff Diff Service', () => {
 			{ originalStart: 4, originalLength: 0, modifiedStart: 4, modifiedLength: 2 } satisfies IDiffChange,
 			{ originalStart: 4, originalLength: 1, modifiedStart: 6, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 6, originalLength: 1, modifiedStart: 8, modifiedLength: 1 } satisfies IDiffChange,
-			// { originalStart: 5, originalLength: 1, modifiedStart: 5, modifiedLength: 1 } satisfies IDiffChange,
 		]);
 	});
 	test('Insert & delete a few md cells and modify the next few code cells', async () => {
@@ -979,7 +973,6 @@ suite('NotebookDiff Diff Service', () => {
 			{ originalStart: 4, originalLength: 0, modifiedStart: 4, modifiedLength: 2 } satisfies IDiffChange,
 			{ originalStart: 4, originalLength: 1, modifiedStart: 6, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 6, originalLength: 1, modifiedStart: 8, modifiedLength: 1 } satisfies IDiffChange,
-			// { originalStart: 5, originalLength: 1, modifiedStart: 5, modifiedLength: 1 } satisfies IDiffChange,
 		]);
 	});
 	test('Modify, then insert ', async () => {
@@ -1020,8 +1013,6 @@ suite('NotebookDiff Diff Service', () => {
 		assert.deepStrictEqual(diff.cellsDiff.changes, [
 			{ originalStart: 2, originalLength: 1, modifiedStart: 2, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 3, originalLength: 0, modifiedStart: 3, modifiedLength: 1 } satisfies IDiffChange,
-			// { originalStart: 6, originalLength: 1, modifiedStart: 8, modifiedLength: 1 } satisfies IDiffChange,
-			// { originalStart: 5, originalLength: 1, modifiedStart: 5, modifiedLength: 1 } satisfies IDiffChange,
 		]);
 	});
 	test('Modify, then delete ', async () => {
@@ -1058,8 +1049,6 @@ suite('NotebookDiff Diff Service', () => {
 		assert.deepStrictEqual(diff.cellsDiff.changes, [
 			{ originalStart: 2, originalLength: 1, modifiedStart: 2, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 3, originalLength: 1, modifiedStart: 3, modifiedLength: 0 } satisfies IDiffChange,
-			// { originalStart: 6, originalLength: 1, modifiedStart: 8, modifiedLength: 1 } satisfies IDiffChange,
-			// { originalStart: 5, originalLength: 1, modifiedStart: 5, modifiedLength: 1 } satisfies IDiffChange,
 		]);
 	});
 	test('Update code cell', async () => {
@@ -8488,7 +8477,6 @@ suite('NotebookDiff Diff Service', () => {
 			{ originalStart: 6, originalLength: 1, modifiedStart: 6, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 15, originalLength: 1, modifiedStart: 15, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 36, originalLength: 1, modifiedStart: 36, modifiedLength: 1 } satisfies IDiffChange,
-			// { originalStart: 50, originalLength: 0, modifiedStart: 50, modifiedLength: 2 } satisfies IDiffChange,
 		]);
 
 	});
@@ -14297,7 +14285,6 @@ suite('NotebookDiff Diff Service', () => {
 			{ originalStart: 60, originalLength: 1, modifiedStart: 58, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 63, originalLength: 1, modifiedStart: 61, modifiedLength: 1 } satisfies IDiffChange,
 			{ originalStart: 68, originalLength: 1, modifiedStart: 66, modifiedLength: 1 } satisfies IDiffChange,
-			// { originalStart: 53, originalLength: 0, modifiedStart: 53, modifiedLength: 2 } satisfies IDiffChange,
 		]);
 
 	});

@@ -57,7 +57,6 @@ suite('Files - View Model', function () {
 		s.removeChild(child1);
 		assert(!s.getChild(child1.name));
 
-		// Assert that adding a child updates its path properly
 		s.addChild(child4);
 		assert.strictEqual(child4.resource.fsPath, toResource.call(this, '/path/to/stat/' + child4.name).fsPath);
 	});
@@ -76,10 +75,8 @@ suite('Files - View Model', function () {
 
 		s4.move(s1);
 
-		// Assert the new path of the moved element
 		assert.strictEqual(s4.resource.fsPath, toResource.call(this, '/' + s4.name).fsPath);
 
-		// Move a subtree with children
 		const leaf = createStat.call(this, '/leaf', 'leaf', true, false, 8096, d);
 		const leafC1 = createStat.call(this, '/leaf/folder', 'folder', true, false, 8096, d);
 		const leafCC2 = createStat.call(this, '/leaf/folder/index.html', 'index.html', true, false, 8096, d);
@@ -110,7 +107,6 @@ suite('Files - View Model', function () {
 		s2.rename(s2renamed);
 		assert.strictEqual(s1.getChild(s2.name), s2);
 
-		// Verify the paths have changed including children
 		assert.strictEqual(s2.name, s2renamed.name);
 		assert.strictEqual(s2.resource.fsPath, s2renamed.resource.fsPath);
 		assert.strictEqual(s3.resource.fsPath, toResource.call(this, '/otherpath/to').fsPath);
@@ -175,7 +171,7 @@ suite('Files - View Model', function () {
 		s4.addChild(child1);
 		child1.addChild(child2);
 
-		if (isLinux) { // linux is case sensitive
+		if (isLinux) {
 			assert.ok(!s1.find(toResource.call(this, '/path/to/stat/Foo')));
 			assert.ok(!s1.find(toResource.call(this, '/Path/to/stat/foo/bar.html')));
 		} else {
@@ -235,7 +231,6 @@ suite('Files - View Model', function () {
 		assert(validateFileName(pathService, wsFolder, 'theres/one/different\\slash', OS) === null);
 		assert(validateFileName(pathService, wsFolder, '/slashAtBeginning', OS) !== null);
 
-		// attempting to add a child to a deeply nested file
 		const s1 = createStat.call(this, '/path', 'path', true, false, 8096, d);
 		const s2 = createStat.call(this, '/path/to', 'to', true, false, 8096, d);
 		const s3 = createStat.call(this, '/path/to/stat', 'stat', true, false, 8096, d);
@@ -246,7 +241,6 @@ suite('Files - View Model', function () {
 		s3.addChild(fileDeeplyNested);
 		assert(validateFileName(pathService, wsFolder, '/path/to/stat/fileNested/aChild', OS) !== null);
 
-		// detect if path already exists
 		assert(validateFileName(pathService, wsFolder, '/path/to/stat/fileNested', OS) !== null);
 		assert(validateFileName(pathService, wsFolder, '/path/to/stat/', OS) !== null);
 	});
@@ -255,15 +249,12 @@ suite('Files - View Model', function () {
 		const merge1 = new ExplorerItem(URI.file(join('C:\\', '/path/to')), fileService, configService, NullFilesConfigurationService, undefined, true, false, false, false, 'to', Date.now());
 		const merge2 = new ExplorerItem(URI.file(join('C:\\', '/path/to')), fileService, configService, NullFilesConfigurationService, undefined, true, false, false, false, 'to', Date.now());
 
-		// Merge Properties
 		ExplorerItem.mergeLocalWithDisk(merge2, merge1);
 		assert.strictEqual(merge1.mtime, merge2.mtime);
 
-		// Merge Child when isDirectoryResolved=false is a no-op
 		merge2.addChild(new ExplorerItem(URI.file(join('C:\\', '/path/to/foo.html')), fileService, configService, NullFilesConfigurationService, undefined, true, false, false, false, 'foo.html', Date.now()));
 		ExplorerItem.mergeLocalWithDisk(merge2, merge1);
 
-		// Merge Child with isDirectoryResolved=true
 		const child = new ExplorerItem(URI.file(join('C:\\', '/path/to/foo.html')), fileService, configService, NullFilesConfigurationService, undefined, true, false, false, false, 'foo.html', Date.now());
 		merge2.removeChild(child);
 		merge2.addChild(child);
@@ -272,7 +263,6 @@ suite('Files - View Model', function () {
 		assert.strictEqual(merge1.getChild('foo.html')!.name, 'foo.html');
 		assert.deepStrictEqual(merge1.getChild('foo.html')!.parent, merge1, 'Check parent');
 
-		// Verify that merge does not replace existing children, but updates properties in that case
 		const existingChild = merge1.getChild('foo.html');
 		ExplorerItem.mergeLocalWithDisk(merge2, merge1);
 		assert.ok(existingChild === merge1.getChild(existingChild!.name));

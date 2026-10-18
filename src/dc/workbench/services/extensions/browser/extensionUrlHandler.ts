@@ -103,15 +103,6 @@ export class ExtensionUrlHandlerOverrideRegistry {
 	}
 }
 
-/**
- * This class handles URLs which are directed towards extensions.
- * If a URL is directed towards an inactive extension, it buffers it,
- * activates the extension and re-opens the URL once the extension registers
- * a URL handler. If the extension never registers a URL handler, the urls
- * will eventually be garbage collected.
- *
- * It also makes sure the user confirms opening URLs directed towards extensions.
- */
 class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 
 	readonly _serviceBrand: undefined;
@@ -170,7 +161,6 @@ class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 		let extensionDisplayName: string;
 
 		if (!initialHandler) {
-			// The extension is not yet activated, so let's check if it is installed and enabled
 			const extension = await this.extensionService.getExtension(extensionId);
 			if (!extension) {
 				await this.handleUnhandledURL(uri, extensionId, options);
@@ -220,15 +210,12 @@ class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 
 		if (handler) {
 			if (!initialHandler) {
-				// forward it directly
 				return await this.handleURLByExtension(extensionId, handler, uri, options);
 			}
 
-			// let the ExtensionUrlHandler instance handle this
 			return false;
 		}
 
-		// collect URI for eventual extension activation
 		const timestamp = new Date().getTime();
 		let uris = this.uriBuffer.get(ExtensionIdentifier.toKey(extensionId));
 
@@ -239,8 +226,6 @@ class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 
 		uris.push({ timestamp, uri });
 
-		// activate the extension using ActivationKind.Immediate because URI handling might be part
-		// of resolving authorities (via authentication extensions)
 		await this.extensionService.activateByEvent(`onUri:${ExtensionIdentifier.toKey(extensionId)}`, ActivationKind.Immediate);
 		return true;
 	}
@@ -288,7 +273,6 @@ class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 			await this.handleURL(uri, { ...options, trusted: true });
 		}
 
-		/* Extension cannot be added and require window reload */
 		else {
 			const result = await this.dialogService.confirm({
 				message: localize('reloadAndHandle', "Extension '{0}' is not loaded. Would you like to reload the window to load the extension and open the URL?", extensionId),
@@ -304,7 +288,6 @@ class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 		}
 	}
 
-	// forget about all uris buffered more than 5 minutes ago
 	private garbageCollect(): void {
 		const now = new Date().getTime();
 		const uriBuffer = new Map<string, { timestamp: number; uri: URI }[]>();
@@ -347,10 +330,6 @@ class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 
 registerSingleton(IExtensionUrlHandler, ExtensionUrlHandler, InstantiationType.Eager);
 
-/**
- * This class handles URLs before `ExtensionUrlHandler` is instantiated.
- * More info: https://github.com/microsoft/vscode/issues/73101
- */
 class ExtensionUrlBootstrapHandler implements IWorkbenchContribution, IURLHandler {
 
 	static readonly ID = 'workbench.contrib.extensionUrlBootstrapHandler';
@@ -380,7 +359,7 @@ class ExtensionUrlBootstrapHandler implements IWorkbenchContribution, IURLHandle
 	}
 }
 
-registerWorkbenchContribution2(ExtensionUrlBootstrapHandler.ID, ExtensionUrlBootstrapHandler, WorkbenchPhase.BlockRestore /* registration only */);
+registerWorkbenchContribution2(ExtensionUrlBootstrapHandler.ID, ExtensionUrlBootstrapHandler, WorkbenchPhase.BlockRestore );
 
 class ManageAuthorizedExtensionURIsAction extends Action2 {
 

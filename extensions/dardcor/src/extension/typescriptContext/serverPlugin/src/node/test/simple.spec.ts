@@ -5,23 +5,18 @@
 import path from 'path';
 import { beforeAll, suite, test } from 'vitest';
 
-// These must be type imports since the module is loaded dynamically in the beforeAll hook.
 import type * as protocol from '../../common/protocol';
 import type * as testing from './testing';
 
-// This is OK since we are running in a Node / CommonJS environment.
 import ts from 'typescript';
 
-// Define variables in outer scope so they can be accessed in tests
 let ContextKind: typeof protocol.ContextKind;
 let assertContextItems: typeof testing.assertContextItems;
 let computeContext: typeof testing.computeContext;
 let create: typeof testing.create;
 
-// This is OK since we run tests in node loading a TS version installed in the workspace.
 const root = path.join(__dirname, '../../../fixtures/context');
 
-// Use before hook to ensure async setup completes before tests run
 beforeAll(async function () {
 	const TS = await import('../../common/typescript');
 	TS.default.install(ts);

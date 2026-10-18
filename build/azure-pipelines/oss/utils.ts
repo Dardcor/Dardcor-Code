@@ -3,11 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Parse CLI arguments of the form `--key value` into a Record.
- * If the next token after a `--key` is another `--`-prefixed flag (or there
- * is no next token), the key is treated as a boolean flag with value `'true'`.
- */
 export function parseArgs(argv: string[]): Record<string, string> {
 	const args: Record<string, string> = {};
 	for (let i = 0; i < argv.length; i++) {

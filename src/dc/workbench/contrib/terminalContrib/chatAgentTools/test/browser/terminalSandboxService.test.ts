@@ -105,8 +105,6 @@ suite('TerminalSandboxService - network domains', () => {
 		}
 
 		async getEnvironment(): Promise<IRemoteAgentEnvironment | null> {
-			// Return a Linux environment so the default test expectations are
-			// independent of the local OS.
 			return this.remoteEnvironment;
 		}
 	}
@@ -258,7 +256,6 @@ suite('TerminalSandboxService - network domains', () => {
 		};
 		workspaceContextService.setWorkspaceFolders([URI.file('/workspace-one')]);
 
-		// Setup default configuration
 		configurationService.setUserConfiguration(AgentSandboxSettingId.AgentSandboxEnabled, AgentSandboxEnabledValue.On);
 		configurationService.setUserConfiguration(AgentSandboxSettingId.AgentSandboxAllowUnsandboxedCommands, true);
 		configurationService.setUserConfiguration(AgentSandboxSettingId.AgentSandboxRetryWithAllowNetworkRequests, true);
@@ -1525,7 +1522,6 @@ suite('TerminalSandboxService - network domains', () => {
 
 	test('should prefix wrapped command with ELECTRON_RUN_AS_NODE=1 when no remote env is available', async function () {
 		if (isWindows) {
-			// Local Windows uses MXC, which launches wxc-exec.exe directly instead of SRT through Electron-as-Node.
 			this.skip();
 		}
 		remoteAgentService.remoteEnvironment = null;
@@ -1616,7 +1612,6 @@ suite('TerminalSandboxService - network domains', () => {
 
 	test('should place sandbox temp dir under the local data folder when no remote env is available', async function () {
 		if (isWindows) {
-			// Local Windows uses MXC, which does not use the POSIX local temp-dir path shape asserted below.
 			this.skip();
 		}
 		remoteAgentService.remoteEnvironment = null;

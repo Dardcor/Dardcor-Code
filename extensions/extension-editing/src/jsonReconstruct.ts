@@ -3,25 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * This class has a very specific purpose:
- *
- *	It can return convert offset within a decoded JSON string to offset within the encoded JSON string.
- */
 export class JsonStringScanner {
 	private resultChars = 0;
 	private pos = 0;
 
-	/**
-	 *
-	 * @param text the encoded JSON string
-	 * @param pos must not include ", ie must be `stringJSONNode.offset + 1`
-	 */
-	constructor(private readonly text: string, initialPos: number /* offset within `text` */) {
+	constructor(private readonly text: string, initialPos: number ) {
 		this.pos = initialPos;
 	}
 
-	// note that we don't do bound checks here, because we know that the offset is within the string
 	getOffsetInEncoded(offsetDecoded: number) {
 
 		let start = this.pos;
@@ -94,10 +83,10 @@ export class JsonStringScanner {
 
 
 const enum CharacterCodes {
-	lineFeed = 0x0A,              // \n
-	carriageReturn = 0x0D,        // \r
+	lineFeed = 0x0A,
+	carriageReturn = 0x0D,
 
-	space = 0x0020,   // " "
+	space = 0x0020,
 
 	_0 = 0x30,
 	_1 = 0x31,
@@ -164,20 +153,20 @@ const enum CharacterCodes {
 	Y = 0x59,
 	Z = 0x5a,
 
-	asterisk = 0x2A,              // *
-	backslash = 0x5C,             // \
-	closeBrace = 0x7D,            // }
-	closeBracket = 0x5D,          // ]
-	colon = 0x3A,                 // :
-	comma = 0x2C,                 // ,
-	dot = 0x2E,                   // .
-	doubleQuote = 0x22,           // "
-	minus = 0x2D,                 // -
-	openBrace = 0x7B,             // {
-	openBracket = 0x5B,           // [
-	plus = 0x2B,                  // +
-	slash = 0x2F,                 // /
+	asterisk = 0x2A,
+	backslash = 0x5C,
+	closeBrace = 0x7D,
+	closeBracket = 0x5D,
+	colon = 0x3A,
+	comma = 0x2C,
+	dot = 0x2E,
+	doubleQuote = 0x22,
+	minus = 0x2D,
+	openBrace = 0x7B,
+	openBracket = 0x5B,
+	plus = 0x2B,
+	slash = 0x2F,
 
-	formFeed = 0x0C,              // \f
-	tab = 0x09,                   // \t
+	formFeed = 0x0C,
+	tab = 0x09,
 }

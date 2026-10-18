@@ -11,9 +11,6 @@ import { IPromptsService } from '../service/promptsService.js';
 import { getTarget, isVSCodeOrDefaultTarget } from './promptFileAttributes.js';
 
 export class PromptDocumentSemanticTokensProvider implements DocumentSemanticTokensProvider {
-	/**
-	 * Debug display name for this provider.
-	 */
 	public readonly _debugDisplayName: string = 'PromptDocumentSemanticTokensProvider';
 
 	constructor(
@@ -24,7 +21,6 @@ export class PromptDocumentSemanticTokensProvider implements DocumentSemanticTok
 	provideDocumentSemanticTokens(model: ITextModel, lastResultId: string | null, token: CancellationToken): ProviderResult<SemanticTokens> {
 		const promptType = getPromptsTypeForLanguageId(model.getLanguageId());
 		if (!promptType) {
-			// if the model is not a prompt, we don't provide any semantic tokens
 			return undefined;
 		}
 
@@ -34,7 +30,6 @@ export class PromptDocumentSemanticTokensProvider implements DocumentSemanticTok
 		}
 		const target = getTarget(promptType, promptAST.header ?? model.uri);
 		if (!isVSCodeOrDefaultTarget(target)) {
-			// variables syntax is only support for VS Code and default targets, not for GitHub Copilot or Claude custom agents
 			return undefined;
 		}
 
@@ -43,31 +38,26 @@ export class PromptDocumentSemanticTokensProvider implements DocumentSemanticTok
 			return undefined;
 		}
 
-		// Prepare semantic tokens data following the delta-encoded, 5-number tuple format:
-		// [deltaLine, deltaStart, length, tokenType, tokenModifiers]
-		// We expose a single token type 'variable' (index 0) and no modifiers (bitset 0).
 		const data: number[] = [];
 		let lastLine = 0;
 		let lastChar = 0;
 
-		// Ensure stable order (parser already produces them in order, but sort defensively)
 		const ordered = [...variableReferences].sort((a, b) => a.range.startLineNumber === b.range.startLineNumber
 			? a.range.startColumn - b.range.startColumn
 			: a.range.startLineNumber - b.range.startLineNumber);
 
 		for (const ref of ordered) {
-			// Also include the '#tool:' prefix for syntax highlighting purposes, even if it's not originally part of the variable name itself.
 			const extraCharCount = '#tool:'.length;
-			const line = ref.range.startLineNumber - 1; // zero-based
-			const char = ref.range.startColumn - extraCharCount - 1; // zero-based
+			const line = ref.range.startLineNumber - 1;
+			const char = ref.range.startColumn - extraCharCount - 1;
 			const length = ref.range.endColumn - ref.range.startColumn + extraCharCount;
 			const deltaLine = line - lastLine;
 			const deltaChar = deltaLine === 0 ? char - lastChar : char;
-			data.push(deltaLine, deltaChar, length, 0 /* variable token type index */, 0 /* no modifiers */);
+			data.push(deltaLine, deltaChar, length, 0 , 0 );
 			lastLine = line;
 			lastChar = char;
 			if (token.isCancellationRequested) {
-				break; // Return what we have so far if cancelled.
+				break;
 			}
 		}
 
@@ -79,6 +69,5 @@ export class PromptDocumentSemanticTokensProvider implements DocumentSemanticTok
 	}
 
 	releaseDocumentSemanticTokens(resultId: string | undefined): void {
-		// No caching/result management needed for the simple, stateless implementation.
 	}
 }

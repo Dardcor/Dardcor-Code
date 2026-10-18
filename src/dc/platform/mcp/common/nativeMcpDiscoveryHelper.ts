@@ -12,7 +12,6 @@ export const INativeMcpDiscoveryHelperService = createDecorator<INativeMcpDiscov
 export const NativeMcpDiscoveryHelperChannelName = 'NativeMcpDiscoveryHelper';
 
 export interface INativeMcpDiscoveryData {
-	// platform and homedir are duplicated by the remote/native environment, but here for convenience
 	platform: Platform;
 	homedir: URI;
 	copilotHome?: URI;

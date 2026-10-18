@@ -184,8 +184,8 @@ export class InlineReplyInterpreter implements ReplyInterpreter {
 			outputStream,
 			this._uri,
 			this._workingCopySummarizedDoc.text,
-			this._workingCopySummarizedDoc.text.split('\n').map((_, index) => new SentLine(index, SentInCodeBlock.Other)), // not used
-			new LineRange(0, 0), // not used
+			this._workingCopySummarizedDoc.text.split('\n').map((_, index) => new SentLine(index, SentInCodeBlock.Other)),
+			new LineRange(0, 0),
 			this._workingCopySummarizedDoc.languageId,
 			this._fileIndentInfo
 		);
@@ -224,13 +224,11 @@ export class InlineReplyInterpreter implements ReplyInterpreter {
 		}
 
 		if (additionalImports.length > 0) {
-			// No edits, but imports encountered
 			_outputStream.textEdit(this._uri, this._generateAdditionalImportsEdits(additionalImports));
 			return;
 		}
 
 		if (didNoopEdits) {
-			// we attempted to do edits, but they were not meaningful, i.e. they didn't change anything
 			context.addAnnotations([{ label: OutcomeAnnotationLabel.NOOP_EDITS, message: 'Edits were not applied because they were having no actual effects.', severity: 'info' }]);
 			return;
 		}
@@ -250,15 +248,13 @@ export class InlineReplyInterpreter implements ReplyInterpreter {
 		const documentLines = this._workingCopySummarizedDoc.originalText.split(/\r\n|\r|\n/g);
 		const lastImportStatementLineIdx = findLastIdx(documentLines, l => isImportStatement(l, this._workingCopySummarizedDoc.languageId));
 		if (lastImportStatementLineIdx === -1) {
-			// no existing import statements, we insert it on line 0
 			return [new TextEdit(new Range(0, 0, 0, 0), additionalImports.join('\n') + '\n\n')];
 		}
 
-		// traverse lines upward starting at `lastImportStatementLineIdx` to capture all existing imports
 		const existingImports = new Set<string>();
 		for (let i = lastImportStatementLineIdx; i >= 0; i--) {
 			const line = documentLines[i];
-			if (line.trim() === '') { // skip empty lines
+			if (line.trim() === '') {
 				continue;
 			}
 			if (isImportStatement(line, this._workingCopySummarizedDoc.languageId)) {

@@ -73,24 +73,16 @@ suite('chatDebugCacheExplorerView agent filter', () => {
 		});
 
 		test('matches by id even when the stored turn is a different object instance', () => {
-			// getEvents returns fresh arrays; the stored turn may be a different
-			// instance carrying the same span id.
 			const filtered = [turnWithId('a1', 'panel/editAgent'), turnWithId('a3', 'panel/editAgent')];
 			assert.strictEqual(resolveFilteredSelectionIndex(filtered, turnWithId('a3', 'panel/editAgent')), 1);
 		});
 
 		test('falls back to the most recent turn when the selected turn is filtered out', () => {
-			// Repro for the stale-ordinal bug: previously selected 'b0' is gone
-			// after filtering to the edit agent. The result must be the last
-			// surviving turn (index 2), not the stale ordinal position.
 			const filtered = [turnWithId('a1', 'panel/editAgent'), turnWithId('a2', 'panel/editAgent'), turnWithId('a3', 'panel/editAgent')];
 			assert.strictEqual(resolveFilteredSelectionIndex(filtered, turnWithId('b0', 'backgroundTodoAgent')), 2);
 		});
 
 		test('preserves a turn without an id via composite identity', () => {
-			// id is optional; a fresh object with no id and no reference match
-			// must still match on created + parentEventId + requestName + model
-			// (the second pass) rather than falling through to the default.
 			const filtered = [
 				turnNoId({ created: 10, parentEventId: 'p0', requestName: 'panel/editAgent', model: 'gpt' }),
 				turnNoId({ created: 20, parentEventId: 'p1', requestName: 'panel/editAgent', model: 'gpt' }),
@@ -100,10 +92,6 @@ suite('chatDebugCacheExplorerView agent filter', () => {
 		});
 
 		test('prefers the exact selected turn over an earlier look-alike (id-less)', () => {
-			// Two distinct id-less turns share every composite field. The stored
-			// object is the SECOND one. The precise (reference) pass must win, so
-			// the result is index 1 — not 0, which a single composite findIndex
-			// pass would have returned.
 			const twin = { created: 20, parentEventId: 'p1', requestName: 'panel/editAgent', model: 'gpt' };
 			const first = turnNoId(twin);
 			const second = turnNoId(twin);
@@ -111,9 +99,6 @@ suite('chatDebugCacheExplorerView agent filter', () => {
 		});
 
 		test('does not composite-match an id-less turn against a turn that has an id', () => {
-			// Composite matching requires both sides to lack an id. A surviving
-			// turn that shares the composite fields but carries an id must not
-			// fuzzy-match the id-less stored turn; fall back to most recent.
 			const withId: IChatDebugModelTurnEvent = { kind: 'modelTurn', id: 'x', sessionResource: URI.parse('vscode-chat://session/1'), created: new Date(20), parentEventId: 'p1', requestName: 'panel/editAgent', model: 'gpt' };
 			const filtered = [withId, turnNoId({ created: 99, parentEventId: 'pZ', requestName: 'title' })];
 			const storedNoId = turnNoId({ created: 20, parentEventId: 'p1', requestName: 'panel/editAgent', model: 'gpt' });
@@ -150,9 +135,6 @@ suite('chatDebugCacheExplorerView agent filter', () => {
 		});
 
 		test('keeps message rows aligned when a synthetic prefix exists on only one side', () => {
-			// Previous request carried a tools catalog; current request dropped it.
-			// The user message must still line up against the user message — not the
-			// tools chunk — and tools must be shown as a removed (drift) row.
 			const a = [seg('system', 100, true), seg('tools', 200, true), seg('user', 50, false, false, 'user')];
 			const b = [seg('system', 100, true), seg('user', 50, false, false, 'user')];
 			assert.deepStrictEqual(alignSignatureChunks(a, b), [

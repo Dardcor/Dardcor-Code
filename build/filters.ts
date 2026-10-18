@@ -6,14 +6,6 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-/**
- * Hygiene works by creating cascading subsets of all our files and
- * passing them through a sequence of checks. Here are the current subsets,
- * named according to the checks performed on them. Each subset contains
- * the following one, as described in mathematical notation:
- *
- * all ⊃ eol ⊇ indentation ⊃ copyright ⊃ typescript
- */
 
 export const all = Object.freeze<string[]>([
 	'*',
@@ -67,21 +59,16 @@ export const unicodeFilter = Object.freeze<string[]>([
 	'!extensions/**/colorize-fixtures/**',
 	'!extensions/terminal-suggest/src/shell/fishBuiltinsCache.ts',
 
-	// extensions/copilot has its own code style
-	'!extensions/copilot/**',
-
 	'!src/dc/base/browser/dompurify/**',
 	'!src/dc/workbench/services/keybinding/browser/keyboardLayouts/**',
 	'!src/dc/workbench/contrib/terminal/common/scripts/psreadline/**',
 
-	// Files with licences
 	'!src/dc/platform/endpoint/common/licenseAgreement.ts',
 ]);
 
 export const indentationFilter = Object.freeze<string[]>([
 	'**',
 
-	// except specific files
 	'!**/ThirdPartyNotices.txt',
 	'!**/ThirdPartyNotices.cli.txt',
 	'!**/LICENSE.{txt,rtf}',
@@ -105,7 +92,6 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!product.overrides.json',
 	'!src/dc/platform/endpoint/common/licenseAgreement.ts',
 
-	// except specific folders
 	'!test/automation/out/**',
 	'!test/monaco/out/**',
 	'!test/smoke/out/**',
@@ -124,11 +110,9 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!build/checker/**',
 	'!src/dc/workbench/contrib/terminal/common/scripts/psreadline/**',
 
-	// except multiple specific files
 	'!**/package.json',
 	'!**/package-lock.json',
 
-	// except multiple specific folders
 	'!**/codicon/**',
 	'!**/fixtures/**',
 	'!**/lib/**',
@@ -139,10 +123,6 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!extensions/**/themes/**',
 	'!extensions/**/colorize-fixtures/**',
 
-	// extensions/copilot has its own code style
-	'!extensions/copilot/**',
-
-	// except specific file types
 	'!src/dc/*/**/*.d.ts',
 	'!src/typings/**/*.d.ts',
 	'!extensions/**/*.d.ts',
@@ -158,7 +138,6 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!**/*.dockerfile',
 	'!**/*.tiff',
 
-	// except for built files
 	'!extensions/mermaid-markdown-features/chat-webview-out/*.js',
 	'!extensions/mermaid-markdown-features/markdown-preview-out/*.js',
 	'!extensions/mermaid-markdown-features/notebook-out/*.js',
@@ -222,12 +201,9 @@ export const copyrightFilter = Object.freeze<string[]>([
 	'!extensions/mermaid-markdown-features/markdown-preview-out/**',
 	'!extensions/mermaid-markdown-features/notebook-out/**',
 
-	// vendored third-party libraries
 	'!src/dc/base/common/lit-html/**',
 	'!src/dc/base/common/signals-core/**',
 
-	// extensions/copilot has its own code style
-	'!extensions/copilot/**',
 ]);
 
 export const tsFormattingFilter = Object.freeze<string[]>([
@@ -249,8 +225,6 @@ export const tsFormattingFilter = Object.freeze<string[]>([
 	'!extensions/terminal-suggest/src/shell/fishBuiltinsCache.ts',
 	'!src/dc/platform/agentHost/node/codex/protocol/generated/**',
 
-	// extensions/copilot has its own code style
-	'!extensions/copilot/**',
 ]);
 
 export const eslintFilter = Object.freeze<string[]>([

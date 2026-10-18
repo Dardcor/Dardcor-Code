@@ -231,7 +231,6 @@ suite('ExtensionService', () => {
 			};
 		}
 		protected async *_resolveExtensions(): AsyncIterable<ResolvedExtensions> {
-			// Return empty iterable - no extensions to resolve in tests
 		}
 		protected _scanSingleExtension(extension: IExtension): Promise<IExtensionDescription | null> {
 			throw new Error('Method not implemented.');
@@ -252,9 +251,7 @@ suite('ExtensionService', () => {
 		disposables = new DisposableStore();
 		const testProductService = { _serviceBrand: undefined, ...product };
 		disposables.add(instantiationService = createServices(disposables, [
-			// custom
 			[IExtensionService, MyTestExtensionService],
-			// default
 			[ILifecycleService, TestLifecycleService],
 			[IWorkbenchExtensionManagementService, TestWorkbenchExtensionManagementService],
 			[INotificationService, TestNotificationService],
@@ -339,11 +336,10 @@ suite('ExtensionService', () => {
 	});
 
 	test('Immediate activation includes ready remote extension hosts (issue #297019)', async () => {
-		extService.activationEvents.length = 0; // Clear any initial activations
+		extService.activationEvents.length = 0;
 
 		await extService.activateByEvent('onTest', ActivationKind.Immediate);
 
-		// When remote host is ready, Immediate activation should include it
 		const activatedKinds = extService.activationEvents.map(e => e.kind);
 		assert.ok(activatedKinds.includes(ExtensionHostKind.LocalProcess), 'Should activate on LocalProcess');
 		assert.ok(activatedKinds.includes(ExtensionHostKind.LocalWebWorker), 'Should activate on LocalWebWorker');
@@ -352,11 +348,10 @@ suite('ExtensionService', () => {
 
 	test('Immediate activation excludes not-ready remote extension hosts', async () => {
 		extService.remoteExtHostIsReady = false;
-		extService.activationEvents.length = 0; // Clear any initial activations
+		extService.activationEvents.length = 0;
 
 		await extService.activateByEvent('onTest', ActivationKind.Immediate);
 
-		// When remote host is not ready, Immediate activation should skip it
 		const activatedKinds = extService.activationEvents.map(e => e.kind);
 		assert.ok(activatedKinds.includes(ExtensionHostKind.LocalProcess), 'Should activate on LocalProcess');
 		assert.ok(activatedKinds.includes(ExtensionHostKind.LocalWebWorker), 'Should activate on LocalWebWorker');
@@ -365,22 +360,20 @@ suite('ExtensionService', () => {
 
 	test('Immediate activation still activates local extension hosts even when not ready', async () => {
 		extService.localExtHostIsReady = false;
-		extService.activationEvents.length = 0; // Clear any initial activations
+		extService.activationEvents.length = 0;
 
 		await extService.activateByEvent('onTest', ActivationKind.Immediate);
 
-		// Local hosts should always be activated for Immediate, regardless of isReady
 		const activatedKinds = extService.activationEvents.map(e => e.kind);
 		assert.ok(activatedKinds.includes(ExtensionHostKind.LocalProcess), 'Should activate on LocalProcess even when not ready');
 		assert.ok(activatedKinds.includes(ExtensionHostKind.LocalWebWorker), 'Should activate on LocalWebWorker even when not ready');
 	});
 
 	test('Normal activation activates all extension hosts', async () => {
-		extService.activationEvents.length = 0; // Clear any initial activations
+		extService.activationEvents.length = 0;
 
 		await extService.activateByEvent('onTest', ActivationKind.Normal);
 
-		// Should activate on all hosts
 		const activatedKinds = extService.activationEvents.map(e => e.kind);
 		assert.ok(activatedKinds.includes(ExtensionHostKind.LocalProcess), 'Should activate on LocalProcess');
 		assert.ok(activatedKinds.includes(ExtensionHostKind.LocalWebWorker), 'Should activate on LocalWebWorker');

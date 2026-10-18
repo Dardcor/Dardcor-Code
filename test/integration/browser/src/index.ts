@@ -20,18 +20,13 @@ const logsPath = path.join(root, '.build', 'logs', 'integration-tests-browser');
 
 const args = minimist(process.argv.slice(2), {
 	string: [
-		// path to the workspace (folder or *.code-workspace file) to open in the test
 		'workspacePath',
-		// path to the extension to test
 		'extensionDevelopmentPath',
-		// path to the extension tests
 		'extensionTestsPath',
-		// browser in which integration tests should run
 		'browser',
 	],
 	boolean: [
 		'help',
-		// do not run browsers headless
 		'debug',
 	],
 	alias: {
@@ -138,9 +133,6 @@ async function runTestsInBrowser(browserType: BrowserType, browserChannel: Brows
 		? `${endpoint.href}&workspace=${testWorkspacePath}&payload=${payloadParam}`
 		: `${endpoint.href}&folder=${testWorkspacePath}&payload=${payloadParam}`;
 
-	// The server prints "Web UI available at" before its HTTP listener is fully ready to
-	// accept connections on some platforms (notably Windows + Firefox). Retry the initial
-	// navigation a few times on connection-refused errors to avoid spurious test failures.
 	await gotoWithRetry(page, targetUrl);
 }
 
@@ -179,7 +171,6 @@ function consoleLogFn(msg: playwright.ConsoleMessage) {
 
 async function launchServer(browserType: BrowserType, browserChannel: BrowserChannel): Promise<{ endpoint: url.UrlWithStringQuery; server: cp.ChildProcess }> {
 
-	// Ensure a tmp user-data-dir is used for the tests
 	const tmpDir = tmp.dirSync({ prefix: 't' });
 	const testDataPath = tmpDir.name;
 	process.once('exit', () => rimraf.sync(testDataPath));
@@ -230,11 +221,11 @@ async function launchServer(browserType: BrowserType, browserChannel: BrowserCha
 	process.on('exit', () => serverProcess.kill());
 	process.on('SIGINT', () => {
 		serverProcess.kill();
-		process.exit(128 + 2); // https://nodejs.org/docs/v14.16.0/api/process.html#process_signal_events
+		process.exit(128 + 2);
 	});
 	process.on('SIGTERM', () => {
 		serverProcess.kill();
-		process.exit(128 + 15); // https://nodejs.org/docs/v14.16.0/api/process.html#process_signal_events
+		process.exit(128 + 15);
 	});
 
 	return new Promise(c => {

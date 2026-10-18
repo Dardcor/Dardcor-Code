@@ -110,11 +110,8 @@ export class AlternativeTextNotebookContentProvider extends BaseAlternativeNoteb
 			}
 			const line = lineOfText.value;
 
-			// Check for new cell delimiter
-			// Sometimes LLM returns cells without the `vscode.cell` marker such as .
 			const isLineCommentForEmptyCellWithoutCellMarker = line.startsWith(`${lineCommentStart}%% [`) && line.trimEnd().endsWith(']');
 			const isLineCommentWithCellMarker = line.startsWith(`${lineCommentStart}%% vscode.cell`);
-			// Attempt to extract only if we think we have a cell marker, else we end up doing this for every single line and thats expensive.
 			const cellParts = (isLineCommentWithCellMarker || isLineCommentForEmptyCellWithoutCellMarker) ? extractCellParts(line, defaultLanguage) : undefined;
 			if ((isLineCommentWithCellMarker || isLineCommentForEmptyCellWithoutCellMarker) && cellParts?.language) {
 				if (pendingTripleQuotes) {
@@ -123,7 +120,6 @@ export class AlternativeTextNotebookContentProvider extends BaseAlternativeNoteb
 				const lineOfCellText: LineOfCellText & { emitted: Boolean } = { index: -1, uri: undefined, language: undefined, kind: NotebookCellKind.Code, emitted: false, type: 'start' };
 				lineOfCellText.index = cellIndex += 1;
 				lineOfCellText.emitted = false;
-				// LLM returns duplicate cell with the same id.
 				if (cellParts.id && cellIdMap.get(cellParts.id)?.document.languageId === cellParts.language) {
 					if (cellIdsSeen.has(cellParts.id)) {
 						cellParts.id = '';
@@ -131,8 +127,6 @@ export class AlternativeTextNotebookContentProvider extends BaseAlternativeNoteb
 						cellIdsSeen.add(cellParts.id);
 					}
 				} else {
-					// Possible duplicate cell with the same id but different language.
-					// In such cases, treat them as new cells.
 					cellParts.id = '';
 				}
 
@@ -158,17 +152,13 @@ export class AlternativeTextNotebookContentProvider extends BaseAlternativeNoteb
 			}
 			if (inMarkdownCell) {
 				if (!isInTripleQuotes) {
-					// Look for the opening triple quotes
 					if (line === blockComment[0]) {
 						isInTripleQuotes = true;
 					} else {
-						// lineEmitted = true;
 						yield { index: cellIndex, line, type: 'line' };
 					}
 				} else {
-					// We are in triple quotes
 					if (line === blockComment[1]) {
-						// Closing triple quotes found
 						isInTripleQuotes = false;
 						pendingTripleQuotes = true;
 					} else {
@@ -176,7 +166,6 @@ export class AlternativeTextNotebookContentProvider extends BaseAlternativeNoteb
 					}
 				}
 			} else {
-				// Non-markdown cell or default
 				yield { index: cellIndex, line, type: 'line' };
 			}
 		}
@@ -192,7 +181,6 @@ export class AlternativeTextNotebookContentProvider extends BaseAlternativeNoteb
 		const cellIdMap = getCellIdMap(notebook);
 		const cellOffsetMap: { offset: number; sourceOffset: number; cell: NotebookCell }[] = [];
 
-		// Parse the text to find cell markers and build the offset map
 		const lines = text.split(EOL);
 		let currentOffset = 0;
 
@@ -211,7 +199,6 @@ export class AlternativeTextNotebookContentProvider extends BaseAlternativeNoteb
 
 					if (cell) {
 						const offset = currentOffset;
-						// Calculate sourceOffset: skip the cell marker line and any markdown block comment start
 						const eolLength = EOL.length;
 						const isMarkdown = cellParts.language === 'markdown';
 						const sourceOffset = offset + line.length + eolLength + (isMarkdown ? blockComment[0].length + eolLength : 0);
@@ -275,7 +262,6 @@ function extractCellParts(line: string, defaultLanguage: string | undefined): { 
 	const languageMatch = line.match(/\[language=(.+?)\]/);
 	if (!languageMatch) {
 		if (lineMightHaveCellMarker(line) && typeof defaultLanguage === 'string') {
-			// If we have a cell marker but no language, we assume the default language.
 			return { id: idMatch ? idMatch[1].trim() : '', language: defaultLanguage };
 		}
 		return;

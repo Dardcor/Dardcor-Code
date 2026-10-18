@@ -6,7 +6,7 @@
 //@ts-check
 'use strict';
 
-process.env.MOCHA_COLORS = '1'; // Force colors (note that this must come before any mocha imports)
+process.env.MOCHA_COLORS = '1';
 
 import * as assert from 'assert';
 import Mocha from 'mocha';
@@ -58,9 +58,9 @@ const TEST_GLOB = '**/test/**/*.test.js';
 
 const excludeGlobs = [
 	'**/{browser,electron-browser,electron-main,electron-utility}/**/*.test.js',
-	'**/dc/platform/environment/test/node/nativeModules.test.js', // native modules are compiled against Electron and this test would fail with node.js
-	'**/dc/base/parts/storage/test/node/storage.test.js', // same as above, due to direct dependency to sqlite native module
-	'**/dc/workbench/contrib/testing/test/**', // flaky (https://github.com/microsoft/vscode/issues/137853)
+	'**/dc/platform/environment/test/node/nativeModules.test.js',
+	'**/dc/base/parts/storage/test/node/storage.test.js',
+	'**/dc/workbench/contrib/testing/test/**',
 ];
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -68,10 +68,12 @@ const out = args.build ? 'out-build' : 'out';
 const src = path.join(REPO_ROOT, out);
 const baseUrl = pathToFileURL(src);
 
-//@ts-ignore
-const requiredNodeVersion = semver.parse(/^target="(.*)"$/m.exec(fs.readFileSync(path.join(REPO_ROOT, 'remote', '.npmrc'), 'utf8'))[1]);
+const remotePackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'remote', 'package.json'), 'utf8'));
+const requiredNodeVersion = semver.parse(remotePackage.dardcorBuild?.nodeGyp?.target ?? remotePackage.config?.node_gyp_target ?? remotePackage.config?.target ?? '');
 const currentNodeVersion = semver.parse(process.version);
-//@ts-ignore
+if (!requiredNodeVersion) {
+	throw new Error('The remote package must declare a valid node_gyp_target in package.json config.');
+}
 if (currentNodeVersion?.major < requiredNodeVersion?.major) {
 	console.error(`node.js unit tests require a major node.js version of ${requiredNodeVersion?.major} (your version is: ${currentNodeVersion?.major})`);
 	process.exit(1);
@@ -79,24 +81,17 @@ if (currentNodeVersion?.major < requiredNodeVersion?.major) {
 
 function main() {
 
-	// VSCODE_GLOBALS: package/product.json
 	const _require = module.createRequire(import.meta.url);
 	globalThis._VSCODE_PRODUCT_JSON = _require(`${REPO_ROOT}/product.json`);
 	globalThis._VSCODE_PACKAGE_JSON = _require(`${REPO_ROOT}/package.json`);
 
-	// VSCODE_GLOBALS: file root
 	globalThis._VSCODE_FILE_ROOT = baseUrl.href;
 
 	if (args.build) {
-		// when running from `out-build`, ensure to load the default
-		// messages file, because all `nls.localize` calls have their
-		// english values removed and replaced by an index.
 		globalThis._VSCODE_NLS_MESSAGES = _require(`${REPO_ROOT}/${out}/nls.messages.json`);
 	}
 
-	// Test file operations that are common across platforms. Used for test infra, namely snapshot tests
 	Object.assign(globalThis, {
-		// __analyzeSnapshotInTests: takeSnapshotAndCountClasses,
 		__readFileInTests: (/** @type {string} */ path) => fs.promises.readFile(path, 'utf-8'),
 		__writeFileInTests: (/** @type {string} */ path, /** @type {BufferEncoding} */ contents) => fs.promises.writeFile(path, contents),
 		__readDirInTests: (/** @type {string} */ path) => fs.promises.readdir(path),
@@ -104,9 +99,6 @@ function main() {
 		__mkdirPInTests: (/** @type {string} */ path) => fs.promises.mkdir(path, { recursive: true }),
 	});
 
-	// Configure Node.js diagnostic reports for crash investigation.
-	// Reports are written to .build/crashes so the existing CI artifact
-	// collection picks them up alongside Electron crash dumps.
 	const crashDir = path.join(REPO_ROOT, '.build', 'crashes');
 	fs.mkdirSync(crashDir, { recursive: true });
 	if (process.report) {
@@ -214,7 +206,6 @@ function main() {
 		process.stderr.write = write;
 
 		if (!args.run && !args.runGlob) {
-			// set up last test
 			Mocha.suite('Loader', function() {
 				test('should not explode while loading', function() {
 					assert.ok(!didErr, `should not explode while loading: ${didErr}`);
@@ -222,7 +213,6 @@ function main() {
 			});
 		}
 
-		// report failing test for every unexpected error during any of the tests
 		const unexpectedErrors = [];
 		Mocha.suite('Errors', function() {
 			test('should not have unexpected errors in tests', function() {
@@ -237,14 +227,12 @@ function main() {
 			});
 		});
 
-		// replace the default unexpected error handler to be useful during tests
 		import(`${baseUrl}/dc/base/common/errors.js`).then(errors => {
 			errors.setUnexpectedErrorHandler(function(err) {
 				const stack = (err && err.stack) || (new Error().stack);
 				unexpectedErrors.push((err && err.message ? err.message : err) + '\n' + stack);
 			});
 
-			// fire up mocha
 			runner.run(failures => process.exit(failures ? 1 : 0));
 		});
 	});

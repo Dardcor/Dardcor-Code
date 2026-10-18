@@ -116,7 +116,6 @@ export class RenderedContentHover extends Disposable {
 
 		let startColumnBoundary = 1;
 		if (editor.hasModel()) {
-			// Ensure the range is on the current view line
 			const viewModel = editor._getViewModel();
 			const coordinatesConverter = viewModel.coordinatesConverter;
 			const anchorViewRange = coordinatesConverter.convertModelRangeToViewRange(anchorRange);
@@ -125,7 +124,6 @@ export class RenderedContentHover extends Disposable {
 			startColumnBoundary = coordinatesConverter.convertViewPositionToModelPosition(anchorViewRangeStart).column;
 		}
 
-		// The anchor range is always on a single line
 		const anchorStartLineNumber = anchorRange.startLineNumber;
 		let secondaryPositionColumn = anchorRange.startColumn;
 		let forceShowAtRange: Range | undefined;
@@ -136,7 +134,6 @@ export class RenderedContentHover extends Disposable {
 			const hoverPartRangeOnAnchorEndLine = hoverPartRange.endLineNumber === anchorStartLineNumber;
 			const hoverPartRangeIsOnAnchorLine = hoverPartRangeOnAnchorStartLine && hoverPartRangeOnAnchorEndLine;
 			if (hoverPartRangeIsOnAnchorLine) {
-				// this message has a range that is completely sitting on the line of the anchor
 				const hoverPartStartColumn = hoverPartRange.startColumn;
 				const minSecondaryPositionColumn = Math.min(secondaryPositionColumn, hoverPartStartColumn);
 				secondaryPositionColumn = Math.max(minSecondaryPositionColumn, startColumnBoundary);
@@ -164,36 +161,15 @@ export class RenderedContentHover extends Disposable {
 }
 
 interface IRenderedContentHoverPart {
-	/**
-	 * Type of rendered part
-	 */
 	type: 'hoverPart';
-	/**
-	 * Participant of the rendered hover part
-	 */
 	participant: IEditorHoverParticipant<IHoverPart>;
-	/**
-	 * The rendered hover part
-	 */
 	hoverPart: IHoverPart;
-	/**
-	 * The HTML element containing the hover status bar.
-	 */
 	hoverElement: HTMLElement;
 }
 
 interface IRenderedContentStatusBar {
-	/**
-	 * Type of rendered part
-	 */
 	type: 'statusBar';
-	/**
-	 * The HTML element containing the hover status bar.
-	 */
 	hoverElement: HTMLElement;
-	/**
-	 * The actions of the hover status bar.
-	 */
 	actions: HoverAction[];
 }
 
@@ -321,9 +297,6 @@ class RenderedContentHoverParts extends Disposable {
 	}
 
 	private _registerListenersOnRenderedParts(): IDisposable {
-		// Create per-part disposables so that when an individual rendered part is
-		// updated we can dispose its listeners and copy button without affecting
-		// the others.
 		this._renderedParts.forEach((renderedPart: IRenderedContentHoverPartOrStatusBar, index: number) => {
 			this._createListenersForPart(index, renderedPart);
 		});
@@ -347,7 +320,6 @@ class RenderedContentHoverParts extends Disposable {
 			event.stopPropagation();
 			this._focusedHoverPartIndex = -1;
 		}));
-		// Add copy button for marker hovers
 		if (renderedPart.type === 'hoverPart' && !(renderedPart.hoverPart instanceof ColorHover) && !renderedPart.participant.hideCopyButton) {
 			partDisposables.add(new HoverCopyButton(
 				element,
@@ -423,7 +395,6 @@ class RenderedContentHoverParts extends Disposable {
 			if (!renderedPart) {
 				continue;
 			}
-			// Dispose any listeners/copy button for the previous part at this index
 			const prevDisposable = this._perPartDisposables.get(i);
 			if (prevDisposable) {
 				prevDisposable.dispose();
@@ -435,7 +406,6 @@ class RenderedContentHoverParts extends Disposable {
 				hoverPart: renderedPart.hoverPart,
 				hoverElement: renderedPart.hoverElement,
 			};
-			// Recreate listeners and copy button for the updated part.
 			this._createListenersForPart(i, this._renderedParts[i]);
 		}
 		if (focus) {

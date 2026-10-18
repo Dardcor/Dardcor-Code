@@ -93,14 +93,12 @@ class QuickFixActionViewItem extends MenuEntryActionViewItem {
 		store.add(autorun(reader => {
 			const info = controller.lightBulbState.read(reader);
 			if (this.label) {
-				// Update icon
 				const icon = info?.icon ?? Codicon.lightBulb;
 				const iconClasses = ThemeIcon.asClassNameArray(icon);
 				this.label.className = '';
 				this.label.classList.add('codicon', 'action-label', ...iconClasses);
 			}
 
-			// Update tooltip
 			this.#currentTitle = info?.title;
 			this.updateTooltip();
 		}));
@@ -136,10 +134,6 @@ class LabelWithKeybindingActionViewItem extends MenuEntryActionViewItem {
 	}
 }
 
-/**
- * Content widget that shows a small sparkle icon at the cursor position.
- * When clicked, it shows the overlay widget for inline chat.
- */
 export class InlineChatAffordanceWidget extends Disposable implements IContentWidget {
 
 	static #idPool = 0;
@@ -166,10 +160,8 @@ export class InlineChatAffordanceWidget extends Disposable implements IContentWi
 
 		this.#editor = editor;
 
-		// Create the widget DOM
 		this.#domNode = dom.$('.inline-chat-content-widget');
 
-		// Create toolbar with the inline chat start action
 		const toolbar = this._store.add(instantiationService.createInstance(MenuWorkbenchToolBar, this.#domNode, MenuId.InlineChatEditorAffordance, {
 			telemetrySource: 'inlineChatEditorAffordance',
 			hiddenItemStrategy: HiddenItemStrategy.Ignore,
@@ -285,7 +277,6 @@ export class InlineChatAffordanceWidget extends Disposable implements IContentWi
 			return false;
 		}
 
-		// Check vertical visibility
 		const visibleRanges = this.#editor.getVisibleRanges();
 		const isLineVisible = visibleRanges.some(range =>
 			widgetPosition.lineNumber >= range.startLineNumber && widgetPosition.lineNumber <= range.endLineNumber
@@ -294,7 +285,6 @@ export class InlineChatAffordanceWidget extends Disposable implements IContentWi
 			return false;
 		}
 
-		// Check horizontal visibility
 		const scrolledPos = this.#editor.getScrolledVisiblePosition(widgetPosition);
 		if (!scrolledPos) {
 			return false;

@@ -55,7 +55,6 @@ class UnsafeProviderWorkingDirectoryError extends Error {
 
 export const ISessionWorkspaceConversionService = createDecorator<ISessionWorkspaceConversionService>('sessionWorkspaceConversionService');
 
-/** Coordinates requested workspace changes after the requesting turn has finished. */
 export interface ISessionWorkspaceConversionService {
 	readonly _serviceBrand: undefined;
 	requestSessionWorkspaceUpdate(chat: URI, turnId: string, workspaceFolder: URI, isolation: boolean, initiatingClientId: string): void;
@@ -64,7 +63,6 @@ export interface ISessionWorkspaceConversionService {
 	updateSessionWorkspace(chat: ProtocolURI, turnId: string | undefined): Promise<void>;
 }
 
-/** Converts workspace-less sessions in place while preserving their session and chat identities. */
 export class SessionWorkspaceConversionService extends Disposable implements ISessionWorkspaceConversionService {
 
 	declare readonly _serviceBrand: undefined;

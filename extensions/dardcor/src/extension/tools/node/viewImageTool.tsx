@@ -15,7 +15,7 @@ import { IInstantiationService } from '../../../util/dardcor/platform/instantiat
 import { LanguageModelDataPart, LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { getImageMimeType, MAX_IMAGE_FILE_SIZE } from './imageToolUtils';
 import { assertFileNotContentExcluded, assertFileOkForTool, isFileExternalAndNeedsConfirmation, resolveToolInputPath } from './toolUtils';
@@ -24,7 +24,7 @@ export interface IViewImageParams {
 	filePath: string;
 }
 
-export class ViewImageTool implements ICopilotTool<IViewImageParams> {
+export class ViewImageTool implements IAgentTool<IViewImageParams> {
 	public static readonly toolName = ToolName.ViewImage;
 	public static readonly nonDeferred = true;
 

@@ -112,7 +112,6 @@ class PersistedMenuHideState implements IDisposable {
 		}
 		const entries = this._data[menu.id];
 		if (!hidden) {
-			// remove and cleanup
 			if (entries) {
 				const idx = entries.indexOf(commandId);
 				if (idx >= 0) {
@@ -123,7 +122,6 @@ class PersistedMenuHideState implements IDisposable {
 				}
 			}
 		} else {
-			// add unless already added
 			if (!entries) {
 				this._data[menu.id] = [commandId];
 			} else {
@@ -138,11 +136,9 @@ class PersistedMenuHideState implements IDisposable {
 
 	reset(menus?: MenuId[]): void {
 		if (menus === undefined) {
-			// reset all
 			this._data = Object.create(null);
 			this._persist();
 		} else {
-			// reset only for a specific menu
 			for (const { id } of menus) {
 				if (this._data[id]) {
 					delete this._data[id];
@@ -197,7 +193,6 @@ class MenuInfoSnapshot {
 
 	refresh(): void {
 
-		// reset
 		this._menuGroups.length = 0;
 		this._allMenuIds.clear();
 		this._structureContextKeys.clear();
@@ -208,7 +203,6 @@ class MenuInfoSnapshot {
 		let group: MenuItemGroup | undefined;
 
 		for (const item of menuItems) {
-			// group by groupId
 			const groupName = item.group || '';
 			if (!group || group[0] !== groupName) {
 				group = [groupName, []];
@@ -216,14 +210,12 @@ class MenuInfoSnapshot {
 			}
 			group[1].push(item);
 
-			// keep keys and submenu ids for eventing
 			this._collectContextKeysAndSubmenuIds(item);
 		}
 		this._allMenuIds.add(this._id);
 	}
 
 	protected _sort(menuItems: (IMenuItem | ISubmenuItem)[]) {
-		// no sorting needed in snapshot
 		return menuItems;
 	}
 
@@ -232,19 +224,15 @@ class MenuInfoSnapshot {
 		MenuInfoSnapshot._fillInKbExprKeys(item.when, this._structureContextKeys);
 
 		if (isIMenuItem(item)) {
-			// keep precondition keys for event if applicable
 			if (item.command.precondition) {
 				MenuInfoSnapshot._fillInKbExprKeys(item.command.precondition, this._preconditionContextKeys);
 			}
-			// keep toggled keys for event if applicable
 			if (item.command.toggled) {
 				const toggledExpression: ContextKeyExpression = (item.command.toggled as { condition: ContextKeyExpression }).condition || item.command.toggled;
 				MenuInfoSnapshot._fillInKbExprKeys(toggledExpression, this._toggledContextKeys);
 			}
 
 		} else if (this._collectContextKeysForSubmenus) {
-			// recursively collect context keys from submenus so that this
-			// menu fires events when context key changes affect submenus
 			MenuRegistry.getMenuItems(item.submenu).forEach(this._collectContextKeysAndSubmenuIds, this);
 
 			this._allMenuIds.add(item.submenu);
@@ -291,11 +279,9 @@ class MenuInfo extends MenuInfoSnapshot {
 
 					const menuHide = createMenuHide(this._id, isMenuItem ? item.command : item, this._hiddenStates);
 					if (isMenuItem) {
-						// MenuItemAction
 						const menuKeybinding = createConfigureKeybindingAction(this._commandService, this._keybindingService, item.command.id, item.when);
 						(activeActions ??= []).push(new MenuItemAction(item.command, item.alt, options, menuHide, menuKeybinding, this._contextKeyService, this._commandService));
 					} else {
-						// SubmenuItemAction
 						const groups = new MenuInfo(item.submenu, this._hiddenStates, this._collectContextKeysForSubmenus, this._commandService, this._keybindingService, this._contextKeyService).createActionGroups(options);
 						const submenuActions = Separator.join(...groups.map(g => g[1]));
 						if (submenuActions.length > 0) {
@@ -322,28 +308,24 @@ class MenuInfo extends MenuInfoSnapshot {
 
 		if (aGroup !== bGroup) {
 
-			// Falsy groups come last
 			if (!aGroup) {
 				return 1;
 			} else if (!bGroup) {
 				return -1;
 			}
 
-			// 'navigation' group comes first
 			if (aGroup === 'navigation') {
 				return -1;
 			} else if (bGroup === 'navigation') {
 				return 1;
 			}
 
-			// lexical sort for groups
 			const value = aGroup.localeCompare(bGroup);
 			if (value !== 0) {
 				return value;
 			}
 		}
 
-		// sort on priority - default is 0
 		const aPrio = a.order || 0;
 		const bPrio = b.order || 0;
 		if (aPrio < bPrio) {
@@ -352,7 +334,6 @@ class MenuInfo extends MenuInfoSnapshot {
 			return 1;
 		}
 
-		// sort on titles
 		return MenuInfo._compareTitles(
 			isIMenuItem(a) ? a.command.title : a.title,
 			isIMenuItem(b) ? b.command.title : b.title
@@ -384,9 +365,6 @@ class MenuImpl implements IMenu {
 	) {
 		this._menuInfo = new MenuInfo(id, hiddenStates, options.emitEventsForSubmenuChanges, commandService, keybindingService, contextKeyService);
 
-		// Rebuild this menu whenever the menu registry reports an event for this MenuId.
-		// This usually happen while code and extensions are loaded and affects the over
-		// structure of the menu
 		const rebuildMenuSoon = new RunOnceScheduler(() => {
 			this._menuInfo.refresh();
 			this._onDidChange.fire({ menu: this, isStructuralChange: true, isEnablementChange: true, isToggleChange: true });
@@ -401,9 +379,6 @@ class MenuImpl implements IMenu {
 			}
 		}));
 
-		// When context keys or storage state changes we need to check if the menu also has changed. However,
-		// we only do that when someone listens on this menu because (1) these events are
-		// firing often and (2) menu are often leaked
 		const lazyListener = this._disposables.add(new DisposableStore());
 
 		const merge = (events: IMenuChangeEvent[]): IMenuChangeEvent => {
@@ -417,7 +392,6 @@ class MenuImpl implements IMenu {
 				isEnablementChange = isEnablementChange || item.isEnablementChange;
 				isToggleChange = isToggleChange || item.isToggleChange;
 				if (isStructuralChange && isEnablementChange && isToggleChange) {
-					// everything is TRUE, no need to continue iterating
 					break;
 				}
 			}
@@ -441,7 +415,6 @@ class MenuImpl implements IMenu {
 		};
 
 		this._onDidChange = new DebounceEmitter({
-			// start/stop context key listener
 			onWillAddFirstListener: startLazyListener,
 			onDidRemoveLastListener: lazyListener.clear.bind(lazyListener),
 			delay: options.eventDebounceDelay,
@@ -491,9 +464,7 @@ export function createConfigureKeybindingAction(commandService: ICommandService,
 		label: localize('configure keybinding', "Configure Keybinding"),
 		enabled,
 		run() {
-			// Only set the when clause when there is no keybinding
-			// It is possible that the action and the keybinding have different when clauses
-			const hasKeybinding = !!keybindingService.lookupKeybinding(commandId); // This may only be called inside the `run()` method as it can be expensive on startup. #210529
+			const hasKeybinding = !!keybindingService.lookupKeybinding(commandId);
 			const whenValue = !hasKeybinding && when ? when.serialize() : undefined;
 			commandService.executeCommand('workbench.action.openGlobalKeybindings', `@command:${commandId}` + (whenValue ? ` +when:${whenValue}` : ''));
 		}

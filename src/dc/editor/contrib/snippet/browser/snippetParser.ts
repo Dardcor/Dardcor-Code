@@ -79,14 +79,12 @@ export class Scanner {
 		let ch = this.value.charCodeAt(pos);
 		let type: TokenType;
 
-		// static types
 		type = Scanner._table[ch];
 		if (typeof type === 'number') {
 			this.pos += 1;
 			return { type, pos, len: 1 };
 		}
 
-		// number
 		if (Scanner.isDigitCharacter(ch)) {
 			type = TokenType.Int;
 			do {
@@ -98,7 +96,6 @@ export class Scanner {
 			return { type, pos, len };
 		}
 
-		// variable name
 		if (Scanner.isVariableCharacter(ch)) {
 			type = TokenType.VariableName;
 			do {
@@ -110,16 +107,15 @@ export class Scanner {
 		}
 
 
-		// format
 		type = TokenType.Format;
 		do {
 			len += 1;
 			ch = this.value.charCodeAt(pos + len);
 		} while (
 			!isNaN(ch)
-			&& typeof Scanner._table[ch] === 'undefined' // not static token
-			&& !Scanner.isDigitCharacter(ch) // not number
-			&& !Scanner.isVariableCharacter(ch) // not variable
+			&& typeof Scanner._table[ch] === 'undefined'
+			&& !Scanner.isDigitCharacter(ch)
+			&& !Scanner.isVariableCharacter(ch)
 		);
 
 		this.pos += len;
@@ -136,10 +132,8 @@ export abstract class Marker {
 
 	appendChild(child: Marker): this {
 		if (child instanceof Text && this._children[this._children.length - 1] instanceof Text) {
-			// this and previous child are text -> merge them
 			(<Text>this._children[this._children.length - 1]).value += child.value;
 		} else {
-			// normal adoption of child
 			child.parent = this;
 			this._children.push(child);
 		}
@@ -326,8 +320,6 @@ export class Transform extends Marker {
 			didMatch = true;
 			return _this._replace(Array.prototype.slice.call(arguments, 0, -2));
 		});
-		// when the regex didn't match and when the transform has
-		// else branches, then run those
 		if (!didMatch && this._children.some(child => child instanceof FormatString && Boolean(child.elseValue))) {
 			ret = this._replace([]);
 		}
@@ -400,8 +392,6 @@ export class FormatString extends Marker {
 		}
 	}
 
-	// Note: word-based case transforms rely on uppercase/lowercase distinctions.
-	// For scripts without case, transforms are effectively no-ops.
 	private _toKebabCase(value: string): string {
 		const match = value.match(/[\p{L}0-9]+/gu);
 		if (!match) {
@@ -549,7 +539,6 @@ export class TextmateSnippet extends Marker {
 
 	get placeholderInfo() {
 		if (!this._placeholders) {
-			// fill in placeholders
 			const all: Placeholder[] = [];
 			let last: Placeholder | undefined;
 			this.walk(function (candidate) {
@@ -651,10 +640,6 @@ export class SnippetParser {
 		return value.replace(/\$|}|\\/g, '\\$&');
 	}
 
-	/**
-	 * Takes a snippet and returns the insertable string, e.g return the snippet-string
-	 * without any placeholder, tabstop, variables etc...
-	 */
 	static asInsertText(value: string): string {
 		return new SnippetParser().parse(value).toString();
 	}
@@ -679,11 +664,8 @@ export class SnippetParser {
 		this._scanner.text(value);
 		this._token = this._scanner.next();
 		while (this._parse(snippet)) {
-			// nothing
 		}
 
-		// fill in values for placeholders. the first placeholder of an index
-		// that has a value defines the value for all placeholders with that index
 		const placeholderDefaultValues = new Map<number, Marker[] | undefined>();
 		const incompletePlaceholders: Placeholder[] = [];
 		snippet.walk(marker => {
@@ -710,7 +692,6 @@ export class SnippetParser {
 				const newChild = child.clone();
 				clone.appendChild(newChild);
 
-				// "recurse" on children that are again placeholders
 				if (newChild instanceof Placeholder && placeholderDefaultValues.has(newChild.index) && !stack.has(newChild.index)) {
 					stack.add(newChild.index);
 					fillInIncompletePlaceholder(newChild, stack);
@@ -733,8 +714,6 @@ export class SnippetParser {
 		if (enforceFinalTabstop || insertFinalTabstop && snippet.placeholders.length > 0) {
 			const finalTabstop = snippet.placeholders.find(p => p.index === 0);
 			if (!finalTabstop) {
-				// the snippet uses placeholders but has no
-				// final tabstop defined -> insert at the end
 				snippet.appendChild(new Placeholder(0));
 			}
 		}
@@ -786,11 +765,9 @@ export class SnippetParser {
 			|| this._parseAnything(marker);
 	}
 
-	// \$, \\, \} -> just text
 	private _parseEscaped(marker: Marker): boolean {
 		let value: string;
 		if (value = this._accept(TokenType.Backslash, true)) {
-			// saw a backslash, append escaped token or that backslash
 			value = this._accept(TokenType.Dollar, true)
 				|| this._accept(TokenType.CurlyClose, true)
 				|| this._accept(TokenType.Backslash, true)
@@ -802,7 +779,6 @@ export class SnippetParser {
 		return false;
 	}
 
-	// $foo -> variable, $1 -> tabstop
 	private _parseTabstopOrVariableName(parent: Marker): boolean {
 		let value: string;
 		const token = this._token;
@@ -820,7 +796,6 @@ export class SnippetParser {
 		return true;
 	}
 
-	// ${1:<children>}, ${1} -> placeholder
 	private _parseComplexPlaceholder(parent: Marker): boolean {
 		let index: string;
 		const token = this._token;
@@ -835,10 +810,8 @@ export class SnippetParser {
 		const placeholder = new Placeholder(Number(index!));
 
 		if (this._accept(TokenType.Colon)) {
-			// ${1:<children>}
 			while (true) {
 
-				// ...} -> done
 				if (this._accept(TokenType.CurlyClose)) {
 					parent.appendChild(placeholder);
 					return true;
@@ -848,27 +821,23 @@ export class SnippetParser {
 					continue;
 				}
 
-				// fallback
 				parent.appendChild(new Text('${' + index! + ':'));
 				placeholder.children.forEach(parent.appendChild, parent);
 				return true;
 			}
 		} else if (placeholder.index > 0 && this._accept(TokenType.Pipe)) {
-			// ${1|one,two,three|}
 			const choice = new Choice();
 
 			while (true) {
 				if (this._parseChoiceElement(choice)) {
 
 					if (this._accept(TokenType.Comma)) {
-						// opt, -> more
 						continue;
 					}
 
 					if (this._accept(TokenType.Pipe)) {
 						placeholder.appendChild(choice);
 						if (this._accept(TokenType.CurlyClose)) {
-							// ..|} -> done
 							parent.appendChild(placeholder);
 							return true;
 						}
@@ -880,7 +849,6 @@ export class SnippetParser {
 			}
 
 		} else if (this._accept(TokenType.Forwardslash)) {
-			// ${1/<regex>/<format>/<options>}
 			if (this._parseTransform(placeholder)) {
 				parent.appendChild(placeholder);
 				return true;
@@ -890,12 +858,10 @@ export class SnippetParser {
 			return false;
 
 		} else if (this._accept(TokenType.CurlyClose)) {
-			// ${1}
 			parent.appendChild(placeholder);
 			return true;
 
 		} else {
-			// ${1 <- missing curly or colon
 			return this._backTo(token);
 		}
 	}
@@ -910,7 +876,6 @@ export class SnippetParser {
 			}
 			let value: string;
 			if (value = this._accept(TokenType.Backslash, true)) {
-				// \, \|, or \\
 				value = this._accept(TokenType.Comma, true)
 					|| this._accept(TokenType.Pipe, true)
 					|| this._accept(TokenType.Backslash, true)
@@ -919,7 +884,6 @@ export class SnippetParser {
 				value = this._accept(undefined, true);
 			}
 			if (!value) {
-				// EOF
 				this._backTo(token);
 				return false;
 			}
@@ -935,7 +899,6 @@ export class SnippetParser {
 		return true;
 	}
 
-	// ${foo:<children>}, ${foo} -> variable
 	private _parseComplexVariable(parent: Marker): boolean {
 		let name: string;
 		const token = this._token;
@@ -950,10 +913,8 @@ export class SnippetParser {
 		const variable = new Variable(name!);
 
 		if (this._accept(TokenType.Colon)) {
-			// ${foo:<children>}
 			while (true) {
 
-				// ...} -> done
 				if (this._accept(TokenType.CurlyClose)) {
 					parent.appendChild(variable);
 					return true;
@@ -963,14 +924,12 @@ export class SnippetParser {
 					continue;
 				}
 
-				// fallback
 				parent.appendChild(new Text('${' + name! + ':'));
 				variable.children.forEach(parent.appendChild, parent);
 				return true;
 			}
 
 		} else if (this._accept(TokenType.Forwardslash)) {
-			// ${foo/<regex>/<format>/<options>}
 			if (this._parseTransform(variable)) {
 				parent.appendChild(variable);
 				return true;
@@ -980,24 +939,20 @@ export class SnippetParser {
 			return false;
 
 		} else if (this._accept(TokenType.CurlyClose)) {
-			// ${foo}
 			parent.appendChild(variable);
 			return true;
 
 		} else {
-			// ${foo <- missing curly or colon
 			return this._backTo(token);
 		}
 	}
 
 	private _parseTransform(parent: TransformableMarker): boolean {
-		// ...<regex>/<format>/<options>}
 
 		const transform = new Transform();
 		let regexValue = '';
 		let regexOptions = '';
 
-		// (1) /regex
 		while (true) {
 			if (this._accept(TokenType.Forwardslash)) {
 				break;
@@ -1017,7 +972,6 @@ export class SnippetParser {
 			return false;
 		}
 
-		// (2) /format
 		while (true) {
 			if (this._accept(TokenType.Forwardslash)) {
 				break;
@@ -1036,7 +990,6 @@ export class SnippetParser {
 			return false;
 		}
 
-		// (3) /option
 		while (true) {
 			if (this._accept(TokenType.CurlyClose)) {
 				break;
@@ -1051,7 +1004,6 @@ export class SnippetParser {
 		try {
 			transform.regexp = new RegExp(regexValue, regexOptions);
 		} catch (e) {
-			// invalid regexp
 			return false;
 		}
 
@@ -1078,12 +1030,10 @@ export class SnippetParser {
 			return false;
 
 		} else if (!complex) {
-			// $1
 			parent.appendChild(new FormatString(Number(index)));
 			return true;
 
 		} else if (this._accept(TokenType.CurlyClose)) {
-			// ${1}
 			parent.appendChild(new FormatString(Number(index)));
 			return true;
 
@@ -1093,7 +1043,6 @@ export class SnippetParser {
 		}
 
 		if (this._accept(TokenType.Forwardslash)) {
-			// ${1:/upcase}
 			const shorthand = this._accept(TokenType.VariableName, true);
 			if (!shorthand || !this._accept(TokenType.CurlyClose)) {
 				this._backTo(token);
@@ -1104,7 +1053,6 @@ export class SnippetParser {
 			}
 
 		} else if (this._accept(TokenType.Plus)) {
-			// ${1:+<if>}
 			const ifValue = this._until(TokenType.CurlyClose);
 			if (ifValue) {
 				parent.appendChild(new FormatString(Number(index), undefined, ifValue, undefined));
@@ -1112,7 +1060,6 @@ export class SnippetParser {
 			}
 
 		} else if (this._accept(TokenType.Dash)) {
-			// ${2:-<else>}
 			const elseValue = this._until(TokenType.CurlyClose);
 			if (elseValue) {
 				parent.appendChild(new FormatString(Number(index), undefined, undefined, elseValue));
@@ -1120,7 +1067,6 @@ export class SnippetParser {
 			}
 
 		} else if (this._accept(TokenType.QuestionMark)) {
-			// ${2:?<if>:<else>}
 			const ifValue = this._until(TokenType.Colon);
 			if (ifValue) {
 				const elseValue = this._until(TokenType.CurlyClose);
@@ -1131,7 +1077,6 @@ export class SnippetParser {
 			}
 
 		} else {
-			// ${1:<else>}
 			const elseValue = this._until(TokenType.CurlyClose);
 			if (elseValue) {
 				parent.appendChild(new FormatString(Number(index), undefined, undefined, elseValue));

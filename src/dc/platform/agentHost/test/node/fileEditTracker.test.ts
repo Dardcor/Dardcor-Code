@@ -72,7 +72,6 @@ suite('FileEditTracker', () => {
 		assert.strictEqual(fileEdit.type, ToolResultContentType.FileEdit);
 		assert.strictEqual(diffComputeService.callCount, 1);
 
-		// URIs are parseable session-db: URIs
 		const beforeFields = parseSessionDbUri(fileEdit.before!.content.uri);
 		assert.ok(beforeFields);
 		assert.strictEqual(beforeFields.sessionUri, 'copilot:/test-session');
@@ -84,7 +83,6 @@ suite('FileEditTracker', () => {
 		assert.ok(afterFields);
 		assert.strictEqual(afterFields.part, 'after');
 
-		// Content is persisted in the database (wait for fire-and-forget write)
 		await new Promise(r => setTimeout(r, 50));
 
 		const content = await db.readFileEditContent('tc-1', '/workspace/test.txt');
@@ -101,7 +99,6 @@ suite('FileEditTracker', () => {
 		const fileEdit = await tracker.takeCompletedEdit('turn-1', 'tc-2', '/workspace/new-file.txt', '', undefined, undefined);
 		assert.ok(fileEdit);
 
-		// Wait for the fire-and-forget DB write to complete
 		await new Promise(r => setTimeout(r, 50));
 
 		const content = await db.readFileEditContent('tc-2', '/workspace/new-file.txt');
@@ -255,11 +252,6 @@ suite('FileEditTracker', () => {
 	});
 
 	test('Write to non-existent file records kind=create with removed=0', async () => {
-		// When a file did not exist before the edit, the tracker clamps
-		// `removed` to 0 (the differ otherwise reports 1 for an empty
-		// before-content vs. a one-line after-content) and records
-		// `kind=create` instead of `edit`. `added` is passed through
-		// from the diff service unchanged.
 		const services = new ServiceCollection();
 		services.set(ILogService, new NullLogService());
 		services.set(IFileService, fileService);

@@ -74,16 +74,13 @@ export class CustomEditorService extends Disposable implements ICustomEditorServ
 		this._models = new CustomEditorModelManager();
 
 		this._contributedEditors = this._register(new ContributedCustomEditors(storageService));
-		// Register the contribution points only emitting one change from the resolver
 		this.editorResolverService.bufferChangeEvents(this.registerContributionPoints.bind(this));
 
 		this._register(this._contributedEditors.onChange(() => {
-			// Register the contribution points only emitting one change from the resolver
 			this.editorResolverService.bufferChangeEvents(this.registerContributionPoints.bind(this));
 			this._onDidChangeEditorTypes.fire();
 		}));
 
-		// Register group context key providers.
 		// These set the context keys for each editor group and the global context
 		const activeCustomEditorContextKeyProvider: IEditorGroupContextKeyProvider<string> = {
 			contextKey: CONTEXT_ACTIVE_CUSTOM_EDITOR_ID,
@@ -164,7 +161,6 @@ export class CustomEditorService extends Disposable implements ICustomEditorServ
 	}
 
 	private registerContributionPoints(): void {
-		// Clear all previous contributions we know
 		this._editorResolverDisposables.clear();
 
 		for (const contributedEditor of this._contributedEditors) {
@@ -402,8 +398,6 @@ export class CustomEditorService extends Disposable implements ICustomEditorServ
 	}
 
 	private handleDeletedFile(resource: URI): void {
-		// Dispose all custom editor models associated with the deleted resource
-		// to prevent stale references that can cause issues when recreating files with the same name
 		this._models.disposeAllModelsForResource(resource);
 	}
 
@@ -414,12 +408,10 @@ export class CustomEditorService extends Disposable implements ICustomEditorServ
 
 		const possibleEditors = this.getAllCustomEditors(newResource);
 
-		// See if we have any non-optional custom editor for this resource
 		if (!possibleEditors.allEditors.some(editor => editor.priority.editor !== RegisteredEditorPriority.option)) {
 			return;
 		}
 
-		// If so, check all editors to see if there are any file editors open for the new resource
 		const editorsToReplace = new Map<GroupIdentifier, EditorInput[]>();
 		for (const group of this.editorGroupService.groups) {
 			for (const editor of group.editors) {

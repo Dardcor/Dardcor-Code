@@ -65,7 +65,7 @@ async function askInPanelChat(accessor: ServicesAccessor, request: IChatRequestM
 
 	const widget = await widgetService.openSession(newModelRef.object.sessionResource);
 
-	newModelRef.dispose(); // can be freed after opening because the widget also holds a reference
+	newModelRef.dispose();
 	if (widget && fileContext && !fileContext.selection.isEmpty()) {
 		await widget.attachmentModel.addFile(fileContext.uri, fileContext.selection);
 	}

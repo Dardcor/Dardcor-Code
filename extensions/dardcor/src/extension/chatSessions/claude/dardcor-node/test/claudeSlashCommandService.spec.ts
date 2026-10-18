@@ -13,7 +13,6 @@ import { MockChatResponseStream } from '../../../../test/node/testHelpers';
 import { ClaudeSlashCommandService, IClaudeSlashCommandRequest } from '../claudeSlashCommandService';
 import { IClaudeSlashCommandHandler, IClaudeSlashCommandHandlerCtor } from '../slashCommands/claudeSlashCommandRegistry';
 
-// Wire test handler ctors through the registry so the service populates its cache naturally
 const mockGetRegistry = vi.fn<() => readonly IClaudeSlashCommandHandlerCtor[]>().mockReturnValue([]);
 vi.mock('../slashCommands/claudeSlashCommandRegistry', async importOriginal => {
 	const actual = await importOriginal<typeof import('../slashCommands/claudeSlashCommandRegistry')>();
@@ -62,7 +61,6 @@ describe('ClaudeSlashCommandService', () => {
 		stream = new MockChatResponseStream();
 	});
 
-	// #region request.command (VS Code UI slash command)
 
 	describe('request.command handling', () => {
 		it('dispatches to handler when request.command matches', async () => {
@@ -125,15 +123,12 @@ describe('ClaudeSlashCommandService', () => {
 				CancellationToken.None,
 			);
 
-			// request.command = 'hooks' wins, prompt is passed as-is
 			expect(TestHooksHandler.handleSpy).toHaveBeenCalledWith('/memory list', stream, CancellationToken.None);
 			expect(TestMemoryHandler.handleSpy).not.toHaveBeenCalled();
 		});
 	});
 
-	// #endregion
 
-	// #region Prompt-based slash command parsing
 
 	describe('prompt-based slash command parsing', () => {
 		it('dispatches /command from prompt text', async () => {
@@ -209,9 +204,7 @@ describe('ClaudeSlashCommandService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Handler result propagation
 
 	describe('result propagation', () => {
 		it('returns handler result in the response', async () => {
@@ -241,9 +234,7 @@ describe('ClaudeSlashCommandService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region request.command undefined / not set
 
 	describe('when request.command is undefined', () => {
 		it('falls through to prompt-based parsing', async () => {
@@ -258,5 +249,4 @@ describe('ClaudeSlashCommandService', () => {
 		});
 	});
 
-	// #endregion
 });

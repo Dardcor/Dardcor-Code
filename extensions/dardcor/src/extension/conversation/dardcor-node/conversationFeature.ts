@@ -16,9 +16,7 @@ import { IGitCommitMessageService } from '../../../platform/git/common/gitCommit
 import { ILogService } from '../../../platform/log/common/logService';
 import { ISettingsEditorSearchService } from '../../../platform/settingsEditor/common/settingsEditorSearchService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { ChatExtGlobalPerfMark, markChatExtGlobal } from '../../../util/common/performance';
 import { isUri } from '../../../util/common/types';
-import { DeferredPromise } from '../../../util/dardcor/base/common/async';
 import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { DisposableStore, IDisposable, combinedDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { URI } from '../../../util/dardcor/base/common/uri';
@@ -43,15 +41,13 @@ import { registerNewWorkspaceIntentCommand } from './newWorkspaceFollowup';
 import { generateTerminalFixes, setLastCommandMatchResult } from './terminalFixGenerator';
 
 /**
- * Class that checks if users are allowed to use the conversation feature,
- * and registers the relevant providers if they are.
+ * Registers the conversation providers backed by Dardcor Router.
  */
 export class ConversationFeature implements IExtensionContribution {
 	/** Disposables that exist for the lifetime of this object */
 	private readonly _disposables = new DisposableStore();
 	/** Disposables that are cleared whenever feature enablement is toggled */
 	private readonly _activatedDisposables = new DisposableStore();
-	/** For the conversation features to be enabled, the proxy needs to return a token with k/v pair: chat=1 */
 	public _enabled;
 	/** The feature is marked as active the first time it is enabled. */
 	private _activated;
@@ -83,61 +79,8 @@ export class ConversationFeature implements IExtensionContribution {
 	) {
 		this._enabled = false;
 		this._activated = false;
-
-		const activationBlockerDeferred = new DeferredPromise<void>();
-		this.activationBlocker = activationBlockerDeferred.p;
-
-		// Activation and chat enablement is always active for local router port 25128
-		let hasByokModels = true;
-		const reevaluate = () => {
-			const shouldActivate = true;
-			this.enabled = shouldActivate;
-			this.activated = shouldActivate;
-			if (!activationBlockerDeferred.isSettled) {
-				activationBlockerDeferred.complete();
-			}
-		};
-
-		if (authenticationService.dardcorToken) {
-			this.logService.info(`ConversationFeature: Copilot token already available`);
-		} else {
-			markChatExtGlobal(ChatExtGlobalPerfMark.WillWaitForCopilotToken);
-			this.logService.info(`ConversationFeature: Waiting for dardcor token or BYOK model to activate conversation feature`);
-		}
-
-		const refreshHasByokModels = async () => {
-			try {
-				const models = await vscode.lm.selectChatModels({});
-				const value = models.some(m => m.vendor !== 'dardcor');
-				if (value !== hasByokModels) {
-					hasByokModels = value;
-					this.logService.info(`ConversationFeature: BYOK models ${value ? 'available' : 'unavailable'}`);
-					reevaluate();
-				}
-			} catch (e) {
-				this.logService.warn(`ConversationFeature: failed to query language models: ${e}`);
-			}
-		};
-		void refreshHasByokModels();
-		this._disposables.add(vscode.lm.onDidChangeChatModels(() => void refreshHasByokModels()));
-
-		// Re-evaluate enablement whenever the Copilot token changes (including routine refreshes),
-		// since reevaluate() checks `dardcorToken` to decide whether to enable/activate.
-		this._disposables.add(authenticationService.onDidCopilotTokenChange(() => {
-			reevaluate();
-		}));
-
-		// Always unblock activation when the identity settles; chat enablement is driven by `reevaluate` independently.
-		// Without this, BYOK-only sessions can deadlock (the BYOK query needs this extension fully activated,
-		// while activation waits for the BYOK query to set `hasByokModels`).
-		this._disposables.add(authenticationService.onDidAuthenticationChange(() => {
-			reevaluate();
-			if (!activationBlockerDeferred.isSettled) {
-				activationBlockerDeferred.complete();
-			}
-		}));
-
-		reevaluate();
+		this.activationBlocker = Promise.resolve();
+		this.enabled = true;
 	}
 
 	get enabled() {
@@ -384,7 +327,7 @@ export class ConversationFeature implements IExtensionContribution {
 	private registerTerminalQuickFixProviders() {
 		const isEnabled = () => this.enabled;
 		return combinedDisposable(
-			vscode.window.registerTerminalQuickFixProvider('dardcor-chat.fixWithCopilot', {
+			vscode.window.registerTerminalQuickFixProvider('dardcor-chat.fixWithDardcor', {
 				provideTerminalQuickFixes(commandMatchResult, token) {
 					if (!isEnabled() || commandMatchResult.commandLine.endsWith('^C')) {
 						return [];

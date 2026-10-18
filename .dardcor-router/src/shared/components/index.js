@@ -1,4 +1,3 @@
-// Shared Components - Export all
 export { default as Button } from "./Button";
 export { default as Input } from "./Input";
 export { default as Select } from "./Select";
@@ -28,9 +27,6 @@ export { default as KiroAuthModal } from "./KiroAuthModal";
 export { default as KiroOAuthWrapper } from "./KiroOAuthWrapper";
 export { default as KiroSocialOAuthModal } from "./KiroSocialOAuthModal";
 export { default as CursorAuthModal } from "./CursorAuthModal";
-export { default as ChatGPTWebAuthModal } from "./ChatGPTWebAuthModal";
-export { default as DeepSeekWebAuthModal } from "./DeepSeekWebAuthModal";
-export { default as GeminiWebAuthModal } from "./GeminiWebAuthModal";
 export { default as XiaomiMimoAuthModal } from "./XiaomiMimoAuthModal";
 export { default as IFlowCookieModal } from "./IFlowCookieModal";
 export { default as GitLabAuthModal } from "./GitLabAuthModal";
@@ -42,7 +38,6 @@ export { default as Tooltip } from "./Tooltip";
 export { default as ProviderInfoCard } from "./ProviderInfoCard";
 export { default as CapacityBadges } from "./CapacityBadges";
 
-// Layouts
 export * from "./layouts";
 
 

@@ -142,34 +142,8 @@ export function notebookCellToCellData(cell: NotebookCell): NotebookCellData {
 			});
 		});
 
-		// stest({ description: 'code cell refactoring, plotly code -> matplotlib', language: 'python' }, async (testingServiceCollection) => {
-		// 	const file = fromFixture('notebook/edits/plotly_to_matplotlib.ipynb');
-		// 	return simulatePanelCodeMapperEx(testingServiceCollection, {
-		// 		files: [file],
-		// 		queries: [
-		// 			{
-		// 				file: 'plotly_to_matplotlib.ipynb',
-		// 				activeCell: 0,
-		// 				selection: [0, 0, 0, 0],
-		// 				query: 'Refactor the code so that purchases are stored in a dictionary keyed by customer_id. Each value should be a list of (product_id, quantity, price). Then update any code that computes total spend and ensure the plotting is done using matplotlibRefactor the code to use matplotlib instead of plotly for the plots.',
-		// 				validate: async (outcome, workspace, accessor) => {
-		// 					const notebookDocument = workspace.getNotebookDocuments()[0];
-		// 					if (!notebookDocument) {
-		// 						assert.fail('no notebook document');
-		// 					}
 
-		// 					assertWorkspaceEdit(outcome);
 
-		// 					const firstImportCell = notebookDocument.getCells().find(c => c.document.getText().includes('import pandas'));
-		// 					assert.ok(firstImportCell?.document.getText().includes('import matplotlib'), `Should contain 'import matplotlib' statements: ${firstImportCell?.document.getText()}`);
-		// 					assert.ok(!firstImportCell?.document.getText().includes('import plotly.express'), `Should not contain 'import plotly.express' statements: ${firstImportCell?.document.getText()}`);
-		// 					assert.ok(!firstImportCell?.document.getText().includes('import plotly.graph'), `Should not contain 'import plotly.graph' statements: ${firstImportCell?.document.getText()}`);
-		// 					assert.ok(notebookDocument.getCells().some(c => c.document.getText().includes('plt.')), `Should contain 'plt.plot' statements`);
-		// 				}
-		// 			}
-		// 		]
-		// 	});
-		// });
 
 		stest({ description: 'cell refactoring, plot refactoring', language: 'python' }, async (testingServiceCollection) => {
 			const file = fromFixture('notebook/edits/data_visualization.ipynb');
@@ -199,30 +173,8 @@ export function notebookCellToCellData(cell: NotebookCell): NotebookCellData {
 			});
 		});
 
-		// stest.skip({ description: 'remove single print statement from large notebook cell', language: 'python' }, async (testingServiceCollection) => {
-		// 	const file = fromFixture('notebook/edits/large_cell.ipynb');
-		// 	return simulatePanelCodeMapperEx(testingServiceCollection, {
-		// 		files: [file],
-		// 		queries: [
-		// 			{
-		// 				file: 'large_cell.ipynb',
-		// 				activeCell: 0,
-		// 				selection: [0, 0, 0, 0],
-		// 				query: 'Remove the print statement',
-		// 				validate: async (outcome, workspace, accessor) => {
-		// 					const notebookDocument = workspace.getNotebookDocuments()[0];
-		// 					if (!notebookDocument) {
-		// 						assert.fail('no notebook document');
-		// 					}
 
-		// 					assertWorkspaceEdit(outcome);
 
-		// 					assert.ok(!notebookDocument.cellAt(1).document.getText().includes('print'), `Should not contain 'print' statements: ${notebookDocument.cellAt(1).document.getText()}`);
-		// 				}
-		// 			}
-		// 		]
-		// 	});
-		// });
 
 		stest({ description: 'new code cells in empty notebook', language: 'python' }, async (testingServiceCollection) => {
 			const file = fromFixture('notebook/edits/empty.ipynb');
@@ -431,7 +383,6 @@ export function notebookCellToCellData(cell: NotebookCell): NotebookCellData {
 
 							assertWorkspaceEdit(outcome);
 
-							// `import os` should be removed
 							notebookDocument.getCells().forEach(cell => {
 								assert.strictEqual(cell.document.getText().includes('import os'), false);
 							});
@@ -460,7 +411,6 @@ export function notebookCellToCellData(cell: NotebookCell): NotebookCellData {
 
 							assertWorkspaceEdit(outcome);
 
-							// First cell will contain imports and second cell print statement
 							assert.strictEqual(notebookDocument.cellCount, 2);
 							assert.strictEqual(notebookDocument.cellAt(0).document.getText().includes('import sys'), true);
 							assert.strictEqual(notebookDocument.cellAt(1).document.getText().includes('print'), true);
@@ -490,8 +440,6 @@ export function notebookCellToCellData(cell: NotebookCell): NotebookCellData {
 
 							assertWorkspaceEdit(outcome);
 
-							// Initially 1 markdowncell and 3 code cells with a plot in each.
-							// After updates we should have at least 5 code cells with plots & 5 markdown cells.
 							const markdownCells = notebookDocument.getCells().filter(c => c.kind === NotebookCellKind.Markup);
 							const codeCells = notebookDocument.getCells().filter(c => c.kind === NotebookCellKind.Code);
 
@@ -540,7 +488,6 @@ export function notebookCellToCellData(cell: NotebookCell): NotebookCellData {
 							query: 'create a new notebook to analyze #file:data.csv ',
 							validate: async (outcome, workspace, accessor) => {
 								assertWorkspaceEdit(outcome);
-								// assert.strictEqual((await getWorkspaceDiagnostics(accessor, workspace, 'tsc')).filter(d => d.kind === 'syntactic').length, 0);
 							}
 						}
 					]

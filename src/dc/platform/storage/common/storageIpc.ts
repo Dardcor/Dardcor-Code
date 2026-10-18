@@ -17,28 +17,12 @@ export type Item = [Key, Value];
 
 export interface IBaseSerializableStorageRequest {
 
-	/**
-	 * Profile to correlate storage. Only used when no
-	 * workspace is provided. Can be undefined to denote
-	 * application scope.
-	 */
 	readonly profile: UriDto<IUserDataProfile> | undefined;
 
-	/**
-	 * Workspace to correlate storage. Can be undefined to
-	 * denote application or profile scope depending on profile.
-	 */
 	readonly workspace: ISerializedWorkspaceIdentifier | ISerializedSingleFolderWorkspaceIdentifier | IEmptyWorkspaceIdentifier | undefined;
 
-	/**
-	 * Whether this request targets the application shared storage
-	 * that is shared across VS Code and Sessions app.
-	 */
 	readonly applicationShared?: boolean;
 
-	/**
-	 * Additional payload for the request to perform.
-	 */
 	readonly payload?: unknown;
 }
 
@@ -145,9 +129,6 @@ export class ApplicationStorageDatabaseClient extends BaseProfileAwareStorageDat
 
 	async close(): Promise<void> {
 
-		// The application storage database is shared across all instances so
-		// we do not close it from the window. However we dispose the
-		// listener for external changes because we no longer interested in it.
 
 		this.dispose();
 	}
@@ -165,9 +146,6 @@ export class ApplicationSharedStorageDatabaseClient extends BaseProfileAwareStor
 
 	async close(): Promise<void> {
 
-		// The application shared storage database is shared across all instances so
-		// we do not close it from the window. However we dispose the
-		// listener for external changes because we no longer interested in it.
 
 		this.dispose();
 	}
@@ -177,10 +155,6 @@ export class ProfileStorageDatabaseClient extends BaseProfileAwareStorageDatabas
 
 	async close(): Promise<void> {
 
-		// The profile storage database is shared across all instances of
-		// the same profile so we do not close it from the window.
-		// However we dispose the listener for external changes because
-		// we no longer interested in it.
 
 		this.dispose();
 	}
@@ -188,7 +162,7 @@ export class ProfileStorageDatabaseClient extends BaseProfileAwareStorageDatabas
 
 export class WorkspaceStorageDatabaseClient extends BaseStorageDatabaseClient implements IStorageDatabase {
 
-	readonly onDidChangeItemsExternal = Event.None; // unsupported for workspace storage because we only ever write from one window
+	readonly onDidChangeItemsExternal = Event.None;
 
 	constructor(channel: IChannel, workspace: IAnyWorkspaceIdentifier) {
 		super(channel, undefined, workspace);
@@ -196,9 +170,6 @@ export class WorkspaceStorageDatabaseClient extends BaseStorageDatabaseClient im
 
 	async close(): Promise<void> {
 
-		// The workspace storage database is only used in this instance
-		// but we do not need to close it from here, the main process
-		// can take care of that.
 
 		this.dispose();
 	}

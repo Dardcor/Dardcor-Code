@@ -20,10 +20,6 @@ const CORRUPT_ZIP_PATTERN = new RegExp(CorruptZipMessage);
 export interface IExtractOptions {
 	overwrite?: boolean;
 
-	/**
-	 * Source path within the ZIP archive. Only the files contained in this
-	 * path will be extracted.
-	 */
 	sourcePath?: string;
 }
 
@@ -53,9 +49,9 @@ export class ExtractError extends Error {
 function modeFromEntry(entry: Entry) {
 	const attr = entry.externalFileAttributes >> 16 || 33188;
 
-	return [448 /* S_IRWXU */, 56 /* S_IRWXG */, 7 /* S_IRWXO */]
+	return [448 , 56 , 7 ]
 		.map(mask => attr & mask)
-		.reduce((a, b) => a + b, attr & 61440 /* S_IFMT */);
+		.reduce((a, b) => a + b, attr & 61440 );
 }
 
 function toExtractError(err: Error): ExtractError {
@@ -147,7 +143,6 @@ function extractZip(zipfile: ZipFile, targetPath: string, options: IOptions, tok
 
 			const fileName = entry.fileName.replace(options.sourcePathRegex, '');
 
-			// directory file names end with '/'
 			if (/\/$/.test(fileName)) {
 				const targetFileName = path.join(targetPath, fileName);
 				last = createCancelablePromise(token => promises.mkdir(targetFileName, { recursive: true }).then(() => readNextEntry(token)).then(undefined, e));
@@ -192,12 +187,6 @@ export interface IFile {
 	path: string;
 	contents?: Buffer | string;
 	localPath?: string;
-	/**
-	 * When set (and `contents` is not provided), stream at most this many bytes
-	 * from the start of {@link localPath} instead of adding the whole file. The
-	 * prefix is clamped to the file's current size so a rotated or truncated file
-	 * still produces a valid entry.
-	 */
 	localPathSize?: number;
 }
 
@@ -207,8 +196,6 @@ export async function zip(zipPath: string, files: IFile[]): Promise<string> {
 	const zip = new ZipFile();
 	const zipStream = createWriteStream(zipPath);
 
-	// Attach error/finish handling before adding entries so a read stream that
-	// errors while a later entry is still awaiting I/O has a listener.
 	const result = new Promise<string>((c, e) => {
 		zip.outputStream.once('error', e);
 		zipStream.once('error', e);
@@ -223,10 +210,6 @@ export async function zip(zipPath: string, files: IFile[]): Promise<string> {
 			if (f.localPathSize === undefined) {
 				zip.addFile(f.localPath, f.path);
 			} else {
-				// yazl aborts the archive unless the streamed byte count matches the
-				// declared size. Derive both from a single handle so the counts match
-				// even if the path is rotated or truncated concurrently; skip a
-				// vanished file rather than failing the whole archive.
 				let handle: FileHandle;
 				try {
 					handle = await promises.open(f.localPath, 'r');
@@ -248,7 +231,6 @@ export async function zip(zipPath: string, files: IFile[]): Promise<string> {
 						streamOwnsHandle = true;
 					}
 				} finally {
-					// The read stream closes the handle when it finishes.
 					if (!streamOwnsHandle) {
 						await handle.close();
 					}

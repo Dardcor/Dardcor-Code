@@ -17,7 +17,6 @@ const TOKEN_TYPE_WILDCARD = '*';
 const TOKEN_CLASSIFIER_LANGUAGE_SEPARATOR = ':';
 const CLASSIFIER_MODIFIER_SEPARATOR = '.';
 
-// qualified string [type|*](.modifier)*(/language)!
 type TokenClassificationString = string;
 
 const idPattern = '\\w+[-_\\w+]*';
@@ -181,12 +180,8 @@ export namespace SemanticTokenRule {
 	}
 }
 
-/**
- * A TokenStyle Value is either a token style literal, or a TokenClassificationString
- */
 export type TokenStyleValue = TokenStyle | TokenClassificationString;
 
-// TokenStyle registry
 const Extensions = {
 	TokenClassificationContribution: 'base.contributions.tokenClassification'
 };
@@ -195,70 +190,26 @@ export interface ITokenClassificationRegistry {
 
 	readonly onDidChangeSchema: Event<void>;
 
-	/**
-	 * Register a token type to the registry.
-	 * @param id The TokenType id as used in theme description files
-	 * @param description the description
-	 */
 	registerTokenType(id: string, description: string, superType?: string, deprecationMessage?: string): void;
 
-	/**
-	 * Register a token modifier to the registry.
-	 * @param id The TokenModifier id as used in theme description files
-	 * @param description the description
-	 */
 	registerTokenModifier(id: string, description: string): void;
 
-	/**
-	 * Parses a token selector from a selector string.
-	 * @param selectorString selector string in the form (*|type)(.modifier)*
-	 * @param language language to which the selector applies or undefined if the selector is for all languafe
-	 * @returns the parsesd selector
-	 * @throws an error if the string is not a valid selector
-	 */
 	parseTokenSelector(selectorString: string, language?: string): TokenSelector;
 
-	/**
-	 * Register a TokenStyle default to the registry.
-	 * @param selector The rule selector
-	 * @param defaults The default values
-	 */
 	registerTokenStyleDefault(selector: TokenSelector, defaults: TokenStyleDefaults): void;
 
-	/**
-	 * Deregister a TokenStyle default to the registry.
-	 * @param selector The rule selector
-	 */
 	deregisterTokenStyleDefault(selector: TokenSelector): void;
 
-	/**
-	 * Deregister a TokenType from the registry.
-	 */
 	deregisterTokenType(id: string): void;
 
-	/**
-	 * Deregister a TokenModifier from the registry.
-	 */
 	deregisterTokenModifier(id: string): void;
 
-	/**
-	 * Get all TokenType contributions
-	 */
 	getTokenTypes(): TokenTypeOrModifierContribution[];
 
-	/**
-	 * Get all TokenModifier contributions
-	 */
 	getTokenModifiers(): TokenTypeOrModifierContribution[];
 
-	/**
-	 * The styling rules to used when a schema does not define any styling rules.
-	 */
 	getTokenStylingDefaultRules(): SemanticTokenDefaultRule[];
 
-	/**
-	 * JSON schema for an object to assign styling to token classifications
-	 */
 	getTokenStylingSchema(): IJSONSchema;
 }
 
@@ -283,7 +234,6 @@ class TokenClassificationRegistry extends Disposable implements ITokenClassifica
 		patternProperties: {
 			[selectorPattern]: getStylingSchemeEntry()
 		},
-		//errorMessage: nls.localize('schema.token.errors', 'Valid token selectors have the form (*|tokenType)(.tokenModifier)*(:tokenLanguage)?.'),
 		additionalProperties: false,
 		definitions: {
 			style: {
@@ -411,7 +361,6 @@ class TokenClassificationRegistry extends Disposable implements ITokenClassifica
 					}
 					score += (100 - level);
 				}
-				// all selector modifiers must be present
 				for (const selectorModifier of selector.modifiers) {
 					if (modifiers.indexOf(selectorModifier) === -1) {
 						return -1;
@@ -540,7 +489,6 @@ function createDefaultTokenClassificationRegistry(): TokenClassificationRegistry
 		}
 	}
 
-	// default token types
 
 	registerTokenType('comment', nls.localize('comment', "Style for comments."), [['comment']]);
 	registerTokenType('string', nls.localize('string', "Style for strings."), [['string']]);
@@ -572,7 +520,6 @@ function createDefaultTokenClassificationRegistry(): TokenClassificationRegistry
 
 	registerTokenType('label', nls.localize('labels', "Style for labels. "), undefined);
 
-	// default token modifiers
 
 	registry.registerTokenModifier('declaration', nls.localize('declaration', "Style for all symbol declarations."), undefined);
 	registry.registerTokenModifier('documentation', nls.localize('documentation', "Style to use for references in documentation."), undefined);

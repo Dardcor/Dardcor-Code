@@ -59,13 +59,7 @@ export namespace LocalChatSessionUri {
 	}
 }
 
-/**
- * Converts a chat session resource URI to a string ID.
- *
- * This exists mainly for backwards compatibility with existing code that uses string IDs in telemetry and storage.
- */
 export function chatSessionResourceToId(resource: URI): string {
-	// If we have a local session, prefer using just the id part
 	const localId = LocalChatSessionUri.parseLocalSessionId(resource);
 	if (localId) {
 		return localId;
@@ -74,9 +68,6 @@ export function chatSessionResourceToId(resource: URI): string {
 	return resource.toString();
 }
 
-/**
- * Resolves a session resource that must be an immediate child of its storage root.
- */
 export function getChatSessionStorageResource(storageRoot: URI, sessionId: string, suffix: string = ''): URI {
 	const resource = extUri.joinPath(storageRoot, `${sessionId}${suffix}`);
 	if (!extUri.isEqual(extUri.dirname(resource), storageRoot)) {
@@ -85,14 +76,6 @@ export function getChatSessionStorageResource(storageRoot: URI, sessionId: strin
 	return resource;
 }
 
-/**
- * Extracts the chat session type from a resource URI.
- *
- * @param resource - The chat session resource URI
- * @returns The session type string. Returns `localChatSessionType` for local sessions
- *          (vscodeChatEditor and vscodeLocalChatSession schemes), or the scheme/authority
- *          for contributed sessions.
- */
 export function getChatSessionType(resource: URI): string {
 	if (resource.scheme === Schemas.vscodeChatEditor) {
 		return localChatSessionType;
@@ -109,11 +92,6 @@ export function isUntitledChatSession(resource: URI): boolean {
 	return resource.path.startsWith('/untitled-');
 }
 
-/**
- * Builds a fresh untitled session resource for the given session type. Local
- * sessions get a new local-session URI; other types get an untitled URI under
- * their own scheme.
- */
 export function getNewChatSessionResource(sessionType: string): URI {
 	return sessionType === localChatSessionType
 		? LocalChatSessionUri.getNewSessionUri()

@@ -84,7 +84,6 @@ suite('Protocol WebSocket — Handshake & Errors', function () {
 		}
 		assert.ok(gotError, 'should have received an error for invalid provider');
 
-		// Server should still be functional
 		await client.call('createSession', { channel: nextSessionUri(), provider: 'mock' });
 		const notif = await client.waitForNotification(n =>
 			n.method === 'root/sessionAdded'

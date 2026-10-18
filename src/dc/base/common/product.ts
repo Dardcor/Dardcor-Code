@@ -64,33 +64,11 @@ export type ExtensionVirtualWorkspaceSupport = {
 	readonly override?: boolean;
 };
 
-/**
- * Per-SDK configuration for downloading an agent SDK on demand. The
- * runtime substitutes `{sdkTarget}` in `urlTemplate` against the host's
- * `(platform, arch, libc)` triple via `resolveSdkTarget()` in the agent
- * SDK downloader.
- *
- * `urlTemplate` uses `format2()`-style named placeholders. Today only
- * `{sdkTarget}` is recognised; the build emits e.g.
- * `https://main.vscode-cdn.net/agent-sdk/claude/0.3.168/{sdkTarget}.tgz`
- * and the runtime substitutes `darwin-arm64`, `linux-x64-musl`, etc.
- *
- * See `src/vs/platform/agentHost/node/claude/roadmap.md` Phase 15 for
- * the rationale (macOS Universal compatibility, trust model).
- */
 export interface IAgentSdkProductConfig {
 	readonly version: string;
 	readonly urlTemplate: string;
 }
 
-/**
- * Configuration for downloading the on-device dictation native runtime (the
- * Foundry Local addon + core libraries) on demand. Produced per platform build
- * and stamped by `build/dictation-runtime/produce.ts`; consumed by
- * `foundryLocalRuntime.ts`, which substitutes `{target}` in `urlTemplate`
- * against the host's `<platform>-<arch>` key. Absent in local dev builds, in
- * which case the runtime falls back to the SDK's own `node_modules` payload.
- */
 export interface IDictationRuntimeProductConfig {
 	readonly version: string;
 	readonly urlTemplate: string;
@@ -117,8 +95,8 @@ export interface IProductConfiguration {
 	readonly embedderIdentifier?: string;
 
 	readonly urlProtocol: string;
-	readonly dataFolderName: string; // location for extensions (e.g. ~/.vscode-insiders)
-	readonly sharedDataFolderName: string; // location for shared data (e.g. ~/.vscode-insiders-shared)
+	readonly dataFolderName: string;
+	readonly sharedDataFolderName: string;
 
 	readonly builtInExtensions?: IBuiltInExtension[];
 	readonly walkthroughMetadata?: IProductWalkthrough[];
@@ -151,11 +129,6 @@ export interface IProductConfiguration {
 	};
 
 	readonly agentSdks?: { readonly [packageId: string]: IAgentSdkProductConfig };
-
-	readonly copilotVersions?: {
-		readonly runtime: string;
-		readonly sdk: string;
-	};
 
 	readonly dictationRuntime?: IDictationRuntimeProductConfig;
 
@@ -276,23 +249,11 @@ export interface IProductConfiguration {
 
 	readonly remoteDefaultExtensionsIfInstalledLocally?: string[];
 
-	/**
-	 * Maps an extension-contributed setting key to either a full enterprise {@link IPolicy}
-	 * (the setting owns/"parents" the policy — the original syntax) or an
-	 * {@link IExtensionConfigurationPolicyReference} (`{ policyReference: { name } }`), attaching the
-	 * setting to a policy owned by an in-code setting. References let a `product.json`-provided
-	 * setting be governed by a policy whose `value` callback — which JSON cannot carry — lives in code.
-	 */
 	readonly extensionConfigurationPolicy?: IStringDictionary<IPolicy | IExtensionConfigurationPolicyReference>;
 
 	readonly onboardingKeymaps?: readonly IProductOnboardingKeymap[];
 	readonly onboardingThemes?: readonly IProductOnboardingTheme[];
 
-	/**
-	 * When running as an embedded app, the parent VS Code's policy
-	 * identity (win32RegValueName / darwinBundleIdentifier) so that
-	 * enterprise policies deployed to the parent also apply here.
-	 */
 	parentPolicyConfig?: {
 		win32RegValueName?: string;
 		darwinBundleIdentifier?: string;

@@ -8,20 +8,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LanguageModelChat, LanguageModelChatMessage, LanguageModelChatMessage2 } from 'vscode';
 import { ExtensionContributedChatTokenizer } from '../extChatTokenizer';
 
-/**
- * Mock implementation of LanguageModelChat for testing purposes.
- * Simulates token counting with a configurable strategy.
- */
 class MockLanguageModelChat implements Partial<LanguageModelChat> {
 	private readonly _tokenCountFn: (input: string | LanguageModelChatMessage | LanguageModelChatMessage2) => number;
 
 	constructor(tokenCountFn?: (input: string | LanguageModelChatMessage | LanguageModelChatMessage2) => number) {
-		// Default: approximate token count as words (split by whitespace)
 		this._tokenCountFn = tokenCountFn ?? ((input) => {
 			if (typeof input === 'string') {
 				return input.split(/\s+/).filter(Boolean).length || 0;
 			}
-			// For messages, count tokens in all text content parts
 			let total = 0;
 			for (const part of input.content) {
 				if ('value' in part && typeof part.value === 'string') {
@@ -49,7 +43,7 @@ describe('ExtensionContributedChatTokenizer', () => {
 	describe('tokenLength', () => {
 		it('should count tokens for a simple string', async () => {
 			const result = await tokenizer.tokenLength('Hello world');
-			expect(result).toBe(2); // "Hello" and "world"
+			expect(result).toBe(2);
 		});
 
 		it('should return 0 for an empty string', async () => {
@@ -63,7 +57,7 @@ describe('ExtensionContributedChatTokenizer', () => {
 				text: 'This is a test message'
 			};
 			const result = await tokenizer.tokenLength(textPart);
-			expect(result).toBe(5); // 5 words
+			expect(result).toBe(5);
 		});
 
 		it('should return tokenUsage for opaque content parts', async () => {
@@ -99,7 +93,6 @@ describe('ExtensionContributedChatTokenizer', () => {
 				documentData: { data: 'JVBERi0xLjQK base64 encoded pdf data', mediaType: 'application/pdf' },
 			};
 			const result = await tokenizer.tokenLength(documentPart);
-			// Token length for documents is estimated from document size; it should be positive.
 			expect(result).toBeGreaterThan(0);
 		});
 	});
@@ -111,7 +104,6 @@ describe('ExtensionContributedChatTokenizer', () => {
 				content: [{ type: Raw.ChatCompletionContentPartKind.Text, text: 'Hello there' }]
 			};
 			const result = await tokenizer.countMessageTokens(message);
-			// BaseTokensPerMessage (3) + message content tokens
 			expect(result).toBeGreaterThanOrEqual(3);
 		});
 
@@ -133,8 +125,6 @@ describe('ExtensionContributedChatTokenizer', () => {
 			expect(result).toBeGreaterThanOrEqual(3);
 		});
 
-		// https://github.com/microsoft/vscode/issues/313920: the token-count path must not hand the
-		// internal cache_control sentinel to providers that can't consume it.
 		it('gates the cache_control sentinel on the model vendor', async () => {
 			const toolMessage: Raw.ChatMessage = {
 				role: Raw.ChatRole.Tool,
@@ -185,13 +175,12 @@ describe('ExtensionContributedChatTokenizer', () => {
 				}
 			];
 			const result = await tokenizer.countMessagesTokens(messages);
-			// BaseTokensPerCompletion (3) + 3 messages * BaseTokensPerMessage (3) + content tokens
 			expect(result).toBeGreaterThanOrEqual(12);
 		});
 
 		it('should return base tokens for empty messages array', async () => {
 			const result = await tokenizer.countMessagesTokens([]);
-			expect(result).toBe(3); // BaseTokensPerCompletion
+			expect(result).toBe(3);
 		});
 	});
 
@@ -208,7 +197,6 @@ describe('ExtensionContributedChatTokenizer', () => {
 				}
 			}];
 			const result = await tokenizer.countToolTokens(tools);
-			// baseToolTokens (16) + baseTokensPerTool (8) + object tokens * 1.1
 			expect(result).toBeGreaterThan(24);
 		});
 
@@ -226,7 +214,6 @@ describe('ExtensionContributedChatTokenizer', () => {
 				}
 			];
 			const result = await tokenizer.countToolTokens(tools);
-			// baseToolTokens (16) + 2 * baseTokensPerTool (8) + object tokens
 			expect(result).toBeGreaterThan(32);
 		});
 
@@ -263,7 +250,6 @@ describe('ExtensionContributedChatTokenizer', () => {
 			};
 
 			const result = await customTokenizer.countMessageTokens(message);
-			// BaseTokensPerMessage (3) + 15 from language model
 			expect(result).toBe(18);
 			expect(countTokensSpy).toHaveBeenCalled();
 		});

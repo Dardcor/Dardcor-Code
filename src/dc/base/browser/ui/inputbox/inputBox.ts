@@ -64,7 +64,7 @@ export interface IInputValidator {
 
 export interface IMessage {
 	readonly content?: string;
-	readonly formatContent?: boolean; // defaults to false
+	readonly formatContent?: boolean;
 	readonly type?: MessageType;
 }
 
@@ -170,7 +170,6 @@ export class InputBox extends Widget {
 			dom.append(container, this.scrollableElement.getDomNode());
 			this._register(this.scrollableElement);
 
-			// from ScrollableElement to DOM
 			this._register(this.scrollableElement.onScroll(e => this.input.scrollTop = e.scrollTop));
 
 			const onSelectionChange = this._register(new DomEmitter(container.ownerDocument, 'selectionchange'));
@@ -179,7 +178,6 @@ export class InputBox extends Widget {
 				return selection?.anchorNode === wrapper;
 			});
 
-			// from DOM to ScrollableElement
 			this._register(onAnchoredSelectionChange(this.updateScrollDimensions, this));
 			this._register(this.onDidHeightChange(this.updateScrollDimensions, this));
 		} else {
@@ -207,7 +205,6 @@ export class InputBox extends Widget {
 
 		setTimeout(() => this.updateMirror(), 0);
 
-		// Support actions
 		if (this.options.actions) {
 			this.actionbar = this._register(new ActionBar(this.element, {
 				actionViewItemProvider: this.options.actionViewItemProvider
@@ -375,7 +372,6 @@ export class InputBox extends Widget {
 
 	public set width(width: number) {
 		if (this.options.flexibleHeight && this.options.flexibleWidth) {
-			// textarea with horizontal scrolling
 			let horizontalPadding = 0;
 			if (this.mirror) {
 				const paddingLeft = parseFloat(this.mirror.style.paddingLeft || '') || 0;
@@ -393,7 +389,6 @@ export class InputBox extends Widget {
 	}
 
 	public set paddingRight(paddingRight: number) {
-		// Set width to avoid hint text overlapping buttons
 		this.input.style.width = `calc(100% - ${paddingRight}px)`;
 
 		if (this.mirror) {
@@ -416,7 +411,6 @@ export class InputBox extends Widget {
 
 	public showMessage(message: IMessage, force?: boolean): void {
 		if (this.state === 'open' && equals(this.message, message)) {
-			// Already showing
 			return;
 		}
 
@@ -535,7 +529,6 @@ export class InputBox extends Widget {
 
 		this.observeElementResize();
 
-		// ARIA Support
 		let alertText: string;
 		if (this.message.type === MessageType.ERROR) {
 			alertText = nls.localize('alertErrorMessage', "Error: {0}", this.message.content);
@@ -563,15 +556,8 @@ export class InputBox extends Widget {
 		this.state = 'idle';
 	}
 
-	/**
-	 * Keeps the validation message sized and anchored to the input while the
-	 * message is showing and the input itself is resized, e.g. because the
-	 * containing view was resized.
-	 */
 	private observeElementResize(): void {
 		const observer = new dom.DisposableResizeObserver('InputBox.validationMessage', () => {
-			// Ignore notifications for a hidden or detached input, laying out
-			// against a degenerate anchor would move the message to the corner.
 			if (this.element.isConnected && dom.getTotalWidth(this.element) > 0) {
 				this.layoutMessage();
 			}
@@ -611,7 +597,7 @@ export class InputBox extends Widget {
 		const lastCharCode = value.charCodeAt(value.length - 1);
 		const suffix = lastCharCode === 10 ? ' ' : '';
 		const mirrorTextContent = (value + suffix)
-			.replace(/\u000c/g, ''); // Don't measure with the form feed character, which messes up sizing
+			.replace(/\u000c/g, '');
 
 		if (mirrorTextContent) {
 			this.mirror.textContent = value + suffix;
@@ -634,7 +620,6 @@ export class InputBox extends Widget {
 		this.input.style.backgroundColor = 'inherit';
 		this.input.style.color = foreground;
 
-		// there's always a border, even if the color is not set.
 		this.element.style.border = `1px solid ${cssJs.asCssValueWithDefault(border, 'transparent')}`;
 	}
 
@@ -708,7 +693,6 @@ export class HistoryInputBox extends InputBox implements IHistoryNavigationWidge
 		super(container, contextViewProvider, options);
 		this.history = this._register(new HistoryNavigator<string>(options.history, 100));
 
-		// Function to append the history suffix to the placeholder if necessary
 		const addSuffix = () => {
 			if (options.showHistoryHint && options.showHistoryHint() && !this.placeholder.endsWith(NLS_PLACEHOLDER_HISTORY_HINT_SUFFIX_NO_PARENS) && !this.placeholder.endsWith(NLS_PLACEHOLDER_HISTORY_HINT_SUFFIX_IN_PARENS) && this.history.getHistory().length) {
 				const suffix = this.placeholder.endsWith(')') ? NLS_PLACEHOLDER_HISTORY_HINT_SUFFIX_NO_PARENS : NLS_PLACEHOLDER_HISTORY_HINT_SUFFIX_IN_PARENS;
@@ -722,8 +706,6 @@ export class HistoryInputBox extends InputBox implements IHistoryNavigationWidge
 			}
 		};
 
-		// Spot the change to the textarea class attribute which occurs when it changes between non-empty and empty,
-		// and add the history suffix to the placeholder if not yet present
 		this.observer = new MutationObserver((mutationList: MutationRecord[], observer: MutationObserver) => {
 			mutationList.forEach((mutation: MutationRecord) => {
 				if (!mutation.target.textContent) {

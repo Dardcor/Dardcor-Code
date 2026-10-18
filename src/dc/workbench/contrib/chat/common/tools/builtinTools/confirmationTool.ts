@@ -166,11 +166,9 @@ export class ConfirmationTool implements IToolImpl {
 
 		const confirmationType = parameters.confirmationType ?? 'basic';
 
-		// Create different tool-specific data based on confirmation type
 		let toolSpecificData: IChatTerminalToolInvocationData | undefined;
 
 		if (confirmationType === 'terminal') {
-			// For terminal confirmations, use the terminal tool data structure
 			toolSpecificData = {
 				kind: 'terminal',
 				commandLine: {
@@ -179,7 +177,6 @@ export class ConfirmationTool implements IToolImpl {
 				language: 'bash'
 			};
 		} else {
-			// For basic confirmations, don't set toolSpecificData - this will use the default confirmation UI
 			toolSpecificData = undefined;
 		}
 
@@ -187,7 +184,7 @@ export class ConfirmationTool implements IToolImpl {
 			confirmationMessages: {
 				title: parameters.title,
 				message: new MarkdownString(parameters.message),
-				allowAutoConfirm: (parameters.buttons || []).length ? false : true, // We cannot auto confirm if there are custom buttons, as we don't know which one to select
+				allowAutoConfirm: (parameters.buttons || []).length ? false : true,
 				customOptions: parameters.buttons?.map((label, index) => ({
 					id: label,
 					label,
@@ -200,7 +197,6 @@ export class ConfirmationTool implements IToolImpl {
 	}
 
 	async invoke(invocation: IToolInvocation, countTokens: CountTokensCallback, progress: ToolProgress, token: CancellationToken): Promise<IToolResult> {
-		// If a custom button was selected, return the button label
 		if (invocation.selectedCustomButton) {
 			return {
 				content: [{
@@ -210,11 +206,10 @@ export class ConfirmationTool implements IToolImpl {
 			};
 		}
 
-		// Default: return 'yes' for standard Allow confirmation
 		return {
 			content: [{
 				kind: 'text',
-				value: 'yes' // Consumers should check for this label to know whether the tool was confirmed or skipped
+				value: 'yes'
 			}]
 		};
 	}
@@ -256,7 +251,6 @@ export class ModifiedFilesConfirmationTool implements IToolImpl {
 	}
 
 	async invoke(invocation: IToolInvocation, countTokens: CountTokensCallback, progress: ToolProgress, token: CancellationToken): Promise<IToolResult> {
-		// If a custom button was selected, return the button label
 		if (invocation.selectedCustomButton) {
 			return {
 				content: [{
@@ -266,11 +260,10 @@ export class ModifiedFilesConfirmationTool implements IToolImpl {
 			};
 		}
 
-		// Default: return 'yes' for standard Allow confirmation
 		return {
 			content: [{
 				kind: 'text',
-				value: 'yes' // Consumers should check for this label to know whether the tool was confirmed or skipped
+				value: 'yes'
 			}]
 		};
 	}

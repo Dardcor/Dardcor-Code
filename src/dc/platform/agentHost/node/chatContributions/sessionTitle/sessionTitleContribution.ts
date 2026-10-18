@@ -14,7 +14,6 @@ import { AgentHostStateManager, IAgentHostStateManager } from '../../agentHostSt
 import { IAgentHostSessionTitleController } from '../../agentHostSessionTitleController.js';
 import { AGENT_HOST_TITLE_SOURCE_USER, customChatTitleMetadataKey, customChatTitleSourceMetadataKey, persistSessionMetadata, SESSION_CUSTOM_TITLE_KEY, SESSION_CUSTOM_TITLE_SOURCE_KEY } from '../../shared/persistSessionMetadata.js';
 
-/** Coordinates automatic and user-defined session and chat titles. */
 export class SessionTitleContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'sessionTitle';
@@ -67,10 +66,6 @@ export class SessionTitleContribution extends Disposable implements IAgentHostCh
 		this._titleController.markTitleRenamed(observed.channel);
 	}
 
-	/**
-	 * Restores the user-set custom chat title recorded by {@link onDidApplyClientAction}. This runs at
-	 * catalog-registration time so a restored peer chat shows its title before its turns load.
-	 */
 	async onHydrateChat(context: IHydrationContext, restored: IRestoredChat): Promise<IRestoredChat> {
 		if (restored.title !== undefined) {
 			return restored;

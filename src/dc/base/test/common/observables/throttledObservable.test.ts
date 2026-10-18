@@ -35,10 +35,8 @@ suite('throttledObservable', () => {
 
 		source.set(1, undefined);
 
-		// Not yet emitted
 		assert.deepStrictEqual(log, []);
 
-		// Wait for the throttle timer
 		await new Promise<void>(r => setTimeout(r, 100));
 
 		assert.deepStrictEqual(log, ['value: 1']);
@@ -54,21 +52,16 @@ suite('throttledObservable', () => {
 		}));
 		log.length = 0;
 
-		// First change starts the timer
 		source.set(1, undefined);
-		// Subsequent changes within the throttle window should NOT reset the timer
 		await new Promise<void>(r => setTimeout(r, 50));
 		source.set(2, undefined);
 		await new Promise<void>(r => setTimeout(r, 30));
 		source.set(3, undefined);
 
-		// At this point ~80ms have passed. Timer was set at t=0 for 100ms, should not have fired yet.
 		assert.deepStrictEqual(log, []);
 
-		// Wait for remaining time (100ms from first change)
 		await new Promise<void>(r => setTimeout(r, 30));
 
-		// Should have fired with the latest value
 		assert.deepStrictEqual(log, ['value: 3']);
 	}));
 
@@ -82,13 +75,11 @@ suite('throttledObservable', () => {
 		}));
 		log.length = 0;
 
-		// First window
 		source.set(1, undefined);
 		await new Promise<void>(r => setTimeout(r, 100));
 		assert.deepStrictEqual(log, ['value: 1']);
 		log.length = 0;
 
-		// Second window — new change should start a new timer
 		source.set(2, undefined);
 		assert.deepStrictEqual(log, []);
 
@@ -107,23 +98,17 @@ suite('throttledObservable', () => {
 			timings.push({ time: Date.now() - startTime, value: v });
 		}));
 
-		// t=0: initial value emitted synchronously
-		// t=50: change → starts 200ms timer
 		await new Promise<void>(r => setTimeout(r, 50));
 		source.set(1, undefined);
 
-		// t=100: change during active timer (timer NOT reset)
 		await new Promise<void>(r => setTimeout(r, 50));
 		source.set(2, undefined);
 
-		// t=250: timer fires (200ms after t=50)
 		await new Promise<void>(r => setTimeout(r, 160));
 
-		// t=300: another change → starts new 200ms timer
 		await new Promise<void>(r => setTimeout(r, 40));
 		source.set(3, undefined);
 
-		// t=500: timer fires (200ms after t=300)
 		await new Promise<void>(r => setTimeout(r, 200));
 
 		assert.deepStrictEqual(timings, [
@@ -148,7 +133,6 @@ suite('throttledObservable', () => {
 
 		await new Promise<void>(r => setTimeout(r, 150));
 
-		// Nothing should have been emitted after dispose
 		assert.deepStrictEqual(log, []);
 	}));
 });

@@ -95,7 +95,7 @@ suite('TextResourceEditorInput', () => {
 		assert.strictEqual(model.textEditorModel?.getValue(), 'Some other contents');
 
 		disposables.add(await input.resolve());
-		assert.strictEqual(model.textEditorModel?.getValue(), 'Some other contents'); // preferred contents only used once
+		assert.strictEqual(model.textEditorModel?.getValue(), 'Some other contents');
 	});
 
 	test('preferred contents (via setPreferredContents)', async () => {
@@ -113,7 +113,7 @@ suite('TextResourceEditorInput', () => {
 		assert.strictEqual(model.textEditorModel?.getValue(), 'Some other contents');
 
 		disposables.add(await input.resolve());
-		assert.strictEqual(model.textEditorModel?.getValue(), 'Some other contents'); // preferred contents only used once
+		assert.strictEqual(model.textEditorModel?.getValue(), 'Some other contents');
 	});
 
 	ensureNoDisposablesAreLeakedInTestSuite();

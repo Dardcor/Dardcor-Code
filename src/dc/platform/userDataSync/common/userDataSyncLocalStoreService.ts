@@ -122,7 +122,7 @@ export class UserDataSyncLocalStoreService extends Disposable implements IUserDa
 			const stat = await this.fileService.resolve(folder);
 			if (stat.children) {
 				const all = stat.children.filter(stat => stat.isFile && /^\d{8}T\d{6}(\.json)?$/.test(stat.name)).sort();
-				const backUpMaxAge = 1000 * 60 * 60 * 24 * (this.configurationService.getValue<number>('sync.localBackupDuration') || 30 /* Default 30 days */);
+				const backUpMaxAge = 1000 * 60 * 60 * 24 * (this.configurationService.getValue<number>('sync.localBackupDuration') || 30 );
 				let toDelete = all.filter(stat => Date.now() - this.getCreationTime(stat) > backUpMaxAge);
 				const remaining = all.length - toDelete.length;
 				if (remaining < 10) {

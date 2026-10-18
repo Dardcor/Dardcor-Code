@@ -12,24 +12,6 @@ import { ToolResult } from '../panel/toolCalling';
 import { DefaultOpenAIKeepGoingReminder } from './openai/defaultOpenAIPrompt';
 import { SummarizedAgentHistoryProps } from './summarizedConversationHistory';
 
-/**
- * "SimpleSummarizedHistory" is a fallback for when the main history summarization fails, either due to the conversation history being longer than the context window, or some other reason.
- * We can end up with history too long to summarize normally in a few ways:
- * - User switched from a model with a larger context window to one with a smaller context window.
- * - The context window size was changed for a model.
- * - A previous summarization failed for some reason or was cancelled.
- * - Switching from ask mode (no summarization) to agent mode.
- * - Upgrading from an earlier version with no summarization.
- * - Toggling the summarization setting.
- *
- * We could deal with this by summarizing recursively over context-window-sized chunks, but I don't want to make the user wait for multiple rounds of summarization.
- * Instead, the fallback strategy is basically this:
- * - Render one UserMessage with a text-based summary of the conversation. Attachments and other large extra context is omitted.
- * - Very large tool results and arguments are truncated.
- * - Pack the context window with as much of the history as possible in a PrioritizedList, but give the first user message the highest priority.
- *
- * This should let us strike a balance between speed and reliability and summarization fidelity.
- */
 export class SimpleSummarizedHistory extends PromptElement<SummarizedAgentHistoryProps> {
 	override async render() {
 		const historyEntries = this.getEntriesToRender();

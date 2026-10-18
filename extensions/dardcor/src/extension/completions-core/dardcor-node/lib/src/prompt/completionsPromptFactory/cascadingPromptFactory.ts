@@ -51,9 +51,6 @@ import {
 	ICompletionsPromptFactoryService
 } from './completionsPromptFactory';
 
-// If the space allocated to the suffix is at least this fraction of the estimated suffix cost,
-// we will render the suffix before the prefix and use any surplus suffix budget to fill the prefix.
-// Otherwise, we render the prefix first and use any surplus prefix budget to fill the suffix.
 const SMALL_SUFFIX_THRESHOLD = 0.8;
 
 export abstract class CascadingPromptFactory implements ICompletionsPromptFactoryService {
@@ -149,7 +146,6 @@ export abstract class CascadingPromptFactory implements ICompletionsPromptFactor
 		}
 
 		let surplusBudget = 0;
-		// Allocate excess budget in cascade order
 		for (const id of cascadeOrder) {
 			const componentBudget = surplusBudget + maxPromptLength * allocation[id];
 			const rendered = renderWithMetadata(this.components[id], componentBudget, opts, contextItems);
@@ -175,9 +171,7 @@ export abstract class CascadingPromptFactory implements ICompletionsPromptFactor
 		];
 		const prefixWithContext = promptOpts?.separateContext
 			? prefix
-			: // This should not happen, since we always separate context. If it does happen,
-			// the token counts for the prefix will be wrong, since the workspace context
-			// will have comment markers.
+			:
 			commentBlockAsSingles(context.join('\n'), languageId) + '\n\n' + prefix;
 
 		return {
@@ -216,7 +210,7 @@ export abstract class CascadingPromptFactory implements ICompletionsPromptFactor
 			`contextProvider.traits`,
 			traits,
 			textDocument.detectedLanguageId,
-			textDocument.detectedLanguageId, // TextDocumentContext does not have clientLanguageId
+			textDocument.detectedLanguageId,
 			telemetryData
 		);
 
@@ -236,7 +230,6 @@ export abstract class CascadingPromptFactory implements ICompletionsPromptFactor
 		const promptMatcher = componentStatisticsToPromptMatcher(componentStatistics);
 		this.contextProviderStatistics.getStatisticsForCompletion(completionId).computeMatch(promptMatcher);
 		const contextProvidersTelemetry = telemetrizeContextItems(this.contextProviderStatistics, completionId, resolvedContextItems);
-		// To support generating context provider metrics of completion in COffE.
 		logger.debug(this.logTargetService, `Context providers telemetry: '${JSON.stringify(contextProvidersTelemetry)}'`);
 		return contextProvidersTelemetry;
 	}
@@ -245,12 +238,11 @@ export abstract class CascadingPromptFactory implements ICompletionsPromptFactor
 		if (cancellationToken?.isCancellationRequested) {
 			return _promptCancelled;
 		}
-		if (await this.ignoreService.isCopilotIgnored(URI.parse(textDocument.uri))) {
+		if (await this.ignoreService.isIgnored(URI.parse(textDocument.uri))) {
 			return _dardcorContentExclusion;
 		}
 
 		if (textDocument.getText().length < MIN_PROMPT_CHARS && !MIN_PROMPT_EXCLUDED_LANGUAGE_IDS.includes(textDocument.detectedLanguageId)) {
-			// Too short context
 			return _contextTooShort;
 		}
 	}

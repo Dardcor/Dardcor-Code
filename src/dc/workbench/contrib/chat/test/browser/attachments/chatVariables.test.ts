@@ -137,7 +137,6 @@ suite('getDynamicVariablesForWidget', () => {
 		const widget = createMockWidget({ editing: true, attachments, contribVariables: [] });
 		const result = getDynamicVariablesForWidget(widget);
 
-		// No ranged attachments, falls back to contrib model variables (empty)
 		assert.deepStrictEqual(result, []);
 	});
 

@@ -16,29 +16,17 @@ import { ISessionDataService } from '../common/sessionDataService.js';
 import { readSessionGitState, type URI as ProtocolURI } from '../common/state/sessionState.js';
 import { AgentHostStateManager, IAgentHostStateManager } from './agentHostStateManager.js';
 
-/**
- * Resolved git context shared by the review operations: the repository root,
- * the Branch Changes baseline tree, and the current reviewed ref/tree.
- */
 interface IReviewContext {
 	readonly repoRoot: URI;
-	/** Tree object of the baseline. */
 	readonly baselineTree: string;
-	/** Name of the session's reviewed ref. */
 	readonly reviewedRef: string;
-	/** Current reviewed commit, or `undefined` when the ref does not exist yet. */
 	readonly reviewedCommit: string | undefined;
-	/** Current reviewed tree; equals `baselineTree` when the ref does not exist. */
 	readonly reviewedTree: string;
 }
 
 export class AgentHostReviewService extends Disposable implements IAgentHostReviewService {
 	declare readonly _serviceBrand: undefined;
 
-	/**
-	 * Serializes mark/unmark/read per session so back-to-back mutations don't
-	 * race on the reviewed ref rebuild and reads observe a consistent ref.
-	 */
 	private readonly _sequencer = new SequencerByKey<string>();
 
 	constructor(
@@ -49,11 +37,6 @@ export class AgentHostReviewService extends Disposable implements IAgentHostRevi
 	) {
 		super();
 
-		// When a session's data directory is about to be deleted, delete the
-		// reviewed ref we created for it. The working directory needed to
-		// resolve the repository root is supplied by the event (resolved
-		// before the session's live state was torn down) so we don't
-		// persist our own copy.
 		this._register(this._sessionDataService.onWillDeleteSessionData(e => {
 			e.waitUntil(this.disposeSessionData(e.session.toString(), e.workingDirectories));
 		}));
@@ -135,8 +118,6 @@ export class AgentHostReviewService extends Disposable implements IAgentHostRevi
 			return;
 		}
 
-		// To mark a file reviewed, overlay its current working-tree content into
-		// the reviewed tree; to unmark, reset it to the baseline content.
 		let source: string | undefined;
 		if (reviewed) {
 			source = await this._gitService.captureWorkingTreeAsTree(workingDirectory);
@@ -152,16 +133,9 @@ export class AgentHostReviewService extends Disposable implements IAgentHostRevi
 			return;
 		}
 		if (newTree === context.reviewedTree) {
-			// No change (already reviewed / already unreviewed).
-			// Don't grow the reviewed ref chain with a no-op
-			// commit.
 			return;
 		}
 
-		// The reviewed ref is a session-private chain disconnected from the
-		// real git history (mirroring the checkpoint baseline): the first
-		// commit is a parentless root, and subsequent commits chain onto the
-		// prior reviewed commit.
 		const message = `review: ${reviewed ? 'mark' : 'unmark'} ${path}`;
 		const commit = await this._gitService.commitTree(context.repoRoot, newTree, context.reviewedCommit, message);
 		if (!commit) {
@@ -176,8 +150,6 @@ export class AgentHostReviewService extends Disposable implements IAgentHostRevi
 	private async _getReviewedPaths(session: ProtocolURI, workingDirectory: URI, baseBranch: string | undefined): Promise<ReadonlySet<string>> {
 		const context = await this._resolveContext(session, workingDirectory, baseBranch);
 		if (!context?.reviewedCommit) {
-			// No reviewed ref yet means
-			// nothing has been reviewed.
 			return new Set();
 		}
 
@@ -186,11 +158,6 @@ export class AgentHostReviewService extends Disposable implements IAgentHostRevi
 			return new Set();
 		}
 
-		// Changed = files that differ between the baseline and the working tree
-		// (the Branch Changes universe). Unreviewed = files that still differ
-		// between the reviewed tree and the working tree. Reviewed is the
-		// difference: changed files whose reviewed content already matches the
-		// working tree.
 		const [changed, unreviewed] = await Promise.all([
 			this._gitService.diffTreePaths(context.repoRoot, context.baselineTree, workingTree),
 			this._gitService.diffTreePaths(context.repoRoot, context.reviewedTree, workingTree),

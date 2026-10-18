@@ -179,26 +179,9 @@ flakySuite('TextSearch-integration', function () {
 		return doSearchTest(config, 394);
 	});
 
-	// TODO
-	// test('Text: e (with absolute path excludes)', () => {
-	// 	const config: any = {
-	// 		folderQueries: ROOT_FOLDER_QUERY,
-	// 		contentPattern: { pattern: 'e' },
-	// 		excludePattern: makeExpression(path.join(TEST_FIXTURES, '**/examples'))
-	// 	};
 
-	// 	return doSearchTest(config, 394);
-	// });
 
-	// test('Text: e (with mixed absolute/relative path excludes)', () => {
-	// 	const config: any = {
-	// 		folderQueries: ROOT_FOLDER_QUERY,
-	// 		contentPattern: { pattern: 'e' },
-	// 		excludePattern: makeExpression(path.join(TEST_FIXTURES, '**/examples'), '*.css')
-	// 	};
 
-	// 	return doSearchTest(config, 310);
-	// });
 
 	test('Text: sibling exclude', () => {
 		const config: any = {
@@ -414,7 +397,6 @@ flakySuite('TextSearch-integration', function () {
 
 function makeExpression(...patterns: string[]): glob.IExpression {
 	return patterns.reduce((glob, pattern) => {
-		// glob.ts needs forward slashes
 		pattern = pattern.replace(/\\/g, '/');
 		glob[pattern] = true;
 		return glob;

@@ -51,8 +51,6 @@ ssuite({ title: 'newNotebook', subtitle: 'prompt', location: 'panel' }, () => {
 		const secondCell = await newNotebookCodeCell(accessor.get(IInstantiationService), accessor.get(IChatMLFetcher), endpoint, fetchConversationOptions(), undefined, topic, sections[1], cells.join('\n'), 'python', URI.file('sample.ipynb'), CancellationToken.None);
 		assert.ok(secondCell !== undefined, 'code should not be empty');
 		assert.ok(!secondCell.includes('import numpy'), 'code should not include import numpy again');
-		// const secondCellIsValid = await validatePythonCode(accessor, secondCell!);
-		// assert.ok(secondCellIsValid, 'second cell code should be valid python code');
 	});
 
 	stest({ description: 'Generate code cell (numpy)', language: 'python' }, async (testingServiceCollection) => {
@@ -131,35 +129,10 @@ ssuite({ title: 'newNotebook', subtitle: 'prompt', location: 'panel' }, () => {
 	});
 });
 
-// async function validatePythonCode(pythonCode: string): Promise<boolean> {
-// 	const validateCode = `
-// import codeop
-// import re
 
-// def validate_python_code(code):
-//     # Split the code into separate statements
-//     statements = re.split(r"\\n(?=\\w)", code)
-//     for statement in statements:
-//         codeop.compile_command(statement)
 
-// validate_python_code("""${pythonCode}""")
-// `;
-// 	if (pythonCode.startsWith('```')) {
-// 		return false;
-// 	}
 
-// 	return new Promise((resolve) => {
-// 		exec(`python3 -c "${validateCode.replace(/["\\]/g, '\\$&')}"`, (error, stdout, stderr) => {
-// 			if (error) {
-// 				return resolve(false);
-// 			} else if (stderr && stderr.length > 0) {
-// 				return resolve(false);
-// 			}
 
-// 			resolve(true);
-// 		});
-// 	});
-// }
 
 async function validatePythonCode(accessor: ITestingServicesAccessor, pythonCode: string): Promise<boolean> {
 	const escapedPythonCode = pythonCode.replace(/`/g, 'BACKTICK_PLACEHOLDER');

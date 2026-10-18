@@ -47,7 +47,6 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
     proxyBadgeVariant = "error";
   }
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     if (!showProxyDropdown) return;
     const handler = (e) => {
@@ -84,10 +83,8 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
       ? connection.displayName.trim()
       : null;
 
-  // Use useState + useEffect for impure Date.now() to avoid calling during render
   const [isCooldown, setIsCooldown] = useState(false);
 
-  // Get earliest model lock timestamp (useEffect handles the Date.now() comparison)
   const modelLockUntil = Object.entries(connection)
     .filter(([k]) => k.startsWith("modelLock_"))
     .map(([, v]) => v)
@@ -111,9 +108,8 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
     };
   }, [modelLockUntil]);
 
-  // Determine effective status (override unavailable if cooldown expired)
   const effectiveStatus = (connection.testStatus === "unavailable" && !isCooldown)
-    ? "active"  // Cooldown expired u2192 treat as active
+    ? "active"
     : connection.testStatus;
 
   const getStatusVariant = () => getConnectionStatusVariant(connection.isActive, effectiveStatus);
@@ -138,7 +134,7 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
   return (
     <div className={`group flex min-w-0 flex-col gap-3 rounded-lg p-2 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between ${connection.isActive === false ? "opacity-60" : ""}`}>
       <div className="flex min-w-0 flex-1 items-start gap-2 sm:items-center sm:gap-3">
-        {/* Priority arrows */}
+        {}
         <div className="flex shrink-0 flex-col">
           <button
             onClick={onMoveUp}
@@ -212,7 +208,7 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
       </div>
       <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
         <div className="grid flex-1 grid-cols-3 gap-1 sm:flex sm:flex-none">
-          {/* Proxy button with inline dropdown */}
+          {}
           {(proxyPools || []).length > 0 && (
             <div className="relative" ref={proxyDropdownRef}>
               <button

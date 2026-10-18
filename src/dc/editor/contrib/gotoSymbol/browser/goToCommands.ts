@@ -83,7 +83,6 @@ export abstract class SymbolNavigationAction extends EditorAction2 {
 
 	private static _patchConfig(opts: IAction2Options & IAction2F1RequiredOptions): IAction2Options {
 		const result = { ...opts, f1: true };
-		// patch context menu when clause
 		if (result.menu) {
 			for (const item of Iterable.wrap(result.menu)) {
 				if (item.id === MenuId.EditorContext || item.id === MenuId.EditorContextPeek) {
@@ -138,25 +137,21 @@ export abstract class SymbolNavigationAction extends EditorAction2 {
 			const referenceCount = references.references.length;
 
 			if (referenceCount === 0) {
-				// no result -> show message
 				if (!this.configuration.muteMessage) {
 					const info = model.getWordAtPosition(position);
 					MessageController.get(editor)?.showMessage(this._getNoResultFoundMessage(info), position);
 				}
 			} else if (referenceCount === 1 && altAction) {
-				// already at the only result, run alternative
 				SymbolNavigationAction._activeAlternativeCommands.add(this.desc.id);
 				instaService.invokeFunction((accessor) => altAction.runEditorCommand(accessor, editor, arg, range).finally(() => {
 					SymbolNavigationAction._activeAlternativeCommands.delete(this.desc.id);
 				}));
 
 			} else {
-				// normal results handling
 				return this._onResult(editorService, symbolNavService, editor, references, range);
 			}
 
 		}, (err) => {
-			// report an error
 			notificationService.error(err);
 		}).finally(() => {
 			cts.dispose();
@@ -190,8 +185,6 @@ export abstract class SymbolNavigationAction extends EditorAction2 {
 				model.dispose();
 			}
 
-			// keep remaining locations around when using
-			// 'goto'-mode
 			if (gotoLocation === 'goto') {
 				symbolNavService.put(next);
 			}
@@ -199,8 +192,6 @@ export abstract class SymbolNavigationAction extends EditorAction2 {
 	}
 
 	private async _openReference(editor: ICodeEditor, editorService: ICodeEditorService, reference: Location | LocationLink, sideBySide: boolean, highlight: boolean): Promise<ICodeEditor | undefined> {
-		// range is the target-selection-range when we have one
-		// and the fallback is the 'full' range
 		let range: IRange | undefined = undefined;
 		if (isLocationLink(reference)) {
 			range = reference.targetSelectionRange;
@@ -248,7 +239,6 @@ export abstract class SymbolNavigationAction extends EditorAction2 {
 	}
 }
 
-//#region --- DEFINITION
 
 export class DefinitionAction extends SymbolNavigationAction {
 
@@ -373,9 +363,7 @@ registerAction2(class PeekDefinitionAction extends DefinitionAction {
 	}
 });
 
-//#endregion
 
-//#region --- DECLARATION
 
 class DeclarationAction extends SymbolNavigationAction {
 
@@ -460,9 +448,7 @@ registerAction2(class PeekDeclarationAction extends DeclarationAction {
 	}
 });
 
-//#endregion
 
-//#region --- TYPE DEFINITION
 
 class TypeDefinitionAction extends SymbolNavigationAction {
 
@@ -546,9 +532,7 @@ registerAction2(class PeekTypeDefinitionAction extends TypeDefinitionAction {
 	}
 });
 
-//#endregion
 
-//#region --- IMPLEMENTATION
 
 class ImplementationAction extends SymbolNavigationAction {
 
@@ -637,9 +621,7 @@ registerAction2(class PeekImplementationAction extends ImplementationAction {
 	}
 });
 
-//#endregion
 
-//#region --- REFERENCES
 
 abstract class ReferencesAction extends SymbolNavigationAction {
 
@@ -727,10 +709,8 @@ registerAction2(class PeekReferencesAction extends ReferencesAction {
 	}
 });
 
-//#endregion
 
 
-//#region --- GENERIC goto symbols command
 
 class GenericGoToLocationAction extends SymbolNavigationAction {
 
@@ -825,10 +805,8 @@ CommandsRegistry.registerCommand({
 	}
 });
 
-//#endregion
 
 
-//#region --- REFERENCE search special commands
 
 CommandsRegistry.registerCommand({
 	id: 'editor.action.findReferences',
@@ -855,7 +833,5 @@ CommandsRegistry.registerCommand({
 	}
 });
 
-// use NEW command
 CommandsRegistry.registerCommandAlias('editor.action.showReferences', 'editor.action.peekLocations');
 
-//#endregion

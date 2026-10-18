@@ -28,7 +28,6 @@ export function SingleProxyRPCProtocol(thing: any): IExtHostContext & IExtHostRp
 	};
 }
 
-/** Makes a fake {@link SingleProxyRPCProtocol} on which any method can be called */
 export function AnyCallRPCProtocol<T>(useCalls?: { [K in keyof T]: T[K] }) {
 	return SingleProxyRPCProtocol(new Proxy({}, {
 		get(_target, prop: string) {
@@ -125,7 +124,6 @@ export class TestRPCProtocol implements IExtHostContext, IExtHostRpcService {
 			setTimeout(c, 0);
 		}).then(() => {
 			const instance = this._locals[proxyId];
-			// pretend the args went over the wire... (invoke .toJSON on objects...)
 			const wireArgs = simulateWireTransfer(args);
 			let p: Promise<any>;
 			try {
@@ -137,7 +135,6 @@ export class TestRPCProtocol implements IExtHostContext, IExtHostRpcService {
 
 			return p.then(result => {
 				this._callCount--;
-				// pretend the result went over the wire... (invoke .toJSON on objects...)
 				const wireResult = simulateWireTransfer(result);
 				return wireResult;
 			}, err => {

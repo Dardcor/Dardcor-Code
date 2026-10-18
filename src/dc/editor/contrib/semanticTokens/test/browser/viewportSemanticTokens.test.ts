@@ -110,11 +110,9 @@ suite('ViewportSemanticTokens', () => {
 
 			assert.strictEqual(requestCount, 1, 'Initial request should have been made');
 
-			// Make sure no other requests are made for a little while
 			await timeout(1000);
 			assert.strictEqual(requestCount, 1, 'No additional requests should have been made');
 
-			// Fire the provider's onDidChange event
 			emitter.fire();
 
 			await inRefreshCall.wait();

@@ -26,7 +26,6 @@ ssuite({ title: 'intent', location: 'inline' }, () => {
 		location: ChatLocation.Editor,
 		name: 'log to console',
 		query: 'log to console in case the action is missing',
-		// Actually gives Explain
 		expectedIntent: [EditCodeIntent.ID, GenerateCodeIntent.ID],
 	});
 
@@ -34,7 +33,6 @@ ssuite({ title: 'intent', location: 'inline' }, () => {
 		location: ChatLocation.Editor,
 		name: 'add a cat',
 		query: 'Add a cat to this comment',
-		// Actually gives Unknown
 		expectedIntent: [EditCodeIntent.ID, GenerateCodeIntent.ID],
 	});
 
@@ -143,7 +141,6 @@ ssuite({ title: 'intent', location: 'inline' }, () => {
 					query: 'generate tests',
 					expectedIntent: 'generate',
 					validate: async (outcome, workspace, accessor) => {
-						// @ulugbekna: left empty on purpose
 					}
 				}
 			]

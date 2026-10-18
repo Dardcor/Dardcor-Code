@@ -94,7 +94,6 @@ export function getHighlightDecorationOptions(kind: DocumentHighlightKind | unde
 }
 
 export function getSelectionHighlightDecorationOptions(hasSemanticHighlights: boolean): ModelDecorationOptions {
-	// Show in overviewRuler only if model has no semantic highlighting
 	return (hasSemanticHighlights ? _SELECTION_HIGHLIGHT_OPTIONS_NO_OVERVIEW : _SELECTION_HIGHLIGHT_OPTIONS);
 }
 

@@ -35,34 +35,11 @@ export interface IModelPickerDelegate {
 	setModel(model: ILanguageModelChatMetadataAndIdentifier): void;
 	getModels(): ILanguageModelChatMetadataAndIdentifier[];
 	getPresentationOptions(): IModelPickerPresentationOptions;
-	/**
-	 * The id of the current chat session, used to correlate model-picker
-	 * changes with the session in telemetry. Matches the `chatSessionId`
-	 * reported by other chat telemetry events (e.g. the chat request event).
-	 * Returns `undefined` when no session is active.
-	 */
 	getChatSessionId?(): string | undefined;
-	/**
-	 * UI hint flag controlling whether the picker shows the cache-break hint.
-	 * Returns `true` when the session has likely warmed the prompt cache (e.g. it
-	 * has sent a request), inferred from request history / session status rather
-	 * than the provider's actual cache state — so it does not account for cache
-	 * expiry or a cache that was already reset. Defaults to `false` when omitted.
-	 */
 	isCacheWarm?(): boolean;
-	/**
-	 * Per-editor model configuration access. When omitted, the picker reads and
-	 * writes configuration through the global {@link ILanguageModelsService}.
-	 */
 	readonly modelConfiguration?: IModelConfigurationAccess;
 }
 
-/**
- * Action view item for selecting a language model in the chat interface.
- *
- * Wraps a {@link ModelPickerWidget} and adapts it for use in an action bar,
- * providing curated model suggestions, upgrade prompts, and grouped layout.
- */
 export class ModelPickerActionItem extends BaseActionViewItem {
 	private readonly _pickerWidget: ModelPickerWidget;
 	private readonly _managedHover = this._register(new MutableDisposable());
@@ -86,14 +63,12 @@ export class ModelPickerActionItem extends BaseActionViewItem {
 			this._pickerWidget.setMinimal(pickerOptions.minimal);
 		}
 
-		// Sync delegate → widget when model list or selection changes externally
 		this._register(autorun(t => {
 			const model = delegate.currentModel.read(t);
 			this._pickerWidget.setSelectedModel(model);
 			this._updateTooltip();
 		}));
 
-		// Sync widget → delegate when user picks a model
 		this._register(this._pickerWidget.onDidChangeSelection(model => delegate.setModel(model)));
 		this._register(this._pickerWidget.onDidChangeMinimumWidth(width => this._updateMinimumWidth(width)));
 	}
@@ -138,21 +113,10 @@ export class ModelPickerActionItem extends BaseActionViewItem {
 		this._pickerWidget.setEnabled(enabled);
 	}
 
-	/**
-	 * Whether the picker has no usable model because the workspace is untrusted
-	 * (Restricted Mode). Lets a host (e.g. the sessions picker) keep the picker
-	 * visible to surface the "Models" placeholder and Trust Workspace action
-	 * instead of hiding it as an empty/no-model picker.
-	 */
 	public isRestrictedMode(): boolean {
 		return this._pickerWidget.isRestrictedMode();
 	}
 
-	/**
-	 * Whether the picker has no usable model because Chat still needs sign-in /
-	 * setup. Like {@link isRestrictedMode}, lets a host keep the picker visible to
-	 * surface the "Models" placeholder and Sign In action.
-	 */
 	public isSetupRequired(): boolean {
 		return this._pickerWidget.isSetupRequired();
 	}
@@ -170,10 +134,6 @@ export class ModelPickerActionItem extends BaseActionViewItem {
 		if (!target) {
 			return;
 		}
-		// Use a content factory so the hover reflects the current state each time
-		// it is shown — in particular the Restricted Mode / sign-in messages, which
-		// depend on workspace trust / entitlement changing without this item being
-		// re-rendered.
 		this._managedHover.value = getBaseLayerHoverDelegate().setupManagedHover(
 			getDefaultHoverDelegate('mouse'),
 			target,

@@ -13,13 +13,6 @@ import { Iterable } from '../../../util/dardcor/base/common/iterator';
 import { Lazy } from '../../../util/dardcor/base/common/lazy';
 import { deepClone } from '../../../util/dardcor/base/common/objects';
 
-/**
- * Normalizes tool schema for various model restrictions. This is a hack
- * just to avoid issues with certain model constraints, which currently result
- * in CAPI returning a blank 400 error. This is a terrible experience in the
- * extensible MCP scenario, so here we _try_ to normalize known cases to
- * avoid that (though there may certainly be unknown cases).
- */
 export function normalizeToolSchema(family: string, tools: OpenAiFunctionTool[] | undefined, onFix?: (tool: string, rule: string) => void) {
 	if (!tools?.length) {
 		return undefined;
@@ -128,7 +121,6 @@ const jsonSchemaRules: ((family: string, node: JsonSchema, didFix: (message: str
 		});
 	},
 	(_family, schema, onFix) => {
-		// validated this fails both for claude and 4o
 		const unsupported = ['oneOf', 'anyOf', 'allOf', 'not', 'if', 'then', 'else'];
 		for (const key of unsupported) {
 			if (schema.hasOwnProperty(key)) {
@@ -169,7 +161,6 @@ const jsonSchemaRules: ((family: string, node: JsonSchema, didFix: (message: str
 		});
 	},
 	(family, schema, onFix) => {
-		// Gemini models require nullable types to use OpenAPI 3.0 nullable keyword instead of JSON Schema union types
 		if (!isGeminiFamily(family) && !family.toLowerCase().includes('gemini')) {
 			return;
 		}
@@ -180,14 +171,10 @@ const jsonSchemaRules: ((family: string, node: JsonSchema, didFix: (message: str
 				const nonNullTypes = types.filter(t => t !== 'null');
 
 				if (hasNull && nonNullTypes.length === 1) {
-					// Convert ["string", "null"] to { type: "string", nullable: true }
 					(n as any).type = nonNullTypes[0];
 					(n as any).nullable = true;
 					onFix(`converted nullable type array to OpenAPI nullable keyword for Gemini compatibility`);
 				} else if (hasNull && nonNullTypes.length > 1) {
-					// For multiple non-null types with null, we can't easily convert, so we remove null.
-					// This changes the schema semantics: the field is no longer nullable and values of `null`
-					// will fail validation. This is a limitation, but better than a blank 400 error from the model.
 					(n as any).type = nonNullTypes;
 					onFix(`removed null from multi-type union for Gemini compatibility; this makes the field non-nullable and may cause validation errors for callers that pass null`);
 				}
@@ -234,15 +221,11 @@ function forEachSchemaNode<T>(input: JsonSchema, fn: (node: JsonSchema) => undef
 	}
 }
 
-// Whether the model is a GPT-4 family model.
 const isGpt4ish = (family: string) => family.startsWith('gpt-4');
-// Whether the model is a model known to follow JSON Schema Draft 2020-12, (versus Draft 7).
 const isDraft2020_12Schema = (family: string) => family.startsWith('gpt-4') || family.startsWith('claude-') || family.startsWith('o4');
 
 const gpt4oMaxStringLength = 1024;
 
-// Keywords in schema that gpt-4o does not support. From Toby at Github who wrote a normalizer
-// https://gist.github.com/toby/dfe40041ae5b02d44ea21321b9f7dfd2
 const gpt4oUnsupportedSchemaKeywords = new Set([
 	'minLength',
 	'maxLength',

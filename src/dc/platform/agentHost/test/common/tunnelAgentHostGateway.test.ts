@@ -19,9 +19,6 @@ suite('tunnelAgentHost - gateway wire protocol', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('protocol version constants pin the wire format', () => {
-		// A regression here silently breaks compatibility with the CLI's
-		// PROTOCOL_VERSION / AGENT_HOST route constants (cli/src/constants.rs,
-		// cli/src/tunnels/agent_host.rs) — pin the exact values.
 		assert.strictEqual(TUNNEL_MIN_PROTOCOL_VERSION, 5);
 		assert.strictEqual(TUNNEL_GATEWAY_MIN_PROTOCOL_VERSION, 6);
 		assert.ok(TUNNEL_GATEWAY_MIN_PROTOCOL_VERSION > TUNNEL_MIN_PROTOCOL_VERSION, 'gateway selection requires a newer protocol than legacy direct connect');
@@ -58,9 +55,6 @@ suite('tunnelAgentHost - gateway wire protocol', () => {
 				userDataPath: '/data',
 				endpoints: [{ type: 'editor', pid: 1, instanceId: 'e1', endpointKind: 'tcp', endpointLabel: '127.0.0.1:1', connectionToken: 'leaked-secret' }],
 			}));
-			// `connectionToken` isn't part of `ITunnelGatewayEndpoint` — assert
-			// via an untyped view rather than the `in` operator, since `hasKey`
-			// only narrows keys that are actually declared on the type.
 			const endpoint = inventory.endpoints[0] as unknown as Record<string, unknown>;
 			assert.strictEqual(endpoint.connectionToken, undefined);
 		});

@@ -7,10 +7,6 @@ import { IStringDictionary } from '../../../../../../base/common/collections.js'
 import { IJSONSchema } from '../../../../../../base/common/jsonSchema.js';
 import { ILanguageModelConfigurationSchema } from '../../../common/languageModels.js';
 
-/**
- * Extracts the schema-default values from a model configuration schema, keyed by
- * property name. Properties without a `default` are omitted.
- */
 export function extractSchemaDefaults(schema: ILanguageModelConfigurationSchema | undefined): IStringDictionary<unknown> {
 	const defaults: IStringDictionary<unknown> = {};
 	if (schema?.properties) {
@@ -23,19 +19,6 @@ export function extractSchemaDefaults(schema: ILanguageModelConfigurationSchema 
 	return defaults;
 }
 
-/**
- * Filters a configuration down to what the *current* schema accepts, so neither a value
- * captured against an older schema nor one supplied by an experiment treatment can be pinned
- * as an invalid override. A value is kept only when its property is declared and every
- * constraint this understands is satisfied:
- *   1. Keys absent from the current schema are dropped (removed properties).
- *   2. `enum` and `const` must contain the value.
- *   3. `type` must match, including a union of types.
- *   4. Numeric bounds and string `pattern`/length are enforced when declared.
- * A property using a composite schema (`anyOf`, `oneOf`, `allOf`, `not`, `$ref`) is failed
- * closed, since a value cannot be checked against a shape this does not interpret. When the
- * schema is missing entirely, nothing can be validated and an empty configuration is returned.
- */
 export function filterConfigurationToSchema(
 	values: IStringDictionary<unknown>,
 	schema: ILanguageModelConfigurationSchema | undefined,
@@ -58,7 +41,6 @@ export function filterConfigurationToSchema(
 }
 
 function satisfiesPropertySchema(value: unknown, schema: IJSONSchema): boolean {
-	// A shape this does not interpret cannot be checked, so the value is not kept.
 	if (schema.anyOf || schema.oneOf || schema.allOf || schema.not || schema.$ref) {
 		return false;
 	}
@@ -75,8 +57,6 @@ function satisfiesPropertySchema(value: unknown, schema: IJSONSchema): boolean {
 		}
 	}
 	if (typeof value === 'number') {
-		// `exclusiveMinimum`/`exclusiveMaximum` are a boolean modifier in draft 4 and a number
-		// in later drafts, so only the numeric form is comparable.
 		const exclusiveMinimum = typeof schema.exclusiveMinimum === 'number' ? schema.exclusiveMinimum : undefined;
 		const exclusiveMaximum = typeof schema.exclusiveMaximum === 'number' ? schema.exclusiveMaximum : undefined;
 		if ((schema.minimum !== undefined && value < schema.minimum)

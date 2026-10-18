@@ -27,7 +27,6 @@ import { ILogService } from '../../../platform/log/common/log.js';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry.js';
 import { IUriIdentityService } from '../../../platform/uriIdentity/common/uriIdentity.js';
 import { IChatWidget, IChatWidgetService } from '../../contrib/chat/browser/chat.js';
-import { AgentSessionProviders, getAgentSessionProvider } from '../../contrib/chat/browser/agentSessions/agentSessions.js';
 import { AddDynamicVariableAction, IAddDynamicVariableContext } from '../../contrib/chat/browser/attachments/chatDynamicVariables.js';
 import { IChatAgentHistoryEntry, IChatAgentImplementation, IChatAgentRequest, IChatAgentService } from '../../contrib/chat/common/participants/chatAgents.js';
 import { IAgentSkill, IChatPromptSlashCommand, ICustomAgent, IInstructionFile, IPromptFileContext, IPromptPath, IPromptsService, PromptsStorage } from '../../contrib/chat/common/promptSyntax/service/promptsService.js';
@@ -120,7 +119,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 
 	private readonly _activeTasks = new Map<string, IChatTask>();
 
-	private readonly _unresolvedAnchors = new Map</* requestId */string, Map</* id */ string, UnresolvedAnchor>>();
+	private readonly _unresolvedAnchors = new Map< string, Map< string, UnresolvedAnchor>>();
 
 	constructor(
 		extHostContext: IExtHostContext,
@@ -168,7 +167,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			this._acceptActiveChatSession(this._chatWidgetService.lastFocusedWidget);
 		}));
 
-		// Push the initial active session if there is already a focused widget
 		this._acceptActiveChatSession(this._chatWidgetService.lastFocusedWidget);
 
 		this._register(this._promptsService.onDidChangeCustomAgents(() => {
@@ -195,8 +193,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 
 	private _acceptActiveChatSession(widget: IChatWidget | undefined): void {
 		const sessionResource = widget?.viewModel?.sessionResource;
-		const isLocal = sessionResource && getAgentSessionProvider(sessionResource) === AgentSessionProviders.Local;
-		this._proxy.$acceptActiveChatSession(isLocal ? sessionResource : undefined);
+		this._proxy.$acceptActiveChatSession(sessionResource);
 	}
 
 	private _toChatResourceSource(storage: PromptsStorage): ICustomAgentDto['source'] {
@@ -341,8 +338,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 		const chatSessionRegistration = this._chatSessionService.getAllChatSessionContributions().find(c => c.type === id || c.alternativeIds?.includes(id));
 		if (!staticAgentRegistration && !chatSessionRegistration && !dynamicProps) {
 			if (this._chatAgentService.getAgentsByName(id).length) {
-				// Likely some extension authors will not adopt the new ID, so give a hint if they register a
-				// participant by name instead of ID.
 				throw new Error(`chatParticipant must be declared with an ID in package.json. The "id" property may be missing! "${id}"`);
 			}
 
@@ -366,15 +361,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 						chatSessionContext,
 					}, token);
 
-					// Suppress expected operational errors (rate limiting, quota exceeded, and other
-					// user-actionable conditions flagged via `isExpectedError`) from error telemetry
-					// to avoid noise in error reporting.
-					// See https://github.com/microsoft/vscode/issues/311582 (rate-limited precedent),
-					// https://github.com/microsoft/vscode/issues/311583 (spawn git ENOENT),
-					// https://github.com/microsoft/vscode/issues/311584 (network connectivity),
-					// https://github.com/microsoft/vscode/issues/311585 (EPERM/permission errors),
-					// https://github.com/microsoft/vscode/issues/311586 (UNC host access),
-					// https://github.com/microsoft/vscode/issues/311587 (cloud agent not enabled).
 					if (rpcResult?.errorCallstack && !rpcResult.errorDetails?.isRateLimited && !rpcResult.errorDetails?.isQuotaExceeded && !rpcResult.errorDetails?.isExpectedError) {
 						type ChatAgentErrorEvent = { callstack: string; msg: string; errorName: string; agent: string; agentExtensionId: string };
 						type ChatAgentErrorClassification = {
@@ -395,7 +381,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 						});
 					}
 
-					// Strip telemetry-only field before returning to the model layer
 					if (rpcResult) {
 						const { errorCallstack: _, errorName: _2, ...result } = rpcResult;
 						return result;
@@ -426,7 +411,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			},
 		};
 
-		// Do not attempt to register migrated chatSession providers
 		if (chatSessionRegistration?.alternativeIds?.includes(id)) {
 			return;
 		}
@@ -501,7 +485,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			}
 
 			if (progress.kind === 'beginToolInvocation') {
-				// Begin a streaming tool invocation
 				this._languageModelToolsService.beginToolCall({
 					toolCallId: progress.toolCallId,
 					toolId: progress.toolName,
@@ -513,18 +496,12 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			}
 
 			if (progress.kind === 'updateToolInvocation') {
-				// Update the streaming data for an existing tool invocation
 				this._languageModelToolsService.updateToolStream(progress.toolCallId, progress.streamData?.partialInput, CancellationToken.None);
 				continue;
 			}
 
 			if (progress.kind === 'usage') {
 				if (isSubagent) {
-					// A subagent invoked via RunSubagentTool reuses the parent request and
-					// has no request model of its own. Forward the usage to the agent's
-					// progress callback so the subagent tool can surface its credit (AIC)
-					// cost on hover, without inflating the parent request's context-window
-					// widget or token counts.
 					chatProgressParts.push({
 						kind: 'usage',
 						promptTokens: progress.promptTokens,
@@ -543,8 +520,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 						promptTokenDetails: progress.promptTokenDetails
 					});
 				} else {
-					// Non-subagent request with no response model: unexpected. Drop the
-					// usage rather than forwarding it as a progress part.
 					this._logService.warn(`MainThreadChatAgents2#$handleProgressChunk: No response model for usage of non-subagent request ${requestId}; dropping usage.`);
 				}
 				continue;
@@ -558,7 +533,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 				|| revivedProgress.kind === 'textEdit'
 				|| revivedProgress.kind === 'codeblockUri'
 			) {
-				// make sure to use the canonical uri
 				revivedProgress.uri = this._uriIdentityService.asCanonicalUri(revivedProgress.uri);
 			}
 
@@ -721,7 +695,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 		const emitter = new Emitter<void>();
 		this._promptFileProviderEmitters.set(handle, emitter);
 
-		// Track content registrations for this provider so they can be disposed when provider is unregistered
 		const contentRegistrations = new DisposableMap<string, IDisposable>();
 		this._promptFileContentRegistrations.set(handle, contentRegistrations);
 
@@ -732,7 +705,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 				if (!contributions) {
 					return undefined;
 				}
-				// Convert UriComponents to URI and register any inline content
 				return contributions.map(c => {
 					return {
 						name: c.name,
@@ -771,7 +743,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 		const emitter = new Emitter<void>();
 		this._customizationProviderEmitters.set(handle, emitter);
 
-		// Build the item provider that calls back to the ExtHost
 		const itemProvider: ICustomizationItemProvider = {
 			onDidChange: emitter.event,
 			provideChatSessionCustomizations: async (sessionResource, token) => {
@@ -807,9 +778,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			},
 		};
 
-		// Convert supportedTypes whitelist to hiddenSections blacklist.
-		// Sections not in the supported list are hidden. When supportedTypes
-		// is omitted, all sections are shown.
 		const typeToSection: Record<string, string> = {
 			'agent': AICustomizationManagementSection.Agents,
 			'skill': AICustomizationManagementSection.Skills,
@@ -859,7 +827,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 function computeCompletionRanges(model: ITextModel, position: Position, reg: RegExp): { insert: Range; replace: Range } | undefined {
 	const varWord = getWordAtText(position.column, reg, model.getLineContent(position.lineNumber), 0);
 	if (!varWord && model.getWordUntilPosition(position).word) {
-		// inside a "normal" word
 		return;
 	}
 

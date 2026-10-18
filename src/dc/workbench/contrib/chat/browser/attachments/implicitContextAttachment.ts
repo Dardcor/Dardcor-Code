@@ -94,7 +94,6 @@ export class ImplicitContextAttachmentWidget extends Disposable {
 
 		this.render();
 
-		// A light/dark icon must be reapplied when the color theme changes so the correct uri is used
 		this._register(this.themeService.onDidColorThemeChange(() => {
 			if (this._hasDualPathIcon()) {
 				this.render();
@@ -141,7 +140,6 @@ export class ImplicitContextAttachmentWidget extends Disposable {
 
 		const isSuggestedEnabled = this.configService.getValue('chat.implicitContext.suggestedContext');
 
-		// Create toggle button BEFORE the label so it appears on the left
 		if (isSuggestedEnabled) {
 			if (!isSelection) {
 				const buttonMsg = context.enabled
@@ -193,7 +191,7 @@ export class ImplicitContextAttachmentWidget extends Disposable {
 			const toggleButton = this.renderDisposables.add(new Button(contextNode, { supportIcons: true, title: buttonMsg }));
 			toggleButton.icon = context.enabled ? Codicon.eye : Codicon.eyeClosed;
 			this.renderDisposables.add(toggleButton.onDidClick((e) => {
-				e.stopPropagation(); // prevent it from triggering the click handler on the parent immediately after rerendering
+				e.stopPropagation();
 				context.enabled = !context.enabled;
 			}));
 		}
@@ -217,7 +215,6 @@ export class ImplicitContextAttachmentWidget extends Disposable {
 			}));
 		}
 
-		// Context menu
 		const scopedContextKeyService = this.renderDisposables.add(this.contextKeyService.createScoped(contextNode));
 
 		const resourceContextKey = this.renderDisposables.add(new ResourceContextKey(scopedContextKeyService, this.fileService, this.languageService, this.modelService));
@@ -239,10 +236,8 @@ export class ImplicitContextAttachmentWidget extends Disposable {
 	}
 
 	private renderString(resourceLabel: IResourceLabel, name: string, iconPath: ChatContextIconPath | undefined, resourceUri: URI | undefined, markdownTooltip: IMarkdownString | undefined, defaultTitle: string): string | undefined {
-		// Don't set title if we have a markdown tooltip - the hover service will handle it
 		const title = markdownTooltip ? undefined : defaultTitle;
 
-		// Derive icon classes from resourceUri for file/folder theme icons
 		if (iconPath && ThemeIcon.isThemeIcon(iconPath) && (ThemeIcon.isFile(iconPath) || ThemeIcon.isFolder(iconPath)) && resourceUri) {
 			const fileKind = ThemeIcon.isFolder(iconPath) ? FileKind.FOLDER : FileKind.FILE;
 			const iconClasses = getIconClasses(this.modelService, this.languageService, resourceUri, fileKind);
@@ -301,7 +296,6 @@ export class ImplicitContextAttachmentWidget extends Disposable {
 		};
 		update();
 
-		// Keep label in sync as the user navigates
 		this.renderDisposables.add(input.onDidChangeLabel(() => update()));
 
 		return input.getTitle();

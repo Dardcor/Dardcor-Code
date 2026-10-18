@@ -4,11 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 /* eslint-disable */
 
-// Windows 24H2
-// PowerShell 7.5.2
-// Steps:
-// - Open terminal
-// - Type foo
 export const events = [
 	{
 		"type": "resize",

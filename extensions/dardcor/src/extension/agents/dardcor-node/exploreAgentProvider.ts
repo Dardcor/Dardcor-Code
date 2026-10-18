@@ -12,21 +12,12 @@ import { ILogService } from '../../../platform/log/common/logService';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { AgentConfig, buildAgentMarkdown, DEFAULT_READ_TOOLS } from './agentTypes';
 
-/**
- * Fallback model priority list for the Explore agent.
- * Passed as a YAML array; the runtime picks the first available model.
- */
 const EXPLORE_AGENT_FALLBACK_MODELS: readonly string[] = [
 	'Claude Haiku 4.5 (dardcor)',
 	'Gemini 3 Flash (Preview) (dardcor)',
 	'Auto (dardcor)',
 ];
 
-/**
- * Base Explore agent configuration.
- * The Explore agent is a read-only code research subagent that autonomously
- * digs through codebases using multiple search strategies.
- */
 const BASE_EXPLORE_AGENT_CONFIG: AgentConfig = {
 	name: 'Explore',
 	description: 'Fast read-only codebase exploration and Q&A subagent. Prefer over manually chaining multiple search and file-reading operations to avoid cluttering the main conversation. Safe to call in parallel. Specify thoroughness: quick, medium, or thorough.',
@@ -37,16 +28,9 @@ const BASE_EXPLORE_AGENT_CONFIG: AgentConfig = {
 	tools: [
 		...DEFAULT_READ_TOOLS,
 	],
-	body: '' // Generated dynamically in buildCustomizedConfig
+	body: ''
 };
 
-/**
- * Provides the Explore agent dynamically with settings-based customization.
- *
- * The Explore agent is a read-only code research subagent designed to be
- * invoked by other agents (e.g., Plan) for autonomous codebase exploration.
- * It uses small/fast models by default and focuses on search-heavy workflows.
- */
 export class ExploreAgentProvider extends Disposable implements vscode.ChatCustomAgentProvider {
 	readonly label = vscode.l10n.t('Explore Agent');
 
@@ -133,8 +117,6 @@ Remember: Your goal is searching efficiently through MAXIMUM PARALLELISM to repo
 	}
 
 	private _buildCustomizedConfig(): AgentConfig {
-		// Model selection priority: core config > extension config > fallback list
-		// Empty string means "not set", so we explicitly check for truthy values
 		const coreDefaultModel = this._configurationService.getNonExtensionConfig<string>('chat.exploreAgent.defaultModel');
 		const extModel = this._configurationService.getConfig(ConfigKey.ExploreAgentModel);
 		const model: string | readonly string[] = coreDefaultModel || extModel || EXPLORE_AGENT_FALLBACK_MODELS;

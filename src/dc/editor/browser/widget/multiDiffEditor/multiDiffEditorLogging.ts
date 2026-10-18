@@ -10,16 +10,13 @@ import { URI } from '../../../../base/common/uri.js';
 import { ILogService, LogLevel } from '../../../../platform/log/common/log.js';
 import { MultiDiffEditorViewModel } from './multiDiffEditorViewModel.js';
 
-/** A diff item of the multi diff editor, as far as logging is concerned. */
 export interface ILoggedDiffItem {
 	getKey(): string;
-	/** Short, log friendly name of the item. */
 	getLabel(): string;
 	readonly collapsed: IObservable<boolean>;
 	readonly contentHeight: IObservable<number>;
 }
 
-/** The widget state traced by {@link MultiDiffEditorLogger.logStateChanges}. */
 export interface ILoggedEditorState {
 	readonly viewModel: IObservable<MultiDiffEditorViewModel | undefined>;
 	readonly items: IObservable<readonly ILoggedDiffItem[]>;
@@ -28,19 +25,8 @@ export interface ILoggedEditorState {
 	readonly isPreserveFocusOnLoad: () => boolean;
 }
 
-/**
- * Trace logger for the multi diff editor. Logs the state transitions that are
- * hard to observe from the outside (scroll offsets that are set programmatically,
- * content height changes, collapsed state changes and view state save/restore),
- * so bugs like "the editor jumped while scrolling" or "this file was expanded
- * even though it was collapsed" can be reconstructed from the log.
- *
- * Enable with `Developer: Set Log Level...` > `Window` > `Trace`.
- */
 export class MultiDiffEditorLogger extends Disposable {
-	/** Last logged collapsed state per diff item, to only log actual changes. */
 	private readonly _lastLoggedCollapsed = new Map<string, boolean>();
-	/** Last logged content height per diff item, to only log actual changes. */
 	private readonly _lastLoggedContentHeight = new Map<string, number>();
 
 	private readonly _isEnabled: IObservable<boolean>;
@@ -51,10 +37,6 @@ export class MultiDiffEditorLogger extends Disposable {
 		this._isEnabled = observableFromEvent(this, this._logService.onDidChangeLogLevel, () => this._logService.getLevel() <= LogLevel.Trace);
 	}
 
-	/**
-	 * Whether trace logging is on. Check this before computing data that is only
-	 * needed for logging.
-	 */
 	public get isEnabled(): boolean {
 		return this._isEnabled.get();
 	}
@@ -67,25 +49,12 @@ export class MultiDiffEditorLogger extends Disposable {
 		this._logService.trace(`[MultiDiffEditor] ${message}${formattedData ? ` (${formattedData})` : ''}`);
 	}
 
-	/**
-	 * Traces the state transitions that cannot be reconstructed after the fact:
-	 * view model/loading changes, collapsed state changes (no matter who caused
-	 * them) and content height changes, which are the usual cause of the view
-	 * jumping while scrolling. Per-frame rendering is deliberately not traced.
-	 *
-	 * The observers only exist while trace logging is on, so nothing is observed
-	 * (and no state is tracked) in the default case; they are recreated when the
-	 * log level is raised to trace again.
-	 */
 	public logStateChanges(state: ILoggedEditorState): void {
 		this._register(autorunWithStore((reader, store) => {
 			if (!this._isEnabled.read(reader)) {
 				return;
 			}
 
-			// Reset the tracked state when tracing is turned off, so the first logs
-			// after re-enabling report the current state instead of a diff against
-			// stale values.
 			store.add(toDisposable(() => {
 				this._lastLoggedCollapsed.clear();
 				this._lastLoggedContentHeight.clear();
@@ -116,7 +85,6 @@ export class MultiDiffEditorLogger extends Disposable {
 			}));
 
 			store.add(autorun(reader => {
-				// Not read via the reader: this must not re-run on every scroll event.
 				const scrollTop = state.getScrollTop();
 				const changed: string[] = [];
 				let totalHeight = 0;
@@ -125,8 +93,6 @@ export class MultiDiffEditorLogger extends Disposable {
 					const key = item.getKey();
 					const lastContentHeight = this._lastLoggedContentHeight.get(key);
 					if (lastContentHeight !== contentHeight) {
-						// A height change above the current scroll offset shifts
-						// everything below it and makes the view jump.
 						const abovePosition = totalHeight < scrollTop ? ' (above scroll offset)' : '';
 						changed.push(`${item.getLabel()}: ${lastContentHeight ?? '?'} -> ${contentHeight}${abovePosition}`);
 						this._lastLoggedContentHeight.set(key, contentHeight);
@@ -141,17 +107,13 @@ export class MultiDiffEditorLogger extends Disposable {
 	}
 }
 
-/** Short, log friendly name of a diff item resource. */
 export function formatUri(uri: URI | undefined): string {
 	if (!uri) {
 		return '<none>';
 	}
-	// Pathless URIs (e.g. `changes-multi-diff-source:?<query>`) have an empty
-	// basename, so fall back to something that still identifies the resource.
 	return basename(uri) || uri.authority || uri.scheme;
 }
 
-/** Turns a {@link DocumentDiffItemViewModel.getKey} value into a short log label. */
 export function formatDiffItemKey(key: string | undefined): string {
 	if (key === undefined) {
 		return '<none>';

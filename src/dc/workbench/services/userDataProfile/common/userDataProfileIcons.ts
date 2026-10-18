@@ -11,10 +11,8 @@ export const DEFAULT_ICON = registerIcon('settings-view-bar-icon', Codicon.setti
 
 export const ICONS = [
 
-	/* Default */
 	DEFAULT_ICON,
 
-	/* hardware/devices */
 	Codicon.vm,
 	Codicon.server,
 	Codicon.recordKeys,
@@ -23,13 +21,11 @@ export const ICONS = [
 	Codicon.vr,
 	Codicon.piano,
 
-	/* languages */
 	Codicon.ruby,
 	Codicon.code,
 	Codicon.coffee,
 	Codicon.snake,
 
-	/* project types */
 	Codicon.project,
 	Codicon.window,
 	Codicon.library,
@@ -52,10 +48,9 @@ export const ICONS = [
 	Codicon.remoteExplorer,
 	Codicon.github,
 	Codicon.azure,
-	Codicon.vscode,
-	Codicon.copilot,
+	Codicon.dardcorCode,
+	Codicon.sparkle,
 
-	/* misc */
 	Codicon.gift,
 	Codicon.send,
 	Codicon.bookmark,

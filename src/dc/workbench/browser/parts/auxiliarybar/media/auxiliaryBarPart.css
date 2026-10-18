@@ -40,7 +40,7 @@
 
 .monaco-workbench .part.auxiliarybar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item:focus,
 .monaco-workbench .part.auxiliarybar > .header-or-footer > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item:focus {
-	outline: 0 !important; /* activity bar indicates focus custom */
+	outline: 0 !important;
 }
 
 .monaco-workbench .part.auxiliarybar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label,
@@ -58,7 +58,7 @@
 .monaco-workbench .part.auxiliarybar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label::before,
 .monaco-workbench .part.auxiliarybar > .header-or-footer > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label::before {
 	position: absolute;
-	left: 5px; /* place icon in center */
+	left: 5px;
 }
 
 .monaco-workbench .part.auxiliarybar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item.checked:not(:focus) .active-item-indicator:before,

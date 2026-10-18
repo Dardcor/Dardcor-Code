@@ -26,7 +26,6 @@ export class NodeRequestCanceller implements OngoingRequestCanceller {
 		try {
 			fs.writeFileSync(this.cancellationPipeName + seq, '');
 		} catch {
-			// noop
 		}
 		return true;
 	}

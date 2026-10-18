@@ -75,7 +75,6 @@ export class TextInputActionsProvider extends Disposable implements IWorkbenchCo
 
 	private registerListeners(): void {
 
-		// Context menu support in input/textarea
 		this._register(BaseEvent.runAndSubscribe(this.layoutService.onDidAddContainer, ({ container, disposables }) => {
 			disposables.add(addDisposableListener(container, 'contextmenu', e => this.onContextMenu(getWindow(container), e)));
 		}, { container: this.layoutService.mainContainer, disposables: this._store }));
@@ -83,12 +82,12 @@ export class TextInputActionsProvider extends Disposable implements IWorkbenchCo
 
 	private onContextMenu(targetWindow: Window, e: MouseEvent): void {
 		if (e.defaultPrevented) {
-			return; // make sure to not show these actions by accident if component indicated to prevent
+			return;
 		}
 
 		const target = e.target;
 		if (!isHTMLTextAreaElement(target) && !isHTMLInputElement(target)) {
-			return; // only for inputs or textareas
+			return;
 		}
 
 		EventHelper.stop(e, true);
@@ -106,5 +105,5 @@ export class TextInputActionsProvider extends Disposable implements IWorkbenchCo
 registerWorkbenchContribution2(
 	TextInputActionsProvider.ID,
 	TextInputActionsProvider,
-	WorkbenchPhase.BlockRestore // Block to allow right-click into input fields before restore finished
+	WorkbenchPhase.BlockRestore
 );

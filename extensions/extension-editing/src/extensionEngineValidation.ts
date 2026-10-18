@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// https://github.com/microsoft/vscode/blob/6cb34eb22385bc93ab25aa2e5113f59c7a2299ac/src/vs/platform/extensions/common/extensionValidator.ts
 
 export interface IParsedVersion {
 	hasCaret: boolean;
@@ -24,7 +23,7 @@ export interface INormalizedVersion {
 	minorMustEqual: boolean;
 	patchBase: number;
 	patchMustEqual: boolean;
-	notBefore: number; /* milliseconds timestamp, or 0 */
+	notBefore: number;
 	isMinimum: boolean;
 }
 

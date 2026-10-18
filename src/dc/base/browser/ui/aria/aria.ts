@@ -6,7 +6,6 @@
 import * as dom from '../../dom.js';
 import './aria.css';
 
-// Use a max length since we are inserting the whole msg in the DOM and that can cause browsers to freeze for long messages #94233
 const MAX_MESSAGE_LENGTH = 20000;
 let ariaContainer: HTMLElement;
 let alertContainer: HTMLElement;
@@ -41,15 +40,11 @@ export function setARIAContainer(parent: HTMLElement) {
 
 	parent.appendChild(ariaContainer);
 }
-/**
- * Given the provided message, will make sure that it is read as alert to screen readers.
- */
 export function alert(msg: string): void {
 	if (!ariaContainer) {
 		return;
 	}
 
-	// Use alternate containers such that duplicated messages get read out by screen readers #99466
 	if (alertContainer.textContent !== msg) {
 		dom.clearNode(alertContainer2);
 		insertMessage(alertContainer, msg);
@@ -59,9 +54,6 @@ export function alert(msg: string): void {
 	}
 }
 
-/**
- * Given the provided message, will make sure that it is read as status to screen readers.
- */
 export function status(msg: string): void {
 	if (!ariaContainer) {
 		return;
@@ -83,12 +75,10 @@ function insertMessage(target: HTMLElement, msg: string): void {
 	}
 	target.textContent = msg;
 
-	// See https://www.paciellogroup.com/blog/2012/06/html5-accessibility-chops-aria-rolealert-browser-support/
 	target.style.visibility = 'hidden';
 	target.style.visibility = 'visible';
 }
 
-// Copied from @types/react which original came from https://www.w3.org/TR/wai-aria-1.1/#role_definitions
 export type AriaRole =
 	| 'alert'
 	| 'alertdialog'
@@ -159,5 +149,5 @@ export type AriaRole =
 	| 'tree'
 	| 'treegrid'
 	| 'treeitem'
-	| (string & {}) // Prevent type collapsing to `string`
+	| (string & {})
 	;

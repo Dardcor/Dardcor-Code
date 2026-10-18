@@ -5,13 +5,6 @@
 
 import { TimeApi } from './timeApi.js';
 
-/**
- * Wrap `underlying` so that every call to `setTimeout`, `setInterval`,
- * `setImmediate` or `requestAnimationFrame` invokes `onCall` first.
- *
- * Useful for diagnostics — e.g. logging timer registrations made outside of
- * virtual time, to find leaks of real-time scheduling into a fixture.
- */
 export function createLoggingTimeApi(
 	underlying: TimeApi,
 	onCall: (name: string, stack: string | undefined, handler?: () => void) => void,

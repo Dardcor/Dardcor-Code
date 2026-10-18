@@ -17,11 +17,6 @@ import { PositionAffinity } from '../../../common/model.js';
 import { IPosition, Position } from '../../../common/core/position.js';
 import { IViewModel } from '../../../common/viewModel.js';
 
-/**
- * This view part is responsible for rendering the content widgets, which are
- * used for rendering elements that are associated to an editor position,
- * such as suggestions or the parameter hints.
- */
 export class ViewContentWidgets extends ViewPart {
 
 	private readonly _viewDomNode: FastDomNode<HTMLElement>;
@@ -51,7 +46,6 @@ export class ViewContentWidgets extends ViewPart {
 		this._widgets = {};
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const keys = Object.keys(this._widgets);
@@ -61,7 +55,6 @@ export class ViewContentWidgets extends ViewPart {
 		return true;
 	}
 	public override onDecorationsChanged(e: viewEvents.ViewDecorationsChangedEvent): boolean {
-		// true for inline decorations that can end up relayouting text
 		return true;
 	}
 	public override onFlushed(e: viewEvents.ViewFlushedEvent): boolean {
@@ -90,7 +83,6 @@ export class ViewContentWidgets extends ViewPart {
 		return true;
 	}
 
-	// ---- end view event handlers
 
 	private _updateAnchorsViewPositions(): void {
 		const keys = Object.keys(this._widgets);
@@ -270,7 +262,6 @@ class Widget {
 			if (!position) {
 				return new PositionPair(null, null);
 			}
-			// Do not trust that widgets give a valid position
 			const validModelPosition = viewModel.model.validatePosition(position);
 			if (viewModel.coordinatesConverter.modelPositionIsVisible(validModelPosition)) {
 				const viewPosition = viewModel.coordinatesConverter.convertModelPositionToViewPosition(validModelPosition, affinity ?? undefined);
@@ -294,10 +285,6 @@ class Widget {
 		this._setPosition(affinity, primaryAnchor, secondaryAnchor);
 		this._preference = preference;
 		if (!this.useDisplayNone && this._primaryAnchor.viewPosition && this._preference && this._preference.length > 0) {
-			// this content widget would like to be visible if possible
-			// we change it from `display:none` to `display:block` even if it
-			// might be outside the viewport such that we can measure its size
-			// in `prepareRender`
 			this.domNode.setDisplay('block');
 		} else {
 			this.domNode.setDisplay('none');
@@ -307,13 +294,10 @@ class Widget {
 	}
 
 	private _layoutBoxInViewport(anchor: AnchorCoordinate, width: number, height: number, ctx: RenderingContext): IBoxLayoutResult {
-		// Our visible box is split horizontally by the current line => 2 boxes
 
-		// a) the box above the line
 		const aboveLineTop = anchor.top;
 		const heightAvailableAboveLine = aboveLineTop;
 
-		// b) the box under the line
 		const underLineTop = anchor.top + anchor.height;
 		const heightAvailableUnderLine = ctx.viewportHeight - underLineTop;
 
@@ -322,7 +306,6 @@ class Widget {
 		const belowTop = underLineTop;
 		const fitsBelow = (heightAvailableUnderLine >= height);
 
-		// And its left
 		let left = anchor.left;
 		if (left + width > ctx.scrollLeft + ctx.viewportWidth) {
 			left = ctx.scrollLeft + ctx.viewportWidth - width;
@@ -335,11 +318,9 @@ class Widget {
 	}
 
 	private _layoutHorizontalSegmentInPage(windowSize: dom.Dimension, domNodePosition: dom.IDomNodePagePosition, left: number, width: number): [number, number] {
-		// Leave some clearance to the left/right
 		const LEFT_PADDING = 15;
 		const RIGHT_PADDING = 15;
 
-		// Initially, the limits are defined as the dom node limits
 		const MIN_LIMIT = Math.max(LEFT_PADDING, domNodePosition.left - width);
 		const MAX_LIMIT = Math.min(domNodePosition.left + domNodePosition.width + width, windowSize.width - RIGHT_PADDING);
 
@@ -375,7 +356,6 @@ class Widget {
 		const windowSize = dom.getClientArea(elDocument.body);
 		const [left, absoluteAboveLeft] = this._layoutHorizontalSegmentInPage(windowSize, domNodePosition, anchor.left - ctx.scrollLeft + this._contentLeft, width);
 
-		// Leave some clearance to the top/bottom
 		const TOP_PADDING = 22;
 		const BOTTOM_PADDING = 22;
 
@@ -399,11 +379,6 @@ class Widget {
 		return new Coordinate(topLeft.top, topLeft.left + this._contentLeft);
 	}
 
-	/**
-	 * Compute the coordinates above and below the primary and secondary anchors.
-	 * The content widget *must* touch the primary anchor.
-	 * The content widget should touch if possible the secondary anchor.
-	 */
 	private _getAnchorsCoordinates(ctx: RenderingContext): { primary: AnchorCoordinate | null; secondary: AnchorCoordinate | null } {
 		const primary = getCoordinates(this._primaryAnchor.viewPosition, this._affinity);
 		const secondaryViewPosition = (this._secondaryAnchor.viewPosition?.lineNumber === this._primaryAnchor.viewPosition?.lineNumber ? this._secondaryAnchor.viewPosition : null);
@@ -420,7 +395,6 @@ class Widget {
 				return null;
 			}
 
-			// Left-align widgets that should appear :before content
 			const left = (position.column === 1 && affinity === PositionAffinity.LeftOfInjectedText ? 0 : horizontalPosition.left);
 			const top = ctx.getVerticalOffsetForLineNumber(position.lineNumber) - ctx.scrollTop;
 			const lineHeight = ctx.getLineHeightForLineNumber(position.lineNumber);
@@ -455,7 +429,6 @@ class Widget {
 				kind: 'offViewport',
 				preserveFocus: this.domNode.domNode.contains(this.domNode.domNode.ownerDocument.activeElement)
 			};
-			// return null;
 		}
 
 		if (this._cachedDomNodeOffsetWidth === -1 || this._cachedDomNodeOffsetHeight === -1) {
@@ -484,13 +457,10 @@ class Widget {
 			placement = this._layoutBoxInViewport(anchor, this._cachedDomNodeOffsetWidth, this._cachedDomNodeOffsetHeight, ctx);
 		}
 
-		// Do two passes, first for perfect fit, second picks first option
 		for (let pass = 1; pass <= 2; pass++) {
 			for (const pref of this._preference) {
-				// placement
 				if (pref === ContentWidgetPositionPreference.ABOVE) {
 					if (!placement) {
-						// Widget outside of viewport
 						return null;
 					}
 					if (pass === 2 || placement.fitsAbove) {
@@ -502,7 +472,6 @@ class Widget {
 					}
 				} else if (pref === ContentWidgetPositionPreference.BELOW) {
 					if (!placement) {
-						// Widget outside of viewport
 						return null;
 					}
 					if (pass === 2 || placement.fitsBelow) {
@@ -533,16 +502,12 @@ class Widget {
 		return null;
 	}
 
-	/**
-	 * On this first pass, we ensure that the content widget (if it is in the viewport) has the max width set correctly.
-	 */
 	public onBeforeRender(viewportData: ViewportData): void {
 		if (!this._primaryAnchor.viewPosition || !this._preference) {
 			return;
 		}
 
 		if (this._primaryAnchor.viewPosition.lineNumber < viewportData.startLineNumber || this._primaryAnchor.viewPosition.lineNumber > viewportData.endLineNumber) {
-			// Outside of viewport
 			return;
 		}
 
@@ -555,14 +520,11 @@ class Widget {
 
 	public render(ctx: RestrictedRenderingContext): void {
 		if (!this._renderData || this._renderData.kind === 'offViewport') {
-			// This widget should be invisible
 			if (this._isVisible) {
 				this.domNode.removeAttribute('monaco-visible-content-widget');
 				this._isVisible = false;
 
 				if (this._renderData?.kind === 'offViewport' && this._renderData.preserveFocus) {
-					// widget wants to be shown, but it is outside of the viewport and it
-					// has focus which we need to preserve
 					this.domNode.setTop(-1000);
 				} else {
 					this.domNode.setVisibility('hidden');
@@ -575,7 +537,6 @@ class Widget {
 			return;
 		}
 
-		// This widget should be visible
 		if (this.allowEditorOverflow) {
 			this.domNode.setTop(this._renderData.coordinate.top);
 			this.domNode.setLeft(this._renderData.coordinate.left);
@@ -627,7 +588,6 @@ function safeInvoke<T extends (...args: any[]) => any>(fn: T, thisArg: ThisParam
 	try {
 		return fn.call(thisArg, ...args);
 	} catch {
-		// ignore
 		return null;
 	}
 }

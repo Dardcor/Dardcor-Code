@@ -13,7 +13,6 @@ export function activate(context: ExtensionContext): GitBaseExtensionImpl {
 	const apiImpl = new GitBaseExtensionImpl(new Model());
 	context.subscriptions.push(registerAPICommands(apiImpl));
 
-	// Register folding provider for git-commit language
 	context.subscriptions.push(
 		languages.registerFoldingRangeProvider('git-commit', new GitCommitFoldingProvider())
 	);

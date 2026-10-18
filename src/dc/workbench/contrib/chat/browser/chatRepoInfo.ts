@@ -23,15 +23,9 @@ import * as nls from '../../../../nls.js';
 
 const MAX_CHANGES = 100;
 const MAX_DIFFS_SIZE_BYTES = 900 * 1024;
-const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024; // 1 MB per file
-/**
- * Regex to match `url = <remote-url>` lines in git config.
- */
+const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024;
 const RemoteMatcher = /^\s*url\s*=\s*(.+\S)\s*$/mg;
 
-/**
- * Extracts raw remote URLs from git config content.
- */
 function getRawRemotes(text: string): string[] {
 	const remotes: string[] = [];
 	let match: RegExpExecArray | null;
@@ -41,20 +35,11 @@ function getRawRemotes(text: string): string[] {
 	return remotes;
 }
 
-/**
- * Extracts a hostname from a git remote URL.
- *
- * Supports:
- * - URL-like remotes: https://github.com/..., ssh://git@github.com/..., git://github.com/...
- * - SCP-like remotes: git@github.com:owner/repo.git
- */
 function getRemoteHost(remoteUrl: string): string | undefined {
 	try {
-		// Try standard URL parsing first (works for https://, ssh://, git://)
 		const url = new URL(remoteUrl);
 		return url.hostname.toLowerCase();
 	} catch {
-		// Fallback for SCP-like syntax: [user@]host:path
 		const atIndex = remoteUrl.lastIndexOf('@');
 		const hostAndPath = atIndex !== -1 ? remoteUrl.slice(atIndex + 1) : remoteUrl;
 		const colonIndex = hostAndPath.indexOf(':');
@@ -63,7 +48,6 @@ function getRemoteHost(remoteUrl: string): string | undefined {
 			return host ? host.toLowerCase() : undefined;
 		}
 
-		// Fallback for hostname/path format without scheme (e.g., devdiv.visualstudio.com/...)
 		const slashIndex = hostAndPath.indexOf('/');
 		if (slashIndex !== -1) {
 			const host = hostAndPath.slice(0, slashIndex);
@@ -74,9 +58,6 @@ function getRemoteHost(remoteUrl: string): string | undefined {
 	}
 }
 
-/**
- * Determines the change type based on SCM resource properties.
- */
 function determineChangeType(resource: ISCMResource, groupId: string): 'added' | 'modified' | 'deleted' | 'renamed' {
 	const contextValue = resource.contextValue?.toLowerCase() ?? '';
 	const groupIdLower = groupId.toLowerCase();
@@ -102,13 +83,6 @@ function determineChangeType(resource: ISCMResource, groupId: string): 'added' |
 	return 'modified';
 }
 
-/**
- * Generates a unified diff string compatible with `git apply`.
- *
- * Note: This implementation has a known limitation - if the only change between
- * files is the presence/absence of a trailing newline (content otherwise identical),
- * no diff will be generated because VS Code's diff algorithm treats the lines as equal.
- */
 export async function generateUnifiedDiff(
 	fileService: IFileService,
 	relPath: string,
@@ -125,12 +99,12 @@ export async function generateUnifiedDiff(
 				const originalFile = await fileService.readFile(originalUri, { limits: { size: MAX_FILE_SIZE_BYTES } });
 				const detected = detectEncodingFromBuffer({ buffer: originalFile.value, bytesRead: originalFile.value.byteLength });
 				if (detected.seemsBinary) {
-					return undefined; // skip binary files
+					return undefined;
 				}
 				originalContent = originalFile.value.toString();
 			} catch (e) {
 				if (e instanceof FileOperationError && e.fileOperationResult === FileOperationResult.FILE_TOO_LARGE) {
-					return undefined; // skip files exceeding size limit
+					return undefined;
 				}
 				if (changeType === 'modified') {
 					return undefined;
@@ -143,12 +117,12 @@ export async function generateUnifiedDiff(
 				const modifiedFile = await fileService.readFile(modifiedUri, { limits: { size: MAX_FILE_SIZE_BYTES } });
 				const detected = detectEncodingFromBuffer({ buffer: modifiedFile.value, bytesRead: modifiedFile.value.byteLength });
 				if (detected.seemsBinary) {
-					return undefined; // skip binary files
+					return undefined;
 				}
 				modifiedContent = modifiedFile.value.toString();
 			} catch (e) {
 				if (e instanceof FileOperationError && e.fileOperationResult === FileOperationResult.FILE_TOO_LARGE) {
-					return undefined; // skip files exceeding size limit
+					return undefined;
 				}
 				return undefined;
 			}
@@ -157,13 +131,9 @@ export async function generateUnifiedDiff(
 		const originalLines = originalContent.split('\n');
 		const modifiedLines = modifiedContent.split('\n');
 
-		// Track whether files end with newline for git apply compatibility
-		// split('\n') on "line1\nline2\n" gives ["line1", "line2", ""]
-		// split('\n') on "line1\nline2" gives ["line1", "line2"]
 		const originalEndsWithNewline = originalContent.length > 0 && originalContent.endsWith('\n');
 		const modifiedEndsWithNewline = modifiedContent.length > 0 && modifiedContent.endsWith('\n');
 
-		// Remove trailing empty element if file ends with newline
 		if (originalEndsWithNewline && originalLines.length > 0 && originalLines[originalLines.length - 1] === '') {
 			originalLines.pop();
 		}
@@ -211,10 +181,6 @@ export async function generateUnifiedDiff(
 	}
 }
 
-/**
- * Computes unified diff hunks using VS Code's diff algorithm.
- * Merges adjacent/overlapping hunks to produce a valid patch.
- */
 function computeDiffHunks(
 	originalLines: string[],
 	modifiedLines: string[],
@@ -235,8 +201,6 @@ function computeDiffHunks(
 		return result;
 	}
 
-	// Group changes that should be merged into the same hunk
-	// Changes are merged if their context regions would overlap
 	type Change = typeof diffResult.changes[number];
 	const hunkGroups: Change[][] = [];
 	let currentGroup: Change[] = [];
@@ -249,7 +213,6 @@ function computeDiffHunks(
 			const lastContextEnd = lastChange.original.endLineNumberExclusive - 1 + contextSize;
 			const currentContextStart = change.original.startLineNumber - contextSize;
 
-			// Merge if context regions overlap or are adjacent
 			if (currentContextStart <= lastContextEnd + 1) {
 				currentGroup.push(change);
 			} else {
@@ -262,7 +225,6 @@ function computeDiffHunks(
 		hunkGroups.push(currentGroup);
 	}
 
-	// Generate a single hunk for each group
 	for (const group of hunkGroups) {
 		const firstChange = group[0];
 		const lastChange = group[group.length - 1];
@@ -272,7 +234,6 @@ function computeDiffHunks(
 		const hunkModStart = Math.max(1, firstChange.modified.startLineNumber - contextSize);
 
 		const hunkLines: string[] = [];
-		// Track which line in hunkLines corresponds to the last line of each file
 		let lastOriginalLineIndex = -1;
 		let lastModifiedLineIndex = -1;
 
@@ -280,18 +241,15 @@ function computeDiffHunks(
 		let origCount = 0;
 		let modCount = 0;
 
-		// Process each change in the group, emitting context lines between them
 		for (const change of group) {
 			const origStart = change.original.startLineNumber;
 			const origEnd = change.original.endLineNumberExclusive;
 			const modStart = change.modified.startLineNumber;
 			const modEnd = change.modified.endLineNumberExclusive;
 
-			// Emit context lines before this change
 			while (origLineNum < origStart) {
 				const idx = hunkLines.length;
 				hunkLines.push(` ${originalLines[origLineNum - 1]}`);
-				// Context lines are in both files
 				if (origLineNum === originalLines.length) {
 					lastOriginalLineIndex = idx;
 				}
@@ -304,7 +262,6 @@ function computeDiffHunks(
 				modCount++;
 			}
 
-			// Emit deleted lines
 			for (let i = origStart; i < origEnd; i++) {
 				const idx = hunkLines.length;
 				hunkLines.push(`-${originalLines[i - 1]}`);
@@ -315,7 +272,6 @@ function computeDiffHunks(
 				origCount++;
 			}
 
-			// Emit added lines
 			for (let i = modStart; i < modEnd; i++) {
 				const idx = hunkLines.length;
 				hunkLines.push(`+${modifiedLines[i - 1]}`);
@@ -326,11 +282,9 @@ function computeDiffHunks(
 			}
 		}
 
-		// Emit trailing context lines
 		while (origLineNum <= hunkOrigEnd) {
 			const idx = hunkLines.length;
 			hunkLines.push(` ${originalLines[origLineNum - 1]}`);
-			// Context lines are in both files
 			if (origLineNum === originalLines.length) {
 				lastOriginalLineIndex = idx;
 			}
@@ -345,8 +299,6 @@ function computeDiffHunks(
 
 		result.push(`@@ -${hunkOrigStart},${origCount} +${hunkModStart},${modCount} @@`);
 
-		// Add "No newline at end of file" markers for git apply compatibility
-		// The marker must appear immediately after the line that lacks a newline
 		for (let i = 0; i < hunkLines.length; i++) {
 			result.push(hunkLines[i]);
 
@@ -354,16 +306,12 @@ function computeDiffHunks(
 			const isLastModified = i === lastModifiedLineIndex;
 
 			if (isLastOriginal && isLastModified) {
-				// Context line is the last line of both files
-				// If either lacks newline, we need a marker (but only one)
 				if (!originalEndsWithNewline || !modifiedEndsWithNewline) {
 					result.push('\\ No newline at end of file');
 				}
 			} else if (isLastOriginal && !originalEndsWithNewline) {
-				// Deletion or context line that's only the last of original
 				result.push('\\ No newline at end of file');
 			} else if (isLastModified && !modifiedEndsWithNewline) {
-				// Addition or context line that's only the last of modified
 				result.push('\\ No newline at end of file');
 			}
 		}
@@ -372,11 +320,6 @@ function computeDiffHunks(
 	return result;
 }
 
-/**
- * Captures lightweight repository metadata (branch, commit, remote) from SCM providers.
- * No file I/O or diff computation - reads only from already-loaded SCM observables.
- * Used on chat message submission to record the point-in-time commit state.
- */
 export function captureRepoMetadata(scmService: ISCMService): IExportableRepoData | undefined {
 	const repositories = [...scmService.repositories];
 	if (repositories.length === 0) {
@@ -413,9 +356,6 @@ export function captureRepoMetadata(scmService: ISCMService): IExportableRepoDat
 		}
 	}
 
-	// Determine workspace type and sync status without file I/O.
-	// Cannot determine remoteUrl/remoteVendor or detect plain-folder here (requires reading .git/config).
-	// The full captureRepoInfo at export time will produce accurate classification.
 	let workspaceType: IExportableRepoData['workspaceType'];
 	let syncStatus: IExportableRepoData['syncStatus'];
 
@@ -430,7 +370,6 @@ export function captureRepoMetadata(scmService: ISCMService): IExportableRepoDat
 			syncStatus = 'unpushed';
 		}
 	} else {
-		// No remote refs available; conservatively classify as local-git
 		workspaceType = 'local-git';
 		syncStatus = 'local-only';
 	}
@@ -447,10 +386,6 @@ export function captureRepoMetadata(scmService: ISCMService): IExportableRepoDat
 	};
 }
 
-/**
- * Captures full repository state including working tree diffs.
- * Performs file I/O and diff computation - should only be called on explicit user action (e.g., export).
- */
 export async function captureRepoInfo(scmService: ISCMService, fileService: IFileService): Promise<IExportableRepoData | undefined> {
 	const repositories = [...scmService.repositories];
 	if (repositories.length === 0) {
@@ -468,7 +403,6 @@ export async function captureRepoInfo(scmService: ISCMService, fileService: IFil
 		const gitDirUri = rootUri.with({ path: `${rootUri.path}/.git` });
 		hasGit = await fileService.exists(gitDirUri);
 	} catch {
-		// ignore
 	}
 
 	if (!hasGit) {
@@ -481,7 +415,6 @@ export async function captureRepoInfo(scmService: ISCMService, fileService: IFil
 
 	let remoteUrl: string | undefined;
 	try {
-		// TODO: Handle git worktrees where .git is a file pointing to the actual git directory
 		const gitConfigUri = rootUri.with({ path: `${rootUri.path}/.git/config` });
 		const exists = await fileService.exists(gitConfigUri);
 		if (exists) {
@@ -490,7 +423,6 @@ export async function captureRepoInfo(scmService: ISCMService, fileService: IFil
 			remoteUrl = remotes[0];
 		}
 	} catch {
-		// ignore
 	}
 
 	let localBranch: string | undefined;
@@ -638,11 +570,6 @@ export async function captureRepoInfo(scmService: ISCMService, fileService: IFil
 	};
 }
 
-/**
- * Captures lightweight repository metadata for chat sessions on first message.
- * Only reads from already-loaded SCM provider observables, no file I/O.
- * Full diff capture is deferred to export time (see chatExportZip.ts).
- */
 export class ChatRepoInfoContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.chatRepoInfo';
@@ -698,10 +625,6 @@ export class ChatRepoInfoContribution extends Disposable implements IWorkbenchCo
 		this.logService.debug('[ChatRepoInfo] Configuration registered for internal user');
 	}
 
-	/**
-	 * Captures lightweight metadata (branch, commit, remote refs) on first message.
-	 * Synchronous, no file I/O. Reads only from SCM provider observables.
-	 */
 	private captureAndSetRepoMetadata(model: IChatModel): void {
 		if (!this.chatEntitlementService.isInternal) {
 			return;

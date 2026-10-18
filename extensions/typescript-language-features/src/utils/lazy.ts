@@ -13,17 +13,8 @@ export class Lazy<T> {
 		private readonly executor: () => T,
 	) { }
 
-	/**
-	 * True if the lazy value has been resolved.
-	 */
 	get hasValue() { return this._didRun; }
 
-	/**
-	 * Get the wrapped value.
-	 *
-	 * This will force evaluation of the lazy value if it has not been resolved yet. Lazy values are only
-	 * resolved once. `getValue` will re-throw exceptions that are hit while resolving the value
-	 */
 	get value(): T {
 		if (!this._didRun) {
 			try {
@@ -40,9 +31,6 @@ export class Lazy<T> {
 		return this._value!;
 	}
 
-	/**
-	 * Get the wrapped value without forcing evaluation.
-	 */
 	get rawValue(): T | undefined { return this._value; }
 
 	map<R>(fn: (value: T) => R): Lazy<R> {

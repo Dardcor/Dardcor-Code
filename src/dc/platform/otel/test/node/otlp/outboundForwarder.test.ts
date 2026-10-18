@@ -32,7 +32,7 @@ class CapturingLogger extends AbstractLogger implements ILogService {
 	info(m: string) { this.log(LogLevel.Info, m); }
 	warn(m: string) { this.log(LogLevel.Warning, m); }
 	error(m: string) { this.log(LogLevel.Error, m); }
-	flush() { /* noop */ }
+	flush() { }
 }
 
 function makeSpan(name: string, spanId: string, attrs: Record<string, string | number | boolean | string[]> = {}): ICompletedSpanData {
@@ -243,6 +243,5 @@ suite('platform/otel - outboundForwarder', () => {
 			'a.spans', 'b.spans',
 			'a.flush', 'b.flush',
 		]);
-		// dispose happens via store teardown
 	});
 });

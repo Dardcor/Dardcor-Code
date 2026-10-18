@@ -62,19 +62,12 @@ function openAICompletionToClaudeMessage(responseBody) {
   };
 }
 
-/**
- * Convert an OpenAI Chat Completions non-streaming response body into the
- * OpenAI Responses API shape. Used when a Responses-format client (e.g. Codex)
- * is routed to a Chat Completions upstream and `stream:false` — the streaming
- * path already emits Responses events, but the JSON path returned a raw
- * `chat.completion` body, so tool_calls were invisible to Responses clients.
- */
 function extractCustomToolInput(argumentsValue) {
   const argumentsText = typeof argumentsValue === "string" ? argumentsValue : JSON.stringify(argumentsValue || {});
   try {
     const parsed = JSON.parse(argumentsText);
     if (parsed && typeof parsed === "object" && typeof parsed.input === "string") return parsed.input;
-  } catch { /* raw freeform input */ }
+  } catch { }
   return argumentsText;
 }
 
@@ -85,7 +78,6 @@ function openAICompletionToResponses(responseBody, customToolNames = null) {
   const message = choice.message || {};
   const output = [];
 
-  // Reasoning → a reasoning item (summary text), mirroring the streaming path.
   const reasoning = message.reasoning_content || message.reasoning;
   if (typeof reasoning === "string" && reasoning.length > 0) {
     output.push({
@@ -94,7 +86,6 @@ function openAICompletionToResponses(responseBody, customToolNames = null) {
     });
   }
 
-  // Assistant text → a message item with output_text content.
   const text = typeof message.content === "string" ? message.content : "";
   if (text.length > 0) {
     output.push({
@@ -104,7 +95,6 @@ function openAICompletionToResponses(responseBody, customToolNames = null) {
     });
   }
 
-  // tool_calls → function_call/custom_tool_call items (Responses-native tool shape).
   for (const tc of message.tool_calls || []) {
     const fn = tc.function || {};
     const custom = customToolNames?.has(fn.name);
@@ -139,13 +129,8 @@ function openAICompletionToResponses(responseBody, customToolNames = null) {
   };
 }
 
-/**
- * Translate non-streaming response body from provider format → OpenAI format.
- */
 export function translateNonStreamingResponse(responseBody, targetFormat, sourceFormat, customToolNames = null) {
   if (targetFormat === sourceFormat) return responseBody;
-  // Provider responded in OpenAI Chat Completions shape but the client speaks
-  // Responses API — convert so tool_calls/text surface as Responses `output`.
   if (targetFormat === FORMATS.OPENAI && sourceFormat === FORMATS.OPENAI_RESPONSES) {
     return openAICompletionToResponses(responseBody, customToolNames);
   }
@@ -154,7 +139,6 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
   }
   if (targetFormat === FORMATS.OPENAI) return responseBody;
 
-  // Gemini / Antigravity
   if (targetFormat === FORMATS.GEMINI || targetFormat === FORMATS.ANTIGRAVITY || targetFormat === FORMATS.GEMINI_CLI || targetFormat === FORMATS.VERTEX) {
     const response = responseBody.response || responseBody;
     if (!response?.candidates?.[0]) return responseBody;
@@ -176,7 +160,6 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
             function: { name: part.functionCall.name, arguments: JSON.stringify(part.functionCall.args || {}) }
           });
         }
-        // Handle inline image data (from image generation models)
         const inlineData = part.inlineData || part.inline_data;
         if (inlineData?.data) {
           const mimeType = inlineData.mimeType || inlineData.mime_type || "image/png";
@@ -215,17 +198,7 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     return result;
   }
 
-  // Claude
   if (targetFormat === FORMATS.CLAUDE) {
-    // Always translate a Claude-format body to OpenAI, even if `content` is
-    // missing/null (e.g. M3 with max_tokens:1 spends the budget on thinking
-    // and returns `content: null`). Returning the raw body would leave the
-    // OpenAI client without a `choices` array and surface as a UI test error.
-    // Early return if the response is already in OpenAI format (has choices array)
-    // or if it has content as a non-array value (likely a different non-Claude format).
-    // Some providers (e.g. xiaomi-tokenplan) return OpenAI-format responses even when
-    // the request was translated to Claude format — the targetFormat is Claude but the
-    // actual response is OpenAI-native and needs no further translation.
     if (responseBody.choices || (responseBody.content && !Array.isArray(responseBody.content))) return responseBody;
 
     let textContent = "", thinkingContent = "";
@@ -233,7 +206,6 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
 
     for (const block of (responseBody.content || [])) {
       if (block.type === "text") {
-        // Strip markdown code block markers (e.g. kimi wraps JSON in ```json...```)
         const raw = block.text ?? "";
         const text = raw.replace(/^\s*```\s*json\s*\n?/i, "").replace(/\n?\s*```\s*$/i, "");
         textContent += text;
@@ -271,7 +243,6 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     return result;
   }
 
-  // Ollama
   if (targetFormat === FORMATS.OLLAMA) {
     return ollamaBodyToOpenAI(responseBody);
   }
@@ -279,9 +250,6 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
   return responseBody;
 }
 
-/**
- * Handle non-streaming response from provider.
- */
 export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log }) {
   trackDone();
   const contentType = providerResponse.headers.get("content-type") || "";
@@ -305,9 +273,6 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     }
   }
 
-  // Unwrap before any consumer reads choices/usage so non-stream clients get a
-  // bare OpenAI body and usage tracking sees data.usage. No-op unless the
-  // provider opts in via transport.quirks.clineEnvelope.
   responseBody = unwrapClineEnvelope(responseBody, provider);
 
   reqLogger.logProviderResponse(providerResponse.status, providerResponse.statusText, providerResponse.headers, responseBody);
@@ -319,7 +284,6 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
       });
   }
 
-  // Decloak tool_use names once on raw Claude body, before any translation (INPUT side)
   responseBody = decloakToolNames(responseBody, toolNameMap);
 
   const usage = extractUsageFromResponse(responseBody);
@@ -331,11 +295,8 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     ? translateNonStreamingResponse(responseBody, targetFormat, sourceFormat, customToolNames)
     : responseBody;
   const isClaudeMessageResponse = sourceFormat === FORMATS.CLAUDE && translatedResponse?.type === "message";
-  // Responses-format translation produces a `object:"response"` body with no
-  // `choices`; skip the Chat-Completions-specific post-processing below for it.
   const isResponsesResponse = sourceFormat === FORMATS.OPENAI_RESPONSES && translatedResponse?.object === "response";
 
-  // Fix finish_reason for tool_calls: some providers return non-standard values (e.g. "other")
   if (translatedResponse?.choices?.[0]) {
     const choice = translatedResponse.choices[0];
     const msg = choice.message;
@@ -345,13 +306,11 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     }
   }
 
-  // Ensure OpenAI-required fields
   if (!isClaudeMessageResponse && !isResponsesResponse) {
     if (!translatedResponse.object) translatedResponse.object = "chat.completion";
     if (!translatedResponse.created) translatedResponse.created = Math.floor(Date.now() / 1000);
   }
 
-  // Strip Azure-specific fields
   if (!isClaudeMessageResponse && !isResponsesResponse) {
     delete translatedResponse.prompt_filter_results;
     if (translatedResponse?.choices) {
@@ -363,9 +322,6 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     translatedResponse.usage = filterUsageForFormat(addBufferToUsage(translatedResponse.usage), sourceFormat);
   }
 
-  // Strip reasoning_content only when content is non-empty.
-  // When content is empty (e.g. thinking models that used all tokens for reasoning),
-  // reasoning_content is the only useful output and must be preserved.
   if (!isClaudeMessageResponse && !isResponsesResponse && translatedResponse?.choices) {
     for (const choice of translatedResponse.choices) {
       if (choice?.message?.reasoning_content && choice.message.content) {

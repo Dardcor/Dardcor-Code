@@ -10,7 +10,6 @@ import { Promises } from '../../../base/node/pfs.js';
 export async function buildTelemetryMessage(appRoot: string, extensionsPath?: string): Promise<string> {
 	const mergedTelemetry = Object.create(null);
 
-	// Simple function to merge the telemetry into one json object
 	const mergeTelemetry = (contents: string, dirName: string) => {
 		const telemetryData = JSON.parse(contents);
 		mergedTelemetry[dirName] = telemetryData;
@@ -27,7 +26,6 @@ export async function buildTelemetryMessage(appRoot: string, extensionsPath?: st
 					dirs.push(file);
 				}
 			} catch {
-				// This handles case where broken symbolic links can cause statSync to throw and error
 			}
 		}
 
@@ -35,7 +33,7 @@ export async function buildTelemetryMessage(appRoot: string, extensionsPath?: st
 		for (const dir of dirs) {
 			const files = (await Promises.readdir(join(extensionsPath, dir))).filter(file => file === 'telemetry.json');
 			if (files.length === 1) {
-				telemetryJsonFolders.push(dir); // // We know it contains a telemetry.json file so we add it to the list of folders which have one
+				telemetryJsonFolders.push(dir);
 			}
 		}
 

@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Agent Host integration tests using the real Codex App Server and a synthetic local LLM.
- */
 
 import assert from 'assert';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises';
@@ -120,7 +117,7 @@ suite('Agent Host Provider Integration — Codex Customizations', function () {
 		for (const session of createdSessions) {
 			try {
 				await client.call('disposeSession', { session }, 5000);
-			} catch { /* best-effort */ }
+			} catch { }
 		}
 		createdSessions.length = 0;
 		client.close();
@@ -128,7 +125,7 @@ suite('Agent Host Provider Integration — Codex Customizations', function () {
 		for (const dir of tempDirs) {
 			try {
 				await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-			} catch { /* best-effort */ }
+			} catch { }
 		}
 		tempDirs.length = 0;
 	});

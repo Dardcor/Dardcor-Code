@@ -93,7 +93,6 @@ export class GitTimelineProvider implements TimelineProvider {
 	}
 
 	async provideTimeline(uri: Uri, options: TimelineOptions, token: CancellationToken): Promise<Timeline> {
-		// console.log(`GitTimelineProvider.provideTimeline: uri=${uri}`);
 
 		const repo = this.model.getRepository(uri);
 		if (!repo) {
@@ -116,14 +115,12 @@ export class GitTimelineProvider implements TimelineProvider {
 			);
 		}
 
-		// TODO@eamodio: Ensure that the uri is a file -- if not we could get the history of the repo?
 
 		let limit: number | undefined;
 		if (options.limit !== undefined && typeof options.limit !== 'number') {
 			try {
 				const result = await this.model.git.exec(repo.root, ['rev-list', '--count', `${options.limit.id}..`, '--', uri.fsPath]);
 				if (!result.exitCode) {
-					// Ask for 2 more (1 for the limit commit and 1 for the next commit) than so we can determine if there are more commits
 					limit = Number(result.stdout) + 2;
 				}
 			}
@@ -131,7 +128,6 @@ export class GitTimelineProvider implements TimelineProvider {
 				limit = undefined;
 			}
 		} else {
-			// If we are not getting everything, ask for 1 more than so we can determine if there are more commits
 			limit = options.limit === undefined ? undefined : options.limit + 1;
 		}
 
@@ -144,7 +140,6 @@ export class GitTimelineProvider implements TimelineProvider {
 				hash: options.cursor,
 				follow: true,
 				shortStats: true,
-				// sortByAuthorDate: true
 			},
 			token
 		);
@@ -153,7 +148,6 @@ export class GitTimelineProvider implements TimelineProvider {
 			cursor: limit === undefined ? undefined : (commits.length >= limit ? commits[commits.length - 1]?.hash : undefined)
 		} : undefined;
 
-		// If we asked for an extra commit, strip it off
 		if (limit !== undefined && commits.length >= limit) {
 			commits.splice(commits.length - 1, 1);
 		}
@@ -224,7 +218,6 @@ export class GitTimelineProvider implements TimelineProvider {
 				const date = this.repoOperationDate ?? new Date();
 
 				const item = new GitTimelineItem('~', 'HEAD', l10n.t('Staged Changes'), date.getTime(), 'index', 'git:file:index');
-				// TODO@eamodio: Replace with a better icon -- reflecting its status maybe?
 				item.iconPath = new ThemeIcon('git-commit');
 				item.description = '';
 				item.tooltip = getCommitHover(undefined, you, undefined, date, Resource.getStatusText(index.type), undefined, undefined);
@@ -284,22 +277,18 @@ export class GitTimelineProvider implements TimelineProvider {
 	}
 
 	private onRepositoriesChanged(_repo: Repository) {
-		// console.log(`GitTimelineProvider.onRepositoriesChanged`);
 
 		this.ensureProviderRegistration();
 
-		// TODO@eamodio: Being naive for now and just always refreshing each time there is a new repository
 		this.fireChanged();
 	}
 
 	private onRepositoryChanged(_repo: Repository, _uri: Uri) {
-		// console.log(`GitTimelineProvider.onRepositoryChanged: uri=${uri.toString(true)}`);
 
 		this.fireChanged();
 	}
 
 	private onRepositoryStatusChanged(_repo: Repository) {
-		// console.log(`GitTimelineProvider.onRepositoryStatusChanged`);
 
 		const config = workspace.getConfiguration('git.timeline');
 		const showUncommitted = config.get<boolean>('showUncommitted') === true;
@@ -310,12 +299,8 @@ export class GitTimelineProvider implements TimelineProvider {
 	}
 
 	private onRepositoryOperationRun(_repo: Repository, _result: OperationResult) {
-		// console.log(`GitTimelineProvider.onRepositoryOperationRun`);
 
-		// Successful operations that are not read-only and not status operations
 		if (!_result.error && !_result.operation.readOnly && _result.operation.kind !== OperationKind.Status) {
-			// This is less than ideal, but for now just save the last time an
-			// operation was run and use that as the timestamp for staged items
 			this.repoOperationDate = new Date();
 
 			this.fireChanged();

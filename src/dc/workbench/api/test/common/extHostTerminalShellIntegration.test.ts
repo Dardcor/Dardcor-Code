@@ -64,8 +64,6 @@ suite('InternalTerminalShellIntegration', () => {
 	}
 
 	async function emitData(data: string): Promise<void> {
-		// AsyncIterableObjects are initialized in a microtask, this doesn't matter in practice
-		// since the events will always come through in different events.
 		await new Promise<void>(r => queueMicrotask(r));
 		si.emitData(data);
 	}
@@ -132,8 +130,6 @@ suite('InternalTerminalShellIntegration', () => {
 
 		assertTrackedEvents([
 			{ commandLine: testCommandLine, type: 'start' },
-			// This looks weird, but it's the same execution behind the scenes, just the command
-			// line was updated
 			{ commandLine: testCommandLine2, type: 'end' },
 		]);
 	});
@@ -146,7 +142,6 @@ suite('InternalTerminalShellIntegration', () => {
 		});
 		strictEqual(execution1, endedExecution, 'when no end event is fired, the current execution should end');
 
-		// Clean up disposables
 		await endExecutionAwaitObject(testCommandLine2);
 		await Promise.all(readIteratorsFlushed);
 
@@ -169,9 +164,6 @@ suite('InternalTerminalShellIntegration', () => {
 			si.startShellExecution(cmdLine(commandLine), undefined);
 			await emitData('1');
 			await endExecutionAwaitObject(commandLine);
-			// IMPORTANT: We cannot reliably assert the order of data events here because flushing
-			// of the async iterator is asynchronous and could happen after the execution's end
-			// event fires if an execution is started immediately afterwards.
 			await Promise.all(readIteratorsFlushed);
 
 			assertNonDataTrackedEvents([

@@ -35,34 +35,16 @@ export interface IVoiceInputDecorationsServices {
 }
 
 export interface IVoiceInputDecorationsOptions {
-	/** Input container for the transcript overlay. */
 	readonly inputContainer: HTMLElement;
-	/** Container that receives the ambient glow. Defaults to {@link inputContainer}. */
 	readonly glowContainer?: HTMLElement;
-	/** Whether this surface is active/visible. */
 	readonly isActive: IObservable<boolean>;
-	/** Current text in the input. Voice placeholders are hidden while it is non-empty. */
 	readonly inputValue?: IObservable<string>;
-	/** Explicit ownership for surfaces that do not yet have a resource. */
 	readonly isOwner?: IObservable<boolean>;
-	/** Surface resource, compared with the voice target to avoid misrouting. */
 	readonly getCurrentResource?: () => URI | undefined;
-	/**
-	 * The single chat input voice mode is bound to. Only the surface whose
-	 * {@link getCurrentResource} matches this renders the glow/transcript, so
-	 * voice is active in exactly one input at a time even when several sessions
-	 * are visible.
-	 */
 	readonly currentVoiceInputResource?: IObservable<URI | undefined>;
 	readonly confirmationPending?: IObservable<boolean>;
 }
 
-/**
- * Adds the voice transcript overlay and audio-reactive glow to a chat input.
- * Shared by the active-session `ChatView` and new-session composer.
- *
- * Decorations show only while this surface is active and voice targets it.
- */
 export function setupVoiceInputDecorations(services: IVoiceInputDecorationsServices, options: IVoiceInputDecorationsOptions): IDisposable {
 	const { voiceSessionController, ttsPlaybackService, micCaptureService, configurationService, keybindingService, themeService, accessibilityService } = services;
 	const { inputContainer: inputContainerEl, isActive } = options;
@@ -90,7 +72,6 @@ export function setupVoiceInputDecorations(services: IVoiceInputDecorationsServi
 	transcriptOverlayNode.style.display = 'none';
 	inputContainerEl.append(transcriptOverlayNode);
 
-	// --- Audio-reactive glow ---
 	const win = dom.getWindow(glowContainerEl);
 	let animFrameId: number | undefined;
 	const glowDataArrayRef: { value: Uint8Array | undefined } = { value: undefined };
@@ -136,10 +117,6 @@ export function setupVoiceInputDecorations(services: IVoiceInputDecorationsServi
 		const voiceState = voiceSessionController.voiceState.read(reader);
 		const active = isActive.read(reader);
 		const ownsVoice = isSurfaceOwner(reader);
-		// A muted mic isn't heard, so the listening rim would misleadingly react to
-		// the user's voice; treat muted-listening as idle (no glow) until unmuted.
-		// Only read the mute observable while listening, so idle/disconnected surfaces
-		// don't depend on it.
 		const glowState: VoiceGlowState = voiceState === 'listening' && voiceSessionController.isMuted.read(reader) ? 'idle' : voiceState;
 		if (shouldRenderVoiceInputGlow(connected, active, ownsVoice, glowState)) {
 			startGlowAnimation();
@@ -149,7 +126,6 @@ export function setupVoiceInputDecorations(services: IVoiceInputDecorationsServi
 	}));
 	store.add({ dispose: () => stopGlowAnimation() });
 
-	// --- Transcript rendering ---
 	store.add(autorun(reader => {
 		const turns = voiceSessionController.transcriptTurns.read(reader);
 		const connected = voiceSessionController.isConnected.read(reader);
@@ -173,8 +149,6 @@ export function setupVoiceInputDecorations(services: IVoiceInputDecorationsServi
 			}
 			const handsFree = configurationService.getValue<boolean>('agents.voice.handsFree') === true;
 			if (!showTranscript && voiceState === 'listening') {
-				// Transcript is disabled: surface a minimal "Listening..." overlay
-				// while listening so the user has feedback. Cleared in any other state.
 				transcriptOverlayNode.style.display = '';
 				transcriptOverlayNode.classList.remove('has-transcript');
 				transcriptOverlay.replaceChildren();
@@ -185,7 +159,6 @@ export function setupVoiceInputDecorations(services: IVoiceInputDecorationsServi
 				transcriptOverlay.append(listening);
 				transcriptScrollable.scanDomNode();
 			} else if (!showTranscript && voiceState === 'speaking') {
-				// Transcript is disabled: hint that the user can interrupt playback.
 				transcriptOverlayNode.style.display = '';
 				transcriptOverlayNode.classList.remove('has-transcript');
 				transcriptOverlay.replaceChildren();
@@ -218,7 +191,6 @@ export function setupVoiceInputDecorations(services: IVoiceInputDecorationsServi
 
 		transcriptOverlayNode.style.display = '';
 		transcriptOverlayNode.classList.add('has-transcript');
-		// Show only the latest visible turn.
 		const lastTurn = visible[visible.length - 1];
 		const contentElements: HTMLElement[] = [];
 		if (lastTurn.speaker === 'user') {

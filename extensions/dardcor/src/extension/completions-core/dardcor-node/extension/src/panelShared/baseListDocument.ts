@@ -12,7 +12,6 @@ import { normalizeCompletionText, solutionCountTarget, SolutionManager } from '.
 import { UnformattedSolution } from '../lib/panelShared/panelTypes';
 import { BasePanelCompletion, ISuggestionsPanel } from './basePanelTypes';
 
-// BaseListDocument to be shared with both the dardcor and comparison completion panels.
 export abstract class BaseListDocument<TPanelCompletion extends BasePanelCompletion> extends SolutionManager {
 	private _solutionCount = 0;
 	protected readonly _solutions: TPanelCompletion[] = [];
@@ -34,7 +33,6 @@ export abstract class BaseListDocument<TPanelCompletion extends BasePanelComplet
 	protected abstract shouldAddSolution(newItem: TPanelCompletion): boolean;
 	protected abstract runSolutionsImpl(): Promise<void>;
 
-	// Find if two solutions are duplicates by comparing their normalized text content.
 	protected areSolutionsDuplicates(solutionA: TPanelCompletion, solutionB: TPanelCompletion): boolean {
 		const stripA = normalizeCompletionText(solutionA.insertText);
 		const stripB = normalizeCompletionText(solutionB.insertText);

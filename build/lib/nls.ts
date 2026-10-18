@@ -14,14 +14,11 @@ import { type ISpan, analyzeLocalizeCalls, TextModel, parseLocalizeKeyOrValue } 
 
 type FileWithSourcemap = File & { sourceMap: sm.RawSourceMap };
 
-/**
- * Returns a stream containing the patched JavaScript and source maps.
- */
 export function nls(options: { preserveEnglish: boolean }): NodeJS.ReadWriteStream {
 	let base: string;
 	const input = eventStream.through();
 	const output = input
-		.pipe(sort()) // IMPORTANT: to ensure stable NLS metadata generation, we must sort the files because NLS messages are globally extracted and indexed across all files
+		.pipe(sort())
 		.pipe(eventStream.through(function (f: FileWithSourcemap) {
 			if (!f.sourceMap) {
 				return this.emit('error', new Error(`File ${f.relative} does not have sourcemaps.`));
@@ -84,13 +81,13 @@ globalThis._VSCODE_NLS_MESSAGES=${JSON.stringify(_nls.allNLSMessages)};`),
 
 const _nls = (() => {
 
-	const moduleToNLSKeys: { [name: string /* module ID */]: ILocalizeKey[] /* keys */ } = {};
-	const moduleToNLSMessages: { [name: string /* module ID */]: string[] /* messages */ } = {};
+	const moduleToNLSKeys: { [name: string ]: ILocalizeKey[] } = {};
+	const moduleToNLSMessages: { [name: string ]: string[] } = {};
 	const allNLSMessages: string[] = [];
-	const allNLSModulesAndKeys: Array<[string /* module ID */, string[] /* keys */]> = [];
+	const allNLSModulesAndKeys: Array<[string , string[] ]> = [];
 	let allNLSMessagesIndex = 0;
 
-	type ILocalizeKey = string | { key: string }; // key might contain metadata for translators and then is not just a string
+	type ILocalizeKey = string | { key: string };
 
 	interface INlsPatchResult {
 		javascript: string;
@@ -124,7 +121,6 @@ const _nls = (() => {
 	function patchJavascript(patches: IPatch[], contents: string): string {
 		const model = new TextModel(contents);
 
-		// patch the localize calls
 		lazy(patches).reverse().each(p => model.apply(p.span, p.content));
 
 		return model.toString();
@@ -188,7 +184,6 @@ const _nls = (() => {
 		const smc = new sm.SourceMapConsumer(sourcemap);
 		const positionFrom = mappedPositionFrom.bind(null, sourcemap.sources[0]);
 
-		// build patches
 		const toPatch = (c: { range: ISpan; content: string }): IPatch => {
 			const start = lcFrom(smc.generatedPositionFor(positionFrom(c.range.start)));
 			const end = lcFrom(smc.generatedPositionFor(positionFrom(c.range.end)));
@@ -198,9 +193,9 @@ const _nls = (() => {
 		const localizePatches = lazy(localizeCalls)
 			.map(lc => (
 				options.preserveEnglish ? [
-					{ range: lc.keySpan, content: `${allNLSMessagesIndex++}` } 	// localize('key', "message") => localize(<index>, "message")
+					{ range: lc.keySpan, content: `${allNLSMessagesIndex++}` }
 				] : [
-					{ range: lc.keySpan, content: `${allNLSMessagesIndex++}` }, // localize('key', "message") => localize(<index>, null)
+					{ range: lc.keySpan, content: `${allNLSMessagesIndex++}` },
 					{ range: lc.valueSpan, content: 'null' }
 				]))
 			.flatten()
@@ -208,11 +203,10 @@ const _nls = (() => {
 
 		const localize2Patches = lazy(localize2Calls)
 			.map(lc => (
-				{ range: lc.keySpan, content: `${allNLSMessagesIndex++}` } // localize2('key', "message") => localize(<index>, "message")
+				{ range: lc.keySpan, content: `${allNLSMessagesIndex++}` }
 			))
 			.map(toPatch);
 
-		// Sort patches by their start position
 		const patches = localizePatches.concat(localize2Patches).toArray().sort((a, b) => {
 			if (a.span.start.line < b.span.start.line) {
 				return -1;
@@ -235,7 +229,6 @@ const _nls = (() => {
 	}
 
 	function patchFile(javascriptFile: File, typescript: string, options: { preserveEnglish: boolean }): File {
-		// hack?
 		const moduleId = javascriptFile.relative
 			.replace(/\.js$/, '')
 			.replace(/\\/g, '/');

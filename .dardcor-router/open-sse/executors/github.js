@@ -19,12 +19,6 @@ export class GithubExecutor extends BaseExecutor {
     this.knownCodexModels = new Set();
   }
 
-  // Claude models get routed to Copilot's Anthropic-native /v1/messages shim (see
-  // executeWithMessagesEndpoint below) — the only Copilot endpoint that surfaces
-  // prompt-cache token counts. gpt/gemini/grok models stay on /chat/completions
-  // (or /responses). Name-pattern check, not a registry field: Copilot's live model
-  // catalog (services/copilotModels.js) regularly exposes claude-* variants ahead
-  // of the static registry (registry/github.js).
   isClaudeModel(model) {
     return /claude/i.test(model || "");
   }
@@ -47,40 +41,30 @@ export class GithubExecutor extends BaseExecutor {
       "x-request-id": crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       "x-vscode-user-agent-library-version": "electron-fetch",
       "X-Initiator": "user",
-      // Harmless no-op on /chat/completions and /responses; required by /v1/messages.
       "anthropic-version": ANTHROPIC_API_VERSION,
       "Accept": stream ? "text/event-stream" : "application/json"
     };
   }
 
-  // Sanitize messages for GitHub Copilot /chat/completions endpoint (gpt/gemini/grok models —
-  // claude models never reach this, see execute() below).
-  // The endpoint only accepts 'text' and 'image_url' content part types.
-  // Tool-related content (tool_use, tool_result, thinking) must be serialized as text.
   sanitizeMessagesForChatCompletions(body) {
     if (!body?.messages) return body;
 
     const sanitized = { ...body };
     sanitized.messages = body.messages.map(msg => {
-      // assistant messages with only tool_calls have content: null — leave as-is
       if (!msg.content) return msg;
 
-      // String content is always fine
       if (typeof msg.content === "string") return msg;
 
-      // Array content: filter/convert unsupported part types
       if (Array.isArray(msg.content)) {
         const cleanContent = msg.content
           .map(part => {
             if (part.type === "text") return part;
             if (part.type === "image_url") return part;
-            // Serialize tool_use, tool_result, thinking, etc. as text
             const text = part.text || part.content || JSON.stringify(part);
             return { type: "text", text: typeof text === "string" ? text : JSON.stringify(text) };
           })
-          .filter(part => part.text !== ""); // remove empty text parts
+          .filter(part => part.text !== "");
 
-        // If all content was stripped (e.g. only tool_result with no text), drop content
         return { ...msg, content: cleanContent.length > 0 ? cleanContent : null };
       }
 
@@ -90,7 +74,6 @@ export class GithubExecutor extends BaseExecutor {
     return sanitized;
   }
 
-  // Newer OpenAI models (gpt-5+, o1, o3, o4) require max_completion_tokens instead of max_tokens
   requiresMaxCompletionTokens(model) {
     return /gpt-5|o[134]-/i.test(model);
   }
@@ -101,20 +84,13 @@ export class GithubExecutor extends BaseExecutor {
       transformed.max_completion_tokens = transformed.max_tokens;
       delete transformed.max_tokens;
     }
-    // "none" means no thinking — strip it so models that don't support "none" don't 400
     if (transformed.reasoning_effort === "none") {
       delete transformed.reasoning_effort;
     }
-    // Config-driven strip of params unsupported by this provider/model
     stripUnsupportedParams("github", model, transformed);
     return transformed;
   }
 
-  // GitHub Copilot's /responses endpoint only serves OpenAI (gpt/codex) models.
-  // Gemini and Claude models are not available there and reject with a 400
-  // "does not support Responses API" (unsupported_api_for_model). They must
-  // therefore never be escalated to /responses, even if /chat/completions
-  // returned a "not supported" error for an unrelated reason. Fixes #1062.
   supportsResponsesEndpoint(model) {
     const m = (model || "").toLowerCase();
     return !(m.includes("gemini") || m.includes("claude"));
@@ -123,24 +99,16 @@ export class GithubExecutor extends BaseExecutor {
   async execute(options) {
     const { model, log } = options;
 
-    // Claude models: route to Copilot's Anthropic-native /v1/messages shim — the only
-    // Copilot endpoint that surfaces prompt-cache token counts for Claude. Detected by
-    // model NAME (not a registry field): Copilot's live model catalog regularly exposes
-    // claude-* variants the static registry hasn't caught up with yet (see registry/github.js).
     if (this.isClaudeModel(model)) {
       log?.debug("GITHUB", `Using /v1/messages route for ${model}`);
       return this.executeWithMessagesEndpoint(options);
     }
 
-    // Only use /responses for models that are explicitly known to need it (e.g. gpt codex models)
-    // and that the /responses endpoint actually serves (excludes Gemini/Claude, see #1062).
     if (this.knownCodexModels.has(model) && this.supportsResponsesEndpoint(model)) {
       log?.debug("GITHUB", `Using cached /responses route for ${model}`);
       return this.executeWithResponsesEndpoint(options);
     }
 
-    // Sanitize messages before sending to /chat/completions (gpt/gemini/grok — the
-    // endpoint rejects non-text/image_url content parts).
     const sanitizedOptions = {
       ...options,
       body: this.sanitizeMessagesForChatCompletions(options.body)
@@ -148,9 +116,6 @@ export class GithubExecutor extends BaseExecutor {
 
     const result = await super.execute({ ...sanitizedOptions, proxyOptions: options.proxyOptions || null });
 
-    // Only escalate to /responses for models that endpoint can actually serve.
-    // Gemini/Claude would otherwise loop into a misleading "does not support
-    // Responses API" 400 instead of surfacing the real /chat/completions error (#1062).
     if (result.response.status === HTTP_STATUS.BAD_REQUEST && this.supportsResponsesEndpoint(model)) {
       const errorBody = await result.response.clone().text();
 
@@ -245,23 +210,11 @@ export class GithubExecutor extends BaseExecutor {
     };
   }
 
-  // Claude models arrive here OpenAI-shape (chatCore.js targets "openai" for github —
-  // see the note in execute() above), so we translate to Anthropic-native ourselves.
-  // This is what makes prepareClaudeRequest() (translator/formats/claude.js) inject
-  // cache_control — /chat/completions never gets there, so it never sees cache tokens.
   async executeWithMessagesEndpoint({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
     const url = this.config.messagesUrl;
     const headers = this.buildHeaders(credentials, stream);
 
-    // Force stream:true upstream regardless of client preference, same as
-    // executeWithResponsesEndpoint below — chatCore.js's non-streaming handler already
-    // knows how to buffer an SSE response into a single JSON reply when the client
-    // asked for stream:false.
     const transformedBody = translateRequest(FORMATS.OPENAI, FORMATS.CLAUDE, model, body, true, credentials, "github");
-    // _toolNameMap is internal bookkeeping (see openai-to-claude.js) — chatCore.js
-    // normally strips it before dispatch and threads it into the response state to
-    // restore original tool names; we must do the same here, or Anthropic's strict
-    // schema rejects the extra field with a 400.
     const toolNameMap = transformedBody._toolNameMap;
     delete transformedBody._toolNameMap;
 
@@ -414,14 +367,12 @@ export class GithubExecutor extends BaseExecutor {
   }
 
   needsRefresh(credentials) {
-    // Always refresh if no copilotToken
     if (!credentials.copilotToken) return true;
 
     if (credentials.copilotTokenExpiresAt) {
-      // Handle both Unix timestamp (seconds) and ISO string
       let expiresAtMs = credentials.copilotTokenExpiresAt;
       if (typeof expiresAtMs === "number" && expiresAtMs < 1e12) {
-        expiresAtMs = expiresAtMs * 1000; // Convert seconds to ms
+        expiresAtMs = expiresAtMs * 1000;
       } else if (typeof expiresAtMs === "string") {
         expiresAtMs = new Date(expiresAtMs).getTime();
       }

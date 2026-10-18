@@ -13,7 +13,7 @@ export function checkInternet() {
     const finish = (ok) => {
       if (done) return;
       done = true;
-      try { socket.destroy(); } catch { /* ignore */ }
+      try { socket.destroy(); } catch { }
       resolve(ok);
     };
     socket.setTimeout(INTERNET_CHECK.timeoutMs);

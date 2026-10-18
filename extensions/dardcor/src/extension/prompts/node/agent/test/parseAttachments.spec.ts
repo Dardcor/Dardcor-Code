@@ -457,13 +457,10 @@ suite('CopilotCLI Generate & parse prompts', () => {
 
 				const resolved = await resolver.resolvePrompt(req, undefined, [], workspaceInfo, [], CancellationToken.None);
 
-				// Instruction file should be excluded from references and attachments
 				const instructionRef = resolved.references.find(r => URI.isUri(r.value) && (r.value as URI).fsPath.includes('my.instructions.md'));
 				expect(instructionRef).toBeUndefined();
-				// Regular file reference should still be included
 				const regularRef = resolved.references.find(r => URI.isUri(r.value) && (r.value as URI).fsPath.includes('regular.ts'));
 				expect(regularRef).toBeDefined();
-				// Attachment for instruction file should not be present
 				const instructionAttachment = resolved.attachments.find(a => a.type === 'file' && a.path.includes('my.instructions.md'));
 				expect(instructionAttachment).toBeUndefined();
 			});
@@ -489,13 +486,10 @@ suite('CopilotCLI Generate & parse prompts', () => {
 
 				const resolved = await resolver.resolvePrompt(req, undefined, [], workspaceInfo, [], CancellationToken.None);
 
-				// Customizations index should be excluded from references and attachments
 				const customizationsRef = resolved.references.find(r => URI.isUri(r.value) && (r.value as URI).fsPath.includes('dardcor-instructions.md'));
 				expect(customizationsRef).toBeUndefined();
-				// Regular file reference should still be included
 				const regularRef = resolved.references.find(r => URI.isUri(r.value) && (r.value as URI).fsPath.includes('regular.ts'));
 				expect(regularRef).toBeDefined();
-				// Attachment for customizations index should not be present
 				const customizationsAttachment = resolved.attachments.find(a => a.type === 'file' && a.path.includes('dardcor-instructions.md'));
 				expect(customizationsAttachment).toBeUndefined();
 			});
@@ -593,7 +587,6 @@ suite('multi-workspace with additionalWorkspaces', () => {
 
 		const resolved = await resolver.resolvePrompt(req, undefined, [], primaryWorkspaceInfo, [additionalWorkspace], CancellationToken.None);
 
-		// File reference should be translated to the worktree path of additionalWorkspace
 		const fileRef = resolved.references.find(r => URI.isUri(r.value));
 		expect((fileRef?.value as {}).toString()).toBe(worktreeFileUri.toString());
 	});
@@ -602,7 +595,6 @@ suite('multi-workspace with additionalWorkspaces', () => {
 		const fileUri = URI.file('/workspace2/src/main.ts');
 
 		fileSystem.mockFile(fileUri, 'const x = 1;');
-		// Note: worktree file is NOT mocked, so stat will fail
 
 		const primaryWorkspaceInfo: IWorkspaceInfo = {
 			folder: URI.file('/workspace'),
@@ -634,13 +626,11 @@ suite('multi-workspace with additionalWorkspaces', () => {
 
 		const resolved = await resolver.resolvePrompt(req, undefined, [], primaryWorkspaceInfo, [additionalWorkspace], CancellationToken.None);
 
-		// File reference should remain at original URI since worktree file doesn't exist
 		const fileRef = resolved.references.find(r => URI.isUri(r.value));
 		expect((fileRef?.value as {}).toString()).toBe(fileUri.toString());
 	});
 
 	test('uses findMatchingWorktree fallback when file is under repository but not in workspace service', async () => {
-		// Remove /workspace2 from workspace service so getWorkspaceFolder returns undefined
 		const folders = workspaceService.getWorkspaceFolders();
 		const idx = folders.findIndex(f => f.toString() === URI.file('/workspace2').toString());
 		if (idx >= 0) {
@@ -659,7 +649,6 @@ suite('multi-workspace with additionalWorkspaces', () => {
 			worktree: undefined,
 			worktreeProperties: undefined,
 		};
-		// additionalWorkspace has isolation enabled and its repository covers the file
 		const additionalWorkspace: IWorkspaceInfo = {
 			folder: URI.file('/workspace2'),
 			repository: URI.file('/workspace2'),
@@ -684,13 +673,11 @@ suite('multi-workspace with additionalWorkspaces', () => {
 
 		const resolved = await resolver.resolvePrompt(req, undefined, [], primaryWorkspaceInfo, [additionalWorkspace], CancellationToken.None);
 
-		// findMatchingWorktree should map /workspace2/src/main.ts -> /worktree2/src/main.ts
 		const fileRef = resolved.references.find(r => URI.isUri(r.value));
 		expect((fileRef?.value as {}).toString()).toBe(worktreeFileUri.toString());
 	});
 
 	test('falls back to original URI when findMatchingWorktree candidate does not exist', async () => {
-		// Remove /workspace2 from workspace service so getWorkspaceFolder returns undefined → triggers findMatchingWorktree
 		const folders = workspaceService.getWorkspaceFolders();
 		const idx = folders.findIndex(f => f.toString() === URI.file('/workspace2').toString());
 		if (idx >= 0) {
@@ -699,7 +686,6 @@ suite('multi-workspace with additionalWorkspaces', () => {
 
 		const fileUri = URI.file('/workspace2/src/main.ts');
 		fileSystem.mockFile(fileUri, 'const x = 1;');
-		// worktree file is NOT mocked → stat throws ENOENT → should fall back to original URI
 
 		const primaryWorkspaceInfo: IWorkspaceInfo = {
 			folder: URI.file('/workspace'),
@@ -731,7 +717,6 @@ suite('multi-workspace with additionalWorkspaces', () => {
 
 		const resolved = await resolver.resolvePrompt(req, undefined, [], primaryWorkspaceInfo, [additionalWorkspace], CancellationToken.None);
 
-		// findMatchingWorktree candidate stat fails → original URI returned unchanged
 		const fileRef = resolved.references.find(r => URI.isUri(r.value));
 		expect((fileRef?.value as {}).toString()).toBe(fileUri.toString());
 	});
@@ -746,7 +731,6 @@ suite('multi-workspace with additionalWorkspaces', () => {
 			worktree: undefined,
 			worktreeProperties: undefined,
 		};
-		// additionalWorkspace has NO isolation
 		const additionalWorkspace: IWorkspaceInfo = {
 			folder: URI.file('/workspace2'),
 			repository: URI.file('/workspace2'),
@@ -764,7 +748,6 @@ suite('multi-workspace with additionalWorkspaces', () => {
 
 		const resolved = await resolver.resolvePrompt(req, undefined, [], primaryWorkspaceInfo, [additionalWorkspace], CancellationToken.None);
 
-		// No translation should occur
 		const fileRef = resolved.references.find(r => URI.isUri(r.value));
 		expect((fileRef?.value as {}).toString()).toBe(fileUri.toString());
 	});
@@ -798,10 +781,6 @@ function createWorkspaceInfo(workspaceType: 'emptyWorkspace' | 'workspace' | 'wo
 	return emptyWorkspaceInfo();
 }
 
-/**
- * As we want test to run on all platforms, we need to fix file paths in attachments
- * to use forward slashes for comparison.
- */
 function fixFilePathsForTestComparison(attachments: Attachment[]): Attachment[] {
 	attachments.forEach(attachment => {
 		if (attachment.type === 'file') {

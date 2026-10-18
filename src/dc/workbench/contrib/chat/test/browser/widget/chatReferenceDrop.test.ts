@@ -13,9 +13,6 @@ suite('ChatDragAndDrop - resolveChatReferenceDropEntry', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// The opaque *backend* chat URI carried in the payload — the value that ends
-	// up on the entry — is deliberately distinct from the *client* resource used
-	// only for identity guards.
 	const backendResource = 'copilotcli-chat://backend/chat-1';
 	const droppedClientResource = 'agent-host-copilotcli:/session-a';
 	const ownClientResource = 'agent-host-copilotcli:/session-b';
@@ -58,8 +55,6 @@ suite('ChatDragAndDrop - resolveChatReferenceDropEntry', () => {
 	});
 
 	test('a malformed payload yields no entry rather than throwing', () => {
-		// `URI.parse` throws on an illegal scheme even in its non-strict mode, and
-		// the `dataTransfer` payload is ultimately untrusted.
 		const malformed = 'sch eme:/nope';
 		assert.deepStrictEqual(
 			{
@@ -76,8 +71,6 @@ suite('ChatDragAndDrop - isSelfChatReferenceDrop', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Client (sessions-window) chat resources — the workbench compares these by
-	// identity and never parses them.
 	const sessionA = 'agent-host-copilotcli:/session-a';
 	const sessionAPeer = 'agent-host-copilotcli:/session-a#peer-1';
 	const sessionB = 'agent-host-copilotcli:/session-b';
@@ -99,8 +92,6 @@ suite('ChatDragAndDrop - isCrossAgentHostChatReferenceDrop', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Client (sessions-window) chat resources. Host identity is the scheme +
-	// authority only; the path/fragment identify the session/chat within a host.
 	const localSessionA = 'agent-host-copilotcli:/session-a';
 	const localSessionAPeer = 'agent-host-copilotcli:/session-a#peer-1';
 	const localSessionB = 'agent-host-copilotcli:/session-b';

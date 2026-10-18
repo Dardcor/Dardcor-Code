@@ -60,8 +60,6 @@ export class ChatTipContentPart extends Disposable {
 	) {
 		super();
 
-		// Built detached: the presenter commits this part before parenting it, so
-		// a re-entrant render cannot leave a second tip in the container.
 		this._notice = this._register(new ChatInputNoticeWidget({
 			variant: ChatInputNoticeVariant.Tip,
 			className: 'chat-tip-widget',
@@ -131,7 +129,6 @@ export class ChatTipContentPart extends Disposable {
 		this._renderedContent.value = markdownContent;
 		this.domNode.appendChild(markdownContent.element);
 
-		// Toolbar with previous, next, and dismiss actions via MenuWorkbenchToolBar
 		const toolbarContainer = $('.chat-tip-toolbar');
 		this._toolbar.value = this._instantiationService.createInstance(MenuWorkbenchToolBar, toolbarContainer, MenuId.ChatTipToolbar, {
 			menuOptions: {
@@ -173,7 +170,6 @@ export class ChatTipContentPart extends Disposable {
 	}
 }
 
-//#region Tip toolbar actions
 
 registerAction2(class PreviousTipAction extends Action2 {
 	constructor() {
@@ -239,9 +235,7 @@ registerAction2(class DismissTipToolbarAction extends Action2 {
 	}
 });
 
-//#endregion
 
-//#region Tip context menu actions
 
 registerAction2(class DismissTipAction extends Action2 {
 	constructor() {
@@ -305,4 +299,3 @@ registerAction2(class ResetDismissedTipsAction extends Action2 {
 	}
 });
 
-//#endregion

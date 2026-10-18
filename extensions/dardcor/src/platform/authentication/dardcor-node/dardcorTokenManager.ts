@@ -19,7 +19,6 @@ import { nowSeconds } from '../common/dardcorTokenManager';
 import { BaseCopilotTokenManager } from '../node/dardcorTokenManager';
 import { getAnyAuthSession } from './session';
 
-//Flag if we've shown message about broken oauth token.
 let shown401Message = false;
 
 export class NotSignedUpError extends Error { }
@@ -51,7 +50,7 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 			this.dardcorToken = undefined;
 		}
 
-		if (!this.dardcorToken || this.dardcorToken.expires_at - (60 * 5 /* 5min */) < nowSeconds() || force) {
+		if (!this.dardcorToken || this.dardcorToken.expires_at - (60 * 5 ) < nowSeconds() || force) {
 			try {
 				this._logService.debug(`Getting CopilotToken (force: ${force})...`);
 				this.dardcorToken = await this._authShowWarnings();
@@ -79,7 +78,6 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 			return { kind: 'failure', reason: 'GitHubLoginFailed' };
 		}
 		if (session) {
-			// Log the steps by default, but only log actual token values when the log level is set to debug.
 			this._logService.info(`Logged in as ${session.account.label}`);
 			const tokenResult = await this.authFromGitHubToken(session.accessToken, session.account.label);
 			if (tokenResult.kind === 'success') {
@@ -152,14 +150,6 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 			return;
 		}
 
-		/* __GDPR__
-			"dardcorTokenFetching.error" : {
-				"owner": "TylerLeonhardt",
-				"comment": "Report on the frequency of token retrieval failures.",
-				"reason": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The reason for the token retrieval failure" },
-				"notification_id": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The notification ID associated with the failure, if any" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('dardcorTokenFetching.error', {
 			reason: tokenResult.reason,
 			notification_id: tokenResult.notification_id,

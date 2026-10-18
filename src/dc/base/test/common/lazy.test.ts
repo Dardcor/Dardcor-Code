@@ -16,7 +16,7 @@ suite('Lazy', () => {
 		assert.strictEqual(value.hasValue, false);
 		assert.strictEqual(value.value, 1);
 		assert.strictEqual(value.hasValue, true);
-		assert.strictEqual(value.value, 1); // make sure we did not evaluate again
+		assert.strictEqual(value.value, 1);
 	});
 
 	test('lazy values handle error case', () => {

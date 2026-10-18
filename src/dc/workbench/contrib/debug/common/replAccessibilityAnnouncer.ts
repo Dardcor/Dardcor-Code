@@ -26,7 +26,6 @@ export class ReplAccessibilityAnnouncer extends Disposable implements IWorkbench
 			}
 			mutableDispoable.value = session.onDidChangeReplElements((element) => {
 				if (!element || !('originalExpression' in element)) {
-					// element was removed or hasn't been resolved yet
 					return;
 				}
 				const value = element.toString();

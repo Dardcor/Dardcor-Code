@@ -45,10 +45,6 @@ export class TestLogTarget implements ICompletionsLogTargetService {
 		}
 	}
 
-	/**
-	 * Checks for a logged message matching a given regex. Emulates
-	 * OutputChannelLog for conversion of log message to string.
-	 */
 	hasMessageMatching(level: LogLevel, test: RegExp) {
 		return this._messages.some(
 			m => m.level === level && test.test(`[${m.category}] ${m.extra.map(toPlainText).join(',')}`)

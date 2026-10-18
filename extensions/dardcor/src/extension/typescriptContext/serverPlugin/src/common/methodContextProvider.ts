@@ -75,7 +75,6 @@ abstract class MethodBlueprintSearch extends ClassPropertyBlueprintSearch<tt.Met
 			let skip: boolean = false;
 			for (const [typeSymbol, superTypeSymbol] of symbols.getAllSuperTypesWithPath(symbol)) {
 				if (symbol === typeSymbol) {
-					// We start a new path;
 					skip = false;
 					path = [];
 				}
@@ -90,13 +89,9 @@ abstract class MethodBlueprintSearch extends ClassPropertyBlueprintSearch<tt.Met
 						skip = true;
 					} else if (Symbols.isClass(superTypeSymbol)) {
 						if (Symbols.isAbstract(method)) {
-							// If the method is abstract we check in the same class
-							// hierarchy
 							classToCheck = superTypeSymbol;
 							break;
 						} else {
-							// Method is not abstract, so the method overrides another
-							// method. So we search in the same class hierarchy as well.
 							classToCheck = superTypeSymbol;
 							break;
 						}
@@ -119,8 +114,6 @@ abstract class MethodBlueprintSearch extends ClassPropertyBlueprintSearch<tt.Met
 			if (classToCheck !== undefined) {
 				return new FindMethodInSubclassSearch(program, symbols, classDeclaration, declaration, classToCheck, stateProvider);
 			} else if (typesToCheck.length > 0) {
-				// the super types we collect contain type literals. Since they can't be referred to by name we
-				// can filter them out for the find in hierarchy search. We also filter the symbols that are unnamed.
 				const filteredTypesToCheck = typesToCheck.filter((symbol) => {
 					if (Symbols.isTypeLiteral(symbol)) {
 						return false;
@@ -337,7 +330,6 @@ class FindMethodInHierarchySearch extends MethodBlueprintSearch {
 				}
 				let symbol: tt.Symbol | undefined;
 				for (const declaration of declarations) {
-					// todo@dbaeumer We need to check for typedefs as well.
 					if (!ts.isClassDeclaration(declaration) && !ts.isInterfaceDeclaration(declaration)) {
 						continue;
 					}
@@ -370,8 +362,6 @@ class FindMethodInHierarchySearch extends MethodBlueprintSearch {
 		const callableName = ts.escapeLeadingUnderscores(this.declaration.name.getText());
 		const startSet = new Set<tt.Symbol>(this.typesToCheck);
 		const queue: tt.Symbol[] = [];
-		// To find a good match we first look at the direct sub types of the types to check. If we find a match
-		// we use it. If not we add the type to a queue to check later.
 		for (const toCheck of this.typesToCheck) {
 			token.throwIfCancellationRequested();
 			for (const subType of this.symbols.getDirectSubTypes(toCheck, context.getPreferredNeighborFiles(this.program), this.stateProvider, token)) {
@@ -394,7 +384,6 @@ class FindMethodInHierarchySearch extends MethodBlueprintSearch {
 				queue.push(subType);
 			}
 		}
-		// We have not found any match yet. So we look at all the sub types of the types to check.
 		const seen: Set<tt.Symbol> = new Set<tt.Symbol>();
 		for (const symbol of queue) {
 			token.throwIfCancellationRequested();
@@ -525,8 +514,6 @@ class PropertiesTypeRunnable extends AbstractContextRunnable {
 	}
 
 	protected override run(result: RunnableResult, token: tt.CancellationToken): void {
-		// We could consider object literals here as well. However they don't usually have a this
-		// and all things a public in an literal. So we skip them for now.
 		const containerDeclaration = this.declaration.parent;
 		if (!ts.isClassDeclaration(containerDeclaration)) {
 			return;

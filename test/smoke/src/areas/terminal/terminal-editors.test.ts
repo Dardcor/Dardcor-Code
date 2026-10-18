@@ -12,7 +12,6 @@ export function setup(options?: { skipSuite: boolean }) {
 		let terminal: Terminal;
 		let settingsEditor: SettingsEditor;
 
-		// Acquire automation API
 		before(async function () {
 			app = this.app as Application;
 			terminal = app.workbench.terminal;
@@ -70,7 +69,6 @@ export function setup(options?: { skipSuite: boolean }) {
 
 		it('should create a terminal in the editor area by default', async () => {
 			await app.workbench.settingsEditor.addUserSetting('terminal.integrated.defaultLocation', '"editor"');
-			// Close the settings editor
 			await app.workbench.quickaccess.runCommand('workbench.action.closeAllEditors');
 			await terminal.createTerminal('editor');
 			await terminal.assertEditorGroupCount(1);

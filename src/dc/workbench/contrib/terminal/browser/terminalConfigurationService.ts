@@ -16,7 +16,6 @@ import { TerminalLocation, TerminalLocationConfigValue } from '../../../../platf
 import { isString } from '../../../../base/common/types.js';
 import { clamp } from '../../../../base/common/numbers.js';
 
-// #region TerminalConfigurationService
 
 export class TerminalConfigurationService extends Disposable implements ITerminalConfigurationService {
 	declare _serviceBrand: undefined;
@@ -83,9 +82,7 @@ export class TerminalConfigurationService extends Disposable implements ITermina
 	}
 }
 
-// #endregion TerminalConfigurationService
 
-// #region TerminalFontMetrics
 
 const enum FontConstants {
 	MinimumFontSize = 6,
@@ -117,7 +114,6 @@ export class TerminalFontMetrics extends Disposable {
 		const iRect = this._getBoundingRectFor('i', fontFamily, fontSize);
 		const wRect = this._getBoundingRectFor('w', fontFamily, fontSize);
 
-		// Check for invalid bounds, there is no reason to believe the font is not monospace
 		if (!iRect || !wRect || !iRect.width || !wRect.width) {
 			return true;
 		}
@@ -125,17 +121,12 @@ export class TerminalFontMetrics extends Disposable {
 		return iRect.width === wRect.width;
 	}
 
-	/**
-	 * Gets the font information based on the terminal.integrated.fontFamily
-	 * terminal.integrated.fontSize, terminal.integrated.lineHeight configuration properties
-	 */
 	getFont(w: Window, xtermCore?: IXtermCore, excludeDimensions?: boolean): ITerminalFont {
 		const editorConfig = this._configurationService.getValue<IEditorOptions>('editor');
 
 		let fontFamily = this._terminalConfigurationService.config.fontFamily || editorConfig.fontFamily || EDITOR_FONT_DEFAULTS.fontFamily || 'monospace';
 		let fontSize = clampInt(this._terminalConfigurationService.config.fontSize, FontConstants.MinimumFontSize, FontConstants.MaximumFontSize, EDITOR_FONT_DEFAULTS.fontSize);
 
-		// Work around bad font on Fedora/Ubuntu
 		if (!this._terminalConfigurationService.config.fontFamily) {
 			if (this.linuxDistro === LinuxDistro.Fedora) {
 				fontFamily = '\'DejaVu Sans Mono\'';
@@ -143,17 +134,12 @@ export class TerminalFontMetrics extends Disposable {
 			if (this.linuxDistro === LinuxDistro.Ubuntu) {
 				fontFamily = '\'Ubuntu Mono\'';
 
-				// Ubuntu mono is somehow smaller, so set fontSize a bit larger to get the same perceived size.
 				fontSize = clampInt(fontSize + 2, FontConstants.MinimumFontSize, FontConstants.MaximumFontSize, EDITOR_FONT_DEFAULTS.fontSize);
 			}
 		}
 
-		// Always fallback to monospace, otherwise a proportional font may become the default
 		fontFamily += ', monospace';
 
-		// Always fallback to AppleBraille on macOS, otherwise braille will render with filled and
-		// empty circles in all 8 positions, instead of just filled circles
-		// See https://github.com/microsoft/vscode/issues/174521
 		if (isMacintosh) {
 			fontFamily += ', AppleBraille';
 		}
@@ -170,7 +156,6 @@ export class TerminalFontMetrics extends Disposable {
 			};
 		}
 
-		// Get the character dimensions from xterm if it's available
 		if (xtermCore?._renderService?._renderer.value) {
 			const cellDims = xtermCore._renderService.dimensions.css.cell;
 			if (cellDims?.width && cellDims?.height) {
@@ -185,7 +170,6 @@ export class TerminalFontMetrics extends Disposable {
 			}
 		}
 
-		// Fall back to measuring the font ourselves
 		return this._measureFont(w, fontFamily, fontSize, letterSpacing, lineHeight);
 	}
 
@@ -193,7 +177,6 @@ export class TerminalFontMetrics extends Disposable {
 		if (!this._panelContainer) {
 			throw new Error('Cannot measure element when terminal is not attached');
 		}
-		// Create charMeasureElement if it hasn't been created or if it was orphaned by its parent
 		if (!this._charMeasureElement || !this._charMeasureElement.parentElement) {
 			this._charMeasureElement = document.createElement('div');
 			this._panelContainer.appendChild(this._charMeasureElement);
@@ -223,7 +206,6 @@ export class TerminalFontMetrics extends Disposable {
 	private _measureFont(w: Window, fontFamily: string, fontSize: number, letterSpacing: number, lineHeight: number): ITerminalFont {
 		const rect = this._getBoundingRectFor('X', fontFamily, fontSize);
 
-		// Bounding client rect was invalid, use last font measurement if available.
 		if (this._lastFontMeasurement && (!rect || !rect.width || !rect.height)) {
 			return this._lastFontMeasurement;
 		}
@@ -239,8 +221,6 @@ export class TerminalFontMetrics extends Disposable {
 
 		if (rect && rect.width && rect.height) {
 			this._lastFontMeasurement.charHeight = Math.ceil(rect.height);
-			// Char width is calculated differently for DOM and the other renderer types. Refer to
-			// how each renderer updates their dimensions in xterm.js
 			if (this._terminalConfigurationService.config.gpuAcceleration === 'off') {
 				this._lastFontMeasurement.charWidth = rect.width;
 			} else {
@@ -255,9 +235,7 @@ export class TerminalFontMetrics extends Disposable {
 	}
 }
 
-// #endregion TerminalFontMetrics
 
-// #region Utils
 
 function clampInt<T>(source: string | number, minimum: number, maximum: number, fallback: T): number | T {
 	if (source === null || source === undefined) {
@@ -269,4 +247,3 @@ function clampInt<T>(source: string | number, minimum: number, maximum: number, 
 	}
 	return clamp(r, minimum, maximum);
 }
-// #endregion Utils

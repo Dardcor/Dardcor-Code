@@ -54,20 +54,10 @@ export class ExplorerModel implements IDisposable {
 		return this._onDidChangeRoots.event;
 	}
 
-	/**
-	 * Returns an array of child stat from this stat that matches with the provided path.
-	 * Starts matching from the first root.
-	 * Will return empty array in case the FileStat does not exist.
-	 */
 	findAll(resource: URI): ExplorerItem[] {
 		return coalesce(this.roots.map(root => root.find(resource)));
 	}
 
-	/**
-	 * Returns a FileStat that matches the passed resource.
-	 * In case multiple FileStat are matching the resource (same folder opened multiple times) returns the FileStat that has the closest root.
-	 * Will return undefined in case the FileStat does not exist.
-	 */
 	findClosest(resource: URI): ExplorerItem | null {
 		const folder = this.contextService.getWorkspaceFolder(resource);
 		if (folder) {
@@ -87,7 +77,7 @@ export class ExplorerModel implements IDisposable {
 }
 
 export class ExplorerItem {
-	_isDirectoryResolved: boolean; // used in tests
+	_isDirectoryResolved: boolean;
 	public error: Error | undefined = undefined;
 	private _isExcluded = false;
 
@@ -183,7 +173,6 @@ export class ExplorerItem {
 	}
 
 	private updateName(value: string): void {
-		// Re-add to parent since the parent has a name map to children and the name might have changed
 		this._parent?.removeChild(this);
 		this._name = value;
 		this._parent?.addChild(this);
@@ -210,17 +199,12 @@ export class ExplorerItem {
 	static create(fileService: IFileService, configService: IConfigurationService, filesConfigService: IFilesConfigurationService, raw: IFileStat, parent: ExplorerItem | undefined, resolveTo?: readonly URI[]): ExplorerItem {
 		const stat = new ExplorerItem(raw.resource, fileService, configService, filesConfigService, parent, raw.isDirectory, raw.isSymbolicLink, raw.readonly, raw.locked, raw.name, raw.mtime, !raw.isFile && !raw.isDirectory);
 
-		// Recursively add children if present
 		if (stat.isDirectory) {
 
-			// isDirectoryResolved is a very important indicator in the stat model that tells if the folder was fully resolved
-			// the folder is fully resolved if either it has a list of children or the client requested this by using the resolveTo
-			// array of resource path to resolve.
 			stat._isDirectoryResolved = !!raw.children || (!!resolveTo && resolveTo.some((r) => {
 				return isEqualOrParent(r, stat.resource);
 			}));
 
-			// Recurse into children
 			if (raw.children) {
 				for (let i = 0, len = raw.children.length; i < len; i++) {
 					const child = ExplorerItem.create(fileService, configService, filesConfigService, raw.children[i], stat, resolveTo);
@@ -232,23 +216,16 @@ export class ExplorerItem {
 		return stat;
 	}
 
-	/**
-	 * Merges the stat which was resolved from the disk with the local stat by copying over properties
-	 * and children. The merge will only consider resolved stat elements to avoid overwriting data which
-	 * exists locally.
-	 */
 	static mergeLocalWithDisk(disk: ExplorerItem, local: ExplorerItem): void {
 		if (disk.resource.toString() !== local.resource.toString()) {
-			return; // Merging only supported for stats with the same resource
+			return;
 		}
 
-		// Stop merging when a folder is not resolved to avoid loosing local data
 		const mergingDirectories = disk.isDirectory || local.isDirectory;
 		if (mergingDirectories && local._isDirectoryResolved && !disk._isDirectoryResolved) {
 			return;
 		}
 
-		// Properties
 		local.resource = disk.resource;
 		if (!local.isRoot) {
 			local.updateName(disk.name);
@@ -259,29 +236,23 @@ export class ExplorerItem {
 		local._isSymbolicLink = disk.isSymbolicLink;
 		local.error = disk.error;
 
-		// Merge Children if resolved
 		if (mergingDirectories && disk._isDirectoryResolved) {
 
-			// Map resource => stat
 			const oldLocalChildren = new ResourceMap<ExplorerItem>();
 			local.children.forEach(child => {
 				oldLocalChildren.set(child.resource, child);
 			});
 
-			// Clear current children
 			local.children.clear();
 
-			// Merge received children
 			disk.children.forEach(diskChild => {
 				const formerLocalChild = oldLocalChildren.get(diskChild.resource);
-				// Existing child: merge
 				if (formerLocalChild) {
 					ExplorerItem.mergeLocalWithDisk(diskChild, formerLocalChild);
 					local.addChild(formerLocalChild);
 					oldLocalChildren.delete(diskChild.resource);
 				}
 
-				// New child: add
 				else {
 					local.addChild(diskChild);
 				}
@@ -295,11 +266,7 @@ export class ExplorerItem {
 		}
 	}
 
-	/**
-	 * Adds a child element to this folder.
-	 */
 	addChild(child: ExplorerItem): void {
-		// Inherit some parent properties to child
 		child._parent = this;
 		child.updateResource(false);
 		this.children.set(this.getPlatformAwareName(child.name), child);
@@ -312,15 +279,12 @@ export class ExplorerItem {
 	fetchChildren(sortOrder: SortOrder): ExplorerItem[] | Promise<ExplorerItem[]> {
 		const nestingConfig = this.configService.getValue<IFilesConfiguration>({ resource: this.root.resource }).explorer.fileNesting;
 
-		// fast path when the children can be resolved sync
 		if (nestingConfig.enabled && this.nestedChildren) {
 			return this.nestedChildren;
 		}
 
 		return (async () => {
 			if (!this._isDirectoryResolved) {
-				// Resolve metadata only when the mtime is needed since this can be expensive
-				// Mtime is only used when the sort order is 'modified'
 				const resolveMetadata = sortOrder === SortOrder.Modified;
 				this.error = undefined;
 				try {
@@ -397,9 +361,6 @@ export class ExplorerItem {
 		return this.root._fileNester;
 	}
 
-	/**
-	 * Removes a child element from this folder.
-	 */
 	removeChild(child: ExplorerItem): void {
 		this.nestedChildren = undefined;
 		this.children.delete(this.getPlatformAwareName(child.name));
@@ -416,13 +377,10 @@ export class ExplorerItem {
 		return this.fileService.hasCapability(this.resource, FileSystemProviderCapabilities.PathCaseSensitive) ? name : name.toLowerCase();
 	}
 
-	/**
-	 * Moves this element under a new parent element.
-	 */
 	move(newParent: ExplorerItem): void {
 		this.nestedParent?.removeChild(this);
 		this._parent?.removeChild(this);
-		newParent.removeChild(this); // make sure to remove any previous version of the file if any
+		newParent.removeChild(this);
 		newParent.addChild(this);
 		this.updateResource(true);
 	}
@@ -441,34 +399,22 @@ export class ExplorerItem {
 		}
 	}
 
-	/**
-	 * Tells this stat that it was renamed. This requires changes to all children of this stat (if any)
-	 * so that the path property can be updated properly.
-	 */
 	rename(renamedStat: { name: string; mtime?: number }): void {
 
-		// Merge a subset of Properties that can change on rename
 		this.updateName(renamedStat.name);
 		this._mtime = renamedStat.mtime;
 
-		// Update Paths including children
 		this.updateResource(true);
 	}
 
-	/**
-	 * Returns a child stat from this stat that matches with the provided path.
-	 * Will return "null" in case the child does not exist.
-	 */
 	find(resource: URI): ExplorerItem | null {
-		// Return if path found
-		// For performance reasons try to do the comparison as fast as possible
 		const ignoreCase = !this.fileService.hasCapability(resource, FileSystemProviderCapabilities.PathCaseSensitive);
 		if (resource && this.resource.scheme === resource.scheme && equalsIgnoreCase(this.resource.authority, resource.authority) &&
 			(ignoreCase ? startsWithIgnoreCase(resource.path, this.resource.path) : resource.path.startsWith(this.resource.path))) {
 			return this.findByPath(rtrim(resource.path, posix.sep), this.resource.path.length, ignoreCase);
 		}
 
-		return null; //Unable to find
+		return null;
 	}
 
 	private findByPath(path: string, index: number, ignoreCase: boolean): ExplorerItem | null {
@@ -477,23 +423,19 @@ export class ExplorerItem {
 		}
 
 		if (this.isDirectory) {
-			// Ignore separtor to more easily deduct the next name to search
 			while (index < path.length && path[index] === posix.sep) {
 				index++;
 			}
 
 			let indexOfNextSep = path.indexOf(posix.sep, index);
 			if (indexOfNextSep === -1) {
-				// If there is no separator take the remainder of the path
 				indexOfNextSep = path.length;
 			}
-			// The name to search is between two separators
 			const name = path.substring(index, indexOfNextSep);
 
 			const child = this.children.get(this.getPlatformAwareName(name));
 
 			if (child) {
-				// We found a child with the given name, search inside it
 				return child.findByPath(path, indexOfNextSep, ignoreCase);
 			}
 		}
@@ -501,7 +443,6 @@ export class ExplorerItem {
 		return null;
 	}
 
-	// Find
 	private markedAsFindResult = false;
 	isMarkedAsFiltered(): boolean {
 		return this.markedAsFindResult;

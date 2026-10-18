@@ -1,5 +1,3 @@
-// OpenCode Zen free-tier requires lowercase file-search tools (bash/glob/grep/read).
-// Case-variant tool names from external clients are renamed and restored in the response.
 
 export const OPENCODE_FINGERPRINT_TOOLS = ["bash", "glob", "grep", "read"];
 
@@ -55,21 +53,69 @@ export function concealFingerprintToolNames(tools) {
   return { tools: out, map };
 }
 
+const CANONICAL_TOOL_DEFINITIONS = {
+  read: {
+    description: "Read the contents of a file from the workspace",
+    parameters: {
+      type: "object",
+      properties: {
+        filePath: { type: "string", description: "Path to the file to read" },
+      },
+      required: ["filePath"],
+    },
+  },
+  bash: {
+    description: "Execute a command in the bash shell",
+    parameters: {
+      type: "object",
+      properties: {
+        command: { type: "string", description: "The command to execute" },
+      },
+      required: ["command"],
+    },
+  },
+  glob: {
+    description: "Find files matching a glob pattern",
+    parameters: {
+      type: "object",
+      properties: {
+        pattern: { type: "string", description: "The glob pattern to search for" },
+      },
+      required: ["pattern"],
+    },
+  },
+  grep: {
+    description: "Search file contents using regular expressions",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "The regex query to search for" },
+        path: { type: "string", description: "The directory or file path to search in" },
+      },
+      required: ["query"],
+    },
+  },
+};
+
 export function appendMissingFingerprintTools(tools, flat) {
   const list = Array.isArray(tools) ? tools : [];
   for (const name of OPENCODE_FINGERPRINT_TOOLS) {
     if (list.some((tool) => fingerprintToolKey(toolNameOf(tool)) === name)) continue;
+    const def = CANONICAL_TOOL_DEFINITIONS[name] || {
+      description: `Tool ${name}`,
+      parameters: { type: "object", properties: {} },
+    };
     list.push(flat ? {
       type: "function",
       name,
-      description: "This tool is currently unavailable and must not be used.",
-      parameters: { type: "object", properties: {} },
+      description: def.description,
+      parameters: def.parameters,
     } : {
       type: "function",
       function: {
         name,
-        description: "This tool is currently unavailable and must not be used.",
-        parameters: { type: "object", properties: {} },
+        description: def.description,
+        parameters: def.parameters,
       },
     });
   }

@@ -62,44 +62,20 @@ export function truncateOutputKeepingTail(output: string, maxLength: number): st
 	return TRUNCATION_MESSAGE + endPortion;
 }
 
-/**
- * Normalizes command text for UI display by removing unnecessary quote and forward slash
- * escaping artifacts (for example: \" \' \/) commonly produced in streamed tool-call JSON.
- */
 export function normalizeTerminalCommandForDisplay(commandLine: string): string {
 	return commandLine.replace(/\\(["'\/])/g, '$1');
 }
 
-/**
- * Builds a single-line display string for a terminal command, suitable for UI messages.
- * Normalizes escape artifacts, collapses newlines to spaces, and truncates to 80 characters.
- */
 export function buildCommandDisplayText(command: string): string {
 	const normalized = normalizeTerminalCommandForDisplay(command).replace(/\r\n|\r|\n/g, ' ');
 	return normalized.length > 80 ? normalized.substring(0, 77) + '...' : normalized;
 }
 
-/**
- * Normalizes a terminal command for execution by collapsing newlines to spaces.
- * This prevents multi-line input from being sent as multiple commands via sendText.
- */
 export function normalizeCommandForExecution(command: string): string {
 	return command.replace(/\r\n|\r|\n/g, ' ').trim();
 }
 
-/**
- * Whether a command spans multiple lines (heredoc, multi-statement block, etc.).
- * Multi-line commands must be sent verbatim through bracketed paste mode so the
- * shell treats them as a single paste instead of executing each line as it
- * arrives.
- *
- * Bare line continuations (`\` immediately before a newline) are **not**
- * considered multi-line because the shell joins them into a single logical
- * line. Only newlines that are *not* preceded by a backslash count.
- */
 export function isMultilineCommand(command: string): boolean {
-	// Normalize all line-ending variants to \n, then check for a newline
-	// that is not preceded by a backslash (i.e. not a line continuation).
 	const normalized = command.replace(/\r\n|\r/g, '\n');
 	return /(?<!\\)\n/.test(normalized);
 }
@@ -107,8 +83,6 @@ export function isMultilineCommand(command: string): boolean {
 export function generateAutoApproveActions(commandLine: string, subCommands: string[], autoApproveResult: { subCommandResults: ICommandApprovalResultWithReason[]; commandLineResult: ICommandApprovalResultWithReason }, options?: { skipSessionScoped?: boolean }): ToolConfirmationAction[] {
 	const actions: ToolConfirmationAction[] = [];
 
-	// We shouldn't offer configuring rules for commands that are explicitly denied since it
-	// wouldn't get auto approved with a new rule
 	const canCreateAutoApproval = (
 		autoApproveResult.subCommandResults.every(e => e.result !== 'denied') &&
 		autoApproveResult.commandLineResult.result !== 'denied'
@@ -118,29 +92,18 @@ export function generateAutoApproveActions(commandLine: string, subCommands: str
 			return autoApproveResult.subCommandResults[index].result !== 'approved';
 		});
 
-		// Some commands should not be recommended as they are too permissive generally. This only
-		// applies to sub-commands, we still want to offer approving of the exact the command line
-		// however as it's very specific.
 		const neverAutoApproveCommands = new Set([
-			// Shell interpreters
 			'bash', 'sh', 'zsh', 'fish', 'ksh', 'csh', 'tcsh', 'dash',
 			'pwsh', 'powershell', 'powershell.exe', 'cmd', 'cmd.exe',
-			// Script interpreters
 			'python', 'python3', 'node', 'ruby', 'perl', 'php', 'lua',
-			// Direct execution commands
 			'eval', 'exec', 'source', 'sudo', 'su', 'doas',
-			// Network tools that can download and execute code
 			'curl', 'wget', 'invoke-restmethod', 'invoke-webrequest', 'irm', 'iwr',
 		]);
 
-		// Commands where we want to suggest the sub-command (eg. `foo bar` instead of `foo`)
 		const commandsWithSubcommands = new Set(['git', 'npm', 'npx', 'yarn', 'docker', 'kubectl', 'cargo', 'dotnet', 'mvn', 'gradle']);
 
-		// Commands where we want to suggest the sub-command of a sub-command (eg. `foo bar baz`
-		// instead of `foo`)
 		const commandsWithSubSubCommands = new Set(['npm run', 'yarn run']);
 
-		// Helper function to find the first non-flag argument after a given index
 		const findNextNonFlagArg = (parts: string[], startIndex: number): number | undefined => {
 			for (let i = startIndex; i < parts.length; i++) {
 				if (!parts[i].startsWith('-')) {
@@ -150,38 +113,25 @@ export function generateAutoApproveActions(commandLine: string, subCommands: str
 			return undefined;
 		};
 
-		// For each unapproved sub-command (within the overall command line), decide whether to
-		// suggest new rules for the command, a sub-command, a sub-command of a sub-command or to
-		// not suggest at all.
-		//
-		// This includes support for detecting flags between the commands, so `mvn -DskipIT test a`
-		// would suggest `mvn -DskipIT test` as that's more useful than only suggesting the exact
-		// command line.
 		const subCommandsToSuggest = Array.from(new Set(coalesce(unapprovedSubCommands.map(command => {
 			const parts = command.trim().split(/\s+/);
 			const baseCommand = parts[0].toLowerCase();
 
-			// Security check: Never suggest auto-approval for dangerous interpreter commands
 			if (neverAutoApproveCommands.has(baseCommand)) {
 				return undefined;
 			}
 
 			if (commandsWithSubcommands.has(baseCommand)) {
-				// Find the first non-flag argument after the command
 				const subCommandIndex = findNextNonFlagArg(parts, 1);
 				if (subCommandIndex !== undefined) {
-					// Check if this is a sub-sub-command case
 					const baseSubCommand = `${parts[0]} ${parts[subCommandIndex]}`.toLowerCase();
 					if (commandsWithSubSubCommands.has(baseSubCommand)) {
-						// Look for the second non-flag argument after the first subcommand
 						const subSubCommandIndex = findNextNonFlagArg(parts, subCommandIndex + 1);
 						if (subSubCommandIndex !== undefined) {
-							// Include everything from command to sub-sub-command (including flags)
 							return parts.slice(0, subSubCommandIndex + 1).join(' ');
 						}
 						return undefined;
 					} else {
-						// Include everything from command to subcommand (including flags)
 						return parts.slice(0, subCommandIndex + 1).join(' ');
 					}
 				}
@@ -240,8 +190,6 @@ export function generateAutoApproveActions(commandLine: string, subCommands: str
 			actions.push(new Separator());
 		}
 
-		// Allow exact command line, don't do this if it's just the first sub-command's first
-		// word or if it's an exact match for special sub-commands
 		const firstSubcommandFirstWord = unapprovedSubCommands.length > 0 ? unapprovedSubCommands[0].split(' ')[0] : '';
 		if (
 			firstSubcommandFirstWord !== commandLine &&
@@ -300,7 +248,6 @@ export function generateAutoApproveActions(commandLine: string, subCommands: str
 	}
 
 
-	// Allow all commands for this session
 	if (!options?.skipSessionScoped) {
 		actions.push({
 			label: localize('allowSession', 'Allow All Commands in this Session'),
@@ -313,7 +260,6 @@ export function generateAutoApproveActions(commandLine: string, subCommands: str
 		actions.push(new Separator());
 	}
 
-	// Always show configure option
 	actions.push({
 		label: localize('autoApprove.configure', 'Configure Auto Approve...'),
 		data: {
@@ -335,16 +281,10 @@ export function dedupeRules(rules: ICommandApprovalResultWithReason[]): ICommand
 }
 
 export interface IExtractedCdPrefix {
-	/** The directory path that was extracted from the cd command */
 	directory: string;
-	/** The command to run after the cd */
 	command: string;
 }
 
-/**
- * Extracts a cd prefix from a command line, returning the directory and remaining command.
- * Does not check if the directory matches the current cwd - just extracts the pattern.
- */
 export function extractCdPrefix(commandLine: string, shell: string, os: OperatingSystem): IExtractedCdPrefix | undefined {
 	const isPwsh = isPowerShell(shell, os);
 
@@ -356,7 +296,6 @@ export function extractCdPrefix(commandLine: string, shell: string, os: Operatin
 	const cdDir = cdPrefixMatch?.groups?.dir;
 	const cdSuffix = cdPrefixMatch?.groups?.suffix;
 	if (cdDir && cdSuffix) {
-		// Remove any surrounding quotes
 		let cdDirPath = cdDir;
 		if (cdDirPath.startsWith('"') && cdDirPath.endsWith('"')) {
 			cdDirPath = cdDirPath.slice(1, -1);

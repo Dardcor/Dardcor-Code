@@ -73,7 +73,6 @@ export function clearDashboardAuthCookie(cookieStore) {
   cookieStore.delete("auth_token");
 }
 
-// Verify the current dashboard password (re-auth for sensitive actions).
 export async function verifyDashboardPassword(password) {
   if (typeof password !== "string" || !password) return false;
   const settings = await getSettings();

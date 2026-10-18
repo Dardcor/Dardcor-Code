@@ -37,9 +37,6 @@ suite('LineSelection', () => {
 		withTestCodeEditor(TEXT, {}, (editor, viewModel) => {
 			const action = new ExpandLineSelectionAction();
 
-			//              0          1         2
-			//              01234 56789012345678 0
-			// let LINE1 = '    \tMy First Line\t ';
 			editor.setPosition(new Position(1, 1));
 			executeAction(action, editor);
 			assert.deepStrictEqual(editor.getSelection(), new Selection(1, 1, 2, 1));

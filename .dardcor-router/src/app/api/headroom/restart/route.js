@@ -10,7 +10,7 @@ function parsePortFromUrl(url) {
     const u = new URL(url);
     const p = parseInt(u.port, 10);
     if (p > 0 && p < 65536) return p;
-  } catch { /* ignore, fall through to default */ }
+  } catch { }
   return null;
 }
 

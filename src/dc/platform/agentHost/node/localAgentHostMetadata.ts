@@ -27,7 +27,6 @@ const endpointDirectoryName = 'local-endpoint';
 const entriesDirectoryName = 'entries';
 const legacyMetadataFileName = 'metadata.json';
 
-/** The editor's own entry in the shared local agent host endpoint registry. */
 export type ILocalAgentHostEndpointMetadata = IAgentHostEndpointMetadata & {
 	readonly type: 'editor';
 	readonly endpoint: { readonly type: 'socket'; readonly path: string };
@@ -47,7 +46,6 @@ export function createLocalAgentHostEndpointMetadata(userDataPath: string): ILoc
 }
 
 export async function prepareLocalAgentHostEndpointMetadataDirectory(userDataPath: string): Promise<void> {
-	// Secure both the registry root and the entries directory beneath it.
 	await prepareOwnerOnlyDirectory(getMetadataDirectory(userDataPath));
 	await prepareOwnerOnlyDirectory(getEntriesDirectory(userDataPath));
 }
@@ -84,12 +82,6 @@ export async function prepareLocalAgentHostEndpointSocketDirectory(userDataPath:
 	}
 }
 
-/**
- * Publishes (or refreshes) this host's own `entries/<sha256hex>.json` file by
- * atomically renaming a freshly written temp file into place. Throws on any
- * filesystem failure; callers must stay running but undiscoverable rather than
- * retrying non-atomically.
- */
 export async function publishLocalAgentHostEndpointMetadata(userDataPath: string, metadata: ILocalAgentHostEndpointMetadata, logService?: ILogService): Promise<void> {
 	await prepareLocalAgentHostEndpointMetadataDirectory(userDataPath);
 	const entriesDirectory = getEntriesDirectory(userDataPath);
@@ -97,12 +89,6 @@ export async function publishLocalAgentHostEndpointMetadata(userDataPath: string
 	await writeEntryFileAtomicAsync(entriesDirectory, entryPath, metadata, logService);
 }
 
-/**
- * Removes exactly `owner`'s own entry file. The path is derived from `owner`'s
- * identity, so this can never delete another writer's entry. Best-effort: the
- * shared entries directory is left in place to avoid racing concurrent
- * publishers, and failures are logged, never thrown.
- */
 export function cleanupLocalAgentHostEndpointMetadataSync(userDataPath: string, owner: ILocalAgentHostEndpointMetadata, logService?: ILogService): void {
 	const entryPath = join(getEntriesDirectory(userDataPath), getAgentHostEndpointEntryFileName(owner));
 	try {
@@ -118,19 +104,11 @@ export function cleanupLocalAgentHostEndpointSocketSync(endpointPath: string): v
 	}
 }
 
-/**
- * Reads and validates every live entry in the registry without taking a lock,
- * merging a read-only legacy `metadata.json` array left by older builds.
- * Confirmed-dead entries are pruned (and their own files best-effort removed);
- * the rest are deduped by identity — a live entry file winning over a colliding
- * legacy entry — and returned in a deterministic order.
- */
 export async function readLocalAgentHostEndpointRegistry(userDataPath: string, logService?: ILogService): Promise<IAgentHostEndpointMetadata[]> {
 	const entryFiles = await readEntryFilesAsync(getEntriesDirectory(userDataPath), logService);
 	const legacy = await readLegacyRegistryAsync(getLegacyMetadataPath(userDataPath), logService);
 
 	const live: IAgentHostEndpointMetadata[] = [];
-	// Legacy entries first so a live entry file wins the dedupe on collision.
 	for (const entry of legacy) {
 		if (isPidAlive(entry.pid)) {
 			live.push(entry);
@@ -141,7 +119,7 @@ export async function readLocalAgentHostEndpointRegistry(userDataPath: string, l
 			live.push(entry);
 		} else {
 			logService?.info(`[AgentHost] Pruning stale local endpoint registry entry: ${entry.type} PID ${entry.pid} (instance ${entry.instanceId}) is no longer running`);
-			await fs.promises.rm(path, { force: true }).catch(() => { /* best effort */ });
+			await fs.promises.rm(path, { force: true }).catch(() => { });
 		}
 	}
 
@@ -160,11 +138,6 @@ function getLegacyMetadataPath(userDataPath: string): string {
 	return join(getMetadataDirectory(userDataPath), legacyMetadataFileName);
 }
 
-/**
- * The canonical `<sha256hex>.json` file name for `identity`, hashed over the
- * cross-language encoding from {@link getAgentHostEndpointIdentityHashInput} so
- * the editor and Rust CLI agree and the raw `instanceId` stays out of the path.
- */
 function getAgentHostEndpointEntryFileName(identity: IAgentHostEndpointIdentity): string {
 	const hash = createHash('sha256').update(getAgentHostEndpointIdentityHashInput(identity), 'utf8').digest('hex');
 	return `${hash}.json`;
@@ -197,7 +170,6 @@ async function readEntryFilesAsync(entriesDirectory: string, logService?: ILogSe
 
 	const results: { entry: IAgentHostEndpointMetadata; path: string }[] = [];
 	for (const name of names) {
-		// Ignore temp staging files and other non-entry files quietly.
 		if (!name.endsWith('.json')) {
 			continue;
 		}
@@ -206,8 +178,6 @@ async function readEntryFilesAsync(entriesDirectory: string, logService?: ILogSe
 		if (!entry) {
 			continue;
 		}
-		// A valid entry must live under its own canonical identity file name;
-		// otherwise a misnamed copy could shadow or delete the real entry.
 		if (name !== getAgentHostEndpointEntryFileName(entry)) {
 			logService?.warn(`[AgentHost] Ignoring local agent host endpoint entry ${path} whose file name does not match its identity`);
 			continue;
@@ -277,7 +247,6 @@ async function readLegacyRegistryAsync(metadataPath: string, logService?: ILogSe
 	}
 }
 
-/** Atomically writes `metadata` to `entryPath` via a mode-`0600` temp file. */
 async function writeEntryFileAtomicAsync(entriesDirectory: string, entryPath: string, metadata: IAgentHostEndpointMetadata, logService?: ILogService): Promise<void> {
 	const temporaryPath = join(entriesDirectory, `${randomBytes(16).toString('hex')}.tmp`);
 	const handle = await fs.promises.open(temporaryPath, 'wx', 0o600);
@@ -290,11 +259,10 @@ async function writeEntryFileAtomicAsync(entriesDirectory: string, entryPath: st
 	try {
 		await renameReplacingAsync(temporaryPath, entryPath, logService);
 	} finally {
-		await fs.promises.rm(temporaryPath, { force: true }).catch(() => { /* best effort */ });
+		await fs.promises.rm(temporaryPath, { force: true }).catch(() => { });
 	}
 }
 
-/** Renames `from` onto `to`, retrying once past a transient Windows lock on our own file. */
 async function renameReplacingAsync(from: string, to: string, logService?: ILogService): Promise<void> {
 	try {
 		await fs.promises.rename(from, to);
@@ -309,7 +277,6 @@ async function renameReplacingAsync(from: string, to: string, logService?: ILogS
 	}
 }
 
-/** Deterministic order (standalone before editor, then `instanceId`), matching the Rust reader. */
 function sortForDeterministicOrder(entries: IAgentHostEndpointMetadata[]): IAgentHostEndpointMetadata[] {
 	return entries.sort((a, b) => {
 		const rankDelta = serverTypeSortRank(a.type) - serverTypeSortRank(b.type);

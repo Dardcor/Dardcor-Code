@@ -36,7 +36,6 @@ suite('normalizeUri tests', function () {
 
 suite('URI file system tests', function () {
 	test('getFsPath returns the file path for file system URIs', function () {
-		// Drive letter will get normalized to lowercase by makeFsUri
 		assert.strictEqual(getFsPath(makeFsUri(__filename))?.toLowerCase(), __filename.toLowerCase());
 	});
 
@@ -56,8 +55,6 @@ suite('URI file system tests', function () {
 		if (platform() === 'win32') {
 			assert.strictEqual(getFsPath('file://Server/Share/Some/Path'), '\\\\Server\\Share\\Some\\Path');
 		} else {
-			// on other platforms, this is the equivalent to smb://Server/Share/Some/Path,
-			// which is not a file system path
 			assert.strictEqual(getFsPath('file://Server/Share/Some/Path'), undefined);
 		}
 	});
@@ -71,8 +68,8 @@ suite('URI file system tests', function () {
 	});
 
 	test('fsPath throws when the scheme does not represent a local file', function () {
-		assert.throws(() => fsPath('https://host.example/path'), /Copilot currently does not support URI with scheme/);
-		assert.throws(() => fsPath('untitled:Untitled-1'), /Copilot currently does not support URI with scheme/);
+		assert.throws(() => fsPath('https://host.example/path'), /Dardcor completions do not support URI with scheme/);
+		assert.throws(() => fsPath('untitled:Untitled-1'), /Dardcor completions do not support URI with scheme/);
 		assert.ok(fsPath('vscode-notebook-cell:///path/to/file'));
 		assert.ok(fsPath('vscode-notebook:///path/to/file'));
 		assert.ok(fsPath('notebook:///path/to/file'));

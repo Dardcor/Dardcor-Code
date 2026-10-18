@@ -21,24 +21,10 @@ const FLUSH_INTERVAL_MS = 2000;
 export interface IBrowserSessionHistory {
 	readonly storageKeys: IBrowserViewStorageKeys;
 	add(url: string, title: string, favicon?: string, userInitiated?: boolean): IBrowserHistoryItemHandle;
-	/**
-	 * Delete history entries. Pass `undefined` to wipe everything (entries
-	 * and favicons); otherwise only the listed entry ids are removed.
-	 */
 	delete(entryIds?: readonly number[]): void;
-	/** Update the maximum number of entries retained. Excess oldest entries are evicted immediately. */
 	setMaxEntries(max: number): void;
 }
 
-/**
- * Per-{@link BrowserSession} navigation history. The two sub-stores get
- * independent throttled writers so the (large) favicon map is only
- * rewritten when an image is added or removed.
- *
- * Throttling: the first change schedules a flush {@link FLUSH_INTERVAL_MS}ms
- * later; subsequent changes within that window are picked up by the pending
- * flush (since it reads current state at flush time).
- */
 export class BrowserSessionHistory extends Disposable implements IBrowserSessionHistory {
 
 	private readonly _historyStore = this._register(new BrowserHistoryStore());
@@ -122,7 +108,6 @@ export class BrowserSessionHistory extends Disposable implements IBrowserSession
 		const entries = parseSnapshot<ISerializedBrowserHistoryEntriesSnapshot>(storage.get(historyKey, StorageScope.APPLICATION));
 		const favicons = parseSnapshot<ISerializedBrowserFaviconsSnapshot>(storage.get(faviconsKey, StorageScope.APPLICATION));
 
-		// Hydration fires onDidChange; suppress flushes so we don't rewrite what we just read.
 		this._persistable = false;
 		try {
 			this._historyStore.entries.hydrate(entries);

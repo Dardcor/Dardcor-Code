@@ -57,7 +57,6 @@ const devContainerUpResultValidator = vObj({
 	remoteWorkspaceFolder: vString(),
 });
 
-/** Testable relay abstraction owned by the shared-process launcher. */
 export interface IDevContainerRelay extends IDisposable {
 	send(message: string): void;
 }
@@ -83,7 +82,6 @@ class DevContainerRelay extends Disposable implements IDevContainerRelay {
 	}
 }
 
-/** Launches Dev Containers and relays their Agent Host protocol through the shared process. */
 export class DevContainerAgentHostMainService extends Disposable implements IDevContainerAgentHostMainService {
 	declare readonly _serviceBrand: undefined;
 
@@ -531,7 +529,6 @@ export function parseDevContainerUpResult(output: string): IDevContainerUpResult
 				};
 			}
 		} catch {
-			// Continue scanning earlier output lines.
 		}
 	}
 	return undefined;

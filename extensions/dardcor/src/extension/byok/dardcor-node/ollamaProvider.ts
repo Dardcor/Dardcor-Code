@@ -31,7 +31,6 @@ interface OllamaVersionResponse {
 	version: string;
 }
 
-// Minimum supported Ollama version - versions below this may have compatibility issues
 const MINIMUM_OLLAMA_VERSION = '0.6.4';
 
 export interface OllamaConfig extends LanguageModelChatConfiguration {
@@ -92,7 +91,6 @@ export class OllamaLMProvider extends AbstractOpenAICompatibleLMProvider<OllamaC
 		const ollamaBaseUrl = config.url;
 
 		try {
-			// Check Ollama server version before proceeding with model operations
 			await this._checkOllamaVersion(ollamaBaseUrl);
 
 			const response = await this._fetcherService.fetch(`${ollamaBaseUrl}/api/tags`, { method: 'GET', callSite: 'ollama-tags' });
@@ -107,7 +105,7 @@ export class OllamaLMProvider extends AbstractOpenAICompatibleLMProvider<OllamaC
 						const error = ErrorUtils.fromUnknown(e);
 						this._logService.error(error, 'ollamaProvider: failed to fetch Ollama model info');
 						this._logService.debug(`[ollamaProvider] Failed model info fetch for model=${model.model}`);
-						continue; // Skip this model but continue processing others
+						continue;
 					}
 					this._modelCache.set(`${ollamaBaseUrl}/${model.model}`, modelInfo);
 				}
@@ -126,7 +124,6 @@ export class OllamaLMProvider extends AbstractOpenAICompatibleLMProvider<OllamaC
 			}));
 
 		} catch (e) {
-			// Check if this is our version check error and preserve it
 			if (e instanceof Error && e.message.includes('Ollama server version')) {
 				throw e;
 			}
@@ -159,18 +156,11 @@ export class OllamaLMProvider extends AbstractOpenAICompatibleLMProvider<OllamaC
 		return resolveModelInfo(modelId, this._name, this._knownModels, modelCapabilities);
 	}
 
-	/**
-	 * Compare version strings to check if current version meets minimum requirements
-	 * @param currentVersion Current Ollama server version
-	 * @returns true if version is supported, false otherwise
-	 */
 	private _isVersionSupported(currentVersion: string): boolean {
 		if (currentVersion === '0.0.0') {
-			// allow all dev versions through
 			return true;
 		}
 
-		// Simple version comparison: split by dots and compare numerically
 		const currentParts = currentVersion.split('.').map(n => parseInt(n, 10));
 		const minimumParts = MINIMUM_OLLAMA_VERSION.split('.').map(n => parseInt(n, 10));
 
@@ -186,7 +176,7 @@ export class OllamaLMProvider extends AbstractOpenAICompatibleLMProvider<OllamaC
 			}
 		}
 
-		return true; // versions are equal
+		return true;
 	}
 
 	private async _fetchOllamaModelInformation(ollamaBaseUrl: string, modelId: string): Promise<OllamaModelInfoAPIResponse> {
@@ -200,10 +190,6 @@ export class OllamaLMProvider extends AbstractOpenAICompatibleLMProvider<OllamaC
 		});
 		return response.json() as unknown as OllamaModelInfoAPIResponse;
 	}
-	/**
-	 * Check if the connected Ollama server version meets the minimum requirements
-	 * @throws Error if version is below minimum or version check fails
-	 */
 	private async _checkOllamaVersion(ollamaBaseUrl: string): Promise<void> {
 		try {
 			const response = await this._fetcherService.fetch(`${ollamaBaseUrl}/api/version`, { method: 'GET', callSite: 'ollama-version' });
@@ -218,10 +204,8 @@ export class OllamaLMProvider extends AbstractOpenAICompatibleLMProvider<OllamaC
 			}
 		} catch (e) {
 			if (e instanceof Error && e.message.includes('Ollama server version')) {
-				// Re-throw our custom version error
 				throw e;
 			}
-			// If version endpoint fails
 			throw new Error(
 				`Unable to verify Ollama server version. Please ensure you have Ollama version ${MINIMUM_OLLAMA_VERSION} or higher installed. ` +
 				`If you're running an older version, please upgrade from https://ollama.ai`

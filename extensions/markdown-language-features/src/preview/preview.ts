@@ -90,7 +90,7 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 	#scrollingTimer?: NodeJS.Timeout;
 
 	#imageInfo: readonly ImageInfo[] = [];
-	readonly #fileWatchersBySrc = new Map</* src: */ string, vscode.FileSystemWatcher>();
+	readonly #fileWatchersBySrc = new Map< string, vscode.FileSystemWatcher>();
 
 	readonly #onScrollEmitter = this._register(new vscode.EventEmitter<LastScrollLocation>());
 	public readonly onScroll = this.#onScrollEmitter.event;
@@ -162,8 +162,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 			const watcher = this._register(vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(resource, '*')));
 			this._register(watcher.onDidChange(uri => {
 				if (this.isPreviewOf(uri)) {
-					// Only use the file system event when VS Code does not already know about the file.
-					// This is needed to avoid duplicate refreshes
 					if (!vscode.workspace.textDocuments.some(doc => areUrisEqual(doc.uri, uri))) {
 						this.refresh();
 					}
@@ -239,12 +237,7 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 		};
 	}
 
-	/**
-	 * The first call immediately refreshes the preview,
-	 * calls happening shortly thereafter are debounced.
-	*/
 	public refresh(forceUpdate: boolean = false) {
-		// Schedule update if none is pending
 		if (!this.#throttleTimer) {
 			if (this.#firstUpdate) {
 				this.#updatePreview(true);
@@ -345,8 +338,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 			? this.#contentProvider.renderDocument(document, this, this.#previewConfigurations, this.#line, selectedLine, this.state, this.#imageInfo, lineChanges, diffScrollSync, this.#disposeCts.token)
 			: this.#contentProvider.renderBody(document, this, lineChanges));
 
-		// Another call to `doUpdate` may have happened.
-		// Make sure we are still updating for the correct document
 		if (this.#currentVersion?.equals(pendingVersion)) {
 			this.#updateWebviewContent(content.html, shouldReloadPage, lineChanges, diffScrollSync);
 			this.#updateImageWatchers(content.containingImages);
@@ -378,7 +369,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 	}
 
 	async #onDidClickPreview(line: number): Promise<void> {
-		// fix #82457, find currently opened but unfocused source tab
 		await vscode.commands.executeCommand('markdown.showSource');
 
 		const revealLineInEditor = (editor: vscode.TextEditor) => {
@@ -433,7 +423,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 	}
 
 	#updateImageWatchers(srcs: Set<string>) {
-		// Delete stale file watchers.
 		for (const [src, watcher] of this.#fileWatchersBySrc) {
 			if (!srcs.has(src)) {
 				watcher.dispose();
@@ -441,7 +430,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 			}
 		}
 
-		// Create new file watchers.
 		const root = vscode.Uri.joinPath(this.#resource, '../');
 		for (const src of srcs) {
 			const uri = urlToUri(src, root);
@@ -479,7 +467,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 						return this.#delegate.openPreviewLinkToMarkdownFile(doc.uri, resolved.fragment ? decodeURIComponent(resolved.fragment) : undefined);
 					}
 				} catch {
-					// Noop
 				}
 			}
 		}
@@ -487,7 +474,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 		return this.#opener.openDocumentLink(href, this.resource);
 	}
 
-	//#region WebviewResourceProvider
 
 	asWebviewUri(resource: vscode.Uri) {
 		return this.#webviewPanel.webview.asWebviewUri(resource);
@@ -497,7 +483,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 		return [
 			this.#webviewPanel.webview.cspSource,
 
-			// On web, we also need to allow loading of resources from contributed extensions
 			...this.#contributionProvider.contributions.previewResourceRoots
 				.filter(root => root.scheme === 'http' || root.scheme === 'https')
 				.map(root => {
@@ -507,7 +492,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 		].join(' ');
 	}
 
-	//#endregion
 }
 
 export interface IManagedMarkdownPreview {
@@ -780,7 +764,6 @@ export class DynamicMarkdownPreview extends Disposable implements IManagedMarkdo
 		}));
 
 		this._register(vscode.window.onDidChangeActiveTextEditor(editor => {
-			// Only allow previewing normal text editors which have a viewColumn: See #101514
 			if (typeof editor?.viewColumn === 'undefined') {
 				return;
 			}
@@ -850,7 +833,6 @@ export class DynamicMarkdownPreview extends Disposable implements IManagedMarkdo
 					return;
 
 				case 'fragment':
-					// Workaround. For fragments, just reload the entire preview
 					break;
 
 				default:

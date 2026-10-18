@@ -508,7 +508,6 @@
 .chat-confirmation-widget2 .interactive-result-code-block.compare {
 	.interactive-result-header .monaco-toolbar {
 		display: none;
-		/* Don't show keep/discard for diffs shown within confirmation */
 	}
 }
 
@@ -579,7 +578,6 @@
 		padding-left: 2px;
 	}
 
-	/* shimmer animation for collapsible tool widgets (e.g. MCP tools) */
 	.chat-confirmation-widget.shimmer-progress .chat-confirmation-widget-title > .codicon:first-child:not(.chat-collapsible-hover-chevron) {
 		display: none;
 	}

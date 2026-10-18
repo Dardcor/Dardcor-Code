@@ -51,7 +51,6 @@ export class ListTopCellToolbar extends Disposable {
 			const height = this.notebookOptions.computeTopInsertToolbarHeight(this.notebookEditor.textModel?.viewType);
 
 			if (height !== 0) {
-				// reserve whitespace to avoid overlap with cell toolbar
 				this.notebookEditor.changeViewZones(accessor => {
 					const id = accessor.addZone({
 						afterModelPosition: 0,
@@ -121,7 +120,6 @@ export class ListTopCellToolbar extends Disposable {
 
 			this.viewZone.value?.add(toolbar);
 
-			// update toolbar container css based on cell list length
 			this.viewZone.value?.add(this.notebookEditor.onDidChangeModel(() => {
 				this._modelDisposables.clear();
 

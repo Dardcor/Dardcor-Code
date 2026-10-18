@@ -30,9 +30,6 @@ import {
 	SKILL_PROVIDER_ACTIVATION_EVENT,
 } from './promptsService.js';
 
-/**
- * Event payload emitted by {@link ExtensionPromptFileService.onDidChange}.
- */
 export interface IExtensionPromptFilesChangeEvent {
 	readonly type: PromptsType;
 }
@@ -52,21 +49,8 @@ const ALL_PROMPT_TYPES: readonly PromptsType[] = [
 	PromptsType.hook,
 ];
 
-/**
- * Owns the registry of prompt files contributed by extensions, both via
- * static contribution points (see {@link registerContributedFile}) and via
- * dynamic providers registered through the proposed extension API (see
- * {@link registerPromptFileProvider}).
- *
- * Exposes a per-type getter ({@link getExtensionPromptFiles}) that merges
- * both sources and applies any `when` clauses, plus a single change event
- * ({@link onDidChange}) carrying the affected {@link PromptsType}.
- */
 export class ExtensionPromptFileService extends Disposable {
 
-	/**
-	 * Files contributed via extension contribution points, keyed by type then URI.
-	 */
 	private readonly contributedFiles = {
 		[PromptsType.prompt]: new ResourceMap<Promise<IExtensionPromptPath>>(),
 		[PromptsType.instructions]: new ResourceMap<Promise<IExtensionPromptPath>>(),
@@ -75,15 +59,8 @@ export class ExtensionPromptFileService extends Disposable {
 		[PromptsType.hook]: new ResourceMap<Promise<IExtensionPromptPath>>(),
 	};
 
-	/**
-	 * Providers registered via the proposed extension API.
-	 */
 	private readonly _promptFileProviders: PromptFileProviderEntry[] = [];
 
-	/**
-	 * Context keys referenced by tracked `when` clauses (from contributed
-	 * files and provider results). Used to know when to re-evaluate.
-	 */
 	private readonly _contributedWhenKeys = new Set<string>();
 	private readonly _contributedWhenClauses = new Map<string, string>();
 	private readonly _providerWhenClauses = new Map<PromptFileProviderEntry, readonly string[]>();
@@ -91,12 +68,6 @@ export class ExtensionPromptFileService extends Disposable {
 	private readonly _onDidChange = this._register(new Emitter<IExtensionPromptFilesChangeEvent>());
 	public readonly onDidChange: Event<IExtensionPromptFilesChangeEvent> = this._onDidChange.event;
 
-	/**
-	 * Pending URIs to mark as readonly, flushed on the next microtask.
-	 * Batches multiple `registerContributedFile` calls (which happen
-	 * synchronously in the extension point handler) into a single
-	 * `updateReadonly` call to avoid firing `onDidChangeReadonly` per file.
-	 */
 	private _pendingReadonlyUris: URI[] = [];
 	private _pendingReadonlyFlush = false;
 
@@ -112,9 +83,6 @@ export class ExtensionPromptFileService extends Disposable {
 
 		this._register(this.contextKeyService.onDidChangeContext(e => {
 			if (e.affectsSome(this._contributedWhenKeys)) {
-				// A tracked context key changed; the visibility of any
-				// extension-contributed file may have changed, so notify
-				// for every type.
 				for (const type of ALL_PROMPT_TYPES) {
 					this._onDidChange.fire({ type });
 				}
@@ -122,10 +90,6 @@ export class ExtensionPromptFileService extends Disposable {
 		}));
 	}
 
-	/**
-	 * Returns the merged list of extension-contributed prompt files for the
-	 * given type, filtered by their `when` clause.
-	 */
 	public async getExtensionPromptFiles(type: PromptsType, token: CancellationToken): Promise<readonly IExtensionPromptPath[]> {
 		await this.extensionService.whenInstalledExtensionsRegistered();
 		const settledResults = await Promise.allSettled(this.contributedFiles[type].values());
@@ -149,18 +113,12 @@ export class ExtensionPromptFileService extends Disposable {
 		});
 	}
 
-	/**
-	 * Registers a file contributed via a static contribution point. Returns
-	 * a disposable that removes the contribution.
-	 */
 	public registerContributedFile(type: PromptsType, uri: URI, extension: IExtensionDescription, name?: string, description?: string, when?: string, sessionTypes?: readonly string[]): IDisposable {
 		const bucket = this.contributedFiles[type];
 		if (bucket.has(uri)) {
-			// keep first registration per extension (handler filters duplicates per extension already)
 			return Disposable.None;
 		}
 		const entryPromise = (async () => {
-			// For skills, validate that the file follows the required structure
 			if (type === PromptsType.skill) {
 				try {
 					const validated = await this._validateAndSanitizeSkillFile(uri, CancellationToken.None);
@@ -198,12 +156,6 @@ export class ExtensionPromptFileService extends Disposable {
 		};
 	}
 
-	/**
-	 * Registers a prompt file provider (CustomAgentProvider, InstructionsProvider, or PromptFileProvider).
-	 * This is called by the extension host bridge when an extension registers a provider via
-	 * vscode.chat.registerCustomAgentProvider(), registerInstructionsProvider(), or
-	 * registerPromptFileProvider().
-	 */
 	public registerPromptFileProvider(extension: IExtensionDescription, type: PromptsType, provider: {
 		onDidChangePromptFiles?: Event<void>;
 		providePromptFiles: (context: IPromptFileContext, token: CancellationToken) => Promise<IPromptFileResource[] | undefined>;
@@ -240,7 +192,6 @@ export class ExtensionPromptFileService extends Disposable {
 		const result: IExtensionPromptPath[] = [];
 		const readonlyUris: URI[] = [];
 
-		// Activate extensions that might provide files for this type
 		await this.extensionService.activateByEvent(activationEvent);
 
 		const providers = this._promptFileProviders.filter(p => p.type === type);
@@ -283,9 +234,6 @@ export class ExtensionPromptFileService extends Disposable {
 			}
 		}
 
-		// Mark all collected files as readonly in a single batch to avoid
-		// firing onDidChangeReadonly once per file (which causes a cascade
-		// of event handlers and can freeze the renderer).
 		void this.filesConfigService.updateReadonly(readonlyUris, true);
 
 		return result;
@@ -302,7 +250,7 @@ export class ExtensionPromptFileService extends Disposable {
 			case PromptsType.skill:
 				return SKILL_PROVIDER_ACTIVATION_EVENT;
 			case PromptsType.hook:
-				return undefined; // hooks don't have extension providers
+				return undefined;
 		}
 	}
 
@@ -337,7 +285,6 @@ export class ExtensionPromptFileService extends Disposable {
 		}
 	}
 
-	// Skill validation
 
 	private async _validateAndSanitizeSkillFile(uri: URI, token: CancellationToken): Promise<{ name: string; description: string | undefined }> {
 		const parsedFile = await this._parsePromptFile(uri, token);
@@ -351,10 +298,8 @@ export class ExtensionPromptFileService extends Disposable {
 
 		const description = parsedFile.header?.description;
 
-		// Sanitize the name first (remove XML tags and truncate)
 		let sanitizedName = this._truncateAgentSkillName(name, uri);
 
-		// If sanitized name doesn't match folder name, use folder name (consistent with computeSkillDiscoveryInfo)
 		if (sanitizedName !== folderName) {
 			this.logger.debug(`[validateAndSanitizeSkillFile] Agent skill name "${sanitizedName}" does not match folder name "${folderName}", using folder name: ${uri}`);
 			sanitizedName = folderName;
@@ -377,7 +322,6 @@ export class ExtensionPromptFileService extends Disposable {
 	}
 
 	private _sanitizeAgentSkillText(text: string): string {
-		// Remove XML tags
 		return text.replace(/<[^>]+>/g, '');
 	}
 

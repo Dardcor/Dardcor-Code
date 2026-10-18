@@ -133,7 +133,7 @@ suite('EditorModel - EditableTextModel.applyEdits', () => {
 				'very nice',
 				'text'
 			],
-/*inputEditsAreInvalid*/true
+true
 		);
 	});
 	test('high-low surrogates 2', () => {
@@ -151,7 +151,7 @@ suite('EditorModel - EditableTextModel.applyEdits', () => {
 				'very nice',
 				'text'
 			],
-/*inputEditsAreInvalid*/true
+true
 		);
 	});
 	test('high-low surrogates 3', () => {
@@ -169,7 +169,7 @@ suite('EditorModel - EditableTextModel.applyEdits', () => {
 				'very nice',
 				'text'
 			],
-/*inputEditsAreInvalid*/true
+true
 		);
 	});
 	test('high-low surrogates 4', () => {
@@ -187,7 +187,7 @@ suite('EditorModel - EditableTextModel.applyEdits', () => {
 				'very nice',
 				'text'
 			],
-/*inputEditsAreInvalid*/true
+true
 		);
 	});
 
@@ -994,7 +994,6 @@ suite('EditorModel - EditableTextModel.applyEdits', () => {
 			model.applyEdits([{
 				range: new Range(1, 6, 1, 6),
 				text: ' world!',
-				// forceMoveMarkers: false
 			}]);
 
 			assertMirrorModels();
@@ -1010,7 +1009,6 @@ suite('EditorModel - EditableTextModel.applyEdits', () => {
 				model.applyEdits([{
 					range: new Range(1, 13, 1, 13),
 					text: ' How are you?',
-					// forceMoveMarkers: false
 				}]);
 			});
 		});
@@ -1023,7 +1021,6 @@ suite('EditorModel - EditableTextModel.applyEdits', () => {
 			model.applyEdits([{
 				range: new Range(1, 6, 1, 6),
 				text: ' world!',
-				// forceMoveMarkers: false
 			}]);
 
 			assertMirrorModels();
@@ -1039,7 +1036,6 @@ suite('EditorModel - EditableTextModel.applyEdits', () => {
 				model.applyEdits([{
 					range: new Range(1, 13, 1, 13),
 					text: ' How are you?',
-					// forceMoveMarkers: false
 				}]);
 			});
 		});
@@ -1124,9 +1120,6 @@ suite('CRLF edit normalization', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('edit ending with \\r followed by \\n in buffer should strip trailing \\r', () => {
-		// Document: "abc\r\ndef\r\n"
-		// Edit: Replace range (1,1)-(1,4) "abc" with "xyz\r"
-		// The \r at end of replacement should be stripped since next char is \n
 		const model = createTextModel('abc\r\ndef\r\n');
 		model.setEOL(EndOfLineSequence.CRLF);
 
@@ -1139,7 +1132,6 @@ suite('CRLF edit normalization', () => {
 			{ range: new Range(1, 1, 1, 4), text: 'xyz\r' }
 		]);
 
-		// The trailing \r should be stripped, so we get "xyz" not "xyz\r"
 		assert.strictEqual(model.getLineContent(1), 'xyz');
 		assert.strictEqual(model.getLineContent(2), 'def');
 		assert.strictEqual(model.getLineCount(), 3);
@@ -1148,9 +1140,6 @@ suite('CRLF edit normalization', () => {
 	});
 
 	test('edit ending with \\r\\n should NOT be modified', () => {
-		// Document: "abc\r\ndef\r\n"
-		// Edit: Replace range (1,1)-(1,4) "abc" with "xyz\r\n"
-		// This is a proper CRLF so should not be modified
 		const model = createTextModel('abc\r\ndef\r\n');
 		model.setEOL(EndOfLineSequence.CRLF);
 
@@ -1158,7 +1147,6 @@ suite('CRLF edit normalization', () => {
 			{ range: new Range(1, 1, 1, 4), text: 'xyz\r\n' }
 		]);
 
-		// Should add a new line
 		assert.strictEqual(model.getLineContent(1), 'xyz');
 		assert.strictEqual(model.getLineContent(2), '');
 		assert.strictEqual(model.getLineContent(3), 'def');
@@ -1168,9 +1156,6 @@ suite('CRLF edit normalization', () => {
 	});
 
 	test('edit ending with \\r NOT followed by \\n should NOT be modified', () => {
-		// Document: "abcdef" (no newline after)
-		// Edit: Replace range (1,1)-(1,4) "abc" with "xyz\r"
-		// Since there's no \n after the range, the \r should stay
 		const model = createTextModel('abcdef');
 		model.setEOL(EndOfLineSequence.CRLF);
 
@@ -1178,17 +1163,12 @@ suite('CRLF edit normalization', () => {
 			{ range: new Range(1, 1, 1, 4), text: 'xyz\r' }
 		]);
 
-		// The \r should cause a new line since buffer normalizes EOL
-		// Actually since buffer uses CRLF, the lone \r will be normalized to \r\n
 		assert.strictEqual(model.getLineCount(), 2);
 
 		model.dispose();
 	});
 
 	test('edit in LF buffer should NOT strip trailing \\r', () => {
-		// Document with LF: "abc\ndef\n"
-		// Edit: Replace range (1,1)-(1,4) "abc" with "xyz\r"
-		// Since buffer is LF, no special handling needed
 		const model = createTextModel('abc\ndef\n');
 		model.setEOL(EndOfLineSequence.LF);
 
@@ -1199,16 +1179,12 @@ suite('CRLF edit normalization', () => {
 			{ range: new Range(1, 1, 1, 4), text: 'xyz\r' }
 		]);
 
-		// The \r will be normalized to \n (buffer's EOL)
 		assert.strictEqual(model.getLineCount(), 4);
 
 		model.dispose();
 	});
 
 	test('LSP include sorting scenario - edit ending with \\r should be normalized', () => {
-		// This is the real-world scenario from the issue
-		// Document: "#include \"a.h\"\r\n#include \"c.h\"\r\n#include \"b.h\"\r\n"
-		// Edit: Replace lines 1-3 with reordered includes ending with \r
 		const model = createTextModel('#include "a.h"\r\n#include "c.h"\r\n#include "b.h"\r\n');
 		model.setEOL(EndOfLineSequence.CRLF);
 
@@ -1218,9 +1194,6 @@ suite('CRLF edit normalization', () => {
 		assert.strictEqual(model.getLineContent(2), '#include "c.h"');
 		assert.strictEqual(model.getLineContent(3), '#include "b.h"');
 
-		// Edit: replace range (1,1)-(3,16) with text ending in \r
-		// Range covers: #include "a.h"\r\n#include "c.h"\r\n#include "b.h"
-		// Note: line 3 col 16 is after the last char "h" but before the \r\n
 		model.applyEdits([
 			{
 				range: new Range(1, 1, 3, 16),
@@ -1228,7 +1201,6 @@ suite('CRLF edit normalization', () => {
 			}
 		]);
 
-		// The trailing \r should be stripped because the next char after range is \n
 		assert.strictEqual(model.getLineCount(), 4);
 		assert.strictEqual(model.getLineContent(1), '#include "a.h"');
 		assert.strictEqual(model.getLineContent(2), '#include "b.h"');

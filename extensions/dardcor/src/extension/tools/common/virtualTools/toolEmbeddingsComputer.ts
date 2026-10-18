@@ -36,18 +36,11 @@ export interface IToolEmbeddingsComputer {
 
 	computeToolGroupings(tools: readonly LanguageModelToolInformation[], limit: number, token: CancellationToken): Promise<LanguageModelToolInformation[][]>;
 
-	/**
-	 * Searches for tools similar to the given natural language query using embeddings.
-	 * Returns the names of the top matching tools.
-	 */
 	searchToolsByQuery(query: string, availableTools: readonly LanguageModelToolInformation[], limit: number, token: CancellationToken): Promise<string[]>;
 }
 
 export const IToolEmbeddingsComputer = createServiceIdentifier<IToolEmbeddingsComputer>('IToolEmbeddingsComputer');
 
-/**
- * Manages tool embeddings from both pre-computed cache and runtime computation
- */
 export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 	declare _serviceBrand: undefined;
 
@@ -79,9 +72,6 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 		};
 	}
 
-	/**
-	 * Legacy method name for backward compatibility
-	 */
 	public async retrieveSimilarEmbeddingsForAvailableTools(queryEmbedding: Embedding, availableToolNames: readonly LanguageModelToolInformation[], count: number, token: CancellationToken): Promise<string[]> {
 		await this._initialized.value;
 
@@ -120,17 +110,11 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 		return rankEmbeddings(queryEmbedding, availableEmbeddings, count);
 	}
 
-	/**
-	 * Ensures pre-computed embeddings are loaded into the store
-	 */
 	private async ensureInitialized(): Promise<void> {
 		await Promise.all(this._caches.map(c => c.initialize()));
 	}
 
 
-	/**
-	 * Computes embeddings for missing tools and stores them
-	 */
 	private computeMissingEmbeddings(missingTools: LanguageModelToolInformation[], token: CancellationToken) {
 		if (token.isCancellationRequested || missingTools.length === 0) {
 			return;
@@ -166,9 +150,6 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 		}
 	}
 
-	/**
-	 * Computes embeddings for a list of tool names
-	 */
 	private async computeEmbeddingsForTools(tools: LanguageModelToolInformation[], token: CancellationToken): Promise<[string, Embedding][] | undefined> {
 		if (token.isCancellationRequested) {
 			return undefined;
@@ -186,9 +167,6 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 		return toolNames.map((name, index) => [tools[index].name, embeddings.values[index]]);
 	}
 
-	/**
-	 * Gets embeddings for available tools as an array suitable for ranking
-	 */
 	private async getAvailableToolEmbeddings(tools: readonly LanguageModelToolInformation[], token: CancellationToken): Promise<ReadonlyArray<readonly [string, Embedding]>> {
 		const fromCaches = new Map(tools.map(t => {
 			for (const cache of this._caches) {
@@ -224,9 +202,6 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 		return result;
 	}
 
-	/**
-	 * Groups tools using embedding-based clustering to optimize for target cluster count
-	 */
 	async computeToolGroupings(tools: readonly LanguageModelToolInformation[], limit: number, token: CancellationToken): Promise<LanguageModelToolInformation[][]> {
 		await this._initialized.value;
 
@@ -234,14 +209,12 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 			return [];
 		}
 
-		// Get embeddings for all tools
 		const toolEmbeddings = await this.getAvailableToolEmbeddings(tools, token);
 		if (toolEmbeddings.length === 0) {
 			this._logService.trace('[virtual-tools] No embeddings available for tools, returning empty groups');
 			return [];
 		}
 
-		// Create nodes for the EmbeddingsGrouper
 		const nodes: Node<LanguageModelToolInformation>[] = [];
 		const toolMap = new Map(tools.map(tool => [tool.name, tool]));
 
@@ -260,16 +233,12 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 			return [];
 		}
 
-		// Create EmbeddingsGrouper and add all nodes
 		const grouper = new EmbeddingsGrouper<LanguageModelToolInformation>();
 		grouper.addNodes(nodes);
 
-		// Optimize clustering to hit target cluster count
-		// Target: average of 4 tools per group, but not more than the limit
 		const targetClusters = Math.min(limit, Math.ceil(nodes.length / 4));
 
 		if (targetClusters >= nodes.length) {
-			// If we need as many clusters as tools, just return individual tools
 			this._logService.trace(`[virtual-tools] Target clusters (${targetClusters}) >= tool count (${nodes.length}), returning individual tools`);
 			return tools.map(tool => [tool]);
 		}
@@ -277,11 +246,9 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 		const tuneResult = grouper.tuneThresholdForTargetClusters(targetClusters);
 		this._logService.trace(`[virtual-tools] Tuned clustering: ${tuneResult.clusterCount} clusters with threshold ${tuneResult.threshold} (percentile ${tuneResult.percentile})`);
 
-		// Apply the optimized percentile and get clusters
 		grouper.applyPercentileAndRecluster(tuneResult.percentile);
 		const clusters = grouper.getClusters();
 
-		// Convert clusters to tool arrays, filtering out small groups
 		const groups: LanguageModelToolInformation[][] = [];
 		const singletons: LanguageModelToolInformation[] = [];
 
@@ -291,27 +258,21 @@ export class ToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 			if (toolsInCluster.length >= MIN_TOOLSET_SIZE_TO_GROUP) {
 				groups.push(toolsInCluster);
 			} else {
-				// Small groups become singletons unless expanding would exceed limit
 				singletons.push(...toolsInCluster);
 			}
 		}
 
-		// Check if adding singletons as individual groups would exceed limit
 		const totalGroupsAndSingletons = groups.length + singletons.length;
 		if (totalGroupsAndSingletons <= limit) {
-			// We have room, add singletons as individual groups
 			for (const singleton of singletons) {
 				groups.push([singleton]);
 			}
 		} else {
-			// Try to merge singletons into existing groups if possible
-			// If we can't, keep them as individual groups up to the limit
 			const remainingSlots = limit - groups.length;
 			for (let i = 0; i < Math.min(singletons.length, remainingSlots); i++) {
 				groups.push([singletons[i]]);
 			}
 
-			// Log if we had to drop some tools
 			if (singletons.length > remainingSlots) {
 				this._logService.warn(`[virtual-tools] Had to drop ${singletons.length - remainingSlots} tools due to limit constraints`);
 			}

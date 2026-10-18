@@ -149,7 +149,6 @@ class LanguageTableRenderer extends Disposable implements IExtensionFeatureTable
 		const grammars = contributes?.grammars || [];
 		grammars.forEach(grammar => {
 			if (!isString(grammar.language)) {
-				// ignore the grammars that are only used as includes in other grammars
 				return;
 			}
 			let language = byId[grammar.language];
@@ -166,7 +165,6 @@ class LanguageTableRenderer extends Disposable implements IExtensionFeatureTable
 		const snippets = contributes?.snippets || [];
 		snippets.forEach(snippet => {
 			if (!isString(snippet.language)) {
-				// ignore invalid snippets
 				return;
 			}
 			let language = byId[snippet.language];
@@ -285,7 +283,6 @@ export class WorkbenchLanguageService extends LanguageService {
 		});
 
 		this._register(this.onDidRequestRichLanguageFeatures((languageId) => {
-			// extension activation
 			this._extensionService.activateByEvent(`onLanguage:${languageId}`);
 			this._extensionService.activateByEvent(`onLanguage`);
 		}));
@@ -294,17 +291,15 @@ export class WorkbenchLanguageService extends LanguageService {
 	private updateMime(): void {
 		const configuration = this._configurationService.getValue<IFilesConfiguration>();
 
-		// Clear user configured mime associations
 		clearConfiguredLanguageAssociations();
 
-		// Register based on settings
 		if (configuration.files?.associations) {
 			Object.keys(configuration.files.associations).forEach(pattern => {
 				const langId = configuration.files!.associations[pattern];
 				if (typeof langId !== 'string') {
 					this.logService.warn(`Ignoring configured 'files.associations' for '${pattern}' because its type is not a string but '${typeof langId}'`);
 
-					return; // https://github.com/microsoft/vscode/issues/147284
+					return;
 				}
 
 				const mimeType = this.getMimeType(langId) || `text/x-${langId}`;

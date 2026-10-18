@@ -18,7 +18,6 @@ describe('NoopOTelService', () => {
 
 	it('startSpan returns a noop handle', () => {
 		const span = service.startSpan('test-span', { attributes: { foo: 'bar' } });
-		// All methods should be callable without error
 		span.setAttribute('key', 'value');
 		span.setAttributes({ a: 1, b: 'c' });
 		span.setStatus(SpanStatusCode.OK);

@@ -43,9 +43,6 @@ export interface IKeybindingRule extends IKeybindings {
 	id: string;
 	weight: number;
 	args?: any;
-	/**
-	 * Keybinding is disabled if expression returns false.
-	 */
 	when?: ContextKeyExpression | null | undefined;
 }
 
@@ -81,9 +78,6 @@ export interface IKeybindingsRegistry {
 	getDefaultKeybindingsForOS(os: OperatingSystem): IKeybindingItem[];
 }
 
-/**
- * Stores all built-in and extension-provided keybindings (but not ones that user defines themselves)
- */
 class KeybindingsRegistryImpl implements IKeybindingsRegistry {
 
 	private _coreKeybindings: LinkedList<IKeybindingItem>;
@@ -115,9 +109,6 @@ class KeybindingsRegistryImpl implements IKeybindingsRegistry {
 		return kb;
 	}
 
-	/**
-	 * Take current platform into account and reduce to primary & secondary.
-	 */
 	private static bindToCurrentPlatform(kb: IKeybindings): { primary?: number; secondary?: number[] } {
 		return KeybindingsRegistryImpl.bindToPlatform(kb, OS);
 	}
@@ -252,7 +243,6 @@ class KeybindingsRegistryImpl implements IKeybindingsRegistry {
 }
 export const KeybindingsRegistry: IKeybindingsRegistry = new KeybindingsRegistryImpl();
 
-// Define extension point ids
 export const Extensions = {
 	EditorModes: 'platform.keybindingsRegistry'
 };

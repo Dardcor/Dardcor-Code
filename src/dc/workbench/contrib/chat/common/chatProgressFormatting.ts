@@ -29,10 +29,6 @@ export interface IFormattedChatRequestTimestamp {
 	readonly isRelative: boolean;
 }
 
-/**
- * Format a millisecond duration as a human-readable elapsed time string.
- * Examples: "0s", "45s", "1m 23s", "12m 5s"
- */
 export function formatElapsedTime(ms: number): string {
 	const totalSeconds = Math.floor(ms / 1000);
 	if (totalSeconds < 60) {

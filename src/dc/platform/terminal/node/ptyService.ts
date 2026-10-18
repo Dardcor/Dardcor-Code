@@ -38,11 +38,7 @@ import { getWindowsBuildNumberAsync } from '../../../base/node/windowsVersion.js
 type XtermTerminal = pkg.Terminal;
 const { Terminal: XtermTerminal } = pkg;
 
-/**
- * Sanitizes arguments for logging, specifically handling env objects in createProcess calls.
- */
 function sanitizeArgsForLogging(fnName: string, args: unknown[]): unknown[] {
-	// createProcess signature: shellLaunchConfig, cwd, cols, rows, unicodeVersion, env (index 5), executableEnv (index 6), ...
 	if (fnName === 'createProcess' && args.length > 5) {
 		const sanitizedArgs = [...args];
 		if (args[5] && typeof args[5] === 'object') {
@@ -102,7 +98,6 @@ export class PtyService extends Disposable implements IPtyService {
 	private readonly _detachInstanceRequestStore: RequestStore<IProcessDetails | undefined, { workspaceId: string; instanceId: number }>;
 	private readonly _revivedPtyIdMap: Map<string, { newId: number; state: ISerializedTerminalState }> = new Map();
 
-	// #region Pty service contribution RPC calls
 
 	private readonly _autoRepliesContribution: AutoRepliesPtyServiceContribution;
 	@traceRpc
@@ -114,7 +109,6 @@ export class PtyService extends Disposable implements IPtyService {
 		await this._autoRepliesContribution.uninstallAllAutoReplies();
 	}
 
-	// #endregion
 
 	private readonly _contributions: IPtyServiceContribution[];
 
@@ -230,7 +224,6 @@ export class PtyService extends Disposable implements IPtyService {
 	async serializeTerminalState(ids: number[]): Promise<string> {
 		const promises: Promise<ISerializedTerminalState>[] = [];
 		for (const [persistentProcessId, persistentProcess] of this._ptys.entries()) {
-			// Only serialize persistent processes that have had data written or performed a replay
 			if (persistentProcess.hasWrittenData && ids.indexOf(persistentProcessId) !== -1) {
 				promises.push(Promises.withAsyncBody<ISerializedTerminalState>(async r => {
 					r({
@@ -264,12 +257,6 @@ export class PtyService extends Disposable implements IPtyService {
 	private async _reviveTerminalProcess(workspaceId: string, terminal: ISerializedTerminalState): Promise<void> {
 		const restoreMessage = localize('terminal-history-restored', "History restored");
 
-		// Conpty v1.22+ uses passthrough and doesn't reprint the buffer often, this means that when
-		// the terminal is revived, the cursor would be at the bottom of the buffer then when
-		// PSReadLine requests `GetConsoleCursorInfo` it will be handled by conpty itself by design.
-		// This causes the cursor to move to the top into the replayed terminal contents. To avoid
-		// this, the post restore message will print new lines to get a clear viewport and put the
-		// cursor back at to top left.
 		let postRestoreMessage = '';
 		if (isWindows) {
 			const lastReplayEvent = terminal.replayEvent.events.length > 0 ? terminal.replayEvent.events.at(-1) : undefined;
@@ -278,9 +265,6 @@ export class PtyService extends Disposable implements IPtyService {
 			}
 		}
 
-		// TODO: We may at some point want to show date information in a hover via a custom sequence:
-		//   new Date(terminal.timestamp).toLocaleDateString(dateTimeFormatLocale)
-		//   new Date(terminal.timestamp).toLocaleTimeString(dateTimeFormatLocale)
 		const newId = await this.createProcess(
 			{
 				...terminal.shellLaunchConfig,
@@ -303,7 +287,6 @@ export class PtyService extends Disposable implements IPtyService {
 			true,
 			terminal.replayEvent.events[0].data
 		);
-		// Don't start the process here as there's no terminal to answer CPR
 		const oldId = this._getRevivingProcessId(workspaceId, terminal.id);
 		this._revivedPtyIdMap.set(oldId, { newId, state: terminal });
 		this._logService.info(`Revived process, old id ${oldId} -> new id ${newId}`);
@@ -438,7 +421,6 @@ export class PtyService extends Disposable implements IPtyService {
 
 	@traceRpc
 	async shutdown(id: number, immediate: boolean): Promise<void> {
-		// Don't throw if the pty is already shutdown
 		return this._ptys.get(id)?.shutdown(immediate);
 	}
 	@traceRpc
@@ -530,8 +512,6 @@ export class PtyService extends Disposable implements IPtyService {
 			});
 		}
 		if (direction === 'unix-to-win') {
-			// The backend is Windows, for example a local Windows workspace with a wsl session in
-			// the terminal.
 			if (isWindows) {
 				if (await getWindowsBuildNumberAsync() < 17063) {
 					return original;
@@ -548,7 +528,6 @@ export class PtyService extends Disposable implements IPtyService {
 				});
 			}
 		}
-		// Fallback just in case
 		return original;
 	}
 
@@ -627,7 +606,6 @@ export class PtyService extends Disposable implements IPtyService {
 			this._logService.debug('Reattach to wrong terminal debug info - layout info by id', t);
 			this._logService.debug('Reattach to wrong terminal debug info - _revivePtyIdMap', Array.from(this._revivedPtyIdMap.values()));
 			this._logService.debug('Reattach to wrong terminal debug info - _ptys ids', Array.from(this._ptys.keys()));
-			// this will be filtered out and not reconnected
 			return {
 				terminal: null,
 				relativeSize: hasLayout ? t.relativeSize : 0
@@ -641,8 +619,6 @@ export class PtyService extends Disposable implements IPtyService {
 
 	private async _buildProcessDetails(id: number, persistentProcess: PersistentTerminalProcess, wasRevived: boolean = false): Promise<IProcessDetails> {
 		performance.mark(`code/willBuildProcessDetails/${id}`);
-		// If the process was just revived, don't do the orphan check as it will
-		// take some time
 		const [cwd, isOrphan] = await Promise.all([persistentProcess.getCwd(), wasRevived ? true : persistentProcess.isOrphaned()]);
 		const result = {
 			id,
@@ -680,11 +656,8 @@ export class PtyService extends Disposable implements IPtyService {
 }
 
 const enum InteractionState {
-	/** The terminal has not been interacted with. */
 	None = 'None',
-	/** The terminal has only been interacted with by the replay mechanism. */
 	ReplayOnly = 'ReplayOnly',
-	/** The terminal has been directly interacted with this session. */
 	Session = 'Session'
 }
 
@@ -708,7 +681,6 @@ class PersistentTerminalProcess extends Disposable {
 	private readonly _onProcessReady = this._register(new Emitter<IProcessReadyEvent>());
 	readonly onProcessReady = this._onProcessReady.event;
 	private readonly _onPersistentProcessReady = this._register(new Emitter<void>());
-	/** Fired when the persistent process has a ready process and has finished its replay. */
 	readonly onPersistentProcessReady = this._onPersistentProcessReady.event;
 	private readonly _onProcessData = this._register(new Emitter<string>());
 	readonly onProcessData = this._onProcessData.event;
@@ -819,11 +791,9 @@ class PersistentTerminalProcess extends Disposable {
 			this._onDidChangeProperty.fire(e);
 		}));
 
-		// Data buffering to reduce the amount of messages going to the renderer
 		this._bufferer = new TerminalDataBufferer((_, data) => this._onProcessData.fire(data));
 		this._register(this._bufferer.startBuffering(this._persistentProcessId, this._terminalProcess.onProcessData));
 
-		// Data recording for reconnect
 		this._register(this.onProcessData(e => this._serializer.handleData(e)));
 	}
 
@@ -836,8 +806,6 @@ class PersistentTerminalProcess extends Disposable {
 	}
 
 	async detach(forcePersist?: boolean): Promise<void> {
-		// Keep the process around if it was indicated to persist and it has had some iteraction or
-		// was replayed
 		if (this.shouldPersistTerminal && (this._interactionState.value !== InteractionState.None || forcePersist)) {
 			this._disconnectRunner1.schedule();
 		} else {
@@ -863,16 +831,10 @@ class PersistentTerminalProcess extends Disposable {
 		if (!this._isStarted) {
 			const result = await this._terminalProcess.start();
 			if (result && hasKey(result, { message: true })) {
-				// it's a terminal launch error
 				return result;
 			}
 			this._isStarted = true;
 
-			// If the process was revived, trigger a replay on first start. An alternative approach
-			// could be to start it on the pty host before attaching but this fails on Windows as
-			// conpty's inherit cursor option which is required, ends up sending DSR CPR which
-			// causes conhost to hang when no response is received from the terminal (which wouldn't
-			// be attached yet). https://github.com/microsoft/terminal/issues/11213
 			if (this._wasRevived) {
 				this.triggerReplay();
 			} else {
@@ -913,7 +875,6 @@ class PersistentTerminalProcess extends Disposable {
 		}
 		this._serializer.handleResize(cols, rows);
 
-		// Buffered events should flush when a resize occurs
 		this._bufferer.flushBuffer(this._persistentProcessId);
 
 		return this._terminalProcess.resize(cols, rows, pixelWidth, pixelHeight);
@@ -925,7 +886,6 @@ class PersistentTerminalProcess extends Disposable {
 	setUnicodeVersion(version: '6' | '11'): void {
 		this.unicodeVersion = version;
 		this._serializer.setUnicodeVersion?.(version);
-		// TODO: Pass in unicode version in ctor
 	}
 
 	async setNextCommandId(commandLine: string, commandId: string): Promise<void> {
@@ -979,11 +939,9 @@ class PersistentTerminalProcess extends Disposable {
 
 	reduceGraceTime(): void {
 		if (this._disconnectRunner2.isScheduled()) {
-			// we are disconnected and already running the short reconnection timer
 			return;
 		}
 		if (this._disconnectRunner1.isScheduled()) {
-			// we are disconnected and running the long reconnection timer
 			this._disconnectRunner2.schedule();
 		}
 	}
@@ -993,14 +951,11 @@ class PersistentTerminalProcess extends Disposable {
 	}
 
 	private async _isOrphaned(): Promise<boolean> {
-		// The process is already known to be orphaned
 		if (this._disconnectRunner1.isScheduled() || this._disconnectRunner2.isScheduled()) {
 			return true;
 		}
 
-		// Ask whether the renderer(s) whether the process is orphaned and await the reply
 		if (!this._orphanQuestionBarrier) {
-			// the barrier opens after 4 seconds with or without a reply
 			this._orphanQuestionBarrier = new AutoOpenBarrier(4000);
 			this._orphanQuestionReplyTime = 0;
 			this._onProcessOrphanQuestion.fire();
@@ -1063,7 +1018,6 @@ class XtermSerializer implements ITerminalSerializer {
 	}
 
 	freeRawReviveBuffer(): void {
-		// Free the memory of the terminal if it will need to be re-serialized
 		this._rawReviveBuffer = undefined;
 	}
 

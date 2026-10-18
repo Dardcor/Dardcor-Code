@@ -32,9 +32,6 @@ export interface IGpuRenderStrategy extends IDisposable {
 	onLinesChanged(e: ViewLinesChangedEvent): boolean;
 	onScrollChanged(e?: ViewScrollChangedEvent): boolean;
 
-	/**
-	 * Resets the render strategy, clearing all data and setting up for a new frame.
-	 */
 	reset(): void;
 	update(viewportData: ViewportData, viewLineOptions: ViewLineOptions): number;
 	draw(pass: GPURenderPassEncoder, viewportData: ViewportData): void;

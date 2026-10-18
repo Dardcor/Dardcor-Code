@@ -105,7 +105,7 @@ suite('WorkingCopyHistoryService', () => {
 	async function addEntry(descriptor: IWorkingCopyHistoryEntryDescriptor, token: CancellationToken, expectEntryAdded = true): Promise<IWorkingCopyHistoryEntry | undefined> {
 		const entry = await service.addEntry({
 			...descriptor,
-			timestamp: increasingTimestampCounter++ // very important to get tests to not be flaky with stable sort order
+			timestamp: increasingTimestampCounter++
 		}, token);
 
 		if (expectEntryAdded) {
@@ -127,7 +127,6 @@ suite('WorkingCopyHistoryService', () => {
 		const workingCopy1 = disposables.add(new TestWorkingCopy(testFile1Path));
 		const workingCopy2 = disposables.add(new TestWorkingCopy(testFile2Path));
 
-		// Add Entry works
 
 		const entry1A = await addEntry({ resource: workingCopy1.resource }, CancellationToken.None);
 		const entry2A = await addEntry({ resource: workingCopy2.resource, source: 'My Source' }, CancellationToken.None);
@@ -150,7 +149,6 @@ suite('WorkingCopyHistoryService', () => {
 		assert.strictEqual(addEvents[2].entry.workingCopy.resource.toString(), workingCopy1.resource.toString());
 		assert.strictEqual(addEvents[3].entry.workingCopy.resource.toString(), workingCopy2.resource.toString());
 
-		// Cancellation works
 
 		const cts = new CancellationTokenSource();
 		const entry1CPromise = addEntry({ resource: workingCopy1.resource }, cts.token, false);
@@ -161,7 +159,6 @@ suite('WorkingCopyHistoryService', () => {
 
 		assert.strictEqual(addEvents.length, 4);
 
-		// Invalid working copies are ignored
 
 		const workingCopy3 = disposables.add(new TestWorkingCopy(testFile2Path.with({ scheme: 'unsupported' })));
 		const entry3A = await addEntry({ resource: workingCopy3.resource }, CancellationToken.None, false);
@@ -191,12 +188,10 @@ suite('WorkingCopyHistoryService', () => {
 		entries = await service.getEntries(workingCopy1.resource, CancellationToken.None);
 		assert.strictEqual(entries[0].source, 'Hello Rename');
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -226,19 +221,16 @@ suite('WorkingCopyHistoryService', () => {
 		assert.strictEqual(removeEvents.length, 1);
 		assert.strictEqual(removeEvents[0].entry, entry2);
 
-		// Cannot remove same entry again
 		removed = await service.removeEntry(entry2, CancellationToken.None);
 		assert.strictEqual(removed, false);
 
 		entries = await service.getEntries(workingCopy1.resource, CancellationToken.None);
 		assert.strictEqual(entries.length, 3);
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -252,12 +244,10 @@ suite('WorkingCopyHistoryService', () => {
 
 		let entry: IWorkingCopyHistoryEntry | undefined = await addEntry({ resource: workingCopy1.resource }, CancellationToken.None);
 
-		// Simulate shutdown
 		let event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -269,12 +259,10 @@ suite('WorkingCopyHistoryService', () => {
 
 		await service.removeEntry(entry, CancellationToken.None);
 
-		// Simulate shutdown
 		event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -308,12 +296,10 @@ suite('WorkingCopyHistoryService', () => {
 		entries = await service.getEntries(workingCopy2.resource, CancellationToken.None);
 		assert.strictEqual(entries.length, 0);
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -361,12 +347,10 @@ suite('WorkingCopyHistoryService', () => {
 		const entry2 = await addEntry({ resource: workingCopy2.resource }, CancellationToken.None);
 		const entry3 = await addEntry({ resource: workingCopy2.resource, source: 'other-source' }, CancellationToken.None);
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -386,12 +370,10 @@ suite('WorkingCopyHistoryService', () => {
 
 		const entry1 = await addEntry({ resource: workingCopy1.resource }, CancellationToken.None);
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -402,7 +384,7 @@ suite('WorkingCopyHistoryService', () => {
 
 		const entries = await service.getEntries(workingCopy1.resource, CancellationToken.None);
 		assert.strictEqual(entries.length, 1);
-		assertEntryEqual(entries[0], entry1, false /* skip timestamp that is unreliable when entries.json is gone */);
+		assertEntryEqual(entries[0], entry1, false );
 	});
 
 	test('getEntries - missing entries from meta.json is no problem', async () => {
@@ -411,12 +393,10 @@ suite('WorkingCopyHistoryService', () => {
 		const entry1 = await addEntry({ resource: workingCopy1.resource }, CancellationToken.None);
 		const entry2 = await addEntry({ resource: workingCopy1.resource }, CancellationToken.None);
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -434,12 +414,10 @@ suite('WorkingCopyHistoryService', () => {
 		const entry1 = await addEntry({ resource: workingCopy1.resource, source: 'test-source' }, CancellationToken.None);
 		const entry2 = await addEntry({ resource: workingCopy1.resource, source: 'other-source' }, CancellationToken.None);
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -501,12 +479,10 @@ suite('WorkingCopyHistoryService', () => {
 			}
 		}
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -536,12 +512,10 @@ suite('WorkingCopyHistoryService', () => {
 		resources = await service.getAll(CancellationToken.None);
 		assert.strictEqual(resources.length, 0);
 
-		// Simulate shutdown
 		const event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -571,7 +545,6 @@ suite('WorkingCopyHistoryService', () => {
 
 		service._configurationService.setUserConfiguration('workbench.localHistory.maxFileEntries', 2);
 
-		// Simulate shutdown
 		let event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
@@ -581,7 +554,6 @@ suite('WorkingCopyHistoryService', () => {
 		assert.ok((await fileService.exists(entry3.location)));
 		assert.ok((await fileService.exists(entry4.location)));
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -595,7 +567,6 @@ suite('WorkingCopyHistoryService', () => {
 
 		const entry5 = await addEntry({ resource: workingCopy1.resource, source: 'other-source' }, CancellationToken.None);
 
-		// Simulate shutdown
 		event = new TestWillShutdownEvent();
 		service._lifecycleService.fireWillShutdown(event);
 		await Promise.allSettled(event.value);
@@ -604,7 +575,6 @@ suite('WorkingCopyHistoryService', () => {
 		assert.ok((await fileService.exists(entry4.location)));
 		assert.ok((await fileService.exists(entry5.location)));
 
-		// Resolve from file service fresh and verify again
 
 		service.dispose();
 		service = disposables.add(new TestWorkingCopyHistoryService(disposables, fileService));
@@ -691,8 +661,8 @@ suite('WorkingCopyHistoryService', () => {
 		assert.strictEqual(entries[2].workingCopy.resource.toString(), renamedWorkingCopyResource.toString());
 		assert.ok(!entries[2].sourceDescription);
 
-		assert.strictEqual(entries[3].source, 'renamed.source' /* for the move */);
-		assert.ok(entries[3].sourceDescription); // contains the source working copy path
+		assert.strictEqual(entries[3].source, 'renamed.source' );
+		assert.ok(entries[3].sourceDescription);
 
 		const all = await service.getAll(CancellationToken.None);
 		assert.strictEqual(all.length, 1);
@@ -779,8 +749,8 @@ suite('WorkingCopyHistoryService', () => {
 		assert.notStrictEqual(entries[2].location, entry3B.location);
 		assert.strictEqual(entries[2].workingCopy.resource.toString(), renamedWorkingCopy2Resource.toString());
 
-		assert.strictEqual(entries[3].source, 'moved.source' /* for the move */);
-		assert.ok(entries[3].sourceDescription); // contains the source working copy path
+		assert.strictEqual(entries[3].source, 'moved.source' );
+		assert.ok(entries[3].sourceDescription);
 
 		const all = await service.getAll(CancellationToken.None);
 		assert.strictEqual(all.length, 2);
@@ -836,8 +806,8 @@ suite('WorkingCopyHistoryService', () => {
 		assert.notStrictEqual(entries[2].location, entry3.location);
 		assert.strictEqual(entries[2].workingCopy.resource.toString(), workingCopyTarget.resource.toString());
 
-		assert.strictEqual(entries[3].source, 'renamed.source' /* for the move */);
-		assert.ok(entries[3].sourceDescription); // contains the source working copy path
+		assert.strictEqual(entries[3].source, 'renamed.source' );
+		assert.ok(entries[3].sourceDescription);
 
 		const all = await service.getAll(CancellationToken.None);
 		assert.strictEqual(all.length, 1);
@@ -911,8 +881,8 @@ suite('WorkingCopyHistoryService', () => {
 		assert.notStrictEqual(entries[5].location, sourceEntry3.location);
 		assert.strictEqual(entries[5].workingCopy.resource.toString(), workingCopyTarget.resource.toString());
 
-		assert.strictEqual(entries[6].source, 'renamed.source' /* for the move */);
-		assert.ok(entries[6].sourceDescription); // contains the source working copy path
+		assert.strictEqual(entries[6].source, 'renamed.source' );
+		assert.ok(entries[6].sourceDescription);
 
 		const all = await service.getAll(CancellationToken.None);
 		assert.strictEqual(all.length, 1);

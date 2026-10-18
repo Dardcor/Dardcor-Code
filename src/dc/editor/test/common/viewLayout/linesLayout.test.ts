@@ -32,11 +32,8 @@ suite('Editor ViewLayout - LinesLayout', () => {
 
 	test('LinesLayout 1', () => {
 
-		// Start off with 10 lines
 		const linesLayout = new LinesLayout(10, 10, 0, 0, []);
 
-		// lines: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		// whitespace: -
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 100);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 10);
@@ -61,10 +58,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(21), 3);
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(29), 3);
 
-		// Add whitespace of height 5px after 2nd line
 		insertWhitespace(linesLayout, 2, 0, 5, 0);
-		// lines: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		// whitespace: a(2,5)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 105);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 10);
@@ -85,11 +79,8 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(104), 10);
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(105), 10);
 
-		// Add two more whitespaces of height 5px
 		insertWhitespace(linesLayout, 3, 0, 5, 0);
 		insertWhitespace(linesLayout, 4, 0, 5, 0);
-		// lines: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		// whitespace: a(2,5), b(3, 5), c(4, 5)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 115);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 10);
@@ -111,8 +102,8 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(64), 5);
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(65), 6);
 
-		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(0), 20); // 20 -> 25
-		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(1), 35); // 35 -> 40
+		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(0), 20);
+		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(1), 35);
 		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(2), 50);
 
 		assert.strictEqual(linesLayout.getWhitespaceIndexAtOrAfterVerticallOffset(0), 0);
@@ -141,12 +132,9 @@ suite('Editor ViewLayout - LinesLayout', () => {
 
 	test('LinesLayout 2', () => {
 
-		// Start off with 10 lines and one whitespace after line 2, of height 5
 		const linesLayout = new LinesLayout(10, 1, 0, 0, []);
 		const a = insertWhitespace(linesLayout, 2, 0, 5, 0);
 
-		// 10 lines
-		// whitespace: - a(2,5)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 15);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 1);
@@ -159,9 +147,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(9), 13);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(10), 14);
 
-		// Change whitespace height
-		// 10 lines
-		// whitespace: - a(2,10)
 		changeOneWhitespace(linesLayout, a, 2, 10);
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 20);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
@@ -175,9 +160,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(9), 18);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(10), 19);
 
-		// Change whitespace position
-		// 10 lines
-		// whitespace: - a(5,10)
 		changeOneWhitespace(linesLayout, a, 5, 10);
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 20);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
@@ -191,9 +173,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(9), 18);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(10), 19);
 
-		// Pretend that lines 5 and 6 were deleted
-		// 8 lines
-		// whitespace: - a(4,10)
 		linesLayout.onLinesDeleted(5, 6);
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 18);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
@@ -205,9 +184,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(7), 16);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(8), 17);
 
-		// Insert two lines at the beginning
-		// 10 lines
-		// whitespace: - a(6,10)
 		linesLayout.onLinesInserted(1, 2);
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 20);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
@@ -221,8 +197,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(9), 18);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(10), 19);
 
-		// Remove whitespace
-		// 10 lines
 		removeWhitespace(linesLayout, a);
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 10);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
@@ -238,11 +212,8 @@ suite('Editor ViewLayout - LinesLayout', () => {
 	});
 
 	test('LinesLayout Padding', () => {
-		// Start off with 10 lines
 		const linesLayout = new LinesLayout(10, 10, 15, 20, []);
 
-		// lines: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		// whitespace: -
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 135);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 15);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 25);
@@ -263,10 +234,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(34), 2);
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(35), 3);
 
-		// Add whitespace of height 5px after 2nd line
 		insertWhitespace(linesLayout, 2, 0, 5, 0);
-		// lines: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		// whitespace: a(2,5)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 140);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 15);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 25);
@@ -284,11 +252,8 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(49), 3);
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(50), 4);
 
-		// Add two more whitespaces of height 5px
 		insertWhitespace(linesLayout, 3, 0, 5, 0);
 		insertWhitespace(linesLayout, 4, 0, 5, 0);
-		// lines: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		// whitespace: a(2,5), b(3, 5), c(4, 5)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 150);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 15);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 25);
@@ -314,8 +279,8 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(70), 5);
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(80), 6);
 
-		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(0), 35); // 35 -> 40
-		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(1), 50); // 50 -> 55
+		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(0), 35);
+		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(1), 50);
 		assert.strictEqual(linesLayout.getVerticalOffsetForWhitespaceIndex(2), 65);
 
 		assert.strictEqual(linesLayout.getWhitespaceIndexAtOrAfterVerticallOffset(0), 0);
@@ -336,8 +301,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		const linesLayout = new LinesLayout(10, 1, 0, 0, []);
 		insertWhitespace(linesLayout, 6, 0, 10, 0);
 
-		// 10 lines
-		// whitespace: - a(6,10)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 20);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 1);
@@ -350,9 +313,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(9), 18);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(10), 19);
 
-		// Do some hit testing
-		// line      [1, 2, 3, 4, 5, 6,  7,  8,  9, 10]
-		// vertical: [0, 1, 2, 3, 4, 5, 16, 17, 18, 19]
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(-100), 1);
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(-1), 1);
 		assert.strictEqual(linesLayout.getLineNumberAtOrAfterVerticalOffset(0), 1);
@@ -385,8 +345,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		const linesLayout = new LinesLayout(10, 1, 0, 0, []);
 		insertWhitespace(linesLayout, 6, 0, 10, 0);
 
-		// 10 lines
-		// whitespace: - a(6,10)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 20);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 1);
@@ -399,9 +357,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(9), 18);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(10), 19);
 
-		// Find centered line in viewport 1
-		// line      [1, 2, 3, 4, 5, 6,  7,  8,  9, 10]
-		// vertical: [0, 1, 2, 3, 4, 5, 16, 17, 18, 19]
 		assert.strictEqual(linesLayout.getLinesViewportData(0, 1).centeredLineNumber, 1);
 		assert.strictEqual(linesLayout.getLinesViewportData(0, 2).centeredLineNumber, 2);
 		assert.strictEqual(linesLayout.getLinesViewportData(0, 3).centeredLineNumber, 2);
@@ -436,9 +391,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getLinesViewportData(0, 32).centeredLineNumber, 7);
 		assert.strictEqual(linesLayout.getLinesViewportData(0, 33).centeredLineNumber, 7);
 
-		// Find centered line in viewport 2
-		// line      [1, 2, 3, 4, 5, 6,  7,  8,  9, 10]
-		// vertical: [0, 1, 2, 3, 4, 5, 16, 17, 18, 19]
 		assert.strictEqual(linesLayout.getLinesViewportData(0, 20).centeredLineNumber, 7);
 		assert.strictEqual(linesLayout.getLinesViewportData(1, 20).centeredLineNumber, 7);
 		assert.strictEqual(linesLayout.getLinesViewportData(2, 20).centeredLineNumber, 7);
@@ -468,8 +420,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		const linesLayout = new LinesLayout(10, 10, 0, 0, []);
 		insertWhitespace(linesLayout, 6, 0, 100, 0);
 
-		// 10 lines
-		// whitespace: - a(6,100)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 200);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 10);
@@ -482,7 +432,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(9), 180);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(10), 190);
 
-		// viewport 0->50
 		let viewportData = linesLayout.getLinesViewportData(0, 50);
 		assert.strictEqual(viewportData.startLineNumber, 1);
 		assert.strictEqual(viewportData.endLineNumber, 5);
@@ -490,7 +439,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 5);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [0, 10, 20, 30, 40]);
 
-		// viewport 1->51
 		viewportData = linesLayout.getLinesViewportData(1, 51);
 		assert.strictEqual(viewportData.startLineNumber, 1);
 		assert.strictEqual(viewportData.endLineNumber, 6);
@@ -498,7 +446,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 5);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [0, 10, 20, 30, 40, 50]);
 
-		// viewport 5->55
 		viewportData = linesLayout.getLinesViewportData(5, 55);
 		assert.strictEqual(viewportData.startLineNumber, 1);
 		assert.strictEqual(viewportData.endLineNumber, 6);
@@ -506,7 +453,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 5);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [0, 10, 20, 30, 40, 50]);
 
-		// viewport 10->60
 		viewportData = linesLayout.getLinesViewportData(10, 60);
 		assert.strictEqual(viewportData.startLineNumber, 2);
 		assert.strictEqual(viewportData.endLineNumber, 6);
@@ -514,7 +460,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 6);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [10, 20, 30, 40, 50]);
 
-		// viewport 50->100
 		viewportData = linesLayout.getLinesViewportData(50, 100);
 		assert.strictEqual(viewportData.startLineNumber, 6);
 		assert.strictEqual(viewportData.endLineNumber, 6);
@@ -522,7 +467,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 6);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [50]);
 
-		// viewport 60->110
 		viewportData = linesLayout.getLinesViewportData(60, 110);
 		assert.strictEqual(viewportData.startLineNumber, 7);
 		assert.strictEqual(viewportData.endLineNumber, 7);
@@ -530,7 +474,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 7);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [160]);
 
-		// viewport 65->115
 		viewportData = linesLayout.getLinesViewportData(65, 115);
 		assert.strictEqual(viewportData.startLineNumber, 7);
 		assert.strictEqual(viewportData.endLineNumber, 7);
@@ -538,7 +481,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 7);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [160]);
 
-		// viewport 50->159
 		viewportData = linesLayout.getLinesViewportData(50, 159);
 		assert.strictEqual(viewportData.startLineNumber, 6);
 		assert.strictEqual(viewportData.endLineNumber, 6);
@@ -546,7 +488,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 6);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [50]);
 
-		// viewport 50->160
 		viewportData = linesLayout.getLinesViewportData(50, 160);
 		assert.strictEqual(viewportData.startLineNumber, 6);
 		assert.strictEqual(viewportData.endLineNumber, 6);
@@ -554,7 +495,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 6);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [50]);
 
-		// viewport 51->161
 		viewportData = linesLayout.getLinesViewportData(51, 161);
 		assert.strictEqual(viewportData.startLineNumber, 6);
 		assert.strictEqual(viewportData.endLineNumber, 7);
@@ -563,7 +503,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [50, 160]);
 
 
-		// viewport 150->169
 		viewportData = linesLayout.getLinesViewportData(150, 169);
 		assert.strictEqual(viewportData.startLineNumber, 7);
 		assert.strictEqual(viewportData.endLineNumber, 7);
@@ -571,7 +510,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 7);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [160]);
 
-		// viewport 159->169
 		viewportData = linesLayout.getLinesViewportData(159, 169);
 		assert.strictEqual(viewportData.startLineNumber, 7);
 		assert.strictEqual(viewportData.endLineNumber, 7);
@@ -579,7 +517,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 7);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [160]);
 
-		// viewport 160->169
 		viewportData = linesLayout.getLinesViewportData(160, 169);
 		assert.strictEqual(viewportData.startLineNumber, 7);
 		assert.strictEqual(viewportData.endLineNumber, 7);
@@ -588,7 +525,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [160]);
 
 
-		// viewport 160->1000
 		viewportData = linesLayout.getLinesViewportData(160, 1000);
 		assert.strictEqual(viewportData.startLineNumber, 7);
 		assert.strictEqual(viewportData.endLineNumber, 10);
@@ -602,8 +538,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		const a = insertWhitespace(linesLayout, 6, 0, 100, 0);
 		const b = insertWhitespace(linesLayout, 7, 0, 50, 0);
 
-		// 10 lines
-		// whitespace: - a(6,100), b(7, 50)
 		assert.strictEqual(linesLayout.getLinesTotalHeight(), 250);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(1), 0);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(2), 10);
@@ -616,7 +550,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(9), 230);
 		assert.strictEqual(linesLayout.getVerticalOffsetForLineNumber(10), 240);
 
-		// viewport 50->160
 		let viewportData = linesLayout.getLinesViewportData(50, 160);
 		assert.strictEqual(viewportData.startLineNumber, 6);
 		assert.strictEqual(viewportData.endLineNumber, 6);
@@ -631,7 +564,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 			height: 100
 		}]);
 
-		// viewport 50->219
 		viewportData = linesLayout.getLinesViewportData(50, 219);
 		assert.strictEqual(viewportData.startLineNumber, 6);
 		assert.strictEqual(viewportData.endLineNumber, 7);
@@ -651,7 +583,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 			height: 50
 		}]);
 
-		// viewport 50->220
 		viewportData = linesLayout.getLinesViewportData(50, 220);
 		assert.strictEqual(viewportData.startLineNumber, 6);
 		assert.strictEqual(viewportData.endLineNumber, 7);
@@ -659,7 +590,6 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(viewportData.completelyVisibleEndLineNumber, 7);
 		assert.deepStrictEqual(viewportData.relativeVerticalOffset, [50, 160]);
 
-		// viewport 50->250
 		viewportData = linesLayout.getLinesViewportData(50, 250);
 		assert.strictEqual(viewportData.startLineNumber, 6);
 		assert.strictEqual(viewportData.endLineNumber, 10);
@@ -714,9 +644,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 
 		const linesLayout = new LinesLayout(100, 20, 0, 0, []);
 
-		// Insert a whitespace after line number 2, of height 10
 		const a = insertWhitespace(linesLayout, 2, 0, 10, 0);
-		// whitespaces: a(2, 10)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 1);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 2);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 10);
@@ -727,9 +655,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(3), 10);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 10);
 
-		// Insert a whitespace again after line number 2, of height 20
 		let b = insertWhitespace(linesLayout, 2, 0, 20, 0);
-		// whitespaces: a(2, 10), b(2, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 2);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 2);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 10);
@@ -743,9 +669,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(3), 30);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 30);
 
-		// Change last inserted whitespace height to 30
 		changeOneWhitespace(linesLayout, b, 2, 30);
-		// whitespaces: a(2, 10), b(2, 30)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 2);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 2);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 10);
@@ -759,9 +683,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(3), 40);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 40);
 
-		// Remove last inserted whitespace
 		removeWhitespace(linesLayout, b);
-		// whitespaces: a(2, 10)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 1);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 2);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 10);
@@ -772,9 +694,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(3), 10);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 10);
 
-		// Add a whitespace before the first line of height 50
 		b = insertWhitespace(linesLayout, 0, 0, 50, 0);
-		// whitespaces: b(0, 50), a(2, 10)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 2);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 0);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 50);
@@ -788,9 +708,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(3), 60);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 60);
 
-		// Add a whitespace after line 4 of height 20
 		insertWhitespace(linesLayout, 4, 0, 20, 0);
-		// whitespaces: b(0, 50), a(2, 10), c(4, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 3);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 0);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 50);
@@ -808,9 +726,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 60);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(5), 80);
 
-		// Add a whitespace after line 3 of height 30
 		insertWhitespace(linesLayout, 3, 0, 30, 0);
-		// whitespaces: b(0, 50), a(2, 10), d(3, 30), c(4, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 4);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 0);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 50);
@@ -831,9 +747,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 90);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(5), 110);
 
-		// Change whitespace after line 2 to height of 100
 		changeOneWhitespace(linesLayout, a, 2, 100);
-		// whitespaces: b(0, 50), a(2, 100), d(3, 30), c(4, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 4);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 0);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 50);
@@ -854,9 +768,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 180);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(5), 200);
 
-		// Remove whitespace after line 2
 		removeWhitespace(linesLayout, a);
-		// whitespaces: b(0, 50), d(3, 30), c(4, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 3);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 0);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 50);
@@ -874,9 +786,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 80);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(5), 100);
 
-		// Remove whitespace before line 1
 		removeWhitespace(linesLayout, b);
-		// whitespaces: d(3, 30), c(4, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 2);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 3);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 30);
@@ -891,9 +801,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 30);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(5), 50);
 
-		// Delete line 1
 		linesLayout.onLinesDeleted(1, 1);
-		// whitespaces: d(2, 30), c(3, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 2);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 2);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 30);
@@ -908,9 +816,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 50);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(5), 50);
 
-		// Insert a line before line 1
 		linesLayout.onLinesInserted(1, 1);
-		// whitespaces: d(3, 30), c(4, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 2);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 3);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 30);
@@ -925,9 +831,7 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(4), 30);
 		assert.strictEqual(linesLayout.getWhitespaceAccumulatedHeightBeforeLineNumber(5), 50);
 
-		// Delete line 4
 		linesLayout.onLinesDeleted(4, 4);
-		// whitespaces: d(3, 30), c(3, 20)
 		assert.strictEqual(linesLayout.getWhitespacesCount(), 2);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 3);
 		assert.strictEqual(linesLayout.getHeightForWhitespaceIndex(0), 30);
@@ -1069,121 +973,116 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		const b = insertWhitespace(linesLayout, 7, 0, 1, 0);
 		const c = insertWhitespace(linesLayout, 3, 0, 1, 0);
 
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 0
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 0);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), c); // 3
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), c);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(1), 3);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(2), 7);
 
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 1); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 1); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 1); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1); // --
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1);
 
-		// Do not really move a
 		changeOneWhitespace(linesLayout, a, 1, 1);
 
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 1
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 1);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), c); // 3
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), c);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(1), 3);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(2), 7);
 
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0); // a
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 1); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 1); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1); // --
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1);
 
 
-		// Do not really move a
 		changeOneWhitespace(linesLayout, a, 2, 1);
 
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 2
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 2);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), c); // 3
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), c);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(1), 3);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(2), 7);
 
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0); // a
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 0); // a
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 1); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1); // --
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1);
 
 
-		// Change a to conflict with c => a gets placed after c
 		changeOneWhitespace(linesLayout, a, 3, 1);
 
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), c); // 3
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), c);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 3);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), a); // 3
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), a);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(1), 3);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(2), 7);
 
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 0); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 0); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1); // --
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1);
 
 
-		// Make a no-op
 		changeOneWhitespace(linesLayout, c, 3, 1);
 
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), c); // 3
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), c);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 3);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), a); // 3
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), a);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(1), 3);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(2), 7);
 
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 0); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 0); // c
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1); // --
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 2);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1);
 
 
 
-		// Conflict c with b => c gets placed after b
 		changeOneWhitespace(linesLayout, c, 7, 1);
 
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 3
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(0), 3);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), b);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(1), 7);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c);
 		assert.strictEqual(linesLayout.getAfterLineNumberForWhitespaceIndex(2), 7);
 
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0); // a
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 0); // a
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 0); // a
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 1); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 1); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 1); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 1); // b
-		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1); // --
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(1), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(2), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(3), 0);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(4), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(5), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(6), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(7), 1);
+		assert.strictEqual(linesLayout.getFirstWhitespaceIndexAfterLineNumber(8), -1);
 	});
 
 	test('LinesLayout Bug', () => {
@@ -1192,53 +1091,53 @@ suite('Editor ViewLayout - LinesLayout', () => {
 		const a = insertWhitespace(linesLayout, 0, 0, 1, 0);
 		const b = insertWhitespace(linesLayout, 7, 0, 1, 0);
 
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 0
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), b);
 
 		const c = insertWhitespace(linesLayout, 3, 0, 1, 0);
 
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 0
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), c); // 3
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), c);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), b);
 
 		const d = insertWhitespace(linesLayout, 2, 0, 1, 0);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 0
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), d); // 2
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c); // 3
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), b); // 7
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), d);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), b);
 
 		const e = insertWhitespace(linesLayout, 8, 0, 1, 0);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 0
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), d); // 2
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c); // 3
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), b); // 7
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(4), e); // 8
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), d);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), b);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(4), e);
 
 		const f = insertWhitespace(linesLayout, 11, 0, 1, 0);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 0
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), d); // 2
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c); // 3
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), b); // 7
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(4), e); // 8
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(5), f); // 11
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), d);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), b);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(4), e);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(5), f);
 
 		const g = insertWhitespace(linesLayout, 10, 0, 1, 0);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 0
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), d); // 2
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c); // 3
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), b); // 7
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(4), e); // 8
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(5), g); // 10
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(6), f); // 11
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), d);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), c);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), b);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(4), e);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(5), g);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(6), f);
 
 		const h = insertWhitespace(linesLayout, 0, 0, 1, 0);
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a); // 0
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), h); // 0
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), d); // 2
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), c); // 3
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(4), b); // 7
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(5), e); // 8
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(6), g); // 10
-		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(7), f); // 11
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(0), a);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(1), h);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(2), d);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(3), c);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(4), b);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(5), e);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(6), g);
+		assert.strictEqual(linesLayout.getIdForWhitespaceIndex(7), f);
 	});
 });

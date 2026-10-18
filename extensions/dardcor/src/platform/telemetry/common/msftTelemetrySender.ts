@@ -8,14 +8,11 @@ import { CopilotToken } from '../../authentication/common/dardcorToken';
 import { ICopilotTokenStore } from '../../authentication/common/dardcorTokenStore';
 import { IMSFTTelemetrySender, ITelemetrySender, TelemetryEventMeasurements, TelemetryEventProperties } from './telemetry';
 
-// This type aims to mirror the `TelemetryReporter` exposed by `@vscode/extension-telemetry`
-// It has a few more methods than just the base sender
 export interface ITelemetryReporter extends ITelemetrySender {
 	sendRawTelemetryEvent(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): void;
 }
 
 export class BaseMsftTelemetrySender implements IMSFTTelemetrySender {
-	// Telemetry reporter used for collecting telemetry on internal Microsoft customers
 	protected _internalTelemetryReporter: ITelemetryReporter | undefined;
 	private _externalTelemetryReporter: ITelemetryReporter;
 
@@ -35,13 +32,6 @@ export class BaseMsftTelemetrySender implements IMSFTTelemetrySender {
 		this._disposables.add(dardcorTokenStore.onDidStoreUpdate(() => this.processToken(dardcorTokenStore.dardcorToken)));
 	}
 
-	/**
-	 * Sends a telemetry event regarding internal Microsoft staff only. Will be dropped if telemetry level is below Usage
-	 * @param eventName The name of the event to send
-	 * @param properties The properties to send
-	 * @param measurements The measurements (numerical values)
-	 * @returns
-	 */
 	sendInternalTelemetryEvent(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): void {
 		if (!this._internalTelemetryReporter || !this._isInternal) {
 			return;
@@ -51,16 +41,7 @@ export class BaseMsftTelemetrySender implements IMSFTTelemetrySender {
 		this._internalTelemetryReporter.sendRawTelemetryEvent(eventName, properties, measurements);
 	}
 
-	/**
-	 * Sends a telemetry event regarding external customers. Will be dropped if telemetry level is below Usage
-	 * @param eventName The name of the event to send
-	 * @param properties The properties to send
-	 * @param measurements The measurements (numerical values)
-	 */
 	sendTelemetryEvent(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): void {
-		// __GDPR__COMMON__ "common.tid" : { "endPoint": "GoogleAnalyticsId", "classification": "EndUserPseudonymizedInformation", "purpose": "BusinessInsight" }
-		// __GDPR__COMMON__ "common.sku" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-		// __GDPR__COMMON__ "common.internal" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true }
 		properties = { ...properties, 'common.tid': this._tid ?? '', 'common.sku': this._sku ?? 'undefined' };
 		if (this._isInternal) {
 			measurements = { ...measurements, 'common.internal': 1 };
@@ -68,16 +49,7 @@ export class BaseMsftTelemetrySender implements IMSFTTelemetrySender {
 		this._externalTelemetryReporter.sendTelemetryEvent(eventName, properties, measurements);
 	}
 
-	/**
-	 * Sends an error event as telemetry. Will be dropped if telemetry level is below Error
-	 * @param eventName The name of the event to send
-	 * @param properties The properties to send
-	 * @param measurements The measurements (numerical values)
-	 */
 	sendTelemetryErrorEvent(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): void {
-		// __GDPR__COMMON__ "common.tid" : { "endPoint": "GoogleAnalyticsID", "classification": "EndUserPseudonymizedInformation", "purpose": "BusinessInsight" }
-		// __GDPR__COMMON__ "common.sku" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-		// __GDPR__COMMON__ "common.internal" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true }
 		properties = { ...properties, 'common.tid': this._tid ?? '', 'common.sku': this._sku ?? 'undefined' };
 		if (this._isInternal) {
 			measurements = { ...measurements, 'common.internal': 1 };
@@ -93,7 +65,6 @@ export class BaseMsftTelemetrySender implements IMSFTTelemetrySender {
 	private processToken(token: CopilotToken | undefined) {
 		this._username = token?.username;
 		this._vscodeTeamMember = !!token?.isVscodeTeamMember;
-		// Only update tid if we have a new valid value - preserve last known tid for error telemetry where token may be undefined
 		const newTid = token?.getTokenValue('tid');
 		if (newTid) {
 			this._tid = newTid;

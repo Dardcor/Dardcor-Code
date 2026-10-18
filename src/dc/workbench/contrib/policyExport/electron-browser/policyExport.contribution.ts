@@ -29,11 +29,6 @@ interface ExtensionConfigurationPolicyEntry {
 	readonly description: string;
 }
 
-/**
- * A reference-shaped entry in the distro `extensionConfigurationPolicy`: the extension setting
- * attaches to a policy *owned* by an in-code setting (which provides the catalog metadata and the
- * `value` callback) via a `policyReference` pointer.
- */
 interface ExtensionConfigurationPolicyReferenceEntry {
 	readonly policyReference: { readonly name: string };
 }
@@ -53,7 +48,6 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 	) {
 		super();
 
-		// Skip for non-development flows
 		if (this.nativeEnvironmentService.isBuilt) {
 			return;
 		}
@@ -95,7 +89,6 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 				};
 
 				for (const [key, schema] of Object.entries(configurationProperties)) {
-					// Check for the localization property for now to remain backwards compatible.
 					if (schema.policy?.localization) {
 						policyData.policies.push({
 							key,
@@ -115,13 +108,8 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 				}
 				this.log(`Discovered ${policyData.policies.length} policies to export.`);
 
-				// Merge extension configuration policies from the distro's product.json.
-				// Checks DISTRO_PRODUCT_JSON env var (for testing),
-				// then falls back to fetching from GitHub API with GITHUB_TOKEN.
 				const distroProduct = await this.getDistroProductJson();
 				const extensionPolicies = distroProduct['extensionConfigurationPolicy'] as Record<string, ExtensionConfigurationPolicyEntry | ExtensionConfigurationPolicyReferenceEntry> | undefined;
-				// Reference-shaped product entries (extension settings attaching to an in-code-owned
-				// policy), collected by owning policy name so they can be linked below.
 				const productReferencesByPolicyName = new Map<string, string[]>();
 				if (extensionPolicies) {
 					const existingKeys = new Set(policyData.policies.map(p => p.key));
@@ -131,9 +119,6 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 						if (existingKeys.has(key)) {
 							continue;
 						}
-						// A reference entry carries a `policyReference` pointer; the owner — and its
-						// `value` callback — is declared by an in-code setting. Link it below instead
-						// of merging it as an owner.
 						if (hasKey(entry, { policyReference: true })) {
 							const ownerName = entry.policyReference?.name;
 							if (!ownerName) {
@@ -145,7 +130,6 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 							referenced++;
 							continue;
 						}
-						// Owner ("parent") entry: full catalog metadata is required.
 						if (!entry.name || !entry.category || !entry.description) {
 							throw new Error(`Extension policy '${key}' is missing required 'name', 'category', or 'description' field.`);
 						}
@@ -166,9 +150,6 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 					this.log(`Merged ${added} extension configuration policies (${referenced} references).`);
 				}
 
-				// Link policyReference settings and enforce type match (same value is applied verbatim).
-				// References come from both in-code settings (`getPolicyReferenceConfigurations`) and
-				// reference-shaped distro product entries collected above.
 				const policyReferenceConfigurations = configurationRegistry.getPolicyReferenceConfigurations();
 				const linkedProductReferenceNames = new Set<string>();
 				let linkedReferences = 0;
@@ -184,9 +165,6 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 					if (references.size > 0) {
 						for (const referenceKey of references) {
 							const referenceType = configurationProperties[referenceKey]?.type;
-							// Extension-contributed reference settings are not registered in the
-							// headless export process, so their type cannot be validated here; only
-							// enforce the type match for settings present in the registry.
 							if (referenceType !== undefined && referenceType !== policy.type) {
 								throw new Error(`Policy '${policy.name}': setting '${referenceKey}' (type '${referenceType}') declares a 'policyReference' to a policy of type '${policy.type}'. A 'policyReference' must match the owning setting's type.`);
 							}
@@ -195,8 +173,6 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 						linkedReferences += references.size;
 					}
 				}
-				// A reference must point at an owner. An unmatched product reference means the
-				// in-code owner was not loaded/registered — surface it rather than silently dropping.
 				for (const policyName of productReferencesByPolicyName.keys()) {
 					if (!linkedProductReferenceNames.has(policyName)) {
 						throw new Error(`Extension policy reference to '${policyName}' has no owning policy. Ensure an in-code setting declares 'policy: { name: '${policyName}', ... }'.`);
@@ -217,15 +193,9 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 		}
 	}
 
-	/**
-	 * Reads the distro product.json for the 'stable' quality.
-	 * Checks DISTRO_PRODUCT_JSON env var (for testing),
-	 * then falls back to fetching from the GitHub API using GITHUB_TOKEN.
-	 */
 	private async getDistroProductJson(): Promise<Record<string, unknown>> {
 		const root = this.nativeEnvironmentService.appRoot;
 
-		// 1. DISTRO_PRODUCT_JSON env var (for testing)
 		const envPath = process.env['DISTRO_PRODUCT_JSON'];
 		if (envPath) {
 			this.log(`Reading distro product.json from DISTRO_PRODUCT_JSON=${envPath}`);
@@ -233,7 +203,6 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 			return JSON.parse(content);
 		}
 
-		// 2. GitHub API with GITHUB_TOKEN
 		const packageJsonPath = join(root, 'package.json');
 		const packageJsonContent = (await this.fileService.readFile(URI.file(packageJsonPath))).value.toString();
 		const packageJson = JSON.parse(packageJsonContent);

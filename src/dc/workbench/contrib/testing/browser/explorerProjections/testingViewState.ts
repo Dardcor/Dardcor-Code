@@ -10,9 +10,6 @@ export interface ISerializedTestTreeCollapseState {
 	children?: { [localId: string]: ISerializedTestTreeCollapseState };
 }
 
-/**
- * Gets whether the given test ID is collapsed.
- */
 export function isCollapsedInSerializedTestTree(serialized: ISerializedTestTreeCollapseState, id: TestId | string): boolean | undefined {
 	if (!(id instanceof TestId)) {
 		id = TestId.fromString(id);

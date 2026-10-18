@@ -124,7 +124,6 @@ suite('ClaudeSdkMessageRouter', () => {
 		const { router } = createRouter(disposables);
 		const bogus = { type: 'stream_event', event: { type: 'unknown_event_kind' } } as unknown as SDKMessage;
 		await router.handle(bogus, 'turn-1');
-		// Followed by a valid message — the router must still be functional.
 		await router.handle(makeStreamEvent('sess-1', makeMessageStart()), 'turn-1');
 	});
 

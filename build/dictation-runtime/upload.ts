@@ -3,20 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Uploads one dictation-runtime tarball to the `main.vscode-cdn.net` storage
- * account. Callable as both a library function (`uploadOne(...)`) and a thin CLI.
- *
- * Auth: reads `AZURE_STORAGE_ACCOUNT`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
- * `AZURE_ID_TOKEN` from env — same shape as `build/agent-sdk/upload.ts`.
- *
- * Idempotency: HEAD-first on the `.tgz` blob.
- *   - Absent → upload.
- *   - Present with matching sha256 (in `metadata.sha256`) → skip.
- *   - Present with different / no sha256 metadata → fail loud, refusing to
- *     overwrite content-addressed history. Recovery: delete the blob in the
- *     Azure Portal and re-run.
- */
 
 import { ClientAssertionCredential } from '@azure/identity';
 import { BlobServiceClient } from '@azure/storage-blob';
@@ -30,7 +16,6 @@ export interface IUploadArgs {
 	readonly version: string;
 	readonly target: string;
 	readonly tgzPath: string;
-	/** Pre-computed sha (e.g. from `buildOne()`); if omitted, computed here. */
 	readonly sha256?: string;
 }
 
@@ -105,7 +90,6 @@ function requireEnv(name: string): string {
 	return value;
 }
 
-// #region CLI entry point
 
 function isCliInvocation(): boolean {
 	return import.meta.filename === process.argv[1];
@@ -117,7 +101,6 @@ function parseCliArgs(): IUploadArgs {
 	if (!tgzPath) { throw new Error('--tarball=<path> is required'); }
 	const version = flags.get('version');
 	if (!version) { throw new Error('--version=<version> is required'); }
-	// Filename convention from package.ts: `<target>.tgz`.
 	const target = path.basename(tgzPath).replace(/\.tgz$/, '');
 	if (!SUPPORTED_TARGETS.has(target)) {
 		throw new Error(`Cannot derive a known target from tarball filename '${path.basename(tgzPath)}'`);
@@ -132,4 +115,3 @@ if (isCliInvocation()) {
 	});
 }
 
-// #endregion

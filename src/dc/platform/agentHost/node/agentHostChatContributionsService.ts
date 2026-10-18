@@ -98,9 +98,6 @@ export class AgentHostChatContributions extends Disposable implements IAgentHost
 	}
 
 	registerContribution(contributionCtor: IConstructorSignature<IAgentHostChatContribution, [context: IAgentHostChatContributionContext]> & { readonly id: string }): IDisposable {
-		// Check the stable id before constructing: the instance below is always
-		// new, so testing the registration map for it could never detect a repeat
-		// registration and the contribution's constructor would run twice.
 		for (const registration of this._registeredContributions.values()) {
 			if (registration.id === contributionCtor.id) {
 				throw new Error(`Chat contribution already registered: ${contributionCtor.id}`);
@@ -200,14 +197,6 @@ export class AgentHostChatContributions extends Disposable implements IAgentHost
 		};
 	}
 
-	/**
-	 * Admits an incoming request through ordered contribution gates.
-	 *
-	 * Unlike every other contribution dispatcher, this fails CLOSED: a throwing
-	 * contribution rejects the request instead of being isolated and skipped.
-	 * Treating a failure as an accept could run work in a read-only or archived
-	 * session whose worktree no longer exists.
-	 */
 	incomingRequest(request: IIncomingRequest): IncomingRequestDisposition {
 		for (const registration of this._getOrderedContributions()) {
 			const { contribution } = registration;

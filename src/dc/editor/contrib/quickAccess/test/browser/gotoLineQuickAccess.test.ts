@@ -46,7 +46,6 @@ suite('AbstractGotoLineQuickAccessProvider', () => {
 	}
 
 	test('parsePosition works as expected', () => {
-		// :line
 		runTest('-100', 1);
 		runTest('-5', 1);
 		runTest('-1', 5);
@@ -58,7 +57,6 @@ suite('AbstractGotoLineQuickAccessProvider', () => {
 		runTest('7', 5);
 		runTest('100', 5);
 
-		// :line,column
 		runTest('2:-100', 2, 1);
 		runTest('2:-5', 2, 2);
 		runTest('2:-1', 2, 6);
@@ -70,7 +68,6 @@ suite('AbstractGotoLineQuickAccessProvider', () => {
 		runTest('2:8', 2, 7);
 		runTest('2:100', 2, 7);
 
-		// ::offset (1-based)
 		runTest(':-1000', 1, 1);
 		runTest(':-10', 4, 5);
 		runTest(':-1', 5, 7);
@@ -79,7 +76,6 @@ suite('AbstractGotoLineQuickAccessProvider', () => {
 		runTest(':10', 2, 3);
 		runTest(':1000', 5, 7);
 
-		// offset (0-based)
 		runTest(':-1000', 1, 1, true);
 		runTest(':-10', 4, 4, true);
 		runTest(':-1', 5, 6, true);
@@ -88,9 +84,6 @@ suite('AbstractGotoLineQuickAccessProvider', () => {
 		runTest(':10', 2, 4, true);
 		runTest(':1000', 5, 7, true);
 
-		// :line#column
-		// :line,column
-		// spaces
 		runTest('-1#6', 5, 6);
 		runTest('2,4', 2, 4);
 		runTest('  2  :  3  ', 2, 3);
@@ -110,7 +103,6 @@ suite('AbstractGotoLineQuickAccessProvider', () => {
 	}
 
 	test('parsePosition works with tabs', () => {
-		// :line,column
 		runTabTest('1:1', 1, 1);
 		runTabTest('1:2', 1, 1);
 		runTabTest('1:3', 1, 1);

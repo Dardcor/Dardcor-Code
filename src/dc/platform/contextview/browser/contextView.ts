@@ -29,14 +29,8 @@ export interface IContextViewService extends IContextViewProvider {
 
 export interface IContextViewDelegate {
 
-	canRelayout?: boolean; // Default: true
+	canRelayout?: boolean;
 
-	/**
-	 * The anchor where to position the context view.
-	 * Use a `HTMLElement` to position the view at the element,
-	 * a `StandardMouseEvent` to position it at the mouse position
-	 * or an `IAnchor` to position it at a specific location.
-	 */
 	getAnchor(): HTMLElement | StandardMouseEvent | IAnchor;
 	render(container: HTMLElement): IDisposable;
 	onDOMEvent?(e: any, activeElement: HTMLElement): void;
@@ -48,8 +42,7 @@ export interface IContextViewDelegate {
 	anchorPosition?: AnchorPosition;
 	preventAvoid?: boolean;
 
-	// context views with higher layers are rendered over contet views with lower layers
-	layer?: number; // Default: 0
+	layer?: number;
 }
 
 export interface IOpenContextView {
@@ -69,21 +62,9 @@ export interface IContextMenuService {
 }
 
 export type IContextMenuMenuDelegate = {
-	/**
-	 * The MenuId that should be used to populate the context menu.
-	 */
 	menuId?: MenuId;
-	/**
-	 * Optional options how menu actions are invoked
-	 */
 	menuActionOptions?: IMenuActionOptions;
-	/**
-	 * Optional context key service which drives the given menu
-	 */
 	contextKeyService?: IContextKeyService;
 
-	/**
-	 * Optional getter for extra actions. They will be prepended to the menu actions.
-	 */
 	getActions?(): IAction[];
 } & Omit<IContextMenuDelegate, 'getActions'>;

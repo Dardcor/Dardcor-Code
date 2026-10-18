@@ -21,9 +21,6 @@ import { IFilesConfigurationService } from '../../services/filesConfiguration/co
 import { ITextResourceConfigurationService } from '../../../editor/common/services/textResourceConfiguration.js';
 import { ICustomEditorLabelService } from '../../services/editor/common/customEditorLabelService.js';
 
-/**
- * The base class for all editor inputs that open in text editors.
- */
 export abstract class AbstractTextResourceEditorInput extends AbstractResourceEditorInput {
 
 	constructor(
@@ -42,13 +39,10 @@ export abstract class AbstractTextResourceEditorInput extends AbstractResourceEd
 
 	override save(group: GroupIdentifier, options?: ITextFileSaveOptions): Promise<IUntypedEditorInput | undefined> {
 
-		// If this is neither an `untitled` resource, nor a resource
-		// we can handle with the file service, we can only "Save As..."
 		if (this.resource.scheme !== Schemas.untitled && !this.fileService.hasProvider(this.resource)) {
 			return this.saveAs(group, options);
 		}
 
-		// Normal save
 		return this.doSave(options, false, group);
 	}
 
@@ -58,7 +52,6 @@ export abstract class AbstractTextResourceEditorInput extends AbstractResourceEd
 
 	private async doSave(options: ITextFileSaveOptions | undefined, saveAs: boolean, group: GroupIdentifier | undefined): Promise<IUntypedEditorInput | undefined> {
 
-		// Save / Save As
 		let target: URI | undefined;
 		if (saveAs) {
 			target = await this.textFileService.saveAs(this.resource, undefined, { ...options, suggestedTarget: this.preferredResource });
@@ -67,7 +60,7 @@ export abstract class AbstractTextResourceEditorInput extends AbstractResourceEd
 		}
 
 		if (!target) {
-			return undefined; // save cancelled
+			return undefined;
 		}
 
 		return { resource: target };
@@ -78,10 +71,6 @@ export abstract class AbstractTextResourceEditorInput extends AbstractResourceEd
 	}
 }
 
-/**
- * A read-only text editor input whos contents are made of the provided resource that points to an existing
- * code editor model.
- */
 export class TextResourceEditorInput extends AbstractTextResourceEditorInput implements ILanguageSupport {
 
 	static readonly ID: string = 'workbench.editors.resourceEditorInput';
@@ -155,11 +144,6 @@ export class TextResourceEditorInput extends AbstractTextResourceEditorInput imp
 
 	override async resolve(): Promise<ITextEditorModel> {
 
-		// Unset preferred contents and language after resolving
-		// once to prevent these properties to stick. We still
-		// want the user to change the language in the editor
-		// and want to show updated contents (if any) in future
-		// `resolve` calls.
 		const preferredContents = this.preferredContents;
 		const preferredLanguageId = this.preferredLanguageId;
 		this.preferredContents = undefined;
@@ -171,7 +155,6 @@ export class TextResourceEditorInput extends AbstractTextResourceEditorInput imp
 
 		const ref = await this.modelReference;
 
-		// Ensure the resolved model is of expected type
 		const model = ref.object;
 		if (!(model instanceof TextResourceEditorModel)) {
 			ref.dispose();
@@ -182,7 +165,6 @@ export class TextResourceEditorInput extends AbstractTextResourceEditorInput imp
 
 		this.cachedModel = model;
 
-		// Set contents and language if preferred
 		if (typeof preferredContents === 'string' || typeof preferredLanguageId === 'string') {
 			model.updateTextEditorModel(typeof preferredContents === 'string' ? createTextBufferFactory(preferredContents) : undefined, preferredLanguageId);
 		}

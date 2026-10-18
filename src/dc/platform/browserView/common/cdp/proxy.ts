@@ -8,36 +8,22 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { ICDPTarget, CDPRequest, CDPResponse, CDPEvent, CDPError, CDPErrorCode, CDPServerError, CDPMethodNotFoundError, CDPInvalidParamsError, ICDPConnection, ICDPBrowserTarget } from './types.js';
 
-/**
- * CDP protocol handler for browser-level connections.
- * Manages Browser.* and Target.* domains, routes page-level commands
- * to the appropriate attached session by sessionId.
- */
 export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 	readonly sessionId = `browser-session-${generateUuid()}`;
 	get targetId() {
 		return this.browserTarget.targetInfo.targetId;
 	}
 
-	// Browser session state
 	private _isAttachedToBrowserTarget = false;
 	private _autoAttach = false;
 	private _discover = false;
 
-	/**
-	 * All sessions known to this proxy, keyed by sessionId.
-	 * Includes sessions from explicit attach, proxy auto-attach,
-	 * and client auto-attach children.
-	 */
 	private readonly _sessions = this._register(new DisposableMap<string, ICDPConnection>());
 	private readonly _targets = this._register(new DisposableMap<string, ICDPTarget>());
 
-	// Only auto-attach once per target.
 	private readonly _autoAttachments = new WeakSet<ICDPTarget>();
 
-	// CDP method handlers map
 	private readonly _handlers = new Map<string, (params: unknown, sessionId?: string) => Promise<object> | object>([
-		// Browser.* methods (https://chromedevtools.github.io/devtools-protocol/tot/Browser/)
 		['Browser.addPrivacySandboxCoordinatorKeyConfig', () => ({})],
 		['Browser.addPrivacySandboxEnrollmentOverride', () => ({})],
 		['Browser.close', () => ({})],
@@ -46,7 +32,6 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 		['Browser.getWindowForTarget', (p, s) => this.handleBrowserGetWindowForTarget(p as { targetId?: string; sessionId?: string }, s)],
 		['Browser.setDownloadBehavior', () => ({})],
 		['Browser.setWindowBounds', () => ({})],
-		// Target.* methods (https://chromedevtools.github.io/devtools-protocol/tot/Target/)
 		['Target.activateTarget', (p) => this.handleTargetActivateTarget(p as { targetId: string })],
 		['Target.attachToTarget', (p) => this.handleTargetAttachToTarget(p as { targetId: string; flatten?: boolean })],
 		['Target.closeTarget', (p) => this.handleTargetCloseTarget(p as { targetId: string })],
@@ -108,17 +93,17 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 
 	notifySessionCreated(session: ICDPConnection, waitingForDebugger: boolean): void {
 		if (this._sessions.has(session.sessionId)) {
-			return; // We already know about it.
+			return;
 		}
 		if (!session.parentSessionId) {
-			return; // Created globally -- we don't care about it.
+			return;
 		}
 		if (!this._sessions.has(session.parentSessionId)) {
-			return; // Not from one of our sessions -- ignore it.
+			return;
 		}
 		const target = this._targets.get(session.targetId);
 		if (!target) {
-			return; // Target isn't known -- ignore it.
+			return;
 		}
 		target.notifySessionCreated(session, waitingForDebugger);
 	}
@@ -140,10 +125,6 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 			waitingForDebugger
 		}, session.parentSessionId);
 
-		// Forward non-Target events from the session to the external client.
-		// Target domain events are suppressed — the proxy emits its own
-		// lifecycle events (attachedToTarget, detachedFromTarget, etc.)
-		// via registerSession / onClose / sendEvent.
 		session.onEvent(event => {
 			if (event.method.startsWith('Target.')) {
 				return;
@@ -161,16 +142,13 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 		});
 	}
 
-	/** Send a browser-level event to the client */
 	private sendEvent(method: string, params: unknown, sessionId?: string): void {
 		sessionId ||= (this._isAttachedToBrowserTarget ? this.sessionId : undefined);
 		this._onMessage.fire({ method, params, sessionId });
 		this._onEvent.fire({ method, params, sessionId });
 	}
 
-	// #region Public API
 
-	// Events to external clients
 	private readonly _onEvent = this._register(new Emitter<CDPEvent>());
 	readonly onEvent: Event<CDPEvent> = this._onEvent.event;
 	private readonly _onClose = this._register(new Emitter<void>());
@@ -178,14 +156,8 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 	private readonly _onMessage = this._register(new Emitter<CDPResponse | CDPEvent>());
 	readonly onMessage: Event<CDPResponse | CDPEvent> = this._onMessage.event;
 
-	/**
-	 * Send a CDP command and await the result.
-	 * Browser-level handlers (Browser.*, Target.*) are checked first.
-	 * Other commands are routed to the page session identified by sessionId.
-	 */
 	async sendCommand(method: string, params: unknown = {}, sessionId?: string): Promise<unknown> {
 		try {
-			// Browser-level command handling
 			if (
 				!sessionId ||
 				sessionId === this.sessionId ||
@@ -214,10 +186,6 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 		}
 	}
 
-	/**
-	 * Accept a CDP request from a message-based transport (WebSocket, IPC, etc.), route it,
-	 * and deliver the response or error via {@link onMessage}.
-	 */
 	async sendMessage({ id, method, params, sessionId }: CDPRequest): Promise<void> {
 		return this.sendCommand(method, params, sessionId)
 			.then(result => {
@@ -235,9 +203,7 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 			});
 	}
 
-	// #endregion
 
-	// #region CDP Commands
 
 	private handleBrowserGetWindowForTarget({ targetId }: { targetId?: string }, sessionId?: string) {
 		const resolvedTargetId = (sessionId && this._sessions.get(sessionId)?.targetId) ?? targetId;
@@ -298,7 +264,6 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 			throw new CDPInvalidParamsError('This implementation only supports auto-attach with flatten=true');
 		}
 
-		// Proxy-level auto-attach: attach to new targets as they are registered.
 		this._autoAttach = params.autoAttach ?? false;
 
 		return {};
@@ -309,7 +274,6 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 			this._discover = discover;
 
 			if (this._discover) {
-				// Announce all existing targets
 				for (const target of this._targets.values()) {
 					this.sendEvent('Target.targetCreated', { targetInfo: target.targetInfo });
 				}
@@ -325,7 +289,6 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 
 	private async handleTargetGetTargetInfo({ targetId }: { targetId?: string } = {}) {
 		if (!targetId) {
-			// No targetId specified -- return info about the browser target itself
 			return { targetInfo: this.browserTarget.targetInfo };
 		}
 
@@ -363,7 +326,6 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 		const target = await this.browserTarget.createTarget(url || 'about:blank', browserContextId);
 		this.registerTarget(target);
 
-		// Playwright expects the attachment to happen before createTarget returns.
 		if (this._autoAttach && !this._autoAttachments.has(target)) {
 			this._autoAttachments.add(target);
 			await target.attach();
@@ -385,5 +347,4 @@ export class CDPBrowserProxy extends Disposable implements ICDPConnection {
 		}
 	}
 
-	// #endregion
 }

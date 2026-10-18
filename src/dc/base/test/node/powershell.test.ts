@@ -9,14 +9,11 @@ import { enumeratePowerShellInstallations, getFirstAvailablePowerShellInstallati
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../common/utils.js';
 
 function checkPath(exePath: string) {
-	// Check to see if the path exists
 	let pathCheckResult = false;
 	try {
 		const stat = fs.statSync(exePath);
 		pathCheckResult = stat.isFile();
 	} catch {
-		// fs.exists throws on Windows with SymbolicLinks so we
-		// also use lstat to try and see if the file exists.
 		try {
 			pathCheckResult = fs.statSync(fs.readlinkSync(exePath)).isFile();
 		} catch {
@@ -52,7 +49,6 @@ if (platform.isWindows) {
 				checkPath(pwsh.exePath);
 			}
 
-			// The last one should always be Windows PowerShell.
 			assert.strictEqual(pwshs[pwshs.length - 1].displayName, 'Windows PowerShell', powershellLog);
 		});
 	});

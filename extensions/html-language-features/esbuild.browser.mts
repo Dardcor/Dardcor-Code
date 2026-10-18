@@ -9,11 +9,6 @@ import { run } from '../esbuild-extension-common.mts';
 
 const extensionRoot = import.meta.dirname;
 
-/**
- * An esbuild plugin that replaces the `javascriptLibs` module with inlined TypeScript
- * library definitions for the browser build. This is the esbuild equivalent of the
- * webpack `javaScriptLibraryLoader.js`.
- */
 function javaScriptLibsPlugin(): esbuild.Plugin {
 	return {
 		name: 'javascript-libs',
@@ -83,7 +78,6 @@ function javaScriptLibsPlugin(): esbuild.Plugin {
 }
 
 await Promise.all([
-	// Build client
 	run({
 		platform: 'browser',
 		entryPoints: {
@@ -96,7 +90,6 @@ await Promise.all([
 		},
 	}, process.argv),
 
-	// Build server
 	run({
 		platform: 'browser',
 		format: 'esm',

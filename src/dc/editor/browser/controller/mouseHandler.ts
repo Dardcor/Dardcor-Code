@@ -34,22 +34,13 @@ export interface IPointerHandlerHelper {
 	focusTextArea(): void;
 	dispatchTextAreaEvent(event: CustomEvent): void;
 
-	/**
-	 * Get the last rendered information for cursors & textarea.
-	 */
 	getLastRenderData(): PointerHandlerLastRenderData;
 
-	/**
-	 * Render right now
-	 */
 	renderNow(): void;
 
 	shouldSuppressMouseDownOnViewZone(viewZoneId: string): boolean;
 	shouldSuppressMouseDownOnWidget(widgetId: string): boolean;
 
-	/**
-	 * Decode a position from a rendered dom node
-	 */
 	getPositionFromDOMInfo(spanNode: HTMLElement, offset: number): Position | null;
 
 	visibleRangeForPosition(lineNumber: number, column: number): HorizontalPosition | null;
@@ -94,17 +85,10 @@ export class MouseHandler extends ViewEventHandler {
 		this._register(mouseEvents.onMouseMove(this.viewHelper.viewDomNode, (e) => {
 			this._onMouseMove(e);
 
-			// See https://github.com/microsoft/vscode/issues/138789
-			// When moving the mouse really quickly, the browser sometimes forgets to
-			// send us a `mouseleave` or `mouseout` event. We therefore install here
-			// a global `mousemove` listener to manually recover if the mouse goes outside
-			// the editor. As soon as the mouse leaves outside of the editor, we
-			// remove this listener
 
 			if (!this._mouseLeaveMonitor) {
 				this._mouseLeaveMonitor = dom.addDisposableListener(this.viewHelper.viewDomNode.ownerDocument, 'mousemove', (e) => {
 					if (!this.viewHelper.viewDomNode.contains(e.target as Node | null)) {
-						// went outside the editor!
 						this._onMouseLeave(new EditorMouseEvent(e, false, this.viewHelper.viewDomNode));
 					}
 				});
@@ -115,19 +99,10 @@ export class MouseHandler extends ViewEventHandler {
 
 		this._register(mouseEvents.onMouseLeave(this.viewHelper.viewDomNode, (e) => this._onMouseLeave(e)));
 
-		// `pointerdown` events can't be used to determine if there's a double click, or triple click
-		// because their `e.detail` is always 0.
-		// We will therefore save the pointer id for the mouse and then reuse it in the `mousedown` event
-		// for `element.setPointerCapture`.
 		let capturePointerId: number = 0;
 		this._register(mouseEvents.onPointerDown(this.viewHelper.viewDomNode, (e, pointerId) => {
 			capturePointerId = pointerId;
 		}));
-		// The `pointerup` listener registered by `GlobalEditorPointerMoveMonitor` does not get invoked 100% of the times.
-		// I speculate that this is because the `pointerup` listener is only registered during the `mousedown` event, and perhaps
-		// the `pointerup` event is already queued for dispatching, which makes it that the new listener doesn't get fired.
-		// See https://github.com/microsoft/vscode/issues/146486 for repro steps.
-		// To compensate for that, we simply register here a `pointerup` listener and just communicate it.
 		this._register(dom.addDisposableListener(this.viewHelper.viewDomNode, dom.EventType.POINTER_UP, (e: PointerEvent) => {
 			this._mouseDownOperation.onPointerUp();
 		}));
@@ -165,11 +140,7 @@ export class MouseHandler extends ViewEventHandler {
 					e.stopPropagation();
 				}
 			} else {
-				// we consider mousewheel events that occur within 50ms of each other to be part of the same gesture
-				// we don't want to consider mouse wheel events where ctrl/cmd is pressed during the inertia phase
-				// we also want to accumulate deltaY values from the same gesture and use that to set the zoom level
 				if (Date.now() - prevMouseWheelTime > 50) {
-					// reset if more than 50ms have passed
 					gestureStartZoomLevel = EditorZoom.getZoomLevel();
 					gestureHasZoomModifiers = hasMouseWheelZoomModifiers(browserEvent);
 					gestureAccumulatedDelta = 0;
@@ -190,8 +161,6 @@ export class MouseHandler extends ViewEventHandler {
 		function hasMouseWheelZoomModifiers(browserEvent: IMouseWheelEvent): boolean {
 			return (
 				platform.isMacintosh
-					// on macOS we support cmd + two fingers scroll (`metaKey` set)
-					// and also the two fingers pinch gesture (`ctrKey` set)
 					? ((browserEvent.metaKey || browserEvent.ctrlKey) && !browserEvent.shiftKey && !browserEvent.altKey)
 					: (browserEvent.ctrlKey && !browserEvent.metaKey && !browserEvent.shiftKey && !browserEvent.altKey)
 			);
@@ -207,10 +176,8 @@ export class MouseHandler extends ViewEventHandler {
 		super.dispose();
 	}
 
-	// --- begin event handlers
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		if (e.hasChanged(EditorOption.layoutInfo)) {
-			// layout change
 			const height = this._context.configuration.options.get(EditorOption.layoutInfo).height;
 			if (this._height !== height) {
 				this._height = height;
@@ -226,7 +193,6 @@ export class MouseHandler extends ViewEventHandler {
 	public override onFocusChanged(e: viewEvents.ViewFocusChangedEvent): boolean {
 		return false;
 	}
-	// --- end event handlers
 
 	public getTargetAtClientPoint(clientX: number, clientY: number): IMouseTarget | null {
 		const clientPos = new ClientCoordinates(clientX, clientY);
@@ -273,12 +239,10 @@ export class MouseHandler extends ViewEventHandler {
 		}
 
 		if (this._mouseDownOperation.isActive()) {
-			// In selection/drag operation
 			return;
 		}
 		const actualMouseMoveTime = e.timestamp;
 		if (actualMouseMoveTime < this.lastMouseLeaveTime) {
-			// Due to throttling, this event occurred before the mouse left the editor, therefore ignore it.
 			return;
 		}
 
@@ -332,7 +296,6 @@ export class MouseHandler extends ViewEventHandler {
 			this._mouseDownOperation.start(t.type, e, pointerId);
 
 		} else if (targetIsGutter) {
-			// Do not steal focus
 			e.preventDefault();
 		} else if (targetIsViewZone) {
 			const viewZoneData = t.detail;
@@ -413,7 +376,6 @@ class MouseDownOperation extends Disposable {
 
 		const position = this._findMousePosition(e, false);
 		if (!position) {
-			// Ignoring because position is unknown
 			return;
 		}
 
@@ -447,13 +409,11 @@ class MouseDownOperation extends Disposable {
 		this._mouseState.setModifiers(e);
 		const position = this._findMousePosition(e, true);
 		if (!position || !position.position) {
-			// Ignoring because position is unknown
 			return;
 		}
 
 		this._mouseState.trySetCount(e.detail, position.position);
 
-		// Overwrite the detail of the MouseEvent, as it will be sent out in an event and contributions might rely on it.
 		e.detail = this._mouseState.count;
 
 		const options = this._context.configuration.options;
@@ -461,12 +421,12 @@ class MouseDownOperation extends Disposable {
 		if (!options.get(EditorOption.readOnly)
 			&& options.get(EditorOption.dragAndDrop)
 			&& !options.get(EditorOption.columnSelection)
-			&& !this._mouseState.altKey // we don't support multiple mouse
-			&& e.detail < 2 // only single click on a selection can work
-			&& !this._isActive // the mouse is not down yet
-			&& !this._currentSelection.isEmpty() // we don't drag single cursor
-			&& (position.type === MouseTargetType.CONTENT_TEXT) // single click on text
-			&& position.position && this._currentSelection.containsPosition(position.position) // single click on a selection
+			&& !this._mouseState.altKey
+			&& e.detail < 2
+			&& !this._isActive
+			&& !this._currentSelection.isEmpty()
+			&& (position.type === MouseTargetType.CONTENT_TEXT)
+			&& position.position && this._currentSelection.containsPosition(position.position)
 		) {
 			this._mouseState.isDragAndDrop = true;
 			this._isActive = true;
@@ -480,12 +440,11 @@ class MouseDownOperation extends Disposable {
 					const position = this._findMousePosition(this._lastMouseEvent!, false);
 
 					if (dom.isKeyboardEvent(browserEvent)) {
-						// cancel
 						this._viewController.emitMouseDropCanceled();
 					} else {
 						this._viewController.emitMouseDrop({
 							event: this._lastMouseEvent!,
-							target: (position ? this._createMouseTarget(this._lastMouseEvent!, true) : null) // Ignoring because position is unknown, e.g., Content View Zone
+							target: (position ? this._createMouseTarget(this._lastMouseEvent!, true) : null)
 						});
 					}
 
@@ -579,7 +538,7 @@ class MouseDownOperation extends Disposable {
 
 		const contentRight = (
 			layoutInfo.minimap.minimapLeft === 0
-				? layoutInfo.width - layoutInfo.verticalScrollbarWidth // Happens when minimap is hidden
+				? layoutInfo.width - layoutInfo.verticalScrollbarWidth
 				: layoutInfo.minimap.minimapLeft
 		);
 		const xRightBoundary = contentRight;
@@ -615,7 +574,6 @@ class MouseDownOperation extends Disposable {
 	}
 
 	private _helpPositionJumpOverViewZone(viewZoneData: IMouseTargetViewZoneData): Position | null {
-		// Force position on view zones to go above or below depending on where selection started from
 		const selectionStart = new Position(this._currentSelection.selectionStartLineNumber, this._currentSelection.selectionStartColumn);
 		const positionBefore = viewZoneData.positionBefore;
 		const positionAfter = viewZoneData.positionAfter;
@@ -657,7 +615,7 @@ class MouseDownOperation extends Disposable {
 
 class MouseDownState {
 
-	private static readonly CLEAR_MOUSE_DOWN_COUNT_TIME = 400; // ms
+	private static readonly CLEAR_MOUSE_DOWN_COUNT_TIME = 400;
 
 	private _altKey: boolean;
 	public get altKey(): boolean { return this._altKey; }
@@ -722,19 +680,16 @@ class MouseDownState {
 	}
 
 	public trySetCount(setMouseDownCount: number, newMouseDownPosition: Position): void {
-		// a. Invalidate multiple clicking if too much time has passed (will be hit by IE because the detail field of mouse events contains garbage in IE10)
 		const currentTime = (new Date()).getTime();
 		if (currentTime - this._lastSetMouseDownCountTime > MouseDownState.CLEAR_MOUSE_DOWN_COUNT_TIME) {
 			setMouseDownCount = 1;
 		}
 		this._lastSetMouseDownCountTime = currentTime;
 
-		// b. Ensure that we don't jump from single click to triple click in one go (will be hit by IE because the detail field of mouse events contains garbage in IE10)
 		if (setMouseDownCount > this._lastMouseDownCount + 1) {
 			setMouseDownCount = this._lastMouseDownCount + 1;
 		}
 
-		// c. Invalidate multiple clicking if the logical position is different
 		if (this._lastMouseDownPosition && this._lastMouseDownPosition.equals(newMouseDownPosition)) {
 			this._lastMouseDownPositionEqualCount++;
 		} else {
@@ -742,7 +697,6 @@ class MouseDownState {
 		}
 		this._lastMouseDownPosition = newMouseDownPosition;
 
-		// Finally set the lastMouseDownCount
 		this._lastMouseDownCount = Math.min(setMouseDownCount, this._lastMouseDownPositionEqualCount);
 	}
 

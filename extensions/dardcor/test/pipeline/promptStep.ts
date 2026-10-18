@@ -41,10 +41,6 @@ function extractPromptParts(messages: Raw.ChatMessage[]): { system: string; user
 	};
 }
 
-/**
- * Generate a prompt from a recording using the NES pipeline.
- * Uses MockChatMLFetcher (via DI services) to capture the prompt without calling a real model.
- */
 export async function generatePromptFromRecording(
 	accessor: ServicesAccessor,
 	recordingInfo: IRecordingInformation,
@@ -93,11 +89,6 @@ export async function generatePromptFromRecording(
 			nextEditProvider.ID, replayer.workspace.getDocument(activeDocument.docId),
 		);
 
-		// Prompt is captured in logContext; model call is mocked via DI.
-		// The provider may throw during response streaming (after prompt capture)
-		// since we use a mock fetcher. We only tolerate errors once the prompt
-		// has been captured in logContext; otherwise we rethrow so the outer
-		// handler can surface a useful error message.
 		try {
 			await nextEditProvider.getNextEdit(
 				activeDocument.docId, context, logContext,
@@ -105,12 +96,8 @@ export async function generatePromptFromRecording(
 			);
 		} catch (err) {
 			if (!logContext.rawMessages) {
-				// Error occurred before the prompt was captured; let the outer
-				// handler report this as a failure.
 				throw err;
 			}
-			// Expected: mock fetcher response causes downstream errors after
-			// the prompt has already been captured in logContext.
 		} finally {
 			nextEditProvider.dispose();
 			telemetryBuilder.dispose();

@@ -17,7 +17,6 @@ const CUSTOM_EMBEDDING_DEFAULTS = {
   baseUrl: "https://api.openai.com/v1",
 };
 
-// GET /api/provider-nodes - List all provider nodes
 export async function GET() {
   try {
     const nodes = await getProviderNodes();
@@ -28,7 +27,6 @@ export async function GET() {
   }
 }
 
-// POST /api/provider-nodes - Create provider node
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -42,7 +40,6 @@ export async function POST(request) {
       return NextResponse.json({ error: "Prefix is required" }, { status: 400 });
     }
 
-    // Determine type
     const nodeType = type || "openai-compatible";
 
     if (nodeType === "openai-compatible") {
@@ -62,7 +59,6 @@ export async function POST(request) {
     }
 
     if (nodeType === "custom-embedding") {
-      // Strip trailing slash and /embeddings if user pasted full endpoint
       let sanitizedBaseUrl = (baseUrl || CUSTOM_EMBEDDING_DEFAULTS.baseUrl).trim().replace(/\/$/, "");
       if (sanitizedBaseUrl.endsWith("/embeddings")) {
         sanitizedBaseUrl = sanitizedBaseUrl.slice(0, -"/embeddings".length);
@@ -79,11 +75,9 @@ export async function POST(request) {
     }
 
     if (nodeType === "anthropic-compatible") {
-      // Sanitize Base URL: remove trailing slash, and remove trailing /messages if user added it
-      // This prevents double-appending /messages at runtime
       let sanitizedBaseUrl = (baseUrl || ANTHROPIC_COMPATIBLE_DEFAULTS.baseUrl).trim().replace(/\/$/, "");
       if (sanitizedBaseUrl.endsWith("/messages")) {
-        sanitizedBaseUrl = sanitizedBaseUrl.slice(0, -9); // remove /messages
+        sanitizedBaseUrl = sanitizedBaseUrl.slice(0, -9);
       }
 
       const node = await createProviderNode({

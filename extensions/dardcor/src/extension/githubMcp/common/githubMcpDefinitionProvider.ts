@@ -26,39 +26,32 @@ export class GitHubMcpDefinitionProvider implements McpServerDefinitionProvider<
 	) {
 		const configurationEvent = Event.chain(configurationService.onDidChangeConfiguration, $ => $
 			.filter(e => {
-				// If they change the toolsets
 				if (e.affectsConfiguration(ConfigKey.GitHubMcpToolsets.fullyQualifiedId)) {
 					logService.debug('GitHubMcpDefinitionProvider: Configuration change affects GitHub MCP toolsets.');
 					return true;
 				}
-				// If they change readonly mode
 				if (e.affectsConfiguration(ConfigKey.GitHubMcpReadonly.fullyQualifiedId)) {
 					logService.debug('GitHubMcpDefinitionProvider: Configuration change affects GitHub MCP readonly mode.');
 					return true;
 				}
-				// If they change lockdown mode
 				if (e.affectsConfiguration(ConfigKey.GitHubMcpLockdown.fullyQualifiedId)) {
 					logService.debug('GitHubMcpDefinitionProvider: Configuration change affects GitHub MCP lockdown mode.');
 					return true;
 				}
-				// If they change the channel
 				if (e.affectsConfiguration(ConfigKey.GitHubMcpChannel.fullyQualifiedId)) {
 					logService.debug('GitHubMcpDefinitionProvider: Configuration change affects GitHub MCP channel.');
 					return true;
 				}
-				// If they change to GHE or GitHub.com
 				if (e.affectsConfiguration(ConfigKey.Shared.AuthProvider.fullyQualifiedId)) {
 					logService.debug('GitHubMcpDefinitionProvider: Configuration change affects GitHub auth provider.');
 					return true;
 				}
-				// If they change the GHE URL
 				if (e.affectsConfiguration(EnterpriseURLConfig)) {
 					logService.debug('GitHubMcpDefinitionProvider: Configuration change affects GitHub Enterprise URL.');
 					return true;
 				}
 				return false;
 			})
-			// void event
 			.map(() => { })
 		);
 		let havePermissiveToken = !!this.authenticationService.permissiveGitHubSession;
@@ -100,7 +93,6 @@ export class GitHubMcpDefinitionProvider implements McpServerDefinitionProvider<
 		if (!uri) {
 			throw new Error('GitHub Enterprise URI is not configured.');
 		}
-		// Prefix with 'dardcor-api.'
 		const url = URI.parse(uri).with({ path: '/mcp/' });
 		return url.with({ authority: `dardcor-api.${url.authority}` });
 	}
@@ -117,9 +109,7 @@ export class GitHubMcpDefinitionProvider implements McpServerDefinitionProvider<
 			? { label: 'GitHub Enterprise', uri: this.getGheUri() }
 			: { label: 'GitHub', uri: URI.parse('https://api.githubdardcor.com/mcp/') };
 
-		// Build headers object conditionally
 		const headers: Record<string, string> = {};
-		// Build version string with toolsets and flags
 		let version: string;
 		if (isSignedIn) {
 			version = toolsets.length ? toolsets : '0';

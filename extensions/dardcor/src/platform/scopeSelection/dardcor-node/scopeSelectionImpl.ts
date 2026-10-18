@@ -60,7 +60,6 @@ export class ScopeSelectorImpl implements IScopeSelector {
 			return undefined;
 		}
 
-		// check that the returned result is a DocumentSymbol[] and not a SymbolInformation[]
 		if (result.length > 0 && !result[0].hasOwnProperty('children')) {
 			return undefined;
 		}
@@ -72,11 +71,9 @@ export class ScopeSelectorImpl implements IScopeSelector {
 
 		let enclosingSymbols: IScope[] | undefined = this.findEnclosingSymbols(result, editor.selection.active);
 		if (options?.includeBlocks) {
-			// Add fine block scopes
 			enclosingSymbols?.push(...(await this.findEnclosingBlocks(TextDocumentSnapshot.create(editor.document), editor.selection) ?? []));
 		}
 
-		// If the cursor is in a position where there are no enclosing symbols or blocks, list all document symbols as options
 		if (!enclosingSymbols) {
 			enclosingSymbols = result;
 		}
@@ -86,7 +83,7 @@ export class ScopeSelectorImpl implements IScopeSelector {
 			editor.selection = new Selection(symbol.range.start, symbol.range.end);
 		} else if (enclosingSymbols && enclosingSymbols.length > 1 || !enclosingSymbols && result.length > 1) {
 			const quickPickItems = enclosingSymbols
-				.sort((a, b) => b.range.start.line - a.range.start.line) // Sort the enclosing selections by start position
+				.sort((a, b) => b.range.start.line - a.range.start.line)
 				.map(symbol => ({ label: `$(${symbol.kind === 'code' ? 'code' : SymbolKinds.toIcon(symbol.kind).id}) ${symbol.name}`, description: `:${symbol.range.start.line + 1}-${symbol.range.end.line + 1}`, symbol }));
 			const pickedItem = await this.dialogService.showQuickPick(quickPickItems, {
 				placeHolder: options?.reason ?? l10n.t('Select an enclosing range'),

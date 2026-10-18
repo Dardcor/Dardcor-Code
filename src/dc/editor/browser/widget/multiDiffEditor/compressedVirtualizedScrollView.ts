@@ -49,9 +49,6 @@ export interface ICompressedVirtualizedGeometryEdit {
 	readonly trailingScrollSlack: number;
 }
 
-/**
- * Virtualizes complete-height items into viewport-capped rows whose removed height is represented by item-local scrolling.
- */
 export class CompressedVirtualizedScrollView<TItem extends ICompressedVirtualizedScrollItem> extends Disposable {
 	private readonly _scrollableElements;
 	private readonly _scrollable;
@@ -114,8 +111,8 @@ export class CompressedVirtualizedScrollView<TItem extends ICompressedVirtualize
 		}, this._scrollable));
 		this.domNode = h('div', {}, [this._scrollableElement.getDomNode()]).root;
 		this._sizeObserver = this._register(new ObservableElementSizeObserver(elementToObserve, undefined));
-		this.scrollTop = observableFromEvent(this, this._scrollableElement.onScroll, () => /** @description scrollTop */ this._scrollableElement.getScrollPosition().scrollTop);
-		this.scrollLeft = observableFromEvent(this, this._scrollableElement.onScroll, () => /** @description scrollLeft */ this._scrollableElement.getScrollPosition().scrollLeft);
+		this.scrollTop = observableFromEvent(this, this._scrollableElement.onScroll, () => this._scrollableElement.getScrollPosition().scrollTop);
+		this.scrollLeft = observableFromEvent(this, this._scrollableElement.onScroll, () => this._scrollableElement.getScrollPosition().scrollLeft);
 		this._items = createItems({
 			contentDomNode: this._scrollableElements.content,
 			overflowWidgetsDomNode: this._scrollableElements.overflowWidgetsDomNode,

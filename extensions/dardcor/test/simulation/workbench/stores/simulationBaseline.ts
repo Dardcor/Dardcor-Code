@@ -17,17 +17,12 @@ const SIMULATION_FOLDER_PATH = path.join(REPO_ROOT, SIMULATION_FOLDER_NAME);
 
 class SimulationRun {
 
-	/** Shown in UI */
 	public readonly friendlyName: string;
 
-	/**
-	 * @param name is the name of the run that is also the name of the directory that contains the run information (usually in `.simulation` directory)
-	 */
 	constructor(
 		public readonly name: string,
 		public readonly label?: string
 	) {
-		// example: out-20230804-105913 or out-external-20230804-105913
 		const m = name.match(/^out-(?:\w+-)?(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
 		if (m) {
 			const year = m ? parseInt(m[1], 10) : 0;
@@ -48,9 +43,6 @@ class SimulationRun {
 }
 
 
-/**
- * Detects possible baseline runs
- */
 export class SimulationRunsProvider extends Disposable {
 	private static readonly COMPARE_AGAINST_RUN_STORAGE_KEY = 'selectedBaseline';
 
@@ -92,8 +84,7 @@ export class SimulationRunsProvider extends Disposable {
 
 	private async _update(): Promise<void> {
 		let entries = (await fs.promises.readdir(SIMULATION_FOLDER_PATH)).map((e) => ({ timestamp: e, label: undefined }));
-		entries = entries.filter(entry => !entry.timestamp.startsWith('.') && !entry.timestamp.startsWith('tmp-') && !this._excludedFiles.has(entry.timestamp)); // ignore hidden & tmp- directories & cache-related files
-		// Sort descending
+		entries = entries.filter(entry => !entry.timestamp.startsWith('.') && !entry.timestamp.startsWith('tmp-') && !this._excludedFiles.has(entry.timestamp));
 		entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
 		if (genericEquals(entries, this.runs.map(r => r.name))) {
@@ -109,7 +100,6 @@ export class SimulationRunsProvider extends Disposable {
 		}
 
 		mobx.runInAction(() => {
-			// Try to reuse the old objects
 			const existingRuns = new Map<string, SimulationRun>(this.runs.map(r => [r.name, r]));
 			this.runs = entries.map(entry => existingRuns.get(entry.timestamp) ?? new SimulationRun(entry.timestamp, entry.label));
 		});
@@ -125,7 +115,6 @@ export class SimulationRunsProvider extends Disposable {
 		const success = await this._runner.renameRun(oldName, newName);
 
 		if (success) {
-			// Update selected baseline if it was renamed
 			if (this.selectedBaselineRunName.value === oldName) {
 				console.log('Updating selected baseline name from', oldName, 'to', newName);
 				mobx.runInAction(() => {

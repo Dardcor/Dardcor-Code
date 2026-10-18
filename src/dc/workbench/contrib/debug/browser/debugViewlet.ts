@@ -65,7 +65,6 @@ export class DebugViewPaneContainer extends ViewPaneContainer {
 	) {
 		super(VIEWLET_ID, { mergeViewWithContainerWhenSingleView: true }, instantiationService, configurationService, layoutService, contextMenuService, telemetryService, extensionService, themeService, storageService, contextService, viewDescriptorService, logService);
 
-		// When there are potential updates to the docked debug toolbar we need to update it
 		this._register(this.debugService.onDidChangeState(state => this.onDebugServiceStateChange(state)));
 
 		this._register(this.contextKeyService.onDidChangeContext(e => {
@@ -141,7 +140,6 @@ export class DebugViewPaneContainer extends ViewPaneContainer {
 		super.addPanes(panes);
 
 		for (const { pane: pane } of panes) {
-			// attach event listener to
 			if (pane.id === BREAKPOINTS_VIEW_ID) {
 				this.breakpointView = pane;
 				this.updateBreakpointsMaxSize();
@@ -161,7 +159,6 @@ export class DebugViewPaneContainer extends ViewPaneContainer {
 
 	private updateBreakpointsMaxSize(): void {
 		if (this.breakpointView) {
-			// We need to update the breakpoints view since all other views are collapsed #25384
 			const allOtherCollapsed = this.panes.every(view => !view.isExpanded() || view === this.breakpointView);
 			this.breakpointView.maximumBodySize = allOtherCollapsed ? Number.POSITIVE_INFINITY : this.breakpointView.minimumBodySize;
 		}
@@ -215,7 +212,6 @@ registerAction2(class extends Action2 {
 			}, {
 				id: MenuId.ViewContainerTitle,
 				order: 20,
-				// Show in debug viewlet secondary actions when debugging and debug toolbar is docked
 				when: ContextKeyExpr.and(ContextKeyExpr.equals('viewContainer', VIEWLET_ID), CONTEXT_DEBUG_STATE.notEqualsTo('inactive'), ContextKeyExpr.equals('config.debug.toolBarLocation', 'docked'))
 			}, {
 				id: MenuId.MenubarDebugMenu,

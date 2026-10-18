@@ -5,7 +5,7 @@
 import { packageJson } from '../../../../../platform/env/common/packagejson';
 import { createServiceIdentifier } from '../../../../../util/common/services';
 import { ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
-import { CopilotConfigPrefix } from './constants';
+import { DardcorConfigPrefix } from './constants';
 import { Filter } from './experiments/filters';
 import { Emitter, Event } from './util/event';
 
@@ -22,17 +22,14 @@ export const ConfigKey = {
 	CompletionsDelay: 'completionsDelay',
 	CompletionsDebounce: 'completionsDebounce',
 
-	// Advanced config (don't add new config here)
 	RelatedFilesVSCodeCSharp: 'advanced.relatedFilesVSCodeCSharp',
 	RelatedFilesVSCodeTypeScript: 'advanced.relatedFilesVSCodeTypeScript',
 	RelatedFilesVSCode: 'advanced.relatedFilesVSCode',
 	ContextProviders: 'advanced.contextProviders',
 	DebugFilterLogCategories: 'advanced.debug.filterLogCategories',
-	DebugSnippyOverrideUrl: 'advanced.debug.codeRefOverrideUrl',
 	UseSubsetMatching: 'advanced.useSubsetMatching',
 	ContextProviderTimeBudget: 'advanced.contextProviderTimeBudget',
 
-	// Internal config
 	DebugOverrideCapiUrl: 'internal.capiUrl',
 	DebugOverrideCapiUrlLegacy: 'advanced.debug.overrideCapiUrl',
 	DebugTestOverrideCapiUrl: 'internal.capiTestUrl',
@@ -43,42 +40,18 @@ export const ConfigKey = {
 	DebugTestOverrideProxyUrlLegacy: 'advanced.debug.testOverrideProxyUrl',
 	DebugOverrideEngine: 'internal.completionModel',
 	DebugOverrideEngineLegacy: 'advanced.debug.overrideEngine',
-	/**
-	 * Internal experiment for always requesting multiline completions.
-	 * This might not result always in a multiline suggestion, but most often will.
-	 */
 	AlwaysRequestMultiline: 'internal.alwaysRequestMultiline',
-	/**
-	 * Let the model terminate single line completions when AlwaysRequestMultiline is enabled.
-	 */
 	ModelAlwaysTerminatesSingleline: 'internal.modelAlwaysTerminatesSingleline',
 
-	/**
-	 * Overrides whether to use the Workspace Context Coordinator to coordinate workspace context.
-	 * This setting takes precedence over the value from ExP.
-	 */
 	UseWorkspaceContextCoordinator: 'internal.useWorkspaceContextCoordinator',
 
-	/**
-	 * Overrides whether to include neighboring files in the prompt
-	 * alongside context providers.
-	 * This setting takes precedence over the value from ExP.
-	 */
 	IncludeNeighboringFiles: 'internal.includeNeighboringFiles',
 	ExcludeRelatedFiles: 'internal.excludeRelatedFiles',
 	DebugOverrideCppHeadersEnableSwitch: 'internal.cppHeadersEnableSwitch',
 
-	/**
-	 * Internal config for using the completions prompt with split context.
-	 * https://github.com/github/dardcor/issues/19286
-	 */
 	UseSplitContextPrompt: 'internal.useSplitContextPrompt',
 };
 
-/**
- * Settings that must only be read from user (global) scope, ignoring workspace/folder values.
- * Prevents workspace-level override attacks via malicious .vscode/settings.json.
- */
 export const userScopeOnlyKeys = new Set<ConfigKeyType>([
 	ConfigKey.DebugOverrideCapiUrl,
 	ConfigKey.DebugOverrideCapiUrlLegacy,
@@ -92,30 +65,10 @@ export const userScopeOnlyKeys = new Set<ConfigKeyType>([
 
 export type ConfigKeyType = string;
 
-// How to determine where to terminate the completion to the current block.
 export enum BlockMode {
-	/**
-	 * Parse the context + completion on the client using treesitter to
-	 * determine blocks.
-	 */
 	Parsing = 'parsing',
-	/**
-	 * Let the server parse out blocks and assume that the completion terminates
-	 * at the end of a block.
-	 */
 	Server = 'server',
-	/**
-	 * Runs both the treesitter parsing on the client plus indentation-based
-	 * truncation on the proxy.
-	 */
 	ParsingAndServer = 'parsingandserver',
-	/**
-	 * Client-based heuristic to display more multiline completions.
-	 * It almost always requests a multiline completion from the server and tries to break it up to something useful on the client.
-	 *
-	 * This should not be rolled out at the moment (latency impact is high, UX needs further fine-tuning),
-	 * but can  be used for internal experimentation.
-	 */
 	MoreMultiline = 'moremultiline',
 }
 
@@ -123,7 +76,6 @@ export function shouldDoServerTrimming(blockMode: BlockMode): boolean {
 	return [BlockMode.Server, BlockMode.ParsingAndServer].includes(blockMode);
 }
 
-// TODO rework this enum so that the normal/nightly and prod/dev distinctions are orthogonal. (dev builds should behave like nightly?)
 export enum BuildType {
 	DEV = 'dev',
 	PROD = 'prod',
@@ -137,7 +89,7 @@ export interface ICompletionsConfigProvider {
 	getConfig<T>(key: ConfigKeyType): T;
 	getOptionalConfig<T>(key: ConfigKeyType): T | undefined;
 	dumpForTelemetry(): { [key: string]: string };
-	onDidChangeCopilotSettings: Event<ConfigProvider>;
+	onDidChangeSettings: Event<ConfigProvider>;
 }
 
 export abstract class ConfigProvider implements ICompletionsConfigProvider {
@@ -145,22 +97,15 @@ export abstract class ConfigProvider implements ICompletionsConfigProvider {
 	abstract getConfig<T>(key: ConfigKeyType): T;
 	abstract getOptionalConfig<T>(key: ConfigKeyType): T | undefined;
 	abstract dumpForTelemetry(): { [key: string]: string };
-	abstract onDidChangeCopilotSettings: Event<ConfigProvider>;
+	abstract onDidChangeSettings: Event<ConfigProvider>;
 
-	// The language server receives workspace configuration *after* it is fully initialized, which creates a race
-	// condition where an incoming request immediately after initialization might have the default values. Awaiting
-	// this promise allows consumers to ensure that the configuration is ready before using it.
 	requireReady(): Promise<void> {
 		return Promise.resolve();
 	}
 }
 
-/** Provides only the default values, ignoring the user's settings.
- * @public KEEPING FOR TESTS
-*/
 export class DefaultsOnlyConfigProvider extends ConfigProvider {
 	override getConfig<T>(key: ConfigKeyType): T {
-		// hardcode default values for the agent, for now
 		return getConfigDefaultForKey<T>(key);
 	}
 
@@ -172,21 +117,16 @@ export class DefaultsOnlyConfigProvider extends ConfigProvider {
 		return {};
 	}
 
-	override onDidChangeCopilotSettings = () => {
-		// no-op, since this provider does not support changing settings
+	override onDidChangeSettings = () => {
 		return {
 			dispose: () => { },
 		};
 	};
 }
 
-/**
- * A ConfigProvider that allows overriding of config values.
- * @public KEEPING FOR TESTS
-*/
 export class InMemoryConfigProvider extends ConfigProvider {
 	protected readonly dardcorEmitter = new Emitter<this>();
-	readonly onDidChangeCopilotSettings = this.dardcorEmitter.event;
+	readonly onDidChangeSettings = this.dardcorEmitter.event;
 	private overrides: Map<ConfigKeyType, unknown> = new Map();
 
 	constructor(
@@ -216,10 +156,10 @@ export class InMemoryConfigProvider extends ConfigProvider {
 	}
 
 	setConfig(key: ConfigKeyType, value: unknown): void {
-		this.setCopilotSettings({ [key]: value });
+		this.setSettings({ [key]: value });
 	}
 
-	setCopilotSettings(settings: Record<ConfigKeyType, unknown>): void {
+	setSettings(settings: Record<ConfigKeyType, unknown>): void {
 		for (const [key, value] of Object.entries(settings)) {
 			if (value !== undefined) {
 				this.overrides.set(key, value);
@@ -232,7 +172,6 @@ export class InMemoryConfigProvider extends ConfigProvider {
 
 	override dumpForTelemetry(): { [key: string]: string } {
 		const config = this.baseConfigProvider.dumpForTelemetry();
-		// reflects what's mapped in Hydro
 		for (const key of [
 			ConfigKey.ShowEditorCompletions,
 			ConfigKey.EnableAutoCompletions,
@@ -270,16 +209,13 @@ export function getConfigDefaultForKey<T>(key: string): T {
 	if (configDefaults.has(key)) {
 		return configDefaults.get(key) as T;
 	}
-	throw new Error(`Missing config default value: ${CopilotConfigPrefix}.${key}`);
+	throw new Error(`Missing config default value: ${DardcorConfigPrefix}.${key}`);
 }
 
 export function getOptionalConfigDefaultForKey<T>(key: string): T | undefined {
 	return <T>configDefaults.get(key);
 }
 
-/**
- * Defaults for "hidden" config keys.  These are supplemented by the defaults in package.json.
- */
 const configDefaults = new Map<ConfigKeyType, unknown>([
 	[ConfigKey.DebugOverrideCppHeadersEnableSwitch, false],
 	[ConfigKey.RelatedFilesVSCodeCSharp, false],
@@ -288,7 +224,6 @@ const configDefaults = new Map<ConfigKeyType, unknown>([
 	[ConfigKey.IncludeNeighboringFiles, false],
 	[ConfigKey.ExcludeRelatedFiles, false],
 	[ConfigKey.ContextProviders, []],
-	[ConfigKey.DebugSnippyOverrideUrl, ''],
 	[ConfigKey.UseSubsetMatching, null],
 	[ConfigKey.ContextProviderTimeBudget, undefined],
 	[ConfigKey.DebugOverrideCapiUrl, ''],
@@ -303,18 +238,15 @@ const configDefaults = new Map<ConfigKeyType, unknown>([
 	[ConfigKey.UseWorkspaceContextCoordinator, undefined],
 
 
-	// These are only used for telemetry from LSP based editors and do not affect any behavior.
 	[ConfigKey.ShowEditorCompletions, undefined],
 	[ConfigKey.EnableAutoCompletions, undefined],
 	[ConfigKey.DelayCompletions, undefined],
 	[ConfigKey.FilterCompletions, undefined],
 	[ConfigKey.UseSplitContextPrompt, true],
 
-	// These are defaults from package.json
 	[ConfigKey.Enable, { '*': true, 'plaintext': false, 'markdown': false, 'scminput': false }],
 	[ConfigKey.UserSelectedCompletionModel, ''],
 
-	// These are advanced defaults from package.json
 	[ConfigKey.DebugOverrideEngineLegacy, ''],
 	[ConfigKey.DebugOverrideProxyUrlLegacy, ''],
 	[ConfigKey.DebugTestOverrideProxyUrlLegacy, ''],
@@ -369,9 +301,7 @@ type NameAndVersion = {
 };
 
 export type EditorInfo = NameAndVersion & {
-	// The root directory of the installation, currently only used to simplify stack traces.
 	root?: string;
-	// A programmatic name, used for error reporting.
 	devName?: string;
 };
 
@@ -392,11 +322,6 @@ export interface ICompletionsEditorAndPluginInfo {
 	getRelatedPluginInfo(): EditorPluginInfo[];
 }
 
-/**
- * Do not use this in new code.  Every endpoint has its own unique versioning.
- * Centralizing in a single constant was a mistake.
- * @deprecated
- */
 export const apiVersion = '2025-05-01';
 
 export function editorVersionHeaders(accessor: ServicesAccessor): { [key: string]: string } {
@@ -404,6 +329,5 @@ export function editorVersionHeaders(accessor: ServicesAccessor): { [key: string
 	return {
 		'Editor-Version': formatNameAndVersion(info.getEditorInfo()),
 		'Editor-Plugin-Version': formatNameAndVersion(info.getEditorPluginInfo()),
-		'Copilot-Language-Server-Version': BuildInfo.getVersion(),
 	};
 }

@@ -39,7 +39,6 @@ export interface IValidGrammarDefinitionDTO {
 
 export interface StateDeltas {
 	startLineNumber: number;
-	// null means the state for that line did not change
 	stateDeltas: (StackDiff | null)[];
 }
 
@@ -47,7 +46,7 @@ export class TextMateTokenizationWorker implements IWebWorkerServerRequestHandle
 	_requestHandlerBrand: void = undefined;
 
 	private readonly _host: TextMateWorkerHost;
-	private readonly _models = new Map</* controllerId */ number, TextMateWorkerTokenizer>();
+	private readonly _models = new Map< number, TextMateWorkerTokenizer>();
 	private readonly _grammarCache: Promise<ICreateGrammarResult>[] = [];
 	private _grammarFactory: Promise<TMGrammarFactory | null> = Promise.resolve(null);
 
@@ -77,9 +76,6 @@ export class TextMateTokenizationWorker implements IWebWorkerServerRequestHandle
 		const vscodeOniguruma = await importAMDNodeModule<typeof import('vscode-oniguruma')>('vscode-oniguruma', 'release/main.js');
 		const response = await fetch(onigurumaWASMUri);
 
-		// Using the response directly only works if the server sets the MIME type 'application/wasm'.
-		// Otherwise, a TypeError is thrown when using the streaming compiler.
-		// We therefore use the non-streaming compiler :(.
 		const bytes = await response.arrayBuffer();
 		await vscodeOniguruma.loadWASM(bytes);
 
@@ -89,13 +85,12 @@ export class TextMateTokenizationWorker implements IWebWorkerServerRequestHandle
 		});
 
 		return new TMGrammarFactory({
-			logTrace: (msg: string) => {/* console.log(msg) */ },
+			logTrace: (msg: string) => { },
 			logError: (msg: string, err: unknown) => console.error(msg, err),
 			readFile: (resource: URI) => this._host.$readFile(resource)
 		}, grammarDefinitions, vscodeTextmate, onigLib);
 	}
 
-	// These methods are called by the renderer
 
 	public $acceptNewModel(data: IRawModelData): void {
 		const uri = URI.revive(data.uri);

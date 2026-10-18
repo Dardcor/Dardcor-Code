@@ -15,7 +15,7 @@ import { LanguageModelTextPart } from '../../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { IAnswerResult } from '../../../../tools/common/askQuestionsTypes';
 import { ToolName } from '../../../../tools/common/toolNames';
-import { ICopilotTool } from '../../../../tools/common/toolsRegistry';
+import { IAgentTool } from '../../../../tools/common/toolsRegistry';
 import { IOnWillInvokeToolEvent, IToolsService, IToolValidationResult } from '../../../../tools/common/toolsService';
 import { ClaudeToolPermissionContext } from '../../common/claudeToolPermission';
 import { ClaudeToolNames } from '../../common/claudeTools';
@@ -27,8 +27,8 @@ class MockToolsService implements IToolsService {
 	private readonly _onWillInvokeTool = new Emitter<IOnWillInvokeToolEvent>();
 	readonly onWillInvokeTool = this._onWillInvokeTool.event;
 	readonly tools: ReadonlyArray<vscode.LanguageModelToolInformation> = [];
-	readonly dardcorTools = new Map<ToolName, ICopilotTool<unknown>>();
-	modelSpecificTools: IObservable<{ definition: vscode.LanguageModelToolDefinition; tool: ICopilotTool<unknown> }[]> = constObservable([]);
+	readonly dardcorTools = new Map<ToolName, IAgentTool<unknown>>();
+	modelSpecificTools: IObservable<{ definition: vscode.LanguageModelToolDefinition; tool: IAgentTool<unknown> }[]> = constObservable([]);
 
 	private _result: vscode.LanguageModelToolResult2 = { content: [] };
 	private _shouldThrow = false;
@@ -64,7 +64,7 @@ class MockToolsService implements IToolsService {
 		return this.invokeTool(name, options);
 	}
 
-	getCopilotTool(): ICopilotTool<unknown> | undefined { return undefined; }
+	getAgentTool(): IAgentTool<unknown> | undefined { return undefined; }
 	getTool(): vscode.LanguageModelToolInformation | undefined { return undefined; }
 	getToolByToolReferenceName(): vscode.LanguageModelToolInformation | undefined { return undefined; }
 	validateToolInput(): IToolValidationResult { return { inputObj: {} }; }

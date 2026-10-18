@@ -154,20 +154,12 @@ export class TestingExplorerView extends ViewPane {
 		}
 	}
 
-	/**
-	 * Gets include/exclude items in the tree, based either on visible tests
-	 * or a use selection. If a profile is given, only tests in that profile
-	 * are collected. If a bitset is given, any test that can run in that
-	 * bitset is collected.
-	 */
 	public getTreeIncludeExclude(profileOrBitset: ITestRunProfile | TestRunProfileBitset, withinItems?: InternalTestItem[], filterToType: 'visible' | 'selected' = 'visible') {
 		const projection = this.viewModel.projection.value;
 		if (!projection) {
 			return { include: [], exclude: [] };
 		}
 
-		// To calculate includes and excludes, we include the first children that
-		// have a majority of their items included too, and then apply exclusions.
 		const include = new Set<InternalTestItem>();
 		const exclude: InternalTestItem[] = [];
 
@@ -185,44 +177,32 @@ export class TestingExplorerView extends ViewPane {
 
 
 		const attempt = (element: TestExplorerTreeElement, alreadyIncluded: boolean) => {
-			// sanity check hasElement since updates are debounced and they may exist
-			// but not be rendered yet
 			if (!(element instanceof TestItemTreeElement) || !this.viewModel.tree.hasElement(element)) {
 				return;
 			}
 
-			// If the current node is not visible or runnable in the current profile, it's excluded
 			const inTree = this.viewModel.tree.getNode(element);
 			if (!inTree.visible) {
 				if (alreadyIncluded) { exclude.push(element.test); }
 				return;
 			}
 
-			// Only count relevant children when deciding whether to include this node, #229120
 			const visibleRunnableChildren = inTree.children.filter(
 				c => c.visible
 					&& c.element instanceof TestItemTreeElement
 					&& isRunnableWithProfileOrBitset(c.element.test),
 			).length;
 
-			// If it's not already included but most of its children are, then add it
-			// if it can be run under the current profile (when specified)
 			if (
-				// If it's not already included...
 				!alreadyIncluded
-				// And it can be run using the current profile (if any)
 				&& isRunnableWithProfileOrBitset(element.test)
-				// And either it's a leaf node or most children are included, then include it.
 				&& (visibleRunnableChildren === 0 || visibleRunnableChildren * 2 >= inTree.children.length)
-				// And not if we're only showing a single of its children, since it
-				// probably fans out later. (Worse case we'll directly include its single child)
 				&& visibleRunnableChildren !== 1
 			) {
 				include.add(element.test);
 				alreadyIncluded = true;
 			}
 
-			// Recurse ✨
 			for (const child of element.children) {
 				attempt(child, alreadyIncluded);
 			}
@@ -235,7 +215,6 @@ export class TestingExplorerView extends ViewPane {
 				L:
 				for (const node of sel) {
 					if (node instanceof TestItemTreeElement) {
-						// avoid adding an item if its parent is already included
 						for (let i: TestItemTreeElement | null = node; i; i = i.parent) {
 							if (include.has(i.test)) {
 								continue L;
@@ -286,9 +265,6 @@ export class TestingExplorerView extends ViewPane {
 		}));
 	}
 
-	/**
-	 * @override
-	 */
 	protected override renderBody(container: HTMLElement): void {
 		super.renderBody(container);
 
@@ -307,7 +283,6 @@ export class TestingExplorerView extends ViewPane {
 		this._onDidChangeViewWelcomeState.fire();
 	}
 
-	/** @override  */
 	public override createActionViewItem(action: IAction, options: IActionViewItemOptions): IActionViewItem | undefined {
 		switch (action.id) {
 			case TestCommandId.FilterAction:
@@ -328,7 +303,6 @@ export class TestingExplorerView extends ViewPane {
 		}
 	}
 
-	/** @inheritdoc */
 	private getTestConfigGroupActions(group: TestRunProfileBitset) {
 		const profileActions: IAction[] = [];
 
@@ -372,7 +346,6 @@ export class TestingExplorerView extends ViewPane {
 		}
 
 		const contextKeys: [string, unknown][] = [];
-		// allow extension author to define context for when to show the test menu actions for run or debug menus
 		if (group === TestRunProfileBitset.Run) {
 			contextKeys.push(['testing.profile.context.group', 'run']);
 		}
@@ -385,7 +358,6 @@ export class TestingExplorerView extends ViewPane {
 		const key = this.contextKeyService.createOverlay(contextKeys);
 		const menu = this.menuService.getMenuActions(MenuId.TestProfilesContext, key);
 
-		// fill if there are any actions
 		const menuActions = getFlatContextMenuActions(menu);
 
 		const postActions: IAction[] = [];
@@ -405,7 +377,6 @@ export class TestingExplorerView extends ViewPane {
 			}));
 		}
 
-		// show menu actions if there are any otherwise don't
 		return {
 			numberOfProfiles: participatingProfiles,
 			actions: menuActions.length > 0
@@ -414,9 +385,6 @@ export class TestingExplorerView extends ViewPane {
 		};
 	}
 
-	/**
-	 * @override
-	 */
 	public override saveState() {
 		this.filter.value?.saveState();
 		super.saveState();
@@ -529,9 +497,6 @@ export class TestingExplorerView extends ViewPane {
 		}
 	}
 
-	/**
-	 * @override
-	 */
 	protected override layoutBody(height = this.dimensions.height, width = this.dimensions.width): void {
 		super.layoutBody(height, width);
 		this.dimensions.height = height;
@@ -699,21 +664,9 @@ class TestingExplorerViewModel extends Disposable {
 	private readonly lastViewState: StoredValue<ISerializedTestTreeCollapseState>;
 	private readonly noTestForDocumentWidget: NoTestsForDocumentWidget;
 
-	/**
-	 * Whether there's a reveal request which has not yet been delivered. This
-	 * can happen if the user asks to reveal before the test tree is loaded.
-	 * We check to see if the reveal request is present on each tree update,
-	 * and do it then if so.
-	 */
 	private hasPendingReveal = false;
-	/**
-	 * Fires when the visibility of the placeholder state changes.
-	 */
 	public readonly onChangeWelcomeVisibility = this.welcomeVisibilityEmitter.event;
 
-	/**
-	 * Gets whether the welcome should be visible.
-	 */
 	public welcomeExperience = WelcomeExperience.None;
 
 	public get viewMode() {
@@ -800,10 +753,7 @@ class TestingExplorerViewModel extends Disposable {
 			}) as TestingObjectTree<FuzzyScore>;
 
 
-		// saves the collapse state so that if items are removed or refreshed, they
-		// retain the same state (#170169)
 		const collapseStateSaver = this._register(new RunOnceScheduler(() => {
-			// reuse the last view state to avoid making a bunch of object garbage:
 			const state = this.tree.getOptimizedViewState(this.lastViewState.get({}));
 			const projection = this.projection.value;
 			if (projection) {
@@ -822,7 +772,6 @@ class TestingExplorerViewModel extends Disposable {
 
 		this._register(this.crService.onDidChange(testId => {
 			if (testId) {
-				// a continuous run test will sort to the top:
 				const elem = this.projection.value?.getElementByTestId(testId);
 				this.tree.resort(elem?.parent && this.tree.hasElement(elem.parent) ? elem.parent : null, false);
 			}
@@ -920,11 +869,9 @@ class TestingExplorerViewModel extends Disposable {
 			}
 
 			if (this.tree.selectionSize > 1) {
-				return; // don't change a multi-selection #180950
+				return;
 			}
 
-			// follow running tests, or tests whose state changed. Tests that
-			// complete very fast may not enter the running state at all.
 			if (evt.item.ownComputedState !== TestResultState.Running && !(evt.previousState === TestResultState.Queued && isStateWithResult(evt.item.ownComputedState))) {
 				return;
 			}
@@ -974,17 +921,10 @@ class TestingExplorerViewModel extends Disposable {
 		}));
 	}
 
-	/**
-	 * Re-layout the tree.
-	 */
 	public layout(height?: number, width?: number): void {
 		this.tree.layout(height, width);
 	}
 
-	/**
-	 * Tries to reveal by extension ID. Queues the request if the extension
-	 * ID is not currently available.
-	 */
 	private revealById(id: string | undefined, expand = true, focus = true) {
 		if (!id) {
 			this.hasPendingReveal = false;
@@ -993,34 +933,24 @@ class TestingExplorerViewModel extends Disposable {
 
 		const projection = this.ensureProjection();
 
-		// If the item itself is visible in the tree, show it. Otherwise, expand
-		// its closest parent.
 		let expandToLevel = 0;
 		const idPath = [...TestId.fromString(id).idsFromRoot()];
 		for (let i = idPath.length - 1; i >= expandToLevel; i--) {
 			const element = projection.getElementByTestId(idPath[i].toString());
-			// Skip all elements that aren't in the tree.
 			if (!element || !this.tree.hasElement(element)) {
 				continue;
 			}
 
-			// If this 'if' is true, we're at the closest-visible parent to the node
-			// we want to expand. Expand that, and then start the loop again because
-			// we might already have children for it.
 			if (i < idPath.length - 1) {
 				if (expand) {
 					this.tree.expand(element);
-					expandToLevel = i + 1; // avoid an infinite loop if the test does not exist
-					i = idPath.length - 1; // restart the loop since new children may now be visible
+					expandToLevel = i + 1;
+					i = idPath.length - 1;
 					continue;
 				}
 			}
 
-			// Otherwise, we've arrived!
 
-			// If the node or any of its children are excluded, flip on the 'show
-			// excluded tests' checkbox automatically. If we didn't expand, then set
-			// target focus target to the first collapsed element.
 
 			let focusTarget = element;
 			for (let n: TestItemTreeElement | null = element; n instanceof TestItemTreeElement; n = n.parent) {
@@ -1052,21 +982,13 @@ class TestingExplorerViewModel extends Disposable {
 			return;
 		}
 
-		// If here, we've expanded all parents we can. Waiting on data to come
-		// in to possibly show the revealed test.
 		this.hasPendingReveal = true;
 	}
 
-	/**
-	 * Collapse all items in the tree.
-	 */
 	public async collapseAll() {
 		this.tree.collapseAll();
 	}
 
-	/**
-	 * Tries to peek the first test error, if the item is in a failed state.
-	 */
 	private tryPeekError(item: TestItemTreeElement) {
 		const lookup = item.test && this.testResults.getStateById(item.test.item.extId);
 		return lookup && lookup[1].tasks.some(s => isFailedState(s.state))
@@ -1159,9 +1081,6 @@ class TestingExplorerViewModel extends Disposable {
 		}
 	}
 
-	/**
-	 * Gets the selected tests from the tree.
-	 */
 	public getSelectedTests() {
 		return this.tree.getSelection();
 	}
@@ -1186,8 +1105,6 @@ const hasNodeInOrParentOfUri = (collection: IMainThreadTestCollection, ident: IU
 				continue;
 			}
 
-			// Only show nodes that can be expanded (and might have a child with
-			// a range) or ones that have a physical location.
 			if (node.item.range || node.expand === TestItemExpandState.Expandable) {
 				return true;
 			}
@@ -1211,9 +1128,6 @@ class TestsFilter implements ITreeFilter<TestExplorerTreeElement> {
 		@IUriIdentityService private readonly uriIdentityService: IUriIdentityService,
 	) { }
 
-	/**
-	 * @inheritdoc
-	 */
 	public filter(element: TestItemTreeElement): TreeFilterResult<void> {
 		if (element instanceof TestTreeErrorMessage) {
 			return TreeVisibility.Visible;
@@ -1289,7 +1203,6 @@ class TestsFilter implements ITreeFilter<TestExplorerTreeElement> {
 
 		const fuzzy = this.state.fuzzy.value;
 		for (let e: TestItemTreeElement | null = element; e; e = e.parent) {
-			// start as included if the first glob is a negation
 			let included = this.state.globList[0].include === false ? FilterResult.Include : FilterResult.Inherit;
 			const data = e.test.item.label.toLowerCase();
 
@@ -1340,8 +1253,6 @@ class TreeSorter implements ITreeSorter<TestExplorerTreeElement> {
 
 		const sa = a.test.item.sortText;
 		const sb = b.test.item.sortText;
-		// If tests are in the same location and there's no preferred sortText,
-		// keep the extension's insertion order (#163449).
 		return inSameLocation && !sa && !sb
 			? 0
 			: compareFileNames(sa || a.test.item.label, sb || b.test.item.label);
@@ -1514,14 +1425,8 @@ class TestItemRenderer extends Disposable
 		super();
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly templateId = TestItemRenderer.ID;
 
-	/**
-	 * @inheritdoc
-	 */
 	public renderTemplate(wrapper: HTMLElement): ITestElementTemplateData {
 		wrapper.classList.add('testing-stdtree-container');
 
@@ -1555,16 +1460,10 @@ class TestItemRenderer extends Disposable
 		return templateData;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	disposeTemplate(templateData: ITestElementTemplateData): void {
 		templateData.templateDisposable.clear();
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	disposeElement(_element: ITreeNode<TestItemTreeElement, FuzzyScore>, _: number, templateData: ITestElementTemplateData): void {
 		templateData.elementDisposable.clear();
 	}
@@ -1579,9 +1478,6 @@ class TestItemRenderer extends Disposable
 		data.actionBar.push(actions.primary, { icon: true, label: false });
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public renderElement(node: ITreeNode<TestItemTreeElement, FuzzyScore>, _depth: number, data: ITestElementTemplateData): void {
 		data.elementDisposable.clear();
 		data.current = node.element;
@@ -1610,7 +1506,7 @@ class TestItemRenderer extends Disposable
 		if (node.element.test.item.label.trim()) {
 			dom.reset(data.label, ...renderLabelWithIcons(node.element.test.item.label));
 		} else {
-			data.label.textContent = String.fromCharCode(0xA0); // &nbsp;
+			data.label.textContent = String.fromCharCode(0xA0);
 		}
 
 		let description = node.element.description;

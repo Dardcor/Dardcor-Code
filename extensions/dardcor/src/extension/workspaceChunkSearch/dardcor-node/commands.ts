@@ -93,7 +93,6 @@ export function register(accessor: ServicesAccessor): IDisposable {
 				});
 			};
 
-			// Clear the initial placeholder
 			await editor.edit(edit => {
 				const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length));
 				edit.replace(fullRange, '');

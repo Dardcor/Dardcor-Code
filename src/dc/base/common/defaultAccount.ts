@@ -38,9 +38,9 @@ export interface IEntitlementsData extends ILegacyQuotaSnapshotData {
 	readonly copilot_plan: string;
 	readonly organization_login_list: string[];
 	readonly analytics_tracking_id: string;
-	readonly limited_user_reset_date?: string; 	// for Copilot Free
-	readonly quota_reset_date?: string; 		// for all other Copilot SKUs
-	readonly quota_reset_date_utc?: string; 	// for all other Copilot SKUs (includes time)
+	readonly limited_user_reset_date?: string;
+	readonly quota_reset_date?: string;
+	readonly quota_reset_date_utc?: string;
 	readonly token_based_billing?: boolean;
 	readonly can_upgrade_plan?: boolean;
 	readonly cloud_session_storage_enabled?: boolean;
@@ -61,14 +61,6 @@ export interface IPolicyData {
 	readonly mcpAccess?: 'allow_all' | 'registry_only';
 	readonly managedSettingsActive?: boolean;
 
-	/**
-	 * Normalized enterprise-managed settings, keyed by dot-separated managed-settings
-	 * paths such as `permissions.disableBypassPermissionsMode`. This is the single
-	 * channel for enterprise-managed configuration: server-delivered settings and
-	 * native MDM settings both project into this bag, so policy `value()` callbacks
-	 * behave identically regardless of source. Structured settings (e.g.
-	 * `enabledPlugins`, `extraKnownMarketplaces`) are carried as canonical JSON strings.
-	 */
 	readonly managedSettings?: ManagedSettingsData;
 }
 

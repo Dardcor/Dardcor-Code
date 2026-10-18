@@ -36,14 +36,6 @@ import {
 	BrowserEditorContribution,
 } from '../browserEditor.js';
 
-/**
- * Surfaces per-origin permission prompts and a management picker for the active
- * browser view. Prompts are raised by the main process via
- * {@link IBrowserViewModel.onDidRequestPermission}; the user's choice -- and any
- * edits made in the management picker -- flow back through the single
- * {@link IBrowserViewModel.setPermissions} write API, which both persists the
- * decision and resolves the pending request in the main process.
- */
 export class BrowserPermissionsFeature extends BrowserEditorContribution {
 
 	private readonly _modelDisposables = this._register(new DisposableStore());
@@ -51,7 +43,6 @@ export class BrowserPermissionsFeature extends BrowserEditorContribution {
 	private _model: IBrowserViewModel | undefined;
 	private _permissions: BrowserPermissionStore | undefined;
 
-	/** Open device choosers keyed by request id, so updates reach the right one. */
 	private readonly _devicePickers = new Map<string, IDevicePickerHandle>();
 
 	constructor(
@@ -74,7 +65,6 @@ export class BrowserPermissionsFeature extends BrowserEditorContribution {
 				void this._onDidRequestPermission(e.origin, e.category);
 			}
 		}));
-		// Close any open device choosers when the model goes away.
 		this._modelDisposables.add(toDisposable(() => this._closeDevicePickers()));
 	}
 
@@ -125,16 +115,11 @@ export class BrowserPermissionsFeature extends BrowserEditorContribution {
 					run: () => 'deny',
 				},
 			],
-			// Dismissing leaves the request undecided. The main process settles
-			// the page's request on navigation / teardown (or a timeout), so a
-			// late answer here is harmless.
 			cancelButton: true,
 		});
 		if (result === 'allow' || result === 'deny') {
 			void model.setPermissions(origin, [{ category, state: result }]);
 		} else {
-			// Signal an explicit cancel so the pending page request rejects
-			// immediately without recording a persisted decision.
 			void model.setPermissions(origin, [{ category, state: null }]);
 		}
 	}
@@ -156,17 +141,13 @@ export class BrowserPermissionsFeature extends BrowserEditorContribution {
 
 BrowserEditor.registerContribution(BrowserPermissionsFeature);
 
-// -- Device chooser --------------------------------------------------
 
 interface DevicePickItem extends IQuickPickItem {
 	readonly deviceId: string;
 }
 
-/** Handle to a live device chooser so it can be updated or force-closed. */
 interface IDevicePickerHandle {
-	/** Apply an updated device list. */
 	update(request: IBrowserViewDeviceRequest): void;
-	/** Force-close the chooser, cancelling the request if still pending. */
 	dispose(): void;
 }
 
@@ -180,12 +161,6 @@ function deviceTypeLabel(deviceType: BrowserDeviceType): string {
 	}
 }
 
-/**
- * Show a live-updating chooser for a hardware-device request. The list refreshes
- * as devices are discovered (re-fired with the same request id); accepting picks
- * a device and dismissing cancels the request. Exactly one of select/cancel is
- * reported back to the model.
- */
 function showDevicePicker(quickInputService: IQuickInputService, model: IBrowserViewModel, origin: string, request: IBrowserViewDeviceRequest, onDone: () => void): IDevicePickerHandle {
 	const disposables = new DisposableStore();
 	const picker = disposables.add(quickInputService.createQuickPick<DevicePickItem>());
@@ -193,7 +168,6 @@ function showDevicePicker(quickInputService: IQuickInputService, model: IBrowser
 	picker.placeholder = localize('browser.device.placeholder', "Select a device to connect to");
 	picker.matchOnDescription = true;
 	picker.ignoreFocusOut = true;
-	// Still scanning: the list may keep growing until the user picks or cancels.
 	picker.busy = true;
 
 	let resolved = false;
@@ -208,7 +182,6 @@ function showDevicePicker(quickInputService: IQuickInputService, model: IBrowser
 		onDone();
 	};
 
-	// Report a single decision to the model: a chosen id, or null to cancel.
 	const resolve = (deviceId: string | null) => {
 		if (resolved) {
 			return;
@@ -241,7 +214,6 @@ function showDevicePicker(quickInputService: IQuickInputService, model: IBrowser
 	}));
 
 	disposables.add(picker.onDidHide(() => {
-		// Dismissed without a pick cancels the request.
 		resolve(null);
 		finish();
 	}));
@@ -259,13 +231,11 @@ function showDevicePicker(quickInputService: IQuickInputService, model: IBrowser
 	};
 }
 
-// -- Management picker -----------------------------------------------
 
 interface PermissionPickItem extends IQuickPickItem {
 	readonly category: PermissionCategory;
 }
 
-/** Discriminates the per-row action buttons so the handler can react. */
 interface PermissionItemButton extends IQuickInputButton {
 	readonly kind: 'allow' | 'deny' | 'reset';
 }
@@ -278,23 +248,18 @@ function showPermissionsPicker(quickInputService: IQuickInputService, model: IBr
 	picker.sortByLabel = false;
 	picker.ignoreFocusOut = true;
 
-	// Pending, unsaved decision changes keyed by category. A value maps to the
-	// desired decision (`null` clears it); absence means no change from the
-	// stored value. Edits are committed only when the user saves.
 	const edits = new Map<PermissionCategory, PermissionDecision | null>();
 
-	// The stored decision for a category, or `undefined` when none is recorded.
 	const storedDecision = (category: PermissionCategory): PermissionDecision | null => {
 		return permissions.getDecision(origin, category) ?? null;
 	};
 
-	// The pending decision for a category: the edit if any, else the stored value.
 	const pendingDecision = (category: PermissionCategory): PermissionDecision | null =>
 		edits.has(category) ? edits.get(category)! : storedDecision(category);
 
 	const setPendingDecision = (category: PermissionCategory, decision: PermissionDecision | null): void => {
 		if (decision === storedDecision(category)) {
-			edits.delete(category); // back to stored value: no pending change
+			edits.delete(category);
 		} else {
 			edits.set(category, decision);
 		}
@@ -302,8 +267,6 @@ function showPermissionsPicker(quickInputService: IQuickInputService, model: IBr
 	};
 
 	const rebuild = (): void => {
-		// Preserve the focused row across rebuilds (item identity changes because
-		// we recreate the items each time).
 		const activeCategory = picker.activeItems[0]?.category;
 		const items = buildItems();
 		picker.items = items;
@@ -328,13 +291,10 @@ function showPermissionsPicker(quickInputService: IQuickInputService, model: IBr
 		} else if (kind === 'deny') {
 			setPendingDecision(item.category, 'deny');
 		} else {
-			// The current-value toggle resets back to the default when active; it
-			// is inert (no override to clear) when already showing the default.
 			setPendingDecision(item.category, null);
 		}
 	}));
 
-	// Commit all pending edits in one write, then close.
 	disposables.add(picker.onDidCustom(() => {
 		if (edits.size === 0) {
 			return;
@@ -344,8 +304,6 @@ function showPermissionsPicker(quickInputService: IQuickInputService, model: IBr
 		picker.hide();
 	}));
 
-	// Re-render when the store changes underneath us (e.g. a prompt answered
-	// elsewhere); pending edits are preserved and still take precedence.
 	disposables.add(permissions.onDidChange(rebuild));
 
 	disposables.add(picker.onDidHide(() => disposables.dispose()));
@@ -359,8 +317,6 @@ function showPermissionsPicker(quickInputService: IQuickInputService, model: IBr
 		const descriptor = PERMISSION_CATEGORY_DESCRIPTORS[category];
 		const override = pendingDecision(category);
 		const hasOverride = !!override;
-		// The effective state shown under the name is the (pending) override when
-		// set, otherwise the category default.
 		const effective: PermissionState = hasOverride ? override : permissions.defaultStateFor(category);
 		const stateLabel = effective === 'allow'
 			? localize('browser.permissions.state.allowed', "Allowed")
@@ -414,7 +370,6 @@ function displayOrigin(origin: string): string {
 	}
 }
 
-// -- Actions ----------------------------------------------------------
 
 class ManageBrowserPermissionsAction extends Action2 {
 	static readonly ID = BrowserViewCommandId.ManagePermissions;

@@ -65,7 +65,6 @@ suite('URI', () => {
 		assert.strictEqual(URI.from({ scheme: 'http', authority: 'www.EXAMPLE.com', path: '/my/path' }).toString(), 'http://www.example.com/my/path');
 		assert.strictEqual(URI.from({ scheme: 'http', authority: '', path: 'my/path' }).toString(), 'http:/my/path');
 		assert.strictEqual(URI.from({ scheme: 'http', authority: '', path: '/my/path' }).toString(), 'http:/my/path');
-		//http://example.com/#test=true
 		assert.strictEqual(URI.from({ scheme: 'http', authority: 'example.com', path: '/', query: 'test=true' }).toString(), 'http://example.com/?test%3Dtrue');
 		assert.strictEqual(URI.from({ scheme: 'http', authority: 'example.com', path: '/', query: '', fragment: 'test=true' }).toString(), 'http://example.com/#test%3Dtrue');
 	});
@@ -274,7 +273,7 @@ suite('URI', () => {
 			value = URI.file('\\\\shares');
 			assert.strictEqual(value.scheme, 'file');
 			assert.strictEqual(value.authority, 'shares');
-			assert.strictEqual(value.path, '/'); // slash is always there
+			assert.strictEqual(value.path, '/');
 
 			value = URI.file('\\\\shares\\');
 			assert.strictEqual(value.scheme, 'file');
@@ -290,7 +289,6 @@ suite('URI', () => {
 
 	test('URI#file, no path-is-uri check', () => {
 
-		// we don't complain here
 		const value = URI.file('file://path/to/file');
 		assert.strictEqual(value.scheme, 'file');
 		assert.strictEqual(value.authority, '');
@@ -394,7 +392,6 @@ suite('URI', () => {
 		assert.strictEqual(uri2.query, 'LinkId=518008&foö&ké¥=üü');
 		assert.strictEqual(uri2.query, uri.query);
 
-		// #24849
 		uri = URI.parse('https://twitter.com/search?src=typd&q=%23tag');
 		assert.strictEqual(uri.toString(true), 'https://twitter.com/search?src=typd&q=%23tag');
 	});
@@ -407,7 +404,7 @@ suite('URI', () => {
 		path = 'foo/bar';
 		assert.strictEqual(URI.file(path).path, '/foo/bar');
 		path = './foo/bar';
-		assert.strictEqual(URI.file(path).path, '/./foo/bar'); // missing normalization
+		assert.strictEqual(URI.file(path).path, '/./foo/bar');
 
 		const fileUri1 = URI.parse(`file:foo/bar`);
 		assert.strictEqual(fileUri1.path, '/foo/bar');
@@ -447,7 +444,6 @@ suite('URI', () => {
 		assert.strictEqual(URI.isUri(uri), true);
 		assert.strictEqual(URI.isUri(uri.toJSON()), false);
 
-		// fsPath -> getter
 		assert.strictEqual(URI.isUri({
 			scheme: 'file',
 			authority: '',
@@ -459,7 +455,6 @@ suite('URI', () => {
 			toString() { return ''; }
 		}), true);
 
-		// fsPath -> property
 		assert.strictEqual(URI.isUri({
 			scheme: 'file',
 			authority: '',
@@ -489,7 +484,7 @@ suite('URI', () => {
 		assert.strictEqual(isUriComponents(true), false);
 		assert.strictEqual(isUriComponents('true'), false);
 		assert.strictEqual(isUriComponents({}), false);
-		assert.strictEqual(isUriComponents({ scheme: '' }), true); // valid components but INVALID uri
+		assert.strictEqual(isUriComponents({ scheme: '' }), true);
 		assert.strictEqual(isUriComponents({ scheme: 'fo' }), true);
 		assert.strictEqual(isUriComponents({ scheme: 'fo', path: '/p' }), true);
 		assert.strictEqual(isUriComponents({ path: '/p' }), false);
@@ -518,7 +513,7 @@ suite('URI', () => {
 		assert.strictEqual(uri1.path, uri2.path);
 		assert.strictEqual(uri1.query, uri2.query);
 		assert.strictEqual(uri1.fragment, uri2.fragment);
-		assert.strictEqual(strIn, strOut); // fails here!!
+		assert.strictEqual(strIn, strOut);
 	});
 
 	test.skip('Uri#parse can break path-component #45515', function () {
@@ -532,7 +527,7 @@ suite('URI', () => {
 		assert.strictEqual(uri1.path, uri2.path);
 		assert.strictEqual(uri1.query, uri2.query);
 		assert.strictEqual(uri1.fragment, uri2.fragment);
-		assert.strictEqual(strIn, strOut); // fails here!!
+		assert.strictEqual(strIn, strOut);
 	});
 
 	test('URI - (de)serialize', function () {
@@ -546,9 +541,6 @@ suite('URI', () => {
 			URI.parse('http://api/files/test.me#fff'),
 		];
 
-		// console.profile();
-		// let c = 100000;
-		// while (c-- > 0) {
 		for (const value of values) {
 			const data = value.toJSON() as UriComponents;
 			const clone = URI.revive(data);
@@ -561,8 +553,6 @@ suite('URI', () => {
 			assert.strictEqual(clone.fsPath, value.fsPath);
 			assert.strictEqual(clone.toString(), value.toString());
 		}
-		// }
-		// console.profileEnd();
 	});
 	function assertJoined(base: string, fragment: string, expected: string, checkWithUrl: boolean = true) {
 		const baseUri = URI.parse(base);
@@ -584,22 +574,18 @@ suite('URI', () => {
 		assertJoined(('file:///foo/bar'), './bazz', 'file:///foo/bar/bazz', false);
 		assertJoined(('file:///foo/bar'), 'bazz', 'file:///foo/bar/bazz', false);
 
-		// "auto-path" scheme
 		assertJoined(('file:'), 'bazz', 'file:///bazz');
 		assertJoined(('http://domain'), 'bazz', 'http://domain/bazz');
 		assertJoined(('https://domain'), 'bazz', 'https://domain/bazz');
 		assertJoined(('http:'), 'bazz', 'http:/bazz', false);
 		assertJoined(('https:'), 'bazz', 'https:/bazz', false);
 
-		// no "auto-path" scheme with and w/o paths
 		assertJoined(('foo:/'), 'bazz', 'foo:/bazz');
 		assertJoined(('foo://bar/'), 'bazz', 'foo://bar/bazz');
 
-		// no "auto-path" + no path -> error
 		assert.throws(() => assertJoined(('foo:'), 'bazz', ''));
 		assert.throws(() => new URL('bazz', 'foo:'));
 		assert.throws(() => assertJoined(('foo://bar'), 'bazz', ''));
-		// assert.throws(() => new URL('bazz', 'foo://bar')); Edge, Chrome => THROW, Firefox, Safari => foo://bar/bazz
 	});
 
 	test('URI#joinPath (posix)', function () {
@@ -610,8 +596,8 @@ suite('URI', () => {
 		assertJoined(('file://server/share/c:/'), '../../bazz', 'file://server/bazz', false);
 		assertJoined(('file://server/share/c:'), '../../bazz', 'file://server/bazz', false);
 
-		assertJoined(('file://ser/foo/'), '../../bazz', 'file://ser/bazz', false); // Firefox -> Different, Edge, Chrome, Safar -> OK
-		assertJoined(('file://ser/foo'), '../../bazz', 'file://ser/bazz', false); // Firefox -> Different, Edge, Chrome, Safar -> OK
+		assertJoined(('file://ser/foo/'), '../../bazz', 'file://ser/bazz', false);
+		assertJoined(('file://ser/foo'), '../../bazz', 'file://ser/bazz', false);
 	});
 
 	test('URI#joinPath (windows)', function () {
@@ -625,7 +611,6 @@ suite('URI', () => {
 		assertJoined(('file://ser/foo/'), '../../bazz', 'file://ser/foo/bazz', false);
 		assertJoined(('file://ser/foo'), '../../bazz', 'file://ser/foo/bazz', false);
 
-		//https://github.com/microsoft/vscode/issues/93831
 		assertJoined('file:///c:/foo/bar', './other/foo.img', 'file:///c:/foo/bar/other/foo.img', false);
 	});
 

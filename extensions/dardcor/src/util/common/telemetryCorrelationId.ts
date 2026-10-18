@@ -5,11 +5,6 @@
 
 import { generateUuid } from '../dardcor/base/common/uuid';
 
-/**
- * Tracks a chain of calls for telemetry purposes.
- *
- * The list of callers is printed in reverse order, so the most recent caller is at the start.
- */
 export class CallTracker {
 	private static readonly joiner = ' <- ';
 

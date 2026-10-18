@@ -25,18 +25,6 @@ const testModelTelemetry: IStatelessNextEditModelTelemetry = {
 	modelConfig: JSON.stringify({ promptingStrategy: 'patchBased02' }),
 };
 
-/**
- * Regression test from a real scenario:
- *
- * User typed `class Fibonacci {\n\t` character by character. Two NES requests
- * were made at different points during typing:
- *
- * - Request #6 (early): doc ended with `class `, model predicted `class FibonacciCalculator {`
- * - Request #18 (later): doc ended with `class Fibonacci `, model predicted `class Fibonacci {`
- *
- * When `lookupNextEdit` runs, it should find and rebase the compatible cached edit
- * from request #18 (whose prediction matches the user's typing).
- */
 describe('NextEditCache rebase — Fibonacci scenario', () => {
 
 	let configService: InMemoryConfigurationService;
@@ -46,7 +34,6 @@ describe('NextEditCache rebase — Fibonacci scenario', () => {
 	let cache: NextEditCache;
 	let docId: DocumentId;
 
-	// Common prefix of all document states — everything before the class declaration
 	const docPrefix =
 		'import * as vscode from \'vscode\';\n' +
 		'import { ASTNodeWithOffset } from \'./nodeTypes\';\n' +
@@ -117,12 +104,11 @@ describe('NextEditCache rebase — Fibonacci scenario', () => {
 		'}\n' +
 		'\n';
 
-	// Document states at different points in time — offsets derived from docPrefix.length
-	const classStart = docPrefix.length;                                       // where "class " begins
-	const docAtRequest18 = docPrefix + 'class Fibonacci ';                     // "class Fibonacci " ends at classStart + 16
-	const classEndAtRequest18 = classStart + 'class Fibonacci '.length;        // = classStart + 16
-	const currentDoc = docPrefix + 'class Fibonacci {\n\t';                    // "class Fibonacci {\n\t" ends at classStart + 19
-	const cursorOffset = classStart + 'class Fibonacci {\n\t'.length;          // = classStart + 19
+	const classStart = docPrefix.length;
+	const docAtRequest18 = docPrefix + 'class Fibonacci ';
+	const classEndAtRequest18 = classStart + 'class Fibonacci '.length;
+	const currentDoc = docPrefix + 'class Fibonacci {\n\t';
+	const cursorOffset = classStart + 'class Fibonacci {\n\t'.length;
 
 	function makeSource(): NextEditFetchRequest {
 		const logContext = new InlineEditRequestLogContext('test', 0, undefined);
@@ -137,26 +123,16 @@ describe('NextEditCache rebase — Fibonacci scenario', () => {
 		expService = new NullExperimentationService();
 
 		docId = DocumentId.create(URI.file('/test/nodeTypesDefinitionProvider.ts').toString());
-		// Initialize workspace doc with the CURRENT document state
-		// (so checkEditConsistency(documentBeforeEdit + userEditSince = currentDoc) passes)
 		obsWorkspace.addDocument({ id: docId, initialValue: currentDoc });
 
 		cache = new NextEditCache(obsWorkspace, logService, configService, expService);
 	});
 
 	it('rebases cached edit when model predicted class Fibonacci { and user typed the same', () => {
-		// Scenario from real usage:
-		//   documentBeforeEdit (at cache time): ...class Fibonacci \n (ends at offset 1960)
-		//   Model's edit: replace [1944,1960) "class Fibonacci " → "class Fibonacci {"
-		//   Model also has a 2nd edit: insert at 1961 → class body
-		//   User then typed "{\n\t" → userEditSince: [1944,1960) → "class Fibonacci {\n\t"
-		//
-		// The user's typing is a superset of the model's first edit (model: "{", user: "{\n\t"),
-		// so rebase should succeed and the 2nd edit (class body) should be offered.
 		const cachedEdit = cache.setKthNextEdit(
 			docId,
 			new StringText(docAtRequest18),
-			new OffsetRange(classStart, classEndAtRequest18), // editWindow
+			new OffsetRange(classStart, classEndAtRequest18),
 			new StringReplacement(new OffsetRange(classStart, classEndAtRequest18), 'class Fibonacci {'),
 			0,
 			[
@@ -183,19 +159,6 @@ describe('NextEditCache rebase — Fibonacci scenario', () => {
 	});
 });
 
-/**
- * Regression test from a real scenario (NES cached suggestion not shown):
- *
- * The user is inside `function familyJohn() {` on an empty body line. NES cached a
- * suggestion that predicts the indented `return [` on that line (`"" -> "    return ["`).
- * The user then presses Tab to indent the line, inserting a tab character.
- *
- * Strict rebase matches indentation literally, so the tab-vs-spaces mismatch makes
- * the whole suggestion drop (`rebaseFailed`) and nothing is shown. When the
- * `reanchorContentOnIndentationMismatch` setting is enabled, the model's still-valid
- * content is re-anchored as a clean pure insertion of `return [` at the cursor,
- * respecting the tab the user typed. When disabled, the suggestion is dropped.
- */
 describe('NextEditCache rebase — indented insertion over mismatched user indentation', () => {
 
 	let configService: InMemoryConfigurationService;
@@ -205,29 +168,24 @@ describe('NextEditCache rebase — indented insertion over mismatched user inden
 	let cache: NextEditCache;
 	let docId: DocumentId;
 
-	// cache-time doc: empty body line inside the function
 	const docBefore = 'function familyJohn() {\n\n}\n';
-	const emptyLineOffset = 'function familyJohn() {\n'.length; // start of the empty body line
-	// current doc: the user pressed Tab (a tab character) on the (empty) body line
+	const emptyLineOffset = 'function familyJohn() {\n'.length;
 	const currentDoc = 'function familyJohn() {\n\t\n}\n';
-	const cursorOffset = emptyLineOffset + '\t'.length; // caret sits after the typed tab
+	const cursorOffset = emptyLineOffset + '\t'.length;
 
 	function makeSource(): NextEditFetchRequest {
 		const logContext = new InlineEditRequestLogContext('test', 0, undefined);
 		return new NextEditFetchRequest(generateUuid(), logContext, undefined, false);
 	}
 
-	/** Cache the model's indented prediction, then rebase it over the user's typed tab. */
 	function cacheAndRebase() {
-		// Model predicts the indented `return [` on the empty body line.
 		const modelEdit = new StringReplacement(OffsetRange.emptyAt(emptyLineOffset), '    return [');
-		// The user pressed Tab on that same (empty) line, inserting a tab character.
 		const userEditSince = StringEdit.single(new StringReplacement(OffsetRange.emptyAt(emptyLineOffset), '\t'));
 
 		const cachedEdit = cache.setKthNextEdit(
 			docId,
 			new StringText(docBefore),
-			undefined, // editWindow
+			undefined,
 			modelEdit,
 			0,
 			[modelEdit],
@@ -265,7 +223,6 @@ describe('NextEditCache rebase — indented insertion over mismatched user inden
 
 		assert(rebaseResult.edit !== undefined, 'should serve a (re-anchored) edit instead of dropping it');
 		assert(rebaseResult.edit.rebasedEdit !== undefined, 'should have a rebased edit');
-		// The tab the user typed must not be part of the edit: a pure insertion at the cursor.
 		assert.strictEqual(rebaseResult.edit.rebasedEdit.toString(), `[${cursorOffset}, ${cursorOffset}) -> "return ["`);
 	});
 
@@ -274,8 +231,6 @@ describe('NextEditCache rebase — indented insertion over mismatched user inden
 
 		const rebaseResult = cacheAndRebase();
 
-		// Without the salvage, the tab-vs-spaces mismatch makes the rebase fail and
-		// the suggestion is dropped (nothing served).
 		assert.strictEqual(rebaseResult.edit, undefined, 'should drop the suggestion when re-anchoring is disabled');
 	});
 });

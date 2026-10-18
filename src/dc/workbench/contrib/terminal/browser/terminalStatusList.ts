@@ -16,10 +16,6 @@ import { ITerminalStatus } from '../common/terminal.js';
 import { mainWindow } from '../../../../base/browser/window.js';
 import { isString } from '../../../../base/common/types.js';
 
-/**
- * The set of _internal_ terminal statuses, other components building on the terminal should put
- * their statuses within their component.
- */
 export const enum TerminalStatus {
 	Bell = 'bell',
 	Disconnected = 'disconnected',
@@ -30,22 +26,13 @@ export const enum TerminalStatus {
 }
 
 export interface ITerminalStatusList {
-	/** Gets the most recent, highest severity status. */
 	readonly primary: ITerminalStatus | undefined;
-	/** Gets all active statues. */
 	readonly statuses: ITerminalStatus[];
 
 	readonly onDidAddStatus: Event<ITerminalStatus>;
 	readonly onDidRemoveStatus: Event<ITerminalStatus>;
 	readonly onDidChangePrimaryStatus: Event<ITerminalStatus | undefined>;
 
-	/**
-	 * Adds a status to the list.
-	 * @param status The status object. Ideally a single status object that does not change will be
-	 * shared as this call will no-op if the status is already set (checked by by object reference).
-	 * @param duration An optional duration in milliseconds of the status, when specified the status
-	 * will remove itself when the duration elapses unless the status gets re-added.
-	 */
 	add(status: ITerminalStatus, duration?: number): void;
 	remove(status: ITerminalStatus): void;
 	remove(statusId: string): void;
@@ -114,7 +101,6 @@ export class TerminalStatusList extends Disposable implements ITerminalStatusLis
 	remove(statusId: string): void;
 	remove(statusOrId: ITerminalStatus | string): void {
 		const status = isString(statusOrId) ? this._statuses.get(statusOrId) : statusOrId;
-		// Verify the status is the same as the one passed in
 		if (status && this._statuses.get(status.id)) {
 			const wasPrimary = this.primary?.id === status.id;
 			this._statuses.delete(status.id);
@@ -138,14 +124,11 @@ export class TerminalStatusList extends Disposable implements ITerminalStatusLis
 			return status;
 		}
 		let icon;
-		// Loading without animation is just a curved line that doesn't mean anything
 		if (status.icon.id === spinningLoading.id) {
 			icon = Codicon.play;
 		} else {
 			icon = ThemeIcon.modify(status.icon, undefined);
 		}
-		// Clone the status when changing the icon so that setting changes are applied without a
-		// reload being needed
 		return {
 			...status,
 			icon

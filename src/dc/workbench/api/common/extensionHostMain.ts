@@ -37,11 +37,8 @@ export abstract class ErrorHandler {
 
 	static async installEarlyHandler(accessor: ServicesAccessor): Promise<void> {
 
-		// increase number of stack frames (from 10, https://github.com/v8/v8/wiki/Stack-Trace-API)
 		Error.stackTraceLimit = 100;
 
-		// does NOT dependent of extension information, can be installed immediately, and simply forwards
-		// to the log service and main thread errors
 		const logService = accessor.get(ILogService);
 		const rpcService = accessor.get(IExtHostRpcService);
 		const mainThreadErrors = rpcService.getProxy(MainContext.MainThreadErrors);
@@ -54,7 +51,6 @@ export abstract class ErrorHandler {
 	}
 
 	static async installFullHandler(accessor: ServicesAccessor): Promise<void> {
-		// uses extension knowledges to correlate errors with extensions
 
 		const logService = accessor.get(ILogService);
 		const rpcService = accessor.get(IExtHostRpcService);
@@ -69,9 +65,6 @@ export abstract class ErrorHandler {
 		const extensionsMap = await extensionService.getExtensionPathIndex();
 		const extensionErrors = new WeakMap<Error, { extensionIdentifier: ExtensionIdentifier | undefined; stack: string }>();
 
-		// PART 1
-		// set the prepareStackTrace-handle and use it as a side-effect to associate errors
-		// with extensions - this works by looking up callsites in the extension path index
 		function prepareStackTraceAndFindExtension(error: Error, stackTrace: errors.V8CallSite[]) {
 			if (extensionErrors.has(error)) {
 				return extensionErrors.get(error)!.stack;
@@ -114,10 +107,6 @@ export abstract class ErrorHandler {
 			},
 		});
 
-		// PART 2
-		// set the unexpectedErrorHandler and check for extensions that have been identified as
-		// having caused the error. Note that the runtime order is actually reversed, the code
-		// below accesses the stack-property which triggers the code above
 		errors.setUnexpectedErrorHandler(err => {
 
 			if (!errors.PendingMigrationError.is(err)) {
@@ -139,8 +128,6 @@ export abstract class ErrorHandler {
 			}
 
 			if (errors.PendingMigrationError.is(err)) {
-				// report pending migration via the API deprecation service which (1) informs the extensions author during
-				// dev-time and (2) collects telemetry so that we can reach out too
 				const extensionDesc = extensionsRegistry.getExtensionDescription(extension);
 				if (extensionDesc) {
 					apiDeprecationService.report(err.name, extensionDesc, `${err.message}\n FROM: ${err.stack}`);
@@ -175,10 +162,8 @@ export class ExtensionHostMain {
 		this._hostUtils = hostUtils;
 		this._rpcProtocol = new RPCProtocol(protocol, null, uriTransformer);
 
-		// ensure URIs are transformed and revived
 		initData = ExtensionHostMain._transform(initData, this._rpcProtocol);
 
-		// bootstrap services
 		const services = new ServiceCollection(...getSingletonServiceDescriptors());
 		services.set(IExtHostInitDataService, { _serviceBrand: undefined, ...initData, messagePorts });
 		services.set(IExtHostRpcService, new ExtHostRpcService(this._rpcProtocol));
@@ -189,7 +174,6 @@ export class ExtensionHostMain {
 
 		instaService.invokeFunction(ErrorHandler.installEarlyHandler);
 
-		// ugly self - inject
 		this._logService = instaService.invokeFunction(accessor => accessor.get(ILogService));
 
 		performance.mark(`code/extHost/didCreateServices`);
@@ -200,13 +184,9 @@ export class ExtensionHostMain {
 		}
 		this._logService.trace('initData', initData);
 
-		// ugly self - inject
-		// must call initialize *after* creating the extension service
-		// because `initialize` itself creates instances that depend on it
 		this._extensionService = instaService.invokeFunction(accessor => accessor.get(IExtHostExtensionService));
 		this._extensionService.initialize();
 
-		// install error handler that is extension-aware
 		instaService.invokeFunction(ErrorHandler.installFullHandler);
 	}
 

@@ -15,11 +15,6 @@ export enum TokenizerType {
 
 export interface ITokenizer extends ITsxTokenizer<OutputMode.Raw> {
 
-	/**
-	 * Return the length of `text` in number of tokens.
-	 *
-	 * @param text The input text
-	 */
 	tokenLength(text: string | Raw.ChatCompletionContentPart): Promise<number>;
 
 	countMessageTokens(message: Raw.ChatMessage): Promise<number>;

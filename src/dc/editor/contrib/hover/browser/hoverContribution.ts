@@ -40,7 +40,6 @@ CommandsRegistry.registerCommand(HIDE_LONG_LINE_WARNING_HOVER_ACTION_ID, (access
 	accessor.get(IConfigurationService).updateValue('editor.hover.showLongLineWarning', false);
 });
 
-// theming
 registerThemingParticipant((theme, collector) => {
 	const hoverBorder = theme.getColor(editorHoverBorder);
 	if (hoverBorder) {

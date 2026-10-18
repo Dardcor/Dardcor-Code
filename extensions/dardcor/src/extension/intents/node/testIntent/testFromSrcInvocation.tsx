@@ -49,9 +49,6 @@ type TestFileToWriteTo = {
 	uri: Uri;
 };
 
-/**
- * Invoke from within a non-test file
- */
 export class TestFromSourceInvocation implements IIntentInvocation {
 
 	private _testFileToWriteTo: TestFileToWriteTo | undefined;
@@ -79,7 +76,6 @@ export class TestFromSourceInvocation implements IIntentInvocation {
 	) {
 		assert(!isTestFile(this.documentContext.document), 'TestFromSourceInvocation should not be invoked from a test file');
 
-		// identify in which file generated tests will be placed at
 
 		const testExampleFile = await this.findTestFileForSourceFile(token);
 
@@ -118,7 +114,7 @@ export class TestFromSourceInvocation implements IIntentInvocation {
 			}
 		}
 
-		progress.report(new ChatResponseMovePart(this._testFileToWriteTo.uri, range) as any); // FIXME@ulugbekna
+		progress.report(new ChatResponseMovePart(this._testFileToWriteTo.uri, range) as any);
 
 		if (this.location === ChatLocation.Panel && !promptContext.query) {
 			promptContext = { ...promptContext, query: 'Write a set of detailed unit test functions for the code above.', };
@@ -134,7 +130,7 @@ export class TestFromSourceInvocation implements IIntentInvocation {
 			alreadyConsumedChatVariable: this.alreadyConsumedChatVariable,
 		});
 
-		const result = await renderer.render(progress as any, token); // FIXME@ulugbekna
+		const result = await renderer.render(progress as any, token);
 
 		return result;
 	}
@@ -205,15 +201,12 @@ export class TestFromSourceInvocation implements IIntentInvocation {
 				testFile,
 				this.documentContext.fileIndentInfo,
 				range,
-				testFile.getText().length // @ulugbekna: we shouldn't be restricted on the token size because we're not sending it in the prompt
+				testFile.getText().length
 			);
 
 			const splitDoc = summarizedDocument.splitAroundOriginalSelectionEnd();
 
-			// FIXME@ulugbekna: we shouldn't need this
-			// const { codeAbove, hasContent, codeBelow } = splitDoc;
 			const placeHolder = '$PLACEHOLDER$';
-			// const code = `${codeAbove}${placeHolder}${codeBelow}`;
 
 			const replyInterpreter = splitDoc.createReplyInterpreter(
 				StreamPipe.chain(
@@ -233,12 +226,6 @@ export class TestFromSourceInvocation implements IIntentInvocation {
 	}
 
 
-	/**
-	 * Finds either a test file corresponding to the source file or any test file within the workspace.
-	 * The found test file is used in the prompt.
-	 *
-	 * @remark respects dardcor-ignored
-	 */
 	private async findTestFileForSourceFile(token: CancellationToken): Promise<TestExampleFile | null> {
 
 		let kind: 'anyTestFile' | 'candidateTestFile';
@@ -262,7 +249,7 @@ export class TestFromSourceInvocation implements IIntentInvocation {
 			testExampleFile = anyTestFile;
 		}
 
-		if (testExampleFile === undefined || (await this.ignoreService.isCopilotIgnored(testExampleFile))) {
+		if (testExampleFile === undefined || (await this.ignoreService.isIgnored(testExampleFile))) {
 			return null;
 		}
 
@@ -271,9 +258,6 @@ export class TestFromSourceInvocation implements IIntentInvocation {
 }
 
 type Props = PromptElementProps<{
-	/**
-	 * @remark Assumes the document has already been checked for dardcor-ignore, ie, don't pass dardcor-ignored files.
-	 */
 	context: IDocumentContext;
 	endpoint: IChatEndpoint;
 	location: ChatLocation;
@@ -298,7 +282,6 @@ class Prompt extends PromptElement<Props> {
 		const { history, query, chatVariables, } = this.props.promptContext;
 		const { context, testExampleFile, testFileToWriteTo, location, alreadyConsumedChatVariable } = this.props;
 
-		// get testable node
 
 		const treeSitterAST = this.parserService.getTreeSitterAST(context.document);
 
@@ -314,8 +297,6 @@ class Prompt extends PromptElement<Props> {
 
 		const documentSummarizationSettings: ISummarizedDocumentSettings | undefined =
 			(
-				// special score function for TS/TSX classes and methods
-				// we want to preserve constructor's and other methods' signatures
 				['typescript', 'typescriptreact'].includes(context.document.languageId) &&
 				nodeKind !== undefined && ['class_declaration', 'method_definition'].includes(nodeKind)
 			)
@@ -332,11 +313,10 @@ class Prompt extends PromptElement<Props> {
 			context.document,
 			context.fileIndentInfo,
 			userSelection,
-			sizing.tokenBudget / 2, // leave half of token budget to response
+			sizing.tokenBudget / 2,
 			documentSummarizationSettings,
 		);
 
-		// get test frameworks info
 
 
 		const languageId = context.language.languageId;
@@ -383,7 +363,7 @@ class Prompt extends PromptElement<Props> {
 									The active document is the source code the user is looking at right now.<br />
 									You can only give one reply for each conversation turn.
 								</>
-								: undefined // @ulugbekna: should be unreachable
+								: undefined
 						}
 						{extraContext.length > 0 && <><br /> {extraContext}</>}
 					</InstructionMessage>
@@ -419,14 +399,12 @@ class Prompt extends PromptElement<Props> {
 
 				extraContext.push('Make sure your answer imports the function to test as this is a total new file.');
 
-				// this will be true if there is not a candidate test file so goal is creating a new test file which will require imports
 				const parent: string = path.dirname(context.document.uri.fsPath);
 				const init_search: string = path.join(parent, '__init__.py');
 				const workspaceRootPath: URI | undefined = this.workspaceService.getWorkspaceFolder(context.document.uri);
 				try {
 					await this.workspaceService.openTextDocument(Uri.file(init_search));
 					if (workspaceRootPath !== undefined && path.resolve(parent) === path.resolve(workspaceRootPath?.fsPath ?? '')) {
-						/* current file is at the root of the workspace */
 						extraContext.push('The file is in the root of the workspace, which has an __init__.py but use an absolute import to import the function to test.');
 					} else {
 						extraContext.push('The parent directory of the given file has an __init__.py file making it a regular package. Use a relative import to import the function to test.');

@@ -24,7 +24,6 @@ test.describe('Image Carousel', () => {
 		await openFixture(page, 'imageCarousel/imageCarousel/SingleSectionMiddleImage/Dark');
 
 		const counter = page.locator('.image-counter');
-		// Starts at image 3 (index 2)
 		await expect(counter).toHaveText('3 / 5');
 
 		const prevBtn = page.locator('button.prev-arrow');
@@ -48,7 +47,6 @@ test.describe('Image Carousel', () => {
 
 		const nextBtn = page.locator('button.next-arrow');
 
-		// Click through to the last image (5 images, need 4 clicks)
 		for (let i = 0; i < 4; i++) {
 			await nextBtn.click();
 		}
@@ -63,15 +61,12 @@ test.describe('Image Carousel', () => {
 		await openFixture(page, 'imageCarousel/imageCarousel/SingleSection/Dark');
 
 		const caption = page.locator('.caption-text');
-		// First image: "A red image"
 		await expect(caption).toHaveText('A red image');
 
 		await page.locator('button.next-arrow').click();
-		// Second image: "A green image"
 		await expect(caption).toHaveText('A green image');
 
 		await page.locator('button.next-arrow').click();
-		// Third image has no caption — element should be hidden
 		await expect(caption).toBeHidden();
 	});
 
@@ -81,11 +76,9 @@ test.describe('Image Carousel', () => {
 		const thumbnails = page.locator('button.thumbnail');
 		const counter = page.locator('.image-counter');
 
-		// Click the third thumbnail
 		await thumbnails.nth(2).click();
 		await expect(counter).toHaveText('3 / 5');
 
-		// The clicked thumbnail should be active
 		await expect(thumbnails.nth(2)).toHaveClass(/active/);
 	});
 
@@ -95,7 +88,6 @@ test.describe('Image Carousel', () => {
 		const counter = page.locator('.image-counter');
 		await expect(counter).toHaveText('1 / 5');
 
-		// Focus the slideshow container for keyboard events
 		await page.locator('.slideshow-container').focus();
 
 		await page.keyboard.press('ArrowRight');

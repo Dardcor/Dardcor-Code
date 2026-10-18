@@ -19,10 +19,6 @@ import {
 	IBrowserEditorWidget,
 } from '../browserEditor.js';
 
-/**
- * Welcome placeholder shown in the content area when no URL is loaded; hides
- * as soon as a URL appears and reappears when it's cleared.
- */
 export class BrowserWelcomeFeature extends BrowserEditorContribution {
 
 	private readonly _container: HTMLElement;

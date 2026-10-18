@@ -53,13 +53,11 @@ function createServerHost(
 	const currentDirectory = '/';
 	const fs = apiClient?.vscode.workspace.fileSystem;
 
-	// Internals
 	const combinePaths = (ts as TsInternals).combinePaths;
 	const byteOrderMarkIndicator = '\uFEFF';
 	const matchFiles = (ts as TsInternals).matchFiles;
 	const generateDjb2Hash = (ts as TsInternals).generateDjb2Hash;
 
-	// Legacy web
 	const memoize = (ts as TsInternals).memoize;
 	const ensureTrailingDirectorySeparator = (ts as TsInternals).ensureTrailingDirectorySeparator;
 	const getDirectoryPath = (ts as TsInternals).getDirectoryPath;
@@ -104,7 +102,6 @@ function createServerHost(
 
 			const scriptPath = combinePaths(packageRoot, browser);
 			try {
-				// This file isn't bundled so we really do want a dynamic import here
 				// eslint-disable-next-line no-restricted-syntax
 				const { default: module } = await import(/* webpackIgnore: true */ scriptPath);
 				return { module, error: undefined };
@@ -128,7 +125,7 @@ function createServerHost(
 				const webPath = getWebPath(path);
 				if (webPath) {
 					const request = new XMLHttpRequest();
-					request.open('GET', webPath, /* asynchronous */ false);
+					request.open('GET', webPath, false);
 					request.send();
 					return request.status === 200 ? request.responseText : undefined;
 				} else {
@@ -145,7 +142,6 @@ function createServerHost(
 
 			let contents: Uint8Array | undefined;
 			try {
-				// We need to slice the bytes since we can't pass a shared array to text decoder
 				contents = fs.readFile(uri);
 			} catch (error) {
 				if (!enabledExperimentalTypeAcquisition) {
@@ -221,7 +217,7 @@ function createServerHost(
 				}
 
 				const request = new XMLHttpRequest();
-				request.open('HEAD', webPath, /* asynchronous */ false);
+				request.open('HEAD', webPath, false);
 				request.send();
 				return request.status === 200;
 			}
@@ -272,7 +268,6 @@ function createServerHost(
 			}
 			if (stat) {
 				if (path.startsWith('/https') && !path.endsWith('.d.ts')) {
-					// TODO: Hack, https 'file system' can't actually tell what is a file vs directory
 					return stat.type === FileType.File || stat.type === FileType.Directory;
 				}
 
@@ -307,7 +302,7 @@ function createServerHost(
 		readDirectory(path: string, extensions?: readonly string[], excludes?: readonly string[], includes?: readonly string[], depth?: number): string[] {
 			logger.logVerbose('fs.readDirectory', { path });
 
-			return matchFiles(path, extensions, excludes, includes, /*useCaseSensitiveFileNames*/ true, currentDirectory, depth, getAccessibleFileSystemEntries, realpath);
+			return matchFiles(path, extensions, excludes, includes, true, currentDirectory, depth, getAccessibleFileSystemEntries, realpath);
 		},
 		getModifiedTime(path: string): Date | undefined {
 			logger.logVerbose('fs.getModifiedTime', { path });
@@ -344,8 +339,6 @@ function createServerHost(
 			}
 		},
 		createHash: generateDjb2Hash,
-		/** This must be cryptographically secure.
-			The browser implementation, crypto.subtle.digest, is async so not possible to call from tsserver. */
 		createSHA256Hash: undefined,
 		exit: exit,
 		realpath,
@@ -353,21 +346,15 @@ function createServerHost(
 		base64encode: input => Buffer.from(input).toString('base64'),
 	};
 
-	// For module resolution only. `node_modules` is also automatically mapped
-	// as if all node_modules-like paths are symlinked.
 	function realpath(path: string): string {
 		if (path.startsWith('/^/')) {
-			// In memory file. No mapping needed
 			return path;
 		}
 
 		const isNm = looksLikeNodeModules(path)
 			&& !path.startsWith('/vscode-global-typings/')
-			// Handle the case where a local folder has been opened in VS Code
-			// In these cases we do not want to use the mapped node_module
 			&& !path.startsWith('/file/');
 
-		// skip paths without .. or ./ or /
 		if (!isNm && !path.match(/\.\.|\/\.|\.\//)) {
 			return path;
 		}
@@ -390,7 +377,6 @@ function createServerHost(
 				case '.':
 					break;
 				case '..':
-					//delete if there is something there to delete
 					out.pop();
 					break;
 				default:
@@ -418,8 +404,6 @@ function createServerHost(
 			}
 		}
 		for (const [entry, type] of entries) {
-			// This is necessary because on some file system node fails to exclude
-			// '.' and '..'. See https://github.com/nodejs/node/issues/4002
 			if (entry === '.' || entry === '..') {
 				continue;
 			}

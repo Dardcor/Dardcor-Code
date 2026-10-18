@@ -23,14 +23,7 @@ import { CodeBlock } from './safeElements';
 
 type Props = PromptElementProps<{
 	document: TextDocumentSnapshot;
-	/**
-	 * Range of interest for which definitions are to be found.
-	 * @remark if not provided, will use active selection in currently active editor
-	 */
 	position: vscode.Position;
-	/**
-	 * Timeout for finding implementations in milliseconds. Defaults to 200ms.
-	 */
 	timeoutMs?: number;
 }>;
 
@@ -41,9 +34,6 @@ type CodeExcerpt = {
 	excerptRange: vscode.Range;
 };
 
-/**
- * @remark Excludes references that are in dardcor-ignored files.
- */
 export class ReferencesAtPosition extends PromptElement<Props> {
 	private static DEFAULT_TIMEOUT_MS = 200;
 
@@ -61,7 +51,7 @@ export class ReferencesAtPosition extends PromptElement<Props> {
 	}
 
 	async render(state: void, sizing: PromptSizing) {
-		if (await this.ignoreService.isCopilotIgnored(this.props.document.uri)) {
+		if (await this.ignoreService.isIgnored(this.props.document.uri)) {
 			return <ignoredFiles value={[this.props.document.uri]} />;
 		}
 
@@ -125,7 +115,7 @@ export class ReferencesAtPosition extends PromptElement<Props> {
 		const nonIgnoredDefs = [];
 		const nonIgnoredRefs = [];
 		for (const ref of foundRefs) {
-			if (await this.ignoreService.isCopilotIgnored(ref.uri)) {
+			if (await this.ignoreService.isIgnored(ref.uri)) {
 				continue;
 			}
 
@@ -146,7 +136,6 @@ export class ReferencesAtPosition extends PromptElement<Props> {
 					excerptRange: treeSitterOffsetRangeToVSCodeRange(docContainingRef, calls[0]),
 				} as CodeExcerpt);
 			} else if (functions.some(f => TreeSitterOffsetRange.doIntersect(f, range))) {
-				// since language service gives us only links to identifiers, expand to whole implementation/definition using tree-sitter
 				const nodeToDocument = await determineNodeToDocument(this.parserService, this.telemetryService, {
 					document: docContainingRef,
 					language: getLanguage(document.languageId),

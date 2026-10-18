@@ -26,7 +26,6 @@ class DebugEditorGpuRendererAction extends EditorAction {
 		super({
 			id: 'editor.action.debugEditorGpuRenderer',
 			label: localize2('gpuDebug.label', "Developer: Debug Editor GPU Renderer"),
-			// TODO: Why doesn't `ContextKeyExpr.equals('config:editor.experimentalGpuAcceleration', 'on')` work?
 			precondition: ContextKeyExpr.true(),
 		});
 	}

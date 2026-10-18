@@ -33,13 +33,6 @@ async function consumeHandleResponse(
 	}
 }
 
-/**
- * Adapts the legacy tuple-shaped patch input used in tests to the new
- * `LineReplacement` + `AbstractText` API surface of `tryRemoveDuplicateAdditions`.
- *
- * Builds a `StringText` from the file lines (joined with `\n`, no synthetic
- * trailing newline added) so `splitLines` round-trips back to the same array.
- */
 function callDedup(
 	patch: { addedLines: string[]; removedLines: string[]; lineNumZeroBased: number },
 	fileLines: string[],
@@ -168,7 +161,6 @@ another_file.js:
 		const docId = DocumentId.create('file:///file.ts');
 		const documentBeforeEdits = new CurrentDocument(new StringText('old\n'), new Position(1, 1));
 
-		// Emit the first patch completely, then reject with FetchStreamError
 		async function* makeStream(): AsyncGenerator<string> {
 			yield '/file.ts:0';
 			yield '-old';
@@ -216,13 +208,6 @@ another_file.js:
 	describe('tryRemoveDuplicateAdditions', () => {
 
 		it('removes a single trailing duplicate (closing brace case)', () => {
-			// File:
-			//   0: function foo() {
-			//   1:     let x = 1;
-			//   2: }
-			//
-			// Patch replaces line 1 and tries to add `let y = 2;` after it,
-			// but mistakenly re-emits the closing brace.
 			const fileLines = ['function foo() {', '    let x = 1;', '}'];
 			const result = callDedup(
 				{
@@ -239,8 +224,6 @@ another_file.js:
 
 		it('removes a multi-line trailing duplicate', () => {
 			const fileLines = ['a', 'b', 'c', 'd', 'e'];
-			// Patch at line 1 replaces `b`. Additions repeat `b`, `c`, `d`.
-			// `c`, `d` are the lines following the deletion and would be duplicated.
 			const result = callDedup(
 				{
 					addedLines: ['B', 'c', 'd'],
@@ -255,10 +238,6 @@ another_file.js:
 		});
 
 		it('picks the longest suffix match', () => {
-			// File: ['a', 'b', 'c'] following the patch.
-			// Additions end with ['a', 'b', 'c'] — both k=1 and k=3 would match
-			// (k=3 only because the whole following matches), but the longest
-			// match wins to remove as much duplication as possible.
 			const fileLines = ['x', 'a', 'b', 'c'];
 			const result = callDedup(
 				{
@@ -274,12 +253,6 @@ another_file.js:
 		});
 
 		it('removes a leading duplicate when the line is meaningful', () => {
-			// File:
-			//   0: header
-			//   1: existing line
-			//   2: trailer
-			//
-			// Patch at line 1 with no removals tries to add `existing line`.
 			const fileLines = ['header', 'existing line', 'trailer'];
 			const result = callDedup(
 				{
@@ -295,10 +268,6 @@ another_file.js:
 		});
 
 		it('drops a duplicate inner `}` when the patch is purely additive (headline bug fix)', () => {
-			// Headline bug case: file ends with a `}`, model emits an extra
-			// `}` addition with no removals at the same line. Adding it would
-			// produce two adjacent `}` where one is enough — this is a
-			// duplicate of the existing closing token and must be trimmed.
 			const fileLines = ['function f() {', '  doIt();', '}'];
 			const result = callDedup(
 				{
@@ -314,13 +283,6 @@ another_file.js:
 		});
 
 		it('drops a duplicate `}` even when the patch removes content first', () => {
-			// Restructure-shape variant of the headline bug. The previous
-			// guard preserved this case (k===addedLines.length, all
-			// non-meaningful, removedLines>0) on the rationale of "legitimate
-			// inner-scope close". In practice the result still has two
-			// adjacent `}` after applying — that's a duplicate. We always
-			// trim, accepting the rare false positive of a mid-typing
-			// unbalanced file where the model is correctly closing.
 			const fileLines = ['function outer() {', '  body();', '}'];
 			const result = callDedup(
 				{
@@ -349,11 +311,6 @@ another_file.js:
 		});
 
 		it('removes streamEdits-style middle duplicate but preserves new content after the matched range', () => {
-			// Additions partially copy continuation starting at offset 2
-			// ('cont1 long', 'cont2 long' match the file's following lines),
-			// but 'extra' is genuinely new and must be preserved. The middle
-			// shape only drops the verified-equal range — not everything
-			// trailing.
 			const fileLines = ['x', 'cont1 long', 'cont2 long', 'y'];
 			const result = callDedup(
 				{
@@ -369,9 +326,6 @@ another_file.js:
 		});
 
 		it('greedily extends a middle match while the streamEdits regenerated context continues', () => {
-			// When more than two consecutive following lines match, the
-			// match should extend to cover all of them so we drop the
-			// entire regenerated continuation block.
 			const fileLines = ['x', 'cont1 long', 'cont2 long', 'cont3 long', 'y'];
 			const result = callDedup(
 				{
@@ -387,7 +341,6 @@ another_file.js:
 		});
 
 		it('does not match a middle pair when the following lines are not meaningful', () => {
-			// Two consecutive blank lines are too common to safely match on.
 			const fileLines = ['x', '', '', 'y'];
 			const result = callDedup(
 				{
@@ -441,7 +394,6 @@ another_file.js:
 
 		it('handles patch at the very end of the file (no following lines)', () => {
 			const fileLines = ['line0', 'line1'];
-			// Replacing the last line with no extra following content.
 			const result = callDedup(
 				{
 					addedLines: ['new1'],
@@ -454,14 +406,6 @@ another_file.js:
 		});
 
 		it('does not chain shapes — suffix match returns immediately without firing middle', () => {
-			// Without single-shape semantics, the original implementation could
-			// trim a suffix and then the (now shortened) additions would expose
-			// a "middle" pair that incorrectly truncated even more lines.
-			//
-			// File: outer-scope code where '  }', '}' appear before nextLine.
-			// Additions: real new code followed by '  }', '}', '  }', '}'.
-			// The longest-matching suffix is k=2 (matches the 2-line following
-			// `[' }', '}']`), so only those last 2 lines should be removed.
 			const fileLines = ['  }', '}', 'nextLine'];
 			const result = callDedup(
 				{
@@ -477,8 +421,6 @@ another_file.js:
 		});
 
 		it('handles file without trailing newline', () => {
-			// `splitLines('a\\nb\\nc')` returns ['a','b','c'] (no trailing empty).
-			// The dedup must still work correctly against this shape.
 			const fileLines = 'function foo() {\n    let x = 1;\n}'.split('\n');
 			const result = callDedup(
 				{
@@ -493,9 +435,6 @@ another_file.js:
 		});
 
 		it('handles file with trailing newline (extra empty line at end)', () => {
-			// `splitLines('a\\nb\\nc\\n')` returns ['a','b','c',''] — the trailing
-			// empty string can become a "following" line and must not cause
-			// false positives via the prefix/middle checks.
 			const fileLines = 'function foo() {\n    let x = 1;\n}\n'.split('\n');
 			const result = callDedup(
 				{
@@ -585,8 +524,6 @@ another_file.js:
 			const docContent = 'function foo() {\n    let x = 1;\n    let y = 2;\n}\n';
 			const documentBeforeEdits = new CurrentDocument(new StringText(docContent), new Position(1, 1));
 
-			// Patch adds 'let x = 1;' at line 1 with no removals — but that
-			// line already exists at line 1 (prefix match against a meaningful line).
 			async function* makeStream(): AsyncGenerator<string> {
 				yield '/test.ts:1';
 				yield '+    let x = 1;';
@@ -603,7 +540,6 @@ another_file.js:
 			);
 
 			expect(edits).toHaveLength(0);
-			// No more FilteredOut: cache and cursor-jump retry are preserved.
 			expect(returnValue).toBeInstanceOf(NoNextEditReason.NoSuggestions);
 		});
 
@@ -612,7 +548,6 @@ another_file.js:
 			const documentBeforeEdits = new CurrentDocument(new StringText('a\nb\n'), new Position(1, 1));
 
 			async function* makeStream(): AsyncGenerator<string> {
-				// no patches
 			}
 
 			const { edits, returnValue } = await consumeHandleResponse(
@@ -635,8 +570,6 @@ another_file.js:
 			const documentBeforeEdits = new CurrentDocument(new StringText(docContent), new Position(2, 1));
 
 			async function* makeStream(): AsyncGenerator<string> {
-				// First patch survives (no duplicate). Second patch adds a
-				// meaningful prefix duplicate of an existing line — drops to no-op.
 				yield '/test.ts:1';
 				yield '-    let x = 1;';
 				yield '+    let z = 99;';
@@ -663,8 +596,6 @@ another_file.js:
 			const docContent = 'a\nb\nc\n';
 			const documentBeforeEdits = new CurrentDocument(new StringText(docContent), new Position(1, 1));
 
-			// Patch targets a different file; the active doc's content must
-			// not be used to dedup against, so the patch should be yielded as-is.
 			async function* makeStream(): AsyncGenerator<string> {
 				yield '/other.ts:0';
 				yield '-old';
@@ -693,12 +624,10 @@ another_file.js:
 			const documentBeforeEdits = new CurrentDocument(new StringText(docContent), new Position(2, 1));
 
 			async function* makeStream(): AsyncGenerator<string> {
-				// First patch: duplicates the trailing `}` (suffix shape) — should be dropped.
 				yield '/test.ts:1';
 				yield '-    let x = 1;';
 				yield '+    let x = 1;';
 				yield '+}';
-				// Second patch: legitimate change to a different region — should be yielded.
 				yield '/test.ts:4';
 				yield '-    let y = 2;';
 				yield '+    let y = 42;';
@@ -726,16 +655,13 @@ another_file.js:
 			const documentBeforeEdits = new CurrentDocument(new StringText(docContent), new Position(2, 1));
 
 			async function* makeStream(): AsyncGenerator<string> {
-				// First patch: legitimate, yielded as-is.
 				yield '/test.ts:0';
 				yield '-function foo() {';
 				yield '+function fooRenamed() {';
-				// Second patch: duplicates trailing `}` — triggers DropAllRemaining.
 				yield '/test.ts:1';
 				yield '-    let x = 1;';
 				yield '+    let x = 1;';
 				yield '+}';
-				// Third patch: would have been legitimate, but must NOT be yielded.
 				yield '/test.ts:4';
 				yield '-    let y = 2;';
 				yield '+    let y = 42;';
@@ -751,8 +677,6 @@ another_file.js:
 				DuplicateAdditionsMode.DropAllRemaining,
 			);
 
-			// Only the patch yielded before the detection survives. The
-			// triggering patch and every subsequent patch are dropped.
 			expect(edits).toHaveLength(1);
 			const lineReplacement = edits[0].edit as LineReplacement;
 			expect(lineReplacement.newLines).toEqual(['function fooRenamed() {']);
@@ -900,7 +824,6 @@ another_file.js:
 				].join('\n'),
 				4,
 			);
-			// Single added line: early patch is emitted, continuation is empty and not yielded
 			expect(result).toEqual([
 				'file.py:4',
 				'-lineA',
@@ -945,7 +868,6 @@ another_file.js:
 		});
 
 		it('does not split second patch even if it matches cursor line', async () => {
-			// First patch is NOT ghost-text (non-additive), second patch IS at cursor line and additive
 			const result = await collectPatchesWithCursor(
 				[
 					'file.py:0',
@@ -974,7 +896,7 @@ another_file.js:
 
 		async function collectMultiLine(patchText: string, cursorLineZeroBased: number, activeDocPath: string = 'file.py'): Promise<string> {
 			const linesStream = AsyncIterUtils.fromArray(patchText.split('\n'));
-			const patches = await AsyncIterUtils.toArray(XtabPatchResponseHandler.extractEdits(linesStream, cursorLineZeroBased, activeDocPath, /* allowMultiLineRemoval */ true));
+			const patches = await AsyncIterUtils.toArray(XtabPatchResponseHandler.extractEdits(linesStream, cursorLineZeroBased, activeDocPath, true));
 			return patches.map(p => p.toString()).join('\n');
 		}
 
@@ -1000,7 +922,6 @@ another_file.js:
 		});
 
 		it('does not split a multi-removed-line patch when allowMultiLineRemoval is off', async () => {
-			// Same input, but with allowMultiLineRemoval defaulting to false.
 			const linesStream = AsyncIterUtils.fromArray([
 				'file.py:4',
 				'-lineA',
@@ -1121,8 +1042,6 @@ another_file.js:
 		});
 
 		it('does not split an empty cursor line that merely absorbs the next line', async () => {
-			// removed[0] is blank and the first added line equals removed[1] (the line just
-			// below the cursor): the model is deleting the empty line, not additively editing it.
 			const result = await collectMultiLine(
 				[
 					'file.py:4',
@@ -1167,7 +1086,6 @@ another_file.js:
 		it('yields two edits for ghost-text when progressive reveal is enabled', async () => {
 			const docId = DocumentId.create('file:///test.ts');
 			const docContent = 'function foo() {\n    let x = 1;\n}\n';
-			// Cursor on line 2 (1-based) → cursorLineOffset = 1
 			const documentBeforeEdits = new CurrentDocument(new StringText(docContent), new Position(2, 5));
 
 			async function* makeStream(): AsyncGenerator<string> {
@@ -1189,9 +1107,7 @@ another_file.js:
 			);
 
 			expect(edits).toHaveLength(2);
-			// First edit: cursor-line replacement
 			expect(edits[0].edit).toEqual(new LineReplacement(new LineRange(2, 3), ['    let x = 1;']));
-			// Second edit: continuation insertion
 			expect(edits[1].edit).toEqual(new LineReplacement(new LineRange(3, 3), ['    let y = 2;']));
 		});
 
@@ -1222,7 +1138,6 @@ another_file.js:
 
 		it('progressive reveal with TrimDuplicate trims continuation but keeps early edit', async () => {
 			const docId = DocumentId.create('file:///test.ts');
-			// Document: line 1 = "function foo() {", line 2 = "    let x = 1;", line 3 = "}"
 			const docContent = 'function foo() {\n    let x = 1;\n}\n';
 			const documentBeforeEdits = new CurrentDocument(new StringText(docContent), new Position(2, 5));
 
@@ -1231,7 +1146,7 @@ another_file.js:
 				yield '-    let x = 1;';
 				yield '+    let x = 1;';
 				yield '+    let y = 2;';
-				yield '+}'; // duplicates line 3
+				yield '+}';
 			}
 
 			const { edits } = await consumeHandleResponse(
@@ -1245,7 +1160,6 @@ another_file.js:
 				true,
 			);
 
-			// Early edit is yielded, continuation has `}` trimmed by dedup
 			expect(edits).toHaveLength(2);
 			expect(edits[0].edit).toEqual(new LineReplacement(new LineRange(2, 3), ['    let x = 1;']));
 			expect(edits[1].edit).toEqual(new LineReplacement(new LineRange(3, 3), ['    let y = 2;']));
@@ -1260,7 +1174,7 @@ another_file.js:
 				yield '/test.ts:1';
 				yield '-    let x = 1;';
 				yield '+    let x = 1;';
-				yield '+}'; // duplicates line 3 — triggers DropPatch on continuation
+				yield '+}';
 			}
 
 			const { edits } = await consumeHandleResponse(
@@ -1274,7 +1188,6 @@ another_file.js:
 				true,
 			);
 
-			// Early edit is yielded, continuation is dropped by dedup
 			expect(edits).toHaveLength(1);
 			expect(edits[0].edit).toEqual(new LineReplacement(new LineRange(2, 3), ['    let x = 1;']));
 		});
@@ -1282,9 +1195,7 @@ another_file.js:
 
 	describe('handleResponse with enableProgressiveGhostTextMultiLine', () => {
 
-		// docContent lines (1-based): 1 "function foo() {", 2 "    const a = 1;", 3 "    doStuff(a);", 4 "}"
 		const docContent = 'function foo() {\n    const a = 1;\n    doStuff(a);\n}\n';
-		// Cursor on line 2 (1-based) → cursorLineOffset = 1 (0-based), the "const a = 1;" line.
 		function makeDoc(): CurrentDocument {
 			return new CurrentDocument(new StringText(docContent), new Position(2, 5));
 		}
@@ -1306,15 +1217,13 @@ another_file.js:
 				undefined,
 				new TestLogService(),
 				DuplicateAdditionsMode.Off,
-				true, // enableProgressiveGhostText
-				false, // splitPatchOnDiff
-				true, // enableProgressiveGhostTextMultiLine
+				true,
+				false,
+				true,
 			);
 
 			expect(edits).toHaveLength(2);
-			// First edit: cursor-line replacement (additive)
 			expect(edits[0].edit).toEqual(new LineReplacement(new LineRange(2, 3), ['    const a = 1, b = 2;']));
-			// Second edit: continuation replacement of the line below the cursor
 			expect(edits[1].edit).toEqual(new LineReplacement(new LineRange(3, 4), ['    doStuff(a, b);']));
 		});
 
@@ -1327,7 +1236,7 @@ another_file.js:
 				undefined,
 				new TestLogService(),
 				DuplicateAdditionsMode.Off,
-				true, // enableProgressiveGhostText (single-line reveal only)
+				true,
 			);
 
 			expect(edits).toHaveLength(1);
@@ -1335,9 +1244,6 @@ another_file.js:
 		});
 
 		it('falls back to a single unsplit edit under DropPatch (unsafe dedup mode)', async () => {
-			// DropPatch could skip a multi-line continuation *after* the early edit is emitted,
-			// leaving stale lines below the cursor — so multi-line reveal is disabled for it and
-			// the whole patch is yielded as one edit instead.
 			const { edits } = await consumeHandleResponse(
 				multiLineStream(),
 				makeDoc(),
@@ -1346,9 +1252,9 @@ another_file.js:
 				undefined,
 				new TestLogService(),
 				DuplicateAdditionsMode.DropPatch,
-				true, // enableProgressiveGhostText
-				false, // splitPatchOnDiff
-				true, // enableProgressiveGhostTextMultiLine
+				true,
+				false,
+				true,
 			);
 
 			expect(edits).toHaveLength(1);
@@ -1356,7 +1262,6 @@ another_file.js:
 		});
 
 		it('stays active under TrimDuplicate and keeps the continuation removal while trimming duplicate additions', async () => {
-			// Document has a trailing "    return a;" the model re-emits as an addition.
 			const docWithReturn = 'function foo() {\n    const a = 1;\n    doStuff(a);\n    return a;\n}\n';
 			const doc = new CurrentDocument(new StringText(docWithReturn), new Position(2, 5));
 
@@ -1366,7 +1271,7 @@ another_file.js:
 				yield '-    doStuff(a);';
 				yield '+    const a = 1, b = 2;';
 				yield '+    doStuff(a, b);';
-				yield '+    return a;'; // duplicates the existing line 4
+				yield '+    return a;';
 			}
 
 			const { edits } = await consumeHandleResponse(
@@ -1377,24 +1282,17 @@ another_file.js:
 				undefined,
 				new TestLogService(),
 				DuplicateAdditionsMode.TrimDuplicate,
-				true, // enableProgressiveGhostText
-				false, // splitPatchOnDiff
-				true, // enableProgressiveGhostTextMultiLine
+				true,
+				false,
+				true,
 			);
 
-			// Early edit kept; continuation still removes line 3 but drops the duplicated "return a;".
 			expect(edits).toHaveLength(2);
 			expect(edits[0].edit).toEqual(new LineReplacement(new LineRange(2, 3), ['    const a = 1, b = 2;']));
 			expect(edits[1].edit).toEqual(new LineReplacement(new LineRange(3, 4), ['    doStuff(a, b);']));
 		});
 
 		it('keeps the early cursor-line edit under TrimDuplicate when its added line matches the next removed line (cascade)', async () => {
-			// Cascade edit: the cursor line is completed to match the line below it, which the same
-			// patch then extends further. Here `added[0]` ("    log(x, y)") equals `removed[1]`
-			// ("    log(x, y)"), the original line just below the cursor. Since the early patch's
-			// dedup "following" window is that same line, an unguarded TrimDuplicate would trim the
-			// early patch's only added line to empty and emit a cursor-line *deletion*, dropping the
-			// intended change. The early edit must be preserved verbatim.
 			const docContent = 'f();\n    log(x)\n    log(x, y)\nz\n';
 			const doc = new CurrentDocument(new StringText(docContent), new Position(2, 5));
 
@@ -1402,7 +1300,7 @@ another_file.js:
 				yield '/test.ts:1';
 				yield '-    log(x)';
 				yield '-    log(x, y)';
-				yield '+    log(x, y)'; // equals removed[1] (the line below the cursor)
+				yield '+    log(x, y)';
 				yield '+    log(x, y, z)';
 			}
 
@@ -1414,12 +1312,11 @@ another_file.js:
 				undefined,
 				new TestLogService(),
 				DuplicateAdditionsMode.TrimDuplicate,
-				true, // enableProgressiveGhostText
-				false, // splitPatchOnDiff
-				true, // enableProgressiveGhostTextMultiLine
+				true,
+				false,
+				true,
 			);
 
-			// Early edit is a replacement (not a deletion); continuation replaces the line below.
 			expect(edits).toHaveLength(2);
 			expect(edits[0].edit).toEqual(new LineReplacement(new LineRange(2, 3), ['    log(x, y)']));
 			expect(edits[1].edit).toEqual(new LineReplacement(new LineRange(3, 4), ['    log(x, y, z)']));
@@ -1429,7 +1326,6 @@ another_file.js:
 	describe('splitReplacement', () => {
 
 		it('splits a multi-hunk replacement into one replacement per changed region', () => {
-			// removed lines 2..6 (1-based), only lines 3 ("b") and 5 ("d") change.
 			const removedLines = ['a', 'b', 'c', 'd', 'e'];
 			const replacement = new LineReplacement(new LineRange(2, 7), ['a', 'B', 'c', 'D', 'e']);
 
@@ -1471,8 +1367,6 @@ another_file.js:
 
 		const docContent = '0\na\nb\nc\nd\ne\n';
 
-		// A single patch block whose only real changes are line "b"->"B" and
-		// "d"->"D"; the lines in between are re-emitted context.
 		async function* makeStream(): AsyncGenerator<string> {
 			yield '/test.ts:1';
 			yield '-a';
@@ -1557,7 +1451,6 @@ another_file.js:
 				'+B',
 			]);
 			const patches = await AsyncIterUtils.toArray(XtabPatchResponseHandler.extractEdits(linesStream));
-			// The invalid header is skipped, so the two valid patches remain 0 and 1.
 			expect(patches.map(p => p.patchIndex)).toEqual([0, 1]);
 		});
 
@@ -1625,7 +1518,6 @@ another_file.js:
 		it('progressive ghost-text fragments share the patchIndex while a following patch advances it', async () => {
 			const docId = DocumentId.create('file:///test.ts');
 			const docContent = 'function foo() {\n    let x = 1;\n}\nbar();\n';
-			// Cursor on line 2 (1-based) → cursorLineOffset = 1
 			const documentBeforeEdits = new CurrentDocument(new StringText(docContent), new Position(2, 5));
 
 			async function* makeStream(): AsyncGenerator<string> {
@@ -1649,8 +1541,6 @@ another_file.js:
 				true,
 			);
 
-			// First two edits are the ghost-text early + continuation of patch 0;
-			// the third edit comes from the second model patch.
 			expect(edits.map(e => e.patchIndex)).toEqual([0, 0, 1]);
 		});
 	});

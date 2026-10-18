@@ -33,26 +33,13 @@ import { IChatService } from '../../../common/chatService/chatService.js';
 import { IChatSessionsService, localChatSessionType } from '../../../common/chatSessionsService.js';
 import { ChatAgentLocation, ChatModeKind, IResolvedNewChatSessionType, SessionTypeSelectionReason } from '../../../common/constants.js';
 import { clearChatEditor } from '../../actions/chatClear.js';
-import { AgentHostSessionInputPills } from '../../agentSessions/agentHost/agentHostSessionInputPills.js';
 import { ChatEditorInput } from './chatEditorInput.js';
 import { ChatWidget } from '../../widget/chatWidget.js';
 import { IChatWidgetViewState, setModelPreservingInputTypedWhileLoading } from '../../chat.js';
 
 export interface IChatEditorOptions extends IEditorOptions {
-	/**
-	 * Input state of the model when the editor is opened. Currently needed since
-	 * new sessions are not persisted but may go away with
-	 * https://github.com/microsoft/vscode/pull/278476 as input state is stored on the model.
-	 */
 	modelInputState?: IChatModelInputState;
-	/**
-	 * Session type explicitly selected by the user when opening a new chat editor.
-	 * Non-local session types are already encoded in the editor resource, so this
-	 * currently preserves an explicit local selection when default/last-used
-	 * provider resolution would otherwise apply.
-	 */
 	explicitSessionType?: string;
-	/** Creation-only metadata describing why the new session type was selected. */
 	sessionTypeSelectionReason?: SessionTypeSelectionReason;
 	target?: { data: IExportableChatData | ISerializableChatData };
 	title?: {
@@ -103,7 +90,6 @@ export class ChatEditor extends AbstractEditorWithViewState<IChatEditorViewState
 
 	protected override createEditor(parent: HTMLElement): void {
 		this._editorContainer = parent;
-		// Ensure the container has position relative for the loading overlay
 		parent.classList.add('chat-editor-relative');
 		this._scopedContextKeyService = this._register(this.contextKeyService.createScoped(parent));
 		const scopedInstantiationService = this._register(this.instantiationService.createChild(new ServiceCollection([IContextKeyService, this.scopedContextKeyService])));
@@ -152,7 +138,6 @@ export class ChatEditor extends AbstractEditorWithViewState<IChatEditorViewState
 			}
 		}));
 		this.widget.render(parent);
-		this._register(scopedInstantiationService.createInstance(AgentHostSessionInputPills, this.widget, 'auto'));
 		this.widget.setVisible(true);
 	}
 
@@ -175,9 +160,6 @@ export class ChatEditor extends AbstractEditorWithViewState<IChatEditorViewState
 	override clearInput(): void {
 		super.clearInput();
 		this.widget.setModel(undefined);
-		// Clear the bound-resource attribute while the rebind is in flight so
-		// test automation can wait for the next `updateModel` cycle to finish
-		// before acting on the editor.
 		if (this._editorContainer) {
 			delete this._editorContainer.dataset.boundChatResource;
 		}
@@ -188,26 +170,22 @@ export class ChatEditor extends AbstractEditorWithViewState<IChatEditorViewState
 			return;
 		}
 
-		// If already showing, just update text
 		if (this._loadingContainer) {
 			// eslint-disable-next-line no-restricted-syntax
 			const existingText = this._loadingContainer.querySelector('.chat-loading-content span');
 			if (existingText) {
 				existingText.textContent = message;
-				return; // aria-live will announce the text change
+				return;
 			}
-			this.hideLoadingInChatWidget(); // unexpected structure
+			this.hideLoadingInChatWidget();
 		}
 
-		// Mark container busy for assistive technologies
 		this._editorContainer.setAttribute('aria-busy', 'true');
 
 		this._loadingContainer = dom.append(this._editorContainer, dom.$('.chat-loading-overlay'));
-		// Accessibility: announce loading state politely without stealing focus
 		this._loadingContainer.setAttribute('role', 'status');
 		this._loadingContainer.setAttribute('aria-live', 'polite');
-		// Rely on live region text content instead of aria-label to avoid duplicate announcements
-		this._loadingContainer.tabIndex = -1; // ensure it isn't focusable
+		this._loadingContainer.tabIndex = -1;
 		const loadingContent = dom.append(this._loadingContainer, dom.$('.chat-loading-content'));
 		const spinner = renderIcon(ThemeIcon.modify(Codicon.loading, 'spin'));
 		spinner.setAttribute('aria-hidden', 'true');
@@ -227,11 +205,8 @@ export class ChatEditor extends AbstractEditorWithViewState<IChatEditorViewState
 	}
 
 	override async setInput(input: ChatEditorInput, options: IChatEditorOptions | undefined, context: IEditorOpenContext, token: CancellationToken): Promise<void> {
-		// Capture the input draft before the load window opens so text typed
-		// during loading is preserved when the model binds. See #325323.
 		const inputBeforeLoad = this.widget?.getInput() ?? '';
 
-		// Show loading indicator early for non-local sessions to prevent layout shifts
 		let isContributedChatSession = false;
 		const chatSessionType = input.getSessionType();
 		if (chatSessionType !== localChatSessionType) {
@@ -275,7 +250,6 @@ export class ChatEditor extends AbstractEditorWithViewState<IChatEditorViewState
 				throw new Error(`Failed to get model for chat editor. resource: ${input.sessionResource}`);
 			}
 
-			// Hide loading state before updating model
 			if (chatSessionType !== localChatSessionType) {
 				this.hideLoadingInChatWidget();
 			}
@@ -302,11 +276,6 @@ export class ChatEditor extends AbstractEditorWithViewState<IChatEditorViewState
 
 	private updateModel(model: IChatModel): void {
 		this.widget.setModel(model);
-		// Expose the bound chat resource on the DOM so test automation can
-		// synchronize with the post-rebind state without polling timeouts.
-		// Set AFTER `setModel` so observers see the attribute only once the
-		// widget is fully attached to the loaded model. Mirrors the same
-		// signal exposed by the Agents Window's `ChatView`.
 		if (this._editorContainer) {
 			this._editorContainer.dataset.boundChatResource = model.sessionResource.toString();
 		}

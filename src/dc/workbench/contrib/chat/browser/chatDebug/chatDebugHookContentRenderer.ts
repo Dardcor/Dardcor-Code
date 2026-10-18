@@ -13,20 +13,13 @@ import { renderSection, tokenizeContent } from './chatDebugToolCallContentRender
 
 const $ = DOM.$;
 
-/**
- * Render a resolved hook execution content with structured sections for
- * hook type, command, result, duration, input, and output.
- * When JSON is detected in input/output, renders it with syntax highlighting.
- */
 export async function renderHookContent(content: IChatDebugEventHookContent, languageService: ILanguageService, clipboardService?: IClipboardService, scrollable?: { scanDomNode(): void }): Promise<{ element: HTMLElement; disposables: DisposableStore }> {
 	const disposables = new DisposableStore();
 	const container = $('div.chat-debug-message-content');
 	container.tabIndex = 0;
 
-	// Header: hook type
 	DOM.append(container, $('div.chat-debug-message-content-title', undefined, content.hookType));
 
-	// Status summary line
 	const statusParts: string[] = [];
 	if (content.result !== undefined) {
 		statusParts.push(formatHookResult(content.result));
@@ -41,7 +34,6 @@ export async function renderHookContent(content: IChatDebugEventHookContent, lan
 		DOM.append(container, $('div.chat-debug-message-content-summary', undefined, statusParts.join(' \u00b7 ')));
 	}
 
-	// Build collapsible sections for command, input, output, and error
 	const sectionsContainer = DOM.append(container, $('div.chat-debug-message-sections'));
 
 	if (content.command) {
@@ -80,9 +72,6 @@ function formatHookResult(result: ChatDebugHookResult): string {
 	}
 }
 
-/**
- * Convert a resolved hook content to plain text for clipboard / editor output.
- */
 export function hookContentToPlainText(content: IChatDebugEventHookContent): string {
 	const lines: string[] = [];
 	lines.push(localize('chatDebug.hook.typeLabel', "Hook Type: {0}", content.hookType));

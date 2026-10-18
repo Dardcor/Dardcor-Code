@@ -21,13 +21,11 @@ suite('SearchHelpers', () => {
 
 		function assertRangesEqual(actual: ISearchRange | ISearchRange[], expected: ISearchRange[]) {
 			if (!Array.isArray(actual)) {
-				// All of these tests are for arrays...
 				throw new Error('Expected array of ranges');
 			}
 
 			assert.strictEqual(actual.length, expected.length);
 
-			// These are sometimes Range, sometimes SearchRange
 			actual.forEach((r, i) => {
 				const expectedRange = expected[i];
 				assert.deepStrictEqual(

@@ -34,32 +34,24 @@ function testGuessIndentation(defaultInsertSpaces: boolean, defaultTabSize: numb
 
 function assertGuess(expectedInsertSpaces: boolean | undefined, expectedTabSize: number | undefined | [number], text: string[], msg?: string): void {
 	if (typeof expectedInsertSpaces === 'undefined') {
-		// cannot guess insertSpaces
 		if (typeof expectedTabSize === 'undefined') {
-			// cannot guess tabSize
 			testGuessIndentation(true, 13370, true, 13370, text, msg);
 			testGuessIndentation(false, 13371, false, 13371, text, msg);
 		} else if (typeof expectedTabSize === 'number') {
-			// can guess tabSize
 			testGuessIndentation(true, 13370, true, expectedTabSize, text, msg);
 			testGuessIndentation(false, 13371, false, expectedTabSize, text, msg);
 		} else {
-			// can only guess tabSize when insertSpaces is true
 			testGuessIndentation(true, 13370, true, expectedTabSize[0], text, msg);
 			testGuessIndentation(false, 13371, false, 13371, text, msg);
 		}
 	} else {
-		// can guess insertSpaces
 		if (typeof expectedTabSize === 'undefined') {
-			// cannot guess tabSize
 			testGuessIndentation(true, 13370, expectedInsertSpaces, 13370, text, msg);
 			testGuessIndentation(false, 13371, expectedInsertSpaces, 13371, text, msg);
 		} else if (typeof expectedTabSize === 'number') {
-			// can guess tabSize
 			testGuessIndentation(true, 13370, expectedInsertSpaces, expectedTabSize, text, msg);
 			testGuessIndentation(false, 13371, expectedInsertSpaces, expectedTabSize, text, msg);
 		} else {
-			// can only guess tabSize when insertSpaces is true
 			if (expectedInsertSpaces === true) {
 				testGuessIndentation(true, 13370, expectedInsertSpaces, expectedTabSize[0], text, msg);
 				testGuessIndentation(false, 13371, expectedInsertSpaces, expectedTabSize[0], text, msg);
@@ -173,12 +165,6 @@ suite('Editor Model - TextModel', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('TextModel does not use events internally', () => {
-		// Make sure that all model parts receive text model events explicitly
-		// to avoid that by any chance an outside listener receives events before
-		// the parts and thus are able to access the text model in an inconsistent state.
-		//
-		// We simply check that there are no listeners attached to text model
-		// after instantiation
 		const disposables = new DisposableStore();
 		const instantiationService: IInstantiationService = createModelServices(disposables);
 		const textModel = disposables.add(instantiationService.createInstance(TextModel, '', PLAINTEXT_LANGUAGE_ID, TextModel.DEFAULT_CREATION_OPTIONS, null));
@@ -657,7 +643,6 @@ suite('Editor Model - TextModel', () => {
 	});
 
 	test('issue #62143: Broken indentation detection', () => {
-		// works before the fix
 		assertGuess(true, 2, [
 			'x',
 			'x',
@@ -665,22 +650,18 @@ suite('Editor Model - TextModel', () => {
 			'  x'
 		]);
 
-		// works before the fix
 		assertGuess(true, 2, [
 			'x',
 			'  - item2',
 			'  - item3'
 		]);
 
-		// works before the fix
 		testGuessIndentation(true, 2, true, 2, [
 			'x x',
 			'  x',
 			'  x',
 		]);
 
-		// fails before the fix
-		// empty space inline breaks the indentation guess
 		testGuessIndentation(true, 2, true, 2, [
 			'x x',
 			'  x',
@@ -709,7 +690,6 @@ suite('Editor Model - TextModel', () => {
 	});
 
 	test('issue #65668: YAML file indented with 2 spaces', () => {
-		// Full YAML file from the issue - should detect as 2 spaces
 		assertGuess(true, 2, [
 			'version: 2',
 			'',
@@ -758,7 +738,6 @@ suite('Editor Model - TextModel', () => {
 	});
 
 	test('issue #249040: 4-space indent should win over 2-space when predominant', () => {
-		// File with mostly 4-space indents but some 2-space indents should detect as 4 spaces
 		assertGuess(true, 4, [
 			'function foo() {',
 			'    let a = 1;',
@@ -768,8 +747,8 @@ suite('Editor Model - TextModel', () => {
 			'        console.log(b);',
 			'    }',
 			'    const obj = {',
-			'      x: 1,',  // 2-space indent here
-			'      y: 2',   // 2-space indent here
+			'      x: 1,',
+			'      y: 2',
 			'    };',
 			'    return obj;',
 			'}',
@@ -1212,14 +1191,12 @@ suite('TextModel.createSnapshot', () => {
 		const snapshot = model.createSnapshot();
 		let actual = '';
 
-		// 70999 length => at most 2 read calls are necessary
 		const tmp1 = snapshot.read();
 		assert.ok(tmp1);
 		actual += tmp1;
 
 		const tmp2 = snapshot.read();
 		if (tmp2 === null) {
-			// all good
 		} else {
 			actual += tmp2;
 			assert.strictEqual(snapshot.read(), null);

@@ -9,10 +9,6 @@ import {
 } from '../../common/claudeToolPermission';
 import { IClaudeToolPermissionService } from '../../common/claudeToolPermissionService';
 
-/**
- * Mock implementation of ClaudeToolPermissionService for testing.
- * By default, allows all tools without confirmation.
- */
 export class MockClaudeToolPermissionService implements IClaudeToolPermissionService {
 	declare readonly _serviceBrand: undefined;
 

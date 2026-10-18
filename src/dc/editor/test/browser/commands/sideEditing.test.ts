@@ -215,7 +215,6 @@ suite('SideEditing', () => {
 		_runTest(sel1, editRange, editText, false, expected[0][0], '0-0-regular-no-force');
 		_runTest(sel1, editRange, editText, true, expected[1][0], '1-0-regular-force');
 
-		// RTL selection
 		const sel2 = new Selection(selection.endLineNumber, selection.endColumn, selection.startLineNumber, selection.startColumn);
 		_runTest(sel2, editRange, editText, false, expected[0][1], '0-1-inverse-no-force');
 		_runTest(sel2, editRange, editText, true, expected[1][1], '1-1-inverse-force');

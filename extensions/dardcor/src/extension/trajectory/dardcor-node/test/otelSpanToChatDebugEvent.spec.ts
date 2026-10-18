@@ -58,8 +58,6 @@ describe('completedSpanToDebugEvent - invoke_agent identification', () => {
 				[GenAiAttr.AGENT_NAME]: 'task',
 			},
 		});
-		// In test env, vscode API constructors are not available, so this throws.
-		// The test verifies it does NOT return undefined (i.e., it enters the subagent path).
 		expect(() => completedSpanToDebugEvent(span)).toThrow();
 	});
 

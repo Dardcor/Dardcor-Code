@@ -42,15 +42,6 @@ export interface IFeedPackage {
 	readonly version: string;
 }
 
-/**
- * Downloads a universal package from an Azure Artifacts feed into a cache
- * directory under `<root>/.build/<cacheDir>` and returns the absolute path to
- * the single file it contains. Subsequent requests for the same package are
- * served from the cache.
- * @param root the repository root
- * @param cacheDir the `.build` sub directory used to cache downloaded packages
- * @param pkg the feed, package name and version to download
- */
 export async function downloadFeedPackage(root: string, cacheDir: string, pkg: IFeedPackage): Promise<string> {
 	const dir = path.join(root, '.build', cacheDir, `${pkg.name}-${pkg.version}`);
 	if (!fs.existsSync(dir)) {

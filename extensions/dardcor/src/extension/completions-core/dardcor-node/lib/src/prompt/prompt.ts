@@ -21,7 +21,6 @@ import { ICompletionsPromptFactoryService } from './completionsPromptFactory/com
 import { ContextProviderTelemetry } from './contextProviderRegistry';
 import { NeighboringFileType, considerNeighborFile } from './similarFiles/neighborFiles';
 
-// The minimum number of prompt-eligible characters before we offer a completion
 export const MIN_PROMPT_CHARS = 10;
 export const MIN_PROMPT_EXCLUDED_LANGUAGE_IDS = ['scminput'];
 
@@ -37,13 +36,8 @@ export interface Prompt {
 export interface PromptResponsePresent {
 	type: 'prompt';
 	prompt: Prompt;
-	/**
-	 * The prefix is sent to the model without trailing whitespace. However the trailing whitespace will
-	 * be kept around to do position adjustments when applying the completion.
-	 */
 	trailingWs: string;
 	computeTimeMs: number;
-	// evaluate whether we need to keep this. If yes, populate it
 	neighborSource: Map<NeighboringFileType, string[]>;
 	metadata: PromptMetadata;
 	contextProvidersTelemetry?: ContextProviderTelemetry[];
@@ -58,7 +52,7 @@ export interface ExtractPromptOptions {
 interface ContextTooShort {
 	type: 'contextTooShort';
 }
-interface CopilotContentExclusion {
+interface DardcorContentExclusion {
 	type: 'dardcorContentExclusion';
 }
 interface PromptError {
@@ -73,13 +67,13 @@ interface PromptTimeout {
 }
 
 export const _contextTooShort: ContextTooShort = { type: 'contextTooShort' };
-export const _dardcorContentExclusion: CopilotContentExclusion = { type: 'dardcorContentExclusion' };
+export const _dardcorContentExclusion: DardcorContentExclusion = { type: 'dardcorContentExclusion' };
 export const _promptError: PromptError = { type: 'promptError' };
 export const _promptCancelled: PromptCancelled = { type: 'promptCancelled' };
 export const _promptTimeout: PromptTimeout = { type: 'promptTimeout' };
 export type PromptResponse =
 	| PromptResponsePresent
-	| CopilotContentExclusion
+	| DardcorContentExclusion
 	| ContextTooShort
 	| PromptError
 	| PromptCancelled
@@ -107,7 +101,6 @@ export namespace PromptResponse {
 
 }
 
-/** Record trailing whitespace, and trim it from prompt if the last line is only whitespace */
 export function trimLastLine(source: string): [string, string] {
 	const lines = source.split('\n');
 	const lastLine = lines[lines.length - 1];
@@ -152,11 +145,8 @@ function addNeighboringCellsToPrompt(neighboringCell: INotebookCell, activeCellL
 	const languageId = neighboringCell.document.detectedLanguageId;
 	const text = neighboringCell.document.getText();
 	if (languageId === activeCellLanguageId) {
-		// Blocks of the same language are added as is
 		return text;
 	} else {
-		// Consider adding a languageMarker to cells of different languages
-		// Note, that comments should be added with markers from the language of the active cell!
 		return commentBlockAsSingles(text, activeCellLanguageId);
 	}
 }
@@ -179,7 +169,6 @@ function applyEditsForNotebook(state: CompletionState, notebook: INotebookDocume
 }
 
 export function getPromptOptions(accessor: ServicesAccessor, telemetryData: TelemetryWithExp, languageId: string): PromptOptions {
-	// Note: the default values of the EXP flags currently overwrite the default `PromptOptions`
 	const featuresService = accessor.get(ICompletionsFeaturesService);
 	const maxTokens = featuresService.maxPromptCompletionTokens(telemetryData);
 	const maxPromptLength = maxTokens - getMaxSolutionTokens();

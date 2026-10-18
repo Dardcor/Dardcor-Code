@@ -264,7 +264,6 @@ export class SnapshotDocumentLine implements TextLine {
 	}
 
 	public get firstNonWhitespaceCharacterIndex(): number {
-		//TODO@api, rename to 'leadingWhitespaceLength'
 		return /^(\s*)/.exec(this._text)![1].length;
 	}
 

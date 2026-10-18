@@ -10,7 +10,6 @@ export class MockAlternativeNotebookContentService implements IAlternativeNotebo
 	declare readonly _serviceBrand: undefined;
 	constructor(public format: AlternativeContentFormat = 'json'
 	) {
-		//
 	}
 	getFormat(): AlternativeContentFormat {
 		return this.format;

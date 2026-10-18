@@ -25,14 +25,12 @@ suite('inputGlobToPattern - integration', () => {
 			{ _serviceBrand: undefined, loadWorkspaceContents: () => Promise.resolve(false) } satisfies IRemoteRepositoriesService,
 		);
 
-		// Ensure we have a workspace folder for testing
 		if (!vscode.workspace.workspaceFolders?.length) {
 			const tmpDir = path.join(os.tmpdir(), 'dardcor-test-workspace');
 			await vscode.workspace.fs.createDirectory(vscode.Uri.file(tmpDir));
 			vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.file(tmpDir) });
 			addedWorkspaceFolder = true;
 
-			// Wait for workspace folders to update
 			await new Promise<void>(resolve => {
 				const disposable = vscode.workspace.onDidChangeWorkspaceFolders(() => {
 					disposable.dispose();

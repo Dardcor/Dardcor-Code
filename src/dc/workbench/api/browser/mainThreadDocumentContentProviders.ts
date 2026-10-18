@@ -65,31 +65,25 @@ export class MainThreadDocumentContentProviders implements MainThreadDocumentCon
 			return;
 		}
 
-		// cancel and dispose an existing update
 		const pending = this._pendingUpdate.get(model.id);
 		pending?.cancel();
 
-		// create and keep update token
 		const myToken = new CancellationTokenSource();
 		this._pendingUpdate.set(model.id, myToken);
 
 		try {
 			const edits = await this._editorWorkerService.computeMoreMinimalEdits(model.uri, [{ text: value, range: model.getFullModelRange() }]);
 
-			// remove token
 			this._pendingUpdate.delete(model.id);
 
 			if (myToken.token.isCancellationRequested) {
-				// ignore this
 				return;
 			}
 
 			if (model.isDisposed()) {
-				// model was disposed during the async operation
 				return;
 			}
 			if (edits && edits.length > 0) {
-				// use the evil-edit as these models show in readonly-editor only
 				model.applyEdits(edits.map(edit => EditOperation.replace(Range.lift(edit.range), edit.text)));
 			}
 		} catch (error) {

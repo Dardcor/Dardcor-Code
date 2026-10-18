@@ -33,11 +33,9 @@ export class MainThreadNotebookDocuments implements MainThreadNotebookDocumentsS
 		this._proxy = extHostContext.getProxy(ExtHostContext.ExtHostNotebookDocuments);
 		this._modelReferenceCollection = new BoundModelReferenceCollection(this._uriIdentityService.extUri);
 
-		// forward dirty and save events
 		this._disposables.add(this._notebookEditorModelResolverService.onDidChangeDirty(model => this._proxy.$acceptDirtyStateChanged(model.resource, model.isDirty())));
 		this._disposables.add(this._notebookEditorModelResolverService.onDidSaveNotebook(e => this._proxy.$acceptModelSaved(e)));
 
-		// when a conflict is going to happen RELEASE references that are held by extensions
 		this._disposables.add(_notebookEditorModelResolverService.onWillFailWithConflict(e => {
 			this._modelReferenceCollection.remove(e.resource);
 		}));
@@ -104,9 +102,6 @@ export class MainThreadNotebookDocuments implements MainThreadNotebookDocumentsS
 
 				const hasDocumentMetadataChangeEvent = event.rawEvents.find(e => e.kind === NotebookCellsChangeType.ChangeDocumentMetadata);
 
-				// using the model resolver service to know if the model is dirty or not.
-				// assuming this is the first listener it can mean that at first the model
-				// is marked as dirty and that another event is fired
 				this._proxy.$acceptModelChanged(
 					textModel.uri,
 					new SerializableObjectWithBuffers(eventDto),
@@ -130,24 +125,18 @@ export class MainThreadNotebookDocuments implements MainThreadNotebookDocumentsS
 		if (options.content) {
 			const ref = await this._notebookEditorModelResolverService.resolve({ untitledResource: undefined }, options.viewType);
 
-			// untitled notebooks are disposed when they get saved. we should not hold a reference
-			// to such a disposed notebook and therefore dispose the reference as well
 			Event.once(ref.object.notebook.onWillDispose)(() => {
 				ref.dispose();
 			});
 
-			// untitled notebooks with content are dirty by default
 			this._proxy.$acceptDirtyStateChanged(ref.object.resource, true);
 
-			// apply content changes... slightly HACKY -> this triggers a change event
 			if (options.content) {
 				const data = NotebookDto.fromNotebookDataDto(options.content);
 				ref.object.notebook.reset(data.cells, data.metadata, ref.object.notebook.transientOptions);
 			}
 			return ref.object.notebook.uri;
 		} else {
-			// If we aren't adding content, we don't need to resolve the full editor model yet.
-			// This will allow us to adjust settings when the editor is opened, e.g. scratchpad
 			const notebook = await this._notebookEditorModelResolverService.createUntitledNotebookTextModel(options.viewType);
 			return notebook.uri;
 		}
@@ -158,8 +147,6 @@ export class MainThreadNotebookDocuments implements MainThreadNotebookDocumentsS
 		const ref = await this._notebookEditorModelResolverService.resolve(uri, undefined);
 
 		if (uriComponents.scheme === 'untitled') {
-			// untitled notebooks are disposed when they get saved. we should not hold a reference
-			// to such a disposed notebook and therefore dispose the reference as well
 			ref.object.notebook.onWillDispose(() => {
 				ref.dispose();
 			});

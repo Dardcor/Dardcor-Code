@@ -47,9 +47,6 @@ export default {
 		},
 	},
 	resolve: {
-		// Component Explorer fixtures live in `src` as `.ts` and import sibling
-		// modules via `.js` specifiers; try `.ts` first so those resolve, then
-		// fall back to `.js` for everything loaded from `out`.
 		extensionAlias: {
 			'.js': ['.ts', '.js'],
 			'.mjs': ['.mts', '.mjs'],
@@ -69,8 +66,6 @@ export default {
 	module: {
 		rules: [
 			{
-				// Component Explorer fixtures (and any `src` TypeScript they pull
-				// in) are compiled on the fly with rspack's built-in SWC.
 				test: /\.ts$/,
 				loader: 'builtin:swc-loader',
 				options: {
@@ -92,9 +87,6 @@ export default {
 			{
 				test: /\.css$/,
 				type: 'css',
-				// Tag every CSS module with its repo-relative source path (as a
-				// comment that native CSS preserves) so tooling reading the
-				// bundled stylesheet can map concatenated documents back to files.
 				use: [path.join(__dirname, 'cssSourceMarkerLoader.mts')],
 			},
 			{
@@ -102,9 +94,6 @@ export default {
 				type: 'asset/resource',
 			},
 			{
-				// Built-in theme JSON files use JSONC (comments / trailing
-				// commas), so import them as raw strings and let VS Code's
-				// JSON parser handle them.
 				test: /[\\/]extensions[\\/]theme-defaults[\\/]themes[\\/].*\.json$/,
 				type: 'asset/source',
 			},
@@ -170,7 +159,6 @@ export default {
 		allowedHosts: 'all',
 	},
 	watchOptions: {
-		// Poll the out/ directory since it's gitignored and may be excluded by default
 		ignored: /node_modules/,
 	},
 } satisfies Configuration;

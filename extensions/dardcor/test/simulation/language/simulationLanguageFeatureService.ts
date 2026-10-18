@@ -84,7 +84,6 @@ class TSServerLanguageFeaturesService implements ILanguageFeaturesService {
 		try {
 			await this._tsServerClient?.teardown();
 		} catch {
-			// ignored
 		}
 	}
 

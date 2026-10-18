@@ -17,7 +17,7 @@ import { DefaultPasteProvidersFeature, DefaultTextPasteOrDropEditProvider } from
 
 export const pasteAsCommandId = 'editor.action.pasteAs';
 
-registerEditorContribution(CopyPasteController.ID, CopyPasteController, EditorContributionInstantiation.Eager); // eager because it listens to events on the container dom node of the editor
+registerEditorContribution(CopyPasteController.ID, CopyPasteController, EditorContributionInstantiation.Eager);
 registerEditorFeature(DefaultPasteProvidersFeature);
 
 registerEditorCommand(new class extends EditorCommand {

@@ -15,22 +15,6 @@ export async function getPwshGlobals(options: ExecOptionsWithStringEncoding, exi
 	];
 }
 
-/**
- * The numeric values associated with CommandType from Get-Command. It appears that this is a
- * bitfield based on the values but I think it's actually used as an enum where a CommandType can
- * only be a single one of these.
- *
- * Source:
- *
- * ```
- * [enum]::GetValues([System.Management.Automation.CommandTypes]) | ForEach-Object {
- *     [pscustomobject]@{
- *         Name  = $_
- *         Value = [int]$_
- *     }
- * }
- * ```
- */
 const enum PwshCommandType {
 	Alias = 1,
 	Function = 2,
@@ -40,7 +24,6 @@ const enum PwshCommandType {
 	Application = 32,
 	Script = 64,
 	Configuration = 256,
-	// All = 383,
 }
 
 const pwshCommandTypeToCompletionKind: Map<PwshCommandType, vscode.TerminalCompletionItemKind> = new Map([
@@ -57,7 +40,7 @@ const pwshCommandTypeToCompletionKind: Map<PwshCommandType, vscode.TerminalCompl
 async function getAliases(options: ExecOptionsWithStringEncoding, existingCommands?: Set<string>): Promise<ICompletionResource[]> {
 	const output = await execHelper('Get-Command -CommandType Alias | Select-Object Name, CommandType, Definition, DisplayName, ModuleName, @{Name="Version";Expression={$_.Version.ToString()}} | ConvertTo-Json', {
 		...options,
-		maxBuffer: 1024 * 1024 * 100 // This is a lot of content, increase buffer size
+		maxBuffer: 1024 * 1024 * 100
 	});
 	let json: any;
 	try {
@@ -72,7 +55,6 @@ async function getAliases(options: ExecOptionsWithStringEncoding, existingComman
 	return (json as unknown[])
 		.filter(isPwshGetCommandEntry)
 		.map(e => {
-			// Aliases sometimes use the same Name and DisplayName, show them as methods in this case.
 			const isAlias = e.Name !== e.DisplayName;
 			const detailParts: string[] = [];
 			if (e.Definition) {
@@ -103,7 +85,7 @@ async function getAliases(options: ExecOptionsWithStringEncoding, existingComman
 async function getCommands(options: ExecOptionsWithStringEncoding, existingCommands?: Set<string>): Promise<ICompletionResource[]> {
 	const output = await execHelper('Get-Command -All | Select-Object Name, CommandType, Definition, ModuleName, @{Name="Version";Expression={$_.Version.ToString()}} | ConvertTo-Json', {
 		...options,
-		maxBuffer: 1024 * 1024 * 100 // This is a lot of content, increase buffer size
+		maxBuffer: 1024 * 1024 * 100
 	});
 	let json: unknown;
 	try {
@@ -157,14 +139,7 @@ function isPwshGetCommandEntry(entry: unknown): entry is IPwshGetCommandEntry {
 	);
 }
 
-/**
- * @returns whether the provided parameter is of type `object` but **not**
- *	`null`, an `array`, a `regexp`, nor a `date`.
- */
 export function isObject(obj: unknown): obj is Object {
-	// The method can't do a type cast since there are type (like strings) which
-	// are subclasses of any put not positvely matched by the function. Hence type
-	// narrowing results in wrong results.
 	return typeof obj === 'object'
 		&& obj !== null
 		&& !Array.isArray(obj)

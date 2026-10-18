@@ -19,10 +19,6 @@ export class ChatSlashCommandsContribution extends Disposable {
 	}
 }
 
-/**
- * Session option slash commands contribution.
- * Disabled so session options do not register slash commands into the `/` menu.
- */
 export class ChatSessionOptionSlashCommandsContribution extends Disposable {
 
 	static readonly ID = 'workbench.contrib.chatSessionOptionSlashCommands';

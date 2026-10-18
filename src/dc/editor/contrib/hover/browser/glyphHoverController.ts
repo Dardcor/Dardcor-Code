@@ -16,9 +16,7 @@ import { isMousePositionWithinElement, isTriggerModifierPressed, shouldShowHover
 import './hover.css';
 import { GlyphHoverWidget } from './glyphHoverWidget.js';
 
-// sticky hover widget which doesn't disappear on focus out and such
 const _sticky = false
-	// || Boolean("true") // done "weirdly" so that a lint warning prevents you from pushing this
 	;
 
 interface IHoverSettings {
@@ -215,7 +213,6 @@ export class GlyphHoverController extends Disposable implements IEditorContribut
 		}
 
 		if (isModifierKey(e.keyCode)) {
-			// Do not hide hover when a modifier key is pressed
 			return;
 		}
 		this.hideGlyphHover();

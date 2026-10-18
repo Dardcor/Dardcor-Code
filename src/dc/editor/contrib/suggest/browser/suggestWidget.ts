@@ -5,7 +5,7 @@
 
 import * as dom from '../../../../base/browser/dom.js';
 import { IKeyboardEvent } from '../../../../base/browser/keyboardEvent.js';
-import '../../../../base/browser/ui/codicons/codiconStyles.js'; // The codicon symbol styles are defined here and must be loaded
+import '../../../../base/browser/ui/codicons/codiconStyles.js';
 import { IListEvent, IListGestureEvent, IListMouseEvent } from '../../../../base/browser/ui/list/list.js';
 import { List } from '../../../../base/browser/ui/list/listWidget.js';
 import { CancelablePromise, createCancelablePromise, disposableTimeout, TimeoutTimer } from '../../../../base/common/async.js';
@@ -20,7 +20,7 @@ import { EmbeddedCodeEditorWidget } from '../../../browser/widget/codeEditor/emb
 import { EditorOption } from '../../../common/config/editorOptions.js';
 import { IPosition } from '../../../common/core/position.js';
 import { SuggestWidgetStatus } from './suggestWidgetStatus.js';
-import '../../symbolIcons/browser/symbolIcons.js'; // The codicon symbol colors are defined here and must be loaded to get colors
+import '../../symbolIcons/browser/symbolIcons.js';
 import * as nls from '../../../../nls.js';
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
@@ -37,9 +37,6 @@ import { status } from '../../../../base/browser/ui/aria/aria.js';
 import { CompletionItemKinds } from '../../../common/languages.js';
 import { isWindows } from '../../../../base/common/platform.js';
 
-/**
- * Suggest widget colors
- */
 const editorSuggestWidgetBackground = registerColor('editorSuggestWidget.background', editorWidgetBackground, nls.localize('editorSuggestWidgetBackground', 'Background color of the suggest widget.'));
 registerColor('editorSuggestWidget.border', editorWidgetBorder, nls.localize('editorSuggestWidgetBorder', 'Border color of the suggest widget.'));
 export const editorSuggestWidgetForeground = registerColor('editorSuggestWidget.foreground', editorForeground, nls.localize('editorSuggestWidgetForeground', 'Foreground color of the suggest widget.'));
@@ -86,7 +83,6 @@ class PersistedWidgetSize {
 				return dom.Dimension.lift(obj);
 			}
 		} catch {
-			// ignore
 		}
 		return undefined;
 	}
@@ -193,8 +189,6 @@ export class SuggestWidget implements IDisposable {
 			}
 
 			if (state) {
-				// only store width or height value that have changed and also
-				// only store changes that are above a certain threshold
 				const { itemHeight, defaultSize } = this.getLayoutInfo();
 				const threshold = Math.round(itemHeight / 2);
 				let { width, height } = this.element.size;
@@ -207,7 +201,6 @@ export class SuggestWidget implements IDisposable {
 				this._persistedSize.store(new dom.Dimension(width, height));
 			}
 
-			// reset working state
 			this._contentWidget.unlockPreference();
 			state = undefined;
 		}));
@@ -335,10 +328,8 @@ export class SuggestWidget implements IDisposable {
 
 	private _onEditorMouseDown(mouseEvent: IEditorMouseEvent): void {
 		if (this._details.widget.domNode.contains(mouseEvent.target.element)) {
-			// Clicking inside details
 			this._details.widget.domNode.focus();
 		} else {
-			// Clicking outside details and inside suggest
 			if (this.element.domNode.contains(mouseEvent.target.element)) {
 				this.editor.focus();
 			}
@@ -356,7 +347,6 @@ export class SuggestWidget implements IDisposable {
 			return;
 		}
 
-		// prevent stealing browser focus from the editor
 		e.browserEvent.preventDefault();
 		e.browserEvent.stopPropagation();
 
@@ -383,8 +373,6 @@ export class SuggestWidget implements IDisposable {
 		}
 
 		if (this._state === State.Details) {
-			// This can happen when focus is in the details-panel and when
-			// arrow keys are pressed to select next/prev items
 			this._setState(State.Open);
 		}
 
@@ -437,7 +425,6 @@ export class SuggestWidget implements IDisposable {
 					return;
 				}
 
-				// item can have extra information, so re-render
 				this._ignoreFocusEvents = true;
 				this._list.splice(index, 1, [item]);
 				this._list.setFocus([index]);
@@ -453,7 +440,6 @@ export class SuggestWidget implements IDisposable {
 			}).catch(onUnexpectedError);
 		}
 
-		// emit an event
 		this._onDidFocus.fire({ item, index, model: this._completionModel });
 	}
 
@@ -576,10 +562,6 @@ export class SuggestWidget implements IDisposable {
 
 		this._focusedItem = undefined;
 
-		// calling list.splice triggers focus event which this widget forwards. That can lead to
-		// suggestions being cancelled and the widget being cleared (and hidden). All this happens
-		// before revealing and focusing is done which means revealing and focusing will fail when
-		// they get run.
 		this._onDidFocus.pause();
 		this._onDidSelect.pause();
 		try {
@@ -595,7 +577,6 @@ export class SuggestWidget implements IDisposable {
 		this._pendingLayout.value = dom.runAtThisOrScheduleAtNextAnimationFrame(dom.getWindow(this.element.domNode), () => {
 			this._pendingLayout.clear();
 			this._layout(this.element.size);
-			// Reset focus border
 			this._details.widget.domNode.classList.remove('focused');
 		});
 	}
@@ -709,7 +690,6 @@ export class SuggestWidget implements IDisposable {
 
 	toggleDetailsFocus(): void {
 		if (this._state === State.Details) {
-			// Should return the focus to the list item.
 			this._list.setFocus(this._list.getFocus());
 			this._setState(State.Open);
 		} else if (this._state === State.Open) {
@@ -724,7 +704,6 @@ export class SuggestWidget implements IDisposable {
 
 	toggleDetails(focused: boolean = false): void {
 		if (this._isDetailsVisible()) {
-			// hide details widget
 			this._pendingShowDetails.clear();
 			this._ctxSuggestWidgetDetailsVisible.set(false);
 			this._setDetailsVisible(false);
@@ -732,7 +711,6 @@ export class SuggestWidget implements IDisposable {
 			this.element.domNode.classList.remove('shows-details');
 
 		} else if ((canExpandCompletionItem(this._list.getFocusedElements()[0]) || this._explainMode) && (this._state === State.Open || this._state === State.Details || this._state === State.Frozen)) {
-			// show details widget (iff possible)
 			this._ctxSuggestWidgetDetailsVisible.set(true);
 			this._setDetailsVisible(true);
 			this._showDetails(false, focused);
@@ -789,8 +767,6 @@ export class SuggestWidget implements IDisposable {
 		this._onDidHide.fire(this);
 		this.element.clearSashHoverState();
 
-		// ensure that a reasonable widget height is persisted so that
-		// accidential "resize-to-single-items" cases aren't happening
 		const dim = this._persistedSize.restore();
 		const minPersistedHeight = Math.ceil(this.getLayoutInfo().itemHeight * 4.3);
 		if (dim && dim.height < minPersistedHeight) {
@@ -805,12 +781,11 @@ export class SuggestWidget implements IDisposable {
 	_afterRender(position: ContentWidgetPositionPreference | null) {
 		if (position === null) {
 			if (this._isDetailsVisible()) {
-				this._details.hide(); //todo@jrieken soft-hide
+				this._details.hide();
 			}
 			return;
 		}
 		if (this._state === State.Empty || this._state === State.Loading) {
-			// no special positioning when widget isn't showing list
 			return;
 		}
 		if (this._isDetailsVisible() && !this._details.widget.isEmpty) {
@@ -824,7 +799,6 @@ export class SuggestWidget implements IDisposable {
 			return;
 		}
 		if (!this.editor.getDomNode()) {
-			// happens when running tests
 			return;
 		}
 
@@ -838,11 +812,9 @@ export class SuggestWidget implements IDisposable {
 		let height = size.height;
 		let width = size.width;
 
-		// status bar
 		this._status.element.style.height = `${info.itemHeight}px`;
 
 		if (this._state === State.Empty || this._state === State.Loading) {
-			// showing a message only
 			height = info.itemHeight + info.borderHeight;
 			width = info.defaultSize.width / 2;
 			this.element.enableSashes(false, false, false, false);
@@ -850,9 +822,7 @@ export class SuggestWidget implements IDisposable {
 			this._contentWidget.setPreference(ContentWidgetPositionPreference.BELOW);
 
 		} else {
-			// showing items
 
-			// width math
 			const maxWidth = bodyBox.width - info.borderHeight - 2 * info.horizontalPadding;
 			if (width > maxWidth) {
 				width = maxWidth;
@@ -860,14 +830,12 @@ export class SuggestWidget implements IDisposable {
 			let preferredWidth = this._completionModel ? this._completionModel.stats.pLabelLen * info.typicalHalfwidthCharacterWidth : width;
 
 			if (this.editor.getOption(EditorOption.suggest).fitWidthToDetails && this._completionModel && !this._persistedSize.restore()) {
-				// Grow to fit the inline detail text, capped at the editor widget's width. Respects a user-dragged size.
 				const cap = Math.min(maxWidth, this.editor.getLayoutInfo().width);
 				const fitWidth = Math.min(cap, this._measureContentWidth(info));
 				width = Math.max(width, fitWidth);
 				preferredWidth = Math.max(preferredWidth, fitWidth);
 			}
 
-			// height math
 			const fullHeight = info.statusBarHeight + this._list.contentHeight + info.borderHeight;
 			const minHeight = info.itemHeight + info.statusBarHeight;
 			const editorBox = dom.getDomNodePagePosition(this.editor.getDomNode());
@@ -879,8 +847,6 @@ export class SuggestWidget implements IDisposable {
 			let maxHeight = Math.min(Math.max(maxHeightAbove, maxHeightBelow) + info.borderHeight, fullHeight);
 
 			if (height === this._cappedHeight?.capped) {
-				// Restore the old (wanted) height when the current
-				// height is capped to fit
 				height = this._cappedHeight.wanted;
 			}
 
@@ -905,9 +871,6 @@ export class SuggestWidget implements IDisposable {
 			this.element.maxSize = new dom.Dimension(maxWidth, maxHeight);
 			this.element.minSize = new dom.Dimension(220, minHeight);
 
-			// Know when the height was capped to fit and remember
-			// the wanted height for later. This is required when going
-			// left to widen suggestions.
 			this._cappedHeight = height === fullHeight
 				? { wanted: this._cappedHeight?.wanted ?? size.height, capped: height }
 				: undefined;
@@ -936,12 +899,6 @@ export class SuggestWidget implements IDisposable {
 		}
 	}
 
-	/**
-	 * Measures the pixel width needed to show the widest item's label together with
-	 * its inline detail text (signature + description), plus the surrounding chrome
-	 * (icon, inter-column gap, read-more affordance, padding and scrollbar). Cached
-	 * per completion model.
-	 */
 	private _measureContentWidth(info: ReturnType<SuggestWidget['getLayoutInfo']>): number {
 		const model = this._completionModel;
 		if (!model) {
@@ -973,11 +930,9 @@ export class SuggestWidget implements IDisposable {
 				maxTextWidth = Math.max(maxTextWidth, this._measureContext.measureText(text).width);
 			}
 		} else {
-			// Canvas is unavailable (e.g. some test environments): fall back to a char-count estimate.
 			maxTextWidth = model.stats.pLabelLen * info.typicalHalfwidthCharacterWidth;
 		}
 
-		// Chrome around the text: icon, read-more affordance, inter-column gap, horizontal padding and scrollbar.
 		const chrome = 2 * info.itemHeight + 2 * info.horizontalPadding + 20;
 		const width = maxTextWidth + chrome;
 		this._fitContentWidth = { model, width };

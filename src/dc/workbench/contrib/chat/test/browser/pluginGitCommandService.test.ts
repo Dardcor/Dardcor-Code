@@ -47,7 +47,6 @@ suite('BrowserPluginGitCommandService', () => {
 
 	const targetDir = URI.from({ scheme: Schemas.inMemory, path: '/cache/github.com/octocat/hello' });
 
-	// ---- parseGitHubCloneUrl -----------------------------------------------
 
 	suite('parseGitHubCloneUrl', () => {
 		test('parses canonical github HTTPS clone URL', () => {
@@ -57,7 +56,6 @@ suite('BrowserPluginGitCommandService', () => {
 		test('strips trailing slash and missing .git suffix', () => {
 			assert.deepStrictEqual(parseGitHubCloneUrl('https://github.com/octocat/Hello-World/'), { owner: 'octocat', repo: 'Hello-World' });
 			assert.deepStrictEqual(parseGitHubCloneUrl('https://github.com/octocat/Hello-World'), { owner: 'octocat', repo: 'Hello-World' });
-			// Order of trim + .git strip matters: trailing slash first, then .git
 			assert.deepStrictEqual(parseGitHubCloneUrl('https://github.com/octocat/Hello-World.git/'), { owner: 'octocat', repo: 'Hello-World' });
 		});
 
@@ -74,7 +72,6 @@ suite('BrowserPluginGitCommandService', () => {
 		});
 	});
 
-	// ---- cloneRepository ----------------------------------------------------
 
 	suite('cloneRepository', () => {
 		test('rejects non-GitHub clone URLs with an actionable message', async () => {
@@ -98,7 +95,6 @@ suite('BrowserPluginGitCommandService', () => {
 			const index = await fileService.readFile(URI.joinPath(targetDir, 'src/index.js'));
 			assert.strictEqual(index.value.toString(), 'console.log(1);');
 
-			// revParse should now answer from the persisted metadata.
 			assert.strictEqual(await service.revParse(targetDir, 'HEAD'), 'deadbeef');
 		});
 
@@ -192,18 +188,15 @@ suite('BrowserPluginGitCommandService', () => {
 		});
 
 		test('failed extraction leaves the previous targetDir intact', async () => {
-			// First install: succeeds.
 			requestStub.queue('GET', /\/commits\/main$/, jsonResponse(200, { sha: 'sha1' }));
 			queueRepoFetch(requestStub, 'sha1', { 'keep.txt': 'preserved' });
 			await service.cloneRepository('https://github.com/octocat/Hello-World.git', targetDir, 'main');
 
-			// Second install: tree fetch returns 500 -> aborts before touching the staged dir.
 			requestStub.queue('GET', /\/commits\/main$/, jsonResponse(200, { sha: 'sha2' }));
 			requestStub.queue('GET', /\/git\/trees\/sha2/, plainResponse(500, VSBuffer.fromString('boom')));
 
 			await assert.rejects(() => service.cloneRepository('https://github.com/octocat/Hello-World.git', targetDir, 'main'));
 
-			// Original tree still readable; cache still reports old SHA.
 			const keep = await fileService.readFile(URI.joinPath(targetDir, 'keep.txt'));
 			assert.strictEqual(keep.value.toString(), 'preserved');
 			assert.strictEqual(await service.revParse(targetDir, 'HEAD'), 'sha1');
@@ -230,7 +223,6 @@ suite('BrowserPluginGitCommandService', () => {
 		});
 	});
 
-	// ---- pull ---------------------------------------------------------------
 
 	suite('pull', () => {
 		test('returns false when upstream SHA is unchanged', async () => {
@@ -292,8 +284,6 @@ suite('BrowserPluginGitCommandService', () => {
 
 			await service.cloneRepository('https://github.com/octocat/Hello-World.git', targetDir, 'main');
 
-			// safe entry written; escaped entry was rejected and never written
-			// to a sibling of `targetDir` (or anywhere outside it).
 			const safe = await fileService.readFile(URI.joinPath(targetDir, 'safe.txt'));
 			assert.strictEqual(safe.value.toString(), 'safe');
 			const escapedSibling = URI.from({ scheme: targetDir.scheme, path: '/cache/github.com/octocat/escaped.txt' });
@@ -316,13 +306,10 @@ suite('BrowserPluginGitCommandService', () => {
 
 			const safe = await fileService.readFile(URI.joinPath(targetDir, 'safe.txt'));
 			assert.strictEqual(safe.value.toString(), 'safe');
-			// The malicious entry should not have been written under any
-			// reasonable interpretation of its path.
 			assert.strictEqual(await fileService.exists(URI.joinPath(targetDir, '..\\..\\escaped.txt')), false);
 		});
 	});
 
-	// ---- checkout -----------------------------------------------------------
 
 	suite('checkout', () => {
 		test('no-ops when the requested SHA matches the cached SHA', async () => {
@@ -330,8 +317,6 @@ suite('BrowserPluginGitCommandService', () => {
 			queueRepoFetch(requestStub, 'aabbccddeeff00112233445566778899aabbccdd', { 'a.txt': 'a' });
 			await service.cloneRepository('https://github.com/octocat/Hello-World.git', targetDir, 'main');
 
-			// No additional queued responses — checkout to the same SHA must
-			// not issue any HTTP calls.
 			await service.checkout(targetDir, 'aabbccddeeff00112233445566778899aabbccdd', true);
 		});
 
@@ -378,7 +363,6 @@ suite('BrowserPluginGitCommandService', () => {
 		});
 	});
 
-	// ---- revParse -----------------------------------------------------------
 
 	suite('revParse', () => {
 		test('throws when asked for an unrelated full SHA', async () => {
@@ -386,14 +370,11 @@ suite('BrowserPluginGitCommandService', () => {
 			queueRepoFetch(requestStub, 'aabbccddeeff00112233445566778899aabbccdd', { 'a.txt': 'a' });
 			await service.cloneRepository('https://github.com/octocat/Hello-World.git', targetDir, 'main');
 
-			// Querying the cached SHA still works
 			assert.strictEqual(await service.revParse(targetDir, 'aabbccddeeff00112233445566778899aabbccdd'), 'aabbccddeeff00112233445566778899aabbccdd');
-			// Querying an unrelated SHA must not silently lie
 			await assert.rejects(() => service.revParse(targetDir, '1111111111111111111111111111111111111111'), /only HEAD/);
 		});
 	});
 
-	// ---- noop ops -----------------------------------------------------------
 
 	test('fetch / fetchRepository / revListCount are inert', async () => {
 		await service.fetch(targetDir);
@@ -402,9 +383,6 @@ suite('BrowserPluginGitCommandService', () => {
 	});
 });
 
-// ---------------------------------------------------------------------------
-// Test helpers
-// ---------------------------------------------------------------------------
 
 interface QueuedResponse {
 	readonly methodMatcher: string;
@@ -446,12 +424,6 @@ function jsonResponse(statusCode: number, body: unknown): () => IRequestContext 
 	return plainResponse(statusCode, VSBuffer.fromString(JSON.stringify(body)));
 }
 
-/**
- * Queue stub responses representing a recursive Git Trees fetch followed
- * by per-blob `git/blobs/{sha}` downloads for the given commit SHA and
- * file map. The order of `files` does not matter; the request stub picks
- * the first regex that matches each outgoing URL.
- */
 function queueRepoFetch(stub: StubRequestService, sha: string, files: Record<string, string>): void {
 	const entries = Object.entries(files);
 	const tree = entries.map(([path, content], i) => ({

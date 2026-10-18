@@ -50,15 +50,8 @@ import { LocalChatSessionUri, chatSessionResourceToId } from '../../../common/mo
 import { IEditSessionDiffStats } from '../../../common/editing/chatEditingService.js';
 
 
-// Context key id mirrored from `dc/sessions/common/contextkeys` (`IsPhoneLayoutContext`).
-// Inlined as a string because `dc/workbench` must not import from `dc/sessions`.
 const SESSIONS_IS_PHONE_LAYOUT_KEY = 'sessionsIsPhoneLayout';
 
-/**
- * Resolves the effective thinking display mode. On phone layout we always force
- * {@link ThinkingDisplayMode.CollapsedPreview} so streaming reasoning takes less
- * room and auto-collapses on completion regardless of the user's setting.
- */
 export function getEffectiveThinkingDisplayMode(configurationService: IConfigurationService, contextKeyService: IContextKeyService): ThinkingDisplayMode {
 	if (contextKeyService.getContextKeyValue<boolean>(SESSIONS_IS_PHONE_LAYOUT_KEY) === true) {
 		return ThinkingDisplayMode.CollapsedPreview;
@@ -68,7 +61,7 @@ export function getEffectiveThinkingDisplayMode(configurationService: IConfigura
 
 function extractTextFromPart(content: IChatThinkingPart): string {
 	const raw = Array.isArray(content.value) ? content.value.join('') : (content.value || '');
-	return raw.trim();
+	return raw.replace(/<\/?(?:think|thinking|thought|reasoning|antThinking)(?:\s+[^>]*)?>|◁\/?think▷|<\|(?:begin|end)_of_thought\|>|\[\/?THINK\]/gi, '').trim();
 }
 
 function isEditToolId(toolId: string): boolean {
@@ -79,11 +72,6 @@ function isEditToolId(toolId: string): boolean {
 		lowerToolId.includes('patch');
 }
 
-/**
- * Returns true for edit tools whose generic display name should be replaced
- * with "Editing files" while streaming (e.g. replace, multi-replace, patch, insertEdit).
- * Excludes create and notebook tools which already have good labels.
- */
 function isGenericEditToolId(toolId: string): boolean {
 	const lowerToolId = toolId.toLowerCase();
 	if (lowerToolId.includes('create') || lowerToolId.includes('notebook')) {
@@ -157,7 +145,6 @@ export function getToolInvocationIcon(toolId: string, registeredIcon?: ThemeIcon
 		return Codicon.terminal;
 	}
 
-	// default to generic tool icon
 	return Codicon.tools;
 }
 
@@ -171,12 +158,10 @@ function extractTitleFromThinkingContent(content: string): string | undefined {
 	return headerMatch ? headerMatch[1] : undefined;
 }
 
-/** A line that is entirely a bold span, e.g. `**Analyzing the request**`. */
 function isThinkingHeaderLine(line: string): boolean {
 	return /^\s*\*\*.+\*\*\s*$/.test(line);
 }
 
-/** Strips the surrounding `**` when the whole text is a single bold span, so a standalone header renders as plain text. */
 function stripStandaloneBold(text: string): string {
 	const trimmed = text.trim();
 	if (trimmed.startsWith('**') && trimmed.indexOf('**', 2) === trimmed.length - 2) {
@@ -185,13 +170,6 @@ function stripStandaloneBold(text: string): string {
 	return text;
 }
 
-/**
- * Splits a reasoning-summary value into one markdown string per display row.
- * Rows are delimited by bold header lines. When {@link dropLeadingHeader} is set
- * and the value starts with a header, that header is dropped because it is
- * surfaced as the collapsible title. Returns `undefined` unless the value has at
- * least two header lines, so ordinary reasoning prose keeps single-block rendering.
- */
 export function splitReasoningSummaryRows(text: string, dropLeadingHeader = true): string[] | undefined {
 	const sections: { isHeader: boolean; lines: string[] }[] = [];
 	for (const line of text.split('\n')) {
@@ -234,13 +212,6 @@ function thinkingTitleEqual(first: ChatThinkingTitle, second: ChatThinkingTitle)
 	return markdownStringEqual(first, second);
 }
 
-/**
- * Metadata passed to {@link ChatThinkingContentPart.appendItem} to drive
- * title / icon extraction. The `kind` discriminates which payload is
- * available; the thinking part inspects it to compute a label like
- * "Edited foo.ts" without rendering the actual content itself (the
- * factory provides the DOM).
- */
 export type ChatThinkingItemMetadata =
 	| IChatToolInvocation
 	| IChatToolInvocationSerialized
@@ -266,7 +237,7 @@ type ILazyItem = ILazyToolItem | ILazyThinkingItem;
 const THINKING_SCROLL_MAX_HEIGHT = 200;
 
 const TITLE_CACHE_STORAGE_KEY = 'chat.thinkingTitleCache';
-const TITLE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const TITLE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const TITLE_CACHE_MAX_ENTRIES = 1000;
 
 const enum WorkingMessageCategory {
@@ -298,18 +269,14 @@ const toolMessages = [
 	localize('chat.thinking.tool.5', 'Evaluating'),
 ];
 
-/** Easter-egg loading messages, used ~1 in {@link FUN_WORKING_MESSAGE_RATE} picks. */
 const funWorkingMessages = [
-	// Generic
 	localize('chat.working.fun.1', "Bribing the hamster"),
 	localize('chat.working.fun.2', "Reticulating splines"),
 	localize('chat.working.fun.3', "Untangling the spaghetti"),
 	localize('chat.working.fun.4', "Communing with the codebase"),
 
-	// Minecraft
 	localize('chat.working.fun.minecraft.1', "Mining diamonds"),
 
-	// Microsoft
 	localize('chat.working.fun.ms.1', "Summoning Clippy"),
 ];
 
@@ -332,7 +299,6 @@ function getCustomThinkingPhrases(configurationService: IConfigurationService): 
 	};
 }
 
-/** Returns an easter-egg message ~1 in {@link FUN_WORKING_MESSAGE_RATE}, else `undefined`. */
 export function maybePickFunWorkingMessage(configurationService: IConfigurationService, random = Math.random): string | undefined {
 	if (getCustomThinkingPhrases(configurationService).replaceDefaults) {
 		return undefined;
@@ -344,11 +310,6 @@ export function maybePickFunWorkingMessage(configurationService: IConfigurationS
 	return undefined;
 }
 
-/**
- * Builds a phrase pool from defaults and user-configured custom phrases.
- * In 'replace' mode, only custom phrases are used; in 'append' mode (default),
- * custom phrases are added to the defaults.
- */
 export function buildPhrasePool(defaults: string[], configurationService: IConfigurationService): string[] {
 	const { customPhrases, replaceDefaults } = getCustomThinkingPhrases(configurationService);
 
@@ -508,7 +469,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			this.appendedItemCount++;
 		}
 
-		// Alert screen reader users that thinking has started
 		if (this.configurationService.getValue(AccessibilityWorkbenchSettingId.VerboseChatProgressUpdates)) {
 			alert(localize('chat.thinking.started', 'Thinking'));
 		}
@@ -516,9 +476,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		if (configuredMode === ThinkingDisplayMode.Collapsed) {
 			this.setExpanded(false);
 		} else if (configuredMode === ThinkingDisplayMode.CollapsedPreview) {
-			// Start expanded if still in progress.
-			// streamingCompleted is true when look-ahead finds subsequent non-pinnable
-			// parts, meaning this thinking part won't receive more content.
 			this.setExpanded(!this.streamingCompleted && !this.element.isComplete);
 		} else {
 			this.setExpanded(false);
@@ -569,18 +526,14 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 
 		this._register(autorun(r => {
 			const isExpanded = this._isExpanded.read(r);
-			// Materialize lazy items when first expanded
 			if (isExpanded && !this.hasExpandedOnce && this.lazyItems.length > 0) {
 				this.hasExpandedOnce = true;
-				// Flush pending removals so that completed hidden tools are removed from lazyItems before materialization
 				this.processPendingRemovals();
 				for (const item of this.lazyItems) {
 					this.materializeLazyItem(item);
 				}
 			}
 
-			// If expanded but content matches title and there's nothing else to show, revert immediately.
-			// Skip this check while still streaming — more content will arrive.
 			if (isExpanded && !this.shouldAllowExpansion() && (this.streamingCompleted || this.element.isComplete)) {
 				this.setExpanded(false);
 				return;
@@ -588,7 +541,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 
 			this._externalResourceWidget.setCollapsed(!isExpanded);
 
-			// Fire when expanded/collapsed
 			this._onDidChangeHeight.fire();
 		}));
 
@@ -612,13 +564,10 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 
 				const expanded = this.isExpanded();
 				if (expanded) {
-					// Just expanded: show plain 'Working' with no detail
 					this.collapsedTitleBeforeExpansion = this.lastRenderedTitle ?? this.lastExtractedTitle;
 					this.setTitle(this.defaultTitle, true);
 					this.currentTitle = this.defaultTitle;
 				} else {
-					// Restore the title that was visible before expansion. Tool state
-					// updates can become less descriptive while the section is open.
 					const collapsedTitle = this.collapsedTitleBeforeExpansion ?? this.lastRenderedTitle ?? this.lastExtractedTitle;
 					this.collapsedTitleBeforeExpansion = undefined;
 					if (collapsedTitle) {
@@ -666,7 +615,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		}
 	}
 
-	// @TODO: @justschen Convert to template for each setting?
 	protected override getThinkingIcon(_active: boolean, expanded: boolean): ThemeIcon {
 		if (this.streamingCompleted || this.element.isComplete) {
 			return Codicon.checkCompact;
@@ -680,9 +628,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			this.wrapper.classList.add('chat-thinking-streaming');
 		}
 
-		// Only create textContainer here if there's no pending lazy thinking item.
-		// If there's a lazy thinking item, it will be rendered via materializeLazyItem
-		// with the latest streaming content.
 		const hasLazyThinkingItems = this.lazyItems.some(item => item.kind === 'thinking');
 		if (this.currentThinkingValue && !hasLazyThinkingItems) {
 			this.textContainer = $('.chat-thinking-item.markdown-content');
@@ -698,7 +643,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			this.updateWorkingSpinnerVisibility();
 		}
 
-		// wrap content in scrollable element for fixed scrolling mode
 		if (this.fixedScrollingMode) {
 			this.scrollableElement = this._register(new DomScrollableElement(this.wrapper, {
 				vertical: ScrollbarVisibility.Auto,
@@ -730,8 +674,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 				}
 			});
 
-			// Observe child elements for resizes (e.g. terminal output growing)
-			// so we can update scroll dimensions when the wrapper box is pinned at max-height.
 			this.childResizeObserver = this._register(new DisposableResizeObserver('ChatThinkingContentPart.child', () => {
 				if (this.streamingCompleted || !this.domNode.classList.contains('chat-used-context-collapsed')) {
 					return;
@@ -746,7 +688,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 				this._register(this.childResizeObserver.observe(this.workingSpinnerElement));
 			}
 
-			// Cache wrapper scrollHeight post-layout via ResizeObserver to avoid forced reflows.
 			const wrapperResizeObserver = this._register(new DisposableResizeObserver('ChatThinkingContentPart.wrapper', (entries) => {
 				if (entries[0]) {
 					this.lastKnownContentHeight = this.wrapper.scrollHeight;
@@ -759,8 +700,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			}));
 			this.wrapperResizeObserverDisposable = this._register(wrapperResizeObserver.observe(this.wrapper));
 
-			// Once content exceeds max-height, the wrapper box size stops changing
-			// so ResizeObserver won't fire. Fall back to scrollHeight reads here.
 			this._register(this._onDidChangeHeight.event(() => {
 				if (!this.streamingCompleted && this.wrapperResizeObserverDisposable) {
 					this.refreshContentHeight();
@@ -809,7 +748,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		this.domNode.classList.toggle('chat-thinking-fade-bottom', maxScrollTop > 0 && currentScrollTop < maxScrollTop - 5);
 	}
 
-	// Fallback for non-ResizeObserver updates (onDidChangeHeight, initial setup).
 	private syncDimensionsAndScheduleScroll(): void {
 		if (this.pendingScrollDisposable) {
 			return;
@@ -828,9 +766,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		});
 	}
 
-	/**
-	 * Re-read scrollHeight from the DOM and update cached height if changed.
-	 */
 	private refreshContentHeight(): void {
 		if (!this.wrapper || !this.scrollableElement) {
 			return;
@@ -889,16 +824,12 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		if (contentHeight > viewportHeight) {
 			const newScrollTop = contentHeight - viewportHeight;
 			this.lastKnownScrollTop = newScrollTop;
-			// Prevent reveal-on-scroll behavior from interfering with explicit bottom pinning.
 			this.scrollableElement.setRevealOnScroll(false);
 			this.scrollableElement.setScrollPosition({ scrollTop: newScrollTop });
 			this.scrollableElement.setRevealOnScroll(true);
 		}
 	}
 
-	/**
-	 * updates scroll dimensions when streaming is complete.
-	 */
 	private updateScrollDimensionsForCompletion(): void {
 		if (!this.scrollableElement || !this.fixedScrollingMode) {
 			return;
@@ -933,13 +864,10 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 	}
 
 	private renderMarkdown(content: string, reuseExisting?: boolean): void {
-		// Guard against rendering after disposal to avoid leaking disposables
 		if (this._store.isDisposed) {
 			return;
 		}
 
-		// A later thinking part reassigns textContainer; retire stale row tracking
-		// so the predecessor's rendered rows stay frozen while this part renders.
 		if (this.summaryRowItems.length && this.summaryRowItems[0] !== this.textContainer) {
 			this.retireSummaryRows();
 		}
@@ -954,12 +882,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			return;
 		}
 
-		// Multi-header reasoning summaries render each header section as its own
-		// row so the dropdown reads as a list. Sibling rows need an attached container so their
-		// insertion isn't a no-op, so a detached (lazy) container falls through to
-		// single-block rendering until it is materialized. A block drops its leading
-		// header only when that header is the tracked title owner, so a grouped block
-		// never drops a header that isn't surfaced as the title.
 		const dropLeadingHeader = this.droppedSummaryHeader !== undefined && extractTitleFromThinkingContent(cleanedContent) === this.droppedSummaryHeader;
 		const summaryRows = splitReasoningSummaryRows(cleanedContent, dropLeadingHeader);
 		if (summaryRows && this.textContainer?.parentNode) {
@@ -968,7 +890,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		}
 		this.clearSummaryRows();
 
-		// If the entire content is bolded, strip the bold markers for rendering
 		const contentToRender = stripStandaloneBold(cleanedContent);
 
 		const target = reuseExisting ? this._markdownResult.value?.element : undefined;
@@ -988,11 +909,9 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		}
 	}
 
-	/** Renders one summary row, reusing the row's element while its text only grows. */
 	private renderSummaryRow(container: HTMLElement, index: number, markdown: string): void {
 		const previous = this.summaryRowResults[index];
 		const reuse = !!previous && markdown.startsWith(this.summaryRowTexts[index] ?? '');
-		// A standalone header renders as plain text, not bold.
 		const rendered = this.chatContentMarkdownRenderer.render(new MarkdownString(stripStandaloneBold(markdown)), {
 			fillInIncompleteTokens: true,
 			asyncRenderCallback: this._asyncRenderCallback,
@@ -1009,7 +928,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 	}
 
 	private renderSummaryRows(rows: string[]): void {
-		// Rows own the DOM in this mode; release the single-block renderer.
 		this._markdownResult.clear();
 
 		for (let i = 0; i < rows.length; i++) {
@@ -1029,7 +947,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			}
 		}
 
-		// Streaming only appends, but guard against a shrinking row set on re-render.
 		for (let i = this.summaryRowItems.length - 1; i >= rows.length; i--) {
 			this.summaryRowResults[i]?.dispose();
 			if (this.summaryRowItems[i] !== this.textContainer) {
@@ -1041,7 +958,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		this.summaryRowTexts.length = rows.length;
 	}
 
-	/** Removes the extra summary rows and resets tracking, keeping the text container. */
 	private clearSummaryRows(): void {
 		if (!this.summaryRowItems.length) {
 			return;
@@ -1057,7 +973,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		this.summaryRowTexts = [];
 	}
 
-	/** Keeps a prior part's rendered rows in the DOM; defers disposal to teardown. */
 	private retireSummaryRows(): void {
 		for (const result of this.summaryRowResults) {
 			if (result) {
@@ -1069,12 +984,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		this.summaryRowTexts = [];
 	}
 
-	/**
-	 * Records the leading header the primary summary block drops, derived from content
-	 * so it is available at finalize even when the rows never lazily rendered (the
-	 * collapsed-through-completion flow). First-writer wins: the first grouped block
-	 * that is a multi-header summary owns the title, and only that header is dropped.
-	 */
 	private trackDroppedSummaryHeader(value: string): void {
 		if (this.droppedSummaryHeader) {
 			return;
@@ -1101,7 +1010,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 
 		const firstSpaceIndex = displayTitle.indexOf(' ');
 		if (firstSpaceIndex === -1) {
-			// Single word title, no need to split
 			labelElement.textContent = displayTitle;
 		} else {
 			const verb = displayTitle.substring(0, firstSpaceIndex);
@@ -1116,7 +1024,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			labelElement.appendChild(restSpan);
 		}
 
-		// Show aggregated diff stats from edit pills (only when there are actual changes)
 		if (this.diffDataByPartId.size > 0) {
 			const { added, removed } = this._aggregatedDiff;
 			if (added > 0 || removed > 0) {
@@ -1271,12 +1178,10 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 	}
 
 	private shouldAllowExpansion(): boolean {
-		// Multiple tool invocations or lazy items mean there's content to show
 		if (this.toolInvocationCount > 0 || this.lazyItems.length > 0) {
 			return true;
 		}
 
-		// Count meaningful children in the wrapper (exclude the working spinner)
 		if (this.wrapper) {
 			const meaningfulChildren = Array.from(this.wrapper.children).filter(child => child !== this.workingSpinnerElement).length;
 			if (meaningfulChildren > 1) {
@@ -1293,18 +1198,13 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		};
 
 		const strippedContent = stripMarkdown(contentWithoutTitle);
-		// If content is empty or matches the title exactly, nothing to expand
 		return !(!strippedContent || strippedContent === titleToCompare);
 	}
 
 	private updateDropdownClickability(knownContentHeight?: number): void {
 		let allowExpansion = this.shouldAllowExpansion();
 
-		// don't allow feedback on fixed scrolling before reaching max height.
 		if (allowExpansion && this.fixedScrollingMode && !this.streamingCompleted && !this.element.isComplete && this.wrapper) {
-			// Use only the cached height — never read scrollHeight here to avoid forced reflows.
-			// If the cache is empty, conservatively disallow expansion; the ResizeObserver
-			// will populate lastKnownContentHeight and trigger another call once layout settles.
 			const contentHeight = knownContentHeight ?? this.lastKnownContentHeight;
 			if (!contentHeight || contentHeight <= THINKING_SCROLL_MAX_HEIGHT) {
 				allowExpansion = false;
@@ -1361,15 +1261,12 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 	}
 
 	public updateThinking(content: IChatThinkingPart): void {
-		// If disposed, ignore late updates coming from renderer diffing
 		if (this._store.isDisposed) {
 			return;
 		}
 		this.content = content;
 		this.reasoningDurationMs = content.reasoningDurationMs;
 
-		// Update any pending lazy thinking item with matching ID so that
-		// when materialized, it will have the latest streaming content
 		for (const lazyItem of this.lazyItems) {
 			if (lazyItem.kind === 'thinking' && lazyItem.content.id === content.id) {
 				lazyItem.content = content;
@@ -1418,12 +1315,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		return this.isActive;
 	}
 
-	/**
-	 * Returns true when this thinking part has no meaningful content to display:
-	 * no tool invocations, no lazy items, no hooks, and no thinking text.
-	 * This happens when a tool is removed from thinking (e.g. due to confirmation)
-	 * and the thinking part was only created to hold that tool.
-	 */
 	public isEffectivelyEmpty(): boolean {
 		this.processPendingRemovals();
 		if (this.toolInvocationCount > 0 || this.lazyItems.length > 0 || this.hookCount > 0) {
@@ -1446,7 +1337,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			this.workingSpinnerLabel = undefined;
 		}
 
-		// Clear the attached-to-thinking flag on all tool invocations
 		for (const toolInvocation of this.toolInvocations) {
 			toolInvocation.isAttachedToThinking = false;
 		}
@@ -1455,7 +1345,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 	public finalizeTitleIfDefault(): void {
 		this.processPendingRemovals();
 
-		// With lazy rendering, wrapper may not be created yet if content hasn't been expanded
 		if (this.wrapper) {
 			this.wrapper.classList.remove('chat-thinking-streaming');
 		}
@@ -1464,8 +1353,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		this.streamingCompleted = true;
 		this.setContentAnimationEnabled(!this.fixedScrollingMode);
 
-		// Now that streaming is complete, render any aggregated images that were
-		// deferred while scrolling was pinned in fixed scrolling mode.
 		this.flushPendingExternalResources();
 
 		if (this.workingSpinnerElement) {
@@ -1478,13 +1365,10 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			this._collapseButton.icon = Codicon.checkCompact;
 		}
 
-		// Update scroll dimensions now that streaming is complete
-		// This removes unnecessary scrollbar when content fits
 		this.updateScrollDimensionsForCompletion();
 
 		this.updateDropdownClickability();
 
-		// A leading summary header removed from the rows must remain the title, even when a restored generated title exists.
 		if (this.droppedSummaryHeader) {
 			this.currentTitle = this.droppedSummaryHeader;
 			this.content.generatedTitle = this.droppedSummaryHeader;
@@ -1500,7 +1384,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			return;
 		}
 
-		// Reuse any existing generated title from tool invocations or thinking parts.
 		const existingTitle = this.toolInvocations.find(t => t.generatedTitle)?.generatedTitle
 			?? this.allThinkingParts.find(t => t.generatedTitle)?.generatedTitle;
 		if (existingTitle) {
@@ -1511,10 +1394,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			return;
 		}
 
-		// Only check the persisted cache when re-rendering (tool invocations are
-		// serialized), not during live streaming. Reasoning-only blocks (no tools)
-		// are keyed off the stable thinking part id so their generated headers are
-		// also restored on reload (non-local sessions only).
 		const allToolsSerialized = this.toolInvocations.every(t => t.kind === 'toolInvocationSerialized');
 		if (allToolsSerialized && !LocalChatSessionUri.isLocalSession(this.element.sessionResource)) {
 			const cacheId = this.getTitleCacheId();
@@ -1530,9 +1409,7 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			}
 		}
 
-		// case where we only have one item (tool or edit) in the thinking container and no thinking parts, we want to move it back to its original position
 		if (this.toolInvocationCount === 1 && this.hookCount === 0 && this.currentThinkingValue.trim() === '') {
-			// If singleItemInfo wasn't set (item was lazy/deferred), materialize it now
 			if (!this.singleItemInfo) {
 				const lazyItem = this.lazyItems.find(item => item.kind === 'tool' && item.originalParent);
 				if (lazyItem && lazyItem.kind === 'tool') {
@@ -1554,7 +1431,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 			}
 		}
 
-		// if exactly one actual extracted title and no tool invocations, use that as the final title.
 		if (this.extractedTitles.length === 1 && this.toolInvocationCount === 0) {
 			const title = this.extractedTitles[0];
 			this.currentTitle = title;
@@ -1598,11 +1474,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		return `${chatSessionResourceToId(this.element.sessionResource)}:${id}`;
 	}
 
-	/**
-	 * Stable id used to persist/restore the generated title. Tool-based blocks
-	 * key off the last tool call id; reasoning-only blocks fall back to the
-	 * thinking part id so their headers also survive a session reload.
-	 */
 	private getTitleCacheId(): string | undefined {
 		const lastTool = this.toolInvocations[this.toolInvocations.length - 1];
 		if (lastTool) {
@@ -1623,7 +1494,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		const cache = this.loadTitleCache();
 		const now = Date.now();
 
-		// Evict expired entries on write
 		for (const key of Object.keys(cache)) {
 			if ((now - cache[key].storedAt) > TITLE_CACHE_TTL_MS) {
 				delete cache[key];
@@ -1632,7 +1502,6 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 
 		cache[this.getTitleCacheKey(id)] = { title, storedAt: now };
 
-		// Cap size by dropping oldest entries
 		const keys = Object.keys(cache);
 		if (keys.length > TITLE_CACHE_MAX_ENTRIES) {
 			const sorted = keys.sort((a, b) => cache[a].storedAt - cache[b].storedAt);
@@ -1649,7 +1518,7 @@ export class ChatThinkingContentPart extends ChatThinkingStyleContentPart implem
 		const timeout = setTimeout(() => cts.cancel(), 5000);
 
 		try {
-			const models = await this.languageModelsService.selectLanguageModels({ vendor: 'copilot', id: 'copilot-utility-small' });
+			const models = await this.languageModelsService.selectLanguageModels({ vendor: 'dardcor', id: 'dardcor-utility-small' });
 			if (!models.length) {
 				this.setFallbackTitle();
 				return;
@@ -1802,7 +1671,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 				this.content.generatedTitle = generatedTitle;
 				this.setGeneratedTitleOnAllParts(generatedTitle);
 
-				// Persist to storage for non-local sessions only
 				if (!LocalChatSessionUri.isLocalSession(this.element.sessionResource)) {
 					const cacheId = this.getTitleCacheId();
 					if (cacheId) {
@@ -1813,7 +1681,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 				return;
 			}
 		} catch (error) {
-			// fall through to default title
 		} finally {
 			clearTimeout(timeout);
 			cts.dispose();
@@ -1875,8 +1742,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		}
 		this._aggregatedDiff = { added: totalAdded, removed: totalRemoved };
 
-		// Re-render the finalized title if streaming is already complete,
-		// since diff events from edit pills may arrive after the title was set.
 		if (this.streamingCompleted || this.element.isComplete) {
 			this.setFinalizedTitle(this.currentTitle);
 		}
@@ -1890,14 +1755,12 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			: localize('chat.thinking.finished', 'Finished Working');
 
 		this.currentTitle = finalLabel;
-		// With lazy rendering, wrapper may not be created yet if content hasn't been expanded
 		if (this.wrapper) {
 			this.wrapper.classList.remove('chat-thinking-streaming');
 		}
 		this.domNode.classList.remove('chat-thinking-active');
 		this.streamingCompleted = true;
 
-		// Render any aggregated images that were deferred during fixed scrolling streaming.
 		this.flushPendingExternalResources();
 
 		if (this._collapseButton) {
@@ -1908,19 +1771,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		this.updateDropdownClickability();
 	}
 
-	/**
-	 * Appends a tool invocation or content item to the thinking group.
-	 * The factory is called lazily - only when the thinking section is expanded.
-	 * If already expanded, the factory is called immediately.
-	 *
-	 * When the caller has already created the content part eagerly (for example, a
-	 * pre-built `ChatMarkdownContentPart` wrapped in a factory), the caller MUST pass
-	 * that part as `eagerDisposable` so it is registered on this thinking part
-	 * immediately. Otherwise, if the thinking section is collapsed and the lazy item
-	 * is never materialized (because the user never expands it), the eagerly-created
-	 * part would leak: its disposable is only referenced from inside the factory's
-	 * closure, which nothing ever calls.
-	 */
 	public appendItem(
 		factory: () => { domNode: HTMLElement; disposable?: IDisposable },
 		toolInvocationId?: string,
@@ -1932,12 +1782,10 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		this.processPendingRemovals();
 		this.containsGroupedItems = true;
 
-		// Track tool invocation metadata immediately (for title generation)
 		this.trackToolMetadata(toolInvocationId, toolInvocationOrMarkdown);
 		this.updateWorkingSpinnerVisibility();
 		this.appendedItemCount++;
 
-		// Listen for diff changes from edit pills
 		if (onDidChangeDiff && toolInvocationId) {
 			this.diffDataByPartId.set(toolInvocationId, { added: 0, removed: 0, resources: [] });
 			this._register(onDidChangeDiff(data => {
@@ -1946,20 +1794,16 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			}));
 		}
 
-		// Register any caller-owned disposable up-front so it is always cleaned up
-		// with this thinking part, even if the lazy item is never materialized.
 		if (eagerDisposable) {
 			this._register(eagerDisposable);
 		}
 
-		// get random message based on tool type
 		if (this.workingSpinnerLabel) {
 			const isTerminalTool = toolInvocationOrMarkdown && (toolInvocationOrMarkdown.kind === 'toolInvocation' || toolInvocationOrMarkdown.kind === 'toolInvocationSerialized') && toolInvocationOrMarkdown.toolSpecificData?.kind === 'terminal';
 			const category = isTerminalTool ? WorkingMessageCategory.Terminal : WorkingMessageCategory.Tool;
 			this.workingSpinnerLabel.textContent = this.getRandomWorkingMessage(category);
 		}
 
-		// If expanded or has been expanded once, render immediately
 		if (this.isExpanded() || this.hasExpandedOnce || (this.fixedScrollingMode && !this.streamingCompleted)) {
 			const result = factory();
 			this.appendItemToDOM(result.domNode, toolInvocationId, toolInvocationOrMarkdown, originalParent);
@@ -1972,7 +1816,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 				}
 			}
 		} else {
-			// Defer rendering until expanded
 			const item: ILazyToolItem = {
 				kind: 'tool',
 				lazy: new Lazy(factory),
@@ -2004,8 +1847,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			(t.kind === 'toolInvocation' || t.kind === 'toolInvocationSerialized') && t.toolCallId === toolCallId
 		);
 		if (toolInvocationsIndex !== -1) {
-			// Use the tracked displayed label (which may differ from invocationMessage
-			// for streaming edit tools that show "Editing files")
 			const label = this.toolLabelsByCallId.get(toolCallId);
 			if (label) {
 				const titleIndex = this.extractedTitles.indexOf(label);
@@ -2025,9 +1866,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		this._onDidChangeHeight.fire();
 	}
 
-	/**
-	 * Removes a markdown edit pill child by its part ID (codeblocksPartId).
-	 */
 	public removeEditPillByPartId(partId: string): void {
 		let removed = false;
 
@@ -2049,10 +1887,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		}
 	}
 
-	/**
-	 * removes/re-establishes a lazy item from the thinking container
-	 * this is needed so we can check if there are confirmations still needed
-	 */
 	public removeLazyItem(toolInvocationId: string): boolean {
 		const index = this.lazyItems.findIndex(item => item.kind === 'tool' && item.toolInvocationId === toolInvocationId);
 		if (index === -1) {
@@ -2068,13 +1902,9 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			this.toolInvocationCount--;
 		}
 
-		// Clear the attached-to-thinking flag on the removed tool invocation
 		if (removedItem.kind === 'tool' && removedItem.toolInvocationOrMarkdown && (removedItem.toolInvocationOrMarkdown.kind === 'toolInvocation' || removedItem.toolInvocationOrMarkdown.kind === 'toolInvocationSerialized')) {
 			removedItem.toolInvocationOrMarkdown.isAttachedToThinking = false;
 
-			// Keep extractedTitles in sync when a lazy tool leaves the thinking container.
-			// Use the tracked displayed label (which may differ from invocationMessage
-			// for streaming edit tools that show "Editing files")
 			const toolCallId = removedItem.toolInvocationOrMarkdown.toolCallId;
 			this._pendingExternalResources.delete(toolCallId);
 			this._externalResourceWidget.removeToolInvocation(toolCallId);
@@ -2131,7 +1961,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		});
 	}
 
-	// removes the tool entry that was previously streaming and now is not. removes item from dom and internal tracking.
 	private removeStreamingToolEntry(toolCallId: string, toolLabel: string): void {
 		this.toolDisposables.deleteAndDispose(toolCallId);
 		this.ownedToolParts.get(toolCallId)?.dispose();
@@ -2144,7 +1973,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			this.toolIconsByCallId.delete(toolCallId);
 		}
 
-		// make sure to remove any lazy item as well
 		const lazyIndex = this.lazyItems.findIndex(item =>
 			item.kind === 'tool' &&
 			item.toolInvocationOrMarkdown &&
@@ -2188,7 +2016,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			return;
 		}
 
-		// Track hooks separately: if toolInvocationOrMarkdown is undefined, it's a hook item
 		const isHook = !toolInvocationOrMarkdown;
 		if (isHook) {
 			this.hookCount++;
@@ -2196,7 +2023,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			this.toolInvocationCount++;
 		}
 
-		// Shift default title from 'Thinking' to 'Working' once we have tool calls
 		if (this.toolInvocationCount === 1) {
 			this.defaultTitle = this.workingTitle;
 		}
@@ -2208,8 +2034,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		if (isToolInvocation && toolInvocationOrMarkdown.invocationMessage) {
 			const invocationMessage = toolInvocationOrMarkdown.invocationMessage;
 
-			// For edit-type tools that are still streaming, use a friendlier label
-			// instead of the generic tool display name (e.g. "Replace String in File")
 			const isStreamingEditTool = toolInvocationOrMarkdown.kind === 'toolInvocation' && IChatToolInvocation.isStreaming(toolInvocationOrMarkdown) && isGenericEditToolId(toolInvocationOrMarkdown.toolId);
 			if (isStreamingEditTool) {
 				toolCallTitle = localize('chat.thinking.editingFiles', 'Editing files');
@@ -2220,22 +2044,18 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 
 			this.toolInvocations.push(toolInvocationOrMarkdown);
 
-			// Track the displayed label for consistent cleanup
 			const toolCallId = toolInvocationOrMarkdown.toolCallId;
 			this.toolLabelsByCallId.set(toolCallId, toolCallLabel);
 
-			// Render external image pills for serialized (already-completed) tool invocations
 			if (toolInvocationOrMarkdown.kind === 'toolInvocationSerialized') {
 				this.updateExternalResourceParts(toolInvocationOrMarkdown);
 
-				// Queue hidden serialized tools for removal immediately.
 				if (IChatToolInvocation.isEffectivelyHidden(toolInvocationOrMarkdown)) {
 					this.pendingRemovals.push({ toolCallId: toolInvocationOrMarkdown.toolCallId, toolLabel: toolCallLabel });
 					this.schedulePendingRemovalsFlush();
 				}
 			}
 
-			// track state for live/still streaming tools, excluding serialized tools
 			if (toolInvocationOrMarkdown.kind === 'toolInvocation') {
 				let currentToolLabel = toolCallLabel;
 				let isComplete = false;
@@ -2247,7 +2067,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 				const updateTitle = (updatedTitle: ChatThinkingTitle) => {
 					const updatedMessage = getThinkingTitleValue(updatedTitle);
 					if (updatedMessage && !thinkingTitleEqual(updatedTitle, toolCallTitle)) {
-						// replace old title if exists, otherwise add new
 						if (updatedMessage !== currentToolLabel) {
 							const oldIndex = this.extractedTitles.indexOf(currentToolLabel);
 							const updatedIndex = this.extractedTitles.indexOf(updatedMessage);
@@ -2268,7 +2087,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 						this.toolLabelsByCallId.set(toolCallId, updatedMessage);
 						this.lastExtractedTitle = updatedMessage;
 
-						// make sure not to set title if expanded
 						if (!this.fixedScrollingMode && !this._isExpanded.read(undefined)) {
 							this.setTitle(updatedTitle);
 						}
@@ -2283,11 +2101,9 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 					const currentState = toolInvocationOrMarkdown.state.read(reader);
 					this.updateWorkingSpinnerVisibility(reader);
 
-					// queue item to be removed if it was streaming and presentation is hidden
 					if (isStreaming && currentState.type !== IChatToolInvocation.StateKind.Streaming) {
 						isStreaming = false;
 
-						// Update terminal tool icon based on sandbox wrapping state
 						const termData = toolInvocationOrMarkdown.toolSpecificData as IChatTerminalToolInvocationData | undefined;
 						if (termData?.kind === 'terminal') {
 							const iconEl = this.toolIconsByCallId.get(toolCallId);
@@ -2307,13 +2123,11 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 
 					if (currentState.type === IChatToolInvocation.StateKind.Completed ||
 						currentState.type === IChatToolInvocation.StateKind.Cancelled) {
-						// Remove tools that should be hidden now or after completion.
 						if (toolInvocationOrMarkdown.presentation === 'hidden' || toolInvocationOrMarkdown.presentation === 'hiddenAfterComplete') {
 							this.pendingRemovals.push({ toolCallId: toolInvocationOrMarkdown.toolCallId, toolLabel: currentToolLabel });
 							this.schedulePendingRemovalsFlush();
 						}
 
-						// Render image pills outside the collapsible area for completed tools
 						if (currentState.type === IChatToolInvocation.StateKind.Completed) {
 							this.updateExternalResourceParts(toolInvocationOrMarkdown);
 							const completedMessage = toolInvocationOrMarkdown.pastTenseMessage ?? toolInvocationOrMarkdown.invocationMessage;
@@ -2328,7 +2142,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 						return;
 					}
 
-					// streaming
 					if (currentState.type === IChatToolInvocation.StateKind.Streaming) {
 						isStreaming = true;
 						const streamingMessage = currentState.streamingMessage.read(reader);
@@ -2338,7 +2151,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 						return;
 					}
 
-					// executing (something like `Replacing 67 lines.....`)
 					if (currentState.type === IChatToolInvocation.StateKind.Executing) {
 						const progressData = currentState.progress.read(reader);
 						if (progressData.message) {
@@ -2352,7 +2164,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 						return;
 					}
 
-					// confirmations, failures, completed, other, etc
 					const invocationMsg = toolInvocationOrMarkdown.invocationMessage;
 					if (invocationMsg) {
 						updateTitle(invocationMsg);
@@ -2391,7 +2202,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			toolCallTitle = toolCallLabel;
 		}
 
-		// Add tool call to extracted titles for LLM title generation
 		if (!this.extractedTitles.includes(toolCallLabel)) {
 			this.extractedTitles.push(toolCallLabel);
 		}
@@ -2408,9 +2218,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			return;
 		}
 
-		// In fixed scrolling mode, defer rendering aggregated images at the bottom while
-		// the response is still streaming. The images would otherwise overlap the pinned
-		// scrolling viewport. They are flushed once streaming completes.
 		if (this.fixedScrollingMode && !this.streamingCompleted && !this.element.isComplete) {
 			this._pendingExternalResources.set(toolInvocation.toolCallId, toolInvocation);
 			return;
@@ -2512,7 +2319,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		this.appendToWrapper(itemWrapper);
 
 		if (this.fixedScrollingMode && this.scrollableElement) {
-			// Observe the child wrapper for resizes (e.g. terminal expanding)
 			if (this.childResizeObserver && !this.streamingCompleted) {
 				const observeDisposable = this.childResizeObserver.observe(itemWrapper);
 				const toolCallId = isToolInvocation ? toolInvocationOrMarkdown.toolCallId : undefined;
@@ -2528,8 +2334,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 				}
 			}
 
-			// Coalesce reads of scrollHeight to avoid forced reflows when many items
-			// are appended in the same tick (e.g. when restoring a session).
 			this.scheduleAppendRefresh();
 		}
 	}
@@ -2550,12 +2354,9 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 
 	private materializeLazyItem(item: ILazyItem): void {
 		if (item.kind === 'thinking') {
-			// Materialize thinking container
 			this.appendToWrapper(item.textContainer);
-			// Store reference to textContainer for updateThinking calls
 			this.textContainer = item.textContainer;
 			this.id = item.content.id;
-			// Use item.content which is kept up-to-date during streaming via updateThinking
 			this.updateThinking(item.content);
 			return;
 		}
@@ -2566,10 +2367,7 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			this.workingSpinnerLabel.textContent = this.getRandomWorkingMessage(category);
 		}
 
-		// Handle tool items
 		if (item.lazy.hasValue) {
-			// Already evaluated — but may not have been placed in the DOM yet
-			// (e.g. finalizeTitleIfDefault materialized it before the wrapper existed).
 			const result = item.lazy.value;
 			if (!result.domNode.parentElement) {
 				this.appendItemToDOM(result.domNode, item.toolInvocationId, item.toolInvocationOrMarkdown, item.originalParent);
@@ -2590,9 +2388,7 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		}
 	}
 
-	// makes a new text container. when we update, we now update this container.
 	public setupThinkingContainer(content: IChatThinkingPart) {
-		// Avoid creating new containers after disposal
 		if (this._store.isDisposed) {
 			return;
 		}
@@ -2600,28 +2396,19 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 		this.allThinkingParts.push(content);
 		const contentText = extractTextFromPart(content);
 		this.recordReasoningContent(contentText);
-		// First-writer wins: a later grouped block can be the first multi-header
-		// summary (when earlier blocks had <2 headers), so track it here too — the
-		// lazy/reload path never routes through updateThinking.
 		this.trackDroppedSummaryHeader(contentText);
 		this.textContainer = $('.chat-thinking-item.markdown-content');
-		// Observe the new textContainer for child resizes in fixed scrolling mode
 		if (this.childResizeObserver && this.fixedScrollingMode && !this.streamingCompleted) {
 			this._register(this.childResizeObserver.observe(this.textContainer));
 		}
 		if (content.value) {
-			// Use lazy rendering when collapsed to preserve order with tool items
 			if (this.isExpanded() || this.hasExpandedOnce || (this.fixedScrollingMode && !this.streamingCompleted)) {
-				// Render immediately when expanded
 				this.appendToWrapper(this.textContainer);
 				this.id = content.id;
 				this.updateThinking(content);
 			} else {
-				// Update this.content and this.id so that subsequent updateThinking calls
-				// or materializeLazyItem will use the correct content for this section
 				this.content = content;
 				this.id = content.id;
-				// Defer rendering until expanded to preserve order
 				const lazyThinking: ILazyThinkingItem = {
 					kind: 'thinking',
 					textContainer: this.textContainer,
@@ -2670,7 +2457,6 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 
 		this.setShimmerTitle(localize('chat.thinking.shimmer', "{0}: ", this.defaultTitle));
 
-		// Dispose previous detail rendering
 		this._titleDetailRendered.clear();
 		this._titleFileWidgetStore.clear();
 

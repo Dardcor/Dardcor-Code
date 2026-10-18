@@ -53,8 +53,6 @@ suite('htmlContent', () => {
 		});
 
 		test('does not escape characters that are safe in link text', () => {
-			// these would be escaped by escapeMarkdownSyntaxTokens but must
-			// pass through here since they render literally inside `[...]`.
 			assert.strictEqual(escapeMarkdownLinkLabel('a*b_c#d-e.f!g~h+i(j)k{l}m'), 'a*b_c#d-e.f!g~h+i(j)k{l}m');
 		});
 	});

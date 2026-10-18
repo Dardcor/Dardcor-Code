@@ -589,13 +589,10 @@ flakySuite('IndexedDBFileSystemProvider', function () {
 		const parent = await service.resolve(userdataURIFromPaths([]));
 		const resource = joinPath(parent.resource, 'appendTest.txt');
 
-		// Create initial file
 		await service.writeFile(resource, VSBuffer.fromString('Hello '));
 
-		// Append to existing file
 		await service.writeFile(resource, VSBuffer.fromString('World!'), { append: true });
 
-		// Verify content
 		const content = await service.readFile(resource);
 		assert.strictEqual(content.value.toString(), 'Hello World!');
 	});
@@ -604,10 +601,8 @@ flakySuite('IndexedDBFileSystemProvider', function () {
 		const parent = await service.resolve(userdataURIFromPaths([]));
 		const resource = joinPath(parent.resource, 'newAppendTest.txt');
 
-		// Append to non-existent file (should create it)
 		await service.writeFile(resource, VSBuffer.fromString('First content'), { append: true });
 
-		// Verify content
 		const content = await service.readFile(resource);
 		assert.strictEqual(content.value.toString(), 'First content');
 	});
@@ -616,12 +611,10 @@ flakySuite('IndexedDBFileSystemProvider', function () {
 		const parent = await service.resolve(userdataURIFromPaths([]));
 		const resource = joinPath(parent.resource, 'multiAppend.txt');
 
-		// Create and append multiple times
 		await service.writeFile(resource, VSBuffer.fromString('Line 1\n'));
 		await service.writeFile(resource, VSBuffer.fromString('Line 2\n'), { append: true });
 		await service.writeFile(resource, VSBuffer.fromString('Line 3\n'), { append: true });
 
-		// Verify content
 		const content = await service.readFile(resource);
 		assert.strictEqual(content.value.toString(), 'Line 1\nLine 2\nLine 3\n');
 	});
@@ -630,13 +623,10 @@ flakySuite('IndexedDBFileSystemProvider', function () {
 		const parent = await service.resolve(userdataURIFromPaths([]));
 		const resource = joinPath(parent.resource, 'overwriteTest.txt');
 
-		// Create initial file
 		await service.writeFile(resource, VSBuffer.fromString('Original content'));
 
-		// Write without append (should overwrite)
 		await service.writeFile(resource, VSBuffer.fromString('New content'));
 
-		// Verify content is overwritten
 		const content = await service.readFile(resource);
 		assert.strictEqual(content.value.toString(), 'New content');
 	});
@@ -648,13 +638,10 @@ flakySuite('IndexedDBFileSystemProvider', function () {
 		const data1 = new Uint8Array([1, 2, 3, 4, 5]);
 		const data2 = new Uint8Array([6, 7, 8, 9, 10]);
 
-		// Create initial file with binary data
 		await service.writeFile(resource, VSBuffer.wrap(data1));
 
-		// Append binary data
 		await service.writeFile(resource, VSBuffer.wrap(data2), { append: true });
 
-		// Verify combined content
 		const content = await service.readFile(resource);
 		const expected = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 		assert.strictEqual(content.value.byteLength, expected.byteLength);
@@ -667,11 +654,9 @@ flakySuite('IndexedDBFileSystemProvider', function () {
 		const parent = await service.resolve(userdataURIFromPaths([]));
 		const resource = joinPath(parent.resource, 'providerAppend.txt');
 
-		// Use provider directly
 		await userdataFileProvider.writeFile(resource, VSBuffer.fromString('First ').buffer, { create: true, overwrite: true, unlock: false, atomic: false });
 		await userdataFileProvider.writeFile(resource, VSBuffer.fromString('Second').buffer, { create: true, overwrite: true, unlock: false, atomic: false, append: true });
 
-		// Verify content
 		const content = await userdataFileProvider.readFile(resource);
 		assert.strictEqual(new TextDecoder().decode(content), 'First Second');
 	});

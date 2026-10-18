@@ -89,7 +89,6 @@ export class VariablesView extends ViewPane implements IDebugViewWithVariables {
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 
-		// Use scheduler to prevent unnecessary flashing
 		this.updateTreeScheduler = this._register(new RunOnceScheduler(async () => {
 			const stackFrame = this.debugService.getViewModel().focusedStackFrame;
 
@@ -106,12 +105,9 @@ export class VariablesView extends ViewPane implements IDebugViewWithVariables {
 			const viewState = this.savedViewState.get(stackFrame.getId());
 			await this.tree.setInput(stackFrame, viewState);
 
-			// Automatically expand the first non-expensive scope
 			const scopes = await stackFrame.getScopes();
 			const toExpand = scopes.find(s => !s.expensive);
 
-			// A race condition could be present causing the scopes here to be different from the scopes that the tree just retrieved.
-			// If that happened, don't try to reveal anything, it will be straightened out on the next update
 			if (toExpand && this.tree.hasNode(toExpand)) {
 				this.autoExpandedScopes.add(toExpand.getId());
 				await this.tree.expand(toExpand);
@@ -151,8 +147,6 @@ export class VariablesView extends ViewPane implements IDebugViewWithVariables {
 				return;
 			}
 
-			// Refresh the tree immediately if the user explictly changed stack frames.
-			// Otherwise postpone the refresh until user stops stepping.
 			const timeout = sf.explicit ? 0 : undefined;
 			this.updateTreeScheduler.schedule(timeout);
 		}));
@@ -240,12 +234,10 @@ export class VariablesView extends ViewPane implements IDebugViewWithVariables {
 	private async onContextMenu(e: ITreeContextMenuEvent<IExpression | IScope>): Promise<void> {
 		const element = e.element;
 
-		// Handle scope context menu
 		if (element instanceof Scope) {
 			return this.openContextMenuForScope(e, element);
 		}
 
-		// Handle variable context menu
 		if (!(element instanceof Variable) || !element.value) {
 			return;
 		}
@@ -290,9 +282,6 @@ const getVariablesContext = (variable: Variable): IVariablesContext => ({
 	variable: variable.toDebugProtocolObject()
 });
 
-/**
- * Gets a context key overlay that has context for the given variable, including data access info.
- */
 async function getContextForVariableMenuWithDataAccess(parentContext: IContextKeyService, variable: Variable) {
 	const session = variable.getSession();
 	if (!session || !session.capabilities.supportsDataBreakpoints) {
@@ -326,9 +315,6 @@ async function getContextForVariableMenuWithDataAccess(parentContext: IContextKe
 	return getContextForVariableMenuBase(parentContext, variable, contextKeys);
 }
 
-/**
- * Gets a context key overlay that has context for the given variable.
- */
 function getContextForVariableMenuBase(parentContext: IContextKeyService, variable: Variable, additionalContext: [string, unknown][] = []) {
 	variableInternalContext = variable;
 	return getContextForVariable(parentContext, variable, additionalContext);
@@ -435,17 +421,12 @@ class ScopeErrorRenderer implements ITreeRenderer<IScope, FuzzyScore, IScopeErro
 	}
 
 	disposeTemplate(): void {
-		// noop
 	}
 }
 
 export class VisualizedVariableRenderer extends AbstractExpressionsRenderer {
 	public static readonly ID = 'viz';
 
-	/**
-	 * Registers a helper that rerenders the tree when visualization is requested
-	 * or cancelled./
-	 */
 	public static rendererOnVisualizationRange(model: IViewModel, tree: AsyncDataTree<any, any, any>): IDisposable {
 		return model.onDidChangeVisualization(({ original }) => {
 			if (!tree.hasNode(original)) {
@@ -506,7 +487,6 @@ export class VisualizedVariableRenderer extends AbstractExpressionsRenderer {
 				viz.errorMessage = undefined;
 				if (success) {
 					viz.edit(value).then(() => {
-						// Do not refresh scopes due to a node limitation #15520
 						forgetScopes = false;
 						this.debugService.getViewModel().updateViews();
 					});
@@ -583,9 +563,7 @@ export class VariablesRenderer extends AbstractExpressionsRenderer {
 				const focusedStackFrame = this.debugService.getViewModel().focusedStackFrame;
 				if (success && variable.value !== value && focusedStackFrame) {
 					variable.setVariable(value, focusedStackFrame)
-						// Need to force watch expressions and variables to update since a variable change can have an effect on both
 						.then(() => {
-							// Do not refresh scopes due to a node limitation #15520
 							forgetScopes = false;
 							this.debugService.getViewModel().updateViews();
 						});
@@ -614,7 +592,6 @@ export class VariablesRenderer extends AbstractExpressionsRenderer {
 			const originalExpression = (expression instanceof VisualizedExpression && expression.original) || expression;
 			const actions = result.object.map(v => toAction({ id: 'debugViz', label: v.name, class: v.iconClass || 'debug-viz-icon', run: this.useVisualizer(v, originalExpression, cts.token) }));
 			if (actions.length === 0) {
-				// no-op
 			} else if (actions.length === 1) {
 				actionBar.push(actions[0], { icon: true, label: false });
 			} else {
@@ -742,13 +719,13 @@ CommandsRegistry.registerCommand({
 		const debugService = accessor.get(IDebugService);
 		let sessionId: string;
 		let memoryReference: string;
-		if ('sessionId' in arg) { // IVariablesContext
+		if ('sessionId' in arg) {
 			if (!arg.sessionId || !arg.variable.memoryReference) {
 				return;
 			}
 			sessionId = arg.sessionId;
 			memoryReference = arg.variable.memoryReference;
-		} else { // IExpression
+		} else {
 			if (!arg.memoryReference) {
 				return;
 			}
@@ -769,12 +746,6 @@ CommandsRegistry.registerCommand({
 
 		const ext = await extensionService.getExtension(HEX_EDITOR_EXTENSION_ID);
 		if (ext || await tryInstallHexEditor(extensionsWorkbenchService, notificationService)) {
-			/* __GDPR__
-				"debug/didViewMemory" : {
-					"owner": "connor4312",
-					"debugType" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-				}
-			*/
 			telemetryService.publicLog('debug/didViewMemory', {
 				debugType: debugService.getModel().getSession(sessionId)?.configuration.type,
 			});

@@ -1,6 +1,7 @@
 {
 	"displayName": "Default Themes",
 	"description": "The default Dardcor Code light and dark themes",
+	"dardcorCodeDefaultThemeLabel": "Dardcor Code Default",
 	"light2026ThemeLabel": "Light 2026",
 	"dark2026ThemeLabel": "Dark 2026",
 	"darkPlusColorThemeLabel": "Dark+",

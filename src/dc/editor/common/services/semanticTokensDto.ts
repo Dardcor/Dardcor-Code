@@ -27,7 +27,6 @@ const enum EncodedSemanticTokensType {
 
 function reverseEndianness(arr: Uint8Array): void {
 	for (let i = 0, len = arr.length; i < len; i += 4) {
-		// flip bytes 0<->3 and 1<->2
 		const b0 = arr[i + 0];
 		const b1 = arr[i + 1];
 		const b2 = arr[i + 2];
@@ -42,7 +41,6 @@ function reverseEndianness(arr: Uint8Array): void {
 function toLittleEndianBuffer(arr: Uint32Array): VSBuffer {
 	const uint8Arr = new Uint8Array(arr.buffer, arr.byteOffset, arr.length * 4);
 	if (!platform.isLittleEndian()) {
-		// the byte order must be changed
 		reverseEndianness(uint8Arr);
 	}
 	return VSBuffer.wrap(uint8Arr);
@@ -51,13 +49,11 @@ function toLittleEndianBuffer(arr: Uint32Array): VSBuffer {
 function fromLittleEndianBuffer(buff: VSBuffer): Uint32Array {
 	const uint8Arr = buff.buffer;
 	if (!platform.isLittleEndian()) {
-		// the byte order must be changed
 		reverseEndianness(uint8Arr);
 	}
 	if (uint8Arr.byteOffset % 4 === 0) {
 		return new Uint32Array(uint8Arr.buffer, uint8Arr.byteOffset, uint8Arr.length / 4);
 	} else {
-		// unaligned memory access doesn't work on all platforms
 		const data = new Uint8Array(uint8Arr.byteLength);
 		data.set(uint8Arr);
 		return new Uint32Array(data.buffer, data.byteOffset, data.length / 4);
@@ -92,22 +88,22 @@ export function encodeSemanticTokensDto(semanticTokens: ISemanticTokensDto): VSB
 function encodeSemanticTokensDtoSize(semanticTokens: ISemanticTokensDto): number {
 	let result = 0;
 	result += (
-		+ 1 // id
-		+ 1 // type
+		+ 1
+		+ 1
 	);
 	if (semanticTokens.type === 'full') {
 		result += (
-			+ 1 // data length
+			+ 1
 			+ semanticTokens.data.length
 		);
 	} else {
 		result += (
-			+ 1 // delta count
+			+ 1
 		);
 		result += (
-			+ 1 // start
-			+ 1 // deleteCount
-			+ 1 // data length
+			+ 1
+			+ 1
+			+ 1
 		) * semanticTokens.deltas.length;
 		for (const delta of semanticTokens.deltas) {
 			if (delta.data) {

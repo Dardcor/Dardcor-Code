@@ -1,10 +1,4 @@
-/**
- * Search Response Normalizers
- *
- * Each normalizer maps a provider-specific response into the unified SearchResult shape.
- */
 
-/** Build a unified SearchResult object. */
 function makeResult(providerId, item, idx, now) {
   const url = item.url || "";
   return {
@@ -259,7 +253,6 @@ function normalizeOllamaSearch(data, _query, _searchType) {
 
 function normalizeGlmSearch(data, _query, _searchType) {
   const now = new Date().toISOString();
-  // MCP envelope: { result: { content: [{ type: "text", text: "<json>" }] } }
   let payload = data;
   const textContent = data?.result?.content?.[0]?.text;
   if (typeof textContent === "string") {
@@ -298,10 +291,6 @@ const NORMALIZERS = {
   "glm": normalizeGlmSearch,
 };
 
-/**
- * Dispatch to the appropriate normalizer based on providerId.
- * @returns {{results: Array, totalResults: number|null, pagination?: object}}
- */
 export function normalizeSearchResponse(providerId, data, query, searchType) {
   const fn = NORMALIZERS[providerId];
   return fn ? fn(data, query, searchType) : { results: [], totalResults: null };

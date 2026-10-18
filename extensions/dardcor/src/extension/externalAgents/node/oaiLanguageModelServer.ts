@@ -31,10 +31,6 @@ export interface ILanguageModelServerConfig {
 	readonly nonce: string;
 }
 
-/**
- * HTTP server that provides an OpenAI Responses API compatible endpoint.
- * Acts as a pure pass-through proxy to the underlying model endpoint.
- */
 export class OpenAILanguageModelServer extends Disposable {
 	private server: http.Server;
 	private config: ILanguageModelServerConfig;
@@ -46,7 +42,7 @@ export class OpenAILanguageModelServer extends Disposable {
 	) {
 		super();
 		this.config = {
-			port: 0, // Will be set to random available port
+			port: 0,
 			nonce: 'vscode-lm-' + generateUuid()
 		};
 
@@ -64,7 +60,6 @@ export class OpenAILanguageModelServer extends Disposable {
 				return;
 			}
 
-			// It sends //responses if OPENAI_BASE_URL ends in /
 			if (req.method === 'POST' && (req.url === '/v1/responses' || req.url === '/responses' || req.url === '//responses')) {
 				await this.handleResponsesRequest(req, res);
 				return;
@@ -102,9 +97,6 @@ export class OpenAILanguageModelServer extends Disposable {
 		return;
 	}
 
-	/**
-	 * Verify nonce
-	 */
 	private async isAuthTokenValid(req: http.IncomingMessage): Promise<boolean> {
 		const authHeader = req.headers.authorization;
 		const bearerSpace = 'Bearer ';
@@ -126,7 +118,6 @@ export class OpenAILanguageModelServer extends Disposable {
 	}
 
 	private async handleAuthedResponsesRequest(bodyString: string, headers: http.IncomingHttpHeaders, res: http.ServerResponse): Promise<void> {
-		// Create cancellation token for the request
 		const tokenSource = new CancellationTokenSource();
 
 		try {
@@ -163,14 +154,12 @@ export class OpenAILanguageModelServer extends Disposable {
 				return;
 			}
 
-			// Set up streaming response
 			res.writeHead(200, {
 				'Content-Type': 'text/event-stream',
 				'Cache-Control': 'no-cache',
 				'Connection': 'keep-alive',
 			});
 
-			// Handle client disconnect
 			let requestComplete = false;
 			res.on('close', () => {
 				if (!requestComplete) {
@@ -192,7 +181,6 @@ export class OpenAILanguageModelServer extends Disposable {
 
 			let messagesForLogging: Raw.ChatMessage[] = [];
 			try {
-				// Don't fail based on any assumptions about the shape of the request
 				messagesForLogging = Array.isArray(requestBody.input) ?
 					responseApiInputToRawMessagesForLogging(requestBody) :
 					[];
@@ -225,18 +213,15 @@ export class OpenAILanguageModelServer extends Disposable {
 
 	private selectEndpoint(endpoints: readonly IChatEndpoint[], requestedModel?: string): IChatEndpoint | undefined {
 		if (requestedModel) {
-			// Try to find exact match first
 			const selectedEndpoint = endpoints.find(e => e.family === requestedModel);
 			return selectedEndpoint;
 		}
 
-		// Use first available model if no criteria specified
 		return endpoints[0];
 	}
 
 	public async start(): Promise<void> {
 		if (this.config.port !== 0) {
-			// Already started
 			return;
 		}
 
@@ -456,7 +441,6 @@ class StreamingPassThroughEndpoint implements IChatEndpoint {
 	): Promise<AsyncIterableObject<ChatCompletion>> {
 		const body = response.body;
 		return new AsyncIterableObject<ChatCompletion>(async feed => {
-			// We parse the stream just to return a correct ChatCompletion for logging the response and token usage details.
 			const requestId = response.headers.get('X-Request-ID') ?? generateUuid();
 			const ghRequestId = response.headers.get('x-github-request-id') ?? '';
 			const { serverExperiments } = getRequestId(response.headers);

@@ -27,29 +27,17 @@ export interface ICompletionsRecentEditsProviderService {
 }
 
 export interface RecentEditsConfig {
-	// the maximum number of recent files to include in the prompt
 	maxFiles: number;
-	// the number of recent edits to include in the prompt
 	maxEdits: number;
-	// the number of context lines around the edit to include in the prompt
 	diffContextLines: number;
-	// the distance between edits to merge them into one edit
 	editMergeLineDistance: number;
-	// the maximum number of characters per edit to include in the prompt
 	maxCharsPerEdit: number;
-	// the debounce timeout for tracking recent edits
 	debounceTimeout: number;
-	// the type of summarization we use for recent edits
 	summarizationFormat: string;
-	// whether to remove deleted lines from diff in the prompt
 	removeDeletedLines: boolean;
-	// whether to organize insertions before deletions in the diff format
 	insertionsBeforeDeletions: boolean;
-	// whether to append a no-reply marker to the end of deletions in the diff format
 	appendNoReplyMarker: boolean;
-	// the filtered-out window limit between active-file recent edits and cursor
 	activeDocDistanceLimitFromCursor: number | undefined;
-	// the maximum number of lines per edit to include in the prompt
 	maxLinesPerEdit: number;
 }
 
@@ -108,7 +96,6 @@ export class FullRecentEditsProvider extends Disposable implements ICompletionsR
 
 		this.recentEdits.forEach(edit => {
 			if (!this.recentEditSummaries.has(edit)) {
-				// Generate a summary for the edit if it doesn't already exist
 				const summary = summarizeEdit(edit, this._config);
 				this.recentEditSummaries.set(edit, summary);
 			}
@@ -116,7 +103,6 @@ export class FullRecentEditsProvider extends Disposable implements ICompletionsR
 	}
 
 	start() {
-		// By the default, the provider starts lazily on the first completion request.
 		if (this._started) {
 			return;
 		}
@@ -140,19 +126,13 @@ export class FullRecentEditsProvider extends Disposable implements ICompletionsR
 								const newText = data.value.value.value;
 								const docId = doc.id.toString();
 
-								// clear any existing debounce timeout for this document
-								// note that you can call clearTimeout on undefined, so we don't need to check if it exists
 								clearTimeout(this.debounceTimeouts[docId]);
 
 								if (!this.recentEditMap[docId] && prevText) {
-									// This is the first time the edit is being stored, but we also know what the previous text was.
-									// We need to add the previous text to the reducer so that we can get a diff.
 									this.updateRecentEdits(docId, prevText);
 								} else if (this._config.debounceTimeout === 0) {
-									// allow setting debounce to 0 in experiments / settings for immediate updates
 									this.updateRecentEdits(docId, newText);
 								} else {
-									// update in a few milliseconds
 									this.debounceTimeouts[docId] = setTimeout(() => {
 										this.updateRecentEdits(docId, newText);
 									}, this._config.debounceTimeout ?? 500);

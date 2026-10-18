@@ -69,8 +69,6 @@ suite('ChatModelFeedbackSurveyPromptContribution', () => {
 	});
 
 	test('reports a switch when the model resolved before the session finished loading', () => {
-		// A widget registers, then resolves its model, then loads the session. The switch that
-		// follows is still the user rejecting the model.
 		const harness = createHarness();
 		harness.selectModel('copilot/auto');
 		harness.loadSession(sessionOne);
@@ -85,7 +83,6 @@ suite('ChatModelFeedbackSurveyPromptContribution', () => {
 		harness.loadSession(sessionOne);
 		harness.selectModel('copilot/auto');
 
-		// Switching sessions restores that session's model, which is not the user rejecting one.
 		harness.loadSession(sessionTwo);
 		harness.selectModel('copilot/gpt-5.2');
 

@@ -11,12 +11,7 @@ import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ChatSubagentToolInvocationData, ChatToolInvocationPart, MarkdownString } from '../../../../dardcorTypes';
 import { ClaudeToolNames, ExitPlanModeInput, LSInput } from './claudeTools';
 
-// #region Tool Result Content Extraction
 
-/**
- * Extracts text content from a tool result's content field.
- * Tool results can be a string, an array of content blocks, or undefined.
- */
 function extractToolResultContent(content: Anthropic.Messages.ToolResultBlockParam['content']): string {
 	if (!content) {
 		return '';
@@ -24,21 +19,14 @@ function extractToolResultContent(content: Anthropic.Messages.ToolResultBlockPar
 	if (typeof content === 'string') {
 		return content;
 	}
-	// Array of content blocks - extract text from each
 	return content
 		.filter((block): block is Anthropic.Messages.TextBlockParam => block.type === 'text')
 		.map(block => block.text)
 		.join('\n');
 }
 
-// #endregion
 
-// #region Tool Invocation Completion Handlers
 
-/**
- * Completes a tool invocation by populating toolSpecificData with the result.
- * This enables VS Code's chat UI to display tool outputs.
- */
 export function completeToolInvocation(
 	toolUse: Anthropic.Beta.Messages.BetaToolUseBlock,
 	toolResult: Anthropic.Messages.ToolResultBlockParam,
@@ -62,7 +50,6 @@ export function completeToolInvocation(
 		case ClaudeToolNames.MultiEdit:
 		case ClaudeToolNames.Write:
 		case ClaudeToolNames.TodoWrite:
-			// These tools have their own UI handling (edit diffs, todo list)
 			break;
 		case ClaudeToolNames.Agent:
 		case ClaudeToolNames.Task:
@@ -74,26 +61,19 @@ export function completeToolInvocation(
 	}
 }
 
-/**
- * Completes a bash tool invocation with terminal-specific output formatting.
- * Parses exit code from output and formats for ChatTerminalToolInvocationData.
- */
 function completeBashInvocation(
 	invocation: ChatToolInvocationPart,
 	toolUse: Anthropic.Beta.Messages.BetaToolUseBlock,
 	resultContent: string
 ): void {
-	// Parse exit code from the end of the result (format: "Exit code: X" or similar patterns)
 	const exitCodeMatch = /(?:exit code|exited with)[:=\s]*(\d+)/i.exec(resultContent);
 	const exitCode = exitCodeMatch ? parseInt(exitCodeMatch[1], 10) : undefined;
 
-	// Remove exit code line from output for cleaner display
 	let text = resultContent;
 	if (exitCode !== undefined) {
 		text = resultContent.replace(/(?:exit code|exited with)[:=\s]*\d+\s*$/i, '').trimEnd();
 	}
 
-	// Convert \n to \r\n for proper terminal display
 	text = text.replace(/\n/g, '\r\n');
 
 	const toolSpecificData: ChatTerminalToolInvocationData = {
@@ -107,9 +87,6 @@ function completeBashInvocation(
 	invocation.toolSpecificData = toolSpecificData;
 }
 
-/**
- * Completes a read/ls tool invocation with simple input/output display.
- */
 function completeReadInvocation(
 	invocation: ChatToolInvocationPart,
 	toolUse: Anthropic.Beta.Messages.BetaToolUseBlock,
@@ -130,9 +107,6 @@ function completeReadInvocation(
 	invocation.toolSpecificData = toolSpecificData;
 }
 
-/**
- * Completes a glob/grep tool invocation with simple input/output display.
- */
 function completeSearchInvocation(
 	invocation: ChatToolInvocationPart,
 	toolUse: Anthropic.Beta.Messages.BetaToolUseBlock,
@@ -153,11 +127,6 @@ function completeSearchInvocation(
 	invocation.toolSpecificData = toolSpecificData;
 }
 
-/**
- * Completes a Task tool invocation by setting the result on its ChatSubagentToolInvocationData.
- * The toolSpecificData was already populated by formatTaskInvocation with description/agentName/prompt;
- * this adds the result text from the subagent's execution.
- */
 function completeTaskInvocation(
 	invocation: ChatToolInvocationPart,
 	resultContent: string
@@ -167,10 +136,6 @@ function completeTaskInvocation(
 	}
 }
 
-/**
- * Generic completion handler for tools without specific formatting.
- * Displays input arguments and output as plain text.
- */
 function completeGenericInvocation(
 	invocation: ChatToolInvocationPart,
 	toolUse: Anthropic.Beta.Messages.BetaToolUseBlock,
@@ -187,13 +152,8 @@ function completeGenericInvocation(
 	invocation.toolSpecificData = toolSpecificData;
 }
 
-// #endregion
 
-// #region Tool Invocation Creation
 
-/**
- * Creates a formatted tool invocation part based on the tool type and input
- */
 export function createFormattedToolInvocation(
 	toolUse: Anthropic.Beta.Messages.BetaToolUseBlock,
 	complete?: boolean
@@ -223,7 +183,7 @@ export function createFormattedToolInvocation(
 		case ClaudeToolNames.Edit:
 		case ClaudeToolNames.MultiEdit:
 		case ClaudeToolNames.Write:
-			return; // edit diff is shown
+			return;
 		case ClaudeToolNames.ExitPlanMode:
 			formatExitPlanModeInvocation(invocation, toolUse);
 			break;
@@ -232,7 +192,6 @@ export function createFormattedToolInvocation(
 			formatTaskInvocation(invocation, toolUse);
 			break;
 		case ClaudeToolNames.TodoWrite:
-			// Suppress this, it's too common
 			return;
 		default:
 			formatGenericInvocation(invocation, toolUse);
@@ -297,4 +256,3 @@ function formatUriForMessage(path: string): string {
 	return `[](${URI.file(path).toString()})`;
 }
 
-// #endregion

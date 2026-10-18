@@ -333,8 +333,6 @@ export abstract class AbstractListSettingWidget<TDataItem extends object> extend
 		}
 
 		this.listDisposables.add(DOM.addDisposableListener(rowElement, 'click', (e) => {
-			// There is a parent list widget, which is the one that holds the list of settings.
-			// Prevent the parent widget from trying to interpret this click event.
 			e.stopPropagation();
 		}));
 
@@ -396,7 +394,6 @@ export abstract class AbstractListSettingWidget<TDataItem extends object> extend
 
 		const actionbar = DOM.findParentWithClass(e.target as HTMLElement, 'monaco-action-bar');
 		if (actionbar) {
-			// Don't handle doubleclicks inside the action bar
 			return -1;
 		}
 
@@ -573,7 +570,6 @@ export class ListSettingWidget<TListDataItem extends IListDataItem> extends Abst
 			}
 		}));
 		this.listDisposables.add(DOM.addDisposableListener(rowElement, DOM.EventType.DROP, (ev) => {
-			// cancel the op if we dragged to a completely different setting
 			if (!this.dragDetails) {
 				return false;
 			}
@@ -1038,7 +1034,6 @@ export class ObjectSettingDropdownWidget extends AbstractListSettingWidget<IObje
 		const rowElement = $('.setting-list-row');
 		rowElement.classList.add('setting-list-object-row');
 
-		// Mark row as invalid if the key doesn't match propertyNames.pattern
 		if (this.propertyNames && item.key.data && !validatePropertyName(this.propertyNames, item.key.data)) {
 			rowElement.classList.add('invalid-key');
 		}
@@ -1234,7 +1229,6 @@ export class ObjectSettingDropdownWidget extends AbstractListSettingWidget<IObje
 
 		selectBox.render(wrapper);
 
-		// Switch to the first item if the user set something invalid in the json
 		const selected = keyOrValue.options.findIndex(option => keyOrValue.data === option.value);
 		if (selected === -1 && keyOrValue.options.length) {
 			update(
@@ -1243,7 +1237,6 @@ export class ObjectSettingDropdownWidget extends AbstractListSettingWidget<IObje
 					: { ...changedKeyOrValue, data: keyOrValue.options[0].value }
 			);
 		} else if (changedKeyOrValue.type === 'boolean') {
-			// https://github.com/microsoft/vscode/issues/129581
 			update({ ...changedKeyOrValue, data: keyOrValue.data === 'true' });
 		}
 
@@ -1251,12 +1244,10 @@ export class ObjectSettingDropdownWidget extends AbstractListSettingWidget<IObje
 	}
 
 	private shouldUseSuggestion(originalValue: ObjectValue, previousValue: ObjectValue, newValue: ObjectValue): boolean {
-		// suggestion is exactly the same
 		if (newValue.type !== 'enum' && newValue.type === previousValue.type && newValue.data === previousValue.data) {
 			return false;
 		}
 
-		// item is new, use suggestion
 		if (originalValue.data === '') {
 			return true;
 		}
@@ -1265,12 +1256,10 @@ export class ObjectSettingDropdownWidget extends AbstractListSettingWidget<IObje
 			return false;
 		}
 
-		// check if all enum options are the same
 		if (previousValue.type === 'enum' && newValue.type === 'enum') {
 			const previousEnums = new Set(previousValue.options.map(({ value }) => value));
 			newValue.options.forEach(({ value }) => previousEnums.delete(value));
 
-			// all options are the same
 			if (previousEnums.size === 0) {
 				return false;
 			}
@@ -1391,7 +1380,6 @@ export class ObjectSettingCheckboxWidget extends AbstractListSettingWidget<IBool
 	}
 
 	protected renderItem(item: IBoolObjectDataItem, idx: number): RowElementGroup {
-		// Return just the containers, since we always render in edit mode anyway
 		const rowElement = $('.blank-row');
 		const keyElement = $('.blank-row-key');
 		return { rowElement, keyElement };
@@ -1412,8 +1400,6 @@ export class ObjectSettingCheckboxWidget extends AbstractListSettingWidget<IBool
 		const valueElement = DOM.append(rowElement, $('.setting-list-object-value'));
 		valueElement.textContent = checkboxDescription;
 
-		// We add the tooltips here, because the method is not called by default
-		// for widgets in edit mode
 		const rowElementGroup = { rowElement, keyElement: valueElement, valueElement: checkbox.domNode };
 		this.addTooltipsToRow(rowElementGroup, item);
 
@@ -1453,8 +1439,6 @@ export class ObjectSettingCheckboxWidget extends AbstractListSettingWidget<IBool
 			checkbox.checked = !checkbox.checked;
 			onValueChange(checkbox.checked);
 
-			// Without this line, the settings editor assumes
-			// we lost focus on this setting completely.
 			e.stopImmediatePropagation();
 		}));
 

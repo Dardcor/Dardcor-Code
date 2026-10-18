@@ -91,7 +91,6 @@ export class WorkbenchButtonBar extends ButtonBar {
 		this._updateStore.clear();
 		this.clear();
 
-		// Support instant hover between buttons
 		const hoverDelegate = this._updateStore.add(createInstantHoverDelegate());
 
 		for (let i = 0; i < actions.length; i++) {
@@ -152,8 +151,6 @@ export class WorkbenchButtonBar extends ButtonBar {
 
 			const composeLabel = (labelValue: string | IMarkdownString): string | IMarkdownString => {
 				if (showIcon && action instanceof MenuItemAction && ThemeIcon.isThemeIcon(action.item.icon) && showLabel) {
-					// this is REALLY hacky but combining a codicon and normal text is ugly because
-					// the former define a font which doesn't work for text
 					return isMarkdownString(labelValue)
 						? new MarkdownString(`$(${action.item.icon.id}) ${labelValue.value}`, {
 							isTrusted: labelValue.isTrusted, supportThemeIcons: true, supportHtml: labelValue.supportHtml

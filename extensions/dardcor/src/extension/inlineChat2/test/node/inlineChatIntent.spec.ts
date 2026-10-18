@@ -30,7 +30,7 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
 import { IOTelService, SpanStatusCode } from '../../../../platform/otel/common/otelService';
 import { CapturingOTelService } from '../../../../platform/otel/common/test/capturingOTelService';
-import { CopilotChatAttr, GenAiAttr, GenAiOperationName, GitHubCopilotAttr } from '../../../../platform/otel/common/genAiAttributes';
+import { DardcorChatAttr, GenAiAttr, GenAiOperationName, DardcorAttr } from '../../../../platform/otel/common/genAiAttributes';
 import { PromptRenderer } from '../../../prompts/node/base/promptRenderer';
 import { BasePromptElementProps } from '@vscode/prompt-tsx';
 import { ToolName } from '../../../tools/common/toolNames';
@@ -103,7 +103,7 @@ suite('InlineChatIntent', () => {
 		} as unknown as ILogService;
 
 		const mockIgnoreService = {
-			isCopilotIgnored: vi.fn().mockResolvedValue(false)
+			isIgnored: vi.fn().mockResolvedValue(false)
 		} as unknown as IIgnoreService;
 
 		const mockEditTracker = {
@@ -182,10 +182,10 @@ suite('InlineChatIntent', () => {
 					[GenAiAttr.RESPONSE_MODEL]: 'gpt-4o-2024-08-06',
 					[GenAiAttr.USAGE_INPUT_TOKENS]: 10,
 					[GenAiAttr.USAGE_OUTPUT_TOKENS]: 5,
-					[CopilotChatAttr.SESSION_ID]: 'someId',
-					[CopilotChatAttr.USER_REQUEST]: 'test prompt',
-					[CopilotChatAttr.TURN_COUNT]: 1,
-					[GitHubCopilotAttr.AGENT_TYPE]: 'builtin',
+					[DardcorChatAttr.SESSION_ID]: 'someId',
+					[DardcorChatAttr.USER_REQUEST]: 'test prompt',
+					[DardcorChatAttr.TURN_COUNT]: 1,
+					[DardcorAttr.AGENT_TYPE]: 'builtin',
 				})
 			})
 		]);
@@ -209,8 +209,6 @@ suite('InlineChatIntent', () => {
 			harness.restore();
 		}
 
-		// Default harness response has no tool calls -> needsExitTool === true,
-		// so the bail-out invocation must run while the invoke_agent span is still active.
 		expect(harness.mockToolsService.invokeTool).toHaveBeenCalledWith(
 			'inline_chat_exit',
 			expect.anything(),
@@ -287,7 +285,7 @@ suite('InlineChatIntent', () => {
 			rootSpan: {
 				statusCode: SpanStatusCode.OK,
 				attributes: expect.objectContaining({
-					[CopilotChatAttr.TURN_COUNT]: 2,
+					[DardcorChatAttr.TURN_COUNT]: 2,
 					[GenAiAttr.RESPONSE_ID]: 'model-call-2',
 					[GenAiAttr.USAGE_INPUT_TOKENS]: 30,
 					[GenAiAttr.USAGE_OUTPUT_TOKENS]: 12,
@@ -303,8 +301,6 @@ suite('InlineChatIntent', () => {
 			],
 		});
 
-		// Assert metrics individually so the test is not brittle to call ordering
-		// or to harmless additions of unrelated metrics.
 		expect(harness.otelService.metrics).toEqual(expect.arrayContaining([
 			{
 				name: 'dardcor_chat.agent.invocation.duration',
@@ -380,7 +376,7 @@ function createInlineChatHarness(options: InlineChatHarnessOptions = {}) {
 			getTool: vi.fn((name: string) => name === ToolName.ApplyPatch ? availableTool : undefined),
 			invokeTool: vi.fn(),
 			validateToolInput: vi.fn().mockReturnValue({ inputObj: {} }),
-			getCopilotTool: vi.fn(),
+			getAgentTool: vi.fn(),
 			invokeToolWithEndpoint: vi.fn().mockImplementation(async () => {
 				const result = options.toolResults?.[toolResultIndex++] ?? { hasError: false };
 				if (!result.hasError && options.markEditOnSuccessfulTool) {
@@ -408,9 +404,6 @@ function createInlineChatHarness(options: InlineChatHarnessOptions = {}) {
 						otelService as IOTelService,
 					);
 				}
-				// Fail loudly when an unexpected class is instantiated so that
-				// renames or new collaborators surface as a clear test failure
-				// rather than silently returning an empty stub.
 				throw new Error(`Unhandled createInstance for ${ctor.name}. Update the inline chat test harness.`);
 			}),
 			invokeFunction: vi.fn().mockResolvedValue([availableTool])
@@ -465,7 +458,7 @@ function createInlineChatHarness(options: InlineChatHarnessOptions = {}) {
 		} as unknown as IAuthenticationService;
 
 		const mockIgnoreService = {
-			isCopilotIgnored: vi.fn().mockResolvedValue(false)
+			isIgnored: vi.fn().mockResolvedValue(false)
 		} as unknown as IIgnoreService;
 
 		const mockEditTracker = {

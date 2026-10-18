@@ -122,7 +122,6 @@ export class TextSearchQuickAccess extends PickerQuickAccessProvider<ITextSearch
 			const [item] = picker.activeItems;
 
 			if (item?.match) {
-				// we must remember our curret view state to be able to restore (will automatically track if there is already stored state)
 				this.editorViewState.set();
 				const itemMatch = item.match;
 				this.editorSequencer.queue(async () => {
@@ -136,10 +135,6 @@ export class TextSearchQuickAccess extends PickerQuickAccessProvider<ITextSearch
 
 		disposables.add(Event.debounce(picker.onDidChangeActive, (last, event) => event, DEBOUNCE_DELAY, true)(onDidChangeActive));
 		disposables.add(Event.once(picker.onWillHide)(({ reason }) => {
-			// Restore view state upon cancellation if we changed it
-			// but only when the picker was closed via explicit user
-			// gesture and not e.g. when focus was lost because that
-			// could mean the user clicked into the editor directly.
 			if (reason === QuickInputHideReason.Gesture) {
 				this.editorViewState.restore();
 			}
@@ -188,7 +183,7 @@ export class TextSearchQuickAccess extends PickerQuickAccessProvider<ITextSearch
 			pattern: contentPattern,
 		};
 		this.searchModel.searchResult.toggleHighlights(false);
-		const charsPerLine = content.isRegExp ? 10000 : 1000; // from https://github.com/microsoft/vscode/blob/e7ad5651ac26fa00a40aa1e4010e81b92f655569/src/vs/workbench/contrib/search/browser/searchView.ts#L1508
+		const charsPerLine = content.isRegExp ? 10000 : 1000;
 
 		const query: ITextQuery = this.queryBuilder.text(content, folderResources.map(folder => folder.uri), this._getTextQueryBuilderOptions(charsPerLine));
 
@@ -207,8 +202,6 @@ export class TextSearchQuickAccess extends PickerQuickAccessProvider<ITextSearch
 	}
 
 	private async moveToSearchViewlet(currentElem: RenderableMatch | undefined) {
-		// this function takes this._searchModel and moves it to the search viewlet's search model.
-		// then, this._searchModel will construct a new (empty) SearchModel.
 		this._viewsService.openView(VIEW_ID, false);
 		const viewlet: SearchView | undefined = this._viewsService.getActiveViewWithId(VIEW_ID) as SearchView;
 		await viewlet.replaceSearchModel(this.searchModel, this.currentAsyncSearch);
@@ -217,10 +210,6 @@ export class TextSearchQuickAccess extends PickerQuickAccessProvider<ITextSearch
 		this.searchModel.location = SearchModelLocation.QUICK_ACCESS;
 
 		const viewer: WorkbenchCompressibleAsyncDataTree<ISearchResult, RenderableMatch> | undefined = viewlet?.getControl();
-		// The async data tree may not have materialized `currentElem` yet (e.g. its parent
-		// file match has not been expanded/loaded), in which case selecting or revealing it
-		// throws `TreeError [SearchView] Tree element not found`. Guard on `hasNode` before
-		// touching the tree and fall back to focusing the search widget otherwise.
 		if (currentElem && viewer && viewer.hasNode(currentElem)) {
 			viewer.setFocus([currentElem], getSelectionKeyboardEvent());
 			viewer.setSelection([currentElem], getSelectionKeyboardEvent());
@@ -340,7 +329,6 @@ export class TextSearchQuickAccess extends PickerQuickAccessProvider<ITextSearch
 			selection: options.selection
 		};
 
-		// from https://github.com/microsoft/vscode/blob/f40dabca07a1622b2a0ae3ee741cfc94ab964bef/src/vs/workbench/contrib/search/browser/anythingQuickAccess.ts#L1037
 		const targetGroup = options.keyMods?.alt || (this.configuration.openEditorPinned && options.keyMods?.ctrlCmd) || options.forceOpenSideBySide ? SIDE_GROUP : ACTIVE_GROUP;
 
 		await this._editorService.openEditor({
@@ -364,7 +352,6 @@ export class TextSearchQuickAccess extends PickerQuickAccessProvider<ITextSearch
 
 		disposables.add(token.onCancellationRequested(() => {
 			if (searchModelAtTimeOfSearch.location === SearchModelLocation.QUICK_ACCESS) {
-				// if the search model has not been imported to the panel, you can cancel
 				conditionalTokenCts.cancel();
 			}
 		}));

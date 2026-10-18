@@ -11,16 +11,10 @@ import { applyTestItemUpdate, ITestItem, ITestTag, namespaceTestTag, TestDiffOpT
 import { TestId } from './testId.js';
 import { URI } from '../../../../base/common/uri.js';
 
-/**
- * @private
- */
 interface CollectionItem<T> {
 	readonly fullId: TestId;
 	actual: T;
 	expand: TestItemExpandState;
-	/**
-	 * Number of levels of items below this one that are expanded. May be infinite.
-	 */
 	expandLevels?: number;
 	resolveBarrier?: Barrier;
 }
@@ -85,22 +79,16 @@ export interface ITestItemApi<T> {
 }
 
 export interface ITestItemCollectionOptions<T> {
-	/** Controller ID to use to prefix these test items. */
 	controllerId: string;
 
-	/** Gets the document version at the given URI, if it's open */
 	getDocumentVersion(uri: URI | undefined): number | undefined;
 
-	/** Gets API for the given test item, used to listen for events and set parents. */
 	getApiFor(item: T): ITestItemApi<T>;
 
-	/** Converts the full test item to the common interface. */
 	toITestItem(item: T): ITestItem;
 
-	/** Gets children for the item. */
 	getChildren(item: T): ITestChildrenLike<T>;
 
-	/** Root to use for the new test collection. */
 	root: T;
 }
 
@@ -158,9 +146,6 @@ export interface ITestItemLike {
 	canResolveChildren: boolean;
 }
 
-/**
- * Maintains a collection of test items for a single controller.
- */
 export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 	private readonly debounceSendDiff = this._register(new RunOnceScheduler(() => this.flushDiff(), 200));
 	private readonly diffOpEmitter = this._register(new Emitter<TestsDiff>());
@@ -170,7 +155,7 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 		return this.options.root;
 	}
 
-	public readonly tree = new Map</* full test id */string, CollectionItem<T>>();
+	public readonly tree = new Map< string, CollectionItem<T>>();
 	private readonly tags = new Map<string, { label?: string; refCount: number }>();
 
 	protected diff: TestsDiff = [];
@@ -181,9 +166,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 		this.upsertItem(this.root, undefined);
 	}
 
-	/**
-	 * Handler used for expanding test items.
-	 */
 	public set resolveHandler(handler: undefined | ((item: T | undefined) => void)) {
 		this._resolveHandler = handler;
 		for (const test of this.tree.values()) {
@@ -195,23 +177,14 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 		return this._resolveHandler;
 	}
 
-	/**
-	 * Fires when an operation happens that should result in a diff.
-	 */
 	public readonly onDidGenerateDiff = this.diffOpEmitter.event;
 
-	/**
-	 * Gets a diff of all changes that have been made, and clears the diff queue.
-	 */
 	public collectDiff() {
 		const diff = this.diff;
 		this.diff = [];
 		return diff;
 	}
 
-	/**
-	 * Pushes a new diff entry onto the collected diff list.
-	 */
 	public pushDiff(diff: TestsDiffOp) {
 		switch (diff.op) {
 			case TestDiffOpType.DocumentSynced: {
@@ -225,7 +198,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 				break;
 			}
 			case TestDiffOpType.Update: {
-				// Try to merge updates, since they're invoked per-property
 				const last = this.diff[this.diff.length - 1];
 				if (last) {
 					if (last.op === TestDiffOpType.Update && last.item.extId === diff.item.extId) {
@@ -249,11 +221,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 		}
 	}
 
-	/**
-	 * Expands the test and the given number of `levels` of children. If levels
-	 * is < 0, then all children will be expanded. If it's 0, then only this
-	 * item will be expanded.
-	 */
 	public expand(testId: string, levels: number): Promise<void> | void {
 		const internal = this.tree.get(testId);
 		if (!internal) {
@@ -264,8 +231,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 			internal.expandLevels = levels;
 		}
 
-		// try to avoid awaiting things if the provider returns synchronously in
-		// order to keep everything in a single diff and DOM update.
 		if (internal.expand === TestItemExpandState.Expandable) {
 			const r = this.resolveChildren(internal);
 			return !r.isOpen()
@@ -344,21 +309,18 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 	private upsertItem(actual: T, parent: CollectionItem<T> | undefined): void {
 		const fullId = TestId.fromExtHostTestItem(actual, this.root.id, parent?.actual);
 
-		// If this test item exists elsewhere in the tree already (exists at an
-		// old ID with an existing parent), remove that old item.
 		const privateApi = this.options.getApiFor(actual);
 		if (privateApi.parent && privateApi.parent !== parent?.actual) {
 			this.options.getChildren(privateApi.parent).delete(actual.id);
 		}
 
 		let internal = this.tree.get(fullId.toString());
-		// Case 1: a brand new item
 		if (!internal) {
 			internal = {
 				fullId,
 				actual,
-				expandLevels: parent?.expandLevels /* intentionally undefined or 0 */ ? parent.expandLevels - 1 : undefined,
-				expand: TestItemExpandState.NotExpandable, // updated by `connectItemAndChildren`
+				expandLevels: parent?.expandLevels ? parent.expandLevels - 1 : undefined,
+				expand: TestItemExpandState.NotExpandable,
 			};
 
 			actual.tags.forEach(this.incrementTagRefs, this);
@@ -377,16 +339,12 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 			return;
 		}
 
-		// Case 2: re-insertion of an existing item, no-op
 		if (internal.actual === actual) {
-			this.connectItem(actual, internal, parent); // re-connect in case the parent changed
-			return; // no-op
+			this.connectItem(actual, internal, parent);
+			return;
 		}
 
-		// Case 3: upsert of an existing item by ID, with a new instance
 		if (internal.actual.uri?.toString() !== actual.uri?.toString()) {
-			// If the item has a new URI, re-insert it; we don't support updating
-			// URIs on existing test items.
 			this.removeItem(fullId.toString());
 			return this.upsertItem(actual, parent);
 		}
@@ -397,10 +355,9 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 
 		internal.actual = actual;
 		internal.resolveBarrier = undefined;
-		internal.expand = TestItemExpandState.NotExpandable; // updated by `connectItemAndChildren`
+		internal.expand = TestItemExpandState.NotExpandable;
 
 		if (update) {
-			// tags are handled in a special way
 			if (update.hasOwnProperty('tags')) {
 				this.diffTagRefs(actual.tags, oldActual.tags, fullId.toString());
 				delete update.tags;
@@ -410,18 +367,14 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 
 		this.connectItemAndChildren(actual, internal, parent);
 
-		// Remove any orphaned children.
 		for (const [_, child] of oldChildren) {
 			if (!this.options.getChildren(actual).get(child.id)) {
 				this.removeItem(TestId.joinToString(fullId, child.id));
 			}
 		}
 
-		// Re-expand the element if it was previous expanded (#207574)
 		const expandLevels = internal.expandLevels;
 		if (expandLevels !== undefined) {
-			// Wait until a microtask to allow the extension to finish setting up
-			// properties of the element and children before we ask it to expand.
 			queueMicrotask(() => {
 				if (internal.expand === TestItemExpandState.Expandable) {
 					internal.expandLevels = undefined;
@@ -430,7 +383,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 			});
 		}
 
-		// Mark ranges in the document as synced (#161320)
 		this.documentSynced(internal.actual.uri);
 	}
 
@@ -487,17 +439,11 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 	private connectItemAndChildren(actual: T, internal: CollectionItem<T>, parent: CollectionItem<T> | undefined) {
 		this.connectItem(actual, internal, parent);
 
-		// Discover any existing children that might have already been added
 		for (const [_, child] of this.options.getChildren(actual)) {
 			this.upsertItem(child, internal);
 		}
 	}
 
-	/**
-	 * Updates the `expand` state of the item. Should be called whenever the
-	 * resolved state of the item changes. Can automatically expand the item
-	 * if requested by a consumer.
-	 */
 	private updateExpandability(internal: CollectionItem<T>) {
 		let newState: TestItemExpandState;
 		if (!this._resolveHandler) {
@@ -524,11 +470,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 		}
 	}
 
-	/**
-	 * Expands all children of the item, "levels" deep. If levels is 0, only
-	 * the children will be expanded. If it's 1, the children and their children
-	 * will be expanded. If it's <0, it's a no-op.
-	 */
 	private expandChildren(internal: CollectionItem<T>, levels: number): Promise<void> | void {
 		if (levels < 0) {
 			return;
@@ -547,9 +488,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 		}
 	}
 
-	/**
-	 * Calls `discoverChildren` on the item, refreshing all its tests.
-	 */
 	private resolveChildren(internal: CollectionItem<T>) {
 		if (internal.resolveBarrier) {
 			return internal.resolveBarrier;
@@ -621,9 +559,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 		}
 	}
 
-	/**
-	 * Immediately emits any pending diffs on the collection.
-	 */
 	public flushDiff() {
 		const diff = this.collectDiff();
 		if (diff.length) {
@@ -632,7 +567,6 @@ export class TestItemCollection<T extends ITestItemLike> extends Disposable {
 	}
 }
 
-/** Implementation of vscode.TestItemCollection */
 export interface ITestItemChildren<T extends ITestItemLike> extends Iterable<[string, T]> {
 	readonly size: number;
 	replace(items: readonly T[]): void;
@@ -666,24 +600,20 @@ export const createTestItemChildren = <T extends ITestItemLike>(api: ITestItemAp
 	let mapped = new Map<string, T>();
 
 	return {
-		/** @inheritdoc */
 		get size() {
 			return mapped.size;
 		},
 
-		/** @inheritdoc */
 		forEach(callback: (item: T, collection: ITestItemChildren<T>) => unknown, thisArg?: unknown) {
 			for (const item of mapped.values()) {
 				callback.call(thisArg, item, this);
 			}
 		},
 
-		/** @inheritdoc */
 		[Symbol.iterator](): IterableIterator<[string, T]> {
 			return mapped.entries();
 		},
 
-		/** @inheritdoc */
 		replace(items: Iterable<T>) {
 			const newMapped = new Map<string, T>();
 			const toDelete = new Set(mapped.keys());
@@ -714,13 +644,10 @@ export const createTestItemChildren = <T extends ITestItemLike>(api: ITestItemAp
 
 			api.listener?.(bulk);
 
-			// important mutations come after firing, so if an error happens no
-			// changes will be "saved":
 			mapped = newMapped;
 		},
 
 
-		/** @inheritdoc */
 		add(item: T) {
 			if (!(item instanceof checkCtor)) {
 				throw new InvalidTestItemError((item as ITestItemLike).id);
@@ -730,19 +657,16 @@ export const createTestItemChildren = <T extends ITestItemLike>(api: ITestItemAp
 			api.listener?.({ op: TestItemEventOp.Upsert, item });
 		},
 
-		/** @inheritdoc */
 		delete(id: string) {
 			if (mapped.delete(id)) {
 				api.listener?.({ op: TestItemEventOp.RemoveChild, id });
 			}
 		},
 
-		/** @inheritdoc */
 		get(itemId: string) {
 			return mapped.get(itemId);
 		},
 
-		/** JSON serialization function. */
 		toJSON() {
 			return Array.from(mapped.values());
 		},

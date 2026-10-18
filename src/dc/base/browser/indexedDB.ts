@@ -36,7 +36,6 @@ export class IndexedDB {
 				console.info(`Attempting to recreate the IndexedDB once.`, name);
 
 				try {
-					// Try to delete the db
 					await IndexedDB.deleteDatabase(err.db);
 				} catch (error) {
 					console.error(`Error while deleting the IndexedDB`, getErrorMessage(error));
@@ -80,10 +79,8 @@ export class IndexedDB {
 
 	private static deleteDatabase(database: IDBDatabase): Promise<void> {
 		return new Promise((c, e) => {
-			// Close any opened connections
 			database.close();
 
-			// Delete the db
 			const deleteRequest = indexedDB.deleteDatabase(database.name);
 			deleteRequest.onerror = (err) => e(deleteRequest.error);
 			deleteRequest.onsuccess = () => c();
@@ -131,10 +128,6 @@ export class IndexedDB {
 		}).finally(() => this.pendingTransactions.splice(this.pendingTransactions.indexOf(transaction), 1));
 	}
 
-	/**
-	 * Atomically stores `newValue` when the current valid value strictly equals `expectedValue`.
-	 * Values rejected by `isValid` are treated as `undefined`; transaction failures reject without committing.
-	 */
 	async compareAndSwap<T>(
 		store: string,
 		key: IDBValidKey,
@@ -182,29 +175,24 @@ export class IndexedDB {
 
 			const objectStore = transaction.objectStore(store);
 
-			// Open a IndexedDB Cursor to iterate over key/values
 			const cursor = objectStore.openCursor();
 			if (!cursor) {
-				return resolve(items); // this means the `ItemTable` was empty
+				return resolve(items);
 			}
 
-			// Iterate over rows of `ItemTable` until the end
 			cursor.onsuccess = () => {
 				if (cursor.result) {
 
-					// Keep cursor key/value in our map
 					if (isValid(cursor.result.value)) {
 						items.set(cursor.result.key.toString(), cursor.result.value);
 					}
 
-					// Advance cursor to next row
 					cursor.result.continue();
 				} else {
-					resolve(items); // reached end of table
+					resolve(items);
 				}
 			};
 
-			// Error handlers
 			const onError = (error: Error | null) => {
 				console.error(`IndexedDB getKeyValues(): ${toErrorMessage(error, true)}`);
 

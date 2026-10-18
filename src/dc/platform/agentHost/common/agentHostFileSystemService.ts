@@ -15,12 +15,6 @@ import { AGENT_HOST_LABEL_FORMATTER, AGENT_HOST_SCHEME, agentHostLabelFormatter,
 
 export type { IRemoteFilesystemConnection } from './agentHostFileSystemProvider.js';
 
-/**
- * Scheme used for the in-memory plugin filesystem backing synced customizations.
- *
- * URIs under this scheme are served by a registered {@link InMemoryFileSystemProvider}
- * and are reachable by the agent host via `fetchContent`.
- */
 export const SYNCED_CUSTOMIZATION_SCHEME = 'vscode-synced-customization';
 
 export const IAgentHostFileSystemService = createDecorator<IAgentHostFileSystemService>('agentHostFileSystemService');
@@ -28,17 +22,8 @@ export const IAgentHostFileSystemService = createDecorator<IAgentHostFileSystemS
 export interface IAgentHostFileSystemService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Register a mapping from a URI authority to a connection so that
-	 * `vscode-agent-host://[authority]/…` URIs resolve through this connection.
-	 */
 	registerAuthority(authority: string, connection: IRemoteFilesystemConnection): IDisposable;
 
-	/**
-	 * Ensures the in-memory filesystem provider for synced customizations
-	 * (`vscode-synced-customization:` scheme) is registered. Safe to call
-	 * multiple times — only the first call registers the provider.
-	 */
 	ensureSyncedCustomizationProvider(): void;
 }
 
@@ -57,8 +42,6 @@ class AgentHostFileSystemService extends Disposable implements IAgentHostFileSys
 		this._fsProvider = this._register(new AgentHostFileSystemProvider());
 		this._register(_fileService.registerProvider(AGENT_HOST_SCHEME, this._fsProvider));
 
-		// Two formatters: the scheme-wide fallback for hosts whose operating
-		// system is unknown, and a more specific one for the in-process host.
 		this._register(labelService.registerFormatter(AGENT_HOST_LABEL_FORMATTER));
 		this._register(labelService.registerFormatter(agentHostLabelFormatter(LOCAL_AGENT_HOST_AUTHORITY, OS)));
 	}

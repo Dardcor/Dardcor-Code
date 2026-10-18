@@ -47,18 +47,10 @@ import { AccessibleContentProvider, AccessibleViewProviderId, AccessibleViewType
 import { AccessibleViewRegistry, IAccessibleViewImplementation } from '../../../../../platform/accessibility/browser/accessibleViewRegistry.js';
 import { AccessibilityVerbositySettingId } from '../../../accessibility/browser/accessibilityConfiguration.js';
 
-// Register tools
 import '../tools/browserTools.contribution.js';
 
-/**
- * Setting that controls whether a screenshot of the selected element is attached
- * to the chat when sending elements from the Integrated Browser.
- */
 const BrowserSendElementsToChatAttachImagesSettingId = 'workbench.browser.sendElementsToChat.attachImages';
 
-/**
- * Format an array of element ancestors into a CSS-selector-like path string.
- */
 function formatElementPath(ancestors: readonly IElementAncestor[] | undefined): string | undefined {
 	if (!ancestors || ancestors.length === 0) {
 		return undefined;
@@ -101,7 +93,6 @@ function createElementContextValue(elementData: IElementData, displayName: strin
 	return sections.join('\n\n');
 }
 
-// Context key expression to check if browser editor is active
 const BROWSER_EDITOR_ACTIVE = ContextKeyExpr.equals('activeEditor', BrowserEditorInput.EDITOR_ID);
 const BrowserCategory = localize2('browserCategory', "Browser");
 
@@ -148,10 +139,6 @@ type IntegratedBrowserAddScreenshotToChatAddedClassification = {
 };
 
 
-/**
- * Contribution that manages element selection, element attachment to chat,
- * console log attachment to chat, and agent sharing.
- */
 export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 	private readonly _elementSelectionModeContext: IContextKey<BrowserElementSelectionMode | undefined>;
 	private readonly _areaSelectionActiveContext: IContextKey<boolean>;
@@ -162,7 +149,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 	private readonly _disposedCommentModels = new WeakSet<IBrowserViewModel>();
 	private readonly _commentSessionsWithComments = new Set<IBrowserViewModel>();
 
-	// Share with Agent
 	private readonly _shareButtonContainer: HTMLElement;
 	private readonly _shareButton: Button;
 
@@ -185,7 +171,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		this._elementSelectionModeContext = CONTEXT_BROWSER_ELEMENT_SELECTION_MODE.bindTo(contextKeyService);
 		this._areaSelectionActiveContext = CONTEXT_BROWSER_AREA_SELECTION_ACTIVE.bindTo(contextKeyService);
 
-		// Build share toggle button
 		const hoverDelegate = this._register(instantiationService.createInstance(
 			WorkbenchHoverDelegate,
 			'element',
@@ -207,7 +192,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 			this._toggleShareWithAgent();
 		}));
 
-		// Auto-disable element selection when the user sends a chat request.
 		this._register(this.chatService.onDidSubmitRequest(event => {
 			if (this.editor.model?.elementSelectionState.active) {
 				void this.editor.model.toggleElementSelection(false);
@@ -236,7 +220,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 	}
 
 	protected override onModelAttached(model: IBrowserViewModel, store: DisposableStore): void {
-		// Manage sharing state
 		this._updateSharingState(true);
 		store.add(model.onDidChangeSharingState(() => {
 			this._updateSharingState(false);
@@ -260,7 +243,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 			}
 		}));
 
-		// Sync context key with model state
 		this._elementSelectionMode = model.elementSelectionState.active ? model.elementSelectionState.options.mode : undefined;
 		this._elementSelectionModeContext.set(this._elementSelectionMode);
 		store.add(model.onDidChangeElementSelectionState(state => {
@@ -301,7 +283,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		this._areaSelectionActiveContext.reset();
 	}
 
-	// -- Sharing -------------------------------------------------------
 
 	private _toggleShareWithAgent(): void {
 		const model = this.editor.model;
@@ -334,13 +315,7 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 
 	private static readonly SHARING_CONTENT_WARNING_DONT_ASK_KEY = 'browserView.agentSharingContentWarning.dontAskAgain';
 
-	/**
-	 * Confirm with the user that they understand the risks of sharing content on untrusted pages.
-	 *
-	 * @returns true if the user confirms (or the page is local / trusted), false if they cancel.
-	 */
 	private async _confirmContentAttachmentRisk(url: string): Promise<boolean> {
-		// If the user previously chose "Don't show again", skip the dialog
 		if (this.storageService.getBoolean(BrowserEditorChatIntegration.SHARING_CONTENT_WARNING_DONT_ASK_KEY, StorageScope.PROFILE)) {
 			return true;
 		}
@@ -348,17 +323,14 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		try {
 			const parsedUrl = new URL(url);
 			if (parsedUrl.protocol === 'file:') {
-				// Query the workspace trust service for file URLs
 				const trustInfo = await this.workspaceTrustManagementService.getUriTrustInfo(URI.file(parsedUrl.pathname));
 				if (trustInfo.trusted) {
 					return true;
 				}
 			} else if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1' || parsedUrl.hostname === '::1') {
-				// Consider localhost URLs trusted
 				return true;
 			}
 		} catch {
-			// Invalid URL - fall through to the warning
 		}
 
 		const result = await this.dialogService.confirm({
@@ -376,17 +348,7 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		return result.confirmed;
 	}
 
-	// -- Chat widget helpers --------------------------------------------
 
-	/**
-	 * Reveal the chat widget and wait for its viewModel to be bound before
-	 * returning. When the chat panel is opened for the first time the session
-	 * model loads asynchronously, and once it loads {@link ChatInputPart}'s
-	 * `_syncFromModel` clears any attachments that were added before the model
-	 * was bound. Callers must use this helper before calling
-	 * {@linkcode IChatWidget.attachmentModel.addContext} so the attachment is
-	 * not silently discarded.
-	 */
 	private async _revealChatWidgetForAttachment(preserveFocus = false): Promise<IChatWidget | undefined> {
 		const widget = await this.chatWidgetService.revealWidget(preserveFocus) ?? this.chatWidgetService.lastFocusedWidget;
 		if (widget && !widget.viewModel) {
@@ -395,10 +357,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		return widget;
 	}
 
-	/**
-	 * Reveal the chat widget and attach the given entries. Returns false if no widget was available.
-	 * Callers are responsible for running {@link _confirmContentAttachmentRisk} first.
-	 */
 	private async _attachToChat(entries: readonly IChatRequestVariableEntry[]): Promise<boolean> {
 		const widget = await this._revealChatWidgetForAttachment();
 		if (!widget?.attachmentModel) {
@@ -408,7 +366,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		return true;
 	}
 
-	// -- Element Selection ----------------------------------------------
 
 	private async _attachElementDataToChat(elementData: IElementData, model: IBrowserViewModel): Promise<boolean> {
 		const bounds = elementData.bounds;
@@ -671,11 +628,7 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		this._commentModelListeners.deleteAndDispose(browserModel);
 	}
 
-	// -- Console Logs ---------------------------------------------------
 
-	/**
-	 * Grab the current console logs from the active console session and attach them to chat.
-	 */
 	async addConsoleLogsToChat(): Promise<void> {
 		const model = this.editor.model;
 		if (!model) {
@@ -709,11 +662,7 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		}
 	}
 
-	// -- Screenshot ----------------------------------------------------
 
-	/**
-	 * Capture a viewport screenshot of the current browser view and attach it to chat.
-	 */
 	async addScreenshotToChat(): Promise<void> {
 		const model = this.editor.model;
 		if (!model) {
@@ -721,10 +670,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		}
 
 		try {
-			// Capture the screenshot BEFORE revealing the chat panel or prompting the
-			// user so the image reflects what the user saw when they pressed the button,
-			// not a reflowed version of the page after the panel opens or a later version
-			// after the dialog appears.
 			const screenshotBuffer = await model.captureScreenshot({ quality: 80 });
 
 			if (!await this._confirmContentAttachmentRisk(model.url)) {
@@ -752,17 +697,12 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		}
 	}
 
-	/**
-	 * Drive the area-screenshot flow: present the drag-to-select picker, capture the
-	 * user-drawn region, and attach the resulting image to chat.
-	 */
 	async addAreaScreenshotToChat(): Promise<void> {
 		const model = this.editor.model;
 		if (!model) {
 			return;
 		}
 
-		// Toggle off if already active — second invocation cancels.
 		if (model.isAreaSelectionActive) {
 			void model.toggleAreaSelection(false);
 			return;
@@ -770,9 +710,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 
 		this.editor.ensureBrowserFocus();
 
-		// `onDidPickArea` fires exactly once per session with the user-drawn rectangle
-		// or `undefined` on cancellation, so we don't have to reconcile rect vs.
-		// activation-state events across the IPC boundary.
 		const pickPromise = Event.toPromise(Event.once(model.onDidPickArea));
 		void model.toggleAreaSelection(true);
 		const rect = await pickPromise;
@@ -782,8 +719,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		}
 
 		try {
-			// Added awaitNextPaint because the area selection UI (a dashed rectangle) was every so often making its way
-			// into the captured screenshot.
 			const screenshotBuffer = await model.captureScreenshot({ quality: 80, pageRect: rect, awaitNextPaint: true });
 
 			if (!await this._confirmContentAttachmentRisk(model.url)) {
@@ -811,9 +746,6 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		}
 	}
 
-	/**
-	 * Capture a full-page screenshot (including content scrolled off-screen) and attach it to chat.
-	 */
 	async addFullPageScreenshotToChat(): Promise<void> {
 		const model = this.editor.model;
 		if (!model) {
@@ -849,10 +781,8 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 	}
 }
 
-// Register the contribution
 BrowserEditor.registerContribution(BrowserEditorChatIntegration);
 
-// -- Actions ------------------------------------------------------------
 
 class AddElementToChatAction extends Action2 {
 	static readonly ID = BrowserViewCommandId.AddElementToChat;
@@ -873,7 +803,7 @@ class AddElementToChatAction extends Action2 {
 				when: ChatContextKeys.enabled
 			},
 			keybinding: [{
-				weight: KeybindingWeight.WorkbenchContrib + 50, // Priority over terminal
+				weight: KeybindingWeight.WorkbenchContrib + 50,
 				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyC,
 				args: { highlightFocusedElement: true },
 			}]
@@ -1074,8 +1004,6 @@ registerAction2(AddScreenshotToChatAction);
 registerAction2(AddAreaScreenshotToChatAction);
 registerAction2(AddFullPageScreenshotToChatAction);
 
-// Expose the chat actions submenu (Add Element to Chat, etc.) as a split button in the browser actions toolbar.
-// The primary action (chevron's left side) is the first item in the submenu.
 MenuRegistry.appendMenuItem(MenuId.BrowserActionsToolbar, {
 	submenu: MenuId.BrowserChatActionsMenu,
 	title: localize2('browser.chatActionsSubmenu', "Add to Chat"),

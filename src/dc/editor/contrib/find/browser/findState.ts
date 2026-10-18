@@ -289,7 +289,6 @@ export class FindReplaceState<T extends { update: (value: T) => void } = { updat
 			somethingChanged = true;
 		}
 
-		// Overrides get set when they explicitly come in and get reset anytime something else changes
 		this._isRegexOverride = (typeof newState.isRegexOverride !== 'undefined' ? newState.isRegexOverride : FindOptionOverride.NotSet);
 		this._wholeWordOverride = (typeof newState.wholeWordOverride !== 'undefined' ? newState.wholeWordOverride : FindOptionOverride.NotSet);
 		this._matchCaseOverride = (typeof newState.matchCaseOverride !== 'undefined' ? newState.matchCaseOverride : FindOptionOverride.NotSet);

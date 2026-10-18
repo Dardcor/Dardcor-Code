@@ -49,15 +49,11 @@ suite('Emmet', () => {
 				assert.strictEqual(langOutput.parentMode, expectedParentLanguage);
 			}
 
-			// syntaxes mapped using the scope name of the grammar
 			testIsEnabled('markdown', 'text.html.markdown', 'markdown', 'html');
 			testIsEnabled('handlebars', 'text.html.handlebars', 'handlebars', 'html');
 			testIsEnabled('nunjucks', 'text.html.nunjucks', 'nunjucks', 'html');
 			testIsEnabled('laravel-blade', 'text.html.php.laravel-blade', 'laravel-blade', 'html');
 
-			// languages that have different Language Id and scopeName
-			// testIsEnabled('razor', 'text.html.cshtml', 'razor', 'html');
-			// testIsEnabled('HTML (Eex)', 'text.html.elixir', 'boo', 'html');
 
 			disposables.dispose();
 

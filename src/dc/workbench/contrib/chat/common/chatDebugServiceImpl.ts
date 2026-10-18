@@ -18,10 +18,6 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { AgentHostAgentDebugLogMaxEventsSettingId } from './promptSyntax/promptTypes.js';
 
-/**
- * Per-session circular buffer for debug events.
- * Stores up to `capacity` events using a ring buffer.
- */
 class SessionEventBuffer {
 	private readonly _buffer: (IChatDebugEvent | undefined)[];
 	private _head = 0;
@@ -45,7 +41,6 @@ class SessionEventBuffer {
 		}
 	}
 
-	/** Return events in insertion order. */
 	toArray(): IChatDebugEvent[] {
 		const result: IChatDebugEvent[] = [];
 		for (let i = 0; i < this._size; i++) {
@@ -57,7 +52,6 @@ class SessionEventBuffer {
 		return result;
 	}
 
-	/** Remove events matching the predicate and compact in-place. */
 	removeWhere(predicate: (event: IChatDebugEvent) => boolean): void {
 		let write = 0;
 		for (let i = 0; i < this._size; i++) {
@@ -91,14 +85,8 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 	static readonly MAX_EVENTS_PER_SESSION = 10_000;
 	static readonly MAX_SESSIONS = 5;
 
-	/** Per-session event buffers. Ordered from oldest to newest session (LRU). */
 	private readonly _sessionBuffers = new ResourceMap<SessionEventBuffer>();
-	/** Ordered list of session URIs for LRU eviction. */
 	private readonly _sessionOrder: URI[] = [];
-	/** Per-session tracking of seen event IDs to deduplicate events
-	 *  that share the same ID (e.g. subagentInvocation + userMessage
-	 *  emitted from the same span). Stores id → event kind so we can
-	 *  keep the richer event kind on collision. */
 	private readonly _seenEventIds = new ResourceMap<Map<string, IChatDebugEvent['kind']>>();
 
 	private readonly _onDidAddEvent = this._register(new Emitter<IChatDebugEvent>());
@@ -116,29 +104,17 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 	private readonly _providers = new Set<IChatDebugLogProvider>();
 	private readonly _invocationCts = new ResourceMap<CancellationTokenSource>();
 
-	/**
-	 * Sessions whose provider events should be cleared before the next batch of
-	 * provider events is applied. The clear is deferred until the first new
-	 * provider event actually arrives so that a provider which transiently
-	 * returns nothing (e.g. an Agent Host `events.jsonl` mid-rewrite) does not
-	 * wipe the events currently shown.
-	 */
 	private readonly _pendingProviderClear = new ResourceMap<boolean>();
 
-	/** Events that were returned by providers (not internally logged). */
 	private readonly _providerEvents = new WeakSet<IChatDebugEvent>();
 
-	/** Session URIs created via import. */
 	private readonly _importedSessions = new ResourceMap<boolean>();
 
-	/** Session URIs reported by providers as available on disk (historical sessions). */
 	private readonly _availableSessionResources: URI[] = [];
 	private readonly _availableSessionResourceSet = new Set<string>();
 
-	/** Titles for historical sessions discovered from disk. */
 	private readonly _historicalSessionTitles = new ResourceMap<string>();
 
-	/** Human-readable titles for imported sessions. */
 	private readonly _importedSessionTitles = new ResourceMap<string>();
 
 	private readonly _hasActiveSessionContextKey: IContextKey<boolean>;
@@ -168,7 +144,6 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 		}));
 	}
 
-	/** Priority for deduplicating events with the same ID: lower = richer. */
 	private static readonly _eventKindPriority: Record<string, number> = {
 		subagentInvocation: 0,
 		modelTurn: 1,
@@ -178,28 +153,19 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 		generic: 5,
 	};
 
-	/** Session types eligible for debug logging and provider invocation. */
 	private static readonly _debugEligibleSessionTypes = new Set([
-		localChatSessionType,			// local sessions
-		'copilotcli',				// Copilot CLI background sessions
-		'agent-host-copilotcli',		// local Agent Host Copilot CLI sessions
+		localChatSessionType,
+		'copilotcli',
+		'agent-host-copilotcli',
 	]);
 
 	private _isDebugEligibleSession(sessionResource: URI): boolean {
 		const sessionType = getChatSessionType(sessionResource);
 		return ChatDebugServiceImpl._debugEligibleSessionTypes.has(sessionType)
-			// Remote Agent Host Copilot CLI sessions use a dynamic
-			// `remote-<authority>-copilotcli` scheme; see copilotCliEventsUri.ts.
 			|| (sessionType.startsWith('remote-') && sessionType.endsWith('-copilotcli'))
 			|| this._importedSessions.has(sessionResource);
 	}
 
-	/**
-	 * The in-memory event capacity for a session. Agent host (Copilot CLI)
-	 * sessions honor a dedicated, configurable cap so their (potentially large)
-	 * on-disk logs can be surfaced without changing the local-session default;
-	 * all other sessions use {@link ChatDebugServiceImpl.MAX_EVENTS_PER_SESSION}.
-	 */
 	private _capacityForSession(sessionResource: URI): number {
 		if (!isAgentHostTarget(getChatSessionType(sessionResource))) {
 			return ChatDebugServiceImpl.MAX_EVENTS_PER_SESSION;
@@ -229,15 +195,9 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 	}
 
 	addEvent(event: IChatDebugEvent): void {
-		// Resolve the session's buffer (if any) once, and its capacity. New
-		// events during streaming target an existing buffer, so we reuse its
-		// capacity and avoid re-reading configuration on the hot path.
 		let buffer = this._sessionBuffers.get(event.sessionResource);
 		const capacity = buffer?.capacity ?? this._capacityForSession(event.sessionResource);
 
-		// Deduplicate events that share the same ID. The extension may emit
-		// both a subagentInvocation and a userMessage from the same span;
-		// keep the richer kind and discard the duplicate.
 		if (event.id) {
 			let seen = this._seenEventIds.get(event.sessionResource);
 			if (!seen) {
@@ -248,16 +208,11 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 			if (existingKind !== undefined) {
 				const priority = ChatDebugServiceImpl._eventKindPriority;
 				if ((priority[event.kind] ?? 5) >= (priority[existingKind] ?? 5)) {
-					return; // existing is richer or equal; skip this event
+					return;
 				}
-				// New event is richer — we can't remove the old one from
-				// the ring buffer, but the duplicate will be filtered out
-				// in getEvents(). Update the tracked kind.
 			}
 			seen.set(event.id, event.kind);
-			// Cap the dedup map to prevent unbounded growth in long sessions.
 			if (seen.size > capacity) {
-				// Delete the oldest entry (first key in insertion order).
 				const firstKey = seen.keys().next().value;
 				if (firstKey !== undefined) {
 					seen.delete(firstKey);
@@ -266,7 +221,6 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 		}
 
 		if (!buffer) {
-			// Evict least-recently-used session if we are at the session cap.
 			if (this._sessionOrder.length >= ChatDebugServiceImpl.MAX_SESSIONS) {
 				const evicted = this._sessionOrder.shift()!;
 				this._evictSession(evicted);
@@ -275,9 +229,6 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 			this._sessionBuffers.set(event.sessionResource, buffer);
 			this._sessionOrder.push(event.sessionResource);
 		} else {
-			// Move to end of LRU order so actively-used sessions are not evicted.
-			// Fast-path: during streaming/backfill all events target the same
-			// session which is already at the tail — skip the linear scan.
 			const last = this._sessionOrder.length - 1;
 			if (last < 0 || !extUri.isEqual(this._sessionOrder[last], event.sessionResource)) {
 				const idx = this._sessionOrder.findIndex(u => extUri.isEqual(u, event.sessionResource));
@@ -292,10 +243,6 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 	}
 
 	addProviderEvent(event: IChatDebugEvent): void {
-		// If a re-invocation is pending for this session, clear the previously
-		// loaded provider events now that fresh data has actually arrived. This
-		// is deferred (rather than done up front in invokeProviders) so that a
-		// provider which returns nothing this cycle keeps the current events.
 		if (this._pendingProviderClear.has(event.sessionResource)) {
 			this._pendingProviderClear.delete(event.sessionResource);
 			this._clearProviderEvents(event.sessionResource);
@@ -311,21 +258,13 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 				return [];
 			}
 			let result = buffer.toArray();
-			// Sort only when the buffer is not in chronological order,
-			// which can happen when events arrive out of order (e.g.
-			// tail-first backfill). When events arrive in
-			// order (the common case) the check is O(n) with no sort.
 			if (!this._isSorted(result)) {
 				result.sort((a, b) => a.created.getTime() - b.created.getTime());
 			}
-			// Deduplicate: when multiple events share the same ID (e.g.
-			// subagentInvocation + userMessage from the same span), keep
-			// the one with the richest kind.
 			result = this._deduplicateEvents(result);
 			return result;
 		}
 
-		// Cross-session query: merge all buffers and sort to interleave.
 		const result: IChatDebugEvent[] = [];
 		for (const buffer of this._sessionBuffers.values()) {
 			result.push(...buffer.toArray());
@@ -344,7 +283,7 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 	}
 
 	private _deduplicateEvents(events: IChatDebugEvent[]): IChatDebugEvent[] {
-		const seen = new Map<string, number>(); // id → index in result
+		const seen = new Map<string, number>();
 		const priority = ChatDebugServiceImpl._eventKindPriority;
 		const result: IChatDebugEvent[] = [];
 		for (const event of events) {
@@ -381,7 +320,6 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 		this._historicalSessionTitles.clear();
 	}
 
-	/** Remove all ancillary state for an evicted session. */
 	private _evictSession(sessionResource: URI): void {
 		this._sessionBuffers.delete(sessionResource);
 		this._seenEventIds.delete(sessionResource);
@@ -398,9 +336,6 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 	registerProvider(provider: IChatDebugLogProvider): IDisposable {
 		this._providers.add(provider);
 
-		// Invoke the new provider for all sessions that already have active
-		// pipelines. This handles the case where invokeProviders() was called
-		// before this provider was registered (e.g. extension activated late).
 		for (const [sessionResource, cts] of this._invocationCts) {
 			if (!cts.token.isCancellationRequested) {
 				this._invokeProvider(provider, sessionResource, cts.token).catch(onUnexpectedError);
@@ -421,19 +356,12 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 		if (!this._isDebugEligibleSession(sessionResource)) {
 			return;
 		}
-		// Cancel only the previous invocation for THIS session, not others.
-		// Each session has its own pipeline so events from multiple sessions
-		// can be streamed concurrently.
 		const existingCts = this._invocationCts.get(sessionResource);
 		if (existingCts) {
 			existingCts.cancel();
 			existingCts.dispose();
 		}
 
-		// Mark provider events for this session to be cleared before the next
-		// batch is applied. The clear is deferred to addProviderEvent so that a
-		// provider returning nothing this cycle preserves the current events;
-		// see _pendingProviderClear.
 		this._pendingProviderClear.set(sessionResource, true);
 
 		const cts = new CancellationTokenSource();
@@ -447,19 +375,12 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 		} catch (err) {
 			onUnexpectedError(err);
 		}
-		// Note: do NOT dispose the CTS here - the token is used by the
-		// extension-side progress pipeline which stays alive for streaming.
-		// It will be cancelled+disposed when re-invoking the same session
-		// or when the service is disposed.
 	}
 
 	private async _invokeProvider(provider: IChatDebugLogProvider, sessionResource: URI, token: CancellationToken): Promise<void> {
 		try {
 			const events = await provider.provideChatDebugLog(sessionResource, token);
 			if (events) {
-				// Yield to the event loop periodically so the UI stays
-				// responsive when a provider returns a large batch of events
-				// (e.g. importing a multi-MB log file).
 				const BATCH_SIZE = 500;
 				for (let i = 0; i < events.length; i++) {
 					if (token.isCancellationRequested) {
@@ -492,16 +413,12 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 	private _clearProviderEvents(sessionResource: URI): void {
 		const buffer = this._sessionBuffers.get(sessionResource);
 		if (buffer) {
-			// Provider events are typically the vast majority (90%+).
-			// Instead of iterating to remove them, extract the few core
-			// events, clear the buffer, and re-add them.
 			const coreEvents = buffer.toArray().filter(e => !this._providerEvents.has(e));
 			buffer.clear();
 			for (const e of coreEvents) {
 				buffer.push(e);
 			}
 		}
-		// Reset dedup tracking so re-invoked provider events are accepted
 		this._seenEventIds.delete(sessionResource);
 		this._onDidClearProviderEvents.fire(sessionResource);
 	}
@@ -552,12 +469,10 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 		}
 	}
 
-	/** Lazy fetchers for available sessions from providers. Each is invoked at most once. */
 	private readonly _availableSessionsFetchers = new Set<{ readonly fetcher: (token: CancellationToken) => Promise<{ uri: URI; title?: string }[]>; started: boolean }>();
 	private _availableSessionsRequested = false;
 
 	getAvailableSessionResources(): readonly URI[] {
-		// Trigger lazy fetch when both a fetcher is registered and this getter is called.
 		this._availableSessionsRequested = true;
 		this._tryFetchAvailableSessions();
 
@@ -575,7 +490,6 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 	registerAvailableSessionsFetcher(fetcher: (token: CancellationToken) => Promise<{ uri: URI; title?: string }[]>): IDisposable {
 		const entry = { fetcher, started: false };
 		this._availableSessionsFetchers.add(entry);
-		// If the UI already requested sessions before the fetcher was registered, fetch now.
 		this._tryFetchAvailableSessions();
 		return toDisposable(() => this._availableSessionsFetchers.delete(entry));
 	}
@@ -589,7 +503,6 @@ export class ChatDebugServiceImpl extends Disposable implements IChatDebugServic
 				continue;
 			}
 			entry.started = true;
-			// Fire-and-forget: don't block the caller.
 			entry.fetcher(CancellationToken.None).then(entries => {
 				if (entries.length > 0) {
 					this.addAvailableSessionResources(entries);

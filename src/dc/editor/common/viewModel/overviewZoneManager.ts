@@ -31,17 +31,11 @@ export class ColorZone {
 	}
 }
 
-/**
- * A zone in the overview ruler
- */
 export class OverviewRulerZone {
 	_overviewRulerZoneBrand: void = undefined;
 
 	public readonly startLineNumber: number;
 	public readonly endLineNumber: number;
-	/**
-	 * If set to 0, the height in lines will be determined based on `endLineNumber`.
-	 */
 	public readonly heightInLines: number;
 	public readonly color: string;
 

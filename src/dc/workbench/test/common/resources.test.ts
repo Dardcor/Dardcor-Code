@@ -38,12 +38,10 @@ suite('ResourceGlobMatcher', () => {
 	test('Basics', async () => {
 		const matcher = disposables.add(new ResourceGlobMatcher(() => configurationService.getValue(SETTING), e => e.affectsConfiguration(SETTING), contextService, configurationService));
 
-		// Matching
 		assert.equal(matcher.matches(URI.file('/foo/bar')), false);
 		assert.equal(matcher.matches(URI.file('/foo/bar.md')), true);
 		assert.equal(matcher.matches(URI.file('/foo/bar.txt')), false);
 
-		// Events
 		let eventCounter = 0;
 		disposables.add(matcher.onExpressionChange(() => eventCounter++));
 

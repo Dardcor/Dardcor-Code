@@ -34,10 +34,6 @@ export class LogLevelMonitor extends Disposable {
 		return TsServerLogLevel.fromString(this._logLevel.getValue());
 	}
 
-	/**
-	 * Last date change if it exists and can be parsed as a date,
-	 * otherwise undefined.
-	 */
 	private get lastLogLevelChange(): Date | undefined {
 		const lastChange = this.context.globalState.get<string | undefined>(LogLevelMonitor.logLevelChangedStorageKey);
 
@@ -56,7 +52,7 @@ export class LogLevelMonitor extends Disposable {
 
 	private shouldNotifyExtendedLogging(): boolean {
 		const lastChangeMilliseconds = this.lastLogLevelChange ? new Date(this.lastLogLevelChange).valueOf() : 0;
-		const lastChangePlusOneWeek = new Date(lastChangeMilliseconds + /* 7 days in milliseconds */ 86400000 * 7);
+		const lastChangePlusOneWeek = new Date(lastChangeMilliseconds + 86400000 * 7);
 
 		if (!this.doNotPrompt && this.logLevel !== TsServerLogLevel.Off && lastChangePlusOneWeek.valueOf() < Date.now()) {
 			return true;

@@ -36,7 +36,7 @@ However, within this extension, you can run a development version of `vscode-css
 
 #### Testing the development version of `vscode-css-languageservice`
 
-- Open both `vscode-css-languageservice` and this extension in a single workspace with [multi-root workspace](https://code.visualstudio.com/docs/editor/multi-root-workspaces) feature
+- Open both `vscode-css-languageservice` and this extension in a single workspace with [multi-root workspace](https://www.dardcor-code.web.id/docs/editor/multi-root-workspaces) feature
 - Run `npm run watch` in `vscode-css-languageservice` to recompile the extension whenever it changes
 - Run `npm run watch` at `css-language-features/server/` to recompile this extension with the linked version of `vscode-css-languageservice`
 - Make some changes in `vscode-css-languageservice`

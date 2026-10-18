@@ -65,12 +65,10 @@ export class WordCharacterClassifier extends CharacterClassifier<WordCharacterCl
 			return [];
 		}
 
-		// Check if the line has changed from the previous call
 		if (this._cachedLine === line) {
 			return this._cachedSegments;
 		}
 
-		// Update the cache with the new line
 		this._cachedLine = line;
 		this._cachedSegments = this._filterWordSegments(this._segmenter.value.segment(line));
 

@@ -8,13 +8,9 @@ const { log, err } = require("../logger");
 const IS_WIN = process.platform === "win32";
 const IS_MAC = process.platform === "darwin";
 const LINUX_CERT_PATHS = [
-  // Debian / Ubuntu
   { dir: "/usr/local/share/ca-certificates", cmd: "update-ca-certificates" },
-  // Arch Linux / CachyOS / Manjaro
   { dir: "/etc/ca-certificates/trust-source/anchors", cmd: "update-ca-trust" },
-  // Fedora / RHEL / CentOS
   { dir: "/etc/pki/ca-trust/source/anchors", cmd: "update-ca-trust" },
-  // openSUSE
   { dir: "/etc/pki/trust/anchors", cmd: "update-ca-certificates" }
 ];
 
@@ -24,21 +20,16 @@ function getLinuxCertConfig() {
       return config;
     }
   }
-  // Fallback to Debian default if none exist
   return LINUX_CERT_PATHS[0];
 }
 const ROOT_CA_CN = "Dardcor Router MITM Root CA";
 
-// Get SHA1 fingerprint from cert file using Node.js crypto
 function getCertFingerprint(certPath) {
   const pem = fs.readFileSync(certPath, "utf-8");
   const der = Buffer.from(pem.replace(/-----[^-]+-----/g, "").replace(/\s/g, ""), "base64");
   return crypto.createHash("sha1").update(der).digest("hex").toUpperCase().match(/.{2}/g).join(":");
 }
 
-/**
- * Check if certificate is already installed in system store
- */
 async function checkCertInstalled(certPath) {
   if (IS_WIN) return checkCertInstalledWindows(certPath);
   if (IS_MAC) return checkCertInstalledMac(certPath);
@@ -49,12 +40,10 @@ function checkCertInstalledMac(certPath) {
   return new Promise((resolve) => {
     try {
       const fingerprint = getCertFingerprint(certPath).replace(/:/g, "");
-      // Verify exact cert bytes match — same CN with different fingerprint = stale cert
       exec(`security find-certificate -a -c "${ROOT_CA_CN}" -Z /Library/Keychains/System.keychain 2>/dev/null`, { windowsHide: true }, (error, stdout) => {
         if (error || !stdout) return resolve(false);
         const match = new RegExp(`SHA-1 hash:\\s*${fingerprint}`, "i").test(stdout);
         if (!match) return resolve(false);
-        // Cert exists with matching fingerprint — confirm trust policy
         exec(`security verify-cert -c "${certPath}" -p ssl -k /Library/Keychains/System.keychain 2>/dev/null`, { windowsHide: true }, (err2) => {
           resolve(!err2);
         });
@@ -67,7 +56,6 @@ function checkCertInstalledMac(certPath) {
 
 function checkCertInstalledWindows(certPath) {
   return new Promise((resolve) => {
-    // Check by SHA1 fingerprint — detects stale cert with same CN but different key
     let fingerprint;
     try {
       fingerprint = getCertFingerprint(certPath).replace(/:/g, "");
@@ -80,9 +68,6 @@ function checkCertInstalledWindows(certPath) {
   });
 }
 
-/**
- * Install SSL certificate to system trust store
- */
 async function installCert(sudoPassword, certPath) {
   if (!fs.existsSync(certPath)) {
     throw new Error(`Certificate file not found: ${certPath}`);
@@ -104,7 +89,6 @@ async function installCert(sudoPassword, certPath) {
 }
 
 async function installCertMac(sudoPassword, certPath) {
-  // Remove all old certs with same name first to avoid duplicate/stale cert conflict
   const deleteOld = `security delete-certificate -c "Dardcor Router MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true; security delete-certificate -c "DRouter MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true`;
   const install = `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "${certPath}"`;
   try {
@@ -117,8 +101,6 @@ async function installCertMac(sudoPassword, certPath) {
 }
 
 async function installCertWindows(certPath) {
-  // Auto-elevate via UAC popup if not admin (zero popup if already admin).
-  // Delete any stale cert with same CN before adding to avoid duplicates.
   const script = `
     certutil -delstore Root ${quotePs(ROOT_CA_CN)} 2>$null | Out-Null
     $exit = & certutil -addstore Root ${quotePs(certPath)} 2>&1
@@ -132,9 +114,6 @@ async function installCertWindows(certPath) {
   }
 }
 
-/**
- * Uninstall SSL certificate from system store
- */
 async function uninstallCert(sudoPassword, certPath) {
   const isInstalled = await checkCertInstalled(certPath);
   if (!isInstalled) {
@@ -163,7 +142,6 @@ async function uninstallCertMac(sudoPassword, certPath) {
 }
 
 async function uninstallCertWindows() {
-  // Auto-elevate via UAC popup if not admin
   const script = `certutil -delstore Root ${quotePs(ROOT_CA_CN)}`;
   try {
     await runElevatedPowerShell(script);
@@ -226,7 +204,6 @@ async function updateNssDatabases(certPath, action = 'add') {
 async function installCertLinux(sudoPassword, certPath) {
   if (!isSudoAvailable()) {
     log(`🔐 Cert: cannot install to system store without sudo — trust this file on clients: ${certPath}`);
-    // Still try to update user NSS DBs even if no sudo!
     await updateNssDatabases(certPath, 'add');
     return;
   }
@@ -234,7 +211,6 @@ async function installCertLinux(sudoPassword, certPath) {
   const config = getLinuxCertConfig();
   const destFile = `${config.dir}/dardcor-code-root-ca.crt`;
   
-  // Copy to the discovered directory and execute the specific update command
   const cmd = `cp "${certPath}" "${destFile}" && (${config.cmd} 2>/dev/null || true)`;
   
   try {
@@ -247,7 +223,6 @@ async function installCertLinux(sudoPassword, certPath) {
 }
 
 async function uninstallCertLinux(sudoPassword) {
-  // Always try to uninstall from user DBs even without sudo
   await updateNssDatabases(null, 'delete');
 
   if (!isSudoAvailable()) {

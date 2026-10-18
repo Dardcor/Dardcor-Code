@@ -9,9 +9,6 @@ import { ILogger } from '../../../../platform/log/common/logService';
 import { AsyncIterUtils } from '../../../../util/common/asyncIterableUtils';
 import { EditIntentParseMode, parseEditIntentFromStream } from '../../node/editIntent';
 
-// ============================================================================
-// Test Utilities
-// ============================================================================
 
 function createMockLogger(): ILogger {
 	return {
@@ -27,9 +24,6 @@ function createMockLogger(): ILogger {
 	} as unknown as ILogger;
 }
 
-// ============================================================================
-// EditIntent.fromString Tests
-// ============================================================================
 
 describe('EditIntent.fromString', () => {
 	it.each([
@@ -48,9 +42,6 @@ describe('EditIntent.fromString', () => {
 	});
 });
 
-// ============================================================================
-// EditIntent.fromShortName Tests
-// ============================================================================
 
 describe('EditIntent.fromShortName', () => {
 	it.each([
@@ -77,13 +68,8 @@ describe('EditIntent.fromShortName', () => {
 	});
 });
 
-// ============================================================================
-// EditIntent.shouldShowEdit Tests
-// ============================================================================
 
 describe('EditIntent.shouldShowEdit', () => {
-	// Matrix of expected results: [intent][aggressiveness] = shouldShow
-	// High confidence → always show, Low confidence → only high aggression
 	const expectations: Record<EditIntent, Record<AggressivenessLevel, boolean>> = {
 		[EditIntent.NoEdit]: {
 			[AggressivenessLevel.Low]: false,
@@ -119,9 +105,6 @@ describe('EditIntent.shouldShowEdit', () => {
 	}
 });
 
-// ============================================================================
-// parseEditIntentFromStream Tests
-// ============================================================================
 
 describe('parseEditIntentFromStream', () => {
 	describe('successful parsing', () => {
@@ -190,7 +173,6 @@ describe('parseEditIntentFromStream', () => {
 
 			expect(editIntent).toBe(EditIntent.High);
 			expect(parseError).toBe('noTagFound');
-			// All original lines should be preserved
 			expect(await AsyncIterUtils.toArray(remainingLinesStream)).toEqual(['const x = 1;', 'const y = 2;']);
 		});
 
@@ -229,9 +211,6 @@ describe('parseEditIntentFromStream', () => {
 	});
 });
 
-// ============================================================================
-// parseEditIntentFromStream ShortName Mode Tests
-// ============================================================================
 
 describe('parseEditIntentFromStream (ShortName mode)', () => {
 	describe('successful parsing', () => {
@@ -291,7 +270,6 @@ describe('parseEditIntentFromStream (ShortName mode)', () => {
 
 			expect(editIntent).toBe(EditIntent.High);
 			expect(parseError).toBe('unknownIntentValue:const x = 1;');
-			// All original lines should be preserved
 			expect(await AsyncIterUtils.toArray(remainingLinesStream)).toEqual(['const x = 1;', 'const y = 2;']);
 		});
 
@@ -308,12 +286,8 @@ describe('parseEditIntentFromStream (ShortName mode)', () => {
 	});
 });
 
-// ============================================================================
-// Integration: Filtering Behavior Tests
-// ============================================================================
 
 describe('Edit Intent Filtering Integration', () => {
-	// These tests verify the complete flow: parse intent from stream -> check if should show
 
 	describe('Tags mode', () => {
 		describe('no_edit always filtered out', () => {

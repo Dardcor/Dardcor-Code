@@ -90,7 +90,6 @@ async function flushToDatabase() {
   if (writeBuffer.length === 0) return;
   isFlushing = true;
   try {
-    // Drain entire buffer (loop in case more pushed during await)
     while (writeBuffer.length > 0) {
       const items = writeBuffer.splice(0, writeBuffer.length);
       const db = await getAdapter();
@@ -146,8 +145,6 @@ export async function saveRequestDetail(detail) {
 
   writeBuffer.push(detail);
 
-  // Trigger immediate flush if batch threshold reached.
-  // flushToDatabase() drains entire buffer in a loop, so all pushes during await are persisted.
   if (writeBuffer.length >= config.batchSize) {
     if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
     flushToDatabase().catch((e) => console.error("[requestDetailsRepo] flush err:", e));

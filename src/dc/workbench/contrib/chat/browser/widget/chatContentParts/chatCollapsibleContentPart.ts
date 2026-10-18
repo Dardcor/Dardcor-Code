@@ -110,7 +110,6 @@ export abstract class ChatCollapsibleContentPart extends Disposable implements I
 			this._domNode.appendChild(animationContainer);
 		}
 
-		// Add hover chevron indicator on the right (decorative, hide from screen readers)
 		const hoverChevron = $('span.chat-collapsible-hover-chevron.codicon.codicon-chevron-right-compact', { 'aria-hidden': 'true' });
 		this._hoverChevron = hoverChevron;
 		collapseButton.element.appendChild(hoverChevron);
@@ -124,10 +123,8 @@ export abstract class ChatCollapsibleContentPart extends Disposable implements I
 
 		this._register(collapseButton.onDidClick(() => this.toggleExpanded()));
 
-		// Initialize the expanded state based on the subclass's isExpanded() method
 		this._isExpanded.set(this.isExpanded(), undefined);
 
-		// The header only exists now, so re-apply a non-expandable row's state.
 		if (!this._isExpandable) {
 			this.setExpandable(false);
 		}
@@ -143,10 +140,8 @@ export abstract class ChatCollapsibleContentPart extends Disposable implements I
 
 			this._domNode?.classList.toggle('show-checkmarks', showCheckmarks);
 
-			// Update hover chevron direction
 			hoverChevron.classList.toggle('expanded', expanded);
 
-			// Lazy initialization: render content only when expanded for the first time
 			if ((expanded || this.shouldInitEarly()) && !this._contentInitialized) {
 				this._contentInitialized = true;
 				this._contentElement = this.initContent();
@@ -186,11 +181,6 @@ export abstract class ChatCollapsibleContentPart extends Disposable implements I
 		this._isExpanded.set(!value, undefined);
 	}
 
-	/**
-	 * Turns the row into a plain status line: it no longer toggles, and it drops
-	 * the affordances that would otherwise promise expansion — including its
-	 * place in the tab order, so it is not a focusable dead control.
-	 */
 	protected setExpandable(expandable: boolean): void {
 		this._isExpandable = expandable;
 		this._domNode?.classList.toggle('chat-collapsible-not-expandable', !expandable);
@@ -203,8 +193,6 @@ export abstract class ChatCollapsibleContentPart extends Disposable implements I
 				button.removeAttribute('aria-disabled');
 				button.ariaExpanded = String(this.isExpanded());
 			} else {
-				// A row that cannot expand is a status line, not a disabled button,
-				// so drop the button semantics rather than marking it unavailable.
 				button.removeAttribute('role');
 				button.removeAttribute('aria-disabled');
 				button.removeAttribute('aria-expanded');
@@ -326,7 +314,6 @@ export abstract class ChatCollapsibleContentPart extends Disposable implements I
 	}
 
 
-	// Render collapsible dropdown title with widgets
 	protected setTitleWithWidgets(content: MarkdownString, instantiationService: IInstantiationService, chatMarkdownAnchorService: IChatMarkdownAnchorService, chatContentMarkdownRenderer: IMarkdownRenderer): void {
 		if (this._store.isDisposed || !this._collapseButton) {
 			return;

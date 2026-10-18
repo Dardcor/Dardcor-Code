@@ -55,14 +55,11 @@ export class ViewQuickAccessProvider extends PickerQuickAccessProvider<IViewQuic
 				return true;
 			}
 
-			// Match fuzzy on label
 			entry.highlights = { label: matchesFuzzy(filter, entry.label, true) ?? undefined };
 
-			// Return if we have a match on label or container
 			return entry.highlights.label || fuzzyContains(entry.containerLabel, filter);
 		});
 
-		// Map entries to container labels
 		const mapEntryToContainer = new Map<string, string>();
 		for (const entry of filteredViewEntries) {
 			if (!mapEntryToContainer.has(entry.label)) {
@@ -70,15 +67,12 @@ export class ViewQuickAccessProvider extends PickerQuickAccessProvider<IViewQuic
 			}
 		}
 
-		// Add separators for containers
 		const filteredViewEntriesWithSeparators: Array<IViewQuickPickItem | IQuickPickSeparator> = [];
 		let lastContainer: string | undefined = undefined;
 		for (const entry of filteredViewEntries) {
 			if (lastContainer !== entry.containerLabel) {
 				lastContainer = entry.containerLabel;
 
-				// When the entry container has a parent container, set container
-				// label as Parent / Child. For example, `Views / Explorer`.
 				let separatorLabel: string;
 				if (mapEntryToContainer.has(lastContainer)) {
 					separatorLabel = `${mapEntryToContainer.get(lastContainer)} / ${lastContainer}`;
@@ -148,7 +142,6 @@ export class ViewQuickAccessProvider extends PickerQuickAccessProvider<IViewQuic
 			}
 		};
 
-		// Viewlets / Panels
 		addPaneComposites(ViewContainerLocation.Sidebar, localize('views', "Side Bar"));
 		addPaneComposites(ViewContainerLocation.Panel, localize('panels', "Panel"));
 		addPaneComposites(ViewContainerLocation.AuxiliaryBar, localize('secondary side bar', "Secondary Side Bar"));
@@ -163,12 +156,10 @@ export class ViewQuickAccessProvider extends PickerQuickAccessProvider<IViewQuic
 			}
 		};
 
-		// Side Bar / Panel Views
 		addPaneCompositeViews(ViewContainerLocation.Sidebar);
 		addPaneCompositeViews(ViewContainerLocation.Panel);
 		addPaneCompositeViews(ViewContainerLocation.AuxiliaryBar);
 
-		// Terminals
 		this.terminalGroupService.groups.forEach((group, groupIndex) => {
 			group.terminalInstances.forEach((terminal, terminalIndex) => {
 				const label = localize('terminalTitle', "{0}: {1}", `${groupIndex + 1}.${terminalIndex + 1}`, terminal.title);
@@ -183,7 +174,6 @@ export class ViewQuickAccessProvider extends PickerQuickAccessProvider<IViewQuic
 			});
 		});
 
-		// Debug Consoles
 		this.debugService.getModel().getSessions(true).filter(s => s.hasSeparateRepl()).forEach((session, _) => {
 			const label = session.name;
 			viewEntries.push({
@@ -200,7 +190,6 @@ export class ViewQuickAccessProvider extends PickerQuickAccessProvider<IViewQuic
 
 		});
 
-		// Output Channels
 		const channels = this.outputService.getChannelDescriptors();
 		for (const channel of channels) {
 			viewEntries.push({
@@ -224,7 +213,6 @@ export class ViewQuickAccessProvider extends PickerQuickAccessProvider<IViewQuic
 }
 
 
-//#region Actions
 
 export class OpenViewPickerAction extends Action2 {
 
@@ -258,7 +246,7 @@ export class QuickAccessViewPickerAction extends Action2 {
 			id: QuickAccessViewPickerAction.ID,
 			title: localize2('quickOpenView', 'Quick Open View'),
 			category: Categories.View,
-			f1: false, // hide quick pickers from command palette to not confuse with the other entry that shows a input field
+			f1: false,
 			keybinding: {
 				weight: KeybindingWeight.WorkbenchContrib,
 				when: undefined,
@@ -277,4 +265,3 @@ export class QuickAccessViewPickerAction extends Action2 {
 	}
 }
 
-//#endregion

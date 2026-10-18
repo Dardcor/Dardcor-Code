@@ -5,12 +5,8 @@ import PropTypes from "prop-types";
 import { Modal, Button, Input } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 
-/**
- * Kiro Social OAuth Modal (Google/GitHub)
- * Handles manual callback URL flow for social login
- */
 export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onClose }) {
-  const [step, setStep] = useState("loading"); // loading | input | success | error
+  const [step, setStep] = useState("loading");
   const [authUrl, setAuthUrl] = useState("");
   const [authData, setAuthData] = useState(null);
   const [callbackUrl, setCallbackUrl] = useState("");
@@ -18,12 +14,10 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
   const { copied, copy } = useCopyToClipboard();
   const openedRef = useRef(false);
 
-  // Reset auto-open guard when modal closes so it can re-open next session.
   useEffect(() => {
     if (!isOpen) openedRef.current = false;
   }, [isOpen]);
 
-  // Initialize auth flow
   useEffect(() => {
     if (!isOpen || !provider) return;
 
@@ -43,7 +37,6 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
         setAuthUrl(data.authUrl);
         setStep("input");
 
-        // Auto-open browser once per modal session.
         if (!openedRef.current) {
           openedRef.current = true;
           window.open(data.authUrl, "_blank");
@@ -61,12 +54,10 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
     try {
       setError(null);
       
-      // Parse callback URL - can be either kiro:// or http://localhost format
       let url;
       try {
         url = new URL(callbackUrl);
       } catch (e) {
-        // If URL parsing fails, might be malformed
         throw new Error("Invalid callback URL format");
       }
 
@@ -82,7 +73,6 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
         throw new Error("No authorization code found in URL");
       }
 
-      // Exchange code for tokens
       const res = await fetch("/api/oauth/kiro/social-exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,7 +99,7 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
   return (
     <Modal isOpen={isOpen} title={`Connect Kiro via ${providerName}`} onClose={onClose} size="lg">
       <div className="flex flex-col gap-4">
-        {/* Loading */}
+        {}
         {step === "loading" && (
           <div className="text-center py-6">
             <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -124,7 +114,7 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
           </div>
         )}
 
-        {/* Manual Input Step */}
+        {}
         {step === "input" && (
           <>
             <div className="space-y-4">
@@ -167,7 +157,7 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
           </>
         )}
 
-        {/* Success */}
+        {}
         {step === "success" && (
           <div className="text-center py-6">
             <div className="size-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
@@ -183,7 +173,7 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
           </div>
         )}
 
-        {/* Error */}
+        {}
         {step === "error" && (
           <div className="text-center py-6">
             <div className="size-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">

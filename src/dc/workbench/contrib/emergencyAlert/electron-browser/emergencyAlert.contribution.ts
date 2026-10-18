@@ -31,7 +31,7 @@ interface IEmergencyAlerts {
 	readonly alerts: IEmergencyAlert[];
 }
 
-const POLLING_INTERVAL = 60 * 60 * 1000; // 1 hour
+const POLLING_INTERVAL = 60 * 60 * 1000;
 const BANNER_ID = 'emergencyAlert.banner';
 
 export class EmergencyAlert extends Disposable implements IWorkbenchContribution {
@@ -51,7 +51,7 @@ export class EmergencyAlert extends Disposable implements IWorkbenchContribution
 
 		const emergencyAlertUrl = productService.emergencyAlertUrl;
 		if (!emergencyAlertUrl) {
-			return; // no emergency alert configured
+			return;
 		}
 
 		this.fetchAlerts(emergencyAlertUrl);
@@ -81,7 +81,6 @@ export class EmergencyAlert extends Disposable implements IWorkbenchContribution
 			return;
 		}
 
-		// Find the first matching alert
 		const matchingAlert = emergencyAlerts.alerts.find(alert =>
 			alert.commit === this.productService.commit &&
 			(!alert.platform || alert.platform === platform) &&
@@ -89,12 +88,10 @@ export class EmergencyAlert extends Disposable implements IWorkbenchContribution
 		);
 
 		if (!matchingAlert) {
-			// No matching alert, dismiss the banner if it was shown
 			this.dismissAlert();
 			return;
 		}
 
-		// Don't update the banner if message and actions didn't change
 		if (
 			this.currentAlertMessage === matchingAlert.message &&
 			equals(this.currentAlertActions ?? [], matchingAlert.actions ?? [], (a, b) => a.label === b.label && a.href === b.href)

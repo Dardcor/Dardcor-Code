@@ -31,10 +31,6 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { experimentsEnabled } from '../../telemetry/common/workbenchTelemetryUtils.js';
 
 export interface IAssignmentFilter {
-	/**
-	 * Stable identifier for this filter. Used to persist and reconcile the set of
-	 * assignment-context ids this filter has excluded, independently of other filters.
-	 */
 	readonly id: string;
 	exclude(assignment: string): boolean;
 	onDidChange: Event<void>;
@@ -85,7 +81,6 @@ class WorkbenchAssignmentServiceTelemetry extends Disposable implements IExperim
 	) {
 		super();
 
-		// Re-apply the filters whenever a filter is added or changes its exclusion decisions.
 		this._register(this.contextFilter.onDidChange(() => {
 			if (this._previousAssignmentContext) {
 				this._setAssignmentContext(this._previousAssignmentContext);
@@ -103,7 +98,6 @@ class WorkbenchAssignmentServiceTelemetry extends Disposable implements IExperim
 		}
 	}
 
-	// __GDPR__COMMON__ "abexp.assignmentcontext" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
 	setSharedProperty(name: string, value: string): void {
 		if (name === this.productService.tasConfig?.assignmentContextTelemetryPropertyName) {
 			this._previousAssignmentContext = value;
@@ -119,30 +113,6 @@ class WorkbenchAssignmentServiceTelemetry extends Disposable implements IExperim
 			data[key] = value;
 		}
 
-		/* __GDPR__
-			"query-expfeature" : {
-				"owner": "sbatten",
-				"comment": "Logs queries to the experiment service by feature for metric calculations",
-				"ABExp.queriedFeature": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The experimental feature being queried" }
-			}
-		*/
-		/* __GDPR__
-			"assignments-validation" : {
-				"owner": "sbatten",
-				"comment": "Validation data for the new TAS assignments endpoint, compared against the legacy endpoint",
-				"FeatureVariableCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of feature variables returned by the new assignments endpoint" },
-				"AssignedVariantCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of assigned variants returned by the new assignments endpoint" },
-				"DataVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Data version returned by the new assignments endpoint" },
-				"AssignmentContext": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Assignment context returned by the new assignments endpoint" }
-			}
-		*/
-		/* __GDPR__
-			"call-assignments-error" : {
-				"owner": "sbatten",
-				"comment": "Logs errors when calling the new TAS assignments endpoint",
-				"ErrorType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The type of error encountered when calling the new assignments endpoint" }
-			}
-		*/
 		this.telemetryService.publicLog(eventName, data);
 	}
 }
@@ -158,7 +128,6 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 
 	private networkInitialized = false;
 	private setupGeneration = 0;
-	/** Revokes the current setup's storage/telemetry/fetch wrappers, neutralizing a superseded in-flight client. */
 	private revokeCurrentSetup: (() => void) | undefined;
 	private readonly overrideInitDelay: Promise<void>;
 
@@ -188,14 +157,9 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 		if (this.experimentsEnabled) {
 			this.tasClient = this.setupTASClient();
 
-			// The assignments endpoint is sourced from account entitlements, which load
-			// asynchronously. The initial account load resolves the readiness barrier without
-			// firing onDidChangeDefaultAccount, so proactively re-check once it is ready, and
-			// again whenever the account changes later.
 			this.defaultAccountService.getDefaultAccount().then(() => this.recreateTasClientIfEndpointChanged());
 			this._register(this.defaultAccountService.onDidChangeDefaultAccount(() => this.recreateTasClientIfEndpointChanged()));
 
-			// Stop the final client's auto-polling and revoke its wrappers when the service is disposed.
 			this._register(toDisposable(() => {
 				this.revokeCurrentSetup?.();
 				WorkbenchAssignmentService.disposeTasClient(this.tasClient);
@@ -213,7 +177,6 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 
 		this.keyValueStorage = new MementoKeyValueStorage(new Memento<Record<string, unknown>>('experiment.service.memento', storageService));
 
-		// For development purposes, configure the delay until tas local tas treatment ovverrides are available
 		const overrideDelaySetting = configurationService.getValue('experiments.overrideDelay');
 		const overrideDelay = typeof overrideDelaySetting === 'number' ? overrideDelaySetting : 0;
 		this.overrideInitDelay = timeout(overrideDelay);
@@ -243,7 +206,7 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 	}
 
 	private async doGetTreatment<T extends string | number | boolean>(name: string): Promise<T | undefined> {
-		await this.overrideInitDelay; // For development purposes, allow overriding tas assignments to test variants locally.
+		await this.overrideInitDelay;
 
 		const override = this.configurationService.getValue<T>(`experiments.override.${name}`);
 		if (override !== undefined) {
@@ -261,10 +224,6 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 		let result: T | undefined;
 		const client = await this.tasClient;
 
-		// The TAS client is initialized but we need to check if the initial fetch has completed yet
-		// If it is complete, return a cached value for the treatment
-		// If not, use the async call with `checkCache: true`. This will allow the module to return a cached value if it is present.
-		// Otherwise it will await the initial fetch to return the most up to date value.
 		if (this.networkInitialized) {
 			result = client.getTreatmentVariable<T>('vscode', name);
 		} else {
@@ -275,10 +234,6 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 		return result;
 	}
 
-	/**
-	 * Resolves the new TAS assignments API URL from the account entitlements `exp` endpoint,
-	 * or `undefined` when no account/endpoint is available.
-	 */
 	private getAssignmentsEndpoint(): string | undefined {
 		const account = this.defaultAccountService.currentDefaultAccount;
 		const endpoints = account?.entitlementsData?.endpoints;
@@ -289,10 +244,9 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 		return `${exp.replace(/\/+$/, '')}/api/v1/assignments`;
 	}
 
-	/** Recreates the TAS client when the resolved assignments endpoint has changed. */
 	private recreateTasClientIfEndpointChanged(): void {
 		if (this._store.isDisposed) {
-			return; // the service was disposed before the (async) account load resolved
+			return;
 		}
 		const next = this.getAssignmentsEndpoint();
 		if (next !== this.assignmentsEndpoint) {
@@ -300,10 +254,6 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 		}
 	}
 
-	/**
-	 * Transport for the new assignments endpoint, backed by the main-process request service
-	 * (avoids renderer CORS). Shape matches tas-client's injectable `assignmentsFetch`.
-	 */
 	private readonly assignmentsFetch = async (url: string, init: { method: 'POST'; headers: Record<string, string>; body: string }): Promise<{ status: number; json(): Promise<unknown> }> => {
 		const context = await this.requestService.request({
 			type: init.method,
@@ -322,23 +272,15 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 	private async setupTASClient(): Promise<TASClient> {
 		this.tasSetupDisposables.clear();
 
-		// Each setup supersedes the previous client; track a generation so a stale client's
-		// initialFetch cannot flip networkInitialized for a newer client.
 		const generation = ++this.setupGeneration;
 		this.networkInitialized = false;
 
-		// Revoke the previous setup's wrappers, then dispose its client. Revoking neutralizes a
-		// superseded, still-in-flight client: after replacement it can no longer write the shared
-		// memento, emit telemetry, or hit the assignments endpoint. This is needed because the
-		// tas-client's dispose() only stops its polling timer, not an already-running fetch.
 		this.revokeCurrentSetup?.();
 		WorkbenchAssignmentService.disposeTasClient(this.tasClient);
 
 		let revoked = false;
 		this.revokeCurrentSetup = () => { revoked = true; };
 
-		// Reference the shared memento/telemetry/fetch lazily (at call time): they are assigned in
-		// the constructor body after the initial setupTASClient() call has already started.
 		const service = this;
 
 		const keyValueStorage: IKeyValueStorage = {
@@ -383,9 +325,6 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 		this.tasSetupDisposables.add(extensionsFilterProvider);
 		this.tasSetupDisposables.add(extensionsFilterProvider.onDidChangeFilters(() => this.refetchAssignments()));
 
-		// New TAS assignments API. Its endpoint is sourced from account entitlements and it
-		// uses dedicated providers that emit the new userParam key names, so the legacy filter
-		// keys never reach it. Its assignments are merged with the legacy provider's results.
 		const assignmentsEndpoint = this.getAssignmentsEndpoint();
 		this.assignmentsEndpoint = assignmentsEndpoint;
 		let assignmentsFilterProviders: IExperimentationFilterProvider[] | undefined;
@@ -406,15 +345,9 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 
 		const tasConfig = this.productService.tasConfig!;
 
-		// tas-client ships as pure ESM; load it via a runtime-resolved URL so bundlers do not
-		// rewrite the import (mirrors how the editor loads the `@vscode/diff` module).
 		const tasClientUrl = resolveAmdNodeModulePath('tas-client', 'dist/tas-client.min.js');
 		const tasClientModule = await import(/* webpackIgnore: true */ /* @vite-ignore */ `${tasClientUrl}`) as typeof import('tas-client');
 
-		// Measure the client-side latency of the first network call to the
-		// Treatment Assignment Service. The fetch is triggered by constructing
-		// the client, so start timing right before construction to exclude
-		// module loading time from the measurement.
 		const fetchStopWatch = StopWatch.create();
 		const tasClient = new tasClientModule.ExperimentationService({
 			filterProviders: [filterProvider, extensionsFilterProvider],
@@ -426,8 +359,6 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 			endpoint: tasConfig.endpoint,
 			assignmentsEndpoint,
 			assignmentsFilterProviders,
-			// Route the assignments request through the main-process request service so it is
-			// not subject to renderer CORS (parity with how core reaches api.github.com).
 			assignmentsFetch: assignmentsEndpoint
 				// @ts-ignore
 				? (url, init) => (revoked ? Promise.resolve({ status: 0, json: async () => ({}) }) : service.assignmentsFetch(url, init))
@@ -438,7 +369,7 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 		await tasClient.initializePromise;
 		tasClient.initialFetch.then(() => {
 			if (generation !== this.setupGeneration) {
-				return; // superseded by a newer setup
+				return;
 			}
 			this.networkInitialized = true;
 			this.logFetchLatency('initial', fetchStopWatch.elapsed());
@@ -468,14 +399,12 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 
 	private async refetchAssignments(): Promise<void> {
 		if (!this.tasClient) {
-			return; // Setup has not started, assignments will use latest filters
+			return;
 		}
 
-		// Await the client to be setup and the initial fetch to complete
 		const tasClient = await this.tasClient;
 		await tasClient.initialFetch;
 
-		// Refresh the assignments and measure the network latency of the refetch.
 		const refetchStopWatch = StopWatch.create();
 		await tasClient.getTreatmentVariableAsync('vscode', 'refresh', false);
 		this.logFetchLatency('refetch', refetchStopWatch.elapsed());
@@ -499,7 +428,6 @@ export class WorkbenchAssignmentService extends Disposable implements IAssignmen
 		this.contextFilter.addFilter(filter);
 	}
 
-	/** Stops a TAS client's auto-polling once it resolves. Safe to call with `undefined`. */
 	private static disposeTasClient(client: Promise<TASClient> | undefined): void {
 		client?.then(c => c.dispose()).catch(() => undefined);
 	}

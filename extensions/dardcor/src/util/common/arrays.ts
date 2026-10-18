@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Counts the number of elements in an array that satisfy a given predicate.
- */
 export function count<T>(array: T[], predicate: (value: T) => boolean): number {
 	let count = 0;
 	for (const value of array) {
@@ -30,12 +27,6 @@ export function findInsertionIndexInSortedArray<T>(array: T[], value: T, isBefor
 	}
 	return low;
 }
-/**
- * Returns the maximum element in the array according to the given sort callback.
- * @param arr - The array to search for the maximum element.
- * @param compare - The sort callback to use for comparing elements.
- * @returns The maximum element in the array according to the given sort callback.
- */
 export function max<T>(arr: T[], compare: (a: T, b: T) => number): T | undefined {
 	if (arr.length === 0) {
 		return undefined;
@@ -65,9 +56,6 @@ export function filterMap<T, K>(array: T[], map: (t: T) => K | undefined | null)
 	return result;
 }
 
-/**
- * Behaves just like `Math.min`, so it will return Infinity for an empty array.
- */
 export function min(array: number[]): number {
 	if (array.length === 0) {
 		return Infinity;
@@ -80,10 +68,6 @@ export function min(array: number[]): number {
 	return min;
 }
 
-/**
- * 
- * Last batch may not match batch size.
- */
 export function* batchArrayElements<T>(array: T[], batchSize: number): Iterable<T[]> {
 	for (let i = 0; i < array.length; i += batchSize) {
 		yield array.slice(i, i + batchSize);

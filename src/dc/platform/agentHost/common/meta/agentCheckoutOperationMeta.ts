@@ -19,7 +19,6 @@ export const enum CheckoutOperationPreAction {
 	Commit = 'commit',
 }
 
-/** Creates request metadata for a Checkout changeset operation. */
 export function checkoutOperationMeta(treeish: string, preCheckoutAction?: CheckoutOperationPreAction): Record<string, unknown> {
 	return {
 		[TREEISH_META_KEY]: treeish,
@@ -29,7 +28,6 @@ export function checkoutOperationMeta(treeish: string, preCheckoutAction?: Check
 	};
 }
 
-/** Reads and validates the treeish requested by a Checkout changeset operation. */
 export function readCheckoutOperationTreeish(source: IHasCheckoutOperationMeta): string | undefined {
 	const meta = source._meta;
 	if (!meta) {
@@ -39,7 +37,6 @@ export function readCheckoutOperationTreeish(source: IHasCheckoutOperationMeta):
 	return typeof treeish === 'string' && treeish.length > 0 ? treeish : undefined;
 }
 
-/** Reads and validates the action requested before a Checkout changeset operation. */
 export function readCheckoutOperationPreAction(source: IHasCheckoutOperationMeta): CheckoutOperationPreAction | undefined {
 	const meta = source._meta;
 	if (!meta) {
@@ -51,7 +48,6 @@ export function readCheckoutOperationPreAction(source: IHasCheckoutOperationMeta
 		: undefined;
 }
 
-/** Creates structured error data for a Checkout operation blocked by a dirty working tree. */
 export function checkoutOperationDirtyWorkingTreeErrorData(): Record<string, unknown> {
 	return { [ERROR_REASON_KEY]: DIRTY_WORKING_TREE_ERROR_REASON };
 }
@@ -60,7 +56,6 @@ function hasErrorReason(data: unknown): data is { readonly reason: unknown } {
 	return typeof data === 'object' && data !== null && hasKey(data, { reason: true });
 }
 
-/** Returns whether error data identifies a Checkout operation blocked by a dirty working tree. */
 export function isCheckoutOperationDirtyWorkingTreeErrorData(data: unknown): boolean {
 	return hasErrorReason(data) && data.reason === DIRTY_WORKING_TREE_ERROR_REASON;
 }

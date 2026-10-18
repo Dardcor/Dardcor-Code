@@ -92,8 +92,6 @@ function setup(disposables: Pick<DisposableStore, 'add'>, opts?: { readonly with
 }
 
 function makeResourceTarget(resource: URI): InvokeChangesetOperationParams['target'] {
-	// `ChangesetOperationTarget.resource` is typed as the protocol `URI` (a
-	// branded string), not the workbench `URI` class.
 	return { kind: ChangesetOperationTargetKind.Resource, resource: resource.toString() as unknown as InvokeChangesetOperationParams['channel'] };
 }
 

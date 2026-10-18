@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it } from 'vitest';
-import { CopilotChatAttr, GenAiAttr, GenAiOperationName } from '../../../../platform/otel/common/genAiAttributes';
+import { DardcorChatAttr, GenAiAttr, GenAiOperationName } from '../../../../platform/otel/common/genAiAttributes';
 import { SpanStatusCode, type ICompletedSpanData } from '../../../../platform/otel/common/otelService';
 import {
 	completedSpanToOtlpSpan,
@@ -128,7 +128,7 @@ describe('OTLP Format Conversion', () => {
 	describe('wrapInResourceSpans + parseResourceSpans', () => {
 		it('round-trips spans through OTLP envelope', () => {
 			const spans = [
-				makeSpan({ name: 'invoke_agent dardcor', attributes: { [CopilotChatAttr.SESSION_ID]: 'sess-1' } }),
+				makeSpan({ name: 'invoke_agent dardcor', attributes: { [DardcorChatAttr.SESSION_ID]: 'sess-1' } }),
 				makeSpan({ name: 'chat gpt-4o', spanId: 'span2id234567890', parentSpanId: 'abcdef0123456789' }),
 			];
 

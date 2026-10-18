@@ -69,13 +69,10 @@ export class SectionHeaderDetector extends Disposable implements IEditorContribu
 
 			this.options = this.createOptions(editor.getOption(EditorOption.minimap));
 
-			// Remove any links (for the getting disabled case)
 			this.updateDecorations([]);
 
-			// Stop any computation (for the getting disabled case)
 			this.stop();
 
-			// Start computing (for the getting enabled case)
 			this.computeSectionHeaders.schedule(0);
 		}));
 
@@ -136,7 +133,6 @@ export class SectionHeaderDetector extends Disposable implements IEditorContribu
 		this.editorWorkerService.findSectionHeaders(model.uri, this.options)
 			.then((sectionHeaders) => {
 				if (model.isDisposed() || model.getVersionId() !== modelVersionId) {
-					// model changed in the meantime
 					return;
 				}
 				this.updateDecorations(sectionHeaders);
@@ -147,7 +143,6 @@ export class SectionHeaderDetector extends Disposable implements IEditorContribu
 
 		const model = this.editor.getModel();
 		if (model) {
-			// Remove all section headers that should be in comments and are not in comments
 			sectionHeaders = sectionHeaders.filter((sectionHeader) => {
 				if (!sectionHeader.shouldBeInComments) {
 					return true;

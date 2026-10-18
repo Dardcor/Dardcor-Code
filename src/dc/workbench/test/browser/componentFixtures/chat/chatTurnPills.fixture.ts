@@ -19,15 +19,7 @@ import { ComponentFixtureContext, createEditorServices, defineComponentFixture, 
 import { registerChatFixtureServices } from './chatFixtureUtils.js';
 import { renderChatWidget } from './chatWidget.fixture.js';
 
-// ============================================================================
-// Mock helpers
-// ============================================================================
 
-/**
- * A per-request file diff. A created file has no before-content, so the agent
- * host provider maps its `originalURI` to the `modifiedURI` (equal URIs); an
- * edited file keeps a distinct original.
- */
 function fileDiff(name: string, added: number, removed: number, created: boolean): IEditSessionEntryDiff {
 	const modifiedURI = URI.file(`/repo/${name}`);
 	const originalURI = created ? modifiedURI : URI.file(`/repo/.original/${name}`);
@@ -55,15 +47,11 @@ function stubFileChangesService(diffs: readonly IEditSessionEntryDiff[], externa
 	}();
 }
 
-// ============================================================================
-// Render helper (standalone content part)
-// ============================================================================
 
 interface IRenderTurnPillsOptions {
 	readonly diffs: readonly IEditSessionEntryDiff[];
 	readonly externalDiffs?: readonly IEditSessionEntryDiff[];
 	readonly setting?: ChatTurnStatusPillsSetting;
-	/** When `true`, the changed-files disclosure is expanded. */
 	readonly expanded?: boolean;
 }
 
@@ -73,8 +61,6 @@ function renderTurnPills(ctx: ComponentFixtureContext, options: IRenderTurnPills
 	const instantiationService = createEditorServices(disposableStore, {
 		colorTheme: ctx.theme,
 		additionalServices: (reg) => {
-			// Broad chat service graph: IContextMenuService, IEditorService and the
-			// ResourceLabels dependencies the preview action needs.
 			registerChatFixtureServices(reg);
 			reg.defineInstance(IChatResponseFileChangesService, stubFileChangesService(options.diffs, options.externalDiffs ?? []));
 		},
@@ -96,22 +82,15 @@ function renderTurnPills(ctx: ComponentFixtureContext, options: IRenderTurnPills
 		part.domNode.querySelector<HTMLDetailsElement>('.checkpoint-file-changes-disclosure')!.open = true;
 	}
 
-	// The turn changes summary reuses the checkpoint summary styling, which is
-	// scoped under `.interactive-session` (and relies on `.monaco-workbench` for
-	// codicon sizing custom properties).
 	container.classList.add('monaco-workbench', 'interactive-session');
 	container.style.padding = '12px';
 	container.style.backgroundColor = 'var(--vscode-editor-background)';
 	container.appendChild(part.domNode);
 }
 
-// ============================================================================
-// Fixtures
-// ============================================================================
 
 export default defineThemedFixtureGroup({ path: 'chat/' }, {
 
-	// --- Standalone content part in each of its states ---
 
 	part: defineThemedFixtureGroup({
 		ChangesOnly_SingleFile: defineComponentFixture({
@@ -155,8 +134,6 @@ export default defineThemedFixtureGroup({ path: 'chat/' }, {
 			}),
 		}),
 
-		// The external README remains in the preview pill and out of the expanded
-		// workspace changes list.
 		ChangesAndExternalPreview_Expanded: defineComponentFixture({
 			render: (ctx) => renderTurnPills(ctx, {
 				expanded: true,
@@ -169,7 +146,6 @@ export default defineThemedFixtureGroup({ path: 'chat/' }, {
 			}),
 		}),
 
-		// With several external Markdown files, the created file is primary.
 		ChangesAndExternalPreview_MultipleMarkdown: defineComponentFixture({
 			render: (ctx) => renderTurnPills(ctx, {
 				diffs: [
@@ -196,7 +172,6 @@ export default defineThemedFixtureGroup({ path: 'chat/' }, {
 		}),
 	}),
 
-	// --- Turn changes summary inside the entire chat ---
 
 	inChat: defineThemedFixtureGroup({
 		Changes: defineComponentFixture({

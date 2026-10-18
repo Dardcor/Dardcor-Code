@@ -13,16 +13,11 @@ export async function activate(ctx: RendererContext<void>) {
 		throw new Error(`Could not load 'vscode.markdown-it-renderer'`);
 	}
 
-	// Add katex styles to be copied to shadow dom
 	const link = document.createElement('link');
 	link.rel = 'stylesheet';
 	link.classList.add('markdown-style');
 	link.href = styleHref;
 
-	// Add same katex style to root document.
-	// This is needed for the font to be loaded correctly inside the shadow dom.
-	//
-	// Seems like https://bugs.chromium.org/p/chromium/issues/detail?id=336876
 	const linkHead = document.createElement('link');
 	linkHead.rel = 'stylesheet';
 	linkHead.href = styleHref;
@@ -38,7 +33,6 @@ export async function activate(ctx: RendererContext<void>) {
 		}
 	`;
 
-	// Put Everything into a template
 	const styleTemplate = document.createElement('template');
 	styleTemplate.classList.add('markdown-style');
 	styleTemplate.content.appendChild(style);

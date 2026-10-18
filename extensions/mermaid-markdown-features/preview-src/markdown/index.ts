@@ -19,13 +19,10 @@ async function init() {
 	}
 	currentDisposables = [];
 
-	// Abort any in-progress render
 	currentAbortController?.abort();
 	currentAbortController = new AbortController();
 	const signal = currentAbortController.signal;
 
-	// `vscode.markdown.updateContent` fires after theme switches refresh the preview, so resolve
-	// the theme variables from the live CSS variables before rebuilding mermaid's config.
 	themeTracker.refresh();
 
 	const extConfig = loadExtensionConfig();
@@ -49,7 +46,6 @@ async function init() {
 		currentDisposables.push(diagramManager.setup(mermaidContainer.id, mermaidContainer));
 	}, signal);
 
-	// Clean up saved states for diagrams that no longer exist
 	diagramManager.retainStates(activeIds);
 }
 

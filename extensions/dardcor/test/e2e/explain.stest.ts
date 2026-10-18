@@ -20,7 +20,6 @@ ssuite({ title: 'explain', subtitle: 'expanded context', location: 'panel' }, (i
 		stest({ description: scenario[0].json.description ?? scenario[0].question.replace('/explain', ''), language: language ? getLanguage(language).languageId : undefined }, generateScenarioTestRunner(
 			scenario,
 			async (accessor, question, answer) => {
-				// Answers should not contain speculation
 				const containsSpeculation = validate(answer, [{ not: [{ anyOf: ['presumably', 'unclear'] }] }]);
 				if (containsSpeculation) {
 					return { success: false, errorMessage: 'Answer contained speculation about current selection' };

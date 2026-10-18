@@ -66,7 +66,6 @@ function registerMarkdownLanguageFeatures(
 ): vscode.Disposable {
 	const selector: vscode.DocumentSelector = markdownLanguageIds;
 	return vscode.Disposable.from(
-		// Language features
 		registerDiagnosticSupport(selector, commandManager),
 		registerFindFileReferenceSupport(commandManager, client),
 		registerResourceDropOrPasteSupport(selector, parser),

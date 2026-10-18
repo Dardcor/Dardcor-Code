@@ -8,21 +8,12 @@ import { Range } from './core/range.js';
 import { ITextModel, PositionAffinity } from './model.js';
 
 export interface ICoordinatesConverter {
-	// View -> Model conversion and related methods
 	convertViewPositionToModelPosition(viewPosition: Position): Position;
 	convertViewRangeToModelRange(viewRange: Range): Range;
 	validateViewPosition(viewPosition: Position, expectedModelPosition: Position): Position;
 	validateViewRange(viewRange: Range, expectedModelRange: Range): Range;
 
-	// Model -> View conversion and related methods
-	/**
-	 * @param allowZeroLineNumber Should it return 0 when there are hidden lines at the top and the position is in the hidden area?
-	 * @param belowHiddenRanges When the model position is in a hidden area, should it return the first view position after or before?
-	 */
 	convertModelPositionToViewPosition(modelPosition: Position, affinity?: PositionAffinity, allowZeroLineNumber?: boolean, belowHiddenRanges?: boolean): Position;
-	/**
-	 * @param affinity Only has an effect if the range is empty.
-	*/
 	convertModelRangeToViewRange(modelRange: Range, affinity?: PositionAffinity): Range;
 	modelPositionIsVisible(modelPosition: Position): boolean;
 	getModelLineViewLineCount(modelLineNumber: number): number;
@@ -45,7 +36,6 @@ export class IdentityCoordinatesConverter implements ICoordinatesConverter {
 		return this._model.validateRange(range);
 	}
 
-	// View -> Model conversion and related methods
 
 	public convertViewPositionToModelPosition(viewPosition: Position): Position {
 		return this._validPosition(viewPosition);
@@ -63,7 +53,6 @@ export class IdentityCoordinatesConverter implements ICoordinatesConverter {
 		return this._validRange(expectedModelRange);
 	}
 
-	// Model -> View conversion and related methods
 
 	public convertModelPositionToViewPosition(modelPosition: Position): Position {
 		return this._validPosition(modelPosition);
@@ -76,7 +65,6 @@ export class IdentityCoordinatesConverter implements ICoordinatesConverter {
 	public modelPositionIsVisible(modelPosition: Position): boolean {
 		const lineCount = this._model.getLineCount();
 		if (modelPosition.lineNumber < 1 || modelPosition.lineNumber > lineCount) {
-			// invalid arguments
 			return false;
 		}
 		return true;
@@ -85,11 +73,9 @@ export class IdentityCoordinatesConverter implements ICoordinatesConverter {
 	public modelRangeIsVisible(modelRange: Range): boolean {
 		const lineCount = this._model.getLineCount();
 		if (modelRange.startLineNumber < 1 || modelRange.startLineNumber > lineCount) {
-			// invalid arguments
 			return false;
 		}
 		if (modelRange.endLineNumber < 1 || modelRange.endLineNumber > lineCount) {
-			// invalid arguments
 			return false;
 		}
 		return true;

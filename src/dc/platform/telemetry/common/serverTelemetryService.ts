@@ -16,9 +16,6 @@ export interface IServerTelemetryService extends ITelemetryService {
 }
 
 export class ServerTelemetryService extends TelemetryService implements IServerTelemetryService {
-	// Because we cannot read the workspace config on the remote site
-	// the ServerTelemetryService is responsible for knowing its telemetry level
-	// this is done through IPC calls and initial value injections
 	private _injectedTelemetryLevel: TelemetryLevel;
 	constructor(
 		config: ITelemetryServiceConfig,
@@ -57,7 +54,6 @@ export class ServerTelemetryService extends TelemetryService implements IServerT
 			this._injectedTelemetryLevel = TelemetryLevel.NONE;
 			throw new Error('Telemetry level cannot be undefined. This will cause infinite looping!');
 		}
-		// We always take the most restrictive level because we don't want multiple clients to connect and send data when one client does not consent
 		this._injectedTelemetryLevel = this._injectedTelemetryLevel ? Math.min(this._injectedTelemetryLevel, telemetryLevel) : telemetryLevel;
 		if (this._injectedTelemetryLevel === TelemetryLevel.NONE) {
 			this.dispose();
@@ -66,7 +62,7 @@ export class ServerTelemetryService extends TelemetryService implements IServerT
 }
 
 export const ServerNullTelemetryService = new class extends NullTelemetryServiceShape implements IServerTelemetryService {
-	async updateInjectedTelemetryLevel(): Promise<void> { return; } // No-op, telemetry is already disabled
+	async updateInjectedTelemetryLevel(): Promise<void> { return; }
 };
 
 export const IServerTelemetryService = refineServiceDecorator<ITelemetryService, IServerTelemetryService>(ITelemetryService);

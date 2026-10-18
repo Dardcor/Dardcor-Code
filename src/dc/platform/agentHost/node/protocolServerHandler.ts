@@ -71,35 +71,29 @@ import { AGENT_HOST_CLIENT_CONNECTION_HISTORY_RETENTION, IAgentHostClientConnect
 import { AgentHostTelemetryReporter } from './agentHostTelemetryReporter.js';
 import { isAgentHostTelemetryService } from './agentHostTelemetryService.js';
 
-/** Default capacity of the server-side action replay buffer. */
 const REPLAY_BUFFER_CAPACITY = 1000;
 
 const CLIENT_TOOL_CALL_DISCONNECT_TIMEOUT = 30_000;
 
-/** Client actions whose state transition has no corresponding host-side behavior. */
 const UNSUPPORTED_CLIENT_ACTION_TYPES: ReadonlySet<ActionType> = new Set([
 	ActionType.ChatWorkingDirectorySet,
 	ActionType.ChatWorkingDirectoryRemoved,
 ]);
 
-/** A client tool call in any of these statuses is still awaiting its result. */
 function isPendingToolCallStatus(status: ToolCallStatus): boolean {
 	return status === ToolCallStatus.Streaming
 		|| status === ToolCallStatus.Running
 		|| status === ToolCallStatus.PendingConfirmation;
 }
 
-/** Build a JSON-RPC success response suitable for transport.send(). */
 function jsonRpcSuccess(id: number, result: unknown): JsonRpcResponse {
 	return { jsonrpc: '2.0', id, result };
 }
 
-/** Build a JSON-RPC error response suitable for transport.send(). */
 function jsonRpcError(id: number, code: number, message: string, data?: unknown): JsonRpcResponse {
 	return { jsonrpc: '2.0', id, error: { code, message, ...(data !== undefined ? { data } : {}) } };
 }
 
-/** Build a JSON-RPC error response from an unknown thrown value, preserving {@link ProtocolError} fields. */
 function jsonRpcErrorFrom(id: number, err: unknown): JsonRpcResponse {
 	if (err instanceof ProtocolError) {
 		return jsonRpcError(id, err.code, err.message, err.data);
@@ -115,17 +109,10 @@ function shouldLogFailedRequest(method: string, params: unknown, err: unknown): 
 	return false;
 }
 
-/** True when `value` is a non-null params object (as opposed to an array or primitive). */
 function isParamsObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/**
- * Returns the `channel` URI carried on a request's params when it is an
- * `mcp://` channel — the AHP routing envelope for raw MCP requests
- * tunnelled over the JSON-RPC connection. Returns `undefined` for any
- * other params shape.
- */
 function readMcpChannel(params: unknown): string | undefined {
 	if (!isParamsObject(params)) {
 		return undefined;
@@ -137,71 +124,23 @@ function readMcpChannel(params: unknown): string | undefined {
 	return channel;
 }
 
-/**
- * Methods handled by the request dispatcher. Excludes `initialize`,
- * `reconnect`, and `ping`, which are handled directly during message
- * dispatch without requiring an established client context.
- */
 type RequestMethod = Exclude<keyof CommandMap, 'initialize' | 'reconnect' | 'ping'>;
 
-/**
- * Typed handler map: each key is a request method, each value is a handler
- * that receives the correctly-typed params and must return the correctly-typed
- * result. The compiler will error if a handler returns the wrong shape.
- */
 type RequestHandlerMap = {
 	[M in RequestMethod]: (client: IConnectedClient, params: CommandMap[M]['params']) => Promise<CommandMap[M]['result']>;
 };
 
-/**
- * Discriminant for {@link ChannelSubscription}. Distinguishes a regular
- * state-bearing channel (root, session, terminal, changeset) from the
- * stateless OTLP signal channels so each subscribe/unsubscribe path can
- * dispatch through a single typed lookup.
- */
 const enum ChannelKind {
-	/**
-	 * Subscribed via {@link IAgentService.subscribe} and tracked by the
-	 * server-side refcount. Carries replayable state, participates in
-	 * action broadcasts ({@link _broadcastAction}) and reconnect
-	 * snapshot/replay.
-	 */
 	State = 'state',
-	/**
-	 * Resource-watch channels (`ahp-resource-watch:/<id>`). Tracked
-	 * separately so subscribe/unsubscribe routes through the agent
-	 * service's per-watch refcount + grace timer rather than the
-	 * session-shaped {@link IAgentService.subscribe} path.
-	 */
 	ResourceWatch = 'resource-watch',
-	/**
-	 * Subscribed against the OTLP logs channel template advertised in
-	 * {@link InitializeResult.telemetry}. Stateless — no snapshot, no
-	 * agent-service refcount. The `level` field records the minimum
-	 * severity the client asked to receive.
-	 */
 	OtlpLogs = 'otlp-logs',
 }
 
-/**
- * Per-channel server-side subscription record. Stored on every
- * {@link IConnectedClient} so each subscribed channel can be routed by
- * its `kind` without re-deriving it from the URI on every dispatch.
- *
- * `uri` is the canonical channel URI string used everywhere a subscription
- * is referenced — the same string is broadcast on outbound notifications
- * and persists across reconnects. State subscriptions remain inactive while
- * their baseline snapshot is resolving so disconnect can cancel them without
- * exposing pre-snapshot actions to the client.
- */
 type ChannelSubscription =
 	| { readonly kind: ChannelKind.State; readonly uri: string; readonly active: boolean }
 	| { readonly kind: ChannelKind.ResourceWatch; readonly uri: string; readonly active: boolean }
 	| { readonly kind: ChannelKind.OtlpLogs; readonly uri: string; readonly level: OtlpLogLevelName };
 
-/**
- * Represents a connected protocol client with its subscription state.
- */
 interface IConnectedClient {
 	readonly clientId: string;
 	readonly clientInfo: Implementation | undefined;
@@ -211,47 +150,16 @@ interface IConnectedClient {
 	readonly connectionStopWatch: StopWatch;
 	readonly isReconnect: boolean;
 	telemetryConnectionActive: boolean;
-	/**
-	 * Every channel the client is currently subscribed to, keyed by the
-	 * canonical channel URI. OTLP channel URIs are canonicalised to
-	 * `buildOtlpLogsChannelUri(level)` so URI variants that resolve to
-	 * the same logical channel collapse to one entry.
-	 */
 	readonly subscriptions: Map<string, ChannelSubscription>;
 	readonly disposables: DisposableStore;
 	readonly initializationDisposables: DisposableStore;
 }
 
-/**
- * Per-client server-side record, keyed by clientId in
- * {@link ProtocolServerHandler._clients}. Unlike {@link IConnectedClient},
- * the record OUTLIVES individual transports: multiple overlapping transports
- * for the same logical client are held oldest-first, with the active transport
- * at the end. When the last transport disconnects, the record is retained
- * (until pruned) so the tool-call disconnect-grace machinery can compute the
- * remaining window and hold any armed timeouts.
- *
- * A client is in exactly one of two states, which makes the core invariant
- * unrepresentable in the wrong shape: a client either has one or more live
- * transports ({@link IActiveClientRecord}, never any disconnect-grace timers)
- * or has no transport and is within its disconnect-grace window
- * ({@link IGraceClientRecord}, never any connections). Transitions happen only
- * in {@link ProtocolServerHandler._attachConnection} (→ active, which disposes
- * any grace timers) and the transport `onClose` handler (→ grace, once the last
- * transport is gone).
- */
 type IClientRecord = IActiveClientRecord | IGraceClientRecord;
 
 interface IActiveClientRecord {
 	readonly state: 'active';
 	clientInfo: Implementation | undefined;
-	/**
-	 * Live transports for this client, oldest first. The active connection is
-	 * the last entry (most recent wins). Older entries are kept so that if a
-	 * reconnecting client registers `A`, then `B`, then `B` closes first, we can
-	 * fall back to `A` instead of treating the client as disconnected. Never
-	 * empty: removing the last transport promotes the record to a grace record.
-	 */
 	readonly connections: IConnectedClient[];
 }
 
@@ -261,36 +169,10 @@ interface IGraceClientRecord {
 	readonly clientInfo: Implementation | undefined;
 	readonly telemetryContext: IAgentHostClientTelemetryContext | undefined;
 	readonly protocolVersion: string | undefined;
-	/**
-	 * Epoch ms when the client last had a live transport, or when this record
-	 * was created for a never-connected orphan tool-call stamp. Pins the grace
-	 * clock so re-arms triggered by later orphaned tool calls shrink the
-	 * remaining window instead of resetting it. Drives the disconnect-timeout
-	 * delay (residual window from this instant).
-	 */
 	lastSeenAt: number;
-	/**
-	 * Pending tool-call disconnect timeouts owned by this client, keyed by
-	 * session URI. Armed when the client owns a pending client tool call but is
-	 * not connected; fires a failing completion if it does not (re)connect
-	 * within the grace window. Reconnecting promotes the record to active and
-	 * disposes these timers (the grace window no longer applies once a transport
-	 * is live). Disposing an entry (or the whole map) clears the timer.
-	 */
 	readonly disconnectTimeouts: DisposableMap<string>;
 }
 
-/**
- * Classifies a raw channel URI string into its {@link ChannelKind} and
- * returns the canonical URI to key subscriptions by. Returns `undefined`
- * when the channel is OTLP-flavoured but the URI does not parse into a
- * supported shape (unknown level, missing path) so the caller can
- * silently drop the subscribe rather than installing a broken entry.
- *
- * For state channels the canonical URI is just the input verbatim — the
- * agent service is the authoritative deduplication point and tolerates
- * whatever URI form the client sent.
- */
 function classifyChannel(channel: string): ChannelSubscription | undefined {
 	if (channel.toLowerCase().startsWith(`${OTLP_CHANNEL_SCHEME}:`)) {
 		const level = extractLevelFromOtlpLogsUri(channel);
@@ -305,69 +187,19 @@ function classifyChannel(channel: string): ChannelSubscription | undefined {
 	return { kind: ChannelKind.State, uri: channel, active: true };
 }
 
-/**
- * Configuration for protocol-level concerns outside of IAgentService.
- */
 export interface IProtocolServerConfig {
-	/** Process launcher that owns this agent host. */
 	readonly hostLaunchKind?: AgentHostLaunchKind;
 
-	/** Default directory returned to clients during the initialize handshake. */
 	readonly defaultDirectory?: string;
-	/**
-	 * Whether to expose VS Code extension methods outside the Agent Host Protocol.
-	 * Defaults to `true` for existing remote listeners.
-	 */
 	readonly allowExtensionMethods?: boolean;
-	/**
-	 * Characters that, when typed in a {@link UserMessage} input, SHOULD
-	 * cause the client to issue a `completions` request. Announced to
-	 * clients in the `initialize` response.
-	 */
 	readonly completionTriggerCharacters?: readonly string[];
-	/**
-	 * Prefix that marks a user message as a host terminal command.
-	 */
 	readonly terminalCommandPrefix?: string;
-	/**
-	 * Optional emitter to use as the source for the OTLP logs channel
-	 * advertised via `InitializeResult.telemetry.logs`. When present, this
-	 * handler will route `subscribe`/`unsubscribe` requests on
-	 * `ahp-otlp:` channels to its internal OTLP subscription registry and
-	 * broadcast every record fed into the emitter as an
-	 * `otlp/exportLogs` notification. When absent, the OTLP channel is
-	 * not advertised and any inbound `ahp-otlp:` subscribe request is
-	 * rejected.
-	 */
 	readonly otlpLogEmitter?: OtlpLogEmitter;
 }
 
-/**
- * Server-side handler that manages protocol connections, routes JSON-RPC
- * messages to the agent service, and broadcasts actions/notifications
- * to subscribed clients.
- */
 export class ProtocolServerHandler extends Disposable implements IAgentHostClientConnectionSource {
 
-	/**
-	 * Per-client records keyed by clientId. Holds both connected clients
-	 * (`connections` non-empty) and recently-disconnected ones retained for the
-	 * tool-call disconnect-grace window (`connections.length === 0`). See
-	 * {@link IClientRecord}.
-	 */
 	private readonly _clients = new Map<string, IClientRecord>();
-	/**
-	 * State channels a client is subscribed to but has never been given a
-	 * baseline snapshot for by THIS server process, keyed by clientId.
-	 *
-	 * `initialize` registers a state channel even when its snapshot has not
-	 * materialized yet (see {@link _addInitialSubscription}), so a client can
-	 * hold a live subscription with no state behind it. Replaying deltas onto
-	 * that void silently strands the channel on whatever the client last saw —
-	 * across a host restart that is pre-restart state, which is how an
-	 * already-finished turn can render as perpetually running. Reconnect
-	 * consults this to force a snapshot response for such channels.
-	 */
 	private readonly _baselineDebt = new Map<string, Set<string>>();
 	private readonly _replayBuffer: ActionEnvelope[] = [];
 	private readonly _telemetryReporter: AgentHostTelemetryReporter;
@@ -376,7 +208,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 
 	private readonly _onDidChangeConnectionCount = this._register(new Emitter<number>());
 
-	/** Fires with the current client count whenever a client connects or disconnects. */
 	readonly onDidChangeConnectionCount = this._onDidChangeConnectionCount.event;
 
 	constructor(
@@ -404,14 +235,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 				this._replayBuffer.shift();
 			}
 			this._broadcastAction(envelope);
-			// A client tool call may be issued for a client that is no longer
-			// connected — e.g. a stale stamp from a window that reloaded. The
-			// live-disconnect path (`_handleClientDisconnected`) does not cover
-			// these because no disconnect event fires for an already-gone
-			// client. Detect the orphan at issuance time and arm the same
-			// grace-period timeout so the call cannot hang forever. Calls
-			// stamped while no client is connected are failed immediately by
-			// the provider, so they never reach this path.
 			if (envelope.action.type === ActionType.ChatToolCallStart || envelope.action.type === ActionType.ChatToolCallReady) {
 				if (!isAhpChatChannel(envelope.channel)) {
 					throw new Error(`[ProtocolServer] Chat tool-call action emitted on non-chat channel: ${envelope.channel}`);
@@ -433,7 +256,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	// ---- Connection handling -------------------------------------------------
 
 	private _handleNewConnection(transport: IProtocolTransport): void {
 		const disposables = new DisposableStore();
@@ -444,15 +266,11 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			if (isJsonRpcRequest(msg)) {
 				this._logService.trace(`[ProtocolServer] request: method=${msg.method} id=${msg.id}`);
 
-				// Ping is stateless and MUST be answerable regardless of whether
-				// the connection has been initialized. Carries no payload — the
-				// round-trip itself is the liveness signal.
 				if (msg.method === 'ping') {
 					transport.send(jsonRpcSuccess(msg.id, null));
 					return;
 				}
 
-				// Handle initialize/reconnect as requests that set up the client
 				if (!client && msg.method === 'initialize') {
 					try {
 						const result = this._handleInitialize(msg.params, transport, disposables);
@@ -480,10 +298,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 					return;
 				}
 
-				// The VS Code upgrade request rides on the same transport but
-				// is callable pre-`initialize`: by definition we get here when
-				// the client's protocol version was rejected, so the client
-				// never managed to complete the handshake.
 				if ((msg.method as string) === VSCODE_UPGRADE_METHOD) {
 					this._handleVscodeUpgrade(msg.id, transport);
 					return;
@@ -507,7 +321,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 					}
 					return;
 				}
-				// Notification — fire-and-forget
 				switch (msg.method) {
 					case 'unsubscribe':
 						if (client) {
@@ -519,7 +332,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 							this._logService.trace(`[ProtocolServer] dispatchAction: ${JSON.stringify(msg.params.action.type)}`);
 							const action = msg.params.action as SessionAction | ChatAction | TerminalAction | ClientChangesetAction | ClientAnnotationsAction | ClientAutomationAction | ClientAutomationRunAction | IRootConfigChangedAction;
 							const channel = msg.params.channel;
-							// Unsupported actions are echoed as rejections so optimistic clients roll back.
 							if (UNSUPPORTED_CLIENT_ACTION_TYPES.has(action.type)) {
 								this._logService.warn(`[ProtocolServer] rejecting unsupported client action: ${action.type}`);
 								this._stateManager.rejectClientAction(
@@ -583,7 +395,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		disposables.add(transport);
 	}
 
-	// ---- Handshake handlers ----------------------------------------------------
 
 	private _handleInitialize(
 		params: InitializeParams,
@@ -597,11 +408,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		if (!negotiated) {
 			const data: UnsupportedProtocolVersionErrorDataEx = {
 				supportedVersions: [`^${PROTOCOL_VERSION}`],
-				// Only advertise the in-band upgrade method when the agent
-				// host was spawned by a VS Code CLI that is listening for
-				// management requests (presence of the env var). Otherwise
-				// there is no supervisor to actually act on it, so don't
-				// lie to the client.
 				_meta: getAgentHostManagementSocketPath()
 					? { vscodeUpgradeMethod: VSCODE_UPGRADE_METHOD }
 					: undefined,
@@ -681,22 +487,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/**
-	 * Helper for `initialize` and `reconnect` initial-subscription
-	 * processing: classify `channel`, install the matching subscription
-	 * on the client, and return the snapshot to include in the handshake
-	 * response (or `undefined` for stateless channels and missing state).
-	 *
-	 * Side effects:
-	 * - State channels: register with the agent service and clear any
-	 *   pending tool-call disconnect timeout.
-	 * - OTLP channels: install the canonical entry on the client's
-	 *   {@link IConnectedClient.subscriptions} map.
-	 *
-	 * Channels with unsupported shapes (e.g. `ahp-otlp://logs/verbose`
-	 * with no recognised level) are silently dropped. Valid state channels
-	 * remain subscribed even when their snapshot has not materialized yet.
-	 */
 	private _addInitialSubscription(client: IConnectedClient, channel: string): IStateSnapshot | undefined {
 		const sub = classifyChannel(channel);
 		if (!sub) {
@@ -722,10 +512,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		return snapshot;
 	}
 
-	/**
-	 * Note that `clientId` holds a subscription to `uri` with no baseline from
-	 * this process. See {@link _baselineDebt}.
-	 */
 	private _recordBaselineDebt(clientId: string, uri: string): void {
 		let debt = this._baselineDebt.get(clientId);
 		if (!debt) {
@@ -735,7 +521,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		debt.add(uri);
 	}
 
-	/** Record that `clientId` has now been given a baseline for `uri`. */
 	private _clearBaselineDebt(clientId: string, uri: string): void {
 		const debt = this._baselineDebt.get(clientId);
 		if (debt?.delete(uri) && debt.size === 0) {
@@ -743,7 +528,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/** Whether any of `subscriptions` still owes `clientId` a baseline. */
 	private _hasBaselineDebt(clientId: string, subscriptions: readonly string[]): boolean {
 		const debt = this._baselineDebt.get(clientId);
 		if (!debt || debt.size === 0) {
@@ -770,16 +554,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		return snapshot;
 	}
 
-	/**
-	 * Forwards a client's upgrade request to the hosting VS Code CLI's
-	 * HTTP management API (advertised via the {@link VSCODE_AGENT_HOST_MANAGEMENT_SOCKET_ENV}).
-	 * Returns the CLI's parsed response verbatim so the client can render
-	 * a meaningful status (already up-to-date, restart scheduled, etc.).
-	 *
-	 * When the server was not spawned by a managing CLI, responds with
-	 * `MethodNotFound` — the upgrade method is only meaningfully callable
-	 * on CLI-hosted servers.
-	 */
 	private _handleVscodeUpgrade(id: number, transport: IProtocolTransport): void {
 		const socketPath = getAgentHostManagementSocketPath();
 		if (!socketPath) {
@@ -811,9 +585,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 		this._applyClientTelemetryLevel(params._meta);
 
-		// Synchronously install the client so messages arriving on this transport
-		// while we restore subscriptions can find a valid client object. The
-		// reconnect response is only sent once `responsePromise` resolves below.
 		const priorTelemetryContext = existingRecord.state === 'active'
 			? existingRecord.connections.at(-1)?.telemetryContext
 			: existingRecord.telemetryContext;
@@ -837,18 +608,10 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		};
 		this._attachConnection(params.clientId, client);
 		try {
-			// Re-establish the reverse-RPC filesystem authority for this client.
-			// The prior transport's `onClose` disposed the previous registration,
-			// so without this step any subsequent `resourceRead` / `resourceWrite`
-			// / etc. from the agent host would fail with "no connection registered
-			// for authority" until the client disconnected and re-initialized.
 			this._registerClientFileSystemAuthority(params.clientId, initializationDisposables);
 
 			const oldestBuffered = this._replayBuffer.length > 0 ? this._replayBuffer[0].serverSeq : this._stateManager.serverSeq;
 			// A global cursor only proves the client saw every ACTION; it says
-			// nothing about whether a given channel ever received state from this
-			// process to apply them to. Force snapshots while any requested
-			// channel still owes a baseline.
 			const canReplay = params.lastSeenServerSeq >= oldestBuffered
 				&& !this._hasBaselineDebt(params.clientId, params.subscriptions);
 			const responsePromise = this._restoreReconnectSubscriptions(client, params, canReplay);
@@ -877,14 +640,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/**
-	 * Wires the reverse-RPC filesystem callbacks for `clientId` and binds
-	 * the unregister to `disposables` (the transport's per-connection
-	 * store). The callbacks dispatch through {@link _sendReverseRequest},
-	 * which looks up the *current* connected client by id — so re-binding
-	 * after a reconnect picks up the new transport without rebuilding the
-	 * closures.
-	 */
 	private _registerClientFileSystemAuthority(clientId: string, disposables: DisposableStore): void {
 		disposables.add(this._clientFileSystemProvider.registerAuthority(clientId, {
 			resourceList: (uri) => this._sendReverseRequest(clientId, 'resourceList', { uri: uri.toString() }),
@@ -899,14 +654,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}));
 	}
 
-	/**
-	 * Re-establish each of the client's prior subscriptions on the server side.
-	 * Uses {@link IAgentService.subscribe} (rather than a bare `addSubscriber`
-	 * + `getSnapshot`) so any session state that was evicted while the client
-	 * was disconnected is restored. Returns the appropriate reconnect response
-	 * payload — `replay` actions when the client's last-seen seq is still in
-	 * the buffer, otherwise fresh `snapshot`s.
-	 */
 	private async _restoreReconnectSubscriptions(
 		client: IConnectedClient,
 		params: ReconnectParams,
@@ -930,7 +677,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 					this._logService.warn(`[ProtocolServer] Reconnect: dropping OTLP subscription ${key}: no OTLP emitter configured.`);
 					return undefined;
 				}
-				// Stateless: re-install without going through the agent service.
 				client.subscriptions.set(classified.uri, classified);
 				return undefined;
 			}
@@ -975,17 +721,11 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 				}
 				this._logService.info(`[ProtocolServer] Reconnect: failed to restore subscription ${key}: ${err instanceof Error ? err.message : String(err)}`);
 				missing.push(sub);
-				// Reported as missing, so it can never be baselined. Leaving the
-				// debt would deny `canReplay` for this client's healthy channels
-				// on every future reconnect, since `missing` is not repeated on
-				// the snapshot branch and nothing else would ever clear it.
 				this._clearBaselineDebt(client.clientId, classified.uri);
 				return undefined;
 			}
 		}));
 
-		// Activate the batch only after every restore settles so no channel can
-		// receive an action both live and through the reconnect replay.
 		for (const { pending, active } of pendingSubscriptions) {
 			if (client.subscriptions.get(pending.uri) === pending) {
 				client.subscriptions.set(active.uri, active);
@@ -1014,8 +754,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			}
 			const refreshed = this._stateManager.getSnapshot(subscription.uri);
 			if (refreshed) {
-				// Key off the subscription, not the snapshot's echoed resource,
-				// so the debt entry recorded under the same key is really cleared.
 				this._clearBaselineDebt(client.clientId, subscription.uri);
 			}
 			return refreshed;
@@ -1023,13 +761,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		return { type: 'snapshot', snapshots: refreshedSnapshots.filter((s): s is IStateSnapshot => s !== undefined) };
 	}
 
-	/**
-	 * Release a client from every session where it is still an active client
-	 * but did not resubscribe during a reconnect. The set of resubscribed
-	 * sessions is gathered from every live connection the client currently
-	 * holds (not just the reconnecting one) so an overlapping connection that
-	 * still subscribes to a session keeps the client active there.
-	 */
 	private _reconcileActiveClientsAfterReconnect(client: IConnectedClient): void {
 		const record = this._clients.get(client.clientId);
 		const resubscribed = new Set<string>();
@@ -1064,11 +795,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			const state = this._stateManager.getSessionState(session);
 			const isActive = state ? this._isActiveClient(state, clientId) : false;
 			const ownsPendingToolCall = state ? this._hasPendingClientToolCall(state, clientId) : false;
-			// Keep the client marked active during the grace window so a quick
-			// reconnect that resubscribes can retain its slot. The disconnect
-			// timeout removes the active client (and fails its pending tool
-			// calls) if it never returns; an explicit unsubscribe or a
-			// reconnect without resubscription removes it sooner.
 			if (isActive || ownsPendingToolCall) {
 				for (const chat of state?.chats ?? []) {
 					this._startClientToolCallDisconnectTimeout(clientId, session, chat.resource);
@@ -1077,16 +803,10 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/** Whether `clientId` is one of the session's active clients. */
 	private _isActiveClient(state: SessionState, clientId: string): boolean {
 		return state.activeClients.some(c => c.clientId === clientId);
 	}
 
-	/**
-	 * Remove `clientId` from a session's active clients, if present. Dispatched
-	 * as a server action so the removal is reflected in state and broadcast to
-	 * the remaining subscribers.
-	 */
 	private _removeActiveClient(session: string, clientId: string): void {
 		const state = this._stateManager.getSessionState(session);
 		if (state && this._isActiveClient(state, clientId)) {
@@ -1097,26 +817,12 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/**
-	 * Release a client from a session: clear its pending disconnect timeout,
-	 * fail any client tool calls it still owns, and remove it from the active
-	 * clients. Used by the explicit-unsubscribe and reconnect-reconciliation
-	 * paths to drop a client that has left a session.
-	 */
 	private _releaseActiveClientForSession(session: string, clientId: string, chatChannel: string): void {
 		this._clearClientToolCallDisconnectTimeout(clientId, chatChannel);
 		this._completeDisconnectedClientToolCalls(clientId, session, chatChannel);
 		this._removeActiveClient(session, clientId);
 	}
 
-	/**
-	 * Yields every still-pending client-contributed tool call in `state`'s
-	 * active turn, paired with its owning `clientId`. Single source of truth
-	 * for the disconnect-grace machinery: detect ownership
-	 * ({@link _hasPendingClientToolCall}), arm timeouts
-	 * ({@link _checkOrphanedClientToolCalls}), and fail orphaned calls
-	 * ({@link _completeDisconnectedClientToolCalls}).
-	 */
 	private *_pendingClientToolCalls(state: ISessionWithDefaultChat | undefined) {
 		const activeTurn = state?.activeTurn;
 		if (!activeTurn) {
@@ -1149,22 +855,9 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			&& client.tools.some(tool => tool.name === toolName));
 	}
 
-	/**
-	 * Arm (or re-arm) the per-(clientId, session) timeout that fails pending
-	 * client tool calls owned by `clientId` if it does not reconnect before the
-	 * grace window elapses. Only meaningful for a client with no live transport:
-	 * a connected client is handled by {@link _attachConnection}, which disposes
-	 * any armed timers, so this is a no-op when the client is active. The delay
-	 * is the remaining grace measured from when the client disconnected — so a
-	 * client that disconnected a while before the call was issued gets the
-	 * residual window rather than a fresh one, and a stamp from a long-disconnected
-	 * client fails promptly. Re-arms triggered by later orphaned tool calls in the
-	 * same session shrink the remaining window instead of resetting it.
-	 */
 	private _startClientToolCallDisconnectTimeout(clientId: string, session: string, chatChannel: string): void {
 		const record = this._ensureGraceRecord(clientId);
 		if (!record) {
-			// Client is connected; the grace machinery does not apply.
 			return;
 		}
 		record.disconnectTimeouts.deleteAndDispose(chatChannel);
@@ -1175,16 +868,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}, delay));
 	}
 
-	/**
-	 * Scan a chat for pending client tool calls owned by a disconnected client
-	 * of this protocol server, and arm the disconnect timeout for each owner.
-	 * Called when a `ChatToolCallStart` / `ChatToolCallReady` envelope is
-	 * observed — covering calls issued for an already-gone client, which the
-	 * live disconnect path never sees. Ownerless client tool calls (no client
-	 * connected at stamp time) are failed immediately by the provider, so they
-	 * never reach a pending state here. Unknown client ids are ignored because
-	 * they may belong to another transport such as local IPC.
-	 */
 	private _checkOrphanedClientToolCalls(session: string, chatChannel: string): void {
 		const state = this._stateManager.getSessionState(chatChannel);
 		const orphanOwners = new Set<string>();
@@ -1199,14 +882,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/**
-	 * Register a freshly connected (or reconnected) transport for `clientId`,
-	 * promoting the record to {@link IActiveClientRecord}. Promoting a grace
-	 * record back to active disposes its pending disconnect timers: the
-	 * disconnect-grace window only applies while the client has no live
-	 * transport. This is the single place that maintains the "active records
-	 * hold no grace timers" invariant.
-	 */
 	private _attachConnection(clientId: string, client: IConnectedClient): void {
 		const existing = this._clients.get(clientId);
 		if (existing?.state === 'active') {
@@ -1240,12 +915,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		client.initializationDisposables.dispose();
 	}
 
-	/**
-	 * Return the existing grace record for `clientId`, creating one for a
-	 * never-connected client (an orphan tool-call stamp). Returns `undefined`
-	 * when the client is currently active — the grace machinery does not apply
-	 * to a connected client. A newly created record pins its grace clock to now.
-	 */
 	private _ensureGraceRecord(clientId: string): IGraceClientRecord | undefined {
 		const record = this._clients.get(clientId);
 		if (record?.state === 'active') {
@@ -1341,7 +1010,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		return result.trusted === true;
 	}
 
-	/** Number of clients that currently have a live connection. */
 	private get _connectedClientCount(): number {
 		let count = 0;
 		for (const record of this._clients.values()) {
@@ -1393,15 +1061,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		});
 	}
 
-	/**
-	 * Drop grace records whose timers have all fired and whose last-seen time is
-	 * stale beyond the retention window (10× the disconnect timeout). This
-	 * covers both genuinely-disconnected clients and never-connected orphan
-	 * stamps. Bounds {@link _clients} without tracking liveness precisely — a
-	 * pruned-then-resurfacing stamp simply falls back to the full grace window.
-	 * Active records are never pruned; they persist until their last transport
-	 * closes.
-	 */
 	private _pruneClientRecords(): void {
 		const cutoff = Date.now() - AGENT_HOST_CLIENT_CONNECTION_HISTORY_RETENTION;
 		for (const [clientId, record] of this._clients) {
@@ -1456,19 +1115,11 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	// ---- Requests (expect a response) ---------------------------------------
 
-	/**
-	 * Methods handled by the request dispatcher (excludes initialize/reconnect
-	 * which are handled during the handshake phase).
-	 */
 	private readonly _requestHandlers: RequestHandlerMap = {
 		subscribe: async (client, params) => {
 			const classified = classifyChannel(params.channel);
 			if (!classified) {
-				// OTLP-flavoured URI we don't understand (e.g. unknown
-				// level). Acknowledge as stateless so the client doesn't
-				// hang, but install nothing.
 				return {};
 			}
 			if (classified.kind === ChannelKind.OtlpLogs) {
@@ -1510,9 +1161,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 				client.subscriptions.set(classified.uri, classified);
 				this._clearClientToolCallDisconnectTimeout(client.clientId, classified.uri);
 				this._clearBaselineDebt(client.clientId, classified.uri);
-				// `IStateSnapshot` is widened with `ChatState` (see sessionProtocol.ts);
-				// the generated wire `Snapshot` union does not list it yet. The value
-				// is JSON over the wire, so narrowing at this boundary is safe.
 				return { snapshot: snapshot as SubscribeResult['snapshot'] };
 			} catch (err) {
 				if (!pendingSubscription.active && client.subscriptions.get(classified.uri) === pendingSubscription) {
@@ -1526,8 +1174,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		},
 		createSession: async (_client, params) => {
 			let createdSession: URI;
-			// If the client eagerly claimed the active client role, validate
-			// the clientId matches the connection before forwarding.
 			if (params.activeClient && params.activeClient.clientId !== _client.clientId) {
 				throw new ProtocolError(JsonRpcErrorCodes.InvalidParams, `createSession.activeClient.clientId must match the connection's clientId`);
 			}
@@ -1547,7 +1193,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 				}
 				throw new ProtocolError(AHP_PROVIDER_NOT_FOUND, err instanceof Error ? err.message : String(err));
 			}
-			// Verify the provider honored the client-chosen session URI per the protocol contract
 			if (createdSession.toString() !== URI.parse(params.channel).toString()) {
 				this._logService.warn(`[ProtocolServer] createSession: provider returned URI ${createdSession.toString()} but client requested ${params.channel}`);
 			}
@@ -1563,8 +1208,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 				throw new ProtocolError(AHP_SESSION_NOT_FOUND, `Session not found: ${params.channel}`);
 			}
 			const defaultChat = state.defaultChat ?? buildDefaultChatUri(params.channel);
-			// The default chat is created alongside its session; creating it
-			// again is a no-op. Any other chat URI spins up an additional chat.
 			if (URI.parse(params.chat).toString() === URI.parse(defaultChat).toString()) {
 				return null;
 			}
@@ -1625,8 +1268,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 					...(s.project ? { project: { uri: s.project.uri.toString(), displayName: s.project.displayName } } : {}),
 					workingDirectories: s.workingDirectories?.map(d => d.toString()),
 					changes: s.changes,
-					// `_meta` carries durable host provenance, including session kind
-					// and provider-native discovery provenance.
 					...(s._meta !== undefined ? { _meta: s._meta } : {}),
 				} satisfies ListSessionsResult['items'][number];
 			});
@@ -1699,9 +1340,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			return this._agentService.createResourceWatch(params);
 		},
 		resourceRequest: async (_client, _params) => {
-			// The local agent host does not yet enforce per-resource grants
-			// for client → server access. Always grant; receivers MAY rescind
-			// access by returning `PermissionDenied` on subsequent operations.
 			return {};
 		},
 		authenticate: async (_client, params) => {
@@ -1725,17 +1363,11 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 	};
 
 
-	// ---- Reverse RPC (server → client requests) ----------------------------
 
 	private _reverseRequestId = 0;
 	private readonly _pendingReverseRequests = new Map<number, { client: IConnectedClient; resolve: (value: unknown) => void; reject: (reason: unknown) => void }>();
 	private readonly _inflightRequests = new Set<Promise<unknown>>();
 
-	/**
-	 * Sends a JSON-RPC request to a connected client and waits for the response.
-	 * Used for reverse-RPC operations like reading client-side files.
-	 * Rejects if the client disconnects or the server is disposed.
-	 */
 	private _sendReverseRequest<T>(clientId: string, method: string, params: unknown): Promise<T> {
 		const client = this._getActiveClient(clientId);
 		if (!client) {
@@ -1749,10 +1381,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		});
 	}
 
-	/**
-	 * Rejects and clears all pending reverse-RPC requests sent over a given
-	 * connection.
-	 */
 	private _rejectPendingReverseRequestsForConnection(client: IConnectedClient): void {
 		for (const [id, pending] of this._pendingReverseRequests) {
 			if (pending.client === client) {
@@ -1777,7 +1405,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			return;
 		}
 
-		// VS Code extension methods (not in the typed protocol maps yet)
 		const extensionResult = this._handleExtensionRequest(method, params);
 		if (extensionResult) {
 			this._trackRequest(extensionResult).then(result => {
@@ -1789,11 +1416,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			return;
 		}
 
-		// MCP side-channel: requests targeting an `mcp://` channel carry the
-		// channel URI in `params.channel`. We forward them through the
-		// agent service, which routes by `<providerId>/<sessionId>/<serverName>`
-		// to the owning agent's MCP App implementation. Unknown channels and
-		// unknown methods are rejected with `-32601`.
 		const mcpChannel = readMcpChannel(params);
 		if (mcpChannel !== undefined) {
 			const paramsObj = isParamsObject(params) ? params : undefined;
@@ -1826,11 +1448,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		return promise;
 	}
 
-	/**
-	 * Handle VS Code extension methods that are not yet part of the typed
-	 * protocol. Returns a Promise if the method was recognized, undefined
-	 * otherwise.
-	 */
 	private _handleExtensionRequest(method: string, params: unknown): Promise<unknown> | undefined {
 		if (this._config.allowExtensionMethods === false) {
 			return undefined;
@@ -2044,7 +1661,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	// ---- Broadcasting -------------------------------------------------------
 
 	private _broadcastAction(envelope: ActionEnvelope): void {
 		this._logService.trace(`[ProtocolServer] Broadcasting action: ${envelope.action.type}`);
@@ -2058,9 +1674,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 	}
 
 	private _broadcastNotification(notification: INotification): void {
-		// Each protocol notification now ships as its own top-level method. The
-		// `type` discriminant on our local {@link ProtocolNotification} union is
-		// the wire-level method name, so we can route it directly.
 		const { type, ...params } = notification;
 		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		const msg = { jsonrpc: '2.0', method: type, params } as AhpServerNotification;
@@ -2069,20 +1682,8 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/**
-	 * Forward an MCP server-originated notification (e.g.
-	 * `notifications/tools/list_changed`) over the AHP transport. The
-	 * `channel` field on `params` is the AHP routing envelope; the
-	 * receiving client demultiplexes by it. Notifications are broadcast
-	 * to every connected client — per-channel subscription filtering is
-	 * left to the client, since MCP notifications are cheap and the
-	 * client already knows which channels it cares about.
-	 */
 	private _broadcastMcpNotification(notification: IMcpNotification): void {
 		const params: Record<string, unknown> = { ...(notification.params ?? {}), channel: notification.channel };
-		// MCP notifications don't share a discriminated `method` literal
-		// with the known {@link AhpServerNotification} union, so cast
-		// through `unknown` to satisfy the transport contract.
 		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		const msg = { jsonrpc: '2.0' as const, method: notification.method, params } as unknown as AhpServerNotification;
 		for (const record of this._clients.values()) {
@@ -2090,17 +1691,9 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/**
-	 * Drop a subscription identified by `channel` from `client`. Handles
-	 * canonicalisation for OTLP URIs (so an `unsubscribe` with a URI
-	 * variant collapses to the same entry as the original `subscribe`)
-	 * and tears down the agent-service refcount for state channels.
-	 */
 	private _removeSubscription(client: IConnectedClient, channel: string): void {
 		const classified = classifyChannel(channel);
 		if (!classified) {
-			// OTLP-flavoured URI with an unknown level — there can never
-			// have been a matching subscription. Silently ignore.
 			return;
 		}
 		const sub = client.subscriptions.get(classified.uri);
@@ -2108,8 +1701,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 			return;
 		}
 		client.subscriptions.delete(classified.uri);
-		// An unsubscribed channel owes this client nothing; a later subscribe
-		// records its own debt if it again lands without a baseline.
 		this._clearBaselineDebt(client.clientId, classified.uri);
 		if (sub.kind === ChannelKind.State) {
 			const record = this._clients.get(client.clientId);
@@ -2133,13 +1724,6 @@ export class ProtocolServerHandler extends Disposable implements IAgentHostClien
 		}
 	}
 
-	/**
-	 * Fan out an OTLP log record to every connected client that has
-	 * subscribed to a logs channel whose `{level}` band includes the
-	 * record's `severityNumber`. The notification's `channel` field is
-	 * the canonical URI the client subscribed against — clients can
-	 * route by URI without re-deriving the level.
-	 */
 	private _broadcastOtlpLog(record: IOtlpLogRecord): void {
 		const payload = toResourceLogsPayload(record);
 		for (const clientRecord of this._clients.values()) {

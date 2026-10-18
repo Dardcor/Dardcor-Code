@@ -249,7 +249,6 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 				});
 			}
 			run(accessor: ServicesAccessor, args: string | IOpenSettingsActionOptions) {
-				// args takes a string for backcompat
 				const opts = typeof args === 'string' ? { query: args } : sanitizeOpenSettingsArgs(args);
 				return accessor.get(IPreferencesService).openSettings({ ...opts });
 			}
@@ -306,7 +305,6 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 			}
 		}));
 
-		// Opens the User tab of the Settings editor
 		this._register(registerAction2(class extends Action2 {
 			constructor() {
 				super({
@@ -361,7 +359,6 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 				});
 			}
 			run(accessor: ServicesAccessor, args?: string | IOpenSettingsActionOptions) {
-				// Match the behaviour of workbench.action.openSettings
 				args = typeof args === 'string' ? { query: args } : sanitizeOpenSettingsArgs(args);
 				return accessor.get(IPreferencesService).openWorkspaceSettings(args);
 			}
@@ -723,7 +720,6 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 					precondition: ContextKeyExpr.and(CONTEXT_SETTINGS_EDITOR, CONTEXT_SETTINGS_ROW_FOCUS, CONTEXT_SETTINGS_FIRST_ROW_FOCUS),
 					keybinding: {
 						primary: KeyCode.UpArrow,
-						// Win over the list's own `list.focusUp` command so the first row moves focus back to search.
 						weight: KeybindingWeight.WorkbenchContrib + 1,
 						when: null
 					},
@@ -1430,7 +1426,6 @@ class SettingsEditorTitleContribution extends Disposable implements IWorkbenchCo
 
 		registerOpenUserSettingsEditorFromJsonAction();
 		this._register(this.userDataProfileService.onDidChangeCurrentProfile(() => {
-			// Force the action to check the context again.
 			registerOpenUserSettingsEditorFromJsonAction();
 		}));
 
@@ -1490,8 +1485,6 @@ class SettingsEditorContribution extends Disposable {
 
 		const model = this.editor.getModel();
 		if (model && /\.(json|code-workspace)$/.test(model.uri.path)) {
-			// Fast check: the preferences renderer can only appear
-			// in settings files or workspace files
 			const settingsModel = await this.preferencesService.createPreferencesEditorModel(model.uri);
 			if (settingsModel instanceof SettingsEditorModel && this.editor.getModel()) {
 				this.disposables.add(settingsModel);
@@ -1522,12 +1515,11 @@ registerWorkbenchContribution2(SettingsEditorTitleContribution.ID, SettingsEdito
 
 registerEditorContribution(SettingsEditorContribution.ID, SettingsEditorContribution, EditorContributionInstantiation.AfterFirstRender);
 
-// Preferences menu
 
 MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 	title: nls.localize({ key: 'miPreferences', comment: ['&& denotes a mnemonic'] }, "&&Preferences"),
 	submenu: MenuId.MenubarPreferencesMenu,
 	group: '5_autosave',
 	order: 2,
-	when: IsMacNativeContext.toNegated() // on macOS native the preferences menu is separate under the application menu
+	when: IsMacNativeContext.toNegated()
 });

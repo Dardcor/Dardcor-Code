@@ -81,13 +81,11 @@ suite('Progress Indicator', () => {
 		}());
 		const testObject = disposables.add(new ScopedProgressIndicator(testProgressBar, progressScope));
 
-		// Active: Show (Infinite)
 		let fn = testObject.show(true);
 		assert.strictEqual(true, testProgressBar.fInfinite);
 		fn.done();
 		assert.strictEqual(true, testProgressBar.fDone);
 
-		// Active: Show (Total / Worked)
 		fn = testObject.show(100);
 		assert.strictEqual(false, !!testProgressBar.fInfinite);
 		assert.strictEqual(100, testProgressBar.fTotal);
@@ -98,14 +96,12 @@ suite('Progress Indicator', () => {
 		fn.done();
 		assert.strictEqual(true, testProgressBar.fDone);
 
-		// Inactive: Show (Infinite)
 		progressScope.testOnScopeClosed('test.scopeId');
 		testObject.show(true);
 		assert.strictEqual(false, !!testProgressBar.fInfinite);
 		progressScope.testOnScopeOpened('test.scopeId');
 		assert.strictEqual(true, testProgressBar.fInfinite);
 
-		// Inactive: Show (Total / Worked)
 		progressScope.testOnScopeClosed('test.scopeId');
 		fn = testObject.show(100);
 		fn.total(80);
@@ -115,7 +111,6 @@ suite('Progress Indicator', () => {
 		assert.strictEqual(20, testProgressBar.fWorked);
 		assert.strictEqual(80, testProgressBar.fTotal);
 
-		// Acive: Show While
 		let p = Promise.resolve(null);
 		await testObject.showWhile(p);
 		assert.strictEqual(true, testProgressBar.fDone);

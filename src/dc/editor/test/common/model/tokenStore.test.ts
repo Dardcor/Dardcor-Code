@@ -188,20 +188,17 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 7, length: 1, token: 8 }
 		], TokenQuality.Accurate);
 
-		// Update token in the middle (position 3-4) to span 3-6
 		store.update(3, [
 			{ startOffsetInclusive: 3, length: 3, token: 9 }
 		], TokenQuality.Accurate);
 
 		const root = store.root as ListNode;
-		// Verify the structure remains balanced
 		assert.strictEqual(root.children.length, 3);
 		assert.strictEqual((root.children[0] as ListNode).children.length, 2);
 
-		// Verify the lengths are updated correctly
-		assert.strictEqual(root.children[0].length, 2); // First 2 tokens
-		assert.strictEqual(root.children[1].length, 4); // Token 3 + our new longer token
-		assert.strictEqual(root.children[2].length, 2); // Last 2 tokens
+		assert.strictEqual(root.children[0].length, 2);
+		assert.strictEqual(root.children[1].length, 4);
+		assert.strictEqual(root.children[2].length, 2);
 	});
 
 	test('update deeply nested tree with a range of tokens that causes tokens to split', () => {
@@ -217,18 +214,15 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 27, length: 3, token: 8 }
 		], TokenQuality.Accurate);
 
-		// Update token in the middle which causes tokens to split
 		store.update(8, [
 			{ startOffsetInclusive: 12, length: 4, token: 9 },
 			{ startOffsetInclusive: 16, length: 4, token: 10 }
 		], TokenQuality.Accurate);
 
 		const root = store.root as ListNode;
-		// Verify the structure remains balanced
 		assert.strictEqual(root.children.length, 2);
 		assert.strictEqual((root.children[0] as ListNode).children.length, 2);
 
-		// Verify the lengths are updated correctly
 		assert.strictEqual(root.children[0].length, 12);
 		assert.strictEqual(root.children[1].length, 18);
 	});
@@ -289,12 +283,6 @@ suite('TokenStore', () => {
 	});
 
 	test('Realistic scenario one', () => {
-		// inspired by this snippet, with the update adding a space in the constructor's curly braces:
-		// /*
-		// */
-		// class XY {
-		// 	constructor() {}
-		// }
 
 		const store = new TokenStore(textModel);
 		store.buildStore([
@@ -325,13 +313,7 @@ suite('TokenStore', () => {
 
 	});
 	test('Realistic scenario two', () => {
-		// inspired by this snippet, with the update deleteing the space in the body of class x
-		// class x {
-		//
-		// }
-		// class y {
 
-		// }
 
 		const store = new TokenStore(textModel);
 		store.buildStore([
@@ -378,15 +360,6 @@ suite('TokenStore', () => {
 		]);
 	});
 	test('Realistic scenario three', () => {
-		// inspired by this snippet, with the update adding a space after the { in the constructor
-		// /*--
-		//  --*/
-		//  class TreeViewPane {
-		// 	constructor(
-		// 		options: IViewletViewOptions,
-		// 	) {
-		// 	}
-		// }
 
 
 		const store = new TokenStore(textModel);
@@ -450,14 +423,7 @@ suite('TokenStore', () => {
 		]);
 	});
 	test('Realistic scenario four', () => {
-		// inspired by this snippet, with the update adding a new line after the return true;
-		// function x() {
-		// 	return true;
-		// }
 
-		// class Y {
-		// 	private z = false;
-		// }
 
 		const store = new TokenStore(textModel);
 		store.buildStore([
@@ -471,7 +437,7 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 24, length: 4, token: 196676 },
 			{ startOffsetInclusive: 28, length: 1, token: 32836 },
 			{ startOffsetInclusive: 29, length: 2, token: 32836 },
-			{ startOffsetInclusive: 31, length: 3, token: 32836 }, // This is the closing curly brace + newline chars
+			{ startOffsetInclusive: 31, length: 3, token: 32836 },
 			{ startOffsetInclusive: 34, length: 2, token: 32836 },
 			{ startOffsetInclusive: 36, length: 5, token: 196676 },
 			{ startOffsetInclusive: 41, length: 1, token: 32836 },
@@ -503,7 +469,6 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 58, length: 1, token: 98372 }
 		]);
 
-		// insert a tab + new line after `return true;` (like hitting enter after the ;)
 		store.update(32, [
 			{ startOffsetInclusive: 0, length: 8, token: 196676 },
 			{ startOffsetInclusive: 8, length: 1, token: 32836 },
@@ -515,7 +480,7 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 24, length: 4, token: 196676 },
 			{ startOffsetInclusive: 28, length: 1, token: 32836 },
 			{ startOffsetInclusive: 29, length: 2, token: 32836 },
-			{ startOffsetInclusive: 31, length: 3, token: 32836 }, // This is the new line, which consists of 3 characters: \t\r\n
+			{ startOffsetInclusive: 31, length: 3, token: 32836 },
 			{ startOffsetInclusive: 34, length: 2, token: 32836 }
 		], TokenQuality.Accurate);
 
@@ -531,7 +496,6 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 52, length: 7, token: 196676 }
 		]);
 
-		// Delete the tab character
 		store.update(37, [
 			{ startOffsetInclusive: 0, length: 8, token: 196676 },
 			{ startOffsetInclusive: 8, length: 1, token: 32836 },
@@ -543,7 +507,7 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 24, length: 4, token: 196676 },
 			{ startOffsetInclusive: 28, length: 1, token: 32836 },
 			{ startOffsetInclusive: 29, length: 2, token: 32836 },
-			{ startOffsetInclusive: 31, length: 2, token: 32836 }, // This is the changed line: \t\r\n to \r\n
+			{ startOffsetInclusive: 31, length: 2, token: 32836 },
 			{ startOffsetInclusive: 33, length: 3, token: 32836 }
 		], TokenQuality.Accurate);
 
@@ -563,14 +527,6 @@ suite('TokenStore', () => {
 	});
 
 	test('Insert new line and remove tabs (split tokens)', () => {
-		// class A {
-		// 	a() {
-		// 	}
-		// }
-		//
-		// interface I {
-		//
-		// }
 
 		const store = new TokenStore(textModel);
 		store.buildStore([
@@ -581,7 +537,7 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 10, length: 1, token: 32836 },
 			{ startOffsetInclusive: 11, length: 1, token: 524356 },
 			{ startOffsetInclusive: 12, length: 5, token: 32836 },
-			{ startOffsetInclusive: 17, length: 3, token: 32836 }, // This is the closing curly brace line of a()
+			{ startOffsetInclusive: 17, length: 3, token: 32836 },
 			{ startOffsetInclusive: 20, length: 2, token: 32836 },
 			{ startOffsetInclusive: 22, length: 1, token: 32836 },
 			{ startOffsetInclusive: 23, length: 9, token: 196676 },
@@ -602,7 +558,6 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 38, length: 1, token: 32836 }
 		]);
 
-		// Insert a new line after a() { }, which will add 2 tabs
 		store.update(21, [
 			{ startOffsetInclusive: 0, length: 5, token: 196676 },
 			{ startOffsetInclusive: 5, length: 1, token: 32836 },
@@ -626,7 +581,6 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 41, length: 1, token: 32836 }
 		]);
 
-		// Insert another new line at the cursor, which will also cause the 2 tabs to be deleted
 		store.update(24, [
 			{ startOffsetInclusive: 0, length: 5, token: 196676 },
 			{ startOffsetInclusive: 5, length: 1, token: 32836 },
@@ -659,7 +613,7 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 3, length: 3, token: 2 },
 			{ startOffsetInclusive: 6, length: 3, token: 3 }
 		], TokenQuality.Accurate);
-		store.delete(3, 3); // delete 3 chars starting at offset 3
+		store.delete(3, 3);
 		const tokens = store.getTokensInRange(0, 9);
 		assert.deepStrictEqual(tokens, [
 			{ startOffsetInclusive: 0, length: 3, token: 1 },
@@ -673,11 +627,10 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 0, length: 5, token: 1 },
 			{ startOffsetInclusive: 5, length: 5, token: 2 }
 		], TokenQuality.Accurate);
-		store.delete(3, 4); // removes 4 chars within token 1 and partially token 2
+		store.delete(3, 4);
 		const tokens = store.getTokensInRange(0, 10);
 		assert.deepStrictEqual(tokens, [
 			{ startOffsetInclusive: 0, length: 4, token: 1 },
-			// token 2 is now shifted left by 4
 			{ startOffsetInclusive: 4, length: 3, token: 2 }
 		]);
 	});
@@ -695,7 +648,7 @@ suite('TokenStore', () => {
 			{ startOffsetInclusive: 31, length: 1, token: 2 },
 			{ startOffsetInclusive: 32, length: 5, token: 2 }
 		], TokenQuality.Accurate);
-		store.update(17, [{ startOffsetInclusive: 7, length: 19, token: 0 }], TokenQuality.Accurate); // removes 4 chars within token 1 and partially token 2
+		store.update(17, [{ startOffsetInclusive: 7, length: 19, token: 0 }], TokenQuality.Accurate);
 		const tokens = store.getTokensInRange(0, 39);
 		assert.deepStrictEqual(tokens, [
 			{ startOffsetInclusive: 0, length: 5, token: 1 },

@@ -14,12 +14,6 @@ export interface IPromptVariablesService {
 	resolveVariablesInPrompt(message: string, variables: readonly ChatPromptReference[]): Promise<{ message: string }>;
 	resolveToolReferencesInPrompt(message: string, toolReferences: readonly ChatLanguageModelToolReference[]): Promise<string>;
 
-	/**
-	 * Builds a context string describing resolved template variables for
-	 * injection into system prompts. This allows skills that reference
-	 * `{{VARIABLE_NAME}}` placeholders to have their values available
-	 * via session context.
-	 */
 	buildTemplateVariablesContext(sessionId: string | undefined, debugTargetSessionIds?: readonly string[]): string;
 }
 

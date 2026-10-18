@@ -6,9 +6,6 @@
 import * as nls from '../../../../../nls.js';
 import { Target } from './promptTypes.js';
 
-/**
- * Enum of hook types across all targets. For the set of supported hooks per target, see HOOKS_BY_TARGET.
- */
 export enum HookType {
 	SessionStart = 'SessionStart',
 	SessionEnd = 'SessionEnd',
@@ -22,13 +19,9 @@ export enum HookType {
 	ErrorOccurred = 'ErrorOccurred',
 }
 
-/**
- * String literal type derived from HookType enum values.
- */
 export type HookTypeValue = `${HookType}`;
 
 export const HOOKS_BY_TARGET: Record<Target, Record<string, HookType>> = {
-	// see https://code.visualstudio.com/docs/copilot/customization/hooks#_hook-lifecycle-events
 	[Target.VSCode]: {
 		'SessionStart': HookType.SessionStart,
 		'UserPromptSubmit': HookType.UserPromptSubmit,
@@ -39,7 +32,6 @@ export const HOOKS_BY_TARGET: Record<Target, Record<string, HookType>> = {
 		'SubagentStop': HookType.SubagentStop,
 		'Stop': HookType.Stop,
 	},
-	// see https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-hooks#types-of-hooks
 	[Target.GitHubCopilot]: {
 		'sessionStart': HookType.SessionStart,
 		'sessionEnd': HookType.SessionEnd,
@@ -50,7 +42,6 @@ export const HOOKS_BY_TARGET: Record<Target, Record<string, HookType>> = {
 		'subagentStop': HookType.SubagentStop,
 		'errorOccurred': HookType.ErrorOccurred
 	},
-	// see https://docs.anthropic.com/en/docs/claude-code/hooks
 	[Target.Claude]: {
 		'SessionStart': HookType.SessionStart,
 		'UserPromptSubmit': HookType.UserPromptSubmit,
@@ -61,23 +52,16 @@ export const HOOKS_BY_TARGET: Record<Target, Record<string, HookType>> = {
 		'SubagentStop': HookType.SubagentStop,
 		'Stop': HookType.Stop,
 	},
-	// if no target, just list all known hook types.
 	[Target.Undefined]: Object.fromEntries(
 		Object.values(HookType).map(h => [h, h])
 	) as Record<string, HookType>
 };
 
-/**
- * Metadata for a hook type including localized label and description.
- */
 export interface IHookTypeMeta {
 	readonly label: string;
 	readonly description: string;
 }
 
-/**
- * Metadata for hook types including localized labels and descriptions
- */
 export const HOOK_METADATA: { [key in HookType]: IHookTypeMeta } = {
 	[HookType.SessionStart]: {
 		label: nls.localize('hookType.sessionStart.label', "Session Start"),

@@ -20,7 +20,7 @@ export interface ReviewRanges {
 }
 
 export interface ReviewRequest {
-	source: 'vscodeCopilotChat' | 'githubReviewAgent';
+	source: 'dardcorRouter';
 	promptCount: number;
 	messageId: string;
 	inputType: 'selection' | 'change';

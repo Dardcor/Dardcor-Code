@@ -85,9 +85,7 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 
 	set language(newLanguage: string) {
 		if (this._textModel
-			// 1. the language update is from workspace edit, checking if it's the same as text model's mode
 			&& this._textModel.getLanguageId() === this._languageService.getLanguageIdByLanguageName(newLanguage)
-			// 2. the text model's mode might be the same as the `this.language`, even if the language friendly name is not the same, we should not trigger an update
 			&& this._textModel.getLanguageId() === this._languageService.getLanguageIdByLanguageName(this.language)) {
 			return;
 		}
@@ -155,7 +153,6 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 		if (this._textModel) {
 			this.setRegisteredLanguage(this._languageService, this._textModel.getLanguageId(), this.language);
 
-			// Listen to language changes on the model
 			this._textModelDisposables.add(this._textModel.onDidChangeLanguage((e) => this.setRegisteredLanguage(this._languageService, e.newLanguage, this.language)));
 			this._textModelDisposables.add(this._textModel.onWillDispose(() => this.textModel = undefined));
 			this._textModelDisposables.add(this._textModel.onDidChangeContent((e) => {
@@ -175,11 +172,8 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 	}
 
 	private setRegisteredLanguage(languageService: ILanguageService, newLanguage: string, currentLanguage: string) {
-		// The language defined in the cell might not be supported in the editor so the text model might be using the default fallback
-		// If so let's not modify the language
 		const isFallBackLanguage = (newLanguage === PLAINTEXT_LANGUAGE_ID || newLanguage === 'jupyter');
 		if (!languageService.isRegisteredLanguageId(currentLanguage) && isFallBackLanguage) {
-			// notify to display warning, but don't change the language
 			this._onDidChangeLanguage.fire(currentLanguage);
 		} else {
 			this.language = newLanguage;
@@ -213,7 +207,6 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 		this._language = cell.language;
 		this._mime = cell.mime;
 		this.cellKind = cell.cellKind;
-		// Compute collapse state: use cell's state if provided, otherwise use default config for this cell kind
 		const defaultConfig = cell.cellKind === CellKind.Code ? defaultCollapseConfig?.codeCell : defaultCollapseConfig?.markupCell;
 		this.collapseState = cell.collapseState ?? (defaultConfig ?? undefined);
 		this._outputs = cell.outputs.map(op => new NotebookCellOutputTextModel(op));
@@ -334,7 +327,6 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 		this._notebookLoggingService.trace('textModelEdits', `splicing outputs at ${splice.start} length: ${splice.deleteCount} with ${splice.newOutputs.length} new outputs`);
 		if (splice.deleteCount > 0 && splice.newOutputs.length > 0) {
 			const commonLen = Math.min(splice.deleteCount, splice.newOutputs.length);
-			// update
 			for (let i = 0; i < commonLen; i++) {
 				const currentOutput = this.outputs[splice.start + i];
 				const newOutput = splice.newOutputs[i];
@@ -361,7 +353,6 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 
 		this._notebookLoggingService.trace('textModelEdits', `replacing an output item at index ${outputIndex}`);
 		const output = this.outputs[outputIndex];
-		// convert to dto and dispose the cell output model
 		output.replaceData({
 			outputs: newOutputItem.outputs,
 			outputId: newOutputItem.outputId,
@@ -431,7 +422,6 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 		}
 
 		if (!this.transientOptions.transientOutputs) {
-			// compare outputs
 
 			if (!this._outputNotEqualFastCheck(this.outputs, b.outputs)) {
 				return false;
@@ -441,14 +431,6 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 		return this.getHashValue() === b.getHashValue();
 	}
 
-	/**
-	 * Only compares
-	 * - language
-	 * - mime
-	 * - cellKind
-	 * - internal metadata (conditionally)
-	 * - source
-	 */
 	fastEqual(b: ICellDto2, ignoreMetadata: boolean): boolean {
 		if (this.language !== b.language) {
 			return false;
@@ -472,7 +454,6 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 			}
 		}
 
-		// Once we attach the cell text buffer to an editor, the source of truth is the text buffer instead of the original source
 		if (this._textBuffer) {
 			if (!NotebookCellTextModel.linesAreEqual(this.textBuffer.getLinesContent(), b.source)) {
 				return false;
@@ -499,8 +480,6 @@ export class NotebookCellTextModel extends Disposable implements ICell {
 
 	override dispose() {
 		dispose(this._outputs);
-		// Manually release reference to previous text buffer to avoid large leaks
-		// in case someone leaks a CellTextModel reference
 		const emptyDisposedTextBuffer = new PieceTreeTextBuffer([], '', '\n', false, false, true, true);
 		emptyDisposedTextBuffer.dispose();
 		this._textBuffer = emptyDisposedTextBuffer;
@@ -516,7 +495,7 @@ export function cloneNotebookCellTextModel(cell: NotebookCellTextModel) {
 		cellKind: cell.cellKind,
 		outputs: cell.outputs.map(output => ({
 			outputs: output.outputs,
-			/* paste should generate new outputId */ outputId: UUID.generateUuid()
+			outputId: UUID.generateUuid()
 		})),
 		metadata: {}
 	};
@@ -551,9 +530,6 @@ export function getFormattedMetadataJSON(transientCellMetadata: TransientCellMet
 		language,
 		...filteredMetadata
 	};
-	// Give preference to the language we have been given.
-	// Metadata can contain `language` due to round-tripping of cell metadata.
-	// I.e. we add it here, and then from SCM when we revert the cell, we get this same metadata back with the `language` property.
 	if (language) {
 		obj.language = language;
 	}
@@ -563,9 +539,6 @@ export function getFormattedMetadataJSON(transientCellMetadata: TransientCellMet
 }
 
 
-/**
- * Sort the JSON to ensure when diffing, the JSON keys are sorted & matched correctly in diff view.
- */
 export function sortObjectPropertiesRecursively(obj: any): any {
 	if (Array.isArray(obj)) {
 		return obj.map(sortObjectPropertiesRecursively);

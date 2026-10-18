@@ -54,7 +54,6 @@ suite('WorkspacePluginSettingsService', () => {
 		await fileService.writeFile(uri, VSBuffer.fromString(content));
 	}
 
-	// --- enabledPlugins parsing ---
 
 	test('parses enabledPlugins from Claude settings', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		await writeClaudeSettings(JSON.stringify({
@@ -125,7 +124,6 @@ suite('WorkspacePluginSettingsService', () => {
 		assert.strictEqual(enabled.get('shared-plugin@mp'), false, 'Claude should win');
 	}));
 
-	// --- extraKnownMarketplaces parsing ---
 
 	test('parses GitHub shorthand from extraKnownMarketplaces', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		await writeClaudeSettings(JSON.stringify({
@@ -207,7 +205,6 @@ suite('WorkspacePluginSettingsService', () => {
 		assert.strictEqual(marketplaces[0].name, 'claude-name', 'Claude entry should win');
 	}));
 
-	// --- Invalid input handling ---
 
 	test('ignores invalid enabledPlugins shapes', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 		await writeClaudeSettings(JSON.stringify({
@@ -215,7 +212,6 @@ suite('WorkspacePluginSettingsService', () => {
 		}));
 
 		const service = createService();
-		// Give the async read a chance to complete with faked timers.
 		await new Promise<void>(r => queueMicrotask(r));
 
 		assert.strictEqual(service.enabledPlugins.get().size, 0);

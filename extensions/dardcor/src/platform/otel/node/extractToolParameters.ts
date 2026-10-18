@@ -7,28 +7,16 @@ import { hashTelemetryValue } from '../../../util/node/crypto';
 import {
 	EditOperationType,
 	FILE_TOOL_NAMES,
-	GitHubCopilotAttr,
+	DardcorAttr,
 	SHELL_TOOL_NAMES,
 	TOOL_PARAM_COMMAND_MAX_LEN,
 } from '../common/genAiAttributes';
 
-/**
- * Result of extracting structured parameter attributes from a tool invocation.
- * `gatedAttrs` are content-sensitive (raw paths, command text, MCP server
- * names) and must only be emitted when `captureContent` is enabled. `attrs`
- * are always safe (e.g. SHA-256 hashes, fixed enums).
- */
 export interface ToolParameterAttributes {
 	attrs: Record<string, string>;
 	gatedAttrs: Record<string, string>;
 }
 
-/**
- * Produces structured `github.dardcor.tool.parameters.*` attributes for shell,
- * file, skill, and MCP tool calls. `gatedAttrs` are content-sensitive (raw
- * paths, commands, MCP server names) and emit only when `captureContent` is
- * enabled; `attrs` are always safe (hashes, fixed enums).
- */
 export function extractToolParameters(toolName: string, input: unknown): ToolParameterAttributes {
 	const attrs: Record<string, string> = {};
 	const gatedAttrs: Record<string, string> = {};
@@ -41,7 +29,7 @@ export function extractToolParameters(toolName: string, input: unknown): ToolPar
 	if (SHELL_TOOL_NAMES.has(toolName)) {
 		const command = pickFirstString(obj, ['command', 'cmd', 'commandLine']);
 		if (command) {
-			gatedAttrs[GitHubCopilotAttr.TOOL_PARAM_COMMAND] =
+			gatedAttrs[DardcorAttr.TOOL_PARAM_COMMAND] =
 				command.length > TOOL_PARAM_COMMAND_MAX_LEN
 					? command.slice(0, TOOL_PARAM_COMMAND_MAX_LEN)
 					: command;
@@ -51,30 +39,28 @@ export function extractToolParameters(toolName: string, input: unknown): ToolPar
 	if (FILE_TOOL_NAMES.has(toolName)) {
 		const filePath = pickFirstString(obj, ['file_path', 'filePath', 'path', 'uri']);
 		if (filePath) {
-			gatedAttrs[GitHubCopilotAttr.TOOL_PARAM_FILE_PATH] = filePath;
+			gatedAttrs[DardcorAttr.TOOL_PARAM_FILE_PATH] = filePath;
 		}
 		const editType = classifyEditType(toolName, obj);
 		if (editType) {
-			attrs[GitHubCopilotAttr.TOOL_PARAM_EDIT_TYPE] = editType;
+			attrs[DardcorAttr.TOOL_PARAM_EDIT_TYPE] = editType;
 		}
 	}
 
 	const skillName = pickFirstString(obj, ['skill_name', 'skillName', 'skill']);
 	if (skillName) {
-		attrs[GitHubCopilotAttr.TOOL_PARAM_SKILL_NAME] = skillName;
+		attrs[DardcorAttr.TOOL_PARAM_SKILL_NAME] = skillName;
 	}
 
-	// MCP-style tool names: VS Code emits `mcp_<server>_<tool>`; Anthropic-style
-	// references use `mcp__<server>__<tool>`. Accept both.
 	if (toolName.startsWith('mcp__')) {
 		const rest = toolName.slice('mcp__'.length);
 		const sep = rest.indexOf('__');
 		if (sep > 0) {
 			const serverName = rest.slice(0, sep);
 			const mcpToolName = rest.slice(sep + 2);
-			attrs[GitHubCopilotAttr.TOOL_PARAM_MCP_SERVER_NAME_HASH] = hashTelemetryValue(serverName);
-			attrs[GitHubCopilotAttr.TOOL_PARAM_MCP_TOOL_NAME] = mcpToolName;
-			gatedAttrs[GitHubCopilotAttr.TOOL_PARAM_MCP_SERVER_NAME] = serverName;
+			attrs[DardcorAttr.TOOL_PARAM_MCP_SERVER_NAME_HASH] = hashTelemetryValue(serverName);
+			attrs[DardcorAttr.TOOL_PARAM_MCP_TOOL_NAME] = mcpToolName;
+			gatedAttrs[DardcorAttr.TOOL_PARAM_MCP_SERVER_NAME] = serverName;
 		}
 	} else if (toolName.startsWith('mcp_')) {
 		const rest = toolName.slice('mcp_'.length);
@@ -82,9 +68,9 @@ export function extractToolParameters(toolName: string, input: unknown): ToolPar
 		if (underscore > 0) {
 			const serverName = rest.slice(0, underscore);
 			const mcpToolName = rest.slice(underscore + 1);
-			attrs[GitHubCopilotAttr.TOOL_PARAM_MCP_SERVER_NAME_HASH] = hashTelemetryValue(serverName);
-			attrs[GitHubCopilotAttr.TOOL_PARAM_MCP_TOOL_NAME] = mcpToolName;
-			gatedAttrs[GitHubCopilotAttr.TOOL_PARAM_MCP_SERVER_NAME] = serverName;
+			attrs[DardcorAttr.TOOL_PARAM_MCP_SERVER_NAME_HASH] = hashTelemetryValue(serverName);
+			attrs[DardcorAttr.TOOL_PARAM_MCP_TOOL_NAME] = mcpToolName;
+			gatedAttrs[DardcorAttr.TOOL_PARAM_MCP_SERVER_NAME] = serverName;
 		}
 	}
 
@@ -129,11 +115,9 @@ function classifyEditType(toolName: string, obj: Record<string, unknown>): EditO
 	) {
 		return 'update';
 	}
-	// `view`/`readFile`/`read_file`/`Read` have no edit_type.
 	if (toolName === 'view' || toolName === 'readFile' || toolName === 'read_file' || toolName === 'Read') {
 		return undefined;
 	}
-	// Fallback: heuristic on common arg names.
 	if (typeof obj.old_str === 'string' || typeof obj.oldString === 'string') {
 		return 'str_replace';
 	}

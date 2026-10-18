@@ -39,96 +39,24 @@ import type { JsonValue } from './protocol/generated/serde_json/JsonValue.js';
 import type { CollabAgentTool } from './protocol/generated/v2/CollabAgentTool.js';
 import type { CollabAgentState } from './protocol/generated/v2/CollabAgentState.js';
 
-/**
- * Per-session mutable state held by the mapper. Carries the bookkeeping
- * needed to glue codex's item-stream (each `agentMessage` item has its
- * own id) to the agent host protocol (each markdown part has its own id).
- *
- * Phase 2 tracks only `itemId → partId` for agent messages. Phase 4
- * extends this with tool-call correlation; Phase 6 adds reasoning parts.
- */
 export interface ICodexSessionMapState {
-	/** Stable codex `itemId` → our markdown response part id. */
 	readonly itemToPartId: Map<string, string>;
-	/**
-	 * Stable codex `itemId` → tool-call bookkeeping. Phase 4 tracks
-	 * `commandExecution` here so completion/approval handlers can find
-	 * the right toolCallId/turnId for each item.
-	 */
 	readonly itemToToolCall: Map<string, ICodexToolCallEntry>;
-	/** Stable codex reasoning item/index → our reasoning response part id. */
 	readonly itemToReasoningPartId: Map<string, string>;
-	/** Current turn id (per `turn/started`). */
 	currentTurnId: string | undefined;
-	/**
-	 * Live registry of the session's client-provided (`dynamicTools`) tools,
-	 * keyed by contributing workbench client. A `dynamicToolCall` tool-call
-	 * start is stamped with the owning client (so the workbench routes
-	 * execution back to it) resolved via {@link ActiveClientToolSet.ownerOf}.
-	 */
 	clientToolSet: ActiveClientToolSet;
-	/**
-	 * Names of the agent host's server tools (executed in-process). A
-	 * `dynamicToolCall` for one of these omits the `Client` contributor so the
-	 * workbench does not try to route execution to a client — the agent host
-	 * answers the `item/tool/call` directly.
-	 */
 	serverToolNames: ReadonlySet<string>;
-	/**
-	 * Server name → customization id for the session's MCP servers, used to
-	 * stamp the {@link ToolCallContributorKind.MCP} contributor on `mcpToolCall`
-	 * starts so clients can correlate the call with its originating server
-	 * customization. Owned and populated by the agent (mirrors
-	 * {@link clientToolSet}); empty until the agent first applies the inventory.
-	 */
 	readonly mcpCustomizationIds: Map<string, string>;
-	/**
-	 * Tool call ids the host declined at the approval prompt. Codex reports the
-	 * resulting `item/completed` as a generic failure, so the completion handler
-	 * consults this set to emit a `userCancelled` (`error.code = 'denied'`)
-	 * result instead. Drained on completion and cleared per turn.
-	 */
 	readonly declinedToolCalls: Set<string>;
-	/**
-	 * Assistant response actions received while a tool call is still open. Codex
-	 * can publish the following response item before the preceding tool item
-	 * completion notification, especially when replay returns the next model
-	 * response immediately. Keep the AHP lifecycle ordered by releasing these
-	 * actions only after every preceding tool call has completed.
-	 */
 	readonly deferredResponseActions: (SessionAction | ChatAction)[];
-	/**
-	 * A `commandExecution` that completed successfully with NO output is
-	 * potentially a sandbox pre-flight. When Codex runs a network (or otherwise
-	 * escalated) command under `on-request` + `workspace-write` it first attempts
-	 * it inside the sandbox — which completes instantly with no output because
-	 * the sandbox blocked it — then re-runs the SAME command as a separate
-	 * `commandExecution` item guarded by an approval request. Rendering both
-	 * items draws the command box twice. To coalesce them we defer the
-	 * pre-flight's completion here: if the next `commandExecution` in the turn
-	 * re-runs the same command it reuses this (still-open) tool call for a single
-	 * box; otherwise the deferred completion is flushed (on the next item or at
-	 * turn end) so a genuinely output-less command still finalizes.
-	 */
 	pendingPreflight: ICodexPendingPreflight | undefined;
-	/**
-	 * Count of `agentMessage` markdown parts started in the current turn. Reset
-	 * per turn by {@link resetCodexTurnMapState}; see {@link mapItemStartedBody}.
-	 */
 	agentMessagePartCount: number;
 }
 
-/**
- * A deferred `commandExecution` completion held back to coalesce a sandbox
- * pre-flight with its approval-guarded re-run. See
- * {@link ICodexSessionMapState.pendingPreflight}.
- */
 interface ICodexPendingPreflight {
 	readonly toolCallId: string;
 	readonly turnId: string;
-	/** Unwrapped command text, used to match the re-run. */
 	readonly command: string;
-	/** The `ChatToolCallComplete` action to emit if the pre-flight is not reused. */
 	readonly completion: (SessionAction | ChatAction)[];
 }
 
@@ -137,9 +65,7 @@ export interface ICodexToolCallEntry {
 	readonly turnId: string;
 	readonly toolName: string;
 	output: string;
-	/** Latest `mcpToolCall/progress` message, kept out of {@link output} so it never becomes the result. */
 	progressMessage?: string;
-	/** The `_meta` emitted at start, re-spread by later actions since the reducer replaces the whole bag. */
 	meta?: Record<string, unknown>;
 }
 
@@ -159,13 +85,6 @@ export function createCodexSessionMapState(serverToolNames: ReadonlySet<string> 
 	};
 }
 
-/**
- * Clear the per-turn bookkeeping maps so streamed parts, tool-calls, and
- * reasoning parts from a finished (or preempted) turn don't bleed into the
- * next one. Does NOT touch {@link ICodexSessionMapState.currentTurnId},
- * which tracks the codex app-server turn id and is owned by the
- * turn/started + turn/completed handlers.
- */
 export function resetCodexTurnMapState(state: ICodexSessionMapState): void {
 	state.itemToPartId.clear();
 	state.itemToToolCall.clear();
@@ -184,11 +103,6 @@ export function finalizeCodexTurnMapState(state: ICodexSessionMapState, unresolv
 	return [...preflightFlush, ...orphanedToolCallActions, ...deferredResponseActions];
 }
 
-/**
- * Emit and clear any deferred sandbox pre-flight completion (see
- * {@link ICodexSessionMapState.pendingPreflight}). Returns `[]` when nothing is
- * pending, so callers can unconditionally prepend the result.
- */
 function flushPendingPreflight(state: ICodexSessionMapState): (SessionAction | ChatAction)[] {
 	const pending = state.pendingPreflight;
 	if (!pending) {
@@ -233,12 +147,6 @@ function completeOrphanedToolCalls(state: ICodexSessionMapState, errorMessage: s
 	}));
 }
 
-/**
- * Collect the plain-text portions of a codex `userMessage` item's
- * `content` (an array of {@link UserInput}). Non-text inputs (images,
- * skills, mentions) are ignored. Multiple text parts are joined with a
- * blank line, mirroring {@link mapTurnStarted}'s reconstruction.
- */
 export function extractUserInputText(content: readonly UserInput[]): string {
 	const collected: string[] = [];
 	for (const c of content) {
@@ -346,16 +254,6 @@ function mcpToolOutput(result: McpToolCallResult | null, errorMessage?: string):
 	return [content, structuredContent].filter(Boolean).join('\n');
 }
 
-/**
- * Human labels for a Codex collab-agent (subagent) tool call, mirroring the
- * reference client's phrasing. Codex surfaces subagent orchestration as
- * `collabAgentToolCall` items on the parent thread, but each spawned agent
- * also runs as its own child thread that emits a full `turn/*` + `item/*`
- * event stream. The host ({@link CodexAgent}) renders that child stream in a
- * read-only child conversation and attaches a discovery block to the parent
- * `spawnAgent` tool call; the lifecycle collab tools (`wait`, `closeAgent`,
- * `sendInput`, …) render as plain tool calls in the parent conversation.
- */
 function collabAgentToolLabels(tool: CollabAgentTool): { readonly displayName: string; readonly present: string; readonly past: string } {
 	switch (tool) {
 		case 'spawnAgent': return { displayName: 'Spawn agent', present: 'Spawning agent', past: 'Spawned agent' };
@@ -367,7 +265,6 @@ function collabAgentToolLabels(tool: CollabAgentTool): { readonly displayName: s
 	}
 }
 
-/** One-line summary of a spawned agent's state — the subagent's result. */
 function collabAgentStateSummary(state: CollabAgentState): string {
 	switch (state.status) {
 		case 'completed': return state.message ? `Completed — ${state.message}` : 'Completed';
@@ -381,11 +278,6 @@ function collabAgentStateSummary(state: CollabAgentState): string {
 	}
 }
 
-/**
- * Render the per-agent result block for a completed collab tool call. Prefers
- * the receiver order, then appends any other agents present in `agentsStates`.
- * The completed message carries the subagent's actual output.
- */
 function collabAgentResultOutput(receiverThreadIds: readonly string[], agentsStates: { readonly [key: string]: CollabAgentState | undefined }): string {
 	const seen = new Set<string>();
 	const states: CollabAgentState[] = [];
@@ -414,16 +306,6 @@ function collabAgentResultOutput(receiverThreadIds: readonly string[], agentsSta
 	return states.map((state, index) => `Agent ${index + 1}: ${collabAgentStateSummary(state)}`).join('\n');
 }
 
-/**
- * Translate `turn/started` into a `ChatTurnStarted` action.
- *
- * Codex's `turn/started.turn.items[0]` SHOULD be the userMessage that
- * kicked off the turn; we reconstruct the user message from it. If
- * codex didn't include items (it may not), we synthesize an empty user
- * message so the agent host can still create the turn shell — the actual
- * prompt text was sent via `turn/start` and is already known by the host
- * via the prior `sendMessage` call.
- */
 export function mapTurnStarted(
 	state: ICodexSessionMapState,
 	params: TurnStartedNotification,
@@ -509,10 +391,6 @@ export function mapTokenUsageUpdated(params: ThreadTokenUsageUpdatedNotification
 	}];
 }
 
-/**
- * Codex does not expose its exact response-completion event on resumed threads, so cumulative
- * usage changes are the closest lifecycle signal available across the full session population.
- */
 export function mapTokenUsageModelCallCompleted(params: ThreadTokenUsageUpdatedNotification, resource: URI): IAgentModelCallCompletedSignal {
 	const total = params.tokenUsage.total;
 	return {
@@ -530,24 +408,10 @@ export function mapTokenUsageModelCallCompleted(params: ThreadTokenUsageUpdatedN
 	};
 }
 
-/**
- * `item/started` for an `agentMessage` becomes a `ChatResponsePart`
- * action with an empty `MarkdownResponsePart` shell. Subsequent
- * `item/agentMessage/delta` notifications append to that part.
- *
- * Other item types are ignored in Phase 2 — they'll be picked up by
- * Phase 6's tool-call mapper.
- */
 export function mapItemStarted(
 	state: ICodexSessionMapState,
 	params: ItemStartedNotification,
 ): (SessionAction | ChatAction)[] {
-	// Coalesce a sandbox pre-flight with its approval-guarded re-run: if the
-	// immediately-preceding commandExecution in this turn ran the same command
-	// and completed with no output (deferred as a pending pre-flight), reuse its
-	// still-open tool call instead of opening a second box. The escalation's
-	// `requestApproval` / `item/completed` then drive that box to its final
-	// state, so nothing new is emitted here.
 	if (params.item.type === 'commandExecution') {
 		const pending = state.pendingPreflight;
 		if (pending && pending.turnId === params.turnId && pending.command === unwrapShellInvocation(params.item.command ?? '')) {
@@ -561,8 +425,6 @@ export function mapItemStarted(
 			return [];
 		}
 	}
-	// Any other item supersedes a deferred pre-flight: finalize it first so a
-	// genuinely output-less command still renders promptly as a single box.
 	const flushed = flushPendingPreflight(state);
 	const deferredResponseActions = flushDeferredResponseActions(state);
 	const body = mapItemStartedBody(state, params);
@@ -579,8 +441,6 @@ function mapItemStartedBody(
 	if (params.item.type === 'agentMessage') {
 		const partId = generateUuid();
 		state.itemToPartId.set(params.item.id, partId);
-		// Separate consecutive agent messages so the chat model's separator-less
-		// markdown coalescing doesn't glue a following heading onto the prior line.
 		const separator = state.agentMessagePartCount > 0 ? '\n\n' : '';
 		state.agentMessagePartCount++;
 		return [
@@ -596,9 +456,6 @@ function mapItemStartedBody(
 		];
 	}
 	if (params.item.type === 'commandExecution') {
-		// Phase 4: surface shell commands as tool calls. We allocate a
-		// fresh toolCallId; the `commandExecution` item id only
-		// disambiguates the codex side.
 		const toolCallId = generateUuid();
 		const meta = toToolCallMeta({ toolKind: 'terminal' });
 		state.itemToToolCall.set(params.item.id, {
@@ -780,9 +637,6 @@ function mapItemStartedBody(
 		const toolName = params.item.namespace ? `${params.item.namespace}.${params.item.tool}` : params.item.tool;
 		const toolInput = toolInputText(params.item.arguments);
 		const output = dynamicToolOutput(params.item.contentItems);
-		// Server tools (registered under their bare name) execute in-process, so
-		// they carry no `Client` contributor; only client-provided tools route
-		// execution back to the owning workbench client.
 		const isServerTool = params.item.namespace === null && state.serverToolNames.has(params.item.tool);
 		const ownerClientId = isServerTool ? undefined : state.clientToolSet.ownerOf(params.item.tool);
 		const serverDisplay = getServerToolDisplay(params.item.tool, params.item.arguments);
@@ -833,13 +687,6 @@ function mapItemStartedBody(
 			toolName,
 			output: '',
 		});
-		// `spawnAgent` opens a read-only child conversation for the child thread
-		// (the host attaches the subagent-discovery block to THIS tool call on
-		// `subagent_started`), so we deliberately do NOT dump the raw prompt
-		// into the tool box — it would duplicate the child conversation's first
-		// user message and blow out the tool-call width. The other collab tools
-		// (`sendInput`, `wait`, `closeAgent`, …) are lifecycle ops with no child
-		// conversation, so they keep a compact prompt/model summary.
 		if (params.item.tool === 'spawnAgent') {
 			return [
 				{
@@ -970,10 +817,6 @@ export function mapFileChangeOutputDelta(
 	}];
 }
 
-/**
- * Progress is a transient status line rather than output, so it travels as
- * `_meta.progressMessage` (see {@link IToolCallMeta}) and never joins the result.
- */
 export function mapMcpToolCallProgress(
 	state: ICodexSessionMapState,
 	params: McpToolCallProgressNotification,
@@ -998,9 +841,6 @@ export function mapAgentMessageDelta(
 ): (SessionAction | ChatAction)[] {
 	const partId = state.itemToPartId.get(params.itemId);
 	if (!partId) {
-		// Got a delta before we saw the corresponding `item/started`.
-		// Drop it — Phase 2 is best-effort and the lost text is replaced
-		// when `item/completed` arrives with the full `text` field.
 		return [];
 	}
 	return deferResponseWhileToolCallIsOpen(state, [
@@ -1013,18 +853,6 @@ export function mapAgentMessageDelta(
 	]);
 }
 
-/**
- * `item/completed` for an `agentMessage` — the part is finalized server
- * side. For Phase 2 we don't need to emit an extra action: the deltas
- * already updated the part's content. We just drop the mapping so the
- * memory pressure stays bounded.
- *
- * For `commandExecution`, emit a synthetic `ChatToolCallReady`
- * (auto-confirmed; the codex server already decided to run the command
- * — any host-side approval was settled via the `requestApproval`
- * server-request handler before we got here) followed by a
- * `ChatToolCallComplete` carrying the aggregated output.
- */
 export function mapItemCompleted(
 	state: ICodexSessionMapState,
 	params: ItemCompletedNotification,
@@ -1037,10 +865,6 @@ export function mapItemCompleted(
 		clearReasoningForItem(state, params.item.id);
 		return [];
 	}
-	// Every remaining item type is a tool call. Resolve the tracked entry and
-	// drain the host-decline flag here, once, so all completion paths treat a
-	// declined tool uniformly (reported as `userCancelled` via
-	// `error.code = 'denied'`) instead of depending on which tool type completed.
 	const entry = state.itemToToolCall.get(params.item.id);
 	if (!entry) {
 		return [];
@@ -1086,11 +910,6 @@ export function mapItemCompleted(
 				},
 			},
 		];
-		// A successful command that produced NO output may be a sandbox
-		// pre-flight that Codex will immediately re-run under an approval prompt
-		// (same command, new item). Defer its completion so the re-run can reuse
-		// this box; if no re-run arrives, it is flushed on the next item or at
-		// turn end (see mapItemStarted / mapTurnCompleted).
 		if (success && !output && !declined) {
 			const flushed = flushPendingPreflight(state);
 			state.pendingPreflight = { toolCallId: entry.toolCallId, turnId: entry.turnId, command, completion };
@@ -1200,11 +1019,6 @@ export function mapItemCompleted(
 	return [];
 }
 
-/**
- * `turn/completed` translates to either a normal complete signal or, when
- * the turn ended with `status: 'failed'`, an error followed by the
- * complete signal so consumers can react to both.
- */
 export function mapTurnCompleted(
 	state: ICodexSessionMapState,
 	params: TurnCompletedNotification,
@@ -1213,9 +1027,6 @@ export function mapTurnCompleted(
 	state.currentTurnId = undefined;
 	state.itemToPartId.clear();
 	state.itemToReasoningPartId.clear();
-	// When a full turn item page is available (for example during replay), use
-	// it to reconcile tracked tools before handling genuinely unresolved calls.
-	// Live notifications normally use `itemsView: 'notLoaded'` and empty items.
 	const recoveredToolCallActions: (SessionAction | ChatAction)[] = [];
 	for (const item of params.turn.items) {
 		if (item.type === 'commandExecution' && (item.exitCode !== null || item.status !== 'completed') && state.itemToToolCall.has(item.id)) {
@@ -1227,9 +1038,6 @@ export function mapTurnCompleted(
 			}));
 		}
 	}
-	// Finalize any command whose completion was deferred to coalesce a possible
-	// sandbox pre-flight (see ICodexSessionMapState.pendingPreflight) — it was
-	// never reused, so it is a genuine output-less command and must complete.
 	const preflightFlush = flushPendingPreflight(state);
 	const turnId = params.turn.id;
 	const status = params.turn.status;
@@ -1267,7 +1075,6 @@ export function mapTurnCompleted(
 	return [...recoveredToolCallActions, ...preflightFlush, ...orphanedToolCallActions, ...deferredResponseActions, { type: ActionType.ChatTurnComplete, turnId, duration }];
 }
 
-/** Maps Codex's persisted turn error into the same protocol shape used live. */
 export function mapCodexTurnError(error: TurnError): ErrorInfo {
 	return {
 		errorType: 'CodexError',
@@ -1276,10 +1083,6 @@ export function mapCodexTurnError(error: TurnError): ErrorInfo {
 	};
 }
 
-/**
- * Build a {@link TurnState} from a codex `Turn.status`. Mostly useful
- * for replay (Phase 3).
- */
 export function turnStateFromStatus(status: string): TurnState {
 	switch (status) {
 		case 'completed':

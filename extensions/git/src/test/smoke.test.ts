@@ -50,7 +50,6 @@ suite('git smoke test', function () {
 		cp.execSync('git add .', { cwd });
 		cp.execSync('git commit -m "initial commit"', { cwd });
 
-		// make sure git is activated
 		const ext = extensions.getExtension<GitExtension>('vscode.git');
 		await ext?.activate();
 		git = ext!.exports.getAPI(1);
@@ -147,7 +146,6 @@ suite('git smoke test', function () {
 		assert.strictEqual(repository.state.indexChanges.length, 0);
 	});
 
-	// diabled because of https://github.com/microsoft/vscode/issues/327142
 	test.skip('opens notebook diff and file from active notebook editor', async function () {
 		const committed = JSON.stringify({ cells: [{ cell_type: 'code', source: ['x = 1'], metadata: {}, outputs: [], execution_count: null }], metadata: {}, nbformat: 4, nbformat_minor: 5 });
 		fs.writeFileSync(file('notebook.ipynb'), committed);
@@ -161,21 +159,17 @@ suite('git smoke test', function () {
 			const notebook = await workspace.openNotebookDocument(uri('notebook.ipynb'));
 			await window.showNotebookDocument(notebook);
 
-			// git.openChange without an argument resolves the resource from the active notebook editor
 			await commands.executeCommand('git.openChange');
 			assert(window.tabGroups.activeTabGroup.activeTab?.input instanceof TabInputNotebookDiff);
 
-			// git.openFile toggles back to the notebook from the active notebook diff editor
 			await commands.executeCommand('git.openFile');
 			assert(window.tabGroups.activeTabGroup.activeTab?.input instanceof TabInputNotebook);
 		} finally {
-			// Restore the committed content so the following tests start from a clean tree
 			fs.writeFileSync(file('notebook.ipynb'), committed);
 			await repository.status();
 		}
 	});
 
-	// diabled because of https://github.com/microsoft/vscode/issues/327142
 	test.skip('rename/delete conflict', async function () {
 		await commands.executeCommand('workbench.view.scm');
 
@@ -184,13 +178,11 @@ suite('git smoke test', function () {
 
 		await repository.createBranch('test', true);
 
-		// Delete file (test branch)
 		fs.unlinkSync(appjs);
 		await repository.commit('commit on test', { all: true });
 
 		await repository.checkout('main');
 
-		// Rename file (main branch)
 		fs.renameSync(appjs, renamejs);
 		await repository.commit('commit on main', { all: true });
 

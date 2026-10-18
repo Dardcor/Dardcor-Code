@@ -149,7 +149,7 @@ export default class LanguageProvider extends Disposable {
 		if (diagnosticsKind === DiagnosticKind.Semantic && isWeb()) {
 			if (
 				!isWebAndHasSharedArrayBuffers()
-				|| !supportsReadableByteStreams() // No ata. Will result in lots of false positives
+				|| !supportsReadableByteStreams()
 				|| this.client.configuration.webProjectWideIntellisenseSuppressSemanticErrors
 				|| !this.client.configuration.webProjectWideIntellisenseEnabled
 			) {
@@ -157,7 +157,6 @@ export default class LanguageProvider extends Disposable {
 			}
 		}
 
-		// Disable semantic errors in notebooks until we have better notebook support
 		if (diagnosticsKind === DiagnosticKind.Semantic && file.scheme === Schemes.notebookCell) {
 			return;
 		}

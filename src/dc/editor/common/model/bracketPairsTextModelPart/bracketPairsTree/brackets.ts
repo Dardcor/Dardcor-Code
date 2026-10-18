@@ -67,9 +67,6 @@ export class BracketTokens {
 		}
 	}
 
-	/**
-	 * Returns null if there is no such regexp (because there are no brackets).
-	*/
 	get regExpGlobal(): RegExp | null {
 		if (!this.hasRegExp) {
 			const regExpStr = this.getRegExpStr();
@@ -99,8 +96,6 @@ export class BracketTokens {
 
 function prepareBracketForRegExp(str: string): string {
 	let escaped = escapeRegExpCharacters(str);
-	// These bracket pair delimiters start or end with letters
-	// see https://github.com/microsoft/vscode/issues/132162 https://github.com/microsoft/vscode/issues/150440
 	if (/^[\w ]+/.test(str)) {
 		escaped = `\\b${escaped}`;
 	}
@@ -120,7 +115,6 @@ export class LanguageAgnosticBracketTokens {
 	}
 
 	public didLanguageChange(languageId: string): boolean {
-		// Report a change whenever the language configuration updates.
 		return this.languageIdToBracketTokens.has(languageId);
 	}
 

@@ -333,7 +333,7 @@ export function defineSubagentTests(context: IAgentHostE2ETestContext): void {
 							});
 						}
 					}
-				} catch { /* timeout — re-poll */ }
+				} catch { }
 			}
 		})();
 
@@ -361,8 +361,6 @@ export function defineSubagentTests(context: IAgentHostE2ETestContext): void {
 			`subagent resource should be a subagent chat of the parent session, got: ${JSON.stringify(subagentChatUri)}`,
 		);
 
-		// The subagent's conversation contents (its inner tool calls) are
-		// emitted on the chat channel carried by the tool result.
 		const subagentSnap = await context.client.call<SubscribeResult>('subscribe', { channel: subagentChatUri });
 		const subagentState = subagentSnap.snapshot?.state as ChatState | undefined;
 		const subagentFirstTurn = subagentState?.turns?.[0] ?? subagentState?.activeTurn;
@@ -398,7 +396,6 @@ export function defineSubagentTests(context: IAgentHostE2ETestContext): void {
 			`Parent tool calls: ${JSON.stringify(parentStarts.map(a => a.toolName))}`);
 	});
 
-	// Windows-skipped for providers with on-disk subagent replay (see `subagentReplayUnstableOnWindows`).
 	((isWindows && config.subagentReplayUnstableOnWindows) ? test.skip : (config.supportsSubagents ? test : test.skip))('reopening a session keeps sub-agent messages out of the parent transcript (replay path)', async function () {
 		this.timeout(180_000);
 
@@ -410,12 +407,6 @@ export function defineSubagentTests(context: IAgentHostE2ETestContext): void {
 		const sessionUri = await createRealSession(context.client, config, `real-sdk-subagent-replay-${config.provider}`, createdSessions, URI.file(tempDir));
 		const sessionChatUri = buildDefaultChatUri(sessionUri);
 
-		// A unique phrase that only the subagent is asked to emit in an
-		// intermediate assistant message, so replay can detect whether
-		// subagent assistant text leaks upward without depending on the
-		// parent agent's final summary behavior. It is a fixed string (not a
-		// per-run uuid) so the recorded subagent reply still contains the
-		// phrase the freshly-issued prompt asks for on replay.
 		const sentinel = 'subagent replay note sentinel-7f3a';
 		const parentResponse = 'SUBAGENT_DONE';
 
@@ -450,7 +441,7 @@ export function defineSubagentTests(context: IAgentHostE2ETestContext): void {
 							});
 						}
 					}
-				} catch { /* timeout — re-poll */ }
+				} catch { }
 			}
 		})();
 
@@ -497,7 +488,6 @@ export function defineSubagentTests(context: IAgentHostE2ETestContext): void {
 		assert.ok(liveParentResponsePartIds.length > 0);
 
 		const unsubscribeSessionTree = () => {
-			// The parent-session unsubscribe is sent last so it triggers eviction.
 			for (const channel of [
 				subagentChatUri,
 				buildDefaultChatUri(replaySubagentSessionUri),
@@ -509,16 +499,11 @@ export function defineSubagentTests(context: IAgentHostE2ETestContext): void {
 			}
 		};
 
-		// Force a reopen: drop the subagent chat and parent-session
-		// subscriptions so the agent host evicts the cached, live-built state,
-		// then re-fetch — which rebuilds the turns from persisted SDK events.
 		unsubscribeSessionTree();
 
 		const { parentText } = await retry(async () => {
 			try {
 				const reopenedParent = await fetchSessionWithChat(context.client, sessionUri);
-				// Persisted SDK replay restores subagents through their derived
-				// session resource, while the live path exposes the chat resource.
 				const reopenedSubagent = await fetchSessionWithChat(context.client, replaySubagentSessionUri);
 				const reopenedParentResponsePartIds = responsePartIds(reopenedParent.turns);
 				const subagentText = assistantText(reopenedSubagent.turns);
@@ -538,14 +523,11 @@ export function defineSubagentTests(context: IAgentHostE2ETestContext): void {
 
 				return { parentText };
 			} catch (error) {
-				// The retry delay must follow unsubscribe so deferred eviction can run.
 				unsubscribeSessionTree();
 				throw error;
 			}
 		}, 50, 100);
 
-		// The regression: the sub-agent's assistant.message must NOT leak into
-		// the parent transcript when the session is reopened.
 		assert.ok(!parentText.includes(sentinel),
 			`parent transcript must NOT contain the sub-agent's phrase after reopen ` +
 			`(replay path leaked sub-agent assistant.message into parent turns); ` +

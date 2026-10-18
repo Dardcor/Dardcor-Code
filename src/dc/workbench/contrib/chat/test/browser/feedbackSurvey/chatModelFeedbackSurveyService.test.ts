@@ -32,7 +32,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 		{ kind: 'text', id: 'comments', title: 'Anything else?', maxLength: 200 },
 	];
 
-	/** Probabilities use their boundaries so no random source needs stubbing. */
 	function makePayload(prompt: object = {}): string {
 		return JSON.stringify({
 			version: CHAT_MODEL_FEEDBACK_SURVEY_CONFIG_VERSION,
@@ -43,15 +42,12 @@ suite('ChatModelFeedbackSurveyService', () => {
 		});
 	}
 
-	/** Manual-only: the control is available but the survey never surfaces on its own. */
 	const payload = makePayload();
 
-	/** A treatment that resolves but yields no config, as a malformed or retired one would. */
 	const UNUSABLE_PAYLOAD = '{}';
 
 	const defaultSession = URI.parse('vscode-chat-editor://session-1');
 
-	/** Responses default to being the newest row, which is the only one that offers a survey. */
 	function createResponse(requestId: string, options?: { modelId?: string; sessionResource?: URI; isComplete?: boolean; isLast?: boolean }): IChatResponseViewModel {
 		return {
 			requestId,
@@ -99,7 +95,7 @@ suite('ChatModelFeedbackSurveyService', () => {
 		instantiationService.stub(ILogService, new NullLogService());
 
 		const service = disposables.add(instantiationService.createInstance(ChatModelFeedbackSurveyService));
-		await new Promise(resolve => setTimeout(resolve, 0)); // let the treatment resolve
+		await new Promise(resolve => setTimeout(resolve, 0));
 		return { service, events, disposeSession, configurationService };
 	}
 
@@ -173,14 +169,13 @@ suite('ChatModelFeedbackSurveyService', () => {
 		service.submit(response, 'done');
 
 		const afterSubmit = service.getSurvey(response);
-		service.dismiss(response);      // close the acknowledgement
-		service.toggle(response);         // and reopen it
+		service.dismiss(response);
+		service.toggle(response);
 
 		assert.deepStrictEqual({
 			stillAvailable: !!afterSubmit,
 			isSubmitted: afterSubmit?.isSubmitted,
 			reopened: service.getSurvey(response)?.isSubmitted,
-			// Reopening an answered survey must not inflate the funnel.
 			opens: events.filter(e => e.kind === 'opened').length,
 			submissions: events.filter(e => e.kind === 'submitted').length,
 			dismissals: events.filter(e => e.kind === 'dismissed').length,
@@ -226,7 +221,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 		service.toggle(response);
 		service.answerChoice(response, 'routing', 'yes');
 
-		// The user is mid answer, so a newer response must not pull the form away.
 		const superseded = createResponse('req-1', { isLast: false });
 
 		assert.deepStrictEqual(service.getSurvey(superseded)?.status, ChatModelFeedbackSurveyStatus.Open);
@@ -243,10 +237,8 @@ suite('ChatModelFeedbackSurveyService', () => {
 		service.toggle(second);
 
 		assert.deepStrictEqual({
-			// Closed by the second opening, then dropped because it is no longer the newest row.
 			first: service.getSurvey(createResponse('req-1', { isLast: false })),
 			second: service.getSurvey(second)?.status,
-			// Being superseded is the UI moving on, so it is not reported as a dismissal.
 			dismissals: events.filter(e => e.kind === 'dismissed').length,
 		}, {
 			first: undefined,
@@ -262,7 +254,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 		const other = createResponse('other-1', { sessionResource: otherSession });
 		const otherInstance = service.getSurvey(other)?.instanceId;
 
-		// A new response in the first session must not evict the second session's state.
 		service.getSurvey(createResponse('req-1'));
 		service.getSurvey(createResponse('req-2'));
 
@@ -282,7 +273,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 		service.getSurvey(first);
 		service.answerChoice(first, 'routing', 'yes');
 
-		// The next response would normally auto open, but the user is mid answer.
 		const second = createResponse('req-2');
 
 		assert.deepStrictEqual({
@@ -299,7 +289,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 		const surveyed = createResponse('req-1');
 		service.getSurvey(surveyed);
 
-		// A newer response the survey does not match still supersedes the old one.
 		service.getSurvey(createResponse('req-2', { modelId: 'copilot/gpt-5.2' }));
 		service.notifyModelSwitchedAway(defaultSession, 'copilot/auto', 'copilot/gpt-5.2');
 
@@ -326,7 +315,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 			opened: ChatModelFeedbackSurveyStatus.Open,
 			closed: ChatModelFeedbackSurveyStatus.Collapsed,
 			reopened: ChatModelFeedbackSurveyStatus.Open,
-			// Closing by the control is a dismissal, exactly as the X and Escape are.
 			kinds: ['shown', 'opened', 'dismissed', 'opened'],
 		});
 	});
@@ -338,9 +326,9 @@ suite('ChatModelFeedbackSurveyService', () => {
 		service.toggle(response);
 		service.submit(response, 'done');
 
-		service.toggle(response);   // hide the acknowledgement
+		service.toggle(response);
 		const hidden = service.getSurvey(response)?.status;
-		service.toggle(response);   // and show it again
+		service.toggle(response);
 
 		assert.deepStrictEqual({
 			hidden,
@@ -372,12 +360,10 @@ suite('ChatModelFeedbackSurveyService', () => {
 
 		disposeSession.fire({ sessionResources: [defaultSession], reason: 'cleared' });
 
-		// A fresh instance means the entry really was released rather than reused.
 		assert.notStrictEqual(service.getSurvey(createResponse('req-1'))?.instanceId, first);
 	});
 
 	test('keeps the control on the newest response even after the prompt budget is spent', async () => {
-		// Pacing governs unprompted surfacing only, so manual feedback is never rationed.
 		const { service } = await createService({ treatment: makePayload({ chance: { initial: 1 }, maxPerSession: 1 }) });
 
 		const first = service.getSurvey(createResponse('req-1'));
@@ -390,7 +376,7 @@ suite('ChatModelFeedbackSurveyService', () => {
 		}, {
 			available: [true, true, true],
 			autoOpened: [
-				ChatModelFeedbackSurveyStatus.Open, // the one automatic prompt this session allows
+				ChatModelFeedbackSurveyStatus.Open,
 				ChatModelFeedbackSurveyStatus.Collapsed,
 				ChatModelFeedbackSurveyStatus.Collapsed,
 			],
@@ -398,8 +384,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 	});
 
 	test('manual activation always opens, whatever the prompting rules say', async () => {
-		// One automatic prompt per session and a year long cooldown, both of which the first
-		// response consumes so the second is left with no automatic budget at all.
 		const { service, events } = await createService({ treatment: makePayload({ chance: { initial: 1 }, maxPerSession: 1, cooldownDays: 365 }) });
 
 		const prompted = createResponse('req-1');
@@ -423,8 +407,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 	});
 
 	test('ramps the odds with each response that passes without prompting', async () => {
-		// An increment of 1 makes the ramp observable without stubbing random. The first response
-		// has probability 0 and the second, after one miss, has probability 1.
 		const { service } = await createService({ treatment: makePayload({ chance: { initial: 0, increment: 1 }, maxPerSession: 5, cooldownDays: 0 }) });
 
 		assert.deepStrictEqual([
@@ -464,12 +446,9 @@ suite('ChatModelFeedbackSurveyService', () => {
 
 		const unrelated = createResponse('req-1');
 		service.getSurvey(unrelated);
-		// A switch between two unsurveyed models says nothing about Auto, even though an Auto
-		// response is still the most recent surveyed one here.
 		service.notifyModelSwitchedAway(defaultSession, 'copilot/gpt-5.2', 'copilot/claude-sonnet-4.5');
 		const afterUnrelated = service.getSurvey(unrelated)?.status;
 
-		// Moving between two surveyed models is not abandoning the thing being surveyed.
 		service.notifyModelSwitchedAway(defaultSession, 'copilot/auto', 'agent-host-copilotcli:auto');
 
 		assert.deepStrictEqual({
@@ -497,7 +476,6 @@ suite('ChatModelFeedbackSurveyService', () => {
 
 		assert.deepStrictEqual({
 			kinds: events.map(e => e.kind),
-			// The survey is over, so it acknowledges rather than asking again.
 			isSubmitted: service.getSurvey(response)?.isSubmitted,
 		}, {
 			kinds: ['shown', 'opened', 'step', 'submitted'],

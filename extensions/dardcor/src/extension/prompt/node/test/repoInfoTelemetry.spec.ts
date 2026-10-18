@@ -27,7 +27,6 @@ import { URI } from '../../../../util/dardcor/base/common/uri';
 import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { RepoInfoTelemetry } from '../repoInfoTelemetry';
 
-// Import Status enum - use const enum values directly since vitest doesn't handle .d.ts well
 const Status = {
 	INDEX_MODIFIED: 0,
 	INDEX_ADDED: 1,
@@ -65,12 +64,10 @@ suite('RepoInfoTelemetry', () => {
 
 	beforeEach(() => {
 		const services = createPlatformServices();
-		// Register extension-level services not in platform services by default
 		services.define(IGitDiffService, new SyncDescriptor(NullGitDiffService));
 		services.define(IGitExtensionService, new NullGitExtensionService());
 		services.define(IWorkspaceFileIndex, new SyncDescriptor(NullWorkspaceFileIndex));
 
-		// Override IGitService with a proper mock that has an observable activeRepository
 		const activeRepository = observableValue<any>('test-git-activeRepo', undefined);
 		const mockGitService: IGitService = {
 			_serviceBrand: undefined,
@@ -79,8 +76,6 @@ suite('RepoInfoTelemetry', () => {
 			onDidCloseRepository: Event.None,
 			onDidFinishInitialization: Event.None,
 			get repositories() {
-				// Mirror activeRepository so existing tests that only set activeRepository
-				// continue to work after the multi-repo refactor of RepoInfoTelemetry.
 				const repo = activeRepository.get();
 				return repo ? [repo] : [];
 			},
@@ -126,24 +121,17 @@ suite('RepoInfoTelemetry', () => {
 		workspaceFileIndex = accessor.get(IWorkspaceFileIndex);
 		configurationService = accessor.get(IConfigurationService);
 
-		// Create a new mock watcher for each test
 		mockWatcher = new MockFileSystemWatcher();
 
-		// Mock the file system service to return our mock watcher
 		vi.spyOn(fileSystemService, 'createFileSystemWatcher').mockReturnValue(mockWatcher as any);
 
-		// Properly mock the telemetry methods
 		(telemetryService as any).sendMSFTTelemetryEvent = vi.fn();
 		(telemetryService as any).sendInternalMSFTTelemetryEvent = vi.fn();
 		(telemetryService as any).sendEnhancedGHTelemetryEvent = vi.fn();
 	});
 
-	// ========================================
-	// Basic Telemetry Flow Tests
-	// ========================================
 
 	test('should not send any telemetry for non-internal users', async () => {
-		// Setup: non-internal user
 		const nonInternalToken = new CopilotToken(createTestExtendedTokenInfo({
 			token: 'test-token',
 			sku: 'free_limited_dardcor',
@@ -156,7 +144,6 @@ suite('RepoInfoTelemetry', () => {
 		}));
 		dardcorTokenStore.dardcorToken = nonInternalToken;
 
-		// Setup: mock git service to have a repository
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 		mockGitDiffService([{ uri: '/test/repo/file.ts', diff: 'some diff' }]);
@@ -177,13 +164,11 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 		await repoTelemetry.sendEndTelemetry();
 
-		// Assert: no telemetry sent for non-internal users
 		assert.strictEqual((telemetryService.sendMSFTTelemetryEvent as any).mock.calls.length, 0, 'sendMSFTTelemetryEvent should not be called for non-internal users');
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 0, 'sendInternalMSFTTelemetryEvent should not be called for non-internal users');
 	});
 
 	test('should send telemetry for internal users', async () => {
-		// Setup: internal user
 		setupInternalUser();
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
@@ -204,13 +189,11 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: begin telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[0], 'request.repoInfo');
 		assert.strictEqual(call[1].location, 'begin');
 		assert.strictEqual(call[1].telemetryMessageId, 'test-message-id');
-		// Check measurements parameter exists
 		assert.ok(call[2], 'measurements parameter should be present');
 		assert.strictEqual(typeof call[2].workspaceFileCount, 'number');
 	});
@@ -238,7 +221,6 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: only one begin telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 	});
 
@@ -264,7 +246,6 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 		await repoTelemetry.sendEndTelemetry();
 
-		// Assert: both begin and end telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 2);
 		const beginCall = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		const endCall = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[1];
@@ -296,7 +277,6 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 		await repoTelemetry.sendEndTelemetry();
 
-		// Assert: both begin and end telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 2);
 		const beginCall = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		const endCall = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[1];
@@ -311,7 +291,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock: no changes from upstream
 		vi.spyOn(gitService, 'diffWith').mockResolvedValue([]);
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -330,7 +309,6 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 		await repoTelemetry.sendEndTelemetry();
 
-		// Assert: both begin and end telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 2);
 		const beginCall = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		const endCall = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[1];
@@ -345,7 +323,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock: too many changes (failure result)
 		const manyChanges = Array.from({ length: 101 }, (_, i) => ({
 			uri: URI.file(`/test/repo/file${i}.ts`),
 			originalUri: URI.file(`/test/repo/file${i}.ts`),
@@ -370,21 +347,16 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 		await repoTelemetry.sendEndTelemetry();
 
-		// Assert: only begin telemetry sent, end was skipped
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const beginCall = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(beginCall[1].location, 'begin');
 		assert.strictEqual(beginCall[1].result, 'tooManyChanges');
 	});
 
-	// ========================================
-	// Git Repository Detection Tests
-	// ========================================
 
 	test('should not send telemetry when no active repository', async () => {
 		setupInternalUser();
 
-		// Mock: no active repository
 		vi.spyOn(gitService.activeRepository, 'get').mockReturnValue(undefined);
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -402,7 +374,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: no telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 0);
 	});
 
@@ -411,7 +382,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock: no changes from upstream
 		vi.spyOn(gitService, 'diffWith').mockResolvedValue([]);
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -429,7 +399,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: telemetry sent with noChanges result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'noChanges');
@@ -441,7 +410,6 @@ suite('RepoInfoTelemetry', () => {
 	test('should not send telemetry when no GitHub or ADO remote', async () => {
 		setupInternalUser();
 
-		// Mock: repository with changes but no GitHub or ADO remote
 		vi.spyOn(gitService.activeRepository, 'get').mockReturnValue({
 			rootUri: URI.file('/test/repo'),
 			changes: {
@@ -472,14 +440,12 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: no telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 0);
 	});
 
 	test('should send telemetry with correct repoType for Azure DevOps repository', async () => {
 		setupInternalUser();
 
-		// Mock: ADO repository
 		vi.spyOn(gitService.activeRepository, 'get').mockReturnValue({
 			rootUri: URI.file('/test/repo'),
 			changes: {
@@ -520,7 +486,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: telemetry sent with repoType = 'ado'
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[0], 'request.repoInfo');
@@ -533,7 +498,6 @@ suite('RepoInfoTelemetry', () => {
 	test('should normalize remote URL when logging telemetry', async () => {
 		setupInternalUser();
 
-		// Mock: repository with SSH-style URL that needs normalization
 		const sshUrl = 'git@github.com:microsoft/vscode.git';
 		vi.spyOn(gitService.activeRepository, 'get').mockReturnValue({
 			rootUri: URI.file('/test/repo'),
@@ -575,7 +539,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: URL is normalized to HTTPS
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].remoteUrl, 'https://github.com/microsoft/vscode.git');
@@ -586,7 +549,6 @@ suite('RepoInfoTelemetry', () => {
 		setupInternalUser();
 		mockGitServiceWithRepository();
 
-		// Mock: no upstream commit
 		mockGitExtensionWithUpstream(undefined);
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -604,7 +566,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: no telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 0);
 	});
 
@@ -629,7 +590,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: telemetry sent with correct properties
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[0], 'request.repoInfo');
@@ -638,22 +598,15 @@ suite('RepoInfoTelemetry', () => {
 		assert.strictEqual(call[1].result, 'success');
 	});
 
-	// ========================================
-	// File System Watching Tests
-	// ========================================
 
 	test('should detect file creation during diff', async () => {
 		setupInternalUser();
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock git diff to trigger file change during execution
 		vi.spyOn(gitService, 'diffWith').mockImplementation(async () => {
-			// Simulate file creation during diff
 			mockWatcher.triggerCreate(URI.file('/test/repo/newfile.ts') as any);
 
-			// Mock a change being returned from diffWith, we don't want to see this in the final telemetry
-			// instead we want to see the 'filesChanged' result due to the file system change
 			return [{
 				uri: URI.file('/test/repo/file.ts'),
 				originalUri: URI.file('/test/repo/file.ts'),
@@ -677,7 +630,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: filesChanged result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'filesChanged');
@@ -689,13 +641,9 @@ suite('RepoInfoTelemetry', () => {
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock git diff to trigger file change during execution
 		vi.spyOn(gitService, 'diffWith').mockImplementation(async () => {
-			// Simulate file modification during diff
 			mockWatcher.triggerChange(URI.file('/test/repo/file.ts') as any);
 
-			// Mock a change being returned from diffWith, we don't want to see this in the final telemetry
-			// instead we want to see the 'filesChanged' result due to the file system change
 			return [{
 				uri: URI.file('/test/repo/file.ts'),
 				originalUri: URI.file('/test/repo/file.ts'),
@@ -719,7 +667,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: filesChanged result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'filesChanged');
@@ -731,13 +678,9 @@ suite('RepoInfoTelemetry', () => {
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock git diff to trigger file change during execution
 		vi.spyOn(gitService, 'diffWith').mockImplementation(async () => {
-			// Simulate file deletion during diff
 			mockWatcher.triggerDelete(URI.file('/test/repo/oldfile.ts') as any);
 
-			// Mock a change being returned from diffWith, we don't want to see this in the final telemetry
-			// instead we want to see the 'filesChanged' result due to the file system change
 			return [{
 				uri: URI.file('/test/repo/file.ts'),
 				originalUri: URI.file('/test/repo/file.ts'),
@@ -761,7 +704,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: filesChanged result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'filesChanged');
@@ -780,9 +722,7 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// Mock git diff service to trigger file change during processing
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockImplementation(async () => {
-			// Simulate file change during diff processing
 			mockWatcher.triggerChange(URI.file('/test/repo/file.ts') as any);
 			return [{
 				uri: URI.file('/test/repo/file.ts'),
@@ -808,7 +748,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: filesChanged result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'filesChanged');
@@ -836,20 +775,15 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: watcher was disposed
 		assert.strictEqual(mockWatcher.isDisposed, true);
 	});
 
-	// ========================================
-	// VFS / Sparse Checkout Tests
-	// ========================================
 
 	test('should skip with virtualFileSystem result when core.virtualfilesystem is set', async () => {
 		setupInternalUser();
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Override getConfig to return a hook path for core.virtualfilesystem (any non-empty string means VFS is active)
 		const mockApi = gitExtensionService.getExtensionApi();
 		const mockRepo = mockApi!.getRepository(URI.file('/test/repo'))!;
 		vi.spyOn(mockRepo, 'getConfig').mockImplementation(async key => {
@@ -879,7 +813,6 @@ suite('RepoInfoTelemetry', () => {
 		assert.strictEqual(call[1].result, 'virtualFileSystem');
 		assert.strictEqual(call[1].diffsJSON, undefined);
 
-		// Ensure expensive diff operations were never called
 		assert.strictEqual((gitService.diffWith as any).mock.calls.length, 0);
 	});
 
@@ -948,9 +881,6 @@ suite('RepoInfoTelemetry', () => {
 		assert.strictEqual((gitService.diffWith as any).mock.calls.length, 0);
 	});
 
-	// ========================================
-	// Commit Count Tests
-	// ========================================
 
 	test('should skip with tooManyCommits result when commit count exceeds limit', async () => {
 		setupInternalUser();
@@ -959,7 +889,6 @@ suite('RepoInfoTelemetry', () => {
 
 		const mockApi = gitExtensionService.getExtensionApi();
 		const mockRepo = mockApi!.getRepository(URI.file('/test/repo'))!;
-		// Return 30 commits (>= MAX_DIFF_COMMITS)
 		vi.spyOn(mockRepo, 'log').mockResolvedValue(
 			Array.from({ length: 30 }, (_, i) => ({ hash: `commit${i}`, message: `msg${i}` })) as any
 		);
@@ -994,7 +923,6 @@ suite('RepoInfoTelemetry', () => {
 
 		const mockApi = gitExtensionService.getExtensionApi();
 		const mockRepo = mockApi!.getRepository(URI.file('/test/repo'))!;
-		// Return 5 commits (below limit)
 		vi.spyOn(mockRepo, 'log').mockResolvedValue(
 			Array.from({ length: 5 }, (_, i) => ({ hash: `commit${i}`, message: `msg${i}` })) as any
 		);
@@ -1050,16 +978,12 @@ suite('RepoInfoTelemetry', () => {
 		assert.strictEqual((gitService.diffWith as any).mock.calls.length, 0);
 	});
 
-	// ========================================
-	// Diff Too Big Tests
-	// ========================================
 
 	test('should detect when there are too many changes', async () => {
 		setupInternalUser();
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Create 101 changes (exceeds MAX_CHANGES of 100)
 		const manyChanges = Array.from({ length: 101 }, (_, i) => ({
 			uri: URI.file(`/test/repo/file${i}.ts`),
 			originalUri: URI.file(`/test/repo/file${i}.ts`),
@@ -1084,7 +1008,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: tooManyChanges result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'tooManyChanges');
@@ -1105,7 +1028,6 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// Create a diff that exceeds both the byte budget (900 KiB) and the character capacity (50 * 8192)
 		const largeDiff = 'x'.repeat(901 * 1024);
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockResolvedValue([{
 			uri: URI.file('/test/repo/file.ts'),
@@ -1130,7 +1052,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: diffTooLarge result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'diffTooLarge');
@@ -1151,8 +1072,6 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// ASCII: ~500K chars = ~500KB bytes. Under the 900 KiB byte budget but over the 50 * 8192 (409600)
-		// character capacity, so it must still be rejected as diffTooLarge.
 		const largeDiff = 'x'.repeat(500 * 1024);
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockResolvedValue([{
 			uri: URI.file('/test/repo/file.ts'),
@@ -1194,8 +1113,6 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// A 3-byte UTF-8 CJK character repeated ~350K times: ~1.05MB bytes (over the 900 KiB byte budget)
-		// but only ~350K characters (under the 50 * 8192 (409600) capacity), so it must be rejected via bytes.
 		const largeDiff = '\u4e2d'.repeat(350 * 1024);
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockResolvedValue([{
 			uri: URI.file('/test/repo/file.ts'),
@@ -1237,7 +1154,6 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// Create a diff whose serialized JSON spans several 8192-char chunks but stays within the cap.
 		const largeDiff = 'x'.repeat(30 * 1024);
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockResolvedValue([{
 			uri: URI.file('/test/repo/file.ts'),
@@ -1262,9 +1178,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: success, and the diffs JSON is multiplexed (via multiplexProperties) across ordered
-		// columns (`diffsJSON`, `diffsJSON_02`, `diffsJSON_03`, ...) that each stay within the 8192-char
-		// per-property budget and losslessly reassemble to the original JSON.
 		const call = (telemetryService.sendEnhancedGHTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'success');
 
@@ -1298,7 +1211,6 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// Create a diff that is within limits
 		const normalDiff = 'some normal diff content';
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockResolvedValue([{
 			uri: URI.file('/test/repo/file.ts'),
@@ -1323,7 +1235,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: success with diff
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'success');
@@ -1399,7 +1310,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: success with all diffs
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'success');
@@ -1446,7 +1356,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: success with rename info
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'success');
@@ -1461,7 +1370,6 @@ suite('RepoInfoTelemetry', () => {
 		setupInternalUser();
 		mockGitServiceWithRepository();
 
-		// Mock git extension with untracked files in both workingTreeChanges and untrackedChanges
 		const mockRepo = {
 			getMergeBase: vi.fn(),
 			getBranchBase: vi.fn(),
@@ -1516,7 +1424,6 @@ suite('RepoInfoTelemetry', () => {
 		};
 		vi.spyOn(gitExtensionService, 'getExtensionApi').mockReturnValue(mockApi as any);
 
-		// Mock diffWith to return one modified file
 		vi.spyOn(gitService, 'diffWith').mockResolvedValue([{
 			uri: URI.file('/test/repo/modified.ts'),
 			originalUri: URI.file('/test/repo/modified.ts'),
@@ -1524,7 +1431,6 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// Mock diff service to return all three files
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockResolvedValue([
 			{
 				uri: URI.file('/test/repo/modified.ts'),
@@ -1564,7 +1470,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: success with all three files in telemetry
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'success');
@@ -1572,22 +1477,17 @@ suite('RepoInfoTelemetry', () => {
 		const diffs = JSON.parse(call[1].diffsJSON);
 		assert.strictEqual(diffs.length, 3, 'Should include 1 modified file + 2 untracked files');
 
-		// Verify all three files are present
 		const uris = diffs.map((d: any) => d.uri);
 		assert.ok(uris.includes('file:///test/repo/modified.ts'), 'Should include modified file');
 		assert.ok(uris.includes('file:///test/repo/filea.txt'), 'Should include filea.txt from workingTreeChanges');
 		assert.ok(uris.includes('file:///test/repo/fileb.txt'), 'Should include fileb.txt from untrackedChanges');
 
-		// Verify statuses
 		const fileaEntry = diffs.find((d: any) => d.uri === 'file:///test/repo/filea.txt');
 		const filebEntry = diffs.find((d: any) => d.uri === 'file:///test/repo/fileb.txt');
 		assert.strictEqual(fileaEntry.status, 'UNTRACKED');
 		assert.strictEqual(filebEntry.status, 'UNTRACKED');
 	});
 
-	// ========================================
-	// Measurements Tests
-	// ========================================
 
 	test('should include workspaceFileCount in measurements', async () => {
 		setupInternalUser();
@@ -1595,7 +1495,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitExtensionWithUpstream('abc123');
 		mockGitDiffService([{ uri: '/test/repo/file.ts', diff: 'some diff' }]);
 
-		// Set a specific file count
 		(workspaceFileIndex as any).fileCount = 250;
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -1613,7 +1512,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: measurements contain workspaceFileCount
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.ok(call[2], 'measurements parameter should exist');
@@ -1625,7 +1523,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock 5 changes
 		const changes = Array.from({ length: 5 }, (_, i) => ({
 			uri: URI.file(`/test/repo/file${i}.ts`),
 			originalUri: URI.file(`/test/repo/file${i}.ts`),
@@ -1660,7 +1557,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: measurements contain changedFileCount
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.ok(call[2], 'measurements parameter should exist');
@@ -1672,7 +1568,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock: no changes from upstream
 		vi.spyOn(gitService, 'diffWith').mockResolvedValue([]);
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -1690,7 +1585,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: changedFileCount is 0
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.ok(call[2], 'measurements parameter should exist');
@@ -1721,7 +1615,6 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 		await repoTelemetry.sendEndTelemetry();
 
-		// Assert: both begin and end have measurements
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 2);
 
 		const beginCall = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
@@ -1747,7 +1640,6 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// Create a diff that exceeds both the byte budget (900 KiB) and the character capacity (50 * 8192)
 		const largeDiff = 'x'.repeat(901 * 1024);
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockResolvedValue([{
 			uri: URI.file('/test/repo/file.ts'),
@@ -1774,7 +1666,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: diffTooLarge result but measurements still present
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'diffTooLarge');
@@ -1788,7 +1679,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Create 101 changes (exceeds MAX_CHANGES of 100)
 		const manyChanges = Array.from({ length: 101 }, (_, i) => ({
 			uri: URI.file(`/test/repo/file${i}.ts`),
 			originalUri: URI.file(`/test/repo/file${i}.ts`),
@@ -1815,7 +1705,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: tooManyChanges result but measurements still present
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'tooManyChanges');
@@ -1847,7 +1736,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: diffSizeBytes measurement is set
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'success');
@@ -1855,7 +1743,6 @@ suite('RepoInfoTelemetry', () => {
 		assert.strictEqual(typeof call[2].diffSizeBytes, 'number');
 		assert.ok(call[2].diffSizeBytes > 0, 'diffSizeBytes should be greater than 0');
 
-		// Calculate expected size from the mock data
 		const expectedDiffsJSON = JSON.stringify([{
 			uri: 'file:///test/repo/file.ts',
 			originalUri: 'file:///test/repo/file.ts',
@@ -1867,16 +1754,12 @@ suite('RepoInfoTelemetry', () => {
 		assert.strictEqual(call[2].diffSizeBytes, expectedSize);
 	});
 
-	// ========================================
-	// Error Handling Tests
-	// ========================================
 
 	test('should handle errors during git diff gracefully', async () => {
 		setupInternalUser();
 		mockGitServiceWithRepository();
 		mockGitExtensionWithUpstream('abc123');
 
-		// Mock git diff to throw error
 		vi.spyOn(gitService, 'diffWith').mockRejectedValue(new Error('Git error'));
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -1892,10 +1775,8 @@ suite('RepoInfoTelemetry', () => {
 			dardcorTokenStore
 		);
 
-		// Should not throw
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: no telemetry sent due to error
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 0);
 	});
 
@@ -1911,7 +1792,6 @@ suite('RepoInfoTelemetry', () => {
 			status: Status.MODIFIED
 		}] as any);
 
-		// Mock diff service to throw error
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockRejectedValue(new Error('Diff processing error'));
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -1927,16 +1807,11 @@ suite('RepoInfoTelemetry', () => {
 			dardcorTokenStore
 		);
 
-		// Should not throw
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: no telemetry sent due to error
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 0);
 	});
 
-	// ========================================
-	// Disable Setting and Merge Base Age Tests
-	// ========================================
 
 	test('should skip telemetry when disableRepoInfoTelemetry setting is enabled', async () => {
 		setupInternalUser();
@@ -1944,7 +1819,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitExtensionWithUpstream('abc123');
 		mockGitDiffService([{ uri: '/test/repo/file.ts', diff: 'some diff' }]);
 
-		// Enable the disable setting
 		(configurationService as InMemoryConfigurationService).setConfig(
 			ConfigKey.TeamInternal.DisableRepoInfoTelemetry, true
 		);
@@ -1964,7 +1838,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: no telemetry sent
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 0);
 	});
 
@@ -1974,13 +1847,12 @@ suite('RepoInfoTelemetry', () => {
 		mockGitExtensionWithUpstream('old-commit-abc');
 		mockGitDiffService([{ uri: '/test/repo/file.ts', diff: 'some diff' }]);
 
-		// Override getCommit to return a commit older than 30 days
 		const mockApi = gitExtensionService.getExtensionApi();
 		const mockRepo = mockApi!.getRepository(URI.file('/test/repo'))!;
 		(mockRepo as any).getCommit.mockResolvedValue({
 			hash: 'old-commit-abc',
 			message: 'old commit',
-			commitDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
+			commitDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
 		});
 
 		const repoTelemetry = new RepoInfoTelemetry(
@@ -1998,7 +1870,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: telemetry sent with mergeBaseTooOld result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'mergeBaseTooOld');
@@ -2011,7 +1882,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitExtensionWithUpstream('recent-commit');
 		mockGitDiffService([{ uri: '/test/repo/file.ts', diff: 'some diff' }]);
 
-		// getCommit already returns a recent commit by default in the mock
 
 		const repoTelemetry = new RepoInfoTelemetry(
 			'test-message-id',
@@ -2028,7 +1898,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: telemetry sent with success result (not mergeBaseTooOld)
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'success');
@@ -2040,7 +1909,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitExtensionWithUpstream('abc123');
 		mockGitDiffService([{ uri: '/test/repo/file.ts', diff: 'some diff' }]);
 
-		// Override getCommit to throw
 		const mockApi = gitExtensionService.getExtensionApi();
 		const mockRepo = mockApi!.getRepository(URI.file('/test/repo'))!;
 		(mockRepo as any).getCommit.mockRejectedValue(new Error('Failed to get commit'));
@@ -2060,7 +1928,6 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: telemetry sent with mergeBaseTooOld result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'mergeBaseTooOld');
@@ -2072,7 +1939,6 @@ suite('RepoInfoTelemetry', () => {
 		mockGitExtensionWithUpstream('abc123');
 		mockGitDiffService([{ uri: '/test/repo/file.ts', diff: 'some diff' }]);
 
-		// Override getCommit to return a commit without a date
 		const mockApi = gitExtensionService.getExtensionApi();
 		const mockRepo = mockApi!.getRepository(URI.file('/test/repo'))!;
 		(mockRepo as any).getCommit.mockResolvedValue({
@@ -2096,15 +1962,11 @@ suite('RepoInfoTelemetry', () => {
 
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
-		// Assert: telemetry sent with mergeBaseTooOld result
 		assert.strictEqual((telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls.length, 1);
 		const call = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls[0];
 		assert.strictEqual(call[1].result, 'mergeBaseTooOld');
 	});
 
-	// ========================================
-	// Multi-Repository Tests
-	// ========================================
 
 	test('should send one telemetry event per repository in a multi-repo workspace', async () => {
 		setupInternalUser();
@@ -2183,7 +2045,6 @@ suite('RepoInfoTelemetry', () => {
 
 		const repoAUri = URI.file('/test/repoA');
 		const repoBUri = URI.file('/test/repoB');
-		// Repo A: success path (1 change). Repo B: tooManyChanges (101 changes).
 		mockMultiRepoSetup([
 			{ rootUri: repoAUri, remoteUrl: 'https://github.com/microsoft/vscode.git' },
 			{ rootUri: repoBUri, remoteUrl: 'https://github.com/microsoft/typescript.git', changeCount: 101 },
@@ -2205,7 +2066,6 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 		await repoTelemetry.sendEndTelemetry();
 
-		// 2 begin events (one per repo) + 1 end event (only the success repo)
 		const calls = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls;
 		assert.strictEqual(calls.length, 3);
 
@@ -2220,7 +2080,6 @@ suite('RepoInfoTelemetry', () => {
 	test('should cap telemetry at 5 repos with active repo always included', async () => {
 		setupInternalUser();
 
-		// 7 repos total; active repo is the 6th one (would normally be excluded by a naive slice).
 		const repos = Array.from({ length: 7 }, (_, i) => ({
 			rootUri: URI.file(`/test/repo${i}`),
 			remoteUrl: `https://github.com/microsoft/repo${i}.git`,
@@ -2244,23 +2103,17 @@ suite('RepoInfoTelemetry', () => {
 		await repoTelemetry.sendBeginTelemetryIfNeeded();
 
 		const calls = (telemetryService.sendInternalMSFTTelemetryEvent as any).mock.calls;
-		// Capped at 5 events even though 7 repos exist.
 		assert.strictEqual(calls.length, 5);
 
-		// Every event reports the TRUE repoCount (7), not the capped count.
 		for (const call of calls) {
 			assert.strictEqual(call[2].repoCount, 7);
 		}
 
-		// Active repo must be present exactly once and marked as active.
 		const activeCalls = calls.filter((c: any) => c[1].isActiveRepository === 'true');
 		assert.strictEqual(activeCalls.length, 1);
 		assert.strictEqual(activeCalls[0][1].remoteUrl, 'https://github.com/microsoft/repo5.git');
 	});
 
-	// ========================================
-	// Helper Functions
-	// ========================================
 
 	function setupInternalUser() {
 		const internalToken = new CopilotToken(createTestExtendedTokenInfo({
@@ -2268,7 +2121,7 @@ suite('RepoInfoTelemetry', () => {
 			sku: 'free_limited_dardcor',
 			expires_at: 9999999999,
 			refresh_in: 180000,
-			organization_list: ['4535c7beffc844b46bb1ed4aa04d759a'], // GitHub org for internal users
+			organization_list: ['4535c7beffc844b46bb1ed4aa04d759a'],
 			isVscodeTeamMember: true,
 			username: 'testUser',
 			dardcor_plan: 'unknown',
@@ -2325,7 +2178,6 @@ suite('RepoInfoTelemetry', () => {
 			},
 		};
 
-		// Set up getMergeBase to return upstreamCommit when called with 'HEAD' and '@upstream'
 		mockRepo.getMergeBase.mockImplementation(async (ref1: string, ref2: string) => {
 			if (ref1 === 'HEAD' && ref2 === '@{upstream}') {
 				return upstreamCommit;
@@ -2333,10 +2185,8 @@ suite('RepoInfoTelemetry', () => {
 			return undefined;
 		});
 
-		// Set up getBranchBase to return undefined by default
 		mockRepo.getBranchBase.mockResolvedValue(undefined);
 
-		// Set up getCommit to return a recent commit by default
 		mockRepo.getCommit.mockResolvedValue({
 			hash: upstreamCommit ?? 'abc123',
 			message: 'test commit',
@@ -2350,7 +2200,6 @@ suite('RepoInfoTelemetry', () => {
 	}
 
 	function mockGitDiffService(diffs: any[]) {
-		// Mock diffWith to return Change objects
 		const changes = diffs.map(d => ({
 			uri: URI.file(d.uri || '/test/repo/file.ts'),
 			originalUri: URI.file(d.originalUri || d.uri || '/test/repo/file.ts'),
@@ -2362,7 +2211,6 @@ suite('RepoInfoTelemetry', () => {
 			diffs.length > 0 ? changes as any : []
 		);
 
-		// Mock getWorkingTreeDiffsFromRef to return Diff objects (Change + diff property)
 		vi.spyOn(gitDiffService, 'getWorkingTreeDiffsFromRef').mockResolvedValue(
 			diffs.map(d => ({
 				uri: URI.file(d.uri || '/test/repo/file.ts'),
@@ -2407,8 +2255,6 @@ suite('RepoInfoTelemetry', () => {
 			get: () => repoContexts,
 		});
 
-		// Per-repo git extension API: getRepository(uri) returns a mock repo with the upstream
-		// configured to point at <remoteUrl>.
 		const reposByPath = new Map<string, any>();
 		for (const ctx of repoContexts) {
 			const r = repos.find(x => x.rootUri.toString() === ctx.rootUri.toString())!;
@@ -2438,7 +2284,6 @@ suite('RepoInfoTelemetry', () => {
 			getRepository: (uri: URI) => reposByPath.get(uri.toString()),
 		} as any);
 
-		// diffWith: synthesize <changeCount> changes for this repo
 		vi.spyOn(gitService, 'diffWith').mockImplementation(async (uri: URI) => {
 			const r = repos.find(x => x.rootUri.toString() === uri.toString());
 			const count = r?.changeCount ?? 1;
@@ -2465,9 +2310,6 @@ suite('RepoInfoTelemetry', () => {
 	}
 });
 
-// ========================================
-// Mock File System Watcher
-// ========================================
 
 class MockFileSystemWatcher implements FileSystemWatcher {
 	private _createHandlers: ((e: Uri) => any)[] = [];

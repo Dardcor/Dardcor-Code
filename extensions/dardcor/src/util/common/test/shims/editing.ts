@@ -17,7 +17,6 @@ export interface WorkspaceEditEntryMetadata {
 	needsConfirmation: boolean;
 	label: string;
 	description?: string;
-	// iconPath?: Uri | { light: Uri; dark: Uri } | ThemeIcon;
 }
 
 export interface IFileOperationOptions {
@@ -68,7 +67,6 @@ export class WorkspaceEdit {
 		return this._edits;
 	}
 
-	// --- file
 
 	renameFile(
 		from: Uri,
@@ -95,7 +93,6 @@ export class WorkspaceEdit {
 		this._edits.push({ _type: FileEditType.File, from: uri, to: undefined, options, metadata });
 	}
 
-	// --- text
 
 	replace(uri: Uri, range: Range, newText: string, metadata?: WorkspaceEditEntryMetadata): void {
 		this._edits.push({ _type: FileEditType.Text, uri, edit: new TextEdit(range, newText), metadata });
@@ -109,7 +106,6 @@ export class WorkspaceEdit {
 		this.replace(resource, range, '', metadata);
 	}
 
-	// --- text (Maplike)
 
 	has(uri: Uri): boolean {
 		return this._edits.some(edit => edit._type === FileEditType.Text && edit.uri.toString() === uri.toString());
@@ -126,21 +122,19 @@ export class WorkspaceEdit {
 			| ReadonlyArray<TextEdit | SnippetTextEdit | [TextEdit | SnippetTextEdit, WorkspaceEditEntryMetadata]>
 	): void {
 		if (!edits) {
-			// remove all text, snippet, or notebook edits for `uri`
 			for (let i = 0; i < this._edits.length; i++) {
 				const element = this._edits[i];
 				switch (element._type) {
 					case FileEditType.Text:
 					case FileEditType.Snippet:
 						if (element.uri.toString() === uri.toString()) {
-							this._edits[i] = undefined!; // will be coalesced down below
+							this._edits[i] = undefined!;
 						}
 						break;
 				}
 			}
 			coalesceInPlace(this._edits);
 		} else {
-			// append edit to the end
 			for (const editOrTuple of edits) {
 				if (!editOrTuple) {
 					continue;
@@ -203,31 +197,14 @@ export class WorkspaceEdit {
 }
 
 
-/**
- * Represents sources that can cause {@link window.onDidChangeTextEditorSelection selection change events}.
- */
 export enum TextEditorSelectionChangeKind {
-	/**
-	 * Selection changed due to typing in the editor.
-	 */
 	Keyboard = 1,
-	/**
-	 * Selection change due to clicking in the editor.
-	 */
 	Mouse = 2,
-	/**
-	 * Selection changed because a command ran.
-	 */
 	Command = 3
 }
 
-/**
- * Reasons for why a text document has changed.
- */
 export enum TextDocumentChangeReason {
-	/** The text change is caused by an undo operation. */
 	Undo = 1,
 
-	/** The text change is caused by an redo operation. */
 	Redo = 2,
 }

@@ -9,9 +9,6 @@ export function clamp(value: number, min: number, max: number): number {
 	return Math.min(Math.max(value, min), max);
 }
 
-/**
- * Formats a token count for compact display (e.g. `128K`, `1M`, `1.5M`).
- */
 export function formatTokenCount(count: number): string {
 	if (count >= 1_000_000) {
 		const value = count / 1_000_000;
@@ -88,7 +85,6 @@ export class SlidingWindowAverage {
 	}
 }
 
-/** Returns whether the point is within the triangle formed by the following 6 x/y point pairs */
 export function isPointWithinTriangle(
 	x: number, y: number,
 	ax: number, ay: number,

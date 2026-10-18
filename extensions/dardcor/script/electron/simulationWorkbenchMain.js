@@ -78,7 +78,6 @@ app.on('activate', function () {
 	}
 });
 
-// change to configure logging, e.g., to `console.debug`
 const log = {
 	debug: (..._args) => { }
 };

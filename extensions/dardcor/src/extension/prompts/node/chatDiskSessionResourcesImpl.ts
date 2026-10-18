@@ -12,25 +12,12 @@ import { ResourceMap } from '../../../util/dardcor/base/common/map';
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { FileTree, IChatDiskSessionResources } from '../common/chatDiskSessionResources';
 
-/**
- * Directory name for session resources storage within extension storage.
- */
 const SESSION_RESOURCES_DIR_NAME = 'chat-session-resources';
 
-/**
- * Retention period in milliseconds (8 hours).
- */
 const RETENTION_PERIOD_MS = 8 * 60 * 60 * 1000;
 
-/**
- * How often to run cleanup (1 hour).
- */
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
-/**
- * Sanitizes a string to only contain alphanumeric characters, underscores, and dashes.
- * This prevents path injection attacks.
- */
 function sanitizePathComponent(str: string): string {
 	return str.replace(/[^a-zA-Z0-9_.-]/g, '_');
 }
@@ -55,14 +42,12 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 			? URI.joinPath(this.extensionContext.storageUri, SESSION_RESOURCES_DIR_NAME)
 			: undefined;
 
-		// Schedule periodic cleanup
 		this.cleanupTimer = setInterval(() => {
 			this.currentCleanup = this.cleanupStaleResources().catch(err => {
 				this.logService.warn(`[ChatDiskSessionResources] Cleanup error: ${err}`);
 			});
 		}, CLEANUP_INTERVAL_MS);
 
-		// Run initial cleanup
 		this.currentCleanup = this.cleanupStaleResources().catch(err => {
 			this.logService.warn(`[ChatDiskSessionResources] Initial cleanup error: ${err}`);
 		});
@@ -86,16 +71,12 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 
 		const targetDir = URI.joinPath(this.baseStorageUri, sanitizedSessionId, sanitizedSubdir);
 
-		// Ensure directory exists
 		await this.ensureDirectoryExists(targetDir);
 
-		// Write files only if they don't already exist
 		if (typeof files === 'string') {
-			// Single file content - write as content.txt
 			const fileUri = URI.joinPath(targetDir, 'content.txt');
 			await this.writeFileIfNotExists(fileUri, files);
 		} else {
-			// FileTree structure
 			await this.writeFileTree(targetDir, files);
 		}
 
@@ -107,7 +88,6 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 		if (!this.baseStorageUri) {
 			return false;
 		}
-		// Check if the URI starts with our base storage path
 		const basePath = this.baseStorageUri.path.toLowerCase();
 		const uriPath = uri.path.toLowerCase();
 		return uri.scheme === this.baseStorageUri.scheme && uriPath.startsWith(basePath);
@@ -119,10 +99,8 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 			const targetPath = URI.joinPath(baseDir, sanitizedName);
 
 			if (typeof content === 'string') {
-				// It's a file - only write if it doesn't exist
 				await this.writeFileIfNotExists(targetPath, content);
 			} else if (content !== undefined) {
-				// It's a directory
 				await this.ensureDirectoryExists(targetPath);
 				await this.writeFileTree(targetPath, content);
 			}
@@ -132,10 +110,8 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 	private async writeFileIfNotExists(uri: URI, content: string): Promise<void> {
 		try {
 			await this.fileSystem.stat(uri);
-			// File exists, just mark as accessed
 			this.markAccessed(uri);
 		} catch {
-			// File doesn't exist, write it
 			await this.fileSystem.writeFile(uri, new TextEncoder().encode(content));
 			this.markAccessed(uri);
 		}
@@ -145,12 +121,10 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 		try {
 			const stat = await this.fileSystem.stat(dir);
 			if (stat.type !== FileType.Directory) {
-				// It exists but is not a directory - this shouldn't happen
 				await this.fileSystem.delete(dir, { recursive: false });
 				await this.fileSystem.createDirectory(dir);
 			}
 		} catch {
-			// Directory doesn't exist, create it
 			await this.fileSystem.createDirectory(dir);
 		}
 	}
@@ -165,21 +139,18 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 		}
 
 		try {
-			// Check if base directory exists
 			try {
 				const stat = await this.fileSystem.stat(this.baseStorageUri);
 				if (stat.type !== FileType.Directory) {
 					return;
 				}
 			} catch {
-				// Directory doesn't exist, nothing to clean up
 				return;
 			}
 
 			const now = Date.now();
 			const cutoffTime = now - RETENTION_PERIOD_MS;
 
-			// Read all session directories
 			const entries = await this.fileSystem.readDirectory(this.baseStorageUri);
 			const sessionDirs = entries.filter(([, type]) => type === FileType.Directory);
 
@@ -188,7 +159,6 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 				await this.cleanupSessionDirectory(sessionUri, cutoffTime);
 			}
 
-			// Clean up empty session directories
 			for (const [sessionName] of sessionDirs) {
 				const sessionUri = URI.joinPath(this.baseStorageUri, sessionName);
 				try {
@@ -198,7 +168,6 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 						this.logService.debug(`[ChatDiskSessionResources] Deleted empty session directory: ${sessionUri.fsPath}`);
 					}
 				} catch {
-					// Ignore errors when checking/deleting empty directories
 				}
 			}
 		} catch (error) {
@@ -213,24 +182,20 @@ export class ChatDiskSessionResources extends Disposable implements IChatDiskSes
 			for (const [name, type] of entries) {
 				const entryUri = URI.joinPath(sessionUri, name);
 
-				// Check in-memory timestamp first
 				const accessTime = this.accessTimestamps.get(entryUri);
 				if (accessTime && accessTime >= cutoffTime) {
-					continue; // Still fresh
+					continue;
 				}
 
-				// Fall back to file system mtime
 				try {
 					const stat = await this.fileSystem.stat(entryUri);
 					if (stat.mtime >= cutoffTime) {
 						this.accessTimestamps.set(entryUri, stat.mtime);
-						continue; // Still fresh
+						continue;
 					}
 				} catch {
-					// If we can't stat, assume it's stale
 				}
 
-				// Delete stale entry
 				try {
 					await this.fileSystem.delete(entryUri, { recursive: type === FileType.Directory });
 					this.accessTimestamps.delete(entryUri);

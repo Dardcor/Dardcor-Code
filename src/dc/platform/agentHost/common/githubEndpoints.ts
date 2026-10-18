@@ -6,33 +6,15 @@
 import { URI } from '../../../base/common/uri.js';
 import { ProtectedResourceMetadata } from './state/protocol/state.js';
 
-/**
- * The GitHub endpoints an agent host talks to, derived from an optional
- * GitHub Enterprise base URI. All values are string URIs with no trailing slash.
- */
 export interface IGitHubEndpoints {
-	/** REST API base (e.g. `https://api.github.com`), used as the resource identifier and the REST host. */
 	readonly apiBaseUri: string;
-	/** GraphQL endpoint (distinct from `apiBaseUri` for on-prem: `/api/graphql`, not `/api/v3/graphql`). */
 	readonly graphQlUri: string;
-	/** OAuth authorization server URI, advertised in `authorization_servers`. */
 	readonly oauthServer: string;
-	/**
-	 * The configured GitHub Enterprise host (authority only, e.g. `acme.ghe.com`),
-	 * or `undefined` for github.com. Used to point the Copilot CLI at an enterprise
-	 * host via `COPILOT_GH_HOST`.
-	 */
 	readonly enterpriseHost: string | undefined;
 }
 
-/**
- * The github.com Copilot API host. Distinct from {@link IGitHubEndpoints.apiBaseUri}
- * (`api.github.com`): enterprise installs override this per user via the Copilot token's
- * `endpoints.api`, which is not derivable from the enterprise URI.
- */
 export const GITHUB_DOT_COM_COPILOT_API_BASE_URI = 'https://api.githubcopilot.com';
 
-/** Canonical github.com endpoints, used when no enterprise URI is configured. */
 const GITHUB_DOT_COM_ENDPOINTS: IGitHubEndpoints = {
 	apiBaseUri: 'https://api.github.com',
 	graphQlUri: 'https://api.github.com/graphql',
@@ -40,20 +22,6 @@ const GITHUB_DOT_COM_ENDPOINTS: IGitHubEndpoints = {
 	enterpriseHost: undefined,
 };
 
-/**
- * Derives the {@link IGitHubEndpoints} for a GitHub Enterprise base URI, mirroring
- * the URL derivation in the built-in `github-authentication` extension
- * (`githubServer.ts` / `common/env.ts`):
- *
- * - unset / empty / unparseable → github.com defaults (byte-for-byte, preserving
- *   the resource identifiers used by every non-enterprise install).
- * - GitHub Enterprise **Cloud** (authority ends in `.ghe.com`) → API on an `api.`
- *   subdomain: `https://api.<authority>`.
- * - GitHub Enterprise **Server** (on-prem) → API under `/api/v3`, GraphQL under
- *   `/api/graphql`.
- *
- * The OAuth server is always `<scheme>://<authority>/login/oauth` for enterprise.
- */
 export function deriveGitHubEndpoints(enterpriseUri: string | undefined): IGitHubEndpoints {
 	if (!enterpriseUri) {
 		return GITHUB_DOT_COM_ENDPOINTS;
@@ -71,9 +39,6 @@ export function deriveGitHubEndpoints(enterpriseUri: string | undefined): IGitHu
 		return GITHUB_DOT_COM_ENDPOINTS;
 	}
 
-	// A github.com authority is never a GitHub Enterprise host — treat it as the
-	// default rather than deriving a nonsensical `github.com/api/v3`. Guards the
-	// case where the enterprise host can't be resolved and falls back to github.com.
 	if (authority === 'github.com' || authority === 'www.github.com' || authority === 'api.github.com') {
 		return GITHUB_DOT_COM_ENDPOINTS;
 	}
@@ -88,10 +53,6 @@ export function deriveGitHubEndpoints(enterpriseUri: string | undefined): IGitHu
 	};
 }
 
-/**
- * Derives the official GitHub MCP server URL from the per-user Copilot API
- * endpoint returned by `/copilot_internal/user`.
- */
 export function gitHubMcpServerUrl(copilotApiBaseUri: string | undefined): string | undefined {
 	try {
 		const uri = URI.parse(copilotApiBaseUri ?? GITHUB_DOT_COM_COPILOT_API_BASE_URI, true);
@@ -104,10 +65,6 @@ export function gitHubMcpServerUrl(copilotApiBaseUri: string | undefined): strin
 	}
 }
 
-/**
- * The GitHub Copilot protected resource for the given endpoints. Shared by the
- * endpoint service and tests so the resource identity is defined once.
- */
 export function gitHubCopilotResource(endpoints: IGitHubEndpoints): ProtectedResourceMetadata {
 	return {
 		resource: endpoints.apiBaseUri,
@@ -118,7 +75,6 @@ export function gitHubCopilotResource(endpoints: IGitHubEndpoints): ProtectedRes
 	};
 }
 
-/** The GitHub repository protected resource for the given endpoints. */
 export function gitHubRepoResource(endpoints: IGitHubEndpoints): ProtectedResourceMetadata {
 	return {
 		resource: `${endpoints.apiBaseUri}/repos`,

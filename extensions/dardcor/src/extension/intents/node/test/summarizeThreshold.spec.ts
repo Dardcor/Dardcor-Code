@@ -20,9 +20,7 @@ describe('resolveSummarizeThresholdTokens', () => {
 	test('ratio values (0 < value <= 1) resolve against the effective window', () => {
 		expect(resolveSummarizeThresholdTokens(0.8, maxTokens, settingId)).toBe(160_000);
 		expect(resolveSummarizeThresholdTokens(0.5, maxTokens, settingId)).toBe(100_000);
-		// value === 1 is a valid ratio (the whole window), not an absolute count.
 		expect(resolveSummarizeThresholdTokens(1, maxTokens, settingId)).toBe(maxTokens);
-		// Always at least 1 token so the budget never collapses to 0.
 		expect(resolveSummarizeThresholdTokens(0.000001, 100, settingId)).toBe(1);
 	});
 

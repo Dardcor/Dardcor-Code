@@ -27,7 +27,6 @@ export class ExtHostNotebookEditors implements ExtHostNotebookEditorsShape {
 	$acceptEditorPropertiesChanged(id: string, data: INotebookEditorPropertiesChangeData): void {
 		this._logService.debug('ExtHostNotebook#$acceptEditorPropertiesChanged', id, data);
 		const editor = this._notebooksAndEditors.getEditorById(id);
-		// ONE: make all state updates
 		if (data.visibleRanges) {
 			editor._acceptVisibleRanges(data.visibleRanges.ranges.map(typeConverters.NotebookRange.to));
 		}
@@ -35,7 +34,6 @@ export class ExtHostNotebookEditors implements ExtHostNotebookEditorsShape {
 			editor._acceptSelections(data.selections.selections.map(typeConverters.NotebookRange.to));
 		}
 
-		// TWO: send all events after states have been updated
 		if (data.visibleRanges) {
 			this._onDidChangeNotebookEditorVisibleRanges.fire({
 				notebookEditor: editor.apiEditor,

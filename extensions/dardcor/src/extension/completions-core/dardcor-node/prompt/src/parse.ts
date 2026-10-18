@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import Parser from 'web-tree-sitter';
-import { CopilotPromptLoadFailure } from './error';
+import { DardcorPromptLoadFailure } from './error';
 import { locateFile, readFile } from './fileLoader';
 
 export enum WASMLanguage {
@@ -36,8 +36,6 @@ const languageIdToWasmLanguageMapping: { [language: string]: WASMLanguage } = {
 };
 
 export function isSupportedLanguageId(languageId: string): boolean {
-	// Temporarily disable C# support until the tree-sitter parser for it is
-	// fully spec-ed.
 	return (
 		languageId in languageIdToWasmLanguageMapping &&
 		languageId !== 'csharp' &&
@@ -58,14 +56,12 @@ export function languageIdToWasmLanguage(languageId: string): WASMLanguage {
 const languageLoadPromises = new Map<WASMLanguage, Promise<Parser.Language>>();
 
 async function loadWasmLanguage(language: WASMLanguage): Promise<Parser.Language> {
-	// construct a path that works both for the TypeScript source, which lives under `/src`, and for
-	// the transpiled JavaScript, which lives under `/dist`
 	let wasmBytes;
 	try {
 		wasmBytes = await readFile(`tree-sitter-${language}.wasm`);
 	} catch (e: unknown) {
 		if (e instanceof Error && 'code' in e && typeof e.code === 'string' && e.name === 'Error') {
-			throw new CopilotPromptLoadFailure(`Could not load tree-sitter-${language}.wasm`, e);
+			throw new DardcorPromptLoadFailure(`Could not load tree-sitter-${language}.wasm`, e);
 		}
 		throw e;
 	}
@@ -76,9 +72,6 @@ export function getLanguage(language: string): Promise<Parser.Language> {
 	const wasmLanguage = languageIdToWasmLanguage(language);
 
 	if (!languageLoadPromises.has(wasmLanguage)) {
-		// IMPORTANT: This function does not have an async signature to prevent interleaved execution
-		// that can cause duplicate loading of the same language during yields/awaits prior to them
-		// being added to the cache.
 		const loadedLang = loadWasmLanguage(wasmLanguage);
 		languageLoadPromises.set(wasmLanguage, loadedLang);
 	}
@@ -92,14 +85,11 @@ class WrappedError extends Error {
 	}
 }
 
-// This method returns a tree that the user needs to call `.delete()` before going out of scope.
 export async function parseTreeSitter(language: string, source: string): Promise<Parser.Tree> {
 	return (await parseTreeSitterIncludingVersion(language, source))[0];
 }
 
-// This method returns a tree that the user needs to call `.delete()` before going out of scope.
 export async function parseTreeSitterIncludingVersion(language: string, source: string): Promise<[Parser.Tree, number]> {
-	// `Parser.init` needs to be called before `new Parser()` below
 	await Parser.init({
 		locateFile: (filename: string) => locateFile(filename),
 	});
@@ -122,7 +112,6 @@ export async function parseTreeSitterIncludingVersion(language: string, source: 
 	parser.setLanguage(treeSitterLanguage);
 	const parsedTree = parser.parse(source);
 
-	// Need to delete parser objects directly
 	parser.delete();
 	return [parsedTree, treeSitterLanguage.version];
 }
@@ -149,10 +138,8 @@ export function getBlockCloseToken(language: string): string | null {
 function innerQuery(queries: [string, Parser.Query?][], root: Parser.SyntaxNode): Parser.QueryMatch[] {
 	const matches = [];
 	for (const query of queries) {
-		// parse and cache query if this is the first time we've used it
 		if (!query[1]) {
 			const lang = root.tree.getLanguage();
-			// cache parsed query object
 			query[1] = lang.query(query[0]);
 		}
 		matches.push(...query[1].matches(root));

@@ -171,7 +171,6 @@ suite('processReply', () => {
 	`);
 	});
 
-	// TODO@ulugbekna: handle this case
 	test('JSON object', () => {
 		const input = outdent`
 		{
@@ -262,29 +261,24 @@ suite('preprocessSymbolNames', () => {
 	});
 });
 
-suite('shouldShowQuotaExceededDialog', () => {
+suite('shouldShowRouterLimitWarning', () => {
 	test('shows for manual invoke + quota exceeded', () => {
-		expect(RenameSuggestionsProvider.shouldShowQuotaExceededDialog(NewSymbolNameTriggerKind.Invoke, ChatFetchResponseType.QuotaExceeded, false)).toBe(true);
+		expect(RenameSuggestionsProvider.shouldShowRouterLimitWarning(NewSymbolNameTriggerKind.Invoke, ChatFetchResponseType.QuotaExceeded)).toBe(true);
 	});
 
-	test('shows for manual invoke + rate limited + no-auth user', () => {
-		expect(RenameSuggestionsProvider.shouldShowQuotaExceededDialog(NewSymbolNameTriggerKind.Invoke, ChatFetchResponseType.RateLimited, true)).toBe(true);
-	});
-
-	test('does not show for manual invoke + rate limited + signed-in user', () => {
-		expect(RenameSuggestionsProvider.shouldShowQuotaExceededDialog(NewSymbolNameTriggerKind.Invoke, ChatFetchResponseType.RateLimited, false)).toBe(false);
+	test('shows for manual invoke + rate limited', () => {
+		expect(RenameSuggestionsProvider.shouldShowRouterLimitWarning(NewSymbolNameTriggerKind.Invoke, ChatFetchResponseType.RateLimited)).toBe(true);
 	});
 
 	test('does not show for manual invoke + success', () => {
-		expect(RenameSuggestionsProvider.shouldShowQuotaExceededDialog(NewSymbolNameTriggerKind.Invoke, ChatFetchResponseType.Success, false)).toBe(false);
+		expect(RenameSuggestionsProvider.shouldShowRouterLimitWarning(NewSymbolNameTriggerKind.Invoke, ChatFetchResponseType.Success)).toBe(false);
 	});
 
-	// Regression test for https://github.com/microsoft/vscode/issues/319414
 	test('does not show for automatic trigger + quota exceeded', () => {
-		expect(RenameSuggestionsProvider.shouldShowQuotaExceededDialog(NewSymbolNameTriggerKind.Automatic, ChatFetchResponseType.QuotaExceeded, false)).toBe(false);
+		expect(RenameSuggestionsProvider.shouldShowRouterLimitWarning(NewSymbolNameTriggerKind.Automatic, ChatFetchResponseType.QuotaExceeded)).toBe(false);
 	});
 
-	test('does not show for automatic trigger + rate limited + no-auth user', () => {
-		expect(RenameSuggestionsProvider.shouldShowQuotaExceededDialog(NewSymbolNameTriggerKind.Automatic, ChatFetchResponseType.RateLimited, true)).toBe(false);
+	test('does not show for automatic trigger + rate limited', () => {
+		expect(RenameSuggestionsProvider.shouldShowRouterLimitWarning(NewSymbolNameTriggerKind.Automatic, ChatFetchResponseType.RateLimited)).toBe(false);
 	});
 });

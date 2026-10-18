@@ -90,9 +90,6 @@ export class MainThreadGitExtensionService extends Disposable implements MainThr
 	}
 
 	private async _initializeDelegate(): Promise<void> {
-		// Check whether the vscode.git extension is available in the extension host
-		// process before setting the delegate. The delegate should only be set once,
-		// for the extension host process that runs the vscode.git extension
 		const isExtensionAvailable = await this._proxy.$isGitExtensionAvailable();
 
 		if (isExtensionAvailable && !this._store.isDisposed) {
@@ -102,7 +99,6 @@ export class MainThreadGitExtensionService extends Disposable implements MainThr
 
 	async openRepository(uri: URI): Promise<IGitRepository | undefined> {
 		return this._openRepositorySequencer.queue(async () => {
-			// Open the repository
 			const result = await this._proxy.$openRepository(uri);
 			if (!result) {
 				return undefined;
@@ -110,14 +106,12 @@ export class MainThreadGitExtensionService extends Disposable implements MainThr
 
 			const repositoryRootUri = URI.revive(result.rootUri);
 
-			// Create a new repository and store it in the maps
 			const state = toGitRepositoryState(result.state);
 			const repository = new GitRepository(repositoryRootUri, state, this);
 
 			this._repositories.set(result.handle, repository);
 			this._repositoryHandles.set(repositoryRootUri, result.handle);
 
-			// Wait for the repository to be fully initialized before returning it
 			await waitForState(repository.state, state => state.HEAD !== undefined);
 
 			return repository;
@@ -173,7 +167,6 @@ export class MainThreadGitExtensionService extends Disposable implements MainThr
 			return;
 		}
 
-		// Update the repository state
 		repository.updateState(toGitRepositoryState(state));
 	}
 }

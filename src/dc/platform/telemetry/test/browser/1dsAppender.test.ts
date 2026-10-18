@@ -19,7 +19,6 @@ class AppInsightsCoreMock implements IAppInsightsCore {
 	}
 
 	public unload(isAsync: boolean, unloadComplete: (unloadState: ITelemetryUnloadState) => void): void {
-		// No-op
 	}
 }
 

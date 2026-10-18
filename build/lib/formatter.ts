@@ -21,7 +21,6 @@ class LanguageServiceHost implements ts.LanguageServiceHost {
 		return this.files[path]?.getText(0, this.files[path]!.getLength());
 	}
 
-	// for ts.LanguageServiceHost
 
 	getCompilationSettings = () => ts.getDefaultCompilerOptions();
 	getScriptFileNames = () => Object.keys(this.files);
@@ -72,7 +71,6 @@ const getOverrides = (() => {
 			}
 			dir = path.dirname(dir);
 		}
-		// Fallback to the root tsfmt.json
 		const rootTsfmtPath = path.join(import.meta.dirname, '..', '..', 'tsfmt.json');
 		if (!cache.has(rootTsfmtPath)) {
 			cache.set(rootTsfmtPath, JSON.parse(fs.readFileSync(rootTsfmtPath, 'utf8')));

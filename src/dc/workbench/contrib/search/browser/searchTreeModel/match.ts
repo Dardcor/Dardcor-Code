@@ -24,7 +24,6 @@ export class MatchImpl implements ISearchTreeMatch {
 	protected _range: Range;
 	private _oneLinePreviewText: string;
 	private _rangeInPreviewText: ISearchRange;
-	// For replace
 	private _fullPreviewRange: ISearchRange;
 
 	constructor(protected _parent: ISearchTreeFileMatch, private _fullPreviewLines: string[], _fullPreviewRange: ISearchRange, _documentRange: ISearchRange, private readonly _isReadonly: boolean = false) {
@@ -92,7 +91,6 @@ export class MatchImpl implements ISearchTreeMatch {
 			return replaceString;
 		}
 
-		// Search/find normalize line endings - check whether \r prevents regex from matching
 		const fullMatchTextWithoutCR = fullMatchText.replace(/\r\n/g, '\n');
 		if (fullMatchTextWithoutCR !== fullMatchText) {
 			replaceString = searchModel.replacePattern.getReplaceString(fullMatchTextWithoutCR, searchModel.preserveCase);
@@ -101,14 +99,12 @@ export class MatchImpl implements ISearchTreeMatch {
 			}
 		}
 
-		// If match string is not matching then regex pattern has a lookahead expression
 		const contextMatchTextWithSurroundingContent = this.fullMatchText(true);
 		replaceString = searchModel.replacePattern.getReplaceString(contextMatchTextWithSurroundingContent, searchModel.preserveCase);
 		if (replaceString !== null) {
 			return replaceString;
 		}
 
-		// Search/find normalize line endings, this time in full context
 		const contextMatchTextWithoutCR = contextMatchTextWithSurroundingContent.replace(/\r\n/g, '\n');
 		if (contextMatchTextWithoutCR !== contextMatchTextWithSurroundingContent) {
 			replaceString = searchModel.replacePattern.getReplaceString(contextMatchTextWithoutCR, searchModel.preserveCase);
@@ -117,7 +113,6 @@ export class MatchImpl implements ISearchTreeMatch {
 			}
 		}
 
-		// Match string is still not matching. Could be unsupported matches (multi-line).
 		return searchModel.replacePattern.pattern;
 	}
 
@@ -135,7 +130,6 @@ export class MatchImpl implements ISearchTreeMatch {
 	}
 
 	rangeInPreview() {
-		// convert to editor's base 1 positions.
 		return {
 			...this._fullPreviewRange,
 			startColumn: this._fullPreviewRange.startColumn + 1,

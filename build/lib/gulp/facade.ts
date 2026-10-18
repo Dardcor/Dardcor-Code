@@ -3,11 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Single entry-point for all gulp-related modules used in `./build`.
-// All files under `./build` must import gulp and any `gulp-*` plugin from
-// this facade rather than from the underlying packages directly. This is
-// enforced by the `local/code-no-direct-gulp-import` ESLint rule.
-// This allows us to keep track of the gulp plugins we actually use.
 
 /* eslint-disable local/code-no-direct-gulp-import */
 
@@ -48,7 +43,6 @@ export const svgmin = svgmin_;
 export const sort = sort_;
 
 export const gulp = {
-	// Import task, sequence and parallel from "../lib/task"!
 	src: g.src,
 	dest: g.dest
 };

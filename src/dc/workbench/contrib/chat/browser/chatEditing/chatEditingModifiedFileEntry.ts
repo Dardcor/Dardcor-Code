@@ -61,10 +61,6 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 	protected readonly _isCurrentlyBeingModifiedByObs = observableValue<{ responseModel: IChatResponseModel; undoStopId: string | undefined } | undefined>(this, undefined);
 	readonly isCurrentlyBeingModifiedBy: IObservable<{ responseModel: IChatResponseModel; undoStopId: string | undefined } | undefined> = this._isCurrentlyBeingModifiedByObs;
 
-	/**
-	 * Flag to track if we're currently in an external edit operation.
-	 * When true, file system changes should be treated as agent edits, not user edits.
-	 */
 	protected _isExternalEditInProgress = false;
 
 	protected readonly _lastModifyingResponseObs = observableValueOpts<IChatResponseModel | undefined>({ equalsFn: (a, b) => a?.requestId === b?.requestId }, undefined);
@@ -128,7 +124,6 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 			}));
 		}
 
-		// review mode depends on setting and temporary override
 		const autoAcceptRaw = observableConfigValue('chat.editing.autoAcceptDelay', 0, configService);
 		this._autoAcceptTimeout = derived(r => {
 			const value = autoAcceptRaw.read(r);
@@ -154,7 +149,6 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 		this._store.add(autorun(r => {
 			const inProgress = this._lastModifyingResponseInProgressObs.read(r);
 			if (inProgress === false && !this.reviewMode.read(r)) {
-				// AUTO accept mode (when request is done)
 
 				const acceptTimeout = this._autoAcceptTimeout.read(undefined) * 1000;
 				const future = Date.now() + acceptTimeout;
@@ -162,7 +156,6 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 
 					const reviewMode = this.reviewMode.read(undefined);
 					if (reviewMode) {
-						// switched back to review mode
 						this._autoAcceptCtrl.set(undefined, undefined);
 						return;
 					}
@@ -197,14 +190,12 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 	enableReviewModeUntilSettled(): void {
 
 		if (this.state.get() !== ModifiedFileEntryState.Modified) {
-			// nothing to do
 			return;
 		}
 
 		this._reviewModeTempObs.set(true, undefined);
 
 		const cleanup = autorun(r => {
-			// reset config when settled
 			const resetConfig = this.state.read(r) !== ModifiedFileEntryState.Modified;
 			if (resetConfig) {
 				this._store.delete(cleanup);
@@ -226,10 +217,8 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 		}
 	}
 
-	/** Accepts and returns a function used to transition the state. This MUST be called by the consumer. */
 	async acceptDeferred(): Promise<((tx: ITransaction) => void) | undefined> {
 		if (this._stateObs.get() !== ModifiedFileEntryState.Modified) {
-			// already accepted or rejected
 			return;
 		}
 
@@ -251,10 +240,8 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 		}
 	}
 
-	/** Rejects and returns a function used to transition the state. This MUST be called by the consumer. */
 	async rejectDeferred(): Promise<((tx: ITransaction) => void) | undefined> {
 		if (this._stateObs.get() !== ModifiedFileEntryState.Modified) {
-			// already accepted or rejected
 			return undefined;
 		}
 
@@ -277,7 +264,7 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 		const isAgentHostSession = isAgentHostSessionResource(this._telemetryInfo.sessionResource);
 		if (action.kind === 'chatEditingHunkAction' && action.outcome === 'accepted') {
 			this._aiEditTelemetryService.handleCodeAccepted({
-				suggestionId: undefined, // TODO@hediet try to figure this out
+				suggestionId: undefined,
 				acceptanceMethod: 'accept',
 				presentation: 'highlightedEdit',
 				modelId: this._telemetryInfo.modelId,
@@ -340,12 +327,6 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 		return value;
 	}
 
-	/**
-	 * Create the editor integration for this entry and the given editor pane. This will only be called
-	 * once (and cached) per pane. The integration is meant to be scoped to this entry only and when the
-	 * passed pane/editor changes input, then the editor integration must handle that, e.g use default/null
-	 * values
-	 */
 	protected abstract _createEditorIntegration(editor: IEditorPane): IModifiedFileEntryEditorIntegration;
 
 	abstract readonly changesCount: IObservable<number>;
@@ -370,7 +351,6 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 		this._resetEditsState(undefined);
 
 		if (await this._areOriginalAndModifiedIdentical()) {
-			// ACCEPT if identical
 			await this.accept();
 		}
 	}
@@ -383,7 +363,6 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 		this._waitsForLastEdits.set(false, tx);
 	}
 
-	// --- snapshot
 
 	abstract createSnapshot(chatSessionResource: URI, requestId: string | undefined, undoStop: string | undefined): ISnapshotEntry;
 
@@ -391,42 +370,22 @@ export abstract class AbstractChatEditingModifiedFileEntry extends Disposable im
 
 	abstract restoreFromSnapshot(snapshot: ISnapshotEntry, restoreToDisk?: boolean): Promise<void>;
 
-	// --- inital content
 
 	abstract resetToInitialContent(): Promise<void>;
 	abstract resetEditTrackerToInitialContent(): Promise<void>;
 	abstract initialContent: string;
 
-	/**
-	 * Computes the edits between two snapshots of the file content.
-	 * @param beforeSnapshot The content before the changes
-	 * @param afterSnapshot The content after the changes
-	 * @returns Array of text edits or cell edit operations
-	 */
 	abstract computeEditsFromSnapshots(beforeSnapshot: string, afterSnapshot: string): Promise<(TextEdit | ICellEditOperation)[]>;
 
-	/**
-	 * Marks the start of an external edit operation.
-	 * File system changes will be treated as agent edits until stopExternalEdit is called.
-	 */
 	startExternalEdit(): void {
 		this._isExternalEditInProgress = true;
 	}
 
-	/**
-	 * Marks the end of an external edit operation.
-	 */
 	stopExternalEdit(): void {
 		this._isExternalEditInProgress = false;
 	}
 
-	/**
-	 * Saves the current model state to disk.
-	 */
 	abstract save(): Promise<void>;
 
-	/**
-	 * Reloads the model from disk to ensure it's in sync with file system changes.
-	 */
 	abstract revertToDisk(): Promise<void>;
 }

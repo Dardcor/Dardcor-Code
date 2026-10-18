@@ -22,25 +22,21 @@ import { IBYOKStorageService } from './byokStorageService';
 export type CustomEndpointApiType = 'chat-completions' | 'responses' | 'messages';
 
 export function resolveCustomEndpointUrl(modelId: string, url: string, apiType?: CustomEndpointApiType): string {
-	// The fully resolved url was already passed in
 	if (hasExplicitApiPath(url)) {
 		return url;
 	}
 
-	// Remove the trailing slash
 	if (url.endsWith('/')) {
 		url = url.slice(0, -1);
 	}
 
 	const defaultApiPath = apiTypeToPath(apiType);
 
-	// Check if URL already contains any version pattern like /v1, /v2, etc
 	const versionPattern = /\/v\d+$/;
 	if (versionPattern.test(url)) {
 		return `${url}${defaultApiPath}`;
 	}
 
-	// For standard OpenAI-compatible endpoints, just append the standard path
 	return `${url}/v1${defaultApiPath}`;
 }
 
@@ -90,10 +86,8 @@ interface _CustomEndpointModelConfig {
 	name: string;
 	url: string;
 	apiType?: CustomEndpointApiType;
-	/** Optional when {@link contextWindow} is set; then derived as `contextWindow - maxOutputTokens`. */
 	maxInputTokens?: number;
 	maxOutputTokens: number;
-	/** The model's full context window (input + output) in tokens, e.g. 1000000 for a 1M model. */
 	contextWindow?: number;
 	toolCalling: boolean;
 	vision: boolean;
@@ -128,7 +122,6 @@ export class CustomEndpointBYOKModelProvider extends AbstractOpenAICompatibleLMP
 	}
 
 	protected override async configureDefaultGroupWithApiKeyOnly(): Promise<string | undefined> {
-		// No-op: Custom Endpoint models are configured via the JSON snippet flow, not by an API-key-only prompt.
 		return;
 	}
 
@@ -182,43 +175,12 @@ export class CustomEndpointBYOKModelProvider extends AbstractOpenAICompatibleLMP
 	}
 }
 
-/**
- * Custom-endpoint specific subclass that:
- * 1. Bypasses the `UseAnthropicMessagesApi` experiment flag — the user explicitly
- *    selected the Messages API for their endpoint, so we honor that unconditionally.
- * 2. Sends Anthropic-style auth (`x-api-key`) and `anthropic-version` plus beta
- *    headers when the Messages API is in use, instead of `Authorization: Bearer`.
- * 3. Lets users override the auth header via `requestHeaders` for endpoints
- *    behind APIM, gateways, vanity domains, etc. where the URL-based heuristic
- *    cannot infer the correct header. The reserved auth headers `api-key` and
- *    `authorization` are permitted through the sanitizer (only for this
- *    subclass), and the literal token `${apiKey}` in a header value is
- *    replaced with the configured API key so the secret stays in
- *    `${input:...}` secret storage. When the user supplies any well-known auth
- *    header, the default inferred auth header is suppressed to avoid sending
- *    conflicting credentials.
- */
 export class CustomEndpointOAIEndpoint extends OpenAIEndpoint {
-	/**
-	 * Reserved auth headers that we permit users to override via `requestHeaders`
-	 * for this subclass only. Other well-known auth headers like `x-api-key`,
-	 * `x-goog-api-key`, `apikey`, `ocp-apim-subscription-key`, and
-	 * `x-functions-key` are not on the base reserved list, so they already pass
-	 * through without needing to be listed here.
-	 */
 	private static readonly _overridableReservedAuthHeaders: ReadonlySet<string> = new Set([
 		'api-key',
 		'authorization',
 	]);
 
-	/**
-	 * Well-known auth header names whose presence in `requestHeaders` signals
-	 * that the user is supplying their own credentials, so the default URL-
-	 * inferred auth header should not also be sent (otherwise the endpoint
-	 * receives two conflicting credentials). Headers that are typically
-	 * complementary to a backend auth header (e.g. APIM subscription keys,
-	 * Azure Functions keys) are intentionally excluded.
-	 */
 	private static readonly _userAuthHeaderSuppressionSet: ReadonlySet<string> = new Set([
 		'api-key',
 		'authorization',
@@ -288,9 +250,6 @@ export class CustomEndpointOAIEndpoint extends OpenAIEndpoint {
 	}
 
 	private _interpolateApiKey(value: string): string {
-		// Replace the literal token `${apiKey}` with the configured API key so
-		// users can keep the secret in VS Code's secret storage via
-		// `"apiKey": "${input:...}"` while still wiring it into a custom header.
 		if (!value.includes('${apiKey}')) {
 			return value;
 		}

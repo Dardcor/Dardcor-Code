@@ -25,8 +25,6 @@ class TestLanguageModelsService implements Partial<ILanguageModelsService> {
 	}
 
 	addModel(metadata: ILanguageModelChatMetadata): void {
-		// Use an internal unique key so callers can register multiple models
-		// that share the same `${vendor}/${id}` (different provider groups).
 		this._models.set(`${this._modelCounter++}:${metadata.vendor}/${metadata.id}`, metadata);
 	}
 
@@ -112,8 +110,8 @@ suite('DefaultModelContribution', () => {
 	test('copilot vendor model — stored as vendor/id with vendor display name in the label', () => {
 		const { arrays } = setup({
 			storageFormat: 'vendorAndId',
-			vendors: [{ vendor: 'copilot', displayName: 'Copilot', isDefault: true, configuration: undefined, managementCommand: undefined, when: undefined }],
-			models: [makeMetadata({ id: 'gpt-4o-mini', name: 'GPT 4o mini', vendor: 'copilot' })],
+			vendors: [{ vendor: 'dardcor', displayName: 'Copilot', isDefault: true, configuration: undefined, managementCommand: undefined, when: undefined }],
+			models: [makeMetadata({ id: 'gpt-4o-mini', name: 'GPT 4o mini', vendor: 'dardcor' })],
 		});
 		assert.deepStrictEqual(
 			{ ids: arrays.modelIds, labels: arrays.modelLabels },
@@ -128,15 +126,13 @@ suite('DefaultModelContribution', () => {
 		const { arrays } = setup({
 			storageFormat: 'vendorAndId',
 			vendors: [
-				{ vendor: 'copilot', displayName: 'Copilot', isDefault: true, configuration: undefined, managementCommand: undefined, when: undefined },
+				{ vendor: 'dardcor', displayName: 'Copilot', isDefault: true, configuration: undefined, managementCommand: undefined, when: undefined },
 				{ vendor: 'anthropic', displayName: 'Anthropic', isDefault: false, configuration: undefined, managementCommand: undefined, when: undefined },
 			],
 			models: [
-				makeMetadata({ id: 'gpt-4o-mini', name: 'GPT 4o mini', vendor: 'copilot' }),
-				// BYOK providers may omit `isUserSelectable` — must still be included.
+				makeMetadata({ id: 'gpt-4o-mini', name: 'GPT 4o mini', vendor: 'dardcor' }),
 				makeMetadata({ id: 'claude-haiku-4.5', name: 'Claude Haiku 4.5', vendor: 'anthropic', isUserSelectable: undefined }),
-				// Internal alias models opt out via explicit false — must be excluded.
-				makeMetadata({ id: 'copilot-utility', name: 'Utility', vendor: 'copilot', isUserSelectable: false }),
+				makeMetadata({ id: 'dardcor-utility', name: 'Utility', vendor: 'dardcor', isUserSelectable: false }),
 			],
 		});
 		assert.deepStrictEqual(
@@ -151,9 +147,9 @@ suite('DefaultModelContribution', () => {
 	test('hidden vendor cache entries are excluded from the picker', () => {
 		const { arrays } = setup({
 			storageFormat: 'vendorAndId',
-			vendors: [{ vendor: 'copilot', displayName: 'Copilot', isDefault: true, configuration: undefined, managementCommand: undefined, when: undefined }],
+			vendors: [{ vendor: 'dardcor', displayName: 'Copilot', isDefault: true, configuration: undefined, managementCommand: undefined, when: undefined }],
 			models: [
-				makeMetadata({ id: 'gpt-4o-mini', name: 'GPT 4o mini', vendor: 'copilot' }),
+				makeMetadata({ id: 'gpt-4o-mini', name: 'GPT 4o mini', vendor: 'dardcor' }),
 				makeMetadata({ id: 'hidden-model', name: 'Hidden Model', vendor: 'hidden-vendor' }),
 			],
 		});
@@ -171,12 +167,8 @@ suite('DefaultModelContribution', () => {
 			storageFormat: 'vendorAndId',
 			vendors: [{ vendor: 'anthropic', displayName: 'Anthropic', isDefault: false, configuration: undefined, managementCommand: undefined, when: undefined }],
 			models: [
-				// Two distinct configured groups for the same vendor expose
-				// the same model id. The setting value would be ambiguous,
-				// so neither must appear in the enum.
 				makeMetadata({ id: 'claude-haiku-4.5', name: 'Claude Haiku 4.5', vendor: 'anthropic' }),
 				makeMetadata({ id: 'claude-haiku-4.5', name: 'Claude Haiku 4.5', vendor: 'anthropic' }),
-				// A non-conflicting model from the same vendor must remain.
 				makeMetadata({ id: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5', vendor: 'anthropic' }),
 			],
 		});
@@ -192,9 +184,9 @@ suite('DefaultModelContribution', () => {
 	test('utility model settings exclude Copilot vendor models', () => {
 		const service = new TestLanguageModelsService();
 		store.add({ dispose: () => service.dispose() });
-		service.addVendor({ vendor: 'copilot', displayName: 'Copilot', isDefault: true, configuration: undefined, managementCommand: undefined, when: undefined });
+		service.addVendor({ vendor: 'dardcor', displayName: 'Copilot', isDefault: true, configuration: undefined, managementCommand: undefined, when: undefined });
 		service.addVendor({ vendor: 'anthropic', displayName: 'Anthropic', isDefault: false, configuration: undefined, managementCommand: undefined, when: undefined });
-		service.addModel(makeMetadata({ id: 'gpt-4o-mini', name: 'GPT 4o mini', vendor: 'copilot' }));
+		service.addModel(makeMetadata({ id: 'gpt-4o-mini', name: 'GPT 4o mini', vendor: 'dardcor' }));
 		service.addModel(makeMetadata({ id: 'claude-haiku-4.5', name: 'Claude Haiku 4.5', vendor: 'anthropic' }));
 
 		store.add(new UtilityModelContribution(service as unknown as ILanguageModelsService, new NullLogService()));

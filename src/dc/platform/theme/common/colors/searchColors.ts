@@ -5,10 +5,8 @@
 
 import * as nls from '../../../../nls.js';
 
-// Import the effects we need
 import { registerColor, transparent } from '../colorUtils.js';
 
-// Import the colors we need
 import { foreground } from './baseColors.js';
 import { editorFindMatchHighlight, editorFindMatchHighlightBorder } from './editorColors.js';
 
@@ -18,7 +16,6 @@ export const searchResultsInfoForeground = registerColor('search.resultsInfoFore
 	nls.localize('search.resultsInfoForeground', "Color of the text in the search viewlet's completion message."));
 
 
-// ----- search editor (Distinct from normal editor find match to allow for better differentiation)
 
 export const searchEditorFindMatch = registerColor('searchEditor.findMatchBackground',
 	{ light: transparent(editorFindMatchHighlight, 0.66), dark: transparent(editorFindMatchHighlight, 0.66), hcDark: editorFindMatchHighlight, hcLight: editorFindMatchHighlight },

@@ -31,7 +31,6 @@ suite('Editor Model - Injected Text Events', () => {
 		};
 		thisModel.registerViewModel(spyViewModel);
 
-		// Initial decoration
 		let decorations = thisModel.deltaDecorations([], [{
 			options: {
 				after: { content: 'injected1' },
@@ -48,7 +47,6 @@ suite('Editor Model - Injected Text Events', () => {
 			}
 		]);
 
-		// Decoration change
 		decorations = thisModel.deltaDecorations(decorations, [{
 			options: {
 				after: { content: 'injected1' },
@@ -77,7 +75,6 @@ suite('Editor Model - Injected Text Events', () => {
 			}
 		]);
 
-		// Simple Insert
 		thisModel.applyEdits([EditOperation.replace(new Range(2, 2, 2, 2), 'Hello')]);
 		assert.deepStrictEqual(recordedChanges.splice(0), [
 			{
@@ -87,7 +84,6 @@ suite('Editor Model - Injected Text Events', () => {
 			}
 		]);
 
-		// Multi-Line Insert
 		thisModel.pushEditOperations(null, [EditOperation.replace(new Range(2, 2, 2, 2), '\n\n\n')], null);
 		assert.deepStrictEqual(thisModel.getAllDecorations(undefined).map(d => ({ description: d.options.description, range: d.range.toString() })), [{
 			'description': 'test1',
@@ -111,7 +107,6 @@ suite('Editor Model - Injected Text Events', () => {
 		]);
 
 
-		// Multi-Line Replace
 		thisModel.pushEditOperations(null, [EditOperation.replace(new Range(3, 1, 5, 1), '\n\n\n\n\n\n\n\n\n\n\n\n\n')], null);
 		assert.deepStrictEqual(recordedChanges.splice(0), [
 			{
@@ -136,7 +131,6 @@ suite('Editor Model - Injected Text Events', () => {
 			}
 		]);
 
-		// Multi-Line Replace undo
 		assert.strictEqual(thisModel.undo(), undefined);
 		assert.deepStrictEqual(recordedChanges.splice(0), [
 			{

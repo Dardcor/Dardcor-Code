@@ -20,7 +20,7 @@
 }
 
 .monaco-select-box-dropdown-container > .select-box-details-pane > .select-box-description-markdown code {
-	line-height: 15px; /** For some reason, this is needed, otherwise <code> will take up 20px height */
+	line-height: 15px;
 	font-family: var(--monaco-monospace-font);
 }
 
@@ -45,7 +45,6 @@
 	padding: 5px 6px;
 }
 
-/* Remove list-level focus ring — individual rows show their own focus indicators */
 .monaco-select-box-dropdown-container > .select-box-dropdown-list-container .monaco-list:focus::before {
 	outline: 0 !important;
 }
@@ -81,7 +80,6 @@
 }
 
 
-/* Separator styling */
 .monaco-select-box-dropdown-container > .select-box-dropdown-list-container .monaco-list .monaco-list-row.option-separator {
 	cursor: default;
 	border-radius: 0;
@@ -113,8 +111,6 @@
 	background-color: var(--vscode-menu-separatorBackground);
 }
 
-/* Accepted CSS hiding technique for accessibility reader text  */
-/* https://webaim.org/techniques/css/invisiblecontent/ */
 
 .monaco-select-box-dropdown-container > .select-box-dropdown-list-container .monaco-list .monaco-list-row > .visually-hidden {
 	position: absolute;

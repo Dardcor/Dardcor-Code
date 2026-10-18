@@ -19,12 +19,7 @@ export const resetCaches = () => {
 	});
 };
 
-// window.resetCaches = resetCaches;
 
 export const specCache = createCache<Subcommand>();
 export const generateSpecCache = createCache<Subcommand>();
 
-// window.listCache = () => {
-//   console.log(specCache);
-//   console.log(generateSpecCache);
-// };

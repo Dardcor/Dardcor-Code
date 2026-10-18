@@ -5,7 +5,7 @@
 
 import type { CancellationToken, ChatRequest, LanguageModelTool, LanguageModelToolInformation, LanguageModelToolInvocationOptions, LanguageModelToolResult } from 'vscode';
 import { getToolName, ToolName } from '../../../src/extension/tools/common/toolNames';
-import { ICopilotTool } from '../../../src/extension/tools/common/toolsRegistry';
+import { IAgentTool } from '../../../src/extension/tools/common/toolsRegistry';
 import { BaseToolsService, IToolsService } from '../../../src/extension/tools/common/toolsService';
 import { getPackagejsonToolsForTest } from '../../../src/extension/tools/node/test/testToolsService';
 import { ToolsContribution } from '../../../src/extension/tools/dardcor-node/tools';
@@ -24,7 +24,7 @@ export class SimulationExtHostToolsService extends BaseToolsService implements I
 	declare readonly _serviceBrand: undefined;
 
 	private readonly _inner: IToolsService;
-	private readonly _overrides = new Map<ToolName | string, { info: LanguageModelToolInformation; tool: ICopilotTool<any> }>();
+	private readonly _overrides = new Map<ToolName | string, { info: LanguageModelToolInformation; tool: IAgentTool<any> }>();
 	private _lmToolRegistration?: ToolsContribution;
 
 	override get onWillInvokeTool() {
@@ -42,7 +42,7 @@ export class SimulationExtHostToolsService extends BaseToolsService implements I
 	get dardcorTools() {
 		const r = new Map([
 			...this._inner.dardcorTools,
-			...Iterable.map(this._overrides, ([k, v]): [ToolName, ICopilotTool<any>] => [k as ToolName, v.tool]),
+			...Iterable.map(this._overrides, ([k, v]): [ToolName, IAgentTool<any>] => [k as ToolName, v.tool]),
 		]);
 		for (const name of this._disabledTools) {
 			r.delete(name as ToolName);
@@ -58,7 +58,6 @@ export class SimulationExtHostToolsService extends BaseToolsService implements I
 		super(logService);
 		this._inner = instantiationService.createInstance(ToolsService);
 
-		// register the contribution so that our tools are on vscode.lm.tools
 		setImmediate(() => this.ensureToolsRegistered());
 	}
 
@@ -66,8 +65,8 @@ export class SimulationExtHostToolsService extends BaseToolsService implements I
 		this._lmToolRegistration ??= new ToolsContribution(this, {} as any, { threshold: observableValue(this, 128) } as any, {} as any, {} as any);
 	}
 
-	getCopilotTool(name: string): ICopilotTool<any> | undefined {
-		return this._disabledTools.has(name) ? undefined : (this._overrides.get(name)?.tool || this._inner.getCopilotTool(name));
+	override getAgentTool(name: string): IAgentTool<unknown> | undefined {
+		return this._disabledTools.has(name) ? undefined : (this._overrides.get(name)?.tool || this._inner.getAgentTool(name));
 	}
 
 	async invokeTool(name: string, options: LanguageModelToolInvocationOptions<unknown>, token: CancellationToken): Promise<LanguageModelToolResult> {
@@ -80,7 +79,7 @@ export class SimulationExtHostToolsService extends BaseToolsService implements I
 			const invoke = tool?.invoke;
 			if (invoke) {
 				this._onWillInvokeTool.fire({ toolName });
-				const result = await invoke.call(tool, options, token);
+				const result = await invoke.call(tool, options, token, { report: () => { } });
 				if (!result) {
 					throw new CancellationError();
 				}
@@ -128,7 +127,6 @@ export class SimulationExtHostToolsService extends BaseToolsService implements I
 		const packageJsonTools = getPackagejsonToolsForTest();
 		return this.tools
 			.map(tool => {
-				// Apply model-specific alternative if available via alternativeDefinition
 				const owned = this.dardcorTools.get(getToolName(tool.name) as ToolName);
 				if (owned?.alternativeDefinition) {
 					const alternative = owned.alternativeDefinition(tool, endpoint);

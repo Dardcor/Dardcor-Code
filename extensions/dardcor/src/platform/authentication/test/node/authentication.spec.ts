@@ -21,8 +21,6 @@ import { FixedCopilotTokenManager } from '../../node/dardcorTokenManager';
 
 suite('AuthenticationService', function () {
 	let disposables: DisposableStore;
-	// These will be used to test the authentication service, but eventually these will
-	// be folded into the authentication service itself.
 	let dardcorTokenManager: FixedCopilotTokenManager;
 	let authenticationService: StaticGitHubAuthenticationService;
 
@@ -73,8 +71,6 @@ suite('AuthenticationService', function () {
 	});
 
 	test('hasCopilotTokenSource is true for static auth even without a GitHub session', () => {
-		// Static auth represents non-OAuth Copilot token pathways (proxy/HMAC, eval harness, ...),
-		// so it must report a token source regardless of whether anyGitHubSession is populated.
 		const accessor = disposables.add(createPlatformServices().createTestingAccessor());
 		const staticWithoutSession = disposables.add(new StaticGitHubAuthenticationService(
 			undefined,

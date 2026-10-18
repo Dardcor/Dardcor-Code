@@ -36,7 +36,7 @@ const testHintsByLanguage: Record<string, TestHint> = {
 	powershell: { suffixes: ['.Tests'], location: 'testFolder' },
 	python: { prefix: 'test_', suffixes: ['_test'], location: 'testFolder' },
 	ruby: { suffixes: ['_test', '_spec'], location: 'testFolder' },
-	rust: { suffixes: [''], location: 'testFolder' }, // same file`
+	rust: { suffixes: [''], location: 'testFolder' },
 	swift: { suffixes: ['Tests'], location: 'testFolder' },
 	typescript: { suffixes: ['.test', '.spec'], location: 'sameFolder' },
 	typescriptreact: { suffixes: ['.test', '.spec'], location: 'sameFolder' },
@@ -67,9 +67,6 @@ const testHintsBySuffix: { [key: string]: TestHint } = (function () {
 	return result;
 })();
 
-/**
- * @remark does NOT respect dardcor-ignore
- */
 export class TestFileFinder {
 
 	constructor(
@@ -81,16 +78,12 @@ export class TestFileFinder {
 	private _findTabMatchingPattern(pattern: string): URI | undefined {
 
 		const tab = this._tabs.tabs.find(info => {
-			// return a tab which uri matches the pattern
 			return info.uri && info.uri.scheme !== Schemas.untitled && isMatch(info.uri, pattern);
 		});
 
 		return tab?.uri;
 	}
 
-	/**
-	 * Given a source file, find the corresponding test file.
-	 */
 	async findTestFileForSourceFile(document: TextDocumentSnapshot, token: CancellationToken): Promise<URI | undefined> {
 
 		if (document.isUntitled) {
@@ -115,11 +108,9 @@ export class TestFileFinder {
 
 		const pattern =
 			testNameCandidates.length === 1
-				? `**/${testNameCandidates[0]}` // @ulugbekna: there must be at least two sub-patterns within braces for the glob to work
+				? `**/${testNameCandidates[0]}`
 				: `**/{${testNameCandidates.join(',')}}`;
 
-		// try open editors/tabs first
-		// use search service as fallback
 
 		let result = this._findTabMatchingPattern(pattern);
 
@@ -134,9 +125,6 @@ export class TestFileFinder {
 		return result;
 	}
 
-	/**
-	 * Given a source file, find any test file (for the same language)
-	 */
 	async findAnyTestFileForSourceFile(document: TextDocumentSnapshot, token: CancellationToken): Promise<URI | undefined> {
 
 		const testHint = testHintsByLanguage[document.languageId] ?? nullTestHint;
@@ -154,11 +142,9 @@ export class TestFileFinder {
 
 		const pattern =
 			patterns.length === 1
-				? `**/${patterns[0]}` // @ulugbekna: there must be at least two sub-patterns within braces for the glob to work
+				? `**/${patterns[0]}`
 				: `**/{${patterns.join(',')}}`;
 
-		// try open editors/tabs first
-		// use search service as fallback
 		let result = this._findTabMatchingPattern(pattern);
 		if (!result) {
 			if (document.languageId === 'python') {
@@ -171,9 +157,6 @@ export class TestFileFinder {
 		return result;
 	}
 
-	/**
-	 * Given a test file, find the corresponding source file.
-	 */
 	async findFileForTestFile(document: TextDocumentSnapshot, token: CancellationToken): Promise<URI | undefined> {
 
 		const testHint = testHintsByLanguage[document.languageId] ?? nullTestHint;
@@ -181,7 +164,6 @@ export class TestFileFinder {
 		const basename = resources.basename(document.uri);
 		const parts: string[] = [];
 
-		// collect potential suffixes and prefixes
 		if (testHint.suffixes) {
 			parts.splice(0, 0, ...testHint.suffixes);
 		}
@@ -264,23 +246,15 @@ export function suggestTestFileBasename(document: TextDocumentSnapshot): string 
 
 
 export function suggestTestFileDir(document: TextDocumentSnapshot): URI {
-	const srcFileLocation = resources.joinPath(document.uri, '..'); // same folder
-	if (document.languageId === 'java') { // Java
-		/*
-		 * According to the standard project structure of Maven, the corresponding test file for
-		 * `$module/src/main/java/...$packages/$Class.java` is usually `$module/src/test/java/...$packages/${Class}Test.java`.
-		 * Yet, it's worth noting that this structure might be altered by the user (though it's rare). In such cases, we can
-		 * only obtain the accurate path from a language extension installed by the user, like `redhat.java`, for instance. But
-		 * for simplicity's sake, we always assume the user is sticking to the standard project structure mentioned above at
-		 * this stage.
-		 */
+	const srcFileLocation = resources.joinPath(document.uri, '..');
+	if (document.languageId === 'java') {
 		const srcFilePath = srcFileLocation.path;
 		if (srcFilePath.includes('/src/main/')) {
 			const testFilePath = srcFilePath.replace('/src/main/', '/src/test/');
 			return srcFileLocation.with({ path: testFilePath });
 		}
 	}
-	return srcFileLocation; // same folder
+	return srcFileLocation;
 }
 
 export function suggestUntitledTestFileLocation(document: TextDocumentSnapshot): URI {

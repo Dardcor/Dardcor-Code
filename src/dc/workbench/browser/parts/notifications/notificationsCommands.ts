@@ -23,12 +23,10 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from '../../../../platform/accessibility/common/accessibility.js';
 
-// Center
 export const SHOW_NOTIFICATIONS_CENTER = 'notifications.showList';
 export const HIDE_NOTIFICATIONS_CENTER = 'notifications.hideList';
 const TOGGLE_NOTIFICATIONS_CENTER = 'notifications.toggleList';
 
-// Toasts
 export const HIDE_NOTIFICATION_TOAST = 'notifications.hideToasts';
 const FOCUS_NOTIFICATION_TOAST = 'notifications.focusToasts';
 const FOCUS_NEXT_NOTIFICATION_TOAST = 'notifications.focusNextToast';
@@ -36,7 +34,6 @@ const FOCUS_PREVIOUS_NOTIFICATION_TOAST = 'notifications.focusPreviousToast';
 const FOCUS_FIRST_NOTIFICATION_TOAST = 'notifications.focusFirstToast';
 const FOCUS_LAST_NOTIFICATION_TOAST = 'notifications.focusLastToast';
 
-// Notification
 export const COLLAPSE_NOTIFICATION = 'notification.collapse';
 export const EXPAND_NOTIFICATION = 'notification.expand';
 export const ACCEPT_PRIMARY_ACTION_NOTIFICATION = 'notification.acceptPrimaryAction';
@@ -75,10 +72,6 @@ export function getNotificationFromContext(listService: IListService, context?: 
 		let element = list.getFocusedElements()[0];
 		if (!isNotificationViewItem(element)) {
 			if (list.isDOMFocused()) {
-				// the notification list might have received focus
-				// via keyboard and might not have a focused element.
-				// in that case just return the first element
-				// https://github.com/microsoft/vscode/issues/191705
 				element = list.element(0);
 			}
 		}
@@ -93,7 +86,6 @@ export function getNotificationFromContext(listService: IListService, context?: 
 
 export function registerNotificationCommands(center: INotificationsCenterController, toasts: INotificationsToastController, model: NotificationsModel): void {
 
-	// Show Notifications Cneter
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: SHOW_NOTIFICATIONS_CENTER,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -104,7 +96,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Hide Notifications Center
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: HIDE_NOTIFICATIONS_CENTER,
 		weight: KeybindingWeight.WorkbenchContrib + 50,
@@ -113,7 +104,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		handler: () => center.hide()
 	});
 
-	// Toggle Notifications Center
 	CommandsRegistry.registerCommand(TOGGLE_NOTIFICATIONS_CENTER, () => {
 		if (center.isVisible) {
 			center.hide();
@@ -123,7 +113,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Clear Notification
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: CLEAR_NOTIFICATION,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -142,7 +131,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Expand Notification
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: EXPAND_NOTIFICATION,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -154,7 +142,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Accept Primary Action
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: ACCEPT_PRIMARY_ACTION_NOTIFICATION,
 		weight: KeybindingWeight.WorkbenchContrib + 1,
@@ -176,7 +163,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Collapse Notification
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: COLLAPSE_NOTIFICATION,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -188,7 +174,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Toggle Notification
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: TOGGLE_NOTIFICATION,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -201,29 +186,26 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Hide Toasts
 	CommandsRegistry.registerCommand(HIDE_NOTIFICATION_TOAST, accessor => {
 		toasts.hide();
 	});
 
 	KeybindingsRegistry.registerKeybindingRule({
 		id: HIDE_NOTIFICATION_TOAST,
-		weight: KeybindingWeight.WorkbenchContrib - 50, // lower when not focused (e.g. let editor suggest win over this command)
+		weight: KeybindingWeight.WorkbenchContrib - 50,
 		when: NotificationsToastsVisibleContext,
 		primary: KeyCode.Escape
 	});
 
 	KeybindingsRegistry.registerKeybindingRule({
 		id: HIDE_NOTIFICATION_TOAST,
-		weight: KeybindingWeight.WorkbenchContrib + 100, // higher when focused
+		weight: KeybindingWeight.WorkbenchContrib + 100,
 		when: ContextKeyExpr.and(NotificationsToastsVisibleContext, NotificationFocusedContext),
 		primary: KeyCode.Escape
 	});
 
-	// Focus Toasts
 	CommandsRegistry.registerCommand(FOCUS_NOTIFICATION_TOAST, () => toasts.focus());
 
-	// Focus Next Toast
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: FOCUS_NEXT_NOTIFICATION_TOAST,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -234,7 +216,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Focus Previous Toast
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: FOCUS_PREVIOUS_NOTIFICATION_TOAST,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -245,7 +226,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Focus First Toast
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: FOCUS_FIRST_NOTIFICATION_TOAST,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -257,7 +237,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Focus Last Toast
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: FOCUS_LAST_NOTIFICATION_TOAST,
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -269,17 +248,14 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		}
 	});
 
-	// Clear All Notifications
 	CommandsRegistry.registerCommand(CLEAR_ALL_NOTIFICATIONS, () => center.clearAll());
 
-	// Toggle Do Not Disturb Mode
 	CommandsRegistry.registerCommand(TOGGLE_DO_NOT_DISTURB_MODE, accessor => {
 		const notificationService = accessor.get(INotificationService);
 
 		notificationService.setFilter(notificationService.getFilter() === NotificationsFilter.ERROR ? NotificationsFilter.OFF : NotificationsFilter.ERROR);
 	});
 
-	// Configure Do Not Disturb by Source
 	CommandsRegistry.registerCommand(TOGGLE_DO_NOT_DISTURB_MODE_BY_SOURCE, accessor => {
 		const notificationService = accessor.get(INotificationService);
 		const quickInputService = accessor.get(IQuickInputService);
@@ -317,7 +293,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 		disposables.add(picker.onDidHide(() => disposables.dispose()));
 	});
 
-	// Commands for Command Palette
 	const category = localize2('notifications', 'Notifications');
 	MenuRegistry.appendMenuItem(MenuId.CommandPalette, { command: { id: SHOW_NOTIFICATIONS_CENTER, title: localize2('showNotifications', 'Show Notifications'), category } });
 	MenuRegistry.appendMenuItem(MenuId.CommandPalette, { command: { id: HIDE_NOTIFICATIONS_CENTER, title: localize2('hideNotifications', 'Hide Notifications'), category }, when: NotificationsCenterVisibleContext });
@@ -327,7 +302,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 	MenuRegistry.appendMenuItem(MenuId.CommandPalette, { command: { id: TOGGLE_DO_NOT_DISTURB_MODE_BY_SOURCE, title: localize2('toggleDoNotDisturbModeBySource', 'Toggle Do Not Disturb Mode By Source...'), category } });
 	MenuRegistry.appendMenuItem(MenuId.CommandPalette, { command: { id: FOCUS_NOTIFICATION_TOAST, title: localize2('focusNotificationToasts', 'Focus Notification Toast'), category }, when: NotificationsToastsVisibleContext });
 
-	// Bell icon in the title bar (when notifications are positioned at top-right)
 	MenuRegistry.appendMenuItem(MenuId.TitleBar, {
 		command: {
 			id: TOGGLE_NOTIFICATIONS_CENTER,
@@ -343,7 +317,6 @@ export function registerNotificationCommands(center: INotificationsCenterControl
 	});
 }
 
-// Notification Position Actions
 
 registerAction2(class SetNotificationsPositionBottomRight extends Action2 {
 	constructor() {
@@ -409,7 +382,6 @@ export class NotificationActionRunner extends ActionRunner {
 	protected override async runAction(action: IAction, context: unknown): Promise<void> {
 		this.telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: action.id, from: 'message' });
 
-		// Run and make sure to notify on any error again
 		try {
 			await super.runAction(action, context);
 		} catch (error) {

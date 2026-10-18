@@ -68,7 +68,6 @@ suite('NotebookExecutionStateService', () => {
 		});
 		instantiationService.stub(INotebookLoggingService, new class extends mock<INotebookLoggingService>() {
 			override debug(category: string, output: string): void {
-				//
 			}
 		});
 
@@ -105,17 +104,16 @@ suite('NotebookExecutionStateService', () => {
 
 			const executionStateService: INotebookExecutionStateService = instantiationService.get(INotebookExecutionStateService);
 
-			// Should cancel executing and pending cells, when kernel does not implement interrupt
 			const cell = disposables.add(insertCellAtIndex(viewModel, 0, 'var c = 3', 'javascript', CellKind.Code, {}, [], true, true));
 			const cell2 = disposables.add(insertCellAtIndex(viewModel, 1, 'var c = 3', 'javascript', CellKind.Code, {}, [], true, true));
 			const cell3 = disposables.add(insertCellAtIndex(viewModel, 2, 'var c = 3', 'javascript', CellKind.Code, {}, [], true, true));
-			insertCellAtIndex(viewModel, 3, 'var c = 3', 'javascript', CellKind.Code, {}, [], true, true); // Not deleted
-			const exe = executionStateService.createCellExecution(viewModel.uri, cell.handle); // Executing
+			insertCellAtIndex(viewModel, 3, 'var c = 3', 'javascript', CellKind.Code, {}, [], true, true);
+			const exe = executionStateService.createCellExecution(viewModel.uri, cell.handle);
 			exe.confirm();
 			exe.update([{ editType: CellExecutionUpdateType.ExecutionState, executionOrder: 1 }]);
-			const exe2 = executionStateService.createCellExecution(viewModel.uri, cell2.handle); // Pending
+			const exe2 = executionStateService.createCellExecution(viewModel.uri, cell2.handle);
 			exe2.confirm();
-			executionStateService.createCellExecution(viewModel.uri, cell3.handle); // Unconfirmed
+			executionStateService.createCellExecution(viewModel.uri, cell3.handle);
 			assert.strictEqual(cancels, 0);
 			viewModel.notebookDocument.applyEdits([{
 				editType: CellEditType.Replace, index: 0, count: 3, cells: []
@@ -125,7 +123,6 @@ suite('NotebookExecutionStateService', () => {
 
 	}
 
-	// TODO@roblou Could be a test just for NotebookExecutionListeners, which can be a standalone contribution
 	test('cancel execution when cell is deleted', async function () {
 		return testCancelOnDelete(3, false);
 	});
@@ -188,7 +185,6 @@ suite('NotebookExecutionStateService', () => {
 		});
 	});
 
-	// #142466
 	test('getCellExecution and onDidChangeCellExecution', async function () {
 		return withTestNotebook([], async (viewModel, _document, disposables) => {
 			testNotebookModel = viewModel.notebookDocument;

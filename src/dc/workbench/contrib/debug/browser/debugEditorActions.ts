@@ -83,7 +83,6 @@ class ToggleBreakpointAction extends Action2 {
 		if (editor?.hasModel()) {
 			const modelUri = editor.getModel().uri;
 			const canSet = debugService.canSetBreakpointsIn(editor.getModel());
-			// Does not account for multi line selections, Set to remove multiple cursor on the same line
 			const lineNumbers = [...new Set(editor.getSelections().map(s => s.getPosition().lineNumber))];
 
 			await Promise.all(lineNumbers.map(async line => {
@@ -333,8 +332,6 @@ export class RunToCursorAction extends EditorAction {
 		let column: number | undefined = undefined;
 		const focusedStackFrame = viewModel.focusedStackFrame;
 		if (focusedStackFrame && uriIdentityService.extUri.isEqual(focusedStackFrame.source.uri, uri) && focusedStackFrame.range.startLineNumber === position.lineNumber) {
-			// If the cursor is on a line different than the one the debugger is currently paused on, then send the breakpoint on the line without a column
-			// otherwise set it at the precise column #102199
 			column = position.column;
 		}
 		await debugService.runTo(uri, position.lineNumber, column);
@@ -507,7 +504,6 @@ class StepIntoTargetsAction extends EditorAction {
 			return;
 		}
 
-		// If there is a selection, try to find the best target with a position to step into.
 		if (selection) {
 			const positionalTargets: { start: Position; end?: Position; target: DebugProtocol.StepInTarget }[] = [];
 			for (const target of targets) {
@@ -524,8 +520,6 @@ class StepIntoTargetsAction extends EditorAction {
 
 			const needle = selection.getPosition();
 
-			// Try to find a target with a start and end that is around the cursor
-			// position. Or, if none, whatever is before the cursor.
 			const best = positionalTargets.find(t => t.end && needle.isBefore(t.end) && t.start.isBeforeOrEqual(needle)) || positionalTargets.find(t => t.end === undefined && t.start.isBeforeOrEqual(needle));
 			if (best) {
 				session.stepIn(frame.thread.threadId, best.target.id);
@@ -533,7 +527,6 @@ class StepIntoTargetsAction extends EditorAction {
 			}
 		}
 
-		// Otherwise, show a context menu and have the user pick a target
 		editor.revealLineInCenterIfOutsideViewport(frame.range.startLineNumber);
 		const cursorCoords = editor.getScrolledVisiblePosition(targetPosition!);
 		const editorCoords = getDomNodePagePosition(editor.getDomNode());
@@ -562,16 +555,13 @@ class GoToBreakpointAction extends EditorAction {
 		if (editor.hasModel()) {
 			const currentUri = editor.getModel().uri;
 			const currentLine = editor.getPosition().lineNumber;
-			//Breakpoints returned from `getBreakpoints` are already sorted.
 			const allEnabledBreakpoints = debugService.getModel().getBreakpoints({ enabledOnly: true });
 
-			//Try to find breakpoint in current file
 			let moveBreakpoint =
 				this.isNext
 					? allEnabledBreakpoints.filter(bp => uriIdentityService.extUri.isEqual(bp.uri, currentUri) && bp.lineNumber > currentLine).shift()
 					: allEnabledBreakpoints.filter(bp => uriIdentityService.extUri.isEqual(bp.uri, currentUri) && bp.lineNumber < currentLine).pop();
 
-			//Try to find breakpoints in following files
 			if (!moveBreakpoint) {
 				moveBreakpoint =
 					this.isNext
@@ -579,7 +569,6 @@ class GoToBreakpointAction extends EditorAction {
 						: allEnabledBreakpoints.filter(bp => bp.uri.toString() < currentUri.toString()).pop();
 			}
 
-			//Move to first or last possible breakpoint
 			if (!moveBreakpoint && allEnabledBreakpoints.length) {
 				moveBreakpoint = this.isNext ? allEnabledBreakpoints[0] : allEnabledBreakpoints[allEnabledBreakpoints.length - 1];
 			}

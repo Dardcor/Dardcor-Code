@@ -89,7 +89,6 @@ export class InlayHintsHover extends MarkdownHoverParticipant implements IEditor
 				return;
 			}
 
-			// (1) Inlay Tooltip
 			let itemTooltip: IMarkdownString | undefined;
 			if (typeof part.item.hint.tooltip === 'string') {
 				itemTooltip = new MarkdownString().appendText(part.item.hint.tooltip);
@@ -99,12 +98,10 @@ export class InlayHintsHover extends MarkdownHoverParticipant implements IEditor
 			if (itemTooltip) {
 				executor.emitOne(new MarkdownHover(this, anchor.range, [itemTooltip], false, 0));
 			}
-			// (1.2) Inlay dbl-click gesture
 			if (isNonEmptyArray(part.item.hint.textEdits)) {
 				executor.emitOne(new MarkdownHover(this, anchor.range, [new MarkdownString().appendText(localize('hint.dbl', "Double-click to insert"))], false, 10001));
 			}
 
-			// (2) Inlay Label Part Tooltip
 			let partTooltip: IMarkdownString | undefined;
 			if (typeof part.part.tooltip === 'string') {
 				partTooltip = new MarkdownString().appendText(part.part.tooltip);
@@ -115,7 +112,6 @@ export class InlayHintsHover extends MarkdownHoverParticipant implements IEditor
 				executor.emitOne(new MarkdownHover(this, anchor.range, [partTooltip], false, 1));
 			}
 
-			// (2.2) Inlay Label Part Help Hover
 			if (part.part.location || part.part.command) {
 				let linkHint: MarkdownString | undefined;
 				const useMetaKey = this._editor.getOption(EditorOption.multiCursorModifier) === 'altKey';
@@ -140,7 +136,6 @@ export class InlayHintsHover extends MarkdownHoverParticipant implements IEditor
 			}
 
 
-			// (3) Inlay Label Part Location tooltip
 			const iterable = this._resolveInlayHintLabelPartHover(part, token);
 			for await (const item of iterable) {
 				executor.emitOne(item);

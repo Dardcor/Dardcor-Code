@@ -30,7 +30,6 @@ export class ExtHostDocumentSaveParticipant implements ExtHostDocumentSavePartic
 		private readonly _mainThreadBulkEdits: MainThreadBulkEditsShape,
 		private readonly _thresholds: { timeout: number; errors: number } = { timeout: 1500, errors: 3 }
 	) {
-		//
 	}
 
 	dispose(): void {
@@ -56,9 +55,8 @@ export class ExtHostDocumentSaveParticipant implements ExtHostDocumentSavePartic
 
 		const results: boolean[] = [];
 		try {
-			for (const listener of [...this._callbacks]) { // copy to prevent concurrent modifications
+			for (const listener of [...this._callbacks]) {
 				if (didTimeout) {
-					// timeout - no more listeners
 					break;
 				}
 				const document = this._documents.getDocument(resource);
@@ -75,12 +73,10 @@ export class ExtHostDocumentSaveParticipant implements ExtHostDocumentSavePartic
 	private _deliverEventAsyncAndBlameBadListeners([listener, thisArg, extension]: Listener, stubEvent: Pick<vscode.TextDocumentWillSaveEvent, 'document' | 'reason'>): Promise<boolean> {
 		const errors = this._badListeners.get(listener);
 		if (typeof errors === 'number' && errors > this._thresholds.errors) {
-			// bad listener - ignore
 			return Promise.resolve(false);
 		}
 
 		return this._deliverEventAsync(extension, listener, thisArg, stubEvent).then(() => {
-			// don't send result across the wire
 			return true;
 
 		}, err => {
@@ -121,17 +117,14 @@ export class ExtHostDocumentSaveParticipant implements ExtHostDocumentSavePartic
 		});
 
 		try {
-			// fire event
 			listener.apply(thisArg, [event]);
 		} catch (err) {
 			return Promise.reject(err);
 		}
 
-		// freeze promises after event call
 		Object.freeze(promises);
 
 		return new Promise<vscode.TextEdit[][]>((resolve, reject) => {
-			// join on all listener promises, reject after timeout
 			const handle = setTimeout(() => reject(new Error('timeout')), this._thresholds.timeout);
 
 			return Promise.all(promises).then(edits => {
@@ -161,8 +154,6 @@ export class ExtHostDocumentSaveParticipant implements ExtHostDocumentSavePartic
 				}
 			}
 
-			// apply edits if any and if document
-			// didn't change somehow in the meantime
 			if (dto.edits.length === 0) {
 				return undefined;
 			}

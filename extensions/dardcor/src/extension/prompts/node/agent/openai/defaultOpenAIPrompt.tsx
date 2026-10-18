@@ -123,7 +123,6 @@ export class DefaultOpenAIAgentPrompt extends PromptElement<DefaultAgentPromptPr
 
 class DefaultOpenAIPromptResolver implements IAgentPrompt {
 
-	// This is overridden by `matchesModel` in the more specific prompt resolvers
 	static readonly familyPrefixes = ['gpt', 'o4-mini', 'o3-mini', 'OpenAI'];
 
 	resolveSystemPrompt(endpoint: IChatEndpoint): SystemPrompt | undefined {
@@ -139,7 +138,7 @@ class OpenAIReminderInstructions extends PromptElement<ReminderInstructionsProps
 	async render(state: void, sizing: PromptSizing) {
 		return <>
 			<DefaultOpenAIKeepGoingReminder />
-			{getEditingReminder(this.props.hasEditFileTool, this.props.hasReplaceStringTool, false /* useStrongReplaceStringHint */, this.props.hasMultiReplaceStringTool)}
+			{getEditingReminder(this.props.hasEditFileTool, this.props.hasReplaceStringTool, false , this.props.hasMultiReplaceStringTool)}
 		</>;
 	}
 }

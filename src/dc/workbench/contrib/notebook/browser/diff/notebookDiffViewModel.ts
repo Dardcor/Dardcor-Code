@@ -135,7 +135,6 @@ export class NotebookDiffViewModel extends Disposable implements INotebookDiffVi
 	async computeDiff(token: CancellationToken): Promise<void> {
 		const diffResult = await raceCancellation(this.notebookEditorWorkerService.computeDiff(this.model.original.resource, this.model.modified.resource), token);
 		if (!diffResult || token.isCancellationRequested) {
-			// after await the editor might be disposed.
 			return;
 		}
 
@@ -267,8 +266,6 @@ export class NotebookDiffViewModel extends Disposable implements INotebookDiffVi
 			}
 		});
 
-		// Note, ensure all of the height calculations are done before firing the event.
-		// This is to ensure that the diff editor is not resized multiple times, thereby avoiding flickering.
 		this._onDidChangeItems.fire({ start: 0, deleteCount: oldLength, elements: this._items, firstChangeIndex });
 	}
 	private async createDiffViewModels(computedCellDiffs: CellDiffInfo[], metadataChanged: boolean) {
@@ -334,9 +331,6 @@ export class NotebookDiffViewModel extends Disposable implements INotebookDiffVi
 						diff.originalCellIndex,
 						this.diffEditorHeightCalculator
 					);
-					// Reduces flicker (compute this before setting the model)
-					// Else when the model is set, the height of the editor will be x, after diff is computed, then height will be y.
-					// & that results in flicker.
 					await viewModel.computeEditorHeights();
 					return viewModel;
 				}
@@ -365,13 +359,9 @@ export class NotebookDiffViewModel extends Disposable implements INotebookDiffVi
 }
 
 
-/**
- * making sure that swapping cells are always translated to `insert+delete`.
- */
 export function prettyChanges(original: NotebookTextModel, modified: NotebookTextModel, diffResult: IDiffResult) {
 	const changes = diffResult.changes;
 	for (let i = 0; i < diffResult.changes.length - 1; i++) {
-		// then we know there is another change after current one
 		const curr = changes[i];
 		const next = changes[i + 1];
 		const x = curr.originalStart;
@@ -387,7 +377,6 @@ export function prettyChanges(original: NotebookTextModel, modified: NotebookTex
 			&& original.cells[x].getHashValue() === modified.cells[y + 1].getHashValue()
 			&& original.cells[x + 1].getHashValue() === modified.cells[y].getHashValue()
 		) {
-			// this is a swap
 			curr.originalStart = x;
 			curr.originalLength = 0;
 			curr.modifiedStart = y;

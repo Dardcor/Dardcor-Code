@@ -32,11 +32,10 @@ export class BoundModelReferenceCollection {
 
 	constructor(
 		private readonly _extUri: IExtUri,
-		private readonly _maxAge: number = 1000 * 60 * 3, // auto-dispse by age
-		private readonly _maxLength: number = 1024 * 1024 * 80, // auto-dispose by total length
-		private readonly _maxSize: number = 50 // auto-dispose by number of references
+		private readonly _maxAge: number = 1000 * 60 * 3,
+		private readonly _maxLength: number = 1024 * 1024 * 80,
+		private readonly _maxSize: number = 50
 	) {
-		//
 	}
 
 	dispose(): void {
@@ -44,7 +43,7 @@ export class BoundModelReferenceCollection {
 	}
 
 	remove(uri: URI): void {
-		for (const entry of [...this._data] /* copy array because dispose will modify it */) {
+		for (const entry of [...this._data] ) {
 			if (this._extUri.isEqualOrParent(entry.uri, uri)) {
 				entry.dispose();
 			}
@@ -52,7 +51,6 @@ export class BoundModelReferenceCollection {
 	}
 
 	add(uri: URI, ref: IReference<unknown>, length: number = 0): void {
-		// const length = ref.object.textEditorModel.getValueLength();
 		const dispose = () => {
 			const idx = this._data.indexOf(entry);
 			if (idx >= 0) {
@@ -71,11 +69,9 @@ export class BoundModelReferenceCollection {
 	}
 
 	private _cleanup(): void {
-		// clean-up wrt total length
 		while (this._length > this._maxLength) {
 			this._data[0].dispose();
 		}
-		// clean-up wrt number of documents
 		const extraSize = Math.ceil(this._maxSize * 1.2);
 		if (this._data.length >= extraSize) {
 			dispose(this._data.slice(0, extraSize - this._maxSize));
@@ -203,9 +199,7 @@ export class MainThreadDocuments extends Disposable implements MainThreadDocumen
 	}
 
 	handleModelAdded(model: ITextModel): void {
-		// Same filter as in mainThreadEditorsTracker
 		if (!shouldSynchronizeModel(model)) {
-			// don't synchronize too large models
 			return;
 		}
 		this._modelTrackers.set(model.uri, new ModelTracker(model, this._onIsCaughtUpWithContentChanges, this._proxy, this._textFileService));
@@ -227,7 +221,6 @@ export class MainThreadDocuments extends Disposable implements MainThreadDocumen
 		this._modelTrackers.delete(modelUrl);
 	}
 
-	// --- from extension host process
 
 	async $trySaveDocument(uri: UriComponents): Promise<boolean> {
 		const target = await this._textFileService.save(URI.revive(uri));
@@ -292,7 +285,6 @@ export class MainThreadDocuments extends Disposable implements MainThreadDocumen
 		const asLocalUri = toLocalResource(uri, this._environmentService.remoteAuthority, this._pathService.defaultUriScheme);
 		const exists = await this._fileService.exists(asLocalUri);
 		if (exists) {
-			// don't create a new file ontop of an existing file
 			return Promise.reject(new Error('file already exists'));
 		}
 		return await this._doCreateUntitled(Boolean(uri.path) ? uri : undefined, options);
@@ -316,7 +308,7 @@ export class MainThreadDocuments extends Disposable implements MainThreadDocumen
 		}
 		this._modelReferenceCollection.add(resource, ref, ref.object.textEditorModel.getValueLength());
 		Event.once(model.onDidRevert)(() => this._modelReferenceCollection.remove(resource));
-		this._proxy.$acceptDirtyStateChanged(resource, true); // mark as dirty
+		this._proxy.$acceptDirtyStateChanged(resource, true);
 		return resource;
 	}
 }

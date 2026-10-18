@@ -59,7 +59,6 @@ export class NotebookVariables extends Disposable implements IWorkbenchContribut
 		const enabled =
 			this.editorService.activeEditorPane?.getId() === 'workbench.editor.repl' ||
 			this.configurationService.getValue(NotebookSetting.notebookVariablesView) ||
-			// old setting key
 			this.configurationService.getValue('notebook.experimental.variablesView');
 		if (enabled && (!!notebook || this.editorService.activeEditorPane?.getId() === 'workbench.editor.notebook')) {
 			if (this.hasVariableProvider(notebook) && !this.initialized && this.initializeView()) {

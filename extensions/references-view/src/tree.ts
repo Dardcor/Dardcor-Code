@@ -67,7 +67,6 @@ export class SymbolsTree {
 
 		const modelPromise = Promise.resolve(input.resolve());
 
-		// set promise to tree data provider to trigger tree loading UI
 		this._provider.update(modelPromise.then(model => model?.provider ?? this._history));
 		this._dnd.update(modelPromise.then(model => model?.dnd));
 
@@ -84,10 +83,8 @@ export class SymbolsTree {
 		this._history.add(input);
 		this._tree.message = model.message;
 
-		// navigation
 		this._navigation.update(model.navigation);
 
-		// reveal & select
 		const selection = model.navigation?.nearest(input.location.uri, input.location.range.start);
 		if (selection && this._tree.visible) {
 			await this._tree.reveal(selection, { select: true, focus: true, expand: true });
@@ -95,14 +92,12 @@ export class SymbolsTree {
 
 		const disposables: vscode.Disposable[] = [];
 
-		// editor highlights
 		let highlights: EditorHighlights<unknown> | undefined;
 		if (model.highlights) {
 			highlights = new EditorHighlights(this._tree, model.highlights);
 			disposables.push(highlights);
 		}
 
-		// listener
 		if (model.provider.onDidChangeTreeData) {
 			disposables.push(model.provider.onDidChangeTreeData(() => {
 				this._tree.title = input.title;
@@ -129,7 +124,6 @@ export class SymbolsTree {
 	}
 }
 
-// --- tree data
 
 interface ActiveTreeDataProviderWrapper {
 	provider: Promise<vscode.TreeDataProvider<any>>;
@@ -186,7 +180,6 @@ class TreeDataProviderDelegate implements vscode.TreeDataProvider<undefined> {
 	}
 }
 
-// --- tree dnd
 
 class TreeDndDelegate implements vscode.TreeDragAndDropController<undefined> {
 
@@ -221,7 +214,6 @@ class TreeDndDelegate implements vscode.TreeDragAndDropController<undefined> {
 	}
 }
 
-// --- history
 
 class HistoryItem {
 
@@ -298,8 +290,6 @@ class TreeInputHistory implements vscode.TreeDataProvider<HistoryItem> {
 		this._inputs.delete(item.key);
 		const newPosition = item.anchor.guessedTrackedPosition();
 		let newInput = item.input;
-		// create a new input when having a tracked position which is
-		// different than the original position.
 		if (newPosition && !item.input.location.range.start.isEqual(newPosition)) {
 			newInput = item.input.with(new vscode.Location(item.input.location.uri, newPosition));
 		}
@@ -315,7 +305,6 @@ class TreeInputHistory implements vscode.TreeDataProvider<HistoryItem> {
 		const word = range ? doc.getText(range) : '???';
 
 		const item = new HistoryItem(JSON.stringify([range?.start ?? input.location.range.start, input.location.uri, input.title]), word, anchor, input);
-		// use filo-ordering of native maps
 		this._inputs.delete(item.key);
 		this._inputs.set(item.key, item);
 		this._ctxHasHistory.set(true);
@@ -331,7 +320,6 @@ class TreeInputHistory implements vscode.TreeDataProvider<HistoryItem> {
 		return this._inputs.size;
 	}
 
-	// --- tree data provider
 
 	getTreeItem(item: HistoryItem): vscode.TreeItem {
 		const result = new vscode.TreeItem(item.word);

@@ -171,7 +171,6 @@ async function createCommandDescriptionsCache(): Promise<void> {
 			if (!currentCommand) {
 				continue;
 			}
-			// There may be several examples of usage
 			if (!seenOutput) {
 				seenOutput = lines[i].length > 0 && !lines[i].match(commandRegex);
 			}
@@ -220,10 +219,6 @@ async function createCommandDescriptionsCache(): Promise<void> {
 }
 
 function formatLineAsMarkdown(text: string): string {
-	// Detect any inline code blocks which use the form `code' (backtick, single quote) and convert
-	// them to standard markdown `code` (backtick, backtick). This doesn't attempt to remove
-	// formatting inside the code blocks. We probably need to use the original .troff format to do
-	// this
 	const formattedText = text.replace(/\\`([^']+)\\'/g, '`$1`');
 	return formattedText;
 }
@@ -243,7 +238,6 @@ const main = async () => {
 			console.log('\x1b[31mmissing short description for commands:\n' + missingShortDescription.join('\n') + '\x1b[0m');
 		}
 
-		// Save the cache to a TypeScript file
 		const cacheFilePath = path.join(__dirname, '../src/shell/zshBuiltinsCache.ts');
 		const cacheObject = Object.fromEntries(zshBuiltinsCommandDescriptionsCache);
 		const tsContent = `${copyright}\n\nexport const zshBuiltinsCommandDescriptionsCache = ${JSON.stringify(cacheObject, null, 2)} as const;`;

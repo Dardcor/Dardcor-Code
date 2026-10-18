@@ -13,75 +13,9 @@ import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecyc
 import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { IClaudeSlashCommandHandler, registerClaudeSlashCommand } from './claudeSlashCommandRegistry';
 
-/**
- * AGENTS CONFIGURATION WIZARD
- * ===========================
- *
- * This wizard allows users to create and manage specialized Claude subagents that can be
- * delegated to for specific tasks. Each agent has its own system prompt, tools, and model.
- *
- * ## MAIN MENU
- * Shows a list of all agents with options to create new or manage existing ones.
- *
- * - Create new agent (always available)
- * - Project agents (.claude/agents/) - listed with model
- * - User/Personal agents (~/.claude/agents/) - listed with model
- *
- * ## CREATE FLOW
- * 1. Choose location (Project .claude/agents/ or Personal ~/.claude/agents/)
- * 2. Choose creation method:
- *    - Generate with Claude (recommended): Describe what the agent should do
- *    - Manual configuration: Enter type, system prompt, description manually
- * 3. For "Generate with Claude":
- *    a. Enter description of what agent should do
- *    b. Wait for generation
- *    c. Select tools (with advanced options for individual tools/MCP)
- *    d. Select model
- *    e. File is saved and opened
- * 4. For "Manual configuration":
- *    a. Enter agent type identifier (e.g., "test-runner")
- *    b. Enter system prompt
- *    c. Enter description (when Claude should use this agent)
- *    d. Select tools
- *    e. Select model
- *    f. File is saved and opened
- *
- * ## EDIT FLOW (selecting existing agent)
- * 1. Choose action:
- *    - View agent (opens file)
- *    - Edit agent (shows edit menu)
- *    - Delete agent (with confirmation)
- *    - Back (returns to main menu)
- * 2. Edit menu:
- *    - Open in editor
- *    - Edit tools (tool picker)
- *    - Edit model (model picker)
- *
- * ## AGENT FILE FORMAT
- * Agents are stored as markdown files with YAML frontmatter:
- * ```
- * ---
- * name: agent-name
- * description: "When Claude should use this agent..."
- * model: sonnet
- * allowedTools:
- *   - Read
- *   - Grep
- *   - Glob
- * ---
- *
- * System prompt content here...
- * ```
- */
 
-/**
- * Agent location type
- */
 type AgentLocationType = 'project' | 'user';
 
-/**
- * Agent file location
- */
 interface AgentLocation {
 	type: AgentLocationType;
 	label: string;
@@ -89,9 +23,6 @@ interface AgentLocation {
 	workspaceFolder?: URI;
 }
 
-/**
- * Parsed agent configuration
- */
 interface AgentConfig {
 	name: string;
 	description: string;
@@ -100,18 +31,12 @@ interface AgentConfig {
 	systemPrompt: string;
 }
 
-/**
- * Agent with its source location
- */
 interface AgentWithSource {
 	config: AgentConfig;
 	location: AgentLocation;
 	filePath: URI;
 }
 
-/**
- * Available models for agents
- */
 const AGENT_MODELS = [
 	{
 		id: 'sonnet',
@@ -136,20 +61,14 @@ const AGENT_MODELS = [
 	},
 ] as const;
 
-/**
- * Tool categories for selection
- */
 const TOOL_CATEGORIES = [
 	{ id: 'readonly', label: 'Read-only tools', tools: ['Read', 'Glob', 'Grep', 'WebFetch', 'WebSearch'] },
 	{ id: 'edit', label: 'Edit tools', tools: ['Edit', 'Write', 'NotebookEdit'] },
 	{ id: 'execution', label: 'Execution tools', tools: ['Bash'] },
-	{ id: 'mcp', label: 'MCP tools', tools: [] }, // Populated dynamically
+	{ id: 'mcp', label: 'MCP tools', tools: [] },
 	{ id: 'other', label: 'Other tools', tools: ['Skill', 'Agent', 'Task', 'TodoWrite'] },
 ] as const;
 
-/**
- * All individual tools
- */
 const ALL_TOOLS = [
 	'Bash',
 	'Glob',
@@ -166,10 +85,6 @@ const ALL_TOOLS = [
 	'TodoWrite',
 ] as const;
 
-/**
- * Slash command handler for managing Claude agents.
- * Launches a QuickPick wizard to create, view, edit, and delete agents.
- */
 export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 	readonly commandName = 'agents';
 	readonly description = 'Create and manage specialized Claude agents';
@@ -189,7 +104,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 	): Promise<vscode.ChatResult> {
 		stream?.markdown(vscode.l10n.t('Opening agents configuration...'));
 
-		// Fire and forget - wizard runs in background
 		this._runWizard().catch(error => {
 			this.logService.error('[AgentsSlashCommand] Error running agents wizard:', error);
 			vscode.window.showErrorMessage(
@@ -201,7 +115,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 	}
 
 	private async _runWizard(): Promise<void> {
-		// Main menu - show agents list
 		const result = await this._showMainMenu();
 		if (!result) {
 			return;
@@ -214,9 +127,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 		}
 	}
 
-	/**
-	 * Shows the main agents list menu.
-	 */
 	private async _showMainMenu(): Promise<{ action: 'create' | 'select'; agent?: AgentWithSource } | undefined> {
 		const projectAgents = await this._loadProjectAgents();
 		const userAgents = await this._loadUserAgents();
@@ -228,13 +138,11 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 
 		const items: (AgentMenuItem | vscode.QuickPickItem)[] = [];
 
-		// Create new agent option
 		items.push({
 			label: '$(add) ' + vscode.l10n.t('Create new agent'),
 			action: 'create',
 		});
 
-		// Project agents section
 		if (projectAgents.length > 0) {
 			items.push({
 				label: vscode.l10n.t('Project agents'),
@@ -251,7 +159,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			}
 		}
 
-		// User/Personal agents section
 		if (userAgents.length > 0) {
 			items.push({
 				label: vscode.l10n.t('Personal agents'),
@@ -268,7 +175,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			}
 		}
 
-		// Show placeholder text if no custom agents
 		const placeholderText = projectAgents.length === 0 && userAgents.length === 0
 			? vscode.l10n.t('No agents found. Create specialized subagents that Claude can delegate to.')
 			: vscode.l10n.t('Select an agent to view, edit, or delete');
@@ -286,17 +192,12 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 		return { action: selected.action, agent: selected.agent };
 	}
 
-	/**
-	 * Runs the create agent flow.
-	 */
 	private async _runCreateFlow(): Promise<void> {
-		// Step 1: Choose location
 		const location = await this._selectLocation();
 		if (!location) {
 			return;
 		}
 
-		// Step 2: Choose creation method
 		const method = await this._selectCreationMethod();
 		if (!method) {
 			return;
@@ -309,15 +210,11 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 		}
 	}
 
-	/**
-	 * Step 1: Select where to save the agent.
-	 */
 	private async _selectLocation(): Promise<AgentLocation | undefined> {
 		type LocationItem = vscode.QuickPickItem & { location: AgentLocation };
 
 		const items: LocationItem[] = [];
 
-		// Project location (first workspace folder)
 		const workspaceFolders = this.workspaceService.getWorkspaceFolders();
 		if (workspaceFolders.length > 0) {
 			const firstFolder = workspaceFolders[0];
@@ -332,7 +229,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			});
 		}
 
-		// Personal location
 		items.push({
 			label: vscode.l10n.t('2. Personal (~/.claude/agents/)'),
 			location: {
@@ -351,9 +247,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 		return selected?.location;
 	}
 
-	/**
-	 * Step 2: Select creation method.
-	 */
 	private async _selectCreationMethod(): Promise<'generate' | 'manual' | undefined> {
 		const items: (vscode.QuickPickItem & { method: 'generate' | 'manual' })[] = [
 			{
@@ -375,11 +268,7 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 		return selected?.method;
 	}
 
-	/**
-	 * Generate flow: describe agent, generate, select tools, select model.
-	 */
 	private async _runGenerateFlow(location: AgentLocation): Promise<void> {
-		// Step 3: Enter description
 		const description = await vscode.window.showInputBox({
 			title: vscode.l10n.t('Create new agent'),
 			prompt: vscode.l10n.t('Describe what this agent should do and when it should be used (be comprehensive for best results)'),
@@ -391,7 +280,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			return;
 		}
 
-		// Step 4: Generate agent with Claude
 		const generated = await vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: vscode.l10n.t('Generating agent from description...'),
@@ -404,19 +292,16 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			return;
 		}
 
-		// Step 5: Select tools
 		const tools = await this._selectTools();
 		if (!tools) {
 			return;
 		}
 
-		// Step 6: Select model
 		const model = await this._selectModel();
 		if (!model) {
 			return;
 		}
 
-		// Build final config
 		const config: AgentConfig = {
 			name: generated.name,
 			description: generated.description,
@@ -425,17 +310,12 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			systemPrompt: generated.systemPrompt,
 		};
 
-		// Save and open
 		const filePath = URI.joinPath(location.agentsDir, `${config.name}.md`);
 		await this._saveAgent(filePath, config);
 		await this._openAgentFile(filePath);
 	}
 
-	/**
-	 * Manual flow: enter type, system prompt, description, select tools, select model.
-	 */
 	private async _runManualFlow(location: AgentLocation): Promise<void> {
-		// Step 3: Enter agent type (identifier)
 		const name = await vscode.window.showInputBox({
 			title: vscode.l10n.t('Create new agent'),
 			prompt: vscode.l10n.t('Enter a unique identifier for your agent:'),
@@ -456,7 +336,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			return;
 		}
 
-		// Step 4: Enter system prompt
 		const systemPrompt = await vscode.window.showInputBox({
 			title: vscode.l10n.t('Create new agent'),
 			prompt: vscode.l10n.t('Enter the system prompt for your agent:') + '\n' + vscode.l10n.t('Be comprehensive for best results'),
@@ -468,7 +347,6 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			return;
 		}
 
-		// Step 5: Enter description
 		const description = await vscode.window.showInputBox({
 			title: vscode.l10n.t('Create new agent'),
 			prompt: vscode.l10n.t('When should Claude use this agent?'),
@@ -480,19 +358,16 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			return;
 		}
 
-		// Step 6: Select tools
 		const tools = await this._selectTools();
 		if (!tools) {
 			return;
 		}
 
-		// Step 7: Select model
 		const model = await this._selectModel();
 		if (!model) {
 			return;
 		}
 
-		// Build config
 		const config: AgentConfig = {
 			name,
 			description,
@@ -501,15 +376,11 @@ export class AgentsSlashCommand implements IClaudeSlashCommandHandler {
 			systemPrompt,
 		};
 
-		// Save and open
 		const filePath = URI.joinPath(location.agentsDir, `${config.name}.md`);
 		await this._saveAgent(filePath, config);
 		await this._openAgentFile(filePath);
 	}
 
-	/**
-	 * Generate agent config using Claude.
-	 */
 	private async _generateAgentConfig(
 		description: string,
 		token: vscode.CancellationToken
@@ -528,12 +399,9 @@ Keep the systemPrompt focused but thorough. Include specific instructions for ho
 
 Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 
-			// Use claude-sonnet-4.5 for agent generation (fast and efficient for structured output)
 			let models = await vscode.lm.selectChatModels({ family: 'claude-sonnet-4.5', vendor: 'dardcor' });
 			if (models.length === 0) {
-				// Fallback to any available model
 				models = await vscode.lm.selectChatModels({ vendor: 'dardcor' });
-				// Get latest claude-sonnet- model
 				models = models
 					.filter(model => model.family.startsWith('claude-sonnet-'))
 					.sort((a, b) => b.family.localeCompare(a.family));
@@ -556,14 +424,12 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 				}
 			}
 
-			// Strip markdown code blocks if present
 			let jsonText = responseText.trim();
 			const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
 			if (codeBlockMatch) {
 				jsonText = codeBlockMatch[1].trim();
 			}
 
-			// Parse JSON response
 			const parsed = JSON.parse(jsonText);
 			return {
 				name: parsed.name,
@@ -579,16 +445,12 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		}
 	}
 
-	/**
-	 * Select tools for the agent (multi-select with categories).
-	 */
 	private async _selectTools(): Promise<string[] | undefined> {
 		type ToolPickItem = vscode.QuickPickItem & {
 			categoryId?: string;
 			toolId?: string;
 		};
 
-		// Toggle button for advanced options
 		const showAdvancedButton: vscode.QuickInputButton = {
 			iconPath: new vscode.ThemeIcon('chevron-down'),
 			tooltip: vscode.l10n.t('Show advanced options'),
@@ -614,7 +476,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 			const updateItems = () => {
 				const items: ToolPickItem[] = [];
 
-				// Tool categories
 				for (const cat of TOOL_CATEGORIES) {
 					items.push({
 						label: cat.label,
@@ -622,7 +483,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 					});
 				}
 
-				// Advanced: individual tools
 				if (showAdvanced) {
 					items.push({
 						label: vscode.l10n.t('Individual Tools'),
@@ -637,21 +497,18 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 					}
 				}
 
-				// Preserve selection when updating items
 				const previouslySelectedIds = new Set(
 					quickPick.selectedItems.map(item => item.categoryId || item.toolId)
 				);
 
 				quickPick.items = items;
 
-				// Restore selection
 				quickPick.selectedItems = items.filter(item => {
 					const id = item.categoryId || item.toolId;
 					return id && previouslySelectedIds.has(id);
 				});
 			};
 
-			// Initialize with all categories selected
 			updateItems();
 			quickPick.selectedItems = quickPick.items.filter(item => item.categoryId);
 
@@ -672,7 +529,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 				const selectedItems = quickPick.selectedItems;
 				disposables.dispose();
 
-				// Check if all categories are selected - treat as "all tools"
 				const selectedCategoryIds = new Set(
 					selectedItems.filter(item => item.categoryId).map(item => item.categoryId)
 				);
@@ -682,7 +538,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 					return;
 				}
 
-				// Collect selected tools from categories and individual tools
 				const tools = new Set<string>();
 				for (const item of selectedItems) {
 					if (item.categoryId) {
@@ -712,9 +567,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		});
 	}
 
-	/**
-	 * Select model for the agent.
-	 */
 	private async _selectModel(): Promise<string | undefined> {
 		const items = AGENT_MODELS.map((model, index) => ({
 			label: `${index + 1}. ${model.label}${'isDefault' in model && model.isDefault ? ' $(check)' : ''}`,
@@ -731,9 +583,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		return selected?.modelId;
 	}
 
-	/**
-	 * Shows the action menu for a selected agent.
-	 */
 	private async _runAgentActionMenu(agent: AgentWithSource): Promise<void> {
 		type ActionItem = vscode.QuickPickItem & { action: 'view' | 'edit' | 'delete' | 'back' };
 
@@ -770,9 +619,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		}
 	}
 
-	/**
-	 * Shows the edit menu for an agent.
-	 */
 	private async _runEditMenu(agent: AgentWithSource): Promise<void> {
 		type EditItem = vscode.QuickPickItem & { action: 'open' | 'tools' | 'model' };
 
@@ -823,9 +669,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		}
 	}
 
-	/**
-	 * Delete an agent with confirmation.
-	 */
 	private async _deleteAgent(agent: AgentWithSource): Promise<void> {
 		const confirm = await vscode.window.showWarningMessage(
 			vscode.l10n.t('Are you sure you want to delete the agent "{0}"?', agent.config.name),
@@ -836,14 +679,10 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		if (confirm === vscode.l10n.t('Delete')) {
 			await this.fileSystemService.delete(agent.filePath);
 			vscode.window.showInformationMessage(vscode.l10n.t('Agent "{0}" deleted', agent.config.name));
-			// Return to main menu
 			await this._runWizard();
 		}
 	}
 
-	/**
-	 * Load all project agents from .claude/agents/ directories.
-	 */
 	private async _loadProjectAgents(): Promise<AgentWithSource[]> {
 		const agents: AgentWithSource[] = [];
 		const workspaceFolders = this.workspaceService.getWorkspaceFolders();
@@ -864,9 +703,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		return agents;
 	}
 
-	/**
-	 * Load all user/personal agents from ~/.claude/agents/.
-	 */
 	private async _loadUserAgents(): Promise<AgentWithSource[]> {
 		const agentsDir = URI.joinPath(this.envService.userHome, '.claude', 'agents');
 		const location: AgentLocation = {
@@ -878,9 +714,6 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		return this._loadAgentsFromDirectory(agentsDir, location);
 	}
 
-	/**
-	 * Load agents from a specific directory.
-	 */
 	private async _loadAgentsFromDirectory(dir: URI, location: AgentLocation): Promise<AgentWithSource[]> {
 		const agents: AgentWithSource[] = [];
 
@@ -901,21 +734,16 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 				}
 			}
 		} catch {
-			// Directory doesn't exist or can't be read
 		}
 
 		return agents;
 	}
 
-	/**
-	 * Parse an agent markdown file with YAML frontmatter.
-	 */
 	private async _parseAgentFile(filePath: URI): Promise<AgentConfig | undefined> {
 		try {
 			const content = await this.fileSystemService.readFile(filePath);
 			const text = new TextDecoder().decode(content);
 
-			// Parse YAML frontmatter
 			const frontmatterMatch = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
 			if (!frontmatterMatch) {
 				return undefined;
@@ -924,12 +752,10 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 			const frontmatter = frontmatterMatch[1];
 			const systemPrompt = frontmatterMatch[2].trim();
 
-			// Simple YAML parsing for the fields we need
 			const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
 			const descMatch = frontmatter.match(/^description:\s*["']?([\s\S]*?)["']?$/m);
 			const modelMatch = frontmatter.match(/^model:\s*(.+)$/m);
 
-			// Parse allowedTools if present
 			const toolsMatch = frontmatter.match(/^allowedTools:\s*\n((?:\s+-\s+.+\n?)+)/m);
 			let allowedTools: string[] | undefined;
 			if (toolsMatch) {
@@ -955,15 +781,10 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		}
 	}
 
-	/**
-	 * Save an agent to a markdown file.
-	 */
 	private async _saveAgent(filePath: URI, config: AgentConfig): Promise<void> {
-		// Ensure directory exists
 		const dir = URI.joinPath(filePath, '..');
 		await createDirectoryIfNotExists(this.fileSystemService, dir);
 
-		// Build the file content
 		let content = `---\nname: ${config.name}\ndescription: "${config.description.replace(/"/g, '\\"')}"\nmodel: ${config.model}\n`;
 
 		if (config.allowedTools && config.allowedTools.length > 0) {
@@ -978,14 +799,10 @@ Respond ONLY with the JSON object, no markdown code blocks or other text.`;
 		await this.fileSystemService.writeFile(filePath, new TextEncoder().encode(content));
 	}
 
-	/**
-	 * Open an agent file in the editor.
-	 */
 	private async _openAgentFile(filePath: URI): Promise<void> {
 		const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath.fsPath));
 		await vscode.window.showTextDocument(doc);
 	}
 }
 
-// Self-register the agents command
 registerClaudeSlashCommand(AgentsSlashCommand);

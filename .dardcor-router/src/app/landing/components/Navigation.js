@@ -9,7 +9,7 @@ export default function Navigation() {
   return (
     <nav className="fixed top-0 z-50 w-full bg-[#181411]/80 backdrop-blur-md border-b border-[#3a2f27]">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
+        {}
         <button
           type="button"
           className="flex items-center gap-3 cursor-pointer bg-transparent border-none p-0"
@@ -22,7 +22,7 @@ export default function Navigation() {
           <h2 className="text-white text-xl font-bold tracking-tight">Dardcor Router</h2>
         </button>
 
-        {/* Desktop menu */}
+        {}
         <div className="hidden md:flex items-center gap-8">
           <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#features">Features</a>
           <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#how-it-works">How it Works</a>
@@ -32,7 +32,7 @@ export default function Navigation() {
           </a>
         </div>
 
-        {/* CTA + Mobile menu */}
+        {}
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/dashboard")}
@@ -49,7 +49,7 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Mobile menu dropdown */}
+      {}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-[#3a2f27] bg-[#181411]/95 backdrop-blur-md">
           <div className="flex flex-col gap-4 p-6">

@@ -4,31 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 type FilenameAttributes = {
-	// index.test in index.test.json
 	basename: string;
-	// json in index.test.json
 	extname: string;
-	// my-folder in my-folder/index.test.json
 	dirname: string;
 };
 
-/**
- * A sort of double-ended trie, used to efficiently query for matches to "star" patterns, where
- * a given key represents a parent and may contain a capturing group ("*"), which can then be
- * referenced via the token "$(capture)" in associated child patterns.
- *
- * The generated tree will have at most two levels, as subtrees are flattened rather than nested.
- *
- * Example:
- * The config: [
- * [ *.ts , [ $(capture).*.ts ; $(capture).js ] ]
- * [ *.js , [ $(capture).min.js ] ] ]
- * Nests the files: [ a.ts ; a.d.ts ; a.js ; a.min.js ; b.ts ; b.min.js ]
- * As:
- * - a.ts => [ a.d.ts ; a.js ; a.min.js ]
- * - b.ts => [ ]
- * - b.min.ts => [ ]
- */
 export class ExplorerFileNestingTrie {
 	private root = new PreTrie();
 
@@ -104,7 +84,6 @@ export class ExplorerFileNestingTrie {
 	}
 }
 
-/** Export for test only. */
 export class PreTrie {
 	private value: SufTrie = new SufTrie();
 
@@ -151,7 +130,6 @@ export class PreTrie {
 	}
 }
 
-/** Export for test only. */
 export class SufTrie {
 	private star: SubstitutionString[] = [];
 	private epsilon: SubstitutionString[] = [];
@@ -206,7 +184,6 @@ export class SufTrie {
 		}
 
 		if (this.epsilon.length) {
-			// allow-any-unicode-next-line
 			lines.push('ε => ' + this.epsilon.join('; '));
 		}
 

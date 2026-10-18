@@ -210,15 +210,13 @@ suite('Snippet Variables Resolver', function () {
 		assertVariableResolve2('${ThisIsAVar/([A-Z]).*(Var)/$2-${1:/downcase}/}', 'Var-t');
 		assertVariableResolve2('${Foo/(.*)/${1:+Bar}/img}', 'Bar');
 
-		//https://github.com/microsoft/vscode/issues/33162
 		assertVariableResolve2('export default class ${TM_FILENAME/(\\w+)\\.js/$1/g}', 'export default class FooFile', 'FooFile.js');
 
-		assertVariableResolve2('${foobarfoobar/(foo)/${1:+FAR}/g}', 'FARbarFARbar'); // global
-		assertVariableResolve2('${foobarfoobar/(foo)/${1:+FAR}/}', 'FARbarfoobar'); // first match
-		assertVariableResolve2('${foobarfoobar/(bazz)/${1:+FAR}/g}', 'foobarfoobar'); // no match, no else
-		// assertVariableResolve2('${foobarfoobar/(bazz)/${1:+FAR}/g}', ''); // no match
+		assertVariableResolve2('${foobarfoobar/(foo)/${1:+FAR}/g}', 'FARbarFARbar');
+		assertVariableResolve2('${foobarfoobar/(foo)/${1:+FAR}/}', 'FARbarfoobar');
+		assertVariableResolve2('${foobarfoobar/(bazz)/${1:+FAR}/g}', 'foobarfoobar');
 
-		assertVariableResolve2('${foobarfoobar/(foo)/${2:+FAR}/g}', 'barbar'); // bad group reference
+		assertVariableResolve2('${foobarfoobar/(foo)/${2:+FAR}/g}', 'barbar');
 	});
 
 	test('Snippet transforms do not handle regex with alternatives or optional matches, #36089', function () {
@@ -229,28 +227,24 @@ suite('Snippet Variables Resolver', function () {
 			'my-class.js'
 		);
 
-		// no hyphens
 		assertVariableResolve2(
 			'${TM_FILENAME/^(.)|(?:-(.))|(\\.js)/${1:/upcase}${2:/upcase}/g}',
 			'Myclass',
 			'myclass.js'
 		);
 
-		// none matching suffix
 		assertVariableResolve2(
 			'${TM_FILENAME/^(.)|(?:-(.))|(\\.js)/${1:/upcase}${2:/upcase}/g}',
 			'Myclass.foo',
 			'myclass.foo'
 		);
 
-		// more than one hyphen
 		assertVariableResolve2(
 			'${TM_FILENAME/^(.)|(?:-(.))|(\\.js)/${1:/upcase}${2:/upcase}/g}',
 			'ThisIsAFile',
 			'this-is-a-file.js'
 		);
 
-		// KEBAB CASE
 		assertVariableResolve2(
 			'${TM_FILENAME_BASE/([A-Z][a-z]+)([A-Z][a-z]+$)?/${1:/downcase}-${2:/downcase}/g}',
 			'capital-case',
@@ -368,7 +362,7 @@ suite('Snippet Variables Resolver', function () {
 			const resolver = new TimeBasedVariableResolver;
 
 			const firstResolve = new SnippetParser().parse(snippetText).resolveVariables(resolver);
-			clock.tick((365 * 24 * 3600 * 1000) + (24 * 3600 * 1000) + (3661 * 1000));  // 1 year + 1 day + 1 hour + 1 minute + 1 second
+			clock.tick((365 * 24 * 3600 * 1000) + (24 * 3600 * 1000) + (3661 * 1000));
 			const secondResolve = new SnippetParser().parse(snippetText).resolveVariables(resolver);
 
 			assert.strictEqual(firstResolve.toString(), secondResolve.toString(), `Time-based snippet variables resolved differently`);
@@ -408,19 +402,16 @@ suite('Snippet Variables Resolver', function () {
 
 		const resolver = new WorkspaceBasedVariableResolver(workspaceService);
 
-		// empty workspace
 		workspace = new Workspace('');
 		assertVariableResolve(resolver, 'WORKSPACE_NAME', undefined);
 		assertVariableResolve(resolver, 'WORKSPACE_FOLDER', undefined);
 
-		// single folder workspace without config
 		workspace = new Workspace('', [toWorkspaceFolder(URI.file('/folderName'))]);
 		assertVariableResolve(resolver, 'WORKSPACE_NAME', 'folderName');
 		if (!isWindows) {
 			assertVariableResolve(resolver, 'WORKSPACE_FOLDER', '/folderName');
 		}
 
-		// workspace with config
 		const workspaceConfigPath = URI.file('testWorkspace.code-workspace');
 		workspace = new Workspace('', toWorkspaceFolders([{ path: 'folderName' }], workspaceConfigPath, extUriBiasedIgnorePathCase), workspaceConfigPath);
 		assertVariableResolve(resolver, 'WORKSPACE_NAME', 'testWorkspace');
@@ -433,7 +424,6 @@ suite('Snippet Variables Resolver', function () {
 
 		let resolver: VariableResolver;
 
-		// Mock a label service (only coded for file uris)
 		const workspaceLabelService = ((rootPath: string): ILabelService => {
 			const labelService = new class extends mock<ILabelService>() {
 				override getUriLabel(uri: URI, options: { relative?: boolean } = {}) {
@@ -450,7 +440,6 @@ suite('Snippet Variables Resolver', function () {
 
 		const model = createTextModel('', undefined, undefined, URI.parse('file:///foo/files/text.txt'));
 
-		// empty workspace
 		resolver = new ModelBasedVariableResolver(
 			workspaceLabelService(''),
 			model
@@ -462,7 +451,6 @@ suite('Snippet Variables Resolver', function () {
 			assertVariableResolve(resolver, 'RELATIVE_FILEPATH', '\\foo\\files\\text.txt');
 		}
 
-		// single folder workspace
 		resolver = new ModelBasedVariableResolver(
 			workspaceLabelService('/foo'),
 			model

@@ -50,10 +50,6 @@ export interface ITerminalQuickFixAddon {
 	readonly onDidRequestRerunCommand: Event<{ command: string; shouldExecute?: boolean }>;
 	readonly onDidUpdateQuickFixes: Event<{ command: ITerminalCommand; actions: ITerminalAction[] | undefined }>;
 	showMenu(): void;
-	/**
-	 * Registers a listener on onCommandFinished scoped to a particular command or regular
-	 * expression and provides a callback to be executed for commands that match.
-	 */
 	registerCommandFinishedListener(options: ITerminalQuickFixOptions): void;
 }
 
@@ -114,7 +110,6 @@ export class TerminalQuickFixAddon extends Disposable implements ITerminalAddon,
 		this._register(this._quickFixService.onDidUnregisterProvider(id => this._commandListeners.delete(id)));
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(TerminalSettingId.ShellIntegrationQuickFixEnabled)) {
-				// Clear existing decorations when setting changes
 				this._decoration.clear();
 				this._decorationDisposables.clear();
 			}
@@ -172,7 +167,6 @@ export class TerminalQuickFixAddon extends Disposable implements ITerminalAddon,
 	registerCommandFinishedListener(options: ITerminalQuickFixOptions | ITerminalQuickFixResolvedExtensionOptions): void {
 		const matcherKey = options.commandLineMatcher.toString();
 		let currentOptions = this._commandListeners.get(matcherKey) || [];
-		// removes the unresolved options
 		currentOptions = currentOptions.filter(o => o.id !== options.id);
 		currentOptions.push(options);
 		this._commandListeners.set(matcherKey, currentOptions);
@@ -187,10 +181,6 @@ export class TerminalQuickFixAddon extends Disposable implements ITerminalAddon,
 		this._register(commandDetection.onCommandFinished(async command => await this._resolveQuickFixes(command, this._aliases)));
 	}
 
-	/**
-	 * Resolves quick fixes, if any, based on the
-	 * @param command & its output
-	 */
 	private async _resolveQuickFixes(command: ITerminalCommand, aliases?: string[][]): Promise<void> {
 		const terminal = this._terminal;
 		if (!terminal || command.wasReplayed) {
@@ -253,15 +243,11 @@ export class TerminalQuickFixAddon extends Disposable implements ITerminalAddon,
 		this._didRun = false;
 	}
 
-	/**
-	 * Registers a decoration with the quick fixes
-	 */
 	private _registerQuickFixDecoration(): void {
 		if (!this._terminal) {
 			return;
 		}
 
-		// Check if quick fix decorations are enabled
 		const quickFixEnabled = this._configurationService.getValue<boolean>(TerminalSettingId.ShellIntegrationQuickFixEnabled);
 		if (!quickFixEnabled) {
 			return;
@@ -341,7 +327,6 @@ export async function getQuickFixesForCommand(
 	onDidRequestRerunCommand?: Emitter<{ command: string; shouldExecute?: boolean }>,
 	getResolvedFixes?: (selector: ITerminalQuickFixOptions, lines?: string[]) => Promise<SingleOrMany<ITerminalQuickFix> | undefined>
 ): Promise<ITerminalAction[] | undefined> {
-	// Prevent duplicates by tracking added entries
 	const commandQuickFixSet: Set<string> = new Set();
 	const openQuickFixSet: Set<string> = new Set();
 

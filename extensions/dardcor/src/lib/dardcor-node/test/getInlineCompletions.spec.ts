@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Load env
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '../.env' });
 
@@ -31,7 +30,7 @@ class TestFetcher implements IFetcher {
 	constructor(private readonly responses: Record<string, string>) { }
 
 	getUserAgentLibrary(): string {
-		return 'TestFetcher'; // matches the naming convention inside of completions
+		return 'TestFetcher';
 	}
 
 	async fetch(url: string, options: FetchOptions): Promise<Response> {
@@ -44,7 +43,6 @@ class TestFetcher implements IFetcher {
 				return null;
 			}
 			*[Symbol.iterator](): Iterator<[string, string]> {
-				// Empty headers for test
 			}
 		};
 

@@ -42,7 +42,7 @@
 
 	.collapse-button {
 		width: 16px;
-		min-height: 1px; /* show even if empty */
+		min-height: 1px;
 		line-height: 0;
 
 		a {

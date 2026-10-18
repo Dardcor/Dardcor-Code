@@ -19,12 +19,8 @@ import { IAgentHostFileCompletionRoots, resolveAgentHostFileCompletionRoots } fr
 import { AgentHostStateManager } from './agentHostStateManager.js';
 import { AgentHostWorkspaceFiles } from './agentHostWorkspaceFiles.js';
 
-/** Maximum number of completion items returned per call. */
 const MAX_RESULTS = 50;
 
-/**
- * Result of {@link extractAtToken}.
- */
 interface IAtToken {
 	readonly token: string;
 	readonly triggerChar: string;
@@ -32,26 +28,16 @@ interface IAtToken {
 	readonly rangeEnd: number;
 }
 
-/**
- * Walk back from `offset` to find the most recent `@` that is preceded by
- * whitespace (or start-of-string) and not interrupted by whitespace. Returns
- * the substring after `@` together with the range to replace, or `undefined`
- * if no `@`-token is being typed at `offset`.
- *
- * Exported for unit testing.
- */
 export function extractAtToken(text: string, offset: number): IAtToken | undefined {
 	if (offset < 0 || offset > text.length) {
 		return undefined;
 	}
 	for (let i = offset - 1; i >= 0; i--) {
 		const ch = text.charCodeAt(i);
-		// whitespace terminates the search
-		if (ch === 0x20 /* space */ || ch === 0x09 /* tab */ || ch === 0x0a /* \n */ || ch === 0x0d /* \r */) {
+		if (ch === 0x20 || ch === 0x09 || ch === 0x0a || ch === 0x0d ) {
 			return undefined;
 		}
 		if (text[i] === CompletionTriggerCharacter.File || text[i] === CompletionTriggerCharacter.Hash) {
-			// The trigger character must be at start-of-input or preceded by whitespace.
 			if (i > 0) {
 				const prev = text.charCodeAt(i - 1);
 				const prevIsWs = prev === 0x20 || prev === 0x09 || prev === 0x0a || prev === 0x0d;
@@ -65,10 +51,6 @@ export function extractAtToken(text: string, offset: number): IAtToken | undefin
 	return undefined;
 }
 
-/**
- * Exposes a candidate's basename, parent directory, and owner-relative path to
- * the {@link scoreItemFuzzy} family.
- */
 interface IFileCompletionCandidate {
 	readonly uri: URI;
 	readonly owner: URI;
@@ -92,18 +74,6 @@ class FileCompletionCandidateAccessor implements IItemAccessor<IFileCompletionCa
 	}
 }
 
-/**
- * Generic completion provider that contributes workspace file references
- * for a {@link CompletionItemKind.UserMessage} input — typically used for
- * `@`-mentions in the user message composer.
- *
- * When the user has typed an `@`-prefixed token at the cursor position,
- * this provider enumerates files under the session's effective working directories
- * (via {@link AgentHostWorkspaceFiles}, which uses ripgrep and respects
- * `.gitignore`), ranks them with the same fuzzy scorer used by the
- * VS Code Quick Open file picker, and returns up to {@link MAX_RESULTS}
- * matches.
- */
 export class AgentHostFileCompletionProvider implements IAgentHostCompletionItemProvider {
 
 	readonly kinds: ReadonlySet<CompletionItemKind> = new Set([CompletionItemKind.UserMessage]);
@@ -178,7 +148,6 @@ export class AgentHostFileCompletionProvider implements IAgentHostCompletionItem
 		if (!query.normalized) {
 			results = this._takeFairResults(candidates);
 		} else {
-			// Filter out non-matches first to avoid sorting tens of thousands of zeros.
 			const matching = candidates.filter(candidate => scoreItemFuzzy(candidate, query, true, accessor, cache).score > 0);
 			matching.sort((a, b) =>
 				compareItemsByFuzzyScore(a, b, query, true, accessor, cache)
@@ -217,9 +186,6 @@ export class AgentHostFileCompletionProvider implements IAgentHostCompletionItem
 		});
 	}
 
-	/**
-	 * Uses root basenames when unique and shortens only roots whose basenames collide.
-	 */
 	private _getOwnerLabels(candidates: readonly IFileCompletionCandidate[]): ReadonlyMap<string, string> {
 		const owners = new Map<string, URI>();
 		for (const candidate of candidates) {
@@ -283,9 +249,6 @@ export class AgentHostFileCompletionProvider implements IAgentHostCompletionItem
 		return filesByRoot;
 	}
 
-	/**
-	 * Interleaves empty-query candidates by logical root before applying the result limit.
-	 */
 	private _takeFairResults(candidates: readonly IFileCompletionCandidate[]): IFileCompletionCandidate[] {
 		const buckets: IFileCompletionCandidate[][] = [];
 		for (const candidate of candidates) {

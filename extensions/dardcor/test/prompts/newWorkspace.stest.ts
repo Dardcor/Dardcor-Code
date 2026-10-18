@@ -34,16 +34,12 @@ function generateFileContentsPromptTest(scenario: IGenerateFileContentsScenario,
 		const result = await fileContentGenerator.generate(promptArgs, CancellationToken.None);
 		const trimmedResult = result.trim();
 
-		// Generated file contents should never be empty
 		assert.ok(trimmedResult.length > 0);
 
-		// Generated file contents should never start with backticks
 		assert.ok(!trimmedResult.startsWith('```'));
 
-		// The AI shouldn't refuse to generate file contents
 		assert.ok(!trimmedResult.startsWith('Sorry, I cannot generate file contents'));
 
-		// Perform additional scenario-specific validation if provided
 		scenario.validate?.(trimmedResult);
 	});
 }
@@ -161,7 +157,6 @@ my-node-module
 
 ssuite({ title: 'new', subtitle: 'prompt', location: 'panel' }, () => {
 
-	// #region TypeScript
 
 	generateFileContentsPromptTest({
 		args: {
@@ -200,9 +195,7 @@ ssuite({ title: 'new', subtitle: 'prompt', location: 'panel' }, () => {
 		}
 	}, 'typescript');
 
-	// #endregion
 
-	// #region Python
 	generateFileContentsPromptTest({
 		args: {
 			PROJECT_DESCRIPTION: PythonDjango.PROJECT_DESCRIPTION,
@@ -215,7 +208,6 @@ ssuite({ title: 'new', subtitle: 'prompt', location: 'panel' }, () => {
 		}
 	}, 'python');
 
-	// This test currently always fails because the response hits the content filter
 	generateFileContentsPromptTest({
 		args: {
 			PROJECT_DESCRIPTION: PythonDjango.PROJECT_DESCRIPTION,
@@ -224,9 +216,7 @@ ssuite({ title: 'new', subtitle: 'prompt', location: 'panel' }, () => {
 			PROJECT_SPECIFICATION: PythonDjango.PROJECT_SPECIFICATION
 		}
 	}, 'python');
-	// #endregion
 
-	// #region CPP
 	generateFileContentsPromptTest({
 		args: {
 			PROJECT_DESCRIPTION: CPP.PROJECT_DESCRIPTION,
@@ -250,5 +240,4 @@ ssuite({ title: 'new', subtitle: 'prompt', location: 'panel' }, () => {
 			assert.ok(!response.startsWith('++'), 'C++ file was not correctly parsed');
 		}
 	}, 'cpp');
-	// #endregion
 });

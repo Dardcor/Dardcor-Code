@@ -20,16 +20,8 @@ export class LinesDiff {
 	constructor(
 		readonly changes: readonly DetailedLineRangeMapping[],
 
-		/**
-		 * Sorted by original line ranges.
-		 * The original line ranges and the modified line ranges must be disjoint (but can be touching).
-		 */
 		readonly moves: readonly MovedText[],
 
-		/**
-		 * Indicates if the time out was reached.
-		 * In that case, the diffs might be an approximation and the user should be asked to rerun the diff with more time.
-		 */
 		readonly hitTimeout: boolean,
 	) {
 	}
@@ -38,11 +30,6 @@ export class LinesDiff {
 export class MovedText {
 	public readonly lineRangeMapping: LineRangeMapping;
 
-	/**
-	 * The diff from the original text to the moved text.
-	 * Must be contained in the original/modified line range.
-	 * Can be empty if the text didn't change (only moved).
-	 */
 	public readonly changes: readonly DetailedLineRangeMapping[];
 
 	constructor(

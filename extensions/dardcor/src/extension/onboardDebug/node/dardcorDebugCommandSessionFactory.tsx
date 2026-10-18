@@ -28,7 +28,6 @@ interface IStoredData {
 	config: IStartDebuggingParsedResponse;
 }
 
-// Just some random strings that will lead to defined return results if found in the arguments.
 const testsStatuses: Record<string, StartResult> = {
 	'73687c45-cancelled': {
 		kind: StartResultKind.Cancelled,
@@ -48,7 +47,7 @@ const testsStatuses: Record<string, StartResult> = {
 	}
 };
 
-export class CopilotDebugCommandSessionFactory {
+export class DardcorDebugCommandSessionFactory {
 	constructor(
 		private readonly interactor: ICommandInteractor,
 		@ITelemetryService private readonly telemetry: ITelemetryService,
@@ -60,13 +59,6 @@ export class CopilotDebugCommandSessionFactory {
 	) { }
 
 	public async start({ args, cwd, forceNew, printOnly, save }: IStartOptions, token: CancellationToken): Promise<StartResult> {
-		/* __GDPR__
-		"onboardDebug.commandExecuted" : {
-			"owner": "connor4312",
-			"comment": "Reports usages of the dardcor-debug command",
-			"binary": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Binary executed with the command" }
-		}
-		*/
 		this.telemetry.sendMSFTTelemetryEvent('onboardDebug.commandExecuted', {
 			binary: args[0],
 		});
@@ -93,14 +85,6 @@ export class CopilotDebugCommandSessionFactory {
 				config: result.config!,
 			};
 
-			/* __GDPR__
-			"onboardDebug.sessionConfigGenerated" : {
-				"owner": "connor4312",
-				"comment": "Reports a generated config for the dardcor-debug command",
-				"binary": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Binary executed with the command" },
-				"debugType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Debug type generated" }
-			}
-			*/
 			this.telemetry.sendMSFTTelemetryEvent('onboardDebug.sessionConfigGenerated', {
 				binary: args[0],
 				debugType: record.config.configurations[0].type,
@@ -111,7 +95,7 @@ export class CopilotDebugCommandSessionFactory {
 		const folder = record.folder && this.workspaceService.getWorkspaceFolder(URI.revive(record.folder));
 		if (!printOnly && record.config.tasks?.length) {
 			if (!(await this.interactor.ensureTask(folder, record.config.tasks[0]))) {
-				if (!save) { // if just saving, still let the user save even if they don't want the task
+				if (!save) {
 					return { kind: StartResultKind.Cancelled };
 				}
 			}
@@ -134,7 +118,6 @@ export class CopilotDebugCommandSessionFactory {
 			return { kind: StartResultKind.Cancelled };
 		}
 
-		// inputs are saved to use as defaults in the next run
 		record.inputs = [...postInput.inputs];
 		this.saveConfigInLRU(record);
 
@@ -170,7 +153,6 @@ export class CopilotDebugCommandSessionFactory {
 			return stored[exact];
 		}
 
-		// could possibly do more advanced things here like reusing an existing config if only one arg was different
 
 		return undefined;
 	}

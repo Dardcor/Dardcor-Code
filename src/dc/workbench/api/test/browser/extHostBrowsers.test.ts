@@ -40,7 +40,6 @@ suite('ExtHostBrowsers', () => {
 		return store.add(new ExtHostBrowsers(SingleProxyRPCProtocol(proxy)));
 	}
 
-	// #region browserTabs
 
 	test('browserTabs populates from $onDidOpenBrowserTab', () => {
 		const extHost = createExtHostBrowsers();
@@ -66,9 +65,7 @@ suite('ExtHostBrowsers', () => {
 		assert.strictEqual(snapshot2.length, 2);
 	});
 
-	// #endregion
 
-	// #region activeBrowserTab
 
 	test('activeBrowserTab updates via $onDidChangeActiveBrowserTab', () => {
 		const extHost = createExtHostBrowsers();
@@ -98,9 +95,7 @@ suite('ExtHostBrowsers', () => {
 		assert.strictEqual(extHost.activeBrowserTab, undefined);
 	});
 
-	// #endregion
 
-	// #region openBrowserTab
 
 	test('openBrowserTab returns a BrowserTab with correct properties', async () => {
 		const dto = createDto({ id: 'opened', url: 'https://opened.com', title: 'Opened' });
@@ -151,15 +146,12 @@ suite('ExtHostBrowsers', () => {
 
 		await extHost.openBrowserTab('https://example.com', { viewColumn: 2, preserveFocus: true, background: true });
 
-		// ViewColumn.from converts API viewColumn (1-based) to EditorGroupColumn (0-based)
 		assert.strictEqual(capturedViewColumn, 1);
 		assert.strictEqual(capturedOptions?.preserveFocus, true);
 		assert.strictEqual(capturedOptions?.inactive, true);
 	});
 
-	// #endregion
 
-	// #region $onDidOpenBrowserTab
 
 	test('$onDidOpenBrowserTab fires event', () => {
 		const extHost = createExtHostBrowsers();
@@ -172,9 +164,7 @@ suite('ExtHostBrowsers', () => {
 		assert.strictEqual(opened[0].url, 'https://opened.com');
 	});
 
-	// #endregion
 
-	// #region $onDidCloseBrowserTab
 
 	test('$onDidCloseBrowserTab removes tab and fires event', () => {
 		const extHost = createExtHostBrowsers();
@@ -198,9 +188,7 @@ suite('ExtHostBrowsers', () => {
 		assert.strictEqual(extHost.browserTabs[0].title, 'New Title');
 	});
 
-	// #endregion
 
-	// #region $onDidChangeActiveBrowserTab event
 
 	test('$onDidChangeActiveBrowserTab fires event', () => {
 		const extHost = createExtHostBrowsers();
@@ -215,9 +203,7 @@ suite('ExtHostBrowsers', () => {
 		assert.deepStrictEqual(activeChanges, ['https://example.com', undefined]);
 	});
 
-	// #endregion
 
-	// #region BrowserTab icon
 
 	test('icon is globe ThemeIcon when no favicon', () => {
 		const extHost = createExtHostBrowsers();
@@ -251,16 +237,13 @@ suite('ExtHostBrowsers', () => {
 		assert.strictEqual((extHost.browserTabs[0].icon as { id: string }).id, 'globe');
 	});
 
-	// #endregion
 
-	// #region BrowserTab readonly properties
 
 	test('tab properties are not directly writable', () => {
 		const extHost = createExtHostBrowsers();
 		extHost.$onDidOpenBrowserTab(createDto({ id: 'b1', url: 'https://example.com', title: 'Title' }));
 		const tab = extHost.browserTabs[0];
 
-		// Attempting to assign to getter-only properties should either throw or be silently ignored
 		assert.throws(() => { (tab as unknown as Record<string, unknown>).url = 'https://hacked.com'; });
 		assert.throws(() => { (tab as unknown as Record<string, unknown>).title = 'Hacked'; });
 		assert.strictEqual(tab.url, 'https://example.com');
@@ -288,10 +271,8 @@ suite('ExtHostBrowsers', () => {
 		extHost.$onDidOpenBrowserTab(createDto({ id: 'b1' }));
 		const session = await extHost.browserTabs[0].startCDPSession();
 
-		// Valid message succeeds
 		await session.sendMessage({ id: 1, method: 'Page.enable' });
 
-		// Invalid messages are rejected
 		await assert.rejects(Promise.resolve().then(() => session.sendMessage(null as never)), /must be an object/);
 		await assert.rejects(Promise.resolve().then(() => session.sendMessage({ method: 'Foo' } as never)), /numeric id/);
 		await assert.rejects(Promise.resolve().then(() => session.sendMessage({ id: 1 } as never)), /method string/);
@@ -366,9 +347,7 @@ suite('ExtHostBrowsers', () => {
 		assert.ok(closeFired);
 	});
 
-	// #endregion
 
-	// #region Reference stability
 
 	test('tab object reference is stable across updates', () => {
 		const extHost = createExtHostBrowsers();
@@ -393,9 +372,7 @@ suite('ExtHostBrowsers', () => {
 		assert.strictEqual(returned, fromArray);
 	});
 
-	// #endregion
 
-	// #region Multiple tabs tracked independently
 
 	test('closing one tab does not affect others', () => {
 		const extHost = createExtHostBrowsers();
@@ -420,5 +397,4 @@ suite('ExtHostBrowsers', () => {
 		assert.strictEqual(extHost.activeBrowserTab, undefined);
 	});
 
-	// #endregion
 });

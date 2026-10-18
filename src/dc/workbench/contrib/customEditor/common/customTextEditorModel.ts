@@ -87,7 +87,7 @@ export class CustomTextEditorModel extends Disposable implements ICustomEditorMo
 	}
 
 	public get canHotExit() {
-		return true; // ensured via backups from text file models
+		return true;
 	}
 
 	public isDirty(): boolean {

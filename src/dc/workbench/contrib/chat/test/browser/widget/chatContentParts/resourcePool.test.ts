@@ -204,18 +204,13 @@ suite('KeyedResourcePool', () => {
 		pool.release(a, 'key1');
 		pool.release(b, 'key2');
 
-		// Reuse a via key1, then release it under key2
 		const reused = pool.get('key1');
 		assert.strictEqual(reused, a);
 		pool.release(reused, 'key2');
 
-		// key1 should not find a anymore — only b is associated with its original key2
-		// But a was reassigned to key2, so key2 now has both a and b
 		const c = pool.get('key1');
-		// key1 has no associations, falls back to generic — gets whatever is on top
 		pool.release(c, 'key1');
 
-		// key2 should still find one of {a, b}
 		const d = pool.get('key2');
 		assert.ok(d === a || d === b);
 	});

@@ -5,18 +5,12 @@
 
 import * as l10n from '@vscode/l10n';
 import type { Selection, TextEditor, Uri } from 'vscode';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
-import { ICustomInstructionsService } from '../../../platform/customInstructions/common/customInstructionsService';
+import { IDiffService } from '../../../platform/diff/common/diffService';
 import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocumentSnapshot';
-import { ICAPIClientService } from '../../../platform/endpoint/common/capiClient';
-import { IDomainService } from '../../../platform/endpoint/common/domainService';
-import { IEnvService } from '../../../platform/env/common/envService';
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { FileType } from '../../../platform/filesystem/common/fileTypes';
 import { IGitExtensionService } from '../../../platform/git/common/gitExtensionService';
-import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { IFetcherService } from '../../../platform/networking/common/fetcherService';
 import { INotificationService, Progress, ProgressLocation } from '../../../platform/notification/common/notificationService';
 import { CodeReviewInput, CodeReviewResult, toCodeReviewResult } from '../../../platform/review/common/reviewCommand';
 import { IReviewService, ReviewComment } from '../../../platform/review/common/reviewService';
@@ -28,23 +22,16 @@ import { isCancellationError } from '../../../util/dardcor/base/common/errors';
 import * as path from '../../../util/dardcor/base/common/path';
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Range } from '../../../dardcorTypes';
 import { FeedbackGenerator, FeedbackResult } from '../../prompt/node/feedbackGenerator';
 import { CurrentChange, CurrentChangeInput } from '../../prompts/node/feedback/currentChange';
-import { githubReview, githubReviewFileUris } from './githubReviewAgent';
 
-/**
- * Dependencies for handleReviewResult function.
- */
 export interface HandleResultDependencies {
 	notificationService: INotificationService;
 	logService: ILogService;
 	reviewService: IReviewService;
 }
 
-/**
- * Handles the review result by showing appropriate notifications.
- * Extracted for testability.
- */
 export async function handleReviewResult(
 	result: FeedbackResult,
 	deps: HandleResultDependencies
@@ -90,8 +77,6 @@ export async function handleReviewResult(
 	}
 }
 
-// Module-level variable to track in-progress review across all sessions.
-// This ensures that starting a new review cancels any previous in-progress review.
 let inProgress: CancellationTokenSource | undefined;
 
 export class ReviewSession {
@@ -100,18 +85,11 @@ export class ReviewSession {
 		@IScopeSelector private readonly scopeSelector: IScopeSelector,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IReviewService private readonly reviewService: IReviewService,
-		@IAuthenticationService private readonly authService: IAuthenticationService,
 		@ILogService private readonly logService: ILogService,
 		@IGitExtensionService private readonly gitExtensionService: IGitExtensionService,
-		@IDomainService private readonly domainService: IDomainService,
-		@ICAPIClientService private readonly capiClientService: ICAPIClientService,
-		@IFetcherService private readonly fetcherService: IFetcherService,
-		@IEnvService private readonly envService: IEnvService,
-		@IIgnoreService private readonly ignoreService: IIgnoreService,
 		@ITabsAndEditorsService private readonly tabsAndEditorsService: ITabsAndEditorsService,
 		@IWorkspaceService private readonly workspaceService: IWorkspaceService,
 		@INotificationService private readonly notificationService: INotificationService,
-		@ICustomInstructionsService private readonly customInstructionsService: ICustomInstructionsService,
 	) { }
 
 	async review(
@@ -119,10 +97,9 @@ export class ReviewSession {
 		progressLocation: ProgressLocation,
 		cancellationToken?: CancellationToken
 	): Promise<FeedbackResult | undefined> {
-		if (!await this.checkAuthentication()) {
-			return undefined;
+		if (cancellationToken?.isCancellationRequested) {
+			return { type: 'cancelled' };
 		}
-
 		const editor = this.tabsAndEditorsService.activeTextEditor;
 		const selection = await this.resolveSelection(group, editor);
 		if (group === 'selection' && selection === undefined) {
@@ -130,25 +107,9 @@ export class ReviewSession {
 		}
 
 		const title = getReviewTitle(group, editor);
-		return this.executeWithProgress(group, editor, title, progressLocation, cancellationToken);
+		return this.executeWithProgress(group, editor, selection, title, progressLocation, cancellationToken);
 	}
 
-	/**
-	 * Checks if the user is authenticated. Shows sign-in dialog if not.
-	 * @returns true if authenticated, false if user needs to sign in
-	 */
-	private async checkAuthentication(): Promise<boolean> {
-		if (this.authService.dardcorToken?.isNoAuthUser) {
-			await this.notificationService.showQuotaExceededDialog({ isNoAuthUser: true });
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * Resolves the selection for 'selection' group reviews.
-	 * @returns The selection range, or undefined if selection cannot be determined
-	 */
 	private async resolveSelection(group: ReviewGroup, editor: TextEditor | undefined): Promise<Selection | undefined> {
 		if (group !== 'selection') {
 			return editor?.selection;
@@ -171,20 +132,15 @@ export class ReviewSession {
 				if (isCancellationError(err)) {
 					return undefined;
 				}
-				// Original behavior: non-cancellation errors are silently ignored
-				// and we fall through with whatever selection we have
-				// Possibly causes https://github.com/microsoft/vscode/issues/276240
 			}
 		}
 		return selection;
 	}
 
-	/**
-	 * Executes the review with progress UI.
-	 */
 	private async executeWithProgress(
 		group: ReviewGroup,
 		editor: TextEditor | undefined,
+		selection: Selection | undefined,
 		title: string,
 		progressLocation: ProgressLocation,
 		cancellationToken?: CancellationToken
@@ -197,71 +153,61 @@ export class ReviewSession {
 			if (inProgress) {
 				inProgress.cancel();
 			}
-			const tokenSource = inProgress = new CancellationTokenSource(
-				cancellationToken ? combineCancellationTokens(cancellationToken, progressToken) : progressToken
-			);
-
-			this.reviewService.removeReviewComments(this.reviewService.getReviewComments());
-			const progress: Progress<ReviewComment[]> = {
-				report: comments => {
-					if (!tokenSource.token.isCancellationRequested) {
-						this.reviewService.addReviewComments(comments);
-					}
-				}
-			};
-
-			const result = await this.performReview(group, editor, progress, tokenSource);
-
-			if (tokenSource.token.isCancellationRequested) {
-				return { type: 'cancelled' };
+			const tokenSource = inProgress = new CancellationTokenSource();
+			const cancel = () => tokenSource.cancel();
+			const cancellationSubscriptions = [progressToken.onCancellationRequested(cancel)];
+			if (cancellationToken) {
+				cancellationSubscriptions.push(cancellationToken.onCancellationRequested(cancel));
 			}
 
-			await this.handleResult(result);
-			return result;
+			try {
+				this.reviewService.removeReviewComments(this.reviewService.getReviewComments());
+				const progress: Progress<ReviewComment[]> = {
+					report: comments => {
+						if (!tokenSource.token.isCancellationRequested) {
+							this.reviewService.addReviewComments(comments);
+						}
+					}
+				};
+
+				const result = await this.performReview(group, editor, selection, progress, tokenSource);
+
+				if (tokenSource.token.isCancellationRequested) {
+					return { type: 'cancelled' };
+				}
+
+				await this.handleResult(result);
+				return result;
+			} finally {
+				for (const subscription of cancellationSubscriptions) {
+					subscription.dispose();
+				}
+				if (inProgress === tokenSource) {
+					inProgress = undefined;
+				}
+				tokenSource.dispose();
+			}
 		});
 	}
 
-	/**
-	 * Performs the actual code review using either GitHub agent or legacy feedback generator.
-	 */
 	private async performReview(
 		group: ReviewGroup,
 		editor: TextEditor | undefined,
+		selection: Selection | undefined,
 		progress: Progress<ReviewComment[]>,
 		tokenSource: CancellationTokenSource
 	): Promise<FeedbackResult> {
 		try {
-			const dardcorToken = await this.authService.getCopilotToken();
-			const canUseGitHubAgent = dardcorToken.isCopilotCodeReviewEnabled;
-
-			if (canUseGitHubAgent) {
-				return await githubReview(
-					this.logService, this.gitExtensionService, this.authService,
-					this.capiClientService, this.domainService, this.fetcherService,
-					this.envService, this.ignoreService, this.workspaceService,
-					this.customInstructionsService, group, editor, progress, tokenSource.token
-				);
-			} else {
-				const legacyGroup = typeof group === 'object' && 'group' in group ? group.group : group;
-				return await review(
-					this.instantiationService, this.gitExtensionService, this.workspaceService,
-					legacyGroup, editor, progress, tokenSource.token
-				);
-			}
+			return await review(
+				this.instantiationService, this.gitExtensionService, this.workspaceService,
+				group, editor, selection, progress, tokenSource.token
+			);
 		} catch (err) {
 			this.logService.error(err, 'Error during code review');
 			return { type: 'error', reason: err.message, severity: err.severity };
-		} finally {
-			if (tokenSource === inProgress) {
-				inProgress = undefined;
-			}
-			tokenSource.dispose();
 		}
 	}
 
-	/**
-	 * Handles the review result by showing appropriate notifications.
-	 */
 	private async handleResult(result: FeedbackResult): Promise<void> {
 		return handleReviewResult(result, {
 			notificationService: this.notificationService,
@@ -273,9 +219,6 @@ export class ReviewSession {
 
 export type ReviewGroup = 'selection' | 'index' | 'workingTree' | 'all' | { group: 'index' | 'workingTree'; file: Uri } | { repositoryRoot: string; commitMessages: string[]; patches: { patch: string; fileUri: string; previousFileUri?: string }[] };
 
-/**
- * Gets the progress title for a review operation based on the review group type.
- */
 export function getReviewTitle(group: ReviewGroup, editor?: TextEditor): string {
 	if (group === 'selection') {
 		return l10n.t('Reviewing selected code in {0}...', path.posix.basename(editor!.document.uri.path));
@@ -323,8 +266,9 @@ async function review(
 	instantiationService: IInstantiationService,
 	gitExtensionService: IGitExtensionService,
 	workspaceService: IWorkspaceService,
-	group: 'selection' | 'index' | 'workingTree' | 'all' | { repositoryRoot: string; commitMessages: string[]; patches: { patch: string; fileUri: string; previousFileUri?: string }[] },
+	group: ReviewGroup,
 	editor: TextEditor | undefined,
+	selection: Selection | undefined,
 	progress: Progress<ReviewComment[]>,
 	cancellationToken: CancellationToken
 ) {
@@ -337,7 +281,9 @@ async function review(
 				const document = await workspaceService.openTextDocument(change.uri);
 				return {
 					document: TextDocumentSnapshot.create(document),
-					relativeDocumentPath: path.relative(change.repository.rootUri.fsPath, change.uri.fsPath),
+					relativeDocumentPath: change.repository
+						? path.relative(change.repository.rootUri.fsPath, change.uri.fsPath)
+						: workspaceService.asRelativePath(change.uri),
 					change,
 				};
 			} catch (err) {
@@ -363,9 +309,26 @@ async function review(
 		input.push({
 			document: TextDocumentSnapshot.create(editor!.document),
 			relativeDocumentPath: path.basename(editor!.document.uri.fsPath),
-			selection: editor!.selection,
+			selection: selection!,
 		});
-	} else {
+	} else if ('file' in group) {
+		const repository = gitExtensionService.getExtensionApi()?.getRepository(group.file);
+		if (repository) {
+			const diff = await (group.group === 'index'
+				? repository.diffIndexWithHEAD(group.file.fsPath)
+				: repository.diffWithHEAD(group.file.fsPath));
+			if (diff) {
+				const change = await CurrentChange.getChanges(gitExtensionService, repository.rootUri, group.file, diff);
+				if (change) {
+					input.push({
+						document: await workspaceService.openTextDocumentAndSnapshot(group.file),
+						relativeDocumentPath: path.relative(repository.rootUri.fsPath, group.file.fsPath),
+						change,
+					});
+				}
+			}
+		}
+	} else if ('repositoryRoot' in group) {
 		for (const patch of group.patches) {
 			const uri = URI.parse(patch.fileUri);
 			input.push({
@@ -378,54 +341,82 @@ async function review(
 	return feedbackGenerator.generateComments(input, cancellationToken, progress);
 }
 
-/**
- * Runs a code review on file URI pairs and returns structured results.
- * This is the handler for the `github.dardcor.chat.codeReview.run` command.
- * It bypasses the comment controller — results are returned directly to the caller.
- */
 export async function reviewFileChanges(
 	accessor: ServicesAccessor,
 	input: CodeReviewInput,
 ): Promise<CodeReviewResult> {
 	const logService = accessor.get(ILogService);
-	const authService = accessor.get(IAuthenticationService);
-	const capiClientService = accessor.get(ICAPIClientService);
-	const fetcherService = accessor.get(IFetcherService);
-	const envService = accessor.get(IEnvService);
-	const ignoreService = accessor.get(IIgnoreService);
+	const diffService = accessor.get(IDiffService);
 	const workspaceService = accessor.get(IWorkspaceService);
 	const fileSystemService = accessor.get(IFileSystemService);
-	const customInstructionsService = accessor.get(ICustomInstructionsService);
-
-	const dardcorToken = await authService.getCopilotToken();
-	if (!dardcorToken.isCopilotCodeReviewEnabled) {
-		return { type: 'error', reason: 'Code review is not enabled for this account.' };
-	}
+	const instantiationService = accessor.get(IInstantiationService);
 
 	const tokenSource = new CancellationTokenSource();
 	try {
 		const fileInputs = await Promise.all(input.files.map(async file => {
-			let baseContent = '';
+			let baseContent: string;
 			if (file.baseUri) {
 				const bytes = await fileSystemService.readFile(file.baseUri);
 				baseContent = new TextDecoder().decode(bytes);
+			} else {
+				baseContent = '';
 			}
-			return { currentUri: file.currentUri, baseContent };
+
+			const document = TextDocumentSnapshot.create(await workspaceService.openTextDocument(file.currentUri));
+			const currentContent = document.getText();
+			const diff = await diffService.computeDiff(baseContent, currentContent, {
+				computeMoves: false,
+				ignoreTrimWhitespace: false,
+				maxComputationTimeMs: 5_000,
+			});
+			if (diff.quitEarly) {
+				throw new Error(`Could not compute a complete diff for ${workspaceService.asRelativePath(file.currentUri)}.`);
+			}
+
+			const originalLines = baseContent.split(/\r\n|\r|\n/);
+			const currentLines = currentContent.split(/\r\n|\r|\n/);
+			const hunks = diff.changes
+				.filter(change => !change.original.isEmpty || !change.modified.isEmpty)
+				.map(change => {
+					const removedLines = originalLines.slice(change.original.startLineNumber - 1, change.original.endLineNumberExclusive - 1);
+					const addedLines = currentLines.slice(change.modified.startLineNumber - 1, change.modified.endLineNumberExclusive - 1);
+					const rangeStartLine = change.modified.isEmpty
+						? Math.min(change.modified.startLineNumber - 1, Math.max(currentLines.length - 1, 0))
+						: change.modified.startLineNumber - 1;
+					return {
+						range: new Range(
+							rangeStartLine,
+							0,
+							change.modified.isEmpty ? rangeStartLine : change.modified.endLineNumberExclusive - 1,
+							0,
+						),
+						text: [
+							...removedLines.map(line => `-${line}`),
+							...addedLines.map(line => `+${line}`),
+						].join('\n'),
+					};
+				});
+			return { document, relativeDocumentPath: workspaceService.asRelativePath(file.currentUri), hunks };
 		}));
 
-		const result = await githubReviewFileUris(
-			logService, authService, capiClientService, fetcherService, envService,
-			ignoreService, workspaceService, customInstructionsService,
-			fileInputs, tokenSource.token,
-		);
+		const changedFiles: CurrentChangeInput[] = fileInputs
+			.filter(file => file.hunks.length > 0)
+			.map(file => ({
+				document: file.document,
+				relativeDocumentPath: file.relativeDocumentPath,
+				change: { uri: file.document.uri, hunks: file.hunks },
+			}));
+
+		if (changedFiles.length === 0) {
+			return { type: 'success', comments: [] };
+		}
+
+		const result = await instantiationService.createInstance(FeedbackGenerator).generateComments(changedFiles, tokenSource.token);
 
 		if (result.type === 'success') {
 			return toCodeReviewResult(result.comments);
 		}
-		if (result.type === 'error') {
-			return { type: 'error', reason: result.reason };
-		}
-		return { type: 'cancelled' };
+		return result.type === 'error' ? { type: 'error', reason: result.reason } : { type: 'cancelled' };
 	} catch (err) {
 		logService.error(err, 'Error during code review command');
 		return { type: 'error', reason: err.message };

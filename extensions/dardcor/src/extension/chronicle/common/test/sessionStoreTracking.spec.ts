@@ -196,8 +196,8 @@ describe('extractAgentName', () => {
 	});
 
 	it('parses multi-word agent name from span name', () => {
-		expect(extractAgentName({ name: 'invoke_agent GitHub Copilot Chat', attributes: {} }))
-			.toBe('GitHub Copilot Chat');
+		expect(extractAgentName({ name: 'invoke_agent Dardcor Code Agent', attributes: {} }))
+			.toBe('Dardcor Code Agent');
 	});
 
 	it('returns unknown when span name is invoke_agent with no suffix', () => {

@@ -41,11 +41,6 @@ suite('DebugModel', () => {
 			return model;
 		}
 
-		// Regression test for microsoft/vscode#289678: if the debug adapter hands
-		// out a new `instructionReference` for the same memory location (e.g.
-		// after a symbol reload or certain stepping operations), removal by
-		// reference+offset must still succeed when the caller supplies the
-		// resolved address.
 		test('removeInstructionBreakpoints prefers address match when instructionReference has changed', () => {
 			const disposable = new DisposableStore();
 			try {
@@ -64,8 +59,6 @@ suite('DebugModel', () => {
 
 				assert.strictEqual(model.getInstructionBreakpoints().length, 1);
 
-				// Simulate the disassembly view asking for removal after the
-				// debug adapter handed out a new instruction reference.
 				model.removeInstructionBreakpoints('newRef', 0, address);
 
 				assert.strictEqual(model.getInstructionBreakpoints().length, 0);
@@ -89,11 +82,9 @@ suite('DebugModel', () => {
 					logMessage: undefined,
 				});
 
-				// Non-matching reference leaves the breakpoint in place.
 				model.removeInstructionBreakpoints('other', 4);
 				assert.strictEqual(model.getInstructionBreakpoints().length, 1);
 
-				// Matching reference+offset removes it.
 				model.removeInstructionBreakpoints('ref', 4);
 				assert.strictEqual(model.getInstructionBreakpoints().length, 0);
 			} finally {

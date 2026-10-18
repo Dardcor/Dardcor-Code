@@ -12,7 +12,6 @@ import { ServicesAccessor } from '../../../../platform/instantiation/common/inst
 import { ctxAllCollapsed, ctxFilterOnType, ctxFollowsCursor, ctxSortMode, IOutlinePane, OutlineSortOrder } from './outline.js';
 
 
-// --- commands
 
 registerAction2(class CollapseAll extends ViewAction<IOutlinePane> {
 	constructor() {

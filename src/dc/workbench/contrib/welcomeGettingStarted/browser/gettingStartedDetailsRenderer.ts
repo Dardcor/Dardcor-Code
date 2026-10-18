@@ -288,7 +288,7 @@ export class GettingStartedDetailsRenderer {
 
 			const fileExists = (file: URI) => this.fileService
 				.stat(file)
-				.then((stat) => !!stat.size) // Double check the file actually has content for fileSystemProviders that fake `stat`. #131809
+				.then((stat) => !!stat.size)
 				.catch(() => false);
 
 			const [localizedFileExists, generalizedLocalizedFileExists] = await Promise.all([

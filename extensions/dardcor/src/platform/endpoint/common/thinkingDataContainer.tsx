@@ -15,10 +15,6 @@ export interface IThinkingDataContainerProps extends BasePromptElementProps {
 	thinking: ThinkingData;
 }
 
-/**
- * Helper element to embed thinking data into assistant messages
- * as an opaque content part.
- */
 export class ThinkingDataContainer extends PromptElement<IThinkingDataContainerProps> {
 	render() {
 		const { thinking } = this.props;
@@ -27,9 +23,6 @@ export class ThinkingDataContainer extends PromptElement<IThinkingDataContainerP
 	}
 }
 
-/**
- * Attempts to parse a Raw opaque content part into ThinkingData, if the type matches.
- */
 export function rawPartAsThinkingData(part: Raw.ChatCompletionContentPartOpaque): ThinkingData | undefined {
 	const value = part.value as unknown;
 	if (!value || typeof value !== 'object') {

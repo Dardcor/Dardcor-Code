@@ -25,21 +25,6 @@ import {
 } from '../browserEditor.js';
 import { BrowserOverlayManager, BrowserOverlayType } from '../overlayManager.js';
 
-/**
- * Default browser renderer: drives a Chromium WebContentsView.
- *
- * Owns everything that exists only because of how the WCV behaves:
- * - placeholder screenshot to mask the page during show/hide swaps,
- * - overlay-pause UI for when a workbench modal sits on top of the WCV,
- * - the focus dance that bounces focus between the workbench DOM and the WCV,
- * - native key event forwarding through the keybinding service,
- * - the pixel-snap layout contribution that keeps the container on physical
- *   pixel boundaries (registered late in the priority chain so it refines
- *   whatever sizing other contributions produce).
- *
- * An alternative renderer (e.g. an in-DOM iframe) would replace this
- * contribution and need none of the above.
- */
 class WebContentsViewRendererFeature extends BrowserEditorContribution {
 
 	private _container: HTMLElement | undefined;
@@ -66,7 +51,6 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 
 		this._overlayManager = this._register(new BrowserOverlayManager(editor.window));
 
-		// Build overlay-pause DOM
 		const message = $('.browser-overlay-paused-message');
 		const heading = $('.browser-overlay-paused-heading');
 		const detail = $('.browser-overlay-paused-detail');
@@ -91,15 +75,6 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 		return {
 			padding: { top: 3, right: 3, bottom: 3, left: 3 },
 
-			// Snap CSS-pixel values down so `v × hostZoom` is an exact integer:
-			// main places the WCV at `round(v × hostZoom) × systemDPR` physical
-			// pixels while CSS renders it at `v × hostZoom × systemDPR`, so this
-			// collapses main's rounding to a no-op and keeps the WebContentsView
-			// aligned with the placeholder screenshot. We snap the absolute
-			// origin (pane origin + local offset) then derive the corresponding
-			// local position so the DOM element and the WCV land on the same
-			// physical pixel. Runs late so it refines whatever sizing upstream
-			// contributions (e.g. device emulation) produced.
 			compute: (current, pane): IContainerLayout => {
 				const z = getZoomFactor(this.editor.window);
 				const snap = (v: number) => Math.floor(v * z) / z;
@@ -123,8 +98,6 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 		this._register(addDisposableListener(container, EventType.FOCUS, () => this.tryFocus()));
 		this._register(addDisposableListener(container, EventType.BLUR, () => this._cancelFocusTimeout()));
 
-		// Cross-window focus logic uses this checker because the WCV lives
-		// outside the DOM tree and can't be detected with activeElement.
 		this._register(registerExternalFocusChecker(() => ({
 			hasFocus: this._model?.focused ?? false,
 			window: this._model?.focused ? this.editor.window : undefined,
@@ -133,7 +106,6 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 		this._refreshOverlayObscured();
 	}
 
-	// -- Base contribution hooks --------------------------------------------
 
 	override onPaneVisibilityChanged(visible: boolean): void {
 		if (this._editorVisible === visible) {
@@ -144,9 +116,6 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 	}
 
 	override afterContainerLayout(): void {
-		// Container moved or resized — overlays that overlap us might have
-		// shifted relative to the container even though their own DOM didn't
-		// change. Recompute obscured state so the page can hide accordingly.
 		this._refreshOverlayObscured();
 	}
 
@@ -173,7 +142,6 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 		return true;
 	}
 
-	// -- Model lifecycle ----------------------------------------------------
 
 	protected override onModelAttached(model: IBrowserViewModel, store: DisposableStore): void {
 		this._model = model;
@@ -204,7 +172,6 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 		super.dispose();
 	}
 
-	// -- Internals ----------------------------------------------------------
 
 	private _shouldShowPage(): boolean {
 		return this._editorVisible
@@ -213,17 +180,10 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 			&& !this._model?.error;
 	}
 
-	/**
-	 * Recompute visibility of our content layers and the underlying page based
-	 * on the latest editor/overlay/model state.
-	 */
 	private _refresh(): void {
-		// Placeholder screenshot: shown whenever there's a page to render
-		// (covered by the WCV when it's up, visible during hide/show swaps).
 		const placeholderActive = !!this._model?.url && !this._model?.error;
 		this._placeholderScreenshot.style.display = placeholderActive ? '' : 'none';
 
-		// Overlay-pause overlay: fades in when an overlay obscures the page.
 		const pauseActive = !!this._model?.url && this._editorVisible && this._overlayObscured;
 		this._overlayPauseEl.classList.toggle('visible', pauseActive);
 
@@ -236,16 +196,13 @@ class WebContentsViewRendererFeature extends BrowserEditorContribution {
 		}
 		if (show) {
 			void this._model.setVisible(true);
-			// If the editor container is focused, ensure the WCV gets focus too.
 			const ownerDoc = this._container?.ownerDocument;
 			if (ownerDoc?.hasFocus() && ownerDoc.activeElement === this._container) {
 				this.tryFocus();
 			}
 		} else {
 			void this._doScreenshot();
-			// Defer the hide one frame so the latest screenshot has a chance to paint first.
 			this.editor.window.requestAnimationFrame(() => {
-				// Double check that we should still hide the page.
 				if (this._model && !this._shouldShowPage()) {
 					void this._model.setVisible(false);
 				}

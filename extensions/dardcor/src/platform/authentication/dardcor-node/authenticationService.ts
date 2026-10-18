@@ -45,13 +45,11 @@ export class AuthenticationService extends BaseAuthenticationService {
 	override async getGitHubSession(kind: 'permissive' | 'any', options: AuthenticationGetSessionOptions): Promise<AuthenticationSession | undefined> {
 		if (kind === 'permissive') {
 			const func = () => getAlignedSession(this._configurationService, options);
-			// If we are doing an interactive flow, don't use the singler so that we don't get hung up on the user's choice
 			const session = options?.createIfNone || options?.forceNewSession ? await func() : await this._taskSingler.getOrCreate('permissive', func);
 			this._permissiveGitHubSession = session;
 			return session;
 		} else {
 			const func = () => getAnyAuthSession(this._configurationService, options);
-			// If we are doing an interactive flow, don't use the singler so that we don't get hung up on the user's choice
 			const session = options?.createIfNone || options?.forceNewSession ? await func() : await this._taskSingler.getOrCreate('any', func);
 			this._anyGitHubSession = session;
 			return session;
@@ -62,7 +60,6 @@ export class AuthenticationService extends BaseAuthenticationService {
 		const adoAuthProviderId = 'microsoft';
 		const adoScopes = ['499b84ac-1321-427f-aa17-267ca6975798/.default', 'offline_access'];
 		const func = async () => await authentication.getSession(adoAuthProviderId, adoScopes, options);
-		// If we are doing an interactive flow, don't use the singler so that we don't get hung up on the user's choice
 		const session = options?.createIfNone || options?.forceNewSession ? await func() : await this._taskSingler.getOrCreate('ado', func);
 		this._anyAdoSession = session;
 		return session;

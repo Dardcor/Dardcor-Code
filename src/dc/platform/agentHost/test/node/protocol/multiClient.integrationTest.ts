@@ -152,7 +152,6 @@ suite('Protocol WebSocket — Multi-Client', function () {
 		client.clearReceived();
 		client2.clearReceived();
 
-		// Client B dispatches the turn
 		dispatchTurnStarted(client2, sessionUri, 'turn-cross', 'hello', 1);
 
 		const r1 = await client.waitForNotification(n => isActionNotification(n, 'chat/responsePart'));
@@ -180,7 +179,6 @@ suite('Protocol WebSocket — Multi-Client', function () {
 
 		dispatchTurnStarted(client, sessionUri, 'turn-tool-mc', 'use-tool', 1);
 
-		// Both clients should see the full tool lifecycle
 		for (const c of [client, client2]) {
 			await c.waitForNotification(n => isActionNotification(n, 'chat/toolCallStart'));
 			await c.waitForNotification(n => isActionNotification(n, 'chat/toolCallReady'));
@@ -226,7 +224,6 @@ suite('Protocol WebSocket — Multi-Client', function () {
 		const client2 = createSecondaryClient();
 		await client2.connect();
 		await client2.call('initialize', { channel: ROOT_STATE_URI, protocolVersions: [PROTOCOL_VERSION], clientId: 'test-scoping-2' });
-		// Client 2 does NOT subscribe to the session
 		client2.clearReceived();
 
 		dispatchTurnStarted(client, sessionUri, 'turn-scoped', 'hello', 1);
@@ -236,7 +233,6 @@ suite('Protocol WebSocket — Multi-Client', function () {
 		const sessionActions = client2.receivedNotifications(n => n.method === 'action');
 		assert.strictEqual(sessionActions.length, 0, 'unsubscribed client should receive no session actions');
 
-		// But disposing the session should still broadcast a notification
 		client2.clearReceived();
 		await client.call('disposeSession', { channel: sessionUri });
 
@@ -254,7 +250,6 @@ suite('Protocol WebSocket — Multi-Client', function () {
 		dispatchTurnStarted(client, sessionUri, 'turn-late', 'hello', 1);
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete'));
 
-		// Client 2 joins after the turn has completed
 		const client2 = createSecondaryClient();
 		await client2.connect();
 		await client2.call('initialize', { channel: ROOT_STATE_URI, protocolVersions: [PROTOCOL_VERSION], clientId: 'test-late-sub-2' });
@@ -279,16 +274,13 @@ suite('Protocol WebSocket — Multi-Client', function () {
 		client.clearReceived();
 		client2.clearReceived();
 
-		// Client A starts the permission turn
 		dispatchTurnStarted(client, sessionUri, 'turn-cross-perm', 'permission', 1);
 
-		// Both clients should see tool_start and tool_ready
 		await client.waitForNotification(n => isActionNotification(n, 'chat/toolCallStart'));
 		await client2.waitForNotification(n => isActionNotification(n, 'chat/toolCallStart'));
 		await client.waitForNotification(n => isActionNotification(n, 'chat/toolCallReady'));
 		await client2.waitForNotification(n => isActionNotification(n, 'chat/toolCallReady'));
 
-		// Client B confirms the tool call
 		client2.notify('dispatchAction', {
 			channel: buildDefaultChatUri(sessionUri),
 			clientSeq: 1,
@@ -300,7 +292,6 @@ suite('Protocol WebSocket — Multi-Client', function () {
 			},
 		});
 
-		// Both clients should see the response and turn completion
 		await client.waitForNotification(n => isActionNotification(n, 'chat/responsePart'));
 		await client2.waitForNotification(n => isActionNotification(n, 'chat/responsePart'));
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete'));

@@ -176,7 +176,6 @@ suite('Protocol WebSocket - Session Config persistence across restarts', functio
 		try {
 			rmSync(userDataDir, { recursive: true, force: true });
 		} catch {
-			// Best-effort cleanup; the OS will reap the temp dir eventually.
 		}
 	});
 
@@ -187,7 +186,6 @@ suite('Protocol WebSocket - Session Config persistence across restarts', functio
 		const updatedBranch = 'release';
 		let sessionUri: string;
 
-		// ---- Phase 1: create session, change config, wait for persistence ----
 		const server1 = await startServer({ userDataDir });
 		try {
 			const client1 = new TestProtocolClient(server1.port);
@@ -204,8 +202,6 @@ suite('Protocol WebSocket - Session Config persistence across restarts', functio
 				n.method === 'root/sessionAdded'
 				&& (n.params as SessionAddedParams).summary.resource !== PRE_EXISTING_SESSION_URI.toString()
 			);
-			// The mock agent assigns its own URI rather than honoring the
-			// requested one, so capture the real URI from the notification.
 			sessionUri = (addedNotif.params as SessionAddedParams).summary.resource;
 
 			await client1.call<SubscribeResult>('subscribe', { channel: sessionUri });
@@ -226,10 +222,6 @@ suite('Protocol WebSocket - Session Config persistence across restarts', functio
 			await stopServer(server1);
 		}
 
-		// ---- Phase 2: restart server, subscribe, verify restored config ----
-		// The mock agent does not persist its in-memory session list across
-		// restarts, so seed it via env var so `agent.listSessions()` includes
-		// our session and `restoreSession` proceeds.
 		const server2 = await startServer({
 			userDataDir,
 			env: { VSCODE_AGENT_HOST_MOCK_SEED_SESSIONS: sessionUri },
@@ -239,15 +231,10 @@ suite('Protocol WebSocket - Session Config persistence across restarts', functio
 			await client2.connect();
 			await client2.call('initialize', { channel: ROOT_STATE_URI, protocolVersions: [PROTOCOL_VERSION], clientId: 'test-config-restore-2' });
 
-			// Subscribing triggers the restore-on-subscribe path on the server,
-			// which reads `configValues` from the per-session DB and overlays
-			// them on the freshly-resolved schema.
 			const snapshot = await client2.call<SubscribeResult>('subscribe', { channel: sessionUri });
 			const state = snapshot.snapshot!.state as SessionState;
 
 			assert.ok(state.config, 'restored session should have state.config populated');
-			// Schema is re-resolved by the provider, so just check that our persisted user
-			// selections survived the round trip.
 			assert.deepStrictEqual({
 				mockMode: state.config.values.mockMode,
 				mockBranch: state.config.values.mockBranch,

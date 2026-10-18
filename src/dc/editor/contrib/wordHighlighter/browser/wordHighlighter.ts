@@ -45,10 +45,6 @@ const ctxHasWordHighlights = new RawContextKey<boolean>('hasWordHighlights', fal
 export function getOccurrencesAtPosition(registry: LanguageFeatureRegistry<DocumentHighlightProvider>, model: ITextModel, position: Position, token: CancellationToken): Promise<ResourceMap<DocumentHighlight[]> | null | undefined> {
 	const orderedByScore = registry.ordered(model);
 
-	// in order of score ask the occurrences provider
-	// until someone response with a good result
-	// (good = non undefined and non null value)
-	// (result of size == 0 is valid, no highlights is a valid/expected result -- not a signal to fall back to other providers)
 	return first<DocumentHighlight[] | null | undefined>(orderedByScore.map(provider => () => {
 		return Promise.resolve(provider.provideDocumentHighlights(model, position, token))
 			.then(undefined, onUnexpectedExternalError);
@@ -65,10 +61,6 @@ export function getOccurrencesAtPosition(registry: LanguageFeatureRegistry<Docum
 export function getOccurrencesAcrossMultipleModels(registry: LanguageFeatureRegistry<MultiDocumentHighlightProvider>, model: ITextModel, position: Position, token: CancellationToken, otherModels: ITextModel[]): Promise<ResourceMap<DocumentHighlight[]> | null | undefined> {
 	const orderedByScore = registry.ordered(model);
 
-	// in order of score ask the occurrences provider
-	// until someone response with a good result
-	// (good = non undefined and non null ResourceMap)
-	// (result of size == 0 is valid, no highlights is a valid/expected result -- not a signal to fall back to other providers)
 	return first<ResourceMap<DocumentHighlight[]> | null | undefined>(orderedByScore.map(provider => () => {
 		const filteredModels = otherModels.filter(otherModel => {
 			return shouldSynchronizeModel(otherModel);
@@ -129,8 +121,6 @@ abstract class OccurenceAtPositionRequest implements IOccurenceAtPositionRequest
 
 		let requestIsValid = Boolean(this._wordRange && this._wordRange.equalsRange(currentWordRange));
 
-		// Even if we are on a different word, if that word is in the decorations ranges, the request is still valid
-		// (Same symbol)
 		for (let i = 0, len = decorations.length; !requestIsValid && i < len; i++) {
 			const range = decorations.getRange(i);
 			if (range && range.startLineNumber === lineNumber) {
@@ -262,13 +252,10 @@ class WordHighlighter {
 
 		this.toUnhook.add(editor.onDidChangeCursorPosition((e: ICursorPositionChangedEvent) => {
 			if (this._ignorePositionChangeEvent) {
-				// We are changing the position => ignore this event
 				return;
 			}
 
 			if (this.occurrencesHighlightEnablement === 'off') {
-				// Early exit if nothing needs to be done!
-				// Leave some form of early exit check here if you wish to continue being a cursor position change listener ;)
 				return;
 			}
 
@@ -276,7 +263,6 @@ class WordHighlighter {
 		}));
 		this.toUnhook.add(editor.onDidFocusEditorText((e) => {
 			if (this.occurrencesHighlightEnablement === 'off') {
-				// Early exit if nothing needs to be done
 				return;
 			}
 
@@ -327,15 +313,11 @@ class WordHighlighter {
 			}
 		}));
 		this.toUnhook.add(editor.onDidBlurEditorWidget(() => {
-			// logic is as follows
-			// - didBlur => active null => stopall
-			// - didBlur => active nb   => if this.editor is notebook, do nothing (new cell, so we don't want to stopAll)
-			//              active nb   => if this.editor is NOT nb,   stopAll
 
 			const activeEditor = this.codeEditorService.getFocusedCodeEditor();
-			if (!activeEditor) { // clicked into nb cell list, outline, terminal, etc
+			if (!activeEditor) {
 				this._stopAll();
-			} else if (activeEditor.getModel()?.uri.scheme === Schemas.vscodeNotebookCell && this.editor.getModel()?.uri.scheme !== Schemas.vscodeNotebookCell) { // switched tabs from non-nb to nb
+			} else if (activeEditor.getModel()?.uri.scheme === Schemas.vscodeNotebookCell && this.editor.getModel()?.uri.scheme !== Schemas.vscodeNotebookCell) {
 				this._stopAll();
 			}
 		}));
@@ -348,7 +330,6 @@ class WordHighlighter {
 		this.lastCursorPositionChangeTime = 0;
 		this.renderDecorationsTimer = undefined;
 
-		// if there is a query already, highlight off that query
 		if (WordHighlighter.query) {
 			this._run();
 		}
@@ -369,7 +350,7 @@ class WordHighlighter {
 
 	public trigger() {
 		this.runDelayer.cancel();
-		this._run(false, 0); // immediate rendering (delay = 0)
+		this._run(false, 0);
 	}
 
 	public stop(): void {
@@ -426,7 +407,6 @@ class WordHighlighter {
 	}
 
 	private _removeSingleDecorations(): void {
-		// return if no model
 		if (!this.editor.hasModel()) {
 			return;
 		}
@@ -448,7 +428,6 @@ class WordHighlighter {
 	private _removeAllDecorations(preservedModel?: URI): void {
 		const currentEditors = this.codeEditorService.listCodeEditors();
 		const deleteURI = [];
-		// iterate over editors and store models in currentModels
 		for (const editor of currentEditors) {
 			if (!editor.hasModel() || isEqual(editor.getModel().uri, preservedModel)) {
 				continue;
@@ -480,33 +459,29 @@ class WordHighlighter {
 	}
 
 	private _stopSingular(): void {
-		// Remove any existing decorations + a possible query, and re - run to update decorations
 		this._removeSingleDecorations();
 
 		if (this.editor.hasTextFocus()) {
-			if (this.editor.getModel()?.uri.scheme !== Schemas.vscodeNotebookCell && WordHighlighter.query?.modelInfo?.modelURI.scheme !== Schemas.vscodeNotebookCell) { // clear query if focused non-nb editor
+			if (this.editor.getModel()?.uri.scheme !== Schemas.vscodeNotebookCell && WordHighlighter.query?.modelInfo?.modelURI.scheme !== Schemas.vscodeNotebookCell) {
 				WordHighlighter.query = null;
-				this._run(); // TODO: @Yoyokrazy -- investigate why we need a full rerun here. likely addressed a case/patch in the first iteration of this feature
-			} else { // remove modelInfo to account for nb cell being disposed
+				this._run();
+			} else {
 				if (WordHighlighter.query?.modelInfo) {
 					WordHighlighter.query.modelInfo = null;
 				}
 			}
 		}
 
-		// Cancel any renderDecorationsTimer
 		if (this.renderDecorationsTimer !== undefined) {
 			clearTimeout(this.renderDecorationsTimer);
 			this.renderDecorationsTimer = undefined;
 		}
 
-		// Cancel any worker request
 		if (this.workerRequest !== null) {
 			this.workerRequest.cancel();
 			this.workerRequest = null;
 		}
 
-		// Invalidate any worker request callback
 		if (!this.workerRequestCompleted) {
 			this.workerRequestTokenId++;
 			this.workerRequestCompleted = true;
@@ -514,24 +489,18 @@ class WordHighlighter {
 	}
 
 	private _stopAll(preservedModel?: URI): void {
-		// Remove any existing decorations
-		// TODO: @Yoyokrazy -- this triggers as notebooks scroll, causing highlights to disappear momentarily.
-		// maybe a nb type check?
 		this._removeAllDecorations(preservedModel);
 
-		// Cancel any renderDecorationsTimer
 		if (this.renderDecorationsTimer !== undefined) {
 			clearTimeout(this.renderDecorationsTimer);
 			this.renderDecorationsTimer = undefined;
 		}
 
-		// Cancel any worker request
 		if (this.workerRequest !== null) {
 			this.workerRequest.cancel();
 			this.workerRequest = null;
 		}
 
-		// Invalidate any worker request callback
 		if (!this.workerRequestCompleted) {
 			this.workerRequestTokenId++;
 			this.workerRequestCompleted = true;
@@ -540,14 +509,11 @@ class WordHighlighter {
 
 	private _onPositionChanged(e: ICursorPositionChangedEvent): void {
 
-		// disabled
 		if (this.occurrencesHighlightEnablement === 'off') {
 			this._stopAll();
 			return;
 		}
 
-		// ignore typing & other
-		// need to check if the model is a notebook cell, should not stop if nb
 		if (e.source !== 'api' && e.reason !== CursorChangeReason.Explicit) {
 			this._stopAll();
 			return;
@@ -576,7 +542,6 @@ class WordHighlighter {
 			return [];
 		}
 
-		// notebook case
 		const isNotebookEditor = model.uri.scheme === Schemas.vscodeNotebookCell;
 		if (isNotebookEditor) {
 			const currentModels: ITextModel[] = [];
@@ -590,10 +555,6 @@ class WordHighlighter {
 			return currentModels;
 		}
 
-		// inline case
-		// ? current works when highlighting outside of an inline diff, highlighting in.
-		// ? broken when highlighting within a diff editor. highlighting the main editor does not work
-		// ? editor group service could be useful here
 		const currentModels: ITextModel[] = [];
 		const currentEditors = this.codeEditorService.listCodeEditors();
 		for (const editor of currentEditors) {
@@ -604,21 +565,18 @@ class WordHighlighter {
 			if (!diffModel) {
 				continue;
 			}
-			if (model === diffModel.modified) { // embedded inline chat diff would pass this, allowing highlights
-				//? currentModels.push(diffModel.original);
+			if (model === diffModel.modified) {
 				currentModels.push(diffModel.modified);
 			}
 		}
-		if (currentModels.length) { // no matching editors have been found
+		if (currentModels.length) {
 			return currentModels;
 		}
 
-		// multi-doc OFF
 		if (this.occurrencesHighlightEnablement === 'singleFile') {
 			return [];
 		}
 
-		// multi-doc ON
 		for (const editor of currentEditors) {
 			const tempModel = editor.getModel();
 
@@ -634,15 +592,14 @@ class WordHighlighter {
 	private async _run(multiFileConfigChange?: boolean, delay?: number): Promise<void> {
 
 		const hasTextFocus = this.editor.hasTextFocus();
-		if (!hasTextFocus) { // new nb cell scrolled in, didChangeModel fires
-			if (!WordHighlighter.query) { // no previous query, nothing to highlight off of
+		if (!hasTextFocus) {
+			if (!WordHighlighter.query) {
 				this._stopAll();
 				return;
 			}
-		} else { // has text focus
+		} else {
 			const editorSelection = this.editor.getSelection();
 
-			// ignore multiline selection
 			if (!editorSelection || editorSelection.startLineNumber !== editorSelection.endLineNumber) {
 				WordHighlighter.query = null;
 				this._stopAll();
@@ -654,9 +611,7 @@ class WordHighlighter {
 
 			const word = this._getWord();
 
-			// The selection must be inside a word or surround one word at most
 			if (!word || word.startColumn > startColumn || word.endColumn < endColumn) {
-				// no previous query, nothing to highlight
 				WordHighlighter.query = null;
 				this._stopAll();
 				return;
@@ -673,10 +628,8 @@ class WordHighlighter {
 
 		this.lastCursorPositionChangeTime = (new Date()).getTime();
 
-		if (isEqual(this.editor.getModel().uri, WordHighlighter.query.modelInfo?.modelURI)) { // only trigger new worker requests from the primary model that initiated the query
-			// case d)
+		if (isEqual(this.editor.getModel().uri, WordHighlighter.query.modelInfo?.modelURI)) {
 
-			// check if the new queried word is contained in the range of a stored decoration for this model
 			if (!multiFileConfigChange) {
 				const currentModelDecorationRanges = this.decorations.getRanges();
 				for (const storedRange of currentModelDecorationRanges) {
@@ -686,8 +639,6 @@ class WordHighlighter {
 				}
 			}
 
-			// stop all previous actions if new word is highlighted
-			// if we trigger the run off a setting change -> multifile highlighting, we do not want to remove decorations from this model
 			this._stopAll(multiFileConfigChange ? this.model.uri : undefined);
 
 			const myRequestId = ++this.workerRequestTokenId;
@@ -695,10 +646,6 @@ class WordHighlighter {
 
 			const otherModelsToHighlight = this.getOtherModelsToHighlight(this.editor.getModel());
 
-			// when reaching here, there are two possible states.
-			// 		1) we have text focus, and a valid query was updated.
-			// 		2) we do not have text focus, and a valid query is cached.
-			// the query will ALWAYS have the correct data for the current highlight request, so it can always be passed to the workerRequest safely
 			if (!WordHighlighter.query || !WordHighlighter.query.modelInfo) {
 				return;
 			}
@@ -720,7 +667,6 @@ class WordHighlighter {
 			}
 
 		} else if (this.model.uri.scheme === Schemas.vscodeNotebookCell) {
-			// new wordHighlighter coming from a different model, NOT the query model, need to create a textModel ref
 
 			const myRequestId = ++this.workerRequestTokenId;
 			this.workerRequestCompleted = false;
@@ -760,11 +706,9 @@ class WordHighlighter {
 		const minimumRenderTime = this.lastCursorPositionChangeTime + delay;
 
 		if (currentTime >= minimumRenderTime) {
-			// Synchronous
 			this.renderDecorationsTimer = undefined;
 			this.renderDecorations();
 		} else {
-			// Asynchronous
 			this.renderDecorationsTimer = setTimeout(() => {
 				this.renderDecorations();
 			}, (minimumRenderTime - currentTime));
@@ -773,9 +717,6 @@ class WordHighlighter {
 
 	private renderDecorations(): void {
 		this.renderDecorationsTimer = undefined;
-		// create new loop, iterate over current editors using this.codeEditorService.listCodeEditors(),
-		// if the URI of that codeEditor is in the map, then add the decorations to the decorations array
-		// then set the decorations for the editor
 		const currentEditors = this.codeEditorService.listCodeEditors();
 		for (const editor of currentEditors) {
 			const editorHighlighterContrib = WordHighlighterContribution.get(editor);
@@ -813,7 +754,6 @@ class WordHighlighter {
 			}
 		}
 
-		// clear the worker request when decorations are completed
 		this.workerRequest = null;
 	}
 
@@ -851,7 +791,7 @@ export class WordHighlighterContribution extends Disposable implements IEditorCo
 		};
 		this._register(editor.onDidChangeModel((e) => {
 			if (this._wordHighlighter) {
-				if (!e.newModelUrl && e.oldModelUrl?.scheme !== Schemas.vscodeNotebookCell) { // happens when switching tabs to a notebook that has focus in the cell list, no new model URI (this also doesn't make it to the wordHighlighter, bc no editor.hasModel)
+				if (!e.newModelUrl && e.oldModelUrl?.scheme !== Schemas.vscodeNotebookCell) {
 					this.wordHighlighter?.stop();
 				}
 
@@ -884,7 +824,7 @@ export class WordHighlighterContribution extends Disposable implements IEditorCo
 
 	public restoreViewState(state: boolean | undefined): void {
 		if (this._wordHighlighter && state) {
-			this._wordHighlighter.restore(250); // 250 ms delay to restoring view state, since only exts call this
+			this._wordHighlighter.restore(250);
 		}
 	}
 
@@ -979,7 +919,7 @@ class TriggerWordHighlightAction extends EditorAction {
 	}
 }
 
-registerEditorContribution(WordHighlighterContribution.ID, WordHighlighterContribution, EditorContributionInstantiation.Eager); // eager because it uses `saveViewState`/`restoreViewState`
+registerEditorContribution(WordHighlighterContribution.ID, WordHighlighterContribution, EditorContributionInstantiation.Eager);
 registerEditorAction(NextWordHighlightAction);
 registerEditorAction(PrevWordHighlightAction);
 registerEditorAction(TriggerWordHighlightAction);

@@ -37,31 +37,31 @@ import { IDefaultAccount, IEntitlementsData } from '../../../../base/common/defa
 export namespace ChatEntitlementContextKeys {
 
 	export const Setup = {
-		hidden: new RawContextKey<boolean>('chatSetupHidden', false, true), 		// True when chat setup is explicitly hidden.
-		installed: new RawContextKey<boolean>('chatSetupInstalled', false, true),  	// True when the chat extension is installed and enabled.
-		disabled: new RawContextKey<boolean>('chatSetupDisabled', false, true),  	// True when the chat extension is disabled due to any other reason than workspace trust.
-		disabledInWorkspace: new RawContextKey<boolean>('chatSetupDisabledInWorkspace', false, true),	// True when chat is disabled at the workspace level via settings.
-		untrusted: new RawContextKey<boolean>('chatSetupUntrusted', false, true),  	// True when the chat extension is disabled due to workspace trust.
-		later: new RawContextKey<boolean>('chatSetupLater', false, true),  			// True when the user wants to finish setup later.
-		registered: new RawContextKey<boolean>('chatSetupRegistered', false, true), // True when the user has registered as Free or Pro user.
-		completed: new RawContextKey<boolean>('chatSetupCompleted', false, true)	// True when the user has completed the setup flow, regardless of the outcome.
+		hidden: new RawContextKey<boolean>('chatSetupHidden', false, true),
+		installed: new RawContextKey<boolean>('chatSetupInstalled', false, true),
+		disabled: new RawContextKey<boolean>('chatSetupDisabled', false, true),
+		disabledInWorkspace: new RawContextKey<boolean>('chatSetupDisabledInWorkspace', false, true),
+		untrusted: new RawContextKey<boolean>('chatSetupUntrusted', false, true),
+		later: new RawContextKey<boolean>('chatSetupLater', false, true),
+		registered: new RawContextKey<boolean>('chatSetupRegistered', false, true),
+		completed: new RawContextKey<boolean>('chatSetupCompleted', false, true)
 	};
 
 	export const Entitlement = {
-		signedOut: new RawContextKey<boolean>('chatEntitlementSignedOut', false, true), 				// True when user is signed out.
-		canSignUp: new RawContextKey<boolean>('chatPlanCanSignUp', false, true), 						// True when user can sign up to be a chat free user.
+		signedOut: new RawContextKey<boolean>('chatEntitlementSignedOut', false, true),
+		canSignUp: new RawContextKey<boolean>('chatPlanCanSignUp', false, true),
 
-		planFree: new RawContextKey<boolean>('chatPlanFree', false, true),								// True when user is a chat free user.
-		planPro: new RawContextKey<boolean>('chatPlanPro', false, true),								// True when user is a chat pro user.
-		planEdu: new RawContextKey<boolean>('chatPlanEdu', false, true),								// True when user is a chat edu user.
-		planProPlus: new RawContextKey<boolean>('chatPlanProPlus', false, true), 						// True when user is a chat pro plus user.
-		planMax: new RawContextKey<boolean>('chatPlanMax', false, true), 								// True when user is a chat max user.
-		planBusiness: new RawContextKey<boolean>('chatPlanBusiness', false, true), 						// True when user is a chat business user.
-		planEnterprise: new RawContextKey<boolean>('chatPlanEnterprise', false, true), 					// True when user is a chat enterprise user.
+		planFree: new RawContextKey<boolean>('chatPlanFree', false, true),
+		planPro: new RawContextKey<boolean>('chatPlanPro', false, true),
+		planEdu: new RawContextKey<boolean>('chatPlanEdu', false, true),
+		planProPlus: new RawContextKey<boolean>('chatPlanProPlus', false, true),
+		planMax: new RawContextKey<boolean>('chatPlanMax', false, true),
+		planBusiness: new RawContextKey<boolean>('chatPlanBusiness', false, true),
+		planEnterprise: new RawContextKey<boolean>('chatPlanEnterprise', false, true),
 
-		organisations: new RawContextKey<string[]>('chatEntitlementOrganisations', undefined, true), 	// The organizations the user belongs to.
-		internal: new RawContextKey<boolean>('chatEntitlementInternal', false, true), 					// True when user belongs to internal organisation.
-		sku: new RawContextKey<string>('chatEntitlementSku', undefined, true), 							// The SKU of the user.
+		organisations: new RawContextKey<string[]>('chatEntitlementOrganisations', undefined, true),
+		internal: new RawContextKey<boolean>('chatEntitlementInternal', false, true),
+		sku: new RawContextKey<string>('chatEntitlementSku', undefined, true),
 	};
 
 	export const chatQuotaExceeded = new RawContextKey<boolean>('chatQuotaExceeded', false, true);
@@ -69,123 +69,56 @@ export namespace ChatEntitlementContextKeys {
 
 	export const chatAnonymous = new RawContextKey<boolean>('chatAnonymous', false, true);
 
-	export const clientByokEnabled = new RawContextKey<boolean>('github.copilot.clientByokEnabled', true, true);
+	export const clientByokEnabled = new RawContextKey<boolean>('github.dardcor.clientByokEnabled', true, true);
 
-	export const hasByokModels = new RawContextKey<boolean>('github.copilot.hasByokModels', false, true);
+	export const hasByokModels = new RawContextKey<boolean>('github.dardcor.hasByokModels', false, true);
 }
 
 export const IChatEntitlementService = createDecorator<IChatEntitlementService>('chatEntitlementService');
 
 export enum ChatEntitlement {
-	/** Signed out */
 	Unknown = 1,
-	/** Signed in but not yet resolved */
 	Unresolved = 2,
-	/** Signed in and entitled to Free */
 	Available = 3,
-	/** Signed in but not entitled to Free */
 	Unavailable = 4,
-	/** Signed-up to Free */
 	Free = 5,
-	/** Signed-up to EDU */
 	EDU = 10,
-	/** Signed-up to Pro */
 	Pro = 6,
-	/** Signed-up to Pro Plus */
 	ProPlus = 7,
-	/** Signed-up to Business */
 	Business = 8,
-	/** Signed-up to Enterprise */
 	Enterprise = 9,
-	/** Signed-up to Max */
 	Max = 11,
 }
 
 export interface IChatSentiment {
 
-	/**
-	 * Whether the user has completed the setup flow or not, regardless of the outcome
-	 */
 	completed?: boolean;
 
-	/**
-	 * User has Chat installed.
-	 */
 	installed?: boolean;
 
-	/**
-	 * User signals no intent in using Chat.
-	 *
-	 * Note: in contrast to `disabled`, this should not only disable
-	 * Chat but also hide all of its UI.
-	 */
 	hidden?: boolean;
 
-	/**
-	 * User signals intent to disable Chat.
-	 *
-	 * Note: in contrast to `hidden`, this should not hide
-	 * Chat but but disable its functionality.
-	 */
 	disabled?: boolean;
 
-	/**
-	 * Chat is disabled at the workspace level
-	 *
-	 * Note: in contrast to `hidden` (which hides all UI globally),
-	 * this only disables Chat in the current workspace while
-	 * keeping its UI visible so the user can re-enable it.
-	 */
 	disabledInWorkspace?: boolean;
 
-	/**
-	 * Chat is disabled due to missing workspace trust.
-	 *
-	 * Note: even though this disables Chat, we want to treat it
-	 * different from the `disabled` state that is by explicit
-	 * user choice.
-	 */
 	untrusted?: boolean;
 
-	/**
-	 * User signals intent to use Chat later.
-	 */
 	later?: boolean;
 
-	/**
-	 * User has registered as Free or Pro user.
-	 */
 	registered?: boolean;
 }
 
-/**
- * The inputs needed to decide whether Chat still requires the user to run setup
- * (sign in / sign up / trust / enable) before it can service a request.
- */
 export interface IChatSetupRequirement {
-	/** Whether the setup flow has been completed (any outcome). */
 	readonly completed: boolean;
-	/** Whether the chat extension is disabled for a reason other than trust. */
 	readonly disabled: boolean;
-	/** Whether the chat extension is disabled because the workspace is untrusted. */
 	readonly untrusted: boolean;
-	/** The user's last known or resolved entitlement. */
 	readonly entitlement: ChatEntitlement;
-	/** Whether anonymous (signed-out) Chat access is enabled. */
 	readonly anonymous: boolean;
-	/** Whether BYOK models are available. */
 	readonly hasByokModels: boolean;
 }
 
-/**
- * Single source of truth for whether Chat still requires setup before it can
- * service a request. Shared by the setup agent (which routes a sent message
- * through setup) and the model picker (which surfaces a "Sign in to use Copilot"
- * state instead of a misleading lone "Auto"). BYOK models and anonymous access
- * intentionally satisfy the entitlement-based checks so those flows keep working.
- */
 export function chatRequiresSetup(context: IChatSetupRequirement): boolean {
-	// Bypassed for Dardcor Code: Never require setup so the local provider can work without GitHub authentication blocking it
 	return false;
 }
 
@@ -217,44 +150,24 @@ export interface IChatEntitlementService {
 	readonly sentiment: IChatSentiment;
 	readonly sentimentObs: IObservable<IChatSentiment>;
 
-	// TODO@bpasero eventually this will become enabled by default
-	// and in that case we only need to check on entitlements change
-	// between `unknown` and any other entitlement.
 	readonly onDidChangeAnonymous: Event<void>;
 	readonly anonymous: boolean;
 	readonly anonymousObs: IObservable<boolean>;
 
 	acceptQuotas(quotas: IQuotas): void;
 
-	/**
-	 * Clear all quota state.
-	 */
 	clearQuotas(): void;
 
 	markAnonymousRateLimited(): void;
 
-	/**
-	 * Mark the chat setup flow as completed.
-	 */
 	markSetupCompleted(): void;
 
-	/**
-	 * Force the hidden state on or off, overriding the normal entitlement logic.
-	 * Used by the account policy gate to hide all AI features when the gate is
-	 * active and unsatisfied.
-	 */
 	setForceHidden(hidden: boolean): void;
 
 	update(token: CancellationToken): Promise<void>;
 }
 
-//#region Helper Functions
 
-/**
- * Checks the chat entitlements to see if the user falls into the paid category
- * @param chatEntitlement The chat entitlement to check
- * @returns Whether or not they are a paid user
- */
 export function isProUser(chatEntitlement: ChatEntitlement): boolean {
 	return chatEntitlement === ChatEntitlement.EDU ||
 		chatEntitlement === ChatEntitlement.Pro ||
@@ -264,11 +177,6 @@ export function isProUser(chatEntitlement: ChatEntitlement): boolean {
 		chatEntitlement === ChatEntitlement.Enterprise;
 }
 
-/**
- * Gets the full plan name for the given chat entitlement
- * @param chatEntitlement The chat entitlement to get the plan name for
- * @returns The localized full plan name (e.g., "Dardcor AI Pro", "Dardcor AI Free")
- */
 export function getChatPlanName(chatEntitlement: ChatEntitlement): string {
 	switch (chatEntitlement) {
 		case ChatEntitlement.EDU:
@@ -288,7 +196,6 @@ export function getChatPlanName(chatEntitlement: ChatEntitlement): string {
 	}
 }
 
-//#region Service Implementation
 
 const defaultChatAgent = {
 	upgradePlanUrl: product.defaultChatAgent?.upgradePlanUrl ?? '',
@@ -307,15 +214,15 @@ const CHAT_ALLOW_ANONYMOUS_CONFIGURATION_KEY = 'chat.allowAnonymousAccess';
 
 function isAnonymous(configurationService: IConfigurationService, entitlement: ChatEntitlement, sentiment: IChatSentiment): boolean {
 	if (configurationService.getValue(CHAT_ALLOW_ANONYMOUS_CONFIGURATION_KEY) !== true) {
-		return false; // only enabled behind an experimental setting
+		return false;
 	}
 
 	if (entitlement !== ChatEntitlement.Unknown) {
-		return false; // only consider signed out users
+		return false;
 	}
 
 	if (sentiment.hidden || sentiment.disabledInWorkspace) {
-		return false; // only consider enabled scenarios
+		return false;
 	}
 
 	return true;
@@ -400,8 +307,6 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 		this.anonymousContextKey = ChatEntitlementContextKeys.chatAnonymous.bindTo(this.contextKeyService);
 		this.anonymousContextKey.set(this.anonymous);
 
-		// Only apply the workbench-side default if no other source (e.g. the Copilot extension)
-		// has already set this key; binding would otherwise reset it to the declared default.
 		if (this.contextKeyService.getContextKeyValue<boolean>(ChatEntitlementContextKeys.clientByokEnabled.key) === undefined) {
 			ChatEntitlementContextKeys.clientByokEnabled.bindTo(this.contextKeyService);
 		}
@@ -442,12 +347,12 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 		this.sentimentObs = observableFromEvent(this.onDidChangeSentiment, () => this.sentiment);
 
 		if (isWeb && !environmentService.remoteAuthority) {
-			ChatEntitlementContextKeys.Setup.hidden.bindTo(this.contextKeyService).set(true); // hide copilot UI on web if unsupported
+			ChatEntitlementContextKeys.Setup.hidden.bindTo(this.contextKeyService).set(true);
 			return;
 		}
 
 		if (!productService.defaultChatAgent) {
-			return; // we need a default chat agent configured going forward from here
+			return;
 		}
 
 		const context = this.context = new Lazy(() => this._register(instantiationService.createInstance(ChatEntitlementContext)));
@@ -459,7 +364,6 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 		this.registerListeners();
 	}
 
-	//#region --- Entitlements
 
 	readonly onDidChangeEntitlement: Event<void>;
 	readonly entitlementObs: IObservable<ChatEntitlement>;
@@ -505,16 +409,14 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 	}
 
 	get clientByokEnabled(): boolean {
-		return this.contextKeyService.getContextKeyValue<boolean>('github.copilot.clientByokEnabled') === true;
+		return this.contextKeyService.getContextKeyValue<boolean>(ChatEntitlementContextKeys.clientByokEnabled.key) === true;
 	}
 
 	get hasByokModels(): boolean {
-		return this.contextKeyService.getContextKeyValue<boolean>('github.copilot.hasByokModels') === true;
+		return this.contextKeyService.getContextKeyValue<boolean>(ChatEntitlementContextKeys.hasByokModels.key) === true;
 	}
 
-	//#endregion
 
-	//#region --- Quotas
 
 	private readonly _onDidChangeQuotaExceeded = this._register(new Emitter<void>());
 	readonly onDidChangeQuotaExceeded = this._onDidChangeQuotaExceeded.event;
@@ -623,7 +525,6 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 			this._onDidChangeUsageBasedBilling.fire();
 		}
 
-		// Track additional spend configuration changes (only when both values come from server snapshots)
 		if (oldQuota.additionalUsageEnabled !== undefined && quotas.additionalUsageEnabled !== undefined && oldQuota.additionalUsageEnabled !== quotas.additionalUsageEnabled) {
 			this.telemetryService.publicLog2<ChatAdditionalSpendConfigurationEvent, ChatAdditionalSpendConfigurationClassification>('chatAdditionalSpendConfiguration', {
 				enabled: quotas.additionalUsageEnabled ?? false,
@@ -631,7 +532,6 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 			});
 		}
 
-		// Track entering additional spend: included quota just exhausted while additional spend is enabled
 		if (quotas.additionalUsageEnabled && quotas.premiumChat?.percentRemaining === 0
 			&& oldQuota.premiumChat?.percentRemaining !== undefined && oldQuota.premiumChat.percentRemaining > 0) {
 			this.telemetryService.publicLog2<ChatAdditionalSpendActiveEvent, ChatAdditionalSpendActiveClassification>('chatAdditionalSpendActive', {
@@ -663,15 +563,11 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 		const additionalUsageEnabled = this._quotas.additionalUsageEnabled ?? false;
 		const isManagedPlan = this.entitlement === ChatEntitlement.Business || this.entitlement === ChatEntitlement.Enterprise;
 
-		// For Business/Enterprise users, hasQuota === false is the authoritative signal
-		// that the org has blocked usage, regardless of additionalUsageEnabled.
 		this.chatQuotaExceededContextKey.set(chatExhausted || (premiumChatExhausted && (isManagedPlan || !additionalUsageEnabled)));
 		this.completionsQuotaExceededContextKey.set(this._quotas.completions?.percentRemaining === 0);
 	}
 
-	//#endregion
 
-	//#region --- Sentiment
 
 	readonly onDidChangeSentiment: Event<void>;
 	readonly sentimentObs: IObservable<IChatSentiment>;
@@ -689,9 +585,7 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 		};
 	}
 
-	//#endregion
 
-	//region --- Anonymous
 
 	private readonly anonymousContextKey: IContextKey<boolean>;
 
@@ -704,7 +598,6 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 		return isAnonymous(this.configurationService, this.entitlement, this.sentiment);
 	}
 
-	//#endregion
 
 	markAnonymousRateLimited(): void {
 		if (!this.anonymous) {
@@ -723,8 +616,6 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 		if (this.context) {
 			this.context.value.setForceHidden(hidden);
 		} else {
-			// No ChatEntitlementContext (e.g. no defaultChatAgent in product.json).
-			// Set the context key directly as a fallback.
 			ChatEntitlementContextKeys.Setup.hidden.bindTo(this.contextKeyService).set(hidden);
 		}
 	}
@@ -734,9 +625,7 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 	}
 }
 
-//#endregion
 
-//#region Chat Entitlement Request Service
 
 type EntitlementClassification = {
 	tid: { classification: 'EndUserPseudonymizedInformation'; purpose: 'BusinessInsight'; comment: 'The anonymized analytics id returned by the service'; endpoint: 'GoogleAnalyticsId' };
@@ -880,7 +769,6 @@ export function parseQuotas(entitlementsData: IEntitlementsData): IQuotas {
 		canUpgradePlan: entitlementsData.can_upgrade_plan,
 	};
 
-	// Legacy Free SKU Quota
 	if (entitlementsData.monthly_quotas?.chat && typeof entitlementsData.limited_user_quotas?.chat === 'number') {
 		quotas.chat = {
 			percentRemaining: Math.min(100, Math.max(0, (entitlementsData.limited_user_quotas.chat / entitlementsData.monthly_quotas.chat) * 100)),
@@ -895,7 +783,6 @@ export function parseQuotas(entitlementsData: IEntitlementsData): IQuotas {
 		};
 	}
 
-	// New Quota Snapshot
 	if (entitlementsData.quota_snapshots) {
 		for (const quotaType of ['chat', 'completions', 'premium_interactions'] as const) {
 			const rawQuotaSnapshot = entitlementsData.quota_snapshots[quotaType];
@@ -905,10 +792,6 @@ export function parseQuotas(entitlementsData: IEntitlementsData): IQuotas {
 			const parsedEntitlement = rawQuotaSnapshot.entitlement !== undefined ? Number(rawQuotaSnapshot.entitlement) : undefined;
 			const parsedCreditsUsed = rawQuotaSnapshot.credits_used !== undefined ? Number(rawQuotaSnapshot.credits_used) : undefined;
 
-			// Skip snapshots where the user has no allocated entitlement for this
-			// category (e.g. free tier premium_interactions with 0 credits). Under
-			// TBB, has_quota is always false at the per-snapshot level so we cannot
-			// rely on it; instead check the actual entitlement value.
 			if (!rawQuotaSnapshot.unlimited && parsedEntitlement === 0) {
 				continue;
 			}
@@ -999,8 +882,6 @@ export class ChatEntitlementRequests extends Disposable {
 
 		this._register(this.context.onDidChange(() => {
 			if (this.context.state.disabled || this.context.state.entitlement === ChatEntitlement.Unknown) {
-				// When the extension is disabled or the user is not entitled
-				// make sure to clear quotas so that any indicators are also gone
 				this.state = { entitlement: this.state.entitlement, quotas: undefined };
 				this.chatQuotasAccessor.clearQuotas();
 			}
@@ -1016,10 +897,8 @@ export class ChatEntitlementRequests extends Disposable {
 			return;
 		}
 
-		// Immediately signal whether we have a session or not
 		let state: IEntitlements | undefined = undefined;
 		if (defaultAccount) {
-			// Do not overwrite any state we have already
 			if (this.state.entitlement === ChatEntitlement.Unknown) {
 				state = { entitlement: ChatEntitlement.Unresolved };
 			}
@@ -1031,8 +910,6 @@ export class ChatEntitlementRequests extends Disposable {
 		}
 
 		if (defaultAccount) {
-			// Afterwards resolve entitlement with a network request
-			// but only unless it was not already resolved before.
 			await this.resolveEntitlement(defaultAccount, cts.token);
 		}
 	}
@@ -1142,7 +1019,7 @@ export class ChatEntitlementRequests extends Disposable {
 				const status = response.res.statusCode;
 				if (status && status !== 200) {
 					lastRequest = response;
-					continue; // try next session
+					continue;
 				}
 
 				return response;
@@ -1175,7 +1052,7 @@ export class ChatEntitlementRequests extends Disposable {
 		return this.resolveEntitlement(defaultAccount, token);
 	}
 
-	async signUpFree(): Promise<true /* signed up */ | false /* already signed up */ | { errorCode: number } /* error */ | undefined /* no session */> {
+	async signUpFree(): Promise<true | false | { errorCode: number } | undefined > {
 		const sessions = await this.getSessions();
 		if (sessions.length === 0) {
 			return undefined;
@@ -1183,7 +1060,7 @@ export class ChatEntitlementRequests extends Disposable {
 		return this.doSignUpFree(sessions);
 	}
 
-	private async doSignUpFree(sessions: AuthenticationSession[]): Promise<true /* signed up */ | false /* already signed up */ | { errorCode: number } /* error */> {
+	private async doSignUpFree(sessions: AuthenticationSession[]): Promise<true | false | { errorCode: number } > {
 		const body = {
 			restricted_telemetry: this.telemetryService.telemetryLevel === TelemetryLevel.NONE ? 'disabled' : 'enabled',
 			public_code_suggestions: 'enabled'
@@ -1207,7 +1084,6 @@ export class ChatEntitlementRequests extends Disposable {
 						}
 					}
 				} catch (error) {
-					// ignore - handled below
 				}
 			}
 			const retry = await this.onUnknownSignUpError(localize('signUpUnexpectedStatusError', "Unexpected status code {0}.", response.res.statusCode), `[chat entitlement] sign-up: unexpected status code ${response.res.statusCode}`);
@@ -1218,7 +1094,6 @@ export class ChatEntitlementRequests extends Disposable {
 		try {
 			responseText = await asText(response);
 		} catch (error) {
-			// ignore - handled below
 		}
 
 		if (!responseText) {
@@ -1235,8 +1110,6 @@ export class ChatEntitlementRequests extends Disposable {
 			return retry ? this.doSignUpFree(sessions) : { errorCode: 3 };
 		}
 
-		// We have made it this far, so the user either did sign-up or was signed-up already.
-		// That is, because the endpoint throws in all other case according to Patrick.
 		this.update({ entitlement: ChatEntitlement.Free });
 
 		return Boolean(parsedResult?.subscribed);
@@ -1282,7 +1155,7 @@ export class ChatEntitlementRequests extends Disposable {
 				buttons: [
 					{
 						label: localize('ok', "OK"),
-						run: () => { /* noop */ }
+						run: () => { }
 					},
 					{
 						label: localize('learnMore', "Learn More"),
@@ -1314,9 +1187,7 @@ export class ChatEntitlementRequests extends Disposable {
 	}
 }
 
-//#endregion
 
-//#region Context
 
 export interface IChatEntitlementContextState extends IChatSentiment {
 
@@ -1409,7 +1280,7 @@ export class ChatEntitlementContext extends Disposable {
 		if (!migrated) {
 			this.storageService.store(ChatEntitlementContext.CHAT_ENTITLEMENT_CONTEXT_MIGRATED_STORAGE_KEY, true, StorageScope.PROFILE, StorageTarget.MACHINE);
 			if (this._state.installed && !this._state.completed) {
-				this._state.completed = true; // treat installation signal as completed signal once
+				this._state.completed = true;
 				this.storageService.store(ChatEntitlementContext.CHAT_ENTITLEMENT_CONTEXT_STORAGE_KEY, this._state, StorageScope.PROFILE, StorageTarget.MACHINE);
 			}
 		}
@@ -1449,7 +1320,7 @@ export class ChatEntitlementContext extends Disposable {
 
 	update(context: { installed: boolean; disabled: boolean; untrusted: boolean; disabledInWorkspace: boolean }): Promise<void>;
 	update(context: { completed: true }): Promise<void>;
-	update(context: { hidden: false }): Promise<void>; // legacy UI state from before we had a setting to hide, keep around to still support users who used this
+	update(context: { hidden: false }): Promise<void>;
 	update(context: { later: boolean }): Promise<void>;
 	update(context: { entitlement: ChatEntitlement; organisations: string[] | undefined; sku: string | undefined; copilotTrackingId: string | undefined; isStaff?: boolean }): Promise<void>;
 	async update(context: { completed?: boolean; installed?: boolean; disabled?: boolean; untrusted?: boolean; disabledInWorkspace?: boolean; hidden?: false; later?: boolean; entitlement?: ChatEntitlement; organisations?: string[]; sku?: string; copilotTrackingId?: string; isStaff?: boolean }): Promise<void> {
@@ -1464,7 +1335,7 @@ export class ChatEntitlementContext extends Disposable {
 			this._state.disabledInWorkspace = context.disabledInWorkspace;
 
 			if (context.installed && !context.disabled) {
-				context.hidden = false; // treat this as a sign to make Chat visible again in case it is hidden
+				context.hidden = false;
 			}
 		}
 
@@ -1489,21 +1360,21 @@ export class ChatEntitlementContext extends Disposable {
 			if (this._state.entitlement === ChatEntitlement.Free || isProUser(this._state.entitlement)) {
 				this._state.registered = true;
 			} else if (this._state.entitlement === ChatEntitlement.Available) {
-				this._state.registered = false; // only reset when signed-in user can sign-up for free
+				this._state.registered = false;
 			}
 		}
 
 		if (isAnonymous(this.configurationService, this._state.entitlement, this._state)) {
-			this._state.sku = 'no_auth_limited_copilot'; // no-auth users have a fixed SKU
+			this._state.sku = 'no_auth_limited_copilot';
 		}
 
 		if (oldState === JSON.stringify(this._state)) {
-			return; // state did not change
+			return;
 		}
 
 		this.storageService.store(ChatEntitlementContext.CHAT_ENTITLEMENT_CONTEXT_STORAGE_KEY, {
 			...this._state,
-			later: undefined // do not persist this across restarts for now
+			later: undefined
 		}, StorageScope.PROFILE, StorageTarget.MACHINE);
 
 		return this.updateContext();
@@ -1560,6 +1431,5 @@ export class ChatEntitlementContext extends Disposable {
 	}
 }
 
-//#endregion
 
-registerSingleton(IChatEntitlementService, ChatEntitlementService, InstantiationType.Eager /* To ensure context keys are set asap */);
+registerSingleton(IChatEntitlementService, ChatEntitlementService, InstantiationType.Eager );

@@ -17,7 +17,6 @@ export interface IWorkerFileSearchComplete {
 	limitHit?: boolean;
 }
 
-// Copied from lib.dom.ts, which is not available in this layer.
 type IWorkerFileSystemHandleKind = 'directory' | 'file';
 
 export interface IWorkerFileSystemHandle {

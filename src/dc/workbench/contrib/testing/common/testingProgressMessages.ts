@@ -38,7 +38,6 @@ export const collectTestStateCounts = (isRunning: boolean, results: ReadonlyArra
 export const getTestProgressText = ({ isRunning, passed, runSoFar, totalWillBeRun, skipped, failed }: CountSummary) => {
 	let percent = passed / runSoFar * 100;
 	if (failed > 0) {
-		// fix: prevent from rounding to 100 if there's any failed test
 		percent = Math.min(percent, 99.9);
 	} else if (runSoFar === 0) {
 		percent = 0;

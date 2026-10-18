@@ -5,26 +5,20 @@
 
 import assert from 'assert';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../common/dardcorRouterModel.js';
 import type * as http from 'http';
 import * as net from 'net';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { NullLogService } from '../../../log/common/log.js';
 import {
-	COPILOT_API_ERROR_STATUS_STREAMING,
-	CopilotApiError,
-	type ICopilotApiService,
-	type ICopilotApiServiceRequestOptions,
-} from '../../node/shared/copilotApiService.js';
+	DARDCOR_ROUTER_ERROR_STATUS_STREAMING,
+	DardcorRouterApiError,
+	type IDardcorRouterService,
+	type IDardcorRouterRequestOptions,
+} from '../../node/shared/dardcorRouterService.js';
 import { PROXY_ERROR_PREFIX, tryParseForwardedChatError } from '../../node/shared/proxyChatError.js';
 import { ClaudeProxyService } from '../../node/claude/claudeProxyService.js';
 
-/**
- * Asserts a `/v1/messages` error envelope was re-emitted with all fields
- * unchanged except `error.message`, which carries the original message plus an
- * appended `VSCODE_PROXY_ERROR` marker that decodes to a forwarded chat error
- * of the expected fetch type. (The `/v1/models` path stays verbatim.)
- */
 function assertEnvelopeWithChatErrorMarker(actual: Anthropic.ErrorResponse, original: Anthropic.ErrorResponse, expectedFetchType: string): void {
 	assert.strictEqual(actual.type, 'error');
 	assert.strictEqual(actual.request_id, original.request_id);
@@ -35,58 +29,47 @@ function assertEnvelopeWithChatErrorMarker(actual: Anthropic.ErrorResponse, orig
 	assert.strictEqual(forwarded.fetchError.type, expectedFetchType);
 }
 
-// #region Test fakes
 
 interface IFakeCall {
 	githubToken: string;
 	body: Anthropic.MessageCreateParams;
-	options: ICopilotApiServiceRequestOptions | undefined;
+	options: IDardcorRouterRequestOptions | undefined;
 }
 
 interface IModelsCall {
 	githubToken: string;
-	options: ICopilotApiServiceRequestOptions | undefined;
+	options: IDardcorRouterRequestOptions | undefined;
 }
 
 type MessagesResult =
 	| { kind: 'message'; message: Anthropic.Message }
-	| { kind: 'stream'; events: Anthropic.MessageStreamEvent[]; midStreamError?: CopilotApiError | Error }
+	| { kind: 'stream'; events: Anthropic.MessageStreamEvent[]; midStreamError?: DardcorRouterApiError | Error }
 	| { kind: 'error'; error: Error };
 
-class FakeCopilotApiService implements ICopilotApiService {
+class FakeDardcorRouterService implements IDardcorRouterService {
 	declare readonly _serviceBrand: undefined;
 
-	async resolveRestrictedTelemetryContext() { return { restrictedTelemetryEnabled: false, trackingId: undefined, telemetryEndpoint: undefined }; }
-	async resolveApiEndpoint() { return undefined; }
-
 	messagesResult: MessagesResult = { kind: 'error', error: new Error('not configured') };
-	modelsResult: { kind: 'value'; value: CCAModel[] } | { kind: 'error'; error: Error } = { kind: 'value', value: [] };
+	modelsResult: { kind: 'value'; value: IDardcorRouterModel[] } | { kind: 'error'; error: Error } = { kind: 'value', value: [] };
 
 	readonly messagesCalls: IFakeCall[] = [];
 	readonly modelsCalls: IModelsCall[] = [];
 
-	/**
-	 * Resolved when the next streaming consumer reads its first event,
-	 * useful for tests that need to assert on mid-stream behavior.
-	 */
 	onStreamFirstRead?: () => void;
 
 	messages(
-		githubToken: string,
 		request: Anthropic.MessageCreateParamsStreaming,
-		options?: ICopilotApiServiceRequestOptions,
+		options?: IDardcorRouterRequestOptions,
 	): AsyncGenerator<Anthropic.MessageStreamEvent>;
 	messages(
-		githubToken: string,
 		request: Anthropic.MessageCreateParamsNonStreaming,
-		options?: ICopilotApiServiceRequestOptions,
+		options?: IDardcorRouterRequestOptions,
 	): Promise<Anthropic.Message>;
 	messages(
-		githubToken: string,
 		request: Anthropic.MessageCreateParams,
-		options?: ICopilotApiServiceRequestOptions,
+		options?: IDardcorRouterRequestOptions,
 	): AsyncGenerator<Anthropic.MessageStreamEvent> | Promise<Anthropic.Message> {
-		this.messagesCalls.push({ githubToken, body: request, options });
+		this.messagesCalls.push({ githubToken: '', body: request, options });
 		const result = this.messagesResult;
 		if (request.stream) {
 			return this._streamGen(result, options);
@@ -102,7 +85,7 @@ class FakeCopilotApiService implements ICopilotApiService {
 
 	private async *_streamGen(
 		result: MessagesResult,
-		options: ICopilotApiServiceRequestOptions | undefined,
+		options: IDardcorRouterRequestOptions | undefined,
 	): AsyncGenerator<Anthropic.MessageStreamEvent> {
 		if (result.kind === 'error') {
 			throw result.error;
@@ -132,8 +115,8 @@ class FakeCopilotApiService implements ICopilotApiService {
 		throw new Error('countTokens not supported');
 	}
 
-	async models(githubToken: string, options?: ICopilotApiServiceRequestOptions): Promise<CCAModel[]> {
-		this.modelsCalls.push({ githubToken, options });
+	async models(options?: IDardcorRouterRequestOptions): Promise<IDardcorRouterModel[]> {
+		this.modelsCalls.push({ githubToken: '', options });
 		if (this.modelsResult.kind === 'error') {
 			throw this.modelsResult.error;
 		}
@@ -149,9 +132,7 @@ class FakeCopilotApiService implements ICopilotApiService {
 	}
 }
 
-// #endregion
 
-// #region HTTP helpers
 
 let _httpModule: typeof http | undefined;
 async function getHttp(): Promise<typeof http> {
@@ -232,8 +213,6 @@ function fetchSse(
 			onResponse?.(res, () => req.destroy());
 		});
 		req.on('error', err => {
-			// Aborted requests reject naturally — surface as resolution
-			// with whatever we got rather than failing the test.
 			reject(err);
 		});
 		if (init.body !== undefined) {
@@ -268,28 +247,25 @@ function parseSseFrames(raw: string): { type: string; data: unknown }[] {
 	return out;
 }
 
-// #endregion
 
-// #region Fixtures
 
-const ANTHROPIC_MODEL: CCAModel = {
+const ANTHROPIC_MODEL: IDardcorRouterModel = {
 	id: 'claude-opus-4.6',
 	name: 'Claude Opus 4.6',
 	vendor: 'Anthropic',
 	supported_endpoints: ['/v1/messages'],
 	object: 'model',
-	version: '4.6',
 	is_chat_default: false,
 	is_chat_fallback: false,
-	model_picker_category: '',
+	model_picker_price_category: '',
 	model_picker_enabled: true,
 	preview: false,
-	billing: { is_premium: false } as unknown as CCAModel['billing'],
-	capabilities: {} as CCAModel['capabilities'],
-	policy: {} as CCAModel['policy'],
+	billing: { is_premium: false } as unknown as IDardcorRouterModel['billing'],
+	capabilities: {} as IDardcorRouterModel['capabilities'],
+	policy: {} as IDardcorRouterModel['policy'],
 };
 
-const NON_ANTHROPIC_MODEL: CCAModel = {
+const NON_ANTHROPIC_MODEL: IDardcorRouterModel = {
 	...ANTHROPIC_MODEL,
 	id: 'gpt-5',
 	name: 'GPT-5',
@@ -297,7 +273,7 @@ const NON_ANTHROPIC_MODEL: CCAModel = {
 	supported_endpoints: ['/v1/chat/completions'],
 };
 
-const NON_MESSAGES_ANTHROPIC: CCAModel = {
+const NON_MESSAGES_ANTHROPIC: IDardcorRouterModel = {
 	...ANTHROPIC_MODEL,
 	id: 'claude-instant-tokenizer',
 	name: 'Anthropic Tokenizer',
@@ -336,32 +312,24 @@ function makeStreamEvents(model: string): Anthropic.MessageStreamEvent[] {
 	];
 }
 
-// #endregion
 
-// #region Service builder
 
-function createProxyService(fakeApi: FakeCopilotApiService): ClaudeProxyService {
+function createProxyService(fakeApi: FakeDardcorRouterService): ClaudeProxyService {
 	return new ClaudeProxyService(new NullLogService(), fakeApi);
 }
 
 const TOKEN = 'gh-test-token';
 
-// #endregion
 
 suite('ClaudeProxyService', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// #region Token slot
 
 	suite('Token slot', () => {
 
-		// Base lifecycle/bind behavior (nonce + loopback bind, refcounted
-		// handles, dispose/rebind, dispose-during-bind) is covered by
-		// loopbackProxyServer.test.ts. This suite only covers Claude's
-		// `start()` override that wires the GitHub token into outbound calls.
 		test('start() updates token slot last-writer-wins', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.modelsResult = { kind: 'value', value: [] };
 			const service = createProxyService(fake);
 			const h1 = await service.start('token-A');
@@ -379,16 +347,13 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #endregion
 
-	// #region Auth
 
 	suite('Auth', () => {
 
-		async function withProxy<T>(fn: (handle: { baseUrl: string; nonce: string }, fake: FakeCopilotApiService) => Promise<T>): Promise<T> {
-			const fake = new FakeCopilotApiService();
+		async function withProxy<T>(fn: (handle: { baseUrl: string; nonce: string }, fake: FakeDardcorRouterService) => Promise<T>): Promise<T> {
+			const fake = new FakeDardcorRouterService();
 			fake.modelsResult = { kind: 'value', value: [ANTHROPIC_MODEL] };
 			fake.messagesResult = { kind: 'message', message: makeMessage('claude-opus-4.6', 'hi') };
 			const service = createProxyService(fake);
@@ -496,14 +461,12 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Routes
 
 	suite('Routes', () => {
 
 		test('GET / → 200 ok, no auth required', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -517,7 +480,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('POST /v1/messages/count_tokens → 501 api_error', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -539,7 +502,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('GET /something-else → 404 not_found_error', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -557,14 +520,12 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Models route
 
 	suite('GET /v1/models', () => {
 
 		test('returns Page envelope with SDK-format IDs and filters by vendor + endpoint', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.modelsResult = { kind: 'value', value: [ANTHROPIC_MODEL, NON_ANTHROPIC_MODEL, NON_MESSAGES_ANTHROPIC] };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
@@ -594,14 +555,14 @@ suite('ClaudeProxyService', () => {
 			}
 		});
 
-		test('upstream CopilotApiError is re-emitted verbatim with original status', async () => {
-			const fake = new FakeCopilotApiService();
+		test('upstream DardcorRouterApiError is re-emitted verbatim with original status', async () => {
+			const fake = new FakeDardcorRouterService();
 			const envelope: Anthropic.ErrorResponse = {
 				type: 'error',
 				error: { type: 'rate_limit_error', message: 'slow down' },
 				request_id: 'req_123',
 			};
-			fake.modelsResult = { kind: 'error', error: new CopilotApiError(429, envelope) };
+			fake.modelsResult = { kind: 'error', error: new DardcorRouterApiError(429, envelope) };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -616,8 +577,8 @@ suite('ClaudeProxyService', () => {
 			}
 		});
 
-		test('non-CopilotApiError → 502 api_error', async () => {
-			const fake = new FakeCopilotApiService();
+		test('non-DardcorRouterApiError → 502 api_error', async () => {
+			const fake = new FakeDardcorRouterService();
 			fake.modelsResult = { kind: 'error', error: new Error('ECONNRESET') };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
@@ -636,14 +597,12 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Messages — model translation
 
 	suite('POST /v1/messages model translation', () => {
 
 		test('SDK ID inbound is translated to endpoint ID upstream', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.messagesResult = { kind: 'message', message: makeMessage('claude-opus-4.6', 'hi') };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
@@ -665,7 +624,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('endpoint ID inbound is also accepted', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.messagesResult = { kind: 'message', message: makeMessage('claude-opus-4.6', 'hi') };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
@@ -686,7 +645,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('unparseable model → 404 with no upstream call', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -709,7 +668,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('non-streaming response model is rewritten to SDK format', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.messagesResult = { kind: 'message', message: makeMessage('claude-opus-4.6', 'hi') };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
@@ -732,18 +691,13 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Credits reporting
 
 	suite('Credits reporting', () => {
 
 		test('streaming: copilot_usage.total_nano_aiu fires onDidReportCredits with the session id', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const events = makeStreamEvents('claude-opus-4.6');
-			// Attach CAPI billing to the message_delta, mirroring the real
-			// `/v1/messages` SSE shape (the published Anthropic types don't
-			// declare `copilot_usage`).
 			const delta = events.find(e => e.type === 'message_delta')!;
 			(delta as unknown as { copilot_usage: { total_nano_aiu: number } }).copilot_usage = { total_nano_aiu: 750_000_000 };
 			fake.messagesResult = { kind: 'stream', events };
@@ -769,7 +723,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('non-streaming: copilot_usage.total_nano_aiu fires onDidReportCredits', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const message = makeMessage('claude-opus-4.6', 'hi');
 			(message as unknown as { copilot_usage: { total_nano_aiu: number } }).copilot_usage = { total_nano_aiu: 250_000_000 };
 			fake.messagesResult = { kind: 'message', message };
@@ -795,7 +749,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('no copilot_usage in the response → no credits report', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.messagesResult = { kind: 'message', message: makeMessage('claude-opus-4.6', 'hi') };
 			const service = createProxyService(fake);
 			const reports: { sessionId: string; totalNanoAiu: number }[] = [];
@@ -819,14 +773,12 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Body validation
 
 	suite('Body validation', () => {
 
 		test('non-JSON body → 400', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -848,7 +800,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('missing model field → 400', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -868,7 +820,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('missing messages field → 400', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -888,14 +840,12 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Header passthrough
 
 	suite('Header passthrough', () => {
 
 		async function postAndCaptureHeaders(beta: string | undefined, version: string | undefined): Promise<Record<string, string> | undefined> {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.messagesResult = { kind: 'message', message: makeMessage('claude-opus-4.6', 'hi') };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
@@ -955,14 +905,12 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Streaming
 
 	suite('Streaming', () => {
 
 		test('emits SSE frames in order with hand-rolled framing and rewrites message_start.message.model', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.messagesResult = { kind: 'stream', events: makeStreamEvents('claude-opus-4.6') };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
@@ -995,8 +943,8 @@ suite('ClaudeProxyService', () => {
 			}
 		});
 
-		test('mid-stream CopilotApiError → SSE error frame, then end, no message_stop after', async () => {
-			const fake = new FakeCopilotApiService();
+		test('mid-stream DardcorRouterApiError → SSE error frame, then end, no message_stop after', async () => {
+			const fake = new FakeDardcorRouterService();
 			const events: Anthropic.MessageStreamEvent[] = [
 				{ type: 'message_start', message: makeMessage('claude-opus-4.6', '') },
 				{ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '', citations: [] } } as Anthropic.MessageStreamEvent,
@@ -1009,7 +957,7 @@ suite('ClaudeProxyService', () => {
 			fake.messagesResult = {
 				kind: 'stream',
 				events,
-				midStreamError: new CopilotApiError(COPILOT_API_ERROR_STATUS_STREAMING, upstreamEnvelope),
+				midStreamError: new DardcorRouterApiError(DARDCOR_ROUTER_ERROR_STATUS_STREAMING, upstreamEnvelope),
 			};
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
@@ -1035,14 +983,14 @@ suite('ClaudeProxyService', () => {
 			}
 		});
 
-		test('pre-stream CopilotApiError → JSON error response with original status', async () => {
-			const fake = new FakeCopilotApiService();
+		test('pre-stream DardcorRouterApiError → JSON error response with original status', async () => {
+			const fake = new FakeDardcorRouterService();
 			const envelope: Anthropic.ErrorResponse = {
 				type: 'error',
 				error: { type: 'authentication_error', message: 'token expired' },
 				request_id: 'req_pre',
 			};
-			fake.messagesResult = { kind: 'error', error: new CopilotApiError(401, envelope) };
+			fake.messagesResult = { kind: 'error', error: new DardcorRouterApiError(401, envelope) };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -1062,17 +1010,14 @@ suite('ClaudeProxyService', () => {
 			}
 		});
 
-		test('pre-stream CopilotApiError with streaming sentinel coerces to 502 but preserves envelope', async () => {
-			// The 520 sentinel is meaningless as an HTTP status pre-
-			// header; the proxy must coerce to 502 while keeping the
-			// upstream envelope verbatim. See plan §1.5.
-			const fake = new FakeCopilotApiService();
+		test('pre-stream DardcorRouterApiError with streaming sentinel coerces to 502 but preserves envelope', async () => {
+			const fake = new FakeDardcorRouterService();
 			const envelope: Anthropic.ErrorResponse = {
 				type: 'error',
 				error: { type: 'overloaded_error', message: 'capacity full' },
 				request_id: 'req_sentinel',
 			};
-			fake.messagesResult = { kind: 'error', error: new CopilotApiError(COPILOT_API_ERROR_STATUS_STREAMING, envelope) };
+			fake.messagesResult = { kind: 'error', error: new DardcorRouterApiError(DARDCOR_ROUTER_ERROR_STATUS_STREAMING, envelope) };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 			try {
@@ -1092,8 +1037,8 @@ suite('ClaudeProxyService', () => {
 			}
 		});
 
-		test('mid-stream non-CopilotApiError → synthesized SSE error frame', async () => {
-			const fake = new FakeCopilotApiService();
+		test('mid-stream non-DardcorRouterApiError → synthesized SSE error frame', async () => {
+			const fake = new FakeDardcorRouterService();
 			const events: Anthropic.MessageStreamEvent[] = [
 				{ type: 'message_start', message: makeMessage('claude-opus-4.6', '') },
 			];
@@ -1121,7 +1066,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('tool-use input_json_delta events pass through', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const events: Anthropic.MessageStreamEvent[] = [
 				{ type: 'message_start', message: makeMessage('claude-opus-4.6', '') },
 				{ type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'toolu_1', name: 'do_thing', input: {} } } as Anthropic.MessageStreamEvent,
@@ -1152,7 +1097,7 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('thinking_delta events pass through', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			const events: Anthropic.MessageStreamEvent[] = [
 				{ type: 'message_start', message: makeMessage('claude-opus-4.6', '') },
 				{ type: 'content_block_start', index: 0, content_block: { type: 'thinking', thinking: '' } } as Anthropic.MessageStreamEvent,
@@ -1183,13 +1128,11 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('socket.setNoDelay(true) is called on streaming responses', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			fake.messagesResult = { kind: 'stream', events: makeStreamEvents('claude-opus-4.6') };
 			const service = createProxyService(fake);
 			const handle = await service.start(TOKEN);
 
-			// Patch net.Socket.prototype.setNoDelay to track calls during
-			// this test only.
 			const original = net.Socket.prototype.setNoDelay;
 			const calls: boolean[] = [];
 			net.Socket.prototype.setNoDelay = function (this: net.Socket, enable?: boolean): net.Socket {
@@ -1214,9 +1157,7 @@ suite('ClaudeProxyService', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Abort
 
 	suite('Abort', () => {
 
@@ -1224,14 +1165,9 @@ suite('ClaudeProxyService', () => {
 			let signalSeen: AbortSignal | undefined;
 			let resolveAborted!: () => void;
 			const abortObserved = new Promise<void>(resolve => { resolveAborted = resolve; });
-			const wrapped: ICopilotApiService = {
+			const wrapped: IDardcorRouterService = {
 				_serviceBrand: undefined,
-				// Custom stream: yield message_start, then wait until the
-				// caller's AbortSignal fires (mimics a real long-running
-				// upstream stream waiting for tokens to arrive). The test
-				// client disconnects after receiving the first frame, and
-				// we assert that the abort propagated.
-				messages: ((_token: string, _body: Anthropic.MessageCreateParams, options?: ICopilotApiServiceRequestOptions) => {
+				messages: ((_body: Anthropic.MessageCreateParams, options?: IDardcorRouterRequestOptions) => {
 					signalSeen = options?.signal;
 					async function* gen(): AsyncGenerator<Anthropic.MessageStreamEvent> {
 						yield { type: 'message_start', message: makeMessage('claude-opus-4.6', '') };
@@ -1250,13 +1186,11 @@ suite('ClaudeProxyService', () => {
 						});
 					}
 					return gen();
-				}) as ICopilotApiService['messages'],
+				}) as IDardcorRouterService['messages'],
 				countTokens: () => Promise.reject(new Error('not used')),
 				models: () => Promise.resolve([]),
 				responses: () => Promise.reject(new Error('not used')),
 				utilityChatCompletion: () => Promise.reject(new Error('not used')),
-				resolveRestrictedTelemetryContext: () => Promise.resolve({ restrictedTelemetryEnabled: false, trackingId: undefined, telemetryEndpoint: undefined }),
-				resolveApiEndpoint: () => Promise.resolve(undefined),
 			};
 			const service = new ClaudeProxyService(new NullLogService(), wrapped);
 			const handle = await service.start(TOKEN);
@@ -1291,7 +1225,6 @@ suite('ClaudeProxyService', () => {
 					req.end();
 				});
 				await clientFinished;
-				// Wait for the upstream generator to observe the abort.
 				await Promise.race([
 					abortObserved,
 					new Promise<void>((_resolve, reject) => setTimeout(() => reject(new Error('upstream did not observe abort within 2s')), 2000)),
@@ -1306,28 +1239,26 @@ suite('ClaudeProxyService', () => {
 		});
 
 		test('dispose() with in-flight non-streaming aborts the upstream call', async () => {
-			const fake = new FakeCopilotApiService();
+			const fake = new FakeDardcorRouterService();
 			let signalSeen: AbortSignal | undefined;
 			let releaseUpstream: () => void = () => { };
 			const upstream = new Promise<Anthropic.Message>((_resolve, reject) => {
 				releaseUpstream = () => reject(Object.assign(new Error('Aborted'), { name: 'AbortError' }));
 			});
-			const wrapped: ICopilotApiService = {
+			const wrapped: IDardcorRouterService = {
 				_serviceBrand: undefined,
-				messages: ((token, body, options) => {
+				messages: ((body: Anthropic.MessageCreateParams, options?: IDardcorRouterRequestOptions) => {
 					signalSeen = options?.signal;
 					if (body.stream) {
-						return fake.messages(token, body as Anthropic.MessageCreateParamsStreaming, options);
+						return fake.messages(body as Anthropic.MessageCreateParamsStreaming, options);
 					}
 					options?.signal?.addEventListener('abort', () => releaseUpstream());
 					return upstream;
-				}) as ICopilotApiService['messages'],
+				}) as IDardcorRouterService['messages'],
 				countTokens: fake.countTokens.bind(fake),
 				models: fake.models.bind(fake),
 				responses: fake.responses.bind(fake),
 				utilityChatCompletion: fake.utilityChatCompletion.bind(fake),
-				resolveRestrictedTelemetryContext: fake.resolveRestrictedTelemetryContext.bind(fake),
-				resolveApiEndpoint: fake.resolveApiEndpoint.bind(fake),
 			};
 			const service = new ClaudeProxyService(new NullLogService(), wrapped);
 			const handle = await service.start(TOKEN);
@@ -1341,7 +1272,6 @@ suite('ClaudeProxyService', () => {
 				body: JSON.stringify({ model: 'claude-opus-4-6', messages: [], max_tokens: 8 }),
 			}).catch(err => ({ aborted: true, err: err as Error }));
 
-			// Wait until upstream has been called.
 			await new Promise<void>(resolve => {
 				const i = setInterval(() => {
 					if (signalSeen) { clearInterval(i); resolve(); }
@@ -1353,12 +1283,8 @@ suite('ClaudeProxyService', () => {
 
 			const result = await inflight;
 			assert.ok(signalSeen?.aborted, 'expected abort to fire on dispose');
-			// connection should have been destroyed; result is either an
-			// http error or a partial response — just verify we didn't get
-			// a 200 with a body.
 			void result;
 		});
 	});
 
-	// #endregion
 });

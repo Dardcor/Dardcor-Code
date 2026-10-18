@@ -109,7 +109,6 @@ suite('ExtensionManifestPropertiesService - ExtensionKind', () => {
 	});
 });
 
-// Workspace Trust is disabled in web at the moment
 if (!isWeb) {
 	suite('ExtensionManifestPropertiesService - ExtensionUntrustedWorkspaceSupportType', () => {
 		let testObject: ExtensionManifestPropertiesService;

@@ -17,9 +17,6 @@ export interface IInlineEdit {
 export interface IInlineEditOutcome {
 	readonly type: 'inlineEdit';
 	readonly appliedEdits: IInlineEdit[];
-	/**
-	 * The document content before this step.
-	 */
 	readonly originalFileContents: string;
 	readonly fileContents: string;
 	readonly initialDiagnostics?: ResourceMap<Diagnostic[]>;
@@ -112,20 +109,8 @@ export interface IScenarioLocation {
 }
 
 export const enum EditTestStrategy {
-	/**
-	 * Tests Edits in non-agent mode (with codeblock strategy)
-	 */
 	Edits,
-	/**
-	 * We will test an inline interaction.
-	 */
 	Inline,
-	/**
-	 * We will test an inline chat intent interaction.
-	 */
 	InlineChatIntent,
-	/**
-	 * Test Edits in agent mode
-	 */
 	Agent
 }

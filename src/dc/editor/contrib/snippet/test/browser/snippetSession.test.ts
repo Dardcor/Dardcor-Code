@@ -76,7 +76,6 @@ suite('SnippetSession', function () {
 		assertNormalized(new Position(2, 3), 'foo\r\tbar', 'foo\n    bar');
 		assertNormalized(new Position(2, 5), 'foo\r\tbar\nfoo', 'foo\n        bar\n    foo');
 
-		//Indentation issue with choice elements that span multiple lines #46266
 		assertNormalized(new Position(2, 5), 'a\nb${1|foo,\nbar|}', 'a\n    b${1|foo,\nbar|}');
 	});
 
@@ -160,18 +159,13 @@ suite('SnippetSession', function () {
 		const session = new SnippetSession(editor, 'f$1oo${2:bar}foo$0', undefined, languageConfigurationService);
 		session.insert();
 
-		// @ $2
 		assertSelections(editor, new Selection(1, 2, 1, 2), new Selection(2, 6, 2, 6));
-		// @ $1
 		session.next();
 		assertSelections(editor, new Selection(1, 4, 1, 7), new Selection(2, 8, 2, 11));
-		// @ $2
 		session.prev();
 		assertSelections(editor, new Selection(1, 2, 1, 2), new Selection(2, 6, 2, 6));
-		// @ $1
 		session.next();
 		assertSelections(editor, new Selection(1, 4, 1, 7), new Selection(2, 8, 2, 11));
-		// @ $0
 		session.next();
 		assertSelections(editor, new Selection(1, 10, 1, 10), new Selection(2, 14, 2, 14));
 	});
@@ -184,15 +178,12 @@ suite('SnippetSession', function () {
 		session.next();
 		editor.trigger('test', 'type', { text: 'bar' });
 
-		// go back to ${2:oo} which is now just 'X'
 		session.prev();
 		assertSelections(editor, new Selection(1, 2, 1, 3), new Selection(2, 6, 2, 7));
 
-		// go forward to $1 which is now 'bar'
 		session.next();
 		assertSelections(editor, new Selection(1, 4, 1, 7), new Selection(2, 8, 2, 11));
 
-		// go to final tabstop
 		session.next();
 		assert.strictEqual(model.getValue(), 'fX_bar_function foo() {\n    fX_bar_console.log(a);\n}');
 		assertSelections(editor, new Selection(1, 8, 1, 8), new Selection(2, 12, 2, 12));
@@ -321,7 +312,6 @@ suite('SnippetSession', function () {
 
 		session.next();
 		assert.strictEqual(session.isAtLastPlaceholder, false);
-		// assertSelections(editor, new Selection(1, 7, 1, 7), new Selection(2, 11, 2, 11));
 
 		session.next();
 		assert.strictEqual(session.isAtLastPlaceholder, true);
@@ -340,20 +330,18 @@ suite('SnippetSession', function () {
 		assert.strictEqual(session.isSelectionWithinPlaceholders(), false);
 
 		editor.setSelections([new Selection(1, 6, 1, 6), new Selection(2, 10, 2, 10)]);
-		assert.strictEqual(session.isSelectionWithinPlaceholders(), false); // in snippet, outside placeholder
+		assert.strictEqual(session.isSelectionWithinPlaceholders(), false);
 
 		editor.setSelections([new Selection(1, 6, 1, 6), new Selection(2, 10, 2, 10), new Selection(1, 1, 1, 1)]);
-		assert.strictEqual(session.isSelectionWithinPlaceholders(), false); // in snippet, outside placeholder
+		assert.strictEqual(session.isSelectionWithinPlaceholders(), false);
 
 		editor.setSelections([new Selection(1, 6, 1, 6), new Selection(2, 10, 2, 10), new Selection(2, 20, 2, 21)]);
 		assert.strictEqual(session.isSelectionWithinPlaceholders(), false);
 
-		// reset selection to placeholder
 		session.next();
 		assert.strictEqual(session.isSelectionWithinPlaceholders(), true);
 		assertSelections(editor, new Selection(1, 10, 1, 13), new Selection(2, 14, 2, 17));
 
-		// reset selection to placeholder
 		session.next();
 		assert.strictEqual(session.isSelectionWithinPlaceholders(), true);
 		assert.strictEqual(session.isAtLastPlaceholder, true);
@@ -460,11 +448,9 @@ suite('SnippetSession', function () {
 		session.prev();
 		editor.trigger('test', 'type', { text: 'AAA' });
 
-		// back to `really ${1:nested}`
 		session.prev();
 		assertSelections(editor, new Selection(1, 16, 1, 22));
 
-		// back to `${1:is ...}` which now grew
 		session.prev();
 		assertSelections(editor, new Selection(1, 6, 1, 25));
 	});
@@ -488,9 +474,6 @@ suite('SnippetSession', function () {
 	});
 
 	test('snippets, deep merge does not produce phantom cursors (#279349)', function () {
-		// Recursively expanding a snippet (e.g. \sin\left(${1:x}\right)) used to assign
-		// fractional placeholder indicies. After ~16 nestings, double-precision rounding
-		// collapsed distinct placeholders onto the same index, producing a phantom cursor.
 		editor.getModel().setValue('');
 		editor.setSelection(new Selection(1, 1, 1, 1));
 		const session = new SnippetSession(editor, '\\sin\\left(${1:x}\\right) ', undefined, languageConfigurationService);
@@ -502,10 +485,6 @@ suite('SnippetSession', function () {
 	});
 
 	test('snippets, merge preserves mirrors in nested snippet', function () {
-		// Nested snippets that themselves contain mirrors ($1...$1) must still
-		// produce multi-cursor selections after renormalization of placeholder
-		// indicies, since the renormalize step maps each unique old index to a
-		// single new index.
 		editor.getModel().setValue('');
 		editor.setSelection(new Selection(1, 1, 1, 1));
 		const session = new SnippetSession(editor, '(${1:x})', undefined, languageConfigurationService);
@@ -516,9 +495,6 @@ suite('SnippetSession', function () {
 	});
 
 	test('snippets, merge does not throw when placeholder occurrences collapse to same position', function () {
-		// $1$1 places two zero-width occurrences of the same placeholder at the same position;
-		// the editor's cursor normalization collapses these into one selection. Previously this
-		// caused merge() to crash because there were more placeholder occurrences than nested snippets.
 		editor.getModel().setValue('');
 		editor.setSelection(new Selection(1, 1, 1, 1));
 		const session = new SnippetSession(editor, '$1$1$0', undefined, languageConfigurationService);
@@ -864,7 +840,6 @@ suite('SnippetSession', function () {
 
 		test('$TM_SELECTED_TEXT resolves per edit, not the primary selection #206121', function () {
 			editor.getModel().setValue('aaa\nbbb\nccc');
-			// primary selection covers "aaa", but the edits target other lines
 			editor.setSelections([new Selection(1, 1, 1, 4)]);
 
 			const result = SnippetSession.createEditsAndSnippetsFromEdits(
@@ -902,7 +877,6 @@ suite('SnippetSession', function () {
 		});
 
 		test('per-edit resolution does not corrupt earlier edits when value lengths differ', function () {
-			// 100 lines so $TM_LINE_NUMBER produces values of differing widths (1 vs 100)
 			editor.getModel().setValue(Array.from({ length: 100 }, (_, i) => `line${i + 1}`).join('\n'));
 			editor.setSelections([new Selection(1, 1, 1, 1)]);
 
@@ -941,8 +915,6 @@ suite('SnippetSession', function () {
 		});
 
 		test('cross-edit placeholder backfill resolves variables in earlier edit', function () {
-			// parseFragment backfills the earlier $1 with a clone of the later default;
-			// the cloned $TM_LINE_NUMBER lives outside the second edit's newNodes
 			editor.getModel().setValue('aaa\nbbb');
 			editor.setSelections([new Selection(1, 1, 1, 1)]);
 

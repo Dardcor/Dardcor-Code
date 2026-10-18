@@ -46,7 +46,6 @@ export class CopyLinesCommand implements ICommand {
 		const sourceText = sourceLines.join('\n');
 
 		if (sourceText === '') {
-			// Duplicating empty line
 			if (this._isCopyingDown) {
 				this._startLineNumberDelta++;
 				this._endLineNumberDelta++;

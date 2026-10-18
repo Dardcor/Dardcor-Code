@@ -4,27 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 export interface IBufferDirtyTrackerReader {
-	/**
-	 * The index of the first dirty index.
-	 */
 	readonly dataOffset: number | undefined;
-	/**
-	 * The index of the last dirty index (inclusive).
-	 */
 	readonly dirtySize: number | undefined;
-	/**
-	 * Whether the buffer is dirty.
-	 */
 	readonly isDirty: boolean;
-	/**
-	 * Clear the dirty state.
-	 */
 	clear(): void;
 }
 
-/**
- * A simple tracker for dirty regions in a buffer.
- */
 export class BufferDirtyTracker implements IBufferDirtyTrackerReader {
 
 	private _startIndex: number | undefined;
@@ -43,11 +28,6 @@ export class BufferDirtyTracker implements IBufferDirtyTrackerReader {
 
 	get isDirty(): boolean { return this._startIndex !== undefined; }
 
-	/**
-	 * Flag the index(es) as modified. Returns the index flagged.
-	 * @param index An index to flag.
-	 * @param length An optional length to flag. Defaults to 1.
-	 */
 	flag(index: number, length: number = 1): number {
 		this._flag(index);
 		if (length > 1) {

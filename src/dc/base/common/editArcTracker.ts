@@ -29,9 +29,6 @@ interface ITrackedReplacement extends IArcTextReplacement {
 	readonly isTracked: boolean;
 }
 
-/**
- * Tracks how many characters from an initial edit survive later edits.
- */
 export class EditArcTracker {
 	private readonly _trackedEdit: readonly ITrackedReplacement[];
 	private _updatedTrackedEdit: readonly ITrackedReplacement[];

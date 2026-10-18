@@ -42,7 +42,6 @@ suite('ChatContextUsageDetails', () => {
 		const { details, observable } = createDetails(data({ percentage: 80 }));
 		assert.strictEqual(tokenText(details), '80%');
 
-		// Simulate a mid-session change (e.g. after /compact) while the popover instance stays alive.
 		observable.set(data({ percentage: 15 }), undefined);
 		assert.strictEqual(tokenText(details), '15%');
 	});

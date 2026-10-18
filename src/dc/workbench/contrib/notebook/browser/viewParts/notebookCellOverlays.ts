@@ -90,11 +90,9 @@ export class NotebookCellOverlays extends Disposable {
 	private _removeOverlay(id: string): void {
 		const overlay = this._overlays[id];
 		if (overlay) {
-			// overlay.overlay.dispose();
 			try {
 				this.domNode.removeChild(overlay.domNode);
 			} catch {
-				// no op
 			}
 
 			delete this._overlays[id];
@@ -116,7 +114,6 @@ export class NotebookCellOverlays extends Disposable {
 		overlay.domNode.setDisplay('block');
 		const index = this.listView.indexOf(overlay.overlay.cell as CellViewModel);
 		if (index === -1) {
-			// should not happen
 			return;
 		}
 

@@ -97,7 +97,6 @@ export default function ClineToolCard({ tool, isExpanded, onToggle, baseUrl, api
       });
       const data = await res.json();
       if (res.ok) {
-        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkStatus();

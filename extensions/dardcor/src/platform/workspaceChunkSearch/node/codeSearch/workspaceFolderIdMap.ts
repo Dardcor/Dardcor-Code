@@ -11,13 +11,9 @@ import { URI } from '../../../../util/dardcor/base/common/uri';
 const maxPrefixLength = 8;
 
 interface StoredIdMap {
-	/** Maps folder URI string -> assigned id */
 	readonly entries: ReadonlyArray<{ readonly uri: string; readonly id: string }>;
 }
 
-/**
- * Generates short, unique, persistent ids for workspace folder URIs.
- */
 export class WorkspaceFolderIdMap {
 
 	private static readonly _storageKey = 'workspaceFolderIds';
@@ -62,7 +58,6 @@ export class WorkspaceFolderIdMap {
 			return base;
 		}
 
-		// Resolve collision by appending a numeric suffix
 		for (let i = 0; ; i++) {
 			const suffix = String(i);
 			const candidate = base.slice(0, maxPrefixLength - suffix.length) + suffix;
@@ -82,7 +77,6 @@ export class WorkspaceFolderIdMap {
 				this._idByUri.set(URI.parse(uri), id);
 				this._usedIds.add(id);
 			} catch {
-				// Ignore invalid URIs
 			}
 		}
 	}

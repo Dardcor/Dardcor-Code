@@ -69,7 +69,6 @@ export class TestsIntent implements IIntent {
 		let documentContext = invocationContext.documentContext;
 		let alreadyConsumedChatVariable: ChatPromptReference | undefined;
 
-		// try resolving the document context programmatically
 		if (!documentContext) {
 			const r = await this.resolveDocContextProgrammatically(invocationContext);
 			if (r) {
@@ -78,7 +77,6 @@ export class TestsIntent implements IIntent {
 			}
 		}
 
-		// try resolving the document context using LLM
 		if (!documentContext) {
 			const r = await this.resolveDocContextUsingLlm(invocationContext);
 			if (r) {
@@ -91,7 +89,7 @@ export class TestsIntent implements IIntent {
 			throw new Error('To generate tests, open a file and select code to test.');
 		}
 
-		if (await this.ignoreService.isCopilotIgnored(documentContext.document.uri)) {
+		if (await this.ignoreService.isIgnored(documentContext.document.uri)) {
 			throw new Error('Dardcor AI is disabled for this file.');
 		}
 
@@ -108,9 +106,7 @@ export class TestsIntent implements IIntent {
 
 		const refs = invocationContext.request.references;
 
-		// find a #file to use for testing
 
-		// count #file's because we use LLM if there're more than 1 in the prompt
 		let hashFileCount = 0;
 
 		const fileRefs: [ChatPromptReference, URI][] = [];
@@ -132,7 +128,7 @@ export class TestsIntent implements IIntent {
 			}
 		}
 
-		if (hashFileCount > 1  // use LLM if there's more than 1 file reference
+		if (hashFileCount > 1
 			|| fileRefs.length === 0
 		) {
 			return;
@@ -155,10 +151,8 @@ export class TestsIntent implements IIntent {
 			return;
 		}
 
-		// FIXME@ulugbekna: UserQueryParser also returns symbols that need testing; we should use that info
 		const { fileToTest, } = parsedQuery;
 
-		// if parser couldn't identify the file, if there's only one file referenced, use that
 		if (fileToTest === undefined) {
 			return;
 		}
@@ -167,7 +161,6 @@ export class TestsIntent implements IIntent {
 
 			const ref = invocationContext.request.references[i];
 
-			// FIXME@ulugbekna: I don't like how I fish for #file references
 
 			if (ref.id !== 'vscode.file' && ref.id !== 'dardcor.file') {
 				continue;
@@ -189,10 +182,6 @@ export class TestsIntent implements IIntent {
 		}
 	}
 
-	/**
-	 *
-	 * @param selection defaults to whole file
-	 */
 	private async createDocumentContext(file: URI, selection?: Range) {
 		let td: TextDocumentSnapshot | undefined;
 		try {
@@ -249,15 +238,7 @@ class RequestHandler extends DefaultIntentRequestHandler {
 		super(intent, conversation, request, stream, token, documentContext, location, chatTelemetry, undefined, undefined, instantiationService, conversationOptions, telemetryService, logService, surveyService, requestLogger, editSurvivalTrackerService, authenticationService, chatHookService, octoKitService, configurationService, chatWebSocketManager);
 	}
 
-	/**
-	 * - Delegates out to setting up tests if the user confirmed they wanted to do that
-	 * - Otherwise try to detect if setup should be shown
-	 *   - If not, just delegate to the base class
-	 *   - If so, either return just that or append a reminder.
-	 */
 	public override async getResult(): Promise<ChatResult> {
-		// if the user is starting test setup, we need to finish this request
-		// before they can prompt us with the new one
 		if (this.request.acceptedConfirmationData?.some(isStartSetupTestConfirmation)) {
 			setTimeout(() => this.getResultInner());
 			return {};

@@ -65,7 +65,6 @@ class MirrorCell {
 		hashValue = doHash(this.language, hashValue);
 		hashValue = doHash(this.getValue(), hashValue);
 		hashValue = doHash(this.metadata, hashValue);
-		// For purpose of diffing only cellId matters, rest do not
 		hashValue = doHash(this.internalMetadata?.internalId || '', hashValue);
 		for (const op of this.outputs) {
 			hashValue = doHash(op.metadata, hashValue);
@@ -95,9 +94,6 @@ class MirrorNotebookDocument {
 	}
 
 	acceptModelChanged(event: NotebookCellsChangedEventDto) {
-		// note that the cell content change is not applied to the MirrorCell
-		// but it's fine as if a cell content is modified after the first diff, its position will not change any more
-		// TODO@rebornix, but it might lead to interesting bugs in the future.
 		event.rawEvents.forEach(e => {
 			if (e.kind === NotebookCellsChangeType.ModelChange) {
 				this._spliceNotebookCells(e.changes);
@@ -230,9 +226,6 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 		const originalMetadata = filter(original.metadata, key => !original.transientDocumentMetadata[key]);
 		const modifiedMetadata = filter(modified.metadata, key => !modified.transientDocumentMetadata[key]);
 		const metadataChanged = JSON.stringify(originalMetadata) !== JSON.stringify(modifiedMetadata);
-		// TODO@DonJayamanne
-		// In the future we might want to avoid computing LCS of outputs
-		// That will make this faster.
 		const originalDiff = new LcsDiff(CellSequence.create(original), CellSequence.create(modified)).ComputeDiff(false);
 		if (originalDiff.changes.length === 0) {
 			return {
@@ -241,14 +234,8 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 			};
 		}
 
-		// This will return the mapping of the cells and what cells were inserted/deleted.
-		// We do not care much about accuracy of the diff, but care about the mapping of unmodified cells.
-		// That can be used as anchor points to find the cells that have changed.
-		// And on cells that have changed, we can use similarity algorithms to find the mapping.
-		// Eg as mentioned earlier, its possible after similarity algorithms we find that cells weren't inserted/deleted but were just modified.
 		const cellMapping = computeDiff(originalModel, modifiedModel, { cellsDiff: { changes: originalDiff.changes, quitEarly: false }, metadataChanged: false, }).cellDiffInfo;
 
-		// If we have no insertions/deletions, then this is a good diffing.
 		if (cellMapping.every(c => c.type === 'modified' || c.type === 'unchanged')) {
 			return {
 				metadataChanged,
@@ -258,68 +245,14 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 
 		let diffUsingCellIds = this.canComputeDiffWithCellIds(original, modified);
 		if (!diffUsingCellIds) {
-			/**
-			 * Assume we have cells as follows
-			 * Original   Modified
-			 * A	  		A
-			 * B			B
-			 * C			e
-			 * D			F
-			 * E
-			 * F
-			 *
-			 * Using LCS we know easily that A, B cells match.
-			 * Using LCS it would look like C changed to e
-			 * Using LCS D & E were removed.
-			 *
-			 * A human would be able to tell that cell C, D were removed.
-			 * A human can tell that E changed to e because the code in the cells are very similar.
-			 * Note the words `similar`, humans try to match cells based on certain heuristics.
-			 * & the most obvious one is the similarity of the code in the cells.
-			 *
-			 * LCS has no notion of similarity, it only knows about equality.
-			 * We can use other algorithms to find similarity.
-			 * So if we eliminate A, B, we are left with C, D, E, F and we need to find what they map to in `e, F` in modifed document.
-			 * We can use a similarity algorithm to find that.
-			 *
-			 * The purpose of using LCS first is to find the cells that have not changed.
-			 * This avoids the need to use similarity algorithms on all cells.
-			 *
-			 * At the end of the day what we need is as follows
-			 * A <=> A
-			 * B <=> B
-			 * C => Deleted
-			 * D => Deleted
-			 * E => e
-			 * F => F
-			 */
 
 
 
-			// Note, if cells are swapped, then this compilicates things
-			// Trying to solve diff manually is not easy.
-			// Lets instead use LCS find the cells that haven't changed,
-			// & the cells that have.
-			// For the range of cells that have change, lets see if we can get better results using similarity algorithms.
-			// Assume we have
-			// Code Cell = print("Hello World")
-			// Code Cell = print("Foo Bar")
-			// We now change this to
-			// MD Cell = # Description
-			// Code Cell = print("Hello WorldZ")
-			// Code Cell = print("Foo BarZ")
-			// LCS will tell us that everything changed.
-			// But using similarity algorithms we can tell that the first cell is new and last 2 changed.
 
 
 
-			// Lets try the similarity algorithms on all cells.
-			// We might fare better.
 			const result = matchCellBasedOnSimilarties(modified.cells, original.cells);
-			// If we have at least one match, then great.
 			if (result.some(c => c.original !== -1)) {
-				// We have managed to find similarities between cells.
-				// Now we can definitely find what cell is new/removed.
 				this.updateCellIdsBasedOnMappings(result, original.cells, modified.cells);
 				diffUsingCellIds = true;
 			}
@@ -332,10 +265,6 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 			};
 		}
 
-		// At this stage we can use internalMetadata.cellId for tracking changes.
-		// I.e. we compute LCS diff and the hashes of some cells from original will be equal to that in modified as we're using cellId.
-		// Thus we can find what cells are new/deleted.
-		// After that we can find whether the contents of the cells changed.
 		const cellsInsertedOrDeletedDiff = new LcsDiff(CellSequence.createWithCellId(original.cells), CellSequence.createWithCellId(modified.cells)).ComputeDiff(false);
 		const cellDiffInfo = computeDiff(originalModel, modifiedModel, { cellsDiff: { changes: cellsInsertedOrDeletedDiff.changes, quitEarly: false }, metadataChanged: false, }).cellDiffInfo;
 
@@ -343,8 +272,6 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 		const changes: IDiffChange[] = [];
 		cellsInsertedOrDeletedDiff.changes.forEach(change => {
 			if (!change.originalLength && change.modifiedLength) {
-				// Inserted.
-				// Find all modified cells before this.
 				const changeIndex = cellDiffInfo.findIndex(c => c.type === 'insert' && c.modifiedCellIndex === change.modifiedStart);
 				cellDiffInfo.slice(processedIndex, changeIndex).forEach(c => {
 					if (c.type === 'unchanged' || c.type === 'modified') {
@@ -359,8 +286,6 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 				changes.push(change);
 				processedIndex = changeIndex + 1;
 			} else if (change.originalLength && !change.modifiedLength) {
-				// Deleted.
-				// Find all modified cells before this.
 				const changeIndex = cellDiffInfo.findIndex(c => c.type === 'delete' && c.originalCellIndex === change.originalStart);
 				cellDiffInfo.slice(processedIndex, changeIndex).forEach(c => {
 					if (c.type === 'unchanged' || c.type === 'modified') {
@@ -375,9 +300,6 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 				changes.push(change);
 				processedIndex = changeIndex + 1;
 			} else {
-				// This could be a situation where a cell has been deleted on left and inserted on the right.
-				// E.g. markdown cell deleted and code cell inserted.
-				// But LCS shows them as a modification.
 				const changeIndex = cellDiffInfo.findIndex(c => (c.type === 'delete' && c.originalCellIndex === change.originalStart) || (c.type === 'insert' && c.modifiedCellIndex === change.modifiedStart));
 				cellDiffInfo.slice(processedIndex, changeIndex).forEach(c => {
 					if (c.type === 'unchanged' || c.type === 'modified') {
@@ -420,29 +342,22 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 	canComputeDiffWithCellInternalIds(original: MirrorNotebookDocument, modified: MirrorNotebookDocument): boolean {
 		const originalCellIndexIds = original.cells.map((cell, index) => ({ index, id: (cell.internalMetadata?.internalId || '') as string }));
 		const modifiedCellIndexIds = modified.cells.map((cell, index) => ({ index, id: (cell.internalMetadata?.internalId || '') as string }));
-		// If we have a cell without an id, do not use metadata.id for diffing.
 		if (originalCellIndexIds.some(c => !c.id) || modifiedCellIndexIds.some(c => !c.id)) {
 			return false;
 		}
-		// If none of the ids in original can be found in modified, then we can't use metadata.id for diffing.
-		// I.e. everything is new, no point trying.
 		return originalCellIndexIds.some(c => modifiedCellIndexIds.find(m => m.id === c.id));
 	}
 
 	canComputeDiffWithCellMetadataIds(original: MirrorNotebookDocument, modified: MirrorNotebookDocument): boolean {
 		const originalCellIndexIds = original.cells.map((cell, index) => ({ index, id: (cell.metadata?.id || '') as string }));
 		const modifiedCellIndexIds = modified.cells.map((cell, index) => ({ index, id: (cell.metadata?.id || '') as string }));
-		// If we have a cell without an id, do not use metadata.id for diffing.
 		if (originalCellIndexIds.some(c => !c.id) || modifiedCellIndexIds.some(c => !c.id)) {
 			return false;
 		}
-		// If none of the ids in original can be found in modified, then we can't use metadata.id for diffing.
-		// I.e. everything is new, no point trying.
 		if (originalCellIndexIds.every(c => !modifiedCellIndexIds.find(m => m.id === c.id))) {
 			return false;
 		}
 
-		// Internally we use internalMetadata.cellId for diffing, hence update the internalMetadata.cellId
 		original.cells.map((cell, index) => {
 			cell.internalMetadata = cell.internalMetadata || {};
 			cell.internalMetadata.internalId = cell.metadata?.id as string || '';
@@ -465,8 +380,6 @@ export class NotebookWorker implements IWebWorkerServerRequestHandler, IDisposab
 			cell.internalMetadata.internalId = `${PREFIX_FOR_UNMATCHED_ORIGINAL_CELLS}${generateUuid()}`;
 			const found = mappings.find(r => r.original === index);
 			if (found) {
-				// Do not use the indexes as ids.
-				// If we do, then the hashes will be very similar except for last digit.
 				cell.internalMetadata.internalId = generateUuid();
 				uuids.set(found.modified, cell.internalMetadata.internalId as string);
 			}

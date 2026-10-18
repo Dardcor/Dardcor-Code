@@ -65,9 +65,6 @@ export class JsonRpcError extends Error {
 	}
 }
 
-/**
- * Generic JSON-RPC 2.0 protocol helper.
- */
 export class JsonRpcProtocol extends Disposable {
 	private static readonly ParseError = -32700;
 	private static readonly MethodNotFound = -32601;
@@ -123,17 +120,6 @@ export class JsonRpcProtocol extends Disposable {
 		}) as Promise<T>;
 	}
 
-	/**
-	 * Handles one or more incoming JSON-RPC messages.
-	 *
-	 * Returns an array of JSON-RPC response objects generated for any incoming
-	 * requests in the message(s). Notifications and responses to our own
-	 * outgoing requests do not produce return values. For batch inputs, the
-	 * returned responses are in the same order as the corresponding requests.
-	 *
-	 * Note: responses are also emitted via the `_send` callback, so callers
-	 * that rely on the return value should not re-send them.
-	 */
 	public async handleMessage(message: JsonRpcMessage | JsonRpcMessage[]): Promise<JsonRpcResponse[]> {
 		if (Array.isArray(message)) {
 			const replies: JsonRpcResponse[] = [];

@@ -8,11 +8,9 @@ import { ClaudeToolPermissionResult, IClaudeToolPermissionHandler } from '../cla
 import { getToolPermissionHandlerRegistry, registerToolPermissionHandler } from '../claudeToolPermissionRegistry';
 import { ClaudeToolNames } from '../claudeTools';
 
-// Import handlers to ensure they're registered
 import '../toolPermissionHandlers/index';
 
 describe('claudeToolPermissionRegistry', () => {
-	// Store original registry length to detect changes
 	let originalRegistryLength: number;
 
 	beforeEach(() => {
@@ -20,8 +18,6 @@ describe('claudeToolPermissionRegistry', () => {
 	});
 
 	afterEach(() => {
-		// Note: Since the registry is a module-level array, registrations persist.
-		// Tests should account for this by checking relative changes.
 	});
 
 	describe('registerToolPermissionHandler', () => {
@@ -93,10 +89,8 @@ describe('claudeToolPermissionRegistry', () => {
 		});
 
 		it('contains registrations from imported handlers', () => {
-			// Handlers are imported at module level above
 			const registry = getToolPermissionHandlerRegistry();
 
-			// Should have at least the Bash and ExitPlanMode handlers
 			const hasBashHandler = registry.some(r => r.toolNames.includes(ClaudeToolNames.Bash));
 			const hasExitPlanModeHandler = registry.some(r => r.toolNames.includes(ClaudeToolNames.ExitPlanMode));
 

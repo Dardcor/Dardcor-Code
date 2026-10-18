@@ -138,9 +138,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 
 		this.anchorCell = this.notebookEditor.activeCellAndCodeEditor;
 
-		// anchor cell will catch and relay all type, cut, paste events to the cursors controllers
-		// need to create new controllers when the anchor cell changes, then update their listeners
-		// ** cursor controllers need to happen first, because anchor listeners relay to them
 		this._register(this.onDidChangeAnchorCell(async () => {
 			await this.syncCursorsControllers();
 			this.syncAnchorListeners();
@@ -154,23 +151,21 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 			throw new Error('Anchor cell is undefined');
 		}
 
-		// typing
 		this.anchorDisposables.add(this.anchorCell[1].onWillType((input) => {
 			const collector = new ViewModelEventsCollector();
 			this.trackedCells.forEach(cell => {
 				const controller = this.cursorsControllers.get(cell.cellViewModel.uri);
 				if (!controller) {
-					// should not happen
 					return;
 				}
-				if (cell.cellViewModel.handle !== this.anchorCell?.[0].handle) { // don't relay to active cell, already has a controller for typing
+				if (cell.cellViewModel.handle !== this.anchorCell?.[0].handle) {
 					controller.type(collector, input, 'keyboard');
 				}
 			});
 		}));
 
 		this.anchorDisposables.add(this.anchorCell[1].onDidType(() => {
-			this.state = NotebookMultiCursorState.Editing; // typing will continue to work as normal across ranges, just preps for another cmd+d
+			this.state = NotebookMultiCursorState.Editing;
 			this._nbMultiSelectState.set(NotebookMultiCursorState.Editing);
 
 			const anchorController = this.cursorsControllers.get(this.anchorCell![0].uri);
@@ -182,7 +177,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 				return;
 			}
 
-			// need to keep anchor cursor controller in sync manually (for delete usage), since we don't relay type event to it
 			anchorController.setSelections(new ViewModelEventsCollector(), 'keyboard', activeSelections, CursorChangeReason.Explicit);
 
 			this.trackedCells.forEach(cell => {
@@ -191,23 +185,19 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 					return;
 				}
 
-				// this is used upon exiting the multicursor session to set the selections back to the correct cursor state
 				cell.initialSelection = controller.getSelection();
-				// clear tracked selection data as it is invalid once typing begins
 				cell.matchSelections = [];
 			});
 
 			this.updateLazyDecorations();
 		}));
 
-		// arrow key navigation
 		this.anchorDisposables.add(this.anchorCell[1].onDidChangeCursorSelection((e) => {
 			if (e.source === 'mouse') {
 				this.resetToIdleState();
 				return;
 			}
 
-			// ignore this event if it was caused by a typing event or a delete (NotSet and RecoverFromMarkers respectively)
 			if (!e.oldSelections || e.reason === CursorChangeReason.NotSet || e.reason === CursorChangeReason.RecoverFromMarkers) {
 				return;
 			}
@@ -240,12 +230,10 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 			this.updateLazyDecorations();
 		}));
 
-		// core actions
 		this.anchorDisposables.add(this.anchorCell[1].onWillTriggerEditorOperationEvent((e) => {
 			this.handleEditorOperationEvent(e);
 		}));
 
-		// exit mode
 		this.anchorDisposables.add(this.anchorCell[1].onDidBlurEditorWidget(() => {
 			if (this.state === NotebookMultiCursorState.Selecting || this.state === NotebookMultiCursorState.Editing) {
 				this.resetToIdleState();
@@ -254,7 +242,7 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 	}
 
 	private async syncCursorsControllers() {
-		this.cursorsDisposables.clear(); // TODO: dial this back for perf and just update the relevant controllers
+		this.cursorsDisposables.clear();
 		await Promise.all(this.trackedCells.map(async cell => {
 			const controller = await this.createCursorController(cell);
 			if (!controller) {
@@ -402,7 +390,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 		for (const cell of this.trackedCells) {
 			const controller = this.cursorsControllers.get(cell.cellViewModel.uri);
 			if (!controller) {
-				// should not happen
 				return;
 			}
 
@@ -413,7 +400,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 	private updateFinalUndoRedo() {
 		const anchorCellModel = this.anchorCell?.[1].getModel();
 		if (!anchorCellModel) {
-			// should not happen
 			return;
 		}
 
@@ -474,7 +460,7 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 
 		this.trackedCells.forEach(cell => {
 			this.clearDecorations(cell);
-			cell.cellViewModel.setSelections([cell.initialSelection]); // correct cursor placement upon exiting cmd-d session
+			cell.cellViewModel.setSelections([cell.initialSelection]);
 		});
 
 		this.anchorDisposables.clear();
@@ -488,7 +474,7 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 	}
 
 	public async findAndTrackNextSelection(focusedCell: ICellViewModel): Promise<void> {
-		if (this.state === NotebookMultiCursorState.Idle) { // move cursor to end of the symbol + track it, transition to selecting state
+		if (this.state === NotebookMultiCursorState.Idle) {
 			const textModel = focusedCell.textModel;
 			if (!textModel) {
 				return;
@@ -501,7 +487,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 			}
 			this.word = word.word;
 
-			// Record the total number of matches at the beginning of the selection process for performance
 			const notebookTextModel = this.notebookEditor.textModel;
 			if (notebookTextModel) {
 				const allMatches = notebookTextModel.findMatches(this.word, false, true, USUAL_WORD_SEPARATORS);
@@ -542,26 +527,24 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 
 			this._onDidChangeAnchorCell.fire();
 
-		} else if (this.state === NotebookMultiCursorState.Selecting) { // use the word we stored from idle state transition to find next match, track it
+		} else if (this.state === NotebookMultiCursorState.Selecting) {
 			const notebookTextModel = this.notebookEditor.textModel;
 			if (!notebookTextModel) {
-				return; // should not happen
+				return;
 			}
 
 			const index = this.notebookEditor.getCellIndex(focusedCell);
 			if (index === undefined) {
-				return; // should not happen
+				return;
 			}
 
 			if (!this.startPosition) {
-				return; // should not happen
+				return;
 			}
 
-			// Check if all matches are already covered by selections to avoid infinite looping
 			const totalSelections = this.trackedCells.reduce((sum, trackedCell) => sum + trackedCell.matchSelections.length, 0);
 
 			if (totalSelections >= this.totalMatchesCount) {
-				// All matches are already selected, make this a no-op like in regular editors
 				return;
 			}
 
@@ -582,13 +565,13 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 				return;
 			}
 
-			if (findResult.cell.handle === focusedCell.handle) { // match is in the same cell, find tracked entry, update and set selections in viewmodel and cursorController
+			if (findResult.cell.handle === focusedCell.handle) {
 				const selections = [...focusedCell.getSelections(), Selection.fromRange(findResult.match.range, SelectionDirection.LTR)];
 				const trackedCell = await this.updateTrackedCell(focusedCell, selections);
 				findResultCellViewModel.setSelections(trackedCell.matchSelections);
 
 
-			} else if (findResult.cell.handle !== focusedCell.handle) {	// result is in a different cell, move focus there and apply selection, then update anchor
+			} else if (findResult.cell.handle !== focusedCell.handle) {
 				await this.notebookEditor.revealRangeInViewAsync(findResultCellViewModel, findResult.match.range);
 				await this.notebookEditor.focusNotebookCell(findResultCellViewModel, 'editor');
 
@@ -602,8 +585,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 
 				this._onDidChangeAnchorCell.fire();
 
-				// we set the decorations manually for the cell we have just departed, since it blurs
-				// we can find the match with the handle that the find and track request originated
 				this.initializeMultiSelectDecorations(this.trackedCells.find(trackedCell => trackedCell.cellViewModel.handle === focusedCell.handle));
 			}
 		}
@@ -612,7 +593,7 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 	public async selectAllMatches(focusedCell: ICellViewModel, matches?: CellFindMatchWithIndex[]): Promise<void> {
 		const notebookTextModel = this.notebookEditor.textModel;
 		if (!notebookTextModel) {
-			return; // should not happen
+			return;
 		}
 
 		if (matches) {
@@ -627,7 +608,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 	}
 
 	private async handleFindWidgetSelectAllMatches(matches: CellFindMatchWithIndex[]) {
-		// TODO: support selecting state maybe. UX could get confusing since selecting state could be hit via ctrl+d which would have different filters (case sensetive + whole word)
 		if (this.state !== NotebookMultiCursorState.Idle) {
 			return;
 		}
@@ -644,7 +624,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 			this.updateTrackedCell(match.cell, match.contentMatches.map(match => Selection.fromRange(match.range, SelectionDirection.LTR)));
 
 			if (this.anchorCell && match.cell.handle === this.anchorCell[0].handle) {
-				// only explicitly set the focused cell's selections, the rest are handled by cursor controllers + decorations
 				match.cell.setSelections(match.contentMatches.map(match => Selection.fromRange(match.range, SelectionDirection.LTR)));
 			}
 		}
@@ -655,9 +634,7 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 	}
 
 	private async handleCellEditorSelectAllMatches(notebookTextModel: NotebookTextModel, focusedCell: ICellViewModel) {
-		// can be triggered mid multiselect session, or from idle state
 		if (this.state === NotebookMultiCursorState.Idle) {
-			// get word from current selection + rest of notebook objects
 			const textModel = focusedCell.textModel;
 			if (!textModel) {
 				return;
@@ -685,10 +662,8 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 				throw new Error('Active cell is not an instance of CodeEditorWidget');
 			}
 
-			// get all matches in the notebook
 			const findResults = notebookTextModel.findMatches(this.word, false, true, USUAL_WORD_SEPARATORS);
 
-			// create the tracked matches for every result, needed for cursor controllers
 			this.trackedCells = [];
 			for (const res of findResults) {
 				await this.updateTrackedCell(res.cell, res.matches.map(match => Selection.fromRange(match.range, SelectionDirection.LTR)));
@@ -706,10 +681,8 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 			this._nbMultiSelectState.set(NotebookMultiCursorState.Selecting);
 
 		} else if (this.state === NotebookMultiCursorState.Selecting) {
-			// we will already have a word + some number of tracked matches, need to update them with the rest given findAllMatches result
 			const findResults = notebookTextModel.findMatches(this.word, false, true, USUAL_WORD_SEPARATORS);
 
-			// update existing tracked matches with new selections and create new tracked matches for cells that aren't tracked yet
 			for (const res of findResults) {
 				await this.updateTrackedCell(res.cell, res.matches.map(match => Selection.fromRange(match.range, SelectionDirection.LTR)));
 			}
@@ -725,7 +698,7 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 		let trackedMatch = this.trackedCells.find(trackedCell => trackedCell.cellViewModel.handle === cellViewModel.handle);
 
 		if (trackedMatch) {
-			this.clearDecorations(trackedMatch); // need this to avoid leaking decorations -- TODO: just optimize the lazy decorations fn
+			this.clearDecorations(trackedMatch);
 			trackedMatch.matchSelections = selections;
 		} else {
 			const initialSelection = cellViewModel.getSelections()[0];
@@ -758,7 +731,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 		this.trackedCells.forEach(cell => {
 			const controller = this.cursorsControllers.get(cell.cellViewModel.uri);
 			if (!controller) {
-				// should not happen
 				return;
 			}
 
@@ -783,7 +755,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 		this.trackedCells.forEach(cell => {
 			const controller = this.cursorsControllers.get(cell.cellViewModel.uri);
 			if (!controller) {
-				// should not happen
 				return;
 			}
 
@@ -801,7 +772,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 				}
 				controller.setSelections(new ViewModelEventsCollector(), undefined, delSelections, CursorChangeReason.Explicit);
 			} else {
-				// get the selections from the viewmodel since we run the command manually (for cursor decoration reasons)
 				controller.setSelections(new ViewModelEventsCollector(), undefined, cell.cellViewModel.getSelections(), CursorChangeReason.Explicit);
 			}
 
@@ -844,11 +814,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 		return new EditorConfiguration(false, MenuId.EditorContent, options, null, this.accessibilityService);
 	}
 
-	/**
-	 * Updates the multicursor selection decorations for a specific matched cell
-	 *
-	 * @param cell -- match object containing the viewmodel + selections
-	 */
 	private initializeMultiSelectDecorations(cell: TrackedCell | undefined) {
 		if (!cell) {
 			return;
@@ -856,7 +821,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 
 		const decorations: IModelDeltaDecoration[] = [];
 		cell.matchSelections.forEach(selection => {
-			// mock cursor at the end of the selection
 			decorations.push({
 				range: Selection.fromPositions(selection.getEndPosition()),
 				options: {
@@ -880,7 +844,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 
 			const controller = this.cursorsControllers.get(cell.cellViewModel.uri);
 			if (!controller) {
-				// should not happen
 				return;
 			}
 			const selections = controller.getSelections();
@@ -890,7 +853,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 				const isEmpty = selection.isEmpty();
 
 				if (!isEmpty) {
-					// selection decoration (shift+arrow, etc)
 					newDecorations.push({
 						range: selection,
 						options: {
@@ -900,7 +862,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 					});
 				}
 
-				// mock cursor at the end of the selection
 				newDecorations.push({
 					range: Selection.fromPositions(selection.getPosition()),
 					options: {
@@ -943,10 +904,9 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 		let result = isCursor ? '.nb-multicursor-cursor' : '.nb-multicursor-selection';
 
 		if (isCursor) {
-			// handle base style
 			switch (cursorConfig.cursorStyle) {
 				case TextEditorCursorStyle.Line:
-					break; // default style, no additional class needed (handled by base css style)
+					break;
 				case TextEditorCursorStyle.Block:
 					result += '.nb-cursor-block-style';
 					break;
@@ -966,7 +926,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 					break;
 			}
 
-			// handle animation style
 			switch (cursorConfig.cursorBlinking) {
 				case TextEditorCursorBlinkingStyle.Blink:
 					result += '.nb-blink';
@@ -988,7 +947,6 @@ export class NotebookMultiCursorController extends Disposable implements INotebo
 					break;
 			}
 
-			// handle caret animation style
 			if (cursorConfig.cursorSmoothCaretAnimation === 'on' || cursorConfig.cursorSmoothCaretAnimation === 'explicit') {
 				result += '.nb-smooth-caret-animation';
 			}
@@ -1219,7 +1177,6 @@ class NotebookDeleteRightMultiSelectionAction extends NotebookAction {
 			return;
 		}
 
-		// need to run the command manually since we are overriding the command, this ensures proper cursor animation behavior
 		CoreEditingCommands.DeleteRight.runEditorCommand(accessor, cellEditor, null);
 
 		const controller = nbEditor.getContribution<NotebookMultiCursorController>(NotebookMultiCursorController.id);

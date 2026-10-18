@@ -30,20 +30,13 @@ import { stripChunkTextMetadata } from './chunkingStringUtils';
 type RequestTask = (attempt: number) => Promise<Response>;
 
 class RequestRateLimiter extends Disposable {
-	private static readonly _abuseLimit = 1000.0 / 40.0; // 40 requests per second. Actually more like 20 but that causes too much stalling
+	private static readonly _abuseLimit = 1000.0 / 40.0;
 
 	private readonly _maxParallelChunksRequests: number;
 
-	/** Max number of times to retry a request before failing. */
 	private readonly _maxAttempts = 3;
 
-	/**
-	 * Target quota usage percentage that we want to maintain.
-	 *
-	 * Anything under this will be sent as fast as possible. Once we go over this, we start sending requests slower
-	 * and slower as we approach 100% quota usage.
-	 */
-	private readonly targetQuota = 80; // %
+	private readonly targetQuota = 80;
 
 	private readonly requestQueue = new LinkedList<{
 		readonly task: RequestTask;
@@ -52,21 +45,17 @@ class RequestRateLimiter extends Disposable {
 		readonly token: CancellationToken;
 	}>();
 
-	// State
 	private _numberInFlightRequests = 0;
 	private _lastSendTime = Date.now();
 
-	/** Timeout for the Github rate limit headers */
 	private _rateLimitTimeout?: Promise<void>;
 
-	/** The most recent status for the Github rate limit headers */
 	private _latestRateLimitHint?: {
 		readonly timestamp: number;
 		readonly remaining: number;
 		readonly resetAt: number;
 	};
 
-	/** The most recent status for the Github quota header */
 	private _latestQuotaUsed?: {
 		readonly timestamp: number;
 		readonly quota: number;
@@ -111,7 +100,7 @@ class RequestRateLimiter extends Disposable {
 
 				if (this._numberInFlightRequests >= this._maxParallelChunksRequests) {
 					await timeout(10);
-					continue; // Check again
+					continue;
 				}
 
 				// Check the global github rate limit
@@ -119,24 +108,22 @@ class RequestRateLimiter extends Disposable {
 					const currentTime = Date.now();
 					if (currentTime < this._latestRateLimitHint.resetAt) {
 						if (this._latestRateLimitHint.remaining - this._numberInFlightRequests <= 0) {
-							// There are no remaining requests, wait until reset
 							const resetTimeSpan = this._latestRateLimitHint.resetAt - currentTime;
 							await timeout(Math.min(resetTimeSpan, 2_000));
 						}
 					}
 				}
 
-				// Check the quota percent
 				if (this._latestQuotaUsed && this._latestQuotaUsed.quota > this.targetQuota) {
 					const currentTime = Date.now();
 					const quotaDelta = this._latestQuotaUsed.quota - this.targetQuota;
 					const quotaDeltaTime = currentTime - this._latestQuotaUsed.timestamp;
 
-					const decayTime = 2500; // Estimated time for quota to reset
+					const decayTime = 2500;
 					const maxDelay = 1000;
 
 					let quotaAdjustment = (quotaDelta / (100 - this.targetQuota));
-					quotaAdjustment *= Math.max(1.0 - (quotaDeltaTime / decayTime), 0); // Adjust by time passed
+					quotaAdjustment *= Math.max(1.0 - (quotaDeltaTime / decayTime), 0);
 
 					const delay = quotaAdjustment * maxDelay;
 					if (delay > 0) {
@@ -150,7 +137,6 @@ class RequestRateLimiter extends Disposable {
 					continue;
 				}
 
-				// Send the request
 				this._numberInFlightRequests++;
 				this._lastSendTime = Date.now();
 
@@ -168,7 +154,6 @@ class RequestRateLimiter extends Disposable {
 						return;
 					}
 
-					// Request failed, see if we can retry
 					if (e.attempt < this._maxAttempts) {
 						if (response.status === 429 || response.status === 403 || response.status === 408) {
 							const retryAfter_seconds = this.getRequestRetryDelay(response);
@@ -176,14 +161,12 @@ class RequestRateLimiter extends Disposable {
 								this._rateLimitTimeout = timeout(retryAfter_seconds * 1000);
 							}
 
-							// Add back into the queue
 							this.requestQueue.unshift({ task: e.task, attempt: e.attempt + 1, deferred: e.deferred, token: e.token });
 							this.pump();
 							return;
 						}
 					}
 
-					// Unknown failure or max attempts reached, complete  the failed response
 					e.deferred.complete(response);
 				}).catch(err => {
 					e.deferred.error(err);
@@ -205,7 +188,7 @@ class RequestRateLimiter extends Disposable {
 				this._latestRateLimitHint = {
 					timestamp: timestamp,
 					remaining: parseFloat(rateLimitRemaining),
-					resetAt: parseFloat(rateLimitReset) * 1000, // convert to ms
+					resetAt: parseFloat(rateLimitReset) * 1000,
 				};
 			}
 
@@ -225,17 +208,10 @@ class RequestRateLimiter extends Disposable {
 			}
 		} catch (e) {
 			console.error('Error parsing rate limit headers', e);
-			// Ignore errors
 		}
 	}
 
-	/**
-	 * Get the retry delay for a request based on the response.
-	 *
-	 * @returns The retry delay in seconds.
-	 */
 	private getRequestRetryDelay(response: Response) {
-		// Check `retry-after` header
 		try {
 			const retryAfterHeader = response.headers.get('retry-after');
 			if (retryAfterHeader) {
@@ -245,10 +221,8 @@ class RequestRateLimiter extends Disposable {
 				}
 			}
 		} catch {
-			// Noop
 		}
 
-		// Fallback to `x-ratelimit-reset` header
 		try {
 			const resetHeader = response.headers.get('x-ratelimit-reset');
 			if (resetHeader) {
@@ -259,15 +233,12 @@ class RequestRateLimiter extends Disposable {
 				}
 			}
 		} catch {
-			// Noop
 		}
 
-		// Seeing if the request timed out which lets us use a faster retry
 		if (response.status === 408) {
 			return 0.25;
 		}
 
-		// Otherwise use a generic timeout
 		return 2;
 	}
 }
@@ -287,9 +258,6 @@ type ChunksEndpointResponse = {
 export class ChunkingEndpointClientImpl extends Disposable implements IChunkingEndpointClient {
 	declare readonly _serviceBrand: undefined;
 
-	/**
-	 * Limiter for request to the chunks endpoint.
-	 */
 	private readonly _requestLimiter: RequestRateLimiter;
 
 	constructor(
@@ -340,7 +308,6 @@ export class ChunkingEndpointClientImpl extends Disposable implements IChunkingE
 					requestId: '',
 					body: {
 						embed: options.computeEmbeddings,
-						// Only to online set during re-ranking step
 						qos: options.qos,
 						content: text,
 						path: getWorkspaceFileDisplayPath(this._workspaceService, content.uri),
@@ -368,14 +335,6 @@ export class ChunkingEndpointClientImpl extends Disposable implements IChunkingE
 			if (!response.ok) {
 				this._logService.debug(`Error chunking '${content.uri}'. Status: ${response.status}. Status Text: ${response.statusText}.`);
 
-				/* __GDPR__
-					"workspaceChunkEmbeddingsIndex.computeChunksAndEmbeddings.error" : {
-						"owner": "mjbvz",
-						"comment": "Tracks errors from the chunks service",
-						"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Caller of computeChunksAndEmbeddings" },
-						"responseStatus": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Status code" }
-					}
-				*/
 				this._telemetryService.sendMSFTTelemetryEvent('workspaceChunkEmbeddingsIndex.computeChunksAndEmbeddings.error', {
 					source: telemetryInfo.toString(),
 				}, {
@@ -400,7 +359,7 @@ export class ChunkingEndpointClientImpl extends Disposable implements IChunkingE
 							text: stripChunkTextMetadata(cached.chunk.text),
 							rawText: undefined,
 							range,
-							isFullFile: cached.chunk.isFullFile, // TODO: get from endpoint
+							isFullFile: cached.chunk.isFullFile,
 						},
 						chunkHash: chunk.hash,
 						embedding: cached.embedding,
@@ -408,7 +367,6 @@ export class ChunkingEndpointClientImpl extends Disposable implements IChunkingE
 				}
 
 				if (typeof chunk.text !== 'string') {
-					// Invalid chunk
 					return undefined;
 				}
 
@@ -423,7 +381,6 @@ export class ChunkingEndpointClientImpl extends Disposable implements IChunkingE
 				}
 
 				if (options.computeEmbeddings && !embedding) {
-					// Invalid chunk
 					return undefined;
 				}
 
@@ -433,7 +390,7 @@ export class ChunkingEndpointClientImpl extends Disposable implements IChunkingE
 						text: stripChunkTextMetadata(chunk.text),
 						rawText: undefined,
 						range,
-						isFullFile: false, // TODO: get from endpoint
+						isFullFile: false,
 					},
 					chunkHash: chunk.hash,
 					embedding: embedding

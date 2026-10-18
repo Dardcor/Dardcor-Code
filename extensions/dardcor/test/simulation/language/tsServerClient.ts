@@ -19,7 +19,7 @@ class TSServerRPC {
 
 	private _seq: number;
 
-	private _awaitingResponse: Map<number /* seq id */, DeferredPromise<ts.server.protocol.Response>>;
+	private _awaitingResponse: Map<number , DeferredPromise<ts.server.protocol.Response>>;
 
 	private _stdoutBuffer: string;
 
@@ -59,7 +59,6 @@ class TSServerRPC {
 		const obj = { ...data, seq: this._seq++ };
 		const objS = `${JSON.stringify(obj)}\r\n`;
 		this._server.stdin!.write(objS, (_err) => {
-			// ignored, server closed
 		});
 	}
 
@@ -80,14 +79,11 @@ class TSServerRPC {
 				break;
 			}
 
-			// parse header
 			const firstLine = this._stdoutBuffer.substring(0, eolIndex);
 			const contentLength = parseInt(firstLine.substring('Content-Length: '.length), 10);
 
-			// try parse body
 			const body = this._stdoutBuffer.substring(eolIndex + 4, eolIndex + 4 + contentLength);
 			if (body.length < contentLength) {
-				// entire body did not arrive yet
 				break;
 			}
 			this._stdoutBuffer = this._stdoutBuffer.substring(eolIndex + 4 + contentLength);
@@ -161,7 +157,6 @@ export class TSServerClient {
 				tsServerRpc,
 			};
 
-			// send "open" notifications
 			for (const file of files) {
 				tsServerRpc.emit({
 					'type': 'request',
@@ -230,7 +225,6 @@ export class TSServerClient {
 				const fileName = location.file.substring(workspacePathWithSlash.length);
 				resultingDefinitions.push({ fileName, range });
 			} else {
-				// ignore all matches in non-workspace files, e.g. in d.ts files
 			}
 		}
 		return resultingDefinitions;

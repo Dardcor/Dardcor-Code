@@ -16,7 +16,7 @@ export class UserDataProfilesCleaner extends Disposable {
 
 		const scheduler = this._register(new RunOnceScheduler(() => {
 			userDataProfilesService.cleanUp();
-		}, 10 * 1000 /* after 10s */));
+		}, 10 * 1000 ));
 		scheduler.schedule();
 	}
 }

@@ -158,13 +158,11 @@ class WorkspaceInformation {
 			try {
 				const nodeModulesFolder = URI.joinPath(folder, 'node_modules');
 
-				// Check if node_modules folder exists
 				const resourceStat = await this._fileService.stat(nodeModulesFolder);
 				if (resourceStat.type !== vscode.FileType.Directory) {
 					return new Set<string>();
 				}
 
-				// Read all node_modules directories
 				const entries = await this._fileService.readDirectory(nodeModulesFolder);
 				const directories = entries.filter(([_, type]) => type === vscode.FileType.Directory);
 				const directoryNames = directories.map(([name, _]) => name);
@@ -195,7 +193,7 @@ export class ImportDiagnosticCompletionProvider implements IDiagnosticCompletion
 		private readonly _fileService: IFileSystemService,
 	) {
 		this._workspaceInfo = new WorkspaceInformation(this._workspaceService, this._fileService);
-		this._workspaceInfo.updateNodeModules(); // Only update once on startup
+		this._workspaceInfo.updateNodeModules();
 
 		const javascriptImportHandler = new JavascriptImportHandler();
 		const pythonImportHandler = new PythonImportHandler();
@@ -233,7 +231,6 @@ export class ImportDiagnosticCompletionProvider implements IDiagnosticCompletion
 			return null;
 		}
 
-		// fetch code actions for missing import
 		const startTime = Date.now();
 		const availableCodeActions = await workspaceDocument.getCodeActions(importDiagnosticToFix.range, 3, token);
 		const resolveCodeActionDuration = Date.now() - startTime;
@@ -319,8 +316,6 @@ export class ImportDiagnosticCompletionProvider implements IDiagnosticCompletion
 
 			const joinedEdit = TextReplacement.joinReplacements(codeAction.edits, documentContent);
 
-			// The diagnostic might have changed in the meantime to a different range
-			// So we need to get the import name from the referenced diagnostic
 			let codeActionImportName = importName;
 			if (codeAction.diagnostics && codeAction.diagnostics.length > 0) {
 				codeActionImportName = codeAction.diagnostics[0].range.substring(documentContent.value);
@@ -390,11 +385,11 @@ class JavascriptImportHandler implements ILanguageImportHandler {
 		}
 
 		if (importCodeAction.importSource === ImportSource.external && importCodeAction.importPath.includes('/')) {
-			return true; // Ignore imports that are from node_modules and point to a subpath
+			return true;
 		}
 
 		if (importCodeAction.importSource === ImportSource.external && importCodeAction.importName === importCodeAction.importName.toLowerCase()) {
-			return true; // Ignore imports which consits of a single word as they are likely variable names. All lowercase is an over approximation for this
+			return true;
 		}
 
 		if (JavascriptImportHandler.ImportsToIgnore.has(importCodeAction.importName)) {
@@ -436,7 +431,6 @@ class JavascriptImportHandler implements ILanguageImportHandler {
 			return ImportSource.local;
 		}
 
-		// Resolve against tsconfig paths
 		for (const [alias, _] of Object.entries(workspaceInfo.tsconfigPaths)) {
 			const aliasBase = alias.replace(/\*$/, '');
 			if (importPath.startsWith(aliasBase)) {

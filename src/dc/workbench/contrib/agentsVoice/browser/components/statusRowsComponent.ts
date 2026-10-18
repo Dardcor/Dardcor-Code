@@ -18,7 +18,6 @@ export interface StatusRowsProps {
 	readonly speakingSessionResource: URI | undefined;
 	readonly pendingToolConfirmations: readonly IPendingToolConfirmation[];
 	readonly onOpenSession: (resource: URI) => void;
-	/** When false, hide the counter rows and the "No active sessions" placeholder. */
 	readonly showCounters?: boolean;
 }
 
@@ -100,7 +99,6 @@ export function createStatusRows(): StatusRowsComponent {
 				speakingRow.style.display = 'flex';
 				speakingLabel.textContent = props.speakingSessionLabel;
 
-				// Clean up previous handlers
 				if (speakingClickHandler) {
 					speakingRow.removeEventListener('click', speakingClickHandler);
 					speakingClickHandler = undefined;
@@ -133,7 +131,6 @@ export function createStatusRows(): StatusRowsComponent {
 				}
 			} else {
 				speakingRow.style.display = 'none';
-				// Clean up when hidden
 				if (speakingClickHandler) {
 					speakingRow.removeEventListener('click', speakingClickHandler);
 					speakingClickHandler = undefined;

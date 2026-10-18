@@ -21,11 +21,8 @@ export class GitCommitFoldingProvider implements vscode.FoldingRangeProvider {
 			const line = document.lineAt(i);
 			const lineText = line.text;
 
-			// Check for comment lines (lines starting with #)
 			if (lineText.startsWith('#')) {
-				// Close any active diff block when we encounter a comment
 				if (currentDiffStart !== undefined) {
-					// Only create fold if there are at least 2 lines
 					if (i - currentDiffStart > 1) {
 						ranges.push(new vscode.FoldingRange(currentDiffStart, i - 1));
 					}
@@ -36,9 +33,7 @@ export class GitCommitFoldingProvider implements vscode.FoldingRangeProvider {
 					commentBlockStart = i;
 				}
 			} else {
-				// End of comment block
 				if (commentBlockStart !== undefined) {
-					// Only create fold if there are at least 2 lines
 					if (i - commentBlockStart > 1) {
 						ranges.push(new vscode.FoldingRange(
 							commentBlockStart,
@@ -50,23 +45,17 @@ export class GitCommitFoldingProvider implements vscode.FoldingRangeProvider {
 				}
 			}
 
-			// Check for diff sections (lines starting with "diff --git")
 			if (lineText.startsWith('diff --git ')) {
-				// If there's a previous diff block, close it
 				if (currentDiffStart !== undefined) {
-					// Only create fold if there are at least 2 lines
 					if (i - currentDiffStart > 1) {
 						ranges.push(new vscode.FoldingRange(currentDiffStart, i - 1));
 					}
 				}
-				// Start new diff block
 				currentDiffStart = i;
 			}
 		}
 
-		// Handle end-of-document cases
 
-		// If comment block extends to end of document
 		if (commentBlockStart !== undefined) {
 			if (document.lineCount - commentBlockStart > 1) {
 				ranges.push(new vscode.FoldingRange(
@@ -77,7 +66,6 @@ export class GitCommitFoldingProvider implements vscode.FoldingRangeProvider {
 			}
 		}
 
-		// If diff block extends to end of document
 		if (currentDiffStart !== undefined) {
 			if (document.lineCount - currentDiffStart > 1) {
 				ranges.push(new vscode.FoldingRange(

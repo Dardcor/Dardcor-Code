@@ -411,7 +411,7 @@
 		],
 		"terminalQuickFixes": [
 			{
-				"id": "copilot-chat.fixWithCopilot",
+				"id": "dardcor-chat.fixWithDardcor",
 				"commandLineMatcher": ".+",
 				"commandExitResult": "error",
 				"outputMatcher": {

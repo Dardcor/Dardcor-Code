@@ -25,30 +25,15 @@ const WEB_EXTENSION_RESOURCE_END_POINT_SEGMENT = '/web-extension-resource/';
 
 export const IExtensionResourceLoaderService = createDecorator<IExtensionResourceLoaderService>('extensionResourceLoaderService');
 
-/**
- * A service useful for reading resources from within extensions.
- */
 export interface IExtensionResourceLoaderService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Read a certain resource within an extension.
-	 */
 	readExtensionResource(uri: URI): Promise<string>;
 
-	/**
-	 * Returns whether the gallery provides extension resources.
-	 */
 	supportsExtensionGalleryResources(): Promise<boolean>;
 
-	/**
-	 * Return true if the given URI is a extension gallery resource.
-	 */
 	isExtensionGalleryResource(uri: URI): Promise<boolean>;
 
-	/**
-	 * Computes the URL of a extension gallery resource. Returns `undefined` if gallery does not provide extension resources.
-	 */
 	getExtensionGalleryResourceURL(galleryExtension: { publisher: string; name: string; version: string; targetPlatform?: TargetPlatform }, path?: string): Promise<URI | undefined>;
 }
 
@@ -164,7 +149,6 @@ export abstract class AbstractExtensionResourceLoaderService extends Disposable 
 
 	protected _isWebExtensionResourceEndPoint(uri: URI): boolean {
 		const uriPath = uri.path, serverRootPath = RemoteAuthorities.getServerRootPath();
-		// test if the path starts with the server root path followed by the web extension resource end point segment
 		return uriPath.startsWith(serverRootPath) && uriPath.startsWith(WEB_EXTENSION_RESOURCE_END_POINT_SEGMENT, serverRootPath.length);
 	}
 

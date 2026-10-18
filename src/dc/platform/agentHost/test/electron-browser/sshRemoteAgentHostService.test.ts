@@ -46,11 +46,6 @@ import { PROTOCOL_VERSION } from '../../common/state/protocol/version/registry.j
 import { ISSHRelayClientFactory, SSHRemoteAgentHostService } from '../../electron-browser/sshRemoteAgentHostServiceImpl.js';
 import { AgentHostProtocolClient } from '../../browser/agentHostProtocolClient.js';
 
-/**
- * In-renderer mock of the shared-process SSH service. Exposes the same
- * surface that the renderer accesses through ProxyChannel, plus a small
- * test API to drive close events and inspect calls.
- */
 class MockSSHMainService {
 	private readonly _onDidChangeConnections = new Emitter<void>();
 	readonly onDidChangeConnections = this._onDidChangeConnections.event;
@@ -102,22 +97,18 @@ class MockSSHMainService {
 		this._hostKeyResponseWaiters.splice(0).forEach(waiter => waiter.complete());
 	}
 
-	/** Test helper: fire a host key verification request as the shared process would. */
 	fireHostKeyVerificationRequest(request: ISSHHostKeyVerificationRequest): void {
 		this._onDidRequestHostKeyVerification.fire(request);
 	}
 
-	/** Test helper: cancel a host key verification as the shared process would. */
 	fireHostKeyVerificationCancel(requestId: string): void {
 		this._onDidCancelHostKeyVerification.fire(requestId);
 	}
 
-	/** Test helper: fire a host key announcement as the shared process would. */
 	fireHostKeysAnnouncement(announcement: ISSHHostKeysAnnouncement): void {
 		this._onDidAnnounceHostKeys.fire(announcement);
 	}
 
-	/** Test helper: resolves once {@link respondHostKeyVerification} is next called. */
 	waitForHostKeyResponse(): Promise<void> {
 		const deferred = new DeferredPromise<void>();
 		this._hostKeyResponseWaiters.push(deferred);
@@ -127,17 +118,14 @@ class MockSSHMainService {
 	readonly endpointSelectionResponses: Array<{ requestId: string; selection: ISSHEndpointSelection | undefined }> = [];
 	private readonly _endpointSelectionResponseWaiters: DeferredPromise<void>[] = [];
 
-	/** Test helper: fire an endpoint-selection request as the main process would. */
 	fireEndpointSelectionRequest(request: ISSHEndpointSelectionRequest): void {
 		this._onDidRequestEndpointSelection.fire(request);
 	}
 
-	/** Test helper: fire an endpoint-selection cancellation as the main process would. */
 	fireEndpointSelectionCancel(requestId: string): void {
 		this._onDidCancelEndpointSelection.fire(requestId);
 	}
 
-	/** Test helper: resolves once {@link respondEndpointSelection} is next called. */
 	waitForEndpointSelectionResponse(): Promise<void> {
 		const deferred = new DeferredPromise<void>();
 		this._endpointSelectionResponseWaiters.push(deferred);
@@ -189,7 +177,7 @@ class MockSSHMainService {
 		};
 	}
 
-	async relaySend(_connectionId: string, _message: string): Promise<void> { /* no-op */ }
+	async relaySend(_connectionId: string, _message: string): Promise<void> { }
 
 	async disconnect(connectionId: string): Promise<void> {
 		this.disconnectCalls.push(connectionId);
@@ -218,7 +206,6 @@ class MockSSHMainService {
 	}
 }
 
-/** Adapt a mock service object to the IChannel surface ProxyChannel expects. */
 function asChannel(target: object): IChannel {
 	return {
 		call: async <T>(method: string, args?: unknown): Promise<T> => {
@@ -238,15 +225,9 @@ function asChannel(target: object): IChannel {
 	};
 }
 
-/** Drives registered connection factories like RemoteAgentHostService. */
 class MockRemoteAgentHostService extends Disposable {
 	readonly added: Array<{ address: string; status?: RemoteAgentHostConnectionStatus; transport?: IDisposable }> = [];
 	private readonly _entries = new Map<string, { transport?: IDisposable; client: { dispose?: () => void }; status: RemoteAgentHostConnectionStatus }>();
-	// Holds transport disposables from prior service-owned connections that
-	// were replaced by a later connection for the same address.
-	// Production deliberately does NOT run them at replacement time (doing
-	// so would call _mainService.disconnect on the brand-new tunnel and
-	// kill it). They are released when the service itself is disposed.
 	private readonly _abandonedTransports: IDisposable[] = [];
 	private readonly _onDidChangeConnections = this._register(new Emitter<void>());
 	readonly onDidChangeConnections = this._onDidChangeConnections.event;
@@ -349,17 +330,14 @@ class MockRemoteAgentHostService extends Disposable {
 		}
 	}
 
-	/** Mirrors IRemoteAgentHostService.getConnection: returns the client only when the entry is connected. */
 	getConnection(address: string): IAgentConnection | undefined {
 		const entry = this._entries.get(address);
 		return entry && RemoteAgentHostConnectionStatus.isConnected(entry.status) ? entry.client as unknown as IAgentConnection : undefined;
 	}
 
 	notifyConnectionClosed(_address: string): void {
-		// no-op in tests — the defense-in-depth notification is exercised separately
 	}
 
-	/** Simulate user clicking "Remove Remote": disposes the per-entry store, which runs the transport disposable. */
 	removeEntry(address: string): void {
 		const e = this._entries.get(address);
 		if (!e) {
@@ -372,8 +350,6 @@ class MockRemoteAgentHostService extends Disposable {
 	}
 
 	override dispose(): void {
-		// Dispose any still-registered entries (mirrors the per-entry store cleanup
-		// done by the real RemoteAgentHostService when it itself is disposed).
 		for (const [, e] of this._entries) {
 			e.client.dispose?.();
 			e.transport?.dispose();
@@ -383,7 +359,6 @@ class MockRemoteAgentHostService extends Disposable {
 			wait.error(new Error('Mock remote agent host service disposed.'));
 		}
 		this._connectionWaits.clear();
-		// Release abandoned transports from prior registrations as well.
 		for (const t of this._abandonedTransports) {
 			t.dispose();
 		}
@@ -433,7 +408,6 @@ class TestConfigurationService {
 	setRemoteAgentHostsEnabled(enabled: boolean): void { this._remoteAgentHostsEnabled = enabled; }
 }
 
-/** Captures every message passed to `info()` so tests can assert on the SSH failover notification. */
 class CapturingNotificationService extends TestNotificationService {
 	readonly infoMessages: string[] = [];
 	readonly notifications: INotification[] = [];
@@ -449,7 +423,6 @@ class CapturingNotificationService extends TestNotificationService {
 	}
 }
 
-/** In-memory stand-in for {@link IRemoteAgentHostLocationPreferenceService}, keyed the same way as the real storage-backed implementation. */
 class TestRemoteAgentHostLocationPreferenceService implements IRemoteAgentHostLocationPreferenceService {
 	declare readonly _serviceBrand: undefined;
 
@@ -552,7 +525,6 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 		sshConfigHost: 'remote.example',
 	};
 
-	/** Wait until the renderer has created its protocol client, then resolve its handshake. */
 	async function awaitClientThenResolve(index: number): Promise<void> {
 		const client = await waitForClient(index);
 		client.connectDeferred.complete();
@@ -750,14 +722,8 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 	});
 
 	test('reconnect after incompatible handshake replaces the stale handle and re-handshakes', async () => {
-		// Pin a stable connectionId so the simulated `replaceRelay` reconnect
-		// returns the same id as the initial connect — that is the real
-		// behavior of SSHRemoteAgentHostMainService.connect(replaceRelay=true).
 		mainService.connectResult = { connectionId: 'conn-stable', address: 'ssh:remote.example' };
 
-		// First connect: handshake rejected as incompatible. Per the existing
-		// fix, this still registers a managed connection in `incompatible`
-		// state so the server-upgrade RPC can reach the host.
 		const firstConnect = service.connect(sampleConfig);
 		const firstClient = await waitForClient(0);
 		await firstClient.connectDeferred.error(new ProtocolError(
@@ -767,11 +733,6 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 		));
 		await assert.rejects(firstConnect, /Unsupported protocol version/);
 
-		// User triggers the server upgrade and then the contribution reconnects.
-		// The reconnect must NOT short-circuit to the stale handle (whose
-		// protocol client is permanently stuck in incompatible state); it must
-		// build a fresh client and complete a fresh handshake against the
-		// upgraded server.
 		const reconnectPromise = service.reconnect('remote.example', 'My Remote');
 		const secondClient = await waitForClient(1);
 		await secondClient.connectDeferred.complete();
@@ -780,10 +741,7 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 		assert.deepStrictEqual({
 			clientCount: createdClients.length,
 			added: remoteAgentHostService.added.map(({ address, status }) => ({ address, statusKind: status?.kind })),
-			// The replaceRelay path keeps the SSH tunnel alive — we must not
-			// have asked the main service to disconnect it.
 			disconnectCalls: mainService.disconnectCalls,
-			// Exactly one renderer-side handle for the address.
 			connections: service.connections.map(connection => connection.localAddress),
 		}, {
 			clientCount: 2,
@@ -817,8 +775,6 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 		assert.strictEqual(mainService.disconnectCalls.length, 0);
 		assert.strictEqual(service.connections.length, 1);
 
-		// Simulate the user clicking "Remove Remote": IRemoteAgentHostService
-		// disposes the per-entry store, which runs our transport disposable.
 		remoteAgentHostService.removeEntry('ssh:remote.example');
 
 		assert.deepStrictEqual(mainService.disconnectCalls, ['conn-1'], 'main-process tunnel is told to disconnect');
@@ -826,15 +782,12 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 	});
 
 	test('connect after removal does not reuse the previous handle', async () => {
-		// First connect → entry registered, then removed.
 		const c1 = service.connect(sampleConfig);
 		await awaitClientThenResolve(0);
 		await c1;
 		remoteAgentHostService.removeEntry('ssh:remote.example');
 		assert.strictEqual(service.connections.length, 0);
 
-		// Second connect → main returns a new connectionId; renderer creates
-		// a fresh handle and registers a new managed entry.
 		mainService.connectResult = { connectionId: 'conn-2', address: 'ssh:remote.example' };
 		const c2 = service.connect(sampleConfig);
 		await awaitClientThenResolve(1);
@@ -850,25 +803,16 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 		await connectPromise;
 		assert.strictEqual(service.connections.length, 1);
 
-		// Simulate main process closing the connection on its own (e.g. SSH dropped).
-		// We can't directly fire on the wrapped emitter through the channel because
-		// ProxyChannel is one-directional; instead we trigger via the mock service
-		// emitter that the renderer subscribed to.
 		(mainService as unknown as { _onDidCloseConnection: Emitter<string> })._onDidCloseConnection.fire('conn-1');
 
 		assert.strictEqual(service.connections.length, 0, 'handle dropped on main close');
-		// Removing the (already-gone) entry shouldn't trigger another disconnect call.
 		remoteAgentHostService.removeEntry('ssh:remote.example');
-		// One disconnect from the transport disposable is fine; we just want to make
-		// sure we're not at risk of issuing a second one against a stale id.
 		assert.ok(mainService.disconnectCalls.length <= 1, 'no duplicate disconnect against a stale connectionId');
 	});
 
-	// --- SSH failover notification: editor-owned → standalone on an unattended reconnect ---
 
 	const NOTIFICATION_MESSAGE = 'The editor agent host exited. Reconnected to a dedicated agent host. In-progress work may have been interrupted.';
 
-	/** Fires the main-process close event to simulate natural connection cleanup between connect/reconnect calls. */
 	function fireMainProcessClose(connectionId: string): void {
 		(mainService as unknown as { _onDidCloseConnection: Emitter<string> })._onDidCloseConnection.fire(connectionId);
 	}
@@ -883,20 +827,15 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 	});
 
 	test('an automatic/background reconnect that fails over from an editor-owned endpoint to a standalone endpoint shows exactly one notification', async () => {
-		// Initial connect selects an editor-owned endpoint.
 		mainService.connectResult = { serverType: 'editor' };
 		const c1 = service.connect(sampleConfig);
 		await awaitClientThenResolve(0);
 		await c1;
 		assert.deepStrictEqual(notificationService.infoMessages, [], 'no notification on initial connect');
 
-		// The SSH tunnel drops and the renderer-side handle is cleaned up.
-		// This disconnect cleanup must NOT erase the last-known server type.
 		fireMainProcessClose('conn-1');
 		assert.strictEqual(service.connections.length, 0);
 
-		// A silent/background reconnect (userInitiated: false) lands on a
-		// standalone endpoint instead of the editor-owned one.
 		mainService.connectResult = { connectionId: 'conn-2', serverType: 'standalone' };
 		const r = service.reconnect('remote.example', 'My Remote', false);
 		await awaitClientThenResolve(1);
@@ -915,7 +854,7 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 		fireMainProcessClose('conn-1');
 
 		mainService.connectResult = { connectionId: 'conn-2', serverType: 'standalone' };
-		const r = service.reconnect('remote.example', 'My Remote', /* userInitiated */ true);
+		const r = service.reconnect('remote.example', 'My Remote', true);
 		await awaitClientThenResolve(1);
 		await r;
 
@@ -997,8 +936,6 @@ suite('SSHRemoteAgentHostService (renderer)', () => {
 		await awaitClientThenResolve(0);
 		await c1;
 
-		// Reconnecting through the shared service replaces its protocol client
-		// and performs a new handshake without treating it as a failover.
 		const c2 = service.connect(sampleConfig);
 		await awaitClientThenResolve(1);
 		await c2;
@@ -1039,17 +976,12 @@ suite('SSHRemoteAgentHostService endpoint selection preference (renderer)', () =
 		instantiationService.stub(IRemoteAgentHostLocationPreferenceService, locationPreferenceService as Partial<IRemoteAgentHostLocationPreferenceService>);
 		instantiationService.stub(ISSHHostKeyTrustService, disposables.add(new SSHHostKeyTrustService(disposables.add(new InMemoryStorageService()))) as Partial<ISSHHostKeyTrustService>);
 
-		// Default to throwing so any test that doesn't expect the modal to
-		// appear fails loudly if the implementation shows it unexpectedly.
 		dialogServiceStub = {
 			prompt: (() => { throw new Error('unexpected dialogService.prompt call'); }) as unknown as IDialogService['prompt'],
 		};
 		instantiationService.stub(IDialogService, dialogServiceStub as IDialogService);
 		instantiationService.stub(IProductService, { _serviceBrand: undefined, nameShort: 'Test Product' } as IProductService);
 
-		// Instantiating the service is enough to register the
-		// onDidRequestEndpointSelection/onDidCancelEndpointSelection listeners;
-		// the resulting handle isn't otherwise used by these tests.
 		disposables.add(instantiationService.createInstance(SSHRemoteAgentHostService));
 	});
 
@@ -1253,8 +1185,6 @@ suite('SSHRemoteAgentHostService endpoint selection preference (renderer)', () =
 		mainService.fireEndpointSelectionCancel('some-other-request');
 		await mainService.waitForEndpointSelectionResponse();
 
-		// The modal resolved on its own (user dismissed it); the unrelated
-		// cancel event must not have interfered with routing the response.
 		assert.deepStrictEqual(mainService.endpointSelectionResponses, [
 			{ requestId: 'req-1', selection: undefined },
 		]);
@@ -1283,10 +1213,8 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 	let notificationService: CapturingNotificationService;
 	let confirmResult: boolean;
 	let confirmCalls: number;
-	/** When set, the confirm dialog blocks on this until the test releases it. */
 	let confirmGate: (() => Promise<void>) | undefined;
 	let inFlightVerifications: Promise<void>[];
-	/** The options the last confirm dialog was opened with. */
 	let lastConfirmOptions: IConfirmation | undefined;
 
 	setup(() => {
@@ -1329,8 +1257,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 		hostKeyTrustService = disposables.add(new SSHHostKeyTrustService(disposables.add(new InMemoryStorageService())));
 		instantiationService.stub(ISSHHostKeyTrustService, hostKeyTrustService as Partial<ISSHHostKeyTrustService>);
 
-		// Subclassed so tests can await the real handler settling rather than
-		// sleeping for a fixed interval, which is load-dependent and flaky.
 		class TestableService extends SSHRemoteAgentHostService {
 			protected override _trackHostKeyVerification(handled: Promise<void>): void {
 				inFlightVerifications.push(handled);
@@ -1342,7 +1268,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 	teardown(() => disposables.clear());
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** Settles once every verification the test has triggered has finished. */
 	async function settleVerifications(): Promise<void> {
 		while (inFlightVerifications.length) {
 			await Promise.all(inFlightVerifications.splice(0));
@@ -1418,12 +1343,9 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 		assert.deepStrictEqual(
 			{
 				responses: mainService.hostKeyResponses,
-				// No dialog at all: recovering requires explicitly forgetting
-				// the host, so a possible impersonation can't be waved away.
 				confirmCalls,
 				severity: notified?.severity,
 				hasForgetAction: !!notified?.actions?.primary?.length,
-				// The old key must remain stored until the user forgets it.
 				stillStored: hostKeyTrustService.getTrustedKeys('remote.example', 22).map(k => k.fingerprint),
 			},
 			{
@@ -1436,10 +1358,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 	});
 
 	test('a known_hosts mismatch or revocation offers no forget action', async () => {
-		// "Forget Saved Host Key" only clears *our* store. When the conflict
-		// lives in the user's own known_hosts file, forgetting would change
-		// nothing and the very same error would reappear on the next connect,
-		// so the message points at the file that actually decides instead.
 		await fireAndWait(makeHostKeyRequest({ knownHostsMatch: 'mismatch' }));
 		const fromKnownHosts = notificationService.notifications.at(-1);
 
@@ -1516,10 +1434,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 	});
 
 	test('a prompt for a connection that dies is dismissed, and a late answer grants nothing', async () => {
-		// The dialog is opened with a cancellation token so it tears itself
-		// down when the connection drops, rather than stranding the user with
-		// a question about a connection that no longer exists. Answering it
-		// late must also be inert.
 		let releaseDialog = () => { };
 		const dialogShown = new Promise<void>(resolveShown => {
 			confirmGate = () => {
@@ -1533,7 +1447,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 		await dialogShown;
 		const dialogToken = lastConfirmOptions?.token;
 		const dismissedBeforeCancel = dialogToken?.isCancellationRequested;
-		// The connection drops while the user is still looking at the dialog.
 		mainService.fireHostKeyVerificationCancel('hostkey-1');
 		const dismissedAfterCancel = dialogToken?.isCancellationRequested;
 		releaseDialog();
@@ -1541,11 +1454,8 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 
 		assert.deepStrictEqual(
 			{
-				// The dialog is handed a live token that is cancelled when the
-				// connection dies, which is what dismisses it.
 				dismissedBeforeCancel,
 				dismissedAfterCancel,
-				// And a late "Connect" still grants nothing.
 				responses: mainService.hostKeyResponses,
 				stored: hostKeyTrustService.getTrustedKeys('remote.example', 22).length,
 			},
@@ -1554,8 +1464,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 
 	test('learns a rotated key announced over an authenticated connection', async () => {
 		hostKeyTrustService.trustHostKey('remote.example', 22, { keyType: 'ssh-ed25519', fingerprint: FINGERPRINT, addedAt: 1 });
-		// Establish a session whose host key is itself trusted — that is what
-		// entitles the server to tell us about its other keys.
 		await fireAndWait(makeHostKeyRequest());
 
 		mainService.fireHostKeysAnnouncement({
@@ -1574,12 +1482,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 	});
 
 	test('a changed key is refused even when StrictHostKeyChecking is disabled', async () => {
-		// The opt-out means "I accept unknown keys", not "I accept a key that
-		// contradicts one I already trust". OpenSSH 9.9 keeps protecting this
-		// case too: it warns and disables password auth, keyboard-interactive
-		// auth and agent forwarding. We refuse outright, so no credential and
-		// no agent access ever reaches a possible impostor — and the
-		// announcement path is moot because the session never authenticates.
 		hostKeyTrustService.trustHostKey('remote.example', 22, { keyType: 'ssh-ed25519', fingerprint: FINGERPRINT, addedAt: 1 });
 		await fireAndWait(makeHostKeyRequest({ fingerprint: 'SHA256:impostorkey', strictHostKeyChecking: 'no' }));
 
@@ -1592,9 +1494,7 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 
 		assert.deepStrictEqual(
 			{
-				// Refused outright, before authentication.
 				connected: mainService.hostKeyResponses,
-				// And the genuine stored key is untouched.
 				stored: hostKeyTrustService.getTrustedKeys('remote.example', 22).map(k => k.fingerprint),
 			},
 			{
@@ -1604,15 +1504,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 	});
 
 	test('an unverified session cannot poison stored trust via announcements', async () => {
-		// A session accepted under StrictHostKeyChecking=no is unverified: the
-		// key was simply not checked. ssh2 still proves announced keys belong
-		// to whoever we are talking to — but that could be an impostor, so the
-		// announcement must not overwrite the real stored key. Mirrors
-		// OpenSSH, which only accepts additional host keys when the key that
-		// authenticated the host was already trusted.
-		//
-		// Uses an *unknown* key (a different algorithm), since a key that
-		// contradicts the stored one is now refused outright by the test above.
 		hostKeyTrustService.trustHostKey('remote.example', 22, { keyType: 'ssh-ed25519', fingerprint: FINGERPRINT, addedAt: 1 });
 		await fireAndWait(makeHostKeyRequest({ keyType: 'ssh-rsa', fingerprint: 'SHA256:impostorkey', strictHostKeyChecking: 'no' }));
 
@@ -1625,9 +1516,7 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 
 		assert.deepStrictEqual(
 			{
-				// The unverified session was allowed to connect...
 				connected: mainService.hostKeyResponses,
-				// ...but the genuine stored key is untouched.
 				stored: hostKeyTrustService.getTrustedKeys('remote.example', 22).map(k => k.fingerprint),
 			},
 			{
@@ -1637,8 +1526,6 @@ suite('SSHRemoteAgentHostService host key verification (renderer)', () => {
 	});
 
 	test('ignores announcements for hosts that were never trusted', async () => {
-		// Otherwise an announcement would become a way to establish trust
-		// without any verification at all.
 		mainService.fireHostKeysAnnouncement({
 			connectionKey: 'ssh:remote.example',
 			host: 'remote.example',

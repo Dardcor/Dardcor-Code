@@ -67,7 +67,6 @@ class Deps {
 	}
 }
 
-/** This is to break circular module dependencies. */
 export function _setPositionOffsetTransformerDependencies(deps: IDeps): void {
 	Deps._deps = deps;
 }

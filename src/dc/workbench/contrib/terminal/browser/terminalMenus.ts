@@ -396,7 +396,6 @@ export function setupTerminalMenus(): void {
 				}
 			},
 			{
-				// This is used to show instead of tabs when there is only a single terminal
 				id: MenuId.ViewTitle,
 				item: {
 					command: {

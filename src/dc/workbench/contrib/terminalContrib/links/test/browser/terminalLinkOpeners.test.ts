@@ -95,7 +95,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 		instantiationService.stub(IWorkbenchEnvironmentService, {
 			remoteAuthority: undefined
 		} as Partial<IWorkbenchEnvironmentService>);
-		// Allow intercepting link activations
 		activationResult = undefined;
 		instantiationService.stub(IQuickInputService, {
 			quickAccess: {
@@ -110,7 +109,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					source: 'editor',
 					link: editor.resource?.toString()
 				};
-				// Only assert on selection if it's not the default value
 				if (editor.options?.selection && (editor.options.selection.startColumn !== 1 || editor.options.selection.startLineNumber !== 1)) {
 					activationResult.selection = editor.options.selection;
 				}
@@ -136,7 +134,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 			localFileOpener = instantiationService.createInstance(TerminalLocalFileLinkOpener);
 			const localFolderOpener = instantiationService.createInstance(TerminalLocalFolderInWorkspaceLinkOpener);
 			opener = instantiationService.createInstance(TestTerminalSearchLinkOpener, capabilities, '/initial/cwd', localFileOpener, localFolderOpener, () => OperatingSystem.Linux);
-			// Set a fake detected command starting as line 0 to establish the cwd
 			commandDetection.setCommands([new TerminalCommand(xterm, {
 				command: '',
 				commandLineConfidence: 'low',
@@ -280,7 +277,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					URI.from({ scheme: Schemas.file, path: '/Users/home/folder/other/file.txt' })
 				]);
 
-				// Set a fake detected command starting as line 0 to establish the cwd
 				commandDetection.setCommands([new TerminalCommand(xterm, {
 					command: '',
 					commandLineConfidence: 'low',
@@ -309,7 +305,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					source: 'editor'
 				});
 
-				// Clear detected commands and ensure the same request results in a search since there are 2 matches
 				commandDetection.setCommands([]);
 				opener.setFileQueryBuilder({ file: () => null! });
 				searchService.setSearchResult({
@@ -456,7 +451,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 				});
 			});
 
-			// Test for https://github.com/microsoft/vscode/pull/200919#discussion_r1428124196
 			test('should extract column and/or line numbers from links and remove grepped lines incl singular spaces', async () => {
 				localFileOpener = instantiationService.createInstance(TerminalLocalFileLinkOpener);
 				const localFolderOpener = instantiationService.createInstance(TerminalLocalFolderInWorkspaceLinkOpener);
@@ -524,7 +518,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 				localFileOpener = instantiationService.createInstance(TerminalLocalFileLinkOpener);
 				const localFolderOpener = instantiationService.createInstance(TerminalLocalFolderInWorkspaceLinkOpener);
 				opener = instantiationService.createInstance(TestTerminalSearchLinkOpener, capabilities, '/folder', localFileOpener, localFolderOpener, () => OperatingSystem.Linux);
-				// Intentionally not set the file so it does not get picked up as localFile.
 				fileService.setFiles([]);
 				await opener.open({
 					text: 'test-2025-04-28T11:03:09+02:00.log',
@@ -545,7 +538,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					source: 'search'
 				});
 
-				// Test when file exists, and there are preceding arguments
 				fileService.setFiles([
 					URI.from({ scheme: Schemas.file, path: '/folder/test-2025-04-28T14:30:00+02:00.log' })
 				]);
@@ -582,7 +574,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					URI.file('/c:/Users/home/folder/file.txt')
 				]);
 
-				// Set a fake detected command starting as line 0 to establish the cwd
 				commandDetection.setCommands([new TerminalCommand(xterm, {
 					exitCode: 0,
 					commandStartLineContent: '',
@@ -611,7 +602,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					source: 'editor'
 				});
 
-				// Clear detected commands and ensure the same request results in a search
 				commandDetection.setCommands([]);
 				opener.setFileQueryBuilder({ file: () => null! });
 				searchService.setSearchResult({
@@ -857,7 +847,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 				});
 			});
 
-			// Test for https://github.com/microsoft/vscode/pull/200919#discussion_r1428124196
 			test('should extract column and/or line numbers from links and remove grepped lines incl singular spaces', async () => {
 				localFileOpener = instantiationService.createInstance(TerminalLocalFileLinkOpener);
 				const localFolderOpener = instantiationService.createInstance(TerminalLocalFolderInWorkspaceLinkOpener);
@@ -943,7 +932,7 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					link: 'file:///c%3A/folder/foo/bar.rb',
 					source: 'editor',
 					selection: {
-						startColumn: 1, // Since Ruby doesn't appear to put columns in stack traces, this should be 1
+						startColumn: 1,
 						startLineNumber: 30,
 						endColumn: undefined,
 						endLineNumber: undefined
@@ -958,7 +947,7 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					link: 'file:///c%3A/folder/foo/bar.rb',
 					source: 'editor',
 					selection: {
-						startColumn: 1, // Since Ruby doesn't appear to put columns in stack traces, this should be 1
+						startColumn: 1,
 						startLineNumber: 30,
 						endColumn: undefined,
 						endLineNumber: undefined
@@ -970,7 +959,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 				localFileOpener = instantiationService.createInstance(TerminalLocalFileLinkOpener);
 				const localFolderOpener = instantiationService.createInstance(TerminalLocalFolderInWorkspaceLinkOpener);
 				opener = instantiationService.createInstance(TestTerminalSearchLinkOpener, capabilities, 'c:/folder', localFileOpener, localFolderOpener, () => OperatingSystem.Windows);
-				// Intentionally not set the file so it does not get picked up as localFile.
 				fileService.setFiles([]);
 				await opener.open({
 					text: 'test-2025-04-28T11:03:09+02:00.log',
@@ -991,7 +979,6 @@ suite('Workbench - TerminalLinkOpeners', () => {
 					source: 'search'
 				});
 
-				// Test when file exists, and there are preceding arguments
 				fileService.setFiles([
 					URI.from({ scheme: Schemas.file, path: 'c:/folder/test-2025-04-28T14:30:00+02:00.log' })
 				]);

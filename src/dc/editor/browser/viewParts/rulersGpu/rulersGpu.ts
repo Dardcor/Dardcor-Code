@@ -15,10 +15,6 @@ import { Color } from '../../../../base/common/color.js';
 import { editorRuler } from '../../../common/core/editorColorRegistry.js';
 import { autorun, type IReader } from '../../../../base/common/observable.js';
 
-/**
- * Rulers are vertical lines that appear at certain columns in the editor. There can be >= 0 rulers
- * at a time.
- */
 export class RulersGpu extends ViewPart {
 
 	private readonly _gpuShapes: IObjectCollectionBufferEntry<RectangleRendererEntrySpec>[] = [];
@@ -31,21 +27,17 @@ export class RulersGpu extends ViewPart {
 		this._register(autorun(reader => this._updateEntries(reader)));
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		this._updateEntries(undefined);
 		return true;
 	}
 
-	// --- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
-		// Nothing to read
 	}
 
 	public render(ctx: RestrictedRenderingContext): void {
-		// Rendering is handled by RectangleRenderer
 	}
 
 	private _updateEntries(reader: IReader | undefined) {

@@ -19,25 +19,8 @@ export function createTelemetryWithId(): ConversationalBaseTelemetryData {
 	return new ConversationalTelemetryData(baseTelemetry);
 }
 
-/**
- * Legacy telemetry compatibility allowlist of custom-provider agents that should still
- * be reported under their own name rather than the generic `custom` bucket.
- *
- * The Plan agent is contributed via a `ChatCustomAgentProvider`, so `isBuiltin` is `false`
- * even though it is shipped by Copilot. Downstream metrics (e.g. `chat_panel_plan_mode`) key
- * off the literal value `plan`, so it must be preserved here.
- */
 const NAMED_CUSTOM_AGENT_MODES = new Set(['plan']);
 
-/**
- * Resolves the mode name to report in telemetry for a request's mode instructions.
- *
- * Built-in modes (Ask, Edit, Agent) report their lowercased name. Custom-provider agents
- * report `custom`, except for those in {@link NAMED_CUSTOM_AGENT_MODES} which are reported
- * under their own name for backwards compatibility with downstream metrics.
- *
- * @returns the resolved mode name, or `undefined` when no mode instructions are present.
- */
 export function getModeNameForTelemetry(modeInstructions: ChatRequestModeInstructions | undefined): string | undefined {
 	if (!modeInstructions) {
 		return undefined;
@@ -126,7 +109,6 @@ export function sendModelMessageTelemetry(
 	baseTelemetry: ConversationalBaseTelemetryData,
 	modeName: string,
 ): void {
-	// Get the languages of code blocks within the message
 	const codeBlockLanguages = getCodeBlocks(appliedText);
 
 	sendConversationalMessageTelemetry(
@@ -174,7 +156,6 @@ export function sendOffTopicMessageTelemetry(
 	);
 }
 
-/** Create new telemetry data based on baseTelemetryData and send `conversation.message` event  */
 export function sendConversationalMessageTelemetry(
 	telemetryService: ITelemetryService,
 	document: TextDocumentSnapshot | undefined,
@@ -198,8 +179,6 @@ export function sendConversationalMessageTelemetry(
 	const standardTelemetryData = baseTelemetry.extendedBy(properties, measurements);
 	const enhancedTelemetryLogger = baseTelemetry.extendedBy(enhancedProperties);
 
-	// Telemetrize the message in standard and enhanced telemetry
-	// Enhanced telemetry will not be sent if the user isn't opted in, same as for ghostText
 	const prefix = telemetryPrefixForLocation(location);
 
 	telemetryService.sendGHTelemetryEvent(`${prefix}.message`, standardTelemetryData.raw.properties, standardTelemetryData.raw.measurements);
@@ -230,7 +209,6 @@ export function sendSuggestionShownTelemetryData(
 	return telemetryData;
 }
 
-/** Create new telemetry data based on baseTelemetryData and send event with name */
 export function sendUserActionTelemetry(
 	telemetryService: ITelemetryService,
 	document: TextDocument | TextDocumentSnapshot | undefined,

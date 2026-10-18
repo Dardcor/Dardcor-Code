@@ -51,11 +51,6 @@ export class ChatDragAndDrop extends Themable {
 	private overlayTextBackground: string = '';
 	private disableOverlay: boolean = false;
 
-	/**
-	 * In-process transfer for a dragged chat reference. Readable during
-	 * `dragover` (unlike the `dataTransfer` mime payload), so the self-reference
-	 * guard can suppress the overlay when a chat is dragged onto its own input.
-	 */
 	private readonly chatReferenceTransfer = LocalSelectionTransfer.getInstance<DraggedChatReferenceIdentifier>();
 
 	constructor(
@@ -199,7 +194,6 @@ export class ChatDragAndDrop extends Themable {
 	}
 
 	private guessDropType(e: DragEvent): ChatDragAndDropType | undefined {
-		// This is an estimation based on the datatransfer types/items
 		if (containsDragType(e, CodeDataTransfers.CHAT_REFERENCE)) {
 			return this.guessChatReferenceDropType(e);
 		} else if (containsDragType(e, CodeDataTransfers.NOTEBOOK_CELL_OUTPUT)) {
@@ -225,23 +219,6 @@ export class ChatDragAndDrop extends Themable {
 		return undefined;
 	}
 
-	/**
-	 * Resolves the drop type for a dragged chat reference. Only agent-host-backed
-	 * chat inputs can reference another chat, and a chat may reference any other
-	 * chat of the *same agent host* — including one from a different session shown
-	 * side by side in the Agents window.
-	 *
-	 * Two payload-dependent guards suppress the overlay entirely (rather than
-	 * appearing droppable and then doing nothing):
-	 * - a self-reference (a chat dropped onto its *own* input), and
-	 * - a cross-agent-host reference, which the owning host could never resolve.
-	 *
-	 * The dragged chat's client resource is read from the in-process
-	 * {@link LocalSelectionTransfer} (readable during `dragover`) with the
-	 * `dataTransfer` mime payload as a fallback (readable on `drop`), and compared
-	 * against this input's own client session resource. Both are opaque client
-	 * URIs, so the workbench never touches an AHP chat URI.
-	 */
 	private guessChatReferenceDropType(e: DragEvent): ChatDragAndDropType | undefined {
 		const sessionResource = this.widgetRef()?.viewModel?.model.sessionResource;
 		if (!sessionResource || !isAgentHostTarget(getChatSessionType(sessionResource))) {
@@ -256,13 +233,6 @@ export class ChatDragAndDrop extends Themable {
 		return ChatDragAndDropType.CHAT_REFERENCE;
 	}
 
-	/**
-	 * The client resource of the dragged chat reference (used only for
-	 * self-reference identity comparison). Prefers the in-process local transfer
-	 * (available during `dragover`), falling back to the `dataTransfer` mime
-	 * payload (only readable on `drop`). Returns `undefined` when neither source
-	 * carries a chat reference.
-	 */
 	private getDraggedClientResource(e: DragEvent): string | undefined {
 		const local = this.chatReferenceTransfer.getData(DraggedChatReferenceIdentifier.prototype);
 		if (local && local.length > 0) {
@@ -272,7 +242,6 @@ export class ChatDragAndDrop extends Themable {
 	}
 
 	private isDragEventSupported(e: DragEvent): boolean {
-		// if guessed drop type is undefined, it means the drop is not supported
 		const dropType = this.guessDropType(e);
 		return dropType !== undefined;
 	}
@@ -342,22 +311,13 @@ export class ChatDragAndDrop extends Themable {
 			}
 		}
 
-		if (!containsDragType(e, DataTransfers.INTERNAL_URI_LIST) && containsDragType(e, Mimes.uriList) && ((containsDragType(e, Mimes.html) || containsDragType(e, Mimes.text) /* Text mime needed for safari support */))) {
+		if (!containsDragType(e, DataTransfers.INTERNAL_URI_LIST) && containsDragType(e, Mimes.uriList) && ((containsDragType(e, Mimes.html) || containsDragType(e, Mimes.text) ))) {
 			return this.resolveHTMLAttachContext(e);
 		}
 
 		return [];
 	}
 
-	/**
-	 * Resolves a dropped chat reference (a chat tab from the Agents window) to a
-	 * plain chat-reference attachment (a pill) — the same shape every other drop
-	 * type produces, with no inline text, range, or editor manipulation.
-	 *
-	 * The target must be an agent-host-backed input; the actual resolution and
-	 * the self / cross-agent-host guards live in {@link resolveChatReferenceDropEntry}.
-	 * Returns `[]` when any guard rejects.
-	 */
 	private resolveChatReferenceAttachContext(e: DragEvent): IChatRequestVariableEntry[] {
 		const data = extractChatReferenceDropData(e);
 		if (!data) {
@@ -383,7 +343,6 @@ export class ChatDragAndDrop extends Themable {
 			this.logService.warn('Fetch failed:', error);
 		}
 
-		// TODO: use dnd provider to insert text @justschen
 		const widget = this.widgetRef();
 		const selection = widget?.inputEditor.getSelection();
 		if (selection && widget) {
@@ -439,14 +398,12 @@ export class ChatDragAndDrop extends Themable {
 
 		const imageTransferData: ImageTransferData[] = [];
 
-		// Image Web File Drag and Drop
 		const imageFiles = extractImageFilesFromDragEvent(e);
 		if (imageFiles.length) {
 			const imageTransferDataFromFiles = await Promise.all(imageFiles.map(file => getImageTransferDataFromFile(file)));
 			imageTransferData.push(...imageTransferDataFromFiles.filter(data => !!data));
 		}
 
-		// Image Web URL Drag and Drop
 		const imageUrls = extractUrlsFromDragEvent(e);
 		if (imageUrls.length) {
 			const imageTransferDataFromUrl = await Promise.all(imageUrls.map(getImageTransferDataFromUrl));
@@ -457,13 +414,11 @@ export class ChatDragAndDrop extends Themable {
 	}
 
 	private setOverlay(target: HTMLElement, type: ChatDragAndDropType | undefined): void {
-		// Remove any previous overlay text
 		this.overlayText?.remove();
 		this.overlayText = undefined;
 
 		const { overlay } = this.overlays.get(target)!;
 		if (type !== undefined) {
-			// Render the overlay text
 
 			const iconAndtextElements = renderLabelWithIcons(`$(${Codicon.attachCompact.id}) ${this.getOverlayText(type)}`);
 			const htmlElements = iconAndtextElements.map(element => {
@@ -498,7 +453,6 @@ export class ChatDragAndDrop extends Themable {
 }
 
 function containsImageDragType(e: DragEvent): boolean {
-	// Image detection should not have false positives, only false negatives are allowed
 	if (containsDragType(e, 'image')) {
 		return true;
 	}

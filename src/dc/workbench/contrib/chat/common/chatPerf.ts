@@ -9,7 +9,6 @@ import { chatSessionResourceToId } from './model/chatUri.js';
 
 const chatPerfPrefix = 'code/chat/';
 
-/** Tracks all mark names emitted per session so they can be cleared individually. */
 const chatMarksBySession = new Map<string, Set<string>>();
 
 /**
@@ -39,31 +38,16 @@ const chatMarksBySession = new Map<string, Set<string>>();
  *   `agent/willInvoke` → `agent/didInvoke`
  */
 export const ChatPerfMark = {
-	/** User pressed Enter / request initiated */
 	RequestStart: 'request/start',
-	/** Request added to model → UI shows the message */
 	RequestUiUpdated: 'request/uiUpdated',
-	/** Begin collecting .instructions.md / skills / hooks */
 	WillCollectInstructions: 'request/willCollectInstructions',
-	/** Done collecting instructions */
 	DidCollectInstructions: 'request/didCollectInstructions',
-	/** First streamed response content received */
 	FirstToken: 'request/firstToken',
-	/** Response fully complete */
 	RequestComplete: 'request/complete',
-	/** Agent invoke begins (LLM round-trip start) */
 	AgentWillInvoke: 'agent/willInvoke',
-	/** Agent invoke returns (LLM round-trip end) */
 	AgentDidInvoke: 'agent/didInvoke',
 } as const;
 
-/**
- * Emits a performance mark scoped to a chat session:
- * `code/chat/<sessionResource>/<name>`
- *
- * Marks are automatically cleaned up when the corresponding chat model is
- * disposed — see {@link clearChatMarks}.
- */
 export function markChat(sessionResource: URI, name: string): void {
 	const sessionId = chatSessionResourceToId(sessionResource);
 	const fullName = `${chatPerfPrefix}${sessionId}/${name}`;
@@ -76,10 +60,6 @@ export function markChat(sessionResource: URI, name: string): void {
 	mark(fullName);
 }
 
-/**
- * Clears all performance marks for the given chat session.
- * Called when the chat model is disposed.
- */
 export function clearChatMarks(sessionResource: URI): void {
 	const sessionId = chatSessionResourceToId(sessionResource);
 	const names = chatMarksBySession.get(sessionId);
@@ -96,18 +76,10 @@ export function clearChatMarks(sessionResource: URI): void {
  * These are emitted via {@link markChatGlobal} and are never cleared.
  */
 export const ChatGlobalPerfMark = {
-	/** Begin waiting for chat extension activation (SetupAgent) */
 	WillWaitForActivation: 'willWaitForActivation',
-	/** Extension activation + readiness complete (SetupAgent) */
 	DidWaitForActivation: 'didWaitForActivation',
 } as const;
 
-/**
- * Emits a global (non-session-scoped) performance mark:
- * `code/chat/<name>`
- *
- * Used for one-time marks like activation that should persist across requests.
- */
 export function markChatGlobal(name: string): void {
 	mark(`${chatPerfPrefix}${name}`);
 }

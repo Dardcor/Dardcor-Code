@@ -3,14 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * This is a subset of the types export from jsonTypes.d.ts in @vscode/prompt-tsx.
- * It's just the types needed to stringify prompt-tsx tool results.
- * It should be kept in sync with the types in that file.
- *
- * Note: do NOT use `declare` with const enums, esbuild doesn't inline them.
- * See https://github.com/evanw/esbuild/issues/4394
- */
 
 export const enum PromptNodeType {
 	Piece = 1,
@@ -21,11 +13,6 @@ export interface TextJSON {
 	text: string;
 	lineBreakBefore: boolean | undefined;
 }
-/**
- * Constructor kind of the node represented by {@link PieceJSON}. This is
- * less descriptive than the actual constructor, as we only care to preserve
- * the element data that the renderer cares about.
- */
 export const enum PieceCtorKind {
 	BaseChatMessage = 1,
 	Other = 2,
@@ -67,7 +54,6 @@ function stringifyPromptNodeJSON(node: PromptNodeJSON, strs: string[]): void {
 			strs.push(node.text);
 		}
 	} else if (node.ctor === PieceCtorKind.ImageChatMessage) {
-		// This case currently can't be hit by prompt-tsx
 		strs.push('<image>');
 	} else if (node.ctor === PieceCtorKind.BaseChatMessage || node.ctor === PieceCtorKind.Other) {
 		for (const child of node.children) {

@@ -20,7 +20,6 @@ import { createModelServices, createTextModel, instantiateTextModel } from '../t
 import { mock } from '../../../../base/test/common/mock.js';
 import { IViewModel } from '../../../common/viewModel.js';
 
-// --------- utils
 
 const LINE1 = 'My First Line';
 const LINE2 = '\t\tMy Second Line';
@@ -48,7 +47,6 @@ suite('Editor Model - Model', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// --------- insert text
 
 	test('model getValue', () => {
 		assert.strictEqual(thisModel.getValue(), 'My First Line\n\t\tMy Second Line\n    Third Line\n\n1');
@@ -98,7 +96,6 @@ suite('Editor Model - Model', () => {
 	});
 
 
-	// --------- insert text eventing
 
 	function withEventCapturing(callback: () => void): ModelRawContentChangedEvent | null {
 		let e: ModelRawContentChangedEvent | null = null;
@@ -154,7 +151,6 @@ suite('Editor Model - Model', () => {
 	});
 
 
-	// --------- delete text
 
 	test('model delete empty text', () => {
 		thisModel.applyEdits([EditOperation.delete(new Range(1, 1, 1, 1))]);
@@ -201,7 +197,6 @@ suite('Editor Model - Model', () => {
 		assert.strictEqual(thisModel.getLineContent(1), '');
 	});
 
-	// --------- delete text eventing
 
 	test('model delete empty text does not trigger eventing', () => {
 		const e = withEventCapturing(() => {
@@ -268,7 +263,6 @@ suite('Editor Model - Model', () => {
 		));
 	});
 
-	// --------- getValueInRange
 
 	test('getValueInRange', () => {
 		assert.strictEqual(thisModel.getValueInRange(new Range(1, 1, 1, 1)), '');
@@ -283,7 +277,6 @@ suite('Editor Model - Model', () => {
 		assert.strictEqual(thisModel.getValueInRange(new Range(1, 1, 4, 1)), 'My First Line\n\t\tMy Second Line\n    Third Line\n');
 	});
 
-	// --------- getValueLengthInRange
 
 	test('getValueLengthInRange', () => {
 		assert.strictEqual(thisModel.getValueLengthInRange(new Range(1, 1, 1, 1)), ''.length);
@@ -298,7 +291,6 @@ suite('Editor Model - Model', () => {
 		assert.strictEqual(thisModel.getValueLengthInRange(new Range(1, 1, 4, 1)), 'My First Line\n\t\tMy Second Line\n    Third Line\n'.length);
 	});
 
-	// --------- setValue
 	test('setValue eventing', () => {
 		const e = withEventCapturing(() => {
 			thisModel.setValue('new value');
@@ -325,7 +317,6 @@ suite('Editor Model - Model', () => {
 });
 
 
-// --------- Special Unicode LINE SEPARATOR character
 suite('Editor Model - Model Line Separators', () => {
 
 	let thisModel: TextModel;
@@ -363,7 +354,6 @@ suite('Editor Model - Model Line Separators', () => {
 });
 
 
-// --------- Words
 
 suite('Editor Model - Words', () => {
 

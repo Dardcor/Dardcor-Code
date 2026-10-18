@@ -18,23 +18,8 @@ import { IAgentConfigurationService } from './agentConfigurationService.js';
 import { parsePullRequestUrl } from './agentMergeController.js';
 import { IAgentHostPullRequestStatusService, type IAgentHostPullRequestStatus } from './agentHostPullRequestStatusService.js';
 
-/**
- * The pull request lifecycle actions this handler can execute. Each maps 1:1
- * onto a changeset operation advertised by
- * `AgentHostPullRequestOperationContribution`.
- */
 export type PullRequestLifecycleAction = 'mark-ready' | 'merge' | 'enable-auto-merge' | 'disable-auto-merge';
 
-/**
- * Server-side handler for the pull request lifecycle operations advertised once
- * a session's branch has a pull request: marking a draft ready, merging,
- * and toggling GitHub's native auto-merge.
- *
- * Unlike `AgentHostPullRequestOperationHandler` — which drives the local git
- * repository before creating a pull request — every action here is a pure
- * GitHub mutation issued through {@link IGitHubService}, so it inherits that
- * service's credential handling, request queueing, and merge-safety gates.
- */
 export class AgentHostPullRequestLifecycleOperationHandler implements IChangesetOperationHandler {
 
 	public static readonly OPERATION_MARK_READY = AgentHostPullRequestOperationId.MarkReady;
@@ -88,10 +73,6 @@ export class AgentHostPullRequestLifecycleOperationHandler implements IChangeset
 			return { message };
 		} catch (error) {
 			this._logService.error(`[AgentHostPullRequestLifecycleOperationHandler] Failed '${this._action}': session=${sessionUri}, pr=${status.url}, durationMs=${Date.now() - startedAt}, error=${error instanceof Error ? error.message : String(error)}`);
-			// The advertised operations are derived from cached pull request
-			// state, so a rejection usually means that state has drifted. A
-			// refresh re-derives the button bar rather than leaving the user on
-			// an action GitHub already refuses.
 			await this._statusService.refresh(sessionUri);
 			throw error;
 		}
@@ -120,12 +101,6 @@ export class AgentHostPullRequestLifecycleOperationHandler implements IChangeset
 		}
 	}
 
-	/**
-	 * Merges through the gated preparation flow: `prepareMerge` captures an
-	 * authoritative snapshot that the mutation service validates the merge
-	 * against, so a pull request that stopped being mergeable between the button
-	 * being rendered and clicked is rejected rather than force-merged.
-	 */
 	private async _merge(sessionUri: string, ref: PullRequestRef, status: IAgentHostPullRequestStatus, signal: AbortSignal): Promise<string> {
 		if (!status.headSha) {
 			throw new ProtocolError(
@@ -134,8 +109,6 @@ export class AgentHostPullRequestLifecycleOperationHandler implements IChangeset
 			);
 		}
 		const preparation = await this._gitHubService.mutations.prepareMerge(ref, status.headSha, signal);
-		// The user clicking the button is the authorization; the id only has to
-		// be stable for the lifetime of this single merge.
 		const authorization = { confirmed: true as const, authorizationId: generateUuid() };
 		const mergeability = preparation.snapshot.mergeability.value;
 		this._logService.debug(`[AgentHostPullRequestLifecycleOperationHandler] Merge preparation complete: session=${sessionUri}, pr=${status.url}, headSha=${status.headSha}, mergeQueueRequired=${mergeability?.mergeQueueRequired ?? 'unknown'}, allowedMergeMethods=${mergeability?.allowedMergeMethods.join('|') || 'none'}`);
@@ -153,9 +126,6 @@ export class AgentHostPullRequestLifecycleOperationHandler implements IChangeset
 		return localize('agentHost.changeset.pr.merged', "Pull request was merged.");
 	}
 
-	/**
-	 * Resolves the configured merge method against what the repository allows.
-	 */
 	private _requireMergeMethod(allowed: readonly ('MERGE' | 'SQUASH' | 'REBASE')[]): 'MERGE' | 'SQUASH' | 'REBASE' {
 		const configured = this._configurationService.getRootValue(agentMergeRootConfigSchema, AgentMergeConfigKey.MergeMethod) ?? defaultAgentMergeConfiguration.mergeMethod;
 		const method = resolveMergeMethod(configured, allowed);

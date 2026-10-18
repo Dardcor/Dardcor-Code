@@ -36,8 +36,6 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 	}
 
 	public async processStream(_stream: AsyncIterable<LineOfText>): Promise<StreamingEditsResult> {
-		// console.log();
-		// console.log();
 		let stream = AsyncIterableObject.filter(_stream, this.lineFilter);
 		if (this.collectImports) {
 			stream = collectImportsIfNoneWereSentInRange(stream, this.myDocument, this.adjustedSelection);
@@ -54,8 +52,6 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 		}
 
 		if (this.myDocument.didReplaceEdits && anchorLineIndex <= this.adjustedSelection.end.line) {
-			// anchorIndex hasn't reached the end of the ICodeContextInfo.range
-			// Emit a deletion of all remaining lines in the selection block
 			this.myDocument.deleteLines(anchorLineIndex, this.adjustedSelection.end.line);
 		}
 
@@ -72,14 +68,12 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 			this.replyIndentationTracker = new ReplyIndentationTracker(this.myDocument, anchor.lineIndex, line);
 			const fixedLine = this.replyIndentationTracker.reindent(line, this.myDocument.indentStyle);
 			if (this.myDocument.getLine(anchor.lineIndex).sentInCodeBlock === SentInCodeBlock.Range) {
-				// Matched a line in the range => replace the entire sent range
 				return this.myDocument.replaceLines(this.adjustedSelection.start.line, anchor.lineIndex, fixedLine);
 			} else {
 				return this.myDocument.replaceLine(anchor.lineIndex, fixedLine);
 			}
 		}
 
-		// No anchor found
 		const firstRangeLine = this.adjustedSelection.start.line;
 		this.replyIndentationTracker = new ReplyIndentationTracker(this.myDocument, firstRangeLine, line);
 		const fixedLine = this.replyIndentationTracker.reindent(line, this.myDocument.indentStyle);
@@ -90,8 +84,7 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 				/^\s*$/.test(cursorLineContent)
 				|| fixedLine.adjustedContent.startsWith(cursorLineContent)
 			) {
-				// Cursor sitting on an empty or whitespace only line or the reply continues the line
-				return this.myDocument.replaceLine(firstRangeLine, fixedLine, /*isPreserving*/true);
+				return this.myDocument.replaceLine(firstRangeLine, fixedLine, true);
 			}
 		}
 
@@ -101,7 +94,6 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 		if (this.editStrategy === EditStrategy.FallbackToInsertBelowRange || this.editStrategy === EditStrategy.ForceInsertion) {
 			return this.myDocument.insertLineAfter(firstRangeLine, fixedLine);
 		}
-		// DefaultEditStrategy.ReplaceRange
 		return this.myDocument.replaceLine(firstRangeLine, fixedLine);
 	}
 
@@ -109,8 +101,6 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 		const fixedLine = this.replyIndentationTracker!.reindent(line, this.myDocument.indentStyle);
 
 		if (fixedLine.trimmedContent !== '' || this.myDocument.didReplaceEdits) {
-			// search for a matching line only if the incoming line is not empty
-			// or if we have already made destructive edits
 			const matchedLine = this.matchReplyLine(fixedLine, anchorLineIndex);
 			if (matchedLine) {
 				return this.myDocument.replaceLines(anchorLineIndex, matchedLine.lineIndex, fixedLine);
@@ -119,23 +109,19 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 
 
 		if (anchorLineIndex >= this.myDocument.getLineCount()) {
-			// end of file => insert semantics!
 			return this.myDocument.appendLineAtEndOfDocument(fixedLine);
 		}
 
 		const existingLine = this.myDocument.getLine(anchorLineIndex);
 		if (!existingLine.isSent || existingLine.content === '' || fixedLine.trimmedContent === '') {
-			// line not sent or dealing empty lines => insert semantics!
 			return this.myDocument.insertLineBefore(anchorLineIndex, fixedLine);
 		}
 
 		if (existingLine.indentLevel < fixedLine.adjustedIndentLevel) {
-			// do not leave current scope with the incoming line
 			return this.myDocument.insertLineBefore(anchorLineIndex, fixedLine);
 		}
 
 		if (existingLine.indentLevel === fixedLine.adjustedIndentLevel && !this.myDocument.didReplaceEdits) {
-			// avoid overwriting sibling scope if no destructive edits have been made so far
 			return this.myDocument.insertLineBefore(anchorLineIndex, fixedLine);
 		}
 
@@ -151,29 +137,22 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 				continue;
 			}
 			if (documentLine.normalizedContent === replyLine.adjustedContent) {
-				// bingo!
 				return new MatchedDocumentLine(lineIndex);
 			}
 			if (documentLine.trimmedContent.length > 0 && documentLine.indentLevel < replyLine.adjustedIndentLevel) {
-				// we shouldn't proceed with the search if we need to jump over original code that is more outdented
 				return null;
 			}
 			if (isVeryShortReplyLine && documentLine.trimmedContent.length > 0) {
-				// don't jump over original code with content if the reply is very short
 				return null;
 			}
 		}
 		return null;
 	}
 
-	/**
-	 * Waits until at least 10 non-whitespace characters are seen in the stream
-	 * Then tries to find a sequence of sent lines that match those first lines in the stream
-	 */
 	private findInitialAnchor(lineStream: AsyncIterable<LineOfText>): AsyncIterable<LineOfText | LineWithAnchorInfo> {
 		return new AsyncIterableObject<LineOfText | LineWithAnchorInfo>(async (emitter) => {
 			const accumulatedLines: LineOfText[] = [];
-			let accumulatedRealChars = 0; // non whitespace chars
+			let accumulatedRealChars = 0;
 			let anchorFound = false;
 			for await (const line of lineStream) {
 				if (!anchorFound) {
@@ -192,10 +171,6 @@ export class InsertOrReplaceStreamingEdits implements IStreamingEditsStrategy {
 		});
 	}
 
-	/**
-	 * Search for a contiguous set of lines in the document that match the lines.
-	 * The equality is done with trimmed content.
-	 */
 	private searchForEqualSentLines(lines: LineOfText[]): MatchedDocumentLine | null {
 		const trimmedLines = lines.map(line => line.value.trim());
 
@@ -237,7 +212,6 @@ export class InsertionStreamingEdits implements IStreamingEditsStrategy {
 
 		for await (const line of stream) {
 			if (!this.replyIndentationTracker) {
-				// This is the first line
 				anchorLineIndex = this.handleFirstReplyLine(line.value);
 			} else {
 				anchorLineIndex = this.handleSubsequentReplyLine(anchorLineIndex, line.value);
@@ -257,10 +231,9 @@ export class InsertionStreamingEdits implements IStreamingEditsStrategy {
 
 		const cursorLineContent = this._myDocument.getLine(firstRangeLine).content;
 
-		// Cursor sitting on an empty or whitespace only line or the reply continues the line
 		const shouldLineBeReplaced = /^\s*$/.test(cursorLineContent) || replyLine.trimStart().startsWith(cursorLineContent.trimStart());
 
-		const lineNumForIndentGuessing = shouldLineBeReplaced // @ulugbekna: if we are insert line "after" (ie using `insertLineAfter`) we should guess indentation starting from where we insert the line
+		const lineNumForIndentGuessing = shouldLineBeReplaced
 			? firstRangeLine
 			: (this._myDocument.getLineCount() <= firstRangeLine + 1 ? firstRangeLine : firstRangeLine + 1);
 
@@ -268,7 +241,7 @@ export class InsertionStreamingEdits implements IStreamingEditsStrategy {
 		const fixedLine = this.replyIndentationTracker.reindent(replyLine, this._myDocument.indentStyle);
 
 		if (shouldLineBeReplaced) {
-			return this._myDocument.replaceLine(firstRangeLine, fixedLine, /*isPreserving*/true);
+			return this._myDocument.replaceLine(firstRangeLine, fixedLine, true);
 		}
 
 		return this._myDocument.insertLineAfter(firstRangeLine, fixedLine);
@@ -308,22 +281,18 @@ export class ReplaceSelectionStreamingEdits implements IStreamingEditsStrategy {
 
 		for await (const line of stream) {
 			if (!this.replyIndentationTracker) {
-				// This is the first line
-				// anchorLineIndex = this.handleFirstReplyLine(line);
 				const firstRangeLine = this._selection.start.line;
 				this.replyIndentationTracker = new ReplyIndentationTracker(this._myDocument, firstRangeLine, line.value);
 				const fixedLine = this.replyIndentationTracker.reindent(line.value, this._myDocument.indentStyle);
 				anchorLineIndex = this._myDocument.replaceLine(firstRangeLine, fixedLine);
 				replaceLineCount--;
 			} else {
-				// anchorLineIndex = this.handleSubsequentReplyLine(anchorLineIndex, line);
 				const fixedLine = this.replyIndentationTracker!.reindent(line.value, this._myDocument.indentStyle);
 				if (replaceLineCount > 0) {
 					anchorLineIndex = this._myDocument.replaceLine(anchorLineIndex, fixedLine);
 					replaceLineCount--;
 				} else {
 					anchorLineIndex = this._myDocument.insertLineAfter(anchorLineIndex - 1, fixedLine);
-					// anchorLineIndex = this._myDocument.insertLineBefore(anchorLineIndex, fixedLine);
 				}
 			}
 		}
@@ -343,10 +312,6 @@ export class ReplaceSelectionStreamingEdits implements IStreamingEditsStrategy {
 	}
 }
 
-/**
- * A filter which can be used to ignore lines from a stream.
- * Returns true if the line should be kept.
- */
 export interface ILineFilter {
 	(line: LineOfText): boolean;
 }
@@ -359,10 +324,6 @@ export class StreamingEditsResult {
 	) { }
 }
 
-/**
- * Keeps track of the indentation of the reply lines and is able to
- * reindent reply lines to match the document, keeping their relative indentation.
- */
 class ReplyIndentationTracker {
 
 	private _replyIndentStyle: vscode.FormattingOptions | undefined;
@@ -376,16 +337,13 @@ class ReplyIndentationTracker {
 		let docIndentLevel = 0;
 		for (let i = documentLineIdx; i >= 0; i--) {
 			const documentLine = document.getLine(i);
-			// Use the indent of the first non-empty line
 			if (documentLine.content.length > 0) {
 				docIndentLevel = documentLine.indentLevel;
 				if (i !== documentLineIdx) {
-					// The first non-empty line is not the current line, indent if necessary
 					if (
 						documentLine.content.endsWith('{') ||
 						(document.languageId === 'python' && documentLine.content.endsWith(':'))
 					) {
-						// TODO: this is language specific
 						docIndentLevel += 1;
 					}
 				}
@@ -401,7 +359,6 @@ class ReplyIndentationTracker {
 
 	public reindent(replyLine: string, desiredStyle: vscode.FormattingOptions): ReplyLine {
 		if (replyLine === '') {
-			// Do not indent empty lines artificially
 			return new ReplyLine('', 0, '', 0);
 		}
 
@@ -461,9 +418,6 @@ export interface IStreamingWorkingCopyDocument {
 	deleteLines(fromIndex: number, toIndex: number): number;
 }
 
-/**
- * Keeps track of the current document with edits applied immediately.
- */
 export class StreamingWorkingCopyDocument implements IStreamingWorkingCopyDocument {
 
 	public readonly indentStyle: vscode.FormattingOptions;
@@ -500,7 +454,6 @@ export class StreamingWorkingCopyDocument implements IStreamingWorkingCopyDocume
 		public readonly languageId: string,
 		fileIndentInfo: vscode.FormattingOptions | undefined
 	) {
-		// console.info(`---------\nNEW StreamingWorkingCopyDocument`);
 		this.indentStyle = IndentUtils.getDocumentIndentStyle(sourceCode, fileIndentInfo);
 
 		this._originalLines = sourceCode.split(/\r\n|\r|\n/g);
@@ -538,10 +491,8 @@ export class StreamingWorkingCopyDocument implements IStreamingWorkingCopyDocume
 
 	public replaceLine(index: number, line: ReplyLine | string, isPreserving: boolean = false): number {
 		const newLineContent = typeof line === 'string' ? line : line.adjustedContent;
-		// console.info(`replaceLine(${index}, ${this.lines[index].content}, ${newLineContent})`);
 		if (this.lines[index].content === newLineContent) {
 			this._didNoopEdits = true;
-			// no need to really replace the line
 			return index + 1;
 		}
 		this.lines[index] = new DocumentLine(newLineContent, this.indentStyle);
@@ -558,7 +509,6 @@ export class StreamingWorkingCopyDocument implements IStreamingWorkingCopyDocume
 		if (fromIndex === toIndex) {
 			return this.replaceLine(fromIndex, line);
 		}
-		// console.info(`replaceLines(${fromIndex}, ${toIndex}, ${line.adjustedContent})`);
 		this.lines.splice(fromIndex, toIndex - fromIndex + 1, new DocumentLine(line.adjustedContent, this.indentStyle));
 		this.outputStream.textEdit(this.uri, [new TextEdit(new Range(fromIndex, 0, toIndex, Constants.MAX_SAFE_SMALL_INTEGER), line.adjustedContent)]);
 		this._didEdits = true;
@@ -567,7 +517,6 @@ export class StreamingWorkingCopyDocument implements IStreamingWorkingCopyDocume
 	}
 
 	public appendLineAtEndOfDocument(line: ReplyLine): number {
-		// console.info(`appendLine(${line.adjustedContent})`);
 		this.lines.push(new DocumentLine(line.adjustedContent, this.indentStyle));
 		this.outputStream.textEdit(this.uri, [new TextEdit(new Range(this.lines.length - 1, Constants.MAX_SAFE_SMALL_INTEGER, this.lines.length - 1, Constants.MAX_SAFE_SMALL_INTEGER), '\n' + line.adjustedContent)]);
 		this._didEdits = true;
@@ -575,7 +524,6 @@ export class StreamingWorkingCopyDocument implements IStreamingWorkingCopyDocume
 	}
 
 	public insertLineAfter(index: number, line: ReplyLine): number {
-		// console.info(`insertLineAfter(${index}, ${this.lines[index].content}, ${line.adjustedContent})`);
 		this.lines.splice(index + 1, 0, new DocumentLine(line.adjustedContent, this.indentStyle));
 		this.outputStream.textEdit(this.uri, [new TextEdit(new Range(index, Constants.MAX_SAFE_SMALL_INTEGER, index, Constants.MAX_SAFE_SMALL_INTEGER), '\n' + line.adjustedContent)]);
 		this._didEdits = true;
@@ -584,10 +532,8 @@ export class StreamingWorkingCopyDocument implements IStreamingWorkingCopyDocume
 
 	public insertLineBefore(index: number, line: ReplyLine): number {
 		if (index === this.lines.length) {
-			// we must insert after the last line
 			return this.insertLineAfter(index - 1, line);
 		}
-		// console.info(`insertLineBefore(${index}, ${this.lines[index].content}, ${line.adjustedContent})`);
 		this.lines.splice(index, 0, new DocumentLine(line.adjustedContent, this.indentStyle));
 		this.outputStream.textEdit(this.uri, [new TextEdit(new Range(index, 0, index, 0), line.adjustedContent + '\n')]);
 		this._didEdits = true;
@@ -595,9 +541,8 @@ export class StreamingWorkingCopyDocument implements IStreamingWorkingCopyDocume
 	}
 
 	public deleteLines(fromIndex: number, toIndex: number): number {
-		// console.info(`deleteLines(${fromIndex}, ${toIndex})`);
 		this.lines.splice(fromIndex, toIndex - fromIndex + 1);
-		this.outputStream.textEdit(this.uri, [new TextEdit(new Range(fromIndex, 0, toIndex + 1, 0), '')]); // TODO: what about end of document??
+		this.outputStream.textEdit(this.uri, [new TextEdit(new Range(fromIndex, 0, toIndex + 1, 0), '')]);
 		this._didEdits = true;
 		this._didReplaceEdits = true;
 		return fromIndex + 1;
@@ -608,9 +553,9 @@ class ReplyLine {
 	public readonly trimmedContent: string = this.originalContent.trim();
 
 	constructor(
-		public readonly originalContent: string, // as returned from the LLM
+		public readonly originalContent: string,
 		public readonly originalIndentLevel: number,
-		public readonly adjustedContent: string, // adjusted for insertion in the document
+		public readonly adjustedContent: string,
 		public readonly adjustedIndentLevel: number
 	) { }
 }
@@ -677,18 +622,15 @@ class IndentUtils {
 
 	public static getDocumentIndentStyle(sourceCode: string, fileIndentInfo: vscode.FormattingOptions | undefined): vscode.FormattingOptions {
 		if (fileIndentInfo) {
-			// the indentation is known
 			return fileIndentInfo;
 		}
 
-		// we need to detect the indentation
 		return <vscode.FormattingOptions>guessIndentation(Lines.fromString(sourceCode), 4, false);
 	}
 
 	public static guessIndentStyleFromLine(line: string): vscode.FormattingOptions | undefined {
 		const leadingWhitespace = IndentUtils._getLeadingWhitespace(line);
 		if (leadingWhitespace === '' || leadingWhitespace === ' ') {
-			// insufficient information
 			return undefined;
 		}
 		return <vscode.FormattingOptions>guessIndentation([line], 4, false);
@@ -698,9 +640,6 @@ class IndentUtils {
 		let indentLevel = computeIndentLevel2(line, originalIndentStyle.tabSize);
 		const desiredIndentLevel = getDesiredIndentLevel(indentLevel);
 
-		// First we outdent to 0 and then we indent to the desired level
-		// This ensures that we normalize indentation in the process and that we
-		// maintain any trailing spaces at the end of the tab stop
 		while (indentLevel > 0) {
 			line = this._outdent(line, originalIndentStyle);
 			indentLevel--;
@@ -719,16 +658,13 @@ class IndentUtils {
 		while (chrIndex < line.length) {
 			const chr = line.charCodeAt(chrIndex);
 			if (chr === CharCode.Tab) {
-				// consume the tab and stop
 				chrIndex++;
 				break;
 			}
 			if (chr !== CharCode.Space) {
-				// never remove non whitespace characters
 				break;
 			}
 			if (chrIndex === indentStyle.tabSize) {
-				// reached the maximum number of spaces
 				break;
 			}
 			chrIndex++;
@@ -736,13 +672,10 @@ class IndentUtils {
 		return line.substring(chrIndex);
 	}
 
-	/**
-	 * Gets all whitespace characters at the start of a string.
-	 */
 	private static _getLeadingWhitespace(line: string): string {
 		for (let i = 0; i < line.length; i++) {
 			const char = line.charCodeAt(i);
-			if (char !== 32 && char !== 9) { // 32 is ASCII for space and 9 is ASCII for tab
+			if (char !== 32 && char !== 9) {
 				return line.substring(0, i);
 			}
 		}
@@ -758,9 +691,6 @@ export class LineFilters {
 
 	public static noop: ILineFilter = () => true;
 
-	/**
-	 * Keeps only lines that are inside ``` code blocks.
-	 */
 	public static createCodeBlockFilter(): ILineFilter {
 		const enum State {
 			BeforeCodeBlock,
@@ -782,15 +712,11 @@ export class LineFilters {
 				}
 				return true;
 			}
-			// text after code block
 			return false;
 		};
 	}
 }
 
-/**
- * A line of text. Does not include the newline character.
- */
 export class LineOfText {
 	readonly __lineOfTextBrand: void = undefined;
 	public readonly value: string;
@@ -802,17 +728,8 @@ export class LineOfText {
 }
 
 export const enum TextPieceKind {
-	/**
-	 * A text piece that appears outside a code block
-	 */
 	OutsideCodeBlock,
-	/**
-	 * A text piece that appears inside a code block
-	 */
 	InsideCodeBlock,
-	/**
-	 * A text piece that is a delimiter
-	 */
 	Delimiter,
 }
 
@@ -823,17 +740,11 @@ export class ClassifiedTextPiece {
 	) { }
 }
 
-/**
- * Can classify pieces of text into different kinds.
- */
 export interface IStreamingTextPieceClassifier {
 	(textSource: AsyncIterable<string>): AsyncIterableObject<ClassifiedTextPiece>;
 }
 
 export class TextPieceClassifiers {
-	/**
-	 * Classifies lines using ``` code blocks.
-	 */
 	public static createCodeBlockClassifier(): IStreamingTextPieceClassifier {
 		return TextPieceClassifiers.attemptToRecoverFromMissingCodeBlock(
 			TextPieceClassifiers.createFencedBlockClassifier('```')
@@ -843,8 +754,6 @@ export class TextPieceClassifiers {
 	private static attemptToRecoverFromMissingCodeBlock(classifier: IStreamingTextPieceClassifier): IStreamingTextPieceClassifier {
 		return (source: AsyncIterable<string>) => {
 			return new AsyncIterableObject<ClassifiedTextPiece>(async (emitter) => {
-				// We buffer all pieces until the first code block, then
-				// we open the gate and start emitting all pieces immediately.
 				const bufferedPieces: ClassifiedTextPiece[] = [];
 				let sawOnlyLeadingText = true;
 				for await (const piece of classifier(source)) {
@@ -862,7 +771,6 @@ export class TextPieceClassifiers {
 					}
 				}
 
-				// if we never found a code block, we emit all pieces at the end
 				if (sawOnlyLeadingText) {
 					const allText = bufferedPieces.map(p => p.value).join('');
 					if (looksLikeCode(allText)) {
@@ -875,18 +783,12 @@ export class TextPieceClassifiers {
 		};
 	}
 
-	/**
-	 * Classifies lines using fenced blocks with the provided fence.
-	 */
 	public static createAlwaysInsideCodeBlockClassifier(): IStreamingTextPieceClassifier {
 		return (source: AsyncIterable<string>) => {
 			return AsyncIterableObject.map(source, line => new ClassifiedTextPiece(line, TextPieceKind.InsideCodeBlock));
 		};
 	}
 
-	/**
-	 * Classifies lines using fenced blocks with the provided fence.
-	 */
 	public static createFencedBlockClassifier(fence: string): IStreamingTextPieceClassifier {
 		return (source: AsyncIterable<string>) => {
 			return new AsyncIterableObject<ClassifiedTextPiece>(async (emitter) => {
@@ -900,9 +802,7 @@ export class TextPieceClassifiers {
 
 					if (text !== fence) {
 
-						// consume and emit immediately all pieces until newline or end of stream
 						while (!reader.endOfStream) {
-							// we want to consume any piece that is available in order to emit it immediately
 							const piece = reader.readImmediateExcept('\n');
 							if (piece.length > 0) {
 								emitter.emitOne(new ClassifiedTextPiece(piece, state));
@@ -953,26 +853,17 @@ export class PartialAsyncTextReader {
 		}
 	}
 
-	/**
-	 * Waits until n characters are available in the buffer or the end of the stream is reached.
-	 */
 	async waitForLength(n: number): Promise<void> {
 		while (this._buffer.length < n && !this._atEnd) {
 			await this.extendBuffer();
 		}
 	}
 
-	/**
-	 * Peeks `n` characters or less if the stream ends.
-	 */
 	async peek(n: number): Promise<string> {
 		await this.waitForLength(n);
 		return this._buffer.substring(0, n);
 	}
 
-	/**
-	 * Reads `n` characters or less if the stream ends.
-	 */
 	async read(n: number): Promise<string> {
 		await this.waitForLength(n);
 		const result = this._buffer.substring(0, n);
@@ -980,9 +871,6 @@ export class PartialAsyncTextReader {
 		return result;
 	}
 
-	/**
-	 * Read all available characters until `char`
-	 */
 	async readUntil(char: string): Promise<string> {
 		let result = '';
 		while (!this.endOfStream) {
@@ -998,40 +886,23 @@ export class PartialAsyncTextReader {
 		return result;
 	}
 
-	/**
-	 * Read an entire line including \n or until end of stream.
-	 */
 	async readLineIncludingLF(): Promise<string> {
-		// consume all pieces until newline or end of stream
 		let line = await this.readUntil('\n');
-		// the next char should be \n or we're at end of stream
 		line += await this.read(1);
 		return line;
 	}
 
-	/**
-	 * Read an entire line until \n (excluding \n) or until end of stream.
-	 * The \n is consumed from the stream
-	 */
 	async readLine(): Promise<string> {
-		// consume all pieces until newline or end of stream
 		const line = await this.readUntil('\n');
-		// the next char should be \n or we're at end of stream
 		await this.read(1);
 		return line;
 	}
 
-	/**
-	 * Returns immediately with all available characters until `char`.
-	 */
 	readImmediateExcept(char: string): string {
 		const endIndex = this._buffer.indexOf(char);
 		return this.readImmediate(endIndex === -1 ? this._buffer.length : endIndex);
 	}
 
-	/**
-	 * Returns immediately with all available characters, but at most `n` characters.
-	 */
 	readImmediate(n: number): string {
 		const result = this._buffer.substring(0, n);
 		this._buffer = this._buffer.substring(n);
@@ -1096,7 +967,7 @@ export class AsyncReader<T> {
 			if (!predicate(piece)) {
 				break;
 			}
-			await this.read(); // consume
+			await this.read();
 			await callback(piece);
 		} while (true);
 	}
@@ -1108,9 +979,6 @@ export class AsyncReader<T> {
 	}
 }
 
-/**
- * Split an incoming stream of text to a stream of lines.
- */
 export function streamLines(source: AsyncIterable<string>): AsyncIterableObject<LineOfText> {
 	return new AsyncIterableObject<LineOfText>(async (emitter) => {
 		let buffer = '';
@@ -1122,7 +990,6 @@ export function streamLines(source: AsyncIterable<string>): AsyncIterableObject<
 					break;
 				}
 
-				// take the first line
 				const line = buffer.substring(0, newlineIndex);
 				buffer = buffer.substring(newlineIndex + 1);
 
@@ -1131,7 +998,6 @@ export function streamLines(source: AsyncIterable<string>): AsyncIterableObject<
 		}
 
 		if (buffer.length > 0) {
-			// last line which doesn't end with \n
 			emitter.emitOne(new LineOfText(buffer));
 		}
 	});
@@ -1150,11 +1016,8 @@ function hasImportsInRange(doc: IStreamingWorkingCopyDocument, range: vscode.Ran
 
 function collectImportsIfNoneWereSentInRange(stream: AsyncIterableObject<LineOfText>, doc: IStreamingWorkingCopyDocument, rangeToCheckForImports: vscode.Range): AsyncIterableObject<LineOfText> {
 	if (hasImportsInRange(doc, rangeToCheckForImports)) {
-		// there are imports in the sent code block
-		// no need to collect imports
 		return stream;
 	}
-	// collect imports separately
 	let extractedImports = false;
 	let hasCode = false;
 	return stream.filter(line => {
@@ -1165,8 +1028,6 @@ function collectImportsIfNoneWereSentInRange(stream: AsyncIterableObject<LineOfT
 		}
 		const isOnlyWhitespace = (line.value.trim().length === 0);
 		if (isOnlyWhitespace && extractedImports) {
-			// there are imports in the reply which we have moved up
-			// survive the empty line if it is inside code
 			return hasCode;
 		}
 		hasCode = true;

@@ -170,8 +170,6 @@ export class ViewModel extends Disposable implements IViewModel {
 	}
 
 	public override dispose(): void {
-		// First remove listeners, as disposing the lines might end up sending
-		// model decoration changed events ... and we no longer care about them ...
 		super.dispose();
 		this._decorations.dispose();
 		this._lines.dispose();
@@ -261,8 +259,6 @@ export class ViewModel extends Disposable implements IViewModel {
 	}
 
 	private _captureStableViewport(): StableViewport {
-		// We might need to restore the current start view range, so save it (if available)
-		// But only if the scroll position is not at the top of the file
 		if (this._viewportStart.isValid && this.viewLayout.getCurrentScrollTop() > 0) {
 			const previousViewportStartViewPosition = new Position(this._viewportStart.viewLineNumber, this.getLineMinColumn(this._viewportStart.viewLineNumber));
 			const previousViewportStartModelPosition = this.coordinatesConverter.convertViewPositionToModelPosition(previousViewportStartViewPosition);
@@ -292,7 +288,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		}
 
 		if (e.hasChanged(EditorOption.readOnly)) {
-			// Must read again all decorations due to readOnly filtering
 			this._decorations.reset();
 			eventsCollector.emitViewEvent(new viewEvents.ViewDecorationsChangedEvent(null));
 		}
@@ -313,9 +308,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		}
 	}
 
-	/**
-	 * Gets called directly by the text model.
-	 */
 	onDidChangeContentOrInjectedText(e: textModelEvents.InternalModelContentChangeEvent | textModelEvents.ModelInjectedTextChangedEvent): void {
 
 		try {
@@ -327,7 +319,6 @@ export class ViewModel extends Disposable implements IViewModel {
 			const changes = (e instanceof textModelEvents.InternalModelContentChangeEvent ? e.rawContentChangedEvent.changes : e.changes);
 			const versionId = (e instanceof textModelEvents.InternalModelContentChangeEvent ? e.rawContentChangedEvent.versionId : null);
 
-			// Do a first pass to compute line mappings, and a second pass to actually interpret them
 			const lineBreaksComputer = this._lines.createLineBreaksComputer();
 			for (const change of changes) {
 				switch (change.changeType) {
@@ -346,9 +337,6 @@ export class ViewModel extends Disposable implements IViewModel {
 			const lineBreaks = lineBreaksComputer.finalize();
 			const lineBreakQueue = new ArrayQueue(lineBreaks);
 
-			// Collect model line ranges that need custom line height computation.
-			// We defer this until after the loop because the coordinatesConverter
-			// relies on projections that may not yet reflect all changes in the batch.
 			const customLineHeightRangesToInsert: { fromLineNumber: number; toLineNumber: number }[] = [];
 
 			for (const change of changes) {
@@ -403,7 +391,6 @@ export class ViewModel extends Disposable implements IViewModel {
 						break;
 					}
 					case textModelEvents.RawContentChangedType.EOLChanged: {
-						// Nothing to do. The new version will be accepted below
 						break;
 					}
 				}
@@ -413,7 +400,6 @@ export class ViewModel extends Disposable implements IViewModel {
 				this._lines.acceptVersionId(versionId);
 			}
 
-			// Apply deferred custom line heights now that projections are stable
 			if (customLineHeightRangesToInsert.length > 0) {
 				this.viewLayout.changeSpecialLineHeights((accessor: ILineHeightChangeAccessor) => {
 					for (const range of customLineHeightRangesToInsert) {
@@ -437,13 +423,11 @@ export class ViewModel extends Disposable implements IViewModel {
 			this._eventDispatcher.endEmitViewEvents();
 		}
 
-		// Update the configuration and reset the centered view line
 		const viewportStartWasValid = this._viewportStart.isValid;
 		this._viewportStart.invalidate();
 		this._configuration.setModelLineCount(this.model.getLineCount());
 		this._updateConfigurationViewLineCountNow();
 
-		// Recover viewport
 		if (!this._hasFocus && this.model.getAttachedEditorCount() >= 2 && viewportStartWasValid) {
 			const modelRange = this.model._getTrackedRange(this._viewportStart.modelTrackedRange);
 			if (modelRange) {
@@ -456,9 +440,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		this._handleVisibleLinesChanged();
 	}
 
-	/**
-	 * Gets called directly by the text model.
-	 */
 	emitContentChangeEvent(e: textModelEvents.InternalModelContentChangeEvent | textModelEvents.ModelInjectedTextChangedEvent): void {
 		this._emitViewEvent((eventsCollector) => {
 			if (e instanceof textModelEvents.InternalModelContentChangeEvent) {
@@ -487,7 +468,6 @@ export class ViewModel extends Disposable implements IViewModel {
 					}
 				});
 
-				// recreate the model event using the filtered changes
 				if (filteredChanges.length > 0) {
 					const filteredEvent = new textModelEvents.ModelLineHeightChangedEvent(filteredChanges);
 					this._eventDispatcher.emitOutgoingEvent(new ModelLineHeightChangedEvent(filteredEvent));
@@ -499,7 +479,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		if (allowVariableFonts) {
 			this._register(this.model.onDidChangeFont((e) => {
 				const filteredChanges = e.changes.filter((change) => change.ownerId === this._editorId || change.ownerId === 0);
-				// recreate the model event using the filtered changes
 				if (filteredChanges.length > 0) {
 					const filteredEvent = new textModelEvents.ModelFontChangedEvent(filteredChanges);
 					this._eventDispatcher.emitOutgoingEvent(new ModelFontChangedEvent(filteredEvent));
@@ -536,7 +515,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		}));
 
 		this._register(this.model.onDidChangeOptions((e) => {
-			// A tab size change causes a line mapping changed event => all view parts will repaint OK, no further event needed here
 			if (this._lines.setTabSize(this.model.getOptions().tabSize)) {
 				try {
 					const eventsCollector = this._eventDispatcher.beginEmitViewEvents();
@@ -584,11 +562,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		return fontSize;
 	}
 
-	/**
-	 * @param forceUpdate If true, the hidden areas will be updated even if the new ranges are the same as the previous ranges.
-	 * This is because the model might have changed, which resets the hidden areas, but not the last cached value.
-	 * This needs a better fix in the future.
-	*/
 	public setHiddenAreas(ranges: Range[], source?: unknown, forceUpdate?: boolean): void {
 		this.hiddenAreasModel.setHiddenAreas(source, ranges);
 		const mergedRanges = this.hiddenAreasModel.getMergedRanges();
@@ -719,9 +692,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		);
 	}
 
-	/**
-	 * Applies `cursorSurroundingLines` and `stickyScroll` padding to the given view range.
-	 */
 	public getViewRangeWithCursorPadding(viewRange: Range): Range {
 		const options = this._configuration.options;
 		const cursorSurroundingLines = options.get(EditorOption.cursorSurroundingLines);
@@ -762,7 +732,6 @@ export class ViewModel extends Disposable implements IViewModel {
 
 	public reduceRestoreState(state: IViewState): { scrollLeft: number; scrollTop: number } {
 		if (typeof state.firstPosition === 'undefined') {
-			// This is a view state serialized by an older version
 			return this._reduceRestoreStateCompatibility(state);
 		}
 
@@ -790,9 +759,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		return this._lines.getViewLineCount();
 	}
 
-	/**
-	 * Gives a hint that a lot of requests are about to come in for these line numbers.
-	 */
 	public setViewport(startLineNumber: number, endLineNumber: number, centeredLineNumber: number): void {
 		this._viewportStart.update(this, startLineNumber);
 	}
@@ -982,7 +948,6 @@ export class ViewModel extends Disposable implements IViewModel {
 	public deduceModelPositionRelativeToViewPosition(viewAnchorPosition: Position, deltaOffset: number, lineFeedCnt: number): Position {
 		const modelAnchor = this.coordinatesConverter.convertViewPositionToModelPosition(viewAnchorPosition);
 		if (this.model.getEOL().length === 2) {
-			// This model uses CRLF, so the delta must take that into account
 			if (deltaOffset < 0) {
 				deltaOffset -= lineFeedCnt;
 			} else {
@@ -1012,7 +977,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		}
 
 		if (!hasNonEmptyRange && !emptySelectionClipboard) {
-			// all ranges are empty
 			return { sourceRanges: [], sourceText: '' };
 		}
 
@@ -1024,7 +988,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		};
 
 		if (hasEmptyRange && emptySelectionClipboard) {
-			// some (maybe all) empty selections
 			let prevModelLineNumber = 0;
 			for (const modelRange of modelRanges) {
 				const modelLineNumber = modelRange.startLineNumber;
@@ -1055,14 +1018,12 @@ export class ViewModel extends Disposable implements IViewModel {
 		}
 
 		if (modelRanges.length !== 1) {
-			// no multiple selection support at this time
 			return null;
 		}
 
 		let range = modelRanges[0];
 		if (range.isEmpty()) {
 			if (!emptySelectionClipboard) {
-				// nothing to copy
 				return null;
 			}
 			const lineNumber = range.startLineNumber;
@@ -1144,7 +1105,6 @@ export class ViewModel extends Disposable implements IViewModel {
 		return result;
 	}
 
-	//#region cursor operations
 
 	public getPrimaryCursorState(): CursorState {
 		return this._cursor.getPrimaryCursorState();
@@ -1194,7 +1154,6 @@ export class ViewModel extends Disposable implements IViewModel {
 
 	private _executeCursorEdit(callback: (eventsCollector: ViewModelEventsCollector) => void): void {
 		if (this._cursor.context.cursorConfig.readOnly) {
-			// we cannot edit when read only...
 			this._eventDispatcher.emitOutgoingEvent(new ReadOnlyEditAttemptEvent());
 			return;
 		}
@@ -1247,9 +1206,7 @@ export class ViewModel extends Disposable implements IViewModel {
 		this._withViewEventsCollector(eventsCollector => eventsCollector.emitViewEvent(new viewEvents.ViewRevealRangeRequestEvent(source, false, viewRange, null, verticalType, revealHorizontal, scrollType)));
 	}
 
-	//#endregion
 
-	//#region viewLayout
 	public changeWhitespace(callback: (accessor: IWhitespaceChangeAccessor) => void): void {
 		const hadAChange = this.viewLayout.changeWhitespace(callback);
 		if (hadAChange) {
@@ -1257,7 +1214,6 @@ export class ViewModel extends Disposable implements IViewModel {
 			this._eventDispatcher.emitOutgoingEvent(new ViewZonesChangedEvent());
 		}
 	}
-	//#endregion
 
 	private _withViewEventsCollector<T>(callback: (eventsCollector: ViewModelEventsCollector) => T): T {
 		return this._transactionalTarget.batchChanges(() => {
@@ -1292,9 +1248,6 @@ export class ViewModel extends Disposable implements IViewModel {
 }
 
 export interface IBatchableTarget {
-	/**
-	 * Allows the target to apply the changes introduced by the callback in a batch.
-	*/
 	batchChanges<T>(cb: () => T): T;
 }
 
@@ -1363,14 +1316,12 @@ class OverviewRulerDecorations {
 			const prevLane = prevData[prevData.length - 3];
 			const prevEndLineNumber = prevData[prevData.length - 1];
 			if (prevLane === lane && prevEndLineNumber + 1 >= startLineNumber) {
-				// merge into prev
 				if (endLineNumber > prevEndLineNumber) {
 					prevData[prevData.length - 1] = endLineNumber;
 				}
 				return;
 			}
 
-			// push
 			prevData.push(lane, startLineNumber, endLineNumber);
 		} else {
 			const group = new OverviewRulerDecorationsGroup(color, zIndex, [lane, startLineNumber, endLineNumber]);
@@ -1394,9 +1345,6 @@ class HiddenAreasModel {
 		this.shouldRecompute = true;
 	}
 
-	/**
-	 * The returned array is immutable.
-	*/
 	getMergedRanges(): readonly Range[] {
 		if (!this.shouldRecompute) {
 			return this.ranges;
@@ -1452,9 +1400,6 @@ function rangeArraysEqual(arr1: Range[], arr2: Range[]): boolean {
 	return true;
 }
 
-/**
- * Maintain a stable viewport by trying to keep the first line in the viewport constant.
- */
 class StableViewport {
 	constructor(
 		public readonly viewportStartModelPosition: Position | null,

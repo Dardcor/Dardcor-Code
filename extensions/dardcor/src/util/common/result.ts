@@ -38,10 +38,6 @@ export namespace Result {
 	}
 }
 
-/**
- * To instantiate a ResultOk, use `Result.ok(value)`.
- * To instantiate a ResultError, use `Result.error(value)`.
- */
 class ResultOk<T> {
 	constructor(readonly val: T) { }
 
@@ -57,19 +53,10 @@ class ResultOk<T> {
 		return f(this.val);
 	}
 
-	/**
-	 * Returns the contained ok value.
-	 * @throws if this is an error (which is impossible for `ResultOk`,
-	 *   but provided for use on the `Result<T, E>` union type).
-	 */
 	unwrap(): T {
 		return this.val;
 	}
 
-	/**
-	 * Returns the contained ok value, or the provided default if this
-	 * is an error.
-	 */
 	unwrapOr(_defaultValue: T): T {
 		return this.val;
 	}
@@ -83,10 +70,6 @@ class ResultOk<T> {
 	}
 }
 
-/**
- * To instantiate a ResultOk, use `Result.ok(value)`.
- * To instantiate a ResultError, use `Result.error(value)`.
- */
 class ResultError<E> {
 	constructor(
 		public readonly err: E,
@@ -104,10 +87,6 @@ class ResultError<E> {
 		return this;
 	}
 
-	/**
-	 * Always throws since this is an error result.
-	 * @throws The contained error value (wrapped in Error if not already one).
-	 */
 	unwrap(): never {
 		if (this.err instanceof Error) {
 			throw this.err;
@@ -115,9 +94,6 @@ class ResultError<E> {
 		throw ErrorUtils.fromUnknown(this.err);
 	}
 
-	/**
-	 * Returns the provided default value since this is an error.
-	 */
 	unwrapOr<T>(defaultValue: T): T {
 		return defaultValue;
 	}

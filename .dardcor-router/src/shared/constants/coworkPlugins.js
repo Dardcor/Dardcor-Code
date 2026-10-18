@@ -1,4 +1,3 @@
-// Default remote plugins for Claude Cowork (3p managedMcpServers, HTTPS only).
 const DEFAULT_PLUGINS = [
   {
     name: "exa",
@@ -20,7 +19,6 @@ const DEFAULT_PLUGINS = [
   },
 ];
 
-// Local stdio plugins bridged via inline SSE endpoint on the app's port.
 const LOCAL_STDIO_PLUGINS = [
   {
     name: "browsermcp",
@@ -47,8 +45,6 @@ function buildManagedMcpServers(plugins) {
     };
     if (p.oauth) entry.oauth = true;
     if (Array.isArray(p.toolNames) && p.toolNames.length > 0) {
-      // Strip any pre-existing "{name}-" prefixes (idempotent across re-applies),
-      // then emit both bare + single-prefixed variants to match runtime tool naming.
       const prefix = `${p.name}-`;
       const bare = new Set();
       for (const raw of p.toolNames) {

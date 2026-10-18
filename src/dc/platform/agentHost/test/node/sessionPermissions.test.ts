@@ -32,8 +32,6 @@ suite('SessionPermissionManager', () => {
 	let permissions: SessionPermissionManager;
 	let sessionDataService: ISessionDataService;
 
-	// Real (symlink-resolved) temp directories so that the symlink-resolution
-	// checks compare like-for-like (e.g. macOS `/var` -> `/private/var`).
 	let workDir: string;
 	let workDir2: string;
 	let outsideDir: string;
@@ -70,15 +68,6 @@ suite('SessionPermissionManager', () => {
 	}
 
 	setup(async () => {
-		// Prefer the CI runner temp dir (a plain long path) over `os.tmpdir()`,
-		// which on Windows CI is an 8.3 short path (`C:\Users\RUNNER~1\...`) that
-		// `assertPathIsSafe` rejects for its `~1` segment — which would make every
-		// write auto-approval fail. `AGENT_TEMPDIRECTORY` is set by Azure DevOps
-		// (VS Code's CI) and `RUNNER_TEMP` by GitHub Actions. Note that the JS
-		// `fs.realpathSync` does not expand 8.3 short names to their long form, so
-		// the short-path fallback can't be repaired afterwards. `realpathSync`
-		// keeps macOS `/var` -> `/private/var` consistent so the symlink-resolution
-		// checks compare like-for-like.
 		const baseTmp = process.env.AGENT_TEMPDIRECTORY || process.env.RUNNER_TEMP || tmpdir();
 		workDir = realpathSync(mkdtempSync(join(baseTmp, 'sesperm-work-')));
 		workDir2 = realpathSync(mkdtempSync(join(baseTmp, 'sesperm-work2-')));
@@ -152,9 +141,6 @@ suite('SessionPermissionManager', () => {
 		configService.updateRootConfig({ [AgentHostGlobalAutoApproveEnabledConfigKey]: true });
 		const snapshot = URI.joinPath(sessionDataService.getSessionDataDir(URI.parse(sessionUri)), SESSION_ATTACHMENTS_DIRNAME, 'id', 'Pasted text #1.txt').fsPath;
 		// getAutoApproval approves the write once global auto-approve is on (the auto-approve checks
-		// return before the write-path logic). isForbiddenSnapshotWrite ignores that, so _handleToolReady
-		// can hard-deny before consulting getAutoApproval. NOTE: this only matters when a provider raises
-		// an interactive pending_confirmation; providers that auto-approve upstream never reach it.
 		assert.deepStrictEqual({
 			autoApproval: await permissions.getAutoApproval(writeEvent(snapshot), sessionUri),
 			forbidden: permissions.isForbiddenSnapshotWrite(writeEvent(snapshot), sessionUri),
@@ -240,8 +226,6 @@ suite('SessionPermissionManager', () => {
 	});
 
 	test('overriding a default pattern keeps the configured order', async () => {
-		// `'**/*': false` is configured last, so it has to decide the outcome for a
-		// file the earlier `'**/*.ts'` rule would otherwise approve.
 		const patterns = mergeChatEditAutoApprovePatterns({ '**/*.ts': true, '**/*': false });
 		configService.updateRootConfig({ [AgentHostEditAutoApprovePatternsConfigKey]: patterns });
 
@@ -469,9 +453,6 @@ suite('SessionPermissionManager', () => {
 		assert.strictEqual(permissions.isAutoApproveRuleResolvable(shellEvent('my-custom-script', 'bash'), sessionUri), false);
 	});
 
-	// `get-childitem` only matches the default `Get-ChildItem` allow rule under
-	// PowerShell's case-insensitive matching, so it distinguishes which grammar
-	// the approver used.
 	test('shell approval and rule eligibility respect the event shell language', async () => {
 		const pwshEvent = powershellEvent('get-childitem');
 		assert.deepStrictEqual([
@@ -494,7 +475,6 @@ suite('SessionPermissionManager', () => {
 			await permissions.getAutoApproval(powershellEvent('Measure-Command { Set-Content -Path out.txt -Value pwned }'), sessionUri),
 			await permissions.getAutoApproval(powershellEvent('Measure-Command { Invoke-Expression "Write-Output hi" }'), sessionUri),
 			await permissions.getAutoApproval(shellEvent('Write-Host hi; Set-Content -Path out.txt -Value pwned', 'powershell'), sessionUri),
-			// Missing dialect remains fail-closed even for an otherwise allowlisted outer command.
 			await permissions.getAutoApproval(shellEvent('Measure-Command { Get-ChildItem }', undefined), sessionUri),
 		], [undefined, undefined, undefined, undefined]);
 	});
@@ -567,9 +547,7 @@ suite('SessionPermissionManager', () => {
 			[AgentHostTerminalAutoApproveEnabledConfigKey]: false,
 		});
 
-		// A command that would otherwise require confirmation (terminal
 		// auto-approve disabled) is approved because global auto-approve is a
-		// superset that short-circuits before the per-kind checks.
 		const result = await permissions.getAutoApproval(shellEvent('rm -rf /tmp/whatever', 'bash'), sessionUri);
 		assert.strictEqual(result, ToolCallConfirmationReason.Setting);
 	});
@@ -581,7 +559,6 @@ suite('SessionPermissionManager', () => {
 		configService.updateRootConfig({ [AgentHostGlobalAutoApproveEnabledConfigKey]: true });
 
 		// The global setting is a superset of all settings but does not change the
-		// session's own approval level (the permissions picker stays at default).
 		assert.strictEqual(permissions.isGlobalAutoApproveEnabled(), true);
 		assert.strictEqual(permissions.isSessionAutoApproveEnabled(sessionUri), false);
 	});
@@ -598,17 +575,10 @@ suite('SessionPermissionManager', () => {
 		assert.strictEqual(permissions.isSessionAutoApproveEnabled(sessionUri), false);
 	});
 
-	// ---- Multi-root auto-approval ------------------------------------------
-	// A session with multiple working directories auto-approves a read/write/
-	// shell destination when it is contained by *any* root (index 0 = primary).
-	// The multi-root path is otherwise dormant today (the create-time length
-	// guard keeps sessions single-root), so these tests synthesize a two-root
-	// session state directly.
 	suite('surface edit scope', () => {
 
 		const inlineSessionUri = URI.from({ scheme: 'copilot', path: '/inline' }).toString();
 
-		/** Creates an inline-chat session scoped to `targetUri`, or to nothing when omitted. */
 		function createInlineSession(targetUri: string | undefined): void {
 			manager.createSession({
 				...makeSummary(inlineSessionUri, URI.file(workDir).toString()),
@@ -633,9 +603,6 @@ suite('SessionPermissionManager', () => {
 		});
 
 		test('auto-approves reads and writes of the target file outside the working directory', async () => {
-			// Inline chat can be invoked on any open document, so consent follows
-			// the target rather than the workspace root. The agent has to read the
-			// file before editing it, so both kinds must stay silent.
 			const target = join(outsideDir, 'detached.ts');
 			createInlineSession(URI.file(target).toString());
 
@@ -656,8 +623,6 @@ suite('SessionPermissionManager', () => {
 			createInlineSession(URI.file(join(workDir, 'src', 'inline.ts')).toString());
 			const otherFile = join(workDir, 'src', 'app.ts');
 
-			// The same write auto-approves for a non-inline session, so this
-			// asserts the scope is what withholds approval.
 			assert.deepStrictEqual({
 				inline: await permissions.getAutoApproval(inlineEvent(writeEvent(otherFile)), inlineSessionUri),
 				unscoped: await permissions.getAutoApproval(writeEvent(otherFile), sessionUri),
@@ -710,7 +675,6 @@ suite('SessionPermissionManager', () => {
 		const multiUri = URI.from({ scheme: 'copilot', path: '/multi' }).toString();
 
 		setup(() => {
-			// Index 0 (`workDir`) is the primary/process cwd; `workDir2` is a peer root.
 			manager.createSession(makeSummary(multiUri, URI.file(workDir).toString(), URI.file(workDir2).toString()));
 		});
 
@@ -734,26 +698,17 @@ suite('SessionPermissionManager', () => {
 		});
 
 		test('a relative shell redirect resolves against the primary root (index 0)', async () => {
-			// `out.txt` resolves against the single process cwd = `workDir`, so it
-			// is contained by the primary root and auto-approves.
 			const result = await permissions.getAutoApproval(shellEvent('echo hi > out.txt', 'bash'), multiUri);
 			assert.strictEqual(result, ToolCallConfirmationReason.NotNeeded);
 		});
 
 		(isWindows ? test.skip : test)('an absolute shell redirect auto-approves under a non-primary root but confirms outside', async () => {
-			// POSIX-only: embedding absolute paths in the command string avoids
-			// Windows backslash/drive-colon parsing pitfalls. The containment rule
-			// itself is platform-agnostic and covered by the read/write test above.
 			const intoPeer = await permissions.getAutoApproval(shellEvent(`echo hi > ${join(workDir2, 'out.txt')}`, 'bash'), multiUri);
 			const outside = await permissions.getAutoApproval(shellEvent(`echo hi > ${join(outsideDir, 'out.txt')}`, 'bash'), multiUri);
 			assert.deepStrictEqual([intoPeer, outside], [ToolCallConfirmationReason.NotNeeded, undefined]);
 		});
 
 		test('requires confirmation for a symlink that crosses from one root into another (fail-closed)', async () => {
-			// A symlink inside `workDir` pointing at the peer root `workDir2`: the
-			// literal path is under root A and the real path under root B, so no
-			// single root contains both the literal and resolved path. Fail-closed
-			// ⇒ confirmation for both read and write.
 			symlinkSync(workDir2, join(workDir, 'cross-link'), directoryLinkType);
 			const read = await permissions.getAutoApproval(readEvent(join(workDir, 'cross-link', 'note.txt'), multiUri), multiUri);
 			const write = await permissions.getAutoApproval(writeEvent(join(workDir, 'cross-link', 'note.txt')), multiUri);

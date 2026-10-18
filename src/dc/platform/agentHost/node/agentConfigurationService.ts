@@ -24,9 +24,6 @@ import { AgentHostStateManager } from './agentHostStateManager.js';
 
 export const IAgentConfigurationService = createDecorator<IAgentConfigurationService>('agentConfigurationService');
 
-/**
- * @deprecated Use {@link getEffectiveWorkingDirectories} instead, which preserves every root instead of collapsing to the primary.
- */
 export function getEffectiveWorkingDirectory(stateManager: AgentHostStateManager, session: ProtocolURI): string | undefined {
 	const own = stateManager.getSessionState(session)?.workingDirectories?.[0];
 	if (own !== undefined) {
@@ -57,93 +54,34 @@ export interface IAgentSessionConfigurationChangeEvent {
 	readonly origin: ActionOrigin | undefined;
 }
 
-/**
- * Cohesive read/write surface for agent-host configuration.
- *
- * All platform-layer consumers (tool auto-approval, side effects, future
- * host-config editors) should read and mutate config values through this
- * service rather than reaching into raw session state. The service owns
- * the `session → parent session → host` inheritance chain so that
- * host-level defaults, subagent inheritance, and per-session overrides
- * compose the same way everywhere.
- *
- * Reads go through a caller-supplied {@link ISchema}: each raw value is
- * validated against the property's schema before being returned, so a
- * malformed value in one layer transparently falls back to the next.
- */
 export interface IAgentConfigurationService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fires whenever a {@link ActionType.RootConfigChanged} action is
-	 * processed by the state manager, signalling that callers should
-	 * re-read any root config values they depend on.
-	 */
 	readonly onDidRootConfigChange: Event<void>;
 
-	/** Fires whenever a session configuration change is processed. */
 	readonly onDidSessionConfigChange: Event<IAgentSessionConfigurationChangeEvent>;
 
-	/**
-	 * Returns the effective value of `key` for `session`, walking the
-	 * `session → parent session → host` chain and returning the first
-	 * layer that provides a value which validates against
-	 * `schema.definition[key]`. Layers that provide a malformed value
-	 * are logged and skipped. Returns `undefined` when no layer provides
-	 * a valid value.
-	 */
 	getEffectiveValue<D extends SchemaDefinition, K extends keyof D & string>(
 		session: ProtocolURI,
 		schema: ISchema<D>,
 		key: K,
 	): SchemaValue<D[K]> | undefined;
 
-	/** Returns all effective session roots, including inherited parent-session roots. */
 	getEffectiveWorkingDirectories(session: ProtocolURI): readonly string[] | undefined;
 
-	/**
-	 * Merges a partial config patch into a session's values via a
-	 * {@link ActionType.SessionConfigChanged} action. Keys not present in
-	 * `patch` are left untouched. The patch is applied atomically through
-	 * the state manager's reducer.
-	 */
 	updateSessionConfig(session: ProtocolURI, patch: Record<string, unknown>): void;
 
-	/**
-	 * Returns the merged config values currently stored on `session`.
-	 *
-	 * Reflects the live state managed by the reducer: every
-	 * {@link ActionType.SessionConfigChanged} action mutates these values
-	 * before this method returns. Callers materializing a provisional session
-	 * use this to read the user's latest selections without subscribing to
-	 * the action stream themselves.
-	 */
 	getSessionConfigValues(session: ProtocolURI): Record<string, unknown> | undefined;
 
-	/**
-	 * Returns the host-level value for `key`, validating it against
-	 * `schema.definition[key]`. Invalid persisted values are logged and treated
-	 * as missing.
-	 */
 	getRootValue<D extends SchemaDefinition, K extends keyof D & string>(
 		schema: ISchema<D>,
 		key: K,
 	): SchemaValue<D[K]> | undefined;
 
-	/**
-	 * Merges a partial config patch into the host-level value bag and persists
-	 * the updated values for future agent-host lifetimes.
-	 */
 	updateRootConfig(patch: Record<string, unknown>, replace?: boolean): void;
 
-	/**
-	 * Persists the current host-level value bag without mutating it.
-	 */
 	persistRootConfig(): void;
 
-	/**
-	 * Resolves once any in-flight root-config write has settled.
-	 */
 	whenIdle(): Promise<void>;
 
 	registerProviderConfiguration?(registration: IAgentCustomizationSettingsRegistration): void;
@@ -168,9 +106,6 @@ export class AgentConfigurationService extends Disposable implements IAgentConfi
 		providerConfigurations: readonly IAgentCustomizationSettingsRegistration[] = [],
 	) {
 		super();
-		// Merge our customization schema/values into the existing root config
-		// (which already carries platform properties like permissions) rather
-		// than replacing it.
 		const existing = this._stateManager.rootState.config;
 		const ownSchema = agentHostCustomizationConfigSchema.toProtocol();
 		const sandboxSchema = sandboxConfigSchema.toProtocol();
@@ -334,11 +269,6 @@ export class AgentConfigurationService extends Disposable implements IAgentConfi
 		});
 	}
 
-	/**
-	 * Yields the raw value bags that contribute to the effective config
-	 * for `session`, in precedence order: session, parent subagent
-	 * session (if any), host.
-	 */
 	private *_effectiveChain(session: ProtocolURI): Iterable<Record<string, unknown>> {
 		const own = this._stateManager.getSessionState(session)?.config?.values;
 		if (own) {
@@ -383,17 +313,8 @@ export class AgentConfigurationService extends Disposable implements IAgentConfi
 		}
 	}
 
-	/**
-	 * Restores the platform-owned half of the persisted bag. The host reads
-	 * some of these before any client connects (`showExternalSessions`, the
-	 * migrate-legacy gate, provider enablement), so without this a restart
-	 * runs its first pass against the schema default.
-	 */
 	private _loadPersistedPlatformRootConfig(parsed: Record<string, unknown>): Record<string, unknown> {
 		const values: Record<string, unknown> = { ...platformRootSchema.validateOrDefault(parsed, {}) };
-		// Approval and policy values are a snapshot of one client's settings and
-		// are re-pushed on every connect, so restoring them could re-grant an
-		// approval that was tightened while the host was stopped.
 		for (const key of clientOwnedApprovalRootConfigKeys) {
 			delete values[key];
 		}

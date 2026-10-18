@@ -86,7 +86,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 	}
 
 	hidePanel(): void {
-		// Hide the panel if the terminal is in the panel and it has no sibling views
 		const panel = this._viewDescriptorService.getViewContainerByViewId(TERMINAL_VIEW_ID);
 		if (panel && this._viewDescriptorService.getViewContainerModel(panel).visibleViewDescriptors.length === 1) {
 			this._viewsService.closeView(TERMINAL_VIEW_ID);
@@ -102,7 +101,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 	}
 	set activeGroup(value: ITerminalGroup | undefined) {
 		if (value === undefined) {
-			// Setting to undefined is not possible, this can only be done when removing the last group
 			return;
 		}
 		const index = this.groups.findIndex(e => e === value);
@@ -177,8 +175,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 			this._onDidChangeInstances.fire();
 		}
 		if (this.instances.length === 1) {
-			// It's the first instance so it should be made active automatically, this must fire
-			// after onInstancesChanged so consumers can react to the instance being added first
 			this.setActiveInstanceByIndex(0);
 		}
 		this._onDidChangeGroups.fire();
@@ -191,13 +187,9 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 		pane?.setExpanded(true);
 
 		if (focus) {
-			// Do the focus call asynchronously as going through the
-			// command palette will force editor focus
 			await timeout(0);
 			const instance = this.activeInstance;
 			if (instance) {
-				// HACK: Ensure the panel is still visible at this point as there may have been
-				// a request since it was opened to show a different panel
 				if (pane && !pane.isVisible()) {
 					await this._viewsService.openView(TERMINAL_VIEW_ID, focus);
 				}
@@ -212,7 +204,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 	}
 
 	private _removeGroup(group: ITerminalGroup) {
-		// Get the index of the group and remove it from the list
 		const activeGroup = this.activeGroup;
 		const wasActiveGroup = group === activeGroup;
 		const index = this.groups.indexOf(group);
@@ -222,7 +213,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 		}
 
 		if (wasActiveGroup) {
-			// Adjust focus if the group was active
 			if (this.groups.length > 0 && !this._isQuickInputOpened) {
 				const newIndex = index < this.groups.length ? index : this.groups.length - 1;
 				this.setActiveGroupByIndex(newIndex, true);
@@ -231,13 +221,10 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 				}
 			}
 		} else {
-			// Adjust the active group if the removed group was above the active group
 			if (this.activeGroupIndex > index) {
 				this.setActiveGroupByIndex(this.activeGroupIndex - 1);
 			}
 		}
-		// Ensure the active group is still valid, this should set the activeGroupIndex to -1 if
-		// there are no groups
 		if (this.activeGroupIndex >= this.groups.length) {
 			this.setActiveGroupByIndex(this.groups.length - 1);
 		}
@@ -250,12 +237,7 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 		}
 	}
 
-	/**
-	 * @param force Whether to force the group change, this should be used when the previous active
-	 * group has been removed.
-	 */
 	setActiveGroupByIndex(index: number, force?: boolean) {
-		// Unset active group when the last group is removed
 		if (index === -1 && this.groups.length === 0) {
 			if (this.activeGroupIndex !== -1) {
 				this.activeGroupIndex = -1;
@@ -265,12 +247,10 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 			return;
 		}
 
-		// Ensure index is valid
 		if (index < 0 || index >= this.groups.length) {
 			return;
 		}
 
-		// Fire group/instance change if needed
 		const oldActiveGroup = this.activeGroup;
 		this.activeGroupIndex = index;
 		if (force || oldActiveGroup !== this.activeGroup) {
@@ -351,7 +331,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 			return;
 		}
 
-		// The groups are the same, rearrange within the group
 		if (sourceGroups.size === 1 && sourceGroups.has(targetGroup)) {
 			const targetIndex = targetGroup.terminalInstances.indexOf(target);
 			const sortedSources = source.sort((a, b) => {
@@ -364,7 +343,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 			return;
 		}
 
-		// The groups differ, rearrange groups
 		const targetGroupIndex = this.groups.indexOf(targetGroup);
 		const sortedSourceGroups = Array.from(sourceGroups).sort((a, b) => {
 			return this.groups.indexOf(a) - this.groups.indexOf(b);
@@ -405,14 +383,11 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 			return;
 		}
 
-		// Move from the source group to the target group
 		if (sourceGroup !== targetGroup) {
-			// Move groups
 			sourceGroup.removeInstance(source);
 			targetGroup.addInstance(source);
 		}
 
-		// Rearrange within the target group
 		const index = targetGroup.terminalInstances.indexOf(target) + (side === 'after' ? 1 : 0);
 		targetGroup.moveInstance(source, index, side);
 	}
@@ -441,7 +416,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 				return;
 			}
 		}
-		// Find the group of the first instance that is the only instance in the group, if one exists
 		let candidateInstance: ITerminalInstance | undefined = undefined;
 		let candidateGroup: ITerminalGroup | undefined = undefined;
 		for (const instance of instances) {
@@ -453,14 +427,12 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 			}
 		}
 
-		// Create a new group if needed
 		if (!candidateGroup) {
 			candidateGroup = this.createGroup();
 		}
 
 		const wasActiveGroup = this.activeGroup === candidateGroup;
 
-		// Unsplit all other instances and add them to the new group
 		for (const instance of instances) {
 			if (instance === candidateInstance) {
 				continue;
@@ -468,17 +440,14 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 
 			const oldGroup = this.getGroupForInstance(instance);
 			if (!oldGroup) {
-				// Something went wrong, don't join this one
 				continue;
 			}
 			oldGroup.removeInstance(instance);
 			candidateGroup.addInstance(instance);
 		}
 
-		// Set the active terminal
 		this.setActiveInstance(instances[0]);
 
-		// Fire events
 		this._onDidChangeInstances.fire();
 		if (!wasActiveGroup) {
 			this._onDidChangeActiveGroup.fire(this.activeGroup);
@@ -503,12 +472,6 @@ export class TerminalGroupService extends Disposable implements ITerminalGroupSe
 		});
 	}
 
-	/**
-	 * Visibility should be updated in the following cases:
-	 * 1. Toggle `TERMINAL_VIEW_ID` visibility
-	 * 2. Change active group
-	 * 3. Change instances in active group
-	 */
 	updateVisibility() {
 		const visible = this._viewsService.isViewVisible(TERMINAL_VIEW_ID);
 		this.groups.forEach((g, i) => g.setVisible(visible && i === this.activeGroupIndex));

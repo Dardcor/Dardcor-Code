@@ -10,55 +10,25 @@ import { ILogService } from '../../../log/common/log.js';
 import { decodeExportTraceRequest, IDecodeResult } from './otlpJsonDecode.js';
 import { IOtlpExportTraceServiceRequest, IOtlpExportTraceServiceResponse } from './otlpJsonTypes.js';
 
-/** Path the OTLP/HTTP spec mandates for trace export. */
 export const OTLP_TRACES_PATH = '/v1/traces';
 
-/** Default request body cap, matching the collector's `confighttp` default. */
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024 * 1024;
 
-/** Callbacks the receiver invokes for each accepted request. */
 export interface IOtlpReceiverHandlers {
-	/** Optionally rewrite an OTLP/JSON request before local decode and forwarding. */
 	transformBody?(body: Buffer): Buffer;
-	/** Invoked with the decoded spans for every successfully-parsed request. */
 	onSpans(result: IDecodeResult): void;
-	/**
-	 * Invoked with the raw request body and content-type so the caller can
-	 * forward the bytes to an upstream collector unchanged. Called before
-	 * the receiver responds, but failures here MUST NOT affect the response.
-	 */
 	onForward?(body: Buffer, contentType: string): void;
 }
 
 export interface IOtlpReceiverOptions {
-	/**
-	 * Cap on request body size. Anything larger gets HTTP 413. Defaults to
-	 * 64 MiB, matching the OpenTelemetry Collector default.
-	 */
 	readonly maxBodyBytes?: number;
 }
 
 export interface ILocalOtlpHttpReceiver extends IDisposable {
-	/** Loopback URL clients should POST to (without the trailing `/v1/traces`). */
 	readonly baseUrl: string;
-	/** Ephemeral port chosen by the OS. */
 	readonly port: number;
 }
 
-/**
- * Loopback OTLP/HTTP receiver. Listens on `127.0.0.1` at an OS-assigned
- * ephemeral port. Accepts `POST /v1/traces` with `Content-Type: application/json`
- * and forwards the parsed result to the caller's handlers.
- *
- * Only `application/json` is supported. `application/x-protobuf` is rejected
- * with HTTP 415; we explicitly require the SDK to use OTLP/HTTP+JSON for the
- * loopback path.
- *
- * Returns `200 OK` with an empty body on full success, or with a
- * `{ partialSuccess: { rejectedSpans, errorMessage } }` body when the
- * decoder dropped some spans. Per OTLP spec, partial success is NOT a retry
- * signal — the SDK will move on.
- */
 export async function startLocalOtlpHttpReceiver(
 	handlers: IOtlpReceiverHandlers,
 	logService: ILogService,
@@ -74,7 +44,7 @@ export async function startLocalOtlpHttpReceiver(
 			if (!res.headersSent) {
 				writePlain(res, 500, 'internal error');
 			} else if (!res.writableEnded) {
-				try { res.end(); } catch { /* ignore */ }
+				try { res.end(); } catch { }
 			}
 		});
 	});
@@ -116,7 +86,6 @@ async function handleRequest(
 	logService: ILogService,
 	maxBodyBytes: number,
 ): Promise<void> {
-	// Reject anything that isn't the trace export path.
 	const url = req.url ?? '';
 	const pathname = url.split('?', 1)[0];
 	if (pathname !== OTLP_TRACES_PATH) {
@@ -137,7 +106,6 @@ async function handleRequest(
 
 	const encoding = (req.headers['content-encoding'] ?? '').toString().toLowerCase();
 	if (encoding && encoding !== 'identity') {
-		// Compression negotiation is out of scope for v1; let the SDK fall back to identity.
 		writePlain(res, 415, `unsupported content-encoding: ${encoding}`);
 		return;
 	}
@@ -162,9 +130,6 @@ async function handleRequest(
 		}
 	}
 
-	// Best-effort forward of raw bytes BEFORE decoding so the upstream
-	// collector sees the normalized payload. Failures
-	// here are isolated from the local-decode path.
 	if (handlers.onForward) {
 		try {
 			handlers.onForward(body, contentType);

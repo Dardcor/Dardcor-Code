@@ -24,7 +24,6 @@ export class WebLanguagePacksService extends LanguagePackBaseService {
 		const queryTimeout = new CancellationTokenSource();
 		setTimeout(() => queryTimeout.cancel(), 1000);
 
-		// First get the extensions that supports the language (there should only be one but just in case let's include more results)
 		let result;
 		try {
 			result = await this.extensionGalleryService.query({
@@ -42,12 +41,10 @@ export class WebLanguagePacksService extends LanguagePackBaseService {
 			return undefined;
 		}
 
-		// Then get the manifest for that extension
 		const manifestTimeout = new CancellationTokenSource();
 		setTimeout(() => queryTimeout.cancel(), 1000);
 		const manifest = await this.extensionGalleryService.getManifest(languagePackExtensions, manifestTimeout.token);
 
-		// Find the translation from the language pack
 		const localization = manifest?.contributes?.localizations?.find(l => l.languageId === language);
 		const translation = localization?.translations.find(t => t.id === id);
 		if (!translation) {
@@ -55,9 +52,7 @@ export class WebLanguagePacksService extends LanguagePackBaseService {
 			return undefined;
 		}
 
-		// get the resource uri and return it
 		const uri = await this.extensionResourceLoaderService.getExtensionGalleryResourceURL({
-			// If translation is defined then manifest should have been defined.
 			name: manifest!.name,
 			publisher: manifest!.publisher,
 			version: manifest!.version
@@ -70,7 +65,6 @@ export class WebLanguagePacksService extends LanguagePackBaseService {
 		return URI.joinPath(uri, translation.path);
 	}
 
-	// Web doesn't have a concept of language packs, so we just return an empty array
 	getInstalledLanguages(): Promise<ILanguagePackItem[]> {
 		return Promise.resolve([]);
 	}

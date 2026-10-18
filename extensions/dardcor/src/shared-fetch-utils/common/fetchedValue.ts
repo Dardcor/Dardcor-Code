@@ -6,55 +6,13 @@
 import { FetchBlockedError } from './fetchTypes';
 
 export interface FetchedValueOptions<T> {
-	/**
-	 * The async function that fetches the value from the network.
-	 */
 	fetch: () => Promise<T>;
 
-	/**
-	 * Determines whether the current cached value is stale and should be re-fetched.
-	 * Called by {@link FetchedValue.resolve} to decide if a new fetch is needed.
-	 *
-	 * Before the value has been fetched for the first time, the value is always considered stale
-	 * and this function is not called.
-	 */
 	isStale: (value: T) => boolean;
 
-	/**
-	 * When `true`, automatically calls {@link FetchedValue.resolve} once per minute so
-	 * the synchronous {@link FetchedValue.value} getter stays up-to-date.
-	 *
-	 * **Caution:** enabling this will lead to more network requests because the value
-	 * is re-fetched periodically regardless of whether it is being read.
-	 */
 	keepCacheHot?: boolean;
 }
 
-/**
- * A cached value backed by an async fetch operation.
- *
- * Provides both a synchronous {@link value} accessor (returns the current cached value
- * or `undefined`) and an asynchronous {@link resolve} method that only fetches when the
- * value is stale, as determined by the caller-supplied {@link FetchedValueOptions.isStale}
- * predicate.
- *
- * Concurrent calls to {@link resolve} are coalesced into a single in-flight fetch so the
- * network is hit at most once per staleness window.
- *
- * @example
- * ```ts
- * const token = new FetchedValue({
- *     fetch: () => fetchTokenFromServer(),
- *     isStale: (t) => t.expires_at - 300 < nowSeconds(),
- * });
- *
- * // Synchronous read — may be undefined before first resolve
- * const current = token.value;
- *
- * // Async — fetches only when stale
- * const fresh = await token.resolve();
- * ```
- */
 export class FetchedValue<T> {
 	private _value: T | undefined;
 	private _hasFetched = false;
@@ -70,28 +28,15 @@ export class FetchedValue<T> {
 		this._isStale = options.isStale;
 		if (options.keepCacheHot) {
 			this._keepCacheHotTimer = setInterval(() => {
-				this.resolve().catch(() => { /* swallow — next interval will retry */ });
+				this.resolve().catch(() => { });
 			}, 60_000);
 		}
 	}
 
-	/**
-	 * The current cached value, or `undefined` if no value has been fetched yet.
-	 *
-	 * This is a synchronous accessor — it never triggers a fetch.
-	 */
 	get value(): T | undefined {
 		return this._value;
 	}
 
-	/**
-	 * Returns the cached value if it is still fresh, otherwise fetches a new value.
-	 *
-	 * Concurrent calls while a fetch is in-flight share the same promise, so the
-	 * network is never hit more than once per staleness window.
-	 *
-	 * @param force When `true`, bypasses the staleness check and always fetches.
-	 */
 	async resolve(force?: boolean): Promise<T> {
 		this._throwIfDisposed();
 		if (!force && this._hasFetched && !this._isStale(this._value as T)) {

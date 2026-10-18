@@ -65,11 +65,9 @@ suite('claudeClientToolMcpServer / buildClientToolMcpServer', () => {
 		const handler = recorded[0]!.handler;
 		const extra = { _meta: { 'claudecode/toolUseId': 'tu_42' } };
 		const callPromise = handler({ msg: 'hi' }, extra);
-		// The handler must not have resolved yet — it's parked on the registry.
 		const sentinel = Symbol();
 		const raced = await Promise.race([callPromise, Promise.resolve(sentinel)]);
 		assert.strictEqual(raced, sentinel, 'handler should be parked');
-		// Workbench echoes the completion via the same toolUseId key.
 		const expected: CallToolResult = { content: [{ type: 'text', text: 'done' }] };
 		const settled = registry.respond('tu_42', expected);
 		assert.strictEqual(settled, true);

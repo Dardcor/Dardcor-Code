@@ -83,7 +83,6 @@ export class SemanticTokensProviderStyling {
 						metadata |= foregroundBits | MetadataConsts.SEMANTIC_USE_FOREGROUND;
 					}
 					if (metadata === 0) {
-						// Nothing!
 						metadata = SemanticTokensProviderStylingConstants.NO_STYLING;
 					}
 				}
@@ -128,16 +127,8 @@ export class SemanticTokensProviderStyling {
 }
 
 const enum SemanticColoringConstants {
-	/**
-	 * Let's aim at having 8KB buffers if possible...
-	 * So that would be 8192 / (5 * 4) = 409.6 tokens per area
-	 */
 	DesiredTokensPerArea = 400,
 
-	/**
-	 * Try to keep the total number of areas under 1024 if possible,
-	 * simply compensate by having more tokens per area...
-	 */
 	DesiredMaxAreas = 1024,
 }
 
@@ -154,7 +145,6 @@ export function toMultilineTokens2(tokens: SemanticTokens, styling: SemanticToke
 		const tokenStartIndex = tokenIndex;
 		let tokenEndIndex = Math.min(tokenStartIndex + tokensPerArea, tokenCount);
 
-		// Keep tokens on the same line in the same area...
 		if (tokenEndIndex < tokenCount) {
 
 			let smallTokenEndIndex = tokenEndIndex;
@@ -163,7 +153,6 @@ export function toMultilineTokens2(tokens: SemanticTokens, styling: SemanticToke
 			}
 
 			if (smallTokenEndIndex - 1 === tokenStartIndex) {
-				// there are so many tokens on this line that our area would be empty, we must now go right
 				let bigTokenEndIndex = tokenEndIndex;
 				while (bigTokenEndIndex + 1 < tokenCount && srcData[5 * bigTokenEndIndex] === 0) {
 					bigTokenEndIndex++;
@@ -183,8 +172,6 @@ export function toMultilineTokens2(tokens: SemanticTokens, styling: SemanticToke
 			const srcOffset = 5 * tokenIndex;
 			const deltaLine = srcData[srcOffset];
 			const deltaCharacter = srcData[srcOffset + 1];
-			// Casting both `lineNumber`, `startCharacter` and `endCharacter` here to uint32 using `|0`
-			// to validate below with the actual values that will be inserted in the Uint32Array result
 			const lineNumber = (lastLineNumber + deltaLine) | 0;
 			const startCharacter = (deltaLine === 0 ? (lastStartCharacter + deltaCharacter) | 0 : deltaCharacter);
 			const length = srcData[srcOffset + 2];
@@ -193,10 +180,8 @@ export function toMultilineTokens2(tokens: SemanticTokens, styling: SemanticToke
 			const tokenModifierSet = srcData[srcOffset + 4];
 
 			if (endCharacter <= startCharacter) {
-				// this token is invalid (most likely a negative length casted to uint32)
 				styling.warnInvalidLengthSemanticTokens(lineNumber, startCharacter + 1);
 			} else if (prevLineNumber === lineNumber && prevEndCharacter > startCharacter) {
-				// this token overlaps with the previous token
 				styling.warnOverlappingSemanticTokens(lineNumber, startCharacter + 1);
 			} else {
 				const metadata = styling.getMetadata(tokenTypeIndex, tokenModifierSet, languageId);
@@ -274,7 +259,7 @@ class HashTable {
 	}
 
 	private _hash2(n1: number, n2: number): number {
-		return (((n1 << 5) - n1) + n2) | 0;  // n1 * 31 + n2, keep as int32
+		return (((n1 << 5) - n1) + n2) | 0;
 	}
 
 	private _hashFunc(tokenTypeIndex: number, tokenModifierSet: number, languageId: number): number {
@@ -298,7 +283,6 @@ class HashTable {
 	public add(tokenTypeIndex: number, tokenModifierSet: number, languageId: number, metadata: number): void {
 		this._elementsCount++;
 		if (this._growCount !== 0 && this._elementsCount >= this._growCount) {
-			// expand!
 			const oldElements = this._elements;
 
 			this._currentLengthIndex++;

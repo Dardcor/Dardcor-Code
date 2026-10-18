@@ -55,7 +55,6 @@ function createMockExternalIngestClient(options?: {
 			return [];
 		},
 		async deleteFileset(_filesetName: string, _callTracker: CallTracker, _token: CancellationToken): Promise<void> {
-			// no-op
 		},
 		async searchFilesets(filesetName: string, prompt: string, _limit: number, _callTracker: CallTracker, _token: CancellationToken): Promise<undefined> {
 			searchCalls.push({ filesetName, prompt });
@@ -95,9 +94,6 @@ function createFileFromBytes(content: Uint8Array, mtime = Date.now()): MockFileE
 	return { content, size: content.length, mtime };
 }
 
-/**
- * Mock for file system and search services
- */
 class MockFileSystem extends mock<IFileSystemService & ISearchService>() implements IFileSystemService, ISearchService {
 	readonly readFileCalls = new ResourceMap<number>();
 	readonly statCalls = new ResourceMap<number>();
@@ -118,7 +114,6 @@ class MockFileSystem extends mock<IFileSystemService & ISearchService>() impleme
 		return total;
 	}
 
-	// #region IFileSystemService
 
 	override async stat(uri: URI) {
 		this.statCalls.set(uri, (this.statCalls.get(uri) ?? 0) + 1);
@@ -160,9 +155,7 @@ class MockFileSystem extends mock<IFileSystemService & ISearchService>() impleme
 		};
 	}
 
-	// #endregion
 
-	// #region ISearchService
 
 	override findFilesWithDefaultExcludes(): any {
 		return Promise.resolve([...this._files.keys()]);
@@ -172,13 +165,8 @@ class MockFileSystem extends mock<IFileSystemService & ISearchService>() impleme
 		return Promise.resolve([...this._files.keys()]);
 	}
 
-	// #endregion
 }
 
-/**
- * Helper to create an ExternalIngestIndex with a client.
- * Uses ExternalIngestClient by default, or accepts a mock client for testing.
- */
 function createExternalIngestIndex(
 	instantiationService: IInstantiationService,
 	client?: IExternalIngestClient,
@@ -208,9 +196,6 @@ suite('ExternalIngestIndex', () => {
 		disposables.clear();
 	});
 
-	/**
-	 * Helper to set up a test with mocked file system, workspace, and ingest client.
-	 */
 	function setupTestContext(
 		workspaceRoot: URI,
 		files: ResourceMap<MockFileEntry>,
@@ -310,7 +295,6 @@ suite('ExternalIngestIndex', () => {
 		const mockClient = createMockExternalIngestClient();
 		disposables.add(instantiationService.createInstance(ExternalIngestIndex, mockClient, []));
 
-		// The mock client is now injected - tests can verify what files would be ingested
 		assert.strictEqual(mockClient.ingestedFiles.length, 0, 'No files ingested yet');
 	});
 
@@ -329,8 +313,6 @@ suite('ExternalIngestIndex', () => {
 		const customInstantiationService = customAccessor.get(IInstantiationService);
 		disposables.add(customInstantiationService.createInstance(ExternalIngestIndex, mockClient, []));
 
-		// The mock file system and client are now injected
-		// Tests can verify file operations and ingestion behavior
 		assert.ok(mockClient, 'Mock client is available for assertions');
 		assert.ok(mockFs, 'Mock file system is available for assertions');
 	});
@@ -349,12 +331,10 @@ suite('ExternalIngestIndex', () => {
 		await index.initialize();
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
-		// Verify that both files were passed to the client for ingestion
 		assert.strictEqual(mockClient.ingestedFiles.length, 2, 'Both files should be ingested');
 		const ingestedPaths = mockClient.ingestedFiles.map(f => f.uri.toString()).sort();
 		assert.deepStrictEqual(ingestedPaths, [file1.toString(), file2.toString()].sort());
 
-		// Files should be tracked after initialization
 		assert.strictEqual(await index.shouldTrackFile(file1, CancellationToken.None), true);
 		assert.strictEqual(await index.shouldTrackFile(file2, CancellationToken.None), true);
 	});
@@ -376,11 +356,9 @@ suite('ExternalIngestIndex', () => {
 		await index.initialize();
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
-		// Only the small file should be ingested (large file fails canIngestPathAndSize)
 		assert.strictEqual(mockClient.ingestedFiles.length, 1, 'Only small file should be ingested');
 		assert.strictEqual(mockClient.ingestedFiles[0].uri.toString(), file1.toString());
 
-		// Both files should be tracked
 		assert.strictEqual(await index.shouldTrackFile(file1, CancellationToken.None), true);
 		assert.strictEqual(await index.shouldTrackFile(file2, CancellationToken.None), true);
 	});
@@ -404,11 +382,9 @@ suite('ExternalIngestIndex', () => {
 		await index.initialize();
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
-		// Only the text file should be ingested (binary file fails canIngestDocument)
 		assert.strictEqual(mockClient.ingestedFiles.length, 1, 'Only text file should be ingested');
 		assert.strictEqual(mockClient.ingestedFiles[0].uri.toString(), textFile.toString());
 
-		// Both files should be tracked
 		assert.strictEqual(await index.shouldTrackFile(textFile, CancellationToken.None), true);
 		assert.strictEqual(await index.shouldTrackFile(binaryFile, CancellationToken.None), true);
 	});
@@ -430,11 +406,9 @@ suite('ExternalIngestIndex', () => {
 		await index.initialize();
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
-		// Only the source file should be ingested (vendor file filtered by path pattern)
 		assert.strictEqual(mockClient.ingestedFiles.length, 1, 'Only source file should be ingested');
 		assert.strictEqual(mockClient.ingestedFiles[0].uri.toString(), sourceFile.toString());
 
-		// Both files should be tracked (tracking is separate from ingestion)
 		assert.strictEqual(await index.shouldTrackFile(sourceFile, CancellationToken.None), true);
 		assert.strictEqual(await index.shouldTrackFile(vendorFile, CancellationToken.None), true);
 	});
@@ -450,17 +424,13 @@ suite('ExternalIngestIndex', () => {
 
 		await index.initialize();
 
-		// First ingest - file should be read
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 		assert.ok(mockFs.countReadFileCalls(file1) >= 1, 'File should be read during first ingest');
 
-		// Second ingest - file should NOT be re-read since mtime unchanged
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
-		// The file should still be yielded from the ingestion
 		assert.strictEqual(mockClient.ingestedFiles.length, 1, 'File should still be yielded on second ingest');
 
-		// But readFile should not be called to compute docSha (stat is allowed)
 		assert.strictEqual(mockFs.countReadFileCalls(file1), 1, 'File should NOT be re-read on second ingest when unchanged');
 	});
 
@@ -479,10 +449,8 @@ suite('ExternalIngestIndex', () => {
 		assert.strictEqual(mockClient.ingestedFiles.length, 1, 'File should be yielded on first ingest');
 		assert.strictEqual(mockFs.countReadFileCalls(file1), 1, 'File should be read once during first ingest');
 
-		// Simulate file modification by changing mtime
 		files.set(file1, createFileFromString('const x = 2;', 2000));
 
-		// Second ingest after file change - file SHOULD be re-read
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
 		assert.strictEqual(mockFs.countReadFileCalls(file1), 2, 'File SHOULD be re-read when mtime changes');
@@ -503,22 +471,17 @@ suite('ExternalIngestIndex', () => {
 
 		await index.initialize();
 
-		// First ingest - all files should be read
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
 		assert.strictEqual(mockClient.ingestedFiles.length, 3, 'All files should be ingested');
 
-		// Second ingest, should not trigger any new reads
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
-		// All files should be yielded but none should be re-read for docSha computation
 		assert.strictEqual(mockClient.ingestedFiles.length, 3, 'All files should still be yielded');
 		assert.strictEqual(mockFs.totalReadFileCalls, 3, 'No files should be re-read when unchanged');
 
-		// Now change just one file
 		files.set(file2, createFileFromString('const y = 999;', 2000));
 
-		// Third ingest - only file2 should be re-read
 		assert.ok((await index.doIngest(testTelemetryInfo, emptyProgressCb, CancellationToken.None)).isOk(), 'Ingest should complete successfully');
 
 		assert.strictEqual(mockClient.ingestedFiles.length, 3, 'All files should still be yielded');
@@ -528,10 +491,6 @@ suite('ExternalIngestIndex', () => {
 	});
 });
 
-/**
- * Mock GitHub API fetcher that drives the external ingest HTTP protocol so we can
- * exercise the real {@link ExternalIngestClient} ingestion flow end-to-end.
-*/
 class RecordingGithubApiFetcherService extends mock<IGithubApiFetcherService>() implements IGithubApiFetcherService {
 	readonly requests: Array<{ method: string; path: string }> = [];
 	private batchPolls = 0;
@@ -602,14 +561,8 @@ suite('ExternalIngestClient finalize retry', () => {
 		disposables.clear();
 	});
 
-	/**
-	 * Drives `updateIndex` to completion while flushing the fake finalize-retry backoff
-	 * timers, so the test never waits on real wall-clock time.
-	 */
 	function runUpdateIndex(client: ExternalIngestClient, fileSet: ExternalIngestFileSet): Promise<Result<ExternalIngestUpdateIndexResult, Error>> {
 		const promise = client.updateIndex('fileset-1', fileSet, new CallTracker('externalIngest.spec.ts'), CancellationToken.None, emptyProgressCb);
-		// Run all (current and subsequently scheduled) timers, flushing microtasks between
-		// each, so the backoff `timeout(...)` calls resolve and the promise settles.
 		return vi.runAllTimersAsync().then(() => promise);
 	}
 
@@ -627,8 +580,6 @@ suite('ExternalIngestClient finalize retry', () => {
 	function createClient(fetcher: IGithubApiFetcherService): ExternalIngestClient {
 		const testingServiceCollection = disposables.add(createPlatformServices());
 		testingServiceCollection.set(IGithubApiFetcherService, fetcher);
-		// Provide a static GitHub token so `getAuthToken()` resolves without real
-		// credentials - CI has no GITHUB_PAT/GITHUB_OAUTH_TOKEN set.
 		testingServiceCollection.define(IAuthenticationService, new SyncDescriptor(StaticGitHubAuthenticationService, [() => 'test-github-token']));
 		const accessor = disposables.add(testingServiceCollection.createTestingAccessor());
 		const instantiationService = accessor.get(IInstantiationService);
@@ -639,9 +590,7 @@ suite('ExternalIngestClient finalize retry', () => {
 		const file = createIngestFile('src/file1.ts', 'const x = 1;');
 		const docShaId = Buffer.from(file.docSha).toString('base64');
 
-		// Server registers the document after the first upload, so the second batch
-		// poll reports nothing missing and finalize succeeds on the retry.
-		const fetcher = new RecordingGithubApiFetcherService([docShaId], /* finalize412Count */ 1, /* batchPollsWithDocs */ 1);
+		const fetcher = new RecordingGithubApiFetcherService([docShaId], 1, 1);
 		const client = createClient(fetcher);
 
 		const fileSet: ExternalIngestFileSet = { files: [file], checkpoint: 'checkpoint-1' };
@@ -657,9 +606,7 @@ suite('ExternalIngestClient finalize retry', () => {
 		const file = createIngestFile('src/file1.ts', 'const x = 1;');
 		const docShaId = Buffer.from(file.docSha).toString('base64');
 
-		// The server still reports the document as missing on the second batch poll,
-		// so the reconcile loop must re-upload it before finalize can succeed.
-		const fetcher = new RecordingGithubApiFetcherService([docShaId], /* finalize412Count */ 1, /* batchPollsWithDocs */ 2);
+		const fetcher = new RecordingGithubApiFetcherService([docShaId], 1, 2);
 		const client = createClient(fetcher);
 
 		const fileSet: ExternalIngestFileSet = { files: [file], checkpoint: 'checkpoint-1' };
@@ -674,9 +621,7 @@ suite('ExternalIngestClient finalize retry', () => {
 		const file = createIngestFile('src/file1.ts', 'const x = 1;');
 		const docShaId = Buffer.from(file.docSha).toString('base64');
 
-		// The server keeps asking for the document on every batch poll and finalize
-		// always reports a phase mismatch, so the run fails after exhausting retries.
-		const fetcher = new RecordingGithubApiFetcherService([docShaId], /* finalize412Count */ 10, /* batchPollsWithDocs */ 10);
+		const fetcher = new RecordingGithubApiFetcherService([docShaId], 10, 10);
 		const client = createClient(fetcher);
 
 		const fileSet: ExternalIngestFileSet = { files: [file], checkpoint: 'checkpoint-1' };
@@ -690,10 +635,7 @@ suite('ExternalIngestClient finalize retry', () => {
 		const file = createIngestFile('src/file1.ts', 'const x = 1;');
 		const docShaId = Buffer.from(file.docSha).toString('base64');
 
-		// The document is delivered on the first pass (batch reports nothing missing
-		// afterwards) yet finalize keeps returning 412. Since the client cannot make
-		// progress by re-uploading, it should surface a distinct server-side error.
-		const fetcher = new RecordingGithubApiFetcherService([docShaId], /* finalize412Count */ 10, /* batchPollsWithDocs */ 1);
+		const fetcher = new RecordingGithubApiFetcherService([docShaId], 10, 1);
 		const client = createClient(fetcher);
 
 		const fileSet: ExternalIngestFileSet = { files: [file], checkpoint: 'checkpoint-1' };
@@ -708,13 +650,10 @@ suite('ExternalIngestClient finalize retry', () => {
 		const file = createIngestFile('src/file1.ts', 'const x = 1;');
 		const docShaId = Buffer.from(file.docSha).toString('base64');
 
-		// The document upload persistently fails (i.e. it has already exhausted the
-		// HTTP-layer retry budget). The run must fail with the real document error and
-		// must never reach finalize - so the user sees the true cause, not a 412.
 		const fetcher = new RecordingGithubApiFetcherService(
 			[docShaId],
-			/* finalize412Count */ 0,
-			/* batchPollsWithDocs */ 1,
+			0,
+			1,
 			{ count: 100, status: 500, requestId: 'doc-req-42' },
 		);
 		const client = createClient(fetcher);
@@ -734,12 +673,10 @@ suite('ExternalIngestClient finalize retry', () => {
 		const file = createIngestFile('src/file1.ts', 'const x = 1;');
 		const docShaId = Buffer.from(file.docSha).toString('base64');
 
-		// A 404 means the ingest itself is gone server-side. The pass must abort
-		// deterministically with the "ingest not found" error and never reach finalize.
 		const fetcher = new RecordingGithubApiFetcherService(
 			[docShaId],
-			/* finalize412Count */ 0,
-			/* batchPollsWithDocs */ 1,
+			0,
+			1,
 			{ count: 100, status: 404, requestId: 'doc-404' },
 		);
 		const client = createClient(fetcher);
@@ -755,11 +692,8 @@ suite('ExternalIngestClient finalize retry', () => {
 	test('fails deterministically when the server requests a docSha with no local mapping', async () => {
 		const file = createIngestFile('src/file1.ts', 'const x = 1;');
 
-		// The server asks for a docSha the client never advertised (no local mapping).
-		// The pass must fail deterministically with a descriptive error and never reach
-		// finalize, rather than swallowing the mismatch and stranding the server.
 		const unmappedDocShaId = Buffer.from('doc-sha-the-client-never-advertised').toString('base64');
-		const fetcher = new RecordingGithubApiFetcherService([unmappedDocShaId], /* finalize412Count */ 0, /* batchPollsWithDocs */ 1);
+		const fetcher = new RecordingGithubApiFetcherService([unmappedDocShaId], 0, 1);
 		const client = createClient(fetcher);
 
 		const fileSet: ExternalIngestFileSet = { files: [file], checkpoint: 'checkpoint-1' };

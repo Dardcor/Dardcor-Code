@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Setting IDs for agent sandboxing.
- */
 export const enum AgentSandboxSettingId {
 	AgentSandboxEnabled = 'chat.agent.sandbox.enabled',
 	AgentSandboxWindowsEnabled = 'chat.agent.sandbox.enabledWindows',

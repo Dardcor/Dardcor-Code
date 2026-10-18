@@ -10,11 +10,6 @@ import { isMarkdownFile, looksLikeMarkdownPath } from '../util/file';
 import { InMemoryDocument } from './inMemoryDocument';
 import { ResourceMap } from '../util/resourceMap';
 
-/**
- * Provides set of markdown files known to VS Code.
- *
- * This includes both opened text documents and markdown files in the workspace.
- */
 export class VsCodeMdWorkspace extends Disposable {
 
 	readonly #watcher: vscode.FileSystemWatcher | undefined;
@@ -68,7 +63,6 @@ export class VsCodeMdWorkspace extends Disposable {
 		try {
 			const bytes = await vscode.workspace.fs.readFile(resource);
 
-			// We assume that markdown is in UTF-8
 			const text = this.#utf8Decoder.decode(bytes);
 			const doc = new InMemoryDocument(resource, text, 0);
 			this.#documentCache.set(resource, doc);

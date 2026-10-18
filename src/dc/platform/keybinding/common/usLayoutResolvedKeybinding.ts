@@ -9,9 +9,6 @@ import { OperatingSystem } from '../../../base/common/platform.js';
 import { BaseResolvedKeybinding } from './baseResolvedKeybinding.js';
 import { toEmptyArrayIfContainsNull } from './resolvedKeybindingItem.js';
 
-/**
- * Do not instantiate. Use KeybindingService to get a ResolvedKeybinding seeded with information about the current kb layout.
- */
 export class USLayoutResolvedKeybinding extends BaseResolvedKeybinding<KeyCodeChord> {
 
 	constructor(chords: KeyCodeChord[], os: OperatingSystem) {
@@ -107,9 +104,6 @@ export class USLayoutResolvedKeybinding extends BaseResolvedKeybinding<KeyCodeCh
 		return null;
 	}
 
-	/**
-	 * *NOTE*: Check return value for `KeyCode.Unknown`.
-	 */
 	private static _scanCodeToKeyCode(scanCode: ScanCode): KeyCode {
 		const immutableKeyCode = IMMUTABLE_CODE_TO_KEY_CODE[scanCode];
 		if (immutableKeyCode !== KeyCode.DependsOnKbLayout) {
@@ -158,7 +152,7 @@ export class USLayoutResolvedKeybinding extends BaseResolvedKeybinding<KeyCodeCh
 			case ScanCode.BracketLeft: return KeyCode.BracketLeft;
 			case ScanCode.BracketRight: return KeyCode.BracketRight;
 			case ScanCode.Backslash: return KeyCode.Backslash;
-			case ScanCode.IntlHash: return KeyCode.Unknown; // missing
+			case ScanCode.IntlHash: return KeyCode.Unknown;
 			case ScanCode.Semicolon: return KeyCode.Semicolon;
 			case ScanCode.Quote: return KeyCode.Quote;
 			case ScanCode.Backquote: return KeyCode.Backquote;

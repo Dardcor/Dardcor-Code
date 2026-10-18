@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Overall */
 
 .ai-stats-status-bar {
 	margin-top: 4px;
@@ -33,7 +32,6 @@
 		margin-bottom: 5px;
 	}
 
-	/* Chart toggle buttons */
 	.chart-view-toggle {
 		display: flex;
 		gap: 2px;
@@ -57,7 +55,6 @@
 		background-color: var(--vscode-toolbar-activeBackground);
 	}
 
-	/* Chart container */
 	.ai-stats-chart-container {
 		margin-top: 4px;
 	}
@@ -66,7 +63,6 @@
 		overflow: visible;
 	}
 
-	/* Setup for New User */
 
 	.setup .chat-feature-container {
 		display: flex;
@@ -75,7 +71,6 @@
 		padding: 4px;
 	}
 
-	/* Settings */
 
 	.settings {
 		display: flex;
@@ -103,7 +98,6 @@
 	}
 
 
-	/* Contributions */
 
 	.contribution .body {
 		display: flex;

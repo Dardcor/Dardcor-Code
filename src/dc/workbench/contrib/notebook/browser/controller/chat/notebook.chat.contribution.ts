@@ -107,7 +107,6 @@ class NotebookChatContribution extends Disposable implements IWorkbenchContribut
 			}
 		}));
 
-		// output context
 		NOTEBOOK_CELL_OUTPUT_MIME_TYPE_LIST_FOR_CHAT.bindTo(contextKeyService).set(NOTEBOOK_CELL_OUTPUT_MIME_TYPE_LIST_FOR_CHAT_CONST);
 	}
 
@@ -156,7 +155,7 @@ export class SelectAndInsertKernelVariableAction extends Action2 {
 	constructor() {
 		super({
 			id: SelectAndInsertKernelVariableAction.ID,
-			title: '' // not displayed
+			title: ''
 		});
 	}
 
@@ -349,7 +348,6 @@ registerAction2(class AddCellOutputToChatAction extends Action2 {
 		}
 
 		if (!outputViewModel) {
-			// not able to find the output from the provided context, use the active cell
 			const activeCell = notebookEditor.getActiveCell();
 			if (!activeCell) {
 				return;

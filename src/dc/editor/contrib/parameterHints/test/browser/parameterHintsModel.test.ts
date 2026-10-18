@@ -124,7 +124,6 @@ suite('ParameterHintsModel', () => {
 						assert.strictEqual(context.isRetrigger, false);
 						assert.strictEqual(context.activeSignatureHelp, undefined);
 
-						// Retrigger
 						setTimeout(() => editor.trigger('keyboard', Handler.Type, { text: triggerChar }), 0);
 					} else {
 						assert.strictEqual(invokeCount, 2);
@@ -171,7 +170,6 @@ suite('ParameterHintsModel', () => {
 						assert.strictEqual(context.isRetrigger, false);
 						assert.strictEqual(context.activeSignatureHelp, undefined);
 
-						// Cancel and retrigger
 						hintModel.cancel();
 						editor.trigger('keyboard', Handler.Type, { text: triggerChar });
 					} else {
@@ -215,7 +213,6 @@ suite('ParameterHintsModel', () => {
 					assert.strictEqual(context.isRetrigger, false);
 					assert.strictEqual(context.triggerCharacter, 'c');
 
-					// Give some time to allow for later triggers
 					setTimeout(() => {
 						assert.strictEqual(invokeCount, 1);
 
@@ -257,7 +254,6 @@ suite('ParameterHintsModel', () => {
 						assert.strictEqual(context.triggerKind, languages.SignatureHelpTriggerKind.TriggerCharacter);
 						assert.strictEqual(context.triggerCharacter, 'a');
 
-						// retrigger after delay for widget to show up
 						setTimeout(() => editor.trigger('keyboard', Handler.Type, { text: 'b' }), 50);
 					} else if (invokeCount === 2) {
 						assert.strictEqual(context.triggerKind, languages.SignatureHelpTriggerKind.TriggerCharacter);
@@ -299,7 +295,6 @@ suite('ParameterHintsModel', () => {
 					const count = invokeCount++;
 					disposables.add(token.onCancellationRequested(() => { didRequestCancellationOf = count; }));
 
-					// retrigger on first request
 					if (count === 0) {
 						hintsModel.trigger({ triggerKind: languages.SignatureHelpTriggerKind.Invoke }, 0);
 					}
@@ -367,7 +362,6 @@ suite('ParameterHintsModel', () => {
 						assert.strictEqual(context.triggerKind, languages.SignatureHelpTriggerKind.TriggerCharacter);
 						assert.strictEqual(context.triggerCharacter, triggerChar);
 
-						// retrigger after delay for widget to show up
 						setTimeout(() => editor.trigger('keyboard', Handler.Type, { text: retriggerChar }), 50);
 					} else if (invokeCount === 2) {
 						assert.strictEqual(context.triggerKind, languages.SignatureHelpTriggerKind.TriggerCharacter);
@@ -387,10 +381,8 @@ suite('ParameterHintsModel', () => {
 		}));
 
 		await runWithFakedTimers({ useFakeTimers: true }, async () => {
-			// This should not trigger anything
 			editor.trigger('keyboard', Handler.Type, { text: retriggerChar });
 
-			// But a trigger character should
 			editor.trigger('keyboard', Handler.Type, { text: triggerChar });
 
 			return donePromise;
@@ -413,7 +405,6 @@ suite('ParameterHintsModel', () => {
 			async provideSignatureHelp(_model: ITextModel, _position: Position, _token: CancellationToken, context: languages.SignatureHelpContext): Promise<languages.SignatureHelpResult | undefined> {
 				try {
 					if (!context.isRetrigger) {
-						// retrigger after delay for widget to show up
 						setTimeout(() => editor.trigger('keyboard', Handler.Type, { text: triggerChar }), 50);
 
 						return {
@@ -538,11 +529,9 @@ suite('ParameterHintsModel', () => {
 						assert.strictEqual(context.triggerCharacter, triggerCharacter);
 						setTimeout(() => editor.trigger('keyboard', Handler.Type, { text: retriggerCharacter }), 50);
 					} else if (invokeCount === 2) {
-						// Trigger again while we wait for resolve to take place
 						setTimeout(() => editor.trigger('keyboard', Handler.Type, { text: retriggerCharacter }), 50);
 						await new Promise(resolve => setTimeout(resolve, 1000));
 					} else if (invokeCount === 3) {
-						// Make sure that in a retrigger during a pending resolve, we still have the old active signature.
 						assert.strictEqual(context.activeSignatureHelp, emptySigHelp);
 						done();
 					} else {

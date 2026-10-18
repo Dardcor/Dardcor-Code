@@ -16,44 +16,20 @@ import { IExtensionService } from '../../extensions/common/extensions.js';
 
 export enum ExtensionsFilter {
 
-	/**
-	 * Version of the github.copilot extension.
-	 */
 	CopilotExtensionVersion = 'X-Copilot-RelatedPluginVersion-githubcopilot',
 
-	/**
-	 * Version of the github.copilot-chat extension.
-	 */
 	CopilotChatExtensionVersion = 'X-Copilot-RelatedPluginVersion-githubcopilotchat',
 
-	/**
-	 * Version of the completions version.
-	 */
 	CompletionsVersionInCopilotChat = 'X-VSCode-CompletionsInChatExtensionVersion',
 
-	/**
-	 * SKU of the copilot entitlement.
-	 */
 	CopilotSku = 'X-GitHub-Copilot-SKU',
 
-	/**
-	 * The internal org of the user.
-	 */
 	MicrosoftInternalOrg = 'X-Microsoft-Internal-Org',
 
-	/**
-	 * The tracking ID of the user from Copilot entitlement API.
-	 */
 	CopilotTrackingId = 'X-Copilot-CopilotTrackingId',
 
-	/**
-	 * Whether the `sn` flag is set to `'1'` in the copilot token.
-	 */
 	CopilotIsSn = 'X-GitHub-Copilot-IsSn',
 
-	/**
-	 * Whether the `fcv1` flag is set to `'1'` in the copilot token.
-	 */
 	CopilotIsFcv1 = 'X-GitHub-Copilot-IsFcv1',
 }
 
@@ -71,7 +47,6 @@ enum StorageVersionKeys {
 export class CopilotAssignmentFilterProvider extends Disposable implements IExperimentationFilterProvider {
 	private copilotChatExtensionVersion: string | undefined;
 	private copilotExtensionVersion: string | undefined;
-	// TODO@benibenj remove this when completions have been ported to chat
 	private copilotCompletionsVersion: string | undefined;
 
 	private copilotInternalOrg: string | undefined;
@@ -152,7 +127,6 @@ export class CopilotAssignmentFilterProvider extends Disposable implements IExpe
 		this._storageService.store(StorageVersionKeys.CopilotChatExtensionVersion, this.copilotChatExtensionVersion, StorageScope.PROFILE, StorageTarget.MACHINE);
 		this._storageService.store(StorageVersionKeys.CompletionsVersion, this.copilotCompletionsVersion, StorageScope.PROFILE, StorageTarget.MACHINE);
 
-		// Notify that the filters have changed.
 		this._onDidChangeFilters.fire();
 	}
 
@@ -173,7 +147,6 @@ export class CopilotAssignmentFilterProvider extends Disposable implements IExpe
 		this._storageService.store(StorageVersionKeys.CopilotInternalOrg, this.copilotInternalOrg, StorageScope.PROFILE, StorageTarget.MACHINE);
 		this._storageService.store(StorageVersionKeys.CopilotTrackingId, this.copilotTrackingId, StorageScope.PROFILE, StorageTarget.MACHINE);
 
-		// Notify that the filters have changed.
 		this._onDidChangeFilters.fire();
 	}
 
@@ -192,17 +165,9 @@ export class CopilotAssignmentFilterProvider extends Disposable implements IExpe
 		this._storageService.store(StorageVersionKeys.CopilotIsSn, this.copilotIsSn, StorageScope.PROFILE, StorageTarget.MACHINE);
 		this._storageService.store(StorageVersionKeys.CopilotIsFcv1, this.copilotIsFcv1, StorageScope.PROFILE, StorageTarget.MACHINE);
 
-		// Notify that the filters have changed.
 		this._onDidChangeFilters.fire();
 	}
 
-	/**
-	 * Returns a version string that can be parsed by the TAS client.
-	 * The tas client cannot handle suffixes lke "-insider"
-	 * Ref: https://github.com/microsoft/tas-client/blob/30340d5e1da37c2789049fcf45928b954680606f/vscode-tas-client/src/vscode-tas-client/VSCodeFilterProvider.ts#L35
-	 *
-	 * @param version Version string to be trimmed.
-	*/
 	private static trimVersionSuffix(version: string): string {
 		const regex = /\-[a-zA-Z0-9]+$/;
 		const result = version.split(regex);
@@ -244,21 +209,12 @@ export class CopilotAssignmentFilterProvider extends Disposable implements IExpe
 	}
 }
 
-/**
- * userParam names for the new TAS assignments API (POST /api/v1/assignments) that carry
- * the GitHub account signals available in core. Hex org/business ids are not yet parsed
- * in core, so they are intentionally omitted here.
- */
 export enum GitHubAssignmentsFilter {
 	CopilotTrackingId = 'copilottrackingid',
 	IsGhOrMsftStaff = 'github_core_isghormsftstaff',
 	GhMsftOrExternal = 'github_core_ghmsftorexternal',
 }
 
-/**
- * Emits the core-available GitHub account filters for the new TAS assignments API using
- * the new userParam key names.
- */
 export class GitHubCoreAssignmentsFilterProvider extends Disposable implements IExperimentationFilterProvider {
 	private copilotTrackingId: string | undefined;
 	private internalOrg: 'vscode' | 'github' | 'microsoft' | undefined;
@@ -290,9 +246,6 @@ export class GitHubCoreAssignmentsFilterProvider extends Disposable implements I
 	}
 
 	getFilterValue(filter: string): string | null {
-		// copilotTrackingId is the stable user id (it never changes) but can be unavailable
-		// during sign-in delays. Latch the first known value and fall back to it so the
-		// filter is not dropped from later requests once we have seen it.
 		const liveTrackingId = this._chatEntitlementService.copilotTrackingId;
 		if (liveTrackingId) {
 			this.copilotTrackingId = liveTrackingId;

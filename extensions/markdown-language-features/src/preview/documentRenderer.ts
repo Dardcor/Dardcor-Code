@@ -16,12 +16,6 @@ import { ContentSecurityPolicyArbiter, MarkdownPreviewSecurityLevel } from './se
 import type { DiffScrollSyncData, MarkdownPreviewInnerChange, MarkdownPreviewLineChanges } from '../../types/previewMessaging';
 
 
-/**
- * Strings used inside the markdown preview.
- *
- * Stored here and then injected in the preview so that they
- * can be localized using our normal localization process.
- */
 const previewStrings = {
 	cspAlertMessageText: vscode.l10n.t("Some content has been disabled in this document"),
 
@@ -99,7 +93,6 @@ export class MdDocumentRenderer {
 
 		this.#logger.trace('DocumentRenderer', `provideTextDocumentContent - ${markdownDocument.uri}`, initialData);
 
-		// Content Security Policy
 		const nonce = generateUuid();
 		const csp = this.#getCsp(resourceProvider, sourceUri, nonce);
 
@@ -139,9 +132,6 @@ export class MdDocumentRenderer {
 	): Promise<MarkdownContentProviderOutput> {
 		const innerChanges = lineChanges?.innerChanges;
 
-		// If there are inner changes, inject invisible marker text into the source text
-		// before rendering. The webview uses the CSS Custom Highlight API to create
-		// highlights between each marker pair, which works across HTML tag boundaries.
 		const input: vscode.TextDocument | string = innerChanges?.length
 			? injectInnerChangeMarkers(markdownDocument.getText(), innerChanges)
 			: markdownDocument;
@@ -180,18 +170,15 @@ export class MdDocumentRenderer {
 			return href;
 		}
 
-		// Assume it must be a local file
 		if (href.startsWith('/') || /^[a-z]:\\/i.test(href)) {
 			return resourceProvider.asWebviewUri(vscode.Uri.file(href)).toString();
 		}
 
-		// Use a workspace relative path if there is a workspace
 		const root = vscode.workspace.getWorkspaceFolder(resource);
 		if (root) {
 			return resourceProvider.asWebviewUri(vscode.Uri.joinPath(root.uri, href)).toString();
 		}
 
-		// Otherwise look relative to the markdown file
 		return resourceProvider.asWebviewUri(vscode.Uri.joinPath(uri.Utils.dirname(resource), href)).toString();
 	}
 
@@ -277,13 +264,9 @@ export class MdDocumentRenderer {
 	}
 }
 
-/**
- * Injects empty marker `<span>` elements into the markdown source text at inner change positions.
- */
 function injectInnerChangeMarkers(text: string, innerChanges: readonly MarkdownPreviewInnerChange[]): string {
 	const lines = text.split('\n');
 
-	// Group inner changes by line
 	const changesByLine = new Map<number, { index: number; change: MarkdownPreviewInnerChange }[]>();
 	for (let i = 0; i < innerChanges.length; i++) {
 		const change = innerChanges[i];
@@ -302,7 +285,6 @@ function injectInnerChangeMarkers(text: string, innerChanges: readonly MarkdownP
 
 		let line = lines[lineNum];
 
-		// Sort by startColumn descending so that insertions don't shift earlier positions
 		changes.sort((a, b) => b.change.startColumn - a.change.startColumn);
 
 		for (const { index, change } of changes) {

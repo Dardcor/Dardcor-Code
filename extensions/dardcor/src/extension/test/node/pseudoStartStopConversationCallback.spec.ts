@@ -210,16 +210,13 @@ suite('Tool stream throttling', () => {
 		const responseSource = new AsyncIterableSource<IResponsePart>();
 		const processor = new PseudoStopStartResponseProcessor([], undefined);
 
-		// First update goes through immediately
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":1}' }] } });
-		// These arrive within the 100ms throttle window — should be buffered
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":2}' }] } });
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":3}' }] } });
 		responseSource.resolve();
 
 		await processor.doProcessResponse(responseSource.asyncIterable, stream, CancellationToken.None);
 
-		// 1 immediate + 1 flush of the last buffered update = 2 total
 		assert.strictEqual(updateCalls.length, 2);
 		assert.strictEqual(updateCalls[0].toolCallId, 'tool1');
 		assert.deepStrictEqual(updateCalls[1].streamData.partialInput, { a: 3 });
@@ -236,7 +233,6 @@ suite('Tool stream throttling', () => {
 
 		await processor.doProcessResponse(responseSource.asyncIterable, stream, CancellationToken.None);
 
-		// Both emitted immediately (no pending flush needed)
 		assert.strictEqual(updateCalls.length, 2);
 		assert.deepStrictEqual(updateCalls[0].streamData.partialInput, { a: 1 });
 		assert.deepStrictEqual(updateCalls[1].streamData.partialInput, { a: 2 });
@@ -248,14 +244,12 @@ suite('Tool stream throttling', () => {
 
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":1}' }] } });
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool2', name: 'myTool', arguments: '{"b":1}' }] } });
-		// These are within the throttle window for their respective tools
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":2}' }] } });
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool2', name: 'myTool', arguments: '{"b":2}' }] } });
 		responseSource.resolve();
 
 		await processor.doProcessResponse(responseSource.asyncIterable, stream, CancellationToken.None);
 
-		// 2 immediate (one per tool) + 2 flushed (one per tool) = 4
 		assert.strictEqual(updateCalls.length, 4);
 	});
 
@@ -264,7 +258,6 @@ suite('Tool stream throttling', () => {
 		const responseSource = new AsyncIterableSource<IResponsePart>();
 		const processor = new PseudoStopStartResponseProcessor([], undefined);
 
-		// Start processing, then emit items so the for-await loop consumes them
 		const promise = processor.doProcessResponse(responseSource.asyncIterable, stream, cts.token);
 
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":1}' }] } });
@@ -272,13 +265,11 @@ suite('Tool stream throttling', () => {
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":2}' }] } });
 		await new Promise(r => setTimeout(r, 0));
 
-		// Cancel after items are processed but before stream ends
 		cts.cancel();
 		responseSource.resolve();
 
 		await promise;
 
-		// Only the first immediate update — buffered update should NOT be flushed
 		assert.strictEqual(updateCalls.length, 1);
 		assert.strictEqual(updateCalls[0].toolCallId, 'tool1');
 	});
@@ -295,20 +286,15 @@ suite('Tool stream throttling', () => {
 		);
 		const processor = new PseudoStopStartResponseProcessor([], undefined);
 
-		// Buffer a pending update
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":1}' }] } });
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":2}' }] } });
-		// Retry clears everything
 		responseSource.emitOne({ delta: { text: '', retryReason: 'network_error' } });
-		// New update after retry should go through immediately
 		clock.tick(100);
 		responseSource.emitOne({ delta: { text: '', dardcorToolCallStreamUpdates: [{ id: 'tool1', name: 'myTool', arguments: '{"a":3}' }] } });
 		responseSource.resolve();
 
 		await processor.doProcessResponse(responseSource.asyncIterable, clearStream, CancellationToken.None);
 
-		// 1 immediate before retry + 1 immediate after retry = 2
-		// The buffered {"a":2} should have been cleared by retry, not flushed
 		assert.strictEqual(updateCalls.length, 2);
 		assert.deepStrictEqual(updateCalls[0].streamData.partialInput, { a: 1 });
 		assert.deepStrictEqual(updateCalls[1].streamData.partialInput, { a: 3 });

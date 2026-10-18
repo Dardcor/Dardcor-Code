@@ -22,14 +22,6 @@ interface ISnippetsContent {
 	snippets: IStringDictionary<string>;
 }
 
-/**
- * Resolves the target resource for a snippet `key` relative to `snippetsHome`,
- * ensuring the result stays contained within `snippetsHome`. The `key` originates
- * from an imported (and therefore untrusted) profile, so it can contain path
- * traversal segments (e.g. `../../../foo`). `joinPath` normalizes such segments,
- * which would otherwise allow writing files outside the profile directory.
- * Returns `undefined` when the resolved resource escapes `snippetsHome`.
- */
 function toSnippetResource(extUri: IExtUri, snippetsHome: URI, key: string): URI | undefined {
 	const resource = extUri.joinPath(snippetsHome, key);
 	if (!extUri.isEqualOrParent(resource, snippetsHome) || extUri.isEqual(resource, snippetsHome)) {
@@ -104,7 +96,6 @@ export class SnippetsResource implements IProfileResource {
 		try {
 			stat = await this.fileService.resolve(profile.snippetsHome);
 		} catch (e) {
-			// No snippets
 			if (e instanceof FileOperationError && e.fileOperationResult === FileOperationResult.FILE_NOT_FOUND) {
 				return snippets;
 			} else {

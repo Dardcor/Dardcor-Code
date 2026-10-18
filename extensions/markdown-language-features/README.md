@@ -4,4 +4,4 @@
 
 ## Features
 
-See [Markdown in Visual Studio Code](https://code.visualstudio.com/docs/languages/markdown) to learn about the features of this extension.
+See [Markdown in Visual Studio Code](https://www.dardcor-code.web.id/docs/languages/markdown) to learn about the features of this extension.

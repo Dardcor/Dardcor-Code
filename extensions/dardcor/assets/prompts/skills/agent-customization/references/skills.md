@@ -1,4 +1,4 @@
-# [Agent Skills (SKILL.md)](https://code.visualstudio.com/docs/dardcor/customization/agent-skills)
+# [Agent Skills (SKILL.md)](https://www.dardcor-code.web.id/docs/dardcor/customization/agent-skills)
 
 Folders of instructions, scripts, and resources that agents load on-demand for specialized tasks.
 

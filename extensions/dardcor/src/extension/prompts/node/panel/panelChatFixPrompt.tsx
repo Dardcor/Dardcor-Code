@@ -78,7 +78,7 @@ export class PanelChatFixPrompt extends PromptElement<PanelChatFixPromptProps> {
 						<Diagnostics documentContext={documentContext} diagnostics={getDiagnostics(documentContext)} />
 					</UserMessage>
 				}
-				{/* todo@connor4312/roblou: is this the right thing to do here? */}
+				{}
 				{<ChatToolCalls priority={899} flexGrow={2} promptContext={this.props.promptContext} toolCallRounds={this.props.promptContext.toolCallRounds} toolCallResults={this.props.promptContext.toolCallResults} />}
 				{<ChatToolReferences priority={899} flexGrow={2} promptContext={this.props.promptContext} embeddedInsideUserMessage={false} />}
 				<ChatVariablesAndQuery flexGrow={2} priority={900} chatVariables={chatVariables} query={query} embeddedInsideUserMessage={false} />

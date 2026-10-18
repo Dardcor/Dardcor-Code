@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Increase max listeners for event emitters
 import { EventEmitter } from 'events';
 EventEmitter.defaultMaxListeners = 100;
 
@@ -26,9 +25,6 @@ import watcher from './lib/watch/index.ts';
 const root = path.dirname(import.meta.dirname);
 const commit = getVersion(root);
 
-// Tracks active extension compilations to emit aggregate
-// "Starting compilation" / "Finished compilation" messages
-// that the problem matcher in tasks.json relies on.
 let activeExtensionCompilations = 0;
 
 function onExtensionCompilationStart(): void {
@@ -45,11 +41,6 @@ function onExtensionCompilationEnd(): void {
 	}
 }
 
-// To save 250ms for each gulp startup, we are caching the result here
-// const compilations = glob.sync('**/tsconfig.json', {
-// 	cwd: extensionsPath,
-// 	ignore: ['**/out/**', '**/node_modules/**']
-// });
 const compilations = [
 	'extensions/configuration-editing/tsconfig.json',
 	'extensions/css-language-features/client/tsconfig.json',
@@ -84,8 +75,6 @@ const compilations = [
 	'extensions/tunnel-forwarding/tsconfig.json',
 	'extensions/typescript-language-features/web/tsconfig.json',
 	'extensions/typescript-language-features/tsconfig.json',
-	'extensions/vscode-colorize-tests/tsconfig.json',
-	'extensions/vscode-colorize-perf-tests/tsconfig.json',
 ];
 
 const getBaseUrl = (out: string) => `https://main.vscode-cdn.net/sourcemaps/${commit}/${out}`;
@@ -146,7 +135,6 @@ const tasks = compilations.map(function (tsconfigFile) {
 					sourceMappingURL: !build ? undefined : f => `${baseUrl}/${f.relative}.map`,
 					addComment: !!build,
 					includeContent: !!build,
-					// note: trailing slash is important, else the source URLs in V8's file coverage are incorrect
 					sourceRoot: '../src/',
 				}))
 				.pipe(tsFilter.restore)
@@ -155,7 +143,6 @@ const tasks = compilations.map(function (tsconfigFile) {
 			return es.duplex(input, output);
 		};
 
-		// add src-stream for project files
 		pipeline.tsProjectSrc = () => {
 			return compilation.src(srcOpts);
 		};
@@ -196,11 +183,6 @@ const tasks = compilations.map(function (tsconfigFile) {
 		const tsgoStream = watchInput.pipe(util.debounce(() => {
 			onExtensionCompilationStart();
 			const stream = createTsgoStream(absolutePath, { taskName: 'extensions' }, () => rewriteTsgoSourceMappingUrlsIfNeeded(false, out, baseUrl));
-			// Wrap in a result stream that always emits 'end' (even on
-			// error) so the debounce resets to idle and can process future
-			// file changes. Errors from tsgo (e.g. type errors causing a
-			// non-zero exit code) are already reported by spawnTsgo's
-			// runReporter, so swallowing the stream error is safe.
 			const result = es.through();
 			stream.on('end', () => {
 				onExtensionCompilationEnd();
@@ -217,7 +199,6 @@ const tasks = compilations.map(function (tsconfigFile) {
 		return watchStream;
 	}));
 
-	// Tasks
 	task.task(transpileTask);
 	task.task(compileTask);
 	task.task(watchTask);
@@ -234,7 +215,6 @@ task.task(compileExtensionsTask);
 export const watchExtensionsTask = task.define('watch-extensions', task.parallel(...tasks.map(t => t.watchTask)));
 task.task(watchExtensionsTask);
 
-//#region Extension media
 
 export const compileExtensionMediaTask = task.define('compile-extension-media', () => ext.buildExtensionMedia(false));
 task.task(compileExtensionMediaTask);
@@ -245,48 +225,21 @@ task.task(watchExtensionMedia);
 export const compileExtensionMediaBuildTask = task.define('compile-extension-media-build', () => ext.buildExtensionMedia(false, '.build/extensions'));
 task.task(compileExtensionMediaBuildTask);
 
-//#endregion
 
-//#region Azure Pipelines
 
-/**
- * Cleans the build directory for extensions
- */
 export const cleanExtensionsBuildTask = task.define('clean-extensions-build', util.rimraf('.build/extensions'));
 
-/**
- * brings in the marketplace extensions for the build
- */
 const bundleMarketplaceExtensionsBuildTask = task.define('bundle-marketplace-extensions-build', () => ext.packageMarketplaceExtensionsStream(false).pipe(gulp.dest('.build')));
 
-/**
- * Compiles the non-native extensions for the build
- * @note this does not clean the directory ahead of it. See {@link cleanExtensionsBuildTask} for that.
- */
 export const compileNonNativeExtensionsBuildTask = task.define('compile-non-native-extensions-build', task.series(
 	bundleMarketplaceExtensionsBuildTask,
 	task.define('bundle-non-native-extensions-build', () => ext.packageNonNativeLocalExtensionsStream(false, false).pipe(gulp.dest('.build')))
 ));
 task.task(compileNonNativeExtensionsBuildTask);
 
-/**
- * Compiles the native extensions for the build
- * @note this does not clean the directory ahead of it. See {@link cleanExtensionsBuildTask} for that.
- */
 export const compileNativeExtensionsBuildTask = task.define('compile-native-extensions-build', () => ext.packageNativeLocalExtensionsStream(false, false).pipe(gulp.dest('.build')));
 task.task(compileNativeExtensionsBuildTask);
 
-/**
- * Compiles the built-in copilot extension for the build.
- * Used by non-CI local builds where copilot is not downloaded as a VSIX.
- */
-export const compileCopilotExtensionBuildTask = task.define('compile-copilot-extension-build', () => ext.packageCopilotExtensionStream(false).pipe(gulp.dest('.build')));
-task.task(compileCopilotExtensionBuildTask);
-
-/**
- * Compiles the extensions for the build.
- * This is essentially a helper task that combines {@link cleanExtensionsBuildTask}, {@link compileNonNativeExtensionsBuildTask} and {@link compileNativeExtensionsBuildTask}
- */
 export const compileAllExtensionsBuildTask = task.define('compile-extensions-build', task.series(
 	cleanExtensionsBuildTask,
 	bundleMarketplaceExtensionsBuildTask,
@@ -296,7 +249,6 @@ task.task(compileAllExtensionsBuildTask);
 
 
 
-//#endregion
 
 export const compileWebExtensionsTask = task.define('compile-web', () => buildWebExtensions(false));
 task.task(compileWebExtensionsTask);
@@ -307,7 +259,6 @@ task.task(watchWebExtensionsTask);
 async function buildWebExtensions(isWatch: boolean): Promise<void> {
 	const extensionsPath = path.join(root, 'extensions');
 
-	// Find all esbuild.browser.mts files
 	const esbuildConfigLocations = await nodeUtil.promisify(glob)(
 		path.join(extensionsPath, '**', 'esbuild.browser.mts'),
 		{ ignore: ['**/node_modules'] }
@@ -315,11 +266,9 @@ async function buildWebExtensions(isWatch: boolean): Promise<void> {
 
 	const promises: Promise<unknown>[] = [];
 
-	// Esbuild for extensions
 	if (esbuildConfigLocations.length > 0) {
 		promises.push(
 			ext.esbuildExtensions('packaging web extension (esbuild)', isWatch, esbuildConfigLocations.map(script => ({ script }))),
-			// Also run type check on extensions
 			...esbuildConfigLocations.flatMap(script => {
 				const roots = ext.getBuildRootsForExtension(path.dirname(script));
 				return roots.map(root => ext.typeCheckExtension(root, true));

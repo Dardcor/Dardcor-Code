@@ -39,14 +39,6 @@ export class PromptPieces {
 		public readonly computeTokens: (s: string) => number,
 		public readonly opts: PromptOptions,
 		public readonly neighborSnippets?: readonly INeighborFileSnippet[],
-		/**
-		 * A cascade result computed by the caller (the provider, which runs the
-		 * cascade first so it can clip `currentFile` last to `currentFileBudget +
-		 * finalSurplus`). When provided, {@link getUserPrompt} renders these
-		 * snippets instead of running the cascade itself, guaranteeing the surplus
-		 * used to size the current file matches the snippets that end up in the
-		 * prompt. Only honored when `opts.globalBudget` is set.
-		 */
 		public readonly precomputedCascade?: CascadeResult,
 	) {
 	}
@@ -56,11 +48,6 @@ export interface UserPromptResult {
 	readonly prompt: string;
 	readonly nDiffsInPrompt: number;
 	readonly neighborSnippetsResult: AppendNeighborFileSnippetsResult | undefined;
-	/**
-	 * Approximate per-section token counts for the user prompt. `systemPrompt` is
-	 * left at 0 here (the system message is not part of the user prompt) and is
-	 * filled in by the provider.
-	 */
 	readonly sectionTokens: PromptSectionTokenCounts;
 }
 
@@ -77,8 +64,6 @@ export function getUserPrompt(promptPieces: PromptPieces): UserPromptResult {
 	let nDiffsInPrompt: number;
 
 	if (opts.globalBudget !== undefined) {
-		// Reuse a cascade the caller already ran (the provider runs it first so it can
-		// clip the current file last from `finalSurplus`), or run it now for callers
 		// that set a global budget without precomputing (e.g. tests).
 		const cascade = precomputedCascade ?? runGlobalBudgetCascade(activeDoc, xtabHistory, langCtx, computeTokens, opts, neighborSnippets, opts.globalBudget);
 		recentlyViewedCodeSnippets = cascade.codeSnippets;
@@ -94,7 +79,7 @@ export function getUserPrompt(promptPieces: PromptPieces): UserPromptResult {
 		docsInPrompt = r.documents;
 		neighborSnippetsResult = r.neighborSnippetsResult;
 
-		docsInPrompt.add(activeDoc.id); // Add active document to the set of documents in prompt
+		docsInPrompt.add(activeDoc.id);
 
 		const diff = getEditDiffHistory(activeDoc, xtabHistory, docsInPrompt, computeTokens, opts.diffHistory);
 		editDiffHistory = diff.promptPiece;
@@ -109,11 +94,6 @@ export function getUserPrompt(promptPieces: PromptPieces): UserPromptResult {
 
 	const lintsWithNewLinePadding = opts.lintOptions ? `\n${lintErrors.getFormattedLintErrors(opts.lintOptions)}\n` : '';
 
-	// Build each rendered section string exactly once and assemble `basePrompt`
-	// from those same locals, so the per-section token counts below are derived
-	// from the identical text that goes into the prompt (single source of truth,
-	// no rebuild and no drift). `areaAroundCodeToEdit`/`cursorLocation` are
-	// mutually exclusive and appended per-strategy below.
 	const recentFilesSection = `${PromptTags.RECENT_FILES.start}\n${recentlyViewedCodeSnippets}\n${PromptTags.RECENT_FILES.end}`;
 	const currentFileSection = `${PromptTags.CURRENT_FILE.start}\ncurrent_file_path: ${currentFilePath}\n${currentFileContent}\n${PromptTags.CURRENT_FILE.end}`;
 	const editHistorySection = `${PromptTags.EDIT_HISTORY.start}\n${editDiffHistory}\n${PromptTags.EDIT_HISTORY.end}`;
@@ -214,36 +194,10 @@ export interface CascadeResult {
 	readonly neighborSnippetsResult: AppendNeighborFileSnippetsResult | undefined;
 	readonly editDiffHistory: string;
 	readonly nDiffsInPrompt: number;
-	/** Per-source breakdown of {@link codeSnippets} for per-subsection token reporting. */
 	readonly subsections: RecentlyViewedSubsectionSnippets;
-	/**
-	 * Budget left unused after the last part in `order` ran. The provider adds it
-	 * to the current file's clip budget (`currentFileBudget + finalSurplus`) so the
-	 * current file, which is clipped last, reuses whatever the cascade left unused.
-	 */
 	readonly finalSurplus: number;
 }
 
-/**
- * Single-pool budget cascade across prompt parts, modeled after completions-core's
- * `CascadingPromptFactory`. For each part in `globalBudget.order`, allocate
- * `surplus + totalTokens * shares[part]` and run that sub-builder with the override.
- * Unspent budget cascades to the next part.
- *
- * The cascade starts with surplus `0` and renders only the parts in `order`.
- * `currentFile` is not rendered here (it is clipped separately by the caller) and
- * `lintOptions` is excluded entirely; both keep their own per-part caps for
- * clipping. Whatever budget is unused after the last part is returned as
- * {@link CascadeResult.finalSurplus}; the provider adds it to the current file's
- * clip budget so the current file reuses the leftover (it is clipped last).
- *
- * Sub-builders are invoked using existing helpers so behavior of each individual
- * part is unchanged. Each sub-builder reports `tokensConsumed` using the same
- * internal accounting it uses to make budget decisions (paged-clipping line cost,
- * raw-snippet cost for appenders, diff-entry cost for history). The cascade uses
- * that reported value to compute `surplus`, which keeps the cascade aligned with
- * how each part actually charges against its budget.
- */
 export function runGlobalBudgetCascade(
 	activeDoc: StatelessNextEditDocument,
 	xtabHistory: readonly IXtabHistoryEntry[],
@@ -308,10 +262,6 @@ export function runGlobalBudgetCascade(
 			default:
 				assertNever(part);
 		}
-		// The conservation guarantee (current file + cascade <= totalTokens) relies
-		// on every sub-builder reporting `0 <= tokensConsumed <= budget`. Surface a
-		// violation (never silently clamp `tokensConsumed` down — that would hide
-		// real overspend and let the prompt exceed the pool).
 		softAssert(tokensConsumed >= 0 && tokensConsumed <= budget, `globalBudget part '${part}' reported tokensConsumed=${tokensConsumed} outside [0, ${budget}]`);
 		surplus = Math.max(0, budget - tokensConsumed);
 	}
@@ -345,7 +295,6 @@ function addRelatedInformation(relatedInformation: string, prompt: string, posit
 }
 
 function appendWithNewLineIfNeeded(base: string, toAppend: string, minNewLines: number): string {
-	// Count existing newlines at the end of base and start of toAppend
 	let existingNewLines = 0;
 	for (let i = base.length - 1; i >= 0 && base[i] === '\n'; i--) {
 		existingNewLines++;
@@ -354,7 +303,6 @@ function appendWithNewLineIfNeeded(base: string, toAppend: string, minNewLines: 
 		existingNewLines++;
 	}
 
-	// Add newlines to reach the minimum required
 	const newLinesToAdd = Math.max(0, minNewLines - existingNewLines);
 	return (base + '\n'.repeat(newLinesToAdd) + toAppend).trim();
 }
@@ -398,7 +346,7 @@ function getPostScript(strategy: PromptingStrategy | undefined, currentFilePath:
 			postScript = `Output a modified diff style format with the changes you want. Each change patch must start with \`<filename>:<line number>\` and then include some non empty "anchor lines" preceded by \`-\` and the new lines meant to replace them preceded by \`+\`. Put your changes in the order that makes the most sense, for example edits inside the code_to_edit region and near the user's <|cursor|> should always be prioritized. Output "<NO_EDIT>" if you don't have a good edit candidate.`;
 			break;
 		case PromptingStrategy.SimplifiedSystemPrompt:
-		case PromptingStrategy.CopilotNesXtab:
+		case PromptingStrategy.DardcorNesXtab:
 		case undefined:
 			postScript = `The developer was working on a section of code within the tags \`code_to_edit\` in the file located at \`${currentFilePath}\`. \
 Using the given \`recently_viewed_code_snippets\`, \`current_file_content\`, \`edit_diff_history\`, \`area_around_code_to_edit\`, and the cursor \
@@ -451,7 +399,7 @@ export function truncateCode(
 	let i = fromBeginning ? lines.length - 1 : 0;
 
 	while (totalLength < allowedLength) {
-		totalLength += lines[i].length + 1; // +1 for \n
+		totalLength += lines[i].length + 1;
 		if (fromBeginning) {
 			i--;
 			if (i < 0) {
@@ -496,8 +444,6 @@ export function expandRangeToPageRange(
 		return countTokensForLines(page, computeTokens);
 	}
 
-	// [0, pageSize) -> 0, [pageSize, 2*pageSize) -> 1, ...
-	// eg 5 -> 0, 63 -> 6
 	let firstPageIdx = Math.floor(areaAroundEditWindowLinesRange.start / pageSize);
 	let lastPageIdxIncl = Math.floor((areaAroundEditWindowLinesRange.endExclusive - 1) / pageSize);
 
@@ -508,11 +454,10 @@ export function expandRangeToPageRange(
 
 	let tokenBudget = availableTokenBudget;
 
-	// TODO: this's specifically implemented with some code duplication to not accidentally change existing behavior
-	if (!prioritizeAboveCursor) { // both above and below get the half of budget
+	if (!prioritizeAboveCursor) {
 		const halfOfAvailableTokenBudget = Math.floor(availableTokenBudget / 2);
 
-		tokenBudget = halfOfAvailableTokenBudget; // split by 2 to give both above and below areaAroundCode same budget
+		tokenBudget = halfOfAvailableTokenBudget;
 
 		for (let i = firstPageIdx - 1; i >= 0 && tokenBudget > 0; --i) {
 			const tokenCountForPage = computeTokensForPage(i);
@@ -524,8 +469,6 @@ export function expandRangeToPageRange(
 			tokenBudget = newTokenBudget;
 		}
 
-		// Code below the cursor gets its own half of the budget plus, when
-		// enabled, any budget left unused by the code above the cursor.
 		const leftoverFromAbove = useLeftoverBudgetFromAbove ? tokenBudget : 0;
 		tokenBudget = halfOfAvailableTokenBudget + leftoverFromAbove;
 
@@ -538,7 +481,7 @@ export function expandRangeToPageRange(
 			lastPageIdxIncl = i;
 			tokenBudget = newTokenBudget;
 		}
-	} else { // code above consumes as much as it can and the leftover budget is given to code below
+	} else {
 		tokenBudget = availableTokenBudget;
 
 		for (let i = firstPageIdx - 1; i >= 0 && tokenBudget > 0; --i) {
@@ -573,7 +516,6 @@ export function clipPreservingRange(
 	opts: CurrentFileOptions,
 ): Result<OffsetRange, 'outOfBudget'> {
 
-	// subtract budget consumed by rangeToPreserve
 	const linesToPreserve = docLines.slice(rangeToPreserve.start, rangeToPreserve.endExclusive);
 	const availableTokenBudget = opts.maxTokens - countTokensForLines(linesToPreserve, computeTokens);
 	if (availableTokenBudget < 0) {
@@ -597,9 +539,7 @@ export function clipPreservingRange(
 
 export class ClippedDocument {
 	constructor(
-		/** The lines of the document that were kept after clipping. */
 		public readonly lines: string[],
-		/** The line range in the original document that corresponds to the kept lines. */
 		public readonly keptRange: OffsetRange,
 	) { }
 }
@@ -667,7 +607,6 @@ export function constructTaggedFile(
 		};
 	}
 ) {
-	// Content with cursor tag - always created for areaAroundCodeToEdit
 	const contentWithCursorAsLinesOriginal = (() => {
 		const addCursorTagEdit = StringEdit.single(StringReplacement.insert(currentDocument.cursorOffset, PromptTags.CURSOR));
 		const contentWithCursor = addCursorTagEdit.applyOnText(currentDocument.content);
@@ -688,7 +627,6 @@ export function constructTaggedFile(
 		PromptTags.AREA_AROUND.end
 	];
 
-	// For current file content, optionally include cursor tag based on includeCursorTag option
 	const currentFileContentSourceLines = promptOptions.currentFile.includeCursorTag
 		? contentWithCursorAsLinesOriginal
 		: currentDocument.lines;
@@ -699,7 +637,6 @@ export function constructTaggedFile(
 	if (promptOptions.currentFile.includeTags && opts.includeLineNumbers.currentFileContent === opts.includeLineNumbers.areaAroundCodeToEdit) {
 		areaAroundCodeToEditForCurrentFile = areaAroundCodeToEdit;
 	} else {
-		// Use currentFileContentWithCursorLines for edit window too
 		const editWindowLines = currentFileContentWithCursorLines.slice(editWindowLinesRange.start, editWindowLinesRange.endExclusive);
 		areaAroundCodeToEditForCurrentFile = [
 			...currentFileContentWithCursorLines.slice(areaAroundEditWindowLinesRange.start, editWindowLinesRange.start),

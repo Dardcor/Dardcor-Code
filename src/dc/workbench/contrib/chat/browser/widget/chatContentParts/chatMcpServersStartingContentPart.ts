@@ -17,13 +17,6 @@ import { IChatRendererContent } from '../../../common/model/chatViewModel.js';
 import { IChatContentPart } from './chatContentParts.js';
 import './media/chatMcpServersInteractionContent.css';
 
-/**
- * Renders a lightweight "Starting MCP servers …" progress hint for agent-host
- * sessions. The set of servers still starting is driven by the observable on
- * {@link IChatMcpServersStartingSlow.servers}; when it empties (all servers
- * started, content began arriving, or the turn ended) the part hides itself.
- * There is no interactive affordance — this is a progress indicator only.
- */
 export class ChatMcpServersStartingContentPart extends Disposable implements IChatContentPart {
 	public readonly domNode: HTMLElement;
 

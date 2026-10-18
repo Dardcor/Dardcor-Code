@@ -38,11 +38,7 @@ import { ThemeIcon } from '../../../../../../../base/common/themables.js';
 import { IUserInteractionService } from '../../../../../../../platform/userInteraction/browser/userInteractionService.js';
 import { Event, Emitter } from '../../../../../../../base/common/event.js';
 
-/**
- * Customization options for the gutter indicator appearance and behavior.
- */
 export interface GutterIndicatorCustomization {
-	/** Override the default icon */
 	readonly icon?: ThemeIcon;
 }
 
@@ -81,7 +77,6 @@ export class InlineSuggestionGutterMenuData {
 	) { }
 }
 
-// TODO this class does not make that much sense yet.
 export class SimpleInlineSuggestModel {
 	public static fromInlineCompletionModel(model: InlineCompletionsModel): SimpleInlineSuggestModel {
 		return new SimpleInlineSuggestModel(
@@ -153,7 +148,6 @@ export class InlineEditsGutterIndicator extends Disposable {
 			this._isHoveredOverIcon.set(false, undefined);
 		}));
 
-		// pulse animation when hovering inline edit
 		this._register(runOnChange(this._isHoveredOverInlineEditDebounced, (isHovering) => {
 			if (isHovering) {
 				this.triggerAnimation();
@@ -163,7 +157,6 @@ export class InlineEditsGutterIndicator extends Disposable {
 		this._register(autorun(reader => {
 			indicator.readEffect(reader);
 			if (indicator.element) {
-				// For the line number
 				this._editorObs.editor.applyFontInfo(indicator.element);
 			}
 		}));
@@ -177,7 +170,6 @@ export class InlineEditsGutterIndicator extends Disposable {
 	private readonly _gutterIndicatorStyles = derived(this, reader => {
 		let v = this._tabAction.read(reader);
 
-		// TODO: add source of truth for alt action active and key pressed
 		const altAction = this._data.read(reader)?.altAction;
 		const modifiedPressed = this._modifierPressed.read(reader);
 		if (altAction && modifiedPressed) {
@@ -210,7 +202,6 @@ export class InlineEditsGutterIndicator extends Disposable {
 			return new Animation(null, null).finished;
 		}
 
-		// PULSE ANIMATION:
 		const animation = this._iconRef.element.animate([
 			{
 				outline: `2px solid ${this._gutterIndicatorStyles.map(v => v.border).get()}`,
@@ -293,13 +284,12 @@ export class InlineEditsGutterIndicator extends Disposable {
 			return () => 0;
 		}
 
-		// no glyph margin => the entire gutter width is available as there is no optimal place to put the icon
 		if (layout.lineNumbersLeft === 0) {
 			return () => gutterWidth;
 		}
 
 		const lineNumberOptions = this._editorObs.getOption(EditorOption.lineNumbers).read(reader);
-		if (lineNumberOptions.renderType === RenderLineNumbersType.Relative || /* likely to flicker */
+		if (lineNumberOptions.renderType === RenderLineNumbersType.Relative ||
 			lineNumberOptions.renderType === RenderLineNumbersType.Off) {
 			return () => gutterWidth;
 		}
@@ -307,7 +297,7 @@ export class InlineEditsGutterIndicator extends Disposable {
 		const w = editor.getOption(EditorOption.fontInfo).typicalHalfwidthCharacterWidth;
 		const rightOfLineNumber = layout.lineNumbersLeft + layout.lineNumbersWidth;
 		const totalLines = textModel.getLineCount();
-		const totalLinesDigits = (totalLines + 1 /* 0 based to 1 based*/).toString().length;
+		const totalLinesDigits = (totalLines + 1 ).toString().length;
 
 		const offsetDigits: {
 			firstLineNumberWithDigitCount: number;
@@ -315,7 +305,6 @@ export class InlineEditsGutterIndicator extends Disposable {
 			usableWidthLeftOfLineNumber: number;
 		}[] = [];
 
-		// We only need to pre compute the usable width left of the line number for the first line number with a given digit count
 		for (let digits = 1; digits <= totalLinesDigits; digits++) {
 			const firstLineNumberWithDigitCount = 10 ** (digits - 1);
 			const topOfLineNumber = editor.getTopForLineNumber(firstLineNumberWithDigitCount);
@@ -344,24 +333,20 @@ export class InlineEditsGutterIndicator extends Disposable {
 		const gutterViewPortPaddingLeft = 1;
 		const gutterViewPortPaddingTop = 2;
 
-		// Entire gutter view from top left to bottom right
 		const gutterWidthWithoutPadding = layout.decorationsLeft + layout.decorationsWidth - layout.glyphMarginLeft - 2 * gutterViewPortPaddingLeft;
 		const gutterHeightWithoutPadding = layout.height - 2 * gutterViewPortPaddingTop;
 		const gutterViewPortWithStickyScroll = Rect.fromLeftTopWidthHeight(gutterViewPortPaddingLeft, gutterViewPortPaddingTop, gutterWidthWithoutPadding, gutterHeightWithoutPadding);
 		const gutterViewPortWithoutStickyScrollWithoutPaddingTop = gutterViewPortWithStickyScroll.withTop(this._stickyScrollHeight.read(reader));
 		const gutterViewPortWithoutStickyScroll = gutterViewPortWithStickyScroll.withTop(gutterViewPortWithoutStickyScrollWithoutPaddingTop.top + gutterViewPortPaddingTop);
 
-		// The glyph margin area across all relevant lines
 		const verticalEditRange = s.lineOffsetRange.read(reader);
 		const gutterEditArea = Rect.fromRanges(OffsetRange.fromTo(gutterViewPortWithoutStickyScroll.left, gutterViewPortWithoutStickyScroll.right), verticalEditRange);
 
-		// The gutter view container (pill)
 		const pillHeight = lineHeight;
 		const pillOffset = this._verticalOffset.read(reader);
 		const pillFullyDockedRect = gutterEditArea.withHeight(pillHeight).translateY(pillOffset);
 		const pillIsFullyDocked = gutterViewPortWithoutStickyScrollWithoutPaddingTop.containsRect(pillFullyDockedRect);
 
-		// The icon which will be rendered in the pill
 		const customIcon = this._data.read(reader)?.customization?.icon;
 		const iconNoneDocked = customIcon
 			? constObservable(customIcon)
@@ -413,12 +398,10 @@ export class InlineEditsGutterIndicator extends Disposable {
 			};
 		}
 
-		const pillPartiallyDockedPossibleArea = gutterViewPortWithStickyScroll.intersect(gutterEditArea); // The area in which the pill could be partially docked
+		const pillPartiallyDockedPossibleArea = gutterViewPortWithStickyScroll.intersect(gutterEditArea);
 		const pillIsPartiallyDocked = pillPartiallyDockedPossibleArea && pillPartiallyDockedPossibleArea.height >= pillHeight;
 
 		if (pillIsPartiallyDocked) {
-			// pillFullyDockedRect is outside viewport, move it into the viewport under sticky scroll as we prefer the pill to not be on top of the sticky scroll
-			// then move it into the possible area which will only cause it to move if it has to be rendered on top of the sticky scroll
 			const pillRectMoved = pillFullyDockedRect.moveToBeContainedIn(gutterViewPortWithoutStickyScroll).moveToBeContainedIn(pillPartiallyDockedPossibleArea);
 			const pillRect = pillRectMoved.withWidth(iconWidth(pillRectMoved));
 			const iconRect = pillRect;
@@ -433,12 +416,10 @@ export class InlineEditsGutterIndicator extends Disposable {
 			};
 		}
 
-		// pillFullyDockedRect is outside viewport, so move it into viewport
 		const pillRectMoved = pillFullyDockedRect.moveToBeContainedIn(gutterViewPortWithStickyScroll);
 		const pillRect = pillRectMoved.withWidth(iconWidth(pillRectMoved));
 		const iconRect = pillRect;
 
-		// docked = pill was already in the viewport
 		const iconDirection = pillRect.top < pillFullyDockedRect.top ?
 			'top' as const :
 			'bottom' as const;
@@ -490,7 +471,7 @@ export class InlineEditsGutterIndicator extends Disposable {
 			},
 		).toDisposableLiveElement());
 
-		const isFocused = this._userInteractionService.createFocusTracker(content.element, disposableStore); // TODO@benibenj should this be removed?
+		const isFocused = this._userInteractionService.createFocusTracker(content.element, disposableStore);
 		disposableStore.add(autorun(reader => {
 			this._focusIsInMenu.set(isFocused.read(reader), undefined);
 		}));
@@ -548,7 +529,6 @@ export class InlineEditsGutterIndicator extends Disposable {
 			},
 
 			onmouseenter: () => {
-				// TODO show hover when hovering ghost text etc.
 				this._showHover();
 			},
 			style: {

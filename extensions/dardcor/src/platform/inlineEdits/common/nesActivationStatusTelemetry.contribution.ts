@@ -15,22 +15,12 @@ export class NesActivationTelemetryContribution {
 		@IExperimentationService _expService: IExperimentationService,
 	) {
 		const completionsConfigValue = _configurationService.getConfig(ConfigKey.Enable);
-		const isCompletionsEnabled = '*' in completionsConfigValue ? completionsConfigValue['*'] : true /* matches ghost-text Copilot extensions behavior */;
+		const isCompletionsEnabled = '*' in completionsConfigValue ? completionsConfigValue['*'] : true ;
 		const isCompletionsUserConfigured = _configurationService.isConfigured(ConfigKey.Enable);
 
 		const isNesEnabled = _configurationService.getExperimentBasedConfig(ConfigKey.InlineEditsEnabled, _expService);
 		const isNesUserConfigured = _configurationService.isConfigured(ConfigKey.InlineEditsEnabled);
 
-		/* __GDPR__
-			"nesStatusOnActivation" : {
-				"owner": "ulugbekna",
-				"comment": "To identify if NES was enabled by the user when extension is activated",
-				"isCompletionsEnabled": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether ghost-text completions was effectively enabled", "isMeasurement": true },
-				"isCompletionsUserConfigured": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether ghost-text completions was configured by the user", "isMeasurement": true },
-				"isNesEnabled": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether NES was effectively enabled (e.g., by nes-by-default exp)", "isMeasurement": true },
-				"isNesUserConfigured": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the Inline Edits feature is configured by the user", "isMeasurement": true }
-			}
-		*/
 		_telemetryService.sendMSFTTelemetryEvent(
 			'nesStatusOnActivation',
 			{},

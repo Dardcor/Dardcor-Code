@@ -5,7 +5,6 @@
 
 type ShortCircuitableFunction<A extends unknown[], R, T> = (this: T, ...args: A) => Promise<R>;
 
-// TODO: need to log whenever we hit this short circuit
 export function shortCircuit<A extends unknown[], R, T>(
 	fn: ShortCircuitableFunction<A, R, T>,
 	shortCircuitMs: number,

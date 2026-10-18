@@ -38,7 +38,6 @@ suite('RenderNode', function () {
 	test('renders with budget, elides child if over budget', function () {
 		const child = createRenderNode({ text: ['bb'], cost: 2, weight: 2 });
 		const node = createRenderNode({ text: ['aa', 'cc'], children: [child], cost: 4, weight: 5 });
-		// Budget only enough for parent
 		const result = render(node, { budget: 5 });
 		assert.deepStrictEqual(result.text, `aa${child.elisionMarker}cc`);
 		assert.deepStrictEqual(result.cost, 4);
@@ -52,7 +51,6 @@ suite('RenderNode', function () {
 	});
 
 	test('canMerge merges adjacent elided children into a single elision marker', function () {
-		// Create child nodes, some of which will be excluded (elided)
 		const child1 = createRenderNode({ text: ['A'], cost: 1, weight: 1 });
 		const child2 = createRenderNode({ text: ['B'], cost: 1, weight: 1 });
 		const child2Merge = createRenderNode({ text: ['B'], cost: 1, weight: 1, canMerge: true });
@@ -79,12 +77,10 @@ suite('RenderNode', function () {
 		const child1 = createRenderNode({ text: ['bb'], cost: 2, weight: 3 });
 		const child2 = createRenderNode({ text: ['dd'], cost: 2, weight: 2 });
 		const node = createRenderNode({ text: ['aa', 'cc', 'ee'], children: [child1, child2], cost: 6, weight: 6 });
-		// Budget only enough for parent and one child
 		assert.deepStrictEqual(render(node, { budget: 8 }).text, `aabbcc${child2.elisionMarker}ee`);
 	});
 
 	test('renders with custom costFunction', function () {
-		// Use a custom elision marker since it's now counted in the cost
 		const child1 = createRenderNode({ text: ['bb'], cost: 2, weight: 2, elisionMarker: '.' });
 		const child2 = createRenderNode({ text: ['dd'], cost: 2, weight: 3, elisionMarker: '.' });
 		const node = createRenderNode({
@@ -94,8 +90,6 @@ suite('RenderNode', function () {
 			weight: 6,
 			elisionMarker: '.',
 		});
-		// The second child doesn't fit anymore, since now the cost is based on length
-		// and so the markers also have a cost.
 		assert.deepStrictEqual(render(node, { budget: 8, costFunction: t => t.length }).text, 'aa.cc.ee');
 	});
 

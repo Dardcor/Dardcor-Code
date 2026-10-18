@@ -7,70 +7,38 @@ import { describe, expect, test, vi } from 'vitest';
 import { RouterDecisionFetcher } from '../../node/routerDecisionFetcher';
 
 describe('RouterDecisionFetcher', () => {
-	test('includes dardcor_plan in request body from rawCopilotPlan', async () => {
-		let capturedBody: string | undefined;
-
-		const mockAuthService = {
-			getCopilotToken: vi.fn().mockResolvedValue({
-				token: 'test-token',
-				rawCopilotPlan: 'individual_edu',
-				dardcorPlan: 'individual', // normalized — should NOT be used
-			}),
-			onDidChangeCopilotToken: vi.fn(),
-		};
-
-		const mockResponse = {
-			ok: true,
-			text: vi.fn().mockResolvedValue(JSON.stringify({
-				predicted_label: 'no_reasoning',
-				confidence: 0.9,
-				latency_ms: 10,
-				candidate_models: ['gpt-4.1'],
-				scores: { needs_reasoning: 0.1, no_reasoning: 0.9 },
-			})),
-		};
-
-		const mockCapiClient = {
-			makeRequest: vi.fn().mockImplementation((opts: { body?: string }) => {
-				capturedBody = opts.body;
-				return Promise.resolve(mockResponse);
-			}),
-		};
-
+	test('selects only from the connected Dardcor Router candidates', async () => {
 		const mockLogService = {
 			trace: vi.fn(),
 			info: vi.fn(),
 			warn: vi.fn(),
 			error: vi.fn(),
 		};
+		const fetchStub = vi.fn().mockResolvedValue({
+			ok: true,
+			json: vi.fn().mockResolvedValue({
+				choices: [{ message: { content: '{"model":"openai/gpt-4.1","predicted_label":"needs_reasoning","confidence":0.91}' } }],
+			}),
+		});
+		vi.stubEnv('DARDCOR_ROUTER_URL', 'http://127.0.0.1:3333');
+		vi.stubEnv('DARDCOR_API_KEY', 'test-router-key');
+		vi.stubGlobal('fetch', fetchStub);
 
-		const mockTelemetryService = {
-			sendMSFTTelemetryEvent: vi.fn(),
-			sendEnhancedGHTelemetryEvent: vi.fn(),
-		};
+		try {
+			const fetcher = new RouterDecisionFetcher(mockLogService as any);
+			const candidates = [
+				{ id: 'openai/gpt-4.1', name: 'GPT-4.1', supportsReasoning: true, supportsVision: true, supportsTools: true, contextTokens: 100_000 },
+				{ id: 'anthropic/claude-haiku', name: 'Claude Haiku', supportsReasoning: false, supportsVision: true, supportsTools: true, contextTokens: 64_000 },
+			];
+			const result = await fetcher.getRouterDecision('analyze this race condition', 'anthropic/claude-haiku', candidates);
 
-		const mockRequestLogger = {
-			addEntry: vi.fn(),
-		};
-
-		const fetcher = new RouterDecisionFetcher(
-			mockCapiClient as any,
-			mockAuthService as any,
-			mockLogService as any,
-			mockTelemetryService as any,
-			mockRequestLogger as any,
-		);
-
-		await fetcher.getRouterDecision(
-			'what is 2+2',
-			'session-token',
-			['gpt-4.1', 'claude-haiku-4.5'],
-		);
-
-		expect(capturedBody).toBeDefined();
-		const parsed = JSON.parse(capturedBody!);
-		expect(parsed.dardcor_plan).toBe('individual_edu');
-		expect(parsed.prompt).toBe('what is 2+2');
-		expect(parsed.available_models).toEqual(['gpt-4.1', 'claude-haiku-4.5']);
+			expect(result).toEqual({ model: 'openai/gpt-4.1', predictedLabel: 'needs_reasoning', confidence: 0.91 });
+			expect(fetchStub).toHaveBeenCalledOnce();
+			const [url, request] = fetchStub.mock.calls[0] as [string, RequestInit];			expect(url).toBe('http://127.0.0.1:3333/v1/chat/completions');
+			expect((request.headers as Record<string, string>).Authorization).toBe('Bearer test-router-key');			expect(JSON.parse(request.body as string).messages[1].content).toContain('analyze this race condition');
+		} finally {
+			vi.unstubAllGlobals();
+			vi.unstubAllEnvs();
+		}
 	});
 });

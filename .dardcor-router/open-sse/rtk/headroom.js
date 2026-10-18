@@ -212,11 +212,9 @@ function applyKiroHeadroomMessages(projection, compressedMessages, diagnostics) 
   return true;
 }
 
-// Circuit breaker state for unreachable compression proxy
 let headroomCircuitBreakerUntil = 0;
 const CIRCUIT_BREAKER_COOLDOWN_MS = 15 * 60 * 1000;
 
-// POST messages to Headroom /v1/compress; returns compressed messages + stats or null.
 async function callCompress(url, messages, model, timeoutMs, compressUserMessages, diagnostics) {
   const endpoint = buildCompressEndpoint(url);
   diagnostics.endpoint = maskEndpoint(endpoint);
@@ -251,9 +249,6 @@ async function callCompress(url, messages, model, timeoutMs, compressUserMessage
   return data;
 }
 
-// Compress request body via Headroom proxy. Fail-open: returns null on any error.
-// /v1/compress only understands OpenAI shape, so Claude bodies are translated
-// to OpenAI, compressed, then translated back using Dardcor Code's own translators.
 export async function compressWithHeadroom(body, { enabled, url, model, format, compressUserMessages, timeoutMs = DEFAULT_TIMEOUT_MS, diagnostics = null } = {}) {
   timeoutMs = normalizeTimeout(timeoutMs);
   if (!enabled) {
@@ -279,7 +274,6 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
   try {
     if (diagnostics) diagnostics.before = captureSizeSnapshot(body);
 
-    // Claude shape: translate → OpenAI → compress → translate back.
     if (format === "claude") {
       const oai = claudeToOpenAIRequest(model, body, false);
       if (!Array.isArray(oai?.messages)) {
@@ -295,9 +289,6 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
       return data;
     }
 
-    // OpenAI Responses shape (Codex): body.input holds Responses items, NOT OpenAI
-    // messages. Translate input -> OpenAI -> compress -> translate back to input so
-    // body.input keeps the Responses contract (the proxy only understands OpenAI). (#1998)
     if (format === "openai-responses") {
       if (hasUnsafeResponsesInputForCompression(body)) {
         setDiagnostic(diagnostics, "skipped: openai-responses tool/reasoning input is not safe to compress");
@@ -310,8 +301,6 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
       }
       const data = await callCompress(url, oai.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
       if (!data) return null;
-      // input: undefined so the translator rebuilds input from the compressed
-      // messages instead of returning the original input unchanged.
       const responsesBody = openaiToOpenAIResponsesRequest(
         model,
         { ...oai, input: undefined, messages: data.messages },
@@ -322,9 +311,6 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
       return data;
     }
 
-    // Kiro shape: conversationState.history/currentMessage are projected to
-    // OpenAI messages for the proxy, then copied back into the original Kiro
-    // fields. Keep the provider payload shape intact for Kiro's executor.
     if (format === "kiro") {
       const projection = collectKiroHeadroomMessages(body);
       if (!projection) {
@@ -338,7 +324,6 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
       return data;
     }
 
-    // OpenAI shape: messages/input go straight to the proxy.
     const key = Array.isArray(body.messages) ? "messages"
       : Array.isArray(body.input) ? "input"
       : null;

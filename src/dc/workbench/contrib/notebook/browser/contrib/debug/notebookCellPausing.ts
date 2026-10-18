@@ -27,8 +27,6 @@ class NotebookCellPausing extends Disposable implements IWorkbenchContribution {
 		super();
 
 		this._register(_debugService.getModel().onDidChangeCallStack(() => {
-			// First update using the stale callstack if the real callstack is empty, to reduce blinking while stepping.
-			// After not pausing for 2s, update again with the latest callstack.
 			this.onDidChangeCallStack(true);
 			this._scheduler.schedule();
 		}));

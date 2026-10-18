@@ -15,7 +15,6 @@ import { ExtHostContext, ExtHostEditorInsetsShape, IWebviewContentOptions, MainC
 import { IWebviewService, IWebviewElement } from '../../contrib/webview/browser/webview.js';
 import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions/common/extHostCustomers.js';
 
-// todo@jrieken move these things back into something like contrib/insets
 class EditorWebviewZone implements IViewZone {
 
 	readonly domNode: HTMLElement;
@@ -24,12 +23,6 @@ class EditorWebviewZone implements IViewZone {
 	readonly heightInLines: number;
 
 	private _id?: string;
-	// suppressMouseDown?: boolean | undefined;
-	// heightInPx?: number | undefined;
-	// minWidthInPx?: number | undefined;
-	// marginDomNode?: HTMLElement | null | undefined;
-	// onDomNodeTop?: ((top: number) => void) | undefined;
-	// onComputedHeight?: ((height: number) => void) | undefined;
 
 	constructor(
 		readonly editor: IActiveCodeEditor,
@@ -38,7 +31,7 @@ class EditorWebviewZone implements IViewZone {
 		readonly webview: IWebviewElement,
 	) {
 		this.domNode = document.createElement('div');
-		this.domNode.style.zIndex = '10'; // without this, the webview is not interactive
+		this.domNode.style.zIndex = '10';
 		this.afterLineNumber = line;
 		this.afterColumn = 1;
 		this.heightInLines = height;
@@ -74,7 +67,7 @@ export class MainThreadEditorInsets implements MainThreadEditorInsetsShape {
 	async $createEditorInset(handle: number, id: string, uri: UriComponents, line: number, height: number, options: IWebviewContentOptions, extensionId: ExtensionIdentifier, extensionLocation: UriComponents): Promise<void> {
 
 		let editor: IActiveCodeEditor | undefined;
-		id = id.substr(0, id.indexOf(',')); //todo@jrieken HACK
+		id = id.substr(0, id.indexOf(','));
 
 		for (const candidate of this._editorService.listCodeEditors()) {
 			if (candidate.getId() === id && candidate.hasModel() && isEqual(candidate.getModel().uri, URI.revive(uri))) {

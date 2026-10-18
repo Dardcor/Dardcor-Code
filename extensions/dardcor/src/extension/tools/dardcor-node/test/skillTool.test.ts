@@ -201,7 +201,6 @@ suite('listRelatedFilesRecursive', () => {
 	});
 
 	test('respects max depth of 5', async () => {
-		// Build a tree 7 levels deep
 		const tree: Record<string, [string, FileType][]> = {};
 		for (let i = 0; i <= 7; i++) {
 			const path = '/skills/my-skill' + '/d'.repeat(i);
@@ -218,8 +217,6 @@ suite('listRelatedFilesRecursive', () => {
 		const files: string[] = [];
 		await listRelatedFilesRecursive(baseUri, baseUri, files, readDir);
 
-		// depth 0 (root) through depth 5 should have files (6 files total)
-		// depth 6+ should be skipped
 		assert.strictEqual(files.length, 6);
 		assert.ok(files.includes('file0.txt'));
 		assert.ok(files.includes('d/d/d/d/d/file5.txt'));
@@ -361,7 +358,6 @@ suite('resolveSkillUri', () => {
 		const infoMap = new Map([
 			[skillB.toString(), 'beta'],
 		]);
-		// skillA has no info, only skillB does
 		assert.throws(
 			() => resolveSkillUri(
 				'nonexistent',
@@ -370,7 +366,6 @@ suite('resolveSkillUri', () => {
 				makeGetSkillInfo(infoMap),
 			),
 			(err: Error) => {
-				// Only beta should appear in available skills
 				assert.ok(err.message.includes('Available skills: beta'));
 				assert.ok(!err.message.includes('alpha'));
 				return true;

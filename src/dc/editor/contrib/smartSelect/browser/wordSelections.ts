@@ -41,28 +41,22 @@ export class WordSelectionRangeProvider implements SelectionRangeProvider {
 		let end = offset;
 		let lastCh: number = 0;
 
-		// LEFT anchor (start)
 		for (; start >= 0; start--) {
 			const ch = word.charCodeAt(start);
 			if ((start !== offset) && (ch === CharCode.Underline || ch === CharCode.Dash)) {
-				// foo-bar OR foo_bar
 				break;
 			} else if (isLowerAsciiLetter(ch) && isUpperAsciiLetter(lastCh)) {
-				// fooBar
 				break;
 			}
 			lastCh = ch;
 		}
 		start += 1;
 
-		// RIGHT anchor (end)
 		for (; end < word.length; end++) {
 			const ch = word.charCodeAt(end);
 			if (isUpperAsciiLetter(ch) && isLowerAsciiLetter(lastCh)) {
-				// fooBar
 				break;
 			} else if (ch === CharCode.Underline || ch === CharCode.Dash) {
-				// foo-bar OR foo_bar
 				break;
 			}
 			lastCh = ch;

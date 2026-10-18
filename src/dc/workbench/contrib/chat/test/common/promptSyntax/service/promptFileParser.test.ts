@@ -16,13 +16,13 @@ suite('PromptFileParser', () => {
 	test('agent', async () => {
 		const uri = URI.parse('file:///test/test.agent.md');
 		const content = [
-			/* 01 */'---',
-			/* 02 */`description: "Agent test"`,
-			/* 03 */'model: GPT 4.1',
-			/* 04 */`tools: ['tool1', 'tool2']`,
-			/* 05 */'---',
-			/* 06 */'This is an agent test.',
-			/* 07 */'Here is a #tool:tool1 variable (and one with closing parenthesis after: #tool:tool-2) and a #file:./reference1.md as well as a [reference](./reference2.md) and an image ![image](./image.png).',
+			'---',
+			`description: "Agent test"`,
+			'model: GPT 4.1',
+			`tools: ['tool1', 'tool2']`,
+			'---',
+			'This is an agent test.',
+			'Here is a #tool:tool1 variable (and one with closing parenthesis after: #tool:tool-2) and a #file:./reference1.md as well as a [reference](./reference2.md) and an image ![image](./image.png).',
 		].join('\n');
 		const result = new PromptFileParser().parse(uri, content);
 		assert.deepEqual(result.uri, uri);
@@ -65,19 +65,19 @@ suite('PromptFileParser', () => {
 	test('mode with handoff', async () => {
 		const uri = URI.parse('file:///test/test.agent.md');
 		const content = [
-			/* 01 */'---',
-			/* 02 */`description: "Agent test"`,
-			/* 03 */'model: GPT 4.1',
-			/* 04 */'handoffs:',
-			/* 05 */'  - label: "Implement"',
-			/* 06 */'    agent: Default',
-			/* 07 */'    prompt: "Implement the plan"',
-			/* 08 */'    send: false',
-			/* 09 */'  - label: "Save"',
-			/* 10 */'    agent: Default',
-			/* 11 */'    prompt: "Save the plan to a file"',
-			/* 12 */'    send: true',
-			/* 13 */'---',
+			'---',
+			`description: "Agent test"`,
+			'model: GPT 4.1',
+			'handoffs:',
+			'  - label: "Implement"',
+			'    agent: Default',
+			'    prompt: "Implement the plan"',
+			'    send: false',
+			'  - label: "Save"',
+			'    agent: Default',
+			'    prompt: "Save the plan to a file"',
+			'    send: true',
+			'---',
 		].join('\n');
 		const result = new PromptFileParser().parse(uri, content);
 		assert.deepEqual(result.uri, uri);
@@ -125,21 +125,21 @@ suite('PromptFileParser', () => {
 	test('mode with handoff and showContinueOn per handoff', async () => {
 		const uri = URI.parse('file:///test/test.agent.md');
 		const content = [
-			/* 01 */'---',
-			/* 02 */`description: "Agent test"`,
-			/* 03 */'model: GPT 4.1',
-			/* 04 */'handoffs:',
-			/* 05 */'  - label: "Implement"',
-			/* 06 */'    agent: Default',
-			/* 07 */'    prompt: "Implement the plan"',
-			/* 08 */'    send: false',
-			/* 09 */'    showContinueOn: false',
-			/* 10 */'  - label: "Save"',
-			/* 11 */'    agent: Default',
-			/* 12 */'    prompt: "Save the plan"',
-			/* 13 */'    send: true',
-			/* 14 */'    showContinueOn: true',
-			/* 15 */'---',
+			'---',
+			`description: "Agent test"`,
+			'model: GPT 4.1',
+			'handoffs:',
+			'  - label: "Implement"',
+			'    agent: Default',
+			'    prompt: "Implement the plan"',
+			'    send: false',
+			'    showContinueOn: false',
+			'  - label: "Save"',
+			'    agent: Default',
+			'    prompt: "Save the plan"',
+			'    send: true',
+			'    showContinueOn: true',
+			'---',
 		].join('\n');
 		const result = new PromptFileParser().parse(uri, content);
 		assert.deepEqual(result.uri, uri);
@@ -154,13 +154,13 @@ suite('PromptFileParser', () => {
 	test('showContinueOn defaults to undefined when not specified per handoff', async () => {
 		const uri = URI.parse('file:///test/test.agent.md');
 		const content = [
-			/* 01 */'---',
-			/* 02 */`description: "Agent test"`,
-			/* 03 */'handoffs:',
-			/* 04 */'  - label: "Save"',
-			/* 05 */'    agent: Default',
-			/* 06 */'    prompt: "Save the plan"',
-			/* 07 */'---',
+			'---',
+			`description: "Agent test"`,
+			'handoffs:',
+			'  - label: "Save"',
+			'    agent: Default',
+			'    prompt: "Save the plan"',
+			'---',
 		].join('\n');
 		const result = new PromptFileParser().parse(uri, content);
 		assert.deepEqual(result.uri, uri);
@@ -172,16 +172,16 @@ suite('PromptFileParser', () => {
 	test('handoff with whitespace-only label is skipped', async () => {
 		const uri = URI.parse('file:///test/test.agent.md');
 		const content = [
-			/* 01 */'---',
-			/* 02 */`description: "Agent test"`,
-			/* 03 */'handoffs:',
-			/* 04 */'  - label: "   "',
-			/* 05 */'    agent: Default',
-			/* 06 */'    prompt: "Do something"',
-			/* 07 */'  - label: "Valid"',
-			/* 08 */'    agent: Default',
-			/* 09 */'    prompt: "Also do something"',
-			/* 10 */'---',
+			'---',
+			`description: "Agent test"`,
+			'handoffs:',
+			'  - label: "   "',
+			'    agent: Default',
+			'    prompt: "Do something"',
+			'  - label: "Valid"',
+			'    agent: Default',
+			'    prompt: "Also do something"',
+			'---',
 		].join('\n');
 		const result = new PromptFileParser().parse(uri, content);
 		assert.ok(result.header);
@@ -193,11 +193,11 @@ suite('PromptFileParser', () => {
 	test('instructions', async () => {
 		const uri = URI.parse('file:///test/prompt1.md');
 		const content = [
-			/* 01 */'---',
-			/* 02 */`description: "Code style instructions for TypeScript"`,
-			/* 03 */'applyTo: *.ts',
-			/* 04 */'---',
-			/* 05 */'Follow my companies coding guidlines at [mycomp-ts-guidelines](https://mycomp/guidelines#typescript.md)',
+			'---',
+			`description: "Code style instructions for TypeScript"`,
+			'applyTo: *.ts',
+			'---',
+			'Follow my companies coding guidlines at [mycomp-ts-guidelines](https://mycomp/guidelines#typescript.md)',
 		].join('\n');
 		const result = new PromptFileParser().parse(uri, content);
 		assert.deepEqual(result.uri, uri);
@@ -223,13 +223,13 @@ suite('PromptFileParser', () => {
 	test('prompt file', async () => {
 		const uri = URI.parse('file:///test/prompt2.md');
 		const content = [
-			/* 01 */'---',
-			/* 02 */`description: "General purpose coding assistant"`,
-			/* 03 */'agent: agent',
-			/* 04 */'model: GPT 4.1',
-			/* 05 */`tools: ['search', 'terminal']`,
-			/* 06 */'---',
-			/* 07 */'This is a prompt file body referencing #tool:search and [docs](https://example.com/docs).',
+			'---',
+			`description: "General purpose coding assistant"`,
+			'agent: agent',
+			'model: GPT 4.1',
+			`tools: ['search', 'terminal']`,
+			'---',
+			'This is a prompt file body referencing #tool:search and [docs](https://example.com/docs).',
 		].join('\n');
 		const result = new PromptFileParser().parse(uri, content);
 		assert.deepEqual(result.uri, uri);
@@ -377,9 +377,7 @@ suite('PromptFileParser', () => {
 
 		const result = new PromptFileParser().parse(uri, content);
 		assert.ok(result.body);
-		// #tool:attached starts right after the closing backtick, so it's outside inline code
 		assert.deepEqual(result.body.variableReferences.map(r => r.name), ['attached']);
-		// [link](./file.md) starts after the second inline code span
 		assert.deepEqual(result.body.fileReferences.map(r => ({ content: r.content, isMarkdownLink: r.isMarkdownLink })), [
 			{ content: './file.md', isMarkdownLink: true },
 		]);
@@ -584,7 +582,6 @@ suite('PromptFileParser', () => {
 		});
 
 		test('with position offset', () => {
-			// Simulate parsing a list that starts at line 5, character 10
 			const result = parseCommaSeparatedList({ type: 'scalar', value: 'a, b, c', range: new Range(6, 11, 6, 18), format: 'none' });
 			assert.deepStrictEqual(result.items, [
 				{ type: 'scalar', value: 'a', range: new Range(6, 11, 6, 12), format: 'none' },
@@ -594,14 +591,12 @@ suite('PromptFileParser', () => {
 		});
 
 		test('entire input wrapped in double quotes', () => {
-			// When the entire input is wrapped in quotes, it should be treated as a single quoted value
 			assertCommaSeparatedList('"a, b, c"', [
 				{ type: 'scalar', value: 'a, b, c', range: new Range(1, 1, 1, 10), format: 'double' }
 			]);
 		});
 
 		test('entire input wrapped in single quotes', () => {
-			// When the entire input is wrapped in single quotes, it should be treated as a single quoted value
 			assertCommaSeparatedList(`'a, b, c'`, [
 				{ type: 'scalar', value: 'a, b, c', range: new Range(1, 1, 1, 10), format: 'single' }
 			]);
@@ -612,7 +607,6 @@ suite('PromptFileParser', () => {
 	test('userInvocable getter reads user-invocable attribute', async () => {
 		const uri = URI.parse('file:///test/test.agent.md');
 
-		// user-invocable works
 		const content1 = [
 			'---',
 			'description: "Test"',
@@ -622,7 +616,6 @@ suite('PromptFileParser', () => {
 		const result1 = new PromptFileParser().parse(uri, content1);
 		assert.strictEqual(result1.header?.userInvocable, true);
 
-		// user-invocable false
 		const content2 = [
 			'---',
 			'description: "Test"',
@@ -632,7 +625,6 @@ suite('PromptFileParser', () => {
 		const result2 = new PromptFileParser().parse(uri, content2);
 		assert.strictEqual(result2.header?.userInvocable, false);
 
-		// neither set returns undefined
 		const content4 = [
 			'---',
 			'description: "Test"',
@@ -690,7 +682,6 @@ suite('PromptFileParser', () => {
 		assert.ok(result.header);
 		assert.ok(result.body);
 
-		// Verify all header attributes are identified
 		assert.deepEqual(result.header.name, 'Explore');
 		assert.deepEqual(result.header.description, 'Fast read-only codebase exploration and Q&A subagent. Prefer over manually chaining multiple search and file-reading operations to avoid cluttering the main conversation. Safe to call in parallel. Specify thoroughness: quick, medium, or thorough.');
 		assert.deepEqual(result.header.argumentHint, `Describe WHAT you're looking for and desired thoroughness (quick/medium/thorough)`);
@@ -700,7 +691,6 @@ suite('PromptFileParser', () => {
 		assert.deepEqual(result.header.tools, ['search', 'read', 'web', 'vscode/memory', 'github/issue_read', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/activePullRequest', 'execute/getTerminalOutput', 'execute/testFailure']);
 		assert.deepEqual(result.header.agents, []);
 
-		// Verify all 8 header attributes are present
 		assert.deepEqual(result.header.attributes.length, 8);
 		assert.deepEqual(result.header.attributes.map(a => a.key), [
 			'name', 'description', 'argument-hint', 'model', 'target', 'user-invocable', 'tools', 'agents'
@@ -719,8 +709,6 @@ suite('PromptFileParser', () => {
 		const result = new PromptFileParser().parse(uri, content);
 		assert.ok(result.header);
 
-		// The description contains ": " which could interfere with YAML parsing.
-		// All headers after it should still be identified.
 		assert.deepEqual(result.header.name, 'Test');
 		assert.deepEqual(result.header.description, 'This has a colon: in the middle');
 		assert.deepEqual(result.header.target, 'vscode');

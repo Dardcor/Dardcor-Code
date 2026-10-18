@@ -22,7 +22,6 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
         const data = await response.json();
         setPricingData(data);
       } else {
-        // Fallback to defaults
         const defaults = getDefaultPricing();
         setPricingData(defaults);
       }
@@ -89,14 +88,13 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
 
   if (!isOpen) return null;
 
-  // Get all unique providers and models for display
   const allProviders = Object.keys(pricingData).sort();
   const pricingFields = ["input", "output", "cached", "reasoning", "cache_creation"];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-bg-base border border-border rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
+        {}
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h2 className="text-xl font-semibold">Pricing Configuration</h2>
           <button
@@ -107,13 +105,13 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="text-center py-8 text-text-muted">Loading pricing data...</div>
           ) : (
             <div className="space-y-6">
-              {/* Instructions */}
+              {}
               <div className="bg-bg-subtle border border-border rounded-lg p-3 text-sm">
                 <p className="font-medium mb-1">Pricing Rates Format</p>
                 <p className="text-text-muted">
@@ -122,7 +120,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                 </p>
               </div>
 
-              {/* Pricing Tables */}
+              {}
               {allProviders.map(provider => {
                 const models = Object.keys(pricingData[provider]).sort();
                 return (
@@ -176,7 +174,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
           )}
         </div>
 
-        {/* Footer */}
+        {}
         <div className="p-4 border-t border-border flex items-center justify-between gap-2">
           <button
             onClick={handleReset}

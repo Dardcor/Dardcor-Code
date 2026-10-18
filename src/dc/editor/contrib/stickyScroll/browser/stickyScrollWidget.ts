@@ -357,12 +357,8 @@ export class StickyScrollWidget extends Disposable implements IOverlayWidget {
 		}
 	}
 
-	/**
-	 * Given a leaf dom node, tries to find the editor position.
-	 */
 	getEditorPositionFromNode(spanDomNode: HTMLElement | null): Position | null {
 		if (!spanDomNode || spanDomNode.children.length > 0) {
-			// This is not a leaf node
 			return null;
 		}
 		const renderedStickyLine = this._getRenderedStickyLineFromChildDomNode(spanDomNode);
@@ -385,37 +381,21 @@ export class StickyScrollWidget extends Disposable implements IOverlayWidget {
 		return this._renderedStickyLines[index];
 	}
 
-	/**
-	 * Given a child dom node, tries to find the line number attribute that was stored in the node.
-	 * @returns the attribute value or null if none is found.
-	 */
 	getLineIndexFromChildDomNode(domNode: HTMLElement | null): number | null {
 		const lineIndex = this._getAttributeValue(domNode, STICKY_INDEX_ATTR);
 		return lineIndex ? parseInt(lineIndex, 10) : null;
 	}
 
-	/**
-	 * Given a child dom node, tries to find if it is (contained in) a sticky line.
-	 * @returns a boolean.
-	 */
 	isInStickyLine(domNode: HTMLElement | null): boolean {
 		const isInLine = this._getAttributeValue(domNode, STICKY_IS_LINE_ATTR);
 		return isInLine !== undefined;
 	}
 
-	/**
-	 * Given a child dom node, tries to find if this dom node is (contained in) a sticky folding icon.
-	 * @returns a boolean.
-	 */
 	isInFoldingIconDomNode(domNode: HTMLElement | null): boolean {
 		const isInFoldingIcon = this._getAttributeValue(domNode, STICKY_IS_FOLDING_ICON_ATTR);
 		return isInFoldingIcon !== undefined;
 	}
 
-	/**
-	 * Given the dom node, finds if it or its parent sequence contains the given attribute.
-	 * @returns the attribute value or undefined.
-	 */
 	private _getAttributeValue(domNode: HTMLElement | null, attribute: string): string | undefined {
 		while (domNode && domNode !== this._rootDomNode) {
 			const line = domNode.getAttribute(attribute);

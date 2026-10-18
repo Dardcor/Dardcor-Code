@@ -26,7 +26,6 @@ export class LanguageModelIgnoredFilesService implements ILanguageModelIgnoredFi
 	private readonly _providers = new Set<ILanguageModelIgnoredFileProvider>();
 
 	async fileIsIgnored(uri: URI, token: CancellationToken): Promise<boolean> {
-		// Just use the first provider
 		const provider = this._providers.values().next().value;
 		return provider ?
 			provider.isFileIgnored(uri, token) :

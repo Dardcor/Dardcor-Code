@@ -60,8 +60,6 @@ export class MainThreadProgress implements MainThreadProgressShape {
 		try {
 			this._progressService.withProgress(options, task, () => this._proxy.$acceptProgressCanceled(handle));
 		} catch (err) {
-			// the withProgress-method will throw synchronously when invoked with bad options
-			// which is then an enternal/extension error
 			onUnexpectedExternalError(err);
 		}
 	}

@@ -25,10 +25,7 @@ class TerminalResizeDimensionsOverlayContribution extends Disposable implements 
 	}
 
 	xtermOpen(xterm: IXtermTerminal & { raw: RawXtermTerminal }): void {
-		// Initialize resize dimensions overlay
 		this._ctx.processManager.ptyProcessReady.then(() => {
-			// Wait a second to avoid resize events during startup like when opening a terminal or
-			// when a terminal reconnects. Ideally we'd have an actual event to listen to here.
 			timeout(1000).then(() => {
 				if (this._store.isDisposed) {
 					return;

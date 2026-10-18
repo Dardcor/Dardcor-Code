@@ -17,7 +17,6 @@ import { discoverScenarios } from './scenarioLoader';
 import { fetchConversationOptions } from './scenarioTest';
 
 ssuite({ title: 'semanticSearchView', location: 'panel' }, (inputPath) => {
-	// No default cases checked in at the moment
 	if (!inputPath) {
 		return;
 	}

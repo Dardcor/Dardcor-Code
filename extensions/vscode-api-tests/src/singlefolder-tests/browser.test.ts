@@ -18,7 +18,6 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		await closeAllEditors();
 	});
 
-	// #region window.browserTabs / activeBrowserTab
 
 	test('browserTabs is an array', () => {
 		assert.ok(Array.isArray(window.browserTabs));
@@ -28,9 +27,7 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		assert.strictEqual(window.activeBrowserTab, undefined);
 	});
 
-	// #endregion
 
-	// #region openBrowserTab
 
 	test('openBrowserTab returns a BrowserTab with url, title, and icon', async () => {
 		const tab = await window.openBrowserTab('about:blank');
@@ -63,9 +60,7 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		assert.ok(tab);
 	});
 
-	// #endregion
 
-	// #region BrowserTab.close
 
 	test('BrowserTab.close removes the tab from browserTabs', async () => {
 		const tab = await window.openBrowserTab('about:blank');
@@ -103,9 +98,7 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		assert.ok(!window.browserTabs.includes(tab));
 	});
 
-	// #endregion
 
-	// #region onDidOpenBrowserTab
 
 	test('onDidOpenBrowserTab fires when a tab is opened', async () => {
 		const opened = new Promise<vscode.BrowserTab>(resolve => {
@@ -120,9 +113,7 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		assert.strictEqual(firedTab.url, tab.url);
 	});
 
-	// #endregion
 
-	// #region onDidCloseBrowserTab
 
 	test('onDidCloseBrowserTab fires when a tab is closed', async () => {
 		const tab = await window.openBrowserTab('about:blank');
@@ -139,9 +130,7 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		assert.ok(firedTab);
 	});
 
-	// #endregion
 
-	// #region activeBrowserTab / onDidChangeActiveBrowserTab
 
 	test('activeBrowserTab is set after opening a tab', async () => {
 		await window.openBrowserTab('about:blank');
@@ -161,9 +150,7 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		assert.ok(activeTab);
 	});
 
-	// #endregion
 
-	// #region CDP sessions
 
 	test('startCDPSession returns a session with expected API', async () => {
 		const tab = await window.openBrowserTab('about:blank');
@@ -216,20 +203,7 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		await closed;
 	});
 
-	// #endregion
 
-	// #region trusted file:// loading
-	//
-	// Trust enforcement is exercised by writing a small harness HTML file
-	// into the (trusted) workspace folder, opening it in a browser tab, and
-	// letting it `fetch(?url=...)` whatever URL the test targets. The
-	// harness writes `status:<code>` (or `error:<msg>`) to `document.title`,
-	// which we observe via `tab.title`. The harness file itself is created
-	// at test time so it doesn't pollute the shared test workspace.
-	//
-	// Skipped in remote workspaces: the test workspace lives on the remote
-	// machine, so the locally-pushed trust list doesn't include its
-	// folders and the harness page itself would be blocked.
 
 	(vscode.env.remoteName ? suite.skip : suite)('trusted file:// loading', () => {
 		const HARNESS_NAME = 'trust-harness.html';
@@ -280,9 +254,6 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 			const url = `${harnessUri.toString()}#url=${encodeURIComponent(target)}`;
 			const tab = await window.openBrowserTab(url);
 
-			// Poll `tab.title` for the harness's contract (`status:<n>` or
-			// `error:<msg>`). The browser tab decorates the title with the
-			// page URL, so callers should check by prefix.
 			const deadline = Date.now() + 15_000;
 			while (Date.now() < deadline) {
 				if (tab.title.startsWith('status:') || tab.title.startsWith('error:')) {
@@ -303,10 +274,6 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 			assert.ok(title.startsWith('status:200'), `Expected status 200 for trusted file, got: ${title}`);
 		});
 
-		// Skipped: the test runner always launches with `--disable-workspace-trust`,
-		// which makes the browser view trust all `file://` requests (see
-		// `trustAllFiles` in `IBrowserViewWindowConfiguration`). Re-enable once the
-		// test infrastructure supports running with Workspace Trust enabled.
 		test.skip('file:// outside any trusted root is blocked with 403', async function () {
 			this.timeout(30_000);
 
@@ -323,5 +290,4 @@ import { assertNoRpc, closeAllEditors } from '../utils';
 		});
 	});
 
-	// #endregion
 });

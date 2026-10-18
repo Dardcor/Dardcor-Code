@@ -34,7 +34,6 @@ import { readAgentPluginManifest } from '../../../../../platform/agentPlugins/co
 import { type IMarketplaceReference, deduplicateMarketplaceReferences, MarketplaceReferenceKind, parseMarketplaceObjectEntry, parseMarketplaceReference, parseMarketplaceReferences, readConfiguredMarketplaces } from './marketplaceReference.js';
 import { getStrictKnownMarketplaces, isMarketplaceReferenceAllowed } from './strictKnownMarketplaces.js';
 
-// Re-export marketplace reference types for downstream consumers.
 export { deduplicateMarketplaceReferences, extraKnownMarketplacesToConfigDict, MarketplaceReferenceKind, parseMarketplaceReference, parseMarketplaceReferences, readConfiguredMarketplaces } from './marketplaceReference.js';
 export type { IConfiguredMarketplaces, IMarketplaceReference } from './marketplaceReference.js';
 
@@ -54,7 +53,6 @@ export const enum PluginSourceKind {
 
 export interface IRelativePathPluginSource {
 	readonly kind: PluginSourceKind.RelativePath;
-	/** Resolved relative path within the marketplace repository. */
 	readonly path: string;
 }
 
@@ -68,11 +66,9 @@ export interface IGitHubPluginSource {
 
 export interface IGitUrlPluginSource {
 	readonly kind: PluginSourceKind.GitUrl;
-	/** Full git repository URL (must end with .git). */
 	readonly url: string;
 	readonly ref?: string;
 	readonly sha?: string;
-	/** Subdirectory within the repository where the plugin lives (for `git-subdir` sources). */
 	readonly path?: string;
 }
 
@@ -101,20 +97,14 @@ export interface IMarketplacePlugin {
 	readonly name: string;
 	readonly description: string;
 	readonly version: string;
-	/** Subdirectory within the repository where the plugin lives (for relative-path sources). */
 	readonly source: string;
-	/** Structured source descriptor indicating how the plugin should be fetched/installed. */
 	readonly sourceDescriptor: IPluginSourceDescriptor;
-	/** Marketplace label shown in UI and plugin provenance. */
 	readonly marketplace: string;
-	/** Canonical reference for clone/update/install location resolution. */
 	readonly marketplaceReference: IMarketplaceReference;
-	/** The type of marketplace this plugin comes from. */
 	readonly marketplaceType: MarketplaceType;
 	readonly readmeUri?: URI;
 }
 
-/** Raw JSON shape of a remote plugin source object in marketplace.json. */
 interface IJsonPluginSource {
 	readonly source: string;
 	readonly repo?: string;
@@ -144,18 +134,8 @@ export interface IMarketplaceInstalledPlugin {
 	readonly plugin: IMarketplacePlugin;
 }
 
-/**
- * Options for fetching marketplace plugins.
- */
 export interface IFetchMarketplacePluginsOptions {
-	/** Bypass the marketplace caches (HTTP TTL cache and cloned-repository TTL) and re-read from the remote. */
 	readonly refresh?: boolean;
-	/**
-	 * Called for each marketplace that could not be read. Individual failures
-	 * are otherwise swallowed so that one bad marketplace cannot fail the
-	 * whole fetch, which leaves callers unable to tell a partial result from
-	 * a complete one.
-	 */
 	readonly onMarketplaceError?: (reference: IMarketplaceReference, error: unknown) => void;
 }
 
@@ -164,71 +144,24 @@ export const IPluginMarketplaceService = createDecorator<IPluginMarketplaceServi
 export interface IPluginMarketplaceService {
 	readonly _serviceBrand: undefined;
 	readonly onDidChangeMarketplaces: Event<void>;
-	/** Installed marketplace plugins, backed by storage. */
 	readonly installedPlugins: IObservable<readonly IMarketplaceInstalledPlugin[]>;
-	/** Canonical IDs of marketplaces with updates detected by the periodic check. */
 	readonly marketplacesWithUpdates: IObservable<ReadonlySet<string>>;
-	/**
-	 * Observable snapshot of the last {@link fetchMarketplacePlugins} result.
-	 * Empty until the first fetch completes. Views should use this for
-	 * synchronous outdated-detection instead of calling fetchMarketplacePlugins.
-	 */
 	readonly lastFetchedPlugins: IObservable<readonly IMarketplacePlugin[]>;
-	/**
-	 * Set of recommended plugin keys (`"pluginName@marketplaceName"`) aggregated
-	 * from workspace-defined settings (e.g. `.claude/settings.json`). Providers
-	 * may be added over time; consumers should not assume a specific source.
-	 */
 	readonly recommendedPlugins: IObservable<ReadonlySet<string>>;
-	/** Clears all reported marketplaces, or only the provided canonical IDs. */
 	clearUpdatesAvailable(marketplaceIds?: ReadonlySet<string>): void;
 	fetchMarketplacePlugins(token: CancellationToken, marketplaceIds?: ReadonlySet<string>, options?: IFetchMarketplacePluginsOptions): Promise<IMarketplacePlugin[]>;
 	getMarketplacePluginMetadata(pluginUri: URI): IMarketplacePlugin | undefined;
 	addInstalledPlugin(pluginUri: URI, plugin: IMarketplacePlugin): void;
 	removeInstalledPlugin(pluginUri: URI): void;
-	/** Returns whether the given marketplace is trusted — either explicitly trusted by the user, or allowed by the enterprise allowlist when strict mode is active. */
 	isMarketplaceTrusted(ref: IMarketplaceReference): boolean;
-	/**
-	 * Returns whether the strict-marketplace enterprise policy
-	 * (`chat.plugins.strictMarketplaces`) is active — i.e. an allowlist is
-	 * configured. When active, blocked marketplaces cannot be trusted by the user.
-	 */
 	isStrictMarketplacePolicyActive(): boolean;
-	/** Returns the effective automatic-update policy for a marketplace. */
 	isMarketplaceAutoUpdateEnabled(ref: IMarketplaceReference): boolean;
-	/** Records that the user trusts the given marketplace, persisted permanently. */
 	trustMarketplace(ref: IMarketplaceReference): void;
-	/**
-	 * Reads marketplace definition files from an already-cloned repository
-	 * directory and returns the declared plugins. Used by direct-install flows
-	 * that clone a repo first, then need to discover its plugins.
-	 */
 	readPluginsFromDirectory(repoDir: URI, reference: IMarketplaceReference): Promise<IMarketplacePlugin[]>;
-	/**
-	 * Reads a single-plugin manifest (e.g. `.claude-plugin/plugin.json`) at the
-	 * root of an already-cloned repository directory and returns a synthesised
-	 * {@link IMarketplacePlugin} describing the repository as a single plugin.
-	 * Used by direct-install flows when {@link readPluginsFromDirectory} finds
-	 * no marketplace index.
-	 *
-	 * Returns `undefined` when no recognised manifest is present at the repo
-	 * root.
-	 */
 	readSinglePluginManifest(repoDir: URI, reference: IMarketplaceReference): Promise<IMarketplacePlugin | undefined>;
-	/**
-	 * Returns whether the given directory is a standalone plugin — i.e. it
-	 * contains a single-plugin manifest (e.g. `.plugin/plugin.json`,
-	 * `.claude-plugin/plugin.json`, or `plugin.json`) at its root but is not a
-	 * marketplace. Used by direct-install flows to route a local folder to the
-	 * appropriate configuration.
-	 */
 	isPluginDirectory(repoDir: URI): Promise<boolean>;
 }
 
-/**
- * Marketplace definition files by type, checked in order per repository.
- * The first match determines the marketplace type.
- */
 const MARKETPLACE_DEFINITIONS: { type: MarketplaceType; path: string }[] = [
 	{ type: MarketplaceType.OpenPlugin, path: 'marketplace.json' },
 	{ type: MarketplaceType.OpenPlugin, path: '.plugin/marketplace.json' },
@@ -236,12 +169,6 @@ const MARKETPLACE_DEFINITIONS: { type: MarketplaceType; path: string }[] = [
 	{ type: MarketplaceType.Claude, path: '.claude-plugin/marketplace.json' },
 ];
 
-/**
- * Single-plugin manifest files by type, checked in order. Used when a cloned
- * source repository has no marketplace index — the repository itself is the
- * plugin. Order matches {@link detectPluginFormat} so that runtime format
- * detection later agrees with the marketplace type chosen here.
- */
 const SINGLE_PLUGIN_MANIFEST_DEFINITIONS: { type: MarketplaceType; path: string }[] = [
 	{ type: MarketplaceType.OpenPlugin, path: '.plugin/plugin.json' },
 	{ type: MarketplaceType.Claude, path: '.claude-plugin/plugin.json' },
@@ -251,7 +178,6 @@ const SINGLE_PLUGIN_MANIFEST_DEFINITIONS: { type: MarketplaceType; path: string 
 const GITHUB_MARKETPLACE_CACHE_TTL_MS = 8 * 60 * 60 * 1000;
 const GITHUB_MARKETPLACE_CACHE_STORAGE_KEY = 'chat.plugins.marketplaces.githubCache.v1';
 
-/** Interval between periodic plugin update checks (24 hours). */
 const PLUGIN_UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 const PLUGIN_UPDATE_LAST_CHECK_STORAGE_KEY = 'chat.plugins.lastUpdateCheck.v1';
@@ -264,13 +190,6 @@ interface IGitHubMarketplaceCacheEntry {
 
 type IStoredGitHubMarketplaceCache = Dto<Record<string, IGitHubMarketplaceCacheEntry>>;
 
-/**
- * Ensures that an {@link IMarketplacePlugin} loaded from storage has a
- * {@link IMarketplacePlugin.sourceDescriptor sourceDescriptor}. Plugins
- * persisted before the sourceDescriptor field was introduced will only
- * have the legacy `source` string — this function synthesises a
- * {@link PluginSourceKind.RelativePath} descriptor from it.
- */
 function ensureSourceDescriptor(plugin: IMarketplacePlugin): IMarketplacePlugin {
 	if (plugin.sourceDescriptor) {
 		return plugin;
@@ -343,8 +262,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 	) {
 		super();
 
-		// File-backed store for installed plugins. The old cache location
-		// is passed so the store can rebase URIs during migration.
 		const oldCacheRoot = joinPath(environmentService.cacheHome, 'agentPlugins');
 		this._installedPluginsStore = this._register(
 			new FileBackedInstalledPluginsStore(
@@ -380,10 +297,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 			return result;
 		});
 
-		// Aggregate recommended plugin keys from all providers.
-		// Currently sourced from Claude workspace settings; more providers can be
-		// added here via additional observables in the derived computation.
-		// Only expose recommendations when the workspace is trusted.
 		const workspaceTrusted = observableFromEvent(this, this._workspaceTrustService.onDidChangeTrust, () => this._workspaceTrustService.isWorkspaceTrusted());
 		this.recommendedPlugins = derived(reader => {
 			if (!workspaceTrusted.read(reader)) {
@@ -429,10 +342,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 			}));
 		}));
 
-		// Hydrate plugin metadata for installed entries that are not yet in
-		// the in-memory cache (e.g. after restart when installed.json is read
-		// but the metadata map is empty). Modern entries match by plugin name;
-		// older entries without names fall back to matching by install URI.
 		this._register(autorun(reader => {
 			const entries = this._installedPluginsStore.value.read(reader);
 			const unhydrated = entries.filter(e => !this._pluginMetadata.has(e.pluginUri.toString()));
@@ -461,16 +370,10 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 			return [];
 		}
 
-		// Effective set: user-facing `chat.plugins.marketplaces` (default + user)
-		// unioned with the enterprise policy-only `chat.plugins.extraMarketplaces`.
-		// `parseMarketplaceReferences` dedupes by canonical id.
 		const { effectiveValues } = readConfiguredMarketplaces(this._configurationService);
 		const configRefs = parseMarketplaceReferences(effectiveValues);
 
-		// Merge marketplace references from Claude workspace settings.
-		// Workspace-defined refs take precedence (are primary) so that their
 		// displayLabel overrides any matching global marketplace entry.
-		// Only include workspace-sourced refs when the workspace is trusted.
 		let allRefs: IMarketplaceReference[];
 		if (this._workspaceTrustService.isWorkspaceTrusted()) {
 			const workspaceEntries = this._workspacePluginSettingsService.extraMarketplaces.get();
@@ -502,8 +405,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		);
 		const plugins = results.flat();
 
-		// A cancelled fetch yields empty/partial results — committing those
-		// would wipe the observable list and blank out the marketplace UI.
 		if (token.isCancellationRequested) {
 			return plugins;
 		}
@@ -567,9 +468,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		if (repoMayBePrivate) {
 			this._logService.debug(`[PluginMarketplaceService] ${repo} may be private, attempting clone-based marketplace discovery`);
 
-			// Drop any raw-fetch entry cached while the repository was still
-			// public, otherwise the next non-forced fetch would serve it in
-			// preference to the clone until its original TTL expired.
 			if (cache.delete(reference.canonicalId)) {
 				this._savePersistedGitHubMarketplaceCache(cache);
 			}
@@ -674,7 +572,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		const current = this._installedPluginsStore.get();
 		const existing = current.find(e => isEqual(e.pluginUri, pluginUri));
 		if (existing) {
-			// Still update to trigger watchers to re-check, something might have happened that we want to know about
 			this._installedPluginsStore.set(current.map(c => c === existing ? entry : c), undefined);
 		} else {
 			this._installedPluginsStore.set([...current, entry], undefined);
@@ -688,11 +585,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 	}
 
 	isMarketplaceTrusted(ref: IMarketplaceReference): boolean {
-		// In strict mode (`chat.plugins.strictMarketplaces`, typically delivered via the
-		// `ChatStrictMarketplaces` enterprise policy), trust is governed entirely by the
-		// allowlist: a marketplace is trusted only if it matches one of the configured
-		// source entries. The user-trusted store is bypassed — that's the whole point of
-		// "strict": the enterprise fully controls the allowed marketplaces.
 		const allowlist = getStrictKnownMarketplaces(this._configurationService.getValue(ChatConfiguration.StrictMarketplaces));
 		if (allowlist !== undefined) {
 			return isMarketplaceReferenceAllowed(allowlist, ref);
@@ -714,21 +606,7 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		return !this.isStrictMarketplacePolicyActive() || this.isMarketplaceTrusted(ref);
 	}
 
-	// --- Plugin metadata hydration -----------------------------------------------
 
-	/**
-	 * Hydrates installed entries from marketplace metadata. Entries written
-	 * by current builds include the marketplace plugin name, which is enough
-	 * to re-read the full plugin descriptor from the marketplace source. Old
-	 * entries without a name fall back to matching by install URI. Entries
-	 * that came from a single-plugin repository have no marketplace index to
-	 * look up at all and are recovered from the manifest in their install
-	 * directory.
-	 *
-	 * After hydration completes the installed-plugins store is "touched" so
-	 * that the derived {@link installedPlugins} observable re-evaluates with
-	 * the newly available metadata.
-	 */
 	private async _hydratePluginMetadata(entries: readonly IStoredInstalledPlugin[]): Promise<void> {
 		let hydrated = 0;
 
@@ -746,14 +624,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 
 			try {
 				const plugins = await this._readPluginsForInstalledEntry(reference, CancellationToken.None);
-				// A marketplace that resolves but no longer lists the entry (a renamed or
-				// removed plugin) must not fall back: marketplace plugin directories
-				// usually hold a manifest too, and reading it would reclassify the entry
-				// as a direct source rooted at the marketplace repository, sending later
-				// updates to the wrong place. Only an absent marketplace index means the
-				// entry came from a single-plugin repo installed via
-				// `installPluginFromSource`, whose descriptor lives in the recorded
-				// install directory.
 				const match = plugins.length === 0
 					? await this.readSinglePluginManifest(entry.pluginUri, reference)
 					: plugins.find(p => entry.name ? p.name === entry.name : isEqual(this._pluginRepositoryService.getPluginInstallUri(p), entry.pluginUri));
@@ -767,8 +637,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		}
 
 		if (hydrated > 0) {
-			// Touch the store to trigger the derived observable to re-evaluate
-			// now that _pluginMetadata has new entries.
 			const current = this._installedPluginsStore.get();
 			this._installedPluginsStore.set([...current], undefined);
 		}
@@ -782,10 +650,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		return this._readPluginsFromDirectory(this._pluginRepositoryService.getRepositoryUri(reference), reference, token);
 	}
 
-	/**
-	 * Shared logic to parse a marketplace.json into {@link IMarketplacePlugin}
-	 * objects. Used by both fetch and hydration paths.
-	 */
 	private _parseMarketplacePlugins(json: IMarketplaceJson, reference: IMarketplaceReference, marketplaceType: MarketplaceType, repoDir?: URI): IMarketplacePlugin[] {
 		if (!json.plugins || !Array.isArray(json.plugins)) {
 			return [];
@@ -828,7 +692,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		}
 	}
 
-	// --- Periodic update check ------------------------------------------------
 
 	private _hasAutoUpdateEnabledMarketplace(): boolean {
 		if (this._extensionsWorkbenchService.getAutoUpdateValue() !== 'off') {
@@ -838,10 +701,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		return parseMarketplaceReferences(extraValues).some(ref => ref.autoUpdate === true);
 	}
 
-	/**
-	 * (Re-)schedules the next periodic update check after startup idle and
-	 * whenever the auto-update config or metered connection state changes.
-	 */
 	private _scheduleUpdateCheck(delayOverride?: number): void {
 		this._updateCheckDelayer.cancel();
 
@@ -943,8 +802,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 	}
 
 	async readSinglePluginManifest(repoDir: URI, reference: IMarketplaceReference): Promise<IMarketplacePlugin | undefined> {
-		// Single-plugin repos are only meaningful for direct git clones —
-		// there's no synthetic relative-path source to fall back on.
 		if (reference.kind !== MarketplaceReferenceKind.GitHubShorthand && reference.kind !== MarketplaceReferenceKind.GitUri) {
 			return undefined;
 		}
@@ -1029,11 +886,6 @@ export class PluginMarketplaceService extends Disposable implements IPluginMarke
 		}, repoDir);
 	}
 
-	/**
-	 * Iterates over {@link MARKETPLACE_DEFINITIONS} paths, calling
-	 * {@link readJson} for each to obtain the parsed JSON. Returns the
-	 * plugins from the first definition that yields a valid result.
-	 */
 	private async _readPluginsFromDefinitions(
 		reference: IMarketplaceReference,
 		readJson: (defPath: string) => Promise<IMarketplaceJson | undefined>,
@@ -1058,12 +910,6 @@ function normalizeMarketplacePath(value: string): string {
 	return normalized;
 }
 
-/**
- * Resolve plugin source from marketplace metadata.
- * - If pluginRoot exists, plugin source is resolved relative to it.
- * - If source already includes pluginRoot, it's preserved.
- * Validation of whether the final path is allowed is performed by the install service.
- */
 function resolvePluginSource(pluginRoot: string | undefined, source: string): string | undefined {
 	const normalizedRoot = pluginRoot ? normalizeMarketplacePath(pluginRoot) : '';
 	const normalizedSource = normalizeMarketplacePath(source);
@@ -1078,18 +924,12 @@ function resolvePluginSource(pluginRoot: string | undefined, source: string): st
 	return relativePath(repoRoot, resolvedUri) ?? undefined;
 }
 
-/**
- * Parse a raw `source` field from marketplace.json into a structured
- * {@link IPluginSourceDescriptor}. Accepts either a relative-path string
- * or a JSON object with a `source` discriminant indicating the kind.
- */
 export function parsePluginSource(
 	rawSource: string | IJsonPluginSource | undefined,
 	pluginRoot: string | undefined,
 	logContext: { pluginName: string; logService: ILogService; logPrefix: string },
 ): IPluginSourceDescriptor | undefined {
 	if (rawSource === undefined || rawSource === null) {
-		// Treat missing source the same as empty string → pluginRoot or repo root.
 		const resolved = resolvePluginSource(pluginRoot, '');
 		if (resolved === undefined) {
 			return undefined;
@@ -1097,7 +937,6 @@ export function parsePluginSource(
 		return { kind: PluginSourceKind.RelativePath, path: resolved };
 	}
 
-	// String source → legacy relative-path behaviour.
 	if (typeof rawSource === 'string') {
 		const resolved = resolvePluginSource(pluginRoot, rawSource);
 		if (resolved === undefined) {
@@ -1106,7 +945,6 @@ export function parsePluginSource(
 		return { kind: PluginSourceKind.RelativePath, path: resolved };
 	}
 
-	// Object source → discriminated by `rawSource.source`.
 	if (typeof rawSource !== 'object' || typeof rawSource.source !== 'string') {
 		logContext.logService.warn(`${logContext.logPrefix} Skipping plugin '${logContext.pluginName}': source object is missing a 'source' discriminant`);
 		return undefined;
@@ -1227,10 +1065,6 @@ function isValidGitHubRepo(repo: string): boolean {
 	return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo);
 }
 
-/**
- * Returns a human-readable label for a plugin source descriptor,
- * suitable for error messages and UI display.
- */
 export function getPluginSourceLabel(descriptor: IPluginSourceDescriptor): string {
 	switch (descriptor.kind) {
 		case PluginSourceKind.RelativePath:
@@ -1246,10 +1080,6 @@ export function getPluginSourceLabel(descriptor: IPluginSourceDescriptor): strin
 	}
 }
 
-/**
- * Returns `true` when the marketplace source descriptor differs from the
- * installed one — meaning an update should be performed.
- */
 export function hasSourceChanged(installed: IPluginSourceDescriptor, marketplace: IPluginSourceDescriptor): boolean {
 	if (installed.kind !== marketplace.kind) {
 		return true;

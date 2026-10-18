@@ -216,19 +216,8 @@ suite('Notebook Folding', () => {
 					{ start: 6, end: 6 }
 				]);
 
-				// viewModel.insertCell(7, new TestCell(viewModel.viewType, 7, ['var c = 8;'], 'markdown', CellKind.Code, []), true);
 
-				// assert.deepStrictEqual(viewModel.getHiddenRanges(), [
-				// 	{ start: 1, end: 1 },
-				// 	{ start: 6, end: 7 }
-				// ]);
 
-				// viewModel.insertCell(1, new TestCell(viewModel.viewType, 8, ['var c = 9;'], 'markdown', CellKind.Code, []), true);
-				// assert.deepStrictEqual(viewModel.getHiddenRanges(), [
-				// 	// the first collapsed range is now expanded as we insert content into it.
-				// 	// { start: 1,},
-				// 	{ start: 7, end: 8 }
-				// ]);
 			}
 		);
 	});
@@ -255,7 +244,6 @@ suite('Notebook Folding', () => {
 				foldingModel.applyMemento([{ start: 2, end: 6 }]);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 3, end: 6 }
 				]);
@@ -286,7 +274,6 @@ suite('Notebook Folding', () => {
 				]);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 6, end: 6 },
 					{ start: 11, end: 11 }
@@ -318,7 +305,6 @@ suite('Notebook Folding', () => {
 				]);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 6, end: 6 },
 					{ start: 8, end: 11 }
@@ -349,7 +335,6 @@ suite('Notebook Folding', () => {
 				foldingModel.applyMemento([{ start: 2, end: 6 }]);
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 3, end: 6 }
 				]);
@@ -389,15 +374,11 @@ suite('Notebook Folding', () => {
 
 				viewModel.updateFoldingRanges(foldingModel.regions);
 
-				// Note that hidden ranges !== folding ranges
 				assert.deepStrictEqual(viewModel.getHiddenRanges(), [
 					{ start: 6, end: 6 },
 					{ start: 11, end: 11 }
 				]);
 
-				// folding ranges
-				// [5, 6]
-				// [10, 11]
 				assert.strictEqual(viewModel.getNextVisibleCellIndex(4), 5);
 				assert.strictEqual(viewModel.getNextVisibleCellIndex(5), 7);
 				assert.strictEqual(viewModel.getNextVisibleCellIndex(6), 7);

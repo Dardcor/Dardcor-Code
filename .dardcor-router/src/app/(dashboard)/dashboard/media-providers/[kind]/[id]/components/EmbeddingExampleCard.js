@@ -51,7 +51,6 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
   const endpoint = useTunnel ? tunnelEndpoint : localEndpoint;
   const modelFull = selectedModel ? `${providerAlias}/${selectedModel}` : "";
 
-  // Build request body — include dimensions only if user provided a positive number
   const buildBody = () => {
     const body = { model: modelFull, input: input.trim() };
     const dim = Number(dimensions);
@@ -89,7 +88,6 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
     }
   };
 
-  // Compact embedding array: first 4 values + count
   const formatResultJson = (data) => {
     if (!data) return DEFAULT_RESPONSE_EXAMPLE;
     const clone = JSON.parse(JSON.stringify(data));
@@ -108,7 +106,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
       <h2 className="text-lg font-semibold mb-4">Example</h2>
 
       <div className="flex flex-col gap-2.5">
-        {/* Model — text input for custom node, dropdown otherwise */}
+        {}
         <Row label="Model">
           {isCustom ? (
             <input
@@ -130,7 +128,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
           )}
         </Row>
 
-        {/* Endpoint */}
+        {}
         <Row label="Endpoint">
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <input
@@ -139,7 +137,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
               className="w-full min-w-0 flex-1 px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-primary font-mono"
               placeholder="http://localhost:3000"
             />
-            {/* Tunnel toggle — only show if tunnel URL is available */}
+            {}
             {tunnelEndpoint && (
               <button
                 onClick={() => setUseTunnel((v) => !v)}
@@ -155,7 +153,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
           </div>
         </Row>
 
-        {/* API Key */}
+        {}
         <Row label="API Key">
           <input
             type="password"
@@ -166,7 +164,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
           />
         </Row>
 
-        {/* Input */}
+        {}
         <Row label="Input">
           <div className="relative">
             <input
@@ -186,7 +184,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
           </div>
         </Row>
 
-        {/* Dimensions (optional) — truncate embedding vector length */}
+        {}
         <Row label="Dimensions">
           <input
             type="number"
@@ -198,7 +196,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
           />
         </Row>
 
-        {/* Curl + Run */}
+        {}
         <div className="mt-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1.5">
             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Request</span>
@@ -225,10 +223,10 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
           <pre className="bg-sidebar rounded-lg px-3 py-2.5 text-xs font-mono text-text-main overflow-x-auto whitespace-pre-wrap break-all">{curlSnippet}</pre>
         </div>
 
-        {/* Error */}
+        {}
         {error && <p className="text-xs text-red-500 break-words">{error}</p>}
 
-        {/* Response — default example or real result */}
+        {}
         <div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1.5">
             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">

@@ -44,7 +44,6 @@ export function merge(local: IUserDataProfile[], remote: ISyncUserDataProfile[] 
 		const baseToLocal = compare(lastSync, local, ignored);
 		const baseToRemote = compare(lastSync, remote, ignored);
 
-		// Remotely removed profiles
 		for (const id of baseToRemote.removed) {
 			const e = local.find(profile => profile.id === id);
 			if (e) {
@@ -52,14 +51,10 @@ export function merge(local: IUserDataProfile[], remote: ISyncUserDataProfile[] 
 			}
 		}
 
-		// Remotely added profiles
 		for (const id of baseToRemote.added) {
 			const remoteProfile = remote.find(profile => profile.id === id)!;
-			// Got added in local
 			if (baseToLocal.added.includes(id)) {
-				// Is different from local to remote
 				if (localToRemote.updated.includes(id)) {
-					// Remote wins always
 					localResult.updated.push(remoteProfile);
 				}
 			} else {
@@ -67,34 +62,26 @@ export function merge(local: IUserDataProfile[], remote: ISyncUserDataProfile[] 
 			}
 		}
 
-		// Remotely updated profiles
 		for (const id of baseToRemote.updated) {
-			// Remote wins always
 			localResult.updated.push(remote.find(profile => profile.id === id)!);
 		}
 
-		// Locally added profiles
 		for (const id of baseToLocal.added) {
-			// Not there in remote
 			if (!baseToRemote.added.includes(id)) {
 				remoteResult.added.push(local.find(profile => profile.id === id)!);
 			}
 		}
 
-		// Locally updated profiles
 		for (const id of baseToLocal.updated) {
-			// If removed in remote
 			if (baseToRemote.removed.includes(id)) {
 				continue;
 			}
 
-			// If not updated in remote
 			if (!baseToRemote.updated.includes(id)) {
 				remoteResult.updated.push(local.find(profile => profile.id === id)!);
 			}
 		}
 
-		// Locally removed profiles
 		for (const id of baseToLocal.removed) {
 			const removedProfile = remote.find(profile => profile.id === id);
 			if (removedProfile) {

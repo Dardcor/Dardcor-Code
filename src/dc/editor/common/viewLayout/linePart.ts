@@ -17,9 +17,6 @@ export class LinePart {
 	_linePartBrand: void = undefined;
 
 	constructor(
-		/**
-		 * last char index of this token (not inclusive).
-		 */
 		public readonly endIndex: number,
 		public readonly type: string,
 		public readonly metadata: number,

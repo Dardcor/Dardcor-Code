@@ -19,19 +19,8 @@ import { IToolEmbeddingsCache } from './toolEmbeddingsComputer';
 
 const EMBEDDING_CACHE_FILE_NAME = 'toolEmbeddingsCache.bin';
 const CACHE_VERSION = 1;
-const SHA1_DIGEST_LENGTH = 20; // SHA-1 produces 20 bytes
+const SHA1_DIGEST_LENGTH = 20;
 
-/**
- * A local cache for tool embeddings that stores data in an efficient binary format.
- *
- * Binary format:
- * ```
- * [Version(VLQ)][TypeLen(VLQ)][TypeString][EntryCount(VLQ)]
- * [Entry1: Key(20bytes) + EmbedLen(VLQ) + EmbedData]
- * [Entry2: Key(20bytes) + EmbedLen(VLQ) + EmbedData]
- * ...
- * ```
- */
 export class ToolEmbeddingLocalCache extends Disposable implements IToolEmbeddingsCache {
 	private readonly _storageUri: URI;
 	private readonly _lru = new LRUCache<string, Embedding>(1000);
@@ -54,14 +43,12 @@ export class ToolEmbeddingLocalCache extends Disposable implements IToolEmbeddin
 			const buffer = VSBuffer.wrap(await this._fileSystemService.readFile(this._storageUri, true));
 			let offset = 0;
 
-			// Read version
 			const versionResult = readVariableLengthQuantity(buffer, offset);
 			offset += versionResult.consumed;
 			if (versionResult.value !== CACHE_VERSION) {
 				return;
 			}
 
-			// Read embedding type and validate it matches
 			const typeLengthResult = readVariableLengthQuantity(buffer, offset);
 			offset += typeLengthResult.consumed;
 			const typeLength = typeLengthResult.value;
@@ -71,24 +58,19 @@ export class ToolEmbeddingLocalCache extends Disposable implements IToolEmbeddin
 			const storedEmbeddingTypeId = new TextDecoder().decode(typeBytes.buffer);
 			const storedEmbeddingType = new EmbeddingType(storedEmbeddingTypeId);
 
-			// If stored type doesn't match current type, discard the cache
 			if (!storedEmbeddingType.equals(this._embeddingType)) {
 				return;
 			}
 
-			// Read number of entries
 			const entriesCountResult = readVariableLengthQuantity(buffer, offset);
 			offset += entriesCountResult.consumed;
 			const entriesCount = entriesCountResult.value;
 
-			// Read each entry
 			for (let i = 0; i < entriesCount; i++) {
-				// Read key (fixed length SHA-1 digest)
 				const keyBytes = buffer.slice(offset, offset + SHA1_DIGEST_LENGTH);
 				offset += SHA1_DIGEST_LENGTH;
 				const key = encodeHex(keyBytes);
 
-				// Read embedding data length and data
 				const embeddingLengthResult = readVariableLengthQuantity(buffer, offset);
 				offset += embeddingLengthResult.consumed;
 				const embeddingLength = embeddingLengthResult.value;
@@ -96,12 +78,10 @@ export class ToolEmbeddingLocalCache extends Disposable implements IToolEmbeddin
 				const embeddingBytes = buffer.slice(offset, offset + embeddingLength);
 				offset += embeddingLength;
 
-				// Unpack embedding and store in cache
 				const embedding = unpackEmbedding(this._embeddingType, new Uint8Array(embeddingBytes.buffer));
 				this._lru.set(key, embedding);
 			}
 		} catch {
-			// ignored
 		}
 	}
 
@@ -139,30 +119,23 @@ export class ToolEmbeddingLocalCache extends Disposable implements IToolEmbeddin
 		const entries = this._lru.toJSON();
 		const buffers: VSBuffer[] = [];
 
-		// Write version
 		buffers.push(writeVariableLengthQuantity(CACHE_VERSION));
 
-		// Write embedding type at top level
 		const typeBytes = new TextEncoder().encode(this._embeddingType.id);
 		buffers.push(writeVariableLengthQuantity(typeBytes.length));
 		buffers.push(VSBuffer.wrap(typeBytes));
 
-		// Write number of entries
 		buffers.push(writeVariableLengthQuantity(entries.length));
 
-		// Write each entry
 		for (const [key, embedding] of entries) {
-			// Write key as binary (decode hex string to binary)
 			const keyBinary = decodeHex(key);
 			buffers.push(VSBuffer.wrap(keyBinary.buffer));
 
-			// Pack and write embedding data (no need to store type per entry)
 			const packedEmbedding = packEmbedding(embedding);
 			buffers.push(writeVariableLengthQuantity(packedEmbedding.length));
 			buffers.push(VSBuffer.wrap(packedEmbedding));
 		}
 
-		// Concatenate all buffers and write to file
 		const totalBuffer = VSBuffer.concat(buffers);
 		await this._fileSystemService.writeFile(this._storageUri, totalBuffer.buffer);
 	}

@@ -15,18 +15,11 @@ import { parseBangCommand } from '../agentHostBangCommand.js';
 import { DEFAULT_SHELL_COMMAND_TIMEOUT_MS, executeShellCommand, shellTypeForExecutable, type IShellCommandResult } from '../shared/shellCommandExecution.js';
 import { ILocalChatCommand, ILocalChatCommandContext, ILocalChatCommandHandling, ILocalChatCommandRequest, LocalChatCommandRegistry } from './localChatCommand.js';
 
-/**
- * The generic `!command` command: runs the message as a terminal command via
- * the {@link IAgentHostTerminalManager} shell integration and surfaces it as a
- * terminal tool call in the transcript, instead of forwarding it to the agent
- * SDK. Runs immediately (the user typed it explicitly — no confirmation).
- */
 export class BangLocalCommand extends Disposable implements ILocalChatCommand {
 
 	readonly name = 'bang';
 	readonly recordsLocalTurn = true;
 
-	/** Terminals kept alive for transcript output; disposed with this command. */
 	private readonly _terminals = new Set<string>();
 
 	constructor(private readonly _context: ILocalChatCommandContext) {
@@ -44,8 +37,6 @@ export class BangLocalCommand extends Disposable implements ILocalChatCommand {
 		if (command === undefined) {
 			return undefined;
 		}
-		// The raw command doubles as a provisional title so a brand-new session
-		// isn't left untitled until the first real (non-command) request.
 		return { run: () => this._run(request.turnChannel, request.turnId, command), suggestedTitle: command };
 	}
 
@@ -62,8 +53,6 @@ export class BangLocalCommand extends Disposable implements ILocalChatCommand {
 			const shellPath = await ctx.terminalManager.getDefaultShell();
 			const shellType = shellTypeForExecutable(shellPath);
 
-			// Surface the command as a tool call and transition it straight to
-			// running — the user typed it explicitly, so no confirmation.
 			ctx.dispatch(turnChannel, {
 				type: ActionType.ChatToolCallStart,
 				turnId,
@@ -93,8 +82,6 @@ export class BangLocalCommand extends Disposable implements ILocalChatCommand {
 			terminalCreated = true;
 			this._terminals.add(terminalUri);
 
-			// Reference the terminal so the client can stream live output while
-			// the command runs.
 			const terminalContent: ToolResultContent = { type: ToolResultContentType.Terminal, resource: terminalUri, title: displayName };
 			ctx.dispatch(turnChannel, {
 				type: ActionType.ChatToolCallContentChanged,
@@ -134,10 +121,6 @@ export class BangLocalCommand extends Disposable implements ILocalChatCommand {
 		}
 	}
 
-	/**
-	 * Maps a shell command result to a success flag and past-tense summary for
-	 * the completed tool call.
-	 */
 	private _summarizeResult(result: IShellCommandResult): { success: boolean; pastTenseMessage: string } {
 		switch (result.status) {
 			case 'completed': {

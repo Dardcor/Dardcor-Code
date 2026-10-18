@@ -48,24 +48,12 @@ export type IModelConfig = {
 	supported_endpoints: readonly ModelSupportedEndpoint[];
 	url: string;
 	auth: {
-		/**
-		 * Use Bearer token for authentication
-		 */
 		useBearerHeader: boolean;
-		/**
-		 * Use API key for authentication
-		 */
 		useApiKeyHeader: boolean;
-		/**
-		 * The environment variable name for the API key
-		 */
 		apiKeyEnvName?: string;
 	};
 	overrides: {
 		requestHeaders: Record<string, string>;
-		// If any value is set to null, it will be deleted from the request body
-		// if the value is undefined, it will not override any existing value in the request body
-		// if the value is set, it will override the existing value in the request body
 		temperature?: number | null;
 		top_p?: number | null;
 		snippy?: boolean | null;
@@ -174,7 +162,6 @@ export class OpenAICompatibleTestEndpoint extends ChatEndpoint {
 
 	override createRequestBody(options: ICreateEndpointBodyOptions): IEndpointBody {
 		if (this.useResponsesApi) {
-			// Handle Responses API: customize the body directly
 			options.ignoreStatefulMarker = false;
 			const body = super.createRequestBody(options);
 			body.store = true;
@@ -248,13 +235,10 @@ export class OpenAICompatibleTestEndpoint extends ChatEndpoint {
 		if (this.modelConfig.type === 'openai') {
 			if (body) {
 				if (!this.useResponsesApi) {
-					// we need to set this to unsure usage stats are logged
 					body['stream_options'] = { 'include_usage': true };
 				}
-				// OpenAI requires the model name to be set in the body
 				body.model = this.modelConfig.name;
 
-				// Handle messages reformatting if messages exist
 				if (body.messages) {
 					const newMessages: CAPIChatMessage[] = body.messages.map((message: CAPIChatMessage): CAPIChatMessage => {
 						if (message.role === OpenAI.ChatRole.System) {

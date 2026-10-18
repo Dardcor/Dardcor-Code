@@ -34,7 +34,6 @@ export class IndentRangeProvider implements RangeProvider {
 	}
 }
 
-// public only for testing
 export class RangesCollector {
 	private readonly _startIndexes: number[];
 	private readonly _endIndexes: number[];
@@ -68,7 +67,6 @@ export class RangesCollector {
 		if (this._length <= limit) {
 			this._foldingRangesLimit.update(this._length, false);
 
-			// reverse and create arrays of the exact length
 			const startIndexes = new Uint32Array(this._length);
 			const endIndexes = new Uint32Array(this._length);
 			for (let i = this._length - 1, k = 0; i >= 0; i--, k++) {
@@ -92,7 +90,6 @@ export class RangesCollector {
 				}
 			}
 			const tabSize = model.getOptions().tabSize;
-			// reverse and create arrays of the exact length
 			const startIndexes = new Uint32Array(limit);
 			const endIndexes = new Uint32Array(limit);
 			for (let i = this._length - 1, k = 0; i >= 0; i--) {
@@ -113,9 +110,9 @@ export class RangesCollector {
 
 
 interface PreviousRegion {
-	indent: number; // indent or -2 if a marker
-	endAbove: number; // end line number for the region above
-	line: number; // start line of the region. Only used for marker regions.
+	indent: number;
+	endAbove: number;
+	line: number;
 }
 
 const foldingRangesLimitDefault: FoldingLimitReporter = {
@@ -141,7 +138,7 @@ export function computeRanges(model: ITextModel, offSide: boolean, markers?: Fol
 
 	const previousRegions: PreviousRegion[] = [];
 	const line = model.getLineCount() + 1;
-	previousRegions.push({ indent: -1, endAbove: line, line }); // sentinel, to make sure there's at least one entry
+	previousRegions.push({ indent: -1, endAbove: line, line });
 
 	for (let line = model.getLineCount(); line > 0; line--) {
 		const lineContent = model.getLineContent(line);
@@ -149,12 +146,9 @@ export function computeRanges(model: ITextModel, offSide: boolean, markers?: Fol
 		let previous = previousRegions[previousRegions.length - 1];
 		if (indent === -1) {
 			if (offSide) {
-				// for offSide languages, empty lines are associated to the previous block
-				// note: the next block is already written to the results, so this only
-				// impacts the end position of the block before
 				previous.endAbove = line;
 			}
-			continue; // only whitespace
+			continue;
 		}
 		let isStartMatch = false;
 		let isEndMatch = false;
@@ -176,9 +170,7 @@ export function computeRanges(model: ITextModel, offSide: boolean, markers?: Fol
 			}
 		}
 		if (isStartMatch || isEndMatch) {
-			// folding pattern match
-			if (isStartMatch) { // start pattern match
-				// discard all regions until the folding pattern
+			if (isStartMatch) {
 				let i = previousRegions.length - 1;
 				while (i > 0 && previousRegions[i].indent !== -2) {
 					i--;
@@ -187,37 +179,32 @@ export function computeRanges(model: ITextModel, offSide: boolean, markers?: Fol
 					previousRegions.length = i + 1;
 					previous = previousRegions[i];
 
-					// new folding range from pattern, includes the end line
 					result.insertFirst(line, previous.line, indent);
 					previous.line = line;
 					previous.indent = indent;
 					previous.endAbove = line;
 					continue;
 				} else {
-					// no end marker found, treat line as a regular line
 				}
-			} else { // end pattern match
+			} else {
 				previousRegions.push({ indent: -2, endAbove: line, line });
 				continue;
 			}
 		}
 		if (previous.indent > indent) {
-			// discard all regions with larger indent
 			do {
 				previousRegions.pop();
 				previous = previousRegions[previousRegions.length - 1];
 			} while (previous.indent > indent);
 
-			// new folding range
 			const endLineNumber = previous.endAbove - 1;
-			if (endLineNumber - line >= 1) { // needs at east size 1
+			if (endLineNumber - line >= 1) {
 				result.insertFirst(line, endLineNumber, indent);
 			}
 		}
 		if (previous.indent === indent) {
 			previous.endAbove = line;
-		} else { // previous.indent < indent
-			// new region with a bigger indent
+		} else {
 			previousRegions.push({ indent, endAbove: line, line });
 		}
 	}

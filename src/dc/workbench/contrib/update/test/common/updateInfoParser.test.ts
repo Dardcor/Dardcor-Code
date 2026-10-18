@@ -219,14 +219,14 @@ suite('updateInfoParser', () => {
 				markdown: 'text',
 				features: [
 					{ title: 'F1', description: 'D1' },
-					{ title: 'F2' }, // missing description
+					{ title: 'F2' },
 					'not an object',
 					null,
 					{ title: 'F3', description: 'D3', icon: '$(star)' },
 					{ title: 'F4', description: 'D4' },
 					{ title: 'F5', description: 'D5' },
 					{ title: 'F6', description: 'D6' },
-					{ title: 'F7', description: 'D7' }, // dropped (over cap)
+					{ title: 'F7', description: 'D7' },
 				],
 			});
 

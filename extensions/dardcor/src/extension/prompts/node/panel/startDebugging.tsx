@@ -45,9 +45,7 @@ interface IStartDebuggingFromUserQuery {
 interface IStartDebuggingFromCommandLine {
 	type: StartDebuggingType.CommandLine;
 	args: readonly string[];
-	/** cwd with the ${workspaceFolder} replaced */
 	relativeCwd?: string;
-	/** absolute cwd */
 	absoluteCwd: string;
 }
 
@@ -179,7 +177,7 @@ export class StartDebuggingPrompt extends PromptElement<StartDebuggingPromptProp
 
 			const [exists, ignored] = await Promise.all([
 				fileExists(file),
-				this.ignoreService.isCopilotIgnored(file),
+				this.ignoreService.isIgnored(file),
 			]);
 			if (exists && !ignored) {
 				fileResults.add(file);
@@ -194,11 +192,9 @@ export class StartDebuggingPrompt extends PromptElement<StartDebuggingPromptProp
 				return tryAdd(file);
 			}
 
-			// The model sometimes doesn't fully qualify the path to nested files.
-			// In these cases, try to guess what it means by looking at the what it does give us
 			const bestGuess = structureMetadata.value
 				.flatMap(root => root.tree.files.filter(f => f.path.endsWith(relativePath)))
-				.sort((a, b) => a.path.length - b.path.length) // get the least-nested candidate
+				.sort((a, b) => a.path.length - b.path.length)
 				.at(0);
 			if (bestGuess) {
 				return tryAdd(bestGuess);
@@ -214,7 +210,6 @@ export class StartDebuggingPrompt extends PromptElement<StartDebuggingPromptProp
 
 			for (const usefulFile of ['README.md', 'CONTRIBUTING.md']) {
 				const folderFsPath = fileNeedle.workspaceFolder.fsPath;
-				// limit this to avoid looking for files in parent directories of the workspace
 				todo.push(nearestDirectoryWhere(fileNeedle.file.fsPath, dir =>
 					dir.length >= folderFsPath.length ? tryAdd(URI.joinPath(URI.file(dir), usefulFile)) : Promise.resolve(undefined)));
 			}
@@ -272,7 +267,6 @@ export class StartDebuggingPrompt extends PromptElement<StartDebuggingPromptProp
 			return;
 		}
 		if (this.props.input.type === StartDebuggingType.UserQuery) {
-			// We will check for existing config
 			requestedFiles.push('launch.json');
 			if (!this.props.input.userQuery) {
 				requestedFiles.push('README.md');
@@ -317,7 +311,6 @@ export class StartDebuggingPrompt extends PromptElement<StartDebuggingPromptProp
 			return undefined;
 		}
 
-		// The model likes to return text like "You should use `node", so detect backticks
 		return /`(.*?)`/.exec(fetchResult.value)?.[1] || fetchResult.value;
 	}
 
@@ -545,7 +538,7 @@ class StructureOfWorkingDirectory extends PromptElement<WorkingDirectoryStructur
 		super(props);
 	}
 	override async render(_state: void, sizing: PromptSizing, _progress: unknown, token?: CancellationToken) {
-		const maxSize = sizing.tokenBudget / 2; // note: size in the tree is in chars, /2 to be safe
+		const maxSize = sizing.tokenBudget / 2;
 		const wf = this.props.input.relativeCwd
 			? this.workspaceService.getWorkspaceFolder(URI.file(this.props.input.absoluteCwd))
 			: undefined;

@@ -5,4 +5,4 @@
 
 import { NullWorkspaceService } from '../../workspace/common/workspaceService';
 
-export class TestWorkspaceService extends NullWorkspaceService { } // chrmarti TODO: inline
+export class TestWorkspaceService extends NullWorkspaceService { }

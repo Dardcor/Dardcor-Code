@@ -12,7 +12,6 @@ export function adjustCellDiffForKeepingADeletedCell(originalCellIndex: number,
 	cellDiffInfo: ICellDiffInfo[],
 	applyEdits: typeof NotebookTextModel.prototype.applyEdits,
 ): ICellDiffInfo[] {
-	// Delete this cell from original as well.
 	const edit: ICellReplaceEdit = { cells: [], count: 1, editType: CellEditType.Replace, index: originalCellIndex, };
 	applyEdits([edit], true, undefined, () => undefined, undefined, true);
 	const diffs = sortCellChanges(cellDiffInfo)
@@ -38,7 +37,6 @@ export function adjustCellDiffForRevertingADeletedCell(originalCellIndex: number
 	cellDiffInfo = sortCellChanges(cellDiffInfo);
 	const indexOfEntry = cellDiffInfo.findIndex(d => d.originalCellIndex === originalCellIndex);
 	if (indexOfEntry === -1) {
-		// Not possible.
 		return cellDiffInfo;
 	}
 
@@ -55,7 +53,6 @@ export function adjustCellDiffForRevertingADeletedCell(originalCellIndex: number
 			cellDiffInfo[i] = createModifiedCellDiffInfo(modifiedCellIndex + 1, originalCellIndex);
 			continue;
 		} else {
-			// Increase the original index for all entries after this.
 			if (typeof diff.modifiedCellIndex === 'number') {
 				diff.modifiedCellIndex++;
 				cellDiffInfo[i] = { ...diff };
@@ -71,7 +68,6 @@ export function adjustCellDiffForRevertingAnInsertedCell(modifiedCellIndex: numb
 	applyEdits: typeof NotebookTextModel.prototype.applyEdits,
 ): ICellDiffInfo[] {
 	if (modifiedCellIndex === -1) {
-		// Not possible.
 		return cellDiffInfo;
 	}
 	cellDiffInfo = sortCellChanges(cellDiffInfo)
@@ -101,12 +97,10 @@ export function adjustCellDiffForKeepingAnInsertedCell(modifiedCellIndex: number
 ): ICellDiffInfo[] {
 	cellDiffInfo = sortCellChanges(cellDiffInfo);
 	if (modifiedCellIndex === -1) {
-		// Not possible.
 		return cellDiffInfo;
 	}
 	const indexOfEntry = cellDiffInfo.findIndex(d => d.modifiedCellIndex === modifiedCellIndex);
 	if (indexOfEntry === -1) {
-		// Not possible.
 		return cellDiffInfo;
 	}
 	let originalCellIndex = -1;
@@ -122,7 +116,6 @@ export function adjustCellDiffForKeepingAnInsertedCell(modifiedCellIndex: number
 			cellDiffInfo[i] = createModifiedCellDiffInfo(modifiedCellIndex, originalCellIndex + 1);
 			continue;
 		} else {
-			// Increase the original index for all entries after this.
 			if (typeof diff.originalCellIndex === 'number') {
 				diff.originalCellIndex++;
 				cellDiffInfo[i] = { ...diff };
@@ -179,9 +172,7 @@ export function adjustCellDiffAndOriginalModelBasedOnCellAddDelete(change: Noteb
 		};
 		applyEdits([edit], true, undefined, () => undefined, undefined, true);
 	}
-	// If cells were deleted we handled that with this.disposeDeletedCellEntries();
 	if (numberOfCellsDeleted) {
-		// Adjust the indexes.
 		let numberOfOriginalCellsRemovedSoFar = 0;
 		let numberOfModifiedCellsRemovedSoFar = 0;
 		const modifiedIndexesToRemove = new Set<number>();
@@ -197,7 +188,6 @@ export function adjustCellDiffAndOriginalModelBasedOnCellAddDelete(change: Noteb
 
 			let changed = false;
 			if (typeof diff.modifiedCellIndex === 'number' && modifiedIndexesToRemove.has(diff.modifiedCellIndex)) {
-				// This will be removed.
 				numberOfModifiedCellsRemovedSoFar++;
 				if (typeof diff.originalCellIndex === 'number') {
 					numberOfOriginalCellsRemovedSoFar++;
@@ -254,8 +244,6 @@ export function adjustCellDiffAndOriginalModelBasedOnCellAddDelete(change: Noteb
 		}
 	}
 
-	// For inserted cells, we need to ensure that we create a corresponding CellEntry.
-	// So that any edits to the inserted cell is handled and mirrored over to the corresponding cell in original model.
 	cells.forEach((_, i) => {
 		const originalCellIndex = i + (indexToInsertInOriginalModel ?? 0);
 		const modifiedCellIndex = change[0] + i;
@@ -265,11 +253,6 @@ export function adjustCellDiffAndOriginalModelBasedOnCellAddDelete(change: Noteb
 	return cellDiffInfo;
 }
 
-/**
- * Given the movements of cells in modified notebook, adjust the ICellDiffInfo[] array
- * and generate edits for the old notebook (if required).
- * TODO@DonJayamanne Handle bulk moves (movements of more than 1 cell).
- */
 export function adjustCellDiffAndOriginalModelBasedOnCellMovements(event: NotebookCellsModelMoveEvent<ICell>, cellDiffInfo: ICellDiffInfo[]): [ICellDiffInfo[], ICellEditOperation[]] | undefined {
 	const minimumIndex = Math.min(event.index, event.newIdx);
 	const maximumIndex = Math.max(event.index, event.newIdx);
@@ -279,8 +262,6 @@ export function adjustCellDiffAndOriginalModelBasedOnCellMovements(event: Notebo
 	if (indexOfEntry === -1 || indexOfEntryToPlaceBelow === -1) {
 		return undefined;
 	}
-	// Create a new object so that the observable value is triggered.
-	// Besides we'll be updating the values of this object in place.
 	const entryToBeMoved = { ...cellDiffs[indexOfEntry] };
 	const moveDirection = event.newIdx > event.index ? 'down' : 'up';
 
@@ -317,8 +298,6 @@ export function adjustCellDiffAndOriginalModelBasedOnCellMovements(event: Notebo
 				}
 			}
 		}
-		// Create a new object so that the observable value is triggered.
-		// Do only if there's a change.
 		if (changed) {
 			cellDiffs[i] = { ...diff };
 		}
@@ -328,23 +307,17 @@ export function adjustCellDiffAndOriginalModelBasedOnCellMovements(event: Notebo
 	if (moveDirection === 'down') {
 		cellDiffs.splice(endIndex + 1, 0, entryToBeMoved);
 		cellDiffs.splice(startIndex, 1);
-		// If we're moving a new cell up/down, then we need just adjust just the modified indexes of the cells in between.
-		// If we're moving an existing up/down, then we need to adjust the original indexes as well.
 		if (typeof entryToBeMoved.originalCellIndex === 'number') {
 			entryToBeMoved.originalCellIndex = cellDiffs.slice(0, endIndex).reduce((lastOriginalIndex, diff) => typeof diff.originalCellIndex === 'number' ? Math.max(lastOriginalIndex, diff.originalCellIndex) : lastOriginalIndex, -1) + 1;
 		}
 	} else {
 		cellDiffs.splice(endIndex, 1);
 		cellDiffs.splice(startIndex, 0, entryToBeMoved);
-		// If we're moving a new cell up/down, then we need just adjust just the modified indexes of the cells in between.
-		// If we're moving an existing up/down, then we need to adjust the original indexes as well.
 		if (typeof entryToBeMoved.originalCellIndex === 'number') {
 			entryToBeMoved.originalCellIndex = cellDiffs.slice(0, startIndex).reduce((lastOriginalIndex, diff) => typeof diff.originalCellIndex === 'number' ? Math.max(lastOriginalIndex, diff.originalCellIndex) : lastOriginalIndex, -1) + 1;
 		}
 	}
 
-	// If this is a new cell that we're moving, and there are no existing cells in between, then we can just move the new cell.
-	// I.e. no need to update the original notebook model.
 	if (typeof entryToBeMoved.originalCellIndex === 'number' && originalCellsWereEffected && typeof originalCellIndex === 'number' && entryToBeMoved.originalCellIndex !== originalCellIndex) {
 		const edit: ICellEditOperation = {
 			editType: CellEditType.Move,
@@ -364,14 +337,6 @@ export function getCorrespondingOriginalCellIndex(modifiedCellIndex: number, cel
 	return entry?.originalCellIndex;
 }
 
-/**
- *
- * This isn't great, but necessary.
- * ipynb extension updates metadata when new cells are inserted (to ensure the metadata is correct)
- * Details of why thats required is in ipynb extension, but its necessary.
- * However as a result of this, those edits appear here and are assumed to be user edits.
- * As a result `_allEditsAreFromUs` is set to false.
- */
 export function isTransientIPyNbExtensionEvent(notebookKind: string, e: NotebookTextModelChangedEvent) {
 	if (notebookKind !== 'jupyter-notebook') {
 		return false;

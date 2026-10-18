@@ -47,29 +47,18 @@ import {
 import { IColorTheme, IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { HoverStyle } from '../../../../base/browser/ui/hover/hover.js';
 
-/** for debugging */
 const _sticky = false
-	// || Boolean("true") // done "weirdly" so that a lint warning prevents you from pushing this
 	;
 
 
 export const CONTEXT_RENAME_INPUT_VISIBLE = new RawContextKey<boolean>('renameInputVisible', false, nls.localize('renameInputVisible', "Whether the rename input widget is visible"));
 export const CONTEXT_RENAME_INPUT_FOCUSED = new RawContextKey<boolean>('renameInputFocused', false, nls.localize('renameInputFocused', "Whether the rename input widget is focused"));
 
-/**
- * "Source" of the new name:
- * - 'inputField' - user entered the new name
- * - 'renameSuggestion' - user picked from rename suggestions
- * - 'userEditedRenameSuggestion' - user _likely_ edited a rename suggestion ("likely" because when input started being edited, a rename suggestion had focus)
- */
 export type NewNameSource =
 	| { k: 'inputField' }
 	| { k: 'renameSuggestion' }
 	| { k: 'userEditedRenameSuggestion' };
 
-/**
- * Various statistics regarding rename input field
- */
 export type RenameWidgetStats = {
 	nRenameSuggestions: number;
 	source: NewNameSource;
@@ -79,18 +68,12 @@ export type RenameWidgetStats = {
 };
 
 export type RenameWidgetResult = {
-	/**
-	 * The new name to be used
-	 */
 	newName: string;
 	wantsPreview?: boolean;
 	stats: RenameWidgetStats;
 };
 
 interface IRenameWidget {
-	/**
-	 * @returns a `boolean` standing for `shouldFocusEditor`, if user didn't pick a new name, or a {@link RenameWidgetResult}
-	 */
 	getInput(
 		where: IRange,
 		currentName: string,
@@ -108,10 +91,8 @@ interface IRenameWidget {
 
 export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable {
 
-	// implement IContentWidget
 	readonly allowEditorOverflow: boolean = true;
 
-	// UI state
 
 	private _domNode?: HTMLElement;
 	private _inputWithButton: InputWithButton;
@@ -121,24 +102,17 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 	private _nPxAvailableAbove?: number;
 	private _nPxAvailableBelow?: number;
 
-	// Model state
 
 	private _position?: Position;
 	private _currentName?: string;
-	/** Is true if input field got changes when a rename candidate was focused; otherwise, false */
 	private _isEditingRenameCandidate: boolean;
 
 	private readonly _candidates: Set<string>;
 
 	private _visible?: boolean;
 
-	/** must be reset at session start */
 	private _beforeFirstInputFieldEditSW: StopWatch;
 
-	/**
-	 * Milliseconds before user edits the input field for the first time
-	 * @remarks must be set once per session
-	 */
 	private _timeBeforeFirstInputFieldEdit: number | undefined;
 
 	private _nRenameSuggestionsInvocations: number;
@@ -206,11 +180,11 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 					fontInfo: this._editor.getOption(EditorOption.fontInfo),
 					onFocusChange: (newSymbolName: string) => {
 						this._inputWithButton.input.value = newSymbolName;
-						this._isEditingRenameCandidate = false; // @ulugbekna: reset
+						this._isEditingRenameCandidate = false;
 					},
 					onSelectionChange: () => {
-						this._isEditingRenameCandidate = false; // @ulugbekna: because user picked a rename suggestion
-						this.acceptInput(false); // we don't allow preview with mouse click for now
+						this._isEditingRenameCandidate = false;
+						this.acceptInput(false);
 					}
 				})
 			);
@@ -280,8 +254,8 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 			return null;
 		}
 
-		if (!this._editor.hasModel() || // @ulugbekna: shouldn't happen
-			!this._editor.getDomNode() // @ulugbekna: can happen during tests based on suggestWidget's similar predicate check
+		if (!this._editor.hasModel() ||
+			!this._editor.getDomNode()
 		) {
 			return null;
 		}
@@ -297,7 +271,7 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 		const lineHeight = this._editor.getOption(EditorOption.lineHeight);
 		const { totalHeight: candidateViewHeight } = RenameCandidateView.getLayoutInfo({ lineHeight });
 
-		const positionPreference = this._nPxAvailableBelow > candidateViewHeight * 6 /* approximate # of candidates to fit in (inclusive of rename input box & rename label) */
+		const positionPreference = this._nPxAvailableBelow > candidateViewHeight * 6
 			? [ContentWidgetPositionPreference.BELOW, ContentWidgetPositionPreference.ABOVE]
 			: [ContentWidgetPositionPreference.ABOVE, ContentWidgetPositionPreference.BELOW];
 
@@ -311,22 +285,19 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 		const [accept, preview] = this._acceptKeybindings;
 		this._label!.innerText = nls.localize({ key: 'label', comment: ['placeholders are keybindings, e.g "F2 to Rename, Shift+F2 to Preview"'] }, "{0} to Rename, {1} to Preview", this._keybindingService.lookupKeybinding(accept)?.getLabel(), this._keybindingService.lookupKeybinding(preview)?.getLabel());
 
-		this._domNode!.style.minWidth = `200px`; // to prevent from widening when candidates come in
+		this._domNode!.style.minWidth = `200px`;
 
 		return null;
 	}
 
 	afterRender(position: ContentWidgetPositionPreference | null): void {
-		// FIXME@ulugbekna: commenting trace log out until we start unmounting the widget from editor properly - https://github.com/microsoft/vscode/issues/226975
-		// this._trace('invoking afterRender, position: ', position ? 'not null' : 'null');
 		if (position === null) {
-			// cancel rename when input widget isn't rendered anymore
 			this.cancelInput(true, 'afterRender (because position is null)');
 			return;
 		}
 
-		if (!this._editor.hasModel() || // shouldn't happen
-			!this._editor.getDomNode() // can happen during tests based on suggestWidget's similar predicate check
+		if (!this._editor.hasModel() ||
+			!this._editor.getDomNode()
 		) {
 			return;
 		}
@@ -363,7 +334,6 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 	}
 
 	cancelInput(focusEditor: boolean, caller: string): void {
-		// this._trace(`invoking cancelInput, caller: ${caller}, _currentCancelInput: ${this._currentAcceptInput ? 'not undefined' : 'undefined'}`);
 		this._currentCancelInput?.(focusEditor);
 	}
 
@@ -373,15 +343,12 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 		}
 	}
 
-	focusPreviousRenameSuggestion() { // TODO@ulugbekna: this and focusNext should set the original name if no candidate is focused
+	focusPreviousRenameSuggestion() {
 		if (!this._renameCandidateListView?.focusPrevious()) {
 			this._inputWithButton.input.value = this._currentName!;
 		}
 	}
 
-	/**
-	 * @param requestRenameCandidates is `undefined` when there are no rename suggestion providers
-	 */
 	getInput(
 		where: IRange,
 		currentName: string,
@@ -439,7 +406,7 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 		this._inputWithButton.input.value = currentName;
 		this._inputWithButton.input.setAttribute('selectionStart', selectionStart.toString());
 		this._inputWithButton.input.setAttribute('selectionEnd', selectionEnd.toString());
-		this._inputWithButton.input.size = Math.max((where.endColumn - where.startColumn) * 1.1, 20); // determines width
+		this._inputWithButton.input.size = Math.max((where.endColumn - where.startColumn) * 1.1, 20);
 
 		this._beforeFirstInputFieldEditSW.reset();
 
@@ -447,7 +414,7 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 		disposeOnDone.add(toDisposable(() => {
 			this._renameCts = undefined;
 			cts.dispose(true);
-		})); // @ulugbekna: this may result in `this.cancelInput` being called twice, but it should be safe since we set it to undefined after 1st call
+		}));
 		disposeOnDone.add(toDisposable(() => {
 			if (this._renameCandidateProvidersCts !== undefined) {
 				this._renameCandidateProvidersCts.dispose(true);
@@ -468,7 +435,6 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 			this._trace('invoking _currentCancelInput');
 			this._currentAcceptInput = undefined;
 			this._currentCancelInput = undefined;
-			// fixme session cleanup
 			this._renameCandidateListView?.clearCandidates();
 			inputResult.complete(focusEditor);
 			return true;
@@ -493,7 +459,7 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 				source = this._isEditingRenameCandidate ? { k: 'userEditedRenameSuggestion' } : { k: 'inputField' };
 			}
 
-			if (newName === currentName || newName.trim().length === 0 /* is just whitespace */) {
+			if (newName === currentName || newName.trim().length === 0 ) {
 				this.cancelInput(true, '_currentAcceptInput (because newName === value || newName.trim().length === 0)');
 				return;
 			}
@@ -501,7 +467,6 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 			this._currentAcceptInput = undefined;
 			this._currentCancelInput = undefined;
 			this._renameCandidateListView.clearCandidates();
-			// fixme session cleanup
 
 			inputResult.complete({
 				newName,
@@ -560,9 +525,6 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 		}
 	}
 
-	/**
-	 * This allows selecting only part of the symbol name in the input field based on the selection in the editor
-	 */
 	private _getSelection(where: IRange, currentName: string): { start: number; end: number } {
 		assertType(this._editor.hasModel());
 
@@ -585,7 +547,6 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 		this._visibleContextKey.set(true);
 		this._editor.layoutContentWidget(this);
 
-		// TODO@ulugbekna: could this be simply run in `afterRender`?
 		setTimeout(() => {
 			this._inputWithButton.input.focus();
 			this._inputWithButton.input.setSelectionRange(
@@ -615,7 +576,6 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 		);
 		trace(`received updateRenameCandidates results - total (unfiltered) ${newNames.length} candidates.`);
 
-		// deduplicate and filter out the current value
 
 		const distinctNames = arrays.distinct(newNames, v => v.newSymbolName);
 		trace(`distinct candidates - ${distinctNames.length} candidates.`);
@@ -630,11 +590,9 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 			return;
 		}
 
-		// show the candidates
 		trace('setting candidates');
 		this._renameCandidateListView!.setCandidates(validDistinctNames);
 
-		// ask editor to re-layout given that the widget is now of a different size after rendering rename candidates
 		trace('asking editor to re-layout');
 		this._editor.layoutContentWidget(this);
 	}
@@ -653,7 +611,7 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 			firstLineInViewport = visibleRanges[0].startLineNumber;
 		} else {
 			this._logService.warn('RenameWidget#_getTopForPosition: this should not happen - visibleRanges is empty');
-			firstLineInViewport = Math.max(1, this._position!.lineNumber - 5); // @ulugbekna: fallback to current line minus 5
+			firstLineInViewport = Math.max(1, this._position!.lineNumber - 5);
 		}
 		return this._editor.getTopForLineNumber(this._position!.lineNumber) - this._editor.getTopForLineNumber(firstLineInViewport);
 	}
@@ -665,7 +623,6 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 
 class RenameCandidateListView {
 
-	/** Parent node of the list widget; needed to control # of list elements visible */
 	private readonly _listContainer: HTMLDivElement;
 	private readonly _listWidget: List<NewSymbolName>;
 
@@ -676,7 +633,6 @@ class RenameCandidateListView {
 
 	private readonly _disposables: DisposableStore;
 
-	// FIXME@ulugbekna: rewrite using event emitters
 	constructor(parent: HTMLElement, opts: { fontInfo: FontInfo; onFocusChange: (newSymbolName: string) => void; onSelectionChange: () => void }) {
 
 		this._disposables = new DisposableStore();
@@ -712,7 +668,7 @@ class RenameCandidateListView {
 		));
 
 		this._disposables.add(
-			this._listWidget.onDidBlur(e => { // @ulugbekna: because list widget otherwise remembers last focused element and returns it as focused element
+			this._listWidget.onDidBlur(e => {
 				this._listWidget.setFocus([]);
 			})
 		);
@@ -728,7 +684,6 @@ class RenameCandidateListView {
 		this._disposables.dispose();
 	}
 
-	// height - max height allowed by parent element
 	public layout({ height, width }: { height: number; width: number }): void {
 		this._availableHeight = height;
 		this._minimumWidth = width;
@@ -736,16 +691,13 @@ class RenameCandidateListView {
 
 	public setCandidates(candidates: NewSymbolName[]): void {
 
-		// insert candidates into list widget
 		this._listWidget.splice(0, 0, candidates);
 
-		// adjust list widget layout
 		const height = this._pickListHeight(this._listWidget.length);
 		const width = this._pickListWidth(candidates);
 
 		this._listWidget.layout(height, width);
 
-		// adjust list container layout
 		this._listContainer.style.height = `${height}px`;
 		this._listContainer.style.width = `${width}px`;
 
@@ -789,7 +741,7 @@ class RenameCandidateListView {
 		} else {
 			if (focusedIxs[0] === this._listWidget.length - 1) {
 				this._listWidget.setFocus([]);
-				this._listWidget.reveal(0); // @ulugbekna: without this, it seems like focused element is obstructed
+				this._listWidget.reveal(0);
 				return false;
 			} else {
 				this._listWidget.focusNext();
@@ -800,9 +752,6 @@ class RenameCandidateListView {
 		}
 	}
 
-	/**
-	 * @returns true if focus is moved to previous element
-	 */
 	public focusPrevious(): boolean {
 		if (this._listWidget.length === 0) {
 			return false;
@@ -837,7 +786,7 @@ class RenameCandidateListView {
 
 	private _pickListHeight(nCandidates: number) {
 		const heightToFitAllCandidates = this._candidateViewHeight * nCandidates;
-		const MAX_N_CANDIDATES = 7;  // @ulugbekna: max # of candidates we want to show at once
+		const MAX_N_CANDIDATES = 7;
 		const height = Math.min(heightToFitAllCandidates, this._availableHeight, this._candidateViewHeight * MAX_N_CANDIDATES);
 		return height;
 	}
@@ -846,7 +795,7 @@ class RenameCandidateListView {
 		const longestCandidateWidth = Math.ceil(Math.max(...candidates.map(c => c.newSymbolName.length)) * this._typicalHalfwidthCharacterWidth);
 		const width = Math.max(
 			this._minimumWidth,
-			4 /* padding */ + 16 /* sparkle icon */ + 5 /* margin-left */ + longestCandidateWidth + 10 /* (possibly visible) scrollbar width */ // TODO@ulugbekna: approximate calc - clean this up
+			4 + 16 + 5 + longestCandidateWidth + 10
 		);
 		return width;
 	}
@@ -884,7 +833,7 @@ class RenameCandidateListView {
 			virtualDelegate,
 			[renderer],
 			{
-				keyboardSupport: false, // @ulugbekna: because we handle keyboard events through proper commands & keybinding service, see `rename.ts`
+				keyboardSupport: false,
 				mouseSupport: true,
 				multipleSelectionSupport: false,
 			}
@@ -941,7 +890,6 @@ class InputWithButton implements IDisposable {
 
 			this._domNode.appendChild(this._buttonNode);
 
-			// notify if selection changes to cancel request to rename-suggestion providers
 
 			this._disposables.add(dom.addDisposableListener(this.input, dom.EventType.INPUT, () => this._onDidInputChange.fire()));
 			this._disposables.add(dom.addDisposableListener(this.input, dom.EventType.KEY_DOWN, (e) => {
@@ -952,7 +900,6 @@ class InputWithButton implements IDisposable {
 			}));
 			this._disposables.add(dom.addDisposableListener(this.input, dom.EventType.CLICK, () => this._onDidInputChange.fire()));
 
-			// focus "container" border instead of input box
 
 			this._disposables.add(dom.addDisposableListener(this.input, dom.EventType.FOCUS, () => {
 				this.domNode.style.outlineWidth = '1px';
@@ -1024,7 +971,6 @@ class RenameCandidateView {
 		this._domNode.style.height = `${fontInfo.lineHeight}px`;
 		this._domNode.style.padding = `${RenameCandidateView._PADDING}px`;
 
-		// @ulugbekna: needed to keep space when the `icon.style.display` is set to `none`
 		const iconContainer = document.createElement('div');
 		iconContainer.style.display = `flex`;
 		iconContainer.style.alignItems = `center`;
@@ -1057,7 +1003,7 @@ class RenameCandidateView {
 	}
 
 	public static getLayoutInfo({ lineHeight }: { lineHeight: number }): { totalHeight: number } {
-		const totalHeight = lineHeight + RenameCandidateView._PADDING * 2 /* top & bottom padding */;
+		const totalHeight = lineHeight + RenameCandidateView._PADDING * 2 ;
 		return { totalHeight };
 	}
 

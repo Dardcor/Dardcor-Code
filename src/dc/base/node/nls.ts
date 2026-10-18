@@ -11,31 +11,14 @@ import { Promises } from './pfs.js';
 
 export interface IResolveNLSConfigurationContext {
 
-	/**
-	 * Location where `nls.messages.json` and `nls.keys.json` are stored.
-	 */
 	readonly nlsMetadataPath: string;
 
-	/**
-	 * Path to the user data directory. Used as a cache for
-	 * language packs converted to the format we need.
-	 */
 	readonly userDataPath: string;
 
-	/**
-	 * Commit of the running application. Can be `undefined`
-	 * when not built.
-	 */
 	readonly commit: string | undefined;
 
-	/**
-	 * Locale as defined in `argv.json` or `app.getLocale()`.
-	 */
 	readonly userLocale: string;
 
-	/**
-	 * Locale as defined by the OS (e.g. `app.getPreferredSystemLanguages()`).
-	 */
 	readonly osLocale: string;
 }
 
@@ -83,7 +66,7 @@ export async function resolveNLSConfiguration({ userLocale, osLocale, userDataPa
 		const languagePackCorruptMarkerFile = join(globalLanguagePackCachePath, 'corrupted.info');
 
 		if (await Promises.exists(languagePackCorruptMarkerFile)) {
-			await promises.rm(globalLanguagePackCachePath, { recursive: true, force: true, maxRetries: 3 }); // delete corrupted cache folder
+			await promises.rm(globalLanguagePackCachePath, { recursive: true, force: true, maxRetries: 3 });
 		}
 
 		const result: INLSConfiguration = {
@@ -97,7 +80,6 @@ export async function resolveNLSConfiguration({ userLocale, osLocale, userDataPa
 				corruptMarkerFile: languagePackCorruptMarkerFile
 			},
 
-			// NLS: below properties are a relic from old times only used by vscode-nls and deprecated
 			locale: userLocale,
 			availableLanguages: { '*': resolvedLanguage },
 			_languagePackId: languagePackId,
@@ -109,7 +91,7 @@ export async function resolveNLSConfiguration({ userLocale, osLocale, userDataPa
 		};
 
 		if (await Promises.exists(languagePackMessagesFile)) {
-			touch(commitLanguagePackCachePath).catch(() => { }); // We don't wait for this. No big harm if we can't touch
+			touch(commitLanguagePackCachePath).catch(() => { });
 			mark('code/didGenerateNls');
 			return result;
 		}
@@ -120,7 +102,6 @@ export async function resolveNLSConfiguration({ userLocale, osLocale, userDataPa
 			nlsPackdata
 		]:
 			[Array<[string, string[]]>, string[], { contents: Record<string, Record<string, string>> }]
-			//      ^moduleId ^nlsKeys                               ^moduleId      ^nlsKey ^nlsValue
 			= await Promise.all([
 				promises.readFile(join(nlsMetadataPath, 'nls.keys.json'), 'utf-8').then(content => JSON.parse(content)),
 				promises.readFile(join(nlsMetadataPath, 'nls.messages.json'), 'utf-8').then(content => JSON.parse(content)),
@@ -129,10 +110,6 @@ export async function resolveNLSConfiguration({ userLocale, osLocale, userDataPa
 
 		const nlsResult: string[] = [];
 
-		// We expect NLS messages to be in a flat array in sorted order as they
-		// where produced during build time. We use `nls.keys.json` to know the
-		// right order and then lookup the related message from the translation.
-		// If a translation does not exist, we fallback to the default message.
 
 		let nlsIndex = 0;
 		for (const [moduleId, nlsKeys] of nlsDefaultKeys) {
@@ -160,20 +137,12 @@ export async function resolveNLSConfiguration({ userLocale, osLocale, userDataPa
 	return defaultNLSConfiguration(userLocale, osLocale, nlsMetadataPath);
 }
 
-/**
- * The `languagepacks.json` file is a JSON file that contains all metadata
- * about installed language extensions per language. Specifically, for
- * core (`vscode`) and all extensions it supports, it points to the related
- * translation files.
- *
- * The file is updated whenever a new language pack is installed or removed.
- */
 async function getLanguagePackConfigurations(userDataPath: string): Promise<ILanguagePacks | undefined> {
 	const configFile = join(userDataPath, 'languagepacks.json');
 	try {
 		return JSON.parse(await promises.readFile(configFile, 'utf-8'));
 	} catch (err) {
-		return undefined; // Do nothing. If we can't read the file we have no language pack config.
+		return undefined;
 	}
 }
 
@@ -207,13 +176,11 @@ function defaultNLSConfiguration(userLocale: string, osLocale: string, nlsMetada
 		resolvedLanguage: 'en',
 		defaultMessagesFile: join(nlsMetadataPath, 'nls.messages.json'),
 
-		// NLS: below 2 are a relic from old times only used by vscode-nls and deprecated
 		locale: userLocale,
 		availableLanguages: {}
 	};
 }
 
-//#region fs helpers
 
 function touch(path: string): Promise<void> {
 	const date = new Date();
@@ -221,4 +188,3 @@ function touch(path: string): Promise<void> {
 	return promises.utimes(path, date, date);
 }
 
-//#endregion

@@ -17,7 +17,7 @@ import {
 } from '../iterableHelpers';
 
 class AsyncIterableTestHelper {
-	state = 0; // this is used to check that operations are suitably lazy
+	state = 0;
 	async *[Symbol.asyncIterator](): AsyncIterator<number> {
 		this.state = 1;
 		yield Promise.resolve(1);
@@ -31,7 +31,6 @@ class AsyncIterableTestHelper {
 }
 
 suite('Async Iterable utilities', function () {
-	// Sanity check that the generator itself behaves as expected
 	test('generator', async function () {
 		const asyncIterableIn = new AsyncIterableTestHelper();
 		const asyncIterable = asyncIterableIn;

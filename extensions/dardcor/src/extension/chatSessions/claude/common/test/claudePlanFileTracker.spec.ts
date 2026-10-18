@@ -11,15 +11,12 @@ import { ClaudePlanFileTracker } from '../claudePlanFileTracker';
 
 describe('ClaudePlanFileTracker', () => {
 	function createTracker(): ClaudePlanFileTracker {
-		// NullNativeEnvService.userHome === file:///home/testuser
 		return new ClaudePlanFileTracker(new NullNativeEnvService());
 	}
 
 	const PLAN_DIR = '/home/testuser/.claude/plans';
 	const SESSION = 'session-1';
 
-	/** Compare against the platform's `URI.file` of the same path so
-	 * Windows backslash-fsPath doesn't trip the suite. */
 	function expectedFsPath(path: string): string {
 		return URI.file(path).fsPath;
 	}
@@ -80,13 +77,8 @@ describe('ClaudePlanFileTracker', () => {
 		expect(tracker.getLastPlanFile(SESSION)).toBeUndefined();
 	});
 
-	// On case-insensitive filesystems (Windows, default macOS), the SDK can
-	// hand back the plan path with different casing than `userHome`. On
-	// Linux URI casing is preserved by `extUriBiasedIgnorePathCase`, so
-	// only assert this behavior on platforms that actually ignore case.
 	it.runIf(!isLinux)('matches paths case-insensitively when the platform is case-insensitive', () => {
 		const tracker = createTracker();
-		// `.md` extension still lower-cased so the early-exit doesn't fire.
 		tracker.recordIfPlanFile(SESSION, '/home/TestUser/.Claude/Plans/plan.md');
 		expect(tracker.getLastPlanFile(SESSION)?.fsPath).toBe(expectedFsPath('/home/TestUser/.Claude/Plans/plan.md'));
 	});

@@ -15,7 +15,6 @@ import { ITextModel } from '../../../common/model.js';
 
 export function getReindentEditOperations(model: ITextModel, languageConfigurationService: ILanguageConfigurationService, startLineNumber: number, endLineNumber: number): ISingleEditOperation[] {
 	if (model.getLineCount() === 1 && model.getLineMaxColumn(1) === 1) {
-		// Model is empty
 		return [];
 	}
 
@@ -27,7 +26,6 @@ export function getReindentEditOperations(model: ITextModel, languageConfigurati
 	const processedIndentRulesSupport = new ProcessedIndentRulesSupport(model, indentationRulesSupport, languageConfigurationService);
 	endLineNumber = Math.min(endLineNumber, model.getLineCount());
 
-	// Skip `unIndentedLinePattern` lines
 	while (startLineNumber <= endLineNumber) {
 		if (!processedIndentRulesSupport.shouldIgnore(startLineNumber)) {
 			break;
@@ -51,13 +49,9 @@ export function getReindentEditOperations(model: ITextModel, languageConfigurati
 	};
 	const indentEdits: ISingleEditOperation[] = [];
 
-	// indentation being passed to lines below
 
-	// Calculate indentation for the first line
-	// If there is no passed-in indentation, we use the indentation of the first line as base.
 	const currentLineText = model.getLineContent(startLineNumber);
 	let globalIndent = strings.getLeadingWhitespace(currentLineText);
-	// idealIndentForNextLine doesn't equal globalIndent when there is a line matching `indentNextLinePattern`.
 	let idealIndentForNextLine: string = globalIndent;
 
 	if (processedIndentRulesSupport.shouldIncrease(startLineNumber)) {
@@ -70,7 +64,6 @@ export function getReindentEditOperations(model: ITextModel, languageConfigurati
 
 	startLineNumber++;
 
-	// Calculate indentation adjustment for all following lines
 	for (let lineNumber = startLineNumber; lineNumber <= endLineNumber; lineNumber++) {
 		if (doesLineStartWithString(model, lineNumber)) {
 			continue;
@@ -88,10 +81,7 @@ export function getReindentEditOperations(model: ITextModel, languageConfigurati
 			indentEdits.push(EditOperation.replaceMove(new Selection(lineNumber, 1, lineNumber, oldIndentation.length + 1), normalizeIndentation(idealIndentForNextLine, indentSize, insertSpaces)));
 		}
 
-		// calculate idealIndentForNextLine
 		if (processedIndentRulesSupport.shouldIgnore(lineNumber)) {
-			// In reindent phase, if the line matches `unIndentedLinePattern` we inherit indentation from above lines
-			// but don't change globalIndent and idealIndentForNextLine.
 			continue;
 		} else if (processedIndentRulesSupport.shouldIncrease(lineNumber, currentIdealIndent)) {
 			globalIndent = shiftIndent(globalIndent);

@@ -33,7 +33,6 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import * as css from '../../../../../base/browser/cssValue.js';
 import { defaultCheckboxStyles } from '../../../../../platform/theme/browser/defaultStyles.js';
 
-// --- VIEW MODEL
 
 export interface ICheckable {
 	isChecked(): boolean;
@@ -80,19 +79,16 @@ export class FileElement implements ICheckable {
 
 		let checked = true;
 
-		// only text edit children -> reflect children state
 		if (this.edit.type === BulkFileOperationType.TextEdit) {
 			checked = !this.edit.textEdits.every(edit => !model.checked.isChecked(edit.textEdit));
 		}
 
-		// multiple file edits -> reflect single state
 		for (const edit of this.edit.originalEdits.values()) {
 			if (edit instanceof ResourceFileEdit) {
 				checked = checked && model.checked.isChecked(edit);
 			}
 		}
 
-		// multiple categories and text change -> read all elements
 		if (this.parent instanceof CategoryElement && this.edit.type === BulkFileOperationType.TextEdit) {
 			for (const category of model.categories) {
 				for (const file of category.fileOperations) {
@@ -116,7 +112,6 @@ export class FileElement implements ICheckable {
 			model.checked.updateChecked(edit, value);
 		}
 
-		// multiple categories and file change -> update all elements
 		if (this.parent instanceof CategoryElement && this.edit.type !== BulkFileOperationType.TextEdit) {
 			for (const category of model.categories) {
 				for (const file of category.fileOperations) {
@@ -174,10 +169,8 @@ export class TextEditElement implements ICheckable {
 			model = model.parent;
 		}
 
-		// check/uncheck this element
 		model.checked.updateChecked(this.edit.textEdit, value);
 
-		// make sure parent is checked when this element is checked...
 		if (value) {
 			for (const edit of this.parent.edit.originalEdits.values()) {
 				if (edit instanceof ResourceFileEdit) {
@@ -194,7 +187,6 @@ export class TextEditElement implements ICheckable {
 
 export type BulkEditElement = CategoryElement | FileElement | TextEditElement;
 
-// --- DATA SOURCE
 
 export class BulkEditDataSource implements IAsyncDataSource<BulkFileOperations, BulkEditElement> {
 
@@ -217,21 +209,17 @@ export class BulkEditDataSource implements IAsyncDataSource<BulkFileOperations, 
 
 	async getChildren(element: BulkFileOperations | BulkEditElement): Promise<BulkEditElement[]> {
 
-		// root -> file/text edits
 		if (element instanceof BulkFileOperations) {
 			return this.groupByFile
 				? element.fileOperations.map(op => new FileElement(element, op))
 				: element.categories.map(cat => new CategoryElement(element, cat));
 		}
 
-		// category
 		if (element instanceof CategoryElement) {
 			return Array.from(element.category.fileOperations, op => new FileElement(element, op));
 		}
 
-		// file: text edit
 		if (element instanceof FileElement && element.edit.textEdits.length > 0) {
-			// const previewUri = BulkEditPreviewProvider.asPreviewUri(element.edit.resource);
 			let textModel: ITextModel;
 			let textModelDisposable: IDisposable;
 			try {
@@ -246,14 +234,12 @@ export class BulkEditDataSource implements IAsyncDataSource<BulkFileOperations, 
 			const result = element.edit.textEdits.map((edit, idx) => {
 				const range = textModel.validateRange(edit.textEdit.textEdit.range);
 
-				//prefix-math
 				const startTokens = textModel.tokenization.getLineTokens(range.startLineNumber);
-				let prefixLen = 23; // default value for the no tokens/grammar case
+				let prefixLen = 23;
 				for (let idx = startTokens.findTokenIndexAtOffset(range.startColumn - 1) - 1; prefixLen < 50 && idx >= 0; idx--) {
 					prefixLen = range.startColumn - startTokens.getStartOffset(idx);
 				}
 
-				//suffix-math
 				const endTokens = textModel.tokenization.getLineTokens(range.endLineNumber);
 				let suffixLen = 0;
 				for (let idx = endTokens.findTokenIndexAtOffset(range.endColumn - 1); suffixLen < 50 && idx < endTokens.getCount(); idx++) {
@@ -299,7 +285,6 @@ export function compareBulkFileOperations(a: BulkFileOperation, b: BulkFileOpera
 	return compare(a.uri.toString(), b.uri.toString());
 }
 
-// --- ACCESSI
 
 export class BulkEditAccessibilityProvider implements IListAccessibilityProvider<BulkEditElement> {
 
@@ -364,13 +349,10 @@ export class BulkEditAccessibilityProvider implements IListAccessibilityProvider
 
 		if (element instanceof TextEditElement) {
 			if (element.selecting.length > 0 && element.inserting.length > 0) {
-				// edit: replace
 				return localize('aria.replace', "line {0}, replacing {1} with {2}", element.edit.textEdit.textEdit.range.startLineNumber, element.selecting, element.inserting);
 			} else if (element.selecting.length > 0 && element.inserting.length === 0) {
-				// edit: delete
 				return localize('aria.del', "line {0}, removing {1}", element.edit.textEdit.textEdit.range.startLineNumber, element.selecting);
 			} else if (element.selecting.length === 0 && element.inserting.length > 0) {
-				// edit: insert
 				return localize('aria.insert', "line {0}, inserting {1}", element.edit.textEdit.textEdit.range.startLineNumber, element.selecting);
 			}
 		}
@@ -379,7 +361,6 @@ export class BulkEditAccessibilityProvider implements IListAccessibilityProvider
 	}
 }
 
-// --- IDENT
 
 export class BulkEditIdentityProvider implements IIdentityProvider<BulkEditElement> {
 
@@ -394,7 +375,6 @@ export class BulkEditIdentityProvider implements IIdentityProvider<BulkEditEleme
 	}
 }
 
-// --- RENDERER
 
 class CategoryElementTemplate {
 
@@ -429,20 +409,17 @@ export class CategoryElementRenderer implements ITreeRenderer<CategoryElement, F
 
 		const { metadata } = node.element.category;
 		if (ThemeIcon.isThemeIcon(metadata.iconPath)) {
-			// css
 			const className = ThemeIcon.asClassName(metadata.iconPath);
 			template.icon.className = className ? `theme-icon ${className}` : '';
 			template.icon.style.color = metadata.iconPath.color ? this._themeService.getColorTheme().getColor(metadata.iconPath.color.id)?.toString() ?? '' : '';
 
 
 		} else if (URI.isUri(metadata.iconPath)) {
-			// background-image
 			template.icon.className = 'uri-icon';
 			template.icon.style.setProperty('--background-dark', css.asCSSUrl(metadata.iconPath));
 			template.icon.style.setProperty('--background-light', css.asCSSUrl(metadata.iconPath));
 
 		} else if (metadata.iconPath) {
-			// background-image
 			template.icon.className = 'uri-icon';
 			template.icon.style.setProperty('--background-dark', css.asCSSUrl(metadata.iconPath.dark));
 			template.icon.style.setProperty('--background-light', css.asCSSUrl(metadata.iconPath.light));
@@ -500,14 +477,12 @@ class FileElementTemplate {
 		} else {
 			this._checkbox.enable();
 		}
-		// enable()/disable() reset the tabIndex; keep the checkbox out of the tree's tab order
 		this._checkbox.domNode.tabIndex = -1;
 		this._localDisposables.add(this._checkbox.onChange(() => {
 			element.setChecked(this._checkbox.checked);
 		}));
 
 		if (element.edit.type & BulkFileOperationType.Rename && element.edit.newUri) {
-			// rename: oldName → newName
 			this._label.setResource({
 				resource: element.edit.uri,
 				name: localize('rename.label', "{0} → {1}", this._labelService.getUriLabel(element.edit.uri, { relative: true }), this._labelService.getUriLabel(element.edit.newUri, { relative: true })),
@@ -518,7 +493,6 @@ class FileElementTemplate {
 			this._details.innerText = localize('detail.rename', "(renaming)");
 
 		} else {
-			// create, delete, edit: NAME
 			const options = {
 				matches: createMatches(score),
 				fileKind: FileKind.FILE,
@@ -602,7 +576,6 @@ class TextEditElementTemplate {
 		} else {
 			this._checkbox.enable();
 		}
-		// enable()/disable() reset the tabIndex; keep the checkbox out of the tree's tab order
 		this._checkbox.domNode.tabIndex = -1;
 
 		let value = '';
@@ -632,20 +605,17 @@ class TextEditElementTemplate {
 			this._icon.style.setProperty('--background-light', null);
 
 			if (ThemeIcon.isThemeIcon(iconPath)) {
-				// css
 				const className = ThemeIcon.asClassName(iconPath);
 				this._icon.className = className ? `theme-icon ${className}` : '';
 				this._icon.style.color = iconPath.color ? this._themeService.getColorTheme().getColor(iconPath.color.id)?.toString() ?? '' : '';
 
 
 			} else if (URI.isUri(iconPath)) {
-				// background-image
 				this._icon.className = 'uri-icon';
 				this._icon.style.setProperty('--background-dark', css.asCSSUrl(iconPath));
 				this._icon.style.setProperty('--background-light', css.asCSSUrl(iconPath));
 
 			} else {
-				// background-image
 				this._icon.className = 'uri-icon';
 				this._icon.style.setProperty('--background-dark', css.asCSSUrl(iconPath.dark));
 				this._icon.style.setProperty('--background-light', css.asCSSUrl(iconPath.light));

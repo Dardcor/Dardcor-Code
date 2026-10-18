@@ -49,7 +49,6 @@ export function getActiveTerminalSelection(): string {
 	try {
 		return window.activeTerminal?.selection ?? '';
 	} catch {
-		// In case the API isn't available
 		return '';
 	}
 }
@@ -58,7 +57,6 @@ let lastDetectedShellType: string | undefined;
 export function getActiveTerminalShellType(): string {
 	const activeTerminal = window.activeTerminal;
 
-	// Prefer the state object as it's the most reliable
 	if (activeTerminal?.state.shell) {
 		return activeTerminal.state.shell;
 	}
@@ -69,7 +67,6 @@ export function getActiveTerminalShellType(): string {
 			let candidateShellType: string | undefined;
 			const shellFile = basename(shellPath);
 
-			// Detect git bash specially as it depends on the .exe
 			if (shellFile === 'bash.exe') {
 				candidateShellType = 'Git Bash';
 			} else {
@@ -92,20 +89,16 @@ export function getActiveTerminalShellType(): string {
 		}
 	}
 
-	// Fall back to the last detected shell type if it exists
 	if (lastDetectedShellType) {
 		return lastDetectedShellType;
 	}
 
-	// Fall back to bash or PowerShell, this uses the front end OS so it could give the wrong shell
-	// when remoting from Windows into non-Windows or vice versa.
 	return platform === 'win32' ? 'powershell' : 'bash';
 }
 
 function appendLimitedWindow<T>(target: T[], data: T) {
 	target.push(data);
 	if (target.length > 40) {
-		// 40 data events should capture a minimum of about twice the typical visible area
 		target.shift();
 	}
 }

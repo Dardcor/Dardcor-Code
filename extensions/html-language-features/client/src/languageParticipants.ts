@@ -5,17 +5,8 @@
 
 import { Event, EventEmitter, extensions } from 'vscode';
 
-/**
- * HTML language participant contribution.
- */
 interface LanguageParticipantContribution {
-	/**
-	 * The id of the language which participates with the HTML language server.
-	 */
 	languageId: string;
-	/**
-	 * true if the language activates the auto insertion and false otherwise.
-	 */
 	autoInsert?: boolean;
 }
 

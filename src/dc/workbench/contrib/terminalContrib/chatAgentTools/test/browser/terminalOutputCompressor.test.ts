@@ -269,7 +269,6 @@ suite('find / grep / tree filters', () => {
 		const out = findFilter.apply(lines, { command: 'find . -name "*.ts"' });
 		strictEqual(out.compressed, true);
 		ok(out.text.includes('omitted'));
-		// First file should still appear.
 		ok(out.text.includes('./file0.ts'));
 	});
 
@@ -333,11 +332,9 @@ suite('envFilter', () => {
 		const text = ['ZSH=/bin/zsh', 'PATH=/usr/bin', 'PATH=/usr/bin', 'HOME=/home/u'].join('\n');
 		const out = envFilter.apply(text, { command: 'env' });
 		strictEqual(out.compressed, true);
-		// Sorted alphabetically.
 		const lines = out.text.split('\n');
 		ok(lines.indexOf('HOME=/home/u') < lines.indexOf('PATH=/usr/bin'));
 		ok(lines.indexOf('PATH=/usr/bin') < lines.indexOf('ZSH=/bin/zsh'));
-		// Deduped.
 		strictEqual(lines.filter(l => l === 'PATH=/usr/bin').length, 1);
 	});
 });

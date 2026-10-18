@@ -22,19 +22,6 @@ interface IClaudeSdkMessageContext {
 	readonly clientContext?: IAgentHostClientTelemetryContext;
 }
 
-/**
- * Per-message router. Awaits file-edit observation for `type: 'user'`
- * messages so the cached edit lands before {@link mapSDKMessageToAgentSignals}
- * reads it via `state.takeFileEdit`, then fires mapped signals on
- * {@link onDidProduceSignal}. Mapper failures are logged but never thrown.
- *
- * Owns the per-session {@link ClaudeFileEditObserver} (Phase 8) and
- * {@link ClaudeMapperState} (Phase 7) — both are private to the
- * message-handling pipeline and have no other consumers. Phase 12
- * subagent correlation state lives on {@link IClaudeSubagentResolver}
- * (host-singleton, keyed by parent session URI), which the router
- * forwards into every mapper invocation.
- */
 export class ClaudeSdkMessageRouter extends Disposable {
 
 	private readonly _onDidProduceSignal = this._register(new Emitter<AgentSignal>());

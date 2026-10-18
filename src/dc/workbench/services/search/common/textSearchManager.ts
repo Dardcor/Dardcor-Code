@@ -56,7 +56,6 @@ export class TextSearchManager {
 			let isCanceled = false;
 			const onResult = (result: TextSearchResult2, folderIdx: number) => {
 				if (result instanceof AISearchKeyword) {
-					// Already processed by the callback.
 					return;
 				}
 				if (isCanceled) {
@@ -83,7 +82,6 @@ export class TextSearchManager {
 				}
 			};
 
-			// For each root folder
 			this.doSearch(folderQueries, onResult, tokenSource.token, onKeywordResult).then(result => {
 				tokenSource.dispose();
 				this.collector!.flush();
@@ -116,7 +114,6 @@ export class TextSearchManager {
 				1;
 		}
 		else {
-			// #104400 context lines shoudn't count towards result count
 			return 0;
 		}
 	}
@@ -154,7 +151,6 @@ export class TextSearchManager {
 
 						const relativePath = resources.relativePath(folderQuery.folder, result.uri);
 						if (relativePath) {
-							// This method is only async when the exclude contains sibling clauses
 							const included = folderQuery.queryTester.includedInQuery(relativePath, path.basename(relativePath), hasSibling);
 							if (isThenable(included)) {
 								testingPs.push(
@@ -249,9 +245,6 @@ export class TextSearchResultsCollector {
 	}
 
 	add(data: TextSearchResult2, folderIdx: number): void {
-		// Collects TextSearchResults into IInternalFileMatches and collates using BatchedCollector.
-		// This is efficient for ripgrep which sends results back one file at a time. It wouldn't be efficient for other search
-		// providers that send results in random order. We could do this step afterwards instead.
 		if (this._currentFileMatch && (this._currentFolderIdx !== folderIdx || !resources.isEqual(this._currentUri, data.uri))) {
 			this.pushToCollector();
 			this._currentFileMatch = null;
@@ -287,7 +280,6 @@ export class TextSearchResultsCollector {
 }
 
 function extensionResultToFrontendResult(data: TextSearchResult2): ITextSearchResult {
-	// Warning: result from RipgrepTextSearchEH has fake Range. Don't depend on any other props beyond these...
 	if (data instanceof TextSearchMatch2) {
 		return {
 			previewText: data.previewText,
@@ -315,16 +307,9 @@ function extensionResultToFrontendResult(data: TextSearchResult2): ITextSearchRe
 }
 
 
-/**
- * Collects items that have a size - before the cumulative size of collected items reaches START_BATCH_AFTER_COUNT, the callback is called for every
- * set of items collected.
- * But after that point, the callback is called with batches of maxBatchSize.
- * If the batch isn't filled within some time, the callback is also called.
- */
 export class BatchedCollector<T> {
 	private static readonly TIMEOUT = 4000;
 
-	// After START_BATCH_AFTER_COUNT items have been collected, stop flushing on timeout
 	private static readonly START_BATCH_AFTER_COUNT = 50;
 
 	private totalNumberCompleted = 0;
@@ -365,13 +350,10 @@ export class BatchedCollector<T> {
 
 	private onUpdate(): void {
 		if (this.totalNumberCompleted < BatchedCollector.START_BATCH_AFTER_COUNT) {
-			// Flush because we aren't batching yet
 			this.flush();
 		} else if (this.batchSize >= this.maxBatchSize) {
-			// Flush because the batch is full
 			this.flush();
 		} else if (!this.timeoutHandle) {
-			// No timeout running, start a timeout to flush
 			this.timeoutHandle = setTimeout(() => {
 				this.flush();
 			}, BatchedCollector.TIMEOUT);

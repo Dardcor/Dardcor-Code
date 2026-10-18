@@ -5,23 +5,16 @@
 
 import { localize } from '../../../nls.js';
 
-/**
- * The routing profiles the Copilot runtime accepts for an Auto session, cheapest first. These are
- * the wire values of its `capi.autoTier` option; the retired `eco`/`balanced`/`max` names are rejected.
- */
 export const autoModeTiers = ['efficiency', 'balance', 'intelligence'] as const;
 
 export type AutoModeTier = typeof autoModeTiers[number];
 
-/** The profile used when the user has not picked one. Also the picker's default. */
 export const defaultAutoModeTier: AutoModeTier = 'balance';
 
-/** Narrows an untrusted value, such as a persisted picker selection, to a profile the runtime accepts. */
 export function isAutoModeTier(value: unknown): value is AutoModeTier {
 	return autoModeTiers.some(tier => tier === value);
 }
 
-/** Maps retired picker and override values to the current runtime names, matching the Copilot extension. */
 export function normalizeAutoModeTier(value: unknown): unknown {
 	switch (value) {
 		case 'eco': return 'efficiency';
@@ -31,10 +24,6 @@ export function normalizeAutoModeTier(value: unknown): unknown {
 	}
 }
 
-/**
- * Localized picker label for a routing profile, capitalizing an unrecognized value so a new profile
- * never surfaces raw. Wording matches the extension's `getAutoModeTierLabel`, which cannot be imported here.
- */
 export function getAutoModeTierLabel(tier: string): string {
 	switch (tier) {
 		case 'efficiency': return localize('autoModeTier.efficiency', "Efficiency");
@@ -44,7 +33,6 @@ export function getAutoModeTierLabel(tier: string): string {
 	}
 }
 
-/** Localized picker description, or nothing for an unrecognized value so callers can omit it. */
 export function getAutoModeTierDescription(tier: string): string | undefined {
 	switch (tier) {
 		case 'efficiency': return localize('autoModeTier.efficiencyDescription', "Cheaper models for everyday tasks");

@@ -22,11 +22,6 @@ const TRANSCRIPT_VERSION = 1;
 const TRANSCRIPT_PRODUCER = 'dardcor-agent';
 const DEFAULT_MAX_RETAINED = 20;
 
-/**
- * Strip the internal `__vscode-<number>` suffix that is appended to tool-call
- * IDs for uniqueness inside VS Code.  The transcript should contain only the
- * original model-generated ID.
- */
 function stripInternalToolCallId(id: string): string {
 	return id.split('__vscode-')[0];
 }
@@ -34,11 +29,8 @@ function stripInternalToolCallId(id: string): string {
 interface IActiveSession {
 	readonly uri: URI;
 	lastEntryId: string | null;
-	/** Buffered JSONL lines waiting to be flushed to disk. */
 	readonly buffer: string[];
-	/** Chain of flush operations to serialize writes. */
 	flushPromise: Promise<void>;
-	/** Running count of lines in the transcript (flushed + buffered). */
 	lineCount: number;
 }
 
@@ -95,17 +87,14 @@ export class SessionTranscriptService implements ISessionTranscriptService {
 		};
 		this._activeSessions.set(sessionId, session);
 
-		// If the file already exists on disk, skip history replay and just pick up from here
 		let fileAlreadyExists = false;
 		try {
 			await this._fileSystemService.stat(fileUri);
 			fileAlreadyExists = true;
 		} catch {
-			// File doesn't exist yet
 		}
 
 		if (fileAlreadyExists) {
-			// Session file exists — we're resuming; count existing lines so getLineCount stays accurate
 			try {
 				const content = await fs.promises.readFile(fileUri.fsPath, 'utf-8');
 				session.lineCount = content.split('\n').filter(l => l.length > 0).length;
@@ -131,12 +120,10 @@ export class SessionTranscriptService implements ISessionTranscriptService {
 			},
 		});
 
-		// Replay historical turns if provided
 		if (history) {
 			this._replayHistory(sessionId, history);
 		}
 
-		// Fire-and-forget cleanup of old transcripts
 		this.cleanupOldTranscripts().catch(() => { });
 	}
 
@@ -204,13 +191,12 @@ export class SessionTranscriptService implements ISessionTranscriptService {
 			return;
 		}
 
-		// Drain the buffer and chain on any in-flight flush to serialize writes
 		const lines = session.buffer.splice(0);
 		const content = lines.join('');
 
 		session.flushPromise = session.flushPromise.then(
 			() => this._writeToFile(session, content),
-			() => this._writeToFile(session, content), // still write even if prior flush failed
+			() => this._writeToFile(session, content),
 		);
 		return session.flushPromise;
 	}
@@ -245,13 +231,12 @@ export class SessionTranscriptService implements ISessionTranscriptService {
 		try {
 			const entries = await this._fileSystemService.readDirectory(dir);
 			const jsonlFiles = entries
-				.filter(([name, type]) => name.endsWith('.jsonl') && type === 1 /* FileType.File */);
+				.filter(([name, type]) => name.endsWith('.jsonl') && type === 1 );
 
 			if (jsonlFiles.length <= maxRetained) {
 				return;
 			}
 
-			// Get stats for sorting by modification time
 			const fileStats = await Promise.all(
 				jsonlFiles.map(async ([name]) => {
 					const fileUri = URI.joinPath(dir, name);
@@ -265,10 +250,8 @@ export class SessionTranscriptService implements ISessionTranscriptService {
 				})
 			);
 
-			// Sort oldest first
 			fileStats.sort((a, b) => a.mtime - b.mtime);
 
-			// Delete oldest, keeping maxRetained and any active sessions
 			const toDelete = fileStats.length - maxRetained;
 			let deleted = 0;
 			for (const file of fileStats) {
@@ -286,14 +269,9 @@ export class SessionTranscriptService implements ISessionTranscriptService {
 				}
 			}
 		} catch {
-			// Directory may not exist yet, that's fine
 		}
 	}
 
-	/**
-	 * Replay historical conversation turns into the session buffer.
-	 * Each turn produces: user.message → (assistant.turn_start → assistant.message → assistant.turn_end) × N rounds.
-	 */
 	private _replayHistory(sessionId: string, history: readonly IHistoricalTurn[]): void {
 		for (const [turnIndex, turn] of history.entries()) {
 			const turnTimestamp = new Date(turn.timestamp).toISOString();
@@ -342,13 +320,6 @@ export class SessionTranscriptService implements ISessionTranscriptService {
 		}
 	}
 
-	/**
-	 * Synchronously buffer a transcript entry. The entry is serialized to
-	 * a JSONL line and appended to the session's in-memory buffer. Call
-	 * {@link flush} to write buffered entries to disk.
-	 *
-	 * @param timestampOverride Optional ISO 8601 timestamp; defaults to now.
-	 */
 	private _bufferEntry(sessionId: string, entry: Omit<TranscriptEntry, 'id' | 'timestamp' | 'parentId'>, timestampOverride?: string): void {
 		const session = this._activeSessions.get(sessionId);
 		if (!session) {
@@ -368,9 +339,6 @@ export class SessionTranscriptService implements ISessionTranscriptService {
 		session.buffer.push(JSON.stringify(fullEntry) + '\n');
 	}
 
-	/**
-	 * Append pre-serialized JSONL content to the session's transcript file.
-	 */
 	private async _writeToFile(session: IActiveSession, content: string): Promise<void> {
 		try {
 			await fs.promises.appendFile(session.uri.fsPath, content, 'utf-8');

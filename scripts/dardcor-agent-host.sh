@@ -10,14 +10,12 @@ fi
 function dardcor_agent_host() {
 	pushd $ROOT
 
-	# Get electron, compile, built-in extensions
 	if [[ -z "${DARDCOR_SKIP_PRELAUNCH}" ]] && [[ -z "${VSCODE_SKIP_PRELAUNCH}" ]]; then
 		node build/lib/preLaunch.ts
 	fi
 
 	NODE=$(node build/lib/node.ts)
 	if [ ! -e $NODE ];then
-		# Load remote node
 		npm run gulp node
 	fi
 

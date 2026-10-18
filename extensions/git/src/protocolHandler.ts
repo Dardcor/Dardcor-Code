@@ -21,7 +21,6 @@ export class GitProtocolHandler implements UriHandler {
 		this.disposables.push(window.registerUriHandler(this));
 	}
 
-	// example code-oss://vscode.git/clone?url=https://github.com/microsoft/vscode
 	handleUri(uri: Uri): void {
 		this.logger.info(`[GitProtocolHandler][handleUri] URI:(${uri.toString()})`);
 
@@ -53,18 +52,14 @@ export class GitProtocolHandler implements UriHandler {
 		try {
 			let rawUri = Array.isArray(data.url) ? data.url[0] : data.url;
 
-			// Handle SSH Uri
-			// Ex: git@github.com:microsoft/vscode.git
 			rawUri = rawUri.replace(/^(git@[^\/:]+)(:)/i, 'ssh://$1/');
 
 			cloneUri = Uri.parse(rawUri, true);
 
-			// Validate against supported schemes
 			if (!schemes.has(cloneUri.scheme.toLowerCase())) {
 				throw new Error('Unsupported scheme.');
 			}
 
-			// Validate the reference
 			if (typeof ref === 'string' && refRegEx.test(ref)) {
 				throw new Error('Invalid reference.');
 			}
@@ -81,7 +76,7 @@ export class GitProtocolHandler implements UriHandler {
 			const downloadGit = l10n.t('Download Git');
 
 			if (await window.showErrorMessage(errorMessage, { modal: true }, downloadGit) === downloadGit) {
-				commands.executeCommand('vscode.open', Uri.parse('https://aka.ms/vscode-download-git'));
+				commands.executeCommand('vscode.open', Uri.parse('https://www.dardcor-code.web.id/docs/getting-started/git'));
 			}
 
 			return;

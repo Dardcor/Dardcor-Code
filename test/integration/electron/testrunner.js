@@ -8,8 +8,6 @@
 
 const paths = require('path');
 const glob = require('glob');
-// Linux: prevent a weird NPE when mocha on Linux requires the window size from the TTY
-// Since we are not running in a tty environment, we just implement the method statically
 const tty = require('tty');
 // @ts-ignore
 if (!tty.getWindowSize) {
@@ -31,18 +29,14 @@ exports.configure = function configure(opts) {
 };
 
 exports.run = function run(testsRoot, clb) {
-	// Enable source map support
 	require('source-map-support').install();
 
-	// Glob test files
 	glob('**/**.test.js', { cwd: testsRoot }, function (error, files) {
 		if (error) {
 			return clb(error);
 		}
 		try {
-			// Fill into Mocha
 			files.forEach(function (f) { return mocha.addFile(paths.join(testsRoot, f)); });
-			// Run the tests
 			mocha.run(function (failures) {
 				clb(null, failures);
 			});

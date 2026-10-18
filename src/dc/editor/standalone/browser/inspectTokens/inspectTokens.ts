@@ -111,11 +111,11 @@ function renderTokenText(tokenText: string): string {
 		const charCode = tokenText.charCodeAt(charIndex);
 		switch (charCode) {
 			case CharCode.Tab:
-				result += '\u2192'; // &rarr;
+				result += '\u2192';
 				break;
 
 			case CharCode.Space:
-				result += '\u00B7'; // &middot;
+				result += '\u00B7';
 				break;
 
 			default:
@@ -142,7 +142,6 @@ class InspectTokensWidget extends Disposable implements IContentWidget {
 
 	private static readonly _ID = 'editor.contrib.inspectTokensWidget';
 
-	// Editor.IContentWidget.allowEditorOverflow
 	public allowEditorOverflow = true;
 
 	private readonly _editor: IActiveCodeEditor;

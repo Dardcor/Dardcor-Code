@@ -16,11 +16,6 @@ import { IWorkbenchEnvironmentService } from '../../../services/environment/comm
 import { ILifecycleService, LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { IEmbedderTerminalService } from '../../../services/terminal/common/embedderTerminalService.js';
 
-/**
- * The main contribution for the terminal contrib. This contains calls to other components necessary
- * to set up the terminal but don't need to be tracked in the long term (where TerminalService would
- * be more relevant).
- */
 export class TerminalMainContribution extends Disposable implements IWorkbenchContribution {
 	static ID = 'terminalMain';
 
@@ -61,8 +56,6 @@ export class TerminalMainContribution extends Disposable implements IWorkbenchCo
 		terminalGroupService: ITerminalGroupService,
 		terminalInstanceService: ITerminalInstanceService
 	) {
-		// IMPORTANT: This listener needs to be set up before the workbench is ready to support
-		// embedder terminals.
 		this._register(embedderTerminalService.onDidCreateTerminal(async embedderTerminal => {
 			const terminal = await terminalService.createTerminal({
 				config: embedderTerminal,
@@ -75,7 +68,6 @@ export class TerminalMainContribution extends Disposable implements IWorkbenchCo
 
 		await lifecycleService.when(LifecyclePhase.Restored);
 
-		// Register terminal editors
 		this._register(editorResolverService.registerEditor(
 			`${Schemas.vscodeTerminal}:/**`,
 			{
@@ -93,7 +85,7 @@ export class TerminalMainContribution extends Disposable implements IWorkbenchCo
 					if (instance) {
 						const sourceGroup = terminalGroupService.getGroupForInstance(instance);
 						sourceGroup?.removeInstance(instance);
-					} else { // Terminal from a different window
+					} else {
 						const terminalIdentifier = parseTerminalUri(resource);
 						if (!terminalIdentifier.instanceId) {
 							throw new Error('Terminal identifier without instanceId');
@@ -129,7 +121,6 @@ export class TerminalMainContribution extends Disposable implements IWorkbenchCo
 			}
 		));
 
-		// Register a resource formatter for terminal URIs
 		this._register(labelService.registerFormatter({
 			scheme: Schemas.vscodeTerminal,
 			formatting: {

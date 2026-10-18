@@ -230,7 +230,6 @@ suite('ExtHostTunnelService', () => {
 	test('getSockets', function () {
 		const result = getSockets(procSockets);
 		assert.strictEqual(Object.keys(result).length, 75);
-		// 4412 is the pid of the http-server in the test data
 		assert.notStrictEqual(Object.keys(result).find(key => result[key].pid === 4412), undefined);
 	});
 
@@ -260,7 +259,6 @@ suite('ExtHostTunnelService', () => {
 
 	test('loadListeningPorts', function () {
 		const result = loadListeningPorts(tcp, tcp6);
-		// There should be 7 based on the input data. One of them should be 3002.
 		assert.strictEqual(result.length, 7);
 		assert.notStrictEqual(result.find(value => value.port === 3002), undefined);
 	});

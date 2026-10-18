@@ -36,7 +36,6 @@ export default function EditConnectionModal({ isOpen, connection, proxyPools, on
         priority: connection.priority || 1,
         apiKey: "",
       });
-      // Load Azure-specific data if present
       if (connection.provider === "azure" && connection.providerSpecificData) {
         setAzureData({
           azureEndpoint: connection.providerSpecificData.azureEndpoint || "",
@@ -48,7 +47,6 @@ export default function EditConnectionModal({ isOpen, connection, proxyPools, on
       if (connection.provider === "cloudflare-ai" && connection.providerSpecificData) {
         setCloudflareData({ accountId: connection.providerSpecificData.accountId || "" });
       }
-      // Load region for providers that support it (e.g. xiaomi-tokenplan)
       const providerCfg = AI_PROVIDERS?.[connection.provider];
       if (providerCfg?.regions) {
         const savedRegion = connection.providerSpecificData?.region || providerCfg.defaultRegion || providerCfg.regions[0]?.id || "";
@@ -67,7 +65,6 @@ export default function EditConnectionModal({ isOpen, connection, proxyPools, on
     : false;
   const providerRegions = connection ? (AI_PROVIDERS?.[connection.provider]?.regions || null) : null;
 
-  // Build providerSpecificData for region-aware providers
   const buildRegionSpecificData = () => {
     if (providerRegions && region) return { ...((connection?.providerSpecificData) || {}), region };
     return undefined;
@@ -155,7 +152,6 @@ export default function EditConnectionModal({ isOpen, connection, proxyPools, on
         }
       }
       
-      // Add Azure-specific data if this is an Azure connection
       if (isAzure) {
         updates.providerSpecificData = {
           azureEndpoint: azureData.azureEndpoint,
@@ -167,7 +163,6 @@ export default function EditConnectionModal({ isOpen, connection, proxyPools, on
       if (isCloudflareAi) {
         updates.providerSpecificData = { accountId: cloudflareData.accountId };
       }
-      // Persist updated region for region-aware providers
       if (providerRegions && region) {
         updates.providerSpecificData = buildRegionSpecificData();
       }

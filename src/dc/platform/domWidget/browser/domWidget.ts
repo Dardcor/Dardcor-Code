@@ -8,16 +8,7 @@ import { Disposable, DisposableStore, toDisposable } from '../../../base/common/
 import { ISettableObservable, IObservable, autorun, constObservable, derived, observableValue } from '../../../base/common/observable.js';
 import { IInstantiationService, GetLeadingNonServiceArgs } from '../../instantiation/common/instantiation.js';
 
-/**
- * The DomWidget class provides a standard to define reusable UI components.
- * It is disposable and defines a single root element of type HTMLElement.
- * It also provides static helper methods to create and append widgets to the DOM,
- * with support for hot module replacement during development.
-*/
 export abstract class DomWidget extends Disposable {
-	/**
-	 * Appends the widget to the provided DOM element.
-	*/
 	public static createAppend<TArgs extends unknown[], T extends DomWidget>(this: DomWidgetCtor<TArgs, T>, dom: HTMLElement, store: DisposableStore, ...params: TArgs): void {
 		if (!isHotReloadEnabled()) {
 			const widget = new this(...params);
@@ -35,9 +26,6 @@ export abstract class DomWidget extends Disposable {
 		}));
 	}
 
-	/**
-	 * Creates the widget in a new div element with "display: contents".
-	*/
 	public static createInContents<TArgs extends unknown[], T extends DomWidget>(this: DomWidgetCtor<TArgs, T>, store: DisposableStore, ...params: TArgs): HTMLDivElement {
 		const div = document.createElement('div');
 		div.style.display = 'contents';
@@ -45,10 +33,6 @@ export abstract class DomWidget extends Disposable {
 		return div;
 	}
 
-	/**
-	 * Creates an observable instance of the widget.
-	 * The observable will change when hot module replacement occurs.
-	*/
 	public static createObservable<TArgs extends unknown[], T extends DomWidget>(this: DomWidgetCtor<TArgs, T>, store: DisposableStore, ...params: TArgs): IObservable<T> {
 		if (!isHotReloadEnabled()) {
 			return constObservable(new this(...params));
@@ -67,9 +51,6 @@ export abstract class DomWidget extends Disposable {
 		});
 	}
 
-	/**
-	 * Appends the widget to the provided DOM element.
-	*/
 	public static instantiateAppend<TArgs extends unknown[], T extends DomWidget>(this: DomWidgetCtor<TArgs, T>, instantiationService: IInstantiationService, dom: HTMLElement, store: DisposableStore, ...params: GetLeadingNonServiceArgs<TArgs>): void {
 		if (!isHotReloadEnabled()) {
 			const widget = instantiationService.createInstance(this as unknown as new (...args: unknown[]) => T, ...params);
@@ -93,10 +74,6 @@ export abstract class DomWidget extends Disposable {
 		}));
 	}
 
-	/**
-	 * Creates the widget in a new div element with "display: contents".
-	 * If possible, prefer `instantiateAppend`, as it avoids an extra div in the DOM.
-	*/
 	public static instantiateInContents<TArgs extends unknown[], T extends DomWidget>(this: DomWidgetCtor<TArgs, T>, instantiationService: IInstantiationService, store: DisposableStore, ...params: GetLeadingNonServiceArgs<TArgs>): HTMLDivElement {
 		const div = document.createElement('div');
 		div.style.display = 'contents';
@@ -104,10 +81,6 @@ export abstract class DomWidget extends Disposable {
 		return div;
 	}
 
-	/**
-	 * Creates an observable instance of the widget.
-	 * The observable will change when hot module replacement occurs.
-	*/
 	public static instantiateObservable<TArgs extends unknown[], T extends DomWidget>(this: DomWidgetCtor<TArgs, T>, instantiationService: IInstantiationService, store: DisposableStore, ...params: GetLeadingNonServiceArgs<TArgs>): IObservable<T> {
 		if (!isHotReloadEnabled()) {
 			return constObservable(instantiationService.createInstance(this as unknown as new (...args: unknown[]) => T, ...params));
@@ -126,9 +99,6 @@ export abstract class DomWidget extends Disposable {
 		});
 	}
 
-	/**
-	 * @deprecated Do not call manually! Only for use by the hot reload system (a vite plugin will inject calls to this method in dev mode).
-	*/
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public static registerWidgetHotReplacement(this: new (...args: any[]) => DomWidget, id: string): void {
 		if (!isHotReloadEnabled()) {
@@ -144,7 +114,6 @@ export abstract class DomWidget extends Disposable {
 		(this as unknown as HotReloadable)[_hotReloadId] = id;
 	}
 
-	/** Always returns the same element. */
 	abstract get element(): HTMLElement;
 }
 

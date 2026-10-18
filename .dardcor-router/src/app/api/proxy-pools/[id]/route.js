@@ -49,7 +49,6 @@ function countBoundConnections(connections = [], proxyPoolId) {
   return connections.filter((connection) => connection?.providerSpecificData?.proxyPoolId === proxyPoolId).length;
 }
 
-// GET /api/proxy-pools/[id] - Get proxy pool
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
@@ -66,7 +65,6 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT /api/proxy-pools/[id] - Update proxy pool
 export async function PUT(request, { params }) {
   try {
     const { id } = await params;
@@ -91,7 +89,6 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE /api/proxy-pools/[id] - Delete proxy pool
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;

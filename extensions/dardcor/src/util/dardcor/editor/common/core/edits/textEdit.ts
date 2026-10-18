@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -46,9 +45,6 @@ export class TextEdit {
 		assertFn(() => checkAdjacentItems(replacements, (a, b) => a.range.getEndPosition().isBeforeOrEqual(b.range.getStartPosition())));
 	}
 
-	/**
-	 * Joins touching edits and removes empty edits.
-	 */
 	normalize(): TextEdit {
 		const replacements: TextReplacement[] = [];
 		for (const r of this.replacements) {
@@ -118,7 +114,6 @@ export class TextEdit {
 		return rangeFromPositions(start, end);
 	}
 
-	// TODO: `doc` is not needed for this!
 	inverseMapPosition(positionAfterEdit: Position, doc: AbstractText): Position | Range {
 		const reversed = this.inverse(doc);
 		return reversed.mapPosition(positionAfterEdit);
@@ -207,15 +202,6 @@ export class TextEdit {
 		return equals(this.replacements, other.replacements, (a, b) => a.equals(b));
 	}
 
-	/**
-	 * Combines two edits into one with the same effect.
-	 * WARNING: This is written by AI, but well tested. I do not understand the implementation myself.
-	 *
-	 * Invariant:
-	 * ```
-	 * other.applyToString(this.applyToString(s0)) = this.compose(other).applyToString(s0)
-	 * ```
-	 */
 	compose(other: TextEdit): TextEdit {
 		const edits1 = this.normalize();
 		const edits2 = other.normalize();
@@ -598,7 +584,6 @@ export class TextEdit {
 			const maxLength = 10;
 			const originalText = text.getValueOfRange(r.range);
 
-			// Get text before the edit
 			const beforeRange = Range.fromPositions(
 				new Position(Math.max(1, r.range.startLineNumber - 1), 1),
 				r.range.getStartPosition()
@@ -608,7 +593,6 @@ export class TextEdit {
 				beforeText = '...' + beforeText.substring(beforeText.length - maxLength);
 			}
 
-			// Get text after the edit
 			const afterRange = Range.fromPositions(
 				r.range.getEndPosition(),
 				new Position(r.range.endLineNumber + 1, 1)
@@ -618,7 +602,6 @@ export class TextEdit {
 				afterText = afterText.substring(0, maxLength) + '...';
 			}
 
-			// Format the replaced text
 			let replacedText = originalText;
 			if (replacedText.length > maxLength) {
 				const halfMax = Math.floor(maxLength / 2);
@@ -626,7 +609,6 @@ export class TextEdit {
 					replacedText.substring(replacedText.length - halfMax);
 			}
 
-			// Format the new text
 			let newText = r.text;
 			if (newText.length > maxLength) {
 				const halfMax = Math.floor(maxLength / 2);
@@ -635,10 +617,8 @@ export class TextEdit {
 			}
 
 			if (replacedText.length === 0) {
-				// allow-any-unicode-next-line
 				return `${beforeText}❰${newText}❱${afterText}`;
 			}
-			// allow-any-unicode-next-line
 			return `${beforeText}❰${replacedText}↦${newText}❱${afterText}`;
 		}).join('\n');
 	}

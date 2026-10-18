@@ -90,7 +90,7 @@ suite('MainThreadManagedSockets', () => {
 
 			const data: string[] = [];
 			ds.add(socket.onData(d => data.push(d.toString())));
-			await timeout(1); // allow microtasks to flush
+			await timeout(1);
 			assert.deepStrictEqual(data, ['Some trailing data']);
 		});
 

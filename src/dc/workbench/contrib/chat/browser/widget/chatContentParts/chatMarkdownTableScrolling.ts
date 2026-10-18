@@ -10,18 +10,6 @@ import { DisposableStore } from '../../../../../../base/common/lifecycle.js';
 
 import { ScrollbarVisibility } from '../../../../../../base/common/scrollable.js';
 
-/**
- * Finds all tables in `domNode` and wraps each in a {@link DomScrollableElement}
- * so they scroll horizontally with the custom VS Code scrollbar instead of the
- * native one. Each wrapped table is pushed onto `orderedDisposablesList` and a
- * `scanDomNode` callback is registered on `layoutParticipants` so the scrollbar
- * re-measures whenever the container is resized.
- *
- * Each column's `min-width` is also set to the maximum character count across
- * all cells in that column (in `ch` units), preventing short-content columns
- * like "001" from being squeezed to one character wide. Single-character columns
- * are left unchanged. This is layout-free: only `textContent` lengths are read.
- */
 export function wrapTablesWithScrollable(domNode: HTMLElement, layoutParticipants: Lazy<Set<() => void>>): DisposableStore {
 	const store = new DisposableStore();
 	// eslint-disable-next-line no-restricted-syntax
@@ -32,15 +20,11 @@ export function wrapTablesWithScrollable(domNode: HTMLElement, layoutParticipant
 
 		applyTableColumnMinWidths(table);
 
-		// Wrap the table in a div so DomScrollableElement can compare the div's
-		// constrained clientWidth against the table's natural scrollWidth.
-		// Passing the table directly doesn't work because a table always expands
-		// to its content width, so clientWidth == scrollWidth and no scrollbar appears.
 		const parent = table.parentElement;
 		const nextSibling = table.nextSibling;
 		const tableContainer = document.createElement('div');
-		tableContainer.appendChild(table); // moves table out of DOM
-		const scrollable = store.add(new DomScrollableElement(tableContainer, { // moves tableContainer into scrollNode
+		tableContainer.appendChild(table);
+		const scrollable = store.add(new DomScrollableElement(tableContainer, {
 			vertical: ScrollbarVisibility.Hidden,
 			horizontal: ScrollbarVisibility.Auto,
 		}));
@@ -54,7 +38,6 @@ export function wrapTablesWithScrollable(domNode: HTMLElement, layoutParticipant
 	return store;
 }
 
-/** Maximum `min-width` (in `ch`) applied to any table column, regardless of its content length. */
 const TABLE_COLUMN_MIN_WIDTH_CAP_CH = 3;
 
 function applyTableColumnMinWidths(table: HTMLTableElement): void {
@@ -68,8 +51,6 @@ function applyTableColumnMinWidths(table: HTMLTableElement): void {
 			}
 		}
 	}
-	// Apply min-width only to the first row's cells so each column width
-	// constraint is set once rather than touching every cell in the table.
 	const firstRow = rows[0];
 	if (firstRow) {
 		for (let c = 0; c < firstRow.cells.length; c++) {

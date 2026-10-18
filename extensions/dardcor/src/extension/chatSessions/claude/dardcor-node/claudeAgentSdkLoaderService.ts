@@ -26,7 +26,6 @@ class SdkExtensionNotInstalledError extends Error {
 export class VsCodeClaudeAgentSdkLoaderService implements IClaudeAgentSdkLoaderService {
 	readonly _serviceBrand: undefined;
 
-	// Cached on success; reset to undefined on failure so the next call retries.
 	private _sdk: Promise<typeof AgentSdk> | undefined;
 
 	constructor(
@@ -46,7 +45,6 @@ export class VsCodeClaudeAgentSdkLoaderService implements IClaudeAgentSdkLoaderS
 		try {
 			await vscode.commands.executeCommand('workbench.extensions.installExtension', CLAUDE_SDK_EXTENSION_ID);
 		} catch (err) {
-			// May throw if already installing or on network error; check availability below.
 			this._logService.warn(`[ClaudeAgentSdkLoader] installExtension command failed for ${CLAUDE_SDK_EXTENSION_ID}: ${err}`);
 		}
 
@@ -54,14 +52,10 @@ export class VsCodeClaudeAgentSdkLoaderService implements IClaudeAgentSdkLoaderS
 			return true;
 		}
 
-		// The install command may return before the extension is activated — wait for onDidChange.
 		const store = new DisposableStore();
 		try {
 			const onDidChange: Event<void> = listener => vscode.extensions.onDidChange(listener);
 			const ready = Event.toPromise(Event.onceIf(onDidChange, () => this.isAvailable), store);
-			// Re-check after registering the listener: the extension may have become available
-			// between the pre-check above and the listener hookup, in which case onDidChange
-			// will never fire again and we would otherwise hang until the timeout.
 			if (this.isAvailable) {
 				return true;
 			}
@@ -76,7 +70,6 @@ export class VsCodeClaudeAgentSdkLoaderService implements IClaudeAgentSdkLoaderS
 	load(): Promise<typeof AgentSdk> {
 		if (!this._sdk) {
 			const attempt = this._doLoad();
-			// Only cache on success — reset on failure so the next call retries.
 			this._sdk = attempt.then(
 				sdk => { this._sdk = Promise.resolve(sdk); return sdk; },
 				err => { this._sdk = undefined; throw err; }

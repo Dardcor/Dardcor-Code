@@ -40,7 +40,6 @@ export class ElectronPtyHostStarter extends Disposable implements IPtyHostStarte
 		super();
 
 		this._register(this._lifecycleMainService.onWillShutdown(() => this._onWillShutdown.fire()));
-		// Listen for new windows to establish connection directly to pty host
 		validatedIpcMain.on('vscode:createPtyHostMessageChannel', (e, nonce) => this._onWindowConnection(e, nonce));
 		this._register(toDisposable(() => {
 			validatedIpcMain.removeHandler('vscode:createPtyHostMessageChannel');
@@ -89,7 +88,7 @@ export class ElectronPtyHostStarter extends Disposable implements IPtyHostStarte
 			...deepClone(process.env),
 			VSCODE_ESM_ENTRYPOINT: 'dc/platform/terminal/node/ptyHostMain',
 			VSCODE_PIPE_LOGGING: 'true',
-			VSCODE_VERBOSE_LOGGING: 'true', // transmit console logs from server to client,
+			VSCODE_VERBOSE_LOGGING: 'true',
 			VSCODE_RECONNECT_GRACE_TIME: String(this._reconnectConstants.graceTime),
 			VSCODE_RECONNECT_SHORT_GRACE_TIME: String(this._reconnectConstants.shortGraceTime),
 			VSCODE_RECONNECT_SCROLLBACK: String(this._reconnectConstants.scrollback),
@@ -111,10 +110,6 @@ export class ElectronPtyHostStarter extends Disposable implements IPtyHostStarte
 
 		const port = this.utilityProcess!.connect();
 
-		// Check back if the requesting window meanwhile closed
-		// Since shared process is delayed on startup there is
-		// a chance that the window close before the shared process
-		// was ready for a connection.
 
 		if (e.sender.isDestroyed()) {
 			port.close();

@@ -28,7 +28,6 @@ function updateCSSNode(editor: TextEditor, property: Property): Thenable<boolean
 	const rule: Rule = property.parent;
 	let currentPrefix = '';
 
-	// Find vendor prefix of given property node
 	for (const prefix of vendorPrefixes) {
 		if (property.name.startsWith(prefix)) {
 			currentPrefix = prefix;
@@ -40,7 +39,6 @@ function updateCSSNode(editor: TextEditor, property: Property): Thenable<boolean
 	const propertyValue = property.value;
 
 	return editor.edit(builder => {
-		// Find properties with vendor prefixes, update each
 		vendorPrefixes.forEach(prefix => {
 			if (prefix === currentPrefix) {
 				return;

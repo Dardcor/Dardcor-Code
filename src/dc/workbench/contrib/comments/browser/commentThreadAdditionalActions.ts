@@ -52,7 +52,6 @@ export class CommentThreadAdditionalActions<T extends IRange | ICellRange> exten
 	private _enableDisableMenu(menu: IMenu) {
 		const groups = menu.getActions({ shouldForwardArgs: true });
 
-		// Show the menu if at least one action is enabled.
 		for (const group of groups) {
 			const [, actions] = group;
 			for (const action of actions) {
@@ -78,7 +77,7 @@ export class CommentThreadAdditionalActions<T extends IRange | ICellRange> exten
 		const menu = this._commentMenus.getCommentThreadAdditionalActions(this._contextKeyService);
 		this._register(menu);
 		this._register(menu.onDidChange(() => {
-			this._commentFormActions.setActions(menu, /*hasOnlySecondaryActions*/ true);
+			this._commentFormActions.setActions(menu, true);
 			this._enableDisableMenu(menu);
 		}));
 
@@ -92,7 +91,7 @@ export class CommentThreadAdditionalActions<T extends IRange | ICellRange> exten
 		}, 4, true);
 
 		this._register(this._commentFormActions);
-		this._commentFormActions.setActions(menu, /*hasOnlySecondaryActions*/ true);
+		this._commentFormActions.setActions(menu, true);
 		this._enableDisableMenu(menu);
 	}
 }

@@ -37,13 +37,8 @@ export class DisableTsgoCommand implements Command {
 	}
 }
 
-/**
- * Updates the TypeScript Go setting and reloads extension host.
- * @param enable Whether to enable or disable TypeScript Go
- */
 async function updateTsgoSetting(enable: boolean): Promise<void> {
 	const tsgoExtension = getTsNativeExtension();
-	// Error if the TypeScript Go extension is not installed with a button to open the GitHub repo
 	if (!tsgoExtension) {
 		const selection = await vscode.window.showErrorMessage(
 			vscode.l10n.t('The TypeScript Go extension is not installed.'),
@@ -63,7 +58,6 @@ async function updateTsgoSetting(enable: boolean): Promise<void> {
 		return;
 	}
 
-	// Determine the target scope for the configuration update
 	let target = vscode.ConfigurationTarget.Global;
 	const unifiedConfig = vscode.workspace.getConfiguration(unifiedConfigSection);
 	const inspect = unifiedConfig.inspect<boolean>('experimental.useTsgo');
@@ -73,7 +67,6 @@ async function updateTsgoSetting(enable: boolean): Promise<void> {
 	} else if (inspect?.workspaceFolderValue !== undefined || legacyInspect?.workspaceFolderValue !== undefined) {
 		target = vscode.ConfigurationTarget.WorkspaceFolder;
 	} else {
-		// If setting is not defined yet, use the same scope as typescript-go.executablePath
 		const tsgoConfig = vscode.workspace.getConfiguration('typescript-go');
 		const tsgoInspect = tsgoConfig.inspect<string>('executablePath');
 

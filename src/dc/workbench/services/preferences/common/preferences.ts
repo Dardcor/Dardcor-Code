@@ -20,6 +20,7 @@ import { ResolvedKeybindingItem } from '../../../../platform/keybinding/common/r
 import { DEFAULT_EDITOR_ASSOCIATION, IEditorPane } from '../../../common/editor.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';
 import { Settings2EditorModel } from './preferencesModels.js';
+import { FOLDER_CONFIG_FOLDER_NAME } from '../../configuration/common/configuration.js';
 
 export enum SettingValueType {
 	Null = 'null',
@@ -95,7 +96,6 @@ export interface ISetting {
 	isLanguageTagSetting?: boolean;
 	categoryLabel?: string;
 
-	// Internal properties
 	allKeysAreBoolean?: boolean;
 	displayExtensionId?: string;
 	title?: string;
@@ -130,10 +130,6 @@ export interface IFilterResult {
 	exactMatch?: boolean;
 }
 
-/**
- * The ways a setting could match a query,
- * sorted in increasing order of relevance.
- */
 export enum SettingMatchType {
 	None = 0,
 	LanguageTagSettingMatch = 1 << 0,
@@ -183,10 +179,8 @@ export interface IFilterMetadata {
 	duration: number;
 	scoredResults: IScoredResults;
 
-	/** The number of requests made, since requests are split by number of filters */
 	requestCount?: number;
 
-	/** The name of the server that actually served the request */
 	context: string;
 }
 
@@ -210,9 +204,6 @@ export interface ISettingsEditorOptions extends IEditorOptions {
 	target?: ConfigurationTarget;
 	folderUri?: URI;
 	query?: string;
-	/**
-	 * Only works when opening the json settings file. Use `query` for settings editor.
-	 */
 	revealSetting?: {
 		key: string;
 		edit?: boolean;
@@ -228,10 +219,8 @@ export interface IOpenSettingsOptions extends ISettingsEditorOptions {
 
 export function validateSettingsEditorOptions(options: ISettingsEditorOptions): ISettingsEditorOptions {
 	return {
-		// Inherit provided options
 		...options,
 
-		// Enforce some options for settings specifically
 		override: DEFAULT_EDITOR_ASSOCIATION.id,
 		pinned: true
 	};
@@ -262,7 +251,7 @@ export interface IPreferencesService {
 	createPreferencesEditorModel(uri: URI): Promise<IPreferencesEditorModel<ISetting> | null>;
 	getDefaultSettingsContent(uri: URI): string | undefined;
 	hasDefaultSettingsContent(uri: URI): boolean;
-	createSettings2EditorModel(): Settings2EditorModel; // TODO
+	createSettings2EditorModel(): Settings2EditorModel;
 
 	openPreferences(): Promise<void>;
 
@@ -347,7 +336,7 @@ export interface IDefineKeybindingEditorContribution extends IEditorContribution
 	showDefineKeybindingWidget(): void;
 }
 
-export const FOLDER_SETTINGS_PATH = '.vscode/settings.json';
+export const FOLDER_SETTINGS_PATH = `${FOLDER_CONFIG_FOLDER_NAME}/settings.json`;
 export const DEFAULT_SETTINGS_EDITOR_SETTING = 'workbench.settings.openDefaultSettings';
 export const USE_SPLIT_JSON_SETTING = 'workbench.settings.useSplitJSON';
 export const ALWAYS_SHOW_ADVANCED_SETTINGS_SETTING = 'workbench.settings.alwaysShowAdvancedSettings';

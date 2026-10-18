@@ -50,7 +50,6 @@ export class EditSessionsFileSystemProvider implements IFileSystemProviderWithFi
 		};
 	}
 
-	//#region Unsupported file operations
 	readonly onDidChangeCapabilities = Event.None;
 	readonly onDidChangeFile = Event.None;
 
@@ -65,5 +64,4 @@ export class EditSessionsFileSystemProvider implements IFileSystemProviderWithFi
 	async writeFile() {
 		throw new NotSupportedError();
 	}
-	//#endregion
 }

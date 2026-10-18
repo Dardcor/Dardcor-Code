@@ -34,17 +34,14 @@ export class TextFileSaveParticipant extends Disposable {
 	async participate(model: ITextFileEditorModel, context: ITextFileSaveParticipantContext, progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
 		const cts = new CancellationTokenSource(token);
 
-		// undoStop before participation
 		model.textEditorModel?.pushStackElement();
 
-		// report to the "outer" progress
 		progress.report({
 			message: localize('saveParticipants1', "Running Code Actions and Formatters...")
 		});
 
 		let bubbleCancel = false;
 
-		// create an "inner" progress to allow to skip over long running save participants
 		await this.progressService.withProgress({
 			priority: NotificationPriority.URGENT,
 			location: ProgressLocation.Notification,
@@ -59,7 +56,7 @@ export class TextFileSaveParticipant extends Disposable {
 			});
 
 			for (const saveParticipant of participants) {
-				if (cts.token.isCancellationRequested || !model.textEditorModel /* disposed */) {
+				if (cts.token.isCancellationRequested || !model.textEditorModel ) {
 					break;
 				}
 
@@ -70,8 +67,6 @@ export class TextFileSaveParticipant extends Disposable {
 					if (!isCancellationError(err)) {
 						this.logService.error(err);
 					} else if (!cts.token.isCancellationRequested) {
-						// we see a cancellation error BUT the token didn't signal it
-						// this means the participant wants the save operation to be cancelled
 						cts.cancel();
 						bubbleCancel = true;
 					}
@@ -81,7 +76,6 @@ export class TextFileSaveParticipant extends Disposable {
 			cts.cancel();
 		});
 
-		// undoStop after participation
 		model.textEditorModel?.pushStackElement();
 
 		cts.dispose();

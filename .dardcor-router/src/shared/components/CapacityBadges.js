@@ -3,9 +3,6 @@
 import { CAPACITY_META } from "@/shared/constants/models";
 import Tooltip from "./Tooltip";
 
-// Render small icon badges for a model's capabilities (only those set true).
-// colorOverride: force a single color class for all badges (default: per-cap color).
-// size: icon font-size in px (default 16).
 export default function CapacityBadges({ caps, className = "", colorOverride, size = 16 }) {
   if (!caps) return null;
   const active = Object.keys(CAPACITY_META).filter((k) => caps[k]);

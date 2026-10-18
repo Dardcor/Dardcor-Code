@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../../common/dardcorRouterModel.js';
 import assert from 'assert';
 import { PassThrough } from 'stream';
 import { DeferredPromise } from '../../../../../base/common/async.js';
@@ -38,7 +38,7 @@ import { IAgentSdkDownloader } from '../../../node/agentSdkDownloader.js';
 import { CodexAgent, toCodexModelSelectionId } from '../../../node/codex/codexAgent.js';
 import { CodexAppServerClient, type ICodexAppServerTransport } from '../../../node/codex/codexAppServerClient.js';
 import { ICodexProxyService } from '../../../node/codex/codexProxyService.js';
-import { ICopilotApiService } from '../../../node/shared/copilotApiService.js';
+import { IDardcorRouterService } from '../../../node/shared/dardcorRouterService.js';
 import { createSessionDataService, TestSessionDatabase } from '../../common/sessionTestHelpers.js';
 import { createTestGitHubEndpointService } from '../testGitHubEndpointService.js';
 import { createNoopCustomizationEnablementService } from '../testCustomizationEnablementService.js';
@@ -63,7 +63,6 @@ interface ITestWireRequest {
 interface ITestPeer {
 	readonly transport: ICodexAppServerTransport;
 	readonly outbound: PassThrough;
-	/** Extra disposables (e.g. request-handler registrations from `connectPeer`) released alongside the peer. */
 	readonly disposables: DisposableStore;
 	push(message: object): void;
 	dispose(): void;
@@ -118,32 +117,11 @@ function readNextRequest(stream: PassThrough): Promise<ITestWireRequest> {
 }
 
 interface ICreateAgentOptions {
-	/**
-	 * Whether prewarm may proceed to a real `thread/start`. Defaults to
-	 * `false` so fresh/import tests don't need a live connection; fork tests
-	 * (which always need a connection for `thread/fork`) opt in.
-	 */
 	readonly sdkResolvableWithoutDownload?: boolean;
-	/**
-	 * Durable per-session storage shared across "processes". Supply the same
-	 * store to two agents to model a host restart.
-	 */
 	readonly sessionStore?: ITestSessionStore;
-	/**
-	 * Override the OTel service stub. Lets a test observe/record the exact
-	 * key a trace context is acquired and released under, instead of the
-	 * default inert no-op.
-	 */
 	readonly otelService?: Pick<IAgentHostOTelService, 'getSessionTraceContext' | 'releaseSessionTraceContext'>;
 }
 
-/**
- * Per-session durable storage, keyed by session URI exactly like the real
- * service. Restore tests depend on this: a runtime's metadata overlay (its
- * codex thread id) is stored under the session URI it was persisted with, so a
- * blob that names the wrong id must not accidentally find someone else's
- * overlay.
- */
 interface ITestSessionStore {
 	readonly service: ISessionDataService;
 	databaseFor(session: URI): TestSessionDatabase;
@@ -176,7 +154,7 @@ function createSessionDatabaseReference(database: ISessionDatabase) {
 }
 
 async function createAgent(disposables: Pick<DisposableStore, 'add'>, options: ICreateAgentOptions = {}): Promise<CodexAgent> {
-	const models = [{ id: 'gpt-test', name: 'GPT Test', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as CCAModel[];
+	const models = [{ id: 'gpt-test', name: 'GPT Test', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as unknown as IDardcorRouterModel[];
 	const instantiationService = new TestInstantiationService();
 	const logService = new NullLogService();
 	const fileService = disposables.add(new FileService(logService));
@@ -186,7 +164,7 @@ async function createAgent(disposables: Pick<DisposableStore, 'add'>, options: I
 	instantiationService.stub(IAgentHostStateManager, stateManager);
 	instantiationService.stub(IAgentHostCustomizationEnablementService, createNoopCustomizationEnablementService());
 	instantiationService.stub(ISessionDataService, options.sessionStore?.service ?? { _serviceBrand: undefined });
-	instantiationService.stub(ICopilotApiService, { _serviceBrand: undefined, models: async () => models });
+	instantiationService.stub(IDardcorRouterService, { _serviceBrand: undefined, models: async () => models });
 	instantiationService.stub(ICodexProxyService, { _serviceBrand: undefined });
 	instantiationService.stub(IAgentConfigurationService, configurationService);
 	instantiationService.stub(IAgentHostWorktreeIsolation, new NullAgentHostWorktreeIsolation());
@@ -225,12 +203,6 @@ async function createAgent(disposables: Pick<DisposableStore, 'add'>, options: I
 	return agent;
 }
 
-/**
- * Create a session's first chat over the single {@link IAgentChats.createChat}
- * seam, with the fully resolved options Agent Host supplies. Providers never
- * echo session identity back, so the test carries the caller's own
- * `context.configurationResource` alongside the create result.
- */
 async function createSessionBackedChat(agent: CodexAgent, chat: URI, context: IAgentChatContext, options: IAgentCreateChatOptions = {}): Promise<IAgentCreateChatResult & { readonly session: URI }> {
 	const result = await agent.chats.createChat(chat, context, { deferBacking: !options.fork && !options.importConversation, ...options });
 	return { ...result, session: context.configurationResource };
@@ -238,9 +210,6 @@ async function createSessionBackedChat(agent: CodexAgent, chat: URI, context: IA
 
 function connectPeer(agent: CodexAgent, peer: ITestPeer): void {
 	const client = new CodexAppServerClient(peer.transport);
-	// Mirrors the real `item/tool/call` wiring from `_startConnection` so
-	// tests can simulate the codex app-server invoking a dynamic (server)
-	// tool without needing the full connection bootstrap.
 	peer.disposables.add(client.onRequest<'item/tool/call'>('item/tool/call', params => agent['_handleDynamicToolCallRpc'](params)));
 	agent['_connection'] = {
 		kind: 'ready',
@@ -250,11 +219,6 @@ function connectPeer(agent: CodexAgent, peer: ITestPeer): void {
 	} as never;
 }
 
-/**
- * Records which sessions the agent advertises the host's server tools on. Every
- * other member is inert: only {@link IAgentServerToolHost.advertise} is under
- * test.
- */
 function createRecordingServerToolHost(advertised: string[]): IAgentServerToolHost {
 	return {
 		definitions: [],
@@ -267,7 +231,6 @@ function createRecordingServerToolHost(advertised: string[]): IAgentServerToolHo
 	};
 }
 
-/** A server-tool host whose `advertise` always throws, to exercise the create-failure rollback at the advertise seam. */
 function createThrowingAdvertiseServerToolHost(message: string): IAgentServerToolHost {
 	return {
 		definitions: [],
@@ -282,10 +245,6 @@ function createThrowingAdvertiseServerToolHost(message: string): IAgentServerToo
 
 const PEER_TEST_TOOL_NAME = 'peer_test_tool';
 
-/**
- * Records the exact chat channel Codex hands the server-tool host for a single
- * server tool ({@link PEER_TEST_TOOL_NAME}).
- */
 function createRecordingChatServerToolHost(calls: { readonly method: 'requiresConfirmation' | 'executeTool'; readonly chatUri: string }[]): IAgentServerToolHost {
 	return {
 		definitions: [{ name: PEER_TEST_TOOL_NAME, description: 'test', inputSchema: { type: 'object' } }],
@@ -304,7 +263,6 @@ function createRecordingChatServerToolHost(calls: { readonly method: 'requiresCo
 	};
 }
 
-/** Reads the next raw JSON-RPC message (request or response) written to `stream`. */
 function readNextMessage(stream: PassThrough): Promise<{ readonly id?: number; readonly result?: { readonly contentItems?: readonly { readonly type: string; readonly text: string }[]; readonly success?: boolean }; readonly error?: unknown }> {
 	return new Promise((resolve, reject) => {
 		const timeout = setTimeout(() => {
@@ -412,9 +370,6 @@ suite('CodexAgent createChat', () => {
 			workingDirectories: [folder],
 		});
 
-		// Workbench rebind: a second createChat for the same session id,
-		// e.g. after a chip-selection change re-mints the request. Model
-		// changes here, so the reconnect ("existing") branch runs.
 		const rebound = await createSessionBackedChat(agent, chat, { configurationResource: sessionUri, resource: chat }, {
 			workingDirectories: [folder],
 			model: { id: COPILOT_TEST_MODEL },
@@ -554,8 +509,6 @@ suite('CodexAgent createChat', () => {
 			workingDirectories: [folder],
 		});
 		const entry = agent['_sessions'].get(AgentSession.id(originalScope))!;
-		// Make the requested model a real provisional change. The test catalog's
-		// only model is also the default selected by the initial creation.
 		entry.model = undefined;
 		const originalSync = agent['_syncClientCustomizations'].bind(agent);
 		agent['_syncClientCustomizations'] = async () => { throw new Error('rebind sync failed'); };
@@ -600,9 +553,6 @@ suite('CodexAgent createChat', () => {
 		assert.deepStrictEqual({
 			hasSession: agent['_sessions'].has('session-import'),
 			hasBinding: agent['_sessionIdByChatUri'].has(chat.toString()),
-			// The config-scope ref this call registered before rejecting must
-			// be rolled back too, or a retried create piles a second ref onto
-			// a scope that already thinks this chat is live.
 			hasConfigScopeRef: agent['_configScopeChats'].has(sessionUri.toString()),
 			hasConfigScopeBinding: agent['_configScopeByChat'].has(chat.toString()),
 		}, {
@@ -614,12 +564,8 @@ suite('CodexAgent createChat', () => {
 	});
 
 	test('createChat is transactional: a failure at any seam after the config-scope ref is registered rolls back cleanly, so a retried create starts from scratch', async () => {
-		// No connection needed: every failure below is reached before (or without ever
-		// requiring) `thread/start`, and prewarm bails out immediately since the default
-		// SDK-resolvable stub is `false`.
 		const agent = await createAgent(disposables);
 
-		// --- model seam: an explicit but unsupported model rejects before any runtime is registered ---
 		{
 			const sessionUri = AgentSession.uri('codex', 'session-fail-model');
 			const chat = URI.parse(buildDefaultChatUri(sessionUri));
@@ -637,8 +583,6 @@ suite('CodexAgent createChat', () => {
 				hasConfigScopeRef: agent['_configScopeChats'].has(sessionUri.toString()),
 			}, { hasSession: false, hasBinding: false, hasConfigScopeRef: false });
 
-			// A retried create for the exact same chat must succeed cleanly,
-			// proving the failed attempt left no half-registered state behind.
 			const retried = await createSessionBackedChat(agent, chat, context, {
 				workingDirectories: [URI.file('/repo/fail-model')],
 			});
@@ -646,7 +590,6 @@ suite('CodexAgent createChat', () => {
 			assert.strictEqual(agent['_sessionIdByChatUri'].get(chat.toString()), 'session-fail-model');
 		}
 
-		// --- fork seam: an unresolvable fork source rejects before any runtime is registered ---
 		{
 			const sessionUri = AgentSession.uri('codex', 'session-fail-fork');
 			const chat = URI.parse(buildDefaultChatUri(sessionUri));
@@ -664,7 +607,6 @@ suite('CodexAgent createChat', () => {
 			}, { hasSession: false, hasBinding: false, hasConfigScopeRef: false });
 		}
 
-		// --- eager-active-client seam: a runtime is registered, then the eager client seed fails ---
 		{
 			const sessionUri = AgentSession.uri('codex', 'session-fail-client');
 			const chat = URI.parse(buildDefaultChatUri(sessionUri));
@@ -690,7 +632,6 @@ suite('CodexAgent createChat', () => {
 			}, { hasSession: false, hasBinding: false, hasConfigScopeRef: false, hasActiveClientHandle: false });
 		}
 
-		// --- advertise seam: a runtime is registered, then the host's server-tool advertise throws ---
 		{
 			agent.setServerToolHost(createThrowingAdvertiseServerToolHost('advertise boom'));
 			try {
@@ -906,14 +847,8 @@ suite('CodexAgent createChat', () => {
 
 			assert.deepStrictEqual({
 				provisional: forked.provisional,
-				// The fork stands the owning session's runtime up, so it adopts
-				// that session's identity and reports the forked thread as the
-				// exact backing — the host keeps addressing the session by the
-				// URI it minted.
 				session: forked.session.toString(),
 				backingSession: forked.backingSession?.toString(),
-				// The exact-chat binding must already be in place by the time the
-				// caller observes the result — creation is the only binding seam.
 				boundSessionId: agent['_sessionIdByChatUri'].get(forkChat.toString()),
 				threadId: agent['_sessions'].get('session-fork-target')?.threadId,
 				chatChannel: agent['_sessions'].get('session-fork-target')?.chatChannel?.toString(),
@@ -926,8 +861,6 @@ suite('CodexAgent createChat', () => {
 				chatChannel: forkChat.toString(),
 			});
 
-			// Exact chat binding is directly usable: sending on the forked chat
-			// resolves through the binding creation recorded.
 			const sending = agent.chats.sendMessage(forkChat, 'hello', undefined, undefined, 'turn-2');
 			const unsubscribe = await readNextRequest(peer.outbound);
 			assert.strictEqual(unsubscribe.method, 'thread/unsubscribe');
@@ -1035,8 +968,6 @@ suite('CodexAgent createChat', () => {
 			assert.strictEqual(historyRead.method, 'thread/read');
 			firstPeer.push({ id: historyRead.id, result: { thread: { id: sourceEntry.threadId, cwd: folder.fsPath, historyMode: 'legacy', turns: [{ id: 'source-turn' }] } } });
 
-			// Replace the process in the response-to-next-request gap. The fork must
-			// not be sent to the new process until its source thread is resumed there.
 			const lostConnection = agent['_connection'];
 			assert.strictEqual(lostConnection.kind, 'ready');
 			agent['_handleConnectionLost'](lostConnection as never, agent['_connectionGeneration']);
@@ -1115,8 +1046,6 @@ suite('CodexAgent createChat', () => {
 			const created = await creating;
 			const earlyMcpState = agent['_mcpInventory'].forThread('additional-thread').get('early-mcp')?.state.kind;
 
-			// A repeated create for the same chat must hand the exact same
-			// backing back; a second thread/start here would orphan the first.
 			const recreated = await agent.chats.createChat(additionalChat, { configurationResource: sessionUri, resource: additionalChat }, {
 				workingDirectories: [folder],
 				model: { id: COPILOT_TEST_MODEL },
@@ -1128,9 +1057,6 @@ suite('CodexAgent createChat', () => {
 
 			assert.deepStrictEqual({
 				started: { method: start.method, cwd: start.params.cwd },
-				// The owning session's identity is already taken, so this chat is
-				// identified by the thread it minted and reported as an internal
-				// backing rather than as a session of its own.
 				backingSession: created?.backingSession?.toString(),
 				backingId: created?.providerData ? JSON.parse(created.providerData).sessionId : undefined,
 				recreatedBackingId: recreated?.providerData ? JSON.parse(recreated.providerData).sessionId : undefined,
@@ -1175,8 +1101,6 @@ suite('CodexAgent createChat', () => {
 			peer.push({ id: sessionStart.id, result: { thread: { id: 'fork-chat-source', cwd: folder.fsPath } } });
 			await agent['_sessions'].get('session-fork-chat')!.materializePromise;
 
-			// There is no separate fork entry point: a fork is a create whose
-			// options name the source chat to branch from.
 			const forking = agent.chats.createChat(forkChat, { configurationResource: sessionUri, resource: forkChat }, {
 				model: { id: COPILOT_TEST_MODEL },
 				workingDirectories: [folder],
@@ -1257,8 +1181,6 @@ suite('CodexAgent createChat', () => {
 				model: { id: COPILOT_TEST_MODEL },
 			});
 			assert.strictEqual(created.provisional, true);
-			// The binding lands as part of creation, not as a follow-up: check it
-			// before the prewarmed thread/start round trip below even completes.
 			assert.strictEqual(agent['_sessionIdByChatUri'].get(chat.toString()), 'session-prewarm');
 
 			const start = await readNextRequest(peer.outbound);
@@ -1395,9 +1317,6 @@ suite('CodexAgent exact chat routing', () => {
 			assert.deepStrictEqual({
 				advertised,
 				materialized,
-				// The eager active client is seeded over the exact chat the call
-				// binds, so its tools land on this runtime without any
-				// default-chat URI being synthesized to find it.
 				clientTools: entry.clientToolSet.merged().map(tool => tool.name),
 			}, {
 				advertised: [sessionUri.toString()],
@@ -1451,10 +1370,6 @@ suite('CodexAgent exact chat routing', () => {
 			await entry.materializePromise;
 			assert.strictEqual(agent['_sessionIdByChatUri'].get(chat.toString()), 'session-dispose-intent');
 
-			// Agent Host's teardown order: dispose every chat. Configuration-
-			// scope ref tracking reclaims any remaining scope-level resources
-			// inline once the scope's last chat is disposed — no separate
-			// finalize call is needed.
 			const disposing = agent.chats.disposeChat(chat, context);
 			const unsubscribe = await readNextRequest(peer.outbound);
 			peer.push({ id: unsubscribe.id, result: {} });
@@ -1501,8 +1416,6 @@ suite('CodexAgent exact chat routing', () => {
 			assert.deepStrictEqual({
 				unsubscribed: { method: unsubscribe.method, threadId: unsubscribe.params.threadId },
 				hasRuntime: agent['_sessions'].has('session-release-intent'),
-				// A release is non-destructive: the chat binding survives so the
-				// session resumes transparently on the next access.
 				hasBinding: agent['_sessionIdByChatUri'].has(chat.toString()),
 			}, {
 				unsubscribed: { method: 'thread/unsubscribe', threadId: 'release-thread' },
@@ -1527,21 +1440,13 @@ suite('CodexAgent exact chat routing', () => {
 		const entry = agent['_sessions'].get('session-dispose-provisional')!;
 		assert.strictEqual(entry.threadId, undefined, 'precondition: the chat was never sent to, so its codex thread is still deferred');
 
-		// Park entries the way a live call/approval would, to prove disposal
-		// unparks them instead of leaving their awaiters hanging forever.
 		const toolCall = entry.pendingClientToolCalls.register('tool-call-1');
 		const approval = entry.pendingCommandApprovals.register('approval-1');
 		const userInput = entry.pendingUserInputs.register('input-1');
 
-		// No peer is connected: a provisional runtime's teardown never touches
-		// the wire (there is no codex thread yet to `thread/unsubscribe`), so
-		// disposal must resolve entirely in-memory.
 		await agent.chats.disposeChat(chat, context);
 
 		await assert.rejects(toolCall);
-		// Command approvals are unparked by resolving (`denyAll('decline')`),
-		// not rejecting: the caller awaiting the decision unwinds with an
-		// explicit "declined" outcome instead of a thrown error.
 		assert.strictEqual(await approval, 'decline');
 		await assert.rejects(userInput);
 
@@ -1561,19 +1466,9 @@ suite('CodexAgent exact chat routing', () => {
 			hasPendingInput: false,
 		});
 
-		// A prewarm queued (e.g. by a timer that fired just after dispose) must
-		// not resurrect the thread the host already considers gone: dispose
-		// unconditionally tore the provisional runtime down, so
-		// `_materializeIfNeeded` — the exact call `_schedulePrewarm` makes —
-		// must be an in-memory no-op instead of racing a `thread/start` past
-		// deletion. Call it directly (rather than racing the fire-and-forget
-		// `_schedulePrewarm` timer) so the assertion below is deterministic.
 		await agent['_materializeIfNeeded'](entry, entry.sessionUri, false);
 		assert.strictEqual(entry.threadId, undefined, 'a queued prewarm must never materialize a thread for a runtime that was already disposed');
 
-		// `_schedulePrewarm` itself must also tolerate being invoked after
-		// disposal without throwing (a defensive race against a timer that
-		// fires in the same tick dispose runs).
 		assert.doesNotThrow(() => agent['_schedulePrewarm'](entry));
 	});
 
@@ -1691,18 +1586,12 @@ suite('CodexAgent exact chat routing', () => {
 			peer.push({ id: start.id, result: { thread: { id: 'otel-scope-thread', cwd: '/repo/otel-scope' } } });
 			await entry.materializePromise;
 
-			// Idle eviction must never release the trace context: the runtime is
-			// expected to resume later under the same trace parent.
 			const releasing = agent.chats.releaseChat(chat, context);
 			const unsubscribeOnRelease = await readNextRequest(peer.outbound);
 			peer.push({ id: unsubscribeOnRelease.id, result: {} });
 			await releasing;
 			assert.deepStrictEqual(released, [], 'releaseChat must not release the OTel trace context');
 
-			// The runtime is now evicted from memory but the chat binding (and
-			// its configuration-scope ref) survive. Disposing it now exercises
-			// the scope-finalization reclaim path rather than the in-memory
-			// runtime teardown, since `_sessions` no longer has an entry.
 			assert.strictEqual(agent['_sessions'].has('session-otel-scope'), false, 'precondition: the runtime was evicted by the release above');
 			await agent.chats.disposeChat(chat, context);
 
@@ -1994,8 +1883,6 @@ suite('CodexAgent exact chat routing', () => {
 			await creatingPeer;
 			const peerEntry = agent['_sessions'].get('peer-thread')!;
 
-			// The same clientId contributes different tools to each exact chat;
-			// neither handle may leak into the other's runtime.
 			const sessionHandle = agent.getOrCreateActiveClient(sessionChat, sessionContext, { clientId: 'client-exact' });
 			sessionHandle.tools = [{ name: 'session_tool', description: 'session only', inputSchema: { type: 'object' } }];
 			const peerHandle = agent.getOrCreateActiveClient(peerChat, peerContext, { clientId: 'client-exact' });
@@ -2009,8 +1896,6 @@ suite('CodexAgent exact chat routing', () => {
 				peerTools: ['peer_tool'],
 			});
 
-			// Explicitly removing the session chat's client must not disturb the
-			// peer chat's contribution or its handle.
 			agent.removeActiveClient(sessionChat, sessionContext, 'client-exact');
 
 			const disposing = agent.chats.disposeChat(peerChat, peerContext);
@@ -2024,9 +1909,7 @@ suite('CodexAgent exact chat routing', () => {
 				hasSessionHandle: agent['_activeClientHandles'].has(`${sessionChat.toString()}\u0000client-exact`),
 				hasPeerHandle: agent['_activeClientHandles'].has(`${peerChat.toString()}\u0000client-exact`),
 			}, {
-				// Removal clears only the addressed chat's contribution.
 				sessionTools: [],
-				// Disposal cleans up the disposed chat's own handle the same way.
 				peerTools: [],
 				hasSessionHandle: false,
 				hasPeerHandle: false,
@@ -2094,10 +1977,6 @@ suite('CodexAgent exact chat routing', () => {
 			peer.push({ id: sessionStart.id, result: { thread: { id: 'session-thread', cwd: folder.fsPath } } });
 			await agent['_sessions'].get('session-peer-tool')!.materializePromise;
 
-			// A peer chat under the same session config scope, but backed by
-			// its own thread — the runtime this call resolves to is keyed
-			// `codex:/peer-thread`, distinct from both the addressed session
-			// (`sessionUri`) and the chat channel (`peerChat`).
 			const creatingPeer = agent.chats.createChat(peerChat, peerContext, {
 				model: { id: COPILOT_TEST_MODEL },
 				workingDirectories: [folder],
@@ -2108,8 +1987,6 @@ suite('CodexAgent exact chat routing', () => {
 			await creatingPeer;
 			const peerEntry = agent['_sessions'].get('peer-thread')!;
 
-			// Simulate the codex app-server invoking the host's server tool on
-			// the peer runtime's own thread.
 			const responding = readNextMessage(peer.outbound);
 			peer.push({
 				id: 9001,
@@ -2123,9 +2000,6 @@ suite('CodexAgent exact chat routing', () => {
 				calls,
 				toolSucceeded: response.result?.success,
 			}, {
-				// The bug this guards against: the peer runtime's own
-				// `codex:/<threadId>` identity — neither the addressed AH
-				// session nor the chat channel — must never reach the host.
 				peerRuntimeUri: AgentSession.uri('codex', 'peer-thread').toString(),
 				calls: [
 					{ method: 'requiresConfirmation', chatUri: peerChat.toString() },
@@ -2149,11 +2023,6 @@ suite('CodexAgent chat backing durability', () => {
 		agent['_refreshSkillExtraRoots'] = async () => { };
 	}
 
-	/**
-	 * Provision a session, let its prewarmed `thread/start` land on
-	 * `threadId`, and drive the first send so the session-scoped materialize
-	 * receipt — the one carrying the refreshed chat backing — is emitted.
-	 */
 	async function materializeSession(agent: CodexAgent, peer: ITestPeer, session: URI, chat: URI, folder: URI, threadId: string): Promise<IAgentMaterializeChatEvent> {
 		const receipts: IAgentMaterializeChatEvent[] = [];
 		const listener = agent.onDidMaterializeChat(e => receipts.push(e));
@@ -2170,7 +2039,6 @@ suite('CodexAgent chat backing durability', () => {
 			const turn = await readNextRequest(peer.outbound);
 			peer.push({ id: turn.id, result: {} });
 			await sending;
-			// The overlay write that records the thread id is fire-and-forget.
 			await new Promise(resolve => setImmediate(resolve));
 			assert.strictEqual(receipts.length, 1);
 			return receipts[0];
@@ -2200,8 +2068,6 @@ suite('CodexAgent chat backing durability', () => {
 			const start = await readNextRequest(firstPeer.outbound);
 			assert.strictEqual(start.method, 'thread/start');
 
-			// The old process can finish a request after connection ownership has
-			// moved. Its thread exists durably, but it is not loaded in the new one.
 			connect(agent, secondPeer);
 			firstPeer.push({ id: start.id, result: { thread: { id: 'start-response-reconnect-thread', cwd: folder.fsPath } } });
 			await materializing;
@@ -2766,8 +2632,6 @@ suite('CodexAgent chat backing durability', () => {
 		try {
 			const receipt = await materializeSession(first, firstPeer, session, chat, folder, 'codex-thread');
 
-			// A host restart: a brand-new agent is offered nothing but the
-			// persisted backing blob and the URIs Agent Host owns.
 			const second = await createAgent(disposables, { sdkResolvableWithoutDownload: true, sessionStore });
 			secondPeer = disposables.add(createTestPeer());
 			connect(second, secondPeer);
@@ -2787,9 +2651,6 @@ suite('CodexAgent chat backing durability', () => {
 			assert.strictEqual(secondPeer.outbound.readableLength, 0);
 			await second.materializeChat(chat, { configurationResource: session, resource: chat }, receipt.result?.providerData);
 
-			// Ambient discovery can finish after the registered session restore and
-			// describe the same Codex thread through its native session id. It must
-			// not steal notification routing from the materialized host chat.
 			const externalSession = AgentSession.uri('codex', 'codex-thread');
 			const externalChat = URI.parse(buildDefaultChatUri(externalSession));
 			const discovering = second.getChatMetadata(externalChat, { configurationResource: externalSession, resource: externalChat });
@@ -2797,10 +2658,6 @@ suite('CodexAgent chat backing durability', () => {
 			secondPeer.push({ id: discoveryRead.id, result: { thread: { id: 'codex-thread', cwd: folder.fsPath, modelProvider: 'vscode-proxy', turns: [] } } });
 			await discovering;
 
-			// Cleaning up the unbound ambient entry must leave the route owned by
-			// the materialized host chat intact. Exercise the same in-memory teardown
-			// used by chat release, then dispatch a synthetic thread notification
-			// through the production routing seam.
 			const ambient = second['_sessions'].get('codex-thread')!;
 			const cleaningAmbient = second['_teardownSessionInMemory'](ambient, ambient.sessionId, false);
 			const ambientUnsubscribe = await readNextRequest(secondPeer.outbound);
@@ -2812,8 +2669,6 @@ suite('CodexAgent chat backing durability', () => {
 				return [];
 			});
 
-			// Drive a turn on the restored chat and fail it at `turn/start`, so
-			// the runtime also has to route the resulting actions to its bound chat.
 			const resending = second.chats.sendMessage(chat, 'again', [folder], undefined, 'turn-2', undefined, undefined, { configurationResource: session, resource: chat });
 			const unsubscribe = await readNextRequest(secondPeer.outbound);
 			secondPeer.push({ id: unsubscribe.id, result: {} });
@@ -2843,9 +2698,6 @@ suite('CodexAgent chat backing durability', () => {
 					? [{ resource: signal.resource.toString(), type: signal.action.type }]
 					: []),
 			}, {
-				// The runtime's own durable id — not the app-server thread id,
-				// which the metadata overlay owns and a rematerialization
-				// replaces.
 				backingSessionId: 'host-session',
 				backingSession: AgentSession.uri('codex', 'codex-thread').toString(),
 				restoredThreadId: 'codex-thread',
@@ -2877,9 +2729,6 @@ suite('CodexAgent chat backing durability', () => {
 		agent.setServerToolHost(createRecordingServerToolHost(advertised));
 
 		try {
-			// A backing that names a different runtime than the addressed
-			// session — what a peer chat's blob looks like, and what any
-			// re-keyed backing would look like after a restart.
 			const addressed = AgentSession.uri('codex', 'addressed-session');
 			const chat = URI.parse(buildDefaultChatUri(addressed));
 			const context = { configurationResource: addressed, resource: chat };
@@ -2893,15 +2742,9 @@ suite('CodexAgent chat backing durability', () => {
 			const restored = agent['_sessions'].get('backing-runtime');
 			assert.deepStrictEqual({
 				metadataChat: metadata?.chat.toString(),
-				// The entry's own URI must round-trip to the key it is stored
-				// under; stamping it with the addressed session would leave
-				// every entry→map lookup pointing at a runtime that does not
-				// exist.
 				restoredSessionUri: restored?.sessionUri.toString(),
 				restoredThreadId: restored?.threadId,
 				addressedRuntimeExists: agent['_sessions'].has('addressed-session'),
-				// Server tools are session-scoped, so they are advertised on
-				// the session Agent Host addressed — the only URI it knows.
 				advertised,
 			}, {
 				metadataChat: chat.toString(),
@@ -2928,17 +2771,11 @@ suite('CodexAgent chat backing durability', () => {
 			const before = Date.now();
 			await materializeSession(agent, peer, session, chat, folder, 'live-thread');
 
-			// No app-server traffic: the codex app-server cannot answer
-			// `thread/read` for a thread of its own that is blocked waiting on a
-			// dynamic tool call, which is exactly the state a session server
-			// tool runs in.
 			const metadata = await agent.getChatMetadata(chat, { configurationResource: session, resource: chat }, JSON.stringify({ sessionId: 'live-session' }));
 
 			assert.deepStrictEqual({
 				chat: metadata?.chat.toString(),
 				workingDirectories: metadata?.workingDirectories?.map(directory => directory.fsPath),
-				// Real clock values: `0` would date the session to 1970 and
-				// invert the host's created-before / created-after filters.
 				startedInThisRun: (metadata?.startTime ?? 0) >= before,
 				modifiedAtOrAfterStart: (metadata?.modifiedTime ?? 0) >= (metadata?.startTime ?? 0),
 			}, {
@@ -3011,9 +2848,6 @@ suite('CodexAgent chat backing durability', () => {
 			});
 
 			const coldMetadata = await restoring;
-			// The first lookup registers a live runtime. The second must retain
-			// the title without another app-server request: that server may be
-			// blocked waiting on the very dynamic tool call requesting metadata.
 			const liveMetadata = await agent.getChatMetadata(chat, context, providerData);
 
 			assert.deepStrictEqual({
@@ -3086,12 +2920,6 @@ suite('CodexAgent chat backing durability', () => {
 
 			assert.deepStrictEqual({
 				session: forked.session.toString(),
-				// The fork is materialized on return, so `onDidMaterializeChat`
-				// never fires for it — the create result is the host's only
-				// chance to persist a backing it can restore from. The blob names
-				// the runtime's own durable id, the thread id is decoupled into
-				// the metadata overlay, and the thread itself is reported as the
-				// exact backing so the host can mark it internal.
 				backingSessionId: forked.providerData ? JSON.parse(forked.providerData).sessionId : undefined,
 				backingSession: forked.backingSession?.toString(),
 				runtimeSessionUri: agent['_sessions'].get('fork-target')?.sessionUri.toString(),

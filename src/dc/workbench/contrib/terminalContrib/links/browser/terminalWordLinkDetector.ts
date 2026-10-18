@@ -16,9 +16,6 @@ import { ITerminalConfiguration, TERMINAL_CONFIG_SECTION } from '../../../termin
 import type { IBufferLine, Terminal } from '@xterm/xterm';
 
 const enum Constants {
-	/**
-	 * The max line length to try extract word links from.
-	 */
 	MaxLineLength = 2000
 }
 
@@ -31,8 +28,6 @@ interface Word {
 export class TerminalWordLinkDetector extends Disposable implements ITerminalLinkDetector {
 	static id = 'word';
 
-	// Word links typically search the workspace so it makes sense that their maximum link length is
-	// quite small.
 	readonly maxLinkLength = 100;
 
 	private _separatorRegex!: RegExp;
@@ -55,16 +50,13 @@ export class TerminalWordLinkDetector extends Disposable implements ITerminalLin
 	detect(lines: IBufferLine[], startLine: number, endLine: number): ITerminalSimpleLink[] {
 		const links: ITerminalSimpleLink[] = [];
 
-		// Get the text representation of the wrapped line
 		const text = getXtermLineContent(this.xterm.buffer.active, startLine, endLine, this.xterm.cols);
 		if (text === '' || text.length > Constants.MaxLineLength) {
 			return [];
 		}
 
-		// Parse out all words from the wrapped line
 		const words: Word[] = this._parseWords(text);
 
-		// Map the words to ITerminalLink objects
 		for (const word of words) {
 			if (word.text === '') {
 				continue;
@@ -85,7 +77,6 @@ export class TerminalWordLinkDetector extends Disposable implements ITerminalLin
 				startLine
 			);
 
-			// Support this product's URL protocol
 			if (matchesScheme(word.text, this._productService.urlProtocol)) {
 				const uri = URI.parse(word.text);
 				if (uri) {
@@ -99,7 +90,6 @@ export class TerminalWordLinkDetector extends Disposable implements ITerminalLin
 				continue;
 			}
 
-			// Search links
 			links.push({
 				text: word.text,
 				bufferRange,

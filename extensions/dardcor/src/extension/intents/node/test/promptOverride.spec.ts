@@ -221,13 +221,11 @@ describe('applyPromptOverrides', () => {
 		const messages = makeMessages({ role: Raw.ChatRole.System, content: 'original' });
 		const tools = makeTools('tool_a');
 
-		// First call should warn
 		await applyPromptOverrides(fileUri, messages, tools, fileSystemService, logService);
 		expect(warnSpy).toHaveBeenCalledOnce();
 
-		// Second call should use trace instead
 		await applyPromptOverrides(fileUri, messages, tools, fileSystemService, logService);
-		expect(warnSpy).toHaveBeenCalledOnce(); // still only one warn
+		expect(warnSpy).toHaveBeenCalledOnce();
 		expect(traceSpy).toHaveBeenCalled();
 	});
 
@@ -238,15 +236,12 @@ describe('applyPromptOverrides', () => {
 		const messages = makeMessages({ role: Raw.ChatRole.System, content: 'original' });
 		const tools = makeTools('tool_a');
 
-		// First call fails — should warn
 		await applyPromptOverrides(fileUri, messages, tools, fileSystemService, logService);
 		expect(warnSpy).toHaveBeenCalledOnce();
 
-		// Now the file exists and succeeds — clears the warned state
 		fileSystemService.mockFile(fileUri, 'systemPrompt: "hello"');
 		await applyPromptOverrides(fileUri, messages, tools, fileSystemService, logService);
 
-		// Remove the file again — should warn again since previous read succeeded
 		fileSystemService.mockError(fileUri, new Error('ENOENT'));
 		await applyPromptOverrides(fileUri, messages, tools, fileSystemService, logService);
 		expect(warnSpy).toHaveBeenCalledTimes(2);

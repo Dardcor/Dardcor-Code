@@ -70,13 +70,11 @@ suite('Edit session sync', () => {
 
 		instantiationService = new TestInstantiationService();
 
-		// Set up filesystem
 		const logService = new NullLogService();
 		fileService = disposables.add(new FileService(logService));
 		const fileSystemProvider = disposables.add(new InMemoryFileSystemProvider());
 		fileService.registerProvider(Schemas.file, fileSystemProvider);
 
-		// Stub out all services
 		instantiationService.stub(IEditSessionsLogService, logService);
 		instantiationService.stub(IFileService, fileService);
 		instantiationService.stub(ILifecycleService, new class extends mock<ILifecycleService>() {
@@ -129,7 +127,6 @@ suite('Edit session sync', () => {
 			}
 		});
 
-		// Stub repositories
 		instantiationService.stub(ISCMService, '_repositories', new Map());
 		instantiationService.stub(IContextKeyService, new MockContextKeyService());
 		instantiationService.stub(IThemeService, new class extends mock<IThemeService>() {
@@ -203,17 +200,13 @@ suite('Edit session sync', () => {
 			]
 		};
 
-		// Stub sync service to return edit session data
 		const readStub = sandbox.stub().returns({ content: JSON.stringify(editSession), ref: '0' });
 		instantiationService.stub(IEditSessionsStorageService, 'read', readStub);
 
-		// Create root folder
 		await fileService.createFolder(folderUri);
 
-		// Resume edit session
 		await editSessionsContribution.resumeEditSession();
 
-		// Verify edit session was correctly applied
 		assert.equal((await fileService.readFile(fileUri)).value.toString(), fileContents);
 	});
 
@@ -314,12 +307,10 @@ suite('Edit session sync', () => {
 		const writeStub = sandbox.stub();
 		instantiationService.stub(IEditSessionsStorageService, 'write', writeStub);
 
-		// Create root folder
 		await fileService.createFolder(folderUri);
 
 		await editSessionsContribution.storeEditSession(true, CancellationToken.None);
 
-		// Verify that we did not attempt to write the edit session
 		assert.equal(writeStub.called, false);
 	});
 

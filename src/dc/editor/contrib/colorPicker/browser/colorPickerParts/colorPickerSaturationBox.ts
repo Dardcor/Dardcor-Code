@@ -33,12 +33,10 @@ export class SaturationBox extends Disposable {
 		this._domNode = $('.saturation-wrap');
 		dom.append(container, this._domNode);
 
-		// Create canvas, draw selected color
 		this._canvas = document.createElement('canvas');
 		this._canvas.className = 'saturation-box';
 		dom.append(this._domNode, this._canvas);
 
-		// Add selection circle
 		this.selection = $('.saturation-selection');
 		dom.append(this._domNode, this.selection);
 

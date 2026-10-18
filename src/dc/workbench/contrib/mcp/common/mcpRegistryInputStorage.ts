@@ -16,14 +16,14 @@ import { IResolvedValue } from '../../../services/configurationResolver/common/c
 const MCP_ENCRYPTION_KEY_NAME = 'mcpEncryptionKey';
 const MCP_ENCRYPTION_KEY_ALGORITHM = 'AES-GCM';
 const MCP_ENCRYPTION_KEY_LEN = 256;
-const MCP_ENCRYPTION_IV_LENGTH = 12; // 96 bits
+const MCP_ENCRYPTION_IV_LENGTH = 12;
 const MCP_DATA_STORED_VERSION = 1;
 const MCP_DATA_STORED_KEY = 'mcpInputs';
 
 interface IStoredData {
 	version: number;
 	values: Record<string, IResolvedValue>;
-	secrets?: { value: string; iv: string }; // base64, encrypted
+	secrets?: { value: string; iv: string };
 }
 
 interface IHydratedData extends IStoredData {
@@ -42,7 +42,6 @@ export class McpRegistryInputStorage extends Disposable {
 					const parsed: JsonWebKey = JSON.parse(existing);
 					return await crypto.subtle.importKey('jwk', parsed, MCP_ENCRYPTION_KEY_ALGORITHM, false, ['encrypt', 'decrypt']);
 				} catch {
-					// fall through
 				}
 			}
 
@@ -87,7 +86,6 @@ export class McpRegistryInputStorage extends Disposable {
 		}));
 	}
 
-	/** Deletes all collection data from storage. */
 	public clearAll() {
 		this._record.value.values = {};
 		this._record.value.secrets = undefined;
@@ -95,7 +93,6 @@ export class McpRegistryInputStorage extends Disposable {
 		this._didChange = true;
 	}
 
-	/** Delete a single collection data from the storage. */
 	public async clear(inputKey: string) {
 		const secrets = await this._unsealSecrets();
 		delete this._record.value.values[inputKey];
@@ -107,19 +104,16 @@ export class McpRegistryInputStorage extends Disposable {
 		}
 	}
 
-	/** Gets a mapping of saved input data. */
 	public async getMap() {
 		const secrets = await this._unsealSecrets();
 		return { ...this._record.value.values, ...secrets };
 	}
 
-	/** Updates the input data mapping. */
 	public async setPlainText(values: Record<string, IResolvedValue>) {
 		Object.assign(this._record.value.values, values);
 		this._didChange = true;
 	}
 
-	/** Updates the input secrets mapping. */
 	public async setSecrets(values: Record<string, IResolvedValue>) {
 		const unsealed = await this._unsealSecrets();
 		Object.assign(unsealed, values);

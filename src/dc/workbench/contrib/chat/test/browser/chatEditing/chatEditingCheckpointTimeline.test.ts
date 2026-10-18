@@ -132,7 +132,7 @@ suite('ChatEditingCheckpointTimeline', function () {
 		timeline.createCheckpoint('req1', 'stop1', 'Checkpoint 1');
 
 		const state = timeline.getStateForPersistence();
-		assert.strictEqual(state.checkpoints.length, 2); // Initial + new checkpoint
+		assert.strictEqual(state.checkpoints.length, 2);
 		assert.strictEqual(state.checkpoints[1].requestId, 'req1');
 		assert.strictEqual(state.checkpoints[1].undoStopId, 'stop1');
 		assert.strictEqual(state.checkpoints[1].label, 'Checkpoint 1');
@@ -144,8 +144,8 @@ suite('ChatEditingCheckpointTimeline', function () {
 		timeline.createCheckpoint('req1', 'stop1', 'Checkpoint 1 Duplicate');
 
 		const checkpoints = timeline.getStateForPersistence().checkpoints;
-		assert.strictEqual(checkpoints.length, 2); // Only initial + first checkpoint
-		assert.strictEqual(checkpoints[1].label, 'Checkpoint 1'); // Original label preserved
+		assert.strictEqual(checkpoints.length, 2);
+		assert.strictEqual(checkpoints[1].label, 'Checkpoint 1');
 	});
 
 	test('incrementEpoch increases epoch counter', function () {
@@ -195,7 +195,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('basic undo/redo with text edits', async function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// Record baseline
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -204,10 +203,8 @@ suite('ChatEditingCheckpointTimeline', function () {
 			telemetryInfo: DEFAULT_TELEMETRY_INFO
 		}));
 
-		// Create checkpoint before edit - marks state with baseline
 		timeline.createCheckpoint('req1', undefined, 'Start of Request');
 
-		// Record edit at a new epoch
 		const editEpoch = timeline.incrementEpoch();
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
@@ -216,39 +213,26 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(1, 1, 1, 6), text: 'goodbye' }]
 		));
 
-		// Create checkpoint after edit - marks state with edit applied
 		timeline.createCheckpoint('req1', 'stop1', 'After Edit');
 
-		// canUndo and canRedo are based on checkpoint positions, not delegate state
-		// We have: Initial, Start of Request, After Edit
-		// Current epoch is after 'After Edit', so we can undo but not redo
 		assert.strictEqual(timeline.canUndo.get(), true);
 		assert.strictEqual(timeline.canRedo.get(), false);
 
-		// Undo (goes to start of request)
 		await timeline.undoToLastCheckpoint();
 
-		// After undoing to start of request, we can't undo within this request anymore
-		// but we can redo to the 'stop1' checkpoint
-		assert.strictEqual(timeline.canUndo.get(), false); // No more undo stops in req1 before this
-		assert.strictEqual(timeline.canRedo.get(), true); // Can redo to 'stop1'
+		assert.strictEqual(timeline.canUndo.get(), false);
+		assert.strictEqual(timeline.canRedo.get(), true);
 
-		// Redo
 		await timeline.redoToNextCheckpoint();
 
-		// After redo to 'stop1', we can undo again
 		assert.strictEqual(timeline.canUndo.get(), true);
-		// canRedo might still be true if currentEpoch is less than the max epoch
-		// This is because checkpoints are created with incrementEpoch, so there are epochs after them
 	});
 
 	test('file creation and deletion operations', async function () {
 		const uri = URI.parse('file:///new.txt');
 
-		// Create file
 		const createEpoch = timeline.incrementEpoch();
 
-		// Record baseline for the created file
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -264,18 +248,14 @@ suite('ChatEditingCheckpointTimeline', function () {
 			'new file content'
 		));
 
-		// Checkpoint marks state after file creation
 		timeline.createCheckpoint('req1', 'created', 'File Created');
 
-		// Navigate to initial to sync delegate, then to created
 		await timeline.navigateToCheckpoint(timeline.getStateForPersistence().checkpoints[0].checkpointId);
 		assert.strictEqual(fileContents.has(uri), false);
 
-		// Navigate to created checkpoint
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'created')!);
 		assert.strictEqual(fileContents.get(uri), 'new file content');
 
-		// Delete file
 		const deleteEpoch = timeline.incrementEpoch();
 		timeline.recordFileOperation(createFileDeleteOperation(
 			uri,
@@ -286,16 +266,13 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'deleted', 'File Deleted');
 
-		// Navigate back to initial, then to deleted to properly apply operations
 		await timeline.navigateToCheckpoint(timeline.getStateForPersistence().checkpoints[0].checkpointId);
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'deleted')!);
 		assert.strictEqual(fileContents.has(uri), false);
 
-		// Undo deletion - goes back to 'created' checkpoint
 		await timeline.undoToLastCheckpoint();
 		assert.strictEqual(fileContents.get(uri), 'new file content');
 
-		// Undo creation - goes back to initial state
 		await timeline.undoToLastCheckpoint();
 		assert.strictEqual(fileContents.has(uri), false);
 	});
@@ -304,10 +281,8 @@ suite('ChatEditingCheckpointTimeline', function () {
 		const oldUri = URI.parse('file:///old.txt');
 		const newUri = URI.parse('file:///new.txt');
 
-		// Create initial file
 		const createEpoch = timeline.incrementEpoch();
 
-		// Record baseline for the created file
 		timeline.recordFileBaseline(upcastPartial({
 			uri: oldUri,
 			requestId: 'req1',
@@ -325,12 +300,10 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'created', 'File Created');
 
-		// Navigate to initial, then to created to apply create operation
 		await timeline.navigateToCheckpoint(timeline.getStateForPersistence().checkpoints[0].checkpointId);
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'created')!);
 		assert.strictEqual(fileContents.get(oldUri), 'content');
 
-		// Rename file
 		const renameEpoch = timeline.incrementEpoch();
 		timeline.recordFileOperation(createFileRenameOperation(
 			oldUri,
@@ -341,13 +314,11 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'renamed', 'File Renamed');
 
-		// Navigate back to initial, then to renamed to properly apply operations
 		await timeline.navigateToCheckpoint(timeline.getStateForPersistence().checkpoints[0].checkpointId);
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'renamed')!);
 		assert.strictEqual(fileContents.has(oldUri), false);
 		assert.strictEqual(fileContents.get(newUri), 'content');
 
-		// Undo rename - goes back to 'created' checkpoint
 		await timeline.undoToLastCheckpoint();
 		assert.strictEqual(fileContents.get(oldUri), 'content');
 		assert.strictEqual(fileContents.has(newUri), false);
@@ -356,7 +327,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('multiple sequential edits to same file', async function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// Record baseline
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -367,7 +337,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', undefined, 'Start');
 
-		// First edit
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -377,7 +346,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'edit1', 'Edit 1');
 
-		// Second edit
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -387,15 +355,12 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'edit2', 'Edit 2');
 
-		// Navigate to first edit
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'edit1')!);
 		assert.strictEqual(fileContents.get(uri), 'LINE1\nline2\nline3');
 
-		// Navigate to second edit
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'edit2')!);
 		assert.strictEqual(fileContents.get(uri), 'LINE1\nLINE2\nline3');
 
-		// Navigate back to start
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', undefined)!);
 		assert.strictEqual(fileContents.get(uri), 'line1\nline2\nline3');
 	});
@@ -433,7 +398,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 		timeline.createCheckpoint('req2', undefined, 'Start req2');
 		timeline.recordFileOperation(createTextEditOperation(uri, 'req2', timeline.incrementEpoch(), [{ range: new Range(1, 1, 1, 2), text: 'c' }]));
 
-		// Undo sequence:
 		assert.deepStrictEqual(timeline.requestDisablement.get(), []);
 
 		await timeline.undoToLastCheckpoint();
@@ -456,7 +420,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			{ requestId: 'req1', afterUndoStop: undefined },
 		]);
 
-		// Redo sequence:
 		await timeline.redoToNextCheckpoint();
 		assert.strictEqual(fileContents.get(uri), 'a');
 		assert.deepStrictEqual(timeline.requestDisablement.get(), [
@@ -477,7 +440,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('persistence - save and restore state', function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// Setup some state
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -497,10 +459,8 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'stop1', 'Edit Complete');
 
-		// Save state
 		const savedState = timeline.getStateForPersistence();
 
-		// Create new timeline and restore
 		const collection = new ServiceCollection();
 		collection.set(INotebookService, new SyncDescriptor(TestNotebookService));
 		const insta = store.add(workbenchInstantiationService(undefined, store).createChild(collection));
@@ -515,7 +475,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			newTimeline.restoreFromState(savedState, tx);
 		});
 
-		// Verify state was restored
 		const restoredState = newTimeline.getStateForPersistence();
 		assert.strictEqual(restoredState.checkpoints.length, savedState.checkpoints.length);
 		assert.strictEqual(restoredState.operations.length, savedState.operations.length);
@@ -527,7 +486,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 		const uri1 = URI.parse('file:///file1.txt');
 		const uri2 = URI.parse('file:///file2.txt');
 
-		// Request 1 - create file
 		timeline.createCheckpoint('req1', undefined, 'Start req1');
 
 		const create1Epoch = timeline.incrementEpoch();
@@ -548,7 +506,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'stop1', 'Req1 complete');
 
-		// Request 2 - create another file
 		timeline.createCheckpoint('req2', undefined, 'Start req2');
 
 		const create2Epoch = timeline.incrementEpoch();
@@ -569,18 +526,15 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req2', 'stop1', 'Req2 complete');
 
-		// Navigate to initial, then to req1 completion to apply its operations
 		await timeline.navigateToCheckpoint(timeline.getStateForPersistence().checkpoints[0].checkpointId);
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'stop1')!);
 		assert.strictEqual(fileContents.get(uri1), 'file1 modified');
-		assert.strictEqual(fileContents.has(uri2), false); // req2 hasn't happened yet
+		assert.strictEqual(fileContents.has(uri2), false);
 
-		// Navigate to req2 completion
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req2', 'stop1')!);
 		assert.strictEqual(fileContents.get(uri1), 'file1 modified');
 		assert.strictEqual(fileContents.get(uri2), 'file2 modified');
 
-		// Navigate back to initial state by getting the first checkpoint
 		const initialCheckpoint = timeline.getStateForPersistence().checkpoints[0];
 		await timeline.navigateToCheckpoint(initialCheckpoint.checkpointId);
 		assert.strictEqual(fileContents.has(uri1), false);
@@ -599,7 +553,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('undoing entire request when appropriate', async function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// Create initial baseline and checkpoint
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -610,7 +563,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', undefined, 'Start req1');
 
-		// Single edit with checkpoint
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -620,15 +572,12 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'stop1', 'Edit complete');
 
-		// Should be able to undo
 		assert.strictEqual(timeline.canUndo.get(), true);
 
-		// Undo should go back to start of request, not just previous checkpoint
 		await timeline.undoToLastCheckpoint();
 
-		// Verify we're at the start of req1, which has epoch 2 (0 = initial, 1 = baseline, 2 = start checkpoint)
 		const state = timeline.getStateForPersistence();
-		assert.strictEqual(state.currentEpoch, 2); // Should be at the "Start req1" checkpoint epoch
+		assert.strictEqual(state.currentEpoch, 2);
 	});
 
 	test('operations use incrementing epochs', function () {
@@ -650,7 +599,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(2, 1, 2, 1), text: 'edit2' }]
 		));
 
-		// Both operations should be recorded
 		const operations = timeline.getStateForPersistence().operations;
 		assert.strictEqual(operations.length, 2);
 		assert.strictEqual(operations[0].epoch, epoch1);
@@ -672,7 +620,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('navigateToCheckpoint does nothing when already at target epoch', async function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// Record baseline and operation
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -691,11 +638,9 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'stop1', 'Checkpoint');
 
-		// Navigate to checkpoint
 		const checkpointId = timeline.getCheckpointIdForRequest('req1', 'stop1')!;
 		await timeline.navigateToCheckpoint(checkpointId);
 
-		// Navigate again to same checkpoint - should be a no-op
 		const stateBefore = timeline.getStateForPersistence();
 		await timeline.navigateToCheckpoint(checkpointId);
 		const stateAfter = timeline.getStateForPersistence();
@@ -706,7 +651,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('recording operation after undo truncates future history', async function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// Setup initial operations
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -738,10 +682,8 @@ suite('ChatEditingCheckpointTimeline', function () {
 		const stateWithTwoEdits = timeline.getStateForPersistence();
 		assert.strictEqual(stateWithTwoEdits.operations.length, 2);
 
-		// Undo to stop1
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'stop1')!);
 
-		// Record new operation - this should truncate the second edit
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -752,7 +694,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 		const stateAfterNewEdit = timeline.getStateForPersistence();
 		assert.strictEqual(stateAfterNewEdit.operations.length, 2);
 		assert.strictEqual(stateAfterNewEdit.operations[1].type, FileOperationType.TextEdit);
-		// The second operation should be the new edit3, not edit2
 	});
 
 	test('redo after recording new operation should work', async function () {
@@ -777,16 +718,11 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'stop1', 'Edit 1');
 
-		// Undo
 		await timeline.undoToLastCheckpoint();
 		assert.strictEqual(timeline.canRedo.get(), true);
 
-		// Redo
 		await timeline.redoToNextCheckpoint();
 
-		// After redo, canRedo depends on whether we're at the latest epoch
-		// Since we created a checkpoint after the operation, currentEpoch is ahead
-		// of the checkpoint epoch, so canRedo may still be true
 		assert.strictEqual(timeline.canUndo.get(), true);
 	});
 
@@ -803,7 +739,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', undefined, 'Start');
 
-		// Record operation but don't create checkpoint after it
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -811,15 +746,12 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(1, 1, 1, 8), text: 'edit1' }]
 		));
 
-		// Undo to start
 		const startCheckpoint = timeline.getCheckpointIdForRequest('req1', undefined)!;
 		await timeline.navigateToCheckpoint(startCheckpoint);
 
-		// Should be able to redo even without a checkpoint after the operation
 		assert.strictEqual(timeline.canRedo.get(), true);
 
 		await timeline.redoToNextCheckpoint();
-		// After redo, we should be at the operation's epoch + 1
 		const state = timeline.getStateForPersistence();
 		assert.ok(state.currentEpoch > 1);
 	});
@@ -850,7 +782,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(1, 1, 1, 8), text: 'modified' }]
 		));
 
-		// Use epoch-based stop ID
 		const content = await timeline.getContentAtStop('req1', uri, `__epoch_${editEpoch + 1}`);
 
 		assert.ok(content);
@@ -877,10 +808,8 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('hasFileBaseline returns true for files with create operations', function () {
 		const uri = URI.parse('file:///created.txt');
 
-		// Initially, no baseline
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req1'), false);
 
-		// Record a create operation without recording an explicit baseline
 		timeline.recordFileOperation(createFileCreateOperation(
 			uri,
 			'req1',
@@ -888,7 +817,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			'created content'
 		));
 
-		// hasFileBaseline should now return true because of the create operation
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req1'), true);
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req2'), false);
 	});
@@ -896,7 +824,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('hasFileBaseline distinguishes between different request IDs for create operations', function () {
 		const uri = URI.parse('file:///created.txt');
 
-		// Record a create operation for req1
 		timeline.recordFileOperation(createFileCreateOperation(
 			uri,
 			'req1',
@@ -904,7 +831,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			'content from req1'
 		));
 
-		// hasFileBaseline should only return true for req1
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req1'), true);
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req2'), false);
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req3'), false);
@@ -913,7 +839,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('hasFileBaseline returns true when both baseline and create operation exist', function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// Record both a baseline and a create operation
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -929,14 +854,12 @@ suite('ChatEditingCheckpointTimeline', function () {
 			'created content'
 		));
 
-		// Should return true (checking either source)
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req1'), true);
 	});
 
 	test('hasFileBaseline with create operation followed by edit', function () {
 		const uri = URI.parse('file:///created-and-edited.txt');
 
-		// Record a create operation
 		timeline.recordFileOperation(createFileCreateOperation(
 			uri,
 			'req1',
@@ -944,10 +867,8 @@ suite('ChatEditingCheckpointTimeline', function () {
 			'initial content'
 		));
 
-		// hasFileBaseline should return true
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req1'), true);
 
-		// Record an edit operation on the created file
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -955,7 +876,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(1, 1, 1, 16), text: 'edited content' }]
 		));
 
-		// hasFileBaseline should still return true
 		assert.strictEqual(timeline.hasFileBaseline(uri, 'req1'), true);
 	});
 
@@ -972,7 +892,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', undefined, 'Start');
 
-		// First edit - uppercase line 1
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -980,7 +899,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(1, 1, 1, 6), text: 'LINE1' }]
 		));
 
-		// Second edit - uppercase line 2
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -988,7 +906,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(2, 1, 2, 6), text: 'LINE2' }]
 		));
 
-		// Third edit - uppercase line 3
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -998,7 +915,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'all-edits', 'All edits');
 
-		// Navigate to see all edits applied
 		const initialCheckpoint = timeline.getStateForPersistence().checkpoints[0];
 		await timeline.navigateToCheckpoint(initialCheckpoint.checkpointId);
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'all-edits')!);
@@ -1008,7 +924,7 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 	test('checkpoint with same requestId and undoStopId is not duplicated', function () {
 		timeline.createCheckpoint('req1', 'stop1', 'First');
-		timeline.createCheckpoint('req1', 'stop1', 'Second'); // Should be ignored
+		timeline.createCheckpoint('req1', 'stop1', 'Second');
 
 		const checkpoints = timeline.getStateForPersistence().checkpoints;
 		const req1Stop1Checkpoints = checkpoints.filter(c => c.requestId === 'req1' && c.undoStopId === 'stop1');
@@ -1021,7 +937,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 		const oldUri = URI.parse('file:///old.txt');
 		const newUri = URI.parse('file:///new.txt');
 
-		// Create baseline for old URI
 		timeline.recordFileBaseline(upcastPartial({
 			uri: oldUri,
 			requestId: 'req1',
@@ -1030,7 +945,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			telemetryInfo: DEFAULT_TELEMETRY_INFO
 		}));
 
-		// Edit the file before rename (replace entire content)
 		timeline.recordFileOperation(createTextEditOperation(
 			oldUri,
 			'req1',
@@ -1038,7 +952,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(1, 1, 1, 16), text: 'modified content' }]
 		));
 
-		// Rename operation
 		timeline.recordFileOperation(createFileRenameOperation(
 			oldUri,
 			newUri,
@@ -1048,7 +961,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'renamed', 'After rename');
 
-		// Get content at the renamed URI - should find the baseline through rename chain
 		const content = await timeline.getContentAtStop('req1', newUri, 'renamed');
 		assert.strictEqual(content, 'modified content');
 	});
@@ -1056,7 +968,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	test('baseline lookup across different request IDs', async function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// First request baseline
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req1',
@@ -1072,7 +983,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 			[{ range: new Range(1, 1, 1, 13), text: 'req1 modified' }]
 		));
 
-		// Second request baseline
 		timeline.recordFileBaseline(upcastPartial({
 			uri,
 			requestId: 'req2',
@@ -1090,7 +1000,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req2', 'stop1', 'Req2 checkpoint');
 
-		// Getting content should use req2 baseline
 		const content = await timeline.getContentAtStop('req2', uri, 'stop1');
 		assert.strictEqual(content, 'req2 modified');
 	});
@@ -1108,7 +1017,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'stop1', 'Checkpoint');
 
-		// Try to get content for a different URI that doesn't have any operations
 		const differentUri = URI.parse('file:///different.txt');
 		const content = await timeline.getContentAtStop('req1', differentUri, 'stop1');
 
@@ -1116,33 +1024,28 @@ suite('ChatEditingCheckpointTimeline', function () {
 	});
 
 	test('undoToLastCheckpoint when canUndo is false does nothing', async function () {
-		// At initial state, canUndo should be false
 		assert.strictEqual(timeline.canUndo.get(), false);
 
 		const stateBefore = timeline.getStateForPersistence();
 		await timeline.undoToLastCheckpoint();
 		const stateAfter = timeline.getStateForPersistence();
 
-		// Should not have changed
 		assert.strictEqual(stateBefore.currentEpoch, stateAfter.currentEpoch);
 	});
 
 	test('redoToNextCheckpoint when canRedo is false does nothing', async function () {
-		// At initial state with no future operations, canRedo should be false
 		assert.strictEqual(timeline.canRedo.get(), false);
 
 		const stateBefore = timeline.getStateForPersistence();
 		await timeline.redoToNextCheckpoint();
 		const stateAfter = timeline.getStateForPersistence();
 
-		// Should not have changed
 		assert.strictEqual(stateBefore.currentEpoch, stateAfter.currentEpoch);
 	});
 
 	test('orphaned operations and checkpoints are removed after undo and new changes', async function () {
 		const uri = URI.parse('file:///test.txt');
 
-		// Create the file first
 		const createEpoch = timeline.incrementEpoch();
 
 		timeline.recordFileOperation(createFileCreateOperation(
@@ -1154,7 +1057,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', undefined, 'Start req1');
 
-		// First set of changes
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -1173,16 +1075,12 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'stop2', 'Second Edit');
 
-		// Verify we have 3 operations (create + 2 edits) and 4 checkpoints (initial, start, stop1, stop2)
 		let state = timeline.getStateForPersistence();
 		assert.strictEqual(state.operations.length, 3);
 		assert.strictEqual(state.checkpoints.length, 4);
 
-		// Undo to stop1 (before second edit)
 		await timeline.navigateToCheckpoint(timeline.getCheckpointIdForRequest('req1', 'stop1')!);
 
-		// Record a new operation - this should truncate the "second edit" operation
-		// and remove the stop2 checkpoint
 		timeline.recordFileOperation(createTextEditOperation(
 			uri,
 			'req1',
@@ -1192,77 +1090,61 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		timeline.createCheckpoint('req1', 'stop2-new', 'Replacement Edit');
 
-		// Verify the orphaned operation and checkpoint are gone
 		state = timeline.getStateForPersistence();
 		assert.strictEqual(state.operations.length, 3, 'Should still have 3 operations (create + first + replacement)');
 		assert.strictEqual(state.checkpoints.length, 4, 'Should have 4 checkpoints (initial, start, stop1, stop2-new)');
 
-		// Verify the third operation is the replacement, not the original second edit
 		const thirdOp = state.operations[2];
 		assert.strictEqual(thirdOp.type, FileOperationType.TextEdit);
 		if (thirdOp.type === FileOperationType.TextEdit) {
 			assert.strictEqual(thirdOp.edits[0].text, 'replacement edit');
 		}
 
-		// Verify the stop2-new checkpoint exists, not stop2
 		const stop2NewCheckpoint = timeline.getCheckpointIdForRequest('req1', 'stop2-new');
 		const stop2OldCheckpoint = timeline.getCheckpointIdForRequest('req1', 'stop2');
 		assert.ok(stop2NewCheckpoint, 'New checkpoint should exist');
 		assert.strictEqual(stop2OldCheckpoint, undefined, 'Old orphaned checkpoint should be removed');
 
-		// Now navigate through the entire timeline to verify consistency
 		const initialCheckpoint = state.checkpoints[0];
 		const startCheckpoint = timeline.getCheckpointIdForRequest('req1', undefined)!;
 		const stop1Checkpoint = timeline.getCheckpointIdForRequest('req1', 'stop1')!;
 		const stop2NewCheckpointId = timeline.getCheckpointIdForRequest('req1', 'stop2-new')!;
 
-		// Navigate to initial to clear everything
 		await timeline.navigateToCheckpoint(initialCheckpoint.checkpointId);
 		assert.strictEqual(fileContents.has(uri), false);
 
-		// Navigate to start - file should be created
 		await timeline.navigateToCheckpoint(startCheckpoint);
 		assert.strictEqual(fileContents.get(uri), 'initial content');
 
-		// Navigate to stop1 - first edit should be applied
 		await timeline.navigateToCheckpoint(stop1Checkpoint);
 		assert.strictEqual(fileContents.get(uri), 'first edit');
 
-		// Navigate to stop2-new - replacement edit should be applied, NOT the orphaned "second edit"
 		await timeline.navigateToCheckpoint(stop2NewCheckpointId);
 		assert.strictEqual(fileContents.get(uri), 'replacement edit');
 
-		// Navigate back to start
 		await timeline.navigateToCheckpoint(startCheckpoint);
 		assert.strictEqual(fileContents.get(uri), 'initial content');
 
-		// Navigate forward through all checkpoints again to ensure redo works correctly
 		await timeline.navigateToCheckpoint(stop1Checkpoint);
 		assert.strictEqual(fileContents.get(uri), 'first edit');
 
 		await timeline.navigateToCheckpoint(stop2NewCheckpointId);
 		assert.strictEqual(fileContents.get(uri), 'replacement edit', 'Orphaned edit should never reappear');
 
-		// Go back to initial and forward again to thoroughly test
 		await timeline.navigateToCheckpoint(initialCheckpoint.checkpointId);
 		await timeline.navigateToCheckpoint(stop2NewCheckpointId);
 		assert.strictEqual(fileContents.get(uri), 'replacement edit', 'Content should still be correct after full timeline traversal');
 	});
 
 	test('undo/redo with multiple no-edit requests advances one request at a time', async function () {
-		// req1: no edits
 		timeline.createCheckpoint('req1', undefined, 'Start req1');
 
-		// req2: no edits
 		timeline.createCheckpoint('req2', undefined, 'Start req2');
 
-		// req3: no edits
 		timeline.createCheckpoint('req3', undefined, 'Start req3');
 
-		// req4: no edits
 		timeline.createCheckpoint('req4', undefined, 'Start req4');
 
-		// Undo should step one request at a time
 		assert.strictEqual(timeline.canUndo.get(), true);
 
 		await timeline.undoToLastCheckpoint();
@@ -1279,7 +1161,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 
 		assert.strictEqual(timeline.canUndo.get(), false);
 
-		// Redo should also step one request at a time (not skip all at once)
 		assert.strictEqual(timeline.canRedo.get(), true);
 
 		await timeline.redoToNextCheckpoint();
@@ -1298,7 +1179,6 @@ suite('ChatEditingCheckpointTimeline', function () {
 	});
 });
 
-// Mock notebook service for tests that don't need notebook functionality
 class TestNotebookService {
 	getNotebookTextModel() { return undefined; }
 	hasSupportedNotebooks() { return false; }

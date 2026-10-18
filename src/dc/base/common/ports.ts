@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * @returns Returns a random port between 1025 and 65535.
- */
 export function randomPort(): number {
 	const min = 1025;
 	const max = 65535;

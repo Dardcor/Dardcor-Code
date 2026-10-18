@@ -12,7 +12,6 @@ import { getAgentDir, getAgentMeta, getSdks } from '../common.ts';
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-/** Repo-root package.json — holds the runtime pins in `devDependencies`. */
 const ROOT_PACKAGE_JSON = path.join(THIS_DIR, '..', '..', '..', 'package.json');
 
 interface IRootPackageJson {
@@ -24,11 +23,6 @@ function getRootDevDependencies(): Readonly<Record<string, string>> {
 	return json.devDependencies ?? {};
 }
 
-/**
- * Reads the version `npm ci` would resolve for `name` from an SDK's
- * `package-lock.json` (the root package entry under `node_modules/<name>`).
- * Guards against the lockfile lagging a `package.json` version bump.
- */
 function getLockedVersion(sdk: string, name: string): string | undefined {
 	const lockPath = path.join(getAgentDir(sdk), 'package-lock.json');
 	const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8')) as {
@@ -52,8 +46,6 @@ suite('agent SDK version pins stay in lockstep', () => {
 				runtimePin: rootDevDeps[name],
 				lockPin: getLockedVersion(sdk, name),
 			};
-			// The build pin (agents/<sdk>/package.json) is the source of truth;
-			// the runtime pin (root devDependencies) and lockfile MUST match it.
 			expected[sdk] = {
 				name,
 				buildPin: version,

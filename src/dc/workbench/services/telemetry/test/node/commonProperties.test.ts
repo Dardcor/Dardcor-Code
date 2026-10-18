@@ -36,8 +36,6 @@ suite('Telemetry - common properties', function () {
 			'common.nodeArch': true,
 			'common.timesincesessionstart': true,
 			'common.sequence': true,
-			// 'common.version.shell': true, // only when running on electron
-			// 'common.version.renderer': true,
 			'common.platformVersion': true,
 			version: true,
 			'common.releaseDate': true,
@@ -53,7 +51,7 @@ suite('Telemetry - common properties', function () {
 		testStorageService.store('telemetry.lastSessionDate', new Date().toUTCString(), StorageScope.APPLICATION, StorageTarget.MACHINE);
 
 		const props = resolveWorkbenchCommonProperties(testStorageService, undefined!, {} as IWorkbenchEnvironmentService, release(), hostname(), 'someMachineId', 'someSqmId', 'somedevDeviceId', false, process);
-		assert.ok(props['common.lastSessionDate']); // conditional, see below
+		assert.ok(props['common.lastSessionDate']);
 		assert.ok(props['common.isNewSession']);
 		assert.strictEqual(props['common.isNewSession'], '0');
 	});

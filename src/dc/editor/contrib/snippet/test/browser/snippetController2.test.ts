@@ -26,7 +26,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 
 suite('SnippetController2', function () {
 
-	/** @deprecated */
 	function assertSelections(editor: ICodeEditor, ...s: Selection[]) {
 		for (const selection of editor.getSelections()!) {
 			const actual = s.shift()!;
@@ -124,7 +123,6 @@ suite('SnippetController2', function () {
 		assertContextKeys(contextKeys, true, false, true);
 		assertSelections(editor, new Selection(1, 4, 1, 7), new Selection(2, 8, 2, 11));
 
-		// bad selection change
 		editor.setSelections([new Selection(1, 12, 1, 12), new Selection(2, 16, 2, 16)]);
 		assertContextKeys(contextKeys, false, false, false);
 	});
@@ -136,7 +134,6 @@ suite('SnippetController2', function () {
 		assertContextKeys(contextKeys, true, false, true);
 		assertSelections(editor, new Selection(1, 4, 1, 7), new Selection(2, 8, 2, 11));
 
-		// bad selection change
 		editor.setSelections([new Selection(2, 4, 2, 7), new Selection(3, 8, 3, 11)]);
 		assertContextKeys(contextKeys, false, false, false);
 	});
@@ -148,7 +145,6 @@ suite('SnippetController2', function () {
 		assert.strictEqual(SnippetController2.InSnippetMode.getValue(contextKeys), true);
 		assertSelections(editor, new Selection(1, 4, 1, 7), new Selection(2, 8, 2, 11));
 
-		// bad selection change
 		editor.setSelections([new Selection(1, 4, 1, 7)]);
 		assertContextKeys(contextKeys, false, false, false);
 	});
@@ -181,8 +177,6 @@ suite('SnippetController2', function () {
 		editor.trigger('test', 'tab', {});
 		assertContextKeys(contextKeys, false, false, false);
 
-		// editor.trigger('test', 'type', { text: 'abc' });
-		// assertContextKeys(contextKeys, false, false, false);
 	});
 
 	test('insert, nested trivial snippet', function () {
@@ -264,16 +258,16 @@ suite('SnippetController2', function () {
 
 		assertSelections(editor, new Selection(1, 19, 1, 21), new Selection(2, 23, 2, 25));
 
-		ctrl.next(); // inner `value`
+		ctrl.next();
 		assertSelections(editor, new Selection(1, 24, 1, 29), new Selection(2, 28, 2, 33));
 
-		ctrl.next(); // inner `$0`
+		ctrl.next();
 		assertSelections(editor, new Selection(1, 31, 1, 31), new Selection(2, 35, 2, 35));
 
-		ctrl.next(); // outer `value`
+		ctrl.next();
 		assertSelections(editor, new Selection(1, 34, 1, 39), new Selection(2, 38, 2, 43));
 
-		ctrl.prev(); // inner `$0`
+		ctrl.prev();
 		assertSelections(editor, new Selection(1, 31, 1, 31), new Selection(2, 35, 2, 35));
 	});
 
@@ -291,7 +285,7 @@ suite('SnippetController2', function () {
 		ctrl.insert('foo');
 		assertSelections(editor, new Selection(1, 11, 1, 11), new Selection(1, 21, 1, 21));
 
-		ctrl.next(); // ${2:...}
+		ctrl.next();
 		assertSelections(editor, new Selection(1, 8, 1, 11));
 	});
 
@@ -337,13 +331,10 @@ suite('SnippetController2', function () {
 
 		editor.setSelection(new Selection(1, 19, 1, 19));
 
-		// snippet mode should stop because $1 has two occurrences
-		// and we only have one selection left
 		assertContextKeys(contextKeys, false, false, false);
 	});
 
 	test('Problems with nested snippet insertion #39594 (part2)', function () {
-		// ensure selection-change-to-cancel logic isn't too aggressive
 		ctrl = instaService.createInstance(SnippetController2, editor);
 
 		model.setValue('a-\naaa-');
@@ -504,7 +495,6 @@ suite('SnippetController2', function () {
 		editor.runCommand(CoreEditingCommands.Tab, null);
 
 		ctrl.insert('\naProperty: aClass<${2:boolean}> = new aClass<${2:boolean}>();\n');
-		// This will insert \n    aProperty....
 		assertSelections(editor, new Selection(2, 23, 2, 30), new Selection(2, 45, 2, 52));
 	});
 
@@ -527,7 +517,6 @@ suite('SnippetController2', function () {
 	test.skip('Snippet transformation does not work after inserting variable using intellisense, #112362', function () {
 
 		{
-			// HAPPY - no nested snippet
 			ctrl = instaService.createInstance(SnippetController2, editor);
 			model.setValue('');
 			model.updateOptions({ insertSpaces: true, tabSize: 4 });
@@ -549,7 +538,6 @@ suite('SnippetController2', function () {
 		ctrl.insert('number;');
 		ctrl.next();
 		assert.strictEqual(model.getValue(), `foo: number;\n\nfoo: 'number',`);
-		// editor.trigger('test', 'type', { text: ';' });
 	});
 
 	suite('createEditsAndSnippetsFromEdits', function () {

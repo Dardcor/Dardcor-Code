@@ -60,9 +60,6 @@ function getWSLExecutablePath(): string | undefined {
 	return getSystem32Path('wsl.exe');
 }
 
-/**
- * In builds < 22000 this dll inidcates that WSL is installed
- */
 function getLxssManagerDllPath(): string | undefined {
 	return getSystem32Path('lxss\\LxssManager.dll');
 }

@@ -39,7 +39,6 @@ suite('Process Utils', () => {
 		});
 
 		test('should not match .js prefix in .json extension (regression test for \\b fix)', () => {
-			// Without the \b word boundary, the regex would incorrectly match "package.js" from "package.json"
 			deepStrictEqual(findJsFiles('node --config tsconfig.json'), []);
 			deepStrictEqual(findJsFiles('eslint.json'), []);
 		});

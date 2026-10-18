@@ -56,7 +56,6 @@ suite('Debug - Breakpoints', () => {
 		model = createMockDebugModel(disposables);
 	});
 
-	// Breakpoints
 
 	test('simple', () => {
 		const modelUri = uri.file('/myfolder/myfile.js');
@@ -196,13 +195,10 @@ suite('Debug - Breakpoints', () => {
 		data2.set(breakpoints[1].getId(), { verified: true, line: 500 });
 		model.setBreakpointSessionData(session2.getId(), {}, data2);
 
-		// Breakpoint is verified only once, show that line
 		assert.strictEqual(breakpoints[0].lineNumber, 100);
-		// Breakpoint is verified two times, show the original line
 		assert.strictEqual(breakpoints[1].lineNumber, 10);
 
 		model.setBreakpointSessionData(session.getId(), {}, undefined);
-		// No more double session verification
 		assert.strictEqual(breakpoints[0].lineNumber, 100);
 		assert.strictEqual(breakpoints[1].lineNumber, 500);
 
@@ -290,7 +286,6 @@ suite('Debug - Breakpoints', () => {
 	test('instruction breakpoints', () => {
 		let eventCount = 0;
 		disposables.add(model.onDidChangeBreakpoints(() => eventCount++));
-		//address: string, offset: number, condition?: string, hitCondition?: string
 		model.addInstructionBreakpoint({ instructionReference: '0xCCCCFFFF', offset: 0, address: 0n, canPersist: false });
 
 		assert.strictEqual(eventCount, 1);
@@ -427,7 +422,7 @@ suite('Debug - Breakpoints', () => {
 		instantiationService.stub(ILabelService, new MockLabelService());
 		instantiationService.stub(ILanguageService, disposables.add(new LanguageService()));
 		let decorations = instantiationService.invokeFunction(accessor => createBreakpointDecorations(accessor, textModel, breakpoints, State.Running, true, true));
-		assert.strictEqual(decorations.length, 3); // last breakpoint filtered out since it has a large line number
+		assert.strictEqual(decorations.length, 3);
 		assert.deepStrictEqual(decorations[0].range, new Range(1, 1, 1, 2));
 		assert.deepStrictEqual(decorations[1].range, new Range(2, 4, 2, 5));
 		assert.deepStrictEqual(decorations[2].range, new Range(3, 5, 3, 6));
@@ -450,7 +445,6 @@ suite('Debug - Breakpoints', () => {
 		// eslint-disable-next-line local/code-no-any-casts
 		const model1 = disposables.add(new DebugModel(debugStorage1, <any>{ isDirty: (e: any) => false }, mockUriIdentityService, new NullLogService()));
 
-		// 1. create breakpoints in the first model
 		const modelUri = uri.file('/myfolder/my file first.js');
 		const first = [
 			{ lineNumber: 1, enabled: true, condition: 'x > 5' },
@@ -461,15 +455,13 @@ suite('Debug - Breakpoints', () => {
 		debugStorage1.storeBreakpoints(model1);
 		const stored = storage1.get('debug.breakpoint', StorageScope.WORKSPACE);
 
-		// 2. hydrate a new model and ensure external breakpoints get applied
 		const storage2 = disposables.add(new TestStorageService());
 		// eslint-disable-next-line local/code-no-any-casts
 		const model2 = disposables.add(new DebugModel(disposables.add(new MockDebugStorage(storage2)), <any>{ isDirty: (e: any) => false }, mockUriIdentityService, new NullLogService()));
-		storage2.store('debug.breakpoint', stored, StorageScope.WORKSPACE, StorageTarget.USER, /* external= */ true);
+		storage2.store('debug.breakpoint', stored, StorageScope.WORKSPACE, StorageTarget.USER, true);
 		assert.deepStrictEqual(model2.getBreakpoints().map(b => b.getId()), model1.getBreakpoints().map(b => b.getId()));
 
-		// 3. ensure non-external changes are ignored
-		storage2.store('debug.breakpoint', '[]', StorageScope.WORKSPACE, StorageTarget.USER, /* external= */ false);
+		storage2.store('debug.breakpoint', '[]', StorageScope.WORKSPACE, StorageTarget.USER, false);
 		assert.deepStrictEqual(model2.getBreakpoints().map(b => b.getId()), model1.getBreakpoints().map(b => b.getId()));
 	});
 });

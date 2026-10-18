@@ -43,7 +43,7 @@ export function parseLogEntryAt(model: ITextModel, lineNumber: number): ILogEntr
 		const lineCount = model.getLineCount();
 		while (endLine < lineCount) {
 			const nextLineContent = model.getLineContent(endLine + 1);
-			const isLastLine = endLine + 1 === lineCount && nextLineContent === ''; // Last line will be always empty
+			const isLastLine = endLine + 1 === lineCount && nextLineContent === '';
 			if (LOG_ENTRY_REGEX.test(nextLineContent) || isLastLine) {
 				break;
 			}
@@ -213,7 +213,7 @@ class FileContentProvider extends Disposable implements IContentProvider {
 				return {
 					name: this.name,
 					content: '',
-					consume: () => { /* No Op */ }
+					consume: () => { }
 				};
 			}
 			const fileContent = await this.fileService.readFile(this.resource, { position: this.endOffset });
@@ -239,7 +239,7 @@ class FileContentProvider extends Disposable implements IContentProvider {
 			return {
 				name: this.name,
 				content: '',
-				consume: () => { /* No Op */ }
+				consume: () => { }
 			};
 		}
 	}
@@ -413,8 +413,6 @@ class MultiFileContentProvider extends Disposable implements IContentProvider {
 
 					let insertionIndex;
 
-					// If the timestamp is greater than or equal to the last timestamp,
-					// we can just append all the entries at the end
 					if (logEntry.timestamp >= logEntries[logEntries.length - 1].timestamp) {
 						insertionIndex = logEntries.length;
 						for (next = iterator.next(); !next.done; next = iterator.next()) {
@@ -424,16 +422,12 @@ class MultiFileContentProvider extends Disposable implements IContentProvider {
 					}
 					else {
 						if (logEntry.timestamp <= logEntries[0].timestamp) {
-							// If the timestamp is less than or equal to the first timestamp
-							// then insert at the beginning
 							insertionIndex = 0;
 						} else {
-							// Otherwise, find the insertion index
 							const idx = binarySearch(logEntries, logEntry, (a, b) => a.timestamp - b.timestamp);
 							insertionIndex = idx < 0 ? ~idx : idx;
 						}
 
-						// Collect all entries that have a timestamp less than or equal to the timestamp at the insertion index
 						for (next = iterator.next(); !next.done && next.value[0].timestamp <= logEntries[insertionIndex].timestamp; next = iterator.next()) {
 							logEntriesToAdd.push(next.value[0]);
 							contentsToAdd.push(next.value[1]);
@@ -560,28 +554,22 @@ export abstract class AbstractFileOutputChannelModel extends Disposable implemen
 
 	private appendContent(model: ITextModel, immediate: boolean, token: CancellationToken): void {
 		this.appendThrottler.trigger(async () => {
-			/* Abort if operation is cancelled */
 			if (token.isCancellationRequested) {
 				return;
 			}
 
-			/* Wait for replace to finish */
 			if (this.replacePromise) {
-				try { await this.replacePromise; } catch (e) { /* Ignore */ }
-				/* Abort if operation is cancelled */
+				try { await this.replacePromise; } catch (e) { }
 				if (token.isCancellationRequested) {
 					return;
 				}
 			}
 
-			/* Get content to append */
 			const { content, consume } = await this.outputContentProvider.getContent();
-			/* Abort if operation is cancelled */
 			if (token.isCancellationRequested) {
 				return;
 			}
 
-			/* Appned Content */
 			consume();
 			this.doAppendContent(model, content);
 			this.modelUpdateInProgress = false;
@@ -599,23 +587,18 @@ export abstract class AbstractFileOutputChannelModel extends Disposable implemen
 	}
 
 	private async replaceContent(model: ITextModel, token: CancellationToken): Promise<void> {
-		/* Get content to replace */
 		const { content, consume } = await this.outputContentProvider.getContent();
-		/* Abort if operation is cancelled */
 		if (token.isCancellationRequested) {
 			return;
 		}
 
-		/* Compute Edits */
 		const edits = await this.getReplaceEdits(model, content.toString());
-		/* Abort if operation is cancelled */
 		if (token.isCancellationRequested) {
 			return;
 		}
 
 		consume();
 		if (edits.length) {
-			/* Apply Edits */
 			model.applyEdits(edits);
 		}
 		this.modelUpdateInProgress = false;
@@ -758,7 +741,6 @@ class OutputChannelBackedByFile extends FileOutputChannelModel implements IOutpu
 	) {
 		super(modelUri, language, { resource: file, name: '' }, fileService, modelService, instantiationService, logService, editorWorkerService);
 
-		// Donot rotate to check for the file reset
 		this.logger = loggerService.createLogger(file, { logLevel: 'always', donotRotate: true, donotUseFormatters: true, hidden: true });
 		this._offset = 0;
 	}

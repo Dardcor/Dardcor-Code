@@ -33,7 +33,6 @@ export class RendererProfiling {
 
 		const devOpts = parseExtensionDevOptions(_environmentService);
 		if (devOpts.isExtensionDevTestFromCli) {
-			// disabled when running extension tests
 			return;
 		}
 
@@ -41,12 +40,10 @@ export class RendererProfiling {
 			(_environmentService.isBuilt ? _logService.info : _logService.trace).apply(_logService, [`[perf] Render performance baseline is ${perfBaseline}ms`]);
 
 			if (perfBaseline < 0) {
-				// too slow
 				return;
 			}
 
-			// SLOW threshold
-			const slowThreshold = perfBaseline * 10; // ~10 frames at 64fps on MY machine
+			const slowThreshold = perfBaseline * 10;
 
 			const obs = new PerformanceObserver(async list => {
 
@@ -68,10 +65,8 @@ export class RendererProfiling {
 
 				_logService.warn(`[perf] Renderer reported VERY LONG TASK (${maxDuration}ms), starting profiling session '${sessionId}'`);
 
-				// pause observation, we'll take a detailed look
 				obs.disconnect();
 
-				// profile renderer for 5secs, analyse, and take action depending on the result
 				for (let i = 0; i < 3; i++) {
 
 					try {
@@ -82,7 +77,7 @@ export class RendererProfiling {
 							break;
 						}
 
-						timeout(15000); // wait 15s
+						timeout(15000);
 
 					} catch (err) {
 						_logService.error(err);
@@ -90,7 +85,6 @@ export class RendererProfiling {
 					}
 				}
 
-				// reconnect the observer
 				obs.observe({ entryTypes: ['longtask'] });
 			});
 

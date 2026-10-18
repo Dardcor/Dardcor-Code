@@ -34,12 +34,11 @@ export class ExtensionsCompletionItemsProvider extends Disposable implements IWo
 				const location = getLocation(model.getValue(), model.getOffsetAt(position));
 				const range = getWordRangeAtPosition(model, position) ?? Range.fromPositions(position, position);
 
-				// extensions.supportUntrustedWorkspaces
 				if (location.path[0] === 'extensions.supportUntrustedWorkspaces' && location.path.length === 2 && location.isAtPropertyKey) {
 					let alreadyConfigured: string[] = [];
 					try {
 						alreadyConfigured = Object.keys(parse(model.getValue())['extensions.supportUntrustedWorkspaces']);
-					} catch (e) {/* ignore error */ }
+					} catch (e) { }
 
 					return { suggestions: await this.provideSupportUntrustedWorkspacesExtensionProposals(alreadyConfigured, range) };
 				}

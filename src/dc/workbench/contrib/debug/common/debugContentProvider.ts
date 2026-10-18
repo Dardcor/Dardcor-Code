@@ -21,19 +21,6 @@ import { PLAINTEXT_LANGUAGE_ID } from '../../../../editor/common/languages/modes
 import { ErrorNoTelemetry } from '../../../../base/common/errors.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 
-/**
- * Debug URI format
- *
- * a debug URI represents a Source object and the debug session where the Source comes from.
- *
- *       debug:arbitrary_path?session=123e4567-e89b-12d3-a456-426655440000&ref=1016
- *       \___/ \____________/ \__________________________________________/ \______/
- *         |          |                             |                          |
- *      scheme   source.path                    session id            source.reference
- *
- * the arbitrary_path and the session id are encoded with 'encodeURIComponent'
- *
- */
 export class DebugContentProvider extends Disposable implements IWorkbenchContribution, ITextModelContentProvider {
 
 	private static INSTANCE: DebugContentProvider;
@@ -61,22 +48,14 @@ export class DebugContentProvider extends Disposable implements IWorkbenchContri
 		return this.createOrUpdateContentModel(resource, true);
 	}
 
-	/**
-	 * Reload the model content of the given resource.
-	 * If there is no model for the given resource, this method does nothing.
-	 */
 	static refreshDebugContent(resource: uri): void {
 		DebugContentProvider.INSTANCE?.createOrUpdateContentModel(resource, false);
 	}
 
-	/**
-	 * Create or reload the model content of the given resource.
-	 */
 	private createOrUpdateContentModel(resource: uri, createIfNotExists: boolean): Promise<ITextModel> | null {
 
 		const model = this.modelService.getModel(resource);
 		if (!model && !createIfNotExists) {
-			// nothing to do
 			return null;
 		}
 
@@ -88,7 +67,6 @@ export class DebugContentProvider extends Disposable implements IWorkbenchContri
 		}
 
 		if (!session) {
-			// fallback: use focused session
 			session = this.debugService.getViewModel().focusedSession;
 		}
 
@@ -112,28 +90,22 @@ export class DebugContentProvider extends Disposable implements IWorkbenchContri
 
 					const newContent = response.body.content;
 
-					// cancel and dispose an existing update
 					const cancellationSource = this.pendingUpdates.get(model.id);
 					cancellationSource?.cancel();
 
-					// create and keep update token
 					const myToken = new CancellationTokenSource();
 					this.pendingUpdates.set(model.id, myToken);
 
-					// update text model
 					return this.editorWorkerService.computeMoreMinimalEdits(model.uri, [{ text: newContent, range: model.getFullModelRange() }]).then(edits => {
 
-						// remove token
 						this.pendingUpdates.delete(model.id);
 
 						if (!myToken.token.isCancellationRequested && edits && edits.length > 0) {
-							// use the evil-edit as these models show in readonly-editor only
 							model.applyEdits(edits.map(edit => EditOperation.replace(Range.lift(edit.range), edit.text)));
 						}
 						return model;
 					});
 				} else {
-					// create text model
 					const mime = response.body.mimeType || getMimeTypes(resource)[0];
 					const languageSelection = this.languageService.createByMimeType(mime);
 					return this.modelService.createModel(response.body.content, languageSelection, resource);

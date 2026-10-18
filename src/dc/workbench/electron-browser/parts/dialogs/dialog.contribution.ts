@@ -63,7 +63,6 @@ export class DialogHandlerContribution extends Disposable implements IWorkbenchC
 			let result: IDialogResult | Error | undefined = undefined;
 			try {
 
-				// Confirm
 				if (this.currentDialog.args.confirmArgs) {
 					const args = this.currentDialog.args.confirmArgs;
 					result = (this.useCustomDialog || args?.confirmation.custom) ?
@@ -71,13 +70,11 @@ export class DialogHandlerContribution extends Disposable implements IWorkbenchC
 						await this.nativeImpl.value.confirm(args.confirmation);
 				}
 
-				// Input (custom only)
 				else if (this.currentDialog.args.inputArgs) {
 					const args = this.currentDialog.args.inputArgs;
 					result = await this.browserImpl.value.input(args.input);
 				}
 
-				// Prompt
 				else if (this.currentDialog.args.promptArgs) {
 					const args = this.currentDialog.args.promptArgs;
 					result = (this.useCustomDialog || args?.prompt.custom) ?
@@ -85,7 +82,6 @@ export class DialogHandlerContribution extends Disposable implements IWorkbenchC
 						await this.nativeImpl.value.prompt(args.prompt);
 				}
 
-				// About
 				else {
 					const aboutDialogDetails = createNativeAboutDialogDetails(this.productService, await this.nativeHostService.getOSProperties());
 
@@ -106,7 +102,6 @@ export class DialogHandlerContribution extends Disposable implements IWorkbenchC
 
 	private get useCustomDialog(): boolean {
 		return this.configurationService.getValue('window.dialogStyle') === 'custom' ||
-			// Use the custom dialog while driven so that the driver can interact with it
 			!!this.environmentService.enableSmokeTestDriver;
 	}
 }
@@ -114,5 +109,5 @@ export class DialogHandlerContribution extends Disposable implements IWorkbenchC
 registerWorkbenchContribution2(
 	DialogHandlerContribution.ID,
 	DialogHandlerContribution,
-	WorkbenchPhase.BlockStartup // Block to allow for dialogs to show before restore finished
+	WorkbenchPhase.BlockStartup
 );

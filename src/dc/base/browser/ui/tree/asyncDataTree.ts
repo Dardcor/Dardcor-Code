@@ -234,27 +234,12 @@ export interface IAsyncFindResult<T> {
 }
 
 export interface IAsyncFindProvider<T> {
-	/**
-	 * `startSession` is called when the user enters the first character in the find widget.
-	 * This can be used to allocate some state to preserve for the session.
-	 */
 	startSession?(): void;
 
-	/**
-	 * `find` is called when the user types one or more character into the find input.
-	 */
 	find(pattern: string, toggles: IAsyncFindToggles, token: CancellationToken): Promise<IAsyncFindResult<T> | undefined>;
 
-	/**
-	 * `isVisible` is called to check if an element should be visible.
-	 * For an element to be visible, all its ancestors must also be visible and the label must match the find pattern.
-	 */
 	isVisible?(element: T): boolean;
 
-	/**
-	 * End Session is called when the user either closes the find widget or has an empty find input.
-	 * This can be used to deallocate any state that was allocated.
-	 */
 	endSession?(): Promise<void>;
 }
 
@@ -263,7 +248,7 @@ class AsyncFindFilter<T> extends FindFilter<T> {
 	public isFindSessionActive = false;
 
 	constructor(
-		public readonly findProvider: IAsyncFindProvider<T>, // remove public
+		public readonly findProvider: IAsyncFindProvider<T>,
 		keyboardNavigationLabelProvider: IKeyboardNavigationLabelProvider<T>,
 		filter: ITreeFilter<T, FuzzyScore>
 	) {
@@ -287,7 +272,6 @@ class AsyncFindFilter<T> extends FindFilter<T> {
 
 }
 
-// TODO Fix types
 class AsyncFindController<TInput, T, TFilterData> extends FindController<T, TFilterData> {
 	private activeTokenSource: CancellationTokenSource | undefined;
 	private activeFindMetadata: IAsyncFindResult<T> | undefined;
@@ -303,7 +287,6 @@ class AsyncFindController<TInput, T, TFilterData> extends FindController<T, TFil
 		options: IAbstractTreeOptions<IAsyncDataTreeNode<TInput, T>, TFilterData>,
 	) {
 		super(tree as unknown as AbstractTree<T, TFilterData, unknown>, filter, contextViewProvider, options);
-		// Always make sure to end the session before disposing
 		this.disposables.add(toDisposable(async () => {
 			if (this.activeSession) {
 				await this.findProvider.endSession?.();
@@ -390,7 +373,6 @@ class AsyncFindController<TInput, T, TFilterData> extends FindController<T, TFil
 	}
 
 	protected override onDidToggleChange(e: ITreeFindToggleChangeEvent): void {
-		// TODO@benibenj handle toggles nicely across all controllers and between controller and filter
 		this.toggles.set(e.id, e.isChecked);
 		this.filter.findMode = this.mode;
 		this.filter.findMatchType = this.matchType;
@@ -564,10 +546,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 	get onDidFocus(): Event<void> { return this.tree.onDidFocus; }
 	get onDidBlur(): Event<void> { return this.tree.onDidBlur; }
 
-	/**
-	 * To be used internally only!
-	 * @deprecated
-	 */
 	get onDidChangeModel(): Event<void> { return this.tree.onDidChangeModel; }
 	get onDidChangeCollapseState(): Event<ICollapseStateChangeEvent<IAsyncDataTreeNode<TInput, T> | null, TFilterData>> { return this.tree.onDidChangeCollapseState; }
 
@@ -689,7 +667,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		return this.tree.options as IAsyncDataTreeOptions<T, TFilterData>;
 	}
 
-	// Widget
 
 	getHTMLElement(): HTMLElement {
 		return this.tree.getHTMLElement();
@@ -771,7 +748,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		this.tree.style(styles);
 	}
 
-	// Model
 
 	getInput(): TInput | undefined {
 		return this.root.element as TInput;
@@ -827,8 +803,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 			try {
 				this.tree.rerender(node);
 			} catch {
-				// missing nodes are fine, this could've resulted from
-				// parallel refresh calls, removing `node` altogether
 			}
 		}
 	}
@@ -851,7 +825,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		return this.tree.hasElement(node);
 	}
 
-	// View
 
 	rerender(element?: T): void {
 		if (element === undefined || element === this.root.element) {
@@ -873,7 +846,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		this.tree.updateWidth(node);
 	}
 
-	// Tree
 
 	getNode(element: TInput | T = this.root.element): ITreeNode<TInput | T, TFilterData> {
 		const dataNode = this.getDataNode(element);
@@ -1056,7 +1028,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		return this.tree.getRelativeTop(this.getDataNode(element));
 	}
 
-	// Tree navigation
 
 	getParentElement(element: T): TInput | T {
 		const node = this.tree.getParentElement(this.getDataNode(element));
@@ -1069,7 +1040,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		return (node && node.element)!;
 	}
 
-	// Implementation
 
 	protected getDataNode(element: TInput | T): IAsyncDataTreeNode<TInput, T> {
 		const node: IAsyncDataTreeNode<TInput, T> | undefined = this.nodes.get((element === this.root.element ? null : element) as T);
@@ -1084,11 +1054,11 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 
 	private async refreshAndRenderNode(node: IAsyncDataTreeNode<TInput, T>, recursive: boolean, viewStateContext?: IAsyncDataTreeViewStateContext<TInput, T>, options?: IAsyncDataTreeUpdateChildrenOptions<T>): Promise<void> {
 		if (this.disposables.isDisposed) {
-			return; // tree disposed during refresh, again (#228211)
+			return;
 		}
 		await this.refreshNode(node, recursive, viewStateContext);
 		if (this.disposables.isDisposed) {
-			return; // tree disposed during refresh (#199264)
+			return;
 		}
 		this.render(node, viewStateContext, options);
 	}
@@ -1216,7 +1186,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 	private setChildren(node: IAsyncDataTreeNode<TInput, T>, childrenElementsIterable: Iterable<T>, recursive: boolean, viewStateContext?: IAsyncDataTreeViewStateContext<TInput, T>): IAsyncDataTreeNode<TInput, T>[] {
 		const childrenElements = [...childrenElementsIterable];
 
-		// perf: if the node was and still is a leaf, avoid all this hassle
 		if (node.children.length === 0 && childrenElements.length === 0) {
 			return [];
 		}
@@ -1304,7 +1273,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 
 		splice(node.children, 0, node.children.length, children);
 
-		// TODO@joao this doesn't take filter into account
 		if (node !== this.root && this.autoExpandSingleChildren && children.length === 1 && childrenToRefresh.length === 0) {
 			children[0].forceExpanded = true;
 			childrenToRefresh.push(children[0]);
@@ -1372,7 +1340,6 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		return children;
 	}
 
-	// view state
 
 	getViewState(): IAsyncDataTreeViewState {
 		if (!this.identityProvider) {
@@ -1593,9 +1560,6 @@ export class CompressibleAsyncDataTree<TInput, T, TFilterData = void> extends As
 			return super.render(node, viewStateContext);
 		}
 
-		// Preserve traits across compressions. Hacky but does the trick.
-		// This is hard to fix properly since it requires rewriting the traits
-		// across trees and lists. Let's just keep it this way for now.
 		const getId = (element: T) => this.identityProvider!.getId(element).toString();
 		const getUncompressedIds = (nodes: IAsyncDataTreeNode<TInput, T>[]): Set<string> => {
 			const result = new Set<string>();
@@ -1634,7 +1598,6 @@ export class CompressibleAsyncDataTree<TInput, T, TFilterData = void> extends As
 					const id = getId(compressedNode.elements[i].element as T);
 					const element = compressedNode.elements[compressedNode.elements.length - 1].element as T;
 
-					// github.com/microsoft/vscode/issues/85938
 					if (oldSelection.has(id) && selection.indexOf(element) === -1) {
 						selection.push(element);
 						didChangeSelection = true;
@@ -1661,9 +1624,6 @@ export class CompressibleAsyncDataTree<TInput, T, TFilterData = void> extends As
 		}
 	}
 
-	// For compressed async data trees, `TreeVisibility.Recurse` doesn't currently work
-	// and we have to filter everything beforehand
-	// Related to #85193 and #85835
 	protected override processChildren(children: Iterable<T>): Iterable<T> {
 		if (this.filter) {
 			children = Iterable.filter(children, e => {
@@ -1682,15 +1642,7 @@ export class CompressibleAsyncDataTree<TInput, T, TFilterData = void> extends As
 	}
 
 	override navigate(start?: T): AsyncDataTreeNavigator<TInput, T> {
-		// Assumptions are made about how tree navigation works in compressed trees
-		// These assumptions may be wrong and we should revisit this when needed
 
-		// Example:	[a, b/ba, ba.txt]
-		// - previous(ba) => a
-		// - previous(b) => a
-		// - next(a) => ba
-		// - next(b) => ba
-		// - next(ba) => ba.txt
 		return super.navigate(start);
 	}
 }

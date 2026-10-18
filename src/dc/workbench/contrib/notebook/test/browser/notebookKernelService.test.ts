@@ -71,26 +71,21 @@ suite('NotebookKernelService', () => {
 		disposables.add(kernelService.registerKernel(k1));
 		disposables.add(kernelService.registerKernel(k2));
 
-		// equal priorities -> sort by name
 		let info = kernelService.getMatchingKernel({ uri: u1, notebookType: 'foo' });
 		assert.ok(info.all[0] === k2);
 		assert.ok(info.all[1] === k1);
 
-		// update priorities for u1 notebook
 		kernelService.updateKernelNotebookAffinity(k2, u1, 2);
 		kernelService.updateKernelNotebookAffinity(k2, u2, 1);
 
-		// updated
 		info = kernelService.getMatchingKernel({ uri: u1, notebookType: 'foo' });
 		assert.ok(info.all[0] === k2);
 		assert.ok(info.all[1] === k1);
 
-		// NOT updated
 		info = kernelService.getMatchingKernel({ uri: u2, notebookType: 'foo' });
 		assert.ok(info.all[0] === k2);
 		assert.ok(info.all[1] === k1);
 
-		// reset
 		kernelService.updateKernelNotebookAffinity(k2, u1, undefined);
 		info = kernelService.getMatchingKernel({ uri: u1, notebookType: 'foo' });
 		assert.ok(info.all[0] === k2);
@@ -163,7 +158,6 @@ suite('NotebookKernelService', () => {
 		};
 
 		{
-			// open as jupyter -> bind event
 			const p1 = Event.toPromise(kernelService.onDidChangeSelectedNotebooks);
 			const d1 = disposables.add(instantiationService.createInstance(NotebookTextModel, jupyter.viewType, jupyter.uri, [], {}, transientOptions));
 			onDidAddNotebookDocument.fire(d1);
@@ -171,7 +165,6 @@ suite('NotebookKernelService', () => {
 			assert.strictEqual(event.newKernel, jupyterKernel.id);
 		}
 		{
-			// RE-open as dotnet -> bind event
 			const p2 = Event.toPromise(kernelService.onDidChangeSelectedNotebooks);
 			const d2 = disposables.add(instantiationService.createInstance(NotebookTextModel, dotnet.viewType, dotnet.uri, [], {}, transientOptions));
 			onDidAddNotebookDocument.fire(d2);

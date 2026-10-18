@@ -29,7 +29,7 @@ function createStubEntitlementService(opts?: { entitlement?: ChatEntitlement; is
 
 const stubChatEntitlementService = createStubEntitlementService();
 
-function createModel(id: string, name: string, vendor = 'copilot'): ILanguageModelChatMetadataAndIdentifier {
+function createModel(id: string, name: string, vendor = 'dardcor'): ILanguageModelChatMetadataAndIdentifier {
 	return {
 		identifier: `${vendor}-${id}`,
 		metadata: {
@@ -46,17 +46,11 @@ function createModel(id: string, name: string, vendor = 'copilot'): ILanguageMod
 }
 
 function createAutoModel(): ILanguageModelChatMetadataAndIdentifier {
-	return createModel('auto', 'Auto', 'copilot');
+	return createModel('auto', 'Auto', 'dardcor');
 }
 
-/**
- * Builds an agent-host model: all such models share a single vendor (the
- * `agent-host-<type>` session type) but declare their upstream provider's
- * vendor id via `modelGroup`. The picker buckets by it and resolves the
- * display name from the vendor registry.
- */
 function createAgentHostModel(id: string, name: string, modelGroup: { id: string; sourceId?: string }): ILanguageModelChatMetadataAndIdentifier {
-	const vendor = 'agent-host-copilotcli';
+	const vendor = 'agent-host-dardcorcli';
 	return {
 		identifier: `${vendor}:${id}`,
 		metadata: {
@@ -98,13 +92,6 @@ const stubManageModelsAction: IActionWidgetDropdownAction = {
 
 const stubLanguageModelsService = { getModelConfigurationActions: () => [], getModelConfiguration: () => undefined, getVendors: () => [], getLanguageModelGroups: () => [] } as unknown as ILanguageModelsService;
 
-/**
- * Builds a `ILanguageModelsService` stub that simulates BYOK provider
- * groups: each `vendors` entry advertises one or more user-configured
- * groups (mapping group name to model identifiers). Used to exercise the
- * picker's `(vendor, groupName)` bucketing without spinning up the real
- * service.
- */
 function createLanguageModelsServiceStub(vendors: { vendor: string; displayName: string; groups: { name: string; modelIdentifiers: string[] }[] }[]): ILanguageModelsService {
 	return {
 		getModelConfigurationActions: () => [],
@@ -259,9 +246,9 @@ suite('buildModelPickerItems', () => {
 		assert.strictEqual(provider.getAriaLabel({
 			kind: ActionListItemKind.Action,
 			label: 'Claude Opus 4.7',
-			badge: 'Copilot',
+			badge: 'Dardcor',
 			description: '15x',
-		} as IActionListItem<IActionWidgetDropdownAction>), 'Claude Opus 4.7, Copilot, 15x');
+		} as IActionListItem<IActionWidgetDropdownAction>), 'Claude Opus 4.7, Dardcor, 15x');
 	});
 
 	test('accessibility provider prefers ariaDescription over description', () => {
@@ -269,7 +256,7 @@ suite('buildModelPickerItems', () => {
 		assert.strictEqual(provider.getAriaLabel({
 			kind: ActionListItemKind.Action,
 			label: 'Claude Sonnet 4.6',
-			description: 'Copilot',
+			description: 'Dardcor',
 			ariaDescription: 'Medium cost',
 		} as IActionListItem<IActionWidgetDropdownAction>), 'Claude Sonnet 4.6, Medium cost');
 	});
@@ -316,8 +303,6 @@ suite('buildModelPickerItems', () => {
 	test('showAutoModel=false shows a disabled no-models entry instead of auto', () => {
 		const items = callBuild([], { showAutoModel: false });
 		const actions = getActionItems(items);
-		// Exactly one entry: the early return must suppress Auto and the
-		// standalone "Manage Models" action (the helper always passes one).
 		assert.strictEqual(actions.length, 1);
 		assert.strictEqual(actions.some(a => a.label === 'Auto'), false);
 		assert.strictEqual(actions[0].item?.id, 'noModels');
@@ -350,7 +335,6 @@ suite('buildModelPickerItems', () => {
 	test('restrictedMode shows an explanatory header and a Trust Workspace action instead of auto', () => {
 		const items = callBuild([], { restrictedMode: true, onRequestTrust: () => { } });
 		const actions = getActionItems(items);
-		// The explanation is a non-interactive header; only Trust is selectable.
 		assert.ok(items.some(i => i.kind === ActionListItemKind.Header && i.label === 'Models unavailable while in Restricted mode'));
 		assert.strictEqual(actions.length, 1);
 		assert.strictEqual(actions[0].item?.id, 'restrictedModeTrust');
@@ -384,9 +368,6 @@ suite('buildModelPickerItems', () => {
 	});
 
 	test('restrictedMode takes precedence even over cached models', () => {
-		// In Restricted Mode the picker may still receive machine-cached models
-		// from a previous trusted session; the restricted state must suppress
-		// them rather than present stale, unusable models.
 		const items = callBuild([createModel('gpt-4o', 'GPT-4o')], { restrictedMode: true });
 		const actions = getActionItems(items);
 		assert.strictEqual(actions.some(a => a.label === 'GPT-4o'), false);
@@ -396,7 +377,7 @@ suite('buildModelPickerItems', () => {
 	test('setupRequired shows an explanatory header and a Sign In action instead of auto', () => {
 		const items = callBuild([], { setupRequired: true, showManageModelsInSetupRequired: true, onRequestSetup: () => { } });
 		const actions = getActionItems(items);
-		assert.ok(items.some(i => i.kind === ActionListItemKind.Header && i.label === 'Sign in to use Copilot'));
+		assert.ok(items.some(i => i.kind === ActionListItemKind.Header && i.label === 'Sign in to use Dardcor'));
 		assert.strictEqual(actions.length, 2);
 		assert.strictEqual(actions[0].item?.id, 'setupRequiredSignIn');
 		assert.strictEqual(actions[0].item?.enabled, true);
@@ -453,7 +434,6 @@ suite('buildModelPickerItems', () => {
 			selectedModelId: modelA.identifier,
 		});
 		const actions = getActionItems(items);
-		// Auto first, then selected model in promoted section, then remaining in other
 		assert.strictEqual(actions[0].label, 'Auto');
 		assert.strictEqual(actions[1].label, 'GPT-4o');
 		assert.ok(actions[1].item?.checked);
@@ -470,7 +450,6 @@ suite('buildModelPickerItems', () => {
 			currentVSCodeVersion: '1.90.0',
 		});
 		const actions = getActionItems(items);
-		// The promoted section should contain the unavailable model
 		const promotedItem = actions.find(a => a.label === 'GPT-4o');
 		assert.ok(promotedItem);
 		assert.strictEqual(promotedItem.disabled, true);
@@ -486,39 +465,38 @@ suite('buildModelPickerItems', () => {
 			recentModelIds: [modelB.identifier],
 		});
 		const actions = getActionItems(items);
-		// Auto, then Claude (recent) in promoted, then others
 		assert.strictEqual(actions[0].label, 'Auto');
 		assert.strictEqual(actions[1].label, 'Claude');
 	});
 
 	test('model variants sharing metadata ids remain visible across promoted and other sections', () => {
 		const auto = createAutoModel();
-		const copilotSol = createModel('gpt-5.6-sol', 'GPT-5.6 Sol');
-		const copilotTerra = createModel('gpt-5.6-terra', 'GPT-5.6 Terra');
+		const dardcorSol = createModel('gpt-5.6-sol', 'GPT-5.6 Sol');
+		const dardcorTerra = createModel('gpt-5.6-terra', 'GPT-5.6 Terra');
 		const byokSol = createModel('gpt-5.6-sol', 'GPT-5.6 Sol', 'openai');
 		const byokTerra = createModel('gpt-5.6-terra', 'GPT-5.6 Terra', 'openai');
-		const copilotOther = createModel('gpt-5.5', 'GPT-5.5');
+		const dardcorOther = createModel('gpt-5.5', 'GPT-5.5');
 		const byokOther = createModel('gpt-5.5', 'GPT-5.5', 'openai');
 		const languageModelsService = createLanguageModelsServiceStub([
-			{ vendor: 'copilot', displayName: 'Copilot', groups: [] },
+			{ vendor: 'dardcor', displayName: 'Dardcor', groups: [] },
 			{
 				vendor: 'openai',
 				displayName: 'OpenAI',
 				groups: [{ name: 'OpenAI (Work)', modelIdentifiers: [byokSol.identifier, byokTerra.identifier, byokOther.identifier] }],
 			},
 		]);
-		const items = callBuild([auto, copilotSol, copilotTerra, copilotOther, byokSol, byokTerra, byokOther], {
-			recentModelIds: [copilotSol.identifier, byokSol.identifier, copilotTerra.identifier, byokTerra.identifier],
+		const items = callBuild([auto, dardcorSol, dardcorTerra, dardcorOther, byokSol, byokTerra, byokOther], {
+			recentModelIds: [dardcorSol.identifier, byokSol.identifier, dardcorTerra.identifier, byokTerra.identifier],
 			languageModelsService,
 		});
 
 		assert.deepStrictEqual(getActionItems(items)
 			.filter(item => !item.isSectionToggle && item.label !== 'Auto' && item.item?.id !== 'manageModels')
 			.map(item => ({ id: item.item?.id, section: item.section, provider: item.badge })), [
-			{ id: copilotSol.identifier, section: undefined, provider: 'Copilot' },
+			{ id: dardcorSol.identifier, section: undefined, provider: 'Dardcor' },
 			{ id: byokSol.identifier, section: undefined, provider: 'OpenAI (Work)' },
-			{ id: copilotTerra.identifier, section: undefined, provider: 'Copilot' },
-			{ id: copilotOther.identifier, section: 'other', provider: undefined },
+			{ id: dardcorTerra.identifier, section: undefined, provider: 'Dardcor' },
+			{ id: dardcorOther.identifier, section: 'other', provider: undefined },
 			{ id: byokOther.identifier, section: 'other', provider: undefined },
 			{ id: byokTerra.identifier, section: 'other', provider: undefined },
 		]);
@@ -579,7 +557,6 @@ suite('buildModelPickerItems', () => {
 		});
 		const actions = getActionItems(items);
 		assert.strictEqual(actions[0].label, 'Auto');
-		// GPT-4o should be in promoted due to featured
 		assert.strictEqual(actions[1].label, 'GPT-4o');
 	});
 
@@ -589,10 +566,10 @@ suite('buildModelPickerItems', () => {
 	});
 
 	test('available targeted models remain featured while entitlement is signed out', () => {
-		const auto = createAgentHostModel('auto', 'Auto', { id: 'copilotcli' });
-		const freeFeatured = createAgentHostModel('free-model', 'Free Model', { id: 'copilotcli' });
-		const paidFeatured = createAgentHostModel('paid-model', 'Paid Model', { id: 'copilotcli' });
-		const other = createAgentHostModel('other-model', 'Other Model', { id: 'copilotcli' });
+		const auto = createAgentHostModel('auto', 'Auto', { id: 'dardcorcli' });
+		const freeFeatured = createAgentHostModel('free-model', 'Free Model', { id: 'dardcorcli' });
+		const paidFeatured = createAgentHostModel('paid-model', 'Paid Model', { id: 'dardcorcli' });
+		const other = createAgentHostModel('other-model', 'Other Model', { id: 'dardcorcli' });
 		const models = [auto, freeFeatured, paidFeatured, other];
 		const controlModels = getModelPickerControlModels(createControlManifest(), ChatEntitlement.Unknown, models);
 		const actions = getActionItems(callBuild(models, {
@@ -623,7 +600,7 @@ suite('buildModelPickerItems', () => {
 			},
 			paid: {},
 		};
-		const availableTargeted = createAgentHostModel('available-targeted', 'Available Targeted', { id: 'copilotcli' });
+		const availableTargeted = createAgentHostModel('available-targeted', 'Available Targeted', { id: 'dardcorcli' });
 		const baseByokModel = createAgentHostModel('byok-model', 'BYOK Model', { id: 'custom' });
 		const byokModel = { ...baseByokModel, metadata: { ...baseByokModel.metadata, byokModelIdentifier: 'custom/byok-model' } };
 
@@ -683,13 +660,10 @@ suite('buildModelPickerItems', () => {
 				'gpt-4o': { label: 'GPT-4o', featured: false, exists: true },
 			},
 		});
-		// With no selected, no recent, and no featured, both models should be in Other
 		const seps = items.filter(i => i.kind === ActionListItemKind.Separator);
-		// One separator before Other Models section
 		assert.strictEqual(seps.length, 1);
 		const actions = getActionItems(items);
 		assert.strictEqual(actions[0].label, 'Auto');
-		// Next should be "Other Models" toggle
 		assert.strictEqual(actions[1].isSectionToggle, true);
 	});
 
@@ -702,7 +676,6 @@ suite('buildModelPickerItems', () => {
 			recentModelIds: [modelA.identifier, modelB.identifier, modelC.identifier],
 		});
 		const actions = getActionItems(items);
-		// Skip Auto, promoted models should be sorted: Claude, Gemini, GPT-4o
 		assert.strictEqual(actions[1].label, 'Claude');
 		assert.strictEqual(actions[2].label, 'Gemini');
 		assert.strictEqual(actions[3].label, 'GPT-4o');
@@ -719,7 +692,6 @@ suite('buildModelPickerItems', () => {
 			entitlement: ChatEntitlement.Free,
 		});
 		const actions = getActionItems(items);
-		// Auto, then GPT-4o (available), then Missing Model (unavailable)
 		assert.strictEqual(actions[0].label, 'Auto');
 		assert.strictEqual(actions[1].label, 'GPT-4o');
 		assert.ok(!actions[1].disabled);
@@ -733,7 +705,6 @@ suite('buildModelPickerItems', () => {
 		const modelB = createModel('claude', 'Claude');
 		const items = callBuild([auto, modelA, modelB]);
 		const actions = getActionItems(items);
-		// Auto, then "Other Models" toggle, then models, then "Manage Models..."
 		assert.strictEqual(actions[0].label, 'Auto');
 		assert.strictEqual(actions[1].isSectionToggle, true);
 		assert.ok(actions[1].label!.includes('Other Models'));
@@ -819,7 +790,6 @@ suite('buildModelPickerItems', () => {
 			},
 		});
 		const autoItems = getActionItems(items).filter(a => a.label === 'Auto');
-		// Auto should appear exactly once (the first item)
 		assert.strictEqual(autoItems.length, 1);
 	});
 
@@ -831,7 +801,7 @@ suite('buildModelPickerItems', () => {
 			controlModels: {},
 		});
 		const actions = getActionItems(items);
-		assert.ok(actions.length >= 3); // Auto + 2 models (in other) + toggle + manage
+		assert.ok(actions.length >= 3);
 		assert.strictEqual(actions[0].label, 'Auto');
 	});
 
@@ -842,7 +812,6 @@ suite('buildModelPickerItems', () => {
 		promoModel.metadata = { ...promoModel.metadata, promo: { id: 'test-promo-1', discountPercent: 20, endsAt: '2026-07-20T23:59:59Z', message: 'Limited time offer' } } as ILanguageModelChatMetadata;
 		const items = callBuild([auto, modelA, promoModel]);
 		const actions = getActionItems(items);
-		// Auto first, then promo model immediately after
 		assert.strictEqual(actions[0].label, 'Auto');
 		assert.strictEqual(actions[1].label, 'Gemini Flash');
 	});
@@ -893,17 +862,14 @@ suite('buildModelPickerItems', () => {
 
 	test('Other Models grouped by vendor with separator headers', () => {
 		const auto = createAutoModel();
-		const modelA = createModel('zebra', 'Zebra', 'copilot');
+		const modelA = createModel('zebra', 'Zebra', 'dardcor');
 		const modelB = createModel('alpha', 'Alpha', 'other-vendor');
-		const modelC = createModel('beta', 'Beta', 'copilot');
+		const modelC = createModel('beta', 'Beta', 'dardcor');
 		const items = callBuild([auto, modelA, modelB, modelC]);
-		// Vendor separators should be present with correct labels
 		const vendorSeparators = items.filter(i => i.kind === ActionListItemKind.Separator && i.label);
 		assert.strictEqual(vendorSeparators.length, 2);
-		// Vendors sorted alphabetically by display name
-		assert.strictEqual(vendorSeparators[0].label, 'Copilot');
+		assert.strictEqual(vendorSeparators[0].label, 'Dardcor');
 		assert.strictEqual(vendorSeparators[1].label, 'Other-vendor');
-		// Models within each vendor group are sorted alphabetically
 		const actions = getActionItems(items);
 		const otherModelLabels = actions.filter(a => !a.isSectionToggle && a.section === 'other').map(a => a.label!);
 		assert.deepStrictEqual(otherModelLabels, ['Beta', 'Zebra', 'Alpha']);
@@ -911,19 +877,14 @@ suite('buildModelPickerItems', () => {
 
 	test('single vendor group omits vendor separator header', () => {
 		const auto = createAutoModel();
-		const modelA = createModel('gpt-4o', 'GPT-4o', 'copilot');
-		const modelB = createModel('claude', 'Claude', 'copilot');
+		const modelA = createModel('gpt-4o', 'GPT-4o', 'dardcor');
+		const modelB = createModel('claude', 'Claude', 'dardcor');
 		const items = callBuild([auto, modelA, modelB]);
-		// No vendor separators when all models share the same vendor
 		const vendorSeparators = items.filter(i => i.kind === ActionListItemKind.Separator && i.label);
 		assert.strictEqual(vendorSeparators.length, 0);
 	});
 
 	test('Other Models splits a single vendor into per-group sections (BYOK)', () => {
-		// Simulates a BYOK setup where one vendor (`customoai`) advertises
-		// two user-configured provider groups. The picker should mirror the
-		// model configuration view and render one section per group rather
-		// than collapsing them under the vendor display name.
 		const auto = createAutoModel();
 		const gpt41 = createModel('gpt-4.1', 'gpt-4.1', 'customoai');
 		const ossModel = createModel('openai.gpt-oss-120b', 'gpt-oss-120b', 'customoai');
@@ -977,55 +938,48 @@ suite('buildModelPickerItems', () => {
 		});
 		const promoted = getActionItems(items).find(a => a.label === 'gpt-4.1');
 		assert.ok(promoted);
-		// Badge should carry the user-configured group name, not the vendor displayName.
 		assert.strictEqual(promoted.badge, 'OpenAI Compatible');
 	});
 
-	test('Other Models splits agent-host models into sections by their modelGroup and labels copilotcli as Copilot', () => {
-		// Agent-host models all share one vendor but declare their upstream provider's
-		// vendor id via `modelGroup`; the picker resolves each group's display name from
-		// the vendor registry and renders one section per provider instead of collapsing
-		// them under the shared vendor. No BYOK config groups are registered, so grouping
-		// falls through to `modelGroup`.
+	test('Other Models splits agent-host models into sections by their modelGroup and labels dardcorcli as Dardcor', () => {
 		const auto = createAutoModel();
-		const cli = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'copilotcli' });
+		const cli = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'dardcorcli' });
 		const openai = createAgentHostModel('openai/gpt-5-nano', 'GPT-5 nano', { id: 'openai' });
 		const hf = createAgentHostModel('huggingface/gemma', 'Gemma', { id: 'huggingface' });
 		const service = createLanguageModelsServiceStub([
-			{ vendor: 'copilotcli', displayName: 'Copilot CLI', groups: [] },
+			{ vendor: 'dardcorcli', displayName: 'Dardcor CLI', groups: [] },
 			{ vendor: 'openai', displayName: 'OpenAI', groups: [] },
 			{ vendor: 'huggingface', displayName: 'Hugging Face', groups: [] },
 		]);
 		const items = callBuild([auto, cli, openai, hf], { languageModelsService: service });
 		const labelledSeparators = items.filter(i => i.kind === ActionListItemKind.Separator && i.label);
-		// Buckets sorted alphabetically by resolved group display name.
-		assert.deepStrictEqual(labelledSeparators.map(s => s.label), ['Copilot', 'Hugging Face', 'OpenAI']);
+		assert.deepStrictEqual(labelledSeparators.map(s => s.label), ['Dardcor', 'Hugging Face', 'OpenAI']);
 	});
 
 	test('Other Models resolves a trusted source label without a synthetic vendor descriptor', () => {
 		store.add(languageModelSourcePresentationRegistry.register({
-			ownerVendor: 'agent-host-copilotcli',
+			ownerVendor: 'agent-host-dardcorcli',
 			sourceId: 'chatgptSubscription',
 			label: 'ChatGPT',
 			icon: Codicon.openai,
 			description: 'Models provided by your ChatGPT subscription',
 		}));
 		const auto = createAutoModel();
-		const cli = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'copilotcli' });
+		const cli = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'dardcorcli' });
 		const chatgpt = createAgentHostModel('gpt-5.6', 'GPT-5.6', { id: 'chatgpt', sourceId: 'chatgptSubscription' });
 		const service = createLanguageModelsServiceStub([
-			{ vendor: 'copilotcli', displayName: 'Copilot CLI', groups: [] },
+			{ vendor: 'dardcorcli', displayName: 'Dardcor CLI', groups: [] },
 		]);
 
 		const items = callBuild([auto, cli, chatgpt], { languageModelsService: service });
 		const labelledSeparators = items.filter(i => i.kind === ActionListItemKind.Separator && i.label);
 
-		assert.deepStrictEqual(labelledSeparators.map(s => s.label), ['ChatGPT', 'Copilot']);
+		assert.deepStrictEqual(labelledSeparators.map(s => s.label), ['ChatGPT', 'Dardcor']);
 	});
 
 	test('Other Models respects the configured BYOK group name for agent-host models', () => {
 		const auto = createAutoModel();
-		const cli = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'copilotcli' });
+		const cli = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'dardcorcli' });
 		const googleModelIdentifier = 'google/GoogleBYOK/gemini-2.5-pro';
 		const google = createAgentHostModel('google/gemini-2.5-pro', 'Gemini 2.5 Pro', { id: 'google' });
 		const googleWithByokIdentifier = {
@@ -1033,14 +987,14 @@ suite('buildModelPickerItems', () => {
 			metadata: { ...google.metadata, byokModelIdentifier: googleModelIdentifier },
 		};
 		const service = createLanguageModelsServiceStub([
-			{ vendor: 'copilotcli', displayName: 'Copilot CLI', groups: [] },
+			{ vendor: 'dardcorcli', displayName: 'Dardcor CLI', groups: [] },
 			{ vendor: 'google', displayName: 'Google', groups: [{ name: 'GoogleBYOK', modelIdentifiers: [googleModelIdentifier] }] },
 		]);
 
 		const items = callBuild([auto, cli, googleWithByokIdentifier], { languageModelsService: service });
 		const labelledSeparators = items.filter(i => i.kind === ActionListItemKind.Separator && i.label);
 
-		assert.deepStrictEqual(labelledSeparators.map(s => s.label), ['Copilot', 'GoogleBYOK']);
+		assert.deepStrictEqual(labelledSeparators.map(s => s.label), ['Dardcor', 'GoogleBYOK']);
 	});
 
 	test('Other Models keeps identically named agent-host BYOK groups from different providers separate', () => {
@@ -1066,9 +1020,9 @@ suite('buildModelPickerItems', () => {
 
 	test('Other Models keeps a single section when agent-host models share one modelGroup', () => {
 		const auto = createAutoModel();
-		const a = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'copilotcli' });
-		const b = createAgentHostModel('gpt-5', 'GPT-5', { id: 'copilotcli' });
-		const service = createLanguageModelsServiceStub([{ vendor: 'copilotcli', displayName: 'Copilot CLI', groups: [] }]);
+		const a = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'dardcorcli' });
+		const b = createAgentHostModel('gpt-5', 'GPT-5', { id: 'dardcorcli' });
+		const service = createLanguageModelsServiceStub([{ vendor: 'dardcorcli', displayName: 'Dardcor CLI', groups: [] }]);
 		const items = callBuild([auto, a, b], { languageModelsService: service });
 		const labelledSeparators = items.filter(i => i.kind === ActionListItemKind.Separator && i.label);
 		assert.strictEqual(labelledSeparators.length, 0);
@@ -1076,13 +1030,12 @@ suite('buildModelPickerItems', () => {
 
 	test('promoted agent-host model shows its modelGroup name as the inline badge', () => {
 		const auto = createAutoModel();
-		const cli = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'copilotcli' });
+		const cli = createAgentHostModel('claude-haiku-4.5', 'Claude Haiku 4.5', { id: 'dardcorcli' });
 		const openai = createAgentHostModel('openai/gpt-5-nano', 'GPT-5 nano', { id: 'openai' });
 		const service = createLanguageModelsServiceStub([
-			{ vendor: 'copilotcli', displayName: 'Copilot CLI', groups: [] },
+			{ vendor: 'dardcorcli', displayName: 'Dardcor CLI', groups: [] },
 			{ vendor: 'openai', displayName: 'OpenAI', groups: [] },
 		]);
-		// More than one group is present, so promoted models surface their group inline.
 		const items = callBuild([auto, cli, openai], { recentModelIds: [openai.identifier], languageModelsService: service });
 		const promoted = getActionItems(items).find(a => a.label === 'GPT-5 nano');
 		assert.ok(promoted);
@@ -1131,12 +1084,10 @@ suite('buildModelPickerItems', () => {
 		const auto = createAutoModel();
 		const modelA = createModel('gpt-4o', 'GPT-4o');
 		const modelB = createModel('claude', 'Claude');
-		// Use metadata id rather than identifier
 		const items = callBuild([auto, modelA, modelB], {
 			recentModelIds: ['claude'],
 		});
 		const actions = getActionItems(items);
-		// Claude should be in promoted section (right after Auto)
 		assert.strictEqual(actions[0].label, 'Auto');
 		assert.strictEqual(actions[1].label, 'Claude');
 	});
@@ -1155,10 +1106,8 @@ suite('buildModelPickerItems', () => {
 		});
 		const actions = getActionItems(items);
 		assert.strictEqual(actions[0].label, 'Auto');
-		// Promoted: Alpha (featured) and Gamma (recent) sorted alphabetically
 		assert.strictEqual(actions[1].label, 'Alpha');
 		assert.strictEqual(actions[2].label, 'Gamma');
-		// Then Other Models toggle
 		assert.ok(actions[3].isSectionToggle);
 	});
 
@@ -1168,7 +1117,7 @@ suite('buildModelPickerItems', () => {
 		const items = callBuild([auto], {
 			recentModelIds: ['missing-model'],
 			controlModels: { 'missing-model': { label: 'Missing Model' } as IModelControlEntry },
-			manageSettingsUrl: 'https://aka.ms/github-copilot-settings',
+			manageSettingsUrl: 'https://aka.ms/github-dardcor-settings',
 			entitlementService: businessEntitlementService,
 		});
 
@@ -1177,7 +1126,7 @@ suite('buildModelPickerItems', () => {
 		assert.strictEqual(adminItem.disabled, true);
 		const description = adminItem.description;
 		assert.ok(description instanceof MarkdownString);
-		assert.ok(description.value.includes('https://aka.ms/github-copilot-settings'));
+		assert.ok(description.value.includes('https://aka.ms/github-dardcor-settings'));
 	});
 
 	test('unavailable models keep indentation with blank icon', () => {
@@ -1259,9 +1208,7 @@ suite('buildModelPickerItems', () => {
 			showFeatured: false,
 		});
 		const actions = getActionItems(items);
-		// Auto first, then Other Models toggle, then models in other section
 		assert.strictEqual(actions[0].label, 'Auto');
-		// GPT-4o should NOT be promoted — it should be in Other Models
 		const promotedLabels = actions.filter(a => !a.isSectionToggle && a.section !== 'other' && a.item?.id !== 'manageModels').map(a => a.label);
 		assert.ok(!promotedLabels.includes('GPT-4o'), 'GPT-4o should not be in promoted section when showFeatured=false');
 	});
@@ -1276,7 +1223,6 @@ suite('buildModelPickerItems', () => {
 			showUnavailableFeatured: false,
 		});
 		const actions = getActionItems(items);
-		// Premium Model should not appear at all
 		const premiumItem = actions.find(a => a.label === 'Premium Model');
 		assert.strictEqual(premiumItem, undefined, 'Unavailable featured model should not appear when showUnavailableFeatured=false');
 	});
@@ -1291,7 +1237,6 @@ suite('buildModelPickerItems', () => {
 			showUnavailableFeatured: false,
 		});
 		const actions = getActionItems(items);
-		// GPT-4o is available and featured, so it should still appear in promoted
 		const gptItem = actions.find(a => a.label === 'GPT-4o');
 		assert.ok(gptItem, 'Available featured model should appear even when showUnavailableFeatured=false');
 	});
@@ -1306,10 +1251,8 @@ suite('buildModelPickerItems', () => {
 			showUnavailableFeatured: false,
 		});
 		const actions = getActionItems(items);
-		// Version-gated model should not be in promoted section as unavailable
 		const promotedGpt = actions.find(a => a.label === 'GPT-4o' && a.section !== 'other');
 		assert.strictEqual(promotedGpt?.disabled, undefined, 'Version-gated featured model should not appear as unavailable in promoted when showUnavailableFeatured=false');
-		// It should still appear in Other Models since it was not placed
 		const otherGpt = actions.find(a => a.label === 'GPT-4o' && a.section === 'other');
 		assert.ok(otherGpt, 'Version-gated featured model should appear in Other Models when showUnavailableFeatured=false');
 	});
@@ -1341,7 +1284,6 @@ suite('buildModelPickerItems', () => {
 		const items = callBuild([auto, modelA]);
 		const gptItem = getActionItems(items).find(a => a.label === 'GPT-4o');
 		assert.ok(gptItem);
-		// Non-multiplier pricing should not appear in description
 		assert.strictEqual(gptItem.item?.description, 'Provider');
 	});
 
@@ -1371,9 +1313,7 @@ suite('buildModelPickerItems', () => {
 		const items = callBuild([auto, modelA]);
 		const gptItem = getActionItems(items).find(a => a.label === 'GPT-4o');
 		assert.ok(gptItem);
-		// Price category is no longer shown as circle indicators in the description
 		assert.strictEqual(gptItem.description, undefined);
-		// ariaDescription should be a readable label for screen readers
 		assert.ok(typeof gptItem.ariaDescription === 'string');
 		assert.ok(!gptItem.ariaDescription.includes('circle'));
 	});
@@ -1385,52 +1325,48 @@ suite('buildModelPickerItems', () => {
 		const items = callBuild([auto, modelA]);
 		const gptItem = getActionItems(items).find(a => a.label === 'GPT-4o');
 		assert.ok(gptItem);
-		// Unknown category should fall through to normal description (undefined since no detail)
 		assert.strictEqual(gptItem.item?.description, undefined);
 		assert.strictEqual(gptItem.description, undefined);
 	});
 
 	test('promoted models show inline vendor label when multiple vendors exist across all models', () => {
 		const auto = createAutoModel();
-		const modelA = createModel('gpt-4o', 'GPT-4o', 'copilot');
+		const modelA = createModel('gpt-4o', 'GPT-4o', 'dardcor');
 		modelA.metadata = { ...modelA.metadata, pricing: '15x', multiplierNumeric: 15 } as ILanguageModelChatMetadata;
 		const modelB = createModel('claude', 'Claude', 'anthropic');
 		const items = callBuild([auto, modelA, modelB], {
 			recentModelIds: [modelA.identifier],
 		});
 		const actions = getActionItems(items);
-		// GPT-4o is promoted (recent) and should show the source inline while keeping multiplier on the right.
 		const gptItem = actions.find(a => a.label === 'GPT-4o');
 		assert.ok(gptItem);
 		assert.strictEqual(gptItem.className, 'chat-model-picker-inline-source');
-		assert.strictEqual(gptItem.badge, 'Copilot');
+		assert.strictEqual(gptItem.badge, 'Dardcor');
 		assert.strictEqual(gptItem.description, '15x');
 	});
 
 	test('promoted models omit inline vendor label when only one vendor exists', () => {
 		const auto = createAutoModel();
-		const modelA = createModel('gpt-4o', 'GPT-4o', 'copilot');
-		const modelB = createModel('claude', 'Claude', 'copilot');
+		const modelA = createModel('gpt-4o', 'GPT-4o', 'dardcor');
+		const modelB = createModel('claude', 'Claude', 'dardcor');
 		const items = callBuild([auto, modelA, modelB], {
 			recentModelIds: [modelA.identifier],
 		});
 		const actions = getActionItems(items);
 		const gptItem = actions.find(a => a.label === 'GPT-4o');
 		assert.ok(gptItem);
-		// No vendor label since all models are from the same vendor
 		assert.strictEqual(gptItem.className, undefined);
 		assert.strictEqual(gptItem.badge, undefined);
 	});
 
 	test('vendor detail is suppressed in Other Models when multiple vendor groups shown', () => {
 		const auto = createAutoModel();
-		const modelA = createModel('gpt-4o', 'GPT-4o', 'copilot');
-		modelA.metadata = { ...modelA.metadata, detail: 'GitHub Copilot' } as ILanguageModelChatMetadata;
+		const modelA = createModel('gpt-4o', 'GPT-4o', 'dardcor');
+		modelA.metadata = { ...modelA.metadata, detail: 'Dardcor Router' } as ILanguageModelChatMetadata;
 		const modelB = createModel('claude', 'Claude', 'anthropic');
 		modelB.metadata = { ...modelB.metadata, detail: 'Anthropic' } as ILanguageModelChatMetadata;
 		const items = callBuild([auto, modelA, modelB]);
 		const actions = getActionItems(items);
-		// Detail should be suppressed for models in vendor groups
 		const gptItem = actions.find(a => a.label === 'GPT-4o');
 		assert.ok(gptItem);
 		assert.strictEqual(gptItem.item?.description, undefined);
@@ -1441,16 +1377,16 @@ suite('buildModelPickerItems', () => {
 
 	test('pinned models are grouped by provider and sorted alphabetically', () => {
 		const auto = createAutoModel();
-		const copilotAlpha = createAgentHostModel('copilot-alpha', 'Alpha', { id: 'copilotcli' });
-		const copilotZeta = createAgentHostModel('copilot-zeta', 'Zeta', { id: 'copilotcli' });
+		const dardcorAlpha = createAgentHostModel('dardcor-alpha', 'Alpha', { id: 'dardcorcli' });
+		const dardcorZeta = createAgentHostModel('dardcor-zeta', 'Zeta', { id: 'dardcorcli' });
 		const openRouterAlpha = createAgentHostModel('openrouter-alpha', 'Alpha', { id: 'openrouter' });
 		const openRouterZeta = createAgentHostModel('openrouter-zeta', 'Zeta', { id: 'openrouter' });
 		const languageModelsService = createLanguageModelsServiceStub([
-			{ vendor: 'copilotcli', displayName: 'Copilot CLI', groups: [] },
+			{ vendor: 'dardcorcli', displayName: 'Dardcor CLI', groups: [] },
 			{ vendor: 'openrouter', displayName: 'Open Router', groups: [] },
 		]);
-		const items = callBuild([auto, copilotZeta, openRouterZeta, copilotAlpha, openRouterAlpha], {
-			pinnedModelIds: [openRouterZeta.identifier, copilotZeta.identifier, openRouterAlpha.identifier, copilotAlpha.identifier],
+		const items = callBuild([auto, dardcorZeta, openRouterZeta, dardcorAlpha, openRouterAlpha], {
+			pinnedModelIds: [openRouterZeta.identifier, dardcorZeta.identifier, openRouterAlpha.identifier, dardcorAlpha.identifier],
 			languageModelsService,
 		});
 		const pinnedSep = items.find(i => i.kind === ActionListItemKind.Separator && i.label === 'Pinned');
@@ -1459,8 +1395,8 @@ suite('buildModelPickerItems', () => {
 		const nextSeparatorIndex = items.findIndex((item, index) => index > pinnedSepIndex && item.kind === ActionListItemKind.Separator);
 		const pinnedItems = items.slice(pinnedSepIndex + 1, nextSeparatorIndex);
 		assert.deepStrictEqual(pinnedItems.map(item => ({ provider: item.badge, name: item.label })), [
-			{ provider: 'Copilot', name: 'Alpha' },
-			{ provider: 'Copilot', name: 'Zeta' },
+			{ provider: 'Dardcor', name: 'Alpha' },
+			{ provider: 'Dardcor', name: 'Zeta' },
 			{ provider: 'Open Router', name: 'Alpha' },
 			{ provider: 'Open Router', name: 'Zeta' },
 		]);
@@ -1475,7 +1411,6 @@ suite('buildModelPickerItems', () => {
 			recentModelIds: [modelA.identifier, modelB.identifier],
 		});
 		const actions = getActionItems(items);
-		// GPT-4o should only appear once (in pinned, not again in promoted)
 		const gptItems = actions.filter(a => a.label === 'GPT-4o');
 		assert.strictEqual(gptItems.length, 1, 'Pinned model should appear exactly once');
 	});
@@ -1494,7 +1429,6 @@ suite('buildModelPickerItems', () => {
 			recentModelIds: [models[1].identifier, models[2].identifier, models[3].identifier, models[4].identifier, models[5].identifier],
 			pinnedModelIds: [models[1].identifier],
 		});
-		// Model 1 is pinned, MRU should be Model 2, 3, 4 (capped at 3), Model 5 goes to Other
 		const actions = getActionItems(items);
 		const promotedLabels = actions
 			.filter(a => !a.isSectionToggle && a.section !== 'other' && a.item?.id !== 'manageModels' && a.label !== 'Auto' && a.label !== 'Model 1')
@@ -1515,37 +1449,23 @@ suite('buildModelPickerItems', () => {
 	});
 });
 
-/**
- * Regression coverage for the chat model picker.
- *
- * Guards the end-to-end picker pipeline (`filterModelsForSession` →
- * `buildModelPickerItems`) against regressions where models contributed by a
- * `languageModelChatProvider` extension stop appearing in the picker even
- * though they remain visible in the model configuration view.
- *
- * Behavior under test: `metadata.isUserSelectable` defaults to `true`. Only an
- * explicit `false` hides a model from the picker; both `undefined` and `true`
- * make the model visible. This rule applies uniformly to the copilot vendor
- * and to third-party `languageModelChatProvider` vendors, and matches what
- * the model configuration view surfaces.
- */
 suite('chat model picker - languageModelChatProvider visibility regression', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	function createCopilotModel(
+	function createDardcorModel(
 		id: string,
 		name: string,
 		overrides: Partial<ILanguageModelChatMetadata> = {},
 	): ILanguageModelChatMetadataAndIdentifier {
 		return {
-			identifier: `copilot/${id}`,
+			identifier: `dardcor/${id}`,
 			metadata: {
 				id,
 				name,
-				vendor: 'copilot',
+				vendor: 'dardcor',
 				version: '1.0.0',
-				family: 'copilot',
+				family: 'dardcor',
 				maxInputTokens: 128_000,
 				maxOutputTokens: 4_096,
 				isDefaultForLocation: {},
@@ -1578,12 +1498,6 @@ suite('chat model picker - languageModelChatProvider visibility regression', () 
 		};
 	}
 
-	/**
-	 * Runs the full picker pipeline (`filterModelsForSession` →
-	 * `buildModelPickerItems`) for an Ask-mode/Chat-location session and
-	 * returns the actionable model entries (excluding the auto entry, the
-	 * "Other Models" toggle, separators, and the "Manage Models..." entry).
-	 */
 	function runPickerPipeline(
 		models: ILanguageModelChatMetadataAndIdentifier[],
 		languageModelsService: ILanguageModelsService,
@@ -1603,10 +1517,6 @@ suite('chat model picker - languageModelChatProvider visibility regression', () 
 		);
 	}
 
-	/**
-	 * Builds a one-group-per-vendor `ILanguageModelsService` stub on top of
-	 * the file-level `createLanguageModelsServiceStub` helper.
-	 */
 	function buildLmService(
 		vendors: { vendor: string; displayName: string; modelIdentifiers: string[] }[],
 	): ILanguageModelsService {
@@ -1620,9 +1530,6 @@ suite('chat model picker - languageModelChatProvider visibility regression', () 
 	}
 
 	test('regression: third-party model with isUserSelectable omitted is shown in the picker', () => {
-		// Original bug: a `languageModelChatProvider` model that omits
-		// `isUserSelectable` was treated as falsy and dropped from the picker
-		// even though the model configuration view kept showing it.
 		const tp = createThirdPartyModel('tp', 'TP', { isUserSelectable: undefined });
 		const lmService = buildLmService([
 			{ vendor: 'my-vendor', displayName: 'My Vendor', modelIdentifiers: [tp.identifier] },
@@ -1647,8 +1554,6 @@ suite('chat model picker - languageModelChatProvider visibility regression', () 
 	});
 
 	test('regression: third-party model with isUserSelectable: false is hidden from the picker', () => {
-		// The default-to-true rule: only an explicit `false` hides a model.
-		// This applies uniformly to copilot and third-party vendors.
 		const tp = createThirdPartyModel('tp', 'TP', { isUserSelectable: false });
 		const lmService = buildLmService([
 			{ vendor: 'my-vendor', displayName: 'My Vendor', modelIdentifiers: [tp.identifier] },
@@ -1662,36 +1567,34 @@ suite('chat model picker - languageModelChatProvider visibility regression', () 
 		);
 	});
 
-	test('regression: copilot internal model (isUserSelectable: false) is hidden from the picker', () => {
-		const internal = createCopilotModel('internal', 'Internal', { isUserSelectable: false });
+	test('regression: dardcor internal model (isUserSelectable: false) is hidden from the picker', () => {
+		const internal = createDardcorModel('internal', 'Internal', { isUserSelectable: false });
 		const lmService = buildLmService([
-			{ vendor: 'copilot', displayName: 'GitHub Copilot', modelIdentifiers: [internal.identifier] },
+			{ vendor: 'dardcor', displayName: 'Dardcor Router', modelIdentifiers: [internal.identifier] },
 		]);
 
 		const labels = runPickerPipeline([internal], lmService).map(i => i.label);
 		assert.deepStrictEqual(
 			labels,
 			[],
-			'Internal copilot models marked isUserSelectable: false must remain hidden from the picker.',
+			'Internal dardcor models marked isUserSelectable: false must remain hidden from the picker.',
 		);
 	});
 
-	test('regression: copilot model with omitted isUserSelectable defaults to visible', () => {
-		// `isUserSelectable` defaults to `true` for every vendor, so a copilot
-		// model that omits the flag is now treated as user-selectable.
-		const model = createCopilotModel('public', 'Public', { isUserSelectable: undefined });
+	test('regression: dardcor model with omitted isUserSelectable defaults to visible', () => {
+		const model = createDardcorModel('public', 'Public', { isUserSelectable: undefined });
 		const lmService = buildLmService([
-			{ vendor: 'copilot', displayName: 'GitHub Copilot', modelIdentifiers: [model.identifier] },
+			{ vendor: 'dardcor', displayName: 'Dardcor Router', modelIdentifiers: [model.identifier] },
 		]);
 
 		const labels = runPickerPipeline([model], lmService).map(i => i.label);
 		assert.deepStrictEqual(labels, ['Public']);
 	});
 
-	test('regression: copilot public model (isUserSelectable: true) is shown in the picker', () => {
-		const pub = createCopilotModel('gpt-4o', 'GPT-4o', { isUserSelectable: true });
+	test('regression: dardcor public model (isUserSelectable: true) is shown in the picker', () => {
+		const pub = createDardcorModel('gpt-4o', 'GPT-4o', { isUserSelectable: true });
 		const lmService = buildLmService([
-			{ vendor: 'copilot', displayName: 'GitHub Copilot', modelIdentifiers: [pub.identifier] },
+			{ vendor: 'dardcor', displayName: 'Dardcor Router', modelIdentifiers: [pub.identifier] },
 		]);
 
 		const labels = runPickerPipeline([pub], lmService).map(i => i.label);
@@ -1699,17 +1602,17 @@ suite('chat model picker - languageModelChatProvider visibility regression', () 
 	});
 
 	test('regression: mixed vendors - only explicit isUserSelectable: false models are hidden', () => {
-		const copilotPublic = createCopilotModel('gpt-4o', 'GPT-4o', { isUserSelectable: true });
-		const copilotInternal = createCopilotModel('internal', 'Internal', { isUserSelectable: false });
+		const dardcorPublic = createDardcorModel('gpt-4o', 'GPT-4o', { isUserSelectable: true });
+		const dardcorInternal = createDardcorModel('internal', 'Internal', { isUserSelectable: false });
 		const tpTrue = createThirdPartyModel('tp-true', 'TP True', { isUserSelectable: true });
 		const tpFalse = createThirdPartyModel('tp-false', 'TP False', { isUserSelectable: false });
 		const tpUndefined = createThirdPartyModel('tp-undef', 'TP Undef', { isUserSelectable: undefined });
 
 		const lmService = buildLmService([
 			{
-				vendor: 'copilot',
-				displayName: 'GitHub Copilot',
-				modelIdentifiers: [copilotPublic.identifier, copilotInternal.identifier],
+				vendor: 'dardcor',
+				displayName: 'Dardcor Router',
+				modelIdentifiers: [dardcorPublic.identifier, dardcorInternal.identifier],
 			},
 			{
 				vendor: 'my-vendor',
@@ -1719,7 +1622,7 @@ suite('chat model picker - languageModelChatProvider visibility regression', () 
 		]);
 
 		const labels = runPickerPipeline(
-			[copilotPublic, copilotInternal, tpTrue, tpFalse, tpUndefined],
+			[dardcorPublic, dardcorInternal, tpTrue, tpFalse, tpUndefined],
 			lmService,
 		).map(i => i.label).sort();
 
@@ -1731,10 +1634,6 @@ suite('chat model picker - languageModelChatProvider visibility regression', () 
 	});
 
 	test('regression: third-party models without explicit opt-out match the configuration view', () => {
-		// What the model configuration view shows: every model from
-		// `getLanguageModelGroups`, regardless of `isUserSelectable`.
-		// What the picker shows: the same set, minus models that the
-		// extension explicitly opted out via `isUserSelectable: false`.
 		const tpTrue = createThirdPartyModel('tp-true', 'TP True', { isUserSelectable: true });
 		const tpUndefined = createThirdPartyModel('tp-undef', 'TP Undef', { isUserSelectable: undefined });
 		const allThirdParty = [tpTrue, tpUndefined];

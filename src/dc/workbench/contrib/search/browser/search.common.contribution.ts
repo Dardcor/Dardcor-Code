@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Common search service registrations shared between the main workbench and the Agents window.
 
 import * as nls from '../../../../nls.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';

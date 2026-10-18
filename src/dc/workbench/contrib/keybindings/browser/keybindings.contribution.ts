@@ -48,7 +48,6 @@ class ToggleKeybindingsLogAction extends Action2 {
 		const focusMarker = append(container, $('.focus-troubleshooting-marker'));
 		disposables.add(toDisposable(() => focusMarker.remove()));
 
-		// Add CSS rule for focus marker
 		const stylesheet = createStyleSheet(undefined, undefined, disposables);
 		createCSSRule('.focus-troubleshooting-marker', `
 			position: fixed;
@@ -86,7 +85,6 @@ class ToggleKeybindingsLogAction extends Action2 {
 				focusMarker.style.height = `${position.height}px`;
 				focusMarker.style.display = 'block';
 
-				// Hide after timeout
 				setTimeout(() => {
 					focusMarker.style.display = 'none';
 				}, 800);

@@ -36,13 +36,10 @@ impl Serialization for MsgPackSerializer {
 
 pub type MsgPackCaller = rpc::RpcCaller<MsgPackSerializer>;
 
-/// Creates a new RPC Builder that serializes to msgpack.
 pub fn new_msgpack_rpc() -> rpc::RpcBuilder<MsgPackSerializer> {
 	rpc::RpcBuilder::new(MsgPackSerializer {})
 }
 
-/// Starting processing msgpack rpc over the given i/o. It's recommended that
-/// the reader be passed in as a BufReader for efficiency.
 pub async fn start_msgpack_rpc<
 	C: Send + Sync + 'static,
 	X: Clone,
@@ -109,12 +106,6 @@ pub async fn start_msgpack_rpc<
 	}
 }
 
-/// Reader that reads msgpack object messages in a cancellation-safe way using Tokio's codecs.
-///
-/// rmp_serde does not support async reads, and does not plan to. But we know every
-/// type in protocol is some kind of object, so by asking to deserialize the
-/// requested object from a reader (repeatedly, if incomplete) we can
-/// accomplish streaming.
 pub struct MsgPackCodec<T> {
 	_marker: std::marker::PhantomData<T>,
 }

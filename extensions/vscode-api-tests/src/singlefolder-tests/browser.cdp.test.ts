@@ -9,9 +9,6 @@ import * as vscode from 'vscode';
 import { window, workspace } from 'vscode';
 import { assertNoRpc, closeAllEditors } from '../utils';
 
-/**
- * We only care about target-lifecycle and browser-level events.
- */
 const CAPTURED_DOMAINS = ['Browser', 'Target'];
 
 (vscode.env.uiKind === vscode.UIKind.Web ? suite.skip : suite)('vscode API - browser CDP', () => {
@@ -21,27 +18,21 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 		await closeAllEditors();
 	});
 
-	// #region Helpers
 
 	type CdpLog = { direction: 'send' | 'recv' | 'resp'; method?: string; params?: any; result?: any; sessionId?: string };
 
-	/**
-	 * Creates a CDP harness that records all Browser.* / Target.* traffic.
-	 */
 	function createHarness(session: vscode.BrowserCDPSession) {
 		const log: CdpLog[] = [];
 		let nextId = 1;
 		const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void; method: string }>();
 
 		session.onDidReceiveMessage((msg: any) => {
-			// Record events (no id) whose method is in a captured domain
 			if (!msg.id && msg.method) {
 				const domain = msg.method.split('.')[0];
 				if (CAPTURED_DOMAINS.includes(domain)) {
 					log.push({ direction: 'recv', method: msg.method, params: msg.params, sessionId: msg.sessionId });
 				}
 			}
-			// Resolve pending requests
 			if (msg.id && pending.has(msg.id)) {
 				const entry = pending.get(msg.id)!;
 				pending.delete(msg.id);
@@ -59,7 +50,6 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 
 		async function cdpSend(method: string, params: object = {}, sessionId?: string): Promise<any> {
 			const id = nextId++;
-			// Record the outgoing command
 			const domain = method.split('.')[0];
 			if (CAPTURED_DOMAINS.includes(domain)) {
 				log.push({ direction: 'send', method, params: Object.keys(params).length ? params : undefined, sessionId });
@@ -91,10 +81,6 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 		return { log, cdpSend, waitForEvent };
 	}
 
-	/**
-	 * Normalize a log for snapshot comparison. Replaces volatile IDs with
-	 * stable placeholders and strips file-system-specific paths.
-	 */
 	function normalizeLog(log: CdpLog[], workspaceRoot: string): CdpLog[] {
 		const targetIds: { [original: string]: string } = {};
 		const idCounters: { [domain: string]: number } = {};
@@ -110,7 +96,6 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 			return targetIds[key];
 		}
 
-		// Deep-clone and normalize
 		const normalized = JSON.parse(JSON.stringify(log));
 
 		function normalizeValue(obj: any): any {
@@ -118,12 +103,10 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 				return obj;
 			}
 			if (typeof obj === 'string') {
-				// Replace file:// URIs with <omitted>/basename (must run before workspace root replacement)
 				let result = obj.replace(/file:\/\/\/[^\s"')}\]]+/g, (match) => {
 					const basename = decodeURIComponent(match.split('/').pop() || match);
 					return `<omitted>/${basename}`;
 				});
-				// Replace workspace root in remaining paths (handles both raw and URI-encoded forms)
 				const normalizedRoot = workspaceRoot.replace(/\\/g, '/');
 				const encodedRoot = encodeURI(normalizedRoot).replace(/%5C/gi, '/');
 				result = result.split(encodedRoot).join('<workspace>');
@@ -146,10 +129,8 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 					} else if (key === 'title' && obj['type'] === 'browser') {
 						out[key] = '<browser-title>';
 					} else if ((key === 'title' || key === 'url') && (value === '' || value === 'about:blank')) {
-						// On Linux, '' can show up instead of 'about:blank'. So normalize both to '<blank>'.
 						out[key] = '<blank>';
 					} else if (key === 'ts') {
-						// Skip timestamps
 						continue;
 					} else {
 						out[key] = normalizeValue(value);
@@ -175,12 +156,7 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 		return normalized;
 	}
 
-	// #endregion
 
-	// Loads `file:///<workspaceFolder>/index.html`. Skipped in remote
-	// workspaces: the workspace folder is a `vscode-remote://` URI so it
-	// isn't added to the local `file://` trust allowlist, and the harness
-	// would be rejected with 403 before the worker is ever attached.
 	(vscode.env.remoteName ? test.skip : test)('CDP debugging golden scenario', async function () {
 		this.timeout(30_000);
 
@@ -189,17 +165,14 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 
 		const pageUrl = vscode.Uri.file(path.join(workspaceRoot, 'index.html')).toString();
 
-		// 1. Open a browser tab with an empty URL
 		const tab = await window.openBrowserTab('');
 		const session = await tab.startCDPSession();
 		const { log, cdpSend, waitForEvent } = createHarness(session);
 
-		// 2. Attach to the browser target (mirrors BrowserTargetManager.connect)
 		const browserAttach = await cdpSend('Target.attachToBrowserTarget');
 		assert.ok(browserAttach.sessionId, 'should get a browser session');
 		const browserSessionId = browserAttach.sessionId;
 
-		// 3. Discover targets and find the page (mirrors waitForMainTarget)
 		const pageCreated = waitForEvent(
 			(msg: any) => msg.method === 'Target.targetCreated'
 				&& msg.params?.targetInfo?.type === 'page',
@@ -207,7 +180,6 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 		await cdpSend('Target.setDiscoverTargets', { discover: true }, browserSessionId);
 		const pageTarget = (await pageCreated).params.targetInfo;
 
-		// 4. Attach to the page target (mirrors attachToTarget in waitForMainTarget)
 		const pageAttach = await cdpSend('Target.attachToTarget', {
 			targetId: pageTarget.targetId,
 			flatten: true,
@@ -215,15 +187,12 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 		assert.ok(pageAttach.sessionId, 'should get a page session');
 		const pageSessionId = pageAttach.sessionId;
 
-		// 5. Enable auto-attach on the page session with waitForDebuggerOnStart
-		//    (mirrors BrowserTargetManager.attachedToTarget)
 		await cdpSend('Target.setAutoAttach', {
 			autoAttach: true,
 			waitForDebuggerOnStart: true,
 			flatten: true,
 		}, pageSessionId);
 
-		// 6. Set up listener for worker auto-attach before navigating
 		const workerAttached = waitForEvent(
 			(msg: any) =>
 				msg.method === 'Target.attachedToTarget'
@@ -231,19 +200,15 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 				&& msg.sessionId === pageSessionId,
 		);
 
-		// 7. Navigate to the test page (mirrors finishLaunch -> Page.navigate)
 		await cdpSend('Page.navigate', { url: pageUrl }, pageSessionId);
 
-		// 8. Wait for the worker to be auto-attached
 		const workerEvent = await workerAttached;
 		assert.strictEqual(workerEvent.params.targetInfo.type, 'worker');
 		assert.strictEqual(workerEvent.params.waitingForDebugger, true);
 		const workerSessionId = workerEvent.params.sessionId;
 
-		// 9. Resume the worker (mirrors js-debug's runIfWaitingForDebugger)
 		await cdpSend('Runtime.runIfWaitingForDebugger', {}, workerSessionId);
 
-		// 10. Evaluate a script on the page that sends a message to the worker and gets the echo
 		const evalResult = await cdpSend('Runtime.evaluate', {
 			expression: 'sendMessage("hello from test")',
 			awaitPromise: true,
@@ -251,7 +216,6 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 		}, pageSessionId);
 		assert.strictEqual(evalResult.result.value, 'hello from test');
 
-		// 11. Close the page target (mirrors closeBrowser -> closeTarget)
 		const detached = waitForEvent(
 			(msg: any) => msg.method === 'Target.detachedFromTarget'
 				&& msg.params?.sessionId === pageAttach.sessionId,
@@ -266,7 +230,6 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 		await detached;
 		await destroyed;
 
-		// 12. Normalize and compare to snapshot
 		const actual = normalizeLog(log, workspaceRoot);
 
 		const expected: CdpLog[] = [
@@ -295,7 +258,6 @@ const CAPTURED_DOMAINS = ['Browser', 'Target'];
 		];
 		assert.deepStrictEqual(actual, expected);
 
-		// Tab should have been closed
 		assert.equal(window.browserTabs.length, 0);
 	});
 });

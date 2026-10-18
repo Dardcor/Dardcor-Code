@@ -40,41 +40,25 @@ suite('ViewModelDecorations', () => {
 					};
 				};
 
-				// VIEWPORT will be (1,14) -> (1,36)
 
-				// completely before viewport
 				accessor.addDecoration(new Range(1, 2, 1, 3), createOpts('dec1'));
-				// starts before viewport, ends at viewport start
 				accessor.addDecoration(new Range(1, 2, 1, 14), createOpts('dec2'));
-				// starts before viewport, ends inside viewport
 				accessor.addDecoration(new Range(1, 2, 1, 15), createOpts('dec3'));
-				// starts before viewport, ends at viewport end
 				accessor.addDecoration(new Range(1, 2, 1, 36), createOpts('dec4'));
-				// starts before viewport, ends after viewport
 				accessor.addDecoration(new Range(1, 2, 1, 51), createOpts('dec5'));
 
-				// starts at viewport start, ends at viewport start (will not be visible on view line 2)
 				accessor.addDecoration(new Range(1, 14, 1, 14), createOpts('dec6'));
-				// starts at viewport start, ends inside viewport
 				accessor.addDecoration(new Range(1, 14, 1, 16), createOpts('dec7'));
-				// starts at viewport start, ends at viewport end
 				accessor.addDecoration(new Range(1, 14, 1, 36), createOpts('dec8'));
-				// starts at viewport start, ends after viewport
 				accessor.addDecoration(new Range(1, 14, 1, 51), createOpts('dec9'));
 
-				// starts inside viewport, ends inside viewport
 				accessor.addDecoration(new Range(1, 16, 1, 18), createOpts('dec10'));
-				// starts inside viewport, ends at viewport end
 				accessor.addDecoration(new Range(1, 16, 1, 36), createOpts('dec11'));
-				// starts inside viewport, ends after viewport
 				accessor.addDecoration(new Range(1, 16, 1, 51), createOpts('dec12'));
 
-				// starts at viewport end, ends at viewport end
 				accessor.addDecoration(new Range(1, 36, 1, 36), createOpts('dec13'));
-				// starts at viewport end, ends after viewport
 				accessor.addDecoration(new Range(1, 36, 1, 51), createOpts('dec14'));
 
-				// starts after viewport, ends after viewport
 				accessor.addDecoration(new Range(1, 40, 1, 51), createOpts('dec15'));
 			});
 
@@ -106,7 +90,6 @@ suite('ViewModelDecorations', () => {
 				1
 			).inlineDecorations;
 
-			// view line 1: (1,1 -> 1,14)
 			assert.deepStrictEqual(inlineDecorations1, [
 				new InlineDecoration(new Range(1, 2, 1, 3), 'i-dec1', InlineDecorationType.Regular),
 				new InlineDecoration(new Range(1, 2, 1, 2), 'b-dec1', InlineDecorationType.Before),
@@ -127,7 +110,6 @@ suite('ViewModelDecorations', () => {
 				2
 			).inlineDecorations;
 
-			// view line 2: (1,14 -> 1,24)
 			assert.deepStrictEqual(inlineDecorations2, [
 				new InlineDecoration(new Range(1, 2, 2, 2), 'i-dec3', InlineDecorationType.Regular),
 				new InlineDecoration(new Range(2, 2, 2, 2), 'a-dec3', InlineDecorationType.After),
@@ -157,7 +139,6 @@ suite('ViewModelDecorations', () => {
 				3
 			).inlineDecorations;
 
-			// view line 3 (24 -> 36)
 			assert.deepStrictEqual(inlineDecorations3, [
 				new InlineDecoration(new Range(1, 2, 3, 13), 'i-dec4', InlineDecorationType.Regular),
 				new InlineDecoration(new Range(3, 13, 3, 13), 'a-dec4', InlineDecorationType.After),

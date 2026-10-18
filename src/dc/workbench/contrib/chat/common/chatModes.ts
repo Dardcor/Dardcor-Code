@@ -40,23 +40,11 @@ export const IChatModeService = createDecorator<IChatModeService>('chatModeServi
 export interface IChatModeService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Returns the chat modes available for the given session resource.
-	 *
-	 * Instances need to be disposed by the caller when no longer needed
-	 */
 	createModes(sessionResource: URI): IChatModes & IDisposable;
 
-	/**
-	 * Returns the local chat modes after awaiting any in-flight refresh.
-	 */
 	getLocalModes(): Promise<IChatModes>;
 }
 
-/**
- * The set of chat modes available for a particular session type, partitioned
- * into builtin and custom modes, with helpers for lookup by id or name.
- */
 export interface IChatModes {
 	readonly onDidChange: Event<void>;
 	readonly builtin: readonly IChatMode[];
@@ -64,11 +52,6 @@ export interface IChatModes {
 	findModeById(id: string): IChatMode | undefined;
 	findModeByName(name: string): IChatMode | undefined;
 
-	/**
-	 * Awaits the most recently scheduled update of custom prompt modes.
-	 * After this resolves, {@link custom} reflects the latest data from the
-	 * prompts service.
-	 */
 	waitForPendingUpdates(): Promise<void>;
 }
 
@@ -83,7 +66,6 @@ class ChatModes extends Disposable implements IChatModes {
 	private readonly _onDidChange = this._register(new Emitter<void>());
 	readonly onDidChange = this._onDidChange.event;
 
-	/** Tracks the most recent refresh of custom prompt modes. */
 	private _pendingRefresh: Promise<void> = Promise.resolve();
 
 	private _refreshCancellationSource: CancellationTokenSource | undefined;
@@ -105,11 +87,9 @@ class ChatModes extends Disposable implements IChatModes {
 		this._storageKey = ChatModes.CUSTOM_MODES_STORAGE_KEY_PREFIX + sessionType;
 		this.hasCustomModes = ChatContextKeys.Modes.hasCustomChatModes.bindTo(contextKeyService);
 
-		// Load cached modes from storage first
 		this.loadCachedModes();
 
 		this._pendingRefresh = this.triggerRefresh();
-		// When the harness service is the source, also react to its change events for our session type.
 		this._register(this.customizationHarnessService.onDidChangeCustomAgents(e => {
 			if (e.sessionType === sessionType) {
 				this._pendingRefresh = this.triggerRefresh();
@@ -117,7 +97,6 @@ class ChatModes extends Disposable implements IChatModes {
 		}));
 		this._register(this.storageService.onWillSaveState(() => this.saveCachedModes()));
 
-		// Builtin mode availability depends on configuration policy and tools-agent availability.
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ChatConfiguration.AgentEnabled)) {
 				this._onDidChange.fire();
@@ -248,7 +227,6 @@ class ChatModes extends Disposable implements IChatModes {
 				return;
 			}
 
-			// Create a new set of mode instances, reusing existing ones where possible
 			const seenUris = new Set<string>();
 			for (const customMode of customModes) {
 				if (!customMode.visibility.userInvocable || !customMode.enabled) {
@@ -260,19 +238,16 @@ class ChatModes extends Disposable implements IChatModes {
 
 				let modeInstance = this._customModeInstances.get(uriString);
 				if (modeInstance) {
-					// Update existing instance with new data
 					if (modeInstance.updateData(customMode)) {
 						hasChanges = true;
 					}
 				} else {
-					// Create new instance
 					modeInstance = new CustomChatMode(customMode);
 					this._customModeInstances.set(uriString, modeInstance);
 					hasChanges = true;
 				}
 			}
 
-			// Clean up instances for modes that no longer exist
 			for (const [uriString] of this._customModeInstances.entries()) {
 				if (!seenUris.has(uriString)) {
 					this._customModeInstances.delete(uriString);
@@ -300,10 +275,6 @@ class ChatModes extends Disposable implements IChatModes {
 			ChatMode.Ask,
 		];
 
-		// Include Agent mode if:
-		// - It's enabled (hasToolsAgent is true), OR
-		// - It's disabled by policy (so we can show it with a lock icon)
-		// But hide it if the user manually disabled it via settings
 		if (this.chatAgentService.hasToolsAgent || this.isAgentModeDisabledByPolicy()) {
 			builtinModes.unshift(ChatMode.Agent);
 		}
@@ -312,7 +283,6 @@ class ChatModes extends Disposable implements IChatModes {
 	}
 
 	private getCustomModes(): IChatMode[] {
-		// Show custom modes when agent mode is enabled OR when disabled by policy (to show them in the policy-managed group)
 		if (!this.chatAgentService.hasToolsAgent && !this.isAgentModeDisabledByPolicy()) {
 			return [];
 		}
@@ -339,10 +309,8 @@ export class ChatModeService extends Disposable implements IChatModeService {
 
 		this.agentModeDisabledByPolicy = ChatContextKeys.Modes.agentModeDisabledByPolicy.bindTo(contextKeyService);
 
-		// Initialize the policy context key
 		this.updateAgentModePolicyContextKey();
 
-		// Listen for configuration changes that affect agent mode policy
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ChatConfiguration.AgentEnabled)) {
 				this.updateAgentModePolicyContextKey();
@@ -357,7 +325,7 @@ export class ChatModeService extends Disposable implements IChatModeService {
 	async getLocalModes(): Promise<IChatModes> {
 		if (!this.localMode) {
 			this.localMode = (async () => {
-				const modes = this._register(this.createModes(LocalChatSessionUri.getNewSessionUri())); // we make up a new session. Local mdes fall back to the promptService and are not actually tied to the session, so it doesn't matter which one we use here.
+				const modes = this._register(this.createModes(LocalChatSessionUri.getNewSessionUri()));
 				await modes.waitForPendingUpdates();
 				return modes;
 			})();
@@ -383,7 +351,7 @@ export interface IChatModeData {
 	readonly model?: readonly string[] | string;
 	readonly argumentHint?: string;
 	readonly modeInstructions?: IChatModeInstructions;
-	readonly body?: string; /* deprecated */
+	readonly body?: string;
 	readonly handOffs?: readonly IHandOff[];
 	readonly uri?: URI;
 	readonly source?: IChatModeSourceData;
@@ -391,7 +359,7 @@ export interface IChatModeData {
 	readonly visibility?: ICustomAgentVisibility;
 	readonly agents?: readonly string[];
 	readonly sessionTypes?: readonly string[];
-	readonly infer?: boolean; // deprecated, only available in old cached data
+	readonly infer?: boolean;
 }
 
 export interface IChatMode {
@@ -566,9 +534,6 @@ export class CustomChatMode implements IChatMode {
 		this._sessionTypes = customChatMode.sessionTypes;
 	}
 
-	/**
-	 * Updates the underlying data and triggers observable changes
-	 */
 	updateData(newData: ICustomAgent): boolean {
 		let hasChanges = false;
 
@@ -693,13 +658,9 @@ export class BuiltinChatMode implements IChatMode {
 	}
 
 	get id(): string {
-		// Need a differentiator?
 		return this.kind;
 	}
 
-	/**
-	 * Getters are not json-stringified
-	 */
 	toJSON(): IChatModeData {
 		return {
 			id: this.id,
@@ -722,10 +683,6 @@ export function isBuiltinChatMode(mode: IChatMode): boolean {
 		mode.id === ChatMode.Agent.id;
 }
 
-/**
- * Returns a telemetry-safe mode name. User/local mode names are hashed
- * to avoid leaking PII; builtin and extension mode names are returned as-is.
- */
 export function getModeNameForTelemetry(mode: IChatMode): string {
 	const modeStorage = mode.source?.storage;
 	if (modeStorage === PromptsStorage.local || modeStorage === PromptsStorage.user) {
@@ -734,29 +691,12 @@ export function getModeNameForTelemetry(mode: IChatMode): string {
 	return mode.name.get();
 }
 
-/**
- * Generates a stable identifier for a handoff by combining the target agent
- * name with a slugified version of the display label.
- *
- * Within a single source agent, the combination of `agent` + `label` must be
- * unique for IDs to be unambiguous.
- *
- * @example
- * ```
- * getHandoffId({ agent: 'agent', label: 'Continue', prompt: '...' })
- * // => 'agent:continue'
- * ```
- */
 export function getHandoffId(handoff: IHandOff): string {
 	const slug = handoff.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 	return `${handoff.agent}:${slug}`;
 }
 
-/**
- * Describes a single handoff defined in a custom agent's `.agent.md` file.
- */
 export interface IHandoffInfo {
-	/** Stable identifier for programmatic matching (format: `<agent>:<slugified-label>`). */
 	readonly id: string;
 	readonly label: string;
 	readonly agent: string;
@@ -766,9 +706,6 @@ export interface IHandoffInfo {
 	readonly model?: string;
 }
 
-/**
- * Describes a custom agent (or built-in mode) and the handoffs it defines.
- */
 export interface ICustomAgentInfo {
 	readonly id: string;
 	readonly name: string;
@@ -780,14 +717,6 @@ export interface ICustomAgentInfo {
 	readonly handoffs: IHandoffInfo[];
 }
 
-/**
- * Builds an array of {@link ICustomAgentInfo} with handoff metadata for the given agents/modes.
- *
- * @param modes - The set of agents/modes to include. Pass all modes to get a
- *   complete picture, or a filtered subset to scope the result.
- * @returns One entry per agent/mode, each containing the agent's metadata and
- *   its declared handoffs.
- */
 export function buildCustomAgentHandoffsInfo(modes: readonly IChatMode[]): ICustomAgentInfo[] {
 	return modes.map(mode => {
 		const handoffs = mode.handOffs?.get() ?? [];

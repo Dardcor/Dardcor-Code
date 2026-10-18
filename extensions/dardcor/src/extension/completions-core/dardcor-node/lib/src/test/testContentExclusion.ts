@@ -20,7 +20,7 @@ export class MockIgnoreService implements IIgnoreService {
 		return Promise.resolve();
 	}
 
-	isCopilotIgnored(file: URI, token?: CancellationToken): Promise<boolean> {
+	isIgnored(file: URI, token?: CancellationToken): Promise<boolean> {
 		if (this._alwaysIgnore) {
 			return Promise.resolve(true);
 		}

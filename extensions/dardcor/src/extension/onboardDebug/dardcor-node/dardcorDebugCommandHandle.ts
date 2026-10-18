@@ -7,8 +7,8 @@ import * as l10n from '@vscode/l10n';
 import * as util from 'util';
 import { SimpleRPC } from '../node/dardcorDebugWorker/rpc';
 
-export class CopilotDebugCommandHandle {
-	public static COPILOT_LABEL = 'Copilot';
+export class DardcorDebugCommandHandle {
+	public static DARDCOR_LABEL = 'Dardcor';
 
 	public get ended() {
 		return this.rpc.ended;
@@ -25,15 +25,15 @@ export class CopilotDebugCommandHandle {
 	}
 
 	question(message: string, defaultValue?: string, singleKey = false): Promise<string | undefined> {
-		return this.rpc.callMethod('question', { message: withLabel('blue', CopilotDebugCommandHandle.COPILOT_LABEL, message), defaultValue, singleKey });
+		return this.rpc.callMethod('question', { message: withLabel('blue', DardcorDebugCommandHandle.DARDCOR_LABEL, message), defaultValue, singleKey });
 	}
 
 	confirm(message: string, defaultValue?: boolean): Promise<boolean | undefined> {
-		return this.rpc.callMethod('confirm', { message: withLabel('blue', CopilotDebugCommandHandle.COPILOT_LABEL, message), defaultValue });
+		return this.rpc.callMethod('confirm', { message: withLabel('blue', DardcorDebugCommandHandle.DARDCOR_LABEL, message), defaultValue });
 	}
 
 	printLabel(color: KnownColors, message: string): Promise<void> {
-		return this.output('stdout', withLabel(color, CopilotDebugCommandHandle.COPILOT_LABEL, message) + '\r\n');
+		return this.output('stdout', withLabel(color, DardcorDebugCommandHandle.DARDCOR_LABEL, message) + '\r\n');
 	}
 
 	printJson(data: any): Promise<void> {
@@ -61,8 +61,6 @@ const enum Style {
 	Dim = '\x1b[2m',
 }
 
-// we know the user is running the program in a VS Code terminal, so we don't need
-// to do the color support detection that we would normally need to handle.
 
 function withLabel(color: KnownColors, label: string, message: string) {
 	const colorCode = (color: KnownColors) => {

@@ -31,7 +31,7 @@ import { registerAgentHostCoreServices, registerAgentHostHostServices } from './
 import { StrictServiceCollection } from '../../instantiation/common/strictServiceCollection.js';
 import { IAgentSdkDownloader, type IAgentSdkDownloadProgress } from './agentSdkDownloader.js';
 import { IByokLmBridgeRegistry, NullByokLmBridgeRegistry } from './byokLmBridgeRegistry.js';
-import { registerPendingEditContentProvider } from './copilot/pendingEditContentStore.js';
+import { registerPendingEditContentProvider } from './shared/pendingEditContentStore.js';
 import { SessionDataService } from './sessionDataService.js';
 import { IAgentCustomizationSettingsRegistration } from '../common/agentCustomizationSettings.js';
 import { AgentHostLaunchKind } from '../common/agentHostTelemetry.js';
@@ -40,7 +40,7 @@ import { AgentHostSessionTitleController, IAgentHostSessionTitleController } fro
 import { AgentHostLocalTurns, IAgentHostLocalTurns } from './agentHostLocalTurns.js';
 import { AgentHostLocalCommands, IAgentHostLocalCommands } from './localCommands/localChatCommand.js';
 import { IAgentHostOctoKitService } from './shared/agentHostOctoKitService.js';
-import { ICopilotApiService } from './shared/copilotApiService.js';
+import { IDardcorRouterService } from './shared/dardcorRouterService.js';
 
 export interface ICreateAgentHostRuntimeOptions {
 	readonly environmentService: INativeEnvironmentService;
@@ -51,10 +51,6 @@ export interface ICreateAgentHostRuntimeOptions {
 	readonly transientProxyConfiguration: boolean;
 	readonly hostLaunchKind: AgentHostLaunchKind;
 	readonly providerConfigurations: readonly IAgentCustomizationSettingsRegistration[];
-	/**
-	 * The utility-process host has a renderer bridge; standalone hosts use the
-	 * unavailable variant but still register the same complete service graph.
-	 */
 	readonly byok: { readonly kind: 'renderer'; readonly bridgeRegistry: IByokLmBridgeRegistry } | { readonly kind: 'unavailable' };
 }
 
@@ -89,16 +85,6 @@ class AgentHostRuntime extends Disposable implements IAgentHostRuntime {
 	}
 }
 
-/**
- * Creates the complete Agent Host runtime.
- *
- * Add services directly to this bootstrap only when they require runtime or
- * environment values, asynchronous construction, an entry-point-selected
- * implementation, or must exist before the instantiation service. Shared
- * synchronous services belong in `agentHostServices.ts`; callback-bound roots
- * belong in {@link createAgentServiceComposition}; process listeners,
- * transports, providers, and schedulers belong in the activating entry point.
- */
 export async function createAgentHostRuntime(options: ICreateAgentHostRuntimeOptions): Promise<IAgentHostRuntime> {
 	const { environmentService, productService, logService, loggerService } = options;
 	const infrastructure = new DisposableStore();
@@ -161,22 +147,18 @@ export async function createAgentHostRuntime(options: ICreateAgentHostRuntimeOpt
 			fetchFn,
 			byok: options.byok,
 		});
-		instantiationService = new InstantiationService(services, /*strict*/ true);
+		instantiationService = new InstantiationService(services, true);
 		const octoKitService = instantiationService.invokeFunction(accessor => accessor.get(IAgentHostOctoKitService));
-		const copilotApiService = instantiationService.invokeFunction(accessor => accessor.get(ICopilotApiService));
+		const dardcorRouterService = instantiationService.invokeFunction(accessor => accessor.get(IDardcorRouterService));
 		services.set(IAgentHostSessionTitleController, infrastructure.add(instantiationService.createInstance(AgentHostSessionTitleController, foundation.stateManager, {
 			sessionDataService,
-			getGitHubCopilotToken: () => {
-				const resource = foundation.gitHubEndpointService.getCopilotResource();
-				return foundation.authenticationService.getAuthToken({ resource: resource.resource, scopes: resource.scopes_supported });
-			},
 			getGitHubToken: () => {
 				const resource = foundation.gitHubEndpointService.getRepoResource();
 				return foundation.authenticationService.getAuthToken({ resource: resource.resource, scopes: resource.scopes_supported });
 			},
 			getGitHubHost: () => foundation.gitHubEndpointService.getEnterpriseHost() ?? 'github.com',
 			octoKitService,
-			copilotApiService,
+			dardcorRouterService,
 			isActiveAgentTitleGenerationEnabled: () => foundation.configurationService.getRootValue(platformRootSchema, AgentHostActiveAgentTitleGenerationConfigKey) === true,
 		})));
 		const localTurns = new AgentHostLocalTurns(sessionDataService, logService);
@@ -194,8 +176,6 @@ export async function createAgentHostRuntime(options: ICreateAgentHostRuntimeOpt
 		));
 		agentService = agentServiceComposition.agentService;
 		services.set(IAgentService, agentService);
-		// Freeze the migrate-legacy gate at host startup, before a setting toggled
-		// without a full restart can be live-propagated into the shared host.
 		agentService.primeMigrateLegacyGate();
 		agentServiceComposition.setContributions(instantiationService.invokeFunction(accessor => activateAgentHostContributions(accessor, instantiationService!)));
 

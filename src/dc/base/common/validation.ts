@@ -153,7 +153,6 @@ class ObjValidator<T extends Record<string, IValidator<unknown> | Optional<IVali
 			const validator: IValidator<unknown> = isOptional ? prop.validator : prop;
 
 			if (isOptional && fieldValue === undefined) {
-				// Optional field not provided, skip validation
 				continue;
 			}
 

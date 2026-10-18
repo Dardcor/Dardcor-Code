@@ -62,42 +62,20 @@ import { editorBackground } from '../../../../../../../platform/theme/common/col
 import { asCssVariable } from '../../../../../../../platform/theme/common/colorUtils.js';
 import { CommandsRegistry } from '../../../../../../../platform/commands/common/commands.js';
 
-/**
- * Minimum number of rows to display in the terminal output view.
- */
 const MIN_OUTPUT_ROWS = 1;
 
-/**
- * Maximum number of rows to display in the terminal output view before scrolling.
- */
 const MAX_OUTPUT_ROWS = 10;
 
-/**
- * Maximum number of characters to display in the command title before truncating.
- */
 const MAX_COMMAND_TITLE_LENGTH = 50;
 
-/**
- * Maximum number of retries when waiting for terminal output to appear.
- */
 const MAX_OUTPUT_POLL_RETRIES = 10;
 
-/**
- * Delay between retries when polling for terminal output (in milliseconds).
- */
 const OUTPUT_POLL_DELAY_MS = 100;
 
-/**
- * Minimum number of data events that indicate real output (vs shell integration sequences).
- */
 const MIN_DATA_EVENTS_FOR_REAL_OUTPUT = 2;
 
-/**
- * Remembers whether a tool invocation was last expanded so state survives virtualization re-renders.
- */
 const expandedStateByInvocation = new WeakMap<IChatToolInvocation | IChatToolInvocationSerialized, boolean>();
 
-// --- Command registrations for terminal tool progress toolbar ---
 
 CommandsRegistry.registerCommand(TerminalContribCommandId.FocusChatInstanceAction, async (_accessor: unknown, progressPart?: IChatTerminalToolProgressPart) => {
 	await progressPart?.focusTerminal();
@@ -111,42 +89,17 @@ CommandsRegistry.registerCommand(TerminalContribCommandId.ToggleChatTerminalOutp
 	await progressPart?.toggleOutputFromAction();
 });
 
-/**
- * Options for configuring a terminal command decoration.
- */
 interface ITerminalCommandDecorationOptions {
-	/**
-	 * The terminal data associated with the tool invocation.
-	 */
 	readonly terminalData: IChatTerminalToolInvocationData;
 
-	/**
-	 * Returns the HTML element representing the command block in the terminal output.
-	 * May return `undefined` if the command block is not currently rendered.
-	 * Called when attaching the decoration to the command block container.
-	 */
 	getCommandBlock(): HTMLElement | undefined;
 
-	/**
-	 * Returns the HTML element representing the icon for the command, if any.
-	 * May return `undefined` if no icon is present.
-	 * Used to determine where to insert the decoration relative to the icon.
-	 */
 	getIconElement(): HTMLElement | undefined;
 
-	/**
-	 * Returns the resolved terminal command associated with this decoration, if available.
-	 * May return `undefined` if the command has not been resolved yet.
-	 * Used to access command metadata for the decoration.
-	 */
 	getResolvedCommand(): ITerminalCommand | undefined;
 
-	/**
-	 * Returns whether the tool invocation is currently running.
-	 */
 	getIsRunning(): boolean;
 
-	/** Returns a structured exit code that may arrive without command detection. */
 	getExitCode(): number | undefined;
 }
 
@@ -263,25 +216,6 @@ class TerminalCommandDecoration extends Disposable {
 
 }
 
-/**
- * A chat content part that displays terminal tool invocation progress.
- *
- * This component shows:
- * - The command being executed with syntax highlighting
- * - A status decoration indicating success/failure/running state
- * - Expandable terminal output with live streaming support
- * - Actions to focus the terminal, show/hide output, and continue in background
- *
- * The component supports two rendering modes:
- * - Standard mode: Shows full progress with status indicators
- * - Collapsible wrapper mode: For thinking containers with simplified UI
- *
- * Output auto-expansion behavior:
- * - Long-running commands with output auto-expand after a short delay
- * - Fast commands that complete quickly don't auto-expand (prevents flickering)
- * - Failed commands can be configured to auto-expand via settings
- * - Successful commands auto-collapse if output was auto-expanded
- */
 export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart implements IChatTerminalToolProgressPart {
 	public readonly domNode: HTMLElement;
 
@@ -293,8 +227,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 	private readonly _contentIndex: number;
 	private readonly _sessionResource: URI;
 
-	// Toolbar state that drives action visibility (replaces context keys to avoid
-	// accumulating listeners on the shared IContextKeyService when many parts exist)
 	private _toolbarHasInstance = false;
 	private _toolbarCanContinueInBackground = false;
 	private _toolbarHasOutput = false;
@@ -385,7 +317,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			getExitCode: () => this._outputSource?.exitCode,
 		}));
 
-		// Use presentationOverrides for display if available (e.g., extracted Python code with syntax highlighting)
 		const displayCommand = terminalData.presentationOverrides?.commandLine ?? command;
 		const displayLanguage = terminalData.presentationOverrides?.language ?? terminalData.language;
 		const titlePart = this._register(_instantiationService.createInstance(
@@ -413,8 +344,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			() => this._isInvocationRunning(),
 			!!this._terminalData.terminalToolSessionId,
 		));
-		// Only append the output section if there's a terminal session or stored output;
-		// display-only invocations with no output don't need the output area at all
 		if (this._terminalData.terminalToolSessionId || this._terminalData.terminalCommandOutput) {
 			elements.container.append(this._outputView.domNode);
 		}
@@ -422,9 +351,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		this._register(this._outputView.onDidBlur(e => this._handleOutputBlur(e)));
 		this._register(toDisposable(() => this._handleDispose()));
 
-		// Use a lightweight ActionBar instead of MenuWorkbenchToolBar to avoid
-		// accumulating listeners on the shared IContextKeyService when many
-		// terminal tool progress parts exist concurrently (fixes listener LEAK).
 		const actionBarEl = h('.chat-terminal-action-bar@actionBar');
 		elements.title.append(actionBarEl.root);
 		this._actionBar = this._register(new ActionBar(actionBarEl.actionBar));
@@ -490,7 +416,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			}));
 		}
 
-		// Keep thinking-container semantics separate from wrapper semantics.
 		const terminalToolsInThinking = this._configurationService.getValue<boolean>(ChatConfiguration.TerminalToolsInThinking);
 		const isSimpleTerminal = this._configurationService.getValue<boolean>(ChatConfiguration.SimpleTerminalCollapsible);
 		const requiresConfirmation = toolInvocation.kind === 'toolInvocation' && IChatToolInvocation.getConfirmationMessages(toolInvocation);
@@ -505,7 +430,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 
 		this._renderImagePills(toolInvocation, context, elements.container);
 
-		// Only auto-expand in thinking containers if there's actual output to show
 		const hasStoredOutput = !!terminalData.terminalCommandOutput;
 		const storedExpandedState = expandedStateByInvocation.get(toolInvocation);
 		const hasStoredExpandedState = expandedStateByInvocation.has(toolInvocation);
@@ -515,11 +439,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		this._register(this._terminalChatService.registerProgressPart(this));
 	}
 
-	/**
-	 * Renders image attachment pills below the terminal output when the tool
-	 * result contains image data parts. For collapsible wrappers, the single
-	 * widget is reparented between inside/outside based on expanded state.
-	 */
 	private _renderImagePills(toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized, context: IChatContentPartRenderContext, innerContainer: HTMLElement): void {
 		const renderImages = () => {
 			const extracted = extractImagesFromToolInvocationOutputDetails(toolInvocation, context.element.sessionResource);
@@ -536,7 +455,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			const widget = this._register(this._instantiationService.createInstance(ChatResourceGroupWidget, imageParts, undefined));
 
 			if (this._thinkingCollapsibleWrapper) {
-				// Reparent the single widget between inner (expanded) and outer (collapsed)
 				const wrapper = this._thinkingCollapsibleWrapper;
 				const placeWidget = (expanded: boolean) => {
 					if (expanded) {
@@ -567,14 +485,10 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 	}
 
 	private _createCollapsibleWrapper(contentElement: HTMLElement, commandText: string, toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized, context: IChatContentPartRenderContext): HTMLElement {
-		// truncate header when it's too long
 		const truncatedCommand = commandText.length > MAX_COMMAND_TITLE_LENGTH
 			? commandText.substring(0, MAX_COMMAND_TITLE_LENGTH) + '...'
 			: commandText;
 
-		// A background terminal may have its tool invocation marked complete (the
-		// tool returned) while the terminal command is still running. Detect this
-		// so the wrapper shows "Running … in background" instead of "Ran …".
 		const toolInvocationComplete = IChatToolInvocation.isComplete(toolInvocation);
 		const isRunningInBackground = toolInvocationComplete && this._isInvocationRunning();
 		const isComplete = toolInvocationComplete && !isRunningInBackground;
@@ -599,8 +513,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		));
 		this._thinkingCollapsibleWrapper = wrapper;
 
-		// Sync terminal output expansion with the collapsible wrapper.
-		// Skip the initial run — initial state is handled separately.
 		let isFirstRun = true;
 		this._register(autorun(r => {
 			const expanded = wrapper.expanded.read(r);
@@ -681,17 +593,12 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		}
 	}
 
-	/**
-	 * Updates the scoped context keys that drive toolbar action visibility.
-	 * The ActionBar is rebuilt with the correct set of visible actions.
-	 */
 	private _updateToolbarContextKeys(terminalInstance?: ITerminalInstance, terminalToolSessionId?: string): void {
 		if (this._store.isDisposed) {
 			return;
 		}
 		const resolvedCommand = this._getResolvedCommand(terminalInstance);
 
-		// Focus terminal action
 		this._toolbarHasInstance = !!terminalInstance;
 		if (terminalInstance && terminalToolSessionId) {
 			this._toolbarIsHiddenTerminal = this._terminalChatService.isBackgroundTerminal(terminalToolSessionId);
@@ -699,7 +606,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			this._toolbarIsHiddenTerminal = false;
 		}
 
-		// Continue in background action
 		if (terminalInstance && terminalToolSessionId && !this._terminalData.isBackground && !this._terminalData.didContinueInBackground) {
 			const isStillRunning = resolvedCommand?.exitCode === undefined && this._terminalData.terminalCommandState?.exitCode === undefined;
 			this._toolbarCanContinueInBackground = isStillRunning;
@@ -707,13 +613,11 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			this._toolbarCanContinueInBackground = false;
 		}
 
-		// Show output action (only when NOT using collapsible wrapper)
 		if (!this._usesCollapsibleWrapper) {
 			const hasSnapshot = !!this._terminalData.terminalCommandOutput || !!this._outputSource?.output;
 			const hasOutput = !!resolvedCommand || hasSnapshot;
 			this._toolbarHasOutput = hasOutput;
 
-			// Auto-expand on first detection of failed output
 			if (hasOutput && !this._outputView.isExpanded) {
 				const autoExpandFailures = this._configurationService.getValue<boolean>(ChatConfiguration.AutoExpandToolFailures);
 				const exitCode = resolvedCommand?.exitCode ?? this._outputSource?.exitCode ?? this._terminalData.terminalCommandState?.exitCode;
@@ -727,9 +631,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		this._decoration.update(resolvedCommand);
 	}
 
-	/**
-	 * Rebuilds the ActionBar actions based on current toolbar state.
-	 */
 	private _updateToolbarActions(): void {
 		if (!this._actionBar || this._store.isDisposed) {
 			return;
@@ -828,11 +729,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		this._decoration.update();
 	}
 
-	/**
-	 * Determines whether the terminal output should auto-expand.
-	 * Returns false if already expanded, user has manually toggled, component is disposed,
-	 * or if the invocation was previously expanded (to preserve state across re-renders).
-	 */
 	private _shouldAutoExpand(): boolean {
 		return !this._outputView.isExpanded &&
 			!this._userToggledOutput &&
@@ -841,15 +737,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			!expandedStateByInvocation.get(this.toolInvocation);
 	}
 
-	/**
-	 * Registers event listeners on the terminal instance to track command execution,
-	 * manage auto-expansion of output, and handle command completion.
-	 *
-	 * This method sets up:
-	 * - Command detection listeners for tracking command lifecycle
-	 * - Auto-expand logic based on command output and duration
-	 * - Instance disposal handling to clean up actions and state
-	 */
 	private _registerInstanceListener(terminalInstance: ITerminalInstance): void {
 		const commandDetectionListener = this._register(new MutableDisposable<IDisposable>());
 		const tryResolveCommand = async (): Promise<ITerminalCommand | undefined> => {
@@ -861,7 +748,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		const attachCommandDetection = async (commandDetection: ICommandDetectionCapability | undefined) => {
 			commandDetectionListener.clear();
 			if (!commandDetection) {
-				// Try AHP command source as fallback
 				const ahpSource = this._terminalData.terminalToolSessionId
 					? this._terminalChatService.getAhpCommandSource(this._terminalData.terminalToolSessionId)
 					: undefined;
@@ -876,11 +762,9 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			let receivedDataCount = 0;
 
 			const hasRealOutput = (): boolean => {
-				// Check for snapshot output
 				if (this._terminalData.terminalCommandOutput?.text?.trim()) {
 					return true;
 				}
-				// Check for live output (cursor moved past executed marker)
 				const command = this._getResolvedCommand(terminalInstance);
 				if (!command?.executedMarker || terminalInstance.isDisposed) {
 					return false;
@@ -893,14 +777,9 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 				if (cursorLine > command.executedMarker.line) {
 					return true;
 				}
-				// If we've received many data events, treat it as real output even if cursor
-				// hasn't moved past the marker (e.g., progress bars updating on same line)
-				// Shell integration sequences fire a couple times per command (PromptStart, CommandStart,
-				// CommandExecuted), so we need a small threshold to filter those out
 				return receivedDataCount > MIN_DATA_EVENTS_FOR_REAL_OUTPUT;
 			};
 
-			// Use the extracted auto-expand logic
 			const autoExpand = store.add(new TerminalToolAutoExpand({
 				onCommandExecuted: Event.map(commandDetection.onCommandExecuted, () => undefined),
 				onCommandFinished: Event.map(commandDetection.onCommandFinished, () => undefined),
@@ -915,7 +794,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 				this._toggleOutput(true);
 			}));
 
-			// Track data events to help hasRealOutput detect progress-style output
 			store.add(terminalInstance.onWillData(() => {
 				receivedDataCount++;
 			}));
@@ -958,11 +836,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		}));
 	}
 
-	/**
-	 * Sets up listeners using an {@link IAhpTerminalCommandSource} when no local
-	 * `ICommandDetectionCapability` is available. Provides auto-expand, toolbar
-	 * context key updates, and command completion handling.
-	 */
 	private _attachAhpCommandSource(
 		terminalInstance: ITerminalInstance,
 		ahpSource: IAhpTerminalCommandSource,
@@ -971,8 +844,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		const store = new DisposableStore();
 
 		const hasRealOutput = (): boolean => {
-			// For AHP terminals, shell integration sequences are stripped server-side.
-			// Real output is simply whether the command has non-empty output.
 			const command = this._getResolvedCommand(terminalInstance);
 			if (command?.hasOutput()) {
 				return true;
@@ -995,7 +866,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		}));
 
 		store.add(ahpSource.onCommandExecuted(cmd => {
-			// Set terminalCommandId on tool invocation data for future lookups
 			if (!this._terminalData.terminalCommandId && cmd.id) {
 				this._terminalData.terminalCommandId = cmd.id;
 				this._updateToolbarContextKeys(terminalInstance, this._terminalData.terminalToolSessionId);
@@ -1015,30 +885,19 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 
 		commandDetectionListener.value = store;
 
-		// Check if the command was already resolved (e.g. during content replay)
 		const resolvedCommand = this._resolveCommand(terminalInstance);
 		if (resolvedCommand?.endMarker) {
 			this._handleCommandCompletion(resolvedCommand);
 		}
 	}
 
-	/**
-	 * Handles the completion of a terminal command by updating the UI state.
-	 * This includes marking the collapsible wrapper as complete, auto-collapsing
-	 * successful commands, and keeping failed commands expanded.
-	 *
-	 * @param resolvedCommand The completed terminal command with exit code information.
-	 */
 	private _handleCommandCompletion(resolvedCommand: ITerminalCommand | undefined): void {
-		// Update title to show completion state
 		this.markCollapsibleWrapperComplete();
 
-		// Auto-collapse on success (exit code 0)
 		if (resolvedCommand?.exitCode === 0 && this._outputView.isExpanded && !this._userToggledOutput && !this._forceExpandTerminalOutput) {
 			this._toggleOutput(false);
 		}
 
-		// Keep outer wrapper expanded on error for visibility
 		const autoExpandFailures = this._configurationService.getValue<boolean>(ChatConfiguration.AutoExpandToolFailures);
 		if (autoExpandFailures && resolvedCommand?.exitCode !== undefined && resolvedCommand.exitCode !== 0 && this._thinkingCollapsibleWrapper) {
 			this.expandCollapsibleWrapper();
@@ -1048,11 +907,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 	private async _toggleOutput(expanded: boolean): Promise<boolean> {
 		const didChange = await this._outputView.toggle(expanded);
 		const isExpanded = this._outputView.isExpanded;
-		// Only drop the title's bottom border/radius when the output section is
-		// actually rendered below the title to visually close the box. Display-only
-		// invocations (e.g. a denied command with no terminal session or output) never
-		// append the output section (see constructor), so removing the title's bottom
-		// border here would leave an open-bottomed box.
 		const hasOutputSection = !!this._outputView.domNode.parentElement;
 		this._titleElement.classList.toggle('chat-terminal-content-title-no-bottom-radius', isExpanded && hasOutputSection);
 		this._toolbarOutputExpanded = isExpanded;
@@ -1267,7 +1121,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 
 		const targetId = this._terminalData.terminalCommandId;
 
-		// Try local shell integration command detection first
 		const commandDetection = instance.capabilities.get(TerminalCapability.CommandDetection);
 		if (commandDetection && targetId) {
 			const commands = commandDetection.commands;
@@ -1284,7 +1137,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			}
 		}
 
-		// Fall back to AHP command source
 		const sessionId = this._terminalData.terminalToolSessionId;
 		if (sessionId) {
 			const ahpSource = this._terminalChatService.getAhpCommandSource(sessionId);
@@ -1292,7 +1144,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 				if (targetId) {
 					return ahpSource.getCommandById(targetId);
 				}
-				// No specific command ID — return executing or most recent
 				return ahpSource.executingCommandObject ?? ahpSource.commands[ahpSource.commands.length - 1];
 			}
 		}
@@ -1301,21 +1152,6 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 	}
 }
 
-/**
- * A component that displays terminal command output in an expandable/collapsible section.
- *
- * This component supports two modes of displaying output:
- * - **Live output**: Mirrors the output from a running terminal instance in real-time,
- *   supporting streaming updates, scroll-lock behavior, and user input forwarding.
- * - **Snapshot output**: Displays a static snapshot of previously captured terminal output,
- *   useful for serialized/restored chat sessions.
- *
- * Features:
- * - Automatic height calculation based on line count (min/max row limits)
- * - Scroll-lock behavior: stays at bottom during streaming, respects user scroll position
- * - Accessibility: proper ARIA labels and accessible view support
- * - Theme-aware background color that adapts to panel vs editor context
- */
 export class ChatTerminalToolOutputSection extends Disposable {
 	public readonly domNode: HTMLElement;
 
@@ -1402,7 +1238,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		}
 		await this._updateTerminalContent();
 
-		// Only now show the expanded state (after content is ready)
 		this._setExpanded(true);
 		await this._layoutMirrorWidth();
 		this._layoutOutput();
@@ -1492,7 +1327,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		this.domNode.appendChild(scrollableDomNode);
 		this.updateAriaLabel();
 
-		// Show horizontal scrollbar on hover/focus, hide otherwise to prevent flickering during streaming
 		this._register(dom.addDisposableListener(this.domNode, dom.EventType.MOUSE_ENTER, () => {
 			this._scrollableContainer?.updateOptions({ horizontal: ScrollbarVisibility.Auto });
 		}));
@@ -1506,7 +1340,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 			this._scrollableContainer?.updateOptions({ horizontal: ScrollbarVisibility.Hidden });
 		}));
 
-		// Track scroll state to enable scroll lock behavior (only for user scrolls)
 		this._register(this._scrollableContainer.onScroll(() => {
 			if (this._isProgrammaticScroll) {
 				return;
@@ -1574,7 +1407,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		this._mirror = mirror;
 		this._register(mirror.onDidChangeRowHeight(() => this._handleMirrorRowHeightChange()));
 		this._register(mirror.onDidUpdate(result => {
-			// Hide empty message as soon as we get output
 			if (result.lineCount && result.lineCount > 0) {
 				this._hideEmptyMessage();
 			}
@@ -1583,7 +1415,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 				this._scrollOutputToBottom();
 			}
 		}));
-		// Forward input from the mirror terminal to the live terminal instance
 		this._register(mirror.onDidInput(data => {
 			if (!liveTerminalInstance.isDisposed) {
 				liveTerminalInstance.sendText(data, false);
@@ -1592,17 +1423,9 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		await mirror.attach(this._terminalContainer);
 		await this._layoutMirrorWidth(mirror);
 		let result = await mirror.renderCommand();
-		// Only show "No output" message if:
-		// 1. Command has finished (has endMarker), AND
-		// 2. There's no output after retrying
-		// If command is still running, don't show the message - output may come later
 		let commandFinished = !!command.endMarker;
 		let hasOutput = result && result.lineCount && result.lineCount > 0;
 
-		// If we got no output, poll until either output appears or command finishes
-		// This handles cases where:
-		// 1. Command is running but executedMarker isn't set yet (renderCommand returns undefined)
-		// 2. Command finished quickly but buffer isn't ready yet
 		if (!hasOutput) {
 			for (let retry = 0; retry < MAX_OUTPUT_POLL_RETRIES && !hasOutput; retry++) {
 				await timeout(OUTPUT_POLL_DELAY_MS);
@@ -1612,7 +1435,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 				result = await mirror.renderCommand();
 				hasOutput = result && result.lineCount && result.lineCount > 0;
 				commandFinished = !!command.endMarker;
-				// Stop polling if command finished (we'll show "no output" or output)
 				if (commandFinished) {
 					break;
 				}
@@ -1623,7 +1445,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 			if (commandFinished) {
 				this._showEmptyMessage(localize('chat.terminalOutputEmpty', 'No output was produced by the command.'));
 			}
-			// If command is still running, leave content empty but don't show "no output" message
 		} else {
 			this._hideEmptyMessage();
 		}
@@ -1700,11 +1521,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		});
 	}
 
-	/**
-	 * The mirror's painted cell metrics changed: the first render replaces the pre-render
-	 * font estimate, and later renders can reflect DPR changes. Re-run layout so the box
-	 * height and wrap width match what xterm actually painted.
-	 */
 	private _handleMirrorRowHeightChange(): void {
 		void this._layoutMirrorWidth();
 		this._layoutOutput();
@@ -1723,11 +1539,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		}
 	}
 
-	/**
-	 * Resizes the mirror's column count to fill the currently available width. No-op while the
-	 * width is unmeasurable (e.g. collapsed); the mirror keeps its current cols until the next
-	 * layout opportunity.
-	 */
 	private async _layoutMirrorWidth(mirror: DetachedTerminalCommandMirror | DetachedTerminalSnapshotMirror | undefined = this._snapshotMirror ?? this._mirror): Promise<void> {
 		if (!mirror) {
 			return;
@@ -1738,7 +1549,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		}
 		const result = await mirror.layout(width);
 		if (!this._store.isDisposed && result?.lineCount !== undefined) {
-			// Re-wrapping can change the number of rendered rows, so refresh the box height
 			this._layoutOutput(result.lineCount);
 		}
 	}
@@ -1762,21 +1572,12 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		const scrollableDomNode = this._scrollableContainer.getDomNode();
 		const rowHeight = this._computeRowHeightPx();
 		const padding = this._getOutputPadding();
-		// The container carries a CSS max-height with overflow: hidden; keep the row cap
-		// under it so the CSS limit can never slice a row that the height math allowed.
 		let maxRows = MAX_OUTPUT_ROWS;
 		const containerMaxHeight = Number.parseFloat(dom.getComputedStyle(this.domNode).maxHeight);
 		if (!Number.isNaN(containerMaxHeight)) {
 			maxRows = Math.max(Math.min(maxRows, Math.floor((containerMaxHeight - padding) / rowHeight)), MIN_OUTPUT_ROWS);
 		}
 		const contentRows = Math.min(Math.max(lineCount, MIN_OUTPUT_ROWS), maxRows);
-		// Use the line-count-based calculation directly rather than constraining by
-		// _outputBody.clientHeight. The DOM measurement races with xterm's async
-		// rendering — when new lines arrive, clientHeight reflects the stale
-		// (pre-render) size, causing the viewport to be too short and clipping the
-		// last line. The height is an exact multiple of the mirror's painted row
-		// height (plus the output padding) with no rounding slack, so the box always
-		// ends on a whole row.
 		scrollableDomNode.style.height = `${contentRows * rowHeight + padding}px`;
 		this._scrollableContainer.scanDomNode();
 	}
@@ -1787,7 +1588,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 		}
 		const dimensions = this._scrollableContainer.getScrollDimensions();
 		const scrollPosition = this._scrollableContainer.getScrollPosition();
-		// Consider "at bottom" if within a small threshold to account for rounding
 		const threshold = 5;
 		return scrollPosition.scrollTop >= dimensions.scrollHeight - dimensions.height - threshold;
 	}
@@ -1810,9 +1610,6 @@ export class ChatTerminalToolOutputSection extends Disposable {
 	}
 
 	private _computeRowHeightPx(): number {
-		// Prefer the mirror's own row height: once its renderer has initialized this is the
-		// exact cell height xterm paints, so the box ends on a whole row instead of slicing
-		// the last one via the config-based estimate below.
 		const mirrorRowHeight = (this._snapshotMirror ?? this._mirror)?.getRowHeightPx();
 		if (mirrorRowHeight !== undefined) {
 			return mirrorRowHeight;
@@ -1859,11 +1656,6 @@ export class ChatTerminalThinkingCollapsibleWrapper extends ChatCollapsibleConte
 		@IConfigurationService configurationService: IConfigurationService,
 		@ITelemetryService telemetryService: ITelemetryService,
 	) {
-		// When the model supplied an intention (why it's running the command),
-		// use it as the descriptive text instead of the generic verb. Skipped
-		// commands keep the explicit "Skipped" wording since they never ran.
-		// The intention and command are not localizable, so they are combined
-		// directly; only the state suffix is externalized.
 		const intentionText = intention && !isSkipped ? intention : undefined;
 		const stateTitle = isSkipped
 			? localize('chat.terminal.skipped.plain', "Skipped {0}", commandText)
@@ -1928,9 +1720,6 @@ export class ChatTerminalThinkingCollapsibleWrapper extends ChatCollapsibleConte
 				? localize('chat.terminal.backgroundSuffix', " in background")
 				: undefined;
 
-		// Intention layout: the intention and the command share the row as two
-		// flex cells that stay on one line and each ellipsis-truncate, splitting
-		// the available width equally when the content overflows.
 		this.domNode.classList.toggle('chat-terminal-has-intention', !!this._intention);
 		if (this._intention) {
 			const row = dom.$('span.chat-terminal-label-flex');

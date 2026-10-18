@@ -66,7 +66,7 @@ export class ResourceWithCommentThreads {
 	uniqueOwner: string;
 	owner: string;
 	ownerLabel: string | undefined;
-	commentThreads: CommentNode[]; // The top level comments on the file. Replys are nested under each node.
+	commentThreads: CommentNode[];
 	resource: URI;
 
 	constructor(uniqueOwner: string, owner: string, resource: URI, commentThreads: CommentThread[]) {
@@ -94,7 +94,6 @@ export class ResourceWithCommentThreads {
 	get lastUpdatedAt() {
 		if (this._lastUpdatedAt === undefined) {
 			let updatedAt = '';
-			// Return result without cahcing as we expect data to arrive later
 			if (!this.commentThreads.length) {
 				return updatedAt;
 			}

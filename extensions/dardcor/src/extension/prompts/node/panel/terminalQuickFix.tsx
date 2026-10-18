@@ -104,7 +104,6 @@ export class TerminalQuickFixPrompt extends PromptElement<TerminalQuickFixPrompt
 	}
 
 	override render(state: TerminalQuickFixPromptState): PromptPiece<any, any> | undefined {
-		// A low priority is used here as file references could be very large
 		const fileVariables = this.props.verifiedContextUris.map(uri => {
 			return <FileVariable variableName={basename(uri.path)} variableValue={uri}></FileVariable>;
 		});

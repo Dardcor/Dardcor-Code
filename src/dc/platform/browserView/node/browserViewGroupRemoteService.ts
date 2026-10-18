@@ -11,26 +11,10 @@ import { IBrowserViewGroup, IBrowserViewGroupService, IBrowserViewGroupViewEvent
 import { IBrowserViewOwner } from '../common/browserView.js';
 import { CDPEvent, CDPRequest, CDPResponse } from '../common/cdp/types.js';
 
-/**
- * Remote-process service for managing browser view groups.
- *
- * Connects to the main-process {@link BrowserViewGroupMainService} via
- * IPC and provides {@link IBrowserViewGroup} instances for
- * interacting with groups.
- *
- * Usable from the shared process.
- */
 export interface IBrowserViewGroupRemoteService {
-	/**
-	 * Create a new browser view group.
-	 * @param owner The owner of the group's lifecycle.
-	 */
 	createGroup(owner: IBrowserViewOwner): Promise<IBrowserViewGroup>;
 }
 
-/**
- * Remote proxy for a browser view group living in the main process.
- */
 class RemoteBrowserViewGroup extends Disposable implements IBrowserViewGroup {
 	constructor(
 		readonly id: string,
@@ -39,7 +23,6 @@ class RemoteBrowserViewGroup extends Disposable implements IBrowserViewGroup {
 		super();
 
 		this._register(groupService.onDynamicDidDestroy(this.id)(() => {
-			// Avoid loops
 			this.dispose(true);
 		}));
 	}

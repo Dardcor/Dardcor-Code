@@ -24,17 +24,8 @@ import { decodeBase64, encodeBase64, VSBuffer } from '../../../../../base/common
 import { Mutable } from '../../../../../base/common/types.js';
 
 
-/**
- * An icon for a chat context item. Mirrors the `IconPath` type from the extension API:
- * either a {@link ThemeIcon theme icon}, a single {@link URI} or separate light/dark {@link URI uris}.
- */
 export type ChatContextIconPath = ThemeIcon | URI | { light: URI; dark: URI };
 
-/**
- * Type guard for {@link ChatContextIconPath}. Accepts a {@link ThemeIcon theme icon}, a single
- * {@link URI} or an object with both `light` and `dark` {@link URI uris}. Rejects `null`, `undefined`
- * and partially-specified light/dark objects.
- */
 export function isChatContextIconPath(value: unknown): value is ChatContextIconPath {
 	if (!value || typeof value !== 'object') {
 		return false;
@@ -46,13 +37,6 @@ export function isChatContextIconPath(value: unknown): value is ChatContextIconP
 	return URI.isUri(asDualPath.light) && URI.isUri(asDualPath.dark);
 }
 
-/**
- * Resolve a {@link ChatContextIconPath} into a value that can be passed to the `iconPath`
- * option of an icon label, picking the light or dark uri based on the current theme.
- *
- * @param iconPath The icon path to resolve.
- * @param useDark Whether the current theme is a dark theme.
- */
 export function resolveChatContextIcon(iconPath: ChatContextIconPath, useDark: boolean): ThemeIcon | URI {
 	if (ThemeIcon.isThemeIcon(iconPath) || URI.isUri(iconPath)) {
 		return iconPath;
@@ -67,20 +51,10 @@ interface IBaseChatRequestVariableEntry {
 	readonly name: string;
 	readonly modelDescription?: string;
 
-	/**
-	 * The offset-range in the prompt. This means this entry has been explicitly typed out
-	 * by the user.
-	 */
 	readonly range?: IOffsetRange;
 	readonly value: IChatRequestVariableValue;
 	readonly references?: IChatContentReference[];
 
-	/**
-	 * Implementation-defined metadata that providers attach to a variable
-	 * entry. Used to round-trip provider-specific data (e.g. agent-host
-	 * `_meta`) when an entry is sent back to the provider as part of a
-	 * request attachment.
-	 */
 	readonly _meta?: Record<string, unknown>;
 
 	omittedState?: OmittedState;
@@ -89,10 +63,6 @@ interface IBaseChatRequestVariableEntry {
 export interface IGenericChatRequestVariableEntry extends IBaseChatRequestVariableEntry {
 	kind: 'generic';
 	tooltip?: IMarkdownString;
-	/**
-	 * A provider-supplied icon that may be a {@link ThemeIcon theme icon}, a single uri or light/dark uris.
-	 * Takes precedence over the {@link IBaseChatRequestVariableEntry.icon base theme icon} when rendering.
-	 */
 	iconPath?: ChatContextIconPath;
 }
 
@@ -205,12 +175,6 @@ export const enum OmittedState {
 const CLAUDE_MESSAGES_MAX_IMAGES_PER_REQUEST = 20;
 const GEMINI_MAX_IMAGES_PER_REQUEST = 10;
 
-/**
- * Returns the image-attachment limit for the selected model.
- *
- * Claude-family models use a max of 20 (Messages API), Gemini-family models use
- * a max of 10. Other models do not have a UI-enforced image count limit.
- */
 export function getImageAttachmentLimit(model: Pick<ILanguageModelChatMetadata, 'family'> | undefined): number | undefined {
 	if (!model) {
 		return undefined;
@@ -247,9 +211,6 @@ export interface StringChatContextValue {
 	uri: URI;
 	resourceUri?: URI;
 	tooltip?: IMarkdownString;
-	/**
-	 * Command ID to execute when this context item is clicked.
-	 */
 	readonly commandId?: string;
 	readonly handle: number;
 }
@@ -271,9 +232,6 @@ export interface IChatRequestStringVariableEntry extends IBaseChatRequestVariabl
 	readonly uri: URI;
 	readonly resourceUri?: URI;
 	readonly tooltip?: IMarkdownString;
-	/**
-	 * Command ID to execute when this context item is clicked.
-	 */
 	readonly commandId?: string;
 	readonly handle: number;
 }
@@ -283,7 +241,6 @@ export interface IChatRequestTranscriptContextVariableEntry extends IBaseChatReq
 	readonly value: string;
 	readonly uri: URI;
 	readonly tooltip?: string;
-	/** Message shown when hidden transcript preparation for this context completes. */
 	readonly readyMessage?: string;
 }
 
@@ -300,10 +257,8 @@ export interface IChatRequestPasteVariableEntry extends IBaseChatRequestVariable
 	readonly language: string;
 	readonly pastedLines: string;
 
-	// This is only used for old serialized data and should be removed once we no longer support it
 	readonly fileName: string;
 
-	// This is only undefined on old serialized data
 	readonly copiedFrom: {
 		readonly uri: URI;
 		readonly range: IRange;
@@ -434,8 +389,6 @@ export namespace IDiagnosticVariableEntryFilterData {
 				return data.problemMessage;
 			}
 
-			// Trim the message, on a space if it would not lose too much
-			// data (MaxSpaceLookback) or just blindly otherwise.
 			const lastSpace = data.problemMessage.lastIndexOf(' ', TrimThreshold.MaxChars);
 			if (lastSpace === -1 || lastSpace + TrimThreshold.MaxSpaceLookback < TrimThreshold.MaxChars) {
 				return data.problemMessage.substring(0, TrimThreshold.MaxChars) + '…';
@@ -536,12 +489,6 @@ export interface IDebugVariableEntry extends IBaseChatRequestVariableEntry {
 export interface IAgentFeedbackVariableEntry extends IBaseChatRequestVariableEntry {
 	readonly kind: 'agentFeedback';
 	readonly sessionResource: URI;
-	/**
-	 * The agent-host annotations channel URI that backs these feedback items
-	 * (each item id is an annotation id on this channel). Set only for
-	 * agent-host sessions; used to emit {@link MessageAnnotationsAttachment}s
-	 * referencing the specific comments on the wire.
-	 */
 	readonly annotationsResource?: URI;
 	readonly feedbackItems: ReadonlyArray<{
 		readonly id: string;
@@ -550,20 +497,15 @@ export interface IAgentFeedbackVariableEntry extends IBaseChatRequestVariableEnt
 		readonly range: IRange;
 		readonly codeSelection?: string;
 		readonly diffHunks?: string;
-		/** When this item was converted from a PR review comment, the original thread ID. */
 		readonly sourcePRReviewCommentId?: string;
-		/** Pull request that originated this PR review comment. */
 		readonly sourcePullRequest?: IFeedbackPullRequest;
-		/** Additional replies that belong to the same comment thread as {@link text}. */
 		readonly replies?: readonly string[];
 	}>;
 }
 
 export interface IChatRequestDebugEventsVariableEntry extends IBaseChatRequestVariableEntry {
 	readonly kind: 'debugEvents';
-	/** Timestamp when the debug events were snapshotted. */
 	readonly snapshotTime: number;
-	/** The session resource these debug events belong to. */
 	readonly sessionResource: URI;
 }
 
@@ -582,72 +524,22 @@ export function isBrowserViewVariableEntry(entry: IChatRequestVariableEntry): en
 	return entry.kind === 'browserView';
 }
 
-/**
- * A first-class reference to another agent-host chat, produced when the user
- * types `#chat:<title>` in an agent-host chat input or drops a chat tab onto the
- * input. Carries everything needed to render the reference chip and to send an
- * agent-host chat attachment: the referenced chat's opaque backend chat URI
- * ({@link value}) and, when pinned, the {@link endTurn last completed turn}
- * included in the transcript. The display title lives on
- * {@link IBaseChatRequestVariableEntry.name name}.
- */
 export interface IChatRequestChatReferenceVariableEntry extends IBaseChatRequestVariableEntry {
 	readonly kind: 'chatReference';
-	/**
-	 * The referenced chat's **opaque backend chat URI** — the exact value carried
-	 * on `MessageChatAttachment.resource` on the wire. It is provider-defined and
-	 * opaque: generic code MUST only store it, compare it by equality, and pass it
-	 * to agent-host-owned helpers (e.g. the chat-reference widget's link builder);
-	 * it MUST NOT parse or construct it. Send and restore are therefore pure
-	 * identity, and the client-side chat is resolved lazily (only when the user
-	 * clicks the reference chip). Because a reference can never cross agent hosts,
-	 * the URI always names a chat on a connected host.
-	 */
 	readonly value: URI;
-	/**
-	 * Last completed turn included in the referenced transcript. Omitted for
-	 * references that do not pin a turn (e.g. a dropped chat/session), in which
-	 * case the host resolves the referenced chat's latest completed turn when it
-	 * accepts the message.
-	 */
 	readonly endTurn?: string;
 }
 
-/**
- * Type guard for a {@link IChatRequestChatReferenceVariableEntry chat-reference entry}.
- */
 export function isChatReferenceVariableEntry(entry: IChatRequestVariableEntry): entry is IChatRequestChatReferenceVariableEntry {
 	return entry.kind === 'chatReference';
 }
 
-/**
- * Stable, dedupe-friendly id for a chat reference, derived from the referenced
- * chat resource and — when the reference pins a turn — the last completed turn.
- * Re-accepting the same reference therefore produces the same id. A pinned
- * reference (with {@link endTurn}) and an unpinned one to the same chat produce
- * distinct ids so they never collide.
- *
- * @param chatResource The opaque backend chat URI of the referenced chat. Stored
- * verbatim in the id; never parsed.
- * @param endTurn The last completed turn included in the referenced transcript, if pinned.
- */
 export function chatReferenceVariableEntryId(chatResource: URI, endTurn?: string): string {
 	return endTurn === undefined
 		? `agent-host-chat:${chatResource.toString()}`
 		: `agent-host-chat:${chatResource.toString()}\u0000${endTurn}`;
 }
 
-/**
- * Build the first-class {@link IChatRequestChatReferenceVariableEntry chat-reference entry}
- * (the input pill) for a referenced chat.
- *
- * @param chatResource The opaque backend chat URI of the referenced chat (the
- * value carried on `MessageChatAttachment.resource`). Stored verbatim; never parsed.
- * @param endTurn The last completed turn included in the referenced transcript, if pinned.
- * @param title The chat title used as the display label.
- * @param _meta Provider-supplied `_meta` to preserve on the entry.
- * @param range The offset-range of the reference in the prompt, when typed out.
- */
 export function createChatReferenceVariableEntry(chatResource: URI, endTurn: string | undefined, title: string, _meta?: Record<string, unknown>, range?: IOffsetRange): IChatRequestChatReferenceVariableEntry {
 	return {
 		kind: 'chatReference',
@@ -660,55 +552,22 @@ export function createChatReferenceVariableEntry(chatResource: URI, endTurn: str
 	};
 }
 
-/**
- * Transient value carried on a chat-reference dynamic variable (via its `data`
- * channel) so the request parser can rebuild the first-class
- * {@link IChatRequestChatReferenceVariableEntry} without an out-of-band `_meta`
- * bag. This never becomes the entry's `value` — see
- * {@link chatReferenceVariableEntryFromDynamicValue}.
- */
 export interface IChatReferenceDynamicVariableValue {
 	readonly $mid: 'agentHostChatReference';
-	/**
-	 * The referenced chat's **opaque backend chat URI** as a string — the exact
-	 * value carried on `MessageChatAttachment.resource`. Becomes the rebuilt
-	 * entry's {@link IChatRequestChatReferenceVariableEntry.value}. Never parsed
-	 * by generic code.
-	 */
 	readonly chatResource: string;
-	/** Last completed turn included in the referenced transcript, if pinned. */
 	readonly endTurn?: string;
 }
 
-/**
- * Build the {@link IChatReferenceDynamicVariableValue dynamic-variable transport}
- * for a chat reference.
- */
 export function toChatReferenceDynamicVariableValue(chatResource: URI, endTurn?: string): IChatReferenceDynamicVariableValue {
 	return endTurn === undefined
 		? { $mid: 'agentHostChatReference', chatResource: chatResource.toString() }
 		: { $mid: 'agentHostChatReference', chatResource: chatResource.toString(), endTurn };
 }
 
-/**
- * Type guard for a {@link IChatReferenceDynamicVariableValue}.
- */
 export function isChatReferenceDynamicVariableValue(value: IChatRequestVariableValue): value is IChatReferenceDynamicVariableValue {
 	return typeof value === 'object' && value !== null && (value as { $mid?: unknown }).$mid === 'agentHostChatReference';
 }
 
-/**
- * Rebuild a first-class {@link IChatRequestChatReferenceVariableEntry} from a
- * chat-reference {@link IChatReferenceDynamicVariableValue dynamic-variable value}
- * carried through the request parser. Returns `undefined` when the resource
- * cannot be parsed.
- *
- * @param value The dynamic-variable transport value.
- * @param id The stable dynamic-variable id.
- * @param name The display title for the reference.
- * @param range The offset-range of the reference in the prompt.
- * @param _meta Provider-supplied `_meta` to preserve on the entry.
- */
 export function chatReferenceVariableEntryFromDynamicValue(value: IChatReferenceDynamicVariableValue, id: string, name: string, range: IOffsetRange | undefined, _meta: Record<string, unknown> | undefined): IChatRequestChatReferenceVariableEntry | undefined {
 	let chatResource: URI;
 	try {
@@ -739,9 +598,6 @@ export type IChatRequestVariableEntry = IGenericChatRequestVariableEntry | IChat
 
 export namespace IChatRequestVariableEntry {
 
-	/**
-	 * Returns URI of the passed variant entry. Return undefined if not found.
-	 */
 	export function toUri(entry: IChatRequestVariableEntry): URI | undefined {
 		return URI.isUri(entry.value)
 			? entry.value
@@ -752,7 +608,6 @@ export namespace IChatRequestVariableEntry {
 
 	export function toExport(v: IChatRequestVariableEntry): IChatRequestVariableEntry {
 		if (v.value instanceof Uint8Array) {
-			// 'dup' here is needed otherwise TS complains about the narrowed `value` in a spread operation
 			const dup: Mutable<IChatRequestVariableEntry> = { ...v };
 			dup.value = { $base64: encodeBase64(VSBuffer.wrap(v.value)) };
 			return dup;
@@ -768,7 +623,6 @@ export namespace IChatRequestVariableEntry {
 	}
 
 	export function fromExport(v: IChatRequestVariableEntry): IChatRequestVariableEntry {
-		// Old variables format
 		// eslint-disable-next-line local/code-no-in-operator
 		if (v && 'values' in v && Array.isArray(v.values)) {
 			return {
@@ -783,7 +637,6 @@ export namespace IChatRequestVariableEntry {
 		} else {
 			// eslint-disable-next-line local/code-no-in-operator
 			if (v.value && typeof v.value === 'object' && '$base64' in v.value && typeof v.value.$base64 === 'string') {
-				// 'dup' here is needed otherwise TS complains about the narrowed `value` in a spread operation
 				const dup: Mutable<IChatRequestVariableEntry> = { ...v };
 				dup.value = decodeBase64(v.value.$base64).buffer;
 				return dup;
@@ -963,19 +816,7 @@ export enum PromptFileVariableKind {
 	PromptFile = 'vscode.prompt.file',
 }
 
-/**
- * Utility to convert a {@link uri} to a chat variable entry.
- * The `id` of the chat variable can be one of the following:
- *
- * - `vscode.instructions.file.reference__<URI>`: for all non-root prompt instructions references
- * - `vscode.instructions.file.root__<URI>`: for *root* prompt instructions references
- * - `vscode.prompt.file__<URI>`: for prompt file references
- *
- * @param uri A resource URI that points to a prompt instructions file.
- * @param kind The kind of the prompt file variable entry.
- */
 export function toPromptFileVariableEntry(uri: URI, kind: PromptFileVariableKind, originLabel?: string, automaticallyAdded = false, toolReferences?: ChatRequestToolReferenceEntry[]): IPromptFileVariableEntry {
-	//  `id` for all `prompt files` starts with the well-defined part that the copilot extension(or other chatbot) can rely on
 	return {
 		id: `${kind}__${uri.toString()}`,
 		name: `prompt:${basename(uri)}`,
@@ -1072,7 +913,7 @@ export class ChatRequestVariableSet {
 	}
 
 	public asArray(): IChatRequestVariableEntry[] {
-		return this._entries.slice(0); // return a copy
+		return this._entries.slice(0);
 	}
 
 	public get length(): number {

@@ -43,7 +43,7 @@ export function stringifyJsonWithBufferRefs<T>(obj: T, replacer: JSONStringifyRe
 	const foundBuffers: VSBuffer[] = [];
 	const serialized = (useSafeStringify ? safeStringify : JSON.stringify)(obj, (key, value) => {
 		if (typeof value === 'undefined') {
-			return undefinedRef; // JSON.stringify normally converts 'undefined' to 'null'
+			return undefinedRef;
 		} else if (typeof value === 'object') {
 			if (value instanceof VSBuffer) {
 				const bufferIndex = foundBuffers.push(value) - 1;
@@ -118,7 +118,7 @@ export class RPCProtocol extends Disposable implements IRPCProtocol {
 
 	[_RPCProtocolSymbol] = true;
 
-	private static readonly UNRESPONSIVE_TIME = 3 * 1000; // 3s
+	private static readonly UNRESPONSIVE_TIME = 3 * 1000;
 
 	private readonly _onDidChangeResponsiveState: Emitter<ResponsiveState> = this._register(new Emitter<ResponsiveState>());
 	public readonly onDidChangeResponsiveState: Event<ResponsiveState> = this._onDidChangeResponsiveState.event;
@@ -164,7 +164,6 @@ export class RPCProtocol extends Disposable implements IRPCProtocol {
 	public override dispose(): void {
 		this._isDisposed = true;
 
-		// Release all outstanding promises with a canceled error
 		Object.keys(this._pendingRPCReplies).forEach((msgId) => {
 			const pending = this._pendingRPCReplies[msgId];
 			delete this._pendingRPCReplies[msgId];
@@ -183,8 +182,6 @@ export class RPCProtocol extends Disposable implements IRPCProtocol {
 
 	private _onWillSendRequest(req: number): void {
 		if (this._unacknowledgedCount === 0) {
-			// Since this is the first request we are sending in a while,
-			// mark this moment as the start for the countdown to unresponsive time
 			this._unresponsiveTime = Date.now() + RPCProtocol.UNRESPONSIVE_TIME;
 		}
 		this._unacknowledgedCount++;
@@ -194,35 +191,28 @@ export class RPCProtocol extends Disposable implements IRPCProtocol {
 	}
 
 	private _onDidReceiveAcknowledge(req: number): void {
-		// The next possible unresponsive time is now + delta.
 		this._unresponsiveTime = Date.now() + RPCProtocol.UNRESPONSIVE_TIME;
 		this._unacknowledgedCount--;
 		if (this._unacknowledgedCount === 0) {
-			// No more need to check for unresponsive
 			this._asyncCheckUresponsive.cancel();
 		}
-		// The ext host is responsive!
 		this._setResponsiveState(ResponsiveState.Responsive);
 	}
 
 	private _checkUnresponsive(): void {
 		if (this._unacknowledgedCount === 0) {
-			// Not waiting for anything => cannot say if it is responsive or not
 			return;
 		}
 
 		if (Date.now() > this._unresponsiveTime) {
-			// Unresponsive!!
 			this._setResponsiveState(ResponsiveState.Unresponsive);
 		} else {
-			// Not (yet) unresponsive, be sure to check again soon
 			this._asyncCheckUresponsive.schedule();
 		}
 	}
 
 	private _setResponsiveState(newResponsiveState: ResponsiveState): void {
 		if (this._responsiveState === newResponsiveState) {
-			// no change
 			return;
 		}
 		this._responsiveState = newResponsiveState;
@@ -369,14 +359,12 @@ export class RPCProtocol extends Disposable implements IRPCProtocol {
 			promise = this._invokeHandler(rpcId, method, args);
 			cancel = () => cancellationTokenSource.cancel();
 		} else {
-			// cannot be cancelled
 			promise = this._invokeHandler(rpcId, method, args);
 			cancel = noop;
 		}
 
 		this._cancelInvokedHandlers[callId] = cancel;
 
-		// Acknowledge the request
 		const msg = MessageIO.serializeAcknowledged(req);
 		this._logger?.logOutgoing(msg.byteLength, req, RequestInitiator.OtherSide, `ack`);
 		this._protocol.send(msg);
@@ -468,7 +456,6 @@ export class RPCProtocol extends Disposable implements IRPCProtocol {
 		}
 
 		if (cancellationToken && cancellationToken.isCancellationRequested) {
-			// No need to do anything...
 			return Promise.reject<any>(errors.canceled());
 		}
 
@@ -516,7 +503,7 @@ class PendingRPCReply {
 class MessageBuffer {
 
 	public static alloc(type: MessageType, req: number, messageSize: number): MessageBuffer {
-		const result = new MessageBuffer(VSBuffer.alloc(messageSize + 1 /* type */ + 4 /* req */), 0);
+		const result = new MessageBuffer(VSBuffer.alloc(messageSize + 1 + 4 ), 0);
 		result.writeUInt8(type);
 		result.writeUInt32(req);
 		return result;
@@ -563,7 +550,7 @@ class MessageBuffer {
 	}
 
 	public static sizeShortString(str: VSBuffer): number {
-		return 1 /* string length */ + str.byteLength /* actual string */;
+		return 1 + str.byteLength ;
 	}
 
 	public writeShortString(str: VSBuffer): void {
@@ -579,7 +566,7 @@ class MessageBuffer {
 	}
 
 	public static sizeLongString(str: VSBuffer): number {
-		return 4 /* string length */ + str.byteLength /* actual string */;
+		return 4 + str.byteLength ;
 	}
 
 	public writeLongString(str: VSBuffer): void {
@@ -600,7 +587,7 @@ class MessageBuffer {
 	}
 
 	public static sizeVSBuffer(buff: VSBuffer): number {
-		return 4 /* buffer length */ + buff.byteLength /* actual buffer */;
+		return 4 + buff.byteLength ;
 	}
 
 	public writeVSBuffer(buff: VSBuffer): void {
@@ -616,10 +603,10 @@ class MessageBuffer {
 
 	public static sizeMixedArray(arr: readonly MixedArg[]): number {
 		let size = 0;
-		size += 1; // arr length
+		size += 1;
 		for (let i = 0, len = arr.length; i < len; i++) {
 			const el = arr[i];
-			size += 1; // arg type
+			size += 1;
 			switch (el.type) {
 				case ArgType.String:
 					size += this.sizeLongString(el.value);
@@ -628,14 +615,13 @@ class MessageBuffer {
 					size += this.sizeVSBuffer(el.value);
 					break;
 				case ArgType.SerializedObjectWithBuffers:
-					size += this.sizeUInt32; // buffer count
+					size += this.sizeUInt32;
 					size += this.sizeLongString(el.value);
 					for (let i = 0; i < el.buffers.length; ++i) {
 						size += this.sizeVSBuffer(el.buffers[i]);
 					}
 					break;
 				case ArgType.Undefined:
-					// empty...
 					break;
 			}
 		}
@@ -879,7 +865,7 @@ class MessageIO {
 		const resBuff = VSBuffer.fromString(res);
 
 		let len = 0;
-		len += MessageBuffer.sizeUInt32; // buffer count
+		len += MessageBuffer.sizeUInt32;
 		len += MessageBuffer.sizeLongString(resBuff);
 		for (const buffer of buffers) {
 			len += MessageBuffer.sizeVSBuffer(buffer);

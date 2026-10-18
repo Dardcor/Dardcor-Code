@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-09-30
 
 ### Initial Release
-- Monaco Code Editor engine v1.132.0 with syntax highlighting for 50+ languages.
+- Monaco Code Editor engine v1.0.0 with syntax highlighting for 50+ languages.
 - Dedicated Local AI Router running on port 25128 with multi-provider protocol translation.
 - Comprehensive BYOK support for 9 AI providers (OpenAI, Anthropic Claude, Gemini, Ollama, DeepSeek, xAI, Azure, OpenRouter, Custom).
 - Native PTY terminal integration powered by xterm.js v6 with WebGL acceleration.

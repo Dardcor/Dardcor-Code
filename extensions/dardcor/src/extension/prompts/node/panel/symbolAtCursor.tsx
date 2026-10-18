@@ -73,7 +73,6 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 	} | undefined {
 		let { selection, document } = props;
 
-		// If not provided, fall back to the active editor
 		if (!selection || !document) {
 			const editor = tabsAndEditorsService.activeTextEditor;
 			if (!editor) {
@@ -84,7 +83,6 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 			document = TextDocumentSnapshot.create(editor.document);
 		}
 
-		// This component should not return anything if we have a real selection
 		if (!selection.isEmpty) {
 			return;
 		}
@@ -95,7 +93,7 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 	}
 
 	static async getDefinitionAtRange(ignoreService: IIgnoreService, parserService: IParserService, document: TextDocumentSnapshot, range: Range, preferDefinitions: boolean) {
-		const fileIsIgnored = await ignoreService.isCopilotIgnored(document.uri);
+		const fileIsIgnored = await ignoreService.isIgnored(document.uri);
 		if (fileIsIgnored) {
 			return undefined;
 		}
@@ -118,7 +116,7 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 	}
 
 	static async getSelectedScope(ignoreService: IIgnoreService, configurationService: IConfigurationService, tabsAndEditorsService: ITabsAndEditorsService, scopeSelector: IScopeSelector, parserService: IParserService, props: Omit<SymbolAtCursorProps, 'priority'>): Promise<SelectedScope> {
-		if (!props.document || await ignoreService.isCopilotIgnored(props.document.uri)) {
+		if (!props.document || await ignoreService.isIgnored(props.document.uri)) {
 			return undefined;
 		}
 
@@ -127,7 +125,6 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 		const definition = symbolAtCursor ? await SymbolAtCursor.getDefinitionAtRange(ignoreService, parserService, symbolAtCursor.document, symbolAtCursor.range, false) : undefined;
 		const isExplicitScopeSelectionEnabled = configurationService.getConfig(ConfigKey.ExplainScopeSelection);
 		if (isExplicitScopeSelectionEnabled || symbolAtCursor && (definition?.identifier !== symbolAtCursor.selectedText || !symbolAtCursor.selectedText)) {
-			// The cursor wasn't somewhere that clearly indicates intent
 			const editor = tabsAndEditorsService.activeTextEditor;
 			if (!editor) {
 				return;
@@ -158,7 +155,6 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 		}
 
 		if (definition?.identifier === symbolAtCursor?.selectedText) {
-			// If the cursor is on a symbol reference, include the line of code that the cursor is on and the definition
 			symbolAtCursorState ??= {
 				codeAtCursor: definition.text,
 				document: symbolAtCursor.document,
@@ -167,7 +163,6 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 				references: [],
 			};
 		} else {
-			// Use the current line of code that the cursor is on
 			symbolAtCursorState ??= {
 				codeAtCursor: symbolAtCursor.document.lineAt(symbolAtCursor.range.start).text,
 				document: symbolAtCursor.document,
@@ -177,7 +172,6 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 			};
 		}
 
-		// Enrich symbol state with definitions
 		progress.report(new ChatResponseProgressPart(l10n.t("Searching for relevant definitions...")));
 		try {
 			for (const link of await this._languageFeaturesService.getDefinitions(symbolAtCursor.document.uri, symbolAtCursor.range.start)) {
@@ -193,7 +187,6 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 			}
 		} catch { }
 
-		// Enrich symbol state with references
 		progress.report(new ChatResponseProgressPart(l10n.t("Searching for relevant references...")));
 		try {
 			const seenReferences = new Set<string>();
@@ -223,7 +216,6 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 			return;
 		}
 
-		// Include a reference for the code on the line that the cursor is on
 		const info = [...state.definitions, ...state.references];
 		if (state.codeAtCursor) {
 			const { startIndex, endIndex } = vscodeToTreeSitterOffsetRange(state.range, state.document);
@@ -240,7 +232,7 @@ export class SymbolAtCursor extends PromptElement<SymbolAtCursorProps, SymbolAtC
 				<br />
 				{Boolean(state.definitions.length) && <>Here are some relevant definitions for the symbols in my code:<br /></>}
 				{Boolean(state.definitions.length) && <PrioritizedList priority={this.props.priority} descending={true}>{state.definitions.map(def => <CodeBlock uri={state.document.uri} languageId={state.document.languageId} code={def.text} />)}</PrioritizedList >}
-				{/* Priority for references should be lower than priority for definitions */}
+				{}
 				{Boolean(state.references.length) && <><br />Here are some places where the the symbols in my code are referenced:<br /></>}
 				{Boolean(state.references.length) &&
 					<PrioritizedList priority={this.props.priority - state.definitions.length} descending={true}>

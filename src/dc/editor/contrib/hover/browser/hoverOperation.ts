@@ -12,13 +12,7 @@ import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
 
 export interface IHoverComputer<TArgs, TResult> {
-	/**
-	 * This is called after half the hover time
-	 */
 	computeAsync?: (args: TArgs, token: CancellationToken) => AsyncIterableProducer<TResult>;
-	/**
-	 * This is called after all the hover time
-	 */
 	computeSync?: (args: TArgs) => TResult[];
 }
 
@@ -50,16 +44,6 @@ export class HoverResult<TArgs, TResult> {
 	) { }
 }
 
-/**
- * Computing the hover is very fine tuned.
- *
- * Suppose the hover delay is 300ms (the default). Then, when resting the mouse at an anchor:
- * - at 150ms, the async computation is triggered (i.e. semantic hover)
- *   - if async results already come in, they are not rendered yet.
- * - at 300ms, the sync computation is triggered (i.e. decorations, markers)
- *   - if there are sync or async results, they are rendered.
- * - at 900ms, if the async computation hasn't finished, a "Loading..." result is added.
- */
 export class HoverOperation<TArgs, TResult> extends Disposable {
 
 	private readonly _onResult = this._register(new Emitter<HoverResult<TArgs, TResult>>());
@@ -160,7 +144,6 @@ export class HoverOperation<TArgs, TResult> extends Disposable {
 
 	private _fireResult(options: TArgs): void {
 		if (this._state === HoverOperationState.FirstWait || this._state === HoverOperationState.SecondWait) {
-			// Do not send out results before the hover time
 			return;
 		}
 		const isComplete = (this._state === HoverOperationState.Idle);

@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -13,9 +12,6 @@ import { autorun } from '../reactions/autorun';
 import { Derived } from '../observables/derivedImpl';
 import { DebugLocation } from '../debugLocation';
 
-/**
- * Resolves the promise when the observables state matches the predicate.
- */
 export function waitForState<T>(observable: IObservable<T | null | undefined>): Promise<T>;
 export function waitForState<T, TState extends T>(observable: IObservable<T>, predicate: (state: T) => state is TState, isError?: (state: T) => boolean | unknown | undefined, cancellationToken?: CancellationToken): Promise<TState>;
 export function waitForState<T>(observable: IObservable<T>, predicate: (state: T) => boolean, isError?: (state: T) => boolean | unknown | undefined, cancellationToken?: CancellationToken): Promise<T>;
@@ -27,7 +23,6 @@ export function waitForState<T>(observable: IObservable<T>, predicate?: (state: 
 		let isImmediateRun = true;
 		let shouldDispose = false;
 		const stateObs = observable.map(state => {
-			/** @description waitForState.state */
 			return {
 				isFinished: predicate(state),
 				error: isError ? isError(state) : false,
@@ -35,11 +30,9 @@ export function waitForState<T>(observable: IObservable<T>, predicate?: (state: 
 			};
 		});
 		const d = autorun(reader => {
-			/** @description waitForState */
 			const { isFinished, error, state } = stateObs.read(reader);
 			if (isFinished || error) {
 				if (isImmediateRun) {
-					// The variable `d` is not initialized yet
 					shouldDispose = true;
 				} else {
 					d.dispose();

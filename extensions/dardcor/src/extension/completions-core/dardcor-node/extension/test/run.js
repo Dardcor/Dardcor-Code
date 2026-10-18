@@ -39,7 +39,6 @@ function run() {
 		mochaOptions.retries = 3;
 	}
 
-	// Create the mocha test
 	const mocha = new Mocha(mochaOptions);
 
 	let fileCount = 0;
@@ -58,7 +57,6 @@ function run() {
 
 	return new Promise((c, e) => {
 		try {
-			// Run the mocha test
 			mocha.run(failures => {
 				if (failures > 0) {
 					e(new Error(`${failures} tests failed.`));

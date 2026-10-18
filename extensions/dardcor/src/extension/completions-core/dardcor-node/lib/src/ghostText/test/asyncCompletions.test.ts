@@ -42,11 +42,11 @@ suite('AsyncCompletionManager', function () {
 		});
 
 		test('is false when there are no matching requests', async function () {
-			void manager.queueCompletionRequest('0', 'import (', createPrompt(), CTS(), pendingResult()); // Prefix doesn't match
-			void manager.queueCompletionRequest('1', 'func main() {\n', createPrompt('', '\t'), CTS(), pendingResult()); // Suffix doesn't match
-			await manager.queueCompletionRequest('2', 'package ', createPrompt(), CTS(), fakeResult('main')); // Prefix doesn't match completed
-			await manager.queueCompletionRequest('3', 'func ', createPrompt(), CTS(), fakeResult('test')); // Completion doesn't match prefix
-			void manager.queueCompletionRequest('4', 'func ', createPrompt(), CTS(), pendingResult()); // Partial completion doesn't match prefix
+			void manager.queueCompletionRequest('0', 'import (', createPrompt(), CTS(), pendingResult());
+			void manager.queueCompletionRequest('1', 'func main() {\n', createPrompt('', '\t'), CTS(), pendingResult());
+			await manager.queueCompletionRequest('2', 'package ', createPrompt(), CTS(), fakeResult('main'));
+			await manager.queueCompletionRequest('3', 'func ', createPrompt(), CTS(), fakeResult('test'));
+			void manager.queueCompletionRequest('4', 'func ', createPrompt(), CTS(), pendingResult());
 			manager.updateCompletion('4', 'func test');
 
 			assert.strictEqual(manager.shouldWaitForAsyncCompletions('func main() {\n', createPrompt()), false);
@@ -94,9 +94,9 @@ suite('AsyncCompletionManager', function () {
 
 	suite('getFirstMatchingRequest', function () {
 		test('returns undefined when there are no matching choices', async function () {
-			void manager.queueCompletionRequest('0', 'import (', createPrompt(), CTS(), pendingResult()); // Prefix doesn't match
-			void manager.queueCompletionRequest('1', 'func main() {\n', createPrompt('', '\t'), CTS(), pendingResult()); // Suffix doesn't match
-			void manager.queueCompletionRequest('2', 'func ', createPrompt(), CTS(), fakeResult('test')); // Completion doesn't match prefix
+			void manager.queueCompletionRequest('0', 'import (', createPrompt(), CTS(), pendingResult());
+			void manager.queueCompletionRequest('1', 'func main() {\n', createPrompt('', '\t'), CTS(), pendingResult());
+			void manager.queueCompletionRequest('2', 'func ', createPrompt(), CTS(), fakeResult('test'));
 
 			const choice = await manager.getFirstMatchingRequest('3', 'func main() {\n', createPrompt(), false);
 
@@ -224,9 +224,9 @@ suite('AsyncCompletionManager', function () {
 		test('pending requests that are no longer candidates for the most recent', function () {
 			const firstToken = CTS();
 			const secondToken = CTS();
-			void manager.queueCompletionRequest('0', 'import (', createPrompt(), firstToken, pendingResult()); // Prefix doesn't match
+			void manager.queueCompletionRequest('0', 'import (', createPrompt(), firstToken, pendingResult());
 			void manager.queueCompletionRequest('1', 'func ', createPrompt(), secondToken, pendingResult());
-			manager.updateCompletion('1', 'test()'); // Partial completion doesn't match prefix
+			manager.updateCompletion('1', 'test()');
 
 			void manager.getFirstMatchingRequest('2', 'func main() {\n', createPrompt(), false);
 

@@ -379,7 +379,6 @@ suite('Parsing .gitignore files', () => {
 
 			'/inner/.profile-oss',
 
-			// Files.
 			'/extensions/dist',
 			'/extensions/boop/doop/dist',
 			'/extensions/boop/out',
@@ -504,7 +503,6 @@ suite('Parsing .gitignore files', () => {
 			],
 		});
 
-		// TODO: the rest of these :)
 		runTest({
 			pattern: `*.pbxuser
 			!default.pbxuser
@@ -569,19 +567,15 @@ suite('Parsing .gitignore files', () => {
 
 	test('child negation overrides parent ignore', () => {
 		// Simulates: global gitignore has `.myconfig`, project .gitignore has `!.myconfig/`
-		// The child negation should override the parent positive pattern.
 		const parentIgnore = new IgnoreFile('.myconfig\n', '/');
 		const childIgnore = new IgnoreFile('!.myconfig/\n', '/', parentIgnore);
 
-		// The directory should NOT be ignored (child negates parent)
 		assert(!childIgnore.isArbitraryPathIgnored('/.myconfig', true),
 			'child !.myconfig/ should override parent .myconfig for directories');
 
-		// Files inside the directory should also not be ignored
 		assert(!childIgnore.isArbitraryPathIgnored('/.myconfig/settings/test.md', false),
 			'files inside un-ignored directory should not be ignored');
 
-		// Parent should still ignore when child has no negation
 		const childNoNegation = new IgnoreFile('node_modules/\n', '/', parentIgnore);
 		assert(childNoNegation.isArbitraryPathIgnored('/.myconfig', true),
 			'without negation, parent ignore should still apply for directories');
@@ -590,7 +584,6 @@ suite('Parsing .gitignore files', () => {
 	});
 
 	test('child negation overrides parent ignore for files', () => {
-		// Parent ignores all .log files, child un-ignores important.log
 		const parentIgnore = new IgnoreFile('*.log\n', '/');
 		const childIgnore = new IgnoreFile('!important.log\n', '/', parentIgnore);
 

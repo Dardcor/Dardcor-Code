@@ -17,7 +17,6 @@ export interface IModelVendorResolution {
 	hasResolved(vendor: string): boolean;
 }
 
-/** Resolves a requested model identifier against the current model catalog. */
 export function resolveModelIdentifier(
 	models: readonly ILanguageModelChatMetadataAndIdentifier[],
 	identifier: string | undefined,
@@ -37,7 +36,6 @@ export function resolveModelIdentifier(
 		: { kind: 'pending', identifier };
 }
 
-/** Resolves a model identifier using vendor-level catalog readiness. */
 export function resolveModelIdentifierFromCatalog(
 	models: readonly ILanguageModelChatMetadataAndIdentifier[],
 	identifier: string | undefined,
@@ -50,15 +48,6 @@ export function resolveModelIdentifierFromCatalog(
 	const separator = identifier.search(/[/:]/);
 	const vendor = separator === -1 ? undefined : identifier.substring(0, separator);
 	const hasLive = vendor ? vendorResolution.hasLiveModels(vendor) : false;
-	// Agent-host vendors publish their models asynchronously after the agent host connects, so an
-	// empty (not-yet-populated) list is transient: keep the remembered/restored model `pending`
-	// (wait) rather than `unavailable` (give up). The same holds while the host has only mirrored
-	// the workbench's BYOK models into its pool and its own catalog is still in flight, which is
-	// why `hasLiveModels` reports whether the vendor published models of its OWN (see
-	// `hasOwnLiveModels`). Once it has, an absent model is genuinely gone, so stay conclusive.
-	// This grace is scoped to restore *resolution* only — cache-retention (`mergeModelsWithCache`)
-	// and send-availability keep treating a resolved-empty list as authoritative. The vendor id
-	// equals the session type for agent-host models, so `isAgentHostTarget` classifies it directly.
 	const isAbsenceConclusive = !vendor || (isLanguageModelVendorAbsenceConclusive(
 		vendor,
 		hasLive,
@@ -76,13 +65,6 @@ export function getRegisteredLanguageModels(languageModelsService: Pick<ILanguag
 		.filter(model => model !== undefined);
 }
 
-/**
- * Whether a vendor has published models of its own, ignoring copies bridged in from another
- * provider. An agent host mirrors the workbench's BYOK models into its pool as soon as the bridge
- * is up, but its own catalog only arrives once the host has connected and authenticated — so a pool
- * that is nothing but bridged copies is a half-published catalog. Counting it as live makes a
- * restored session's model look permanently gone and swaps it for an arbitrary bridged model.
- */
 function hasOwnLiveModels(models: readonly ILanguageModelChatMetadataAndIdentifier[], vendor: string): boolean {
 	return models.some(model => model.metadata.vendor === vendor && model.metadata.byokModelIdentifier === undefined);
 }
@@ -117,7 +99,6 @@ function compareModelVersions(a: string | undefined, b: string | undefined): num
 	return rawA.localeCompare(rawB);
 }
 
-/** Resolves a configured model id, family, or `auto` value against a model pool. */
 export function resolveConfiguredModel(
 	configuredValue: string | undefined,
 	models: readonly ILanguageModelChatMetadataAndIdentifier[],
@@ -149,9 +130,7 @@ export const enum ModelSelectionReason {
 	ProgrammaticSelection = 'programmaticSelection',
 	Remembered = 'remembered',
 	RemovedModelFallback = 'removedModelFallback',
-	/** A model carried onto the conversation rather than chosen inside it. */
 	SessionRestore = 'sessionRestore',
-	/** A model the conversation chose, restored onto it. Outranks `chat.defaultModel`. */
 	RestoredChoice = 'restoredChoice',
 	NewChatRepush = 'newChatRepush',
 	UserSelection = 'userSelection',
@@ -165,46 +144,20 @@ export function isAuthoritativeModelSelectionReason(reason: ModelSelectionApplyR
 		|| reason === ModelSelectionReason.UserSelection;
 }
 
-/**
- * How a model already on a conversation is recorded: as the conversation's own, or as one carried
- * onto it.
- *
- * The distinction decides whether `chat.defaultModel` may still seed the conversation, and it
- * cannot be read off the model identifier: the same model can arrive because the user picked it,
- * because it was inherited from the chat this one branched off, or because an input picked it in
- * the absence of anything better. Each surface knows which of those happened and says so.
- */
 export type RestoredModelReason = ModelSelectionReason.RestoredChoice | ModelSelectionReason.SessionRestore;
 
-/** Whether a reason describes a model restored onto a conversation, whoever chose it. */
 export function isRestoredModelReason(reason: ModelSelectionReason | undefined): boolean {
 	return reason === ModelSelectionReason.SessionRestore
 		|| reason === ModelSelectionReason.RestoredChoice;
 }
 
-/**
- * The model a conversation is meant to run on, and the authority that put it there — regardless of
- * what the catalog can offer right now. Owned by the conversation rather than by any input widget,
- * so a choice made in one chat can never be applied to another.
- *
- * Deliberately local: it is never serialized and never crosses the agent-host wire, unlike the
- * selected model in the conversation's draft state.
- */
 export interface IIntendedModelSelection {
 	readonly modelId: string;
-	/** Present when the model itself was seen; absent when only an id was restored from storage. */
 	readonly model?: ILanguageModelChatMetadataAndIdentifier;
 	readonly reason: ModelSelectionReason;
 	readonly configuration?: Record<string, unknown>;
 }
 
-/**
- * Whether a reason represents a choice made inside the current conversation. `chat.defaultModel`
- * seeds every new conversation but must never override one of these. `SessionRestore` is excluded
- * deliberately: it is a model carried onto the conversation rather than chosen in it, which on an
- * empty session came from the previous one. A restore the surface can vouch for arrives as
- * {@link ModelSelectionReason.RestoredChoice} instead and does block the default.
- */
 export function isInConversationModelChoice(reason: ModelSelectionReason | undefined): boolean {
 	return reason === ModelSelectionReason.UserSelection
 		|| reason === ModelSelectionReason.ProgrammaticSelection
@@ -228,7 +181,6 @@ export interface IInitialModelSelectionInput {
 	readonly fallbackReason: ModelSelectionReason.FirstAvailable | ModelSelectionReason.RemovedModelFallback;
 }
 
-/** Applies the shared configured, desired, pending, then fallback precedence. */
 export function resolveInitialModelSelection(input: IInitialModelSelectionInput): InitialModelSelectionResult {
 	if (input.configuredModel) {
 		return { kind: 'apply', model: input.configuredModel, reason: ModelSelectionReason.ConfiguredDefault };

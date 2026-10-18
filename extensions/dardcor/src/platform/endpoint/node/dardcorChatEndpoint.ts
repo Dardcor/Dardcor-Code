@@ -4,33 +4,24 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
-import { IAuthenticationService } from '../../authentication/common/authentication';
 import { IChatMLFetcher } from '../../chat/common/chatMLFetcher';
 import { CHAT_MODEL, IConfigurationService } from '../../configuration/common/configurationService';
-import { IEnvService } from '../../env/common/envService';
 import { ILogService } from '../../log/common/logService';
-import { IFetcherService } from '../../networking/common/fetcherService';
 import { IChatEndpoint } from '../../networking/common/networking';
 import { RawMessageConversionCallback } from '../../networking/common/openai';
 import { IChatWebSocketManager } from '../../networking/node/chatWebSocketManager';
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
-import { ITelemetryService } from '../../telemetry/common/telemetry';
 import { ITokenizerProvider } from '../../tokenizer/node/tokenizer';
-import { ICAPIClientService } from '../common/capiClient';
 import { IDomainService } from '../common/domainService';
 import { IChatModelInformation } from '../common/endpointProvider';
 import { ChatEndpoint } from './chatEndpoint';
+import { getDardcorRouterApiKey, getDardcorRouterBaseUrl } from './dardcorRouter';
 import { IModelMetadataFetcher } from './modelMetadataFetcher';
 
-export class CopilotChatEndpoint extends ChatEndpoint {
+export class DardcorChatEndpoint extends ChatEndpoint {
 	constructor(
 		modelMetadata: IChatModelInformation,
 		@IDomainService domainService: IDomainService,
-		@ICAPIClientService capiClientService: ICAPIClientService,
-		@IFetcherService fetcherService: IFetcherService,
-		@IEnvService envService: IEnvService,
-		@ITelemetryService telemetryService: ITelemetryService,
-		@IAuthenticationService authService: IAuthenticationService,
 		@IChatMLFetcher chatMLFetcher: IChatMLFetcher,
 		@ITokenizerProvider tokenizerProvider: ITokenizerProvider,
 		@IInstantiationService instantiationService: IInstantiationService,
@@ -53,14 +44,14 @@ export class CopilotChatEndpoint extends ChatEndpoint {
 	}
 
 	public override get urlOrRequestMetadata(): string {
-		return 'http://127.0.0.1:25128/v1/chat/completions';
+		return `${getDardcorRouterBaseUrl()}/v1/chat/completions`;
 	}
 
 	public override readonly ownsAuthorization = true;
 
 	public override getExtraHeaders(): Record<string, string> {
 		return {
-			'Authorization': 'Bearer sk-dardcor-local-key'
+			'Authorization': `Bearer ${getDardcorRouterApiKey()}`
 		};
 	}
 
@@ -74,43 +65,27 @@ export class CopilotChatEndpoint extends ChatEndpoint {
 	}
 }
 
-/**
- * Resolves the built-in Copilot model used for the `dardcor-utility-small`
- * internal family (formerly `dardcor-fast`). This is the small/fast model
- * that powers background utility flows like commit message generation,
- * prompt categorization, inline-chat progress messages, etc.
- *
- * The CAPI `/models` response does not flag a model as "fast" / "small",
- * so the family is selected client-side. Today that's `gpt-4o-mini`.
- */
-export class CopilotUtilitySmallChatEndpoint {
-	static readonly capiFamily: string = CHAT_MODEL.GPT4OMINI;
+export class DardcorUtilitySmallChatEndpoint {
+	static readonly preferredFamily: string = CHAT_MODEL.GPT4OMINI;
 
 	static async resolve(modelFetcher: IModelMetadataFetcher, instantiationService: IInstantiationService): Promise<IChatEndpoint> {
 		let modelMetadata: IChatModelInformation;
 		try {
-			modelMetadata = await modelFetcher.getChatModelFromCapiFamily(CopilotUtilitySmallChatEndpoint.capiFamily);
+			const models = await modelFetcher.getAllChatModels();
+			modelMetadata = models.find(model => model.capabilities.family === DardcorUtilitySmallChatEndpoint.preferredFamily
+				|| model.id.toLowerCase().endsWith(`/${DardcorUtilitySmallChatEndpoint.preferredFamily.toLowerCase()}`))
+				?? models.find(model => /mini|flash|haiku|small|fast/i.test(model.id))
+				?? await modelFetcher.getDardcorUtilityModel();
 		} catch {
-			// The small family is selected client-side and may be absent from a
-			// given user's CAPI `/models` response (plan/region/rollout differences,
-			// or a server-side rename/removal). Fall back to the API-marked base
-			// utility model rather than letting the lookup throw through every
-			// `dardcor-utility-small` caller.
-			modelMetadata = await modelFetcher.getCopilotUtilityModel();
+			modelMetadata = await modelFetcher.getDardcorUtilityModel();
 		}
-		return instantiationService.createInstance(CopilotChatEndpoint, modelMetadata);
+		return instantiationService.createInstance(DardcorChatEndpoint, modelMetadata);
 	}
 }
 
-/**
- * Resolves the built-in Copilot model used for the `dardcor-utility`
- * internal family (formerly `dardcor-base`). This is the API-marked
- * default base model — whichever model the CAPI `/models` response
- * flags with `is_chat_fallback === true`.
- */
-export class CopilotUtilityChatEndpoint {
+export class DardcorUtilityChatEndpoint {
 	static async resolve(modelFetcher: IModelMetadataFetcher, instantiationService: IInstantiationService): Promise<IChatEndpoint> {
-		const modelMetadata = await modelFetcher.getCopilotUtilityModel();
-		return instantiationService.createInstance(CopilotChatEndpoint, modelMetadata);
+		const modelMetadata = await modelFetcher.getDardcorUtilityModel();
+		return instantiationService.createInstance(DardcorChatEndpoint, modelMetadata);
 	}
 }

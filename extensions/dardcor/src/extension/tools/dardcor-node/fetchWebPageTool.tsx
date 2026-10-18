@@ -14,7 +14,7 @@ import { isImageDataPart } from '../../conversation/common/languageModelChatMess
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { imageDataPartToTSX } from '../../prompts/node/panel/toolCalling';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { encodeUrlHostname } from '../common/toolUtils';
 
 interface IFetchWebPageParams {
@@ -22,9 +22,6 @@ interface IFetchWebPageParams {
 	query?: string;
 }
 
-/**
- * The internal tool that we wrap.
- */
 const internalToolName = 'vscode_fetchWebPage_internal';
 
 interface WebPageChunkResult {
@@ -43,10 +40,7 @@ interface WebPageImageResult {
 	imagePart: LanguageModelDataPart;
 }
 
-/**
- * A thin wrapper tool to provide indexing & prompt-tsx priority on top of the internal tool.
- */
-class FetchWebPageTool implements ICopilotTool<IFetchWebPageParams> {
+class FetchWebPageTool implements IAgentTool<IFetchWebPageParams> {
 
 	private readonly _index: Lazy<UrlChunkEmbeddingsIndex>;
 
@@ -61,7 +55,6 @@ class FetchWebPageTool implements ICopilotTool<IFetchWebPageParams> {
 	public static readonly nonDeferred = true;
 
 	prepareInvocation(_options: LanguageModelToolInvocationPrepareOptions<IFetchWebPageParams>, _token: CancellationToken): ProviderResult<PreparedToolInvocation> {
-		// The Core version of this tool handles the confirmation message & other messages
 		this._logService.trace('FetchWebPageTool: prepareInvocation');
 		return {
 			presentation: 'hidden'
@@ -74,7 +67,6 @@ class FetchWebPageTool implements ICopilotTool<IFetchWebPageParams> {
 		if (!tool) {
 			throw new Error('Tool not found');
 		}
-		// Encode URLs for security before processing
 		const encodedUrls = options.input.urls.map(url => encodeUrlHostname(url).encoded);
 		const { content } = await lm.invokeTool(internalToolName, { ...options, input: { ...options.input, urls: encodedUrls } }, token);
 		if (encodedUrls.length !== content.length) {
@@ -94,13 +86,10 @@ class FetchWebPageTool implements ICopilotTool<IFetchWebPageParams> {
 				const contentPart = content[i];
 
 				if (options.model?.capabilities.supportsImageToText && isImageDataPart(contentPart)) {
-					// Handle image data - don't chunk it, just pass it through
 					imageResults.push({ uri, imagePart: contentPart });
 				} else if (contentPart instanceof LanguageModelTextPart) {
-					// Handle text content - this will be chunked
 					validTextContent.push({ uri, content: contentPart.value });
 				} else {
-					// Handle other data parts as text if they have a value property
 					const textValue = (contentPart as any).value;
 					if (typeof textValue === 'string') {
 						validTextContent.push({ uri, content: textValue });
@@ -130,12 +119,8 @@ class FetchWebPageTool implements ICopilotTool<IFetchWebPageParams> {
 				const sumScore = chunks.reduce((acc, chunk) => acc + (chunk.distance?.value ?? 0), 0);
 				webPageResults.push({ uri: file.uri, chunks, sumScore });
 			}
-			// Sort by sumScore descending
 			webPageResults.sort((a, b) => b.sumScore - a.sumScore);
 		} else {
-			// Embeddings unavailable (e.g. user has no GitHub session). Fall back to
-			// returning the raw fetched content so the user still gets value from the
-			// already-completed fetch (see https://github.com/microsoft/vscode/issues/320070).
 			for (const file of validTextContent) {
 				unrankedWebPages.push({ uri: file.uri, content: file.content });
 			}
@@ -197,11 +182,9 @@ class WebPageContentChunks extends PromptElement<WebPageContentChunksProps, void
 
 	render(_state: void, _sizing: PromptSizing) {
 
-		// First, create a sorted array of scores to determine ranks
 		const scores = this.props.chunks.map(chunk => chunk.distance?.value ?? WebPageContentChunks.DEFAULT_SCORE);
 		scores.sort((a, b) => b - a);
 
-		// Create map of score to rank
 		const scoreToRank = new Map<number, number>();
 		scores.forEach((score, index) => {
 			if (!scoreToRank.has(score)) {
@@ -209,13 +192,12 @@ class WebPageContentChunks extends PromptElement<WebPageContentChunksProps, void
 			}
 		});
 
-		// Assign rank-based priorities without changing chunk order
 		const chunksWithRankPriorities = this.props.chunks.map(chunk => {
 			const score = chunk.distance?.value ?? WebPageContentChunks.DEFAULT_SCORE;
 			const rank = scoreToRank.get(score) ?? WebPageContentChunks.PRIORITY_BASE;
 			return {
 				...chunk,
-				rankPriority: WebPageContentChunks.PRIORITY_BASE - rank // Higher rank (lower index) gets higher priority
+				rankPriority: WebPageContentChunks.PRIORITY_BASE - rank
 			};
 		});
 

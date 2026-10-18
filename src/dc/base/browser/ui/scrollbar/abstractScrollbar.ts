@@ -14,9 +14,6 @@ import { Widget } from '../widget.js';
 import * as platform from '../../../common/platform.js';
 import { INewScrollPosition, Scrollable, ScrollbarVisibility } from '../../../common/scrollable.js';
 
-/**
- * The orthogonal distance to the slider at which dragging "resets". This implements "snapping"
- */
 const POINTER_DRAG_RESET_DISTANCE = 140;
 
 export interface ISimplifiedPointerEvent {
@@ -77,20 +74,13 @@ export abstract class AbstractScrollbar extends Widget {
 		this._register(dom.addDisposableListener(this.domNode.domNode, dom.EventType.POINTER_DOWN, (e: PointerEvent) => this._domNodePointerDown(e)));
 	}
 
-	// ----------------- creation
 
-	/**
-	 * Creates the dom node for an arrow & adds it to the container
-	 */
 	protected _createArrow(opts: ScrollbarArrowOptions): void {
 		const arrow = this._register(new ScrollbarArrow(opts));
 		this.domNode.domNode.appendChild(arrow.bgDomNode);
 		this.domNode.domNode.appendChild(arrow.domNode);
 	}
 
-	/**
-	 * Creates the slider dom node, adds it to the container & hooks up the events
-	 */
 	protected _createSlider(top: number, left: number, width: number | undefined, height: number | undefined): void {
 		this.slider = createFastDomNode(document.createElement('div'));
 		this.slider.setClassName('slider');
@@ -126,7 +116,6 @@ export abstract class AbstractScrollbar extends Widget {
 		});
 	}
 
-	// ----------------- Update state
 
 	protected _onElementSize(visibleSize: number): boolean {
 		if (this._scrollbarState.setVisibleSize(visibleSize)) {
@@ -161,7 +150,6 @@ export abstract class AbstractScrollbar extends Widget {
 		return this._shouldRender;
 	}
 
-	// ----------------- rendering
 
 	public beginReveal(): void {
 		this._visibilityController.setShouldBeVisible(true);
@@ -180,7 +168,6 @@ export abstract class AbstractScrollbar extends Widget {
 		this._renderDomNode(this._scrollbarState.getRectangleLargeSize(), this._scrollbarState.getRectangleSmallSize());
 		this._updateSlider(this._scrollbarState.getSliderSize(), this._scrollbarState.getArrowSize() + this._scrollbarState.getSliderPosition());
 	}
-	// ----------------- DOM events
 
 	private _domNodePointerDown(e: PointerEvent): void {
 		if (e.target !== this.domNode.domNode) {
@@ -195,13 +182,11 @@ export abstract class AbstractScrollbar extends Widget {
 		const sliderStop = domTop + this._scrollbarState.getSliderPosition() + this._scrollbarState.getSliderSize();
 		const pointerPos = this._sliderPointerPosition(e);
 		if (sliderStart <= pointerPos && pointerPos <= sliderStop) {
-			// Act as if it was a pointer down on the slider
 			if (e.button === 0) {
 				e.preventDefault();
 				this._sliderPointerDown(e);
 			}
 		} else {
-			// Act as if it was a pointer down on the scrollbar
 			this._onPointerDown(e);
 		}
 	}
@@ -231,7 +216,6 @@ export abstract class AbstractScrollbar extends Widget {
 		}
 
 		if (isLeftClick) {
-			// left button
 			e.preventDefault();
 			this._sliderPointerDown(e);
 		}
@@ -255,7 +239,6 @@ export abstract class AbstractScrollbar extends Widget {
 				const pointerOrthogonalDelta = Math.abs(pointerOrthogonalPosition - initialPointerOrthogonalPosition);
 
 				if (platform.isWindows && pointerOrthogonalDelta > POINTER_DRAG_RESET_DISTANCE) {
-					// The pointer has wondered away from the scrollbar => reset dragging
 					this._setDesiredScrollPositionNow(initialScrollbarState.getScrollPosition());
 					return;
 				}
@@ -294,7 +277,6 @@ export abstract class AbstractScrollbar extends Widget {
 		return this._scrollbarState.isNeeded();
 	}
 
-	// ----------------- Overwrite these
 
 	protected abstract _renderDomNode(largeSize: number, smallSize: number): void;
 	protected abstract _updateSlider(sliderSize: number, sliderPosition: number): void;

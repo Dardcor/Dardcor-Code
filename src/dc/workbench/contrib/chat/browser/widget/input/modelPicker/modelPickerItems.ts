@@ -13,13 +13,13 @@ import { ICommandService } from '../../../../../../../platform/commands/common/c
 import { ChatEntitlement, IChatEntitlementService, isProUser } from '../../../../../../services/chat/common/chatEntitlementService.js';
 import { MANAGE_CHAT_COMMAND_ID } from '../../../../common/constants.js';
 import { IModelControlEntry, ILanguageModelChatMetadataAndIdentifier, IModelsControlManifest } from '../../../../common/languageModels.js';
-import { buildFlatModelItems, buildGroupedModelItems, buildUnavailableStateItems, RESTRICTED_MODE_TRUST_ACTION_ID, SETUP_REQUIRED_SIGN_IN_ACTION_ID } from './modelPickerItemSections.js';
+import { buildFlatModelItems, buildGroupedModelItems, buildUnavailableStateItems, CONFIGURE_ROUTER_ACTION_ID, RESTRICTED_MODE_TRUST_ACTION_ID } from './modelPickerItemSections.js';
 import type { IBuildModelPickerItemsOptions } from './modelPickerItemTypes.js';
 
 export type { IBuildModelPickerItemsOptions } from './modelPickerItemTypes.js';
 export { ModelPickerSection } from './modelPickerItemSections.js';
 
-const PICKER_COMMAND_ACTION_IDS: ReadonlySet<string> = new Set([RESTRICTED_MODE_TRUST_ACTION_ID, SETUP_REQUIRED_SIGN_IN_ACTION_ID]);
+const PICKER_COMMAND_ACTION_IDS: ReadonlySet<string> = new Set([RESTRICTED_MODE_TRUST_ACTION_ID, CONFIGURE_ROUTER_ACTION_ID]);
 
 export function getControlModelsForEntitlement(manifest: IModelsControlManifest, entitlement: ChatEntitlement): IStringDictionary<IModelControlEntry> {
 	return isProUser(entitlement) && entitlement !== ChatEntitlement.EDU ? manifest.paid : manifest.free;
@@ -43,8 +43,6 @@ export function getModelPickerControlModels(
 			if (entry.featured && availableModelIds.has(id)) {
 				controlModels[id] = { ...entry, exists: true };
 			} else if (entry.demoted && !controlModels[id]) {
-				// A demotion holds whoever is signed in, so it is not filtered away with
-				// the curated list the way a recommendation is.
 				controlModels[id] = { ...entry, exists: false };
 			}
 		}
@@ -77,7 +75,6 @@ export function createManageModelsAction(commandService: ICommandService): IActi
 	};
 }
 
-/** Builds the ordered model picker sections for the current presentation state. */
 export function buildModelPickerItems(options: IBuildModelPickerItemsOptions): IActionListItem<IActionWidgetDropdownAction>[] {
 	const unavailableItems = buildUnavailableStateItems(options);
 	if (unavailableItems) {

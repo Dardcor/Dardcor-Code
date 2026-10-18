@@ -25,33 +25,17 @@ const SESSION_RESOURCE = 'untitled:session-1';
 
 type TodoItem = { id: number; title: string; status: 'not-started' | 'in-progress' | 'completed' };
 
-/**
- * Integration harness for {@link BackgroundTodoAgentProcessor}. It wires the
- * processor to the real testing instantiation service (so the background prompt
- * actually renders) but routes the model call through a scripted endpoint and
- * replaces the todo/tools/telemetry collaborators with observable fakes.
- */
 interface IHarness {
 	readonly processor: BackgroundTodoAgentProcessor;
-	/** Number of times the current-turn todos were cleared (first-round side effect). */
 	readonly clears: () => number;
-	/** Todo lists written back to the workspace via the tools service, in order. */
 	readonly writes: () => TodoItem[][];
-	/** Background todo telemetry outcomes reported, in order. */
 	readonly outcomes: () => string[];
-	/** Number of model requests the processor issued. */
 	readonly requestCount: () => number;
-	/** The messages sent on the most recent model request. */
 	readonly lastRequestText: () => string;
-	/** Drain the processor's internal work queue. */
 	readonly drain: () => Promise<void>;
-	/** Resolves the next time a model request is entered. Call before triggering. */
 	readonly nextRequestEntered: () => Promise<void>;
-	/** Hold the next model request open until the returned deferred is settled. */
 	readonly blockNextRequest: () => DeferredPromise<void>;
-	/** Control what the scripted model "returns": a todo list to write, or a no-op. */
 	setModelTodos(todos: TodoItem[] | 'noop'): void;
-	/** Set the current todo-list markdown returned by the todo context provider. */
 	setCurrentTodos(value: string | undefined): void;
 	dispose(): void;
 }
@@ -83,8 +67,6 @@ function createHarness(): IHarness {
 		},
 	} as unknown as ITelemetryService;
 
-	// The scripted endpoint is created after the accessor, but the provider must
-	// be registered before it; route through a holder so the closure stays valid.
 	const endpointHolder: { endpoint?: MockEndpoint } = {};
 	const endpointProvider = {
 		getChatEndpoint: async () => endpointHolder.endpoint!,
@@ -166,7 +148,6 @@ function substantiveRound(id: string): IToolCallRound {
 	return { id, response: `did ${id}`, toolInputRetry: 0, toolCalls: [{ name: ToolName.ReplaceString, arguments: '{"filePath":"a.ts"}', id: `tc-${id}` }] };
 }
 
-/** Build N substantive rounds; the default backoff threshold is 3. */
 function substantiveRounds(prefix: string, n: number): IToolCallRound[] {
 	return Array.from({ length: n }, (_, i) => substantiveRound(`${prefix}-${i}`));
 }
@@ -192,7 +173,6 @@ describe('BackgroundTodoAgentProcessor lifecycle', () => {
 		harness.dispose();
 	});
 
-	// ── trackTurnRound ──────────────────────────────────────────
 
 	test('clears existing todos once on the first round of a turn, not again for later rounds', async () => {
 		const { processor } = harness;
@@ -201,7 +181,6 @@ describe('BackgroundTodoAgentProcessor lifecycle', () => {
 		processor.trackTurnRound(ctx('turn-1', 'fix it', [substantiveRound('r0'), substantiveRound('r1')]), CancellationToken.None);
 		await harness.drain();
 
-		// One clear for the turn; neither pass fires because activity is below the threshold.
 		expect({ clears: harness.clears(), requests: harness.requestCount() }).toEqual({ clears: 1, requests: 0 });
 	});
 
@@ -242,7 +221,6 @@ describe('BackgroundTodoAgentProcessor lifecycle', () => {
 		expect({ clears: harness.clears(), requests: harness.requestCount() }).toEqual({ clears: 0, requests: 0 });
 	});
 
-	// ── cancel ──────────────────────────────────────────────────
 
 	test('resets the current turn so the next tracked round is treated as a new turn', async () => {
 		const { processor } = harness;
@@ -251,7 +229,6 @@ describe('BackgroundTodoAgentProcessor lifecycle', () => {
 
 		processor.cancel();
 
-		// A new turn after cancel clears again and the processor still works.
 		processor.trackTurnRound(ctx('turn-2', 'second', [substantiveRound('s0')]), CancellationToken.None);
 		await harness.drain();
 
@@ -264,30 +241,24 @@ describe('BackgroundTodoAgentProcessor lifecycle', () => {
 		const gate = harness.blockNextRequest();
 		const entered = harness.nextRequestEntered();
 
-		// First turn reaches the threshold and blocks inside the model request.
 		processor.trackTurnRound(ctx('turn-1', 'first', substantiveRounds('a', 3)), CancellationToken.None);
 		await entered;
 
-		// Queue a second turn behind the in-flight pass, then cancel before it runs.
 		processor.trackTurnRound(ctx('turn-2', 'second', substantiveRounds('b', 3)), CancellationToken.None);
 		processor.cancel();
 
-		// Release the first request and let the queue drain.
 		gate.complete();
 		await harness.drain();
 
-		// Only the first (already in-flight) pass ran; the queued second turn bailed.
 		expect({ clears: harness.clears(), requests: harness.requestCount() }).toEqual({ clears: 1, requests: 1 });
 	});
 
-	// ── endTurn ─────────────────────────────────────────────────
 
 	test('endTurn runs a final pass that writes todos even below the threshold', async () => {
 		const { processor } = harness;
 		harness.setModelTodos([{ id: 1, title: 'Finish up', status: 'completed' }]);
 		processor.trackTurnRound(ctx('turn-1', 'fix it', [substantiveRound('r0')]), CancellationToken.None);
 		await harness.drain();
-		// No regular pass fired (below threshold).
 		expect(harness.requestCount()).toBe(0);
 
 		await processor.endTurn('turn-1', {} as never);
@@ -318,7 +289,6 @@ describe('BackgroundTodoAgentProcessor lifecycle', () => {
 		await harness.drain();
 		await processor.endTurn('turn-1', {} as never);
 
-		// The new turn has no current todos of its own; only the carried-over list remains.
 		harness.setCurrentTodos(undefined);
 		processor.trackTurnRound(ctx('turn-2', 'second', substantiveRounds('b', 3)), CancellationToken.None);
 		await harness.drain();

@@ -88,7 +88,6 @@ export class CursorWordPartLeft extends WordPartLeftCommand {
 		});
 	}
 }
-// Register previous id for compatibility purposes
 CommandsRegistry.registerCommandAlias('cursorWordPartStartLeft', 'cursorWordPartLeft');
 
 export class CursorWordPartLeftSelect extends WordPartLeftCommand {
@@ -107,7 +106,6 @@ export class CursorWordPartLeftSelect extends WordPartLeftCommand {
 		});
 	}
 }
-// Register previous id for compatibility purposes
 CommandsRegistry.registerCommandAlias('cursorWordPartStartLeftSelect', 'cursorWordPartLeftSelect');
 
 export class WordPartRightCommand extends MoveWordCommand {

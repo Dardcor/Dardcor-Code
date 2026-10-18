@@ -10,8 +10,5 @@ export const IHooksOutputChannel = createServiceIdentifier<IHooksOutputChannel>(
 export interface IHooksOutputChannel {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Append a line to the Hooks output channel.
-	 */
 	appendLine(message: string): void;
 }

@@ -13,25 +13,11 @@ import { registerChatExecuteActions } from '../../../chat/browser/actions/chatEx
 import { registerChatContextActions } from '../../../chat/browser/actions/chatContextActions.js';
 import { registerChatToolActions } from '../../../chat/browser/actions/chatToolActions.js';
 
-/**
- * The inline chat zone widget hosts four menus: `ChatEditorInlineExecute`,
- * `ChatEditorInlineInputSide`, `ChatInput`, and `ChatExecute`. The latter
- * two are shared with the regular chat widget, which evolves frequently.
- *
- * These tests evaluate the `when` clauses of menu items against faked
- * inline chat context keys. They guard against regressions where commands
- * from the normal chat panel accidentally become visible in inline chat.
- * When a test fails, double-check that the change is intentional for the
- * inline chat zone widget specifically and update the expected ids.
- */
 suite('Inline chat zone widget — menu contributions', function () {
 
 	const disposables = new DisposableStore();
 
 	suiteSetup(() => {
-		// Register every action whose menu items can appear in the inline chat
-		// zone widget. We only call the public registration helpers so that
-		// adding a new action to one of those helpers will surface here.
 		disposables.add(registerChatExecuteActions());
 		disposables.add(registerChatContextActions());
 		disposables.add(registerChatToolActions());
@@ -49,25 +35,14 @@ suite('Inline chat zone widget — menu contributions', function () {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/**
-	 * Base context keys for the inline chat zone widget in an editor.
-	 * Simulates a typical inline chat state: `chatLocation` is `editor`,
-	 * the inline chat agent is available, and `quickChatHasFocus` is false.
-	 */
 	const inlineChatBaseContext: Record<string, ContextKeyValue> = {
-		// inline chat is in an editor, not a panel
 		'chatLocation': 'editor',
-		// the inline chat agent is available
 		'inlineChatHasEditsAgent': true,
-		// NOT in quick chat
 		'quickChatHasFocus': false,
 		// NOT in global editing session (this is inline chat, not panel edits)
 		'chatEdits.isGlobalEditingSession': false,
-		// NOT locked to coding agent
 		'lockedToCodingAgent': false,
-		// chat is enabled
 		'chatIsEnabled': true,
-		// mode is 'ask'
 		'chatAgentKind': 'ask',
 	};
 
@@ -84,7 +59,6 @@ suite('Inline chat zone widget — menu contributions', function () {
 			.sort();
 	}
 
-	// --- ChatEditorInlineExecute ---
 
 	test('ChatEditorInlineExecute — idle, user has typed text', () => {
 		const ctx = createContext({
@@ -125,14 +99,12 @@ suite('Inline chat zone widget — menu contributions', function () {
 		].sort());
 	});
 
-	// --- ChatEditorInlineInputSide ---
 
 	test('ChatEditorInlineInputSide — always empty', () => {
 		const ctx = createContext();
 		assert.deepStrictEqual(visibleIds(MenuId.ChatEditorInlineInputSide, ctx), []);
 	});
 
-	// --- ChatInput (shared with panel) ---
 
 	test('ChatInput — inline chat context must NOT show panel-only items', () => {
 		const ctx = createContext({
@@ -140,7 +112,6 @@ suite('Inline chat zone widget — menu contributions', function () {
 		});
 		const ids = visibleIds(MenuId.ChatInput, ctx);
 
-		// Panel-only commands must never appear in inline chat (chatLocation == 'editor')
 		const panelOnlyCommands = [
 			'workbench.action.chat.openModePicker',
 			'workbench.action.chat.openSessionTargetPicker',
@@ -151,7 +122,6 @@ suite('Inline chat zone widget — menu contributions', function () {
 			assert.ok(!ids.includes(cmd), `panel-only command "${cmd}" should NOT appear in inline chat`);
 		}
 
-		// The attach context action should be present for inline chat
 		assert.ok(ids.includes('workbench.action.chat.attachContext'), 'attachContext should appear in inline chat');
 	});
 
@@ -164,12 +134,10 @@ suite('Inline chat zone widget — menu contributions', function () {
 		});
 		const ids = visibleIds(MenuId.ChatInput, ctx);
 
-		// In the panel, mode picker and attach context should appear
 		assert.ok(ids.includes('workbench.action.chat.attachContext'), 'attachContext should appear in panel');
 		assert.ok(ids.includes('workbench.action.chat.openModePicker'), 'openModePicker should appear in panel');
 	});
 
-	// --- ChatExecute (shared with panel) ---
 
 	test('ChatExecute — inline chat idle with ask mode', () => {
 		const ctx = createContext({
@@ -194,13 +162,11 @@ suite('Inline chat zone widget — menu contributions', function () {
 	});
 
 	test('ChatExecute — quick chat items do NOT appear in inline chat', () => {
-		// Quick chat specific items (those gated on quickChatHasFocus) must not appear
 		const ctx = createContext({
 			'quickChatHasFocus': false,
 			'chatSessionHasActiveRequest': false,
 		});
 		const ids = visibleIds(MenuId.ChatExecute, ctx);
-		// The attach context action in ChatExecute is gated on quickChatHasFocus
 		assert.ok(!ids.includes('workbench.action.chat.attachContext'),
 			'attachContext (quick chat variant) should NOT appear in inline chat');
 	});

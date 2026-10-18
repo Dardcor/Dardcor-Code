@@ -75,11 +75,9 @@ export function create(
 		}
 	}
 
-	// FULL COMPILE stream doing transpile, syntax and semantic diagnostics
 	function createCompileStream(builder: builder.ITypeScriptBuilder, token?: builder.CancellationToken): Readable & Writable {
 
 		return through(function (this: through.ThroughStream, file: Vinyl) {
-			// give the file to the compiler
 			if (file.isStream()) {
 				this.emit('error', 'no support for streams');
 				return;
@@ -87,7 +85,6 @@ export function create(
 			builder.file(file);
 
 		}, function (this: { queue(a: any): void }) {
-			// start the compilation process
 			builder.build(
 				file => this.queue(file),
 				printDiagnostic,
@@ -96,10 +93,8 @@ export function create(
 		});
 	}
 
-	// TRANSPILE ONLY stream doing just TS to JS conversion
 	function createTranspileStream(transpiler: ITranspiler): Readable & Writable {
 		return through(function (this: through.ThroughStream & { queue(a: any): void }, file: Vinyl) {
-			// give the file to the compiler
 			if (file.isStream()) {
 				this.emit('error', 'no support for streams');
 				return;

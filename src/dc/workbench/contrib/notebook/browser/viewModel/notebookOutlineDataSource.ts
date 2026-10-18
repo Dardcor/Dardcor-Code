@@ -62,9 +62,7 @@ export class NotebookCellOutlineDataSource implements INotebookCellOutlineDataSo
 
 			if (notebookCells) {
 				const promises: Promise<void>[] = [];
-				// limit the number of cells so that we don't resolve an excessive amount of text models
 				for (const cell of notebookCells.slice(0, 50)) {
-					// gather all symbols asynchronously
 					promises.push(this._outlineEntryFactory.cacheSymbols(cell, cancelToken));
 				}
 				await Promise.allSettled(promises);
@@ -72,7 +70,6 @@ export class NotebookCellOutlineDataSource implements INotebookCellOutlineDataSo
 			this.recomputeState();
 		} catch (err) {
 			console.error('Failed to compute notebook outline symbols:', err);
-			// Still recompute state with whatever symbols we have
 			this.recomputeState();
 		}
 	}
@@ -101,7 +98,6 @@ export class NotebookCellOutlineDataSource implements INotebookCellOutlineDataSo
 			entries.push(...this._outlineEntryFactory.getOutlineEntries(cell, entries.length));
 		}
 
-		// build a tree from the list of entries
 		if (entries.length > 0) {
 			const result: OutlineEntry[] = [entries[0]];
 			const parentStack: OutlineEntry[] = [entries[0]];
@@ -112,7 +108,6 @@ export class NotebookCellOutlineDataSource implements INotebookCellOutlineDataSo
 				while (true) {
 					const len = parentStack.length;
 					if (len === 0) {
-						// root node
 						result.push(entry);
 						parentStack.push(entry);
 						break;
@@ -132,7 +127,6 @@ export class NotebookCellOutlineDataSource implements INotebookCellOutlineDataSo
 			this._entries = result;
 		}
 
-		// feature: show markers with each cell
 		const markerServiceListener = new MutableDisposable();
 		this._disposables.add(markerServiceListener);
 		const updateMarkerUpdater = () => {
@@ -192,7 +186,7 @@ export class NotebookCellOutlineDataSource implements INotebookCellOutlineDataSo
 		let newActive: OutlineEntry | undefined;
 		const notebookEditorWidget = this._editor;
 
-		if (notebookEditorWidget) {//TODO don't check for widget, only here if we do have
+		if (notebookEditorWidget) {
 			if (notebookEditorWidget.hasModel() && notebookEditorWidget.getLength() > 0) {
 				const cell = notebookEditorWidget.cellAt(notebookEditorWidget.getFocus().start);
 				if (cell) {

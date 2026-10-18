@@ -40,13 +40,6 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 	private readonly _onWillShutdown = this._register(new Emitter<IAgentHostShutdownRequest>());
 	readonly onWillShutdown = this._onWillShutdown.event;
 
-	/**
-	 * Enterprise OTel policy forwarded by the renderer (see `AgentHostOTelPolicyIpcChannel`).
-	 * The main-process config service lacks the managed-settings (`AccountPolicyService`) policy
-	 * layer, so the renderer — which has it — sends the resolved values here before requesting
-	 * the connection that lazily spawns the host. Used as the `policySettings` of
-	 * `buildAgentHostOTelEnv` in `start()`, falling back to main-process policy when absent.
-	 */
 	private _otelPolicyFromRenderer: IAgentHostOTelSettings | undefined = undefined;
 
 	constructor(
@@ -68,8 +61,6 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 			join: promise => event.join('join.agentHost', promise),
 		})));
 
-		// Capture the enterprise OTel policy the renderer forwards before it requests a
-		// connection (FIFO per sender ensures this lands before the spawn in `start()`).
 		const onOTelPolicy = (_e: IpcMainEvent, policy: unknown) => {
 			this._otelPolicyFromRenderer = sanitizeAgentHostOTelPolicySettings(policy);
 		};
@@ -78,7 +69,6 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 			validatedIpcMain.removeListener(AgentHostOTelPolicyIpcChannel, onOTelPolicy);
 		}));
 
-		// Listen for new windows to establish a direct MessagePort connection to the agent host
 		const onWindowConnection = (e: IpcMainEvent, nonce: string) => { void this._onWindowConnection(e, nonce); };
 		validatedIpcMain.on('vscode:createAgentHostMessageChannel', onWindowConnection);
 		this._register(toDisposable(() => {
@@ -106,8 +96,6 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 			`--inspect${inspectParams.break ? '-brk' : ''}=${inspectParams.port}`
 		] : undefined;
 
-		// Resolve user shell environment so spawned tools/terminals inherit
-		// PATH and other vars from the user's login shell (macOS/Linux GUI launches).
 		const shellEnv = await this._resolveShellEnv();
 		if (this._store.isDisposed) {
 			throw new Error('Agent Host starter was disposed during startup.');
@@ -116,9 +104,6 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 			throw new Error('Agent Host utility process was started concurrently.');
 		}
 
-		// Forward the Claude/Codex SDK overrides + codex home/args from
-		// workbench settings to the agent host process. Parent env wins on
-		// collision — see `buildAgentSdkEnv` for the precedence rule.
 		const sdkEnv = buildAgentSdkEnv({
 			codexSdkRoot: this._configurationService.getValue<string>(AgentHostCodexAgentSdkRootSettingId),
 			codexHome: this._configurationService.getValue<string>(AgentHostCodexAgentCodexHomeSettingId),
@@ -127,15 +112,6 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 			codexAgentEnabled: this._configurationService.getValue<boolean>(AgentHostCodexAgentEnabledSettingId),
 		}, process.env);
 
-		// Translate `chat.agentHost.otel.*` settings into the env vars consumed by
-		// the agent host process. Any value already present on `process.env` wins
-		// for user settings, while enterprise policy values win over inherited env —
-		// see `buildAgentHostOTelEnv` for the precedence.
-		//
-		// Policy source: prefer the renderer-forwarded policy (its config service
-		// includes the managed-settings `AccountPolicyService` layer that the main
-		// process cannot see); fall back to the main-process policy for the keys it
-		// can resolve (e.g. native MDM via the policy channel).
 		const policyValue = <T>(key: string): T | undefined => this._configurationService.inspect<T>(key).policyValue;
 		const policySettings: IAgentHostOTelSettings = this._otelPolicyFromRenderer ?? {
 			enabled: policyValue<boolean>(AgentHostOTelEnabledSettingId),
@@ -162,9 +138,6 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 			'--telemetry-level', telemetryLevelToAgentHostValue(this._telemetryService.telemetryLevel),
 		];
 
-		// Forward the host's resolved telemetry identifiers so the agent host
-		// reuses the same persisted machineId/sqmId/devDeviceId instead of
-		// recomputing them live (which can diverge). See `agentHostTelemetryEnv`.
 		const telemetryIdEnv = buildAgentHostTelemetryIdEnv(this._telemetryIds);
 		const utilityProcess = new UtilityProcess(this._logService, NullTelemetryService, this._lifecycleMainService);
 		this.utilityProcess = utilityProcess;
@@ -179,9 +152,6 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 				env: {
 					...deepClone(process.env),
 					...shellEnv,
-					// Announce that everything spawned below this process is driven by
-					// VS Code's agent, so `gh` inherits it. Set after the inherited
-					// env so it wins.
 					[AiAgentEnvVar]: AiAgentEnvValue,
 					VSCODE_ESM_ENTRYPOINT: 'vs/platform/agentHost/node/agentHostMain',
 					VSCODE_PIPE_LOGGING: 'true',
@@ -313,7 +283,7 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 		'Debugger listening on ws://',
 		'For help, see: https://nodejs.org/en/docs/inspector',
 		'ExperimentalWarning: SQLite is an experimental feature',
-		'[copilot-sdk] CopilotClient.stop runtime shutdown complete.',
+		'[agent-sdk] Client.stop runtime shutdown complete.',
 	];
 
 	private _isExpectedStderr(data: string): boolean {

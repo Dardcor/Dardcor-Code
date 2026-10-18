@@ -147,7 +147,6 @@ export class TaskTerminalStatus extends Disposable {
 		}
 		terminalData.taskRunEnded = false;
 		terminalData.terminal.statusList.remove(terminalData.status);
-		// We don't want to show an infinite status for a background task that doesn't have a problem matcher.
 		if ((terminalData.problemMatcher instanceof StartStopProblemCollector) || (terminalData.problemMatcher?.problemMatchers.length > 0) || event.runType === TaskRunType.SingleRun) {
 			terminalData.terminal.statusList.add(ACTIVE_TASK_STATUS);
 		}

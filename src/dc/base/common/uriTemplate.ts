@@ -17,13 +17,7 @@ interface IUriTemplateComponent {
 	readonly variables: readonly IUriTemplateVariable[];
 }
 
-/**
- * Represents an RFC 6570 URI Template.
- */
 export class UriTemplate {
-	/**
-	 * The parsed template components (expressions).
-	 */
 	public readonly components: ReadonlyArray<IUriTemplateComponent | string>;
 
 	private constructor(
@@ -34,9 +28,6 @@ export class UriTemplate {
 		this.components = components;
 	}
 
-	/**
-	 * Parses a URI template string into a UriTemplate instance.
-	 */
 	public static parse(template: string): UriTemplate {
 		const components: Array<IUriTemplateComponent | string> = [];
 		const regex = /\{([^{}]+)\}/g;
@@ -47,7 +38,6 @@ export class UriTemplate {
 			components.push(template.slice(lastPos, match.index));
 			lastPos = match.index + expression.length;
 
-			// Handle escaped braces: treat '{{' and '}}' as literals, not expressions
 			if (template[match.index - 1] === '{' || template[lastPos] === '}') {
 				components.push(inner);
 				continue;
@@ -93,9 +83,6 @@ export class UriTemplate {
 		return (UriTemplate._operators as readonly string[]).includes(ch);
 	}
 
-	/**
-	 * Resolves the template with the given variables.
-	 */
 	public resolve(variables: Record<string, unknown>): string {
 		let result = '';
 		for (const comp of this.components) {
@@ -182,7 +169,6 @@ export class UriTemplate {
 						vals.push(pairs.join(','));
 					}
 				} else {
-					// Not explodable: join as k1,v1,k2,v2,... and assign to variable name
 					const pairs: string[] = [];
 					for (const k in value) {
 						if (Object.prototype.hasOwnProperty.call(value, k)) {
@@ -190,7 +176,6 @@ export class UriTemplate {
 							pairs.push(String((value as Record<string, unknown>)[k]));
 						}
 					}
-					// For label, param, form, join as keys=semi,;,dot,.,comma,, (no encoding of , or ;)
 					const joined = pairs.join(',');
 					if (isLabel) {
 						vals.push(joined);
@@ -232,8 +217,6 @@ export class UriTemplate {
 			if (v.prefixLength !== undefined) {
 				str = str.substring(0, v.prefixLength);
 			}
-			// For simple expansion, encode ! as well (not reserved)
-			// Only + and # are reserved
 			const enc = UriTemplate._encode(str, op === '+' || op === '#');
 			if (isParam) {
 				vals.push(v.name + '=' + enc);
@@ -250,18 +233,15 @@ export class UriTemplate {
 
 		let joined = '';
 		if (isLabel) {
-			// Remove trailing dot for missing values
 			const filtered = vals.filter(v => v !== '');
 			joined = filtered.length ? prefix + filtered.join('.') : '';
 		} else if (isPath) {
-			// Remove empty segments for undefined/null
 			const filtered = vals.filter(v => v !== '');
 			joined = filtered.length ? filtered.join('') : '';
 			if (joined && !joined.startsWith('/')) {
 				joined = '/' + joined;
 			}
 		} else if (isParam) {
-			// For param, if value is empty string, just append ;name
 			joined = vals.length ? prefix + vals.map(v => v.replace(/=\s*$/, '')).join(';') : '';
 		} else if (isForm) {
 			joined = vals.length ? prefix + vals.join('&') : '';
@@ -291,9 +271,7 @@ function pctEncode(str: string): string {
 	for (let i = 0; i < str.length; i++) {
 		const chr = str.charCodeAt(i);
 		if (
-			// alphanum ranges:
 			(chr >= 0x30 && chr <= 0x39 || chr >= 0x41 && chr <= 0x5a || chr >= 0x61 && chr <= 0x7a) ||
-			// unreserved characters:
 			(chr === 0x2d || chr === 0x2e || chr === 0x5f || chr === 0x7e)
 		) {
 			out += str[i];

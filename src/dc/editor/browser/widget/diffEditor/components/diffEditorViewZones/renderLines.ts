@@ -191,14 +191,7 @@ export class RenderLinesResult {
 		private readonly _source: LineSource,
 	) { }
 
-	/**
-	 * Returns the model position for a given DOM node and offset within that node.
-	 * @param domNode The span node within a view-line where the offset is located
-	 * @param offset The offset within the span node
-	 * @returns The Position in the model, or undefined if the position cannot be determined
-	 */
 	public getModelPositionAt(domNode: HTMLElement, offset: number): Position | undefined {
-		// Find the view-line element that contains this span
 		let viewLineElement: HTMLElement | null = domNode;
 		while (viewLineElement && !viewLineElement.classList.contains('view-line')) {
 			viewLineElement = viewLineElement.parentElement;
@@ -208,13 +201,11 @@ export class RenderLinesResult {
 			return undefined;
 		}
 
-		// Find the container that has all view lines
 		const container = viewLineElement.parentElement;
 		if (!container) {
 			return undefined;
 		}
 
-		// Find the view line index based on the element
 		// eslint-disable-next-line no-restricted-syntax
 		const viewLines = container.querySelectorAll('.view-line');
 		let viewLineIndex = -1;
@@ -229,7 +220,6 @@ export class RenderLinesResult {
 			return undefined;
 		}
 
-		// Map view line index back to model line
 		let modelLineNumber = 1;
 		let remainingViewLines = viewLineIndex;
 		for (let i = 0; i < this.viewLineCounts.length; i++) {
@@ -275,7 +265,6 @@ function renderOriginalLine(
 
 	sb.appendString('<div class="view-line');
 	if (!noExtra && !hasCharChanges) {
-		// No char changes
 		sb.appendString(' char-delete');
 	}
 	sb.appendString('" style="top:');
@@ -308,7 +297,7 @@ function renderOriginalLine(
 		options.renderWhitespace,
 		options.renderControlCharacters,
 		options.fontLigatures !== EditorFontLigatures.OFF,
-		null, // Send no selections, original line cannot be selected
+		null,
 		null,
 		options.verticalScrollbarSize,
 		false

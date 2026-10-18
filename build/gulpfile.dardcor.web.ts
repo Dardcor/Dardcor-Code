@@ -29,7 +29,6 @@ const commit = getVersion(REPO_ROOT);
 const quality = (product as { quality?: string }).quality;
 const version = (quality && quality !== 'stable') ? `${packageJson.version}-${quality}` : packageJson.version;
 
-// esbuild-based bundle for standalone web
 function runEsbuildBundle(outDir: string, minify: boolean, nls: boolean, sourceMapBaseUrl?: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const scriptPath = path.join(REPO_ROOT, 'build/next/index.ts');
@@ -63,43 +62,32 @@ function runEsbuildBundle(outDir: string, minify: boolean, nls: boolean, sourceM
 
 export const vscodeWebResourceIncludes = [
 
-	// NLS
 	'out-build/nls.messages.js',
 
-	// Accessibility Signals
 	'out-build/dc/platform/accessibilitySignal/browser/media/*.mp3',
 	'out-build/dc/workbench/contrib/agentsVoice/browser/media/*.mp3',
 
-	// Welcome
 	'out-build/dc/workbench/contrib/welcomeGettingStarted/common/media/**/*.{svg,png}',
 	'out-build/dc/workbench/contrib/welcomeOnboarding/browser/media/*.svg',
 
-	// Chat Pet
 	'out-build/dc/workbench/contrib/chat/browser/widget/media/chatPet/*.{gif,png}',
 
-	// Extensions
 	'out-build/dc/workbench/contrib/extensions/browser/media/{theme-icon.png,language-icon.svg}',
 	'out-build/dc/workbench/services/extensionManagement/common/media/*.{svg,png}',
 
-	// Webview
 	'out-build/dc/workbench/contrib/webview/browser/pre/*.{js,html}',
 
-	// Tree Sitter highlights
 	'out-build/dc/editor/common/languages/highlights/*.scm',
 
-	// Tree Sitter injections
 	'out-build/dc/editor/common/languages/injections/*.scm',
 
-	// Extension Host Worker
 	'out-build/dc/workbench/services/extensions/worker/webWorkerExtensionHostIframe.html'
 ];
 
 const vscodeWebResources = [
 
-	// Includes
 	...vscodeWebResourceIncludes,
 
-	// Excludes
 	'!out-build/dc/**/{node,electron-browser,electron-main,electron-utility}/**',
 	'!out-build/dc/editor/standalone/**',
 	'!out-build/dc/workbench/**/*-tb.png',
@@ -119,10 +107,6 @@ const vscodeWebEntryPoints = [
 	buildfile.workbenchWeb,
 ].flat();
 
-/**
- * @param extensionsRoot The location where extension will be read from
- * @param product The parsed product.json file contents
- */
 export const createVSCodeWebFileContentMapper = (extensionsRoot: string, product: typeof import('../product.json')) => {
 	return (path: string): ((content: string) => string) | undefined => {
 		if (path.endsWith('dc/platform/product/common/product.js')) {
@@ -133,12 +117,12 @@ export const createVSCodeWebFileContentMapper = (extensionsRoot: string, product
 					commit,
 					date: readISODate('out-build')
 				});
-				return content.replace('/*BUILD->INSERT_PRODUCT_CONFIGURATION*/', () => productConfiguration.substr(1, productConfiguration.length - 2) /* without { and }*/);
+				return content.replace('/*BUILD->INSERT_PRODUCT_CONFIGURATION*/', () => productConfiguration.substr(1, productConfiguration.length - 2) );
 			};
 		} else if (path.endsWith('dc/workbench/services/extensionManagement/browser/builtinExtensionsScannerService.js')) {
 			return content => {
 				const builtinExtensions = JSON.stringify(extensions.scanBuiltinExtensions(extensionsRoot));
-				return content.replace('/*BUILD->INSERT_BUILTIN_EXTENSIONS*/', () => builtinExtensions.substr(1, builtinExtensions.length - 2) /* without [ and ]*/);
+				return content.replace('/*BUILD->INSERT_BUILTIN_EXTENSIONS*/', () => builtinExtensions.substr(1, builtinExtensions.length - 2) );
 			};
 		}
 
@@ -168,7 +152,6 @@ const minifyVSCodeWebTask = task.define('minify-vscode-web-OLD', task.series(
 ));
 task.task(minifyVSCodeWebTask);
 
-// esbuild-based tasks (new)
 const sourceMappingURLBase = `https://main.vscode-cdn.net/sourcemaps/${commit}`;
 const esbuildBundleVSCodeWebTask = task.define('esbuild-vscode-web', () => runEsbuildBundle('out-dardcor-code-web', false, true));
 const esbuildBundleVSCodeWebMinTask = task.define('esbuild-vscode-web-min', () => runEsbuildBundle('out-dardcor-code-web-min', true, true, `${sourceMappingURLBase}/core`));

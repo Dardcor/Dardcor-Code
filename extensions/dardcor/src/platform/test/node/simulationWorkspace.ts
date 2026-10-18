@@ -82,7 +82,6 @@ function getWorkspaceFolderPath(workspaceFolders: Uri[] | undefined): string {
 function filePathToUri(filePath: string, workspaceFolders: Uri[] | undefined): vscode.Uri {
 	const workspaceFolder = getWorkspaceFolderPath(workspaceFolders);
 	if (filePath.includes('#index')) {
-		// this is a notebook cell. filePath: errors#index2.py
 		const parts = filePath.split('#');
 		const fileName = parts[0] + '.ipynb';
 		const index = parts[1].replace('.py', '');
@@ -94,7 +93,6 @@ function filePathToUri(filePath: string, workspaceFolders: Uri[] | undefined): v
 function uriToFilePath(uri: vscode.Uri, workspaceFolders: Uri[] | undefined): string {
 	const workspaceFolder = getWorkspaceFolderPath(workspaceFolders);
 	if (uri.scheme === Schemas.vscodeNotebookCell) {
-		// we need to append fragment to the path
 		const filePathWithoutSuffix = uri.fsPath.substring(workspaceFolder.length, uri.fsPath.length - '.ipynb'.length);
 		return `${filePathWithoutSuffix}#${uri.fragment}.py`;
 	}
@@ -173,9 +171,6 @@ export class SimulationWorkspace extends Disposable {
 		this._clear();
 	}
 
-	/**
-	 * Clear out all fields.
-	 */
 	private _clear() {
 		this._workspaceState = undefined;
 		this._workspaceFolders = undefined;
@@ -309,7 +304,6 @@ export class SimulationWorkspace extends Disposable {
 
 	public setCurrentDocument(uri: vscode.Uri): void {
 		if (uri.toString() === this.currentEditor?.value.document.uri.toString()) {
-			// no change
 			return;
 		}
 		const doc = this.getDocument(uri);
@@ -396,10 +390,8 @@ export class SimulationWorkspace extends Disposable {
 	public tryGetNotebook(filePathOrUri: string | vscode.Uri): ExtHostNotebookDocumentData | undefined {
 		const queryUri = typeof filePathOrUri === 'string' ? this.getUriFromFilePath(filePathOrUri) : filePathOrUri;
 		if (queryUri.scheme === Schemas.vscodeNotebookCell) {
-			// loop through notebooks to find the one matching the path
 			for (const notebook of this._notebooks.values()) {
 				if (notebook.uri.path === queryUri.path) {
-					// found it
 					return notebook;
 				}
 			}
@@ -418,7 +410,6 @@ export class SimulationWorkspace extends Disposable {
 
 	public setCurrentNotebookDocument(notebook: ExtHostNotebookDocumentData): void {
 		if (notebook.uri.toString() === this.currentNotebookEditor?.apiEditor.notebook.uri.toString()) {
-			// no change
 			return;
 		}
 		const doc = this.getNotebook(notebook.uri);
@@ -484,9 +475,6 @@ export class SimulationWorkspace extends Disposable {
 	}
 }
 
-/**
- * Apply edits to `file` and return the new range and the new selection.
- */
 export function applyEdits(
 	doc: IExtHostDocumentData,
 	edits: vscode.TextEdit[],
@@ -516,9 +504,6 @@ export function applyEdits(
 	};
 }
 
-/**
- * Apply edits to `notebook`.
- */
 function applyNotebookEdits(
 	doc: ExtHostNotebookDocumentData,
 	edits: vscode.NotebookEdit[],
@@ -558,12 +543,10 @@ function doApplyEdits(
 	range: OffsetBasedRange,
 	selection: OffsetBasedRange
 ): { fileContents: string; range: OffsetBasedRange; selection: OffsetBasedRange } {
-	// Sort edits by start position
 	edits.sort((a, b) => {
 		return a.range.offset - b.range.offset;
 	});
 
-	// Check that edits are not overlapping
 	for (let i = 0; i < edits.length - 1; i++) {
 		const aRange = edits[i].range;
 		const bRange = edits[i + 1].range;
@@ -572,7 +555,6 @@ function doApplyEdits(
 		}
 	}
 
-	// Reduce edits at edges
 	for (const edit of edits) {
 		const prefixLen = commonPrefixLen(
 			fileContents.substring(edit.range.offset, edit.range.offset + edit.range.length),
@@ -589,7 +571,6 @@ function doApplyEdits(
 		edit.text = edit.text.substring(0, edit.text.length - suffixLen);
 	}
 
-	// Apply edits
 	let fileText = fileContents;
 	let hasNewSelection = false;
 	for (let i = edits.length - 1; i >= 0; i--) {
@@ -599,15 +580,11 @@ function doApplyEdits(
 
 		range = adjustRangeAfterEdit(range, edit);
 
-		// apply the edit on the file text
 		fileText = fileText.substring(0, offset) + editText + fileText.substring(offset + length);
 
 		if (!hasNewSelection) {
-			// selection goes at the end of the inserted text
 			const selectionCandidate = { offset: offset + editText.length, length: 0 };
 
-			// a selection is considered only if it is inside the range
-			// this is to accomodate edits unrelated to the range
 			if (selectionCandidate.offset >= range.offset && selectionCandidate.offset <= range.offset + range.length) {
 				selection = selectionCandidate;
 				hasNewSelection = true;
@@ -627,44 +604,26 @@ function adjustRangeAfterEdit(range: OffsetBasedRange, edit: OffsetBasedEdit): O
 	const charDelta = editText.length - edit.range.length;
 
 	if (editEnd < rangeStart) {
-		// the edit is before the range, the range is pushed down by the delta
-		//                  [---range---]
-		//     [---edit---]
 		return offsetRangeFromOffsets(rangeStart + charDelta, rangeEnd + charDelta);
 	}
 
 	if (editStart <= rangeStart && editEnd <= rangeEnd) {
-		// the edit begins before the range, and it intersects the range, but doesn't encompass it
-		//                  [---range---]
-		//            [---edit---]
 		return offsetRangeFromOffsets(editStart, rangeEnd + charDelta);
 	}
 
 	if (editStart <= rangeStart && editEnd >= rangeEnd) {
-		// the edit begins before the range, and it encompasses the range
-		//                  [---range---]
-		//            [---edit------------]
 		return offsetRangeFromOffsets(editStart, editStart + editText.length);
 	}
 
 	if (editStart <= rangeEnd && editEnd <= rangeEnd) {
-		// the edit is in the range, and it ends in the range
-		//          [-----range-----]
-		//            [---edit---]
 		return offsetRangeFromOffsets(rangeStart, rangeEnd + charDelta);
 	}
 
 	if (editStart <= rangeEnd && editEnd >= rangeEnd) {
-		// the edit is in the range, and it ends after the range
-		//          [---range---]
-		//              [---edit---]
 		return offsetRangeFromOffsets(rangeStart, editStart + editText.length);
 	}
 
 	if (editStart >= rangeEnd) {
-		// the edit begins after the range
-		//       [---range---]
-		//                      [---edit---]
 		return range;
 	}
 

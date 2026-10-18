@@ -8,36 +8,11 @@ import * as path from 'path';
 
 export type JsonRecordFormat = 'array' | 'jsonl';
 
-/**
- * Infers the record format of an input file from its extension:
- * - `.jsonl` / `.ndjson` → JSON Lines (one JSON value per line).
- * - anything else (e.g. `.json`) → a single JSON array.
- */
 export function inferJsonRecordFormat(inputPath: string): JsonRecordFormat {
 	const ext = path.extname(inputPath).toLowerCase();
 	return ext === '.jsonl' || ext === '.ndjson' ? 'jsonl' : 'array';
 }
 
-/**
- * Streams the top-level records of a file without ever loading the whole file
- * into memory. The format is inferred from the file extension (see
- * {@link inferJsonRecordFormat}):
- *
- * - A single JSON array (`[ {...}, {...} ]`) — each top-level array element is
- *   yielded in order.
- * - JSON Lines / NDJSON (one JSON value per line) — each non-empty line is parsed
- *   and yielded in order.
- *
- * Node's `fs.readFile`/`fs.promises.readFile` reject files larger than 2 GiB and
- * V8 strings have a maximum length of ~512 MiB, so large inputs (e.g. multi-GB
- * recordings) cannot be read into a single string and parsed with `JSON.parse`.
- * Instead we read the file as a stream and parse each record individually. This
- * assumes each individual record is small enough to fit into a single string,
- * which holds for the row records used by the nes-datagen pipeline.
- *
- * @param inputPath path to a JSON-array or JSON-Lines file.
- * @yields each parsed top-level record in order.
- */
 export async function* streamJsonRecords<T = unknown>(inputPath: string): AsyncGenerator<T> {
 	const format = inferJsonRecordFormat(inputPath);
 	const stream = fs.createReadStream(inputPath, { encoding: 'utf8' });
@@ -145,7 +120,6 @@ async function* streamJsonArray<T>(stream: NodeJS.ReadableStream): AsyncGenerato
 
 			if (ch === '}' || ch === ']') {
 				if (ch === ']' && depth === 0) {
-					// Closing the outer array.
 					const trimmed = current.trim();
 					current = '';
 					hasContent = false;
@@ -179,7 +153,6 @@ async function* streamJsonArray<T>(stream: NodeJS.ReadableStream): AsyncGenerato
 			}
 
 			if (!hasContent && isWhitespace(ch)) {
-				// Skip whitespace between elements so it doesn't accumulate.
 				continue;
 			}
 
@@ -195,7 +168,6 @@ async function* streamJsonArray<T>(stream: NodeJS.ReadableStream): AsyncGenerato
 	}
 
 	if (!arrayStarted) {
-		// Empty or whitespace-only file: no records.
 		return;
 	}
 

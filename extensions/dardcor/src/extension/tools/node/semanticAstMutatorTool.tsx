@@ -10,7 +10,7 @@ import { IPromptPathRepresentationService } from '../../../platform/prompts/comm
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { createEditConfirmation } from './editFileToolUtils';
 import { resolveToolInputPath } from './toolUtils';
@@ -26,7 +26,7 @@ export interface ISemanticAstMutatorParams {
 	description: string;
 }
 
-export class SemanticAstMutatorTool implements ICopilotTool<ISemanticAstMutatorParams> {
+export class SemanticAstMutatorTool implements IAgentTool<ISemanticAstMutatorParams> {
 	public static toolName = ToolName.SemanticAstMutator;
 
 	constructor(
@@ -50,7 +50,6 @@ export class SemanticAstMutatorTool implements ICopilotTool<ISemanticAstMutatorP
 
 		switch (mutationType) {
 			case 'morph_function': {
-				// Locates function declaration, expression, or arrow function by identifier across flexible whitespace
 				const funcRegex = new RegExp(
 					`(?:(?:export\\s+)?(?:default\\s+)?(?:async\\s+)?function\\s+\\b${identifier}\\b[^{]*|` +
 					`(?:const|let|var)\\s+\\b${identifier}\\b\\s*=\\s*(?:async\\s*)?(?:\\([^)]*\\)|[a-zA-Z0-9_$]+)\\s*=>\\s*|` +
@@ -63,7 +62,6 @@ export class SemanticAstMutatorTool implements ICopilotTool<ISemanticAstMutatorP
 				}
 
 				if (newCode !== undefined) {
-					// Replace only body while preserving declaration signature
 					const fullMatch = match[0];
 					const openBraceIdx = fullMatch.indexOf('{');
 					const header = fullMatch.substring(0, openBraceIdx + 1);
@@ -76,7 +74,6 @@ export class SemanticAstMutatorTool implements ICopilotTool<ISemanticAstMutatorP
 			}
 
 			case 'inject_member': {
-				// Injects property or method into class, interface, or type
 				const typeRegex = new RegExp(
 					`\\b(?:interface|class|type)\\s+\\b${identifier}\\b[^{]*\\{`,
 					'm'
@@ -93,7 +90,6 @@ export class SemanticAstMutatorTool implements ICopilotTool<ISemanticAstMutatorP
 			}
 
 			case 'reconcile_imports': {
-				// Tree-shaking and duplicate elimination for imports
 				const lines = content.split('\n');
 				const importLines: string[] = [];
 				const otherLines: string[] = [];
@@ -112,7 +108,6 @@ export class SemanticAstMutatorTool implements ICopilotTool<ISemanticAstMutatorP
 			}
 
 			case 'wrap_node': {
-				// Wraps targeted identifier occurrences with safety wrappers
 				if (wrapKind === 'try_catch') {
 					const funcRegex = new RegExp(`(\\b${identifier}\\b[^{]*\\{\\s*)([\\s\\S]*?)(\\n\\s*\\})`, 'm');
 					const match = funcRegex.exec(content);

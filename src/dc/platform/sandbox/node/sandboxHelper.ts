@@ -105,19 +105,7 @@ export class SandboxHelperService implements ISandboxHelperService {
 	}
 
 	async getWindowsMxcFilesystemPolicy(): Promise<IWindowsMxcFilesystemPolicy | undefined> {
-		if (!isWindows) {
-			return undefined;
-		}
-
-		const { getAvailableToolsPolicy, getUserProfilePolicy, getTemporaryFilesPolicy } = await import('@microsoft/mxc-sdk');
-		const availableToolsPolicy = getAvailableToolsPolicy(process.env, { containerType: 'processcontainer' });
-		const userProfilePolicy = getUserProfilePolicy();
-		const temporaryFilesPolicy = getTemporaryFilesPolicy(process.env);
-		const psHome = await this._getPSHome();
-		return {
-			readonlyPaths: [...new Set([...availableToolsPolicy.readonlyPaths, ...userProfilePolicy.readonlyPaths, ...temporaryFilesPolicy.readonlyPaths, ...(psHome ? [psHome] : [])])],
-			readwritePaths: [...new Set([...availableToolsPolicy.readwritePaths, ...userProfilePolicy.readwritePaths, ...temporaryFilesPolicy.readwritePaths])],
-		};
+		return undefined;
 	}
 
 	async getWindowsMxcEnvironment(): Promise<string[] | undefined> {
@@ -153,12 +141,7 @@ export class SandboxHelperService implements ISandboxHelperService {
 	}
 
 	async buildWindowsMxcSandboxPayload(commandLine: string, policy: IWindowsMxcSandboxPolicy, workingDirectory?: string, containerName?: string, containment: IWindowsMxcPolicyContainment = 'process'): Promise<IWindowsMxcConfig | undefined> {
-		if (!isWindows) {
-			return undefined;
-		}
-
-		const { buildSandboxPayload } = await import('@microsoft/mxc-sdk');
-		return buildSandboxPayload(commandLine, policy, workingDirectory, containerName, containment);
+		return undefined;
 	}
 
 	private async _getPSHome(): Promise<string | undefined> {

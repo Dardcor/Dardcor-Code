@@ -14,15 +14,10 @@ export class CommandLineCdPrefixRewriter extends Disposable implements ICommandL
 			return undefined;
 		}
 
-		// Re-write the command if it starts with `cd <dir> && <suffix>` or `cd <dir>; <suffix>`
-		// to just `<suffix>` if the directory matches the current terminal's cwd. This simplifies
-		// the result in the chat by removing redundancies that some models like to add.
 		const extracted = extractCdPrefix(options.commandLine, options.shell, options.os);
 		if (extracted) {
-			// Normalize trailing slashes
 			let cdDirPath = extracted.directory.replace(/(?:[\\\/])$/, '');
 			let cwdFsPath = options.cwd.fsPath.replace(/(?:[\\\/])$/, '');
-			// Case-insensitive comparison on Windows
 			if (options.os === OperatingSystem.Windows) {
 				cdDirPath = cdDirPath.toLowerCase();
 				cwdFsPath = cwdFsPath.toLowerCase();

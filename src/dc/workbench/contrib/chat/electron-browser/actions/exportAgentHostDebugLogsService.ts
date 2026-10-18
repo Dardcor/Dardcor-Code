@@ -58,9 +58,6 @@ class NativeAgentHostDebugLogsExportService implements IAgentHostDebugLogsExport
 					}
 					let localHostArchive = artifact.resource;
 					if (artifact.resource.scheme !== Schemas.file) {
-						// The archive lives on a remote agent host. Stream it down in
-						// bounded chunks rather than pulling the whole thing over in a
-						// single protocol message.
 						localHostArchive = joinPath(this.environmentService.tmpDir, `agent-host-debug-logs-${generateUuid()}.zip`);
 						temporaryHostArchive = localHostArchive;
 						await this.fileService.writeFile(localHostArchive, createHostArtifactStream(artifact, position => readChunk(artifact.resource, position)));
@@ -82,8 +79,6 @@ class NativeAgentHostDebugLogsExportService implements IAgentHostDebugLogsExport
 			}
 		} finally {
 			if (temporaryHostArchive) {
-				// Best-effort: the download may have failed before the file was
-				// created, and a cleanup failure must never mask that error.
 				try {
 					await this.fileService.del(temporaryHostArchive);
 				} catch (error) {

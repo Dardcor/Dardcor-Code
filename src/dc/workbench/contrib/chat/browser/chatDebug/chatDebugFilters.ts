@@ -18,28 +18,18 @@ import {
 	CHAT_DEBUG_CMD_TOGGLE_SUBAGENT,
 } from './chatDebugTypes.js';
 
-/**
- * Shared filter state for the Agent Debug Logs.
- *
- * Both the Logs view and the Flow Chart view read from this single source of
- * truth. Toggle commands modify the state and fire `onDidChange` so every
- * consumer can re-render.
- */
 export class ChatDebugFilterState extends Disposable {
 
 	private readonly _onDidChange = this._register(new Emitter<void>());
 	readonly onDidChange: Event<void> = this._onDidChange.event;
 
-	// Kind visibility
 	filterKindToolCall: boolean = true;
 	filterKindModelTurn: boolean = true;
 	filterKindPromptDiscovery: boolean = true;
 	filterKindSubagent: boolean = true;
 
-	// Text filter
 	textFilter: string = '';
 
-	// Parsed timestamp filters (epoch ms)
 	beforeTimestamp: number | undefined;
 	afterTimestamp: number | undefined;
 
@@ -48,11 +38,6 @@ export class ChatDebugFilterState extends Disposable {
 			case 'toolCall': return this.filterKindToolCall;
 			case 'modelTurn': return this.filterKindModelTurn;
 			case 'generic':
-				// The "Chat Customization" toggle hides events produced by
-				// the prompt discovery pipeline (category === 'discovery')
-				// and the customization summary (category === 'customization').
-				// Other generic events (e.g. from external providers) are
-				// always visible and are not affected by this toggle.
 				if (category !== 'discovery' && category !== 'customization') {
 					return true;
 				}
@@ -82,7 +67,6 @@ export class ChatDebugFilterState extends Disposable {
 		}
 	}
 
-	/** Returns the text filter with before:/after: tokens removed. */
 	get textFilterWithoutTimestamps(): string {
 		return stripTimestampTokens(this.textFilter);
 	}
@@ -103,17 +87,12 @@ export class ChatDebugFilterState extends Disposable {
 	}
 }
 
-/**
- * Registers the toggle-filter commands and menu items once, wired to a shared
- * {@link ChatDebugFilterState}. Returns a disposable that unregisters them.
- */
 export function registerFilterMenuItems(
 	state: ChatDebugFilterState,
 	scopedContextKeyService: IContextKeyService,
 ): DisposableStore {
 	const store = new DisposableStore();
 
-	// Bind context keys so the "More Filters" submenu shows toggle checkboxes
 	CHAT_DEBUG_FILTER_ACTIVE.bindTo(scopedContextKeyService).set(true);
 
 	const kindToolCallKey = CHAT_DEBUG_KIND_TOOL_CALL.bindTo(scopedContextKeyService);
@@ -149,10 +128,6 @@ export function registerFilterMenuItems(
 	return store;
 }
 
-/**
- * Binds context keys for filter state into a scoped context key service.
- * Returns a function to sync all keys from the current state.
- */
 export function bindFilterContextKeys(
 	state: ChatDebugFilterState,
 	scopedContextKeyService: IContextKeyService,

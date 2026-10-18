@@ -187,12 +187,10 @@ class DocumentSymbolsOutline implements IOutline<DocumentSymbolItem> {
 		};
 
 
-		// update as language, model, providers changes
 		this._disposables.add(_languageFeaturesService.documentSymbolProvider.onDidChange(_ => this._createOutline()));
 		this._disposables.add(this._editor.onDidChangeModel(_ => this._createOutline()));
 		this._disposables.add(this._editor.onDidChangeModelLanguage(_ => this._createOutline()));
 
-		// update soon'ish as model content change
 		const updateSoon = new TimeoutTimer();
 		this._disposables.add(updateSoon);
 		this._disposables.add(this._editor.onDidChangeModelContent(event => {
@@ -203,10 +201,8 @@ class DocumentSymbolsOutline implements IOutline<DocumentSymbolItem> {
 			}
 		}));
 
-		// stop when editor dies
 		this._disposables.add(this._editor.onDidDispose(() => this._outlineDisposables.clear()));
 
-		// initial load
 		this._createOutline().finally(() => firstLoadBarrier.open());
 	}
 
@@ -290,18 +286,14 @@ class DocumentSymbolsOutline implements IOutline<DocumentSymbolItem> {
 		try {
 			const model = await this._outlineModelService.getOrCreate(buffer, cts.token);
 			if (cts.token.isCancellationRequested) {
-				// cancelled -> do nothing
 				return;
 			}
 
 			if (TreeElement.empty(model) || !this._editor.hasModel()) {
-				// empty -> no outline elements
 				this._setOutlineModel(model);
 				return;
 			}
 
-			// heuristic: when the symbols-to-lines ratio changes by 50% between edits
-			// wait a little (and hope that the next change isn't as drastic).
 			if (contentChangeEvent && this._outlineModel && buffer.getLineCount() >= 25) {
 				const newSize = TreeElement.size(model);
 				const newLength = buffer.getValueLength();
@@ -310,8 +302,6 @@ class DocumentSymbolsOutline implements IOutline<DocumentSymbolItem> {
 				const oldLength = newLength - contentChangeEvent.changes.reduce((prev, value) => prev + value.rangeLength, 0);
 				const oldRatio = oldSize / oldLength;
 				if (newRatio <= oldRatio * 0.5 || newRatio >= oldRatio * 1.5) {
-					// wait for a better state and ignore current model when more
-					// typing has happened
 					const value = await raceCancellation(timeout(2000).then(() => true), cts.token, false);
 					if (!value) {
 						return;
@@ -319,7 +309,6 @@ class DocumentSymbolsOutline implements IOutline<DocumentSymbolItem> {
 				}
 			}
 
-			// feature: show markers with outline element
 			this._applyMarkersToOutline(model);
 			this._outlineDisposables.add(this._markerDecorationsService.onDidChangeMarker(textModel => {
 				if (isEqual(model.uri, textModel.uri)) {
@@ -340,17 +329,14 @@ class DocumentSymbolsOutline implements IOutline<DocumentSymbolItem> {
 					this._onDidChange.fire({});
 				}
 				if (e.affectsConfiguration('outline')) {
-					// outline filtering, problems on/off
 					this._onDidChange.fire({});
 				}
 				if (e.affectsConfiguration('breadcrumbs') && this._editor.hasModel()) {
-					// breadcrumbs filtering
 					this._breadcrumbsDataSource.update(model, this._editor.getPosition());
 					this._onDidChange.fire({});
 				}
 			}));
 
-			// feature: toggle icons
 			this._outlineDisposables.add(this._configurationService.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration(OutlineConfigKeys.icons)) {
 					this._onDidChange.fire({});
@@ -360,7 +346,6 @@ class DocumentSymbolsOutline implements IOutline<DocumentSymbolItem> {
 				}
 			}));
 
-			// feature: update active when cursor changes
 			this._outlineDisposables.add(this._editor.onDidChangeCursorPosition(_ => {
 				timeoutTimer.cancelAndSet(() => {
 					if (!buffer.isDisposed() && versionIdThen === buffer.getVersionId() && this._editor.hasModel()) {
@@ -370,7 +355,6 @@ class DocumentSymbolsOutline implements IOutline<DocumentSymbolItem> {
 				}, 150);
 			}));
 
-			// update properties, send event
 			this._setOutlineModel(model);
 
 		} catch (err) {

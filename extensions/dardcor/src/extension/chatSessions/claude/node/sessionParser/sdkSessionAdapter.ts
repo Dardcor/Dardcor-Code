@@ -3,19 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * SDK Session Adapter
- *
- * Thin conversion layer between the `@anthropic-ai/claude-agent-sdk` session APIs
- * and our internal types (`IClaudeCodeSessionInfo`, `IClaudeCodeSession`, `StoredMessage`).
- *
- * The SDK provides:
- * - `listSessions()` / `getSessionInfo()` → `SDKSessionInfo`
- * - `getSessionMessages()` → `SessionMessage[]`
- *
- * This adapter converts those into the shapes consumed by `chatHistoryBuilder.ts`
- * and `claudeChatSessionContentProvider.ts` without any JSONL parsing.
- */
 
 import type { SDKSessionInfo, SessionMessage } from '@anthropic-ai/claude-agent-sdk';
 import {
@@ -29,20 +16,11 @@ import {
 	vUserMessageContent,
 } from './claudeSessionSchema';
 
-// #region Label Helpers
 
-/**
- * Strips `<system-reminder>` tags and their content from a string.
- * The SDK includes raw system-reminder blocks in `summary` and `firstPrompt` fields.
- */
 function stripSystemReminders(text: string): string {
 	return text.replace(/<system-reminder>[\s\S]*?<\/system-reminder>\s*/g, '').trim();
 }
 
-/**
- * Computes a clean display label from SDK session info.
- * Priority: customTitle > stripped summary > stripped firstPrompt > fallback.
- */
 function computeSessionLabel(info: SDKSessionInfo): string {
 	if (info.customTitle) {
 		return truncateLabel(info.customTitle);
@@ -71,14 +49,8 @@ function truncateLabel(text: string): string {
 	return singleLine.slice(0, MAX_LABEL_LENGTH) + '…';
 }
 
-// #endregion
 
-// #region SDKSessionInfo → IClaudeCodeSessionInfo
 
-/**
- * Converts an `SDKSessionInfo` (from `listSessions` / `getSessionInfo`) into
- * the lightweight `IClaudeCodeSessionInfo` used by the session list UI.
- */
 export function sdkSessionInfoToSessionInfo(
 	info: SDKSessionInfo,
 	folderName?: string,
@@ -94,20 +66,8 @@ export function sdkSessionInfoToSessionInfo(
 	};
 }
 
-// #endregion
 
-// #region SessionMessage → StoredMessage
 
-/**
- * Converts an array of `SessionMessage` (from `getSessionMessages`) into
- * `StoredMessage[]` compatible with `chatHistoryBuilder.ts`.
- *
- * Uses existing validators (`vUserMessageContent`, `vAssistantMessageContent`)
- * to narrow the `message: unknown` field into typed content.
- *
- * Messages that fail validation are silently skipped — this matches the parser
- * behavior of ignoring malformed JSONL entries.
- */
 export function sdkSessionMessagesToStoredMessages(
 	messages: readonly SessionMessage[],
 ): StoredMessage[] {
@@ -159,9 +119,7 @@ function sdkSessionMessageToStoredMessage(
 	return undefined;
 }
 
-// #endregion
 
-// #region Subagent Session Building
 
 function extractParentToolUseId(messages: readonly SessionMessage[]): string | undefined {
 	for (const msg of messages) {
@@ -178,14 +136,6 @@ function extractParentToolUseId(messages: readonly SessionMessage[]): string | u
 	return undefined;
 }
 
-/**
- * Converts SDK `SessionMessage[]` (from `getSubagentMessages`) into an
- * `ISubagentSession` for display in the chat history.
- *
- * Extracts `parent_tool_use_id` from the first assistant message that
- * contains one, to link the subagent back to its spawning Agent tool_use
- * in the parent session.
- */
 export function sdkSubagentMessagesToSubagentSession(
 	agentId: string,
 	messages: readonly SessionMessage[],
@@ -203,13 +153,8 @@ export function sdkSubagentMessagesToSubagentSession(
 	};
 }
 
-// #endregion
 
-// #region Full Session Assembly
 
-/**
- * Assembles a full `IClaudeCodeSession` from SDK data and separately-loaded subagents.
- */
 export function buildClaudeCodeSession(
 	info: SDKSessionInfo,
 	messages: readonly SessionMessage[],
@@ -226,4 +171,3 @@ export function buildClaudeCodeSession(
 	};
 }
 
-// #endregion

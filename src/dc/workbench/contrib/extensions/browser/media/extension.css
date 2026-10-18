@@ -280,12 +280,10 @@
 	border-left-width: 0;
 }
 
-/* single install */
 .extension-list-item .monaco-action-bar > .actions-container > .action-item.action-dropdown-item.empty > .extension-action {
 	border-radius: var(--vscode-cornerRadius-small);
 }
 
-/* split install */
 .extension-list-item .monaco-action-bar > .actions-container > .action-item.action-dropdown-item:not(.empty) > .extension-action.label:not(.dropdown) {
 	border-radius: var(--vscode-cornerRadius-small) 0 0 var(--vscode-cornerRadius-small);
 }

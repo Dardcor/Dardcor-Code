@@ -40,12 +40,6 @@ export class NextEditResult implements INextEditResult {
 			isFromCursorJump: boolean;
 			jumpToPosition?: Position;
 			isSubsequentEdit: boolean;
-			/**
-			 * Reference to the underlying cache entry, when this result was either
-			 * served from the cache or freshly produced and immediately cached.
-			 * Consumers can use this to read/write per-entry flags such as
-			 * {@link CachedEdit.wasRenderedAsInlineSuggestion}.
-			 */
 			cacheEntry?: CachedEdit;
 		} | undefined,
 	) { }

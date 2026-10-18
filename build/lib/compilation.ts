@@ -27,7 +27,6 @@ import { createTsgoStream, spawnTsgo } from './tsgo.ts';
 import { extractExtensionPointNamesFromFile } from './extractExtensionPoints.ts';
 
 
-// --- gulp-tsb: compile and transpile --------------------------------
 
 const reporter = createReporter();
 
@@ -36,7 +35,7 @@ function getTypeScriptCompilerOptions(src: string): ts.CompilerOptions {
 	const options: ts.CompilerOptions = {};
 	options.verbose = false;
 	options.sourceMap = true;
-	if (process.env['VSCODE_NO_SOURCEMAP']) { // To be used by developers in a hurry
+	if (process.env['VSCODE_NO_SOURCEMAP']) {
 		options.sourceMap = false;
 	}
 	options.rootDir = rootDir;
@@ -79,7 +78,7 @@ export function createCompile(src: string, { build, emitError, transpileOnly, pr
 
 		const input = es.through();
 		const output = input
-			.pipe(util.$if(isUtf8Test, bom())) // this is required to preserve BOM in test files that loose it otherwise
+			.pipe(util.$if(isUtf8Test, bom()))
 			.pipe(util.$if(!build && isRuntimeJs, util.appendOwnPathSourceURL()))
 			.pipe(tsFilter)
 			.pipe(util.loadSourcemaps())
@@ -128,8 +127,6 @@ export function compileTask(src: string, out: string, build: boolean, options: {
 			throw new Error('compilation requires 4GB of RAM');
 		}
 
-		// For dev builds we can transpile with esbuild for speed and type-check with tsgo (no emit).
-		// For `build`, keep the full tsb pipeline because the NLS step requires `file.sourceMap`.
 		const compile = createCompile(src, { build, emitError: true, transpileOnly: build ? false : { esbuild: true }, preserveEnglish: !!options.preserveEnglish });
 		const srcPipe = gulp.src(`${src}/**`, { base: `${src}` });
 		const generator = new MonacoGenerator(false);
@@ -137,7 +134,6 @@ export function compileTask(src: string, out: string, build: boolean, options: {
 			generator.execute();
 		}
 
-		// mangle: TypeScript to TypeScript
 		let mangleStream = es.through();
 		if (build && !options.disableMangle) {
 			let ts2tsMangler: Mangler | undefined = new Mangler(compile.projectPath, (...data) => fancyLog(ansiColors.blue('[mangler]'), ...data), { mangleExports: true, manglePrivateFields: true });
@@ -152,7 +148,6 @@ export function compileTask(src: string, out: string, build: boolean, options: {
 				}
 				this.push(data);
 			}, async function end() {
-				// free resources
 				(await newContentsByFileName).clear();
 
 				this.push(null);
@@ -256,7 +251,6 @@ class MonacoGenerator {
 	private _run(): monacodts.IMonacoDeclarationResult | null {
 		const r = monacodts.run3(this._declarationResolver);
 		if (!r && !this._isWatch) {
-			// The build must always be able to generate the monaco.d.ts
 			throw new Error(`monaco.d.ts generation error - Cannot continue`);
 		}
 		return r;
@@ -270,7 +264,6 @@ class MonacoGenerator {
 		const startTime = Date.now();
 		const result = this._run();
 		if (!result) {
-			// nothing really changed
 			return;
 		}
 		if (result.isTheSame) {
@@ -301,7 +294,7 @@ function generateApiProposalNames() {
 		eol = os.EOL;
 	}
 
-	const pattern = /vscode\.proposed\.([a-zA-Z\d]+)\.d\.ts$/;
+	const pattern = /(?:vscode|dardcor)\.proposed\.([a-zA-Z\d]+)\.d\.ts$/;
 	const proposals = new Map<string, { proposal: string }>();
 
 	const input = es.through();
@@ -349,7 +342,6 @@ function generateApiProposalNames() {
 					return;
 				}
 			} catch {
-				// File doesn't exist yet, emit it
 			}
 			this.emit('data', new File({
 				path: filePath,
@@ -364,7 +356,7 @@ function generateApiProposalNames() {
 const apiProposalNamesReporter = createReporter('api-proposal-names');
 
 export const compileApiProposalNamesTask = task.define('compile-api-proposal-names', () => {
-	return gulp.src('src/vscode-dts/**')
+	return gulp.src('src/dardcor-dts/**')
 		.pipe(generateApiProposalNames())
 		.pipe(gulp.dest('src'))
 		.pipe(apiProposalNamesReporter.end(true));
@@ -392,7 +384,6 @@ function generateExtensionPointNames() {
 					return;
 				}
 			} catch {
-				// File doesn't exist yet, emit it
 			}
 			this.emit('data', new File({
 				path: filePath,
@@ -424,16 +415,15 @@ export const watchExtensionPointNamesTask = task.define('watch-extension-point-n
 });
 
 export const watchApiProposalNamesTask = task.define('watch-api-proposal-names', () => {
-	const task = () => gulp.src('src/vscode-dts/**')
+	const task = () => gulp.src('src/dardcor-dts/**')
 		.pipe(generateApiProposalNames())
 		.pipe(apiProposalNamesReporter.end(true));
 
-	return watch('src/vscode-dts/**', { readDelay: 200 })
+	return watch('src/dardcor-dts/**', { readDelay: 200 })
 		.pipe(util.debounce(task))
 		.pipe(gulp.dest('src'));
 });
 
-// Codicons
 const root = path.dirname(path.dirname(import.meta.dirname));
 const codiconSource = path.join(root, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf');
 const codiconDest = path.join(root, 'src', 'dc', 'base', 'browser', 'ui', 'codicons', 'codicon', 'codicon.ttf');

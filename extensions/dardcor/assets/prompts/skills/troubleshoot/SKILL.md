@@ -196,13 +196,13 @@ The command also opens the report in an editor for the user to see. Use the retu
 
 When investigating issues related to a specific type of customization file (instructions, prompt files, agents, etc.) and you need more details about the expected format or behavior, load the relevant documentation page:
 
-- Custom instructions: `https://code.visualstudio.com/docs/dardcor/customization/custom-instructions`
-- Prompt files: `https://code.visualstudio.com/docs/dardcor/customization/prompt-files`
-- Custom agents: `https://code.visualstudio.com/docs/dardcor/customization/custom-agents`
-- Language models: `https://code.visualstudio.com/docs/dardcor/customization/language-models`
-- MCP servers: `https://code.visualstudio.com/docs/dardcor/customization/mcp-servers`
-- Hooks: `https://code.visualstudio.com/docs/dardcor/customization/hooks`
-- Agent plugins: `https://code.visualstudio.com/docs/dardcor/customization/agent-plugins`
+- Custom instructions: `https://www.dardcor-code.web.id/docs/dardcor/customization/custom-instructions`
+- Prompt files: `https://www.dardcor-code.web.id/docs/dardcor/customization/prompt-files`
+- Custom agents: `https://www.dardcor-code.web.id/docs/dardcor/customization/custom-agents`
+- Language models: `https://www.dardcor-code.web.id/docs/dardcor/customization/language-models`
+- MCP servers: `https://www.dardcor-code.web.id/docs/dardcor/customization/mcp-servers`
+- Hooks: `https://www.dardcor-code.web.id/docs/dardcor/customization/hooks`
+- Agent plugins: `https://www.dardcor-code.web.id/docs/dardcor/customization/agent-plugins`
 
 Use these when you need to verify file format expectations, confirm supported fields, or help the user fix a customization file.
 

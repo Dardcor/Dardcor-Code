@@ -16,24 +16,19 @@ const LOCAL_PORT = 443;
 const IS_WIN = process.platform === "win32";
 const ENABLE_FILE_LOG = IS_DEV;
 
-// Clear stale dump files on every MITM start (prevents unbounded disk usage)
 clearDumpDir();
 const INTERNAL_REQUEST_HEADER = { name: "x-request-source", value: "local" };
 
-// Host rewrite for upstream forward: PROD cloudcode-pa is rate-limited (429),
-// daily-cloudcode-pa (dev endpoint) accepts same body+token. Same trick as open-sse.
 const HOST_REWRITE = {
   "cloudcode-pa.googleapis.com": "daily-cloudcode-pa.googleapis.com",
 };
 
 const handlers = {
   antigravity: require("./handlers/antigravity"),
-  copilot: require("./handlers/copilot"),
   kiro: require("./handlers/kiro"),
   cursor: require("./handlers/cursor"),
 };
 
-// ── SSL / SNI ─────────────────────────────────────────────────
 
 const certCache = new Map();
 let rootCAPem;
@@ -71,7 +66,6 @@ try {
   process.exit(1);
 }
 
-// ── Helpers ───────────────────────────────────────────────────
 
 const cachedTargetIPs = {};
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -101,14 +95,11 @@ function getMappedModel(tool, model) {
   try {
     const aliases = getMitmAlias(tool);
     if (!aliases) return null;
-    // Normalize via synonym map (e.g., public AG names -> backend model ids)
     const normalizedModel = String(model).replace(/^models\//, "");
     const lookup = MODEL_SYNONYMS?.[tool]?.[normalizedModel] || normalizedModel;
     if (aliases[lookup]) return aliases[lookup];
-    // Prefix match fallback
     const prefixKey = Object.keys(aliases).find(k => k && aliases[k] && (lookup.startsWith(k) || k.startsWith(lookup)));
     if (prefixKey) return aliases[prefixKey];
-    // Pattern fallback: catches AG renamed variants (e.g. deprecated pro IDs → gemini-pro-agent)
     const patterns = MODEL_PATTERNS?.[tool] || [];
     for (const { match, alias } of patterns) {
       if (match.test(lookup) && aliases[alias]) return aliases[alias];
@@ -117,15 +108,8 @@ function getMappedModel(tool, model) {
   } catch { return null; }
 }
 
-/**
- * Forward request to real upstream.
- * Optional onResponse(rawBuffer) callback — if provided, tees the response
- * so it's both forwarded to client AND passed to the callback for inspection.
- * Also tees full stream into a dump file when ENABLE_FILE_LOG is on.
- */
 async function passthrough(req, res, bodyBuffer, onResponse) {
   const originalHost = (req.headers.host || TARGET_HOSTS[0]).split(":")[0];
-  // Only rewrite host for chat endpoints — daily-cloudcode-pa rejects auth/login requests
   const isChatEndpoint = req.url.includes(":generateContent") || req.url.includes(":streamGenerateContent");
   const targetHost = isChatEndpoint ? (HOST_REWRITE[originalHost] || originalHost) : originalHost;
   const dumper = ENABLE_FILE_LOG ? createResponseDumper(req, "passthrough") : null;
@@ -140,7 +124,6 @@ async function passthrough(req, res, bodyBuffer, onResponse) {
     headersForForwarding["content-length"] = String(bodyForForwarding.length);
   }
 
-  // ALPN negotiate: try HTTP/2 first (like browsers/mitmweb), fallback HTTP/1.1
   try {
     const proto = await negotiateAlpn(targetHost);
     if (proto === "h2") {
@@ -153,8 +136,7 @@ async function passthrough(req, res, bodyBuffer, onResponse) {
   return passthroughHttps(req, res, bodyForForwarding, headersForForwarding, targetHost, onResponse, dumper);
 }
 
-// ── ALPN negotiation cache ────────────────────────────────────
-const alpnCache = new Map(); // host → "h2" | "http/1.1"
+const alpnCache = new Map();
 async function negotiateAlpn(host) {
   if (alpnCache.has(host)) return alpnCache.get(host);
   const ip = await resolveTargetIP(host);
@@ -174,10 +156,8 @@ async function negotiateAlpn(host) {
   });
 }
 
-// HTTP/2 passthrough using node:http2 native
 async function passthroughHttp2(req, res, bodyBuffer, headers, targetHost, onResponse, dumper) {
   const targetIP = await resolveTargetIP(targetHost);
-  // HTTP/2 pseudo-headers required; strip HTTP/1.1-only headers
   const h2Headers = {};
   for (const [k, v] of Object.entries(headers)) {
     const lk = k.toLowerCase();
@@ -211,7 +191,6 @@ async function passthroughHttp2(req, res, bodyBuffer, headers, targetHost, onRes
 
     stream.once("response", (responseHeaders) => {
       const status = responseHeaders[":status"];
-      // Filter pseudo-headers + connection-specific
       const outHeaders = {};
       for (const [k, v] of Object.entries(responseHeaders)) {
         if (k.startsWith(":")) continue;
@@ -246,7 +225,6 @@ async function passthroughHttp2(req, res, bodyBuffer, headers, targetHost, onRes
   });
 }
 
-// Fallback: raw https.request HTTP/1.1 with custom DNS (bypasses /etc/hosts MITM loop)
 async function passthroughHttps(req, res, bodyBuffer, headers, targetHost, onResponse, dumper) {
   const targetIP = await resolveTargetIP(targetHost);
   const forwardReq = https.request({
@@ -275,7 +253,7 @@ async function passthroughHttps(req, res, bodyBuffer, headers, targetHost, onRes
     forwardRes.on("end", () => {
       if (dumper) dumper.end();
       res.end();
-      if (onResponse) try { onResponse(Buffer.concat(chunks), forwardRes.headers); } catch { /* ignore */ }
+      if (onResponse) try { onResponse(Buffer.concat(chunks), forwardRes.headers); } catch { }
     });
   });
 
@@ -290,7 +268,6 @@ async function passthroughHttps(req, res, bodyBuffer, headers, targetHost, onRes
   forwardReq.end();
 }
 
-// ── Request handler ───────────────────────────────────────────
 
 const server = https.createServer(sslOptions, async (req, res) => {
   try {
@@ -303,7 +280,6 @@ const server = https.createServer(sslOptions, async (req, res) => {
     const bodyBuffer = await collectBodyRaw(req);
     if (ENABLE_FILE_LOG) dumpRequest(req, bodyBuffer, "raw");
 
-    // Anti-loop: skip requests from Dardcor Code
     if (req.headers[INTERNAL_REQUEST_HEADER.name] === INTERNAL_REQUEST_HEADER.value) {
       return passthrough(req, res, bodyBuffer);
     }
@@ -311,20 +287,14 @@ const server = https.createServer(sslOptions, async (req, res) => {
     const tool = getToolForHost(req.headers.host);
     if (!tool) return passthrough(req, res, bodyBuffer);
 
-    // Kiro IDE posts chat to `/` with x-amz-target (not path /generateAssistantResponse)
     if (!isChatRequest(tool, req)) return passthrough(req, res, bodyBuffer);
 
-    // Cursor uses binary proto — model extraction not possible at this layer.
-    // Delegate directly to handler which decodes proto internally.
     if (tool === "cursor") {
       return handlers[tool].intercept(req, res, bodyBuffer, null, passthrough);
     }
 
     const model = extractModel(req.url, bodyBuffer);
 
-    // Intentional passthrough: some models must never be re-routed (e.g. Antigravity
-    // tab-autocomplete) so latency-critical inline completion stays native. Silent — this
-    // is by design, not a leak, and fires per keystroke. See MODEL_NO_MAP in config.js.
     if (model && (MODEL_NO_MAP[tool] || []).some((re) => re.test(model))) {
       return passthrough(req, res, bodyBuffer);
     }
@@ -342,7 +312,6 @@ const server = https.createServer(sslOptions, async (req, res) => {
   }
 });
 
-// Kill only processes LISTENING on LOCAL_PORT (not outbound connections)
 function killPort(port) {
   try {
     let pidList = [];
@@ -393,7 +362,6 @@ let isShuttingDown = false;
 const shutdown = () => {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  // Strip tool hosts from /etc/hosts so other apps aren't broken after exit
   removeAllDNSEntriesSync();
   const forceExit = setTimeout(() => process.exit(0), 1500);
   server.close(() => { clearTimeout(forceExit); process.exit(0); });

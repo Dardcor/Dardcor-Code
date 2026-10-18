@@ -65,22 +65,18 @@ function getFileAndPosition(context: LinkContext): IFilePosition | INotebookPosi
 
 	if (uri) {
 		if (uri.scheme === 'vscode-notebook-cell' && vscode.window.activeNotebookEditor?.notebook.uri.fsPath === uri.fsPath) {
-			// if the active editor is a notebook editor and the focus is inside any a cell text editor
-			// generate deep link for text selection for the notebook cell.
 			const cell = vscode.window.activeNotebookEditor.notebook.getCells().find(cell => cell.document.uri.fragment === uri?.fragment);
 			const cellIndex = cell?.index ?? vscode.window.activeNotebookEditor.selection.start;
 
 			const range = getRangeOrSelection(lineNumber);
 			return { type: LinkType.Notebook, uri, cellIndex, range };
 		} else {
-			// the active editor is a text editor
 			range = getRangeOrSelection(lineNumber);
 			return { type: LinkType.File, uri, range };
 		}
 	}
 
 	if (vscode.window.activeNotebookEditor) {
-		// if the active editor is a notebook editor but the focus is not inside any cell text editor, generate deep link for the cell selection in the notebook document.
 		return { type: LinkType.Notebook, uri: vscode.window.activeNotebookEditor.notebook.uri, cellIndex: vscode.window.activeNotebookEditor.selection.start, range: undefined };
 	}
 
@@ -121,12 +117,6 @@ export function notebookCellRangeString(index: number | undefined, range: vscode
 }
 
 export function encodeURIComponentExceptSlashes(path: string) {
-	// There may be special characters like # and whitespace in the path.
-	// These characters are not escaped by encodeURI(), so it is not sufficient to
-	// feed the full URI to encodeURI().
-	// Additonally, if we feed the full path into encodeURIComponent(),
-	// this will also encode the path separators, leading to an invalid path.
-	// Therefore, split on the path separator and encode each segment individually.
 	return path.split('/').map((segment) => encodeURIComponent(segment)).join('/');
 }
 
@@ -135,7 +125,6 @@ export async function getLink(gitAPI: GitAPI, useSelection: boolean, shouldEnsur
 	const fileAndPosition = getFileAndPosition(context);
 	const fileUri = fileAndPosition?.uri;
 
-	// Use the first repo if we cannot determine a repo from the uri.
 	const githubRepository = gitAPI.repositories.find(repo => repositoryHasGitHubRemote(repo));
 	const gitRepo = (fileUri ? getRepositoryForFile(gitAPI, fileUri) : githubRepository) ?? githubRepository;
 	if (!gitRepo) {
@@ -208,7 +197,6 @@ export async function ensurePublished(repository: Repository, file: vscode.Uri) 
 	await repository.status();
 
 	if ((repository.state.HEAD?.type === RefType.Head || repository.state.HEAD?.type === RefType.Tag)
-		// If HEAD is not published, make sure it is
 		&& !repository?.state.HEAD?.upstream
 	) {
 		const publishBranch = vscode.l10n.t('Publish Branch & Copy Link');
@@ -236,7 +224,6 @@ export async function ensurePublished(repository: Repository, file: vscode.Uri) 
 		);
 
 		if (selection !== copyAnyway) {
-			// Focus the SCM view
 			vscode.commands.executeCommand('workbench.view.scm');
 			throw new vscode.CancellationError();
 		}

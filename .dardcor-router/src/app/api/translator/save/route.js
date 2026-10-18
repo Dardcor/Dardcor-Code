@@ -10,7 +10,6 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: "File and content required" }, { status: 400 });
     }
 
-    // Security: only allow specific filenames
     const allowedFiles = [
       "1_req_client.json",
       "2_req_source.json",
@@ -28,7 +27,6 @@ export async function POST(request) {
 
     const logsDir = path.join(process.cwd(), "logs", "translator");
     
-    // Create directory if not exists
     if (!fs.existsSync(logsDir)) {
       fs.mkdirSync(logsDir, { recursive: true });
     }

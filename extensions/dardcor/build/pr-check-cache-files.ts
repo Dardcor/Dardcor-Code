@@ -41,17 +41,8 @@ const collaborators = [
 	"Tyriar", "ulugbekna", "vijayupadya", "Yoyokrazy"
 ];
 
-// TODO@lszomoru - Investigate issues with the `/collaborators` endpoint
-// async function getCollaborators(repository: string): Promise<readonly string[]> {
-// 	const { stdout, stderr } = await execAsync(
-// 		`gh api -H "Accept: application/vnd.github+json" /repos/${repository}/collaborators --paginate`, { maxBuffer: 25 * 1024 * 1024 });
 
-// 	if (stderr) {
-// 		throw new Error(`Error fetching repository collaborators - ${stderr}`);
-// 	}
 
-// 	return JSON.parse(stdout) as ReadonlyArray<string>;
-// }
 
 async function getCommit(repository: string, sha: string): Promise<Commit> {
 	const { stdout, stderr } = await execAsync(
@@ -109,8 +100,6 @@ async function checkDatabaseLayerFiles(repository: string, pullRequestNumber: st
 		return { statusCheck: true, verifiedCheck: true, collaboratorCheck: true };
 	}
 
-	// Get collaborators and commits for the pull request
-	// const collaborators = await getCollaborators(repository);
 	const pullRequestCommits = await getPullRequestCommits(repository, pullRequestNumber);
 	const commitsWithDetails = await Promise.all(pullRequestCommits.map(sha => getCommit(repository, sha)));
 
@@ -126,7 +115,6 @@ async function checkDatabaseLayerFiles(repository: string, pullRequestNumber: st
 			statusCheckResult = false;
 		}
 
-		// List of commits that contain the file
 		const commits = commitsWithDetails.filter(c =>
 			c.files.some(f => f.filename === file.filename));
 
@@ -159,13 +147,10 @@ async function main() {
 
 		console.log(`🔍 Checking pull request #${pullRequestNumber} in repository "${repository}"...`);
 
-		// Get a list of files in the pull request
 		const files = await getPullRequestFiles(repository, pullRequestNumber);
 
-		// 1. Check base file status
 		const baseCheckResult = await checkDatabaseFile(files);
 
-		// 2. Check cache layer file(s) status and author
 		const layerCheckResult = await checkDatabaseLayerFiles(repository, pullRequestNumber, files);
 
 		if (!baseCheckResult) {

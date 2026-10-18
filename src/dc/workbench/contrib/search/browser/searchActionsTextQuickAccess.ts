@@ -47,7 +47,6 @@ function getSearchText(accessor: ServicesAccessor): string | null {
 		return null;
 	}
 
-	// only happen if it would also happen for the search view
 	const seedSearchStringFromSelection = configurationService.getValue<boolean>('editor.find.seedSearchStringFromSelection');
 	if (!seedSearchStringFromSelection) {
 		return null;

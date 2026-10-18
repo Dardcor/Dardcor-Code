@@ -120,7 +120,6 @@ const testModules = (async function () {
 	let promise;
 
 	if (args.run) {
-		// use file list (--run)
 		isDefaultModules = false;
 		promise = Promise.resolve(ensureIsArray(args.run).map(file => {
 			file = file.replace(/^src/, 'out');
@@ -129,7 +128,6 @@ const testModules = (async function () {
 		}));
 
 	} else {
-		// glob patterns (--glob)
 		const defaultGlob = '**/*.test.js';
 		const pattern = args.runGlob || defaultGlob;
 		isDefaultModules = pattern === defaultGlob;
@@ -174,8 +172,6 @@ function consoleLogFn(msg) {
 }
 
 async function createServer() {
-	// Demand a prefix to avoid issues with other services on the
-	// machine being able to access the test server.
 	const prefix = '/' + randomBytes(16).toString('hex');
 	const serveStatic = await yaserver.createServer({ rootDir });
 
@@ -202,12 +198,9 @@ async function createServer() {
 			return response.writeHead(404).end();
 		}
 
-		// rewrite the URL so the static server can handle the request correctly
 		request.url = request.url.slice(prefix.length);
 
 		function massagePath(p) {
-			// TODO@jrieken FISHY but it enables snapshot
-			// in ESM browser tests
 			p = String(p).replace(/\\/g, '/').replace(prefix, rootDir);
 			return p;
 		}
@@ -254,7 +247,6 @@ async function runTestsInBrowser(testModules, browserType, browserChannel) {
 		target.searchParams.set('ci', 'true');
 	}
 
-	// append CSS modules as query-param
 	await promisify(require('glob'))('**/*.css', { cwd: out }).then(async cssModules => {
 		const cssData = await new Response((await new Response(cssModules.join(',')).blob()).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
 		target.searchParams.set('_devCssData', Buffer.from(cssData).toString('base64'));
@@ -270,9 +262,6 @@ async function runTestsInBrowser(testModules, browserType, browserChannel) {
 	if (args.build) {
 		const nlsMessages = await fs.promises.readFile(path.join(out, 'nls.messages.json'), 'utf8');
 		await page.evaluate(value => {
-			// when running from `out-build`, ensure to load the default
-			// messages file, because all `nls.localize` calls have their
-			// english values removed and replaced by an index.
 			// @ts-ignore
 			globalThis._VSCODE_NLS_MESSAGES = JSON.parse(value);
 		}, nlsMessages);
@@ -284,7 +273,6 @@ async function runTestsInBrowser(testModules, browserType, browserChannel) {
 
 	withReporter(browserType, new EchoRunner(emitter, browserChannel ? `${browserType.toUpperCase()}-${browserChannel.toUpperCase()}` : browserType.toUpperCase()));
 
-	// collection failures for console printing
 	const failingModuleIds = [];
 	const failingTests = [];
 	emitter.on('fail', (test, err) => {
@@ -382,7 +370,6 @@ class EchoRunner extends events.EventEmitter {
 
 testModules.then(async modules => {
 
-	// run tests in selected browsers
 	const browsers = Array.isArray(args.browser)
 		? args.browser : [args.browser];
 
@@ -408,7 +395,6 @@ testModules.then(async modules => {
 		}
 	}
 
-	// aftermath
 	for (const msg of messages) {
 		if (msg) {
 			didFail = true;

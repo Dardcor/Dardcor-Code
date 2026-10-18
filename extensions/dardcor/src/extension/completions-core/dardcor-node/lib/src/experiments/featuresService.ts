@@ -26,7 +26,7 @@ export interface ICompletionsFeaturesService {
 		filtersInfo?: CompletionsFiltersInfo,
 		telemetryData?: TelemetryData
 	): Promise<TelemetryWithExp>;
-	fetchTokenAndUpdateExPValuesAndAssignments(
+	fetchAndUpdateExPValuesAndAssignments(
 		filtersInfo?: CompletionsFiltersInfo,
 		telemetryData?: TelemetryData
 	): Promise<TelemetryWithExp>;

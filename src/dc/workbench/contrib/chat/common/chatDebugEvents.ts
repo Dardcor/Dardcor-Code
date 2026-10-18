@@ -5,10 +5,6 @@
 
 import { IChatDebugEvent } from './chatDebugService.js';
 
-/**
- * Checks whether a debug event matches a single text search term.
- * Used by both the debug panel filter and the listDebugEvents tool.
- */
 export function debugEventMatchesText(event: IChatDebugEvent, term: string): boolean {
 	if (event.kind.toLowerCase().includes(term)) {
 		return true;
@@ -35,19 +31,8 @@ export function debugEventMatchesText(event: IChatDebugEvent, term: string): boo
 	}
 }
 
-/**
- * Regex used to match `before:` and `after:` timestamp tokens inside filter text.
- */
 const timestampTokenPattern = /\b(?:before|after):\d{4}(?:-\d{2}(?:-\d{2}(?:t\d{1,2}(?::\d{2}(?::\d{2})?)?)?)?)?(\b|$)/g;
 
-/**
- * Parse a `before:YYYY[-MM[-DD[THH[:MM[:SS]]]]]` or `after:…` token from
- * free-form filter text. Each component after the year is optional.
- *
- * For `before:`, the timestamp is rounded **up** to the end of the most
- * specific unit given (e.g. `before:2026-03` → end-of-March).
- * For `after:`, the timestamp is the **start** of the most specific unit.
- */
 export function parseTimeToken(text: string, prefix: string): number | undefined {
 	const regex = new RegExp(`${prefix}:(\\d{4})(?:-(\\d{2})(?:-(\\d{2})(?:t(\\d{1,2})(?::(\\d{2})(?::(\\d{2}))?)?)?)?)?(?!\\w)`);
 	const m = regex.exec(text);
@@ -89,35 +74,20 @@ export function parseTimeToken(text: string, prefix: string): number | undefined
 	}
 }
 
-/**
- * Strips `before:…` and `after:…` timestamp tokens from filter text,
- * returning only the plain text search portion.
- */
 export function stripTimestampTokens(text: string): string {
 	return text.replace(timestampTokenPattern, '').trim();
 }
 
-/**
- * Filters debug events by comma-separated text terms and optional
- * `before:`/`after:` timestamp tokens.
- *
- * Terms prefixed with `!` are exclusions; all others are inclusions.
- * At least one inclusion term must match (if any are present).
- * Timestamp tokens are parsed and applied as date-range bounds, then
- * stripped before text matching.
- */
 export function filterDebugEventsByText(events: readonly IChatDebugEvent[], filterText: string): readonly IChatDebugEvent[] {
 	const beforeTimestamp = parseTimeToken(filterText, 'before');
 	const afterTimestamp = parseTimeToken(filterText, 'after');
 
-	// Strip timestamp tokens before splitting into text search terms
 	const textOnly = stripTimestampTokens(filterText);
 	const terms = textOnly.split(/\s*,\s*/).filter(t => t.length > 0);
 	const includeTerms = terms.filter(t => !t.startsWith('!')).map(t => t.trim());
 	const excludeTerms = terms.filter(t => t.startsWith('!')).map(t => t.slice(1).trim()).filter(t => t.length > 0);
 
 	return events.filter(e => {
-		// Timestamp bounds
 		const time = e.created.getTime();
 		if (beforeTimestamp !== undefined && time > beforeTimestamp) {
 			return false;
@@ -125,7 +95,6 @@ export function filterDebugEventsByText(events: readonly IChatDebugEvent[], filt
 		if (afterTimestamp !== undefined && time < afterTimestamp) {
 			return false;
 		}
-		// Text matching
 		if (excludeTerms.some(term => debugEventMatchesText(e, term))) {
 			return false;
 		}
@@ -142,10 +111,6 @@ export interface DebugEventFilterOptions {
 	readonly limit?: number;
 }
 
-/**
- * Applies kind, text, and limit filters to debug events.
- * Used by the listDebugEvents tool to consolidate all filtering in one place.
- */
 export function filterDebugEvents(events: readonly IChatDebugEvent[], options: DebugEventFilterOptions): readonly IChatDebugEvent[] {
 	let result = events;
 

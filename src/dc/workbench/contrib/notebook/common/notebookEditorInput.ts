@@ -37,9 +37,6 @@ import { isAbsolute } from '../../../../base/common/path.js';
 
 export interface NotebookEditorInputOptions {
 	startDirty?: boolean;
-	/**
-	 * backupId for webview
-	 */
 	_backupId?: string;
 	_workingCopy?: IWorkingCopyIdentifier;
 }
@@ -81,9 +78,6 @@ export class NotebookEditorInput extends AbstractResourceEditorInput {
 		super(resource, preferredResource, labelService, fileService, filesConfigurationService, textResourceConfigurationService, customEditorLabelService);
 		this._defaultDirtyState = !!options.startDirty;
 
-		// Automatically resolve this input when the "wanted" model comes to life via
-		// some other way. This happens only once per input and resolve disposes
-		// this listener
 		this._sideLoadedListener = _notebookService.onDidAddNotebookDocument(e => {
 			if (e.viewType === this.viewType && e.uri.toString() === this.resource.toString()) {
 				this.resolve().catch(onUnexpectedError);
@@ -107,10 +101,10 @@ export class NotebookEditorInput extends AbstractResourceEditorInput {
 				if (editors.length > 0) {
 					const result = await editorService.save(editors[0]);
 					if (result.success) {
-						return false; // Don't Veto
+						return false;
 					}
 				}
-				return true; // Veto
+				return true;
 			})(), reason);
 		}));
 	}
@@ -159,7 +153,7 @@ export class NotebookEditorInput extends AbstractResourceEditorInput {
 			return super.getDescription(verbosity);
 		}
 
-		return undefined; // no description for untitled notebooks without associated file path
+		return undefined;
 	}
 
 	override isReadonly(): boolean | IMarkdownString {
@@ -179,10 +173,9 @@ export class NotebookEditorInput extends AbstractResourceEditorInput {
 	override isSaving(): boolean {
 		const model = this.editorModelReference?.object;
 		if (!model || !model.isDirty() || model.hasErrorState || this.hasCapability(EditorInputCapabilities.Untitled)) {
-			return false; // require the model to be dirty, file-backed and not in an error state
+			return false;
 		}
 
-		// if a short auto save is configured, treat this as being saved
 		return this.filesConfigurationService.hasShortAutoSaveDelay(this);
 	}
 
@@ -222,7 +215,7 @@ export class NotebookEditorInput extends AbstractResourceEditorInput {
 		} else {
 			target = await this._fileDialogService.pickFileToSave(pathCandidate, options?.availableFileSystems);
 			if (!target) {
-				return undefined; // save cancelled
+				return undefined;
 			}
 		}
 
@@ -288,7 +281,6 @@ export class NotebookEditorInput extends AbstractResourceEditorInput {
 		return resource;
 	}
 
-	// called when users rename a notebook document
 	override async rename(group: GroupIdentifier, target: URI): Promise<IMoveResult | undefined> {
 		if (this.editorModelReference) {
 			return { editor: { resource: target }, options: { override: this.viewType } };
@@ -310,16 +302,12 @@ export class NotebookEditorInput extends AbstractResourceEditorInput {
 
 		perf?.mark('extensionActivated');
 
-		// we are now loading the notebook and don't need to listen to
-		// "other" loading anymore
 		this._sideLoadedListener.dispose();
 
 		if (!this.editorModelReference) {
 			const scratchpad = this.capabilities & EditorInputCapabilities.Scratchpad ? true : false;
 			const ref = await this._notebookModelResolverService.resolve(this.resource, this.viewType, { limits: this.ensureLimits(_options), scratchpad, viewType: this.editorId });
 			if (this.editorModelReference) {
-				// Re-entrant, double resolve happened. Dispose the addition references and proceed
-				// with the truth.
 				ref.dispose();
 				return (<IReference<IResolvedNotebookEditorModel>>this.editorModelReference).object;
 			}

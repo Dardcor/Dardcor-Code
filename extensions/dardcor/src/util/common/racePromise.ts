@@ -7,17 +7,8 @@ import { raceCancellation, raceTimeout } from '../dardcor/base/common/async';
 import { CancellationToken, CancellationTokenSource } from '../dardcor/base/common/cancellation';
 import { CancellationError } from '../dardcor/base/common/errors';
 
-// sentinel value to indicate cancellation
 const CANCELLED = Symbol('cancelled');
 
-/**
- * Races a promise against a cancellation token and a timeout.
- * @param promiseGenerator A function that generates the promise to race against cancellation and timeout.
- * @param parentToken The cancellation token to use.
- * @param timeoutInMs The timeout in milliseconds.
- * @param timeoutMessage The message to use for the timeout error.
- * @returns The result of the promise if it completes before the timeout, or throws an error if it times out or is cancelled.
- */
 export async function raceTimeoutAndCancellationError<T>(
 	promiseGenerator: (cancellationToken: CancellationToken) => Promise<T>,
 	parentToken: CancellationToken,
@@ -27,12 +18,11 @@ export async function raceTimeoutAndCancellationError<T>(
 	try {
 		const result = await raceTimeout(raceCancellation(promiseGenerator(cancellationSource.token), cancellationSource.token, CANCELLED as T), timeoutInMs);
 
-		if (result === CANCELLED) { // cancelled sentinel from raceCancellation
+		if (result === CANCELLED) {
 			throw new CancellationError();
 		}
 
-		if (result === undefined) { // timeout sentinel from raceTimeout
-			// signal ongoing work to cancel in the promise
+		if (result === undefined) {
 			cancellationSource.cancel();
 			throw new Error(timeoutMessage);
 		}

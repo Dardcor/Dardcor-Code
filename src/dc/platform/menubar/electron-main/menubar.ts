@@ -56,8 +56,6 @@ export class Menubar extends Disposable {
 	private menuUpdater: RunOnceScheduler;
 	private menuGC: RunOnceScheduler;
 
-	// Array to keep menus around so that GC doesn't cause crash as explained in #55347
-	// TODO@sbatten Remove this when fixed upstream by Electron
 	private oldMenus: Menu[];
 
 	private menubarMenus: { [id: string]: IMenubarMenu };
@@ -121,9 +119,8 @@ export class Menubar extends Disposable {
 
 	private addFallbackHandlers(): void {
 
-		// File Menu Items
 		this.fallbackMenuHandlers['workbench.action.files.newUntitledFile'] = (menuItem, win, event) => {
-			if (!this.runActionInRenderer({ type: 'commandId', commandId: 'workbench.action.files.newUntitledFile' })) { // this is one of the few supported actions when aux window has focus
+			if (!this.runActionInRenderer({ type: 'commandId', commandId: 'workbench.action.files.newUntitledFile' })) {
 				this.windowsMainService.openEmptyWindow({ context: OpenContext.MENU, contextWindowId: win?.id });
 			}
 		};
@@ -132,10 +129,8 @@ export class Menubar extends Disposable {
 		this.fallbackMenuHandlers['workbench.action.files.openFolder'] = (menuItem, win, event) => this.nativeHostMainService.pickFolderAndOpen(undefined, { forceNewWindow: this.isOptionClick(event), telemetryExtraData: { from: telemetryFrom } });
 		this.fallbackMenuHandlers['workbench.action.openWorkspace'] = (menuItem, win, event) => this.nativeHostMainService.pickWorkspaceAndOpen(undefined, { forceNewWindow: this.isOptionClick(event), telemetryExtraData: { from: telemetryFrom } });
 
-		// Recent Menu Items
-		this.fallbackMenuHandlers['workbench.action.clearRecentFiles'] = () => this.workspacesHistoryMainService.clearRecentlyOpened({ confirm: true /* ask for confirmation */ });
+		this.fallbackMenuHandlers['workbench.action.clearRecentFiles'] = () => this.workspacesHistoryMainService.clearRecentlyOpened({ confirm: true });
 
-		// Help Menu Items
 		const youTubeUrl = this.productService.youTubeUrl;
 		if (youTubeUrl) {
 			this.fallbackMenuHandlers['workbench.action.openYouTubeUrl'] = () => this.openUrl(youTubeUrl, 'openYouTubeUrl');
@@ -173,16 +168,12 @@ export class Menubar extends Disposable {
 
 	private registerListeners(): void {
 
-		// Keep flag when app quits
 		this._register(this.lifecycleMainService.onWillShutdown(() => this.willShutdown = true));
 
-		// Listen to some events from window service to update menu
 		this._register(this.windowsMainService.onDidChangeWindowsCount(e => this.onDidChangeWindowsCount(e)));
 		this._register(this.nativeHostMainService.onDidBlurMainWindow(() => this.onDidChangeWindowFocus()));
 		this._register(this.nativeHostMainService.onDidFocusMainWindow(() => this.onDidChangeWindowFocus()));
 
-		// Rebuild menu when update state changes so update menu items reflect
-		// the current state (e.g. "Restart to Update" instead of "Check for Updates...").
 		this._register(this.updateService.onStateChange(() => this.scheduleUpdateMenu()));
 	}
 
@@ -211,7 +202,6 @@ export class Menubar extends Disposable {
 		this.menubarMenus = menubarData.menus;
 		this.keybindings = menubarData.keybindings;
 
-		// Save off new menu and keybindings
 		this.stateService.setItem(Menubar.lastKnownMenubarStorageKey, menubarData);
 
 		this.scheduleUpdateMenu();
@@ -219,22 +209,17 @@ export class Menubar extends Disposable {
 
 
 	private scheduleUpdateMenu(): void {
-		this.menuUpdater.schedule(); // buffer multiple attempts to update the menu
+		this.menuUpdater.schedule();
 	}
 
 	private doUpdateMenu(): void {
 
-		// Due to limitations in Electron, it is not possible to update menu items dynamically. The suggested
-		// workaround from Electron is to set the application menu again.
-		// See also https://github.com/electron/electron/issues/846
-		//
-		// Run delayed to prevent updating menu while it is open
 		if (!this.willShutdown) {
 			setTimeout(() => {
 				if (!this.willShutdown) {
 					this.install();
 				}
-			}, 10 /* delay this because there is an issue with updating a menu when it is open */);
+			}, 10 );
 		}
 	}
 
@@ -243,7 +228,6 @@ export class Menubar extends Disposable {
 			return;
 		}
 
-		// Update menu if window count goes from N > 0 or 0 > N to update menu item enablement
 		if ((e.oldCount === 0 && e.newCount > 0) || (e.oldCount > 0 && e.newCount === 0)) {
 			this.closedLastWindow = e.newCount === 0;
 			this.scheduleUpdateMenu();
@@ -261,24 +245,18 @@ export class Menubar extends Disposable {
 	}
 
 	private install(): void {
-		// Store old menu in our array to avoid GC to collect the menu and crash. See #55347
-		// TODO@sbatten Remove this when fixed upstream by Electron
 		const oldMenu = Menu.getApplicationMenu();
 		if (oldMenu) {
 			this.oldMenus.push(oldMenu);
 		}
 
-		// If we don't have a menu yet, set it to null to avoid the electron menu.
-		// This should only happen on the first launch ever
 		if (Object.keys(this.menubarMenus).length === 0) {
 			this.doSetApplicationMenu(isMacintosh ? new Menu() : null);
 			return;
 		}
 
-		// Menus
 		const menubar = new Menu();
 
-		// Mac: Application
 		let macApplicationMenuItem: MenuItem;
 		if (isMacintosh) {
 			const applicationMenu = new Menu();
@@ -287,7 +265,6 @@ export class Menubar extends Disposable {
 			menubar.append(macApplicationMenuItem);
 		}
 
-		// Mac: Dock
 		if (isMacintosh && !this.appMenuInstalled) {
 			this.appMenuInstalled = true;
 
@@ -297,7 +274,6 @@ export class Menubar extends Disposable {
 			app.dock!.setMenu(dockMenu);
 		}
 
-		// File
 		if (this.shouldDrawMenu('File')) {
 			const fileMenu = new Menu();
 			const fileMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mFile', comment: ['&& denotes a mnemonic'] }, "&&File")), submenu: fileMenu });
@@ -305,7 +281,6 @@ export class Menubar extends Disposable {
 			menubar.append(fileMenuItem);
 		}
 
-		// Edit
 		if (this.shouldDrawMenu('Edit')) {
 			const editMenu = new Menu();
 			const editMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mEdit', comment: ['&& denotes a mnemonic'] }, "&&Edit")), submenu: editMenu });
@@ -313,7 +288,6 @@ export class Menubar extends Disposable {
 			menubar.append(editMenuItem);
 		}
 
-		// Selection
 		if (this.shouldDrawMenu('Selection')) {
 			const selectionMenu = new Menu();
 			const selectionMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mSelection', comment: ['&& denotes a mnemonic'] }, "&&Selection")), submenu: selectionMenu });
@@ -321,7 +295,6 @@ export class Menubar extends Disposable {
 			menubar.append(selectionMenuItem);
 		}
 
-		// View
 		if (this.shouldDrawMenu('View')) {
 			const viewMenu = new Menu();
 			const viewMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mView', comment: ['&& denotes a mnemonic'] }, "&&View")), submenu: viewMenu });
@@ -329,7 +302,6 @@ export class Menubar extends Disposable {
 			menubar.append(viewMenuItem);
 		}
 
-		// Go
 		if (this.shouldDrawMenu('Go')) {
 			const gotoMenu = new Menu();
 			const gotoMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mGoto', comment: ['&& denotes a mnemonic'] }, "&&Go")), submenu: gotoMenu });
@@ -337,7 +309,6 @@ export class Menubar extends Disposable {
 			menubar.append(gotoMenuItem);
 		}
 
-		// Debug
 		if (this.shouldDrawMenu('Run')) {
 			const debugMenu = new Menu();
 			const debugMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mRun', comment: ['&& denotes a mnemonic'] }, "&&Run")), submenu: debugMenu });
@@ -345,7 +316,6 @@ export class Menubar extends Disposable {
 			menubar.append(debugMenuItem);
 		}
 
-		// Terminal
 		if (this.shouldDrawMenu('Terminal')) {
 			const terminalMenu = new Menu();
 			const terminalMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mTerminal', comment: ['&& denotes a mnemonic'] }, "&&Terminal")), submenu: terminalMenu });
@@ -353,7 +323,6 @@ export class Menubar extends Disposable {
 			menubar.append(terminalMenuItem);
 		}
 
-		// Mac: Window
 		let macWindowMenuItem: MenuItem | undefined;
 		if (this.shouldDrawMenu('Window')) {
 			const windowMenu = new Menu();
@@ -365,7 +334,6 @@ export class Menubar extends Disposable {
 			menubar.append(macWindowMenuItem);
 		}
 
-		// Help
 		if (this.shouldDrawMenu('Help')) {
 			const helpMenu = new Menu();
 			const helpMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mHelp', comment: ['&& denotes a mnemonic'] }, "&&Help")), submenu: helpMenu, role: 'help' });
@@ -379,22 +347,11 @@ export class Menubar extends Disposable {
 			this.doSetApplicationMenu(null);
 		}
 
-		// Dispose of older menus after some time
 		this.menuGC.schedule();
 	}
 
 	private doSetApplicationMenu(menu: (Menu) | (null)): void {
 
-		// Setting the application menu sets it to all opened windows,
-		// but we currently do not support a menu in auxiliary windows,
-		// so we need to unset it there.
-		//
-		// This is a bit ugly but `setApplicationMenu()` has some nice
-		// behaviour we want:
-		// - on macOS it is required because menus are application set
-		// - we use `getApplicationMenu()` to access the current state
-		// - new windows immediately get the same menu when opening
-		//   reducing overall flicker for these
 
 		Menu.setApplicationMenu(menu);
 
@@ -425,9 +382,9 @@ export class Menubar extends Disposable {
 			label: nls.localize('miQuit', "Quit {0}", this.productService.nameLong), click: async (item, window, event) => {
 				const lastActiveWindow = this.windowsMainService.getLastActiveWindow();
 				if (
-					this.windowsMainService.getWindowCount() === 0 || 	// allow to quit when no more windows are open
-					!!BrowserWindow.getFocusedWindow() ||				// allow to quit when window has focus (fix for https://github.com/microsoft/vscode/issues/39191)
-					lastActiveWindow?.win?.isMinimized()				// allow to quit when window has no focus but is minimized (https://github.com/microsoft/vscode/issues/63000)
+					this.windowsMainService.getWindowCount() === 0 ||
+					!!BrowserWindow.getFocusedWindow() ||
+					lastActiveWindow?.win?.isMinimized()
 				) {
 					const confirmed = await this.confirmBeforeQuit(event);
 					if (confirmed) {
@@ -463,7 +420,7 @@ export class Menubar extends Disposable {
 
 	private async confirmBeforeQuit(event: KeyboardEvent): Promise<boolean> {
 		if (this.windowsMainService.getWindowCount() === 0) {
-			return true; // never confirm when no windows are opened
+			return true;
 		}
 
 		const confirmBeforeClose = this.configurationService.getValue<'always' | 'never' | 'keyboardOnly'>('window.confirmBeforeClose');
@@ -485,7 +442,7 @@ export class Menubar extends Disposable {
 
 	private shouldDrawMenu(menuId: string): boolean {
 		if (!isMacintosh && !this.showNativeMenu) {
-			return false; // We need to draw an empty menu to override the electron default
+			return false;
 		}
 
 		switch (menuId) {
@@ -525,7 +482,6 @@ export class Menubar extends Disposable {
 				if (isMacintosh) {
 					if ((this.windowsMainService.getWindowCount() === 0 && this.closedLastWindow) ||
 						(this.windowsMainService.getWindowCount() > 0 && this.noActiveMainWindow)) {
-						// In the fallback scenario, we are either disabled or using a fallback handler
 						if (this.fallbackMenuHandlers[item.id]) {
 							menu.append(new MenuItem(this.likeAction(item.id, { label: this.mnemonicLabel(item.label), click: this.fallbackMenuHandlers[item.id] })));
 						} else {
@@ -708,7 +664,6 @@ export class Menubar extends Disposable {
 
 		if (isMacintosh) {
 
-			// Add role for special case menu items
 			if (commandId === 'editor.action.clipboardCutAction') {
 				options.role = 'cut';
 			} else if (commandId === 'editor.action.clipboardCopyAction') {
@@ -717,7 +672,6 @@ export class Menubar extends Disposable {
 				options.role = 'paste';
 			}
 
-			// Add context aware click handlers for special case menu items
 			if (commandId === 'undo') {
 				options.click = this.makeContextAwareClickHandler(click, {
 					inDevTools: devTools => devTools.undo(),
@@ -742,33 +696,26 @@ export class Menubar extends Disposable {
 	private makeContextAwareClickHandler(click: (menuItem: MenuItem, win: BaseWindow, event: KeyboardEvent) => void, contextSpecificHandlers: IMenuItemClickHandler): (menuItem: MenuItem, win: BaseWindow | undefined, event: KeyboardEvent) => void {
 		return (menuItem: MenuItem, win: BaseWindow | undefined, event: KeyboardEvent) => {
 
-			// No Active Window
 			const activeWindow = BrowserWindow.getFocusedWindow();
 			if (!activeWindow) {
 				return contextSpecificHandlers.inNoWindow();
 			}
 
-			// DevTools focused
 			if (activeWindow.webContents.isDevToolsFocused() &&
 				activeWindow.webContents.devToolsWebContents) {
 				return contextSpecificHandlers.inDevTools(activeWindow.webContents.devToolsWebContents);
 			}
 
-			// Focus is not in the workbench webContents
 			if (!activeWindow.webContents.isFocused()) {
 				return contextSpecificHandlers.inNoWindow();
 			}
 
-			// Finally execute command in Window
 			click(menuItem, win || activeWindow, event);
 		};
 	}
 
 	private runActionInRenderer(invocation: IMenuItemInvocation): boolean {
 
-		// We want to support auxililary windows that may have focus by
-		// returning their parent windows as target to support running
-		// actions via the main window.
 		let activeBrowserWindow = BrowserWindow.getFocusedWindow();
 		if (activeBrowserWindow) {
 			const auxiliaryWindowCandidate = this.auxiliaryWindowsMainService.getWindowByWebContents(activeBrowserWindow.webContents);
@@ -777,11 +724,6 @@ export class Menubar extends Disposable {
 			}
 		}
 
-		// We make sure to not run actions when the window has no focus, this helps
-		// for https://github.com/microsoft/vscode/issues/25907 and specifically for
-		// https://github.com/microsoft/vscode/issues/11928
-		// Still allow to run when the last active window is minimized though for
-		// https://github.com/microsoft/vscode/issues/63000
 		if (!activeBrowserWindow) {
 			const lastActiveWindow = this.windowsMainService.getLastActiveWindow();
 			if (lastActiveWindow?.win?.isMinimized()) {
@@ -795,9 +737,6 @@ export class Menubar extends Disposable {
 
 			if (isMacintosh && !this.environmentMainService.isBuilt && !activeWindow.isReady) {
 				if ((invocation.type === 'commandId' && invocation.commandId === 'workbench.action.toggleDevTools') || (invocation.type !== 'commandId' && invocation.userSettingsLabel === 'alt+cmd+i')) {
-					// prevent this action from running twice on macOS (https://github.com/microsoft/vscode/issues/62719)
-					// we already register a keybinding in workbench.ts for opening developer tools in case something
-					// goes wrong and that keybinding is only removed when the application has loaded (= window ready).
 					return false;
 				}
 			}
@@ -821,17 +760,13 @@ export class Menubar extends Disposable {
 	private withKeybinding(commandId: string | undefined, options: MenuItemConstructorOptions & IMenuItemWithKeybinding): MenuItemConstructorOptions {
 		const binding = typeof commandId === 'string' ? this.keybindings[commandId] : undefined;
 
-		// Apply binding if there is one
 		if (binding?.label) {
 
-			// if the binding is native, we can just apply it
 			if (binding.isNative !== false) {
 				options.accelerator = binding.label;
 				options.userSettingsLabel = binding.userSettingsLabel;
 			}
 
-			// the keybinding is not native so we cannot show it as part of the accelerator of
-			// the menu item. we fallback to a different strategy so that we always display it
 			else if (typeof options.label === 'string') {
 				const bindingIndex = options.label.indexOf('[');
 				if (bindingIndex >= 0) {
@@ -842,7 +777,6 @@ export class Menubar extends Disposable {
 			}
 		}
 
-		// Unset bindings if there is none
 		else {
 			options.accelerator = undefined;
 		}

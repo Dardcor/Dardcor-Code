@@ -128,7 +128,6 @@ export class FoldingController extends Disposable implements INotebookEditorCont
 				return;
 			}
 
-			// folding icon
 
 			const cellViewModel = e.target;
 			const modelIndex = viewModel.getCellIndex(cellViewModel);

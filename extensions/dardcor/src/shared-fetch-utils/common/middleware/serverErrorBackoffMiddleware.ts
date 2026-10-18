@@ -17,10 +17,6 @@ export interface BackoffOptions {
 	readonly multiplier?: number;
 }
 
-/**
- * After a `5xx` response, blocks subsequent requests for an exponentially
- * increasing duration. The backoff resets on the first successful response.
- */
 export function serverErrorBackoffMiddleware(options?: BackoffOptions): FetchMiddleware {
 	const { initialDelayMs = 1_000, maxDelayMs = 60_000, multiplier = 2 } = options ?? {};
 	let consecutiveFailures = 0;
@@ -43,7 +39,6 @@ export function serverErrorBackoffMiddleware(options?: BackoffOptions): FetchMid
 			throw new ServerBackoffError(delay);
 		}
 
-		// Success → reset
 		consecutiveFailures = 0;
 		backoffUntil = 0;
 

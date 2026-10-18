@@ -36,7 +36,6 @@ export class MainThreadBrowsers extends Disposable implements MainThreadBrowsers
 		super();
 		this._proxy = extHostContext.getProxy(ExtHostContext.ExtHostBrowsers);
 
-		// Track open browser editors via the workbench service
 		this._register(this.browserViewService.onDidChangeBrowserViews(() => {
 			for (const editor of this.browserViewService.getKnownBrowserViews().values()) {
 				this._track(editor);
@@ -44,14 +43,12 @@ export class MainThreadBrowsers extends Disposable implements MainThreadBrowsers
 		}));
 		this._register(this.editorService.onDidActiveEditorChange(() => this._syncActiveBrowserTab()));
 
-		// Initial sync
 		for (const editor of this.browserViewService.getKnownBrowserViews().values()) {
 			this._track(editor);
 		}
 		this._syncActiveBrowserTab();
 	}
 
-	// #region Browser tab open
 
 	async $openBrowserTab(url: string, viewColumn?: EditorGroupColumn, options?: IEditorOptions): Promise<BrowserTabDto> {
 		const id = generateUuid();
@@ -72,9 +69,7 @@ export class MainThreadBrowsers extends Disposable implements MainThreadBrowsers
 		return this._toDto(known.input);
 	}
 
-	// #endregion
 
-	// #region Browser tab tracking
 
 	private _lastActiveBrowserId: string | undefined = undefined;
 	private async _syncActiveBrowserTab(): Promise<void> {
@@ -96,7 +91,6 @@ export class MainThreadBrowsers extends Disposable implements MainThreadBrowsers
 		}
 		const disposables = new DisposableStore();
 
-		// Track property changes. Currently all the tracked properties are covered under the `onDidChangeLabel` event.
 		disposables.add(input.onDidChangeLabel(() => {
 			this._proxy.$onDidChangeBrowserTabState(this._toDto(input));
 		}));
@@ -120,9 +114,7 @@ export class MainThreadBrowsers extends Disposable implements MainThreadBrowsers
 		};
 	}
 
-	// #endregion
 
-	// #region CDP session management
 
 	async $startCDPSession(sessionId: string, browserId: string): Promise<void> {
 		const known = this._knownBrowsers.get(browserId);
@@ -130,13 +122,11 @@ export class MainThreadBrowsers extends Disposable implements MainThreadBrowsers
 			throw new Error(`Unknown browser id: ${browserId}`);
 		}
 
-		// Before starting a session, resolve the input to ensure the underlying web contents exist and can be attached.
 		await known.input.resolve();
 
 		const groupId = await this.cdpService.createSessionGroup(browserId);
 		const disposables = new DisposableStore();
 
-		// Wire CDP messages from main process back to ext host
 		disposables.add(this.cdpService.onCDPMessage(groupId)(message => {
 			this._proxy.$onCDPSessionMessage(sessionId, message);
 		}));
@@ -170,5 +160,4 @@ export class MainThreadBrowsers extends Disposable implements MainThreadBrowsers
 		known.input.dispose();
 	}
 
-	// #endregion
 }

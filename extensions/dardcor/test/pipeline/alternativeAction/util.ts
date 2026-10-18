@@ -11,14 +11,6 @@ export function log(...args: any[]) {
 	}
 }
 
-/**
- * Find an index `i` such that `compare(array[i]) === 0`, or — when no exact
- * match exists — the index of the greatest element with `compare < 0`
- * (`-1` if none). Assumes `array` is sorted ascending by `compare`.
- *
- * NOTE: when several elements compare equal (e.g. share a timestamp) this
- * returns an *arbitrary* one of them, not necessarily the first or last.
- */
 export function binarySearch<T>(
 	array: readonly T[],
 	compare: (element: T) => number
@@ -44,7 +36,6 @@ export function binarySearch<T>(
 	return lastLess;
 }
 
-//#region Either
 
 export type Either<L, R> = Left<L> | Right<R>;
 
@@ -58,10 +49,6 @@ export namespace Either {
 	}
 }
 
-/**
- * To instantiate a Left, use `Either.left(value)`.
- * To instantiate a Right, use `Either.right(value)`.
- */
 class Left<L> {
 	constructor(readonly value: L) { }
 
@@ -74,10 +61,6 @@ class Left<L> {
 	}
 }
 
-/**
- * To instantiate a Left, use `Either.left(value)`.
- * To instantiate a Right, use `Either.right(value)`.
- */
 class Right<R> {
 	constructor(readonly value: R) { }
 
@@ -90,4 +73,3 @@ class Right<R> {
 	}
 }
 
-//#endregion

@@ -721,8 +721,6 @@ suite('MouseWheelClassifier', () => {
 
 			const actual = classifier.isPhysicalMouseWheel();
 
-			// Linux Wayland implementation depends on looking at the
-			// previous event.
 			if (i > 0) {
 				assert.strictEqual(actual, true, `i = ${i}`);
 			}

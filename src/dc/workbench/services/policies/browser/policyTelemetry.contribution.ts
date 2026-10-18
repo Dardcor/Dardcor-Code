@@ -17,7 +17,7 @@ const enum PolicyNames {
 	ExtraMarketplaces = 'ChatExtraMarketplaces',
 	StrictMarketplaces = 'ChatStrictMarketplaces',
 	ApprovedOrgs = 'ChatApprovedAccountOrganizations',
-	OtelEnabled = 'CopilotOtelEnabled',
+	OtelEnabled = 'DardcorOtelEnabled',
 	TelemetryLevel = 'TelemetryLevel',
 	EnableFeedback = 'EnableFeedback',
 }

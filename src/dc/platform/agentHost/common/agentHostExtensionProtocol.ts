@@ -89,7 +89,6 @@ export interface IAgentHostExtensionCommandMap {
 	};
 	[ReadAgentHostDebugLogsChunkExtensionMethod]: {
 		params: { resource: string; position: number };
-		/** `data` is base64; at most `AGENT_HOST_DEBUG_LOGS_CHUNK_BYTES` decoded bytes. */
 		result: { data: string; eof: boolean };
 	};
 }

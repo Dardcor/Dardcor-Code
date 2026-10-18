@@ -42,7 +42,6 @@ const RENDER_ALL_MARKDOWN_CELLS = 'notebook.renderAllMarkdownCells';
 const REVEAL_RUNNING_CELL = 'notebook.revealRunningCell';
 const REVEAL_LAST_FAILED_CELL = 'notebook.revealLastFailedCell';
 
-// If this changes, update getCodeCellExecutionContextKeyService to match
 export const executeCondition = ContextKeyExpr.and(
 	NOTEBOOK_CELL_TYPE.isEqualTo('code'),
 	ContextKeyExpr.or(
@@ -78,7 +77,6 @@ async function runCell(editorGroupsService: IEditorGroupsService, context: INote
 		}
 	}
 
-	// If auto-reveal is enabled, ensure the notebook editor is visible before revealing cells
 	if (context.autoReveal && (context.cell || context.selectedCells?.length) && editorService) {
 		editorService.openEditor({ resource: context.notebookEditor.textModel.uri, options: { revealIfOpened: true } });
 	}
@@ -111,25 +109,21 @@ async function runCell(editorGroupsService: IEditorGroupsService, context: INote
 	}
 }
 
-const SMART_VIEWPORT_TOP_REVEAL_PADDING = 20; // enough to not cut off top of cell toolbar
-const SMART_VIEWPORT_BOTTOM_REVEAL_PADDING = 60; // enough to show full bottom of output element + tiny buffer below that vertical bar
+const SMART_VIEWPORT_TOP_REVEAL_PADDING = 20;
+const SMART_VIEWPORT_BOTTOM_REVEAL_PADDING = 60;
 function handleAutoReveal(cell: ICellViewModel, notebookEditor: IActiveNotebookEditor): void {
-	// always focus the container, blue bar is a good visual aid in tracking what's happening
 	notebookEditor.focusNotebookCell(cell, 'container', { skipReveal: true });
 
-	// Handle markup cells with simple reveal
 	if (cell.cellKind === CellKind.Markup) {
 		const cellIndex = notebookEditor.getCellIndex(cell);
 		notebookEditor.revealCellRangeInView({ start: cellIndex, end: cellIndex + 1 });
 		return;
 	}
 
-	// Ensure we're working with a code cell - we need the CodeCellViewModel type for accessing layout properties like outputTotalHeight
 	if (!(cell instanceof CodeCellViewModel)) {
 		return;
 	}
 
-	// Get all dimensions
 	const cellEditorScrollTop = notebookEditor.getAbsoluteTopOfElement(cell);
 	const cellEditorScrollBottom = cellEditorScrollTop + cell.layoutInfo.outputContainerOffset;
 
@@ -143,35 +137,28 @@ function handleAutoReveal(cell: ICellViewModel, notebookEditor: IActiveNotebookE
 	const totalHeight = cell.layoutInfo.totalHeight;
 
 	const isFullyVisible = cellEditorScrollTop >= notebookEditor.scrollTop && cellOutputScrollBottom <= notebookEditor.scrollBottom;
-	const isEditorBottomVisible = ((cellEditorScrollBottom - 25 /* padding for the cell status bar */) >= notebookEditor.scrollTop) &&
-		((cellEditorScrollBottom + 25 /* padding to see a sliver of the beginning of outputs */) <= notebookEditor.scrollBottom);
+	const isEditorBottomVisible = ((cellEditorScrollBottom - 25 ) >= notebookEditor.scrollTop) &&
+		((cellEditorScrollBottom + 25 ) <= notebookEditor.scrollBottom);
 
-	// Common scrolling functions
 	const revealWithTopPadding = (position: number) => { notebookEditor.setScrollTop(position - SMART_VIEWPORT_TOP_REVEAL_PADDING); };
 	const revealWithNoPadding = (position: number) => { notebookEditor.setScrollTop(position); };
 	const revealWithBottomPadding = (position: number) => { notebookEditor.setScrollTop(position + SMART_VIEWPORT_BOTTOM_REVEAL_PADDING); };
 
-	// CASE 0: Total is already visible
 	if (isFullyVisible) {
 		return;
 	}
 
-	// CASE 1: Total fits within viewport
 	if (totalHeight <= viewportHeight && !isEditorBottomVisible) {
 		revealWithTopPadding(cellEditorScrollTop);
 		return;
 	}
 
-	// CASE 2: Total doesn't fit in the viewport
 	if (totalHeight > viewportHeight && !isEditorBottomVisible) {
 		if (cellOutputHeight > 0 && cellOutputHeight >= viewportHeight66) {
-			// has large outputs -- Show 34% editor, 66% output
 			revealWithNoPadding(cellEditorScrollBottom - viewportHeight34);
 		} else if (cellOutputHeight > 0) {
-			// has small outputs -- Show output at viewport bottom
 			revealWithBottomPadding(cellOutputScrollBottom - viewportHeight);
 		} else {
-			// No outputs, just big cell -- put editor bottom @ 2/3 of viewport height
 			revealWithNoPadding(cellEditorScrollBottom - viewportHeight66);
 		}
 	}

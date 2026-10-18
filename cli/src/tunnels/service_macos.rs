@@ -82,7 +82,6 @@ impl ServiceManager for LaunchdService {
 
 		match capture_command_and_check_status("launchctl", &["stop", &get_service_label()]).await {
 			Ok(_) => {}
-			// status 3 == "no such process"
 			Err(CodeError::CommandFailed { code: 3, .. }) => {}
 			Err(e) => return Err(wrap(e, "error stopping service").into()),
 		};
@@ -130,8 +129,6 @@ fn write_service_file(
 ) -> io::Result<()> {
 	let mut f = File::create(path)?;
 	let log_file = log_file.as_os_str().to_string_lossy();
-	// todo: we may be able to skip file logging and use the ASL instead
-	// if/when we no longer need to support older macOS versions.
 	write!(
 		&mut f,
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\

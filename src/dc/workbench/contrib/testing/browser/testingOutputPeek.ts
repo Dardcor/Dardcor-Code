@@ -72,7 +72,6 @@ import { TestResultsViewContent } from './testResultsView/testResultsViewContent
 import { testingMessagePeekBorder, testingPeekBorder, testingPeekHeaderBackground, testingPeekMessageHeaderBackground } from './theme.js';
 
 
-/** Iterates through every message in every result */
 function* allMessages([result]: readonly ITestResult[]) {
 	if (!result) {
 		return;
@@ -117,7 +116,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 
 	private lastUri?: TestUriWithDocument;
 
-	/** @inheritdoc */
 	public readonly historyVisible: MutableObservableValue<boolean>;
 
 	constructor(
@@ -140,7 +138,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		}, storageService), false));
 	}
 
-	/** @inheritdoc */
 	public async open() {
 		let uri: TestUriWithDocument | undefined;
 		const active = this.editorService.activeTextEditorControl;
@@ -166,7 +163,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		return this.showPeekFromUri(uri);
 	}
 
-	/** @inheritdoc */
 	public tryPeekFirstError(result: ITestResult, test: TestResultItem, options?: Partial<ITextEditorOptions>) {
 		const candidate = this.getFailedCandidateMessage(test);
 		if (!candidate) {
@@ -184,7 +180,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		return true;
 	}
 
-	/** @inheritdoc */
 	public peekUri(uri: URI, options: IShowResultOptions = {}) {
 		const parsed = parseTestUri(uri);
 		const result = parsed && this.testResults.getResult(parsed.resultId);
@@ -212,7 +207,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		return true;
 	}
 
-	/** @inheritdoc */
 	public closeAllPeeks() {
 		for (const editor of this.codeEditorService.listCodeEditors()) {
 			TestingOutputPeekController.get(editor)?.removePeek();
@@ -258,7 +252,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		return controller?.subject.get() ?? this.viewsService.getActiveViewWithId<TestResultsView>(Testing.ResultsViewId)?.subject;
 	}
 
-	/** @inheritdoc */
 	private async showPeekFromUri(uri: TestUriWithDocument, editor?: IEditor, options?: ITextEditorOptions) {
 		if (isCodeEditor(editor)) {
 			this.lastUri = uri;
@@ -281,9 +274,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		return true;
 	}
 
-	/**
-	 * Opens the peek view on a test failure, based on user preferences.
-	 */
 	private openPeekOnFailure(evt: TestResultItemChange) {
 		if (evt.reason !== TestResultItemChangeReason.OwnStateChange) {
 			return;
@@ -301,8 +291,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		const editors = this.codeEditorService.listCodeEditors();
 		const cfg = getTestingConfiguration(this.configuration, TestingConfigKeys.AutoOpenPeekView);
 
-		// don't show the peek if the user asked to only auto-open peeks for visible tests,
-		// and this test is not in any of the editors' models.
 		switch (cfg) {
 			case AutoOpenPeekViewWhen.FailureVisible: {
 				const visibleEditors = this.editorService.visibleTextEditorControls;
@@ -310,20 +298,16 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 				if (!Iterable.some(resultItemParents(evt.result, evt.item), i => i.item.uri && editorUris.has(i.item.uri.toString()))) {
 					return;
 				}
-				// Also check that the message location itself is in a visible
-				// document. The message may point to a different file (e.g. a
-				// utility) than where the test is defined, and opening a non-
-				// visible file just to show a peek would be disruptive.
 				if (!editorUris.has(candidate.location.uri.toString())) {
 					return;
 				}
-				break; //continue
+				break;
 			}
 			case AutoOpenPeekViewWhen.FailureAnywhere:
-				break; //continue
+				break;
 
 			default:
-				return; // never show
+				return;
 		}
 
 		const controllers = editors.map(TestingOutputPeekController.get);
@@ -334,15 +318,10 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		this.tryPeekFirstError(evt.result, evt.item);
 	}
 
-	/**
-	 * Gets the message closest to the given position from a test in the file.
-	 */
 	private async getFileCandidateMessage(uri: URI, position: Position | null) {
 		let best: TestUriWithDocument | undefined;
 		let bestDistance = Infinity;
 
-		// Get all tests for the document. In those, find one that has a test
-		// message closest to the cursor position.
 		const demandedUriStr = uri.toString();
 		for (const test of this.testService.collection.all) {
 			const result = this.testResults.getStateById(test.item.extId);
@@ -373,9 +352,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		return best;
 	}
 
-	/**
-	 * Gets any possible still-relevant message from the results.
-	 */
 	private getAnyCandidateMessage() {
 		const seen = new Set<string>();
 		for (const result of this.testResults.results) {
@@ -405,9 +381,6 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 		return undefined;
 	}
 
-	/**
-	 * Gets the first failed message that can be displayed from the result.
-	 */
 	private getFailedCandidateMessage(test: TestResultItem) {
 		const fallbackLocation = test.item.uri && test.item.range
 			? { uri: test.item.uri, range: test.item.range }
@@ -431,30 +404,15 @@ export class TestingPeekOpener extends Disposable implements ITestingPeekOpener 
 	}
 }
 
-/**
- * Adds output/message peek functionality to code editors.
- */
 export class TestingOutputPeekController extends Disposable implements IEditorContribution {
-	/**
-	 * Gets the controller associated with the given code editor.
-	 */
 	public static get(editor: ICodeEditor): TestingOutputPeekController | null {
 		return editor.getContribution<TestingOutputPeekController>(Testing.OutputPeekContributionId);
 	}
 
-	/**
-	 * Currently-shown peek view.
-	 */
 	private readonly peek = this._register(disposableObservableValue<TestResultsPeek | undefined>('TestingOutputPeek', undefined));
 
-	/**
-	 * Context key updated when the peek is visible/hidden.
-	 */
 	private readonly visible: IContextKey<boolean>;
 
-	/**
-	 * Gets the currently display subject. Undefined if the peek is not open.
-	 */
 	public readonly subject = derived(reader => this.peek.read(reader)?.current.read(reader));
 
 	constructor(
@@ -472,9 +430,6 @@ export class TestingOutputPeekController extends Disposable implements IEditorCo
 		this._register(testResults.onTestChanged(this.closePeekOnTestChange, this));
 	}
 
-	/**
-	 * Shows a peek for the message in the editor.
-	 */
 	public async show(uri: URI) {
 		const subject = this.retrieveTest(uri);
 		if (subject) {
@@ -482,9 +437,6 @@ export class TestingOutputPeekController extends Disposable implements IEditorCo
 		}
 	}
 
-	/**
-	 * Shows a peek for the existing inspect subject.
-	 */
 	public async showSubject(subject: InspectSubject) {
 		if (!this.peek.get()) {
 			const peek = this.instantiationService.createInstance(TestResultsPeek, this.editor);
@@ -526,23 +478,14 @@ export class TestingOutputPeekController extends Disposable implements IEditorCo
 		}
 	}
 
-	/**
-	 * Disposes the peek view, if any.
-	 */
 	public removePeek() {
 		this.peek.set(undefined, undefined);
 	}
 
-	/**
-	 * Collapses all displayed stack frames.
-	 */
 	public collapseStack() {
 		this.peek.get()?.collapseStack();
 	}
 
-	/**
-	 * Shows the next message in the peek, if possible.
-	 */
 	public next() {
 		const subject = this.peek.get()?.current.get();
 		if (!subject) {
@@ -555,7 +498,7 @@ export class TestingOutputPeekController extends Disposable implements IEditorCo
 		for (const m of allMessages(this.testResults.results)) {
 			first ??= m;
 			if (subject instanceof TaskSubject && m.result.id === subject.result.id) {
-				found = true; // open the first message found in the current result
+				found = true;
 			}
 
 			if (found) {
@@ -577,18 +520,15 @@ export class TestingOutputPeekController extends Disposable implements IEditorCo
 		}
 	}
 
-	/**
-	 * Shows the previous message in the peek, if possible.
-	 */
 	public previous() {
 		const subject = this.subject.get();
 		if (!subject) {
 			return;
 		}
 
-		let previous: IMessageIteratedReference | undefined; // pointer to the last message
-		let previousLockedIn = false; // whether the last message was verified as previous to the current subject
-		let last: IMessageIteratedReference | undefined; // overall last message
+		let previous: IMessageIteratedReference | undefined;
+		let previousLockedIn = false;
+		let last: IMessageIteratedReference | undefined;
 		for (const m of allMessages(this.testResults.results)) {
 			last = m;
 
@@ -622,9 +562,6 @@ export class TestingOutputPeekController extends Disposable implements IEditorCo
 		}
 	}
 
-	/**
-	 * Removes the peek view if it's being displayed on the given test ID.
-	 */
 	public removeIfPeekingForTest(testId: string) {
 		const c = this.subject.get();
 		if (c && c instanceof MessageSubject && c.test.extId === testId) {
@@ -632,10 +569,6 @@ export class TestingOutputPeekController extends Disposable implements IEditorCo
 		}
 	}
 
-	/**
-	 * If the test we're currently showing has its state change to something
-	 * else, then clear the peek.
-	 */
 	private closePeekOnTestChange(evt: TestResultItemChange) {
 		if (evt.reason !== TestResultItemChangeReason.OwnStateChange || evt.previousState === evt.item.ownComputedState) {
 			return;
@@ -646,11 +579,11 @@ export class TestingOutputPeekController extends Disposable implements IEditorCo
 
 	private closePeekOnCertainResultEvents(evt: ResultChangeEvent) {
 		if ('started' in evt) {
-			this.peek.set(undefined, undefined); // close peek when runs start
+			this.peek.set(undefined, undefined);
 		}
 
 		if ('removed' in evt && this.testResults.results.length === 0) {
-			this.peek.set(undefined, undefined); // close the peek if results are cleared
+			this.peek.set(undefined, undefined);
 		}
 	}
 
@@ -714,17 +647,15 @@ class TestResultsPeek extends PeekViewWidget {
 	protected override _getMaximumHeightInLines(): number | undefined {
 		const defaultMaxHeight = super._getMaximumHeightInLines();
 		const contentHeight = this.content?.contentHeight;
-		if (!contentHeight) { // undefined or 0
+		if (!contentHeight) {
 			return defaultMaxHeight;
 		}
 
-		if (this.testingPeek.historyVisible.value) { // don't cap height with the history split
+		if (this.testingPeek.historyVisible.value) {
 			return defaultMaxHeight;
 		}
 
 		const lineHeight = this.editor.getOption(EditorOption.lineHeight);
-		// 41 is experimentally determined to be the overhead of the peek view itself
-		// to avoid showing scrollbars by default in its content.
 		const basePeekOverhead = 41;
 
 		return Math.min(defaultMaxHeight || Infinity, (contentHeight + basePeekOverhead) / lineHeight + 1);
@@ -777,7 +708,7 @@ class TestResultsPeek extends PeekViewWidget {
 			actions.length = 0;
 			fillInActionBarActions(menu.getActions(), actions);
 			while (actionBar.getAction(1)) {
-				actionBar.pull(0); // remove all but the view's default "close" button
+				actionBar.pull(0);
 			}
 			actionBar.push(actions, { label: false, icon: true, index: 0 });
 		}));
@@ -790,8 +721,6 @@ class TestResultsPeek extends PeekViewWidget {
 	protected override _fillBody(containerElement: HTMLElement): void {
 		this.content.fillBody(containerElement);
 
-		// Resize on height updates for a short time to allow any heights made
-		// by editor contributions to come into effect before.
 		const contentHeightSettleTimer = this._disposables.add(new RunOnceScheduler(() => {
 			this.resizeOnNextContentHeightUpdate = false;
 		}, 500));
@@ -817,9 +746,6 @@ class TestResultsPeek extends PeekViewWidget {
 		}));
 	}
 
-	/**
-	 * Updates the test to be shown.
-	 */
 	public setModel(subject: InspectSubject): Promise<void> {
 		if (subject instanceof TaskSubject || subject instanceof TestOutputSubject) {
 			this.current.set(subject, undefined);
@@ -838,29 +764,20 @@ class TestResultsPeek extends PeekViewWidget {
 		}
 
 		this.resizeOnNextContentHeightUpdate = true;
-		this.show(revealLocation, 10); // 10 is just a random number, we resize once content is available
+		this.show(revealLocation, 10);
 		this.editor.revealRangeNearTopIfOutsideViewport(Range.fromPositions(revealLocation), ScrollType.Smooth);
 
 		return this.showInPlace(subject);
 	}
 
-	/**
-	 * Collapses all displayed stack frames.
-	 */
 	public collapseStack() {
 		this.content.collapseStack();
 	}
 
 	private getVisibleEditorLines() {
-		// note that we don't use the view ranges because we don't want to get
-		// thrown off by large wrapping lines. Being approximate here is okay.
 		return Math.round(this.editor.getDomNode()!.clientHeight / this.editor.getOption(EditorOption.lineHeight));
 	}
 
-	/**
-	 * Shows a message in-place without showing or changing the peek location.
-	 * This is mostly used if peeking a message without a location.
-	 */
 	public async showInPlace(subject: InspectSubject) {
 		if (subject instanceof MessageSubject) {
 			const message = subject.message;
@@ -872,13 +789,11 @@ class TestResultsPeek extends PeekViewWidget {
 		await this.content.reveal({ subject, preserveFocus: false });
 	}
 
-	/** @override */
 	protected override _doLayoutBody(height: number, width: number) {
 		super._doLayoutBody(height, width);
 		this.content.onLayoutBody(height, width);
 	}
 
-	/** @override */
 	protected override _onWidth(width: number) {
 		super._onWidth(width);
 		if (this.dimension) {
@@ -927,8 +842,6 @@ export class TestResultsView extends ViewPane {
 
 	protected override renderBody(container: HTMLElement): void {
 		super.renderBody(container);
-		// Avoid rendering into the body until it's attached the DOM, as it can
-		// result in rendering issues in the terminal (#194156)
 		if (this.isBodyVisible()) {
 			this.renderContent(container);
 		} else {
@@ -997,18 +910,11 @@ const navWhen = ContextKeyExpr.and(
 	TestingContextKeys.isPeekVisible,
 );
 
-/**
- * Gets the appropriate editor for peeking based on the currently focused editor.
- */
 const getPeekedEditorFromFocus = (codeEditorService: ICodeEditorService) => {
 	const editor = codeEditorService.getFocusedCodeEditor() || codeEditorService.getActiveCodeEditor();
 	return editor && getPeekedEditor(codeEditorService, editor);
 };
 
-/**
- * Gets the editor where the peek may be shown, bubbling upwards if the given
- * editor is embedded (i.e. inside a peek already).
- */
 const getPeekedEditor = (codeEditorService: ICodeEditorService, editor: ICodeEditor) => {
 	if (TestingOutputPeekController.get(editor)?.subject.get()) {
 		return editor;

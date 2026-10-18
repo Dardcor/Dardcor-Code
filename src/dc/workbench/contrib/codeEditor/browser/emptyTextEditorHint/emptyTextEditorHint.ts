@@ -221,7 +221,6 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 			}
 		};
 
-		// the actual command handlers...
 		const askSomethingCommandId = 'inlineChat.start';
 		const askSomething = async (e: UIEvent) => {
 			e.stopPropagation();
@@ -233,7 +232,6 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 		};
 		const languageOnClickOrTap = async (e: UIEvent) => {
 			e.stopPropagation();
-			// Need to focus editor before so current editor becomes active and the command is properly executed
 			this.editor.focus();
 			this.telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', {
 				id: ChangeLanguageAction.ID,
@@ -312,4 +310,4 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 	}
 }
 
-registerEditorContribution(EmptyTextEditorHintContribution.ID, EmptyTextEditorHintContribution, EditorContributionInstantiation.Eager); // eager because it needs to render a help message
+registerEditorContribution(EmptyTextEditorHintContribution.ID, EmptyTextEditorHintContribution, EditorContributionInstantiation.Eager);

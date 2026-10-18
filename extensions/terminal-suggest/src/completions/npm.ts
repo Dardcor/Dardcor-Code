@@ -30,7 +30,6 @@ export const createNpmSearchHandler =
 			if (searchTerm === '') {
 				return [];
 			}
-			// Add optional keyword parameter
 			const keywordParameter =
 				keywords && keywords.length > 0 ? `+keywords:${keywords.join(',')}` : '';
 
@@ -38,30 +37,23 @@ export const createNpmSearchHandler =
 				? `https://api.npms.io/v2/search?size=20&q=${searchTerm}${keywordParameter}`
 				: `https://api.npms.io/v2/search/suggestions?q=${searchTerm}&size=20`;
 
-			// Query the API with the package name
 			const queryPackages = [
 				'-s',
 				'-H',
 				'Accept: application/json',
 				queryPackagesUrl,
 			];
-			// We need to remove the '@' at the end of the searchTerm before querying versions
 			const queryVersions = [
 				'-s',
 				'-H',
 				'Accept: application/vnd.npm.install-v1+json',
 				`https://registry.npmjs.org/${searchTerm.slice(0, -1)}`,
 			];
-			// If the end of our token is '@', then we want to generate version suggestions
-			// Otherwise, we want packages
 			const out = (query: string) =>
 				executeShellCommand({
 					command: 'curl',
 					args: query[query.length - 1] === '@' ? queryVersions : queryPackages,
 				});
-			// If our token starts with '@', then a 2nd '@' tells us we want
-			// versions.
-			// Otherwise, '@' anywhere else in the string will indicate the same.
 			const shouldGetVersion = searchTerm.startsWith('@')
 				? atsInStr(searchTerm) > 1
 				: searchTerm.includes('@');
@@ -69,14 +61,12 @@ export const createNpmSearchHandler =
 			try {
 				const data = JSON.parse((await out(searchTerm)).stdout);
 				if (shouldGetVersion) {
-					// create dist tags suggestions
 					const versions = Object.entries(data['dist-tags'] || {}).map(
 						([key, value]) => ({
 							name: key,
 							description: value,
 						})
 					) as Fig.Suggestion[];
-					// create versions
 					versions.push(
 						...Object.keys(data.versions)
 							.map((version) => ({ name: version }))
@@ -98,30 +88,22 @@ export const createNpmSearchHandler =
 			}
 		};
 
-// GENERATORS
 export const npmSearchGenerator: Fig.Generator = {
 	trigger: (newToken, oldToken) => {
-		// If the package name starts with '@', we want to trigger when
-		// the 2nd '@' is typed because we'll need to generate version
-		// suggetsions
-		// e.g. @typescript-eslint/types
 		if (oldToken.startsWith('@')) {
 			return !(atsInStr(oldToken) > 1 && atsInStr(newToken) > 1);
 		}
 
-		// If the package name doesn't start with '@', then trigger when
-		// we see the first '@' so we can generate version suggestions
 		return !(oldToken.includes('@') && newToken.includes('@'));
 	},
 	getQueryTerm: '@',
 	cache: {
-		ttl: 1000 * 60 * 60 * 24 * 2, // 2 days
+		ttl: 1000 * 60 * 60 * 24 * 2,
 	},
 	custom: createNpmSearchHandler(),
 };
 
 const workspaceGenerator: Fig.Generator = {
-	// script: "cat $(npm prefix)/package.json",
 	custom: async (tokens, executeShellCommand) => {
 		const { stdout: npmPrefix } = await executeShellCommand({
 			command: 'npm',
@@ -157,7 +139,6 @@ const workspaceGenerator: Fig.Generator = {
 	},
 };
 
-/** Generator that lists package.json dependencies */
 export const dependenciesGenerator: Fig.Generator = {
 	trigger: (newToken) => newToken === '-g' || newToken === '--global',
 	custom: async function (tokens, executeShellCommand) {
@@ -202,7 +183,6 @@ export const dependenciesGenerator: Fig.Generator = {
 	},
 };
 
-/** Generator that lists package.json scripts (with the respect to the `fig` field) */
 export const npmScriptsGenerator: Fig.Generator = {
 	cache: {
 		strategy: 'stale-while-revalidate',
@@ -235,10 +215,6 @@ export const npmScriptsGenerator: Fig.Generator = {
 						icon,
 						description: scriptContents as string,
 						priority: 51,
-						/**
-						 * If there are custom definitions for the scripts
-						 * we want to override the default values
-						 * */
 						...customScripts,
 					};
 				});
@@ -512,7 +488,6 @@ const completionSpec: Fig.Spec = {
 					args: {
 						name: 'args',
 						isVariadic: true,
-						// TODO: load the spec based on the runned script (see yarn spec `yarnScriptParsedDirectives`)
 					},
 				},
 			],
@@ -1028,7 +1003,6 @@ const completionSpec: Fig.Spec = {
 					description:
 						'Sets a value in your package.json based on the field value. It is possible to set multiple values and values for child fields',
 					args: {
-						// Format is <field>=<value>. How to achieve this?
 						name: 'field',
 						description:
 							'Name of the field to set. You can set child fields by separating them with a period',

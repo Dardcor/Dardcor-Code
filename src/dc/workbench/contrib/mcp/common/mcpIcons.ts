@@ -25,11 +25,8 @@ const enum IconTheme {
 }
 
 interface IIcon {
-	/** URI the image can be loaded from */
 	src: URI;
-	/** Theme for this icon. */
 	theme: IconTheme;
-	/** Sizes of the icon in ascending order. */
 	sizes: { width: number; height: number }[];
 }
 
@@ -85,7 +82,6 @@ export function parseAndValidateMcpIcon(icons: MCP.Icons, launch: McpServerLaunc
 			continue;
 		}
 
-		// check for sizes as string for back-compat with early 2025-11-25 drafts
 		const sizesArr = typeof icon.sizes === 'string' ? (icon.sizes as string).split(' ') : Array.isArray(icon.sizes) ? icon.sizes : [];
 		result.push({
 			src: uri,
@@ -131,7 +127,7 @@ export class McpIcons implements IMcpIcons {
 		let bestOfAnySize: IIcon | undefined;
 
 		for (const icon of this._icons) {
-			if (icon.theme === theme || icon.theme === IconTheme.Any || icon.theme === undefined) { // undefined check for back compat
+			if (icon.theme === theme || icon.theme === IconTheme.Any || icon.theme === undefined) {
 				bestOfAnySize = icon;
 
 				const matchingSize = icon.sizes.find(s => s.width >= size);

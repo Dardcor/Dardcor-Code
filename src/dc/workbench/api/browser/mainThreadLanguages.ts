@@ -112,13 +112,12 @@ export class MainThreadLanguages extends Disposable implements MainThreadLanguag
 				}
 			}
 			if (i < lines.length - 1) {
-				tokens.push({ length: 1, foreground: 0, fontStyle: FontStyle.None }); // newline char
+				tokens.push({ length: 1, foreground: 0, fontStyle: FontStyle.None });
 			}
 		}
 		return { tokens, colorMap };
 	}
 
-	// --- language status
 
 	$setLanguageStatus(handle: number, status: ILanguageStatus): void {
 		this._status.set(handle, this._languageStatusService.addStatus(status));

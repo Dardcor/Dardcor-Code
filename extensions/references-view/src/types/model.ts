@@ -98,13 +98,11 @@ class TypesModel implements SymbolItemNavigation<TypeItem>, SymbolItemEditorHigh
 		return item.children;
 	}
 
-	// -- dnd
 
 	getDragUri(item: TypeItem): vscode.Uri | undefined {
 		return asResourceUrl(item.item.uri, item.item.range);
 	}
 
-	// -- navigation
 
 	location(currentType: TypeItem) {
 		return new vscode.Location(currentType.item.uri, currentType.item.range);
@@ -134,7 +132,6 @@ class TypesModel implements SymbolItemNavigation<TypeItem>, SymbolItemEditorHigh
 		}
 	}
 
-	// --- highlights
 
 	getEditorHighlights(currentType: TypeItem, uri: vscode.Uri): vscode.Range[] | undefined {
 		return currentType.item.uri.toString() === uri.toString() ? [currentType.item.selectionRange] : undefined;

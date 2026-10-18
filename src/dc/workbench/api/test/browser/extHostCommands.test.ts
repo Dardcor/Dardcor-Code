@@ -22,7 +22,6 @@ suite('ExtHostCommands', function () {
 
 		const shape = new class extends mock<MainThreadCommandsShape>() {
 			override $registerCommand(id: string): void {
-				//
 			}
 			override $unregisterCommand(id: string): void {
 				lastUnregister = id;
@@ -50,7 +49,6 @@ suite('ExtHostCommands', function () {
 
 		const shape = new class extends mock<MainThreadCommandsShape>() {
 			override $registerCommand(id: string): void {
-				//
 			}
 			override $unregisterCommand(id: string): void {
 				unregisterCounter += 1;
@@ -79,7 +77,6 @@ suite('ExtHostCommands', function () {
 
 		const shape = new class extends mock<MainThreadCommandsShape>() {
 			override $registerCommand(id: string): void {
-				//
 			}
 			override async $executeCommand<T>(id: string, args: any[], retry: boolean): Promise<T | undefined> {
 				count++;
@@ -116,7 +113,6 @@ suite('ExtHostCommands', function () {
 
 		const shape = new class extends mock<MainThreadCommandsShape>() {
 			override $registerCommand(id: string): void {
-				//
 			}
 			override $fireCommandActivationEvent(id: string): void {
 				activationEvents.push(id);

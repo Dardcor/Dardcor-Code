@@ -22,7 +22,7 @@ import { ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, MarkdownSt
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { ToolName } from '../common/toolNames';
-import { CopilotToolMode, ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { AgentToolMode, IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { checkCancellation, inputGlobToPattern, patternContainsWorkspaceFolderPath } from './toolUtils';
 
 export interface IFindFilesToolParams {
@@ -30,7 +30,7 @@ export interface IFindFilesToolParams {
 	maxResults?: number;
 }
 
-export class FindFilesTool implements ICopilotTool<IFindFilesToolParams> {
+export class FindFilesTool implements IAgentTool<IFindFilesToolParams> {
 	public static readonly toolName = ToolName.FindFiles;
 	public static readonly nonDeferred = true;
 
@@ -45,8 +45,6 @@ export class FindFilesTool implements ICopilotTool<IFindFilesToolParams> {
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<IFindFilesToolParams>, token: CancellationToken) {
 		checkCancellation(token);
 
-		// TODO strict input validation
-		// Certain models just really want to pass incorrect input
 		if ((options.input as unknown as Record<string, string>).path) {
 			throw new Error('The property "path" is not supported');
 		}
@@ -54,13 +52,11 @@ export class FindFilesTool implements ICopilotTool<IFindFilesToolParams> {
 		const endpoint = options.model && (await this.endpointProvider.getChatEndpoint(options.model));
 		const modelFamily = endpoint?.family;
 
-		// The input _should_ be a pattern matching inside a workspace, folder, but sometimes we get absolute paths, so try to resolve them
 		const workingDir = new WorkingDirectory(options.workingDirectory, this.workspaceService);
 		const globResult = inputGlobToPattern(options.input.query, workingDir, modelFamily);
 
 		void this.sendSearchToolTelemetry(options, globResult.folderName);
 
-		// try find text with a timeout of 20s
 		const timeoutInMs = 20_000;
 
 
@@ -75,7 +71,6 @@ export class FindFilesTool implements ICopilotTool<IFindFilesToolParams> {
 
 		const maxResults = options.input.maxResults ?? 20;
 		const resultsToShow = results.slice(0, maxResults);
-		// Render the prompt element with a timeout
 		const prompt = await renderPromptElementJSON(this.instantiationService, FindFilesResult, { fileResults: resultsToShow, totalResults: results.length }, options.tokenizationOptions, token);
 		const result = new ExtendedLanguageModelToolResult([new LanguageModelPromptTsxPart(prompt)]);
 		const query = this.formatQueryLabel(globResult, options.input.query);
@@ -92,18 +87,6 @@ export class FindFilesTool implements ICopilotTool<IFindFilesToolParams> {
 		const model = options.model && (await this.endpointProvider.getChatEndpoint(options.model)).model;
 		const isMultiRoot = this.workspaceService.getWorkspaceFolders().length > 1;
 		const query = options.input.query;
-		/* __GDPR__
-			"findFilesToolInvoked" : {
-				"owner": "roblourens",
-				"comment": "Telemetry for the findFiles tool in multi-root workspaces",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-				"isMultiRoot": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the workspace has multiple root folders" },
-				"queryScopedToFolder": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the query was resolved to a specific workspace folder" },
-				"queryStartsWithFolderPath": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the raw query starts with a workspace folder absolute path" },
-				"queryContainsFolderPath": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the raw query contains a workspace folder absolute path anywhere" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('findFilesToolInvoked', {
 			requestId: options.chatRequestId,
 			model,
@@ -132,7 +115,7 @@ export class FindFilesTool implements ICopilotTool<IFindFilesToolParams> {
 		return `\`${rawQuery}\``;
 	}
 
-	async resolveInput(input: IFindFilesToolParams, _promptContext: IBuildPromptContext, mode: CopilotToolMode): Promise<IFindFilesToolParams> {
+	async resolveInput(input: IFindFilesToolParams, _promptContext: IBuildPromptContext, mode: AgentToolMode): Promise<IFindFilesToolParams> {
 		let query = input.query;
 		if (!query.startsWith('**/') && !query.startsWith('/') && !query.includes(':')) {
 			query = `**/${query}`;
@@ -145,7 +128,7 @@ export class FindFilesTool implements ICopilotTool<IFindFilesToolParams> {
 		return {
 			...input,
 			query,
-			maxResults: mode === CopilotToolMode.FullContext ?
+			maxResults: mode === AgentToolMode.FullContext ?
 				Math.max(input.maxResults ?? 0, 200) :
 				input.maxResults ?? 20,
 		};

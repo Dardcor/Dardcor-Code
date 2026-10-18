@@ -173,9 +173,7 @@
   "Cert": "證書",
   "Server": "服務器",
   "Purpose:": "目的：",
-  "Use Antigravity IDE & GitHub Copilot → with ANY provider/model from Dardcor Code": "使用 Antigravity IDE 和 GitHub Copilot → 與 Dardcor Code 中的任何提供者/模型一起",
   "How it works:": "工作原理：",
-  "Antigravity/Copilot IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Code → response to Antigravity/Copilot": "Antigravity/Copilot IDE 請求 → DNS 重定向到 localhost:443 → MITM 代理攔截 → Dardcor Code → 响應到 Antigravity/Copilot",
   "No API keys — create one in Keys page": "沒有 API 金鑰 — 在金鑰頁面中創建一個",
   "e.g. a warm, gentle voice, speaking slowly with a British accent": "例如：溫暖柔和的嗓音，用英式口音緩慢說話",
   "sk_dardcor-code (default)": "sk_dardcor-code（默認）",
@@ -192,6 +190,5 @@
   "Sudo Password": "Sudo 密碼",
   "Click to add, click again to remove. Changes are saved automatically.": "點擊新增，再次點擊移除。變更將自動儲存。",
   "⚠️ Risk Notice: This provider uses a subscription/OAuth session not officially licensed for proxy/router use. Account may be restricted or banned. Use at your own risk.": "⚠️ 風險提示：此提供商使用的訂閱/OAuth 工作階段未獲官方授權用於代理/路由器使用。帳戶可能被限制或封禁。使用風險自負。",
-  "⚠️ MITM intercepts HTTPS traffic of IDE tools (Antigravity, GitHub Copilot, Kiro) via local CA to redirect requests to your providers. May violate ToS → account ban. Use at your own risk.": "⚠️ MITM 透過本地 CA 攔截 IDE 工具（Antigravity、GitHub Copilot、Kiro）的 HTTPS 流量，將請求重新導向到您的提供商。可能違反 ToS → 帳戶封禁風險。使用風險自負。",
   "Endpoint is exposed without an API key.": "端點未設定 API 金鑰即對外暴露。"
 }

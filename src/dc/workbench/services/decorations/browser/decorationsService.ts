@@ -77,7 +77,6 @@ class DecorationRule {
 
 	private _appendForOne(data: IDecorationData, element: HTMLStyleElement): void {
 		const { color, letter } = data;
-		// label
 		createCSSRule(`.${this.itemColorClassName}`, `color: ${getColor(color)};`, element);
 		if (ThemeIcon.isThemeIcon(letter)) {
 			this._createIconCSSRule(letter, getColor(color), element);
@@ -87,11 +86,9 @@ class DecorationRule {
 	}
 
 	private _appendForMany(data: IDecorationData[], element: HTMLStyleElement): void {
-		// label
 		const color = data.reduceRight((fallback, decoration) => decoration.color ? asCssVariableWithDefault(decoration.color, fallback) : fallback, 'inherit');
 		createCSSRule(`.${this.itemColorClassName}`, `color: ${color};`, element);
 
-		// badge or icon
 		const letters: string[] = [];
 		let icon: ThemeIcon | undefined;
 
@@ -111,8 +108,6 @@ class DecorationRule {
 				createCSSRule(`.${this.itemBadgeClassName}::after`, `content: "${letters.join(', ')}"; color: ${color};`, element);
 			}
 
-			// bubble badge
-			// TODO @misolori update bubble badge to adopt letter: ThemeIcon instead of unicode
 			createCSSRule(
 				`.${this.bubbleBadgeClassName}::after`,
 				`content: "\uea71"; color: ${color}; font-family: codicon; font-size: 14px; margin-right: 14px; opacity: 0.4;`,
@@ -172,14 +167,12 @@ class DecorationStyles {
 
 	asDecoration(data: IDecorationData[], onlyChildren: boolean): IDecoration {
 
-		// sort by weight
 		data.sort((a, b) => (b.weight || 0) - (a.weight || 0));
 
 		const key = DecorationRule.keyOf(data);
 		let rule = this._decorationRules.get(key);
 
 		if (!rule) {
-			// new css rule
 			rule = new DecorationRule(this._themeService, data, key);
 			this._decorationRules.set(key, rule);
 			rule.appendCSSRules(this._styleElement);
@@ -194,7 +187,6 @@ class DecorationStyles {
 		const strikethrough = data.some(d => d.strikethrough);
 
 		if (onlyChildren) {
-			// show items from its children only
 			badgeClassName = rule.bubbleBadgeClassName;
 			tooltip = localize('bubbleTitle', "Contains emphasized items");
 		}
@@ -218,7 +210,7 @@ class DecorationStyles {
 
 class FileDecorationChangeEvent implements IResourceDecorationChangeEvent {
 
-	private readonly _data = TernarySearchTree.forUris<true>(_uri => true); // events ignore all path casings
+	private readonly _data = TernarySearchTree.forUris<true>(_uri => true);
 
 	constructor(all: URI | URI[]) {
 		this._data.fill(true, asArray(all));
@@ -275,11 +267,9 @@ export class DecorationsService implements IDecorationsService {
 		const rm = this._provider.unshift(provider);
 
 		this._onDidChangeDecorations.fire({
-			// everything might have changed
 			affectsResource() { return true; }
 		});
 
-		// remove everything what came from this provider
 		const removeAll = () => {
 			const uris: URI[] = [];
 			for (const [uri, map] of this._data) {
@@ -294,11 +284,9 @@ export class DecorationsService implements IDecorationsService {
 
 		const listener = provider.onDidChange(uris => {
 			if (!uris) {
-				// flush event -> drop all data, can affect everything
 				removeAll();
 
 			} else {
-				// selective changes -> drop for resource, fetch again, send event
 				for (const uri of uris) {
 					const map = this._ensureEntry(uri);
 					this._fetchData(map, uri, provider);
@@ -316,7 +304,6 @@ export class DecorationsService implements IDecorationsService {
 	private _ensureEntry(uri: URI): DecorationEntry {
 		let map = this._data.get(uri);
 		if (!map) {
-			// nothing known about this uri
 			map = new Map();
 			this._data.set(uri, map);
 		}
@@ -334,18 +321,15 @@ export class DecorationsService implements IDecorationsService {
 
 			let data = map.get(provider);
 			if (data === undefined) {
-				// sets data if fetch is sync
 				data = this._fetchData(map, uri, provider);
 			}
 
 			if (data && !(data instanceof DecorationDataRequest)) {
-				// having data
 				all.push(data);
 			}
 		}
 
 		if (includeChildren) {
-			// (resolved) children
 			const iter = this._data.findSuperstr(uri);
 			if (iter) {
 				for (const tuple of iter) {
@@ -368,7 +352,6 @@ export class DecorationsService implements IDecorationsService {
 
 	private _fetchData(map: DecorationEntry, uri: URI, provider: IDecorationsProvider): IDecorationData | null {
 
-		// check for pending request and cancel it
 		const pendingRequest = map.get(provider);
 		if (pendingRequest instanceof DecorationDataRequest) {
 			pendingRequest.source.cancel();
@@ -378,12 +361,10 @@ export class DecorationsService implements IDecorationsService {
 		const cts = new CancellationTokenSource();
 		const dataOrThenable = provider.provideDecorations(uri, cts.token);
 		if (!isThenable<IDecorationData | Promise<IDecorationData | undefined> | undefined>(dataOrThenable)) {
-			// sync -> we have a result now
 			cts.dispose();
 			return this._keepItem(map, provider, uri, dataOrThenable);
 
 		} else {
-			// async -> we have a result soon
 			const request = new DecorationDataRequest(cts, Promise.resolve(dataOrThenable).then(data => {
 				if (map.get(provider) === request) {
 					this._keepItem(map, provider, uri, data);
@@ -406,7 +387,6 @@ export class DecorationsService implements IDecorationsService {
 		const old = map.get(provider);
 		map.set(provider, deco);
 		if (deco || old) {
-			// only fire event when something changed
 			this._onDidChangeDecorationsDelayed.fire(uri);
 		}
 		return deco;

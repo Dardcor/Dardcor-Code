@@ -32,7 +32,6 @@ export const Traits = (_props: PromptElementProps, context: ComponentContext) =>
 		return;
 	}
 
-	// TODO: use a `KeepTogether` elision that removes the header if no traits are present
 	return (
 		<>
 			<Text>{'Consider this related information:\n'}</Text>

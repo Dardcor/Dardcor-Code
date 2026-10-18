@@ -13,7 +13,7 @@ import { Emitter, Event } from '../../../util/dardcor/base/common/event';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IObservable, ObservableMap } from '../../../util/dardcor/base/common/observable';
 import { ToolName } from './toolNames';
-import { ICopilotModelSpecificTool, ICopilotTool } from './toolsRegistry';
+import { IAgentModelSpecificTool, IAgentTool } from './toolsRegistry';
 
 export const IToolsService = createServiceIdentifier<IToolsService>('IToolsService');
 
@@ -50,68 +50,36 @@ export interface IToolsService {
 
 	onWillInvokeTool: Event<IOnWillInvokeToolEvent>;
 
-	/**
-	 * All registered LanguageModelToolInformations (vscode.lm.tools)
-	 */
 	tools: ReadonlyArray<vscode.LanguageModelToolInformation>;
 
-	/**
-	 * Tool implementations from tools in this extension
-	 */
-	dardcorTools: ReadonlyMap<ToolName, ICopilotTool<unknown>>;
+	dardcorTools: ReadonlyMap<ToolName, IAgentTool<unknown>>;
 
-	/**
-	 * Model-specific tool instances. These are NOT included in the
-	 * {@link dardcorTools} map, and may update at runtime.
-	 */
-	modelSpecificTools: IObservable<{ definition: vscode.LanguageModelToolDefinition; tool: ICopilotTool<unknown> }[]>;
+	modelSpecificTools: IObservable<{ definition: vscode.LanguageModelToolDefinition; tool: IAgentTool<unknown> }[]>;
 
-	getCopilotTool(name: string): ICopilotTool<unknown> | undefined;
+	getAgentTool(name: string): IAgentTool<unknown> | undefined;
 
-	/**
-	 * Invokes a tool by name with the given options.
-	 * Note that `invokeToolWithEndpoint` should be preferred for most usages.
-	 */
 	invokeTool(name: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Thenable<vscode.LanguageModelToolResult2>;
 
-	/**
-	 * Invokes a tool by name with the given options. Uses any endpoint-specific tool
-	 * overrides as appropriate.
-	 */
 	invokeToolWithEndpoint(name: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, endpoint: IChatEndpoint | undefined, token: vscode.CancellationToken): Thenable<vscode.LanguageModelToolResult2>;
 
 
 	getTool(name: string): vscode.LanguageModelToolInformation | undefined;
 	getToolByToolReferenceName(name: string): vscode.LanguageModelToolInformation | undefined;
 
-	/**
-	 * Validates the input to the tool, returning an error if it's invalid.
-	 */
 	validateToolInput(name: string, input: string): IToolValidationResult;
 
 	validateToolName(name: string): string | undefined;
 
-	/**
-	 * Gets tools that should be enabled for the given request. You can optionally
-	 * pass `filter` function that can explicitl enable (true) or disable (false)
-	 * a tool, or use the default logic (undefined).
-	 */
 	getEnabledTools(request: vscode.ChatRequest, endpoint: IChatEndpoint, filter?: (tool: vscode.LanguageModelToolInformation) => boolean | undefined): vscode.LanguageModelToolInformation[];
 }
 
-/**
- * Navigates to a property in an object using a JSON Pointer path (RFC6901).
- * Returns an object with the parent container and property name, or null if the path is invalid.
- */
 function getObjectPropertyByPath(obj: any, jsonPointerPath: string): { parent: any; propertyName: string } | null {
-	// Parse the JSON Pointer path (RFC6901)
-	const pathSegments = jsonPointerPath.split('/').slice(1); // Remove empty first element from leading '/'
+	const pathSegments = jsonPointerPath.split('/').slice(1);
 
 	if (pathSegments.length === 0) {
 		return null;
 	}
 
-	// Navigate to the parent object
 	let current: any = obj;
 	for (let i = 0; i < pathSegments.length - 1; i++) {
 		const segment = pathSegments[i];
@@ -130,47 +98,26 @@ function getObjectPropertyByPath(obj: any, jsonPointerPath: string): { parent: a
 	return null;
 }
 
-/**
- * Property names that must never be used as path segments when reconstructing
- * objects from untrusted tool input, to avoid prototype pollution.
- */
 const UNSAFE_PROPERTY_NAMES = new Set(['__proto__', 'constructor', 'prototype']);
 
-/**
- * Upper bound for array indices accepted when reconstructing flattened tool
- * input. Caps the reconstructed array length to avoid huge sparse arrays from
- * untrusted input (e.g. `items[999999999999]`) that would make subsequent Ajv
- * validation pathologically slow.
- */
 const MAX_FLATTENED_ARRAY_INDEX = 1000;
 
-/**
- * Parses a flattened path key (e.g. `questions[0].options[1].label`) into an
- * ordered list of segments (`['questions', 0, 'options', 1, 'label']`). Object
- * properties are returned as strings and array indices as numbers. Returns
- * `undefined` if the key is not a well-formed, contiguous path expression, if
- * it contains an unsafe property name (e.g. `__proto__`), or if an array index
- * exceeds {@link MAX_FLATTENED_ARRAY_INDEX}.
- */
 function parseFlattenedPath(key: string): (string | number)[] | undefined {
 	const segments: (string | number)[] = [];
 	const re = /\.?([^.[\]]+)|\[(\d+)\]/g;
 	let lastIndex = 0;
 	let match: RegExpExecArray | null;
 	while ((match = re.exec(key)) !== null) {
-		// Bail if there is an unexpected character between tokens (e.g. `a..b`).
 		if (match.index !== lastIndex) {
 			return undefined;
 		}
 		if (match[2] !== undefined) {
 			const index = Number(match[2]);
-			// Reject out-of-range indices to avoid huge sparse arrays.
 			if (!Number.isSafeInteger(index) || index > MAX_FLATTENED_ARRAY_INDEX) {
 				return undefined;
 			}
 			segments.push(index);
 		} else {
-			// Reject prototype-pollution keys from untrusted tool input.
 			if (UNSAFE_PROPERTY_NAMES.has(match[1])) {
 				return undefined;
 			}
@@ -184,21 +131,12 @@ function parseFlattenedPath(key: string): (string | number)[] | undefined {
 	return segments;
 }
 
-/**
- * Reconstructs a nested object/array structure from an object whose keys are
- * flattened path expressions. Some models (notably Gemini) serialize nested
- * tool-call arguments as flat keys like `questions[0].header` instead of a
- * proper nested object. Returns `undefined` when none of the keys use path
- * notation (so normal inputs are left untouched), when a key is malformed, or
- * when keys conflict (e.g. both `a` and `a.b`).
- */
 function tryUnflattenObject(obj: Record<string, unknown>): Record<string, unknown> | undefined {
 	const keys = Object.keys(obj);
 	if (!keys.some(key => /\.|\[\d+\]/.test(key))) {
 		return undefined;
 	}
 
-	// Use null-prototype containers so untrusted keys cannot reach Object.prototype.
 	const result: Record<string, unknown> = Object.create(null);
 	for (const key of keys) {
 		const path = parseFlattenedPath(key);
@@ -214,8 +152,6 @@ function tryUnflattenObject(obj: Record<string, unknown>): Record<string, unknow
 			if (child === undefined) {
 				current[segment] = typeof nextSegment === 'number' ? [] : Object.create(null);
 			} else if (typeof child !== 'object' || child === null) {
-				// Conflicting keys (e.g. both `a` and `a.b`) would require
-				// overwriting a primitive with a container; bail out instead.
 				return undefined;
 			}
 			current = current[segment];
@@ -223,8 +159,6 @@ function tryUnflattenObject(obj: Record<string, unknown>): Record<string, unknow
 
 		const leaf = path[path.length - 1];
 		if (typeof current[leaf] === 'object' && current[leaf] !== null) {
-			// A container already exists at this leaf (e.g. both `a` and `a.b`
-			// where `a` is assigned last); refuse to clobber it.
 			return undefined;
 		}
 		current[leaf] = obj[key];
@@ -234,16 +168,13 @@ function tryUnflattenObject(obj: Record<string, unknown>): Record<string, unknow
 }
 
 function ajvValidateForTool(toolName: string, fn: ValidateFunction, inputObj: unknown): IToolValidationResult {
-	// Empty output can be valid when the schema only has optional properties
 	if (fn(inputObj ?? {})) {
 		return { inputObj };
 	}
 
-	// Check if validation failed because we have JSON strings where objects are expected
 	if (fn.errors && typeof inputObj === 'object' && inputObj !== null) {
 		let hasNestedJsonStrings = false;
 		for (const error of fn.errors) {
-			// Check if the error is about expecting an object but getting a string
 			const isObjError = error.keyword === 'type' && (error.params?.type === 'object' || error.params?.type === 'array') && error.instancePath;
 			if (!isObjError) {
 				continue;
@@ -261,7 +192,6 @@ function ajvValidateForTool(toolName: string, fn: ValidateFunction, inputObj: un
 						hasNestedJsonStrings = true;
 					}
 				} catch {
-					// If parsing fails, keep the original value
 				}
 			}
 		}
@@ -271,9 +201,6 @@ function ajvValidateForTool(toolName: string, fn: ValidateFunction, inputObj: un
 		}
 	}
 
-	// Recovery: some models (notably Gemini) serialize nested arguments as
-	// flattened path keys like `questions[0].header` instead of nested
-	// objects/arrays. Reconstruct the nested structure and re-validate.
 	if (typeof inputObj === 'object' && inputObj !== null && !Array.isArray(inputObj)) {
 		const unflattened = tryUnflattenObject(inputObj as Record<string, unknown>);
 		if (unflattened) {
@@ -292,18 +219,18 @@ export abstract class BaseToolsService extends Disposable implements IToolsServi
 	public get onWillInvokeTool() { return this._onWillInvokeTool.event; }
 
 	abstract tools: ReadonlyArray<vscode.LanguageModelToolInformation>;
-	abstract dardcorTools: ReadonlyMap<ToolName, ICopilotTool<unknown>>;
+	abstract dardcorTools: ReadonlyMap<ToolName, IAgentTool<unknown>>;
 
 	private readonly ajv = new Ajv({ coerceTypes: true });
 	private didWarnAboutValidationError?: Set<string>;
 	private readonly schemaCache = new LRUCache<ValidateFunction>(16);
 
-	protected readonly _modelSpecificTools = new ObservableMap</* tool name */string, { definition: vscode.LanguageModelToolDefinition; tool: ICopilotModelSpecificTool<unknown> }>();
+	protected readonly _modelSpecificTools = new ObservableMap< string, { definition: vscode.LanguageModelToolDefinition; tool: IAgentModelSpecificTool<unknown> }>();
 	public get modelSpecificTools() {
 		return this._modelSpecificTools.observable.map(v => [...v.values()]);
 	}
 
-	abstract getCopilotTool(name: string): ICopilotTool<unknown> | undefined;
+	abstract getAgentTool(name: string): IAgentTool<unknown> | undefined;
 	abstract invokeTool(name: string, options: vscode.LanguageModelToolInvocationOptions<Object>, token: vscode.CancellationToken): Thenable<vscode.LanguageModelToolResult2>;
 
 	invokeToolWithEndpoint(name: string, options: vscode.LanguageModelToolInvocationOptions<Object>, endpoint: IChatEndpoint | undefined, token: vscode.CancellationToken): Thenable<vscode.LanguageModelToolResult2> {
@@ -382,7 +309,7 @@ export class NullToolsService extends BaseToolsService implements IToolsService 
 		return undefined;
 	}
 
-	override getCopilotTool(name: string): ICopilotTool<unknown> | undefined {
+	override getAgentTool(name: string): IAgentTool<unknown> | undefined {
 		return undefined;
 	}
 

@@ -121,10 +121,6 @@ suite('ChatWindowNotifier', () => {
 		}
 	}
 
-	/**
-	 * Drains the chained zero-delay timers a notification passes through: the idle
-	 * debounce and the background-window delay.
-	 */
 	async function flushNotifications(): Promise<void> {
 		await timeout(0);
 		await timeout(0);
@@ -209,8 +205,6 @@ suite('ChatWindowNotifier', () => {
 		const restoredWithoutTime = createModel(store, 'restored-untimed');
 		const restoredWithoutTimeHost = createNotifier(restoredWithoutTime.model);
 
-		// Replaying history completes each response with the time it originally
-		// finished, or with none at all when that time was never recorded.
 		restoredWithTime.endLastResponse({ completionTimestamp: Date.now() - 60_000 });
 		restoredWithoutTime.endLastResponse({ completionTimestamp: null });
 		await flushNotifications();

@@ -32,11 +32,6 @@ export function tryParseJSON(text: string): { parsed: unknown; isJSON: true } | 
 	}
 }
 
-/**
- * Format and syntax-highlight a content string.
- * When the content is valid JSON it is pretty-printed and tokenized as JSON;
- * otherwise it is tokenized as markdown.
- */
 export async function tokenizeContent(text: string, languageService: ILanguageService): Promise<{ plainText: string; tokenizedHtml: string }> {
 	const result = tryParseJSON(text);
 	const plainText = result.isJSON ? JSON.stringify(result.parsed, null, 2) : text;
@@ -45,11 +40,6 @@ export async function tokenizeContent(text: string, languageService: ILanguageSe
 	return { plainText, tokenizedHtml };
 }
 
-/**
- * Render a collapsible section. When `tokenizedHtml` is provided the content
- * is rendered as syntax-highlighted HTML; otherwise plain-text is used.
- * Optionally adds a copy button when `clipboardService` is provided.
- */
 export function renderSection(
 	parent: HTMLElement,
 	label: string,
@@ -101,22 +91,13 @@ export function renderSection(
 	setupCollapsibleToggle(chevron, header, wrapper, disposables, initiallyCollapsed, scrollable);
 }
 
-/**
- * Render a resolved tool call content with structured sections for
- * tool name, status, duration, arguments, and output.
- * Reuses the existing message content and collapsible section components.
- * When JSON is detected in input/output, renders it with syntax highlighting
- * using the editor's tokenization.
- */
 export async function renderToolCallContent(content: IChatDebugEventToolCallContent, languageService: ILanguageService, clipboardService?: IClipboardService, scrollable?: { scanDomNode(): void }): Promise<{ element: HTMLElement; disposables: DisposableStore }> {
 	const disposables = new DisposableStore();
 	const container = $('div.chat-debug-message-content');
 	container.tabIndex = 0;
 
-	// Header: tool name
 	DOM.append(container, $('div.chat-debug-message-content-title', undefined, content.toolName));
 
-	// Status summary line
 	const statusParts: string[] = [];
 	if (content.result) {
 		statusParts.push(content.result === 'success'
@@ -130,7 +111,6 @@ export async function renderToolCallContent(content: IChatDebugEventToolCallCont
 		DOM.append(container, $('div.chat-debug-message-content-summary', undefined, statusParts.join(' \u00b7 ')));
 	}
 
-	// Build collapsible sections for arguments and output
 	const sectionsContainer = DOM.append(container, $('div.chat-debug-message-sections'));
 
 	if (content.input) {
@@ -146,9 +126,6 @@ export async function renderToolCallContent(content: IChatDebugEventToolCallCont
 	return { element: container, disposables };
 }
 
-/**
- * Convert a resolved tool call content to plain text for clipboard / editor output.
- */
 export function toolCallContentToPlainText(content: IChatDebugEventToolCallContent): string {
 	const lines: string[] = [];
 	lines.push(localize('chatDebug.toolCall.toolLabel', "Tool: {0}", content.toolName));

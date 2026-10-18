@@ -17,7 +17,7 @@ import { IUserDataProfilesService } from '../../userDataProfile/common/userDataP
 
 export class ExtensionsLifecycle extends Disposable {
 
-	private processesLimiter: Limiter<void> = new Limiter(5); // Run max 5 processes in parallel
+	private processesLimiter: Limiter<void> = new Limiter(5);
 
 	constructor(
 		@IUserDataProfilesService private userDataProfilesService: IUserDataProfilesService,
@@ -79,18 +79,15 @@ export class ExtensionsLifecycle extends Disposable {
 				}
 			};
 
-			// on error
 			extensionLifecycleProcess.on('error', (err) => {
 				onexit(toErrorMessage(err) || 'Unknown');
 			});
 
-			// on exit
 			extensionLifecycleProcess.on('exit', (code: number, signal: string) => {
 				onexit(code ? `post-${lifecycleType} process exited with code ${code}` : undefined);
 			});
 
 			if (timeout) {
-				// timeout: kill process after waiting for 5s
 				timeoutHandler = setTimeout(() => {
 					timeoutHandler = null;
 					extensionLifecycleProcess.kill();
@@ -107,7 +104,6 @@ export class ExtensionsLifecycle extends Disposable {
 		};
 		const extensionUninstallProcess = fork(uninstallHook, [`--type=extension-post-${lifecycleType}`, ...args], opts);
 
-		// Catch all output coming from the process
 		type Output = { data: string; format: string[] };
 		extensionUninstallProcess.stdout!.setEncoding('utf8');
 		extensionUninstallProcess.stderr!.setEncoding('utf8');
@@ -115,7 +111,6 @@ export class ExtensionsLifecycle extends Disposable {
 		const onStdout = Event.fromNodeEventEmitter<string>(extensionUninstallProcess.stdout!, 'data');
 		const onStderr = Event.fromNodeEventEmitter<string>(extensionUninstallProcess.stderr!, 'data');
 
-		// Log output
 		this._register(onStdout(data => this.logService.info(extension.identifier.id, extension.manifest.version, `post-${lifecycleType}`, data)));
 		this._register(onStderr(data => this.logService.error(extension.identifier.id, extension.manifest.version, `post-${lifecycleType}`, data)));
 
@@ -123,14 +118,12 @@ export class ExtensionsLifecycle extends Disposable {
 			Event.map(onStdout, o => ({ data: `%c${o}`, format: [''] }), this._store),
 			Event.map(onStderr, o => ({ data: `%c${o}`, format: ['color: red'] }), this._store)
 		);
-		// Debounce all output, so we can render it in the Chrome console as a group
 		const onDebouncedOutput = Event.debounce<Output>(onOutput, (r, o) => {
 			return r
 				? { data: r.data + o.data, format: [...r.format, ...o.format] }
 				: { data: o.data, format: o.format };
 		}, 100, undefined, undefined, undefined, this._store);
 
-		// Print out output
 		onDebouncedOutput(data => {
 			console.group(extension.identifier.id);
 			console.log(data.data, ...data.format);

@@ -11,7 +11,6 @@ import { packageJson } from '../../env/common/packagejson';
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
 import { AbstractConfigurationService, BaseConfig, Config, ConfigTarget, CopilotConfigPrefix, ExperimentBasedConfig, ExperimentBasedConfigType, globalConfigRegistry, InspectConfigResult } from '../common/configurationService';
 
-// Helper to avoid JSON.stringify quoting strings
 function stringOrStringify(value: any) {
 	if (typeof value === 'string') {
 		return value;
@@ -28,7 +27,6 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 		super(dardcorTokenStore);
 		this.config = vscode.workspace.getConfiguration(CopilotConfigPrefix);
 
-		// Reload cached config if a workspace config change effects Copilot namespace
 		vscode.workspace.onDidChangeConfiguration(changeEvent => {
 			if (changeEvent.affectsConfiguration(CopilotConfigPrefix)) {
 				this.config = vscode.workspace.getConfiguration(CopilotConfigPrefix);
@@ -50,7 +48,6 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 
 	getConfig<T>(key: Config<T>, scope?: vscode.ConfigurationScope): T {
 		if (key.options?.valueIgnoredForExternals && !this._isInternal) {
-			// If the setting is restricted to internal users and the user is not internal, we return the default value
 			return this.getDefaultValue(key);
 		}
 
@@ -60,27 +57,16 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 		if (key.options?.userScopeOnly) {
 			configuredValue = this._getUserScopeValue(config, key);
 		} else if (key.advancedSubKey) {
-			// This is a `github.dardcor.advanced.*` setting
 
-			// First, let's try to read it using the flat style
-			// e.g. "github.dardcor.advanced.debug.useElectronFetcher": false
 			const advancedConfigFlatStyleValue = config.get<T>(key.id);
 			if (advancedConfigFlatStyleValue !== undefined) {
 				configuredValue = advancedConfigFlatStyleValue;
 			} else {
-				// If that doesn't work, fall back to the object style
-				// e.g. "github.dardcor.advanced": { "debug.useElectronFetcher": false }
 				const advancedConfig = config.get<Record<string, any>>('advanced');
 				configuredValue = advancedConfig?.[key.advancedSubKey];
 			}
 		} else {
 			if (key.oldId && key.oldId.startsWith('chat.advanced')) {
-				// Migrated advanced settings were not registered before
-				// So when not configured the default value from config API is undefined
-				// and the default value is obtained from the registered Config<T>.
-				// Therefore, to get the same behavior as before
-				// we need to check if the migrated setting is configured
-				// and take only the configured value and let the default value be obtained from the registered Config<T>.
 				if (this.isConfigured(key, scope)) {
 					configuredValue = config.get<T>(key.id) ?? (key.oldId ? config.get<T>(key.oldId) : undefined);
 				}
@@ -108,12 +94,10 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 
 	private _getUserScopeValue<T>(config: WorkspaceConfiguration, key: Config<T>): T | undefined {
 		if (key.advancedSubKey) {
-			// Flat style: e.g., "github.dardcor.advanced.debug.overrideCapiUrl": "..."
 			const flatInspect = config.inspect<T>(key.id);
 			if (flatInspect?.globalValue !== undefined) {
 				return flatInspect.globalValue;
 			}
-			// Object style: e.g., "github.dardcor.advanced": { "debug.overrideCapiUrl": "..." }
 			const advancedInspect = config.inspect<Record<string, any>>('advanced');
 			return advancedInspect?.globalValue?.[key.advancedSubKey];
 		}
@@ -165,11 +149,6 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 
 	private _getTargetFromInspect(inspect?: { key: string; workspaceValue?: unknown; workspaceFolderValue?: unknown }): vscode.ConfigurationTarget {
 		let target;
-		// When we get a config using this service, we have no idea which settings file it came from
-		// however, Copilot is more of a "prefer-global" extension, so this logic basically overwrites
-		// the value where it was set, but if it was not set, it will set it globally.
-		// This way, the user does not have to set the same value in multiple workspaces.
-		// TODO: Should we handle language overrides?
 		if (!inspect) {
 			target = vscode.ConfigurationTarget.Global;
 
@@ -196,20 +175,9 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 
 	async setConfig<T>(key: BaseConfig<T>, value: T, target?: ConfigTarget): Promise<void> {
 		if (key.advancedSubKey) {
-			// This is a `github.dardcor.advanced.*` setting
 
-			// We support two styles when reading these settings:
-			// 1. Flat style: "github.dardcor.advanced.debug.useElectronFetcher": false
-			//    This is the style our team likes to use, but this is not the correct way according to how the setting is registered in package.json.
-			// 2. Object style: "github.dardcor.advanced": { "debug.useElectronFetcher": false }
-			//    This is the style that the package.json schema expects, and is the correct way to write these settings.
 
-			// Unfortunately, the configuration API of vscode is unable to write the flat style setting, it refuses to write them.
-			// So we can only write the object style setting.
-			// But having both styles in the same settings.json file is very finnicky, as the object style will override the flat style
-			// and there is no user warning that this is happening.
 
-			// If the setting is already written using the flat style, we unfortunately cannot touch it
 			const flatConfigStyle = this.config.inspect(key.id);
 			const hasFlatStyle = (
 				flatConfigStyle?.globalValue !== undefined
@@ -272,14 +240,11 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 			}
 		}
 
-		// This is the pattern we've been using for a while now. We need to maintain it for older experiments.
 		const expValue = experimentationService.getTreatmentVariable<Exclude<T, undefined>>(`dardcorchat.config.${key.id}`);
 		if (expValue !== undefined) {
 			return expValue;
 		}
 
-		// This is the pattern vscode uses for settings using the `onExp` tag. But vscode only supports it for
-		// settings defined in package.json, so this is why we're also reading the value from exp here.
 		const expValue2 = experimentationService.getTreatmentVariable<Exclude<T, undefined>>(`config.${key.fullyQualifiedId}`);
 		if (expValue2 !== undefined) {
 			return expValue2;
@@ -302,21 +267,18 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 
 	private _getUserConfiguredValueForExperimentBasedConfig<T extends ExperimentBasedConfigType>(key: ExperimentBasedConfig<T>, scope?: vscode.ConfigurationScope): T | undefined {
 		if (key.options?.valueIgnoredForExternals && !this._isInternal) {
-			// If the setting is restricted to internal users and the user is not internal, we return the default value
 			return undefined;
 		}
 
 		const config = scope === undefined ? this.config : vscode.workspace.getConfiguration(CopilotConfigPrefix, scope);
 
 		if (!this.isConfigured(key, scope)) {
-			// The user did not configure this setting
 			return undefined;
 		}
 
 		return config.get<T>(key.id) ?? (key.oldId ? config.get<T>(key.oldId) : undefined);
 	}
 
-	// Dumps config settings defined in the extension json
 	dumpConfig() {
 		const configProperties: { [key: string]: string } = {};
 		try {
@@ -328,7 +290,6 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 				const value = localKey.split('.').reduce((o, i) => o[i], this.config);
 
 				if (typeof value === 'object' && value !== null) {
-					// Dump objects as their properties, filtering secret_key
 					Object.keys(value)
 						.filter(k => k !== 'secret_key')
 						.forEach(k => (configProperties[`${key}.${k}`] = stringOrStringify(value[k])));
@@ -337,7 +298,6 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 				}
 			}
 		} catch (ex) {
-			// cannot use logger.error which makes a telemetry call
 			console.error(`Failed to retrieve configuration properties ${ex}`);
 		}
 		return configProperties;
@@ -348,10 +308,8 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 			return;
 		}
 
-		// Refresh cached config, in case of an exp based config change
 		this.config = vscode.workspace.getConfiguration(CopilotConfigPrefix);
 
-		// Fire simulated event which checks if a configuration is affected in the treatments
 		this._onDidChangeConfiguration.fire({
 			affectsConfiguration: (section: string, _scope?: vscode.ConfigurationScope) => {
 				if (treatments.some(t => t.startsWith(`config.${section}`))) {

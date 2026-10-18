@@ -185,8 +185,6 @@ export class TaskService extends AbstractTaskService {
 		if (!this._taskSystem.isActiveSync()) {
 			return false;
 		}
-		// The terminal service kills all terminal on shutdown. So there
-		// is nothing we can do to prevent this here.
 		if (this._taskSystem instanceof TerminalTaskSystem) {
 			return false;
 		}
@@ -208,8 +206,6 @@ export class TaskService extends AbstractTaskService {
 					let code: number | undefined = undefined;
 					for (const response of responses) {
 						success = success && response.success;
-						// We only have a code in the old output runner which only has one task
-						// So we can use the first code.
 						if (code === undefined && response.code !== undefined) {
 							code = response.code;
 						}
@@ -217,7 +213,7 @@ export class TaskService extends AbstractTaskService {
 					if (success) {
 						this._taskSystem = undefined;
 						this._disposeTaskSystemListeners();
-						return false; // no veto
+						return false;
 					} else if (code && code === TerminateResponseCode.ProcessNotFound) {
 						return this._dialogService.confirm({
 							message: nls.localize('TaskSystem.noProcess', 'The launched task doesn\'t exist anymore. If the task spawned background processes exiting VS Code might result in orphaned processes. To avoid this start the last background process with a wait flag.'),
@@ -225,13 +221,13 @@ export class TaskService extends AbstractTaskService {
 							type: 'info'
 						}).then(res => !res.confirmed);
 					}
-					return true; // veto
+					return true;
 				}, (err) => {
-					return true; // veto
+					return true;
 				});
 			}
 
-			return true; // veto
+			return true;
 		});
 	}
 }

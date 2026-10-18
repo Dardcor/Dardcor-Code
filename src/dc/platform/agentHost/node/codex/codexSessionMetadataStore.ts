@@ -9,45 +9,6 @@ import { ISessionDataService } from '../../common/sessionDataService.js';
 import type { AgentSelection } from '../../common/state/protocol/state.js';
 import { AH_META_WORKSPACELESS_DB_KEY } from '../../common/state/sessionState.js';
 
-/**
- * Per-session bookkeeping codex needs to persist across agent host
- * restarts. The fundamental tension this store resolves: codex's
- * `thread/start` mints the canonical thread id server-side, but the
- * workbench owns the chat session URI and refuses to accept a different
- * one back from `createSession`. We therefore keep a stable mapping
- * `workbench session URI ↔ codex thread id` here so restored sessions
- * can be resumed without leaking duplicate sidebar entries.
- *
- * Layout (per-session SQLite DB, opened via {@link ISessionDataService}):
- *   `codex.threadId` — the codex app-server thread id assigned at
- *                      materialize time.
- *   `codex.cwd`      — absolute path to the working directory the
- *                      session was created against (URI string).
- *                      Multi-root sessions store a JSON object in this same
- *                      field so single-root reads retain their original shape.
- *                      This is the session's *current* working directory —
- *                      it may be a managed temp folder or a host/user-picked
- *                      one, and can change over the session's lifetime (see
- *                      `_adoptWorkingDirectoryBeforeSend`) — so it must never
- *                      be used to *locate* a managed folder for cleanup.
- *   `codex.model`    — serialized {@link ModelSelection.id} string,
- *                      remembered for restore so resumed sessions reuse
- *                      the model picked during the prior process.
- *   `codex.managedWorkingDirectory` — the absolute path (URI string) of the
- *                      managed temp folder this agent itself created for the
- *                      session, when it currently owns one; the *only* value
- *                      a destructive teardown may delete. Deliberately
- *                      separate from `codex.cwd`, which the session's own
- *                      working directory always occupies regardless of who
- *                      picked it — folding the two together is what let a
- *                      stale `codex.ownsManagedWorkingDirectory` flag infer a
- *                      user-adopted `cwd` was safe to `rm -rf`. Written
- *                      alongside `codex.ownsManagedWorkingDirectory` (kept for
- *                      backward compatibility with overlays predating this
- *                      field) but never read for a destructive decision: an
- *                      overlay carrying only the legacy flag, with no
- *                      explicit path recorded here, is left untouched.
- */
 
 export interface ICodexSessionOverlay {
 	readonly threadId?: string;
@@ -66,12 +27,6 @@ export interface ICodexSessionOverlayUpdate {
 	readonly agent?: AgentSelection | null;
 	readonly workingDirectories?: readonly URI[];
 	readonly ownsManagedWorkingDirectory?: boolean;
-	/**
-	 * `undefined` leaves the persisted value untouched, a {@link URI} records
-	 * this agent's own managed temp folder, and `null` explicitly clears it
-	 * (the session has abandoned or never had one) — the same
-	 * present/absent/clear tri-state {@link agent} uses.
-	 */
 	readonly managedWorkingDirectory?: URI | null;
 }
 
@@ -110,12 +65,6 @@ export class CodexSessionMetadataStore {
 		}
 	}
 
-	/**
-	 * Persist the supplied overlay fields. Only-write-on-defined.
-	 * Best-effort: failures are logged and swallowed because the caller
-	 * has already committed in-memory state and a corrupt DB shouldn't
-	 * abort the current turn.
-	 */
 	async write(session: URI, fields: ICodexSessionOverlayUpdate): Promise<void> {
 		try {
 			const ref = this._sessionDataService.openDatabase(session);
@@ -161,11 +110,6 @@ export class CodexSessionMetadataStore {
 		}
 	}
 
-	/**
-	 * Read overlay fields for `session`. Returns `{}` when no DB has
-	 * been created yet (fresh session, or external codex CLI thread the
-	 * workbench has never touched).
-	 */
 	async read(session: URI): Promise<ICodexSessionOverlay> {
 		try {
 			const ref = await this._sessionDataService.tryOpenDatabase(session);
@@ -189,10 +133,6 @@ export class CodexSessionMetadataStore {
 					agent: parseAgentSelection(agentRaw),
 					workingDirectories: cwd.workingDirectories,
 					...(ownsManagedWorkingDirectoryRaw === 'true' ? { ownsManagedWorkingDirectory: true } : {}),
-					// Absent or explicitly cleared (empty string) both read back
-					// as `undefined` — an overlay with no known managed path is
-					// indistinguishable from one that never had one, which is the
-					// point: neither is ever safe to delete from.
 					...(managedWorkingDirectoryRaw ? { managedWorkingDirectory: URI.parse(managedWorkingDirectoryRaw) } : {}),
 				};
 			} finally {

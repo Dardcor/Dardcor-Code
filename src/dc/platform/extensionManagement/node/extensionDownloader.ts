@@ -131,35 +131,31 @@ export class ExtensionsDownloader extends Disposable {
 	}
 
 	private async downloadFile(extension: IGalleryExtension, location: URI, downloadFn: (location: URI) => Promise<void>): Promise<void> {
-		// Do not download if exists
 		if (await this.fileService.exists(location)) {
 			return;
 		}
 
-		// Download directly if locaiton is not file scheme
 		if (location.scheme !== Schemas.file) {
 			await downloadFn(location);
 			return;
 		}
 
-		// Download to temporary location first only if file does not exist
 		const tempLocation = joinPath(this.extensionsDownloadDir, `.${generateUuid()}`);
 		try {
 			await downloadFn(tempLocation);
 		} catch (error) {
 			try {
 				await this.fileService.del(tempLocation);
-			} catch (e) { /* ignore */ }
+			} catch (e) { }
 			throw error;
 		}
 
 		try {
-			// Rename temp location to original
-			await FSPromises.rename(tempLocation.fsPath, location.fsPath, 2 * 60 * 1000 /* Retry for 2 minutes */);
+			await FSPromises.rename(tempLocation.fsPath, location.fsPath, 2 * 60 * 1000 );
 		} catch (error) {
-			try { await this.fileService.del(tempLocation); } catch (e) { /* ignore */ }
+			try { await this.fileService.del(tempLocation); } catch (e) { }
 			let exists = false;
-			try { exists = await this.fileService.exists(location); } catch (e) { /* ignore */ }
+			try { exists = await this.fileService.exists(location); } catch (e) { }
 			if (exists) {
 				this.logService.info(`Rename failed because the file was downloaded by another source. So ignoring renaming.`, extension.identifier.id, location.path);
 			} else {
@@ -238,12 +234,12 @@ export class ExtensionsDownloader extends Disposable {
 				const distinct: IFileStatWithMetadata[] = [];
 				for (const p of byExtension) {
 					p.sort((a, b) => semver.rcompare(a[0].version, b[0].version));
-					toDelete.push(...p.slice(1).map(e => e[1].resource)); // Delete outdated extensions
+					toDelete.push(...p.slice(1).map(e => e[1].resource));
 					distinct.push(p[0][1]);
 				}
-				distinct.sort((a, b) => a.mtime - b.mtime); // sort by modified time
-				toDelete.push(...distinct.slice(0, Math.max(0, distinct.length - this.cache)).map(s => s.resource)); // Retain minimum cacheSize and delete the rest
-				toDelete.push(...signatureArchives); // Delete all signature archives
+				distinct.sort((a, b) => a.mtime - b.mtime);
+				toDelete.push(...distinct.slice(0, Math.max(0, distinct.length - this.cache)).map(s => s.resource));
+				toDelete.push(...signatureArchives);
 
 				await Promises.settled(toDelete.map(resource => {
 					this.logService.trace('Deleting from cache', resource.path);

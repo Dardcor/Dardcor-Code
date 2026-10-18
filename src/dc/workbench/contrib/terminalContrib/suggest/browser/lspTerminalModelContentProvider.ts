@@ -45,16 +45,10 @@ export class LspTerminalModelContentProvider extends Disposable implements ILspT
 		this._shellType = shellType;
 	}
 
-	// Listens to onDidChangeShellType event from `terminal.suggest.contribution.ts`
 	shellTypeChanged(shellType: TerminalShellType | undefined): void {
 		this._shellType = shellType;
 	}
 
-	/**
-	 * Sets or updates content for a terminal virtual document.
-	 * This is when user has executed succesful command in terminal.
-	 * Transfer the content to virtual document, and relocate delimiter to get terminal prompt ready for next prompt.
-	 */
 	setContent(content: string): void {
 		const model = this._modelService.getModel(this._virtualTerminalDocumentUri);
 		if (this._shellType) {
@@ -63,7 +57,6 @@ export class LspTerminalModelContentProvider extends Disposable implements ILspT
 				if (existingContent === '') {
 					model.setValue(VSCODE_LSP_TERMINAL_PROMPT_TRACKER);
 				} else {
-					// If we are appending to existing content, remove delimiter, attach new content, and re-add delimiter
 					const delimiterIndex = existingContent.lastIndexOf(VSCODE_LSP_TERMINAL_PROMPT_TRACKER);
 					const sanitizedExistingContent = delimiterIndex !== -1 ?
 						existingContent.substring(0, delimiterIndex) :
@@ -76,12 +69,6 @@ export class LspTerminalModelContentProvider extends Disposable implements ILspT
 		}
 	}
 
-	/**
-	 * Real-time conversion of terminal input to virtual document happens here.
-	 * This is when user types in terminal, and we want to track the input.
-	 * We want to track the input and update the virtual document.
-	 * Note: This is for non-executed command.
-	*/
 	trackPromptInputToVirtualFile(content: string): void {
 		this._commandDetection = this._capabilitiesStore.get(TerminalCapability.CommandDetection);
 		const model = this._modelService.getModel(this._virtualTerminalDocumentUri);
@@ -90,12 +77,10 @@ export class LspTerminalModelContentProvider extends Disposable implements ILspT
 				const existingContent = model.getValue();
 				const delimiterIndex = existingContent.lastIndexOf(VSCODE_LSP_TERMINAL_PROMPT_TRACKER);
 
-				// Keep content only up to delimiter
 				const sanitizedExistingContent = delimiterIndex !== -1 ?
 					existingContent.substring(0, delimiterIndex) :
 					existingContent;
 
-				// Combine base content with new content
 				const newContent = sanitizedExistingContent + VSCODE_LSP_TERMINAL_PROMPT_TRACKER + content;
 
 				model.setValue(newContent);
@@ -109,7 +94,6 @@ export class LspTerminalModelContentProvider extends Disposable implements ILspT
 				return;
 			}
 
-			// Inconsistent repro: Covering case where commandDetection is available but onCommandFinished becomes available later
 			if (this._commandDetection && this._commandDetection.onCommandFinished) {
 				this._onCommandFinishedListener.value = this._register(this._commandDetection.onCommandFinished((e) => {
 					if (e.exitCode === 0 && this._shellType) {
@@ -121,7 +105,6 @@ export class LspTerminalModelContentProvider extends Disposable implements ILspT
 		};
 		attachListener();
 
-		// Listen to onDidAddCapabilityType because command detection is not available until later
 		this._register(this._capabilitiesStore.onDidAddCommandDetectionCapability(e => {
 			this._commandDetection = e;
 			attachListener();
@@ -146,10 +129,6 @@ export class LspTerminalModelContentProvider extends Disposable implements ILspT
 
 }
 
-/**
- * Creates a terminal language virtual URI.
- */
-// TODO: Make this [OS generic](https://github.com/microsoft/vscode/issues/249477)
 export function createTerminalLanguageVirtualUri(terminalId: number, languageExtension: string): URI {
 	return URI.from({
 		scheme: Schemas.vscodeTerminal,

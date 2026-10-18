@@ -34,7 +34,7 @@ export class DragAndDropCommand implements ICommand {
 		if (this.selection.containsPosition(this.targetPosition) && !(
 			this.copy && (
 				this.selection.getEndPosition().equals(this.targetPosition) || this.selection.getStartPosition().equals(this.targetPosition)
-			) // we allow users to paste content beside the selection
+			)
 		)) {
 			this.targetSelection = this.selection;
 			return;
@@ -53,7 +53,6 @@ export class DragAndDropCommand implements ICommand {
 		}
 
 		if (this.targetPosition.lineNumber > this.selection.endLineNumber) {
-			// Drag the selection downwards
 			this.targetSelection = new Selection(
 				this.targetPosition.lineNumber - this.selection.endLineNumber + this.selection.startLineNumber,
 				this.targetPosition.column,
@@ -66,7 +65,6 @@ export class DragAndDropCommand implements ICommand {
 		}
 
 		if (this.targetPosition.lineNumber < this.selection.endLineNumber) {
-			// Drag the selection upwards
 			this.targetSelection = new Selection(
 				this.targetPosition.lineNumber,
 				this.targetPosition.column,
@@ -78,9 +76,7 @@ export class DragAndDropCommand implements ICommand {
 			return;
 		}
 
-		// The target position is at the same line as the selection's end position.
 		if (this.selection.endColumn <= this.targetPosition.column) {
-			// The target position is after the selection's end position
 			this.targetSelection = new Selection(
 				this.targetPosition.lineNumber - this.selection.endLineNumber + this.selection.startLineNumber,
 				this.selection.startLineNumber === this.selection.endLineNumber ?
@@ -92,7 +88,6 @@ export class DragAndDropCommand implements ICommand {
 					this.selection.endColumn
 			);
 		} else {
-			// The target position is before the selection's end position. Since the selection doesn't contain the target position, the selection is one-line and target position is before this selection.
 			this.targetSelection = new Selection(
 				this.targetPosition.lineNumber - this.selection.endLineNumber + this.selection.startLineNumber,
 				this.targetPosition.column,

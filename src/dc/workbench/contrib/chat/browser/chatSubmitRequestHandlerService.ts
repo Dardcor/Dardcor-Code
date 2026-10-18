@@ -9,7 +9,6 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 
 export const IChatSubmitRequestHandlerService = createDecorator<IChatSubmitRequestHandlerService>('chatSubmitRequestHandlerService');
 
-/** A chat input submission before it is sent to the selected chat session. */
 export interface IChatSubmitRequest {
 	readonly sessionResource: URI;
 	readonly providerId?: string;
@@ -17,20 +16,17 @@ export interface IChatSubmitRequest {
 	readonly input: string;
 }
 
-/** Handler offered a chat input submission before the normal send path. */
 export interface IChatSubmitRequestHandler {
 	readonly id: string;
 	tryHandle(request: IChatSubmitRequest): Promise<boolean>;
 }
 
-/** Registry for provider-specific pre-submit chat handlers. */
 export interface IChatSubmitRequestHandlerService {
 	readonly _serviceBrand: undefined;
 	register(handler: IChatSubmitRequestHandler): IDisposable;
 	tryHandle(request: IChatSubmitRequest): Promise<boolean>;
 }
 
-/** Default sequential first-match implementation of the submit handler registry. */
 export class ChatSubmitRequestHandlerService implements IChatSubmitRequestHandlerService {
 
 	declare readonly _serviceBrand: undefined;

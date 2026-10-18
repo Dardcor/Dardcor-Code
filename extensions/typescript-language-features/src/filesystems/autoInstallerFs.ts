@@ -18,7 +18,7 @@ export class AutoInstallerFs extends Disposable implements vscode.FileSystemProv
 
 	private readonly memfs: MemFs;
 	private readonly packageManager: PackageManager;
-	private readonly _projectCache = new Map</* root */ string, Promise<void> | undefined>();
+	private readonly _projectCache = new Map< string, Promise<void> | undefined>();
 
 	private readonly _emitter = this._register(new vscode.EventEmitter<vscode.FileChangeEvent[]>());
 	readonly onDidChangeFile = this._emitter.event;
@@ -33,7 +33,6 @@ export class AutoInstallerFs extends Disposable implements vscode.FileSystemProv
 		memfs.onDidChangeFile((e) => {
 			this._emitter.fire(e.map(ev => ({
 				type: ev.type,
-				// TODO: we're gonna need a MappedUri dance...
 				uri: ev.uri.with({ scheme: 'memfs' })
 			})));
 		});
@@ -84,10 +83,7 @@ export class AutoInstallerFs extends Disposable implements vscode.FileSystemProv
 
 		const mapped = new MappedUri(uri);
 
-		// TODO: case sensitivity configuration
 
-		// We pretend every single node_modules or @types directory ever actually
-		// exists.
 		if (basename(mapped.path) === 'node_modules' || basename(mapped.path) === '@types') {
 			return {
 				mtime: 0,
@@ -137,12 +133,10 @@ export class AutoInstallerFs extends Disposable implements vscode.FileSystemProv
 	}
 
 	private async ensurePackageContents(incomingUri: MappedUri): Promise<void> {
-		// If we're not looking for something inside node_modules, bail early.
 		if (!incomingUri.path.includes('node_modules')) {
 			throw vscode.FileSystemError.FileNotFound();
 		}
 
-		// standard lib files aren't handled through here
 		if (incomingUri.path.includes('node_modules/@typescript') || incomingUri.path.includes('node_modules/@types/typescript__')) {
 			throw vscode.FileSystemError.FileNotFound();
 		}
@@ -182,7 +176,6 @@ export class AutoInstallerFs extends Disposable implements vscode.FileSystemProv
 	private async getInstallOpts(originalUri: URI, root: string) {
 		const vsfs = vscode.workspace.fs;
 
-		// We definitely need a package.json to be there.
 		const pkgJson = TEXT_DECODER.decode(await vsfs.readFile(originalUri.with({ path: join(root, 'package.json') })));
 
 		let kdlLock;

@@ -25,30 +25,14 @@ export const ITestCoverageService = createDecorator<ITestCoverageService>('testC
 export interface ITestCoverageService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Settable observable that can be used to show the test coverage instance
-	 * currently in the editor.
-	 */
 	readonly selected: IObservable<TestCoverage | undefined>;
 
-	/**
-	 * Filter to per-test coverage from the given test ID.
-	 */
 	readonly filterToTest: ISettableObservable<TestId | undefined>;
 
-	/**
-	 * Whether inline coverage is shown.
-	 */
 	readonly showInline: ISettableObservable<boolean>;
 
-	/**
-	 * Opens a test coverage report from a task, optionally focusing it in the editor.
-	 */
 	openCoverage(task: ITestRunTaskResults, focus?: boolean): Promise<void>;
 
-	/**
-	 * Closes any open coverage.
-	 */
 	closeCoverage(): void;
 }
 
@@ -116,7 +100,6 @@ export class TestCoverageService extends Disposable implements ITestCoverageServ
 		}));
 	}
 
-	/** @inheritdoc */
 	public async openCoverage(task: ITestRunTaskResults, focus = true) {
 		this.lastOpenCts.value?.cancel();
 		const cts = this.lastOpenCts.value = new CancellationTokenSource();
@@ -126,7 +109,6 @@ export class TestCoverageService extends Disposable implements ITestCoverageServ
 		}
 
 		transaction(tx => {
-			// todo: may want to preserve this if coverage for that test in the new run?
 			this.filterToTest.set(undefined, tx);
 			this.selected.set(coverage, tx);
 		});
@@ -136,7 +118,6 @@ export class TestCoverageService extends Disposable implements ITestCoverageServ
 		}
 	}
 
-	/** @inheritdoc */
 	public closeCoverage() {
 		this.selected.set(undefined, undefined);
 	}

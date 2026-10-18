@@ -41,7 +41,6 @@ function processLib() {
 			continue;
 		}
 		if (name === 'typescript.js' || name === 'typescript.d.ts') {
-			// used by html and extension editing
 			continue;
 		}
 

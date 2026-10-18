@@ -187,7 +187,6 @@ suite('BrowserSessionTrust', () => {
 		await trust.trustCertificate('example.com', 'abc123');
 		electronSession.closeAllConnections.resetHistory();
 
-		// Prior to the expiration boundary, trust should still be valid
 		clock.tick(TRUST_DURATION_MS - 10);
 		let callbackResult: boolean | undefined;
 		const firstEvent = { preventDefault: sinon.spy() };
@@ -196,7 +195,6 @@ suite('BrowserSessionTrust', () => {
 		});
 		assert.strictEqual(callbackResult, true);
 
-		// After expiration, trust should be revoked
 		clock.tick(20);
 		const secondEvent = { preventDefault: sinon.spy() };
 		webContents.emit('certificate-error', secondEvent, 'https://example.com', 'ERR_CERT', createCertificate('abc123'), (value: boolean) => {

@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -98,9 +97,6 @@ export class Range {
 		const start = Position.Max(other.start, this._start);
 		const end = Position.Min(other.end, this._end);
 		if (start.isAfter(end)) {
-			// this happens when there is no overlap:
-			// |-----|
-			//          |----|
 			return undefined;
 		}
 		return new Range(start, end);

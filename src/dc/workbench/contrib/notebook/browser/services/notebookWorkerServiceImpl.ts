@@ -52,7 +52,6 @@ export class NotebookEditorWorkerServiceImpl extends Disposable implements INote
 
 class WorkerManager extends Disposable {
 	private _editorWorkerClient: NotebookWorkerClient | null;
-	// private _lastWorkerUsedTime: number;
 
 	constructor(
 		private readonly _notebookService: INotebookService,
@@ -61,11 +60,9 @@ class WorkerManager extends Disposable {
 	) {
 		super();
 		this._editorWorkerClient = null;
-		// this._lastWorkerUsedTime = (new Date()).getTime();
 	}
 
 	withWorker(): Promise<NotebookWorkerClient> {
-		// this._lastWorkerUsedTime = (new Date()).getTime();
 		if (!this._editorWorkerClient) {
 			this._editorWorkerClient = new NotebookWorkerClient(this._notebookService, this._modelService, this._webWorkerService);
 			this._register(this._editorWorkerClient);
@@ -154,8 +151,6 @@ class NotebookEditorModelManager extends Disposable {
 		};
 
 		model.cells.forEach(cell => addCellContentChangeHandler(cell));
-		// Possible some of the models have not yet been loaded.
-		// If all have been loaded, for all cells, then no need to listen to model add events.
 		if (model.cells.length !== cellHandlers.size) {
 			toDispose.add(this._modelService.onModelAdded((textModel: ITextModel) => {
 				if (textModel.uri.scheme !== Schemas.vscodeNotebookCell || !(textModel instanceof TextModel)) {
@@ -202,7 +197,6 @@ class NotebookEditorModelManager extends Disposable {
 							break;
 						}
 						case NotebookCellsChangeType.ChangeCellContent:
-							// Changes to cell content are handled by the cell model change listener.
 							break;
 						case NotebookCellsChangeType.ChangeDocumentMetadata:
 							dto.push({

@@ -29,20 +29,13 @@ const OVERLAY_DEFINITIONS: ReadonlyArray<{ className: string; type: BrowserOverl
 	{ className: 'monaco-modal-editor-block', type: BrowserOverlayType.Dialog },
 	{ className: 'notifications-center', type: BrowserOverlayType.Notification },
 	{ className: 'notification-toast-container', type: BrowserOverlayType.Notification },
-	// Context view is very generic, so treat the content as unknown
 	{ className: 'context-view', type: BrowserOverlayType.Unknown }
 ];
 
 const HIT_TEST_EXCLUDED_CLASSES = [
-	// Transparent full-screen layers that context menus and action widgets render to capture clicks.
-	// They sit in higher z-index stacking contexts above other UI, but are not tracked overlays,
-	// so hit-testing must skip them to find the overlay actually painted underneath.
 	'context-view-block',
 	'context-view-pointerBlock',
 
-	// Webview overlay elements exist in their own DOM structure and are positioned dynamically,
-	// so they interfere with hit-testing because they are not descendants of the tracked overlay.
-	// Ignore them and depend on the element the webview is anchored to for overlay detection.
 	'webview',
 	'webview-overlay-content'
 ];
@@ -61,14 +54,8 @@ export interface IBrowserOverlayInfo {
 export interface IBrowserOverlayManager {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Event fired when overlay state changes
-	 */
 	readonly onDidChangeOverlayState: Event<void>;
 
-	/**
-	 * Get overlays overlapping with the given element
-	 */
 	getOverlappingOverlays(element: HTMLElement): IBrowserOverlayInfo[];
 }
 
@@ -77,7 +64,6 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 
 	private readonly _onDidChangeOverlayState = this._register(new MicrotaskEmitter<void>({
 		onWillAddFirstListener: () => {
-			// Start observing the document for structural changes
 			this._observerIsConnected = true;
 			this._structuralObserver.observe(this.targetWindow.document.body, {
 				childList: true,
@@ -86,13 +72,11 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 			this.updateTrackedElements();
 		},
 		onDidRemoveLastListener: () => {
-			// Stop observing when no listeners are present
 			this._observerIsConnected = false;
 			this._structuralObserver.disconnect();
 			this.stopTrackingElements();
 		},
 
-		// Must be passed to prevent duplicate emits
 		merge: () => { }
 	}));
 	readonly onDidChangeOverlayState = this._onDidChangeOverlayState.event;
@@ -111,27 +95,21 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 	) {
 		super();
 
-		// Initialize live collections for each overlay selector in main document
 		for (const overlayDefinition of OVERLAY_DEFINITIONS) {
 			this._overlayCollections.set(overlayDefinition.className, {
 				type: overlayDefinition.type,
-				// We need dynamic collections for overlay detection, using getElementsByClassName is intentional here
 				// eslint-disable-next-line no-restricted-syntax
 				collection: this.targetWindow.document.getElementsByClassName(overlayDefinition.className)
 			});
 		}
 
-		// Initialize live collection for shadow root hosts
-		// We need dynamic collections for overlay detection, using getElementsByClassName is intentional here
 		// eslint-disable-next-line no-restricted-syntax
 		this._shadowRootHostCollection = this.targetWindow.document.getElementsByClassName('shadow-root-host');
 
-		// Setup structural observer to watch for element additions/removals
 		this._structuralObserver = new targetWindow.MutationObserver((mutations) => {
 			let didRemove = false;
 			for (const mutation of mutations) {
 				for (const node of mutation.removedNodes) {
-					// Clean up element observers
 					if (this._elementObservers.has(node as HTMLElement)) {
 						const observer = this._elementObservers.get(node as HTMLElement);
 						observer?.disconnect();
@@ -143,7 +121,6 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 						didRemove = true;
 					}
 
-					// Clean up shadow root observers when shadow-root-host elements are removed
 					const hostElement = node as HTMLElement;
 					if (hostElement.shadowRoot) {
 						const shadowRoot = hostElement.shadowRoot;
@@ -162,23 +139,19 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 	}
 
 	private *overlays(): Iterable<{ element: HTMLElement; type: BrowserOverlayType }> {
-		// Yield overlays from main document live collections
 		for (const entry of this._overlayCollections.values()) {
 			for (const element of entry.collection) {
 				yield { element: element as HTMLElement, type: entry.type };
 			}
 		}
 
-		// Yield overlays from shadow roots
 		for (const hostElement of this._shadowRootHostCollection) {
 			const shadowRoot = hostElement.shadowRoot;
 			if (shadowRoot) {
 				let cache = this._shadowRootOverlayCache.get(shadowRoot);
 				if (!cache) {
-					// Rebuild cache
 					cache = [];
 					for (const overlayDefinition of OVERLAY_DEFINITIONS) {
-						// We need to query shadow roots for overlay detection, using querySelectorAll is intentional here
 						// eslint-disable-next-line no-restricted-syntax
 						const elements = shadowRoot.querySelectorAll(`.${overlayDefinition.className}`);
 						for (const element of elements) {
@@ -194,14 +167,11 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 	}
 
 	private updateTrackedElements(shouldEmit = false): void {
-		// Track shadow roots using live collection
 		for (const host of this._shadowRootHostCollection) {
 			const hostElement = host as HTMLElement;
 			const shadowRoot = hostElement.shadowRoot;
 			if (shadowRoot && !this._shadowRootObservers.has(shadowRoot)) {
-				// Create observer for this shadow root
 				const observer = new this.targetWindow.MutationObserver(() => {
-					// Clear element cache when shadow root structure changes
 					this._shadowRootOverlayCache.delete(shadowRoot);
 					this._onDidChangeOverlayState.fire();
 				});
@@ -216,12 +186,9 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 			}
 		}
 
-		// Scan all overlay collections for elements and ensure they have observers
 		for (const overlay of this.overlays()) {
-			// Create a new observer for this specific element if we don't already have one
 			if (!this._elementObservers.has(overlay.element)) {
 				const observer = new this.targetWindow.MutationObserver((records) => {
-					// If all changes are within a browser container within the overlay, ignore.
 					if (records.every(record => record.target.parentElement?.closest('.browser-container'))) {
 						return;
 					}
@@ -230,10 +197,8 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 					this._onDidChangeOverlayState.fire();
 				});
 
-				// Store the observer in the WeakMap
 				this._elementObservers.set(overlay.element, observer);
 
-				// Start observing this element
 				observer.observe(overlay.element, {
 					attributes: true,
 					attributeFilter: ['style', 'class'],
@@ -253,7 +218,6 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 	private getRect(element: HTMLElement): IDomNodePagePosition {
 		if (!this._overlayRectangles.has(element)) {
 			const rect = getDomNodePagePosition(element);
-			// If the observer is not connected (no listeners), do not cache rectangles as we won't know when they change.
 			if (!this._observerIsConnected) {
 				return rect;
 			}
@@ -268,10 +232,7 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 
 		const overlays = Array.from(this.overlays());
 
-		// Check against all precomputed overlay rectangles
 		for (const overlay of overlays) {
-			// Skip overlays that are ancestors of the target element,
-			// e.g., the modal editor backdrop when the browser is inside the modal
 			if (overlay.element.contains(element)) {
 				continue;
 			}
@@ -280,8 +241,6 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 			if (overlapCenter) {
 				const clientX = overlapCenter.x - this.targetWindow.scrollX;
 				const clientY = overlapCenter.y - this.targetWindow.scrollY;
-				// Only report this overlay if it's the one actually painted at
-				// the sample point (a z-index check via hit-testing).
 				const elementAtPoint = this.getTopmostElementAt(clientX, clientY);
 				if (elementAtPoint && overlay.element.contains(elementAtPoint)) {
 					overlappingOverlays.push({
@@ -297,25 +256,15 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 
 	private getTopmostElementAt(clientX: number, clientY: number): Element | null {
 		const topmostAt = (root: DocumentOrShadowRoot): Element | null => {
-			// Fast path: `elementFromPoint` returns only the single topmost hit and
-			// avoids the array allocation of `elementsFromPoint`. This runs on every
-			// overlay state change, which can fire frequently, so favor it whenever the
-			// topmost hit is a real element we care about.
 			const elementAtPoint = root.elementFromPoint(clientX, clientY);
 			if (elementAtPoint && !isExcludedFromOverlayHitTest(elementAtPoint)) {
 				return elementAtPoint;
 			}
-			// Slow path: the topmost hit is an excluded overlay (or there was no hit).
-			// Walk the full front-to-back hit list and return the first element
-			// that is not excluded, i.e. the overlay actually painted beneath it.
 			return root.elementsFromPoint(clientX, clientY)
 				.find(el => !isExcludedFromOverlayHitTest(el)) ?? null;
 		};
 
 		const elementAtPoint = topmostAt(this.targetWindow.document);
-		// Neither `elementFromPoint` nor `elementsFromPoint` pierces shadow DOM, so when
-		// the topmost element hosts a shadow root, re-run the hit-test inside it to find
-		// the overlay rendered within (e.g. context views that use shadow DOM).
 		if (elementAtPoint?.shadowRoot) {
 			return topmostAt(elementAtPoint.shadowRoot);
 		}
@@ -323,13 +272,11 @@ export class BrowserOverlayManager extends Disposable implements IBrowserOverlay
 	}
 
 	private stopTrackingElements(): void {
-		// Disconnect all element observers
 		for (const overlay of this.overlays()) {
 			const observer = this._elementObservers.get(overlay.element);
 			observer?.disconnect();
 		}
 
-		// Disconnect all shadow root observers
 		for (const hostElement of this._shadowRootHostCollection) {
 			const shadowRoot = (hostElement as HTMLElement).shadowRoot;
 			const shadowObserver = this._shadowRootObservers.get(shadowRoot!);

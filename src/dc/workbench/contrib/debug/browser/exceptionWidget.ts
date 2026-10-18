@@ -26,7 +26,6 @@ import { IClipboardService } from '../../../../platform/clipboard/common/clipboa
 
 const $ = dom.$;
 
-// theming
 
 const debugExceptionWidgetBorder = registerColor('debugExceptionWidget.border', '#a31515', nls.localize('debugExceptionWidgetBorder', 'Exception widget border color.'));
 const debugExceptionWidgetBackground = registerColor('debugExceptionWidget.background', { dark: '#420b0d', light: '#f1dfde', hcDark: '#420b0d', hcLight: '#f1dfde' }, nls.localize('debugExceptionWidgetBackground', 'Exception widget background color.'));
@@ -61,7 +60,7 @@ export class ExceptionWidget extends ZoneWidget {
 		this.style({
 			arrowColor: frameColor,
 			frameColor: frameColor
-		}); // style() will trigger _applyStyles
+		});
 	}
 
 	protected override _applyStyles(): void {
@@ -73,7 +72,6 @@ export class ExceptionWidget extends ZoneWidget {
 
 	protected _fillContainer(container: HTMLElement): void {
 		this.setCssClass('exception-widget');
-		// Set the font size and line height to the one from the editor configuration.
 		const fontInfo = this.editor.getOption(EditorOption.fontInfo);
 		container.style.fontSize = `${fontInfo.fontSize}px`;
 		container.style.lineHeight = `${fontInfo.lineHeight}px`;
@@ -121,7 +119,6 @@ export class ExceptionWidget extends ZoneWidget {
 	}
 
 	protected override _doLayout(_heightInPixel: number | undefined, _widthInPixel: number | undefined): void {
-		// Reload the height with respect to the exception text content and relayout it to match the line count.
 		this.container!.style.height = 'initial';
 
 		const lineHeight = this.editor.getOption(EditorOption.lineHeight);
@@ -132,8 +129,6 @@ export class ExceptionWidget extends ZoneWidget {
 	}
 
 	protected override revealRange(range: Range, isLastLine: boolean): void {
-		// Only reveal/scroll if this widget should scroll
-		// For inactive editors, skip the reveal to prevent scrolling
 		if (this.shouldScroll()) {
 			super.revealRange(range, isLastLine);
 		}
@@ -156,7 +151,6 @@ export class ExceptionWidget extends ZoneWidget {
 	}
 
 	focus(): void {
-		// Focus into the container for accessibility purposes so the exception and stack trace gets read
 		this.container?.focus();
 	}
 
@@ -169,8 +163,6 @@ export class ExceptionWidget extends ZoneWidget {
 	}
 
 	getWhitespaceHeight(): number {
-		// Returns the height of the whitespace zone from the editor's whitespaces
-		// This is more accurate than the container height as it includes the actual zone dimensions
 		if (!this._viewZone || !this._viewZone.id) {
 			return 0;
 		}

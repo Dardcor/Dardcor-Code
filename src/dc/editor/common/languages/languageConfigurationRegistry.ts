@@ -22,9 +22,6 @@ import { InstantiationType, registerSingleton } from '../../../platform/instanti
 import { PLAINTEXT_LANGUAGE_ID } from './modesRegistry.js';
 import { LanguageBracketsConfiguration } from './supports/languageBracketsConfiguration.js';
 
-/**
- * Interface used to support insertion of mode specific comments.
- */
 export interface ICommentsConfiguration {
 	lineCommentToken?: string;
 	lineCommentNoIndent?: boolean;
@@ -37,9 +34,6 @@ export interface ILanguageConfigurationService {
 
 	readonly onDidChange: Event<LanguageConfigurationServiceChangeEvent>;
 
-	/**
-	 * @param priority Use a higher number for higher priority
-	 */
 	register(languageId: string, configuration: LanguageConfiguration, priority?: number): IDisposable;
 
 	getLanguageConfiguration(languageId: string): ResolvedLanguageConfiguration;
@@ -63,7 +57,7 @@ export class LanguageConfigurationService extends Disposable implements ILanguag
 
 	private readonly onDidChangeEmitter = this._register(new Emitter<LanguageConfigurationServiceChangeEvent>({
 		leakWarningThreshold: 500,
-		leakWarningName: 'LanguageConfigurationService.onDidChange' /* increased for multi-diff editors with hundreds of text models */
+		leakWarningName: 'LanguageConfigurationService.onDidChange'
 	}));
 	public readonly onDidChange = this.onDidChangeEmitter.event;
 
@@ -130,8 +124,6 @@ function computeConfig(
 
 	if (!languageConfig) {
 		if (!languageService.isRegisteredLanguageId(languageId)) {
-			// this happens for the null language, which can be returned by monarch.
-			// Instead of throwing an error, we just return a default config.
 			return new ResolvedLanguageConfiguration(languageId, {});
 		}
 		languageConfig = new ResolvedLanguageConfiguration(languageId, {});
@@ -281,10 +273,8 @@ class LanguageConfigurationContribution {
 
 	public static cmp(a: LanguageConfigurationContribution, b: LanguageConfigurationContribution) {
 		if (a.priority === b.priority) {
-			// higher order last
 			return a.order - b.order;
 		}
-		// higher priority last
 		return a.priority - b.priority;
 	}
 }
@@ -323,9 +313,6 @@ export class LanguageConfigurationRegistry extends Disposable {
 		}, 0));
 	}
 
-	/**
-	 * @param priority Use a higher number for higher priority
-	 */
 	public register(languageId: string, configuration: LanguageConfiguration, priority: number = 0): IDisposable {
 		let entries = this._entries.get(languageId);
 		if (!entries) {
@@ -348,9 +335,6 @@ export class LanguageConfigurationRegistry extends Disposable {
 	}
 }
 
-/**
- * Immutable.
-*/
 export class ResolvedLanguageConfiguration {
 	private _brackets: RichEditBrackets | null;
 	private _electricCharacter: BracketElectricCharacterSupport | null;
@@ -456,7 +440,6 @@ export class ResolvedLanguageConfiguration {
 			return null;
 		}
 
-		// comment configuration
 		const comments: ICommentsConfiguration = {};
 
 		if (commentRule.lineComment) {

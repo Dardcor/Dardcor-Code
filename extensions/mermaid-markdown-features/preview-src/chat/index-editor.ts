@@ -18,7 +18,6 @@ initializeMermaidWebview(vscode, { defaultView: 'fit' }).then(panZoomHandler => 
 		e.stopPropagation();
 	};
 
-	// Wire up zoom controls
 	const panModeBtn = document.querySelector<HTMLButtonElement>('.pan-mode-btn');
 	const zoomInBtn = document.querySelector('.zoom-in-btn');
 	const zoomOutBtn = document.querySelector('.zoom-out-btn');

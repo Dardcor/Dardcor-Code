@@ -21,15 +21,10 @@ import { TerminalFindCommandId } from '../common/terminal.find.js';
 import './media/terminalFind.css';
 import { TerminalFindWidget } from './terminalFindWidget.js';
 
-// #region Terminal Contributions
 
 class TerminalFindContribution extends Disposable implements ITerminalContribution {
 	static readonly ID = 'terminal.find';
 
-	/**
-	 * Currently focused find widget. This is used to track action context since
-	 * 'active terminals' are only tracked for non-detached terminal instanecs.
-	 */
 	static activeFindWidget?: TerminalFindContribution;
 
 	static get(instance: ITerminalInstance | IDetachedTerminalInstance): TerminalFindContribution | null {
@@ -51,7 +46,6 @@ class TerminalFindContribution extends Disposable implements ITerminalContributi
 		this._findWidget = new Lazy(() => {
 			const findWidget = instantiationService.createInstance(TerminalFindWidget, ctx.instance);
 
-			// Track focus and set state so we can force the scroll bar to be visible
 			findWidget.focusTracker.onDidFocus(() => {
 				TerminalFindContribution.activeFindWidget = this;
 				ctx.instance.forceScrollbarVisibility();
@@ -97,9 +91,7 @@ class TerminalFindContribution extends Disposable implements ITerminalContributi
 }
 registerTerminalContribution(TerminalFindContribution.ID, TerminalFindContribution, true);
 
-// #endregion
 
-// #region Actions
 
 registerActiveXtermAction({
 	id: TerminalFindCommandId.FindFocus,
@@ -237,7 +229,6 @@ registerActiveXtermAction({
 	}
 });
 
-// Global workspace file search
 registerActiveInstanceAction({
 	id: TerminalFindCommandId.SearchWorkspace,
 	title: localize2('workbench.action.terminal.searchWorkspace', 'Search Workspace'),
@@ -251,13 +242,10 @@ registerActiveInstanceAction({
 	run: (activeInstance, c, accessor) => findInFilesCommand(accessor, { query: activeInstance.selection })
 });
 
-// #endregion
 
-// #region Accessibility Help
 
 import { AccessibleViewRegistry } from '../../../../../platform/accessibility/browser/accessibleViewRegistry.js';
 import { TerminalFindAccessibilityHelp } from './terminalFindAccessibilityHelp.js';
 
 AccessibleViewRegistry.register(new TerminalFindAccessibilityHelp());
 
-// #endregion

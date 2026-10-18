@@ -21,8 +21,6 @@ export function generateDataToCopyAndStoreInMemory(viewModel: IViewModel, id: st
 
 function storeMetadataInMemory(textToCopy: string, metadata: ClipboardStoredMetadata, isFirefox: boolean): void {
 	InMemoryClipboardMetadataManager.INSTANCE.set(
-		// When writing "LINE\r\n" to the clipboard and then pasting,
-		// Firefox pastes "LINE\n", so let's work around this quirk
 		(isFirefox ? textToCopy.replace(/\r\n/g, '\n') : textToCopy),
 		metadata
 	);
@@ -71,11 +69,6 @@ function getDataToCopy(viewModel: IViewModel, modelSelections: Range[], emptySel
 	return dataToCopy;
 }
 
-/**
- * Every time we write to the clipboard, we record a bit of extra metadata here.
- * Every time we read from the cipboard, if the text matches our last written text,
- * we can fetch the previous metadata.
- */
 export class InMemoryClipboardMetadataManager {
 	public static readonly INSTANCE = new InMemoryClipboardMetadataManager();
 
@@ -91,7 +84,6 @@ export class InMemoryClipboardMetadataManager {
 
 	public get(pastedText: string): ClipboardStoredMetadata | null {
 		if (this._lastState && this._lastState.lastCopiedValue === pastedText) {
-			// match!
 			return this._lastState.data;
 		}
 		this._lastState = null;
@@ -139,11 +131,9 @@ const ClipboardEventUtils = {
 					metadata = null;
 				}
 			} catch (err) {
-				// no problem!
 			}
 		}
 		if (text.length === 0 && metadata === null && clipboardData.files.length > 0) {
-			// no textual data pasted, generate text from file names
 			const files: File[] = Array.prototype.slice.call(clipboardData.files, 0);
 			return [files.map(file => file.name).join('\n'), null];
 		}
@@ -159,112 +149,48 @@ const ClipboardEventUtils = {
 	}
 };
 
-/**
- * Readable clipboard data for paste operations.
- */
 export interface IReadableClipboardData {
-	/**
-	 * All MIME types present in the clipboard.
-	 */
 	types: string[];
 
-	/**
-	 * Files from the clipboard (for paste operations).
-	 */
 	readonly files: readonly File[];
 
-	/**
-	 * Get data for a specific MIME type.
-	 */
 	getData(type: string): string;
 }
 
-/**
- * Writable clipboard data for copy/cut operations.
- */
 export interface IWritableClipboardData {
-	/**
-	 * Set data for a specific MIME type.
-	 */
 	setData(type: string, value: string): void;
 }
 
-/**
- * Event data for clipboard copy/cut events.
- */
 export interface IClipboardCopyEvent {
-	/**
-	 * Whether this is a cut operation.
-	 */
 	readonly isCut: boolean;
 
-	/**
-	 * The clipboard data to write to.
-	 */
 	readonly clipboardData: IWritableClipboardData;
 
-	/**
-	 * The data to be copied to the clipboard.
-	 */
 	readonly dataToCopy: ClipboardDataToCopy;
 
-	/**
-	 * Ensure that the clipboard gets the editor data.
-	 */
 	ensureClipboardGetsEditorData(): void;
 
-	/**
-	 * Signal that the event has been handled and default processing should be skipped.
-	 */
 	setHandled(): void;
 
-	/**
-	 * Whether the event has been marked as handled.
-	 */
 	readonly isHandled: boolean;
 }
 
-/**
- * Event data for clipboard paste events.
- */
 export interface IClipboardPasteEvent {
-	/**
-	 * The clipboard data being pasted.
-	 */
 	readonly clipboardData: IReadableClipboardData;
 
-	/**
-	 * The metadata stored alongside the clipboard data, if any.
-	 */
 	readonly metadata: ClipboardStoredMetadata | null;
 
-	/**
-	 * The text content being pasted.
-	 */
 	readonly text: string;
 
-	/**
-	 * The underlying DOM event, if available.
-	 * @deprecated Use clipboardData instead. This is provided for backward compatibility.
-	 */
 	readonly browserEvent: ClipboardEvent | undefined;
 
 	toExternalVSDataTransfer(): VSDataTransfer | undefined;
 
-	/**
-	 * Signal that the event has been handled and default processing should be skipped.
-	 */
 	setHandled(): void;
 
-	/**
-	 * Whether the event has been marked as handled.
-	 */
 	readonly isHandled: boolean;
 }
 
-/**
- * Creates an IClipboardCopyEvent from a DOM ClipboardEvent.
- */
 export function createClipboardCopyEvent(e: ClipboardEvent, isCut: boolean, context: ViewContext, logService: ILogService, isFirefox: boolean): IClipboardCopyEvent {
 	const { dataToCopy, metadata } = generateDataToCopy(context.viewModel);
 	let handled = false;
@@ -293,9 +219,6 @@ export function createClipboardCopyEvent(e: ClipboardEvent, isCut: boolean, cont
 	};
 }
 
-/**
- * Creates an IClipboardPasteEvent from a DOM ClipboardEvent.
- */
 export function createClipboardPasteEvent(e: ClipboardEvent): IClipboardPasteEvent {
 	let handled = false;
 	let [text, metadata] = e.clipboardData ? ClipboardEventUtils.getTextData(e.clipboardData) : ['', null];

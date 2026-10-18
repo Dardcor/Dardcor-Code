@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Need to set this env variable even before import to avoid stat beat
 process.env.APPLICATION_INSIGHTS_NO_STATSBEAT = 'true';
 
 import * as appInsights from 'applicationinsights';
@@ -105,7 +104,6 @@ function createAppInsightsClient(capiClientService: ICAPIClientService, envServi
 
 function configureReporter(capiClientService: ICAPIClientService, envService: IEnvService, client: appInsights.TelemetryClient): void {
 	client.commonProperties = decorateWithCommonProperties(client.commonProperties, envService);
-	// Do not want personal machine names to be sent
 	client.context.tags[client.context.keys.cloudRoleInstance] = 'REDACTED';
 
 	client.context.tags[client.context.keys.sessionId] = envService.sessionId;
@@ -123,7 +121,6 @@ function decorateWithCommonProperties(properties: TelemetryProperties, envServic
 	properties['common_arch'] = os.arch();
 	properties['common_cpu'] = Array.from(new Set(os.cpus().map(c => c.model))).join();
 
-	// We have editor-agnostic fields but keep the vs-specific ones for backward compatibility
 	properties['common_vscodemachineid'] = envService.machineId;
 	properties['common_vscodesessionid'] = envService.sessionId;
 	properties['client_deviceid'] = envService.devDeviceId;

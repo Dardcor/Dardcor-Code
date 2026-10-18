@@ -53,7 +53,6 @@ export const nullSimilarFilesOptions: SimilarFilesOptions = {
 	maxSnippetsPerFile: 0,
 };
 
-// Default similarity parameters for languageId === 'cpp'.
 export const defaultCppSimilarFilesOptions: SimilarFilesOptions = {
 	snippetLength: 60,
 	threshold: 0.0,
@@ -70,18 +69,8 @@ function getMatcher(doc: DocumentInfoWithOffset, selection: SimilarFilesOptions)
 	return matcherFactory.to(doc);
 }
 
-/**
- * A {@link SnippetWithProviderInfo} enriched with the provenance of the similar file it
- * came from: the source-document `uri` and whether that file is a language-service
- * "related" file. {@link getSimilarSnippets} always populates both, so consumers can
- * reason about a snippet's origin without re-deriving it (e.g. in multi-root workspaces
- * where two documents can share a relative path).
- */
 export type SnippetWithSourceInfo = SnippetWithProviderInfo & { uri: string; isFromRelatedFile: boolean };
 
-/**
- * @returns A SnippetWithProviderInfo describing the best matches from similar files.
- */
 export async function getSimilarSnippets(
 	doc: DocumentInfoWithOffset,
 	similarFiles: SimilarFileInfo[],
@@ -94,14 +83,12 @@ export async function getSimilarSnippets(
 
 	const snippets = (
 		await similarFiles
-			// filter out absurdly long or absurdly many open files
 			.filter(similarFile => similarFile.source.length < options.maxCharPerFile && similarFile.source.length > 0)
-			// slice(0) duplicates an array
 			.slice(0, options.maxNumberOfFiles)
 			.reduce(
 				async (
 					acc,
-					similarFile // accumulator of all snippets from all similarFiles
+					similarFile
 				) =>
 					(await acc).concat(
 						(await matcher.findMatches(similarFile, options.maxSnippetsPerFile)).map(snippet => ({
@@ -116,15 +103,11 @@ export async function getSimilarSnippets(
 	)
 		.filter(
 			similarFile =>
-				// remove files that had no match at all
 				similarFile.score &&
 				similarFile.snippet &&
-				// remove files that had a low score
 				similarFile.score > options.threshold
 		)
-		// order them with best (highest scores) last
 		.sort((a, b) => a.score - b.score)
-		// take the best options from the end
 		.slice(-options.maxTopSnippets);
 	return snippets;
 }

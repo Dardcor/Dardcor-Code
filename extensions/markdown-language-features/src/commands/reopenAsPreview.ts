@@ -27,10 +27,8 @@ export class TogglePreviewCommand implements Command {
 
 	public async execute() {
 		if (vscode.window.activeTextEditor) {
-			// In source editor, switch to preview
 			await vscode.commands.executeCommand('reopenActiveEditorWith', 'vscode.markdown.preview.editor');
 		} else {
-			// In custom editor preview, switch to source
 			await vscode.commands.executeCommand('reopenActiveEditorWith', 'default');
 		}
 	}

@@ -2,22 +2,6 @@ import { NextResponse } from "next/server";
 import { createProviderConnection } from "@/models";
 import { decodeXaiIdTokenEmail, extractEmailFromAccessToken } from "@/lib/oauth/providerHelpers";
 
-/**
- * POST /api/oauth/grok-cli/bulk-import
- * Bulk import multiple Grok CLI (OAuth/Device) account JSON objects in one call.
- *
- * Body accepts any of:
- *   - Array:    [{...}, {...}]
- *   - Single:   {...}
- *   - Wrapped:  { accounts: [{...}, ...] }
- *
- * Each item accepts snake_case or camelCase:
- *   access_token / accessToken
- *   refresh_token / refreshToken
- *   id_token / idToken
- *   email
- *   expires_in / expiresIn / expires_at / expiresAt
- */
 export async function POST(request) {
   let body;
   try {

@@ -405,7 +405,7 @@ export class SponsorWidget extends ExtensionWidget {
 
 		const sponsor = append(this.container, $('span.sponsor.clickable', { tabIndex: 0 }));
 		this.disposables.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('mouse'), sponsor, this.extension?.publisherSponsorLink.toString() ?? ''));
-		sponsor.setAttribute('role', 'link'); // #132645
+		sponsor.setAttribute('role', 'link');
 		const sponsorIconElement = renderIcon(sponsorIcon);
 		const label = $('span', undefined, localize('sponsor', "Sponsor"));
 		append(sponsor, sponsorIconElement, label);
@@ -718,8 +718,6 @@ export class ExtensionRestartRequiredWidget extends ExtensionWidget {
 		const runtimeState = this.extension?.runtimeState;
 		const reason = typeof runtimeState?.reason === 'string' ? runtimeState.reason : '';
 
-		// Only show "Restart Required" when the runtime state reason clearly indicates
-		// a restart or reload is needed, to avoid mislabeling other runtime actions.
 		if (runtimeState && /restart|reload/i.test(reason)) {
 			const element = append(this.container, $('span.extension-restart-required' + ThemeIcon.asCSSSelector(restartRequiredIcon)));
 			append(this.container, $('span.extension-restart-required-label', undefined, localize('restart required', "Restart Required")));
@@ -826,12 +824,9 @@ export class ExtensionHoverWidget extends ExtensionWidget {
 				this.options.target,
 				{
 					markdown: async () => {
-						// Recompute the status so any time-sensitive content (e.g. the
-						// delayed auto-update message) reflects the current time on each hover.
 						try {
 							await this.extensionStatusAction.recomputeStatus();
 						} catch (error) {
-							// Ignore: fall back to the last computed status.
 						}
 						return this.getHoverMarkdown();
 					},

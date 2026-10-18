@@ -54,23 +54,9 @@ const assertTreesEqual = (a: TestItemImpl | undefined, b: TestItemImpl | undefin
 	aChildren.forEach(key => assertTreesEqual(a.children.get(key) as TestItemImpl, b.children.get(key) as TestItemImpl));
 };
 
-// const assertTreeListEqual = (a: ReadonlyArray<TestItem>, b: ReadonlyArray<TestItem>) => {
-// 	assert.strictEqual(a.length, b.length, `expected a.length == n.length`);
-// 	a.forEach((_, i) => assertTreesEqual(a[i], b[i]));
-// };
 
-// class TestMirroredCollection extends MirroredTestCollection {
-// 	public changeEvent!: TestChangeEvent;
 
-// 	constructor() {
-// 		super();
-// 		this.onDidChangeTests(evt => this.changeEvent = evt);
-// 	}
 
-// 	public get length() {
-// 		return this.items.size;
-// 	}
-// }
 
 suite('ExtHost Testing', () => {
 	class TestExtHostTestItemCollection extends ExtHostTestItemCollection {
@@ -106,7 +92,7 @@ suite('ExtHost Testing', () => {
 			}
 		};
 
-		ds.add(single.onDidGenerateDiff(d => single.setDiff(d /* don't clear during testing */)));
+		ds.add(single.onDidGenerateDiff(d => single.setDiff(d )));
 	});
 
 	suite('OwnedTestCollection', () => {
@@ -177,7 +163,7 @@ suite('ExtHost Testing', () => {
 		test('watches property mutations', () => {
 			single.expand(single.root.id, Infinity);
 			single.collectDiff();
-			single.root.children.get('id-a')!.description = 'Hello world'; /* item a */
+			single.root.children.get('id-a')!.description = 'Hello world';
 
 			assert.deepStrictEqual(single.collectDiff(), [
 				{
@@ -339,7 +325,7 @@ suite('ExtHost Testing', () => {
 					newA,
 					new TestItemImpl('ctrlId', 'id-b', single.root.children.get('id-b')!.label, uri),
 				]);
-				await timeout(0); // drain microtasks
+				await timeout(0);
 			};
 
 			test('does not restore an unexpanded state', async () => {
@@ -466,7 +452,6 @@ suite('ExtHost Testing', () => {
 				},
 			]);
 
-			// sends on replace even if it's a no-op
 			a.range = a.range;
 			assert.deepStrictEqual(single.collectDiff(), [
 				{
@@ -476,7 +461,6 @@ suite('ExtHost Testing', () => {
 				},
 			]);
 
-			// sends on a child replacement
 			const uri = URI.file('/');
 			const a2 = new TestItemImpl('ctrlId', 'id-a', 'a', uri);
 			a2.range = a.range;
@@ -493,139 +477,25 @@ suite('ExtHost Testing', () => {
 
 
 	suite('MirroredTestCollection', () => {
-		// todo@connor4312: re-renable when we figure out what observing looks like we async children
-		// 	let m: TestMirroredCollection;
-		// 	setup(() => m = new TestMirroredCollection());
 
-		// 	test('mirrors creation of the root', () => {
-		// 		const tests = testStubs.nested();
-		// 		single.addRoot(tests, 'pid');
-		// 		single.expand(single.root.id, Infinity);
-		// 		m.apply(single.collectDiff());
-		// 		assertTreesEqual(m.rootTestItems[0], owned.getTestById(single.root.id)![1].actual);
-		// 		assert.strictEqual(m.length, single.itemToInternal.size);
-		// 	});
 
-		// 	test('mirrors node deletion', () => {
-		// 		const tests = testStubs.nested();
-		// 		single.addRoot(tests, 'pid');
-		// 		m.apply(single.collectDiff());
-		// 		single.expand(single.root.id, Infinity);
-		// 		tests.children!.splice(0, 1);
-		// 		single.onItemChange(tests, 'pid');
-		// 		single.expand(single.root.id, Infinity);
-		// 		m.apply(single.collectDiff());
 
-		// 		assertTreesEqual(m.rootTestItems[0], owned.getTestById(single.root.id)![1].actual);
-		// 		assert.strictEqual(m.length, single.itemToInternal.size);
-		// 	});
 
-		// 	test('mirrors node addition', () => {
-		// 		const tests = testStubs.nested();
-		// 		single.addRoot(tests, 'pid');
-		// 		m.apply(single.collectDiff());
-		// 		tests.children![0].children!.push(stubTest('ac'));
-		// 		single.onItemChange(tests, 'pid');
-		// 		m.apply(single.collectDiff());
 
-		// 		assertTreesEqual(m.rootTestItems[0], owned.getTestById(single.root.id)![1].actual);
-		// 		assert.strictEqual(m.length, single.itemToInternal.size);
-		// 	});
 
-		// 	test('mirrors node update', () => {
-		// 		const tests = testStubs.nested();
-		// 		single.addRoot(tests, 'pid');
-		// 		m.apply(single.collectDiff());
-		// 		tests.children![0].description = 'Hello world'; /* item a */
-		// 		single.onItemChange(tests, 'pid');
-		// 		m.apply(single.collectDiff());
 
-		// 		assertTreesEqual(m.rootTestItems[0], owned.getTestById(single.root.id)![1].actual);
-		// 	});
 
-		// 	suite('MirroredChangeCollector', () => {
-		// 		let tests = testStubs.nested();
-		// 		setup(() => {
-		// 			tests = testStubs.nested();
-		// 			single.addRoot(tests, 'pid');
-		// 			m.apply(single.collectDiff());
-		// 		});
 
-		// 		test('creates change for root', () => {
-		// 			assertTreeListEqual(m.changeEvent.added, [
-		// 				tests,
-		// 				tests.children[0],
-		// 				tests.children![0].children![0],
-		// 				tests.children![0].children![1],
-		// 				tests.children[1],
-		// 			]);
-		// 			assertTreeListEqual(m.changeEvent.removed, []);
-		// 			assertTreeListEqual(m.changeEvent.updated, []);
-		// 		});
 
-		// 		test('creates change for delete', () => {
-		// 			const rm = tests.children.shift()!;
-		// 			single.onItemChange(tests, 'pid');
-		// 			m.apply(single.collectDiff());
 
-		// 			assertTreeListEqual(m.changeEvent.added, []);
-		// 			assertTreeListEqual(m.changeEvent.removed, [
-		// 				{ ...rm },
-		// 				{ ...rm.children![0] },
-		// 				{ ...rm.children![1] },
-		// 			]);
-		// 			assertTreeListEqual(m.changeEvent.updated, []);
-		// 		});
 
-		// 		test('creates change for update', () => {
-		// 			tests.children[0].label = 'updated!';
-		// 			single.onItemChange(tests, 'pid');
-		// 			m.apply(single.collectDiff());
 
-		// 			assertTreeListEqual(m.changeEvent.added, []);
-		// 			assertTreeListEqual(m.changeEvent.removed, []);
-		// 			assertTreeListEqual(m.changeEvent.updated, [tests.children[0]]);
-		// 		});
 
-		// 		test('is a no-op if a node is added and removed', () => {
-		// 			const nested = testStubs.nested('id2-');
-		// 			tests.children.push(nested);
-		// 			single.onItemChange(tests, 'pid');
-		// 			tests.children.pop();
-		// 			single.onItemChange(tests, 'pid');
-		// 			const previousEvent = m.changeEvent;
-		// 			m.apply(single.collectDiff());
-		// 			assert.strictEqual(m.changeEvent, previousEvent);
-		// 		});
 
-		// 		test('is a single-op if a node is added and changed', () => {
-		// 			const child = stubTest('c');
-		// 			tests.children.push(child);
-		// 			single.onItemChange(tests, 'pid');
-		// 			child.label = 'd';
-		// 			single.onItemChange(tests, 'pid');
-		// 			m.apply(single.collectDiff());
 
-		// 			assertTreeListEqual(m.changeEvent.added, [child]);
-		// 			assertTreeListEqual(m.changeEvent.removed, []);
-		// 			assertTreeListEqual(m.changeEvent.updated, []);
-		// 		});
 
-		// 		test('gets the common ancestor (1)', () => {
-		// 			tests.children![0].children![0].label = 'za';
-		// 			tests.children![0].children![1].label = 'zb';
-		// 			single.onItemChange(tests, 'pid');
-		// 			m.apply(single.collectDiff());
 
-		// 		});
 
-		// 		test('gets the common ancestor (2)', () => {
-		// 			tests.children![0].children![0].label = 'za';
-		// 			tests.children![1].label = 'ab';
-		// 			single.onItemChange(tests, 'pid');
-		// 			m.apply(single.collectDiff());
-		// 		});
-		// 	});
 	});
 
 	suite('TestRunTracker', () => {
@@ -835,7 +705,6 @@ suite('ExtHost Testing', () => {
 				}]
 			]);
 
-			// should use test location as default
 			task.failed(test2, new TestMessage('some message'));
 			assert.deepStrictEqual(proxy.$appendTestMessagesInRun.args[1], [
 				args[0],
@@ -939,12 +808,10 @@ suite('ExtHost Testing', () => {
 			const profBB = ds.add(ctrlB.createRunProfile('bb', TestRunProfileKind.Run, () => { }));
 			const neverCalled = sinon.stub();
 
-			// empty default state:
 			assert.deepStrictEqual(profAA.isDefault, false);
 			assert.deepStrictEqual(profBA.isDefault, false);
 			assert.deepStrictEqual(profBB.isDefault, false);
 
-			// fires a change event:
 			const changeA = Event.toPromise(profAA.onDidChangeDefault as Event<boolean>);
 			const changeBA = Event.toPromise(profBA.onDidChangeDefault as Event<boolean>);
 			const changeBB = Event.toPromise(profBB.onDidChangeDefault as Event<boolean>);
@@ -961,13 +828,11 @@ suite('ExtHost Testing', () => {
 			assert.deepStrictEqual(await changeBA, true);
 			assert.deepStrictEqual(await changeBB, true);
 
-			// updates internal state:
 			assert.deepStrictEqual(profAA.isDefault, true);
 			assert.deepStrictEqual(profBA.isDefault, true);
 			assert.deepStrictEqual(profBB.isDefault, true);
 			assert.deepStrictEqual(profAB.isDefault, false);
 
-			// no-ops if equal
 			ds.add(profAA.onDidChangeDefault(neverCalled));
 			ctrl.$setDefaultRunProfiles({
 				a: [ctrl.getProfileInternalId(ctrlA, profAA)],

@@ -20,7 +20,6 @@ suite('Debouncing', function () {
 				await debouncer.debounce(10);
 				result = true;
 			} catch {
-				// we should end up here as the debounce call should get cancelled by the subsequent one
 				result = false;
 			}
 		})();
@@ -33,7 +32,6 @@ suite('Debouncing', function () {
 		(async () => {
 			try {
 				await debouncer.debounce(1);
-				// we should end up here as the debounce call should have time to finish before the next one
 				result = true;
 			} catch {
 				result = false;
@@ -50,8 +48,6 @@ suite('Debouncing', function () {
 		(async () => {
 			try {
 				await debouncer1.debounce(10);
-				// we should end up here as the debounce call won't be cancelled by the second one even though
-				// they run in parallel.
 				result = true;
 			} catch {
 				result = false;

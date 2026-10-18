@@ -37,7 +37,6 @@ class DebugSessionContextPick implements IChatContextPickerItem {
 	) { }
 
 	isEnabled(): boolean {
-		// Only enabled when there's a focused session that is stopped (paused)
 		const viewModel = this.debugService.getViewModel();
 		const focusedSession = viewModel.focusedSession;
 		return !!focusedSession && focusedSession.state === State.Stopped;
@@ -53,7 +52,6 @@ class DebugSessionContextPick implements IChatContextPickerItem {
 		return {
 			placeholder: localize('selectDebugData', 'Select debug data to attach'),
 			picks: (_queryObs: IObservable<string>, token: CancellationToken) => {
-				// Connect the external query observable to our internal one
 				store.add(autorun(reader => {
 					query.set(_queryObs.read(reader), undefined);
 				}));
@@ -66,9 +64,9 @@ class DebugSessionContextPick implements IChatContextPickerItem {
 			goBack: () => {
 				if (mode.get() === PickerMode.Expression) {
 					mode.set(PickerMode.Main, undefined);
-					return true; // Stay in picker
+					return true;
 				}
-				return false; // Go back to main context menu
+				return false;
 			},
 			dispose: () => store.dispose(),
 		};
@@ -93,7 +91,6 @@ class DebugSessionContextPick implements IChatContextPickerItem {
 	}
 
 	private getMainPicks(mode: ISettableObservable<PickerMode>): IObservable<{ busy: boolean; picks: ChatContextPick[] }> {
-		// Return an observable that resolves to the main picks
 		const promise = derived(_reader => {
 			return new ObservablePromise(this.buildMainPicks(mode));
 		});
@@ -114,18 +111,15 @@ class DebugSessionContextPick implements IChatContextPickerItem {
 			return picks;
 		}
 
-		// Add "Expression Value..." option at the top
 		picks.push({
 			label: localize('expressionValue', 'Expression Value...'),
 			iconClass: ThemeIcon.asClassName(Codicon.symbolVariable),
 			asAttachment: () => {
-				// Switch to expression mode
 				mode.set(PickerMode.Expression, undefined);
 				return 'noop';
 			},
 		});
 
-		// Add watch expressions section
 		const watches = this.debugService.getModel().getWatchExpressions();
 		if (watches.length > 0) {
 			picks.push({ type: 'separator', label: localize('watchExpressions', 'Watch Expressions') });
@@ -139,16 +133,13 @@ class DebugSessionContextPick implements IChatContextPickerItem {
 			}
 		}
 
-		// Add scopes and their variables
 		let scopes: IScope[] = [];
 		try {
 			scopes = await stackFrame.getScopes();
 		} catch {
-			// Ignore errors when fetching scopes
 		}
 
 		for (const scope of scopes) {
-			// Include variables from non-expensive scopes
 			if (scope.expensive && !scope.childrenHaveBeenLoaded) {
 				continue;
 			}
@@ -172,7 +163,6 @@ class DebugSessionContextPick implements IChatContextPickerItem {
 					});
 				}
 			} catch {
-				// Ignore errors when fetching variables
 			}
 		}
 
@@ -351,7 +341,6 @@ export class DebugChatContextContribution extends Disposable implements IWorkben
 	}
 }
 
-// Context menu action: Add variable to chat
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
@@ -375,7 +364,6 @@ registerAction2(class extends Action2 {
 			return;
 		}
 
-		// Context is the variable from the variables view
 		const entry = createDebugVariableEntryFromContext(context);
 		if (entry) {
 			const stackFrame = debugService.getViewModel().focusedStackFrame;
@@ -387,7 +375,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// Context menu action: Add watch expression to chat
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
@@ -411,7 +398,6 @@ registerAction2(class extends Action2 {
 			return;
 		}
 
-		// Context is the expression (watch expression or variable under it)
 		const stackFrame = debugService.getViewModel().focusedStackFrame;
 		if (stackFrame) {
 			widget.attachmentModel.addContext(createPausedLocationEntry(stackFrame));
@@ -420,7 +406,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// Context menu action: Add scope to chat
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
@@ -444,7 +429,6 @@ registerAction2(class extends Action2 {
 			return;
 		}
 
-		// Get the actual scope and its variables
 		const viewModel = debugService.getViewModel();
 		const stackFrame = viewModel.focusedStackFrame;
 		if (!stackFrame) {
@@ -460,7 +444,6 @@ registerAction2(class extends Action2 {
 				widget.attachmentModel.addContext(createScopeEntry(scope, variables));
 			}
 		} catch {
-			// Ignore errors
 		}
 	}
 });
@@ -479,12 +462,10 @@ function isVariablesContext(context: unknown): context is IVariablesContext {
 }
 
 function createDebugVariableEntryFromContext(context: unknown): IDebugVariableEntry | undefined {
-	// The context can be either a Variable directly, or an IVariablesContext object
 	if (context instanceof Variable) {
 		return createDebugVariableEntry(context);
 	}
 
-	// Handle IVariablesContext format from the variables view
 	if (isVariablesContext(context)) {
 		const variable = context.variable;
 		return {

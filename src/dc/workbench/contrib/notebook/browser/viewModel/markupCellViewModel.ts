@@ -99,7 +99,6 @@ export class MarkupCellViewModel extends BaseCellViewModel implements ICellViewM
 	}
 
 	public set inputInOutputIsFocused(_: boolean) {
-		//
 	}
 
 	private _hoveringCell = false;
@@ -170,10 +169,6 @@ export class MarkupCellViewModel extends BaseCellViewModel implements ICellViewM
 				+ this._statusBarHeight
 				+ this._commentHeight;
 		} else {
-			// @rebornix
-			// On file open, the previewHeight + bottomToolbarGap for a cell out of viewport can be 0
-			// When it's 0, the list view will never try to render it anymore even if we scroll the cell into view.
-			// Thus we make sure it's greater than 0
 			return Math.max(1, this._previewHeight + bottomToolbarGap + foldHintHeight + this._commentHeight);
 		}
 	}
@@ -190,16 +185,11 @@ export class MarkupCellViewModel extends BaseCellViewModel implements ICellViewM
 		}
 	}
 
-	/**
-	 * we put outputs stuff here to make compiler happy
-	 */
 	outputsViewModels: ICellOutputViewModel[] = [];
 	getOutputOffset(index: number): number {
-		// throw new Error('Method not implemented.');
 		return -1;
 	}
 	updateOutputHeight(index: number, height: number): void {
-		// throw new Error('Method not implemented.');
 	}
 
 	triggerFoldingStateChange() {
@@ -222,7 +212,6 @@ export class MarkupCellViewModel extends BaseCellViewModel implements ICellViewM
 					100 :
 					this._layoutInfo.totalHeight) :
 				state.totalHeight;
-			// recompute
 			foldHintHeight = this._computeFoldHintHeight();
 		} else {
 			totalHeight =
@@ -236,7 +225,7 @@ export class MarkupCellViewModel extends BaseCellViewModel implements ICellViewM
 		const notebookLayoutConfiguration = this.viewContext.notebookOptions.getLayoutConfiguration();
 		if (this.getEditState() === CellEditState.Editing) {
 			commentOffset = notebookLayoutConfiguration.editorToolbarHeight
-				+ notebookLayoutConfiguration.cellTopMargin // CELL_TOP_MARGIN
+				+ notebookLayoutConfiguration.cellTopMargin
 				+ this._chatHeight
 				+ this._editorHeight
 				+ this._statusBarHeight;
@@ -274,7 +263,6 @@ export class MarkupCellViewModel extends BaseCellViewModel implements ICellViewM
 
 	override restoreEditorViewState(editorViewStates: editorCommon.ICodeEditorViewState | null, totalHeight?: number) {
 		super.restoreEditorViewState(editorViewStates);
-		// we might already warmup the viewport so the cell has a total height computed
 		if (totalHeight !== undefined && this.layoutInfo.layoutState === CellLayoutState.Uninitialized) {
 			this._layoutInfo = {
 				...this.layoutInfo,

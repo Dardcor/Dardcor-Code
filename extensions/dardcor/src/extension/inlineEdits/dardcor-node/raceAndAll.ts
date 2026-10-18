@@ -3,12 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Runs multiple promises concurrently and provides two results:
- * 1. `first`: Resolves as soon as the first promise fulfills, with a tuple where only that fulfilled value is set and the others are undefined.
- * 2. `all`: Resolves when all promises fulfill, with a tuple of all results.
- * @param promises Tuple of promises to race
- */
 export function raceAndAll<T extends readonly unknown[]>(
 	promises: {
 		[K in keyof T]: Promise<T[K]>;

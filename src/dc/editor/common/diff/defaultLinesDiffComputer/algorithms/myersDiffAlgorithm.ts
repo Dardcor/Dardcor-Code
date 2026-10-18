@@ -6,19 +6,14 @@
 import { OffsetRange } from '../../../core/ranges/offsetRange.js';
 import { DiffAlgorithmResult, IDiffAlgorithm, ISequence, ITimeout, InfiniteTimeout, SequenceDiff } from './diffAlgorithm.js';
 
-/**
- * An O(ND) diff algorithm that has a quadratic space worst-case complexity.
-*/
 export class MyersDiffAlgorithm implements IDiffAlgorithm {
 	compute(seq1: ISequence, seq2: ISequence, timeout: ITimeout = InfiniteTimeout.instance): DiffAlgorithmResult {
-		// These are common special cases.
-		// The early return improves performance dramatically.
 		if (seq1.length === 0 || seq2.length === 0) {
 			return DiffAlgorithmResult.trivial(seq1, seq2);
 		}
 
-		const seqX = seq1; // Text on the x axis
-		const seqY = seq2; // Text on the y axis
+		const seqX = seq1;
+		const seqY = seq2;
 
 		function getXAfterSnake(x: number, y: number): number {
 			while (x < seqX.length && y < seqY.length && seqX.getElement(x) === seqY.getElement(y)) {
@@ -29,10 +24,6 @@ export class MyersDiffAlgorithm implements IDiffAlgorithm {
 		}
 
 		let d = 0;
-		// V[k]: X value of longest d-line that ends in diagonal k.
-		// d-line: path from (0,0) to (x,y) that uses exactly d non-diagonals.
-		// diagonal k: Set of points (x,y) with x-y = k.
-		// k=1 -> (1,0),(2,1)
 		const V = new FastInt32Array();
 		V.set(0, getXAfterSnake(0, 0));
 
@@ -46,21 +37,17 @@ export class MyersDiffAlgorithm implements IDiffAlgorithm {
 			if (!timeout.isValid()) {
 				return DiffAlgorithmResult.trivialTimedOut(seqX, seqY);
 			}
-			// The paper has `for (k = -d; k <= d; k += 2)`, but we can ignore diagonals that cannot influence the result.
 			const lowerBound = -Math.min(d, seqY.length + (d % 2));
 			const upperBound = Math.min(d, seqX.length + (d % 2));
 			for (k = lowerBound; k <= upperBound; k += 2) {
 				let step = 0;
-				// We can use the X values of (d-1)-lines to compute X value of the longest d-lines.
-				const maxXofDLineTop = k === upperBound ? -1 : V.get(k + 1); // We take a vertical non-diagonal (add a symbol in seqX)
-				const maxXofDLineLeft = k === lowerBound ? -1 : V.get(k - 1) + 1; // We take a horizontal non-diagonal (+1 x) (delete a symbol in seqX)
+				const maxXofDLineTop = k === upperBound ? -1 : V.get(k + 1);
+				const maxXofDLineLeft = k === lowerBound ? -1 : V.get(k - 1) + 1;
 				step++;
 				const x = Math.min(Math.max(maxXofDLineTop, maxXofDLineLeft), seqX.length);
 				const y = x - k;
 				step++;
 				if (x > seqX.length || y > seqY.length) {
-					// This diagonal is irrelevant for the result.
-					// TODO: Don't pay the cost for this in the next iteration.
 					continue;
 				}
 				const newMaxX = getXAfterSnake(x, y);
@@ -113,9 +100,6 @@ class SnakePath {
 	}
 }
 
-/**
- * An array that supports fast negative indices.
-*/
 class FastInt32Array {
 	private positiveArr: Int32Array = new Int32Array(10);
 	private negativeArr: Int32Array = new Int32Array(10);
@@ -149,9 +133,6 @@ class FastInt32Array {
 	}
 }
 
-/**
- * An array that supports fast negative indices.
-*/
 class FastArrayNegativeIndices<T> {
 	private readonly positiveArr: T[] = [];
 	private readonly negativeArr: T[] = [];

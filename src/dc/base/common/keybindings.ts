@@ -7,19 +7,6 @@ import { illegalArgument } from './errors.js';
 import { KeyCode, ScanCode } from './keyCodes.js';
 import { OperatingSystem } from './platform.js';
 
-/**
- * Binary encoding strategy:
- * ```
- *    1111 11
- *    5432 1098 7654 3210
- *    ---- CSAW KKKK KKKK
- *  C = bit 11 = ctrlCmd flag
- *  S = bit 10 = shift flag
- *  A = bit 9 = alt flag
- *  W = bit 8 = winCtrl flag
- *  K = bits 0-7 = key code
- * ```
- */
 const enum BinaryKeybindingsMask {
 	CtrlCmd = (1 << 11) >>> 0,
 	Shift = (1 << 10) >>> 0,
@@ -72,10 +59,6 @@ export interface Modifiers {
 	readonly metaKey: boolean;
 }
 
-/**
- * Represents a chord which uses the `keyCode` field of keyboard events.
- * A chord is a combination of keys pressed simultaneously.
- */
 export class KeyCodeChord implements Modifiers {
 
 	constructor(
@@ -119,9 +102,6 @@ export class KeyCodeChord implements Modifiers {
 		return new Keybinding([this]);
 	}
 
-	/**
-	 * Does this keybinding refer to the key code of a modifier and it also has the modifier flag?
-	 */
 	public isDuplicateModifierCase(): boolean {
 		return (
 			(this.ctrlKey && this.keyCode === KeyCode.Ctrl)
@@ -132,10 +112,6 @@ export class KeyCodeChord implements Modifiers {
 	}
 }
 
-/**
- * Represents a chord which uses the `code` field of keyboard events.
- * A chord is a combination of keys pressed simultaneously.
- */
 export class ScanCodeChord implements Modifiers {
 
 	constructor(
@@ -165,9 +141,6 @@ export class ScanCodeChord implements Modifiers {
 		return `S${ctrl}${shift}${alt}${meta}${this.scanCode}`;
 	}
 
-	/**
-	 * Does this keybinding refer to the key code of a modifier and it also has the modifier flag?
-	 */
 	public isDuplicateModifierCase(): boolean {
 		return (
 			(this.ctrlKey && (this.scanCode === ScanCode.ControlLeft || this.scanCode === ScanCode.ControlRight))
@@ -180,9 +153,6 @@ export class ScanCodeChord implements Modifiers {
 
 export type Chord = KeyCodeChord | ScanCodeChord;
 
-/**
- * A keybinding is a sequence of chords.
- */
 export class Keybinding {
 
 	public readonly chords: Chord[];
@@ -234,51 +204,14 @@ export class ResolvedChord {
 
 export type SingleModifierChord = 'ctrl' | 'shift' | 'alt' | 'meta';
 
-/**
- * A resolved keybinding. Consists of one or multiple chords.
- */
 export abstract class ResolvedKeybinding {
-	/**
-	 * This prints the binding in a format suitable for displaying in the UI.
-	 */
 	public abstract getLabel(): string | null;
-	/**
-	 * This prints the binding in a format suitable for ARIA.
-	 */
 	public abstract getAriaLabel(): string | null;
-	/**
-	 * This prints the binding in a format suitable for electron's accelerators.
-	 * See https://github.com/electron/electron/blob/master/docs/api/accelerator.md
-	 */
 	public abstract getElectronAccelerator(): string | null;
-	/**
-	 * This prints the binding in a format suitable for user settings.
-	 */
 	public abstract getUserSettingsLabel(): string | null;
-	/**
-	 * Is the user settings label reflecting the label?
-	 */
 	public abstract isWYSIWYG(): boolean;
-	/**
-	 * Does the keybinding consist of more than one chord?
-	 */
 	public abstract hasMultipleChords(): boolean;
-	/**
-	 * Returns the chords that comprise of the keybinding.
-	 */
 	public abstract getChords(): ResolvedChord[];
-	/**
-	 * Returns the chords as strings useful for dispatching.
-	 * Returns null for modifier only chords.
-	 * @example keybinding "Shift" -> null
-	 * @example keybinding ("D" with shift == true) -> "shift+D"
-	 */
 	public abstract getDispatchChords(): (string | null)[];
-	/**
-	 * Returns the modifier only chords as strings useful for dispatching.
-	 * Returns null for chords that contain more than one modifier or a regular key.
-	 * @example keybinding "Shift" -> "shift"
-	 * @example keybinding ("D" with shift == true") -> null
-	 */
 	public abstract getSingleModifierDispatchChords(): (SingleModifierChord | null)[];
 }

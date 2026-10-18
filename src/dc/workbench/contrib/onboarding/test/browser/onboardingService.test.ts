@@ -33,12 +33,10 @@ function completedResult(outcome: OnboardingOutcome = OnboardingOutcome.Complete
 	return { outcome, shown: true, dismissReason, lastStepIndex: 0, stepCount: 1 };
 }
 
-/** A result for a degenerate run that rendered nothing (no steps / all steps skipped). */
 function notShownResult(): IOnboardingRunResult {
 	return { outcome: OnboardingOutcome.Completed, shown: false, dismissReason: OnboardingDismissReason.Completed, lastStepIndex: 0, stepCount: 0 };
 }
 
-/** Captures the names of `publicLog2` telemetry events. */
 class CapturingTelemetryService extends NullTelemetryServiceShape {
 	readonly events: string[] = [];
 	override publicLog2(eventName?: string): void {
@@ -48,7 +46,6 @@ class CapturingTelemetryService extends NullTelemetryServiceShape {
 	}
 }
 
-/** A presentation that resolves with a fixed run result. */
 class FixedResultPresentation implements IOnboardingPresentation {
 	constructor(readonly kind: string, private readonly result: IOnboardingRunResult) { }
 	async run(_scenario: IOnboardingScenario, _context: IOnboardingRunContext): Promise<IOnboardingRunResult> {
@@ -56,7 +53,6 @@ class FixedResultPresentation implements IOnboardingPresentation {
 	}
 }
 
-/** Records every scenario it renders, then resolves with a fixed outcome. */
 class RecordingPresentation implements IOnboardingPresentation {
 	readonly runs: string[] = [];
 	constructor(
@@ -71,7 +67,6 @@ class RecordingPresentation implements IOnboardingPresentation {
 	}
 }
 
-/** Blocks until the engine aborts the run (used to test shutdown behaviour). */
 class BlockingUntilAbortPresentation implements IOnboardingPresentation {
 	readonly runs: string[] = [];
 	constructor(readonly kind: string) { }
@@ -86,10 +81,6 @@ class BlockingUntilAbortPresentation implements IOnboardingPresentation {
 	}
 }
 
-/**
- * Assignment service test double that returns canned treatments and records the registered
- * telemetry filter so tests can assert which assignment-context ids would be excluded.
- */
 class FakeAssignmentService extends NullWorkbenchAssignmentService {
 	private readonly _filters: IAssignmentFilter[] = [];
 	constructor(private readonly treatments: Record<string, string | number | boolean>) {
@@ -101,7 +92,6 @@ class FakeAssignmentService extends NullWorkbenchAssignmentService {
 	override addTelemetryAssignmentFilter(filter: IAssignmentFilter): void {
 		this._filters.push(filter);
 	}
-	/** True when the given assignment-context id is currently excluded from telemetry. */
 	isExcluded(assignment: string): boolean {
 		return this._filters.some(f => f.exclude(assignment));
 	}
@@ -112,8 +102,6 @@ suite('OnboardingScenarioService', () => {
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
 	teardown(() => {
-		// The Memento maintains a static cache keyed by id; clear it so each test
-		// starts with fresh persisted state instead of leaking across tests.
 		Memento.clear(StorageScope.APPLICATION);
 	});
 
@@ -172,7 +160,6 @@ suite('OnboardingScenarioService', () => {
 		service.start();
 		await timeout(0);
 
-		// Re-evaluating (e.g. another start) must not run it again.
 		service.start();
 		await timeout(0);
 
@@ -239,7 +226,6 @@ suite('OnboardingScenarioService', () => {
 	test('runs higher-priority scenarios before lower-priority ones', async () => {
 		const order: string[] = [];
 		const presentation = new RecordingPresentation(uniqueKind(), OnboardingOutcome.Completed);
-		// Track ordering via the recorder's runs array which is appended in run().
 		registerPresentation(presentation);
 		registerScenario({ id: 'low', priority: 1, trigger: { kind: 'auto' }, presentation: { kind: presentation.kind, payload: undefined } });
 		registerScenario({ id: 'high', priority: 10, trigger: { kind: 'auto' }, presentation: { kind: presentation.kind, payload: undefined } });
@@ -330,7 +316,6 @@ suite('OnboardingScenarioService', () => {
 
 		const first = service.runScenario('inflight-1');
 		await timeout(0);
-		// Second call while the first run is still in-flight must not start again.
 		const second = service.runScenario('inflight-1');
 		await timeout(0);
 
@@ -367,7 +352,6 @@ suite('OnboardingScenarioService', () => {
 		await timeout(0);
 		await timeout(0);
 
-		// One event for the shown tour; none for the degenerate run that rendered nothing.
 		assert.deepStrictEqual(telemetry.events, ['onboarding.scenarioOutcome']);
 	});
 
@@ -381,7 +365,6 @@ suite('OnboardingScenarioService', () => {
 			presentation: { kind: presentation.kind, payload: undefined }
 		});
 
-		// Only one of the two flags resolves -> treated as not configured -> does not run.
 		const { service } = createService({}, new FakeAssignmentService({ 'exp.show': true }));
 		service.start();
 		await timeout(0);
@@ -393,7 +376,6 @@ suite('OnboardingScenarioService', () => {
 	test('an assignment-context id without the reserved prefix is rejected as inactive', async () => {
 		const presentation = new RecordingPresentation(uniqueKind());
 		registerPresentation(presentation);
-		// Misconfigured id: would never be gated by the prefix filter, so it must not run.
 		const assignment = new FakeAssignmentService({ 'exp.show': true, 'exp.id': 'newsession-2026q3' });
 		registerScenario({
 			id: 'exp-badid',
@@ -473,7 +455,6 @@ suite('OnboardingScenarioService', () => {
 		await timeout(0);
 		await timeout(0);
 
-		// No tour shown, not marked shown (re-eligible later), but the id now flows.
 		assert.deepStrictEqual(
 			{ runs: presentation.runs, shown: service.hasBeenShown('exp-control'), excluded: assignment.isExcluded('onb-tour-q3:12345') },
 			{ runs: [], shown: false, excluded: false }
@@ -483,8 +464,6 @@ suite('OnboardingScenarioService', () => {
 	test('developer mode shows an experiment scenario whose experiment is not active', async () => {
 		const presentation = new RecordingPresentation(uniqueKind());
 		registerPresentation(presentation);
-		// Neither treatment flag resolves: the experiment is inactive, so it would not run
-		// automatically — but developer mode bypasses the experiment gate.
 		const assignment = new FakeAssignmentService({});
 		registerScenario({
 			id: 'exp-dev-inactive',
@@ -498,8 +477,6 @@ suite('OnboardingScenarioService', () => {
 		await timeout(0);
 		await timeout(0);
 
-		// The tour is shown, but since the experiment is not active no telemetry gate is
-		// opened (there is no assignment-context id to flow).
 		assert.deepStrictEqual(
 			{ runs: presentation.runs, excluded: assignment.isExcluded('onb-tour-q3') },
 			{ runs: ['exp-dev-inactive'], excluded: true }
@@ -522,9 +499,6 @@ suite('OnboardingScenarioService', () => {
 		await timeout(0);
 		await timeout(0);
 
-		// Developer mode shows the tour unconditionally and never opens the telemetry
-		// gate, so the assignment-context id stays excluded even though the user is in
-		// the (active) control arm — a local preview can't affect the scorecard.
 		assert.deepStrictEqual(
 			{ runs: presentation.runs, excluded: assignment.isExcluded('onb-tour-q3') },
 			{ runs: ['exp-dev-control'], excluded: true }
@@ -542,14 +516,11 @@ suite('OnboardingScenarioService', () => {
 			presentation: { kind: presentation.kind, payload: undefined }
 		});
 
-		// First "session": control reaches would-show and opens the gate.
 		const first = createService({}, new FakeAssignmentService({ 'exp.show': false, 'exp.id': 'onb-tour-q3' }), storage);
 		first.service.start();
 		await timeout(0);
 		await timeout(0);
 
-		// Second "session" (reload) with a fresh service + assignment service: the persisted
-		// gate must immediately allow the id, even before any would-show this session.
 		const secondAssignment = new FakeAssignmentService({ 'exp.show': false, 'exp.id': 'onb-tour-q3' });
 		createService({}, secondAssignment, storage);
 
@@ -562,7 +533,6 @@ suite('OnboardingScenarioService', () => {
 		const storage = disposables.add(new InMemoryStorageService());
 		const kind = presentation.kind;
 
-		// Experiment 1: treatment. The user sees the tour and is marked shown.
 		disposables.add(onboardingScenarioRegistry.register({
 			id: 'tour',
 			experiment: { behaviorFlag: 'exp.show', assignmentContextIdFlag: 'exp.id' },
@@ -575,7 +545,6 @@ suite('OnboardingScenarioService', () => {
 		await timeout(0);
 		assert.strictEqual(first.service.hasBeenShown('tour'), true);
 
-		// Experiment 2 (new id) in a reload: already shown -> not eligible -> id stays blocked.
 		const secondAssignment = new FakeAssignmentService({ 'exp.show': true, 'exp.id': 'onb-tour-2027q1' });
 		const second = createService({}, secondAssignment, storage);
 		second.service.start();
@@ -593,20 +562,17 @@ suite('OnboardingScenarioService', () => {
 		const queued = new RecordingPresentation(uniqueKind());
 		registerPresentation(active);
 		registerPresentation(queued);
-		// `active` has higher priority so it runs first and blocks; `queued` waits.
 		registerScenario({ id: 'active', priority: 10, trigger: { kind: 'auto' }, presentation: { kind: active.kind, payload: undefined } });
 		registerScenario({ id: 'queued', priority: 1, trigger: { kind: 'auto' }, presentation: { kind: queued.kind, payload: undefined } });
 
 		const { service, lifecycle } = createService();
 		service.start();
 		await timeout(0);
-		// Only the active (blocking) scenario should have started.
 		assert.deepStrictEqual({ active: active.runs, queued: queued.runs }, { active: ['active'], queued: [] });
 
 		lifecycle.fireShutdown();
 		await timeout(0);
 
-		// The queued scenario must never have been presented.
 		assert.deepStrictEqual({ active: active.runs, queued: queued.runs }, { active: ['active'], queued: [] });
 	});
 

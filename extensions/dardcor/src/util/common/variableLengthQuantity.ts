@@ -5,7 +5,6 @@
 
 import { VSBuffer } from '../dardcor/base/common/buffer';
 
-/** Reads a 32-bit integer from the buffer */
 export function readVariableLengthQuantity(buffer: VSBuffer, offset: number): { value: number; consumed: number } {
 	let result = 0;
 	let consumed = 0;
@@ -20,7 +19,6 @@ export function readVariableLengthQuantity(buffer: VSBuffer, offset: number): { 
 	return { value: result, consumed };
 }
 
-/** Writes a 32 bit integer to the buffer */
 export function writeVariableLengthQuantity(i: number): VSBuffer {
 	if (i !== (i | 0)) {
 		throw new Error(`${i} is not an int32.`);

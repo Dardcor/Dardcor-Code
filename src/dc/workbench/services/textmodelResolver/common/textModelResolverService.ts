@@ -40,11 +40,9 @@ class ResourceModelCollection extends ReferenceCollection<Promise<IResolvedTextE
 	private async doCreateReferencedObject(key: string, skipActivateProvider?: boolean): Promise<IResolvedTextEditorModel> {
 		const resource = URI.parse(key);
 
-		// Untrack as being disposed
 		const pendingModel = this.modelsToDispose.get(key);
 		this.modelsToDispose.delete(key);
 
-		// Untitled Schema: go through untitled text service
 		if (resource.scheme === Schemas.untitled) {
 			const model = await this.textFileService.untitled.resolve({ untitledResource: resource });
 			if (this.ensureResolvedModel(model, key)) {
@@ -52,7 +50,6 @@ class ResourceModelCollection extends ReferenceCollection<Promise<IResolvedTextE
 			}
 		}
 
-		// File or remote file: go through text file service
 		if (this.fileService.hasProvider(resource)) {
 			const model = await this.textFileService.files.resolve(resource, { reason: TextFileResolveReason.REFERENCE });
 			if (this.ensureResolvedModel(model, key)) {
@@ -60,20 +57,14 @@ class ResourceModelCollection extends ReferenceCollection<Promise<IResolvedTextE
 			}
 		}
 
-		// In-Memory / Virtual documents
 		if (resource.scheme === Schemas.inMemory || this.providers.has(resource.scheme)) {
-			await this.ensureResolvedTextModelContent(resource); // throws if failing to resolve content
+			await this.ensureResolvedTextModelContent(resource);
 
 			let model: ITextEditorModel | undefined = undefined;
 			if (pendingModel) {
 				try {
-					// if we have a pending model for this key, we try to await that and prevent
-					// creating a new model so that we are not leaking models. we only do this for
-					// in-memory or virtual documents where we create models here, the others are
-					// already shared by their respective services.
 					model = await pendingModel;
 				} catch {
-					// ignore and re-create below
 				}
 			}
 
@@ -86,7 +77,6 @@ class ResourceModelCollection extends ReferenceCollection<Promise<IResolvedTextE
 			}
 		}
 
-		// Either unknown schema, or not yet registered, try to activate
 		if (!skipActivateProvider) {
 			await this.fileService.activateProvider(resource.scheme);
 
@@ -106,8 +96,6 @@ class ResourceModelCollection extends ReferenceCollection<Promise<IResolvedTextE
 
 	protected destroyReferencedObject(key: string, modelPromise: Promise<ITextEditorModel>): void {
 
-		// Track as being disposed before waiting for model to load
-		// to handle the case that the reference is acquired again
 		this.modelsToDispose.set(key, modelPromise);
 
 		(async () => {
@@ -115,31 +103,23 @@ class ResourceModelCollection extends ReferenceCollection<Promise<IResolvedTextE
 				const model = await modelPromise;
 
 				if (!this.modelsToDispose.has(key)) {
-					// return if model has been acquired again meanwhile
 					return;
 				}
 
 				if (model instanceof TextFileEditorModel) {
-					// text file models have conditions that prevent them
-					// from dispose, so we have to wait until we can dispose
 					await this.textFileService.files.canDispose(model);
 				} else if (model instanceof UntitledTextEditorModel) {
-					// untitled file models have conditions that prevent them
-					// from dispose, so we have to wait until we can dispose
 					await this.textFileService.untitled.canDispose(model);
 				}
 
 				if (!this.modelsToDispose.has(key)) {
-					// return if model has been acquired again meanwhile
 					return;
 				}
 
-				// Finally we can dispose the model
 				model.dispose();
 			} catch (error) {
-				// ignore
 			} finally {
-				this.modelsToDispose.delete(key); // Untrack as being disposed
+				this.modelsToDispose.delete(key);
 			}
 		})();
 	}
@@ -178,14 +158,12 @@ class ResourceModelCollection extends ReferenceCollection<Promise<IResolvedTextE
 
 	private async ensureResolvedTextModelContent(resource: URI): Promise<void> {
 
-		// in-memory based
 		if (resource.scheme === Schemas.inMemory) {
 			if (this.modelService.getModel(resource)) {
 				return;
 			}
 		}
 
-		// provider based
 		const providersForScheme = this.providers.get(resource.scheme) || [];
 
 		for (const provider of providersForScheme) {
@@ -202,7 +180,7 @@ export class TextModelResolverService extends Disposable implements ITextModelSe
 
 	declare readonly _serviceBrand: undefined;
 
-	private _resourceModelCollection: ResourceModelCollection & ReferenceCollection<Promise<IResolvedTextEditorModel>> /* TS Fail */ | undefined = undefined;
+	private _resourceModelCollection: ResourceModelCollection & ReferenceCollection<Promise<IResolvedTextEditorModel>> | undefined = undefined;
 	private get resourceModelCollection() {
 		if (!this._resourceModelCollection) {
 			this._resourceModelCollection = this.instantiationService.createInstance(ResourceModelCollection);
@@ -234,9 +212,6 @@ export class TextModelResolverService extends Disposable implements ITextModelSe
 
 	async createModelReference(resource: URI): Promise<IReference<IResolvedTextEditorModel>> {
 
-		// From this moment on, only operate on the canonical resource
-		// to ensure we reduce the chance of resolving the same resource
-		// with different resource forms (e.g. path casing on Windows)
 		resource = this.uriIdentityService.asCanonicalUri(resource);
 
 		return await this.asyncModelCollection.acquire(resource.toString());
@@ -248,7 +223,7 @@ export class TextModelResolverService extends Disposable implements ITextModelSe
 
 	canHandleResource(resource: URI): boolean {
 		if (this.fileService.hasProvider(resource) || resource.scheme === Schemas.untitled || resource.scheme === Schemas.inMemory) {
-			return true; // we handle file://, untitled:// and inMemory:// automatically
+			return true;
 		}
 
 		return this.resourceModelCollection.hasTextModelContentProvider(resource.scheme);

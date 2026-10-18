@@ -1,6 +1,4 @@
-#---------------------------------------------------------------------------------------------
 #  Copyright (c) Dardcor Corporation. All rights reserved.
-#---------------------------------------------------------------------------------------------
 
 $ErrorActionPreference = "Stop"
 $ROOT = Split-Path -Parent (Split-Path -Parent (Resolve-Path $MyInvocation.MyCommand.Path))

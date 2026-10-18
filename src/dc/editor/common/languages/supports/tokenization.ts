@@ -20,9 +20,6 @@ export class ParsedTokenThemeRule {
 	readonly token: string;
 	readonly index: number;
 
-	/**
-	 * -1 if not set. An or mask of `FontStyle` otherwise.
-	 */
 	readonly fontStyle: FontStyle;
 	readonly foreground: string | null;
 	readonly background: string | null;
@@ -42,9 +39,6 @@ export class ParsedTokenThemeRule {
 	}
 }
 
-/**
- * Parse a raw theme into rules.
- */
 export function parseTokenTheme(source: ITokenThemeRule[]): ParsedTokenThemeRule[] {
 	if (!source || !Array.isArray(source)) {
 		return [];
@@ -100,12 +94,8 @@ export function parseTokenTheme(source: ITokenThemeRule[]): ParsedTokenThemeRule
 	return result;
 }
 
-/**
- * Resolve rules (i.e. inheritance).
- */
 function resolveParsedTokenThemeRules(parsedThemeRules: ParsedTokenThemeRule[], customTokenColors: string[]): TokenTheme {
 
-	// Sort rules lexicographically, and then by index if necessary
 	parsedThemeRules.sort((a, b) => {
 		const r = strcmp(a.token, b.token);
 		if (r !== 0) {
@@ -114,7 +104,6 @@ function resolveParsedTokenThemeRules(parsedThemeRules: ParsedTokenThemeRule[], 
 		return a.index - b.index;
 	});
 
-	// Determine defaults
 	let defaultFontStyle = FontStyle.None;
 	let defaultForeground = '000000';
 	let defaultBackground = 'ffffff';
@@ -132,7 +121,6 @@ function resolveParsedTokenThemeRules(parsedThemeRules: ParsedTokenThemeRule[], 
 	}
 	const colorMap = new ColorMap();
 
-	// start with token colors from custom token themes
 	for (const color of customTokenColors) {
 		colorMap.getId(color);
 	}
@@ -214,9 +202,6 @@ export class TokenTheme {
 		return this._colorMap.getColorMap();
 	}
 
-	/**
-	 * used for testing purposes
-	 */
 	public getThemeTrieElement(): ExternalThemeTrieElement {
 		return this._root.toExternalThemeTrieElement();
 	}
@@ -226,7 +211,6 @@ export class TokenTheme {
 	}
 
 	public match(languageId: LanguageId, token: string): number {
-		// The cache contains the metadata without the language bits set.
 		let result = this._cache.get(token);
 		if (typeof result === 'undefined') {
 			const rule = this._match(token);
@@ -347,9 +331,6 @@ export class ThemeTrieElement {
 		this._children = new Map<string, ThemeTrieElement>();
 	}
 
-	/**
-	 * used for testing purposes
-	 */
 	public toExternalThemeTrieElement(): ExternalThemeTrieElement {
 		const children = new Map<string, ExternalThemeTrieElement>();
 		this._children.forEach((element, index) => {
@@ -384,7 +365,6 @@ export class ThemeTrieElement {
 
 	public insert(token: string, fontStyle: FontStyle, foreground: ColorId, background: ColorId): void {
 		if (token === '') {
-			// Merge into the main rule
 			this._mainRule.acceptOverwrite(fontStyle, foreground, background);
 			return;
 		}

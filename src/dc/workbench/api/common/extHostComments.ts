@@ -134,7 +134,6 @@ export function createExtHostComments(mainContext: IMainContext, commands: ExtHo
 							return arg;
 						}
 
-						// If the old comment body was a markdown string, use a markdown string here too.
 						if (typeof comment.body === 'string') {
 							comment.body = body;
 						} else {
@@ -509,10 +508,6 @@ export function createExtHostComments(mainContext: IMainContext, commands: ExtHo
 				formattedModifications.label = this.label;
 			}
 			if (modified('contextValue')) {
-				/*
-				 * null -> cleared contextValue
-				 * undefined -> no change
-				 */
 				formattedModifications.contextValue = this.contextValue ?? null;
 			}
 			if (modified('comments')) {
@@ -679,7 +674,6 @@ export function createExtHostComments(mainContext: IMainContext, commands: ExtHo
 				set commentingRangeProvider(commentingRangeProvider: vscode.CommentingRangeProvider | undefined) { that.commentingRangeProvider = commentingRangeProvider; },
 				get reactionHandler(): ReactionHandler | undefined { return that.reactionHandler; },
 				set reactionHandler(handler: ReactionHandler | undefined) { that.reactionHandler = handler; },
-				// get activeComment(): vscode.Comment | undefined { return that.activeComment; },
 				get activeCommentThread(): vscode.CommentThread | undefined { return that.activeCommentThread as vscode.CommentThread | undefined; },
 				createCommentThread(uri: vscode.Uri, range: vscode.Range | undefined, comments: vscode.Comment[]): vscode.CommentThread {
 					return that.createCommentThread(uri, range, comments).value as vscode.CommentThread;

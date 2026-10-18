@@ -69,15 +69,9 @@ export class TasksService extends DisposableStore implements ITasksService {
 		return existingTasks.some(t => this.matchesTask(t, def));
 	}
 
-	/**
-	 * This is needed because when tasks exit, they're removed from the taskExecutions, but we might want to review the output of the task
-	 * after it has exited. This allows us to get the terminal for a task definition.
-	 * @param task
-	 */
 	getTerminalForTask(taskDefinition: vscode.TaskDefinition): vscode.Terminal | undefined {
 		for (const [key, terminal] of this.latestTerminalForTaskDefinition.entries()) {
 			if (key.id) {
-				// Only some task definitions have IDs
 				const taskId = this._getTaskId(taskDefinition);
 				if (taskId === key.id) {
 					return terminal;
@@ -199,7 +193,6 @@ export class TasksService extends DisposableStore implements ITasksService {
 		const disposables = new DisposableStore();
 
 		try {
-			// todo@connor4312: is this really the best way to run a task definition?
 			let task = await this.getBestMatchingContributedTask(def);
 
 			if (token.isCancellationRequested) {
@@ -231,7 +224,7 @@ export class TasksService extends DisposableStore implements ITasksService {
 				function cancel() {
 					resolve({ status: TaskStatus.Error, error: new CancellationError() });
 					if (!adopted && execution) {
-						execution.terminate(); // Only cancel non-background tasks that we started
+						execution.terminate();
 					}
 				}
 
@@ -273,8 +266,6 @@ export class TasksService extends DisposableStore implements ITasksService {
 						}
 					}, (error: Error) => resolve({ status: TaskStatus.Error, error }));
 				} else {
-					// No provided task found? Try to run by label or definition
-					// assume whatever task is next is the one that's started
 					vscode.commands.executeCommand('workbench.action.tasks.runTask', def.label || def);
 					disposables.add(vscode.tasks.onDidStartTask(e => {
 						task = e.execution.task;

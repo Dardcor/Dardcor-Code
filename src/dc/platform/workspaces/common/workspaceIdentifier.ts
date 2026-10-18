@@ -7,9 +7,6 @@ import { hash } from '../../../base/common/hash.js';
 import { URI } from '../../../base/common/uri.js';
 import { ISingleFolderWorkspaceIdentifier, IWorkspaceIdentifier } from '../../workspace/common/workspace.js';
 
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// NOTE: DO NOT CHANGE. IDENTIFIERS HAVE TO REMAIN STABLE
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 export function getWorkspaceIdentifier(workspaceUri: URI): IWorkspaceIdentifier {
 	return {
@@ -18,9 +15,6 @@ export function getWorkspaceIdentifier(workspaceUri: URI): IWorkspaceIdentifier 
 	};
 }
 
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// NOTE: DO NOT CHANGE. IDENTIFIERS HAVE TO REMAIN STABLE
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 export function getSingleFolderWorkspaceIdentifier(folderUri: URI): ISingleFolderWorkspaceIdentifier {
 	return {

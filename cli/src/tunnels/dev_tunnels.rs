@@ -45,7 +45,6 @@ mod tunnel_flags {
 	pub const IS_LINUX: u32 = 1 << 2;
 	pub const IS_MACOS: u32 = 1 << 3;
 
-	/// Creates a flag string for the tunnel
 	pub fn create(log: &log::Logger) -> String {
 		let mut flags = 0;
 
@@ -94,16 +93,11 @@ impl PersistedTunnel {
 
 #[allow(clippy::manual_async_fn)]
 trait AccessTokenProvider: Send + Sync {
-	/// Gets the current access token.
 	fn refresh_token(&self) -> impl Future<Output = Result<String, WrappedError>> + Send;
 
-	/// Maintains the stored credential by refreshing it against the service
-	/// to ensure its stays current. Returns a future that should be polled and
-	/// only completes if a refresh fails in a consistent way.
 	fn keep_alive(&self) -> BoxFuture<'static, Result<(), AnyError>>;
 }
 
-/// Access token provider that provides a fixed token without refreshing.
 struct StaticAccessTokenProvider(String);
 
 impl StaticAccessTokenProvider {
@@ -123,7 +117,6 @@ impl AccessTokenProvider for StaticAccessTokenProvider {
 	}
 }
 
-/// Access token provider that looks up the token from the tunnels API.
 struct LookupAccessTokenProvider {
 	auth: auth::Auth,
 	client: TunnelManagementClient,
@@ -193,23 +186,18 @@ pub struct DevTunnels {
 	tag: &'static str,
 }
 
-/// Representation of a tunnel returned from the `start` methods.
 pub struct ActiveTunnel {
-	/// Name of the tunnel
 	pub name: String,
-	/// Underlying dev tunnels ID
 	pub id: String,
 	manager: ActiveTunnelManager,
 }
 
 impl ActiveTunnel {
-	/// Closes and unregisters the tunnel.
 	pub async fn close(&mut self) -> Result<(), AnyError> {
 		self.manager.kill().await?;
 		Ok(())
 	}
 
-	/// Forwards a port to local connections.
 	pub async fn add_port_direct(
 		&mut self,
 		port_number: u16,
@@ -218,7 +206,6 @@ impl ActiveTunnel {
 		Ok(port)
 	}
 
-	/// Forwards a port over TCP.
 	pub async fn add_port_tcp(
 		&self,
 		port_number: u16,
@@ -231,13 +218,11 @@ impl ActiveTunnel {
 		Ok(())
 	}
 
-	/// Removes a forwarded port TCP.
 	pub async fn remove_port(&self, port_number: u16) -> Result<(), AnyError> {
 		self.manager.remove_port(port_number).await?;
 		Ok(())
 	}
 
-	/// Gets the template string for forming forwarded port web URIs..
 	pub fn get_port_format(&self) -> Result<String, AnyError> {
 		if let Some(details) = &*self.manager.endpoint_rx.borrow() {
 			return details
@@ -253,13 +238,11 @@ impl ActiveTunnel {
 		Err(CodeError::NoTunnelEndpoint.into())
 	}
 
-	/// Gets the public URI on which a forwarded port can be access in browser.
 	pub fn get_port_uri(&self, port: u16) -> Result<String, AnyError> {
 		self.get_port_format()
 			.map(|f| f.replace(PORT_TOKEN, &port.to_string()))
 	}
 
-	/// Gets an object to read the current tunnel status.
 	pub fn status(&self) -> StatusLock {
 		self.manager.get_status()
 	}
@@ -305,24 +288,18 @@ static HOST_TUNNEL_REQUEST_OPTIONS: LazyLock<TunnelRequestOptions> =
 		..Default::default()
 	});
 
-/// Structure optionally passed into `start_existing_tunnel` to forward an existing tunnel.
 #[derive(Clone, Debug)]
 pub struct ExistingTunnel {
-	/// Name you'd like to assign preexisting tunnel to use to connect to the VS Code Server
 	pub tunnel_name: Option<String>,
 
-	/// Token to authenticate and use preexisting tunnel
 	pub host_token: String,
 
-	/// Id of preexisting tunnel to use to connect to the VS Code Server
 	pub tunnel_id: String,
 
-	/// Cluster of preexisting tunnel to use to connect to the VS Code Server
 	pub cluster: String,
 }
 
 impl DevTunnels {
-	/// Creates a new DevTunnels client used for port forwarding.
 	pub fn new_port_forwarding(
 		log: &log::Logger,
 		auth: auth::Auth,
@@ -340,7 +317,6 @@ impl DevTunnels {
 		}
 	}
 
-	/// Creates a new DevTunnels client used for the Remote Tunnels extension to access the VS Code Server.
 	pub fn new_remote_tunnel(
 		log: &log::Logger,
 		auth: auth::Auth,
@@ -375,19 +351,12 @@ impl DevTunnels {
 		Ok(())
 	}
 
-	/// Renames the current tunnel to the new name.
 	pub async fn rename_tunnel(&mut self, name: &str) -> Result<(), AnyError> {
 		self.update_tunnel_name(self.launcher_tunnel.load(), name)
 			.await
 			.map(|_| ())
 	}
 
-	/// Connects to a tunnel by name as a client, returning a raw connection
-	/// to the tunnel's agent host port. The caller is responsible for doing
-	/// the WebSocket upgrade over the returned stream.
-	///
-	/// The returned [`ClientRelayHandle`] must be kept alive for the duration
-	/// of the connection; dropping it closes the underlying SSH session.
 	pub async fn connect_to_tunnel_port(
 		&mut self,
 		name: &str,
@@ -425,7 +394,6 @@ impl DevTunnels {
 		Ok((port_conn, handle))
 	}
 
-	/// Looks up a tunnel by name with connect-scoped access token.
 	async fn get_tunnel_with_connect_scope(&self, name: &str) -> Result<Tunnel, AnyError> {
 		let existing: Vec<Tunnel> = self
 			.client
@@ -459,8 +427,6 @@ impl DevTunnels {
 			.map_err(|e| wrap(e, "failed to lookup tunnel").into())
 	}
 
-	/// Updates the name of the existing persisted tunnel to the new name.
-	/// Gracefully creates a new tunnel if the previous one was deleted.
 	async fn update_tunnel_name(
 		&mut self,
 		persisted: Option<PersistedTunnel>,
@@ -506,15 +472,12 @@ impl DevTunnels {
 		Ok((updated_tunnel, persisted))
 	}
 
-	/// Gets the persisted tunnel from the service, or creates a new one.
-	/// If `create_with_new_name` is given, the new tunnel has that name
-	/// instead of the one previously persisted.
 	async fn get_or_create_tunnel(
 		&mut self,
 		persisted: PersistedTunnel,
 		create_with_new_name: Option<&str>,
 		options: &TunnelRequestOptions,
-	) -> Result<(Tunnel, PersistedTunnel, /* is_new */ bool), AnyError> {
+	) -> Result<(Tunnel, PersistedTunnel, bool), AnyError> {
 		let tunnel_lookup = self.client.get_tunnel(&persisted.locator(), options).await;
 
 		match tunnel_lookup {
@@ -532,8 +495,6 @@ impl DevTunnels {
 		}
 	}
 
-	/// Starts a new tunnel for the code server on the port. Unlike `start_new_tunnel`,
-	/// this attempts to reuse or create a tunnel of a preferred name or of a generated friendly tunnel name.
 	pub async fn start_new_launcher_tunnel(
 		&mut self,
 		preferred_name: Option<&str>,
@@ -594,7 +555,6 @@ impl DevTunnels {
 				.map_err(|e| wrap(e, "failed to delete port"))?;
 		}
 
-		// cleanup any old trailing tunnel endpoints
 		for endpoint in tunnel.endpoints {
 			let fut = self.client.delete_tunnel_endpoints(
 				&locator,
@@ -697,7 +657,6 @@ impl DevTunnels {
 		Ok((pt, tunnel))
 	}
 
-	/// Gets the expected tunnel tags
 	fn get_labels(&self, name: &str) -> Vec<String> {
 		vec![
 			name.to_string(),
@@ -707,8 +666,6 @@ impl DevTunnels {
 		]
 	}
 
-	/// Ensures the tunnel contains a tag for the current PROTCOL_VERSION, and no
-	/// other version tags.
 	async fn sync_tunnel_tags(
 		&self,
 		client: &TunnelManagementClient,
@@ -740,8 +697,6 @@ impl DevTunnels {
 		result.map_err(|e| wrap(e, "tunnel tag update failed").into())
 	}
 
-	/// Tries to delete an unused tunnel, and then creates a tunnel with the
-	/// given `new_name`.
 	async fn try_recycle_tunnel(&mut self) -> Result<bool, AnyError> {
 		trace!(
 			self.log,
@@ -875,7 +830,6 @@ impl DevTunnels {
 		}
 	}
 
-	/// Hosts an existing tunnel, where the tunnel ID and host token are given.
 	pub async fn start_existing_tunnel(
 		&mut self,
 		tunnel: ExistingTunnel,
@@ -1014,12 +968,10 @@ impl ActiveTunnelManager {
 		}
 	}
 
-	/// Gets a copy of the current tunnel status information
 	pub fn get_status(&self) -> StatusLock {
 		self.status.clone()
 	}
 
-	/// Adds a port for TCP/IP forwarding.
 	pub async fn add_port_tcp(
 		&self,
 		port_number: u16,
@@ -1040,7 +992,6 @@ impl ActiveTunnelManager {
 		Ok(())
 	}
 
-	/// Adds a port for TCP/IP forwarding.
 	pub async fn add_port_direct(
 		&self,
 		port_number: u16,
@@ -1058,7 +1009,6 @@ impl ActiveTunnelManager {
 			.map_err(|e| wrap(e, "error adding port to relay"))
 	}
 
-	/// Removes a port from TCP/IP forwarding.
 	pub async fn remove_port(&self, port_number: u16) -> Result<(), WrappedError> {
 		self.relay
 			.lock()
@@ -1068,8 +1018,6 @@ impl ActiveTunnelManager {
 			.map_err(|e| wrap(e, "error remove port from relay"))
 	}
 
-	/// Gets the most recent details from the tunnel process. Returns None if
-	/// the process exited before providing details.
 	pub async fn get_endpoint(&mut self) -> Result<TunnelEndpoint, AnyError> {
 		loop {
 			if let Some(details) = &*self.endpoint_rx.borrow() {
@@ -1082,8 +1030,6 @@ impl ActiveTunnelManager {
 		}
 	}
 
-	/// Kills the process, and waits for it to exit.
-	/// See https://tokio.rs/tokio/topics/shutdown#waiting-for-things-to-finish-shutting-down for how this works
 	pub async fn kill(&mut self) -> Result<(), AnyError> {
 		if let Some(tx) = self.close_tx.take() {
 			drop(tx);
@@ -1133,8 +1079,6 @@ impl ActiveTunnelManager {
 				}
 			};
 
-			// we don't bother making a client that can refresh the token, since
-			// the tunnel won't be able to host as soon as the access token expires.
 			let handle_res = {
 				let mut relay = relay.lock().await;
 				relay
@@ -1156,8 +1100,6 @@ impl ActiveTunnelManager {
 			endpoint_tx.send(Some(Ok(handle.endpoint().clone()))).ok();
 
 			tokio::select! {
-				// error is mapped like this prevent it being used across an await,
-				// which Rust dislikes since there's a non-sendable dyn Error in there
 				res = (&mut handle).map_err(|e| wrap(e, "error from tunnel connection")) => {
 					if let Err(e) = res {
 						fail!(e, "Tunnel exited unexpectedly, reconnecting");
@@ -1213,8 +1155,6 @@ impl Backoff {
 	}
 }
 
-/// Cleans up the hostname so it can be used as a tunnel name.
-/// See TUNNEL_NAME_PATTERN in the tunnels SDK for the rules we try to use.
 fn clean_hostname_for_tunnel(hostname: &str) -> String {
 	let mut out = String::new();
 	for char in hostname.chars().take(60) {
@@ -1231,7 +1171,7 @@ fn clean_hostname_for_tunnel(hostname: &str) -> String {
 
 	let trimmed = out.trim_matches('-');
 	if trimmed.len() < 2 {
-		"remote-machine".to_string() // placeholder if the result was empty
+		"remote-machine".to_string()
 	} else {
 		trimmed.to_owned()
 	}
@@ -1265,8 +1205,6 @@ fn privacy_to_tunnel_acl(privacy: PortPrivacy) -> TunnelAccessControl {
 				subjects: vec![],
 				scopes: vec![TUNNEL_ACCESS_SCOPES_CONNECT.to_string()],
 			},
-			// Ensure private ports are actually private and do not inherit any
-			// default visibility that may be set on the tunnel:
 			PortPrivacy::Private => tunnels::contracts::TunnelAccessControlEntry {
 				kind: tunnels::contracts::TunnelAccessControlEntryType::Anonymous,
 				provider: None,

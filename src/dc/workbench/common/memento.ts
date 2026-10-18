@@ -129,10 +129,6 @@ class ScopedMemento<T> {
 		try {
 			return this.storageService.getObject(this.id, this.scope, {});
 		} catch (error) {
-			// Seeing reports from users unable to open editors
-			// from memento parsing exceptions. Log the contents
-			// to diagnose further
-			// https://github.com/microsoft/vscode/issues/102251
 			onUnexpectedError(`[memento]: failed to parse contents: ${error} (id: ${this.id}, scope: ${this.scope}, contents: ${this.storageService.get(this.id, this.scope)})`);
 		}
 
@@ -145,12 +141,10 @@ class ScopedMemento<T> {
 
 	reload(): void {
 
-		// Clear old
 		for (const name of Object.getOwnPropertyNames(this.mementoObj)) {
 			delete this.mementoObj[name as keyof Partial<T>];
 		}
 
-		// Assign new
 		Object.assign(this.mementoObj, this.doLoad());
 	}
 

@@ -110,11 +110,8 @@ export class AsyncSchedulerProcessor extends Disposable {
 	}
 
 	private schedule() {
-		// This allows promises created by a previous task to settle and schedule tasks before the next task is run.
-		// Tasks scheduled in those promises might have to run before the current next task.
 		Promise.resolve().then(() => {
 			if ('setImmediate' in globalThis) {
-				// This is significantly faster when running tests.
 				(globalThis as any).setImmediate(() => this.process());
 			} else if (setTimeout0IsFaster) {
 				setTimeout0(() => this.process());
@@ -183,7 +180,6 @@ export async function runWithFakedTimers<T>(options: { useFakeTimers?: boolean; 
 		globalInstallDisposable.dispose();
 
 		try {
-			// We process the remaining scheduled tasks.
 			// The global override is no longer active, so during this, no more tasks will be scheduled.
 			await schedulerProcessor.waitForEmptyQueue();
 		} finally {
@@ -296,13 +292,10 @@ function createDateClass(scheduler: Scheduler): DateConstructor {
 	const OriginalDate = originalGlobalValues.Date;
 
 	function SchedulerDate(this: any, ...args: any): any {
-		// the Date constructor called as a function, ref Ecma-262 Edition 5.1, section 15.9.2.
-		// This remains so in the 10th edition of 2019 as well.
 		if (!(this instanceof SchedulerDate)) {
 			return new OriginalDate(scheduler.now).toString();
 		}
 
-		// if Date is called as a constructor with 'new' keyword
 		if (args.length === 0) {
 			return new OriginalDate(scheduler.now);
 		}

@@ -72,8 +72,6 @@ suite('validatePackageLocks', () => {
 		};
 		const packageJson = { dependencies: { canary: '^1.0.79-2', unchanged: '^3.0.0' } };
 
-		// The changed dependency is pinned to the committed version, so regeneration cannot drift to a
-		// newer release; the untouched dependency keeps its declared range.
 		assert.deepStrictEqual(pinChangedPackages(packageJson, findChangedPackageKeys(base, submitted), submitted), {
 			dependencies: { canary: '1.0.79-2', unchanged: '^3.0.0' }
 		});

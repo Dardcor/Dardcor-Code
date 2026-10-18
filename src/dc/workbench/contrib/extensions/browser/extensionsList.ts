@@ -176,7 +176,6 @@ export class Renderer implements IPagedRenderer<IExtension, ITemplateData> {
 		data.root.setAttribute('data-extension-id', extension.identifier.id);
 
 		if (extension.state !== ExtensionState.Uninstalled && !extension.server) {
-			// Get the extension if it is installed and has no server information
 			extension = this.extensionsWorkbenchService.local.filter(e => e.server === extension.server && areSameExtensions(e.identifier, extension.identifier))[0] || extension;
 		}
 

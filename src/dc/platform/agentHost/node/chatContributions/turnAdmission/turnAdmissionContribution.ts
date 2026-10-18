@@ -9,16 +9,6 @@ import { type IAgentHostChatContribution, type IAgentHostChatContributionContext
 import { isChatReadOnly, SessionStatus } from '../../../common/state/sessionState.js';
 import { AgentHostStateManager, IAgentHostStateManager } from '../../agentHostStateManager.js';
 
-/**
- * Rejects requests that target chats made read-only directly or by session archival.
- *
- * Read-only chats reject user-dispatched turns. `interactivity` is the general signal
- * (e.g. subagent worker chats are `ReadOnly`), and an archived session downgrades its
- * interactive chats to read-only too — so enforce off the chat's effective interactivity
- * rather than special-casing archived. This is the enforcement behind the UI hiding the
- * composer, so a buggy or remote client cannot run work in a read-only or archived session
- * (which may no longer have its isolated worktree on disk).
- */
 export class TurnAdmissionContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'turnAdmission';

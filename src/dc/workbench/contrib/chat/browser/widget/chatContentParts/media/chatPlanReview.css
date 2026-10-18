@@ -12,14 +12,10 @@
 	gap: 8px;
 }
 
-/* When the part is docked inside the input container, drop our own
- * margin-bottom so it sits flush against the input. */
 .interactive-session .interactive-input-part .chat-plan-review-container > .chat-confirmation-widget2.chat-plan-review {
 	margin-bottom: 0;
 }
 
-/* Root container uses .chat-confirmation-widget2 styles for title / buttons,
- * plus our own layout and box overrides for the plan review widget. */
 .interactive-session .chat-plan-review-container {
 	display: flex;
 	flex-direction: column;
@@ -40,13 +36,11 @@
 	border-color: var(--vscode-focusBorder);
 }
 
-/* In the Agents window / editor the surface is the editor background. */
 .agent-sessions-workbench .interactive-session .chat-plan-review-container > .chat-confirmation-widget2.chat-plan-review,
 .editor-instance .interactive-session .chat-plan-review-container > .chat-confirmation-widget2.chat-plan-review {
 	background-color: var(--vscode-editor-background);
 }
 
-/* ---------- Title bar ---------- */
 .interactive-session .chat-plan-review-container .chat-plan-review-title {
 	display: flex;
 	align-items: center;
@@ -92,15 +86,11 @@
 	flex-shrink: 0;
 }
 
-/* Icon-only square buttons (restore, chevron, edit): back to the default 22x22 square. */
 .interactive-session .chat-plan-review-container .monaco-button.chat-plan-review-title-icon-button {
 	width: 22px;
 	padding: 0;
 }
 
-/* Inline slot in the title bar. The action buttons (Approve + Reject) get
- * re-rendered here when the widget is collapsed so the user can act on the
- * plan without expanding it. */
 .interactive-session .chat-plan-review-container .chat-plan-review-inline-actions {
 	display: none;
 	align-items: center;
@@ -114,9 +104,6 @@
 	display: flex;
 }
 
-/* Action button row sizing — shared between the inline (collapsed) action
- * slot in the title bar and the footer. Keep these two rule sets together so
- * any tweaks stay in sync. */
 .interactive-session .chat-plan-review-container .chat-plan-review-inline-actions .monaco-button,
 .interactive-session .chat-plan-review-container .chat-plan-review-footer .monaco-button {
 	width: auto;
@@ -143,10 +130,6 @@
 	padding: 0 4px;
 }
 
-/* The default-colors separator has `padding: 4px 0` plus 1px top/bottom
- * borders; with content-box sizing it would visually overflow the 22px
- * dropdown wrapper and make the chevron half look taller than the primary
- * button. Force border-box and a fixed height so it matches. */
 .interactive-session .chat-plan-review-container .chat-plan-review-inline-actions .monaco-button-dropdown > .monaco-button-dropdown-separator,
 .interactive-session .chat-plan-review-container .chat-plan-review-footer .monaco-button-dropdown > .monaco-button-dropdown-separator {
 	box-sizing: border-box;
@@ -154,19 +137,11 @@
 	padding: 3px 0;
 }
 
-/* ---------- Scrollable markdown body ----------
- * Mirrors the flex + max-height chain used by
- * chatToolConfirmationCarouselPart so the DomScrollableElement has something
- * to clip and display its scrollbar against. DomScrollableElement sets the
- * inner element's `overflow: hidden` inline, so we don't set overflow here. */
 .interactive-session .chat-plan-review-container .chat-confirmation-widget-message-scrollable.chat-plan-review-body-scrollable {
 	flex: 1 1 auto;
 	min-height: 0;
 }
 
-/* The inner element must fill the wrapper exactly — `DomScrollableElement`
- * measures `clientHeight` against it, so a taller layout height would break
- * scrollbar geometry once the feedback section claims part of the widget. */
 .interactive-session .chat-plan-review-container .chat-confirmation-widget-message.chat-plan-review-body {
 	padding: 6px 12px;
 	background: transparent;
@@ -194,7 +169,6 @@
 	color: var(--vscode-textLink-activeForeground);
 }
 
-/* ---------- Feedback section (fixed; outside scroll) ---------- */
 .interactive-session .chat-plan-review-container .chat-plan-review-feedback {
 	display: flex;
 	flex-direction: column;
@@ -219,7 +193,6 @@
 	color: var(--vscode-descriptionForeground);
 }
 
-/* Textarea styled the same as the question carousel freeform textarea. */
 .interactive-session .chat-plan-review-container .chat-plan-review-feedback-textarea {
 	width: 100%;
 	min-height: 24px;
@@ -246,7 +219,6 @@
 	color: var(--vscode-input-placeholderForeground);
 }
 
-/* ---------- Inline comments list (anchored feedback captured from editor) ---------- */
 .interactive-session .chat-plan-review-container .chat-plan-review-comments-list-scrollable {
 	margin-bottom: 2px;
 }
@@ -335,7 +307,6 @@
 	text-overflow: ellipsis;
 }
 
-/* ---------- Feedback header actions (Back, Clear All) ---------- */
 .interactive-session .chat-plan-review-container .chat-plan-review-feedback-header-actions {
 	display: flex;
 	align-items: center;
@@ -352,7 +323,6 @@
 	height: 22px;
 }
 
-/* ---------- Footer buttons ---------- */
 .interactive-session .chat-plan-review-container > .chat-confirmation-widget2.chat-plan-review > .chat-confirmation-widget-buttons.chat-plan-review-footer {
 	justify-content: flex-start;
 	border-top: 1px solid var(--vscode-chat-requestBorder);
@@ -366,7 +336,6 @@
 	align-items: center;
 }
 
-/* ---------- Collapsed state ---------- */
 .interactive-session .chat-plan-review-container.chat-plan-review-collapsed > .chat-confirmation-widget2.chat-plan-review > .chat-confirmation-widget-message-scrollable,
 .interactive-session .chat-plan-review-container.chat-plan-review-collapsed > .chat-confirmation-widget2.chat-plan-review > .chat-plan-review-feedback,
 .interactive-session .chat-plan-review-container.chat-plan-review-collapsed > .chat-confirmation-widget2.chat-plan-review > .chat-confirmation-widget-buttons {
@@ -377,7 +346,6 @@
 	border-bottom: none;
 }
 
-/* ---------- Submitted / used state ---------- */
 .interactive-session .chat-plan-review-container.chat-plan-review-used > .chat-confirmation-widget2.chat-plan-review > .chat-plan-review-feedback,
 .interactive-session .chat-plan-review-container.chat-plan-review-used > .chat-confirmation-widget2.chat-plan-review > .chat-confirmation-widget-buttons {
 	display: none;

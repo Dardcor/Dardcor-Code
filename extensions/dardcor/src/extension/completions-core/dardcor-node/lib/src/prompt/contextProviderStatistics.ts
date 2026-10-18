@@ -68,7 +68,6 @@ export class PerCompletionContextProviderStatistics {
 
 	public opportunityId: string | undefined;
 
-	// Keyed by the providerId, contains an array of tuples [context item, expectation]
 	protected _expectations = new Map<string, [SupportedContextItemWithId, PromptExpectation][]>();
 	protected _lastResolution = new Map<string, ResolutionStatus>();
 	protected _statistics = new Map<string, ContextUsageStatistics>();
@@ -147,7 +146,6 @@ export class PerCompletionContextProviderStatistics {
 					if (itemStatistics === undefined) {
 						providerUsageDetails.push({
 							...itemDetails,
-							// In this case, the item didn't make to elision, despite being expected.
 							usage: 'error',
 						});
 					} else {
@@ -183,7 +181,6 @@ export class PerCompletionContextProviderStatistics {
 				});
 			}
 		} finally {
-			// Remove expectations and resolutions no matter what happens
 			this.clearExpectations();
 			this._lastResolution.clear();
 		}

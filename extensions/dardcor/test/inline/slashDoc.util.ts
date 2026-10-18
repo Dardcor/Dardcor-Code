@@ -24,9 +24,6 @@ export function assertDocLines(fileContents: string | string[], line: string, li
 
 }
 
-/**
- * Golang & Ruby use inline comments for doc comments, ie golang uses `//` both for implementation & doc comments
- */
 export function assertDocLinesForInlineComments(fileContents: string | string[], line: string, docCommentPrefix: string) {
 
 	const fileLines = (Array.isArray(fileContents)) ? fileContents : fileContents.split('\n');

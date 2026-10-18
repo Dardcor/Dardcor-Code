@@ -35,7 +35,6 @@ function getRgArgs(config: IFileQuery, folderQuery: IFolderQuery, includePattern
 		args.push('--ignore-file-case-insensitive');
 	}
 
-	// includePattern can't have siblingClauses
 	foldersToIncludeGlobs([folderQuery], includePattern, false).forEach(globArg => {
 		const inclusion = anchorGlob(globArg);
 		args.push('-g', inclusion);
@@ -59,13 +58,11 @@ function getRgArgs(config: IFileQuery, folderQuery: IFolderQuery, includePattern
 		}
 	});
 	if (folderQuery.disregardIgnoreFiles !== false) {
-		// Don't use .gitignore or .ignore
 		args.push('--no-ignore');
 	} else if (folderQuery.disregardParentIgnoreFiles !== false) {
 		args.push('--no-ignore-parent');
 	}
 
-	// Follow symlinks
 	if (!folderQuery.ignoreSymlinks) {
 		args.push('--follow');
 	}
@@ -136,8 +133,6 @@ function globExprsToRgGlobs(patterns: glob.IExpression, folder?: string, exclude
 			const value = patterns[key];
 			key = trimTrailingSlash(folder ? getAbsoluteGlob(folder, key) : key);
 
-			// glob.ts requires forward slashes, but a UNC path still must start with \\
-			// #38165 and #38151
 			if (key.startsWith('\\\\')) {
 				key = '\\\\' + key.substr(2).replace(/\\/g, '/');
 			} else {
@@ -146,7 +141,6 @@ function globExprsToRgGlobs(patterns: glob.IExpression, folder?: string, exclude
 
 			if (typeof value === 'boolean' && value) {
 				if (key.startsWith('\\\\')) {
-					// Absolute globs UNC paths don't work properly, see #58758
 					key += '**';
 				}
 
@@ -159,12 +153,6 @@ function globExprsToRgGlobs(patterns: glob.IExpression, folder?: string, exclude
 	return { globArgs, siblingClauses };
 }
 
-/**
- * Resolves a glob like "node_modules/**" in "/foo/bar" to "/foo/bar/node_modules/**".
- * Special cases C:/foo paths to write the glob like /foo instead - see https://github.com/BurntSushi/ripgrep/issues/530.
- *
- * Exported for testing
- */
 export function getAbsoluteGlob(folder: string, key: string): string {
 	return path.isAbsolute(key) ?
 		key :

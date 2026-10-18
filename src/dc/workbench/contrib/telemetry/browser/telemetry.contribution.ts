@@ -139,14 +139,11 @@ export class TelemetryContribution extends Disposable implements IWorkbenchContr
 			startupKind: lifecycleService.startupKind
 		});
 
-		// Error Telemetry
 		this._register(new ErrorTelemetry(telemetryService));
 
-		//  Files Telemetry
 		this._register(textFileService.files.onDidResolve(e => this.onTextFileModelResolved(e)));
 		this._register(textFileService.files.onDidSave(e => this.onTextFileModelSaved(e)));
 
-		// Lifecycle
 		this._register(lifecycleService.onDidShutdown(() => this.dispose()));
 
 		if (supportsTelemetry(productService, environmentService)) {
@@ -187,17 +184,14 @@ export class TelemetryContribution extends Disposable implements IWorkbenchContr
 			return 'global-settings';
 		}
 
-		// Check for keybindings file
 		if (isEqual(resource, this.userDataProfileService.currentProfile.keybindingsResource)) {
 			return 'keybindings';
 		}
 
-		// Check for snippets
 		if (isEqualOrParent(resource, this.userDataProfileService.currentProfile.snippetsHome)) {
 			return 'snippets';
 		}
 
-		// Check for workspace settings file
 		const folders = this.contextService.getWorkspace().folders;
 		for (const folder of folders) {
 			if (isEqualOrParent(resource, folder.toResource('.vscode'))) {
@@ -213,7 +207,6 @@ export class TelemetryContribution extends Disposable implements IWorkbenchContr
 
 	private getTelemetryData(resource: URI, reason?: number): TelemetryData {
 		let ext = extname(resource);
-		// Remove query parameters from the resource extension
 		const queryStringLocation = ext.indexOf('?');
 		ext = queryStringLocation !== -1 ? ext.substr(0, queryStringLocation) : ext;
 		const fileName = basename(resource);
@@ -305,9 +298,6 @@ class ConfigurationTelemetryContribution extends Disposable implements IWorkbenc
 		}
 	}
 
-	/**
-	 * Report value of a setting only if it is an enum, boolean, or number or an array of those.
-	 */
 	private getValueToReport(key: string, target: ConfigurationTarget.USER_LOCAL | ConfigurationTarget.WORKSPACE): string | undefined {
 		const inpsectData = this.configurationService.inspect(key);
 		const value = target === ConfigurationTarget.USER_LOCAL ? inpsectData.user?.value : inpsectData.workspace?.value;

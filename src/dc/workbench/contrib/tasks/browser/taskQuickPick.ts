@@ -62,7 +62,6 @@ export class TaskQuickPick extends Disposable {
 	}
 
 	private _showDetail(): boolean {
-		// Ensure invalid values get converted into boolean values
 		return !!this._configurationService.getValue(QUICKOPEN_DETAIL_CONFIG);
 	}
 
@@ -185,7 +184,6 @@ export class TaskQuickPick extends Disposable {
 		const configuredTasks: (Task | ConfiguringTask)[] = this._handleFolderTaskResult(await this._taskService.getWorkspaceTasks());
 		const extensionTaskTypes = this._taskService.taskTypes();
 		this._topLevelEntries = [];
-		// Dedupe will update recent tasks if they've changed in tasks.json.
 		const dedupeAndPrune = this._dedupeConfiguredAndRecent(recentTasks, configuredTasks);
 		const dedupedConfiguredTasks: (Task | ConfiguringTask)[] = dedupeAndPrune.configuredTasks;
 		recentTasks = dedupeAndPrune.recentTasks;
@@ -254,7 +252,6 @@ export class TaskQuickPick extends Disposable {
 					try {
 						canOpenConfig = await this._taskService.openConfig(task);
 					} catch (e) {
-						// do nothing.
 					}
 					if (!canOpenConfig) {
 						this._taskService.customize(task, undefined, true);
@@ -267,7 +264,6 @@ export class TaskQuickPick extends Disposable {
 		}
 		let firstLevelTask: Task | ConfiguringTask | string | undefined | null = startAtType;
 		if (!firstLevelTask) {
-			// First show recent tasks configured tasks. Other tasks will be available at a second level
 			const topLevelEntriesResult = await this.getTopLevelEntries(defaultEntry);
 			if (topLevelEntriesResult.isSingleConfigured && this._configurationService.getValue<boolean>(QUICKOPEN_SKIP_CONFIG)) {
 				disposables.dispose();
@@ -284,9 +280,7 @@ export class TaskQuickPick extends Disposable {
 					return undefined;
 				}
 				const selectedEntry = await this.doPickerSecondLevel(picker, disposables, firstLevelTask);
-				// Proceed to second level of quick pick
 				if (selectedEntry && !selectedEntry.settingType && selectedEntry.task === null) {
-					// The user has chosen to go back to the first level
 					picker.value = '';
 					firstLevelTask = await this._doPickerFirstLevel(picker, (await this.getTopLevelEntries(defaultEntry)).entries, disposables);
 				} else if (selectedEntry && Types.isString(selectedEntry.settingType)) {

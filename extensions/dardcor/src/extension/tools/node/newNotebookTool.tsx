@@ -23,10 +23,9 @@ import { NewFilesLocationHint } from '../../prompts/node/panel/editCodePrompt';
 import { NewNotebookCodeGenerationPromptState, NewNotebookPlanningPrompt } from '../../prompts/node/panel/newNotebook';
 import { NotebookXmlFormatPrompt } from '../../prompts/node/panel/notebookEditCodePrompt';
 import { ToolName } from '../common/toolNames';
-import { CopilotToolMode, ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { AgentToolMode, IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
-export class NewNotebookTool implements ICopilotTool<IBuildPromptContext> {
-	// Make sure this matches the name in the ToolName enum and package.json
+export class NewNotebookTool implements IAgentTool<IBuildPromptContext> {
 	public static readonly toolName = ToolName.CreateNewJupyterNotebook;
 
 	private _input: IBuildPromptContext | undefined;
@@ -47,7 +46,6 @@ export class NewNotebookTool implements ICopilotTool<IBuildPromptContext> {
 		let failed = false;
 		let outcome: 'failedToCreatePlanningEndpoint' | 'failedToRenderPlanningPrompt' | 'failedToMakePlanningRequest' | 'failedToRenderNewNotebookPrompt' = 'failedToCreatePlanningEndpoint';
 		try {
-			// Get the endpoint
 			const planningEndpoint = await this.endpointProvider.getChatEndpoint(options.model || 'dardcor-utility');
 			const originalCreateNotebookQuery = `Create notebook: ${this._input?.query ?? options.input.query}`;
 			const mockContext: IBuildPromptContext = {
@@ -58,7 +56,6 @@ export class NewNotebookTool implements ICopilotTool<IBuildPromptContext> {
 
 			this._input?.stream?.progress(l10n.t("Planning ..."));
 
-			// planning outline stage
 			outcome = 'failedToRenderPlanningPrompt';
 			const { messages: planningMessages } = await renderPromptElement(
 				this.instantiationService,
@@ -84,7 +81,6 @@ export class NewNotebookTool implements ICopilotTool<IBuildPromptContext> {
 				]);
 			}
 
-			// parse outline, pass to newnotebook command
 			const outline = extractNotebookOutline(planningResponse.value);
 			if (!outline) {
 				this.sendTelemetry('noOutline', options);
@@ -93,7 +89,6 @@ export class NewNotebookTool implements ICopilotTool<IBuildPromptContext> {
 				]);
 			}
 
-			// Return message to Model asking it to create the notebook using existing tools.
 			outcome = 'failedToRenderNewNotebookPrompt';
 			return new ExtendedLanguageModelToolResult([
 				new LanguageModelPromptTsxPart(
@@ -106,8 +101,6 @@ export class NewNotebookTool implements ICopilotTool<IBuildPromptContext> {
 							originalCreateNotebookQuery,
 							availableTools: this._input.tools?.availableTools,
 						},
-						// If we are not called with tokenization options, have _some_ fake tokenizer
-						// otherwise we end up returning the entire document
 						options.tokenizationOptions ?? {
 							tokenBudget: 1000,
 							countTokens: (t) => Promise.resolve(t.length * 3 / 4)
@@ -129,7 +122,7 @@ export class NewNotebookTool implements ICopilotTool<IBuildPromptContext> {
 		}
 	}
 
-	async resolveInput(input: IBuildPromptContext, promptContext: IBuildPromptContext, mode: CopilotToolMode): Promise<IBuildPromptContext> {
+	async resolveInput(input: IBuildPromptContext, promptContext: IBuildPromptContext, mode: AgentToolMode): Promise<IBuildPromptContext> {
 		this._input = promptContext;
 
 		return input;
@@ -137,16 +130,6 @@ export class NewNotebookTool implements ICopilotTool<IBuildPromptContext> {
 	async sendTelemetry(outcome: 'noStream' | 'failedToCreatePlanningEndpoint' | 'failedToRenderPlanningPrompt' | 'failedToMakePlanningRequest' | 'failedToRenderNewNotebookPrompt' | 'planningFailed' | 'noOutline' | 'unknownError' | 'success', options: vscode.LanguageModelToolInvocationOptions<IBuildPromptContext>) {
 		const model = options.model && (await this.endpointProvider.getChatEndpoint(options.model)).model;
 
-		/* __GDPR__
-			"newNotebookTool.outcome" : {
-				"owner": "donjayamanne",
-				"comment": "Tracks the outcome of new notebook tool",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome of the tool call." },
-				"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook (this measure is used to identify notebook related telemetry)." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the request." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('newNotebookTool.outcome',
 			{ requestId: options.chatRequestId, outcome, model }, { isNotebook: 1 }
 		);
@@ -211,5 +194,4 @@ export class NewNotebookToolPromptContent extends PromptElement<NewNotebookToolP
 }
 
 
-// Register the tool
 ToolRegistry.registerTool(NewNotebookTool);

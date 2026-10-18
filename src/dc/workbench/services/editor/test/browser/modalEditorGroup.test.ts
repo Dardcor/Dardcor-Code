@@ -77,7 +77,6 @@ suite('Modal Editor Group', () => {
 
 		const modalPart = await parts.createModalEditorPart();
 
-		// Modal part should have exactly one group initially with 0 editors
 		assert.strictEqual(modalPart.activeGroup.count, 0);
 
 		await modalPart.close();
@@ -110,7 +109,6 @@ suite('Modal Editor Group', () => {
 
 		const modalPart = await parts.createModalEditorPart();
 
-		// Modal part's group should be added to the total groups
 		assert.strictEqual(parts.groups.length, initialGroupCount + 1);
 
 		await modalPart.close();
@@ -124,14 +122,12 @@ suite('Modal Editor Group', () => {
 
 		const modalPart = await parts.createModalEditorPart();
 
-		// Verify onWillClose is an event that can be listened to
 		assert.ok(typeof modalPart.onWillClose === 'function');
 		assert.ok(modalPart.onWillClose !== undefined);
 
 		const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 		await modalPart.activeGroup.openEditor(input, { pinned: true });
 
-		// Verify close returns true
 		const result = await modalPart.close();
 		assert.strictEqual(result, true);
 	});
@@ -163,7 +159,6 @@ suite('Modal Editor Group', () => {
 		const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 		await modalPart.activeGroup.openEditor(input, { pinned: true });
 
-		// Modal part group should be in the groups list
 		const allGroups = parts.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE);
 		const modalGroup = modalPart.activeGroup;
 
@@ -181,7 +176,6 @@ suite('Modal Editor Group', () => {
 		const modalPart1 = await parts.createModalEditorPart();
 		const modalPart2 = await parts.createModalEditorPart();
 
-		// Same instance should be returned
 		assert.ok(modalPart1);
 		assert.ok(modalPart2);
 		assert.strictEqual(modalPart1, modalPart2);
@@ -201,22 +195,17 @@ suite('Modal Editor Group', () => {
 			addGroupCount++;
 		}));
 
-		// Fire multiple concurrent creation requests before any of them has a
-		// chance to resolve and assign the singleton instance
 		const [modalPart1, modalPart2, modalPart3] = await Promise.all([
 			parts.createModalEditorPart(),
 			parts.createModalEditorPart(),
 			parts.createModalEditorPart()
 		]);
 
-		// All concurrent calls must resolve to the exact same singleton instance/group
 		assert.strictEqual(modalPart1, modalPart2);
 		assert.strictEqual(modalPart2, modalPart3);
 		assert.strictEqual(modalPart1.activeGroup.id, modalPart2.activeGroup.id);
 		assert.strictEqual(modalPart1.activeGroup.id, modalPart3.activeGroup.id);
 
-		// Only a single group/registration event should have fired for the singleton,
-		// proving only one modal part was ever created despite the concurrent calls
 		assert.strictEqual(addGroupCount, 1);
 
 		await modalPart1.close();
@@ -228,17 +217,13 @@ suite('Modal Editor Group', () => {
 		const parts = await createEditorParts(instantiationService, disposables);
 		instantiationService.stub(IEditorGroupsService, parts);
 
-		// Create first modal
 		const modalPart1 = await parts.createModalEditorPart();
 		const firstGroupId = modalPart1.activeGroup.id;
 
-		// Close it
 		await modalPart1.close();
 
-		// Create another modal - should be a new instance
 		const modalPart2 = await parts.createModalEditorPart();
 
-		// Should be a different group
 		assert.notStrictEqual(modalPart2.activeGroup.id, firstGroupId);
 
 		await modalPart2.close();
@@ -255,11 +240,9 @@ suite('Modal Editor Group', () => {
 			addGroupCount++;
 		}));
 
-		// Create modal twice
 		await parts.createModalEditorPart();
 		await parts.createModalEditorPart();
 
-		// onDidAddGroup should fire only once since it's a singleton
 		assert.strictEqual(addGroupCount, 1);
 
 		await (await parts.createModalEditorPart()).close();
@@ -273,7 +256,6 @@ suite('Modal Editor Group', () => {
 
 		const modalPart = await parts.createModalEditorPart();
 
-		// Modal parts should enforce no tabs mode
 		assert.strictEqual(modalPart.partOptions.showTabs, 'none');
 
 		await modalPart.close();
@@ -287,7 +269,6 @@ suite('Modal Editor Group', () => {
 
 		const modalPart = await parts.createModalEditorPart();
 
-		// Modal parts should enforce closeEmptyGroups
 		assert.strictEqual(modalPart.partOptions.closeEmptyGroups, true);
 
 		await modalPart.close();
@@ -306,14 +287,10 @@ suite('Modal Editor Group', () => {
 
 		const modalGroupId = modalPart.activeGroup.id;
 
-		// The modal group should exist in parts
 		assert.ok(parts.getGroup(modalGroupId));
 
-		// Closing the last editor in the last group should close the modal
-		// which removes the group from parts
 		await modalPart.activeGroup.closeAllEditors();
 
-		// The modal group should no longer exist in parts
 		assert.strictEqual(parts.getGroup(modalGroupId), undefined);
 	});
 
@@ -328,8 +305,6 @@ suite('Modal Editor Group', () => {
 		const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 		await modalPart.activeGroup.openEditor(input, { pinned: true });
 
-		// Modal part should have saveState as a no-op (we can't directly test this,
-		// but we verify the modal was created successfully which means state handling works)
 		assert.ok(modalPart.activeGroup);
 
 		await modalPart.close();
@@ -346,10 +321,8 @@ suite('Modal Editor Group', () => {
 		const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 		await modalPart.activeGroup.openEditor(input, { pinned: true });
 
-		// Focus the modal group
 		modalPart.activeGroup.focus();
 
-		// The modal group should be included in the groups
 		const groups = parts.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE);
 		assert.ok(groups.some(g => g.id === modalPart.activeGroup.id));
 
@@ -420,7 +393,6 @@ suite('Modal Editor Group', () => {
 		instantiationService.stub(IEditorGroupsService, parts);
 		const contextKeyService = instantiationService.invokeFunction(accessor => accessor.get(IContextKeyService));
 
-		// No modal initially
 		assert.deepStrictEqual({
 			activeModalEditorPart: parts.activeModalEditorPart,
 			modalEditorVisible: EditorPartModalVisibleContext.getValue(contextKeyService),
@@ -429,7 +401,6 @@ suite('Modal Editor Group', () => {
 			modalEditorVisible: false,
 		});
 
-		// Create modal
 		const modalPart = await parts.createModalEditorPart();
 		assert.deepStrictEqual({
 			activeModalEditorPart: parts.activeModalEditorPart,
@@ -439,7 +410,6 @@ suite('Modal Editor Group', () => {
 			modalEditorVisible: true,
 		});
 
-		// Close modal
 		await modalPart.close();
 		assert.deepStrictEqual({
 			activeModalEditorPart: parts.activeModalEditorPart,
@@ -458,12 +428,10 @@ suite('Modal Editor Group', () => {
 
 		const mainGroup = parts.mainPart.activeGroup;
 
-		// Create modal and open an editor in it
 		const modalPart = await parts.createModalEditorPart();
 		const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 		await modalPart.activeGroup.openEditor(input, { pinned: true });
 
-		// findGroup without MODAL_GROUP should return main part group, not modal group
 		const newInput = createTestFileEditorInput(URI.file('foo/baz'), TEST_EDITOR_INPUT_ID);
 		const [group] = await instantiationService.invokeFunction(accessor => findGroup(accessor, { resource: newInput.resource }, undefined));
 
@@ -476,14 +444,12 @@ suite('Modal Editor Group', () => {
 		const parts = await createEditorParts(instantiationService, disposables);
 		instantiationService.stub(IEditorGroupsService, parts);
 
-		// Create modal
 		const modalPart = await parts.createModalEditorPart();
 		const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 		await modalPart.activeGroup.openEditor(input, { pinned: true });
 
 		assert.ok(parts.activeModalEditorPart);
 
-		// findGroup without MODAL_GROUP and without preserveFocus should close the modal
 		const newInput = createTestFileEditorInput(URI.file('foo/baz'), TEST_EDITOR_INPUT_ID);
 		await instantiationService.invokeFunction(accessor => findGroup(accessor, { resource: newInput.resource }, undefined));
 
@@ -496,14 +462,12 @@ suite('Modal Editor Group', () => {
 		const parts = await createEditorParts(instantiationService, disposables);
 		instantiationService.stub(IEditorGroupsService, parts);
 
-		// Create modal
 		const modalPart = await parts.createModalEditorPart();
 		const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 		await modalPart.activeGroup.openEditor(input, { pinned: true });
 
 		assert.ok(parts.activeModalEditorPart);
 
-		// findGroup with preserveFocus should keep the modal open
 		const newInput = createTestFileEditorInput(URI.file('foo/baz'), TEST_EDITOR_INPUT_ID);
 		await instantiationService.invokeFunction(accessor => findGroup(accessor, { resource: newInput.resource, options: { preserveFocus: true } }, undefined));
 
@@ -569,25 +533,21 @@ suite('Modal Editor Group', () => {
 		const parts = await createEditorParts(instantiationService, disposables);
 		instantiationService.stub(IEditorGroupsService, parts);
 
-		// Open modal and maximize it
 		const modalPart1 = await parts.createModalEditorPart();
 		modalPart1.toggleMaximized();
 		assert.strictEqual(modalPart1.maximized, true);
 		await modalPart1.close();
 
-		// Open a new modal - should remember maximized state
 		const modalPart2 = await parts.createModalEditorPart();
 		assert.strictEqual(modalPart2.maximized, true);
 		await modalPart2.close();
 
-		// Open another modal after un-maximizing
 		const modalPart3 = await parts.createModalEditorPart();
 		assert.strictEqual(modalPart3.maximized, true);
 		modalPart3.toggleMaximized();
 		assert.strictEqual(modalPart3.maximized, false);
 		await modalPart3.close();
 
-		// Should now remember non-maximized state
 		const modalPart4 = await parts.createModalEditorPart();
 		assert.strictEqual(modalPart4.maximized, false);
 		await modalPart4.close();
@@ -604,15 +564,12 @@ suite('Modal Editor Group', () => {
 			const parts = await createEditorParts(instantiationService, disposables);
 			instantiationService.stub(IEditorGroupsService, parts);
 
-			// findGroup with undefined preferredGroup should create modal and return its group
 			const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 			const result = instantiationService.invokeFunction(accessor => findGroup(accessor, { resource: input.resource }, undefined));
 
-			// Should return a promise (async modal creation)
 			assert.ok(result instanceof Promise);
 			const [group] = await result;
 
-			// The group should be in the modal part
 			assert.ok(parts.activeModalEditorPart);
 			assert.strictEqual(group.id, parts.activeModalEditorPart.activeGroup.id);
 
@@ -628,16 +585,13 @@ suite('Modal Editor Group', () => {
 			const parts = await createEditorParts(instantiationService, disposables);
 			instantiationService.stub(IEditorGroupsService, parts);
 
-			// Create modal first
 			const modalPart = await parts.createModalEditorPart();
 			const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 			await modalPart.activeGroup.openEditor(input, { pinned: true });
 
-			// findGroup without MODAL_GROUP should NOT close the modal
 			const newInput = createTestFileEditorInput(URI.file('foo/baz'), TEST_EDITOR_INPUT_ID);
 			const result = instantiationService.invokeFunction(accessor => findGroup(accessor, { resource: newInput.resource }, undefined));
 
-			// Since the setting is 'on', modal stays open
 			const [group] = result instanceof Promise ? await result : result;
 
 			assert.ok(parts.activeModalEditorPart);
@@ -655,14 +609,12 @@ suite('Modal Editor Group', () => {
 			const parts = await createEditorParts(instantiationService, disposables);
 			instantiationService.stub(IEditorGroupsService, parts);
 
-			// Create modal
 			const modalPart = await parts.createModalEditorPart();
 			const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 			await modalPart.activeGroup.openEditor(input, { pinned: true });
 
 			assert.ok(parts.activeModalEditorPart);
 
-			// findGroup without MODAL_GROUP should close the modal
 			const newInput = createTestFileEditorInput(URI.file('foo/baz'), TEST_EDITOR_INPUT_ID);
 			await instantiationService.invokeFunction(accessor => findGroup(accessor, { resource: newInput.resource }, undefined));
 
@@ -687,14 +639,11 @@ suite('Modal Editor Group', () => {
 			const modalPart = parts.activeModalEditorPart!;
 			assert.ok(modalPart);
 
-			// With 1 editor, tabs should be hidden
 			assert.strictEqual(modalPart.partOptions.showTabs, 'none');
 
-			// Open a second editor
 			const input2 = createTestFileEditorInput(URI.file('foo/baz'), TEST_EDITOR_INPUT_ID);
 			await editorService.openEditor(input2, { pinned: true }, MODAL_GROUP);
 
-			// With 2 editors, tabs should be visible
 			assert.strictEqual(modalPart.partOptions.showTabs, 'multiple');
 
 			await modalPart.close();
@@ -721,7 +670,6 @@ suite('Modal Editor Group', () => {
 			const input2 = createTestFileEditorInput(URI.file('foo/baz'), TEST_EDITOR_INPUT_ID);
 			await editorService.openEditor(input2, { pinned: true }, MODAL_GROUP);
 
-			// With 'some' mode, tabs should remain hidden even with multiple editors
 			assert.strictEqual(modalPart.partOptions.showTabs, 'none');
 
 			await modalPart.close();
@@ -734,7 +682,6 @@ suite('Modal Editor Group', () => {
 		const parts = await createEditorParts(instantiationService, disposables);
 		instantiationService.stub(IEditorGroupsService, parts);
 
-		// Create modal and open editors
 		const modalPart = await parts.createModalEditorPart();
 		const input1 = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 		const input2 = createTestFileEditorInput(URI.file('foo/baz'), TEST_EDITOR_INPUT_ID);
@@ -743,17 +690,14 @@ suite('Modal Editor Group', () => {
 
 		assert.strictEqual(modalPart.activeGroup.count, 2);
 
-		// Move editors from modal to main part group
 		const targetGroup = parts.mainPart.activeGroup;
 		for (const group of modalPart.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE)) {
 			group.moveEditors(group.editors.map(editor => ({ editor, options: { preserveFocus: true } })), targetGroup);
 		}
 
-		// Editors should be in the target group now
 		assert.strictEqual(targetGroup.count, 2);
 		assert.strictEqual(modalPart.activeGroup.count, 0);
 
-		// Close modal
 		await modalPart.close();
 		assert.strictEqual(parts.activeModalEditorPart, undefined);
 	});
@@ -782,11 +726,9 @@ suite('Modal Editor Group', () => {
 		const parts = await createEditorParts(instantiationService, disposables);
 		instantiationService.stub(IEditorGroupsService, parts);
 
-		// Create maximized modal and close it
 		const modalPart1 = await parts.createModalEditorPart({ maximized: true });
 		await modalPart1.close();
 
-		// Create a new modal — it should restore maximized state
 		const modalPart2 = await parts.createModalEditorPart();
 		assert.strictEqual(modalPart2.maximized, true);
 
@@ -798,8 +740,6 @@ suite('Modal Editor Group', () => {
 		instantiationService.invokeFunction(accessor => Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).start(accessor));
 		const storageService = instantiationService.get(IStorageService) as TestStorageService;
 
-		// Pre-populate storage with modal state and clear memento cache
-		// so the next EditorParts instance reads fresh from storage
 		storageService.store('memento/workbench.editorParts', JSON.stringify({
 			'editorparts.modalState': {
 				maximized: true,
@@ -812,7 +752,6 @@ suite('Modal Editor Group', () => {
 		const parts = await createEditorParts(instantiationService, disposables);
 		instantiationService.stub(IEditorGroupsService, parts);
 
-		// Create modal — it should use state from storage
 		const modalPart = await parts.createModalEditorPart();
 		assert.strictEqual(modalPart.maximized, true);
 
@@ -837,7 +776,6 @@ suite('Modal Editor Group', () => {
 
 			const [group] = result instanceof Promise ? await result : result;
 
-			// With useModal: off, the user preference wins and no modal part is created
 			assert.strictEqual(parts.activeModalEditorPart, undefined);
 			assert.strictEqual(group.id, parts.mainPart.activeGroup.id);
 		});
@@ -874,12 +812,10 @@ suite('Modal Editor Group', () => {
 			const parts = await createEditorParts(instantiationService, disposables);
 			instantiationService.stub(IEditorGroupsService, parts);
 
-			// Create a modal part first
 			const modalPart = await parts.createModalEditorPart();
 			const existingInput = createTestFileEditorInput(URI.file('foo/existing'), TEST_EDITOR_INPUT_ID);
 			await modalPart.activeGroup.openEditor(existingInput, { pinned: true });
 
-			// Now open a RequiresModal editor — modal should stay open
 			const input = createTestFileEditorInput(URI.file('foo/bar'), TEST_EDITOR_INPUT_ID);
 			input.capabilities = EditorInputCapabilities.RequiresModal;
 

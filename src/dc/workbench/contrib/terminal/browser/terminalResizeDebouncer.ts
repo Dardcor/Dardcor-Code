@@ -9,9 +9,6 @@ import { Disposable, MutableDisposable } from '../../../../base/common/lifecycle
 import type { XtermTerminal } from './xterm/xtermTerminal.js';
 
 const enum Constants {
-	/**
-	 * The _normal_ buffer length threshold at which point resizing starts being debounced.
-	 */
 	StartDebouncingThreshold = 200,
 	DebounceResizeXDelay = 100,
 }
@@ -23,8 +20,6 @@ export class TerminalResizeDebouncer extends Disposable {
 	private readonly _resizeXJob = this._register(new MutableDisposable());
 	private readonly _resizeYJob = this._register(new MutableDisposable());
 
-	// Owned by the disposable store so the pending timer is cancelled on dispose,
-	// avoiding callbacks that fire against a torn-down xterm renderer.
 	private readonly _debounceResizeXScheduler = this._register(new RunOnceScheduler(
 		() => this._resizeXCallback(this._latestX),
 		Constants.DebounceResizeXDelay,
@@ -47,7 +42,6 @@ export class TerminalResizeDebouncer extends Disposable {
 		this._latestX = cols;
 		this._latestY = rows;
 
-		// Resize immediately if requested explicitly or if the buffer is small
 		if (immediate || this._getXterm()!.raw.buffer.normal.length < Constants.StartDebouncingThreshold) {
 			this._resizeXJob.clear();
 			this._resizeYJob.clear();
@@ -56,7 +50,6 @@ export class TerminalResizeDebouncer extends Disposable {
 			return;
 		}
 
-		// Resize in an idle callback if the terminal is not visible
 		const win = getWindow(this._getXterm()!.raw.element);
 		if (win && !this._isVisible()) {
 			if (!this._resizeXJob.value) {
@@ -80,8 +73,6 @@ export class TerminalResizeDebouncer extends Disposable {
 			return;
 		}
 
-		// Update dimensions independently as vertical resize is cheap and horizontal resize is
-		// expensive due to reflow.
 		this._resizeYCallback(rows);
 		this._latestX = cols;
 		this._debounceResizeXScheduler.schedule();

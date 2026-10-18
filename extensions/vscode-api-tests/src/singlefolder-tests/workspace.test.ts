@@ -73,11 +73,9 @@ suite('vscode API - workspace', () => {
 	test('openTextDocument', async () => {
 		const uri = await createRandomFile();
 
-		// not yet there
 		const existing1 = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === uri.toString());
 		assert.strictEqual(existing1, undefined);
 
-		// open and assert its there
 		const doc = await vscode.workspace.openTextDocument(uri);
 		assert.ok(doc);
 		assert.strictEqual(doc.uri.toString(), uri.toString());
@@ -89,7 +87,6 @@ suite('vscode API - workspace', () => {
 		return vscode.workspace.openTextDocument('funkydonky.txt').then(_doc => {
 			throw new Error('missing error');
 		}, _err => {
-			// good!
 		});
 	});
 
@@ -193,29 +190,27 @@ suite('vscode API - workspace', () => {
 
 		const uriOne = vscode.Uri.parse('this-fs:/one');
 		const uriTwo = vscode.Uri.parse('this-fs:/two');
-		const uriONE = vscode.Uri.parse('this-fs:/ONE'); // same resource, different uri
+		const uriONE = vscode.Uri.parse('this-fs:/ONE');
 		const uriTWO = vscode.Uri.parse('this-fs:/TWO');
 
 		fs.writeFile(uriOne, Buffer.from('one'), { create: true, overwrite: true });
 		fs.writeFile(uriTwo, Buffer.from('two'), { create: true, overwrite: true });
 
-		// lower case (actual case) comes first
 		const docOne = await vscode.workspace.openTextDocument(uriOne);
 		assert.strictEqual(docOne.uri.toString(), uriOne.toString());
 
 		const docONE = await vscode.workspace.openTextDocument(uriONE);
 		assert.strictEqual(docONE === docOne, true);
 		assert.strictEqual(docONE.uri.toString(), uriOne.toString());
-		assert.strictEqual(docONE.uri.toString() !== uriONE.toString(), true); // yep
+		assert.strictEqual(docONE.uri.toString() !== uriONE.toString(), true);
 
-		// upper case (NOT the actual case) comes first
 		const docTWO = await vscode.workspace.openTextDocument(uriTWO);
 		assert.strictEqual(docTWO.uri.toString(), uriTWO.toString());
 
 		const docTwo = await vscode.workspace.openTextDocument(uriTwo);
 		assert.strictEqual(docTWO === docTwo, true);
 		assert.strictEqual(docTwo.uri.toString(), uriTWO.toString());
-		assert.strictEqual(docTwo.uri.toString() !== uriTwo.toString(), true); // yep
+		assert.strictEqual(docTwo.uri.toString() !== uriTwo.toString(), true);
 
 		reg.dispose();
 	});
@@ -300,7 +295,7 @@ suite('vscode API - workspace', () => {
 		const file = await createRandomFile();
 		const disposables: vscode.Disposable[] = [];
 
-		await revertAllDirty(); // needed for a clean state for `onDidSaveTextDocument` (#102365)
+		await revertAllDirty();
 
 		const onDidOpenTextDocument = new Set<vscode.TextDocument>();
 		const onDidChangeTextDocument = new Set<vscode.TextDocument>();
@@ -338,7 +333,7 @@ suite('vscode API - workspace', () => {
 		const file = await createRandomFile();
 		const disposables: vscode.Disposable[] = [];
 
-		await revertAllDirty(); // needed for a clean state for `onDidSaveTextDocument` (#102365)
+		await revertAllDirty();
 
 		const onDidSaveTextDocument = new Set<vscode.TextDocument>();
 
@@ -388,26 +383,21 @@ suite('vscode API - workspace', () => {
 
 	test('registerTextDocumentContentProvider, constrains', function () {
 
-		// built-in
 		assert.throws(function () {
 			vscode.workspace.registerTextDocumentContentProvider('untitled', { provideTextDocumentContent() { return null; } });
 		});
-		// built-in
 		assert.throws(function () {
 			vscode.workspace.registerTextDocumentContentProvider('file', { provideTextDocumentContent() { return null; } });
 		});
 
-		// missing scheme
 		return vscode.workspace.openTextDocument(vscode.Uri.parse('notThere://foo/far/boo/bar')).then(() => {
 			assert.ok(false, 'expected failure');
 		}, _err => {
-			// expected
 		});
 	});
 
 	test('registerTextDocumentContentProvider, multiple', function () {
 
-		// duplicate registration
 		const registration1 = vscode.workspace.registerTextDocumentContentProvider('foo', {
 			provideTextDocumentContent(uri) {
 				if (uri.authority === 'foo') {
@@ -436,7 +426,6 @@ suite('vscode API - workspace', () => {
 
 	test('registerTextDocumentContentProvider, evil provider', function () {
 
-		// duplicate registration
 		const registration1 = vscode.workspace.registerTextDocumentContentProvider('foo', {
 			provideTextDocumentContent(_uri) {
 				return '1';
@@ -465,7 +454,6 @@ suite('vscode API - workspace', () => {
 		return vscode.workspace.openTextDocument(vscode.Uri.parse('foo://auth/path')).then(() => {
 			assert.ok(false, 'expected failure');
 		}, _err => {
-			// expected
 			registration.dispose();
 		});
 	});
@@ -567,13 +555,11 @@ suite('vscode API - workspace', () => {
 
 	test('findFiles - null exclude', async () => {
 		await vscode.workspace.findFiles('**/file.txt').then((res) => {
-			// search.exclude folder is still searched, files.exclude folder is not
 			assert.strictEqual(res.length, 1);
 			assert.strictEqual(basename(vscode.workspace.asRelativePath(res[0])), 'file.txt');
 		});
 
 		await vscode.workspace.findFiles('**/file.txt', null).then((res) => {
-			// search.exclude and files.exclude folders are both searched
 			assert.strictEqual(res.length, 2);
 			assert.strictEqual(basename(vscode.workspace.asRelativePath(res[0])), 'file.txt');
 		});
@@ -596,7 +582,7 @@ suite('vscode API - workspace', () => {
 	test('findFiles, cancellation', () => {
 
 		const source = new vscode.CancellationTokenSource();
-		const token = source.token; // just to get an instance first
+		const token = source.token;
 		source.cancel();
 
 		return vscode.workspace.findFiles('*.js', null, 100, token).then((res) => {
@@ -612,13 +598,11 @@ suite('vscode API - workspace', () => {
 
 	test('findFiles2 - null exclude', async () => {
 		await vscode.workspace.findFiles2(['**/file.txt'], { useExcludeSettings: vscode.ExcludeSettingOptions.FilesExclude }).then((res) => {
-			// file.exclude folder is still searched, search.exclude folder is not
 			assert.strictEqual(res.length, 1);
 			assert.strictEqual(basename(vscode.workspace.asRelativePath(res[0])), 'file.txt');
 		});
 
 		await vscode.workspace.findFiles2(['**/file.txt'], { useExcludeSettings: vscode.ExcludeSettingOptions.None }).then((res) => {
-			// search.exclude and files.exclude folders are both searched
 			assert.strictEqual(res.length, 2);
 			assert.strictEqual(basename(vscode.workspace.asRelativePath(res[0])), 'file.txt');
 		});
@@ -633,7 +617,7 @@ suite('vscode API - workspace', () => {
 	test('findFiles2, cancellation', () => {
 
 		const source = new vscode.CancellationTokenSource();
-		const token = source.token; // just to get an instance first
+		const token = source.token;
 		source.cancel();
 
 		return vscode.workspace.findFiles2(['*.js'], {}, token).then((res) => {
@@ -930,7 +914,6 @@ suite('vscode API - workspace', () => {
 		}
 	});
 
-	// TODO: below test is flaky and commented out, see https://github.com/microsoft/vscode/issues/238837
 	test.skip('workspace.applyEdit drops the TextEdit if there is a RenameFile later #77735 (with opened editor)', async function () {
 		await test77735(true);
 	});
@@ -999,7 +982,6 @@ suite('vscode API - workspace', () => {
 		await vscode.workspace.applyEdit(we);
 
 		const document = await vscode.workspace.openTextDocument(file1);
-		// const expected = 'import1;import2;';
 		const expected2 = 'import2;import1;';
 		assert.strictEqual(document.getText(), expected2);
 	});
@@ -1019,7 +1001,6 @@ suite('vscode API - workspace', () => {
 
 		const document = await vscode.workspace.openTextDocument(file1);
 		const expected = 'import1;import2;';
-		// const expected2 = 'import2;import1;';
 		assert.strictEqual(document.getText(), expected);
 	});
 
@@ -1070,7 +1051,6 @@ suite('vscode API - workspace', () => {
 		const file1 = await createRandomFile();
 
 		{
-			// prepare: open file in editor, make sure it has contents
 			const editor = await vscode.window.showTextDocument(file1);
 			const prepEdit = new vscode.WorkspaceEdit();
 			prepEdit.insert(file1, new vscode.Position(0, 0), 'Hello Here And There');
@@ -1138,13 +1118,12 @@ suite('vscode API - workspace', () => {
 		assert.strictEqual(e.files[1].toString(), file2.toString());
 	});
 
-	test.skip('issue #107739 - Redo of rename Java Class name has no effect', async () => { // https://github.com/microsoft/vscode/issues/254042
+	test.skip('issue #107739 - Redo of rename Java Class name has no effect', async () => {
 		const file = await createRandomFile('hello');
 		const fileName = basename(file.fsPath);
 
 		const newFile = vscode.Uri.joinPath(file, `../${fileName}2`);
 
-		// apply edit
 		{
 			const we = new vscode.WorkspaceEdit();
 			we.insert(file, new vscode.Position(0, 5), '2');
@@ -1152,15 +1131,13 @@ suite('vscode API - workspace', () => {
 			assert.ok(await vscode.workspace.applyEdit(we));
 		}
 
-		// show the new document
 		{
-			const document = await vscode.workspace.openTextDocument(newFile); // FAILS here
+			const document = await vscode.workspace.openTextDocument(newFile);
 			await vscode.window.showTextDocument(document);
 			assert.strictEqual(document.getText(), 'hello2');
 			assert.strictEqual(document.isDirty, true);
 		}
 
-		// undo and show the old document
 		{
 			await vscode.commands.executeCommand('undo');
 			const document = await vscode.workspace.openTextDocument(file);
@@ -1168,7 +1145,6 @@ suite('vscode API - workspace', () => {
 			assert.strictEqual(document.getText(), 'hello');
 		}
 
-		// redo and show the new document
 		{
 			await vscode.commands.executeCommand('redo');
 			const document = await vscode.workspace.openTextDocument(newFile);
@@ -1248,7 +1224,7 @@ suite('vscode API - workspace', () => {
 		const file = await createRandomFile();
 		const disposables: vscode.Disposable[] = [];
 
-		await revertAllDirty(); // needed for a clean state for `onDidSaveTextDocument` (#102365)
+		await revertAllDirty();
 
 		const onDidSaveTextDocument = new Set<vscode.TextDocument>();
 
@@ -1266,9 +1242,9 @@ suite('vscode API - workspace', () => {
 			await vscode.workspace.applyEdit(edit);
 			assert.ok(doc.isDirty);
 
-			await vscode.workspace.saveAll(false); // requires dirty documents
+			await vscode.workspace.saveAll(false);
 		} else {
-			const res = await vscode.workspace.save(doc.uri); // enforces to save even when not dirty
+			const res = await vscode.workspace.save(doc.uri);
 			assert.ok(res?.toString() === doc.uri.toString());
 		}
 
@@ -1280,9 +1256,9 @@ suite('vscode API - workspace', () => {
 
 	test('encoding: text document encodings', async () => {
 		const uri1 = await createRandomFile();
-		const uri2 = await createRandomFile(new Uint8Array([0xEF, 0xBB, 0xBF]) /* UTF-8 with BOM */);
-		const uri3 = await createRandomFile(new Uint8Array([0xFF, 0xFE]) /* UTF-16 LE BOM */);
-		const uri4 = await createRandomFile(new Uint8Array([0xFE, 0xFF]) /* UTF-16 BE BOM */);
+		const uri2 = await createRandomFile(new Uint8Array([0xEF, 0xBB, 0xBF]) );
+		const uri3 = await createRandomFile(new Uint8Array([0xFF, 0xFE]) );
+		const uri4 = await createRandomFile(new Uint8Array([0xFE, 0xFF]) );
 
 		const doc1 = await vscode.workspace.openTextDocument(uri1);
 		assert.strictEqual(doc1.encoding, 'utf8');
@@ -1377,16 +1353,14 @@ suite('vscode API - workspace', () => {
 	test('encoding: decode', async function () {
 		const uri = root.with({ path: posix.join(root.path, 'file.txt') });
 
-		// without setting
 		assert.strictEqual(await vscode.workspace.decode(Buffer.from('Hello World'), { uri }), 'Hello World');
 		assert.strictEqual(await vscode.workspace.decode(Buffer.from('Hellö Wörld'), { uri }), 'Hellö Wörld');
-		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([0xEF, 0xBB, 0xBF, 72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]), { uri }), 'Hello World'); // UTF-8 with BOM
-		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([0xFE, 0xFF, 0, 72, 0, 101, 0, 108, 0, 108, 0, 111, 0, 32, 0, 87, 0, 111, 0, 114, 0, 108, 0, 100]), { uri }), 'Hello World'); // UTF-16 BE with BOM
-		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([0xFF, 0xFE, 72, 0, 101, 0, 108, 0, 108, 0, 111, 0, 32, 0, 87, 0, 111, 0, 114, 0, 108, 0, 100, 0]), { uri }), 'Hello World'); // UTF-16 LE with BOM
+		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([0xEF, 0xBB, 0xBF, 72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]), { uri }), 'Hello World');
+		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([0xFE, 0xFF, 0, 72, 0, 101, 0, 108, 0, 108, 0, 111, 0, 32, 0, 87, 0, 111, 0, 114, 0, 108, 0, 100]), { uri }), 'Hello World');
+		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([0xFF, 0xFE, 72, 0, 101, 0, 108, 0, 108, 0, 111, 0, 32, 0, 87, 0, 111, 0, 114, 0, 108, 0, 100, 0]), { uri }), 'Hello World');
 		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([0, 72, 0, 101, 0, 108, 0, 108, 0, 111, 0, 32, 0, 87, 0, 111, 0, 114, 0, 108, 0, 100]), { uri }), 'Hello World');
 		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([72, 0, 101, 0, 108, 0, 108, 0, 111, 0, 32, 0, 87, 0, 111, 0, 114, 0, 108, 0, 100, 0]), { uri }), 'Hello World');
 
-		// with auto-guess encoding
 		try {
 			await vscode.workspace.getConfiguration('files', uri).update('autoGuessEncoding', true, vscode.ConfigurationTarget.Global);
 			assert.strictEqual(await vscode.workspace.decode(new Uint8Array([72, 101, 108, 108, 0xF6, 32, 87, 0xF6, 114, 108, 100]), { uri }), 'Hellö Wörld');
@@ -1394,7 +1368,6 @@ suite('vscode API - workspace', () => {
 			await vscode.workspace.getConfiguration('files', uri).update('autoGuessEncoding', false, vscode.ConfigurationTarget.Global);
 		}
 
-		// with encoding setting
 		try {
 			await vscode.workspace.getConfiguration('files', uri).update('encoding', 'windows1252', vscode.ConfigurationTarget.Global);
 			assert.strictEqual(await vscode.workspace.decode(new Uint8Array([72, 101, 108, 108, 0xF6, 32, 87, 0xF6, 114, 108, 100]), { uri }), 'Hellö Wörld');
@@ -1402,11 +1375,9 @@ suite('vscode API - workspace', () => {
 			await vscode.workspace.getConfiguration('files', uri).update('encoding', 'utf8', vscode.ConfigurationTarget.Global);
 		}
 
-		// with encoding provided
 		assert.strictEqual(await vscode.workspace.decode(new Uint8Array([72, 101, 108, 108, 0xF6, 32, 87, 0xF6, 114, 108, 100]), { encoding: 'windows1252' }), 'Hellö Wörld');
 		assert.strictEqual(await vscode.workspace.decode(Buffer.from('Hello World'), { encoding: 'foobar123' }), 'Hello World');
 
-		// binary
 		let err;
 		try {
 			await vscode.workspace.decode(new Uint8Array([0, 0, 0, 0]), { uri });
@@ -1419,10 +1390,8 @@ suite('vscode API - workspace', () => {
 	test('encoding: encode', async function () {
 		const uri = root.with({ path: posix.join(root.path, 'file.txt') });
 
-		// without setting
 		assert.strictEqual((await vscode.workspace.encode('Hello World', { uri })).toString(), 'Hello World');
 
-		// with encoding setting
 		try {
 			await vscode.workspace.getConfiguration('files', uri).update('encoding', 'utf8bom', vscode.ConfigurationTarget.Global);
 			assert.ok(equalsUint8Array(await vscode.workspace.encode('Hello World', { uri }), new Uint8Array([0xEF, 0xBB, 0xBF, 72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100])));
@@ -1439,7 +1408,6 @@ suite('vscode API - workspace', () => {
 			await vscode.workspace.getConfiguration('files', uri).update('encoding', 'utf8', vscode.ConfigurationTarget.Global);
 		}
 
-		// with encoding provided
 		assert.ok(equalsUint8Array(await vscode.workspace.encode('Hello World', { encoding: 'utf8' }), new Uint8Array([72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100])));
 		assert.ok(equalsUint8Array(await vscode.workspace.encode('Hello World', { encoding: 'utf8bom' }), new Uint8Array([0xEF, 0xBB, 0xBF, 72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100])));
 		assert.ok(equalsUint8Array(await vscode.workspace.encode('Hello World', { encoding: 'utf16le' }), new Uint8Array([0xFF, 0xFE, 72, 0, 101, 0, 108, 0, 108, 0, 111, 0, 32, 0, 87, 0, 111, 0, 114, 0, 108, 0, 100, 0])));
@@ -1483,7 +1451,7 @@ suite('vscode API - workspace', () => {
 
 	test('encoding: utf8bom does not explode (https://github.com/microsoft/vscode/issues/242132)', async function () {
 		const buffer = [0xEF, 0xBB, 0xBF, 72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100];
-		const uri = await createRandomFile(new Uint8Array(buffer) /* UTF-8 with BOM */);
+		const uri = await createRandomFile(new Uint8Array(buffer) );
 
 		let doc = await vscode.workspace.openTextDocument(uri);
 		assert.strictEqual(doc.encoding, 'utf8bom');

@@ -19,14 +19,7 @@ import { hasKey, isNumber, type SingleOrMany } from '../../../../base/common/typ
 import { IPaneCompositePartService } from '../../../services/panecomposite/browser/panecomposite.js';
 
 const enum Constants {
-	/**
-	 * The minimum size in pixels of a split pane.
-	 */
 	SplitPaneMinSize = 80,
-	/**
-	 * The number of cells the terminal gets added or removed when asked to increase or decrease
-	 * the view size.
-	 */
 	ResizePartCellCount = 4
 }
 
@@ -64,18 +57,15 @@ class SplitPaneContainer extends Disposable {
 	}
 
 	resizePane(index: number, direction: Direction, amount: number): void {
-		// Only resize when there is more than one pane
 		if (this._children.length <= 1) {
 			return;
 		}
 
-		// Get sizes
 		const sizes: number[] = [];
 		for (let i = 0; i < this._splitView.length; i++) {
 			sizes.push(this._splitView.getViewSize(i));
 		}
 
-		// Remove size from right pane, unless index is the last pane in which case use left pane
 		const isSizingEndPane = index !== this._children.length - 1;
 		const indexToChange = isSizingEndPane ? index + 1 : index - 1;
 		if (isSizingEndPane && direction === Direction.Left) {
@@ -88,14 +78,12 @@ class SplitPaneContainer extends Disposable {
 			amount *= -1;
 		}
 
-		// Ensure the size is not reduced beyond the minimum, otherwise weird things can happen
 		if (sizes[index] + amount < Constants.SplitPaneMinSize) {
 			amount = Constants.SplitPaneMinSize - sizes[index];
 		} else if (sizes[indexToChange] - amount < Constants.SplitPaneMinSize) {
 			amount = sizes[indexToChange] - Constants.SplitPaneMinSize;
 		}
 
-		// Apply the size change
 		sizes[index] += amount;
 		sizes[indexToChange] -= amount;
 		for (let i = 0; i < this._splitView.length - 1; i++) {
@@ -108,7 +96,6 @@ class SplitPaneContainer extends Disposable {
 			return;
 		}
 
-		// assign any extra size to last terminal
 		relativeSizes[relativeSizes.length - 1] += 1 - relativeSizes.reduce((totalValue, currentValue) => totalValue + currentValue, 0);
 		let totalSize = 0;
 		for (let i = 0; i < this._splitView.length; i++) {
@@ -178,12 +165,10 @@ class SplitPaneContainer extends Disposable {
 		}
 		this.orientation = orientation;
 
-		// Remove old split view
 		while (this._container.children.length > 0) {
 			this._container.children[0].remove();
 		}
 
-		// Create new split view with updated orientation
 		this._createSplitView();
 		this._withDisabledLayout(() => {
 			this._children.forEach(child => {
@@ -194,8 +179,6 @@ class SplitPaneContainer extends Disposable {
 	}
 
 	private _withDisabledLayout(innerFunction: () => void): void {
-		// Whenever manipulating views that are going to be changed immediately, disabling
-		// layout/resize events in the terminal prevent bad dimensions going to the pty.
 		this._children.forEach(c => c.instance.disableLayout = true);
 		innerFunction();
 		this._children.forEach(c => c.instance.disableLayout = false);
@@ -223,7 +206,6 @@ class SplitPane implements IView {
 	}
 
 	layout(size: number): void {
-		// Only layout when both sizes are known
 		if (!size || !this.orthogonalSize) {
 			return;
 		}
@@ -301,8 +283,6 @@ export class TerminalGroup extends Disposable implements ITerminalGroup {
 
 	addInstance(shellLaunchConfigOrInstance: IShellLaunchConfig | ITerminalInstance, parentTerminalId?: number): void {
 		let instance: ITerminalInstance;
-		// if a parent terminal is provided, find it
-		// otherwise, parent is the active terminal
 		const parentIndex = parentTerminalId ? this._terminalInstances.findIndex(t => t.instanceId === parentTerminalId) : this._activeInstanceIndex;
 		if (hasKey(shellLaunchConfigOrInstance, { instanceId: true })) {
 			instance = shellLaunchConfigOrInstance;
@@ -384,20 +364,16 @@ export class TerminalGroup extends Disposable implements ITerminalGroup {
 		const wasActiveInstance = instance === this.activeInstance;
 		this._terminalInstances.splice(index, 1);
 
-		// Adjust focus if the instance was active
 		if (wasActiveInstance && this._terminalInstances.length > 0) {
 			const newIndex = index < this._terminalInstances.length ? index : this._terminalInstances.length - 1;
 			this.setActiveInstanceByIndex(newIndex);
-			// TODO: Only focus the new instance if the group had focus?
 			this.activeInstance?.focus(true);
 		} else if (index < this._activeInstanceIndex) {
-			// Adjust active instance index if needed
 			this._activeInstanceIndex--;
 		}
 
 		this._splitPaneContainer?.remove(instance);
 
-		// Fire events and dispose group if it was the last instance
 		if (this._terminalInstances.length === 0) {
 			this._hadFocusOnExit = instance.hadFocusOnExit;
 			this._onDisposed.fire(this);
@@ -406,7 +382,6 @@ export class TerminalGroup extends Disposable implements ITerminalGroup {
 			this._onInstancesChanged.fire();
 		}
 
-		// Dispose instance event listeners
 		const disposables = this._instanceDisposables.get(instance.instanceId);
 		if (disposables) {
 			dispose(disposables);
@@ -454,7 +429,6 @@ export class TerminalGroup extends Disposable implements ITerminalGroup {
 	}
 
 	setActiveInstanceByIndex(index: number, force?: boolean): void {
-		// Check for invalid value
 		if (index < 0 || index >= this._terminalInstances.length) {
 			return;
 		}
@@ -470,7 +444,6 @@ export class TerminalGroup extends Disposable implements ITerminalGroup {
 	attachToElement(element: HTMLElement): void {
 		this._container = element;
 
-		// If we already have a group element, we can reparent it
 		if (!this._groupElement) {
 			this._groupElement = document.createElement('div');
 			this._groupElement.classList.add('terminal-group');
@@ -488,8 +461,6 @@ export class TerminalGroup extends Disposable implements ITerminalGroup {
 
 	get title(): string {
 		if (this._terminalInstances.length === 0) {
-			// Normally consumers should not call into title at all after the group is disposed but
-			// this is required when the group is used as part of a tree.
 			return '';
 		}
 		let title = this.terminalInstances[0].title + this._getBellTitle(this.terminalInstances[0]);
@@ -536,7 +507,6 @@ export class TerminalGroup extends Disposable implements ITerminalGroup {
 
 	layout(width: number, height: number): void {
 		if (this._splitPaneContainer) {
-			// Check if the panel position changed and rotate panes if so
 			const newPanelPosition = this._layoutService.getPanelPosition();
 			const newTerminalLocation = this._viewDescriptorService.getViewLocationById(TERMINAL_VIEW_ID)!;
 			const terminalPositionChanged = newPanelPosition !== this._panelPosition || newTerminalLocation !== this._terminalLocation;
@@ -596,7 +566,6 @@ export class TerminalGroup extends Disposable implements ITerminalGroup {
 			(!isHorizontalResize && groupOrientation === Orientation.HORIZONTAL);
 
 		const font = this._terminalConfigurationService.getFont(getWindow(this._groupElement));
-		// TODO: Support letter spacing and line height
 		const charSize = (isHorizontalResize ? font.charWidth : font.charHeight);
 
 		if (charSize) {

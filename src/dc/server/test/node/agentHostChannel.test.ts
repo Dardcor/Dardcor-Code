@@ -66,7 +66,6 @@ suite('AgentHostChannel', () => {
 	function createChannel(): { channel: AgentHostChannel<string>; upstreams: Map<string, FakeUpstream>; ipc: FakeIPCServer } {
 		const ipc = ds.add(new FakeIPCServer());
 		const upstreams = new Map<string, FakeUpstream>();
-		// `ctx` is captured by id-keyed map so tests can fish out the upstream.
 		let nextCtxId = 0;
 		const factory = (_endpoint: IAgentHostUpstreamEndpoint): IUpstreamConnection => {
 			const id = `upstream-${nextCtxId++}`;
@@ -86,7 +85,6 @@ suite('AgentHostChannel', () => {
 	test('routes frames between renderer and upstream per context', async () => {
 		const { channel, upstreams } = createChannel();
 
-		// Subscribe ctxA's frame event (forces creation of its upstream).
 		const ctxAFrames: string[] = [];
 		ds.add(channel.listen<string>('a', 'frame')(f => ctxAFrames.push(f)));
 

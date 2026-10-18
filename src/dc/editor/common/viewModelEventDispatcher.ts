@@ -47,14 +47,12 @@ export class ViewModelEventDispatcher extends Disposable {
 				return;
 			}
 		}
-		// not merged
 		this._outgoingEvents.push(e);
 	}
 
 	private _emitOutgoingEvents(): void {
 		while (this._outgoingEvents.length > 0) {
 			if (this._collector || this._isConsumingViewEventQueue) {
-				// right now collecting or emitting view events, so let's postpone emitting
 				return;
 			}
 			const event = this._outgoingEvents.shift()!;
@@ -141,11 +139,9 @@ export class ViewModelEventDispatcher extends Disposable {
 
 	private _doConsumeQueue(): void {
 		while (this._viewEventQueue) {
-			// Empty event queue, as events might come in while sending these off
 			const events = this._viewEventQueue;
 			this._viewEventQueue = null;
 
-			// Use a clone of the event handlers list, as they might remove themselves
 			const eventHandlers = this._eventHandlers.slice(0);
 			for (const eventHandler of eventHandlers) {
 				eventHandler.handleEvents(events);

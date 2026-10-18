@@ -32,9 +32,6 @@ export interface IExtensionHostManager {
 	activationEventIsDone(activationEvent: string): boolean;
 	getInspectPort(tryEnableInspector: boolean): Promise<IExtensionInspectInfo | undefined>;
 	resolveAuthority(remoteAuthority: string, resolveAttempt: number): Promise<IResolveAuthorityResult>;
-	/**
-	 * Returns `null` if no resolver for `remoteAuthority` is found.
-	 */
 	getCanonicalURI(remoteAuthority: string, uri: URI): Promise<URI | null>;
 	start(extensionRegistryVersionId: number, allExtensions: readonly IExtensionDescription[], myExtensions: ExtensionIdentifier[]): Promise<void>;
 	extensionTestsExecute(): Promise<number>;

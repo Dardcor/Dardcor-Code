@@ -133,7 +133,7 @@ suite('ChatQuotaNotificationContribution integration', () => {
 			lookupLanguageModel: (_id: string): ILanguageModelChatMetadata => ({
 				id: 'test-model',
 				name: 'Test Model',
-				vendor: 'copilot',
+				vendor: 'dardcor',
 				version: '1.0',
 				family: 'test',
 				extension: new ExtensionIdentifier('test.extension'),
@@ -163,8 +163,6 @@ suite('ChatQuotaNotificationContribution integration', () => {
 		return telemetryAppender.events.filter(e => e.eventName === 'chatInputNotificationShown' || e.eventName === 'chatInputNotificationDismissed');
 	}
 
-	// The widget is the notification frame itself; its header row only exists
-	// while something is actually rendered.
 	function getRenderedText(widget: ChatInputNotificationWidget): string {
 		return widget.domNode.querySelector('.chat-input-notification-header') ? widget.domNode.textContent ?? '' : '';
 	}

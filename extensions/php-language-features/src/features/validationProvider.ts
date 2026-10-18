@@ -162,7 +162,6 @@ export default class PHPValidationProvider {
 			} else {
 				this.documentListener = vscode.workspace.onDidSaveTextDocument(this.triggerValidate, this);
 			}
-			// Configuration has changed. Reevaluate all documents.
 			vscode.workspace.textDocuments.forEach(this.triggerValidate, this);
 		}
 	}
@@ -195,8 +194,6 @@ export default class PHPValidationProvider {
 			}
 
 			if (!path.isAbsolute(executable)) {
-				// executable should either be resolved to an absolute path or undefined.
-				// This is just to be sure.
 				return;
 			}
 
@@ -208,7 +205,7 @@ export default class PHPValidationProvider {
 					const message = matches[1];
 					const line = parseInt(matches[3]) - 1;
 					const diagnostic: vscode.Diagnostic = new vscode.Diagnostic(
-						new vscode.Range(line, 0, line, 2 ** 31 - 1), // See https://github.com/microsoft/vscode/issues/80288#issuecomment-650636442 for discussion
+						new vscode.Range(line, 0, line, 2 ** 31 - 1),
 						message
 					);
 					diagnostics.push(diagnostic);

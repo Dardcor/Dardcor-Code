@@ -9,9 +9,6 @@ export type RpcRequest = { id: number; fn: string; args: any[] };
 
 export type RpcResponse = { id: number; res?: any; err?: Error };
 
-/**
- * Holds promises for RPC requests and resolves them when the call completes.
- */
 export class RcpResponseHandler {
 	private nextId = 1;
 
@@ -43,9 +40,6 @@ export class RcpResponseHandler {
 		}
 	}
 
-	/**
-	 * Handle an unexpected error by logging it and rejecting all handlers.
-	 */
 	public handleError(err: Error) {
 		for (const handler of this.handlers.values()) {
 			handler.reject(err);
@@ -121,9 +115,6 @@ export class WorkerWithRpcProxy<WorkerProxyType, HostProxyType = {}> {
 		this.responseHandler.clear();
 	}
 
-	/**
-	 * Handle an unexpected error by logging it and rejecting all handlers.
-	 */
 	private handleError(err: Error) {
 		this.responseHandler.handleError(err);
 	}

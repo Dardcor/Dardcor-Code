@@ -12,7 +12,6 @@ import { ARTIFACT_TOOLS_INSTRUCTION } from '../../shared/artifactServerTools.js'
 
 const artifactToolsFirstTurnSeenMemento = createChatMementoKey<boolean>('firstTurnSeen', () => false);
 
-/** Adds artifact-tool guidance to the first turn when artifact tools are enabled. */
 export class ArtifactToolsContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'artifactTools';

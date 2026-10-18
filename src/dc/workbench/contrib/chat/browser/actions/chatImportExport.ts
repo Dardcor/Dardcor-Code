@@ -24,11 +24,6 @@ import { ACTIVE_GROUP, PreferredGroup } from '../../../../services/editor/common
 const defaultFileName = 'chat.json';
 const filters = [{ name: localize('chat.file.label', "Chat Session"), extensions: ['json'] }];
 
-/**
- * Target location for importing a chat session.
- * - 'chatViewPane': Opens in the chat view pane (sidebar/panel)
- * - 'default': Opens in the active editor group
- */
 export type ChatImportTarget = 'chatViewPane' | 'default';
 
 export interface ChatImportOptions {
@@ -75,7 +70,6 @@ export function registerChatExportActions() {
 				return;
 			}
 
-			// Using toJSON on the model
 			const content = VSBuffer.fromString(JSON.stringify(model.toExport(), undefined, 2));
 			await fileService.writeFile(outputPath, content);
 		}

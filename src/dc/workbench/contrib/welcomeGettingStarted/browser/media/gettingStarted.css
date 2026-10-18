@@ -92,15 +92,12 @@
 	padding: 12px 24px;
 }
 
-/* duplicated until the getting-started specific setting is removed */
 .monaco-workbench .part.editor > .content .gettingStartedContainer.animatable .gettingStartedSlide {
-	/* keep consistant with SLIDE_TRANSITION_TIME_MS in gettingStarted.ts */
 	transition: left 0.25s, opacity 0.25s;
 }
 
 .monaco-workbench.monaco-reduce-motion .part.editor > .content .gettingStartedContainer .gettingStartedSlide,
 .monaco-workbench.monaco-reduce-motion .part.editor > .content .gettingStartedContainer.animatable .gettingStartedSlide {
-	/* keep consistant with SLIDE_TRANSITION_TIME_MS in gettingStarted.ts */
 	transition: left 0.0s, opacity 0.0s;
 }
 
@@ -684,7 +681,6 @@
 	display: none;
 }
 
-/* Adjust grid layout when media is hidden to give steps container full height */
 .monaco-workbench .part.editor > .content .gettingStartedContainer.width-constrained .gettingStartedSlideDetails .gettingStartedDetailsContent.image,
 .monaco-workbench .part.editor > .content .gettingStartedContainer.width-constrained .gettingStartedSlideDetails .gettingStartedDetailsContent.video,
 .monaco-workbench .part.editor > .content .gettingStartedContainer.width-constrained .gettingStartedSlideDetails .gettingStartedDetailsContent.markdown,
@@ -751,7 +747,6 @@
 	padding: 16px;
 	font-size: 13px;
 	margin: 1px 0;
-	/* makes room for focus border */
 	font-family: inherit;
 }
 
@@ -759,7 +754,6 @@
 	cursor: pointer;
 }
 
-/* Don't show focus outline on mouse click. Instead only show outline on keyboard focus. */
 .monaco-workbench .part.editor > .content .gettingStartedContainer button:focus {
 	outline: none;
 }
@@ -910,7 +904,6 @@
 	margin-right: 9px;
 }
 
-/* Don't show focus outline on mouse click. Instead only show outline on keyboard focus. */
 .monaco-workbench .part.editor > .content .gettingStartedContainer .gettingStartedSlideDetails .getting-started-step .codicon:focus {
 	outline: none;
 }
@@ -1074,14 +1067,12 @@
 	text-decoration: var(--text-link-decoration);
 }
 
-/* Make arrow icons consistent with the next and back buttons in color */
 .monaco-workbench .part.editor > .content .gettingStartedContainer .codicon.codicon-arrow-left,
 .monaco-workbench .part.editor > .content .gettingStartedContainer .codicon.codicon-arrow-right {
 	color: var(--vscode-textLink-foreground);
 	font-size: 18px;
 }
 
-/* Make arrow icons change color on hover, consistent with button-link hover */
 .monaco-workbench .part.editor > .content .gettingStartedContainer .codicon.codicon-arrow-left:hover,
 .monaco-workbench .part.editor > .content .gettingStartedContainer .codicon.codicon-arrow-right:hover {
 	color: var(--vscode-textLink-activeForeground);

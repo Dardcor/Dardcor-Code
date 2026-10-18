@@ -47,7 +47,6 @@ function shouldSkip(
 
 	return !!(selected && (
 		(context && 'skipIfAlreadySelected' in context && context.skipIfAlreadySelected) ||
-		// target kernel is already selected
 		(controllerId && selected.id === controllerId && ExtensionIdentifier.equals(selected.extension, extensionId))
 	));
 }
@@ -121,7 +120,6 @@ registerAction2(class extends Action2 {
 		let extensionId = context && 'extension' in context ? context.extension : undefined;
 
 		if (controllerId && (typeof controllerId !== 'string' || typeof extensionId !== 'string')) {
-			// validate context: id & extension MUST be strings
 			controllerId = undefined;
 			extensionId = undefined;
 		}

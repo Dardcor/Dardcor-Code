@@ -12,7 +12,6 @@ const execAsync = promisify(exec);
 const getConfigDir = () => path.join(os.homedir(), ".config", "opencode");
 const getConfigPath = () => path.join(getConfigDir(), "opencode.json");
 
-// Check if opencode CLI is installed (via which/where or config file exists)
 const checkOpenCodeInstalled = async () => {
   try {
     const isWindows = os.platform() === "win32";
@@ -35,15 +34,10 @@ const checkOpenCodeInstalled = async () => {
 const readConfig = async () => {
   try {
     const content = await fs.readFile(getConfigPath(), "utf-8");
-    // opencode config files may use JSONC format (trailing commas, comments).
-    // Strip trailing commas before parsing to avoid SyntaxError on valid JSONC.
     const stripped = content.replace(/,(\s*[}\]])/g, "$1");
     return JSON.parse(stripped);
   } catch (error) {
     if (error.code === "ENOENT") return null;
-    // If the config file exists but is unparseable (corrupted, exotic JSONC),
-    // treat it as "no config" rather than throwing a 500 that the UI
-    // misinterprets as "opencode not installed".
     return null;
   }
 };
@@ -53,7 +47,6 @@ const hasDardcorCodeConfig = (config) => {
   return !!config.provider["dardcor-code"];
 };
 
-// GET - Check opencode CLI and read current settings
 export async function GET() {
   try {
     const isInstalled = await checkOpenCodeInstalled();
@@ -87,12 +80,10 @@ export async function GET() {
   }
 }
 
-// POST - Apply Dardcor Router as openai-compatible provider (multi-model support)
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, model, models, activeModel, subagentModel } = await request.json();
 
-    // Accept either `model` (string, legacy) or `models` (array of strings)
     const modelsArray = Array.isArray(models) ? models.slice() : (typeof model === "string" ? [model] : []);
 
     if (!baseUrl || modelsArray.length === 0) {
@@ -104,44 +95,35 @@ export async function POST(request) {
 
     await fs.mkdir(configDir, { recursive: true });
 
-    // Read existing config or start fresh
     let config = {};
     try {
       const existing = await fs.readFile(configPath, "utf-8");
       config = JSON.parse(existing);
-    } catch { /* No existing config */ }
+    } catch { }
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const keyToUse = apiKey || "sk_dardcor-code";
     const effectiveSubagentModel = subagentModel || modelsArray[0];
 
-    // Ensure provider object
     if (!config.provider) config.provider = {};
 
-    // Preserve any existing dardcor-code provider entry and its models
     const existingProvider = config.provider["dardcor-code"] || { npm: "@ai-sdk/openai-compatible", options: {}, models: {} };
 
-    // Merge options (overwrite baseURL/apiKey)
     existingProvider.options = {
       ...existingProvider.options,
       baseURL: normalizedBaseUrl,
       apiKey: keyToUse,
     };
 
-    // Ensure models map exists
     existingProvider.models = existingProvider.models || {};
 
-    // Add or update entries for all requested models
     for (const m of modelsArray) {
       if (!m || typeof m !== "string") continue;
       existingProvider.models[m] = { name: m, modalities: { input: ["text", "image"], output: ["text"] } };
     }
 
-    // Save merged provider back
     config.provider["dardcor-code"] = existingProvider;
 
-    // Set the active model: prefer explicit activeModel, else first of modelsArray
-    // If activeModel is explicitly empty string, clear the model
     if (activeModel === "") {
       config.model = "";
     } else {
@@ -151,7 +133,6 @@ export async function POST(request) {
       }
     }
 
-    // Add subagent configuration
     if (!config.agent) config.agent = {};
     config.agent.explorer = {
       description: "Fast explorer subagent for codebase exploration",
@@ -172,7 +153,6 @@ export async function POST(request) {
   }
 }
 
-// PATCH - Update specific settings (e.g., clear active model)
 export async function PATCH(request) {
   try {
     const { clearActiveModel } = await request.json();
@@ -190,7 +170,6 @@ export async function PATCH(request) {
     }
 
     if (clearActiveModel === true) {
-      // Clear active model but keep models in the list
       if (config.model?.startsWith("dardcor-code/")) {
         config.model = "";
       }
@@ -208,7 +187,6 @@ export async function PATCH(request) {
   }
 }
 
-// DELETE - Remove Dardcor Router provider or specific models from config
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -226,29 +204,23 @@ export async function DELETE(request) {
       throw error;
     }
 
-    // If specific model provided, remove just that model
     if (modelToRemove && config.provider?.["dardcor-code"]?.models) {
       delete config.provider["dardcor-code"].models[modelToRemove];
       
-      // If no models left, remove the provider
       if (Object.keys(config.provider["dardcor-code"].models).length === 0) {
         delete config.provider["dardcor-code"];
         if (config.model?.startsWith("dardcor-code/")) delete config.model;
       } else if (config.model === `dardcor-code/${modelToRemove}`) {
-        // If removed model was active, switch to first remaining model
         const remainingModels = Object.keys(config.provider["dardcor-code"].models);
         config.model = `dardcor-code/${remainingModels[0]}`;
       }
     } else {
-      // No specific model - remove entire dardcor-code provider
       if (config.provider) delete config.provider["dardcor-code"];
       if (config.model?.startsWith("dardcor-code/")) delete config.model;
     }
 
-    // Remove subagent configuration
     if (config.agent?.explorer?.model?.startsWith("dardcor-code/")) {
       delete config.agent.explorer;
-      // Clean up empty agent object
       if (Object.keys(config.agent).length === 0) delete config.agent;
     }
 

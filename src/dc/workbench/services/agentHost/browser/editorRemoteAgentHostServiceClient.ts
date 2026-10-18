@@ -3,11 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Renderer-side `IAgentHostService` that talks to the agent host running on
-// the connected remote, via the remote agent's existing IPC pipe. The
-// underlying `AgentHostProtocolClient` is created eagerly so callers
-// can subscribe to `rootState` etc. immediately; the actual transport
-// connection (and AHP handshake) happens asynchronously in the background.
 
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, IReference } from '../../../../base/common/lifecycle.js';
@@ -39,14 +34,6 @@ import { EditorRemoteAgentHostTransport } from '../common/editorRemoteAgentHostT
 const REMOTE_NOT_SUPPORTED = (op: string) => new Error(`${op} is not supported when the agent host runs on a remote.`);
 const LOG_PREFIX = '[AgentHost:remote]';
 
-/**
- * Connects the renderer to the agent host that the remote server has
- * already started, by proxying AHP frames over the remote agent's IPC pipe.
- *
- * Local-only methods on {@link IAgentHostService} (`restartAgentHost`,
- * `startWebSocketServer`, `getInspectInfo`) are stubbed — the lifecycle of
- * the agent host is owned by whoever spawned it on the remote.
- */
 export class EditorRemoteAgentHostServiceClient extends Disposable implements IAgentHostService {
 	declare readonly _serviceBrand: undefined;
 
@@ -90,9 +77,6 @@ export class EditorRemoteAgentHostServiceClient extends Disposable implements IA
 			return;
 		}
 
-		// Create the protocol client eagerly so consumers can subscribe to
-		// rootState etc. before the AHP handshake completes. The transport's
-		// `connect()` will be awaited by `_connect()` below.
 		const createTransport = () => new EditorRemoteAgentHostTransport(
 			new AgentHostIpcChannelTransport(connection.getChannel(AgentHostIpcChannels.RemoteProxy), undefined, AgentHostClientConnectionKind.RemoteExtensionHost),
 			connection.remoteAuthority,
@@ -100,9 +84,6 @@ export class EditorRemoteAgentHostServiceClient extends Disposable implements IA
 		const address = `vscode-remote://${connection.remoteAuthority}`;
 		const clientInfo = editorWindowAgentHostClientInfo;
 		this._protocolClient = this._register(instantiationService.createInstance(AgentHostProtocolClient, address, createTransport, { clientInfo }));
-		// Resources this client hands out (e.g. debug-log artifacts) are stamped with the
-		// address-derived authority, so register it for reads. The ambient `local` authority
-		// registered elsewhere covers a different URI namespace.
 		this._register(agentHostFileSystemService.registerAuthority(agentHostAuthority(address), this._protocolClient));
 		this._register(this._protocolClient.onDidClose(() => {
 			this._logService.info(`${LOG_PREFIX} Protocol client closed`);
@@ -139,7 +120,6 @@ export class EditorRemoteAgentHostServiceClient extends Disposable implements IA
 		return this._protocolClient;
 	}
 
-	// ---- IAgentHostService local-only surface (stubs) -----------------------
 
 	setAuthenticationPending(pending: boolean): void {
 		if (this._authenticationSettled) {
@@ -156,7 +136,6 @@ export class EditorRemoteAgentHostServiceClient extends Disposable implements IA
 	}
 
 	async restartAgentHost(): Promise<void> {
-		// The remote owns the agent host process lifecycle.
 	}
 
 	async startWebSocketServer(): Promise<IAgentHostSocketInfo> {
@@ -167,9 +146,6 @@ export class EditorRemoteAgentHostServiceClient extends Disposable implements IA
 		return undefined;
 	}
 
-	// ---- IAgentConnection delegation ---------------------------------------
-	// All getters delegate directly to the eagerly-created protocol client so
-	// `AgentHostContribution` can subscribe synchronously in its constructor.
 
 	get clientId(): string {
 		return this._protocolClient?.clientId ?? '';
@@ -243,7 +219,6 @@ export class EditorRemoteAgentHostServiceClient extends Disposable implements IA
 		return this._requireClient().readDebugLogsChunk(resource, position);
 	}
 
-	/** Unwraps the shared client's resource URIs to retain the translated remote workspace identities. */
 	async listSessions(): Promise<IAgentSessionMetadata[]> {
 		const sessions = await this._requireClient().listSessions();
 		return sessions.map(session => ({

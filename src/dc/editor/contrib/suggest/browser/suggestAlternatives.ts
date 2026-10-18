@@ -42,13 +42,11 @@ export class SuggestAlternatives {
 
 	set({ model, index }: ISelectedSuggestion, acceptNext: (selected: ISelectedSuggestion) => unknown): void {
 
-		// no suggestions -> nothing to do
 		if (model.items.length === 0) {
 			this.reset();
 			return;
 		}
 
-		// no alternative suggestions -> nothing to do
 		const nextIndex = SuggestAlternatives._moveIndex(true, model, index);
 		if (nextIndex === index) {
 			this.reset();
@@ -90,7 +88,6 @@ export class SuggestAlternatives {
 
 	private _move(fwd: boolean): void {
 		if (!this._model) {
-			// nothing to reason about
 			return;
 		}
 		try {

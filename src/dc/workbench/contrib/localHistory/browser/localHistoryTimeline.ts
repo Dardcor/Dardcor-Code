@@ -35,7 +35,7 @@ export class LocalHistoryTimeline extends Disposable implements IWorkbenchContri
 
 	readonly label = localize('localHistory', "Local History");
 
-	readonly scheme = '*'; // we try to show local history for all schemes if possible
+	readonly scheme = '*';
 
 	private readonly _onDidChange = this._register(new Emitter<TimelineChangeEvent>());
 	readonly onDidChange = this._onDidChange.event;
@@ -59,10 +59,8 @@ export class LocalHistoryTimeline extends Disposable implements IWorkbenchContri
 
 	private registerComponents(): void {
 
-		// Timeline (if enabled)
 		this.updateTimelineRegistration();
 
-		// File Service Provider
 		this._register(this.fileService.registerProvider(LocalHistoryFileSystemProvider.SCHEMA, new LocalHistoryFileSystemProvider(this.fileService)));
 	}
 
@@ -76,15 +74,13 @@ export class LocalHistoryTimeline extends Disposable implements IWorkbenchContri
 
 	private registerListeners(): void {
 
-		// History changes
 		this._register(this.workingCopyHistoryService.onDidAddEntry(e => this.onDidChangeWorkingCopyHistoryEntry(e.entry)));
 		this._register(this.workingCopyHistoryService.onDidChangeEntry(e => this.onDidChangeWorkingCopyHistoryEntry(e.entry)));
 		this._register(this.workingCopyHistoryService.onDidReplaceEntry(e => this.onDidChangeWorkingCopyHistoryEntry(e.entry)));
 		this._register(this.workingCopyHistoryService.onDidRemoveEntry(e => this.onDidChangeWorkingCopyHistoryEntry(e.entry)));
-		this._register(this.workingCopyHistoryService.onDidRemoveEntries(() => this.onDidChangeWorkingCopyHistoryEntry(undefined /* all entries */)));
-		this._register(this.workingCopyHistoryService.onDidMoveEntries(() => this.onDidChangeWorkingCopyHistoryEntry(undefined /* all entries */)));
+		this._register(this.workingCopyHistoryService.onDidRemoveEntries(() => this.onDidChangeWorkingCopyHistoryEntry(undefined )));
+		this._register(this.workingCopyHistoryService.onDidMoveEntries(() => this.onDidChangeWorkingCopyHistoryEntry(undefined )));
 
-		// Configuration changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(LocalHistoryTimeline.LOCAL_HISTORY_ENABLED_SETTINGS_KEY)) {
 				this.updateTimelineRegistration();
@@ -94,35 +90,23 @@ export class LocalHistoryTimeline extends Disposable implements IWorkbenchContri
 
 	private onDidChangeWorkingCopyHistoryEntry(entry: IWorkingCopyHistoryEntry | undefined): void {
 
-		// Re-emit as timeline change event
 		this._onDidChange.fire({
 			id: this.id,
 			uri: entry?.workingCopy.resource,
-			reset: true // there is no other way to indicate that items might have been replaced/removed
+			reset: true
 		});
 	}
 
 	async provideTimeline(uri: URI, options: TimelineOptions, token: CancellationToken): Promise<Timeline> {
 		const items: TimelineItem[] = [];
 
-		// Try to convert the provided `uri` into a form that is likely
-		// for the provider to find entries for so that we can ensure
-		// the timeline is always providing local history entries
 
 		let resource: URI | undefined = undefined;
 		if (uri.scheme === LocalHistoryFileSystemProvider.SCHEMA) {
-			// `vscode-local-history`: convert back to the associated resource
 			resource = LocalHistoryFileSystemProvider.fromLocalHistoryFileSystem(uri).associatedResource;
 		} else if (uri.scheme === this.pathService.defaultUriScheme || uri.scheme === Schemas.vscodeUserData) {
-			// default-scheme / settings: keep as is
 			resource = uri;
 		} else if (this.fileService.hasProvider(uri)) {
-			// anything that is backed by a file system provider:
-			// try best to convert the URI back into a form that is
-			// likely to match the workspace URIs. That means:
-			// - change to the default URI scheme
-			// - change to the remote authority or virtual workspace authority
-			// - preserve the path
 			resource = URI.from({
 				scheme: this.pathService.defaultUriScheme,
 				authority: this.environmentService.remoteAuthority ?? getVirtualWorkspaceAuthority(this.contextService.getWorkspace()),
@@ -132,10 +116,8 @@ export class LocalHistoryTimeline extends Disposable implements IWorkbenchContri
 
 		if (resource) {
 
-			// Retrieve from working copy history
 			const entries = await this.workingCopyHistoryService.getEntries(resource, token);
 
-			// Convert to timeline items
 			for (const entry of entries) {
 				items.push(this.toTimelineItem(entry));
 			}

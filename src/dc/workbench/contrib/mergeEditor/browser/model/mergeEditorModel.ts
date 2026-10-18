@@ -92,7 +92,6 @@ export class MergeEditorModel extends EditorModel {
 				map.lineRangeMappings.map((m) =>
 					m.inputRange.isEmpty || m.outputRange.isEmpty
 						? new LineRangeMapping(
-							// We can do this because two adjacent diffs have one line in between.
 							m.inputRange.deltaStart(-1),
 							m.outputRange.deltaStart(-1)
 						)
@@ -144,7 +143,7 @@ export class MergeEditorModel extends EditorModel {
 			}
 			return unhandledCount;
 		});
-		this.hasUnhandledConflicts = this.unhandledConflictsCount.map(value => /** @description hasUnhandledConflicts */ value > 0);
+		this.hasUnhandledConflicts = this.unhandledConflictsCount.map(value => value > 0);
 
 		this._register(keepObserved(this.modifiedBaseRangeResultStates));
 		this._register(keepObserved(this.input1ResultMapping));
@@ -168,21 +167,18 @@ export class MergeEditorModel extends EditorModel {
 									shouldRecomputeHandledFromAccepted = true;
 								}
 								return ctx.didChange(this.resultTextModelDiffs.diffs)
-									// Ignore non-text changes as we update the state directly
 									? ctx.change === TextModelDiffChangeReason.textChange
 									: true;
 							},
 						}
 					},
 					(reader) => {
-						/** @description Merge Editor Model: Recompute State From Result */
 						const states = this.modifiedBaseRangeResultStates.read(reader);
 						if (!this.isUpToDate.read(reader)) {
 							return;
 						}
 						const resultDiffs = this.resultTextModelDiffs.diffs.read(reader);
 						transaction(tx => {
-							/** @description Merge Editor Model: Recompute State */
 
 							this.updateBaseRangeAcceptedState(resultDiffs, states, tx);
 
@@ -213,7 +209,6 @@ export class MergeEditorModel extends EditorModel {
 		const states = this.modifiedBaseRangeResultStates.get();
 
 		transaction(tx => {
-			/** @description Set initial state */
 
 			for (const [range, state] of states) {
 				let newState: ModifiedBaseRangeState;
@@ -305,7 +300,6 @@ export class MergeEditorModel extends EditorModel {
 			map.lineRangeMappings.map((m) =>
 				m.inputRange.isEmpty || m.outputRange.isEmpty
 					? new LineRangeMapping(
-						// We can do this because two adjacent diffs have one line in between.
 						m.inputRange.deltaStart(-1),
 						m.outputRange.deltaStart(-1)
 					)
@@ -346,7 +340,6 @@ export class MergeEditorModel extends EditorModel {
 	}
 
 	public findModifiedBaseRangesInRange(rangeInBase: MergeEditorLineRange): ModifiedBaseRange[] {
-		// TODO use binary search
 		return this.modifiedBaseRanges.get().filter(r => r.baseRange.intersectsOrTouches(rangeInBase));
 	}
 
@@ -378,7 +371,6 @@ export class MergeEditorModel extends EditorModel {
 			const oldState = data.accepted.get();
 			if (!oldState.equals(newState)) {
 				if (!this.firstRun && !data.computedFromDiffing) {
-					// Don't set this on the first run - the first run might be used to restore state.
 					data.computedFromDiffing = true;
 					data.previousNonDiffingState = oldState;
 				}
@@ -488,14 +480,12 @@ export class MergeEditorModel extends EditorModel {
 			this.resultTextModel.pushStackElement();
 		}
 
-		// always set conflict as handled
 		existingState.handledInput1.set(true, tx);
 		existingState.handledInput2.set(true, tx);
 	}
 
 	public resetDirtyConflictsToBase(): void {
 		transaction(tx => {
-			/** @description Reset Unknown Base Range States */
 			this.resultTextModel.pushStackElement();
 			for (const range of this.modifiedBaseRanges.get()) {
 				if (this.getState(range).get().kind === ModifiedBaseRangeStateKind.unrecognized) {
@@ -631,7 +621,6 @@ export class MergeEditorModel extends EditorModel {
 
 			outputLines.push('<<<<<<<');
 			if (state.accepted.get().kind === ModifiedBaseRangeStateKind.unrecognized) {
-				// to prevent loss of data, use modified result as "ours"
 				appendLinesToResult(resultLines, resultRange);
 			} else {
 				appendLinesToResult(input1Lines, range.input1Range);

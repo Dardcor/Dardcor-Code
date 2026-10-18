@@ -191,7 +191,6 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 			activeFile: !!this.panelState.activeFile,
 		}, this.contextKeyService));
 
-		// Update filter, whenever the "files.exclude" setting is changed
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (this.filters.excludedFiles && e.affectsConfiguration('files.exclude')) {
 				this.updateFilter();
@@ -334,15 +333,12 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 					this.widget.updateMarker(markerOrChange);
 				} else {
 					if (markerOrChange.added.size || markerOrChange.removed.size || this.filters.activeFile) {
-						// Reset complete widget
 						this.resetWidget();
 					} else {
-						// Update resource
 						this.widget.update([...markerOrChange.updated]);
 					}
 				}
 			} else {
-				// Reset complete widget
 				this.resetWidget();
 			}
 
@@ -545,7 +541,6 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 	private reInitialize(): IDisposable[] {
 		const disposables = [];
 
-		// Markers Model
 		const readMarkers = (resource?: URI) => this.markerService.read({ resource, severities: MarkerSeverity.Error | MarkerSeverity.Warning | MarkerSeverity.Info });
 		this.markersModel.setResourceMarkers(groupBy(readMarkers(), compareMarkersByUri).map(group => [group[0].resource, group]));
 		disposables.push(Event.debounce<readonly URI[], ResourceMap<URI>>(this.markerService.onMarkerChanged, (resourcesMap, resources) => {
@@ -564,12 +559,10 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 		}));
 		disposables.push(toDisposable(() => this.markersModel.reset()));
 
-		// Markers View Model
 		this.markersModel.resourceMarkers.forEach(resourceMarker => resourceMarker.markers.forEach(marker => this.markersViewModel.add(marker)));
 		disposables.push(this.markersViewModel.onDidChange(marker => this.onDidChangeViewState(marker)));
 		disposables.push(toDisposable(() => this.markersModel.resourceMarkers.forEach(resourceMarker => this.markersViewModel.remove(resourceMarker.resource))));
 
-		// Markers Filters
 		disposables.push(this.filters.onDidChange((event: IMarkersFiltersChangeEvent) => {
 			if (event.activeFile) {
 				this.refreshPanel();
@@ -613,7 +606,6 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 			this.widgetDisposables.clear();
 		}
 
-		// Save selection
 		const selection = new Set<Marker>();
 		for (const marker of this.widget.getSelection()) {
 			if (marker instanceof ResourceMarkers) {
@@ -623,7 +615,6 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 			}
 		}
 
-		// Save focus
 		const focus = new Set<Marker>();
 		for (const marker of this.widget.getFocus()) {
 			if (marker instanceof Marker || marker instanceof MarkerTableItem) {
@@ -631,11 +622,9 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 			}
 		}
 
-		// Create new widget
 		this.createWidget(this.widgetContainer);
 		this.refreshPanel();
 
-		// Restore selection
 		if (selection.size > 0) {
 			this.widget.setMarkerSelection(Array.from(selection), Array.from(focus));
 			this.widget.domFocus();
@@ -768,7 +757,6 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 	}
 
 	private autoReveal(focus: boolean = false): void {
-		// No need to auto reveal if active file filter is on
 		if (this.filters.activeFile) {
 			return;
 		}

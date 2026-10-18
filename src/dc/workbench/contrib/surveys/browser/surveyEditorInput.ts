@@ -22,7 +22,6 @@ export class SurveyEditorInput extends EditorInput {
 
 	constructor(
 		readonly survey: ISurveyDefinition,
-		/** The feature or attribution category associated with this survey (e.g. 'completions', 'agents', 'churn'). */
 		source?: string,
 	) {
 		super();
@@ -33,7 +32,6 @@ export class SurveyEditorInput extends EditorInput {
 		return this._source;
 	}
 
-	/** Update the source when re-triggered while already open. */
 	updateSource(source: string | undefined): void {
 		this._source = source;
 	}

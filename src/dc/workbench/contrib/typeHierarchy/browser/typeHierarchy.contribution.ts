@@ -73,7 +73,6 @@ class TypeHierarchyController implements IEditorContribution {
 		this._disposables.dispose();
 	}
 
-	// Peek
 	async startTypeHierarchyFromEditor(): Promise<void> {
 		this._sessionDisposables.clear();
 
@@ -110,7 +109,7 @@ class TypeHierarchyController implements IEditorContribution {
 
 		model.then(model => {
 			if (cts.token.isCancellationRequested) {
-				return; // nothing
+				return;
 			}
 			if (model) {
 				this._sessionDisposables.add(model);
@@ -169,9 +168,8 @@ class TypeHierarchyController implements IEditorContribution {
 	}
 }
 
-registerEditorContribution(TypeHierarchyController.Id, TypeHierarchyController, EditorContributionInstantiation.Eager); // eager because it needs to define a context key
+registerEditorContribution(TypeHierarchyController.Id, TypeHierarchyController, EditorContributionInstantiation.Eager);
 
-// Peek
 registerAction2(class PeekTypeHierarchyAction extends EditorAction2 {
 
 	constructor() {
@@ -200,7 +198,6 @@ registerAction2(class PeekTypeHierarchyAction extends EditorAction2 {
 	}
 });
 
-// actions for peek widget
 registerAction2(class extends EditorAction2 {
 
 	constructor() {

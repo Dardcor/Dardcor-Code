@@ -2,12 +2,6 @@ import { NextResponse } from "next/server";
 import { KiroService } from "@/lib/oauth/services/kiro";
 import { createProviderConnection } from "@/models";
 
-/**
- * POST /api/oauth/kiro/import
- * Import and validate refresh token from Kiro IDE.
- * For IDC (organization) tokens, accepts clientId/clientSecret/region so the
- * token can be refreshed via the regional AWS OIDC endpoint.
- */
 export async function POST(request) {
   try {
     const { refreshToken, clientId, clientSecret, region, authMethod, profileArn } = await request.json();
@@ -22,8 +16,6 @@ export async function POST(request) {
     const kiroService = new KiroService();
     const isIdc = !!(clientId && clientSecret);
 
-    // For IDC tokens, refresh via the regional OIDC endpoint with client credentials.
-    // For social/builder-id tokens, use the standard social refresh endpoint.
     const providerSpecificData = isIdc
       ? { clientId, clientSecret, region: region || "us-east-1", authMethod: "idc" }
       : {};

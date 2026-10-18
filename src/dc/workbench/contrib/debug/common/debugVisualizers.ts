@@ -61,34 +61,16 @@ export class DebugVisualizer {
 export interface IDebugVisualizerService {
 	_serviceBrand: undefined;
 
-	/**
-	 * Gets visualizers applicable for the given Expression.
-	 */
 	getApplicableFor(expression: IExpression, token: CancellationToken): Promise<IReference<DebugVisualizer[]>>;
 
-	/**
-	 * Registers a new visualizer (called from the main thread debug service)
-	 */
 	register(handle: VisualizerHandle): IDisposable;
 
-	/**
-	 * Registers a new visualizer tree.
-	 */
 	registerTree(treeId: string, handle: VisualizerTreeHandle): IDisposable;
 
-	/**
-	 * Sets that a certa tree should be used for the visualized node
-	 */
 	getVisualizedNodeFor(treeId: string, expr: IExpression): Promise<VisualizedExpression | undefined>;
 
-	/**
-	 * Gets children for a visualized tree node.
-	 */
 	getVisualizedChildren(session: IDebugSession | undefined, treeId: string, treeElementId: number): Promise<IExpression[]>;
 
-	/**
-	 * Gets children for a visualized tree node.
-	 */
 	editTreeItem(treeId: string, item: IDebugVisualizationTreeItem, newValue: string): Promise<void>;
 }
 
@@ -97,8 +79,8 @@ const emptyRef: IReference<DebugVisualizer[]> = { object: [], dispose: () => { }
 export class DebugVisualizerService implements IDebugVisualizerService {
 	declare public readonly _serviceBrand: undefined;
 
-	private readonly handles = new Map</* extId + \0 + vizId */ string, VisualizerHandle>();
-	private readonly trees = new Map</* extId + \0 + treeId */ string, VisualizerTreeHandle>();
+	private readonly handles = new Map< string, VisualizerHandle>();
+	private readonly trees = new Map< string, VisualizerTreeHandle>();
 	private readonly didActivate = new Map<string, Promise<void>>();
 	private registrations: { expr: ContextKeyExpression; id: string; extensionId: ExtensionIdentifier }[] = [];
 
@@ -114,13 +96,12 @@ export class DebugVisualizerService implements IDebugVisualizerService {
 		});
 	}
 
-	/** @inheritdoc */
 	public async getApplicableFor(variable: IExpression, token: CancellationToken): Promise<IReference<DebugVisualizer[]>> {
 		if (!(variable instanceof Variable)) {
 			return emptyRef;
 		}
 		const threadId = variable.getThreadId();
-		if (threadId === undefined) { // an expression, not a variable
+		if (threadId === undefined) {
 			return emptyRef;
 		}
 
@@ -167,20 +148,17 @@ export class DebugVisualizerService implements IDebugVisualizerService {
 		return ref;
 	}
 
-	/** @inheritdoc */
 	public register(handle: VisualizerHandle): IDisposable {
 		const key = toKey(handle.extensionId, handle.id);
 		this.handles.set(key, handle);
 		return toDisposable(() => this.handles.delete(key));
 	}
 
-	/** @inheritdoc */
 	public registerTree(treeId: string, handle: VisualizerTreeHandle): IDisposable {
 		this.trees.set(treeId, handle);
 		return toDisposable(() => this.trees.delete(treeId));
 	}
 
-	/** @inheritdoc */
 	public async getVisualizedNodeFor(treeId: string, expr: IExpression): Promise<VisualizedExpression | undefined> {
 		if (!(expr instanceof Variable)) {
 			return;
@@ -209,18 +187,16 @@ export class DebugVisualizerService implements IDebugVisualizerService {
 		}
 	}
 
-	/** @inheritdoc */
 	public async getVisualizedChildren(session: IDebugSession | undefined, treeId: string, treeElementId: number): Promise<IExpression[]> {
 		const node = this.trees.get(treeId);
 		const children = await node?.getChildren(treeElementId) || [];
 		return children.map(c => new VisualizedExpression(session, this, treeId, c, undefined));
 	}
 
-	/** @inheritdoc */
 	public async editTreeItem(treeId: string, treeItem: IDebugVisualizationTreeItem, newValue: string): Promise<void> {
 		const newItem = await this.trees.get(treeId)?.editItem?.(treeItem.id, newValue);
 		if (newItem) {
-			Object.assign(treeItem, newItem); // replace in-place so rerenders work
+			Object.assign(treeItem, newItem);
 		}
 	}
 

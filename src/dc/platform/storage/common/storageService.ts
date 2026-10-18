@@ -69,19 +69,13 @@ export class RemoteStorageService extends AbstractStorageService {
 
 	private createProfileStorage(profile: IUserDataProfile): IStorage {
 
-		// First clear any previously associated disposables
 		this.profileStorageDisposables.clear();
 
-		// Remember profile associated to profile storage
 		this.profileStorageProfile = profile;
 
 		let profileStorage: IStorage;
 		if (isProfileUsingDefaultStorage(profile)) {
 
-			// If we are using default profile storage, the profile storage is
-			// actually the same as application storage. As such we
-			// avoid creating the storage library a second time on
-			// the same DB.
 
 			profileStorage = this.applicationStorage;
 		} else {
@@ -98,10 +92,8 @@ export class RemoteStorageService extends AbstractStorageService {
 	private createWorkspaceStorage(workspace: IAnyWorkspaceIdentifier | undefined): IStorage | undefined;
 	private createWorkspaceStorage(workspace: IAnyWorkspaceIdentifier | undefined): IStorage | undefined {
 
-		// First clear any previously associated disposables
 		this.workspaceStorageDisposables.clear();
 
-		// Remember workspace ID for logging later
 		this.workspaceStorageId = workspace?.id;
 
 		let workspaceStorage: IStorage | undefined = undefined;
@@ -117,7 +109,6 @@ export class RemoteStorageService extends AbstractStorageService {
 
 	protected async doInitialize(): Promise<void> {
 
-		// Init all storage locations
 		await Promises.settled([
 			this.applicationStorage.init(),
 			this.applicationSharedStorage.init(),
@@ -154,13 +145,10 @@ export class RemoteStorageService extends AbstractStorageService {
 
 	async close(): Promise<void> {
 
-		// Stop periodic scheduler and idle runner as we now collect state normally
 		this.stopFlushWhenIdle();
 
-		// Signal as event so that clients can still store data
 		this.emitWillSaveState(WillSaveStateReason.SHUTDOWN);
 
-		// Do it
 		await Promises.settled([
 			this.applicationStorage.close(),
 			this.applicationSharedStorage.close(),
@@ -177,17 +165,13 @@ export class RemoteStorageService extends AbstractStorageService {
 		const oldProfileStorage = this.profileStorage;
 		const oldItems = oldProfileStorage.items;
 
-		// Close old profile storage but only if this is
-		// different from application storage!
 		if (oldProfileStorage !== this.applicationStorage) {
 			await oldProfileStorage.close();
 		}
 
-		// Create new profile storage & init
 		this.profileStorage = this.createProfileStorage(toProfile);
 		await this.profileStorage.init();
 
-		// Handle data switch and eventing
 		this.switchData(oldItems, this.profileStorage, StorageScope.PROFILE);
 	}
 
@@ -195,14 +179,11 @@ export class RemoteStorageService extends AbstractStorageService {
 		const oldWorkspaceStorage = this.workspaceStorage;
 		const oldItems = oldWorkspaceStorage?.items ?? new Map();
 
-		// Close old workspace storage
 		await oldWorkspaceStorage?.close();
 
-		// Create new workspace storage & init
 		this.workspaceStorage = this.createWorkspaceStorage(toWorkspace);
 		await this.workspaceStorage.init();
 
-		// Handle data switch and eventing
 		this.switchData(oldItems, this.workspaceStorage, StorageScope.WORKSPACE);
 	}
 

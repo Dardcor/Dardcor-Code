@@ -8,9 +8,6 @@ import { Range } from '../../../../../editor/common/core/range.js';
 import { LineRange } from '../../../../../editor/common/core/ranges/lineRange.js';
 import { ITextModel } from '../../../../../editor/common/model.js';
 
-/**
- * TODO: Deprecate in favor of LineRange!
- */
 export class MergeEditorLineRange extends LineRange {
 	static fromLineNumbers(startLineNumber: number, endExclusiveLineNumber: number): MergeEditorLineRange {
 		return MergeEditorLineRange.fromLength(startLineNumber, endExclusiveLineNumber - startLineNumber);

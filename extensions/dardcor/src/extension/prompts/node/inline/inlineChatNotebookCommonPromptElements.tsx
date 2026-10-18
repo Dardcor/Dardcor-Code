@@ -76,10 +76,6 @@ interface InlineChatJupyterNotebookCellsContextRendererProps extends BasePromptE
 	belowCells: CodeContextRegion[];
 }
 
-/**
- * Notebook cell context renderer. Used by Generate and Edit intents.
- * It includes the document context of the notebook. It' using legacy prompt technique to include the examples and the cell position and content.
- */
 export class InlineChatJupyterNotebookCellsContextRenderer extends PromptElement<InlineChatJupyterNotebookCellsContextRendererProps> {
 	render(state: void, sizing: PromptSizing) {
 		if (!isNotebookCellOrNotebookChatInput(this.props.documentContext.document.uri)) {
@@ -250,7 +246,6 @@ export class IndexedTag extends PromptElement<IndexedTagProps> {
 	}
 }
 
-//#region Utility
 export function generateSelectionContextInNotebook(
 	tokensBudget: number,
 	documentContext: IDocumentContext,
@@ -258,7 +253,6 @@ export function generateSelectionContextInNotebook(
 	tabsAndEditorsService: ITabsAndEditorsService,
 	workspaceService: IWorkspaceService
 ) {
-	// 4 chars per token
 	const charLimit = (tokensBudget * 4);
 	const initialTracker = new CodeContextTracker(charLimit);
 
@@ -273,9 +267,7 @@ export function generateSelectionContextInNotebook(
 
 	return generateNotebookCellContext(tabsAndEditorsService, workspaceService, documentContext, initialContext, initialTracker);
 }
-//#endregion
 
-//#region Custom Notebook
 
 export const CustomNotebookExamples = [
 	{
@@ -461,9 +453,7 @@ export class InlineChatCustomNotebookCellsContextRenderer extends PromptElement<
 	}
 }
 
-//#endregion
 
-//#region Variables
 type InlineChatNotebookVariablesPromptProps = PromptElementProps<{
 	notebookURI: vscode.Uri;
 	query: string;
@@ -496,7 +486,6 @@ export class InlineChatNotebookVariables extends PromptElement<InlineChatNoteboo
 		}
 
 		const fetchVariables = this.notebookService.getVariables(notebook.uri);
-		// disable fetching available packages
 		const fetchPackages = Promise.resolve([]);
 		const [variables, packages] = await Promise.all([fetchVariables, fetchPackages]);
 		return { variables, packages };
@@ -546,4 +535,3 @@ export class InlineChatNotebookVariables extends PromptElement<InlineChatNoteboo
 	}
 }
 
-//#endregion

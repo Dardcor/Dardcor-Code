@@ -15,22 +15,10 @@ import { PromptReference } from '../../prompt/common/conversation';
 
 const codeBlockScheme = 'vscode-chat-code-block';
 
-/**
- * Hovers that are provided by a language provider in cases where the correct types are not known.
- *
- * A good example of this is how js/ts shows `any` for any unknown types. In these cases, we instead want to try looking
- * up a more helpful hover using the workspace symbols.
- */
 const genericHoverMessages: RegExp[] = [
 	/^\n```(typescript|javascript|tsx|jsx)\S*\nany\n```\n$/i,
 ];
 
-/**
- * Groupings of languages that can reference each other for intellisense.
- *
- * For example, when trying to look up a symbol in a JS code block, we shouldn't bother
- * looking up symbols in c++ or markdown files.
- */
 const languageReferenceGroups: readonly Set<string>[] = [
 	new Set<WellKnownLanguageId>([
 		'typescript',
@@ -39,13 +27,9 @@ const languageReferenceGroups: readonly Set<string>[] = [
 		'javascriptreact',
 	]),
 
-	// Put all other languages in their own group
 	...Array.from(wellKnownLanguages.keys(), lang => new Set([lang]))
 ];
 
-/**
- * Provides support for Intellisense chat code blocks.
- */
 class CodeBlockIntelliSenseProvider implements vscode.DefinitionProvider, vscode.ImplementationProvider, vscode.TypeDefinitionProvider, vscode.HoverProvider {
 
 	constructor(
@@ -133,15 +117,6 @@ class CodeBlockIntelliSenseProvider implements vscode.DefinitionProvider, vscode
 			return;
 		}
 
-		/* __GDPR__
-			"codeBlock.action.goTo" : {
-				"owner": "mjbvz",
-				"comment": "Counts interactions with code blocks in chat responses",
-				"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language of the currently open document." },
-				"command": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The go to command being run." },
-				"codeBlockId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Unique hash of the code block." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('codeBlock.action.goTo', {
 			languageId: document.languageId,
 			command,
@@ -232,11 +207,9 @@ class CodeBlockIntelliSenseProvider implements vscode.DefinitionProvider, vscode
 	private getReferences(document: vscode.TextDocument): readonly PromptReference[] {
 		const refs = this.extractReferences(document);
 
-		// Filter out references that don't belong to the same language family
 		const docLang = getLanguage(document);
 		const docLangGroup = getReferenceGroupForLanguage(docLang);
 		if (!docLangGroup) {
-			// Unknown language so skip filtering
 			return refs;
 		}
 

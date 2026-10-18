@@ -1,6 +1,3 @@
-// Port of auto_detect_filter (rtk/src/cmds/system/pipe_cmd.rs:132-188) + JS extras
-// Detection order: git-log → git-diff → git-status → build-output → grep → find → tree → ls → search-list
-//                  → read-numbered → dedup-log → smart-truncate → null
 import { DETECT_WINDOW, READ_NUMBERED_MIN_HIT_RATIO, SMART_TRUNCATE_MIN_LINES } from "./constants.js";
 import { gitDiff } from "./filters/gitDiff.js";
 import { gitStatus } from "./filters/gitStatus.js";
@@ -26,14 +23,12 @@ const RE_LS_ROW = /^[-dlbcps][rwx-]{9}/m;
 const RE_LS_TOTAL = /^total \d+$/m;
 
 export function autoDetectFilter(text) {
-  // Rust: floor_char_boundary to avoid UTF-8 split — JS .slice() by char is safe
   const head = text.length > DETECT_WINDOW ? text.slice(0, DETECT_WINDOW) : text;
 
   if (RE_GIT_LOG.test(head)) return gitLog;
   if (RE_GIT_DIFF.test(head) || RE_GIT_DIFF_HUNK.test(head)) return gitDiff;
   if (RE_GIT_STATUS.test(head)) return gitStatus;
 
-  // Build output BEFORE porcelain check: prevents cargo "Compiling" misdetection as git-status
   if (RE_BUILD_OUTPUT.test(head)) return buildOutput;
 
   if (isMostlyPorcelain(head)) return gitStatus;
@@ -41,38 +36,29 @@ export function autoDetectFilter(text) {
   const lines = head.split("\n");
   const nonEmpty = lines.filter(l => l.trim().length > 0);
 
-  // Rust grep rule: first 5 non-empty lines, ANY matches "file:number:content"
   const first5 = nonEmpty.slice(0, 5);
   if (first5.some(isGrepLine)) return grep;
 
-  // Rust find rule: ALL non-empty lines path-like (no ':'), >=3 lines
   if (nonEmpty.length >= 3 && nonEmpty.every(isPathLike)) return find;
 
-  // Tree: contains box-drawing glyphs typical of `tree` command
   if (RE_TREE_GLYPH.test(head)) return tree;
 
-  // ls -la: has "total N" header or >=3 rows starting with perms string
   if (RE_LS_TOTAL.test(head) || countMatches(head, RE_LS_ROW) >= 3) return ls;
 
-  // Cursor Glob search list header
   if (SEARCH_LIST_HEADER_RE.test(head)) return searchList;
 
-  // Line-numbered file dump ("  N|content") — fire only if many lines match
   if (lines.length >= SMART_TRUNCATE_MIN_LINES && isLineNumbered(lines)) {
     return readNumbered;
   }
 
-  // Fallback: dedupLog for generic multi-line noise with duplicates
   if (nonEmpty.length >= 5) return dedupLog;
 
-  // Last resort: big blob with no structure — smart truncate
   if (text.split("\n").length >= SMART_TRUNCATE_MIN_LINES) return smartTruncate;
 
   return null;
 }
 
 function isGrepLine(line) {
-  // Rust: splitn(3, ':') → parts.len()==3 && parts[1].parse::<usize>().is_ok()
   const first = line.indexOf(":");
   if (first === -1) return false;
   const second = line.indexOf(":", first + 1);
@@ -84,10 +70,6 @@ function isGrepLine(line) {
 function isPathLike(line) {
   const t = line.trim();
   if (t.length === 0) return false;
-  // A drive-letter prefix (e.g. "C:\Users\me" or "C:/Users/me") marks a
-  // Windows absolute path, so treat the whole line as path-like. Trailing
-  // colons (e.g. "C:\path\file.js:10") are tolerated, matching grep-style
-  // suffixes on Windows dumps.
   if (/^[A-Za-z]:[\\/]/.test(t)) return true;
   if (t.includes(":")) return false;
   return t.startsWith(".") || t.startsWith("/") || t.includes("/");

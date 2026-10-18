@@ -445,15 +445,12 @@ suite('FilteredEditorGroupModel', () => {
 		model.openEditor(input1, { pinned: true, sticky: true, active: true });
 		model.openEditor(input2, { pinned: true, sticky: true, active: true });
 
-		// all sticky editors
 		assert.strictEqual(stickyFilteredEditorGroup.getEditors(EditorsOrder.SEQUENTIAL).length, 2);
 		assert.strictEqual(stickyFilteredEditorGroup.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).length, 2);
 
-		// no unsticky editors
 		assert.strictEqual(unstickyFilteredEditorGroup.getEditors(EditorsOrder.SEQUENTIAL).length, 0);
 		assert.strictEqual(unstickyFilteredEditorGroup.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).length, 0);
 
-		// options: excludeSticky
 		assert.strictEqual(stickyFilteredEditorGroup.getEditors(EditorsOrder.SEQUENTIAL, { excludeSticky: true }).length, 0);
 		assert.strictEqual(stickyFilteredEditorGroup.getEditors(EditorsOrder.SEQUENTIAL, { excludeSticky: false }).length, 2);
 		assert.strictEqual(unstickyFilteredEditorGroup.getEditors(EditorsOrder.SEQUENTIAL, { excludeSticky: true }).length, 0);
@@ -472,15 +469,12 @@ suite('FilteredEditorGroupModel', () => {
 
 		model.unstick(input2);
 
-		// all unsticky editors
 		assert.strictEqual(stickyFilteredEditorGroup.getEditors(EditorsOrder.SEQUENTIAL).length, 0);
 		assert.strictEqual(unstickyFilteredEditorGroup.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE).length, 2);
 
-		// order: MOST_RECENTLY_ACTIVE
 		assert.strictEqual(unstickyFilteredEditorGroup.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE)[0], input2);
 		assert.strictEqual(unstickyFilteredEditorGroup.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE)[1], input1);
 
-		// order: SEQUENTIAL
 		assert.strictEqual(unstickyFilteredEditorGroup.getEditors(EditorsOrder.SEQUENTIAL)[0], input2);
 		assert.strictEqual(unstickyFilteredEditorGroup.getEditors(EditorsOrder.SEQUENTIAL)[1], input1);
 	});
@@ -667,11 +661,9 @@ suite('FilteredEditorGroupModel', () => {
 		const stickyFilteredEditorGroup = disposables.add(new StickyEditorGroupModel(model));
 		const unstickyFilteredEditorGroup = disposables.add(new UnstickyEditorGroupModel(model));
 
-		// same id
 		assert.strictEqual(stickyFilteredEditorGroup.id, model.id);
 		assert.strictEqual(unstickyFilteredEditorGroup.id, model.id);
 
-		// group locking same behaviour
 		assert.strictEqual(stickyFilteredEditorGroup.isLocked, model.isLocked);
 		assert.strictEqual(unstickyFilteredEditorGroup.isLocked, model.isLocked);
 
@@ -701,7 +693,6 @@ suite('FilteredEditorGroupModel', () => {
 		model1.openEditor(input1, { pinned: true, active: true });
 		model2.openEditor(input2, { pinned: true, active: true, sticky: true });
 
-		// DIRTY
 		let dirty1CounterSticky = 0;
 		disposables.add(stickyFilteredEditorGroup1.onDidModelChange((e) => {
 			if (e.kind === GroupModelChangeKind.EDITOR_DIRTY) {
@@ -730,7 +721,6 @@ suite('FilteredEditorGroupModel', () => {
 			}
 		}));
 
-		// LABEL
 		let label1ChangeCounterSticky = 0;
 		disposables.add(stickyFilteredEditorGroup1.onDidModelChange((e) => {
 			if (e.kind === GroupModelChangeKind.EDITOR_LABEL) {

@@ -26,8 +26,6 @@ export async function activate(ctx: RendererContext<void>) {
 			if (attachments && src && src.startsWith('attachment:')) {
 				const imageAttachment = attachments[tryDecodeURIComponent(src.replace('attachment:', ''))];
 				if (imageAttachment) {
-					// objEntries will always be length 1, with objEntries[0] holding [0]=mime,[1]=b64
-					// if length = 0, something is wrong with the attachment, mime/b64 weren't copied over
 					const objEntries = Object.entries(imageAttachment);
 					if (objEntries.length) {
 						const [attachmentKey, attachmentVal] = objEntries[0];

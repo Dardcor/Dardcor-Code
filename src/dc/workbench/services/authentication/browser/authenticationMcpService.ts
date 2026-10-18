@@ -21,7 +21,6 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 
-// OAuth2 spec prohibits space in a scope, so use that to join them.
 const SCOPESLIST_SEPARATOR = ' ';
 
 interface SessionRequest {
@@ -33,65 +32,22 @@ interface SessionRequestInfo {
 	[scopesList: string]: SessionRequest;
 }
 
-// TODO: Move this into MainThreadAuthentication
 export const IAuthenticationMcpService = createDecorator<IAuthenticationMcpService>('IAuthenticationMcpService');
 export interface IAuthenticationMcpService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fires when an account preference for a specific provider has changed for the specified MCP servers. Does not fire when:
-	 * * An account preference is removed
-	 * * A session preference is changed (because it's deprecated)
-	 * * A session preference is removed (because it's deprecated)
-	 */
 	readonly onDidChangeAccountPreference: Event<{ mcpServerIds: string[]; providerId: string }>;
-	/**
-	 * Returns the accountName (also known as account.label) to pair with `IAuthenticationMCPServerAccessService` to get the account preference
-	 * @param providerId The authentication provider id
-	 * @param mcpServerId The MCP server id to get the preference for
-	 * @returns The accountName of the preference, or undefined if there is no preference set
-	 */
 	getAccountPreference(mcpServerId: string, providerId: string): string | undefined;
-	/**
-	 * Sets the account preference for the given provider and MCP server
-	 * @param providerId The authentication provider id
-	 * @param mcpServerId The MCP server id to set the preference for
-	 * @param account The account to set the preference to
-	 */
 	updateAccountPreference(mcpServerId: string, providerId: string, account: AuthenticationSessionAccount): void;
-	/**
-	 * Removes the account preference for the given provider and MCP server
-	 * @param providerId The authentication provider id
-	 * @param mcpServerId The MCP server id to remove the preference for
-	 */
 	removeAccountPreference(mcpServerId: string, providerId: string): void;
-	/**
-	 * @deprecated Sets the session preference for the given provider and MCP server
-	 * @param providerId
-	 * @param mcpServerId
-	 * @param session
-	 */
 	updateSessionPreference(providerId: string, mcpServerId: string, session: AuthenticationSession): void;
-	/**
-	 * @deprecated Gets the session preference for the given provider and MCP server
-	 * @param providerId
-	 * @param mcpServerId
-	 * @param scopes
-	 */
 	getSessionPreference(providerId: string, mcpServerId: string, scopes: string[]): string | undefined;
-	/**
-	 * @deprecated Removes the session preference for the given provider and MCP server
-	 * @param providerId
-	 * @param mcpServerId
-	 * @param scopes
-	 */
 	removeSessionPreference(providerId: string, mcpServerId: string, scopes: string[]): void;
 	selectSession(providerId: string, mcpServerId: string, mcpServerName: string, scopes: string[], possibleSessions: readonly AuthenticationSession[]): Promise<AuthenticationSession>;
 	requestSessionAccess(providerId: string, mcpServerId: string, mcpServerName: string, scopes: string[], possibleSessions: readonly AuthenticationSession[]): void;
 	requestNewSession(providerId: string, scopes: string[], mcpServerId: string, mcpServerName: string): Promise<void>;
 }
 
-// TODO@TylerLeonhardt: This should all go in MainThreadAuthentication
 export class AuthenticationMcpService extends Disposable implements IAuthenticationMcpService {
 	declare readonly _serviceBrand: undefined;
 	private _signInRequestItems = new Map<string, SessionRequestInfo>();
@@ -151,10 +107,8 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 		}
 
 		Object.keys(existingRequestsForProvider).forEach(requestedScopes => {
-			// Parse the requested scopes from the stored key
 			const requestedScopesArray = requestedScopes.split(SCOPESLIST_SEPARATOR);
 
-			// Check if any added session has matching scopes (order-independent)
 			if (addedSessions.some(session => scopesMatch(session.scopes, requestedScopesArray))) {
 				const sessionRequest = existingRequestsForProvider[requestedScopes];
 				sessionRequest?.disposables.forEach(item => item.dispose());
@@ -216,14 +170,11 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 		}
 	}
 
-	//#region Account/Session Preference
 
 	updateAccountPreference(mcpServerId: string, providerId: string, account: AuthenticationSessionAccount): void {
 		const parentMcpServerId = this._inheritAuthAccountPreferenceChildToParent[mcpServerId] ?? mcpServerId;
 		const key = this._getKey(parentMcpServerId, providerId);
 
-		// Store the preference in the workspace and application storage. This allows new workspaces to
-		// have a preference set already to limit the number of prompts that are shown... but also allows
 		// a specific workspace to override the global preference.
 		this.storageService.store(key, account.label, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		this.storageService.store(key, account.label, StorageScope.APPLICATION, StorageTarget.MACHINE);
@@ -243,10 +194,7 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 	removeAccountPreference(mcpServerId: string, providerId: string): void {
 		const key = this._getKey(this._inheritAuthAccountPreferenceChildToParent[mcpServerId] ?? mcpServerId, providerId);
 
-		// This won't affect any other workspaces that have a preference set, but it will remove the preference
 		// for this workspace and the global preference. This is only paired with a call to updateSessionPreference...
-		// so we really don't _need_ to remove them as they are about to be overridden anyway... but it's more correct
-		// to remove them first... and in case this gets called from somewhere else in the future.
 		this.storageService.remove(key, StorageScope.WORKSPACE);
 		this.storageService.remove(key, StorageScope.APPLICATION);
 	}
@@ -255,27 +203,16 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 		return `${mcpServerId}-${providerId}`;
 	}
 
-	// TODO@TylerLeonhardt: Remove all of this after a couple iterations
 
 	updateSessionPreference(providerId: string, mcpServerId: string, session: AuthenticationSession): void {
-		// The 3 parts of this key are important:
-		// * MCP server id: The MCP server that has a preference
-		// * Provider id: The provider that the preference is for
-		// * The scopes: The subset of sessions that the preference applies to
 		const key = `${mcpServerId}-${providerId}-${session.scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// Store the preference in the workspace and application storage. This allows new workspaces to
-		// have a preference set already to limit the number of prompts that are shown... but also allows
 		// a specific workspace to override the global preference.
 		this.storageService.store(key, session.id, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		this.storageService.store(key, session.id, StorageScope.APPLICATION, StorageTarget.MACHINE);
 	}
 
 	getSessionPreference(providerId: string, mcpServerId: string, scopes: string[]): string | undefined {
-		// The 3 parts of this key are important:
-		// * MCP server id: The MCP server that has a preference
-		// * Provider id: The provider that the preference is for
-		// * The scopes: The subset of sessions that the preference applies to
 		const key = `${mcpServerId}-${providerId}-${scopes.join(SCOPESLIST_SEPARATOR)}`;
 
 		// If a preference is set in the workspace, use that. Otherwise, use the global preference.
@@ -283,16 +220,9 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 	}
 
 	removeSessionPreference(providerId: string, mcpServerId: string, scopes: string[]): void {
-		// The 3 parts of this key are important:
-		// * MCP server id: The MCP server that has a preference
-		// * Provider id: The provider that the preference is for
-		// * The scopes: The subset of sessions that the preference applies to
 		const key = `${mcpServerId}-${providerId}-${scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// This won't affect any other workspaces that have a preference set, but it will remove the preference
 		// for this workspace and the global preference. This is only paired with a call to updateSessionPreference...
-		// so we really don't _need_ to remove them as they are about to be overridden anyway... but it's more correct
-		// to remove them first... and in case this gets called from somewhere else in the future.
 		this.storageService.remove(key, StorageScope.WORKSPACE);
 		this.storageService.remove(key, StorageScope.APPLICATION);
 	}
@@ -302,7 +232,6 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 		this.updateSessionPreference(providerId, mcpServerId, session);
 	}
 
-	//#endregion
 
 	private async showGetSessionPrompt(provider: IAuthenticationProvider, accountName: string, mcpServerId: string, mcpServerName: string): Promise<boolean> {
 		enum SessionPromptChoice {
@@ -336,9 +265,6 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 		return result === SessionPromptChoice.Allow;
 	}
 
-	/**
-	 * This function should be used only when there are sessions to disambiguate.
-	 */
 	async selectSession(providerId: string, mcpServerId: string, mcpServerName: string, scopes: string[], availableSessions: AuthenticationSession[]): Promise<AuthenticationSession> {
 		const allAccounts = await this._authenticationService.getAccounts(providerId);
 		if (!allAccounts.length) {
@@ -349,7 +275,6 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 		quickPick.ignoreFocusOut = true;
 		const accountsWithSessions = new Set<string>();
 		const items: { label: string; session?: AuthenticationSession; account?: AuthenticationSessionAccount }[] = availableSessions
-			// Only grab the first account
 			.filter(session => !accountsWithSessions.has(session.account.label) && accountsWithSessions.add(session.account.label))
 			.map(session => {
 				return {
@@ -358,8 +283,6 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 				};
 			});
 
-		// Add the additional accounts that have been logged into the provider but are
-		// don't have a session yet.
 		allAccounts.forEach(account => {
 			if (!accountsWithSessions.has(account.label)) {
 				items.push({ label: account.label, account });
@@ -428,7 +351,6 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 			try {
 				session = await this.selectSession(provider.id, mcpServerId, mcpServerName, scopes, possibleSessions);
 			} catch (_) {
-				// ignore cancel
 			}
 		} else {
 			const approved = await this.showGetSessionPrompt(provider, possibleSessions[0].account.label, mcpServerId, mcpServerName);
@@ -478,9 +400,6 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 
 	async requestNewSession(providerId: string, scopes: string[], mcpServerId: string, mcpServerName: string): Promise<void> {
 		if (!this._authenticationService.isAuthenticationProviderRegistered(providerId)) {
-			// Activate has already been called for the authentication provider, but it cannot block on registering itself
-			// since this is sync and returns a disposable. So, wait for registration event to fire that indicates the
-			// provider is now in the map.
 			await new Promise<void>((resolve, _) => {
 				const dispose = this._authenticationService.onDidRegisterAuthenticationProvider(e => {
 					if (e.id === providerId) {
@@ -508,7 +427,6 @@ export class AuthenticationMcpService extends Disposable implements IAuthenticat
 			return;
 		}
 
-		// Construct a commandId that won't clash with others generated here, nor likely with an MCP server's command
 		const commandId = `${providerId}:${mcpServerId}:signIn${Object.keys(providerRequests || []).length}`;
 		const menuItem = MenuRegistry.appendMenuItem(MenuId.AccountsContext, {
 			group: '2_signInRequests',

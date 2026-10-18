@@ -12,8 +12,8 @@
 	},
 	"include": [
 		"src/**/*",
-		"../../src/vscode-dts/vscode.d.ts",
-		"../../src/vscode-dts/vscode.proposed.resolvers.d.ts",
-		"../../src/vscode-dts/vscode.proposed.tunnelFactory.d.ts"
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.resolvers.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.tunnelFactory.d.ts"
 	]
 }

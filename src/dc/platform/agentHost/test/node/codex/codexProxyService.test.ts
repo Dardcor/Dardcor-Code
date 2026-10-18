@@ -4,39 +4,34 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../../common/dardcorRouterModel.js';
 import type * as http from 'http';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { NullLogService } from '../../../../log/common/log.js';
 import {
-	CopilotApiError,
-	type ICopilotApiService,
-	type ICopilotApiServiceRequestOptions,
-} from '../../../node/shared/copilotApiService.js';
+	DardcorRouterApiError,
+	type IDardcorRouterService,
+	type IDardcorRouterRequestOptions,
+} from '../../../node/shared/dardcorRouterService.js';
 import { CodexProxyService, remapCodexReviewerModel } from '../../../node/codex/codexProxyService.js';
 import { extractForwardedErrorInfo } from '../../../node/shared/proxyChatError.js';
 
-// #region Test fakes
 
 interface IResponsesCall {
-	githubToken: string;
 	body: string;
-	options: ICopilotApiServiceRequestOptions | undefined;
+	options: IDardcorRouterRequestOptions | undefined;
 }
 
-class FakeCopilotApiService implements ICopilotApiService {
+class FakeDardcorRouterService implements IDardcorRouterService {
 	declare readonly _serviceBrand: undefined;
 
-	async resolveRestrictedTelemetryContext() { return { restrictedTelemetryEnabled: false, trackingId: undefined, telemetryEndpoint: undefined }; }
-	async resolveApiEndpoint() { return undefined; }
-
 	readonly responsesCalls: IResponsesCall[] = [];
-	readonly modelsCalls: { githubToken: string; options: ICopilotApiServiceRequestOptions | undefined }[] = [];
+	readonly modelsCalls: { options: IDardcorRouterRequestOptions | undefined }[] = [];
 	responsesError: Error | undefined;
 	readonly modelsResult = [
 		{ id: 'gpt-5.5', name: 'GPT-5.5', supported_endpoints: ['/responses'] },
 		{ id: 'claude-sonnet', name: 'Claude Sonnet', supported_endpoints: ['/v1/messages'] },
-	] as CCAModel[];
+	] as unknown as IDardcorRouterModel[];
 
 	messages(): never {
 		throw new Error('messages not used by Codex proxy tests');
@@ -46,13 +41,13 @@ class FakeCopilotApiService implements ICopilotApiService {
 		throw new Error('countTokens not used by Codex proxy tests');
 	}
 
-	async models(githubToken: string, options?: ICopilotApiServiceRequestOptions): Promise<CCAModel[]> {
-		this.modelsCalls.push({ githubToken, options });
+	async models(options?: IDardcorRouterRequestOptions): Promise<IDardcorRouterModel[]> {
+		this.modelsCalls.push({ options });
 		return this.modelsResult;
 	}
 
-	async responses(githubToken: string, body: string, options?: ICopilotApiServiceRequestOptions): Promise<Response> {
-		this.responsesCalls.push({ githubToken, body, options });
+	async responses(body: string, options?: IDardcorRouterRequestOptions): Promise<Response> {
+		this.responsesCalls.push({ body, options });
 		if (this.responsesError) {
 			throw this.responsesError;
 		}
@@ -70,9 +65,7 @@ class FakeCopilotApiService implements ICopilotApiService {
 	}
 }
 
-// #endregion
 
-// #region HTTP helpers
 
 let _httpModule: typeof http | undefined;
 async function getHttp(): Promise<typeof http> {
@@ -125,18 +118,15 @@ function get(url: string, headers?: Record<string, string>): Promise<{ status: n
 	}));
 }
 
-// #endregion
-
-const TOKEN = 'gh-test-token';
 
 suite('CodexProxyService', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	async function withProxy(fn: (handle: { baseUrl: string; nonce: string }, fake: FakeCopilotApiService) => Promise<void>): Promise<void> {
-		const fake = new FakeCopilotApiService();
+	async function withProxy(fn: (handle: { baseUrl: string; nonce: string }, fake: FakeDardcorRouterService) => Promise<void>): Promise<void> {
+		const fake = new FakeDardcorRouterService();
 		const service = new CodexProxyService(new NullLogService(), fake);
-		const handle = await service.start(TOKEN);
+		const handle = await service.start();
 		try {
 			await fn(handle, fake);
 		} finally {
@@ -145,7 +135,7 @@ suite('CodexProxyService', () => {
 		}
 	}
 
-	test('forwards transformed user-agent to CAPI responses', async () => {
+	test('forwards transformed user-agent to Dardcor Router responses', async () => {
 		await withProxy(async (handle, fake) => {
 			await postResponses(`${handle.baseUrl}/v1/responses`, {
 				headers: { 'Authorization': `Bearer ${handle.nonce}`, 'User-Agent': 'codex/1.2.3' },
@@ -157,11 +147,11 @@ suite('CodexProxyService', () => {
 
 	test('preserves endpoint discovery authentication failures', async () => {
 		await withProxy(async (handle, fake) => {
-			fake.responsesError = new CopilotApiError(401, {
+			fake.responsesError = new DardcorRouterApiError(401, {
 				type: 'error',
 				error: { type: 'api_error', message: '{"message":"Bad credentials"}' },
 				request_id: null,
-			}, 'Copilot endpoint discovery failed: 401 Unauthorized — {"message":"Bad credentials"}');
+			}, 'Dardcor Router endpoint failed: 401 Unauthorized — {"message":"Bad credentials"}');
 
 			const response = await postResponses(`${handle.baseUrl}/v1/responses`, {
 				headers: { 'Authorization': `Bearer ${handle.nonce}` },
@@ -177,7 +167,7 @@ suite('CodexProxyService', () => {
 				status: 401,
 				type: 'api_error',
 				error: {
-					message: 'Copilot endpoint discovery failed: 401 Unauthorized — {"message":"Bad credentials"}',
+					message: 'Dardcor Router endpoint failed: 401 Unauthorized — {"message":"Bad credentials"}',
 					_meta: {
 						chatError: {
 							fetchError: {
@@ -231,12 +221,10 @@ suite('CodexProxyService', () => {
 	test('remaps the unsupported auto-review reviewer model onto the last primary model', async () => {
 		await withProxy(async (handle, fake) => {
 			const headers = { 'Authorization': `Bearer ${handle.nonce}`, 'User-Agent': 'codex/1.0' };
-			// A normal turn establishes the session's primary model...
 			await postResponses(`${handle.baseUrl}/v1/responses`, {
 				headers,
 				body: JSON.stringify({ model: 'gpt-5.5', stream: true, input: [] }),
 			});
-			// ...then the auto-review reviewer fires with the unsupported model.
 			await postResponses(`${handle.baseUrl}/v1/responses`, {
 				headers,
 				body: JSON.stringify({ model: 'codex-auto-review', stream: true, input: [] }),
@@ -251,8 +239,6 @@ suite('CodexProxyService', () => {
 				headers: { 'Authorization': `Bearer ${handle.nonce}`, 'User-Agent': 'codex/1.0' },
 				body: JSON.stringify({ model: 'codex-auto-review', stream: true, input: [] }),
 			});
-			// Graceful degradation: nothing to remap onto, so the request is
-			// forwarded verbatim (and 400s upstream, exactly as before).
 			assert.strictEqual(JSON.parse(fake.responsesCalls.at(-1)!.body).model, 'codex-auto-review');
 		});
 	});

@@ -157,7 +157,6 @@ suite('chatReducer – summaryStatus with tool call confirmations and input requ
 	test('Chat status is InputNeeded when a tool call is PendingConfirmation', () => {
 		let state = withActiveTurnAndToolCall(makeChat());
 
-		// Transition to PendingConfirmation (no `confirmed` field)
 		state = chatReducer(state, {
 			type: ActionType.ChatToolCallReady,
 			turnId: 'turn-1',
@@ -172,7 +171,6 @@ suite('chatReducer – summaryStatus with tool call confirmations and input requ
 	test('Chat status is InputNeeded when a tool call is PendingResultConfirmation', () => {
 		let state = withActiveTurnAndToolCall(makeChat());
 
-		// Transition to Running first
 		state = chatReducer(state, {
 			type: ActionType.ChatToolCallReady,
 			turnId: 'turn-1',
@@ -182,7 +180,6 @@ suite('chatReducer – summaryStatus with tool call confirmations and input requ
 			confirmed: ToolCallConfirmationReason.NotNeeded,
 		});
 
-		// Then complete with requiresResultConfirmation
 		state = chatReducer(state, {
 			type: ActionType.ChatToolCallComplete,
 			turnId: 'turn-1',
@@ -200,7 +197,6 @@ suite('chatReducer – summaryStatus with tool call confirmations and input requ
 	test('SessionStatus transitions from InputNeeded to InProgress when tool call is confirmed', () => {
 		let state = withActiveTurnAndToolCall(makeChat());
 
-		// Transition to PendingConfirmation
 		state = chatReducer(state, {
 			type: ActionType.ChatToolCallReady,
 			turnId: 'turn-1',
@@ -210,7 +206,6 @@ suite('chatReducer – summaryStatus with tool call confirmations and input requ
 		});
 		assert.strictEqual(state.status, SessionStatus.InputNeeded);
 
-		// Confirm it
 		state = chatReducer(state, {
 			type: ActionType.ChatToolCallConfirmed,
 			turnId: 'turn-1',
@@ -319,7 +314,6 @@ suite('chatReducer – summaryStatus with tool call confirmations and input requ
 	test('SessionStatus transitions from InputNeeded to InProgress after ChatInputCompleted', () => {
 		let state = withActiveTurnAndToolCall(makeChat());
 
-		// Add an input request
 		state = chatReducer(state, {
 			type: ActionType.ChatInputRequested,
 			request: withChatInputRequestPurpose({
@@ -335,7 +329,6 @@ suite('chatReducer – summaryStatus with tool call confirmations and input requ
 		});
 		assert.strictEqual(state.status, SessionStatus.InputNeeded);
 
-		// Complete the input request
 		state = chatReducer(state, {
 			type: ActionType.ChatInputCompleted,
 			requestId: 'req-1',
@@ -374,10 +367,8 @@ suite('chatReducer – summaryStatus with tool call confirmations and input requ
 	test('Tool call transition to PendingConfirmation updates chat status to InputNeeded', () => {
 		let state = withActiveTurnAndToolCall(makeChat());
 
-		// After ChatToolCallStart, status should be InProgress (tool is Streaming)
 		assert.strictEqual(state.status, SessionStatus.InProgress);
 
-		// Transition to PendingConfirmation via ChatToolCallReady (no confirmed)
 		state = chatReducer(state, {
 			type: ActionType.ChatToolCallReady,
 			turnId: 'turn-1',

@@ -49,7 +49,7 @@ export enum LayoutAnchorMode {
 export interface ILayoutAnchor {
 	offset: number;
 	size: number;
-	mode?: LayoutAnchorMode; // default: AVOID
+	mode?: LayoutAnchorMode;
 	position: LayoutAnchorPosition;
 }
 
@@ -58,42 +58,37 @@ export interface ILayoutResult {
 	result: 'ok' | 'flipped' | 'overlap';
 }
 
-/**
- * Lays out a one dimensional view next to an anchor in a viewport.
- *
- * @returns The view offset within the viewport.
- */
 export function layout(viewportSize: number, viewSize: number, anchor: ILayoutAnchor): ILayoutResult {
 	const layoutAfterAnchorBoundary = anchor.mode === LayoutAnchorMode.ALIGN ? anchor.offset : anchor.offset + anchor.size;
 	const layoutBeforeAnchorBoundary = anchor.mode === LayoutAnchorMode.ALIGN ? anchor.offset + anchor.size : anchor.offset;
 
 	if (anchor.position === LayoutAnchorPosition.Before) {
 		if (viewSize <= viewportSize - layoutAfterAnchorBoundary) {
-			return { position: layoutAfterAnchorBoundary, result: 'ok' }; // happy case, lay it out after the anchor
+			return { position: layoutAfterAnchorBoundary, result: 'ok' };
 		}
 
 		if (viewSize <= layoutBeforeAnchorBoundary) {
-			return { position: layoutBeforeAnchorBoundary - viewSize, result: 'flipped' }; // ok case, lay it out before the anchor
+			return { position: layoutBeforeAnchorBoundary - viewSize, result: 'flipped' };
 		}
 
-		return { position: Math.max(viewportSize - viewSize, 0), result: 'overlap' }; // sad case, lay it over the anchor
+		return { position: Math.max(viewportSize - viewSize, 0), result: 'overlap' };
 	} else {
 		if (viewSize <= layoutBeforeAnchorBoundary) {
-			return { position: layoutBeforeAnchorBoundary - viewSize, result: 'ok' }; // happy case, lay it out before the anchor
+			return { position: layoutBeforeAnchorBoundary - viewSize, result: 'ok' };
 		}
 
 		if (viewSize <= viewportSize - layoutAfterAnchorBoundary && layoutBeforeAnchorBoundary < viewSize / 2) {
-			return { position: layoutAfterAnchorBoundary, result: 'flipped' }; // ok case, lay it out after the anchor
+			return { position: layoutAfterAnchorBoundary, result: 'flipped' };
 		}
 
-		return { position: 0, result: 'overlap' }; // sad case, lay it over the anchor
+		return { position: 0, result: 'overlap' };
 	}
 }
 
 interface ILayout2DOptions {
-	readonly anchorAlignment?: AnchorAlignment; // default: left
-	readonly anchorPosition?: AnchorPosition; // default: above
-	readonly anchorAxisAlignment?: AnchorAxisAlignment; // default: vertical
+	readonly anchorAlignment?: AnchorAlignment;
+	readonly anchorPosition?: AnchorPosition;
+	readonly anchorAxisAlignment?: AnchorAxisAlignment;
 	readonly preventAvoid?: boolean;
 }
 
@@ -125,7 +120,6 @@ export function layout2d(viewport: IRect, view: ISize, anchor: IRect, options?: 
 			anchorPosition = anchorPosition === AnchorPosition.BELOW ? AnchorPosition.ABOVE : AnchorPosition.BELOW;
 		}
 
-		// if view intersects vertically with anchor, we must avoid the anchor
 		if (!options?.preventAvoid && Range.intersects({ start: top, end: top + view.height }, { start: verticalAnchor.offset, end: verticalAnchor.offset + verticalAnchor.size })) {
 			horizontalAnchor.mode = LayoutAnchorMode.AVOID;
 		}
@@ -147,7 +141,6 @@ export function layout2d(viewport: IRect, view: ISize, anchor: IRect, options?: 
 			anchorAlignment = anchorAlignment === AnchorAlignment.LEFT ? AnchorAlignment.RIGHT : AnchorAlignment.LEFT;
 		}
 
-		// if view intersects horizontally with anchor, we must avoid the anchor
 		if (!options?.preventAvoid && Range.intersects({ start: left, end: left + view.width }, { start: horizontalAnchor.offset, end: horizontalAnchor.offset + horizontalAnchor.size })) {
 			verticalAnchor.mode = LayoutAnchorMode.AVOID;
 		}

@@ -37,13 +37,11 @@
 }
 
 .open-editors .monaco-list .monaco-list-row.dirty:not(:hover) > .monaco-action-bar .codicon-pinned::before {
-	/* use `pinned-dirty` icon unicode for sticky-dirty indication */
 	content: var(--vscode-icon-pinned-dirty-content);
 	font-family: var(--vscode-icon-pinned-dirty-font-family);
 }
 
 .open-editors .monaco-list .monaco-list-row.dirty:not(:hover) > .monaco-action-bar .codicon-close::before {
-	/* use `circle-filled` icon unicode for dirty indication */
 	content: var(--vscode-icon-circle-filled-content);
 	font-family: var(--vscode-icon-circle-filled-font-family);
 }
@@ -80,7 +78,6 @@
 	cursor: default;
 }
 
-/* Bold font style does not go well with CJK fonts */
 .composite:lang(zh-Hans) .open-editors .monaco-list .monaco-list-row .editor-group,
 .composite:lang(zh-Hant) .open-editors .monaco-list .monaco-list-row .editor-group,
 .composite:lang(ja) .open-editors .monaco-list .monaco-list-row .editor-group,

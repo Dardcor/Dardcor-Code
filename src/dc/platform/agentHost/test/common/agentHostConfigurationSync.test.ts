@@ -20,12 +20,6 @@ const UNSYNCED_SETTING = 'test.agentHostSync.unsynced';
 const ENUM_SETTING = 'test.agentHostSync.enum';
 const FREEFORM_SETTING = 'test.agentHostSync.freeform';
 
-/**
- * Stands in for `IConfigurationService` with per-layer control over `inspect`,
- * which the global-value resolution depends on. `TestConfigurationService`
- * collapses every layer onto `userValue`, so it cannot express the workspace
- * layer this suite needs to assert is ignored.
- */
 function createConfigurationService(values: Record<string, IConfigurationValue<unknown>>): IConfigurationService {
 	return {
 		inspect: <T>(key: string) => (values[key] ?? {}) as IConfigurationValue<T>,
@@ -59,8 +53,6 @@ suite('AgentHostConfigurationSync', () => {
 			[HIDDEN_SETTING]: {
 				type: 'boolean' as const,
 				default: false,
-				// Hidden settings land in the registry's excluded bucket; mirroring
-				// must still pick them up.
 				included: false,
 				agentHost: { key: 'hiddenValue', transform: (value: unknown) => value === true ? 'on' : 'off' },
 			},
@@ -270,9 +262,6 @@ suite('AgentHostConfigurationSync', () => {
 	});
 
 	test('skips layers whose value does not match the declared type', () => {
-		// Replaces the per-setting `value === true` / `value !== false` transforms:
-		// a malformed layer is skipped, so resolution lands on the next valid layer
-		// and ultimately on the registered default.
 		const malformedUser = createConfigurationService({
 			[ALL_HOSTS_SETTING]: { defaultValue: true, userValue: 'yes' as unknown as boolean },
 		});
@@ -291,10 +280,6 @@ suite('AgentHostConfigurationSync', () => {
 	});
 
 	test('falls back to the declared default for hidden settings', () => {
-		// `included: false` settings are absent from the default-configuration
-		// model, so `inspect().defaultValue` is undefined for them. Without the
-		// schema-default fallback they would be silently omitted from the patch
-		// while visible siblings are mirrored — verified against a live agent host.
 		const configurationService = createConfigurationService({});
 
 		assert.deepStrictEqual({
@@ -321,8 +306,6 @@ suite('AgentHostConfigurationSync', () => {
 				'test.agentHostSync.transientHidden': {
 					type: 'boolean' as const,
 					default: false,
-					// Registration strips hidden keys from `node.properties`, so
-					// deregistration has to find them another way.
 					included: false,
 					agentHost: { key: 'transientHiddenValue' },
 				},

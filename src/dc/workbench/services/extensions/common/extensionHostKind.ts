@@ -137,9 +137,6 @@ class ExtensionInfo {
 	}
 
 	public get kind(): ExtensionKind[] {
-		// in case of disagreements between extension kinds, it is always
-		// better to pick the local extension because it has a much higher
-		// chance of being up-to-date
 		if (this.local) {
 			return this.local.kind;
 		}

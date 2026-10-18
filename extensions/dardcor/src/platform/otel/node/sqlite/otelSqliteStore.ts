@@ -7,24 +7,16 @@ import { mkdirSync } from 'fs';
 import { DatabaseSync, type StatementSync } from 'node:sqlite';
 import { dirname } from 'path';
 import { createServiceIdentifier } from '../../../../util/common/services';
-import { CopilotChatAttr, GenAiAttr } from '../../common/genAiAttributes';
+import { DardcorChatAttr, GenAiAttr } from '../../common/genAiAttributes';
 import type { ICompletedSpanData } from '../../common/otelService';
 
-/** Schema version — bump when altering tables so existing DBs get migrated. */
 const SCHEMA_VERSION = 1;
 
-// ── Retention constants ─────────────────────────────────────────────────────────
 
-/** Max age for span data before cleanup. */
-const DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Max number of sessions (by conversation_id) to retain. */
 const DEFAULT_MAX_SESSIONS = 100;
 
-/**
- * Keys extracted from ICompletedSpanData.attributes and denormalized into the spans table
- * for indexed query access. The key is the SQL column name, the value is the OTel attribute key.
- */
 const DENORMALIZED_ATTRS: Record<string, string> = {
 	operation_name: GenAiAttr.OPERATION_NAME,
 	provider_name: GenAiAttr.PROVIDER_NAME,
@@ -39,16 +31,14 @@ const DENORMALIZED_ATTRS: Record<string, string> = {
 	tool_name: GenAiAttr.TOOL_NAME,
 	tool_call_id: GenAiAttr.TOOL_CALL_ID,
 	tool_type: GenAiAttr.TOOL_TYPE,
-	chat_session_id: CopilotChatAttr.CHAT_SESSION_ID,
-	turn_index: CopilotChatAttr.TURN_INDEX,
-	ttft_ms: CopilotChatAttr.TIME_TO_FIRST_TOKEN,
+	chat_session_id: DardcorChatAttr.CHAT_SESSION_ID,
+	turn_index: DardcorChatAttr.TURN_INDEX,
+	ttft_ms: DardcorChatAttr.TIME_TO_FIRST_TOKEN,
 };
 
-// ── Service identifier ──────────────────────────────────────────────────────────
 
 export const IOTelSqliteStore = createServiceIdentifier<OTelSqliteStore>('IOTelSqliteStore');
 
-// ── Row types ───────────────────────────────────────────────────────────────────
 
 export interface SpanRow {
 	span_id: string;
@@ -100,26 +90,12 @@ export interface SessionRow {
 	total_cached_tokens: number;
 }
 
-// ── Store implementation ────────────────────────────────────────────────────────
 
-/**
- * Always-on SQLite store for OTel span data using node:sqlite DatabaseSync.
- *
- * Subscribes to IOTelService.onDidCompleteSpan, INSERTs completed spans
- * synchronously. Write-through design — no in-memory buffering.
- *
- * Patterns from dardcor-agent-runtime SessionStore:
- * - WAL mode + busy_timeout for concurrent read/write safety
- * - Schema versioning with migration table
- * - Lazy initialization (DB created on first write)
- * - Synchronous DatabaseSync API
- */
 export class OTelSqliteStore {
 	declare readonly _serviceBrand: undefined;
 	private _db: DatabaseSync | null = null;
 	private readonly _dbPath: string;
 
-	// Cached prepared statements (created once per DB connection in _ensureDb)
 	private _insertSpanStmt: StatementSync | null = null;
 	private _insertAttrStmt: StatementSync | null = null;
 	private _insertEventStmt: StatementSync | null = null;
@@ -135,9 +111,6 @@ export class OTelSqliteStore {
 		return this._dbPath;
 	}
 
-	/**
-	 * Insert a completed span and its attributes/events into the database.
-	 */
 	insertSpan(span: ICompletedSpanData): void {
 		this._ensureDb();
 
@@ -177,7 +150,7 @@ export class OTelSqliteStore {
 
 			this._commitTx!.run();
 		} catch (err) {
-			try { this._rollbackTx!.run(); } catch { /* ignore */ }
+			try { this._rollbackTx!.run(); } catch { }
 			throw err;
 		}
 	}
@@ -225,10 +198,6 @@ export class OTelSqliteStore {
 			.map(r => r.trace_id);
 	}
 
-	/**
-	 * List all sessions with aggregated metrics, ordered by most recent first.
-	 * Uses the `sessions` SQL view over the spans table.
-	 */
 	getSessions(limit?: number): SessionRow[] {
 		const sql = limit
 			? 'SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?'
@@ -238,10 +207,6 @@ export class OTelSqliteStore {
 			: this._ensureDb().prepare(sql).all() as unknown as SessionRow[];
 	}
 
-	/**
-	 * List sessions within a time window (chronicle-style).
-	 * @param sinceMs Epoch ms — only return sessions that started after this time
-	 */
 	getSessionsSince(sinceMs: number): SessionRow[] {
 		return this._ensureDb().prepare(
 			'SELECT * FROM sessions WHERE started_at >= ? ORDER BY started_at DESC'
@@ -254,11 +219,6 @@ export class OTelSqliteStore {
 		return Number(result.changes);
 	}
 
-	/**
-	 * Checkpoint WAL to flush all pending writes into the main .db file.
-	 * This must be called before copying the .db file, otherwise the copy
-	 * will be missing data that lives only in the -wal file.
-	 */
 	checkpoint(): void {
 		this._ensureDb().exec('PRAGMA wal_checkpoint(TRUNCATE)');
 	}
@@ -276,7 +236,6 @@ export class OTelSqliteStore {
 		}
 	}
 
-	// ── Private ────────────────────────────────────────────────────────────
 
 	private _attr(span: ICompletedSpanData, attrKey: string): string | number | null {
 		const val = span.attributes[attrKey];
@@ -286,17 +245,8 @@ export class OTelSqliteStore {
 		return val as string | number;
 	}
 
-	/**
-	 * Coalesce TTFT from foreground extension (`dardcor_chat.time_to_first_token`, ms)
-	 * and CLI runtime. The CLI runtime historically emitted `github.dardcor.time_to_first_chunk`
-	 * (seconds) but is migrating to the OTel GenAI semconv attribute
-	 * `gen_ai.response.time_to_first_chunk` (also seconds). Accept both for forward/backward
-	 * compatibility while the runtime rollout completes.
-	 *
-	 * @see https://github.com/open-telemetry/semantic-conventions/pull/3607 (semconv addition)
-	 */
 	private _ttftMs(span: ICompletedSpanData): number | null {
-		const foreground = this._attr(span, CopilotChatAttr.TIME_TO_FIRST_TOKEN);
+		const foreground = this._attr(span, DardcorChatAttr.TIME_TO_FIRST_TOKEN);
 		if (foreground !== null) { return foreground as number; }
 		const cli = span.attributes['gen_ai.response.time_to_first_chunk']
 			?? span.attributes['github.dardcor.time_to_first_chunk'];
@@ -319,8 +269,6 @@ export class OTelSqliteStore {
 			this._ensureSchema();
 			this._prepareStatements(db);
 
-			// Auto-cleanup on startup: remove spans older than 7 days,
-			// then cap to the most recent DEFAULT_MAX_SESSIONS sessions by conversation_id.
 			this._cleanupOnStartup(db);
 		} catch (err) {
 			db.close();
@@ -420,13 +368,9 @@ export class OTelSqliteStore {
 	}
 
 	private _cleanupOnStartup(db: DatabaseSync): void {
-		// 1. Time-based: delete spans older than DEFAULT_MAX_AGE_MS
 		const cutoffMs = Date.now() - DEFAULT_MAX_AGE_MS;
 		db.prepare('DELETE FROM spans WHERE start_time_ms < ?').run(cutoffMs);
 
-		// 2. Session-count cap: keep only the most recent DEFAULT_MAX_SESSIONS sessions.
-		// A "session" is identified by conversation_id (or chat_session_id as fallback).
-		// We find the Nth-newest session's max start_time_ms and delete everything older.
 		const sessionCutoff = db.prepare(`
 			SELECT MIN(max_start) AS cutoff_ms FROM (
 				SELECT MAX(start_time_ms) AS max_start

@@ -26,24 +26,20 @@ export interface IWorkspacesService {
 
 	readonly _serviceBrand: undefined;
 
-	// Workspaces Management
 	enterWorkspace(workspaceUri: URI): Promise<IEnterWorkspaceResult | undefined>;
 	createUntitledWorkspace(folders?: IWorkspaceFolderCreationData[], remoteAuthority?: string): Promise<IWorkspaceIdentifier>;
 	deleteUntitledWorkspace(workspace: IWorkspaceIdentifier): Promise<void>;
 	getWorkspaceIdentifier(workspaceUri: URI): Promise<IWorkspaceIdentifier>;
 
-	// Workspaces History
 	readonly onDidChangeRecentlyOpened: Event<void>;
 	addRecentlyOpened(recents: IRecent[]): Promise<void>;
 	removeRecentlyOpened(workspaces: URI[]): Promise<void>;
 	clearRecentlyOpened(): Promise<void>;
 	getRecentlyOpened(): Promise<IRecentlyOpened>;
 
-	// Dirty Workspaces
 	getDirtyWorkspaces(): Promise<Array<IWorkspaceBackupInfo | IFolderBackupInfo>>;
 }
 
-//#region Workspaces Recently Opened
 
 export interface IRecentlyOpened {
 	workspaces: Array<IRecentWorkspace | IRecentFolder>;
@@ -82,9 +78,7 @@ export function isRecentFile(curr: IRecent): curr is IRecentFile {
 	return curr.hasOwnProperty('fileUri');
 }
 
-//#endregion
 
-//#region Workspace File Utilities
 
 export function isStoredWorkspaceFolder(obj: unknown): obj is IStoredWorkspaceFolder {
 	return isRawFileWorkspaceFolder(obj) || isRawUriWorkspaceFolder(obj);
@@ -123,27 +117,12 @@ export interface IEnterWorkspaceResult {
 	readonly backupPath?: string;
 }
 
-/**
- * Given a folder URI and the workspace config folder, computes the `IStoredWorkspaceFolder`
- * using a relative or absolute path or a uri.
- * Undefined is returned if the `folderURI` and the `targetConfigFolderURI` don't have the
- * same schema or authority.
- *
- * @param folderURI a workspace folder
- * @param forceAbsolute if set, keep the path absolute
- * @param folderName a workspace name
- * @param targetConfigFolderURI the folder where the workspace is living in
- */
 export function getStoredWorkspaceFolder(folderURI: URI, forceAbsolute: boolean, folderName: string | undefined, targetConfigFolderURI: URI, extUri: IExtUri): IStoredWorkspaceFolder {
 
-	// Scheme mismatch: use full absolute URI as `uri`
 	if (folderURI.scheme !== targetConfigFolderURI.scheme) {
 		return { name: folderName, uri: folderURI.toString(true) };
 	}
 
-	// Always prefer a relative path if possible unless
-	// prevented to make the workspace file shareable
-	// with other users
 	let folderPath = !forceAbsolute ? extUri.relativePath(targetConfigFolderURI, folderURI) : undefined;
 	if (folderPath !== undefined) {
 		if (folderPath.length === 0) {
@@ -155,10 +134,8 @@ export function getStoredWorkspaceFolder(folderURI: URI, forceAbsolute: boolean,
 		}
 	}
 
-	// We could not resolve a relative path
 	else {
 
-		// Local file: use `fsPath`
 		if (folderURI.scheme === Schemas.file) {
 			folderPath = folderURI.fsPath;
 			if (isWindows) {
@@ -166,12 +143,10 @@ export function getStoredWorkspaceFolder(folderURI: URI, forceAbsolute: boolean,
 			}
 		}
 
-		// Different authority: use full absolute URI
 		else if (!extUri.isEqualAuthority(folderURI.authority, targetConfigFolderURI.authority)) {
 			return { name: folderName, uri: folderURI.toString(true) };
 		}
 
-		// Non-local file: use `path` of URI
 		else {
 			folderPath = folderURI.path;
 		}
@@ -182,12 +157,8 @@ export function getStoredWorkspaceFolder(folderURI: URI, forceAbsolute: boolean,
 
 function massagePathForWindows(folderPath: string) {
 
-	// Drive letter should be upper case
 	folderPath = normalizeDriveLetter(folderPath);
 
-	// Always prefer slash over backslash unless
-	// we deal with UNC paths where backslash is
-	// mandatory.
 	if (!isUNC(folderPath)) {
 		folderPath = toSlashes(folderPath);
 	}
@@ -210,16 +181,15 @@ export function toWorkspaceFolders(configuredFolders: IStoredWorkspaceFolder[], 
 			try {
 				uri = URI.parse(configuredFolder.uri);
 				if (uri.path[0] !== posix.sep) {
-					uri = uri.with({ path: posix.sep + uri.path }); // this makes sure all workspace folder are absolute
+					uri = uri.with({ path: posix.sep + uri.path });
 				}
 			} catch (e) {
-				console.warn(e); // ignore
+				console.warn(e);
 			}
 		}
 
 		if (uri) {
 
-			// remove duplicates
 			const comparisonKey = extUri.getComparisonKey(uri);
 			if (!seen.has(comparisonKey)) {
 				seen.add(comparisonKey);
@@ -233,10 +203,6 @@ export function toWorkspaceFolders(configuredFolders: IStoredWorkspaceFolder[], 
 	return result;
 }
 
-/**
- * Rewrites the content of a workspace file to be saved at a new location.
- * Throws an exception if file is not a valid workspace file
- */
 export function rewriteWorkspaceFileForNewLocation(rawWorkspaceContents: string, configPathURI: URI, isFromUntitledWorkspace: boolean, targetConfigPathURI: URI, extUri: IExtUri) {
 	const storedWorkspace = doParseStoredWorkspace(configPathURI, rawWorkspaceContents);
 
@@ -249,21 +215,18 @@ export function rewriteWorkspaceFileForNewLocation(rawWorkspaceContents: string,
 		const folderURI = isRawFileWorkspaceFolder(folder) ? extUri.resolvePath(sourceConfigFolder, folder.path) : URI.parse(folder.uri);
 		let absolute;
 		if (isFromUntitledWorkspace) {
-			absolute = false; // if it was an untitled workspace, try to make paths relative
+			absolute = false;
 		} else {
-			absolute = !isRawFileWorkspaceFolder(folder) || isAbsolute(folder.path); // for existing workspaces, preserve whether a path was absolute or relative
+			absolute = !isRawFileWorkspaceFolder(folder) || isAbsolute(folder.path);
 		}
 		rewrittenFolders.push(getStoredWorkspaceFolder(folderURI, absolute, folder.name, targetConfigFolder, extUri));
 	}
 
-	// Preserve as much of the existing workspace as possible by using jsonEdit
-	// and only changing the folders portion.
 	const formattingOptions: FormattingOptions = { insertSpaces: false, tabSize: 4, eol: (isLinux || isMacintosh) ? '\n' : '\r\n' };
 	const edits = jsonEdit.setProperty(rawWorkspaceContents, ['folders'], rewrittenFolders, formattingOptions);
 	let newContent = jsonEdit.applyEdits(rawWorkspaceContents, edits);
 
 	if (isEqualAuthority(storedWorkspace.remoteAuthority, getRemoteAuthority(targetConfigPathURI))) {
-		// unsaved remote workspaces have the remoteAuthority set. Remove it when no longer nexessary.
 		newContent = jsonEdit.applyEdits(newContent, jsonEdit.removeProperty(newContent, ['remoteAuthority'], formattingOptions));
 	}
 
@@ -272,10 +235,8 @@ export function rewriteWorkspaceFileForNewLocation(rawWorkspaceContents: string,
 
 function doParseStoredWorkspace(path: URI, contents: string): IStoredWorkspace {
 
-	// Parse workspace file
-	const storedWorkspace: IStoredWorkspace = json.parse(contents); // use fault tolerant parser
+	const storedWorkspace: IStoredWorkspace = json.parse(contents);
 
-	// Filter out folders which do not have a path or uri set
 	if (storedWorkspace && Array.isArray(storedWorkspace.folders)) {
 		storedWorkspace.folders = storedWorkspace.folders.filter(folder => isStoredWorkspaceFolder(folder));
 	} else {
@@ -285,9 +246,7 @@ function doParseStoredWorkspace(path: URI, contents: string): IStoredWorkspace {
 	return storedWorkspace;
 }
 
-//#endregion
 
-//#region Workspace Storage
 
 interface ISerializedRecentWorkspace {
 	readonly workspace: {
@@ -311,7 +270,7 @@ interface ISerializedRecentFile {
 }
 
 interface ISerializedRecentlyOpened {
-	readonly entries: Array<ISerializedRecentWorkspace | ISerializedRecentFolder | ISerializedRecentFile>; // since 1.55
+	readonly entries: Array<ISerializedRecentWorkspace | ISerializedRecentFolder | ISerializedRecentFile>;
 }
 
 export type RecentlyOpenedStorageData = object;
@@ -371,10 +330,6 @@ export function toStoreData(recents: IRecentlyOpened): RecentlyOpenedStorageData
 	const serialized: ISerializedRecentlyOpened = { entries: [] };
 
 	const storeLabel = (label: string | undefined, uri: URI) => {
-		// Only store the label if it is provided
-		// and only if it differs from the path
-		// This gives us a chance to render the
-		// path better, e.g. use `~` for home.
 		return label && label !== uri.fsPath && label !== uri.path;
 	};
 
@@ -408,4 +363,3 @@ export function toStoreData(recents: IRecentlyOpened): RecentlyOpenedStorageData
 	return serialized;
 }
 
-//#endregion

@@ -23,20 +23,12 @@ const DISMISSED_STORAGE_KEY = 'chat.dismissedExpNotificationIds';
 /** Payload ids share a global map with built-in notifications, so they are namespaced. */
 const ID_PREFIX = 'chat.expNotification.';
 
-/**
- * Renders chat input notifications described by an experiment treatment.
- *
- * The treatment carries the words, the targeting and the buttons, so a notification can be
- * authored or retired without shipping code. Removing the assignment is the kill switch.
- */
 export class ChatExpNotificationContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.chatExpNotification';
 
-	/** Registered payload ids, each mapped to the entry text that produced it. */
 	private readonly _registered = new Map<string, string>();
 	private _notifications: readonly ChatExpNotification[] = [];
-	/** Increments on every refresh so a slow in-flight resolution cannot overwrite a newer one. */
 	private _generation = 0;
 
 	constructor(
@@ -54,7 +46,6 @@ export class ChatExpNotificationContribution extends Disposable implements IWork
 		this._register(this._assignmentService.onDidRefetchAssignments(() => void this._resolve()));
 		this._register(this._notificationService.onDidDismiss(id => this._handleDismissed(id)));
 		this._register(this._storageService.onDidChangeValue(StorageScope.APPLICATION, DISMISSED_STORAGE_KEY, this._store)(() => this._update()));
-		// `when` reads both gates, so mounted widgets must be told to re-evaluate when either flips.
 		this._register(this._entitlementService.onDidChangeSentiment(() => this._notificationService.refresh()));
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ChatAIDisabledSettingId)) {
@@ -69,7 +60,6 @@ export class ChatExpNotificationContribution extends Disposable implements IWork
 		try {
 			payload = await this._assignmentService.getTreatment<string>(CHAT_EXP_NOTIFICATION_TREATMENT);
 		} catch (err) {
-			// A failed lookup is not a retired assignment, so leave what is showing in place.
 			this._logService.trace(`[chatExpNotification] failed to resolve treatment: ${err}`);
 			return;
 		}
@@ -78,8 +68,6 @@ export class ChatExpNotificationContribution extends Disposable implements IWork
 			return;
 		}
 
-		// An absent treatment is how an assignment is removed, so it clears what is showing.
-		// Only a thrown lookup is treated as transient.
 		const result = payload === undefined ? undefined : parseChatExpNotifications(payload);
 		if (result?.error) {
 			this._logService.warn(`[chatExpNotification] ignoring invalid payload: ${result.error}`);
@@ -101,8 +89,6 @@ export class ChatExpNotificationContribution extends Disposable implements IWork
 		}
 
 		for (const { match, signature, ...notification } of active) {
-			// Persisted dismissals are already filtered out above, so what this protects is the
-			// in-memory `autoDismissOnMessage` state that setting a notification would clear.
 			if (this._registered.get(notification.id) === signature) {
 				continue;
 			}
@@ -116,8 +102,6 @@ export class ChatExpNotificationContribution extends Disposable implements IWork
 	}
 
 	private _matches(match: IChatExpNotificationMatch, context: IChatInputNotificationContext): boolean {
-		// Checked here rather than by unregistering, so turning AI features off and on again
-		// does not discard a dismissal the service only holds in memory.
 		if (this._configurationService.getValue<boolean>(ChatAIDisabledSettingId) === true
 			|| this._entitlementService.sentiment.hidden) {
 			return false;

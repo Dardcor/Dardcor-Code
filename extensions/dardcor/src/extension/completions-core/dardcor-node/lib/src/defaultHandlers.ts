@@ -12,14 +12,12 @@ const oomCodes = new Set(['ERR_WORKER_OUT_OF_MEMORY', 'ENOMEM']);
 function isOomError(error: NodeJS.ErrnoException) {
 	return (
 		oomCodes.has(error.code ?? '') ||
-		// happens in loadWasmLanguage
 		(error.name === 'RangeError' && error.message === 'WebAssembly.Memory(): could not allocate memory')
 	);
 }
 
 export function handleException(accessor: ServicesAccessor, err: unknown, origin: string, _logger: Logger = logger): void {
 	if (isAbortError(err)) {
-		// ignore cancelled fetch requests
 		return;
 	}
 	const statusReporter = accessor.get(ICompletionsStatusReporter);
@@ -29,9 +27,9 @@ export function handleException(accessor: ServicesAccessor, err: unknown, origin
 			statusReporter.setWarning('Out of memory');
 		} else if (error.code === 'EMFILE' || error.code === 'ENFILE') {
 			statusReporter.setWarning('Too many open files');
-		} else if (error.code === 'CopilotPromptLoadFailure') {
+		} else if (error.code === 'DardcorPromptLoadFailure') {
 			statusReporter.setWarning('Corrupted Dardcor AI installation');
-		} else if (`${error.code}`.startsWith('CopilotPromptWorkerExit')) {
+		} else if (`${error.code}`.startsWith('DardcorPromptWorkerExit')) {
 			statusReporter.setWarning('Worker unexpectedly exited');
 		} else if (error.syscall === 'uv_cwd' && error.code === 'ENOENT') {
 			statusReporter.setWarning('Current working directory does not exist');

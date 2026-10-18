@@ -115,7 +115,6 @@ suite('Notebook Find', () => {
 				state.change({ isRevealed: true }, true);
 				state.change({ searchString: '1' }, true);
 				await found;
-				// find matches is not necessarily find results
 				assert.strictEqual(model.findMatches.length, 4);
 				assert.strictEqual(model.currentMatch, 0);
 				model.find({ previous: false });
@@ -166,7 +165,6 @@ suite('Notebook Find', () => {
 				state.change({ isRevealed: true }, true);
 				state.change({ searchString: '1' }, true);
 				await found;
-				// find matches is not necessarily find results
 				assert.strictEqual(model.findMatches.length, 4);
 				assert.strictEqual(model.currentMatch, 0);
 				model.find({ previous: true });
@@ -208,7 +206,6 @@ suite('Notebook Find', () => {
 				state.change({ isRevealed: true }, true);
 				state.change({ searchString: '1' }, true);
 				await found;
-				// find matches is not necessarily find results
 				assert.strictEqual(model.findMatches.length, 4);
 				assert.strictEqual(model.currentMatch, 0);
 				model.find({ previous: false });
@@ -221,7 +218,6 @@ suite('Notebook Find', () => {
 				(viewModel.viewCells[1].textBuffer as ITextBuffer).applyEdits([
 					new ValidAnnotatedEditOperation(null, new Range(1, 1, 1, 14), '', false, false, false)
 				], false, true);
-				// cell content updates, recompute
 				model.research();
 				await found2;
 				assert.strictEqual(model.currentMatch, 1);

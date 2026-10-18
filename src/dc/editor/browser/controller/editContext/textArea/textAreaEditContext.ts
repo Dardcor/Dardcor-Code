@@ -55,12 +55,6 @@ class VisibleTextAreaData {
 	public visibleTextareaStart: HorizontalPosition | null = null;
 	public visibleTextareaEnd: HorizontalPosition | null = null;
 
-	/**
-	 * When doing composition, the currently composed text might be split up into
-	 * multiple tokens, then merged again into a single token, etc. Here we attempt
-	 * to keep the presentation of the <textarea> stable by using the previous used
-	 * style if multiple tokens come into play. This avoids flickering.
-	 */
 	private _previousPresentation: ITokenPresentation | null = null;
 
 	constructor(
@@ -83,7 +77,6 @@ class VisibleTextAreaData {
 			this.visibleTextareaStart = visibleRangeProvider.visibleRangeForPosition(this.startPosition);
 			this.visibleTextareaEnd = visibleRangeProvider.visibleRangeForPosition(this.endPosition);
 		} else {
-			// TODO: what if the view positions are not on the same line?
 			this.visibleTextareaStart = null;
 			this.visibleTextareaEnd = null;
 		}
@@ -91,7 +84,6 @@ class VisibleTextAreaData {
 
 	definePresentation(tokenPresentation: ITokenPresentation | null): ITokenPresentation {
 		if (!this._previousPresentation) {
-			// To avoid flickering, once set, always reuse a presentation throughout the entire IME session
 			if (tokenPresentation) {
 				this._previousPresentation = tokenPresentation;
 			} else {
@@ -127,17 +119,10 @@ export class TextAreaEditContext extends AbstractEditContext {
 	private _fontInfo: FontInfo;
 	private _emptySelectionClipboard: boolean;
 
-	/**
-	 * Defined only when the text area is visible (composition case).
-	 */
 	private _visibleTextArea: VisibleTextAreaData | null;
 	private _selections: Selection[];
 	private _modelSelections: Selection[];
 
-	/**
-	 * The position at which the textarea was rendered.
-	 * This is useful for hit-testing and determining the mouse position.
-	 */
 	private _lastRenderPosition: Position | null;
 
 	public readonly textArea: FastDomNode<HTMLTextAreaElement>;
@@ -175,7 +160,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 		this._modelSelections = [new Selection(1, 1, 1, 1)];
 		this._lastRenderPosition = null;
 
-		// Text Area (The focus will always be in the textarea when the cursor is blinking)
 		this.textArea = createFastDomNode(document.createElement('textarea'));
 		PartFingerprints.write(this.textArea, PartFingerprint.TextArea);
 		this.textArea.setClassName(`inputarea ${MOUSE_CURSOR_TEXT_CSS_CLASS_NAME}`);
@@ -207,9 +191,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 			context: this._context,
 			getScreenReaderContent: (): TextAreaState => {
 				if (this._accessibilitySupport === AccessibilitySupport.Disabled) {
-					// We know for a fact that a screen reader is not attached
-					// On OSX, we write the character before the cursor to allow for "long-press" composition
-					// Also on OSX, we write the word before the cursor to allow for the Accessibility Keyboard to give good hints
 					const selection = this._selections[0];
 					if (platform.isMacintosh && selection.isEmpty()) {
 						const position = selection.getStartPosition();
@@ -223,19 +204,12 @@ export class TextAreaEditContext extends AbstractEditContext {
 							return new TextAreaState(textBefore, textBefore.length, textBefore.length, Range.fromPositions(position), 0);
 						}
 					}
-					// on macOS, write current selection into textarea will allow system text services pick selected text,
-					// but we still want to limit the amount of text given Chromium handles very poorly text even of a few
-					// thousand chars
-					// (https://github.com/microsoft/vscode/issues/27799)
 					const LIMIT_CHARS = 500;
 					if (platform.isMacintosh && !selection.isEmpty() && this._context.viewModel.getValueLengthInRange(selection, EndOfLinePreference.TextDefined) < LIMIT_CHARS) {
 						const text = this._context.viewModel.getValueInRange(selection, EndOfLinePreference.TextDefined);
 						return new TextAreaState(text, 0, text.length, selection, 0);
 					}
 
-					// on Safari, document.execCommand('cut') and document.execCommand('copy') will just not work
-					// if the textarea has no content selected. So if there is an editor selection, ensure something
-					// is selected in the textarea.
 					if (browser.isSafari && !selection.isEmpty()) {
 						const placeholderText = 'vscode-placeholder';
 						return new TextAreaState(placeholderText, 0, placeholderText.length, null, undefined);
@@ -245,10 +219,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 				}
 
 				if (browser.isAndroid) {
-					// when tapping in the editor on a word, Android enters composition mode.
-					// in the `compositionstart` event we cannot clear the textarea, because
-					// it then forgets to ever send a `compositionend`.
-					// we therefore only write the current word in the textarea
 					const selection = this._selections[0];
 					if (selection.isEmpty()) {
 						const position = selection.getStartPosition();
@@ -277,7 +247,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 			isSafari: browser.isSafari,
 		}));
 
-		// Relay clipboard events from TextAreaInput
 		this._register(this._textAreaInput.onWillCopy(e => this._onWillCopy.fire(e)));
 		this._register(this._textAreaInput.onWillCut(e => this._onWillCut.fire(e)));
 		this._register(this._textAreaInput.onWillPaste(e => this._onWillPaste.fire(e)));
@@ -308,7 +277,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 
 		this._register(this._textAreaInput.onType((e: ITypeData) => {
 			if (e.replacePrevCharCnt || e.replaceNextCharCnt || e.positionDelta) {
-				// must be handled through the new command
 				if (_debugComposition) {
 					console.log(` => compositionType: <<${e.text}>>, ${e.replacePrevCharCnt}, ${e.replaceNextCharCnt}, ${e.positionDelta}`);
 				}
@@ -327,35 +295,15 @@ export class TextAreaEditContext extends AbstractEditContext {
 
 		this._register(this._textAreaInput.onCompositionStart((e) => {
 
-			// The textarea might contain some content when composition starts.
-			//
-			// When we make the textarea visible, it always has a height of 1 line,
-			// so we don't need to worry too much about content on lines above or below
-			// the selection.
-			//
-			// However, the text on the current line needs to be made visible because
-			// some IME methods allow to move to other glyphs on the current line
-			// (by pressing arrow keys).
-			//
-			// (1) The textarea might contain only some parts of the current line,
-			// like the word before the selection. Also, the content inside the textarea
-			// can grow or shrink as composition occurs. We therefore anchor the textarea
-			// in terms of distance to a certain line start and line end.
-			//
-			// (2) Also, we should not make \t characters visible, because their rendering
-			// inside the <textarea> will not align nicely with our rendering. We therefore
-			// will hide (if necessary) some of the leading text on the current line.
 
 			const ta = this.textArea.domNode;
 			const modelSelection = this._modelSelections[0];
 
 			const { distanceToModelLineStart, widthOfHiddenTextBefore } = (() => {
-				// Find the text that is on the current line before the selection
 				const textBeforeSelection = ta.value.substring(0, Math.min(ta.selectionStart, ta.selectionEnd));
 				const lineFeedOffset1 = textBeforeSelection.lastIndexOf('\n');
 				const lineTextBeforeSelection = textBeforeSelection.substring(lineFeedOffset1 + 1);
 
-				// We now search to see if we should hide some part of it (if it contains \t)
 				const tabOffset1 = lineTextBeforeSelection.lastIndexOf('\t');
 				const desiredVisibleBeforeCharCount = lineTextBeforeSelection.length - tabOffset1 - 1;
 				const startModelPosition = modelSelection.getStartPosition();
@@ -369,7 +317,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 			})();
 
 			const { distanceToModelLineEnd } = (() => {
-				// Find the text that is on the current line after the selection
 				const textAfterSelection = ta.value.substring(Math.max(ta.selectionStart, ta.selectionEnd));
 				const lineFeedOffset2 = textAfterSelection.indexOf('\n');
 				const lineTextAfterSelection = lineFeedOffset2 === -1 ? textAfterSelection : textAfterSelection.substring(0, lineFeedOffset2);
@@ -383,7 +330,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 				return { distanceToModelLineEnd };
 			})();
 
-			// Scroll to reveal the location in the editor where composition occurs
 			this._context.viewModel.revealRange(
 				'keyboard',
 				true,
@@ -400,13 +346,11 @@ export class TextAreaEditContext extends AbstractEditContext {
 				distanceToModelLineEnd,
 			);
 
-			// We turn off wrapping if the <textarea> becomes visible for composition
 			this.textArea.setAttribute('wrap', this._textAreaWrapping && !this._visibleTextArea ? 'on' : 'off');
 
 			this._visibleTextArea.prepareRender(this._visibleRangeProvider);
 			this._render();
 
-			// Show the textarea
 			this.textArea.setClassName(`inputarea ${MOUSE_CURSOR_TEXT_CSS_CLASS_NAME} ime-input`);
 
 			this._viewController.compositionStart();
@@ -426,7 +370,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 
 			this._visibleTextArea = null;
 
-			// We turn on wrapping as necessary if the <textarea> hides after composition
 			this.textArea.setAttribute('wrap', this._textAreaWrapping && !this._visibleTextArea ? 'on' : 'off');
 
 			this._render();
@@ -552,16 +495,11 @@ export class TextAreaEditContext extends AbstractEditContext {
 		this._accessibilitySupport = options.get(EditorOption.accessibilitySupport);
 		const accessibilityPageSize = options.get(EditorOption.accessibilityPageSize);
 		if (this._accessibilitySupport === AccessibilitySupport.Enabled && accessibilityPageSize === EditorOptions.accessibilityPageSize.defaultValue) {
-			// If a screen reader is attached and the default value is not set we should automatically increase the page size to 500 for a better experience
 			this._accessibilityPageSize = 500;
 		} else {
 			this._accessibilityPageSize = accessibilityPageSize;
 		}
 
-		// When wrapping is enabled and a screen reader might be attached,
-		// we will size the textarea to match the width used for wrapping points computation (see `domLineBreaksComputer.ts`).
-		// This is because screen readers will read the text in the textarea and we'd like that the
-		// wrapping points in the textarea match the wrapping points in the editor.
 		const layoutInfo = options.get(EditorOption.layoutInfo);
 		const wrappingColumn = layoutInfo.wrappingColumn;
 		if (wrappingColumn !== -1 && this._accessibilitySupport !== AccessibilitySupport.Disabled) {
@@ -574,7 +512,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 		}
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -606,13 +543,10 @@ export class TextAreaEditContext extends AbstractEditContext {
 	public override onCursorStateChanged(e: viewEvents.ViewCursorStateChangedEvent): boolean {
 		this._selections = e.selections.slice(0);
 		this._modelSelections = e.modelSelections.slice(0);
-		// We must update the <textarea> synchronously, otherwise long press IME on macos breaks.
-		// See https://github.com/microsoft/vscode/issues/165821
 		this._textAreaInput.writeNativeTextAreaContent('selection changed');
 		return true;
 	}
 	public override onDecorationsChanged(e: viewEvents.ViewDecorationsChangedEvent): boolean {
-		// true for inline decorations that can end up relayouting text
 		return true;
 	}
 	public override onFlushed(e: viewEvents.ViewFlushedEvent): boolean {
@@ -636,9 +570,7 @@ export class TextAreaEditContext extends AbstractEditContext {
 		return true;
 	}
 
-	// --- end event handlers
 
-	// --- begin view API
 
 	public isFocused(): boolean {
 		return this._textAreaInput.isFocused();
@@ -671,12 +603,9 @@ export class TextAreaEditContext extends AbstractEditContext {
 		}
 	}
 
-	// --- end view API
 
 	private _ensureReadOnlyAttribute(): void {
 		const options = this._context.configuration.options;
-		// When someone requests to disable IME, we set the "readonly" attribute on the <textarea>.
-		// This will prevent composition.
 		const useReadOnly = !IME.enabled || (options.get(EditorOption.domReadOnly) && options.get(EditorOption.readOnly));
 		if (useReadOnly) {
 			this.textArea.setAttribute('readonly', 'true');
@@ -701,7 +630,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 
 	private _render(): void {
 		if (this._visibleTextArea) {
-			// The text area is visible for composition reasons
 
 			const visibleStart = this._visibleTextArea.visibleTextareaStart;
 			const visibleEnd = this._visibleTextArea.visibleTextareaEnd;
@@ -713,30 +641,17 @@ export class TextAreaEditContext extends AbstractEditContext {
 
 				let scrollLeft = this._visibleTextArea.widthOfHiddenLineTextBefore;
 				let left = (this._contentLeft + visibleStart.left - this._scrollLeft);
-				// See https://github.com/microsoft/vscode/issues/141725#issuecomment-1050670841
-				// Here we are adding +1 to avoid flickering that might be caused by having a width that is too small.
-				// This could be caused by rounding errors that might only show up with certain font families.
-				// In other words, a pixel might be lost when doing something like
-				//      `Math.round(end) - Math.round(start)`
-				// vs
-				//      `Math.round(end - start)`
 				let width = visibleEnd.left - visibleStart.left + 1;
 				if (left < this._contentLeft) {
-					// the textarea would be rendered on top of the margin,
-					// so reduce its width. We use the same technique as
-					// for hiding text before
 					const delta = (this._contentLeft - left);
 					left += delta;
 					scrollLeft += delta;
 					width -= delta;
 				}
 				if (width > this._contentWidth) {
-					// the textarea would be wider than the content width,
-					// so reduce its width.
 					width = this._contentWidth;
 				}
 
-				// Try to render the textarea with the color/font style to match the text under it
 				const lineHeight = this._context.viewLayout.getLineHeightForLineNumber(startPosition.lineNumber);
 				const fontSize = this._context.viewModel.getFontSizeAtPosition(this._primaryCursorPosition);
 				const viewLineData = this._context.viewModel.getViewLineData(startPosition.lineNumber);
@@ -769,30 +684,24 @@ export class TextAreaEditContext extends AbstractEditContext {
 		}
 
 		if (!this._primaryCursorVisibleRange) {
-			// The primary cursor is outside the viewport => place textarea to the top left
 			this._renderAtTopLeft();
 			return;
 		}
 
 		const left = this._contentLeft + this._primaryCursorVisibleRange.left - this._scrollLeft;
 		if (left < this._contentLeft || left > this._contentLeft + this._contentWidth) {
-			// cursor is outside the viewport
 			this._renderAtTopLeft();
 			return;
 		}
 
 		const top = this._context.viewLayout.getVerticalOffsetForLineNumber(this._selections[0].positionLineNumber) - this._scrollTop;
 		if (top < 0 || top > this._contentHeight) {
-			// cursor is outside the viewport
 			this._renderAtTopLeft();
 			return;
 		}
 
-		// The primary cursor is in the viewport (at least vertically) => place textarea on the cursor
 
 		if (platform.isMacintosh || this._accessibilitySupport === AccessibilitySupport.Enabled) {
-			// For the popup emoji input, we will make the text area as high as the line height
-			// We will also make the fontSize and lineHeight the correct dimensions to help with the placement of these pickers
 			const lineNumber = this._primaryCursorPosition.lineNumber;
 			const lineHeight = this._context.viewLayout.getLineHeightForLineNumber(lineNumber);
 			this._doRender({
@@ -803,8 +712,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 				height: lineHeight,
 				useCover: false
 			});
-			// In case the textarea contains a word, we're going to try to align the textarea's cursor
-			// with our cursor by scrolling the textarea as much as possible
 			this.textArea.domNode.scrollLeft = this._primaryCursorVisibleRange.left;
 			const lineCount = this._textAreaInput.textAreaState.newlineCountBeforeSelection ?? newlinecount(this.textArea.domNode.value.substring(0, this.textArea.domNode.selectionStart));
 			this.textArea.domNode.scrollTop = lineCount * lineHeight;
@@ -822,8 +729,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 	}
 
 	private _renderAtTopLeft(): void {
-		// (in WebKit the textarea is 1px by 1px because it cannot handle input to a 0x0 textarea)
-		// specifically, when doing Korean IME, setting the textarea to 0x0 breaks IME badly.
 		this._doRender({
 			lastRenderPosition: null,
 			top: 0,
@@ -851,7 +756,6 @@ export class TextAreaEditContext extends AbstractEditContext {
 		ta.setColor(renderData.color ? Color.Format.CSS.formatHex(renderData.color) : '');
 		ta.setFontStyle(renderData.italic ? 'italic' : '');
 		if (renderData.bold) {
-			// fontWeight is also set by `applyFontInfo`, so only overwrite it if necessary
 			ta.setFontWeight('bold');
 		}
 		ta.setTextDecoration(`${renderData.underline ? ' underline' : ''}${renderData.strikethrough ? ' line-through' : ''}`);
@@ -903,8 +807,8 @@ function measureText(targetDocument: Document, text: string, fontInfo: FontInfo,
 
 	const regularDomNode = targetDocument.createElement('span');
 	applyFontInfo(regularDomNode, fontInfo);
-	regularDomNode.style.whiteSpace = 'pre'; // just like the textarea
-	regularDomNode.style.tabSize = `${tabSize * fontInfo.spaceWidth}px`; // just like the textarea
+	regularDomNode.style.whiteSpace = 'pre';
+	regularDomNode.style.tabSize = `${tabSize * fontInfo.spaceWidth}px`;
 	regularDomNode.append(text);
 	container.appendChild(regularDomNode);
 

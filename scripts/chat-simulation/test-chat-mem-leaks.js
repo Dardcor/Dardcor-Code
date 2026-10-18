@@ -43,11 +43,9 @@ const {
 	getUserTurns, getModelTurnCount,
 } = require('./common/mock-llm-server.ts');
 
-// -- Config (edit config.jsonc to change defaults) ---------------------------
 
 const CONFIG = loadConfig('memLeaks');
 
-// -- CLI args ----------------------------------------------------------------
 
 function parseArgs() {
 	const args = process.argv.slice(2);
@@ -99,7 +97,6 @@ function parseArgs() {
 	return opts;
 }
 
-// -- Scenario list -----------------------------------------------------------
 
 /**
  * Build a flat list of scenario IDs to cycle through during leak testing.
@@ -117,7 +114,6 @@ function getScenarioIds() {
 	];
 }
 
-// -- Helpers -----------------------------------------------------------------
 
 const CHAT_VIEW = 'div[id="workbench.panel.chat"]';
 const CHAT_EDITOR_SEL = `${CHAT_VIEW} .interactive-input-part .monaco-editor[role="code"]`;
@@ -143,12 +139,10 @@ async function measure(cdp, page) {
  * @param {import('playwright').Page} page
  */
 async function openNewChat(page) {
-	// Use keyboard shortcut to open a new chat (clears previous session)
 	const newChatShortcut = process.platform === 'darwin' ? 'Meta+KeyL' : 'Control+KeyL';
 	await page.keyboard.press(newChatShortcut);
 	await new Promise(r => setTimeout(r, 1000));
 
-	// Verify the chat view is visible and ready
 	await page.waitForSelector(CHAT_VIEW, { timeout: 15_000 });
 	await page.waitForFunction(
 		(sel) => Array.from(document.querySelectorAll(sel)).some(el => el.getBoundingClientRect().width > 0),
@@ -229,11 +223,8 @@ async function runScenario(page, mockServer, scenarioId, label) {
 	const totalModelTurns = getModelTurnCount(scenarioId);
 
 	if (userTurns.length === 0) {
-		// Content-only or tool-call scenario: one message, wait for all model turns
 		await sendMessage(page, mockServer, `[scenario:${scenarioId}] ${label}`, totalModelTurns);
 	} else {
-		// Multi-turn with user follow-ups: send initial message and wait for
-		// the model turns before the first user turn, then alternate.
 		let modelTurnsSoFar = 0;
 		const firstUserAfter = userTurns[0].afterModelTurn;
 		const turnsBeforeFirstUser = firstUserAfter - modelTurnsSoFar;
@@ -246,14 +237,12 @@ async function runScenario(page, mockServer, scenarioId, label) {
 				: totalModelTurns;
 			const turnsUntilNext = nextModelStop - modelTurnsSoFar;
 
-			// Send the user follow-up message
 			await sendMessage(page, mockServer, userTurns[u].message, turnsUntilNext);
 			modelTurnsSoFar = nextModelStop;
 		}
 	}
 }
 
-// -- Leak check --------------------------------------------------------------
 
 /**
  * @param {string} electronPath
@@ -279,7 +268,6 @@ async function runLeakCheck(electronPath, mockServer, opts) {
 		const cdp = await page.context().newCDPSession(page);
 		await cdp.send('HeapProfiler.enable');
 
-		// Open chat panel
 		const chatShortcut = process.platform === 'darwin' ? 'Control+Meta+KeyI' : 'Control+Alt+KeyI';
 		await page.keyboard.press(chatShortcut);
 		await page.waitForSelector(CHAT_VIEW, { timeout: 15_000 });
@@ -288,14 +276,12 @@ async function runLeakCheck(electronPath, mockServer, opts) {
 			CHAT_EDITOR_SEL, { timeout: 15_000 },
 		);
 
-		// Wait for extension activation
 		const reqsBefore = mockServer.requestCount();
 		try { await mockServer.waitForRequests(reqsBefore + 4, 30_000); } catch { }
 		await new Promise(r => setTimeout(r, 3000));
 
 		const scenarioIds = getScenarioIds();
 
-		// --- Baseline measurement (fresh chat) ---
 		const baseline = await measure(cdp, page);
 		if (verbose) {
 			console.log(`  [leak] Baseline: heap=${baseline.heapMB}MB, domNodes=${baseline.domNodes}`);
@@ -305,14 +291,12 @@ async function runLeakCheck(electronPath, mockServer, opts) {
 		const iterationResults = [];
 
 		for (let iter = 0; iter < iterations; iter++) {
-			// Measure at start of iteration (should be in "clean" state)
 			const before = await measure(cdp, page);
 
 			if (verbose) {
 				console.log(`  [leak] Iteration ${iter + 1}/${iterations}: start heap=${before.heapMB}MB, domNodes=${before.domNodes}`);
 			}
 
-			// Do work: cycle through all scenarios
 			for (let m = 0; m < scenarioIds.length; m++) {
 				const sid = scenarioIds[m];
 				await runScenario(page, mockServer, sid, `Iteration ${iter + 1}`);
@@ -321,11 +305,9 @@ async function runLeakCheck(electronPath, mockServer, opts) {
 				}
 			}
 
-			// Return to clean state: open a new empty chat
 			await openNewChat(page);
 			await new Promise(r => setTimeout(r, 1000));
 
-			// Measure after returning to clean state
 			const after = await measure(cdp, page);
 			const deltaHeapMB = Math.round((after.heapMB - before.heapMB) * 100) / 100;
 			const deltaDomNodes = after.domNodes - before.domNodes;
@@ -344,18 +326,10 @@ async function runLeakCheck(electronPath, mockServer, opts) {
 			}
 		}
 
-		// Final measurement
 		const final = await measure(cdp, page);
 		const totalResidualMB = Math.round((final.heapMB - baseline.heapMB) * 100) / 100;
 		const totalResidualNodes = final.domNodes - baseline.domNodes;
 
-		// Steady-state residual EXCLUDES the first iteration. The first
-		// iteration's growth is dominated by one-time warm-up (V8 JIT, module
-		// and string caches, lazy singletons) rather than a leak — a real leak
-		// keeps growing every iteration, whereas warm-up plateaus. Basing the
-		// verdict on post-warm-up growth (heap relative to the end of iteration
-		// 1) avoids false positives from caching. Falls back to total residual
-		// when there are too few iterations to drop the warm-up one.
 		const warmupBaselineMB = iterationResults.length > 1
 			? iterationResults[0].afterHeapMB
 			: baseline.heapMB;
@@ -374,7 +348,6 @@ async function runLeakCheck(electronPath, mockServer, opts) {
 	}
 }
 
-// -- Main --------------------------------------------------------------------
 
 async function main() {
 	const opts = parseArgs();
@@ -411,7 +384,6 @@ async function main() {
 	console.log(`  Total residual DOM growth:         ${result.totalResidualNodes > 0 ? '+' : ''}${result.totalResidualNodes} nodes`);
 	console.log('');
 
-	// Write JSON
 	const jsonPath = path.join(DATA_DIR, 'chat-simulation-leak-results.json');
 	fs.writeFileSync(jsonPath, JSON.stringify({
 		timestamp: new Date().toISOString(),

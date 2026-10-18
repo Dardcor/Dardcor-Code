@@ -3102,7 +3102,7 @@ suite('WorkspaceConfigurationService - Remote Folder', () => {
 function getWorkspaceId(configPath: URI): string {
 	let workspaceConfigPath = configPath.toString();
 	if (!isLinux) {
-		workspaceConfigPath = workspaceConfigPath.toLowerCase(); // sanitize for platform file system
+		workspaceConfigPath = workspaceConfigPath.toLowerCase();
 	}
 	return hash(workspaceConfigPath).toString(16);
 }

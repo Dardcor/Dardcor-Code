@@ -25,16 +25,6 @@ import { ChatConfiguration } from '../common/constants.js';
 import { MarketplaceReferenceKind, parseMarketplaceReference, parseMarketplaceReferences, readConfiguredMarketplaces } from '../common/plugins/marketplaceReference.js';
 import { IPluginInstallService } from '../common/plugins/pluginInstallService.js';
 
-/**
- * Handles `vscode://chat-plugin/install?source=<base64>[&plugin=<base64>]` and
- * `vscode://chat-plugin/add-marketplace?ref=<base64>` URLs.
- *
- * The `source` / `ref` query parameter is a base64-encoded `owner/repo` or
- * git clone URL. A confirmation dialog is always shown before any install
- * action, regardless of whether `plugin` is provided. When `plugin` is given
- * on the `/install` route, the handler targets that specific plugin within the
- * marketplace and opens its details in the editor after install.
- */
 export class PluginUrlHandler extends Disposable implements IWorkbenchContribution, IURLHandler {
 
 	static readonly ID = 'workbench.contrib.pluginUrlHandler';
@@ -70,7 +60,6 @@ export class PluginUrlHandler extends Disposable implements IWorkbenchContributi
 		}
 	}
 
-	// --- install a plugin from source ---
 
 	private async _handleInstall(uri: URI): Promise<boolean> {
 		const source = this._decodeQueryParam(uri, 'source');
@@ -120,11 +109,6 @@ export class PluginUrlHandler extends Disposable implements IWorkbenchContributi
 		return true;
 	}
 
-	/**
-	 * Handles the case where a specific plugin is targeted within a
-	 * marketplace. Delegates trust and discovery to the install service,
-	 * then opens the plugin details in a modal editor.
-	 */
 	private async _handleInstallTargetedPlugin(source: string, displayLabel: string, pluginName: string): Promise<boolean> {
 		const result = await this._pluginInstallService.installPluginFromSource(source, { plugin: pluginName });
 
@@ -161,7 +145,6 @@ export class PluginUrlHandler extends Disposable implements IWorkbenchContributi
 		return true;
 	}
 
-	// --- add a marketplace ---
 
 	private async _handleAddMarketplace(uri: URI): Promise<boolean> {
 		const refValue = this._decodeQueryParam(uri, 'ref');
@@ -204,13 +187,7 @@ export class PluginUrlHandler extends Disposable implements IWorkbenchContributi
 		return true;
 	}
 
-	// --- helpers ---
 
-	/**
-	 * Reads a query parameter and attempts to parse it as a marketplace
-	 * reference. Tries base64-decoding first, then falls back to the raw
-	 * value so that plain-text `owner/repo` values also work in URLs.
-	 */
 	private _decodeQueryParam(uri: URI, key: string): string | undefined {
 		const params = new URLSearchParams(uri.query);
 		const raw = params.get(key);
@@ -225,10 +202,6 @@ export class PluginUrlHandler extends Disposable implements IWorkbenchContributi
 		return parseMarketplaceReference(raw) ? raw : undefined;
 	}
 
-	/**
-	 * Reads a query parameter and decodes it. Tries base64-decoding first,
-	 * then falls back to the raw value.
-	 */
 	private _decodeStringParam(uri: URI, key: string): string | undefined {
 		const params = new URLSearchParams(uri.query);
 		return params.get(key) ?? undefined;

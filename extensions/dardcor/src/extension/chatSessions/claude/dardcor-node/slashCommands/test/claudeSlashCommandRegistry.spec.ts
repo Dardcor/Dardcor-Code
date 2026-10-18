@@ -14,7 +14,6 @@ import {
 } from '../claudeSlashCommandRegistry';
 
 describe('claudeSlashCommandRegistry', () => {
-	// Store original registry length to detect changes
 	let originalRegistryLength: number;
 
 	beforeEach(() => {
@@ -121,9 +120,6 @@ describe('claudeSlashCommandRegistry', () => {
 
 		it('returns a readonly array', () => {
 			const registry = getClaudeSlashCommandRegistry();
-			// TypeScript enforces readonly at compile time, but at runtime
-			// the array is still technically mutable. This test verifies
-			// the return type contract exists.
 			expect(typeof registry.length).toBe('number');
 			expect(typeof registry[Symbol.iterator]).toBe('function');
 		});
@@ -206,7 +202,6 @@ describe('claudeSlashCommandRegistry', () => {
 					_stream: vscode.ChatResponseStream | undefined,
 					_token: CancellationToken
 				): Promise<void> {
-					// Returns void instead of ChatResult
 				}
 			}
 

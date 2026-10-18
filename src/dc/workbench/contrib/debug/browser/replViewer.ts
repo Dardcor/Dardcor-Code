@@ -190,9 +190,7 @@ export class ReplOutputElementRenderer implements ITreeRenderer<ReplOutputElemen
 		templateData.elementDisposable.clear();
 		this.setElementCount(element, templateData);
 		templateData.elementDisposable.add(element.onDidChangeCount(() => this.setElementCount(element, templateData)));
-		// value
 		dom.clearNode(templateData.value);
-		// Reset classes to clear ansi decorations since templates are reused
 		templateData.value.className = 'value';
 
 		const locationReference = element.expression?.valueLocationReference;
@@ -294,7 +292,6 @@ export class ReplRawObjectsRenderer implements ITreeRenderer<RawObjectReplElemen
 	renderElement(node: ITreeNode<RawObjectReplElement, FuzzyScore>, index: number, templateData: IRawObjectReplTemplateData): void {
 		templateData.elementStore.clear();
 
-		// key
 		const element = node.element;
 		templateData.label.set(element.name ? `${element.name}:` : '', createMatches(node.filterData));
 		if (element.name) {
@@ -303,7 +300,6 @@ export class ReplRawObjectsRenderer implements ITreeRenderer<RawObjectReplElemen
 			templateData.name.textContent = '';
 		}
 
-		// value
 		templateData.elementStore.add(this.expressionRenderer.renderValue(templateData.value, element.value, {
 			hover: false,
 			session: node.element.getSession(),
@@ -339,9 +335,6 @@ export class ReplDelegate extends CachedListVirtualDelegate<IReplElement> {
 		return super.getHeight(element);
 	}
 
-	/**
-	 * With wordWrap enabled, this is an estimate. With wordWrap disabled, this is the real height that the list will use.
-	 */
 	protected estimateHeight(element: IReplElement, ignoreValueLength = false): number {
 		const lineHeight = this.replOptions.replConfiguration.lineHeight;
 		const countNumberOfLines = (str: string) => str.match(/\n/g)?.length ?? 0;
@@ -350,8 +343,8 @@ export class ReplDelegate extends CachedListVirtualDelegate<IReplElement> {
 		if (hasValue(element) && !isNestedVariable(element)) {
 			const value = element.value;
 			const valueRows = countNumberOfLines(value)
-				+ (ignoreValueLength ? 0 : Math.floor(value.length / 70)) // Make an estimate for wrapping
-				+ (element instanceof ReplOutputElement ? 0 : 1); // A SimpleReplElement ends in \n if it's a complete line
+				+ (ignoreValueLength ? 0 : Math.floor(value.length / 70))
+				+ (element instanceof ReplOutputElement ? 0 : 1);
 
 			return Math.max(valueRows, 1) * lineHeight;
 		}
@@ -381,10 +374,8 @@ export class ReplDelegate extends CachedListVirtualDelegate<IReplElement> {
 
 	hasDynamicHeight(element: IReplElement): boolean {
 		if (isNestedVariable(element)) {
-			// Nested variables should always be in one line #111843
 			return false;
 		}
-		// Empty elements should not have dynamic height since they will be invisible
 		return element.toString().length > 0;
 	}
 }

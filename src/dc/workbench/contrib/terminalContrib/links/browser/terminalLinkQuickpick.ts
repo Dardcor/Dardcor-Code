@@ -45,13 +45,10 @@ export class TerminalLinkQuickpick extends DisposableStore {
 	async show(instance: ITerminalInstance | IDetachedTerminalInstance, links: { viewport: IDetectedLinks; all: Promise<IDetectedLinks> }): Promise<void> {
 		this._instance = instance;
 
-		// Allow all links a small amount of time to elapse to finish, if this is not done in this
-		// time they will be loaded upon the first filter.
 		const result = await Promise.race([links.all, timeout(500)]);
 		const usingAllLinks = typeof result === 'object';
 		const resolvedLinks = usingAllLinks ? result : links.viewport;
 
-		// Get raw link picks
 		const wordPicks = resolvedLinks.wordLinks ? await this._generatePicks(resolvedLinks.wordLinks) : undefined;
 		const filePicks = resolvedLinks.fileLinks ? await this._generatePicks(resolvedLinks.fileLinks) : undefined;
 		const folderPicks = resolvedLinks.folderLinks ? await this._generatePicks(resolvedLinks.folderLinks) : undefined;
@@ -75,7 +72,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 			picks.push(...wordPicks);
 		}
 
-		// Create and show quick pick
 		const pick = this._quickInputService.createQuickPick<IQuickPickItem | ITerminalLinkQuickPickItem>({ useSeparators: true });
 		const disposables = new DisposableStore();
 		disposables.add(pick);
@@ -87,8 +83,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 			this._previewItem(pick.activeItems[0]);
 		}
 
-		// Show all results only when filtering begins, this is done so the quick pick will show up
-		// ASAP with only the viewport entries.
 		let accepted = false;
 		if (!usingAllLinks) {
 			disposables.add(Event.once(pick.onDidChangeValue)(async () => {
@@ -131,7 +125,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 		return new Promise(r => {
 			disposables.add(pick.onDidHide(({ reason }) => {
 
-				// Restore terminal scroll state
 				if (this._terminalScrollStateSaved) {
 					const markTracker = this._instance?.xterm?.markTracker;
 					if (markTracker) {
@@ -141,10 +134,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 					}
 				}
 
-				// Restore view state upon cancellation if we changed it
-				// but only when the picker was closed via explicit user
-				// gesture and not e.g. when focus was lost because that
-				// could mean the user clicked into the editor directly.
 				if (reason === QuickInputHideReason.Gesture) {
 					this._editorViewState.restore();
 				}
@@ -155,7 +144,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 				r();
 			}));
 			disposables.add(Event.once(pick.onDidAccept)(() => {
-				// Restore terminal scroll state
 				if (this._terminalScrollStateSaved) {
 					const markTracker = this._instance?.xterm?.markTracker;
 					if (markTracker) {
@@ -177,9 +165,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 		});
 	}
 
-	/**
-	 * @param ignoreLinks Links with labels to not include in the picks.
-	 */
 	private async _generatePicks(links: (ILink | TerminalLink)[], ignoreLinks?: ILink[]): Promise<ITerminalLinkQuickPickItem[] | undefined> {
 		if (!links) {
 			return;
@@ -192,10 +177,8 @@ export class TerminalLinkQuickpick extends DisposableStore {
 			if (!linkTextKeys.has(label) && (!ignoreLinks || !ignoreLinks.some(e => e.text === label))) {
 				linkTextKeys.add(label);
 
-				// Add a consistently formatted resolved URI label to the description if applicable
 				let description: string | undefined;
 				if (hasKey(link, { uri: true }) && link.uri) {
-					// For local files and folders, mimic the presentation of go to file
 					if (
 						link.type === TerminalBuiltinLinkType.LocalFile ||
 						link.type === TerminalBuiltinLinkType.LocalFolderInWorkspace ||
@@ -205,7 +188,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 						description = this._labelService.getUriLabel(dirname(link.uri), { relative: true });
 					}
 
-					// Add line and column numbers to the label if applicable
 					if (link.type === TerminalBuiltinLinkType.LocalFile) {
 						if (link.parsedLink?.suffix?.row !== undefined) {
 							label += `:${link.parsedLink.suffix.row}`;
@@ -221,7 +203,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 						}
 					}
 
-					// Skip the link if it's a duplicate URI + line/col
 					if (linkUriKeys.has(label + '|' + (description ?? ''))) {
 						continue;
 					}
@@ -239,7 +220,6 @@ export class TerminalLinkQuickpick extends DisposableStore {
 			return;
 		}
 
-		// Any link can be previewed in the termninal
 		const link = item.link;
 		this._previewItemInTerminal(link);
 

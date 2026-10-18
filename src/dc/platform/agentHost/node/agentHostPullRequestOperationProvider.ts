@@ -23,7 +23,6 @@ export class AgentHostPullRequestOperationContribution extends Disposable implem
 
 	private _registry: IChangesetOperationRegistry | undefined;
 
-	/** Last advertised operation ids per session, so only changes are logged. */
 	private readonly _lastAdvertisedOperations = new Map<string, string>();
 
 	constructor(
@@ -97,19 +96,16 @@ export class AgentHostPullRequestOperationContribution extends Disposable implem
 	}
 
 	private _computeOperations({ sessionKey, gitState, gitHubState }: IChangesetOperationContext): ChangesetOperation[] | undefined {
-		// New Session
 		const state = this._stateManager.getSessionState(sessionKey);
 		if (state?.lifecycle === SessionLifecycle.Creating) {
 			return undefined;
 		}
 
-		// Folder session that has outgoing changes
 		const isFolderSession = state?.config?.values[SessionConfigKey.Isolation] === 'folder';
 		if (isFolderSession && gitState?.outgoingChanges && gitState.outgoingChanges > 0) {
 			return undefined;
 		}
 
-		// Pull request already exists for the currently checked out branch
 		if (hasSessionPullRequestForBranch(gitHubState, gitState?.branchName)) {
 			return this._getPullRequestLifecycleOperations(sessionKey);
 		}
@@ -185,20 +181,6 @@ export class AgentHostPullRequestOperationContribution extends Disposable implem
 		return this._configurationService.getRootValue(agentMergeRootConfigSchema, AgentMergeConfigKey.Enabled) === true;
 	}
 
-	/**
-	 * Operations for a branch that already has a pull request.
-	 *
-	 * The order matters: the client renders the first operation as the primary
-	 * button and the rest as dropdown entries, so the state's headline action
-	 * comes first. Auto-merge is driven purely off GitHub's own capability
-	 * flags — `viewerCanEnableAutoMerge` is already false for a pull request
-	 * that can simply be merged — which keeps the three states falling out
-	 * without duplicating GitHub's rules here.
-	 *
-	 * Returns `undefined` while the pull request state has not resolved yet, so
-	 * the button bar stays hidden rather than flashing the wrong action, and
-	 * once the pull request is merged or closed, when nothing is left to do.
-	 */
 	private _getPullRequestLifecycleOperations(sessionKey: string): ChangesetOperation[] | undefined {
 		const status = this._pullRequestStatusService.getPullRequestStatus(sessionKey);
 		if (!status) {
@@ -271,20 +253,12 @@ export class AgentHostPullRequestOperationContribution extends Disposable implem
 			&& readAgentMergeSessionState(this._stateManager.getSessionState(sessionKey)?.config?.values)?.enabled === true;
 	}
 
-	/**
-	 * Logs the advertised operations whenever the set changes for a session.
-	 * `getOperations` is recomputed on every git/GitHub state change and once
-	 * per changeset, so only transitions are logged — the steady state would
-	 * otherwise drown out everything else.
-	 */
 	private _logAdvertisedOperations(sessionKey: string, operations: readonly ChangesetOperation[] | undefined): void {
 		const advertised = operations?.map(operation => operation.id).join(', ') ?? 'none';
 		if (this._lastAdvertisedOperations.get(sessionKey) === advertised) {
 			return;
 		}
 		this._lastAdvertisedOperations.set(sessionKey, advertised);
-		// The first id is what the client renders as the primary button, so it
-		// is called out separately from the rest of the dropdown.
 		const primary = operations?.[0]?.id ?? 'none';
 		this._logService.info(`[AgentHostPullRequestOperationContribution] Advertised operations changed: session=${sessionKey}, primary=${primary}, operations=[${advertised}]`);
 	}

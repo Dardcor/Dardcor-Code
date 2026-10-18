@@ -35,7 +35,6 @@ async function getModelMetadataMap(modelMetadataFetcher: TestModelMetadataFetche
 		metadataArray = await modelMetadataFetcher.getAllChatModels();
 	} catch (e) {
 		metadataArray = [];
-		// We only want to catch errors for the model lab models, otherwise we have no models to test and should just throw the error
 		if (!modelMetadataFetcher.isModelLab) {
 			throw e;
 		}
@@ -102,7 +101,6 @@ export class TestModelMetadataFetcher extends ModelMetadataFetcher {
 				return result;
 			}
 
-			// If the cache doesn't have the result, we need to fetch it
 			const modelInfo = await super.getAllChatModels();
 			await this.cache.set(req, modelInfo);
 			return modelInfo;

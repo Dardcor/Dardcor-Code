@@ -12,8 +12,6 @@ import { BracketsUtils, RichEditBrackets } from './richEditBrackets.js';
  * @internal
  */
 export interface IElectricAction {
-	// The line will be indented at the same level of the line
-	// which contains the matching given bracket type.
 	matchOpenBracket: string;
 }
 
@@ -67,7 +65,6 @@ export class BracketElectricCharacterSupport {
 
 		const textBeforeBracket = context.getActualLineContentBefore(r.startColumn - 1);
 		if (!/^\s*$/.test(textBeforeBracket)) {
-			// There is other text on the line before the bracket
 			return null;
 		}
 

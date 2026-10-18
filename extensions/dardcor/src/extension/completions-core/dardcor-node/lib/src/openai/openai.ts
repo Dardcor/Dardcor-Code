@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
+import { DardcorNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
 import { RequestId } from '../../../../../../platform/networking/common/fetch';
 import { generateUuid } from '../../../../../../util/dardcor/base/common/uuid';
 import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
@@ -22,15 +22,14 @@ export interface APIChoice {
 	requestId: RequestId;
 	tokens: readonly string[];
 	numTokens: number;
-	blockFinished: boolean; // Whether the block completion was determined to be finished
-	telemetryData: TelemetryWithExp; // optional telemetry data providing background
-	dardcorAnnotations?: CopilotNamedAnnotationList; // optional annotations from the proxy
-	clientCompletionId: string; // Unique identifier for the completion created in the client
-	finishReason: string; // Reason the API used to describe why the stream of chunks finished.
-	generatedChoiceIndex?: number; // when a completion is split into multiple choices, the index of the split choice
+	blockFinished: boolean;
+	telemetryData: TelemetryWithExp;
+	dardcorAnnotations?: DardcorNamedAnnotationList;
+	clientCompletionId: string;
+	finishReason: string;
+	generatedChoiceIndex?: number;
 }
 
-/** How the logprobs field looks in the OpenAI API chunks. */
 export interface APILogprobs {
 	text_offset: number[];
 	token_logprobs: number[];
@@ -40,14 +39,10 @@ export interface APILogprobs {
 
 export interface APIJsonData {
 	text: string;
-	/* Joining this together produces `text`, due to the way the proxy works. */
 	tokens: readonly string[];
-	/* These are only generated in certain situations. */
 	logprobs?: APILogprobs;
-	/* Copilot-specific annotations returned by the proxy. */
-	dardcor_annotations?: CopilotNamedAnnotationList;
-	/* Reason the proxy returned for why the stream of chunks ended. */
-	finish_reason: string; // Reason the API used to describe why the stream of chunks finished.
+	dardcor_annotations?: DardcorNamedAnnotationList;
+	finish_reason: string;
 }
 
 export function convertToAPIChoice(
@@ -61,10 +56,7 @@ export function convertToAPIChoice(
 ): APIChoice {
 	logEngineCompletion(accessor, completionText, jsonData, requestId, choiceIndex);
 
-	// NOTE: It's possible that the completion text we care about is not exactly jsonData.text but a prefix,
-	// so we pass it down directly.
 	return {
-		// NOTE: This does not contain stop tokens necessarily
 		completionText: completionText,
 		meanLogProb: calculateMeanLogProb(accessor, jsonData),
 		meanAlternativeLogProb: calculateMeanAlternativeLogProb(accessor, jsonData),
@@ -80,7 +72,6 @@ export function convertToAPIChoice(
 	};
 }
 
-// Helper functions
 function calculateMeanLogProb(accessor: ServicesAccessor, jsonData: APIJsonData): number | undefined {
 	if (!jsonData?.logprobs?.token_logprobs) {
 		return undefined;
@@ -90,10 +81,8 @@ function calculateMeanLogProb(accessor: ServicesAccessor, jsonData: APIJsonData)
 		let logProbSum = 0.0;
 		let numTokens = 0;
 
-		// Limit to first 50 logprobs, avoids up-ranking longer solutions
 		let iterLimit = 50;
 
-		// First token is always null and last token can have multiple options if it hit a stop
 		for (let i = 0; i < jsonData.logprobs.token_logprobs.length - 1 && iterLimit > 0; i++, iterLimit--) {
 			logProbSum += jsonData.logprobs.token_logprobs[i];
 			numTokens += 1;
@@ -118,11 +107,9 @@ function calculateMeanAlternativeLogProb(accessor: ServicesAccessor, jsonData: A
 		let logProbSum = 0.0;
 		let numTokens = 0;
 
-		// Limit to first 50 logprobs, avoids up-ranking longer solutions
 		let iterLimit = 50;
 
 		for (let i = 0; i < jsonData.logprobs.token_logprobs.length - 1 && iterLimit > 0; i++, iterLimit--) {
-			// copy the options object to avoid mutating the original
 			const options = { ...jsonData.logprobs.top_logprobs[i] };
 			delete options[jsonData.logprobs.tokens[i]];
 			logProbSum += Math.max(...Object.values(options));
@@ -139,8 +126,6 @@ function calculateMeanAlternativeLogProb(accessor: ServicesAccessor, jsonData: A
 	}
 }
 
-// Returns a temperature in range 0.0-1.0, using either a config setting,
-// or the following ranges: 1=0.0, <10=0.2, <20=0.4, >=20=0.8
 export function getTemperatureForSamples(runtime: ICompletionsRuntimeModeService, numShots: number): number {
 	if (runtime.isRunningInTest()) {
 		return 0.0;

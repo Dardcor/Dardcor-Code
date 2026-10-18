@@ -30,15 +30,15 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 	protected readonly _onDidWatchFail = this._register(new Emitter<IUniversalWatchRequest>());
 	private readonly onDidWatchFail = this._onDidWatchFail.event;
 
-	private readonly correlatedWatchRequests = new Map<number /* request ID */, IWatchRequestWithCorrelation>();
-	private readonly nonCorrelatedWatchRequests = new Map<number /* request ID */, IUniversalWatchRequest>();
+	private readonly correlatedWatchRequests = new Map<number , IWatchRequestWithCorrelation>();
+	private readonly nonCorrelatedWatchRequests = new Map<number , IUniversalWatchRequest>();
 
-	private readonly suspendedWatchRequests = this._register(new DisposableMap<number /* request ID */>());
-	private readonly suspendedWatchRequestsWithPolling = new Set<number /* request ID */>();
+	private readonly suspendedWatchRequests = this._register(new DisposableMap<number >());
+	private readonly suspendedWatchRequestsWithPolling = new Set<number >();
 
 	private readonly updateWatchersDelayer = this._register(new ThrottledDelayer<void>(this.getUpdateWatchersDelay()));
 
-	protected readonly suspendedWatchRequestPollingInterval: number = 5007; // node.js default
+	protected readonly suspendedWatchRequestPollingInterval: number = 5007;
 
 	private joinWatch = new DeferredPromise<void>();
 
@@ -60,9 +60,6 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 		if (this.isCorrelated(request)) {
 			return request.correlationId;
 		} else {
-			// Requests without correlation do not carry any unique identifier, so we have to
-			// come up with one based on the options of the request. This matches what the
-			// file service does (vs/platform/files/common/fileService.ts#L1178).
 			return hash(request);
 		}
 	}
@@ -77,7 +74,6 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 			this.correlatedWatchRequests.clear();
 			this.nonCorrelatedWatchRequests.clear();
 
-			// Figure out correlated vs. non-correlated requests
 			for (const request of requests) {
 				if (this.isCorrelated(request)) {
 					this.correlatedWatchRequests.set(request.correlationId, request);
@@ -86,7 +82,6 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 				}
 			}
 
-			// Remove all suspended watch requests that are no longer watched
 			for (const [id] of this.suspendedWatchRequests) {
 				if (!this.nonCorrelatedWatchRequests.has(id) && !this.correlatedWatchRequests.has(id)) {
 					this.suspendedWatchRequests.deleteAndDispose(id);
@@ -94,7 +89,7 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 				}
 			}
 
-			return await this.updateWatchers(false /* not delayed */);
+			return await this.updateWatchers(false );
 		} finally {
 			this.joinWatch.complete();
 		}
@@ -122,16 +117,12 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 
 	private async suspendWatchRequest(request: ISuspendedWatchRequest): Promise<void> {
 		if (this.suspendedWatchRequests.has(request.id)) {
-			return; // already suspended
+			return;
 		}
 
 		const disposables = new DisposableStore();
 		this.suspendedWatchRequests.set(request.id, disposables);
 
-		// It is possible that a watch request fails right during watch()
-		// phase while other requests succeed. To increase the chance of
-		// reusing another watcher for suspend/resume tracking, we await
-		// all watch requests having processed.
 
 		await this.joinWatch.p;
 
@@ -141,7 +132,7 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 
 		this.monitorSuspendedWatchRequest(request, disposables);
 
-		this.updateWatchers(true /* delay this call as we might accumulate many failing watch requests on startup */);
+		this.updateWatchers(true );
 	}
 
 	private resumeWatchRequest(request: ISuspendedWatchRequest): void {
@@ -164,7 +155,7 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 	private doMonitorWithExistingWatcher(request: ISuspendedWatchRequest, disposables: DisposableStore): boolean {
 		const subscription = this.recursiveWatcher?.subscribe(request.path, (error, change) => {
 			if (disposables.isDisposed) {
-				return; // return early if already disposed
+				return;
 			}
 
 			if (error) {
@@ -188,7 +179,7 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 
 		const watchFileCallback: (curr: Stats, prev: Stats) => void = (curr, prev) => {
 			if (disposables.isDisposed) {
-				return; // return early if already disposed
+				return;
 			}
 
 			const currentPathNotFound = this.isPathNotFound(curr);
@@ -196,7 +187,6 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 			const oldPathNotFound = pathNotFound;
 			pathNotFound = currentPathNotFound;
 
-			// Watch path created: resume watching request
 			if (!currentPathNotFound && (previousPathNotFound || oldPathNotFound)) {
 				this.onMonitoredPathAdded(request);
 			}
@@ -223,12 +213,10 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 	private onMonitoredPathAdded(request: ISuspendedWatchRequest): void {
 		this.trace(`detected ${request.path} exists again, resuming watcher (correlationId: ${request.correlationId})`);
 
-		// Emit as event
 		const event: IFileChange = { resource: URI.file(request.path), type: FileChangeType.ADDED, cId: request.correlationId };
 		this._onDidChangeFile.fire([event]);
 		this.traceEvent(event, request);
 
-		// Resume watching
 		this.resumeWatchRequest(request);
 	}
 

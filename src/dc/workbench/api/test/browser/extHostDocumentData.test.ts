@@ -33,10 +33,10 @@ suite('ExtHostDocumentData', () => {
 
 	setup(function () {
 		data = new ExtHostDocumentData(undefined!, URI.file(''), [
-			'This is line one', //16
-			'and this is line number two', //27
-			'it is followed by #3', //20
-			'and finished with the fourth.', //29
+			'This is line one',
+			'and this is line number two',
+			'it is followed by #3',
+			'and finished with the fourth.',
 		], '\n', 1, 'text', false, 'utf8');
 	});
 
@@ -118,11 +118,9 @@ suite('ExtHostDocumentData', () => {
 			isUndoing: false,
 		});
 
-		// line didn't change
 		assert.strictEqual(line.text, 'This is line one');
 		assert.strictEqual(line.firstNonWhitespaceCharacterIndex, 0);
 
-		// fetch line again
 		line = data.document.lineAt(0);
 		assert.strictEqual(line.text, '\t This is line one');
 		assert.strictEqual(line.firstNonWhitespaceCharacterIndex, 2);
@@ -270,7 +268,6 @@ suite('ExtHostDocumentData', () => {
 		assert.strictEqual(range.end.line, 0);
 		assert.strictEqual(range.end.character, 4);
 
-		// ignore bad regular expresson /.*/
 		assert.throws(() => data.document.getWordRangeAtPosition(new Position(0, 2), /.*/)!);
 
 		range = data.document.getWordRangeAtPosition(new Position(0, 5), /[a-z+]+/)!;
@@ -326,8 +323,6 @@ suite('ExtHostDocumentData', () => {
 			perfData._$_$_expensive
 		], '\n', 1, 'text', false, 'utf8');
 
-		// this test only ensures that we eventually give and timeout (when searching "funny" words and long lines)
-		// for the sake of speedy tests we lower the timeBudget here
 		const config = setDefaultGetWordAtTextConfig({ maxLen: 1000, windowSize: 15, timeBudget: 30 });
 		try {
 			let range = data.document.getWordRangeAtPosition(new Position(0, 1_177_170), regex)!;
@@ -392,14 +387,12 @@ suite('ExtHostDocumentData updates line mapping', () => {
 
 		let line = 0, character = 0, previousIsCarriageReturn = false;
 		for (let offset = 0; offset <= allText.length; offset++) {
-			// The position coordinate system cannot express the position between \r and \n
 			const position: Position = new Position(line, character + (previousIsCarriageReturn ? -1 : 0));
 
 			if (direction === AssertDocumentLineMappingDirection.OffsetToPosition) {
 				const actualPosition = doc.document.positionAt(offset);
 				assert.strictEqual(positionToStr(actualPosition), positionToStr(position), 'positionAt mismatch for offset ' + offset);
 			} else {
-				// The position coordinate system cannot express the position between \r and \n
 				const expectedOffset: number = offset + (previousIsCarriageReturn ? -1 : 0);
 				const actualOffset = doc.document.offsetAt(position);
 				assert.strictEqual(actualOffset, expectedOffset, 'offsetAt mismatch for position ' + positionToStr(position));

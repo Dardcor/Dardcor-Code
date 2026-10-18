@@ -111,7 +111,6 @@ export class McpServersListView extends AbstractExtensionsListView<IWorkbenchMcp
 	protected override renderBody(container: HTMLElement): void {
 		super.renderBody(container);
 
-		// Create welcome container
 		this.welcomeContainer = dom.append(container, dom.$('.mcp-welcome-container.hide'));
 		this.createWelcomeContent(this.welcomeContainer);
 
@@ -274,7 +273,7 @@ export class McpServersListView extends AbstractExtensionsListView<IWorkbenchMcp
 		const description = dom.append(welcomeContent, dom.$('.mcp-welcome-description'));
 		const markdownResult = this._register(this.markdownRendererService.render(
 			new MarkdownString(
-				localize('mcp.welcome.descriptionWithLink', "Browse and install [Model Context Protocol (MCP) servers](https://code.visualstudio.com/docs/agent-customization/mcp-servers) directly from VS Code to extend agent mode with extra tools for connecting to databases, invoking APIs and performing specialized tasks."),
+				localize('mcp.welcome.descriptionWithLink', "Browse and install [Model Context Protocol (MCP) servers](https://www.dardcor-code.web.id/docs/agent-customization/mcp-servers) directly from VS Code to extend agent mode with extra tools for connecting to databases, invoking APIs and performing specialized tasks."),
 				{ isTrusted: { enabledCommands: ['workbench.action.openSettings'] } },
 			)
 				.appendMarkdown('\n\n')

@@ -80,18 +80,6 @@ type EnterpriseSignInUiState = 'options' | 'instance' | 'progress';
 assertDefined(product.defaultChatAgent, 'Onboarding requires a default chat agent product configuration.');
 const defaultChat = product.defaultChatAgent;
 
-/**
- * Variation A — Classic Wizard Modal
- *
- * A centered modal overlay with progress dots, clean step transitions,
- * and polished navigation. Sits on top of the agent sessions welcome
- * tab. When dismissed, the welcome tab is revealed underneath.
- *
- * Steps:
- * 1. Sign In — sessions-style sign-in hero with GitHub Copilot, Google, and Apple options
- * 2. Personalize — Theme selection grid + keymap pills
- * 3. Agent Sessions — Feature cards showcasing AI capabilities
- */
 export class OnboardingVariationA extends Disposable implements IOnboardingService {
 
 	declare readonly _serviceBrand: undefined;
@@ -150,7 +138,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 	) {
 		super();
 
-		// Detect currently active theme
 		const currentTheme = this.themeService.getColorTheme();
 		const allThemes = product.onboardingThemes ?? [];
 		const matchingTheme = allThemes.find(t => t.themeId === currentTheme.settingsId);
@@ -158,7 +145,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 			this.selectedThemeId = matchingTheme.id;
 		}
 
-		// Start detecting installed editors early so results are ready by the Personalize step
 		this._detectInstalledEditors().then(ids => { this._detectedEditorIds = ids; });
 	}
 
@@ -176,28 +162,23 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 		const container = this.layoutService.activeContainer;
 
-		// Overlay
 		this.overlay = append(container, $('.onboarding-a-overlay'));
 		this.overlay.setAttribute('role', 'dialog');
 		this.overlay.setAttribute('aria-modal', 'true');
 		this.overlay.setAttribute('aria-label', localize('onboarding.a.aria', "Welcome to Dardcor Code"));
 
-		// Card
 		this.card = append(this.overlay, $('.onboarding-a-card'));
 
-		// Close button (upper-right corner of card)
 		this.closeButton = append(this.card, $<HTMLButtonElement>('button.onboarding-a-close-btn'));
 		this.closeButton.type = 'button';
 		this.closeButton.setAttribute('aria-label', localize('onboarding.close', "Close"));
 		this.closeButton.appendChild(renderIcon(Codicon.close));
 
-		// Header with progress
 		const header = append(this.card, $('.onboarding-a-header'));
 		this.progressContainer = append(header, $('.onboarding-a-progress'));
 		this.stepLabelEl = append(this.progressContainer, $('span.onboarding-a-step-label'));
 		this._renderProgress();
 
-		// Body
 		this.bodyEl = append(this.card, $('.onboarding-a-body'));
 		this.titleEl = append(this.bodyEl, $('h2.onboarding-a-step-title'));
 		this.subtitleEl = append(this.bodyEl, $('p.onboarding-a-step-subtitle'));
@@ -205,7 +186,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		this._renderStep();
 		this._logStepView();
 
-		// Footer
 		const footer = append(this.card, $('.onboarding-a-footer'));
 
 		this.footerLeft = append(footer, $('.onboarding-a-footer-left'));
@@ -222,7 +202,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		this.footerFocusableElements.push(this.nextButton);
 		this._updateButtonStates();
 
-		// Event handlers
 		this.disposables.add(addDisposableListener(this.closeButton, EventType.CLICK, () => {
 			this._logAction('skip');
 			this._dismiss('skip');
@@ -260,7 +239,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		this.disposables.add(addDisposableListener(this.overlay, EventType.KEY_DOWN, (e: KeyboardEvent) => {
 			const event = new StandardKeyboardEvent(e);
 
-			// Prevent all keyboard shortcuts from reaching the keybinding service
 			e.stopPropagation();
 
 			if (event.keyCode === KeyCode.Escape) {
@@ -274,7 +252,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 			}
 		}));
 
-		// Entrance animation
 		this.overlay.classList.add('entering');
 		getActiveWindow().requestAnimationFrame(() => {
 			this.overlay?.classList.remove('entering');
@@ -384,9 +361,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		this.titleEl.style.display = useSignInHero ? 'none' : '';
 		this.subtitleEl.style.display = useSignInHero ? 'none' : '';
 		this.titleEl.textContent = getOnboardingStepTitle(stepId);
-		if (stepId === OnboardingStepId.AgentSessions) {
-			this._renderAgentSessionsSubtitle(this.subtitleEl);
-		} else if (stepId === OnboardingStepId.Personalize) {
+		if (stepId === OnboardingStepId.Personalize) {
 			this._renderPersonalizeSubtitle(this.subtitleEl);
 		} else {
 			this.subtitleEl.textContent = getOnboardingStepSubtitle(stepId);
@@ -403,9 +378,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 				break;
 			case OnboardingStepId.AiPreference:
 				this._renderAiPreferenceStep(this.contentEl);
-				break;
-			case OnboardingStepId.AgentSessions:
-				this._renderAgentSessionsStep(this.contentEl);
 				break;
 		}
 
@@ -429,7 +401,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 					this.nextButton.className = 'onboarding-a-btn onboarding-a-btn-primary';
 					this.nextButton.textContent = localize('onboarding.continue', "Continue");
 				} else {
-					// Sign-in step: secondary "Continue without Signing In"
 					this.nextButton.className = 'onboarding-a-btn onboarding-a-btn-secondary';
 					this.nextButton.textContent = localize('onboarding.continueWithoutSignIn', "Continue without Signing In");
 				}
@@ -443,7 +414,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		}
 		if (this.footerLeft) {
 			if (this._isLastStep()) {
-				// Show sign-in nudge in footer
 				if (!this._footerSignInBtn && !this._userSignedIn) {
 					this._footerSignInBtn = append(this.footerLeft, $<HTMLButtonElement>('button.onboarding-a-signin-nudge-btn'));
 					this._footerSignInBtn.type = 'button';
@@ -465,9 +435,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		}
 	}
 
-	// =====================================================================
-	// Step: Sign In
-	// =====================================================================
 
 	private _renderSignInStep(container: HTMLElement): void {
 		const wrapper = append(container, $('.onboarding-a-signin'));
@@ -511,7 +478,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 		const disclaimerCol = append(footer, $('.onboarding-a-signin-disclaimer-col'));
 
-		// GitHub Copilot disclaimer
 		const copilotDisclaimer = append(disclaimerCol, $('.onboarding-a-signin-disclaimer'));
 		copilotDisclaimer.append(localize('onboarding.signIn.disclaimer.prefix', "By signing in, you agree to {0}'s ", defaultChat.provider.default.name));
 		this._createInlineLink(copilotDisclaimer, localize('onboarding.signIn.disclaimer.terms', "Terms"), defaultChat.termsStatementUrl);
@@ -714,7 +680,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 			if (account) {
 				this._userSignedIn = true;
 				this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: 'installed', installDuration: watch.elapsed(), signUpErrorCode: undefined, provider });
-				// Run chat setup in the background (sign-up, extension install, entitlement resolution)
 				this.commandService.executeCommand('workbench.action.chat.triggerSetup', undefined, {
 					disableChatViewReveal: true,
 					setupStrategy: ChatSetupStrategy.DefaultSetup,
@@ -800,14 +765,10 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		});
 	}
 
-	// =====================================================================
-	// Step: Personalize (Theme + Keymap)
-	// =====================================================================
 
 	private _renderPersonalizeStep(container: HTMLElement): void {
 		const wrapper = append(container, $('.onboarding-a-personalize'));
 
-		// Theme section
 		const themeLabel = append(wrapper, $('div.onboarding-a-section-label'));
 		themeLabel.textContent = localize('onboarding.personalize.theme', "Color Theme");
 
@@ -820,7 +781,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 		const hasOtherEditors = this._hasOtherEditors();
 		const allThemes = product.onboardingThemes ?? [];
-		// When other editors are detected, show a compact set (exclude solarized variants).
 		const themes: readonly IOnboardingThemeOption[] = hasOtherEditors
 			? allThemes.filter(t => !t.id.startsWith('solarized'))
 			: allThemes;
@@ -833,12 +793,10 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		for (const theme of themes) {
 			this._createThemeCard(themeGrid, theme, themeCards);
 		}
-		// Make all theme cards individually tabbable
 		for (const card of themeCards) {
 			card.setAttribute('tabindex', '0');
 		}
 
-		// Keyboard Mapping section — only shown when another editor is detected
 		const keymapOptions = this._detectedEditorIds
 			? (product.onboardingKeymaps ?? []).filter(k => this._detectedEditorIds!.has(k.id))
 			: [];
@@ -914,13 +872,11 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 			card.classList.add('selected');
 		}
 
-		// SVG preview image
 		const preview = append(card, $('div.onboarding-a-theme-preview'));
 		const img = append(preview, $<HTMLImageElement>('img.onboarding-a-theme-preview-img'));
 		img.alt = '';
 		img.src = FileAccess.asBrowserUri(`vs/workbench/contrib/welcomeOnboarding/browser/media/theme-preview-${theme.id}.svg`).toString(true);
 
-		// Label
 		const label = append(card, $('div.onboarding-a-theme-label'));
 		label.textContent = theme.label;
 
@@ -944,9 +900,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		}));
 	}
 
-	// =====================================================================
-	// Theme / Keymap helpers
-	// =====================================================================
 
 	private async _selectTheme(theme: IOnboardingThemeOption): Promise<void> {
 		this.selectedThemeId = theme.id;
@@ -960,7 +913,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 	private async _applyKeymap(keymapId: string): Promise<void> {
 		const keymap = (product.onboardingKeymaps ?? []).find(k => k.id === keymapId);
 		if (!keymap?.extensionId) {
-			return; // VS Code default, nothing to install
+			return;
 		}
 
 		try {
@@ -983,12 +936,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		return keymapOptions.some(k => k.id !== 'vscode');
 	}
 
-	/**
-	 * Checks common install paths for known editors and returns the set of
-	 * keymap option IDs whose editors are found on this machine.
-	 * Always includes 'vscode' (the default). In web environments or on
-	 * unknown platforms, returns only 'vscode'.
-	 */
 	private async _detectInstalledEditors(): Promise<Set<string>> {
 		const detected = new Set<string>(['vscode']);
 		const home = this.pathService.userHome({ preferLocal: true });
@@ -1031,7 +978,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 						return;
 					}
 				} catch {
-					// Path not accessible — skip
 				}
 			}
 		}));
@@ -1039,9 +985,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		return detected;
 	}
 
-	// =====================================================================
-	// Step: AI Preference
-	// =====================================================================
 
 	private _renderAiPreferenceStep(container: HTMLElement): void {
 		const wrapper = append(container, $('.onboarding-a-ai-pref'));
@@ -1106,95 +1049,11 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		}
 	}
 
-	// =====================================================================
-	// Step: Agent Sessions
-	// =====================================================================
-
-	private _renderAgentSessionsSubtitle(el: HTMLElement): void {
-		clearNode(el);
-		const keys = isMacintosh
-			? ['\u2318', '\u2303', 'I']  // Cmd+Control+I
-			: ['Ctrl', 'Alt', 'I'];
-		const shortcut = keys.map(k => this._createKbd(k));
-		el.append(localize('onboarding.step.agentSessions.subtitle.before', "Open Chat anytime with "));
-		for (let i = 0; i < shortcut.length; i++) {
-			if (i > 0) {
-				el.append('+');
-			}
-			el.append(shortcut[i]);
-		}
-	}
-
-	private _renderAgentSessionsStep(container: HTMLElement): void {
-		const wrapper = append(container, $('.onboarding-a-sessions'));
-
-		const features = append(wrapper, $('.onboarding-a-sessions-features'));
-
-		// Group 1: Chat modes — Plan / Agent
-		const chatGroup = append(features, $('.onboarding-a-sessions-group'));
-		const chatLabel = append(chatGroup, $('div.onboarding-a-sessions-group-label'));
-		chatLabel.textContent = localize('onboarding.sessions.group.chat', "Agents made for the task");
-		const chatGrid = append(chatGroup, $('.onboarding-a-sessions-grid.onboarding-a-sessions-grid-2'));
-
-		this._createFeatureCard(chatGrid, Codicon.listOrdered,
-			localize('onboarding.sessions.planMode', "Plan"),
-			localize('onboarding.sessions.planMode.desc', "Produce a structured implementation plan before any code changes, then hand it off to an agent to execute."));
-
-		this._createFeatureCard(chatGrid, Codicon.commentDiscussion,
-			localize('onboarding.sessions.agentMode', "Agent"),
-			localize('onboarding.sessions.agentMode.desc', "Describe a goal. The agent plans the approach, edits files, runs commands, and self-corrects. You review and approve along the way."));
-
-		// Group 2: ways to run and customize agents beyond the default Chat experience
-		const moreGroup = append(features, $('.onboarding-a-sessions-group'));
-		const moreLabel = append(moreGroup, $('div.onboarding-a-sessions-group-label'));
-		moreLabel.textContent = localize('onboarding.sessions.group.more', "Agents that work your way");
-		const moreGrid = append(moreGroup, $('.onboarding-a-sessions-grid.onboarding-a-sessions-grid-2'));
-
-		this._createFeatureCard(moreGrid, Codicon.rocket,
-			localize('onboarding.sessions.runAnywhere', "Run Agents Anywhere"),
-			localize('onboarding.sessions.runAnywhere.desc', "Run agents locally for interactive work, in the background with Dardcor AI CLI, or in the cloud with cloud agents that open a pull request your team can review."));
-
-		this._createFeatureCard(moreGrid, Codicon.settingsGear,
-			localize('onboarding.sessions.customize', "Customize Your Agents"),
-			localize('onboarding.sessions.customize.desc', "Tailor Dardcor AI to your project with custom instructions and agents, skills, reusable prompts, and MCP servers that connect to the tools and context you rely on."));
-
-		// Tutorial link at bottom of content, above footer
-		const docsRow = append(wrapper, $('.onboarding-a-sessions-docs'));
-		this._createDocLink(docsRow, localize('onboarding.sessions.agentsTutorial', "Agents tutorial"), 'https://code.visualstudio.com/docs/agents/agents-tutorial?referrer=in-product', 'agentsTutorial');
-	}
-
-	private _createFeatureCard(parent: HTMLElement, icon: ThemeIcon, title: string, description?: string): HTMLElement {
-		const card = append(parent, $('div.onboarding-a-feature-card'));
-		const iconCol = append(card, $('div.onboarding-a-feature-icon'));
-		iconCol.appendChild(renderIcon(icon));
-		const textCol = append(card, $('div.onboarding-a-feature-text'));
-		const titleEl = append(textCol, $('div.onboarding-a-feature-title'));
-		titleEl.textContent = title;
-		const descEl = append(textCol, $('div.onboarding-a-feature-desc'));
-		if (description) {
-			descEl.textContent = description;
-		}
-		return descEl;
-	}
 
 	private _createKbd(label: string): HTMLElement {
 		const kbd = $('kbd.onboarding-a-kbd');
 		kbd.textContent = label;
 		return kbd;
-	}
-
-	private _createDocLink(parent: HTMLElement, label: string, href: string, linkId?: string): void {
-		const link = this._registerStepFocusable(append(parent, $<HTMLAnchorElement>('a.onboarding-a-doc-link')));
-		link.textContent = label;
-		link.href = href;
-		link.target = '_blank';
-		link.rel = 'noopener';
-		link.prepend(renderIcon(Codicon.linkExternal));
-		if (linkId) {
-			this.stepDisposables.add(addDisposableListener(link, EventType.CLICK, () => {
-				this._logAction('docLinkClick', undefined, linkId);
-			}));
-		}
 	}
 
 	private _createInlineLink(parent: HTMLElement, label: string, href: string): HTMLAnchorElement {
@@ -1206,18 +1065,8 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		return link;
 	}
 
-	// =====================================================================
-	// Radio-group keyboard navigation (roving tabindex)
-	// =====================================================================
 
-	/**
-	 * Sets up WAI-ARIA radio-group keyboard navigation on a set of elements:
-	 * - Arrow keys move focus between items (with wrap-around)
-	 * - Only the focused item has tabindex=0; the rest have tabindex=-1
-	 * - Space/Enter on a focused item fires its click handler
-	 */
 	private _setupRadioGroupNavigation(items: HTMLElement[], selectedIndex: number): void {
-		// Initialise roving tabindex: only the selected item is tab-reachable
 		for (let i = 0; i < items.length; i++) {
 			items[i].setAttribute('tabindex', i === selectedIndex ? '0' : '-1');
 		}
@@ -1249,9 +1098,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		}
 	}
 
-	// =====================================================================
-	// Focus trap
-	// =====================================================================
 
 	private _trapTab(e: KeyboardEvent, shiftKey: boolean): void {
 		if (!this.overlay) {
@@ -1300,9 +1146,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		return computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden';
 	}
 
-	// =====================================================================
-	// Telemetry
-	// =====================================================================
 
 	private _logStepView(): void {
 		const stepId = this.steps[this.currentStepIndex];
@@ -1320,9 +1163,6 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		});
 	}
 
-	// =====================================================================
-	// Cleanup
-	// =====================================================================
 
 	private _removeFromDOM(): void {
 		if (this.overlay) {

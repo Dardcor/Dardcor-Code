@@ -45,13 +45,11 @@ const INTERNAL_DND_MIME_TYPES = Object.freeze([
 export function toExternalVSDataTransfer(sourceDataTransfer: DataTransfer, overwriteUriList = false): VSDataTransfer {
 	const vsDataTransfer = toVSDataTransfer(sourceDataTransfer);
 
-	// Try to expose the internal uri-list type as the standard type
 	const uriList = vsDataTransfer.get(DataTransfers.INTERNAL_URI_LIST);
 	if (uriList) {
 		vsDataTransfer.replace(Mimes.uriList, uriList);
 	} else {
 		if (overwriteUriList || !vsDataTransfer.has(Mimes.uriList)) {
-			// Otherwise, fallback to adding dragged resources to the uri list
 			const editorData: string[] = [];
 			for (const item of sourceDataTransfer.items) {
 				const file = item.getAsFile();
@@ -64,7 +62,6 @@ export function toExternalVSDataTransfer(sourceDataTransfer: DataTransfer, overw
 							editorData.push(URI.parse(file.name, true).toString());
 						}
 					} catch {
-						// Parsing failed. Leave out from list
 					}
 				}
 			}

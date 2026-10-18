@@ -1,4 +1,4 @@
-import { CopilotApiError, COPILOT_API_ERROR_STATUS_STREAMING } from './copilotApiService.js';
+import { DardcorRouterApiError, DARDCOR_ROUTER_ERROR_STATUS_STREAMING } from './dardcorRouterService.js';
 export const PROXY_ERROR_PREFIX = 'VSCODE_PROXY_ERROR:';
 const MAX_FORWARDED_MARKER_B64_LENGTH = 8 * 1024;
 const FORWARDED_MARKER_B64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -40,8 +40,8 @@ function statusToFetchType(status: number): string {
             return 'failed';
     }
 }
-export function buildForwardedChatError(err: CopilotApiError): IForwardedChatError {
-    const status = err.status === COPILOT_API_ERROR_STATUS_STREAMING ? 502 : err.status;
+export function buildForwardedChatError(err: DardcorRouterApiError): IForwardedChatError {
+    const status = err.status === DARDCOR_ROUTER_ERROR_STATUS_STREAMING ? 502 : err.status;
     const requestId = typeof err.envelope.request_id === 'string' ? err.envelope.request_id : '';
     const capiError = extractCapiError(err.envelope.error.message) ?? { code: err.envelope.error.type, message: err.envelope.error.message };
     return {

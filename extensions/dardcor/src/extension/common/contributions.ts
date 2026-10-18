@@ -12,15 +12,8 @@ export interface IExtensionContribution {
 
 	id?: string;
 
-	/**
-	 * Dispose of the contribution.
-	 */
 	dispose?(): void;
 
-	/**
-	 * A promise that the extension `activate` method will wait on before completing.
-	 * USE this carefully as it will delay startup of our extension.
-	 */
 	activationBlocker?: Promise<void>;
 }
 
@@ -71,7 +64,6 @@ export class ContributionCollection extends Disposable {
 	}
 
 	async waitForActivationBlockers(): Promise<void> {
-		// WAIT for all activation blockers to complete
 		await Promise.allSettled(this.allActivationBlockers);
 	}
 }

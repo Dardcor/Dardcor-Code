@@ -33,7 +33,6 @@ import { MockChatService } from '../chatService/mockChatService.js';
 suite('ChatSessionOperationLog', () => {
 	const testDisposables = ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Test data types
 	interface TestItem {
 		id: string;
 		value: number;
@@ -46,7 +45,6 @@ suite('ChatSessionOperationLog', () => {
 		metadata?: { tags: string[] };
 	}
 
-	// Helper to create a simple schema for testing
 	function createTestSchema() {
 		const itemSchema = Adapt.object<TestItem, TestItem>({
 			id: Adapt.t(i => i.id, Adapt.key()),
@@ -61,7 +59,6 @@ suite('ChatSessionOperationLog', () => {
 		});
 	}
 
-	// Helper to simulate file operations
 	function simulateFileRoundtrip(adapter: Adapt.ObjectMutationLog<TestObject, TestObject>, initial: TestObject, updates: TestObject[]): TestObject {
 		let fileContent = adapter.createInitial(initial);
 
@@ -75,7 +72,6 @@ suite('ChatSessionOperationLog', () => {
 			adapter.confirmWrite();
 		}
 
-		// Create new adapter and read back
 		const reader = new Adapt.ObjectMutationLog(createTestSchema());
 		return reader.read(fileContent);
 	}
@@ -163,15 +159,13 @@ suite('ChatSessionOperationLog', () => {
 		test('differentiated uses separate extract and equals functions', () => {
 			const transform = Adapt.v<{ type: string; data: number }, string>(
 				obj => `${obj.type}:${obj.data}`,
-				(a, b) => a.split(':')[0] === b.split(':')[0], // compare only the type prefix
+				(a, b) => a.split(':')[0] === b.split(':')[0],
 			);
 
 			const extracted = transform.extract({ type: 'test', data: 123 });
 			assert.strictEqual(extracted, 'test:123');
 
-			// Same type prefix should be equal
 			assert.strictEqual(transform.equals('test:123', 'test:456'), true);
-			// Different type prefix should not be equal
 			assert.strictEqual(transform.equals('test:123', 'other:123'), false);
 		});
 	});
@@ -186,7 +180,7 @@ suite('ChatSessionOperationLog', () => {
 
 			const content = buffer.toString();
 			const entry = JSON.parse(content.trim());
-			assert.strictEqual(entry.kind, 0); // EntryKind.Initial
+			assert.strictEqual(entry.kind, 0);
 			assert.deepStrictEqual(entry.v, initial);
 		});
 
@@ -227,7 +221,7 @@ suite('ChatSessionOperationLog', () => {
 
 			assert.strictEqual(result.op, 'append');
 			const entry = JSON.parse(result.data.toString().trim());
-			assert.strictEqual(entry.kind, 1); // EntryKind.Set
+			assert.strictEqual(entry.kind, 1);
 			assert.deepStrictEqual(entry.k, ['count']);
 			assert.strictEqual(entry.v, 10);
 		});
@@ -243,7 +237,7 @@ suite('ChatSessionOperationLog', () => {
 			const result = adapter.write(updated);
 
 			const entry = JSON.parse(result.data.toString().trim());
-			assert.strictEqual(entry.kind, 2); // EntryKind.Push
+			assert.strictEqual(entry.kind, 2);
 			assert.deepStrictEqual(entry.k, ['items']);
 			assert.deepStrictEqual(entry.v, [{ id: 'b', value: 2 }]);
 			assert.strictEqual(entry.i, undefined);
@@ -291,7 +285,7 @@ suite('ChatSessionOperationLog', () => {
 			const result = adapter.write(updated);
 
 			const entry = JSON.parse(result.data.toString().trim());
-			assert.strictEqual(entry.kind, 2); // EntryKind.Push
+			assert.strictEqual(entry.kind, 2);
 			assert.deepStrictEqual(entry.k, ['items']);
 			assert.strictEqual(entry.i, 1);
 			assert.strictEqual(entry.v, undefined);
@@ -308,7 +302,6 @@ suite('ChatSessionOperationLog', () => {
 			};
 			adapter.createInitial(obj);
 
-			// Modify middle item - key 'id' matches, so we recurse to set the 'value' property
 			const updated: TestObject = {
 				...obj,
 				items: [{ id: 'a', value: 1 }, { id: 'b', value: 999 }, { id: 'c', value: 3 }]
@@ -316,7 +309,7 @@ suite('ChatSessionOperationLog', () => {
 			const result = adapter.write(updated);
 
 			const entry = JSON.parse(result.data.toString().trim());
-			assert.strictEqual(entry.kind, 1); // EntryKind.Set - setting individual property
+			assert.strictEqual(entry.kind, 1);
 			assert.deepStrictEqual(entry.k, ['items', 1, 'value']);
 			assert.strictEqual(entry.v, 999);
 		});
@@ -325,7 +318,6 @@ suite('ChatSessionOperationLog', () => {
 			const schema = createTestSchema();
 			const initial: TestObject = { name: 'test', count: 0, items: [] };
 
-			// Build log manually
 			const entries = [
 				{ kind: 0, v: initial },
 				{ kind: 1, k: ['count'], v: 5 },
@@ -352,7 +344,7 @@ suite('ChatSessionOperationLog', () => {
 				{ name: 'test', count: 1, items: [] },
 				{ name: 'test', count: 1, items: [{ id: 'a', value: 10 }] },
 				{ name: 'test', count: 2, items: [{ id: 'a', value: 10 }, { id: 'b', value: 20 }] },
-				{ name: 'test', count: 2, items: [{ id: 'a', value: 10 }] }, // Remove item
+				{ name: 'test', count: 2, items: [{ id: 'a', value: 10 }] },
 			];
 
 			const result = simulateFileRoundtrip(adapter, initial, updates);
@@ -361,29 +353,27 @@ suite('ChatSessionOperationLog', () => {
 
 		test('compacts log when entry count exceeds threshold', () => {
 			const schema = createTestSchema();
-			const adapter = new Adapt.ObjectMutationLog(schema, 3); // Compact after 3 entries
+			const adapter = new Adapt.ObjectMutationLog(schema, 3);
 
 			const obj: TestObject = { name: 'test', count: 0, items: [] };
-			adapter.createInitial(obj); // Entry 1
+			adapter.createInitial(obj);
 
-			adapter.write({ ...obj, count: 1 }); // Entry 2
+			adapter.write({ ...obj, count: 1 });
 			adapter.confirmWrite();
-			adapter.write({ ...obj, count: 2 }); // Entry 3
+			adapter.write({ ...obj, count: 2 });
 			adapter.confirmWrite();
 
 			const before = adapter.write({ ...obj, count: 3 });
 			adapter.confirmWrite();
 			assert.strictEqual(before.op, 'append');
 
-			// This should trigger compaction
 			const result = adapter.write({ ...obj, count: 4 });
 			assert.strictEqual(result.op, 'replace');
 
-			// Verify the compacted log only has initial entry
 			const lines = result.data.toString().split('\n').filter(l => l.trim());
 			assert.strictEqual(lines.length, 1);
 			const entry = JSON.parse(lines[0]);
-			assert.strictEqual(entry.kind, 0); // EntryKind.Initial
+			assert.strictEqual(entry.kind, 0);
 		});
 
 		test('handles deepCompare property changes', () => {
@@ -397,14 +387,12 @@ suite('ChatSessionOperationLog', () => {
 			const result = adapter.write(updated);
 
 			const entry = JSON.parse(result.data.toString().trim());
-			assert.strictEqual(entry.kind, 1); // EntryKind.Set
+			assert.strictEqual(entry.kind, 1);
 			assert.deepStrictEqual(entry.k, ['metadata']);
 			assert.deepStrictEqual(entry.v, { tags: ['a', 'b'] });
 		});
 
 		test('handles differentiated property changes', () => {
-			// Schema with a differentiated transform that extracts a string
-			// but uses a custom equals that only checks the prefix
 			interface DiffObj {
 				data: { type: string; version: number };
 			}
@@ -413,26 +401,23 @@ suite('ChatSessionOperationLog', () => {
 					o => o.data,
 					Adapt.v<{ type: string; version: number }, string>(
 						obj => `${obj.type}:${obj.version}`,
-						(a, b) => a.split(':')[0] === b.split(':')[0], // compare only the type prefix
+						(a, b) => a.split(':')[0] === b.split(':')[0],
 					)
 				),
 			});
 
 			const adapter = new Adapt.ObjectMutationLog(schema);
 
-			// Initial state: 'foo:1'
 			adapter.createInitial({ data: { type: 'foo', version: 1 } });
 
-			// Change type from 'foo' to 'bar' - should detect change (different prefix)
 			const result1 = adapter.write({ data: { type: 'bar', version: 2 } });
 			adapter.confirmWrite();
 			assert.notStrictEqual(result1.data.toString(), '', 'different type should trigger change');
 			const entry1 = JSON.parse(result1.data.toString().trim());
-			assert.strictEqual(entry1.kind, 1); // EntryKind.Set
+			assert.strictEqual(entry1.kind, 1);
 			assert.deepStrictEqual(entry1.k, ['data']);
 			assert.strictEqual(entry1.v, 'bar:2');
 
-			// Change version but keep type 'bar' - should NOT detect change (same prefix)
 			const result2 = adapter.write({ data: { type: 'bar', version: 3 } });
 			assert.strictEqual(result2.data.toString(), '', 'same type prefix should not trigger change');
 		});
@@ -453,7 +438,7 @@ suite('ChatSessionOperationLog', () => {
 
 			assert.strictEqual(result.op, 'replace');
 			const entry = JSON.parse(result.data.toString().trim());
-			assert.strictEqual(entry.kind, 0); // EntryKind.Initial
+			assert.strictEqual(entry.kind, 0);
 		});
 
 		test('sealed objects skip non-key field comparison when both are sealed', () => {
@@ -481,10 +466,8 @@ suite('ChatSessionOperationLog', () => {
 
 			const adapter = new Adapt.ObjectMutationLog(schema);
 
-			// Initial state with a sealed item
 			adapter.createInitial({ items: [{ id: 'a', value: 1, isSealed: true }] });
 
-			// Change value on sealed item - should NOT be detected because both are sealed
 			const result1 = adapter.write({ items: [{ id: 'a', value: 999, isSealed: true }] });
 			assert.strictEqual(result1.data.toString(), '', 'sealed item value change should be ignored');
 		});
@@ -514,15 +497,13 @@ suite('ChatSessionOperationLog', () => {
 
 			const adapter = new Adapt.ObjectMutationLog(schema);
 
-			// Initial state with a sealed item
 			adapter.createInitial({ items: [{ id: 'a', value: 1, isSealed: true }] });
 
-			// Change key on sealed item - SHOULD be detected (replacement)
 			const result = adapter.write({ items: [{ id: 'b', value: 1, isSealed: true }] });
 			assert.notStrictEqual(result.data.toString(), '', 'key change should be detected even when sealed');
 
 			const entry = JSON.parse(result.data.toString().trim());
-			assert.strictEqual(entry.kind, 2); // EntryKind.Push (array replacement)
+			assert.strictEqual(entry.kind, 2);
 		});
 
 		test('sealed objects diff normally when one is not sealed', () => {
@@ -550,15 +531,13 @@ suite('ChatSessionOperationLog', () => {
 
 			const adapter = new Adapt.ObjectMutationLog(schema);
 
-			// Initial state with a non-sealed item
 			adapter.createInitial({ items: [{ id: 'a', value: 1, isSealed: false }] });
 
-			// Change value - should be detected since prev is not sealed
 			const result1 = adapter.write({ items: [{ id: 'a', value: 999, isSealed: false }] });
 			assert.notStrictEqual(result1.data.toString(), '', 'non-sealed item should detect value change');
 
 			const entry = JSON.parse(result1.data.toString().trim());
-			assert.strictEqual(entry.kind, 1); // EntryKind.Set
+			assert.strictEqual(entry.kind, 1);
 			assert.deepStrictEqual(entry.k, ['items', 0, 'value']);
 			assert.strictEqual(entry.v, 999);
 		});
@@ -588,14 +567,11 @@ suite('ChatSessionOperationLog', () => {
 
 			const adapter = new Adapt.ObjectMutationLog(schema);
 
-			// Initial state with a non-sealed item
 			adapter.createInitial({ items: [{ id: 'a', value: 1, isSealed: false }] });
 
-			// Transition to sealed with value change - should detect changes since prev was not sealed
 			const result = adapter.write({ items: [{ id: 'a', value: 999, isSealed: true }] });
 			assert.notStrictEqual(result.data.toString(), '', 'transition to sealed should detect value change');
 
-			// Should have two entries - one for value, one for isSealed
 			const lines = result.data.toString().trim().split('\n');
 			assert.strictEqual(lines.length, 2, 'should have two change entries');
 		});
@@ -624,11 +600,10 @@ suite('ChatSessionOperationLog', () => {
 			const schema = createTestSchema();
 			const initial: TestObject = { name: 'test', count: 0, items: [], metadata: { tags: ['a'] } };
 
-			// Build log with delete then set
 			const entries = [
 				{ kind: 0, v: initial },
-				{ kind: 3, k: ['metadata'] }, // Delete
-				{ kind: 1, k: ['metadata'], v: { tags: ['b', 'c'] } }, // Set to new value
+				{ kind: 3, k: ['metadata'] },
+				{ kind: 1, k: ['metadata'], v: { tags: ['b', 'c'] } },
 			];
 			const logContent = entries.map(e => JSON.stringify(e)).join('\n') + '\n';
 
@@ -644,12 +619,9 @@ suite('ChatSessionOperationLog', () => {
 
 			const obj: TestObject = { name: 'test', count: 0, items: [] };
 
-			// First write (no createInitial) — produces Initial replace
 			const result1 = adapter.write(obj);
 			assert.strictEqual(result1.op, 'replace');
-			// Do NOT confirm — simulates a failed persist
 
-			// Next write should produce a full replace again since state was not committed
 			const result2 = adapter.write({ ...obj, count: 2 });
 			assert.deepStrictEqual(
 				{ op: result2.op, entry: JSON.parse(result2.data.toString().trim()) },
@@ -667,7 +639,6 @@ suite('ChatSessionOperationLog', () => {
 			adapter.write({ ...obj, count: 1 });
 			adapter.confirmWrite();
 
-			// Next write should be an incremental append
 			const result = adapter.write({ ...obj, count: 2 });
 			assert.deepStrictEqual(
 				{ op: result.op, entry: JSON.parse(result.data.toString().trim()) },
@@ -689,18 +660,14 @@ suite('ChatSessionOperationLog', () => {
 
 			const initial: TestObject = { name: 'test', count: 0, items: [] };
 
-			// First write "fails" — data not persisted, no confirmWrite
 			const r1 = adapter.write(initial);
 			assert.strictEqual(r1.op, 'replace');
-			// skip confirmWrite — simulates failed persist
 
-			// Second write recovers — produces a full replace again
 			const r2 = adapter.write({ ...initial, count: 3 });
 			assert.strictEqual(r2.op, 'replace');
 			adapter.confirmWrite();
 			const fileContent = r2.data;
 
-			// Read back should give the last committed state
 			const reader = new Adapt.ObjectMutationLog(createTestSchema());
 			const result = reader.read(fileContent);
 			assert.strictEqual(result.count, 3);
@@ -713,12 +680,9 @@ suite('ChatSessionOperationLog', () => {
 			const obj: TestObject = { name: 'test', count: 0, items: [] };
 			let fileContent = adapter.createInitial(obj);
 
-			// Write but do NOT confirm
 			const r1 = adapter.write({ ...obj, count: 1 });
 			assert.strictEqual(r1.op, 'append');
-			// skip confirmWrite — simulates failed persist, data not appended to file
 
-			// Next write diffs against the createInitial state (count: 0)
 			const r2 = adapter.write({ ...obj, count: 2 });
 			assert.strictEqual(r2.op, 'append');
 			adapter.confirmWrite();
@@ -744,19 +708,17 @@ suite('ChatSessionOperationLog', () => {
 		test('makeTruncatingReplacer respects total budget without overshooting', () => {
 			const STRING_CAP = 1024 * 1024;
 			const TOTAL_CAP = 1024 * 1024;
-			const medium = 'y'.repeat(200 * 1024); // under per-string cap
+			const medium = 'y'.repeat(200 * 1024);
 			const obj: any = {};
 			for (let i = 0; i < 20; i++) {
 				obj[`k${i}`] = medium;
 			}
 			const json = JSON.stringify(obj, Adapt.makeTruncatingReplacer(STRING_CAP, TOTAL_CAP));
 			const parsed = JSON.parse(json);
-			// Sum of preserved strings must not exceed the total budget.
 			const preservedChars = Object.values(parsed)
 				.filter((v): v is string => typeof v === 'string' && v === medium)
 				.reduce((sum, v) => sum + v.length, 0);
 			assert.ok(preservedChars <= TOTAL_CAP, `preserved ${preservedChars} chars exceeded budget ${TOTAL_CAP}`);
-			// Leading keys intact, later replaced with total-budget marker
 			assert.strictEqual(parsed.k0, medium);
 			assert.ok(Object.values(parsed).some(v => typeof v === 'string' && (v as string).includes('entry exceeded size budget')));
 		});
@@ -769,13 +731,11 @@ suite('ChatSessionOperationLog', () => {
 
 		test('stringifyEntryWithFallback rethrows non-RangeError', () => {
 			const circular: any = {};
-			circular.self = circular; // JSON.stringify throws TypeError on circulars
+			circular.self = circular;
 			assert.throws(() => Adapt.stringifyEntryWithFallback(circular), TypeError);
 		});
 
 		test('stringifyEntryWithFallback recovers when JSON.stringify throws RangeError', () => {
-			// Use toJSON to force a RangeError on the first stringify pass,
-			// then succeed on the retry. Avoids needing 500+ MiB of allocations.
 			let calls = 0;
 			const entry = {
 				toJSON() {
@@ -792,9 +752,7 @@ suite('ChatSessionOperationLog', () => {
 		});
 
 		test('stringifyEntryWithFallback applies truncating replacer on RangeError retry', () => {
-			// Same trick, but the recovered payload contains an oversized
-			// string that must be truncated by the replacer on the retry.
-			const big = 'x'.repeat(2 * 1024 * 1024); // 2 MiB, over the 1 MiB per-string cap
+			const big = 'x'.repeat(2 * 1024 * 1024);
 			let calls = 0;
 			const entry = {
 				toJSON() {
@@ -821,11 +779,7 @@ suite('ChatSessionOperationLog', () => {
 		});
 
 		test('deepCloneWithFallback recovers from RangeError during the clone', () => {
-			// The value() transform deep-clones extracted objects on every write,
-			// *before* any entry is serialized. A single oversized field used to
-			// throw RangeError here and lose the whole session (#322364). The clone
-			// must instead truncate and succeed.
-			const big = 'x'.repeat(2 * 1024 * 1024); // 2 MiB, over the 1 MiB per-string cap
+			const big = 'x'.repeat(2 * 1024 * 1024);
 			let calls = 0;
 			const value: { huge: string; label: string; toJSON(): { huge: string; label: string } } = {
 				huge: big,
@@ -846,8 +800,6 @@ suite('ChatSessionOperationLog', () => {
 		});
 
 		test('value().extract recovers when the deep-clone throws RangeError', () => {
-			// End-to-end: an oversized object flowing through a value() transform
-			// (as IChatAgentResult.metadata.toolCallResults does) must not throw.
 			const big = 'x'.repeat(2 * 1024 * 1024);
 			let calls = 0;
 			const huge = {

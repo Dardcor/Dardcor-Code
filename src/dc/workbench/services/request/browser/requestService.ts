@@ -55,19 +55,19 @@ export class BrowserRequestService extends AbstractRequestService implements IRe
 	}
 
 	async resolveProxy(url: string): Promise<string | undefined> {
-		return undefined; // not implemented in the web
+		return undefined;
 	}
 
 	async lookupAuthorization(authInfo: AuthInfo): Promise<Credentials | undefined> {
-		return undefined; // not implemented in the web
+		return undefined;
 	}
 
 	async lookupKerberosAuthorization(url: string): Promise<string | undefined> {
-		return undefined; // not implemented in the web
+		return undefined;
 	}
 
 	async loadCertificates(): Promise<string[]> {
-		return []; // not implemented in the web
+		return [];
 	}
 
 	private _makeRemoteRequest(connection: IRemoteAgentConnection, options: IRequestOptions, token: CancellationToken): Promise<IRequestContext> {
@@ -75,7 +75,6 @@ export class BrowserRequestService extends AbstractRequestService implements IRe
 	}
 }
 
-// --- Internal commands to help authentication for extensions
 
 CommandsRegistry.registerCommand('_workbench.fetchJSON', async function (accessor: ServicesAccessor, url: string, method: string) {
 	const result = await fetch(url, { method, headers: { Accept: 'application/json' } });

@@ -57,7 +57,6 @@ if (typeof originalState.scrollProgress !== 'undefined'
 	state.scrollProgress = undefined;
 }
 
-// Make sure to sync VS Code state here
 vscode.setState(state);
 
 const messaging = createPosterForVsCode(vscode, settings);
@@ -86,7 +85,6 @@ function doAfterImagesLoaded(cb: () => void) {
 }
 
 onceDocumentLoaded(() => {
-	// Load initial html
 	const htmlParser = new DOMParser();
 	const markDownHtml = htmlParser.parseFromString(
 		getRawData('data-initial-md-content'),
@@ -101,7 +99,6 @@ onceDocumentLoaded(() => {
 		}
 	}
 
-	// Restore
 	const scrollProgress = state.scrollProgress;
 	addImageContexts();
 	addCodeBlockCopyButtons();
@@ -111,7 +108,6 @@ onceDocumentLoaded(() => {
 			scrollDisabledCount = 1;
 			if (scrollDisabledTimer) { clearTimeout(scrollDisabledTimer); }
 			scrollDisabledTimer = window.setTimeout(() => { scrollDisabledCount = 0; }, 200);
-			// Always set scroll of at least 1 to prevent VS Code's webview code from auto scrolling us
 			const scrollToY = Math.max(1, scrollProgress * document.body.clientHeight);
 			window.scrollTo(0, scrollToY);
 		});
@@ -120,7 +116,6 @@ onceDocumentLoaded(() => {
 
 	if (settings.settings.scrollPreviewWithEditor) {
 		doAfterImagesLoaded(() => {
-			// Try to scroll to fragment if available
 			if (settings.settings.fragment) {
 				let fragment: string;
 				try {
@@ -236,7 +231,6 @@ function addCodeBlockCopyButtons() {
 	for (const code of codeBlocks) {
 		const pre = code.parentElement!;
 
-		// Inject copy button if not already present
 		if (!pre.querySelector('.code-block-copy-button')) {
 			const button = document.createElement('button');
 			button.className = 'code-block-copy-button';
@@ -273,9 +267,6 @@ function addCodeBlockCopyButtons() {
 
 async function copyImage(image: HTMLImageElement, retries = 5) {
 	if (!document.hasFocus() && retries > 0) {
-		// copyImage is called at the same time as webview.reveal, which means this function is running whilst the webview is gaining focus.
-		// Since navigator.clipboard.write requires the document to be focused, we need to wait for focus.
-		// We cannot use a listener, as there is a high chance the focus is gained during the setup of the listener resulting in us missing it.
 		setTimeout(() => { copyImage(image, retries - 1); }, 20);
 		return;
 	}
@@ -346,7 +337,6 @@ window.addEventListener('message', async event => {
 			const parser = new DOMParser();
 			const newContent = parser.parseFromString(data.content, 'text/html'); // CodeQL [SM03712] This renderers content from the workspace into the Markdown preview. Webviews (and the markdown preview) have many other security measures in place to make this safe
 
-			// Strip out meta http-equiv tags
 			for (const metaElement of Array.from(newContent.querySelectorAll('meta'))) {
 				if (metaElement.hasAttribute('http-equiv')) {
 					metaElement.remove();
@@ -361,8 +351,6 @@ window.addEventListener('message', async event => {
 			} else {
 				const newRoot = newContent.querySelector('.markdown-body')!;
 
-				// Move styles to head
-				// This prevents an ugly flash of unstyled content
 				const styles = newRoot.querySelectorAll('link');
 				for (const style of styles) {
 					style.remove();
@@ -373,7 +361,6 @@ window.addEventListener('message', async event => {
 					childrenOnly: true,
 					onBeforeElUpdated: (fromEl: Element, toEl: Element) => {
 						if (areNodesEqual(fromEl, toEl)) {
-							// areEqual doesn't look at `data-line` so copy those over manually
 							const fromLines = fromEl.querySelectorAll('[data-line]');
 							const toLines = toEl.querySelectorAll('[data-line]');
 							if (fromLines.length !== toLines.length) {
@@ -424,12 +411,10 @@ function applyLineChanges(lineChanges: MarkdownPreviewLineChanges | undefined): 
 		element.classList.remove('code-line-diff', 'code-line-diff-added', 'code-line-diff-deleted', 'code-line-diff-modified');
 	}
 
-	// Remove previous change indicators
 	for (const element of document.querySelectorAll('.diff-change-indicator')) {
 		element.remove();
 	}
 
-	// Remove previous modification gutter bars
 	for (const element of document.querySelectorAll('.diff-modification-gutter')) {
 		element.remove();
 	}
@@ -650,7 +635,6 @@ function applyInnerChangeHighlights(lineChanges: MarkdownPreviewLineChanges | un
 	const diffHighlightAddedName = 'diff-inner-added';
 	const diffHighlightDeletedName = 'diff-inner-deleted';
 
-	// Clear previous highlights
 	CSS.highlights?.delete(diffHighlightAddedName);
 	CSS.highlights?.delete(diffHighlightDeletedName);
 
@@ -661,7 +645,6 @@ function applyInnerChangeHighlights(lineChanges: MarkdownPreviewLineChanges | un
 	const highlightName = lineChanges.added ? diffHighlightAddedName : diffHighlightDeletedName;
 	const ranges: Range[] = [];
 
-	// Find all marker pairs and create Range objects between them
 	const root = document.querySelector('.markdown-body');
 	if (!root) {
 		return;
@@ -711,12 +694,10 @@ document.addEventListener('dblclick', event => {
 		return;
 	}
 
-	// Disable double-click to switch editor for .copilotmd files
 	if (documentResource.endsWith('.copilotmd')) {
 		return;
 	}
 
-	// Ignore clicks on links
 	for (let node = event.target as HTMLElement; node; node = node.parentNode as HTMLElement) {
 		if (node.tagName === 'A') {
 			return;
@@ -747,13 +728,11 @@ document.addEventListener('click', event => {
 			let hrefText = node.getAttribute('data-href');
 			if (!hrefText) {
 				hrefText = node.getAttribute('href');
-				// Pass through known schemes
 				if (hrefText && passThroughLinkSchemes.some(scheme => hrefText!.startsWith(scheme))) {
 					return;
 				}
 			}
 
-			// If original link doesn't look like a url, delegate back to VS Code to resolve
 			if (hrefText && !/^[a-z\-]+:/i.test(hrefText)) {
 				messaging.postMessage('openLink', { href: hrefText });
 				event.preventDefault();
@@ -789,14 +768,9 @@ function updateScrollProgress() {
 }
 
 
-/**
- * Compares two nodes for morphdom to see if they are equal.
- *
- * This skips some attributes that should not cause equality to fail.
- */
 function areNodesEqual(a: Element, b: Element): boolean {
 	const skippedAttrs = [
-		'open', // for details
+		'open',
 	];
 
 	if (a.isEqualNode(b)) {

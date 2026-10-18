@@ -124,7 +124,6 @@ suite('TelemetryService', () => {
 		assert.strictEqual(!testAppender.isDisposed, true);
 	}));
 
-	// event reporting
 	test('Simple event', sinonTestFn(function () {
 		const testAppender = new TestTelemetryAppender();
 		const service = new TelemetryService({ appenders: [testAppender] }, new TestConfigurationService(), TestProductService);
@@ -257,7 +256,6 @@ suite('TelemetryService', () => {
 
 
 			const e: any = new Error('This is a test.');
-			// for Phantom
 			if (!e.stack) {
 				e.stack = 'blah';
 			}
@@ -276,34 +274,6 @@ suite('TelemetryService', () => {
 		}
 	}));
 
-	// 	test('Unhandled Promise Error events', sinonTestFn(function() {
-	//
-	// 		let origErrorHandler = Errors.errorHandler.getUnexpectedErrorHandler();
-	// 		Errors.setUnexpectedErrorHandler(() => {});
-	//
-	// 		try {
-	// 			let service = new MainTelemetryService();
-	// 			let testAppender = new TestTelemetryAppender();
-	// 			service.addTelemetryAppender(testAppender);
-	//
-	// 			winjs.Promise.wrapError(new Error('This should not get logged'));
-	// 			winjs.TPromise.as(true).then(() => {
-	// 				throw new Error('This should get logged');
-	// 			});
-	// 			// prevent console output from failing the test
-	// 			this.stub(console, 'log');
-	// 			// allow for the promise to finish
-	// 			this.clock.tick(MainErrorTelemetry.ERROR_FLUSH_TIMEOUT);
-	//
-	// 			assert.strictEqual(testAppender.getEventsCount(), 1);
-	// 			assert.strictEqual(testAppender.events[0].eventName, 'UnhandledError');
-	// 			assert.strictEqual(testAppender.events[0].data.msg,  'This should get logged');
-	//
-	// 			service.dispose();
-	// 		} finally {
-	// 			Errors.setUnexpectedErrorHandler(origErrorHandler);
-	// 		}
-	// 	}));
 
 	test('Handle global errors', sinonTestFn(function (this: any) {
 		const errorStub = sinon.stub();
@@ -423,9 +393,6 @@ suite('TelemetryService', () => {
 			const service = new TestErrorTelemetryService({ appenders: [testAppender] });
 			const errorTelemetry = new ErrorTelemetry(service);
 
-			// A frame whose function name matches the broad `Generic Secret` heuristic
-			// (`getStorageKey` contains `key(`) previously caused the entire callstack
-			// to be redacted. See https://github.com/microsoft/vscode/issues/301200.
 			const stack = [
 				'Error: Something failed',
 				'    at StorageService.getStorageKey (out/vs/platform/storage/storage.js:1:200)',
@@ -440,10 +407,8 @@ suite('TelemetryService', () => {
 
 			assert.strictEqual(testAppender.getEventsCount(), 1);
 			const cs: string = testAppender.events[0].data.callstack;
-			// The whole stack must not collapse into a single redaction marker.
 			assert.notStrictEqual(cs, '<REDACTED: Generic Secret>', 'Entire callstack should not be redacted');
 			assert.strictEqual(cs.split('\n').length, stack.length, 'All frames should be preserved');
-			// Only the offending frame is redacted, the others remain intact.
 			assert.notStrictEqual(cs.indexOf('Foo.run'), -1, 'Non-offending frames should be preserved');
 			assert.notStrictEqual(cs.indexOf('Bar.baz'), -1, 'Non-offending frames should be preserved');
 			assert.strictEqual(cs.indexOf('getStorageKey'), -1, 'Offending frame should be redacted');
@@ -464,10 +429,6 @@ suite('TelemetryService', () => {
 			const service = new TestErrorTelemetryService({ appenders: [testAppender] });
 			const errorTelemetry = new ErrorTelemetry(service);
 
-			// `getApiKey` ends the line, so the `Generic Secret` heuristic only
-			// matches because of the following newline. Per-line redaction must
-			// re-append that delimiter so this frame is still redacted, matching
-			// the previous whole-string behavior.
 			const stack = [
 				'Error: boom',
 				'    at Service.getApiKey',
@@ -507,7 +468,6 @@ suite('TelemetryService', () => {
 		this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 		assert.strictEqual(errorStub.callCount, 1);
-		// Test that no file information remains, esp. personal info
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf(settings.personalInfo), -1);
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf(settings.filePrefix), -1);
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf(settings.personalInfo), -1);
@@ -534,7 +494,6 @@ suite('TelemetryService', () => {
 			const dangerousPathWithImportantInfoError: any = new Error(settings.dangerousPathWithImportantInfo);
 			dangerousPathWithImportantInfoError.stack = settings.stack;
 
-			// Test that important information remains but personal info does not
 			Errors.onUnexpectedError(dangerousPathWithImportantInfoError);
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
@@ -569,7 +528,6 @@ suite('TelemetryService', () => {
 		this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 		assert.strictEqual(errorStub.callCount, 1);
-		// Test that important information remains but personal info does not
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(settings.anonymizedNodeModuleAsarPath), -1, 'bare node_modules.asar path');
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(settings.anonymizedNodeModulePath), -1, 'bare node_modules path');
 		assert.notStrictEqual(testAppender.events[0].data.msg.indexOf(settings.importantInfo), -1);
@@ -604,7 +562,6 @@ suite('TelemetryService', () => {
 			Errors.onUnexpectedError(dangerousPathWithImportantInfoError);
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
-			// All node_modules paths (bare and full) should preserve the node_modules/... suffix after redaction
 			const cs = testAppender.events[0].data.callstack;
 			assert.notStrictEqual(cs.indexOf(settings.anonymizedNodeModuleAsarPath), -1, 'bare node_modules.asar path');
 			assert.notStrictEqual(cs.indexOf(settings.anonymizedNodeModulePath), -1, 'bare node_modules path');
@@ -636,22 +593,16 @@ suite('TelemetryService', () => {
 			Errors.onUnexpectedError(dangerousPathWithImportantInfoError);
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
-			// Verify user extension path is preserved but parent folder is redacted
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(settings.extensionPathToRetain), -1, 'User extension path should be retained');
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(settings.anonymizedExtensionPath), -1, 'User extension path should be anonymized with preserved extension name');
-			// Verify the username is removed
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('/Users/username/'), -1, 'Username should be redacted from extension path');
 
-			// Verify server-insiders extension path is preserved (multi-segment suffix like .vscode-server-insiders)
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(settings.serverInsidersExtensionPathToRetain), -1, 'Server-insiders extension path should be retained');
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(settings.anonymizedServerInsidersExtensionPath), -1, 'Server-insiders extension path should be anonymized with preserved extension name');
-			// Verify the home directory is removed
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('/home/user/'), -1, 'Home directory should be redacted from server-insiders extension path');
 
-			// Verify built-in extension path is preserved but app folder is redacted
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(settings.builtinExtensionPathToRetain), -1, 'Built-in extension path should be retained');
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(settings.anonymizedBuiltinExtensionPath), -1, 'Built-in extension path should be anonymized with preserved extension name');
-			// Verify the app path is removed
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('/Applications/Dardcor Code.app'), -1, 'App path should be redacted from built-in extension path');
 
 			errorTelemetry.dispose();
@@ -676,7 +627,6 @@ suite('TelemetryService', () => {
 			const dangerousPathWithImportantInfoError: any = new Error(settings.dangerousPathWithImportantInfo);
 			dangerousPathWithImportantInfoError.stack = settings.stack;
 
-			// Test that important information remains but personal info does not
 			Errors.onUnexpectedError(dangerousPathWithImportantInfoError);
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
@@ -711,7 +661,6 @@ suite('TelemetryService', () => {
 		this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 		assert.strictEqual(errorStub.callCount, 1);
-		// Test that important information remains but personal info does not
 		assert.notStrictEqual(testAppender.events[0].data.msg.indexOf(settings.importantInfo), -1);
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf(settings.personalInfo), -1);
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf(settings.filePrefix), -1);
@@ -740,8 +689,6 @@ suite('TelemetryService', () => {
 			const missingModelError: any = new Error(settings.missingModelMessage);
 			missingModelError.stack = settings.stack;
 
-			// Test that no file information remains, but this particular
-			// error message does (Received model events for missing model)
 			Errors.onUnexpectedError(missingModelError);
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
@@ -775,8 +722,6 @@ suite('TelemetryService', () => {
 		this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 		assert.strictEqual(errorStub.callCount, 1);
-		// Test that no file information remains, but this particular
-		// error message does (Received model events for missing model)
 		assert.notStrictEqual(testAppender.events[0].data.msg.indexOf(settings.missingModelPrefix), -1);
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf(settings.personalInfo), -1);
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf(settings.filePrefix), -1);
@@ -805,8 +750,6 @@ suite('TelemetryService', () => {
 			const noSuchFileError: any = new Error(settings.noSuchFileMessage);
 			noSuchFileError.stack = settings.stack;
 
-			// Test that no file information remains, but this particular
-			// error message does (ENOENT: no such file or directory)
 			Errors.onUnexpectedError(noSuchFileError);
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
@@ -844,8 +787,6 @@ suite('TelemetryService', () => {
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 			assert.strictEqual(errorStub.callCount, 1);
-			// Test that no file information remains, but this particular
-			// error message does (ENOENT: no such file or directory)
 			Errors.onUnexpectedError(noSuchFileError);
 			assert.notStrictEqual(testAppender.events[0].data.msg.indexOf(settings.noSuchFilePrefix), -1);
 			assert.strictEqual(testAppender.events[0].data.msg.indexOf(settings.personalInfo), -1);
@@ -926,11 +867,9 @@ suite('TelemetryService', () => {
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 			assert.strictEqual(testAppender.getEventsCount(), 1);
-			// Verify PII (username and path) is removed
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('bpasero'), -1);
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('Users'), -1);
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('c:/Users'), -1);
-			// Verify important code path is preserved
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
@@ -964,11 +903,9 @@ suite('TelemetryService', () => {
 		this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 		assert.strictEqual(errorStub.callCount, 1);
-		// Verify PII (username and path) is removed
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('bpasero'), -1);
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('Users'), -1);
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('c:/Users'), -1);
-		// Verify important code path is preserved
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
@@ -1003,10 +940,8 @@ suite('TelemetryService', () => {
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 			assert.strictEqual(testAppender.getEventsCount(), 1);
-			// Verify PII (application path) is removed
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('Applications/Visual'), -1);
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('Visual%20Studio%20Code'), -1);
-			// Verify important code path is preserved
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
@@ -1040,10 +975,8 @@ suite('TelemetryService', () => {
 		this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 		assert.strictEqual(errorStub.callCount, 1);
-		// Verify PII (application path) is removed
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('Applications/Visual'), -1);
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('Visual%20Studio%20Code'), -1);
-		// Verify important code path is preserved
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
@@ -1079,13 +1012,11 @@ suite('TelemetryService', () => {
 			this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 			assert.strictEqual(testAppender.getEventsCount(), 1);
-			// Verify PII (username and home directory) is removed
 			assert.strictEqual(testAppender.events[0].data.msg.indexOf('parallels'), -1);
 			assert.strictEqual(testAppender.events[0].data.msg.indexOf('/home/parallels'), -1);
 			assert.strictEqual(testAppender.events[0].data.msg.indexOf('GitDevelopment'), -1);
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('parallels'), -1);
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('/home/parallels'), -1);
-			// Verify important code path is preserved
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
@@ -1120,13 +1051,11 @@ suite('TelemetryService', () => {
 		this.clock.tick(ErrorTelemetry.ERROR_FLUSH_TIMEOUT);
 
 		assert.strictEqual(errorStub.callCount, 1);
-		// Verify PII (username and home directory) is removed
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf('parallels'), -1);
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf('/home/parallels'), -1);
 		assert.strictEqual(testAppender.events[0].data.msg.indexOf('GitDevelopment'), -1);
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('parallels'), -1);
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('/home/parallels'), -1);
-		// Verify important code path is preserved
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
@@ -1161,10 +1090,8 @@ suite('TelemetryService', () => {
 
 			assert.strictEqual(testAppender.getEventsCount(), 1);
 			const cs = testAppender.events[0].data.callstack;
-			// Verify the web origin is stripped (not leaked as PII)
 			assert.strictEqual(cs.indexOf(webOrigin), -1, 'Web origin should be stripped');
 			assert.strictEqual(cs.indexOf('https://'), -1, 'HTTPS scheme should be stripped');
-			// Verify the bundle path is preserved for debugging
 			assert.notStrictEqual(cs.indexOf(bundlePath), -1, 'Bundle path should be preserved');
 
 			errorTelemetry.dispose();

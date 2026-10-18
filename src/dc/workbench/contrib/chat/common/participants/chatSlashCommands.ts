@@ -17,40 +17,21 @@ import { URI } from '../../../../../base/common/uri.js';
 import { getChatSessionType } from '../model/chatUri.js';
 import { matchesSessionType } from '../promptSyntax/service/promptsService.js';
 
-//#region slash service, commands etc
 
 export interface IChatSlashData {
 	command: string;
 	detail: string;
 	sortText?: string;
-	/**
-	 * Whether the command should execute as soon
-	 * as it is entered. Defaults to `false`.
-	 */
 	executeImmediately?: boolean;
 
-	/**
-	 * Whether a silent command can execute independently while the chat has a request in progress.
-	 */
 	executeDuringRequest?: boolean;
 
-	/**
-	 * Whether the command should be added as a request/response
-	 * turn to the chat history. Defaults to `false`.
-	 *
-	 * For instance, the `/save` command opens an untitled document
-	 * to the side hence does not contain any chatbot responses.
-	 */
 	silent?: boolean;
 
 	locations: ChatAgentLocation[];
 	modes?: ChatModeKind[];
 	sessionTypes?: string[];
 
-	/**
-	 * Optional context key expression that controls visibility of this command.
-	 * When set, the command is only shown if the expression evaluates to true.
-	 */
 	when?: ContextKeyExpression;
 }
 
@@ -61,9 +42,6 @@ export type IChatSlashCallback = { (prompt: string, progress: IProgress<IChatPro
 
 export const IChatSlashCommandService = createDecorator<IChatSlashCommandService>('chatSlashCommandService');
 
-/**
- * This currently only exists to drive /clear and /help
- */
 export interface IChatSlashCommandService {
 	_serviceBrand: undefined;
 	readonly onDidChangeCommands: Event<void>;

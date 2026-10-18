@@ -10,9 +10,6 @@ import { ChatHookType, ChatResponseAnchorPart, ChatResponseCommandButtonPart, Ch
 import { LinkifiedText, LinkifySymbolAnchor } from './linkifiedText';
 import { IContributedLinkifierFactory, ILinkifier, ILinkifyService, LinkifierContext } from './linkifyService';
 
-/**
- * Proxy of {@linkcode ChatResponseStream} that linkifies paths and symbols in emitted Markdown.
- */
 export class ResponseStreamWithLinkification implements FinalizableChatResponseStream {
 
 	private readonly _linkifier: ILinkifier;
@@ -43,7 +40,6 @@ export class ResponseStreamWithLinkification implements FinalizableChatResponseS
 		this._progress.clearToPreviousToolInvocation(reason);
 	}
 
-	//#region ChatResponseStream
 	markdown(value: string | MarkdownString): ChatResponseStream {
 		this.appendMarkdown(typeof value === 'string' ? new MarkdownString(value) : value);
 		return this;
@@ -127,7 +123,6 @@ export class ResponseStreamWithLinkification implements FinalizableChatResponseS
 	}
 
 	textEdit(target: Uri, editsOrDone: TextEdit | TextEdit[] | true): ChatResponseStream {
-		// TS makes me do this
 		if (editsOrDone === true) {
 			this.enqueue(() => this._progress.textEdit(target, editsOrDone), false);
 		} else {
@@ -140,7 +135,6 @@ export class ResponseStreamWithLinkification implements FinalizableChatResponseS
 	notebookEdit(target: Uri, edits: NotebookEdit | NotebookEdit[]): void;
 	notebookEdit(target: Uri, isDone: true): void;
 	notebookEdit(target: Uri, editsOrDone: NotebookEdit | NotebookEdit[] | true): ChatResponseStream {
-		// TS makes me do this
 		if (editsOrDone === true) {
 			this.enqueue(() => this._progress.notebookEdit(target, editsOrDone), false);
 		} else {
@@ -188,7 +182,6 @@ export class ResponseStreamWithLinkification implements FinalizableChatResponseS
 		return this;
 	}
 
-	//#endregion
 
 	private sequencer: Promise<unknown> = Promise.resolve();
 
@@ -208,9 +201,6 @@ export class ResponseStreamWithLinkification implements FinalizableChatResponseS
 			return;
 		}
 
-		// Buffer incoming markdown and schedule a single drain when the sequencer frees up.
-		// This coalesces many small markdown chunks into fewer linkifier.append() calls,
-		// dramatically reducing queue wait when the linkifier is busy.
 		this._pendingMarkdown += md.value;
 
 		if (!this._pendingMarkdownScheduled) {

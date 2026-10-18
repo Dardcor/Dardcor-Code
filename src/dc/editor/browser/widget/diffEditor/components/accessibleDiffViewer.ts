@@ -43,16 +43,10 @@ export interface IAccessibleDiffViewerModel {
 	getOriginalModel(): ITextModel;
 	getOriginalOptions(): IComputedEditorOptions;
 
-	/**
-	 * Should do: `setSelection`, `revealLine` and `focus`
-	 */
 	originalReveal(range: Range): void;
 
 	getModifiedModel(): ITextModel;
 	getModifiedOptions(): IComputedEditorOptions;
-	/**
-	 * Should do: `setSelection`, `revealLine` and `focus`
-	 */
 	modifiedReveal(range?: Range): void;
 	modifiedSetSelection(range: Range): void;
 	modifiedFocus(): void;
@@ -135,7 +129,6 @@ class ViewModel extends Disposable {
 		super();
 
 		this._register(autorun(reader => {
-			/** @description update groups */
 			const diffs = this._diffs.read(reader);
 			if (!diffs) {
 				this._groups.set([], undefined);
@@ -161,7 +154,6 @@ class ViewModel extends Disposable {
 		}));
 
 		this._register(autorun(reader => {
-			/** @description play audio-cue for diff */
 			const currentViewItem = this.currentElement.read(reader);
 			if (currentViewItem?.type === LineType.Deleted) {
 				this._accessibilitySignalService.playSignal(AccessibilitySignal.diffLineDeleted, { source: 'accessibleDiffViewer.currentElementChanged' });
@@ -171,8 +163,6 @@ class ViewModel extends Disposable {
 		}));
 
 		this._register(autorun(reader => {
-			/** @description select lines in editor */
-			// This ensures editor commands (like revert/stage) work
 			const currentViewItem = this.currentElement.read(reader);
 			if (currentViewItem && currentViewItem.type !== LineType.Header) {
 				const lineNumber = currentViewItem.modifiedLineNumber ?? currentViewItem.diff.modified.startLineNumber;
@@ -362,7 +352,6 @@ class View extends Disposable {
 			actionBarContainer
 		));
 		this._register(autorun(reader => {
-			/** @description update actions */
 			this._actionBar.clear();
 			if (this._model.canClose.read(reader)) {
 				this._actionBar.push(toAction({
@@ -393,12 +382,10 @@ class View extends Disposable {
 		this._register(applyStyle(this._content, { width: this._width, height: this._height }));
 
 		this._register(autorunWithStore((reader, store) => {
-			/** @description render */
 			this._model.currentGroup.read(reader);
 			this._render(store);
 		}));
 
-		// TODO@hediet use commands
 		this._register(addStandardDisposableListener(this.domNode, 'keydown', (e) => {
 			if (
 				e.equals(KeyCode.DownArrow)
@@ -504,7 +491,6 @@ class View extends Disposable {
 
 				const cell = document.createElement('div');
 				cell.className = 'diff-review-cell diff-review-summary';
-				// e.g.: `1/10: @@ -504,7 +517,7 @@`
 				cell.appendChild(document.createTextNode(`${diffIndex + 1}/${diffsLength}: @@ -${r.original.startLineNumber},${r.original.length} +${r.modified.startLineNumber},${r.modified.length} @@`));
 				header.appendChild(cell);
 
@@ -517,10 +503,9 @@ class View extends Disposable {
 
 			container.appendChild(row);
 
-			const isSelectedObs = derived(reader => /** @description isSelected */ this._model.currentElement.read(reader) === viewItem);
+			const isSelectedObs = derived(reader => this._model.currentElement.read(reader) === viewItem);
 
 			store.add(autorun(reader => {
-				/** @description update tab index */
 				const isSelected = isSelectedObs.read(reader);
 				row.tabIndex = isSelected ? 0 : -1;
 				if (isSelected) {

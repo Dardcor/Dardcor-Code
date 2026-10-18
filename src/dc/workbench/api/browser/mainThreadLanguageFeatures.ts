@@ -101,7 +101,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		this._registrations.deleteAndDispose(handle);
 	}
 
-	//#region --- revive functions
 
 	private static _reviveLocationDto(data?: ILocationDto): languages.Location;
 	private static _reviveLocationDto(data?: ILocationDto[]): languages.Location[];
@@ -172,9 +171,7 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		return data as typeh.TypeHierarchyItem;
 	}
 
-	//#endregion
 
-	// --- outline
 
 	$registerDocumentSymbolProvider(handle: number, selector: IDocumentFilterDto[], displayName: string): void {
 		this._registrations.set(handle, this._languageFeaturesService.documentSymbolProvider.register(selector, {
@@ -185,7 +182,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- code lens
 
 	$registerCodeLensSupport(handle: number, selector: IDocumentFilterDto[], eventHandle: number | undefined): void {
 
@@ -229,7 +225,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}
 	}
 
-	// --- declaration
 
 	$registerDefinitionSupport(handle: number, selector: IDocumentFilterDto[]): void {
 		this._registrations.set(handle, this._languageFeaturesService.definitionProvider.register(selector, {
@@ -263,14 +258,8 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- extra info
 
 	$registerHoverProvider(handle: number, selector: IDocumentFilterDto[]): void {
-		/*
-		const hoverFinalizationRegistry = new FinalizationRegistry((hoverId: number) => {
-			this._proxy.$releaseHover(handle, hoverId);
-		});
-		*/
 		this._registrations.set(handle, this._languageFeaturesService.hoverProvider.register(selector, {
 			provideHover: async (model: ITextModel, position: EditorPosition, token: CancellationToken, context?: languages.HoverContext<HoverWithId>): Promise<HoverWithId | undefined> => {
 				const serializedContext: languages.HoverContext<{ id: number }> = {
@@ -280,13 +269,11 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 					} : undefined,
 				};
 				const hover = await this._proxy.$provideHover(handle, model.uri, position, serializedContext, token);
-				// hoverFinalizationRegistry.register(hover, hover.id);
 				return hover;
 			}
 		}));
 	}
 
-	// --- debug hover
 
 	$registerEvaluatableExpressionProvider(handle: number, selector: IDocumentFilterDto[]): void {
 		this._registrations.set(handle, this._languageFeaturesService.evaluatableExpressionProvider.register(selector, {
@@ -296,7 +283,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- inline values
 
 	$registerInlineValuesProvider(handle: number, selector: IDocumentFilterDto[], eventHandle: number | undefined): void {
 		const provider: languages.InlineValuesProvider = {
@@ -321,7 +307,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}
 	}
 
-	// --- occurrences
 
 	$registerDocumentHighlightProvider(handle: number, selector: IDocumentFilterDto[]): void {
 		this._registrations.set(handle, this._languageFeaturesService.documentHighlightProvider.register(selector, {
@@ -336,14 +321,11 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 			selector: selector,
 			provideMultiDocumentHighlights: (model: ITextModel, position: EditorPosition, otherModels: ITextModel[], token: CancellationToken): Promise<Map<URI, languages.DocumentHighlight[]> | undefined> => {
 				return this._proxy.$provideMultiDocumentHighlights(handle, model.uri, position, otherModels.map(model => model.uri), token).then(dto => {
-					// dto should be non-null + non-undefined
-					// dto length of 0 is valid, just no highlights, pass this through.
 					if (dto === undefined || dto === null) {
 						return undefined;
 					}
 					const result = new ResourceMap<languages.DocumentHighlight[]>();
 					dto?.forEach(value => {
-						// check if the URI exists already, if so, combine the highlights, otherwise create a new entry
 						const uri = URI.revive(value.uri);
 						if (result.has(uri)) {
 							result.get(uri)!.push(...value.highlights);
@@ -357,7 +339,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- linked editing
 
 	$registerLinkedEditingRangeProvider(handle: number, selector: IDocumentFilterDto[]): void {
 		this._registrations.set(handle, this._languageFeaturesService.linkedEditingRangeProvider.register(selector, {
@@ -374,7 +355,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- references
 
 	$registerReferenceSupport(handle: number, selector: IDocumentFilterDto[]): void {
 		this._registrations.set(handle, this._languageFeaturesService.referenceProvider.register(selector, {
@@ -384,7 +364,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- code actions
 
 	$registerCodeActionSupport(handle: number, selector: IDocumentFilterDto[], metadata: ICodeActionProviderMetadataDto, displayName: string, extensionId: string, supportsResolve: boolean): void {
 		const provider: languages.CodeActionProvider = {
@@ -426,7 +405,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		this._registrations.set(handle, this._languageFeaturesService.codeActionProvider.register(selector, provider));
 	}
 
-	// --- copy paste action provider
 
 	private readonly _pasteEditProviders = new Map<number, MainThreadPasteEditProvider>();
 
@@ -447,7 +425,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		return provider.resolveFileData(requestId, dataId);
 	}
 
-	// --- formatting
 
 	$registerDocumentFormattingSupport(handle: number, selector: IDocumentFilterDto[], extensionId: ExtensionIdentifier, displayName: string): void {
 		this._registrations.set(handle, this._languageFeaturesService.documentFormattingEditProvider.register(selector, {
@@ -484,7 +461,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- navigate type
 
 	$registerNavigateTypeSupport(handle: number, supportsResolve: boolean): void {
 		let lastResultId: number | undefined;
@@ -508,7 +484,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		this._registrations.set(handle, search.WorkspaceSymbolProviderRegistry.register(provider));
 	}
 
-	// --- rename
 
 	$registerRenameSupport(handle: number, selector: IDocumentFilterDto[], supportResolveLocation: boolean): void {
 		this._registrations.set(handle, this._languageFeaturesService.renameProvider.register(selector, {
@@ -530,7 +505,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		} satisfies languages.NewSymbolNamesProvider));
 	}
 
-	// --- semantic tokens
 
 	$registerDocumentSemanticTokensProvider(handle: number, selector: IDocumentFilterDto[], legend: languages.SemanticTokensLegend, eventHandle: number | undefined): void {
 		let event: Event<void> | undefined = undefined;
@@ -566,7 +540,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		this._registrations.set(handle, this._languageFeaturesService.documentRangeSemanticTokensProvider.register(selector, new MainThreadDocumentRangeSemanticTokensProvider(this._proxy, handle, legend, event)));
 	}
 
-	// --- suggest
 
 	private static _inflateSuggestDto(defaultRange: IRange | { insert: IRange; replace: IRange }, data: ISuggestDataDto, extensionId: ExtensionIdentifier): languages.CompletionItem {
 
@@ -583,7 +556,7 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 				$ident: commandIdent,
 				id: commandId,
 				title: '',
-				arguments: commandIdent ? [commandIdent] : data[ISuggestDataDtoField.commandArguments], // Automatically fill in ident as first argument
+				arguments: commandIdent ? [commandIdent] : data[ISuggestDataDtoField.commandArguments],
 			};
 		}
 
@@ -603,7 +576,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 			commitCharacters: commitChars ? Array.from(commitChars) : undefined,
 			additionalTextEdits: data[ISuggestDataDtoField.additionalTextEdits],
 			command,
-			// not-standard
 			_id: data.x,
 		};
 	}
@@ -710,7 +682,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}
 	}
 
-	// --- parameter hints
 
 	$registerSignatureHelpProvider(handle: number, selector: IDocumentFilterDto[], metadata: ISignatureHelpProviderMetadataDto): void {
 		this._registrations.set(handle, this._languageFeaturesService.signatureHelpProvider.register(selector, {
@@ -733,7 +704,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- inline hints
 
 	$registerInlayHintsProvider(handle: number, selector: IDocumentFilterDto[], supportsResolve: boolean, eventHandle: number | undefined, displayName: string | undefined): void {
 		const provider: languages.InlayHintsProvider = {
@@ -790,7 +760,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}
 	}
 
-	// --- links
 
 	$registerDocumentLinkProvider(handle: number, selector: IDocumentFilterDto[], supportsResolve: boolean): void {
 		const provider: languages.LinkProvider = {
@@ -824,7 +793,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		this._registrations.set(handle, this._languageFeaturesService.linkProvider.register(selector, provider));
 	}
 
-	// --- colors
 
 	$registerDocumentColorProvider(handle: number, selector: IDocumentFilterDto[]): void {
 		const proxy = this._proxy;
@@ -858,7 +826,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- folding
 
 	$registerFoldingRangeProvider(handle: number, selector: IDocumentFilterDto[], extensionId: ExtensionIdentifier, eventHandle: number | undefined): void {
 		const provider: languages.FoldingRangeProvider = {
@@ -884,7 +851,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}
 	}
 
-	// -- smart select
 
 	$registerSelectionRangeProvider(handle: number, selector: IDocumentFilterDto[]): void {
 		this._registrations.set(handle, this._languageFeaturesService.selectionRangeProvider.register(selector, {
@@ -894,7 +860,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- call hierarchy
 
 	$registerCallHierarchyProvider(handle: number, selector: IDocumentFilterDto[]): void {
 		this._registrations.set(handle, callh.CallHierarchyProviderRegistry.register(selector, {
@@ -939,7 +904,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}));
 	}
 
-	// --- configuration
 
 	private static _reviveRegExp(regExp: IRegExpDto): RegExp {
 		return new RegExp(regExp.pattern, regExp.flags);
@@ -984,7 +948,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		if (_configuration.autoClosingPairs) {
 			configuration.autoClosingPairs = _configuration.autoClosingPairs;
 		} else if (_configuration.__characterPairSupport) {
-			// backwards compatibility
 			configuration.autoClosingPairs = _configuration.__characterPairSupport.autoClosingPairs;
 		}
 
@@ -1002,7 +965,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		}
 	}
 
-	// --- type hierarchy
 
 	$registerTypeHierarchyProvider(handle: number, selector: IDocumentFilterDto[]): void {
 		this._registrations.set(handle, typeh.TypeHierarchyProviderRegistry.register(selector, {
@@ -1040,7 +1002,6 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 	}
 
 
-	// --- document drop Edits
 
 	private readonly _documentOnDropEditProviders = new Map<number, MainThreadDocumentOnDropEditProvider>();
 

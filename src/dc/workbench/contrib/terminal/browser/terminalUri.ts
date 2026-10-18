@@ -60,8 +60,6 @@ export function getTerminalResourcesFromDragEvent(event: IPartialDragEvent): URI
 export function getInstanceFromResource<T extends Pick<ITerminalInstance, 'resource'>>(instances: T[], resource: URI | undefined): T | undefined {
 	if (resource) {
 		for (const instance of instances) {
-			// Note that the URI's workspace and instance id might not originally be from this window
-			// Don't bother checking the scheme and assume instances only contains terminals
 			if (instance.resource.path === resource.path) {
 				return instance;
 			}

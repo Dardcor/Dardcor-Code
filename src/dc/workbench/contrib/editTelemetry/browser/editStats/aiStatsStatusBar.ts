@@ -206,7 +206,6 @@ export function createAiStatsHover(options: IAiStatsHoverOptions) {
 			localize('text2', "Accepted inline suggestions today: {0}", options.data.acceptedInlineSuggestionsToday.get()),
 		]),
 
-		// Chart section
 		n.div({
 			style: {
 				marginTop: '8px',
@@ -214,7 +213,6 @@ export function createAiStatsHover(options: IAiStatsHoverOptions) {
 				paddingTop: '8px',
 			}
 		}, [
-			// Chart header with toggle
 			n.div({
 				class: 'header',
 				style: {
@@ -239,7 +237,6 @@ export function createAiStatsHover(options: IAiStatsHoverOptions) {
 				])
 			]),
 
-			// Chart container
 			derived(reader => {
 				const sessions = options.data.sessions.read(reader);
 				const viewMode = chartViewMode.read(reader);

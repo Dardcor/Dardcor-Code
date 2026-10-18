@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Copied and adapted from @vscode/markdown-editor's src/view/editor.css rich-link styles. */
 
 .chat-rich-link {
 	display: inline-flex;

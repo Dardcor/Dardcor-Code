@@ -25,10 +25,6 @@ import { localize, localize2 } from '../../../nls.js';
 import { IHoverService } from '../../../platform/hover/browser/hover.js';
 
 function ensureDOMFocus(widget: ListWidget | undefined): void {
-	// it can happen that one of the commands is executed while
-	// DOM focus is within another focusable control within the
-	// list/tree item. therefor we should ensure that the
-	// list/tree has DOM focus again after the command ran.
 	const element = widget?.getHTMLElement();
 	if (element && !isActiveElement(element)) {
 		widget?.domFocus();
@@ -220,7 +216,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 
 function expandMultiSelection(focused: WorkbenchListWidget, previousFocus: unknown): void {
 
-	// List
 	if (focused instanceof List || focused instanceof PagedList || focused instanceof Table) {
 		const list = focused;
 
@@ -235,7 +230,6 @@ function expandMultiSelection(focused: WorkbenchListWidget, previousFocus: unkno
 		}
 	}
 
-	// Tree
 	else if (focused instanceof ObjectTree || focused instanceof DataTree || focused instanceof AsyncDataTree) {
 		const list = focused;
 
@@ -267,7 +261,7 @@ function revealFocusedStickyScroll(tree: ObjectTree<unknown, unknown> | DataTree
 	}
 
 	tree.reveal(focus[0]);
-	tree.getHTMLElement().focus(); // domfocus() would focus stiky scroll dom and not the tree todo@benibenj
+	tree.getHTMLElement().focus();
 	tree.setFocus(focus);
 	postRevealAction?.(focus[0]);
 }
@@ -284,12 +278,10 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			return;
 		}
 
-		// Focus down first
 		const previousFocus = widget.getFocus() ? widget.getFocus()[0] : undefined;
 		const fakeKeyboardEvent = new KeyboardEvent('keydown');
 		widget.focusNext(typeof arg2 === 'number' ? arg2 : 1, false, fakeKeyboardEvent);
 
-		// Then adjust selection
 		expandMultiSelection(widget, previousFocus);
 
 		const focus = widget.getFocus();
@@ -314,12 +306,10 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			return;
 		}
 
-		// Focus up first
 		const previousFocus = widget.getFocus() ? widget.getFocus()[0] : undefined;
 		const fakeKeyboardEvent = new KeyboardEvent('keydown');
 		widget.focusPrevious(typeof arg2 === 'number' ? arg2 : 1, false, fakeKeyboardEvent);
 
-		// Then adjust selection
 		expandMultiSelection(widget, previousFocus);
 
 		const focus = widget.getFocus();
@@ -415,7 +405,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	handler: accessor => {
 		const focused = accessor.get(IListService).lastFocusedList;
 		const fakeKeyboardEvent = getSelectionKeyboardEvent('keydown', true);
-		// Trees
 		if (focused instanceof ObjectTree || focused instanceof DataTree || focused instanceof AsyncDataTree) {
 			const tree = focused;
 			const focus = tree.getFocus();
@@ -470,7 +459,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 		}
 
 		if (widget instanceof ObjectTree || widget instanceof DataTree) {
-			// TODO@Joao: instead of doing this here, just delegate to a tree method
 			const focusedElements = widget.getFocus();
 
 			if (focusedElements.length === 0) {
@@ -494,7 +482,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 				}
 			}
 		} else if (widget instanceof AsyncDataTree) {
-			// TODO@Joao: instead of doing this here, just delegate to a tree method
 			const focusedElements = widget.getFocus();
 
 			if (focusedElements.length === 0) {
@@ -525,14 +512,12 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 function selectElement(accessor: ServicesAccessor, retainCurrentFocus: boolean): void {
 	const focused = accessor.get(IListService).lastFocusedList;
 	const fakeKeyboardEvent = getSelectionKeyboardEvent('keydown', retainCurrentFocus);
-	// List
 	if (focused instanceof List || focused instanceof PagedList || focused instanceof Table) {
 		const list = focused;
 		list.setAnchor(list.getFocus()[0]);
 		list.setSelection(list.getFocus(), fakeKeyboardEvent);
 	}
 
-	// Trees
 	else if (focused instanceof ObjectTree || focused instanceof DataTree || focused instanceof AsyncDataTree) {
 		const tree = focused;
 		const focus = tree.getFocus();
@@ -571,7 +556,7 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'list.stickyScrollselect',
-	weight: KeybindingWeight.WorkbenchContrib + 50, // priorities over file explorer
+	weight: KeybindingWeight.WorkbenchContrib + 50,
 	when: WorkbenchTreeStickyScrollFocused,
 	primary: KeyCode.Enter,
 	mac: {
@@ -606,20 +591,17 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	handler: (accessor) => {
 		const focused = accessor.get(IListService).lastFocusedList;
 
-		// List
 		if (focused instanceof List || focused instanceof PagedList || focused instanceof Table) {
 			const list = focused;
 			const fakeKeyboardEvent = new KeyboardEvent('keydown');
 			list.setSelection(range(list.length), fakeKeyboardEvent);
 		}
 
-		// Trees
 		else if (focused instanceof ObjectTree || focused instanceof DataTree || focused instanceof AsyncDataTree) {
 			const tree = focused;
 			const focus = tree.getFocus();
 			const selection = tree.getSelection();
 
-			// Which element should be considered to start selecting all?
 			let start: unknown | undefined = undefined;
 
 			if (focus.length > 0 && (selection.length === 0 || !selection.includes(focus[0]))) {
@@ -630,7 +612,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 				start = selection[0];
 			}
 
-			// What is the scope of select all?
 			let scope: unknown | undefined = undefined;
 
 			if (!start) {
@@ -652,10 +633,8 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 				}
 			};
 
-			// Add the whole scope subtree to the new selection
 			visit(tree.getNode(scope));
 
-			// If the scope isn't the tree root, it should be part of the new selection
 			if (scope && selection.length === newSelection.length) {
 				newSelection.unshift(scope);
 			}
@@ -707,14 +686,11 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			return;
 		}
 
-		// Check if a tree element is focused
 		const focus = lastFocusedList.getFocus();
 		if (!focus || (focus.length === 0)) {
 			return;
 		}
 
-		// As the tree does not know anything about the rendered DOM elements
-		// we have to traverse the dom to find the HTMLElements
 		const treeDOM = lastFocusedList.getHTMLElement();
 		// eslint-disable-next-line no-restricted-syntax
 		const scrollableElement = treeDOM.querySelector('.monaco-scrollable-element');
@@ -734,13 +710,10 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 });
 
 function getCustomHoverForElement(element: HTMLElement): HTMLElement | undefined {
-	// Check if the element itself has a hover
 	if (element.matches('[custom-hover="true"]')) {
 		return element;
 	}
 
-	// Only consider children that are not action items or have a tabindex
-	// as these element are focusable and the user is able to trigger them already
 	// eslint-disable-next-line no-restricted-syntax
 	const noneFocusableElementWithHover = element.querySelector('[custom-hover="true"]:not([tabindex]):not(.action-item)');
 	if (noneFocusableElementWithHover) {
@@ -758,7 +731,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	handler: (accessor) => {
 		const focused = accessor.get(IListService).lastFocusedList;
 
-		// Tree only
 		if (focused instanceof ObjectTree || focused instanceof DataTree || focused instanceof AsyncDataTree) {
 			const tree = focused;
 			const focus = tree.getFocus();
@@ -775,7 +747,7 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'list.stickyScrolltoggleExpand',
-	weight: KeybindingWeight.WorkbenchContrib + 50, // priorities over file explorer
+	weight: KeybindingWeight.WorkbenchContrib + 50,
 	when: WorkbenchTreeStickyScrollFocused,
 	primary: KeyCode.Space,
 	handler: (accessor) => {
@@ -853,7 +825,6 @@ CommandsRegistry.registerCommand({
 	}
 });
 
-// Deprecated commands
 CommandsRegistry.registerCommandAlias('list.toggleKeyboardNavigation', 'list.triggerTypeNavigation');
 CommandsRegistry.registerCommandAlias('list.toggleFilterOnType', 'list.toggleFindMode');
 
@@ -866,12 +837,9 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	handler: (accessor) => {
 		const widget = accessor.get(IListService).lastFocusedList;
 
-		// List
 		if (widget instanceof List || widget instanceof PagedList || widget instanceof Table) {
-			// TODO@joao
 		}
 
-		// Tree
 		else if (widget instanceof AbstractTree || widget instanceof AsyncDataTree) {
 			const tree = widget;
 			tree.openFind();
@@ -897,9 +865,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'list.scrollUp',
 	weight: KeybindingWeight.WorkbenchContrib,
-	// Since the default keybindings for list.scrollUp and widgetNavigation.focusPrevious
-	// are both Ctrl+UpArrow, we disable this command when the scrollbar is at
-	// top-most position. This will give chance for widgetNavigation.focusPrevious to execute
 	when: ContextKeyExpr.and(
 		WorkbenchListFocusContextKey,
 		WorkbenchListScrollAtTopContextKey?.negate()),
@@ -918,7 +883,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'list.scrollDown',
 	weight: KeybindingWeight.WorkbenchContrib,
-	// same as above
 	when: ContextKeyExpr.and(
 		WorkbenchListFocusContextKey,
 		WorkbenchListScrollAtBottomContextKey?.negate()),

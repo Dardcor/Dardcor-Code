@@ -4,12 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Emitter, Event } from '../../../../../base/common/event.js';
+import { decodeBase64 } from '../../../../../base/common/buffer.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
+import { Schemas } from '../../../../../base/common/network.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
 import { Memento } from '../../../../common/memento.js';
-import { chatSessionResourceToId } from '../model/chatUri.js';
 
 export interface IChatTodo {
 	id: number;
@@ -63,7 +64,6 @@ export class ChatTodoListStorage implements IChatTodoListStorage {
 		const todos = this.getSessionData(oldSessionResource);
 		if (todos.length > 0) {
 			this.setSessionData(newSessionResource, todos);
-			// Clear old session data
 			const storage = this.memento.getMemento(StorageScope.WORKSPACE, StorageTarget.MACHINE);
 			delete storage[this.toKey(oldSessionResource)];
 			this.memento.saveMemento();
@@ -71,7 +71,12 @@ export class ChatTodoListStorage implements IChatTodoListStorage {
 	}
 
 	private toKey(sessionResource: URI): string {
-		return chatSessionResourceToId(sessionResource);
+		const pathParts = sessionResource.path.split('/');
+		if (sessionResource.scheme === Schemas.vscodeLocalChatSession && sessionResource.authority && pathParts.length === 2) {
+			const sessionId = decodeBase64(pathParts[1]);
+			return new TextDecoder().decode(sessionId.buffer);
+		}
+		return sessionResource.toString();
 	}
 }
 

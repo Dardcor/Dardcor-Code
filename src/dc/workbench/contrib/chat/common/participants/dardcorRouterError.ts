@@ -12,13 +12,15 @@ export interface IParsedRouterError {
 	resetDelay?: string;
 	resetTimeStamp?: string;
 	isQuotaExhausted: boolean;
+	isInsufficientCredits?: boolean;
+	isForbiddenPlan?: boolean;
+	isUnauthorized?: boolean;
+	suggestedFreeModels?: string[];
+	buyCreditsUrl?: string;
+	currentBalance?: number;
 	technicalDetails?: string;
 }
 
-/**
- * Parses raw error text from Dardcor Router (handling nested JSON, Cloud Code / Google ErrorInfo,
- * OpenAI, Anthropic, Gemini, DeepSeek, and local router formats).
- */
 export function parseDardcorRouterError(statusCode: number, rawError: string, fallbackModel?: string): IParsedRouterError {
 	let detectedModel = fallbackModel;
 	let detectedProvider: string | undefined;
@@ -27,10 +29,15 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 	let resetDelay: string | undefined;
 	let resetTimeStamp: string | undefined;
 	let isQuotaExhausted = statusCode === 429;
+	let isInsufficientCredits = statusCode === 402;
+	let isForbiddenPlan = statusCode === 403;
+	let isUnauthorized = statusCode === 401;
+	let suggestedFreeModels: string[] | undefined;
+	let buyCreditsUrl: string | undefined;
+	let currentBalance: number | undefined;
 
 	const trimmed = (rawError || '').trim();
 
-	// Check for bracketed provider/model tag, e.g. "[antigravity/claude-opus-4-6-thinking] [429]: ..."
 	const bracketMatch = trimmed.match(/^\[([a-zA-Z0-9_\-\./]+)\]\s*(?:\[(\d{3})\])?:?\s*([\s\S]*)$/);
 	let innerPayload = trimmed;
 	if (bracketMatch) {
@@ -54,12 +61,10 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 		innerPayload = bracketMatch[3] || '';
 	}
 
-	// Try parsing JSON
 	let parsedJson: any;
 	try {
 		parsedJson = JSON.parse(trimmed);
 	} catch {
-		// Look for embedded JSON substring { ... }
 		const jsonMatch = innerPayload.match(/\{[\s\S]*\}/);
 		if (jsonMatch) {
 			try {
@@ -69,11 +74,8 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 	}
 
 	if (parsedJson) {
-		// Traverse nested error object
 		let errObj = parsedJson.error ?? parsedJson;
 
-		// Sometimes error.message is itself a string with another nested JSON:
-		// e.g. error.message = "[antigravity/claude-opus-4-6-thinking] [429]: {\n \"error\": ..."
 		if (typeof errObj?.message === 'string') {
 			const nestedBracket = errObj.message.match(/^\[([a-zA-Z0-9_\-\./]+)\]\s*(?:\[(\d{3})\])?:?\s*([\s\S]*)$/);
 			let nestedPayload = errObj.message;
@@ -93,7 +95,6 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 				nestedPayload = nestedBracket[3] || '';
 			}
 
-			// Extract reset after if present in message: e.g. "(reset after 4s)"
 			const resetAfterMatch = errObj.message.match(/\(reset after ([^\)]+)\)/i);
 			if (resetAfterMatch) {
 				resetDelay = resetAfterMatch[1];
@@ -112,10 +113,33 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 			}
 		}
 
-		// Extract fields from errObj
 		if (typeof errObj === 'object' && errObj !== null) {
 			if (errObj.code === 429 || errObj.status === 'RESOURCE_EXHAUSTED' || errObj.type === 'insufficient_quota' || errObj.type === 'rate_limit_error') {
 				isQuotaExhausted = true;
+			}
+			if (errObj.code === 402 || errObj.code === 'insufficient_credits' || errObj.status === 402) {
+				isInsufficientCredits = true;
+			}
+			if (errObj.code === 403 || errObj.code === 'forbidden_plan_required' || errObj.status === 403) {
+				isForbiddenPlan = true;
+			}
+			if (errObj.code === 401 || errObj.code === 'unauthorized' || errObj.status === 401) {
+				isUnauthorized = true;
+			}
+			if (Array.isArray(errObj.suggested_free_models)) {
+				suggestedFreeModels = errObj.suggested_free_models;
+			}
+			if (typeof errObj.buy_credits_url === 'string') {
+				buyCreditsUrl = errObj.buy_credits_url;
+			}
+			if (typeof errObj.current_balance === 'number') {
+				currentBalance = errObj.current_balance;
+			}
+			if (errObj.provider && !detectedProvider) {
+				detectedProvider = errObj.provider;
+			}
+			if (errObj.model && !detectedModel) {
+				detectedModel = errObj.model;
 			}
 			if (errObj.status) {
 				statusMessage = String(errObj.status);
@@ -126,7 +150,6 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 				userMessage = String(errObj.type);
 			}
 
-			// Extract Google / CloudCode ErrorInfo details
 			if (Array.isArray(errObj.details)) {
 				for (const d of errObj.details) {
 					if (d.reason === 'QUOTA_EXHAUSTED' || d.reason === 'RATE_LIMIT_EXCEEDED') {
@@ -149,7 +172,6 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 		}
 	}
 
-	// Fallback message extraction from raw string
 	if (!userMessage) {
 		const quotaPhrases = [
 			'quota reached',
@@ -166,8 +188,16 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 		if (quotaPhrases.some(p => lower.includes(p))) {
 			isQuotaExhausted = true;
 		}
+		if (lower.includes('insufficient_credits') || lower.includes('insufficient balance') || lower.includes('credits required')) {
+			isInsufficientCredits = true;
+		}
+		if (lower.includes('pricingurl') || lower.includes('pricing?')) {
+			isForbiddenPlan = true;
+		}
+		if (lower.includes('unauthorized')) {
+			isUnauthorized = true;
+		}
 
-		// Extract any "Resets in ..." or "reset after ..." text
 		const resetsInMatch = trimmed.match(/Resets in ([^\.\n\r]+)/i);
 		if (resetsInMatch) {
 			resetDelay = resetsInMatch[1].trim();
@@ -177,29 +207,25 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 			resetDelay = resetAfterMatch[1].trim();
 		}
 
-		// Clean up user message
 		if (isQuotaExhausted) {
 			userMessage = 'The token quota limit has been reached for this model. Please switch to another model or wait until the quota resets.';
+		} else if (isInsufficientCredits) {
+			userMessage = 'Your account balance is insufficient for this paid model. Please switch to a free model or add credits.';
 		} else {
-			// Strip raw json braces if too ugly
 			userMessage = trimmed.length > 200 ? trimmed.substring(0, 200) + '...' : trimmed;
 		}
 	}
 
-	// Format reset delay human-readable
 	if (resetDelay) {
 		resetDelay = formatResetDelay(resetDelay);
 	}
 
-	// Format reset timestamp human-readable
 	if (resetTimeStamp) {
 		resetTimeStamp = formatResetTimestamp(resetTimeStamp);
 	}
 
-	// Clean userMessage from raw JSON strings or broken brackets
 	userMessage = cleanMessageText(userMessage);
 
-	// Infer provider name from model if still unknown
 	if (!detectedProvider && detectedModel) {
 		detectedProvider = inferProviderFromModel(detectedModel);
 	}
@@ -208,22 +234,75 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 		statusCode,
 		model: detectedModel,
 		provider: detectedProvider,
-		statusMessage: statusMessage || (isQuotaExhausted ? 'RESOURCE_EXHAUSTED (429)' : `HTTP ${statusCode}`),
+		statusMessage: statusMessage || (isInsufficientCredits ? 'INSUFFICIENT_CREDITS (402)' : isForbiddenPlan ? 'FORBIDDEN (403)' : isUnauthorized ? 'UNAUTHORIZED (401)' : isQuotaExhausted ? 'RESOURCE_EXHAUSTED (429)' : `HTTP ${statusCode}`),
 		userMessage,
 		resetDelay,
 		resetTimeStamp,
 		isQuotaExhausted,
+		isInsufficientCredits,
+		isForbiddenPlan,
+		isUnauthorized,
+		suggestedFreeModels,
+		buyCreditsUrl,
+		currentBalance,
 		technicalDetails: trimmed.length > 300 ? trimmed.substring(0, 500) : undefined
 	};
 }
 
-/**
- * Formats the parsed error into a beautiful, neat, and structured Markdown card in English.
- */
 export function formatDardcorRouterError(statusCode: number, rawError: string, fallbackModel?: string): string {
 	const parsed = parseDardcorRouterError(statusCode, rawError, fallbackModel);
 	const modelDisplay = formatModelDisplayName(parsed.model || fallbackModel || 'Unknown Model');
 	const providerDisplay = formatProviderDisplayName(parsed.provider);
+
+	if (parsed.isInsufficientCredits) {
+		const lines: string[] = [
+			'### 💳 Insufficient Balance (*Paid Model Selected*)',
+			'',
+			`> 🤖 **Model:** \`${modelDisplay}\``,
+			`> 📡 **Provider:** **${providerDisplay}**`,
+			`> ⚡ **Status:** \`${parsed.statusMessage || 'HTTP 402 - INSUFFICIENT_CREDITS'}\``,
+		];
+
+		if (parsed.currentBalance !== undefined) {
+			lines.push(`> 💰 **Current Balance:** \`$${parsed.currentBalance.toFixed(2)}\``);
+		}
+
+		lines.push(
+			'',
+			'**Provider Notice:**',
+			`> *${parsed.userMessage || 'Your account balance is insufficient for this model.'}*`
+		);
+
+		return lines.join('\n');
+	}
+
+	if (parsed.isForbiddenPlan) {
+		const lines: string[] = [
+			'### 🔒 Subscription Plan Required',
+			'',
+			`> 🤖 **Model:** \`${modelDisplay}\``,
+			`> 📡 **Provider:** **${providerDisplay}**`,
+			`> ⚡ **Status:** \`${parsed.statusMessage || 'HTTP 403 - FORBIDDEN'}\``,
+			'',
+			'**Provider Notice:**',
+			`> *${parsed.userMessage || 'This model requires a paid plan or subscription upgrade.'}*`
+		];
+		return lines.join('\n');
+	}
+
+	if (parsed.isUnauthorized) {
+		const lines: string[] = [
+			'### 🔑 Authentication Error (*Re-authentication Required*)',
+			'',
+			`> 🤖 **Model:** \`${modelDisplay}\``,
+			`> 📡 **Provider:** **${providerDisplay}**`,
+			`> ⚡ **Status:** \`${parsed.statusMessage || 'HTTP 401 - UNAUTHORIZED'}\``,
+			'',
+			'**Provider Notice:**',
+			`> *${parsed.userMessage || 'Account credentials expired or invalid.'}*`
+		];
+		return lines.join('\n');
+	}
 
 	if (parsed.isQuotaExhausted) {
 		const lines: string[] = [
@@ -244,19 +323,12 @@ export function formatDardcorRouterError(statusCode: number, rawError: string, f
 		lines.push(
 			'',
 			'**Provider Message:**',
-			`> *${parsed.userMessage}*`,
-			'',
-			'---',
-			'💡 **Suggested Actions:**',
-			'1. **Switch Model:** Click the model picker at the bottom of the chat to select another model with available quota (e.g., **Gemini 2.5 Flash**, **Claude 3.7 Sonnet**, or other Dardcor models).',
-			'2. **Check Router Status:** Open the Dardcor Router status to monitor remaining quotas or connect a different provider account.',
-			'3. **Wait for Reset:** The quota will automatically replenish once the cooldown period above expires.'
+			`> *${parsed.userMessage}*`
 		);
 
 		return lines.join('\n');
 	}
 
-	// For non-quota errors (e.g. 401 Unauthorized, 500 Server Error, Network Error)
 	const lines: string[] = [
 		`### ⚠️ Router Issue (${parsed.statusCode > 0 ? `HTTP ${parsed.statusCode}` : 'Connection Lost'})`,
 		'',
@@ -264,20 +336,13 @@ export function formatDardcorRouterError(statusCode: number, rawError: string, f
 		`> 📡 **Provider:** **${providerDisplay}**`,
 		'',
 		'**Issue Details:**',
-		`> *${parsed.userMessage}*`,
-		'',
-		'---',
-		'💡 **Suggestions:**',
-		'- Ensure **Dardcor Router** server is running and active (port `25128`).',
-		'- Verify that your API key or provider account connection in the router is valid.',
-		'- Try selecting another model from a different provider.'
+		`> *${parsed.userMessage}*`
 	];
 
 	return lines.join('\n');
 }
 
 function formatResetDelay(delayStr: string): string {
-	// e.g. "166h47m22.700871438s" -> "166 hours 47 minutes 22 seconds"
 	const match = delayStr.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+(?:\.\d+)?)s)?/);
 	if (match) {
 		const parts: string[] = [];
@@ -293,7 +358,6 @@ function formatResetDelay(delayStr: string): string {
 			return parts.join(' ');
 		}
 	}
-	// Fallback: e.g. "600442s"
 	const seconds = parseFloat(delayStr);
 	if (!isNaN(seconds) && seconds > 0) {
 		const h = Math.floor(seconds / 3600);
@@ -328,7 +392,6 @@ function formatResetTimestamp(timestampStr: string): string {
 
 function cleanMessageText(text: string): string {
 	let cleaned = text.trim();
-	// Remove trailing JSON fragments, unclosed quotes, brackets, or weird markdown urls like "](https://microsoft.com)))"
 	cleaned = cleaned.replace(/\]\(https?:\/\/[^\)]+\)\)*$/g, '');
 	cleaned = cleaned.replace(/\s*\(reset after [^\)]+\)/gi, '');
 	cleaned = cleaned.replace(/^"|"$/g, '');
@@ -339,7 +402,7 @@ function cleanMessageText(text: string): string {
 }
 
 function formatModelDisplayName(modelId: string): string {
-	const cleaned = (modelId || '').replace(/^(ag|oc|ds|gemini|grok|claude|openai)\//i, '');
+	const cleaned = (modelId || '').replace(/^(dardcor|ag|oc|opencode|ds|gemini|grok|claude|openai|cl|cline|cx|codex|qd|qdcn|qoder|kc|kilocode|cbai|cbcn|codebuddy|cu|cursor|zd|zed|cf|cloudflare|cmc|ocz|gh|v1m|tinyfish|atria|agnes|bai|dahl|tokenharbor|muse)\//i, '');
 	return cleaned
 		.split(/[-_]/)
 		.map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -351,6 +414,14 @@ function inferProviderFromModel(modelId: string): string {
 	if (!lower) return 'Dardcor Router';
 	if (lower.startsWith('antigravity/') || lower.startsWith('ag/')) return 'Antigravity';
 	if (lower.startsWith('codex/') || lower.startsWith('cx/') || lower.includes('sol') || lower.includes('terra') || lower.includes('luna')) return 'OpenAI Codex';
+	if (lower.startsWith('cline/') || lower.startsWith('cl/')) return 'Cline';
+	if (lower.startsWith('qoder/') || lower.startsWith('qd/') || lower.startsWith('qdcn/')) return 'Qoder';
+	if (lower.startsWith('kilocode/') || lower.startsWith('kc/')) return 'KiloCode';
+	if (lower.startsWith('codebuddy/') || lower.startsWith('cbai/') || lower.startsWith('cbcn/')) return 'CodeBuddy';
+	if (lower.startsWith('cursor/') || lower.startsWith('cu/')) return 'Cursor';
+	if (lower.startsWith('zed/') || lower.startsWith('zd/')) return 'Zed';
+	if (lower.startsWith('cloudflare/') || lower.startsWith('cf/')) return 'Cloudflare';
+	if (lower.startsWith('github/') || lower.startsWith('gh/')) return 'GitHub';
 	if (lower.startsWith('gemini-cli/') || lower.startsWith('gc/')) return 'Gemini CLI';
 	if (lower.startsWith('grok-cli/') || lower.startsWith('gcli/') || lower.startsWith('gb/') || lower.includes('grok-build')) return 'Grok CLI (Grok Build)';
 	if (lower.startsWith('ocg/')) return 'Cloud Go';
@@ -366,8 +437,16 @@ function inferProviderFromModel(modelId: string): string {
 function formatProviderDisplayName(provider?: string): string {
 	if (!provider) return 'Dardcor Router';
 	const lower = provider.toLowerCase();
-	if (lower.includes('antigravity')) return 'Antigravity';
-	if (lower.includes('codex') || lower.includes('cx')) return 'OpenAI Codex';
+	if (lower.includes('antigravity') || lower === 'ag') return 'Antigravity';
+	if (lower.includes('codex') || lower === 'cx') return 'OpenAI Codex';
+	if (lower.includes('cline') || lower === 'cl') return 'Cline';
+	if (lower.includes('qoder') || lower === 'qd' || lower === 'qdcn') return 'Qoder';
+	if (lower.includes('kilocode') || lower === 'kc') return 'KiloCode';
+	if (lower.includes('codebuddy') || lower === 'cbai' || lower === 'cbcn') return 'CodeBuddy';
+	if (lower.includes('cursor') || lower === 'cu') return 'Cursor';
+	if (lower.includes('zed') || lower === 'zd') return 'Zed';
+	if (lower.includes('cloudflare') || lower === 'cf') return 'Cloudflare';
+	if (lower.includes('github') || lower === 'gh') return 'GitHub';
 	if (lower.includes('gemini-cli') || lower.includes('gc')) return 'Gemini CLI';
 	if (lower.includes('grok-cli') || lower.includes('gcli') || lower.includes('grok-build') || lower.includes('gb')) return 'Grok CLI (Grok Build)';
 	if (lower.includes('claude') || lower.includes('anthropic')) return 'Anthropic (Claude)';

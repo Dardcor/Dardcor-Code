@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import { WorkbenchServiceImpl } from '../../dardcor/workbenchServiceImpt';
 
 suite('HostServiceImpl', () => {
-	test.skip('getAllCommands', async () => { // TODO@TylerLeonhardt
+	test.skip('getAllCommands', async () => {
 		const envService = new WorkbenchServiceImpl();
 		const commands = await envService.getAllCommands();
 		assert.ok(Array.isArray(commands));

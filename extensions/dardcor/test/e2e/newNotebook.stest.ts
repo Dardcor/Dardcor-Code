@@ -9,7 +9,7 @@ import { fetchConversationScenarios, Scenario } from './scenarioLoader';
 import { generateScenarioTestRunner } from './scenarioTest';
 
 (function () {
-	ssuite.skip({ title: 'newNotebook', subtitle: 'e2e', location: 'panel' }, (inputPath) => { //@Yoyokrazy, refactor for tool - debt
+	ssuite.skip({ title: 'newNotebook', subtitle: 'e2e', location: 'panel' }, (inputPath) => {
 
 		const scenarioFolder = inputPath ?? path.join(__dirname, '..', 'test/scenarios/test-new-notebooks');
 		const scenarios: Scenario[] = fetchConversationScenarios(scenarioFolder);
@@ -19,7 +19,6 @@ import { generateScenarioTestRunner } from './scenarioTest';
 				generateScenarioTestRunner(
 					scenario,
 					(accessor, question, userVisibleAnswer, rawResponse, index, turn, commands) => {
-						// TODO@rebornix: test if response contains the outline for notebook in a code block
 						for (const command of commands) {
 							if (command.command === 'github.dardcor.newNotebook') {
 								return Promise.resolve({ success: true, errorMessage: '' });

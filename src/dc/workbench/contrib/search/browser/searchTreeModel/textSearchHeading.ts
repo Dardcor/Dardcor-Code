@@ -83,7 +83,6 @@ export abstract class TextSearchHeadingImpl<QueryType extends ITextSearchQuery> 
 	}
 
 	add(allRaw: IFileMatch[], searchInstanceID: string, silent: boolean = false): void {
-		// Split up raw into a list per folder so we can do a batch add per folder.
 
 		const { byFolder, other } = this.groupFilesByFolder(allRaw);
 		byFolder.forEach(raw => {
@@ -91,7 +90,6 @@ export abstract class TextSearchHeadingImpl<QueryType extends ITextSearchQuery> 
 				return;
 			}
 
-			// ai results go into the respective folder
 			const folderMatch = this.getFolderMatch(raw[0].resource);
 			folderMatch?.addFileMatch(raw, silent, searchInstanceID);
 		});
@@ -137,7 +135,6 @@ export abstract class TextSearchHeadingImpl<QueryType extends ITextSearchQuery> 
 		fileMatches.forEach(rawFileMatch => {
 			const folderMatch = this.getFolderMatch(rawFileMatch.resource);
 			if (!folderMatch) {
-				// foldermatch was previously removed by user or disposed for some reason
 				return;
 			}
 
@@ -165,7 +162,6 @@ export abstract class TextSearchHeadingImpl<QueryType extends ITextSearchQuery> 
 	abstract query: QueryType | null;
 
 	protected clearQuery(): void {
-		// When updating the query we could change the roots, so keep a reference to them to clean up when we trigger `disposePastResults`
 		const oldFolderMatches = this.folderMatches();
 		this.disposePastResults = async () => {
 			oldFolderMatches.forEach(match => match.clear());
@@ -227,7 +223,6 @@ export abstract class TextSearchHeadingImpl<QueryType extends ITextSearchQuery> 
 			}
 		});
 		if (this._showHighlights && selectedMatch) {
-			// TS?
 			this._rangeHighlightDecorations.highlightRange(
 				(<ISearchTreeMatch>selectedMatch).parent().resource,
 				(<ISearchTreeMatch>selectedMatch).range()

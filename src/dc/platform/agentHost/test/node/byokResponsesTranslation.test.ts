@@ -12,7 +12,7 @@ import {
 	IResponsesRequest,
 	responsesRequestToBridge,
 	ResponsesTranslationError,
-} from '../../node/copilot/byokResponsesTranslation.js';
+} from '../../node/shared/byokResponsesTranslation.js';
 
 suite('byokResponsesTranslation', () => {
 

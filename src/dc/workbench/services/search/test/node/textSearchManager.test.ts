@@ -46,16 +46,12 @@ suite('NativeTextSearchManager', () => {
 			provideTextSearchResults(query: TextSearchQuery2, options: TextSearchProviderOptions, progress: Progress<TextSearchResult2>, token: CancellationToken): ProviderResult<TextSearchComplete2> {
 				const range = new Range(0, 0, 0, 5);
 
-				// Report a result from a folder that IS in the query - should be received
 				progress.report(new TextSearchMatch2(
 					URI.file('/folder1/test.txt'),
 					[{ sourceRange: range, previewRange: range }],
 					'test match'
 				));
 
-				// Report a result from a folder that is NOT in the query
-				// This exercises: folderQuery?.folder?.scheme where folderQuery is undefined
-				// The optional chaining should handle this gracefully without throwing
 				progress.report(new TextSearchMatch2(
 					URI.file('/unknown/folder/file.txt'),
 					[{ sourceRange: range, previewRange: range }],
@@ -77,13 +73,10 @@ suite('NativeTextSearchManager', () => {
 		};
 
 		const m = new NativeTextSearchManager(query, provider);
-		// This should not throw even though a result from an unmatched folder was reported
 		await m.search((results) => {
 			receivedResults += results.length;
 		}, CancellationToken.None);
 
-		// Should only receive 1 result (the one from /folder1)
-		// The result from /unknown/folder should be silently ignored
 		assert.strictEqual(receivedResults, 1);
 	});
 

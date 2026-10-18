@@ -10,14 +10,12 @@ const sourceFile = path.join(import.meta.dirname, '../../../src/dc/workbench/con
 const destFile = path.join(import.meta.dirname, 'policyDto.ts');
 
 try {
-	// Check if source file exists
 	if (!fs.existsSync(sourceFile)) {
 		console.error(`Error: Source file not found: ${sourceFile}`);
 		console.error('Please ensure policyDto.ts exists in src/dc/workbench/contrib/policyExport/common/');
 		process.exit(1);
 	}
 
-	// Copy the file
 	fs.copyFileSync(sourceFile, destFile);
 } catch (error) {
 	console.error(`Error copying policyDto.ts: ${(error as Error).message}`);

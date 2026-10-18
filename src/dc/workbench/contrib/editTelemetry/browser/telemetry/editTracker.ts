@@ -15,9 +15,6 @@ import { IExternalEditCorrelation, IExternalEditCorrelationResolution } from './
 const EXTERNAL_OBSERVATION_KEY_PREFIX = 'external-observation:';
 export type ExternalEditCorrelationPolicy = 'suppress' | 'reattribute';
 
-/**
- * Tracks a single document.
-*/
 export class DocumentEditSourceTracker<T = void> extends Disposable {
 	private _edits: AnnotatedStringEdit<EditKeySourceData> = AnnotatedStringEdit.empty;
 	private _pendingExternalEdits: AnnotatedStringEdit<EditKeySourceData> = AnnotatedStringEdit.empty;
@@ -25,7 +22,7 @@ export class DocumentEditSourceTracker<T = void> extends Disposable {
 	private readonly _update = observableSignal(this);
 	private readonly _documentStore = this._register(new DisposableStore());
 	private readonly _representativePerKey: Map<string, TextModelEditSource> = new Map();
-	private readonly _sumAddedCharactersPerKey: Map</* key */string, number> = new Map();
+	private readonly _sumAddedCharactersPerKey: Map< string, number> = new Map();
 	private readonly _externalObservationIds = new Set<string>();
 	private readonly _ignoredInitialExternalObservationIds = new Set<string>();
 	private readonly _suppressedExternalObservationIds = new Set<string>();
@@ -44,7 +41,6 @@ export class DocumentEditSourceTracker<T = void> extends Disposable {
 			let eComposed = AnnotatedStringEdit.compose(edits.map(e => e.edit));
 			if (eComposed.replacements.every(e => e.data.source.category === 'external')) {
 				if (this._edits.isEmpty() && !this._externalEditCorrelation) {
-					// Ignore initial external edits
 				} else {
 					if (this._externalEditCorrelation) {
 						const observationId = this._externalEditCorrelation.register(_prevVal.value, _val.value);
@@ -61,7 +57,6 @@ export class DocumentEditSourceTracker<T = void> extends Disposable {
 						const key = `${EXTERNAL_OBSERVATION_KEY_PREFIX}${observationId}`;
 						eComposed = eComposed.mapData(replacement => new EditKeySourceData(key, replacement.data.source, replacement.data.representative));
 					}
-					// queue pending external edits
 					this._pendingExternalEdits = this._pendingExternalEdits.compose(eComposed);
 				}
 			} else {

@@ -23,7 +23,6 @@ const BUILD_TARGETS = [
 	{ platform: 'linux', arch: 'arm64' },
 ];
 
-// The following files do not have PDBs downloaded for them during the download symbols process.
 const excludedCheckList = [
 	'd3dcompiler_47.dll',
 	'dxil.dll',
@@ -40,13 +39,10 @@ BUILD_TARGETS.forEach(buildTarget => {
 
 	const tasks: task.Task[] = [];
 
-	// removal tasks
 	tasks.push(util.rimraf(destinationExe), util.rimraf(destinationPdb));
 
-	// electron
 	tasks.push(() => electron.dest(destinationExe, { ...config, platform, arch: arch === 'armhf' ? 'arm' : arch }));
 
-	// pdbs for windows
 	if (platform === 'win32') {
 		tasks.push(
 			() => electron.dest(destinationPdb, { ...config, platform, arch: arch === 'armhf' ? 'arm' : arch, pdbs: true }),
@@ -60,7 +56,6 @@ BUILD_TARGETS.forEach(buildTarget => {
 		);
 	}
 
-	// node modules
 	tasks.push(
 		nodeModules(destinationExe, destinationPdb, platform)
 	);
@@ -83,8 +78,6 @@ function nodeModules(destinationExe: string, destinationPdb: string, platform: s
 		return gulp.src(getProductionDependencySources(), { base: '.', dot: true })
 			.pipe(filter([
 				'**/*.node',
-				// Exclude these paths.
-				// We don't build the prebuilt node files so we don't scan them
 				'!**/prebuilds/**/*.node'
 			]))
 			.pipe(gulp.dest(destinationExe));

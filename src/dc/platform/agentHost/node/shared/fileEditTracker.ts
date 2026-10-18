@@ -18,25 +18,10 @@ import { IEditSurvivalReporterFactory } from './editSurvivalReporter.js';
 import { IEditArcReporterService } from './editArcReporter.js';
 import { createArcTextEditFromDiff, extractArcTextEdit } from './arcToolEdit.js';
 
-/**
- * Tracks file edits made by tools in a session by snapshotting file content
- * before and after each edit tool invocation, persisting snapshots into the
- * session database.
- */
 export class FileEditTracker {
 
-	/**
-	 * Pending edits keyed by file path. Populated by {@link trackEditStart}
-	 * before the edit tool runs; popped by {@link completeEdit} when it
-	 * finishes.
-	 */
 	private readonly _pendingEdits = new Map<string, { beforeContent: VSBuffer; beforeExisted: boolean; mode: string | undefined; snapshotDone: Promise<void> }>();
 
-	/**
-	 * Completed edits keyed by file path. Populated by {@link completeEdit};
-	 * drained by {@link takeCompletedEdit}, which persists the entry to
-	 * the database.
-	 */
 	private readonly _completedEdits = new Map<string, { beforeContent: VSBuffer; beforeExisted: boolean; afterContent: VSBuffer; mode: string | undefined }>();
 
 	constructor(
@@ -50,15 +35,6 @@ export class FileEditTracker {
 		@IEditArcReporterService private readonly _editArcReporterService: IEditArcReporterService,
 	) { }
 
-	/**
-	 * Call before an edit tool runs. Reads the file's current content
-	 * into memory as the "before" state. Callers should await this so
-	 * the snapshot captures pre-edit content before the tool writes to
-	 * disk.
-	 *
-	 * @param filePath - Absolute path of the file being edited.
-	 * @param mode - Provider execution mode when the edit started.
-	 */
 	async trackEditStart(filePath: string, mode?: string): Promise<void> {
 		const snapshotDone = this._readFileWithExistence(filePath);
 		const entry = {
@@ -74,13 +50,6 @@ export class FileEditTracker {
 		await entry.snapshotDone;
 	}
 
-	/**
-	 * Call after an edit tool finishes. Reads the file content again as
-	 * the "after" state and stores the result for later retrieval via
-	 * {@link takeCompletedEdit}.
-	 *
-	 * @param filePath - Absolute path of the file that was edited.
-	 */
 	async completeEdit(filePath: string): Promise<void> {
 		const pending = this._pendingEdits.get(filePath);
 		if (!pending) {
@@ -99,16 +68,6 @@ export class FileEditTracker {
 		});
 	}
 
-	/**
-	 * Retrieves and removes a completed edit for the given file path,
-	 * persists it to the session database with computed diff counts,
-	 * and returns the result as an {@link ToolResultFileEditContent}
-	 * for inclusion in the tool result.
-	 *
-	 * `toolName` and `toolInput` are forwarded to {@link extractAiChunks}
-	 * for region-based survival scoring; unknown shapes fall back to
-	 * whole-file scoring.
-	 */
 	async takeCompletedEdit(turnId: string, toolCallId: string, filePath: string, toolName: string, toolInput: unknown, modelId: string | undefined, clientContext?: IAgentHostClientTelemetryContext): Promise<ToolResultFileEditContent | undefined> {
 		const edit = this._completedEdits.get(filePath);
 		if (!edit) {

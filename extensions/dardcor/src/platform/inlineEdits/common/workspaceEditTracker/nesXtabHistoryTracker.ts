@@ -52,18 +52,9 @@ type DocumentSelectionChangedEvent = {
 	previous: readonly OffsetRange[] | undefined;
 };
 
-/**
- * Controls how consecutive edits to the same document are merged in history.
- */
 export type XtabEditMergeStrategy =
-	/** Merge when the first replacement of both line-edits starts on the same line. */
 	| { readonly kind: DiffHistoryMergeStrategy.SameStartLine }
-	/** Merge when all replacements in both line-edits are within `lineGap` lines of each other. */
 	| { readonly kind: DiffHistoryMergeStrategy.Proximity; readonly lineGap: number }
-	/**
-	 * Layer 1 (keystroke coalescing): merge if edits are within `lineGap` lines AND arrived within `splitAfterMs`.
-	 * Layer 2 (logical splitting): if either condition fails, start a new history entry.
-	 */
 	| { readonly kind: DiffHistoryMergeStrategy.Hybrid; readonly lineGap: number; readonly splitAfterMs: number };
 
 export namespace XtabEditMergeStrategy {
@@ -77,9 +68,6 @@ export namespace XtabEditMergeStrategy {
 		return { kind: DiffHistoryMergeStrategy.Hybrid, lineGap, splitAfterMs };
 	}
 
-	/**
-	 * Constructs a {@link XtabEditMergeStrategy} from config values.
-	 */
 	export function fromConfig(strategyKind: DiffHistoryMergeStrategy, lineGap: number, splitAfterMs: number): XtabEditMergeStrategy {
 		switch (strategyKind) {
 			case DiffHistoryMergeStrategy.Proximity:
@@ -94,14 +82,10 @@ export namespace XtabEditMergeStrategy {
 	}
 }
 
-/**
- * Returns whether all replacements in `a` are within `maxLineGap` lines of some replacement in `b` (and vice-versa).
- */
 function areLineEditsWithinProximity(a: LineEdit, b: LineEdit, maxLineGap: number): boolean {
 	if (a.isEmpty() || b.isEmpty()) {
 		return false;
 	}
-	// Every replacement in `a` must be close to at least one replacement in `b`.
 	for (const repA of a.replacements) {
 		const closeToSomeInB = b.replacements.some(repB => repA.lineRange.distanceToRange(repB.lineRange) <= maxLineGap);
 		if (!closeToSomeInB) {
@@ -113,7 +97,6 @@ function areLineEditsWithinProximity(a: LineEdit, b: LineEdit, maxLineGap: numbe
 
 export class NesXtabHistoryTracker extends Disposable {
 
-	/** Max # of entries in history */
 	private static MAX_HISTORY_SIZE = 50;
 
 	private readonly idToEntry: Map<DocumentId, { entry: IXtabHistoryEntry; removeFromHistory: () => void; lastEditTimestamp: Instant }>;
@@ -144,7 +127,6 @@ export class NesXtabHistoryTracker extends Disposable {
 
 		mapObservableArrayCached(this, workspace.openDocuments, (doc, store) => {
 
-			// add .value to all observables
 			store.add(autorunWithChanges(this, {
 				rootedEdits: doc.value,
 				visibleRanges: doc.visibleRanges,
@@ -164,10 +146,6 @@ export class NesXtabHistoryTracker extends Disposable {
 		return [...this.history];
 	}
 
-	/**
-	 * If the document isn't already in history, add it to the history.
-	 * If the document is in history either with an edit or selection entry, do not include it again.
-	 */
 	private handleVisibleRangesChange(doc: IObservableDocument, visibleRangesChange: DocumentSelectionChangedEvent) {
 		if (visibleRangesChange.value.length === 0) {
 			return;
@@ -175,13 +153,10 @@ export class NesXtabHistoryTracker extends Disposable {
 
 		const previousRecord = this.idToEntry.get(doc.id);
 
-		// if this's an already known file
 		if (previousRecord !== undefined) {
-			// if it's an edit entry, do not change anything
 			if (previousRecord.entry.kind === 'edit') {
 				return;
 			}
-			// else remove from history to update the visible ranges
 			previousRecord.removeFromHistory();
 		}
 
@@ -221,7 +196,6 @@ export class NesXtabHistoryTracker extends Disposable {
 
 		const previousRecord = this.idToEntry.get(doc.id);
 
-		// const currentBase = rootedEdits.value.apply(currentEdit.inverseOnString(rootedEdits.previous.value));
 		const currentBase = rootedEdits.previous;
 		const currentRootedEdit = new RootedEdit(currentBase, currentEdit);
 
@@ -241,7 +215,6 @@ export class NesXtabHistoryTracker extends Disposable {
 		const currentLineEdit = RootedEdit.toLineEdit(currentRootedEdit);
 
 		if (this.shouldMerge(lastLineEdit, currentLineEdit, previousRecord.lastEditTimestamp)) {
-			// merge edits
 			previousRecord.removeFromHistory();
 			const composedEdit = lastRootedEdit.edit.compose(currentEdit);
 			const edit = new RootedEdit(lastRootedEdit.base, composedEdit);

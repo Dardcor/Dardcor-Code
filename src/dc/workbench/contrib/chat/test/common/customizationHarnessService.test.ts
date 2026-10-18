@@ -32,7 +32,6 @@ suite('CustomizationHarnessService', () => {
 	}
 
 	const testSessionType1 = 'test-session-type1';
-	//const testSessionType2 = 'test-session-type2';
 	const testSessionResource1 = URI.parse('test-session-type1://session1');
 	const testSessionResource2 = URI.parse('test-session-type2://session2');
 
@@ -260,7 +259,6 @@ suite('CustomizationHarnessService', () => {
 			const reg = service.registerExternalHarness(externalDescriptor);
 			store.add(reg);
 
-			// Should still be 2, not 3 — the external shadows the static
 			assert.strictEqual(service.availableHarnesses.get().length, 2);
 			const cliHarness = service.availableHarnesses.get().find(h => h.id === 'cli')!;
 			assert.strictEqual(cliHarness.label, 'Copilot CLI (from API)');
@@ -292,7 +290,6 @@ suite('CustomizationHarnessService', () => {
 			const reg = service.registerExternalHarness(externalDescriptor);
 			reg.dispose();
 
-			// Static harness should be back
 			assert.strictEqual(service.availableHarnesses.get().length, 2);
 			const cliHarness = service.availableHarnesses.get().find(h => h.id === 'cli')!;
 			assert.strictEqual(cliHarness.label, 'Copilot CLI (static)');
@@ -328,7 +325,6 @@ suite('CustomizationHarnessService', () => {
 
 			reg.dispose();
 
-			// Active stays on 'cli' because the static harness with the same id is restored
 			assert.strictEqual(service.activeHarness.get(), 'cli');
 		});
 	});

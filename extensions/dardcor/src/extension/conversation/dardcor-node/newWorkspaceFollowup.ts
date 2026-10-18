@@ -48,7 +48,6 @@ export function registerNewWorkspaceIntentCommand(previewContentManager: INewWor
 				const document = await workspace.openTextDocument(Uri.parse(pathStr));
 				await workspace.fs.writeFile(uri, Buffer.from(document.getText()));
 
-				// Close out all previews since they won't properly restore
 				const tabsToClose: Tab[] = [];
 				window.tabGroups.all.forEach(group => {
 					group.tabs.forEach((tab) => {
@@ -59,7 +58,6 @@ export function registerNewWorkspaceIntentCommand(previewContentManager: INewWor
 				});
 				window.tabGroups.close(tabsToClose, true);
 
-				// re-open saved file
 				const fileDoc = await workspace.openTextDocument(Uri.file(uri.fsPath));
 				await window.showTextDocument(fileDoc);
 			}
@@ -71,7 +69,6 @@ export function registerNewWorkspaceIntentCommand(previewContentManager: INewWor
 }
 
 async function createWorkspace(logService: ILogService, workspaceRoot: Uri | undefined, parentFolder: Uri, fileTreePart: ChatResponseFileTreePart) {
-	// Close out all previews since they won't properly restore
 	const tabsToClose: Tab[] = [];
 	window.tabGroups.all.forEach(group => {
 		group.tabs.forEach((tab) => {
@@ -82,7 +79,6 @@ async function createWorkspace(logService: ILogService, workspaceRoot: Uri | und
 	});
 	window.tabGroups.close(tabsToClose, true);
 
-	// remove path separator from the beginning of the path
 	const projectRoot = fileTreePart.baseUri.path.slice(1);
 	const projectName = await getUniqueProjectName(parentFolder, projectRoot);
 	const workspaceUri = Uri.joinPath(parentFolder, projectName);
@@ -96,9 +92,6 @@ async function createWorkspace(logService: ILogService, workspaceRoot: Uri | und
 		await window.withProgress({ location: ProgressLocation.Notification, cancellable: true }, async (progress, token) => {
 			for (const file of files) {
 				const fileUri = resolveProjectFileUri(workspaceUri, projectRoot, file);
-				// Guard against path traversal: a malicious or prompt-injected file tree
-				// can contain `..` segments that escape the generated workspace folder.
-				// Skip any file whose resolved destination is not contained within it.
 				if (!isUriContained(workspaceUri, fileUri)) {
 					logService.warn(`[newIntent] Skipping file outside of workspace: ${file}`);
 					continue;
@@ -112,7 +105,6 @@ async function createWorkspace(logService: ILogService, workspaceRoot: Uri | und
 		});
 
 		if (workspaceRoot && workspaceUri.fsPath.startsWith(workspaceRoot.fsPath + path.sep)) {
-			// If the new workspace is a subfolder of the current workspace, do nothing
 			return;
 		}
 
@@ -140,28 +132,6 @@ async function createWorkspace(logService: ILogService, workspaceRoot: Uri | und
 	}
 }
 
-/**
- * Resolves the destination URI for a file emitted by `listFilesInResponseFileTree`
- * inside a generated workspace.
- *
- * The emitted shape depends on the source flow:
- *  - Copilot new-workspace flow: `<projectName>/<inside>` (no leading slash).
- *  - GitHub repo-template flow:  `/<inside>` (leading slash; the repo-name
- *    level has been collapsed out of the tree).
- *  - GitHub subdir/non-repo-root: `<subdir>/<inside>`.
- *
- * In every case the part *inside the project* is what we want to join with
- * `workspaceUri`. We compute it by stripping any leading `/` and any leading
- * `<projectRoot>/` prefix. Any remaining `..` segments are preserved so the
- * downstream `isUriContained` check can reject traversal attempts.
- *
- * Using a string-strip (rather than the platform-aware `path.relative` against
- * `cwd`) avoids the Windows-only failure mode where the relative `projectRoot`
- * gets resolved against `process.cwd()` and produces a nonsense `..`-laden
- * traversal that escapes the workspace.
- *
- * Exported for tests only.
- */
 export function resolveProjectFileUri(workspaceUri: Uri, projectRoot: string, file: string): Uri {
 	let rel = file.startsWith('/') ? file.slice(1) : file;
 	const prefix = projectRoot + '/';
@@ -173,13 +143,6 @@ export function resolveProjectFileUri(workspaceUri: Uri, projectRoot: string, fi
 	return Uri.joinPath(workspaceUri, rel);
 }
 
-/**
- * Returns `true` if `child` resolves to a location at or within `parent`.
- * Used to prevent path traversal (`..`) from escaping the generated workspace folder.
- * Note: `Uri.joinPath` normalizes `..` segments, so `child.path` is already resolved here.
- *
- * Exported for tests only.
- */
 export function isUriContained(parent: Uri, child: Uri): boolean {
 	if (parent.scheme !== child.scheme || parent.authority !== child.authority) {
 		return false;

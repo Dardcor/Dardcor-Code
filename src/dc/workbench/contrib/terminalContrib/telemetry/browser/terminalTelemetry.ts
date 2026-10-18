@@ -34,19 +34,13 @@ export class TerminalTelemetryContribution extends Disposable implements IWorkbe
 			this._store.add(store);
 
 			await Promise.race([
-				// Wait for process ready so the shell launch config is fully resolved, then
-				// allow another 10 seconds for the shell integration to be fully initialized
 				instance.processReady.then(() => {
 					return timeout(10000);
 				}),
-				// If the terminal is disposed, it's ready to report on immediately
 				Event.toPromise(instance.onDisposed, store),
-				// If the app is shutting down, flush
 				Event.toPromise(lifecycleService.onWillShutdown, store),
 			]);
 
-			// Determine window status, this is done some time after the process is ready and could
-			// reflect the terminal being moved.
 			let isInAuxWindow = false;
 			try {
 				const input = terminalEditorService.getInputFromResource(instance.resource);
@@ -154,12 +148,10 @@ export class TerminalTelemetryContribution extends Disposable implements IWorkbe
 	}
 }
 
-// #region Shell Type
 
 const enum AllowedShellType {
 	Unknown = 'unknown',
 
-	// Windows only
 	CommandPrompt = 'cmd',
 	Cygwin = 'cygwin-bash',
 	GitBash = 'git-bash',
@@ -168,7 +160,6 @@ const enum AllowedShellType {
 	Wsl = 'wsl',
 
 
-	// Common Unix shells
 	Bash = 'bash',
 	Fish = 'fish',
 	Pwsh = 'pwsh',
@@ -178,7 +169,6 @@ const enum AllowedShellType {
 	Tmux = 'tmux',
 	Zsh = 'zsh',
 
-	// More shells
 	Amm = 'amm',
 	Ash = 'ash',
 	Csh = 'csh',
@@ -195,14 +185,11 @@ const enum AllowedShellType {
 	Termux = 'termux',
 	Xonsh = 'xonsh',
 
-	// AI CLIs
 	Claude = 'claude',
 	Codex = 'codex',
 	Copilot = 'copilot',
 	Gemini = 'gemini',
 
-	// Lanugage REPLs
-	// These are expected to be very low since they are not typically the default shell
 	Clojure = 'clj',
 	CommonLispSbcl = 'sbcl',
 	Crystal = 'crystal',
@@ -231,13 +218,10 @@ const enum AllowedShellType {
 	TsNode = 'ts-node',
 }
 
-// Types that match the executable name directly
 const shellTypeExecutableAllowList: Set<string> = new Set([
-	// Windows only
 	AllowedShellType.CommandPrompt,
 	AllowedShellType.Wsl,
 
-	// Common Unix shells
 	AllowedShellType.Bash,
 	AllowedShellType.Fish,
 	AllowedShellType.Pwsh,
@@ -246,7 +230,6 @@ const shellTypeExecutableAllowList: Set<string> = new Set([
 	AllowedShellType.Tmux,
 	AllowedShellType.Zsh,
 
-	// More shells
 	AllowedShellType.Amm,
 	AllowedShellType.Ash,
 	AllowedShellType.Csh,
@@ -263,7 +246,6 @@ const shellTypeExecutableAllowList: Set<string> = new Set([
 	AllowedShellType.Termux,
 	AllowedShellType.Xonsh,
 
-	// Lanugage REPLs
 	AllowedShellType.Clojure,
 	AllowedShellType.CommonLispSbcl,
 	AllowedShellType.Crystal,
@@ -292,25 +274,16 @@ const shellTypeExecutableAllowList: Set<string> = new Set([
 	AllowedShellType.TsNode,
 ]) satisfies Set<AllowedShellType>;
 
-// Dynamic executables that map to a single type
 const shellTypeExecutableRegexAllowList: { regex: RegExp; type: AllowedShellType }[] = [
 	{ regex: /^(?:pwsh|powershell)-preview$/i, type: AllowedShellType.PwshPreview },
 	{ regex: /^python(?:\d+(?:\.\d+)?)?$/i, type: AllowedShellType.Python },
 ];
 
-// Path-based look ups
 const shellTypePathRegexAllowList: { regex: RegExp; type: AllowedShellType }[] = [
-	// Cygwin uses bash.exe, so look up based on the path
 	{ regex: /\\Cygwin(?:64)?\\.+\\bash\.exe$/i, type: AllowedShellType.Cygwin },
-	// Git bash uses bash.exe, so look up based on the path
 	{ regex: /\\Git\\.+\\bash\.exe$/i, type: AllowedShellType.GitBash },
-	// Msys2 uses bash.exe, so look up based on the path
 	{ regex: /\\msys(?:32|64)\\.+\\(?:bash|msys2)\.exe$/i, type: AllowedShellType.Msys2 },
-	// WindowsPowerShell should always be installed on this path, we cannot just look at the
-	// executable name since powershell is the CLI on other platforms sometimes (eg. snap package)
 	{ regex: /\\WindowsPowerShell\\v1.0\\powershell.exe$/i, type: AllowedShellType.WindowsPowerShell },
-	// WSL executables will represent some other shell in the end, but it's difficult to determine
-	// when we log
 	{ regex: /\\Windows\\(?:System32|SysWOW64|Sysnative)\\(?:bash|wsl)\.exe$/i, type: AllowedShellType.Wsl },
 ];
 
@@ -336,4 +309,3 @@ function getSanitizedShellType(slc: IShellLaunchConfig): AllowedShellType {
 	return AllowedShellType.Unknown;
 }
 
-// #endregion Shell Type

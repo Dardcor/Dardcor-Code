@@ -19,35 +19,26 @@ suite('Replace Pattern test', () => {
 			assert.deepStrictEqual(actual, expected, 'Parsing ' + input);
 		};
 
-		// no backslash => no treatment
 		testParse('hello', [ReplacePiece.staticValue('hello')]);
 
-		// \t => TAB
 		testParse('\\thello', [ReplacePiece.staticValue('\thello')]);
 		testParse('h\\tello', [ReplacePiece.staticValue('h\tello')]);
 		testParse('hello\\t', [ReplacePiece.staticValue('hello\t')]);
 
-		// \n => LF
 		testParse('\\nhello', [ReplacePiece.staticValue('\nhello')]);
 
-		// \\t => \t
 		testParse('\\\\thello', [ReplacePiece.staticValue('\\thello')]);
 		testParse('h\\\\tello', [ReplacePiece.staticValue('h\\tello')]);
 		testParse('hello\\\\t', [ReplacePiece.staticValue('hello\\t')]);
 
-		// \\\t => \TAB
 		testParse('\\\\\\thello', [ReplacePiece.staticValue('\\\thello')]);
 
-		// \\\\t => \\t
 		testParse('\\\\\\\\thello', [ReplacePiece.staticValue('\\\\thello')]);
 
-		// \ at the end => no treatment
 		testParse('hello\\', [ReplacePiece.staticValue('hello\\')]);
 
-		// \ with unknown char => no treatment
 		testParse('hello\\x', [ReplacePiece.staticValue('hello\\x')]);
 
-		// \ with back reference => no treatment
 		testParse('hello\\0', [ReplacePiece.staticValue('hello\\0')]);
 
 		testParse('hello$&', [ReplacePiece.staticValue('hello'), ReplacePiece.matchIndex(0)]);
@@ -86,7 +77,6 @@ suite('Replace Pattern test', () => {
 			assert.strictEqual(actual, expected, `${target}.replace(${search}, ${replaceString}) === ${expected}`);
 		}
 
-		// \U, \u => uppercase  \L, \l => lowercase  \E => cancel
 
 		testParse('hello\\U$1', [ReplacePiece.staticValue('hello'), ReplacePiece.caseOps(1, ['U'])]);
 		assertReplace('func privateFunc(', /func (\w+)\(/, 'func \\U$1(', 'func PRIVATEFUNC(');
@@ -119,14 +109,11 @@ suite('Replace Pattern test', () => {
 		testJSReplaceSemantics('hi', /hi/, '\\\\t', 'hi'.replace(/hi/, '\\t'));
 		testJSReplaceSemantics('hi', /hi/, '\\\\n', 'hi'.replace(/hi/, '\\n'));
 
-		// implicit capture group 0
 		testJSReplaceSemantics('hi', /hi/, 'hello$&', 'hi'.replace(/hi/, 'hello$&'));
 		testJSReplaceSemantics('hi', /hi/, 'hello$0', 'hi'.replace(/hi/, 'hello$&'));
 		testJSReplaceSemantics('hi', /hi/, 'hello$&1', 'hi'.replace(/hi/, 'hello$&1'));
 		testJSReplaceSemantics('hi', /hi/, 'hello$01', 'hi'.replace(/hi/, 'hello$&1'));
 
-		// capture groups have funny semantics in replace strings
-		// the replace string interprets $nn as a captured group only if it exists in the search regex
 		testJSReplaceSemantics('hi', /(hi)/, 'hello$10', 'hi'.replace(/(hi)/, 'hello$10'));
 		testJSReplaceSemantics('hi', /(hi)()()()()()()()()()/, 'hello$10', 'hi'.replace(/(hi)()()()()()()()()()/, 'hello$10'));
 		testJSReplaceSemantics('hi', /(hi)/, 'hello$100', 'hi'.replace(/(hi)/, 'hello$100'));
@@ -155,7 +142,6 @@ suite('Replace Pattern test', () => {
 		assertReplace('let fs = require(\'fs\')', searchRegex, 'import * as $1 from \'$2\';', 'import * as fs from \'fs\';');
 		assertReplace('for ()', /for(.*)/, 'cat$1', 'cat ()');
 
-		// issue #18111
 		assertReplace('HRESULT OnAmbientPropertyChange(DISPID   dispid);', /\b\s{3}\b/, ' ', ' ');
 	});
 

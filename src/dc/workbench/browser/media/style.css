@@ -3,11 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Animations */
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Font Families (with CJK support) */
 
 .monaco-workbench.mac { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
 .monaco-workbench.mac:lang(zh-Hans) { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; }
@@ -21,7 +19,6 @@
 .monaco-workbench.windows:lang(ja) { font-family: "Segoe WPC", "Segoe UI", "Yu Gothic UI", "Meiryo UI", sans-serif; }
 .monaco-workbench.windows:lang(ko) { font-family: "Segoe WPC", "Segoe UI", "Malgun Gothic", "Dotom", sans-serif; }
 
-/* Linux: add `system-ui` as first font and not `Ubuntu` to allow other distribution pick their standard OS font */
 .monaco-workbench.linux { font-family: system-ui, "Ubuntu", "Droid Sans", sans-serif; }
 .monaco-workbench.linux:lang(zh-Hans) { font-family: system-ui, "Ubuntu", "Droid Sans", "Source Han Sans SC", "Source Han Sans CN", "Source Han Sans", sans-serif; }
 .monaco-workbench.linux:lang(zh-Hant) { font-family: system-ui, "Ubuntu", "Droid Sans", "Source Han Sans TC", "Source Han Sans TW", "Source Han Sans", sans-serif; }
@@ -32,7 +29,6 @@
 .monaco-workbench.windows { --monaco-monospace-font: Consolas, "Courier New", monospace; }
 .monaco-workbench.linux { --monaco-monospace-font: "Ubuntu Mono", "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace; }
 
-/* Global Styles */
 
 body {
 	height: 100%;
@@ -54,19 +50,16 @@ body {
 	overflow: hidden;
 	color: var(--vscode-foreground);
 
-	/* Elevation shadows */
 	--vscode-shadow-sm: 0 0 4px rgba(0, 0, 0, 0.08);
 	--vscode-shadow-md: 0 0 6px rgba(0, 0, 0, 0.08);
 	--vscode-shadow-lg: 0 0 12px rgba(0, 0, 0, 0.14);
 	--vscode-shadow-xl: 0 0 20px rgba(0, 0, 0, 0.15);
 	--vscode-shadow-active-tab: 0 8px 12px rgba(0, 0, 0, 0.02);
 
-	/* Panel depth shadows cast onto the editor surface */
 	--vscode-shadow-depth-x: 5px 0 10px -4px rgba(0, 0, 0, 0.05);
 	--vscode-shadow-depth-y: 0 5px 10px -4px rgba(0, 0, 0, 0.04);
 }
 
-/* Disable panel/part shadows when the setting is off (preserves floating modals, notifications, etc.) */
 .monaco-workbench.no-shadows .part.titlebar,
 .monaco-workbench.no-shadows .part.activitybar,
 .monaco-workbench.no-shadows.nosidebar .part.activitybar,
@@ -79,8 +72,6 @@ body {
 	box-shadow: none;
 }
 .monaco-workbench.no-shadows {
-	/* Use zero-offset transparent shadows instead of 'none' because these
-	 * variables are interpolated into multi-value box-shadow declarations. */
 	--vscode-shadow-active-tab: 0 0 0 0 transparent;
 	--vscode-shadow-depth-x: 0 0 0 0 transparent;
 	--vscode-shadow-depth-y: 0 0 0 0 transparent;
@@ -88,8 +79,8 @@ body {
 }
 
 .monaco-workbench.web {
-	touch-action: none; /* Disable browser handling of all panning and zooming gestures. Removes 300ms touch delay. */
-	overscroll-behavior: none; /* Prevent bounce effect */
+	touch-action: none;
+	overscroll-behavior: none;
 }
 
 .monaco-workbench.border:not(.fullscreen) {
@@ -102,7 +93,7 @@ body {
 }
 
 .monaco-workbench.border.mac.macos-tahoe {
-	border-radius: 16px; /* macOS Tahoe increased rounded corners size */
+	border-radius: 16px;
 }
 
 .monaco-workbench img {
@@ -154,11 +145,6 @@ body {
 }
 
 .monaco-workbench table {
-	/*
-	 * Somehow this is required when tables show in floating windows
-	 * to override the user-agent style which sets a specific color
-	 * and font-size
-	 */
 	color: inherit;
 	font-size: inherit;
 }
@@ -201,16 +187,16 @@ body {
 }
 
 .monaco-workbench .codicon[class*='codicon-'] {
-	font-size: 16px; /* sets font-size for codicons in workbench (https://github.com/microsoft/vscode/issues/98495) */
+	font-size: 16px;
 }
 
 .monaco-workbench .predefined-file-icon[class*='codicon-']::before {
 	width: 16px;
-	padding-left: 3px; /* width (16px) - font-size (13px) = padding-left (3px) */
+	padding-left: 3px;
 	padding-right: 3px;
 }
 
-.predefined-file-icon::before { /* do add additional specificity to this selector, so it can be overridden by product themes */
+.predefined-file-icon::before {
 	font-family: 'codicon';
 }
 
@@ -219,17 +205,15 @@ body {
 }
 
 .monaco-workbench.modal-dialog-visible .monaco-progress-container.infinite .progress-bit {
-	display: none; /* stop progress animations when dialogs are visible (https://github.com/microsoft/vscode/issues/138396) */
+	display: none;
 }
 
-/* Custom Dropdown (select) Arrows */
 
 .monaco-workbench select {
 	font-family: inherit;
 	appearance: none;
 	-webkit-appearance: none;
 	-moz-appearance: none;
-	/* Hides inner border from FF */
 	border: 1px solid;
 }
 
@@ -252,7 +236,6 @@ body {
 	pointer-events: none;
 }
 
-/* Keyboard Focus Indication Styles */
 
 .monaco-workbench [tabindex="0"]:focus,
 .monaco-workbench [tabindex="-1"]:focus,
@@ -273,7 +256,7 @@ body {
 
 .monaco-workbench.hc-black .synthetic-focus input,
 .monaco-workbench.hc-light .synthetic-focus input {
-	background: transparent; /* Search input focus fix when in high contrast */
+	background: transparent;
 }
 
 .monaco-workbench input[type="checkbox"]:focus {
@@ -285,11 +268,11 @@ body {
 .monaco-workbench select:active,
 .monaco-workbench input[type="button"]:active,
 .monaco-workbench input[type="checkbox"]:active {
-	outline: 0 !important; /* fixes some flashing outlines from showing up when clicking */
+	outline: 0 !important;
 }
 
 .monaco-workbench.mac select:focus {
-	border-color: transparent; /* outline is a square, but border has a radius, so we avoid this glitch when focused (https://github.com/microsoft/vscode/issues/26045) */
+	border-color: transparent;
 }
 
 .monaco-workbench.hc-black .monaco-list:not(.element-focused):not(:active):focus:before,
@@ -299,10 +282,10 @@ body {
 	left: 0;
 	width: 100%;
 	height: 100%;
-	z-index: 15; /* make sure we are on top of the tree sticky scroll widget */
+	z-index: 15;
 	content: "";
-	pointer-events: none; /* enable click through */
-	outline: 1px solid; /* we still need to handle the empty tree or no focus item case */
+	pointer-events: none;
+	outline: 1px solid;
 	outline-width: 1px;
 	outline-style: solid;
 	outline-offset: -1px;
@@ -319,7 +302,7 @@ body {
 }
 
 .monaco-workbench .synthetic-focus :focus {
-	outline: 0 !important; /* elements within widgets that draw synthetic-focus should never show focus */
+	outline: 0 !important;
 }
 
 .monaco-workbench .monaco-inputbox.info.synthetic-focus,
@@ -328,15 +311,15 @@ body {
 .monaco-workbench .monaco-inputbox.info input[type="text"]:focus,
 .monaco-workbench .monaco-inputbox.warning input[type="text"]:focus,
 .monaco-workbench .monaco-inputbox.error input[type="text"]:focus {
-	outline: 0 !important; /* outline is not going well with decoration */
+	outline: 0 !important;
 }
 
 .monaco-workbench .monaco-list:focus {
-	outline: 0 !important; /* tree indicates focus not via outline but through the focused item */
+	outline: 0 !important;
 }
 
 .monaco-workbench a.monaco-link:hover {
-	text-decoration: underline; /* render underline on hover for accessibility requirements */
+	text-decoration: underline;
 }
 
 .monaco-workbench .monaco-action-bar:not(.vertical) .action-label:not(.disabled):hover,

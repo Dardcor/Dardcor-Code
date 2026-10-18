@@ -10,8 +10,6 @@ export function t(...params: [message: string, ...args: Array<string | number | 
 	if (typeof params[0] === 'string') {
 		const key = params.shift() as string;
 
-		// We have either rest args which are Array<string | number | boolean> or an array with a single Record<string, any>.
-		// This ensures we get a Record<string | number, any> which will be formatted correctly.
 		const argsFormatted = !params || typeof params[0] !== 'object' ? params : params[0];
 		return getMessage({ message: key, args: argsFormatted as Record<string | number, any> | undefined });
 	}

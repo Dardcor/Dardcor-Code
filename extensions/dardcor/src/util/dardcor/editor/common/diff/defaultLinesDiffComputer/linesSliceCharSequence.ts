@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -71,18 +70,14 @@ export class LinesSliceCharSequence implements ISequence {
 	}
 
 	public getBoundaryScore(length: number): number {
-		//   a   b   c   ,           d   e   f
-		// 11  0   0   12  15  6   13  0   0   11
 
 		const prevCategory = getCategory(length > 0 ? this.elements[length - 1] : -1);
 		const nextCategory = getCategory(length < this.elements.length ? this.elements[length] : -1);
 
 		if (prevCategory === CharBoundaryCategory.LineBreakCR && nextCategory === CharBoundaryCategory.LineBreakLF) {
-			// don't break between \r and \n
 			return 0;
 		}
 		if (prevCategory === CharBoundaryCategory.LineBreakLF) {
-			// prefer the linebreak before the change
 			return 150;
 		}
 
@@ -101,7 +96,6 @@ export class LinesSliceCharSequence implements ISequence {
 	}
 
 	public translateOffset(offset: number, preference: 'left' | 'right' = 'right'): Position {
-		// find smallest i, so that lineBreakOffsets[i] <= offset using binary search
 		const i = findLastIdxMonotonous(this.firstElementOffsetByLineIdx, (value) => value <= offset);
 		const lineOffset = offset - this.firstElementOffsetByLineIdx[i];
 		return new Position(
@@ -119,9 +113,6 @@ export class LinesSliceCharSequence implements ISequence {
 		return Range.fromPositions(pos1, pos2);
 	}
 
-	/**
-	 * Finds the word that contains the character at the given offset
-	 */
 	public findWordContaining(offset: number): OffsetRange | undefined {
 		if (offset < 0 || offset >= this.elements.length) {
 			return undefined;
@@ -131,13 +122,11 @@ export class LinesSliceCharSequence implements ISequence {
 			return undefined;
 		}
 
-		// find start
 		let start = offset;
 		while (start > 0 && isWordChar(this.elements[start - 1])) {
 			start--;
 		}
 
-		// find end
 		let end = offset;
 		while (end < this.elements.length && isWordChar(this.elements[end])) {
 			end++;
@@ -146,7 +135,6 @@ export class LinesSliceCharSequence implements ISequence {
 		return new OffsetRange(start, end);
 	}
 
-	/** fooBar has the two sub-words foo and bar */
 	public findSubWordContaining(offset: number): OffsetRange | undefined {
 		if (offset < 0 || offset >= this.elements.length) {
 			return undefined;
@@ -156,13 +144,11 @@ export class LinesSliceCharSequence implements ISequence {
 			return undefined;
 		}
 
-		// find start
 		let start = offset;
 		while (start > 0 && isWordChar(this.elements[start - 1]) && !isUpperCase(this.elements[start])) {
 			start--;
 		}
 
-		// find end
 		let end = offset;
 		while (end < this.elements.length && isWordChar(this.elements[end]) && !isUpperCase(this.elements[end])) {
 			end++;

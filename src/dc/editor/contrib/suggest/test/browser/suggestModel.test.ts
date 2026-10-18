@@ -370,7 +370,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 		return withOracle((model, editor) => {
 
 			return assertEvent(model.onDidSuggest, () => {
-				// make sure completionModel starts here!
 				model.trigger({ auto: true });
 			}, event => {
 
@@ -455,7 +454,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 				editor.trigger('keyboard', Handler.Type, { text: '.' });
 
 			}, event => {
-				// SYNC
 				assert.strictEqual(event.triggerOptions.auto, true);
 				assert.strictEqual(event.completionModel.items.length, 1);
 				const [first] = event.completionModel.items;
@@ -463,10 +461,8 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 			});
 
 			await assertEvent(model.onDidSuggest, () => {
-				// nothing -> triggered by the trigger character typing (see above)
 
 			}, event => {
-				// ASYNC
 				assert.strictEqual(event.triggerOptions.auto, true);
 				assert.strictEqual(event.completionModel.items.length, 2);
 				const [first, second] = event.completionModel.items;
@@ -594,9 +590,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 				assert.strictEqual(event.completionModel.items.length, 1);
 
 				return assertEvent(model.onDidSuggest, () => {
-					// while we cancel incrementally enriching the set of
-					// completions we still filter against those that we have
-					// until now
 					editor.trigger('keyboard', Handler.Type, { text: ';' });
 				}, event => {
 					assert.strictEqual(event.triggerOptions.auto, false);
@@ -678,7 +671,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 					editor.executeEdits('test', [EditOperation.replace(new Range(1, 1, 1, 2), 'ä')]);
 
 				}, event => {
-					// suggest model changed to äbc
 					assert.strictEqual(event.completionModel.items.length, 1);
 					assert.strictEqual(event.completionModel.items[0].completion.label, 'äbc');
 
@@ -848,9 +840,8 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 				assert.strictEqual(event.triggerOptions.auto, true);
 				assert.strictEqual(event.completionModel.items.length, 2);
 
-				// clean up
 				model.clear();
-				assert.strictEqual(disposeA, 2); // provide got called two times!
+				assert.strictEqual(disposeA, 2);
 				assert.strictEqual(disposeB, 1);
 			});
 
@@ -868,7 +859,7 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 			provideCompletionItems(doc, pos) {
 				countA += 1;
 				return {
-					incomplete: false, // doesn't matter if incomplete or not
+					incomplete: false,
 					suggestions: [{
 						kind: CompletionItemKind.Class,
 						label: 'Z aaa',
@@ -911,8 +902,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 			});
 
 			await assertEvent(model.onDidSuggest, () => {
-				// started another word: Z a|
-				// item should be: Z aaa, aaa
 				editor.trigger('keyboard', Handler.Type, { text: ' a' });
 			}, event => {
 				assert.strictEqual(event.triggerOptions.auto, true);
@@ -920,7 +909,7 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 				assert.strictEqual(event.completionModel.items[0].textLabel, 'Z aaa');
 				assert.strictEqual(event.completionModel.items[1].textLabel, 'aaa');
 
-				assert.strictEqual(countA, 1); // should we keep the suggestions from the "active" provider?, Yes! See: #106573
+				assert.strictEqual(countA, 1);
 				assert.strictEqual(countB, 2);
 			});
 		});
@@ -985,7 +974,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 
 	test('Unexpected suggest scoring #167242', async function () {
 		disposables.add(registry.register('*', {
-			// word-based
 			_debugDisplayName: 'test',
 			provideCompletionItems(doc, pos) {
 				const word = doc.getWordUntilPosition(pos);
@@ -1000,7 +988,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 			}
 		}));
 		disposables.add(registry.register({ scheme: 'test' }, {
-			// JSON-based
 			_debugDisplayName: 'test',
 			provideCompletionItems(doc, pos) {
 				return {
@@ -1243,7 +1230,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 
 		disposables.add(registry.register({ scheme: 'test' }, alwaysSomethingSupport));
 
-		// Register a dummy inline completions provider that returns no items
 		const inlineProvider: InlineCompletionsProvider = {
 			provideInlineCompletions: () => ({ items: [] }),
 			disposeInlineCompletions: () => { }
@@ -1253,7 +1239,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 		return withOracle((suggestOracle, editor) => {
 			editor.updateOptions({ quickSuggestions: { comments: 'off', strings: 'off', other: 'offWhenInlineCompletions' } });
 
-			// Without an InlineCompletionsController, the fallback triggers immediately
 			return assertEvent(suggestOracle.onDidSuggest, () => {
 				editor.setPosition({ lineNumber: 1, column: 4 });
 				editor.trigger('keyboard', Handler.Type, { text: 'd' });
@@ -1267,7 +1252,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 
 		disposables.add(registry.register({ scheme: 'test' }, alwaysSomethingSupport));
 
-		// No inline completions provider registered for 'test' scheme
 
 		return withOracle((suggestOracle, editor) => {
 			editor.updateOptions({ quickSuggestions: { comments: 'off', strings: 'off', other: 'offWhenInlineCompletions' } });
@@ -1286,7 +1270,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 		return runWithFakedTimers({ useFakeTimers: true }, () => {
 			disposables.add(registry.register({ scheme: 'test' }, alwaysSomethingSupport));
 
-			// Register a dummy inline completions provider
 			const inlineProvider: InlineCompletionsProvider = {
 				provideInlineCompletions: () => ({ items: [] }),
 				disposeInlineCompletions: () => { }
@@ -1316,7 +1299,6 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 			disposables.add(registry.register({ scheme: 'test' }, alwaysSomethingSupport));
 
 			return withOracle((suggestOracle, editor) => {
-				// Use string shorthand instead of object form
 				editor.updateOptions({ quickSuggestions: 'off' });
 
 				return new Promise<void>((resolve, reject) => {
@@ -1348,10 +1330,8 @@ suite('SuggestModel - TriggerAndCancelOracle', function () {
 			disposables.add(languageFeaturesService.inlineCompletionsProvider.register({ scheme: 'test' }, inlineProvider));
 
 			return withOracle((suggestOracle, editor) => {
-				// Use string shorthand - applies to all token types
 				editor.updateOptions({ quickSuggestions: 'offWhenInlineCompletions' });
 
-				// Without InlineCompletionsController, the fallback triggers immediately
 				return assertEvent(suggestOracle.onDidSuggest, () => {
 					editor.setPosition({ lineNumber: 1, column: 4 });
 					editor.trigger('keyboard', Handler.Type, { text: 'd' });
@@ -1463,7 +1443,6 @@ suite('SuggestModel - offWhenInlineCompletions with InlineCompletionsController'
 	test('suppresses quick suggest when inline completions are showing ghost text', async function () {
 		const inlineProvider: InlineCompletionsProvider = {
 			provideInlineCompletions: (model, pos) => {
-				// Return a completion that extends the current word - must be visible at cursor
 				const word = model.getWordAtPosition(pos);
 				if (!word) { return { items: [] }; }
 				return {
@@ -1548,9 +1527,6 @@ suite('SuggestModel - offWhenInlineCompletions with InlineCompletionsController'
 	});
 
 	test('does not trigger after the inline model is disposed mid-wait (e.g., readonly toggled)', async function () {
-		// Provider that only resolves when its cancellation token fires. This keeps the
-		// wait in the loading state until either the inline model is disposed
-		// (cancelling the token) or the 750ms timeout fires.
 		const inlineProvider: InlineCompletionsProvider = {
 			provideInlineCompletions: (_model, _pos, _ctx, token) => new Promise(resolve => {
 				const d = token.onCancellationRequested(() => {
@@ -1568,17 +1544,10 @@ suite('SuggestModel - offWhenInlineCompletions with InlineCompletionsController'
 			editor.setPosition({ lineNumber: 1, column: 4 });
 			editor.trigger('keyboard', Handler.Type, { text: 'd' });
 
-			// Let _waitForInlineCompletionsAndTrigger be scheduled and set up.
 			await timeout(50);
 
-			// Toggling readonly causes the controller's `model` derivedDisposable to
-			// recompute and dispose the InlineCompletionsModel. SuggestModel does NOT
-			// cancel on configuration change, so without binding the wait to the
-			// model's lifetime, the 750ms timeout would still fire and call
-			// `this.trigger({ auto: true })` (and `stop()` on the disposed model).
 			editor.updateOptions({ readOnly: true });
 
-			// Advance past the 750ms timeout window.
 			await timeout(1000);
 
 			sub.dispose();

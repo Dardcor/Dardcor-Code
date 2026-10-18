@@ -23,13 +23,10 @@ export class LanguageLoader {
 	}
 
 	private _doLoadLanguage(language: WASMLanguage): Promise<Parser.Language> {
-		// construct a path that works both for the TypeScript source, which lives under `/src`, and for
-		// the transpiled JavaScript, which lives under `/dist`
 		const wasmFileLang = language === 'csharp' ? 'c-sharp' : language;
 
 		const wasmFilename = `tree-sitter-${wasmFileLang}.wasm`;
 
-		// depending on if file is being run from the webpack bundle or source, change the relative path
 		const wasmFile =
 			path.basename(__dirname) === 'dist'
 				? path.resolve(__dirname, wasmFilename)

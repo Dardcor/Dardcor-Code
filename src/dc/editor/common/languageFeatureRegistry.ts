@@ -22,7 +22,7 @@ function isExclusive(selector: LanguageSelector): boolean {
 	} else if (Array.isArray(selector)) {
 		return selector.every(isExclusive);
 	} else {
-		return !!(selector as LanguageFilter).exclusive; // TODO: microsoft/TypeScript#42768
+		return !!(selector as LanguageFilter).exclusive;
 	}
 }
 
@@ -101,7 +101,6 @@ export class LanguageFeatureRegistry<T> {
 		this._updateScores(model, false);
 		const result: T[] = [];
 
-		// from registry
 		for (const entry of this._entries) {
 			if (entry._score > 0) {
 				result.push(entry.provider);
@@ -164,14 +163,11 @@ export class LanguageFeatureRegistry<T> {
 
 		const notebookInfo = this._notebookInfoResolver?.(model.uri);
 
-		// use the uri (scheme, pattern) of the notebook info iff we have one
-		// otherwise it's the model's/document's uri
 		const candidate = notebookInfo
 			? new MatchCandidate(model.uri, model.getLanguageId(), notebookInfo.uri, notebookInfo.type, recursive)
 			: new MatchCandidate(model.uri, model.getLanguageId(), undefined, undefined, recursive);
 
 		if (this._lastCandidate?.equals(candidate)) {
-			// nothing has changed
 			return;
 		}
 
@@ -184,8 +180,6 @@ export class LanguageFeatureRegistry<T> {
 				if (recursive) {
 					entry._score = 0;
 				} else {
-					// support for one exclusive selector that overwrites
-					// any other selector
 					for (const entry of this._entries) {
 						entry._score = 0;
 					}
@@ -195,7 +189,6 @@ export class LanguageFeatureRegistry<T> {
 			}
 		}
 
-		// needs sorting
 		this._entries.sort(LanguageFeatureRegistry._compareByScoreAndTime);
 	}
 
@@ -206,7 +199,6 @@ export class LanguageFeatureRegistry<T> {
 			return -1;
 		}
 
-		// De-prioritize built-in providers
 		if (isBuiltinSelector(a.selector) && !isBuiltinSelector(b.selector)) {
 			return 1;
 		} else if (!isBuiltinSelector(a.selector) && isBuiltinSelector(b.selector)) {

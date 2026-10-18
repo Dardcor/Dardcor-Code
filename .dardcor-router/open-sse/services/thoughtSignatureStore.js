@@ -2,8 +2,8 @@ import { makeKv } from "../../src/lib/db/helpers/kvStore.js";
 
 const MAX_SIGNATURES = 2000;
 const MAX_PERSISTED_SIGNATURES = 10_000;
-const MEMORY_TTL_MS = 1000 * 60 * 60; // 1 hour
-const PERSISTED_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+const MEMORY_TTL_MS = 1000 * 60 * 60;
+const PERSISTED_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const SCOPE = "gemini_thought_signatures";
 
 const signatureKv = makeKv(SCOPE);
@@ -57,13 +57,9 @@ async function maybePrunePersisted() {
       }
     }
   } catch {
-    // Fail-open
   }
 }
 
-/**
- * Store a thought signature for a tool_call_id with optional sessionId namespace (RAM + SQLite async)
- */
 export function storeGeminiThoughtSignature(toolCallId, signature, sessionId = null) {
   if (typeof toolCallId !== "string" || !toolCallId) return;
   if (typeof signature !== "string" || !signature) return;
@@ -83,7 +79,6 @@ export function storeGeminiThoughtSignature(toolCallId, signature, sessionId = n
       expiresAt: now + MEMORY_TTL_MS,
     });
 
-    // Async persist to SQLite kv table without blocking
     signatureKv.set(k, {
       signature,
       createdAt: now,
@@ -94,9 +89,6 @@ export function storeGeminiThoughtSignature(toolCallId, signature, sessionId = n
   maybePrunePersisted().catch(() => {});
 }
 
-/**
- * Retrieve a thought signature by tool_call_id (RAM first, then SQLite fallback)
- */
 export async function getGeminiThoughtSignature(toolCallId, sessionId = null) {
   if (typeof toolCallId !== "string" || !toolCallId) return null;
 
@@ -141,15 +133,11 @@ export async function getGeminiThoughtSignature(toolCallId, sessionId = null) {
       return row.signature;
     }
   } catch {
-    // Fail-open
   }
 
   return null;
 }
 
-/**
- * Synchronous get from RAM cache only (for sync translators)
- */
 export function getGeminiThoughtSignatureSync(toolCallId, sessionId = null) {
   if (typeof toolCallId !== "string" || !toolCallId) return null;
   pruneMemoryExpired();

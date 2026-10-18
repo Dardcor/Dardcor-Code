@@ -804,8 +804,6 @@ suite('CustomConfigurationModel', () => {
 		const testObject = new ConfigurationModelParser('test', new NullLogService());
 		testObject.parse(JSON.stringify({ '': 1 }));
 
-		// deepStrictEqual seems to ignore empty properties, fall back
-		// to comparing the output of JSON.stringify
 		assert.strictEqual(JSON.stringify(testObject.configurationModel.contents), JSON.stringify({ '': 1 }));
 		assert.deepStrictEqual(testObject.configurationModel.keys, ['']);
 	});

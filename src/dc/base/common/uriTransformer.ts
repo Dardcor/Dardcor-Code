@@ -5,16 +5,6 @@
 
 import { UriParts, IRawURITransformer, URITransformer, IURITransformer } from './uriIpc.js';
 
-/**
- * ```
- * --------------------------------
- * |    UI SIDE    |  AGENT SIDE  |
- * |---------------|--------------|
- * | vscode-remote | file         |
- * | file          | vscode-local |
- * --------------------------------
- * ```
- */
 function createRawURITransformer(remoteAuthority: string): IRawURITransformer {
 	return {
 		transformIncoming: (uri: UriParts): UriParts => {

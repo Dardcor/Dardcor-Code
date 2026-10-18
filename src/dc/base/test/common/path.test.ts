@@ -3,29 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// NOTE: VSCode's copy of nodejs path library to be usable in common (non-node) namespace
-// Copied from: https://github.com/nodejs/node/tree/43dd49c9782848c25e5b03448c8a0f923f13c158
 
 // Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
 // The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
 // NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import assert from 'assert';
 import * as path from '../../common/path.js';
@@ -42,7 +23,6 @@ suite('Paths (Node Implementation)', () => {
 
 		const joinTests: any = [
 			[[path.posix.join, path.win32.join],
-			// arguments                     result
 			[[['.', 'x/b', '..', '/b/c.js'], 'x/b/c.js'],
 			[[], '.'],
 			[['/.', 'x/b', '..', '/b/c.js'], '/x/b/c.js'],
@@ -94,48 +74,36 @@ suite('Paths (Node Implementation)', () => {
 			]
 		];
 
-		// Windows-specific join tests
 		joinTests.push([
 			path.win32.join,
 			joinTests[0][1].slice(0).concat(
-				[// arguments                     result
-					// UNC path expected
+				[
 					[['//foo/bar'], '\\\\foo\\bar\\'],
 					[['\\/foo/bar'], '\\\\foo\\bar\\'],
 					[['\\\\foo/bar'], '\\\\foo\\bar\\'],
-					// UNC path expected - server and share separate
 					[['//foo', 'bar'], '\\\\foo\\bar\\'],
 					[['//foo/', 'bar'], '\\\\foo\\bar\\'],
 					[['//foo', '/bar'], '\\\\foo\\bar\\'],
-					// UNC path expected - questionable
 					[['//foo', '', 'bar'], '\\\\foo\\bar\\'],
 					[['//foo/', '', 'bar'], '\\\\foo\\bar\\'],
 					[['//foo/', '', '/bar'], '\\\\foo\\bar\\'],
-					// UNC path expected - even more questionable
 					[['', '//foo', 'bar'], '\\\\foo\\bar\\'],
 					[['', '//foo/', 'bar'], '\\\\foo\\bar\\'],
 					[['', '//foo/', '/bar'], '\\\\foo\\bar\\'],
-					// No UNC path expected (no double slash in first component)
 					[['\\', 'foo/bar'], '\\foo\\bar'],
 					[['\\', '/foo/bar'], '\\foo\\bar'],
 					[['', '/', '/foo/bar'], '\\foo\\bar'],
-					// No UNC path expected (no non-slashes in first component -
-					// questionable)
 					[['//', 'foo/bar'], '\\foo\\bar'],
 					[['//', '/foo/bar'], '\\foo\\bar'],
 					[['\\\\', '/', '/foo/bar'], '\\foo\\bar'],
 					[['//'], '\\'],
-					// No UNC path expected (share name missing - questionable).
 					[['//foo'], '\\foo'],
 					[['//foo/'], '\\foo\\'],
 					[['//foo', '/'], '\\foo\\'],
 					[['//foo', '', '/'], '\\foo\\'],
-					// No UNC path expected (too many leading slashes - questionable)
 					[['///foo/bar'], '\\foo\\bar'],
 					[['////foo', 'bar'], '\\foo\\bar'],
 					[['\\\\\\/foo/bar'], '\\foo\\bar'],
-					// Drive-relative vs drive-absolute paths. This merely describes the
-					// status quo, rather than being obviously right
 					[['c:'], 'c:.'],
 					[['c:.'], 'c:.'],
 					[['c:', ''], 'c:.'],
@@ -155,9 +123,6 @@ suite('Paths (Node Implementation)', () => {
 				test[1].forEach((test: any) => {
 					const actual = join.apply(null, test[0]);
 					const expected = test[1];
-					// For non-Windows specific tests with the Windows join(), we need to try
-					// replacing the slashes since the non-Windows specific tests' `expected`
-					// use forward slashes
 					let actualAlt;
 					let os;
 					if (join === path.win32.join) {
@@ -227,7 +192,6 @@ suite('Paths (Node Implementation)', () => {
 		assert.strictEqual(path.win32.dirname('////'), '/');
 		assert.strictEqual(path.win32.dirname('foo'), '.');
 
-		// Tests from VSCode
 
 		function assertDirname(p: string, expected: string, win = false) {
 			const actual = win ? path.win32.dirname(p) : path.posix.dirname(p);
@@ -334,7 +298,6 @@ suite('Paths (Node Implementation)', () => {
 		});
 		assert.strictEqual(failures.length, 0, failures.join(''));
 
-		// On Windows, backslash is a path separator.
 		assert.strictEqual(path.win32.extname('.\\'), '');
 		assert.strictEqual(path.win32.extname('..\\'), '');
 		assert.strictEqual(path.win32.extname('file.ext\\'), '.ext');
@@ -344,7 +307,6 @@ suite('Paths (Node Implementation)', () => {
 		assert.strictEqual(path.win32.extname('file.\\'), '.');
 		assert.strictEqual(path.win32.extname('file.\\\\'), '.');
 
-		// On *nix, backslash is a valid name component like any other character.
 		assert.strictEqual(path.posix.extname('.\\'), '');
 		assert.strictEqual(path.posix.extname('..\\'), '.\\');
 		assert.strictEqual(path.posix.extname('file.ext\\'), '.ext\\');
@@ -354,7 +316,6 @@ suite('Paths (Node Implementation)', () => {
 		assert.strictEqual(path.posix.extname('file.\\'), '.\\');
 		assert.strictEqual(path.posix.extname('file.\\\\'), '.\\\\');
 
-		// Tests from VSCode
 		assert.strictEqual(path.extname('far.boo'), '.boo');
 		assert.strictEqual(path.extname('far.b'), '.b');
 		assert.strictEqual(path.extname('far.'), '.');
@@ -369,7 +330,6 @@ suite('Paths (Node Implementation)', () => {
 
 		const resolveTests = [
 			[path.win32.resolve,
-			// arguments                               result
 			[[['c:/blah\\blah', 'd:/games', 'c:../a'], 'c:\\blah\\a'],
 			[['c:/ignore', 'd:\\a/b\\c/d', '\\e.exe'], 'd:\\e.exe'],
 			[['c:/ignore', 'c:/some/file'], 'c:\\some\\file'],
@@ -385,7 +345,6 @@ suite('Paths (Node Implementation)', () => {
 			]
 			],
 			[path.posix.resolve,
-			// arguments                    result
 			[[['/var/lib', '../', 'file/'], '/var/file'],
 			[['/var/lib', '/../', 'file/'], '/file'],
 			[['/some/dir', '.', '/absolute/'], '/absolute'],
@@ -393,7 +352,6 @@ suite('Paths (Node Implementation)', () => {
 			]
 			],
 			[(isWeb ? path.posix.resolve : path.resolve),
-			// arguments						result
 			[[['.'], process.cwd()],
 			[['a/b/c', '../../..'], process.cwd()]
 			]
@@ -424,16 +382,6 @@ suite('Paths (Node Implementation)', () => {
 		});
 		assert.strictEqual(failures.length, 0, failures.join(''));
 
-		// if (isWindows) {
-		// 	// Test resolving the current Windows drive letter from a spawned process.
-		// 	// See https://github.com/nodejs/node/issues/7215
-		// 	const currentDriveLetter = path.parse(process.cwd()).root.substring(0, 2);
-		// 	const resolveFixture = fixtures.path('path-resolve.js');
-		// 	const spawnResult = child.spawnSync(
-		// 		process.argv[0], [resolveFixture, currentDriveLetter]);
-		// 	const resolvedPath = spawnResult.stdout.toString().trim();
-		// 	assert.strictEqual(resolvedPath.toLowerCase(), process.cwd().toLowerCase());
-		// }
 	});
 
 	test('basename', () => {
@@ -465,7 +413,6 @@ suite('Paths (Node Implementation)', () => {
 		assert.strictEqual(path.basename('//a'), 'a');
 		assert.strictEqual(path.basename('a', 'a'), '');
 
-		// On Windows a backslash acts as a path separator.
 		assert.strictEqual(path.win32.basename('\\dir\\basename.ext'), 'basename.ext');
 		assert.strictEqual(path.win32.basename('\\basename.ext'), 'basename.ext');
 		assert.strictEqual(path.win32.basename('basename.ext'), 'basename.ext');
@@ -490,7 +437,6 @@ suite('Paths (Node Implementation)', () => {
 		assert.strictEqual(path.win32.basename('file:stream'), 'file:stream');
 		assert.strictEqual(path.win32.basename('a', 'a'), '');
 
-		// On unix a backslash is just treated as any other character.
 		assert.strictEqual(path.posix.basename('\\dir\\basename.ext'),
 			'\\dir\\basename.ext');
 		assert.strictEqual(path.posix.basename('\\basename.ext'), '\\basename.ext');
@@ -499,13 +445,10 @@ suite('Paths (Node Implementation)', () => {
 		assert.strictEqual(path.posix.basename('basename.ext\\\\'), 'basename.ext\\\\');
 		assert.strictEqual(path.posix.basename('foo'), 'foo');
 
-		// POSIX filenames may include control characters
-		// c.f. http://www.dwheeler.com/essays/fixing-unix-linux-filenames.html
 		const controlCharFilename = `Icon${String.fromCharCode(13)}`;
 		assert.strictEqual(path.posix.basename(`/a/b/${controlCharFilename}`),
 			controlCharFilename);
 
-		// Tests from VSCode
 		assert.strictEqual(path.basename('foo/bar'), 'bar');
 		assert.strictEqual(path.posix.basename('foo\\bar'), 'foo\\bar');
 		assert.strictEqual(path.win32.basename('foo\\bar'), 'bar');
@@ -532,7 +475,6 @@ suite('Paths (Node Implementation)', () => {
 
 		const relativeTests = [
 			[path.win32.relative,
-			// arguments                     result
 			[['c:/blah\\blah', 'd:/games', 'd:\\games'],
 			['c:/aaaa/bbbb', 'c:/aaaa', '..'],
 			['c:/aaaa/bbbb', 'c:/cccc', '..\\..\\cccc'],
@@ -560,7 +502,6 @@ suite('Paths (Node Implementation)', () => {
 			]
 			],
 			[path.posix.relative,
-			// arguments          result
 			[['/var/lib', '/var', '..'],
 			['/var/lib', '/bin', '../../bin'],
 			['/var/lib', '/var/lib', ''],
@@ -688,9 +629,7 @@ suite('Paths (Node Implementation)', () => {
 		assert.strictEqual(path.posix.isAbsolute('bar/'), false);
 		assert.strictEqual(path.posix.isAbsolute('./baz'), false);
 
-		// Tests from VSCode:
 
-		// Absolute Paths
 		[
 			'C:/',
 			'C:\\',
@@ -715,7 +654,6 @@ suite('Paths (Node Implementation)', () => {
 			assert.ok(path.posix.isAbsolute(absolutePath), absolutePath);
 		});
 
-		// Relative Paths
 		[
 			'',
 			'foo',
@@ -739,84 +677,24 @@ suite('Paths (Node Implementation)', () => {
 	});
 
 	test('path', () => {
-		// path.sep tests
-		// windows
 		assert.strictEqual(path.win32.sep, '\\');
-		// posix
 		assert.strictEqual(path.posix.sep, '/');
 
-		// path.delimiter tests
-		// windows
 		assert.strictEqual(path.win32.delimiter, ';');
-		// posix
 		assert.strictEqual(path.posix.delimiter, ':');
 
-		// if (isWindows) {
-		// 	assert.strictEqual(path, path.win32);
-		// } else {
-		// 	assert.strictEqual(path, path.posix);
-		// }
 	});
 
-	// test('perf', () => {
-	// 	const folderNames = [
-	// 		'abc',
-	// 		'Users',
-	// 		'reallylongfoldername',
-	// 		's',
-	// 		'reallyreallyreallylongfoldername',
-	// 		'home'
-	// 	];
 
-	// 	const basePaths = [
-	// 		'C:',
-	// 		'',
-	// 	];
 
-	// 	const separators = [
-	// 		'\\',
-	// 		'/'
-	// 	];
 
-	// 	function randomInt(ciel: number): number {
-	// 		return Math.floor(Math.random() * ciel);
-	// 	}
 
-	// 	let pathsToNormalize = [];
-	// 	let pathsToJoin = [];
-	// 	let i;
-	// 	for (i = 0; i < 1000000; i++) {
-	// 		const basePath = basePaths[randomInt(basePaths.length)];
-	// 		let lengthOfPath = randomInt(10) + 2;
 
-	// 		let pathToNormalize = basePath + separators[randomInt(separators.length)];
-	// 		while (lengthOfPath-- > 0) {
-	// 			pathToNormalize = pathToNormalize + folderNames[randomInt(folderNames.length)] + separators[randomInt(separators.length)];
-	// 		}
 
-	// 		pathsToNormalize.push(pathToNormalize);
 
-	// 		let pathToJoin = '';
-	// 		lengthOfPath = randomInt(10) + 2;
-	// 		while (lengthOfPath-- > 0) {
-	// 			pathToJoin = pathToJoin + folderNames[randomInt(folderNames.length)] + separators[randomInt(separators.length)];
-	// 		}
 
-	// 		pathsToJoin.push(pathToJoin + '.ts');
-	// 	}
 
-	// 	let newTime = 0;
 
-	// 	let j;
-	// 	for(j = 0; j < pathsToJoin.length; j++) {
-	// 		const path1 = pathsToNormalize[j];
-	// 		const path2 = pathsToNormalize[j];
 
-	// 		const newStart = performance.now();
-	// 		path.join(path1, path2);
-	// 		newTime += performance.now() - newStart;
-	// 	}
 
-	// 	assert.ok(false, `Time: ${newTime}ms.`);
-	// });
 });

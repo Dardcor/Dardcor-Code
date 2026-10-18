@@ -18,10 +18,9 @@ import './extHost.worker.services.js';
 import { FileAccess } from '../../../base/common/network.js';
 import { URI } from '../../../base/common/uri.js';
 
-//#region --- Define, capture, and override some globals
 
 declare function postMessage(data: any, transferables?: Transferable[]): void;
-declare const name: string; // https://developer.mozilla.org/en-US/docs/Web/API/DedicatedWorkerGlobalScope/name
+declare const name: string;
 declare type _Fetch = typeof fetch;
 
 declare namespace self {
@@ -44,9 +43,6 @@ const nativePostMessage = postMessage.bind(self);
 self.postMessage = () => console.trace(`'postMessage' has been blocked`);
 
 function shouldTransformUri(uri: string): boolean {
-	// In principle, we could convert any URI, but we have concerns
-	// that parsing https URIs might end up decoding escape characters
-	// and result in an unintended transformation
 	return /^(file|vscode-remote):/i.test(uri);
 }
 
@@ -54,7 +50,6 @@ const nativeFetch = fetch.bind(self);
 function patchFetching(asBrowserUri: (uri: URI) => Promise<URI>) {
 	self.fetch = async function (input, init) {
 		if (input instanceof Request) {
-			// Request object - massage not supported
 			return nativeFetch(input, init);
 		}
 		if (shouldTransformUri(String(input))) {
@@ -77,7 +72,6 @@ function patchFetching(asBrowserUri: (uri: URI) => Promise<URI>) {
 
 self.importScripts = () => { throw new Error(`'importScripts' has been blocked`); };
 
-// const nativeAddEventListener = addEventListener.bind(self);
 self.addEventListener = () => console.trace(`'addEventListener' has been blocked`);
 
 // eslint-disable-next-line local/code-no-any-casts
@@ -100,7 +94,6 @@ self.addEventListener = () => console.trace(`'addEventListener' has been blocked
 // eslint-disable-next-line local/code-no-any-casts
 if ((<any>self).Worker) {
 
-	// make sure new Worker(...) always uses blob: (to maintain current origin)
 	// eslint-disable-next-line local/code-no-any-casts
 	const _Worker = (<any>self).Worker;
 	// eslint-disable-next-line local/code-no-any-casts
@@ -108,15 +101,9 @@ if ((<any>self).Worker) {
 		if (/^file:/i.test(stringUrl.toString())) {
 			stringUrl = FileAccess.uriToBrowserUri(URI.parse(stringUrl.toString())).toString(true);
 		} else if (/^vscode-remote:/i.test(stringUrl.toString())) {
-			// Supporting transformation of vscode-remote URIs requires an async call to the main thread,
-			// but we cannot do this call from within the embedded Worker, and the only way out would be
-			// to use templating instead of a function in the web api (`resourceUriProvider`)
 			throw new Error(`Creating workers from remote extensions is currently not supported.`);
 		}
 
-		// IMPORTANT: bootstrapFn is stringified and injected as worker blob-url. Because of that it CANNOT
-		// have dependencies on other functions or variables. Only constant values are supported. Due to
-		// that logic of FileAccess.asBrowserUri had to be copied, see `asWorkerBrowserUrl` (below).
 		const bootstrapFnSource = (function bootstrapFn(workerUrl: string) {
 			function asWorkerBrowserUrl(url: string | URL | TrustedScriptURL): any {
 				if (typeof url === 'string' || url instanceof URL) {
@@ -128,7 +115,6 @@ if ((<any>self).Worker) {
 			const nativeFetch = fetch.bind(self);
 			self.fetch = function (input, init) {
 				if (input instanceof Request) {
-					// Request object - massage not supported
 					return nativeFetch(input, init);
 				}
 				return nativeFetch(asWorkerBrowserUrl(input), init);
@@ -163,7 +149,6 @@ if ((<any>self).Worker) {
 	};
 }
 
-//#endregion ---
 
 const hostUtil = new class implements IHostUtils {
 	declare readonly _serviceBrand: undefined;
@@ -176,7 +161,6 @@ const hostUtil = new class implements IHostUtils {
 
 class ExtensionWorker {
 
-	// protocol
 	readonly protocol: IMessagePassingProtocol;
 
 	constructor() {
@@ -185,7 +169,6 @@ class ExtensionWorker {
 		const emitter = new Emitter<VSBuffer>();
 		let terminating = false;
 
-		// send over port2, keep port1
 		nativePostMessage(channel.port2, [channel.port2]);
 
 		channel.port1.onmessage = event => {
@@ -197,13 +180,11 @@ class ExtensionWorker {
 
 			const msg = VSBuffer.wrap(new Uint8Array(data, 0, data.byteLength));
 			if (isMessageOfType(msg, MessageType.Terminate)) {
-				// handle terminate-message right here
 				terminating = true;
 				onTerminate('received terminate message from renderer');
 				return;
 			}
 
-			// emit non-terminate messages to the outside
 			emitter.fire(msg);
 		};
 
@@ -253,7 +234,7 @@ export function create(): { onmessage: (message: any) => void } {
 	return {
 		onmessage(message: any) {
 			if (!isInitMessage(message)) {
-				return; // silently ignore foreign messages
+				return;
 			}
 
 			connectToRenderer(res.protocol).then(data => {

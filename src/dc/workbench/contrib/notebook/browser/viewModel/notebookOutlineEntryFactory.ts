@@ -33,7 +33,6 @@ function getMarkdownHeadersInCellFallbackToHtmlTags(fullContent: string) {
 	if (headers.length) {
 		return headers;
 	}
-	// no markdown syntax headers, try to find html tags
 	const match = fullContent.match(/<h([1-6]).*>(.*)<\/h\1>/i);
 	if (match) {
 		const level = parseInt(match[1]);
@@ -69,9 +68,6 @@ export class NotebookOutlineEntryFactory implements INotebookOutlineEntryFactory
 
 		const isMarkdown = cell.cellKind === CellKind.Markup;
 
-		// cap the amount of characters that we look at and use the following logic
-		// - for MD prefer headings (each header is an entry)
-		// - otherwise use the first none-empty line of the cell (MD or code)
 		let content = getCellFirstNonEmptyLine(cell);
 		let hasHeader = false;
 
@@ -98,10 +94,7 @@ export class NotebookOutlineEntryFactory implements INotebookOutlineEntryFactory
 			if (!isMarkdown) {
 				const cached = this.cellOutlineEntryCache[cell.id];
 
-				// Gathering symbols from the model is an async operation, but this provider is syncronous.
-				// So symbols need to be precached before this function is called to get the full list.
 				if (cached) {
-					// push code cell entry that is a parent of cached symbols, always necessary. filtering for quickpick done in that provider.
 					entries.push(new OutlineEntry(index++, NotebookOutlineConstants.NonHeaderOutlineLevel, cell, preview, !!exeState, exeState ? exeState.isPaused : false));
 					cached.forEach((entry) => {
 						entries.push(new OutlineEntry(index++, entry.level, cell, entry.name, false, false, entry.range, entry.kind));
@@ -109,9 +102,8 @@ export class NotebookOutlineEntryFactory implements INotebookOutlineEntryFactory
 				}
 			}
 
-			if (entries.length === 0) { // if there are no cached entries, use the first line of the cell as a code cell
+			if (entries.length === 0) {
 				if (preview.length === 0) {
-					// empty or just whitespace
 					preview = localize('empty', "empty cell");
 				}
 				entries.push(new OutlineEntry(index++, NotebookOutlineConstants.NonHeaderOutlineLevel, cell, preview, !!exeState, exeState ? exeState.isPaused : false));

@@ -173,9 +173,7 @@
   "Cert": "証明書",
   "Server": "サーバー",
   "Purpose:": "目的：",
-  "Use Antigravity IDE & GitHub Copilot → with ANY provider/model from Dardcor Code": "Antigravity IDE & GitHub Copilot → Dardcor Code の任意のプロバイダー/モデルを使用",
   "How it works:": "しくみ：",
-  "Antigravity/Copilot IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Code → response to Antigravity/Copilot": "Antigravity/Copilot IDE リクエスト → localhost:443 への DNS リダイレクト → MITM プロキシが傍受 → Dardcor Code → Antigravity/Copilot への応答",
   "No API keys — create one in Keys page": "APIキーがありません — キーページで1つ作成してください",
   "e.g. a warm, gentle voice, speaking slowly with a British accent": "例：温かく穏やかな声で、イギリス英語のアクセントでゆっくり話す",
   "sk_dardcor-code (default)": "sk_dardcor-code（デフォルト）",
@@ -192,6 +190,5 @@
   "Sudo Password": "Sudoパスワード",
   "Click to add, click again to remove. Changes are saved automatically.": "クリックで追加、もう一度クリックで削除。変更は自動的に保存されます。",
   "⚠️ Risk Notice: This provider uses a subscription/OAuth session not officially licensed for proxy/router use. Account may be restricted or banned. Use at your own risk.": "⚠️ リスク通知: このプロバイダーは、プロキシ/ルーター使用について公式にライセンスされていないサブスクリプション/OAuthセッションを使用しています。アカウントが制限または禁止される可能性があります。自己責任でご使用ください。",
-  "⚠️ MITM intercepts HTTPS traffic of IDE tools (Antigravity, GitHub Copilot, Kiro) via local CA to redirect requests to your providers. May violate ToS → account ban. Use at your own risk.": "⚠️ MITMはローカルCAを介してIDEツール (Antigravity, GitHub Copilot, Kiro) のHTTPSトラフィックを傍受し、リクエストをプロバイダーにリダイレクトします。ToS違反の可能性 → アカウントBANリスク。自己責任でご使用ください。",
   "Endpoint is exposed without an API key.": "API キーなしでエンドポイントが公開されています。"
 }

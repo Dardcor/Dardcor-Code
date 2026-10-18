@@ -12,7 +12,6 @@ import {
 	sdkSubagentMessagesToSubagentSession,
 } from '../sdkSessionAdapter';
 
-// #region Test Helpers
 
 function createSdkSessionInfo(overrides?: Partial<SDKSessionInfo>): SDKSessionInfo {
 	return {
@@ -55,9 +54,7 @@ function createAssistantSessionMessage(overrides?: Partial<SessionMessage> & { m
 	};
 }
 
-// #endregion
 
-// #region sdkSessionInfoToSessionInfo
 
 describe('sdkSessionInfoToSessionInfo', () => {
 	it('maps basic fields correctly', () => {
@@ -162,7 +159,7 @@ describe('sdkSessionInfoToSessionInfo', () => {
 
 		const result = sdkSessionInfoToSessionInfo(info);
 
-		expect(result.label.length).toBeLessThanOrEqual(51); // 50 + ellipsis character
+		expect(result.label.length).toBeLessThanOrEqual(51);
 		expect(result.label).toContain('…');
 	});
 
@@ -194,9 +191,7 @@ describe('sdkSessionInfoToSessionInfo', () => {
 	});
 });
 
-// #endregion
 
-// #region sdkSessionMessagesToStoredMessages
 
 describe('sdkSessionMessagesToStoredMessages', () => {
 	it('converts a user message', () => {
@@ -330,9 +325,7 @@ describe('sdkSessionMessagesToStoredMessages', () => {
 	});
 });
 
-// #endregion
 
-// #region buildClaudeCodeSession
 
 describe('buildClaudeCodeSession', () => {
 	it('assembles full session from SDK data', () => {
@@ -390,9 +383,7 @@ describe('buildClaudeCodeSession', () => {
 	});
 });
 
-// #endregion
 
-// #region sdkSubagentMessagesToSubagentSession
 
 describe('sdkSubagentMessagesToSubagentSession', () => {
 	it('extracts parentToolUseId from subagent assistant messages', () => {
@@ -489,4 +480,3 @@ describe('sdkSubagentMessagesToSubagentSession', () => {
 	});
 });
 
-// #endregion

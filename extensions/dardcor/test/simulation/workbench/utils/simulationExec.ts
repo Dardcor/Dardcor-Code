@@ -21,7 +21,6 @@ export function spawnSimulation<T>(options: ISpawnSimulationOptions, token: Canc
 	return extractJSONL<T>(forkSimulationMain(options.args, token), options);
 }
 
-/** spawn `npm run simulate` from Electron main process */
 export function spawnSimulationFromMainProcess<T>(options: ISpawnSimulationOptions, token: CancellationToken = CancellationToken.None): AsyncIterableObject<T> {
 	return extractJSONL<T>(forkSimulationMainFromMainProcess(options.args, token), options);
 }
@@ -38,7 +37,6 @@ function forkSimulationMainFromMainProcess(args: string[], token: CancellationTo
 export function extractJSONL<T>(source: AsyncIterableObject<string>, options?: ISpawnSimulationOptions): AsyncIterableObject<T> {
 	return splitToLines(source).map((line): T | null => {
 		if (line.length === 0) {
-			// always ignore empty lines
 			return null;
 		}
 
@@ -61,9 +59,6 @@ export function extractJSONL<T>(source: AsyncIterableObject<string>, options?: I
 	}).coalesce();
 }
 
-/**
- * Split an incoming stream of text to a stream of lines.
- */
 function splitToLines(source: AsyncIterable<string>): AsyncIterableObject<string> {
 	return new AsyncIterableObject<string>(async (emitter) => {
 		let buffer = '';
@@ -75,7 +70,6 @@ function splitToLines(source: AsyncIterable<string>): AsyncIterableObject<string
 					break;
 				}
 
-				// take the first line
 				const line = buffer.substring(0, newlineIndex);
 				buffer = buffer.substring(newlineIndex + 1);
 
@@ -84,7 +78,6 @@ function splitToLines(source: AsyncIterable<string>): AsyncIterableObject<string
 		}
 
 		if (buffer.length > 0) {
-			// last line which doesn't end with \n
 			emitter.emitOne(buffer);
 		}
 	});
@@ -96,8 +89,6 @@ function forkSimulationMain(args: string[], token: CancellationToken): AsyncIter
 			const proc = cp.spawn('node', [SIMULATION_MAIN_PATH, ...args], { stdio: 'pipe' });
 			const listener = token.onCancellationRequested(() => {
 				proc.kill('SIGTERM');
-				// FIXME@ulugbekna: let's not reject the promise for now -- otherwise, stdout.json.txt isn't written
-				// reject(new CancellationError());
 			});
 			proc.on('error', (err) => {
 				listener.dispose();
@@ -132,7 +123,6 @@ type MainProcessEventHandle = {
 	stderrChunks: string[];
 };
 
-// change to configure logging, e.g., to `console.debug`
 const log = {
 	debug: (...args: any) => { }
 };

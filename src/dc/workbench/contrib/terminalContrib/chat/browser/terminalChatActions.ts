@@ -42,8 +42,7 @@ registerActiveXtermAction({
 	keybinding: {
 		primary: KeyMod.CtrlCmd | KeyCode.KeyI,
 		when: ContextKeyExpr.and(TerminalContextKeys.focusInAny),
-		// HACK: Force weight to be higher than the extension contributed keybinding to override it until it gets replaced
-		weight: KeybindingWeight.ExternalExtension + 1, // KeybindingWeight.WorkbenchContrib,
+		weight: KeybindingWeight.ExternalExtension + 1,
 	},
 	f1: true,
 	precondition: ContextKeyExpr.and(
@@ -370,7 +369,6 @@ registerAction2(class ShowChatTerminalsAction extends Action2 {
 			}
 		}
 
-		// If there are no hidden terminals, return early
 		if (all.size === 0) {
 			return;
 		}
@@ -379,7 +377,6 @@ registerAction2(class ShowChatTerminalsAction extends Action2 {
 			hiddenCount: all.size,
 		});
 
-		// If there's only one hidden terminal, show it directly without the quick pick
 		if (all.size === 1) {
 			const instance = Array.from(all.values())[0];
 			terminalService.setActiveInstance(instance);
@@ -406,7 +403,6 @@ registerAction2(class ShowChatTerminalsAction extends Action2 {
 			const label = `$(${iconId}) ${instance.title}`;
 			const lastCommand = instance.capabilities.get(TerminalCapability.CommandDetection)?.commands.at(-1)?.command;
 
-			// Get the chat session title
 			const chatSessionResource = terminalChatService.getChatSessionResourceForInstance(instance);
 			let chatSessionTitle: string | undefined;
 			if (chatSessionResource) {
@@ -418,16 +414,13 @@ registerAction2(class ShowChatTerminalsAction extends Action2 {
 			let detail: string | undefined;
 			let tooltip: string | IMarkdownString | undefined;
 			if (lastCommand) {
-				// Take only the first line if the command spans multiple lines
 				const commandLines = lastCommand.split('\n');
 				const firstLine = commandLines[0];
 				const displayCommand = firstLine.length > MAX_DETAIL_LENGTH ? firstLine.substring(0, MAX_DETAIL_LENGTH) + '…' : firstLine;
 				detail = lastCommandLocalized(displayCommand);
-				// If the command was truncated or has multiple lines, provide a tooltip with the full command
 				const wasTruncated = firstLine.length > MAX_DETAIL_LENGTH;
 				const hasMultipleLines = commandLines.length > 1;
 				if (wasTruncated || hasMultipleLines) {
-					// Use markdown code block to preserve formatting for multi-line commands
 					if (hasMultipleLines) {
 						tooltip = { value: `\`\`\`\n${lastCommand}\n\`\`\``, supportThemeIcons: true };
 					} else {
@@ -573,7 +566,6 @@ CommandsRegistry.registerCommand(TerminalChatCommandId.OpenTerminalSettingsLink,
 			case ConfigurationTarget.WORKSPACE:
 			case ConfigurationTarget.WORKSPACE_FOLDER: preferencesService.openWorkspaceSettings(options); break;
 			default: {
-				// Fallback if something goes wrong
 				preferencesService.openSettings({
 					target: ConfigurationTarget.USER,
 					query: `@id:${TerminalChatAgentToolsSettingId.AutoApprove}`,

@@ -19,7 +19,6 @@ export interface SemanticTokenProvider {
 
 export function newSemanticTokenProvider(languageModes: LanguageModes): SemanticTokenProvider {
 
-	// combined legend across modes
 	const legend: { types: string[]; modifiers: string[] } = { types: [], modifiers: [] };
 	const legendMappings: { [modeId: string]: LegendMapping } = {};
 
@@ -118,16 +117,15 @@ function encodeTokens(tokens: SemanticTokenData[], ranges: Range[] | undefined, 
 			currRange = ranges[rangeIndex++];
 		}
 		if (currRange && beforeOrSame(currRange.start, start) && beforeOrSame({ line: start.line, character: start.character + curr.length }, currRange.end)) {
-			// token inside a range
 
 			if (prefLine !== start.line) {
 				prevChar = 0;
 			}
-			encodedResult.push(start.line - prefLine); // line delta
-			encodedResult.push(start.character - prevChar); // line delta
-			encodedResult.push(curr.length); // length
-			encodedResult.push(curr.typeIdx); // tokenType
-			encodedResult.push(curr.modifierSet); // tokenModifier
+			encodedResult.push(start.line - prefLine);
+			encodedResult.push(start.character - prevChar);
+			encodedResult.push(curr.length);
+			encodedResult.push(curr.typeIdx);
+			encodedResult.push(curr.modifierSet);
 
 			prefLine = start.line;
 			prevChar = start.character;

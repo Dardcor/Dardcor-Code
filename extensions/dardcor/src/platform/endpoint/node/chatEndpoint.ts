@@ -39,9 +39,6 @@ import { filterHistoryImages } from './imageLimits';
 
 type KimiToolCallIdStyle = 'function-indexed' | 'name-indexed';
 
-/**
- * Rewrites tool call IDs into the selected Kimi-native indexed format while preserving tool result pairings.
- */
 export function normalizeKimiToolCallIds(messages: CAPIChatMessage[], style: KimiToolCallIdStyle = 'function-indexed'): CAPIChatMessage[] {
 	let nextIndex = 0;
 	const mappedToolCallIds = new Map<string, string>();
@@ -76,9 +73,6 @@ export function normalizeKimiToolCallIds(messages: CAPIChatMessage[], style: Kim
 	});
 }
 
-/**
- * The default processor for the stream format from CAPI
- */
 export async function defaultChatResponseProcessor(
 	telemetryService: ITelemetryService,
 	logService: ILogService,
@@ -112,8 +106,6 @@ export async function defaultNonStreamChatResponseProcessor(response: Response, 
 			role: choice.message.role,
 			content: choice.message.content,
 			name: choice.message.name,
-			// Normalize property name: OpenAI API uses snake_case (tool_calls) but our types expect camelCase (toolCalls)
-			// See: https://platform.openai.com/docs/api-reference/chat/object#chat-object-choices-message-tool_calls
 			toolCalls: choice.message.toolCalls ?? choice.message.tool_calls,
 		};
 		const messageText = getTextPart(message.content);
@@ -130,7 +122,7 @@ export async function defaultNonStreamChatResponseProcessor(response: Response, 
 			finishReason: choice.finish_reason as FinishedCompletionReason,
 			message: message,
 			usage: jsonResponse.usage,
-			tokens: [], // This is used for repetition detection so not super important to be accurate
+			tokens: [],
 			requestId: { headerRequestId: requestId, gitHubRequestId: ghRequestId, completionId: jsonResponse.id, created: jsonResponse.created, deploymentId: '', serverExperiments },
 			telemetryData: telemetryData
 		};
@@ -196,9 +188,7 @@ export class ChatEndpoint implements IChatEndpoint {
 		@IChatWebSocketManager private readonly _chatWebSocketService: IChatWebSocketManager,
 		@ILogService _logService: ILogService,
 	) {
-		// This metadata should always be present, but if not we will default to 8192 tokens
 		this._maxTokens = modelMetadata.capabilities.limits?.max_prompt_tokens ?? 8192;
-		// This metadata should always be present, but if not we will default to 4096 tokens
 		this._maxOutputTokens = modelMetadata.capabilities.limits?.max_output_tokens ?? 4096;
 		this.model = modelMetadata.id;
 		this.modelProvider = modelMetadata.vendor;
@@ -240,10 +230,6 @@ export class ChatEndpoint implements IChatEndpoint {
 		} : undefined;
 	}
 
-	// TODO: Thread enableThinking through the fetch pipeline (INetworkRequestOptions / chatMLFetcher positional params)
-	// so getExtraHeaders can gate the interleaved-thinking header on whether thinking is actually enabled for the
-	// request, rather than using the location check. Once plumbed, replace isAllowedConversationAgentModel with
-	// an enableThinking check for the thinking header (keep location gate for context management / tool search).
 	public getExtraHeaders(location?: ChatLocation, interactionTypeOverride?: InteractionTypeOverride): Record<string, string> {
 		const headers: Record<string, string> = { ...this.modelMetadata.requestHeaders };
 
@@ -273,8 +259,6 @@ export class ChatEndpoint implements IChatEndpoint {
 		if (isAnthropicContextEditingEnabled(this, this._configurationService, this._expService)) {
 			betas.push('context-management-2025-06-27');
 		}
-		// Mirror the body-side gate from messagesApi.ts so the beta header is never sent for
-		// requests that won't actually emit `ttl: '1h'` (subagents, non-Agent locations, etc.).
 		const isSubagent = interactionTypeOverride === 'conversation-subagent';
 		if (isExtendedCacheTtlEnabled(this, this._configurationService, this._expService, location, isSubagent)) {
 			betas.push('extended-cache-ttl-2025-04-11');
@@ -293,8 +277,6 @@ export class ChatEndpoint implements IChatEndpoint {
 	public readonly ownsAuthorization = true;
 
 	public get urlOrRequestMetadata(): string | RequestMetadata {
-		// Use override or respect setting.
-		// TODO unlikely but would break if it changes in the middle of a request being constructed
 		if (typeof this.modelMetadata.urlOrRequestMetadata === 'string') {
 			return this.modelMetadata.urlOrRequestMetadata;
 		}
@@ -331,18 +313,14 @@ export class ChatEndpoint implements IChatEndpoint {
 	}
 
 	interceptBody(body: IEndpointBody | undefined): void {
-		// Remove tool calls from requests that don't support them
-		// We really shouldn't make requests to models that don't support tool calls with tools though
 		if (body && !this.supportsToolCalls) {
 			delete body['tools'];
 		}
 
-		// If the model doesn't support streaming, don't ask for a streamed request
 		if (body && !this._supportsStreaming) {
 			body.stream = false;
 		}
 
-		// If it's o1 we must modify the body significantly as the request is very different
 		if (body?.messages && (this.family.startsWith('o1') || this.model === CHAT_MODEL.O1 || this.model === CHAT_MODEL.O1MINI)) {
 			const newMessages: CAPIChatMessage[] = body.messages.map((message: CAPIChatMessage): CAPIChatMessage => {
 				if (message.role === OpenAI.ChatRole.System) {
@@ -354,13 +332,11 @@ export class ChatEndpoint implements IChatEndpoint {
 					return message;
 				}
 			});
-			// Add the messages & model back
 			body['messages'] = newMessages;
 		}
 	}
 
 	createRequestBody(options: ICreateEndpointBodyOptions): IEndpointBody {
-		// Determine per-model image limit for APIs with known restrictions
 		const imageLimit = this.getImageLimit();
 		if (imageLimit !== undefined) {
 			options = { ...options, messages: this.validateAndFilterImages(options.messages, imageLimit) };
@@ -378,12 +354,6 @@ export class ChatEndpoint implements IChatEndpoint {
 		}
 	}
 
-	/**
-	 * Returns the model-specific image limit, or `undefined` if no limit applies.
-	 * Anthropic Messages API allows up to 20 images per request; Gemini allows up to 10.
-	 * These are hardcoded based on API documentation rather than model metadata to
-	 * avoid being clamped by unreliable server-provided values.
-	 */
 	private getImageLimit(): number | undefined {
 		if (this.useMessagesApi && isAnthropicFamily(this)) {
 			return 20;
@@ -394,9 +364,6 @@ export class ChatEndpoint implements IChatEndpoint {
 		return undefined;
 	}
 
-	/**
-	 * Thin wrapper around {@link filterHistoryImages} retained for test ergonomics.
-	 */
 	private validateAndFilterImages(messages: Raw.ChatMessage[], maxImages: number): Raw.ChatMessage[] {
 		return filterHistoryImages(messages, maxImages);
 	}
@@ -415,26 +382,17 @@ export class ChatEndpoint implements IChatEndpoint {
 
 	protected customizeCapiBody(body: IEndpointBody, options: ICreateEndpointBodyOptions): IEndpointBody {
 
-		// Apply Gemini function calling mode if configured
 		const hasTools = !!options.requestOptions?.tools?.length;
 		if (hasTools && this.family.toLowerCase().includes('gemini-3')) {
 			const geminiFunctionCallingMode = this._configurationService.getExperimentBasedConfig(
 				ConfigKey.TeamInternal.GeminiFunctionCallingMode,
 				this._expService
 			);
-			// Only override tool_choice if experiment provides a value and user hasn't specified a function call
 			if (geminiFunctionCallingMode && typeof body.tool_choice !== 'object') {
 				body.tool_choice = geminiFunctionCallingMode;
 			}
 		}
 
-		// Apply an explicit reasoning effort for models that declare supported
-		// levels. Unlike the Responses and Messages APIs (which map this in their
-		// own body builders), the CAPI chat-completions path does not, so the UI
-		// thinking-effort selection (surfaced via modelCapabilities) and the
-		// ReasoningEffortOverride setting would otherwise be dropped. The override
-		// setting takes precedence over the UI selection; both are validated
-		// against the levels the model advertises.
 		const declaredLevels = this.supportsReasoningEffort?.length ? this.supportsReasoningEffort : undefined;
 		if (declaredLevels) {
 			const candidateEffort = this._configurationService.getConfig(ConfigKey.Advanced.ReasoningEffortOverride)
@@ -444,8 +402,6 @@ export class ChatEndpoint implements IChatEndpoint {
 			}
 		}
 
-		// Force low reasoning effort for Gemini 3 models when the experiment is
-		// enabled, unless the user has already selected an explicit effort above.
 		if (body.reasoning_effort === undefined && this.family.toLowerCase().includes('gemini-3')) {
 			const lowReasoningEnabled = this._configurationService.getExperimentBasedConfig(
 				ConfigKey.EnableGemini3LowReasoningEffort,
@@ -456,7 +412,6 @@ export class ChatEndpoint implements IChatEndpoint {
 			}
 		}
 
-		// Force temperature and top_p for Kimi models regardless of what the client would otherwise send (per Moonshot recommendations). Temperature 0 strongly increases chances of looping.
 		if (isKimiFamily(this)) {
 			if (body.messages) {
 				const toolCallIdStyle = this.family.toLowerCase().includes('kimi-k3') || this.model.toLowerCase().includes('kimi-k3')
@@ -602,8 +557,6 @@ export class RemoteAgentChatEndpoint extends ChatEndpoint {
 		cancellationToken?: CancellationToken | undefined,
 		_location?: ChatLocation,
 	): Promise<AsyncIterableObject<ChatCompletion>> {
-		// We must override this to a num choices > 1 because remote agents can do internal function calls which emit multiple completions even when N > 1
-		// It's awful that they do this, but we have to support it
 		return defaultChatResponseProcessor(telemetryService, logService, response, 2, finishCallback, telemetryData, cancellationToken);
 	}
 

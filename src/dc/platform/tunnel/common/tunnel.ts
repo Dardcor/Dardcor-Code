@@ -47,7 +47,7 @@ export enum TunnelProtocol {
 }
 
 export enum TunnelPrivacyId {
-	ConstantPrivate = 'constantPrivate', // private, and changing is unsupported
+	ConstantPrivate = 'constantPrivate',
 	Private = 'private',
 	Public = 'public'
 }
@@ -58,9 +58,6 @@ export interface TunnelCreationOptions {
 
 export interface TunnelProviderFeatures {
 	elevation: boolean;
-	/**
-	 * @deprecated
-	 */
 	public?: boolean;
 	privacyOptions: TunnelPrivacy[];
 	protocol: boolean;
@@ -95,23 +92,14 @@ export interface PortAttributesProvider {
 export interface ITunnel {
 	remoteAddress: { port: number; host: string };
 
-	/**
-	 * The complete local address(ex. localhost:1234)
-	 */
 	localAddress: string;
 
-	/**
-	 * @deprecated Use privacy instead
-	 */
 	public?: boolean;
 
 	privacy?: string;
 
 	protocol?: string;
 
-	/**
-	 * Implementers of Tunnel should fire onDidDispose when dispose is called.
-	 */
 	readonly onDidDispose: Event<void>;
 
 	dispose(): Promise<void> | void;
@@ -196,7 +184,7 @@ export function isPortPrivileged(port: number, host: string, os: OperatingSystem
 			const osVersion = (/(\d+)\.(\d+)\.(\d+)/g).exec(osRelease);
 			if (osVersion?.length === 4) {
 				const major = parseInt(osVersion[1]);
-				if (major >= 18 /* since macOS Mojave, darwin version 18.0.0 */) {
+				if (major >= 18 ) {
 					return false;
 				}
 			}
@@ -230,12 +218,12 @@ export abstract class AbstractTunnelService extends Disposable implements ITunne
 	public onTunnelClosed: Event<{ host: string; port: number }> = this._onTunnelClosed.event;
 	private _onAddedTunnelProvider = this._register(new Emitter<void>());
 	public onAddedTunnelProvider: Event<void> = this._onAddedTunnelProvider.event;
-	protected readonly _tunnels = new Map</*host*/ string, Map</* port */ number, { refcount: number; readonly value: Promise<RemoteTunnel | string | undefined> }>>();
+	protected readonly _tunnels = new Map< string, Map< number, { refcount: number; readonly value: Promise<RemoteTunnel | string | undefined> }>>();
 	protected _tunnelProvider: ITunnelProvider | undefined;
 	protected _canElevate: boolean = false;
 	private _canChangeProtocol: boolean = true;
 	private _privacyOptions: TunnelPrivacy[] = [];
-	private _factoryInProgress: Set<number/*port*/> = new Set();
+	private _factoryInProgress: Set<number > = new Set();
 
 	public constructor(
 		@ILogService protected readonly logService: ILogService,
@@ -254,7 +242,6 @@ export abstract class AbstractTunnelService extends Disposable implements ITunne
 	setTunnelProvider(provider: ITunnelProvider | undefined): IDisposable {
 		this._tunnelProvider = provider;
 		if (!provider) {
-			// clear features
 			this._canElevate = false;
 			this._privacyOptions = [];
 			this._onAddedTunnelProvider.fire();
@@ -363,7 +350,6 @@ export abstract class AbstractTunnelService extends Disposable implements ITunne
 			localHost = this.defaultTunnelHost;
 		}
 
-		// Prevent tunnel factories from calling openTunnel from within the factory
 		if (this._tunnelProvider && this._factoryInProgress.has(remotePort)) {
 			this.logService.debug(`ForwardedPorts: (TunnelService) Another call to create a tunnel with the same address has occurred before the last one completed. This call will be ignored.`);
 			return;
@@ -469,11 +455,8 @@ export abstract class AbstractTunnelService extends Disposable implements ITunne
 
 	protected getTunnelFromMap(remoteHost: string, remotePort: number): { refcount: number; readonly value: Promise<RemoteTunnel | string | undefined> } | undefined {
 		const hosts = [remoteHost];
-		// Order matters. We want the original host to be first.
 		if (isLocalhost(remoteHost)) {
 			hosts.push(...LOCALHOST_ADDRESSES);
-			// For localhost, we add the all interfaces hosts because if the tunnel is already available at all interfaces,
-			// then of course it is available at localhost.
 			hosts.push(...ALL_INTERFACES_ADDRESSES);
 		} else if (isAllInterfaces(remoteHost)) {
 			hosts.push(...ALL_INTERFACES_ADDRESSES);

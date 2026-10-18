@@ -6,11 +6,6 @@
 import { assertNever } from '../../../util/dardcor/base/common/assert';
 import { IResponseDelta, ResponsePart, ResponsePartKind } from './fetch';
 
-/**
- * Converts a ResponsePart to an IResponseDelta.
- * For non-content parts, the text is set to an empty string.
- * @param part The ResponsePart to convert
- */
 export const toResponseDelta = (part: ResponsePart): IResponseDelta => {
 	switch (part.kind) {
 		case ResponsePartKind.ContentDelta:
@@ -55,7 +50,7 @@ export const toResponseDelta = (part: ResponsePart): IResponseDelta => {
 		case ResponsePartKind.ThinkingDelta:
 			return { text: '' };
 		case ResponsePartKind.Thinking:
-			return { text: '' }; // todo@karthiknadig/@connor4312: do we still need this back-compat with responses API?
+			return { text: '' };
 		default:
 			assertNever(part);
 	}
@@ -64,11 +59,6 @@ export const toResponseDelta = (part: ResponsePart): IResponseDelta => {
 const staticContentUUID = '8444605d-6c67-42c5-bbcb-a04b83f9f76e';
 
 
-/**
- * Converts an IResponseDelta to a ResponsePart.
- * For non-content deltas, the text is ignored.
- * @param delta The IResponseDelta to convert
- */
 export function* fromResponseDelta(delta: IResponseDelta): Iterable<ResponsePart> {
 	if (delta.text && delta.text.length > 0) {
 		yield {
@@ -105,7 +95,7 @@ export function* fromResponseDelta(delta: IResponseDelta): Iterable<ResponsePart
 	if (delta.thinking) {
 		yield {
 			kind: ResponsePartKind.ThinkingDelta,
-			partId: '', // Unknown, must be set by caller if needed
+			partId: '',
 			delta: delta.thinking
 		};
 	}

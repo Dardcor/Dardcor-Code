@@ -22,12 +22,6 @@ import { AgentInstructionsLocator } from '../../dardcor-node/agentInstructionsLo
 import { mockFiles } from './mockFiles';
 import { PromptConfig } from '../../common/promptsService';
 
-/**
- * `IWorkspaceService` test double whose trust map can be configured per URI.
- * Mirrors the per-URI `getUriTrustInfo` check in core's
- * `IWorkspaceTrustManagementService` that the locator emulates via
- * `vscode.workspace.isResourceTrusted`.
- */
 class TrustingWorkspaceService extends TestWorkspaceService {
 	private readonly _trusted = new ResourceMap<boolean>();
 
@@ -40,8 +34,6 @@ class TrustingWorkspaceService extends TestWorkspaceService {
 	}
 
 	override isResourceTrusted(resource: Uri): Thenable<boolean> {
-		// Default to untrusted for any URI not explicitly opted in, so the
-		// test fully controls which folders are trusted.
 		return Promise.resolve(this._trusted.get(resource) === true);
 	}
 }
@@ -61,9 +53,6 @@ suite('AgentInstructionsLocator', () => {
 	beforeEach(async () => {
 		const services = createPlatformServices();
 
-		// Workspace folder is a child of the parent repo. The locator's
-		// parent walk discovers `.git` at `parentFolder` and includes the
-		// folder when it's marked as trusted.
 		workspaceService = new TrustingWorkspaceService([rootFolderUri]);
 		services.define(IWorkspaceService, workspaceService);
 
@@ -93,17 +82,14 @@ suite('AgentInstructionsLocator', () => {
 
 	test('should collect parent folder dardcor-instructions.md and AGENTS.md when includeWorkspaceFolderParents is enabled', async () => {
 		await mockFiles(fileSystem, [
-			// `.git/HEAD` marks the parent folder as a repository root for the parent walk.
 			{ path: `${parentFolder}/.git/HEAD`, contents: ['ref: refs/heads/main'] },
 			{ path: `${parentFolder}/AGENTS.md`, contents: ['Parent agent guidelines'] },
 			{ path: `${parentFolder}/.github/dardcor-instructions.md`, contents: ['Parent dardcor instructions'] },
 			{ path: `${rootFolder}/src/file.ts`, contents: ['console.log("test");'] },
 		]);
 
-		// Trust the parent folder so the parent walk returns it.
 		workspaceService.setTrusted(parentFolderUri, true);
 
-		// First: parent search disabled — only the workspace folder should be inspected.
 		await configService.setNonExtensionConfig(PromptConfig.USE_CUSTOMIZATIONS_IN_PARENT_REPOS, false);
 		await configService.setConfig(ConfigKey.UseInstructionFiles, true);
 
@@ -113,7 +99,6 @@ suite('AgentInstructionsLocator', () => {
 		expect(paths).not.toContain(`${parentFolder}/.github/dardcor-instructions.md`);
 		expect(paths).not.toContain(`${parentFolder}/AGENTS.md`);
 
-		// Now: enable parent-folder search — both files should appear.
 		await configService.setNonExtensionConfig(PromptConfig.USE_CUSTOMIZATIONS_IN_PARENT_REPOS, true);
 		await configService.setConfig(ConfigKey.UseInstructionFiles, true);
 
@@ -125,11 +110,6 @@ suite('AgentInstructionsLocator', () => {
 	});
 
 	test('dardcor-instructions and AGENTS.md', async () => {
-		// Files at the workspace root only — `useCustomizationsInParentRepositories`
-		// is left at its default (off) so the locator only inspects `rootFolder`.
-		// The unrelated workspace files (README.md, codestyle.md, more-codestyle.md)
-		// are present to ensure the locator only picks up the agent-instruction
-		// filenames, not arbitrary `.md` files.
 		await mockFiles(fileSystem, [
 			{ path: `${rootFolder}/codestyle.md`, contents: ['Can you see this?'] },
 			{ path: `${rootFolder}/AGENTS.md`, contents: ['What about this?'] },
@@ -147,10 +127,6 @@ suite('AgentInstructionsLocator', () => {
 		const result = await locator.listAgentInstructions(CancellationToken.None);
 		const paths = result.map(f => f.uri.path).sort();
 
-		// Only the workspace-root agent-instruction files should be picked up.
-		// Nested `folder1/AGENTS.md` and arbitrary `.md` files are not. The
-		// referenced files (`codestyle.md`, `.github/more-codestyle.md`) are
-		// discovered by reference-following, which lives outside the locator.
 		expect(paths).toEqual([
 			`${rootFolder}/.github/dardcor-instructions.md`,
 			`${rootFolder}/AGENTS.md`,
@@ -163,13 +139,11 @@ suite('AgentInstructionsLocator', () => {
 			{ path: `${rootFolder}/src/file.ts`, contents: ['console.log("test");'] },
 		]);
 
-		// Enabled: CLAUDE.md should be included.
 		await configService.setNonExtensionConfig(PromptConfig.USE_CLAUDE_MD, true);
 		let result = await locator.listAgentInstructions(CancellationToken.None);
 		let paths = result.map(f => f.uri.path);
 		expect(paths).toContain(`${rootFolder}/CLAUDE.md`);
 
-		// Disabled: CLAUDE.md should be omitted.
 		await configService.setNonExtensionConfig(PromptConfig.USE_CLAUDE_MD, false);
 		result = await locator.listAgentInstructions(CancellationToken.None);
 		paths = result.map(f => f.uri.path);
@@ -194,8 +168,6 @@ suite('AgentInstructionsLocator', () => {
 	});
 
 	test('should collect ~/.claude/CLAUDE.md when enabled', async () => {
-		// `NullNativeEnvService.userHome` is `/home/testuser` — mock the home
-		// folder directly so the locator's home-folder branch finds it.
 		const userHome = '/home/testuser';
 		await mockFiles(fileSystem, [
 			{ path: `${userHome}/.claude/CLAUDE.md`, contents: ['Claude guidelines from home'] },
@@ -233,25 +205,21 @@ suite('AgentInstructionsLocator', () => {
 
 	test('should collect parent folder CLAUDE configurations when includeWorkspaceFolderParents is enabled', async () => {
 		await mockFiles(fileSystem, [
-			// `.git/HEAD` marks the parent folder as a repository root.
 			{ path: `${parentFolder}/.git/HEAD`, contents: ['ref: refs/heads/main'] },
 			{ path: `${parentFolder}/CLAUDE.md`, contents: ['Parent Claude guidelines'] },
 			{ path: `${parentFolder}/.claude/CLAUDE.md`, contents: ['Parent .claude Claude guidelines'] },
 			{ path: `${rootFolder}/src/file.ts`, contents: ['console.log("test");'] },
 		]);
 
-		// Trust the parent folder so the parent walk returns it.
 		workspaceService.setTrusted(parentFolderUri, true);
 		await configService.setNonExtensionConfig(PromptConfig.USE_CLAUDE_MD, true);
 
-		// Parent search disabled — parent CLAUDE files should not appear.
 		await configService.setNonExtensionConfig(PromptConfig.USE_CUSTOMIZATIONS_IN_PARENT_REPOS, false);
 		let result = await locator.listAgentInstructions(CancellationToken.None);
 		let paths = result.map(f => f.uri.path);
 		expect(paths).not.toContain(`${parentFolder}/CLAUDE.md`);
 		expect(paths).not.toContain(`${parentFolder}/.claude/CLAUDE.md`);
 
-		// Parent search enabled — parent CLAUDE files should be included.
 		await configService.setNonExtensionConfig(PromptConfig.USE_CUSTOMIZATIONS_IN_PARENT_REPOS, true);
 		result = await locator.listAgentInstructions(CancellationToken.None);
 		paths = result.map(f => f.uri.path);
@@ -265,8 +233,6 @@ suite('AgentInstructionsLocator', () => {
 		const rootFolder1Uri = URI.file(rootFolder1);
 		const rootFolder2Uri = URI.file(rootFolder2);
 
-		// Create a fresh locator wired up with two workspace folders, sharing
-		// the file system and configuration set up in the outer `beforeEach`.
 		function createMultiRootLocator(): AgentInstructionsLocator {
 			const multiRootWorkspaceService = new TrustingWorkspaceService([rootFolder1Uri, rootFolder2Uri]);
 			return new AgentInstructionsLocator(

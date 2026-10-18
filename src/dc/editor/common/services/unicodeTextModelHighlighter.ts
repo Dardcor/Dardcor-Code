@@ -39,7 +39,6 @@ export class UnicodeTextModelHighlighter {
 			const lineContent = model.getLineContent(lineNumber);
 			const lineLength = lineContent.length;
 
-			// Reset regex to search from the beginning
 			searcher.reset(0);
 			do {
 				m = searcher.next(lineContent);
@@ -47,7 +46,6 @@ export class UnicodeTextModelHighlighter {
 					let startIndex = m.index;
 					let endIndex = m.index + m[0].length;
 
-					// Extend range to entire code point
 					if (startIndex > 0) {
 						const charCodeBefore = lineContent.charCodeAt(startIndex - 1);
 						if (strings.isHighSurrogate(charCodeBefore)) {
@@ -63,7 +61,6 @@ export class UnicodeTextModelHighlighter {
 					const str = lineContent.substring(startIndex, endIndex);
 					let word = getWordAtText(startIndex + 1, DEFAULT_WORD_REGEXP, lineContent, 0);
 					if (word && word.endColumn <= startIndex + 1) {
-						// The word does not include the problematic character, ignore the word
 						word = null;
 					}
 					const highlightReason = codePointHighlighter.shouldHighlightNonBasicASCII(str, word ? word.word : null);
@@ -214,14 +211,13 @@ class CodePointHighlighter {
 		}
 
 		if (
-			/* Don't allow mixing weird looking characters with ASCII */ !hasBasicASCIICharacters &&
-			/* Is there an obviously weird looking character? */ hasNonConfusableNonBasicAsciiCharacter
+			!hasBasicASCIICharacters &&
+			hasNonConfusableNonBasicAsciiCharacter
 		) {
 			return SimpleHighlightReason.None;
 		}
 
 		if (this.options.invisibleCharacters) {
-			// TODO check for emojis
 			if (!isAllowedInvisibleCharacter(character) && strings.InvisibleCharacters.isInvisibleCharacter(codePoint)) {
 				return SimpleHighlightReason.Invisible;
 			}

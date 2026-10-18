@@ -131,7 +131,6 @@ export class NotebookCellOutputVariable extends PromptElement<INotebookCellOutpu
 				</>);
 			}
 		} else {
-			// force 1/4 of the token budget for text
 			const textSize = getCharLimit(sizing.tokenBudget / 4);
 			let textChunk = item.data.toString();
 			if (item.mime === 'application/vnd.code.notebook.stderr' || item.mime === 'application/vnd.code.notebook.error') {
@@ -153,4 +152,3 @@ export class NotebookCellOutputVariable extends PromptElement<INotebookCellOutpu
 	}
 }
 
-//#endregion

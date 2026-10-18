@@ -10,7 +10,6 @@ import { installAllHandlers } from '../../utils';
 export function setup(logger: Logger) {
 	describe('Statusbar', () => {
 
-		// Shared before/after handling
 		installAllHandlers(logger);
 
 		it('verifies presence of all default status bar elements', async function () {

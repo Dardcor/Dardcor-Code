@@ -573,7 +573,6 @@ suite('HookSourceFormat', () => {
 			assert.ok(result.hooks.has(HookType.PreToolUse));
 			const hooks = result.hooks.get(HookType.PreToolUse)!;
 			assert.strictEqual(hooks.hooks.length, 1);
-			// Empty command string is falsy and gets omitted by resolveHookCommand
 			assert.strictEqual(hooks.hooks[0].command, undefined);
 		});
 	});

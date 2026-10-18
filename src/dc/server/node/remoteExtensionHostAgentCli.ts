@@ -63,7 +63,7 @@ class CliMain extends Disposable {
 	}
 
 	private registerListeners(): void {
-		process.once('exit', () => this.dispose()); // Dispose on exit
+		process.once('exit', () => this.dispose());
 	}
 
 	async run(): Promise<void> {
@@ -73,7 +73,6 @@ class CliMain extends Disposable {
 			const logService = accessor.get(ILogService);
 			const productService = accessor.get(IProductService);
 
-			// On Windows, configure the UNC allow list based on settings
 			if (isWindows) {
 				if (configurationService.getValue('security.restrictUNCAccess') === false) {
 					disableUNCAccessRestrictions();
@@ -109,7 +108,6 @@ class CliMain extends Disposable {
 		logService.trace(`Remote configuration data at ${this.remoteDataFolder}`);
 		logService.trace('process arguments:', this.args);
 
-		// Files
 		const fileService = this._register(new FileService(logService));
 		services.set(IFileService, fileService);
 		fileService.registerProvider(Schemas.file, this._register(new DiskFileSystemProvider(logService)));
@@ -117,15 +115,12 @@ class CliMain extends Disposable {
 		const uriIdentityService = new UriIdentityService(fileService);
 		services.set(IUriIdentityService, uriIdentityService);
 
-		// User Data Profiles
 		const userDataProfilesService = this._register(new ServerUserDataProfilesService(uriIdentityService, environmentService, fileService, logService));
 		services.set(IUserDataProfilesService, userDataProfilesService);
 
-		// Configuration
 		const configurationService = this._register(new ConfigurationService(userDataProfilesService.defaultProfile.settingsResource, fileService, new NullPolicyService(), logService));
 		services.set(IConfigurationService, configurationService);
 
-		// Initialize
 		await Promise.all([
 			configurationService.initialize(),
 			userDataProfilesService.init()
@@ -148,28 +143,23 @@ class CliMain extends Disposable {
 
 	private async doRun(extensionManagementCLI: ExtensionManagementCLI): Promise<void> {
 
-		// List Extensions
 		if (this.args['list-extensions']) {
 			return extensionManagementCLI.listExtensions(!!this.args['show-versions'], this.args['category']);
 		}
 
-		// Install Extension
 		else if (this.args['install-extension'] || this.args['install-builtin-extension']) {
 			const installOptions: InstallOptions = { isMachineScoped: !!this.args['do-not-sync'], installPreReleaseVersion: !!this.args['pre-release'], donotIncludePackAndDependencies: !!this.args['do-not-include-pack-dependencies'] };
 			return extensionManagementCLI.installExtensions(this.asExtensionIdOrVSIX(this.args['install-extension'] || []), this.asExtensionIdOrVSIX(this.args['install-builtin-extension'] || []), installOptions, !!this.args['force']);
 		}
 
-		// Uninstall Extension
 		else if (this.args['uninstall-extension']) {
 			return extensionManagementCLI.uninstallExtensions(this.asExtensionIdOrVSIX(this.args['uninstall-extension']), !!this.args['force']);
 		}
 
-		// Update the installed extensions
 		else if (this.args['update-extensions']) {
 			return extensionManagementCLI.updateExtensions();
 		}
 
-		// Locate Extension
 		else if (this.args['locate-extension']) {
 			return extensionManagementCLI.locateExtension(this.args['locate-extension']);
 		}
@@ -191,7 +181,6 @@ export async function run(args: ServerParsedArgs, REMOTE_DATA_FOLDER: string, op
 		return;
 	}
 
-	// Version Info
 	if (args.version) {
 		console.log(buildVersionMessage(product.version, product.commit));
 		return;

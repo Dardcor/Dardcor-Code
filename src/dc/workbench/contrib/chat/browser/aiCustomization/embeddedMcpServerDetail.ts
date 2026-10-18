@@ -45,9 +45,6 @@ export function createWorkbenchMcpServerDetailInput(server: IWorkbenchMcpServer)
 	};
 }
 
-/**
- * Detail view for an MCP server inside the AI Customizations management editor.
- */
 export class EmbeddedMcpServerDetail extends Disposable {
 
 	private readonly root: HTMLElement;
@@ -92,7 +89,6 @@ export class EmbeddedMcpServerDetail extends Disposable {
 		this.emptyEl = DOM.append(this.root, $('.embedded-detail-empty'));
 		this.emptyEl.textContent = localize('mcpDetailEmpty', "No MCP server selected.");
 
-		// Refresh when the underlying server changes (install state, enablement, etc.).
 		this._register(this.mcpWorkbenchService.onChange(server => {
 			if (this.current && server && server.id === this.current.id) {
 				this.current = createWorkbenchMcpServerDetailInput(server);
@@ -111,10 +107,6 @@ export class EmbeddedMcpServerDetail extends Disposable {
 		return this.headerEl;
 	}
 
-	/**
-	 * Header slot reserved for leading chrome (e.g. a back button).
-	 * Prefer this over reaching into the header element directly.
-	 */
 	get leadingSlot(): HTMLElement {
 		return this.leadingSlotEl;
 	}

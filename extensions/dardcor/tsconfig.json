@@ -16,14 +16,15 @@
 		// Needed for tsx to run test files
 		"paths": {
 			"vscode": [
-				"./src/util/common/test/shims/vscodeTypesShim.ts"
+				"../../src/dardcor-dts/dardcor.d.ts"
 			]
 		}
 	},
 	"include": [
 		"./src",
 		"./test",
-		".vscode/extensions/test-extension"
+		".vscode/extensions/test-extension",
+		"../../src/dardcor-dts/**/*.d.ts"
 	],
 	"exclude": [
 		"test/scenarios/**/*",

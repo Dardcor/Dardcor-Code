@@ -24,9 +24,6 @@ interface IStoredValueOptions<T> {
 	serialization?: IStoredValueSerialization<T>;
 }
 
-/**
- * todo@connor4312: is this worthy to be in common?
- */
 export class StoredValue<T> extends Disposable {
 	private readonly serialization: IStoredValueSerialization<T>;
 	private readonly key: string;
@@ -34,9 +31,6 @@ export class StoredValue<T> extends Disposable {
 	private readonly target: StorageTarget;
 	private value?: T;
 
-	/**
-	 * Emitted whenever the value is updated or deleted.
-	 */
 	public readonly onDidChange: Event<IStorageValueChangeEvent>;
 
 	constructor(
@@ -52,14 +46,8 @@ export class StoredValue<T> extends Disposable {
 		this.onDidChange = this.storage.onDidChangeValue(this.scope, this.key, this._store);
 	}
 
-	/**
-	 * Reads the value, returning the undefined if it's not set.
-	 */
 	public get(): T | undefined;
 
-	/**
-	 * Reads the value, returning the default value if it's not set.
-	 */
 	public get(defaultValue: T): T;
 
 	public get(defaultValue?: T): T | undefined {
@@ -71,18 +59,11 @@ export class StoredValue<T> extends Disposable {
 		return this.value;
 	}
 
-	/**
-	 * Persists changes to the value.
-	 * @param value
-	 */
 	public store(value: T) {
 		this.value = value;
 		this.storage.store(this.key, this.serialization.serialize(value), this.scope, this.target);
 	}
 
-	/**
-	 * Delete an element stored under the provided key from storage.
-	 */
 	public delete() {
 		this.storage.remove(this.key, this.scope);
 	}

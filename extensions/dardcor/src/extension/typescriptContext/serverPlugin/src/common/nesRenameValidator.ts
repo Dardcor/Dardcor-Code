@@ -132,8 +132,6 @@ export function validateNesRename(result: PrepareNesRenameResult, program: tt.Pr
 	const declarations: tt.Declaration[] | undefined = symbol.getDeclarations();
 	if (declarations !== undefined) {
 		if (declarations.length === 1 && (Symbols.isBlockScopedVariable(symbol) || Symbols.isFunctionScopedVariable(symbol))) {
-			// if we have a block scoped or function scoped variable then it might still be redeclared in the same scope. We need
-			// to catch this since renaming it could cause issues.
 			const typeChecker = symbols.getTypeChecker();
 			const inScope = typeChecker.getSymbolsInScope(declarations[0], ts.SymbolFlags.BlockScopedVariable | ts.SymbolFlags.FunctionScopedVariable);
 			for (const inScopeSymbol of inScope) {
@@ -146,8 +144,6 @@ export function validateNesRename(result: PrepareNesRenameResult, program: tt.Pr
 				}
 			}
 		} else if (declarations.length > 1) {
-			// If the symbol has more than one declaration we need to be careful to rename it. The second declaration
-			// could simply be a copy paste of the previous one and renaming it could cause some bad side effects.
 			if (Symbols.isFunction(symbol)) {
 				const checker = new DeclarationChecker(result, symbol);
 				checker.checkDeclarations();
@@ -158,7 +154,6 @@ export function validateNesRename(result: PrepareNesRenameResult, program: tt.Pr
 				result.setCanRename(RenameKind.no, 'The symbol has multiple declarations');
 				return;
 			} else {
-				// We do have a method with multiple declarations.
 				if (Symbols.isInterface(parent) || Symbols.isTypeLiteral(parent) || Symbols.isClass(parent)) {
 					const checker = new DeclarationChecker(result, symbol);
 					checker.checkDeclarations();
@@ -172,7 +167,6 @@ export function validateNesRename(result: PrepareNesRenameResult, program: tt.Pr
 
 
 	const escapedNewName = ts.escapeLeadingUnderscores(newName);
-	// First see if the symbol has a parent. If so the new name must not conflict with existing members.
 	if (parent !== undefined) {
 		const members = parent.members;
 		if (members !== undefined && members.has(escapedNewName)) {
@@ -185,7 +179,6 @@ export function validateNesRename(result: PrepareNesRenameResult, program: tt.Pr
 			return;
 		}
 		if (Symbols.isClass(parent) || Symbols.isInterface(parent)) {
-			// check all super types.
 			for (const superType of symbols.getAllSuperTypes(parent)) {
 				const members = superType.members;
 				if (members !== undefined && members.has(escapedNewName)) {
@@ -220,7 +213,7 @@ function hasSameSymbolOnDeclarationSide(symbols: Symbols, _symbol: tt.Symbol, de
 	const typeChecker = symbols.getTypeChecker();
 	let inModule: boolean | undefined = undefined;
 	for (const declaration of declarations) {
-		const inScope = typeChecker.resolveName(newName, declaration, ts.SymbolFlags.All, /*excludeGlobals*/ false);
+		const inScope = typeChecker.resolveName(newName, declaration, ts.SymbolFlags.All, false);
 		if (inScope !== undefined) {
 			inModule = inModule ?? isInModule(symbols, declarations);
 			if (!inModule) {

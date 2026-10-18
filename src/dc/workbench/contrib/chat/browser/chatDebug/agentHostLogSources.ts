@@ -21,64 +21,38 @@ import { IOutputService } from '../../../../services/output/common/output.js';
 import { IPathService } from '../../../../services/path/common/pathService.js';
 import { buildLocalCopilotLogsUri, buildRemoteCopilotLogsUri, COPILOT_CLI_LOCAL_AH_SCHEME, getCopilotCliSessionRawId, parseRemoteAuthorityFromScheme, resolveEventsUri } from '../copilotCliEventsUri.js';
 
-/** Output channel ID for the current window's renderer log. */
 const WINDOW_LOG_CHANNEL_ID = 'rendererLog';
-/** Output channel ID for the shared process compound log. */
 const SHARED_PROCESS_LOG_CHANNEL_ID = 'shared';
-/** Bound the best-effort scan of Copilot SDK process logs. */
 export const MAX_COPILOT_LOG_SCAN_FILES = 10;
 export const MAX_COPILOT_LOG_SCAN_FILE_SIZE = 1024 * 1024 * 1024;
 const MAX_COPILOT_LOG_VIEW_FILE_SIZE = 10 * 1024 * 1024;
-/** Default cap for the amount of text loaded into the inline raw-log viewer. */
 export const DEFAULT_RAW_LOG_VIEW_CAP_BYTES = 2 * 1024 * 1024;
 
-/**
- * A selected Copilot process log that can be read lazily.
- */
 export interface ICopilotLogFile {
 	readonly path: string;
 	readonly resource: URI;
 	readonly size: number;
 }
 
-/**
- * Discriminates the kind of agent-host log a {@link IAgentHostLogSource}
- * points at, so the viewer can pick the appropriate reader and syntax.
- */
 export const enum AgentHostLogSourceKind {
-	/** The Copilot CLI `events.jsonl` model/conversation stream. */
 	Events = 'events',
-	/** The client-side AHP JSON-RPC wire log (`<logsHome>/ahp/*.jsonl`). */
 	WireLog = 'wire',
-	/** The Copilot SDK process logs under `<COPILOT_HOME>/logs`. */
 	CliLog = 'cliLog',
-	/** A VS Code output channel (agent host process, renderer, shared). */
 	ProcessChannel = 'processChannel',
-	/** The remote machine's `agenthost.log`, downloaded on demand. */
 	RemoteProcessLog = 'remoteProcessLog',
 }
 
-/**
- * Describes one raw log source available for an agent-host session. Descriptors
- * are cheap to enumerate; the actual (bounded) content is read lazily via
- * {@link readAgentHostLogSourceContent} when the user selects the source.
- */
 export interface IAgentHostLogSource {
 	readonly id: string;
 	readonly label: string;
 	readonly kind: AgentHostLogSourceKind;
 	readonly isRemote: boolean;
-	/** File resource for file-backed sources (events, wire log). */
 	readonly resource?: URI;
-	/** Output channel id for channel-backed sources. */
 	readonly channelId?: string;
-	/** Copilot logs directory + session id, for the lazy session-matched CLI log read. */
 	readonly cliLogs?: { readonly dir: URI; readonly rawSessionId: string };
-	/** Remote connection for lazily downloading `agenthost.log`. */
 	readonly remoteConnection?: IRemoteAgentHostConnectionInfo;
 }
 
-/** Bag of services required to enumerate and read agent-host log sources. */
 export interface IAgentHostLogSourceServices {
 	readonly pathService: IPathService;
 	readonly agentHostService: IAgentHostService;
@@ -92,22 +66,13 @@ export interface IAgentHostLogSourceServices {
 	readonly logService: ILogService;
 }
 
-/** Result of a bounded raw-log read. */
 export interface IAgentHostLogContent {
 	readonly text: string;
-	/** Total size of the underlying source in bytes, when known. */
 	readonly totalBytes: number | undefined;
-	/** True when only the tail of the source was loaded. */
 	readonly truncated: boolean;
-	/** Full-fidelity resource to open in an editor, when the source is file-backed. */
 	readonly fileResource?: URI;
 }
 
-/**
- * Returns true when the chat session belongs to an agent host (local or
- * remote Copilot CLI). Only these sessions have AHP logs and agent-host
- * process logs, so the AHP Log view is gated on this.
- */
 export function isAgentHostSession(resource: URI | undefined): boolean {
 	if (!resource) {
 		return false;
@@ -115,25 +80,15 @@ export function isAgentHostSession(resource: URI | undefined): boolean {
 	return resource.scheme === COPILOT_CLI_LOCAL_AH_SCHEME || !!parseRemoteAuthorityFromScheme(resource.scheme);
 }
 
-/**
- * Resolves the remote agent-host connection that backs a given remote session
- * URI, or `undefined` for local/unknown sessions.
- */
 export function getRemoteConnectionForSession(sessionResource: URI, connections: readonly IRemoteAgentHostConnectionInfo[]): IRemoteAgentHostConnectionInfo | undefined {
 	const authority = parseRemoteAuthorityFromScheme(sessionResource.scheme);
 	return authority ? connections.find(connection => agentHostAuthority(connection.address) === authority) : undefined;
 }
 
-/** Sanitizes a value for use as (part of) a file name. */
 export function sanitizeFilePart(value: string): string {
 	return value.replace(/[\\/:\*\?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '') || 'connection';
 }
 
-/**
- * Enumerates the raw log sources available for a given agent-host session.
- * Cheap: performs at most a couple of directory stats and never reads file
- * contents. Returns an empty array for non-agent-host sessions.
- */
 export async function enumerateAgentHostLogSources(
 	services: IAgentHostLogSourceServices,
 	sessionResource: URI | undefined,
@@ -149,7 +104,6 @@ export async function enumerateAgentHostLogSources(
 
 	const sources: IAgentHostLogSource[] = [];
 
-	// 1. events.jsonl (model/conversation stream)
 	const eventsResult = resolveEventsUri(
 		sessionResource,
 		userHome,
@@ -165,7 +119,6 @@ export async function enumerateAgentHostLogSources(
 		});
 	}
 
-	// 2. AHP wire log(s) — only when wire logging is enabled.
 	if (configurationService.getValue<boolean>(AgentHostAhpJsonlLoggingSettingId)) {
 		const nameToken = isLocal
 			? sanitizeFilePart(agentHostService.clientId)
@@ -184,7 +137,6 @@ export async function enumerateAgentHostLogSources(
 		});
 	}
 
-	// 3. Agent host process log (output channel) + window/shared logs.
 	const channelIds: string[] = [];
 	if (isLocal) {
 		channelIds.push(AGENT_HOST_LOG_OUTPUT_CHANNEL_ID);
@@ -206,7 +158,6 @@ export async function enumerateAgentHostLogSources(
 		});
 	}
 
-	// 4. Remote agenthost.log (downloaded on demand).
 	if (remoteConnection?.defaultDirectory) {
 		sources.push({
 			id: 'remoteProcessLog',
@@ -217,7 +168,6 @@ export async function enumerateAgentHostLogSources(
 		});
 	}
 
-	// 5. Copilot SDK process logs (<COPILOT_HOME>/logs), matched lazily by session id with a newest-log fallback.
 	const rawSessionId = getCopilotCliSessionRawId(sessionResource);
 	if (rawSessionId) {
 		const copilotLogsDir = isLocal
@@ -237,11 +187,6 @@ export async function enumerateAgentHostLogSources(
 	return sources;
 }
 
-/**
- * Reads the (bounded) content of a log source. File-backed sources are tailed
- * to at most `capBytes`; the returned {@link IAgentHostLogContent.fileResource}
- * lets callers offer an "open full file" affordance.
- */
 export async function readAgentHostLogSourceContent(
 	source: IAgentHostLogSource,
 	services: IAgentHostLogSourceServices,
@@ -294,15 +239,6 @@ export async function readAgentHostLogSourceContent(
 	}
 }
 
-/**
- * Lists AHP wire log files for a session's connection.
- *
- * When `nameToken` identifies the session's connection (its filenames embed
- * `ahp-<timestamp>-<connectionId>.jsonl`), only matching files are returned —
- * so unrelated connections' logs are not surfaced as spurious "rotated"
- * sources. Falls back to all AHP logs (newest first) when the token is absent
- * or matches nothing.
- */
 async function listWireLogFiles(
 	fileService: IFileService,
 	environmentService: IEnvironmentService,
@@ -319,16 +255,12 @@ async function listWireLogFiles(
 		.filter(child => !child.isDirectory && child.name.endsWith('.jsonl'))
 		.map(child => ({ resource: child.resource, name: child.name, mtime: child.mtime ?? 0 }));
 
-	// Restrict to the session's connection when it can be identified; otherwise
-	// fall back to all files so a session is never left without any log.
 	const matching = nameToken ? files.filter(file => file.name.includes(nameToken)) : [];
 	const selected = matching.length > 0 ? matching : files;
 
-	// Newest first.
 	return selected.sort((a, b) => b.mtime - a.mtime);
 }
 
-/** Reads at most `capBytes` from the tail of a file. */
 async function readFileTail(fileService: IFileService, resource: URI, capBytes: number): Promise<IAgentHostLogContent> {
 	let size: number | undefined;
 	try {
@@ -340,7 +272,6 @@ async function readFileTail(fileService: IFileService, resource: URI, capBytes: 
 	if (size !== undefined && size > capBytes) {
 		const content = await fileService.readFile(resource, { position: size - capBytes, length: capBytes });
 		let text = content.value.toString();
-		// Drop the leading partial line so the view starts on a record boundary.
 		const firstNewline = text.indexOf('\n');
 		if (firstNewline >= 0) {
 			text = text.slice(firstNewline + 1);
@@ -352,7 +283,6 @@ async function readFileTail(fileService: IFileService, resource: URI, capBytes: 
 	return { text: content.value.toString(), totalBytes: size, truncated: false, fileResource: resource };
 }
 
-/** Returns at most `capBytes` worth of text from the tail of a string. */
 function tailString(value: string, capBytes: number): IAgentHostLogContent {
 	if (value.length <= capBytes) {
 		return { text: value, totalBytes: value.length, truncated: false };
@@ -365,11 +295,6 @@ function tailString(value: string, capBytes: number): IAgentHostLogContent {
 	return { text, totalBytes: value.length, truncated: true };
 }
 
-/**
- * Reads Copilot process logs selected for a session, or the newest log when
- * none mention the session id. Bounded by
- * {@link MAX_COPILOT_LOG_SCAN_FILES} and {@link MAX_COPILOT_LOG_SCAN_FILE_SIZE}.
- */
 export async function readCopilotLogsForSession(
 	logsDir: URI,
 	rawSessionId: string,
@@ -391,10 +316,6 @@ export async function readCopilotLogsForSession(
 	return files;
 }
 
-/**
- * Scans a bounded set of Copilot process logs for the session id, falling back
- * to the newest process log when no match can be found.
- */
 export async function findRelevantCopilotLogs(
 	logsDir: URI,
 	rawSessionId: string | undefined,
@@ -493,12 +414,6 @@ async function logStreamContains(
 	});
 }
 
-/**
- * Reads the remote agent host's `agenthost.log` from the remote machine via the
- * `vscode-agent-host://` filesystem proxy. The CLI launches the server with its
- * default data dir at `<home>/<serverDataFolderName>/data/logs/<datestamp>/`,
- * so we list the logs directory and pick the most recent date-stamped folder.
- */
 export async function readRemoteAgentHostLog(
 	connection: IRemoteAgentHostConnectionInfo,
 	serverDataFolderName: string | undefined,
@@ -511,11 +426,6 @@ export async function readRemoteAgentHostLog(
 	const authority = agentHostAuthority(connection.address);
 	const homeUri = toAgentHostUri(URI.from({ scheme: 'file', path: homePath }), authority);
 
-	// Possible server data folder candidates. The renderer's own
-	// `serverDataFolderName` (which the user is running) is the most likely
-	// match, but the remote agent host may have been launched by a different
-	// quality of CLI. Dev builds also append `-dev`, which won't exist on
-	// any real built remote, so we strip that suffix as well.
 	const candidates = new Set<string>();
 	if (serverDataFolderName) {
 		candidates.add(serverDataFolderName);
@@ -528,10 +438,6 @@ export async function readRemoteAgentHostLog(
 	candidates.add('.vscode-server-oss');
 	candidates.add('.vscode-server-exploration');
 
-	// Enumerate every `<home>/<candidate>/data/logs/<datestamp>/agenthost.log`
-	// across all candidates and pick the one with the newest mtime. This avoids
-	// picking up a stale stable-quality folder when an insiders folder has a
-	// more recent log (or vice versa).
 	let best: { uri: URI; mtime: number } | undefined;
 	for (const folderName of candidates) {
 		const logsDirUri = joinPath(homeUri, folderName, 'data', 'logs');

@@ -1,4 +1,4 @@
-# [File-Specific Instructions (.instructions.md)](https://code.visualstudio.com/docs/dardcor/customization/custom-instructions)
+# [File-Specific Instructions (.instructions.md)](https://www.dardcor-code.web.id/docs/dardcor/customization/custom-instructions)
 
 Guidelines loaded on-demand when relevant to the current task, or explicitly when files match a pattern.
 

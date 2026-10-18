@@ -54,17 +54,10 @@ export interface ITerminalSandboxFileAccessCheckResult {
 }
 
 export interface ITerminalSandboxPrecheckInputs {
-	/**
-	 * Whether the current caller is using the default approval permission flow.
-	 */
 	readonly isDefaultApprovalPermissionEnabled?: boolean;
 }
 
 export interface ITerminalSandboxCommand {
-	/**
-	 * Normalized command name without path or executable suffix.
-	 * For example, `/usr/bin/git` and `git.exe` both normalize to `git`.
-	 */
 	keyword: string;
 	/**
 	 * Command arguments after the executable token. These are used for
@@ -74,11 +67,6 @@ export interface ITerminalSandboxCommand {
 	args: readonly string[];
 }
 
-/**
- * Abstraction over terminal operations needed by the install flow.
- * Provided by the browser-layer caller so the common-layer service
- * does not import browser types directly.
- */
 export interface ISandboxDependencyInstallTerminal {
 	sendText(text: string, addNewLine?: boolean): Promise<void>;
 	focus(): void;
@@ -91,13 +79,7 @@ export interface ISandboxDependencyInstallTerminal {
 }
 
 export interface ISandboxDependencyInstallOptions {
-	/**
-	 * Creates or obtains a terminal for running the install command.
-	 */
 	createTerminal(): Promise<ISandboxDependencyInstallTerminal>;
-	/**
-	 * Focuses the terminal for password entry.
-	 */
 	focusTerminal(terminal: ISandboxDependencyInstallTerminal): Promise<void>;
 }
 
@@ -111,12 +93,6 @@ export interface ITerminalSandboxService {
 	isSandboxAllowNetworkEnabled(precheckInputs?: ITerminalSandboxPrecheckInputs): Promise<boolean>;
 	getOS(): Promise<OperatingSystem>;
 	checkForSandboxingPrereqs(forceRefresh?: boolean, precheckInputs?: ITerminalSandboxPrecheckInputs): Promise<ITerminalSandboxPrerequisiteCheckResult>;
-	/**
-	 * Wraps a command line for sandbox execution. Command details are optional,
-	 * but when provided they are used to derive command-specific read/write
-	 * allow-list entries. When explicitly requested, `requestAllowNetwork`
-	 * retains sandbox execution while using a network-unrestricted config.
-	 */
 	wrapCommand(command: string, requestUnsandboxedExecution?: boolean, shell?: string, cwd?: URI, commandDetails?: readonly ITerminalSandboxCommand[], requestAllowNetwork?: boolean): Promise<ITerminalSandboxWrapResult>;
 	checkFileAccess(permission: TerminalSandboxFileAccessPermission, paths: readonly string[], precheckInputs?: ITerminalSandboxPrecheckInputs): Promise<ITerminalSandboxFileAccessCheckResult>;
 	getSandboxConfigPath(forceRefresh?: boolean, precheckInputs?: ITerminalSandboxPrecheckInputs): Promise<string | undefined>;
@@ -164,7 +140,6 @@ export class NullTerminalSandboxService implements ITerminalSandboxService {
 	}
 
 	setNeedsForceUpdateConfigFile(): void {
-		// No-op.
 	}
 
 	getResolvedNetworkDomains(): ITerminalSandboxResolvedNetworkDomains {

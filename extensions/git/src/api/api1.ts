@@ -45,9 +45,6 @@ export class ApiRepositoryState implements RepositoryState {
 	}
 
 	get HEAD(): Branch | undefined { return this.#repository.HEAD; }
-	/**
-	 * @deprecated Use ApiRepository.getRefs() instead.
-	 */
 	get refs(): Ref[] { console.warn('Deprecated. Use ApiRepository.getRefs() instead.'); return []; }
 	get remotes(): Remote[] { return [...this.#repository.remotes]; }
 	get submodules(): Submodule[] { return [...this.#repository.submodules]; }

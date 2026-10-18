@@ -11,9 +11,6 @@ import { CharWidthRequest, CharWidthRequestType, readCharWidths } from './charWi
 import { EditorFontLigatures } from '../../common/config/editorOptions.js';
 import { BareFontInfo, FontInfo, SERIALIZED_FONT_INFO_VERSION } from '../../common/config/fontInfo.js';
 
-/**
- * Serializable font information.
- */
 export interface ISerializedFontInfo {
 	readonly version: number;
 	readonly pixelRatio: number;
@@ -51,9 +48,6 @@ export class FontMeasurementsImpl extends Disposable {
 		super.dispose();
 	}
 
-	/**
-	 * Clear all cached font information and trigger a change event.
-	 */
 	public clearAllFontInfos(): void {
 		this._cache.clear();
 		this._onDidChange.fire();
@@ -74,7 +68,6 @@ export class FontMeasurementsImpl extends Disposable {
 		cache.put(item, value);
 
 		if (!value.isTrusted && this._evictUntrustedReadingsTimeout === -1) {
-			// Try reading again after some time
 			this._evictUntrustedReadingsTimeout = targetWindow.setTimeout(() => {
 				this._evictUntrustedReadingsTimeout = -1;
 				this._evictUntrustedReadings(targetWindow);
@@ -97,24 +90,14 @@ export class FontMeasurementsImpl extends Disposable {
 		}
 	}
 
-	/**
-	 * Serialized currently cached font information.
-	 */
 	public serializeFontInfo(targetWindow: Window): ISerializedFontInfo[] {
-		// Only save trusted font info (that has been measured in this running instance)
 		const cache = this._ensureCache(targetWindow);
 		return cache.getValues().filter(item => item.isTrusted);
 	}
 
-	/**
-	 * Restore previously serialized font informations.
-	 */
 	public restoreFontInfo(targetWindow: Window, savedFontInfos: ISerializedFontInfo[]): void {
-		// Take all the saved font info and insert them in the cache without the trusted flag.
-		// The reason for this is that a font might have been installed on the OS in the meantime.
 		for (const savedFontInfo of savedFontInfos) {
 			if (savedFontInfo.version !== SERIALIZED_FONT_INFO_VERSION) {
-				// cannot use older version
 				continue;
 			}
 			const fontInfo = new FontInfo(savedFontInfo, false);
@@ -122,16 +105,12 @@ export class FontMeasurementsImpl extends Disposable {
 		}
 	}
 
-	/**
-	 * Read font information.
-	 */
 	public readFontInfo(targetWindow: Window, bareFontInfo: BareFontInfo): FontInfo {
 		const cache = this._ensureCache(targetWindow);
 		if (!cache.has(bareFontInfo)) {
 			let readConfig = this._actualReadFontInfo(targetWindow, bareFontInfo);
 
 			if (readConfig.typicalHalfwidthCharacterWidth <= 2 || readConfig.typicalFullwidthCharacterWidth <= 2 || readConfig.spaceWidth <= 2 || readConfig.maxDigitWidth <= 2) {
-				// Hey, it's Bug 14341 ... we couldn't read
 				readConfig = new FontInfo({
 					pixelRatio: PixelRatio.getInstance(targetWindow).value,
 					fontFamily: readConfig.fontFamily,
@@ -182,17 +161,13 @@ export class FontMeasurementsImpl extends Disposable {
 		const digit8 = this._createRequest('8', CharWidthRequestType.Regular, all, monospace);
 		const digit9 = this._createRequest('9', CharWidthRequestType.Regular, all, monospace);
 
-		// monospace test: used for whitespace rendering
 		const rightwardsArrow = this._createRequest('→', CharWidthRequestType.Regular, all, monospace);
 		const halfwidthRightwardsArrow = this._createRequest('￫', CharWidthRequestType.Regular, all, null);
 
-		// U+00B7 - MIDDLE DOT
 		const middot = this._createRequest('·', CharWidthRequestType.Regular, all, monospace);
 
-		// U+2E31 - WORD SEPARATOR MIDDLE DOT
 		const wsmiddotWidth = this._createRequest(String.fromCharCode(0x2E31), CharWidthRequestType.Regular, all, null);
 
-		// monospace test: some characters
 		const monospaceTestChars = '|/-_ilm%';
 		for (let i = 0, len = monospaceTestChars.length; i < len; i++) {
 			this._createRequest(monospaceTestChars.charAt(i), CharWidthRequestType.Regular, all, monospace);
@@ -216,11 +191,9 @@ export class FontMeasurementsImpl extends Disposable {
 
 		let canUseHalfwidthRightwardsArrow = true;
 		if (isMonospace && halfwidthRightwardsArrow.width !== referenceWidth) {
-			// using a halfwidth rightwards arrow would break monospace...
 			canUseHalfwidthRightwardsArrow = false;
 		}
 		if (halfwidthRightwardsArrow.width > rightwardsArrow.width) {
-			// using a halfwidth rightwards arrow would paint a larger arrow than a regular rightwards arrow
 			canUseHalfwidthRightwardsArrow = false;
 		}
 

@@ -43,7 +43,6 @@ export class LocalFileSystem implements ICompletionsFileSystemService {
 				const stat = await fsp.stat(fsPath);
 				return { lstat, stat, targetStat: stat };
 			} catch {
-				// likely a dangling link or access error
 			}
 		}
 
@@ -58,7 +57,6 @@ export class LocalFileSystem implements ICompletionsFileSystemService {
 		if (targetStat.isDirectory()) {
 			type = FileType.Directory;
 		}
-		// dangling links have FileType.Unknown
 		if (lstat.isSymbolicLink() && stat) {
 			type |= FileType.SymbolicLink;
 		}

@@ -42,15 +42,6 @@ interface ICommentRow {
 	readonly element: HTMLElement;
 }
 
-/**
- * Confirmation for the agent host `viewUnreviewedComments` tool. Lists the
- * review comments the user has not accepted yet — each with a checkbox (reveal
- * to the agent or not), an action to open the file at the comment, and an
- * action to delete the comment. Accepting reveals (accepts) the checked
- * comments before approving the tool call; the comments and all actions are
- * fetched/applied via {@link AgentFeedbackReviewCommandId} commands so this
- * layer stays decoupled from the `dc/sessions` feedback model.
- */
 export class ChatAgentFeedbackReviewConfirmationSubPart extends AbstractToolConfirmationSubPart {
 	public override readonly domNode: HTMLElement;
 	public override readonly codeblocks: IChatCodeBlockInfo[] = [];
@@ -209,11 +200,6 @@ export class ChatAgentFeedbackReviewConfirmationSubPart extends AbstractToolConf
 		this._onDidChangeRevealButtonDisablement.fire(![...this._rows.values()].some(row => row.checkbox.checked));
 	}
 
-	/**
-	 * Renders the comment body clamped to two visual lines by default, with an
-	 * expand/collapse toggle below the row actions. The toggle and fade affordance
-	 * only appear when the text overflows two lines.
-	 */
 	private _renderCommentText(rowStore: DisposableStore, main: HTMLElement, actionsContainer: HTMLElement, text: string): void {
 		const container = dom.append(main, dom.$('.chat-agent-feedback-review-text-container'));
 		const textElement = dom.append(container, dom.$('.chat-agent-feedback-review-text'));
@@ -240,10 +226,6 @@ export class ChatAgentFeedbackReviewConfirmationSubPart extends AbstractToolConf
 		};
 
 		const isOverflowing = (): boolean => {
-			// `scrollHeight` reflects the full content height even while clamped,
-			// so compare it against the (clamped) `clientHeight`. Measure in the
-			// collapsed state, restoring the previous state in the same frame so
-			// no intermediate layout is painted.
 			const wasExpanded = expanded;
 			if (wasExpanded) {
 				container.classList.add('collapsed');
@@ -276,8 +258,6 @@ export class ChatAgentFeedbackReviewConfirmationSubPart extends AbstractToolConf
 		rowStore.add(dom.addDisposableListener(toggle, dom.EventType.CLICK, e => {
 			e.preventDefault();
 			e.stopPropagation();
-			// Announce the toggle before the row grows so the list anchors this comment instead of
-			// auto-scrolling to the new end of the transcript when it is already at the bottom.
 			container.dispatchEvent(new CustomEvent(ChatCollapsibleContentPart.userToggleEvent, { bubbles: true }));
 			expanded = !expanded;
 			renderState();
@@ -322,10 +302,6 @@ export class ChatAgentFeedbackReviewConfirmationSubPart extends AbstractToolConf
 		if (!checkedIds.length) {
 			return;
 		}
-		// Accept the checked comments before approving the tool call so the
-		// annotation writes are dispatched ahead of the approval on the same
-		// connection; the server tool body then reads the updated state and
-		// returns exactly the revealed comments.
 		try {
 			await this.commandService.executeCommand(AgentFeedbackReviewCommandId.Accept, this._sessionResource, checkedIds);
 		} catch (error) {
@@ -340,10 +316,6 @@ export class ChatAgentFeedbackReviewConfirmationSubPart extends AbstractToolConf
 	}
 
 	protected createContentElement(): HTMLElement | string {
-		// This confirmation builds its own widget content (the comment list) in
-		// the constructor and never goes through the base `render()` flow, so
-		// this is unused. Return an empty string rather than throwing so the
-		// class stays safe if a future refactor routes through `render()`.
 		return '';
 	}
 

@@ -10,10 +10,6 @@ import { Target } from './promptTypes.js';
 
 export { extractHookCommandsFromItem };
 
-/**
- * Cached inverse mapping from HookType to Claude hook type name.
- * Lazily computed on first access.
- */
 let _hookTypeToClaudeName: Map<HookType, string> | undefined;
 
 function getHookTypeToClaudeNameMap(): Map<HookType, string> {
@@ -26,55 +22,19 @@ function getHookTypeToClaudeNameMap(): Map<HookType, string> {
 	return _hookTypeToClaudeName;
 }
 
-/**
- * Resolves a Claude hook type name to our abstract HookType.
- */
 export function resolveClaudeHookType(name: string): HookType | undefined {
 	return HOOKS_BY_TARGET[Target.Claude][name];
 }
 
-/**
- * Gets the Claude hook type name for a given abstract HookType.
- * Returns undefined if the hook type is not supported in Claude.
- */
 export function getClaudeHookTypeName(hookType: HookType): string | undefined {
 	return getHookTypeToClaudeNameMap().get(hookType);
 }
 
-/**
- * Result of parsing Claude hooks file.
- */
 export interface IParseClaudeHooksResult {
-	/**
-	 * The parsed hooks by type.
-	 */
 	readonly hooks: Map<HookType, { hooks: IHookCommand[]; originalId: string }>;
-	/**
-	 * Whether all hooks from this file were disabled via `disableAllHooks: true`.
-	 */
 	readonly disabledAllHooks: boolean;
 }
 
-/**
- * Parses hooks from a Claude settings.json file.
- * Claude format:
- * {
- *   "hooks": {
- *     "PreToolUse": [
- *       { "matcher": "Bash", "hooks": [{ "type": "command", "command": "..." }] }
- *     ]
- *   }
- * }
- *
- * Or simpler format:
- * {
- *   "hooks": {
- *     "PreToolUse": [{ "type": "command", "command": "..." }]
- *   }
- * }
- *
- * If the file has `disableAllHooks: true` at the top level, all hooks are filtered out.
- */
 export function parseClaudeHooks(
 	json: unknown,
 	workspaceRootUri: URI | undefined,
@@ -88,7 +48,6 @@ export function parseClaudeHooks(
 
 	const root = json as Record<string, unknown>;
 
-	// Check for disableAllHooks property at the top level
 	if (root.disableAllHooks === true) {
 		return { hooks: result, disabledAllHooks: true };
 	}
@@ -102,7 +61,6 @@ export function parseClaudeHooks(
 	const hooksObj = hooks as Record<string, unknown>;
 
 	for (const originalId of Object.keys(hooksObj)) {
-		// Resolve Claude hook type name to our canonical HookType
 		const hookType = resolveClaudeHookType(originalId) ?? toHookType(originalId);
 		if (!hookType) {
 			continue;
@@ -116,7 +74,6 @@ export function parseClaudeHooks(
 		const commands: IHookCommand[] = [];
 
 		for (const item of hookArray) {
-			// Use shared helper that handles both direct commands and nested matcher structures
 			const extracted = extractHookCommandsFromItem(item, workspaceRootUri, userHome);
 			commands.push(...extracted);
 		}

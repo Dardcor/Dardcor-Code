@@ -24,10 +24,6 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { TEXT_FILE_EDITOR_ID } from '../../files/common/files.js';
 import './recentRemoteFolderPruner.js';
 
-/**
- * A workbench contribution that will look for `.code-workspace` files in the root of the
- * workspace folder and open a notification to suggest to open one of the workspaces.
- */
 export class WorkspacesFinderContribution extends Disposable implements IWorkbenchContribution {
 
 	constructor(
@@ -46,7 +42,7 @@ export class WorkspacesFinderContribution extends Disposable implements IWorkben
 	private async findWorkspaces(): Promise<void> {
 		const folder = this.contextService.getWorkspace().folders[0];
 		if (!folder || this.contextService.getWorkbenchState() !== WorkbenchState.FOLDER || isVirtualWorkspace(this.contextService.getWorkspace())) {
-			return; // require a single (non virtual) root folder
+			return;
 		}
 
 		const rootFileNames = (await this.fileService.resolve(folder.uri)).children?.map(child => child.name);
@@ -61,7 +57,6 @@ export class WorkspacesFinderContribution extends Disposable implements IWorkben
 	private doHandleWorkspaceFiles(folder: URI, workspaces: string[]): void {
 		const neverShowAgain: INeverShowAgainOptions = { id: 'workspaces.dontPromptToOpen', scope: NeverShowAgainScope.WORKSPACE, isSecondary: true };
 
-		// Prompt to open one workspace
 		if (workspaces.length === 1) {
 			const workspaceFile = workspaces[0];
 
@@ -78,11 +73,10 @@ export class WorkspacesFinderContribution extends Disposable implements IWorkben
 				run: () => this.hostService.openWindow([{ workspaceUri: joinPath(folder, workspaceFile) }])
 			}], {
 				neverShowAgain,
-				priority: !this.storageService.isNew(StorageScope.WORKSPACE) ? NotificationPriority.SILENT : NotificationPriority.OPTIONAL // https://github.com/microsoft/vscode/issues/125315
+				priority: !this.storageService.isNew(StorageScope.WORKSPACE) ? NotificationPriority.SILENT : NotificationPriority.OPTIONAL
 			});
 		}
 
-		// Prompt to select a workspace from many
 		else if (workspaces.length > 1) {
 			this.notificationService.prompt(Severity.Info, localize({
 				key: 'foundWorkspaces',
@@ -100,7 +94,7 @@ export class WorkspacesFinderContribution extends Disposable implements IWorkben
 				}
 			}], {
 				neverShowAgain,
-				priority: !this.storageService.isNew(StorageScope.WORKSPACE) ? NotificationPriority.SILENT : NotificationPriority.OPTIONAL // https://github.com/microsoft/vscode/issues/125315
+				priority: !this.storageService.isNew(StorageScope.WORKSPACE) ? NotificationPriority.SILENT : NotificationPriority.OPTIONAL
 			});
 		}
 	}
@@ -108,7 +102,6 @@ export class WorkspacesFinderContribution extends Disposable implements IWorkben
 
 Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench).registerWorkbenchContribution(WorkspacesFinderContribution, LifecyclePhase.Eventually);
 
-// Render "Open Workspace" button in *.code-workspace files
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -137,7 +130,7 @@ registerAction2(class extends Action2 {
 			if (workspaceConfiguration && isEqual(workspaceConfiguration, uri)) {
 				notificationService.info(localize('alreadyOpen', "This workspace is already open."));
 
-				return; // workspace already opened
+				return;
 			}
 		}
 

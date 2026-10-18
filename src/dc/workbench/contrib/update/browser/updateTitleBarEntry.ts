@@ -35,17 +35,13 @@ const UPDATE_TITLE_BAR_CONTEXT = new RawContextKey<boolean>('updateTitleBar', fa
 const UPDATE_TITLE_BAR_CHAT_IN_PROGRESS_CONTEXT = new RawContextKey<boolean>('updateTitleBarChatRequestInProgress', false);
 
 const DISABLED_REMINDER_LAST_SHOWN_KEY = 'update/disabledReminderLastShown';
-const DISABLED_REMINDER_PERIOD = 30 * 24 * 60 * 60 * 1000; // 30 days
+const DISABLED_REMINDER_PERIOD = 30 * 24 * 60 * 60 * 1000;
 
 const UPDATE_TITLE_BAR_SETTING = 'update.titleBar';
 
 const ACTIONABLE_STATES: readonly StateType[] = [StateType.AvailableForDownload, StateType.Downloaded, StateType.Ready];
 const DETAILED_STATES: readonly StateType[] = [...ACTIONABLE_STATES, StateType.CheckingForUpdates, StateType.Downloading, StateType.Updating, StateType.Overwriting, StateType.Cancelling];
 
-/**
- * Optional secondary placement for the update indicator (e.g. used by the Agents
- * app). Limited to one because the contribution tracks a single rendered entry.
- */
 let additionalMenuPlacement: { readonly menuId: MenuId; readonly item: Omit<IMenuItem, 'command'> } | undefined;
 
 export function registerUpdateTitleBarMenuPlacement(menuId: MenuId, item: Omit<IMenuItem, 'command'> = {}): void {
@@ -72,9 +68,6 @@ registerAction2(class UpdateIndicatorTitleBarAction extends Action2 {
 	override async run() { }
 });
 
-/**
- * Displays update status and actions in the title bar.
- */
 export class UpdateTitleBarContribution extends Disposable implements IWorkbenchContribution {
 	private readonly context!: IContextKey<boolean>;
 	private readonly tooltip!: UpdateTooltip;
@@ -96,7 +89,7 @@ export class UpdateTitleBarContribution extends Disposable implements IWorkbench
 		super();
 
 		if (isWeb) {
-			return; // Electron only
+			return;
 		}
 
 		this.context = UPDATE_TITLE_BAR_CONTEXT.bindTo(contextKeyService);
@@ -170,7 +163,6 @@ export class UpdateTitleBarContribution extends Disposable implements IWorkbench
 			return;
 		}
 
-		// Tooltip already shown or window not last focused: only sync content and indicator visibility.
 		if (this.tooltipVisible || !await this.hostService.hadLastFocus()) {
 			this.context.set(this.tooltipVisible || ACTIONABLE_STATES.includes(this.state.type));
 			this.tooltip.renderState(this.state);
@@ -179,8 +171,6 @@ export class UpdateTitleBarContribution extends Disposable implements IWorkbench
 
 		this.tooltip.renderState(this.state);
 
-		// Set the context key only once. Toggling it (e.g. off then on) recreates the entry on every
-		// state update, which for frequent updates like download progress flashes the tooltip (#311938).
 		let context = ACTIONABLE_STATES.includes(this.state.type);
 		let showTooltip = false;
 		switch (this.state.type) {
@@ -196,10 +186,13 @@ export class UpdateTitleBarContribution extends Disposable implements IWorkbench
 			case StateType.Idle:
 				showTooltip = !!this.state.error;
 				break;
+			case StateType.CheckingForUpdates:
+				context = this.state.explicit;
+				break;
 			case StateType.Downloading:
 			case StateType.Updating:
 			case StateType.Overwriting:
-				context = this.state.explicit;
+				context = true;
 				break;
 			case StateType.Cancelling:
 				context = true;
@@ -226,9 +219,6 @@ export class UpdateTitleBarContribution extends Disposable implements IWorkbench
 
 }
 
-/**
- * Custom action view item for the update indicator in the title bar.
- */
 export class UpdateTitleBarEntry extends BaseActionViewItem {
 	private content: HTMLElement | undefined;
 	private tooltipFocusOnRender: boolean | undefined;

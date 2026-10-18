@@ -36,13 +36,11 @@ export class IssueQuickAccess extends PickerQuickAccessProvider<IPickerQuickAcce
 		const issuePicksParts = new Array<IPickerQuickAccessItem | IQuickPickSeparator>();
 		const extensionIdSet = new Set<string>();
 
-		// Add default items
 		const productLabel = this.productService.nameLong;
 		const marketPlaceLabel = localize("reportExtensionMarketplace", "Extension Marketplace");
 		const productFilter = matchesFuzzy(filter, productLabel, true);
 		const marketPlaceFilter = matchesFuzzy(filter, marketPlaceLabel, true);
 
-		// Add product pick if product filter matches
 		if (productFilter) {
 			issuePicksConst.push({
 				label: productLabel,
@@ -52,7 +50,6 @@ export class IssueQuickAccess extends PickerQuickAccessProvider<IPickerQuickAcce
 			});
 		}
 
-		// Add marketplace pick if marketplace filter matches
 		if (marketPlaceFilter) {
 			issuePicksConst.push({
 				label: marketPlaceLabel,
@@ -65,10 +62,8 @@ export class IssueQuickAccess extends PickerQuickAccessProvider<IPickerQuickAcce
 		issuePicksConst.push({ type: 'separator', label: localize('extensions', "Extensions") });
 
 
-		// gets menu actions from contributed
 		const actions = this.menuService.getMenuActions(MenuId.IssueReporter, this.contextKeyService, { renderShortTitle: true }).flatMap(entry => entry[1]);
 
-		// create picks from contributed menu
 		actions.forEach(action => {
 			if ('source' in action.item && action.item.source) {
 				extensionIdSet.add(action.item.source.id);
@@ -81,7 +76,6 @@ export class IssueQuickAccess extends PickerQuickAccessProvider<IPickerQuickAcce
 		});
 
 
-		// create picks from extensions
 		this.extensionService.extensions.forEach(extension => {
 			if (!extension.isBuiltin) {
 				const pick = this._createPick(filter, undefined, extension);

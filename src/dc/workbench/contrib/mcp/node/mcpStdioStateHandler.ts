@@ -16,15 +16,6 @@ const enum McpProcessState {
 	KilledForceful,
 }
 
-/**
- * Manages graceful shutdown of MCP stdio connections following the MCP specification.
- *
- * Per spec, shutdown should:
- * 1. Close the input stream to the child process
- * 2. Wait for the server to exit, or send SIGTERM if it doesn't exit within 10 seconds
- * 3. Send SIGKILL if the server doesn't exit within 10 seconds after SIGTERM
- * 4. Allow forceful killing if called twice
- */
 export class McpStdioStateHandler implements IDisposable {
 	private static readonly GRACE_TIME_MS = 10_000;
 
@@ -40,18 +31,12 @@ export class McpStdioStateHandler implements IDisposable {
 		private readonly _graceTimeMs: number = McpStdioStateHandler.GRACE_TIME_MS
 	) { }
 
-	/**
-	 * Initiates graceful shutdown. If called while shutdown is already in progress,
-	 * forces immediate termination.
-	 */
 	public stop(): void {
 		if (this._procState === McpProcessState.Running) {
 			let graceTime = this._graceTimeMs;
 			try {
 				this._child.stdin.end();
 			} catch (error) {
-				// If stdin.end() fails, continue with termination sequence
-				// This can happen if the stream is already in an error state
 				graceTime = 1;
 			}
 			this._procState = McpProcessState.StdinEnded;

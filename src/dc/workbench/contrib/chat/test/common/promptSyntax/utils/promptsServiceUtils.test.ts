@@ -102,12 +102,12 @@ suite('promptsServiceUtils', () => {
 			const productService = createProductService(CHAT_EXTENSION_ID);
 
 			const invalidPaths = [
-				'/some/githubs/prompt.md',      // extra 's'
-				'/some/github-org/prompt.md',   // hyphenated
-				'/some/mygithub/prompt.md',     // prefix
-				'/some/githubstuff/prompt.md',  // suffix
-				'/some/GITHUB/prompt.md',       // uppercase (path matching is case-sensitive)
-				'/some/Github/prompt.md',       // mixed case
+				'/some/githubs/prompt.md',
+				'/some/github-org/prompt.md',
+				'/some/mygithub/prompt.md',
+				'/some/githubstuff/prompt.md',
+				'/some/GITHUB/prompt.md',
+				'/some/Github/prompt.md',
 			];
 
 			for (const path of invalidPaths) {

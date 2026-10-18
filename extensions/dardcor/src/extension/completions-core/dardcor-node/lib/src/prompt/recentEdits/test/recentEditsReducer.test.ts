@@ -24,7 +24,6 @@ import {
 	updateEdits,
 } from '../recentEditsReducer';
 
-// Note, that this configuration is only used in testing, and is different from the one used in production.
 const config: RecentEditsConfig = {
 	maxFiles: 5,
 	maxEdits: 5,
@@ -75,7 +74,6 @@ suite('helper: editsOverlap', function () {
 			diff: { added: [], removed: [] },
 		} as unknown as RecentEdit;
 
-		// Should overlap because lines are adjacent and merge distance is 0
 		assert.strictEqual(editsOverlap(incoming0, last0, 0), true);
 	});
 
@@ -91,7 +89,6 @@ suite('helper: editsOverlap', function () {
 			diff: { added: ['aaaaa'], removed: [] },
 		} as unknown as RecentEdit;
 
-		// Should overlap because lines are adjacent and merge distance is 0
 		assert.strictEqual(editsOverlap(incoming1, last1, 0), true);
 	});
 
@@ -107,7 +104,6 @@ suite('helper: editsOverlap', function () {
 			diff: { added: ['a', 'b', 'c'], removed: ['1', '2', '3'] },
 		} as unknown as RecentEdit;
 
-		// Should overlap because incoming edit is entirely within last edit
 		assert.strictEqual(editsOverlap(incoming2, last2, 0), true);
 	});
 });
@@ -117,7 +113,6 @@ suite('updateEdits (merge & trim)', function () {
 	const baseContent = baseLines.join('\n');
 	const v2Lines = ['a', 'B', 'c', 'd'];
 
-	// initial incoming edit: replace b->B
 	const firstSpan = { start: 1, endPrev: 1, endNew: 1 } as const;
 	const incoming1 = buildIncomingEdit('f', baseLines, v2Lines, firstSpan, config);
 
@@ -200,14 +195,11 @@ suite('updateEdits nearby hunk merging', function () {
 				let orig = base.join('\n');
 				let edits: RecentEdit[] = [];
 
-				// get positions of where each edit will begin
 				const editFirstLines = [2, 3 + sep];
 				if (position === 'above') {
-					// reverse the order of edits when making edits bottom to top
 					editFirstLines.reverse();
 				}
 
-				// make first edit
 				const prev1 = base;
 				const next1 = [...prev1];
 				next1[editFirstLines[0]] = 'X';
@@ -215,7 +207,6 @@ suite('updateEdits nearby hunk merging', function () {
 				const h1 = buildIncomingEdit('f', prev1, next1, span1, config);
 				({ originalContent: orig, edits } = updateEdits(orig, edits, h1, next1, config));
 
-				// second edit separated by sep lines
 				const prev2 = next1;
 				const next2 = [...prev2];
 				next2[editFirstLines[1]] = 'Y';
@@ -237,7 +228,6 @@ suite('updateEdits overlapping multi-line edits', function () {
 	test('partially overlapping multi-line edits merge into single hunk', function () {
 		const base = ['1', '2', '3', '4', '5'];
 		const orig = base.join('\n');
-		// first edit: change lines 1-2
 		const v1 = ['1X', '2X', '3', '4', '5'];
 		const span1 = findChangeSpan(base, v1)!;
 		let { originalContent, edits } = updateEdits(
@@ -247,7 +237,6 @@ suite('updateEdits overlapping multi-line edits', function () {
 			v1,
 			config
 		);
-		// second edit: change lines 2-3 (overlaps at index 1)
 		const v2 = ['1X', '2X', '3', '4Y', '5Y'];
 		const span2 = findChangeSpan(v1, v2)!;
 		({ originalContent, edits } = updateEdits(
@@ -280,7 +269,6 @@ suite('updateEdits overlapping multi-line edits', function () {
 	test('multi-line edit containing a smaller multi-line edit merges into original span', function () {
 		const base = ['A', 'B', 'C', 'D', 'E'];
 		const orig = base.join('\n');
-		// large edit: B,C,D -> x,y,z
 		const v1 = ['A', 'x', 'y', 'z', 'E'];
 		const span1 = findChangeSpan(base, v1)!;
 		let { originalContent, edits } = updateEdits(
@@ -290,7 +278,6 @@ suite('updateEdits overlapping multi-line edits', function () {
 			v1,
 			config
 		);
-		// smaller edit inside that: y -> Y
 		const v2 = ['A', 'x', 'Y', 'z', 'E'];
 		const span2 = findChangeSpan(v1, v2)!;
 		({ originalContent, edits } = updateEdits(
@@ -302,9 +289,7 @@ suite('updateEdits overlapping multi-line edits', function () {
 		));
 		assert.strictEqual(edits.length, 1);
 		const { diff } = edits[0];
-		// removed should be original B,C,D
 		assert.deepStrictEqual(diff.removed, ['B', 'C', 'D']);
-		// added should reflect x, Y, z
 		assert.deepStrictEqual(diff.added, ['x', 'Y', 'z']);
 	});
 
@@ -312,7 +297,6 @@ suite('updateEdits overlapping multi-line edits', function () {
 		const base = Array.from({ length: 50 }, (_, i) => i.toString());
 		const orig = base.join('\n');
 
-		// large deletion
 		const v1 = [...base.slice(0, 20), ...base.slice(30)];
 		const span1 = findChangeSpan(base, v1)!;
 		let { originalContent, edits } = updateEdits(
@@ -323,7 +307,6 @@ suite('updateEdits overlapping multi-line edits', function () {
 			config
 		);
 
-		// insert
 		const v2 = [...base.slice(0, 20), 'new line', 'another new line', ...base.slice(30)];
 		const span2 = findChangeSpan(v1, v2)!;
 		({ originalContent, edits } = updateEdits(
@@ -334,7 +317,6 @@ suite('updateEdits overlapping multi-line edits', function () {
 			config
 		));
 
-		// should become one replace
 		assert.strictEqual(edits.length, 1);
 		const { diff } = edits[0];
 		assert.deepEqual(diff.added, ['new line', 'another new line']);
@@ -485,7 +467,6 @@ suite('recentEditsReducer', function () {
 
 	test('does not merge distant edits into one hunk (separated by 5 lines)', function () {
 		const file = 'far.txt';
-		// 8-line file so edits at index 1 and 7 are separated by 5 unmodified lines
 		const base = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 		const v1 = base.join('\n');
 		const v2 = [...base];
@@ -498,7 +479,6 @@ suite('recentEditsReducer', function () {
 		state = recentEditsReducer(state, file, v2.join('\n'), config);
 		state = recentEditsReducer(state, file, v3.join('\n'), config);
 
-		// edits are far enough apart (5 lines), still two hunks
 		assert.strictEqual(state[file].edits.length, 2);
 
 		const diffs = state[file].edits.map(e => unifiedDiff(e.diff));
@@ -573,19 +553,15 @@ suite('recentEditsReducer', function () {
 		const v0 = ['line1', 'line2', 'line3'].join('\n');
 		let state: RecentEditMap = {};
 		state = recentEditsReducer(state, file, v0, config);
-		// edit in the middle
 		const v1arr = ['line1', 'X', 'line2', 'line3'];
 		state = recentEditsReducer(state, file, v1arr.join('\n'), config);
 		assert.strictEqual(state[file].edits.length, 1);
-		// now insert two lines at the top
 		const v2arr = ['Y', 'Z', ...v1arr];
 		state = recentEditsReducer(state, file, v2arr.join('\n'), config);
 		assert.strictEqual(state[file].edits.length, 1);
 		const { diff } = state[file].edits[0];
 		assert.strictEqual(diff.pre, 0);
-		// first two added lines should be Y, Z
 		assert.deepStrictEqual(diff.added.slice(0, 2), ['Y', 'Z']);
-		// and the middle edit X should still be present
 		assert.ok(diff.added.includes('X'));
 	});
 
@@ -603,7 +579,6 @@ suite('recentEditsReducer', function () {
 			assert.strictEqual(state[file].edits.length, 1);
 		}
 
-		// All inserts should collapse into a single hunk
 		assert.strictEqual(state[file].edits.length, 1);
 		const diff = unifiedDiff(state[file].edits[0].diff);
 
@@ -650,9 +625,8 @@ suite('recentEditsReducer', function () {
 	});
 
 	test('two large overlapping changes merge into one edit', function () {
-		// deep copy
 		const configCopy = JSON.parse(JSON.stringify(config)) as RecentEditsConfig;
-		configCopy.maxCharsPerEdit = 10000; // Set a large enough limit to allow merging
+		configCopy.maxCharsPerEdit = 10000;
 		const file = 'file.txt';
 		let state: RecentEditMap = {};
 		const fileLines = Array.from({ length: 100 }, (_, i) => `line ${i + 1}`);
@@ -681,7 +655,7 @@ suite('recentEditsReducer', function () {
 
 	test('two large overlapping changes in reverse order merge into one edit', function () {
 		const configCopy = JSON.parse(JSON.stringify(config)) as RecentEditsConfig;
-		configCopy.maxCharsPerEdit = 10000; // Set a large enough limit to allow merging
+		configCopy.maxCharsPerEdit = 10000;
 		const file = 'file.txt';
 		let state: RecentEditMap = {};
 		const fileLines = Array.from({ length: 100 }, (_, i) => `line ${i + 1}`);
@@ -823,7 +797,6 @@ suite('trimOldFilesFromState', function () {
 		};
 
 		const trimmed = trimOldFilesFromState(state, 2);
-		// 'a' has no edits, 'b' is within limit, both stay
 		assert.deepStrictEqual(Object.keys(trimmed).sort(), ['a', 'b']);
 	});
 
@@ -848,9 +821,7 @@ suite('trimOldFilesFromState', function () {
 		};
 
 		const trimmed = trimOldFilesFromState(state, 2);
-		// Should drop 'one' (oldest), keep 'two' and 'three'
 		assert.deepStrictEqual(Object.keys(trimmed).sort(), ['three', 'two']);
-		// Ensure the entries for 'two' and 'three' remain intact
 		assert.strictEqual(trimmed.two.edits[0].timestamp, 20);
 		assert.strictEqual(trimmed.three.edits[0].timestamp, 30);
 	});
@@ -881,13 +852,9 @@ suite('trimOldFilesFromState', function () {
 		};
 
 		const trimmed = trimOldFilesFromState(state, 2);
-		// 'old' is the oldest modified and should be trimmed;
-		// 'mid' and 'recent' stay, and 'unmodified' (no edits) always stays
 		assert.deepStrictEqual(Object.keys(trimmed).sort(), ['mid', 'recent', 'unmodified']);
 
-		// verify 'old' was removed
 		assert.strictEqual(trimmed.old, undefined);
-		// verify timestamps for the kept files
 		assert.strictEqual(trimmed.mid.edits[0].timestamp, 2);
 		assert.strictEqual(trimmed.recent.edits[0].timestamp, 3);
 	});
@@ -907,20 +874,16 @@ suite('recentEditsReducer performance', function () {
 	const initialFileContents = readFileSync(__filename, 'utf8');
 	const complexityData: ComplexityData[] = [];
 
-	// use no more than 20% of single core CPU time processing the input of the fastest typers
-	// this threshold needs to be pretty generous since this runs on tiny CI boxes
 	const fastTypingSpeedWPM = 100;
 	const averageWordLength = 5;
-	const fastTypingSpeedCPS = (fastTypingSpeedWPM / 60) * averageWordLength; // CPS means characters per second
+	const fastTypingSpeedCPS = (fastTypingSpeedWPM / 60) * averageWordLength;
 	const maxCPUTime = 0.2;
 	const minCPS = Math.ceil(fastTypingSpeedCPS * (1 / maxCPUTime));
 
 	this.retries(2);
 
-	// 8kb-8mb
 	for (let fileSize = 8192; fileSize <= 8192 * 1024; fileSize *= 2) {
 		test(`random inserts in a ${humanSize(fileSize)} file`, function () {
-			// repeat the fileContents until they hit the desired size
 			let fileContents = initialFileContents
 				.repeat(Math.ceil(fileSize / initialFileContents.length))
 				.slice(0, fileSize);
@@ -942,7 +905,6 @@ suite('recentEditsReducer performance', function () {
 			const charactersPerSecond = i / ((endTime - startTime) / 1000);
 
 			if (state[file]) {
-				// edits were tracked, log timing
 				complexityData.push({
 					n: fileSize,
 					time: millisecondsPerCharacter,

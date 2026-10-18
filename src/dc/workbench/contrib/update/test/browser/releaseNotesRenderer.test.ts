@@ -61,7 +61,6 @@ Navigation End -->
 	});
 
 	test('Should render code settings', async () => {
-		// Stub preferences service with a known setting so the SimpleSettingRenderer treats it as valid
 		const testSettingId = 'editor.wordWrap';
 		instantiationService.stub(IPreferencesService, <Partial<IPreferencesService>>{
 			_serviceBrand: undefined,
@@ -87,7 +86,6 @@ Navigation End -->
 			getEditableSettingsURI: async () => null,
 			getSetting: (id: string) => {
 				if (id === testSettingId) {
-					// Provide the minimal fields accessed by SimpleSettingRenderer
 					return {
 						key: testSettingId,
 						value: 'off',

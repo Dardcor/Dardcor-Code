@@ -76,7 +76,7 @@ export class UserDataSyncEnablementService extends Disposable implements IUserDa
 	}
 
 	private storeResourceEnablement(resourceEnablementKey: string, enabled: boolean): void {
-		this.storageService.store(resourceEnablementKey, enabled, StorageScope.APPLICATION, isWeb ? StorageTarget.USER /* sync in web */ : StorageTarget.MACHINE);
+		this.storageService.store(resourceEnablementKey, enabled, StorageScope.APPLICATION, isWeb ? StorageTarget.USER : StorageTarget.MACHINE);
 	}
 
 	private onDidStorageChange(storageChangeEvent: IApplicationStorageValueChangeEvent): void {

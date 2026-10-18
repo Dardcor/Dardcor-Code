@@ -30,7 +30,6 @@ import { Link } from '../../../../../platform/opener/browser/link.js';
 import { SuggestEnabledInput } from '../../../codeEditor/browser/suggestEnabledInput/suggestEnabledInput.js';
 import { Delayer } from '../../../../../base/common/async.js';
 import { settingsTextInputBorder } from '../../../preferences/common/settingsEditorColorRegistry.js';
-import { IChatEntitlementService, ChatEntitlement } from '../../../../services/chat/common/chatEntitlementService.js';
 import { DropdownMenuActionViewItem } from '../../../../../base/browser/ui/dropdown/dropdownActionViewItem.js';
 import { IActionViewItemOptions } from '../../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { AnchorAlignment } from '../../../../../base/browser/ui/contextview/contextview.js';
@@ -39,6 +38,7 @@ import { preferencesClearInputIcon } from '../../../preferences/browser/preferen
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IEditorProgressService } from '../../../../../platform/progress/common/progress.js';
 import { IEditorGroupsService } from '../../../../services/editor/common/editorGroupsService.js';
+import { IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
 import { IContextKey, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { CONTEXT_MODELS_SEARCH_FOCUS } from '../../common/constants.js';
 import { IExtensionsWorkbenchService } from '../../../extensions/common/extensions.js';
@@ -49,8 +49,6 @@ import { IProductService } from '../../../../../platform/product/common/productS
 import Severity from '../../../../../base/common/severity.js';
 import { IJSONSchema } from '../../../../../base/common/jsonSchema.js';
 import { formatTokenCount } from '../../../../../base/common/numbers.js';
-import { IDefaultAccountService } from '../../../../../platform/defaultAccount/common/defaultAccount.js';
-import { CHAT_SETUP_ACTION_ID } from '../actions/chatActions.js';
 
 const $ = DOM.$;
 
@@ -167,25 +165,15 @@ export function getModelHoverContent(model: ILanguageModel): MarkdownString {
 	return markdown;
 }
 
-/**
- * Pure helper for building the dropdown actions shown by the **Add Models** button.
- *
- * Exposed for unit testing. The Copilot sign-in action is independent of whether adding
- * configurable BYOK vendors is supported.
- */
 export function buildAddModelsDropdownActions(
 	configurableVendors: ILanguageModelProviderDescriptor[],
 	supportsAddingModels: boolean,
 	runVendorAction: (vendor: ILanguageModelProviderDescriptor) => void | Promise<void>,
-	runCopilotSignInAction?: () => void | Promise<void>,
 ): IAction[] {
-	if (!supportsAddingModels && !runCopilotSignInAction) {
+	if (!supportsAddingModels) {
 		return [];
 	}
 
-	// Sort vendors alphabetically by displayName, but sink deprecated providers (those declaring a
-	// `deprecation.link`, e.g. Ollama) to the end of the list. "OpenAI Compatible (Deprecated)" (customoai)
-	// is pinned after the sorted list and "Custom Endpoint" (customendpoint) after a separator at the very end.
 	const customEndpointVendor = configurableVendors.find(v => v.vendor === 'customendpoint');
 	const customOaiVendor = configurableVendors.find(v => v.vendor === 'customoai');
 	const sortedVendors = configurableVendors
@@ -218,22 +206,7 @@ export function buildAddModelsDropdownActions(
 		vendorActions.push(toVendorAction(customEndpointVendor));
 	}
 
-	const actions: IAction[] = [];
-	if (runCopilotSignInAction) {
-		actions.push(toAction({
-			id: 'signIn-github-copilot',
-			label: localize('models.signInGitHubCopilot', "Dardcor AI"),
-			run: async () => {
-				await runCopilotSignInAction();
-			},
-		}));
-	}
-	if (actions.length > 0 && vendorActions.length > 0) {
-		actions.push(new Separator());
-	}
-	actions.push(...vendorActions);
-
-	return actions;
+	return vendorActions;
 }
 
 class ModelsFilterAction extends Action {
@@ -245,11 +218,8 @@ class ModelsFilterAction extends Action {
 }
 
 interface IFilterQuery {
-	/** The primary filter query string */
 	query: string;
-	/** Alternative query strings that are treated as synonyms of the primary query */
 	synonyms?: string[];
-	/** Query strings that should be removed when adding this filter (mutually exclusive filters) */
 	excludes?: string[];
 }
 
@@ -260,14 +230,12 @@ function toggleFilter(currentQuery: string, filter: IFilterQuery): string {
 	const hasExcludedQuery = excludes.some(q => currentQuery.includes(q));
 
 	if (isChecked) {
-		// Query or synonym is already set, remove all of them (toggle off)
 		let queryWithRemovedFilter = currentQuery;
 		for (const q of allSynonyms) {
 			queryWithRemovedFilter = queryWithRemovedFilter.replace(q, '');
 		}
 		return queryWithRemovedFilter.replace(/\s+/g, ' ').trim();
 	} else if (hasExcludedQuery) {
-		// An excluded query is set, replace it with the new query
 		let newQuery = currentQuery;
 		for (const q of excludes) {
 			newQuery = newQuery.replace(q, '');
@@ -275,7 +243,6 @@ function toggleFilter(currentQuery: string, filter: IFilterQuery): string {
 		newQuery = newQuery.replace(/\s+/g, ' ').trim();
 		return newQuery ? `${newQuery} ${query}` : query;
 	} else {
-		// No filter is set, add the new query
 		const trimmedQuery = currentQuery.trim();
 		return trimmedQuery ? `${trimmedQuery} ${query}` : query;
 	}
@@ -346,14 +313,12 @@ class ModelsSearchFilterDropdownMenuActionViewItem extends DropdownMenuActionVie
 	private getActions(): IAction[] {
 		const actions: IAction[] = [];
 
-		// Capability filters
 		actions.push(
 			this.createCapabilityAction('tools', localize('capability.tools', "Tools")),
 			this.createCapabilityAction('vision', localize('capability.vision', "Vision")),
 			this.createCapabilityAction('agent', localize('capability.agent', "Agent Mode"))
 		);
 
-		// Provider filters - only show providers with configured models
 		const configuredVendors = this.viewModel.getConfiguredVendors();
 		if (configuredVendors.length > 1) {
 			actions.push(new Separator());
@@ -759,7 +724,6 @@ class CombinedCostColumnRenderer extends ModelsTableColumnRenderer<ICombinedCost
 				}
 			})));
 		} else {
-			// Fallback for non-token-based billing (premium requests users)
 			const pricingText = entry.model.metadata.pricing;
 			if (pricingText) {
 				templateData.inputCell.textContent = pricingText;
@@ -1043,7 +1007,6 @@ class ActionsColumnRenderer extends ModelsTableColumnRenderer<IActionsColumnTemp
 	override renderModelElement(entry: ILanguageModelEntry, index: number, templateData: IActionsColumnTemplateData): void {
 		const primaryActions: IAction[] = [];
 
-		// Auto model cannot be pinned
 		if (entry.model.metadata.id !== 'auto') {
 			primaryActions.push(this.createPinAction(entry.model.identifier));
 		}
@@ -1051,10 +1014,6 @@ class ActionsColumnRenderer extends ModelsTableColumnRenderer<IActionsColumnTemp
 		const configActions = this.languageModelsService.getModelConfigurationActions(entry.model.identifier);
 		const secondaryActions: IAction[] = [...configActions];
 
-		// Only offer the JSON-based "Configure..." entry for non-default vendors that are
-		// configured via the language models JSON file. The default vendor (Copilot) and
-		// vendors with a `managementCommand` are configured elsewhere, so this entry would
-		// do nothing useful for their models.
 		const vendor = entry.model.provider.vendor;
 		if (!vendor.isDefault && !vendor.managementCommand && (configActions.length > 0 || entry.model.metadata.configurationSchema)) {
 			secondaryActions.push(toAction({
@@ -1145,7 +1104,6 @@ export class ChatModelsWidget extends Disposable {
 	private addButtonContainer!: HTMLElement;
 	private addButton!: Button;
 	private dropdownActions: IAction[] = [];
-	private defaultAccountResolved = false;
 	private viewModel: ChatModelsViewModel;
 	private delayedFiltering: Delayer<void>;
 
@@ -1158,14 +1116,13 @@ export class ChatModelsWidget extends Disposable {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IExtensionService private readonly extensionService: IExtensionService,
 		@IContextMenuService private readonly contextMenuService: IContextMenuService,
-		@IChatEntitlementService private readonly chatEntitlementService: IChatEntitlementService,
 		@IEditorProgressService private readonly editorProgressService: IEditorProgressService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IEditorGroupsService private readonly editorGroupsService: IEditorGroupsService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IDialogService private readonly dialogService: IDialogService,
 		@IExtensionsWorkbenchService private readonly extensionsWorkbenchService: IExtensionsWorkbenchService,
-		@IDefaultAccountService private readonly defaultAccountService: IDefaultAccountService,
+		@IChatEntitlementService private readonly chatEntitlementService: IChatEntitlementService,
 	) {
 		super();
 
@@ -1174,17 +1131,6 @@ export class ChatModelsWidget extends Disposable {
 		this.viewModel = this._register(this.instantiationService.createInstance(ChatModelsViewModel));
 		this.element = DOM.$('.models-widget');
 		this.create(this.element);
-		this._register(this.defaultAccountService.onDidChangeDefaultAccount(() => {
-			this.defaultAccountResolved = true;
-			this.updateAddModelsButton();
-		}));
-		this.defaultAccountService.getDefaultAccount().then(() => {
-			if (!this._store.isDisposed) {
-				this.defaultAccountResolved = true;
-				this.updateAddModelsButton();
-			}
-		});
-
 		const loadingPromise = this.extensionService.whenInstalledExtensionsRegistered().then(() => this.viewModel.refresh());
 		this.editorProgressService.showWhile(loadingPromise, 300);
 	}
@@ -1273,7 +1219,6 @@ export class ChatModelsWidget extends Disposable {
 		}));
 		toolBar.setActions(actions);
 
-		// Add padding to input box for toolbar
 		this.searchWidget.inputWidget.getContainerDomNode().style.paddingRight = `${DOM.getTotalWidth(this.searchActionsContainer) + 12}px`;
 
 		this.addButtonContainer = DOM.append(searchAndButtonContainer, $('.section-title-actions'));
@@ -1303,10 +1248,8 @@ export class ChatModelsWidget extends Disposable {
 		browseMarketplaceButton.element.classList.add('models-browse-marketplace-button');
 		this._register(browseMarketplaceButton.onDidClick(() => this.openLanguageModelProviderExtensionsSearch()));
 
-		// Table container
 		this.tableContainer = DOM.append(container, $('.models-table-container'));
 
-		// Create table
 		this.createTable();
 		this._register(this.viewModel.onDidChangeGrouping(() => this.createTable()));
 		this._register(this.chatEntitlementService.onDidChangeEntitlement(() => {
@@ -1317,7 +1260,7 @@ export class ChatModelsWidget extends Disposable {
 		this._register(this.languageModelsService.onDidChangeLanguageModelVendors(() => this.updateAddModelsButton()));
 		this._register(this.languageModelsService.onDidChangePinnedModels(() => this.viewModel.refresh()));
 		this._register(this.contextKeyService.onDidChangeContext(e => {
-			if (e.affectsSome(new Set(['github.copilot.clientByokEnabled']))) {
+			if (e.affectsSome(new Set(['github.dardcor.clientByokEnabled']))) {
 				this.updateAddModelsButton();
 			}
 		}));
@@ -1496,7 +1439,6 @@ export class ChatModelsWidget extends Disposable {
 			const selection = this.table.getSelection();
 			const selectedEntries = selection.every(i => i !== e.index) ? [e.element] : selection.map(i => this.viewModel.viewModelEntries[i]).filter(e => !!e);
 
-			// Get model entries from selection (filter out vendor/group/status entries)
 			const selectedModelEntries = selectedEntries.filter((entry): entry is ILanguageModelEntry =>
 				!isLanguageModelProviderEntry(entry) && !isLanguageModelGroupEntry(entry) && !isStatusEntry(entry)
 			);
@@ -1506,7 +1448,6 @@ export class ChatModelsWidget extends Disposable {
 			let configureVendor: ILanguageModelProviderDescriptor | undefined;
 
 			if (selectedModelEntries.length) {
-				// Pin/unpin action — single action for all selected models
 				const pinnableEntries = selectedModelEntries.filter(e => e.model.metadata.id !== 'auto');
 				if (pinnableEntries.length > 0) {
 					const allPinned = pinnableEntries.every(e => this.languageModelsService.isModelPinned(e.model.identifier));
@@ -1528,7 +1469,6 @@ export class ChatModelsWidget extends Disposable {
 					}));
 				}
 
-				// Hide/show action — single action for all selected models
 				const allHidden = selectedModelEntries.every(e => e.model.hidden);
 				actions.push(toAction({
 					id: allHidden ? 'showModels' : 'hideModels',
@@ -1543,7 +1483,6 @@ export class ChatModelsWidget extends Disposable {
 					run: () => this.viewModel.setModelsHidden(selectedModelEntries, !allHidden),
 				}));
 
-				// Show per-model configuration actions for a single model
 				if (selectedModelEntries.length === 1) {
 					const configActions = this.languageModelsService.getModelConfigurationActions(selectedModelEntries[0].model.identifier);
 					if (configActions.length) {
@@ -1552,7 +1491,6 @@ export class ChatModelsWidget extends Disposable {
 					}
 				}
 
-				// Show configure action if all models are from the same group
 				configureGroup = selectedModelEntries[0].model.provider.group.name;
 				configureVendor = selectedModelEntries[0].model.provider.vendor;
 				if (selectedModelEntries.some(entry => entry.model.provider.vendor.isDefault || entry.model.provider.group.name !== configureGroup)) {
@@ -1641,25 +1579,14 @@ export class ChatModelsWidget extends Disposable {
 	private updateAddModelsButton(): void {
 		const configurableVendors = this.languageModelsService.getVendors().filter(vendor => vendor.managementCommand || vendor.configuration);
 
-		const entitlement = this.chatEntitlementService.entitlement;
-		const isManagedEntitlement = entitlement === ChatEntitlement.Business || entitlement === ChatEntitlement.Enterprise;
-		const supportsAddingModels = this.chatEntitlementService.isInternal
-			|| this.chatEntitlementService.clientByokEnabled
-			|| (entitlement !== ChatEntitlement.Unknown
-				&& entitlement !== ChatEntitlement.Available
-				&& !isManagedEntitlement);
-
 		this.dropdownActions = buildAddModelsDropdownActions(
 			configurableVendors,
-			supportsAddingModels,
+			true,
 			vendor => this.addModelsForVendor(vendor),
-			this.defaultAccountResolved && this.defaultAccountService.currentDefaultAccount === null
-				? () => this.commandService.executeCommand(CHAT_SETUP_ACTION_ID)
-				: undefined,
 		);
 
 		this.addButton.enabled = this.dropdownActions.length > 0;
-		this.addButton.setTitle(!supportsAddingModels && isManagedEntitlement ? localize('models.managedByOrganization', "Adding models is managed by your organization") : '');
+		this.addButton.setTitle('');
 	}
 
 	private async openLanguageModelProviderExtensionsSearch(): Promise<void> {
@@ -1714,19 +1641,12 @@ export class ChatModelsWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Gets the total model count (excluding vendor/group/status headers).
-	 */
 	get itemCount(): number {
 		return this.viewModel.viewModelEntries
 			.filter(e => !isLanguageModelProviderEntry(e) && !isLanguageModelGroupEntry(e) && !isStatusEntry(e))
 			.length;
 	}
 
-	/**
-	 * Re-fires the current item count. Call after subscribing to onDidChangeItemCount
-	 * to ensure the subscriber receives the latest count.
-	 */
 	fireItemCount(): void {
 		this._onDidChangeItemCount.fire(this.itemCount);
 	}

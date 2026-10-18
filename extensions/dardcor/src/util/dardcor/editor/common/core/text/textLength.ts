@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -9,9 +8,6 @@ import { Position } from '../position';
 import { Range } from '../range';
 import { OffsetRange } from '../ranges/offsetRange';
 
-/**
- * Represents a non-negative length of text in terms of line and column count.
-*/
 export class TextLength {
 	public static zero = new TextLength(0, 0);
 

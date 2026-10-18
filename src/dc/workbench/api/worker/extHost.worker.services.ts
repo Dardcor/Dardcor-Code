@@ -13,11 +13,6 @@ import { ExtensionStoragePaths, IExtensionStoragePaths } from '../common/extHost
 import { ExtHostTelemetry, IExtHostTelemetry } from '../common/extHostTelemetry.js';
 import { ExtHostExtensionService } from './extHostExtensionService.js';
 
-// #########################################################################
-// ###                                                                   ###
-// ### !!! PLEASE ADD COMMON IMPORTS INTO extHost.common.services.ts !!! ###
-// ###                                                                   ###
-// #########################################################################
 
 registerSingleton(ILogService, new SyncDescriptor(ExtHostLogService, [true], true));
 registerSingleton(IExtHostAuthentication, ExtHostAuthentication, InstantiationType.Eager);

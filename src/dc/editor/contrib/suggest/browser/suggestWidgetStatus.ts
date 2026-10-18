@@ -13,10 +13,6 @@ import { IContextKeyService } from '../../../../platform/contextkey/common/conte
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 
 export interface ISuggestWidgetStatusOptions {
-	/**
-	 * Whether to show icons instead of text where possible and avoid
-	 * keybindings all together.
-	 */
 	readonly showIconsNoKeybindings?: boolean;
 }
 

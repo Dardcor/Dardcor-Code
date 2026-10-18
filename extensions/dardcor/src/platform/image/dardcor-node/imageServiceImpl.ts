@@ -4,16 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { ICAPIClientService } from '../../endpoint/common/capiClient';
 import { ILogService } from '../../log/common/logService';
 import { ImageServiceImpl } from '../node/imageServiceImpl';
 
 export class VSCodeImageServiceImpl extends ImageServiceImpl {
 	constructor(
-		@ICAPIClientService capiClient: ICAPIClientService,
 		@ILogService private readonly logService: ILogService,
 	) {
-		super(capiClient);
+		super();
 	}
 
 	override async resizeImage(data: Uint8Array, mimeType: string): Promise<{ data: Uint8Array; mimeType: string }> {

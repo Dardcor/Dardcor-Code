@@ -10,9 +10,6 @@ import { AuthPermissionMode, ConfigKey, IConfigurationService } from '../../conf
 import { authProviderId, GITHUB_SCOPE_ALIGNED, GITHUB_SCOPE_READ_USER, GITHUB_SCOPE_USER_EMAIL, MinimalModeError } from '../common/authentication';
 
 export const SESSION_LOGIN_MESSAGE = 'You are not signed in to GitHub. Please sign in to use Copilot.';
-// These types are subsets of the "real" types AuthenticationSessionAccountInformation and
-// AuthenticationSession. They allow us to use the type system to validate which fields
-// are actually needed and hence which ones need values when we construct fake session.
 type CopilotAuthenticationSessionAccountInformation = {
 	label: string;
 };
@@ -32,7 +29,6 @@ async function getAuthSession(providerId: string, defaultScopes: string[], getSi
 		const session = await authentication.getSession(providerId, defaultScopes, {
 			...options,
 			forceNewSession: mixin({ learnMore: URI.parse('https://aka.ms/dardcorRepoScope') }, options.forceNewSession),
-			// When GitHub becomes a true multi-account provider, we won't have to clearSessionPreference.
 			clearSessionPreference: true
 		});
 		return session;
@@ -44,22 +40,12 @@ async function getAuthSession(providerId: string, defaultScopes: string[], getSi
 	}
 
 	if (options.createIfNone) {
-		// This will force GitHub auth to present a picker to choose which account you want to log in to if there
-		// are multiple accounts.
-		// When GitHub becomes a true multi-account provider, we can change this to just createIfNone: true.
 		const session = await authentication.getSession(providerId, defaultScopes, options);
 		return session;
 	}
-	// Pass the options in as they are
 	return await authentication.getSession(providerId, defaultScopes, options);
 }
 
-/**
- * Cast a wide net to get a session with any of the scopes that Copilot needs.
- * @param configurationService for determining the auth provider
- * @returns an auth session with any of the scopes that Copilot needs, or undefined if none is found
- * @deprecated use `IAuthenticationService` instead
- */
 export function getAnyAuthSession(configurationService: IConfigurationService, options?: AuthenticationGetSessionOptions): Promise<AuthenticationSession | undefined> {
 	const providerId = authProviderId(configurationService);
 
@@ -67,7 +53,6 @@ export function getAnyAuthSession(configurationService: IConfigurationService, o
 		providerId,
 		GITHUB_SCOPE_USER_EMAIL,
 		async () => {
-			// Ask for aligned scopes first, since that's what we want to use going forward.
 			if (configurationService.getConfig(ConfigKey.Shared.AuthPermissions) !== AuthPermissionMode.Minimal) {
 				const permissive = await authentication.getSession(providerId, GITHUB_SCOPE_ALIGNED, { silent: true });
 				if (permissive) {
@@ -78,7 +63,6 @@ export function getAnyAuthSession(configurationService: IConfigurationService, o
 			if (minimal) {
 				return minimal;
 			}
-			// This is what Completions extension use to ask for and is here mostly for backwards compatibility.
 			const fallback = await authentication.getSession(providerId, GITHUB_SCOPE_READ_USER, { silent: true });
 			if (fallback) {
 				return fallback;
@@ -89,13 +73,6 @@ export function getAnyAuthSession(configurationService: IConfigurationService, o
 	);
 }
 
-/**
- * Get a session with an access token that has the same scopes as other GitHub extensions like GitHub Pull Requests.
- * @param configurationService for determining the auth provider
- * @param options what get passed in to getSession
- * @returns an auth session with a token with the aligned scopes, or undefined if none is found
- * @deprecated use `IAuthenticationService` instead
- */
 export function getAlignedSession(configurationService: IConfigurationService, options: AuthenticationGetSessionOptions): Promise<AuthenticationSession | undefined> {
 	if (configurationService.getConfig(ConfigKey.Shared.AuthPermissions) === AuthPermissionMode.Minimal) {
 		if (options.createIfNone || options.forceNewSession) {

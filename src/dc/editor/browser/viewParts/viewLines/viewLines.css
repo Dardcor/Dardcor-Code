@@ -3,16 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Uncomment to see lines flashing when they're painted */
-/*.monaco-editor .view-lines > .view-line {
-	background-color: none;
-	animation-name: flash-background;
-	animation-duration: 800ms;
-}
-@keyframes flash-background {
-	0%   { background-color: lightgreen; }
-	100% { background-color: none }
-}*/
 
 .mtkcontrol {
 	color: rgb(255, 255, 255) !important;
@@ -39,8 +29,6 @@
 	user-select: none;
 	-webkit-user-select: none;
 }
-/* Use user-select: text for lookup feature on macOS */
-/* https://github.com/microsoft/vscode/issues/85632 */
 .monaco-editor.mac .lines-content:hover,
 .monaco-editor.mac .view-line:hover,
 .monaco-editor.mac .view-lines:hover {
@@ -64,7 +52,6 @@
 	width: 100%;
 }
 
-/* There are view-lines in view-zones. We have to make sure this rule does not apply to them, as they don't set a line height */
 .monaco-editor .lines-content > .view-lines > .view-line > span {
 	top: 0;
 	bottom: 0;
@@ -80,9 +67,3 @@
 	color: var(--vscode-editorWhitespace-foreground) !important;
 }
 
-/* TODO@tokenization bootstrap fix */
-/*.monaco-editor .view-line > span > span {
-	float: none;
-	min-height: inherit;
-	margin-left: inherit;
-}*/

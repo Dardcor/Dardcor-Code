@@ -21,312 +21,65 @@ import { removeAnsiEscapeCodesFromPrompt } from '../../../../base/common/strings
 import { ShellEnvDetectionCapability } from '../capabilities/shellEnvDetectionCapability.js';
 import { PromptTypeDetectionCapability } from '../capabilities/promptTypeDetectionCapability.js';
 
-// Shell integration is a feature that enhances the terminal's understanding of what's happening
-// in the shell by injecting special sequences into the shell's prompt using the "Set Text
-// Parameters" sequence (`OSC Ps ; Pt ST`).
-//
-// Definitions:
-// - OSC: `\x1b]`
-// - Ps:  A single (usually optional) numeric parameter, composed of one or more digits.
-// - Pt:  A text parameter composed of printable characters.
-// - ST: `\x7`
-//
-// This is inspired by a feature of the same name in the FinalTerm, iTerm2 and kitty terminals.
 
-/**
- * The identifier for the first numeric parameter (`Ps`) for OSC commands used by shell integration.
- */
 export const enum ShellIntegrationOscPs {
-	/**
-	 * Sequences pioneered by FinalTerm.
-	 */
 	FinalTerm = 133,
-	/**
-	 * Sequences pioneered by VS Code. The number is derived from the least significant digit of
-	 * "VSC" when encoded in hex ("VSC" = 0x56, 0x53, 0x43).
-	 */
 	VSCode = 633,
-	/**
-	 * Sequences pioneered by iTerm.
-	 */
 	ITerm = 1337,
 	SetCwd = 7,
 	SetWindowsFriendlyCwd = 9
 }
 
-/**
- * Sequences pioneered by FinalTerm.
- */
 const enum FinalTermOscPt {
-	/**
-	 * The start of the prompt, this is expected to always appear at the start of a line.
-	 *
-	 * Format: `OSC 133 ; A ST`
-	 */
 	PromptStart = 'A',
 
-	/**
-	 * The start of a command, ie. where the user inputs their command.
-	 *
-	 * Format: `OSC 133 ; B ST`
-	 */
 	CommandStart = 'B',
 
-	/**
-	 * Sent just before the command output begins.
-	 *
-	 * Format: `OSC 133 ; C ST`
-	 */
 	CommandExecuted = 'C',
 
-	/**
-	 * Sent just after a command has finished. The exit code is optional, when not specified it
-	 * means no command was run (ie. enter on empty prompt or ctrl+c).
-	 *
-	 * Format: `OSC 133 ; D [; <ExitCode>] ST`
-	 */
 	CommandFinished = 'D',
 }
 
-/**
- * VS Code-specific shell integration sequences. Some of these are based on more common alternatives
- * like those pioneered in {@link FinalTermOscPt FinalTerm}. The decision to move to entirely custom
- * sequences was to try to improve reliability and prevent the possibility of applications confusing
- * the terminal. If multiple shell integration scripts run, VS Code will prioritize the VS
- * Code-specific ones.
- *
- * It's recommended that authors of shell integration scripts use the common sequences (`133`)
- * when building general purpose scripts and the VS Code-specific (`633`) when targeting only VS
- * Code or when there are no other alternatives (eg. {@link CommandLine `633 ; E`}). These sequences
- * support mix-and-matching.
- */
 const enum VSCodeOscPt {
-	/**
-	 * The start of the prompt, this is expected to always appear at the start of a line.
-	 *
-	 * Format: `OSC 633 ; A ST`
-	 *
-	 * Based on {@link FinalTermOscPt.PromptStart}.
-	 */
 	PromptStart = 'A',
 
-	/**
-	 * The start of a command, ie. where the user inputs their command.
-	 *
-	 * Format: `OSC 633 ; B ST`
-	 *
-	 * Based on  {@link FinalTermOscPt.CommandStart}.
-	 */
 	CommandStart = 'B',
 
-	/**
-	 * Sent just before the command output begins.
-	 *
-	 * Format: `OSC 633 ; C ST`
-	 *
-	 * Based on {@link FinalTermOscPt.CommandExecuted}.
-	 */
 	CommandExecuted = 'C',
 
-	/**
-	 * Sent just after a command has finished. This should generally be used on the new line
-	 * following the end of a command's output, just before {@link PromptStart}. The exit code is
-	 * optional, when not specified it means no command was run (ie. enter on empty prompt or
-	 * ctrl+c).
-	 *
-	 * Format: `OSC 633 ; D [; <ExitCode>] ST`
-	 *
-	 * Based on {@link FinalTermOscPt.CommandFinished}.
-	 */
 	CommandFinished = 'D',
 
-	/**
-	 * Explicitly set the command line. This helps workaround performance and reliability problems
-	 * with parsing out the command, such as conpty not guaranteeing the position of the sequence or
-	 * the shell not guaranteeing that the entire command is even visible. Ideally this is called
-	 * immediately before {@link CommandExecuted}, immediately before {@link CommandFinished} will
-	 * also work but that means terminal will only know the accurate command line when the command is
-	 * finished.
-	 *
-	 * The command line can escape ascii characters using the `\xAB` format, where AB are the
-	 * hexadecimal representation of the character code (case insensitive), and escape the `\`
-	 * character using `\\`. It's required to escape semi-colon (`0x3b`) and characters 0x20 and
-	 * below, this is particularly important for new line and semi-colon.
-	 *
-	 * Some examples:
-	 *
-	 * ```
-	 * "\"  -> "\\"
-	 * "\n" -> "\x0a"
-	 * ";"  -> "\x3b"
-	 * ```
-	 *
-	 * An optional nonce can be provided which is may be required by the terminal in order enable
-	 * some features. This helps ensure no malicious command injection has occurred.
-	 *
-	 * Format: `OSC 633 ; E [; <CommandLine> [; <Nonce>]] ST`
-	 */
 	CommandLine = 'E',
 
-	/**
-	 * Similar to prompt start but for line continuations.
-	 *
-	 * Format: `OSC 633 ; F ST`
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	ContinuationStart = 'F',
 
-	/**
-	 * Similar to command start but for line continuations.
-	 *
-	 * Format: `OSC 633 ; G ST`
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	ContinuationEnd = 'G',
 
-	/**
-	 * The start of the right prompt.
-	 *
-	 * Format: `OSC 633 ; H ST`
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	RightPromptStart = 'H',
 
-	/**
-	 * The end of the right prompt.
-	 *
-	 * Format: `OSC 633 ; I ST`
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	RightPromptEnd = 'I',
 
-	/**
-	 * Set the value of an arbitrary property, only known properties will be handled by VS Code.
-	 *
-	 * Format: `OSC 633 ; P ; <Property>=<Value> ST`
-	 *
-	 * Known properties:
-	 *
-	 * - `Cwd` - Reports the current working directory to the terminal.
-	 * - `IsWindows` - Reports whether the shell is using a Windows backend (conpty).
-	 *   This may be used to enable additional heuristics as the positioning of the shell
-	 *   integration sequences are not guaranteed to be correct. Valid values: `True`, `False`.
-	 * - `ContinuationPrompt` - Reports the continuation prompt that is printed at the start of
-	 *   multi-line inputs.
-	 * - `HasRichCommandDetection` - Reports whether the shell has rich command line detection,
-	 *   meaning that sequences A, B, C, D and E are exactly where they're meant to be. In
-	 *   particular, {@link CommandLine} must happen immediately before {@link CommandExecuted} so
-	 *   VS Code knows the command line when the execution begins.
-	 *
-	 * WARNING: Any other properties may be changed and are not guaranteed to work in the future.
-	 */
 	Property = 'P',
 
-	/**
-	 * Sets a mark/point-of-interest in the buffer.
-	 *
-	 * Format: `OSC 633 ; SetMark [; Id=<string>] [; Hidden] ST`
-	 *
-	 * `Id` - The identifier of the mark that can be used to reference it
-	 * `Hidden` - When set, the mark will be available to reference internally but will not visible
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	SetMark = 'SetMark',
 
-	/**
-	 * Sends the shell's complete environment in JSON format.
-	 *
-	 * Format: `OSC 633 ; EnvJson ; <Environment> ; <Nonce> ST`
-	 *
-	 * - `Environment` - A stringified JSON object containing the shell's complete environment. The
-	 *    variables and values use the same encoding rules as the {@link CommandLine} sequence.
-	 * - `Nonce` - An _mandatory_ nonce can be provided which may be required by the terminal in order
-	 *   to enable some features. This helps ensure no malicious command injection has occurred.
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	EnvJson = 'EnvJson',
 
-	/**
-	 * Delete a single environment variable from cached environment.
-	 *
-	 * Format: `OSC 633 ; EnvSingleDelete ; <EnvironmentKey> ; <EnvironmentValue> [; <Nonce>] ST`
-	 *
-	 * - `Nonce` - An optional nonce can be provided which may be required by the terminal in order
-	 *   to enable some features. This helps ensure no malicious command injection has occurred.
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	EnvSingleDelete = 'EnvSingleDelete',
 
-	/**
-	 * The start of the collecting user's environment variables individually.
-	 *
-	 * Format: `OSC 633 ; EnvSingleStart ; <Clear> [; <Nonce>] ST`
-	 *
-	 * - `Clear` - An _mandatory_ flag indicating any cached environment variables will be cleared.
-	 * - `Nonce` - An optional nonce can be provided which may be required by the terminal in order
-	 *   to enable some features. This helps ensure no malicious command injection has occurred.
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	EnvSingleStart = 'EnvSingleStart',
 
-	/**
-	 * Sets an entry of single environment variable to transactional pending map of environment variables.
-	 *
-	 * Format: `OSC 633 ; EnvSingleEntry ; <EnvironmentKey> ; <EnvironmentValue> [; <Nonce>] ST`
-	 *
-	 * - `Nonce` - An optional nonce can be provided which may be required by the terminal in order
-	 *   to enable some features. This helps ensure no malicious command injection has occurred.
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	EnvSingleEntry = 'EnvSingleEntry',
 
-	/**
-	 * The end of the collecting user's environment variables individually.
-	 * Clears any pending environment variables and fires an event that contains user's environment.
-	 *
-	 * Format: `OSC 633 ; EnvSingleEnd [; <Nonce>] ST`
-	 *
-	 * - `Nonce` - An optional nonce can be provided which may be required by the terminal in order
-	 *   to enable some features. This helps ensure no malicious command injection has occurred.
-	 *
-	 * WARNING: This sequence is unfinalized, DO NOT use this in your shell integration script.
-	 */
 	EnvSingleEnd = 'EnvSingleEnd'
 }
 
-/**
- * ITerm sequences
- */
 const enum ITermOscPt {
-	/**
-	 * Sets a mark/point-of-interest in the buffer.
-	 *
-	 * Format: `OSC 1337 ; SetMark ST`
-	 */
 	SetMark = 'SetMark',
 
-	/**
-	 * Reports current working directory (CWD).
-	 *
-	 * Format: `OSC 1337 ; CurrentDir=<Cwd> ST`
-	 */
 	CurrentDir = 'CurrentDir'
 }
 
-/**
- * The shell integration addon extends xterm by reading shell integration sequences and creating
- * capabilities and passing along relevant sequences to the capabilities. This is meant to
- * encapsulate all handling/parsing of sequences so the capabilities don't need to.
- */
 export class ShellIntegrationAddon extends Disposable implements IShellIntegration, ITerminalAddon {
 	private _terminal?: Terminal;
 	readonly capabilities = this._register(new TerminalCapabilityStore());
@@ -408,11 +161,6 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 			return false;
 		}
 
-		// Pass the sequence along to the capability
-		// It was considered to disable the common protocol in order to not confuse the VS Code
-		// shell integration if both happen for some reason. This doesn't work for powerlevel10k
-		// when instant prompt is enabled though. If this does end up being a problem we could pass
-		// a type flag through the capability calls
 		const [command, ...args] = data.split(';');
 		this._logService.trace(`ShellIntegrationAddon#_doHandleFinalTermSequence: received sequence ${command}`);
 		this._markSequenceSeen(command);
@@ -421,7 +169,6 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 				this._createOrGetCommandDetection(this._terminal).handlePromptStart();
 				return true;
 			case FinalTermOscPt.CommandStart:
-				// Ignore the command line for these sequences as it's unreliable for example in powerlevel10k
 				this._createOrGetCommandDetection(this._terminal).handleCommandStart({ ignoreCommandLine: true });
 				return true;
 			case FinalTermOscPt.CommandExecuted:
@@ -475,12 +222,10 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 			return false;
 		}
 
-		// Pass the sequence along to the capability
 		const argsIndex = data.indexOf(';');
 		const command = argsIndex === -1 ? data : data.substring(0, argsIndex);
 		this._logService.trace(`ShellIntegrationAddon#_doHandleVSCodeSequence: received sequence ${command}`);
 		this._markSequenceSeen(command);
-		// Cast to strict checked index access
 		const args: (string | undefined)[] = argsIndex === -1 ? [] : data.substring(argsIndex + 1).split(';');
 		switch (command) {
 			case VSCodeOscPt.PromptStart:
@@ -581,10 +326,6 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 						return true;
 					}
 					case 'Cwd': {
-						// OSC 633 ; P ; Cwd=<value> ; <nonce> ST — the nonce is optional and only
-						// present when emitted by a trusted shell integration script. CWD updates
-						// without a matching nonce are treated as untrusted to mitigate spoofing
-						// via OSC sequences injected through arbitrary terminal output.
 						const nonce = args[1];
 						this._updateCwd(value, nonce !== undefined && nonce === this._nonce);
 						return true;
@@ -598,7 +339,6 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 						return true;
 					}
 					case 'Prompt': {
-						// Remove escape sequences from the user's prompt
 						const sanitizedValue = value.replace(/\x1b\[[0-9;]*m/g, '');
 						this._updatePromptTerminator(sanitizedValue);
 						return true;
@@ -620,7 +360,6 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 			}
 		}
 
-		// Unrecognized sequence
 		return false;
 	}
 
@@ -639,8 +378,6 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 		const lastPromptLineTrimmed = lastPromptLine.trim();
 		const promptTerminator = (
 			lastPromptLineTrimmed.length === 1
-				// The prompt line contains a single character, treat the full line as the
-				// terminator for example "\u2b9e "
 				? lastPromptLine
 				: lastPromptLine.substring(lastPromptLine.lastIndexOf(' '))
 		);
@@ -668,27 +405,20 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 				this._createOrGetBufferMarkDetection(this._terminal).addMark();
 			}
 			default: {
-				// Checking for known `<key>=<value>` pairs.
-				// Note that unlike `VSCodeOscPt.Property`, iTerm2 does not interpret backslash or hex-escape sequences.
-				// See: https://github.com/gnachman/iTerm2/blob/bb0882332cec5196e4de4a4225978d746e935279/sources/VT100Terminal.m#L2089-L2105
 				const { key, value } = parseKeyValueAssignment(command);
 
 				if (value === undefined) {
-					// No '=' was found, so it's not a property assignment.
 					return true;
 				}
 
 				switch (key) {
 					case ITermOscPt.CurrentDir:
-						// Encountered: `OSC 1337 ; CurrentDir=<Cwd> ST`. The iTerm2 protocol has no
-						// nonce, so cwd updates received this way are always considered untrusted.
 						this._updateCwd(value, false);
 						return true;
 				}
 			}
 		}
 
-		// Unrecognized sequence
 		return false;
 	}
 
@@ -701,21 +431,15 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 		this._markSequenceSeen(`${ShellIntegrationOscPs.SetWindowsFriendlyCwd};${command}`);
 		switch (command) {
 			case '9':
-				// Encountered `OSC 9 ; 9 ; <cwd> ST`. The ConEmu/Windows-friendly cwd protocol
-				// has no nonce, so cwd updates received this way are always considered untrusted.
 				if (args.length) {
 					this._updateCwd(args[0], false);
 				}
 				return true;
 		}
 
-		// Unrecognized sequence
 		return false;
 	}
 
-	/**
-	 * Handles the sequence: `OSC 7 ; scheme://cwd ST`
-	 */
 	private _doHandleSetCwd(data: string): boolean {
 		if (!this._terminal) {
 			return false;
@@ -727,14 +451,11 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 		if (command.match(/^file:\/\/.*\//)) {
 			const uri = URI.parse(command);
 			if (uri.path && uri.path.length > 0) {
-				// The `OSC 7 ; scheme://cwd ST` protocol has no nonce, so cwd updates received
-				// this way are always considered untrusted.
 				this._updateCwd(uri.path, false);
 				return true;
 			}
 		}
 
-		// Unrecognized sequence
 		return false;
 	}
 
@@ -758,7 +479,6 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 		const commandDetection = this._createOrGetCommandDetection(this._terminal);
 		commandDetection.deserialize(serialized);
 		if (commandDetection.cwd) {
-			// Cwd gets set when the command is deserialized, so we need to update it here
 			this._updateCwd(commandDetection.cwd, false);
 		}
 	}
@@ -811,23 +531,17 @@ export class ShellIntegrationAddon extends Disposable implements IShellIntegrati
 
 export function deserializeVSCodeOscMessage(message: string): string {
 	return message.replaceAll(
-		// Backslash ('\') followed by an escape operator: either another '\', or 'x' and two hex chars.
 		/\\(\\|x([0-9a-f]{2}))/gi,
-		// If it's a hex value, parse it to a character.
-		// Otherwise the operator is '\', which we return literally, now unescaped.
 		(_match: string, op: string, hex?: string) => hex ? String.fromCharCode(parseInt(hex, 16)) : op);
 }
 
 export function serializeVSCodeOscMessage(message: string): string {
 	return message.replace(
-		// Match backslash ('\'), semicolon (';'), or characters 0x20 and below
 		/[\\;\x00-\x20]/g,
 		(char: string) => {
-			// Escape backslash as '\\'
 			if (char === '\\') {
 				return '\\\\';
 			}
-			// Escape other characters as '\xAB' where AB is the hex representation
 			const charCode = char.charCodeAt(0);
 			return `\\x${charCode.toString(16).padStart(2, '0')}`;
 		}
@@ -837,7 +551,7 @@ export function serializeVSCodeOscMessage(message: string): string {
 export function parseKeyValueAssignment(message: string): { key: string; value: string | undefined } {
 	const separatorIndex = message.indexOf('=');
 	if (separatorIndex === -1) {
-		return { key: message, value: undefined }; // No '=' was found.
+		return { key: message, value: undefined };
 	}
 	return {
 		key: message.substring(0, separatorIndex),
@@ -850,7 +564,6 @@ export function parseMarkSequence(sequence: (string | undefined)[]): { id?: stri
 	let id = undefined;
 	let hidden = false;
 	for (const property of sequence) {
-		// Sanity check, this shouldn't happen in practice
 		if (property === undefined) {
 			continue;
 		}

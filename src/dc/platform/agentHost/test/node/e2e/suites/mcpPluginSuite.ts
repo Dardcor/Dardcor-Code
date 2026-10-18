@@ -318,10 +318,8 @@ export function defineMcpPluginTests(context: IAgentHostE2ETestContext): void {
 
 	const modelBackedEnabled = config.provider === 'copilotcli';
 	if (modelBackedEnabled) {
-		// Copilot plugin hooks do not execute on Windows, although the same plugin's skill and MCP server work.
 		const pluginHookTest = context.isWindows ? test.skip : test;
 
-		// The skill executes when named explicitly, but the completions command currently returns no item for it.
 		(context.runKnownIssueTests ? test : test.skip)('plugin skill is included in leading slash completions', async function () {
 			this.timeout(180_000);
 			const { sessionUri, pluginUri } = await createPluginSession('skill-completion-leading', { pluginName: 'e2e-probe' });

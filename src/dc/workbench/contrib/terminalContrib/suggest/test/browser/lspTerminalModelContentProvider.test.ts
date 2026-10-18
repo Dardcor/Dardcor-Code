@@ -38,7 +38,6 @@ suite('LspTerminalModelContentProvider', () => {
 		capabilityStore = store.add(new TerminalCapabilityStore());
 		virtualTerminalDocumentUri = URI.from({ scheme: 'vscodeTerminal', path: '/terminal1.py' });
 
-		// Create stubs for the mock text model methods
 		setValueSpy = sinon.stub();
 		getValueSpy = sinon.stub();
 
@@ -49,13 +48,11 @@ suite('LspTerminalModelContentProvider', () => {
 			isDisposed: sinon.stub().returns(false)
 		} as unknown as ITextModel;
 
-		// Create a stub for modelService.getModel
 		modelService = {} as IModelService;
 		modelService.getModel = sinon.stub().callsFake((uri: URI) => {
 			return uri.toString() === virtualTerminalDocumentUri.toString() ? mockTextModel : null;
 		});
 
-		// Create stub services for instantiation service
 		textModelService = {} as ITextModelService;
 		textModelService.registerTextModelContentProvider = sinon.stub().returns({ dispose: sinon.stub() });
 
@@ -64,13 +61,11 @@ suite('LspTerminalModelContentProvider', () => {
 
 		const languageService = {} as ILanguageService;
 
-		// Set up the services in the instantiation service
 		instantiationService.stub(IModelService, modelService);
 		instantiationService.stub(ITextModelService, textModelService);
 		instantiationService.stub(IMarkerService, markerService);
 		instantiationService.stub(ILanguageService, languageService);
 
-		// Create the provider instance
 		lspTerminalModelContentProvider = store.add(instantiationService.createInstance(
 			LspTerminalModelContentProvider,
 			capabilityStore,
@@ -108,7 +103,6 @@ suite('LspTerminalModelContentProvider', () => {
 		});
 
 		test('should sanitize content when delimiter is in the middle of existing content', () => {
-			// Simulating a corrupted state where the delimiter is in the middle
 			const existingContent = 'previous content\n' + VSCODE_LSP_TERMINAL_PROMPT_TRACKER + 'some extra text';
 			getValueSpy.returns(existingContent);
 

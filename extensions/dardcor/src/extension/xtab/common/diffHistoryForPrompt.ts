@@ -33,9 +33,8 @@ export function getEditDiffHistory(
 
 	const allDiffs: string[] = [];
 
-	// we traverse in reverse (ie from most recent to least recent) because we may terminate early due to token-budget overflow
 	for (const entry of reversedHistory) {
-		if (allDiffs.length >= nEntries) { // we've reached the maximum number of entries
+		if (allDiffs.length >= nEntries) {
 			break;
 		}
 
@@ -68,7 +67,6 @@ export function getEditDiffHistory(
 
 	let promptPiece = diffsFromOldestToNewest.join('\n\n');
 
-	// to preserve old behavior where we always had trailing whitespace
 	if (diffsFromOldestToNewest.length > 0) {
 		promptPiece += '\n';
 	}
@@ -82,7 +80,6 @@ function generateDocDiff(entry: IXtabHistoryEditEntry, workspacePath: string | u
 	const lineEdit = RootedEdit.toLineEdit(entry.edit);
 	const baseLines = entry.edit.base.getLines();
 
-	// group edits into hunks of adjacent edits (eg if line 3 and line 4 are both edited, they should be in the same hunk, but if line 3 and line 5 are edited, they should be in different hunks)
 	for (const lineEditGroup of groupAdjacentBy(lineEdit.replacements, (left, right) => left.lineRange.endLineNumberExclusive >= right.lineRange.startLineNumber)) {
 		const oldLines: string[] = [];
 		const newLines: string[] = [];
@@ -104,11 +101,9 @@ function generateDocDiff(entry: IXtabHistoryEditEntry, workspacePath: string | u
 		}
 
 		if (oldLines.every(line => line.trim().length === 0) && newLines.every(line => line.trim().length === 0)) {
-			// skip over a diff which would only contain -/+ without any content
 			continue;
 		}
 
-		// skip no-op diffs where the old and new lines are identical
 		if (oldLines.length === newLines.length && oldLines.every((line, i) => line === newLines[i])) {
 			continue;
 		}

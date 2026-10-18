@@ -134,7 +134,6 @@ suite('Workbench status bar model', () => {
 		const container = document.createElement('div');
 		const model = disposables.add(new StatusbarViewModel(disposables.add(new TestStorageService())));
 
-		// Existing reference, Alignment: left
 		model.add({ id: 'a', alignment: StatusbarAlignment.LEFT, name: '1', priority: { primary: 2, secondary: 1 }, container, labelContainer: container, hasCommand: false, extensionId: undefined });
 		model.add({ id: 'b', alignment: StatusbarAlignment.LEFT, name: '2', priority: { primary: 1, secondary: 1 }, container, labelContainer: container, hasCommand: false, extensionId: undefined });
 
@@ -149,7 +148,6 @@ suite('Workbench status bar model', () => {
 
 		model.remove(entry);
 
-		// Existing reference, Alignment: right
 		entry = { id: 'c', alignment: StatusbarAlignment.RIGHT, name: '3', priority: { primary: { location: { id: 'a', priority: 2 }, alignment: StatusbarAlignment.RIGHT }, secondary: 1 }, container, labelContainer: container, hasCommand: false, extensionId: undefined };
 		model.add(entry);
 
@@ -164,7 +162,6 @@ suite('Workbench status bar model', () => {
 		const container = document.createElement('div');
 		const model = disposables.add(new StatusbarViewModel(disposables.add(new TestStorageService())));
 
-		// Nonexistent reference, Alignment: left
 		model.add({ id: 'a', alignment: StatusbarAlignment.LEFT, name: '1', priority: { primary: 2, secondary: 1 }, container, labelContainer: container, hasCommand: false, extensionId: undefined });
 		model.add({ id: 'b', alignment: StatusbarAlignment.LEFT, name: '2', priority: { primary: 1, secondary: 1 }, container, labelContainer: container, hasCommand: false, extensionId: undefined });
 
@@ -179,7 +176,6 @@ suite('Workbench status bar model', () => {
 
 		model.remove(entry);
 
-		// Nonexistent reference, Alignment: different fallback priority
 		entry = { id: 'c', alignment: StatusbarAlignment.LEFT, name: '3', priority: { primary: { location: { id: 'not-existing', priority: 3 }, alignment: StatusbarAlignment.LEFT }, secondary: 1 }, container, labelContainer: container, hasCommand: false, extensionId: undefined };
 		model.add(entry);
 
@@ -191,7 +187,6 @@ suite('Workbench status bar model', () => {
 
 		model.remove(entry);
 
-		// Nonexistent reference, Alignment: right
 		entry = { id: 'c', alignment: StatusbarAlignment.RIGHT, name: '3', priority: { primary: { location: { id: 'not-existing', priority: 3 }, alignment: StatusbarAlignment.RIGHT }, secondary: 1 }, container, labelContainer: container, hasCommand: false, extensionId: undefined };
 		model.add(entry);
 

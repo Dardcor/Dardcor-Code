@@ -115,7 +115,7 @@ export class ChatSetupController extends Disposable {
 			return undefined;
 		}
 
-		this.context.suspend();  // reduces flicker
+		this.context.suspend();
 
 		let success: ChatSetupResultValue = false;
 		try {
@@ -123,15 +123,15 @@ export class ChatSetupController extends Disposable {
 
 			let signIn: boolean;
 			if (options.forceSignIn) {
-				signIn = true; // forced to sign in
+				signIn = true;
 			} else if (this.context.state.entitlement === ChatEntitlement.Unknown) {
 				if (options.forceAnonymous) {
-					signIn = false; // forced to anonymous without sign in
+					signIn = false;
 				} else {
-					signIn = true; // sign in since we are signed out
+					signIn = true;
 				}
 			} else {
-				signIn = false; // already signed in
+				signIn = false;
 			}
 
 			if (signIn) {
@@ -143,7 +143,7 @@ export class ChatSetupController extends Disposable {
 				if (!result.defaultAccount) {
 					const provider = options.useSocialProvider ?? (options.useEnterpriseProvider ? defaultChat.provider.enterprise.id : defaultChat.provider.default.id);
 					this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: 'failedNotSignedIn', installDuration: watch.elapsed(), signUpErrorCode: undefined, provider });
-					return undefined; // treat as cancelled because signing in already triggers an error dialog
+					return undefined;
 				}
 
 				entitlement = result.entitlement;
@@ -153,7 +153,6 @@ export class ChatSetupController extends Disposable {
 				return undefined;
 			}
 
-			// Await Install
 			this.setStep(ChatSetupStep.Installing);
 			success = await this.install(entitlement ?? this.context.state.entitlement, watch, options);
 		} finally {
@@ -223,19 +222,19 @@ export class ChatSetupController extends Disposable {
 
 		try {
 			if (
-				!options.forceAnonymous &&						// User is not asking for anonymous access
-				entitlement !== ChatEntitlement.Free &&			// User is not signed up to Copilot Free
-				!isProUser(entitlement) &&						// User is not signed up for a Copilot subscription
-				entitlement !== ChatEntitlement.Unavailable		// User is eligible for Copilot Free
+				!options.forceAnonymous &&
+				entitlement !== ChatEntitlement.Free &&
+				!isProUser(entitlement) &&
+				entitlement !== ChatEntitlement.Unavailable
 			) {
 				signUpResult = await this.requests.signUpFree();
 
 				if (isUndefined(signUpResult)) {
 					this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: 'failedNoSession', installDuration: watch.elapsed(), signUpErrorCode: undefined, provider });
-					return false; // unexpected
+					return false;
 				}
 
-				if (typeof signUpResult !== 'boolean' /* error */) {
+				if (typeof signUpResult !== 'boolean' ) {
 					this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: 'failedSignUp', installDuration: watch.elapsed(), signUpErrorCode: signUpResult.errorCode, provider });
 				}
 			}
@@ -247,15 +246,11 @@ export class ChatSetupController extends Disposable {
 			return false;
 		}
 
-		if (typeof signUpResult === 'boolean' /* not an error case */ || typeof signUpResult === 'undefined' /* already signed up */) {
+		if (typeof signUpResult === 'boolean' || typeof signUpResult === 'undefined' ) {
 			this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: wasRunning && !signUpResult ? 'alreadyInstalled' : 'installed', installDuration: watch.elapsed(), signUpErrorCode: undefined, provider });
 		}
 
 		if (wasRunning) {
-			// We always trigger refresh of tokens to help the user
-			// get out of authentication issues that can happen when
-			// for example the sign-up ran after the extension tried
-			// to use the authentication information to mint a token
 			refreshTokens(this.commandService);
 		}
 
@@ -292,9 +287,9 @@ export class ChatSetupController extends Disposable {
 	private async doInstall(): Promise<void> {
 		await this.extensionsWorkbenchService.install(defaultChat.chatExtensionId, {
 			enable: true,
-			isApplicationScoped: true, 	// install into all profiles
-			isMachineScoped: false,		// do not ask to sync
-			installEverywhere: true,	// install in local and remote
+			isApplicationScoped: true,
+			isMachineScoped: false,
+			installEverywhere: true,
 			installPreReleaseVersion: this.productService.quality !== 'stable'
 		}, ChatViewId);
 	}
@@ -327,7 +322,7 @@ export class ChatSetupController extends Disposable {
 			const success = await this.handleEnterpriseInstance();
 			if (!success) {
 				this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: 'failedEnterpriseSetup', installDuration: 0, signUpErrorCode: undefined, provider: undefined });
-				return success; // not properly configured, abort
+				return success;
 			}
 		}
 		if (options.cancellationToken?.isCancellationRequested) {
@@ -360,7 +355,7 @@ export class ChatSetupController extends Disposable {
 
 		const uri = this.configurationService.getValue<string>(defaultChat.providerUriSetting);
 		if (typeof uri === 'string' && fullUriRegEx.test(uri)) {
-			return true; // already setup with a valid URI
+			return true;
 		}
 
 		let isSingleWord = false;
@@ -393,7 +388,7 @@ export class ChatSetupController extends Disposable {
 		});
 
 		if (!result) {
-			return undefined; // canceled
+			return undefined;
 		}
 
 		let resolvedUri = result;

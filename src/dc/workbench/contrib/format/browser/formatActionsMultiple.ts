@@ -74,7 +74,6 @@ export class DefaultFormatter extends Disposable implements IWorkbenchContributi
 		await this._extensionService.whenInstalledExtensionsRegistered();
 		let extensions = [...this._extensionService.extensions];
 
-		// Get all formatter providers to identify which extensions actually contribute formatters
 		const documentFormatters = this._languageFeaturesService.documentFormattingEditProvider.allNoModel();
 		const rangeFormatters = this._languageFeaturesService.documentRangeFormattingEditProvider.allNoModel();
 		const formatterExtensionIds = new Set<string>();
@@ -91,7 +90,6 @@ export class DefaultFormatter extends Disposable implements IWorkbenchContributi
 		}
 
 		extensions = extensions.sort((a, b) => {
-			// Ultimate boost: extensions that actually contribute formatters
 			const contributesFormatterA = formatterExtensionIds.has(ExtensionIdentifier.toKey(a.identifier));
 			const contributesFormatterB = formatterExtensionIds.has(ExtensionIdentifier.toKey(b.identifier));
 
@@ -101,7 +99,6 @@ export class DefaultFormatter extends Disposable implements IWorkbenchContributi
 				return 1;
 			}
 
-			// Secondary boost: category-based sorting
 			const boostA = a.categories?.find(cat => cat === 'Formatters' || cat === 'Programming Languages');
 			const boostB = b.categories?.find(cat => cat === 'Formatters' || cat === 'Programming Languages');
 
@@ -142,17 +139,13 @@ export class DefaultFormatter extends Disposable implements IWorkbenchContributi
 		});
 
 		if (defaultFormatterId) {
-			// good -> formatter configured
 			const defaultFormatter = formatter.find(formatter => ExtensionIdentifier.equals(formatter.extensionId, defaultFormatterId));
 			if (defaultFormatter) {
-				// formatter available
 				return defaultFormatter;
 			}
 
-			// bad -> formatter gone
 			const extension = await this._extensionService.getExtension(defaultFormatterId);
 			if (extension && this._extensionEnablementService.isEnabled(toExtension(extension))) {
-				// formatter does not target this file
 				const langName = this._languageService.getLanguageName(document.getLanguageId()) || document.getLanguageId();
 				const detail = kind === FormattingKind.File
 					? nls.localize('miss.1', "Extension '{0}' is configured as formatter but it cannot format '{1}'-files", extension.displayName || extension.name, langName)
@@ -161,7 +154,6 @@ export class DefaultFormatter extends Disposable implements IWorkbenchContributi
 			}
 
 		} else if (formatter.length === 1) {
-			// ok -> nothing configured but only one formatter available
 			return formatter[0];
 		}
 
@@ -180,8 +172,6 @@ export class DefaultFormatter extends Disposable implements IWorkbenchContributi
 		}
 
 		if (mode !== FormattingMode.Silent) {
-			// running from a user action -> show modal dialog so that users configure
-			// a default formatter
 			const { confirmed } = await this._dialogService.confirm({
 				message: nls.localize('miss', "Configure Default Formatter"),
 				detail: formatterOrMessage,
@@ -191,7 +181,6 @@ export class DefaultFormatter extends Disposable implements IWorkbenchContributi
 				return this._pickAndPersistDefaultFormatter(formatter, document);
 			}
 		} else {
-			// no user action -> show a silent notification and proceed
 			this._notificationService.prompt(
 				Severity.Info,
 				formatterOrMessage,
@@ -222,7 +211,6 @@ export class DefaultFormatter extends Disposable implements IWorkbenchContributi
 		return formatter[pick.index];
 	}
 
-	// --- status item
 
 	private _updateStatus() {
 		this._languageStatusStore.clear();
@@ -311,7 +299,6 @@ async function showFormatterPick(accessor: ServicesAccessor, model: ITextModel, 
 		};
 
 		if (isDefault) {
-			// autofocus default pick
 			defaultFormatterPick = pick;
 		}
 
@@ -329,11 +316,9 @@ async function showFormatterPick(accessor: ServicesAccessor, model: ITextModel, 
 		}
 	);
 	if (!pick) {
-		// dismissed
 		return undefined;
 
 	} else if (pick === configurePick) {
-		// config default
 		const langName = languageService.getLanguageName(model.getLanguageId()) || model.getLanguageId();
 		const pick = await quickPickService.pick(picks, { placeHolder: nls.localize('select', "Select a default formatter for '{0}' files", DefaultFormatter._maybeQuotes(langName)) });
 		if (pick && formatters[pick.index].extensionId) {
@@ -342,7 +327,6 @@ async function showFormatterPick(accessor: ServicesAccessor, model: ITextModel, 
 		return undefined;
 
 	} else {
-		// picked one
 		return (<IIndexedPick>pick).index;
 	}
 

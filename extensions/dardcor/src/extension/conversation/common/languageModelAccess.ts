@@ -8,16 +8,6 @@ import { IChatEndpoint, IChatEndpointTokenPricing } from '../../../platform/netw
 import * as l10n from '@vscode/l10n';
 import type { LanguageModelChatInformation, LanguageModelConfigurationSchema } from 'vscode';
 
-/**
- * Picks a sensible default reasoning-effort level given the levels advertised
- * by an endpoint and the model `family`. The picker must never receive
- * `undefined`, otherwise the UI shows an "undefined" state.
- *
- * Selection order:
- *  - claude / Kimi K3 families → 'high' if available
- *  - other families   → 'medium' if available
- *  - fallback         → the first advertised level
- */
 export function pickDefaultReasoningEffort(effortLevels: readonly string[], family: string): string | undefined {
 	if (effortLevels.length === 0) {
 		return undefined;
@@ -30,11 +20,6 @@ export function pickDefaultReasoningEffort(effortLevels: readonly string[], fami
 	return effortLevels[0];
 }
 
-/**
- * Returns the localized description shown in the picker hover for a given
- * reasoning-effort `level`. Centralised here so every provider surfaces the
- * same wording. Falls back to the raw level for unknown values.
- */
 export function getReasoningEffortDescription(level: string): string {
 	switch (level) {
 		case 'none': return l10n.t('No reasoning applied');
@@ -48,11 +33,6 @@ export function getReasoningEffortDescription(level: string): string {
 	}
 }
 
-/**
- * Returns the localized, title-cased picker label for a given
- * reasoning-effort `level`. Centralised here so every provider surfaces the
- * same wording. Falls back to capitalizing an unknown value.
- */
 export function getReasoningEffortLabel(level: string): string {
 	switch (level) {
 		case 'none': return l10n.t('None');
@@ -66,12 +46,6 @@ export function getReasoningEffortLabel(level: string): string {
 	}
 }
 
-/**
- * Builds the `reasoningEffort` property descriptor for a model's
- * {@link LanguageModelConfigurationSchema}. Centralises the default-selection
- * and localized descriptions so the picker stays consistent across the
- * Copilot and BYOK code paths.
- */
 export function buildReasoningEffortSchemaProperty(effortLevels: readonly string[], family: string): NonNullable<LanguageModelConfigurationSchema['properties']>[string] {
 	return {
 		type: 'string',
@@ -84,15 +58,10 @@ export function buildReasoningEffortSchemaProperty(effortLevels: readonly string
 	};
 }
 
-/**
- * Returns a description of the model's capabilities and intended use cases.
- * This is shown in the rich hover when selecting models.
- */
 export function getModelCapabilitiesDescription(endpoint: IChatEndpoint | LanguageModelChatInformation | { name: string; family: string }): string | undefined {
 	const name = endpoint.name.toLowerCase();
 	const family = endpoint.family.toLowerCase();
 
-	// Claude models
 	if (family.includes('claude') || name.includes('claude')) {
 		if (name.includes('opus')) {
 			return l10n.t('Most capable Claude model. Excellent for complex analysis, coding tasks, and nuanced creative writing.');
@@ -105,7 +74,6 @@ export function getModelCapabilitiesDescription(endpoint: IChatEndpoint | Langua
 		}
 	}
 
-	// GPT models
 	if (family.includes('gpt') || name.includes('gpt') || family.includes('codex') || name.includes('codex')) {
 		if (name.includes('codex') || family.includes('codex')) {
 			return l10n.t('OpenAI Codex model specialized for code generation, debugging, and software development tasks.');
@@ -125,7 +93,6 @@ export function getModelCapabilitiesDescription(endpoint: IChatEndpoint | Langua
 		return l10n.t('OpenAI GPT model for coding and general assistance.');
 	}
 
-	// Gemini models
 	if (family.includes('gemini') || name.includes('gemini')) {
 		if (name.includes('flash')) {
 			return l10n.t('Fast and efficient Gemini model optimized for quick responses and high throughput.');
@@ -136,7 +103,6 @@ export function getModelCapabilitiesDescription(endpoint: IChatEndpoint | Langua
 		return l10n.t('Google Gemini model with balanced performance for coding and general assistance.');
 	}
 
-	// Grok models
 	if (family.includes('grok') || name.includes('grok')) {
 		return l10n.t('xAI Grok model optimized for fast code generation and development tasks.');
 	}
@@ -144,17 +110,8 @@ export function getModelCapabilitiesDescription(endpoint: IChatEndpoint | Langua
 	return undefined;
 }
 
-/**
- * Documentation link surfaced in the Auto model description.
- * NOTE: Also defined in src/vs/workbench/contrib/chat/common/languageModels.ts (ILanguageModelChatMetadata.autoModelSelectionDocsUrl) — keep in sync.
- */
 const AUTO_MODEL_DOCS_URL = 'https://docs.github.com/en/dardcor/concepts/models/auto-model-selection';
 
-/**
- * Classifies an Auto discount range (given as fractions, e.g. `0.1` for 10%)
- * into whole-number percentages. Returns `undefined` when there is no discount
- * to show, `{ low }` for a single value, or `{ low, high }` for a range.
- */
 function classifyDiscountRange(discountRange?: { low: number; high: number }): { low: number; high?: number } | undefined {
 	if (!discountRange) {
 		return undefined;
@@ -167,12 +124,6 @@ function classifyDiscountRange(discountRange?: { low: number; high: number }): {
 	return { low, high };
 }
 
-/**
- * Formats the Auto discount as a short label (e.g. "10% discount" or
- * "10% to 20% discount"). Returns `undefined` when there is no discount.
- *
- * @param discountRange Discount as fractions (e.g. `0.1` for 10%).
- */
 export function getAutoModelDiscountLabel(discountRange?: { low: number; high: number }): string | undefined {
 	const discount = classifyDiscountRange(discountRange);
 	if (!discount) {
@@ -183,13 +134,6 @@ export function getAutoModelDiscountLabel(discountRange?: { low: number; high: n
 		: l10n.t('{0}% to {1}% discount', discount.low, discount.high);
 }
 
-/**
- * Builds the shared description shown for the Auto model. The discount sentence
- * is only included when a non-zero discount is provided.
- *
- * @param discountRange Discount as fractions (e.g. `0.1` for 10%). When omitted
- * or zero, the discount sentence is left out entirely.
- */
 export function getAutoModelDescription(discountRange?: { low: number; high: number }): string {
 	const base = l10n.t('Auto routes based on your task and real-time system health and model performance.');
 	const learnMore = l10n.t('[Learn More]({0})', AUTO_MODEL_DOCS_URL);
@@ -209,13 +153,9 @@ function formatAicPrice(price: number): string {
 	if (price < 0.01) {
 		return price.toExponential(2);
 	}
-	// Remove unnecessary trailing zeros
 	return price.toFixed(4).replace(/\.?0+$/, '');
 }
 
-/**
- * Formats a token count as a human-readable string (e.g. 128K, 1M, 2.5M).
- */
 export function formatTokenCount(count: number): string {
 	if (count >= 1_000_000) {
 		const value = count / 1_000_000;
@@ -229,10 +169,6 @@ export function formatTokenCount(count: number): string {
 	return count.toString();
 }
 
-/**
- * Formats a compact pricing label for display in the model management column.
- * Shows input and output AICs per million tokens.
- */
 export function formatPricingLabel(pricing: IChatEndpointTokenPricing): string {
 	return l10n.t(
 		'In: {0} · Out: {1} AICs/1M tokens',
@@ -244,12 +180,6 @@ export function formatPricingLabel(pricing: IChatEndpointTokenPricing): string {
 const TOKENS_PER_MILLION = 1_000_000;
 const NANO_AIU_DIVISOR = 1_000_000_000;
 
-/**
- * Raw token prices from the CAPI billing response. Supports both the tiered
- * format (API 2026-06-01+, prices in AIUs) and the legacy flat format
- * (pre-2026-06-01, prices in nano-AIUs) which is still used by some endpoints
- * such as the cloud agents (`/agents/swe/models`) model picker.
- */
 export interface IRawTokenPrices {
 	batch_size?: number;
 	input_price?: number;
@@ -272,13 +202,6 @@ export interface INormalizedTokenPricing {
 	readonly longContext?: INormalizedPriceTier;
 }
 
-/**
- * Converts raw billing token prices into normalized AICs (credits) per million tokens.
- * Handles both tiered (AIU) and legacy flat (nano-AIU) formats.
- *
- * When a `long_context` tier is present but its prices match the `default` tier,
- * it is omitted from the result.
- */
 export function normalizeTokenPrices(tokenPrices: IRawTokenPrices | undefined): INormalizedTokenPricing | undefined {
 	if (!tokenPrices) {
 		return undefined;
@@ -288,7 +211,6 @@ export function normalizeTokenPrices(tokenPrices: IRawTokenPrices | undefined): 
 	const defaultTier = tokenPrices.default;
 
 	if (defaultTier && defaultTier.input_price !== undefined && defaultTier.output_price !== undefined) {
-		// Tiered format (API 2026-06-01+): values are in AIUs
 		const normalized: INormalizedPriceTier = {
 			inputPrice: defaultTier.input_price * scale,
 			outputPrice: defaultTier.output_price * scale,
@@ -306,7 +228,6 @@ export function normalizeTokenPrices(tokenPrices: IRawTokenPrices | undefined): 
 				cacheWritePrice: lc.cache_write_price !== undefined ? lc.cache_write_price * scale : undefined,
 				contextMax: lc.context_max,
 			};
-			// Only include long-context tier when prices differ from default
 			if (lcNormalized.inputPrice !== normalized.inputPrice
 				|| lcNormalized.outputPrice !== normalized.outputPrice
 				|| lcNormalized.cachePrice !== normalized.cachePrice
@@ -317,7 +238,6 @@ export function normalizeTokenPrices(tokenPrices: IRawTokenPrices | undefined): 
 		return { default: normalized, longContext };
 	}
 
-	// Legacy flat format (pre-2026-06-01): values are in nano-AIUs
 	if (tokenPrices.input_price === undefined || tokenPrices.output_price === undefined) {
 		return undefined;
 	}

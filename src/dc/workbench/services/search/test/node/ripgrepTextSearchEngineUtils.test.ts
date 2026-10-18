@@ -47,7 +47,6 @@ suite('RipgrepTextSearchEngine', () => {
 			['foo[^\\n]+o', 'foo.+o'],
 			['foo[^\\nzq]+o', 'foo[^zq]+o'],
 			['foo[^\\nzq]+o', 'foo[^zq]+o'],
-			// preserves quantifies, #137899
 			['fo[^\\S\\n]*o', 'fo[^\\S]*o'],
 			['fo[^\\S\\n]{3,}o', 'fo[^\\S]{3,}o'],
 		];
@@ -131,7 +130,7 @@ suite('RipgrepTextSearchEngine', () => {
 						text
 					},
 					line_number: lineNumber,
-					absolute_offset: 0, // unused
+					absolute_offset: 0,
 					submatches: matchRanges.map(mr => {
 						return {
 							...mr,
@@ -319,7 +318,6 @@ suite('RipgrepTextSearchEngine', () => {
 
 	suite('getRgArgs', () => {
 		test('simple includes', () => {
-			// Only testing the args that come from includes.
 			function testGetRgArgs(includes: string[], expectedFromIncludes: string[]): void {
 				const query: TextSearchQuery2 = {
 					pattern: 'test'

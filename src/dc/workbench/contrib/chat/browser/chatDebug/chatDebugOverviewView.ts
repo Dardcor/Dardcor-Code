@@ -70,7 +70,6 @@ export class ChatDebugOverviewView extends Disposable {
 
 		this.refreshScheduler = this._register(new RunOnceScheduler(() => this.doRefresh(), 100));
 
-		// Breadcrumb
 		const breadcrumbContainer = DOM.append(this.container, $('.chat-debug-breadcrumb'));
 		this.breadcrumbWidget = this._register(new BreadcrumbsWidget(breadcrumbContainer, 3, undefined, Codicon.chevronRight, defaultBreadcrumbsWidgetStyles));
 		this._register(setupBreadcrumbKeyboardNavigation(breadcrumbContainer, this.breadcrumbWidget));
@@ -112,7 +111,6 @@ export class ChatDebugOverviewView extends Disposable {
 	}
 
 	private doRefresh(): void {
-		// On refresh, only update the metrics section in-place
 		if (this.metricsContainer && this.currentSessionResource) {
 			DOM.clearNode(this.metricsContainer);
 			const events = this.chatDebugService.getEvents(this.currentSessionResource);
@@ -161,13 +159,8 @@ export class ChatDebugOverviewView extends Disposable {
 			}
 		}));
 
-		// Session details section
 		this.renderSessionDetails(this.currentSessionResource);
 
-		// Derived overview metrics — show shimmer only on the very first load
-		// AND when there are no events yet. If events were already streamed
-		// (e.g. while viewing logs), render them immediately so the shimmer
-		// doesn't get stuck forever waiting for an event that already fired.
 		const events = this.chatDebugService.getEvents(this.currentSessionResource);
 		this.renderDerivedOverview(events, this.isFirstLoad && events.length === 0);
 		this.isFirstLoad = false;
@@ -179,7 +172,6 @@ export class ChatDebugOverviewView extends Disposable {
 		interface DetailItem { label: string; value: string }
 		const details: DetailItem[] = [];
 
-		// Session type
 		const sessionType = getChatSessionType(sessionUri);
 		const contribution = this.chatSessionsService.getChatSessionContribution(sessionType);
 		const sessionTypeName = contribution?.displayName || (sessionType === localChatSessionType
@@ -231,9 +223,6 @@ export class ChatDebugOverviewView extends Disposable {
 	}
 
 	private renderDerivedOverview(events: readonly IChatDebugEvent[], showShimmer: boolean): void {
-		// When agent debug logging is disabled for this session, no metrics are
-		// captured. Surface a hint to enable the setting instead of an empty
-		// summary, while still keeping the navigation buttons below.
 		if (!isChatDebugLoggingEnabledForSession(this.configurationService, this.currentSessionResource)) {
 			this.metricsContainer = undefined;
 			const disabledSection = DOM.append(this.content, $('.chat-debug-overview-section'));
@@ -251,7 +240,6 @@ export class ChatDebugOverviewView extends Disposable {
 			}
 		}
 
-		// Explore actions
 		const actionsSection = DOM.append(this.content, $('.chat-debug-overview-section'));
 		DOM.append(actionsSection, $('h3.chat-debug-overview-section-label', undefined, localize('chatDebug.exploreTraceData', "Explore Trace Data")));
 
@@ -278,7 +266,6 @@ export class ChatDebugOverviewView extends Disposable {
 			this._onNavigate.fire(OverviewNavigation.CacheExplorer);
 		}));
 
-		// The AHP log is only meaningful for Agent Host sessions.
 		if (isAgentHostSession(this.currentSessionResource)) {
 			const wireLogBtn = this.loadDisposables.add(new Button(row, { ...defaultButtonStyles, secondary: true, supportIcons: true, title: localize('chatDebug.ahpLog', "AHP Log") }));
 			wireLogBtn.element.classList.add('chat-debug-overview-action-button');
@@ -291,7 +278,6 @@ export class ChatDebugOverviewView extends Disposable {
 	}
 
 	private renderMetricsShimmer(container: HTMLElement): void {
-		// Show placeholder shimmer cards while provider data is loading
 		const placeholderLabels = [
 			localize('chatDebug.metric.modelTurns', "Model Turns"),
 			localize('chatDebug.metric.toolCalls', "Tool Calls"),
@@ -306,7 +292,7 @@ export class ChatDebugOverviewView extends Disposable {
 			DOM.append(card, $('div.chat-debug-overview-metric-label', undefined, label));
 			const valueEl = DOM.append(card, $('div.chat-debug-overview-metric-value'));
 			const shimmer = DOM.append(valueEl, $('span.chat-debug-overview-metric-shimmer'));
-			shimmer.textContent = '\u00A0'; // non-breaking space for height
+			shimmer.textContent = '\u00A0';
 		}
 	}
 

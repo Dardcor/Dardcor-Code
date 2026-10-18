@@ -48,32 +48,25 @@ export class CompletionItem {
 
 	_brand!: 'ISuggestionItem';
 
-	//
 	readonly editStart: IPosition;
 	readonly editInsertEnd: IPosition;
 	readonly editReplaceEnd: IPosition;
 
-	//
 	readonly textLabel: string;
 
-	// perf
 	readonly labelLow: string;
 	readonly sortTextLow?: string;
 	readonly filterTextLow?: string;
 
-	// validation
 	readonly isInvalid: boolean = false;
 
-	// sorting, filtering
 	score: FuzzyScore = FuzzyScore.Default;
 	distance: number = 0;
 	idx?: number;
 	word?: string;
 
-	// instrumentation
 	readonly extensionId?: ExtensionIdentifier;
 
-	// resolving
 	private _resolveDuration?: number;
 	private _resolveCache?: Promise<void>;
 
@@ -87,10 +80,8 @@ export class CompletionItem {
 			? completion.label
 			: completion.label?.label;
 
-		// ensure lower-variants (perf)
 		this.labelLow = this.textLabel.toLowerCase();
 
-		// validate label
 		this.isInvalid = !this.textLabel;
 
 		this.sortTextLow = completion.sortText && completion.sortText.toLowerCase();
@@ -98,13 +89,11 @@ export class CompletionItem {
 
 		this.extensionId = completion.extensionId;
 
-		// normalize ranges
 		if (Range.isIRange(completion.range)) {
 			this.editStart = new Position(completion.range.startLineNumber, completion.range.startColumn);
 			this.editInsertEnd = new Position(completion.range.endLineNumber, completion.range.endColumn);
 			this.editReplaceEnd = new Position(completion.range.endLineNumber, completion.range.endColumn);
 
-			// validate range
 			this.isInvalid = this.isInvalid
 				|| Range.spansMultipleLines(completion.range) || completion.range.startLineNumber !== position.lineNumber;
 
@@ -113,21 +102,18 @@ export class CompletionItem {
 			this.editInsertEnd = new Position(completion.range.insert.endLineNumber, completion.range.insert.endColumn);
 			this.editReplaceEnd = new Position(completion.range.replace.endLineNumber, completion.range.replace.endColumn);
 
-			// validate ranges
 			this.isInvalid = this.isInvalid
 				|| Range.spansMultipleLines(completion.range.insert) || Range.spansMultipleLines(completion.range.replace)
 				|| completion.range.insert.startLineNumber !== position.lineNumber || completion.range.replace.startLineNumber !== position.lineNumber
 				|| completion.range.insert.startColumn !== completion.range.replace.startColumn;
 		}
 
-		// create the suggestion resolver
 		if (typeof provider.resolveCompletionItem !== 'function') {
 			this._resolveCache = Promise.resolve();
 			this._resolveDuration = 0;
 		}
 	}
 
-	// ---- resolving
 
 	get isResolved(): boolean {
 		return this._resolveDuration !== undefined;
@@ -149,8 +135,6 @@ export class CompletionItem {
 				this._resolveDuration = sw.elapsed();
 			}, err => {
 				if (isCancellationError(err)) {
-					// the IPC queue will reject the request with the
-					// cancellation error -> reset cached
 					this._resolveCache = undefined;
 					this._resolveDuration = undefined;
 				}
@@ -239,15 +223,12 @@ export async function provideSuggestionItems(
 		}
 		for (const suggestion of container.suggestions) {
 			if (!options.kindFilter.has(suggestion.kind)) {
-				// skip if not showing deprecated suggestions
 				if (!options.showDeprecated && suggestion?.tags?.includes(languages.CompletionItemTag.Deprecated)) {
 					continue;
 				}
-				// fill in default range when missing
 				if (!suggestion.range) {
 					suggestion.range = defaultRange;
 				}
-				// fill in default sortText when missing
 				if (!suggestion.sortText) {
 					suggestion.sortText = typeof suggestion.label === 'string' ? suggestion.label : suggestion.label.label;
 				}
@@ -267,13 +248,10 @@ export async function provideSuggestionItems(
 		return didAddResult;
 	};
 
-	// ask for snippets in parallel to asking "real" providers. Only do something if configured to
-	// do so - no snippet filter, no special-providers-only request
 	const snippetCompletions = (async () => {
 		if (!_snippetSuggestSupport || options.kindFilter.has(languages.CompletionItemKind.Snippet)) {
 			return;
 		}
-		// we have items from a previous session that we can reuse
 		const reuseItems = options.providerItemsToReuse.get(_snippetSuggestSupport);
 		if (reuseItems) {
 			reuseItems.forEach(item => result.push(item));
@@ -287,22 +265,16 @@ export async function provideSuggestionItems(
 		onCompletionList(_snippetSuggestSupport, list, sw);
 	})();
 
-	// add suggestions from contributed providers - providers are ordered in groups of
-	// equal score and once a group produces a result the process stops
-	// get provider groups, always add snippet suggestion provider
 	for (const providerGroup of registry.orderedGroups(model)) {
 
-		// for each support in the group ask for suggestions
 		let didAddResult = false;
 		await Promise.all(providerGroup.map(async provider => {
-			// we have items from a previous session that we can reuse
 			if (options.providerItemsToReuse.has(provider)) {
 				const items = options.providerItemsToReuse.get(provider)!;
 				items.forEach(item => result.push(item));
 				didAddResult = didAddResult || items.length > 0;
 				return;
 			}
-			// check if this provider is filtered out
 			if (options.providerFilter.size > 0 && !options.providerFilter.has(provider)) {
 				return;
 			}
@@ -337,7 +309,6 @@ export async function provideSuggestionItems(
 
 
 function defaultComparator(a: CompletionItem, b: CompletionItem): number {
-	// check with 'sortText'
 	if (a.sortTextLow && b.sortTextLow) {
 		if (a.sortTextLow < b.sortTextLow) {
 			return -1;
@@ -345,13 +316,11 @@ function defaultComparator(a: CompletionItem, b: CompletionItem): number {
 			return 1;
 		}
 	}
-	// check with 'label'
 	if (a.textLabel < b.textLabel) {
 		return -1;
 	} else if (a.textLabel > b.textLabel) {
 		return 1;
 	}
-	// check with 'type'
 	return a.completion.kind - b.completion.kind;
 }
 
@@ -438,15 +407,8 @@ export function showSimpleSuggestions(editor: ICodeEditor, provider: languages.C
 }
 
 export interface ISuggestItemPreselector {
-	/**
-	 * The preselector with highest priority is asked first.
-	*/
 	readonly priority: number;
 
-	/**
-	 * Is called to preselect a suggest item.
-	 * When -1 is returned, item preselectors with lower priority are asked.
-	*/
 	select(model: ITextModel, pos: IPosition, items: CompletionItem[]): number | -1;
 }
 

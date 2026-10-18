@@ -7,9 +7,6 @@ import { Iterable } from '../../../../base/common/iterator.js';
 import { TestResultState } from './testTypes.js';
 import { makeEmptyCounts, maxPriority, statePriority } from './testingStates.js';
 
-/**
- * Accessor for nodes in get and refresh computed state.
- */
 export interface IComputedStateAccessor<T> {
 	getOwnState(item: T): TestResultState | undefined;
 	getCurrentComputedState(item: T): TestResultState;
@@ -26,11 +23,6 @@ export interface IComputedStateAndDurationAccessor<T> extends IComputedStateAcce
 
 const isDurationAccessor = <T>(accessor: IComputedStateAccessor<T>): accessor is IComputedStateAndDurationAccessor<T> => 'getOwnDuration' in accessor;
 
-/**
- * Gets the computed state for the node.
- * @param force whether to refresh the computed state for this node, even
- * if it was previously set.
- */
 
 const getComputedState = <T extends object>(accessor: IComputedStateAccessor<T>, node: T, force = false) => {
 	let computed = accessor.getCurrentComputedState(node);
@@ -45,7 +37,6 @@ const getComputedState = <T extends object>(accessor: IComputedStateAccessor<T>,
 			childrenCount++;
 			stateMap[childComputed]++;
 
-			// If all children are skipped, make the current state skipped too if unset (#131537)
 			computed = childComputed === TestResultState.Skipped && computed === TestResultState.Unset
 				? TestResultState.Skipped : maxPriority(computed, childComputed);
 		}
@@ -84,16 +75,8 @@ const getComputedDuration = <T>(accessor: IComputedStateAndDurationAccessor<T>, 
 
 const LARGE_NODE_THRESHOLD = 64;
 
-/**
- * Map of how many nodes have in each state. This is used to optimize state
- * computation in large nodes with children above the `LARGE_NODE_THRESHOLD`.
- */
 const largeNodeChildrenStates = new WeakMap<object, { [K in TestResultState]: number }>();
 
-/**
- * Refreshes the computed state for the node and its parents. Any changes
- * elements cause `addUpdated` to be called.
- */
 export const refreshComputedState = <T extends object>(
 	accessor: IComputedStateAccessor<T>,
 	node: T,
@@ -122,7 +105,6 @@ export const refreshComputedState = <T extends object>(
 
 			const prev = accessor.getCurrentComputedState(parent);
 			if (newPriority > oldPriority) {
-				// Update all parents to ensure they're at least this priority.
 				if (prev !== undefined && statePriority[prev] >= newPriority) {
 					break;
 				}
@@ -131,11 +113,9 @@ export const refreshComputedState = <T extends object>(
 					break;
 				}
 
-				// moveToState remains the same, the new higher priority node state
 				accessor.setComputedState(parent, newState);
 				toUpdate.add(parent);
-			} else /* newProirity < oldPriority */ {
-				// Update all parts whose statese might have been based on this one
+			} else {
 				if (prev === undefined || statePriority[prev] > oldPriority) {
 					break;
 				}

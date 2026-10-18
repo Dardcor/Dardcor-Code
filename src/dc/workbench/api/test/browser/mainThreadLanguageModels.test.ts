@@ -51,17 +51,14 @@ suite('MainThreadLanguageModels', function () {
 
 		assert.strictEqual(onChatModelsChangeCount, 0);
 
-		// New model identifier appears -> bridged
 		modelIds = ['vendor-a/model-1'];
 		onDidChangeLanguageModels.fire('vendor-a');
 		assert.strictEqual(onChatModelsChangeCount, 1);
 
-		// Another new identifier appears -> bridged
 		modelIds = ['vendor-a/model-1', 'vendor-b/model-1'];
 		onDidChangeLanguageModels.fire('vendor-b');
 		assert.strictEqual(onChatModelsChangeCount, 2);
 
-		// Identifier removed -> bridged
 		modelIds = ['vendor-a/model-1'];
 		onDidChangeLanguageModels.fire('vendor-b');
 		assert.strictEqual(onChatModelsChangeCount, 3);
@@ -71,8 +68,7 @@ suite('MainThreadLanguageModels', function () {
 		const store = disposables.add(new DisposableStore());
 		const onDidChangeLanguageModels = store.add(new Emitter<string>());
 		let onChatModelsChangeCount = 0;
-		// Same identifier set throughout: only metadata (e.g. baseCount) changes between fires.
-		const modelIds = ['copilot/copilot-utility'];
+		const modelIds = ['copilot/dardcor-utility'];
 		const proxy: Partial<ExtHostLanguageModelsShape> = {
 			$onChatModelsChange: () => { onChatModelsChangeCount++; },
 		};
@@ -204,10 +200,9 @@ suite('MainThreadLanguageModels', function () {
 			override getLanguageModelIds(): string[] { return []; }
 			override sendChatRequest(_modelId: string, _from: ExtensionIdentifier, _messages: IChatMessage[], _options: unknown, token: CancellationToken) {
 				capturedToken = token;
-				// Return a response that never resolves so the CTS stays alive.
 				return Promise.resolve({
 					stream: (async function* () { })(),
-					result: new Promise<void>(() => { }) // never resolves
+					result: new Promise<void>(() => { })
 				});
 			}
 		};
@@ -262,7 +257,6 @@ suite('MainThreadLanguageModels', function () {
 			new class extends mock<ILanguageModelIgnoredFilesService>() { },
 		));
 
-		// Should not throw
 		mainThread.$cancelLanguageModelChatRequest(999999);
 	});
 

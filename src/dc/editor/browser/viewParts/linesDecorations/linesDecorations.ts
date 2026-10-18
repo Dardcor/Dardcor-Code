@@ -36,7 +36,6 @@ export class LinesDecorationsOverlay extends DedupOverlay {
 		super.dispose();
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -67,7 +66,6 @@ export class LinesDecorationsOverlay extends DedupOverlay {
 		return true;
 	}
 
-	// --- end event handlers
 
 	protected _getDecorations(ctx: RenderingContext): DecorationToRender[] {
 		const decorations = ctx.getDecorationsInViewport();
@@ -105,7 +103,7 @@ export class LinesDecorationsOverlay extends DedupOverlay {
 			for (const decoration of decorations) {
 				let addition = '<div class="cldr ' + decoration.className;
 				if (decoration.tooltip !== null) {
-					addition += '" title="' + decoration.tooltip; // The tooltip is already escaped.
+					addition += '" title="' + decoration.tooltip;
 				}
 				addition += common;
 				lineOutput += addition;

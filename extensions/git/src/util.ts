@@ -164,7 +164,6 @@ export async function mkdirp(path: string, mode?: number): Promise<boolean> {
 		}
 	};
 
-	// is root?
 	if (path === dirname(path)) {
 		return true;
 	}
@@ -241,7 +240,7 @@ export function readBytes(stream: Readable, bytes: number): Promise<Buffer> {
 			bytesRead += bytesToRead;
 
 			if (bytesRead === bytes) {
-				stream.destroy(); // Will trigger the close event eventually
+				stream.destroy();
 			}
 		});
 
@@ -306,19 +305,14 @@ export function subject(value: string): string {
 }
 
 function normalizePath(path: string): string {
-	// Windows & Mac are currently being handled
-	// as case insensitive file systems in VS Code.
 	if (isWindows || isMacintosh) {
 		path = path.toLowerCase();
 	}
 
-	// Trailing separator
 	if (/[/\\]$/.test(path)) {
-		// Remove trailing separator
 		path = path.substring(0, path.length - 1);
 	}
 
-	// Normalize the path
 	return normalize(path);
 }
 
@@ -327,11 +321,9 @@ export function isDescendant(parent: string, descendant: string): boolean {
 		return true;
 	}
 
-	// Normalize the paths
 	parent = normalizePath(parent);
 	descendant = normalizePath(descendant);
 
-	// Ensure parent ends with separator
 	if (parent.charAt(parent.length - 1) !== sep) {
 		parent += sep;
 	}
@@ -343,21 +335,11 @@ export function pathEquals(a: string, b: string): boolean {
 	return normalizePath(a) === normalizePath(b);
 }
 
-/**
- * Given the `repository.root` compute the relative path while trying to preserve
- * the casing of the resource URI. The `repository.root` segment of the path can
- * have a casing mismatch if the folder/workspace is being opened with incorrect
- * casing which is why we attempt to use substring() before relative().
- */
 export function relativePath(from: string, to: string): string {
 	return relativePathWithNoFallback(from, to) ?? relative(from, to);
 }
 
 export function relativePathWithNoFallback(from: string, to: string): string | undefined {
-	// There are cases in which the `from` path may contain a trailing separator at
-	// the end (ex: "C:\", "\\server\folder\" (Windows) or "/" (Linux/macOS)) which
-	// is by design as documented in https://github.com/nodejs/node/issues/1765. If
-	// the trailing separator is missing, we add it.
 	if (from.charAt(from.length - 1) !== sep) {
 		from += sep;
 	}
@@ -391,23 +373,14 @@ export function* splitInChunks(array: string[], maxChunkLength: number): Iterabl
 	}
 }
 
-/**
- * @returns whether the provided parameter is defined.
- */
 export function isDefined<T>(arg: T | null | undefined): arg is T {
 	return !isUndefinedOrNull(arg);
 }
 
-/**
- * @returns whether the provided parameter is undefined or null.
- */
 export function isUndefinedOrNull(obj: unknown): obj is undefined | null {
 	return (isUndefined(obj) || obj === null);
 }
 
-/**
- * @returns whether the provided parameter is undefined.
- */
 export function isUndefined(obj: unknown): obj is undefined {
 	return (typeof obj === 'undefined');
 }
@@ -579,19 +552,16 @@ export function deltaHistoryItemRefs(before: SourceControlHistoryItemRef[], afte
 
 		if (result === 0) {
 			if (beforeElement.revision !== afterElement.revision) {
-				// modified
 				modified.push(afterElement);
 			}
 
 			beforeIdx += 1;
 			afterIdx += 1;
 		} else if (result < 0) {
-			// beforeElement is smaller -> before element removed
 			removed.push(beforeElement);
 
 			beforeIdx += 1;
 		} else if (result > 0) {
-			// beforeElement is greater -> after element added
 			added.push(afterElement);
 
 			afterIdx += 1;
@@ -608,15 +578,6 @@ const week = day * 7;
 const month = day * 30;
 const year = day * 365;
 
-/**
- * Create a l10n.td difference of the time between now and the specified date.
- * @param date The date to generate the difference from.
- * @param appendAgoLabel Whether to append the " ago" to the end.
- * @param useFullTimeWords Whether to use full words (eg. seconds) instead of
- * shortened (eg. secs).
- * @param disallowNow Whether to disallow the string "now" when the difference
- * is less than 30 seconds.
- */
 export function fromNow(date: number | Date, appendAgoLabel?: boolean, useFullTimeWords?: boolean, disallowNow?: boolean): string {
 	if (typeof date !== 'number') {
 		date = date.getTime();
@@ -820,34 +781,25 @@ export function toDiagnosticSeverity(value: DiagnosticSeverityConfig): Diagnosti
 }
 
 export function extractFilePathFromArgs(argv: string[], startIndex: number): string {
-	// Argument doesn't start with a quote
 	const firstArg = argv[startIndex];
 	if (!firstArg.match(/^["']/)) {
 		return firstArg.replace(/^["']+|["':]+$/g, '');
 	}
 
-	// If it starts with a quote, we need to find the matching closing
-	// quote which might be in a later argument if the path contains
-	// spaces
 	const quote = firstArg[0];
 
-	// If the first argument ends with the same quote, it's complete
 	if (firstArg.endsWith(quote) && firstArg.length > 1) {
 		return firstArg.slice(1, -1);
 	}
 
-	// Concatenate arguments until we find the closing quote
 	let path = firstArg;
 	for (let i = startIndex + 1; i < argv.length; i++) {
 		path = `${path} ${argv[i]}`;
 		if (argv[i].endsWith(quote)) {
-			// Found the matching quote
 			return path.slice(1, -1);
 		}
 	}
 
-	// If no closing quote was found, remove
-	// leading quote and return the path as-is
 	return path.slice(1);
 }
 

@@ -20,7 +20,6 @@ import { CodesearchModeInstructions, DefaultAgentPromptProps, detectToolCapabili
 import { FileLinkificationInstructions, FileLinkificationInstructionsOptimized } from './fileLinkificationInstructions';
 import { IAgentPrompt, PromptRegistry, ReminderInstructionsConstructor, SystemPrompt } from './promptRegistry';
 
-/** Instructions for using the tool search tool to load deferred tools before calling them. */
 class ToolSearchToolPrompt extends PromptElement<ToolSearchToolPromptProps> {
 	constructor(
 		props: PromptElementProps<ToolSearchToolPromptProps>,
@@ -288,7 +287,6 @@ class Claude45DefaultPrompt extends PromptElement<DefaultAgentPromptProps> {
 	}
 }
 
-/** Base class for optimized Claude 4.6 prompt configurations. */
 class Claude46OptimizedBasePrompt extends PromptElement<DefaultAgentPromptProps> {
 	constructor(
 		props: PromptElementProps<DefaultAgentPromptProps>,
@@ -306,7 +304,6 @@ class Claude46OptimizedBasePrompt extends PromptElement<DefaultAgentPromptProps>
 		return undefined;
 	}
 
-	/** Rendered after all other sections. */
 	protected renderAppendedInstructions(): PromptPiece | undefined {
 		return undefined;
 	}
@@ -406,7 +403,6 @@ class Claude46OptimizedBasePrompt extends PromptElement<DefaultAgentPromptProps>
 	}
 }
 
-/** Optimized prompt for Sonnet 4.6. */
 class Claude46SonnetPrompt extends Claude46OptimizedBasePrompt {
 	protected override renderExplorationGuidance(_tools: ReturnType<typeof detectToolCapabilities>) {
 		return <>
@@ -422,7 +418,6 @@ class Claude46SonnetPrompt extends Claude46OptimizedBasePrompt {
 	}
 }
 
-/** Opus-specific optimized prompt for Claude 4.6. */
 class Claude46OpusPrompt extends Claude46OptimizedBasePrompt {
 	protected override renderExplorationGuidance(_tools: ReturnType<typeof detectToolCapabilities>) {
 		return <>
@@ -438,7 +433,6 @@ class Claude46OpusPrompt extends Claude46OptimizedBasePrompt {
 	}
 }
 
-/** Minimal prompt for Claude Opus 5, keeping only what the model can't infer from context. */
 class ClaudeOpus5Prompt extends PromptElement<DefaultAgentPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const tools = detectToolCapabilities(this.props.availableTools);
@@ -492,7 +486,6 @@ class ClaudeOpus5Prompt extends PromptElement<DefaultAgentPromptProps> {
 	}
 }
 
-/** Condensed reminder instructions for optimized Claude 4.6 prompt configurations. */
 class AnthropicReminderInstructionsOptimized extends PromptElement<ReminderInstructionsProps> {
 	constructor(
 		props: PromptElementProps<ReminderInstructionsProps>,
@@ -565,7 +558,6 @@ class AnthropicPromptResolver implements IAgentPrompt {
 		if (this.isOpus5(endpoint) && this.configurationService.getExperimentBasedConfig(ConfigKey.ClaudeOpus5PromptEnabled, this.experimentationService)) {
 			return ClaudeOpus5Prompt;
 		}
-		// Default for every other current and future model, including Opus 4.7 and 4.8.
 		return Claude46OpusPrompt;
 	}
 
@@ -591,7 +583,7 @@ class AnthropicReminderInstructions extends PromptElement<ReminderInstructionsPr
 		const contextEditingEnabled = isAnthropicContextEditingEnabled(this.props.endpoint, this.configurationService, this.experimentationService);
 
 		return <>
-			{getEditingReminder(this.props.hasEditFileTool, this.props.hasReplaceStringTool, false /* useStrongReplaceStringHint */, this.props.hasMultiReplaceStringTool)}
+			{getEditingReminder(this.props.hasEditFileTool, this.props.hasReplaceStringTool, false , this.props.hasMultiReplaceStringTool)}
 			Do NOT create a new markdown file to document each change or summarize your work unless specifically requested by the user.<br />
 			{contextEditingEnabled && this.props.hasMemoryTool && <>
 				<br />

@@ -104,7 +104,6 @@ suite('FindModel', () => {
 		const findState = disposables.add(new FindReplaceState());
 		const findModel = disposables.add(new FindModelBoundToEditorModel(editor, findState));
 
-		// simulate typing the search string
 		findState.change({ searchString: 'H' }, true);
 		assertFindState(
 			editor,
@@ -121,7 +120,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate typing the search string
 		findState.change({ searchString: 'He' }, true);
 		assertFindState(
 			editor,
@@ -137,7 +135,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate typing the search string
 		findState.change({ searchString: 'Hello' }, true);
 		assertFindState(
 			editor,
@@ -152,7 +149,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate toggling on `matchCase`
 		findState.change({ matchCase: true }, true);
 		assertFindState(
 			editor,
@@ -164,7 +160,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate typing the search string
 		findState.change({ searchString: 'hello' }, true);
 		assertFindState(
 			editor,
@@ -177,7 +172,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate toggling on `wholeWord`
 		findState.change({ wholeWord: true }, true);
 		assertFindState(
 			editor,
@@ -189,7 +183,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate toggling off `matchCase`
 		findState.change({ matchCase: false }, true);
 		assertFindState(
 			editor,
@@ -203,7 +196,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate toggling off `wholeWord`
 		findState.change({ wholeWord: false }, true);
 		assertFindState(
 			editor,
@@ -218,7 +210,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate adding a search scope
 		findState.change({ searchScope: [new Range(8, 1, 10, 1)] }, true);
 		assertFindState(
 			editor,
@@ -230,7 +221,6 @@ suite('FindModel', () => {
 			]
 		);
 
-		// simulate removing the search scope
 		findState.change({ searchScope: null }, true);
 		assertFindState(
 			editor,
@@ -565,12 +555,7 @@ suite('FindModel', () => {
 			null,
 			[
 				[6, 14, 6, 19],
-				// `matchCase: false` would
-				// find this match as well:
-				// [6, 27, 6, 32],
 				[7, 14, 7, 19],
-				// `wholeWord: true` would
-				// exclude this match:
 				[9, 14, 9, 19],
 			]
 		);
@@ -2230,7 +2215,6 @@ suite('FindModel', () => {
 
 		assert.strictEqual(findState.matchesCount, 5);
 
-		// Test next operations
 		assert.strictEqual(findState.matchesPosition, 0);
 		assert.strictEqual(findState.canNavigateForward(), true);
 		assert.strictEqual(findState.canNavigateBack(), true);
@@ -2270,7 +2254,6 @@ suite('FindModel', () => {
 		assert.strictEqual(findState.canNavigateForward(), false);
 		assert.strictEqual(findState.canNavigateBack(), true);
 
-		// Test previous operations
 		findModel.moveToPrevMatch();
 		assert.strictEqual(findState.matchesPosition, 4);
 		assert.strictEqual(findState.canNavigateForward(), true);
@@ -2310,7 +2293,6 @@ suite('FindModel', () => {
 
 		assert.strictEqual(findState.matchesCount, 5);
 
-		// Test next operations
 		assert.strictEqual(findState.matchesPosition, 0);
 		assert.strictEqual(findState.canNavigateForward(), true);
 		assert.strictEqual(findState.canNavigateBack(), true);
@@ -2350,7 +2332,6 @@ suite('FindModel', () => {
 		assert.strictEqual(findState.canNavigateForward(), true);
 		assert.strictEqual(findState.canNavigateBack(), true);
 
-		// Test previous operations
 		findModel.moveToPrevMatch();
 		assert.strictEqual(findState.matchesPosition, 1);
 		assert.strictEqual(findState.canNavigateForward(), true);
@@ -2384,12 +2365,10 @@ suite('FindModel', () => {
 	});
 
 	test('issue #288515: Wrong current index in find widget if matches > 1000', () => {
-		// Create 1001 lines of 'hello'
 		const textArr = Array(1001).fill('hello');
 		withTestCodeEditor(textArr, {}, (_editor) => {
 			const editor = _editor as IActiveCodeEditor;
 
-			// Place cursor at line 900, selecting 'hello'
 			editor.setSelection(new Selection(900, 1, 900, 6));
 
 			const findState = disposables.add(new FindReplaceState());
@@ -2397,7 +2376,6 @@ suite('FindModel', () => {
 			disposables.add(new FindModelBoundToEditorModel(editor, findState));
 
 			assert.strictEqual(findState.matchesCount, 1001);
-			// With cursor selecting 'hello' at line 900, matchesPosition should be 900
 			assert.strictEqual(findState.matchesPosition, 900);
 		});
 	});

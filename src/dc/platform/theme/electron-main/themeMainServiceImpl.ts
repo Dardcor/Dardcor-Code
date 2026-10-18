@@ -18,10 +18,8 @@ import { getAllWindowsExcludingOffscreen } from '../../windows/electron-main/win
 import { ILogService, LogLevel } from '../../log/common/log.js';
 import { IThemeMainService } from './themeMainService.js';
 
-// These default colors match our default themes
-// editor background color ("Dark Modern", etc...)
 const DEFAULT_BG_LIGHT = '#FFFFFF';
-const DEFAULT_BG_DARK = '#000000';
+const DEFAULT_BG_DARK = '#1E1E1E';
 const DEFAULT_BG_HC_BLACK = '#000000';
 const DEFAULT_BG_HC_LIGHT = '#FFFFFF';
 
@@ -39,7 +37,6 @@ class Setting<T> {
 	}
 }
 
-// in the main process, defaults are not known to the configuration service, so we need to define them here
 namespace Setting {
 	export const DETECT_COLOR_SCHEME = new Setting<boolean>('window.autoDetectColorScheme', false);
 	export const DETECT_HC = new Setting<boolean>('window.autoDetectHighContrast', true);
@@ -81,7 +78,6 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 	) {
 		super();
 
-		// System Theme
 		if (!isLinux) {
 			this._register(this.configurationService.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration(Setting.SYSTEM_COLOR_THEME.key) || e.affectsConfiguration(Setting.DETECT_COLOR_SCHEME.key)) {
@@ -93,7 +89,6 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 		this.updateSystemColorTheme();
 		this.logThemeSettings();
 
-		// Color Scheme changes
 		this._register(Event.fromNodeEventEmitter(electron.nativeTheme, 'updated')(() => {
 			this.logThemeSettings();
 			this._onDidChangeColorScheme.fire(this.getColorScheme());
@@ -113,7 +108,7 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 
 	private updateSystemColorTheme(): void {
 		if (isLinux || this.isAutoDetectColorScheme()) {
-			electron.nativeTheme.themeSource = 'system'; // only with `system` we can detect the system color scheme
+			electron.nativeTheme.themeSource = 'system';
 		} else {
 			switch (Setting.SYSTEM_COLOR_THEME.getValue(this.configurationService)) {
 				case 'dark':
@@ -138,23 +133,18 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 
 	getColorScheme(): IColorScheme {
 
-		// high contrast is reflected by the shouldUseInvertedColorScheme property
 		if (isWindows) {
 			if (electron.nativeTheme.shouldUseHighContrastColors) {
-				// shouldUseInvertedColorScheme is dark, !shouldUseInvertedColorScheme is light
 				return { dark: electron.nativeTheme.shouldUseInvertedColorScheme, highContrast: true };
 			}
 		}
 
-		// high contrast is set if one of shouldUseInvertedColorScheme or shouldUseHighContrastColors is set,
-		// reflecting the 'Invert colours' and `Increase contrast` settings in MacOS
 		else if (isMacintosh) {
 			if (electron.nativeTheme.shouldUseInvertedColorScheme || electron.nativeTheme.shouldUseHighContrastColors) {
 				return { dark: electron.nativeTheme.shouldUseDarkColors, highContrast: true };
 			}
 		}
 
-		// ubuntu gnome seems to have 3 states, light dark and high contrast
 		else if (isLinux) {
 			if (electron.nativeTheme.shouldUseHighContrastColors) {
 				return { dark: true, highContrast: true };
@@ -191,7 +181,6 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 		const preferred = this.getPreferredBaseTheme();
 		const stored = this.getStoredBaseTheme();
 
-		// If the stored theme has the same base as the preferred, we can return the stored background
 		if (preferred === undefined || preferred === stored) {
 			const storedBackground = this.stateService.getItem<string | null>(THEME_BG_STORAGE_KEY, null);
 			if (storedBackground) {
@@ -199,7 +188,6 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 			}
 		}
 
-		// Otherwise we return the default background for the preferred base theme. If there's no preferred, use the stored one.
 		switch (preferred ?? stored) {
 			case ThemeTypeSelector.VS: return DEFAULT_BG_LIGHT;
 			case ThemeTypeSelector.HC_BLACK: return DEFAULT_BG_HC_BLACK;
@@ -220,10 +208,8 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 
 	saveWindowSplash(windowId: number | undefined, workspace: IWorkspaceIdentifier | ISingleFolderWorkspaceIdentifier | undefined, splash: IPartsSplash): void {
 
-		// Update override as needed
 		const splashOverride = this.updateWindowSplashOverride(workspace, splash);
 
-		// Update in storage
 		this.stateService.setItems(coalesce([
 			{ key: THEME_STORAGE_KEY, data: splash.baseTheme },
 			{ key: THEME_BG_STORAGE_KEY, data: splash.colorInfo.background },
@@ -231,12 +217,10 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 			splashOverride ? { key: THEME_WINDOW_SPLASH_OVERRIDE_KEY, data: splashOverride } : undefined
 		]));
 
-		// Update in opened windows
 		if (typeof windowId === 'number') {
 			this.updateBackgroundColor(windowId, splash);
 		}
 
-		// Update system theme
 		this.updateSystemColorTheme();
 	}
 
@@ -244,7 +228,7 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 		let splashOverride: IPartsSplashOverride | undefined = undefined;
 		let changed = false;
 		if (workspace) {
-			splashOverride = { ...this.getWindowSplashOverride() }; // make a copy for modifications
+			splashOverride = { ...this.getWindowSplashOverride() };
 
 			changed = this.doUpdateWindowSplashOverride(workspace, splash, splashOverride, 'sideBar');
 			changed = this.doUpdateWindowSplashOverride(workspace, splash, splashOverride, 'auxiliaryBar') || changed;
@@ -257,7 +241,6 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 		const currentWidth = part === 'sideBar' ? splash.layoutInfo?.sideBarWidth : splash.layoutInfo?.auxiliaryBarWidth;
 		const overrideWidth = part === 'sideBar' ? splashOverride.layoutInfo.sideBarWidth : splashOverride.layoutInfo.auxiliaryBarWidth;
 
-		// No layout info: remove override
 		let changed = false;
 		if (typeof currentWidth !== 'number') {
 			if (splashOverride.layoutInfo.workspaces[workspace.id]) {
@@ -281,7 +264,6 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 			changed = true;
 		}
 
-		// Part has width: update width & visibility override
 		if (currentWidth > 0) {
 			if (overrideWidth !== currentWidth) {
 				splashOverride.layoutInfo[part === 'sideBar' ? 'sideBarWidth' : 'auxiliaryBarWidth'] = currentWidth;
@@ -304,7 +286,6 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 			}
 		}
 
-		// Part is hidden: update visibility override
 		else {
 			switch (part) {
 				case 'sideBar':
@@ -347,12 +328,11 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 	private doGetWindowSplash(workspace: IWorkspaceIdentifier | ISingleFolderWorkspaceIdentifier | undefined): IPartsSplash | undefined {
 		const partSplash = this.stateService.getItem<IPartsSplash>(THEME_WINDOW_SPLASH_KEY);
 		if (!partSplash?.layoutInfo) {
-			return partSplash; // return early: overrides currently only apply to layout info
+			return partSplash;
 		}
 
 		const override = this.getWindowSplashOverride();
 
-		// Figure out side bar width based on workspace and overrides
 		let sideBarWidth: number;
 		if (workspace) {
 			if (override.layoutInfo.workspaces[workspace.id]?.sideBarVisible === false) {
@@ -364,7 +344,6 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 			sideBarWidth = 0;
 		}
 
-		// Figure out auxiliary bar width based on workspace, configuration and overrides
 		const auxiliaryBarDefaultVisibility = Setting.AUXILIARYBAR_DEFAULT_VISIBILITY.getValue(this.configurationService);
 		let auxiliaryBarWidth: number;
 		if (workspace) {
@@ -377,13 +356,13 @@ export class ThemeMainService extends Disposable implements IThemeMainService {
 				if (auxiliaryBarDefaultVisibility === 'visible' || auxiliaryBarDefaultVisibility === 'visibleInWorkspace') {
 					auxiliaryBarWidth = override.layoutInfo.auxiliaryBarWidth || partSplash.layoutInfo.auxiliaryBarWidth || ThemeMainService.DEFAULT_BAR_WIDTH;
 				} else if (auxiliaryBarDefaultVisibility === 'maximized' || auxiliaryBarDefaultVisibility === 'maximizedInWorkspace') {
-					auxiliaryBarWidth = Number.MAX_SAFE_INTEGER; // marker for a maximised auxiliary bar
+					auxiliaryBarWidth = Number.MAX_SAFE_INTEGER;
 				} else {
 					auxiliaryBarWidth = 0;
 				}
 			}
 		} else {
-			auxiliaryBarWidth = 0; // technically not true if configured 'visible', but we never store splash per empty window, so we decide on a default here
+			auxiliaryBarWidth = 0;
 		}
 
 		const partBounds = sideBarWidth === partSplash.layoutInfo.sideBarWidth && auxiliaryBarWidth === partSplash.layoutInfo.auxiliaryBarWidth

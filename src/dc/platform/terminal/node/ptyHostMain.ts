@@ -26,7 +26,6 @@ import { DisposableStore } from '../../../base/common/lifecycle.js';
 startPtyHost();
 
 async function startPtyHost() {
-	// Parse environment variables
 	const startupDelay = parseInt(process.env.VSCODE_STARTUP_DELAY ?? '0');
 	const simulatedLatency = parseInt(process.env.VSCODE_LATENCY ?? '0');
 	const reconnectConstants: IReconnectConstants = {
@@ -35,20 +34,16 @@ async function startPtyHost() {
 		scrollback: parseInt(process.env.VSCODE_RECONNECT_SCROLLBACK || '100')
 	};
 
-	// Sanitize environment
 	delete process.env.VSCODE_RECONNECT_GRACE_TIME;
 	delete process.env.VSCODE_RECONNECT_SHORT_GRACE_TIME;
 	delete process.env.VSCODE_RECONNECT_SCROLLBACK;
 	delete process.env.VSCODE_LATENCY;
 	delete process.env.VSCODE_STARTUP_DELAY;
 
-	// Delay startup if needed, this must occur before RPC is setup to avoid the channel from timing
-	// out.
 	if (startupDelay) {
 		await timeout(startupDelay);
 	}
 
-	// Setup RPC
 	const _isUtilityProcess = isUtilityProcess(process);
 	let server: ChildProcessServer<string> | UtilityProcessServer;
 	if (_isUtilityProcess) {
@@ -59,7 +54,6 @@ async function startPtyHost() {
 
 	const disposables = new DisposableStore();
 
-	// Services
 	const productService: IProductService = { _serviceBrand: undefined, ...product };
 	const environmentService = new NativeEnvironmentService(parseArgs(process.argv, OPTIONS), productService);
 	const loggerService = new LoggerService(getLogLevel(environmentService), environmentService.logsHome);
@@ -70,7 +64,6 @@ async function startPtyHost() {
 		disposables.add(registerDevConsoleLogForwarder(logService));
 	}
 
-	// Log developer config
 	if (startupDelay) {
 		logService.warn(`Pty Host startup is delayed ${startupDelay}ms`);
 	}
@@ -78,21 +71,17 @@ async function startPtyHost() {
 		logService.warn(`Pty host is simulating ${simulatedLatency}ms latency`);
 	}
 
-	// Heartbeat responsiveness tracking
 	const heartbeatService = new HeartbeatService();
 	server.registerChannel(TerminalIpcChannels.Heartbeat, ProxyChannel.fromService(heartbeatService, disposables));
 
-	// Init pty service
 	const ptyService = new PtyService(logService, productService, reconnectConstants, simulatedLatency);
 	const ptyServiceChannel = ProxyChannel.fromService(ptyService, disposables);
 	server.registerChannel(TerminalIpcChannels.PtyHost, ptyServiceChannel);
 
-	// Register a channel for direct communication via Message Port
 	if (_isUtilityProcess) {
 		server.registerChannel(TerminalIpcChannels.PtyHostWindow, ptyServiceChannel);
 	}
 
-	// Clean up
 	process.once('exit', () => {
 		logService.trace('Pty host exiting');
 		logService.dispose();

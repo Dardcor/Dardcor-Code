@@ -73,7 +73,7 @@ export class TestRun {
 
 	constructor(
 		public readonly runNumber: number,
-		pass: boolean, // this is mutable because it may be set later/lazily
+		pass: boolean,
 		public readonly explicitScore: number | undefined,
 		error: string | undefined,
 		public readonly duration: number,

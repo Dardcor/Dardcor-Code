@@ -57,7 +57,6 @@ const runner = mocha.run(failures => {
 		console.log(`Mocha test run finished: ${failures} failure(s)`);
 	}
 	process.exitCode = failures > 0 ? 1 : 0;
-	// Force exit to prevent hanging on open handles (background processes, timers, etc.)
 	setTimeout(() => {
 		if (options.verbose) {
 			console.log(`Exiting with code ${process.exitCode}`);
@@ -66,7 +65,6 @@ const runner = mocha.run(failures => {
 	}, 1000);
 });
 
-// Attach JUnit reporter for CI test result publishing (runs alongside the default spec reporter)
 if (testResults) {
 	const JUnitReporter = (await import('mocha-junit-reporter' as string)).default;
 	new JUnitReporter(runner, { reporterOptions: { mochaFile: testResults, outputs: true } });

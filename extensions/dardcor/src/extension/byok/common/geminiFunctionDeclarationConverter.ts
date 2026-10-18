@@ -13,13 +13,11 @@ export type ToolJsonSchema = {
 	required?: string[];
 	enum?: string[];
 
-	// Add support for JSON Schema composition keywords
 	anyOf?: ToolJsonSchema[];
 	oneOf?: ToolJsonSchema[];
 	allOf?: ToolJsonSchema[];
 };
 
-// Map JSON schema types to Gemini Type enum
 function mapType(jsonType: string): Type {
 	switch (jsonType) {
 		case 'object':
@@ -41,9 +39,7 @@ function mapType(jsonType: string): Type {
 	}
 }
 
-// Convert JSON schema → Gemini function declaration
 export function toGeminiFunction(name: string, description: string, schema: ToolJsonSchema): FunctionDeclaration {
-	// If schema root is array, we use its items for function parameters
 	const target = schema.type === 'array' && schema.items ? schema.items : schema;
 
 	const parameters: Schema = {
@@ -59,8 +55,6 @@ export function toGeminiFunction(name: string, description: string, schema: Tool
 	};
 }
 
-// Flatten a schema's unions and nullable type arrays into concrete, non-null
-// alternatives, tracking whether `null` appeared anywhere along the way.
 function collectAlternatives(schema: ToolJsonSchema): { alternatives: ToolJsonSchema[]; nullable: boolean } {
 	const union = schema.anyOf ?? schema.oneOf;
 	if (union) {
@@ -74,7 +68,6 @@ function collectAlternatives(schema: ToolJsonSchema): { alternatives: ToolJsonSc
 		return { alternatives, nullable };
 	}
 
-	// Gemini has no allOf, so the intersection is approximated by the first subschema.
 	if (schema.allOf) {
 		return collectAlternatives(schema.allOf[0]);
 	}
@@ -95,7 +88,6 @@ function collectAlternatives(schema: ToolJsonSchema): { alternatives: ToolJsonSc
 	return { alternatives: [schema], nullable: false };
 }
 
-// Transform a single alternative whose type is already flattened to one value.
 function transformConcrete(schema: ToolJsonSchema): Schema {
 	const type = typeof schema.type === 'string' ? schema.type : 'object';
 	const transformed: Schema = { type: mapType(type) };

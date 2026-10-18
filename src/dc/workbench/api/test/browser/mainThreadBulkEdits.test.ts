@@ -30,10 +30,6 @@ suite('MainThreadBulkEdits', function () {
 			}
 
 			override hasCapability(resource: URI, capability: FileSystemProviderCapabilities): boolean {
-				// if (resource.scheme === 'case' && capability === FileSystemProviderCapabilities.PathCaseSensitive) {
-				// 	return false;
-				// }
-				// NO capabilities, esp not being case-sensitive
 				return false;
 			}
 		};
@@ -51,7 +47,7 @@ suite('MainThreadBulkEdits', function () {
 		const out = reviveWorkspaceEditDto({ edits }, uriIdentityService);
 
 		assert.strictEqual((<IWorkspaceTextEdit>out.edits[0]).resource.path, '/hello/WORLD/foo.txt');
-		assert.strictEqual((<IWorkspaceTextEdit>out.edits[1]).resource.path, '/hello/WORLD/foo.txt'); // the FIRST occurrence defined the shape!
+		assert.strictEqual((<IWorkspaceTextEdit>out.edits[1]).resource.path, '/hello/WORLD/foo.txt');
 		assert.strictEqual((<IWorkspaceTextEdit>out.edits[2]).resource.path, '/other/path.txt');
 		assert.strictEqual((<IWorkspaceTextEdit>out.edits[3]).resource.path, '/other/path.txt');
 

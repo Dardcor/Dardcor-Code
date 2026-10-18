@@ -70,8 +70,6 @@ function createActionListWidget(disposables: ReturnType<typeof ensureNoDisposabl
 		document.body.appendChild(widget.filterContainer);
 		disposables.add({ dispose: () => widget.filterContainer?.remove() });
 	}
-	// The header banner is a standalone element the caller attaches (like the
-	// filter container), so the test appends it to exercise header behaviors.
 	const headerContainer = widget.headerContainer;
 	if (headerContainer) {
 		document.body.appendChild(headerContainer);
@@ -218,7 +216,6 @@ suite('ActionListWidget', () => {
 		typeFilter(widget, 'deepseek');
 		widget.filterInput.value = 'DeepSeek';
 		widget.filterInput.dispatchEvent(new Event('compositionend'));
-		// Chromium fires a trailing `input` for the committed text, which must not re-filter.
 		typeFilter(widget, 'DeepSeek');
 
 		assert.deepStrictEqual(filters, ['DeepSeek']);
@@ -234,7 +231,6 @@ suite('ActionListWidget', () => {
 		assert.ok(widget.filterInput);
 		widget.filterInput.dispatchEvent(new Event('compositionstart'));
 
-		// Resolving now must not splice/re-layout the list underneath the IME candidate window.
 		pending.complete([action('stale-result')]);
 		await timeout(0);
 		assert.ok(!widget.domNode.textContent?.includes('stale-result'));
@@ -373,7 +369,6 @@ suite('ActionListWidget', () => {
 		});
 		const panel = widget.domNode.querySelector<HTMLElement>('.action-list-submenu-panel')!;
 
-		// The banner is a sibling of the list, so reaching it drags the pointer across a row.
 		widget.domNode.querySelector<HTMLElement>('.monaco-list-row')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 		widget.domNode.dispatchEvent(new MouseEvent('mouseleave'));
 		await timeout(1000);
@@ -388,7 +383,6 @@ suite('ActionListWidget', () => {
 		});
 		const panel = widget.domNode.querySelector<HTMLElement>('.action-list-submenu-panel')!;
 
-		// Dwelling on the row long enough for the panel to open, then continuing to the banner.
 		widget.domNode.querySelector<HTMLElement>('.monaco-list-row')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 		await timeout(600);
 		const openedWhileOnRow = panel.textContent;

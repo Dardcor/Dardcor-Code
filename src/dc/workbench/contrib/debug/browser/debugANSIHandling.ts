@@ -13,10 +13,6 @@ import { PANEL_BACKGROUND, SIDE_BAR_BACKGROUND } from '../../../common/theme.js'
 import { ansiColorIdentifiers } from '../../terminal/common/terminalColorRegistry.js';
 import { DebugLinkHoverBehaviorTypeData, ILinkDetector } from './linkDetector.js';
 
-/**
- * @param text The content to stylize.
- * @returns An {@link HTMLSpanElement} that contains the potentially stylized text.
- */
 export function handleANSIOutput(text: string, linkDetector: ILinkDetector, workspaceFolder: IWorkspaceFolder | undefined, highlights: IHighlight[] | undefined, hoverBehavior: DebugLinkHoverBehaviorTypeData): HTMLSpanElement {
 
 	const root: HTMLSpanElement = document.createElement('span');
@@ -35,12 +31,10 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 
 		let sequenceFound: boolean = false;
 
-		// Potentially an ANSI escape sequence.
-		// See http://ascii-table.com/ansi-escape-sequences.php & https://en.wikipedia.org/wiki/ANSI_escape_code
 		if (text.charCodeAt(currentPos) === 27 && text.charAt(currentPos + 1) === '[') {
 
 			const startPos: number = currentPos;
-			currentPos += 2; // Ignore 'Esc[' as it's in every sequence.
+			currentPos += 2;
 
 			let ansiSequence: string = '';
 
@@ -50,7 +44,6 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 
 				currentPos++;
 
-				// Look for a known sequence terminating character.
 				if (char.match(/^[ABCDHIJKfhmpsu]$/)) {
 					sequenceFound = true;
 					break;
@@ -62,24 +55,17 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 
 				unprintedChars += 2 + ansiSequence.length;
 
-				// Flush buffer with previous styles.
 				appendStylizedStringToContainer(root, buffer, styleNames, linkDetector, workspaceFolder, customFgColor, customBgColor, customUnderlineColor, highlights, currentPos - buffer.length - unprintedChars, hoverBehavior);
 				buffer = '';
 
-				/*
-				 * Certain ranges that are matched here do not contain real graphics rendition sequences. For
-				 * the sake of having a simpler expression, they have been included anyway.
-				 */
 				if (ansiSequence.match(/^(?:[34][0-8]|9[0-7]|10[0-7]|[0-9]|2[1-5,7-9]|[34]9|5[8,9]|1[0-9])(?:;[349][0-7]|10[0-7]|[013]|[245]|[34]9)?(?:;[012]?[0-9]?[0-9])*;?m$/)) {
 
-					const styleCodes: number[] = ansiSequence.slice(0, -1) // Remove final 'm' character.
-						.split(';')										   // Separate style codes.
-						.filter(elem => elem !== '')			           // Filter empty elems as '34;m' -> ['34', ''].
-						.map(elem => parseInt(elem, 10));		           // Convert to numbers.
+					const styleCodes: number[] = ansiSequence.slice(0, -1)
+						.split(';')
+						.filter(elem => elem !== '')
+						.map(elem => parseInt(elem, 10));
 
 					if (styleCodes[0] === 38 || styleCodes[0] === 48 || styleCodes[0] === 58) {
-						// Advanced color code - can't be combined with formatting codes like simple colors can
-						// Ignores invalid colors and additional info beyond what is necessary
 						const colorType = (styleCodes[0] === 38) ? 'foreground' : ((styleCodes[0] === 48) ? 'background' : 'underline');
 
 						if (styleCodes[1] === 5) {
@@ -92,7 +78,6 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 					}
 
 				} else {
-					// Unsupported sequence so simply hide it.
 				}
 
 			} else {
@@ -106,22 +91,12 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 		}
 	}
 
-	// Flush remaining text buffer if not empty.
 	if (buffer) {
 		appendStylizedStringToContainer(root, buffer, styleNames, linkDetector, workspaceFolder, customFgColor, customBgColor, customUnderlineColor, highlights, currentPos - buffer.length, hoverBehavior);
 	}
 
 	return root;
 
-	/**
-	 * Change the foreground or background color by clearing the current color
-	 * and adding the new one.
-	 * @param colorType If `'foreground'`, will change the foreground color, if
-	 * 	`'background'`, will change the background color, and if `'underline'`
-	 * will set the underline color.
-	 * @param color Color to change to. If `undefined` or not provided,
-	 * will clear current color without adding a new one.
-	 */
 	function changeColor(colorType: 'foreground' | 'background' | 'underline', color?: RGBA | string): void {
 		if (colorType === 'foreground') {
 			customFgColor = color;
@@ -136,162 +111,145 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 		}
 	}
 
-	/**
-	 * Swap foreground and background colors.  Used for color inversion.  Caller should check
-	 * [] flag to make sure it is appropriate to turn ON or OFF (if it is already inverted don't call
-	 */
 	function reverseForegroundAndBackgroundColors(): void {
 		const oldFgColor = customFgColor;
 		changeColor('foreground', customBgColor);
 		changeColor('background', oldFgColor);
 	}
 
-	/**
-	 * Calculate and set basic ANSI formatting. Supports ON/OFF of bold, italic, underline,
-	 * double underline,  crossed-out/strikethrough, overline, dim, blink, rapid blink,
-	 * reverse/invert video, hidden, superscript, subscript and alternate font codes,
-	 * clearing/resetting of foreground, background and underline colors,
-	 * setting normal foreground and background colors, and bright foreground and
-	 * background colors. Not to be used for codes containing advanced colors.
-	 * Will ignore invalid codes.
-	 * @param styleCodes Array of ANSI basic styling numbers, which will be
-	 * applied in order. New colors and backgrounds clear old ones; new formatting
-	 * does not.
-	 * @see {@link https://en.wikipedia.org/wiki/ANSI_escape_code#SGR }
-	 */
 	function setBasicFormatters(styleCodes: number[]): void {
 		for (const code of styleCodes) {
 			switch (code) {
-				case 0: {  // reset (everything)
+				case 0: {
 					styleNames = [];
 					customFgColor = undefined;
 					customBgColor = undefined;
 					break;
 				}
-				case 1: { // bold
+				case 1: {
 					styleNames = styleNames.filter(style => style !== `code-bold`);
 					styleNames.push('code-bold');
 					break;
 				}
-				case 2: { // dim
+				case 2: {
 					styleNames = styleNames.filter(style => style !== `code-dim`);
 					styleNames.push('code-dim');
 					break;
 				}
-				case 3: { // italic
+				case 3: {
 					styleNames = styleNames.filter(style => style !== `code-italic`);
 					styleNames.push('code-italic');
 					break;
 				}
-				case 4: { // underline
+				case 4: {
 					styleNames = styleNames.filter(style => (style !== `code-underline` && style !== `code-double-underline`));
 					styleNames.push('code-underline');
 					break;
 				}
-				case 5: { // blink
+				case 5: {
 					styleNames = styleNames.filter(style => style !== `code-blink`);
 					styleNames.push('code-blink');
 					break;
 				}
-				case 6: { // rapid blink
+				case 6: {
 					styleNames = styleNames.filter(style => style !== `code-rapid-blink`);
 					styleNames.push('code-rapid-blink');
 					break;
 				}
-				case 7: { // invert foreground and background
+				case 7: {
 					if (!colorsInverted) {
 						colorsInverted = true;
 						reverseForegroundAndBackgroundColors();
 					}
 					break;
 				}
-				case 8: { // hidden
+				case 8: {
 					styleNames = styleNames.filter(style => style !== `code-hidden`);
 					styleNames.push('code-hidden');
 					break;
 				}
-				case 9: { // strike-through/crossed-out
+				case 9: {
 					styleNames = styleNames.filter(style => style !== `code-strike-through`);
 					styleNames.push('code-strike-through');
 					break;
 				}
-				case 10: { // normal default font
+				case 10: {
 					styleNames = styleNames.filter(style => !style.startsWith('code-font'));
 					break;
 				}
-				case 11: case 12: case 13: case 14: case 15: case 16: case 17: case 18: case 19: case 20: { // font codes (and 20 is 'blackletter' font code)
+				case 11: case 12: case 13: case 14: case 15: case 16: case 17: case 18: case 19: case 20: {
 					styleNames = styleNames.filter(style => !style.startsWith('code-font'));
 					styleNames.push(`code-font-${code - 10}`);
 					break;
 				}
-				case 21: { // double underline
+				case 21: {
 					styleNames = styleNames.filter(style => (style !== `code-underline` && style !== `code-double-underline`));
 					styleNames.push('code-double-underline');
 					break;
 				}
-				case 22: { // normal intensity (bold off and dim off)
+				case 22: {
 					styleNames = styleNames.filter(style => (style !== `code-bold` && style !== `code-dim`));
 					break;
 				}
-				case 23: { // Neither italic or blackletter (font 10)
+				case 23: {
 					styleNames = styleNames.filter(style => (style !== `code-italic` && style !== `code-font-10`));
 					break;
 				}
-				case 24: { // not underlined (Neither singly nor doubly underlined)
+				case 24: {
 					styleNames = styleNames.filter(style => (style !== `code-underline` && style !== `code-double-underline`));
 					break;
 				}
-				case 25: { // not blinking
+				case 25: {
 					styleNames = styleNames.filter(style => (style !== `code-blink` && style !== `code-rapid-blink`));
 					break;
 				}
-				case 27: { // not reversed/inverted
+				case 27: {
 					if (colorsInverted) {
 						colorsInverted = false;
 						reverseForegroundAndBackgroundColors();
 					}
 					break;
 				}
-				case 28: { // not hidden (reveal)
+				case 28: {
 					styleNames = styleNames.filter(style => style !== `code-hidden`);
 					break;
 				}
-				case 29: { // not crossed-out
+				case 29: {
 					styleNames = styleNames.filter(style => style !== `code-strike-through`);
 					break;
 				}
-				case 53: { // overlined
+				case 53: {
 					styleNames = styleNames.filter(style => style !== `code-overline`);
 					styleNames.push('code-overline');
 					break;
 				}
-				case 55: { // not overlined
+				case 55: {
 					styleNames = styleNames.filter(style => style !== `code-overline`);
 					break;
 				}
-				case 39: {  // default foreground color
+				case 39: {
 					changeColor('foreground', undefined);
 					break;
 				}
-				case 49: {  // default background color
+				case 49: {
 					changeColor('background', undefined);
 					break;
 				}
-				case 59: {  // default underline color
+				case 59: {
 					changeColor('underline', undefined);
 					break;
 				}
-				case 73: { // superscript
+				case 73: {
 					styleNames = styleNames.filter(style => (style !== `code-superscript` && style !== `code-subscript`));
 					styleNames.push('code-superscript');
 					break;
 				}
-				case 74: { // subscript
+				case 74: {
 					styleNames = styleNames.filter(style => (style !== `code-superscript` && style !== `code-subscript`));
 					styleNames.push('code-subscript');
 					break;
 				}
-				case 75: { // neither superscript or subscript
+				case 75: {
 					styleNames = styleNames.filter(style => (style !== `code-superscript` && style !== `code-subscript`));
 					break;
 				}
@@ -303,15 +261,6 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 		}
 	}
 
-	/**
-	 * Calculate and set styling for complicated 24-bit ANSI color codes.
-	 * @param styleCodes Full list of integer codes that make up the full ANSI
-	 * sequence, including the two defining codes and the three RGB codes.
-	 * @param colorType If `'foreground'`, will set foreground color, if
-	 * `'background'`, will set background color, and if it is `'underline'`
-	 * will set the underline color.
-	 * @see {@link https://en.wikipedia.org/wiki/ANSI_escape_code#24-bit }
-	 */
 	function set24BitColor(styleCodes: number[], colorType: 'foreground' | 'background' | 'underline'): void {
 		if (styleCodes.length >= 5 &&
 			styleCodes[2] >= 0 && styleCodes[2] <= 255 &&
@@ -322,15 +271,6 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 		}
 	}
 
-	/**
-	 * Calculate and set styling for advanced 8-bit ANSI color codes.
-	 * @param styleCodes Full list of integer codes that make up the ANSI
-	 * sequence, including the two defining codes and the one color code.
-	 * @param colorType If `'foreground'`, will set foreground color, if
-	 * `'background'`, will set background color and if it is `'underline'`
-	 * will set the underline color.
-	 * @see {@link https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit }
-	 */
 	function set8BitColor(styleCodes: number[], colorType: 'foreground' | 'background' | 'underline'): void {
 		let colorNumber = styleCodes[2];
 		const color = calcANSI8bitColor(colorNumber);
@@ -339,15 +279,12 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 			changeColor(colorType, color);
 		} else if (colorNumber >= 0 && colorNumber <= 15) {
 			if (colorType === 'underline') {
-				// for underline colors we just decode the 0-15 color number to theme color, set and return
 				const colorName = ansiColorIdentifiers[colorNumber];
 				changeColor(colorType, `--vscode-debug-ansi-${colorName}`);
 				return;
 			}
-			// Need to map to one of the four basic color ranges (30-37, 90-97, 40-47, 100-107)
 			colorNumber += 30;
 			if (colorNumber >= 38) {
-				// Bright colors
 				colorNumber += 52;
 			}
 			if (colorType === 'background') {
@@ -357,14 +294,6 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 		}
 	}
 
-	/**
-	 * Calculate and set styling for basic bright and dark ANSI color codes. Uses
-	 * theme colors if available. Automatically distinguishes between foreground
-	 * and background colors; does not support color-clearing codes 39 and 49.
-	 * @param styleCode Integer color code on one of the following ranges:
-	 * [30-37, 90-97, 40-47, 100-107]. If not on one of these ranges, will do
-	 * nothing.
-	 */
 	function setBasicColor(styleCode: number): void {
 		let colorType: 'foreground' | 'background' | undefined;
 		let colorIndex: number | undefined;
@@ -373,13 +302,13 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 			colorIndex = styleCode - 30;
 			colorType = 'foreground';
 		} else if (styleCode >= 90 && styleCode <= 97) {
-			colorIndex = (styleCode - 90) + 8; // High-intensity (bright)
+			colorIndex = (styleCode - 90) + 8;
 			colorType = 'foreground';
 		} else if (styleCode >= 40 && styleCode <= 47) {
 			colorIndex = styleCode - 40;
 			colorType = 'background';
 		} else if (styleCode >= 100 && styleCode <= 107) {
-			colorIndex = (styleCode - 100) + 8; // High-intensity (bright)
+			colorIndex = (styleCode - 100) + 8;
 			colorType = 'background';
 		}
 
@@ -390,18 +319,6 @@ export function handleANSIOutput(text: string, linkDetector: ILinkDetector, work
 	}
 }
 
-/**
- * @param root The {@link HTMLElement} to append the content to.
- * @param stringContent The text content to be appended.
- * @param cssClasses The list of CSS styles to apply to the text content.
- * @param linkDetector The {@link ILinkDetector} responsible for generating links from {@param stringContent}.
- * @param customTextColor If provided, will apply custom color with inline style.
- * @param customBackgroundColor If provided, will apply custom backgroundColor with inline style.
- * @param customUnderlineColor If provided, will apply custom textDecorationColor with inline style.
- * @param highlights The ranges to highlight.
- * @param offset The starting index of the stringContent in the original text.
- * @param hoverBehavior hover behavior with disposable store for managing event listeners.
- */
 export function appendStylizedStringToContainer(
 	root: HTMLElement,
 	stringContent: string,
@@ -445,20 +362,10 @@ export function appendStylizedStringToContainer(
 	root.appendChild(container);
 }
 
-/**
- * Calculate the color from the color set defined in the ANSI 8-bit standard.
- * Standard and high intensity colors are not defined in the standard as specific
- * colors, so these and invalid colors return `undefined`.
- * @see {@link https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit } for info.
- * @param colorNumber The number (ranging from 16 to 255) referring to the color
- * desired.
- */
 export function calcANSI8bitColor(colorNumber: number): RGBA | undefined {
 	if (colorNumber % 1 !== 0) {
-		// Should be integer
 		return;
 	} if (colorNumber >= 16 && colorNumber <= 231) {
-		// Converts to one of 216 RGB colors
 		colorNumber -= 16;
 
 		let blue: number = colorNumber % 6;
@@ -467,7 +374,6 @@ export function calcANSI8bitColor(colorNumber: number): RGBA | undefined {
 		colorNumber = (colorNumber - green) / 6;
 		let red: number = colorNumber;
 
-		// red, green, blue now range on [0, 5], need to map to [0,255]
 		const convFactor: number = 255 / 5;
 		blue = Math.round(blue * convFactor);
 		green = Math.round(green * convFactor);
@@ -475,7 +381,6 @@ export function calcANSI8bitColor(colorNumber: number): RGBA | undefined {
 
 		return new RGBA(red, green, blue);
 	} else if (colorNumber >= 232 && colorNumber <= 255) {
-		// Converts to a grayscale value
 		colorNumber -= 232;
 		const colorLevel: number = Math.round(colorNumber / 23 * 255);
 		return new RGBA(colorLevel, colorLevel, colorLevel);
@@ -500,9 +405,6 @@ registerThemingParticipant((theme, collector) => {
 			.map(color => {
 				const actual = theme.getColor(color);
 				if (!actual) { return undefined; }
-				// this uses the default contrast ratio of 4 (from the terminal),
-				// we may want to make this configurable in the future, but this is
-				// good to keep things sane to start with.
 				return `--vscode-debug-ansi-${color.replaceAll('.', '-')}:${bg ? bg.ensureConstrast(actual, 4) : actual}`;
 			})
 			.filter(isDefined);

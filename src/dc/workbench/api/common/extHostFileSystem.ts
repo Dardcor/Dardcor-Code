@@ -40,8 +40,6 @@ class FsLinkProvider {
 	private _initStateMachine(): void {
 		if (!this._stateMachine) {
 
-			// sort and compute common prefix with previous scheme
-			// then build state transitions based on the data
 			const schemes = this._schemes.sort();
 			const edges: Edge[] = [];
 			let prevScheme: string | undefined;
@@ -50,8 +48,6 @@ class FsLinkProvider {
 			let nextState = State.LastKnownState;
 			for (const scheme of schemes) {
 
-				// skip the common prefix of the prev scheme
-				// and continue with its last state
 				let pos = !prevScheme ? 0 : commonPrefixLength(prevScheme, scheme);
 				if (pos === 0) {
 					prevState = State.Start;
@@ -60,10 +56,7 @@ class FsLinkProvider {
 				}
 
 				for (; pos < scheme.length; pos++) {
-					// keep creating new (next) states until the
-					// end (and the BeforeColon-state) is reached
 					if (pos + 1 === scheme.length) {
-						// Save the last state here, because we need to continue for the next scheme
 						lastState = nextState;
 						nextState = State.BeforeColon;
 					} else {
@@ -75,11 +68,9 @@ class FsLinkProvider {
 				}
 
 				prevScheme = scheme;
-				// Restore the last state
 				nextState = lastState;
 			}
 
-			// all link must match this pattern `<scheme>:/<more>`
 			edges.push([State.BeforeColon, CharCode.Colon, State.AfterColon]);
 			edges.push([State.AfterColon, CharCode.Slash, State.End]);
 
@@ -131,14 +122,12 @@ export class ExtHostFileSystem implements ExtHostFileSystemShape {
 
 	registerFileSystemProvider(extension: IExtensionDescription, scheme: string, provider: vscode.FileSystemProvider, options: { isCaseSensitive?: boolean; isReadonly?: boolean | vscode.MarkdownString } = {}) {
 
-		// validate the given provider is complete
 		ExtHostFileSystem._validateFileSystemProvider(provider);
 
 		if (this._registeredSchemes.has(scheme)) {
 			throw new Error(`a provider for the scheme '${scheme}' is already registered`);
 		}
 
-		//
 		if (!this._linkProviderRegistration) {
 			this._linkProviderRegistration = this._extHostLanguageFeatures.registerDocumentLinkProvider(extension, '*', this._linkProvider);
 		}
@@ -187,7 +176,6 @@ export class ExtHostFileSystem implements ExtHostFileSystemShape {
 			for (const e of event) {
 				const { uri: resource, type } = e;
 				if (resource.scheme !== scheme) {
-					// dropping events for wrong scheme
 					continue;
 				}
 				let newType: files.FileChangeType | undefined;
@@ -325,7 +313,7 @@ export class ExtHostFileSystem implements ExtHostFileSystemShape {
 		}
 		const data = VSBuffer.alloc(length);
 		return Promise.resolve(provider.read(fd, pos, data.buffer, 0, length)).then(read => {
-			return data.slice(0, read); // don't send zeros
+			return data.slice(0, read);
 		});
 	}
 

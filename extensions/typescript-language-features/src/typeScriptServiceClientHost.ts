@@ -3,10 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* --------------------------------------------------------------------------------------------
- * Includes code from typescript-sublime-plugin project, obtained from
- * https://github.com/microsoft/TypeScript-Sublime-Plugin/blob/master/TypeScript%20Indent.tmPreferences
- * ------------------------------------------------------------------------------------------ */
 
 import * as vscode from 'vscode';
 import { CommandManager } from './commands/commandManager';
@@ -37,7 +33,6 @@ import { VersionStatus } from './ui/versionStatus';
 import { coalesce } from './utils/arrays';
 import { Disposable } from './utils/dispose';
 
-// Style check diagnostics that can be reported as warnings
 const styleCheckDiagnostics = new Set([
 	...errorCodes.variableDeclaredButNeverUsed,
 	...errorCodes.propertyDeclaretedButNeverUsed,
@@ -199,18 +194,12 @@ export default class TypeScriptServiceClientHost extends Disposable {
 
 	private async findLanguage(resource: vscode.Uri): Promise<LanguageProvider | undefined> {
 		try {
-			// First try finding language just based on the resource.
-			// This is not strictly correct but should be in the vast majority of cases
-			// (except when someone goes and maps `.js` to `typescript` or something...)
 			for (const language of this.languages) {
 				if (language.handlesUri(resource)) {
 					return language;
 				}
 			}
 
-			// If that doesn't work, fallback to using a text document language mode.
-			// This is not ideal since we have to open the document but should always
-			// be correct
 			const doc = await vscode.workspace.openTextDocument(resource);
 			return this.languages.find(language => language.handlesDocument(doc));
 		} catch {
@@ -249,7 +238,6 @@ export default class TypeScriptServiceClientHost extends Disposable {
 	}
 
 	private configFileDiagnosticsReceived(event: Proto.ConfigFileDiagnosticEvent): void {
-		// See https://github.com/microsoft/TypeScript/issues/10384
 		const body = event.body;
 		if (!body?.diagnostics || !body.configFile) {
 			return;

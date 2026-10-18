@@ -26,7 +26,6 @@ describe('Tool Service', () => {
 		});
 
 		test('should validate tool input with schema', () => {
-			// Add a mock tool with a schema
 			const mockTool: vscode.LanguageModelToolInformation = {
 				name: 'testTool',
 				description: 'A test tool',
@@ -50,19 +49,16 @@ describe('Tool Service', () => {
 
 			(toolsService.tools as vscode.LanguageModelToolInformation[]).push(mockTool);
 
-			// Test valid input
 			const validResult = toolsService.validateToolInput('testTool', '{"message": "hello", "count": 42}');
 			expect(validResult).toEqual({
 				inputObj: { message: 'hello', count: 42 }
 			});
 
-			// Test missing required field
 			const invalidResult = toolsService.validateToolInput('testTool', '{"count": 42}');
 			expect(invalidResult).toMatchObject({
 				error: expect.stringContaining('ERROR: Your input to the tool was invalid')
 			});
 
-			// Test invalid JSON
 			const malformedResult = toolsService.validateToolInput('testTool', '{"message": "hello"');
 			expect(malformedResult).toMatchObject({
 				error: expect.stringContaining('ERROR: Your input to the tool was invalid')
@@ -131,7 +127,6 @@ describe('Tool Service', () => {
 
 			(toolsService.tools as vscode.LanguageModelToolInformation[]).push(coercionTool);
 
-			// Test that AJV coerces string numbers to numbers and string booleans to booleans
 			const result = toolsService.validateToolInput('coercionTool', '{"numberAsString": "42", "booleanAsString": "true"}');
 			expect(result).toEqual({
 				inputObj: { numberAsString: 42, booleanAsString: true }
@@ -168,7 +163,6 @@ describe('Tool Service', () => {
 
 			(toolsService.tools as vscode.LanguageModelToolInformation[]).push(nestedJsonTool);
 
-			// Test that nested JSON strings are automatically parsed
 			const result = toolsService.validateToolInput('nestedJsonTool', '{"thread_id": "i6747", "action_json": "{\\"command\\": \\"ls -la\\"}"}');
 			expect(result).toEqual({
 				inputObj: {
@@ -177,7 +171,6 @@ describe('Tool Service', () => {
 				}
 			});
 
-			// Test with multiple nested JSON strings
 			const multiNestedTool: vscode.LanguageModelToolInformation = {
 				name: 'multiNestedTool',
 				description: 'A tool with multiple nested objects',
@@ -224,7 +217,6 @@ describe('Tool Service', () => {
 				}
 			});
 
-			// Test that malformed nested JSON strings still fail gracefully
 			const malformedResult = toolsService.validateToolInput('nestedJsonTool', '{"thread_id": "i6747", "action_json": "{\\"command\\": invalid}"}');
 			expect(malformedResult).toMatchObject({
 				error: expect.stringContaining('ERROR: Your input to the tool was invalid')
@@ -271,7 +263,6 @@ describe('Tool Service', () => {
 
 			(toolsService.tools as vscode.LanguageModelToolInformation[]).push(askQuestionsTool);
 
-			// Gemini-style flattened path keys instead of a nested object/array.
 			const flattenedInput = JSON.stringify({
 				'questions[0].allowFreeformInput': true,
 				'questions[0].header': 'repro_question_1',
@@ -342,8 +333,6 @@ describe('Tool Service', () => {
 
 			const result = toolsService.validateToolInput('pollutionTool', malicious);
 
-			// The unsafe key makes reconstruction bail out, so validation fails
-			// rather than mutating Object.prototype.
 			expect(result).toMatchObject({
 				error: expect.stringContaining('ERROR: Your input to the tool was invalid')
 			});
@@ -367,7 +356,6 @@ describe('Tool Service', () => {
 
 			(toolsService.tools as vscode.LanguageModelToolInformation[]).push(conflictTool);
 
-			// `a` is both a primitive and a parent of `a.b` — unresolvable.
 			const conflicting = JSON.stringify({
 				'a': 'primitive',
 				'a.b': 'nested'
@@ -399,8 +387,6 @@ describe('Tool Service', () => {
 
 			(toolsService.tools as vscode.LanguageModelToolInformation[]).push(indexTool);
 
-			// A huge index would create a massive sparse array; reconstruction
-			// must bail rather than produce one.
 			const huge = JSON.stringify({ 'items[999999999999]': 'value' });
 
 			const result = toolsService.validateToolInput('indexTool', huge);

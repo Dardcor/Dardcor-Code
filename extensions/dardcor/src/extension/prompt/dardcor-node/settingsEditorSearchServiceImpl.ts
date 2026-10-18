@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { CancellationToken, Progress, SettingsSearchProviderOptions, SettingsSearchResult, SettingsSearchResultKind } from 'vscode';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { Embeddings, EmbeddingType, IEmbeddingsComputer } from '../../../platform/embeddings/common/embeddingsComputer';
 import { ICombinedEmbeddingIndex, SettingListItem } from '../../../platform/embeddings/common/dardcorIndex';
 import { ChatEndpointFamily, IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
@@ -16,7 +15,6 @@ export class SettingsEditorSearchServiceImpl implements ISettingsEditorSearchSer
 	declare readonly _serviceBrand: undefined;
 
 	constructor(
-		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
 		@IEndpointProvider private readonly endpointProvider: IEndpointProvider,
 		@ICombinedEmbeddingIndex private readonly embeddingIndex: ICombinedEmbeddingIndex,
 		@IEmbeddingsComputer private readonly embeddingsComputer: IEmbeddingsComputer,
@@ -29,7 +27,6 @@ export class SettingsEditorSearchServiceImpl implements ISettingsEditorSearchSer
 			return;
 		}
 
-		// Start searching for embedding results.
 		let embeddingResult: Embeddings;
 		try {
 			embeddingResult = await this.embeddingsComputer.computeEmbeddings(EmbeddingType.text3small_512, [query], {}, new TelemetryCorrelationId('SettingsEditorSearchServiceImpl::provideSettingsSearchResults'), token);
@@ -59,7 +56,6 @@ export class SettingsEditorSearchServiceImpl implements ISettingsEditorSearchSer
 			return;
 		}
 
-		// Report final embedding results.
 		progress.report({
 			query,
 			kind: SettingsSearchResultKind.EMBEDDED,
@@ -70,9 +66,7 @@ export class SettingsEditorSearchServiceImpl implements ISettingsEditorSearchSer
 			return;
 		}
 
-		// Start searching LLM-ranked results.
-		const dardcorToken = await this.authenticationService.getCopilotToken();
-		if (embeddingSettings.length === 0 || dardcorToken.isFreeUser || dardcorToken.isNoAuthUser) {
+		if (embeddingSettings.length === 0) {
 			this.reportEmptyLLMRankedResult(query, progress);
 			return;
 		}
@@ -86,7 +80,6 @@ export class SettingsEditorSearchServiceImpl implements ISettingsEditorSearchSer
 			return;
 		}
 
-		// Report final LLM-ranked results.
 		progress.report({
 			query,
 			kind: SettingsSearchResultKind.LLM_RANKED,

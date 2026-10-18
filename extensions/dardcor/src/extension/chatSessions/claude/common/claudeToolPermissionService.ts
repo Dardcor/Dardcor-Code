@@ -23,13 +23,6 @@ export const IClaudeToolPermissionService = createDecorator<IClaudeToolPermissio
 export interface IClaudeToolPermissionService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Check if a tool can be used, showing confirmation if needed.
-	 * @param toolName The name of the Claude tool
-	 * @param input The tool input parameters
-	 * @param context Context including the tool invocation token
-	 * @returns Permission result (allow with updated input, or deny with message)
-	 */
 	canUseTool(
 		toolName: string,
 		input: Record<string, unknown>,
@@ -37,9 +30,6 @@ export interface IClaudeToolPermissionService {
 	): Promise<ClaudeToolPermissionResult>;
 }
 
-/**
- * Default deny message when user declines a tool
- */
 const DenyToolMessage = 'The user declined to run the tool';
 
 export class ClaudeToolPermissionService implements IClaudeToolPermissionService {
@@ -58,18 +48,15 @@ export class ClaudeToolPermissionService implements IClaudeToolPermissionService
 		context: ClaudeToolPermissionContext
 	): Promise<ClaudeToolPermissionResult> {
 		if (context.permissionMode === 'bypassPermissions') {
-			// Bypass mode: allow all tools without confirmation
 			return { behavior: 'allow', updatedInput: input };
 		}
 
 		const handler = this._getHandler(toolName as ClaudeToolNames);
 
-		// If handler has full custom implementation, use it
 		if (handler?.handle) {
 			return handler.handle(toolName as ClaudeToolNames, input as ClaudeToolInputMap[ClaudeToolNames], context);
 		}
 
-		// Check auto-approve (handler-specific or permission mode based)
 		if (handler?.canAutoApprove) {
 			const canAutoApprove = await handler.canAutoApprove(toolName as ClaudeToolNames, input as ClaudeToolInputMap[ClaudeToolNames], context);
 			if (canAutoApprove) {
@@ -77,30 +64,24 @@ export class ClaudeToolPermissionService implements IClaudeToolPermissionService
 			}
 		}
 
-		// Get confirmation params (custom or default)
 		const confirmationParams = handler?.getConfirmationParams
 			? handler.getConfirmationParams(toolName as ClaudeToolNames, input as ClaudeToolInputMap[ClaudeToolNames])
 			: this._getDefaultConfirmationParams(toolName, input);
 
-		// Show confirmation dialog
 		return this._showConfirmation(confirmationParams, input, context);
 	}
 
 	private _getHandler(toolName: ClaudeToolNames): IClaudeToolPermissionHandler | undefined {
-		// Check cache first
 		if (this._handlerCache.has(toolName)) {
 			return this._handlerCache.get(toolName);
 		}
 
-		// Find registration for this tool
 		const registration = getToolPermissionHandlerRegistry().find(r => r.toolNames.includes(toolName));
 		if (!registration) {
 			return undefined;
 		}
 
-		// Create handler instance
 		const handler = this.instantiationService.createInstance(registration.ctor);
-		// Cache for all tool names this handler supports
 		for (const name of registration.toolNames) {
 			this._handlerCache.set(name, handler);
 		}

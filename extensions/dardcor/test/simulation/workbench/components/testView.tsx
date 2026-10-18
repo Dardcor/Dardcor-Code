@@ -32,14 +32,11 @@ type Props = {
 
 export const TestView = mobxlite.observer(({ test, runner, runnerOptions, nesExternalOptions, testSource, displayOptions }: Props) => {
 
-	// Set the default open status for test runs. If there is is only one test run, the open status is `true`.
-	// Otherwise, they are `false`.
 	const [isTestRunOpen, setIsTestRunOpen] = React.useState(new Array(test.runnerStatus?.runs.length).fill(test.runnerStatus?.runs.length === 1 ? true : false));
 	const [highlightedIndices, setHighlightedIndices] = React.useState<boolean[]>(new Array(test.runnerStatus?.runs.length).fill(false));
 
 	const { showMenu } = useContextMenu();
 
-	// Add a ref to store the test item elements
 	const testItemRefs = React.useRef<HTMLDivElement[]>([]);
 
 	const updateNth = (n: number, value: boolean) => {
@@ -141,7 +138,6 @@ export const TestView = mobxlite.observer(({ test, runner, runnerOptions, nesExt
 									const key = `${test.name}-${idx}`;
 									const baseline = test.baseline?.runs[idx];
 									return (
-										// Wrap each TreeItem in a div and assign a ref
 										<div key={key} ref={el => testItemRefs.current[idx] = el!}>
 											<TreeItem
 												itemType='branch'
@@ -190,8 +186,8 @@ const greenIconStyleProps: FluentIconsProps = {
 
 const RunSummaryBadge = ({ run, baseline }: { run: TestRun; baseline: TestRun | undefined }) => (
 	<>
-		<RunAndBaselineOutcomeBadge run={run} baseline={baseline} /> {/* show a "X" icon if run validation function failed */}
-		<CacheMisses cacheMissCount={run.hasCacheMiss ? 1 : 0} /> {/* shows a "cache miss" icon if a cache miss happens */}
+		<RunAndBaselineOutcomeBadge run={run} baseline={baseline} /> {}
+		<CacheMisses cacheMissCount={run.hasCacheMiss ? 1 : 0} /> {}
 		<TotalDuration title='Total request run duration' timeInMs={run.averageRequestDuration && run.requestCount ? run.averageRequestDuration * run.requestCount : undefined} />
 		<AnnotationBadges annotations={run.annotations} />
 	</>
@@ -218,9 +214,9 @@ const RunOutcomeBadge = ({ testRun }: { testRun: TestRun }) => {
 const RunAndBaselineOutcomeBadge = ({ run, baseline }: { run: TestRun; baseline: TestRun | undefined }) => {
 	if (baseline === undefined) {
 		if (run.pass) {
-			return null; // if test is passing, we don't need to show anything
+			return null;
 		} else {
-			return <RunOutcomeBadge testRun={run} />; // if there is no baseline, show just failure
+			return <RunOutcomeBadge testRun={run} />;
 		}
 	} else {
 		if (baseline.pass === run.pass) {
@@ -306,10 +302,6 @@ const TotalDuration = ({ timeInMs: timeInMillis, title }: { timeInMs: number | u
 };
 
 const Score = mobxlite.observer(({ test }: { test: ISimulationTest }) => {
-	// Shows the score number and its comparison against the baseline. The baseline is defined as followed
-	// if test.baselineJSON is defined, it's used as the baseline.
-	// If test.baselineJSON is not defined and test.baseline is defined, test.baseline is used as the baseline.
-	// If neight test.baselineJSON nor test.baseline is defined, then there is no comaprison.
 
 	if (test.runnerStatus === undefined || test.runnerStatus.isSkipped) {
 		return null;
@@ -371,8 +363,6 @@ const Score = mobxlite.observer(({ test }: { test: ISimulationTest }) => {
 
 	const passPercentage = passCount / runs.length;
 
-	// When it runs to this line, either test.baselineJSON or test.baseline is defined. We'll use test.baselineJSON as the baseline first.
-	// If they both are not defined, we've already returned without comparison at line 328.
 
 	const baselinePassCount = test.baselineJSON
 		? test.baselineJSON.passCount

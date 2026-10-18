@@ -7,10 +7,6 @@ import { EditArcTracker, IArcTextEdit } from '../../../../base/common/editArcTra
 import { BaseStringEdit } from '../../../../editor/common/core/edits/stringEdit.js';
 import { AbstractText } from '../../../../editor/common/core/text/abstractText.js';
 
-/**
- * The ARC (accepted and retained characters) counts how many characters inserted by the initial suggestion (trackedEdit)
- * stay unmodified after a certain amount of time after acceptance.
-*/
 export class ArcTracker {
 	private readonly _tracker: EditArcTracker;
 
@@ -25,9 +21,6 @@ export class ArcTracker {
 		return this._tracker.getOriginalCharacterCount();
 	}
 
-	/**
-	 * edit must apply to _updatedTrackedEdit.apply(_valueBeforeTrackedEdit)
-	*/
 	handleEdits(edit: BaseStringEdit): void {
 		this._tracker.handleEdits(toArcTextEdit(edit));
 	}

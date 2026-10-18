@@ -2,7 +2,7 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
+import { DardcorNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
 import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { FinishedCallback, RequestDelta, SolutionDecision } from '../openai/fetch';
 import { APIChoice, convertToAPIChoice } from '../openai/openai';
@@ -38,13 +38,6 @@ class StreamingCompletion {
 		return this.trimCount === 0;
 	}
 
-	/**
-	 * Returns the index of the line ending to use when trimming the completion
-	 * as a "single line" completion. This allows the completion to begin with
-	 * a single leading new line as a special case for completing the next line.
-	 * It supports CRLF and LF line endings. The index is the start of the line
-	 * terminator. Returns -1 if a suitable line ending was not found.
-	 */
 	get firstNewlineOffset(): number {
 		const matches = [...this.text.matchAll(/\r?\n/g)];
 		if (matches.length > 0 && matches[0].index === 0) {
@@ -82,7 +75,6 @@ export class StreamedCompletionSplitter {
 			const index = delta.index ?? 0;
 			const completion = this.getCompletion(index, completionText);
 
-			// emmulate single line completion when this.initialSingleLine is set
 			if (completion.isFirstCompletion && this.initialSingleLine && completion.firstNewlineOffset >= 0) {
 				const result = {
 					yieldSolution: true,
@@ -182,9 +174,9 @@ export class StreamedCompletionSplitter {
 		}
 		const apiChoice = this.instantiationService.invokeFunction(convertToAPIChoice,
 			trimmed.effectiveText.trimEnd(),
-			delta.getAPIJsonData!(), // FIXME@ulugbekna
+			delta.getAPIJsonData!(),
 			trimmed.index,
-			delta.requestId!, // FIXME@ulugbekna
+			delta.requestId!,
 			offset !== undefined,
 			delta.telemetryData!
 		);
@@ -198,15 +190,14 @@ export class StreamedCompletionSplitter {
 		choice: APIChoice,
 		fullCompletion: StreamingCompletion,
 		trimmedCompletion: StreamingCompletion
-	): CopilotNamedAnnotationList | undefined {
+	): DardcorNamedAnnotationList | undefined {
 		if (choice.dardcorAnnotations === undefined) { return undefined; }
 
 		const newStartOffset = trimmedCompletion.addedToPrefix.length;
 		const newEndOffset = newStartOffset + choice.completionText.length;
-		// whether the current split choice is at the end of the original choice
 		const atEnd = newEndOffset >= fullCompletion.text.length;
 
-		const adjusted: CopilotNamedAnnotationList = {};
+		const adjusted: DardcorNamedAnnotationList = {};
 		for (const [name, annotationGroup] of Object.entries(choice.dardcorAnnotations)) {
 			const adjustedAnnotations = annotationGroup
 				.filter(a => {

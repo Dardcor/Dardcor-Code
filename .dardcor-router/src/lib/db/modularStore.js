@@ -25,7 +25,6 @@ export function getProvidersRootDir(baseDir) {
   return path.join(baseDir, "provider");
 }
 
-// Canonical directory names for known providers
 const KNOWN_PROVIDER_DIRS = {
   antigravity: "Antigravity",
   gemini: "Gemini",
@@ -43,8 +42,8 @@ const KNOWN_PROVIDER_DIRS = {
   openrouter: "OpenRouter",
   ollama: "Ollama",
   "ollama-local": "Ollama-Local",
-  github: "GitHub-Copilot",
   gitlab: "GitLab-Duo",
+  github: "GitHub-Copilot",
   kimi: "Kimi",
   kiro: "Kiro",
   kilocode: "KiloCode",
@@ -70,9 +69,6 @@ const KNOWN_PROVIDER_DIRS = {
   cursor: "Cursor",
   qwen: "Qwen",
   "xiaomi-mimo": "Xiaomi-MiMo",
-  "chatgpt-web": "Chatgpt-Web",
-  "deepseek-web": "Deepseek-Web",
-  "gemini-web": "Gemini-Web",
 };
 
 export const ALL_CANONICAL_PROVIDERS = Array.from(new Set(Object.values(KNOWN_PROVIDER_DIRS)));
@@ -81,7 +77,6 @@ export const KNOWN_DIR_TO_PROVIDER = Object.fromEntries(
   Object.entries(KNOWN_PROVIDER_DIRS).map(([k, v]) => [v.toLowerCase(), k])
 );
 
-// Runtime cache of discovered provider folders
 const discoveredProviderDirs = new Map();
 
 export function registerProviderDir(providerId, dirName) {
@@ -126,7 +121,6 @@ export function getProviderDirName(providerId) {
   if (KNOWN_PROVIDER_DIRS[providerId]) return KNOWN_PROVIDER_DIRS[providerId];
   if (KNOWN_PROVIDER_DIRS[lower]) return KNOWN_PROVIDER_DIRS[lower];
 
-  // Capitalize words / replace spaces with hyphens
   return providerId
     .split(/[-_\s]+/)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -146,14 +140,12 @@ export function resolveProviderDbPath(providerId, baseDir) {
   ];
 
   for (const name of candidates) {
-    // 1. Target path: provider/provider/{Name}/{Name}.json
     const targetFile = path.join(provRoot, name, `${name}.json`);
     if (fs.existsSync(targetFile)) {
       registerProviderDir(providerId, name);
       return { dirName: name, dirPath: path.join(provRoot, name), filePath: targetFile };
     }
 
-    // 2. Migration from older root level: provider/{Name}/{Name}.json
     const olderFile = path.join(baseDir, name, `${name}.json`);
     if (fs.existsSync(olderFile)) {
       try {
@@ -170,7 +162,6 @@ export function resolveProviderDbPath(providerId, baseDir) {
       }
     }
 
-    // 3. Backward compatibility with older nested db folder: provider/{Name}/db/{Name}.json
     const legacyNestedFile = path.join(baseDir, name, "db", `${name}.json`);
     if (fs.existsSync(legacyNestedFile)) {
       try {
@@ -191,9 +182,6 @@ export function resolveProviderDbPath(providerId, baseDir) {
   return { dirName: preferred, dirPath, filePath };
 }
 
-/**
- * Ensures all canonical provider folders and their .json files exist in provider/provider/{Name}/{Name}.json
- */
 export function ensureAllProviderFoldersExist(baseDir) {
   baseDir = getBaseDir(baseDir);
   const provRoot = path.join(baseDir, "provider");
@@ -205,7 +193,6 @@ export function ensureAllProviderFoldersExist(baseDir) {
     const dir = path.join(provRoot, provDirName);
     const file = path.join(dir, `${provDirName}.json`);
 
-    // Check if older file exists directly at baseDir/{provDirName}/...
     const olderFile = path.join(baseDir, provDirName, `${provDirName}.json`);
     const legacyNested = path.join(baseDir, provDirName, "db", `${provDirName}.json`);
 
@@ -250,18 +237,12 @@ export function ensureAllProviderFoldersExist(baseDir) {
   }
 }
 
-/**
- * Checks whether modular structure has been established (system/db/settings.json exists)
- */
 export function isModularStructureCreated(baseDir) {
   baseDir = getBaseDir(baseDir);
   const settingsFile = path.join(getSystemDbDir(baseDir), "settings.json");
   return fs.existsSync(settingsFile);
 }
 
-/**
- * Locates legacy database.json file if present
- */
 export function findLegacyDatabaseJson(baseDir) {
   baseDir = getBaseDir(baseDir);
   const inDb = path.join(baseDir, "db", "database.json");
@@ -271,16 +252,11 @@ export function findLegacyDatabaseJson(baseDir) {
   return null;
 }
 
-/**
- * Performs automated zero-data-loss migration from monolithic database.json
- * into the modular layout.
- */
 export function migrateLegacyDatabaseJson(baseDir) {
   baseDir = getBaseDir(baseDir);
   const legacyPath = findLegacyDatabaseJson(baseDir);
   if (!legacyPath) return false;
 
-  // If modular structure has already been initialized, skip
   if (isModularStructureCreated(baseDir)) return false;
 
   let legacy;
@@ -295,7 +271,6 @@ export function migrateLegacyDatabaseJson(baseDir) {
 
   console.log(`[DB][migration] Starting automatic migration from ${legacyPath}...`);
 
-  // 1. Create full safety backup in backups/
   const backupsDir = getBackupsDir(baseDir);
   fs.mkdirSync(backupsDir, { recursive: true });
   try {
@@ -307,7 +282,6 @@ export function migrateLegacyDatabaseJson(baseDir) {
     console.warn(`[DB][migration] Warning: Failed to create safety backup: ${e.message}`);
   }
 
-  // 2. Move existing db/backups/ contents to backups/
   const oldBackupsDir = path.join(baseDir, "db", "backups");
   if (fs.existsSync(oldBackupsDir)) {
     try {
@@ -327,7 +301,6 @@ export function migrateLegacyDatabaseJson(baseDir) {
     }
   }
 
-  // 3. Extract all providerConnections rows into provider/{ProviderName}/{ProviderName}.json
   const connections = legacy.providerConnections || [];
   const byProvider = {};
   for (const c of connections) {
@@ -344,14 +317,11 @@ export function migrateLegacyDatabaseJson(baseDir) {
     console.log(`[DB][migration] Extracted ${connRows.length} account(s) for ${providerId} → ${filePath}`);
   }
 
-  // Ensure all canonical providers also exist immediately
   ensureAllProviderFoldersExist(baseDir);
 
-  // 4. Extract settings, apiKeys, combos, proxyPools, and kv tables into system/db/
   const sysDbDir = getSystemDbDir(baseDir);
   fs.mkdirSync(sysDbDir, { recursive: true });
 
-  // 4a. settings.json
   let settingsObj = {};
   if (Array.isArray(legacy.settings) && legacy.settings.length > 0) {
     const s0 = legacy.settings[0];
@@ -366,16 +336,12 @@ export function migrateLegacyDatabaseJson(baseDir) {
   }
   fs.writeFileSync(path.join(sysDbDir, "settings.json"), JSON.stringify(settingsObj, null, 2), "utf-8");
 
-  // 4b. api-keys.json
   fs.writeFileSync(path.join(sysDbDir, "api-keys.json"), JSON.stringify(legacy.apiKeys || [], null, 2), "utf-8");
 
-  // 4c. combos.json
   fs.writeFileSync(path.join(sysDbDir, "combos.json"), JSON.stringify(legacy.combos || [], null, 2), "utf-8");
 
-  // 4d. proxy-pools.json
   fs.writeFileSync(path.join(sysDbDir, "proxy-pools.json"), JSON.stringify(legacy.proxyPools || [], null, 2), "utf-8");
 
-  // 4e. aliases.json & pricing.json from kv
   const aliasesObj = {
     modelAliases: {},
     customModels: [],
@@ -400,26 +366,22 @@ export function migrateLegacyDatabaseJson(baseDir) {
   fs.writeFileSync(path.join(sysDbDir, "aliases.json"), JSON.stringify(aliasesObj, null, 2), "utf-8");
   fs.writeFileSync(path.join(sysDbDir, "pricing.json"), JSON.stringify(pricingObj, null, 2), "utf-8");
 
-  // 4f. nodes.json
   if (Array.isArray(legacy.providerNodes) && legacy.providerNodes.length > 0) {
     fs.writeFileSync(path.join(sysDbDir, "nodes.json"), JSON.stringify(legacy.providerNodes, null, 2), "utf-8");
   }
 
-  // 4g. meta.json
   const metaObj = {};
   for (const r of legacy._meta || []) {
     metaObj[r.key] = r.value;
   }
   fs.writeFileSync(path.join(sysDbDir, "meta.json"), JSON.stringify(metaObj, null, 2), "utf-8");
 
-  // 5. Extract usageHistory, usageDaily, and requestDetails tables into system/usage/
   const sysUsageDir = getSystemUsageDir(baseDir);
   fs.mkdirSync(sysUsageDir, { recursive: true });
   fs.writeFileSync(path.join(sysUsageDir, "history.json"), JSON.stringify(legacy.usageHistory || [], null, 2), "utf-8");
   fs.writeFileSync(path.join(sysUsageDir, "daily.json"), JSON.stringify(legacy.usageDaily || [], null, 2), "utf-8");
   fs.writeFileSync(path.join(sysUsageDir, "request-details.json"), JSON.stringify(legacy.requestDetails || [], null, 2), "utf-8");
 
-  // 6. Rename legacy database.json to database.json.migrated
   try {
     fs.renameSync(legacyPath, `${legacyPath}.migrated`);
     console.log(`[DB][migration] Successfully renamed ${legacyPath} to ${legacyPath}.migrated`);
@@ -430,9 +392,6 @@ export function migrateLegacyDatabaseJson(baseDir) {
   return true;
 }
 
-/**
- * Loads all partitioned provider JSON files from dataDir subdirectories into in-memory store
- */
 export function loadAllProvidersFromDisk(adapter, baseDir) {
   baseDir = getBaseDir(baseDir);
   if (!fs.existsSync(baseDir)) return;
@@ -442,7 +401,6 @@ export function loadAllProvidersFromDisk(adapter, baseDir) {
     fs.mkdirSync(provRoot, { recursive: true });
   }
 
-  // 1. Check for legacy provider folders directly under baseDir and migrate them
   const reserved = new Set(["system", "backups", "db", "logs", "auth", "node_modules", ".git", "catalog", "runtime", "provider"]);
   const rootEntries = fs.readdirSync(baseDir, { withFileTypes: true });
 
@@ -481,7 +439,6 @@ export function loadAllProvidersFromDisk(adapter, baseDir) {
     }
   }
 
-  // 2. Read all provider directories from provRoot
   const entries = fs.readdirSync(provRoot, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
@@ -552,16 +509,12 @@ export function loadAllProvidersFromDisk(adapter, baseDir) {
   }
 }
 
-/**
- * Populates Full JSON in-memory adapter from modular files
- */
 export function importFromModular(adapter, baseDir) {
   baseDir = getBaseDir(baseDir);
   const sysDbDir = getSystemDbDir(baseDir);
   const sysUsageDir = getSystemUsageDir(baseDir);
 
   adapter.transaction(() => {
-    // 1. Meta
     const metaPath = path.join(sysDbDir, "meta.json");
     if (fs.existsSync(metaPath)) {
       try {
@@ -574,7 +527,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 2. Settings
     const settingsPath = path.join(sysDbDir, "settings.json");
     if (fs.existsSync(settingsPath)) {
       try {
@@ -591,7 +543,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 3. API Keys
     const apiKeysPath = path.join(sysDbDir, "api-keys.json");
     if (fs.existsSync(apiKeysPath)) {
       try {
@@ -608,7 +559,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 4. Combos
     const combosPath = path.join(sysDbDir, "combos.json");
     if (fs.existsSync(combosPath)) {
       try {
@@ -625,7 +575,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 5. Proxy Pools
     const proxyPoolsPath = path.join(sysDbDir, "proxy-pools.json");
     if (fs.existsSync(proxyPoolsPath)) {
       try {
@@ -644,7 +593,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 6. Provider Nodes
     const nodesPath = path.join(sysDbDir, "nodes.json");
     if (fs.existsSync(nodesPath)) {
       try {
@@ -663,7 +611,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 7. Aliases
     const aliasesPath = path.join(sysDbDir, "aliases.json");
     if (fs.existsSync(aliasesPath)) {
       try {
@@ -695,7 +642,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 8. Pricing
     const pricingPath = path.join(sysDbDir, "pricing.json");
     if (fs.existsSync(pricingPath)) {
       try {
@@ -714,7 +660,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 9. Usage: history
     const historyPath = path.join(sysUsageDir, "history.json");
     if (fs.existsSync(historyPath)) {
       try {
@@ -731,7 +676,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 10. Usage: daily
     const dailyPath = path.join(sysUsageDir, "daily.json");
     if (fs.existsSync(dailyPath)) {
       try {
@@ -750,7 +694,6 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 11. Usage: request-details
     const detailsPath = path.join(sysUsageDir, "request-details.json");
     if (fs.existsSync(detailsPath)) {
       try {
@@ -767,17 +710,12 @@ export function importFromModular(adapter, baseDir) {
       }
     }
 
-    // 12. Providers: scan DATA_DIR subdirectories
     loadAllProvidersFromDisk(adapter, baseDir);
   });
 
-  // Ensure all canonical provider directories and JSON files exist
   ensureAllProviderFoldersExist(baseDir);
 }
 
-/**
- * Saves ONLY a single provider's JSON file: provider/{ProviderName}/{ProviderName}.json
- */
 export function saveProviderSync(adapter, providerId, baseDir) {
   baseDir = getBaseDir(baseDir);
   if (!providerId || typeof providerId !== "string") return;
@@ -796,7 +734,6 @@ export function saveProviderSync(adapter, providerId, baseDir) {
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(unpacked, null, 2), "utf-8");
 
-  // Clean up legacy nested db file if present
   const legacyNested = path.join(dirPath, "db", path.basename(filePath));
   if (fs.existsSync(legacyNested)) {
     try {
@@ -805,7 +742,6 @@ export function saveProviderSync(adapter, providerId, baseDir) {
     } catch {}
   }
 
-  // Clean up legacy root file if present (e.g. baseDir/{dirName}/{dirName}.json)
   const legacyRootFile = path.join(baseDir, path.basename(dirPath), path.basename(filePath));
   if (fs.existsSync(legacyRootFile) && legacyRootFile !== filePath) {
     try {
@@ -818,9 +754,6 @@ export function saveProviderSync(adapter, providerId, baseDir) {
   }
 }
 
-/**
- * Saves core system configs in system/db/
- */
 export function saveSystemDbSync(adapter, target, baseDir) {
   baseDir = getBaseDir(baseDir);
   const sysDbDir = getSystemDbDir(baseDir);
@@ -895,9 +828,6 @@ export function saveSystemDbSync(adapter, target, baseDir) {
   }
 }
 
-/**
- * Saves usage stats and logs in system/usage/
- */
 export function saveSystemUsageSync(adapter, target, baseDir) {
   baseDir = getBaseDir(baseDir);
   const sysUsageDir = getSystemUsageDir(baseDir);
@@ -925,7 +855,6 @@ export function saveSystemUsageSync(adapter, target, baseDir) {
   }
 }
 
-// Track pending debounced saves
 const pendingProviderSaves = new Set();
 const pendingSystemDbSaves = new Set();
 const pendingSystemUsageSaves = new Set();

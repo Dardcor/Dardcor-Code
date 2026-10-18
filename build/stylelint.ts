@@ -18,12 +18,6 @@ interface FileWithLines {
 
 type Reporter = (message: string, isError: boolean) => void;
 
-/**
- * Stylelint gulpfile task. When `designTokensEverywhere` is `true` the
- * design-token suggestions run on every linted file; used when the caller explicitly
- * targets a path so the checks follow the requested scope. Set
- * `reportDesignTokenSuggestions` to `false` when only enforced checks should run.
- */
 export default function gulpstylelint(reporter: Reporter, designTokensEverywhere = false, reportDesignTokenSuggestions = true): NodeJS.ReadWriteStream {
 	const variableValidator = getVariableNameValidator();
 	let errorCount = 0;
@@ -32,7 +26,6 @@ export default function gulpstylelint(reporter: Reporter, designTokensEverywhere
 	const layerCheckerDisablePattern = /\/\*\s*stylelint-disable\s+layer-checker\s*\*\//;
 	const hasAnchorCheckerDisablePattern = /^\s*\/\*\s*stylelint-disable\s+has-anchor-checker\s*\*\/\s*$/;
 
-	// Per-category tally of design-token suggestions for the summary footer.
 	const designTokenCounts: Record<string, number> = { codicon: 0, 'font-size': 0, weight: 0, radius: 0, spacing: 0, stroke: 0, deprecated: 0 };
 	let designTokenFileCount = 0;
 
@@ -43,10 +36,8 @@ export default function gulpstylelint(reporter: Reporter, designTokensEverywhere
 
 		const isRestrictedPath = restrictedPathPattern.test(file.relative);
 
-		// Check if layer-checker is disabled for the entire file
 		const isLayerCheckerDisabled = lines.some(line => layerCheckerDisablePattern.test(line));
 
-		// Check if has-anchor-checker is disabled for the entire file
 		const isHasAnchorCheckerDisabled = lines.some(line => hasAnchorCheckerDisablePattern.test(line));
 
 		lines.forEach((line, i) => {
@@ -69,10 +60,6 @@ export default function gulpstylelint(reporter: Reporter, designTokensEverywhere
 			}
 		}
 
-		// Design-token checks that need block (selector + declaration) awareness.
-		// When `designTokensEverywhere` is set (an explicit path was targeted)
-		// they run on every linted file so the checks follow the requested scope.
-		// All findings are advisory warnings (never fail the build).
 		if (reportDesignTokenSuggestions && designTokensEverywhere) {
 			const findings: { line: number; category: string; message: string }[] = [];
 			for (const v of validateCodiconFontSizes(contents)) { findings.push({ line: v.line, category: 'codicon', message: v.message }); }
@@ -85,7 +72,7 @@ export default function gulpstylelint(reporter: Reporter, designTokensEverywhere
 
 			if (findings.length > 0) {
 				findings.sort((a, b) => a.line - b.line);
-				reporter('', false); // blank line separates file groups
+				reporter('', false);
 				reporter(file.relative + ' (' + findings.length + ' design-token suggestion' + (findings.length === 1 ? '' : 's') + ')', false);
 				for (const f of findings) {
 					reporter('  ' + file.relative + '(' + f.line + ',1): [' + f.category + '] ' + f.message, false);
@@ -145,8 +132,6 @@ function stylelint(sources: string[] = Array.from(stylelintFilter), explicit = f
 			fileCount++;
 			this.emit('data', file);
 		}, function () {
-			// When the caller targeted an explicit path that matched no CSS files,
-			// say so - otherwise a typo'd path looks like a clean run.
 			if (explicit && fileCount === 0) {
 				console.info('No CSS files matched the requested path: ' + sources.join(', '));
 			}
@@ -154,15 +139,6 @@ function stylelint(sources: string[] = Array.from(stylelintFilter), explicit = f
 		}));
 }
 
-/**
- * Resolves the source globs to lint from the CLI argument, if any. Accepts a
- * single file, a folder, or a glob (passed via `npm run stylelint -- <path>` or
- * `--path=<path>`). A `.css` file or an explicit glob is used as-is; a folder is
- * expanded to `<folder>/**\/*.css`. With no argument the default
- * `src/**\/*.css` set is linted. Returns the resolved globs plus whether an
- * explicit path was given (used to widen the design-token checks beyond the
- * default `src/dc/sessions` scope to follow the requested path).
- */
 function resolveSources(argv: string[]): { sources: string[]; explicit: boolean } {
 	const args = argv.slice(2);
 	let target: string | undefined;
@@ -170,7 +146,7 @@ function resolveSources(argv: string[]): { sources: string[]; explicit: boolean 
 		if (arg.startsWith('--path=')) {
 			target = arg.slice('--path='.length);
 		} else if (arg === '--path' || arg === '-p') {
-			continue; // value is the next positional arg
+			continue;
 		} else if (!arg.startsWith('-')) {
 			target = arg;
 		}
@@ -178,7 +154,6 @@ function resolveSources(argv: string[]): { sources: string[]; explicit: boolean 
 	if (!target) {
 		return { sources: Array.from(stylelintFilter), explicit: false };
 	}
-	// Normalise separators and trim any trailing slash.
 	const normalized = target.replace(/\\/g, '/').replace(/\/+$/, '');
 	if (/[*?[\]{}]/.test(normalized) || /\.css$/i.test(normalized)) {
 		return { sources: [normalized], explicit: true };

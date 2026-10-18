@@ -83,11 +83,6 @@ export interface IIdentityProvider<T> {
 
 export interface IKeyboardNavigationLabelProvider<T> {
 
-	/**
-	 * Return a keyboard navigation label(s) which will be used by
-	 * the list for filtering/navigating. Return `undefined` to make
-	 * an element always match.
-	 */
 	getKeyboardNavigationLabel(element: T): { toString(): string | undefined } | { toString(): string | undefined }[] | undefined;
 }
 
@@ -114,7 +109,7 @@ export interface ListDragOverEffect {
 export interface IListDragOverReaction {
 	accept: boolean;
 	effect?: ListDragOverEffect;
-	feedback?: number[]; // use -1 for entire list
+	feedback?: number[];
 }
 
 export const ListDragOverReactions = {
@@ -122,10 +117,6 @@ export const ListDragOverReactions = {
 	accept(): IListDragOverReaction { return { accept: true }; },
 };
 
-/**
- * Warning: Once passed to a list, that list takes up
- * the responsibility of disposing it.
- */
 export interface IListDragAndDrop<T> extends IDisposable {
 	getDragURI(element: T): string | null;
 	getDragLabel?(elements: T[], originalEvent: DragEvent): string | undefined;

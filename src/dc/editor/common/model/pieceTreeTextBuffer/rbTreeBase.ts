@@ -11,10 +11,9 @@ export class TreeNode {
 	right: TreeNode;
 	color: NodeColor;
 
-	// Piece
 	piece: Piece;
-	size_left: number; // size of the left subtree (not inorder)
-	lf_left: number; // line feeds cnt in the left subtree (not in order)
+	size_left: number;
+	lf_left: number;
 
 	constructor(piece: Piece, color: NodeColor) {
 		this.piece = piece;
@@ -125,7 +124,6 @@ function resetSentinel(): void {
 export function leftRotate(tree: PieceTreeBase, x: TreeNode) {
 	const y = x.right;
 
-	// fix size_left
 	y.size_left += x.size_left + (x.piece ? x.piece.length : 0);
 	y.lf_left += x.lf_left + (x.piece ? x.piece.lineFeedCnt : 0);
 	x.right = y.left;
@@ -153,7 +151,6 @@ export function rightRotate(tree: PieceTreeBase, y: TreeNode) {
 	}
 	x.parent = y.parent;
 
-	// fix size_left
 	y.size_left -= x.size_left + (x.piece ? x.piece.length : 0);
 	y.lf_left -= x.lf_left + (x.piece ? x.piece.lineFeedCnt : 0);
 
@@ -187,7 +184,6 @@ export function rbDelete(tree: PieceTreeBase, z: TreeNode) {
 	if (y === tree.root) {
 		tree.root = x;
 
-		// if x is null, we are removing the only node
 		x.color = NodeColor.Black;
 		z.detach();
 		resetSentinel();
@@ -214,7 +210,6 @@ export function rbDelete(tree: PieceTreeBase, z: TreeNode) {
 			x.parent = y.parent;
 		}
 
-		// as we make changes to x's hierarchy, update size_left of subtree first
 		recomputeTreeMetadata(tree, x);
 
 		y.left = z.left;
@@ -238,8 +233,6 @@ export function rbDelete(tree: PieceTreeBase, z: TreeNode) {
 		if (y.right !== SENTINEL) {
 			y.right.parent = y;
 		}
-		// update metadata
-		// we replace z with y, so in this sub tree, the length change is z.item.length
 		y.size_left = z.size_left;
 		y.lf_left = z.lf_left;
 		recomputeTreeMetadata(tree, y);
@@ -266,7 +259,6 @@ export function rbDelete(tree: PieceTreeBase, z: TreeNode) {
 		return;
 	}
 
-	// RB-DELETE-FIXUP
 	let w: TreeNode;
 	while (x !== tree.root && x.color === NodeColor.Black) {
 		if (x === x.parent.left) {
@@ -376,7 +368,6 @@ export function fixInsert(tree: PieceTreeBase, x: TreeNode) {
 }
 
 export function updateTreeMetadata(tree: PieceTreeBase, x: TreeNode, delta: number, lineFeedCntDelta: number): void {
-	// node length change or line feed count change
 	while (x !== tree.root && x !== SENTINEL) {
 		if (x.parent.left === x) {
 			x.parent.size_left += delta;
@@ -394,17 +385,14 @@ export function recomputeTreeMetadata(tree: PieceTreeBase, x: TreeNode) {
 		return;
 	}
 
-	// go upwards till the node whose left subtree is changed.
 	while (x !== tree.root && x === x.parent.right) {
 		x = x.parent;
 	}
 
 	if (x === tree.root) {
-		// well, it means we add a node to the end (inorder)
 		return;
 	}
 
-	// x is the node whose right subtree is changed.
 	x = x.parent;
 
 	delta = calculateSize(x.left) - x.size_left;
@@ -413,7 +401,6 @@ export function recomputeTreeMetadata(tree: PieceTreeBase, x: TreeNode) {
 	x.lf_left += lf_delta;
 
 
-	// go upwards till root. O(logN)
 	while (x !== tree.root && (delta !== 0 || lf_delta !== 0)) {
 		if (x.parent.left === x) {
 			x.parent.size_left += delta;

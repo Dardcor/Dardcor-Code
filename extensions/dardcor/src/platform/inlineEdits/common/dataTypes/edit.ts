@@ -26,15 +26,9 @@ export class RootedEdit<TEdit extends BaseStringEdit<BaseStringReplacement<any>,
 		return this.edit.applyOnText(this.base);
 	}
 
-	/**
-	 * Creates a rooted edit `r`, such that
-	 * * `r.initialState.equals(this.initialState.apply(onto))`
-	 * * `(r.initialState.apply(r.edit)).equals(this.initialState.apply(onto).apply(this.edit))`
-	*/
 	public rebase(onto: StringEdit): RootedEdit {
 		const result: RootedEdit = null!;
 
-		// TODO implement
 
 		assertFn(() => result.base.equals(onto.applyOnText(this.base)));
 		assertFn(() => result.edit.applyOnText(result.base).equals(this.edit.applyOnText(onto.applyOnText(this.base))));
@@ -47,9 +41,6 @@ export class RootedEdit<TEdit extends BaseStringEdit<BaseStringReplacement<any>,
 		return e.toString();
 	}
 
-	/**
-	 * If `r.base.equals(this.base)` and `r.getEditedState().equals(this.getEditedState())`, then `r.normalize().equals(this.normalize())`.
-	*/
 	public normalize(): RootedEdit {
 		return new RootedEdit(this.base, this.edit.normalizeOnSource(this.base.value));
 	}
@@ -61,14 +52,8 @@ export class RootedEdit<TEdit extends BaseStringEdit<BaseStringReplacement<any>,
 
 export type TReplacement<TEdit> = TEdit extends BaseEdit<infer TReplacement, any> ? TReplacement : never;
 
-/**
- * Represents a sequence of single edits.
-*/
 export class SingleEdits<TEdit extends BaseStringEdit<BaseStringReplacement<any>, any> = StringEdit> {
 	constructor(
-		/**
-		 * The edits are applied in order and don't have to be sorted.
-		*/
 		public readonly edits: readonly TEdit['TReplacement'][],
 	) { }
 
@@ -89,9 +74,6 @@ export class SingleEdits<TEdit extends BaseStringEdit<BaseStringReplacement<any>
 	}
 }
 
-/**
- * Represents a sequence of edits.
-*/
 export class Edits<T extends BaseStringEdit<BaseStringReplacement<any>, any> = StringEdit> {
 	public static single(edit: StringEdit): Edits {
 		return new Edits(StringEdit, [edit]);
@@ -99,10 +81,6 @@ export class Edits<T extends BaseStringEdit<BaseStringReplacement<any>, any> = S
 
 	constructor(
 		private readonly _editType: new (replacements: readonly TReplacement<T>[]) => T,
-		/**
-		 * The edits are applied in given order and don't have to be sorted.
-		 * Least to most recent.
-		 */
 		public readonly edits: readonly T[],
 	) { }
 
@@ -140,9 +118,6 @@ export class Edits<T extends BaseStringEdit<BaseStringReplacement<any>, any> = S
 		return { edits: new Edits(StringEdit, newEdits), editLast: eM };
 	}
 
-	/*mapData<T2 extends IEditData<T2> | void = void>(f: (data: T) => T2): Edits<T2> {
-		return new Edits(this.edits.map(e => e.mapData(f)));
-	}*/
 
 	serialize(): SerializedEdit[] {
 		return this.edits.map(e => serializeStringEdit(e));

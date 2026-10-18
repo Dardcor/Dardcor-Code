@@ -51,7 +51,6 @@ function renderPeekReference({ container, disposableStore, theme }: ComponentFix
 
 	const uri = URI.parse('inmemory://peek-fixture.ts');
 
-	// Store text model reference for the mock service
 	const fixtureTextModel: { value: ITextModel | undefined } = { value: undefined };
 
 	const instantiationService = createEditorServices(disposableStore, {
@@ -66,7 +65,6 @@ function renderPeekReference({ container, disposableStore, theme }: ComponentFix
 			reg.defineInstance(ITextModelService, new class extends mock<ITextModelService>() {
 				declare readonly _serviceBrand: undefined;
 				override async createModelReference(resource: URI): Promise<IReference<IResolvedTextEditorModel>> {
-					// Return a mock reference if we have a text model for this URI
 					const model = fixtureTextModel.value;
 					if (model && resource.toString() === uri.toString()) {
 						const onWillDispose = new Emitter<void>();
@@ -131,9 +129,6 @@ function renderPeekReference({ container, disposableStore, theme }: ComponentFix
 		true,
 		layoutData,
 	);
-	// Register widget BEFORE editor so widget.dispose() runs first; otherwise
-	// `ReferenceWidget.dispose()` calls `observableCodeEditor(disposed editor)`
-	// which creates a fresh untracked ObservableCodeEditor.
 	disposableStore.add(referenceWidget);
 	disposableStore.add(editor);
 

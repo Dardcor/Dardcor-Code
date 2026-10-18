@@ -8,11 +8,6 @@ import { DatabaseSync } from 'node:sqlite';
 import { dirname } from 'path';
 import type { CheckpointRow, FileRow, ISessionStore, RefRow, SearchResult, SessionRow, SessionStoreOptions, TurnRow } from '../common/sessionStore';
 
-/**
- * SQLite authorizer action codes that are safe for read-only access.
- * Values from https://www.sqlite.org/c3ref/c_alter_table.html
- * (node:sqlite constants do not expose authorizer codes)
- */
 const SQLITE_OK = 0;
 const SQLITE_DENY = 1;
 const SQLITE_READ = 20;
@@ -22,28 +17,16 @@ const SQLITE_PRAGMA = 19;
 const SQLITE_RECURSIVE = 33;
 
 const READ_ONLY_ACTION_CODES = new Set([
-	SQLITE_READ, // read a column
-	SQLITE_SELECT, // top-level SELECT
-	SQLITE_FUNCTION, // call a function (needed for bm25(), etc.)
-	SQLITE_RECURSIVE, // recursive CTE
+	SQLITE_READ,
+	SQLITE_SELECT,
+	SQLITE_FUNCTION,
+	SQLITE_RECURSIVE,
 ]);
 
-/**
- * Functions denied at the authorizer layer for defense-in-depth, even though the tool
- * layer also blocks them by regex. Names are compared case-insensitively.
- */
 const DENIED_FUNCTIONS = new Set(['load_extension']);
 
-/** Schema version — bump when altering tables so existing DBs get migrated. */
 const SCHEMA_VERSION = 3;
 
-/**
- * Substrings (matched case-insensitively) that identify a corrupt or otherwise
- * unusable database file. These typically appear on non-POSIX network
- * filesystems (NFS/SMB/sshfs) used by SSH-Remote workspaces, where SQLite's
- * locking protocol is not honoured and the file can become permanently
- * malformed.
- */
 const CORRUPTION_ERROR_MARKERS = [
 	'malformed',
 	'file is not a database',
@@ -57,13 +40,6 @@ function errorMessageIncludes(err: unknown, markers: readonly string[]): boolean
 	return markers.some(marker => message.includes(marker));
 }
 
-/**
- * Session store backed by SQLite + FTS5.
- *
- * Schema is identical to the dardcor-agent-runtime SessionStore so that
- * tooling and queries are portable across CLI and VS Code surfaces.
- * The store is populated incrementally by live hooks — no background indexing.
- */
 export class SessionStore implements ISessionStore {
 	declare readonly _serviceBrand: undefined;
 	private db: DatabaseSync | null = null;
@@ -75,21 +51,10 @@ export class SessionStore implements ISessionStore {
 		this.remote = options?.remote ?? false;
 	}
 
-	/**
-	 * Get the path to the database file.
-	 */
 	getPath(): string {
 		return this.dbPath;
 	}
 
-	/**
-	 * Lazily open (or create) the database and ensure the schema exists.
-	 *
-	 * On remote workspaces the database often lives on a network filesystem
-	 * (NFS/SMB/sshfs) that does not provide the POSIX locking guarantees WAL
-	 * mode relies on. If the file is detected to be corrupt it is deleted and
-	 * recreated once before giving up.
-	 */
 	private ensureDb(): DatabaseSync {
 		if (this.db) {
 			return this.db;
@@ -98,8 +63,6 @@ export class SessionStore implements ISessionStore {
 		try {
 			return this.openDb();
 		} catch (err) {
-			// A corrupt on-disk database is unrecoverable in place. Delete it and
-			// the WAL/SHM sidecar files, then try once more with a fresh file.
 			if (this.dbPath !== ':memory:' && errorMessageIncludes(err, CORRUPTION_ERROR_MARKERS)) {
 				this.deleteDbFiles();
 				return this.openDb();
@@ -108,9 +71,6 @@ export class SessionStore implements ISessionStore {
 		}
 	}
 
-	/**
-	 * Open the database, configure pragmas and ensure the schema exists.
-	 */
 	private openDb(): DatabaseSync {
 		if (this.dbPath !== ':memory:') {
 			mkdirSync(dirname(this.dbPath), { recursive: true });
@@ -119,9 +79,6 @@ export class SessionStore implements ISessionStore {
 		const db = new DatabaseSync(this.dbPath);
 		try {
 			if (this.remote) {
-				// WAL requires shared-memory (-shm) plus POSIX byte-range locking,
-				// neither of which network filesystems reliably provide. A rollback
-				// journal with a longer busy timeout is far more robust there.
 				db.exec('PRAGMA journal_mode = DELETE');
 				db.exec('PRAGMA busy_timeout = 10000');
 				db.exec('PRAGMA synchronous = NORMAL');
@@ -140,22 +97,12 @@ export class SessionStore implements ISessionStore {
 		return this.db;
 	}
 
-	/**
-	 * Best-effort deletion of the database file and its WAL/SHM sidecar files.
-	 */
 	private deleteDbFiles(): void {
 		for (const suffix of ['', '-wal', '-shm', '-journal']) {
 			rmSync(this.dbPath + suffix, { force: true });
 		}
 	}
 
-	/**
-	 * Create or migrate tables to the current schema version.
-	 *
-	 * IMPORTANT: When bumping SCHEMA_VERSION, add explicit migration logic
-	 * for each version step (e.g., v1→v2). CREATE TABLE IF NOT EXISTS does
-	 * NOT alter existing tables — use ALTER TABLE for schema changes.
-	 */
 	private ensureSchema(): void {
 		const db = this.db!;
 
@@ -245,8 +192,6 @@ export class SessionStore implements ISessionStore {
 			CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON checkpoints(session_id);
 		`);
 
-		// FTS5 virtual table — CREATE VIRTUAL TABLE doesn't support IF NOT EXISTS
-		// in all SQLite builds, so we guard with a check.
 		const ftsExists = db.prepare('SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'search_index\'').get();
 		if (!ftsExists) {
 			db.exec(`
@@ -259,7 +204,6 @@ export class SessionStore implements ISessionStore {
 			`);
 		}
 
-		// ── Schema migrations ────────────────────────────────────────────
 		if (currentVersion >= 1 && currentVersion < 2) {
 			db.exec('ALTER TABLE sessions ADD COLUMN host_type TEXT');
 		}
@@ -268,7 +212,6 @@ export class SessionStore implements ISessionStore {
 			db.exec('ALTER TABLE sessions ADD COLUMN agent_description TEXT');
 		}
 
-		// Update or insert schema version
 		if (currentVersion === 0) {
 			db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(SCHEMA_VERSION);
 		} else {
@@ -276,11 +219,7 @@ export class SessionStore implements ISessionStore {
 		}
 	}
 
-	// ── CRUD Methods ────────────────────────────────────────────────────
 
-	/**
-	 * Insert or update a session's metadata.
-	 */
 	upsertSession(session: SessionRow): void {
 		const db = this.ensureDb();
 		db.prepare(
@@ -310,13 +249,9 @@ export class SessionStore implements ISessionStore {
 		);
 	}
 
-	/**
-	 * Insert a conversation turn and index it for full-text search.
-	 */
 	insertTurn(turn: TurnRow): void {
 		const db = this.ensureDb();
 
-		// Ensure session exists (lightweight upsert)
 		db.prepare('INSERT OR IGNORE INTO sessions (id) VALUES (?)').run(turn.session_id);
 
 		db.prepare(
@@ -333,11 +268,9 @@ export class SessionStore implements ISessionStore {
 			turn.timestamp ?? new Date().toISOString(),
 		);
 
-		// Index searchable content
 		const content = [turn.user_message, turn.assistant_response].filter(Boolean).join('\n');
 		if (content) {
 			const turnId = `${turn.session_id}:turn:${turn.turn_index}`;
-			// Remove old FTS entry if exists, then insert new one
 			db.prepare('DELETE FROM search_index WHERE source_id = ?').run(turnId);
 			db.prepare(
 				'INSERT INTO search_index (content, session_id, source_type, source_id) VALUES (?, ?, ?, ?)',
@@ -345,13 +278,9 @@ export class SessionStore implements ISessionStore {
 		}
 	}
 
-	/**
-	 * Insert a compaction checkpoint and index its sections for full-text search.
-	 */
 	insertCheckpoint(checkpoint: CheckpointRow): void {
 		const db = this.ensureDb();
 
-		// Ensure session exists
 		db.prepare('INSERT OR IGNORE INTO sessions (id) VALUES (?)').run(checkpoint.session_id);
 
 		db.prepare(
@@ -378,7 +307,6 @@ export class SessionStore implements ISessionStore {
 			checkpoint.created_at ?? new Date().toISOString(),
 		);
 
-		// Index each non-empty section
 		const sections: [string, string | undefined][] = [
 			['checkpoint_overview', checkpoint.overview],
 			['checkpoint_history', checkpoint.history],
@@ -398,10 +326,6 @@ export class SessionStore implements ISessionStore {
 		}
 	}
 
-	/**
-	 * Record a file touched during a session.
-	 * Uses INSERT OR IGNORE so the first occurrence wins.
-	 */
 	insertFile(file: FileRow): void {
 		const db = this.ensureDb();
 		db.prepare('INSERT OR IGNORE INTO sessions (id) VALUES (?)').run(file.session_id);
@@ -417,9 +341,6 @@ export class SessionStore implements ISessionStore {
 		);
 	}
 
-	/**
-	 * Record a reference (commit, PR, issue) for a session.
-	 */
 	insertRef(ref: RefRow): void {
 		const db = this.ensureDb();
 		db.prepare('INSERT OR IGNORE INTO sessions (id) VALUES (?)').run(ref.session_id);
@@ -435,12 +356,7 @@ export class SessionStore implements ISessionStore {
 		);
 	}
 
-	// ── Query Methods ───────────────────────────────────────────────────
 
-	/**
-	 * Index a workspace artifact (e.g. plan.md, context files) for full-text search.
-	 * Content is upserted: subsequent writes to the same file replace the previous index entry.
-	 */
 	indexWorkspaceArtifact(sessionId: string, filePath: string, content: string): void {
 		if (!content.trim()) { return; }
 		const db = this.ensureDb();
@@ -454,10 +370,6 @@ export class SessionStore implements ISessionStore {
 		);
 	}
 
-	/**
-	 * Delete a session and all associated data.
-	 * Removes turns, checkpoints, files, refs, search index entries, and the session row.
-	 */
 	deleteSession(sessionId: string): void {
 		const db = this.ensureDb();
 		this.runInTransaction(() => {
@@ -470,13 +382,6 @@ export class SessionStore implements ISessionStore {
 		});
 	}
 
-	/**
-	 * Full-text search across all indexed content (turns, checkpoint sections, and workspace artifacts).
-	 * Uses FTS5 MATCH with BM25 ranking.
-	 *
-	 * @param query FTS5 query string (supports AND, OR, NOT, phrase "..." etc.)
-	 * @param limit Maximum results to return (default 20)
-	 */
 	search(query: string, limit: number = 20): SearchResult[] {
 		const db = this.ensureDb();
 		const stmt = db.prepare(`
@@ -489,17 +394,11 @@ export class SessionStore implements ISessionStore {
 		return stmt.all(query, limit) as unknown as SearchResult[];
 	}
 
-	/**
-	 * Get a session by ID.
-	 */
 	getSession(sessionId: string): SessionRow | undefined {
 		const db = this.ensureDb();
 		return db.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as unknown as SessionRow | undefined;
 	}
 
-	/**
-	 * Get all turns for a session, ordered by turn index.
-	 */
 	getTurns(sessionId: string): TurnRow[] {
 		const db = this.ensureDb();
 		return db
@@ -507,29 +406,16 @@ export class SessionStore implements ISessionStore {
 			.all(sessionId) as unknown as TurnRow[];
 	}
 
-	/**
-	 * Get all files touched in a session.
-	 */
 	getFiles(sessionId: string): FileRow[] {
 		const db = this.ensureDb();
 		return db.prepare('SELECT * FROM session_files WHERE session_id = ?').all(sessionId) as unknown as FileRow[];
 	}
 
-	/**
-	 * Get all refs for a session.
-	 */
 	getRefs(sessionId: string): RefRow[] {
 		const db = this.ensureDb();
 		return db.prepare('SELECT * FROM session_refs WHERE session_id = ?').all(sessionId) as unknown as RefRow[];
 	}
 
-	/**
-	 * Execute a read-only SQL query against the store.
-	 * When SQLite's authorizer API is available (Node.js 24.2+), installs a positive
-	 * action-code allowlist so the engine enforces read-only. When unavailable, runs the
-	 * prepared statement directly — callers MUST validate the SQL (allowlist + blocklist)
-	 * before calling this method.
-	 */
 	executeReadOnly(sql: string): Record<string, unknown>[] {
 		const db = this.ensureDb();
 
@@ -543,7 +429,6 @@ export class SessionStore implements ISessionStore {
 				if (READ_ONLY_ACTION_CODES.has(actionCode)) {
 					return SQLITE_OK;
 				}
-				// FTS5 internally uses PRAGMA data_version to detect DB changes
 				if (actionCode === SQLITE_PRAGMA && p1 === 'data_version') {
 					return SQLITE_OK;
 				}
@@ -560,17 +445,11 @@ export class SessionStore implements ISessionStore {
 		}
 	}
 
-	/**
-	 * Execute SQL, used for hard-coded, trusted SQL composed inside the extension.
-	 */
 	executeReadOnlyFallback(sql: string): Record<string, unknown>[] {
 		const db = this.ensureDb();
 		return db.prepare(sql).all() as Record<string, unknown>[];
 	}
 
-	/**
-	 * Get the highest turn_index for a session, or -1 if no turns exist.
-	 */
 	getMaxTurnIndex(sessionId: string): number {
 		const db = this.ensureDb();
 		const row = db
@@ -579,9 +458,6 @@ export class SessionStore implements ISessionStore {
 		return row?.max_idx ?? -1;
 	}
 
-	/**
-	 * Get basic stats about the store.
-	 */
 	getStats(): { sessions: number; turns: number; checkpoints: number; files: number; refs: number } {
 		const db = this.ensureDb();
 		const count = (table: string) =>
@@ -595,15 +471,6 @@ export class SessionStore implements ISessionStore {
 		};
 	}
 
-	/**
-	 * Run a function inside a SQLite transaction (BEGIN/COMMIT/ROLLBACK).
-	 * All writes are batched into a single atomic commit, which is significantly
-	 * faster than auto-committing each individual INSERT.
-	 *
-	 * Transient lock contention is handled by SQLite's `busy_timeout` pragma; a
-	 * failed transaction propagates to the caller, which re-queues the writes for
-	 * the next flush rather than blocking here.
-	 */
 	runInTransaction(fn: () => void): void {
 		const db = this.ensureDb();
 		db.exec('BEGIN');
@@ -616,21 +483,13 @@ export class SessionStore implements ISessionStore {
 		}
 	}
 
-	/**
-	 * Roll back the active transaction, swallowing the "no transaction is active"
-	 * error that occurs when the failure happened before BEGIN took effect.
-	 */
 	private rollbackQuietly(db: DatabaseSync): void {
 		try {
 			db.exec('ROLLBACK');
 		} catch {
-			// No active transaction to roll back — safe to ignore.
 		}
 	}
 
-	/**
-	 * Close the database connection.
-	 */
 	close(): void {
 		if (this.db) {
 			this.db.close();

@@ -92,9 +92,6 @@ function getCacheCreationTokens(tokens) {
 
 function getInputTokens(tokens) {
   const prompt = tokens?.prompt_tokens || tokens?.input_tokens || 0;
-  // Canonical storage keeps prompt cache-inclusive. Legacy Claude rows may have
-  // stored prompt cache-exclusive; fall back to cache when it's larger so old
-  // rows don't under-report input.
   const cache = getCachedTokens(tokens);
   return prompt < cache ? cache : prompt;
 }

@@ -20,10 +20,6 @@ export const IChatContextService = createDecorator<IChatContextService>('chatCon
 
 export interface IChatContextService extends ChatContextService { }
 
-/**
- * A selector describing which tabs a resource context provider applies to. Either a
- * {@link LanguageSelector} matched against a resource's URI, or a webview `viewType`.
- */
 export type ChatTabSelector = { uri: LanguageSelector } | { viewType: string };
 
 function isViewTypeTabSelector(selector: ChatTabSelector): selector is { viewType: string } {
@@ -118,7 +114,6 @@ export class ChatContextService extends Disposable {
 				if (!item.value) {
 					continue;
 				}
-				// Derive label from resourceUri if label is not set
 				const derivedLabel = item.label ?? (item.resourceUri ? basename(item.resourceUri) : 'Unknown');
 				items.push({
 					value: item.value,
@@ -157,7 +152,6 @@ export class ChatContextService extends Disposable {
 		if (!context) {
 			return;
 		}
-		// Derive label from resourceUri if label is not set
 		const effectiveResourceUri = context.resourceUri ?? uri;
 		const derivedLabel = context.label ?? basename(effectiveResourceUri);
 		const contextValue: StringChatContextValue = {
@@ -209,7 +203,6 @@ export class ChatContextService extends Disposable {
 
 			const picks = async (): Promise<IChatContextItem[]> => {
 				if (providerEntry && !providerEntry.explicitProvider) {
-					// Activate the extension providing the chat context provider
 					await this._extensionService.activateByEvent(`onChatContextProvider:${id}`);
 					providerEntry = this._providers.get(id);
 					if (!providerEntry?.explicitProvider) {
@@ -223,7 +216,6 @@ export class ChatContextService extends Disposable {
 			return {
 				picks: picks().then(items => {
 					return items.map(item => {
-						// Derive label from resourceUri if label is not set
 						const derivedLabel = item.label ?? (item.resourceUri ? basename(item.resourceUri) : 'Unknown');
 						const iconPath = item.iconPath;
 						const isThemeIcon = ThemeIcon.isThemeIcon(iconPath);
@@ -238,7 +230,6 @@ export class ChatContextService extends Disposable {
 								if ((contextValue.value === undefined) && providerEntry?.explicitProvider) {
 									contextValue = await providerEntry.explicitProvider.resolveChatContext(item, CancellationToken.None);
 								}
-								// Derive label from resourceUri if label is not set
 								const resolvedLabel = contextValue.label ?? (contextValue.resourceUri ? basename(contextValue.resourceUri) : 'Unknown');
 								return {
 									kind: 'generic',

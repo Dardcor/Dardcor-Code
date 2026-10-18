@@ -62,12 +62,10 @@ export class DiagnosticCollection implements vscode.DiagnosticCollection {
 	set(first: vscode.Uri | ReadonlyArray<[vscode.Uri, ReadonlyArray<vscode.Diagnostic>]>, diagnostics?: ReadonlyArray<vscode.Diagnostic>) {
 
 		if (!first) {
-			// this set-call is a clear-call
 			this.clear();
 			return;
 		}
 
-		// the actual implementation for #set
 
 		this._checkDisposed();
 		let toSync: vscode.Uri[] = [];
@@ -75,21 +73,17 @@ export class DiagnosticCollection implements vscode.DiagnosticCollection {
 		if (URI.isUri(first)) {
 
 			if (!diagnostics) {
-				// remove this entry
 				this.delete(first);
 				return;
 			}
 
-			// update single row
 			this.#data.set(first, coalesce(diagnostics));
 			toSync = [first];
 
 		} else if (Array.isArray(first)) {
-			// update many rows
 			toSync = [];
 			let lastUri: vscode.Uri | undefined;
 
-			// ensure stable-sort
 			first = [...first].sort(DiagnosticCollection._compareIndexedTuplesByUri);
 
 			for (const tuple of first) {
@@ -104,7 +98,6 @@ export class DiagnosticCollection implements vscode.DiagnosticCollection {
 				}
 
 				if (!diagnostics) {
-					// [Uri, undefined] means clear this
 					const currentDiagnostics = this.#data.get(uri);
 					if (currentDiagnostics) {
 						currentDiagnostics.length = 0;
@@ -116,10 +109,8 @@ export class DiagnosticCollection implements vscode.DiagnosticCollection {
 			}
 		}
 
-		// send event for extensions
 		this.#onDidChangeDiagnostics.fire(toSync);
 
-		// compute change and send to main side
 		if (!this.#proxy) {
 			return;
 		}
@@ -130,7 +121,6 @@ export class DiagnosticCollection implements vscode.DiagnosticCollection {
 			const diagnostics = this.#data.get(uri);
 			if (diagnostics) {
 
-				// no more than N diagnostics per file
 				if (diagnostics.length > this._maxDiagnosticsPerFile) {
 					marker = [];
 					const order = [DiagnosticSeverity.Error, DiagnosticSeverity.Warning, DiagnosticSeverity.Information, DiagnosticSeverity.Hint];
@@ -145,7 +135,6 @@ export class DiagnosticCollection implements vscode.DiagnosticCollection {
 						}
 					}
 
-					// add 'signal' marker for showing omitted errors/warnings
 					marker.push({
 						severity: MarkerSeverity.Info,
 						message: localize({ key: 'limitHit', comment: ['amount of errors/warning skipped due to limits'] }, "Not showing {0} further errors and warnings.", diagnostics.length - this._maxDiagnosticsPerFile),
@@ -163,7 +152,6 @@ export class DiagnosticCollection implements vscode.DiagnosticCollection {
 
 			totalMarkerCount += marker.length;
 			if (totalMarkerCount > this._maxDiagnosticsTotal) {
-				// ignore markers that are above the limit
 				break;
 			}
 		}
@@ -352,7 +340,7 @@ export class ExtHostDiagnostics implements ExtHostDiagnosticsShape {
 			const name = '_generated_mirror';
 			const collection = new DiagnosticCollection(
 				name, name,
-				Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, // no limits because this collection is just a mirror of "sanitized" data
+				Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER,
 				_uri => undefined,
 				this._fileSystemInfoService.extUri, undefined, this._onDidChangeDiagnostics
 			);

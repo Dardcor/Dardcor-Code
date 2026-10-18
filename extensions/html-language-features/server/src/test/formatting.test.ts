@@ -194,18 +194,4 @@ suite('HTML Embedded Formatting', () => {
 		await assertFormat(content, expected, options);
 	});
 
-}); /*
-content_unformatted: Array(4)["pre", "code", "textarea", …]
-end_with_newline: false
-eol: "\n"
-extra_liners: Array(3)["head", "body", "/html"]
-indent_char: "\t"
-indent_handlebars: false
-indent_inner_html: false
-indent_size: 1
-max_preserve_newlines: 32786
-preserve_newlines: true
-unformatted: Array(1)["wbr"]
-wrap_attributes: "auto"
-wrap_attributes_indent_size: undefined
-wrap_line_length: 120*/
+});

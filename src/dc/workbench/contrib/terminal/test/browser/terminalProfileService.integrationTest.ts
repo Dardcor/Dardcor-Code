@@ -184,7 +184,6 @@ suite('TerminalProfileService', () => {
 
 		terminalProfileService = store.add(instantiationService.createInstance(TestTerminalProfileService));
 
-		//reset as these properties are changed in each test
 		powershellProfile = {
 			profileName: 'PowerShell',
 			path: 'C:\\Powershell.exe',

@@ -129,7 +129,6 @@ export class ExtHostTunnelService extends Disposable implements IExtHostTunnelSe
 				try {
 					providedAttributes = await provider.provider.providePortAttributes({ port, pid, commandLine }, cancellationToken);
 				} catch (e) {
-					// Call with old signature for breaking API change
 					providedAttributes = await (provider.provider.providePortAttributes as unknown as (port: number, pid: number | undefined, commandLine: string | undefined, token: vscode.CancellationToken) => vscode.ProviderResult<vscode.PortAttributes>)(port, pid, commandLine, cancellationToken);
 				}
 				return { providedAttributes, port };
@@ -174,17 +173,7 @@ export class ExtHostTunnelService extends Disposable implements IExtHostTunnelSe
 		return this._proxy.$hasTunnelProvider();
 	}
 
-	/**
-	 * Applies the tunnel metadata and factory found in the remote authority
-	 * resolver to the tunnel system.
-	 *
-	 * `managedRemoteAuthority` should be be passed if the resolver returned on.
-	 * If this is the case, the tunnel cannot be connected to via a websocket from
-	 * the share process, so a synethic tunnel factory is used as a default.
-	 */
 	async setTunnelFactory(provider: vscode.RemoteAuthorityResolver | undefined, managedRemoteAuthority: vscode.ManagedResolvedAuthority | undefined): Promise<IDisposable> {
-		// Do not wait for any of the proxy promises here.
-		// It will delay startup and there is nothing that needs to be waited for.
 		if (provider) {
 			if (provider.candidatePortSource !== undefined) {
 				this._proxy.$setCandidatePortSource(provider.candidatePortSource);
@@ -230,7 +219,7 @@ export class ExtHostTunnelService extends Disposable implements IExtHostTunnelSe
 	}
 
 	protected makeManagedTunnelFactory(_authority: vscode.ManagedResolvedAuthority): vscode.RemoteAuthorityResolver['tunnelFactory'] {
-		return undefined; // may be overridden
+		return undefined;
 	}
 
 	async $closeTunnel(remote: { host: string; port: number }, silent?: boolean): Promise<void> {

@@ -1,5 +1,5 @@
 ---
-name: install-vscode-extension
+name: install-dardcor-extension
 description: 'How to install a VS Code extension from an extension ID. Useful when the user wants to add new capabilities to their VS Code environment by installing extensions.'
 ---
 

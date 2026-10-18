@@ -21,9 +21,6 @@ import { ICompletionsBlockModeConfig } from './configBlockMode';
 import { requestMultilineScore } from './multilineModel';
 import { StreamedCompletionSplitter } from './streamedCompletionSplitter';
 
-// p50 line length is 19 characters (p95 is 73)
-// average token length is around 4 characters
-// the below values have quite a bit of buffer while bringing the limit in significantly from 500
 const maxSinglelineTokens = 20;
 
 type GhostTextStrategy = {
@@ -36,8 +33,6 @@ type GhostTextStrategy = {
 
 function takeNLines(n: number): FinishedCallback {
 	return (text: string): number | undefined => {
-		// If the text is longer than n lines, return the offset.
-		// Checks for n+1 lines because of the leading newline.
 		const lines = text?.split('\n') ?? [];
 		if (lines.length > n + 1) {
 			return lines.slice(0, n + 1).join('\n').length;
@@ -61,7 +56,6 @@ export async function getGhostTextStrategy(
 	const blockMode = blockModeConfig.forLanguage(completionState.textDocument.detectedLanguageId, preIssuedTelemetryData);
 	switch (blockMode) {
 		case BlockMode.Server:
-			// Override the server-side trimming after accepting a completion
 			if (hasAcceptedCurrentCompletion) {
 				return {
 					blockMode: BlockMode.Parsing,
@@ -80,7 +74,6 @@ export async function getGhostTextStrategy(
 		case BlockMode.ParsingAndServer:
 		case BlockMode.MoreMultiline:
 		default: {
-			// we shouldn't drop through to here, but in case we do, be explicit about the behaviour
 			let requestMultiline: MultilineDetermination;
 			try {
 				requestMultiline = await instantiationService.invokeFunction(shouldRequestMultiline,
@@ -92,7 +85,6 @@ export async function getGhostTextStrategy(
 					prompt
 				);
 			} catch (err) {
-				// Fallback to non-multiline
 				requestMultiline = { requestMultiline: false };
 			}
 			if (!hasAcceptedCurrentCompletion &&
@@ -101,18 +93,13 @@ export async function getGhostTextStrategy(
 				requestMultiline.requestMultiline = false;
 			}
 			if (requestMultiline.requestMultiline) {
-				// Note that `trailingWs` contains *any* trailing whitespace from the prompt, but the prompt itself
-				// is only trimmed if the entire last line is whitespace.  We have to account for that here when we
-				// check whether the block body is finished.
 				let adjustedPosition;
 				if (prompt.trailingWs.length > 0 && !prompt.prompt.prefix.endsWith(prompt.trailingWs)) {
-					// Prompt was adjusted, so adjust the position to match
 					adjustedPosition = LocationFactory.position(
 						completionState.position.line,
 						Math.max(completionState.position.character - prompt.trailingWs.length, 0)
 					);
 				} else {
-					// Otherwise, just use the original position
 					adjustedPosition = completionState.position;
 				}
 				return {
@@ -130,7 +117,6 @@ export async function getGhostTextStrategy(
 					),
 				};
 			}
-			// Override single-line to multiline after accepting a completion
 			if (hasAcceptedCurrentCompletion) {
 				const result: GhostTextStrategy = {
 					blockMode: BlockMode.Parsing,
@@ -144,7 +130,6 @@ export async function getGhostTextStrategy(
 				}
 				return result;
 			}
-			// not multiline
 			return {
 				blockMode: blockMode,
 				requestMultiline: false,
@@ -220,8 +205,6 @@ async function shouldRequestMultiline(
 	prompt: PromptResponsePresent
 ): Promise<MultilineDetermination> {
 
-	// Parsing long files for multiline completions is slow, so we only do
-	// it for files with less than 8000 lines
 	if (document.lineCount >= 8000) {
 		telemetry(
 			accessor,
@@ -250,20 +233,16 @@ async function shouldRequestMultiline(
 		}
 		let requestMultiline = false;
 		if (!inlineSuggestion && isSupportedLanguageId(document.detectedLanguageId)) {
-			// Can only check block-level nodes of languages we support
 			requestMultiline = await isEmptyBlockStartUtil(document, position);
 		} else if (inlineSuggestion && isSupportedLanguageId(document.detectedLanguageId)) {
-			//If we are inline, check if we would suggest multiline for current position or if we would suggest a multiline completion if we were at the end of the line
 			requestMultiline =
 				(await isEmptyBlockStartUtil(document, position)) ||
 				(await isEmptyBlockStartUtil(document, document.lineAt(position).range.end));
 		}
-		// If requestMultiline is false, for specific languages check multiline score
 		if (!requestMultiline) {
 			const requestMultiModelThreshold = 0.5;
 			const targetLanguagesModel = ['javascript', 'javascriptreact', 'python'];
 			if (targetLanguagesModel.includes(document.detectedLanguageId)) {
-				// Call multiline model if not multiline and EXP flag is set.
 				const multiModelScore = requestMultilineScore(prompt.prompt, document.detectedLanguageId);
 				requestMultiline = multiModelScore > requestMultiModelThreshold;
 			}
@@ -273,7 +252,6 @@ async function shouldRequestMultiline(
 	return { requestMultiline: false };
 }
 
-/** Checks if position is the beginning of an empty line (including indentation) */
 function isNewLine(selectionPosition: IPosition, doc: TextDocumentContents): boolean {
 	const line = doc.lineAt(selectionPosition);
 	const lineTrimmed = line.text.trim();

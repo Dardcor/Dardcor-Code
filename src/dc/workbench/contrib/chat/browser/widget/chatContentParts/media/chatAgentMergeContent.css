@@ -21,7 +21,6 @@
 	border: var(--vscode-strokeThickness) solid transparent;
 	border-radius: var(--vscode-cornerRadius-medium);
 	overflow: hidden;
-	/* Collapsed, the card hugs its header; expanded, the body grows it to the transcript width. */
 	width: fit-content;
 	max-width: 100%;
 }
@@ -126,7 +125,6 @@
 	background-color: var(--vscode-toolbar-activeBackground);
 }
 
-/* The card scope keeps compact sizing ahead of the workbench codicon rule. */
 .chat-agent-merge > .chat-agent-merge-card .chat-agent-merge-twistie.codicon {
 	position: relative;
 	z-index: 1;
@@ -141,8 +139,6 @@
 	margin-inline-start: auto;
 }
 
-/* Reduced motion follows the workbench-managed `.monaco-reduce-motion` class,
-which sits either on an ancestor or on the workbench element itself. */
 .monaco-reduce-motion .chat-agent-merge .chat-agent-merge-twistie.codicon,
 .monaco-workbench.monaco-reduce-motion .chat-agent-merge .chat-agent-merge-twistie.codicon,
 .monaco-reduce-motion .chat-agent-merge .chat-agent-merge-message-toggle,
@@ -220,7 +216,6 @@ which sits either on an ancestor or on the workbench element itself. */
 	display: none;
 }
 
-/* Shared leading icon: a fixed width keeps comment bodies and check names on one indent. */
 .chat-agent-merge > .chat-agent-merge-card .chat-agent-merge-row-icon.codicon {
 	flex: 0 0 auto;
 	width: var(--vscode-codiconFontSize-compact);
@@ -270,7 +265,6 @@ which sits either on an ancestor or on the workbench element itself. */
 	color: var(--vscode-descriptionForeground);
 }
 
-/* The icon owns the first column so a comment's header and body share one indent. */
 .chat-agent-merge .chat-agent-merge-comment {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);
@@ -281,7 +275,6 @@ which sits either on an ancestor or on the workbench element itself. */
 
 .chat-agent-merge .chat-agent-merge-comment-icon.codicon,
 .chat-agent-merge .chat-agent-merge-comment-header {
-	/* Align a comment's icon to the header's first line rather than to its box. */
 	line-height: var(--vscode-spacing-size200);
 }
 

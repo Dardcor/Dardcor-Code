@@ -59,7 +59,6 @@ function initializeOptionMeta(option: Fig.Option): OptionMeta {
 	return option;
 }
 
-// Default initialization functions:
 function initializeArgMeta(arg: Fig.Arg): ArgMeta {
 	const { template, ...rest } = arg;
 	const generators = template ? [{ template }] : makeArray(arg.generators ?? []);

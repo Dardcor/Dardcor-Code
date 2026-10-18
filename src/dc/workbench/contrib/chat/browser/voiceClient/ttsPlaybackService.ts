@@ -14,10 +14,8 @@ export const ITtsPlaybackService = createDecorator<ITtsPlaybackService>('ttsPlay
 export interface ITtsPlaybackService {
 	readonly _serviceBrand: undefined;
 
-	/** Append a base64-encoded audio chunk for streaming playback. */
 	playAudioChunk(audio: string, isFinal: boolean, window: Window & typeof globalThis): void;
 
-	/** Stop any current playback immediately. */
 	stopPlayback(): void;
 
 	readonly isPlaying: boolean;
@@ -25,24 +23,17 @@ export interface ITtsPlaybackService {
 	readonly onPlaybackStarted: Event<void>;
 	readonly onPlaybackStopped: Event<void>;
 
-	/** Returns the PCM samples from the last completed playback turn, or null. */
 	getLastPlayedSamples(): Float32Array | null;
 
-	/** The playback AnalyserNode for visualisation, available during playback. */
 	readonly analyserNode: AnalyserNode | undefined;
 
-	/**
-	 * Ensure the playback AudioContext exists and is resumed.
-	 * Returns the AudioContext for callers that need it (e.g. pre-warming).
-	 */
 	ensureContext(window: Window & typeof globalThis): AudioContext;
 
-	/** Close the AudioContext entirely (for full teardown). */
 	closeContext(): void;
 }
 
 const PLAYBACK_SAMPLE_RATE = 24000;
-const MAX_PLAYBACK_SAMPLES = PLAYBACK_SAMPLE_RATE * 180; // 3 min ceiling
+const MAX_PLAYBACK_SAMPLES = PLAYBACK_SAMPLE_RATE * 180;
 
 type PlaybackTurn = {
 	buffer: AudioBuffer;
@@ -86,10 +77,8 @@ export class TtsPlaybackService extends Disposable implements ITtsPlaybackServic
 		if (!this._playbackCtx) {
 			this._playbackCtx = new window.AudioContext({ sampleRate: PLAYBACK_SAMPLE_RATE });
 		}
-		// AudioContext may be suspended if no user gesture occurred on this window yet.
-		// Resume it to ensure playback works regardless of which window initiated the action.
 		if (this._playbackCtx.state === 'suspended') {
-			this._playbackCtx.resume().catch(() => { /* ignore - best effort */ });
+			this._playbackCtx.resume().catch(() => { });
 		}
 		return this._playbackCtx;
 	}
@@ -131,7 +120,7 @@ export class TtsPlaybackService extends Disposable implements ITtsPlaybackServic
 		if (this._playbackTurn) {
 			this._captureSamples(this._playbackTurn);
 		}
-		try { this._playbackTurn?.sourceNode?.stop(); } catch { /* already stopped */ }
+		try { this._playbackTurn?.sourceNode?.stop(); } catch { }
 		this._playbackTurn = null;
 		this._analyserNode = undefined;
 		if (this._isPlaying) {
@@ -140,7 +129,6 @@ export class TtsPlaybackService extends Disposable implements ITtsPlaybackServic
 		}
 	}
 
-	/** Close the AudioContext entirely (for full teardown). */
 	closeContext(): void {
 		this.stopPlayback();
 		if (this._playbackCtx) {

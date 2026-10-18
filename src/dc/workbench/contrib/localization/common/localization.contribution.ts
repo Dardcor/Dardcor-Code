@@ -18,7 +18,6 @@ export class BaseLocalizationWorkbenchContribution extends Disposable implements
 	constructor() {
 		super();
 
-		// Register action to configure locale and related settings
 		registerAction2(ConfigureDisplayLanguageAction);
 		registerAction2(ClearDisplayLanguageAction);
 

@@ -8,27 +8,8 @@ import { ConfirmationOptionKind, ChatInputAnswerState, ChatInputAnswerValueKind,
 import type { ChatInputAnswer } from '../../common/state/sessionState.js';
 import { getClaudeToolDisplayName } from './claudeToolDisplay.js';
 
-/**
- * Pure projections between the Claude SDK's interactive built-in tool
- * inputs/outputs and the agentHost workbench protocol.
- *
- * Phase 7 S3.5. The two interactive tools (`ExitPlanMode`,
- * `AskUserQuestion`) are exempt from the SDK's `permissionMode` auto-
- * approval and always reach `canUseTool`. The agent's job for each is
- * to render a workbench prompt and translate the user's answer back
- * into the SDK's `PermissionResult` shape — this module owns those
- * projections so they can be tested without standing up an agent.
- */
 
-// #region ExitPlanMode
 
-/**
- * Build the {@link ToolCallPendingConfirmationState} card body for the
- * `ExitPlanMode` confirmation. Custom Approve / Deny buttons (no "Allow
- * in this Session") so the approval is never remembered — each plan
- * must be approved on its own merit. Mirrors the production extension's
- * `exitPlanModeHandler.ts`.
- */
 export function buildExitPlanModeConfirmationState(input: Record<string, unknown>, toolUseID: string): ToolCallPendingConfirmationState {
 	const plan = typeof input.plan === 'string' ? input.plan : '';
 	return {
@@ -46,15 +27,8 @@ export function buildExitPlanModeConfirmationState(input: Record<string, unknown
 	};
 }
 
-// #endregion
 
-// #region AskUserQuestion
 
-/**
- * Narrowed view of the `AskUserQuestion` SDK input. The SDK delivers
- * questions as `Record<string, unknown>`; we cast (no schema validation
- * — the SDK is the upstream authority) and surface the subset we use.
- */
 export interface ParsedAskUserQuestionInput {
 	readonly questions: ReadonlyArray<{
 		readonly question: string;
@@ -65,11 +39,6 @@ export interface ParsedAskUserQuestionInput {
 	}>;
 }
 
-/**
- * Cast the `AskUserQuestion` SDK input into the typed shape. Returns
- * `undefined` when there are no questions — the agent translates that
- * to a `deny` `PermissionResult`.
- */
 export function parseAskUserQuestionInput(input: Record<string, unknown>): ParsedAskUserQuestionInput | undefined {
 	const askInput = input as Partial<ParsedAskUserQuestionInput>;
 	if (!askInput.questions?.length) {
@@ -78,23 +47,10 @@ export function parseAskUserQuestionInput(input: Record<string, unknown>): Parse
 	return { questions: askInput.questions };
 }
 
-/**
- * Derive the workbench question id for the `idx`-th SDK question.
- * Both {@link buildAskUserSessionInputQuestions} and
- * {@link flattenAskUserAnswers} key into the answers map by this id, so
- * keep the two callers in sync via this helper. Empty-header questions
- * fall back to a positional id so they round-trip; they would
- * otherwise collide on `''`.
- */
 function askUserQuestionId(header: string, idx: number): string {
 	return header || `q-${idx}`;
 }
 
-/**
- * Project the parsed SDK questions into the workbench's
- * {@link ChatInputQuestion} shape. `multiSelect` flips the question
- * kind; the rest of the fields map 1:1.
- */
 export function buildAskUserSessionInputQuestions(askInput: ParsedAskUserQuestionInput): ChatInputQuestion[] {
 	return askInput.questions.map((q, idx) => {
 		const opts: ChatInputOption[] = q.options.map(opt => ({
@@ -123,14 +79,6 @@ export function buildAskUserSessionInputQuestions(askInput: ParsedAskUserQuestio
 	});
 }
 
-/**
- * Re-key the workbench answers from `{questionHeader → ChatInputAnswer}`
- * into the production extension's `Record<questionText, valueString>`
- * contract. Skipped questions and empty answers are dropped; the result
- * is `{}` when nothing was answered. Single-select / multi-select /
- * text answer shapes flatten to a comma-joined string (matching the
- * production extension's wire format).
- */
 export function flattenAskUserAnswers(askInput: ParsedAskUserQuestionInput, answers: Record<string, ChatInputAnswer>): Record<string, string> {
 	const result: Record<string, string> = {};
 	for (let idx = 0; idx < askInput.questions.length; idx++) {
@@ -157,4 +105,3 @@ export function flattenAskUserAnswers(askInput: ParsedAskUserQuestionInput, answ
 	return result;
 }
 
-// #endregion

@@ -4,7 +4,6 @@ import { extractEmailFromAccessToken } from "../providerHelpers.js";
 const kiro = {
   config: KIRO_CONFIG,
   flowType: "device_code",
-  // Kiro uses AWS SSO OIDC - requires client registration first
   requestDeviceCode: async (config, codeChallenge, options = {}) => {
     const trimmedRegion = typeof options.region === "string" ? options.region.trim() : "";
     const region = trimmedRegion || "us-east-1";
@@ -15,7 +14,6 @@ const kiro = {
     const registerClientUrl = `https://oidc.${region}.amazonaws.com/client/register`;
     const deviceAuthUrl = `https://oidc.${region}.amazonaws.com/device_authorization`;
 
-    // Step 1: Register client with AWS SSO OIDC
     const registerRes = await fetch(registerClientUrl, {
       method: "POST",
       headers: {
@@ -38,7 +36,6 @@ const kiro = {
 
     const clientInfo = await registerRes.json();
 
-    // Step 2: Request device authorization
     const deviceRes = await fetch(deviceAuthUrl, {
       method: "POST",
       headers: {
@@ -59,7 +56,6 @@ const kiro = {
 
     const deviceData = await deviceRes.json();
 
-    // Return combined data for polling
     return {
       device_code: deviceData.deviceCode,
       user_code: deviceData.userCode,
@@ -67,7 +63,6 @@ const kiro = {
       verification_uri_complete: deviceData.verificationUriComplete,
       expires_in: deviceData.expiresIn,
       interval: deviceData.interval || 5,
-      // Store client credentials for token exchange
       _clientId: clientInfo.clientId,
       _clientSecret: clientInfo.clientSecret,
       _region: region,
@@ -101,7 +96,6 @@ const kiro = {
       data = { error: "invalid_response", error_description: text };
     }
 
-    // AWS SSO OIDC returns camelCase
     if (data.accessToken) {
       return {
         ok: true,
@@ -110,7 +104,6 @@ const kiro = {
           refresh_token: data.refreshToken,
           expires_in: data.expiresIn,
           profile_arn: data?.profileArn || null,
-          // Store client credentials for refresh
           _clientId: extraData?._clientId,
           _clientSecret: extraData?._clientSecret,
           _region: extraData?._region,

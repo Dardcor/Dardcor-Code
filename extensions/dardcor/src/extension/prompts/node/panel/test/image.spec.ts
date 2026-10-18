@@ -64,11 +64,9 @@ async function renderImage(testingServiceCollection: TestingServiceCollection, e
 
 describe('Image', () => {
 	test('sends image to a vision-capable model when signed out (no Copilot token)', async () => {
-		// Signed-out repro: the default test token store has no Copilot token.
 		const testingServiceCollection = createExtensionUnitTestingServices();
 		const messages = await renderImage(testingServiceCollection, createMockEndpoint({ supportsVision: true }));
 
-		// A BYOK/local vision model must still receive the image even without a GitHub sign-in.
 		expect(hasImageContentPart(messages)).toBe(true);
 	});
 
@@ -90,7 +88,6 @@ describe('Image', () => {
 	test('omits image when organization policy disables editor preview features', async () => {
 		const testingServiceCollection = createExtensionUnitTestingServices();
 		const accessor = testingServiceCollection.createTestingAccessor();
-		// editor_preview_features=0 => org policy explicitly disabled preview features.
 		setCopilotToken(accessor.get(IAuthenticationService), new CopilotToken(createTestExtendedTokenInfo({ token: 'editor_preview_features=0' })));
 
 		const renderer = PromptRenderer.create(

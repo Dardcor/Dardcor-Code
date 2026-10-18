@@ -6,11 +6,6 @@
 import * as eslint from 'eslint';
 import type * as ESTree from 'estree';
 
-/**
- * Checks for potentially unsafe usage of `DisposableStore` / `MutableDisposable`.
- *
- * These have been the source of leaks in the past.
- */
 export default new class implements eslint.Rule.RuleModule {
 
 	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {

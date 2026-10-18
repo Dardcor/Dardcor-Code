@@ -1,13 +1,10 @@
-// Public API barrel — all DB functions
 import { getAdapter } from "./driver.js";
 import { stringifyJson, parseJson } from "./helpers/jsonCol.js";
 
-// Settings
 export {
   getSettings, updateSettings, isCloudEnabled, getCloudUrl, exportSettings,
 } from "./repos/settingsRepo.js";
 
-// Provider connections
 export {
   getProviderConnections, getProviderConnectionById,
   createProviderConnection, updateProviderConnection,
@@ -15,64 +12,53 @@ export {
   reorderProviderConnections, cleanupProviderConnections,
 } from "./repos/connectionsRepo.js";
 
-// Provider nodes
 export {
   getProviderNodes, getProviderNodeById,
   createProviderNode, updateProviderNode, deleteProviderNode,
 } from "./repos/nodesRepo.js";
 
-// Proxy pools
 export {
   getProxyPools, getProxyPoolById,
   createProxyPool, updateProxyPool, deleteProxyPool,
 } from "./repos/proxyPoolsRepo.js";
 
-// API keys
 export {
   getApiKeys, getApiKeyById, createApiKey, updateApiKey, deleteApiKey, validateApiKey,
 } from "./repos/apiKeysRepo.js";
 
-// Combos
 export {
   getCombos, getComboById, getComboByName,
   createCombo, updateCombo, deleteCombo,
 } from "./repos/combosRepo.js";
 
-// Aliases (model + custom + mitm)
 export {
   getModelAliases, setModelAlias, deleteModelAlias,
   getCustomModels, addCustomModel, deleteCustomModel,
   getMitmAlias, setMitmAliasAll,
 } from "./repos/aliasRepo.js";
 
-// Pricing
 export {
   getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
 } from "./repos/pricingRepo.js";
 
-// Disabled models
 export {
   getDisabledModels, getDisabledByProvider, disableModels, enableModels,
 } from "./repos/disabledModelsRepo.js";
 
-// Provider status (ON/OFF)
 export {
   getAllProviderStatuses, getProviderStatus, setProviderStatus,
 } from "./repos/providerStatusRepo.js";
 
-// Usage
 export {
   statsEmitter, trackPendingRequest, getActiveRequests,
   saveRequestUsage, getUsageHistory, getUsageStats, getChartData,
   appendRequestLog, getRecentLogs,
 } from "./repos/usageRepo.js";
 
-// Request details
 export {
   saveRequestDetail, getRequestDetails, getRequestDetailById, getDistinctProviders,
 } from "./repos/requestDetailsRepo.js";
 
-// Export/import full DB
 export async function exportDb() {
   const db = await getAdapter();
   const { exportSettings } = await import("./repos/settingsRepo.js");
@@ -118,7 +104,6 @@ export async function importDb(payload) {
   }
 
   db.transaction(() => {
-    // Wipe all tables (keep _meta)
     db.run(`DELETE FROM settings`);
     db.run(`DELETE FROM providerConnections`);
     db.run(`DELETE FROM providerNodes`);
@@ -127,7 +112,6 @@ export async function importDb(payload) {
     db.run(`DELETE FROM combos`);
     db.run(`DELETE FROM kv WHERE scope IN ('modelAliases', 'customModels', 'mitmAlias', 'pricing')`);
 
-    // Settings (always persists with bumped sessionVersion)
     db.run(
       `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
       [stringifyJson(finalSettings)]
@@ -190,7 +174,6 @@ export async function importDb(payload) {
   return await exportDb();
 }
 
-// Eager init helper (optional)
 export async function initDb() {
   await getAdapter();
 }

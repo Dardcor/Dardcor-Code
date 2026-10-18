@@ -28,7 +28,7 @@ export function getAdjustedSelection<TDocument extends AbstractDocument>(
 function alignOverlayNodesToNonWsText(ast: OverlayNode, text: string): OverlayNode | undefined {
 	const newStartIndex = alignToNonWsTextRight(ast.startIndex, text);
 	const newEndIndex = Math.max(newStartIndex, alignToNonWsTextLeft(ast.endIndex, text));
-	if (newStartIndex === newEndIndex) { // indentation-based structure can include nodes which can just contain newlines
+	if (newStartIndex === newEndIndex) {
 		return undefined;
 	}
 	const arr = ast.children.map(child => alignOverlayNodesToNonWsText(child, text)).filter(s => s !== undefined);
@@ -65,9 +65,6 @@ function markSelectedNodes(root: LinkedOverlayNode, start: number, end: number) 
 	return adjustSelection(root, start, end);
 }
 
-/**
- * If the selection sits on whitespace, move it towards the closest content
- */
 function moveTowardsContent(root: LinkedOverlayNode, initialStart: number, initialEnd: number): [number, number] {
 	const selectedText = root.text.substring(initialStart, initialEnd);
 	const selectedTextIsEmptyOrWhitespace = /^\s*$/.test(selectedText);
@@ -80,32 +77,26 @@ function moveTowardsContent(root: LinkedOverlayNode, initialStart: number, initi
 	let goRight = true;
 	do {
 		if (goRight && end >= root.text.length) {
-			// can't go right anymore
 			goRight = false;
 		}
 		if (goRight) {
 			const nextCharCode = root.text.charCodeAt(end);
 			if (nextCharCode === CharCode.CarriageReturn || nextCharCode === CharCode.LineFeed) {
-				// Hit the EOL
 				goRight = false;
 			} else if (nextCharCode !== CharCode.Space && nextCharCode !== CharCode.Tab) {
-				// Hit real content
 				return [end, end + 1];
 			} else {
 				end++;
 			}
 		}
 		if (goLeft && start === 0) {
-			// can't go left anymore
 			goLeft = false;
 		}
 		if (goLeft) {
 			const prevCharCode = root.text.charCodeAt(start - 1);
 			if (prevCharCode === CharCode.CarriageReturn || prevCharCode === CharCode.LineFeed) {
-				// Hit the EOL
 				goLeft = false;
 			} else if (prevCharCode !== CharCode.Space && prevCharCode !== CharCode.Tab) {
-				// Hit real content
 				return [start - 1, start];
 			} else {
 				start--;
@@ -113,12 +104,10 @@ function moveTowardsContent(root: LinkedOverlayNode, initialStart: number, initi
 		}
 	} while (goLeft || goRight);
 
-	// Couldn't find real content
 	return [initialStart, initialEnd];
 }
 
 function adjustSelection(root: LinkedOverlayNode, start: number, end: number): OffsetRange {
-	// If the selection starts at the end of a line with content, move over the line feed
 	if (start > 0 && start < end && root.text.charCodeAt(start - 1) !== CharCode.LineFeed && root.text.charCodeAt(start) === CharCode.LineFeed) {
 		start++;
 	}
@@ -177,14 +166,12 @@ function adjustSelection(root: LinkedOverlayNode, start: number, end: number): O
 		}
 
 		if (startNode instanceof LinkedOverlayNode && root.hasContentInRange(new OffsetRange(start, end))) {
-			// Hit a leaf!
 			if (startNode.startIndex < start) {
 				extendStart(startNode.startIndex);
 			}
 		}
 
 		if (endNode instanceof LinkedOverlayNode && root.hasContentInRange(new OffsetRange(start, end))) {
-			// Hit a leaf!
 			if (endNode.endIndex > end) {
 				extendEnd(endNode.endIndex);
 			}
@@ -196,7 +183,6 @@ function adjustSelection(root: LinkedOverlayNode, start: number, end: number): O
 }
 
 function moveToStartOfLineOverWhitespace(root: LinkedOverlayNode, start: number): number {
-	// Move start to the start of the line if it only goes over whitespace
 	while (start > 0) {
 		const charCodeBeforeSelection = root.text.charCodeAt(start - 1);
 		if (charCodeBeforeSelection !== CharCode.Space && charCodeBeforeSelection !== CharCode.Tab) {
@@ -210,11 +196,9 @@ function moveToStartOfLineOverWhitespace(root: LinkedOverlayNode, start: number)
 function moveToEndOfLineOverWhitespace(root: LinkedOverlayNode, end: number): number {
 	const charCodeBefore = end > 0 ? root.text.charCodeAt(end - 1) : CharCode.Null;
 	if (charCodeBefore === CharCode.LineFeed) {
-		// Do not leave first character of the line
 		return end;
 	}
 
-	// Move end to the end of the line if it only goes over whitespace
 	while (end < root.text.length) {
 		const charCodeAfterSelection = root.text.charCodeAt(end);
 		if (charCodeAfterSelection !== CharCode.Space && charCodeAfterSelection !== CharCode.Tab) {
@@ -229,14 +213,11 @@ function debugstr(str: string) {
 	return str.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
 }
 
-/**
- * A tree datastructure which has parent pointers and markers if a node will survive or not.
- */
 export class LinkedOverlayNode {
 
 	public static convertToLinkedTree(text: string, root: OverlayNode): LinkedOverlayNode {
-		const linkedRoot = new LinkedOverlayNode(text, null, root.startIndex, root.endIndex, root.kind, [], 0); // parentChildIndex
-		LinkedOverlayNode._convertChildrenToLinkedTree(text, root, linkedRoot); // Start with depth 1
+		const linkedRoot = new LinkedOverlayNode(text, null, root.startIndex, root.endIndex, root.kind, [], 0);
+		LinkedOverlayNode._convertChildrenToLinkedTree(text, root, linkedRoot);
 		return linkedRoot;
 	}
 
@@ -254,9 +235,9 @@ export class LinkedOverlayNode {
 		public readonly parent: LinkedOverlayNode | null,
 		public readonly startIndex: number,
 		public readonly endIndex: number,
-		public readonly kind: string, // TODO@ulugbekna: come up with more generic kinds so that these aren't per-language, then use enum?
+		public readonly kind: string,
 		public readonly children: LinkedOverlayNode[],
-		private readonly myIndex: number, // Added parentChildIndex field
+		private readonly myIndex: number,
 	) { }
 
 	public get text(): string {
@@ -267,9 +248,6 @@ export class LinkedOverlayNode {
 		return range.substring(this._originalText);
 	}
 
-	/**
-	 * Intersects the selection with this node's range to check if there is any non-whitespace text selected from this gap.
-	 */
 	public hasContentInRange(range: OffsetRange): boolean {
 		const content = this.textAt(range);
 		return !/^\s*$/s.test(content);
@@ -291,7 +269,6 @@ export class LinkedOverlayNode {
 
 	public get firstGap(): LinkedOverlayNodeGap | null {
 		if (this.children.length === 0) {
-			// there are no gaps
 			return null;
 		}
 		return this.gapBeforeChild(0);
@@ -299,17 +276,11 @@ export class LinkedOverlayNode {
 
 	public get lastGap(): LinkedOverlayNodeGap | null {
 		if (this.children.length === 0) {
-			// there are no gaps
 			return null;
 		}
 		return this.gapBeforeChild(this.children.length);
 	}
 
-	/**
-	 * @return The deepest node which contains the offset. If the node is a leaf, the second pair result is 0.
-	 *   If the node is not a leaf, the second pair result will be -(n+1) (or ~n, using bitwise notation),
-	 *   where n is the index of the child before which the offset lies. (i.e. offset lies between children n-1 and n)
-	 */
 	public findLeaf(offset: number): [LinkedOverlayNode, number] {
 		if (this.children.length === 0) {
 			return [this, 0];
@@ -348,7 +319,6 @@ export class LinkedOverlayNode {
 			if (nextSibling) {
 				return nextSibling.leftMostLeafChild;
 			}
-			// go up until finding a next sibling
 			currentNode = currentNode.parent;
 		} while (currentNode);
 		return null;
@@ -375,9 +345,6 @@ export class LinkedOverlayNode {
 	}
 }
 
-/**
- * Represents a gap (before the first child, between two children, or after the last child) in a `LinkedOverlayNode`.
- */
 class LinkedOverlayNodeGap {
 
 	constructor(
@@ -412,9 +379,6 @@ class LinkedOverlayNodeGap {
 		return this._originalText.substring(this.startIndex, this.endIndex);
 	}
 
-	/**
-	 * Intersects the selection with this node's range to check if there is any non-whitespace text selected from this gap.
-	 */
 	public hasSelectedContent(start: number, end: number): boolean {
 		const selectedGapRange = this.range.intersect(new OffsetRange(start, end));
 		const selectedGapText = selectedGapRange ? this._originalText.substring(selectedGapRange.start, selectedGapRange.endExclusive) : '';

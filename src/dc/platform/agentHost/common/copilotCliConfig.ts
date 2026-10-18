@@ -8,51 +8,29 @@ import { localize } from '../../../nls.js';
 import { createSchema, schemaProperty } from './agentHostSchema.js';
 import { reasoningEffortLevels } from './reasoningEffort.js';
 
-/**
- * Root-config keys consumed exclusively by the Copilot CLI provider
- * (`CopilotSessionLauncher` / `CopilotAgent`) — kept out of the
- * provider-agnostic `agentHostCustomizationConfigSchema`.
- */
 export const enum CopilotCliConfigKey {
-	/** Use Agent Host's custom terminal tool instead of the SDK's default. Off by default. */
 	EnableCustomTerminalTool = 'enableCustomTerminalTool',
-	/** Apply the shell init script a client published for a session to SDK shell commands. Off by default. */
 	EnableShellInitScript = 'enableShellInitScript',
-	/** Log level passed to the Copilot SDK client. */
 	CopilotSdkLogLevel = 'copilotSdkLogLevel',
-	/** Enable the rubber duck critic subagent. */
 	RubberDuck = 'rubberDuck',
-	/** Enable the provider-native Claude Advisor tool. Off by default. */
 	ClaudeAdvisor = 'claudeAdvisor',
-	/** Apply Opus 4.8-tuned system-prompt overrides on Opus 4.8 models. Off by default. */
 	Opus48Prompt = 'opus48Prompt',
-	/** Enable runtime tool search (deferred-tool loading) for Copilot SDK sessions. On by default. */
 	ToolSearchEnabled = 'toolSearchEnabled',
-	/** Minimum tool count before MCP/external tools are deferred behind tool search. 0 = always defer. */
 	ToolSearchDeferThreshold = 'toolSearchDeferThreshold',
-	/** Override reasoning effort regardless of the picker value; unsupported values are ignored. */
 	ReasoningEffortOverride = 'reasoningEffortOverride',
-	/** Enable concise reasoning summaries for supported models. Off by default. */
 	ReasoningSummary = 'reasoningSummary',
-	/** Let the Auto router score prior turns instead of the latest message alone. Off by default. */
 	MultiTurnContextRouting = 'multiTurnContextRouting',
-	/** Offer the Auto model's "Optimize for" picker. Shares the Copilot extension's setting and experiment. */
 	AutoModeTiers = 'autoModeTiers',
-	/** Override Auto's "Optimize for" preference, even when the picker is disabled. */
 	AutoModeTierOverride = 'autoModeTierOverride',
-	/** Tell the model to keep subagents on their default model unless the user asks otherwise. Off by default. */
 	SubagentModelGuidance = 'subagentModelGuidance',
-	/** Per-model capability overrides (family aliases) keyed by model id. */
 	ModelCapabilityOverrides = 'modelCapabilityOverrides',
 }
 
 export const CopilotCliVSCodeAssignmentContextKey = 'copilotCliVSCodeAssignmentContext';
 
-// Client setting IDs forwarded into the matching provider-owned root-config keys.
 
 export const AgentHostCustomTerminalToolEnabledSettingId = 'chat.agentHost.customTerminalTool.enabled';
 
-/** Enable VS Code's generated init script for the SDK built-in shell tool. */
 export const AgentHostShellToolInitScriptEnabledSettingId = 'chat.agentHost.shellTool.initScript.enabled';
 
 export const AgentHostCopilotSdkLogLevelSettingId = 'chat.agentHost.copilotSdk.logLevel';
@@ -75,7 +53,6 @@ export const CopilotAutoModeTiersEnabledSettingId = 'github.copilot.chat.autoMod
 
 export const CopilotAutoModeTierOverrideSettingId = 'github.copilot.chat.autoModeTierOverride';
 
-/** Applied to the shared setting's default by the workbench configuration service. */
 export const AutoModeTiersExperimentName = 'copilotchat.autoModeTiersEnabled';
 
 export const CopilotSubagentModelGuidanceEnabledSettingId = 'chat.copilot.subagentModelGuidance.enabled';
@@ -88,39 +65,24 @@ export type CopilotSdkLogLevelSetting = typeof copilotSdkLogLevelSettingValues[n
 
 export const DEFAULT_COPILOT_RUBBER_DUCK_ENABLED = true;
 
-/** Floors valid tool-search thresholds and returns the default for invalid values. */
 export function normalizeToolSearchDeferThreshold(value: number | undefined): number {
 	return value !== undefined && Number.isFinite(value) && value >= 0 ? Math.floor(value) : 1;
 }
 
-/** Per-model capability override; the agent-host equivalent of the extension's `IModelCapabilityOverride`. */
 export interface ICopilotCliModelCapabilityOverride {
-	/** Family alias (e.g. `"claude-opus-4.8"`) for prompt and tool-capability routing. */
 	readonly family?: string;
-	/** Wins over the model picker's thinking level; unrecognized values are ignored. */
 	readonly reasoningEffort?: string;
-	/** SDK tool allowlist (pattern syntax, e.g. `builtin:*`, `mcp:<name>`, or bare names). */
 	readonly availableTools?: readonly string[];
-	/** SDK tool denylist; takes precedence over {@link availableTools}. */
 	readonly excludedTools?: readonly string[];
-	/** Deep-merged over the runtime's resolved defaults (e.g. `supports.vision`). */
 	readonly modelCapabilities?: Record<string, unknown>;
-	/** Inline YAML with system-prompt and tool-description overrides. */
 	readonly promptOverrideString?: string;
-	/** Path to a YAML file with system-prompt and tool-description overrides. */
 	readonly promptOverrideFile?: string;
 }
 
-/** Map of model id → capability override. */
 export type CopilotCliModelCapabilityOverrides = Record<string, ICopilotCliModelCapabilityOverride>;
 
-/** Wildcard entry key matching every model id; a specific model-id entry wins field-by-field. */
 export const MODEL_CAPABILITY_OVERRIDE_WILDCARD = '*';
 
-/**
- * Resolves one field from the specific entry and then the wildcard. Invalid
- * specific values are ignored rather than masking a usable wildcard default.
- */
 export function resolveModelCapabilityOverrideField<K extends keyof ICopilotCliModelCapabilityOverride, T>(
 	overrides: CopilotCliModelCapabilityOverrides | undefined,
 	modelId: string | undefined,
@@ -282,14 +244,9 @@ export const copilotCliConfigSchema = createSchema({
 	}),
 });
 
-// The alias only feeds the host's prompt registry, whose contributors match on
-// model-id shapes of their own choosing; an allow-list of id shapes here would
-// silently reject valid ones (`vendor/model`). Reject only what cannot be an
-// id at all.
 const MODEL_FAMILY_MAX_LENGTH = 128;
 const MODEL_FAMILY_CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
 
-/** Returns a usable model-family alias, or `undefined` for malformed values. */
 export function normalizeModelFamilyAlias(value: unknown): string | undefined {
 	if (typeof value !== 'string' || value.length === 0 || value.length > MODEL_FAMILY_MAX_LENGTH) {
 		return undefined;

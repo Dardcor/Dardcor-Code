@@ -28,11 +28,6 @@ import { Codicon } from '../../../../../base/common/codicons.js';
 const CONTEXT_BROWSER_FIND_WIDGET_VISIBLE = new RawContextKey<boolean>('browserFindWidgetVisible', false, localize('browser.findWidgetVisible', "Whether the browser find widget is visible"));
 const CONTEXT_BROWSER_FIND_WIDGET_FOCUSED = new RawContextKey<boolean>('browserFindWidgetFocused', false, localize('browser.findWidgetFocused', "Whether the browser find widget is focused"));
 
-/**
- * Find widget for the integrated browser view.
- * Uses the SimpleFindWidget base class and communicates with the browser view model
- * to perform find operations in the rendered web page.
- */
 class BrowserFindWidget extends SimpleFindWidget {
 	private _model: IBrowserViewModel | undefined;
 	private readonly _modelDisposables = this._register(new DisposableStore());
@@ -81,10 +76,6 @@ class BrowserFindWidget extends SimpleFindWidget {
 		this._register(resizeObserver.observe(domNode));
 	}
 
-	/**
-	 * Set the browser view model to use for find operations.
-	 * This should be called whenever the editor input changes.
-	 */
 	setModel(model: IBrowserViewModel | undefined): void {
 		this._modelDisposables.clear();
 		this._model = model;
@@ -94,7 +85,7 @@ class BrowserFindWidget extends SimpleFindWidget {
 		if (model) {
 			this._modelDisposables.add(model.onDidFindInPage(result => {
 				this._lastFindResult = {
-					resultIndex: result.activeMatchOrdinal - 1, // Convert to 0-based index
+					resultIndex: result.activeMatchOrdinal - 1,
 					resultCount: result.matches
 				};
 				this._hasFoundMatch = result.matches > 0;
@@ -113,10 +104,8 @@ class BrowserFindWidget extends SimpleFindWidget {
 		super.reveal(initialInput);
 		this._findWidgetVisible.set(true);
 
-		// Focus the find input
 		this.focusFindBox();
 
-		// If there's existing input and the widget wasn't already visible, trigger a search
 		if (this.inputValue && !wasVisible) {
 			this._onInputChanged();
 		}
@@ -126,7 +115,6 @@ class BrowserFindWidget extends SimpleFindWidget {
 		super.hide(false);
 		this._findWidgetVisible.reset();
 
-		// Stop find and clear highlights in the browser view
 		this._model?.stopFindInPage(true);
 		this._model?.focus();
 		this._lastFindResult = undefined;
@@ -185,22 +173,12 @@ class BrowserFindWidget extends SimpleFindWidget {
 	}
 
 	protected _onFindInputFocusTrackerFocus(): void {
-		// No-op
 	}
 
 	protected _onFindInputFocusTrackerBlur(): void {
-		// No-op
 	}
 }
 
-/**
- * Browser editor contribution that manages the find-in-page widget.
- *
- * Creates a container just below the toolbar and lazily instantiates the
- * {@link BrowserFindWidget}.  When the find widget's height changes the
- * browser container is re-laid-out so that the web-contents view stays in
- * sync.
- */
 export class BrowserEditorFindContribution extends BrowserEditorContribution {
 	private readonly _findWidgetContainer: HTMLElement;
 	private readonly _findWidget: Lazy<BrowserFindWidget>;
@@ -229,9 +207,6 @@ export class BrowserEditorFindContribution extends BrowserEditorContribution {
 		this._register(toDisposable(() => this._findWidget.rawValue?.dispose()));
 	}
 
-	/**
-	 * The container element to insert below the toolbar.
-	 */
 	override get widgets(): readonly IBrowserEditorWidget[] {
 		return [{ location: BrowserWidgetLocation.Toolbar, element: this._findWidgetContainer, order: 0 }];
 	}
@@ -249,9 +224,6 @@ export class BrowserEditorFindContribution extends BrowserEditorContribution {
 		this._findWidget.rawValue?.layout(width);
 	}
 
-	/**
-	 * Show the find widget, optionally pre-populated with selected text from the browser view
-	 */
 	async showFind(): Promise<void> {
 		const selectedText = (await this.editor.model?.getSelectedText())?.trim();
 		const textToReveal = selectedText && !/[\r\n]/.test(selectedText) ? selectedText : undefined;
@@ -259,23 +231,14 @@ export class BrowserEditorFindContribution extends BrowserEditorContribution {
 		this._findWidget.value.layout(this._findWidgetContainer.clientWidth);
 	}
 
-	/**
-	 * Hide the find widget
-	 */
 	hideFind(): void {
 		this._findWidget.rawValue?.hide();
 	}
 
-	/**
-	 * Find the next match
-	 */
 	findNext(): void {
 		this._findWidget.rawValue?.find(false);
 	}
 
-	/**
-	 * Find the previous match
-	 */
 	findPrevious(): void {
 		this._findWidget.rawValue?.find(true);
 	}
@@ -283,7 +246,6 @@ export class BrowserEditorFindContribution extends BrowserEditorContribution {
 
 BrowserEditor.registerContribution(BrowserEditorFindContribution);
 
-// -- Actions ----------------------------------------------------------------
 
 class ShowBrowserFindAction extends Action2 {
 	static readonly ID = BrowserViewCommandId.ShowFind;

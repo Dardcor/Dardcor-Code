@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Raw } from '@vscode/prompt-tsx';
-import { RequestType } from '@vscode/copilot-api';
 import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
@@ -16,7 +15,6 @@ import { ILanguageDiagnosticsService } from '../../../platform/languages/common/
 import { ILogger } from '../../../platform/log/common/logService';
 import { OptionalChatRequestParams } from '../../../platform/networking/common/fetch';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
-import { IProxyModelsService } from '../../../platform/proxyModels/common/proxyModelsService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { backwardCompatSetting } from '../../../util/common/backwardCompatSetting';
 import { ErrorUtils } from '../../../util/common/errors';
@@ -35,7 +33,7 @@ export type CursorJumpPrediction =
 	| { readonly kind: 'sameFile'; readonly lineNumber: number }
 	| { readonly kind: 'differentFile'; readonly filePath: string; readonly lineNumber: number };
 
-const DEFAULT_CURSOR_JUMP_MODEL_NAME = 'dardcor-suggestions-himalia-001';
+const DEFAULT_CURSOR_JUMP_MODEL_NAME = 'dardcor-utility-small';
 
 /**
  * System prompt used for the cursor-jump (next-cursor-line) prediction model.
@@ -56,7 +54,6 @@ export class XtabNextCursorPredictor {
 		@IExperimentationService private readonly expService: IExperimentationService,
 		@ILanguageDiagnosticsService private readonly langDiagService: ILanguageDiagnosticsService,
 		@IEndpointProvider private readonly endpointProvider: IEndpointProvider,
-		@IProxyModelsService private readonly proxyModelsService: IProxyModelsService,
 	) {
 		this.isDisabled = false;
 	}
@@ -70,7 +67,6 @@ export class XtabNextCursorPredictor {
 			return undefined;
 		}
 
-		// the cast is for backward compatibility with older experiments
 		const originalNextCursorLinePrediction = this.configService.getExperimentBasedConfig(ConfigKey.InlineEditsNextCursorPredictionEnabled, this.expService) as (NextCursorLinePrediction | boolean | undefined);
 
 		switch (originalNextCursorLinePrediction) {
@@ -81,7 +77,6 @@ export class XtabNextCursorPredictor {
 			case undefined:
 				return undefined;
 
-			// for backward compatibility
 			case NextCursorLinePrediction.OnlyWithEdit:
 			case NextCursorLinePrediction.Jump:
 				return NextCursorLinePrediction.OnlyWithEdit;
@@ -92,13 +87,6 @@ export class XtabNextCursorPredictor {
 	}
 
 
-	/**
-	 * Build the chat messages and `keptRange` for the cursor-prediction prompt
-	 * without making any network call. Extracted from {@link predictNextCursorPosition}
-	 * so that test/datagen tooling can capture the exact production prompt
-	 * (and the kept-line range used to validate the assistant's response)
-	 * without spinning up a mock endpoint.
-	 */
 	public buildCursorPredictionPrompt(promptPieces: PromptPieces): Result<{ messages: Raw.ChatMessage[]; keptRange: OffsetRange }, Error> {
 		const systemMessage = NEXT_CURSOR_PREDICTION_SYSTEM_MESSAGE;
 
@@ -131,7 +119,6 @@ export class XtabNextCursorPredictor {
 
 		const { clippedTaggedCurrentDoc, areaAroundCodeToEdit } = currentFileContentR.val;
 
-		// Get lint diagnostics if enabled for cursor prediction
 		const lintOptions = this.determineLintOptions();
 		const lintErrors = new LintErrors(promptPieces.activeDoc.id, promptPieces.currentDocument, this.langDiagService, promptPieces.xtabHistory);
 
@@ -200,19 +187,17 @@ export class XtabNextCursorPredictor {
 		if (!resolvedEndpoint) {
 			return Result.fromString('endpointNotResolved');
 		}
-		const { endpoint, usesResponsesApi } = resolvedEndpoint;
+		const { endpoint, usesResponsesApi, usesCustomUrl } = resolvedEndpoint;
 
 		const secretKey = this.configService.getConfig(ConfigKey.TeamInternal.InlineEditsNextCursorPredictionApiKey);
 
 		const maxResponseTokens = this.configService.getExperimentBasedConfig(ConfigKey.TeamInternal.InlineEditsNextCursorPredictionMaxResponseTokens, this.expService);
 
 		let requestOptions: OptionalChatRequestParams = {
-			// Responses API models include reasoning tokens in max_output_tokens,
-			// so we need a larger budget to leave room for actual output.
 			max_tokens: usesResponsesApi ? Math.max(maxResponseTokens, 2048) : maxResponseTokens,
 		};
 
-		if (secretKey) {
+		if (secretKey && usesCustomUrl) {
 			requestOptions = { ...requestOptions, secretKey };
 		}
 
@@ -245,26 +230,34 @@ export class XtabNextCursorPredictor {
 		}
 	}
 
-	private async resolveEndpoint(modelName: string, tracer: ILogger): Promise<{ endpoint: IChatEndpoint; usesResponsesApi: boolean } | undefined> {
+	private async resolveEndpoint(modelName: string, tracer: ILogger): Promise<{ endpoint: IChatEndpoint; usesResponsesApi: boolean; usesCustomUrl: boolean } | undefined> {
 		const useEndpointProvider = this.configService.getConfig(ConfigKey.TeamInternal.InlineEditsNextCursorPredictionUseEndpointProvider);
-		if (useEndpointProvider) {
-			const allEndpoints = await this.endpointProvider.getAllChatEndpoints();
-			const endpoint = allEndpoints.find(e => e.model === modelName || e.family === modelName);
-			if (!endpoint) {
-				tracer.trace(`Could not find endpoint for model '${modelName}' via endpoint provider`);
-				return undefined;
+		const url = this.configService.getConfig(ConfigKey.TeamInternal.InlineEditsNextCursorPredictionUrl);
+		if (useEndpointProvider || !url) {
+			try {
+				const endpoint = await this.endpointProvider.getChatEndpoint(modelName);
+				return { endpoint, usesResponsesApi: endpoint.apiType === 'responses', usesCustomUrl: false };
+			} catch (error) {
+				tracer.trace(`Could not resolve Dardcor Router endpoint for '${modelName}': ${ErrorUtils.toString(ErrorUtils.fromUnknown(error))}`);
+				if (modelName === DEFAULT_CURSOR_JUMP_MODEL_NAME) {
+					return undefined;
+				}
+				try {
+					const endpoint = await this.endpointProvider.getChatEndpoint(DEFAULT_CURSOR_JUMP_MODEL_NAME);
+					return { endpoint, usesResponsesApi: endpoint.apiType === 'responses', usesCustomUrl: false };
+				} catch (fallbackError) {
+					tracer.trace(`Could not resolve fallback Dardcor Router endpoint '${DEFAULT_CURSOR_JUMP_MODEL_NAME}': ${ErrorUtils.toString(ErrorUtils.fromUnknown(fallbackError))}`);
+					return undefined;
+				}
 			}
-			const usesResponsesApi = endpoint.apiType === 'responses';
-			return { endpoint, usesResponsesApi };
 		}
 
-		const url = this.configService.getConfig(ConfigKey.TeamInternal.InlineEditsNextCursorPredictionUrl);
 		return {
 			endpoint: this.instaService.createInstance(ChatEndpoint, {
 				id: modelName,
 				name: 'nes.nextCursorPosition',
 				vendor: modelName,
-				urlOrRequestMetadata: url ? url : { type: RequestType.ProxyChatCompletions },
+				urlOrRequestMetadata: url,
 				model_picker_enabled: false,
 				is_chat_default: false,
 				is_chat_fallback: false,
@@ -285,14 +278,12 @@ export class XtabNextCursorPredictor {
 				},
 			}),
 			usesResponsesApi: false,
+			usesCustomUrl: true,
 		};
 	}
 
 	private determineModelName(): string {
-		// Priority: experiment-configured model name, then the first `CursorJumpChat`
-		// model advertised by the `/models` endpoint, then a hard-coded fallback.
 		return this.configService.getExperimentBasedConfig(ConfigKey.TeamInternal.InlineEditsNextCursorPredictionModelName, this.expService)
-			?? this.proxyModelsService.cursorJumpModels?.[0]?.name
 			?? DEFAULT_CURSOR_JUMP_MODEL_NAME;
 	}
 
@@ -313,13 +304,11 @@ export class XtabNextCursorPredictor {
 	public parseResponse(rawResponse: string, keptRange: OffsetRange): Result<CursorJumpPrediction, Error> {
 		const trimmed = stripThinkTags(rawResponse);
 
-		// Try parsing as a plain line number (same-file jump)
 		const lineNumber = parseInt(trimmed, 10);
 		if (!isNaN(lineNumber) && String(lineNumber) === trimmed) {
 			return this.parseSameFileLineNumber(lineNumber, keptRange);
 		}
 
-		// Try parsing as filepath:lineNumber (cross-file jump)
 		const lastColonIdx = trimmed.lastIndexOf(':');
 		if (lastColonIdx <= 0) {
 			return Result.fromString(`gotNaN`);
@@ -351,12 +340,6 @@ export class XtabNextCursorPredictor {
 	}
 }
 
-/**
- * Strip `<think>...</think>` reasoning blocks emitted by thinking models.
- * Mirrors the post-processing logic specified by the model owners: remove
- * any complete think blocks, and drop any unterminated leading `<think>`
- * (which can happen when generation hits the max tokens limit).
- */
 function stripThinkTags(text: string): string {
 	let result = text.replace(/<think>[\s\S]*?<\/think>\s*/g, '');
 	if (result.trimStart().startsWith('<think>')) {

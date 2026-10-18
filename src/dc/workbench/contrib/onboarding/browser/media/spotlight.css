@@ -3,42 +3,28 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Spotlight overlay: dim everything, cut a highlight hole, anchor a callout. */
 
 .spotlight-overlay {
 	position: fixed;
 	inset: 0;
 	pointer-events: none;
-	/* Above dialogs (2575) so the onboarding spotlight wins over modal chrome. */
 	z-index: 2600;
 }
 
-/* Expanded pickers and mobile sheets remain above the spotlight blocker. */
 .spotlight-overlay.target-overlay-visible {
 	z-index: 1999;
 }
 
-/* Full-screen click blocker. Transparent; swallows interaction outside the hole. */
 .spotlight-blocker {
 	position: fixed;
 	inset: 0;
 	pointer-events: auto;
 }
 
-/*
- * The highlight hole. The huge spread box-shadow paints the dim everywhere
- * *outside* this element, while the inset ring highlights the target. Purely
- * visual: it never intercepts pointer events.
- */
 .spotlight-hole {
 	position: fixed;
 	border-radius: var(--vscode-cornerRadius-medium);
 	pointer-events: none;
-	/*
-	 * The dim color matches the modal scrim (.monaco-dialog-modal-block.dimmed)
-	 * and the native window-controls dim (windowImpl.ts dimColor, 0.5 black) so
-	 * the spotlight, the dimmed app and the OS-drawn controls read as one layer.
-	 */
 	box-shadow:
 		0 0 0 9999px rgba(0, 0, 0, 0.5),
 		0 0 0 2px var(--vscode-focusBorder) inset;
@@ -144,7 +130,6 @@
 	white-space: nowrap;
 }
 
-/* Respect reduced-motion: drop the animated hole transition. */
 @media (prefers-reduced-motion: reduce) {
 	.spotlight-hole {
 		transition: none;

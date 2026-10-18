@@ -25,18 +25,11 @@ const enum Constants {
 
 const getFreshLensLocation = () => workspace.getConfiguration().get(Constants.ConfigKey);
 
-/**
- * Npm script lens provider implementation. Can show a "Debug" text above any
- * npm script, or the npm scripts section.
- */
 export class NpmScriptLensProvider implements CodeLensProvider, Disposable {
 	private lensLocation = getFreshLensLocation();
 	private readonly changeEmitter = new EventEmitter<void>();
 	private subscriptions: Disposable[] = [];
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly onDidChangeCodeLenses = this.changeEmitter.event;
 
 	constructor() {
@@ -58,9 +51,6 @@ export class NpmScriptLensProvider implements CodeLensProvider, Disposable {
 		);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async provideCodeLenses(document: TextDocument): Promise<CodeLens[]> {
 		if (this.lensLocation === 'never') {
 			return [];
@@ -106,9 +96,6 @@ export class NpmScriptLensProvider implements CodeLensProvider, Disposable {
 		return [];
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public dispose() {
 		this.subscriptions.forEach(s => s.dispose());
 	}

@@ -30,19 +30,15 @@ import { IChatMarkdownContent, IChatService } from '../../../common/chatService/
 import { ChatConfiguration } from '../../../common/constants.js';
 import { ILanguageModelToolsService } from '../../../common/tools/languageModelToolsService.js';
 import { IChatWidgetService } from '../../chat.js';
-import { ISessionSummaryHoverService } from '../../agentSessions/sessionSummaryHoverService.js';
 import { ChatAgentHover, getChatAgentHoverOptions } from '../chatAgentHover.js';
 import { IChatMarkdownAnchorService } from './chatMarkdownAnchorService.js';
 import { InlineAnchorWidget } from './chatInlineAnchorWidget.js';
 import { ChatRichLinkDecorator } from './chatRichLink.js';
 
-/** For rendering slash commands, variables */
 const decorationRefUrl = `http://_vscodedecoration_`;
 
-/** For rendering agent decorations with hover */
 const agentRefUrl = `http://_chatagent_`;
 
-/** For rendering agent decorations with hover */
 const agentSlashRefUrl = `http://_chatslash_`;
 
 export function agentToMarkdown(agent: IChatAgentData, sessionResource: URI, isClickable: boolean, accessor: ServicesAccessor): string {
@@ -101,10 +97,10 @@ export class ChatMarkdownDecorationsRenderer extends Disposable {
 		@IChatMarkdownAnchorService private readonly chatMarkdownAnchorService: IChatMarkdownAnchorService,
 		@ILinkPresentationService linkPresentationService: ILinkPresentationService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
-		@ISessionSummaryHoverService sessionSummaryHoverService: ISessionSummaryHoverService,
+		
 	) {
 		super();
-		this.richLinkDecorator = new Lazy(() => this._register(new ChatRichLinkDecorator(linkPresentationService, hoverService, sessionSummaryHoverService)));
+		this.richLinkDecorator = new Lazy(() => this._register(new ChatRichLinkDecorator(linkPresentationService, hoverService)));
 	}
 
 	convertParsedRequestToMarkdown(sessionResource: URI, parsedRequest: IParsedChatRequest): string {
@@ -256,7 +252,6 @@ export class ChatMarkdownDecorationsRenderer extends Disposable {
 	}
 
 	private renderFileWidget(content: IChatMarkdownContent, href: string, a: HTMLAnchorElement, store: DisposableStore): void {
-		// TODO this can be a nicer FileLabel widget with an icon. Do a simple link for now.
 		const fullUri = URI.parse(href);
 
 		const data = content.inlineReferences?.[fullUri.path.slice(1)];

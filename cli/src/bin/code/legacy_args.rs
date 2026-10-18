@@ -10,16 +10,13 @@ use cli::commands::args::{
 	InstallExtensionArgs, ListExtensionArgs, UninstallExtensionArgs,
 };
 
-/// Tries to parse the argv using the legacy CLI interface, looking for its
-/// flags and generating a CLI with subcommands if those don't exist.
 pub fn try_parse_legacy(
 	iter: impl IntoIterator<Item = impl Into<std::ffi::OsString>>,
 ) -> Option<CliCore> {
 	let raw = clap_lex::RawArgs::new(iter);
 	let mut cursor = raw.cursor();
-	raw.next(&mut cursor); // Skip the bin
+	raw.next(&mut cursor);
 
-	// First make a hashmap of all flags and capture positional arguments.
 	let mut args: HashMap<String, Vec<String>> = HashMap::new();
 	let mut last_arg = None;
 	while let Some(arg) = raw.next(&mut cursor) {
@@ -61,12 +58,6 @@ pub fn try_parse_legacy(
 		use_version: None,
 	};
 
-	// Now translate them to subcommands.
-	// --list-extensions        -> ext list
-	// --update-extensions      -> update
-	// --install-extension=id   -> ext install <id>
-	// --uninstall-extension=id -> ext uninstall <id>
-	// --status                 -> status
 
 	if args.contains_key("list-extensions") {
 		Some(CliCore {
@@ -240,7 +231,6 @@ mod tests {
 		let cli = try_parse_legacy(args).unwrap();
 
 		if let Some(Commands::Status) = cli.subcommand {
-			// no-op
 		} else {
 			panic!("Expected extension subcommand, got {:?}", cli.subcommand);
 		}

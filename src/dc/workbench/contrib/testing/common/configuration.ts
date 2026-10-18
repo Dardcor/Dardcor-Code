@@ -196,7 +196,7 @@ export const testingConfiguration: IConfigurationNode = {
 		[TestingConfigKeys.CoverageToolbarEnabled]: {
 			description: localize('testing.coverageToolbarEnabled', 'Controls whether the coverage toolbar is shown in the editor.'),
 			type: 'boolean',
-			default: false, // todo@connor4312: disabled by default until UI sync
+			default: false,
 		},
 		[TestingConfigKeys.CoverageMinimapEnabled]: {
 			description: localize('testing.coverageMinimapEnabled', 'Controls whether coverage indicators are shown in the minimap.'),

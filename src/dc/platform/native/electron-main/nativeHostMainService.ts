@@ -51,7 +51,7 @@ import { AuthInfo, Credentials, IRequestService } from '../../request/common/req
 import { randomPath } from '../../../base/common/extpath.js';
 import { CancellationToken, CancellationTokenSource } from '../../../base/common/cancellation.js';
 
-export interface INativeHostMainService extends AddFirstParameterToFunctions<ICommonNativeHostService, Promise<unknown> /* only methods, not events */, number | undefined /* window ID */> { }
+export interface INativeHostMainService extends AddFirstParameterToFunctions<ICommonNativeHostService, Promise<unknown> , number | undefined > { }
 
 export const INativeHostMainService = createDecorator<INativeHostMainService>('nativeHostMainService');
 
@@ -77,7 +77,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 	) {
 		super();
 
-		// Events
 		{
 			this.onDidOpenMainWindow = Event.map(this.windowsMainService.onDidOpenWindow, window => window.id);
 
@@ -101,7 +100,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			);
 
 			this.onDidChangeWindowAlwaysOnTop = Event.any(
-				Event.None, // always on top is unsupported in main windows currently
+				Event.None,
 				Event.map(this.auxiliaryWindowsMainService.onDidChangeAlwaysOnTop, e => ({ windowId: e.window.id, alwaysOnTop: e.alwaysOnTop }))
 			);
 
@@ -123,28 +122,23 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			this.onDidSuspendOS = Event.fromNodeEventEmitter(powerMonitor, 'suspend');
 			this.onDidResumeOS = Event.fromNodeEventEmitter(powerMonitor, 'resume');
 
-			// Battery power events (macOS and Windows only)
 			this.onDidChangeOnBatteryPower = Event.any(
 				Event.map(Event.fromNodeEventEmitter(powerMonitor, 'on-ac'), () => false),
 				Event.map(Event.fromNodeEventEmitter(powerMonitor, 'on-battery'), () => true)
 			);
 
-			// Thermal state events (macOS only)
 			this.onDidChangeThermalState = Event.map(
 				Event.fromNodeEventEmitter<{ state: ThermalState }>(powerMonitor, 'thermal-state-change'),
 				e => e.state
 			);
 
-			// Speed limit events (macOS and Windows only)
 			this.onDidChangeSpeedLimit = Event.map(
 				Event.fromNodeEventEmitter<{ limit: number }>(powerMonitor, 'speed-limit-change'),
 				e => e.limit
 			);
 
-			// Shutdown event (Linux and macOS only)
 			this.onWillShutdownOS = Event.fromNodeEventEmitter(powerMonitor, 'shutdown');
 
-			// Screen lock events (macOS and Windows only)
 			this.onDidLockScreen = Event.fromNodeEventEmitter(powerMonitor, 'lock-screen');
 			this.onDidUnlockScreen = Event.fromNodeEventEmitter(powerMonitor, 'unlock-screen');
 
@@ -152,9 +146,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 			this.onDidChangeDisplay = Event.debounce(Event.any(
 				Event.filter(Event.fromNodeEventEmitter(screen, 'display-metrics-changed', (event: Electron.Event, display: Display, changedMetrics?: string[]) => changedMetrics), changedMetrics => {
-					// Electron will emit 'display-metrics-changed' events even when actually
-					// going fullscreen, because the dock hides. However, we do not want to
-					// react on this event as there is no change in display bounds.
 					return !(Array.isArray(changedMetrics) && changedMetrics.length === 1 && changedMetrics[0] === 'workArea');
 				}),
 				Event.fromNodeEventEmitter(screen, 'display-added'),
@@ -164,14 +155,11 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 	}
 
 
-	//#region Properties
 
 	get windowId(): never { throw new Error('Not implemented in electron-main'); }
 
-	//#endregion
 
 
-	//#region Events
 
 	readonly onDidOpenMainWindow: Event<number>;
 
@@ -207,10 +195,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 	readonly onDidChangeDisplay: Event<void>;
 
-	//#endregion
 
 
-	//#region Window
 
 	getWindows(windowId: number | undefined, options: { includeAuxiliaryWindows: true }): Promise<Array<IOpenedMainWindow | IOpenedAuxiliaryWindow>>;
 	getWindows(windowId: number | undefined, options: { includeAuxiliaryWindows: false }): Promise<Array<IOpenedMainWindow>>;
@@ -297,10 +283,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 				forceTempProfile: options.forceTempProfile,
 			});
 
-			// Hand off a chat session to the opened window so it restores both the
-			// folder and the session (e.g. the Agents window "Open in VS Code" flow).
-			// Only meaningful when exactly one window is opened so the session is
-			// not sent to an ambiguous target.
 			const chatSessionToOpen = options.chatSessionToOpen;
 			if (chatSessionToOpen && windows.length === 1) {
 				windows[0].sendWhenReady('vscode:openChatSession', CancellationToken.None, URI.revive(chatSessionToOpen).toString());
@@ -399,7 +381,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 	async updateWindowAccentColor(windowId: number | undefined, color: 'default' | 'off' | string, inactiveColor: string | undefined): Promise<void> {
 		if (!isWindows) {
-			return; // windows only
+			return;
 		}
 
 		const window = this.windowById(windowId);
@@ -469,15 +451,12 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		window?.win?.webContents?.setBackgroundThrottling(allowed);
 	}
 
-	//#endregion
 
 
-	//#region macOS Shell Command
 
 	async installShellCommand(windowId: number | undefined): Promise<void> {
 		const { source, target } = await this.getShellCommandLink();
 
-		// Only install unless already existing
 		try {
 			const { symbolicLink } = await SymlinkSupport.stat(source);
 			if (symbolicLink && !symbolicLink.dangling) {
@@ -488,7 +467,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			}
 		} catch (error) {
 			if (error.code !== 'ENOENT') {
-				throw error; // throw on any error but file not found
+				throw error;
 			}
 		}
 
@@ -505,7 +484,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			]
 		});
 
-		if (response === 1 /* Cancel */) {
+		if (response === 1 ) {
 			throw new CancellationError();
 		}
 
@@ -535,7 +514,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 						]
 					});
 
-					if (response === 1 /* Cancel */) {
+					if (response === 1 ) {
 						throw new CancellationError();
 					}
 
@@ -549,7 +528,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 					break;
 				}
 				case 'ENOENT':
-					break; // ignore file not found
+					break;
 				default:
 					throw error;
 			}
@@ -562,7 +541,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		const target = (await Promises.exists(targetDc)) ? targetDc : targetCode;
 		const source = `/usr/local/bin/dc`;
 
-		// Ensure source exists
 		const sourceExists = await Promises.exists(target);
 		if (!sourceExists) {
 			throw new Error(localize('sourceMissing', "Unable to find shell script in '{0}'", target));
@@ -571,9 +549,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		return { source, target };
 	}
 
-	//#endregion
 
-	//#region Dialog
 
 	async showMessageBox(windowId: number | undefined, options: MessageBoxOptions & INativeHostOptions): Promise<MessageBoxReturnValue> {
 		const window = this.windowById(options?.targetWindowId, windowId);
@@ -625,14 +601,11 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			cli: this.environmentMainService.args,
 			urisToOpen: openable,
 			forceNewWindow: options.forceNewWindow,
-			/* remoteAuthority will be determined based on openable */
 		});
 	}
 
-	//#endregion
 
 
-	//#region OS
 
 	async showItemInFolder(windowId: number | undefined, path: string): Promise<void> {
 		shell.showItemInFolder(path);
@@ -681,19 +654,11 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			const { default: open, apps } = await import('open');
 			const res = await open(url, {
 				app: {
-					// Use `open.apps` helper to allow cross-platform browser
-					// aliases to be looked up properly. Fallback to the
-					// configured value if not found.
 					name: Object.hasOwn(apps, configuredBrowser) ? apps[(configuredBrowser as keyof typeof apps)] : configuredBrowser
 				}
 			});
 
 			if (!isWindows) {
-				// On Linux/macOS, listen to stderr and treat that as failure
-				// for opening the browser to fallback to the default.
-				// On Windows, unfortunately PowerShell seems to always write
-				// to stderr so we cannot use it there
-				// (see also https://github.com/microsoft/vscode/issues/230636)
 				res.stderr?.once('data', (data: Buffer) => {
 					this.logService.error(`Error openening external URL '${url}' using browser '${configuredBrowser}': ${data.toString()}`);
 					return this.doOpenShellExternal(windowId, url);
@@ -731,7 +696,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 				]
 			}, this.windowById(windowId)?.win ?? undefined);
 
-			if (response === 1 /* Cancel */) {
+			if (response === 1 ) {
 				return;
 			}
 
@@ -744,10 +709,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 	}
 
 	async getMediaAccessStatus(windowId: number | undefined, mediaType: 'microphone' | 'camera' | 'screen'): Promise<'not-determined' | 'granted' | 'denied' | 'restricted' | 'unknown'> {
-		// systemPreferences.getMediaAccessStatus is implemented on macOS only.
-		// On Linux and Windows there's no per-app screen-recording permission
-		// concept; the OS handles capture without an app-level gate, so report
-		// 'granted' so the renderer can proceed straight to getDisplayMedia.
 		if (isMacintosh) {
 			return systemPreferences.getMediaAccessStatus(mediaType);
 		}
@@ -819,7 +780,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 	@memoize
 	private get cliPath(): string {
 
-		// Windows
 		if (isWindows) {
 			if (this.environmentMainService.isBuilt) {
 				return join(dirname(process.execPath), 'bin', `${this.productService.applicationName}.cmd`);
@@ -828,7 +788,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			return join(this.environmentMainService.appRoot, 'scripts', 'code-cli.bat');
 		}
 
-		// Linux
 		if (isLinux) {
 			if (this.environmentMainService.isBuilt) {
 				return join(dirname(process.execPath), 'bin', `${this.productService.applicationName}`);
@@ -837,7 +796,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			return join(this.environmentMainService.appRoot, 'scripts', 'code-cli.sh');
 		}
 
-		// macOS
 		if (this.environmentMainService.isBuilt) {
 			return join(this.environmentMainService.appRoot, 'bin', 'code');
 		}
@@ -871,15 +829,12 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		return this.themeMainService.getColorScheme();
 	}
 
-	// WSL
 	async hasWSLFeatureInstalled(): Promise<boolean> {
 		return isWindows && hasWSLFeatureInstalled();
 	}
 
-	//#endregion
 
 
-	//#region Screenshots
 
 	async getScreenshot(windowId: number | undefined, rect?: IRectangle, options?: INativeHostOptions): Promise<VSBuffer | undefined> {
 		const window = this.windowById(options?.targetWindowId, windowId);
@@ -889,15 +844,12 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		return buf && VSBuffer.wrap(buf);
 	}
 
-	//#endregion
 
 
-	//#region GitHub mobile upload API
 
 	async uploadFileViaMobileApi(_windowId: number | undefined, token: string, repoId: string, fileName: string, fileBytes: VSBuffer, contentType: string): Promise<{ fileName: string; assetUrl: string; contentType: string }> {
 		const { net } = await import('electron');
 
-		// Step 1: Get upload policy
 		const policyResponse = await net.fetch('https://api.github.com/mobile/upload/policy', {
 			method: 'POST',
 			headers: {
@@ -919,24 +871,18 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		const policy = await policyResponse.json();
 		const asset = policy.asset as Record<string, unknown>;
 
-		// Step 2: Upload to S3 (uses net.fetch which bypasses CORS)
 		const formFields = policy.form as Record<string, string>;
 		const boundary = `----VSCodeUpload${Date.now()}`;
 		let multipartBody = '';
 		for (const [key, value] of Object.entries(formFields)) {
 			multipartBody += `--${boundary}\r\nContent-Disposition: form-data; name="${key}"\r\n\r\n${value}\r\n`;
 		}
-		// Sanitize the filename for multipart header safety: strip CR/LF (which would
-		// terminate the header / inject extra fields) and escape backslashes and double
-		// quotes (RFC 2616 quoted-string semantics).
 		const safeName = String(asset.name).replace(/[\r\n]+/g, ' ').replace(/[\\"]/g, '_');
 		multipartBody += `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${safeName}"\r\nContent-Type: ${contentType}\r\n\r\n`;
 		const epilogue = `\r\n--${boundary}--\r\n`;
 
 		const preambleBytes = Buffer.from(multipartBody, 'utf-8');
 		const epilogueBytes = Buffer.from(epilogue, 'utf-8');
-		// Pass fileBytes.buffer (Uint8Array) directly to Buffer.concat instead of wrapping
-		// in Buffer.from(...) which would force an extra full-size copy of the payload.
 		const bodyBuffer = Buffer.concat([preambleBytes, fileBytes.buffer, epilogueBytes]);
 
 		const s3Response = await net.fetch(policy.upload_url as string, {
@@ -949,7 +895,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			throw new Error(`S3 upload failed ${s3Response.status}: ${text.substring(0, 300)}`);
 		}
 
-		// Step 3: Confirm upload
 		const confirmResponse = await net.fetch(`https://api.github.com${policy.asset_upload_url}`, {
 			method: 'PUT',
 			headers: {
@@ -965,10 +910,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		return { fileName, assetUrl: asset.href as string, contentType };
 	}
 
-	//#endregion
 
 
-	//#region Process
 
 	async getProcessId(windowId: number | undefined): Promise<number | undefined> {
 		const window = this.windowById(undefined, windowId);
@@ -979,10 +922,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		process.kill(pid, code);
 	}
 
-	//#endregion
 
 
-	//#region Clipboard
 
 	async readClipboardText(windowId: number | undefined, type?: 'selection' | 'clipboard'): Promise<string> {
 		this.logService.trace(`readClipboardText in window ${windowId} with type:`, type);
@@ -1025,10 +966,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		return clipboard.has(format, type);
 	}
 
-	//#endregion
 
 
-	//#region macOS Touchbar
 
 	async newWindowTab(): Promise<void> {
 		await this.windowsMainService.open({
@@ -1065,10 +1004,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		window?.updateTouchBar(items);
 	}
 
-	//#endregion
 
 
-	//#region Lifecycle
 
 	async notifyReady(windowId: number | undefined): Promise<void> {
 		const window = this.codeWindowById(windowId);
@@ -1083,11 +1020,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		const window = this.codeWindowById(windowId);
 		if (window) {
 
-			// Special case: support `transient` workspaces by preventing
-			// the reload and rather go back to an empty window. Transient
-			// workspaces should never restore, even when the user wants
-			// to reload.
-			// For: https://github.com/microsoft/vscode/issues/119695
 			if (isWorkspaceIdentifier(window.openedWorkspace)) {
 				const configPath = window.openedWorkspace.configPath;
 				if (configPath.scheme === Schemas.file) {
@@ -1098,7 +1030,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 				}
 			}
 
-			// Proceed normally to reload the window
 			return this.lifecycleMainService.reload(window, options?.disableExtensions !== undefined ? { _: [], 'disable-extensions': options.disableExtensions } : undefined);
 		}
 	}
@@ -1110,14 +1041,11 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 	async quit(windowId: number | undefined): Promise<void> {
 
-		// If the user selected to exit from an extension development host window, do not quit, but just
-		// close the window unless this is the last window that is opened.
 		const window = this.windowsMainService.getLastActiveWindow();
 		if (window?.isExtensionDevelopmentHost && this.windowsMainService.getWindowCount() > 1 && window.win) {
 			window.win.close();
 		}
 
-		// Otherwise: normal quit
 		else {
 			this.lifecycleMainService.quit();
 		}
@@ -1127,10 +1055,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		await this.lifecycleMainService.kill(code);
 	}
 
-	//#endregion
 
 
-	//#region Connectivity
 
 	async resolveProxy(windowId: number | undefined, url: string): Promise<string | undefined> {
 		const window = this.codeWindowById(windowId);
@@ -1169,10 +1095,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		return findFreePort(startPort, giveUpAfter, timeout, stride);
 	}
 
-	//#endregion
 
 
-	//#region Development
 
 	private gpuInfoWindowId: number | undefined;
 	private contentTracingWindowId: number | undefined;
@@ -1238,8 +1162,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 	async openContentTracingWindow(): Promise<void> {
 		if (typeof this.contentTracingWindowId !== 'number') {
-			// Disable ready-to-show event with paintWhenInitiallyHidden to
-			// customize content tracing window below.
 			const contentTracingWindow = this.openChildWindow(null, 'chrome://tracing', {
 				paintWhenInitiallyHidden: false,
 				webPreferences: {
@@ -1247,10 +1169,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 				}
 			});
 			contentTracingWindow.webContents.once('did-finish-load', async () => {
-				// Mock window.prompt to support save action from the tracing UI
-				// since Electron by default doesn't provide the api.
-				// See requestFilename_ implementation under
-				// https://source.chromium.org/chromium/chromium/src/+/main:third_party/catapult/tracing/tracing/ui/extras/about_tracing/profiling_view.html;l=334-379
 				await contentTracingWindow.webContents.executeJavaScript(`
 					window.prompt = () => '';
 					null
@@ -1302,14 +1220,13 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 	async stopTracing(windowId: number | undefined): Promise<void> {
 		if (!this._isTracing && !this.environmentMainService.args.trace) {
-			return; // no tracing in progress
+			return;
 		}
 
 		this._isTracing = false;
 
 		const path = await contentTracing.stopRecording(`${randomPath(this.environmentMainService.userHome.fsPath, this.productService.applicationName)}.trace.txt`);
 
-		// Inform user to report an issue
 		await this.dialogMainService.showMessageBox({
 			type: 'info',
 			message: localize('trace.message', "Successfully created the trace file"),
@@ -1317,13 +1234,10 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 			buttons: [localize({ key: 'trace.ok', comment: ['&& denotes a mnemonic'] }, "&&OK")],
 		}, BrowserWindow.getFocusedWindow() ?? undefined);
 
-		// Show item in explorer
 		this.showItemInFolder(undefined, path);
 	}
 
-	//#endregion
 
-	// #region Performance
 
 	async profileRenderer(windowId: number | undefined, session: string, duration: number): Promise<IV8Profile> {
 		const window = this.codeWindowById(windowId);
@@ -1336,9 +1250,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		return result;
 	}
 
-	// #endregion
 
-	//#region Toast Notifications
 
 	private readonly activeToasts = this._register(new DisposableMap<string>());
 
@@ -1371,8 +1283,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 		return new Promise<IToastResult>(r => {
 			const resolve = (result: IToastResult) => {
-				r(result);				// first return the result before...
-				disposables.dispose();	// ...disposing which would invalidate the result object
+				r(result);
+				disposables.dispose();
 			};
 
 			disposables.add(cts.token.onCancellationRequested(() => resolve({ supported: true, clicked: false })));
@@ -1394,9 +1306,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		this.activeToasts.clearAndDisposeAll();
 	}
 
-	//#endregion
 
-	//#region Registry (windows)
 
 	async windowsGetStringRegKey(windowId: number | undefined, hive: 'HKEY_CURRENT_USER' | 'HKEY_LOCAL_MACHINE' | 'HKEY_CLASSES_ROOT' | 'HKEY_USERS' | 'HKEY_CURRENT_CONFIG', path: string, name: string): Promise<string | undefined> {
 		if (!isWindows) {
@@ -1411,9 +1321,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		}
 	}
 
-	//#endregion
 
-	//#region Zip
 
 	async createZipFile(windowId: number | undefined, zipPath: URI, files: INativeZipFile[], options?: { maxEntries?: number }): Promise<void> {
 		await zip(zipPath.fsPath, files.map(file => {
@@ -1421,7 +1329,6 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 				return file;
 			}
 			if (hasKey(file, { sourceArchive: true })) {
-				// Source archive merging: resolve the local path for merging
 				const archiveUri = URI.revive(file.sourceArchive);
 				if (archiveUri.scheme !== Schemas.file) {
 					throw new Error(`Cannot merge non-local archive '${archiveUri.toString()}' into a zip file`);
@@ -1436,10 +1343,8 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		}));
 	}
 
-	//#endregion
 
 
-	//#region Power
 
 	async getSystemIdleState(windowId: number | undefined, idleThreshold: number): Promise<SystemIdleState> {
 		return powerMonitor.getSystemIdleState(idleThreshold);
@@ -1469,15 +1374,11 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 		return powerSaveBlocker.isStarted(id);
 	}
 
-	//#endregion
 
-	//#region Application Badge
 
 	async setApplicationBadge(windowId: number | undefined, badge: import('../common/native.js').IApplicationBadge | undefined): Promise<void> {
-		// No-op stub — platform-specific implementations override this in subclasses.
 	}
 
-	//#endregion
 
 	private windowById(windowId: number | undefined, fallbackCodeWindowId?: number): ICodeWindow | IAuxiliaryWindow | undefined {
 		return this.codeWindowById(windowId) ?? this.auxiliaryWindowById(windowId) ?? this.codeWindowById(fallbackCodeWindowId);

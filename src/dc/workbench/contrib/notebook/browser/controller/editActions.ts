@@ -387,8 +387,6 @@ interface ILanguagePickInput extends IQuickPickItem {
 }
 
 interface IChangeCellContext extends INotebookCellActionContext {
-	// TODO@rebornix : `cells`
-	// range: ICellRange;
 	language?: string;
 }
 
@@ -445,7 +443,6 @@ registerAction2(class ChangeCellLanguageAction extends NotebookCellAction<ICellR
 			return;
 		}
 
-		// TODO@rebornix, support multiple cells
 		return {
 			notebookEditor: activeEditorContext.notebookEditor,
 			cell: activeEditorContext.notebookEditor.cellAt(context.start)!,
@@ -494,7 +491,6 @@ registerAction2(class ChangeCellLanguageAction extends NotebookCellAction<ICellR
 
 			const languageName = languageService.getLanguageName(languageId);
 			if (!languageName) {
-				// Notebook has unrecognized language
 				return;
 			}
 
@@ -516,7 +512,6 @@ registerAction2(class ChangeCellLanguageAction extends NotebookCellAction<ICellR
 			return a.description.localeCompare(b.description);
 		});
 
-		// Offer to "Auto Detect"
 		const autoDetectMode: IQuickPickItem = {
 			label: localize('autoDetect', "Auto Detect")
 		};
@@ -543,9 +538,6 @@ registerAction2(class ChangeCellLanguageAction extends NotebookCellAction<ICellR
 		await setCellToLanguage(languageId, context);
 	}
 
-	/**
-	 * Copied from editorStatus.ts
-	 */
 	private getFakeResource(lang: string, languageService: ILanguageService): URI | undefined {
 		let fakeResource: URI | undefined;
 
@@ -642,11 +634,11 @@ registerAction2(class SelectNotebookIndentation extends NotebookAction {
 		}
 
 		const picks: QuickPickInput<IQuickPickItem & { run(): void }>[] = [
-			new NotebookIndentUsingTabs(), // indent using tabs
-			new NotebookIndentUsingSpaces(), // indent using spaces
-			new NotebookChangeTabDisplaySize(), // change tab size
-			new NotebookIndentationToTabsAction(), // convert indentation to tabs
-			new NotebookIndentationToSpacesAction() // convert indentation to spaces
+			new NotebookIndentUsingTabs(),
+			new NotebookIndentUsingSpaces(),
+			new NotebookChangeTabDisplaySize(),
+			new NotebookIndentationToTabsAction(),
+			new NotebookIndentationToSpacesAction()
 		].map(item => {
 			return {
 				id: item.desc.id,
@@ -696,7 +688,7 @@ registerAction2(class CommentSelectedCellsAction extends NotebookMultiCellAction
 			const commentsOptions = cellViewModel.commentOptions;
 			const cellCommentCommand = new LineCommentCommand(
 				languageConfigurationService,
-				new Selection(1, 1, textModel.getLineCount(), textModel.getLineMaxColumn(textModel.getLineCount())), // comment the entire cell
+				new Selection(1, 1, textModel.getLineCount(), textModel.getLineMaxColumn(textModel.getLineCount())),
 				textModel.getOptions().tabSize,
 				Type.Toggle,
 				commentsOptions.insertSpace ?? true,
@@ -704,7 +696,6 @@ registerAction2(class CommentSelectedCellsAction extends NotebookMultiCellAction
 				false
 			);
 
-			// store any selections that are in the cell, allows them to be shifted by comments and preserved
 			const cellEditorSelections = cellViewModel.getSelections();
 			const initialTrackedRangesIDs: string[] = cellEditorSelections.map(selection => {
 				return textModel._setTrackedRange(null, selection, TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges);
@@ -718,7 +709,7 @@ registerAction2(class CommentSelectedCellsAction extends NotebookMultiCellAction
 				return new Selection(range.startLineNumber, range.startColumn, range.endLineNumber, range.endColumn);
 			});
 			cellViewModel.setSelections(newTrackedSelections ?? []);
-		}); // end of cells forEach
+		});
 	}
 
 });

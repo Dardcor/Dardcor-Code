@@ -20,11 +20,6 @@ import { ChatInputPickerActionViewItem, IChatInputPickerOptions } from './chatIn
 import { IWorkspacePickerDelegate } from '../../chat.js';
 import { IActionProvider } from '../../../../../../base/browser/ui/dropdown/dropdown.js';
 
-/**
- * Action view item for selecting a target workspace in the chat interface.
- * This picker allows selecting a recent workspace to run the chat request in,
- * which is useful for empty window contexts.
- */
 export class WorkspacePickerActionItem extends ChatInputPickerActionViewItem {
 
 	constructor(
@@ -58,7 +53,6 @@ export class WorkspacePickerActionItem extends ChatInputPickerActionViewItem {
 					},
 				}));
 
-				// Add "Open Folder..." option
 				actions.push({
 					...action,
 					id: 'workspace.openFolder',
@@ -95,7 +89,6 @@ export class WorkspacePickerActionItem extends ChatInputPickerActionViewItem {
 		}));
 
 		this._register(this.delegate.onDidChangeWorkspaces(() => {
-			// Re-render when workspaces list changes
 			if (this.element) {
 				this.renderLabel(this.element);
 			}

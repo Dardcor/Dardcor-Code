@@ -5,7 +5,6 @@
 
 //@ts-check
 
-// note: we use a fork here since we can't make a worker from the renderer process
 
 const { fork } = require('child_process');
 const workerData = process.env.SNAPSHOT_WORKER_DATA;
@@ -21,7 +20,6 @@ if (!workerData) {
 		const file = join(tmpdir(), `vscode-test-snap-${cleanTitle}.heapsnapshot`);
 
 		if (typeof process.takeHeapSnapshot !== 'function') {
-			// node.js:
 			const inspector = require('inspector');
 			const session = new inspector.Session();
 			session.connect();
@@ -43,7 +41,6 @@ if (!workerData) {
 				});
 			});
 		} else {
-			// electron exposes this nice method for us:
 			process.takeHeapSnapshot(file);
 		}
 

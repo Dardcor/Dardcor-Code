@@ -36,7 +36,7 @@ export class MatchInNotebook extends MatchImpl implements IMatchInNotebook {
 		this._webviewIndex = webviewIndex;
 	}
 
-	override parent(): INotebookFileInstanceMatch { // visible parent in search tree
+	override parent(): INotebookFileInstanceMatch {
 		return this._cellParent.parent;
 	}
 
@@ -130,7 +130,6 @@ export class CellMatch implements ICellMatch {
 
 	public addContext(textSearchMatches: ITextSearchMatch[]) {
 		if (!this.cell) {
-			// todo: get closed notebook results in search editor
 			return;
 		}
 		this.cell.resolveTextModel().then((textModel) => {
@@ -146,7 +145,6 @@ export class CellMatch implements ICellMatch {
 		webviewMatches.forEach((match) => {
 			this._webviewMatches.set(match.id(), match);
 		});
-		// TODO: add webview results to context
 	}
 
 
@@ -233,7 +231,6 @@ export class NotebookCompatibleFileMatch extends FileMatchImpl implements INoteb
 
 	private revealCellRange(match: MatchInNotebook, outputOffset: number | null) {
 		if (!this._notebookEditorWidget || !match.cell) {
-			// match cell should never be a CellSearchModel if the notebook is open
 			return;
 		}
 		if (match.webviewIndex !== undefined) {
@@ -367,7 +364,6 @@ export class NotebookCompatibleFileMatch extends FileMatchImpl implements INoteb
 		try {
 			this._findMatchDecorationModel.setAllFindMatchesDecorations(cellFindMatch);
 		} catch (e) {
-			// no op, might happen due to bugs related to cell output regex search
 		}
 	}
 	async updateMatchesForEditorWidget(): Promise<void> {
@@ -401,7 +397,6 @@ export class NotebookCompatibleFileMatch extends FileMatchImpl implements INoteb
 
 	private async highlightCurrentFindMatchDecoration(match: MatchInNotebook): Promise<number | null> {
 		if (!this._findMatchDecorationModel || !match.cell) {
-			// match cell should never be a CellSearchModel if the notebook is open
 			return null;
 		}
 		if (match.webviewIndex === undefined) {
@@ -446,7 +441,6 @@ export class NotebookCompatibleFileMatch extends FileMatchImpl implements INoteb
 	override createMatches(): void {
 		const model = this.modelService.getModel(this._resource);
 		if (model) {
-			// todo: handle better when ai contributed results has model, currently, createMatches does not work for this
 			this.bindModel(model);
 			this.updateMatchesForModel();
 		} else {
@@ -502,7 +496,6 @@ export class NotebookCompatibleFileMatch extends FileMatchImpl implements INoteb
 	}
 
 }
-// text search to notebook matches
 
 export function textSearchMatchesToNotebookMatches(textSearchMatches: ITextSearchMatch[], cell: CellMatch): MatchInNotebook[] {
 	const notebookMatches: MatchInNotebook[] = [];

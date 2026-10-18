@@ -28,7 +28,6 @@ import { IPluginSource } from '../../../common/plugins/pluginSource.js';
 suite('PluginInstallService', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
-	// --- Factory helpers -------------------------------------------------------
 
 	function makeMarketplaceRef(marketplace: string): IMarketplaceReference {
 		const ref = parseMarketplaceReference(marketplace);
@@ -50,7 +49,6 @@ suite('PluginInstallService', () => {
 		};
 	}
 
-	// --- Mock tracking types ---------------------------------------------------
 
 	interface MockState {
 		notifications: { severity: number; message: string }[];
@@ -59,48 +57,30 @@ suite('PluginInstallService', () => {
 		fileExistsResult: boolean | ((uri: URI) => Promise<boolean>);
 		ensureRepositoryResult: URI;
 		ensurePluginSourceResult: URI;
-		/** Plugin source install URI, per kind */
 		pluginSourceInstallUris: Map<string, URI>;
-		/** The commands that were sent to the terminal */
 		terminalCommands: string[];
-		/** Simulated exit code from terminal */
 		terminalExitCode: number;
-		/** Whether the terminal resolves the command completion at all */
 		terminalCompletes: boolean;
 		pullRepositoryCalls: { marketplace: IMarketplaceReference; options?: IPullRepositoryOptions }[];
 		updatePluginSourceCalls: { plugin: IMarketplacePlugin; options?: IPullRepositoryOptions }[];
-		/** Whether the marketplace is already trusted */
 		marketplaceTrusted: boolean;
-		/** Whether the strict-marketplace enterprise policy is active */
 		strictMarketplacePolicyActive?: boolean;
 		installedPlugins: IMarketplaceInstalledPlugin[];
 		fetchedMarketplacePlugins: IMarketplacePlugin[];
 		fetchMarketplaceCalls: string[][];
 		autoUpdateByMarketplace: Map<string, boolean>;
 		clearUpdatesAvailableCalls: number;
-		/** Canonical IDs that were trusted via trustMarketplace() */
 		trustedMarketplaces: string[];
-		/** Plugins returned by readPluginsFromDirectory */
 		readPluginsResult: IMarketplacePlugin[];
-		/** Plugin returned by readSinglePluginManifest (single-plugin repo fallback) */
 		singlePluginManifestResult: IMarketplacePlugin | undefined;
-		/** Result of the quick pick dialog */
 		quickPickResult: { label: string } | undefined;
-		/** Result of the quick input dialog */
 		quickInputResult: string | undefined;
-		/** Current configured marketplace values */
 		configuredMarketplaces: string[];
-		/** Updated marketplace config values */
 		updatedMarketplaces: string[] | undefined;
-		/** Whether readResult resolves to a directory (IFileService.resolve) */
 		resolveIsDirectory: boolean;
-		/** Whether the directory is a standalone plugin (isPluginDirectory) */
 		isPluginDirectoryResult: boolean;
-		/** Current configured plugin location values */
 		configuredPluginLocations: Record<string, boolean>;
-		/** Updated plugin location config values */
 		updatedPluginLocations: Record<string, boolean> | undefined;
-		/** User home directory used to expand `~` paths */
 		userHome: string;
 	}
 
@@ -144,7 +124,6 @@ suite('PluginInstallService', () => {
 		const state: MockState = { ...createDefaults(), ...stateOverrides };
 		const instantiationService = store.add(new TestInstantiationService());
 
-		// IFileService
 		instantiationService.stub(IFileService, {
 			exists: async (resource: URI) => {
 				if (typeof state.fileExistsResult === 'function') {
@@ -155,7 +134,6 @@ suite('PluginInstallService', () => {
 			resolve: async (resource: URI) => ({ resource, isDirectory: state.resolveIsDirectory }),
 		} as unknown as IFileService);
 
-		// INotificationService
 		instantiationService.stub(INotificationService, {
 			notify: (notification: { severity: number; message: string; actions?: { primary?: readonly { dispose(): void }[] } }) => {
 				state.notifications.push({ severity: notification.severity, message: notification.message });
@@ -164,13 +142,10 @@ suite('PluginInstallService', () => {
 			},
 		} as unknown as INotificationService);
 
-		// IDialogService
 		instantiationService.stub(IDialogService, {
 			confirm: async () => ({ confirmed: state.dialogConfirmResult }),
 		} as unknown as IDialogService);
 
-		// ITerminalService — the mock coordinates runCommand and onCommandFinished
-		// so the command ID matches, just like a real terminal would.
 		instantiationService.stub(ITerminalService, {
 			createTerminal: async () => {
 				let finishedCallback: ((cmd: { id: string; exitCode: number }) => void) | undefined;
@@ -179,7 +154,6 @@ suite('PluginInstallService', () => {
 					dispose: () => { },
 					runCommand: (command: string, _addNewLine?: boolean) => {
 						state.terminalCommands.push(command);
-						// Simulate command completing after runCommand is called
 						if (finishedCallback) {
 							finishedCallback({ id: 'command', exitCode: state.terminalExitCode });
 						}
@@ -198,16 +172,12 @@ suite('PluginInstallService', () => {
 			setActiveInstance: () => { },
 		} as unknown as ITerminalService);
 
-		// IProgressService
 		instantiationService.stub(IProgressService, {
 			withProgress: async (_options: unknown, callback: (...args: unknown[]) => Promise<unknown>) => callback(),
 		} as unknown as IProgressService);
 
-		// ILogService
 		instantiationService.stub(ILogService, new NullLogService());
 
-		// IAgentPluginRepositoryService
-		// Build mock source repositories for npm/pip that simulate terminal-based install
 		const makeMockPackageRepo = (kind: PluginSourceKind): IPluginSource => ({
 			kind,
 			getCleanupTarget: () => URI.file('/mock-cleanup'),
@@ -216,12 +186,10 @@ suite('PluginInstallService', () => {
 			update: async () => true,
 			getLabel: (d) => kind === PluginSourceKind.Npm ? (d as { package: string }).package : (d as { package: string }).package,
 			runInstall: async (_installDir: URI, pluginDir: URI, plugin: IMarketplacePlugin) => {
-				// Simulate confirmation dialog
 				if (!state.dialogConfirmResult) {
 					return undefined;
 				}
 
-				// Simulate building and running the command
 				const descriptor = plugin.sourceDescriptor;
 				let args: string[];
 				if (kind === PluginSourceKind.Npm) {
@@ -247,7 +215,6 @@ suite('PluginInstallService', () => {
 					return undefined;
 				}
 
-				// Check if plugin dir exists
 				const exists = typeof state.fileExistsResult === 'function'
 					? await state.fileExistsResult(pluginDir)
 					: state.fileExistsResult;
@@ -296,7 +263,6 @@ suite('PluginInstallService', () => {
 			cleanupPluginSource: async () => { },
 		} as unknown as IAgentPluginRepositoryService);
 
-		// IPluginMarketplaceService
 		instantiationService.stub(IPluginMarketplaceService, {
 			installedPlugins: observableValue('test.installedPlugins', state.installedPlugins),
 			addInstalledPlugin: (uri: URI, plugin: IMarketplacePlugin) => {
@@ -318,7 +284,6 @@ suite('PluginInstallService', () => {
 			isPluginDirectory: async () => state.isPluginDirectoryResult,
 		} as unknown as IPluginMarketplaceService);
 
-		// IConfigurationService
 		instantiationService.stub(IConfigurationService, {
 			getValue: (key: string) => {
 				if (key === ChatConfiguration.PluginMarketplaces) {
@@ -348,12 +313,10 @@ suite('PluginInstallService', () => {
 			},
 		} as unknown as IConfigurationService);
 
-		// IPathService
 		instantiationService.stub(IPathService, {
 			userHome: async () => URI.file(state.userHome),
 		} as unknown as IPathService);
 
-		// IQuickInputService
 		instantiationService.stub(IQuickInputService, {
 			input: async () => state.quickInputResult,
 			pick: async (picks: { label: string }[]) => {
@@ -368,9 +331,6 @@ suite('PluginInstallService', () => {
 		return { service, state };
 	}
 
-	// =========================================================================
-	// getPluginInstallUri
-	// =========================================================================
 
 	suite('getPluginInstallUri', () => {
 
@@ -421,9 +381,6 @@ suite('PluginInstallService', () => {
 		});
 	});
 
-	// =========================================================================
-	// installPlugin — relative path
-	// =========================================================================
 
 	suite('installPlugin — relative path', () => {
 
@@ -457,7 +414,6 @@ suite('PluginInstallService', () => {
 
 		test('does not install when ensureRepository throws', async () => {
 			const { state } = createService();
-			// Override ensureRepository to throw
 			const instantiationService = store.add(new TestInstantiationService());
 			const repoService = {
 				ensureRepository: async () => { throw new Error('clone failed'); },
@@ -482,14 +438,10 @@ suite('PluginInstallService', () => {
 			});
 			await svc.installPlugin(plugin);
 
-			// Should return without installing or crashing
 			assert.strictEqual(state.addedPlugins.length, 0);
 		});
 	});
 
-	// =========================================================================
-	// installPlugin — GitHub / GitUrl
-	// =========================================================================
 
 	suite('installPlugin — git sources', () => {
 
@@ -538,9 +490,6 @@ suite('PluginInstallService', () => {
 		});
 	});
 
-	// =========================================================================
-	// installPlugin — npm
-	// =========================================================================
 
 	suite('installPlugin — npm', () => {
 
@@ -610,7 +559,6 @@ suite('PluginInstallService', () => {
 		test('notifies error when npm package directory not found after install', async () => {
 			const { service, state } = createService({
 				ensurePluginSourceResult: URI.file('/cache/agentPlugins/npm/my-pkg'),
-				// exists returns true for ensurePluginSource but false for the final check
 				fileExistsResult: false,
 			});
 			const plugin = createPlugin({
@@ -641,9 +589,6 @@ suite('PluginInstallService', () => {
 		});
 	});
 
-	// =========================================================================
-	// installPlugin — pip
-	// =========================================================================
 
 	suite('installPlugin — pip', () => {
 
@@ -727,9 +672,6 @@ suite('PluginInstallService', () => {
 		});
 	});
 
-	// =========================================================================
-	// updatePlugin
-	// =========================================================================
 
 	suite('updatePlugin', () => {
 
@@ -800,7 +742,6 @@ suite('PluginInstallService', () => {
 
 			await service.updatePlugin(plugin);
 
-			// npm update goes through the same install flow
 			assert.strictEqual(state.terminalCommands.length, 1);
 			assert.ok(state.terminalCommands[0].includes('npm'));
 		});
@@ -921,9 +862,6 @@ suite('PluginInstallService', () => {
 		});
 	});
 
-	// =========================================================================
-	// installPlugin — marketplace trust
-	// =========================================================================
 
 	suite('installPlugin — marketplace trust', () => {
 
@@ -985,9 +923,6 @@ suite('PluginInstallService', () => {
 		});
 	});
 
-	// =========================================================================
-	// installPluginFromSource
-	// =========================================================================
 
 	suite('installPluginFromSource', () => {
 
@@ -1332,7 +1267,6 @@ suite('PluginInstallService', () => {
 			assert.strictEqual(state.addedPlugins.length, 1);
 			assert.strictEqual(state.addedPlugins[0].plugin.name, 'single-plugin-repo');
 			assert.strictEqual(state.notifications.length, 0);
-			// Single-plugin repos are not marketplaces — config must NOT be touched.
 			assert.strictEqual(state.updatedMarketplaces, undefined);
 		});
 

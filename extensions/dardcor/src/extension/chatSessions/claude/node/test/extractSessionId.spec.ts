@@ -26,9 +26,6 @@ describe('extractSessionId', () => {
 		});
 
 		it('ignores x-api-key and uses Authorization header when both are present', () => {
-			// Simulates the case where ANTHROPIC_API_KEY is set in the environment:
-			// the SDK sends both x-api-key (real API key) and Authorization: Bearer (nonce).
-			// Only the Authorization: Bearer header should be used for auth.
 			const result = extractSessionId({
 				'x-api-key': 'sk-ant-real-api-key',
 				'authorization': `Bearer ${NONCE}.my-session`,

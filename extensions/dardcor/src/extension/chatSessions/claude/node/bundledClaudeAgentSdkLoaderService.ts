@@ -7,10 +7,6 @@ import type * as AgentSdk from '@anthropic-ai/claude-agent-sdk';
 import type * as vscode from 'vscode';
 import { IClaudeAgentSdkLoaderService } from '../common/claudeAgentSdkLoaderService';
 
-/**
- * SDK loader that uses the @anthropic-ai/claude-agent-sdk bundled as a regular
- * dependency of this extension. The SDK is always available.
- */
 export class BundledClaudeAgentSdkLoaderService implements IClaudeAgentSdkLoaderService {
 	readonly _serviceBrand: undefined;
 

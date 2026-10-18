@@ -12,9 +12,6 @@ import { renderLabelWithIcons } from '../iconLabel/iconLabels.js';
 import { Disposable } from '../../../common/lifecycle.js';
 import * as objects from '../../../common/objects.js';
 
-/**
- * A range to be highlighted.
- */
 export interface IHighlight {
 	start: number;
 	end: number;
@@ -25,10 +22,6 @@ export interface IHighlightedLabelOptions {
 	readonly hoverDelegate?: IHoverDelegate;
 }
 
-/**
- * A widget which can render a label with substring highlights, often
- * originating from a filter function like the fuzzy matcher.
- */
 export class HighlightedLabel extends Disposable {
 
 	private readonly domNode: HTMLElement;
@@ -38,40 +31,22 @@ export class HighlightedLabel extends Disposable {
 	private didEverRender: boolean = false;
 	private customHover: IManagedHover | undefined;
 
-	/**
-	 * Create a new {@link HighlightedLabel}.
-	 *
-	 * @param container The parent container to append to.
-	 */
 	constructor(container: HTMLElement, private readonly options?: IHighlightedLabelOptions) {
 		super();
 
 		this.domNode = dom.append(container, dom.$('span.monaco-highlighted-label'));
 	}
 
-	/**
-	 * The label's DOM node.
-	 */
 	get element(): HTMLElement {
 		return this.domNode;
 	}
 
-	/**
-	 * Set the label and highlights.
-	 *
-	 * @param text The label to display.
-	 * @param highlights The ranges to highlight.
-	 * @param title An optional title for the hover tooltip.
-	 * @param escapeNewLines Whether to escape new lines.
-	 * @returns
-	 */
 	set(text: string | undefined, highlights: readonly IHighlight[] = [], title: string = '', escapeNewLines?: boolean, supportIcons?: boolean) {
 		if (!text) {
 			text = '';
 		}
 
 		if (escapeNewLines) {
-			// adjusts highlights inplace
 			text = HighlightedLabel.escapeNewLines(text, highlights);
 		}
 

@@ -78,7 +78,6 @@ export class TokenizationFontDecorationProvider extends Disposable implements De
 				fontTokenAnnotations.push(fontTokenAnnotation);
 
 				if (!linesChanged.has(lineNumber)) {
-					// Signal the removal of the font tokenization decorations on the line number
 					const lineNumberStartOffset = this.textModel.getOffsetAt(new Position(lineNumber, 1));
 					const lineNumberEndOffset = this.textModel.getOffsetAt(new Position(lineNumber, this.textModel.getLineMaxColumn(lineNumber)));
 					const lineOffsetRange = new OffsetRange(lineNumberStartOffset, lineNumberEndOffset);
@@ -103,8 +102,6 @@ export class TokenizationFontDecorationProvider extends Disposable implements De
 		if (deletedAnnotations.length === 0) {
 			return;
 		}
-		/* We should fire line and font change events if decorations have been added or removed
-		 * No decorations are added on edit, but they can be removed */
 		const affectedLineHeights = new Set<LineHeightChangingDecoration>();
 		const affectedLineFonts = new Set<LineFontChangingDecoration>();
 		for (const deletedAnnotation of deletedAnnotations) {

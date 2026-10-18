@@ -12,22 +12,6 @@ import { IWorkbenchContribution } from '../../../common/contributions.js';
 import { IPluginInstallService } from '../common/plugins/pluginInstallService.js';
 import { IPluginMarketplaceService } from '../common/plugins/pluginMarketplaceService.js';
 
-/**
- * Bridges the periodic plugin update *check* performed by
- * {@link IPluginMarketplaceService} with the plugin update *action* exposed
- * by {@link IPluginInstallService}.
- *
- * The marketplace service reports canonical marketplace IDs roughly once
- * a day when cloned plugin repositories have upstream changes.
- * Without this contribution, that signal was never consumed and plugins
- * were never auto-updated (see microsoft/vscode#308563).
- *
- * Only plugins from the reported marketplaces are updated. The marketplace
- * service applies managed per-marketplace policy before reporting updates.
- *
- * Processed marketplace IDs are acknowledged after every attempt, including
- * failures. IDs reported while an update is running remain queued.
- */
 export class PluginAutoUpdate extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.pluginAutoUpdate';
 

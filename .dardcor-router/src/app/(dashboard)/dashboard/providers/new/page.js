@@ -74,7 +74,7 @@ export default function NewProviderPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Header */}
+      {}
       <div className="mb-8">
         <Link
           href="/dashboard/providers"
@@ -89,10 +89,10 @@ export default function NewProviderPage() {
         </p>
       </div>
 
-      {/* Form */}
+      {}
       <Card>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* Provider Selection */}
+          {}
           <Select
             label="Provider"
             options={providerOptions}
@@ -103,7 +103,7 @@ export default function NewProviderPage() {
             required
           />
 
-          {/* Provider Info */}
+          {}
           {selectedProvider && (
             <Card.Section className="flex items-center gap-3">
               <div
@@ -125,7 +125,7 @@ export default function NewProviderPage() {
             </Card.Section>
           )}
 
-          {/* Auth Method */}
+          {}
           <div className="flex flex-col gap-3">
             <label className="text-sm font-medium">
               Authentication Method <span className="text-red-500">*</span>
@@ -151,7 +151,7 @@ export default function NewProviderPage() {
             </div>
           </div>
 
-          {/* API Key Input */}
+          {}
           {formData.authMethod === "api_key" && (
             <Input
               label="API Key"
@@ -165,7 +165,7 @@ export default function NewProviderPage() {
             />
           )}
 
-          {/* OAuth2 Button */}
+          {}
           {formData.authMethod === "oauth2" && (
             <Card.Section>
               <p className="text-sm text-text-muted mb-4">
@@ -177,7 +177,7 @@ export default function NewProviderPage() {
             </Card.Section>
           )}
 
-          {/* Display Name */}
+          {}
           <Input
             label="Display Name"
             placeholder="e.g., Production API, Dev Environment"
@@ -186,7 +186,7 @@ export default function NewProviderPage() {
             hint="Optional. A friendly name to identify this configuration."
           />
 
-          {/* Active Toggle */}
+          {}
           <Toggle
             checked={formData.isActive}
             onChange={(checked) => handleChange("isActive", checked)}
@@ -194,14 +194,14 @@ export default function NewProviderPage() {
             description="Enable this provider for use in your applications"
           />
 
-          {/* Error Message */}
+          {}
           {errors.submit && (
             <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
               {errors.submit}
             </div>
           )}
 
-          {/* Actions */}
+          {}
           <div className="flex gap-3 pt-4 border-t border-border">
             <Link href="/dashboard/providers" className="flex-1">
               <Button type="button" variant="ghost" fullWidth>

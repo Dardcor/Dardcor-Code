@@ -109,12 +109,6 @@ suite('Anomaly Repetition Tests', function () {
 	});
 
 	test('vscode-dardcor-release #1662', function () {
-		/**
-		 * This is a tokenized repetition of the following sequence:
-			"browser.safebrowsing.provider.google.reportURL": "",
-			"browser.safebrowsing.provider.google.reportPhishMistakeURL": "",
-			"browser.safebrowsing.provider.google.reportMalwareMistakeURL": "",
-		*/
 		const tokens = [
 			'"',
 			'browser',

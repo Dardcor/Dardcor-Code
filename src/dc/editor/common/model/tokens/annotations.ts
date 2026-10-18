@@ -13,46 +13,21 @@ export interface IAnnotation<T> {
 }
 
 export interface IAnnotatedString<T> {
-	/**
-	 * Set annotations for a specific line.
-	 * Annotations should be sorted and non-overlapping.
-	 */
 	setAnnotations(annotations: AnnotationsUpdate<T>): void;
-	/**
-	 * Return annotations intersecting with the given offset range.
-	 */
 	getAnnotationsIntersecting(range: OffsetRange): IAnnotation<T>[];
-	/**
-	 * Get all the annotations. Method is used for testing.
-	 */
 	getAllAnnotations(): IAnnotation<T>[];
-	/**
-	 * Apply a string edit to the annotated string.
-	 * @returns The annotations that were deleted (became empty) as a result of the edit.
-	 */
 	applyEdit(edit: StringEdit): IAnnotation<T>[];
-	/**
-	 * Clone the annotated string.
-	 */
 	clone(): IAnnotatedString<T>;
 }
 
 export class AnnotatedString<T> implements IAnnotatedString<T> {
 
-	/**
-	 * Annotations are non intersecting and contiguous in the array.
-	 */
 	private _annotations: IAnnotation<T>[] = [];
 
 	constructor(annotations: IAnnotation<T>[] = []) {
 		this._annotations = annotations;
 	}
 
-	/**
-	 * Set annotations for a specific range.
-	 * Annotations should be sorted and non-overlapping.
-	 * If the annotation value is undefined, the annotation is removed.
-	 */
 	public setAnnotations(annotations: AnnotationsUpdate<T>): void {
 		for (const annotation of annotations.annotations) {
 			const startIndex = this._getStartIndexOfIntersectingAnnotation(annotation.range.start);
@@ -65,9 +40,6 @@ export class AnnotatedString<T> implements IAnnotatedString<T> {
 		}
 	}
 
-	/**
-	 * Returns all annotations that intersect with the given offset range.
-	 */
 	public getAnnotationsIntersecting(range: OffsetRange): IAnnotation<T>[] {
 		const startIndex = this._getStartIndexOfIntersectingAnnotation(range.start);
 		const endIndexExclusive = this._getEndIndexOfIntersectingAnnotation(range.endExclusive);
@@ -75,14 +47,12 @@ export class AnnotatedString<T> implements IAnnotatedString<T> {
 	}
 
 	private _getStartIndexOfIntersectingAnnotation(offset: number): number {
-		// Find index to the left of the offset
 		const startIndexWhereToReplace = binarySearch2(this._annotations.length, (index) => {
 			return this._annotations[index].range.start - offset;
 		});
 		let startIndex: number;
 		if (startIndexWhereToReplace >= 0) {
 			startIndex = startIndexWhereToReplace;
-			// Also include the next annotation if it ends exactly at offset (touching boundary)
 			const nextCandidate = this._annotations[startIndex]?.range;
 			if (nextCandidate && nextCandidate.endExclusive === offset) {
 				startIndex--;
@@ -99,14 +69,12 @@ export class AnnotatedString<T> implements IAnnotatedString<T> {
 	}
 
 	private _getEndIndexOfIntersectingAnnotation(offset: number): number {
-		// Find index to the right of the offset
 		const endIndexWhereToReplace = binarySearch2(this._annotations.length, (index) => {
 			return this._annotations[index].range.endExclusive - offset;
 		});
 		let endIndexExclusive: number;
 		if (endIndexWhereToReplace >= 0) {
 			endIndexExclusive = endIndexWhereToReplace + 1;
-			// Also include the next annotation if it starts exactly at offset (touching boundary)
 			const nextCandidate = this._annotations[endIndexExclusive]?.range;
 			if (nextCandidate && nextCandidate.start === offset) {
 				endIndexExclusive++;
@@ -122,22 +90,13 @@ export class AnnotatedString<T> implements IAnnotatedString<T> {
 		return endIndexExclusive;
 	}
 
-	/**
-	 * Returns a copy of all annotations.
-	 */
 	public getAllAnnotations(): IAnnotation<T>[] {
 		return this._annotations.slice();
 	}
 
-	/**
-	 * Applies a string edit to the annotated string, updating annotation ranges accordingly.
-	 * @param edit The string edit to apply.
-	 * @returns The annotations that were deleted (became empty) as a result of the edit.
-	 */
 	public applyEdit(edit: StringEdit): IAnnotation<T>[] {
 		const annotations = this._annotations.slice();
 
-		// treat edits as deletion of the replace range and then as insertion that extends the first range
 		const finalAnnotations: IAnnotation<T>[] = [];
 		const deletedAnnotations: IAnnotation<T>[] = [];
 
@@ -145,7 +104,6 @@ export class AnnotatedString<T> implements IAnnotatedString<T> {
 
 		for (const e of edit.replacements) {
 			while (true) {
-				// ranges before the current edit
 				const annotation = annotations[0];
 				if (!annotation) {
 					break;
@@ -181,26 +139,19 @@ export class AnnotatedString<T> implements IAnnotatedString<T> {
 				const annotation = intersecting[i];
 				let r = annotation.range;
 
-				// Inserted text will extend the first intersecting annotation, if the edit truly overlaps it
 				const shouldExtend = i === 0 && (e.replaceRange.endExclusive > r.start) && (e.replaceRange.start < r.endExclusive);
-				// Annotation shrinks by the overlap then grows with the new text length
 				const overlap = r.intersect(e.replaceRange)!.length;
 				r = r.deltaEnd(-overlap + (shouldExtend ? e.newText.length : 0));
 
-				// If the annotation starts after the edit start, shift left to the edit start position
 				const rangeAheadOfReplaceRange = r.start - e.replaceRange.start;
 				if (rangeAheadOfReplaceRange > 0) {
 					r = r.delta(-rangeAheadOfReplaceRange);
 				}
 
-				// If annotation shouldn't be extended AND it is after or on edit start, move it after the newly inserted text
 				if (!shouldExtend && rangeAheadOfReplaceRange >= 0) {
 					r = r.delta(e.newText.length);
 				}
 
-				// We already took our offset into account.
-				// Because we add r back to the queue (which then adds offset again),
-				// we have to remove it here so as to not double count it.
 				r = r.delta(-(e.newText.length - e.replaceRange.length));
 
 				annotations.unshift({ annotation: annotation.annotation, range: r });
@@ -226,9 +177,6 @@ export class AnnotatedString<T> implements IAnnotatedString<T> {
 		return deletedAnnotations;
 	}
 
-	/**
-	 * Creates a shallow clone of this annotated string.
-	 */
 	public clone(): IAnnotatedString<T> {
 		return new AnnotatedString<T>(this._annotations.slice());
 	}

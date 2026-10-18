@@ -26,7 +26,7 @@ export default function Footer() {
     <footer className="bg-bg border-t border-border pt-16 pb-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-12">
-          {/* Brand */}
+          {}
           <div className="col-span-2 lg:col-span-2">
             <div className="flex items-center gap-2 mb-6">
               <div className="size-6 text-primary">
@@ -45,7 +45,7 @@ export default function Footer() {
             <p className="text-text-muted mb-6 max-w-sm font-light">
               The unified interface for modern AI infrastructure. Secure, observable, and scalable.
             </p>
-            {/* Social links */}
+            {}
             <div className="flex gap-4">
               <a
                 href="#"
@@ -68,7 +68,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Product */}
+          {}
           <div>
             <h4 className="font-semibold text-text-main mb-4">Product</h4>
             <ul className="flex flex-col gap-3 text-sm text-text-muted font-light">
@@ -82,7 +82,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Resources */}
+          {}
           <div>
             <h4 className="font-semibold text-text-main mb-4">Resources</h4>
             <ul className="flex flex-col gap-3 text-sm text-text-muted font-light">
@@ -96,7 +96,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Company */}
+          {}
           <div>
             <h4 className="font-semibold text-text-main mb-4">Company</h4>
             <ul className="flex flex-col gap-3 text-sm text-text-muted font-light">
@@ -111,7 +111,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom */}
+        {}
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-text-muted">
             © {new Date().getFullYear()} {APP_CONFIG.name} Inc. All rights reserved.

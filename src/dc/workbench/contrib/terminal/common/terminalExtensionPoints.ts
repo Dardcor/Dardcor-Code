@@ -12,7 +12,6 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { isProposedApiEnabled } from '../../../services/extensions/common/extensions.js';
 import { isObject, isString } from '../../../../base/common/types.js';
 
-// terminal extension point
 const terminalsExtPoint = extensionsRegistry.ExtensionsRegistry.registerExtensionPoint<ITerminalContributions>(terminalContributionsDescriptor);
 
 export interface IExtensionTerminalCompletionProvider extends ITerminalCompletionProviderContribution {

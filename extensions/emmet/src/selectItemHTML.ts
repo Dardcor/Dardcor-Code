@@ -17,13 +17,11 @@ export function nextItemHTML(document: vscode.TextDocument, selectionStart: vsco
 	}
 
 	if (currentNode.type !== 'comment') {
-		// If cursor is in the tag name, select tag
 		if (currentNode.open &&
 			selectionEndOffset <= currentNode.open.start + currentNode.name.length) {
 			return getSelectionFromNode(document, currentNode);
 		}
 
-		// If cursor is in the open tag, look for attributes
 		if (currentNode.open &&
 			selectionEndOffset < currentNode.open.end) {
 			const selectionStartOffset = document.offsetAt(selectionStart);
@@ -33,14 +31,12 @@ export function nextItemHTML(document: vscode.TextDocument, selectionStart: vsco
 			}
 		}
 
-		// Get the first child of current node which is right after the cursor and is not a comment
 		nextNode = currentNode.firstChild;
 		while (nextNode && (selectionEndOffset >= nextNode.end || nextNode.type === 'comment')) {
 			nextNode = nextNode.nextSibling;
 		}
 	}
 
-	// Get next sibling of current node which is not a comment. If none is found try the same on the parent
 	while (!nextNode && currentNode) {
 		if (currentNode.nextSibling) {
 			if (currentNode.nextSibling.type !== 'comment') {
@@ -72,7 +68,6 @@ export function prevItemHTML(document: vscode.TextDocument, selectionStart: vsco
 		if (selectionStartOffset < currentNode.open.end || !currentNode.firstChild || selectionEndOffset <= currentNode.firstChild.start) {
 			prevNode = currentNode;
 		} else {
-			// Select the child that appears just before the cursor and is not a comment
 			prevNode = currentNode.firstChild;
 			let oldOption: HtmlNode | undefined = undefined;
 			while (prevNode.nextSibling && selectionStartOffset >= prevNode.nextSibling.end) {
@@ -86,7 +81,6 @@ export function prevItemHTML(document: vscode.TextDocument, selectionStart: vsco
 		}
 	}
 
-	// Select previous sibling which is not a comment. If none found, then select parent
 	while (!prevNode && currentNode) {
 		if (currentNode.previousSibling) {
 			if (currentNode.previousSibling.type !== 'comment') {
@@ -124,24 +118,19 @@ function getNextAttribute(document: vscode.TextDocument, selectionStart: number,
 
 	for (const attr of node.attributes) {
 		if (selectionEnd < attr.start) {
-			// select full attr
 			return offsetRangeToSelection(document, attr.start, attr.end);
 		}
 
 		if (!attr.value || attr.value.start === attr.value.end) {
-			// No attr value to select
 			continue;
 		}
 
 		if ((selectionStart === attr.start && selectionEnd === attr.end) ||
 			selectionEnd < attr.value.start) {
-			// cursor is in attr name,  so select full attr value
 			return offsetRangeToSelection(document, attr.value.start, attr.value.end);
 		}
 
-		// Fetch the next word in the attr value
 		if (!attr.value.toString().includes(' ')) {
-			// attr value does not have space, so no next word to find
 			continue;
 		}
 
@@ -184,20 +173,16 @@ function getPrevAttribute(document: vscode.TextDocument, selectionStart: number,
 		}
 
 		if (!attr.value || attr.value.start === attr.value.end || selectionStart < attr.value.start) {
-			// select full attr
 			return offsetRangeToSelection(document, attr.start, attr.end);
 		}
 
 		if (selectionStart === attr.value.start) {
 			if (selectionEnd >= attr.value.end) {
-				// select full attr
 				return offsetRangeToSelection(document, attr.start, attr.end);
 			}
-			// select attr value
 			return offsetRangeToSelection(document, attr.value.start, attr.value.end);
 		}
 
-		// Fetch the prev word in the attr value
 		const selectionStartCharacter = document.positionAt(selectionStart).character;
 		const attrValueStartCharacter = document.positionAt(attr.value.start).character;
 		const pos = selectionStart > attr.value.end ? attr.value.toString().length :

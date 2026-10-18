@@ -46,7 +46,6 @@ suite('codeSnippetsContextProvider', function () {
 					id: '2',
 					type: 'CodeSnippet',
 				},
-				// Multiple snippets for the same file are allowed
 				{
 					uri: 'file:///bar.js',
 					value: 'anotherbarvalue',
@@ -131,7 +130,6 @@ suite('codeSnippetsContextProvider', function () {
 	});
 
 	test('content excluded files are not returned', async function () {
-		// maybe.js is set but not content excluded
 		tdm.setTextDocument('file:///maybe.js', 'javascript', 'doesntmatter');
 
 		const codeSnippets = await getCodeSnippetsFromContextItems(
@@ -144,7 +142,6 @@ suite('codeSnippetsContextProvider', function () {
 		assert.deepStrictEqual(codeSnippets.length, 5);
 		assert.ok(codeSnippets.map(t => t.uri).includes('file:///maybe.js'));
 
-		// If it's content excluded, it's not returned
 		ignoreService.setBlockListUris(['file:///maybe.js']);
 		const codeSnippetsAfterExclusion = await getCodeSnippetsFromContextItems(
 			accessor,
@@ -158,8 +155,6 @@ suite('codeSnippetsContextProvider', function () {
 	});
 
 	test('documents can be read from the file system,', async function () {
-		// The additionalUri for the code snippet is not open, so we create a fake file system
-		// entry depending on the OS to test the normalization of the URI.
 		const drive = os.platform() === 'win32' ? 'c:' : '';
 		const uriPrefix = os.platform() === 'win32' ? 'file:///c:' : 'file://';
 		const serviceCollectionClone = serviceCollection.clone();
@@ -170,14 +165,12 @@ suite('codeSnippetsContextProvider', function () {
 			})
 		);
 
-		// Use a SimpleTestTextDocumentManager to read from the FakeFileSystem
 		const tdm = accessor.get(IInstantiationService).createInstance(SimpleTestTextDocumentManager);
 		serviceCollectionClone.define(ICompletionsTextDocumentManagerService, tdm);
 		const accessorClone = serviceCollectionClone.createTestingAccessor();
 
 		const additionalUri = `${uriPrefix}/fake2.js`;
 
-		// Set the main uri as an open file
 		const mainUri = `${uriPrefix}/fake.js`;
 		tdm.setTextDocument(mainUri, 'javascript', 'doesntmatter');
 

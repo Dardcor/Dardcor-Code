@@ -13,21 +13,11 @@ import { IAccessibilityService } from '../../platform/accessibility/common/acces
 export interface IAnimatedCounterWidgetOptions {
 	readonly prefix?: string;
 	readonly cssClassName?: string;
-	/**
-	 * The direction of the animation when the count
-	 * increases. The direction will be the opposite
-	 * when the count decreases.
-	 * */
 	readonly direction?: 'topToBottom' | 'bottomToTop';
 	readonly duration?: number;
 	readonly count: IObservable<number | undefined>;
 }
 
-/**
- * A small widget that renders a number and animates transitions between values:
- * the container width tweens as the number of digits changes and the outgoing /
- * incoming digits slide in the configured direction. Respects reduced motion.
- */
 export class AnimatedCounterWidget extends Disposable {
 	private _element: HTMLElement;
 	private _count: number | undefined;
@@ -77,13 +67,8 @@ export class AnimatedCounterWidget extends Disposable {
 			return;
 		}
 
-		// Create incoming element
 		const incomingElementText = `${this._options.prefix ?? ''}${count}`;
 
-		// Skip the animation when it is disabled (duration of 0), when the user
-		// prefers reduced motion, or on the first render (there is no previous
-		// value to animate from, so animating would look out of place). Just
-		// update the text content.
 		if (this._options.duration === 0 || !this._hasRendered || this._accessibilityService.isMotionReduced()) {
 			outgoingElement.textContent = incomingElementText;
 			this._count = count;
@@ -91,17 +76,11 @@ export class AnimatedCounterWidget extends Disposable {
 			return;
 		}
 
-		// Measure the current width before adding the incoming element so
-		// that a change in the number of digits can be animated smoothly.
 		const previousWidth = this._element.getBoundingClientRect().width;
 
 		const incomingElement = dom.$(`div`, undefined, incomingElementText);
 		this._element?.appendChild(incomingElement);
 
-		// The incoming element is content-sized, so its width is the width the
-		// container will have once the outgoing element is removed. Animate the
-		// container between the two widths for both growing and shrinking digit
-		// counts.
 		const nextWidth = incomingElement.getBoundingClientRect().width;
 
 		if (Math.abs(previousWidth - nextWidth) > 0.5) {

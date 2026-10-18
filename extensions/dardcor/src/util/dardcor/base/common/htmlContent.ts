@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -153,25 +152,13 @@ export function markdownStringEqual(a: IMarkdownString, b: IMarkdownString): boo
 }
 
 export function escapeMarkdownSyntaxTokens(text: string): string {
-	// escape markdown syntax tokens: http://daringfireball.net/projects/markdown/syntax#backslash
 	return text.replace(/[\\`*_{}[\]()#+\-!~]/g, '\\$&'); // CodeQL [SM02383] Backslash is escaped in the character class
 }
 
-/**
- * Escapes only the characters that would break out of markdown link text
- * (`[label](url)`) syntax: `\` and `]`. Use this when the escaped string is
- * displayed as the visible label of a link, since renderers that extract the
- * link text without re-parsing markdown (e.g. the chat inline anchor / skill
- * pill) would otherwise show full `escapeMarkdownSyntaxTokens` backslashes
- * (`\-`, `\.`, ...) verbatim.
- */
 export function escapeMarkdownLinkLabel(text: string): string {
 	return text.replace(/[\\\]]/g, '\\$&');
 }
 
-/**
- * @see https://github.com/microsoft/vscode/issues/193746
- */
 export function appendEscapedMarkdownCodeBlockFence(code: string, langId: string) {
 	const longestFenceLength =
 		code.match(/^`+/gm)?.reduce((a, b) => (a.length > b.length ? a : b)).length ??
@@ -179,7 +166,6 @@ export function appendEscapedMarkdownCodeBlockFence(code: string, langId: string
 	const desiredFenceLength =
 		longestFenceLength >= 3 ? longestFenceLength + 1 : 3;
 
-	// the markdown result
 	return [
 		`${'`'.repeat(desiredFenceLength)}${langId}`,
 		code,
@@ -187,15 +173,6 @@ export function appendEscapedMarkdownCodeBlockFence(code: string, langId: string
 	].join('\n');
 }
 
-/**
- * Wraps arbitrary text in a markdown inline code span using a backtick fence
- * long enough to safely contain any backtick sequences present in the text.
- *
- * Backticks inside an inline code span cannot be backslash-escaped per the
- * CommonMark spec — the only safe way is to choose a delimiter run longer
- * than any run of backticks in the content (and pad with spaces if the
- * content begins or ends with a backtick).
- */
 export function appendEscapedMarkdownInlineCode(text: string): string {
 	const longestBacktickRun = Math.max(0, ...(text.match(/`+/g) ?? []).map(m => m.length));
 	const fence = '`'.repeat(longestBacktickRun + 1);

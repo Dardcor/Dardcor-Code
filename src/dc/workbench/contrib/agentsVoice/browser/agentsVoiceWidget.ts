@@ -35,93 +35,37 @@ export interface VoiceWidgetCallbacks {
 	openSession(resource: URI): void;
 	stopSession(resource: URI): void;
 	cancelSession(resource: URI): void;
-	/** Select a session as the transcription target. */
 	selectTargetSession(resource: URI | undefined): void;
-	/** Create a new session and set it as transcription target. */
 	newSessionAsTarget(): void;
 	getAnalyserNode(): AnalyserNode | null;
 	onResize(): void;
 	openPttKeySettings(): void;
-	/**
-	 * Show the Voice Mode context menu (Configure, Select Microphone, Disable
-	 * Voice Mode) anchored at the triggering event. Wired to a right-click /
-	 * context-menu gesture on the voice mode mic icon.
-	 */
 	showVoiceContextMenu(e: MouseEvent): void;
-	/** Optional — when provided, header renders a "popout" button. */
 	openPopout?(): void;
-	/** Submit user feedback. Returns success/failure. */
 	submitFeedback(feedbackText: string): Promise<{ ok: boolean; error?: string }>;
-	/** Called when the user dismisses the onboarding card. */
 	onOnboardingCompleted?(): void;
-	/**
-	 * Optional — when provided, the expand chevron opens this picker instead of
-	 * the inline session list. Used by the floating window to show the agent
-	 * sessions quickpick with a "set as voice target" action.
-	 */
 	showSessionsPicker?(): void;
-	/** Active theme kind, for the ambient voice glow. */
 	getGlowTheme(): GlowThemeKind;
-	/** Theme-derived per-state accents for the ambient voice glow. */
 	getGlowColors(): IVoiceGlowColors;
-	/** Whether the user has asked for reduced motion. */
 	isMotionReduced(): boolean;
-	/** Fires when the color theme changes, so the glow can re-derive its accents. */
 	readonly onDidChangeGlowTheme: Event<void>;
 }
 
-/**
- * Host-configuration for the widget. Defaults match the floating aux-window
- * (the original consumer); the chatViewPane voice bar overrides everything.
- */
 export interface VoiceWidgetOptions {
-	/** Fixed pixel width (legacy aux-window behavior) or `'auto'` to flow. */
 	readonly width?: number | 'auto';
-	/** Whether the header is a drag handle (aux window only). */
 	readonly draggable?: boolean;
-	/** Show the close X in the header. */
 	readonly showClose?: boolean;
-	/** Show the expand/collapse chevron + session list. */
 	readonly showExpandChevron?: boolean;
-	/** Show the centered "Tap to start / Listening / Speaking" status label. */
 	readonly showStatusText?: boolean;
-	/**
-	 * Show the working/needs-input/done counter rows and the "No active sessions"
-	 * placeholder. The speaking-session pill and tool confirmations remain
-	 * visible regardless, since they are important interactive context.
-	 */
 	readonly showStatusCounters?: boolean;
-	/** Show the copilot icon at the start of the header. */
 	readonly showCopilotIcon?: boolean;
-	/** Center the Connect button horizontally instead of pushing it to the right. */
 	readonly centerConnectButton?: boolean;
-	/** Optional title rendered above the header row (e.g. "VOICE CHAT"). */
 	readonly title?: string;
-	/** Optional subtitle rendered next to the title. */
 	readonly subtitle?: string;
-	/** Set tabIndex=0 on the widget root and wire Space-key PTT. */
 	readonly focusable?: boolean;
-	/** Whether to show the onboarding card (first-time experience). */
 	readonly showOnboarding?: boolean;
-	/**
-	 * When true, the onboarding card re-appears every time the widget enters
-	 * a fully-disconnected state (i.e. not connected, not connecting, and not
-	 * auto-reconnecting). When false (default), onboarding follows the legacy
-	 * first-time-only behavior gated by ``showOnboarding`` + manual dismiss.
-	 */
 	readonly reshowOnboardingOnDisconnect?: boolean;
-	/**
-	 * Initial expanded state of the widget — when true the session list and
-	 * expanded session details are shown by default. Defaults to false
-	 * (collapsed) to match the legacy floating aux-window behavior.
-	 */
 	readonly defaultExpanded?: boolean;
-	/**
-	 * When true, renders the widget in a chat-input-box style layout:
-	 * a rounded bordered container for transcript/placeholder text with a
-	 * toolbar row below for action icons. Matches the chat panel input box
-	 * appearance.
-	 */
 	readonly inputBoxLayout?: boolean;
 }
 
@@ -145,7 +89,6 @@ const DEFAULT_OPTIONS: Required<VoiceWidgetOptions> = {
 
 export class AgentsVoiceWidget extends Disposable {
 
-	// --- Reactive state ---
 	private readonly _isConnected: ISettableObservable<boolean> = observableValue(this, false);
 	private readonly _isConnecting: ISettableObservable<boolean> = observableValue(this, false);
 	private readonly _isReconnecting: ISettableObservable<boolean> = observableValue(this, false);
@@ -168,10 +111,8 @@ export class AgentsVoiceWidget extends Disposable {
 	private readonly _showOnboarding: ISettableObservable<boolean> = observableValue(this, false);
 	private readonly _onboardingPendingConnect: ISettableObservable<boolean> = observableValue(this, false);
 
-	// --- Derived state ---
 	private readonly _shouldShowExpanded = derived(this, reader => this._expanded.read(reader));
 
-	// --- DOM components ---
 	private readonly _headerComponent = createHeader();
 	private readonly _onboardingComponent = createOnboarding();
 	private readonly _feedbackDialogComponent = createFeedbackDialog();
@@ -181,7 +122,6 @@ export class AgentsVoiceWidget extends Disposable {
 	private readonly _statusRowsComponent = createStatusRows();
 	private readonly _sessionListComponent = createSessionList();
 
-	// --- Stable DOM elements ---
 	private readonly _rootDiv: HTMLElement;
 	private readonly _glowDiv: HTMLElement;
 	private readonly _titleRow: HTMLElement;
@@ -192,13 +132,11 @@ export class AgentsVoiceWidget extends Disposable {
 	private readonly _chevronWrapper: HTMLElement;
 	private readonly _chevronIcon: HTMLElement;
 
-	// --- Input box layout elements (created only when inputBoxLayout=true) ---
 	private readonly _inputBoxContainer: HTMLElement | undefined;
 	private readonly _inputBoxPlaceholder: HTMLElement | undefined;
 	private readonly _inputBoxToolbar: HTMLElement | undefined;
 	private readonly _inputBoxMicBtn: HTMLElement | undefined;
 	private readonly _inputBoxConnIndicator: HTMLElement | undefined;
-	/** Ambient voice glow on the input box (input-box layout only). */
 	private readonly _glowController: IVoiceGlowController | undefined;
 	private readonly _inputBoxFeedbackBtn: HTMLElement | undefined;
 	private readonly _inputBoxSessionsBtn: HTMLElement | undefined;
@@ -217,7 +155,6 @@ export class AgentsVoiceWidget extends Disposable {
 		this._showOnboarding.set(this._options.showOnboarding, undefined);
 		this._expanded.set(this._options.defaultExpanded, undefined);
 
-		// Build stable DOM structure
 		const opts = this._options;
 		const widthStyle = opts.width === 'auto'
 			? 'width:100%;position:relative;'
@@ -278,10 +215,7 @@ export class AgentsVoiceWidget extends Disposable {
 			if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._chevronWrapper.click(); }
 		}));
 
-		// --- Input box layout elements ---
 		if (opts.inputBoxLayout) {
-			// Inject processing animation CSS into the document head
-			// (@property must be at document level to work)
 			const styleEl = dom.$('style');
 			styleEl.textContent = `
 				@property --voice-processing-angle { syntax: '<angle>'; inherits: false; initial-value: 135deg; }
@@ -318,7 +252,6 @@ export class AgentsVoiceWidget extends Disposable {
 			`;
 			getWindow(this.container).document.head.append(styleEl);
 
-			// Rounded bordered container for transcript/placeholder (matches chat-input-container)
 			this._inputBoxContainer = dom.$('div');
 			this._inputBoxContainer.style.cssText = 'box-sizing:border-box;background-color:var(--vscode-input-background);border:1px solid var(--vscode-input-border, transparent);border-radius:var(--vscode-cornerRadius-large, 8px);padding:10px 12px;width:100%;position:relative;min-height:32px;display:flex;align-items:center;-webkit-app-region:no-drag;';
 
@@ -335,7 +268,6 @@ export class AgentsVoiceWidget extends Disposable {
 			));
 			this._register(this.callbacks.onDidChangeGlowTheme(() => this._glowController?.refreshTheme()));
 
-			// Toolbar row below the input box
 			this._inputBoxToolbar = dom.$('div');
 			this._inputBoxToolbar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 4px 2px;-webkit-app-region:no-drag;';
 
@@ -352,7 +284,6 @@ export class AgentsVoiceWidget extends Disposable {
 				return el;
 			};
 
-			// Mic button
 			this._inputBoxMicBtn = dom.$('span.codicon.codicon-voice-mode.agents-voice-mode-button');
 			this._inputBoxMicBtn.role = 'button';
 			this._inputBoxMicBtn.tabIndex = 0;
@@ -364,17 +295,14 @@ export class AgentsVoiceWidget extends Disposable {
 				this.callbacks.showVoiceContextMenu(e);
 			}));
 
-			// Connection indicator
 			this._inputBoxConnIndicator = toolbarBtn('codicon-debug-connected',
 				localize('agentsVoice.disconnect', "Disconnect"),
 				localize('agentsVoice.disconnect', "Disconnect"));
 
-			// Feedback button
 			this._inputBoxFeedbackBtn = toolbarBtn('codicon-feedback',
 				localize('agentsVoice.sendFeedback', "Send feedback"),
 				localize('agentsVoice.sendFeedback', "Send feedback"));
 
-			// Sessions dropdown button
 			this._inputBoxSessionsBtn = toolbarBtn('codicon-list-tree',
 				localize('agentsVoice.sessions', "Sessions"),
 				localize('agentsVoice.sessions', "Sessions"));
@@ -383,7 +311,6 @@ export class AgentsVoiceWidget extends Disposable {
 				this._expanded.set(!this._expanded.get(), undefined);
 			}));
 
-			// Close button
 			this._inputBoxCloseBtn = toolbarBtn('codicon-chrome-minimize',
 				localize('agentsVoice.minimize', "Minimize"),
 				localize('agentsVoice.minimize', "Minimize"));
@@ -401,7 +328,6 @@ export class AgentsVoiceWidget extends Disposable {
 			);
 		}
 
-		// Assemble: all children are in the DOM; visibility is toggled via display
 		if (opts.inputBoxLayout) {
 			this._contentDiv.append(
 				this._onboardingComponent.element,
@@ -433,24 +359,10 @@ export class AgentsVoiceWidget extends Disposable {
 		if (this._options.focusable) {
 			this.container.tabIndex = 0;
 			const win = getWindow(this.container);
-			// Track which key triggered PTT so keyup releases correctly
-			// even when the user rebinds pushToTalk to a different key.
-			// We capture the last keydown code at the document level (capture
-			// phase) and snapshot it once recording begins (see the autorun
-			// on the `listening` state below).
 			let pttKeyCode: string | undefined;
 			let heldKeyCode: string | undefined;
-			// True when a key was pressed and released again BEFORE recording
-			// actually began (e.g. the user tapped the PTT key during the async
-			// connect() that precedes the first pttDown()). Without this the
-			// release is lost - listening starts with no key to watch for and
-			// never stops. Reset whenever we return to a non-listening state.
 			let releasedBeforeListening = false;
 			const onDocKeydown = (e: KeyboardEvent) => { heldKeyCode = e.code; releasedBeforeListening = false; };
-			// Clear the tracked key once it is released so a stale code is
-			// never mistaken for a held PTT key (e.g. mouse-initiated PTT). If
-			// recording hasn't begun yet, remember that the key was released so
-			// the listening transition below can stop immediately.
 			const onDocKeyup = (e: KeyboardEvent) => {
 				if (e.code === heldKeyCode) {
 					heldKeyCode = undefined;
@@ -468,8 +380,6 @@ export class AgentsVoiceWidget extends Disposable {
 
 			this._register(dom.addDisposableListener(this.container, 'keydown', (e: KeyboardEvent) => {
 				if (!_isTextInput(e.target) && pttKeyCode && e.code === pttKeyCode) {
-					// Prevent repeat keydowns from activating focused child
-					// buttons (role="button" elements fire click on Space).
 					e.preventDefault();
 				}
 			}));
@@ -481,13 +391,6 @@ export class AgentsVoiceWidget extends Disposable {
 				}
 			}));
 
-			// Snapshot which key started PTT when recording actually begins.
-			// The keyboard Push-to-Talk command calls the controller's
-			// `pttDown()` directly (bypassing `callbacks.pttDown`), so hook the
-			// resulting `listening` state transition to capture the key rather
-			// than the callback. Only snapshot when a key is physically held
-			// (keyboard PTT); mouse/pointer PTT leaves `heldKeyCode` undefined
-			// and releases via `pointerup`.
 			let wasListening = false;
 			this._register(autorun(reader => {
 				const listening = this._voiceState.read(reader) === 'listening';
@@ -495,9 +398,6 @@ export class AgentsVoiceWidget extends Disposable {
 					if (heldKeyCode !== undefined) {
 						pttKeyCode = heldKeyCode;
 					} else if (releasedBeforeListening) {
-						// The PTT key was already released while we were still
-						// connecting - stop recording right away instead of
-						// getting stuck listening with no key to release.
 						releasedBeforeListening = false;
 						this.callbacks.pttUp();
 					}
@@ -507,13 +407,11 @@ export class AgentsVoiceWidget extends Disposable {
 				}
 				wasListening = listening;
 			}));
-			// Catch pointerup outside the container too (mirrors the chat view pane behavior)
 			const onDocPointerUp = () => this.callbacks.pttUp();
 			win.document.addEventListener('pointerup', onDocPointerUp);
 			this._register(toDisposable(() => win.document.removeEventListener('pointerup', onDocPointerUp)));
 		}
 
-		// Set up PTT via BroadcastChannel
 		const pttChannel = new BroadcastChannel('vscode-ptt');
 		pttChannel.onmessage = (e) => {
 			if (e.data === 'down') { this.callbacks.pttDown(); }
@@ -521,7 +419,6 @@ export class AgentsVoiceWidget extends Disposable {
 		};
 		this._register(toDisposable(() => pttChannel.close()));
 
-		// Auto-render on observable changes (but NOT glow — that's in RAF)
 		const renderDisposable = autorun(reader => {
 			this._updateDOM(reader);
 			getWindow(this.container).requestAnimationFrame(() => {
@@ -531,11 +428,6 @@ export class AgentsVoiceWidget extends Disposable {
 		this._register(renderDisposable);
 		this._register(toDisposable(() => dom.clearNode(this.container)));
 
-		// Handle the onboarding "Get Started → connect" flow: dismiss once
-		// connection succeeds, reset only on actual failure.
-		// Note: voiceSessionController sets isConnecting=false then isConnected=true
-		// sequentially (not atomically), so we defer the failure check one
-		// microtask to give isConnected=true a chance to follow.
 		let sawConnecting = false;
 		let failureCheckPending = false;
 		let disposed = false;
@@ -570,13 +462,6 @@ export class AgentsVoiceWidget extends Disposable {
 		this._register(toDisposable(() => { disposed = true; }));
 		this._register(onboardingConnectDisposable);
 
-		// Always-on-when-disconnected onboarding: when the host opts in via
-		// ``reshowOnboardingOnDisconnect``, the onboarding card re-appears any
-		// time the widget enters a fully-disconnected state. We treat
-		// connecting and auto-reconnecting as transient (no reshow) so the UI
-		// doesn't flicker mid-retry. The user can still dismiss the card via
-		// the Get Started button; that dismissal is honored until the next
-		// disconnect transition.
 		if (this._options.reshowOnboardingOnDisconnect) {
 			const reshowDisposable = autorun(reader => {
 				const connected = this._isConnected.read(reader);
@@ -592,9 +477,6 @@ export class AgentsVoiceWidget extends Disposable {
 			this._register(reshowDisposable);
 		}
 
-		// Run the 60Hz waveform/glow loop only while there is something to
-		// animate (onboarding, listening, or speaking). Idle/disconnected render
-		// no glow, so keeping a frame loop alive then would burn CPU for nothing.
 		this._register(autorun(reader => {
 			const onboarding = this._showOnboarding.read(reader);
 			const voiceState = this._voiceState.read(reader);
@@ -625,11 +507,9 @@ export class AgentsVoiceWidget extends Disposable {
 		const opts = this._options;
 		const showExpanded = this._shouldShowExpanded.read(reader) && opts.showExpandChevron;
 
-		// Adjust root width when sessions are expanded
 		const baseWidth = typeof opts.width === 'number' ? opts.width : AGENTS_VOICE_WINDOW_DEFAULT_WIDTH;
 		this._rootDiv.style.width = `${baseWidth}px`;
 
-		// Title row: hidden during onboarding
 		this._titleRow.style.display = (onboarding || !opts.title) ? 'none' : 'flex';
 
 		if (onboarding) {
@@ -670,24 +550,19 @@ export class AgentsVoiceWidget extends Disposable {
 
 		this._feedbackDialogComponent.element.style.display = 'none';
 
-		// Input box container — show transcript inside or placeholder
 		this._inputBoxContainer!.style.display = 'flex';
 		const transcriptTurns = this._transcriptTurns.read(reader);
 		const hasTranscript = transcriptTurns.some(t => t.text.length > 0 || (t.speaker === 'user' && t.isPartial));
 
-		// The ambient glow is owned by the glow controller; clear it whenever the
-		// input box shouldn't be lit so no stale frame is left behind.
 		const shouldShowInputGlow = showConnected && (voiceState === 'listening' || voiceState === 'speaking');
 		if (!shouldShowInputGlow) {
 			this._glowController?.clear();
 		}
 
-		// Toggle processing comet animation when agent is thinking
 		this._inputBoxContainer!.classList.toggle('processing', voiceState === 'processing');
 
 		if (hasTranscript) {
 			if (showExpanded) {
-				// When expanded, show full transcript component with chat-like styling
 				this._transcriptComponent.element.style.display = '';
 				this._transcriptComponent.element.style.padding = '8px 12px';
 				this._transcriptComponent.element.style.borderBottom = '1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent))';
@@ -703,7 +578,6 @@ export class AgentsVoiceWidget extends Disposable {
 				this._inputBoxTranscriptComponent.update({ turns: transcriptTurns, chatStyle: true, scrollToTop: true });
 			}
 		} else {
-			// Show placeholder
 			this._inputBoxPlaceholder!.style.display = '';
 			this._inputBoxTranscriptComponent.element.style.display = 'none';
 			this._transcriptComponent.element.style.display = 'none';
@@ -729,14 +603,12 @@ export class AgentsVoiceWidget extends Disposable {
 			}
 		}
 
-		// Status rows — hide in inputBoxLayout (no "No active sessions" text needed)
 		if (!showExpanded) {
 			this._statusRowsComponent.element.style.display = 'none';
 			this._sessionListWrapper.style.display = 'none';
 		} else {
 			this._statusRowsComponent.element.style.display = 'none';
 			this._sessionListWrapper.style.display = '';
-			// Constrain session list height so toolbar and transcript always remain visible
 			this._sessionListWrapper.style.maxHeight = '200px';
 			this._sessionListWrapper.style.overflowY = 'auto';
 			this._sessionListWrapper.style.scrollbarWidth = 'none';
@@ -752,10 +624,8 @@ export class AgentsVoiceWidget extends Disposable {
 			});
 		}
 
-		// Toolbar — always visible
 		this._inputBoxToolbar!.style.display = 'flex';
 
-		// Mic button — always visible (primary action)
 		this._inputBoxMicBtn!.style.display = '';
 		const keyLabel = this._pttKeyLabel.read(reader);
 		const micTooltip = keyLabel
@@ -778,21 +648,17 @@ export class AgentsVoiceWidget extends Disposable {
 		this._inputBoxMicBtn!.onmousedown = (e: MouseEvent) => { if (isSecondaryPointerGesture(e)) { return; } e.preventDefault(); this.callbacks.pttDown(); };
 		this._inputBoxMicBtn!.onmouseup = (e: MouseEvent) => { if (isSecondaryPointerGesture(e)) { return; } this.callbacks.pttUp(); };
 
-		// Connection indicator — visible when connected
 		this._inputBoxConnIndicator!.style.display = showConnected ? '' : 'none';
 		this._inputBoxConnIndicator!.onclick = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.disconnect(); };
 
-		// Feedback button — always visible
 		this._inputBoxFeedbackBtn!.onclick = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this._toggleFeedbackDialog(); };
 
-		// Sessions button — always visible, icon toggles with expanded state
 		this._inputBoxSessionsBtn!.style.display = '';
 		this._inputBoxSessionsBtn!.className = `codicon codicon-${showExpanded ? 'chevron-up' : 'list-tree'}`;
 		this._inputBoxSessionsBtn!.title = showExpanded
 			? localize('agentsVoice.collapseSessions', "Collapse sessions")
 			: localize('agentsVoice.sessions', "Sessions");
 
-		// Close button
 		this._inputBoxCloseBtn!.style.display = opts.showClose ? '' : 'none';
 		this._inputBoxCloseBtn!.onclick = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.closeWindow(); };
 	}
@@ -803,10 +669,8 @@ export class AgentsVoiceWidget extends Disposable {
 		const opts = this._options;
 		const showExpanded = this._shouldShowExpanded.read(reader) && opts.showExpandChevron;
 
-		// Title row: hidden during onboarding
 		this._titleRow.style.display = (onboarding || !opts.title) ? 'none' : 'flex';
 
-		// Onboarding vs main UI
 		if (onboarding) {
 			this._onboardingComponent.element.style.display = '';
 			this._headerComponent.element.style.display = 'none';
@@ -873,7 +737,6 @@ export class AgentsVoiceWidget extends Disposable {
 					onSubmit: (text) => this._submitFeedback(text),
 					onCancel: () => { this._feedbackDialogState.set(null, undefined); },
 				}, feedbackState);
-				// Hide everything below when feedback dialog is open
 				this._statusTextDiv.style.display = 'none';
 				this._transcriptComponent.element.style.display = 'none';
 				this._statusRowsComponent.element.style.display = 'none';
@@ -883,7 +746,6 @@ export class AgentsVoiceWidget extends Disposable {
 			} else {
 				this._feedbackDialogComponent.element.style.display = 'none';
 
-				// Voice bar (listening/speaking indicator with stop button)
 				this._voiceBarComponent.update({
 					voiceState,
 					speakingSessionLabel: this._speakingSessionLabel.read(reader),
@@ -891,7 +753,6 @@ export class AgentsVoiceWidget extends Disposable {
 					onStopSpeech: () => this.callbacks.stopPlayback(),
 				});
 
-				// Status text — always show when in error state (e.g. mic denied)
 				const statusText = this._statusText.read(reader);
 				const isError = voiceState === 'error';
 				if ((opts.showStatusText || isError) && statusText) {
@@ -902,10 +763,8 @@ export class AgentsVoiceWidget extends Disposable {
 					this._statusTextDiv.style.display = 'none';
 				}
 
-				// Transcript
 				this._transcriptComponent.update({ turns: this._transcriptTurns.read(reader) });
 
-				// Status rows (collapsed) or session list (expanded)
 				if (!showExpanded) {
 					this._statusRowsComponent.element.style.display = '';
 					this._statusRowsComponent.update({
@@ -942,7 +801,6 @@ export class AgentsVoiceWidget extends Disposable {
 		}
 	}
 
-	// --- Public state setters (called by the service) ---
 
 	setConnected(connected: boolean): void {
 		this._isConnected.set(connected, undefined);
@@ -1003,7 +861,6 @@ export class AgentsVoiceWidget extends Disposable {
 		this._popoutAvailable.set(available, undefined);
 	}
 
-	// --- Feedback dialog ---
 
 	private _toggleFeedbackDialog(): void {
 		if (this._feedbackDialogState.get()) {
@@ -1014,14 +871,10 @@ export class AgentsVoiceWidget extends Disposable {
 		}
 	}
 
-	// --- Onboarding ---
 
 	private _dismissOnboarding(connect: boolean = false): void {
 		if (connect) {
-			// Don't dismiss yet — kick off connection, wait for it to succeed
-			// via the effect that watches isConnected/isConnecting.
 			if (this._isConnected.get()) {
-				// Already connected somehow — just dismiss.
 				this._showOnboarding.set(false, undefined);
 				this.callbacks.onOnboardingCompleted?.();
 				return;
@@ -1036,12 +889,6 @@ export class AgentsVoiceWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Externally trigger onboarding dismissal (e.g. when the user connects
-	 * from the floating mini-view, the main panel should drop the onboarding).
-	 * Also clears any in-flight pending-connect state so a later success
-	 * doesn't re-trigger the completion callback.
-	 */
 	dismissOnboarding(): void {
 		this._onboardingPendingConnect.set(false, undefined);
 		if (this._showOnboarding.get()) {
@@ -1061,7 +908,6 @@ export class AgentsVoiceWidget extends Disposable {
 		});
 	}
 
-	// --- Glow animation (decoupled from autorun — direct DOM updates) ---
 
 	private _animationFrameId: number | undefined;
 
@@ -1071,9 +917,6 @@ export class AgentsVoiceWidget extends Disposable {
 			this._animationFrameId = getWindow(this.container).requestAnimationFrame(animate);
 			const onboarding = this._showOnboarding.get();
 			const voiceState = this._voiceState.get();
-			// The reactive autorun starts/stops this loop; guard against a frame
-			// that races a transition to a non-glowing state (styles are cleared
-			// by _stopWaveformAnimation()).
 			if (!(onboarding || voiceState === 'listening' || voiceState === 'speaking')) {
 				return;
 			}
@@ -1094,7 +937,6 @@ export class AgentsVoiceWidget extends Disposable {
 				intensity = Math.min(1, (sum / dataArray.length) / 80);
 			}
 
-			// Animate input box container border/shadow (inputBoxLayout)
 			if (this._glowController && (voiceState === 'listening' || voiceState === 'speaking')) {
 				this._glowController.render(voiceState, intensity, this.callbacks.isMotionReduced());
 			}
@@ -1107,7 +949,6 @@ export class AgentsVoiceWidget extends Disposable {
 					: 'none';
 			}
 
-			// Classic layout glow div
 			this._glowDiv.style.display = '';
 			const baseOpacity = 0.15 + intensity * 0.4;
 			const { r, g, b } = voiceGlowStateColor(onboarding ? 'speaking' : voiceState, colors).rgba;
@@ -1122,8 +963,6 @@ export class AgentsVoiceWidget extends Disposable {
 			getWindow(this.container).cancelAnimationFrame(this._animationFrameId);
 			this._animationFrameId = undefined;
 		}
-		// Clear any glow left by the last rendered frame so idle/disconnected
-		// shows no residual glow now that the loop no longer runs while idle.
 		this._glowDiv.style.display = 'none';
 		this._glowController?.clear();
 		if (this._inputBoxMicBtn) {
@@ -1137,6 +976,5 @@ function _isTextInput(target: EventTarget | null): boolean {
 	const el = target as Element;
 	const tag = el.tagName;
 	if (tag === 'TEXTAREA' || tag === 'INPUT') { return true; }
-	// HTMLElement.isContentEditable is realm-specific; check defensively.
 	return (el as HTMLElement & { isContentEditable?: boolean }).isContentEditable === true;
 }

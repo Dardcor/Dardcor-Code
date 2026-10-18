@@ -18,9 +18,6 @@ export class ExtHostDiskFileSystemProvider {
 		@ILogService logService: ILogService
 	) {
 
-		// Register disk file system provider so that certain
-		// file operations can execute fast within the extension
-		// host without roundtripping.
 		extHostConsumerFileSystem.addFileSystemProvider(Schemas.file, new DiskFileSystemProviderAdapter(logService), { isCaseSensitive: isLinux });
 	}
 }
@@ -73,7 +70,6 @@ class DiskFileSystemProviderAdapter implements vscode.FileSystemProvider {
 		return this.impl.copy(source, destination, options);
 	}
 
-	// --- Not Implemented ---
 
 	get onDidChangeFile(): never { throw new Error('Method not implemented.'); }
 	watch(uri: vscode.Uri, options: { readonly recursive: boolean; readonly excludes: readonly string[] }): vscode.Disposable { throw new Error('Method not implemented.'); }

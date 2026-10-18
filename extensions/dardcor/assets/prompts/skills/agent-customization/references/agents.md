@@ -1,4 +1,4 @@
-# [Custom Agents (.agent.md)](https://code.visualstudio.com/docs/dardcor/customization/custom-agents)
+# [Custom Agents (.agent.md)](https://www.dardcor-code.web.id/docs/dardcor/customization/custom-agents)
 
 Custom personas with specific tools, instructions, and behaviors. Use for orchestrated workflows with role-based tool restrictions.
 

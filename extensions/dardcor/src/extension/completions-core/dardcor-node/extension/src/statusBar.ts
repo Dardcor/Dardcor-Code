@@ -6,15 +6,14 @@
 import { commands, Disposable, languages, LanguageStatusItem, LanguageStatusSeverity, window, workspace } from 'vscode';
 import { IDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
 import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
-import { CopilotConfigPrefix } from '../../lib/src/constants';
-import { CMDQuotaExceeded } from '../../lib/src/openai/fetch';
+import { DardcorConfigPrefix } from '../../lib/src/constants';
 import { StatusChangedEvent, StatusReporter } from '../../lib/src/progress';
 import { isCompletionEnabled, isInlineSuggestEnabled } from './config';
 import { CMDToggleStatusMenuChat } from './constants';
 import { ICompletionsExtensionStatus } from './extensionStatus';
 import { Icon } from './icon';
 
-export class CopilotStatusBar extends StatusReporter implements IDisposable {
+export class DardcorCompletionStatusBar extends StatusReporter implements IDisposable {
 	readonly item!: LanguageStatusItem;
 	showingMessage = false;
 	private disposables: Disposable[] = [];
@@ -52,7 +51,7 @@ export class CopilotStatusBar extends StatusReporter implements IDisposable {
 
 		this.disposables.push(
 			workspace.onDidChangeConfiguration(e => {
-				if (!e.affectsConfiguration(CopilotConfigPrefix)) { return; }
+				if (!e.affectsConfiguration(DardcorConfigPrefix)) { return; }
 				this.updateStatusBarIndicator();
 			})
 		);
@@ -73,11 +72,6 @@ export class CopilotStatusBar extends StatusReporter implements IDisposable {
 		if (this.isDisposed()) {
 			return;
 		}
-		void commands.executeCommand(
-			'setContext',
-			'github.dardcor.completions.quotaExceeded',
-			this.extensionStatusService.command?.command === CMDQuotaExceeded
-		);
 		const enabled = this.checkEnabledForLanguage();
 		void commands.executeCommand('setContext', 'github.dardcor.completions.enabled', enabled);
 		this.item.command = { command: CMDToggleStatusMenuChat, title: 'View Details' };

@@ -8,18 +8,9 @@ import { Event } from '../../../common/event.js';
 import { IDisposable } from '../../../common/lifecycle.js';
 import { IMessagePassingProtocol, IPCClient } from './ipc.js';
 
-/**
- * Declare minimal `MessageEvent` and `MessagePort` interfaces here
- * so that this utility can be used both from `browser` and
- * `electron-main` namespace where message ports are available.
- */
 
 export interface MessageEvent {
 
-	/**
-	 * For our use we only consider `Uint8Array` a valid data transfer
-	 * via message ports because our protocol implementation is buffer based.
-	 */
 	data: Uint8Array;
 }
 
@@ -34,25 +25,13 @@ export interface MessagePort {
 	close(): void;
 }
 
-/**
- * The MessagePort `Protocol` leverages MessagePort style IPC communication
- * for the implementation of the `IMessagePassingProtocol`. That style of API
- * is a simple `onmessage` / `postMessage` pattern.
- */
 export class Protocol implements IMessagePassingProtocol {
 
 	readonly onMessage;
 
 	constructor(private port: MessagePort) {
-		// A `message` event may carry no (or empty) data (e.g. during
-		// connection teardown). An empty frame is never a valid protocol
-		// message (the smallest valid frame still has a serialized header),
-		// so we must not forward it: doing so makes the channel readers
-		// deserialize an `undefined` header and crash. Filter these out at
-		// the transport boundary instead.
 		const onMessage = Event.fromDOMEventEmitter<VSBuffer>(this.port, 'message', (e: MessageEvent) => e.data ? VSBuffer.wrap(e.data) : VSBuffer.alloc(0));
 		this.onMessage = Event.filter(onMessage, data => data.byteLength > 0);
-		// we must call start() to ensure messages are flowing
 		port.start();
 	}
 
@@ -65,9 +44,6 @@ export class Protocol implements IMessagePassingProtocol {
 	}
 }
 
-/**
- * An implementation of a `IPCClient` on top of MessagePort style IPC communication.
- */
 export class Client extends IPCClient implements IDisposable {
 
 	private protocol: Protocol;

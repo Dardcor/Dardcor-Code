@@ -90,13 +90,11 @@ class CliMain extends Disposable {
 
 	private registerListeners(): void {
 
-		// Dispose on exit
 		process.once('exit', () => this.dispose());
 	}
 
 	async run(): Promise<void> {
 
-		// Services
 		const [instantiationService, appenders] = await this.initServices();
 
 		return instantiationService.invokeFunction(async accessor => {
@@ -105,20 +103,14 @@ class CliMain extends Disposable {
 			const environmentService = accessor.get(INativeEnvironmentService);
 			const userDataProfilesService = accessor.get(IUserDataProfilesService);
 
-			// Log info
 			logService.info('CLI main', this.argv);
 
-			// Error handler
 			this.registerErrorHandler(logService);
 
-			// DNS result order
-			// Refs https://github.com/microsoft/vscode/issues/264136
 			setDefaultResultOrder('ipv4first');
 
-			// Run based on argv
 			await this.doRun(environmentService, fileService, userDataProfilesService, instantiationService);
 
-			// Flush the remaining data in AI adapter (with 1s timeout)
 			await Promise.all(appenders.map(a => {
 				raceTimeout(a.flush(), 1000);
 			}));
@@ -129,25 +121,20 @@ class CliMain extends Disposable {
 	private async initServices(): Promise<[IInstantiationService, ITelemetryAppender[]]> {
 		const services = new ServiceCollection();
 
-		// Product
 		const productService = { _serviceBrand: undefined, ...product };
 		services.set(IProductService, productService);
 
-		// Environment
 		const environmentService = new NativeEnvironmentService(this.argv, productService);
 		services.set(INativeEnvironmentService, environmentService);
 
-		// Init folders
 		await Promise.all([
 			this.allowWindowsUNCPath(environmentService.appSettingsHome.with({ scheme: Schemas.file }).fsPath),
 			this.allowWindowsUNCPath(environmentService.extensionsPath)
 		].map(path => path ? fs.promises.mkdir(path, { recursive: true }) : undefined));
 
-		// Logger
 		const loggerService = new LoggerService(getLogLevel(environmentService), environmentService.logsHome);
 		services.set(ILoggerService, loggerService);
 
-		// Log
 		const logger = this._register(loggerService.createLogger('cli', { name: localize('cli', "CLI") }));
 		const otherLoggers: ILogger[] = [];
 		if (loggerService.getLogLevel() === LogLevel.Trace) {
@@ -157,27 +144,21 @@ class CliMain extends Disposable {
 		const logService = this._register(new LogService(logger, otherLoggers));
 		services.set(ILogService, logService);
 
-		// Files
 		const fileService = this._register(new FileService(logService));
 		services.set(IFileService, fileService);
 
 		const diskFileSystemProvider = this._register(new DiskFileSystemProvider(logService));
 		fileService.registerProvider(Schemas.file, diskFileSystemProvider);
 
-		// Uri Identity
 		const uriIdentityService = new UriIdentityService(fileService);
 		services.set(IUriIdentityService, uriIdentityService);
 
-		// User Data Profiles
 		const stateService = new StateReadonlyService(SaveStrategy.DELAYED, environmentService, logService, fileService);
 		const userDataProfilesService = new UserDataProfilesReadonlyService(stateService, uriIdentityService, environmentService, fileService, logService);
 		services.set(IUserDataProfilesService, userDataProfilesService);
 
-		// Use FileUserDataProvider for user data to
-		// enable atomic read / write operations.
 		fileService.registerProvider(Schemas.vscodeUserData, new FileUserDataProvider(Schemas.file, diskFileSystemProvider, Schemas.vscodeUserData, userDataProfilesService, uriIdentityService, logService));
 
-		// Policy
 		let policyService: IPolicyService | undefined;
 		if (isWindows && productService.win32RegValueName) {
 			policyService = this._register(new NativePolicyService(logService, productService.win32RegValueName));
@@ -192,17 +173,14 @@ class CliMain extends Disposable {
 		}
 		services.set(IPolicyService, policyService);
 
-		// Configuration
 		const configurationService = this._register(new ConfigurationService(userDataProfilesService.defaultProfile.settingsResource, fileService, policyService, logService));
 		services.set(IConfigurationService, configurationService);
 
-		// Initialize
 		await Promise.all([
 			stateService.init(),
 			configurationService.initialize()
 		]);
 
-		// Get machine ID
 		let machineId: string | undefined = undefined;
 		try {
 			machineId = await resolveMachineId(stateService, logService);
@@ -214,20 +192,15 @@ class CliMain extends Disposable {
 		const sqmId = await resolveSqmId(stateService, logService);
 		const devDeviceId = await resolveDevDeviceId(stateService, logService);
 
-		// Initialize user data profiles after initializing the state
 		userDataProfilesService.init();
 
-		// URI Identity
 		services.set(IUriIdentityService, new UriIdentityService(fileService));
 
-		// Request
 		const requestService = new RequestService('local', configurationService, environmentService, logService);
 		services.set(IRequestService, requestService);
 
-		// Download Service
 		services.set(IDownloadService, new SyncDescriptor(DownloadService, undefined, true));
 
-		// Extensions
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
 		services.set(IExtensionsScannerService, new SyncDescriptor(ExtensionsScannerService, undefined, true));
 		services.set(IExtensionSignatureVerificationService, new SyncDescriptor(ExtensionSignatureVerificationService, undefined, true));
@@ -236,17 +209,14 @@ class CliMain extends Disposable {
 		services.set(IExtensionGalleryManifestService, new SyncDescriptor(ExtensionGalleryManifestService));
 		services.set(IExtensionGalleryService, new SyncDescriptor(ExtensionGalleryServiceWithNoStorageService, undefined, true));
 
-		// Localizations
 		services.set(ILanguagePackService, new SyncDescriptor(NativeLanguagePackService, undefined, false));
 
-		// MCP
 		services.set(IAllowedMcpServersService, new SyncDescriptor(AllowedMcpServersService, undefined, true));
 		services.set(IMcpResourceScannerService, new SyncDescriptor(McpResourceScannerService, undefined, true));
 		services.set(IMcpGalleryManifestService, new SyncDescriptor(McpGalleryManifestService, undefined, true));
 		services.set(IMcpGalleryService, new SyncDescriptor(McpGalleryService, undefined, true));
 		services.set(IMcpManagementService, new SyncDescriptor(McpManagementService, undefined, true));
 
-		// Telemetry
 		const appenders: ITelemetryAppender[] = [];
 		const isInternal = isInternalTelemetry(productService, configurationService);
 		if (supportsTelemetry(productService, environmentService)) {
@@ -283,7 +253,6 @@ class CliMain extends Disposable {
 
 	private registerErrorHandler(logService: ILogService): void {
 
-		// Install handler for unexpected errors
 		setUnexpectedErrorHandler(error => {
 			const message = toErrorMessage(error, true);
 			if (!message) {
@@ -293,7 +262,6 @@ class CliMain extends Disposable {
 			logService.error(`[uncaught exception in CLI]: ${message}`);
 		});
 
-		// Handle unhandled errors that can occur
 		process.on('uncaughtException', err => {
 			if (!isSigPipeError(err)) {
 				onUnexpectedError(err);
@@ -312,18 +280,15 @@ class CliMain extends Disposable {
 		}
 		const profileLocation = (profile ?? userDataProfilesService.defaultProfile).extensionsResource;
 
-		// List Extensions
 		if (this.argv['list-extensions']) {
 			return instantiationService.createInstance(ExtensionManagementCLI, [], new ConsoleLogger(LogLevel.Info, false)).listExtensions(!!this.argv['show-versions'], this.argv['category'], profileLocation);
 		}
 
-		// Install Extension
 		else if (this.argv['install-extension'] || this.argv['install-builtin-extension']) {
 			const installOptions: InstallOptions = { isMachineScoped: !!this.argv['do-not-sync'], installPreReleaseVersion: !!this.argv['pre-release'], donotIncludePackAndDependencies: !!this.argv['do-not-include-pack-dependencies'], profileLocation };
 			return instantiationService.createInstance(ExtensionManagementCLI, [], new ConsoleLogger(LogLevel.Info, false)).installExtensions(this.asExtensionIdOrVSIX(this.argv['install-extension'] || []), this.asExtensionIdOrVSIX(this.argv['install-builtin-extension'] || []), installOptions, !!this.argv['force']);
 		}
 
-		// Uninstall Extension
 		else if (this.argv['uninstall-extension']) {
 			return instantiationService.createInstance(ExtensionManagementCLI, [], new ConsoleLogger(LogLevel.Info, false)).uninstallExtensions(this.asExtensionIdOrVSIX(this.argv['uninstall-extension']), !!this.argv['force'], profileLocation);
 		}
@@ -332,17 +297,14 @@ class CliMain extends Disposable {
 			return instantiationService.createInstance(ExtensionManagementCLI, [], new ConsoleLogger(LogLevel.Info, false)).updateExtensions(profileLocation);
 		}
 
-		// Locate Extension
 		else if (this.argv['locate-extension']) {
 			return instantiationService.createInstance(ExtensionManagementCLI, [], new ConsoleLogger(LogLevel.Info, false)).locateExtension(this.argv['locate-extension']);
 		}
 
-		// Install MCP server
 		else if (this.argv['add-mcp']) {
 			return instantiationService.createInstance(McpManagementCli, new ConsoleLogger(LogLevel.Info, false)).addMcpDefinitions(this.argv['add-mcp']);
 		}
 
-		// Telemetry
 		else if (this.argv['telemetry']) {
 			console.log(await buildTelemetryMessage(environmentService.appRoot, environmentService.extensionsPath));
 		}

@@ -7,7 +7,7 @@ import { ILogService } from '../../../../../../../platform/log/common/logService
 import { IInstantiationService, type ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { asyncIterableMapFilter } from '../../../../lib/src/helpers/iterableHelpers';
 import { Logger } from '../../../../lib/src/logger';
-import { CopilotUiKind, ICompletionsOpenAIFetcherService } from '../../../../lib/src/openai/fetch';
+import { DardcorInlineUiKind, ICompletionsOpenAIFetcherService } from '../../../../lib/src/openai/fetch';
 import { APIChoice } from '../../../../lib/src/openai/openai';
 import { ICompletionsStatusReporter } from '../../../../lib/src/progress';
 import { getNodeStartUtil } from '../../../../lib/src/prompt/parseBlock';
@@ -26,10 +26,6 @@ import { ISolutionHandler, SolutionsStream, UnformattedSolution } from '../panel
 
 const solutionsLogger = new Logger('solutions');
 
-/**
- * Given an `ISolutionManager` with the context of a specific "Open Copilot" request,
- * initiate the generation of a stream of solutions for that request.
- */
 export async function launchSolutions(accessor: ServicesAccessor, solutionManager: SolutionManager): Promise<SolutionsStream> {
 	const instantiationService = accessor.get(IInstantiationService);
 	const fetcherService = accessor.get(ICompletionsOpenAIFetcherService);
@@ -37,16 +33,13 @@ export async function launchSolutions(accessor: ServicesAccessor, solutionManage
 	const position = solutionManager.targetPosition;
 	const document = solutionManager.textDocument;
 
-	// Setup prompt and telemetry using shared function
 	const promptSetup = await setupPromptAndTelemetry(accessor, solutionManager, 'open dardcor', solutionsLogger);
 	if ('status' in promptSetup) {
-		// This is a SolutionsStream indicating an error occurred
 		return promptSetup;
 	}
 
 	const { prompt, trailingWs, telemetryData, repoInfo, ourRequestId } = promptSetup;
 
-	// Setup completion parameters using shared function
 	const { extra, postOptions, finishedCb, engineInfo } = instantiationService.invokeFunction(setupCompletionParams,
 		document,
 		position,
@@ -64,7 +57,7 @@ export async function launchSolutions(accessor: ServicesAccessor, solutionManage
 		ourRequestId,
 		engineModelId: engineInfo.modelId,
 		count: solutionManager.solutionCountTarget,
-		uiKind: CopilotUiKind.Panel,
+		uiKind: DardcorInlineUiKind.Panel,
 		postOptions,
 		headers: engineInfo.headers,
 		extra,
@@ -82,12 +75,8 @@ export async function launchSolutions(accessor: ServicesAccessor, solutionManage
 
 	const solutions = asyncIterableMapFilter(choices, async (apiChoice: APIChoice) => {
 		let display = apiChoice.completionText;
-		logger.info(`Open Copilot completion: [${apiChoice.completionText}]`);
+		logger.info(`Open panel completion: [${apiChoice.completionText}]`);
 
-		// For completions that can happen in any location in the middle of the code we try to find the existing code
-		// that should be displayed in the OpenCopilot panel so the code is nicely formatted/highlighted.
-		// This is not needed for implement unknown function quick fix, as it will be
-		// always "complete" standalone function in the location suggested by TS' extension.
 		const displayStartPos =
 			(await getNodeStartUtil(document, position, apiChoice.completionText)) ??
 			LocationFactory.position(position.line, 0);
@@ -119,7 +108,6 @@ export async function launchSolutions(accessor: ServicesAccessor, solutionManage
 		};
 		return solution;
 	});
-	// deliberately not awaiting so that we can return quickly
 	const solutionsStream = generateSolutionsStream(cancellationToken, solutions[Symbol.asyncIterator]());
 	return solutionsStream;
 }

@@ -54,7 +54,6 @@ suite('Link protection domain matching', () => {
 		linkAllowedByRules('https://a.x.org', ['*.x.org']);
 		linkAllowedByRules('https://a.b.x.org', ['*.x.org']);
 		linkAllowedByRules('https://x.org', ['*.x.org']);
-		// https://github.com/microsoft/vscode/issues/249353
 		linkAllowedByRules('https://x.org:3000', ['*.x.org:3000']);
 	});
 
@@ -111,7 +110,6 @@ suite('Link protection domain matching', () => {
 	});
 
 	test('case normalization', () => {
-		// https://github.com/microsoft/vscode/issues/99294
 		linkAllowedByRules('https://github.com/microsoft/vscode/issues/new', ['https://github.com/microsoft']);
 		linkAllowedByRules('https://github.com/microsoft/vscode/issues/new', ['https://github.com/microsoft']);
 	});

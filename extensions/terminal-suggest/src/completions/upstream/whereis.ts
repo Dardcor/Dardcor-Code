@@ -50,7 +50,6 @@ const completionSpec: Fig.Spec = {
 			description: "Terminate the -B, -M, and -S options",
 		},
 	],
-	// Only uncomment if whereis takes an argument
 	args: {
 		name: "Filename",
 		description: "The file to search for",

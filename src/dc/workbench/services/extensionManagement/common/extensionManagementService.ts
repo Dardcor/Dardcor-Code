@@ -327,14 +327,11 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 	private getServersToInstall(manifest: IExtensionManifest): IExtensionManagementServer[] | undefined {
 		if (this.extensionManagementServerService.localExtensionManagementServer && this.extensionManagementServerService.remoteExtensionManagementServer) {
 			if (isLanguagePackExtension(manifest)) {
-				// Install on both servers
 				return [this.extensionManagementServerService.localExtensionManagementServer, this.extensionManagementServerService.remoteExtensionManagementServer];
 			}
 			if (this.extensionManifestPropertiesService.prefersExecuteOnUI(manifest)) {
-				// Install only on local server
 				return [this.extensionManagementServerService.localExtensionManagementServer];
 			}
-			// Install only on remote server
 			return [this.extensionManagementServerService.remoteExtensionManagementServer];
 		}
 		if (this.extensionManagementServerService.localExtensionManagementServer) {
@@ -432,7 +429,6 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 
 		const servers: IExtensionManagementServer[] = [];
 
-		// Update Language pack on local and remote servers
 		if (isLanguagePackExtension(extension.manifest)) {
 			servers.push(...this.servers.filter(server => server !== this.extensionManagementServerService.webExtensionManagementServer));
 		} else {
@@ -688,7 +684,6 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 	private async getExtensionManagementServersToInstall(gallery: IGalleryExtension, manifest: IExtensionManifest): Promise<IExtensionManagementServer[]> {
 		const servers: IExtensionManagementServer[] = [];
 
-		// Language packs should be installed on both local and remote servers
 		if (isLanguagePackExtension(manifest)) {
 			servers.push(...this.servers.filter(server => server !== this.extensionManagementServerService.webExtensionManagementServer));
 		}
@@ -710,7 +705,6 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 	}
 
 	private getInstallableExtensionManagementServers(manifest: IExtensionManifest): IExtensionManagementServer[] {
-		// Only local server
 		if (this.servers.length === 1 && this.extensionManagementServerService.localExtensionManagementServer) {
 			return [this.extensionManagementServerService.localExtensionManagementServer];
 		}
@@ -730,7 +724,6 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 			}
 		}
 
-		// Local server can accept any extension.
 		if (this.extensionManagementServerService.localExtensionManagementServer && !servers.includes(this.extensionManagementServerService.localExtensionManagementServer)) {
 			servers.push(this.extensionManagementServerService.localExtensionManagementServer);
 		}
@@ -863,7 +856,7 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 			label: localize({ key: 'learnMore', comment: ['&& denotes a mnemonic'] }, "&&Learn More"),
 			run: () => {
 				this.telemetryService.publicLog2<TrustPublisherEvent, TrustPublisherClassification>('extensions:trustPublisher', { action: 'learn', extensionId: untrustedExtensions.map(e => e.identifier.id).join(',') });
-				this.instantiationService.invokeFunction(accessor => accessor.get(ICommandService).executeCommand('vscode.open', URI.parse('https://aka.ms/vscode-extension-security')));
+				this.instantiationService.invokeFunction(accessor => accessor.get(ICommandService).executeCommand('vscode.open', URI.parse('https://www.dardcor-code.web.id/docs/extensions/security')));
 				throw new CancellationError();
 			}
 		};
@@ -872,7 +865,7 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 			return publisherLink ? `[${publisherDisplayName}](${publisherLink})` : publisherDisplayName;
 		};
 
-		const unverifiedLink = 'https://aka.ms/vscode-verify-publisher';
+		const unverifiedLink = 'https://www.dardcor-code.web.id/docs/extensions/publishers';
 
 		const title = allPublishers.length === 1
 			? localize('checkTrustedPublisherTitle', "Do you trust the publisher \"{0}\"?", allPublishers[0].publisherDisplayName)
@@ -1142,7 +1135,6 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 			return true;
 		}
 
-		// Check if the extension is allowed by publisher or extension id
 		if (this.allowedExtensionsService.allowedExtensionsConfigValue && this.allowedExtensionsService.isAllowed(extension)) {
 			return true;
 		}

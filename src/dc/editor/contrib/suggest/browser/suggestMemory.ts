@@ -29,11 +29,9 @@ export abstract class Memory {
 		for (let i = 0; i < items.length; i++) {
 			const { score, completion: suggestion } = items[i];
 			if (score[0] !== topScore) {
-				// stop when leaving the group of top matches
 				break;
 			}
 			if (suggestion.preselect) {
-				// stop when seeing an auto-select-item
 				return i;
 			}
 		}
@@ -54,7 +52,6 @@ export class NoMemory extends Memory {
 	}
 
 	memorize(model: ITextModel, pos: IPosition, item: CompletionItem): void {
-		// no-op
 	}
 
 	toJSON() {
@@ -62,7 +59,6 @@ export class NoMemory extends Memory {
 	}
 
 	fromJSON() {
-		//
 	}
 }
 
@@ -107,7 +103,6 @@ export class LRUMemory extends Memory {
 		let seq = -1;
 		for (let i = 0; i < items.length; i++) {
 			if (items[i].score[0] !== topScore) {
-				// consider only top items
 				break;
 			}
 			const key = `${model.getLanguageId()}/${items[i].textLabel}`;
@@ -117,7 +112,6 @@ export class LRUMemory extends Memory {
 				indexRecency = i;
 			}
 			if (items[i].completion.preselect && indexPreselect === -1) {
-				// stop when seeing an auto-select-item
 				return indexPreselect = i;
 			}
 		}
@@ -192,9 +186,6 @@ export class PrefixMemory extends Memory {
 		const entries: [string, MemItem][] = [];
 		this._trie.forEach((value, key) => entries.push([key, value]));
 
-		// sort by last recently used (touch), then
-		// take the top 200 item and normalize their
-		// touch
 		entries
 			.sort((a, b) => -(a[1].touch - b[1].touch))
 			.forEach((value, i) => value[1].touch = i);
@@ -281,7 +272,6 @@ export class SuggestMemoryService implements ISuggestMemoryService {
 					this._strategy.fromJSON(JSON.parse(raw));
 				}
 			} catch (e) {
-				// things can go wrong with JSON...
 			}
 		}
 

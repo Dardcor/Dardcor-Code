@@ -45,7 +45,6 @@ export class NativeKeyboardLayoutService extends Disposable implements INativeKe
 		this._register(this._keyboardLayoutService.onDidChangeKeyboardLayout(async ({ keyboardLayoutInfo, keyboardMapping }) => {
 			await this.initialize();
 			if (keyboardMappingEquals(this._keyboardMapping, keyboardMapping)) {
-				// the mappings are equal
 				return;
 			}
 

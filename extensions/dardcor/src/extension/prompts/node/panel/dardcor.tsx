@@ -106,9 +106,8 @@ export class VscodePrompt extends PromptElement<VscodePromptProps, VscodePromptS
 			this.logService.error(`[VSCode Prompt] Failed to refine the question: ${fetchResult.requestId}`);
 		}
 
-		const currentSanitized = sanitizeVSCodeVersion(this.envService.getEditorInfo().version); // major.minor
+		const currentSanitized = sanitizeVSCodeVersion(this.envService.getEditorInfo().version);
 		if (fetchReleaseNotes) {
-			// Determine which versions to fetch based on meta response
 			const rnMatch = fetchResult.type === ChatFetchResponseType.Success ? fetchResult.value.match(/release_notes(?:@(?<spec>[A-Za-z0-9._-]+))?/i) : undefined;
 			const spec = rnMatch?.groups?.['spec']?.toLowerCase();
 

@@ -33,7 +33,6 @@ const WIN_ABSOLUTE_PATH = /(?:[a-zA-Z]:(?:(?:\\|\/)[\w\s\.@\-\(\)\[\]{}!#$%^&'`~
 const WIN_RELATIVE_PATH = /(?:(?:\~|\.+)(?:(?:\\|\/)[\w\s\.@\-\(\)\[\]{}!#$%^&'`~+=]+)+)/;
 const WIN_PATH = new RegExp(`(${WIN_ABSOLUTE_PATH.source}|${WIN_RELATIVE_PATH.source})`);
 const POSIX_PATH = /((?:\~|\.+)?(?:\/[\w\s\.@\-\(\)\[\]{}!#$%^&'`~+=]+)+)/;
-// Support both ":line 123" and ":123:45" formats for line/column numbers
 const LINE_COLUMN = /(?::(?:line\s+)?([\d]+))?(?::([\d]+))?/;
 const PATH_LINK_REGEX = new RegExp(`${platform.isWindows ? WIN_PATH.source : POSIX_PATH.source}${LINE_COLUMN.source}`, 'g');
 const LINE_COLUMN_REGEX = /:(?:line\s+)?([\d]+)(?::([\d]+))?$/;
@@ -49,18 +48,11 @@ type LinkPart = {
 };
 
 export const enum DebugLinkHoverBehavior {
-	/** A nice workbench hover */
 	Rich,
-	/**
-	 * Basic browser hover
-	 * @deprecated Consumers should adopt `rich` by propagating disposables appropriately
-	 */
 	Basic,
-	/** No hover */
 	None
 }
 
-/** Store implies HoverBehavior=rich */
 export type DebugLinkHoverBehaviorTypeData =
 	| { type: DebugLinkHoverBehavior.None; store: DisposableStore }
 	| { type: DebugLinkHoverBehavior.Basic; store: DisposableStore }
@@ -84,17 +76,8 @@ export class LinkDetector implements ILinkDetector {
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IHoverService private readonly hoverService: IHoverService,
 	) {
-		// noop
 	}
 
-	/**
-	 * Matches and handles web urls, absolute and relative file links in the string provided.
-	 * Returns <span/> element that wraps the processed string, where matched links are replaced by <a/>.
-	 * 'onclick' event is attached to all anchored links that opens them in the editor.
-	 * When splitLines is true, each line of the text, even if it contains no links, is wrapped in a <span>
-	 * and added as a child of the returned <span>.
-	 * The `hoverBehavior` is required and manages the lifecycle of event listeners.
-	 */
 	linkify(text: string, hoverBehavior: DebugLinkHoverBehaviorTypeData, splitLines?: boolean, workspaceFolder?: IWorkspaceFolder, includeFulltext?: boolean, highlights?: IHighlight[]): HTMLElement {
 		return this._linkify(text, hoverBehavior, splitLines, workspaceFolder, includeFulltext, highlights);
 	}
@@ -106,12 +89,10 @@ export class LinkDetector implements ILinkDetector {
 				lines[i] = lines[i] + '\n';
 			}
 			if (!lines[lines.length - 1]) {
-				// Remove the last element ('') that split added.
 				lines.pop();
 			}
 			const elements = lines.map(line => this._linkify(line, hoverBehavior, false, workspaceFolder, includeFulltext, highlights, defaultRef));
 			if (elements.length === 1) {
-				// Do not wrap single line with extra span.
 				return elements[0];
 			}
 			const container = document.createElement('span');
@@ -177,14 +158,13 @@ export class LinkDetector implements ILinkDetector {
 		}
 
 		if (currentIndex === startIndex) {
-			return Iterable.single(node); // no changes made
+			return Iterable.single(node);
 		}
 
 		if (currentIndex < endIndex) {
 			children.push(node.textContent!.substring(currentIndex - startIndex));
 		}
 
-		// reuse the element if it's a link
 		if (isHTMLElement(node)) {
 			reset(node, ...children);
 			return Iterable.single(node);
@@ -193,9 +173,6 @@ export class LinkDetector implements ILinkDetector {
 		return children;
 	}
 
-	/**
-	 * Linkifies a location reference.
-	 */
 	linkifyLocation(text: string, locationReference: number, session: IDebugSession, hoverBehavior: DebugLinkHoverBehaviorTypeData) {
 		const link = this.createLink(text);
 		this.decorateLink(link, undefined, text, hoverBehavior, async (preserveFocus: boolean) => {
@@ -211,10 +188,6 @@ export class LinkDetector implements ILinkDetector {
 		return link;
 	}
 
-	/**
-	 * Makes an {@link ILinkDetector} that links everything in the output to the
-	 * reference if they don't have other explicit links.
-	 */
 	makeReferencedLinkDetector(locationReference: number, session: IDebugSession): ILinkDetector {
 		return {
 			linkify: (text, hoverBehavior, splitLines, workspaceFolder, includeFulltext, highlights) =>
@@ -227,8 +200,6 @@ export class LinkDetector implements ILinkDetector {
 		const link = this.createLink(url);
 
 		let uri = URI.parse(url);
-		// if the URI ends with something like `foo.js:12:3`, parse
-		// that into a fragment to reveal that location (#150702)
 		const lineCol = LINE_COLUMN_REGEX.exec(uri.path);
 		if (lineCol) {
 			uri = uri.with({
@@ -240,7 +211,6 @@ export class LinkDetector implements ILinkDetector {
 		this.decorateLink(link, uri, fulltext, hoverBehavior, async () => {
 
 			if (uri.scheme === Schemas.file) {
-				// Just using fsPath here is unsafe: https://github.com/microsoft/vscode/issues/109076
 				const fsPath = uri.fsPath;
 				const path = await this.pathService.path;
 				const fileUrl = osPath.normalize(((path.sep === osPath.posix.sep) && platform.isWindows) ? fsPath.replace(/\\/g, osPath.posix.sep) : fsPath);
@@ -269,11 +239,9 @@ export class LinkDetector implements ILinkDetector {
 
 	private createPathLink(fulltext: string | undefined, text: string, path: string, lineNumber: number, columnNumber: number, workspaceFolder: IWorkspaceFolder | undefined, hoverBehavior: DebugLinkHoverBehaviorTypeData): Node {
 		if (path[0] === '/' && path[1] === '/') {
-			// Most likely a url part which did not match, for example ftp://path.
 			return document.createTextNode(text);
 		}
 
-		// Only set selection if we have a valid line number (greater than 0)
 		const options = lineNumber > 0
 			? { selection: { startLineNumber: lineNumber, startColumn: columnNumber > 0 ? columnNumber : 1 } }
 			: {};
@@ -304,7 +272,6 @@ export class LinkDetector implements ILinkDetector {
 			}
 			this.decorateLink(link, uri, fulltext, hoverBehavior, (preserveFocus: boolean) => this.editorService.openEditor({ resource: uri, options: { ...options, preserveFocus } }));
 		}).catch(() => {
-			// If the uri can not be resolved we should not spam the console with error, remain quite #86587
 		});
 		return link;
 	}
@@ -342,7 +309,7 @@ export class LinkDetector implements ILinkDetector {
 		hoverBehavior.store.add(addDisposableListener(link, 'click', (event: MouseEvent) => {
 			const selection = getWindow(link).getSelection();
 			if (!selection || selection.type === 'Range') {
-				return; // do not navigate when user is selecting
+				return;
 			}
 			if (!(platform.isMacintosh ? event.metaKey : event.ctrlKey)) {
 				return;

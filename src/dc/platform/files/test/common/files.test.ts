@@ -156,12 +156,10 @@ suite('Files', () => {
 
 	function testIsEqual(testMethod: (pA: string, pB: string, ignoreCase: boolean) => boolean): void {
 
-		// corner cases
 		assert(testMethod('', '', true));
 		assert(!testMethod(null!, '', true));
 		assert(!testMethod(undefined!, '', true));
 
-		// basics (string)
 		assert(testMethod('/', '/', true));
 		assert(testMethod('/some', '/some', true));
 		assert(testMethod('/some/path', '/some/path', true));
@@ -187,7 +185,6 @@ suite('Files', () => {
 	test('isEqual (ignoreCase)', function () {
 		testIsEqual(isEqual);
 
-		// basics (uris)
 		assert(isEqual(URI.file('/some/path').fsPath, URI.file('/some/path').fsPath, true));
 		assert(isEqual(URI.file('c:\\some\\path').fsPath, URI.file('c:\\some\\path').fsPath, true));
 
@@ -247,8 +244,7 @@ suite('Files', () => {
 
 	test('isEqualOrParent (ignorecase)', function () {
 
-		// same assertions apply as with isEqual()
-		testIsEqual(isEqualOrParent); //
+		testIsEqual(isEqualOrParent);
 
 		if (isWindows) {
 			assert(isEqualOrParent('c:\\some\\path', 'c:\\', true));

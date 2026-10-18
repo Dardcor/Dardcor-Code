@@ -17,9 +17,6 @@ import { Uri } from '../../../../dardcorTypes';
 export const IPromptWorkspaceLabels = createServiceIdentifier<IPromptWorkspaceLabels>('IPromptWorkspaceLabels');
 export interface IPromptWorkspaceLabels {
 	readonly _serviceBrand: undefined;
-	/**
-	 * Will be unique and sorted.
-	 */
 	readonly labels: string[];
 	collectContext(): Promise<void>;
 }
@@ -62,14 +59,6 @@ export class PromptWorkspaceLabels implements IPromptWorkspaceLabels {
 
 		const uniqueLabels = [...new Set(this.labels)].sort();
 
-		/* __GDPR__
-			"projectLabels" : {
-				"owner": "digitarald",
-				"comment": "Reports quality of labels detected in a workspace",
-				"labels": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Unique workspace label count." },
-				"count": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Unique workspace labels in context." }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('projectLabels', {
 			labels: uniqueLabels.join(',').replaceAll('@', ' ')
 		}, {
@@ -98,8 +87,6 @@ class BasicPromptWorkspaceLabels implements IPromptWorkspaceLabelsStrategy {
 	}
 
 	public get labels(): string[] {
-		// Check if labels have both javascript and typescript and remove javascript
-		// This can confuse the LLM and typescript should take precedent so types are returned.
 		if (this._labels.includes('javascript') && this._labels.includes('typescript')) {
 			const index = this._labels.indexOf('javascript');
 			this._labels.splice(index, 1);
@@ -125,7 +112,7 @@ class BasicPromptWorkspaceLabels implements IPromptWorkspaceLabelsStrategy {
 	private async addLabelIfApplicable(rootFolder: Uri, filename: string, labels: string[]) {
 		const uri = Uri.joinPath(rootFolder, filename);
 
-		if (await this._ignoreService.isCopilotIgnored(uri)) {
+		if (await this._ignoreService.isIgnored(uri)) {
 			return;
 		}
 
@@ -139,11 +126,9 @@ class BasicPromptWorkspaceLabels implements IPromptWorkspaceLabelsStrategy {
 					const contentLabels = parseCallback(new TextDecoder().decode(b));
 					contentLabels.forEach(label => this._labels.push(label));
 				} catch (e) {
-					// it's ok if we can't parse those files
 				}
 			}
 		} catch (e) {
-			// ignore non-existing files
 		}
 	}
 
@@ -192,7 +177,6 @@ class BasicPromptWorkspaceLabels implements IPromptWorkspaceLabelsStrategy {
 					}
 				}
 			} catch (e) {
-				// It's ok if the parsing of the standard version fails.
 			}
 			return undefined;
 		}
@@ -292,7 +276,6 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 		];
 
 		const dependenciesList = [
-			// Frontend Frameworks
 			{ dependency: 'react' },
 			{ dependency: 'vue' },
 			{ dependency: '@angular/core' },
@@ -300,20 +283,17 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 			{ dependency: 'solid-js' },
 			{ dependency: 'alpinejs' },
 
-			// State Management Libraries
 			{ dependency: 'redux' },
 			{ dependency: 'mobx' },
 			{ dependency: 'vuex' },
 			{ dependency: 'ngrx' },
 
-			// UI Libraries
 			{ dependency: 'antd' },
 			{ dependency: 'bootstrap' },
 			{ dependency: 'bulma' },
 			{ dependency: '@mui/material' },
 			{ dependency: 'semantic-ui-react' },
 
-			// Rendering Frameworks
 			{ dependency: 'next' },
 			{ dependency: 'gatsby' },
 			{ dependency: 'remix' },
@@ -321,7 +301,6 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 			{ dependency: 'sveltekit' },
 			{ dependency: 'nuxt' },
 
-			// Testing Tools
 			{ dependency: 'jest' },
 			{ dependency: 'mocha' },
 			{ dependency: 'cypress' },
@@ -330,7 +309,6 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 			{ dependency: 'vitest' },
 			{ dependency: '@storybook/react' },
 
-			// CSS Tools
 			{ dependency: 'tailwindcss' },
 			{ dependency: 'sass' },
 			{ dependency: 'styled-components' },
@@ -338,7 +316,6 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 			{ dependency: 'postcss' },
 			{ dependency: '@emotion/react' },
 
-			// Build Tools
 			{ dependency: 'vite' },
 			{ dependency: 'webpack' },
 			{ dependency: 'parcel' },
@@ -347,64 +324,52 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 			{ dependency: 'esbuild' },
 			{ dependency: '@swc/core' },
 
-			// Real-time Communication
 			{ dependency: 'socket.io' },
 
-			// API and Data Handling
 			{ dependency: 'd3' },
 			{ dependency: 'graphql' },
 
-			// Utility Libraries
 			{ dependency: 'lodash' },
 			{ dependency: 'moment' },
 			{ dependency: 'rxjs' },
 			{ dependency: 'underscore' },
 
-			// Task Runners
 			{ dependency: 'gulp' },
 
-			// Older Libraries
 			{ dependency: 'backbone' },
 			{ dependency: 'ember-source' },
 			{ dependency: 'handlebars' },
 			{ dependency: 'jquery' },
 			{ dependency: 'knockout' },
 
-			// Cloud SDKs
 			{ dependency: 'aws-sdk' },
 			{ dependency: 'cloudinary' },
 			{ dependency: 'firebase' },
 			{ dependency: '@azure/storage-blob' },
 			{ dependency: '@google-cloud/storage' },
 
-			// Cloud Functions
 			{ dependency: '@aws-lambda' },
 			{ dependency: '@azure/functions' },
 			{ dependency: '@google-cloud/functions' },
 			{ dependency: 'firebase-functions' },
 
-			// Cloud Databases
 			{ dependency: '@azure/cosmos' },
 			{ dependency: '@google-cloud/firestore' },
 			{ dependency: 'mongoose' },
 
-			// Containerization and Orchestration
 			{ dependency: 'dockerode' },
 			{ dependency: 'kubernetes-client' },
 
-			// Monitoring and Logging
 			{ dependency: '@elastic/elasticsearch' },
 			{ dependency: '@sentry/node' },
 			{ dependency: 'log4js' },
 			{ dependency: 'winston' },
 
-			// Security
 			{ dependency: 'bcrypt' },
 			{ dependency: 'helmet' },
 			{ dependency: 'jsonwebtoken' },
 			{ dependency: 'passport' },
 
-			// Azure Libraries
 			{ dependency: '@azure/identity' },
 			{ dependency: '@azure/keyvault-certificates' },
 			{ dependency: '@azure/keyvault-keys' },
@@ -415,7 +380,6 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 			{ dependency: '@azure/monitor-query' },
 			{ dependency: '@azure/app-configuration' },
 
-			// Development Tools
 			{ dependency: 'babel' },
 			{ dependency: 'eslint' },
 			{ dependency: 'parcel' },
@@ -427,7 +391,6 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 		];
 
 		const enginesList = [
-			// Engines
 			{ dependency: 'node' },
 			{ dependency: 'vscode', prefix: 'vscode extension' }
 		];
@@ -440,34 +403,25 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 
 
 	private popularPackages: string[] = [
-		// Data Science and Machine Learning
 		'numpy', 'pandas', 'scipy', 'scikit-learn', 'matplotlib', 'tensorflow', 'keras',
 		'torch', 'seaborn', 'plotly', 'dash', 'jupyter', 'notebook', 'ipython', 'openai', 'pyspark',
 		'airflow', 'nltk', 'sympy', 'spacy', 'langchain',
 
-		// Web Development
 		'Flask', 'Django', 'fastapi', 'pydantic', 'requests', 'beautifulsoup4',
 		'gunicorn', 'uvicorn', 'httpx', 'Jinja2', 'aiohttp',
 
-		// Testing
 		'pytest', 'tox', 'nox', 'selenium', 'playwright', 'coverage', 'hypothesis',
 
-		// Documentation
 		'Sphinx',
 
-		// Task Queue
 		'celery', 'asyncio',
 
-		// Cloud and DevOps
 		'boto3', 'google-cloud-storage', 'azure-storage-blob', 'docker', 'kubernetes', 'azure', 'google', 'ansible',
 
-		// Security
 		'cryptography', 'paramiko', 'PyJWT',
 
-		// Enterprise, Legacy & data storage
 		'xlrd', 'xlrd-2024', 'openpyxl', 'pywin32', 'pywin', 'psycopg2', 'mysqlclient', 'SQLite4', 'Werkzeug', 'pymongo', 'redis', 'PyMySQL',
 
-		// Utilities
 		'Pillow', 'SQLAlchemy', 'lxml', 'html5lib', 'Markdown', 'pytz', 'Click',
 		'attrs', 'PyYAML', 'configparser', 'loguru', 'structlog', 'pygame', 'discord'
 	];
@@ -493,7 +447,6 @@ class ExpandedPromptWorkspaceLabels extends BasicPromptWorkspaceLabels {
 		const lines = contents.split('\n');
 		let inDependenciesSection = false;
 
-		// TODO@digitarald: Should use npm `toml` package, but this is avoiding a dependency for now
 		lines.forEach(line => {
 			line = line.trim();
 			if (line === '[tool.poetry.dependencies]') {

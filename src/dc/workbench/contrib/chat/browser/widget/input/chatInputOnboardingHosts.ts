@@ -8,15 +8,6 @@ import { IVoiceModeOnboardingService } from '../../../../agentsVoice/browser/voi
 import { IDictationOnboardingService } from '../../speechToText/dictationOnboarding.js';
 import { ChatInputNoticeHost, ChatInputNoticeLane } from './chatInputNoticeHost.js';
 
-/**
- * Docks the voice and dictation introductions above one chat input. Both claim
- * the onboarding lane directly, so the host arbitrates between them the same way
- * it arbitrates against a notification: the newest claim leads, the other stands
- * down and comes back when the newer one goes away.
- *
- * Kept out of `chatInputNoticeHost` so the arbitration primitive stays unaware of
- * the features competing for the space it hands out.
- */
 export function registerChatInputOnboardingHosts(
 	host: ChatInputNoticeHost,
 	containers: { readonly voice: HTMLElement; readonly dictation: HTMLElement },

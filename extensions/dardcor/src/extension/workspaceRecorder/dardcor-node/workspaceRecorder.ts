@@ -123,7 +123,6 @@ export class WorkspaceRecorderImpl extends Disposable {
 		}
 
 		if (logFileExists && shouldStartNewLog) {
-			// log rotation
 			const date = new Date();
 
 			function formatDateFileNameSafe(date: Date): string {
@@ -132,7 +131,6 @@ export class WorkspaceRecorderImpl extends Disposable {
 
 			await rename(logFilePath, path.join(recordingDirPath, `${state.value.logCount}.${formatDateFileNameSafe(date)}.workspaceRecording.jsonl`));
 
-			// Reset state after truncating the log
 			state.setValue({
 				version: currentVersion,
 				logCount: state.value.logCount + 1,
@@ -311,7 +309,7 @@ export class WorkspaceRecorderImpl extends Disposable {
 type WorkspaceRecordingState = {
 	version: 3 | 4;
 	logCount: number;
-	documents: Record</* relativePath */ string, { id: LogDocumentId; lastHash: string }>;
+	documents: Record< string, { id: LogDocumentId; lastHash: string }>;
 } | {
-	documents: Record</* relativePath */ string, { id: LogDocumentId; lastHash: string }>;
+	documents: Record< string, { id: LogDocumentId; lastHash: string }>;
 };

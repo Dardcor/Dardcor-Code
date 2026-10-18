@@ -56,7 +56,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 	private extensionsDisabledExtensions: IExtension[] = [];
 	private readonly delayer = this._register(new Delayer<void>(0));
 
-	// Extension unification
 	private readonly _completionsExtensionId: string | undefined;
 	private readonly _chatExtensionId: string | undefined;
 	private _extensionUnificationEnabled: boolean;
@@ -106,17 +105,12 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 		this._register(this.globalExtensionEnablementService.onDidChangeEnablement(({ extensions, source }) => this._onDidChangeGloballyDisabledExtensions(extensions, source)));
 		this._register(allowedExtensionsService.onDidChangeAllowedExtensionsConfigValue(() => this._onDidChangeExtensions([], [], false)));
 
-		// Invalidate the cached malicious extensions list when the stored value changes.
 		this._register(this.storageService.onDidChangeValue(StorageScope.APPLICATION, MALICIOUS_EXTENSIONS_STORAGE_KEY, this._store)(() => this._maliciousExtensionsCache = undefined));
 
-		// Extension unification
 		this._completionsExtensionId = productService.defaultChatAgent?.extensionId.toLowerCase();
 		this._chatExtensionId = productService.defaultChatAgent?.chatExtensionId.toLowerCase();
 		const unificationExtensions = [this._completionsExtensionId, this._chatExtensionId].filter(id => !!id);
 
-		// Disabling extension unification should immediately disable the unified extension flow
-		// Enabling extension unification will only take effect after restart
-		// Extension Unification is disabled in web when there is no remote authority
 		if (isWeb && this.environmentService.remoteAuthority === undefined) {
 			this._extensionUnificationEnabled = false;
 		} else {
@@ -132,7 +126,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 			}
 		}));
 
-		// delay notification for extensions disabled until workbench restored
 		if (this.allUserExtensionsDisabled) {
 			this.lifecycleService.when(LifecyclePhase.Eventually).then(() => {
 				this.notificationService.prompt(Severity.Info, localize('extensionsDisabled', "All installed extensions are temporarily disabled."), [{
@@ -164,11 +157,8 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 		const context = (this.chatEntitlementService as ChatEntitlementService).context;
 		if (context) {
 			if (context.value.state.completed) {
-				// User has used chat features before
 				if (this._isDisabledGlobally({ id: this._chatExtensionId })) {
-					// User had specifically disabled the chat extension to disable AI features
 					if (this.configurationService.getValue(ChatAIDisabledSettingId) !== true) {
-						// Honor that choice by disabling AI features
 						this.logService.debug('Disabling AI features because builtin chat extension is disabled');
 						this.configurationService.updateValue(ChatAIDisabledSettingId, true)
 							.catch(err => this.logService.error('Failed to update chat.disableAIFeatures setting during builtin chat extension enablement migration', err));
@@ -176,7 +166,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 				}
 			} else {
 				try {
-					// User has not used chat features before so avoid activating the chat extension by disabling it
 					this.logService.debug('Disabling builtin chat extension as chat set up is not completed');
 					this._disableExtension({ id: this._chatExtensionId });
 				} catch (error) {
@@ -282,7 +271,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 				if (donotCheckDependencies) {
 					break;
 				}
-				// Can be changed only when all its dependencies enablements can be changed
 				for (const dependency of getExtensionDependencies(this.extensionsManager.extensions, extension)) {
 					if (this.isEnabled(dependency)) {
 						continue;
@@ -322,7 +310,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 		for (const extension of extensions) {
 			const enablementState = this.getEnablementState(extension);
 			if (enablementState === EnablementState.DisabledByTrustRequirement
-				/* All its disabled dependencies are disabled by Trust Requirement */
 				|| (enablementState === EnablementState.DisabledByExtensionDependency && this.getDependenciesEnablementStates(extension).every(([, e]) => this.isEnabledEnablementState(e) || e === EnablementState.DisabledByTrustRequirement))
 			) {
 				const trustState = await this.workspaceTrustRequestService.requestWorkspaceTrust();
@@ -355,41 +342,34 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 
 		const extensionsToEnable: IExtension[] = [];
 		for (const extension of allExtensions) {
-			// Extension is already checked
 			if (checked.some(e => areSameExtensions(e.identifier, extension.identifier))) {
 				continue;
 			}
 
 			const enablementStateOfExtension = this.getEnablementState(extension);
-			// Extension is enabled
 			if (this.isEnabledEnablementState(enablementStateOfExtension)) {
 				continue;
 			}
 
-			// Skip if dependency extension is disabled by extension kind
 			if (enablementStateOfExtension === EnablementState.DisabledByExtensionKind) {
 				continue;
 			}
 
-			// Check if the extension is a dependency or in extension pack
 			if (extensions.some(e =>
 				(options.dependencies && e.manifest.extensionDependencies?.some(id => areSameExtensions({ id }, extension.identifier)))
 				|| (options.pack && e.manifest.extensionPack?.some(id => areSameExtensions({ id }, extension.identifier))))) {
 
 				const index = extensionsToEnable.findIndex(e => areSameExtensions(e.identifier, extension.identifier));
 
-				// Extension is not added to the disablement list so add it
 				if (index === -1) {
 					extensionsToEnable.push(extension);
 				}
 
-				// Extension is there already in the disablement list.
 				else {
 					try {
-						// Replace only if the enablement state can be changed
 						this.throwErrorIfEnablementStateCannotBeChanged(extension, enablementStateOfExtension, true);
 						extensionsToEnable.splice(index, 1, extension);
-					} catch (error) { /*Do not add*/ }
+					} catch (error) { }
 				}
 			}
 		}
@@ -447,9 +427,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 			return enablementState;
 		}
 
-		// Ensure the chat extension is disabled in fresh profiles where chat setup is not completed.
-		// This is called here (in addition to the constructor) because on profile switch the
-		// enablement service is not recreated, but the storage scope changes to the new profile.
 		if (extension.identifier.id.toLowerCase() === this._chatExtensionId) {
 			this.ensureChatExtensionInitialDisabledState();
 		}
@@ -516,7 +493,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 			return disabledExtensions.some(id => areSameExtensions({ id }, extension.identifier));
 		}
 
-		// Check if this is the better merge extension which was migrated to a built-in extension
 		if (areSameExtensions({ id: BetterMergeId.value }, extension.identifier)) {
 			return true;
 		}
@@ -533,17 +509,14 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 	}
 
 	private _isDisabledByVirtualWorkspace(extension: IExtension, workspaceType: WorkspaceType): boolean {
-		// Not a virtual workspace
 		if (!workspaceType.virtual) {
 			return false;
 		}
 
-		// Supports virtual workspace
 		if (this.extensionManifestPropertiesService.getExtensionVirtualWorkspaceSupportType(extension.manifest) !== false) {
 			return false;
 		}
 
-		// Web extension from web extension management server
 		if (this.extensionManagementServerService.getExtensionManagementServer(extension) === this.extensionManagementServerService.webExtensionManagementServer && this.extensionManifestPropertiesService.canExecuteOnWeb(extension.manifest)) {
 			return false;
 		}
@@ -566,14 +539,13 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 					}
 				}
 				if (extensionKind === 'web') {
-					if (this.extensionManagementServerService.webExtensionManagementServer /* web */) {
+					if (this.extensionManagementServerService.webExtensionManagementServer ) {
 						if (installLocation === ExtensionInstallLocation.Web || installLocation === ExtensionInstallLocation.Remote) {
 							return false;
 						}
 					} else if (installLocation === ExtensionInstallLocation.Local) {
 						const enableLocalWebWorker = this.configurationService.getValue<WebWorkerExtHostConfigValue>(webWorkerExtHostConfig);
 						if (enableLocalWebWorker === true || enableLocalWebWorker === 'auto') {
-							// Web extensions are enabled on all configurations
 							return false;
 						}
 					}
@@ -602,7 +574,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 			return false;
 		}
 
-		// Find dependency that is from the same server or does not exports any API
 		const dependencyExtensions = extensions.filter(e =>
 			extension.manifest.extensionDependencies?.some(id => areSameExtensions(e.identifier, { id })
 				&& (this.extensionManagementServerService.getExtensionManagementServer(e) === this.extensionManagementServerService.getExtensionManagementServer(extension) || ((e.manifest.main || e.manifest.browser) && e.manifest.api === 'none'))));
@@ -613,7 +584,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 
 		const hasEnablementState = computedEnablementStates.has(extension);
 		if (!hasEnablementState) {
-			// Placeholder to handle cyclic deps
 			computedEnablementStates.set(extension, EnablementState.EnabledGlobally);
 		}
 		try {
@@ -625,7 +595,6 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 			}
 		} finally {
 			if (!hasEnablementState) {
-				// remove the placeholder
 				computedEnablementStates.delete(extension);
 			}
 		}
@@ -828,7 +797,7 @@ export class ExtensionEnablementService extends Disposable implements IWorkbench
 
 	private loopCheckForMaliciousExtensions(): void {
 		this.checkForMaliciousExtensions()
-			.then(() => this.delayer.trigger(() => { }, 1000 * 60 * 5)) // every five minutes
+			.then(() => this.delayer.trigger(() => { }, 1000 * 60 * 5))
 			.then(() => this.loopCheckForMaliciousExtensions());
 	}
 

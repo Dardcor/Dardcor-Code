@@ -53,13 +53,11 @@ suite('UpdateUtils', () => {
 		test('returns undefined for invalid or incomplete input', () => {
 			const now = Date.now();
 
-			// Missing parameters
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState()), undefined);
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(500, undefined, now)), undefined);
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(undefined, 1000, now)), undefined);
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(500, 1000, undefined)), undefined);
 
-			// Zero or negative values
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(0, 1000, now - 1000)), undefined);
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(500, 0, now - 1000)), undefined);
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(500, 1000, now + 1000)), undefined);
@@ -75,18 +73,14 @@ suite('UpdateUtils', () => {
 		test('computes correct time remaining', () => {
 			const now = Date.now();
 
-			// Simple case: Downloaded 500 bytes of 1000 in 1000ms => 1s remaining
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(500, 1000, now - 1000)), 1);
 
-			// 10 seconds remaining: Downloaded 100MB of 200MB in 10s
 			const downloadedBytes = 100 * 1024 * 1024;
 			const totalBytes = 200 * 1024 * 1024;
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(downloadedBytes, totalBytes, now - 10000)), 10);
 
-			// Rounds up: 900 of 1000 bytes in 900ms => 100ms remaining => rounds to 1s
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(900, 1000, now - 900)), 1);
 
-			// Realistic scenario: 50MB of 100MB in 50s => 50s remaining
 			const downloaded50MB = 50 * 1024 * 1024;
 			const total100MB = 100 * 1024 * 1024;
 			assert.strictEqual(computeDownloadTimeRemaining(DownloadingState(downloaded50MB, total100MB, now - 50000)), 50);
@@ -115,17 +109,15 @@ suite('UpdateUtils', () => {
 		test('computes correct download speed in bytes per second', () => {
 			const now = Date.now();
 
-			// 1000 bytes in 1 second = 1000 B/s
 			const speed1 = computeDownloadSpeed(DownloadingState(1000, 2000, now - 1000));
 			assert.ok(speed1 !== undefined);
-			assert.ok(Math.abs(speed1 - 1000) < 50); // Allow small timing variance
+			assert.ok(Math.abs(speed1 - 1000) < 50);
 
-			// 10 MB in 10 seconds = 1 MB/s = 1048576 B/s
 			const tenMB = 10 * 1024 * 1024;
 			const speed2 = computeDownloadSpeed(DownloadingState(tenMB, tenMB * 2, now - 10000));
 			assert.ok(speed2 !== undefined);
-			const expectedSpeed = 1024 * 1024; // 1 MB/s
-			assert.ok(Math.abs(speed2 - expectedSpeed) < expectedSpeed * 0.01); // Within 1%
+			const expectedSpeed = 1024 * 1024;
+			assert.ok(Math.abs(speed2 - expectedSpeed) < expectedSpeed * 0.01);
 		});
 	});
 
@@ -171,16 +163,16 @@ suite('UpdateUtils', () => {
 		test('formats minutes for values between 1 minute and 1 hour', () => {
 			assert.strictEqual(formatTimeRemaining(60), '1 min');
 			assert.strictEqual(formatTimeRemaining(120), '2 min');
-			assert.strictEqual(formatTimeRemaining(90), '1 min'); // Floors to 1 min
+			assert.strictEqual(formatTimeRemaining(90), '1 min');
 			assert.strictEqual(formatTimeRemaining(3599), '59 min');
 		});
 
 		test('formats fractional hours for values >= 1 hour', () => {
 			assert.strictEqual(formatTimeRemaining(3600), '1 hour');
-			assert.strictEqual(formatTimeRemaining(5400), '1.5 hours'); // 1.5 hours
+			assert.strictEqual(formatTimeRemaining(5400), '1.5 hours');
 			assert.strictEqual(formatTimeRemaining(7200), '2 hours');
-			assert.strictEqual(formatTimeRemaining(9000), '2.5 hours'); // 2.5 hours
-			assert.strictEqual(formatTimeRemaining(3960), '1.1 hours'); // 1 hour 6 min = 1.1 hours
+			assert.strictEqual(formatTimeRemaining(9000), '2.5 hours');
+			assert.strictEqual(formatTimeRemaining(3960), '1.1 hours');
 		});
 	});
 
@@ -194,7 +186,7 @@ suite('UpdateUtils', () => {
 
 		test('formats kilobytes for values between 1 KB and 1 MB', () => {
 			assert.strictEqual(formatBytes(1024), '1 KB');
-			assert.strictEqual(formatBytes(1536), '1.5 KB'); // 1.5 KB
+			assert.strictEqual(formatBytes(1536), '1.5 KB');
 			assert.strictEqual(formatBytes(2048), '2 KB');
 			assert.strictEqual(formatBytes(1024 * 100), '100 KB');
 			assert.strictEqual(formatBytes(1024 * 1023), '1023 KB');

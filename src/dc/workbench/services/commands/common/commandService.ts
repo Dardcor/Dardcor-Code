@@ -37,15 +37,12 @@ export class CommandService extends Disposable implements ICommandService {
 
 	private _activateStar(): Promise<void> {
 		if (!this._starActivation) {
-			// wait for * activation, limited to at most 30s.
 			this._starActivation = raceCancellablePromises([
 				this._extensionService.activateByEvent(`*`),
 				timeout(30000)
 			]);
 		}
 
-		// This is wrapped with notCancellablePromise so it doesn't get cancelled
-		// early because it is shared between consumers.
 		return notCancellablePromise(this._starActivation);
 	}
 
@@ -57,30 +54,22 @@ export class CommandService extends Disposable implements ICommandService {
 
 		if (commandIsRegistered) {
 
-			// if the activation event has already resolved (i.e. subsequent call),
-			// we will execute the registered command immediately
 			if (this._extensionService.activationEventIsDone(activationEvent)) {
 				return this._tryExecuteCommand(id, args);
 			}
 
-			// if the extension host didn't start yet, we will execute the registered
-			// command immediately and send an activation event, but not wait for it
 			if (!this._extensionHostIsReady) {
-				this._extensionService.activateByEvent(activationEvent); // intentionally not awaited
+				this._extensionService.activateByEvent(activationEvent);
 				return this._tryExecuteCommand(id, args);
 			}
 
-			// we will wait for a simple activation event (e.g. in case an extension wants to overwrite it)
 			await this._extensionService.activateByEvent(activationEvent);
 			return this._tryExecuteCommand(id, args);
 		}
 
-		// finally, if the command is not registered we will send a simple activation event
-		// as well as a * activation event raced against registration and against 30s
 		await Promise.all([
 			this._extensionService.activateByEvent(activationEvent),
 			raceCancellablePromises<unknown>([
-				// race * activation against command registration
 				this._activateStar(),
 				Event.toPromise(Event.filter(CommandsRegistry.onDidRegisterCommand, e => e === id))
 			]),

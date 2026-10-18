@@ -77,7 +77,6 @@ export class ManagementConnection {
 		});
 		this._socketCloseListener = this.protocol.onSocketClose(() => {
 			this._log(`The client has disconnected, will wait for reconnection ${printTime(this._reconnectionGraceTime)} before disposing...`);
-			// The socket has closed, let's give the renderer a certain amount of time to reconnect
 			this._disconnectRunner1.schedule();
 		});
 
@@ -90,19 +89,16 @@ export class ManagementConnection {
 
 	public shortenReconnectionGraceTimeIfNecessary(): void {
 		if (this._disconnectRunner2.isScheduled()) {
-			// we are disconnected and already running the short reconnection timer
 			return;
 		}
 		if (this._disconnectRunner1.isScheduled()) {
 			this._log(`Another client has connected, will shorten the wait for reconnection ${printTime(this._reconnectionShortGraceTime)} before disposing...`);
-			// we are disconnected and running the long reconnection timer
 			this._disconnectRunner2.schedule();
 		}
 	}
 
 	private _cleanResources(): void {
 		if (this._disposed) {
-			// already called
 			return;
 		}
 		this._disposed = true;

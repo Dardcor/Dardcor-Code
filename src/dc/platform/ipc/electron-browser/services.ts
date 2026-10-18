@@ -45,7 +45,6 @@ function isRemoteServiceWithChannelClientOptions<T>(obj: unknown): obj is IRemot
 	return !!candidate?.channelClientCtor;
 }
 
-//#region Main Process
 
 class MainProcessRemoteServiceStub<T extends object> extends RemoteServiceStub<T> {
 	constructor(channelName: string, options: IRemoteServiceWithChannelClientOptions<T> | IRemoteServiceWithProxyOptions | undefined, @IMainProcessService ipcService: IMainProcessService, @IInstantiationService instantiationService: IInstantiationService) {
@@ -57,25 +56,12 @@ export function registerMainProcessRemoteService<T>(id: ServiceIdentifier<T>, ch
 	registerSingleton(id, new SyncDescriptor(MainProcessRemoteServiceStub, [channelName, options], true));
 }
 
-//#endregion
 
-//#region Shared Process
 
 export const ISharedProcessService = createDecorator<ISharedProcessService>('sharedProcessService');
 
 export interface ISharedProcessService extends IRemoteService {
 
-	/**
-	 * Allows to create a `MessagePort` connection between the
-	 * shared process and the renderer process.
-	 *
-	 * Use this only when you need raw IPC to the shared process
-	 * via `postMessage` and `on('message')` of special data structures
-	 * like typed arrays.
-	 *
-	 * Callers have to call `port.start()` after having installed
-	 * listeners to enable the data flow.
-	 */
 	createRawConnection(): Promise<MessagePort>;
 
 	notifyRestored(): void;
@@ -91,4 +77,3 @@ export function registerSharedProcessRemoteService<T>(id: ServiceIdentifier<T>, 
 	registerSingleton(id, new SyncDescriptor(SharedProcessRemoteServiceStub, [channelName, options], true));
 }
 
-//#endregion

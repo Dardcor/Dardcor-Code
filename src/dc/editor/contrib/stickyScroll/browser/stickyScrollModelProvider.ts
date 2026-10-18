@@ -34,11 +34,6 @@ enum Status {
 
 export interface IStickyModelProvider extends IDisposable {
 
-	/**
-	 * Method which updates the sticky model
-	 * @param token cancellation token
-	 * @returns the sticky model
-	 */
 	update(token: CancellationToken): Promise<StickyModel | null>;
 }
 
@@ -60,10 +55,8 @@ export class StickyModelProvider extends Disposable implements IStickyModelProvi
 		switch (this._editor.getOption(EditorOption.stickyScroll).defaultModel) {
 			case ModelProvider.OUTLINE_MODEL:
 				this._modelProviders.push(new StickyModelFromCandidateOutlineProvider(this._editor, _languageFeaturesService));
-			// fall through
 			case ModelProvider.FOLDING_PROVIDER_MODEL:
 				this._modelProviders.push(new StickyModelFromCandidateSyntaxFoldingProvider(this._editor, onProviderUpdate, _languageFeaturesService));
-			// fall through
 			case ModelProvider.INDENTATION_MODEL:
 				this._modelProviders.push(new StickyModelFromCandidateIndentationFoldingProvider(this._editor, _languageConfigurationService));
 				break;
@@ -123,11 +116,6 @@ export class StickyModelProvider extends Disposable implements IStickyModelProvi
 interface IStickyModelCandidateProvider<T> extends IDisposable {
 	get stickyModel(): StickyModel | null;
 
-	/**
-	 * Method which computes the sticky model and returns a status to signal whether the sticky model has been successfully found
-	 * @param token cancellation token
-	 * @returns a promise of a status indicating whether the sticky model has been successfully found as well as the model promise
-	 */
 	computeStickyModel(token: CancellationToken): { statusPromise: Promise<Status> | Status; modelPromise: CancelablePromise<T | null> | null };
 }
 
@@ -173,38 +161,16 @@ abstract class StickyModelCandidateProvider<T> extends Disposable implements ISt
 		};
 	}
 
-	/**
-	 * Method which checks whether the model returned by the provider is valid and can be used to compute a sticky model.
-	 * This method by default returns true.
-	 * @param model model returned by the provider
-	 * @returns boolean indicating whether the model is valid
-	 */
 	protected isModelValid(model: T): boolean {
 		return true;
 	}
 
-	/**
-	 * Method which checks whether the provider is valid before applying it to find the provider model.
-	 * This method by default returns true.
-	 * @returns boolean indicating whether the provider is valid
-	 */
 	protected isProviderValid(): boolean {
 		return true;
 	}
 
-	/**
-	 * Abstract method which creates the model from the provider and returns the provider model
-	 * @param token cancellation token
-	 * @returns the model returned by the provider
-	 */
 	protected abstract createModelFromProvider(token: CancellationToken): Promise<T>;
 
-	/**
-	 * Abstract method which computes the sticky model from the model returned by the provider and returns the sticky model
-	 * @param token cancellation token
-	 * @param model model returned by the provider
-	 * @returns the sticky model
-	 */
 	protected abstract createStickyModel(token: CancellationToken, model: T): StickyModel;
 }
 
@@ -231,7 +197,6 @@ class StickyModelFromCandidateOutlineProvider extends StickyModelCandidateProvid
 	private _stickyModelFromOutlineModel(outlineModel: OutlineModel, preferredProvider: string | undefined): { stickyOutlineElement: StickyElement; providerID: string | undefined } {
 
 		let outlineElements: Map<string, OutlineElement>;
-		// When several possible outline providers
 		if (Iterable.first(outlineModel.children.values()) instanceof OutlineGroup) {
 			const provider = Iterable.find(outlineModel.children.values(), outlineGroupOfModel => outlineGroupOfModel.id === preferredProvider);
 			if (provider) {
@@ -334,7 +299,6 @@ abstract class StickyModelFromCandidateFoldingProvider extends StickyModelCandid
 		const length = foldingRegions.length;
 		const orderedStickyElements: StickyElement[] = [];
 
-		// The root sticky outline element
 		const stickyOutlineElement = new StickyElement(
 			undefined,
 			[],
@@ -342,15 +306,12 @@ abstract class StickyModelFromCandidateFoldingProvider extends StickyModelCandid
 		);
 
 		for (let i = 0; i < length; i++) {
-			// Finding the parent index of the current range
 			const parentIndex = foldingRegions.getParentIndex(i);
 
 			let parentNode;
 			if (parentIndex !== -1) {
-				// Access the reference of the parent node
 				parentNode = orderedStickyElements[parentIndex];
 			} else {
-				// In that case the parent node is the root node
 				parentNode = stickyOutlineElement;
 			}
 

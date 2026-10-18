@@ -9,19 +9,9 @@ import { RawContextKey } from '../../platform/contextkey/common/contextkey.js';
 export namespace EditorContextKeys {
 
 	export const editorSimpleInput = new RawContextKey<boolean>('editorSimpleInput', false, true);
-	/**
-	 * A context key that is set when the editor's text has focus (cursor is blinking).
-	 * Is false when focus is in simple editor widgets (repl input, scm commit input).
-	 */
 	export const editorTextFocus = new RawContextKey<boolean>('editorTextFocus', false, nls.localize('editorTextFocus', "Whether the editor text has focus (cursor is blinking)"));
-	/**
-	 * A context key that is set when the editor's text or an editor's widget has focus.
-	 */
 	export const focus = new RawContextKey<boolean>('editorFocus', false, nls.localize('editorFocus', "Whether the editor or an editor widget has focus (e.g. focus is in the find widget)"));
 
-	/**
-	 * A context key that is set when any editor input has focus (regular editor, repl input...).
-	 */
 	export const textInputFocus = new RawContextKey<boolean>('textInputFocus', false, nls.localize('textInputFocus', "Whether an editor or a rich text input has focus (cursor is blinking)"));
 
 	export const readOnly = new RawContextKey<boolean>('editorReadonly', false, nls.localize('editorReadonly', "Whether the editor is read-only"));
@@ -67,14 +57,9 @@ export namespace EditorContextKeys {
 
 	export const isComposing = new RawContextKey<boolean>('isComposing', false, nls.localize('isComposing', "Whether the editor is in the composition mode"));
 
-	/**
-	 * A context key that is set when an editor is part of a larger editor, like notebooks or
-	 * (future) a diff editor
-	 */
 	export const inCompositeEditor = new RawContextKey<boolean>('inCompositeEditor', undefined, nls.localize('inCompositeEditor', "Whether the editor is part of a larger editor (e.g. notebooks)"));
 	export const notInCompositeEditor = inCompositeEditor.toNegated();
 
-	// -- mode context keys
 	export const languageId = new RawContextKey<string>('editorLangId', '', nls.localize('editorLangId', "The language identifier of the editor"));
 	export const hasCompletionItemProvider = new RawContextKey<boolean>('editorHasCompletionItemProvider', false, nls.localize('editorHasCompletionItemProvider', "Whether the editor has a completion item provider"));
 	export const hasCodeActionsProvider = new RawContextKey<boolean>('editorHasCodeActionsProvider', false, nls.localize('editorHasCodeActionsProvider', "Whether the editor has a code actions provider"));
@@ -91,7 +76,6 @@ export namespace EditorContextKeys {
 	export const hasSignatureHelpProvider = new RawContextKey<boolean>('editorHasSignatureHelpProvider', false, nls.localize('editorHasSignatureHelpProvider', "Whether the editor has a signature help provider"));
 	export const hasInlayHintsProvider = new RawContextKey<boolean>('editorHasInlayHintsProvider', false, nls.localize('editorHasInlayHintsProvider', "Whether the editor has an inline hints provider"));
 
-	// -- mode context keys: formatting
 	export const hasDocumentFormattingProvider = new RawContextKey<boolean>('editorHasDocumentFormattingProvider', false, nls.localize('editorHasDocumentFormattingProvider', "Whether the editor has a document formatting provider"));
 	export const hasDocumentSelectionFormattingProvider = new RawContextKey<boolean>('editorHasDocumentSelectionFormattingProvider', false, nls.localize('editorHasDocumentSelectionFormattingProvider', "Whether the editor has a document selection formatting provider"));
 	export const hasMultipleDocumentFormattingProvider = new RawContextKey<boolean>('editorHasMultipleDocumentFormattingProvider', false, nls.localize('editorHasMultipleDocumentFormattingProvider', "Whether the editor has multiple document formatting providers"));

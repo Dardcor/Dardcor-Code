@@ -13,10 +13,8 @@ import {
 	OtlpStatusCode,
 } from '../../../node/otlp/otlpJsonTypes.js';
 
-// 1700000000 seconds = 2023-11-14T22:13:20Z
-// 1_700_000_000_000_000_000 ns = same instant
 const startNs = '1700000000000000000';
-const endNs = '1700000000050000000'; // +50ms
+const endNs = '1700000000050000000';
 
 const traceId = 'aabbccddeeff00112233445566778899';
 const spanId = '0011223344556677';
@@ -120,10 +118,10 @@ suite('platform/otel - otlpJsonDecode', () => {
 				scopeSpans: [{
 					spans: [
 						valid,
-						{ ...valid, traceId: 'tooShort' }, // bad hex
-						{ ...valid, traceId: '00000000000000000000000000000000' }, // all zero
-						{ ...valid, spanId: '00ZZ00ZZ00ZZ00ZZ' }, // non-hex
-						{ ...valid, startTimeUnixNano: undefined }, // missing time
+						{ ...valid, traceId: 'tooShort' },
+						{ ...valid, traceId: '00000000000000000000000000000000' },
+						{ ...valid, spanId: '00ZZ00ZZ00ZZ00ZZ' },
+						{ ...valid, startTimeUnixNano: undefined },
 					] as never,
 				}],
 			}],
@@ -183,7 +181,7 @@ suite('platform/otel - otlpJsonDecode', () => {
 	test('treats time stringified as decimal nanos and floors to ms', () => {
 		const request = minimalRequest([{
 			traceId, spanId, name: 'a', kind: OtlpSpanKind.INTERNAL,
-			startTimeUnixNano: '1700000000123456789', // .123456789 sec
+			startTimeUnixNano: '1700000000123456789',
 			endTimeUnixNano: '1700000000123999999',
 		}]);
 		const { spans } = decodeExportTraceRequest(request);

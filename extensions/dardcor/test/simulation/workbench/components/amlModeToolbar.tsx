@@ -29,7 +29,6 @@ export const AMLModeToolbar = mobxlite.observer(({ amlProvider, simulationTestsP
 	const [showOnlyTestsWithAnnotations, setShowOnlyTestsWithAnnotations] = React.useState<boolean | undefined>(undefined);
 	const [selectedAnnotations, setSelectedAnnotations] = React.useState<string[]>([]);
 
-	// Create a memoized filterer instance that only updates when filter criteria change
 	const filterer = useMemo(() => {
 		const predicates = [
 			createResultTypeFilter(resultFilterSelected),
@@ -41,7 +40,6 @@ export const AMLModeToolbar = mobxlite.observer(({ amlProvider, simulationTestsP
 		return createFilterer(predicates);
 	}, [resultFilterSelected, languageSelected, showOnlyTestsWithAnnotations, selectedAnnotations, testNameFilterSelected]);
 
-	// Update parent component when filter changes
 	useEffect(() => {
 		onFiltererChange(filterer);
 	}, [filterer, onFiltererChange]);

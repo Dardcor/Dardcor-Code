@@ -274,7 +274,7 @@ The main interesting files related to agent mode are:
 - [`toolCallingLoop.ts`](src/extension/intents/node/toolCallingLoop.ts): Running the agentic loop
 - [`chatAgents.ts`](src/extension/conversation/vscode-node/chatParticipants.ts): Registers agent mode and other participants, and the handlers for requests coming from VS Code.
 
-Currently, agent mode is essentially a [chat participant](https://code.visualstudio.com/api/extension-guides/chat) registered with VS Code. It mainly uses the standard API along with the standard [`vscode.lm.invokeTool`](https://code.visualstudio.com/api/references/vscode-api#lm.tools) API to invoke tools, but is registered with a flag in `package.json` denoting it as the "agent mode" participant. It also has some special abilities driven by [proposed API](https://code.visualstudio.com/api/advanced-topics/using-proposed-api).
+Currently, agent mode is essentially a [chat participant](https://www.dardcor-code.web.id/api/extension-guides/chat) registered with VS Code. It mainly uses the standard API along with the standard [`vscode.lm.invokeTool`](https://www.dardcor-code.web.id/api/references/vscode-api#lm.tools) API to invoke tools, but is registered with a flag in `package.json` denoting it as the "agent mode" participant. It also has some special abilities driven by [proposed API](https://www.dardcor-code.web.id/api/advanced-topics/using-proposed-api).
 
 > **Note**: Some usages of "agent" in the codebase may refer to our older chat participants (`@workspace`, `@vscode`, ...) or Copilot Extension agents installed by a GitHub App.
 
@@ -284,7 +284,7 @@ Copilot registers a number of different tools. Tools are also available from oth
 
 ### Developing tools
 
-Tools are registered through VS Code's normal [Language Model Tool API](https://code.visualstudio.com/api/extension-guides/tools). The key parts of the built-in tools are here:
+Tools are registered through VS Code's normal [Language Model Tool API](https://www.dardcor-code.web.id/api/extension-guides/tools). The key parts of the built-in tools are here:
 
 - [`package.json`](package.json): The tool descriptions and schemas are defined here.
 - [`toolNames.ts`](src/extension/tools/common/toolNames.ts): Contains the model-facing tool names.
@@ -413,7 +413,6 @@ Object.assign(product, {
 			'completionsQuotaExceededContext': 'github.dardcor.completions.quotaExceeded',
 			'walkthroughCommand': 'github.dardcor.open.walkthrough',
 			'completionsMenuCommand': 'github.dardcor.toggleStatusMenu',
-			'chatRefreshTokenCommand': 'github.dardcor.refreshToken',
 			'completionsAdvancedSetting': 'github.dardcor.advanced',
 			'completionsEnablementSetting': 'github.dardcor.enable',
 			'nextEditSuggestionsSetting': 'github.dardcor.nextEditSuggestions.enabled'

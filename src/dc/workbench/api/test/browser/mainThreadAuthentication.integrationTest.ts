@@ -57,7 +57,6 @@ suite('MainThreadAuthentication', () => {
 	let rpcProtocol: TestRPCProtocol;
 
 	setup(async () => {
-		// services
 		const services = new ServiceCollection();
 		services.set(ILogService, new SyncDescriptor(NullLogService));
 		services.set(IDialogService, new SyncDescriptor(TestDialogService, [{ confirmed: true }]));
@@ -77,7 +76,6 @@ suite('MainThreadAuthentication', () => {
 		services.set(IAuthenticationExtensionsService, new SyncDescriptor(AuthenticationExtensionsService));
 		instantiationService = disposables.add(new TestInstantiationService(services, undefined, undefined, true));
 
-		// stubs
 		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		instantiationService.stub(IOpenerService, {} as Partial<IOpenerService>);
 		instantiationService.stub(ITelemetryService, NullTelemetryService);
@@ -90,17 +88,14 @@ suite('MainThreadAuthentication', () => {
 	});
 
 	test('provider registration completes without errors', async () => {
-		// Test basic registration - this should complete without throwing
 		await mainThreadAuthentication.$registerAuthenticationProvider({
 			id: 'test-provider',
 			label: 'Test Provider',
 			supportsMultipleAccounts: false
 		});
 
-		// Test unregistration - this should also complete without throwing
 		await mainThreadAuthentication.$unregisterAuthenticationProvider('test-provider');
 
-		// Success if we reach here without timeout
 		assert.ok(true, 'Registration and unregistration completed successfully');
 	});
 
@@ -108,7 +103,6 @@ suite('MainThreadAuthentication', () => {
 		let unregisterEventFired = false;
 		let eventProviderId: string | undefined;
 
-		// Mock the ext host to capture unregister events
 		const mockExtHost = {
 			$onDidUnregisterAuthenticationProvider: (id: string) => {
 				unregisterEventFired = true;
@@ -129,27 +123,22 @@ suite('MainThreadAuthentication', () => {
 		};
 		rpcProtocol.set(ExtHostContext.ExtHostAuthentication, mockExtHost);
 
-		// Register a provider
 		await mainThreadAuthentication.$registerAuthenticationProvider({
 			id: 'test-suppress',
 			label: 'Test Suppress',
 			supportsMultipleAccounts: false
 		});
 
-		// Reset the flag
 		unregisterEventFired = false;
 		eventProviderId = undefined;
 
-		// Unregister the provider - this should NOT fire the event due to suppression
 		await mainThreadAuthentication.$unregisterAuthenticationProvider('test-suppress');
 
-		// Verify the event was suppressed
 		assert.strictEqual(unregisterEventFired, false, 'Unregister event should be suppressed during explicit unregistration');
 		assert.strictEqual(eventProviderId, undefined, 'No provider ID should be captured from suppressed event');
 	});
 
 	test('concurrent provider registrations complete without errors', async () => {
-		// Register multiple providers simultaneously
 		const registrationPromises = [
 			mainThreadAuthentication.$registerAuthenticationProvider({
 				id: 'concurrent-1',
@@ -170,7 +159,6 @@ suite('MainThreadAuthentication', () => {
 
 		await Promise.all(registrationPromises);
 
-		// Unregister all providers
 		const unregistrationPromises = [
 			mainThreadAuthentication.$unregisterAuthenticationProvider('concurrent-1'),
 			mainThreadAuthentication.$unregisterAuthenticationProvider('concurrent-2'),
@@ -179,7 +167,6 @@ suite('MainThreadAuthentication', () => {
 
 		await Promise.all(unregistrationPromises);
 
-		// Success if we reach here without timeout
 		assert.ok(true, 'Concurrent registrations and unregistrations completed successfully');
 	});
 });

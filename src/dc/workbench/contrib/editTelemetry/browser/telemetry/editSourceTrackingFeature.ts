@@ -155,12 +155,11 @@ export class EditTrackingFeature extends Disposable {
 					const trackedRanges = tracker.getTrackedRanges(reader);
 					const data = state.getTelemetryData(trackedRanges);
 					if (data.totalModifiedCharactersInFinalState === 0) {
-						continue; // Don't include unmodified documents in tooltip
+						continue;
 					}
 
 					editSources.push(...trackedRanges.map(r => r.source));
 
-					// Filter out unmodified properties as these are not interesting to see in the hover
 					const filteredData = Object.fromEntries(
 						Object.entries(data).filter(([_, value]) => !(typeof value === 'number') || value !== 0)
 					);
@@ -211,7 +210,6 @@ export class EditTrackingFeature extends Disposable {
 	}
 
 	private _createEditSourceAgenda(editSources: EditSource[]): string {
-		// Collect all edit sources from the tracked documents
 		const editSourcesSeen = new Set<string>();
 		const editSourceInfo = [];
 		for (const editSource of editSources) {

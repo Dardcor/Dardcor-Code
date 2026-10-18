@@ -31,12 +31,10 @@ export class CodeActionKeybindingResolver {
 	) { }
 
 	public getResolver(): (action: CodeAction) => ResolvedKeybinding | undefined {
-		// Lazy since we may not actually ever read the value
 		const allCodeActionBindings = new Lazy<readonly ResolveCodeActionKeybinding[]>(() => this.keybindingService.getKeybindings()
 			.filter(item => CodeActionKeybindingResolver.codeActionCommands.indexOf(item.command!) >= 0)
 			.filter(item => item.resolvedKeybinding)
 			.map((item): ResolveCodeActionKeybinding => {
-				// Special case these commands since they come built-in with VS Code and don't use 'commandArgs'
 				let commandArgs = item.commandArgs;
 				if (item.command === organizeImportsCommandId) {
 					commandArgs = { kind: CodeActionKind.SourceOrganizeImports.value };
@@ -75,7 +73,6 @@ export class CodeActionKeybindingResolver {
 			.filter(candidate => candidate.kind.contains(kind))
 			.filter(candidate => {
 				if (candidate.preferred) {
-					// If the candidate keybinding only applies to preferred actions, the this action must also be preferred
 					return action.isPreferred;
 				}
 				return true;
@@ -84,7 +81,6 @@ export class CodeActionKeybindingResolver {
 				if (!currentBest) {
 					return candidate;
 				}
-				// Select the more specific binding
 				return currentBest.kind.contains(candidate.kind) ? candidate : currentBest;
 			}, undefined as ResolveCodeActionKeybinding | undefined);
 	}

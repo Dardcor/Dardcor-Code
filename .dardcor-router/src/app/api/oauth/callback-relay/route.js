@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
-// In-memory transient store for OAuth callbacks (keyed by state or code)
 const callbackStore = new Map();
 
-// Periodic cleanup of stale callbacks older than 5 minutes
 function cleanupOldCallbacks() {
   const now = Date.now();
   for (const [key, val] of callbackStore.entries()) {
@@ -13,7 +11,6 @@ function cleanupOldCallbacks() {
   }
 }
 
-// POST /api/oauth/callback-relay - Callback page posts its received code/state here
 export async function POST(request) {
   try {
     const data = await request.json();
@@ -37,7 +34,6 @@ export async function POST(request) {
     if (code) {
       callbackStore.set(code, entry);
     }
-    // Also store by special latest key for fallback
     callbackStore.set("__latest__", entry);
 
     return NextResponse.json({ success: true, stored: true });
@@ -46,7 +42,6 @@ export async function POST(request) {
   }
 }
 
-// GET /api/oauth/callback-relay?state=... - Modal polls this to get callback data
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);

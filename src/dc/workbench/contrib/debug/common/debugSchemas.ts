@@ -15,7 +15,6 @@ import { IExtensionManifest } from '../../../../platform/extensions/common/exten
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
-// debuggers extension point
 export const debuggersExtPoint = extensionsRegistry.ExtensionsRegistry.registerExtensionPoint<IDebuggerContribution[]>({
 	extensionPoint: 'debuggers',
 	defaultExtensionKind: ['workspace'],
@@ -132,7 +131,6 @@ export const debuggersExtPoint = extensionsRegistry.ExtensionsRegistry.registerE
 	}
 });
 
-// breakpoints extension point #9037
 export const breakpointsExtPoint = extensionsRegistry.ExtensionsRegistry.registerExtensionPoint<IBreakpointContribution[]>({
 	extensionPoint: 'breakpoints',
 	jsonSchema: {
@@ -158,7 +156,6 @@ export const breakpointsExtPoint = extensionsRegistry.ExtensionsRegistry.registe
 	}
 });
 
-// debug general schema
 
 export const presentationSchema: IJSONSchema = {
 	type: 'object',

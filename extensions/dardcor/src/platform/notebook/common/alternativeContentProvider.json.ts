@@ -29,21 +29,14 @@ class AlternativeJsonDocument extends AlternativeNotebookDocument {
 		const cellId = getCellId(cell);
 
 		const alternativeContentText = this.getText();
-		const sourcePrefix = `                `; // we know we're indented by 4 spaces and source is 3 levels deep
+		const sourcePrefix = `                `;
 		const cellMarker = `"id": "${cellId}",`;
 		const positionOfSource = alternativeContentText.indexOf(`"source": [`, alternativeContentText.indexOf(cellMarker));
 
-		// Assume the text in the line is `print("Hello World")`
-		// & the position is the white space before `World`
-		// Position = line = n, character = 12
-		// In Json this would be `            "print(\"Hello World\")"`
-		// That would be translated as character position in translated = `            "print(\"Hello`.length;
 		const firstLineIndexOfCellSource = this.positionAt(positionOfSource).line + 1;
 		const leadingCharacters = cell.document.getText(new Range(position.line, 0, position.line, position.character));
-		// -1 to exclude to trailing `"`
 		const characterPositionInAltContent = `${sourcePrefix}${JSON.stringify(leadingCharacters).slice(0, -1)}`;
 		const linePositionInAltContent = position.line + firstLineIndexOfCellSource;
-		// -1 to exclude to trailing `"`
 		return new Position(linePositionInAltContent, characterPositionInAltContent.length);
 	}
 	override toCellPosition(position: Position): { cell: NotebookCell; position: Position } | undefined {
@@ -130,7 +123,6 @@ export class AlternativeJsonNotebookContentProvider extends BaseAlternativeNoteb
 			const defaultLanguage = URI.isUri(notebookOrUri) ? 'python' : getDefaultLanguage(notebookOrUri);
 
 			const emitCell = (endOffset: number) => {
-				// LLM can return duplicate cell with the same id.
 				cellInfo.language = cellInfo.language || defaultLanguage;
 				if (cellInfo.id && cellIdMap.get(cellInfo.id)?.document.languageId === cellInfo.language) {
 					if (cellIdsSeen.has(cellInfo.id)) {
@@ -139,8 +131,6 @@ export class AlternativeJsonNotebookContentProvider extends BaseAlternativeNoteb
 						cellIdsSeen.add(cellInfo.id);
 					}
 				} else {
-					// Possible duplicate cell with the same id but different language.
-					// In such cases, treat them as new cells.
 					cellInfo.id = '';
 				}
 				const cell = cellIdMap.get(cellInfo.id);
@@ -204,7 +194,6 @@ export class AlternativeJsonNotebookContentProvider extends BaseAlternativeNoteb
 								cellInfo.language = 'markdown';
 							}
 						} else if (property === 'id') {
-							// This is for scenarios when LLM sends the id as part of the cell instead of metdata.
 							cellInfo.id = value;
 						} else if (property === 'metadata' && segments[0] === 'id') {
 							cellInfo.id = value;
@@ -218,10 +207,6 @@ export class AlternativeJsonNotebookContentProvider extends BaseAlternativeNoteb
 								cellInfo.startOffset = offset;
 							}
 							let code = typeof value === 'string' ? value : `${value || ''}`;
-							// Generally code in jupyter cells always end with `\n` when persisted in JSON file.
-							// However we do not want to deal with the \n as we're only interested in the lines of code.
-							// This is because we're going to edit a line at a time, new line means we have two lines to edit, but thats not possible.
-							// A line cannot contain new line in editor (then its just two lines in editor).
 							if (code.endsWith('\n')) {
 								code = code.substr(0, code.length - 1);
 							}
@@ -253,9 +238,6 @@ type Notebook = {
 	cells: SummaryCell[];
 };
 
-/**
- * Shortend version of a Jupyter cell JSON.
- */
 type SummaryCell = {
 	cell_type: 'code' | 'markdown';
 	source: string[];

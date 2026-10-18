@@ -11,20 +11,16 @@ import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import Button from "./Button";
 import { ConfirmModal } from "./Modal";
 
-// const VISIBLE_MEDIA_KINDS = ["embedding", "image", "imageToText", "tts", "stt", "webSearch", "webFetch", "video", "music"];
 const VISIBLE_MEDIA_KINDS = ["embedding", "image", "video", "tts", "stt"];
-// Combined entry: webSearch + webFetch share one page at /dashboard/media-providers/web
 const COMBINED_WEB_ITEM = { id: "web", label: "Web Fetch & Search", icon: "travel_explore", href: "/dashboard/media-providers/web" };
 
 const navItems = [
   { href: "/dashboard/endpoint", label: "Endpoint & Key", icon: "api" },
   { href: "/dashboard/providers", label: "Providers", icon: "dns" },
-  // { href: "/dashboard/basic-chat", label: "Basic Chat", icon: "chat" }, // Hidden
   { href: "/dashboard/combos", label: "Combo & Vision Adapter", icon: "layers" },
   { href: "/dashboard/usage", label: "Usage", icon: "bar_chart" },
   { href: "/dashboard/quota", label: "Quota Tracker", icon: "data_usage" },
   { href: "/dashboard/token-saver", label: "Token Saver", icon: "savings" },
-  // { href: "/dashboard/pxpipe", label: "PXPIPE", icon: "image" },
   { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
 ];
 
@@ -58,7 +54,6 @@ export default function Sidebar({ onClose }) {
       .catch(() => {});
   }, []);
 
-  // Lazy check for new npm version on mount
   useEffect(() => {
     fetch("/api/version")
       .then(res => res.json())
@@ -73,15 +68,13 @@ export default function Sidebar({ onClose }) {
     return pathname.startsWith(href);
   };
 
-  // Open manual update panel (no countdown yet — user must click Copy to trigger shutdown)
   const handleUpdate = () => {
     setShowUpdateModal(false);
     setIsUpdating(true);
   };
 
-  // Triggered by Copy button inside ManualUpdatePanel: copy + countdown + shutdown
   const handleCopyAndShutdown = async () => {
-    try { await navigator.clipboard.writeText(INSTALL_CMD); } catch { /* clipboard blocked */ }
+    try { await navigator.clipboard.writeText(INSTALL_CMD); } catch { }
     copy(INSTALL_CMD);
     let remaining = UPDATER_CONFIG.shutdownCountdownSec;
     setShutdownCountdown(remaining);
@@ -101,14 +94,12 @@ export default function Sidebar({ onClose }) {
     setShutdownCountdown(0);
   };
 
-  // Note: legacy updater poll removed. New flow: copy install cmd + shutdown server,
-  // user runs the command manually in another terminal.
 
 
   return (
     <>
       <aside className="flex w-72 max-w-full flex-col border-r border-border-subtle bg-vibrancy backdrop-blur-xl transition-colors duration-300 min-h-full h-full">
-        {/* Logo */}
+        {}
         <div className="px-6 pt-3.5 pb-3 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <Link href="/dashboard" onClick={onClose} className="flex items-center gap-3 min-w-0">
@@ -157,7 +148,7 @@ export default function Sidebar({ onClose }) {
           )}
         </div>
 
-        {/* Navigation */}
+        {}
         <nav className="flex-1 px-4 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
             <Link
@@ -183,13 +174,13 @@ export default function Sidebar({ onClose }) {
             </Link>
           ))}
 
-          {/* System section */}
+          {}
           <div className="pt-3 mt-2 space-y-0.5">
             <p className="px-4 text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-2">
               System
             </p>
 
-            {/* Media Providers accordion */}
+            {}
             <button
               onClick={() => setMediaOpen((v) => !v)}
               className={cn(
@@ -264,7 +255,7 @@ export default function Sidebar({ onClose }) {
               </Link>
             ))}
 
-            {/* Debug items (inside System section, before Settings) */}
+            {}
             {debugItems.map((item) => {
               const show = item.href !== "/dashboard/translator" || enableTranslator;
               return show ? (
@@ -292,7 +283,7 @@ export default function Sidebar({ onClose }) {
               ) : null;
             })}
 
-            {/* Settings */}
+            {}
             <Link
               href="/dashboard/profile"
               onClick={onClose}
@@ -318,7 +309,7 @@ export default function Sidebar({ onClose }) {
 
       </aside>
 
-      {/* Update Confirmation Modal */}
+      {}
       <ConfirmModal
         isOpen={showUpdateModal}
         onClose={() => setShowUpdateModal(false)}
@@ -330,7 +321,7 @@ export default function Sidebar({ onClose }) {
         variant="primary"
       />
 
-      {/* Disconnected / Updating Overlay */}
+      {}
       {(isDisconnected || isUpdating) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
           {isUpdating ? (

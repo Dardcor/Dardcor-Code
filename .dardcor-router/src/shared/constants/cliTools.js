@@ -1,4 +1,3 @@
-// MITM Tools — IDE tools intercepted via MITM proxy
 export const MITM_TOOLS = {
   antigravity: {
     id: "antigravity",
@@ -39,10 +38,6 @@ export const MITM_TOOLS = {
     configType: "mitm",
     mitmDomain: "runtime.us-east-1.kiro.dev",
     defaultModels: [
-      // Kiro's agent/"vibe" mode sends modelId "auto" for the main turn and "simple-task"
-      // for background sub-tasks (verified via MITM request dump of generateAssistantResponse).
-      // Both need a mappable slot — otherwise getMappedModel returns null and the chat call
-      // is passed through to AWS instead of being routed to the chosen provider.
       { id: "auto", name: "Auto (Kiro Agent)", alias: "auto" },
       { id: "claude-sonnet-5", name: "Claude Sonnet 5", alias: "claude-sonnet-5" },
       { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", alias: "claude-sonnet-4.5" },
@@ -56,23 +51,8 @@ export const MITM_TOOLS = {
       { id: "simple-task", name: "Qwen3 Coder Next", alias: "simple-task" },
     ],
   },
-  // cursor: {
-  //   id: "cursor",
-  //   name: "Cursor",
-  //   image: "/providers/cursor.png",
-  //   color: "#000000",
-  //   description: "Cursor IDE with MITM",
-  //   configType: "mitm",
-  //   mitmDomain: "api2.cursor.sh",
-  //   defaultModels: [
-  //     { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", alias: "claude-sonnet-4-5" },
-  //     { id: "claude-opus-4", name: "Claude Opus 4", alias: "claude-opus-4" },
-  //     { id: "gpt-4o", name: "GPT-4o", alias: "gpt-4o" },
-  //   ],
-  // },
 };
 
-// CLI Tools configuration
 export const CLI_TOOLS = {
   claude: {
     id: "claude",
@@ -113,34 +93,6 @@ export const CLI_TOOLS = {
     color: "#10A37F",
     description: "OpenAI Codex CLI",
     configType: "custom",
-  },
-  copilot: {
-    id: "copilot",
-    name: "GitHub Copilot",
-    image: "/providers/copilot.png",
-    color: "#1F6FEB",
-    description: "GitHub Copilot in VS Code via Dardcor Code extension",
-    configType: "guide",
-    docsUrl: "https://marketplace.visualstudio.com/items?itemName=hotrungnhan.dardcor-for-github-copilot",
-    guideSteps: [
-      {
-        step: 1,
-        title: "Install Extension",
-        desc: "In VS Code, open Extensions (Ctrl+Shift+X or Cmd+Shift+X), search for 'Dardcor Code for Github Copilot' and click Install.",
-      },
-      {
-        step: 2,
-        title: "Configure Server",
-        desc: "Press Cmd+Shift+P (or Ctrl+Shift+P), run 'Dardcor Code: Configure Server', then enter your Server URL and API Key:",
-        value: "{{baseUrl}}",
-        copyable: true,
-      },
-      {
-        step: 3,
-        title: "Select Model in Copilot Chat",
-        desc: "Open Copilot Chat, click the model picker at the bottom → 'Manage Models...' → check the Dardcor Code models to use.",
-      },
-    ],
   },
   opencode: {
     id: "opencode",
@@ -468,26 +420,8 @@ gemini extensions install https://github.com/manalkaff/opendesign
 # Fetch and follow .opencode/INSTALL.md from the repo`,
     },
   },
-  // HIDDEN: gemini-cli
-  // "gemini-cli": {
-  //   id: "gemini-cli",
-  //   name: "Gemini CLI",
-  //   icon: "terminal",
-  //   color: "#4285F4",
-  //   description: "Google Gemini CLI",
-  //   configType: "env",
-  //   envVars: {
-  //     baseUrl: "GEMINI_API_BASE_URL",
-  //     model: "GEMINI_MODEL",
-  //   },
-  //   defaultModels: [
-  //     { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", alias: "pro" },
-  //     { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", alias: "flash" },
-  //   ],
-  // },
 };
 
-// Get all provider models for mapping dropdown
 export const getProviderModelsForMapping = (providers) => {
   const result = [];
   providers.forEach(conn => {

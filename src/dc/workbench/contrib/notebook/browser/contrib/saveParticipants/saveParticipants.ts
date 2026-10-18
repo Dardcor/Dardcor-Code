@@ -113,7 +113,7 @@ class FormatOnSaveParticipant implements IStoredFileWorkingCopySaveParticipant {
 					return [];
 				}));
 
-				await this.bulkEditService.apply(/* edit */allCellEdits.flat(), { label: localize('formatNotebook', "Format Notebook"), code: 'undoredo.formatNotebook', });
+				await this.bulkEditService.apply(allCellEdits.flat(), { label: localize('formatNotebook', "Format Notebook"), code: 'undoredo.formatNotebook', });
 			}
 		} finally {
 			progress.report({ increment: 100 });
@@ -166,7 +166,7 @@ class TrimWhitespaceParticipant extends NotebookSaveParticipant {
 				if (isActiveCell) {
 					prevSelection = activeCellEditor.getSelections() ?? [];
 					if (isAutoSaved) {
-						cursors = prevSelection.map(s => s.getPosition()); // get initial cursor positions
+						cursors = prevSelection.map(s => s.getPosition());
 						const snippetsRange = SnippetController2.get(activeCellEditor)?.getSessionEnclosingRange();
 						if (snippetsRange) {
 							for (let lineNumber = snippetsRange.startLineNumber; lineNumber <= snippetsRange.endLineNumber; lineNumber++) {
@@ -178,7 +178,7 @@ class TrimWhitespaceParticipant extends NotebookSaveParticipant {
 
 				const ops = trimTrailingWhitespace(model, cursors, trimInRegexesAndStrings);
 				if (!ops.length) {
-					return []; // Nothing to do
+					return [];
 				}
 
 				return ops.map(op => new ResourceTextEdit(model.uri, { ...op, text: op.text || '' }, model.getVersionId()));
@@ -211,18 +211,13 @@ class TrimFinalNewLinesParticipant extends NotebookSaveParticipant {
 		}
 	}
 
-	/**
-	 * returns 0 if the entire file is empty
-	 */
 	private findLastNonEmptyLine(textBuffer: IReadonlyTextBuffer): number {
 		for (let lineNumber = textBuffer.getLineCount(); lineNumber >= 1; lineNumber--) {
 			const lineLength = textBuffer.getLineLength(lineNumber);
 			if (lineLength) {
-				// this line has content
 				return lineNumber;
 			}
 		}
-		// no line has content
 		return 0;
 	}
 
@@ -241,7 +236,6 @@ class TrimFinalNewLinesParticipant extends NotebookSaveParticipant {
 					return;
 				}
 
-				// autosave -- don't trim every trailing line, just up to the cursor line
 				let cannotTouchLineNumber = 0;
 				const isActiveCell = (activeCellEditor && cell.uri.toString() === activeCellEditor.getModel()?.uri.toString());
 				if (isAutoSaved && isActiveCell) {
@@ -263,7 +257,6 @@ class TrimFinalNewLinesParticipant extends NotebookSaveParticipant {
 					return;
 				}
 
-				// create the edit to delete all lines in deletionRange
 				return new ResourceTextEdit(cell.uri, { range: deletionRange, text: '' }, cell.textModel?.getVersionId());
 			}));
 
@@ -288,8 +281,6 @@ class InsertFinalNewLineParticipant extends NotebookSaveParticipant {
 	}
 
 	async participate(workingCopy: IStoredFileWorkingCopy<IStoredFileWorkingCopyModel>, context: IStoredFileWorkingCopySaveParticipantContext, progress: IProgress<IProgressStep>, _token: CancellationToken): Promise<void> {
-		// waiting on notebook-specific override before this feature can sync with 'files.insertFinalNewline'
-		// if (this.configurationService.getValue('files.insertFinalNewline')) {
 
 		if (this.configurationService.getValue<boolean>(NotebookSetting.insertFinalNewline) && this.canParticipate()) {
 			await this.doInsertFinalNewLine(workingCopy, context.reason === SaveReason.AUTO, progress);
@@ -304,7 +295,6 @@ class InsertFinalNewLineParticipant extends NotebookSaveParticipant {
 		const disposable = new DisposableStore();
 		const notebook = workingCopy.model.notebookModel;
 
-		// get initial cursor positions
 		const activeCellEditor = getActiveCellCodeEditor(this.editorService);
 		let selections;
 		if (activeCellEditor) {
@@ -330,7 +320,6 @@ class InsertFinalNewLineParticipant extends NotebookSaveParticipant {
 			const filteredEdits = allCellEdits.filter(edit => edit !== undefined) as ResourceEdit[];
 			await this.bulkEditService.apply(filteredEdits, { label: localize('insertFinalNewLine', "Insert Final New Line"), code: 'undoredo.insertFinalNewLine' });
 
-			// set cursor back to initial position after inserting final new line
 			if (activeCellEditor && selections) {
 				activeCellEditor.setSelections(selections);
 			}
@@ -363,14 +352,10 @@ class CodeActionOnSaveParticipant implements IStoredFileWorkingCopySaveParticipa
 
 		let saveTrigger = '';
 		if (context.reason === SaveReason.AUTO) {
-			// currently this won't happen, as vs/editor/contrib/codeAction/browser/codeAction.ts L#104 filters out codeactions on autosave. Just future-proofing
-			// ? notebook CodeActions on autosave seems dangerous (perf-wise)
-			// saveTrigger = 'always'; // TODO@Yoyokrazy, support during debt
 			return undefined;
 		} else if (context.reason === SaveReason.EXPLICIT) {
 			saveTrigger = 'explicit';
 		} else {
-			// 	SaveReason.FOCUS_CHANGE, WINDOW_CHANGE need to be addressed when autosaves are enabled
 			return undefined;
 		}
 
@@ -390,7 +375,6 @@ class CodeActionOnSaveParticipant implements IStoredFileWorkingCopySaveParticipa
 		const editorCodeActionsOnSave = includedActions.filter(x => !CodeActionKind.Notebook.contains(x));
 		const notebookCodeActionsOnSave = includedActions.filter(x => CodeActionKind.Notebook.contains(x));
 
-		// run notebook code actions
 		if (notebookCodeActionsOnSave.length) {
 			const nbDisposable = new DisposableStore();
 			progress.report({ message: localize('notebookSaveParticipants.notebookCodeActions', "Running 'Notebook' code actions") });
@@ -410,9 +394,7 @@ class CodeActionOnSaveParticipant implements IStoredFileWorkingCopySaveParticipa
 			}
 		}
 
-		// run cell level code actions
 		if (editorCodeActionsOnSave.length) {
-			// prioritize `source.fixAll` code actions
 			if (!Array.isArray(setting)) {
 				editorCodeActionsOnSave.sort((a, b) => {
 					if (CodeActionKind.SourceFixAll.contains(a)) {
@@ -451,7 +433,6 @@ class CodeActionOnSaveParticipant implements IStoredFileWorkingCopySaveParticipa
 	private createCodeActionsOnSave(settingItems: readonly string[]): HierarchicalKind[] {
 		const kinds = settingItems.map(x => new HierarchicalKind(x));
 
-		// Remove subsets
 		return kinds.filter(kind => {
 			return kinds.every(otherKind => otherKind.equals(kind) || !otherKind.contains(kind));
 		});
@@ -540,7 +521,6 @@ export class CodeActionParticipantUtils {
 							if (workspaceTextEdit.resource && isEqual(workspaceTextEdit.resource, model.uri)) {
 								continue;
 							} else {
-								// error -> applied to multiple resources
 								breakFlag = true;
 								break;
 							}
@@ -557,7 +537,6 @@ export class CodeActionParticipantUtils {
 					}
 				}
 			} catch {
-				// Failure to apply a code action should not block other on save actions
 			} finally {
 				actionsToRun.dispose();
 			}
@@ -598,7 +577,6 @@ export class CodeActionParticipantUtils {
 		};
 
 		const providedActions = await CodeActionParticipantUtils.getActionsToRun(model, formatCodeActionOnSave, excludes, languageFeaturesService, getActionProgress, token);
-		// warn the user if there are more than one provided format action, and there is no specified defaultFormatter
 		if (providedActions.validActions.length > 1 && !extensionId) {
 			logService.warn('More than one format code action is provided, the 0th one will be used. A default can be specified via `notebook.defaultFormatter` in your settings.');
 		}
@@ -628,7 +606,6 @@ export class CodeActionParticipantUtils {
 		return true;
 	}
 
-	// @Yoyokrazy this could likely be modified to leverage the extensionID, therefore not getting actions from providers unnecessarily -- future work
 	static getActionsToRun(model: ITextModel, codeActionKind: HierarchicalKind, excludes: readonly HierarchicalKind[], languageFeaturesService: ILanguageFeaturesService, progress: IProgress<CodeActionProvider>, token: CancellationToken) {
 		return getCodeActions(languageFeaturesService.codeActionProvider, model, model.getFullModelRange(), {
 			type: CodeActionTriggerType.Invoke,

@@ -22,7 +22,6 @@ import { TextModel } from '../textModel.js';
 import { TokenizerWithStateStoreAndTextModel, DefaultBackgroundTokenizer, TrackingTokenizationStateStore } from '../textModelTokens.js';
 import { AbstractSyntaxTokenBackend, AttachedViewHandler, AttachedViews } from './abstractSyntaxTokenBackend.js';
 
-/** For TextMate */
 export class TokenizerSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 	private _tokenizer: TokenizerWithStateStoreAndTextModel | null = null;
 	protected _backgroundTokenizationState: BackgroundTokenizationState = BackgroundTokenizationState.InProgress;
@@ -128,7 +127,6 @@ export class TokenizerSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 				},
 				backgroundTokenizationFinished: () => {
 					if (this._backgroundTokenizationState === BackgroundTokenizationState.Completed) {
-						// We already did a full tokenization and don't go back to progressing.
 						return;
 					}
 					const newState = BackgroundTokenizationState.Completed;
@@ -138,7 +136,6 @@ export class TokenizerSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 				setEndState: (lineNumber, state) => {
 					if (!this._tokenizer) { return; }
 					const firstInvalidEndStateLineNumber = this._tokenizer.store.getFirstInvalidEndStateLineNumber();
-					// Don't accept states for definitely valid states, the renderer is ahead of the worker!
 					if (firstInvalidEndStateLineNumber !== null && lineNumber >= firstInvalidEndStateLineNumber) {
 						this._tokenizer?.store.setEndState(lineNumber, state);
 					}
@@ -166,7 +163,6 @@ export class TokenizerSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 						this.setFontInfo(changes);
 					},
 					backgroundTokenizationFinished() {
-						// NO OP
 					},
 					setEndState: (lineNumber, state) => {
 						this._debugBackgroundStates?.setEndState(lineNumber, state);
@@ -188,9 +184,8 @@ export class TokenizerSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 
 	public handleDidChangeContent(e: IModelContentChangedEvent): void {
 		if (e.isFlush) {
-			// Don't fire the event, as the view might not have got the text change event yet
 			this.todo_resetTokenization(false);
-		} else if (!e.isEolChange) { // We don't have to do anything on an EOL change
+		} else if (!e.isEolChange) {
 			for (const c of e.changes) {
 				const [eolCount, firstLineLength] = countEOL(c.text);
 
@@ -244,9 +239,6 @@ export class TokenizerSyntaxTokenBackend extends AbstractSyntaxTokenBackend {
 		const changedTokens = this.setTokens(builder.finalize());
 
 		if (heuristicTokens) {
-			// We overrode tokens with heuristically computed ones.
-			// Because old states might get reused (thus stopping invalidation),
-			// we have to explicitly request the tokens for the changed ranges again.
 			for (const c of changedTokens.changes) {
 				this._backgroundTokenizer.value?.requestTokens(c.fromLineNumber, c.toLineNumber + 1);
 			}

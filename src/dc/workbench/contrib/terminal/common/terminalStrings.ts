@@ -5,9 +5,6 @@
 
 import { localize, localize2 } from '../../../../nls.js';
 
-/**
- * An object holding strings shared by multiple parts of the terminal
- */
 export const terminalStrings = {
 	terminal: localize('terminal', "Terminal"),
 	new: localize('terminal.new', "New Terminal"),

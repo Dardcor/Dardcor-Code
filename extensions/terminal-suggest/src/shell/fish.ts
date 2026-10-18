@@ -21,7 +21,6 @@ export async function getFishGlobals(options: ExecOptionsWithStringEncoding, exi
 async function getBuiltins(options: ExecOptionsWithStringEncoding): Promise<(string | ICompletionResource)[]> {
 	const completions: ICompletionResource[] = [];
 
-	// Use the cache directly for all commands
 	for (const cmd of [...commandDescriptionsCache!.keys()]) {
 		try {
 			const result = getCommandDescription(cmd);
@@ -40,7 +39,6 @@ async function getBuiltins(options: ExecOptionsWithStringEncoding): Promise<(str
 				});
 			}
 		} catch (e) {
-			// Ignore errors
 			completions.push({
 				label: cmd,
 				kind: vscode.TerminalCompletionItemKind.Method

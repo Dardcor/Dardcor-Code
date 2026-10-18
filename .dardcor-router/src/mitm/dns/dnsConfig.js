@@ -6,28 +6,22 @@ const { log, err } = require("../logger");
 const { TOOL_HOSTS } = require("../../shared/constants/mitmToolHosts.js");
 const { runElevatedPowerShell, isAdmin } = require("../winElevated.js");
 
-/**
- * Atomic-ish write for Windows hosts file with rollback on failure.
- * Strategy: write `.new` sibling → rename current to `.bak` → rename `.new` to target.
- * If anything fails mid-way, restore from `.bak`. Same-volume renames are atomic on NTFS.
- */
 function atomicWriteHostsWin(target, originalContent, newContent) {
   const tmpNew = `${target}.dardcor-code.new`;
   const tmpBak = `${target}.dardcor-code.bak`;
   try {
     fs.writeFileSync(tmpNew, newContent, "utf8");
-    try { fs.unlinkSync(tmpBak); } catch { /* none */ }
+    try { fs.unlinkSync(tmpBak); } catch { }
     fs.renameSync(target, tmpBak);
     try {
       fs.renameSync(tmpNew, target);
     } catch (e) {
-      // Rollback: restore original
       try { fs.renameSync(tmpBak, target); } catch { fs.writeFileSync(target, originalContent, "utf8"); }
       throw e;
     }
-    try { fs.unlinkSync(tmpBak); } catch { /* best effort */ }
+    try { fs.unlinkSync(tmpBak); } catch { }
   } finally {
-    try { fs.unlinkSync(tmpNew); } catch { /* already moved or never created */ }
+    try { fs.unlinkSync(tmpNew); } catch { }
   }
 }
 
@@ -37,7 +31,6 @@ const HOSTS_FILE = IS_WIN
   ? path.join(process.env.SystemRoot || "C:\\Windows", "System32", "drivers", "etc", "hosts")
   : "/etc/hosts";
 
-/** True when `sudo` exists (e.g. missing on minimal Docker images like Alpine). */
 function isSudoAvailable() {
   if (IS_WIN) return false;
   try {
@@ -62,10 +55,6 @@ function isSudoPasswordRequired() {
   return !IS_WIN && isSudoAvailable() && !canRunSudoWithoutPassword();
 }
 
-/**
- * Execute command with sudo password via stdin (macOS/Linux only).
- * Without sudo in PATH (containers), runs via sh — same user, no elevation.
- */
 function execWithPassword(command, password) {
   return new Promise((resolve, reject) => {
     const useSudo = isSudoAvailable();
@@ -90,19 +79,13 @@ function execWithPassword(command, password) {
   });
 }
 
-/**
- * Trim trailing blank lines/whitespace, ensure file ends with exactly one newline.
- */
 function normalizeHostsContent(content) {
   const eol = IS_WIN ? "\r\n" : "\n";
   return content.replace(/[\r\n\s]+$/g, "") + eol;
 }
 
-/**
- * Flush DNS cache (macOS/Linux)
- */
 async function flushDNS(sudoPassword) {
-  if (IS_WIN) return; // Windows flushes inline via ipconfig
+  if (IS_WIN) return;
   if (IS_MAC) {
     await execWithPassword("dscacheutil -flushcache && killall -HUP mDNSResponder", sudoPassword);
   } else {
@@ -110,23 +93,16 @@ async function flushDNS(sudoPassword) {
   }
 }
 
-/**
- * Check if DNS entry exists for a specific host
- */
 function checkDNSEntry(host = null) {
   try {
     const hostsContent = fs.readFileSync(HOSTS_FILE, "utf8");
     if (host) return hostsContent.includes(host);
-    // Legacy: check all antigravity hosts (backward compat)
     return TOOL_HOSTS.antigravity.every(h => hostsContent.includes(h));
   } catch {
     return false;
   }
 }
 
-/**
- * Check DNS status per tool — returns { [tool]: boolean }
- */
 function checkAllDNSStatus() {
   try {
     const hostsContent = fs.readFileSync(HOSTS_FILE, "utf8");
@@ -140,9 +116,6 @@ function checkAllDNSStatus() {
   }
 }
 
-/**
- * Add DNS entries for a specific tool
- */
 async function addDNSEntry(tool, sudoPassword) {
   const hosts = TOOL_HOSTS[tool];
   if (!hosts) throw new Error(`Unknown tool: ${tool}`);
@@ -155,7 +128,6 @@ async function addDNSEntry(tool, sudoPassword) {
 
   try {
     if (IS_WIN) {
-      // Read → trim → append → atomic write (Node-side, no CLI size limit)
       const current = fs.readFileSync(HOSTS_FILE, "utf8");
       const trimmed = current.replace(/[\r\n\s]+$/g, "");
       const toAppend = entriesToAdd.map(h => `127.0.0.1 ${h}`).join("\r\n");
@@ -167,7 +139,6 @@ async function addDNSEntry(tool, sudoPassword) {
       const trimmed = current.replace(/[\r\n\s]+$/g, "");
       const toAppend = entriesToAdd.map(h => `127.0.0.1 ${h}`).join("\n");
       const next = `${trimmed}\n${toAppend}\n`;
-      // Use tee via sudo to overwrite atomically — escape single quotes in content
       const escaped = next.replace(/'/g, "'\\''");
       await execWithPassword(`printf '%s' '${escaped}' | tee ${HOSTS_FILE} > /dev/null`, sudoPassword);
       await flushDNS(sudoPassword);
@@ -179,9 +150,6 @@ async function addDNSEntry(tool, sudoPassword) {
   }
 }
 
-/**
- * Remove DNS entries for a specific tool
- */
 async function removeDNSEntry(tool, sudoPassword) {
   const hosts = TOOL_HOSTS[tool];
   if (!hosts) throw new Error(`Unknown tool: ${tool}`);
@@ -214,9 +182,6 @@ async function removeDNSEntry(tool, sudoPassword) {
   }
 }
 
-/**
- * Remove ALL tool DNS entries (used when stopping server)
- */
 async function removeAllDNSEntries(sudoPassword) {
   for (const tool of Object.keys(TOOL_HOSTS)) {
     try {
@@ -227,10 +192,6 @@ async function removeAllDNSEntries(sudoPassword) {
   }
 }
 
-/**
- * Sync removal of ALL tool DNS entries — for use during process shutdown
- * when async ops aren't safe. Assumes caller already has root/admin rights.
- */
 function removeAllDNSEntriesSync() {
   try {
     if (!fs.existsSync(HOSTS_FILE)) return;
@@ -242,13 +203,13 @@ function removeAllDNSEntriesSync() {
     if (next === content) return;
     fs.writeFileSync(HOSTS_FILE, next, "utf8");
     if (IS_WIN) {
-      try { execSync("ipconfig /flushdns", { windowsHide: true, stdio: "ignore" }); } catch { /* ignore */ }
+      try { execSync("ipconfig /flushdns", { windowsHide: true, stdio: "ignore" }); } catch { }
     } else if (IS_MAC) {
-      try { execSync("dscacheutil -flushcache && killall -HUP mDNSResponder", { stdio: "ignore" }); } catch { /* ignore */ }
+      try { execSync("dscacheutil -flushcache && killall -HUP mDNSResponder", { stdio: "ignore" }); } catch { }
     } else {
-      try { execSync("resolvectl flush-caches 2>/dev/null || true", { stdio: "ignore" }); } catch { /* ignore */ }
+      try { execSync("resolvectl flush-caches 2>/dev/null || true", { stdio: "ignore" }); } catch { }
     }
-  } catch { /* best effort during shutdown */ }
+  } catch { }
 }
 
 module.exports = {

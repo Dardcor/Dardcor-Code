@@ -7,7 +7,6 @@ import * as fs from 'fs';
 import { resolve } from 'path';
 import { ApproximateTokenizer, ensureTokenizersLoaded, ExternalTokenizerProvider, getTokenizer, resetTokenizersForTest, setExternalTokenizerProvider, Tokenizer, TokenizerName } from '../tokenization';
 
-// Read the source files and normalize the line endings
 const source = fs.readFileSync(resolve(__dirname, 'testdata/example.py'), 'utf8').replace(/\r\n?/g, '\n');
 
 suite('Tokenizers can be loaded', function () {
@@ -18,7 +17,6 @@ suite('Tokenizers can be loaded', function () {
 	}
 });
 
-// test suite for MockTokenizer
 suite('MockTokenizer', function () {
 	const tokenizer = getTokenizer(TokenizerName.mock);
 
@@ -34,9 +32,6 @@ suite('MockTokenizer', function () {
 	test('detokenize', function () {
 		const tokens = tokenizer.tokenize('a b c');
 		const text = tokenizer.detokenize(tokens);
-		// unfortunately the mock tokenizer doesn't correctly round-trip the text
-		// because the token representation is a number. If this matters then we'll
-		// have to change the mock tokenizer to use a different representation.
 		assert.strictEqual(text, '97 32 98 32 99');
 	});
 
@@ -62,9 +57,6 @@ suite('MockTokenizer', function () {
 });
 
 suite('Tokenizer Test Suite - cl100k', function () {
-	// The dictionaries load lazily on the first ensureTokenizersLoaded() call;
-	// fetch the tokenizer after that instead of at suite definition time,
-	// which would capture the approximate fallback.
 	let tokenizer: Tokenizer;
 	suiteSetup(async function () {
 		await ensureTokenizersLoaded();
@@ -114,9 +106,7 @@ suite('Tokenizer Test Suite - cl100k', function () {
 	});
 
 	test('assert that consecutive newline is never tokenized as multiple newlines', function () {
-		// This is due to a regular expression change in the tokenizer.
 
-		// Loop through all possible ascii numbers and letters
 		for (let i = 0; i < 128; i++) {
 			const char = String.fromCharCode(i);
 			if (char !== '\n') {
@@ -124,14 +114,12 @@ suite('Tokenizer Test Suite - cl100k', function () {
 			}
 		}
 
-		// Test special characters
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n👋'), [271, 9468, 239, 233]);
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n '), [271, 220]);
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n 👋'), [271, 62904, 233]);
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n\t'), [271, 197]);
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n\r'), [271, 201]);
 
-		// New lines are treated specially tho
 		for (let i = 1; i < 10; i++) {
 			assert.deepStrictEqual(tokenizer.tokenLength('\n'.repeat(i)), 1);
 		}
@@ -256,10 +244,6 @@ with minor edits to make it`;
 		assert.strictEqual(tokenizer.takeFirstTokens(source, 100000).text, source);
 	});
 
-	/**
-	 * Long sequences of spaces are tokenized as a sequence of 16-space tokens.  This tests that
-	 * the logic in takeFirstTokens correctly handles very long tokens.
-	 */
 	test('takeFirstTokens handles very long tokens', function () {
 		this.timeout(15000);
 		const longestSpaceToken = ' '.repeat(4000);
@@ -318,9 +302,7 @@ suite('Tokenizer Test Suite - o200k', function () {
 	});
 
 	test('assert that consecutive newline is never tokenized as multiple newlines', function () {
-		// This is due to a regular expression change in the tokenizer.
 
-		// Loop through all possible ascii numbers and letters
 		for (let i = 0; i < 128; i++) {
 			const char = String.fromCharCode(i);
 			if (char !== '\n') {
@@ -328,14 +310,12 @@ suite('Tokenizer Test Suite - o200k', function () {
 			}
 		}
 
-		// Test special characters
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n👋'), [279, 28823, 233]);
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n '), [279, 220]);
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n 👋'), [279, 61138, 233]);
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n\t'), [279, 197]);
 		assert.deepStrictEqual(tokenizer.tokenize('\n\n\r'), [279, 201]);
 
-		// New lines are treated specially tho
 		for (let i = 1; i < 10; i++) {
 			assert.deepStrictEqual(tokenizer.tokenLength('\n'.repeat(i)), 1);
 		}
@@ -460,10 +440,6 @@ with minor edits to make it a`;
 		assert.strictEqual(tokenizer.takeFirstTokens(source, 100000).text, source);
 	});
 
-	/**
-	 * Long sequences of spaces are tokenized as a sequence of 16-space tokens.  This tests that
-	 * the logic in takeFirstTokens correctly handles very long tokens.
-	 */
 	test('takeFirstTokens handles very long tokens', function () {
 		this.timeout(15000);
 		const longestSpaceToken = ' '.repeat(4000);
@@ -475,7 +451,7 @@ with minor edits to make it a`;
 suite('ApproximateTokenizer', function () {
 	const cl100kTokenizer = new ApproximateTokenizer(TokenizerName.cl100k, 'python');
 	const o200kTokenizer = new ApproximateTokenizer(TokenizerName.o200k, 'python');
-	const defaultTokenizer = new ApproximateTokenizer(); // o200k, no language;
+	const defaultTokenizer = new ApproximateTokenizer();
 
 	suite('tokenizeStrings', function () {
 		test('should split text into chunks of 4 characters', function () {

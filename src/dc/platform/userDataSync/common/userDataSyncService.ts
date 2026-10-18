@@ -113,7 +113,7 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 		this._lastSyncTime = this.storageService.getNumber(LAST_SYNC_TIME_KEY, StorageScope.APPLICATION, undefined);
 		this._register(toDisposable(() => this.clearActiveProfileSynchronizers()));
 
-		this._register(new RunOnceScheduler(() => this.cleanUpStaleStorageData(), 5 * 1000 /* after 5s */)).schedule();
+		this._register(new RunOnceScheduler(() => this.cleanUpStaleStorageData(), 5 * 1000 )).schedule();
 	}
 
 	async createSyncTask(manifest: IUserDataManifest | null, disableCache?: boolean): Promise<IUserDataSyncTask> {
@@ -181,7 +181,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 					service: this.userDataSyncStoreManagementService.userDataSyncStore!.url.toString()
 				});
 
-			// Fallback to manifest in stable
 			try {
 				latestUserDataOrManifest = await this.userDataSyncStoreService.manifest(null, syncHeaders);
 			} catch (error) {
@@ -191,7 +190,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 			}
 		}
 
-		/* Manual sync shall start on clean local state */
 		await this.resetLocal();
 
 		const that = this;
@@ -237,11 +235,9 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 				this.setStatus(SyncStatus.Syncing);
 			}
 
-			// Sync Default Profile First
 			const defaultProfileSynchronizer = this.getOrCreateActiveProfileSynchronizer(this.userDataProfilesService.defaultProfile, undefined);
 			this._syncErrors.push(...await this.syncProfile(defaultProfileSynchronizer, manifestOrLatestData, preview, executionId, token));
 
-			// Sync other profiles
 			const userDataProfileManifestSynchronizer = defaultProfileSynchronizer.enabled.find(s => s.resource === SyncResource.Profiles);
 			if (userDataProfileManifestSynchronizer) {
 				const syncProfiles = (await (userDataProfileManifestSynchronizer as UserDataProfilesManifestSynchroniser).getLastSyncedProfiles()) || [];
@@ -272,7 +268,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 			const profileSynchronizer = this.getOrCreateActiveProfileSynchronizer(profile, syncProfile);
 			this._syncErrors.push(...await this.syncProfile(profileSynchronizer, manifest, preview, executionId, token));
 		}
-		// Dispose & Delete profile synchronizers which do not exist anymore
 		for (const [key, profileSynchronizerItem] of this.activeProfileSynchronizers.entries()) {
 			if (this.userDataProfilesService.profiles.some(p => p.id === profileSynchronizerItem[0].profile.id)) {
 				continue;
@@ -304,7 +299,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 				return;
 			}
 
-			// Sync remote profiles which are not synced locally
 			const remoteProfiles = (await (userDataProfileManifestSynchronizer as UserDataProfilesManifestSynchroniser).getRemoteSyncedProfiles(getRefOrUserData(manifestOrLatestData, undefined, SyncResource.Profiles) ?? null)) || [];
 			const remoteProfilesToSync = remoteProfiles.filter(remoteProfile => profileSynchronizers.every(s => s.profile.id !== remoteProfile.id));
 			if (remoteProfilesToSync.length) {
@@ -749,7 +743,6 @@ class ProfileSynchronizer extends Disposable {
 
 	async sync(manifestOrLatestData: IUserDataManifest | IUserDataSyncLatestData | null, preview: boolean, executionId: string, token: CancellationToken): Promise<[SyncResource, UserDataSyncError][]> {
 
-		// Return if cancellation is requested
 		if (token.isCancellationRequested) {
 			return [];
 		}
@@ -764,12 +757,10 @@ class ProfileSynchronizer extends Disposable {
 			const syncHeaders = createSyncHeaders(executionId);
 			const userDataSyncConfiguration = preview ? await this.getUserDataSyncConfiguration(manifestOrLatestData) : this.getLocalUserDataSyncConfiguration();
 			for (const synchroniser of synchronizers) {
-				// Return if cancellation is requested
 				if (token.isCancellationRequested) {
 					return [];
 				}
 
-				// Return if resource is not enabled
 				if (!this.userDataSyncEnablementService.isResourceEnabled(synchroniser.resource)) {
 					return [];
 				}
@@ -784,7 +775,6 @@ class ProfileSynchronizer extends Disposable {
 						throw userDataSyncError;
 					}
 
-					// Log and and continue
 					this.logService.error(e);
 					this.logService.error(`${synchroniser.resource}: ${toErrorMessage(e)}`);
 					syncErrors.push([synchroniser.resource, userDataSyncError]);
@@ -812,7 +802,6 @@ class ProfileSynchronizer extends Disposable {
 					throw userDataSyncError;
 				}
 
-				// Log and and continue
 				this.logService.error(e);
 				this.logService.error(`${synchroniser.resource}: ${toErrorMessage(e)}`);
 			}

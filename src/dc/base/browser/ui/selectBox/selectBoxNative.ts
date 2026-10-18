@@ -81,7 +81,6 @@ export class SelectBoxNative extends Disposable implements ISelectBoxDelegate {
 			}
 
 			if (showSelect) {
-				// Space, Enter, is used to expand select box, do not propagate it (prevent action bar action run)
 				e.stopPropagation();
 			}
 		}));
@@ -114,8 +113,6 @@ export class SelectBoxNative extends Disposable implements ISelectBoxDelegate {
 		} else if (index >= 0 && index < this.options.length) {
 			this.selected = index;
 		} else if (index > this.options.length - 1) {
-			// Adjust index to end of list
-			// This could make client out of sync with the select
 			this.select(this.options.length - 1);
 		} else if (this.selected < 0) {
 			this.selected = 0;
@@ -170,7 +167,6 @@ export class SelectBoxNative extends Disposable implements ISelectBoxDelegate {
 
 	public applyStyles(): void {
 
-		// Style native select
 		if (this.selectElement) {
 			this.selectElement.style.backgroundColor = this.styles.selectBackground ?? '';
 			this.selectElement.style.color = this.styles.selectForeground ?? '';

@@ -32,9 +32,6 @@ import { TestsIntent } from './testIntent';
 import { PseudoStopStartResponseProcessor } from '../../../prompt/node/pseudoStartStopConversationCallback';
 
 
-/**
- * Invoke from within a test file
- */
 export class TestFromTestInvocation implements IIntentInvocation {
 
 	private replyInterpreter: ReplyInterpreter | null = null;
@@ -156,15 +153,15 @@ class TestFromTestPrompt extends PromptElement<Props> {
 					<ChatToolReferences priority={750} promptContext={this.props.promptContext} flexGrow={1} />
 					<ChatVariables priority={750} chatVariables={filteredChatVariables} />
 
-					{/* include summarized source file: */}
+					{}
 					<Test2Impl priority={800} documentContext={context} />
-					{/* include summarized test file: */}
+					{}
 					<Tag name='testsFile' priority={900}>
 						<SummarizedDocumentWithSelection
 							documentData={data}
 							tokenBudget={sizing.tokenBudget / 3}
 							_allowEmptySelection={true}
-						/>{ /* FIXME@ulugbekna: rework summarization to be more intelligent */}
+						/>{ }
 					</Tag>
 					<Tag name='userPrompt' priority={900}>
 						<UserQuery chatVariables={filteredChatVariables} query={requestAndUserQuery} />

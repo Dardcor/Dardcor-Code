@@ -8,7 +8,6 @@ import { Location, Position, Range } from '../../dardcorTypes';
 import { URI } from '../dardcor/base/common/uri';
 
 export function isUri(thing: any): thing is URI | vscode.Uri {
-	// This check works for URIs from vscode, but doesn't help with type narrowing on its own, so this function exists.
 	return URI.isUri(thing);
 }
 
@@ -18,7 +17,6 @@ export function isLocation(obj: any): obj is vscode.Location {
 
 export function toLocation(obj: any) {
 	if (isLocation(obj) && Array.isArray(obj.range) && obj.range.length === 2) {
-		// HACK: prompt-tsx returns serialized ranges/positions that need to be converted back into real objects
 		const start = obj.range[0];
 		const end = obj.range[1];
 		return new Location(obj.uri, new Range(new Position(start.line, start.character), new Position(end.line, end.character)));

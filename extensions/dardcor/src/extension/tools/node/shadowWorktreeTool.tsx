@@ -11,7 +11,7 @@ import { IFileSystemService } from '../../../platform/filesystem/common/fileSyst
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface IShadowWorktreeParams {
 	action: 'create_shadow' | 'mutate_shadow' | 'merge_shadow' | 'destroy_shadow';
@@ -21,7 +21,7 @@ export interface IShadowWorktreeParams {
 	description: string;
 }
 
-export class ShadowWorktreeTool implements ICopilotTool<IShadowWorktreeParams> {
+export class ShadowWorktreeTool implements IAgentTool<IShadowWorktreeParams> {
 	public static toolName = ToolName.ShadowWorktree;
 
 	private static shadowRoot: string = path.join(os.tmpdir(), 'dardcor-shadow-worktrees');
@@ -74,7 +74,6 @@ export class ShadowWorktreeTool implements ICopilotTool<IShadowWorktreeParams> {
 					throw new Error(`Shadow branch '${branchId}' does not exist.`);
 				}
 
-				// Copy all modified files from branchDir back to main workspace
 				let mergedCount = 0;
 				const copyRecursive = async (srcDir: string, relPath: string = '') => {
 					const entries = fs.readdirSync(srcDir, { withFileTypes: true });

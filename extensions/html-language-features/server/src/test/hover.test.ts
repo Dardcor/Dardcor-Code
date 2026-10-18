@@ -56,9 +56,7 @@ suite('HTML Hover', () => {
 		].join('\n');
 		const value = await getHoverValue(html);
 
-		// The signature should still be present in a typescript code block
 		assert.match(value, /```typescript[\s\S]*Greeter[\s\S]*```/, `signature missing in hover: ${value}`);
-		// The JSDoc summary should also be present (this is the bug fix)
 		assert.ok(value.includes('A greeter that says hello.'), `JSDoc description missing in hover: ${value}`);
 	});
 

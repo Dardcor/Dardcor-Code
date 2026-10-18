@@ -24,12 +24,10 @@ export default defineThemedFixtureGroup({ path: 'chat/' }, {
 function createSampleDataWithSessions(): IAiStatsHoverData {
 	const random = Random.create(42);
 
-	// Use a fixed base time for determinism (Jan 1, 2025, 12:00:00 UTC)
 	const baseTime = 1735732800000;
 	const dayMs = 24 * 60 * 60 * 1000;
 	const sessionLengthMs = 5 * 60 * 1000;
 
-	// Generate fake session data for the last 7 days
 	const fakeSessions: ISessionData[] = [];
 	for (let day = 6; day >= 0; day--) {
 		const dayStart = baseTime - day * dayMs;
@@ -50,7 +48,6 @@ function createSampleDataWithSessions(): IAiStatsHoverData {
 	const totalTyped = fakeSessions.reduce((sum, s) => sum + s.typedCharacters, 0);
 	const aiRate = totalAi / (totalAi + totalTyped);
 
-	// "Today" for the fixture is the baseTime day
 	const startOfToday = baseTime - (baseTime % dayMs);
 	const todaySessions = fakeSessions.filter(s => s.startTime >= startOfToday);
 	const acceptedToday = todaySessions.reduce((sum, s) => sum + (s.acceptedInlineSuggestions ?? 0), 0);

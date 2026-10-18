@@ -41,9 +41,18 @@ export class FeedbackGenerator {
 
 	async generateComments(input: CurrentChangeInput[], token: CancellationToken, progress?: Progress<ReviewComment[]>): Promise<FeedbackResult> {
 		const startTime = Date.now();
+		if (token.isCancellationRequested) {
+			return { type: 'cancelled' };
+		}
+		if (input.length === 0) {
+			return { type: 'success', comments: [], reason: l10n.t('There are no changes to review.') };
+		}
 
 		const ignoreService = this.ignoreService;
-		const ignored = await Promise.all(input.map(i => ignoreService.isCopilotIgnored(i.document.uri)));
+		const ignored = await Promise.all(input.map(i => ignoreService.isIgnored(i.document.uri)));
+		if (token.isCancellationRequested) {
+			return { type: 'cancelled' };
+		}
 		const filteredInput = input.filter((_, i) => !ignored[i]);
 		if (filteredInput.length === 0) {
 			this.logService.info('All input documents are ignored. Skipping feedback generation.');
@@ -93,7 +102,7 @@ export class FeedbackGenerator {
 		}
 
 		const request: ReviewRequest = {
-			source: 'vscodeCopilotChat',
+			source: 'dardcorRouter',
 			promptCount: prompts.length,
 			messageId: generateUuid(),
 			inputType,
@@ -146,27 +155,6 @@ export class FeedbackGenerator {
 		const fetchResult = results.find(r => r.fetchResult.type !== 'success')?.fetchResult || results[0].fetchResult;
 		const comments = results.map(r => r.comments).flat();
 
-		/* __GDPR__
-			"feedback.generateDiagnostics" : {
-				"owner": "chrmarti",
-				"comment": "Metadata about the code feedback generation",
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that is used in the endpoint." },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Which backend generated the comment." },
-				"messageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request." },
-				"responseType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The result type of the response." },
-				"documentType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What kind of document (e.g., text or notebook)." },
-				"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The current file language." },
-				"inputType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What type of input (e.g., selection or change)." },
-				"commentTypes": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What kind of comment (e.g., correctness or performance)." },
-				"promptCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of prompts run." },
-				"numberOfDiagnostics": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of diagnostics." },
-				"inputDocumentCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many documents were part of the input." },
-				"inputLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many (selected or changed) lines were part of the input." },
-				"timeToRequest": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "How long it took to start the request." },
-				"timeToComplete": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "How long it took to complete the request." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('feedback.generateDiagnostics', {
 			model: endpoint.model,
 			requestId: fetchResult.requestId,
@@ -203,7 +191,6 @@ const knownKinds = new Set(['bug', 'performance', 'consistency', 'documentation'
 export function parseReviewComments(request: ReviewRequest, input: CurrentChangeInput[], message: string, dropPartial = false): ReviewComment[] {
 	const comments: ReviewComment[] = [];
 
-	// Extract the messages from the comment
 	for (const match of parseFeedbackResponse(message, dropPartial)) {
 		const { relativeDocumentPath, from, to, kind, severity, content } = match;
 		if (!knownKinds.has(kind)) {
@@ -222,7 +209,6 @@ export function parseReviewComments(request: ReviewRequest, input: CurrentChange
 		const toLine = document.lineAt((to <= document.lineCount ? to : document.lineCount) - 1);
 		const lastNonWhitespaceCharacterIndex = toLine.text.trimEnd().length;
 
-		// Create a Diagnostic object for each message
 		const range = new Range(fromLine.lineNumber, fromLine.firstNonWhitespaceCharacterIndex, toLine.lineNumber, lastNonWhitespaceCharacterIndex);
 		if (filterRanges && !filterRanges.some(r => r.intersection(range))) {
 			continue;
@@ -258,7 +244,6 @@ export function parseFeedbackResponse(response: string, dropPartial = false) {
 		const kind = groups.kind || 'other';
 		const severity = groups.severity || 'unknown';
 		let content = groups.content.trim();
-		// Remove trailing code block (which sometimes suggests a fix) because that interfers with the suggestion rendering later.
 		if (content.endsWith('```')) {
 			const i = content.lastIndexOf('```', content.length - 4);
 			if (i !== -1) {
@@ -266,7 +251,6 @@ export function parseFeedbackResponse(response: string, dropPartial = false) {
 					.trim();
 			}
 		}
-		// Remove broken block.
 		const blockBorders = [...content.matchAll(/```/g)];
 		if (blockBorders.length % 2) {
 			const odd = blockBorders[blockBorders.length - 1];
@@ -325,53 +309,11 @@ export function sendReviewActionTelemetry(reviewCommentOrComments: ReviewComment
 	};
 
 	if (userAction === 'helpful' || userAction === 'unhelpful') {
-		/* __GDPR__
-			"review.comment.vote" : {
-				"owner": "chrmarti",
-				"comment": "Metadata about votes on review comments",
-				"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Which backend generated the comment." },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"documentType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What kind of document (e.g., text or notebook)." },
-				"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The current file language." },
-				"inputType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What type of input (e.g., selection or change)." },
-				"commentType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What kind of comment (e.g., correctness or performance)." },
-				"userAction": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What action the user triggered (e.g., helpful, unhelpful, apply or discard)." },
-				"commentIndex": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Original index of the comment in the generated comments." },
-				"actionCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of previously logged actions on the comment." },
-				"inputDocumentCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many documents were part of the input." },
-				"inputLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many (selected or changed) lines were part of the input." },
-				"promptCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of prompts run." },
-				"totalComments": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of comments." },
-				"comments": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many comments are affected by the action." },
-				"commentLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many characters long the review comment is." }
-			}
-		*/
 		telemetryService.sendMSFTTelemetryEvent('review.comment.vote', sharedProps, sharedMeasures);
 		telemetryService.sendInternalMSFTTelemetryEvent('review.comment.vote', sharedProps);
 		sendUserActionTelemetry(telemetryService, undefined, userActionProperties, {}, 'review.comment.vote');
 	} else {
 		reviewComment.actionCount++;
-		/* __GDPR__
-			"review.comment.action" : {
-				"owner": "chrmarti",
-				"comment": "Metadata about actions on review comments",
-				"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Which backend generated the comment." },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"documentType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What kind of document (e.g., text or notebook)." },
-				"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The current file language." },
-				"inputType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What type of input (e.g., selection or change)." },
-				"commentType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What kind of comment (e.g., correctness or performance)." },
-				"userAction": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What action the user triggered (e.g., helpful, unhelpful, apply or discard)." },
-				"commentIndex": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Original index of the comment in the generated comments." },
-				"actionCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of previously logged actions on the comment." },
-				"inputDocumentCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many documents were part of the input." },
-				"inputLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many (selected or changed) lines were part of the input." },
-				"promptCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of prompts run." },
-				"totalComments": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of comments." },
-				"comments": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many comments are affected by the action." },
-				"commentLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many characters long the review comment is." }
-			}
-		*/
 		telemetryService.sendMSFTTelemetryEvent('review.comment.action', sharedProps, sharedMeasures);
 		telemetryService.sendInternalMSFTTelemetryEvent('review.comment.action', sharedProps);
 		sendUserActionTelemetry(telemetryService, undefined, userActionProperties, {}, 'review.comment.action');
@@ -387,31 +329,6 @@ export function sendReviewActionTelemetry(reviewCommentOrComments: ReviewComment
 
 function discardCommentSurvivalEvent(sharedProps: TelemetryEventProperties | undefined, sharedMeasures: TelemetryEventMeasurements | undefined) {
 	return (res: EditSurvivalResult) => {
-		/* __GDPR__
-			"review.discardCommentRangeSurvival" : {
-				"owner": "chrmarti",
-				"comment": "Tracks how much percent of the commented range surived after 5 minutes of discarding",
-				"survivalRateFourGram": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the AI edit is still present in the document." },
-				"survivalRateNoRevert": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the ranges the AI touched ended up being reverted." },
-				"didBranchChange": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Indicates if the branch changed in the meantime. If the branch changed (value is 1), this event should probably be ignored." },
-				"timeDelayMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The time delay between the user accepting the edit and measuring the survival rate." },
-				"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Which backend generated the comment." },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"documentType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What kind of document (e.g., text or notebook)." },
-				"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The current file language." },
-				"inputType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What type of input (e.g., selection or change)." },
-				"commentType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What kind of comment (e.g., correctness or performance)." },
-				"userAction": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "What action the user triggered (e.g., helpful, unhelpful, apply or discard)." },
-				"commentIndex": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Original index of the comment in the generated comments." },
-				"actionCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of previously logged actions on the comment." },
-				"inputDocumentCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many documents were part of the input." },
-				"inputLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many (selected or changed) lines were part of the input." },
-				"promptCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of prompts run." },
-				"totalComments": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of comments." },
-				"comments": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many comments are affected by the action." },
-				"commentLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many characters long the review comment is." }
-			}
-		*/
 		res.telemetryService.sendMSFTTelemetryEvent('review.discardCommentRangeSurvival', sharedProps, {
 			...sharedMeasures,
 			survivalRateFourGram: res.fourGram,

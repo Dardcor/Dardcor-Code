@@ -44,10 +44,8 @@ export class BrowserIssueService implements IWorkbenchIssueService {
 	) { }
 
 	async openReporter(options: Partial<IssueReporterData>): Promise<void> {
-		// If web reporter setting is false open the old GitHub issue reporter
 		if (!this.configurationService.getValue<boolean>('issueReporter.experimental.webReporter')) {
 			const extensionId = options.extensionId;
-			// If we don't have a extensionId, treat this as a Core issue
 			if (!extensionId) {
 				if (this.productService.reportIssueUrl) {
 					const uri = this.getIssueUriFromStaticContent(this.productService.reportIssueUrl);
@@ -76,16 +74,12 @@ export class BrowserIssueService implements IWorkbenchIssueService {
 				const potentialSessions = githubSessions.filter(session => session.scopes.includes('repo'));
 				githubAccessToken = potentialSessions[0]?.accessToken;
 			} catch (e) {
-				// Ignore
 			}
 
-			// Default to true (pure) so an integrity-check failure doesn't push an
-			// inaccurate `Modes: ..., Unsupported` line into the issue body.
 			let isInstallationPure = true;
 			try {
 				isInstallationPure = (await this.integrityService.isPure()).isPure;
 			} catch (e) {
-				// Ignore
 			}
 
 			const extensionData: IssueReporterExtensionData[] = [];
@@ -152,7 +146,6 @@ export class BrowserIssueService implements IWorkbenchIssueService {
 		const bugsUrl = extension?.bugs?.url;
 		const extensionUrl = extension?.repository?.url;
 
-		// If given, try to match the extension's bug url
 		if (bugsUrl && bugsUrl.match(/^https?:\/\/github\.com\/(.*)/)) {
 			repositoryUrl = normalizeGitHubUrl(bugsUrl);
 		} else if (extensionUrl && extensionUrl.match(/^https?:\/\/github\.com\/(.*)/)) {

@@ -98,7 +98,6 @@ export class ViewFlushedEvent {
 	public readonly type = ViewEventType.ViewFlushed;
 
 	constructor() {
-		// Nothing to do
 	}
 }
 
@@ -123,7 +122,6 @@ export class ViewLineMappingChangedEvent {
 	public readonly type = ViewEventType.ViewLineMappingChanged;
 
 	constructor() {
-		// Nothing to do
 	}
 }
 
@@ -132,13 +130,7 @@ export class ViewLinesChangedEvent {
 	public readonly type = ViewEventType.ViewLinesChanged;
 
 	constructor(
-		/**
-		 * The first line that has changed.
-		 */
 		public readonly fromLineNumber: number,
-		/**
-		 * The number of lines that have changed.
-		 */
 		public readonly count: number,
 	) { }
 }
@@ -147,13 +139,7 @@ export class ViewLinesDeletedEvent {
 
 	public readonly type = ViewEventType.ViewLinesDeleted;
 
-	/**
-	 * At what line the deletion began (inclusive).
-	 */
 	public readonly fromLineNumber: number;
-	/**
-	 * At what line the deletion stopped (inclusive).
-	 */
 	public readonly toLineNumber: number;
 
 	constructor(fromLineNumber: number, toLineNumber: number) {
@@ -166,13 +152,7 @@ export class ViewLinesInsertedEvent {
 
 	public readonly type = ViewEventType.ViewLinesInserted;
 
-	/**
-	 * Before what line did the insertion begin
-	 */
 	public readonly fromLineNumber: number;
-	/**
-	 * `toLineNumber` - `fromLineNumber` + 1 denotes the number of lines that were inserted
-	 */
 	public readonly toLineNumber: number;
 
 	constructor(fromLineNumber: number, toLineNumber: number) {
@@ -197,34 +177,12 @@ export class ViewRevealRangeRequestEvent {
 
 
 	constructor(
-		/**
-		 * Source of the call that caused the event.
-		 */
 		public readonly source: string | null | undefined,
-		/**
-		 * Reduce the revealing to a minimum (e.g. avoid scrolling if the bounding box is visible and near the viewport edge).
-		 */
 		public readonly minimalReveal: boolean,
-		/**
-		 * Range to be reavealed.
-		 */
 		public readonly range: Range | null,
-		/**
-		 * Selections to be revealed.
-		 */
 		public readonly selections: Selection[] | null,
-		/**
-		 * The vertical reveal strategy.
-		 */
 		public readonly verticalType: VerticalRevealType,
-		/**
-		 * If true: there should be a horizontal & vertical revealing.
-		 * If false: there should be just a vertical revealing.
-		 */
 		public readonly revealHorizontal: boolean,
-		/**
-		 * The scroll type.
-		 */
 		public readonly scrollType: ScrollType
 	) { }
 }
@@ -270,13 +228,7 @@ export class ViewTokensChangedEvent {
 	public readonly type = ViewEventType.ViewTokensChanged;
 
 	public readonly ranges: {
-		/**
-		 * Start line number of range
-		 */
 		readonly fromLineNumber: number;
-		/**
-		 * End line number of range
-		 */
 		readonly toLineNumber: number;
 	}[];
 
@@ -290,7 +242,6 @@ export class ViewTokensColorsChangedEvent {
 	public readonly type = ViewEventType.ViewTokensColorsChanged;
 
 	constructor() {
-		// Nothing to do
 	}
 }
 
@@ -299,7 +250,6 @@ export class ViewZonesChangedEvent {
 	public readonly type = ViewEventType.ViewZonesChanged;
 
 	constructor() {
-		// Nothing to do
 	}
 }
 

@@ -19,7 +19,6 @@ import { BaseChatToolInvocationSubPart } from './chatToolInvocationSubPart.js';
 import { getToolApprovalMessage, shouldShimmerForTool } from './chatToolPartUtilities.js';
 
 export class ChatSimpleToolProgressPart extends BaseChatToolInvocationSubPart {
-	/** Remembers expanded tool parts on re-render */
 	private static readonly _expandedByDefault = new WeakMap<IChatToolInvocation | IChatToolInvocationSerialized, boolean>();
 
 	public readonly domNode: HTMLElement;
@@ -45,7 +44,6 @@ export class ChatSimpleToolProgressPart extends BaseChatToolInvocationSubPart {
 
 		let codeBlockIndex = codeBlockStartIndex;
 
-		// Helper to convert string or MarkdownString to a collapsible part
 		const createIOPart = (content: string, label: string): IChatCollapsibleIOCodePart | ChatCollapsibleIOPart => {
 			return {
 				kind: 'code',

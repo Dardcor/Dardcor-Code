@@ -38,7 +38,6 @@ import { IEditorOptions } from '../../platform/editor/common/editor.js';
 import { mainWindow } from '../../base/browser/window.js';
 import { BroadcastDataChannel } from '../../base/browser/broadcast.js';
 
-//#region Editor / Resources DND
 
 export class DraggedEditorIdentifier {
 
@@ -54,14 +53,12 @@ export async function extractTreeDropData(dataTransfer: VSDataTransfer): Promise
 	const editors: IDraggedResourceEditorInput[] = [];
 	const resourcesKey = Mimes.uriList.toLowerCase();
 
-	// Data Transfer: Resources
 	if (dataTransfer.has(resourcesKey)) {
 		try {
 			const asString = await dataTransfer.get(resourcesKey)?.asString();
 			const rawResourcesData = JSON.stringify(UriList.parse(asString ?? ''));
 			editors.push(...createDraggedEditorInputFromRawResourcesData(rawResourcesData));
 		} catch (error) {
-			// Invalid transfer
 		}
 	}
 
@@ -70,19 +67,9 @@ export async function extractTreeDropData(dataTransfer: VSDataTransfer): Promise
 
 export interface IResourcesDropHandlerOptions {
 
-	/**
-	 * Whether we probe for the dropped resource to be a workspace
-	 * (i.e. code-workspace file or even a folder), allowing to
-	 * open it as workspace instead of opening as editor.
-	 */
 	readonly allowWorkspaceOpen: boolean;
 }
 
-/**
- * Shared function across some components to handle drag & drop of resources.
- * E.g. of folders and workspace files to open them in the window instead of
- * the editor or to handle dirty editors being dropped between instances of Code.
- */
 export class ResourcesDropHandler {
 
 	constructor(
@@ -103,10 +90,8 @@ export class ResourcesDropHandler {
 			return;
 		}
 
-		// Make the window active to handle the drop properly within
 		await this.hostService.focus(targetWindow);
 
-		// Check for registered drop handlers
 		const dndRegistry = Registry.as<IDragAndDropContributionRegistry>(Extensions.DragAndDropContribution);
 		for (const { resource } of editors) {
 			if (resource) {
@@ -117,24 +102,21 @@ export class ResourcesDropHandler {
 			}
 		}
 
-		// Check for workspace file / folder being dropped if we are allowed to do so
 		if (this.options.allowWorkspaceOpen) {
 			const localFilesAllowedToOpenAsWorkspace = coalesce(editors.filter(editor => editor.allowWorkspaceOpen && editor.resource?.scheme === Schemas.file).map(editor => editor.resource));
 			if (localFilesAllowedToOpenAsWorkspace.length > 0) {
 				const isWorkspaceOpening = await this.handleWorkspaceDrop(localFilesAllowedToOpenAsWorkspace);
 				if (isWorkspaceOpening) {
-					return; // return early if the drop operation resulted in this window changing to a workspace
+					return;
 				}
 			}
 		}
 
-		// Add external ones to recently open list unless dropped resource is a workspace
 		const externalLocalFiles = coalesce(editors.filter(editor => editor.isExternal && editor.resource?.scheme === Schemas.file).map(editor => editor.resource));
 		if (externalLocalFiles.length) {
 			this.workspacesService.addRecentlyOpened(externalLocalFiles.map(resource => ({ fileUri: resource })));
 		}
 
-		// Open in Editor
 		const targetGroup = resolveTargetGroup?.();
 		await this.editorService.openEditors(editors.map(editor => ({
 			...editor,
@@ -146,7 +128,6 @@ export class ResourcesDropHandler {
 			}
 		})), targetGroup, { validateTrust: true });
 
-		// Finish with provided function
 		afterDrop?.(targetGroup);
 	}
 
@@ -156,14 +137,12 @@ export class ResourcesDropHandler {
 
 		await Promise.all(resources.map(async resource => {
 
-			// Check for Workspace
 			if (hasWorkspaceFileExtension(resource)) {
 				toOpen.push({ workspaceUri: resource });
 
 				return;
 			}
 
-			// Check for Folder
 			try {
 				const stat = await this.fileService.stat(resource);
 				if (stat.isDirectory) {
@@ -171,26 +150,21 @@ export class ResourcesDropHandler {
 					folderURIs.push({ uri: stat.resource });
 				}
 			} catch (error) {
-				// Ignore error
 			}
 		}));
 
-		// Return early if no external resource is a folder or workspace
 		if (toOpen.length === 0) {
 			return false;
 		}
 
-		// Open in separate windows if we drop workspaces or just one folder
 		if (toOpen.length > folderURIs.length || folderURIs.length === 1) {
 			await this.hostService.openWindow(toOpen);
 		}
 
-		// Add to workspace if we are in a temporary workspace
 		else if (isTemporaryWorkspace(this.contextService.getWorkspace())) {
 			await this.workspaceEditingService.addFolders(folderURIs);
 		}
 
-		// Finally, enter untitled workspace when dropping >1 folders
 		else {
 			await this.workspaceEditingService.createAndEnterWorkspace(folderURIs);
 		}
@@ -212,8 +186,6 @@ export function fillEditorsDragData(accessor: ServicesAccessor, resourcesOrEdito
 	const fileService = accessor.get(IFileService);
 	const labelService = accessor.get(ILabelService);
 
-	// Extract resources from URIs or Editors that
-	// can be handled by the file service
 	const resources = coalesce(resourcesOrEditors.map((resourceOrEditor): IResourceStat | undefined => {
 		if (URI.isUri(resourceOrEditor)) {
 			return { resource: resourceOrEditor };
@@ -224,7 +196,7 @@ export function fillEditorsDragData(accessor: ServicesAccessor, resourcesOrEdito
 				return { resource: resourceOrEditor.editor.resource };
 			}
 
-			return undefined; // editor without resource
+			return undefined;
 		}
 
 		return {
@@ -237,43 +209,32 @@ export function fillEditorsDragData(accessor: ServicesAccessor, resourcesOrEdito
 	const fileSystemResources = resources.filter(({ resource }) => fileService.hasProvider(resource));
 	if (!options?.disableStandardTransfer) {
 
-		// Text: allows to paste into text-capable areas
 		const lineDelimiter = isWindows ? '\r\n' : '\n';
 		event.dataTransfer.setData(DataTransfers.TEXT, fileSystemResources.map(({ resource }) => labelService.getUriLabel(resource, { noPrefix: true })).join(lineDelimiter));
 
-		// Download URL: enables support to drag a tab as file to desktop
-		// Requirements:
-		// - Chrome/Edge only
-		// - only a single file is supported
-		// - only file:/ resources are supported
 		const firstFile = fileSystemResources.find(({ isDirectory }) => !isDirectory);
 		if (firstFile) {
-			const firstFileUri = FileAccess.uriToFileUri(firstFile.resource); // enforce `file:` URIs
+			const firstFileUri = FileAccess.uriToFileUri(firstFile.resource);
 			if (firstFileUri.scheme === Schemas.file) {
 				event.dataTransfer.setData(DataTransfers.DOWNLOAD_URL, [Mimes.binary, basename(firstFile.resource), firstFileUri.toString()].join(':'));
 			}
 		}
 	}
 
-	// Resource URLs: allows to drop multiple file resources to a target in VS Code
 	const files = fileSystemResources.filter(({ isDirectory }) => !isDirectory);
 	if (files.length) {
 		event.dataTransfer.setData(DataTransfers.RESOURCES, JSON.stringify(files.map(({ resource }) => resource.toString())));
 	}
 
-	// Contributions
 	const contributions = Registry.as<IDragAndDropContributionRegistry>(Extensions.DragAndDropContribution).getAll();
 	for (const contribution of contributions) {
 		contribution.setData(resources, event);
 	}
 
-	// Editors: enables cross window DND of editors
-	// into the editor area while presering UI state
 	const draggedEditors: IDraggedResourceEditorInput[] = [];
 
 	for (const resourceOrEditor of resourcesOrEditors) {
 
-		// Extract resource editor from provided object or URI
 		let editor: IDraggedResourceEditorInput | undefined = undefined;
 		if (isEditorIdentifier(resourceOrEditor)) {
 			const untypedEditor = resourceOrEditor.editor.toUntyped({ preserveViewState: resourceOrEditor.groupId });
@@ -293,36 +254,28 @@ export function fillEditorsDragData(accessor: ServicesAccessor, resourcesOrEdito
 		}
 
 		if (!editor) {
-			continue; // skip over editors that cannot be transferred via dnd
+			continue;
 		}
 
-		// Fill in some properties if they are not there already by accessing
-		// some well known things from the text file universe.
-		// This is not ideal for custom editors, but those have a chance to
-		// provide everything from the `toUntyped` method.
 		{
 			const resource = editor.resource;
 			if (resource) {
 				const textFileModel = textFileService.files.get(resource);
 				if (textFileModel) {
 
-					// language
 					if (typeof editor.languageId !== 'string') {
 						editor.languageId = textFileModel.getLanguageId();
 					}
 
-					// encoding
 					if (typeof editor.encoding !== 'string') {
 						editor.encoding = textFileModel.getEncoding();
 					}
 
-					// contents (only if dirty and not too large)
 					if (typeof editor.contents !== 'string' && textFileModel.isDirty() && !textFileModel.textEditorModel.isTooLargeForHeapOperation()) {
 						editor.contents = textFileModel.textEditorModel.getValue();
 					}
 				}
 
-				// viewState
 				if (!editor.options?.viewState) {
 					editor.options = {
 						...editor.options,
@@ -343,7 +296,6 @@ export function fillEditorsDragData(accessor: ServicesAccessor, resourcesOrEdito
 			}
 		}
 
-		// Add as dragged editor
 		draggedEditors.push(editor);
 	}
 
@@ -351,7 +303,6 @@ export function fillEditorsDragData(accessor: ServicesAccessor, resourcesOrEdito
 		event.dataTransfer.setData(CodeDataTransfers.EDITORS, stringify(draggedEditors));
 	}
 
-	// Add a URI list entry
 	const draggedDirectories: URI[] = fileSystemResources.filter(({ isDirectory }) => isDirectory).map(({ resource }) => resource);
 	if (draggedEditors.length || draggedDirectories.length) {
 		const uriListEntries: URI[] = [...draggedDirectories];
@@ -371,10 +322,6 @@ export function fillEditorsDragData(accessor: ServicesAccessor, resourcesOrEdito
 			}
 		}
 
-		// Due to https://bugs.chromium.org/p/chromium/issues/detail?id=239745, we can only set
-		// a single uri for the real `text/uri-list` type. Otherwise all uris end up joined together
-		// However we write the full uri-list to an internal type so that other parts of VS Code
-		// can use the full list.
 		if (!options?.disableStandardTransfer) {
 			event.dataTransfer.setData(Mimes.uriList, UriList.create(uriListEntries.slice(0, 1)));
 		}
@@ -382,9 +329,7 @@ export function fillEditorsDragData(accessor: ServicesAccessor, resourcesOrEdito
 	}
 }
 
-//#endregion
 
-//#region Composites DND
 
 export type Before2D = {
 	readonly verticallyBefore: boolean;
@@ -411,7 +356,6 @@ export class CompositeDragAndDropData implements IDragAndDropData {
 	constructor(private type: 'view' | 'composite', private id: string) { }
 
 	update(dataTransfer: DataTransfer): void {
-		// no-op
 	}
 
 	getData(): {
@@ -521,7 +465,6 @@ export class CompositeDragAndDropObserver extends Disposable {
 
 					callbacks.onDrop({ eventData: e, dragAndDropData: data });
 
-					// Fire drag event in case drop handler destroys the dragged element
 					this.onDragEnd.fire({ eventData: e, dragAndDropData: data });
 				}
 			},
@@ -606,7 +549,6 @@ export class CompositeDragAndDropObserver extends Disposable {
 
 					callbacks.onDrop({ eventData: e, dragAndDropData: data });
 
-					// Fire drag event in case drop handler destroys the dragged element
 					this.onDragEnd.fire({ eventData: e, dragAndDropData: data });
 				}
 			},
@@ -673,13 +615,11 @@ export class ResourceListDnDHandler<T> implements IListDragAndDrop<T> {
 		}
 		this.onWillDragElements(elements, originalEvent);
 		if (resources.length) {
-			// Apply some datatransfer types to allow for dragging the element outside of the application
 			this.instantiationService.invokeFunction(accessor => fillEditorsDragData(accessor, resources, originalEvent));
 		}
 	}
 
 	protected onWillDragElements(elements: readonly T[], originalEvent: DragEvent): void {
-		// noop
 	}
 
 	onDragOver(data: IDragAndDropData, targetElement: T, targetIndex: number, targetSector: ListViewTargetSector | undefined, originalEvent: DragEvent): boolean | ITreeDragOverReaction {
@@ -691,7 +631,6 @@ export class ResourceListDnDHandler<T> implements IListDragAndDrop<T> {
 	dispose(): void { }
 }
 
-//#endregion
 
 class GlobalWindowDraggedOverTracker extends Disposable {
 
@@ -725,7 +664,7 @@ class GlobalWindowDraggedOverTracker extends Disposable {
 
 	private markDraggedOver(fromBroadcast: boolean): void {
 		if (this.draggedOver === true) {
-			return; // alrady marked
+			return;
 		}
 
 		this.draggedOver = true;
@@ -737,7 +676,7 @@ class GlobalWindowDraggedOverTracker extends Disposable {
 
 	private clearDraggedOver(fromBroadcast: boolean): void {
 		if (this.draggedOver === false) {
-			return; // alrady cleared
+			return;
 		}
 
 		this.draggedOver = false;
@@ -750,10 +689,6 @@ class GlobalWindowDraggedOverTracker extends Disposable {
 
 const globalDraggedOverTracker = new GlobalWindowDraggedOverTracker();
 
-/**
- * Returns whether the workbench is currently dragged over in any of
- * the opened windows (main windows and auxiliary windows).
- */
 export function isWindowDraggedOver(): boolean {
 	return globalDraggedOverTracker.isDraggedOver;
 }

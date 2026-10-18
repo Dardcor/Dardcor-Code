@@ -27,10 +27,6 @@ export interface ILayoutContentResult {
 	readonly footerSize: IDimension;
 }
 
-/**
- * Parts are layed out in the workbench and have their own layout that
- * arranges an optional title and mandatory content area to show content.
- */
 export abstract class Part<MementoType extends object = object> extends Component<MementoType> implements ISerializableView {
 
 	private _dimension: Dimension | undefined;
@@ -63,18 +59,11 @@ export abstract class Part<MementoType extends object = object> extends Componen
 
 	protected override onThemeChange(theme: IColorTheme): void {
 
-		// only call if our create() method has been called
 		if (this.parent) {
 			super.onThemeChange(theme);
 		}
 	}
 
-	/**
-	 * Note: Clients should not call this method, the workbench calls this
-	 * method. Calling it otherwise may result in unexpected behavior.
-	 *
-	 * Called to create title and content area of the part.
-	 */
 	create(parent: HTMLElement, options?: object): void {
 		this.parent = parent;
 		this.titleArea = this.createTitleArea(parent, options);
@@ -85,23 +74,14 @@ export abstract class Part<MementoType extends object = object> extends Componen
 		this.updateStyles();
 	}
 
-	/**
-	 * Returns the overall part container.
-	 */
 	getContainer(): HTMLElement | undefined {
 		return this.parent;
 	}
 
-	/**
-	 * Subclasses override to provide a title area implementation.
-	 */
 	protected createTitleArea(parent: HTMLElement, options?: object): HTMLElement | undefined {
 		return undefined;
 	}
 
-	/**
-	 * Subclasses override to provide a content area implementation.
-	 */
 	protected createContentArea(parent: HTMLElement, options?: object): HTMLElement | undefined {
 		return undefined;
 	}
@@ -167,27 +147,16 @@ export abstract class Part<MementoType extends object = object> extends Componen
 		}
 	}
 
-	/**
-	 * The dimension to use when the part re-lays out itself in response to internal
-	 * changes (e.g. title, header or footer visibility). Subclasses that reduce the
-	 * dimension passed to {@link layout} (for example to reserve space for a floating
-	 * card margin) must override this to return the original, unreduced dimension so
-	 * the reduction is not applied repeatedly on every relayout.
-	 */
 	protected getRelayoutDimension(): Dimension | undefined {
 		return this._dimension;
 	}
 
-	/**
-	 * Layout title and content area in the given dimension.
-	 */
 	protected layoutContents(width: number, height: number): ILayoutContentResult {
 		const partLayout = assertReturnsDefined(this.partLayout);
 
 		return partLayout.layout(width, height);
 	}
 
-	//#region ISerializableView
 
 	protected _onDidChange = this._register(new Emitter<IViewSize | undefined>());
 	get onDidChange(): Event<IViewSize | undefined> { return this._onDidChange.event; }
@@ -210,7 +179,6 @@ export abstract class Part<MementoType extends object = object> extends Componen
 
 	abstract toJSON(): object;
 
-	//#endregion
 }
 
 class PartLayout {
@@ -218,7 +186,6 @@ class PartLayout {
 	private static readonly HEADER_HEIGHT = 35;
 	private static readonly TITLE_HEIGHT = 35;
 	private static readonly FOOTER_HEIGHT = 35;
-	// KEEP IN SYNC WITH: styleOverrides/browser/media/padding.css
 	private static readonly AREA_HEIGHT_STYLE_OVERRIDE = 32;
 
 	private headerVisible: boolean = false;
@@ -229,7 +196,6 @@ class PartLayout {
 	layout(width: number, height: number): ILayoutContentResult {
 		const isStyleOverride = !!this.contentArea?.closest('.style-override');
 
-		// Title Size: Width (Fill), Height (Variable).
 		let titleSize: Dimension;
 		if (this.options.hasTitle) {
 			const titleHeight = isStyleOverride ? PartLayout.AREA_HEIGHT_STYLE_OVERRIDE : PartLayout.TITLE_HEIGHT;
@@ -238,7 +204,6 @@ class PartLayout {
 			titleSize = Dimension.None;
 		}
 
-		// Header Size: Width (Fill), Height (Variable)
 		let headerSize: Dimension;
 		if (this.headerVisible) {
 			const headerHeight = isStyleOverride ? PartLayout.AREA_HEIGHT_STYLE_OVERRIDE : PartLayout.HEADER_HEIGHT;
@@ -247,7 +212,6 @@ class PartLayout {
 			headerSize = Dimension.None;
 		}
 
-		// Footer Size: Width (Fill), Height (Variable)
 		let footerSize: Dimension;
 		if (this.footerVisible) {
 			const footerHeight = isStyleOverride ? PartLayout.AREA_HEIGHT_STYLE_OVERRIDE : PartLayout.FOOTER_HEIGHT;
@@ -258,13 +222,11 @@ class PartLayout {
 
 		let contentWidth = width;
 		if (this.options && typeof this.options.borderWidth === 'function') {
-			contentWidth -= this.options.borderWidth(); // adjust for border size
+			contentWidth -= this.options.borderWidth();
 		}
 
-		// Content Size: Width (Fill), Height (Variable)
 		const contentSize = new Dimension(contentWidth, height - titleSize.height - headerSize.height - footerSize.height);
 
-		// Content
 		if (this.contentArea) {
 			size(this.contentArea, contentSize.width, contentSize.height);
 		}

@@ -11,42 +11,18 @@ import { createDecorator } from '../../../platform/instantiation/common/instanti
 
 export const IRenameSymbolTrackerService = createDecorator<IRenameSymbolTrackerService>('renameSymbolTrackerService');
 
-/**
- * Represents a tracked word that is being edited by the user.
- */
 export interface ITrackedWord {
-	/**
-	 * The model in which the word is being tracked.
-	 */
 	readonly model: ITextModel;
-	/**
-	 * The original word text when tracking started.
-	 */
 	readonly originalWord: string;
-	/**
-	 * The original position where the word was found.
-	 */
 	readonly originalPosition: Position;
-	/**
-	 * The original range of the word when tracking started.
-	 */
 	readonly originalRange: Range;
-	/**
-	 * The current word text after edits.
-	 */
 	readonly currentWord: string;
-	/**
-	 * The current range of the word after edits.
-	 */
 	readonly currentRange: Range;
 }
 
 export interface IRenameSymbolTrackerService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Observable that emits the currently tracked word, or undefined if no word is being tracked.
-	 */
 	readonly trackedWord: IObservable<ITrackedWord | undefined>;
 }
 

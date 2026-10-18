@@ -21,71 +21,32 @@ export const ITestProfileService = createDecorator<ITestProfileService>('testPro
 export interface ITestProfileService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fired when any profile changes.
-	 */
 	readonly onDidChange: Event<void>;
 
-	/**
-	 * Publishes a new test profile.
-	 */
 	addProfile(controller: IMainThreadTestController, profile: ITestRunProfile): void;
 
-	/**
-	 * Updates an existing test run profile
-	 */
 	updateProfile(controllerId: string, profileId: number, update: Partial<ITestRunProfile>): void;
 
-	/**
-	 * Removes a profile. If profileId is not given, all profiles
-	 * for the given controller will be removed.
-	 */
 	removeProfile(controllerId: string, profileId?: number): void;
 
-	/**
-	 * Gets capabilities for the given test, indicating whether
-	 * there's any usable profiles available for those groups.
-	 * @returns a bitset to use with {@link TestRunProfileBitset}
-	 */
 	capabilitiesForTest(test: ITestItem): number;
 
-	/**
-	 * Configures a test profile.
-	 */
 	configure(controllerId: string, profileId: number): void;
 
-	/**
-	 * Gets all registered controllers, grouping by controller.
-	 */
 	all(): Iterable<Readonly<{
 		controller: IMainThreadTestController;
 		profiles: ITestRunProfile[];
 	}>>;
 
-	/**
-	 * Gets the default profiles to be run for a given run group.
-	 */
 	getGroupDefaultProfiles(group: TestRunProfileBitset, controllerId?: string): ITestRunProfile[];
 
-	/**
-	 * Sets the default profiles to be run for a given run group.
-	 */
 	setGroupDefaultProfiles(group: TestRunProfileBitset, profiles: ITestRunProfile[]): void;
 
-	/**
-	 * Gets the profiles for a controller, in priority order.
-	 */
 	getControllerProfiles(controllerId: string): ITestRunProfile[];
 
-	/**
-	 * Gets the preferred profile, if any, to run the test.
-	 */
 	getDefaultProfileForTest(group: TestRunProfileBitset, test: InternalTestItem): ITestRunProfile | undefined;
 }
 
-/**
- * Gets whether the given profile can be used to run the test.
- */
 export const canUseProfileWithTest = (profile: ITestRunProfile, test: InternalTestItem) =>
 	profile.controllerId === test.controllerId && (TestId.isRoot(test.item.extId) || !profile.tag || test.item.tags.includes(profile.tag));
 
@@ -101,29 +62,24 @@ interface IExtendedTestRunProfile extends ITestRunProfile {
 	wasInitiallyDefault: boolean;
 }
 
-/**
- * Given a capabilities bitset, returns a map of context keys representing
- * them.
- */
 export const capabilityContextKeys = (capabilities: number): [key: string, value: boolean][] => [
 	[TestingContextKeys.hasRunnableTests.key, (capabilities & TestRunProfileBitset.Run) !== 0],
 	[TestingContextKeys.hasDebuggableTests.key, (capabilities & TestRunProfileBitset.Debug) !== 0],
 	[TestingContextKeys.hasCoverableTests.key, (capabilities & TestRunProfileBitset.Coverage) !== 0],
 ];
 
-type DefaultsMap = { [controllerId: string]: { [profileId: number]: /* isDefault */ boolean } };
+type DefaultsMap = { [controllerId: string]: { [profileId: number]: boolean } };
 
 export class TestProfileService extends Disposable implements ITestProfileService {
 	declare readonly _serviceBrand: undefined;
 	private readonly userDefaults: StoredValue<DefaultsMap>;
 	private readonly capabilitiesContexts: { [K in TestRunProfileBitset]: IContextKey<boolean> };
 	private readonly changeEmitter = this._register(new Emitter<void>());
-	private readonly controllerProfiles = new Map</* controller ID */string, {
+	private readonly controllerProfiles = new Map< string, {
 		profiles: IExtendedTestRunProfile[];
 		controller: IMainThreadTestController;
 	}>();
 
-	/** @inheritdoc */
 	public readonly onDidChange = this.changeEmitter.event;
 
 	constructor(
@@ -132,7 +88,7 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 	) {
 		super();
 
-		storageService.remove('testingPreferredProfiles', StorageScope.WORKSPACE); // cleanup old format
+		storageService.remove('testingPreferredProfiles', StorageScope.WORKSPACE);
 		this.userDefaults = this._register(new StoredValue({
 			key: 'testingPreferredProfiles2',
 			scope: StorageScope.WORKSPACE,
@@ -151,7 +107,6 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 		this.refreshContextKeys();
 	}
 
-	/** @inheritdoc */
 	public addProfile(controller: IMainThreadTestController, profile: ITestRunProfile): void {
 		const previousExplicitDefaultValue = this.userDefaults.get()?.[controller.id]?.[profile.profileId];
 		const extended: IExtendedTestRunProfile = {
@@ -176,7 +131,6 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 		this.changeEmitter.fire();
 	}
 
-	/** @inheritdoc */
 	public updateProfile(controllerId: string, profileId: number, update: Partial<ITestRunProfile>): void {
 		const ctrl = this.controllerProfiles.get(controllerId);
 		if (!ctrl) {
@@ -191,8 +145,6 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 		Object.assign(profile, update);
 		ctrl.profiles.sort(sorter);
 
-		// store updates is isDefault as if the user changed it (which they might
-		// have through some extension-contributed UI)
 		if (update.isDefault !== undefined) {
 			const map = deepClone(this.userDefaults.get({}));
 			setIsDefault(map, profile, update.isDefault);
@@ -202,12 +154,10 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 		this.changeEmitter.fire();
 	}
 
-	/** @inheritdoc */
 	public configure(controllerId: string, profileId: number) {
 		this.controllerProfiles.get(controllerId)?.controller.configureRunProfile(profileId);
 	}
 
-	/** @inheritdoc */
 	public removeProfile(controllerId: string, profileId?: number): void {
 		const ctrl = this.controllerProfiles.get(controllerId);
 		if (!ctrl) {
@@ -230,7 +180,6 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 		this.changeEmitter.fire();
 	}
 
-	/** @inheritdoc */
 	public capabilitiesForTest(test: ITestItem) {
 		const ctrl = this.controllerProfiles.get(TestId.root(test.extId));
 		if (!ctrl) {
@@ -247,24 +196,20 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 		return capabilities;
 	}
 
-	/** @inheritdoc */
 	public all() {
 		return this.controllerProfiles.values();
 	}
 
-	/** @inheritdoc */
 	public getControllerProfiles(profileId: string) {
 		return this.controllerProfiles.get(profileId)?.profiles ?? [];
 	}
 
-	/** @inheritdoc */
 	public getGroupDefaultProfiles(group: TestRunProfileBitset, controllerId?: string) {
 		const allProfiles = controllerId
 			? (this.controllerProfiles.get(controllerId)?.profiles || [])
 			: [...Iterable.flatMap(this.controllerProfiles.values(), c => c.profiles)];
 		const defaults = allProfiles.filter(c => c.group === group && c.isDefault);
 
-		// have *some* default profile to run if none are set otherwise
 		if (defaults.length === 0) {
 			const first = allProfiles.find(p => p.group === group);
 			if (first) {
@@ -275,7 +220,6 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 		return defaults;
 	}
 
-	/** @inheritdoc */
 	public setGroupDefaultProfiles(group: TestRunProfileBitset, profiles: ITestRunProfile[]) {
 		const next: DefaultsMap = {};
 		for (const ctrl of this.controllerProfiles.values()) {
@@ -288,8 +232,6 @@ export class TestProfileService extends Disposable implements ITestProfileServic
 				setIsDefault(next, profile, profiles.some(p => p.profileId === profile.profileId));
 			}
 
-			// When switching a profile, if the controller has a same-named profile in
-			// other groups, update those to match the enablement state as well.
 			for (const profile of ctrl.profiles) {
 				if (profile.group === group) {
 					continue;

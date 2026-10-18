@@ -65,7 +65,7 @@ export class MockFileSystemService implements IFileSystemService {
 	}
 
 	async stat(uri: URI): Promise<FileStat> {
-		this.statCalls++; // Track stat calls to verify caching
+		this.statCalls++;
 		const uriString = uri.toString();
 		if (this.mockErrors.has(uriString)) {
 			throw this.mockErrors.get(uriString);
@@ -82,14 +82,12 @@ export class MockFileSystemService implements IFileSystemService {
 		throw new Error('ENOENT');
 	}
 
-	// Required interface methods
 	isWritableFileSystem(): boolean | undefined { return true; }
 	createFileSystemWatcher(): FileSystemWatcher { throw new Error('not implemented'); }
 
 	async createDirectory(uri: URI): Promise<void> {
 		const uriString = uri.toString();
 
-		// Recursively ensure parent directories exist first
 		const parentUri = dirname(uri);
 		if (parentUri && parentUri.toString() !== uriString) {
 			if (!this.mockDirs.has(parentUri.toString())) {
@@ -103,10 +101,8 @@ export class MockFileSystemService implements IFileSystemService {
 			}
 		}
 
-		// Mark as directory by adding empty entry list
 		if (!this.mockDirs.has(uriString)) {
 			this.mockDirs.set(uriString, []);
-			// Store creation time for stat() calls
 			this.mockMtimes.set(uriString, Date.now());
 		}
 	}
@@ -115,10 +111,8 @@ export class MockFileSystemService implements IFileSystemService {
 		const uriString = uri.toString();
 		const text = new TextDecoder().decode(content);
 		this.mockFiles.set(uriString, text);
-		// Store write time for stat() calls
 		this.mockMtimes.set(uriString, Date.now());
 
-		// add the file to the mock directory listing of its parent directory
 		const parentUri = uriString.substring(0, uriString.lastIndexOf('/'));
 		if (this.mockDirs.has(parentUri)) {
 			const entries = this.mockDirs.get(parentUri)!;
@@ -150,12 +144,10 @@ export class MockFileSystemService implements IFileSystemService {
 		const oldUriString = oldURI.toString();
 		const newUriString = newURI.toString();
 
-		// Check if target exists and overwrite is not allowed
 		if (!options?.overwrite && (this.mockFiles.has(newUriString) || this.mockDirs.has(newUriString))) {
 			throw new Error('EEXIST: File exists');
 		}
 
-		// Move file or directory
 		if (this.mockFiles.has(oldUriString)) {
 			const content = this.mockFiles.get(oldUriString)!;
 			this.mockFiles.set(newUriString, content);

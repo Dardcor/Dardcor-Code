@@ -21,7 +21,6 @@ import { Emitter } from '../../../../base/common/event.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { ExtensionIdentifier } from '../../../../platform/extensions/common/extensions.js';
 
-// OAuth2 spec prohibits space in a scope, so use that to join them.
 const SCOPESLIST_SEPARATOR = ' ';
 
 interface SessionRequest {
@@ -33,7 +32,6 @@ interface SessionRequestInfo {
 	[scopesList: string]: SessionRequest;
 }
 
-// TODO@TylerLeonhardt: This should all go in MainThreadAuthentication
 export class AuthenticationExtensionsService extends Disposable implements IAuthenticationExtensionsService {
 	declare readonly _serviceBrand: undefined;
 	private _signInRequestItems = new Map<string, SessionRequestInfo>();
@@ -92,10 +90,8 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		}
 
 		Object.keys(existingRequestsForProvider).forEach(requestedScopes => {
-			// Parse the requested scopes from the stored key
 			const requestedScopesArray = requestedScopes.split(SCOPESLIST_SEPARATOR);
 
-			// Check if any added session has matching scopes (order-independent)
 			if (addedSessions.some(session => scopesMatch(session.scopes, requestedScopesArray))) {
 				const sessionRequest = existingRequestsForProvider[requestedScopes];
 				sessionRequest?.disposables.forEach(item => item.dispose());
@@ -158,15 +154,12 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		}
 	}
 
-	//#region Account/Session Preference
 
 	updateAccountPreference(extensionId: string, providerId: string, account: AuthenticationSessionAccount): void {
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
 		const parentExtensionId = this._inheritAuthAccountPreferenceChildToParent[realExtensionId] ?? realExtensionId;
 		const key = this._getKey(parentExtensionId, providerId);
 
-		// Store the preference in the workspace and application storage. This allows new workspaces to
-		// have a preference set already to limit the number of prompts that are shown... but also allows
 		// a specific workspace to override the global preference.
 		this.storageService.store(key, account.label, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		this.storageService.store(key, account.label, StorageScope.APPLICATION, StorageTarget.MACHINE);
@@ -188,10 +181,7 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
 		const key = this._getKey(this._inheritAuthAccountPreferenceChildToParent[realExtensionId] ?? realExtensionId, providerId);
 
-		// This won't affect any other workspaces that have a preference set, but it will remove the preference
 		// for this workspace and the global preference. This is only paired with a call to updateSessionPreference...
-		// so we really don't _need_ to remove them as they are about to be overridden anyway... but it's more correct
-		// to remove them first... and in case this gets called from somewhere else in the future.
 		this.storageService.remove(key, StorageScope.WORKSPACE);
 		this.storageService.remove(key, StorageScope.APPLICATION);
 	}
@@ -200,18 +190,11 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		return `${extensionId}-${providerId}`;
 	}
 
-	// TODO@TylerLeonhardt: Remove all of this after a couple iterations
 
 	updateSessionPreference(providerId: string, extensionId: string, session: AuthenticationSession): void {
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
-		// The 3 parts of this key are important:
-		// * Extension id: The extension that has a preference
-		// * Provider id: The provider that the preference is for
-		// * The scopes: The subset of sessions that the preference applies to
 		const key = `${realExtensionId}-${providerId}-${session.scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// Store the preference in the workspace and application storage. This allows new workspaces to
-		// have a preference set already to limit the number of prompts that are shown... but also allows
 		// a specific workspace to override the global preference.
 		this.storageService.store(key, session.id, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 		this.storageService.store(key, session.id, StorageScope.APPLICATION, StorageTarget.MACHINE);
@@ -219,10 +202,6 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 
 	getSessionPreference(providerId: string, extensionId: string, scopes: string[]): string | undefined {
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
-		// The 3 parts of this key are important:
-		// * Extension id: The extension that has a preference
-		// * Provider id: The provider that the preference is for
-		// * The scopes: The subset of sessions that the preference applies to
 		const key = `${realExtensionId}-${providerId}-${scopes.join(SCOPESLIST_SEPARATOR)}`;
 
 		// If a preference is set in the workspace, use that. Otherwise, use the global preference.
@@ -231,16 +210,9 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 
 	removeSessionPreference(providerId: string, extensionId: string, scopes: string[]): void {
 		const realExtensionId = ExtensionIdentifier.toKey(extensionId);
-		// The 3 parts of this key are important:
-		// * Extension id: The extension that has a preference
-		// * Provider id: The provider that the preference is for
-		// * The scopes: The subset of sessions that the preference applies to
 		const key = `${realExtensionId}-${providerId}-${scopes.join(SCOPESLIST_SEPARATOR)}`;
 
-		// This won't affect any other workspaces that have a preference set, but it will remove the preference
 		// for this workspace and the global preference. This is only paired with a call to updateSessionPreference...
-		// so we really don't _need_ to remove them as they are about to be overridden anyway... but it's more correct
-		// to remove them first... and in case this gets called from somewhere else in the future.
 		this.storageService.remove(key, StorageScope.WORKSPACE);
 		this.storageService.remove(key, StorageScope.APPLICATION);
 	}
@@ -250,7 +222,6 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		this.updateSessionPreference(providerId, extensionId, session);
 	}
 
-	//#endregion
 
 	private async showGetSessionPrompt(provider: IAuthenticationProvider, accountName: string, extensionId: string, extensionName: string): Promise<boolean> {
 		enum SessionPromptChoice {
@@ -284,9 +255,6 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		return result === SessionPromptChoice.Allow;
 	}
 
-	/**
-	 * This function should be used only when there are sessions to disambiguate.
-	 */
 	async selectSession(providerId: string, extensionId: string, extensionName: string, scopeListOrRequest: ReadonlyArray<string> | IAuthenticationWwwAuthenticateRequest, availableSessions: AuthenticationSession[]): Promise<AuthenticationSession> {
 		const allAccounts = await this._authenticationService.getAccounts(providerId);
 		if (!allAccounts.length) {
@@ -297,7 +265,6 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 		quickPick.ignoreFocusOut = true;
 		const accountsWithSessions = new Set<string>();
 		const items: { label: string; session?: AuthenticationSession; account?: AuthenticationSessionAccount }[] = availableSessions
-			// Only grab the first account
 			.filter(session => !accountsWithSessions.has(session.account.label) && accountsWithSessions.add(session.account.label))
 			.map(session => {
 				return {
@@ -306,8 +273,6 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 				};
 			});
 
-		// Add the additional accounts that have been logged into the provider but are
-		// don't have a session yet.
 		allAccounts.forEach(account => {
 			if (!accountsWithSessions.has(account.label)) {
 				items.push({ label: account.label, account });
@@ -376,7 +341,6 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 			try {
 				session = await this.selectSession(provider.id, extensionId, extensionName, scopeListOrRequest, possibleSessions);
 			} catch (_) {
-				// ignore cancel
 			}
 		} else {
 			const approved = await this.showGetSessionPrompt(provider, possibleSessions[0].account.label, extensionId, extensionName);
@@ -426,9 +390,6 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 
 	async requestNewSession(providerId: string, scopeListOrRequest: ReadonlyArray<string> | IAuthenticationWwwAuthenticateRequest, extensionId: string, extensionName: string): Promise<void> {
 		if (!this._authenticationService.isAuthenticationProviderRegistered(providerId)) {
-			// Activate has already been called for the authentication provider, but it cannot block on registering itself
-			// since this is sync and returns a disposable. So, wait for registration event to fire that indicates the
-			// provider is now in the map.
 			await new Promise<void>((resolve, _) => {
 				const dispose = this._authenticationService.onDidRegisterAuthenticationProvider(e => {
 					if (e.id === providerId) {
@@ -458,7 +419,6 @@ export class AuthenticationExtensionsService extends Disposable implements IAuth
 			return;
 		}
 
-		// Construct a commandId that won't clash with others generated here, nor likely with an extension's command
 		const commandId = `${providerId}:${extensionId}:signIn${Object.keys(providerRequests || []).length}`;
 		const menuItem = MenuRegistry.appendMenuItem(MenuId.AccountsContext, {
 			group: '2_signInRequests',

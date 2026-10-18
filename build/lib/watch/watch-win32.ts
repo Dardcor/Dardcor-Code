@@ -37,7 +37,6 @@ function watch(root: string): Stream {
 			const changeType = line[0] as '0' | '1' | '2';
 			const changePath = line.substr(2);
 
-			// filter as early as possible
 			if (/^\.git/.test(changePath) || /(^|\\)out($|\\)/.test(changePath)) {
 				continue;
 			}
@@ -87,7 +86,7 @@ export default function (pattern: string | string[] | FileFunction, options?: { 
 	});
 
 	return watcher
-		.pipe(filter(['**', '!.git{,/**}'], { dot: options.dot })) // ignore all things git
+		.pipe(filter(['**', '!.git{,/**}'], { dot: options.dot }))
 		.pipe(filter(pattern, { dot: options.dot }))
 		.pipe(es.map(function (file: File, cb) {
 			fs.stat(file.path, function (err, stat) {

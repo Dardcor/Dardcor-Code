@@ -18,12 +18,10 @@ import { startTurn } from './agentHostTurnStarter.js';
 
 export const IAgentHostTurnService = createDecorator<IAgentHostTurnService>('agentHostTurnService');
 
-/** An active host-authored turn whose provider execution has not started yet. */
 export interface IDeferredAgentHostTurn {
 	readonly turnId: string;
 }
 
-/** Starts host-authored turns through the standard admission and provider-send path. */
 export interface IAgentHostTurnService {
 	readonly _serviceBrand: undefined;
 	startTurnMessage(chat: URI, message: Message): void;
@@ -33,7 +31,6 @@ export interface IAgentHostTurnService {
 	handleTurnStarted(channel: ProtocolURI, action: ChatTurnStartedAction, clientId?: string, clientContextOrType?: IAgentHostClientTelemetryContext | AgentHostClientType): void;
 }
 
-/** Standard turn admission and provider routing shared by client- and host-authored turns. */
 export class AgentHostTurnService implements IAgentHostTurnService {
 
 	declare readonly _serviceBrand: undefined;

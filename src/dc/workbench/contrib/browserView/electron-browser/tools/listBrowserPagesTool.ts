@@ -18,8 +18,6 @@ export const ListBrowserPagesToolData: IToolData = {
 	modelDescription: 'Lists the browser pages that are currently shared with the agent.',
 	source: ToolDataSource.Internal,
 
-	// Note: this tool has no toolReferenceName and cannot be referenced in prompts.
-	// It is not intended to be used by models directly since browser pages are supplied as context.
 	canBeReferencedInPrompt: false,
 
 	inputSchema: {

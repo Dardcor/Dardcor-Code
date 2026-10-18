@@ -70,9 +70,6 @@ export class DialogMainService implements IDialogMainService {
 		};
 
 		if (isWindows) {
-			// Due to Windows/Electron issue the labels on Open Folder dialog have no hot keys.
-			// We can fix this here for the button label, but some other labels remain inaccessible.
-			// See https://github.com/electron/electron/issues/48631 for more info.
 			optionsInternal = {
 				...optionsInternal,
 				buttonLabel: mnemonicButtonLabel(localize({ key: 'selectFolder', comment: ['&& denotes a mnemonic'] }, "&&Select folder")).withMnemonic
@@ -96,7 +93,6 @@ export class DialogMainService implements IDialogMainService {
 
 	private async doPick(options: IInternalNativeOpenDialogOptions, window?: electron.BrowserWindow): Promise<string[] | undefined> {
 
-		// Ensure dialog options
 		const dialogOptions: electron.OpenDialogOptions = {
 			title: options.title,
 			buttonLabel: options.buttonLabel,
@@ -104,9 +100,8 @@ export class DialogMainService implements IDialogMainService {
 			defaultPath: options.defaultPath
 		};
 
-		// Ensure properties
 		if (typeof options.pickFiles === 'boolean' || typeof options.pickFolders === 'boolean') {
-			dialogOptions.properties = undefined; // let it override based on the booleans
+			dialogOptions.properties = undefined;
 
 			if (options.pickFiles && options.pickFolders) {
 				dialogOptions.properties = ['multiSelections', 'openDirectory', 'openFile', 'createDirectory'];
@@ -118,10 +113,9 @@ export class DialogMainService implements IDialogMainService {
 		}
 
 		if (isMacintosh) {
-			dialogOptions.properties.push('treatPackageAsDirectory'); // always drill into .app files
+			dialogOptions.properties.push('treatPackageAsDirectory');
 		}
 
-		// Show Dialog
 		const result = await this.showOpenDialog(dialogOptions, (window || electron.BrowserWindow.getFocusedWindow()) ?? undefined);
 		if (result?.filePaths && result.filePaths.length > 0) {
 			return result.filePaths;
@@ -132,8 +126,6 @@ export class DialogMainService implements IDialogMainService {
 
 	private getWindowDialogQueue<T extends electron.MessageBoxReturnValue | electron.SaveDialogReturnValue | electron.OpenDialogReturnValue>(window?: electron.BrowserWindow): Queue<T> {
 
-		// Queue message box requests per window so that one can show
-		// after the other.
 		if (window) {
 			let windowDialogQueue = this.windowDialogQueues.get(window.id);
 			if (!windowDialogQueue) {
@@ -167,7 +159,6 @@ export class DialogMainService implements IDialogMainService {
 
 	async showSaveDialog(options: electron.SaveDialogOptions, window?: electron.BrowserWindow): Promise<electron.SaveDialogReturnValue> {
 
-		// Prevent duplicates of the same dialog queueing at the same time
 		const fileDialogLock = this.acquireFileDialogLock(options, window);
 		if (!fileDialogLock) {
 			this.logService.error('[DialogMainService]: file save dialog is already or will be showing for the window with the same configuration');
@@ -197,7 +188,7 @@ export class DialogMainService implements IDialogMainService {
 	private normalizePath(path: string | undefined): string | undefined;
 	private normalizePath(path: string | undefined): string | undefined {
 		if (path && isMacintosh) {
-			path = normalizeNFC(path); // macOS only: normalize paths to NFC form
+			path = normalizeNFC(path);
 		}
 
 		return path;
@@ -209,7 +200,6 @@ export class DialogMainService implements IDialogMainService {
 
 	async showOpenDialog(options: electron.OpenDialogOptions, window?: electron.BrowserWindow): Promise<electron.OpenDialogReturnValue> {
 
-		// Ensure the path exists (if provided)
 		if (options.defaultPath) {
 			const pathExists = await Promises.exists(options.defaultPath);
 			if (!pathExists) {
@@ -217,7 +207,6 @@ export class DialogMainService implements IDialogMainService {
 			}
 		}
 
-		// Prevent duplicates of the same dialog queueing at the same time
 		const fileDialogLock = this.acquireFileDialogLock(options, window);
 		if (!fileDialogLock) {
 			this.logService.error('[DialogMainService]: file open dialog is already or will be showing for the window with the same configuration');
@@ -245,18 +234,10 @@ export class DialogMainService implements IDialogMainService {
 
 	private acquireFileDialogLock(options: electron.SaveDialogOptions | electron.OpenDialogOptions, window?: electron.BrowserWindow): IDisposable | undefined {
 
-		// If no window is provided, allow as many dialogs as
-		// needed since we consider them not modal per window
 		if (!window) {
 			return Disposable.None;
 		}
 
-		// If a window is provided, only allow a single dialog
-		// at the same time because dialogs are modal and we
-		// do not want to open one dialog after the other
-		// (https://github.com/microsoft/vscode/issues/114432)
-		// we figure this out by `hashing` the configuration
-		// options for the dialog to prevent duplicates
 
 		this.logService.trace('[DialogMainService]: request to acquire file dialog lock', options);
 
@@ -268,7 +249,7 @@ export class DialogMainService implements IDialogMainService {
 
 		const optionsHash = hash(options);
 		if (windowFileDialogLocks.has(optionsHash)) {
-			return undefined; // prevent duplicates, return
+			return undefined;
 		}
 
 		this.logService.trace('[DialogMainService]: new file dialog lock created', options);
@@ -280,7 +261,6 @@ export class DialogMainService implements IDialogMainService {
 
 			windowFileDialogLocks?.delete(optionsHash);
 
-			// If the window has no more dialog locks, delete it from the set of locks
 			if (windowFileDialogLocks?.size === 0) {
 				this.windowFileDialogLocks.delete(window.id);
 			}

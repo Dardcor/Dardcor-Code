@@ -15,10 +15,6 @@ const $ = DOM.$;
 export const CUSTOMIZATION_GROUP_HEADER_HEIGHT = 36;
 export const CUSTOMIZATION_GROUP_HEADER_HEIGHT_WITH_SEPARATOR = 40;
 
-/**
- * Common shape for a collapsible group header entry used in the
- * MCP-server and plugin list widgets.
- */
 export interface ICustomizationGroupHeaderEntry {
 	readonly type: 'group-header';
 	readonly id: string;
@@ -41,10 +37,6 @@ interface ICustomizationGroupHeaderTemplateData {
 	readonly elementDisposables: DisposableStore;
 }
 
-/**
- * Shared renderer for collapsible group headers in the AI Customization
- * list widgets (MCP servers, plugins, etc.).
- */
 export class CustomizationGroupHeaderRenderer<T extends ICustomizationGroupHeaderEntry> implements IListRenderer<T, ICustomizationGroupHeaderTemplateData> {
 
 	constructor(

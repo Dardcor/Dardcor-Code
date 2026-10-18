@@ -19,14 +19,9 @@ export interface IParsedQuery {
 	toolReferences: ChatLanguageModelToolReference[];
 }
 
-/**
- * This has to recreate some of the variable parsing logic in VS Code so that we can write tests easily with variables
- * as strings, but then provide the extension code with the parsed variables in the extension API format.
-*/
 export async function parseQueryForScenarioTest(accessor: ITestingServicesAccessor, testCase: IConversationTestCase, simulationWorkspace: SimulationWorkspace): Promise<IParsedQuery> {
 	const query = await parseQueryForTest(accessor, testCase.question, simulationWorkspace);
 
-	// Simulate implicit context enablement
 	const activeTextEditor = simulationWorkspace.activeTextEditor;
 	if (activeTextEditor) {
 		const selection = activeTextEditor.selections?.[0];

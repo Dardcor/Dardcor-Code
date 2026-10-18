@@ -54,11 +54,8 @@ export class BrowserWorkspaceEditingService extends AbstractWorkspaceEditingServ
 		const result = await this.doEnterWorkspace(workspaceUri);
 		if (result) {
 
-			// Fire event to allow participants to join
-			// and possibly migrate data into this workspace
 			await this.fireDidEnterWorkspace(oldWorkspace, result.workspace);
 
-			// Open workspace in same window
 			await this.hostService.openWindow([{ workspaceUri }], { forceReuseWindow: true });
 		}
 	}

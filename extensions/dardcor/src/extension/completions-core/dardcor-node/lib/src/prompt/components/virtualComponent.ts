@@ -21,7 +21,6 @@ import {
 } from '../render/renderNode';
 import { getAvailableNodeId, NodeCostFunction } from '../render/utils';
 
-/* How many lines of prefix/suffix should have cached token costs */
 const NUM_CACHED_LINE_COSTS = 20_000;
 
 export type RenderedComponent = {
@@ -34,9 +33,7 @@ export type RenderedComponent = {
 
 export type ComponentSnapshot = {
 	root: RenderNode;
-	// A set of node IDs to exclude from rendering (e.g. because they are already included elsewhere in the prompt, or are invalid for this request).
 	mask?: NodeId[];
-	// Nodes to be tracked for telemetry statistics
 	statistics?: Map<NodeId, ComponentStatistics>;
 };
 
@@ -51,7 +48,7 @@ export interface VirtualPromptComponent {
 	estimatedCost?(options: CompletionsPromptOptions, context?: ValidatedContextItems): number;
 }
 
-let renderId = 0; // Unique across all render calls, used for telemetry
+let renderId = 0;
 const renderCache = new LRUCacheMap<
 	NodeId,
 	{ budget: number; mask: Set<NodeId>; tokenizer: TokenizerName; render: RenderedText }
@@ -79,11 +76,8 @@ export function renderWithMetadata(
 		maskSet.size === cachedRender.mask.size &&
 		[...maskSet].every(id => cachedRender.mask.has(id))
 	) {
-		// If we have a cached render, use it if we expect the same result
-		// (identical masks and tokenizer, cost within budget, and previous budget at least as large as current budget)
 		renderedText = cachedRender.render;
 	} else {
-		// Otherwise, render the node
 		const tokenizer = getTokenizer(tokenizerName);
 		const costFunction = (text: string) => tokenizer.tokenLength(text);
 		renderedText = render(root, { budget, mask, costFunction });
@@ -97,8 +91,6 @@ export function renderWithMetadata(
 	const { text, cost, renderedNodes } = renderedText;
 	const elisionEnd = performance.now();
 	for (const [id, stat] of statistics?.entries() ?? []) {
-		// Note that we are currently only recording the cost of the node itself, not the costs of its children.
-		// This is enough for existing telemetry, since we put CodeSnippets and Traits in their own nodes.
 		stat.actualTokens = renderedNodes.get(id)?.cost ?? 0;
 	}
 	const metadata: PromptMetadata = {
@@ -116,8 +108,6 @@ export function renderWithMetadata(
 function cachedLineCostFunction(tokenizer: Tokenizer, cache: Map<string, number>): NodeCostFunction {
 	return (node: IVirtualNode) => {
 		const key = node.text.join('') + '\n';
-		// since actual token costs aren't known until we concatenate the lines,
-		// we slightly overestimate the cost to increase likelihood of respecting budget on first try
 		return setDefault(cache, key, () => tokenizer.tokenLength(key) + 1);
 	};
 }
@@ -130,11 +120,8 @@ function getLinewiseNode(raw: string, costFunction: NodeCostFunction, reversed: 
 		seps.push(...Array<string>(children.length - 1).fill('\n'), '');
 	}
 	const virtualNode = { id: getAvailableNodeId(), text: seps, children, canMerge: true };
-	// Don't include elision marker in node cost, since there will be at most one such marker
 	const nodeCostFunction = (node: IVirtualNode) => (node.id === virtualNode.id ? 0 : costFunction(node));
 	const root = snapshot(virtualNode, nodeCostFunction);
-	// Weight lines so that each line is has less value than the following one
-	// (Or more value, if reversed)
 	let valueTarget = reversed ? children.length : 1;
 	for (const child of root.children) {
 		child.weight = valueTarget * Math.max(1, child.cost);

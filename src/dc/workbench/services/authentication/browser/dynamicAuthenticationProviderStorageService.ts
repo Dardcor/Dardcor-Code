@@ -28,14 +28,12 @@ export class DynamicAuthenticationProviderStorageService extends Disposable impl
 	) {
 		super();
 
-		// Listen for secret storage changes and emit events for dynamic auth provider token changes
 		const queue = new Queue<void>();
 		this._register(this.secretStorageService.onDidChangeSecret(async (key: string) => {
 			let payload: { isDynamicAuthProvider: boolean; authProviderId: string; clientId: string } | undefined;
 			try {
 				payload = JSON.parse(key);
 			} catch (error) {
-				// Ignore errors... must not be a dynamic auth provider
 			}
 			if (payload?.isDynamicAuthProvider) {
 				void queue.queue(async () => {
@@ -51,7 +49,6 @@ export class DynamicAuthenticationProviderStorageService extends Disposable impl
 	}
 
 	async getClientRegistration(providerId: string): Promise<{ clientId?: string; clientSecret?: string } | undefined> {
-		// First try new combined SecretStorage format
 		const key = `dynamicAuthProvider:clientRegistration:${providerId}`;
 		const credentialsValue = await this.secretStorageService.get(key);
 		if (credentialsValue) {
@@ -65,24 +62,20 @@ export class DynamicAuthenticationProviderStorageService extends Disposable impl
 			}
 		}
 
-		// Just grab the client id from the provider
 		const providers = this._getStoredProviders();
 		const provider = providers.find(p => p.providerId === providerId);
 		return provider?.clientId ? { clientId: provider.clientId } : undefined;
 	}
 
 	getClientId(providerId: string): string | undefined {
-		// For backward compatibility, try old storage format first
 		const providers = this._getStoredProviders();
 		const provider = providers.find(p => p.providerId === providerId);
 		return provider?.clientId;
 	}
 
 	async storeClientRegistration(providerId: string, authorizationServer: string, clientId: string, clientSecret?: string, label?: string): Promise<void> {
-		// Store provider information for backward compatibility and UI display
 		this._trackProvider(providerId, authorizationServer, clientId, label);
 
-		// Store both client ID and secret together in SecretStorage
 		const key = `dynamicAuthProvider:clientRegistration:${providerId}`;
 		const credentials = { clientId, clientSecret };
 		await this.secretStorageService.set(key, JSON.stringify(credentials));
@@ -91,13 +84,11 @@ export class DynamicAuthenticationProviderStorageService extends Disposable impl
 	private _trackProvider(providerId: string, authorizationServer: string, clientId: string, label?: string): void {
 		const providers = this._getStoredProviders();
 
-		// Check if provider already exists
 		const existingProviderIndex = providers.findIndex(p => p.providerId === providerId);
 		if (existingProviderIndex === -1) {
-			// Add new provider with provided or default info
 			const newProvider: DynamicAuthenticationProviderInfo = {
 				providerId,
-				label: label || providerId, // Use provided label or providerId as default
+				label: label || providerId,
 				authorizationServer,
 				clientId
 			};
@@ -105,7 +96,6 @@ export class DynamicAuthenticationProviderStorageService extends Disposable impl
 			this._storeProviders(providers);
 		} else {
 			const existingProvider = providers[existingProviderIndex];
-			// Create new provider object with updated info
 			const updatedProvider: DynamicAuthenticationProviderInfo = {
 				providerId,
 				label: label || existingProvider.label,
@@ -121,7 +111,6 @@ export class DynamicAuthenticationProviderStorageService extends Disposable impl
 		const stored = this.storageService.get(DynamicAuthenticationProviderStorageService.PROVIDERS_STORAGE_KEY, StorageScope.APPLICATION, '[]');
 		try {
 			const providerInfos = JSON.parse(stored);
-			// MIGRATION: remove after an iteration or 2
 			for (const providerInfo of providerInfos) {
 				if (!providerInfo.authorizationServer) {
 					providerInfo.authorizationServer = providerInfo.issuer;
@@ -147,21 +136,17 @@ export class DynamicAuthenticationProviderStorageService extends Disposable impl
 	}
 
 	async removeDynamicProvider(providerId: string): Promise<void> {
-		// Get provider info before removal for secret cleanup
 		const providers = this._getStoredProviders();
 		const providerInfo = providers.find(p => p.providerId === providerId);
 
-		// Remove from stored providers
 		const filteredProviders = providers.filter(p => p.providerId !== providerId);
 		this._storeProviders(filteredProviders);
 
-		// Remove sessions from secret storage if we have the provider info
 		if (providerInfo) {
 			const secretKey = JSON.stringify({ isDynamicAuthProvider: true, authProviderId: providerId, clientId: providerInfo.clientId });
 			await this.secretStorageService.delete(secretKey);
 		}
 
-		// Remove client credentials from new SecretStorage format
 		const credentialsKey = `dynamicAuthProvider:clientRegistration:${providerId}`;
 		await this.secretStorageService.delete(credentialsKey);
 	}

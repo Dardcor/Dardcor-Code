@@ -2,7 +2,6 @@ import { Buffer } from "node:buffer";
 import { createErrorResult } from "../utils/error.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
 
-// Build auth headers from sttConfig + token
 function buildAuthHeaders(cfg, token) {
   if (!token) return {};
   switch (cfg.authHeader) {
@@ -14,7 +13,6 @@ function buildAuthHeaders(cfg, token) {
   }
 }
 
-// Map browser file MIME / ext → audio MIME for binary formats (deepgram/HF)
 function resolveAudioContentType(file) {
   const t = (file.type || "").toLowerCase();
   if (t.startsWith("audio/")) return t;
@@ -32,7 +30,6 @@ async function upstreamError(res) {
   return createErrorResult(res.status, typeof msg === "string" ? msg : JSON.stringify(msg));
 }
 
-// Deepgram: raw binary POST + model query param
 async function transcribeDeepgram(cfg, file, model, token, formData) {
   const url = new URL(cfg.baseUrl);
   url.searchParams.set("model", model);
@@ -54,7 +51,6 @@ async function transcribeDeepgram(cfg, file, model, token, formData) {
   return jsonResponse({ text });
 }
 
-// AssemblyAI: upload → submit → poll (max 120s)
 async function transcribeAssemblyAI(cfg, file, model, token) {
   const auth = buildAuthHeaders(cfg, token);
   const buf = await file.arrayBuffer();
@@ -84,7 +80,6 @@ async function transcribeAssemblyAI(cfg, file, model, token) {
   return createErrorResult(504, "AssemblyAI timeout after 120s");
 }
 
-// Nvidia NIM: multipart, normalize response
 async function transcribeNvidia(cfg, file, model, token) {
   const fd = new FormData();
   fd.append("file", file, file.name || "audio.wav");
@@ -95,7 +90,6 @@ async function transcribeNvidia(cfg, file, model, token) {
   return jsonResponse({ text: data.text || data.transcript || "" });
 }
 
-// Gemini: generateContent with inline_data audio + transcription prompt
 async function transcribeGemini(cfg, file, model, token, formData) {
   const buf = await file.arrayBuffer();
   const b64 = Buffer.from(buf).toString("base64");
@@ -121,7 +115,6 @@ async function transcribeGemini(cfg, file, model, token, formData) {
   return jsonResponse({ text });
 }
 
-// HuggingFace: POST raw binary to {baseUrl}/{model_id}
 async function transcribeHuggingFace(cfg, file, model, token) {
   if (model.includes("..") || model.includes("//")) return createErrorResult(400, "Invalid model ID");
   const url = `${cfg.baseUrl.replace(/\/+$/, "")}/${model}`;
@@ -136,7 +129,6 @@ async function transcribeHuggingFace(cfg, file, model, token) {
   return jsonResponse({ text: data.text || "" });
 }
 
-// Default: OpenAI/Groq/Whisper-compatible multipart
 async function transcribeOpenAICompatible(cfg, file, model, token, formData) {
   const fd = new FormData();
   fd.append("file", file, file.name || "audio.wav");
@@ -162,10 +154,6 @@ function jsonResponse(obj) {
   };
 }
 
-/**
- * STT core handler — dispatch by sttConfig.format.
- * @returns {Promise<{success, response, status?, error?}>}
- */
 export async function handleSttCore({ provider, model, formData, credentials, sttConfig }) {
   const file = formData.get("file");
   if (!file) return createErrorResult(HTTP_STATUS.BAD_REQUEST, "Missing required field: file");
@@ -173,11 +161,6 @@ export async function handleSttCore({ provider, model, formData, credentials, st
   let cfg = sttConfig;
   if (!cfg) return createErrorResult(HTTP_STATUS.BAD_REQUEST, `Provider '${provider}' does not support STT`);
 
-  // Per-connection endpoint override. Registry entries carry a fixed baseUrl,
-  // which is right for a named cloud service but useless for a self-hosted one
-  // whose address only the operator knows. Opt-in: absent unless the connection
-  // sets it, so cloud providers are untouched. Mirrors the custom embedding
-  // providers, which already resolve baseUrl the same way.
   const overrideUrl = credentials?.providerSpecificData?.baseUrl;
   if (overrideUrl) cfg = { ...cfg, baseUrl: String(overrideUrl).replace(/\/+$/, "") };
 

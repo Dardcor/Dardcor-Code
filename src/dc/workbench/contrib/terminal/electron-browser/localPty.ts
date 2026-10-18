@@ -6,10 +6,6 @@
 import { ITerminalLaunchResult, IProcessPropertyMap, IPtyService, ITerminalChildProcess, ITerminalLaunchError, ProcessPropertyType } from '../../../../platform/terminal/common/terminal.js';
 import { BasePty } from '../common/basePty.js';
 
-/**
- * Responsible for establishing and maintaining a connection with an existing terminal process
- * created on the local pty host.
- */
 export class LocalPty extends BasePty implements ITerminalChildProcess {
 	constructor(
 		id: number,

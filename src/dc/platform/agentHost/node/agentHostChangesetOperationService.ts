@@ -93,13 +93,6 @@ export class AgentHostChangesetOperationService extends Disposable implements IA
 			return [];
 		}
 
-		// In a multi-folder session the per-turn `turn` and `compare-turns`
-		// changesets advertise NO operations. Enforcing this centrally here — the
-		// single chokepoint both the publish path (`_publishChangesetDiffs`) and
-		// the recompute path (`updateOperations`) funnel through — guarantees the
-		// rule can't be undone by a later recompute on active-turn / git-state
-		// flips. Single-folder sessions and all other changeset kinds are
-		// unaffected.
 		if (this._shouldSuppressOperations(sessionKey, parsed.kind)) {
 			return [];
 		}
@@ -113,13 +106,6 @@ export class AgentHostChangesetOperationService extends Disposable implements IA
 		});
 	}
 
-	/**
-	 * Whether operations must be suppressed for a changeset of `kind` in the
-	 * given session. The per-turn `turn` and `compare-turns` changesets carry no
-	 * operations in a multi-root session; every other kind and single-folder
-	 * sessions are unaffected. Uses the effective working directories so the rule
-	 * is provider-agnostic and tracks dynamic root changes.
-	 */
 	private _shouldSuppressOperations(sessionKey: string, kind: ChangesetKind): boolean {
 		return (kind === ChangesetKind.Turn || kind === ChangesetKind.Compare)
 			&& isMultiRootSession(this._configurationService.getEffectiveWorkingDirectories(sessionKey));
@@ -134,8 +120,6 @@ export class AgentHostChangesetOperationService extends Disposable implements IA
 			}
 		}
 
-		// Operations are disabled while a turn is active so the working tree /
-		// branch state can't be mutated mid-request.
 		if (this._stateManager.hasActiveTurn(context.sessionKey)) {
 			return operations.map(operation => ({
 				...operation,
@@ -151,13 +135,6 @@ export class AgentHostChangesetOperationService extends Disposable implements IA
 			? [changeset]
 			: this._changesetSubscriptions.getSessionSubscriptions(sessionKey);
 
-		// Clear the suppressed per-turn / compare-turns changesets FIRST, before
-		// the git-state gate below. A root transition (e.g. the Editor Window
-		// adding a second folder) can fire a recompute while the session's git
-		// state is not yet resolved; without this, the early `return` on absent
-		// git state would leave stale operations advertised on those changesets.
-		// Dispatching an empty list is safe for an unknown changeset (it is
-		// dropped without advancing the sequence).
 		const unsuppressed: string[] = [];
 		for (const changeset of changesets) {
 			const parsed = parseChangesetUri(changeset);
@@ -211,23 +188,11 @@ export class AgentHostChangesetOperationService extends Disposable implements IA
 			throw new ProtocolError(JsonRpcErrorCodes.InvalidParams, `Operation '${params.operationId}' is disabled on changeset ${params.channel}`);
 		}
 
-		// Enforce the active-turn gate at invocation time too, independent of
-		// the advertised operation status. A ChangesetOperationStatusChanged
-		// action (e.g. a previously running operation finishing) can reset the
-		// status back to Idle while a chat turn is still streaming, which would
-		// otherwise re-enable invocation mid-turn and let the working tree /
-		// branch state be mutated.
 		const parsed = parseChangesetUri(params.channel);
 		if (parsed && this._stateManager.hasActiveTurn(parsed.sessionUri)) {
 			throw new ProtocolError(JsonRpcErrorCodes.InvalidParams, `Operation '${params.operationId}' is disabled while a turn is active on changeset ${params.channel}`);
 		}
 
-		// Re-enforce the multi-folder suppression at invocation time, independent
-		// of the advertised operations. The turn / compare-turns changesets carry
-		// NO operations in a multi-root session (see `getOperations`), but cached
-		// advertised operations can go stale if the session became multi-root
-		// after they were published (e.g. the Editor Window added a root), so a
-		// stale operation must not be invocable.
 		if (parsed
 			&& (parsed.kind === ChangesetKind.Turn || parsed.kind === ChangesetKind.Compare)
 			&& isMultiRootSession(this._configurationService.getEffectiveWorkingDirectories(parsed.sessionUri))) {

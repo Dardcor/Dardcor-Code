@@ -22,12 +22,6 @@ export class RowCache<T> implements IDisposable {
 
 	constructor(private renderers: Map<string, IListRenderer<T, any>>) { }
 
-	/**
-	 * Returns a row either by creating a new one or reusing
-	 * a previously released row which shares the same templateId.
-	 *
-	 * @returns A row and `isReusingConnectedDomNode` if the row's node is already in the dom in a stale position.
-	 */
 	alloc(templateId: string): { row: IRow; isReusingConnectedDomNode: boolean } {
 		let result = this.getTemplateCache(templateId).pop();
 
@@ -44,9 +38,6 @@ export class RowCache<T> implements IDisposable {
 		return { row: result, isReusingConnectedDomNode: isStale };
 	}
 
-	/**
-	 * Releases the row for eventual reuse.
-	 */
 	release(row: IRow): void {
 		if (!row) {
 			return;
@@ -55,9 +46,6 @@ export class RowCache<T> implements IDisposable {
 		this.releaseRow(row);
 	}
 
-	/**
-	 * Begin a set of changes that use the cache. This lets us skip work when a row is removed and then inserted again.
-	 */
 	transact(makeChanges: () => void) {
 		if (this.inTransaction) {
 			throw new Error('Already in transaction');

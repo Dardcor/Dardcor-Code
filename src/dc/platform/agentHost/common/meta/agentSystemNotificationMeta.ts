@@ -5,21 +5,13 @@
 
 export const enum AgentSystemNotificationKind {
 	WorktreeCreationFailure = 'worktreeCreationFailure',
-	/** The session successfully changed to a requested workspace. */
 	WorkspaceTransition = 'workspaceTransition',
-	/** An automatic approval review did not finish before its deadline. */
 	AutomaticApprovalReviewTimedOut = 'automaticApprovalReviewTimedOut',
-	/** An automatic approval review stopped before reaching a decision. */
 	AutomaticApprovalReviewAborted = 'automaticApprovalReviewAborted',
-	/** Automatic approval review denials triggered the turn circuit breaker. */
 	AutomaticApprovalReviewInterrupted = 'automaticApprovalReviewInterrupted',
-	/** Agent Merge started monitoring the session's branch. */
 	AgentMergeEnabled = 'agentMergeEnabled',
-	/** Effective Agent Merge behavior changed while monitoring. */
 	AgentMergeConfigurationChanged = 'agentMergeConfigurationChanged',
-	/** Agent Merge stopped monitoring the session, usually on its own. */
 	AgentMergeDisabled = 'agentMergeDisabled',
-	/** Agent Merge merged the pull request it was monitoring. */
 	AgentMergePullRequestMerged = 'agentMergePullRequestMerged',
 }
 
@@ -61,7 +53,6 @@ export interface IAgentWorkspaceTransitionRecord {
 	readonly workspaceName: string;
 }
 
-/** Reads recognized Agent Host system-notification metadata. */
 export function readAgentSystemNotificationMeta(source: IHasSystemNotificationMeta): IAgentSystemNotificationMeta {
 	const meta = source._meta;
 	if (!meta) {
@@ -77,17 +68,14 @@ export function readAgentSystemNotificationMeta(source: IHasSystemNotificationMe
 	};
 }
 
-/** Serializes Agent Host system-notification metadata for the open protocol bag. */
 export function toAgentSystemNotificationMeta(meta: IAgentSystemNotificationMeta): Record<string, unknown> {
 	return { ...meta };
 }
 
-/** Serializes a durable workspace-transition boundary. */
 export function serializeAgentWorkspaceTransition(record: IAgentWorkspaceTransitionRecord): string {
 	return JSON.stringify(record);
 }
 
-/** Parses and validates a durable workspace-transition boundary. */
 export function parseAgentWorkspaceTransition(value: string): IAgentWorkspaceTransitionRecord | undefined {
 	let parsed: unknown;
 	try {

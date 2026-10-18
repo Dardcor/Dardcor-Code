@@ -67,7 +67,6 @@ suite('ChatExternalPathConfirmationContribution', () => {
 		const shouldConfirm = await folderAction.select();
 		assert.strictEqual(shouldConfirm, true);
 
-		// Same folder should now be auto-approved
 		const result = contribution.getPreConfirmAction(ref);
 		assert.deepStrictEqual(result, { type: ToolConfirmKind.UserAction });
 	});
@@ -79,7 +78,6 @@ suite('ChatExternalPathConfirmationContribution', () => {
 		const ref = createRef('/external/repo/src/file.ts');
 
 		const actions = contribution.getPreConfirmActions(ref);
-		// Should have "allow folder" and "allow repo" actions
 		assert.strictEqual(actions.length, 2);
 		const repoAction = actions[1];
 		assert.ok(repoAction.label.includes('repository'));
@@ -87,7 +85,6 @@ suite('ChatExternalPathConfirmationContribution', () => {
 		const shouldConfirm = await repoAction.select();
 		assert.strictEqual(shouldConfirm, true);
 
-		// File in the same repo should now be auto-approved
 		const ref2 = createRef('/external/repo/src/other.ts');
 		const result = contribution.getPreConfirmAction(ref2);
 		assert.deepStrictEqual(result, { type: ToolConfirmKind.UserAction });
@@ -99,12 +96,10 @@ suite('ChatExternalPathConfirmationContribution', () => {
 
 		const ref = createRef('/external/repo/src/file.ts');
 
-		// First call - resolves git root
 		const actions1 = contribution.getPreConfirmActions(ref);
 		const repoAction1 = actions1[1];
 		await repoAction1.select();
 
-		// Second call with same path - should use cached git root
 		const actions2 = contribution.getPreConfirmActions(ref);
 		assert.strictEqual(actions2.length, 2);
 		const repoAction2 = actions2[1];
@@ -123,11 +118,9 @@ suite('ChatExternalPathConfirmationContribution', () => {
 		assert.strictEqual(actions.length, 2);
 		const repoAction = actions[1];
 
-		// Should still confirm (falls back to allowing the folder)
 		const shouldConfirm = await repoAction.select();
 		assert.strictEqual(shouldConfirm, true);
 
-		// The containing folder should be auto-approved
 		const result = contribution.getPreConfirmAction(ref);
 		assert.deepStrictEqual(result, { type: ToolConfirmKind.UserAction });
 	});
@@ -137,12 +130,10 @@ suite('ChatExternalPathConfirmationContribution', () => {
 
 		const ref = createRef('/not-in-repo/file.ts');
 
-		// First call - resolve returns undefined, caches null
 		const actions1 = contribution.getPreConfirmActions(ref);
 		assert.strictEqual(actions1.length, 2);
 		await actions1[1].select();
 
-		// Second call - should not show repo option (cached === null)
 		const actions2 = contribution.getPreConfirmActions(ref);
 		assert.strictEqual(actions2.length, 1);
 	});
@@ -155,16 +146,13 @@ suite('ChatExternalPathConfirmationContribution', () => {
 		const ref2 = createRef('/external/repo/lib/b.ts');
 		const ref3 = createRef('/external/repo/deep/nested/c.ts');
 
-		// Allow repo via first file
 		const actions = contribution.getPreConfirmActions(ref1);
 		await actions[1].select();
 
-		// All files in the repo should be auto-approved
 		assert.deepStrictEqual(contribution.getPreConfirmAction(ref1), { type: ToolConfirmKind.UserAction });
 		assert.deepStrictEqual(contribution.getPreConfirmAction(ref2), { type: ToolConfirmKind.UserAction });
 		assert.deepStrictEqual(contribution.getPreConfirmAction(ref3), { type: ToolConfirmKind.UserAction });
 
-		// File outside the repo should NOT be auto-approved
 		const refOutside = createRef('/other/place/file.ts');
 		assert.strictEqual(contribution.getPreConfirmAction(refOutside), undefined);
 	});
@@ -177,7 +165,6 @@ suite('ChatExternalPathConfirmationContribution', () => {
 		const actions = contribution.getPreConfirmActions(ref);
 		await actions[1].select();
 
-		// Same file, different session
 		const refOtherSession: ILanguageModelToolConfirmationRef = {
 			toolId: 'copilot_readFile',
 			source,
@@ -227,7 +214,6 @@ suite('ChatExternalPathConfirmationContribution', () => {
 		});
 
 		test('workingDirectory takes precedence over workspace allowlist', () => {
-			// Even if workspace allowlist would approve it, workingDirectory is checked exclusively
 			const contribution = createContribution();
 			const ref = createRefWithWorkingDir('/my-project/file.ts', URI.file('/my-project'));
 			const result = contribution.getPreConfirmAction(ref);
@@ -235,8 +221,6 @@ suite('ChatExternalPathConfirmationContribution', () => {
 		});
 
 		test('workspace-allowed file is not approved when workingDirectory excludes it', () => {
-			// The file is NOT in the workingDirectory, so it should not be approved
-			// even though the workspace allowlist is not checked when workingDirectory is set
 			const contribution = createContribution();
 			const ref = createRefWithWorkingDir('/workspace/file.ts', URI.file('/different-dir'));
 			assert.strictEqual(contribution.getPreConfirmAction(ref), undefined);

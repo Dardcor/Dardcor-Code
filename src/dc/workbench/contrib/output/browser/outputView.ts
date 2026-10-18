@@ -240,7 +240,7 @@ export class OutputEditor extends AbstractTextResourceEditor {
 		@IEditorService editorService: IEditorService,
 		@IFileService fileService: IFileService
 	) {
-		super(OUTPUT_VIEW_ID, editorGroupService.activeGroup /* this is not correct but pragmatic */, telemetryService, instantiationService, storageService, textResourceConfigurationService, themeService, editorGroupService, editorService, fileService);
+		super(OUTPUT_VIEW_ID, editorGroupService.activeGroup , telemetryService, instantiationService, storageService, textResourceConfigurationService, themeService, editorGroupService, editorService, fileService);
 
 		this.resourceContext = this._register(instantiationService.createInstance(ResourceContextKey));
 	}
@@ -255,8 +255,8 @@ export class OutputEditor extends AbstractTextResourceEditor {
 
 	protected override getConfigurationOverrides(configuration: IEditorConfiguration): ICodeEditorOptions {
 		const options = super.getConfigurationOverrides(configuration);
-		options.wordWrap = 'on';				// all output editors wrap
-		options.lineNumbers = 'off';			// all output editors hide line numbers
+		options.wordWrap = 'on';
+		options.lineNumbers = 'off';
 		options.glyphMargin = false;
 		options.lineDecorationsWidth = 20;
 		options.rulers = [];
@@ -304,7 +304,6 @@ export class OutputEditor extends AbstractTextResourceEditor {
 		}
 
 		if (this.input) {
-			// Dispose previous input (Output panel is not a workbench editor)
 			this.input.dispose();
 		}
 		await super.setInput(input, options, context, token);
@@ -319,7 +318,6 @@ export class OutputEditor extends AbstractTextResourceEditor {
 
 	override clearInput(): void {
 		if (this.input) {
-			// Dispose current input (Output panel is not a workbench editor)
 			this.input.dispose();
 		}
 		super.clearInput();
@@ -448,7 +446,6 @@ export class FilterController extends Disposable implements IEditorContribution 
 	private shouldShowLine(model: ITextModel, range: Range, positive: string[], negative: string[]): { show: boolean; matches: IModelDeltaDecoration[] } {
 		const matches: IModelDeltaDecoration[] = [];
 
-		// Check negative filters first - if any match, hide the line
 		if (negative.length > 0) {
 			for (const pattern of negative) {
 				const negativeMatches = model.findMatches(pattern, range, false, false, null, false);
@@ -458,7 +455,6 @@ export class FilterController extends Disposable implements IEditorContribution 
 			}
 		}
 
-		// If there are positive filters, at least one must match
 		if (positive.length > 0) {
 			let hasPositiveMatch = false;
 			for (const pattern of positive) {
@@ -473,7 +469,6 @@ export class FilterController extends Disposable implements IEditorContribution 
 			return { show: hasPositiveMatch, matches };
 		}
 
-		// No positive filters means show everything (that passed negative filters)
 		return { show: true, matches };
 	}
 

@@ -20,57 +20,37 @@ suite('Replace Pattern test', () => {
 			assert.strictEqual(expectedHasParameters, actual.hasParameters);
 		};
 
-		// no backslash => no treatment
 		testParse('hello', 'hello', false);
 
-		// \t => TAB
 		testParse('\\thello', '\thello', false);
 
-		// \n => LF
 		testParse('\\nhello', '\nhello', false);
 
-		// \\t => \t
 		testParse('\\\\thello', '\\thello', false);
 
-		// \\\t => \TAB
 		testParse('\\\\\\thello', '\\\thello', false);
 
-		// \\\\t => \\t
 		testParse('\\\\\\\\thello', '\\\\thello', false);
 
-		// \ at the end => no treatment
 		testParse('hello\\', 'hello\\', false);
 
-		// \ with unknown char => no treatment
 		testParse('hello\\x', 'hello\\x', false);
 
-		// \ with back reference => no treatment
 		testParse('hello\\0', 'hello\\0', false);
 
 
 
-		// $1 => no treatment
 		testParse('hello$1', 'hello$1', true);
-		// $2 => no treatment
 		testParse('hello$2', 'hello$2', true);
-		// $12 => no treatment
 		testParse('hello$12', 'hello$12', true);
-		// $99 => no treatment
 		testParse('hello$99', 'hello$99', true);
-		// $99a => no treatment
 		testParse('hello$99a', 'hello$99a', true);
-		// $100 => no treatment
 		testParse('hello$100', 'hello$100', false);
-		// $100a => no treatment
 		testParse('hello$100a', 'hello$100a', false);
-		// $10a0 => no treatment
 		testParse('hello$10a0', 'hello$10a0', true);
-		// $$ => no treatment
 		testParse('hello$$', 'hello$$', false);
-		// $$0 => no treatment
 		testParse('hello$$0', 'hello$$0', false);
 
-		// $0 => $&
 		testParse('hello$0', 'hello$&', true);
 		testParse('hello$02', 'hello$&2', true);
 
@@ -162,7 +142,7 @@ suite('Replace Pattern test', () => {
 		assert.strictEqual(actual, '\\left ern');
 	});
 
-	test('case operations and newline', () => { // #140734
+	test('case operations and newline', () => {
 		const testObject = new ReplacePattern('$1\n\\U$2', { pattern: '(multi)(line)', isRegExp: true });
 		const actual = testObject.getReplaceString('multiline');
 		assert.strictEqual(actual, 'multi\nLINE');

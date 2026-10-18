@@ -155,13 +155,10 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 
 	private async waitAndInitialize(): Promise<void> {
 		try {
-			/* wait */
 			await Promise.all([this.extensionService.whenInstalledExtensionsRegistered(), this.userDataInitializationService.whenInitializationFinished()]);
 
-			/* initialize */
 			await this.initialize();
 		} catch (error) {
-			// Do not log if the current window is running extension tests
 			if (!this.environmentService.extensionTestsLocationURI) {
 				this.logService.error(error);
 			}
@@ -176,7 +173,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 					this.currentSessionId = authenticationSession.id;
 				}
 
-				// Backward compatibility
 				else if (this.useWorkbenchSessionId) {
 					this.currentSessionId = authenticationSession.id;
 				}
@@ -187,7 +183,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 		const initPromise = this.update('initialize');
 		this._register(this.authenticationService.onDidChangeDeclaredProviders(() => {
 			if (this.updateAuthenticationProviders()) {
-				// Trigger update only after the initialization is done
 				initPromise.finally(() => this.update('declared authentication providers changed'));
 			}
 		}));
@@ -210,7 +205,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 			if (!conflicts.length) {
 				this.enableConflictsViewContext.reset();
 			}
-			// Close merge editors with no conflicts
 			this.editorService.editors.filter(input => {
 				const remoteResource = isDiffEditorInput(input) ? input.original.resource : isMergeEditorInput(input) ? input.input1.uri : undefined;
 				if (remoteResource?.scheme !== USER_DATA_SYNC_SCHEME) {
@@ -301,7 +295,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 			throw new CancellationError();
 		}
 
-		// User did not pick an account or login failed
 		if (this.accountStatus !== AccountStatus.Available) {
 			throw new Error(localize('no account', "No account available"));
 		}
@@ -358,7 +351,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 			throw new Error('Cannot update because you are signed out from settings sync. Please sign in and try again.');
 		}
 		if (!isWeb || !this.userDataSyncStoreManagementService.userDataSyncStore) {
-			// Not supported
 			return;
 		}
 
@@ -600,7 +592,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 			if (accounts.length) {
 				allAccounts.set(authenticationProviders[0].id, accounts);
 			} else {
-				// Single auth provider and no accounts
 				return authenticationProviders[0];
 			}
 		}
@@ -656,7 +647,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 		}
 
 		if (currentAccount) {
-			// Always use current account if available
 			accounts.set(currentAccount.accountId, currentAccount);
 		}
 
@@ -666,7 +656,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 	private createQuickpickItems(authenticationProviders: IAuthenticationProvider[], allAccounts: Map<string, UserDataSyncAccount[]>): (AccountQuickPickItem | IQuickPickSeparator)[] {
 		const quickPickItems: (AccountQuickPickItem | IQuickPickSeparator)[] = [];
 
-		// Signed in Accounts
 		if (allAccounts.size) {
 			quickPickItems.push({ type: 'separator', label: localize('signed in', "Signed in") });
 			for (const authenticationProvider of authenticationProviders) {
@@ -684,7 +673,6 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 			quickPickItems.push({ type: 'separator', label: localize('others', "Others") });
 		}
 
-		// Account Providers
 		for (const authenticationProvider of authenticationProviders) {
 			const provider = this.authenticationService.getProvider(authenticationProvider.id);
 			if (!allAccounts.has(authenticationProvider.id) || provider.supportsMultipleAccounts) {
@@ -730,7 +718,7 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 	}
 
 	private onDidChangeStorage(): void {
-		if (this.currentSessionId !== this.getStoredCachedSessionId() /* This checks if current window changed the value or not */) {
+		if (this.currentSessionId !== this.getStoredCachedSessionId() ) {
 			this._cachedCurrentSessionId = null;
 			this.update('change in storage');
 		}
@@ -790,4 +778,4 @@ export class UserDataSyncWorkbenchService extends Disposable implements IUserDat
 
 }
 
-registerSingleton(IUserDataSyncWorkbenchService, UserDataSyncWorkbenchService, InstantiationType.Eager /* Eager because it initializes settings sync accounts */);
+registerSingleton(IUserDataSyncWorkbenchService, UserDataSyncWorkbenchService, InstantiationType.Eager );

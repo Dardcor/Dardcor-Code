@@ -202,7 +202,6 @@ export class ExtHostTextEditorOptions {
 		this._lineNumbers = TypeConverters.TextEditorLineNumbersStyle.to(source.lineNumbers);
 	}
 
-	// --- internal: tabSize
 
 	private _validateTabSize(value: number | string): number | 'auto' | null {
 		if (value === 'auto') {
@@ -225,15 +224,12 @@ export class ExtHostTextEditorOptions {
 	private _setTabSize(value: number | string) {
 		const tabSize = this._validateTabSize(value);
 		if (tabSize === null) {
-			// ignore invalid call
 			return;
 		}
 		if (typeof tabSize === 'number') {
 			if (this._tabSize === tabSize) {
-				// nothing to do
 				return;
 			}
-			// reflect the new tabSize value immediately
 			this._tabSize = tabSize;
 		}
 		this._warnOnError('setTabSize', this._proxy.$trySetOptions(this._id, {
@@ -241,7 +237,6 @@ export class ExtHostTextEditorOptions {
 		}));
 	}
 
-	// --- internal: indentSize
 
 	private _validateIndentSize(value: number | string): number | 'tabSize' | null {
 		if (value === 'tabSize') {
@@ -264,15 +259,12 @@ export class ExtHostTextEditorOptions {
 	private _setIndentSize(value: number | string) {
 		const indentSize = this._validateIndentSize(value);
 		if (indentSize === null) {
-			// ignore invalid call
 			return;
 		}
 		if (typeof indentSize === 'number') {
 			if (this._originalIndentSize === indentSize) {
-				// nothing to do
 				return;
 			}
-			// reflect the new indentSize value immediately
 			this._indentSize = indentSize;
 			this._originalIndentSize = indentSize;
 		}
@@ -281,7 +273,6 @@ export class ExtHostTextEditorOptions {
 		}));
 	}
 
-	// --- internal: insert spaces
 
 	private _validateInsertSpaces(value: boolean | string): boolean | 'auto' {
 		if (value === 'auto') {
@@ -294,10 +285,8 @@ export class ExtHostTextEditorOptions {
 		const insertSpaces = this._validateInsertSpaces(value);
 		if (typeof insertSpaces === 'boolean') {
 			if (this._insertSpaces === insertSpaces) {
-				// nothing to do
 				return;
 			}
-			// reflect the new insertSpaces value immediately
 			this._insertSpaces = insertSpaces;
 		}
 		this._warnOnError('setInsertSpaces', this._proxy.$trySetOptions(this._id, {
@@ -305,11 +294,9 @@ export class ExtHostTextEditorOptions {
 		}));
 	}
 
-	// --- internal: cursor style
 
 	private _setCursorStyle(value: TextEditorCursorStyle) {
 		if (this._cursorStyle === value) {
-			// nothing to do
 			return;
 		}
 		this._cursorStyle = value;
@@ -318,11 +305,9 @@ export class ExtHostTextEditorOptions {
 		}));
 	}
 
-	// --- internal: line number
 
 	private _setLineNumbers(value: TextEditorLineNumbersStyle) {
 		if (this._lineNumbers === value) {
-			// nothing to do
 			return;
 		}
 		this._lineNumbers = value;
@@ -341,7 +326,6 @@ export class ExtHostTextEditorOptions {
 				hasUpdate = true;
 				bulkConfigurationUpdate.tabSize = tabSize;
 			} else if (typeof tabSize === 'number' && this._tabSize !== tabSize) {
-				// reflect the new tabSize value immediately
 				this._tabSize = tabSize;
 				hasUpdate = true;
 				bulkConfigurationUpdate.tabSize = tabSize;
@@ -354,7 +338,6 @@ export class ExtHostTextEditorOptions {
 				hasUpdate = true;
 				bulkConfigurationUpdate.indentSize = indentSize;
 			} else if (typeof indentSize === 'number' && this._originalIndentSize !== indentSize) {
-				// reflect the new indentSize value immediately
 				this._indentSize = indentSize;
 				this._originalIndentSize = indentSize;
 				hasUpdate = true;
@@ -368,7 +351,6 @@ export class ExtHostTextEditorOptions {
 				hasUpdate = true;
 				bulkConfigurationUpdate.insertSpaces = insertSpaces;
 			} else if (this._insertSpaces !== insertSpaces) {
-				// reflect the new insertSpaces value immediately
 				this._insertSpaces = insertSpaces;
 				hasUpdate = true;
 				bulkConfigurationUpdate.insertSpaces = insertSpaces;
@@ -438,7 +420,6 @@ export class ExtHostTextEditor {
 			set document(_value) {
 				throw new ReadonlyError('document');
 			},
-			// --- selection
 			get selection(): Selection {
 				return that._selections && that._selections[0];
 			},
@@ -462,7 +443,6 @@ export class ExtHostTextEditor {
 				that._selections = value;
 				that._trySetSelection();
 			},
-			// --- visible ranges
 			get visibleRanges(): Range[] {
 				return that._visibleRanges;
 			},
@@ -472,7 +452,6 @@ export class ExtHostTextEditor {
 			get diffInformation() {
 				return that._diffInformation;
 			},
-			// --- options
 			get options(): vscode.TextEditorOptions {
 				return that._options.value;
 			},
@@ -481,14 +460,12 @@ export class ExtHostTextEditor {
 					that._options.assign(value);
 				}
 			},
-			// --- view column
 			get viewColumn(): vscode.ViewColumn | undefined {
 				return that._viewColumn;
 			},
 			set viewColumn(_value) {
 				throw new ReadonlyError('viewColumn');
 			},
-			// --- edit
 			edit(callback: (edit: TextEditorEdit) => void, options: { undoStopBefore: boolean; undoStopAfter: boolean } = { undoStopBefore: true, undoStopAfter: true }): Promise<boolean> {
 				if (that._disposed) {
 					return Promise.reject(new Error('TextEditor#edit not possible on closed editors'));
@@ -497,7 +474,6 @@ export class ExtHostTextEditor {
 				callback(edit);
 				return that._applyEdit(edit);
 			},
-			// --- snippet edit
 			insertSnippet(snippet: SnippetString, where?: Position | readonly Position[] | Range | readonly Range[], options: { undoStopBefore: boolean; undoStopAfter: boolean; keepWhitespace?: boolean } = { undoStopBefore: true, undoStopAfter: true }): Promise<boolean> {
 				if (that._disposed) {
 					return Promise.reject(new Error('TextEditor#insertSnippet not possible on closed editors'));
@@ -532,7 +508,6 @@ export class ExtHostTextEditor {
 			setDecorations(decorationType: vscode.TextEditorDecorationType, ranges: Range[] | vscode.DecorationOptions[]): void {
 				const willBeEmpty = (ranges.length === 0);
 				if (willBeEmpty && !that._hasDecorationsForKey.has(decorationType.key)) {
-					// avoid no-op call to the renderer
 					return;
 				}
 				if (willBeEmpty) {
@@ -588,7 +563,6 @@ export class ExtHostTextEditor {
 		this._disposed = true;
 	}
 
-	// --- incoming: extension host MUST accept what the renderer says
 
 	_acceptOptions(options: IResolvedTextEditorConfiguration): void {
 		ok(!this._disposed);
@@ -624,15 +598,12 @@ export class ExtHostTextEditor {
 	private _applyEdit(editBuilder: TextEditorEdit): Promise<boolean> {
 		const editData = editBuilder.finalize();
 
-		// return when there is nothing to do
 		if (editData.edits.length === 0 && !editData.setEndOfLine) {
 			return Promise.resolve(true);
 		}
 
-		// check that the edits are not overlapping (i.e. illegal)
 		const editRanges = editData.edits.map(edit => edit.range);
 
-		// sort ascending (by end and then by start)
 		editRanges.sort((a, b) => {
 			if (a.end.line === b.end.line) {
 				if (a.end.character === b.end.character) {
@@ -646,20 +617,17 @@ export class ExtHostTextEditor {
 			return a.end.line - b.end.line;
 		});
 
-		// check that no edits are overlapping
 		for (let i = 0, count = editRanges.length - 1; i < count; i++) {
 			const rangeEnd = editRanges[i].end;
 			const nextRangeStart = editRanges[i + 1].start;
 
 			if (nextRangeStart.isBefore(rangeEnd)) {
-				// overlapping ranges
 				return Promise.reject(
 					new Error('Overlapping ranges are not allowed!')
 				);
 			}
 		}
 
-		// prepare data for serialization
 		const edits = editData.edits.map((edit): ISingleEditOperation => {
 			return {
 				range: TypeConverters.Range.from(edit.range),

@@ -43,7 +43,6 @@ const targetAttributeEnumValues: readonly IValueEntry[] = [
 	{ name: 'github-copilot' },
 ];
 
-// Attribute metadata for prompt files (`*.prompt.md`).
 export const promptFileAttributes: Record<string, IAttributeDefinition> = {
 	[PromptHeaderAttributes.name]: {
 		type: 'scalar',
@@ -76,7 +75,6 @@ export const promptFileAttributes: Record<string, IAttributeDefinition> = {
 	},
 };
 
-// Attribute metadata for instructions files (`*.instructions.md`).
 export const instructionAttributes: Record<string, IAttributeDefinition> = {
 	[PromptHeaderAttributes.name]: {
 		type: 'scalar',
@@ -102,7 +100,6 @@ export const instructionAttributes: Record<string, IAttributeDefinition> = {
 	},
 };
 
-// Attribute metadata for custom agent files (`*.agent.md`).
 export const customAgentAttributes: Record<string, IAttributeDefinition> = {
 	[PromptHeaderAttributes.name]: {
 		type: 'scalar',
@@ -179,7 +176,6 @@ export const customAgentAttributes: Record<string, IAttributeDefinition> = {
 	},
 };
 
-// Attribute metadata for skill files (`SKILL.md`).
 export const skillAttributes: Record<string, IAttributeDefinition> = {
 	[PromptHeaderAttributes.name]: {
 		type: 'scalar',
@@ -227,7 +223,7 @@ const allAttributeNames: Record<PromptsType, string[]> = {
 	[PromptsType.instructions]: Object.keys(instructionAttributes),
 	[PromptsType.agent]: Object.keys(customAgentAttributes),
 	[PromptsType.skill]: Object.keys(skillAttributes),
-	[PromptsType.hook]: [], // hooks are JSON files, not markdown with YAML frontmatter
+	[PromptsType.hook]: [],
 };
 const githubCopilotAgentAttributeNames = [PromptHeaderAttributes.name, PromptHeaderAttributes.description, PromptHeaderAttributes.tools, PromptHeaderAttributes.target, GithubPromptHeaderAttributes.mcpServers, GithubPromptHeaderAttributes.github, PromptHeaderAttributes.infer];
 const recommendedAttributeNames: Record<PromptsType, string[]> = {
@@ -235,7 +231,7 @@ const recommendedAttributeNames: Record<PromptsType, string[]> = {
 	[PromptsType.instructions]: allAttributeNames[PromptsType.instructions].filter(name => !isNonRecommendedAttribute(name)),
 	[PromptsType.agent]: allAttributeNames[PromptsType.agent].filter(name => !isNonRecommendedAttribute(name)),
 	[PromptsType.skill]: allAttributeNames[PromptsType.skill].filter(name => !isNonRecommendedAttribute(name)),
-	[PromptsType.hook]: [], // hooks are JSON files, not markdown with YAML frontmatter
+	[PromptsType.hook]: [],
 };
 
 export function getValidAttributeNames(promptType: PromptsType, includeNonRecommended: boolean, target: Target): string[] {
@@ -277,7 +273,6 @@ export function getAttributeDefinition(attributeName: string, promptType: Prompt
 	}
 }
 
-// The list of tools known to be used by GitHub Copilot custom agents
 export const knownGithubCopilotTools = [
 	{ name: SpecedToolAliases.execute, description: localize('githubCopilot.execute', 'Execute commands') },
 	{ name: SpecedToolAliases.read, description: localize('githubCopilot.read', 'Read files') },
@@ -326,9 +321,6 @@ export function mapClaudeModels(claudeModelNames: readonly string[]): readonly s
 	return result;
 }
 
-/**
- * Maps Claude tool names to their VS Code tool equivalents.
- */
 export function mapClaudeTools(claudeToolNames: readonly string[]): string[] {
 	const result: string[] = [];
 	for (const name of claudeToolNames) {
@@ -404,10 +396,6 @@ export const claudeAgentAttributes: Record<string, IAttributeDefinition> = {
 	}
 };
 
-/**
- * Attributes supported in Claude rules files (`.claude/rules/*.md`).
- * Claude rules use `paths` instead of `applyTo` for glob patterns.
- */
 export const claudeRulesAttributes: Record<string, IAttributeDefinition> = {
 	'description': {
 		type: 'scalar',

@@ -121,9 +121,6 @@ export class ImageCarouselEditor extends EditorPane {
 		return !!entry && isVideoMimeType(entry.image.mimeType);
 	}
 
-	/**
-	 * Build the full DOM skeleton. Called once per setInput.
-	 */
 	private buildSlideshow(): void {
 		if (!this._container) {
 			return;
@@ -165,7 +162,6 @@ export class ImageCarouselEditor extends EditorPane {
 			]),
 		]);
 
-		// ARIA: set up slideshow container for screen readers
 		elements.root.setAttribute('role', 'group');
 		elements.root.setAttribute('aria-label', localize('imageCarousel.ariaLabel', "Images Preview"));
 		elements.captionSeparator.setAttribute('aria-hidden', 'true');
@@ -189,14 +185,11 @@ export class ImageCarouselEditor extends EditorPane {
 			sectionsContainer: elements.sectionsContainer,
 		};
 
-		// Initialize image in fit mode
 		this._elements.mainImage.classList.add('scale-to-fit');
 		this._elements.mainImage.alt = '';
 
-		// Hide video container initially
 		this._elements.videoContainer.style.display = 'none';
 
-		// Navigation listeners
 		this._contentDisposables.add(addDisposableListener(this._elements.prevBtn, 'click', () => {
 			if (this._currentIndex > 0) {
 				this._currentIndex--;
@@ -210,7 +203,6 @@ export class ImageCarouselEditor extends EditorPane {
 			}
 		}));
 
-		// Keyboard navigation
 		this._contentDisposables.add(addDisposableListener(elements.root, EventType.KEY_DOWN, e => {
 			const event = new StandardKeyboardEvent(e);
 			if (event.keyCode === KeyCode.LeftArrow) {
@@ -225,7 +217,6 @@ export class ImageCarouselEditor extends EditorPane {
 		}));
 		elements.root.tabIndex = 0;
 
-		// Zoom: scroll wheel + modifier key (Ctrl on Win/Linux, Alt on Mac) or pinch
 		this._contentDisposables.add(addDisposableListener(this._elements.imageArea, EventType.MOUSE_WHEEL, (e: WheelEvent) => {
 			if (this._isCurrentVideo()) {
 				return;
@@ -248,8 +239,6 @@ export class ImageCarouselEditor extends EditorPane {
 			this._applyZoom((this._zoomScale as number) * (1 - delta * SCALE_PINCH_FACTOR));
 		}, { passive: false }));
 
-		// Zoom: single click to zoom in/out (like image preview)
-		// Track modifier keys at mousedown time
 		let clickCtrlPressed = false;
 		let clickAltPressed = false;
 		this._contentDisposables.add(addDisposableListener(this._elements.mainImageContainer, EventType.MOUSE_DOWN, (e: MouseEvent) => {
@@ -271,7 +260,6 @@ export class ImageCarouselEditor extends EditorPane {
 			}
 		}));
 
-		// Update zoom-out cursor class when modifier key is held
 		const updateZoomCursor = (e: KeyboardEvent) => {
 			const isZoomOut = isMacintosh ? e.altKey : e.ctrlKey;
 			this._elements!.mainImageContainer.classList.toggle('zoom-out', isZoomOut);
@@ -279,13 +267,11 @@ export class ImageCarouselEditor extends EditorPane {
 		this._contentDisposables.add(addDisposableListener(elements.root, EventType.KEY_DOWN, updateZoomCursor));
 		this._contentDisposables.add(addDisposableListener(elements.root, EventType.KEY_UP, updateZoomCursor));
 
-		// Build section thumbnails
 		this._thumbnailElements = [];
 		let flatIndex = 0;
 		for (let s = 0; s < this._sections.length; s++) {
 			const section = this._sections[s];
 
-			// Add separator between sections (not before the first)
 			if (s > 0 && this._sections.length > 1) {
 				const separator = h('div.thumbnail-separator').root;
 				separator.setAttribute('aria-hidden', 'true');
@@ -373,38 +359,26 @@ export class ImageCarouselEditor extends EditorPane {
 
 		this._container.appendChild(elements.root);
 
-		// Set initial image
 		this.updateCurrentImage();
 	}
 
-	/**
-	 * Update only the changing parts: main image src, caption, button states, thumbnail selection.
-	 * No DOM teardown/rebuild — eliminates the blank flash.
-	 */
 	private async updateCurrentImage(): Promise<void> {
 		if (!this._elements) {
 			return;
 		}
 
-		// Capture the navigation index before starting async work so that
-		// we can discard stale results if the user navigates while loading/decoding.
 		const navigationIndex = this._currentIndex;
 
-		// Swap main image using cached/lazy-loaded blob URL.
-		// Pre-decode via decode() before assigning to <img> so the browser
-		// decodes on a worker thread, avoiding main-thread stalls during commit.
 		const entry = this._flatImages[navigationIndex];
 		const currentImage = entry.image;
 		const isVideo = isVideoMimeType(currentImage.mimeType);
 
 		if (isVideo) {
-			// Show video container, hide image
 			this._elements.mainImage.style.display = 'none';
 			this._elements.videoContainer.style.display = '';
 			this._elements.mainImageContainer.classList.remove('zoomed');
 			this._elements.mainImageContainer.style.cursor = 'default';
 
-			// Load raw data to send via postMessage
 			const rawData = await this._loadRawData(currentImage);
 			if (this._currentIndex !== navigationIndex) {
 				return;
@@ -424,7 +398,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 </script>
 </body></html>`;
 
-			// Reuse existing webview or create one on first video navigation
 			let webview: IWebviewElement;
 			if (!this._videoWebview) {
 				webview = this._contentDisposables.add(this._webviewService.createWebviewElement({
@@ -441,18 +414,15 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 
 			webview.setHtml(videoHtml);
 
-			// Send the video data to the webview via postMessage
 			const buffer = (rawData as Uint8Array<ArrayBuffer>).buffer;
 			webview.postMessage({ type: 'loadVideo', data: buffer, mimeType: currentImage.mimeType }, [buffer]);
 		} else {
-			// Show image, hide video container
 			this._elements.videoContainer.style.display = 'none';
 			this._elements.mainImage.style.display = '';
 			this._elements.mainImageContainer.style.cursor = '';
 
 			const url = await this._loadBlobUrl(currentImage);
 
-			// If the user navigated while loading the blob URL, discard this result.
 			if (this._currentIndex !== navigationIndex) {
 				return;
 			}
@@ -460,13 +430,11 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 			const tmp = new Image();
 			tmp.src = url;
 			tmp.decode().then(() => {
-				// Only apply if user hasn't navigated away during decode
 				if (this._currentIndex === navigationIndex && this._elements) {
 					this._elements.mainImage.src = url;
 					this._elements.mainImage.alt = currentImage.name;
 				}
 			}, () => {
-				// Decode failed (invalid image) — still show src for browser fallback
 				if (this._currentIndex === navigationIndex && this._elements) {
 					this._elements.mainImage.src = url;
 					this._elements.mainImage.alt = currentImage.name;
@@ -474,10 +442,8 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 			});
 		}
 
-		// Reset zoom when switching images
 		this._applyZoom('fit');
 
-		// Update info bar: caption + separator + counter
 		if (currentImage.caption) {
 			this._elements.captionText.textContent = currentImage.caption;
 			this._elements.captionText.style.display = '';
@@ -489,7 +455,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 		}
 		this._elements.counter.textContent = localize('imageCarousel.counter', "{0} / {1}", navigationIndex + 1, this._flatImages.length);
 
-		// Announce to screen readers with full context (position + caption/name)
 		const itemKind = isVideo
 			? localize('imageCarousel.kindVideo', "Video")
 			: localize('imageCarousel.kindImage', "Image");
@@ -497,13 +462,9 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 			? localize('imageCarousel.statusWithCaption', "{0} {1} of {2}: {3}", itemKind, navigationIndex + 1, this._flatImages.length, currentImage.caption)
 			: localize('imageCarousel.statusWithName', "{0} {1} of {2}: {3}", itemKind, navigationIndex + 1, this._flatImages.length, currentImage.name);
 
-		// Update button states
 		this._elements.prevBtn.disabled = navigationIndex === 0;
 		this._elements.nextBtn.disabled = navigationIndex === this._flatImages.length - 1;
 
-		// Update thumbnail selection — only toggle active class and
-		// call getBoundingClientRect on the active thumbnail to avoid
-		// layout thrashing across all thumbnails on every navigation.
 		for (let i = 0; i < this._thumbnailElements.length; i++) {
 			const isActive = i === navigationIndex;
 			const thumbnail = this._thumbnailElements[i];
@@ -515,22 +476,16 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 			}
 		}
 
-		// Scroll the active thumbnail into view without blocking the main thread.
-		// Using scrollIntoView with 'nearest' avoids forced layout from
-		// getBoundingClientRect + scrollLeft and is handled efficiently by
-		// the browser's scroll machinery.
 		const activeThumbnail = this._thumbnailElements[navigationIndex];
 		if (activeThumbnail) {
 			activeThumbnail.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 		}
 
-		// Update editor title to reflect current section
 		if (this.input instanceof ImageCarouselEditorInput) {
 			const currentSection = this._sections[entry.sectionIndex];
 			this.input.setName(currentSection.title || this.input.collection.title);
 		}
 
-		// Preload adjacent images for smoother navigation
 		this._preloadAdjacentImages();
 	}
 
@@ -542,7 +497,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 
 		let buffer: Uint8Array;
 		if (image.data) {
-			// Handle both VSBuffer (has .buffer property) and raw Uint8Array from chat attachments
 			buffer = image.data instanceof Uint8Array ? image.data : image.data.buffer;
 		} else if (image.uri) {
 			const content = await this._fileService.readFile(image.uri);
@@ -579,15 +533,12 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 			if (idx >= 0 && idx < this._flatImages.length) {
 				const adjacentImage = this._flatImages[idx].image;
 				if (isVideoMimeType(adjacentImage.mimeType)) {
-					// For video, preload raw data into the file service cache
-					this._loadRawData(adjacentImage).catch(() => { /* ignore */ });
+					this._loadRawData(adjacentImage).catch(() => { });
 				} else {
 					this._loadBlobUrl(adjacentImage).then(url => {
-						// Pre-decode via decode() so the compositor doesn't block
-						// the main thread decoding this image during commit.
 						const img = new Image();
 						img.src = url;
-						img.decode().catch(() => { /* invalid image */ });
+						img.decode().catch(() => { });
 					});
 				}
 			}
@@ -608,9 +559,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 		}
 	}
 
-	/**
-	 * Compute the current display scale when transitioning from 'fit' to numeric zoom.
-	 */
 	private _initZoomFromFit(): void {
 		if (!this._elements) {
 			return;
@@ -623,9 +571,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 		}
 	}
 
-	/**
-	 * Zoom in to the next predefined zoom level.
-	 */
 	private _zoomIn(): void {
 		if (this._zoomScale === 'fit') {
 			this._initZoomFromFit();
@@ -640,9 +585,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 		this._applyZoom(ZOOM_LEVELS[i] ?? MAX_SCALE);
 	}
 
-	/**
-	 * Zoom out to the previous predefined zoom level.
-	 */
 	private _zoomOut(): void {
 		if (this._zoomScale === 'fit') {
 			this._initZoomFromFit();
@@ -657,9 +599,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 		this._applyZoom(ZOOM_LEVELS[i] ?? MIN_SCALE);
 	}
 
-	/**
-	 * Apply fit-to-container or numeric zoom with scroll-center preservation.
-	 */
 	private _applyZoom(newScale: ZoomScale): void {
 		if (!this._elements) {
 			return;
@@ -673,8 +612,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 			img.classList.add('scale-to-fit');
 			img.classList.remove('pixelated');
 			img.style.zoom = '';
-			// Remove zoomed/overflow before scrollTo to avoid an expensive
-			// synchronous ScrollLayer that blocks the main thread.
 			const wasZoomed = container.classList.contains('zoomed');
 			container.classList.remove('zoomed');
 			container.classList.remove('zoom-out');
@@ -685,7 +622,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 			const scale = clamp(newScale, MIN_SCALE, MAX_SCALE);
 			this._zoomScale = scale;
 
-			// Capture scroll center ratio before changing zoom.
 			const dx = container.scrollWidth > 0
 				? (container.scrollLeft + container.clientWidth / 2) / container.scrollWidth
 				: 0.5;
@@ -698,8 +634,6 @@ window.addEventListener("message",function(e){var m=e.data;if(m.type==="loadVide
 			img.style.zoom = String(scale);
 			container.classList.add('zoomed');
 
-			// Restore scroll center — works because setting img.style.zoom triggers
-			// synchronous layout, so scrollWidth/scrollHeight reflect the new size.
 			const newScrollX = container.scrollWidth * dx - container.clientWidth / 2;
 			const newScrollY = container.scrollHeight * dy - container.clientHeight / 2;
 			container.scrollTo(newScrollX, newScrollY);

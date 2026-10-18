@@ -11,7 +11,6 @@
 
 	type ISandboxConfiguration = import('../common/sandboxTypes.js').ISandboxConfiguration;
 
-	//#region Utilities
 
 	function validateIPC(channel: string): true | never {
 		if (!channel?.startsWith('vscode:')) {
@@ -31,9 +30,7 @@
 		return undefined;
 	}
 
-	//#endregion
 
-	//#region Resolve Configuration
 
 	let configuration: ISandboxConfiguration | undefined = undefined;
 
@@ -46,18 +43,10 @@
 		try {
 			validateIPC(windowConfigIpcChannel);
 
-			// Resolve configuration from electron-main
 			const resolvedConfiguration: ISandboxConfiguration = configuration = await ipcRenderer.invoke(windowConfigIpcChannel);
 
-			// Apply `userEnv` directly
 			Object.assign(process.env, resolvedConfiguration.userEnv);
 
-			// Apply zoom level early before even building the
-			// window DOM elements to avoid UI flicker. We always
-			// have to set the zoom level from within the window
-			// because Chrome has it's own way of remembering zoom
-			// settings per origin (if vscode-file:// is used) and
-			// we want to ensure that the user configuration wins.
 			webFrame.setZoomLevel(resolvedConfiguration.zoomLevel ?? 0);
 
 			return resolvedConfiguration;
@@ -66,20 +55,10 @@
 		}
 	})();
 
-	//#endregion
 
-	//#region Resolve Shell Environment
 
-	/**
-	 * If VSCode is not run from a terminal, we should resolve additional
-	 * shell specific environment from the OS shell to ensure we are seeing
-	 * all development related environment variables. We do this from the
-	 * main process because it may involve spawning a shell.
-	 */
 	const resolveShellEnv: Promise<typeof process.env> = (async () => {
 
-		// Resolve `userEnv` from configuration and
-		// `shellEnv` from the main side
 		const [userEnv, shellEnv] = await Promise.all([
 			(async () => (await resolveConfiguration).userEnv)(),
 			ipcRenderer.invoke('vscode:fetchShellEnv')
@@ -88,24 +67,11 @@
 		return { ...process.env, ...shellEnv, ...userEnv };
 	})();
 
-	//#endregion
 
-	//#region Globals Definition
 
-	// #######################################################################
-	// ###                                                                 ###
-	// ###       !!! DO NOT USE GET/SET PROPERTIES ANYWHERE HERE !!!       ###
-	// ###       !!!  UNLESS THE ACCESS IS WITHOUT SIDE EFFECTS  !!!       ###
-	// ###       (https://github.com/electron/electron/issues/25516)       ###
-	// ###                                                                 ###
-	// #######################################################################
 
 	const globals = {
 
-		/**
-		 * A minimal set of methods exposed from Electron's `ipcRenderer`
-		 * to support communication to main process.
-		 */
 
 		ipcRenderer: {
 
@@ -151,25 +117,17 @@
 			acquire(responseChannel: string, nonce: string) {
 				if (validateIPC(responseChannel)) {
 					const responseListener = (e: Electron.IpcRendererEvent, responseNonce: string) => {
-						// validate that the nonce from the response is the same
-						// as when requested. and if so, use `postMessage` to
-						// send the `MessagePort` safely over, even when context
-						// isolation is enabled
 						if (nonce === responseNonce) {
 							ipcRenderer.off(responseChannel, responseListener);
 							window.postMessage(nonce, '*', e.ports);
 						}
 					};
 
-					// handle reply from main
 					ipcRenderer.on(responseChannel, responseListener);
 				}
 			}
 		},
 
-		/**
-		 * Support for subset of methods of Electron's `webFrame` type.
-		 */
 		webFrame: {
 
 			setZoomLevel(level: number): void {
@@ -179,9 +137,6 @@
 			}
 		},
 
-		/**
-		 * Support for subset of Electron's `webUtils` type.
-		 */
 		webUtils: {
 
 			getPathForFile(file: File): string {
@@ -189,12 +144,6 @@
 			}
 		},
 
-		/**
-		 * Support for a subset of access to node.js global `process`.
-		 *
-		 * Note: when `sandbox` is enabled, the only properties available
-		 * are https://github.com/electron/electron/blob/master/docs/api/process.md#sandbox
-		 */
 		process: {
 			get platform() { return process.platform; },
 			get arch() { return process.arch; },
@@ -220,26 +169,12 @@
 			}
 		},
 
-		/**
-		 * Some information about the context we are running in.
-		 */
 		context: {
 
-			/**
-			 * A configuration object made accessible from the main side
-			 * to configure the sandbox browser window.
-			 *
-			 * Note: intentionally not using a getter here because the
-			 * actual value will be set after `resolveConfiguration`
-			 * has finished.
-			 */
 			configuration(): ISandboxConfiguration | undefined {
 				return configuration;
 			},
 
-			/**
-			 * Allows to await the resolution of the configuration object.
-			 */
 			async resolveConfiguration(): Promise<ISandboxConfiguration> {
 				return resolveConfiguration;
 			}

@@ -53,18 +53,16 @@ class InlineCompletionResults extends RefCountedDisposable implements InlineComp
 	}
 
 	canBeReused(model: ITextModel, line: number, word: IWordAtPosition) {
-		return this.model === model // same model
+		return this.model === model
 			&& this.line === line
 			&& this.word.word.length > 0
-			&& this.word.startColumn === word.startColumn && this.word.endColumn < word.endColumn // same word
-			&& this.completionModel.getIncompleteProvider().size === 0; // no incomplete results
+			&& this.word.startColumn === word.startColumn && this.word.endColumn < word.endColumn
+			&& this.completionModel.getIncompleteProvider().size === 0;
 	}
 
 	get items(): SuggestInlineCompletion[] {
 		const result: SuggestInlineCompletion[] = [];
 
-		// Split items by preselected index. This ensures the memory-selected item shows first and that better/worst
-		// ranked items are before/after
 		const { items } = this.completionModel;
 		const selectedIndex = this._suggestMemoryService.select(this.model, { lineNumber: this.line, column: this.word.endColumn + this.completionModel.lineContext.characterCountDelta }, items);
 		const first = Iterable.slice(items, selectedIndex);
@@ -75,13 +73,12 @@ class InlineCompletionResults extends RefCountedDisposable implements InlineComp
 		for (const item of Iterable.concat(first, second)) {
 
 			if (item.score === FuzzyScore.Default) {
-				// skip items that have no overlap
 				continue;
 			}
 
 			const range = new Range(
 				item.editStart.lineNumber, item.editStart.column,
-				item.editInsertEnd.lineNumber, item.editInsertEnd.column + this.completionModel.lineContext.characterCountDelta // end PLUS character delta
+				item.editInsertEnd.lineNumber, item.editInsertEnd.column + this.completionModel.lineContext.characterCountDelta
 			);
 			const insertText = item.completion.insertTextRules && (item.completion.insertTextRules & CompletionItemInsertTextRule.InsertAsSnippet)
 				? { snippet: item.completion.insertText }
@@ -97,7 +94,6 @@ class InlineCompletionResults extends RefCountedDisposable implements InlineComp
 				item
 			));
 
-			// resolve the first N suggestions eagerly
 			if (resolveCount-- >= 0) {
 				item.resolve(CancellationToken.None);
 			}
@@ -141,7 +137,6 @@ export class SuggestInlineCompletions extends Disposable implements InlineComple
 
 		const config = editor.getOption(EditorOption.quickSuggestions);
 		if (QuickSuggestionsOptions.isAllOff(config)) {
-			// quick suggest is off (for this model/language)
 			return;
 		}
 
@@ -149,12 +144,9 @@ export class SuggestInlineCompletions extends Disposable implements InlineComple
 		const lineTokens = model.tokenization.getLineTokens(position.lineNumber);
 		const tokenType = lineTokens.getStandardTokenType(lineTokens.findTokenIndexAtOffset(Math.max(position.column - 1 - 1, 0)));
 		if (QuickSuggestionsOptions.valueFor(config, tokenType) !== 'inline') {
-			// quick suggest is off (for this token)
 			return undefined;
 		}
 
-		// We consider non-empty leading words and trigger characters. The latter only
-		// when no word is being typed (word characters superseed trigger characters)
 		let wordInfo = model.getWordAtPosition(position);
 		let triggerCharacterInfo: { ch: string; providers: Set<CompletionItemProvider> } | undefined;
 
@@ -163,12 +155,9 @@ export class SuggestInlineCompletions extends Disposable implements InlineComple
 		}
 
 		if (!wordInfo?.word && !triggerCharacterInfo) {
-			// not at word, not a trigger character
 			return;
 		}
 
-		// ensure that we have word information and that we are at the end of a word
-		// otherwise we stop because we don't want to do quick suggestions inside words
 		if (!wordInfo) {
 			wordInfo = model.getWordUntilPosition(position);
 		}
@@ -179,16 +168,12 @@ export class SuggestInlineCompletions extends Disposable implements InlineComple
 		let result: InlineCompletionResults;
 		const leadingLineContents = model.getValueInRange(new Range(position.lineNumber, 1, position.lineNumber, position.column));
 		if (!triggerCharacterInfo && this._lastResult?.canBeReused(model, position.lineNumber, wordInfo)) {
-			// reuse a previous result iff possible, only a refilter is needed
-			// TODO@jrieken this can be improved further and only incomplete results can be updated
-			// console.log(`REUSE with ${wordInfo.word}`);
 			const newLineContext = new LineContext(leadingLineContents, position.column - this._lastResult.word.endColumn);
 			this._lastResult.completionModel.lineContext = newLineContext;
 			this._lastResult.acquire();
 			result = this._lastResult;
 
 		} else {
-			// refesh model is required
 			const completions = await provideSuggestionItems(
 				this._languageFeatureService.completionProvider,
 				model, position,

@@ -19,8 +19,6 @@ export class ChatInputBoxContentProvider extends Disposable implements ITextMode
 		@ILanguageService private readonly languageService: ILanguageService
 	) {
 		super();
-		// Every chat input scheme needs this: paste edits are applied through the
-		// bulk edit service, which resolves the target model by URI.
 		for (const scheme of chatInputSchemes) {
 			this._register(textModelService.registerTextModelContentProvider(scheme, this));
 		}

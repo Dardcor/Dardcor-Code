@@ -39,7 +39,6 @@ export class NotebookHorizontalTracker extends Disposable {
 			const hoveringOnEditor = this._notebookEditor.codeEditors.find(editor => {
 				const editorLayout = editor[1].getLayoutInfo();
 				if (editorLayout.contentWidth === editorLayout.width) {
-					// no overflow
 					return false;
 				}
 

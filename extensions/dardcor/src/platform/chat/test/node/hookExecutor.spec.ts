@@ -36,9 +36,6 @@ function createMockChild(): MockChildProcess {
 	return child;
 }
 
-/**
- * Simulates a child process completing with the given stdout, stderr, and exit code.
- */
 function completeChild(child: MockChildProcess, opts: { stdout?: string; stderr?: string; exitCode?: number }): void {
 	if (opts.stdout) {
 		child.stdout.emit('data', Buffer.from(opts.stdout));
@@ -153,7 +150,6 @@ describe('NodeHookExecutor', () => {
 		completeChild(child, { stdout: 'ok', exitCode: 0 });
 		const result = await promise;
 
-		// Verify the command ran successfully (env is passed to spawn options)
 		expect(result.kind).toBe(HookCommandResultKind.Success);
 	});
 
@@ -165,7 +161,6 @@ describe('NodeHookExecutor', () => {
 		completeChild(child, { stdout: 'ok', exitCode: 0 });
 		const result = await promise;
 
-		// Verify the command ran successfully (cwd is passed to spawn options)
 		expect(result.kind).toBe(HookCommandResultKind.Success);
 	});
 

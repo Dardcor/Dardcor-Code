@@ -201,7 +201,6 @@ export class TokenClassificationExtensionPoints {
 							tokenClassificationRegistry.registerTokenStyleDefault(selector, { scopesToProbe: tmScopes.map(s => s.split(' ')) });
 						} catch (e) {
 							collector.error(nls.localize('invalid.semanticTokenScopes.scopes.selector', "configuration.semanticTokenScopes.scopes': Problems parsing selector {0}.", selectorString));
-							// invalid selector, ignore
 						}
 					}
 				}
@@ -215,7 +214,6 @@ export class TokenClassificationExtensionPoints {
 							const selector = tokenClassificationRegistry.parseTokenSelector(selectorString, contribution.language);
 							tokenClassificationRegistry.registerTokenStyleDefault(selector, { scopesToProbe: tmScopes.map(s => s.split(' ')) });
 						} catch (e) {
-							// invalid selector, ignore
 						}
 					}
 				}

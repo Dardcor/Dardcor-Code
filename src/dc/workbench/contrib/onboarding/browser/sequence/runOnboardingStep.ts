@@ -14,12 +14,10 @@ export interface IRunOnboardingStepResult {
 	readonly shown?: boolean;
 }
 
-/** Callback payload for a cancellable non-visual sequence step. */
 export interface IRunOnboardingStepPayload {
 	readonly run: (token: CancellationToken) => Promise<IRunOnboardingStepResult | void> | IRunOnboardingStepResult | void;
 }
 
-/** Executes a run-step callback once and continues after reported errors. */
 export class RunOnboardingStepPresentation implements IOnboardingSequenceStepPresentation {
 	readonly kind = RUN_ONBOARDING_STEP_KIND;
 	readonly countsAsVisualStep = false;

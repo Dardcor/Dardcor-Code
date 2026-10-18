@@ -47,7 +47,7 @@ import { IAICustomizationItemsModel, ITEMS_MODEL_SECTIONS } from './aiCustomizat
 import { McpListWidget } from './mcpListWidget.js';
 import { PluginListWidget } from './pluginListWidget.js';
 import { ToolsListWidget } from './toolsListWidget.js';
-import { AGENT_HOST_COPILOT_CLI_SESSION_TYPE } from '../agentSessions/agentHost/agentHostToolSetEnablementService.js';
+
 import {
 	AI_CUSTOMIZATION_MANAGEMENT_EDITOR_ID,
 	AI_CUSTOMIZATION_MANAGEMENT_SIDEBAR_WIDTH_KEY,
@@ -103,7 +103,7 @@ import { EmbeddedMcpServerDetail, IMcpServerDetailInput } from './embeddedMcpSer
 import { EmbeddedAgentPluginDetail } from './embeddedAgentPluginDetail.js';
 import { getVirtualizedSectionMinimumHeight, layoutVirtualizedSectionList, layoutVirtualizedSections, setupCollapsibleSection } from './customizationCardList.js';
 import { IMcpService, IMcpWorkbenchService } from '../../../mcp/common/mcpTypes.js';
-import { IAgentHostCustomizationService } from '../agentSessions/agentHost/agentHostCustomizationService.js';
+
 import { EmbeddedExtensionToolsDetail } from './embeddedExtensionToolsDetail.js';
 import { ICustomizationHarnessService, type ICustomizationSourceFolder } from '../../common/customizationHarnessService.js';
 import { ChatConfiguration } from '../../common/constants.js';
@@ -116,7 +116,6 @@ import { isAgentHostTarget } from '../../common/chatSessionsService.js';
 
 const $ = DOM.$;
 
-//#region Telemetry
 
 type CustomizationEditorOpenedEvent = {
 	section: string;
@@ -192,9 +191,7 @@ type CustomizationEditorSaveItemClassification = {
 	comment: 'Tracks save actions in the Agent Customizations editor.';
 };
 
-//#endregion
 
-//#region Sidebar Section Item
 
 interface ISectionItem {
 	readonly id: AICustomizationManagementSection;
@@ -280,9 +277,7 @@ class SectionItemRenderer implements IListRenderer<ISectionItem, ISectionItemTem
 	}
 }
 
-//#endregion
 
-//#region Migration Items
 
 const MIGRATION_ITEM_HEIGHT = 56;
 
@@ -473,7 +468,6 @@ class MigrationItemRenderer implements IListRenderer<CustomizationMigrationCandi
 	}
 }
 
-//#endregion
 
 /**
  * Editor pane for the AI Customizations Management Editor.
@@ -505,7 +499,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 	private readonly contributedSectionWidgets = new Map<AICustomizationManagementSection, IAICustomizationManagementSectionWidget>();
 	private modelsFooterElement: HTMLElement | undefined;
 
-	// Embedded editor state
 	private editorContentContainer: HTMLElement | undefined;
 	private editorPreviewContainer: HTMLElement | undefined;
 	private editorPreviewScrollContainer: HTMLElement | undefined;
@@ -563,20 +556,16 @@ export class AICustomizationManagementEditor extends EditorPane {
 	private readonly migrationPageDisposables = this._register(new DisposableStore());
 	private readonly migrationBannerDisposables = this._register(new DisposableStore());
 
-	// Embedded MCP server detail view
 	private mcpDetailContainer: HTMLElement | undefined;
 	private embeddedMcpDetail: EmbeddedMcpServerDetail | undefined;
 	private mcpDetailBackButton: HTMLButtonElement | undefined;
 	private readonly mcpDetailDisposables = this._register(new DisposableStore());
 
-	// Embedded plugin detail view
 	private pluginDetailContainer: HTMLElement | undefined;
 	private embeddedPluginDetail: EmbeddedAgentPluginDetail | undefined;
 	private readonly pluginDetailDisposables = this._register(new DisposableStore());
-	/** Section to restore when navigating back from plugin detail (when opened from a non-plugin section). */
 	private pluginDetailReturnSection: AICustomizationManagementSection | undefined;
 
-	// Embedded tool-contributing extension detail view
 	private toolsDetailContainer: HTMLElement | undefined;
 	private embeddedToolDetail: EmbeddedExtensionToolsDetail | undefined;
 	private readonly toolsDetailDisposables = this._register(new DisposableStore());
@@ -587,7 +576,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 	private selectedSection: AICustomizationManagementSection | undefined;
 	private contentNavigationGeneration = 0;
 
-	// Welcome page
 	private welcomePage: AICustomizationWelcomePage | undefined;
 	private customizationsByMigrationCategory = new Map<CustomizationMigrationCategoryId, readonly CustomizationMigrationCandidate[]>();
 	private customizationMigrationTargetFoldersByType = new Map<PromptsType, readonly ICustomizationSourceFolder[]>();
@@ -642,8 +630,7 @@ export class AICustomizationManagementEditor extends EditorPane {
 		@ILabelService private readonly labelService: ILabelService,
 		@IAICustomizationItemsModel private readonly itemsModel: IAICustomizationItemsModel,
 		@IMcpService private readonly mcpService: IMcpService,
-		@IMcpWorkbenchService private readonly mcpWorkbenchService: IMcpWorkbenchService,
-		@IAgentHostCustomizationService private readonly agentHostCustomizationService: IAgentHostCustomizationService,
+		@IMcpWorkbenchService private readonly mcpWorkbenchService: IMcpWorkbenchService
 	) {
 		super(AICustomizationManagementEditor.ID, group, telemetryService, themeService, storageService);
 
@@ -652,7 +639,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		this.harnessContextKey = CONTEXT_AI_CUSTOMIZATION_MANAGEMENT_HARNESS.bindTo(contextKeyService);
 		this.updateTargetLabelPresentation();
 
-		// Track workspace changes for embedded editor
 		this._register(autorun(reader => {
 			this.workspaceService.activeProjectRoot.read(reader);
 			this.workspaceService.activeProjectLabel.read(reader);
@@ -667,7 +653,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}));
 		this._register(toDisposable(() => this.disposeBuiltinEditingSessions()));
 
-		// Build sections from the workspace service configuration
 		const sectionInfo: Record<string, { label: string; icon: ThemeIcon; description: string }> = {
 			[AICustomizationManagementSection.Agents]: { label: localize('agents', "Agents"), icon: agentIcon, description: localize('agentsDesc', "Define custom agents with specialized personas, tool access, and instructions for specific tasks.") },
 			[AICustomizationManagementSection.Skills]: { label: localize('skills', "Skills"), icon: skillIcon, description: localize('skillsDesc', "Create reusable skill files that provide domain-specific knowledge and workflows.") },
@@ -689,12 +674,11 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}
 		this.rebuildVisibleSections();
 
-		// Restore selected section from storage, falling back to welcome page
 		const savedSection = this.storageService.get(AI_CUSTOMIZATION_MANAGEMENT_SELECTED_SECTION_KEY, StorageScope.PROFILE);
 		if (savedSection && this.sections.some(s => s.id === savedSection)) {
 			this.selectedSection = savedSection as AICustomizationManagementSection;
 		} else {
-			this.selectedSection = undefined; // Show welcome page
+			this.selectedSection = undefined;
 		}
 	}
 
@@ -725,7 +709,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 
 		const savedWidth = this.storageService.getNumber(AI_CUSTOMIZATION_MANAGEMENT_SIDEBAR_WIDTH_KEY, StorageScope.PROFILE, SIDEBAR_DEFAULT_WIDTH);
 
-		// Sidebar view
 		this.splitView.addView({
 			onDidChange: Event.None,
 			element: this.sidebarContainer,
@@ -739,7 +722,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			},
 		}, savedWidth, undefined, true);
 
-		// Content view
 		this.splitView.addView({
 			onDidChange: Event.None,
 			element: this.contentContainer,
@@ -763,11 +745,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 					const modelsFooterHeight = this.modelsFooterElement?.offsetHeight || 80;
 					this.modelsWidget?.layout(height - 16 - modelsFooterHeight, width);
 					if (this.viewMode === 'editor' && this.embeddedEditor && this.embeddedEditorContainer) {
-						// Use the actual rendered size of the embedded editor container so
-						// the Monaco editor (and its scrollbars) stay within the rounded
-						// panel chrome regardless of header/margin changes. Guard against
-						// the container being hidden (clientHeight === 0); re-layout once
-						// it becomes visible to avoid a zero-height editor.
 						const { clientWidth, clientHeight } = this.embeddedEditorContainer;
 						if (clientWidth > 0 && clientHeight > 0) {
 							this.embeddedEditor.layout({ width: clientWidth, height: clientHeight });
@@ -782,19 +759,15 @@ export class AICustomizationManagementEditor extends EditorPane {
 							});
 						}
 					}
-					// The MCP detail editor uses automatic layout; plugin details flow with
-					// their container, so neither requires an explicit layout call here.
 				}
 			},
 		}, Sizing.Distribute, undefined, true);
 
-		// Persist sidebar width
 		this.editorDisposables.add(this.splitView.onDidSashChange(() => {
 			const width = this.splitView.getViewSize(0);
 			this.storageService.store(AI_CUSTOMIZATION_MANAGEMENT_SIDEBAR_WIDTH_KEY, width, StorageScope.PROFILE, StorageTarget.USER);
 		}));
 
-		// Reset on double-click
 		this.editorDisposables.add(this.splitView.onDidSashReset(() => {
 			const totalWidth = this.splitView.getViewSize(0) + this.splitView.getViewSize(1);
 			this.splitView.resizeView(0, SIDEBAR_DEFAULT_WIDTH);
@@ -816,11 +789,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}
 	}
 
-	/**
-	 * Rebuilds the visible sections list based on the active harness's
-	 * `hiddenSections`. If the current selection falls into a hidden
-	 * section, the first visible section is selected instead.
-	 */
 	private rebuildVisibleSections(): void {
 		const activeId = this.harnessService.activeHarness.get();
 		const descriptor = this.harnessService.findHarnessById(activeId);
@@ -835,16 +803,13 @@ export class AICustomizationManagementEditor extends EditorPane {
 			}
 		}
 
-		// Update the list widget if it exists
 		if (this.sectionsList) {
 			this.sectionsList.splice(0, this.sectionsList.length, this.sections);
 			this.layoutSidebar(this.sidebarWidth, this.sidebarHeight);
 		}
 
-		// Rebuild welcome cards to reflect new visible sections
 		this.welcomePage?.rebuildCards(new Set(this.sections.map(s => s.id)));
 
-		// If the current selection is hidden, fall back to welcome page
 		if (this.selectedSection !== undefined && !this.sections.some(s => s.id === this.selectedSection) && this.sections.length > 0) {
 			this.showWelcomePage();
 		} else {
@@ -857,7 +822,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 
 		this.createSidebarHeader(sidebarContent);
 
-		// Main sections list container (takes remaining space)
 		const sectionsListContainer = this.sectionsListContainer = DOM.append(sidebarContent, $('.sidebar-sections-list'));
 
 		this.sectionsList = this.editorDisposables.add(this.instantiationService.createInstance(
@@ -896,18 +860,12 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.selectSection(e.elements[0].id);
 		}));
 
-		// React to harness changes — rebuild visible sections and refresh counts.
-		// Also track availableHarnesses to handle agent registration/unregistration.
 		this.editorDisposables.add(autorun(reader => {
 			this.harnessService.availableHarnesses.read(reader);
 			const activeId = this.harnessService.activeHarness.read(reader);
 			this.harnessContextKey.set(activeId);
 			this.updateHomeButtonHarnessPresentation();
 			this.rebuildVisibleSections();
-			// Reset counts to zero immediately on harness switch to prevent
-			// stale counts from the previous harness flashing before the async
-			// count refresh completes. Only reset when the active harness
-			// actually changed to avoid flicker on harness registration events.
 			if (this._previousActiveHarnessId !== undefined && this._previousActiveHarnessId !== activeId) {
 				for (const [section, widget] of this.contributedSectionWidgets) {
 					this.editorDisposables.delete(widget);
@@ -925,7 +883,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			if (e.affectsConfiguration(ChatConfiguration.ChatCustomizationsStructuredPreviewEnabled)) {
 				this.onStructuredPreviewSettingChanged();
 			}
-			// Candidates are only collected for enabled categories, so enabling one must re-scan.
 			if (CUSTOMIZATION_MIGRATION_CATEGORIES.some(category =>
 				e.affectsConfiguration(category.enablementSetting)
 				|| category.configurationSettingIds?.some(settingId => e.affectsConfiguration(settingId))
@@ -944,9 +901,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			return;
 		}
 
-		// Subtract sidebar-content padding (4px each side = 8px), the fixed header,
-		// and the optional migration row so the sections list only occupies the
-		// space it needs and the migration entry can sit directly beneath it.
 		const headerHeight = this.sidebarHeaderContainer?.offsetHeight ?? 0;
 		const migrationHeight = this.migrationShortcutContainer?.style.display !== 'none'
 			? (this.migrationShortcutContainer?.offsetHeight ?? 0)
@@ -960,7 +914,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 	private createSidebarHeader(sidebarContent: HTMLElement): void {
 		const headerRow = this.sidebarHeaderContainer = DOM.append(sidebarContent, $('.sidebar-header-row'));
 
-		// Home/overview button
 		const homeButton = this.homeButton = DOM.append(headerRow, $('button.sidebar-home-button'));
 		homeButton.classList.add('sidebar-harness-home-button');
 		homeButton.setAttribute('aria-label', localize('homeButton', "Overview"));
@@ -1146,7 +1099,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 	private createContent(): void {
 		const contentInner = DOM.append(this.contentContainer, $('.content-inner'));
 
-		// Welcome page (shown when no section is selected)
 		this.createWelcomePage(contentInner);
 		this.editorDisposables.add(Event.any(
 			this.promptsService.onDidChangeSlashCommands,
@@ -1154,7 +1106,7 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.promptsService.onDidChangeInstructions,
 			this.promptsService.onDidChangeAgentInstructions,
 		)(() => this.refreshCustomizationMigrationInfoFromPromptChange()));
-		this.editorDisposables.add(this.agentHostCustomizationService.onDidChangeCustomizations(() => this.refreshCustomizationMigrationInfoFromMcpChange()));
+
 		this.editorDisposables.add(Event.any(this.mcpWorkbenchService.onChange, this.mcpWorkbenchService.onReset)(() => this.refreshCustomizationMigrationInfoFromMcpChange()));
 		this.editorDisposables.add(autorun(reader => {
 			for (const server of this.mcpService.servers.read(reader)) {
@@ -1165,13 +1117,11 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}));
 		this.registerCustomizationMigrationSessionRefresh();
 
-		// Container for prompts-based content (Agents, Skills, Instructions, Prompts)
 		this.promptsContentContainer = DOM.append(contentInner, $('.prompts-content-container'));
 		this.listWidget = this.editorDisposables.add(this.instantiationService.createInstance(AICustomizationListWidget));
 		this.promptsContentContainer.appendChild(this.listWidget.element);
 		this.createCustomizationMigrationContent(contentInner);
 
-		// Handle item selection
 		this.editorDisposables.add(this.listWidget.onDidSelectItem(item => {
 			this.telemetryService.publicLog2<CustomizationEditorItemSelectedEvent, CustomizationEditorItemSelectedClassification>('chatCustomizationEditor.itemSelected', {
 				section: this.selectedSection ?? 'welcome',
@@ -1184,17 +1134,14 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.showEmbeddedEditor(item.uri, item.name, item.promptType, source ?? AICustomizationSources.builtin, isWorkspaceFile, isReadOnly);
 		}));
 
-		// Handle create actions - AI-guided creation
 		this.editorDisposables.add(this.listWidget.onDidRequestCreate(promptType => {
 			this.createNewItemWithAI(promptType);
 		}));
 
-		// Handle manual create actions - open editor directly
 		this.editorDisposables.add(this.listWidget.onDidRequestCreateManual(({ type, target, rootFileName }) => {
 			this.createNewItemManual(type, target, rootFileName);
 		}));
 
-		// Container for Models content (only in sessions)
 		const hasSections = new Set(this.workspaceService.managementSections);
 		if (hasSections.has(AICustomizationManagementSection.Models)) {
 			this.modelsContentContainer = DOM.append(contentInner, $('.models-content-container'));
@@ -1208,20 +1155,18 @@ export class AICustomizationManagementEditor extends EditorPane {
 			modelsDescription.textContent = localize('modelsDescription', "Browse and manage language models from different providers. Select models for use in chat, code completion, and other AI features.");
 			const modelsLink = DOM.append(this.modelsFooterElement, $('a.section-footer-link')) as HTMLAnchorElement;
 			modelsLink.textContent = localize('learnMoreModels', "Learn more about language models");
-			modelsLink.href = 'https://code.visualstudio.com/docs/agent-customization/language-models?referrer=in-product';
+			modelsLink.href = 'https://www.dardcor-code.web.id/docs/agent-customization/language-models';
 			this.editorDisposables.add(DOM.addDisposableListener(modelsLink, 'click', (e) => {
 				e.preventDefault();
 				this.openerService.open(URI.parse(modelsLink.href));
 			}));
 		}
 
-		// Container for MCP content
 		if (hasSections.has(AICustomizationManagementSection.McpServers)) {
 			this.mcpContentContainer = DOM.append(contentInner, $('.mcp-content-container'));
 			this.mcpListWidget = this.editorDisposables.add(this.instantiationService.createInstance(McpListWidget));
 			this.mcpContentContainer.appendChild(this.mcpListWidget.element);
 
-			// Embedded MCP server detail view
 			this.mcpDetailContainer = DOM.append(contentInner, $('.mcp-detail-container'));
 
 			this.editorDisposables.add(this.mcpListWidget.onDidSelectServer(server => {
@@ -1233,13 +1178,11 @@ export class AICustomizationManagementEditor extends EditorPane {
 			}));
 		}
 
-		// Container for Plugins content
 		if (hasSections.has(AICustomizationManagementSection.Plugins)) {
 			this.pluginContentContainer = DOM.append(contentInner, $('.plugin-content-container'));
 			this.pluginListWidget = this.editorDisposables.add(this.instantiationService.createInstance(PluginListWidget, undefined));
 			this.pluginContentContainer.appendChild(this.pluginListWidget.element);
 
-			// Embedded plugin detail view
 			this.pluginDetailContainer = DOM.append(contentInner, $('.plugin-detail-container'));
 			this.createEmbeddedPluginDetail();
 
@@ -1249,14 +1192,11 @@ export class AICustomizationManagementEditor extends EditorPane {
 			}));
 		}
 
-		// Container for Tools content.
 		if (hasSections.has(AICustomizationManagementSection.Tools)) {
 			this.toolsContentContainer = DOM.append(contentInner, $('.tools-content-container'));
-			// Tools customizations only target the agent host (Copilot CLI), in both windows.
-			this.toolsListWidget = this.editorDisposables.add(this.instantiationService.createInstance(ToolsListWidget, AGENT_HOST_COPILOT_CLI_SESSION_TYPE));
+			this.toolsListWidget = this.editorDisposables.add(this.instantiationService.createInstance(ToolsListWidget));
 			this.toolsContentContainer.appendChild(this.toolsListWidget.element);
 
-			// Embedded tool-contributing extension detail view
 			this.toolsDetailContainer = DOM.append(contentInner, $('.tools-detail-container'));
 			this.createEmbeddedToolDetail();
 
@@ -1273,16 +1213,11 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.contributedSectionContainers.set(section, container);
 		}
 
-		// Embedded editor container
 		this.editorContentContainer = DOM.append(contentInner, $('.editor-content-container'));
 		this.createEmbeddedEditor();
 
-		// Set initial visibility based on selected section
 		this.updateContentVisibility();
 
-		// Wire up section count updates — active prompts section gets its count
-		// from the list widget; all prompts sections are also refreshed from
-		// the prompts service on every change event for consistency.
 		this.editorDisposables.add(this.listWidget.onDidChangeItemCount(count => {
 			if (this.isPromptsSection(this.selectedSection)) {
 				this.updateSectionCount(this.selectedSection, count);
@@ -1313,8 +1248,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.toolsListWidget.fireItemCount();
 		}
 
-		// Per-prompts-section autoruns: drive sidebar counts from the items model,
-		// the same source the editor list widget renders from.
 		for (const section of ITEMS_MODEL_SECTIONS) {
 			const observable = this.itemsModel.getCount(section);
 			this.editorDisposables.add(autorun(reader => {
@@ -1322,7 +1255,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			}));
 		}
 
-		// Load items for the initial section
 		if (this.isPromptsSection(this.selectedSection)) {
 			void this.listWidget.setSection(this.selectedSection);
 		}
@@ -2193,7 +2125,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.migrationTitleElement.textContent = category.pageTitle;
 		}
 
-		// The banner carries the full explanation, so the description would only repeat it.
 		const banner = candidates.length > 0
 			? category.getBanner?.(
 				candidates,
@@ -2546,27 +2477,18 @@ export class AICustomizationManagementEditor extends EditorPane {
 			section === AICustomizationManagementSection.Hooks;
 	}
 
-	//#region Section Counts
 
-	/**
-	 * Updates the count for a specific section and re-renders the sidebar.
-	 */
 	private updateSectionCount(sectionId: AICustomizationManagementSection, count: number): void {
 		const section = this.sections.find(s => s.id === sectionId);
 		if (!section || section.count === count) {
 			return;
 		}
 		section.count = count;
-		// Re-splice the sections list to trigger re-render
 		this.sectionsList.splice(0, this.sectionsList.length, this.sections);
 		this.ensureSectionsListReflectsActiveSection();
 	}
 
-	//#endregion
 
-	/**
-	 * Navigates to the welcome page (no section selected).
-	 */
 	public showWelcomePage(): void {
 		if (this.viewMode === 'editor') {
 			this.goBackToList();
@@ -2587,7 +2509,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		this.selectedSection = undefined;
 		this.sectionContextKey.set('');
 
-		// Clear persisted section so welcome shows next time
 		this.storageService.remove(AI_CUSTOMIZATION_MANAGEMENT_SELECTED_SECTION_KEY, StorageScope.PROFILE);
 
 		this.welcomePage?.reset();
@@ -2625,28 +2546,20 @@ export class AICustomizationManagementEditor extends EditorPane {
 		this.selectedSection = section;
 		this.sectionContextKey.set(section);
 
-		// Persist selection
 		this.storageService.store(AI_CUSTOMIZATION_MANAGEMENT_SELECTED_SECTION_KEY, section, StorageScope.PROFILE, StorageTarget.USER);
 
-		// Update content visibility
 		this.updateContentVisibility();
 
-		// Load items for the new section (only for prompts-based sections)
 		if (this.isPromptsSection(section)) {
 			void this.listWidget.setSection(section);
 		}
 
-		// Re-layout after visibility change so the newly-visible widget can
-		// measure its flex-computed container height correctly. Without this,
-		// a widget that was previously hidden (offsetHeight === 0) keeps its
-		// stale listContainer height and clips items at the bottom.
 		if (this.dimension) {
 			this.layout(this.dimension);
 		}
 
 		this.ensureSectionsListReflectsActiveSection(section);
 
-		// Activate marketplace browse mode if requested
 		if (options?.showMarketplace) {
 			if (section === AICustomizationManagementSection.McpServers) {
 				this.mcpListWidget?.showBrowseMarketplace();
@@ -2655,8 +2568,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			}
 		}
 
-		// Move focus to the search input so keyboard users can immediately
-		// filter without extra Tab traversal (parity with mouse-click flow).
 		if (section === AICustomizationManagementSection.McpServers) {
 			this.mcpListWidget?.focusSearch();
 		} else if (section === AICustomizationManagementSection.Plugins) {
@@ -2676,7 +2587,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}
 
 		if (section === undefined) {
-			// Welcome page — deselect all
 			this.sectionsList.setSelection([]);
 			this.sectionsList.setFocus([]);
 			return;
@@ -2756,7 +2666,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.editorContentContainer.style.display = isEditorMode ? '' : 'none';
 		}
 
-		// Render and layout models widget when switching to it
 		if (isModelsSection && this.modelsWidget) {
 			this.modelsWidget.render();
 			if (this.dimension) {
@@ -2784,9 +2693,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		return widget;
 	}
 
-	/**
-	 * Creates a new customization using the AI-guided flow.
-	 */
 	private async createNewItemWithAI(type: PromptsType): Promise<void> {
 		this.telemetryService.publicLog2<CustomizationEditorCreateItemEvent, CustomizationEditorCreateItemClassification>('chatCustomizationEditor.createItem', {
 			section: this.selectedSection ?? 'welcome',
@@ -2800,9 +2706,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		await this.workspaceService.generateCustomization(type);
 	}
 
-	/**
-	 * Creates a new prompt file and opens it in the embedded editor.
-	 */
 	private async createNewItemManual(type: PromptsType, target: 'local' | 'user' | 'workspace-root', rootFileName?: string): Promise<void> {
 		this.telemetryService.publicLog2<CustomizationEditorCreateItemEvent, CustomizationEditorCreateItemClassification>('chatCustomizationEditor.createItem', {
 			section: this.selectedSection ?? 'welcome',
@@ -2811,9 +2714,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			target: target === 'workspace-root' ? 'workspace' : target,
 		});
 
-		// Handle workspace-root files (e.g. AGENTS.md or CLAUDE.md at project root).
-		// rootFileName is passed from rootFileShortcuts; falls back to
-		// the section override's rootFile, then AGENTS.md as the default.
 		if (target === 'workspace-root') {
 			const projectRoot = this.workspaceService.getActiveProjectRoot();
 			if (!projectRoot) {
@@ -2823,7 +2723,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			const fileName = rootFileName ?? override?.rootFile ?? AGENT_MD_FILENAME;
 			const fileUri = URI.joinPath(projectRoot, fileName);
 			if (await this.fileService.exists(fileUri)) {
-				// File already exists — just open it
 				await this.showEmbeddedEditor(fileUri, fileName, PromptsType.instructions, PromptsStorage.local, true);
 			} else {
 				await this.fileService.createFile(fileUri);
@@ -2852,19 +2751,14 @@ export class AICustomizationManagementEditor extends EditorPane {
 			target,
 		);
 		if (targetDir === null) {
-			return; // User cancelled the picker
+			return;
 		}
 
 		if (targetDir === undefined) {
-			// targetDir may be undefined when no matching folder exists for the
-			// requested storage type (e.g. skills have no user-storage folder).
 			await this.instantiationService.invokeFunction(showNoFoldersDialog, type);
 			return;
 		}
 
-		// When the active harness overrides the file extension (e.g. Claude
-		// rules use .md instead of .instructions.md), pass it through so the
-		// name picker and file creation use the correct extension.
 		const override = this.selectedSection ? this.harnessService.getActiveDescriptor().sectionOverrides?.get(this.selectedSection) : undefined;
 
 		const options: INewPromptOptions = {
@@ -2892,13 +2786,10 @@ export class AICustomizationManagementEditor extends EditorPane {
 	}
 
 	override updateStyles(): void {
-		// The modal provides its own panel chrome, so the split view separator
-		// is intentionally hidden here regardless of theme.
 		this.splitView?.style({ separatorBorder: Color.transparent });
 	}
 
 	override async setInput(input: AICustomizationManagementEditorInput, options: IEditorOptions | undefined, context: IEditorOpenContext, token: CancellationToken): Promise<void> {
-		// On (re)open, clear any override so the root comes from the default source
 		this.workspaceService.clearOverrideProjectRoot();
 
 		this.inEditorContextKey.set(true);
@@ -2941,7 +2832,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		if (this.viewMode === 'toolsDetail') {
 			this.goBackFromToolDetail();
 		}
-		// Clear transient folder override on close
 		this.workspaceService.clearOverrideProjectRoot();
 		this.disposeBuiltinEditingSessions();
 		super.clearInput();
@@ -3002,15 +2892,9 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}
 	}
 
-	/**
-	 * Selects a specific section programmatically.
-	 */
 	public selectSectionById(sectionId: AICustomizationManagementSection, options?: { showMarketplace?: boolean }): void {
 		const index = this.sections.findIndex(s => s.id === sectionId);
 		if (index >= 0) {
-			// Directly update state and UI, bypassing the early-return guard in selectSection
-			// to handle the case where the editor just opened with a persisted section that
-			// matches the requested one (content might not be loaded yet).
 			if (this.viewMode === 'editor') {
 				this.goBackToList();
 			}
@@ -3033,14 +2917,11 @@ export class AICustomizationManagementEditor extends EditorPane {
 			if (this.isPromptsSection(sectionId)) {
 				void this.listWidget.setSection(sectionId);
 			}
-			// Re-layout after visibility change so the newly-visible widget
-			// can measure its flex-computed container height correctly.
 			if (this.dimension) {
 				this.layout(this.dimension);
 			}
 			this.ensureSectionsListReflectsActiveSection(sectionId);
 
-			// Activate marketplace browse mode if requested
 			if (options?.showMarketplace) {
 				if (sectionId === AICustomizationManagementSection.McpServers) {
 					this.mcpListWidget?.showBrowseMarketplace();
@@ -3093,18 +2974,10 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}
 	}
 
-	/**
-	 * Refreshes the list widget.
-	 */
 	public refreshList(): void {
 		this.listWidget.refresh();
 	}
 
-	/**
-	 * Reveals and selects the item backed by `uri` in the current section,
-	 * retrying while the list loads. MCP servers and plugins have no
-	 * URI-addressable rows, so selecting their section is the whole reveal.
-	 */
 	public async revealCustomizationByUri(uri: URI): Promise<void> {
 		if (!this.isPromptsSection(this.selectedSection)) {
 			return;
@@ -3120,9 +2993,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}
 	}
 
-	/**
-	 * Scrolls the active list widget so the last item is visible.
-	 */
 	public revealLastItem(): void {
 		if (this.selectedSection === AICustomizationManagementSection.McpServers) {
 			this.mcpListWidget?.revealLastItem();
@@ -3133,14 +3003,10 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}
 	}
 
-	/**
-	 * Generates a debug report for the current section.
-	 */
 	public async generateDebugReport(): Promise<string> {
 		return this.listWidget.generateDebugReport();
 	}
 
-	//#region Embedded Editor
 
 	private createEmbeddedEditor(): void {
 		if (!this.editorContentContainer) {
@@ -3276,7 +3142,7 @@ export class AICustomizationManagementEditor extends EditorPane {
 
 			if (!isEqual(this.currentEditingUri, uri)) {
 				ref.dispose();
-				return; // another item was selected while loading
+				return;
 			}
 
 			this.currentModelRef = ref;
@@ -3356,7 +3222,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.renderCustomizationMigrationPage();
 			void this.refreshCustomizationMigrationInfo();
 		} else {
-			// Refresh the list to pick up newly created/edited files
 			void this.listWidget?.refresh();
 		}
 
@@ -3382,7 +3247,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		(this.migrationFirstFocusableElement ?? this.migrationLinkElement ?? this.migrationMigrateButton?.element)?.focus();
 	}
 
-	//#endregion
 
 	private async getOrCreateBuiltinEditingSession(uri: URI): Promise<{ model: ITextModel; originalContent: string }> {
 		const key = uri.toString();
@@ -3451,7 +3315,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 	private async saveBuiltinPromptCopy(request: IBuiltinPromptSaveRequest): Promise<void> {
 		let targetUri: URI;
 		if (request.promptType === PromptsType.skill) {
-			// Skills use {skillName}/SKILL.md directory structure
 			const skillFolderName = basename(dirname(request.sourceUri));
 			targetUri = URI.joinPath(request.folder, skillFolderName, basename(request.sourceUri));
 		} else {
@@ -3928,7 +3791,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		this.builtinEditingSessions.delete(key);
 	}
 
-	//#region Embedded MCP Server Detail
 
 	private createEmbeddedMcpDetail(): void {
 		if (!this.mcpDetailContainer) {
@@ -3939,7 +3801,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 
 		this.embeddedMcpDetail = this.editorDisposables.add(this.instantiationService.createInstance(EmbeddedMcpServerDetail, detailBody));
 
-		// Back button rendered into the detail's leading slot
 		const backButton = DOM.append(this.embeddedMcpDetail.leadingSlot, $<HTMLButtonElement>('button.editor-back-button'));
 		this.mcpDetailBackButton = backButton;
 		backButton.setAttribute('type', 'button');
@@ -3984,16 +3845,13 @@ export class AICustomizationManagementEditor extends EditorPane {
 		this.mcpListWidget?.focusSearch();
 	}
 
-	//#endregion
 
-	//#region Embedded Plugin Detail
 
 	private createEmbeddedPluginDetail(): void {
 		if (!this.pluginDetailContainer) {
 			return;
 		}
 
-		// Container for the compact plugin detail component
 		const detailBody = DOM.append(this.pluginDetailContainer, $('.plugin-detail-editor-container'));
 
 		this.embeddedPluginDetail = this.editorDisposables.add(this.instantiationService.createInstance(EmbeddedAgentPluginDetail, detailBody));
@@ -4010,7 +3868,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 			this.goBackFromPluginDetail();
 		}));
 
-		// Back button rendered into the detail's leading slot
 		const backButton = DOM.append(this.embeddedPluginDetail.leadingSlot, $('button.editor-back-button'));
 		backButton.setAttribute('type', 'button');
 		backButton.setAttribute('aria-label', localize('backToPluginList', "Back to plugins"));
@@ -4082,10 +3939,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		this.selectSectionById(section);
 	}
 
-	/**
-	 * Public method to show a plugin detail from any section (e.g. from "Show Plugin" context menu).
-	 * Saves the current section so the back button returns the user to it.
-	 */
 	public async showPluginDetail(item: IAgentPluginItem): Promise<void> {
 		if (this.selectedSection !== AICustomizationManagementSection.Plugins) {
 			this.pluginDetailReturnSection = this.selectedSection ?? AICustomizationManagementSection.Agents;
@@ -4101,9 +3954,6 @@ export class AICustomizationManagementEditor extends EditorPane {
 		this.pluginDetailReturnSection = undefined;
 
 		if (returnSection) {
-			// Return to the section the user was on before opening the plugin detail.
-			// selectSection may early-return when the section hasn't changed, so always
-			// ensure viewMode and content visibility are updated.
 			this.viewMode = 'list';
 			this.updateContentVisibility();
 			this.selectSection(returnSection);
@@ -4118,21 +3968,17 @@ export class AICustomizationManagementEditor extends EditorPane {
 		}
 	}
 
-	//#endregion
 
-	//#region Embedded Tool Extension Detail
 
 	private createEmbeddedToolDetail(): void {
 		if (!this.toolsDetailContainer) {
 			return;
 		}
 
-		// Container for the compact tool extension detail component
 		const detailBody = DOM.append(this.toolsDetailContainer, $('.tools-detail-editor-container'));
 
 		this.embeddedToolDetail = this.editorDisposables.add(this.instantiationService.createInstance(EmbeddedExtensionToolsDetail, detailBody));
 
-		// Back button rendered into the detail's leading slot
 		const backButton = DOM.append(this.embeddedToolDetail.leadingSlot, $('button.editor-back-button'));
 		backButton.setAttribute('type', 'button');
 		backButton.setAttribute('aria-label', localize('backToToolsList', "Back to tools"));
@@ -4172,5 +4018,4 @@ export class AICustomizationManagementEditor extends EditorPane {
 		this.toolsListWidget?.focusSearch();
 	}
 
-	//#endregion
 }

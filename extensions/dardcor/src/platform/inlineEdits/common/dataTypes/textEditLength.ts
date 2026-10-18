@@ -49,9 +49,6 @@ export class TextLengthEdit {
 		return TextLengthEdit._fromTextEditInfo(result);
 	}
 
-	/**
-	 * Returns the range of the edit, or undefined if the edit is empty.
-	 */
 	public getRange(): Range | undefined {
 		if (this.edits.length === 0) { return undefined; }
 		return Range.fromPositions(this.edits[0].range.getStartPosition(), this.edits.at(-1)!.range.getEndPosition());

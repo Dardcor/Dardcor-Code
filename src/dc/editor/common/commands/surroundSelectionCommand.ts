@@ -33,7 +33,7 @@ export class SurroundSelectionCommand implements ICommand {
 			this._range.endColumn,
 			this._range.endLineNumber,
 			this._range.endColumn
-		), this._charAfterSelection || null); // addTrackedEditOperation() ignores us if the text == ''. Causing a chain of errors in computeCursorState()
+		), this._charAfterSelection || null);
 	}
 
 	public computeCursorState(model: ITextModel, helper: ICursorStateComputerData): Selection {
@@ -50,9 +50,6 @@ export class SurroundSelectionCommand implements ICommand {
 	}
 }
 
-/**
- * A surround selection command that runs after composition finished.
- */
 export class CompositionSurroundSelectionCommand implements ICommand {
 
 	constructor(

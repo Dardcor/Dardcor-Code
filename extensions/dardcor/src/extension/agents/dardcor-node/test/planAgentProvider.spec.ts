@@ -31,7 +31,6 @@ suite('PlanAgentProvider', () => {
 	beforeEach(() => {
 		disposables = new DisposableStore();
 
-		// Set up testing services with a mock extension context that has globalStorageUri
 		const testingServiceCollection = createExtensionUnitTestingServices(disposables);
 		const globalStoragePath = path.join(os.tmpdir(), 'plan-agent-test-' + Date.now());
 		testingServiceCollection.define(IVSCodeExtensionContext, new SyncDescriptor(MockExtensionContext, [globalStoragePath]));
@@ -76,14 +75,12 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain base tools
 		assert.ok(content.includes('github/issue_read'));
 		assert.ok(content.includes('agent'));
 		assert.ok(content.includes('search'));
 		assert.ok(content.includes('read'));
 		assert.ok(content.includes('memory'));
 
-		// Should not have model override (not in base content)
 		assert.ok(content.includes('name: Plan'));
 		assert.ok(content.includes('description: Researches and outlines multi-step plans'));
 	});
@@ -97,17 +94,14 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain base tools
 		assert.ok(content.includes('github/issue_read'));
 		assert.ok(content.includes('agent'));
 
-		// Should contain additional tools
 		assert.ok(content.includes('customTool1'));
 		assert.ok(content.includes('customTool2'));
 	});
 
 	test('deduplicates tools when additionalTools overlaps with base tools', async () => {
-		// Add a tool that already exists in base
 		await mockConfigurationService.setConfig(ConfigKey.PlanAgentAdditionalTools, ['agent', 'newTool']);
 
 		const provider = createProvider();
@@ -116,15 +110,12 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Count occurrences of 'agent' in tools list (flow-style array)
-		// Should appear only once due to deduplication
 		const toolsMatch = content.match(/tools: \[([^\]]+)\]/);
 		assert.ok(toolsMatch, 'Tools list not found in agent content');
 		const toolsSection = toolsMatch[1];
 		const agentCount = (toolsSection.match(/'agent'/g) || []).length;
 		assert.equal(agentCount, 1, 'agent tool should appear only once after deduplication');
 
-		// Should contain new tool
 		assert.ok(content.includes('newTool'));
 	});
 
@@ -137,7 +128,6 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain model override
 		assert.ok(content.includes('model: Claude Haiku 4.5 (dardcor)'));
 	});
 
@@ -150,7 +140,6 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain model override from core setting
 		assert.ok(content.includes('model: Claude Haiku 4.5 (dardcor)'));
 	});
 
@@ -164,7 +153,6 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain core model override
 		assert.ok(content.includes('model: core-model'));
 		assert.ok(!content.includes('model: extension-model'));
 	});
@@ -179,10 +167,8 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain additional tool
 		assert.ok(content.includes('extraTool'));
 
-		// Should contain model override
 		assert.ok(content.includes('model: claude-3-sonnet'));
 	});
 
@@ -233,7 +219,6 @@ suite('PlanAgentProvider', () => {
 			eventFired = true;
 		});
 
-		// Set an unrelated config (using a different config key)
 		await mockConfigurationService.setConfig(ConfigKey.Advanced.FeedbackOnChange, true);
 
 		assert.equal(eventFired, false);
@@ -280,7 +265,6 @@ suite('PlanAgentProvider', () => {
 
 		const content = await getAgentContent(agents[0]);
 
-		// Should preserve body content
 		assert.ok(content.includes('You are a PLANNING AGENT, pairing with the user'));
 		assert.ok(content.includes('Your SOLE responsibility is planning. NEVER start implementation.'));
 	});
@@ -294,7 +278,6 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should have base tools only
 		assert.ok(content.includes('github/issue_read'));
 		assert.ok(content.includes('agent'));
 	});
@@ -308,7 +291,6 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should not have model field added
 		assert.ok(!content.includes('model:'));
 	});
 
@@ -322,7 +304,6 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Empty core setting should fall through to extension setting
 		assert.ok(content.includes('model: fallback-model'));
 	});
 
@@ -332,7 +313,6 @@ suite('PlanAgentProvider', () => {
 
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain handoffs
 		assert.ok(content.includes('handoffs:'));
 		assert.ok(content.includes('label: Start Implementation'));
 		assert.ok(content.includes('label: Open in Editor'));
@@ -349,7 +329,6 @@ suite('PlanAgentProvider', () => {
 		assert.equal(agents.length, 1);
 		const content = await getAgentContent(agents[0]);
 
-		// Should contain Start Implementation handoff with model override
 		assert.ok(content.includes('label: Start Implementation'));
 		assert.ok(content.includes('model: Claude Haiku 4.5 (dardcor)'));
 	});
@@ -360,11 +339,9 @@ suite('PlanAgentProvider', () => {
 
 		const content = await getAgentContent(agents[0]);
 
-		// Find the Start Implementation handoff section
 		const handoffsStart = content.indexOf('handoffs:');
 		const handoffsSection = content.slice(handoffsStart, content.indexOf('---', handoffsStart));
 
-		// Should not contain model field in handoffs when not configured
 		assert.ok(!handoffsSection.includes('model:'), 'Should not have model field in handoffs when ImplementAgentModel is not set');
 	});
 
@@ -420,12 +397,10 @@ suite('PlanAgentProvider', () => {
 		const agents = await provider.provideCustomAgents({}, {} as any);
 		const content = await getAgentContent(agents[0]);
 
-		// Should not have the 'agent' tool
 		const toolsMatch = content.match(/tools: \[([^\]]+)\]/);
 		assert.ok(toolsMatch);
 		assert.ok(!toolsMatch[1].includes('\'agent\''), 'Should not include agent tool when explore is disabled');
 
-		// Should not have agents field
 		assert.ok(!content.includes('agents:'), 'Should not include agents field when explore is disabled');
 	});
 
@@ -436,19 +411,16 @@ suite('PlanAgentProvider', () => {
 		const agents = await provider.provideCustomAgents({}, {} as any);
 		const content = await getAgentContent(agents[0]);
 
-		// Should have the 'agent' tool
 		const toolsMatch = content.match(/tools: \[([^\]]+)\]/);
 		assert.ok(toolsMatch);
 		assert.ok(toolsMatch[1].includes('\'agent\''), 'Should include agent tool when explore is enabled');
 
-		// Should have agents field with Explore
 		assert.ok(content.includes('agents:'), 'Should include agents field when explore is enabled');
 	});
 });
 
 suite('buildAgentMarkdown', () => {
 	test('generates expected full content for Plan agent (snapshot test)', () => {
-		// This test outputs the full generated content for easy visual review of format changes
 		const config = {
 			name: 'Plan',
 			description: 'Researches and outlines multi-step plans',
@@ -582,7 +554,6 @@ You are a PLANNING AGENT.`);
 
 		const result = buildAgentMarkdown(config);
 
-		// Should not have tools line when empty
 		assert.ok(!result.includes('tools:'));
 	});
 
@@ -613,7 +584,6 @@ You are a PLANNING AGENT.`);
 
 		const result = buildAgentMarkdown(config);
 
-		// Single quotes should be doubled for YAML escaping
 		assert.ok(result.includes('\'tool\'\'s_name\''), 'Single quote should be escaped by doubling');
 	});
 
@@ -635,7 +605,6 @@ You are a PLANNING AGENT.`);
 
 		const result = buildAgentMarkdown(config);
 
-		// Single quotes in prompt should be doubled for YAML escaping
 		assert.ok(result.includes('prompt: \'It\'\'s a test prompt with \'\'quotes\'\'\''), 'Single quotes should be escaped by doubling');
 	});
 });

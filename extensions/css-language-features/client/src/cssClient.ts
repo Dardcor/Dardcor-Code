@@ -46,7 +46,6 @@ export async function startClient(context: ExtensionContext, newLanguageClient: 
 		languageId, settingId: `${languageId}.format.enable`, provider: undefined
 	}));
 
-	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
 		documentSelector,
 		synchronize: {
@@ -54,12 +53,11 @@ export async function startClient(context: ExtensionContext, newLanguageClient: 
 		},
 		initializationOptions: {
 			handledSchemas: ['file'],
-			provideFormatter: false, // tell the server to not provide formatting capability
+			provideFormatter: false,
 			customCapabilities: { rangeFormatting: { editLimit: 10000 } }
 		},
 		middleware: {
 			provideCompletionItem(document: TextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature): ProviderResult<CompletionItem[] | CompletionList> {
-				// testing the replace / insert mode
 				function updateRanges(item: CompletionItem) {
 					const range = item.range;
 					if (range instanceof Range && range.end.isAfter(position) && range.start.isBeforeOrEqual(position)) {
@@ -75,7 +73,6 @@ export async function startClient(context: ExtensionContext, newLanguageClient: 
 						};
 					}
 				}
-				// testing the new completion
 				function updateProposals(r: CompletionItem[] | CompletionList | null | undefined): CompletionItem[] | CompletionList | null | undefined {
 					if (r) {
 						(Array.isArray(r) ? r : r.items).forEach(updateRanges);
@@ -96,7 +93,6 @@ export async function startClient(context: ExtensionContext, newLanguageClient: 
 		}
 	};
 
-	// Create the language client and start the client.
 	const client = newLanguageClient('css', l10n.t('CSS Language Server'), clientOptions);
 	client.registerProposedFeatures();
 
@@ -107,7 +103,6 @@ export async function startClient(context: ExtensionContext, newLanguageClient: 
 		client.sendNotification(CustomDataChangedNotification.type, customDataSource.uris);
 	});
 
-	// manually register / deregister format provider based on the `css/less/scss.format.enable` setting avoiding issues with late registration. See #71652.
 	for (const registration of formatterRegistrations) {
 		updateFormatterRegistration(registration);
 		context.subscriptions.push({ dispose: () => registration.provider?.dispose() });
@@ -167,7 +162,6 @@ export async function startClient(context: ExtensionContext, newLanguageClient: 
 						range: client.code2ProtocolConverter.asRange(range),
 						options: client.code2ProtocolConverter.asFormattingOptions(options, fileFormattingOptions)
 					};
-					// add the css formatter options from the settings
 					const formatterSettings = workspace.getConfiguration(registration.languageId, document).get<CSSFormatSettings>('format');
 					if (formatterSettings) {
 						for (const key of cssFormatSettingKeys) {

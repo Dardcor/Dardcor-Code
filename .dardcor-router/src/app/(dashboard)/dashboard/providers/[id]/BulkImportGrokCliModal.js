@@ -27,7 +27,6 @@ function parseAccountsInput(rawText) {
   try {
     parsed = JSON.parse(trimmed);
   } catch (initialErr) {
-    // If direct parse failed, try handling concatenated or comma-separated JSON objects
     try {
       let fixed = trimmed;
       if (!fixed.startsWith("[")) {

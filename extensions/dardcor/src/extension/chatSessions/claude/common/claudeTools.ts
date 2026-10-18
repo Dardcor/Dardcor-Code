@@ -22,22 +22,13 @@ import {
 } from '@anthropic-ai/claude-agent-sdk/sdk-tools';
 import { URI } from '../../../../util/dardcor/base/common/uri';
 
-/**
- * Extended ExitPlanModeInput that includes the plan property sent by the actual tool.
- * The SDK type only has allowedPrompts, but the tool also sends plan.
- */
 export interface ExitPlanModeInput extends SDKExitPlanModeInput {
 	readonly plan?: string;
 }
 
-/**
- * EnterPlanMode tool input - empty as the tool takes no parameters
- */
 export interface EnterPlanModeInput {
-	// EnterPlanMode takes no input parameters
 }
 
-// TODO: How can we verify these when we bump the SDK version?
 export enum ClaudeToolNames {
 	Agent = 'Agent',
 	Task = 'Task',
@@ -62,16 +53,10 @@ export enum ClaudeToolNames {
 
 
 
-/**
- * LS tool input - not defined in SDK
- */
 export interface LSInput {
 	readonly path: string;
 }
 
-/**
- * Maps ClaudeToolNames to their SDK input types
- */
 export interface ClaudeToolInputMap {
 	[ClaudeToolNames.Agent]: AgentInput;
 	[ClaudeToolNames.Task]: AgentInput;

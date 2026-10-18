@@ -11,13 +11,6 @@ import { NesDatagenInputFormat, NesDatagenSampleTask, PivotStrategy } from '../.
 import { runInputPipeline, RunPipelineOptions } from '../pipeline';
 import { allCursorJumpRecords, cursorJumpFixtures } from './fixtures/cursorJumpFixtureData';
 
-/**
- * End-to-end tests for the cursor-jump branch of the nes-datagen pipeline.
- *
- * Mirrors `pipeline.e2e.spec.ts` (which covers the Xtab branch): feeds two
- * fixture rows (a same-file jump and a cross-file jump) through the full
- * pipeline and asserts on the JSONL output for each `sampleTask` mode.
- */
 
 const configPath = path.join(__dirname, 'fixtures', 'cursorJumpConfig.json');
 
@@ -34,7 +27,6 @@ interface OutputSample {
 		oracleEdits: [number, number, string][];
 		originalPrompt: unknown[];
 		modelResponse: string;
-		// Discriminated-union fields spread onto metadata by `assembleSample`.
 		task?: NesDatagenSampleTask;
 		jump?: { fromLine: number; toLine: number; toFilePath?: string; distance: number };
 	};
@@ -123,7 +115,6 @@ describe('nes-datagen cursor-jump pipeline e2e', () => {
 
 			const assistant = s.messages.find(m => m.role === 'assistant')!.content;
 			expect(assistant).toBe(String(cursorJumpFixtures.sameFile.toLine));
-			// `modelResponse` mirrors the assistant content (the round-4 fix).
 			expect(s.metadata.modelResponse).toBe(assistant);
 		});
 	});
@@ -168,7 +159,6 @@ describe('nes-datagen cursor-jump pipeline e2e', () => {
 		});
 
 		test('the same-file row produces the same-file classification, the cross-file row the cross-file one', () => {
-			// Pin by filePath so a row/classification swap would be caught.
 			const sameFile = result.samples.find(s => s.metadata.filePath.includes(cursorJumpFixtures.sameFile.relativePath));
 			const crossFile = result.samples.find(s => s.metadata.filePath.includes(cursorJumpFixtures.crossFile.activePath));
 
@@ -191,10 +181,6 @@ describe('nes-datagen cursor-jump pipeline e2e', () => {
 		});
 
 		test('does not emit a sample for the within-threshold row (negative case)', () => {
-			// Scenario C in the fixture: cursor at line 10, edit at line 12.
-			// Only 2 lines below — within the ±5 threshold — so neither the
-			// same-file nor the cross-file generator should pick it up even
-			// in `cursor-both` mode.
 			const withinThreshold = result.samples.find(s => s.metadata.filePath.includes(cursorJumpFixtures.withinThreshold.relativePath));
 			expect(withinThreshold).toBeUndefined();
 		});

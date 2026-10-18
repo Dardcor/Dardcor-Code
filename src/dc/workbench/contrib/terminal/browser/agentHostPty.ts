@@ -17,20 +17,9 @@ import { IAgentSubscription } from '../../../../platform/agentHost/common/state/
 import { StateComponents } from '../../../../platform/agentHost/common/state/sessionState.js';
 import { BasePty } from '../common/basePty.js';
 
-/**
- * Options for creating a new terminal on an agent host.
- */
 export interface IAgentHostPtyOptions {
-	/** Human-readable terminal name. */
 	readonly name?: string;
-	/** Initial working directory URI. */
 	readonly cwd?: URI;
-	/**
-	 * When true, attach to an existing terminal on the agent host instead of
-	 * creating a new one. The terminal must already exist server-side (e.g.
-	 * created by a tool). The pty will subscribe to its state and replay
-	 * content without calling `createTerminal`.
-	 */
 	readonly attachOnly?: boolean;
 }
 
@@ -38,7 +27,6 @@ export interface IAgentHostPtyCommandExecutedEvent {
 	readonly commandId: string;
 	readonly commandLine: string;
 	readonly timestamp: number;
-	/** The stored VT output for this command (present during content replay). */
 	readonly storedOutput?: string;
 }
 
@@ -54,44 +42,20 @@ export const enum AhpCommandMarkKind {
 }
 
 
-/**
- * Generates the mark ID used to correlate SetMark VT codes with xterm markers
- * via {@link IBufferMarkCapability.getMark}.
- */
 export function getAhpCommandMarkId(commandId: string, kind: AhpCommandMarkKind): string {
 	return `ahp-${commandId}-${kind}`;
 }
 
-/** Generates an OSC 633 SetMark sequence for an AHP command boundary. */
 function getAhpCommandMarkCode(commandId: string, kind: AhpCommandMarkKind): string {
 	return `\x1b]633;SetMark;Id=${getAhpCommandMarkId(commandId, kind)};Hidden\x07`;
 }
 
-/**
- * The sentinel prefix used by copilot shell tools for exit code detection.
- * When shell integration is active, these internal sentinel echo commands
- * get detected as real commands — we suppress them from command events.
- */
 const COPILOT_SENTINEL_PREFIX = '<<<COPILOT_SENTINEL_';
 
-/** Returns whether a command line is a copilot sentinel echo, not a real user command. */
 function isCopilotSentinelCommand(commandLine: string): boolean {
 	return commandLine.includes(COPILOT_SENTINEL_PREFIX);
 }
 
-/**
- * A pseudo-terminal backed by an Agent Host Protocol terminal subscription.
- *
- * Uses `customPtyImplementation` on `IShellLaunchConfig` so the
- * `TerminalProcessManager` bypasses the pty host backend entirely.
- *
- * Data flow:
- *   terminal/data   →  onProcessData
- *   terminal/exited →  onProcessExit
- *   input(data)     →  dispatch terminal/input
- *   resize(c,r)     →  dispatch terminal/resized
- *   shutdown()      →  disposeTerminal command
- */
 export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 
 	private readonly _startBarrier = new Barrier();
@@ -113,12 +77,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 	private _supportsCommandDetection = false;
 	get supportsCommandDetection(): boolean { return this._supportsCommandDetection; }
 
-	/**
-	 * Command IDs for sentinel commands that should be suppressed from shell
-	 * integration events. When the copilot shell tools fall back to sentinel-
-	 * based exit code detection, shell integration may also detect the sentinel
-	 * echo as a real command — we filter those out here.
-	 */
 	private readonly _suppressedCommandIds = new Set<string>();
 
 	constructor(
@@ -128,23 +86,16 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 		private readonly _options: IAgentHostPtyOptions | undefined,
 		private readonly _logService: ITerminalLogService,
 	) {
-		super(id, /* shouldPersist */ false);
+		super(id, false);
 	}
 
 	async start(): Promise<ITerminalLaunchError | ITerminalLaunchResult | undefined> {
-		// Reconnect can race a pending startup: the pty is registered before
-		// start() completes, so a successful reconnect() may replace the
-		// connection while terminal creation is still in flight. Capture the
-		// creation's connection so a superseded startup neither re-subscribes
-		// nor reports a stale launch failure.
 		const connection = this._connection;
 		try {
 			if (this._lifetime.token.isCancellationRequested) {
 				return undefined;
 			}
 
-			// 1. Create the terminal on the agent host (skip for attach-only mode
-			//    where the terminal already exists, e.g. created by a tool)
 			if (!this._options?.attachOnly) {
 				const terminalCreation = connection.createTerminal({
 					channel: this._terminalUri.toString(),
@@ -169,10 +120,8 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 				return undefined;
 			}
 
-			// 2. Get a subscription for the terminal URI (auto-subscribes)
 			const { subscription, store } = this._createSubscription(this._connection);
 
-			// 3. Wait for hydration via onDidChange, then replay snapshot
 			if (!await this._waitForHydration(subscription, store)) {
 				return undefined;
 			}
@@ -182,14 +131,12 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 
 			const state = subscription.value as TerminalState;
 
-			// 4. Replay any existing content from the snapshot
 			if (state.supportsCommandDetection) {
 				this._supportsCommandDetection = true;
 				this._onSupportsCommandDetection.fire();
 			}
 			this._replayContent(state.content);
 
-			// 5. Track initial cwd
 			this._initialCwd = state.cwd?.toString() ?? '';
 			this._properties.cwd = this._initialCwd;
 			this._properties.initialCwd = this._initialCwd;
@@ -197,10 +144,8 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 				this._properties.title = state.title;
 			}
 
-			// 6. Signal that the process is ready
 			this._signalReady();
 
-			// 7. Wire up action listener for streaming updates via the subscription
 			store.add(subscription.onDidApplyAction(envelope => {
 				this._handleAction(envelope);
 			}));
@@ -251,9 +196,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 				this.handleDidChangeProperty({ type: ProcessPropertyType.Title, value: action.title });
 				break;
 			case ActionType.TerminalResized:
-				// Only apply resize from other clients — this client owns
-				// its own dimensions and echoing back our own resize would
-				// cause a feedback loop.
 				if (envelope.origin?.clientId !== this._connection.clientId) {
 					this.handleDidChangeProperty({
 						type: ProcessPropertyType.OverrideDimensions,
@@ -293,11 +235,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 		}
 	}
 
-	/**
-	 * Replays structured terminal content parts from the initial state snapshot.
-	 * Emits command lifecycle events for command parts so that consumers
-	 * (e.g. {@link AhpTerminalCommandSource}) can reconstruct command history.
-	 */
 	private _replayContent(content: TerminalContentPart[]): void {
 		for (const part of content) {
 			if (part.type === 'unclassified') {
@@ -330,10 +267,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 		}
 	}
 
-	/**
-	 * Resolves a cwd URI for sending over the protocol. Agent-host URIs
-	 * are unwrapped to their original URI via {@link fromAgentHostUri}.
-	 */
 	private _resolveCwdForProtocol(cwd: URI | undefined): string | undefined {
 		if (!cwd) {
 			return undefined;
@@ -365,8 +298,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 		const timeout = timeoutMs === undefined ? undefined : disposableTimeout(() => hydration.error(new Error('Reconnect hydration timed out')), timeoutMs, store);
 		store.add(toDisposable(() => hydration.complete(false)));
 		store.add(Event.once(subscription.onDidChange)(() => {
-			// Clear the timer explicitly — on successful hydration the store
-			// lives on as the active subscription generation.
 			timeout?.dispose();
 			hydration.complete(true);
 		}));
@@ -414,13 +345,10 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 	}
 
 	private _requestHostTerminalDisposal(): void {
-		// Attach-only terminals are owned by the tool/session that created them.
 		if (this._options?.attachOnly) {
 			return;
 		}
 
-		// Request cleanup immediately for completed/lost-response creation, then
-		// retry after an in-flight request settles. Host disposal is idempotent.
 		this._disposeHostTerminal();
 		if (this._terminalCreation) {
 			void this._terminalCreation.then(
@@ -449,12 +377,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 		this._lifetime.cancel();
 		this._subscription.clear();
 		this._startBarrier.open();
-		// Defer the exit event: TerminalProcessManager calls shutdown() while its
-		// process exit listener is still attached — in dispose() (which disposes
-		// _processListeners only after shutdown) and via
-		// SeamlessRelaunchDataFilter.newProcess() during relaunch (where a
-		// synchronous exit would clobber the freshly assigned process and dispose
-		// the instance). Other ptys always deliver exit asynchronously (over RPC).
 		queueMicrotask(() => {
 			this.handleExit(exitCode);
 			this.dispose();
@@ -473,7 +395,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 		if (this._lifetime.token.isCancellationRequested) {
 			return;
 		}
-		// Send a clear action to the agent host
 		this._connection.dispatch(
 			this._terminalUri.toString(),
 			{ type: ActionType.TerminalCleared },
@@ -481,20 +402,16 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 	}
 
 	acknowledgeDataEvent(_charCount: number): void {
-		// No flow control needed for AHP terminals
 	}
 
 	async setUnicodeVersion(_version: '6' | '11'): Promise<void> {
-		// Not applicable
 	}
 
 	processBinary(_data: string): Promise<void> {
-		// Not applicable
 		return Promise.resolve();
 	}
 
 	sendSignal(_signal: string): void {
-		// Not applicable
 	}
 
 	async refreshProperty<T extends ProcessPropertyType>(type: T): Promise<IProcessPropertyMap[T]> {
@@ -502,35 +419,22 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 	}
 
 	async updateProperty<T extends ProcessPropertyType>(_type: T, _value: IProcessPropertyMap[T]): Promise<void> {
-		// Not applicable
 	}
 
-	/**
-	 * Reconnect this pty to a new agent host connection. Tears down the
-	 * old subscription and re-subscribes with the new connection, replaying
-	 * content from the server-side snapshot. Terminal output during the
-	 * disconnect gap is a stream (not state), so some loss is expected.
-	 *
-	 * @returns `true` if reconnection succeeded, `false` otherwise.
-	 */
 	async reconnect(newConnection: IAgentConnection): Promise<boolean> {
 		if (this._lifetime.token.isCancellationRequested) {
 			return false;
 		}
 
-		// Replace the old subscription generation and swap the connection.
 		this._subscription.clear();
 		this._connection = newConnection;
 		let subscriptionStore: DisposableStore | undefined;
 
 		try {
-			// Re-subscribe to the terminal state
 			const result = this._createSubscription(this._connection);
 			const subscription = result.subscription;
 			subscriptionStore = result.store;
 
-			// Wait for hydration with a timeout — the terminal may no longer
-			// exist on the server (e.g. agent process restarted).
 			const RECONNECT_HYDRATE_TIMEOUT_MS = 10_000;
 			if (!await this._waitForHydration(subscription, subscriptionStore, RECONNECT_HYDRATE_TIMEOUT_MS)) {
 				return false;
@@ -546,13 +450,9 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 				this._onSupportsCommandDetection.fire();
 			}
 
-			// Clear the terminal buffer before replaying to avoid duplicate
-			// content. ESC[2J clears the screen, ESC[3J clears scrollback,
-			// ESC[H moves cursor to home position.
 			this.handleData('\x1b[2J\x1b[3J\x1b[H');
 			this._replayContent(state.content);
 
-			// Update cwd/title if they changed
 			if (state.cwd) {
 				this._properties.cwd = state.cwd.toString();
 			}
@@ -561,7 +461,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 			}
 			this._signalReady();
 
-			// Wire up action listener for streaming updates
 			subscriptionStore.add(subscription.onDidApplyAction(envelope => {
 				this._handleAction(envelope);
 			}));
@@ -575,9 +474,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 				this._subscription.clear();
 			}
 			if (!this._didSignalReady && !this._lifetime.token.isCancellationRequested) {
-				// The terminal never became usable — release the host terminal
-				// like shutdown() would, then tear down locally. Attach-only
-				// terminals are left to their owning tool/session.
 				this._requestHostTerminalDisposal();
 				this._exitAndDispose(undefined);
 			}
@@ -585,7 +481,6 @@ export class AgentHostPty extends BasePty implements ITerminalChildProcess {
 		}
 	}
 
-	/** The terminal URI this pty is subscribed to. */
 	get terminalUri(): URI {
 		return this._terminalUri;
 	}

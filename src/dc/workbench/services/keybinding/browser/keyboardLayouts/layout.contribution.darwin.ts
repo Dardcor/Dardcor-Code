@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import './en.darwin.js'; // 15%
+import './en.darwin.js';
 import './zh-hans.darwin.js';
 import './en-uk.darwin.js';
 import './es.darwin.js';

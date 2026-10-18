@@ -20,13 +20,13 @@ import { NesChangeHint, NesTriggerReason } from '../common/nesTriggerHint';
 import { NesOutcome, NextEditProvider } from '../node/nextEditProvider';
 import { VSCodeWorkspace } from './parts/dardcorWorkspace';
 
-export const TRIGGER_INLINE_EDIT_AFTER_CHANGE_LIMIT = 10000; // 10 seconds
-export const TRIGGER_INLINE_EDIT_ON_SAME_LINE_COOLDOWN = 5000; // milliseconds
-export const TRIGGER_INLINE_EDIT_REJECTION_COOLDOWN = 5000; // 5s
+export const TRIGGER_INLINE_EDIT_AFTER_CHANGE_LIMIT = 10000;
+export const TRIGGER_INLINE_EDIT_ON_SAME_LINE_COOLDOWN = 5000;
+export const TRIGGER_INLINE_EDIT_REJECTION_COOLDOWN = 5000;
 
 class LastChange extends Disposable {
 	public lastEditedTimestamp: number;
-	public lineNumberTriggers: Map<number /* lineNumber */, number /* timestamp */>;
+	public lineNumberTriggers: Map<number , number >;
 
 	public readonly timeout = this._register(new MutableDisposable<IDisposable>());
 
@@ -54,9 +54,6 @@ export class InlineEditTriggerer extends Disposable {
 
 	private lastDocWithSelectionUri: string | undefined;
 
-	/**
-	 * Timestamp of the last edit in any document.
-	 */
 	private lastEditTimestamp: number | undefined;
 
 	private readonly _logger: ILogger;
@@ -82,7 +79,7 @@ export class InlineEditTriggerer extends Disposable {
 	}
 
 	private _shouldIgnoreDoc(doc: vscode.TextDocument): boolean {
-		return doc.uri.scheme === 'output'; // ignore output pane documents
+		return doc.uri.scheme === 'output';
 	}
 
 	private _registerDocumentChangeListener() {
@@ -95,14 +92,14 @@ export class InlineEditTriggerer extends Disposable {
 
 			const logger = this._logger.createSubLogger('onDidChangeTextDocument');
 
-			if (e.reason === TextDocumentChangeReason.Undo || e.reason === TextDocumentChangeReason.Redo) { // ignore
+			if (e.reason === TextDocumentChangeReason.Undo || e.reason === TextDocumentChangeReason.Redo) {
 				logger.trace('Return: undo/redo');
 				return;
 			}
 
 			const doc = this.workspace.getDocumentByTextDocument(e.document);
 
-			if (!doc) { // doc is likely dardcor-ignored
+			if (!doc) {
 				logger.trace('Return: ignored document');
 				return;
 			}
@@ -127,23 +124,22 @@ export class InlineEditTriggerer extends Disposable {
 
 		const logger = this._logger.createSubLogger('onDidChangeTextEditorSelection');
 
-		if (e.selections.length !== 1) { // ignore multi-selection case
+		if (e.selections.length !== 1) {
 			logger.trace('Return: multiple selections');
 			return;
 		}
 
-		if (!e.selections[0].isEmpty) { // ignore non-empty selection
+		if (!e.selections[0].isEmpty) {
 			logger.trace('Return: not empty selection');
 			return;
 		}
 
 		const doc = this.workspace.getDocumentByTextDocument(e.textEditor.document);
-		if (!doc) { // doc is likely dardcor-ignored
+		if (!doc) {
 			return;
 		}
 
 		if (this._isWithinRejectionCooldown()) {
-			// the cursor has moved within 5s of the last rejection, don't auto-trigger until another doc modification
 			this.docToLastChangeMap.deleteAndDispose(doc.id);
 			logger.trace('Return: rejection cooldown');
 			return;
@@ -157,16 +153,12 @@ export class InlineEditTriggerer extends Disposable {
 			return;
 		}
 
-		// When the user switches to a different file and comes back, clear same-line
-		// cooldowns so the triggerer fires again on the same line.
 		if (!isSameDoc) {
 			mostRecentChange.lineNumberTriggers.clear();
 		}
 
 		const hadRecentEdit = this._hasRecentEdit(mostRecentChange);
 		if (!hadRecentEdit || !this._hasRecentTrigger()) {
-			// The edit is too old or the provider was not triggered recently (we might be
-			// observing a cursor change following an external edit) — try document switch.
 			const reason = hadRecentEdit ? 'no recent trigger' : 'no recent edit';
 			if (!this._maybeTriggerOnDocumentSwitch(e, isSameDoc, logger)) {
 				logger.trace(`Return: ${reason}`);
@@ -177,10 +169,6 @@ export class InlineEditTriggerer extends Disposable {
 		this._handleTrackedDocSelectionChange(e, doc, mostRecentChange, logger);
 	}
 
-	/**
-	 * Handles a selection change in a document that has a recent tracked edit and a recent NES trigger.
-	 * Checks same-line cooldown, cleans up stale triggers, and fires the trigger (possibly debounced).
-	 */
 	private _handleTrackedDocSelectionChange(
 		e: vscode.TextEditorSelectionChangeEvent,
 		doc: NonNullable<ReturnType<VSCodeWorkspace['getDocumentByTextDocument']>>,
@@ -200,7 +188,6 @@ export class InlineEditTriggerer extends Disposable {
 			return;
 		}
 
-		// TODO: Do not trigger if there is an existing valid request now running, ie don't use just last-trigger timestamp
 		this._cleanupStaleLineTriggers(mostRecentChange);
 
 		mostRecentChange.lineNumberTriggers.set(selectionLine, Date.now());
@@ -210,7 +197,6 @@ export class InlineEditTriggerer extends Disposable {
 		this._triggerWithDebounce(mostRecentChange);
 	}
 
-	// #region Helper predicates
 
 	private _isWithinRejectionCooldown(): boolean {
 		return (Date.now() - this.nextEditProvider.lastRejectionTime) < TRIGGER_INLINE_EDIT_REJECTION_COOLDOWN;
@@ -224,20 +210,9 @@ export class InlineEditTriggerer extends Disposable {
 		return (Date.now() - this.nextEditProvider.lastTriggerTime) < TRIGGER_INLINE_EDIT_AFTER_CHANGE_LIMIT;
 	}
 
-	/**
-	 * Returns true if the same-line cooldown is active and we should skip triggering.
-	 *
-	 * The cooldown is bypassed when we're in a notebook cell and the current document
-	 * differs from the one that originally triggered the change (user moved to a
-	 * different cell).
-	 *
-	 * When the user switches to a different file and comes back, line triggers are
-	 * cleared (see {@link _handleSelectionChange}), so the cooldown naturally resets.
-	 */
 	private _isSameLineCooldownActive(mostRecentChange: LastChange, selectionLine: number, currentDocument: vscode.TextDocument): boolean {
-		// In a notebook, if the user moved to a different cell, bypass the cooldown
 		if (isNotebookCell(currentDocument.uri) && currentDocument !== mostRecentChange.documentTrigger) {
-			return false; // cooldown bypassed
+			return false;
 		}
 
 		const lastTriggerTimestampForLine = mostRecentChange.lineNumberTriggers.get(selectionLine);
@@ -245,14 +220,8 @@ export class InlineEditTriggerer extends Disposable {
 			&& (Date.now() - lastTriggerTimestampForLine) < TRIGGER_INLINE_EDIT_ON_SAME_LINE_COOLDOWN;
 	}
 
-	// #endregion
 
-	// #region Trigger helpers
 
-	/**
-	 * Removes line triggers older than {@link TRIGGER_INLINE_EDIT_AFTER_CHANGE_LIMIT}
-	 * when the map grows beyond 100 entries.
-	 */
 	private _cleanupStaleLineTriggers(mostRecentChange: LastChange): void {
 		if (mostRecentChange.lineNumberTriggers.size <= 100) {
 			return;
@@ -265,13 +234,6 @@ export class InlineEditTriggerer extends Disposable {
 		}
 	}
 
-	/**
-	 * Fires a selection-change trigger, applying debounce when configured.
-	 *
-	 * The first 2 selection changes after an edit fire immediately (the 1st is caused by
-	 * the edit itself, the 2nd is the user intentionally moving to the next edit location).
-	 * Subsequent changes are debounced to avoid excessive triggering during rapid navigation.
-	 */
 	private _triggerWithDebounce(mostRecentChange: LastChange): void {
 		const debounceMs = this._configurationService.getExperimentBasedConfig(ConfigKey.TeamInternal.InlineEditsDebounceOnSelectionChange, this._expService);
 		if (debounceMs === undefined) {
@@ -288,7 +250,6 @@ export class InlineEditTriggerer extends Disposable {
 		mostRecentChange.incrementSelectionChangeEventCount();
 	}
 
-	// #endregion
 
 	private _maybeTriggerOnDocumentSwitch(e: vscode.TextEditorSelectionChangeEvent, isSameDoc: boolean, parentLogger: ILogger): boolean {
 		const logger = parentLogger.createSubLogger('editorSwitch');
@@ -313,8 +274,6 @@ export class InlineEditTriggerer extends Disposable {
 			return false;
 		}
 
-		// Require a recent NES trigger before triggering on document switch.
-		// lastTriggerTime === 0 means NES was never triggered in this session.
 		const timeSinceLastTrigger = now - this.nextEditProvider.lastTriggerTime;
 		if (this.nextEditProvider.lastTriggerTime === 0 || timeSinceLastTrigger > triggerThresholdMs) {
 			logger.trace('Return: no recent NES trigger');
@@ -323,15 +282,12 @@ export class InlineEditTriggerer extends Disposable {
 
 		const strategy = this._configurationService.getExperimentBasedConfig(ConfigKey.TeamInternal.InlineEditsTriggerOnEditorChangeStrategy, this._expService);
 		if (strategy === DocumentSwitchTriggerStrategy.AfterAcceptance && this.nextEditProvider.lastOutcome !== NesOutcome.Accepted) {
-			// When the afterAcceptance strategy is active, only trigger on document switch
-			// if the most recent NES was accepted. A pending outcome (undefined) is treated
-			// as not-accepted to avoid racing with the UI's accept/reject/ignore callback.
 			logger.trace('Return: afterAcceptance strategy requires last NES to be accepted');
 			return false;
 		}
 
 		const doc = this.workspace.getDocumentByTextDocument(e.textEditor.document);
-		if (!doc) { // doc is likely dardcor-ignored
+		if (!doc) {
 			logger.trace('Return: ignored document');
 			return false;
 		}
@@ -344,7 +300,6 @@ export class InlineEditTriggerer extends Disposable {
 
 		const selectionLine = range.start.line;
 
-		// mark as touched such that NES gets triggered on cursor move; otherwise, user may get a single NES then move cursor and never get the suggestion back
 		const lastChange = new LastChange(e.textEditor.document);
 		lastChange.lineNumberTriggers.set(selectionLine, Date.now());
 		this.docToLastChangeMap.set(doc.id, lastChange);

@@ -113,7 +113,6 @@ export class TypeHierarchyModel {
 	}
 }
 
-// --- API command support
 
 const _models = new Map<string, TypeHierarchyModel>();
 
@@ -170,7 +169,6 @@ CommandsRegistry.registerCommand('_executeProvideSupertypes', async (_accessor, 
 	const [item] = args;
 	assertType(isTypeHierarchyItemDto(item));
 
-	// find model
 	const model = _models.get(item._sessionId);
 	if (!model) {
 		return [];
@@ -183,7 +181,6 @@ CommandsRegistry.registerCommand('_executeProvideSubtypes', async (_accessor, ..
 	const [item] = args;
 	assertType(isTypeHierarchyItemDto(item));
 
-	// find model
 	const model = _models.get(item._sessionId);
 	if (!model) {
 		return [];

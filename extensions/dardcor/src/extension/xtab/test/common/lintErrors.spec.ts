@@ -168,9 +168,9 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 
 			const result = lintErrors.getFormattedLintErrors(optionsWithSurrounding);
-			expect(result).toContain('1|line2'); // line before
-			expect(result).toContain('2|line3'); // diagnostic line
-			expect(result).toContain('3|line4'); // line after
+			expect(result).toContain('1|line2');
+			expect(result).toContain('2|line3');
+			expect(result).toContain('3|line4');
 		});
 
 		it('should handle diagnostic at first line with YES_WITH_SURROUNDING', () => {
@@ -320,7 +320,6 @@ describe('LintErrors', () => {
 		});
 
 		it('should filter diagnostics by distance', () => {
-			// Cursor at line 1, diagnostic at line 20 (distance 19)
 			const lines = Array(25).fill('line');
 			const document = createDocument(lines, 1, 1);
 			diagnosticsService.setDiagnostics(fileUri, [
@@ -376,8 +375,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 
 			const result = lintErrors.getFormattedLintErrors(optionsMaxLints);
-			// Should include Error 3 (closest to cursor at line 2) and one other
-			// but not all three
 			const errorCount = (result.match(/Error \d/g) || []).length;
 			expect(errorCount).toBe(2);
 		});
@@ -409,7 +406,6 @@ describe('LintErrors', () => {
 			const farIndex = result.indexOf('Far error');
 			const mediumIndex = result.indexOf('Medium error');
 
-			// Close error should appear before far error
 			expect(closeIndex).toBeLessThan(farIndex);
 			expect(closeIndex).toBeLessThan(mediumIndex);
 		});
@@ -432,7 +428,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 
 			const result = lintErrors.getFormattedLintErrors(optionsWithSurrounding);
-			// Should include line before diagnostic start (line1), diagnostic lines (line2-line4), and line after diagnostic end (line5)
 			expect(result).toContain('0|line1');
 			expect(result).toContain('1|line2');
 			expect(result).toContain('4|line5');
@@ -456,7 +451,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 
 			const result = lintErrors.getFormattedLintErrors(optionsWithSurrounding);
-			// Should include line before (0|function foo() {), all diagnostic lines, and line after (4|})
 			expect(result).toContain('0|function foo() {');
 			expect(result).toContain('1|const x = 1;');
 			expect(result).toContain('2|const y = 2;');
@@ -482,11 +476,9 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 
 			const result = lintErrors.getFormattedLintErrors(optionsWithCode);
-			// Should include all diagnostic lines when YES is set
 			expect(result).toContain('1|const x = 1;');
 			expect(result).toContain('2|const y = 2;');
 			expect(result).toContain('3|const z = 3;');
-			// Should include the error location and message
 			expect(result).toContain('Multi-line scope error');
 		});
 
@@ -549,7 +541,6 @@ describe('LintErrors', () => {
 			const closeIndex = result.indexOf('Close column error');
 			const farIndex = result.indexOf('Far column error');
 
-			// Close column error should appear before far column error
 			expect(closeIndex).toBeLessThan(farIndex);
 		});
 
@@ -573,12 +564,12 @@ describe('LintErrors', () => {
 
 		it('should format exact string with code shown NO', () => {
 			const document = createDocument([
-				'const x = 1;',     // line 0
-				'const y = 2;',     // line 1
-				'const z = 3;',     // line 2
-				'const w = 4;',     // line 3
-				'const v = 5;',     // line 4
-				'const u = 6;'      // line 5
+				'const x = 1;',
+				'const y = 2;',
+				'const z = 3;',
+				'const w = 4;',
+				'const v = 5;',
+				'const u = 6;'
 			], 3, 5);
 
 			diagnosticsService.setDiagnostics(fileUri, [
@@ -620,12 +611,12 @@ describe('LintErrors', () => {
 
 		it('should format exact string with multiple multi-line diagnostics, code, source, and YES_WITH_SURROUNDING', () => {
 			const document = createDocument([
-				'const x = 1;',     // line 0
-				'const y = 2;',     // line 1
-				'const z = 3;',     // line 2
-				'const w = 4;',     // line 3
-				'const v = 5;',     // line 4
-				'const u = 6;'      // line 5
+				'const x = 1;',
+				'const y = 2;',
+				'const z = 3;',
+				'const w = 4;',
+				'const v = 5;',
+				'const u = 6;'
 			], 3, 5);
 
 			diagnosticsService.setDiagnostics(fileUri, [
@@ -675,7 +666,6 @@ describe('LintErrors', () => {
 
 		it('should handle stale diagnostic referencing lines beyond document length', () => {
 			const document = createDocument(['line1', 'line2'], 1, 1);
-			// Diagnostic references line 10 which doesn't exist in a 2-line document
 			diagnosticsService.setDiagnostics(fileUri, [
 				{
 					message: 'Stale diagnostic',
@@ -691,7 +681,6 @@ describe('LintErrors', () => {
 
 			const lintErrors = createLintErrors(document);
 
-			// Should not throw, should gracefully handle stale diagnostic
 			const result = lintErrors.getFormattedLintErrors(optionsWithCode);
 			expect(result).toContain('Stale diagnostic');
 		});
@@ -739,7 +728,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(defaultLintOptions);
 
-			// Diagnostic is on array index 1 (line2)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(defaultLintOptions, 1)).toBe(true);
 		});
 
@@ -756,7 +744,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(defaultLintOptions);
 
-			// Diagnostic is at index 1, so index 3 should not be in any diagnostic
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(defaultLintOptions, 3)).toBe(false);
 		});
 
@@ -778,7 +765,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(optionsNoCode);
 
-			// Diagnostic is at index 1, but index 0 should not be in range when showCode is NO
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsNoCode, 0)).toBe(false);
 		});
 
@@ -800,7 +786,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(optionsWithCode);
 
-			// Diagnostic at index 1 (line2) should be in the code range
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 1)).toBe(true);
 		});
 
@@ -822,13 +807,9 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(optionsWithSurrounding);
 
-			// Line before diagnostic (line1 at index 0)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 0)).toBe(true);
-			// Diagnostic line (line2 at index 1)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 1)).toBe(true);
-			// Line after diagnostic (line3 at index 2)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 2)).toBe(true);
-			// Line not in range (line4 at index 3)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 3)).toBe(false);
 		});
 
@@ -850,15 +831,10 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(optionsWithCode);
 
-			// Line before multi-line diagnostic (index 0)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 0)).toBe(false);
-			// Start line of diagnostic (index 1)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 1)).toBe(true);
-			// Middle line of diagnostic (index 2)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 2)).toBe(true);
-			// End line of diagnostic (index 3)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 3)).toBe(true);
-			// Line after multi-line diagnostic (index 4)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 4)).toBe(false);
 		});
 
@@ -880,17 +856,11 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(optionsWithSurrounding);
 
-			// Line before multi-line diagnostic (line0 at index 0)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 0)).toBe(true);
-			// Start line of diagnostic (line1 at index 1)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 1)).toBe(true);
-			// Middle line of diagnostic (line2 at index 2)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 2)).toBe(true);
-			// End line of diagnostic (line3 at index 3)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 3)).toBe(true);
-			// Line after multi-line diagnostic (line4 at index 4)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 4)).toBe(true);
-			// Line outside range (line5 at index 5)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithSurrounding, 5)).toBe(false);
 		});
 
@@ -917,12 +887,9 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(optionsWithCode);
 
-			// First diagnostic line (index 0)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 0)).toBe(true);
-			// Line between diagnostics (indices 1 and 2)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 1)).toBe(false);
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 2)).toBe(false);
-			// Second diagnostic line (index 3)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsWithCode, 3)).toBe(true);
 		});
 
@@ -962,9 +929,7 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			lintErrors.getFormattedLintErrors(optionsMaxLints);
 
-			// Only the closest diagnostic should be in the formatted output (index 1)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsMaxLints, 1)).toBe(true);
-			// The far error should not be included due to maxLints (index 3)
 			expect(lintErrors.lineNumberInPreviousFormattedPrompt(optionsMaxLints, 3)).toBe(false);
 		});
 
@@ -1003,7 +968,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrors(document);
 			const result = lintErrors.getFormattedLintErrors(defaultLintOptions);
 
-			// Non-error severities should be treated as warnings
 			expect(result).toContain('warning: Information message');
 			expect(result).toContain('warning: Hint message');
 		});
@@ -1086,12 +1050,10 @@ describe('LintErrors', () => {
 				{ message: 'Current file error', range: new Range(0, 0, 0, 12), severity: DiagnosticSeverity.Error }
 			]);
 
-			// History contains the current document itself
 			const history: IXtabHistoryEntry[] = [createHistoryEntry(documentId)];
 			const lintErrors = createLintErrorsWithHistory(document, history);
 
 			const result = lintErrors.getFormattedLintErrors({ ...defaultLintOptions, nRecentFiles: 1 });
-			// Should only contain the error once (from current file processing, not from recent files)
 			const errorCount = (result.match(/Current file error/g) || []).length;
 			expect(errorCount).toBe(1);
 		});
@@ -1105,14 +1067,12 @@ describe('LintErrors', () => {
 				{ message: 'Third file error', range: new Range(0, 0, 0, 10), severity: DiagnosticSeverity.Error }
 			]);
 
-			// History: third file most recent, other file least recent
 			const history: IXtabHistoryEntry[] = [
 				createHistoryEntry(otherFileId),
 				createHistoryEntry(thirdFileId),
 			];
 			const lintErrors = createLintErrorsWithHistory(document, history);
 
-			// Only request 1 recent file - should pick the most recent (third file)
 			const result = lintErrors.getFormattedLintErrors({ ...defaultLintOptions, nRecentFiles: 1 });
 			expect(result).toContain('Third file error');
 			expect(result).not.toContain('Other file error');
@@ -1128,7 +1088,6 @@ describe('LintErrors', () => {
 				{ message: 'Third file error', range: new Range(0, 0, 0, 10), severity: DiagnosticSeverity.Error }
 			]);
 
-			// History: other file first (least recent), third file last (most recent)
 			const history: IXtabHistoryEntry[] = [
 				createHistoryEntry(otherFileId),
 				createHistoryEntry(thirdFileId),
@@ -1138,7 +1097,6 @@ describe('LintErrors', () => {
 			const result = lintErrors.getFormattedLintErrors({ ...defaultLintOptions, nRecentFiles: 2 });
 			const thirdIdx = result.indexOf('Third file error');
 			const otherIdx = result.indexOf('Other file error');
-			// Most recent file (third) should appear before least recent (other)
 			expect(thirdIdx).toBeLessThan(otherIdx);
 		});
 
@@ -1175,7 +1133,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrorsWithHistory(document, history);
 
 			const result = lintErrors.getFormattedLintErrors({ ...defaultLintOptions, maxLints: 3, nRecentFiles: 1 });
-			// Should have 2 current + 1 recent = 3 total (maxLints)
 			expect(result).toContain('Current error 1');
 			expect(result).toContain('Current error 2');
 			expect(result).toContain('Other error 1');
@@ -1207,7 +1164,6 @@ describe('LintErrors', () => {
 				{ message: 'Other error', range: new Range(0, 0, 0, 10), severity: DiagnosticSeverity.Error },
 			]);
 
-			// Same document appears twice in history
 			const history: IXtabHistoryEntry[] = [
 				createHistoryEntry(otherFileId),
 				createHistoryEntry(otherFileId),
@@ -1215,7 +1171,6 @@ describe('LintErrors', () => {
 			const lintErrors = createLintErrorsWithHistory(document, history);
 
 			const result = lintErrors.getFormattedLintErrors({ ...defaultLintOptions, nRecentFiles: 2 });
-			// Should only include the diagnostic once
 			const errorCount = (result.match(/Other error/g) || []).length;
 			expect(errorCount).toBe(1);
 		});
@@ -1226,7 +1181,6 @@ describe('LintErrors', () => {
 				{ message: 'Current file error', range: new Range(0, 0, 0, 12), severity: DiagnosticSeverity.Error }
 			]);
 
-			// No history passed (backward compat)
 			const lintErrors = createLintErrors(document);
 			const result = lintErrors.getFormattedLintErrors({ ...defaultLintOptions, nRecentFiles: 5 });
 			expect(result).toContain('Current file error');
@@ -1249,11 +1203,8 @@ describe('LintErrors', () => {
 				showCode: LintOptionShowCode.YES_WITH_SURROUNDING,
 				nRecentFiles: 1,
 			});
-			// Current file diagnostic should have code context
 			expect(result).toContain('current line 0');
-			// Recent file diagnostic should NOT show current file lines as code context
 			expect(result).toContain('Other error');
-			// Only one occurrence of current file content (from the current file diagnostic, not from recent)
 			const currentLineCount = (result.match(/current line 0/g) || []).length;
 			expect(currentLineCount).toBe(1);
 		});

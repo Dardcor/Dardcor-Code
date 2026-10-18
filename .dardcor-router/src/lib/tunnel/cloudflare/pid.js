@@ -12,7 +12,7 @@ export function savePid(pid) {
 export function loadPid() {
   try {
     if (fs.existsSync(PID_FILE)) return parseInt(fs.readFileSync(PID_FILE, "utf8"));
-  } catch { /* ignore */ }
+  } catch { }
   return null;
 }
 
@@ -22,6 +22,6 @@ export function clearPid(expectedPid = null) {
     if (expectedPid !== null && loadPid() !== expectedPid) return false;
     fs.unlinkSync(PID_FILE);
     return true;
-  } catch { /* ignore */ }
+  } catch { }
   return false;
 }

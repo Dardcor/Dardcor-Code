@@ -45,7 +45,7 @@ import { processFullRewriteNotebook } from '../../prompts/node/codeMapper/codeMa
 import { CodeBlock } from '../../prompts/node/panel/safeElements';
 import { IEditToolLearningService } from '../common/editToolLearningService';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { IToolsService } from '../common/toolsService';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { PATCH_PREFIX, PATCH_SUFFIX } from './applyPatch/parseApplyPatch';
@@ -60,17 +60,16 @@ export interface IApplyPatchToolParams {
 	explanation: string;
 }
 
-type DocText = Record</* URI */ string, { text: string; notebookUri?: URI }>;
+type DocText = Record< string, { text: string; notebookUri?: URI }>;
 
 export const applyPatch5Description = 'Use the `apply_patch` tool to edit files.\nYour patch language is a stripped-down, file-oriented diff format designed to be easy to parse and safe to apply. You can think of it as a high-level envelope:\n\n*** Begin Patch\n[ one or more file sections ]\n*** End Patch\n\nWithin that envelope, you get a sequence of file operations.\nYou MUST include a header to specify the action you are taking.\nEach operation starts with one of three headers:\n\n*** Add File: <path> - create a new file. Every following line is a + line (the initial contents).\n*** Delete File: <path> - remove an existing file. Nothing follows.\n*** Update File: <path> - patch an existing file in place (optionally with a rename).\n\nMay be immediately followed by *** Move to: <new path> if you want to rename the file.\nThen one or more “hunks”, each introduced by @@ (optionally followed by a hunk header).\nWithin a hunk each line starts with:\n\nFor instructions on [context_before] and [context_after]:\n- By default, show 3 lines of code immediately above and 3 lines immediately below each change. If a change is within 3 lines of a previous change, do NOT duplicate the first change\'s [context_after] lines in the second change\'s [context_before] lines.\n- If 3 lines of context is insufficient to uniquely identify the snippet of code within the file, use the @@ operator to indicate the class or function to which the snippet belongs. For instance, we might have:\n@@ class BaseClass\n[3 lines of pre-context]\n- [old_code]\n+ [new_code]\n[3 lines of post-context]\n\n- If a code block is repeated so many times in a class or function such that even a single `@@` statement and 3 lines of context cannot uniquely identify the snippet of code, you can use multiple `@@` statements to jump to the right context. For instance:\n\n@@ class BaseClass\n@@ \t def method():\n[3 lines of pre-context]\n- [old_code]\n+ [new_code]\n[3 lines of post-context]\n\nThe full grammar definition is below:\nPatch := Begin { FileOp } End\nBegin := "*** Begin Patch" NEWLINE\nEnd := "*** End Patch" NEWLINE\nFileOp := AddFile | DeleteFile | UpdateFile\nAddFile := "*** Add File: " path NEWLINE { "+" line NEWLINE }\nDeleteFile := "*** Delete File: " path NEWLINE\nUpdateFile := "*** Update File: " path NEWLINE [ MoveTo ] { Hunk }\nMoveTo := "*** Move to: " newPath NEWLINE\nHunk := "@@" [ header ] NEWLINE { HunkLine } [ "*** End of File" NEWLINE ]\nHunkLine := (" " | "-" | "+") text NEWLINE\n\nA full patch can combine several operations:\n\n*** Begin Patch\n*** Add File: hello.txt\n+Hello world\n*** Update File: src/app.py\n*** Move to: src/main.py\n@@ def greet():\n-print("Hi")\n+print("Hello, world!")\n*** Delete File: obsolete.txt\n*** End Patch\n\nIt is important to remember:\n\n- You must include a header with your intended action (Add/Delete/Update)\n- You must prefix new lines with `+` even when creating a new file\n- File references must be ABSOLUTE, NEVER RELATIVE.';
 
-export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
+export class ApplyPatchTool implements IAgentTool<IApplyPatchToolParams> {
 	public static toolName = ToolName.ApplyPatch;
 	public static readonly nonDeferred = true;
 
 	private _promptContext: IBuildPromptContext | undefined;
 
-	// Simple cache using stringified params as key to avoid WeakMap stability issues
 	private lastProcessed: { input: string; output: Promise<{ commit: Commit; docTexts: DocText; healed?: string }> } | undefined;
 
 	constructor(
@@ -132,7 +131,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 			new Position(lines.length, 0)
 		), newContent);
 
-		// Handle trailing newlines to match the original document
 		const originalTrailing = this.getTrailingDocumentEmptyLineCount(textDocument);
 		const newTrailing = this.getTrailingArrayEmptyLineCount(lines);
 
@@ -140,7 +138,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 			workspaceEdit.insert(path, new Position(lines.length + i, 0), '\n');
 		}
 
-		// If new content is shorter than original, delete extra lines
 		if (lines.length < textDocument.lineCount) {
 			const newLineCount = lines.length + Math.max(originalTrailing - newTrailing, 0);
 			const from = lines.length === 0 ? new Position(0, 0) : new Position(newLineCount, 0);
@@ -151,10 +148,7 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 	}
 
 	private async generateUpdateNotebookDocumentEdit(altDoc: NotebookDocumentSnapshot, uri: URI, file: string, change: FileChange) {
-		// Notebooks can have various formats, it could be JSON, XML, Jupytext (which is a format that depends on the code cell language).
-		// Lets generate new content based on multiple formats.
 		const cellLanguage = getDefaultLanguage(altDoc.document) || 'python';
-		// The content thats smallest is size is the one we're after, as thats the one that would have the leading file path removed.
 		const newContent = [
 			removeLeadingFilepathComment(change.newContent ?? '', cellLanguage, file),
 			removeLeadingFilepathComment(change.newContent ?? '', 'python', file),
@@ -166,8 +160,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 		const edits: (vscode.NotebookEdit | [vscode.Uri, vscode.TextEdit[]])[] = [];
 		if (change.movePath) {
 			const newPath = resolveToolInputPath(change.movePath, this.promptPathRepresentationService);
-			// workspaceEdit.renameFile(path, newPath, { overwrite: true });
-			// TODO@joyceerhl: this is a hack, it doesnt't work for regular text files either.
 			uri = newPath;
 		}
 
@@ -232,7 +224,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 				this.lastProcessed = undefined;
 			}
 
-			// If not cached or cache failed, build with healing
 			if (!commit) {
 				({ commit, healed } = await this.buildCommitWithHealing(options.model, options.input.input, docText, options.input.explanation, token));
 				logEditToolResult(this.logService, options.chatRequestId, { input: options.input.input, success: true, healed });
@@ -256,8 +247,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 
 
 			if (notebookUri) {
-				// We have found issues with the patches generated by Model for XML, Jupytext
-				// Possible there are other issues with other formats as well.
 				return new LanguageModelToolResult([
 					new LanguageModelTextPart('Applying patch failed with error: ' + error.message),
 					new LanguageModelTextPart(`Use the ${ToolName.EditNotebook} tool to edit notebook files such as ${notebookUri}.`),
@@ -271,10 +260,8 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 		}
 
 		try {
-			// Map to track edit survival sessions by document URI
 			const editSurvivalTrackers = new ResourceMap<IEditSurvivalTrackingSession>();
 
-			// Set up a response stream that will collect AI edits for telemetry
 			let responseStream = this._promptContext.stream;
 			if (this._promptContext.stream) {
 				responseStream = ChatResponseStreamImpl.spy(this._promptContext.stream, (part) => {
@@ -322,8 +309,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 						let updated: TextDocumentSnapshot | NotebookDocumentSnapshot | undefined;
 
 						if (document instanceof NotebookDocumentSnapshot) {
-							// We have found issues with the patches generated by Model for XML, Jupytext
-							// Possible there are other issues with other formats as well.
 							try {
 								const result = await this.generateUpdateNotebookDocumentEdit(document, path, file, changes);
 								notebookEdits.set(result.path, result.edits);
@@ -360,7 +345,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 				}
 			}
 			for (let [uri, textEdit] of editEntires) {
-				// Get the notebook URI if the document is a notebook or a notebook cell.
 				const notebookUri = findNotebook(uri, this.workspaceService.notebookDocuments)?.uri ?? (this.notebookService.hasSupportedNotebooks(uri) ? uri : undefined);
 				if (notebookUri) {
 					if (handledNotebookUris.has(notebookUri)) {
@@ -372,7 +356,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 
 				const existingDiagnostics = this.languageDiagnosticsService.getDiagnostics(uri);
 
-				// Initialize edit survival tracking for text documents
 				const existsOnDisk = await this.instantiationService.invokeFunction(canExistingFileBeEdited, uri);
 				if (existsOnDisk) {
 					const document = notebookUri ?
@@ -424,23 +407,8 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 			}
 
 			timeout(2000).then(() => {
-				// The tool can't wait for edits to be applied, so just wait before starting the survival tracker.
-				// TODO@roblourens see if this improves the survival metric, find a better fix.
 				for (const tracker of editSurvivalTrackers.values()) {
 					tracker.startReporter(res => {
-						/* __GDPR__
-							"applyPatch.trackEditSurvival" : {
-								"owner": "joyceerhl",
-								"comment": "Tracks how much percent of the AI edits survived after 5 minutes of accepting",
-								"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-								"requestSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source from where the request was made" },
-								"mapper": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The code mapper used strategy" },
-								"survivalRateFourGram": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the AI edit is still present in the document." },
-								"survivalRateNoRevert": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the ranges the AI touched ended up being reverted." },
-								"didBranchChange": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Indicates if the branch changed in the meantime. If the branch changed (value is 1), this event should probably be ignored." },
-								"timeDelayMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The time delay between the user accepting the edit and measuring the survival rate." }
-							}
-						*/
 						res.telemetryService.sendMSFTTelemetryEvent('applyPatch.trackEditSurvival', { requestId: this._promptContext?.requestId, requestSource: 'agent', mapper: 'applyPatchTool' }, {
 							survivalRateFourGram: res.fourGram,
 							survivalRateNoRevert: res.noRevert,
@@ -482,7 +450,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 				}
 			});
 
-			// Return the result
 			const isInlineChat = this._promptContext.request?.location2 instanceof ChatRequestEditorData;
 			const isNotebook = editEntires.length === 1 ? handledNotebookUris.size === 1 : undefined;
 			this.sendApplyPatchTelemetry('success', options, undefined, !!healed, isNotebook);
@@ -504,7 +471,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 			return result;
 		} catch (error) {
 			const isNotebook = Object.values(docText).length === 1 ? (!!mapFindFirst(Object.values(docText), v => v.notebookUri)) : undefined;
-			// TODO parser.ts could annotate DiffError with a telemetry detail if we want
 			this.sendApplyPatchTelemetry('error', options, undefined, false, isNotebook, error);
 			const result = new ExtendedLanguageModelToolResult([
 				new LanguageModelTextPart('Applying patch failed with error: ' + error.message),
@@ -514,12 +480,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 		}
 	}
 
-	/**
-	 * Attempts to 'heal' a patch which we failed to apply by sending it a small
-	 * cheap model (4o mini) to revise it. This is generally going to be cheaper
-	 * than going to whatever big model the user has selected for it to try
-	 * and do another turn.
-	 */
 	private async healCommit(patch: string, docs: DocText, explanation: string, token: CancellationToken) {
 		const endpoint = await this.endpointProvider.getChatEndpoint('dardcor-utility-small');
 		const prompt = await PromptRenderer.create(
@@ -553,7 +513,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 		const patchEnd = fetchResult.value.indexOf(PATCH_SUFFIX, patchStart);
 		const healed = patchEnd === -1 ? fetchResult.value.slice(patchStart) : fetchResult.value.slice(patchStart, patchEnd + PATCH_SUFFIX.length);
 
-		// Reject the healed patch if it doesn't affect exactly the same set of files as the original.
 		if (!healedPatchAffectsSameFiles(patch, healed)) {
 			return undefined;
 		}
@@ -595,13 +554,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 					throw error;
 				}
 			} finally {
-				/* __GDPR__
-					"applyPatchHealRate" : {
-						"owner": "connor4312",
-						"comment": "Records how correct the healing of a patch was",
-						"success": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the input was healed" }
-					}
-				*/
 				this.telemetryService.sendMSFTTelemetryEvent('applyPatchHealRate', {}, {
 					success: success ? 1 : 0,
 				});
@@ -629,19 +581,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 	private async sendApplyPatchTelemetry(outcome: string, options: vscode.LanguageModelToolInvocationOptions<IApplyPatchToolParams>, file: string | undefined, healed: boolean, isNotebook: boolean | undefined, unexpectedError?: Error) {
 		const model = options.model && (await this.endpointProvider.getChatEndpoint(options.model)).model;
 
-		/* __GDPR__
-			"applyPatchToolInvoked" : {
-				"owner": "roblourens",
-				"comment": "The apply_patch tool was invoked",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"interactionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current interaction." },
-				"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the invocation was successful, or a failure reason" },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-				"healed": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the input was healed" },
-				"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the input was a notebook, 1 = yes, 0 = no, other = Unknown" },
-				"error": { "classification": "CallstackOrException", "purpose": "FeatureInsight", "comment": "Unexpected error that occurrs during application" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('applyPatchToolInvoked',
 			{
 				requestId: options.chatRequestId,
@@ -652,7 +591,7 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 			},
 			{
 				healed: healed ? 1 : 0,
-				isNotebook: isNotebook ? 1 : (isNotebook === false ? 0 : -1), // -1 means unknown
+				isNotebook: isNotebook ? 1 : (isNotebook === false ? 0 : -1),
 			},
 		);
 
@@ -663,7 +602,7 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 			completionTextJson: options.input.input,
 			postProcessingOutcome: outcome,
 			healed: String(healed),
-		}).then(properties => this.telemetryService.sendEnhancedGHTelemetryEvent('applyPatchTool', properties)).catch(() => { /* best-effort telemetry */ });
+		}).then(properties => this.telemetryService.sendEnhancedGHTelemetryEvent('applyPatchTool', properties)).catch(() => { });
 	}
 
 	async resolveInput(input: IApplyPatchToolParams, promptContext: IBuildPromptContext): Promise<IApplyPatchToolParams> {
@@ -693,7 +632,6 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 		const instantiationService = this.instantiationService;
 		const promptPathRepresentationService = this.promptPathRepresentationService;
 
-		// Process the patch and cache it for later use in invoke()
 		const docTexts: DocText = {};
 		const processPromise = (async () => {
 			const { commit, healed } = await this.buildCommitWithHealing(
@@ -706,15 +644,12 @@ export class ApplyPatchTool implements ICopilotTool<IApplyPatchToolParams> {
 			return { commit, docTexts, healed };
 		})();
 
-		// Cache using stringified params
 		this.lastProcessed = { input: options.input.input, output: processPromise };
 
 		const { commit } = await processPromise;
 
-		// Create a set of URIs needing confirmation for quick lookup
 		const urisNeedingConfirmationSet = new ResourceSet(urisNeedingConfirmation);
 
-		// Generate diffs for all file changes in parallel
 		const diffResults = await Promise.all(
 			Object.entries(commit.changes).map(async ([file, changes]) => {
 				const uri = resolveToolInputPath(file, promptPathRepresentationService);
@@ -757,11 +692,6 @@ class HealedError extends Error {
 	}
 }
 
-/**
- * Returns true if the healed patch affects exactly the same set of files as
- * the original patch. Used to reject heals that hallucinated additional files
- * or dropped files that the model was originally trying to edit.
- */
 export function healedPatchAffectsSameFiles(original: string, healed: string): boolean {
 	const originalFiles = new Set(identify_files_affected(original));
 	const healedFiles = new Set(identify_files_affected(healed));

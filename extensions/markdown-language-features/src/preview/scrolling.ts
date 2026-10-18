@@ -4,9 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import * as vscode from 'vscode';
 
-/**
- * Change the top-most visible line of `editor` to be at `line`
- */
 export function scrollEditorToLine(
 	line: number,
 	editor: vscode.TextEditor

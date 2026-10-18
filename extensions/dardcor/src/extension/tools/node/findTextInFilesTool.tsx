@@ -28,7 +28,7 @@ import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { Tag } from '../../prompts/node/base/tag';
 import { ToolName } from '../common/toolNames';
-import { CopilotToolMode, ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { AgentToolMode, IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { checkCancellation, InputGlobResult, inputGlobToPattern, patternContainsWorkspaceFolderPath } from './toolUtils';
 import { IExperimentationService } from '../../../lib/node/chatLibMain';
 
@@ -38,7 +38,6 @@ interface IFindTextInFilesToolParams {
 	includePattern?: string;
 	maxResults?: number;
 	defaultMaxResults?: number;
-	/** Whether to include files that would normally be ignored according to .gitignore, other ignore files and `files.exclude` and `search.exclude` settings. */
 	includeIgnoredFiles?: boolean;
 }
 
@@ -57,7 +56,7 @@ interface MatchResult {
 	files: FileMatch[];
 }
 
-export class FindTextInFilesTool implements ICopilotTool<IFindTextInFilesToolParams> {
+export class FindTextInFilesTool implements IAgentTool<IFindTextInFilesToolParams> {
 	public static readonly toolName = ToolName.FindTextInFiles;
 	public static readonly nonDeferred = true;
 
@@ -73,8 +72,6 @@ export class FindTextInFilesTool implements ICopilotTool<IFindTextInFilesToolPar
 	) { }
 
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<IFindTextInFilesToolParams>, token: CancellationToken) {
-		// TODO strict input validation
-		// Certain models just really want to pass incorrect input
 		if ((options.input as unknown as Record<string, string>).pattern) {
 			throw new Error('The property "pattern" is not supported, please use "query"');
 		}
@@ -82,13 +79,10 @@ export class FindTextInFilesTool implements ICopilotTool<IFindTextInFilesToolPar
 		const endpoint = options.model && (await this.endpointProvider.getChatEndpoint(options.model));
 		const modelFamily = endpoint?.family;
 
-		// The input _should_ be a pattern matching inside a workspace, folder, but sometimes we get absolute paths, so try to resolve them
 		const workingDir = new WorkingDirectory(options.workingDirectory, this.workspaceService);
 		const globResult = options.input.includePattern ? inputGlobToPattern(options.input.includePattern, workingDir, modelFamily) : undefined;
 		let patterns = globResult?.patterns;
 
-		// When no include pattern is specified but a working directory is set (agents window),
-		// scope the search to the session's working directory.
 		if (!patterns && workingDir.hasExplicitWorkingDirectory) {
 			patterns = [new RelativePattern(workingDir.uri!, '**')];
 		}
@@ -106,37 +100,28 @@ export class FindTextInFilesTool implements ICopilotTool<IFindTextInFilesToolPar
 		const queryIsValidRegex = this.isValidRegex(options.input.query);
 		const includeIgnoredFiles = options.input.includeIgnoredFiles ?? false;
 
-		// try find text with a timeout of 20s
 		const timeoutInMs = 20_000;
 
-		// For the grp output we don't limit the number of matches by cutting files. We instead
-		// keep files and cut matches for each file. Therefore we need to ask for more results upfront
-		// to account for the fact that some files will be cut off. For the tag output we cut off files
-		// instead of matches, so we can just ask for the maxResults number of results.
 		const searchMaxResults = useGrepStyle ? maxResults * 5 : maxResults;
 
 		let results = await raceTimeoutAndCancellationError(
 			(searchToken) => this.searchAndCollectResults(options.input.query, isRegExp, patterns, searchMaxResults, includeIgnoredFiles, searchToken),
 			token,
 			timeoutInMs,
-			// embed message to give LLM hint about what to do next
 			`Timeout in searching text in files with ${isRegExp ? 'regex' : 'literal'} search, try a more specific search pattern or change regex/literal mode`
 		);
 
-		// If we still have no results, we need to try the opposite regex mode
 		if (!results.length && queryIsValidRegex) {
 			results = await raceTimeoutAndCancellationError(
 				(searchToken) => this.searchAndCollectResults(options.input.query, !isRegExp, patterns, searchMaxResults, includeIgnoredFiles, searchToken),
 				token,
 				timeoutInMs,
-				// embed message to give LLM hint about what to do next
 				`Find ${results.length} results in searching text in files with ${isRegExp ? 'regex' : 'literal'} search, and then another searching hits timeout in with ${!isRegExp ? 'regex' : 'literal'} search, try a more specific search pattern`
 			);
 		}
 
 		let noMatchInstructions: string | undefined = undefined;
 		if (!results.length && !includeIgnoredFiles) {
-			// Get the search.exclude configuration
 			const excludeSettings = this.configurationService.getNonExtensionConfig<Record<string, boolean>>('search.exclude');
 			const excludePaths: string[] = [];
 			if (excludeSettings) {
@@ -222,9 +207,6 @@ Then if you want to include those files you can call the tool again by setting "
 		let totalElided = 0;
 		let filesElided = 0;
 		if (totalMatches > maxResults) {
-			// Every file we keep must show at least one match, so we can show at most
-			// `maxResults` files. When there are more files than that, drop the extra
-			// files entirely (keeping the alphabetically-first ones) and count them.
 			const shownFileCount = Math.min(fileMatches.length, maxResults);
 			for (let i = shownFileCount; i < fileMatches.length; i++) {
 				totalElided += fileMatches[i].matches.length;
@@ -232,9 +214,6 @@ Then if you want to include those files you can call the tool again by setting "
 			filesElided = fileMatches.length - shownFileCount;
 			fileMatches = fileMatches.slice(0, shownFileCount);
 
-			// Distribute the `maxResults` budget across the kept files proportionally to
-			// their number of matches, guaranteeing at least one match per file (largest
-			// remainder method).
 			const shownTotal = fileMatches.reduce((sum, fileMatch) => sum + fileMatch.matches.length, 0);
 			const allocations = fileMatches.map((fileMatch, index) => {
 				const exact = (fileMatch.matches.length / shownTotal) * maxResults;
@@ -244,8 +223,6 @@ Then if you want to include those files you can call the tool again by setting "
 			let allocated = allocations.reduce((sum, allocation) => sum + allocation.allowed, 0);
 
 			if (allocated < maxResults) {
-				// Hand out the remaining budget to the files with the largest remainder,
-				// never allocating more matches than a file actually has.
 				const byRemainder = allocations.slice().sort((a, b) => b.remainder - a.remainder);
 				let progressed = true;
 				while (allocated < maxResults && progressed) {
@@ -262,8 +239,6 @@ Then if you want to include those files you can call the tool again by setting "
 					}
 				}
 			} else if (allocated > maxResults) {
-				// The minimum-one-per-file rule pushed us over budget; reclaim slots from
-				// the files with the smallest remainder without dropping below one match.
 				const byRemainder = allocations.slice().sort((a, b) => a.remainder - b.remainder);
 				let progressed = true;
 				while (allocated > maxResults && progressed) {
@@ -311,22 +286,6 @@ Then if you want to include those files you can call the tool again by setting "
 		const model = options.model && (await this.endpointProvider.getChatEndpoint(options.model)).model;
 		const isMultiRoot = this.workspaceService.getWorkspaceFolders().length > 1;
 		const includePattern = options.input.includePattern;
-		/* __GDPR__
-			"findTextInFilesToolInvoked" : {
-				"owner": "roblourens",
-				"comment": "Telemetry for the findTextInFiles tool in multi-root workspaces",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-				"isMultiRoot": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the workspace has multiple root folders" },
-				"patternScopedToFolder": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the includePattern was resolved to a specific workspace folder" },
-				"patternStartsWithFolderPath": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the raw includePattern starts with a workspace folder absolute path" },
-				"patternContainsFolderPath": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the raw includePattern contains a workspace folder absolute path anywhere" },
-				"outputFormat": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The output format of the search results" },
-				"requestedMaxResults": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The maximum number of results that was requested by the LLM. Undefined if not provided." },
-				"defaultMaxResults": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The default maximum number of results used when the LLM doesn't specify a value." },
-				"maxResultsCap": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The maximum number of results that can be returned." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('findTextInFilesToolInvoked', {
 			requestId: options.chatRequestId,
 			model,
@@ -389,7 +348,6 @@ Then if you want to include those files you can call the tool again by setting "
 			results.push(item);
 		}
 
-		// Necessary in case it was rejected
 		await searchResult.complete;
 
 		return results;
@@ -406,11 +364,6 @@ Then if you want to include those files you can call the tool again by setting "
 		};
 	}
 
-	/**
-	 * Formats text as a Markdown inline code span that is resilient to backticks within the text.
-	 * It chooses a backtick fence one longer than the longest run of backticks in the content,
-	 * and pads with a space when the content begins or ends with a backtick as per CommonMark.
-	 */
 	private formatCodeSpan(text: string): string {
 		const matches = text.match(/`+/g);
 		const maxRun = matches ? matches.reduce((m, s) => Math.max(m, s.length), 0) : 0;
@@ -435,7 +388,7 @@ Then if you want to include those files you can call the tool again by setting "
 		return querySpan;
 	}
 
-	async resolveInput(input: IFindTextInFilesToolParams, _promptContext: IBuildPromptContext, mode: CopilotToolMode): Promise<IFindTextInFilesToolParams> {
+	async resolveInput(input: IFindTextInFilesToolParams, _promptContext: IBuildPromptContext, mode: AgentToolMode): Promise<IFindTextInFilesToolParams> {
 		let includePattern = input.includePattern;
 		if (includePattern === '**') {
 			includePattern = undefined;
@@ -449,7 +402,7 @@ Then if you want to include those files you can call the tool again by setting "
 		}
 
 		return {
-			defaultMaxResults: mode === CopilotToolMode.FullContext ? this.getMaxResultsCap() : this.getDefaultMaxResults(),
+			defaultMaxResults: mode === AgentToolMode.FullContext ? this.getMaxResultsCap() : this.getDefaultMaxResults(),
 			...input,
 			includePattern,
 		};
@@ -480,10 +433,8 @@ export interface FindTextInFilesResultProps extends BasePromptElementProps {
 	noMatchInstructions?: string;
 }
 
-/** Max number of characters between matching ranges. */
 const MAX_CHARS_BETWEEN_MATCHES = 500;
 
-/** Start priority for findFiles lines so that context is gradually trimmed. */
 const FIND_FILES_START_PRIORITY = 1000;
 
 export class FindTextInFilesResult extends PromptElement<FindTextInFilesResultProps> {
@@ -502,7 +453,6 @@ export class FindTextInFilesResult extends PromptElement<FindTextInFilesResultPr
 		return <>
 			{<TextChunk priority={20}>{numResultsText}{maxResultsText}{maxResultsTooLargeText}</TextChunk>}
 			{textMatches.flatMap(result => {
-				// The result preview line always ends in a newline, I think that makes sense but don't display an extra empty line
 				const previewText = result.previewText.replace(/\n$/, '');
 				return result.ranges.map((rangeInfo, i) => {
 					return <FindMatch
@@ -525,12 +475,6 @@ interface IFindMatchProps extends BasePromptElementProps {
 	uri: URI;
 }
 
-/**
- * 1. Removes excessive extra character data from the match, e.g. avoiding
- * giant minified lines
- * 2. Wraps the match in a <match> tag
- * 3. Prioritizes lines in the middle of the match where the range lies
- */
 export class FindMatch extends PromptElement<IFindMatchProps> {
 	constructor(
 		props: PromptElementProps<IFindMatchProps>,
@@ -579,27 +523,14 @@ export interface FindTextInFilesGrepResultProps extends BasePromptElementProps {
 	query: string;
 }
 
-/**
- * Renders grep-style search results as plain text (no XML tags) through prompt-tsx, so the
- * output participates in token-budget pruning and carries editor references instead of being
- * emitted as a single unprunable text blob.
- *
- * Each file is rendered as its own {@link TextChunk}, prefixed with a blank line to match the
- * grep output format. Earlier files are given a higher priority so that, when the budget is
- * exceeded, later files are dropped first.
- */
 export class FindTextInFilesGrepResult extends PromptElement<FindTextInFilesGrepResultProps> {
 
-	/** Grep output: lines at or below this length are emitted verbatim. */
 	private static readonly MAX_LINE_CHARS = 600;
 
-	/** Grep output: characters of context kept before the match when a long line is truncated. */
 	private static readonly CONTEXT_BEFORE_CHARS = 150;
 
-	/** Grep output: characters of context kept after the match when a long line is truncated. */
 	private static readonly CONTEXT_AFTER_CHARS = 105;
 
-	/** Grep output: max characters of the matched span itself before its middle is elided. */
 	private static readonly MAX_MATCH_CHARS = 300;
 
 	override render(): PromptPiece {
@@ -632,8 +563,6 @@ export class FindTextInFilesGrepResult extends PromptElement<FindTextInFilesGrep
 					lines.push(`... (${more} in this file)`);
 				}
 				const references = file.matches.map((match) => new PromptReference(new Location(match.uri, match.ranges[0].sourceRange), undefined, { isFromTool: true }));
-				// The leading newline renders as a blank line separating this file block from the
-				// previous chunk, matching the plain-text grep format.
 				return <>
 					<references value={references} />
 					<TextChunk priority={FIND_FILES_START_PRIORITY - fileIndex}>{`\n${lines.join('\n')}`}</TextChunk>
@@ -642,16 +571,6 @@ export class FindTextInFilesGrepResult extends PromptElement<FindTextInFilesGrep
 		</>;
 	}
 
-	/**
-	 * Renders a single search match as one grep-style line, bounded for an LLM consumer.
-	 *
-	 * Lines up to {@link GREP_MAX_LINE_CHARS} characters are returned verbatim. Longer lines (typically
-	 * minified or generated) are reduced to a match-centered window: {@link GREP_CONTEXT_BEFORE_CHARS}
-	 * characters before the match, up to {@link GREP_MAX_MATCH_CHARS} of the match itself (middle-elided
-	 * if larger), and {@link GREP_CONTEXT_AFTER_CHARS} after, followed by a
-	 * `[match at col N, line truncated, M chars]` annotation so the model knows where the match sits in
-	 * the full line and can read the file for the rest. The result is always a single line.
-	 */
 	private static boundMatchPreview(textMatch: vscode.TextSearchMatch2): string {
 		const preview = textMatch.previewText.replace(/\n$/, '').trimEnd();
 		if (preview.length <= this.MAX_LINE_CHARS) {
@@ -679,12 +598,10 @@ export class FindTextInFilesGrepResult extends PromptElement<FindTextInFilesGrep
 		return this.collapseToSingleLine(`${before}${matchText}${after}`) + annotation;
 	}
 
-	/** Collapses any newlines so a value always renders on a single physical line. */
 	private static collapseToSingleLine(text: string): string {
 		return text.replace(/\r\n|\r|\n/g, ' ');
 	}
 
-	/** Formats a number with thousands separators, e.g. `48210` becomes `48,210`. */
 	private static formatCharCount(count: number): string {
 		return count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 	}

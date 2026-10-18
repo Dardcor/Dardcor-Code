@@ -86,8 +86,6 @@ export function getTerminalSandboxRuntimeConfigurationForCommands(os: OperatingS
 function shouldApplyRuntimeConfigurationOperation(operation: TerminalSandboxRuntimeConfigurationOperation, commandDetails: readonly ITerminalSandboxCommand[]): boolean {
 	switch (operation) {
 		case TerminalSandboxRuntimeConfigurationOperation.GnuPG:
-			// Docker socket access can grant host-level privileges, so do not allow all Unix
-			// sockets when a Docker-related command is part of the sandbox invocation.
 			return commandDetails.every(command => !command.keyword.toLowerCase().startsWith('docker'));
 		case TerminalSandboxRuntimeConfigurationOperation.Node:
 			return true;

@@ -40,11 +40,9 @@ export class IgnoredExtensionsManagementService implements IIgnoredExtensionsMan
 	}
 
 	updateIgnoredExtensions(ignoredExtensionId: string, ignore: boolean): Promise<void> {
-		// first remove the extension completely from ignored extensions
 		let currentValue = [...this.configurationService.getValue<string[]>('settingsSync.ignoredExtensions')].map(id => id.toLowerCase());
 		currentValue = currentValue.filter(v => v !== ignoredExtensionId && v !== `-${ignoredExtensionId}`);
 
-		// Add only if ignored
 		if (ignore) {
 			currentValue.push(ignoredExtensionId.toLowerCase());
 		}
@@ -53,11 +51,9 @@ export class IgnoredExtensionsManagementService implements IIgnoredExtensionsMan
 	}
 
 	updateSynchronizedExtensions(extensionId: string, sync: boolean): Promise<void> {
-		// first remove the extension completely from ignored extensions
 		let currentValue = [...this.configurationService.getValue<string[]>('settingsSync.ignoredExtensions')].map(id => id.toLowerCase());
 		currentValue = currentValue.filter(v => v !== extensionId && v !== `-${extensionId}`);
 
-		// Add only if synced
 		if (sync) {
 			currentValue.push(`-${extensionId.toLowerCase()}`);
 		}

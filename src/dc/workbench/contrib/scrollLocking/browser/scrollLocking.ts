@@ -60,7 +60,6 @@ export class SyncScroll extends Disposable implements IWorkbenchContribution {
 		this.toggleStatusbarItem(this.isActive);
 	}
 
-	// makes sure that the onDidEditorPaneScroll is not called multiple times for the same event
 	private _reentrancyBarrier = new ReentrancyBarrier();
 
 	private trackVisiblePanes(): void {
@@ -156,7 +155,6 @@ export class SyncScroll extends Disposable implements IWorkbenchContribution {
 		this.paneInitialScrollTop.clear();
 	}
 
-	// Actions & Commands
 
 	private toggleStatusbarItem(active: boolean): void {
 		if (active) {
@@ -218,7 +216,6 @@ export class SyncScroll extends Disposable implements IWorkbenchContribution {
 			run(accessor: ServicesAccessor): void {
 				const keybindingService = accessor.get(IKeybindingService);
 
-				// Enable Sync Scrolling while pressed
 				$this.toggle();
 
 				const holdMode = keybindingService.enableKeybindingHoldMode('workbench.action.holdLockedScrolling');

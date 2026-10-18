@@ -29,32 +29,17 @@ export interface IMarketplaceReference {
 	readonly autoUpdate?: boolean;
 }
 
-/**
- * The two configuration layers behind plugin marketplaces:
- * - `userValues` — what's stored at {@link ChatConfiguration.PluginMarketplaces}
- *   (default + user). Writable by the user.
- * - `extraValues` — what's delivered via the `ChatExtraMarketplaces` enterprise
- *   policy into {@link ChatConfiguration.ExtraMarketplaces}. Read-only.
- *
- * Entries may be strings (`<owner>/<repo>` or git URIs) or, in the policy case,
- * {@link IExtraMarketplaceObjectEntry} objects — both shapes flow through
- * {@link parseMarketplaceReferences}.
- */
 export interface IConfiguredMarketplaces {
 	readonly userValues: readonly unknown[];
 	readonly extraValues: readonly unknown[];
 	readonly effectiveValues: readonly unknown[];
 }
 
-/** Shorthand-or-URI regex used to detect GitHub `owner/repo[#ref]` entries. */
 const _githubShorthandRe = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:#.+)?$/;
 
 export function readConfiguredMarketplaces(configurationService: IConfigurationService): IConfiguredMarketplaces {
 	const userValues = configurationService.getValue<(string | object)[]>(ChatConfiguration.PluginMarketplaces) ?? [];
 
-	// `ChatExtraMarketplaces` is stored as `{ [name]: url-or-shorthand }` when delivered by
-	// policy. Convert each entry to the nested IExtraMarketplaceObjectEntry shape so that
-	// parseMarketplaceReferences can set displayLabel = name (critical for enabledPlugins keys).
 	const extraObj = configurationService.getValue<ExtraKnownMarketplacesConfigDict>(ChatConfiguration.ExtraMarketplaces) ?? {};
 	const extraValues: IExtraMarketplaceObjectEntry[] = Object.entries(extraObj).flatMap(([name, value]) => {
 		if (typeof value !== 'string') {
@@ -113,15 +98,6 @@ export function parseMarketplaceReferences(values: readonly unknown[]): IMarketp
 	return [...byCanonicalId.values()];
 }
 
-/**
- * Object-form marketplace entry shape, as delivered via the enterprise
- * `managed_settings` policy or `.github/copilot/settings.json` workspace
- * file. `name` (when present) is used as the marketplace's `displayLabel`
- * so that `enabledPlugins["plugin@name"]` keys match consistently.
- *
- * Both the nested form (`source: { source, repo|url }`) and the flat form
- * (`source: 'github', repo: ...`) are accepted.
- */
 export interface IExtraMarketplaceObjectEntry {
 	readonly name?: string;
 	readonly source?: string | { readonly source?: string; readonly repo?: string; readonly url?: string; readonly ref?: string };
@@ -175,10 +151,6 @@ function appendMarketplaceRef(value: string, ref: string | undefined): string {
 	return `${base}#${ref}`;
 }
 
-/**
- * Merges two sets of marketplace references, deduplicating by canonical ID.
- * The first set takes precedence when IDs collide.
- */
 export function deduplicateMarketplaceReferences(primary: readonly IMarketplaceReference[], secondary: readonly IMarketplaceReference[]): IMarketplaceReference[] {
 	const byCanonicalId = new Map<string, IMarketplaceReference>();
 	for (const ref of primary) {
@@ -266,9 +238,6 @@ function parseUriMarketplaceReference(rawValue: string): IMarketplaceReference |
 	const sanitizedAuthority = sanitizePathSegment(uri.authority.toLowerCase());
 	const trimmedPath = uri.path.replace(/\/+/g, '/').replace(/\/+$/g, '').replace(/^\/+/, '');
 
-	// Host-only marketplace endpoint (e.g. `https://plugins.internal.example.com`).
-	// The ADR allows any string for `git.url`, so a URL without a repo path is
-	// treated as a marketplace registry endpoint identified by host alone.
 	if (!trimmedPath) {
 		return {
 			rawValue,
@@ -285,15 +254,10 @@ function parseUriMarketplaceReference(rawValue: string): IMarketplaceReference |
 	const pathHasGitSuffix = trimmedPath.toLowerCase().endsWith(gitSuffix);
 	const pathWithoutGit = pathHasGitSuffix ? trimmedPath.slice(0, trimmedPath.length - gitSuffix.length) : trimmedPath;
 	const pathSegments = pathWithoutGit.split('/').map(sanitizePathSegment);
-	// Always normalize the canonical path to include .git so that URLs with and without the suffix deduplicate.
 	const canonicalPath = pathHasGitSuffix ? trimmedPath.toLowerCase() : `${trimmedPath.toLowerCase()}${gitSuffix}`;
 
-	// Extract githubRepo for GitHub URLs so the editor can render a clickable link
 	const githubRepo = extractGitHubRepo(uri.authority, pathWithoutGit);
 
-	// Normalize github.com/<owner>/<repo>[.git] URLs to the same canonical id
-	// the shorthand parser emits, so policy trust comparisons (which match by
-	// canonicalId) treat both forms as the same marketplace.
 	let canonicalId: string;
 	if (githubRepo) {
 		const [owner, repo] = githubRepo.split('/');
@@ -332,8 +296,6 @@ function parseScpMarketplaceReference(rawValue: string): IMarketplaceReference |
 	const pathSegments = pathWithoutGit.split('/').map(sanitizePathSegment);
 	const githubRepo = extractGitHubRepo(authority, pathWithoutGit);
 
-	// Normalize git@github.com:<owner>/<repo>.git to the same canonical id the
-	// shorthand parser emits (see parseUriMarketplaceReference for rationale).
 	let canonicalId: string;
 	if (githubRepo) {
 		const [owner, repo] = githubRepo.split('/');

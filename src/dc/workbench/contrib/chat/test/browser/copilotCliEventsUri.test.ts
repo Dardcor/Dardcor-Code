@@ -32,8 +32,6 @@ suite('copilotCliEventsUri', () => {
 		});
 
 		test('never drops a remote session sharing the raw id of a local twin', () => {
-			// `remote-<authority>-copilotcli:` is a different session on a different
-			// host, even when the underlying SDK id collides with a local one.
 			assert.deepStrictEqual(dedupe(remote, twin), [remote.toString(), twin.toString()]);
 		});
 

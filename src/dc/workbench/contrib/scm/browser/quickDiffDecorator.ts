@@ -142,13 +142,11 @@ class QuickDiffDecorator extends Disposable {
 			const quickDiff = this.quickDiffModelRef.object.quickDiffs
 				.find(quickDiff => quickDiff.id === change.providerId);
 
-			// Skip quick diffs that are not visible
 			if (!quickDiff || !this.quickDiffService.isQuickDiffProviderVisible(quickDiff.id)) {
 				continue;
 			}
 
 			if (quickDiff.kind !== 'primary' && primaryQuickDiffChanges.some(c => c.change2.modified.intersectsOrTouches(change.change2.modified))) {
-				// Overlap with primary quick diff changes
 				continue;
 			}
 
@@ -223,7 +221,6 @@ export class QuickDiffWorkbenchController extends Disposable implements IWorkben
 	private readonly activeEditor: IObservable<EditorInput | undefined>;
 	private readonly quickDiffProviders: IObservable<readonly QuickDiffProvider[]>;
 
-	// Resource URI -> Code Editor Id -> Decoration (Disposable)
 	private readonly decorators = new ResourceMap<DisposableMap<string>>();
 	private viewState: QuickDiffWorkbenchControllerViewState = { width: 3, visibility: 'always' };
 	private readonly transientDisposables = this._register(new DisposableStore());
@@ -433,7 +430,6 @@ export class QuickDiffWorkbenchController extends Disposable implements IWorkben
 			this.decorators.get(textModel.uri)!.set(editorId, new QuickDiffDecorator(editor, quickDiffModelRef, this.configurationService, this.quickDiffService));
 		}
 
-		// Dispose decorators for editors that are no longer visible.
 		for (const [uri, decoratorMap] of this.decorators.entries()) {
 			for (const editorId of decoratorMap.keys()) {
 				const codeEditor = this.editorService.visibleTextEditorControls

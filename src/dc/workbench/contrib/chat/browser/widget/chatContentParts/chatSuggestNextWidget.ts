@@ -17,7 +17,6 @@ import { ChatConfiguration } from '../../../common/constants.js';
 import { IChatMode } from '../../../common/chatModes.js';
 import { IChatSessionsService } from '../../../common/chatSessionsService.js';
 import { IHandOff } from '../../../common/promptSyntax/promptFileParser.js';
-import { getAgentCanContinueIn, getAgentSessionProvider, getAgentSessionProviderIcon, getAgentSessionProviderName } from '../../agentSessions/agentSessions.js';
 
 export interface INextPromptSelection {
 	readonly handoff: IHandOff;
@@ -58,14 +57,11 @@ export class ChatSuggestNextWidget extends Disposable {
 	}
 
 	private createSuggestNextWidget(): HTMLElement {
-		// Reuse welcome view classes for consistent styling
 		const container = dom.$('.chat-suggest-next-widget.chat-welcome-view-suggested-prompts');
 		container.style.display = 'none';
 
-		// Title element using welcome view class
 		this.titleElement = dom.append(container, dom.$('.chat-welcome-view-suggested-prompts-title'));
 
-		// Container for prompt buttons
 		this.promptsContainer = container;
 
 		return container;
@@ -81,11 +77,9 @@ export class ChatSuggestNextWidget extends Disposable {
 
 		this._currentMode = mode;
 
-		// Update title with mode name: "Proceed from {Mode}"
 		const modeName = mode.name.get() || mode.label.get() || localize('chat.currentMode', 'current mode');
 		this.titleElement.textContent = localize('chat.proceedFrom', 'Proceed from {0}', modeName);
 
-		// Clear existing prompt buttons (keep title which is first child)
 		const childrenToRemove: HTMLElement[] = [];
 		for (let i = 1; i < this.promptsContainer.children.length; i++) {
 			childrenToRemove.push(this.promptsContainer.children[i] as HTMLElement);
@@ -119,8 +113,6 @@ export class ChatSuggestNextWidget extends Disposable {
 	private createPromptButton(handoff: IHandOff): HTMLElement {
 		const disposables = new DisposableStore();
 
-		// Capture the label to look up the current handoff at click time
-		// This ensures we get the latest handoff data (e.g., updated model from settings)
 		const handoffLabel = handoff.label;
 		const getCurrentHandoff = (): IHandOff | undefined => {
 			const currentHandoffs = this._currentMode?.handOffs?.get();
@@ -135,12 +127,8 @@ export class ChatSuggestNextWidget extends Disposable {
 		const titleElement = dom.append(button, dom.$('.chat-welcome-view-suggested-prompt-title'));
 		titleElement.textContent = handoff.label;
 
-		// Optional showContinueOn behaves like send: only present if specified
 		const showContinueOn = handoff.showContinueOn ?? true;
 
-		// Get chat session contributions to show in chevron dropdown
-		// Filter to only first-party providers that support "continue in".
-		// TODO: Expand later to any agent with `canDelegate` === true.
 		const currentSessionType = this.contextKeyService.getContextKeyValue<string>(ChatContextKeys.chatSessionType.key);
 		const contributions = this.chatSessionsService.getAllChatSessionContributions();
 		const availableContributions = contributions.filter(c => {
@@ -150,13 +138,11 @@ export class ChatSuggestNextWidget extends Disposable {
 			if (c.type === currentSessionType) {
 				return false;
 			}
-			const provider = getAgentSessionProvider(c.type);
-			return provider !== undefined && getAgentCanContinueIn(provider);
+			return false;
 		});
 
 		if (showContinueOn && availableContributions.length > 0) {
 			button.classList.add('chat-suggest-next-has-dropdown');
-			// Create a dropdown container that wraps separator and chevron for a larger hit area
 			const dropdownContainer = dom.append(button, dom.$('.chat-suggest-next-dropdown'));
 			dropdownContainer.setAttribute('tabindex', '0');
 			dropdownContainer.setAttribute('role', 'button');
@@ -173,9 +159,7 @@ export class ChatSuggestNextWidget extends Disposable {
 				e.stopPropagation();
 
 				const actions = availableContributions.map(contrib => {
-					const provider = getAgentSessionProvider(contrib.type)!;
-					const icon = getAgentSessionProviderIcon(provider);
-					const name = getAgentSessionProviderName(provider);
+					const icon: any = undefined; const name = "Agent";
 					return new Action(
 						contrib.type,
 						localize('continueIn', "Continue in {0}", name),
@@ -234,7 +218,6 @@ export class ChatSuggestNextWidget extends Disposable {
 			}
 		}));
 
-		// Store disposables for this button so they can be disposed when the button is removed
 		this.buttonDisposables.set(button, disposables);
 
 		return button;
@@ -289,7 +272,6 @@ export class ChatSuggestNextWidget extends Disposable {
 	}
 
 	public override dispose(): void {
-		// Dispose all button disposables
 		for (const disposables of this.buttonDisposables.values()) {
 			disposables.dispose();
 		}

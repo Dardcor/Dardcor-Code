@@ -8,9 +8,6 @@ import { isWindows } from '../../../base/common/platform.js';
 import { localize } from '../../../nls.js';
 import { NativeParsedArgs } from '../common/argv.js';
 
-/**
- * This code is also used by standalone cli's. Avoid adding any other dependencies.
- */
 const helpCategories = {
 	o: localize('optionsUpperCase', "Options"),
 	e: localize('extensionsManagement', "Extensions Management"),
@@ -21,7 +18,7 @@ const helpCategories = {
 export interface Option<OptionType> {
 	type: OptionType;
 	alias?: string;
-	deprecates?: string[]; // old deprecated ids
+	deprecates?: string[];
 	args?: string | string[];
 	description?: string;
 	deprecationMessage?: string;
@@ -217,21 +214,15 @@ export const OPTIONS: OptionDescriptions<Required<NativeParsedArgs>> = {
 	'disable-layout-restore': { type: 'boolean' },
 	'disable-experiments': { type: 'boolean' },
 
-	// chromium flags
 	'no-proxy-server': { type: 'boolean' },
-	// Minimist incorrectly parses keys that start with `--no`
-	// https://github.com/substack/minimist/blob/aeb3e27dae0412de5c0494e9563a5f10c82cc7a9/index.js#L118-L121
-	// If --no-sandbox is passed via cli wrapper it will be treated as --sandbox which is incorrect, we use
-	// the alias here to make sure --no-sandbox is always respected.
-	// For https://github.com/microsoft/vscode/issues/128279
 	'no-sandbox': { type: 'boolean', alias: 'sandbox' },
 	'proxy-server': { type: 'string' },
 	'proxy-bypass-list': { type: 'string' },
 	'proxy-pac-url': { type: 'string' },
-	'js-flags': { type: 'string' }, // chrome js flags
+	'js-flags': { type: 'string' },
 	'inspect': { type: 'string', allowEmptyValue: true },
 	'inspect-brk': { type: 'string', allowEmptyValue: true },
-	'nolazy': { type: 'boolean' }, // node inspect
+	'nolazy': { type: 'boolean' },
 	'force-device-scale-factor': { type: 'string' },
 	'force-renderer-accessibility': { type: 'boolean' },
 	'ignore-certificate-errors': { type: 'boolean' },
@@ -248,7 +239,7 @@ export const OPTIONS: OptionDescriptions<Required<NativeParsedArgs>> = {
 	'trace-startup-duration': { type: 'string' },
 	'xdg-portal-required-version': { type: 'string' },
 
-	_: { type: 'string[]' } // main arguments
+	_: { type: 'string[]' }
 };
 
 export interface ErrorReporter {
@@ -268,7 +259,6 @@ const ignoringReporter = {
 };
 
 export function parseArgs<T>(args: string[], options: OptionDescriptions<T>, errorReporter: ErrorReporter = ignoringReporter): T {
-	// Find the first non-option arg, which also isn't the value for a previous `--flag`
 	const firstPossibleCommand = args.find((a, i) => a.length > 0 && a[0] !== '-' && options.hasOwnProperty(a) && options[a as T].type === 'subcommand');
 
 	const alias: { [key: string]: string } = {};
@@ -319,13 +309,11 @@ export function parseArgs<T>(args: string[], options: OptionDescriptions<T>, err
 	}
 
 
-	// remove aliases to avoid confusion
 	const parsedArgs = minimist(args, { string: stringOptions, boolean: booleanOptions, alias });
 
 	const cleanedArgs: Record<string, unknown> = {};
 	const remainingArgs: Record<string, unknown> = parsedArgs;
 
-	// https://github.com/microsoft/vscode/issues/58177, https://github.com/microsoft/vscode/issues/106617
 	cleanedArgs._ = parsedArgs._.map(arg => String(arg)).filter(arg => arg.length > 0);
 
 	delete remainingArgs._;
@@ -368,7 +356,7 @@ export function parseArgs<T>(args: string[], options: OptionDescriptions<T>, err
 				}
 			} else if (o.type === 'string') {
 				if (Array.isArray(val)) {
-					val = val.pop(); // take the last
+					val = val.pop();
 					errorReporter.onMultipleValues(optionId, val as string);
 				} else if (!val && !o.allowEmptyValue) {
 					errorReporter.onEmptyValue(optionId);
@@ -419,9 +407,8 @@ export function formatOptions(options: OptionDescriptions<unknown> | Record<stri
 
 function formatUsageTexts(usageTexts: [string, string][], columns: number) {
 	const maxLength = usageTexts.reduce((previous, e) => Math.max(previous, e[0].length), 12);
-	const argLength = maxLength + 2/*left padding*/ + 1/*right padding*/;
+	const argLength = maxLength + 2 + 1;
 	if (columns - argLength < 25) {
-		// Use a condensed version on narrow terminals
 		return usageTexts.reduce<string[]>((r, ut) => r.concat([`  ${ut[0]}`, `      ${ut[1]}`]), []);
 	}
 	const descriptionColumns = columns - argLength - 1;
@@ -429,7 +416,7 @@ function formatUsageTexts(usageTexts: [string, string][], columns: number) {
 	for (const ut of usageTexts) {
 		const usage = ut[0];
 		const wrappedDescription = wrapText(ut[1], descriptionColumns);
-		const keyPadding = indent(argLength - usage.length - 2/*left padding*/);
+		const keyPadding = indent(argLength - usage.length - 2);
 		result.push('  ' + usage + keyPadding + wrappedDescription[0]);
 		for (let i = 1; i < wrappedDescription.length; i++) {
 			result.push(indent(argLength) + wrappedDescription[i]);

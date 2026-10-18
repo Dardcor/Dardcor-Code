@@ -82,12 +82,6 @@ export default function ToolDetailClient({ toolId, machineId }) {
         }
       });
 
-      // openai/anthropic-compatible providers are registered with a random UUID (e.g.
-      // "openai-compatible-chat-<uuid>") that has no entry in the static PROVIDER_MODELS
-      // catalog, so `getModelsByProviderId` returns []. Routing still works because the
-      // request path uses the connection's own model config, but `hasActiveProviders`
-      // below would flip to false and disable the Apply button. Fall back to the
-      // connection's own models so these providers are usable from CLI tool pages.
       if (providerModels.length === 0) {
         const prefix = conn.providerSpecificData?.prefix || alias;
         const fallbackModels = [];
@@ -96,8 +90,6 @@ export default function ToolDetailClient({ toolId, machineId }) {
           if (m?.id && !fallbackModels.some(f => f.id === m.id)) fallbackModels.push({ id: m.id, name: m.name || m.id });
         });
         if (fallbackModels.length === 0 && conn.testStatus === "active") {
-          // Provider is confirmed reachable but exposes no model info anywhere;
-          // still let the user apply so they aren't stuck on a permanently disabled button.
           fallbackModels.push({ id: "model-id", name: `${prefix}/model-id` });
         }
         fallbackModels.forEach(m => {
@@ -171,7 +163,6 @@ export default function ToolDetailClient({ toolId, machineId }) {
     }
   };
 
-  // Guard removed/unknown tools (e.g. disabled Cowork) to avoid crash on direct URL.
   if (!tool) {
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:px-0">

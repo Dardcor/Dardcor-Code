@@ -45,7 +45,6 @@ export const CODEX_CONFIG: IAgentHostE2EProviderConfig = {
 	supportsPausedTurnCancellationE2E: true,
 	supportsCustomizationDiscoveryE2E: true,
 	supportsFixedInstructionDiscoveryE2E: true,
-	// Client-plugin synchronization can race the first turn and leave it incomplete.
 	supportsPluginCustomizationDiscoveryE2E: false,
 	supportsChatFork: true,
 	supportsChatForkE2E: true,

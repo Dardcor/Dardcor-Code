@@ -14,7 +14,6 @@ import {
 	readHostKeyType,
 } from '../../node/sshKnownHosts.js';
 
-/** Build a syntactically valid SSH wire-format public key blob. */
 function makeKeyBlob(keyType: string, material: Buffer): Buffer {
 	const type = Buffer.from(keyType, 'ascii');
 	const header = Buffer.alloc(4);
@@ -33,7 +32,6 @@ function line(host: string, blob: Buffer, marker?: string): string {
 	return `${marker ? `${marker} ` : ''}${host} ${type} ${blob.toString('base64')}`;
 }
 
-/** Build a hashed (`|1|salt|hash`) host field the way `ssh-keygen -H` does. */
 function hashedHostField(host: string, salt: Buffer): string {
 	const hash = createHmac('sha1', salt).update(host).digest();
 	return `|1|${salt.toString('base64')}|${hash.toString('base64')}`;
@@ -45,9 +43,6 @@ suite('sshKnownHosts', () => {
 
 	suite('computeHostKeyFingerprint', () => {
 		test('matches the ssh-keygen -lf format for a known key', () => {
-			// Golden value: this exact blob and fingerprint pair was verified
-			// against `ssh-keygen -lf` so a change in encoding is caught here
-			// rather than only showing up against a live server.
 			const blob = Buffer.from(
 				'AAAAC3NzaC1lZDI1NTE5AAAAIJ5SStkj9JLI/lWstJ2hIit3/xB+2xVeUesa/GlxqHFz',
 				'base64');
@@ -139,9 +134,6 @@ suite('sshKnownHosts', () => {
 					comment: parseKnownHostsLine('# a comment'),
 					tooFewFields: parseKnownHostsLine('example.com ssh-ed25519'),
 					unknownMarker: parseKnownHostsLine(line('example.com', ED25519_A, '@bogus')),
-					// The line claims ssh-rsa but the blob says ssh-ed25519.
-					// Trusting the label would let a mislabeled entry match a
-					// key type it does not actually hold.
 					typeDisagreesWithBlob: parseKnownHostsLine(typeMismatch),
 					shortHashedHash: parseKnownHostsLine(`|1|${randomBytes(20).toString('base64')}|${randomBytes(4).toString('base64')} ssh-ed25519 ${ED25519_A.toString('base64')}`),
 				},
@@ -180,10 +172,6 @@ suite('sshKnownHosts', () => {
 		});
 
 		test('scopes mismatch to the same key type', () => {
-			// A host with only an RSA entry that presents an ed25519 key is
-			// unknown, not evidence of an attack. Reporting `mismatch` here
-			// would fire a false alarm for every RSA-only user, since ssh2
-			// negotiates ed25519 first.
 			const rsaOnly = line('example.com', RSA_A);
 			assert.deepStrictEqual(
 				{
@@ -217,8 +205,6 @@ suite('sshKnownHosts', () => {
 					globMatches: match(glob, 'host.example.com', 22, ED25519_A),
 					globMissesOtherDomain: match(glob, 'host.other.com', 22, ED25519_A),
 					singleChar: match(line('host?.example.com', ED25519_A), 'host1.example.com', 22, ED25519_A),
-					// A negation must veto the whole entry even though the
-					// wildcard on the same line also matches.
 					negatedHost: match(negated, 'secret.example.com', 22, ED25519_A),
 					nonNegatedHost: match(negated, 'public.example.com', 22, ED25519_A),
 				},
@@ -244,8 +230,6 @@ suite('sshKnownHosts', () => {
 		});
 
 		test('revocation overrides an otherwise matching entry', () => {
-			// The revoked key is also listed as trusted; revocation must win,
-			// or an explicitly revoked key could still be accepted.
 			const contents = [
 				line('example.com', ED25519_A),
 				line('example.com', ED25519_A, '@revoked'),
@@ -263,7 +247,6 @@ suite('sshKnownHosts', () => {
 			assert.deepStrictEqual(
 				{
 					caOnly: match(ca, 'host.example.com', 22, ED25519_B),
-					// A normal entry alongside the CA line still decides.
 					caPlusNormal: match([ca, line('host.example.com', ED25519_B)].join('\n'), 'host.example.com', 22, ED25519_B),
 				},
 				{ caOnly: 'ca-only', caPlusNormal: 'match' });

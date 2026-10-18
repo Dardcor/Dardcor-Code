@@ -19,10 +19,6 @@ export function checkModeOption(mode: ChatModeKind, option: boolean | ((mode: Ch
 	return option;
 }
 
-/**
- * @deprecated This is the old API shape, we should support this for a while before removing it so
- * we don't break existing chats
- */
 export function migrateLegacyTerminalToolSpecificData(data: IChatTerminalToolInvocationData | ILegacyChatTerminalToolInvocationData): IChatTerminalToolInvocationData {
 	if (isLegacyChatTerminalToolInvocationData(data)) {
 		data = {

@@ -25,17 +25,10 @@ export interface ISystemWideKeybindingCandidate {
 
 export interface ISystemWideKeybindingSelection {
 	readonly candidates: ISystemWideKeybindingCandidate[];
-	/** User settings labels (or command ids) that cannot be expressed as an Electron accelerator (chords, single modifiers). */
 	readonly unsupported: string[];
-	/** Accelerators dropped because an earlier binding already claimed them. */
 	readonly duplicates: string[];
 }
 
-/**
- * Pure selection of the system-wide keybindings from the full set of resolved keybindings. Only
- * user keybindings opted into `systemWide` with a single key combination (expressible as an
- * Electron accelerator) are eligible; the first binding wins on accelerator conflicts.
- */
 export function selectSystemWideKeybindings(items: readonly ResolvedKeybindingItem[]): ISystemWideKeybindingSelection {
 	const seen = new Set<string>();
 	const candidates: ISystemWideKeybindingCandidate[] = [];
@@ -43,19 +36,17 @@ export function selectSystemWideKeybindings(items: readonly ResolvedKeybindingIt
 	const duplicates: string[] = [];
 
 	for (const item of items) {
-		// Only user keybindings can ever be system-wide; skip defaults/extension bindings and removals.
 		if (!item.systemWide || item.isDefault || !item.command) {
 			continue;
 		}
 
 		const resolved = item.resolvedKeybinding;
 		if (!resolved) {
-			continue; // unbound entry (e.g. a `-` removal)
+			continue;
 		}
 
 		const accelerator = resolved.getElectronAccelerator();
 		if (!accelerator) {
-			// Chords and single-modifier bindings cannot be expressed as an Electron accelerator.
 			unsupported.push(resolved.getUserSettingsLabel() ?? item.command);
 			continue;
 		}
@@ -78,21 +69,14 @@ export function selectSystemWideKeybindings(items: readonly ResolvedKeybindingIt
 	return { candidates, unsupported, duplicates };
 }
 
-/**
- * Watches the resolved keybindings for entries opted into `systemWide` and mirrors them to the
- * main process (which owns Electron's `globalShortcut`). The mechanism is always active for any
- * user keybinding marked `systemWide`.
- */
 export class SystemWideKeybindingsContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.systemWideKeybindings';
 
 	private readonly syncScheduler: RunOnceScheduler;
 
-	/** Accelerators that failed to register on the last sync, to avoid re-notifying unchanged failures. */
 	private lastReportedFailures: string[] = [];
 
-	/** User settings labels whose ignored `when` clause we already warned about. */
 	private readonly warnedWhenLabels = new Set<string>();
 
 	constructor(
@@ -106,8 +90,6 @@ export class SystemWideKeybindingsContribution extends Disposable implements IWo
 
 		this.syncScheduler = this._register(new RunOnceScheduler(() => this.sync(), 200));
 
-		// Re-sync when keybindings change (also fires on keyboard-layout changes, which affect
-		// the accelerator strings).
 		this._register(this.keybindingService.onDidUpdateKeybindings(() => this.scheduleSync()));
 
 		this.scheduleSync();
@@ -120,7 +102,6 @@ export class SystemWideKeybindingsContribution extends Disposable implements IWo
 	private async sync(): Promise<void> {
 		const candidates = this.collectCandidates();
 
-		// Nothing to register (no valid system-wide bindings): clear any previous registrations.
 		if (candidates.length === 0) {
 			await this.pushToMainProcess([]);
 			return;
@@ -179,7 +160,7 @@ export class SystemWideKeybindingsContribution extends Disposable implements IWo
 	private reportFailures(failed: string[]): void {
 		const sorted = [...failed].sort();
 		if (equals(sorted, this.lastReportedFailures)) {
-			return; // same failures as last time; don't re-notify
+			return;
 		}
 		this.lastReportedFailures = sorted;
 

@@ -24,9 +24,6 @@ export interface IShowHoverEvent {
 	modifierUpCallback?: () => void;
 }
 
-/**
- * Wrap a link detector object so it can be used in xterm.js
- */
 export class TerminalLinkDetectorAdapter extends Disposable implements ILinkProvider {
 	private readonly _activeLinksStore = this._register(new DisposableStore());
 
@@ -59,7 +56,6 @@ export class TerminalLinkDetectorAdapter extends Disposable implements ILinkProv
 	}
 
 	private async _provideLinks(bufferLineNumber: number): Promise<TerminalLink[]> {
-		// Dispose of all old links if new links are provided, links are only cached for the current line
 		const links: TerminalLink[] = [];
 
 		let startLine = bufferLineNumber - 1;
@@ -69,9 +65,6 @@ export class TerminalLinkDetectorAdapter extends Disposable implements ILinkProv
 			this._detector.xterm.buffer.active.getLine(startLine)!
 		];
 
-		// Cap the maximum context on either side of the line being provided, by taking the context
-		// around the line being provided for this ensures the line the pointer is on will have
-		// links provided.
 		const maxCharacterContext = Math.max(this._detector.maxLinkLength, this._detector.xterm.cols);
 		const maxLineContext = Math.ceil(maxCharacterContext / this._detector.xterm.cols);
 		const minStartLine = Math.max(startLine - maxLineContext, 0);
@@ -101,7 +94,6 @@ export class TerminalLinkDetectorAdapter extends Disposable implements ILinkProv
 	}
 
 	private _createTerminalLink(l: ITerminalSimpleLink, activateCallback: XtermLinkMatcherHandler): TerminalLink {
-		// Remove trailing colon if there is one so the link is more useful
 		if (!l.disableTrimColon && l.text.length > 0 && l.text.charAt(l.text.length - 1) === ':') {
 			l.text = l.text.slice(0, -1);
 			l.bufferRange.end.x--;
@@ -121,7 +113,7 @@ export class TerminalLinkDetectorAdapter extends Disposable implements ILinkProv
 				modifierDownCallback,
 				modifierUpCallback
 			}),
-			l.type !== TerminalBuiltinLinkType.Search, // Only search is low confidence
+			l.type !== TerminalBuiltinLinkType.Search,
 			l.label || this._getLabel(l.type),
 			l.type
 		);

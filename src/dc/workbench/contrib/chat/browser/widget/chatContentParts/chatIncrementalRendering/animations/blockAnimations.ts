@@ -5,21 +5,10 @@
 
 import { IIncrementalRenderingAnimation } from './animation.js';
 
-/** Duration of the animation applied to newly rendered blocks. */
 export const ANIMATION_DURATION_MS = 600;
 
-/**
- * Delay (ms) between each successive new child's animation start.
- * Creates a cascading top-to-bottom reveal across a batch of new
- * block-level elements.
- */
 const STAGGER_DELAY_MS = 150;
 
-/**
- * Block-level CSS animation styles: fade, rise, blur, scale, slide,
- * and lineFade. Each applies a CSS class and staggered timing
- * variables to new top-level children so they reveal sequentially.
- */
 export class BlockAnimation implements IIncrementalRenderingAnimation {
 
 	constructor(private readonly _style: 'fade' | 'rise' | 'blur' | 'scale' | 'slide' | 'reveal') { }

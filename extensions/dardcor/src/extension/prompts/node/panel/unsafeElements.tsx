@@ -11,19 +11,11 @@ import { createFencedCodeBlock } from '../../../../util/common/markdown';
 export type UnsafeCodeBlockProps = PromptElementProps<{
 	code: string;
 	languageId?: string;
-	/**
-	 * Invokes `code.trim()`
-	 *
-	 * @default true
-	 */
 	shouldTrim?: boolean;
 	includeFilepath?: boolean;
 	uri?: vscode.Uri;
 }>;
 
-/**
- * !!! WARNING: Do not use this element for text from user's code files, instead use `SafeCodeBlock` from {@link file://./safeElements.tsx} !!!
- */
 export class UnsafeCodeBlock extends PromptElement<UnsafeCodeBlockProps> {
 	constructor(props: UnsafeCodeBlockProps,
 		@IPromptPathRepresentationService private readonly _promptPathRepresentationService: IPromptPathRepresentationService,

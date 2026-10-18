@@ -26,7 +26,6 @@ export class DeleteOperations {
 			const deleteSelection = this.getDeleteRightRange(selection, model, config);
 
 			if (deleteSelection.isEmpty()) {
-				// Probably at end of file => ignore
 				commands[i] = null;
 				continue;
 			}
@@ -49,12 +48,9 @@ export class DeleteOperations {
 		const rightOfPosition = MoveOperations.right(config, model, position);
 
 		if (config.trimWhitespaceOnDelete && rightOfPosition.lineNumber !== position.lineNumber) {
-			// Smart line join (deleting leading whitespace) is on
-			// (and) Delete is happening at the end of a line
 			const currentLineHasContent = (model.getLineFirstNonWhitespaceColumn(position.lineNumber) > 0);
 			const firstNonWhitespaceColumn = model.getLineFirstNonWhitespaceColumn(rightOfPosition.lineNumber);
 			if (currentLineHasContent && firstNonWhitespaceColumn > 0) {
-				// The next line has content
 				return new Range(
 					rightOfPosition.lineNumber,
 					firstNonWhitespaceColumn,
@@ -129,7 +125,6 @@ export class DeleteOperations {
 				return false;
 			}
 
-			// Must delete the pair only if it was automatically inserted by the editor
 			if (autoClosingDelete === 'auto') {
 				let found = false;
 				for (let j = 0, lenJ = autoClosedCharacters.length; j < lenJ; j++) {
@@ -173,8 +168,6 @@ export class DeleteOperations {
 		for (let i = 0, len = selections.length; i < len; i++) {
 			const deleteRange = DeleteOperations.getDeleteLeftRange(selections[i], model, config);
 
-			// Ignore empty delete ranges, as they have no effect
-			// They happen if the cursor is at the beginning of the file.
 			if (deleteRange.isEmpty()) {
 				commands[i] = null;
 				continue;
@@ -197,14 +190,13 @@ export class DeleteOperations {
 
 		const position = selection.getPosition();
 
-		// Unintend when using tab stops and cursor is within indentation
 		if (config.useTabStops && position.column > 1) {
 			const lineContent = model.getLineContent(position.lineNumber);
 
 			const firstNonWhitespaceIndex = strings.firstNonWhitespaceIndex(lineContent);
 			const lastIndentationColumn = (
 				firstNonWhitespaceIndex === -1
-					? /* entire string is whitespace */ lineContent.length + 1
+					? lineContent.length + 1
 					: firstNonWhitespaceIndex + 1
 			);
 
@@ -221,7 +213,6 @@ export class DeleteOperations {
 
 	private static getPositionAfterDeleteLeft(position: Position, model: ICursorSimpleModel): Position {
 		if (position.column > 1) {
-			// Convert 1-based columns to 0-based offsets and back.
 			const idx = strings.getLeftDeleteOffset(position.column - 1, model.getLineContent(position.lineNumber));
 			return position.with(undefined, idx + 1);
 		} else if (position.lineNumber > 1) {
@@ -241,7 +232,6 @@ export class DeleteOperations {
 
 			if (selection.isEmpty()) {
 				if (config.emptySelectionClipboard) {
-					// This is a full line cut
 
 					const position = selection.getPosition();
 
@@ -251,19 +241,16 @@ export class DeleteOperations {
 						endColumn: number;
 
 					if (position.lineNumber < model.getLineCount()) {
-						// Cutting a line in the middle of the model
 						startLineNumber = position.lineNumber;
 						startColumn = 1;
 						endLineNumber = position.lineNumber + 1;
 						endColumn = 1;
 					} else if (position.lineNumber > 1 && lastCutRange?.endLineNumber !== position.lineNumber) {
-						// Cutting the last line & there are more than 1 lines in the model & a previous cut operation does not touch the current cut operation
 						startLineNumber = position.lineNumber - 1;
 						startColumn = model.getLineMaxColumn(position.lineNumber - 1);
 						endLineNumber = position.lineNumber;
 						endColumn = model.getLineMaxColumn(position.lineNumber);
 					} else {
-						// Cutting the single line that the model contains
 						startLineNumber = position.lineNumber;
 						startColumn = 1;
 						endLineNumber = position.lineNumber;
@@ -284,7 +271,6 @@ export class DeleteOperations {
 						commands[i] = null;
 					}
 				} else {
-					// Cannot cut empty selection
 					commands[i] = null;
 				}
 			} else {

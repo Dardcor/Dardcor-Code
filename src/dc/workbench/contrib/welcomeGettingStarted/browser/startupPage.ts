@@ -112,15 +112,12 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 
 	private async run() {
 
-		// Wait for resolving startup editor until we are restored to reduce startup pressure
 		await this.lifecycleService.when(LifecyclePhase.Restored);
 
 		if (AuxiliaryBarMaximizedContext.getValue(this.contextKeyService)) {
-			// If the auxiliary bar is maximized, we do not show the welcome page.
 			return;
 		}
 
-		// Always open Welcome page for first-launch, no matter what is open or which startupEditor is set.
 		if (
 			this.productService.enableTelemetry
 			&& this.productService.showTelemetryOptOut
@@ -138,7 +135,6 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 		const enabled = isStartupPageEnabled(this.configurationService, this.contextService, this.environmentService);
 		if (enabled && this.lifecycleService.startupKind !== StartupKind.ReloadedWindow) {
 
-			// Open the welcome even if we opened a set of default editors
 			if (!this.editorService.activeEditor || this.layoutService.openedDefaultEditors) {
 				const startupEditorSetting = this.configurationService.inspect<string>(configurationKey);
 
@@ -196,7 +192,6 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 					this.editorService.openEditors(readmes.filter(readme => !isMarkDown(readme)).map(readme => ({ resource: readme, options: { preserveFocus: this.shouldPreserveFocus() } }))),
 				]);
 			} else {
-				// If no readme is found, default to showing the welcome page.
 				await this.openGettingStarted();
 			}
 		}
@@ -206,7 +201,6 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 		const startupEditorTypeID = gettingStartedInputTypeId;
 		const editor = this.editorService.activeEditor;
 
-		// Ensure that the welcome editor won't get opened more than once
 		if (editor?.typeId === startupEditorTypeID || this.editorService.editors.some(e => e.typeId === startupEditorTypeID)) {
 			return;
 		}
@@ -227,10 +221,10 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 	private shouldPreserveFocus(): boolean {
 		const activeElement = getActiveElement();
 		if (!activeElement || activeElement === mainWindow.document.body || this.layoutService.hasFocus(Parts.EDITOR_PART)) {
-			return false; // steal focus if nothing meaningful is focused or editor area has focus
+			return false;
 		}
 
-		return true; // do not steal focus
+		return true;
 	}
 
 	private tryShowOnboarding(): void {

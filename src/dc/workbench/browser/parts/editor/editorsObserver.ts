@@ -26,22 +26,13 @@ interface ISerializedEditorIdentifier {
 	index: number;
 }
 
-/**
- * A observer of opened editors across all editor groups by most recently used.
- * Rules:
- * - the last editor in the list is the one most recently activated
- * - the first editor in the list is the one that was activated the longest time ago
- * - an editor that opens inactive will be placed behind the currently active editor
- *
- * The observer may start to close editors based on the workbench.editor.limit setting.
- */
 export class EditorsObserver extends Disposable {
 
 	private static readonly STORAGE_KEY = 'editors.mru';
 
 	private readonly keyMap = new Map<GroupIdentifier, Map<EditorInput, IEditorIdentifier>>();
 	private readonly mostRecentEditorsMap = new LinkedMap<IEditorIdentifier, IEditorIdentifier>();
-	private readonly editorsPerResourceCounter = new ResourceMap<Map<string /* typeId/editorId */, number /* counter */>>();
+	private readonly editorsPerResourceCounter = new ResourceMap<Map<string , number >>();
 
 	private readonly _onDidMostRecentlyActiveEditorsChange = this._register(new Emitter<void>());
 	readonly onDidMostRecentlyActiveEditorsChange = this._onDidMostRecentlyActiveEditorsChange.event;
@@ -103,19 +94,15 @@ export class EditorsObserver extends Disposable {
 
 	private onGroupAdded(group: IEditorGroup): void {
 
-		// Make sure to add any already existing editor
-		// of the new group into our list in LRU order
 		const groupEditorsMru = group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE);
 		for (let i = groupEditorsMru.length - 1; i >= 0; i--) {
-			this.addMostRecentEditor(group, groupEditorsMru[i], false /* is not active */, true /* is new */);
+			this.addMostRecentEditor(group, groupEditorsMru[i], false , true );
 		}
 
-		// Make sure that active editor is put as first if group is active
 		if (this.editorGroupsContainer.activeGroup === group && group.activeEditor) {
-			this.addMostRecentEditor(group, group.activeEditor, true /* is active */, false /* already added before */);
+			this.addMostRecentEditor(group, group.activeEditor, true , false );
 		}
 
-		// Group Listeners
 		this.registerGroupListeners(group);
 	}
 
@@ -124,22 +111,17 @@ export class EditorsObserver extends Disposable {
 		groupDisposables.add(group.onDidModelChange(e => {
 			switch (e.kind) {
 
-				// Group gets active: put active editor as most recent
 				case GroupModelChangeKind.GROUP_ACTIVE: {
 					if (this.editorGroupsContainer.activeGroup === group && group.activeEditor) {
-						this.addMostRecentEditor(group, group.activeEditor, true /* is active */, false /* editor already opened */);
+						this.addMostRecentEditor(group, group.activeEditor, true , false );
 					}
 
 					break;
 				}
 
-				// Editor opens: put it as second most recent
-				//
-				// Also check for maximum allowed number of editors and
-				// start to close oldest ones if needed.
 				case GroupModelChangeKind.EDITOR_OPEN: {
 					if (e.editor) {
-						this.addMostRecentEditor(group, e.editor, false /* is not active */, true /* is new */);
+						this.addMostRecentEditor(group, e.editor, false , true );
 						this.ensureOpenedEditorsLimit({ groupId: group.id, editor: e.editor }, group.id);
 					}
 
@@ -148,20 +130,16 @@ export class EditorsObserver extends Disposable {
 			}
 		}));
 
-		// Editor closes: remove from recently opened
 		groupDisposables.add(group.onDidCloseEditor(e => {
 			this.removeMostRecentEditor(group, e.editor);
 		}));
 
-		// Editor gets active: put active editor as most recent
-		// if group is active, otherwise second most recent
 		groupDisposables.add(group.onDidActiveEditorChange(e => {
 			if (e.editor) {
-				this.addMostRecentEditor(group, e.editor, this.editorGroupsContainer.activeGroup === group, false /* editor already opened */);
+				this.addMostRecentEditor(group, e.editor, this.editorGroupsContainer.activeGroup === group, false );
 			}
 		}));
 
-		// Make sure to cleanup on dispose
 		Event.once(group.onWillDispose)(() => dispose(groupDisposables));
 	}
 
@@ -181,36 +159,24 @@ export class EditorsObserver extends Disposable {
 		const key = this.ensureKey(group, editor);
 		const mostRecentEditor = this.mostRecentEditorsMap.first;
 
-		// Active or first entry: add to end of map
 		if (isActive || !mostRecentEditor) {
-			this.mostRecentEditorsMap.set(key, key, mostRecentEditor ? Touch.AsOld /* make first */ : undefined);
+			this.mostRecentEditorsMap.set(key, key, mostRecentEditor ? Touch.AsOld : undefined);
 		}
 
-		// Otherwise: insert before most recent
 		else {
-			// we have most recent editors. as such we
-			// put this newly opened editor right before
-			// the current most recent one because it cannot
-			// be the most recently active one unless
-			// it becomes active. but it is still more
-			// active then any other editor in the list.
-			this.mostRecentEditorsMap.set(key, key, Touch.AsOld /* make first */);
-			this.mostRecentEditorsMap.set(mostRecentEditor, mostRecentEditor, Touch.AsOld /* make first */);
+			this.mostRecentEditorsMap.set(key, key, Touch.AsOld );
+			this.mostRecentEditorsMap.set(mostRecentEditor, mostRecentEditor, Touch.AsOld );
 		}
 
-		// Update in resource map if this is a new editor
 		if (isNew) {
 			this.updateEditorResourcesMap(editor, true);
 		}
 
-		// Event
 		this._onDidMostRecentlyActiveEditorsChange.fire();
 	}
 
 	private updateEditorResourcesMap(editor: EditorInput, add: boolean): void {
 
-		// Distill the editor resource and type id with support
-		// for side by side editor's primary side too.
 		let resource: URI | undefined = undefined;
 		let typeId: string | undefined = undefined;
 		let editorId: string | undefined = undefined;
@@ -225,12 +191,11 @@ export class EditorsObserver extends Disposable {
 		}
 
 		if (!resource) {
-			return; // require a resource
+			return;
 		}
 
 		const identifier = this.toIdentifier(typeId, editorId);
 
-		// Add entry
 		if (add) {
 			let editorsPerResource = this.editorsPerResourceCounter.get(resource);
 			if (!editorsPerResource) {
@@ -241,7 +206,6 @@ export class EditorsObserver extends Disposable {
 			editorsPerResource.set(identifier, (editorsPerResource.get(identifier) ?? 0) + 1);
 		}
 
-		// Remove entry
 		else {
 			const editorsPerResource = this.editorsPerResourceCounter.get(resource);
 			if (editorsPerResource) {
@@ -261,23 +225,18 @@ export class EditorsObserver extends Disposable {
 
 	private removeMostRecentEditor(group: IEditorGroup, editor: EditorInput): void {
 
-		// Update in resource map
 		this.updateEditorResourcesMap(editor, false);
 
-		// Update in MRU list
 		const key = this.findKey(group, editor);
 		if (key) {
 
-			// Remove from most recent editors
 			this.mostRecentEditorsMap.delete(key);
 
-			// Remove from key map
 			const map = this.keyMap.get(group.id);
 			if (map?.delete(key.editor) && map.size === 0) {
 				this.keyMap.delete(group.id);
 			}
 
-			// Event
 			this._onDidMostRecentlyActiveEditorsChange.fire();
 		}
 	}
@@ -314,15 +273,13 @@ export class EditorsObserver extends Disposable {
 			typeof this.editorGroupService.partOptions.limit.value !== 'number' ||
 			this.editorGroupService.partOptions.limit.value <= 0
 		) {
-			return; // return early if not enabled or invalid
+			return;
 		}
 
 		const limit = this.editorGroupService.partOptions.limit.value;
 
-		// In editor group
 		if (this.editorGroupService.partOptions.limit?.perEditorGroup) {
 
-			// For specific editor groups
 			if (typeof groupId === 'number') {
 				const group = this.editorGroupsContainer.getGroup(groupId);
 				if (group) {
@@ -330,7 +287,6 @@ export class EditorsObserver extends Disposable {
 				}
 			}
 
-			// For all editor groups
 			else {
 				for (const group of this.editorGroupsContainer.groups) {
 					await this.ensureOpenedEditorsLimit(exclude, group.id);
@@ -338,7 +294,6 @@ export class EditorsObserver extends Disposable {
 			}
 		}
 
-		// Across all editor groups
 		else {
 			await this.doEnsureOpenedEditorsLimit(limit, [...this.mostRecentEditorsMap.values()], exclude);
 		}
@@ -346,44 +301,38 @@ export class EditorsObserver extends Disposable {
 
 	private async doEnsureOpenedEditorsLimit(limit: number, mostRecentEditors: IEditorIdentifier[], exclude?: IEditorIdentifier): Promise<void> {
 
-		// Editors that opt out of the limit (e.g. the Agents window's managed
-		// docked tabs) never count towards it and are never auto-closed.
 		const mostRecentEditorsCountingForLimit = mostRecentEditors.filter(({ editor }) => {
 			if (editor.hasCapability(EditorInputCapabilities.ExcludeFromEditorLimit)) {
 				return false;
 			}
 
-			// Check for `excludeDirty` setting and apply it by excluding
-			// any recent editor that is dirty from the opened editors limit
 			if (this.editorGroupService.partOptions.limit?.excludeDirty && ((editor.isDirty() && !editor.isSaving()) || editor.hasCapability(EditorInputCapabilities.Scratchpad))) {
-				return false; // not dirty editors (unless in the process of saving) or scratchpads
+				return false;
 			}
 
 			return true;
 		});
 
 		if (limit >= mostRecentEditorsCountingForLimit.length) {
-			return; // only if opened editors exceed setting and is valid and enabled
+			return;
 		}
 
-		// Extract least recently used editors that can be closed
 		const leastRecentlyClosableEditors = mostRecentEditorsCountingForLimit.reverse().filter(({ editor, groupId }) => {
 			if ((editor.isDirty() && !editor.isSaving()) || editor.hasCapability(EditorInputCapabilities.Scratchpad)) {
-				return false; // not dirty editors (unless in the process of saving) or scratchpads
+				return false;
 			}
 
 			if (exclude && editor === exclude.editor && groupId === exclude.groupId) {
-				return false; // never the editor that should be excluded
+				return false;
 			}
 
 			if (this.editorGroupsContainer.getGroup(groupId)?.isSticky(editor)) {
-				return false; // never sticky editors
+				return false;
 			}
 
 			return true;
 		});
 
-		// Close editors until we reached the limit again
 		let editorsToCloseCount = mostRecentEditorsCountingForLimit.length - limit;
 		const mapGroupToEditorsToClose = new Map<GroupIdentifier, EditorInput[]>();
 		for (const { groupId, editor } of leastRecentlyClosableEditors) {
@@ -397,7 +346,7 @@ export class EditorsObserver extends Disposable {
 			editorsToCloseCount--;
 
 			if (editorsToCloseCount === 0) {
-				break; // limit reached
+				break;
 			}
 		}
 
@@ -411,7 +360,7 @@ export class EditorsObserver extends Disposable {
 
 	private saveState(): void {
 		if (this.isScoped) {
-			return; // do not persist state when scoped
+			return;
 		}
 
 		if (this.mostRecentEditorsMap.isEmpty()) {
@@ -430,13 +379,11 @@ export class EditorsObserver extends Disposable {
 		return {
 			entries: coalesce(entries.map(({ editor, groupId }) => {
 
-				// Find group for entry
 				const group = this.editorGroupsContainer.getGroup(groupId);
 				if (!group) {
 					return undefined;
 				}
 
-				// Find serializable editors of group
 				let serializableEditorsOfGroup = mapGroupToSerializableEditorsOfGroup.get(group);
 				if (!serializableEditorsOfGroup) {
 					serializableEditorsOfGroup = group.getEditors(EditorsOrder.SEQUENTIAL).filter(editor => {
@@ -447,8 +394,6 @@ export class EditorsObserver extends Disposable {
 					mapGroupToSerializableEditorsOfGroup.set(group, serializableEditorsOfGroup);
 				}
 
-				// Only store the index of the editor of that group
-				// which can be undefined if the editor is not serializable
 				const index = serializableEditorsOfGroup.indexOf(editor);
 				if (index === -1) {
 					return undefined;
@@ -464,8 +409,6 @@ export class EditorsObserver extends Disposable {
 			await this.editorGroupService.whenReady;
 		}
 
-		// Previous state: Load editors map from persisted state
-		// unless we are running in scoped mode
 		let hasRestorableState = false;
 		if (!this.isScoped) {
 			const serialized = this.storageService.get(EditorsObserver.STORAGE_KEY, StorageScope.WORKSPACE);
@@ -475,20 +418,17 @@ export class EditorsObserver extends Disposable {
 			}
 		}
 
-		// No previous state: best we can do is add each editor
-		// from oldest to most recently used editor group
 		if (!hasRestorableState) {
 			const groups = this.editorGroupsContainer.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE);
 			for (let i = groups.length - 1; i >= 0; i--) {
 				const group = groups[i];
 				const groupEditorsMru = group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE);
 				for (let i = groupEditorsMru.length - 1; i >= 0; i--) {
-					this.addMostRecentEditor(group, groupEditorsMru[i], true /* enforce as active to preserve order */, true /* is new */);
+					this.addMostRecentEditor(group, groupEditorsMru[i], true , true );
 				}
 			}
 		}
 
-		// Ensure we listen on group changes for those that exist on startup
 		for (const group of this.editorGroupsContainer.groups) {
 			this.registerGroupListeners(group);
 		}
@@ -499,27 +439,22 @@ export class EditorsObserver extends Disposable {
 
 		for (const { groupId, index } of serialized.entries) {
 
-			// Find group for entry
 			const group = this.editorGroupsContainer.getGroup(groupId);
 			if (!group) {
 				continue;
 			}
 
-			// Find editor for entry
 			const editor = group.getEditorByIndex(index);
 			if (!editor) {
 				continue;
 			}
 
-			// Make sure key is registered as well
 			const editorIdentifier = this.ensureKey(group, editor);
 			mapValues.push([editorIdentifier, editorIdentifier]);
 
-			// Update in resource map
 			this.updateEditorResourcesMap(editor, true);
 		}
 
-		// Fill map with deserialized values
 		this.mostRecentEditorsMap.fromJSON(mapValues);
 	}
 }

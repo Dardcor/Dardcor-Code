@@ -77,7 +77,6 @@ export class MiddleScrollController extends Disposable implements IEditorContrib
 				store.add(this._editor.onMouseUp(e => {
 					const session = scrollingSession.read(undefined);
 					if (session && session.didScroll) {
-						// Only cancel session on release if the user scrolled during it
 						scrollingSession.set(undefined, undefined);
 					}
 				}));
@@ -103,7 +102,6 @@ export class MiddleScrollController extends Disposable implements IEditorContrib
 
 					const mouseDelta = session.mouseDeltaAfterThreshold.read(undefined);
 
-					// scroll by mouse delta every 32ms
 					const factor = frameDurationMs / 32;
 					const scrollDelta = mouseDelta.scale(factor);
 

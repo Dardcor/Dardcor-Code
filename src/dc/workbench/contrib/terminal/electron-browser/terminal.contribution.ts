@@ -14,14 +14,10 @@ import { ElectronTerminalProfileResolverService } from './terminalProfileResolve
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { LocalTerminalBackendContribution } from './localTerminalBackend.js';
 
-// Register services
 registerMainProcessRemoteService(ILocalPtyService, TerminalIpcChannels.LocalPty);
 registerSingleton(ITerminalProfileResolverService, ElectronTerminalProfileResolverService, InstantiationType.Delayed);
 
-// Register workbench contributions
 const workbenchRegistry = Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench);
 
-// This contribution needs to be active during the Startup phase to be available when a remote resolver tries to open a local
-// terminal while connecting to the remote.
 registerWorkbenchContribution2(LocalTerminalBackendContribution.ID, LocalTerminalBackendContribution, WorkbenchPhase.BlockStartup);
 workbenchRegistry.registerWorkbenchContribution(TerminalNativeContribution, LifecyclePhase.Restored);

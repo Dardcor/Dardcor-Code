@@ -32,35 +32,14 @@ export type EditorContributionCtor = IConstructorSignature<IEditorContribution, 
 export type DiffEditorContributionCtor = IConstructorSignature<IDiffEditorContribution, [IDiffEditor]>;
 
 export const enum EditorContributionInstantiation {
-	/**
-	 * The contribution is created eagerly when the {@linkcode ICodeEditor} is instantiated.
-	 * Only Eager contributions can participate in saving or restoring of view state.
-	 */
 	Eager,
 
-	/**
-	 * The contribution is created at the latest 50ms after the first render after attaching a text model.
-	 * If the contribution is explicitly requested via `getContribution`, it will be instantiated sooner.
-	 * If there is idle time available, it will be instantiated sooner.
-	 */
 	AfterFirstRender,
 
-	/**
-	 * The contribution is created before the editor emits events produced by user interaction (mouse events, keyboard events).
-	 * If the contribution is explicitly requested via `getContribution`, it will be instantiated sooner.
-	 * If there is idle time available, it will be instantiated sooner.
-	 */
 	BeforeFirstInteraction,
 
-	/**
-	 * The contribution is created when there is idle time available, at the latest 5000ms after the editor creation.
-	 * If the contribution is explicitly requested via `getContribution`, it will be instantiated sooner.
-	 */
 	Eventually,
 
-	/**
-	 * The contribution is created only when explicitly requested via `getContribution`.
-	 */
 	Lazy,
 }
 
@@ -75,14 +54,10 @@ export interface IDiffEditorContributionDescription {
 	ctor: DiffEditorContributionCtor;
 }
 
-//#region Command
 
 export interface ICommandKeybindingsOptions extends IKeybindings {
 	kbExpr?: ContextKeyExpression | null;
 	weight: number;
-	/**
-	 * the default keybinding arguments
-	 */
 	args?: unknown;
 }
 export interface ICommandMenuOptions {
@@ -182,15 +157,8 @@ export abstract class Command {
 	public abstract runCommand(accessor: ServicesAccessor, args: unknown): void | Promise<void>;
 }
 
-//#endregion Command
 
-//#region MultiplexingCommand
 
-/**
- * Potential override for a command.
- *
- * @return `true` or a Promise if the command was successfully run. This stops other overrides from being executed.
- */
 export type CommandImplementation = (accessor: ServicesAccessor, args: unknown) => boolean | Promise<void>;
 
 interface ICommandImplementationRegistration {
@@ -204,9 +172,6 @@ export class MultiCommand extends Command {
 
 	private readonly _implementations: ICommandImplementationRegistration[] = [];
 
-	/**
-	 * A higher priority gets to be looked at first
-	 */
 	public addImplementation(priority: number, name: string, implementation: CommandImplementation, when?: ContextKeyExpression): IDisposable {
 		this._implementations.push({ priority, name, implementation, when });
 		this._implementations.sort((a, b) => b.priority - a.priority);
@@ -247,13 +212,7 @@ export class MultiCommand extends Command {
 	}
 }
 
-//#endregion
 
-/**
- * A command that delegates to another command's implementation.
- *
- * This lets different commands be registered but share the same implementation
- */
 export class ProxyCommand extends Command {
 	constructor(
 		private readonly command: Command,
@@ -267,7 +226,6 @@ export class ProxyCommand extends Command {
 	}
 }
 
-//#region EditorCommand
 
 export interface IContributionCommandOptions<T> extends ICommandOptions {
 	handler: (controller: T, args: unknown) => void;
@@ -277,9 +235,6 @@ export interface EditorControllerCommand<T extends IEditorContribution> {
 }
 export abstract class EditorCommand extends Command {
 
-	/**
-	 * Create a command class that is bound to a certain editor contribution.
-	 */
 	public static bindToContribution<T extends IEditorContribution>(controllerGetter: (editor: ICodeEditor) => T | null): EditorControllerCommand<T> {
 		return class EditorControllerCommandImpl extends EditorCommand {
 			private readonly _callback: (controller: T, args: unknown) => void;
@@ -307,17 +262,14 @@ export abstract class EditorCommand extends Command {
 	): void | Promise<void> {
 		const codeEditorService = accessor.get(ICodeEditorService);
 
-		// Find the editor with text focus or active
 		const editor = codeEditorService.getFocusedCodeEditor() || codeEditorService.getActiveCodeEditor();
 		if (!editor) {
-			// well, at least we tried...
 			return;
 		}
 
 		return editor.invokeWithinContext((editorAccessor) => {
 			const kbService = editorAccessor.get(IContextKeyService);
 			if (!kbService.contextMatchesRules(precondition ?? undefined)) {
-				// precondition does not hold
 				return;
 			}
 
@@ -332,9 +284,7 @@ export abstract class EditorCommand extends Command {
 	public abstract runEditorCommand(accessor: ServicesAccessor, editor: ICodeEditor, args: unknown): void | Promise<void>;
 }
 
-//#endregion EditorCommand
 
-//#region EditorAction
 
 export interface IEditorActionContextMenuOptions {
 	group: string;
@@ -428,9 +378,6 @@ export class MultiEditorAction extends EditorAction {
 
 	private readonly _implementations: [number, EditorActionImplementation][] = [];
 
-	/**
-	 * A higher priority gets to be looked at first
-	 */
 	public addImplementation(priority: number, implementation: EditorActionImplementation): IDisposable {
 		this._implementations.push([priority, implementation]);
 		this._implementations.sort((a, b) => b[0] - a[0]);
@@ -460,21 +407,16 @@ export class MultiEditorAction extends EditorAction {
 
 }
 
-//#endregion EditorAction
 
-//#region EditorAction2
 
 export abstract class EditorAction2 extends Action2 {
 
 	run(accessor: ServicesAccessor, ...args: unknown[]) {
-		// Find the editor with text focus or active
 		const codeEditorService = accessor.get(ICodeEditorService);
 		const editor = codeEditorService.getFocusedCodeEditor() || codeEditorService.getActiveCodeEditor();
 		if (!editor) {
-			// well, at least we tried...
 			return;
 		}
-		// precondition does hold
 		return editor.invokeWithinContext((editorAccessor) => {
 			const kbService = editorAccessor.get(IContextKeyService);
 			const logService = editorAccessor.get(ILogService);
@@ -490,9 +432,7 @@ export abstract class EditorAction2 extends Action2 {
 	abstract runEditorCommand(accessor: ServicesAccessor, editor: ICodeEditor, ...args: unknown[]): unknown;
 }
 
-//#endregion
 
-// --- Registration of commands and actions
 
 
 export function registerModelAndPositionCommand(id: string, handler: (accessor: ServicesAccessor, model: ITextModel, position: Position, ...args: unknown[]) => unknown) {
@@ -545,18 +485,10 @@ export function registerInstantiatedEditorAction(editorAction: EditorAction): vo
 	EditorContributionRegistry.INSTANCE.registerEditorAction(editorAction);
 }
 
-/**
- * Registers an editor contribution. Editor contributions have a lifecycle which is bound
- * to a specific code editor instance.
- */
 export function registerEditorContribution<Services extends BrandedService[]>(id: string, ctor: { new(editor: ICodeEditor, ...services: Services): IEditorContribution }, instantiation: EditorContributionInstantiation): void {
 	EditorContributionRegistry.INSTANCE.registerEditorContribution(id, ctor, instantiation);
 }
 
-/**
- * Registers a diff editor contribution. Diff editor contributions have a lifecycle which
- * is bound to a specific diff editor instance.
- */
 export function registerDiffEditorContribution<Services extends BrandedService[]>(id: string, ctor: { new(editor: IDiffEditor, ...services: Services): IEditorContribution }): void {
 	EditorContributionRegistry.INSTANCE.registerDiffEditorContribution(id, ctor);
 }
@@ -584,7 +516,6 @@ export namespace EditorExtensionsRegistry {
 	}
 }
 
-// Editor extension points
 const Extensions = {
 	EditorCommonContributions: 'editor.contributions'
 };

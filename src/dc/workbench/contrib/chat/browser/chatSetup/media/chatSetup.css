@@ -5,7 +5,6 @@
 
 .chat-setup-dialog {
 
-	/* Continue Buttons */
 
 	.dialog-buttons-row > .dialog-buttons > .monaco-button.continue-button::before {
 		content: '';
@@ -27,7 +26,6 @@
 		background-image: url('./google.svg');
 	}
 
-	/* Link Buttons */
 
 	.dialog-buttons-row > .dialog-buttons > .monaco-button.link-button {
 		border: 0 !important;
@@ -43,7 +41,6 @@
 		color: var(--vscode-descriptionForeground) !important;
 	}
 
-	/* Footer */
 
 	.chat-setup-dialog-footer {
 		font-size: 11px;

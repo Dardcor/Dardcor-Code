@@ -27,7 +27,7 @@ class TestToolEmbeddingsComputer extends ToolEmbeddingsComputer {
 			caches: [{
 				initialize: () => Promise.resolve(),
 				get: t => this._testCache.get(t.name),
-				set: () => { /* no-op */ }
+				set: () => { }
 			} satisfies IToolEmbeddingsCache]
 		};
 	}
@@ -90,7 +90,6 @@ describe('ToolEmbeddingsComputer', () => {
 			['tool3', createMockEmbedding([0, 1, 0])]
 		]));
 
-		// Mock rankEmbeddings to return results in order
 		vi.spyOn(computer as any, 'rankEmbeddings').mockReturnValue([
 			{ value: 'tool1', distance: { value: 0.5, embeddingType: EmbeddingType.text3small_512 } },
 			{ value: 'tool2', distance: { value: 0.8, embeddingType: EmbeddingType.text3small_512 } }
@@ -118,7 +117,6 @@ describe('ToolEmbeddingsComputer', () => {
 			['tool3', createMockEmbedding([0, 1, 0])]
 		]));
 
-		// Mock rankEmbeddings to return limited results based on count
 		vi.spyOn(computer as any, 'rankEmbeddings').mockReturnValue([
 			{ value: 'tool1', distance: { value: 0.3, embeddingType: EmbeddingType.text3small_512 } },
 			{ value: 'tool2', distance: { value: 0.6, embeddingType: EmbeddingType.text3small_512 } }
@@ -127,7 +125,7 @@ describe('ToolEmbeddingsComputer', () => {
 		const result = await computer.retrieveSimilarEmbeddingsForAvailableTools(
 			queryEmbedding,
 			availableTools,
-			2, // Limit to 2 results
+			2,
 			token
 		);
 
@@ -145,7 +143,6 @@ describe('ToolEmbeddingsComputer', () => {
 			['tool2', createMockEmbedding([0.8, 0.2, 0])],
 			['tool3', createMockEmbedding([0, 1, 0])]
 		]));
-		// Mock rankEmbeddings to return specific order (tool3, tool1, tool2)
 		vi.spyOn(computer as any, 'rankEmbeddings').mockReturnValue([
 			{ value: 'tool3', distance: { value: 0.1, embeddingType: EmbeddingType.text3small_512 } },
 			{ value: 'tool1', distance: { value: 0.5, embeddingType: EmbeddingType.text3small_512 } },
@@ -171,11 +168,10 @@ describe('ToolEmbeddingsComputer', () => {
 		const queryEmbedding = createMockEmbedding([1, 0, 0]);
 
 
-		// Create mock embeddings computer that returns embeddings for missing tools
 		embeddingsComputerMock.computeEmbeddings.mockResolvedValue({
 			values: [
-				createMockEmbedding([0.7, 0.3, 0]), // tool3
-				createMockEmbedding([0.5, 0.5, 0])  // tool4
+				createMockEmbedding([0.7, 0.3, 0]),
+				createMockEmbedding([0.5, 0.5, 0])
 			]
 		});
 
@@ -218,8 +214,8 @@ describe('ToolEmbeddingsComputer', () => {
 
 		embeddingsComputerMock.computeEmbeddings.mockResolvedValue({
 			values: [
-				createMockEmbedding([0.8, 0.2, 0]), // tool2
-				createMockEmbedding([0, 0, 1]) // tool3
+				createMockEmbedding([0.8, 0.2, 0]),
+				createMockEmbedding([0, 0, 1])
 			]
 		});
 

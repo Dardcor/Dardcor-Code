@@ -14,22 +14,16 @@ function red(s: string) { return useColors ? `\x1b[31m${s}\x1b[0m` : s; }
 async function setupSecretClient(vaultUri: string) {
 	const credentialOptions: TokenCredential[] = [];
 
-	// Only add managed identity credential if the client ID is provided
 	if (process.env.AZURE_CLIENT_ID) {
 		credentialOptions.push(new ManagedIdentityCredential({ clientId: process.env.AZURE_CLIENT_ID }));
 	}
 
-	// Always add the Azure CLI as an option
 	credentialOptions.push(new AzureCliCredential({ tenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47' }));
 
-	// Check if terminal is interactive, non-interactive environments can't use
-	// InteractiveBrowserCredential and don't necessarily have access to a keychain
-	// For SSH sessions into Azure VMs, keychain is not available, requires managed identity
 	if (process.stdin.isTTY && !process.env.AZURE_CLIENT_ID && !process.env.CODESPACES) {
 		credentialOptions.push(new InteractiveBrowserCredential({ tenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47' }));
 	}
 
-	// Use DeviceCodeCredential in Codespaces
 	if (process.env.CODESPACES) {
 		const deviceCodeCredential = new DeviceCodeCredential({
 			tenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47',
@@ -56,7 +50,7 @@ async function fetchSecrets(): Promise<{ [key: string]: string | undefined }> {
 	const secrets: { [key: string]: string | undefined } = {};
 	secrets['HMAC_SECRET'] = await fetchSecret(keyVaultClient, 'hmac-secret');
 
-	if (!process.stdin.isTTY) { // only in automation
+	if (!process.stdin.isTTY) {
 		secrets['GITHUB_OAUTH_TOKEN'] = await fetchSecret(keyVaultClient, 'capi-oauth-pipeline-token');
 		secrets['BLACKBIRD_EMBEDDINGS_KEY'] = await fetchSecret(keyVaultClient, 'vsc-aoai-key');
 		secrets['BLACKBIRD_REDIS_CACHE_KEY'] = await fetchSecret(keyVaultClient, 'blackbird-redis-cache-key');
@@ -79,7 +73,7 @@ async function main() {
 	const result = raw.split('\n')
 		.filter(line => !env.some(([key]) => line.startsWith(`${key}=`)))
 		.concat(env.map(([key, value]) => `${key}=${value}`))
-		.filter(line => line.trim() !== '') // Remove empty lines
+		.filter(line => line.trim() !== '')
 		.join('\n');
 
 	fs.writeFileSync('.env', result);

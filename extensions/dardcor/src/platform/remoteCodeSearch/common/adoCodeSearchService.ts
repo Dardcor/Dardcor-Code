@@ -38,14 +38,13 @@ type SemanticSearchResult = {
 	chunk: {
 		hash: string;
 		text: string;
-		// Byte offset range of the chunk
 		range: { start: number; end: number };
 		line_range: { start: number; end: number };
 		embedding?: { embedding: number[] };
 	};
 	distance: number;
 	location: {
-		path: string; // file path
+		path: string;
 		commit_sha: string;
 		repo: {
 			nwo: string;
@@ -68,18 +67,12 @@ export interface IAdoCodeSearchService {
 
 	readonly onDidChangeIndexState: Event<void>;
 
-	/**
-	 * Gets the state of the remote index for a given repo.
-	 */
 	getRemoteIndexState(
 		auth: { readonly silent: boolean },
 		repoId: AdoRepoId,
 		token: CancellationToken,
 	): Promise<Result<RemoteCodeSearchIndexState, RemoteCodeSearchError>>;
 
-	/**
-	 * Requests that a given repo be indexed.
-	 */
 	triggerIndexing(
 		auth: { readonly silent: boolean },
 		triggerReason: 'auto' | 'manual' | 'tool',
@@ -87,11 +80,6 @@ export interface IAdoCodeSearchService {
 		telemetryInfo: TelemetryCorrelationId,
 	): Promise<Result<true, RemoteCodeSearchError>>;
 
-	/**
-	 * Semantic searches a given repo for relevant code snippets
-	 *
-	 * The repo must have been indexed first. Make sure to check {@link getRemoteIndexState} or call {@link triggerIndexing}.
-	 */
 	searchRepo(
 		auth: { readonly silent: boolean },
 		repo: AdoCodeSearchRepoInfo,
@@ -103,9 +91,6 @@ export interface IAdoCodeSearchService {
 	): Promise<SemanticCodeSearchResult>;
 }
 
-/**
- * Ado currently uses their own scoring system for embeddings.
- */
 const adoCustomEmbeddingScoreType = new EmbeddingType('adoCustomEmbeddingScore');
 
 export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchService {
@@ -137,16 +122,6 @@ export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchSe
 
 	async getRemoteIndexState(auth: { readonly silent: boolean }, repoId: AdoRepoId, token: CancellationToken): Promise<Result<RemoteCodeSearchIndexState, RemoteCodeSearchError>> {
 		return measureExecTime(() => this.getRemoteIndexStateImpl(auth, repoId, token), (execTime, status, result) => {
-			/* __GDPR__
-				"adoCodeSearch.getRemoteIndexState" : {
-					"owner": "mjbvz",
-					"comment": "Information about failed remote index state requests",
-					"status": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "If the call succeeded or failed" },
-					"ok": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Details on successful calls" },
-					"err": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Details on failed calls" },
-					"execTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Time in milliseconds that the call took" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('adoCodeSearch.getRemoteIndexState', {
 				status,
 				ok: result?.isOk() ? result.val.status : undefined,
@@ -185,13 +160,6 @@ export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchSe
 			token);
 
 		if (!result.ok) {
-			/* __GDPR__
-				"adoCodeSearch.getRemoteIndexState.requestError" : {
-					"owner": "mjbvz",
-					"comment": "Information about failed remote index state requests",
-					"statusCode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The response status code" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('adoCodeSearch.getRemoteIndexState.requestError', {}, {
 				statusCode: result.status,
 			});
@@ -234,7 +202,6 @@ export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchSe
 		repoId: AdoRepoId,
 		telemetryInfo: TelemetryCorrelationId,
 	): Promise<Result<true, RemoteCodeSearchError>> {
-		// ADO doesn't support explicit indexing. Just use the status and assume it's always ready
 		const status = await this.getRemoteIndexState(auth, repoId, CancellationToken.None);
 		if (status.isOk()) {
 			return Result.ok(true);
@@ -279,7 +246,6 @@ export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchSe
 				intent: 'dardcor-panel',
 				requestId: '',
 				body: {
-					// TODO: Unclear what's ADO's actual limit is
 					prompt: searchQuery.slice(0, 10000),
 					scoping_query: `repo:${repo.adoRepoId.project}/${repo.adoRepoId.repo}`,
 					limit: maxResults,
@@ -296,17 +262,6 @@ export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchSe
 		const requestExecTime = requestSw.elapsed();
 
 		if (!response.ok) {
-			/* __GDPR__
-				"adoCodeSearch.searchRepo.error" : {
-					"owner": "mjbvz",
-					"comment": "Information about failed code ado searches",
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"statusCode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The response status code" },
-					"execTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The total time for the search call" },
-					"requestExecTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The request execution time" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('adoCodeSearch.searchRepo.error', {
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
 				workspaceSearchCorrelationId: telemetryInfo.correlationId,
@@ -335,11 +290,10 @@ export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchSe
 			let fileUri: URI;
 			if (repo.localRepoRoot) {
 				fileUri = URI.joinPath(repo.localRepoRoot, result.location.path.replace('%repo%/', ''));
-				if (await this._ignoreService.isCopilotIgnored(fileUri)) {
+				if (await this._ignoreService.isIgnored(fileUri)) {
 					return;
 				}
 			} else {
-				// Non-local repo, make up a URI
 				fileUri = URI.from({
 					scheme: 'githubRepoResult',
 					path: '/' + result.location.path
@@ -358,7 +312,7 @@ export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchSe
 					text: stripChunkTextMetadata(result.chunk.text),
 					rawText: undefined,
 					range: new Range(result.chunk.line_range.start, 0, result.chunk.line_range.end, 0),
-					isFullFile: false, // TODO: not provided
+					isFullFile: false,
 				},
 				distance: {
 					embeddingType: returnedEmbeddingsType,
@@ -367,19 +321,6 @@ export class AdoCodeSearchService extends Disposable implements IAdoCodeSearchSe
 			});
 		}));
 
-		/* __GDPR__
-			"adoCodeSearch.searchRepo.success" : {
-				"owner": "mjbvz",
-				"comment": "Information about successful ado code search searches",
-				"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-				"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-				"resultCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of returned chunks from the search after filtering" },
-				"rawResultCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Original number of returned chunks from the search before filtering" },
-				"resultOutOfSync": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Tracks if the commit we think code search has indexed matches the commit code search returns results from" },
-				"execTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The total time for the search call" },
-				"requestExecTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The request execution time" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('adoCodeSearch.searchRepo.success', {
 			workspaceSearchSource: telemetryInfo.callTracker.toString(),
 			workspaceSearchCorrelationId: telemetryInfo.correlationId,

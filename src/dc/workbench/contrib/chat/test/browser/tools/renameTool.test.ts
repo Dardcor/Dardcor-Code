@@ -174,7 +174,6 @@ suite('RenameTool', () => {
 		test('returns error when no rename provider available', async () => {
 			const model = disposables.add(createTextModel(testContent, 'typescript', undefined, testUri));
 			const tool = disposables.add(createTool(createMockTextModelService(model)));
-			// No rename provider registered
 			const result = await tool.invoke(
 				createInvocation({ symbol: 'MyClass', newName: 'MyNewClass', uri: testUri.toString(), lineContent: 'import { MyClass }' }),
 				noopCountTokens, noopProgress, CancellationToken.None

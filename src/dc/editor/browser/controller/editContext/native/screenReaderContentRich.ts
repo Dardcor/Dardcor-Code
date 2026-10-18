@@ -104,19 +104,13 @@ export class RichScreenReaderContent extends Disposable implements IScreenReader
 		this._setIgnoreSelectionChangeTime('onWillPaste');
 	}
 
-	// --- private methods
 
 	private _setIgnoreSelectionChangeTime(reason: string): void {
 		this._ignoreSelectionChangeTime = Date.now();
 	}
 
 	private _setSelectionChangeListener(): IDisposable {
-		// See https://github.com/microsoft/vscode/issues/27216 and https://github.com/microsoft/vscode/issues/98256
-		// When using a Braille display or NVDA for example, it is possible for users to reposition the
-		// system caret. This is reflected in Chrome as a `selectionchange` event and needs to be reflected within the editor.
 
-		// `selectionchange` events often come multiple times for a single logical change
-		// so throttle multiple `selectionchange` events that burst in a short period of time.
 		let previousSelectionChangeEventTime = 0;
 		return addDisposableListener(this._domNode.domNode.ownerDocument, 'selectionchange', () => {
 			const activeElement = getActiveWindow().document.activeElement;
@@ -132,15 +126,11 @@ export class RichScreenReaderContent extends Disposable implements IScreenReader
 			const delta1 = now - previousSelectionChangeEventTime;
 			previousSelectionChangeEventTime = now;
 			if (delta1 < 5) {
-				// received another `selectionchange` event within 5ms of the previous `selectionchange` event
-				// => ignore it
 				return;
 			}
 			const delta2 = now - this._ignoreSelectionChangeTime;
 			this._ignoreSelectionChangeTime = 0;
 			if (delta2 < 100) {
-				// received a `selectionchange` event within 100ms since we touched the hidden div
-				// => ignore it, since we caused it
 				return;
 			}
 			const selection = this._getEditorSelectionFromDomRange();

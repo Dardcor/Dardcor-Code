@@ -11,16 +11,13 @@ export default new class NoDangerousTypeAssertions implements eslint.Rule.RuleMo
 
 	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 		return {
-			// Disallow type assertions on object literals: <T>{ ... } or {} as T
 			['TSTypeAssertion > ObjectExpression, TSAsExpression > ObjectExpression']: (node: ESTree.ObjectExpression) => {
 				const objectNode = node as TSESTree.ObjectExpression;
 
 				const parent = objectNode.parent as TSESTree.TSTypeAssertion | TSESTree.TSAsExpression;
 				if (
-					// Allow `as const` assertions
 					(parent.typeAnnotation.type === 'TSTypeReference' && parent.typeAnnotation.typeName.type === 'Identifier' && parent.typeAnnotation.typeName.name === 'const')
 
-					// For also now still allow `any` casts
 					|| (parent.typeAnnotation.type === 'TSAnyKeyword')
 				) {
 					return;

@@ -13,7 +13,7 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 
 export class NativeClipboardService implements IClipboardService {
 
-	private static readonly FILE_FORMAT = 'code/file-list'; // Clipboard format for files
+	private static readonly FILE_FORMAT = 'code/file-list';
 
 	declare readonly _serviceBrand: undefined;
 
@@ -86,7 +86,7 @@ export class NativeClipboardService implements IClipboardService {
 		try {
 			return bufferValue.split('\n').map(f => URI.parse(f));
 		} catch (error) {
-			return []; // do not trust clipboard data
+			return [];
 		}
 	}
 }

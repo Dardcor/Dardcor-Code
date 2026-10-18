@@ -41,7 +41,6 @@ function forwardedHeaders(request, target) {
     if (HOP_BY_HOP_HEADERS.has(header.toLowerCase())) headers.delete(header);
   }
   headers.delete("host");
-  // Never leak viewer credentials to a non-loopback Headroom host
   if (!LOOPBACK_HOSTS.has(target.hostname.replace(/^\[|\]$/g, "").toLowerCase())) {
     headers.delete("cookie");
     headers.delete("authorization");

@@ -33,7 +33,6 @@ async function testVercelRelay(relayUrl, timeoutMs = 10000) {
   }
 }
 
-// POST /api/proxy-pools/[id]/test - Test proxy pool entry
 export async function POST(request, { params }) {
   try {
     const { id } = await params;

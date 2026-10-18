@@ -112,7 +112,6 @@ export class TerminalStickyScrollContribution extends Disposable implements ITer
 				this._refreshState();
 			});
 		} else {
-			// No or Rich shell integration does not need listener
 			this._richCommandDetectionListeners.clear();
 		}
 	}

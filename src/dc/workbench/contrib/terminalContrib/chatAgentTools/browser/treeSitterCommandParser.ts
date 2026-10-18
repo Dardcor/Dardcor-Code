@@ -25,21 +25,10 @@ export interface IAutoApprovalCommandParseResult {
 	readonly hasUnanalyzableSyntax: boolean;
 }
 
-/**
- * Matches a PowerShell command token of the form `-flag=` or `--flag=` at the
- * start of input or following whitespace. Used to work around a tree-sitter
- * PowerShell grammar limitation where POSIX-style `--flag=value` arguments
- * (e.g. `git log --format="a|b"`) are parsed as assignment expressions and
- * truncate the surrounding command.
- *
- * See https://github.com/microsoft/vscode/issues/294010
- * TODO: Remove once upstream tree-sitter PowerShell grammer is updated.
- */
 const pwshFlagEqualsRegex = /(^|\s)(-{1,2}[\w-]+)=/g;
 
 const envOptionsWithValue = new Set(['-u', '--unset', '-C', '--chdir', '-a', '--argv0']);
 
-// TODO: Remove once upstream tree-sitter PowerShell grammer is updated.
 function maskPwshFlagEquals(commandLine: string): string {
 	return commandLine.replace(pwshFlagEqualsRegex, (_, pre, flag) => `${pre}${flag} `);
 }
@@ -63,8 +52,6 @@ export class TreeSitterCommandParser extends Disposable {
 			const masked = maskPwshFlagEquals(commandLine);
 			if (masked !== commandLine) {
 				const captures = await this._queryTree(languageId, masked, '(command) @command');
-				// Masked command line has identical character positions, so slice the original
-				// to preserve the user-visible text (including the `=` characters).
 				return captures.map(e => commandLine.substring(e.node.startIndex, e.node.endIndex));
 			}
 		}
@@ -84,9 +71,6 @@ export class TreeSitterCommandParser extends Disposable {
 			if (capture.name === 'command') {
 				subCommands.push(masked === commandLine ? capture.node.text : commandLine.substring(capture.node.startIndex, capture.node.endIndex));
 			} else if (capture.name === 'unanalyzable') {
-				// Prefix env assignments (`FOO=bar git status`) are children of the
-				// command node and are handled by the existing transient-env deny
-				// path; only standalone shell-state mutations fail closed here.
 				if (capture.node.type !== 'variable_assignment' || capture.node.parent?.type !== 'command') {
 					hasUnanalyzableSyntax = true;
 				}
@@ -109,17 +93,6 @@ export class TreeSitterCommandParser extends Disposable {
 		return captures;
 	}
 
-	/**
-	 * Extracts executable command invocations from the command line and returns
-	 * normalized command details for sandbox allow-listing.
-	 *
-	 * Example: `PATH=/bin /usr/bin/git commit -S -m "test" && npm install`
-	 * returns:
-	 * `[
-	 * 	{ keyword: 'git', args: ['commit', '-S', '-m', 'test'] },
-	 * 	{ keyword: 'npm', args: ['install'] }
-	 * ]`.
-	 */
 	async extractCommands(languageId: TreeSitterCommandParserLanguage, commandLine: string): Promise<ITerminalSandboxCommand[]> {
 		const commands: ITerminalSandboxCommand[] = [];
 		for (const commandText of await this.extractSubCommands(languageId, commandLine)) {
@@ -151,18 +124,11 @@ export class TreeSitterCommandParser extends Disposable {
 		return captures.map(e => e.node.text.trim());
 	}
 
-	/**
-	 * Extracts file targets from commands that perform file writes beyond shell redirections.
-	 * Uses registered command parsers (e.g., for `sed -i`) to detect command-specific file writes.
-	 * Returns an array of file paths that would be modified.
-	 */
 	async getCommandFileWrites(languageId: TreeSitterCommandParserLanguage, commandLine: string): Promise<string[]> {
-		// Currently only bash-like shells are supported for command-specific parsing
 		if (languageId !== TreeSitterCommandParserLanguage.Bash) {
 			return [];
 		}
 
-		// Query for all commands
 		const query = '(command) @command';
 		const captures = await this._queryTree(languageId, commandLine, query);
 
@@ -199,10 +165,6 @@ export class TreeSitterCommandParser extends Disposable {
 		}
 	}
 
-	/**
-	 * Converts a command token to the stable keyword used by sandbox allow-list
-	 * rules by stripping quotes, path segments, and common executable suffixes.
-	 */
 	private _normalizeCommandKeyword(token: string): string | undefined {
 		const unquoted = token.replace(/^['"]|['"]$/g, '');
 		if (!unquoted) {
@@ -214,10 +176,6 @@ export class TreeSitterCommandParser extends Disposable {
 		return normalized || undefined;
 	}
 
-	/**
-	 * Parses a single tree-sitter command node into command details, ignoring
-	 * leading environment variable assignments such as `NODE_ENV=test npm run build`.
-	 */
 	private _parseCommand(commandText: string): ITerminalSandboxCommand | undefined {
 		const tokens = this._splitCommandTokens(commandText);
 		let commandIndex = 0;
@@ -267,10 +225,6 @@ export class TreeSitterCommandParser extends Disposable {
 		return undefined;
 	}
 
-	/**
-	 * Splits enough shell syntax for sandbox allow-listing: whitespace separates
-	 * tokens, quotes are removed, and backslash escapes preserve the escaped char.
-	 */
 	private _splitCommandTokens(commandText: string): string[] {
 		const tokens: string[] = [];
 		let current = '';
@@ -325,10 +279,6 @@ export class TreeSitterCommandParser extends Disposable {
 		return tokens;
 	}
 
-	/**
-	 * Returns true for simple shell-style environment variable assignments that
-	 * can prefix a command invocation.
-	 */
 	private _isVariableAssignment(token: string): boolean {
 		return /^[A-Za-z_][A-Za-z0-9_]*=.*/.test(token);
 	}
@@ -361,10 +311,6 @@ export class TreeSitterCommandParser extends Disposable {
 	}
 }
 
-/**
- * Caches trees temporarily to avoid reparsing the same command line multiple
- * times in quick succession.
- */
 class TreeCache extends Disposable {
 	private readonly _cache = new Map<string, Tree>();
 	private readonly _clearScheduler = this._register(new MutableDisposable<RunOnceScheduler>());

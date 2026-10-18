@@ -60,13 +60,6 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 
 	private readonly _logger: MultiDiffEditorLogger;
 
-	/**
-	 * When `true`, the automatic "select the first change" initialization that
-	 * runs once the view model finishes loading does not move keyboard focus
-	 * into the editor. Driven by {@link setPreserveFocusOnLoad} so a
-	 * `preserveFocus` open (e.g. restored in the background or on a session
-	 * switch) does not steal focus, while a normal user-initiated open does.
-	 */
 	private _preserveFocusOnLoad = false;
 
 	constructor(
@@ -281,9 +274,6 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 
 		this._register(autorun(reader => {
 			this._scrollView.scrollDimensions.read(reader);
-			// A restored scroll offset applied before the model updated these
-			// dimensions would be clamped against a stale (often 0) scrollHeight, so
-			// apply it here once the dimensions are known.
 			this._applyPendingScrollState();
 		}));
 
@@ -292,42 +282,29 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 			_element.replaceChildren();
 		}));
 
-		// Automatically select the first change in the first file when items are loaded
 		this._register(autorun(reader => {
-			/** @description Initialize first change */
 			const viewModel = this._viewModel.read(reader);
 			if (!viewModel) {
 				return;
 			}
 
-			// Only initialize when loading is complete
 			if (!viewModel.isLoading.read(reader)) {
 				const items = viewModel.items.read(reader);
 				if (items.length === 0) {
 					return;
 				}
 
-				// Only initialize if there's no active item yet
 				const activeDiffItem = viewModel.activeDiffItem.read(reader);
 				if (activeDiffItem) {
 					return;
 				}
 
-				// Restore the persisted active item instead of selecting the first
-				// change, so the restored scroll/collapsed state is preserved.
 				if (this._restorePendingActiveDiffItem(viewModel, items)) {
 					return;
 				}
 
 				this._logger.log('no active diff item after loading, selecting first change', { items: items.length });
 
-				// Navigate to the first change using the existing navigation
-				// logic. Whether this also moves keyboard focus into the editor
-				// is driven by the last `setViewModel` call: an editor opened
-				// with `preserveFocus` (e.g. restored in the background or on a
-				// session switch) must not steal focus from wherever the user is
-				// (such as the chat input), while a normal user-initiated open
-				// focuses the first change so the editor is ready to use.
 				this._navigateToChange('next', !this._preserveFocusOnLoad);
 			}
 		}));
@@ -339,12 +316,6 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 		this._applyPendingScrollState();
 	}
 
-	/**
-	 * Applies a restored scroll offset once the scrollable dimensions can
-	 * accommodate it; retries on subsequent dimension updates until it sticks (so
-	 * a fresh/reloaded widget whose content height is not yet known does not clamp
-	 * the offset to 0). Consumed once it lands.
-	 */
 	private _applyPendingScrollState(): void {
 		const pending = this._pendingScrollState;
 		if (!pending) {
@@ -364,11 +335,6 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 		});
 	}
 
-	/**
-	 * Clears any pending restoration state (documents, active item, scroll). Called
-	 * when a new model is installed without a view state, so it cannot inherit the
-	 * previous model's state for overlapping diff keys.
-	 */
 	public clearPendingRestorationState(): void {
 		this._logger.log('cleared pending restoration state', {
 			hadDocStates: !!this._lastDocStates,
@@ -380,12 +346,6 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 		this._pendingScrollState = undefined;
 	}
 
-	/**
-	 * Controls whether the automatic first-change selection that runs once the
-	 * view model finishes loading preserves focus instead of moving it into the
-	 * editor. Set to `true` for `preserveFocus` opens so focus is not stolen
-	 * from elsewhere.
-	 */
 	public setPreserveFocusOnLoad(preserveFocus: boolean): void {
 		this._preserveFocusOnLoad = preserveFocus;
 	}
@@ -462,17 +422,10 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 		return viewState;
 	}
 
-	/** This accounts for documents that are not loaded yet. */
 	private _lastDocStates: IMultiDiffEditorViewState['docStates'];
 
-	/**
-	 * The active diff item to restore once the documents are loaded. Restoring it
-	 * suppresses the automatic first-change navigation (which would expand the
-	 * first file and reset scroll), so the restored state wins. Consumed once.
-	 */
 	private _lastActiveDiffItemKey: string | undefined;
 
-	/** A restored scroll offset waiting for the scrollable dimensions to be known. */
 	private _pendingScrollState: { top?: number; left?: number } | undefined;
 
 	public setViewState(viewState: IMultiDiffEditorViewState, tx?: ITransaction): void {
@@ -508,21 +461,12 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 			transaction(applyDocStates);
 		}
 
-		// If the documents are already loaded, restore the active item now (this
-		// overrides the first-change selection the init autorun may have made);
-		// otherwise the init autorun restores it once loading completes.
 		const viewModel = this._viewModel.get();
 		if (viewModel) {
 			this._restorePendingActiveDiffItem(viewModel, viewModel.items.get());
 		}
 	}
 
-	/**
-	 * Restores the persisted active diff item (if any) onto the view model, so the
-	 * automatic first-change navigation is skipped. On an explicit (non-preserve-focus)
-	 * open it also moves focus into the restored item's editor, mirroring the
-	 * first-change navigation it replaces. Returns whether it was applied.
-	 */
 	private _restorePendingActiveDiffItem(viewModel: MultiDiffEditorViewModel, items: readonly DocumentDiffItemViewModel[]): boolean {
 		const key = this._lastActiveDiffItemKey;
 		if (key === undefined || items.length === 0) {
@@ -602,13 +546,11 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 
 		this._logger.log('navigate to change', { direction, focusEditor, currentIndex, items: viewItems.length });
 
-		// Start with first file if no active item
 		if (currentIndex === -1) {
 			this._goToFile(0, 'first', focusEditor);
 			return;
 		}
 
-		// Try current file first - expand if collapsed
 		const currentItem = viewItems[currentIndex];
 		if (currentItem.viewModel.collapsed.get()) {
 			this._logger.log('expanding collapsed item to navigate within it', { file: currentItem.getLabel() });
@@ -627,7 +569,6 @@ export class MultiDiffEditorWidgetImpl extends Disposable {
 			}
 		}
 
-		// Move to next/previous file
 		const nextIndex = (currentIndex + (direction === 'next' ? 1 : -1) + viewItems.length) % viewItems.length;
 		this._goToFile(nextIndex, direction === 'next' ? 'first' : 'last', focusEditor);
 	}
@@ -673,7 +614,6 @@ function highlightRange(targetEditor: ICodeEditor, range: IRange) {
 export interface IMultiDiffEditorViewState {
 	scrollState: { top: number; left: number };
 	docStates?: Record<string, IMultiDiffDocState>;
-	/** Key ({@link DocumentDiffItemViewModel.getKey}) of the active diff item, if any. */
 	activeDiffItemKey?: string;
 }
 
@@ -817,7 +757,6 @@ class VirtualizedViewItem extends Disposable implements ILoggedDiffItem, ICompre
 		return this.viewModel.getKey();
 	}
 
-	/** Short, log friendly name of this item. */
 	public getLabel(): string {
 		return formatUri(this.viewModel.modifiedUri ?? this.viewModel.originalUri);
 	}

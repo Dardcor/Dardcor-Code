@@ -16,9 +16,6 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { ILanguage } from '../../../../util/common/languages';
 
-/**
- * @param timeoutMs This function makes several async computations, and each gets up to `3 * timeoutMs`. No guarantee is made about the total time.
- */
 export async function findAllReferencedFunctionImplementationsInSelection(
 	parserService: IParserService,
 	logService: ILogService,
@@ -34,11 +31,9 @@ export async function findAllReferencedFunctionImplementationsInSelection(
 		return [];
 	}
 
-	// Parse all function calls in given selection
 	const treeSitterOffsetRange = vscodeToTreeSitterOffsetRange(selection, document);
 	const callExprs = await asyncComputeWithTimeBudget(logService, telemetryService, document, timeoutMs, () => currentDocAST.getCallExpressions(treeSitterOffsetRange), []);
 
-	// find implementation or, if not found, definition for a call expression
 	async function findImplementation(callExpr: TreeSitterExpressionInfo) {
 		const position = document.positionAt(callExpr.startIndex);
 		try {
@@ -56,12 +51,11 @@ export async function findAllReferencedFunctionImplementationsInSelection(
 		logService,
 		telemetryService,
 		document,
-		timeoutMs * 3, // apply a more generous timeout for language server results
+		timeoutMs * 3,
 		() => Promise.all(callExprs.map(findImplementation)),
 		[]
 	);
 
-	// since language service gives us only links to identifiers, expand to whole implementation/definition using tree-sitter
 	const functionImplementations = [];
 	for (let i = 0; i < implementations.length; i++) {
 		const callExpr = callExprs[i];
@@ -71,8 +65,8 @@ export async function findAllReferencedFunctionImplementationsInSelection(
 			const textDocument = await workspaceService.openTextDocumentAndSnapshot(uri);
 			const treeSitterAST = parserService.getTreeSitterAST(textDocument);
 			if (treeSitterAST) {
-				const functionDefinitions = await treeSitterAST.getFunctionDefinitions(); // TODO: we should do this once per document, not once per call expression
-				const functionDefinition = functionDefinitions.find((fn) => fn.identifier === callExpr.identifier); // FIXME: this's incorrect because it doesn't count for import aliases (e.g., `import { foo as bar } from 'baz'`)
+				const functionDefinitions = await treeSitterAST.getFunctionDefinitions();
+				const functionDefinition = functionDefinitions.find((fn) => fn.identifier === callExpr.identifier);
 				if (functionDefinition) {
 					const treeSitterRange = vscodeToTreeSitterOffsetRange(range, textDocument);
 					functionImplementations.push({
@@ -92,10 +86,8 @@ export async function findAllReferencedFunctionImplementationsInSelection(
 		return functionImplementations;
 	}
 
-	// For now, just search the current file for all functions
 	const allFunctions = await asyncComputeWithTimeBudget(logService, telemetryService, document, timeoutMs, () => currentDocAST.getFunctionDefinitions(), []);
 
-	// Collect all function implementations referenced in the current selection
 	const allFunctionImplementations: TreeSitterExpressionInfo[] = [];
 	for (const fn of allFunctions) {
 		for (const callExpr of callExprs) {
@@ -105,7 +97,6 @@ export async function findAllReferencedFunctionImplementationsInSelection(
 		}
 	}
 
-	// Sort the function positions by start index
 	return allFunctionImplementations.sort((a, b) => a.startIndex - b.startIndex);
 }
 
@@ -124,7 +115,6 @@ export async function findAllReferencedClassDeclarationsInSelection(
 		return [];
 	}
 
-	// Parse all new expressions in active selection
 	const treeSitterOffsetRange = vscodeToTreeSitterOffsetRange(selection, document);
 	const matches = await asyncComputeWithTimeBudget(logService, telemetryService, document, timeoutMs, () => currentDocAST.getClassReferences(treeSitterOffsetRange), []);
 
@@ -132,7 +122,7 @@ export async function findAllReferencedClassDeclarationsInSelection(
 		logService,
 		telemetryService,
 		document,
-		timeoutMs * 3, // apply a more generous timeout for language server results
+		timeoutMs * 3,
 		async () => await Promise.all(matches.map(async (match) => {
 			try {
 				const position = document.positionAt(match.startIndex);
@@ -176,10 +166,8 @@ export async function findAllReferencedClassDeclarationsInSelection(
 		return classDeclarations;
 	}
 
-	// For now, just search the current file for all class declarations
 	const allClasses = await asyncComputeWithTimeBudget(logService, telemetryService, document, timeoutMs, () => currentDocAST.getClassDeclarations(), []);
 
-	// Collect all class declarations referenced in the current selection
 	const allClassDeclarations: TreeSitterExpressionInfo[] = [];
 	for (const fn of allClasses) {
 		for (const match of matches) {
@@ -189,7 +177,6 @@ export async function findAllReferencedClassDeclarationsInSelection(
 		}
 	}
 
-	// Sort the class declaration positions by start index
 	return allClassDeclarations.sort((a, b) => a.startIndex - b.startIndex);
 }
 
@@ -208,14 +195,11 @@ export async function findAllReferencedTypeDeclarationsInSelection(
 		return [];
 	}
 
-	// Parse all type references in active selection
 	const treeSitterOffsetRange = vscodeToTreeSitterOffsetRange(selection, document);
 	const matches = await asyncComputeWithTimeBudget(logService, telemetryService, document, timeoutMs, () => currentDocAST.getTypeReferences(treeSitterOffsetRange), []);
 
-	// For now, just search the current file for all type declarations
 	const allFunctions = await asyncComputeWithTimeBudget(logService, telemetryService, document, timeoutMs, () => currentDocAST.getTypeDeclarations(), []);
 
-	// Collect all type declarations referenced in the current selection
 	const allTypeDeclarations: TreeSitterExpressionInfo[] = [];
 	for (const fn of allFunctions) {
 		for (const match of matches) {
@@ -225,19 +209,14 @@ export async function findAllReferencedTypeDeclarationsInSelection(
 		}
 	}
 
-	// Sort the type declaration positions by start index
 	return allTypeDeclarations.sort((a, b) => a.startIndex - b.startIndex);
 }
 
-/**
- * Races the promise with a timeout.
- */
 function raceWithTimeout<T>(
 	executor: Promise<T>,
 	timeoutMs: number
 ): Promise<{ type: 'success'; value: T } | { type: 'timeout' }> {
 	if (timeoutMs === 0) {
-		// no timeout
 		return executor.then(value => ({ type: 'success', value }));
 	}
 
@@ -255,9 +234,6 @@ function raceWithTimeout<T>(
 	});
 }
 
-/**
- * @returns a promise that resolves to the result of `computation` if the document version is valid, otherwise to `defaultValue`
- */
 export async function asyncComputeWithTimeBudget<T>(
 	logService: ILogService,
 	telemetryService: ITelemetryService,
@@ -287,11 +263,6 @@ export async function asyncComputeWithTimeBudget<T>(
 	}
 }
 
-/**
- * This function attempts to compute a value based on the provided document, ensuring that the document version remains consistent during the computation.
- * If the document version changes during the computation, it will retry up to 3 times.
- * If the document version continues to change after 3 attempts, it will return a default value.
- */
 async function asyncComputeWithValidDocumentVersion<T>(
 	document: TextDocumentSnapshot,
 	computation: () => Promise<T>,
@@ -301,19 +272,14 @@ async function asyncComputeWithValidDocumentVersion<T>(
 	const version = document.version;
 	const positions = await computation();
 	if (document.version !== version) {
-		// the document was changed in the meantime
 		if (attempt < 3) {
 			return asyncComputeWithValidDocumentVersion(document, computation, defaultValue, attempt + 1);
 		}
-		// we tried 3 times, but the document keeps changing
 		return defaultValue;
 	}
 	return positions;
 }
 
-/**
- * Artificial marker used to identify code blocks inside prompts
- */
 export class FilePathCodeMarker {
 
 	public static forDocument(language: ILanguage, document: TextDocumentSnapshot): string {
@@ -328,9 +294,6 @@ export class FilePathCodeMarker {
 		return `${language.lineComment.start} FILEPATH`;
 	}
 
-	/**
-	 * Checks if the given code starts with a file path marker
-	 */
 	public static testLine(language: ILanguage, code: string): boolean {
 		const filenameMarker = FilePathCodeMarker.forLanguage(language);
 		return code.trimStart().startsWith(filenameMarker);

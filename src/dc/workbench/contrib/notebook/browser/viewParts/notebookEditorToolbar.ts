@@ -79,7 +79,6 @@ class WorkbenchAlwaysLabelStrategy implements IActionLayoutStrategy {
 
 	actionProvider(action: IAction, options: IActionViewItemOptions): IActionViewItem | undefined {
 		if (action.id === SELECT_KERNEL_ID) {
-			//	this is being disposed by the consumer
 			return this.instantiationService.createInstance(NotebooKernelActionViewItem, action, this.notebookEditor, options);
 		}
 
@@ -119,7 +118,6 @@ class WorkbenchNeverLabelStrategy implements IActionLayoutStrategy {
 
 	actionProvider(action: IAction, options: IActionViewItemOptions): IActionViewItem | undefined {
 		if (action.id === SELECT_KERNEL_ID) {
-			//	this is being disposed by the consumer
 			return this.instantiationService.createInstance(NotebooKernelActionViewItem, action, this.notebookEditor, options);
 		}
 
@@ -163,7 +161,6 @@ class WorkbenchDynamicLabelStrategy implements IActionLayoutStrategy {
 
 	actionProvider(action: IAction, options: IActionViewItemOptions): IActionViewItem | undefined {
 		if (action.id === SELECT_KERNEL_ID) {
-			//	this is being disposed by the consumer
 			return this.instantiationService.createInstance(NotebooKernelActionViewItem, action, this.notebookEditor, options);
 		}
 
@@ -311,7 +308,6 @@ export class NotebookEditorWorkbenchToolbar extends Disposable {
 		if (this.editorService.activeEditorPane?.getId() === NOTEBOOK_EDITOR_ID) {
 			const notebookEditor = this.editorService.activeEditorPane.getControl() as INotebookEditorDelegate;
 			if (notebookEditor === this.notebookEditor) {
-				// this is the active editor
 				this._showNotebookActionsinEditorToolbar();
 				return;
 			}
@@ -334,7 +330,6 @@ export class NotebookEditorWorkbenchToolbar extends Disposable {
 
 		const actionProvider = (action: IAction, options: IActionViewItemOptions) => {
 			if (action.id === SELECT_KERNEL_ID) {
-				// this is being disposed by the consumer
 				return this.instantiationService.createInstance(NotebooKernelActionViewItem, action, this.notebookEditor, options);
 			}
 
@@ -350,8 +345,6 @@ export class NotebookEditorWorkbenchToolbar extends Disposable {
 			}
 		};
 
-		// Make sure both toolbars have the same hover delegate for instant hover to work
-		// Due to the elements being further apart than normal toolbars, the default time limit is to short and has to be increased
 		const hoverDelegate = this._register(this.instantiationService.createInstance(WorkbenchHoverDelegate, 'element', { instantHover: true }, {}));
 		hoverDelegate.setInstantHoverTimeLimit(600);
 
@@ -468,7 +461,6 @@ export class NotebookEditorWorkbenchToolbar extends Disposable {
 	}
 
 	private _showNotebookActionsinEditorToolbar() {
-		// when there is no view model, just ignore.
 		if (!this.notebookEditor.hasModel()) {
 			this._deferredActionUpdate?.dispose();
 			this._deferredActionUpdate = undefined;
@@ -557,7 +549,6 @@ export class NotebookEditorWorkbenchToolbar extends Disposable {
 		const toolbar = this._notebookLeftToolbar;
 		const rightToolbar = this._notebookRightToolbar;
 		if (toolbar && rightToolbar && this._dimension && this._dimension.height >= 0 && this._dimension.width >= 0) {
-			// compute size only if it's visible
 			if (this._primaryActions.length === 0 && toolbar.getItemsLength() !== this._primaryActions.length) {
 				this._cacheItemSizes(this._notebookLeftToolbar);
 			}
@@ -567,7 +558,7 @@ export class NotebookEditorWorkbenchToolbar extends Disposable {
 			}
 
 			const kernelWidth = (rightToolbar.getItemsLength() ? rightToolbar.getItemWidth(0) : 0) + ACTION_PADDING;
-			const leftToolbarContainerMaxWidth = this._dimension.width - kernelWidth - (ACTION_PADDING + TOGGLE_MORE_ACTION_WIDTH) - (/** toolbar left margin */ACTION_PADDING) - (/** toolbar right margin */ACTION_PADDING);
+			const leftToolbarContainerMaxWidth = this._dimension.width - kernelWidth - (ACTION_PADDING + TOGGLE_MORE_ACTION_WIDTH) - (ACTION_PADDING) - (ACTION_PADDING);
 			const calculatedActions = this._strategy.calculateActions(leftToolbarContainerMaxWidth);
 			this._notebookLeftToolbar.setActions(calculatedActions.primaryActions, calculatedActions.secondaryActions);
 		}
@@ -608,10 +599,8 @@ export function workbenchDynamicCalculateActions(initialPrimaryActions: IActionM
 		return { primaryActions: [], secondaryActions: initialSecondaryActions };
 	}
 
-	// find true length of array, add 1 for each primary actions, ignoring an item when size = 0
 	const visibleActionLength = initialPrimaryActions.filter(action => action.size !== 0).length;
 
-	// step 1: try to fit all primary actions
 	const totalWidthWithLabels = initialPrimaryActions.map(action => action.size).reduce((a, b) => a + b, 0) + (visibleActionLength - 1) * ACTION_PADDING;
 	if (totalWidthWithLabels <= leftToolbarContainerMaxWidth) {
 		initialPrimaryActions.forEach(action => {
@@ -620,21 +609,18 @@ export function workbenchDynamicCalculateActions(initialPrimaryActions: IActionM
 		return actionOverflowHelper(initialPrimaryActions, initialSecondaryActions, leftToolbarContainerMaxWidth, false);
 	}
 
-	// step 2: check if they fit without labels
 	if ((visibleActionLength * ICON_ONLY_ACTION_WIDTH + (visibleActionLength - 1) * ACTION_PADDING) > leftToolbarContainerMaxWidth) {
 		initialPrimaryActions.forEach(action => { action.renderLabel = false; });
 		return actionOverflowHelper(initialPrimaryActions, initialSecondaryActions, leftToolbarContainerMaxWidth, true);
 	}
 
-	// step 3: render as many actions as possible with labels, rest without.
 	let sum = 0;
 	let lastActionWithLabel = -1;
 	for (let i = 0; i < initialPrimaryActions.length; i++) {
 		sum += initialPrimaryActions[i].size + ACTION_PADDING;
 
 		if (initialPrimaryActions[i].action instanceof Separator) {
-			// find group separator
-			const remainingItems = initialPrimaryActions.slice(i + 1).filter(action => action.size !== 0); // todo: need to exclude size 0 items from this
+			const remainingItems = initialPrimaryActions.slice(i + 1).filter(action => action.size !== 0);
 			const newTotalSum = sum + (remainingItems.length === 0 ? 0 : (remainingItems.length * ICON_ONLY_ACTION_WIDTH + (remainingItems.length - 1) * ACTION_PADDING));
 			if (newTotalSum <= leftToolbarContainerMaxWidth) {
 				lastActionWithLabel = i;
@@ -644,13 +630,11 @@ export function workbenchDynamicCalculateActions(initialPrimaryActions: IActionM
 		}
 	}
 
-	// icons only don't fit either
 	if (lastActionWithLabel < 0) {
 		initialPrimaryActions.forEach(action => { action.renderLabel = false; });
 		return actionOverflowHelper(initialPrimaryActions, initialSecondaryActions, leftToolbarContainerMaxWidth, true);
 	}
 
-	// render labels for the actions that have space
 	initialPrimaryActions.slice(0, lastActionWithLabel + 1).forEach(action => { action.renderLabel = true; });
 	initialPrimaryActions.slice(lastActionWithLabel + 1).forEach(action => { action.renderLabel = false; });
 	return {
@@ -675,12 +659,10 @@ function actionOverflowHelper(initialPrimaryActions: IActionModel[], initialSeco
 		const actionModel = initialPrimaryActions[i];
 		const itemSize = iconOnly ? (actionModel.size === 0 ? 0 : ICON_ONLY_ACTION_WIDTH) : actionModel.size;
 
-		// if two separators in a row, ignore the second
 		if (actionModel.action instanceof Separator && renderActions.length > 0 && renderActions[renderActions.length - 1].action instanceof Separator) {
 			continue;
 		}
 
-		// if a separator is the first nonZero action, ignore it
 		if (actionModel.action instanceof Separator && !nonZeroAction) {
 			continue;
 		}
@@ -697,10 +679,10 @@ function actionOverflowHelper(initialPrimaryActions: IActionModel[], initialSeco
 			}
 		} else {
 			containerFull = true;
-			if (itemSize === 0) { // size 0 implies a hidden item, keep in primary to allow for Workbench to handle visibility
+			if (itemSize === 0) {
 				renderActions.push(actionModel);
 			} else {
-				if (actionModel.action instanceof Separator) { // never push a separator to overflow
+				if (actionModel.action instanceof Separator) {
 					continue;
 				}
 				overflow.push(actionModel.action);
@@ -729,7 +711,6 @@ function actionOverflowHelper(initialPrimaryActions: IActionModel[], initialSeco
 	}
 
 	if (iconOnly) {
-		// if icon only mode, don't render both (+ code) and (+ markdown) buttons. remove of markdown action
 		const markdownIndex = renderActions.findIndex(a => a.action.id === 'notebook.cell.insertMarkdownCellBelow');
 		if (markdownIndex !== -1) {
 			renderActions.splice(markdownIndex, 1);

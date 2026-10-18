@@ -111,10 +111,8 @@ class BulkEdit {
 			}
 		}
 
-		// Show infinte progress when there is only 1 item since we do not know how long it takes
 		const increment = this._edits.length > 1 ? 0 : undefined;
 		this._progress.report({ increment, total: 100 });
-		// Increment by percentage points since progress API expects that
 		const progress: IProgress<void> = { report: _ => this._progress.report({ increment: 100 / this._edits.length }) };
 
 		const resources: (readonly URI[])[] = [];
@@ -208,7 +206,6 @@ export class BulkEditService implements IBulkEditService {
 		}
 
 		let codeEditor = options?.editor;
-		// try to find code editor
 		if (!codeEditor) {
 			const candidate = this._editorService.activeTextEditorControl;
 			if (isCodeEditor(candidate)) {
@@ -219,13 +216,9 @@ export class BulkEditService implements IBulkEditService {
 		}
 
 		if (codeEditor && codeEditor.getOption(EditorOption.readOnly)) {
-			// If the code editor is readonly still allow bulk edits to be applied #68549
 			codeEditor = undefined;
 		}
 
-		// undo-redo-group: if a group id is passed then try to find it
-		// in the list of active edits. otherwise (or when not found)
-		// create a separate undo-redo-group
 		let undoRedoGroup: UndoRedoGroup | undefined;
 		let undoRedoGroupRemove = () => { };
 		if (typeof options?.undoRedoGroupId === 'number') {
@@ -260,16 +253,12 @@ export class BulkEditService implements IBulkEditService {
 			listener = this._lifecycleService.onBeforeShutdown(e => e.veto(this._shouldVeto(label, e.reason), 'veto.blukEditService'));
 			const resources = await bulkEdit.perform(options?.reason);
 
-			// when enabled (option AND setting) loop over all dirty working copies and trigger save
-			// for those that were involved in this bulk edit operation.
 			if (options?.respectAutoSaveConfig && this._configService.getValue(autoSaveSetting) === true && resources.length > 1) {
 				await this._saveAll(resources);
 			}
 
 			return { ariaSummary: bulkEdit.ariaMessage(), isApplied: edits.length > 0 };
 		} catch (err) {
-			// console.log('apply FAILED');
-			// console.log(err);
 			this._logService.error(err);
 			throw err;
 		} finally {

@@ -68,7 +68,6 @@ class ReplOutputAccessibleViewProvider extends Disposable implements IAccessible
 		if (!this._content) {
 			this._updateContent(elements);
 		}
-		// Content is loaded asynchronously, so we need to check if it's available or fallback to the elements that are already available.
 		return this._content ?? elements.map(e => e.toString(true)).join('\n');
 	}
 
@@ -82,7 +81,6 @@ class ReplOutputAccessibleViewProvider extends Disposable implements IAccessible
 	}
 
 	public onOpen(): void {
-		// Children are resolved async, so we need to update the content when they are resolved.
 		this._register(this.onDidResolveChildren(() => {
 			this._onDidChangeContent.fire();
 			queueMicrotask(() => {
@@ -113,7 +111,6 @@ class ReplOutputAccessibleViewProvider extends Disposable implements IAccessible
 				for (const child of children) {
 					const id = child.getId();
 					if (!this._elementPositionMap.has(id)) {
-						// don't overwrite parent position
 						this._elementPositionMap.set(id, new Position(line, 1));
 					}
 					childContent.push('  ' + child.toString());

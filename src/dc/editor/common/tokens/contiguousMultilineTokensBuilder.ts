@@ -28,7 +28,6 @@ export class ContiguousMultilineTokensBuilder {
 		if (this._tokens.length > 0) {
 			const last = this._tokens[this._tokens.length - 1];
 			if (last.endLineNumber + 1 === lineNumber) {
-				// append
 				last.appendLineTokens(lineTokens);
 				return;
 			}
@@ -49,7 +48,7 @@ export class ContiguousMultilineTokensBuilder {
 
 	private _serializeSize(): number {
 		let result = 0;
-		result += 4; // 4 bytes for the count
+		result += 4;
 		for (let i = 0; i < this._tokens.length; i++) {
 			result += this._tokens[i].serializeSize();
 		}

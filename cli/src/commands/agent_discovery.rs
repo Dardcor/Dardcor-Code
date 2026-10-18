@@ -3,15 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-//! Shared multi-host discovery helpers for `code agent ps|logs|stop`.
-//!
-//! `code agent host` supervisors (standalone) and running VS Code windows
-//! (editor) each publish a live entry to the shared local agent-host
-//! endpoint registry (schema v2; see
-//! [`crate::tunnels::agent_host_registry`]). When the user doesn't pin a
-//! specific `--address`/`--tunnel`, these commands should consider *every*
-//! live entry a candidate host, not just one arbitrarily selected one —
-//! that's what this module coordinates.
 
 use ahp::Client;
 use ahp_types::commands::{ListSessionsParams, ListSessionsResult};
@@ -27,12 +18,6 @@ use crate::util::errors::{AnyError, CodeError};
 use super::agent;
 use super::CommandContext;
 
-/// Enumerates every live schema-v2 registry endpoint (both `editor` and
-/// `standalone`, both socket/pipe and TCP addresses) as auto-discovery
-/// candidates. The shared registry is the sole source of truth for
-/// automatic discovery; callers should treat an empty `Vec` as "no agent
-/// host is currently running" ([`CodeError::NoRunningAgentHost`]) rather
-/// than falling back to any other discovery mechanism.
 pub fn discover_live_endpoints(
 	ctx: &CommandContext,
 	user_data_dir: Option<&str>,
@@ -46,50 +31,18 @@ pub fn discover_live_endpoints(
 	agent_host_registry::list_live_endpoints(&ctx.log, &user_data_path)
 }
 
-/// Outcome of probing a single host for a given session, as consumed by
-/// [`resolve_first_match`]. Generic over the "found" payload `T` (rather
-/// than hard-coding a live [`Client`]) purely so the early-return/
-/// cancellation control flow in [`resolve_first_match`] can be exercised
-/// directly in tests with cheap, deterministic fake futures instead of a
-/// real AHP connection.
 enum ProbeResult<T> {
-	/// Connected and queried successfully; the session was present. The
-	/// payload is whatever the caller wants back for the matching host
-	/// (a ready-to-use [`Client`] in production).
 	Found(T),
-	/// Connected and queried successfully; the session was not present.
 	NotFound,
-	/// The host could not be connected to or queried at all (network
-	/// error, auth failure, protocol error, ...). Nothing can be
-	/// concluded about whether it owns the session; its label is kept
-	/// for diagnostics.
 	Unreachable(String),
 }
 
-/// Failure produced by [`resolve_first_match`] when no host matched.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SearchFailure {
-	/// Every host was searched successfully and none owns the session:
-	/// safe to report "session not found".
 	NotFound,
-	/// At least one host could not be searched (its label recorded
-	/// here), and no host that *could* be searched owned the session. We
-	/// must not claim the session doesn't exist — it might live on the
-	/// host(s) we couldn't reach.
 	Incomplete(Vec<String>),
 }
 
-/// Consumes host-probe results as they complete, returning the payload
-/// from the first match *immediately*: dropping `probes` (which happens
-/// as soon as this function returns) cancels any probes still in flight,
-/// so a hung or unreachable host can never delay `logs`/`stop` once a
-/// match is found on a faster host. A `Found` anywhere takes precedence
-/// over `Unreachable` elsewhere: once we have a definitive match we
-/// don't need to care that some other host was unreachable. When
-/// nothing matches, returns [`SearchFailure::NotFound`] if every host
-/// was searched successfully, or [`SearchFailure::Incomplete`] (carrying
-/// the unreachable hosts' labels) if at least one host could not be
-/// searched.
 async fn resolve_first_match<T, F>(mut probes: FuturesUnordered<F>) -> Result<T, SearchFailure>
 where
 	F: std::future::Future<Output = ProbeResult<T>>,
@@ -111,11 +64,6 @@ where
 	}
 }
 
-/// Connects to `endpoint` and checks whether `session` appears in its
-/// `listSessions` catalog — membership, not error-text sniffing, is the
-/// source of truth per requirement. On success but no match, or on any
-/// failure, the client (if any) is shut down before returning so callers
-/// never need to remember to clean up non-matching connections.
 async fn probe_host(
 	ctx: &CommandContext,
 	endpoint: AgentHostEndpointMetadata,
@@ -163,23 +111,6 @@ async fn probe_host(
 	}
 }
 
-/// Shared auto-discovery entry point for session-targeted commands
-/// (`logs`, `stop`). Searches every live registry endpoint concurrently
-/// for `session`, preferring `listSessions` catalog membership over
-/// error-text sniffing, and returns a ready-to-use client for whichever
-/// host owns it as soon as that host responds — it does not wait for
-/// slower or hung hosts once a match is found. Unused/non-matching
-/// clients are shut down before this returns; any probes still in
-/// flight when a match is found are cancelled (never leaked) by simply
-/// dropping them.
-///
-/// Returns [`CodeError::NoRunningAgentHost`] when the shared registry has
-/// no live endpoints at all — the sole source of truth for automatic
-/// discovery.
-///
-/// Callers with an explicit `--address`/`--tunnel` should call
-/// [`agent::connect_explicit`] directly instead of this helper; this
-/// path is only for auto-discovery.
 pub async fn connect_to_session_host(
 	ctx: &CommandContext,
 	session: &str,
@@ -212,11 +143,6 @@ pub async fn connect_to_session_host(
 mod tests {
 	use super::*;
 
-	/// A fake host probe used by [`resolve_first_match`] tests: same
-	/// concrete future type regardless of arguments (required to share a
-	/// single [`FuturesUnordered`]), optionally sleeping first to
-	/// simulate a slow/hung host, and optionally flipping `completed`
-	/// so a test can assert it was never driven to completion.
 	async fn fake_probe(
 		delay: Option<std::time::Duration>,
 		result: ProbeResult<u32>,
@@ -242,8 +168,6 @@ mod tests {
 		let probes = FuturesUnordered::new();
 		probes.push(fake_probe(None, ProbeResult::Found(42), None));
 		probes.push(fake_probe(
-			// Long enough that if it were ever awaited to completion the
-			// test would time out; the fix must never wait on it.
 			Some(Duration::from_secs(3600)),
 			ProbeResult::Unreachable("slow-host".to_string()),
 			Some(hung_probe_completed.clone()),
@@ -265,9 +189,6 @@ mod tests {
 	async fn resolve_first_match_prefers_found_even_when_seen_after_unreachable() {
 		use std::time::Duration;
 
-		// The first probe to complete is Unreachable; a slightly slower
-		// probe later resolves with a match. A `Found` anywhere must
-		// still win over an already-observed `Unreachable`.
 		let probes = FuturesUnordered::new();
 		probes.push(fake_probe(
 			None,

@@ -12,12 +12,6 @@ import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/co
 import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { PausableThrottledWorker } from './pausableThrottledWorker';
 
-/**
- * Configures a maximum number of requests to start either per second or per minute
- *
- * **NOTE**: The number of requests running in parallel could be higher than this,
- * this enforces just the maximum number of requests that start.
- */
 export type ThrottlingLimits = Record<string, { limit: number; type: 'RPS' | 'RPM' }>;
 
 export class ChatModelThrottlingTaskLaunchers {
@@ -39,13 +33,12 @@ export class ChatModelThrottlingTaskLaunchers {
 
 	getThrottler(model: string): PausableThrottledWorker<() => Promise<void>> {
 		if (!this._throttlers.has(model)) {
-			// If no limit is configured, the default limit is 1 RPS.
 			if (!this._limits[model]) {
 				this._limits[model] = { limit: 1, type: 'RPS' };
 			}
 			const limit = this._limits[model].type === 'RPM' ? this._limits[model].limit : (this._limits[model].limit * 60);
 			const options: IThrottledWorkerOptions = {
-				maxBufferedWork: undefined, // We want to hold as many requests as possible
+				maxBufferedWork: undefined,
 				maxWorkChunkSize: 1,
 				waitThrottleDelayBetweenWorkUnits: true,
 				throttleDelay: Math.ceil(60000 / limit)
@@ -71,31 +64,19 @@ export class ChatModelThrottlingTaskLaunchers {
 		this.getThrottler(model).resume();
 	}
 
-	/**
-	 * Handles rate limit responses by implementing exponential backoff.
-	 * This updated version uses a shared “backoff chain” to ensure that multiple inflight
-	 * requests for the same model do not all retry at the same time.
-	 *
-	 * @param model The chat model that was rate limited
-	 * @param baseDelay The base delay in milliseconds (usually from the retryAfter value)
-	 * @returns Whether the request should be retried
-	 */
 	async handleRateLimit(model: string, baseDelay: number, retryCount: number): Promise<boolean> {
 		this.pauseProcessing(model);
 		if (retryCount > 3) {
-			return false; // Do not retry after too many attempts.
+			return false;
 		}
 
-		// If any backoff is already in progress for this model, wait for it first.
 		const ongoingBackoff = this._rateLimitBackoff.get(model);
 		if (ongoingBackoff) {
 			await ongoingBackoff;
 		}
 
-		// Calculate exponential backoff delay: 1x, 2x, 3x…
 		const delay = baseDelay * retryCount;
 
-		// Create a new backoff promise and set it as active for this model.
 		const backoffPromise = new Promise<void>(resolve => {
 			setTimeout(resolve, delay);
 		});
@@ -103,15 +84,9 @@ export class ChatModelThrottlingTaskLaunchers {
 		await backoffPromise;
 		this._rateLimitBackoff.delete(model);
 
-		return true; // Indicate we should retry.
+		return true;
 	}
 
-	/**
-	 * Execute a request with retry logic for rate limits.
-	 * @param model The chat model to use
-	 * @param requestFn The function that performs the actual request
-	 * @returns The result from the request function
-	 */
 	async executeWithRateLimitHandling(
 		model: string,
 		requestFn: () => Promise<ChatResponses>
@@ -122,7 +97,6 @@ export class ChatModelThrottlingTaskLaunchers {
 
 		const cleanup = () => {
 			inFlightRequests.delete(promise);
-			// Only resume processing if there are no more in-flight requests
 			if (inFlightRequests.size === 0) {
 				this.resumeProcessing(model);
 			}
@@ -134,9 +108,7 @@ export class ChatModelThrottlingTaskLaunchers {
 				while (continueRetrying) {
 					result = await requestFn();
 					if (result.type === ChatFetchResponseType.RateLimited) {
-						// Minimum wait should be 5 seconds
 						result.retryAfter ??= Math.max(5, result.retryAfter || 0);
-						// Convert the retryAfter value in seconds to milliseconds.
 						const retryAfterMs = result.retryAfter * 1000;
 						const shouldRetry = await this.handleRateLimit(model, retryAfterMs, retryCount);
 						if (shouldRetry) {
@@ -145,7 +117,6 @@ export class ChatModelThrottlingTaskLaunchers {
 							continue;
 						}
 					}
-					// On successful (or non‑rate‑limited) responses:
 					continueRetrying = false;
 				}
 			} finally {

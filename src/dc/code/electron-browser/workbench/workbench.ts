@@ -5,9 +5,10 @@
 
 /* eslint-disable no-restricted-globals */
 
+import { getPartsSplashColors } from './partsSplash.js';
+
 (async function () {
 
-	// Add a perf entry right from the top
 	performance.mark('code/didStartRenderer');
 
 	type ISandboxConfiguration = import('../../../base/parts/sandbox/common/sandboxTypes.js').ISandboxConfiguration;
@@ -17,10 +18,9 @@
 	type IMainWindowSandboxGlobals = import('../../../base/parts/sandbox/electron-browser/globals.js').IMainWindowSandboxGlobals;
 	type IDesktopMain = import('../../../workbench/electron-browser/desktop.main.js').IDesktopMain;
 
-	const preloadGlobals = (window as unknown as { vscode: IMainWindowSandboxGlobals }).vscode; // defined by preload.ts
+	const preloadGlobals = (window as unknown as { vscode: IMainWindowSandboxGlobals }).vscode;
 	const safeProcess = preloadGlobals.process;
 
-	//#region Splash Screen Helpers
 
 	function showSplash(configuration: INativeWindowConfiguration) {
 		performance.mark('code/willShowPartsSplash');
@@ -33,27 +33,26 @@
 		if (data) {
 			if (configuration.autoDetectHighContrast && configuration.colorScheme.highContrast) {
 				if ((configuration.colorScheme.dark && data.baseTheme !== 'hc-black') || (!configuration.colorScheme.dark && data.baseTheme !== 'hc-light')) {
-					data = undefined; // high contrast mode has been turned by the OS -> ignore stored colors and layouts
+					data = undefined;
 				}
 			} else if (configuration.autoDetectColorScheme) {
 				if ((configuration.colorScheme.dark && data.baseTheme !== 'dc-dark' && data.baseTheme !== 'vs-dark') || (!configuration.colorScheme.dark && data.baseTheme !== 'dc' && data.baseTheme !== 'vs')) {
-					data = undefined; // OS color scheme is tracked and has changed
+					data = undefined;
 				}
 			}
 		}
 
-		// developing an extension -> ignore stored layouts
 		if (data && configuration.extensionDevelopmentPath) {
 			data.layoutInfo = undefined;
 		}
 
-		// minimal color configuration (works with or without persisted data)
-		let baseTheme: string | undefined = 'dc-dark';
-		let shellBackground: string | undefined = '#000000';
-		let shellForeground: string | undefined = '#CCCCCC';
+		let baseTheme;
+		let shellBackground;
+		let shellForeground;
+		const splashColors = data ? getPartsSplashColors(data, window.document.hasFocus(), !!configuration.workspace) : undefined;
 		if (data) {
 			baseTheme = data.baseTheme;
-			shellBackground = data.colorInfo.editorBackground;
+			shellBackground = splashColors?.background ?? data.colorInfo.editorBackground ?? data.colorInfo.background;
 			shellForeground = data.colorInfo.foreground;
 		} else if (configuration.autoDetectHighContrast && configuration.colorScheme.highContrast) {
 			if (configuration.colorScheme.dark) {
@@ -65,13 +64,13 @@
 				shellBackground = '#FFFFFF';
 				shellForeground = '#000000';
 			}
-		} else if (configuration.autoDetectColorScheme) {
-			if (configuration.colorScheme.dark) {
-				baseTheme = 'dc-dark';
-				shellBackground = '#000000';
+		} else {
+			if (configuration.colorScheme?.dark) {
+				baseTheme = 'vs-dark';
+				shellBackground = '#1E1E1E';
 				shellForeground = '#CCCCCC';
 			} else {
-				baseTheme = 'dc';
+				baseTheme = 'vs';
 				shellBackground = '#FFFFFF';
 				shellForeground = '#000000';
 			}
@@ -82,12 +81,10 @@
 		window.document.head.appendChild(style);
 		style.textContent = `body {	background-color: ${shellBackground}; color: ${shellForeground}; margin: 0; padding: 0; }`;
 
-		// set zoom level as soon as possible
 		if (typeof data?.zoomLevel === 'number' && typeof preloadGlobals?.webFrame?.setZoomLevel === 'function') {
 			preloadGlobals.webFrame.setZoomLevel(data.zoomLevel);
 		}
 
-		// restore parts if possible (we might not always store layout info)
 		if (data?.layoutInfo) {
 			const { layoutInfo, colorInfo } = data;
 			const modernUI = layoutInfo.modernUI === true;
@@ -104,7 +101,7 @@
 				borderElement.style.position = 'absolute';
 				borderElement.style.width = 'calc(100vw - 2px)';
 				borderElement.style.height = 'calc(100vh - 2px)';
-				borderElement.style.zIndex = '1'; // allow border above other elements
+				borderElement.style.zIndex = '1';
 				borderElement.style.border = `1px solid var(--window-border-color)`;
 				borderElement.style.setProperty('--window-border-color', colorInfo.windowBorder);
 
@@ -157,16 +154,12 @@
 			const activityHeight = modernUI ? `calc(100% - ${contentTop + contentBottom + floatingMargin}px)` : contentHeight;
 
 			if (layoutInfo.auxiliaryBarWidth === Number.MAX_SAFE_INTEGER) {
-				// if auxiliary bar is maximized, it goes as wide as the
-				// window width but leaving room for activity bar
 				layoutInfo.auxiliaryBarWidth = window.innerWidth - layoutInfo.activityBarWidth;
 			} else {
-				// otherwise adjust for other parts sizes if not maximized
 				layoutInfo.auxiliaryBarWidth = Math.min(layoutInfo.auxiliaryBarWidth, window.innerWidth - (layoutInfo.activityBarWidth + layoutInfo.editorPartMinWidth + layoutInfo.sideBarWidth));
 			}
 			layoutInfo.sideBarWidth = Math.min(layoutInfo.sideBarWidth, window.innerWidth - (layoutInfo.activityBarWidth + layoutInfo.editorPartMinWidth + layoutInfo.auxiliaryBarWidth));
 
-			// part: title
 			if (layoutInfo.titleBarHeight > 0) {
 				const titleDiv = document.createElement('div');
 				titleDiv.style.position = 'absolute';
@@ -190,7 +183,6 @@
 				}
 			}
 
-			// part: activity bar
 			if (layoutInfo.activityBarWidth > 0) {
 				const activityDiv = document.createElement('div');
 				activityDiv.style.position = 'absolute';
@@ -222,7 +214,6 @@
 				}
 			}
 
-			// part: side bar
 			if (layoutInfo.sideBarWidth > 0) {
 				const sideDiv = document.createElement('div');
 				if (modernUI && layoutInfo.partBounds?.sideBar) {
@@ -266,7 +257,6 @@
 				}
 			}
 
-			// part: auxiliary sidebar
 			if (layoutInfo.auxiliaryBarWidth > 0) {
 				const auxSideDiv = document.createElement('div');
 				if (modernUI && layoutInfo.partBounds?.auxiliaryBar) {
@@ -310,21 +300,35 @@
 				}
 			}
 
-			if (modernUI && (layoutInfo.partBounds?.editor || !layoutInfo.partBounds)) {
-				const editorDiv = document.createElement('div');
-				if (layoutInfo.partBounds?.editor) {
-					setPartBounds(editorDiv, layoutInfo.partBounds.editor);
-				} else {
-					const editorLeft = (layoutInfo.sideBarSide === 'left' ? layoutInfo.activityBarWidth + layoutInfo.sideBarWidth : layoutInfo.auxiliaryBarWidth) + floatingMargin;
-					const editorRight = (layoutInfo.sideBarSide === 'left' ? layoutInfo.auxiliaryBarWidth : layoutInfo.activityBarWidth + layoutInfo.sideBarWidth) + floatingMargin;
-					setBounds(editorDiv, {
-						top: contentTop,
-						bottom: contentBottom + floatingMargin,
-						left: editorLeft,
-						right: editorRight
-					});
+			if (modernUI) {
+				if (layoutInfo.partBounds?.editor || !layoutInfo.partBounds) {
+					const editorDiv = document.createElement('div');
+					if (layoutInfo.partBounds?.editor) {
+						setPartBounds(editorDiv, layoutInfo.partBounds.editor);
+					} else {
+						const editorLeft = (layoutInfo.sideBarSide === 'left' ? layoutInfo.activityBarWidth + layoutInfo.sideBarWidth : layoutInfo.auxiliaryBarWidth) + floatingMargin;
+						const editorRight = (layoutInfo.sideBarSide === 'left' ? layoutInfo.auxiliaryBarWidth : layoutInfo.activityBarWidth + layoutInfo.sideBarWidth) + floatingMargin;
+						setBounds(editorDiv, {
+							top: contentTop,
+							bottom: contentBottom + floatingMargin,
+							left: editorLeft,
+							right: editorRight
+						});
+					}
+					applyFloatingCardStyles(editorDiv, colorInfo.editorBackground);
+					splash.appendChild(editorDiv);
 				}
-				applyFloatingCardStyles(editorDiv, colorInfo.editorBackground);
+			} else {
+				const editorDiv = document.createElement('div');
+				const editorLeft = (layoutInfo.sideBarSide === 'left' ? layoutInfo.activityBarWidth + layoutInfo.sideBarWidth : layoutInfo.auxiliaryBarWidth);
+				const editorRight = (layoutInfo.sideBarSide === 'left' ? layoutInfo.auxiliaryBarWidth : layoutInfo.activityBarWidth + layoutInfo.sideBarWidth);
+				setBounds(editorDiv, {
+					top: contentTop,
+					bottom: contentBottom,
+					left: editorLeft,
+					right: editorRight
+				});
+				editorDiv.style.backgroundColor = `${colorInfo.editorBackground}`;
 				splash.appendChild(editorDiv);
 			}
 
@@ -335,7 +339,6 @@
 				splash.appendChild(panelDiv);
 			}
 
-			// part: statusbar
 			if (layoutInfo.statusBarHeight > 0) {
 				const statusDiv = document.createElement('div');
 				statusDiv.style.position = 'absolute';
@@ -367,39 +370,29 @@
 		}
 	}
 
-	//#endregion
 
-	//#region Window Helpers
 
 	async function load<M, T extends ISandboxConfiguration>(options: ILoadOptions<T>): Promise<ILoadResult<M, T>> {
 
-		// Window Configuration from Preload Script
 		const configuration = await resolveWindowConfiguration<T>();
 
-		// Signal before import()
 		options?.beforeImport?.(configuration);
 
-		// Developer settings
 		const { enableDeveloperKeybindings, removeDeveloperKeybindingsAfterLoad, developerDeveloperKeybindingsDisposable, forceDisableShowDevtoolsOnError } = setupDeveloperKeybindings(configuration, options);
 
-		// NLS
 		setupNLS<T>(configuration);
 
-		// Compute base URL and set as global
 		const baseUrl = new URL(`${fileUriFromPath(configuration.appRoot, { isWindows: safeProcess.platform === 'win32', scheme: 'vscode-file', fallbackAuthority: 'vscode-app' })}/out/`);
 		globalThis._VSCODE_FILE_ROOT = baseUrl.toString();
 
-		// Set product configuration as global (used e.g. to select the ASAR path in `amdX`)
 		globalThis._VSCODE_PRODUCT_JSON = { ...configuration.product };
 
-		// Dev only: CSS import map tricks
 		setupCSSImportMaps<T>(configuration, baseUrl);
 
-		// ESM Import
 		try {
 			let workbenchUrl: string;
 			if (!!safeProcess.env['VSCODE_DEV'] && globalThis._VSCODE_USE_RELATIVE_IMPORTS) {
-				workbenchUrl = '../../../workbench/workbench.desktop.main.js'; // for dev purposes only
+				workbenchUrl = '../../../workbench/workbench.desktop.main.js';
 			} else {
 				workbenchUrl = new URL(`dc/workbench/workbench.desktop.main.js`, baseUrl).href;
 			}
@@ -471,10 +464,9 @@
 				].join('');
 			};
 
-		// Devtools & reload support
-		const TOGGLE_DEV_TOOLS_KB = (safeProcess.platform === 'darwin' ? 'meta-alt-73' : 'ctrl-shift-73'); // mac: Cmd-Alt-I, rest: Ctrl-Shift-I
-		const TOGGLE_DEV_TOOLS_KB_ALT = '123'; // F12
-		const RELOAD_KB = (safeProcess.platform === 'darwin' ? 'meta-82' : 'ctrl-82'); // mac: Cmd-R, rest: Ctrl-R
+		const TOGGLE_DEV_TOOLS_KB = (safeProcess.platform === 'darwin' ? 'meta-alt-73' : 'ctrl-shift-73');
+		const TOGGLE_DEV_TOOLS_KB_ALT = '123';
+		const RELOAD_KB = (safeProcess.platform === 'darwin' ? 'meta-82' : 'ctrl-82');
 
 		let listener: ((e: KeyboardEvent) => void) | undefined = function (e) {
 			const key = extractKey(e);
@@ -524,8 +516,6 @@
 
 	function fileUriFromPath(path: string, config: { isWindows?: boolean; scheme?: string; fallbackAuthority?: string }): string {
 
-		// Since we are building a URI, we normalize any backslash
-		// to slashes and we ensure that the path begins with a '/'.
 		let pathName = path.replace(/\\/g, '/');
 		if (pathName.length > 0 && pathName.charAt(0) !== '/') {
 			pathName = `/${pathName}`;
@@ -533,14 +523,10 @@
 
 		let uri: string;
 
-		// Windows: in order to support UNC paths (which start with '//')
-		// that have their own authority, we do not use the provided authority
-		// but rather preserve it.
 		if (config.isWindows && pathName.startsWith('//')) {
 			uri = encodeURI(`${config.scheme || 'file'}:${pathName}`);
 		}
 
-		// Otherwise we optionally add the provided authority if specified
 		else {
 			uri = encodeURI(`${config.scheme || 'file'}://${config.fallbackAuthority || ''}${pathName}`);
 		}
@@ -550,14 +536,9 @@
 
 	function setupCSSImportMaps<T extends ISandboxConfiguration>(configuration: T, baseUrl: URL) {
 
-		// DEV ---------------------------------------------------------------------------------------
-		// DEV: This is for development and enables loading CSS via import-statements via import-maps.
-		// DEV: For each CSS modules that we have we defined an entry in the import map that maps to
-		// DEV: a blob URL that loads the CSS via a dynamic @import-rule.
-		// DEV ---------------------------------------------------------------------------------------
 
 		if (globalThis._VSCODE_DISABLE_CSS_IMPORT_MAP) {
-			return; // disabled in certain development setups
+			return;
 		}
 
 		if (Array.isArray(configuration.cssModules) && configuration.cssModules.length > 0) {
@@ -593,36 +574,24 @@
 		}
 	}
 
-	//#endregion
 
 	const { result, configuration } = await load<IDesktopMain, INativeWindowConfiguration>(
 		{
 			configureDeveloperSettings: function (windowConfig) {
 				return {
-					// disable automated devtools opening on error when running extension tests
-					// as this can lead to nondeterministic test execution (devtools steals focus)
 					forceDisableShowDevtoolsOnError: typeof windowConfig.extensionTestsPath === 'string' || windowConfig['enable-smoke-test-driver'] === true,
-					// enable devtools keybindings in extension development window
 					forceEnableDeveloperKeybindings: Array.isArray(windowConfig.extensionDevelopmentPath) && windowConfig.extensionDevelopmentPath.length > 0,
 					removeDeveloperKeybindingsAfterLoad: true
 				};
 			},
 			beforeImport: function (windowConfig) {
 
-				// Show our splash as early as possible
 				showSplash(windowConfig);
 
-				// Code windows have a `vscodeWindowId` property to identify them
 				Object.defineProperty(window, 'vscodeWindowId', {
 					get: () => windowConfig.windowId
 				});
 
-				// It looks like browsers only lazily enable
-				// the <canvas> element when needed. Since we
-				// leverage canvas elements in our code in many
-				// locations, we try to help the browser to
-				// initialize canvas when it is idle, right
-				// before we wait for the scripts to be loaded.
 				window.requestIdleCallback(() => {
 					const canvas = document.createElement('canvas');
 					const context = canvas.getContext('2d');
@@ -630,15 +599,12 @@
 					canvas.remove();
 				}, { timeout: 50 });
 
-				// Track import() perf
 				performance.mark('code/willLoadWorkbenchMain');
 			}
 		}
 	);
 
-	// Mark start of workbench
 	performance.mark('code/didLoadWorkbenchMain');
 
-	// Load workbench
 	result.main(configuration);
 }());

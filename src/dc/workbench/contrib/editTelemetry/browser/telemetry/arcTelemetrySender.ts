@@ -135,7 +135,6 @@ export class CreateSuggestionIdForChatOrInlineChatCaller extends Disposable {
 
 			const providerId = new ProviderId(data.props.$extensionId, data.props.$extensionVersion, data.props.$providerId);
 
-			// TODO@hediet tie this suggestion id to hunks, so acceptance can be correlated.
 			this._aiEditTelemetryService.createSuggestionId({
 				applyCodeBlockSuggestionId,
 				languageId: data.props.$$languageId,

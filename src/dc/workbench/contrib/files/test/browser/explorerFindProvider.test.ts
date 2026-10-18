@@ -56,7 +56,6 @@ class Renderer implements ICompressibleTreeRenderer<ExplorerItem, FuzzyScore, HT
 		templateData.textContent = element.element.name;
 	}
 	disposeTemplate(templateData: HTMLElement): void {
-		// noop
 	}
 	renderCompressedElements(node: ITreeNode<ICompressedTreeNode<ExplorerItem>, FuzzyScore>, index: number, templateData: HTMLElement): void {
 		const result: string[] = [];
@@ -195,7 +194,6 @@ suite('Find Provider - ExplorerView', () => {
 	test('find provider', async function () {
 		const disposables = new DisposableStore();
 
-		// Tree Stuff
 		const container = document.createElement('div');
 
 		const dataSource = new DataSource();

@@ -138,10 +138,8 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Test which can be ran to find cases of incorrect indentation...
 	test.skip('Find Cases of Incorrect Indentation with the Reindent Lines Command', () => {
 
-		// ./scripts/test.sh --inspect --grep='Find Cases of Incorrect Indentation with the Reindent Lines Command' --timeout=15000
 
 		function walkDirectoryAndReindent(directory: string, languageId: string) {
 			const files = fs.readdirSync(directory, { withFileTypes: true });
@@ -164,24 +162,12 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 					const lineCount = model.getLineCount();
 					const editOperations: ISingleEditOperation[] = [];
 					for (let line = 1; line <= lineCount - 1; line++) {
-						/*
-						NOTE: Uncomment in order to ignore incorrect JS DOC indentation
-						const lineContent = model.getLineContent(line);
-						const trimmedLineContent = lineContent.trim();
-						if (trimmedLineContent.length === 0 || trimmedLineContent.startsWith('*') || trimmedLineContent.startsWith('/*')) {
-							continue;
-						}
-						*/
 						const lineContent = model.getLineContent(line);
 						const trimmedLineContent = lineContent.trim();
 						if (trimmedLineContent.length === 0) {
 							continue;
 						}
 						const editOperation = getReindentEditOperations(model, languageConfigurationService, line, line + 1);
-						/*
-						NOTE: Uncomment in order to see actual incorrect indentation diff
-						model.applyEdits(editOperation);
-						*/
 						editOperations.push(...editOperation);
 					}
 					model.applyEdits(editOperations);
@@ -199,32 +185,10 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 		console.log('\ngit diff --shortstat:\n', output);
 	});
 
-	// Unit tests for increase and decrease indent patterns...
 
-	/**
-	 * First increase indent and decrease indent patterns:
-	 *
-	 * - decreaseIndentPattern: /^(.*\*\/)?\s*\}.*$/
-	 *  - In (https://macromates.com/manual/en/appendix)
-	 * 	  Either we have white space before the closing bracket, or we have a multi line comment ending on that line followed by whitespaces
-	 *    This is followed by any character.
-	 *    Textmate decrease indent pattern is as follows: /^(.*\*\/)?\s*\}[;\s]*$/
-	 *    Presumably allowing multi line comments ending on that line implies that } is itself not part of a multi line comment
-	 *
-	 * - increaseIndentPattern: /^.*\{[^}"']*$/
-	 *  - In (https://macromates.com/manual/en/appendix)
-	 *    This regex means that we increase the indent when we have any characters followed by the opening brace, followed by characters
-	 *    except for closing brace }, double quotes " or single quote '.
-	 *    The } is checked in order to avoid the indentation in the following case `int arr[] = { 1, 2, 3 };`
-	 *    The double quote and single quote are checked in order to avoid the indentation in the following case: str = "foo {";
-	 */
 
 	test('Issue #25437', () => {
-		// issue: https://github.com/microsoft/vscode/issues/25437
-		// fix: https://github.com/microsoft/vscode/commit/8c82a6c6158574e098561c28d470711f1b484fc8
-		// explanation: var foo = `{`; should not increase indentation
 
-		// increaseIndentPattern: /^.*\{[^}"']*$/ -> /^.*\{[^}"'`]*$/
 
 		const fileContents = [
 			'const foo = `{`;',
@@ -264,14 +228,7 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 	});
 
 	test('Enriching the hover', () => {
-		// issue: -
-		// fix: https://github.com/microsoft/vscode/commit/19ae0932c45b1096443a8c1335cf1e02eb99e16d
-		// explanation:
-		//  - decrease indent on ) and ] also
-		//  - increase indent on ( and [ also
 
-		// decreaseIndentPattern: /^(.*\*\/)?\s*\}.*$/ -> /^(.*\*\/)?\s*[\}\]\)].*$/
-		// increaseIndentPattern: /^.*\{[^}"'`]*$/ -> /^.*(\{[^}"'`]*|\([^)"'`]*|\[[^\]"'`]*)$/
 
 		let fileContents = [
 			'function foo(',
@@ -309,13 +266,7 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 	});
 
 	test('Issue #86176', () => {
-		// issue: https://github.com/microsoft/vscode/issues/86176
-		// fix: https://github.com/microsoft/vscode/commit/d89e2e17a5d1ba37c99b1d3929eb6180a5bfc7a8
-		// explanation: When quotation marks are present on the first line of an if statement or for loop, following line should not be indented
 
-		// increaseIndentPattern: /^((?!\/\/).)*(\{[^}"'`]*|\([^)"'`]*|\[[^\]"'`]*)$/ -> /^((?!\/\/).)*(\{([^}"'`]*|(\t|[ ])*\/\/.*)|\([^)"'`]*|\[[^\]"'`]*)$/
-		// explanation: after open brace, do not decrease indent if it is followed on the same line by "<whitespace characters> // <any characters>"
-		// todo@aiday-mar: should also apply for when it follows ( and [
 
 		const fileContents = [
 			`if () { // '`,
@@ -337,12 +288,7 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 
 	test('Issue #141816', () => {
 
-		// issue: https://github.com/microsoft/vscode/issues/141816
-		// fix: https://github.com/microsoft/vscode/pull/141997/files
-		// explanation: if (, [, {, is followed by a forward slash then assume we are in a regex pattern, and do not indent
 
-		// increaseIndentPattern: /^((?!\/\/).)*(\{([^}"'`]*|(\t|[ ])*\/\/.*)|\([^)"'`]*|\[[^\]"'`]*)$/ -> /^((?!\/\/).)*(\{([^}"'`/]*|(\t|[ ])*\/\/.*)|\([^)"'`/]*|\[[^\]"'`/]*)$/
-		// -> Final current increase indent pattern at of writing
 
 		const fileContents = [
 			'const r = /{/;',
@@ -383,15 +329,8 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 	});
 
 	test('Issue #29886', () => {
-		// issue: https://github.com/microsoft/vscode/issues/29886
-		// fix: https://github.com/microsoft/vscode/commit/7910b3d7bab8a721aae98dc05af0b5e1ea9d9782
 
-		// decreaseIndentPattern: /^(.*\*\/)?\s*[\}\]\)].*$/ -> /^((?!.*?\/\*).*\*\/)?\s*[\}\]\)].*$/
-		// -> Final current decrease indent pattern at the time of writing
 
-		// explanation: Positive lookahead: (?= «pattern») matches if pattern matches what comes after the current location in the input string.
-		// Negative lookahead: (?! «pattern») matches if pattern does not match what comes after the current location in the input string
-		// The change proposed is to not decrease the indent if there is a multi-line comment ending on the same line before the closing parentheses
 
 		const fileContents = [
 			'function foo() {',
@@ -405,7 +344,6 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 
 	test('Issue #209859: do not do reindentation for tokens inside of a string', () => {
 
-		// issue: https://github.com/microsoft/vscode/issues/209859
 
 		const tokens: StandardTokenTypeData[][] = [
 			[
@@ -435,12 +373,9 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 		assert.deepStrictEqual(editOperations.length, 0);
 	});
 
-	// Failing tests inferred from the current regexes...
 
 	test.skip('Incorrect deindentation after `*/}` string', () => {
 
-		// explanation: If */ was not before the }, the regex does not allow characters before the }, so there would not be an indent
-		// Here since there is */ before the }, the regex allows all the characters before, hence there is a deindent
 
 		const fileContents = [
 			`const obj = {`,
@@ -454,13 +389,9 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 		assert.deepStrictEqual(editOperations.length, 0);
 	});
 
-	// Failing tests from issues...
 
 	test.skip('Issue #56275', () => {
 
-		// issue: https://github.com/microsoft/vscode/issues/56275
-		// explanation: If */ was not before the }, the regex does not allow characters before the }, so there would not be an indent
-		// Here since there is */ before the }, the regex allows all the characters before, hence there is a deindent
 
 		let fileContents = [
 			'function foo() {',
@@ -483,11 +414,7 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 
 	test.skip('Issue #116843', () => {
 
-		// issue: https://github.com/microsoft/vscode/issues/116843
-		// related: https://github.com/microsoft/vscode/issues/43244
-		// explanation: When you have an arrow function, you don't have { or }, but you would expect indentation to still be done in that way
 
-		// TODO: requires exploring indent/outdent pairs instead
 
 		const fileContents = [
 			'const add1 = (n) =>',
@@ -500,8 +427,6 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 
 	test.skip('Issue #185252', () => {
 
-		// issue: https://github.com/microsoft/vscode/issues/185252
-		// explanation: Reindenting the comment correctly
 
 		const fileContents = [
 			'/*',
@@ -515,7 +440,6 @@ suite('Auto-Reindentation - TypeScript/JavaScript', () => {
 
 	test.skip('Issue 43244: incorrect indentation when signature of function call spans several lines', () => {
 
-		// issue: https://github.com/microsoft/vscode/issues/43244
 
 		const fileContents = [
 			'function callSomeOtherFunction(one: number, two: number) { }',

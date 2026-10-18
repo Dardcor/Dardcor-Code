@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface IOmniscientRuntimeSentinelParams {
 	mode?: 'full_tri_layer' | 'lsp_only' | 'terminal_buffer_only' | 'process_health_only';
@@ -41,7 +41,7 @@ interface IPortHealthStatus {
 	httpStatusCode?: number;
 }
 
-export class OmniscientRuntimeSentinelTool implements ICopilotTool<IOmniscientRuntimeSentinelParams> {
+export class OmniscientRuntimeSentinelTool implements IAgentTool<IOmniscientRuntimeSentinelParams> {
 	public static toolName = ToolName.OmniscientRuntimeSentinel;
 
 	constructor(

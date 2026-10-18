@@ -43,12 +43,6 @@ import { ChatAgentLocation } from './constants.js';
 import { ILanguageModelsProviderGroup, ILanguageModelsConfigurationService } from './languageModelsConfiguration.js';
 import { formatDardcorRouterError } from './participants/dardcorRouterError.js';
 
-// ---------------------------------------------------------------------------
-// Dardcor Router fetch helper - dual-host fallback + startup retry
-// Same logic as chatAgents.ts: try 127.0.0.1 first (IPv4), fall back to
-// localhost (which may resolve via IPv6 on some Windows machines), and retry
-// up to 3 times with a 1.2 s pause to absorb Router startup latency.
-// ---------------------------------------------------------------------------
 const _LM_ROUTER_PORT = 25128;
 const _LM_ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
 const _LM_ROUTER_AUTH = { 'Authorization': 'Bearer sk-dardcor-local-key' };
@@ -82,11 +76,7 @@ async function fetchRouterLM(path: string, init?: RequestInit, retries = 8, time
 	throw lastErr;
 }
 
-/**
- * Vendor id used for the built-in GitHub Copilot language model provider. Treated as the default
- * vendor across the chat stack (see `ILanguageModelProviderDescriptor.isDefault`).
- */
-export const COPILOT_VENDOR_ID = 'copilot';
+export const DARD_COR_VENDOR_ID = 'dardcor';
 
 export const AUTO_RAW_MODEL_ID = 'auto';
 
@@ -94,18 +84,10 @@ export function canHideModel(identifier: string, metadata: ILanguageModelChatMet
 	return !metadata.isBYOK && metadata.isUserSelectable !== false;
 }
 
-/** Whether a missing model is conclusively absent from a vendor's live model list. Empty Copilot results remain transient while token-backed discovery completes. */
 export function isLanguageModelVendorAbsenceConclusive(vendor: string, hasLiveModels: boolean, hasResolved: boolean): boolean {
-	return hasLiveModels || (hasResolved && vendor !== COPILOT_VENDOR_ID);
+	return hasLiveModels || (hasResolved && vendor !== DARD_COR_VENDOR_ID);
 }
 
-/**
- * Vendor ids of the BYOK language-model providers that ship in-built with the GitHub Copilot Chat
- * extension. Each provider's vendor id is `providerName.toLowerCase()` (see
- * `extensions/copilot/src/extension/byok/vscode-node/*Provider.ts`). This list is intentionally
- * hardcoded: the in-built provider set is stable and known ahead of time, which lets us report these
- * providers by name while bucketing every other (third-party) provider as `3p-extension`.
- */
 const BUILT_IN_BYOK_VENDOR_IDS = new Set<string>([
 	'openai',
 	'anthropic',
@@ -118,26 +100,14 @@ const BUILT_IN_BYOK_VENDOR_IDS = new Set<string>([
 	'customendpoint',
 ]);
 
-/**
- * Bucket reported for any non-Copilot provider that is not an in-built BYOK provider, i.e. a model
- * contributed by a third-party extension. We never report the third-party vendor id directly to avoid
- * logging potentially identifying values.
- */
 export const THIRD_PARTY_PROVIDER_TELEMETRY_NAME = '3p-extension';
 
 const BUILT_IN_BYOK_EXTENSION_IDS = [
-	'github.copilot-chat',
-	'github.copilot',
+	'GitHub.dardcor-chat',
 ];
 
-/**
- * Normalizes a non-Copilot model vendor into a non-identifying provider name suitable for telemetry:
- * the in-built BYOK vendor id (e.g. `openai`, `ollama`) when contributed by the built-in Copilot
- * extensions, or {@link THIRD_PARTY_PROVIDER_TELEMETRY_NAME} otherwise. Returns `undefined` for the
- * first-party Copilot vendor (or no vendor) so callers skip logging first-party usage.
- */
 export function getByokProviderTelemetryName(vendor: string | undefined, extension: ExtensionIdentifier | undefined): string | undefined {
-	if (!vendor || vendor === COPILOT_VENDOR_ID) {
+	if (!vendor || vendor === DARD_COR_VENDOR_ID) {
 		return undefined;
 	}
 	if (BUILT_IN_BYOK_VENDOR_IDS.has(vendor) && extension && BUILT_IN_BYOK_EXTENSION_IDS.some(id => ExtensionIdentifier.equals(extension, id))) {
@@ -185,20 +155,11 @@ export interface IChatMessageDataPart {
 }
 
 export interface IChatImageURLPart {
-	/**
-	 * The image's MIME type (e.g., "image/png", "image/jpeg").
-	 */
 	mimeType: ChatImageMimeType;
 
-	/**
-	 * The raw binary data of the image, encoded as a Uint8Array. Note: do not use base64 encoding. Maximum image size is 5MB.
-	 */
 	data: VSBuffer;
 }
 
-/**
- * Enum for supported image MIME types.
- */
 export enum ChatImageMimeType {
 	PNG = 'image/png',
 	JPEG = 'image/jpeg',
@@ -207,9 +168,6 @@ export enum ChatImageMimeType {
 	BMP = 'image/bmp',
 }
 
-/**
- * Specifies the detail level of the image.
- */
 export enum ImageDetailLevel {
 	Low = 'low',
 	High = 'high'
@@ -281,9 +239,7 @@ export type IExtendedChatResponsePart = IChatResponsePullRequestPart;
 export interface ILanguageModelConfigurationSchema extends IJSONSchema {
 	properties?: {
 		[key: string]: IJSONSchema & {
-			/** When set to `'navigation'`, the property is shown as a primary action in the model picker. */
 			group?: string;
-			/** Labels for enum values. If provided, these are shown instead of the raw enum values. */
 			enumItemLabels?: string[];
 		};
 	};
@@ -328,61 +284,16 @@ export interface ILanguageModelChatMetadata {
 		readonly agentMode?: boolean;
 		readonly editTools?: ReadonlyArray<string>;
 	};
-	/**
-	 * When set, this model is only shown in the model picker for the specified chat session type.
-	 * Models with this property are excluded from the general model picker and only appear
-	 * when the user is in a session matching this type.
-	 */
 	readonly targetChatSessionType?: string;
-	/**
-	 * Optional grouping hint for the model picker. When set, the picker buckets this model
-	 * under a sub-group within its vendor, identified by this vendor id — e.g. agent-host models,
-	 * which all share one vendor, grouped by their upstream provider — instead of a single
-	 * vendor-wide bucket. The display name is resolved from the vendor registry
-	 * ({@link ILanguageModelsService.getVendors}), the same source used for every other vendor.
-	 * Presentation-only; it does not affect model selection or routing.
-	 */
 	readonly modelGroup?: {
 		readonly id: string;
 		readonly name?: string;
-		/**
-		 * Identifies a trusted source presentation owned by this model's vendor.
-		 * Source ids are resolved together with {@link ILanguageModelChatMetadata.vendor},
-		 * so another vendor cannot claim the same presentation by reusing the id.
-		 */
 		readonly sourceId?: string;
 	};
-	/**
-	 * For an agent-host copy of an extension-provided BYOK model, the identifier the
-	 * original model is registered under in the renderer's LM service
-	 * (`toModelIdentifier(vendor, group, id)` — `<vendor>/<group>/<id>` or `<vendor>/<id>`).
-	 * This is exactly the id the "Manage Models" view keys visibility by; it is carried
-	 * across the agent-host bridge and surfaced here so the model picker can honour the
-	 * model's visibility toggle. Absent for native agent-host models and non-agent-host
-	 * models.
-	 */
 	readonly byokModelIdentifier?: string;
-	/**
-	 * An optional JSON schema describing the per-model configuration options.
-	 * Used to validate user-provided per-model configuration in `chatLanguageModels.json`.
-	 */
 	readonly configurationSchema?: ILanguageModelConfigurationSchema;
-	/**
-	 * Optional warning text to display in the model picker hover as a warning banner.
-	 * The keys are warning categories (e.g. "data_retention") and the values are markdown strings.
-	 */
 	readonly warningText?: IStringDictionary<string>;
-	/**
-	 * Optional informational text to display in the model picker hover as an info banner.
-	 * The keys are info categories and the values are markdown strings.
-	 */
 	readonly infoText?: IStringDictionary<string>;
-	/**
-	 * Optional promotional information for this model. A positive `discountPercent`
-	 * surfaces the full promotional UI; `0` is a message-only promo that features the
-	 * model without a price change; a negative value is malformed and is ignored.
-	 * `endsAt` is optional — open-ended promos omit it and render no end date.
-	 */
 	readonly promo?: {
 		readonly id: string;
 		readonly discountPercent: number;
@@ -402,7 +313,7 @@ export namespace ILanguageModelChatMetadata {
 	}
 
 	export function matchesQualifiedName(name: string, metadata: ILanguageModelChatMetadata): boolean {
-		if (metadata.vendor === COPILOT_VENDOR_ID && name === metadata.name) {
+		if (metadata.vendor === DARD_COR_VENDOR_ID && name === metadata.name) {
 			return true;
 		}
 		return name === asQualifiedName(metadata);
@@ -412,7 +323,6 @@ export namespace ILanguageModelChatMetadata {
 		return !!metadata.promo && metadata.promo.discountPercent > 0;
 	}
 
-	/** Whether the model has a promo message to surface, including message-only (0%) promos. */
 	export function hasPromoMessage(metadata: ILanguageModelChatMetadata): metadata is ILanguageModelChatMetadata & { readonly promo: NonNullable<ILanguageModelChatMetadata['promo']> } {
 		return !!metadata.promo && metadata.promo.discountPercent >= 0 && !!metadata.promo.message;
 	}
@@ -421,7 +331,6 @@ export namespace ILanguageModelChatMetadata {
 		return hasPromoMessage(metadata) && metadata.promo.showBanner !== false;
 	}
 
-	/** The localized "Ends {date}." sentence, or `undefined` for a missing or unparsable end date. */
 	export function getPromoEndsAtLabel(endsAt: string | undefined): string | undefined {
 		if (!endsAt) {
 			return undefined;
@@ -434,20 +343,8 @@ export namespace ILanguageModelChatMetadata {
 		return localize('chat.promo.endsAt', "Ends {0}.", formattedDate);
 	}
 
-	/**
-	 * Documentation link explaining how Auto model selection works.
-	 * NOTE: Also defined in extensions/copilot/src/extension/conversation/common/languageModelAccess.ts — keep in sync.
-	 */
 	export const autoModelSelectionDocsUrl = 'https://docs.github.com/en/copilot/concepts/models/auto-model-selection';
 
-	/**
-	 * Builds the shared description shown for the Auto model, rendered as Markdown
-	 * (it contains a "Learn More" link). The discount sentence is only included
-	 * when a positive discount is provided.
-	 *
-	 * @param discountPercent Whole-number percentage (e.g. `10` for 10%). When
-	 * omitted or not positive, the discount sentence is left out entirely.
-	 */
 	export function getAutoModelDescription(discountPercent?: number): string {
 		const base = localize('autoModel.description', "Auto routes based on your task and real-time system health and model performance.");
 		const learnMore = localize('autoModel.learnMore', "[Learn More]({0})", autoModelSelectionDocsUrl);
@@ -458,20 +355,6 @@ export namespace ILanguageModelChatMetadata {
 		return `${base} ${learnMore}`;
 	}
 
-	/**
-	 * The "Manage Models" identifier that an agent-host copy of an extension-provided
-	 * BYOK model is toggled under, or `undefined` when the model is not such a copy.
-	 *
-	 * Agent-host BYOK models make a round trip that rewrites their id (the node agent host
-	 * re-advertises the extension model under the agent-host vendor). Their original LM
-	 * service identifier — `toModelIdentifier(vendor, group, id)`, i.e. `<vendor>/<group>/<id>`
-	 * or `<vendor>/<id>`, which is what the Manage Models view stores when hiding the model —
-	 * is carried across the bridge and surfaced on {@link ILanguageModelChatMetadata.byokModelIdentifier}.
-	 * This returns it, so callers can match the copy against the user's visibility toggles.
-	 *
-	 * Returns `undefined` for models that are not agent-host BYOK copies (native harness
-	 * models and non-agent-host models), which are matched by their own identifier instead.
-	 */
 	export function getAgentHostByokManageModelsIdentifier(metadata: ILanguageModelChatMetadata): string | undefined {
 		return metadata.byokModelIdentifier;
 	}
@@ -603,25 +486,12 @@ export interface ILanguageModelsService {
 
 	lookupLanguageModel(modelId: string): ILanguageModelChatMetadata | undefined;
 
-	/**
-	 * Find a model by its qualified name. The qualified name is what is used in prompt and agent files and is in the format "Model Name (Vendor)".
-	 */
 	lookupLanguageModelByQualifiedName(qualifiedName: string): ILanguageModelChatMetadataAndIdentifier | undefined;
 
 	getLanguageModelGroups(vendor: string): ILanguageModelsGroup[];
 
-	/**
-	 * Returns true if the given vendor's provider has completed at least one
-	 * model resolution since registration. A `false` result indicates the
-	 * vendor is still in a startup/reload race where its model list isn't yet
-	 * authoritative — callers can fall back to a cached list in that case.
-	 */
 	hasResolvedVendor(vendor: string): boolean;
 
-	/**
-	 * Given a selector, returns a list of model identifiers
-	 * @param selector The selector to lookup for language models. If the selector is empty, all language models are returned.
-	 */
 	selectLanguageModels(selector: ILanguageModelChatSelector): Promise<string[]>;
 
 	registerLanguageModelProvider(vendor: string, provider: ILanguageModelChatProvider): IDisposable;
@@ -632,24 +502,10 @@ export interface ILanguageModelsService {
 
 	computeTokenLength(modelId: string, message: string | IChatMessage, token: CancellationToken): Promise<number>;
 
-	/**
-	 * Returns the resolved per-model configuration for the given model identifier.
-	 * Includes schema defaults with user overrides applied on top.
-	 * Returns undefined if the model has no configuration schema and no user config.
-	 */
 	getModelConfiguration(modelId: string): IStringDictionary<unknown> | undefined;
 
-	/**
-	 * Updates the per-model configuration for the given model.
-	 * Merges the provided values into the existing configuration.
-	 */
 	setModelConfiguration(modelId: string, values: IStringDictionary<unknown>): Promise<void>;
 
-	/**
-	 * Returns actions for configuring the given model based on its configuration schema.
-	 * For enum properties, returns submenu actions with checkable values.
-	 * Returns an empty array if the model has no configuration schema.
-	 */
 	getModelConfigurationActions(modelId: string): IAction[];
 
 	addLanguageModelsProviderGroup(name: string, vendorId: string, configuration: IStringDictionary<unknown> | undefined): Promise<void>;
@@ -666,106 +522,44 @@ export interface ILanguageModelsService {
 
 	openLanguageModelsProviderGroupSettings(vendorId: string, providerGroupName: string): Promise<void>;
 
-	/**
-	 * Opens the language models configuration file and navigates to
-	 * or creates the per-model configuration for the given model.
-	 */
 	configureModel(modelId: string): Promise<void>;
 
 	migrateLanguageModelsProviderGroup(languageModelsProviderGroup: ILanguageModelsProviderGroup): Promise<void>;
 
-	/**
-	 * Returns the most recently used model identifiers, ordered by most-recent-first.
-	 * @param maxCount Maximum number of entries to return (default 7).
-	 */
 	getRecentlyUsedModelIds(): string[];
 
-	/**
-	 * Records that a model was used, updating the recently used list.
-	 */
 	addToRecentlyUsedList(modelIdentifier: string): void;
 
-	/**
-	 * Clears the recently used model list.
-	 */
 	clearRecentlyUsedList(): void;
 
-	/**
-	 * Returns the pinned model identifiers, in the order they were pinned.
-	 */
 	getPinnedModelIds(): string[];
 
-	/**
-	 * Pins a model so it appears in the pinned section of the model picker.
-	 */
 	pinModel(modelIdentifier: string): void;
 
-	/**
-	 * Unpins a model, removing it from the pinned section.
-	 */
 	unpinModel(modelIdentifier: string): void;
 
-	/**
-	 * Returns whether the given model is pinned.
-	 */
 	isModelPinned(modelIdentifier: string): boolean;
 
-	/**
-	 * Fires when the pinned models list changes.
-	 */
 	readonly onDidChangePinnedModels: Event<void>;
 
-	/**
-	 * Returns whether the given model is hidden from the chat model picker.
-	 */
 	isModelHidden(modelIdentifier: string): boolean;
 
-	/**
-	 * Returns whether every resolved model in the given (vendor, groupName)
-	 * bucket is hidden from the chat model picker.
-	 */
 	isGroupHidden(vendor: string, groupName: string): boolean;
 
-	/**
-	 * Hide or show a single model in the chat model picker.
-	 */
 	setModelHidden(modelIdentifier: string, hidden: boolean): void;
 
-	/**
-	 * Hide or show multiple exact model identifiers in the chat model picker.
-	 */
 	setModelsHidden(modelIdentifiers: readonly string[], hidden: boolean): void;
 
-	/**
-	 * Hide or show every model in a (vendor, groupName) bucket.
-	 */
 	setGroupHidden(vendor: string, groupName: string, hidden: boolean): void;
 
-	/**
-	 * Returns the persisted per-model hidden identifiers.
-	 */
 	getHiddenModelIds(): string[];
 
-	/**
-	 * Fires when any model or group visibility state changes.
-	 */
 	readonly onDidChangeModelVisibility: Event<void>;
 
-	/**
-	 * Returns the models from the control manifest,
-	 * separated into free and paid tiers.
-	 */
 	getModelsControlManifest(): IModelsControlManifest;
 
-	/**
-	 * Fires when models control manifest changes.
-	 */
 	readonly onDidChangeModelsControlManifest: Event<IModelsControlManifest>;
 
-	/**
-	 * Observable map of restricted chat participant names to allowed extension publisher/IDs.
-	 * Fetched from the chat control manifest.
-	 */
 	readonly restrictedChatParticipants: IObservable<{ [name: string]: string[] }>;
 }
 
@@ -816,10 +610,14 @@ export const DARDCOR_PROVIDER_DISPLAY_NAMES: { [key: string]: string } = {
 	'kr': 'Kiro',
 	'qoder': 'Qoder',
 	'qd': 'Qoder',
+	'qoder-cn': 'Qoder CN',
+	'qdcn': 'Qoder CN',
 	'kimchi': 'Kimchi',
 	'clinepass': 'Cline',
 	'cline': 'Cline',
+	'cl': 'Cline',
 	'cursor': 'Cursor',
+	'cu': 'Cursor',
 	'zed': 'Zed',
 	'zd': 'Zed',
 	'ollama': 'Ollama',
@@ -867,8 +665,26 @@ export const DARDCOR_PROVIDER_DISPLAY_NAMES: { [key: string]: string } = {
 	'kgw': 'Kilo Gateway',
 	'blackbox': 'Blackbox',
 	'cloudflare-ai': 'Cloudflare',
-	'codebuddy-cn': 'CodeBuddy',
+	'cf': 'Cloudflare',
+	'codebuddy': 'CodeBuddy',
 	'codebuddy-intl': 'CodeBuddy',
+	'cbai': 'CodeBuddy',
+	'codebuddy-cn': 'CodeBuddy CN',
+	'cbcn': 'CodeBuddy CN',
+	'commandcode': 'Command Code',
+	'cmc': 'Command Code',
+	'opencode-zen': 'OpenCode Zen',
+	'ocz': 'OpenCode Zen',
+	'github': 'GitHub',
+	'gh': 'GitHub',
+	'v1m': 'V1M',
+	'tinyfish': 'TinyFish',
+	'atria': 'Atria',
+	'agnes': 'Agnes',
+	'bai': 'BAI',
+	'dahl': 'Dahl',
+	'tokenharbor': 'TokenHarbor',
+	'muse': 'Muse',
 	'morph': 'Morph',
 	'poolside': 'Poolside',
 	'ps': 'Poolside',
@@ -1110,11 +926,6 @@ const languageModelChatProviderType = {
 } as const satisfies IJSONSchema;
 
 export type IUserFriendlyLanguageModel = Omit<TypeFromJsonSchema<typeof languageModelChatProviderType>, 'deprecation'> & {
-	/**
-	 * Marks a provider as deprecated. The Manage Models view renders a link
-	 * (pointing to a replacement, e.g. a `vscode:extension/<publisher>.<name>` URI)
-	 * next to the provider name. Optional so existing provider descriptors are unaffected.
-	 */
 	readonly deprecation?: { readonly link?: string };
 };
 
@@ -1122,14 +933,6 @@ export interface ILanguageModelProviderDescriptor extends IUserFriendlyLanguageM
 	readonly isDefault: boolean;
 }
 
-/**
- * Resolves a provider `deprecation.link` for opening inside the current build. Contributions point
- * at the replacement extension with a stable `vscode:extension/<id>` URI, but the URL service only
- * routes URIs whose scheme matches this build's `urlProtocol` (e.g. `code-oss`, `vscode-insiders`).
- * The `vscode:` scheme is therefore rewritten to the current protocol so the extensions URL handler
- * opens the extension; without this the opener falls back to treating the URI as a (non-existent)
- * file resource and fails. Other schemes (http(s), command) are returned unchanged.
- */
 export function resolveProviderDeprecationLink(link: string, urlProtocol: string | undefined): URI {
 	const uri = URI.parse(link);
 	return uri.scheme === Schemas.vscode && urlProtocol ? uri.with({ scheme: urlProtocol }) : uri;
@@ -1158,10 +961,6 @@ const CHAT_MODEL_RECENTLY_USED_STORAGE_KEY = 'chatModelRecentlyUsed';
 const CHAT_MODEL_PINNED_STORAGE_KEY = 'chatModelPinned';
 const CHAT_MODEL_VISIBILITY_STORAGE_KEY = 'chatModelVisibility';
 
-/**
- * The identifier for the Auto model which dynamically routes to the best backend.
- * Auto should never appear in user-curated lists (MRU, pinned).
- */
 const AUTO_MODEL_IDENTIFIER = 'copilot/auto';
 
 export function isAutoLanguageModel(model: ILanguageModelChatMetadataAndIdentifier | undefined): boolean {
@@ -1180,12 +979,6 @@ interface IChatControlResponse {
 	};
 }
 
-/**
- * Builds the per-model configuration submenu actions from a model's
- * {@link ILanguageModelConfigurationSchema}. The current value is read from
- * `currentConfig` and selections are routed through `setValue`, allowing the
- * caller to decide whether changes apply globally or to a per-editor override.
- */
 export function createModelConfigurationActions(
 	schema: ILanguageModelConfigurationSchema | undefined,
 	currentConfig: IStringDictionary<unknown>,
@@ -1229,7 +1022,6 @@ export function createModelConfigurationActions(
 }
 
 export const DARDCOR_ROUTER_MODEL_NAMES: { [key: string]: string } = {
-	// Antigravity (21 models)
 	'gemini-3.8-flash-high': 'Gemini 3.8 Flash (High)',
 	'gemini-3.8-flash-medium': 'Gemini 3.8 Flash (Medium)',
 	'gemini-3.8-flash-low': 'Gemini 3.8 Flash (Low)',
@@ -1252,7 +1044,6 @@ export const DARDCOR_ROUTER_MODEL_NAMES: { [key: string]: string } = {
 	'gemini-3-flash': 'Gemini 3 Flash',
 	'gemini-3.1-flash-image': 'Gemini 3.1 Flash (Image)',
 
-	// OpenCode Free
 	'big-pickle': 'Big Pickle',
 	'claude-fable-5': 'Claude Fable 5',
 	'claude-fable-5.1': 'Claude Fable 5.1',
@@ -1264,14 +1055,18 @@ export const DARDCOR_ROUTER_MODEL_NAMES: { [key: string]: string } = {
 	'gemini-2.5-flash-free': 'Gemini 2.5 Flash (Free)',
 	'hy3-free': 'HY3 (Free)',
 	'mimo-v2.5-free': 'MiMo V2.5 (Free)',
+	'mimo-v2.6-flash-free': 'MiMo V2.6 Flash (Free)',
+	'space-bunny-free': 'Space Bunny (Free)',
+	'longcat-2.5-preview-free': 'LongCat 2.5 Preview (Free)',
+	'fledge-alpha-free': 'Fledge Alpha (Free)',
+	'ling-3.1-flash-free': 'Ling 3.1 Flash (Free)',
 	'ling-3.0-flash-fin-free': 'Ling 3.0 Flash Fin (Free)',
 	'nemotron-3-ultra-free': 'Nemotron 3 Ultra (Free)',
 	'nemotron-3.5-lightning-free': 'Nemotron 3.5 Lightning (Free)',
 	'laguna-s-2.1-free': 'Laguna S 2.1 (Free)',
-	'muse-spark-1.2-contributor-free': 'Muse Spark 1.2 Contributor Free',
-	'muse-spark-1.3-contributor-free': 'Muse Spark 1.3 Contributor Free',
+	'muse-spark-1.2-contributor-free': 'Muse Spark 1.2 Contributor (Free)',
+	'muse-spark-1.3-contributor-free': 'Muse Spark 1.3 Contributor (Free)',
 
-	// OpenCode Go (18 models)
 	'glm-5.3-flash': 'GLM 5.3 Flash (Vision)',
 	'glm-5.2': 'GLM 5.2',
 	'glm-5.1': 'GLM 5.1',
@@ -1291,7 +1086,6 @@ export const DARDCOR_ROUTER_MODEL_NAMES: { [key: string]: string } = {
 	'muse-spark-1.2-contributor': 'Muse Spark 1.2 Contributor',
 	'muse-spark-1.3-contributor': 'Muse Spark 1.3 Contributor',
 
-	// OpenAI Codex (21 models)
 	'gpt-6-astra': 'GPT 6.0 Astra',
 	'gpt-5.6-sol': 'GPT 5.6 Sol',
 	'gpt-5.6-sol-review': 'GPT 5.6 Sol Review',
@@ -1314,7 +1108,6 @@ export const DARDCOR_ROUTER_MODEL_NAMES: { [key: string]: string } = {
 	'gpt-5.4-image': 'GPT 5.4 Image',
 	'gpt-5.3-image': 'GPT 5.3 Image',
 
-	// Gemini CLI (7 models)
 	'gemini-3.1-pro-preview': 'Gemini 3.1 Pro Preview',
 	'gemini-3-pro-preview': 'Gemini 3 Pro Preview',
 	'gemini-3-flash-preview': 'Gemini 3 Flash Preview',
@@ -1323,7 +1116,6 @@ export const DARDCOR_ROUTER_MODEL_NAMES: { [key: string]: string } = {
 	'gemini-2.5-flash': 'Gemini 2.5 Flash',
 	'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
 
-	// Grok CLI (5 models)
 	'grok-build': 'Grok Build',
 	'grok-4.5': 'Grok 4.5',
 	'grok-4.5-high': 'Grok 4.5 (High)',
@@ -1332,7 +1124,6 @@ export const DARDCOR_ROUTER_MODEL_NAMES: { [key: string]: string } = {
 };
 
 export const DARDCOR_ROUTER_OFFLINE_CATALOG: { id: string; name: string; owned_by: string; capabilities?: { contextWindow?: number; maxOutput?: number; vision?: boolean } }[] = [
-	// Antigravity (21 models)
 	{ id: 'ag/gemini-3.8-flash-high', name: 'Gemini 3.8 Flash (High)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
 	{ id: 'ag/gemini-3.8-flash-medium', name: 'Gemini 3.8 Flash (Medium)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
 	{ id: 'ag/gemini-3.8-flash-low', name: 'Gemini 3.8 Flash (Low)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
@@ -1355,8 +1146,12 @@ export const DARDCOR_ROUTER_OFFLINE_CATALOG: { id: string; name: string; owned_b
 	{ id: 'ag/gemini-3-flash', name: 'Gemini 3 Flash', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
 	{ id: 'ag/gemini-3.1-flash-image', name: 'Gemini 3.1 Flash (Image)', owned_by: 'ag', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
 
-	// OpenCode Free
 	{ id: 'oc/big-pickle', name: 'Big Pickle', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/mimo-v2.6-flash-free', name: 'MiMo V2.6 Flash (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/space-bunny-free', name: 'Space Bunny (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/longcat-2.5-preview-free', name: 'LongCat 2.5 Preview (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/fledge-alpha-free', name: 'Fledge Alpha (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/ling-3.1-flash-free', name: 'Ling 3.1 Flash (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
 	{ id: 'oc/claude-fable-5', name: 'Claude Fable 5', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
 	{ id: 'oc/claude-fable-5.1', name: 'Claude Fable 5.1', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
 	{ id: 'oc/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
@@ -1371,10 +1166,9 @@ export const DARDCOR_ROUTER_OFFLINE_CATALOG: { id: string; name: string; owned_b
 	{ id: 'oc/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
 	{ id: 'oc/nemotron-3.5-lightning-free', name: 'Nemotron 3.5 Lightning (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
 	{ id: 'oc/laguna-s-2.1-free', name: 'Laguna S 2.1 (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
-	{ id: 'oc/muse-spark-1.2-contributor-free', name: 'Muse Spark 1.2 Contributor Free', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
-	{ id: 'oc/muse-spark-1.3-contributor-free', name: 'Muse Spark 1.3 Contributor Free', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/muse-spark-1.2-contributor-free', name: 'Muse Spark 1.2 Contributor (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/muse-spark-1.3-contributor-free', name: 'Muse Spark 1.3 Contributor (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
 
-	// OpenCode Go (18 models)
 	{ id: 'ocg/glm-5.3-flash', name: 'GLM 5.3 Flash (Vision)', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
 	{ id: 'ocg/glm-5.2', name: 'GLM 5.2', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
 	{ id: 'ocg/glm-5.1', name: 'GLM 5.1', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
@@ -1394,7 +1188,6 @@ export const DARDCOR_ROUTER_OFFLINE_CATALOG: { id: string; name: string; owned_b
 	{ id: 'ocg/muse-spark-1.2-contributor', name: 'Muse Spark 1.2 Contributor', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
 	{ id: 'ocg/muse-spark-1.3-contributor', name: 'Muse Spark 1.3 Contributor', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
 
-	// OpenAI Codex (21 models)
 	{ id: 'cx/gpt-6-astra', name: 'GPT 6.0 Astra', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
 	{ id: 'cx/gpt-5.6-sol', name: 'GPT 5.6 Sol', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
 	{ id: 'cx/gpt-5.6-sol-review', name: 'GPT 5.6 Sol Review', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
@@ -1417,7 +1210,6 @@ export const DARDCOR_ROUTER_OFFLINE_CATALOG: { id: string; name: string; owned_b
 	{ id: 'cx/gpt-5.4-image', name: 'GPT 5.4 Image', owned_by: 'cx', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
 	{ id: 'cx/gpt-5.3-image', name: 'GPT 5.3 Image', owned_by: 'cx', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
 
-	// Gemini CLI (7 models)
 	{ id: 'gc/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
 	{ id: 'gc/gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
 	{ id: 'gc/gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
@@ -1426,7 +1218,6 @@ export const DARDCOR_ROUTER_OFFLINE_CATALOG: { id: string; name: string; owned_b
 	{ id: 'gc/gemini-2.5-flash', name: 'Gemini 2.5 Flash', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
 	{ id: 'gc/gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
 
-	// Grok CLI (5 models)
 	{ id: 'gcli/grok-build', name: 'Grok Build', owned_by: 'gcli', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
 	{ id: 'gcli/grok-4.5', name: 'Grok 4.5', owned_by: 'gcli', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
 	{ id: 'gcli/grok-4.5-high', name: 'Grok 4.5 (High)', owned_by: 'gcli', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
@@ -1446,7 +1237,6 @@ export class LanguageModelsService implements ILanguageModelsService {
 	private readonly _providers = new Map<string, ILanguageModelChatProvider>();
 	private readonly _vendors = new Map<string, ILanguageModelProviderDescriptor>();
 
-	/** Vendors for which a deprecation notice has already been shown this session. */
 	private readonly _deprecationNoticeShownVendors = new Set<string>();
 
 	private readonly _onDidChangeLanguageModelVendors = this._store.add(new Emitter<string[]>());
@@ -1539,7 +1329,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 			const seen = new Set<string>();
 			for (const m of list) {
 				let id = typeof m === 'string' ? m : (m.id || m.name || '');
-				if (typeof id === 'string' && id.toLowerCase().endsWith('-free') && !id.includes('/')) id = `oc/${id}`;
+				if (typeof id === 'string' && (id.toLowerCase().endsWith('-free') || id.toLowerCase() === 'big-pickle') && !id.includes('/')) id = `oc/${id}`;
 				if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
 
 				const lowerId = id.toLowerCase();
@@ -1613,7 +1403,6 @@ export class LanguageModelsService implements ILanguageModelsService {
 			return false;
 		};
 
-		// Load cached models if previously saved by an active session
 		try {
 			const cachedRaw = this._storageService.get(DARDCOR_MODELS_CACHE_STORAGE_KEY, StorageScope.APPLICATION);
 			if (cachedRaw) {
@@ -1623,7 +1412,6 @@ export class LanguageModelsService implements ILanguageModelsService {
 				}
 			}
 		} catch {
-			// ignore parse error
 		}
 
 		let hasReceivedLiveModels = false;
@@ -1649,7 +1437,6 @@ export class LanguageModelsService implements ILanguageModelsService {
 								this._storageService.remove(DARDCOR_MODELS_CACHE_STORAGE_KEY, StorageScope.APPLICATION);
 							}
 						} catch {
-							// ignore storage error
 						}
 						this._onLanguageModelChange.fire('dardcor');
 						onDidChangeDardcorProvider.fire();
@@ -1657,15 +1444,12 @@ export class LanguageModelsService implements ILanguageModelsService {
 					}
 				}
 			} catch {
-				// ignore network/timeout error
 			}
 			return false;
 		};
 
-		// Immediate check
 		void fetchLocalModels();
 
-		// Fast startup polling: retry rapidly while Dardcor Router is booting up
 		let startupPollCount = 0;
 		const startupPollTimer = setInterval(async () => {
 			startupPollCount++;
@@ -1677,7 +1461,6 @@ export class LanguageModelsService implements ILanguageModelsService {
 		}, 800);
 		this._store.add(toDisposable(() => clearInterval(startupPollTimer)));
 
-		// Real-time polling: 2s interval to ensure provider toggles & new models appear in real-time
 		let activePollTimer: any = undefined;
 		const scheduleNextPoll = () => {
 			if (activePollTimer) clearTimeout(activePollTimer);
@@ -1692,7 +1475,6 @@ export class LanguageModelsService implements ILanguageModelsService {
 			if (activePollTimer) clearTimeout(activePollTimer);
 		}));
 
-		// Instant sync on window focus (e.g. returning from Dardcor Router dashboard)
 		if (typeof window !== 'undefined') {
 			const onWindowFocus = () => { void fetchLocalModels(); };
 			window.addEventListener('focus', onWindowFocus);
@@ -1717,7 +1499,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 			sendChatRequest: async (modelId: string, messages: IChatMessage[], _from: ExtensionIdentifier | undefined, _options: ILanguageModelChatRequestOptions, token: CancellationToken): Promise<ILanguageModelChatResponse> => {
 				let resolvedModel = modelId;
 				if (resolvedModel.toLowerCase().startsWith('opencode/')) resolvedModel = `oc/${resolvedModel.slice('opencode/'.length)}`;
-				if (resolvedModel.toLowerCase().endsWith('-free') && !resolvedModel.includes('/')) resolvedModel = `oc/${resolvedModel}`;
+				if ((resolvedModel.toLowerCase().endsWith('-free') || resolvedModel.toLowerCase() === 'big-pickle') && !resolvedModel.includes('/')) resolvedModel = `oc/${resolvedModel}`;
 				if (resolvedModel === 'opencode/no-model-selected' || resolvedModel === 'auto' || !resolvedModel) {
 					const firstAvailable = localDardcorRouterModelIds.values().next().value;
 					if (firstAvailable) {
@@ -1743,7 +1525,8 @@ export class LanguageModelsService implements ILanguageModelsService {
 Always identify yourself as Dardcor Code when asked who you are, what model or AI you are, or your identity. You were created by Dardcor.
 Never state that you are Grok, ChatGPT, Claude, Gemini, or any other third-party model.
 Assist developers with coding, debugging, architecture, refactoring, and software development with precision and depth.
-Automatically detect the user's language and respond fluently in the exact same language (e.g. Bahasa Indonesia, English, Japanese, etc.) for all outputs, explanations, reasoning, and summaries.`;
+Automatically detect the user's language and respond fluently in the exact same language (e.g. Bahasa Indonesia, English, Japanese, etc.) for all outputs, explanations, reasoning, and summaries.
+Format all responses cleanly using standard markdown paragraphs, bullet points (-), and code blocks. Never wrap normal introductory text, conversational greetings, bullet lists, or summary points in blockquote (>) tags.`;
 
 				const systemIndex = formattedMessages.findIndex(m => m.role === 'system');
 				if (systemIndex >= 0) {
@@ -1925,11 +1708,10 @@ Automatically detect the user's language and respond fluently in the exact same 
 				managementCommand: item.managementCommand,
 				deprecation: item.deprecation,
 				when: item.when,
-				isDefault: item.vendor === COPILOT_VENDOR_ID || item.vendor === 'dardcor'
+				isDefault: item.vendor === DARD_COR_VENDOR_ID
 			};
 			this._vendors.set(item.vendor, vendor);
 			addedVendorIds.push(item.vendor);
-			// Have some models we want from this vendor, so activate the extension
 		}
 
 		for (const item of removed) {
@@ -1965,7 +1747,7 @@ Automatically detect the user's language and respond fluently in the exact same 
 		return Array.from(this._vendors.values())
 			.filter(vendor => {
 				if (!vendor.when) {
-					return true; // No when clause means always visible
+					return true;
 				}
 				const whenClause = ContextKeyExpr.deserialize(vendor.when);
 				return whenClause ? this._contextKeyService.contextMatchesRules(whenClause) : false;
@@ -1997,13 +1779,8 @@ Automatically detect the user's language and respond fluently in the exact same 
 			return;
 		}
 
-		// If a provider is already registered (e.g. a renderer-side provider
-		// such as the agent host), skip the activation wait — there's nothing
-		// more for an extension to contribute, and waiting would block on
-		// extension host startup unnecessarily.
 		let provider = this._providers.get(vendorId);
 		if (!provider) {
-			// Activate extensions before requesting to resolve the models
 			await this._extensionService.activateByEvent(`onLanguageModelChatProvider:${vendorId}`);
 			provider = this._providers.get(vendorId);
 		}
@@ -2024,7 +1801,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 					const modelIdentifiers = [];
 					for (const m of models) {
 						if (vendor.isDefault) {
-							// Special case for copilot models - they are all user selectable unless marked otherwise
 							if (m.metadata.isUserSelectable !== false) {
 								modelIdentifiers.push(m.identifier);
 							} else {
@@ -2053,16 +1829,11 @@ Automatically detect the user's language and respond fluently in the exact same 
 					continue;
 				}
 
-				// For vendors without a configuration schema whose models were already
-				// resolved in the initial (groupless) load, groups only carry per-model
-				// settings and should not trigger a separate model resolution call.
-				// Instead, apply the per-model config to the already-resolved models.
 				if (!vendor.configuration && allModels.length > 0) {
 					if (group.settings) {
 						for (const model of allModels) {
 							const modelConfig = group.settings[model.metadata.id];
 							if (modelConfig) {
-								// Store raw config (without resolving secrets) to avoid leaking secrets on persist
 								perModelConfigurations.set(model.identifier, { ...modelConfig });
 							}
 						}
@@ -2076,12 +1847,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 				try {
 					const models = await provider.provideLanguageModelChatInfo({ group: group.name, silent, configuration }, CancellationToken.None);
 					if (models.length) {
-						// Provide a sensible default for `metadata.detail` so that
-						// multiple instances of the same vendor (e.g. multiple
-						// Ollama servers) are distinguishable in the model picker.
-						// Providers that supply their own `detail` keep it; when
-						// the provider does not set one, fall back to the user-
-						// configured group name.
 						for (let i = 0; i < models.length; i++) {
 							if (!models[i].metadata.detail) {
 								models[i] = { ...models[i], metadata: { ...models[i].metadata, detail: group.name } };
@@ -2091,12 +1856,10 @@ Automatically detect the user's language and respond fluently in the exact same 
 						languageModelsGroups.push({ group, modelIdentifiers: models.map(m => m.identifier) });
 					}
 
-					// Collect per-model configurations from the group
 					if (group.settings) {
 						for (const model of models) {
 							const modelConfig = group.settings[model.metadata.id];
 							if (modelConfig) {
-								// Store raw config (without resolving secrets) to avoid leaking secrets on persist
 								perModelConfigurations.set(model.identifier, { ...modelConfig });
 							}
 						}
@@ -2113,7 +1876,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 				}
 			}
 
-			// Always merge the live Dardcor Router catalog.
 			if (vendorId === 'dardcor') {
 				allModels.length = 0;
 				languageModelsGroups.length = 0;
@@ -2129,14 +1891,14 @@ Automatically detect the user's language and respond fluently in the exact same 
 						const seen = new Set<string>();
 						for (const m of list) {
 							let id = typeof m === 'string' ? m : (m.id || m.name || '');
-							if (typeof id === 'string' && id.toLowerCase().endsWith('-free') && !id.includes('/')) id = `oc/${id}`;
+							if (typeof id === 'string' && (id.toLowerCase().endsWith('-free') || id.toLowerCase() === 'big-pickle') && !id.includes('/')) id = `oc/${id}`;
 							if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
 
 							const canonical = id.toLowerCase();
 							if (seen.has(canonical)) continue;
 							seen.add(canonical);
 
-							let clean = id.replace(/^(ag|oc|ds|opencode|cx|codex|gc|gemini|gcli|xai)\//i, '');
+							let clean = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
 							const rawRouterName = (typeof m === 'object' && m.name && typeof m.name === 'string' && m.name.trim().length > 0) ? m.name.trim() : '';
 							const routerName = DARDCOR_ROUTER_MODEL_NAMES[id] || DARDCOR_ROUTER_MODEL_NAMES[clean] || ((rawRouterName && rawRouterName !== id && rawRouterName !== clean) ? rawRouterName : undefined);
 							const name = routerName || clean.split(/[-_]/).map((part: string) => {
@@ -2197,7 +1959,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 						}
 					}
 				} catch {
-					// ignore
 				}
 			}
 
@@ -2219,13 +1980,10 @@ Automatically detect the user's language and respond fluently in the exact same 
 			this._logService.trace(`[LM] Resolved language models for vendor ${vendorId}`, allModels);
 			hasChanges = hasChanges || oldModels.size > 0;
 
-			// Also detect group structure changes (added/removed groups, status changes)
-			// so the UI updates even when individual models haven't changed
 			if (!hasChanges) {
 				hasChanges = this._hasGroupStructureChanged(oldGroups, languageModelsGroups);
 			}
 
-			// Update per-model configurations for this vendor
 			this._clearModelConfigurations(vendorId);
 			for (const [identifier, config] of perModelConfigurations) {
 				if (this._modelCache.has(identifier)) {
@@ -2298,7 +2056,7 @@ Automatically detect the user's language and respond fluently in the exact same 
 		if (!this._vendors.has(vendor)) {
 			this._vendors.set(vendor, {
 				vendor,
-				displayName: vendor === 'copilot' || vendor === 'dardcor' ? 'No Model Selected' : vendor,
+				displayName: vendor === DARD_COR_VENDOR_ID ? 'No Model Selected' : vendor,
 				configuration: undefined,
 				managementCommand: undefined,
 				deprecation: undefined,
@@ -2338,11 +2096,8 @@ Automatically detect the user's language and respond fluently in the exact same 
 			}
 		}
 		let provider = this._providers.get(metadata?.vendor || '');
-		if (!provider && this._providers.has('dardcor')) {
-			provider = this._providers.get('dardcor');
-		}
-		if (!provider && this._providers.has(COPILOT_VENDOR_ID)) {
-			provider = this._providers.get(COPILOT_VENDOR_ID);
+		if (!provider && this._providers.has(DARD_COR_VENDOR_ID)) {
+			provider = this._providers.get(DARD_COR_VENDOR_ID);
 		}
 		if (!provider && this._providers.size > 0) {
 			provider = this._providers.values().next().value;
@@ -2359,12 +2114,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 		return provider.sendChatRequest(modelId, messages, from, mergedOptions, token);
 	}
 
-	/**
-	 * When a chat request is made against a deprecated provider (one that contributes a
-	 * `deprecation.link`), prompt the user once per session to install the replacement
-	 * extension. The notification can be dismissed, and offers a "Don't Show Again" choice that
-	 * is persisted across sessions via the notification service's `neverShowAgain` support.
-	 */
 	private _maybeShowProviderDeprecationNotice(metadata: ILanguageModelChatMetadata): void {
 		const vendor = this._vendors.get(metadata.vendor);
 		const link = vendor?.deprecation?.link;
@@ -2390,10 +2139,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 		);
 	}
 
-	/**
-	 * Reports which in-built BYOK provider (or third-party extension) backs a model request. First-party
-	 * Copilot models are intentionally not reported here (see {@link getByokProviderTelemetryName}).
-	 */
 	private _logProviderUsageTelemetry(metadata: ILanguageModelChatMetadata | undefined): void {
 		const provider = getByokProviderTelemetryName(metadata?.vendor, metadata?.extension);
 		if (!provider) {
@@ -2423,7 +2168,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 			return undefined;
 		}
 
-		// Start with schema defaults
 		const defaults: IStringDictionary<unknown> = {};
 		if (schema?.properties) {
 			for (const [key, propSchema] of Object.entries(schema.properties)) {
@@ -2437,7 +2181,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 			return undefined;
 		}
 
-		// User config overrides defaults
 		return { ...defaults, ...userConfig };
 	}
 
@@ -2464,18 +2207,11 @@ Automatically detect the user's language and respond fluently in the exact same 
 			return;
 		}
 
-		// Find the group from the configuration service (source of truth)
 		const allGroups = this._languageModelsConfigurationService.getLanguageModelsProviderGroups();
 		let group: ILanguageModelsProviderGroup | undefined;
 
-		// First try to find a group that already has config for this model.
 		group = allGroups.find(g => g.vendor === metadata.vendor && g.settings?.[metadata.id] !== undefined);
 
-		// Otherwise find the group that actually *defines* this model. Several
-		// groups can share the same `vendor` (e.g. multiple `customendpoint`
-		// providers like DeepSeek and MyCustom), so matching by vendor alone would
-		// write the config to the first group of that vendor — not the one the
-		// model belongs to. Resolve via the model→group map instead. See #322872.
 		if (!group) {
 			const vendorGroups = this._modelsGroups.get(metadata.vendor);
 			const containingGroup = vendorGroups?.find(vg => vg.modelIdentifiers.includes(modelId) && vg.group)?.group;
@@ -2484,13 +2220,10 @@ Automatically detect the user's language and respond fluently in the exact same 
 			}
 		}
 
-		// As a last resort (model not yet resolved into any group), fall back to
-		// any group for this vendor.
 		if (!group) {
 			group = allGroups.find(g => g.vendor === metadata.vendor);
 		}
 
-		// Merge new values into existing config, removing properties set to their schema default
 		const existingConfig = this._modelConfigurations.get(modelId) ?? {};
 		const updatedConfig = { ...existingConfig, ...values };
 		const schema = metadata.configurationSchema;
@@ -2517,15 +2250,11 @@ Automatically detect the user's language and respond fluently in the exact same 
 				settings: Object.keys(updatedSettings).length > 0 ? updatedSettings : undefined
 			};
 			if (!updatedGroup.settings && Object.keys(updatedGroup).filter(k => k !== 'name' && k !== 'vendor' && k !== 'range' && k !== 'modelsRange' && k !== 'settings').length === 0) {
-				// Remove the group entirely if it only had model config
 				await this._languageModelsConfigurationService.removeLanguageModelsProviderGroup(group);
 			} else {
 				await this._languageModelsConfigurationService.updateLanguageModelsProviderGroup(group, updatedGroup);
 			}
 		} else if (Object.keys(updatedConfig).length > 0) {
-			// Only create a new group if there's non-default config
-			// Use _vendors directly instead of getVendors() which filters by `when` clause,
-			// because we need to store config for all vendors regardless of UI visibility.
 			const vendor = this._vendors.get(metadata.vendor);
 			if (!vendor) {
 				return;
@@ -2538,14 +2267,12 @@ Automatically detect the user's language and respond fluently in the exact same 
 			await this._languageModelsConfigurationService.addLanguageModelsProviderGroup(newGroup);
 		}
 
-		// Update the in-memory cache
 		if (Object.keys(updatedConfig).length > 0) {
 			this._modelConfigurations.set(modelId, updatedConfig);
 		} else {
 			this._modelConfigurations.delete(modelId);
 		}
 
-		// Notify listeners so UI (e.g., model picker label) updates
 		this._onLanguageModelChange.fire(metadata.vendor);
 	}
 
@@ -2700,7 +2427,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 			return;
 		}
 
-		// Find the group that contains this model
 		const vendorGroups = this._modelsGroups.get(metadata.vendor);
 		let group: ILanguageModelsProviderGroup | undefined;
 		if (vendorGroups) {
@@ -2712,7 +2438,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 			}
 		}
 
-		// If the model doesn't belong to any configured group, create one
 		if (!group) {
 			const vendor = this.getVendors().find(v => v.vendor === metadata.vendor);
 			if (!vendor) {
@@ -2724,7 +2449,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 			await this._resolveAllLanguageModels(metadata.vendor, true);
 		}
 
-		// Generate a snippet for the model's configuration schema
 		const snippet = this._getModelConfigurationSnippet(metadata.id, metadata.configurationSchema);
 		await this._languageModelsConfigurationService.configureLanguageModels({ group, snippet });
 	}
@@ -2954,8 +2678,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 		if (!md) {
 			return undefined;
 		}
-		// Quick input renders plain text only. Strip the inline markdown features used by
-		// our schemas (inline code, bold/italic, links) so users see readable help.
 		return md
 			.replace(/`([^`]+)`/g, '$1')
 			.replace(/\*\*([^*]+)\*\*/g, '$1')
@@ -3095,7 +2817,7 @@ Automatically detect the user's language and respond fluently in the exact same 
 			});
 
 			if (!value) {
-				return undefined; // User cancelled
+				return undefined;
 			}
 
 			if (propertySchema.type === 'number' || propertySchema.type === 'integer') {
@@ -3215,7 +2937,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 		await this.addLanguageModelsProviderGroup(name, vendor, configuration);
 	}
 
-	//#region Recently used models
 
 	private _readRecentlyUsedModels(): string[] {
 		return this._storageService.getObject<string[]>(CHAT_MODEL_RECENTLY_USED_STORAGE_KEY, StorageScope.PROFILE, []);
@@ -3226,7 +2947,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 	}
 
 	getRecentlyUsedModelIds(): string[] {
-		// Filter to only include models that still exist in the cache
 		return this._recentlyUsedModelIds
 			.filter(id => this._modelCache.has(id) && id !== AUTO_MODEL_IDENTIFIER)
 			.slice(0, 4);
@@ -3237,14 +2957,11 @@ Automatically detect the user's language and respond fluently in the exact same 
 			return;
 		}
 
-		// Remove if already present (to move to front)
 		const index = this._recentlyUsedModelIds.indexOf(modelIdentifier);
 		if (index !== -1) {
 			this._recentlyUsedModelIds.splice(index, 1);
 		}
-		// Add to front
 		this._recentlyUsedModelIds.unshift(modelIdentifier);
-		// Cap at a reasonable max to avoid unbounded growth
 		if (this._recentlyUsedModelIds.length > 20) {
 			this._recentlyUsedModelIds.length = 20;
 		}
@@ -3256,9 +2973,7 @@ Automatically detect the user's language and respond fluently in the exact same 
 		this._saveRecentlyUsedModels();
 	}
 
-	//#endregion
 
-	//#region Pinned models
 
 	private _readPinnedModels(): string[] {
 		return this._storageService.getObject<string[]>(CHAT_MODEL_PINNED_STORAGE_KEY, StorageScope.PROFILE, []);
@@ -3295,9 +3010,7 @@ Automatically detect the user's language and respond fluently in the exact same 
 		return modelIdentifier !== AUTO_MODEL_IDENTIFIER && this._pinnedModelIds.includes(modelIdentifier);
 	}
 
-	//#endregion
 
-	//#region Model visibility
 
 	private _getGroupNameForVendor(vendor: string): string {
 		return this._vendors.get(vendor)?.displayName ?? vendor;
@@ -3314,13 +3027,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 			const name = g.group?.name ?? fallbackName;
 			if (name === groupName) {
 				for (const id of g.modelIdentifiers) {
-					// Exclude agent-host BYOK copies. They are not shown as rows in this
-					// group (they surface under their real provider), so group-level
-					// visibility toggles (`isGroupHidden` / `setGroupHidden`) must not
-					// touch them — otherwise hiding the agent-host group would flip the
-					// hidden state of these copies in the underlying model set even though
-					// the UI never lists them here. Their visibility is owned by the real
-					// provider row and honoured in the picker via the reconstructed id.
 					const metadata = this._modelCache.get(id);
 					if (metadata && ILanguageModelChatMetadata.getAgentHostByokManageModelsIdentifier(metadata) !== undefined) {
 						continue;
@@ -3385,9 +3091,7 @@ Automatically detect the user's language and respond fluently in the exact same 
 		return Array.from(this._hiddenModelIds);
 	}
 
-	//#endregion
 
-	//#region Models control manifest
 
 	getModelsControlManifest(): IModelsControlManifest {
 		return this._modelsControlManifest;
@@ -3427,14 +3131,12 @@ Automatically detect the user's language and respond fluently in the exact same 
 		this._onDidChangeModelsControlManifest.fire(this._modelsControlManifest);
 	}
 
-	//#region Chat control data
 	private _initChatControlData(): void {
 		this._chatControlUrl = this._productService.chatParticipantRegistry;
 		if (!this._chatControlUrl) {
 			return;
 		}
 
-		// Restore participant registry from storage
 		const raw = this._storageService.get(CHAT_PARTICIPANT_NAME_REGISTRY_STORAGE_KEY, StorageScope.APPLICATION);
 		try {
 			this._restrictedChatParticipants.set(JSON.parse(raw ?? '{}'), undefined);
@@ -3442,7 +3144,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 			this._storageService.remove(CHAT_PARTICIPANT_NAME_REGISTRY_STORAGE_KEY, StorageScope.APPLICATION);
 		}
 
-		// Restore models control manifest from storage
 		const rawModels = this._storageService.get(CHAT_MODELS_CONTROL_STORAGE_KEY, StorageScope.APPLICATION);
 		try {
 			const models = JSON.parse(rawModels ?? '{}');
@@ -3463,7 +3164,7 @@ Automatically detect the user's language and respond fluently in the exact same 
 
 		this._fetchChatControlData()
 			.catch(err => this._logService.warn('Failed to fetch chat control data', err))
-			.then(() => timeout(5 * 60 * 1000)) // every 5 minutes
+			.then(() => timeout(5 * 60 * 1000))
 			.then(() => this._refreshChatControlData());
 	}
 
@@ -3498,12 +3199,10 @@ Automatically detect the user's language and respond fluently in the exact same 
 			return;
 		}
 
-		// Update restricted chat participants
 		const registry = result.restrictedChatParticipants;
 		this._restrictedChatParticipants.set(registry, undefined);
 		this._storageService.store(CHAT_PARTICIPANT_NAME_REGISTRY_STORAGE_KEY, JSON.stringify(registry), StorageScope.APPLICATION, StorageTarget.MACHINE);
 
-		// Update models control manifest
 		if (result.models) {
 			this._logService.trace('[LM] Updating models control manifest', { freeCount: Object.keys(result.models.free ?? {}).length, paidCount: Object.keys(result.models.paid ?? {}).length });
 			this._setModelsControlManifest(result.models);
@@ -3511,7 +3210,6 @@ Automatically detect the user's language and respond fluently in the exact same 
 		}
 	}
 
-	//#endregion
 
 	dispose() {
 		this._chatControlDisposed = true;

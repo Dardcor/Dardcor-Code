@@ -182,24 +182,9 @@ suite('Instantiation Service', () => {
 		});
 	});
 
-	// we made this a warning
-	// test('@Param - too many args', function () {
-	// 	let service = instantiationService.create(Object.create(null));
-	// 	service.addSingleton(IService1, new Service1());
-	// 	service.addSingleton(IService2, new Service2());
-	// 	service.addSingleton(IService3, new Service3());
 
-	// 	assert.throws(() => service.createInstance(ParameterTarget2, true, 2));
-	// });
 
-	// test('@Param - too few args', function () {
-	// 	let service = instantiationService.create(Object.create(null));
-	// 	service.addSingleton(IService1, new Service1());
-	// 	service.addSingleton(IService2, new Service2());
-	// 	service.addSingleton(IService3, new Service3());
 
-	// 	assert.throws(() => service.createInstance(ParameterTarget2));
-	// });
 
 	test('SyncDesc - no dependencies', function () {
 		const collection = new ServiceCollection();
@@ -343,22 +328,18 @@ suite('Instantiation Service', () => {
 			}
 		};
 
-		// creating the service instance BEFORE the child service
 		let service = new InstantiationService(new ServiceCollection([IService1, new SyncDescriptor(CtorCounter)]));
 		service.createInstance(Service1Consumer);
 
-		// second instance must be earlier ONE
 		let child = service.createChild(new ServiceCollection([IService2, new Service2()]));
 		child.createInstance(Service1Consumer);
 
 		assert.strictEqual(serviceInstanceCount, 1);
 
-		// creating the service instance AFTER the child service
 		serviceInstanceCount = 0;
 		service = new InstantiationService(new ServiceCollection([IService1, new SyncDescriptor(CtorCounter)]));
 		child = service.createChild(new ServiceCollection([IService2, new Service2()]));
 
-		// second instance must be earlier ONE
 		service.createInstance(Service1Consumer);
 		child.createInstance(Service1Consumer);
 
@@ -370,7 +351,7 @@ suite('Instantiation Service', () => {
 		const Service1 = createDecorator<any>('service1');
 		class Service1Impl {
 			constructor(@IInstantiationService insta: IInstantiationService) {
-				const c = insta.invokeFunction(accessor => accessor.get(Service2)); // THIS is the recursive call
+				const c = insta.invokeFunction(accessor => accessor.get(Service2));
 				assert.ok(c);
 			}
 		}
@@ -379,8 +360,6 @@ suite('Instantiation Service', () => {
 			constructor() { }
 		}
 
-		// This service depends on Service1 and Service2 BUT creating Service1 creates Service2 (via recursive invocation)
-		// and then Servce2 should not be created a second time
 		const Service21 = createDecorator<any>('service21');
 		class Service21Impl {
 			constructor(@Service2 public readonly service2: Service2Impl, @Service1 public readonly service1: Service1Impl) { }
@@ -431,7 +410,6 @@ suite('Instantiation Service', () => {
 			b() { return true; }
 		}
 
-		// SYNC -> explodes AImpl -> [insta:BConsumer] -> BImpl -> AImpl
 		{
 			const insta1 = new InstantiationService(new ServiceCollection(
 				[A, new SyncDescriptor(AService)],
@@ -448,7 +426,6 @@ suite('Instantiation Service', () => {
 			}
 		}
 
-		// ASYNC -> doesn't explode but cycle is tracked
 		{
 			const insta2 = new InstantiationService(new ServiceCollection(
 				[A, new SyncDescriptor(AService, undefined, true)],
@@ -495,14 +472,12 @@ suite('Instantiation Service', () => {
 
 		class Consumer {
 			constructor(@A public readonly a: A) {
-				// eager subscribe -> NO service instance
 			}
 		}
 
 		const c: Consumer = insta.createInstance(Consumer);
 		let eventCount = 0;
 
-		// subscribing to event doesn't trigger instantiation
 		const listener = (e: any) => {
 			assert.ok(e instanceof AImpl);
 			eventCount++;
@@ -513,7 +488,6 @@ suite('Instantiation Service', () => {
 		assert.strictEqual(eventCount, 0);
 		d2.dispose();
 
-		// instantiation happens on first call
 		c.a.doIt();
 		assert.strictEqual(created, true);
 		assert.strictEqual(eventCount, 1);
@@ -563,14 +537,12 @@ suite('Instantiation Service', () => {
 
 		class Consumer {
 			constructor(@A public readonly a: A) {
-				// eager subscribe -> NO service instance
 			}
 		}
 
 		const c: Consumer = insta.createInstance(Consumer);
 		let eventCount = 0;
 
-		// subscribing to event doesn't trigger instantiation
 		const listener = (e: any) => {
 			assert.ok(e instanceof AImpl);
 			eventCount++;
@@ -578,7 +550,6 @@ suite('Instantiation Service', () => {
 
 		const event = c.a.onDidDoIt;
 
-		// const d1 = c.a.onDidDoIt(listener);
 		assert.strictEqual(created, false);
 
 		c.a.noop();
@@ -589,7 +560,6 @@ suite('Instantiation Service', () => {
 		c.a.doIt();
 
 
-		// instantiation happens on first call
 		assert.strictEqual(eventCount, 1);
 
 		dispose(d1);
@@ -626,14 +596,12 @@ suite('Instantiation Service', () => {
 
 		class Consumer {
 			constructor(@A public readonly a: A) {
-				// eager subscribe -> NO service instance
 			}
 		}
 
 		const c: Consumer = insta.createInstance(Consumer);
 		let eventCount = 0;
 
-		// subscribing to event doesn't trigger instantiation
 		const listener = (e: any) => {
 			assert.ok(e instanceof AImpl);
 			eventCount++;
@@ -645,7 +613,6 @@ suite('Instantiation Service', () => {
 
 		c.a.doIt();
 
-		// instantiation happens on first call
 		assert.strictEqual(created, true);
 		assert.strictEqual(eventCount, 1);
 
@@ -774,7 +741,7 @@ suite('Instantiation Service', () => {
 
 		insta2.dispose();
 
-		assert.ok(insta1.createInstance(Consumer)); // parent NOT disposed by child
+		assert.ok(insta1.createInstance(Consumer));
 		assert.throws(() => insta2.createInstance(Consumer));
 	});
 
@@ -809,7 +776,7 @@ suite('Instantiation Service', () => {
 
 		insta1.dispose();
 
-		assert.throws(() => insta2.createInstance(Consumer)); // child is disposed by parent
+		assert.throws(() => insta2.createInstance(Consumer));
 		assert.throws(() => insta1.createInstance(Consumer));
 	});
 

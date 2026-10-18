@@ -54,8 +54,6 @@ suite('Agent SDK setup channel', () => {
 		assert.deepStrictEqual(readAgentSdkSetupInfos({
 			agents: [],
 			_meta: {
-				// An empty provider name would render a "Sign in to " button, so it is
-				// dropped like a wrong type rather than passed through.
 				[agentSdkSetupStatusKey('claude')]: { download: 'ready', setupDocsUrl: 42, signInProviderName: '' },
 			},
 		}), [
@@ -69,8 +67,6 @@ suite('Agent SDK setup channel', () => {
 		assert.strictEqual(isAgentSdkSetupRequestFor({ agent: 'claude', request: '' }, 'claude'), false);
 		assert.strictEqual(isAgentSdkSetupRequestFor({ agent: 'claude' }, 'claude'), false);
 		assert.strictEqual(isAgentSdkSetupRequestFor(undefined, 'claude'), false);
-		// The key is cleared by writing `undefined`, which is what a consumed
-		// request looks like on the next change event.
 		assert.strictEqual(isAgentSdkSetupRequestFor('claude', 'claude'), false);
 	});
 

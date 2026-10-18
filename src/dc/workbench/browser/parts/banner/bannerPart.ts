@@ -30,13 +30,11 @@ import { URI } from '../../../../base/common/uri.js';
 import { widgetClose } from '../../../../platform/theme/common/iconRegistry.js';
 import { BannerFocused } from '../../../common/contextkeys.js';
 
-// Banner Part
 
 export class BannerPart extends Part implements IBannerService {
 
 	declare readonly _serviceBrand: undefined;
 
-	// #region IView
 
 	readonly height: number = 26;
 	readonly minimumWidth: number = 0;
@@ -53,7 +51,6 @@ export class BannerPart extends Part implements IBannerService {
 	private _onDidChangeSize = this._register(new Emitter<{ width: number; height: number } | undefined>());
 	override get onDidChange() { return this._onDidChangeSize.event; }
 
-	//#endregion
 
 	private item: IBannerItem | undefined;
 	private visible = false;
@@ -77,14 +74,12 @@ export class BannerPart extends Part implements IBannerService {
 		this.element = parent;
 		this.element.tabIndex = 0;
 
-		// Restore focused action if needed
 		this._register(addDisposableListener(this.element, EventType.FOCUS, () => {
 			if (this.focusedActionIndex !== -1) {
 				this.focusActionLink();
 			}
 		}));
 
-		// Track focus
 		const scopedContextKeyService = this._register(this.contextKeyService.createScoped(this.element));
 		BannerFocused.bindTo(scopedContextKeyService).set(true);
 
@@ -92,13 +87,10 @@ export class BannerPart extends Part implements IBannerService {
 	}
 
 	private close(item: IBannerItem): void {
-		// Hide banner
 		this.setVisibility(false);
 
-		// Remove from document
 		clearNode(this.element);
 
-		// Remember choice
 		if (typeof item.onClose === 'function') {
 			item.onClose();
 		}
@@ -184,16 +176,13 @@ export class BannerPart extends Part implements IBannerService {
 			return;
 		}
 
-		// Clear previous item
 		clearNode(this.element);
 
-		// Banner aria label
 		const ariaLabel = this.getAriaLabel(item);
 		if (ariaLabel) {
 			this.element.setAttribute('aria-label', ariaLabel);
 		}
 
-		// Icon
 		const iconContainer = append(this.element, $('div.icon-container'));
 		iconContainer.setAttribute('aria-hidden', 'true');
 
@@ -207,12 +196,10 @@ export class BannerPart extends Part implements IBannerService {
 			}
 		}
 
-		// Message
 		const messageContainer = append(this.element, $('div.message-container'));
 		messageContainer.setAttribute('aria-hidden', 'true');
 		messageContainer.appendChild(this.getBannerMessage(item.message));
 
-		// Message Actions
 		this.messageActionsContainer = append(this.element, $('div.message-actions-container'));
 		if (item.actions) {
 			for (const action of item.actions) {
@@ -220,7 +207,6 @@ export class BannerPart extends Part implements IBannerService {
 			}
 		}
 
-		// Action
 		const actionBarContainer = append(this.element, $('div.action-container'));
 		this.actionBar = this._register(new ActionBar(actionBarContainer));
 		const label = item.closeLabel ?? localize('closeBanner', "Close Banner");
@@ -242,7 +228,6 @@ export class BannerPart extends Part implements IBannerService {
 registerSingleton(IBannerService, BannerPart, InstantiationType.Eager);
 
 
-// Keybindings
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'workbench.banner.focusBanner',
@@ -280,7 +265,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 });
 
 
-// Actions
 
 class FocusBannerAction extends Action2 {
 

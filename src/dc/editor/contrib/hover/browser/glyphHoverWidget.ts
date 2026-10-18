@@ -86,8 +86,6 @@ export class GlyphHoverWidget extends Disposable implements IOverlayWidget, IHov
 
 	private _onModelDecorationsChanged(): void {
 		if (this._isVisible && this._hoverComputerOptions) {
-			// The decorations have changed and the hover is visible,
-			// we need to recompute the displayed text
 			this._hoverOperation.cancel();
 			this._hoverOperation.start(HoverStartMode.Delayed, this._hoverComputerOptions);
 		}
@@ -110,7 +108,6 @@ export class GlyphHoverWidget extends Disposable implements IOverlayWidget, IHov
 		if (this._hoverComputerOptions
 			&& this._hoverComputerOptions.lineNumber === lineNumber
 			&& this._hoverComputerOptions.laneOrLine === laneOrLine) {
-			// We have to show the widget at the exact same line number as before, so no work is needed
 			return;
 		}
 		this._hoverOperation.cancel();
@@ -176,14 +173,12 @@ export class GlyphHoverWidget extends Disposable implements IOverlayWidget, IHov
 		const top = topForLineNumber - editorScrollTop - ((nodeHeight - lineHeight) / 2);
 		const left = editorLayout.glyphMarginLeft + editorLayout.glyphMarginWidth + (laneOrLine === 'lineNo' ? editorLayout.lineNumbersWidth : 0);
 
-		// Constrain the hover widget to stay within the editor bounds
 		const editorHeight = editorLayout.height;
 		const maxTop = editorHeight - nodeHeight;
 		const constrainedTop = Math.max(0, Math.min(Math.round(top), maxTop));
 
 		const fixedOverflowWidgets = this._editor.getOption(EditorOption.fixedOverflowWidgets);
 		if (fixedOverflowWidgets) {
-			// Use fixed positioning relative to the viewport
 			const editorDomNode = this._editor.getDomNode();
 			if (editorDomNode) {
 				const editorRect = dom.getDomNodePagePosition(editorDomNode);
@@ -192,12 +187,11 @@ export class GlyphHoverWidget extends Disposable implements IOverlayWidget, IHov
 				this._hover.containerDomNode.style.top = `${editorRect.top + constrainedTop}px`;
 			}
 		} else {
-			// Use absolute positioning relative to the editor
 			this._hover.containerDomNode.style.position = 'absolute';
 			this._hover.containerDomNode.style.left = `${left}px`;
 			this._hover.containerDomNode.style.top = `${constrainedTop}px`;
 		}
-		this._hover.containerDomNode.style.zIndex = '11'; // 1 more than the zone widget at 10 (#233819)
+		this._hover.containerDomNode.style.zIndex = '11';
 	}
 
 	private _onMouseLeave(e: MouseEvent): void {

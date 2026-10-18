@@ -104,12 +104,6 @@ export class SummarizeDocumentPlayground {
 	}
 }
 
-/**
- * If the value is ready, returns the value directly (without a promise).
- * If the value is not ready, returns a promise of the value.
- *
- * This allows consumers to use the value synchronously if it is already available.
-*/
 export function waitForStateOrReturn<T, TState extends T>(observable: IObservable<T>, predicate: (state: T) => state is TState): Promise<TState> | TState;
 export function waitForStateOrReturn<T>(observable: IObservable<T>, predicate: (state: T) => boolean): Promise<T> | T;
 export function waitForStateOrReturn<T>(observable: IObservable<T>, predicate: (state: T) => boolean): Promise<T> | T {
@@ -121,7 +115,6 @@ export function waitForStateOrReturn<T>(observable: IObservable<T>, predicate: (
 		const stateObs = observable.map(state => ({ isFinished: predicate(state), state }));
 		let didRun = false;
 		const d = autorun(reader => {
-			/** @description waitForState */
 			const { isFinished, state } = stateObs.read(reader);
 			if (isFinished) {
 				if (!didRun) {

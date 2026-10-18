@@ -141,7 +141,6 @@ export class ExtHostTextEditor {
 			set document(_value) {
 				throw new ReadonlyError('document');
 			},
-			// --- selection
 			get selection(): vscode.Selection {
 				return that._selections && that._selections[0];
 			},
@@ -160,32 +159,27 @@ export class ExtHostTextEditor {
 				}
 				that._selections = value;
 			},
-			// --- visible ranges
 			get visibleRanges(): vscode.Range[] {
 				return that._visibleRanges;
 			},
 			set visibleRanges(_value: Range[]) {
 				throw new ReadonlyError('visibleRanges');
 			},
-			// --- options
 			get options(): vscode.TextEditorOptions {
 				return that._options;
 			},
 			set options(value: vscode.TextEditorOptions) {
 				throw new Error('Not implemented');
 			},
-			// --- view column
 			get viewColumn(): vscode.ViewColumn | undefined {
 				return that._viewColumn;
 			},
 			set viewColumn(_value) {
 				throw new ReadonlyError('viewColumn');
 			},
-			// --- edit
 			edit(callback: (edit: TextEditorEdit) => void, options: { undoStopBefore: boolean; undoStopAfter: boolean } = { undoStopBefore: true, undoStopAfter: true }): Promise<boolean> {
 				throw new Error('Not implemented');
 			},
-			// --- snippet edit
 			insertSnippet(snippet: SnippetString, where?: Position | readonly Position[] | Range | readonly Range[], options: { undoStopBefore: boolean; undoStopAfter: boolean } = { undoStopBefore: true, undoStopAfter: true }): Promise<boolean> {
 				throw new Error('Not implemented');
 			},

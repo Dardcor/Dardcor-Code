@@ -34,7 +34,6 @@ const manifest: IExtensionManifest = {
 			}
 		],
 		configuration: {
-			// to ensure we test another "title" property
 			title: '%test.configuration.title%',
 			properties: {
 				'test.configuration': {
@@ -110,7 +109,6 @@ suite('Localize Manifest', () => {
 		assert.strictEqual(category.value, 'Testkategorie');
 		assert.strictEqual(category.original, 'Test Category');
 
-		// Everything else stays as a string.
 		assert.strictEqual(localizedManifest.contributes?.authentication?.[0].label, 'Testauthentifizierung');
 		assert.strictEqual((localizedManifest.contributes?.configuration as IConfigurationNode).title, 'Testkonfiguration');
 	});
@@ -127,7 +125,6 @@ suite('Localize Manifest', () => {
 				authentication: [
 					{
 						id: 'test.authentication',
-						// This not existing in the bundle shouldn't cause an error.
 						label: '%doesnotexist%',
 					}
 				],

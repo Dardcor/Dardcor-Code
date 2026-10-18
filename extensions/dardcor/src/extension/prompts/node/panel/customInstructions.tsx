@@ -20,47 +20,17 @@ import { Tag } from '../base/tag';
 export interface CustomInstructionsProps extends BasePromptElementProps {
 	readonly chatVariables: ChatVariablesCollection | undefined;
 
-	/**
-	 * When provided, this value is used in place of the live customizations-index
-	 * variable's value (the bundled `<instructions>`/`<skills>`/`<agents>` text).
-	 * The agent prompt sets this to freeze the index at the first turn of a
-	 * conversation so per-turn churn doesn't invalidate the system prompt
-	 * cache.
-	 *
-	 * Must be paired with {@link customizationsIndexToolReferencesOverride}
-	 * because tool references carry byte offsets into this text — using the
-	 * current turn's offsets against the frozen text would mis-slice.
-	 */
 	readonly customizationsIndexOverride?: string;
-	/** Tool references paired with {@link customizationsIndexOverride}. */
 	readonly customizationsIndexToolReferencesOverride?: readonly ChatLanguageModelToolReference[];
 
 	readonly languageId: string | undefined;
-	/**
-	 * @default true
-	 */
 	readonly includeCodeGenerationInstructions?: boolean;
-	/**
-	 * @default false
-	 */
 	readonly includeTestGenerationInstructions?: boolean;
-	/**
-	 * @default false
-	 */
 	readonly includeCodeFeedbackInstructions?: boolean;
-	/**
-	 * @default false
-	 */
 	readonly includeCommitMessageGenerationInstructions?: boolean;
-	/**
-	 * @default false
-	 */
 	readonly includePullRequestDescriptionGenerationInstructions?: boolean;
 	readonly customIntroduction?: string;
 
-	/**
-	 * @default true
-	 */
 	readonly includeSystemMessageConflictWarning?: boolean;
 }
 

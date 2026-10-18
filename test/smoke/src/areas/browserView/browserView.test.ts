@@ -234,20 +234,6 @@ export function setup(logger: Logger): void {
 	});
 }
 
-/**
- * Pre-seed the settings this suite depends on before the application starts.
- *
- * `window.menuStyle` must be written to disk rather than through the settings
- * editor: `SettingsChangeRelauncher` watches it on Windows/Linux and would pop a
- * modal "restart to take effect" dialog the moment the value changes at runtime,
- * blocking the workbench. Seeding it up front means it is already in effect when
- * the window opens, so nothing changes and no prompt appears.
- *
- * The suite drives the browser toolbar overflow and "Add to Chat" menus through
- * DOM locators (`.monaco-menu-container`), which only exist for custom menus. The
- * default is quality dependent on macOS (`native` for stable, `inherit` for
- * insiders), so pinning `custom` keeps the suite deterministic across qualities.
- */
 function preseedSettings(userDataDir: string | undefined): void {
 	if (!userDataDir) {
 		throw new Error('Cannot pre-seed Integrated Browser settings without a user data directory');

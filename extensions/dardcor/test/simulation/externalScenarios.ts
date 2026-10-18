@@ -30,18 +30,6 @@ export interface ITestDiscoveryOptions {
 	applyChatCodeBlocks?: boolean;
 }
 
-/**
- * Discovers test scenarios in a given root folder.
- *
- * This function recursively searches through the root folder and its subfolders to find any '.conversation.json' files.
- * If a '.conversation.json' file is found in a folder, a simulation suite is created for that folder.
- * If no '.conversation.json' file is found, the function will recursively search through the subfolders.
- *
- * @param rootFolder - The root folder to start the search from.
- * @param chatKind - The type of chat to be simulated, either 'inline' or 'panel'.
- *
- * @returns A promise that resolves to an array of SimulationSuite objects, each representing a test scenario.
- */
 export async function discoverTests(rootFolder: string, options: ITestDiscoveryOptions): Promise<SimulationSuite[]> {
 
 	const rootFolderContents = await fs.promises.readdir(rootFolder, { withFileTypes: true });
@@ -87,7 +75,6 @@ function createSimulationSuite(folderWithScenarios: string, options: ITestDiscov
 			}
 
 			if (isSlashEdit) {
-				// /edit in the sidebar needs more special handling
 				runner = generateSlashEditScenarioTestRunner(scenario);
 			} else {
 				runner = generateScenarioTestRunner(scenario, async (accessor, question, userVisibleAnswer, rawResponse) => {
@@ -194,7 +181,6 @@ export class ExternalSimulationTestRuntime extends SimulationTestRuntime {
 
 	override async writeFile(filename: string, contents: Uint8Array | string, tag: string): Promise<string> {
 		if (tag === INLINE_CHANGED_DOC_TAG) {
-			// This is a write file for a workspace file, we'll rename it to <basename>.post.<ext>
 			const ext = path.extname(filename);
 			const basename = path.basename(filename, ext);
 			filename = `${basename}.post${ext}`;

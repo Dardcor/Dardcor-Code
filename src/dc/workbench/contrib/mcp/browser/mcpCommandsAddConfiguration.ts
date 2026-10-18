@@ -6,14 +6,12 @@
 import { mapFindFirst } from '../../../../base/common/arraysFind.js';
 import { assertNever } from '../../../../base/common/assert.js';
 import { disposableTimeout } from '../../../../base/common/async.js';
-import { Codicon } from '../../../../base/common/codicons.js';
 import { parse as parseJsonc } from '../../../../base/common/jsonc.js';
 import { mnemonicButtonLabel } from '../../../../base/common/labels.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { autorun } from '../../../../base/common/observable.js';
 import { basename } from '../../../../base/common/resources.js';
-import { ThemeIcon } from '../../../../base/common/themables.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { localize } from '../../../../nls.js';
@@ -32,10 +30,6 @@ import { IFileDialogService } from '../../../../platform/dialogs/common/dialogs.
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 import { IWorkbenchMcpManagementService } from '../../../services/mcp/common/mcpWorkbenchManagementService.js';
-import { IAgentHostCustomizationService } from '../../chat/browser/agentSessions/agentHost/agentHostCustomizationService.js';
-import { IChatWidgetService } from '../../chat/browser/chat.js';
-import { isAgentHostTarget } from '../../chat/common/chatSessionsService.js';
-import { getChatSessionType } from '../../chat/common/model/chatUri.js';
 import { McpCommandIds } from '../common/mcpCommandIds.js';
 import { allDiscoverySources, ExternalDiscoverySource, mcpDiscoverySection, mcpStdioServerSchema } from '../common/mcpConfiguration.js';
 import { IMcpRegistry } from '../common/mcpRegistryTypes.js';
@@ -54,7 +48,7 @@ export const enum AddConfigurationType {
 
 type AssistedConfigurationType = AddConfigurationType.NpmPackage | AddConfigurationType.PipPackage | AddConfigurationType.NuGetPackage | AddConfigurationType.DockerImage;
 
-type McpInstallTarget = { kind: 'local'; target: ConfigurationTarget | IWorkspaceFolder } | { kind: 'agentHost'; session: URI };
+type McpInstallTarget = { kind: 'local'; target: ConfigurationTarget | IWorkspaceFolder };
 
 export const AssistedTypes = {
 	[AddConfigurationType.NpmPackage]: {
@@ -62,14 +56,14 @@ export const AssistedTypes = {
 		placeholder: localize('mcp.npm.placeholder', "Package name (e.g., @org/package)"),
 		pickLabel: localize('mcp.serverType.npm', "NPM Package"),
 		pickDescription: localize('mcp.serverType.npm.description', "Install from an NPM package name"),
-		enabledConfigKey: null, // always enabled
+		enabledConfigKey: null,
 	},
 	[AddConfigurationType.PipPackage]: {
 		title: localize('mcp.pip.title', "Enter Pip Package Name"),
 		placeholder: localize('mcp.pip.placeholder', "Package name (e.g., package-name)"),
 		pickLabel: localize('mcp.serverType.pip', "Pip Package"),
 		pickDescription: localize('mcp.serverType.pip.description', "Install from a Pip package name"),
-		enabledConfigKey: null, // always enabled
+		enabledConfigKey: null,
 	},
 	[AddConfigurationType.NuGetPackage]: {
 		title: localize('mcp.nuget.title', "Enter NuGet Package Name"),
@@ -83,18 +77,15 @@ export const AssistedTypes = {
 		placeholder: localize('mcp.docker.placeholder', "Image name (e.g., mcp/imagename)"),
 		pickLabel: localize('mcp.serverType.docker', "Docker Image"),
 		pickDescription: localize('mcp.serverType.docker.description', "Install from a Docker image"),
-		enabledConfigKey: null, // always enabled
+		enabledConfigKey: null,
 	},
 };
 
 const enum AddConfigurationCopilotCommand {
-	/** Returns whether MCP enhanced setup is enabled. */
 	IsSupported = 'github.copilot.chat.mcp.setup.check',
 
-	/** Takes an npm/pip package name, validates its owner. */
 	ValidatePackage = 'github.copilot.chat.mcp.setup.validatePackage',
 
-	/** Returns the resolved MCP configuration. */
 	StartFlow = 'github.copilot.chat.mcp.setup.flow',
 }
 
@@ -153,8 +144,6 @@ export class McpAddConfigurationCommand {
 		@IMcpService private readonly _mcpService: IMcpService,
 		@ILabelService private readonly _label: ILabelService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
-		@IAgentHostCustomizationService private readonly _agentHostCustomizations: IAgentHostCustomizationService,
-		@IChatWidgetService private readonly _chatWidgetService: IChatWidgetService,
 	) { }
 
 	private async getServerType(): Promise<AddConfigurationType | undefined> {
@@ -168,7 +157,6 @@ export class McpAddConfigurationCommand {
 		try {
 			aiSupported = await this._commandService.executeCommand<boolean>(AddConfigurationCopilotCommand.IsSupported);
 		} catch {
-			// ignored
 		}
 
 		if (aiSupported) {
@@ -241,7 +229,6 @@ export class McpAddConfigurationCommand {
 			packageType: 'stdio'
 		});
 
-		// Split command into command and args, handling quotes
 		const parts = command.match(/(?:[^\s"]+|"[^"]*")+/g)!;
 		return {
 			type: McpServerType.LOCAL,
@@ -313,48 +300,8 @@ export class McpAddConfigurationCommand {
 	}
 
 	private async getInstallTarget(): Promise<McpInstallTarget | undefined> {
-		const session = this._chatWidgetService.lastFocusedWidget?.viewModel?.sessionResource;
-		const hasAgentHostSession = !!session && isAgentHostTarget(getChatSessionType(session));
-
 		if (this.workspaceFolder) {
 			return { kind: 'local', target: this.workspaceFolder };
-		}
-
-		if (session && hasAgentHostSession) {
-			const AGENT_HOST_ID = '$agentHost';
-			const LOCAL_ID = '$local';
-			type ItemType = { id: typeof AGENT_HOST_ID | typeof LOCAL_ID } & IQuickPickItem;
-
-			const items: QuickPickInput<ItemType>[] = [
-				{
-					id: AGENT_HOST_ID,
-					label: localize('mcp.target.agentHost', "Add to Current Agent Session"),
-					alwaysShow: true,
-				},
-				{ type: 'separator' },
-				{
-					id: LOCAL_ID,
-					label: localize('mcp.target.local', "Install Server Locally..."),
-					iconClass: ThemeIcon.asClassName(Codicon.arrowLeft),
-					alwaysShow: true,
-				},
-			];
-
-			const targetPick = await this._quickInputService.pick(items, {
-				title: localize('mcp.target.title', "Add MCP Server"),
-				placeHolder: localize('mcp.target.placeholder', "Select the configuration target")
-			});
-
-			if (!targetPick) {
-				return undefined;
-			}
-
-			if (targetPick.id === AGENT_HOST_ID) {
-				return { kind: 'agentHost', session };
-			}
-
-			const target = await this.getConfigurationTarget();
-			return target ? { kind: 'local', target } : undefined;
 		}
 
 		const target = await this.getConfigurationTarget();
@@ -482,7 +429,6 @@ export class McpAddConfigurationCommand {
 		}
 	}
 
-	/** Shows the location of a server config once it's discovered. */
 	private showOnceDiscovered(name: string) {
 		const store = new DisposableStore();
 		store.add(autorun(reader => {
@@ -520,13 +466,11 @@ export class McpAddConfigurationCommand {
 	}
 
 	public async run(): Promise<void> {
-		// Step 1: Choose server type
 		const serverType = await this.getServerType();
 		if (serverType === undefined) {
 			return;
 		}
 
-		// Step 2: Get server details based on type
 		let config: IMcpServerConfiguration | undefined;
 		let suggestedName: string | undefined;
 		let inputs: IMcpServerVariable[] | undefined;
@@ -557,20 +501,13 @@ export class McpAddConfigurationCommand {
 			return;
 		}
 
-		// Step 3: Get server ID
 		const name = await this.getServerId(suggestedName);
 		if (!name) {
 			return;
 		}
 
-		// Step 4: Choose configuration target
 		const installTarget = await this.getInstallTarget();
 		if (!installTarget) {
-			return;
-		}
-
-		if (installTarget.kind === 'agentHost') {
-			this._agentHostCustomizations.addMcpServer(installTarget.session, name, config);
 			return;
 		}
 
@@ -673,7 +610,6 @@ export class McpInstallFromManifestCommand {
 	) { }
 
 	async run(): Promise<void> {
-		// Step 1: Open file dialog to select the manifest file
 		const result = await this._fileDialogService.showOpenDialog({
 			title: localize('mcp.installFromManifest.title', "Select MCP Server Manifest"),
 			filters: [{ name: localize('mcp.installFromManifest.filter', "MCP Manifest"), extensions: ['json'] }],
@@ -688,7 +624,6 @@ export class McpInstallFromManifestCommand {
 
 		const manifestUri = result[0];
 
-		// Step 2: Read and parse the manifest file
 		let manifest: unknown;
 		try {
 			const contents = await this._fileService.readFile(manifestUri);
@@ -703,10 +638,8 @@ export class McpInstallFromManifestCommand {
 			return;
 		}
 
-		// Step 3: Validate and extract configuration from gallery manifest
 		const galleryManifest = manifest as IGalleryMcpServerConfiguration & { name?: string };
 
-		// Determine package type from manifest
 		let packageType: RegistryType;
 		if (Array.isArray(galleryManifest.packages) && galleryManifest.packages.length > 0) {
 			packageType = galleryManifest.packages[0].registryType;
@@ -732,7 +665,6 @@ export class McpInstallFromManifestCommand {
 			return;
 		}
 
-		// Step 4: Get server name from manifest or prompt user
 		let name = galleryManifest.name;
 		if (!name) {
 			name = await this._quickInputService.input({
@@ -747,7 +679,6 @@ export class McpInstallFromManifestCommand {
 			}
 		}
 
-		// Step 5: Install to user settings
 		try {
 			await this._mcpManagementService.install({ name, config, inputs });
 			this._notificationService.info(localize('mcp.installFromManifest.success', "MCP server '{0}' installed successfully", name));

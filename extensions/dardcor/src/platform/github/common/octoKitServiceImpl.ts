@@ -445,7 +445,6 @@ export class OctoKitService extends BaseOctoKitService implements IOctoKitServic
 	}
 
 	async getUserRepositories(authOptions: AuthOptions, query?: string): Promise<{ owner: string; name: string }[]> {
-		// Use 'permissive' auth to ensure we have the 'repo' scope needed to list private repositories
 		const authToken = (await this._getPermissiveSession(authOptions))?.accessToken;
 		if (!authToken) {
 			this._logService.trace('No authentication token available for getUserRepositories');
@@ -455,7 +454,6 @@ export class OctoKitService extends BaseOctoKitService implements IOctoKitServic
 	}
 
 	async getRecentlyCommittedRepositories(authOptions: AuthOptions): Promise<{ owner: string; name: string }[]> {
-		// Use 'permissive' auth to ensure we have access to private repository events
 		const authToken = (await this._getPermissiveSession(authOptions))?.accessToken;
 		if (!authToken) {
 			this._logService.trace('No authentication token available for getRecentlyCommittedRepositories');
@@ -505,7 +503,6 @@ export class OctoKitService extends BaseOctoKitService implements IOctoKitServic
 
 		let usedSuggestedActors = true;
 		try {
-			// Try suggestedActors first (preferred API)
 			const actors = await getAssignableActorsWithSuggestedActors(
 				this._fetcherService,
 				this._logService,
@@ -520,7 +517,6 @@ export class OctoKitService extends BaseOctoKitService implements IOctoKitServic
 				return actors;
 			}
 
-			// Fall back to assignableUsers for older GitHub Enterprise Server instances
 			this._logService.trace('Falling back to assignableUsers API');
 			usedSuggestedActors = false;
 			return await getAssignableActorsWithAssignableUsers(
@@ -542,12 +538,6 @@ export class OctoKitService extends BaseOctoKitService implements IOctoKitServic
 				properties.errorCode = errorCode;
 			}
 
-			/* __GDPR__
-				"pr.getAssignableUsersFailed" : {
-					"errorCode": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth" },
-					"usedSuggestedActors": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryErrorEvent('pr.getAssignableUsersFailed', properties);
 			return [];
 		}
@@ -568,19 +558,15 @@ export class OctoKitService extends BaseOctoKitService implements IOctoKitServic
 			}, { type: RequestType.CopilotAgentJobEnabled, owner, repo });
 
 			if (response.ok) {
-				// 200 - OK - CCA is enabled and repository rules pass
 				return { enabled: true };
 			}
 
 			switch (response.status) {
 				case 401:
-					// 401 - Unauthorized - Unauthenticated request
 					return { enabled: false, statusCode: 401 };
 				case 403:
-					// 403 - Forbidden - CCA disabled
 					return { enabled: false, statusCode: 403 };
 				case 422:
-					// 422 - Unprocessable entity - Repository rules violation
 					return { enabled: false, statusCode: 422 };
 				default:
 					this._logService.trace(`Unexpected status code for isCCAEnabled: ${response.status}`);

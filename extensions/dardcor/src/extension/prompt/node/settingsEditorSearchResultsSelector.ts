@@ -13,7 +13,7 @@ import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { SettingsEditorSuggestQueryPrompt } from '../../prompts/node/settingsEditor/settingsEditorSuggestQueryPrompt';
 
 export class SettingsEditorSearchResultsSelector {
-	private static readonly DEFAULT_TIMEOUT = 10000; // 10 seconds
+	private static readonly DEFAULT_TIMEOUT = 10000;
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,

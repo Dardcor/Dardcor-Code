@@ -38,11 +38,11 @@ suite('GlyphLanesModel', () => {
 		model.push(GlyphMarginLane.Left, lineRange(2, 3));
 		assert.equal(model.requiredLanes, 1);
 		assertLines(1, 5, [
-			[GlyphMarginLane.Center], // 1
-			[GlyphMarginLane.Left], // 2
-			[GlyphMarginLane.Left], // 3
-			[GlyphMarginLane.Center], // 4
-			[GlyphMarginLane.Center], // 5
+			[GlyphMarginLane.Center],
+			[GlyphMarginLane.Left],
+			[GlyphMarginLane.Left],
+			[GlyphMarginLane.Center],
+			[GlyphMarginLane.Center],
 		]);
 	});
 
@@ -50,11 +50,11 @@ suite('GlyphLanesModel', () => {
 		model.push(GlyphMarginLane.Left, lineRange(2, 3), true);
 		assert.equal(model.requiredLanes, 1);
 		assertLines(1, 5, [
-			[GlyphMarginLane.Left], // 1
-			[GlyphMarginLane.Left], // 2
-			[GlyphMarginLane.Left], // 3
-			[GlyphMarginLane.Left], // 4
-			[GlyphMarginLane.Left], // 5
+			[GlyphMarginLane.Left],
+			[GlyphMarginLane.Left],
+			[GlyphMarginLane.Left],
+			[GlyphMarginLane.Left],
+			[GlyphMarginLane.Left],
 		]);
 	});
 
@@ -64,12 +64,12 @@ suite('GlyphLanesModel', () => {
 		model.push(GlyphMarginLane.Center, lineRange(7, 8));
 		assert.equal(model.requiredLanes, 3);
 		assertLines(5, 6, [
-			[GlyphMarginLane.Right], // 5
-			[GlyphMarginLane.Left, GlyphMarginLane.Right], // 6
-			[GlyphMarginLane.Left, GlyphMarginLane.Center, GlyphMarginLane.Right], // 7
-			[GlyphMarginLane.Left, GlyphMarginLane.Center], // 8
-			[GlyphMarginLane.Left], // 9
-			[GlyphMarginLane.Center], // 10
+			[GlyphMarginLane.Right],
+			[GlyphMarginLane.Left, GlyphMarginLane.Right],
+			[GlyphMarginLane.Left, GlyphMarginLane.Center, GlyphMarginLane.Right],
+			[GlyphMarginLane.Left, GlyphMarginLane.Center],
+			[GlyphMarginLane.Left],
+			[GlyphMarginLane.Center],
 		]);
 	});
 });

@@ -10,13 +10,6 @@ use crate::{
 	util::errors::{wrap, AnyError},
 };
 
-/// An basically undocumented API, but seems widely implemented, and is what
-/// browsers use for sleep inhibition. The downside is that it also *may*
-/// disable the screensaver. A much better and more granular API is available
-/// on `org.freedesktop.login1.Manager`, but this requires administrative
-/// permission to request inhibition, which is not possible here.
-///
-/// See https://source.chromium.org/chromium/chromium/src/+/main:services/device/wake_lock/power_save_blocker/power_save_blocker_linux.cc;l=54;drc=2e85357a8b76996981cc6f783853a49df2cedc3a
 #[dbus_proxy(
 	interface = "org.freedesktop.PowerManagement.Inhibit",
 	gen_blocking = false,
@@ -28,7 +21,6 @@ trait PMInhibitor {
 	fn inhibit(&self, what: &str, why: &str) -> zbus::Result<u32>;
 }
 
-/// A slightly better documented version which seems commonly used.
 #[dbus_proxy(
 	interface = "org.freedesktop.ScreenSaver",
 	gen_blocking = false,
@@ -41,7 +33,7 @@ trait ScreenSaver {
 }
 
 pub struct SleepInhibitor {
-	_connection: Connection, // Inhibition is released when the connection is closed
+	_connection: Connection,
 }
 
 impl SleepInhibitor {

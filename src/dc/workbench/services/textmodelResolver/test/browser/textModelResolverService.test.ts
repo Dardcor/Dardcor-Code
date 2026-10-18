@@ -90,7 +90,7 @@ suite('Workbench - TextModelResolverService', () => {
 		});
 
 		ref.dispose();
-		await timeout(0);  // due to the reference resolving the model first which is async
+		await timeout(0);
 		assert.strictEqual(disposed, true);
 	});
 
@@ -111,12 +111,12 @@ suite('Workbench - TextModelResolverService', () => {
 
 		ref.dispose();
 		await timeout(0);
-		assert.strictEqual(disposed, false); // not disposed because model still dirty
+		assert.strictEqual(disposed, false);
 
 		textModel.revert();
 
 		await timeout(0);
-		assert.strictEqual(disposed, true); // now disposed because model got reverted
+		assert.strictEqual(disposed, true);
 	});
 
 	test('resolved dirty file does not dispose when new reference created', async function () {
@@ -136,19 +136,19 @@ suite('Workbench - TextModelResolverService', () => {
 
 		ref1.dispose();
 		await timeout(0);
-		assert.strictEqual(disposed, false); // not disposed because model still dirty
+		assert.strictEqual(disposed, false);
 
 		const ref2 = await accessor.textModelResolverService.createModelReference(textModel.resource);
 
 		textModel.revert();
 
 		await timeout(0);
-		assert.strictEqual(disposed, false); // not disposed because we got another ref meanwhile
+		assert.strictEqual(disposed, false);
 
 		ref2.dispose();
 
 		await timeout(0);
-		assert.strictEqual(disposed, true); // now disposed because last ref got disposed
+		assert.strictEqual(disposed, true);
 	});
 
 	test('resolve untitled', async () => {
@@ -283,10 +283,8 @@ suite('Workbench - TextModelResolverService', () => {
 		const ref1 = await accessor.textModelResolverService.createModelReference(resource);
 		const model1 = ref1.object;
 
-		// Release last reference, starts async dispose
 		ref1.dispose();
 
-		// Immediately re-acquire before the async dispose completes
 		const ref2 = await accessor.textModelResolverService.createModelReference(resource);
 		const model2 = ref2.object;
 

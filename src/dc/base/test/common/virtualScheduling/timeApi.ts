@@ -8,16 +8,6 @@ export interface IntervalId { readonly _intervalIdBrand: void }
 export interface ImmediateId { readonly _immediateIdBrand: void }
 export type AnimationFrameId = number & { readonly _animationFrameIdBrand: void };
 
-/**
- * The subset of host time APIs the processor and embeddings need.
- *
- * Used both for the real host API (captured via {@link captureGlobalTimeApi})
- * and for the virtual replacement that runs through a {@link VirtualClock}.
- *
- * Keeping this as a plain interface means the processor never reaches into
- * `globalThis` directly: the boundary between "real time" and "virtual time"
- * is exactly which `TimeApi` instance is in use.
- */
 export interface TimeApi {
 	setTimeout(handler: () => void, timeout?: number): TimeoutId;
 	clearTimeout(id: TimeoutId): void;
@@ -48,5 +38,4 @@ export function captureGlobalTimeApi(): TimeApi {
 	};
 }
 
-/** A snapshot of the real host time API at module-load time. */
 export const realTimeApi: TimeApi = captureGlobalTimeApi();

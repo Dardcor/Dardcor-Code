@@ -13,9 +13,6 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 export const CHAT_DEBUG_HAS_ACTIVE_SESSION = new RawContextKey<boolean>('chatDebug.hasActiveSession', false);
 export const CHAT_DEBUG_ACTIVE_SESSION_IS_AGENT_HOST = new RawContextKey<boolean>('chatDebug.activeSessionIsAgentHost', false);
 
-/**
- * The severity level of a chat debug log event.
- */
 export enum ChatDebugLogLevel {
 	Trace = 0,
 	Info = 1,
@@ -23,21 +20,12 @@ export enum ChatDebugLogLevel {
 	Error = 3
 }
 
-/**
- * The result of a hook execution.
- */
 export enum ChatDebugHookResult {
-	/** The hook executed successfully (exit code 0). */
 	Success = 0,
-	/** The hook returned a blocking error (exit code 2). */
 	Error = 1,
-	/** The hook returned a non-blocking warning (other non-zero exit codes). */
 	NonBlockingError = 2
 }
 
-/**
- * Common properties shared by all chat debug event types.
- */
 export interface IChatDebugEventCommon {
 	readonly id?: string;
 	readonly sessionResource: URI;
@@ -45,9 +33,6 @@ export interface IChatDebugEventCommon {
 	readonly parentEventId?: string;
 }
 
-/**
- * A tool call event in the chat debug log.
- */
 export interface IChatDebugToolCallEvent extends IChatDebugEventCommon {
 	readonly kind: 'toolCall';
 	readonly toolName: string;
@@ -58,9 +43,6 @@ export interface IChatDebugToolCallEvent extends IChatDebugEventCommon {
 	readonly durationInMillis?: number;
 }
 
-/**
- * A model turn event representing an LLM request/response.
- */
 export interface IChatDebugModelTurnEvent extends IChatDebugEventCommon {
 	readonly kind: 'modelTurn';
 	readonly model?: string;
@@ -73,9 +55,6 @@ export interface IChatDebugModelTurnEvent extends IChatDebugEventCommon {
 	readonly durationInMillis?: number;
 }
 
-/**
- * A generic log event for unstructured or miscellaneous messages.
- */
 export interface IChatDebugGenericEvent extends IChatDebugEventCommon {
 	readonly kind: 'generic';
 	readonly name: string;
@@ -84,9 +63,6 @@ export interface IChatDebugGenericEvent extends IChatDebugEventCommon {
 	readonly category?: string;
 }
 
-/**
- * A subagent invocation event, representing a spawned sub-agent within a session.
- */
 export interface IChatDebugSubagentInvocationEvent extends IChatDebugEventCommon {
 	readonly kind: 'subagentInvocation';
 	readonly agentName: string;
@@ -97,133 +73,60 @@ export interface IChatDebugSubagentInvocationEvent extends IChatDebugEventCommon
 	readonly modelTurnCount?: number;
 }
 
-/**
- * A named section within a user message or agent response.
- */
 export interface IChatDebugMessageSection {
 	readonly name: string;
 	readonly content: string;
 }
 
-/**
- * A user message event, representing the full prompt sent by the user.
- */
 export interface IChatDebugUserMessageEvent extends IChatDebugEventCommon {
 	readonly kind: 'userMessage';
 	readonly message: string;
 	readonly sections: readonly IChatDebugMessageSection[];
 }
 
-/**
- * An agent response event, representing the agent's response.
- */
 export interface IChatDebugAgentResponseEvent extends IChatDebugEventCommon {
 	readonly kind: 'agentResponse';
 	readonly message: string;
 	readonly sections: readonly IChatDebugMessageSection[];
 }
 
-/**
- * Union of all internal chat debug event types.
- */
 export type IChatDebugEvent = IChatDebugToolCallEvent | IChatDebugModelTurnEvent | IChatDebugGenericEvent | IChatDebugSubagentInvocationEvent | IChatDebugUserMessageEvent | IChatDebugAgentResponseEvent;
 
 export const IChatDebugService = createDecorator<IChatDebugService>('chatDebugService');
 
-/**
- * Service for collecting and exposing chat debug events.
- * Internal components can log events,
- * and the debug editor pane can display them.
- */
 export interface IChatDebugService extends IDisposable {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fired when a new event is added.
-	 */
 	readonly onDidAddEvent: Event<IChatDebugEvent>;
 
-	/**
-	 * Fired when provider events are cleared for a session (before re-invoking providers).
-	 */
 	readonly onDidClearProviderEvents: Event<URI>;
 
-	/**
-	 * Fired when a debug session ends (see {@link endSession}), so providers
-	 * can release any per-session resources (e.g. live file watchers).
-	 */
 	readonly onDidEndSession: Event<URI>;
 
-	/**
-	 * Log a generic event to the debug service.
-	 */
 	log(sessionResource: URI, name: string, details?: string, level?: ChatDebugLogLevel, options?: { id?: string; category?: string; parentEventId?: string }): void;
 
-	/**
-	 * Add a typed event to the debug service.
-	 */
 	addEvent(event: IChatDebugEvent): void;
 
-	/**
-	 * Add an event sourced from an external provider.
-	 * These events are cleared before re-invoking providers to avoid duplicates.
-	 */
 	addProviderEvent(event: IChatDebugEvent): void;
 
-	/**
-	 * Get all events for a specific session.
-	 */
 	getEvents(sessionResource?: URI): readonly IChatDebugEvent[];
 
-	/**
-	 * Get all session resources that have logged events.
-	 */
 	getSessionResources(): readonly URI[];
 
-	/**
-	 * The currently active session resource for debugging.
-	 */
 	activeSessionResource: URI | undefined;
 
-	/**
-	 * Clear all logged events.
-	 */
 	clear(): void;
 
-	/**
-	 * Register an external provider that can supply additional debug events.
-	 * This is used by the extension API (ChatDebugLogProvider).
-	 */
 	registerProvider(provider: IChatDebugLogProvider): IDisposable;
 
-	/**
-	 * Check whether providers have already been invoked for a given session.
-	 */
 	hasInvokedProviders(sessionResource: URI): boolean;
 
-	/**
-	 * Invoke all registered providers for a given session resource.
-	 * Called when the Debug View is opened to fetch events from extensions.
-	 */
 	invokeProviders(sessionResource: URI): Promise<void>;
 
-	/**
-	 * End a debug session: cancels any in-flight provider invocation,
-	 * disposes the associated CancellationTokenSource, and removes it.
-	 * Called when the chat session is disposed/archived.
-	 */
 	endSession(sessionResource: URI): void;
 
-	/**
-	 * Resolve the full details of an event by its id.
-	 * Delegates to the registered provider's resolveChatDebugLogEvent.
-	 */
 	resolveEvent(eventId: string): Promise<IChatDebugResolvedEventContent | undefined>;
 
-	/**
-	/**
-	 * Export the debug log for a session via the registered provider.
-	 */
 	exportLog(sessionResource: URI): Promise<Uint8Array | undefined>;
 
 	/**
@@ -232,71 +135,31 @@ export interface IChatDebugService extends IDisposable {
 	 */
 	importLog(data: Uint8Array): Promise<URI | undefined>;
 
-	/**
-	 * Returns true if the event was logged by VS Code core
-	 * (not sourced from an external provider).
-	 */
 	isCoreEvent(event: IChatDebugEvent): boolean;
 
-	/**
-	 * Store a human-readable title for an imported session.
-	 */
 	setImportedSessionTitle(sessionResource: URI, title: string): void;
 
-	/**
-	 * Get the stored title for an imported session, if available.
-	 */
 	getImportedSessionTitle(sessionResource: URI): string | undefined;
 
-	/**
-	 * Fired when available session resources change (e.g. historical sessions discovered from disk).
-	 */
 	readonly onDidChangeAvailableSessionResources: Event<void>;
 
-	/**
-	 * Store session resources that have debug log data available on disk.
-	 * Called by the main thread after the extension reports historical sessions.
-	 */
 	addAvailableSessionResources(resources: readonly { uri: URI; title?: string }[]): void;
 
-	/**
-	 * Get all session resources that have debug log data available,
-	 * including historical sessions persisted on disk by the provider.
-	 * Triggers a lazy fetch from the registered fetcher on first call.
-	 */
 	getAvailableSessionResources(): readonly URI[];
 
-	/**
-	 * Register a callback that fetches available session resources from a provider.
-	 * Called lazily when `getAvailableSessionResources()` is first invoked. Multiple
-	 * fetchers may be registered (e.g. the extension host and local agent-host
-	 * discovery); each is invoked at most once. Dispose to unregister.
-	 */
 	registerAvailableSessionsFetcher(fetcher: (token: CancellationToken) => Promise<{ uri: URI; title?: string }[]>): IDisposable;
 
-	/**
-	 * Get the stored title for a historical session discovered from disk.
-	 */
 	getHistoricalSessionTitle(sessionResource: URI): string | undefined;
 
 }
 
-/**
- * Plain text content for a resolved debug event.
- */
 export interface IChatDebugEventTextContent {
 	readonly kind: 'text';
 	readonly value: string;
 }
 
-/**
- * The status of a file in a file list content.
- */
 export type ChatDebugFileStatus = 'loaded' | 'skipped';
 
-/**
- * A single file entry in a file list content.
- */
 export interface IChatDebugFileEntry {
 	readonly uri: URI;
 	readonly name?: string;
@@ -308,18 +171,11 @@ export interface IChatDebugFileEntry {
 	readonly duplicateOf?: URI;
 }
 
-/**
- * A source folder entry in a file list content.
- */
 export interface IChatDebugSourceFolderEntry {
 	readonly uri: URI;
 	readonly storage: string;
 }
 
-/**
- * Structured file list content for a resolved debug event.
- * Contains resolved files and skipped/failed paths for rich rendering.
- */
 export interface IChatDebugEventFileListContent {
 	readonly kind: 'fileList';
 	readonly discoveryType: string;
@@ -328,10 +184,6 @@ export interface IChatDebugEventFileListContent {
 	readonly sourceFolders?: readonly IChatDebugSourceFolderEntry[];
 }
 
-/**
- * Structured message content for a resolved debug event,
- * containing collapsible sections.
- */
 export interface IChatDebugEventMessageContent {
 	readonly kind: 'message';
 	readonly type: 'user' | 'agent';
@@ -339,10 +191,6 @@ export interface IChatDebugEventMessageContent {
 	readonly sections: readonly IChatDebugMessageSection[];
 }
 
-/**
- * Structured tool call content for a resolved debug event.
- * Contains the tool name, status, arguments, and output for rich rendering.
- */
 export interface IChatDebugEventToolCallContent {
 	readonly kind: 'toolCall';
 	readonly toolName: string;
@@ -352,10 +200,6 @@ export interface IChatDebugEventToolCallContent {
 	readonly output?: string;
 }
 
-/**
- * Structured model turn content for a resolved debug event.
- * Contains request metadata, token usage, and timing for rich rendering.
- */
 export interface IChatDebugEventModelTurnContent {
 	readonly kind: 'modelTurn';
 	readonly requestName: string;
@@ -375,10 +219,6 @@ export interface IChatDebugEventModelTurnContent {
 	readonly sections?: readonly IChatDebugMessageSection[];
 }
 
-/**
- * Structured hook execution content for a resolved debug event.
- * Contains the hook type, command, input, output, and result for rich rendering.
- */
 export interface IChatDebugEventHookContent {
 	readonly kind: 'hook';
 	readonly hookType: string;
@@ -391,9 +231,6 @@ export interface IChatDebugEventHookContent {
 	readonly errorMessage?: string;
 }
 
-/**
- * A single entry in the customization resolution log.
- */
 export interface IChatDebugCustomizationLogEntry {
 	readonly category: 'applying' | 'skipped' | 'referenced' | 'skill' | 'custom-agent' | 'hook';
 	readonly name: string;
@@ -401,19 +238,10 @@ export interface IChatDebugCustomizationLogEntry {
 	readonly reason?: string;
 }
 
-/**
- * Structured customization summary content for a resolved debug event.
- * Contains per-file resolution logs showing how applyTo patterns, agent
- * instructions, and referenced files were resolved by the instructions
- * context computer.
- */
 export interface IChatDebugEventCustomizationSummaryContent {
 	readonly kind: 'customizationSummary';
-	/** Per-file resolution detail entries. */
 	readonly resolutionLogs: readonly IChatDebugCustomizationLogEntry[];
-	/** Total wall-clock time of the collect() call in milliseconds. */
 	readonly durationInMillis: number;
-	/** Counts by type for the summary header. */
 	readonly counts: {
 		readonly instructions: number;
 		readonly skills: number;
@@ -423,14 +251,8 @@ export interface IChatDebugEventCustomizationSummaryContent {
 	};
 }
 
-/**
- * Union of all resolved event content types.
- */
 export type IChatDebugResolvedEventContent = IChatDebugEventTextContent | IChatDebugEventFileListContent | IChatDebugEventMessageContent | IChatDebugEventToolCallContent | IChatDebugEventModelTurnContent | IChatDebugEventHookContent | IChatDebugEventCustomizationSummaryContent;
 
-/**
- * Provider interface for debug events.
- */
 export interface IChatDebugLogProvider {
 	provideChatDebugLog(sessionResource: URI, token: CancellationToken): Promise<IChatDebugEvent[] | undefined>;
 	resolveChatDebugLogEvent?(eventId: string, token: CancellationToken): Promise<IChatDebugResolvedEventContent | undefined>;

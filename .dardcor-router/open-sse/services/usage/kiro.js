@@ -1,14 +1,8 @@
-/**
- * Kiro (AWS CodeWhisperer) usage handler
- */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { resolveDefaultProfileArn } from "../../config/kiroConstants.js";
 import { U, parseResetTime } from "./shared.js";
 
-/**
- * Kiro (AWS CodeWhisperer) Usage
- */
 function parseKiroQuotaData(data) {
   const usageList = data.usageBreakdownList || [];
   const quotaInfo = {};
@@ -27,7 +21,6 @@ function parseKiroQuotaData(data) {
       unlimited: false,
     };
 
-    // Add free trial if available
     if (breakdown.freeTrialInfo) {
       const freeUsed = breakdown.freeTrialInfo.currentUsageWithPrecision || 0;
       const freeTotal = breakdown.freeTrialInfo.usageLimitWithPrecision || 0;
@@ -50,18 +43,11 @@ function parseKiroQuotaData(data) {
 
 export async function getKiroUsage(accessToken, providerSpecificData, proxyOptions = null) {
   const authMethod = providerSpecificData?.authMethod || "builder-id";
-  // API-key Kiro connections authenticate the quota API the same way the chat
-  // executor does: a bearer token plus a `tokentype: API_KEY` header so
-  // CodeWhisperer treats it as a long-lived API key rather than an OIDC token.
-  // Without this header the GetUsageLimits call is rejected (401/403).
   const isApiKey = authMethod === "api_key";
   const isExternalIdp = authMethod === "external_idp";
   const apiKeyHeaders = isApiKey ? { tokentype: "API_KEY" } : {};
   const externalIdpHeaders = isExternalIdp ? { TokenType: "EXTERNAL_IDP" } : {};
 
-  // For api-key auth, never inject the shared default placeholder profileArn —
-  // CodeWhisperer 403s a request whose profileArn isn't owned by the key's
-  // account. Only send a profileArn actually resolved for this connection.
   const profileArn = isApiKey
     ? (providerSpecificData?.profileArn || "")
     : (providerSpecificData?.profileArn || resolveDefaultProfileArn(authMethod));
@@ -72,7 +58,6 @@ export async function getKiroUsage(accessToken, providerSpecificData, proxyOptio
     resourceType: "AGENTIC_REQUEST",
   });
 
-  // For compatibility, try multiple known Kiro usage endpoints
   const attempts = [
     {
       name: "codewhisperer-get",
@@ -161,7 +146,6 @@ export async function getKiroUsage(accessToken, providerSpecificData, proxyOptio
     };
   }
 
-  // Social auth (Google/GitHub) - these use a different token format that may not work with AWS CodeWhisperer quota APIs
   if (sawAuthError && (authMethod === "google" || authMethod === "github")) {
     return {
       message: "Kiro quota API authentication expired. Chat may still work.",

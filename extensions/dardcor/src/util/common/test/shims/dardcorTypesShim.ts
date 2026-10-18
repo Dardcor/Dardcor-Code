@@ -125,7 +125,7 @@ const shim: typeof vscodeTypes = {
 	McpToolInvocationContentData,
 	ChatResponseTurn2,
 	ChatRequestTurn2,
-	LanguageModelError: LanguageModelError as any, // Some difference in the definition of Error is breaking this
+	LanguageModelError: LanguageModelError as any,
 	SymbolKind,
 	SnippetString,
 	SnippetTextEdit,

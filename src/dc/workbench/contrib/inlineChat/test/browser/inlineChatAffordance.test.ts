@@ -130,7 +130,6 @@ suite('InlineChatAffordance - Telemetry', () => {
 		setExplicitSelection(new Selection(1, 1, 1, 6));
 		await timeout(600);
 
-		// Clear selection, then make a new one
 		setExplicitSelection(new Selection(2, 1, 2, 1));
 		await timeout(100);
 		setExplicitSelection(new Selection(2, 1, 2, 4));

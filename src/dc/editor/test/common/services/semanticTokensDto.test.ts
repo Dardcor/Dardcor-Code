@@ -127,13 +127,9 @@ suite('SemanticTokensDto', () => {
 		};
 		const encoded = encodeSemanticTokensDto(dto);
 
-		// with misaligned prefix and misaligned suffix
 		assertEqualFull(<IFullSemanticTokensDto>decodeSemanticTokensDto(wrapAndSlice(encoded, 1, 1)), dto);
-		// with misaligned prefix and aligned suffix
 		assertEqualFull(<IFullSemanticTokensDto>decodeSemanticTokensDto(wrapAndSlice(encoded, 1, 4)), dto);
-		// with aligned prefix and misaligned suffix
 		assertEqualFull(<IFullSemanticTokensDto>decodeSemanticTokensDto(wrapAndSlice(encoded, 4, 1)), dto);
-		// with aligned prefix and aligned suffix
 		assertEqualFull(<IFullSemanticTokensDto>decodeSemanticTokensDto(wrapAndSlice(encoded, 4, 4)), dto);
 	});
 });

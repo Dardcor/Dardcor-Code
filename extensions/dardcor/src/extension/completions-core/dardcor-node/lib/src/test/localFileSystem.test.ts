@@ -15,7 +15,6 @@ suite('LocalFileSystem', function () {
 	let testDir: string;
 	const defaultFileSystem = new LocalFileSystem();
 
-	// only do all the file system work once for the suite
 	suiteSetup(async function () {
 		testDir = await mkdtemp(join(tmpdir(), 'dardcor-unit-test-'));
 		await mkdir(join(testDir, 'folder'));
@@ -26,7 +25,7 @@ suite('LocalFileSystem', function () {
 
 		await writeFile(join(testDir, 'tempfile'), '');
 		await symlink(join(testDir, 'tempfile'), join(testDir, 'dangling-link'));
-		await rm(join(testDir, 'tempfile')); // leave the link dangling
+		await rm(join(testDir, 'tempfile'));
 	});
 
 	suiteTeardown(async function () {

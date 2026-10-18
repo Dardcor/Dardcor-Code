@@ -35,6 +35,5 @@ export class NoOpCitationManager implements ICompletionsCitationManager {
 	register() { return Disposable.None; }
 
 	async handleIPCodeCitation(citation: IPDocumentCitation): Promise<void> {
-		// Do nothing
 	}
 }

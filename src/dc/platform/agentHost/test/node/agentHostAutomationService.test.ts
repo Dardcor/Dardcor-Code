@@ -1622,8 +1622,6 @@ suite('AgentHostAutomationService', () => {
 					definition: scheduledDefinition,
 					nextRunAt: scheduledFor,
 					runs: [],
-					// Post-fix persisted state: no Run because the row is
-					// still import-pending. The scheduler must respect this.
 					operations: [AutomationOperation.Update],
 					createdAt: now.toISOString(),
 					modifiedAt: now.toISOString(),
@@ -1679,9 +1677,6 @@ suite('AgentHostAutomationService', () => {
 					resource: 'ahp-automation:/pending-import',
 					definition: scheduledDefinition,
 					runs: [pendingRun],
-					// Post-fix persisted state should not include Run because
-					// the item is still pending. The recovery gate must respect
-					// that even though a Pending run is on disk.
 					operations: [AutomationOperation.Update],
 					createdAt: now.toISOString(),
 					modifiedAt: now.toISOString(),

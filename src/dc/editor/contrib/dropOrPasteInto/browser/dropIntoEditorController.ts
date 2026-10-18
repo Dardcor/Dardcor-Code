@@ -53,11 +53,6 @@ export class DropIntoEditorController extends Disposable implements IEditorContr
 
 	private static _configureDefaultAction?: IAction;
 
-	/**
-	 * Global tracking the current drop operation.
-	 *
-	 * TODO: figure out how to make this work with multiple windows
-	 */
 	private static _currentDropOperation?: CancelablePromise<void>;
 
 	private readonly _dropProgressManager: InlineProgressManager;
@@ -119,7 +114,6 @@ export class DropIntoEditorController extends Disposable implements IEditorContr
 					.ordered(model)
 					.filter(provider => {
 						if (!provider.dropMimeTypes) {
-							// Keep all providers that don't specify mime types
 							return true;
 						}
 						return provider.dropMimeTypes.some(mime => ourDataTransfer.matches(mime));
@@ -133,7 +127,6 @@ export class DropIntoEditorController extends Disposable implements IEditorContr
 				if (editSession.edits.length) {
 					const activeEditIndex = this.getInitialActiveEditIndex(model, editSession.edits);
 					const canShowWidget = editor.getOption(EditorOption.dropIntoEditor).showDropSelector === 'afterDrop';
-					// Pass in the parent token here as it tracks cancelling the entire drop operation
 					await this._postDropWidgetManager.applyEditAndShowIfNeeded([Range.fromPositions(position)], { activeEditIndex, allEdits: editSession.edits }, canShowWidget, async edit => edit, token);
 				}
 			} finally {

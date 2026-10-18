@@ -30,10 +30,8 @@ export class ChatCommandButtonContentPart extends Disposable implements IChatCon
 		this.domNode = $('.chat-command-button');
 		const enabled = !isResponseVM(context.element) || !context.element.isStale;
 
-		// Render the primary button
 		this.renderButton(this.domNode, commandButton.command, enabled);
 
-		// Render additional buttons if any
 		if (commandButton.additionalCommands) {
 			for (const command of commandButton.additionalCommands) {
 				this.renderButton(this.domNode, command, enabled, true);
@@ -49,12 +47,10 @@ export class ChatCommandButtonContentPart extends Disposable implements IChatCon
 		button.label = command.title;
 		button.enabled = enabled;
 
-		// TODO still need telemetry for command buttons
 		this._register(button.onDidClick(() => this.commandService.executeCommand(command.id, ...(command.arguments ?? []))));
 	}
 
 	hasSameContent(other: IChatProgressRenderableResponseContent): boolean {
-		// No other change allowed for this content type
 		return other.kind === 'command';
 	}
 }

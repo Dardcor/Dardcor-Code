@@ -136,7 +136,6 @@ class TimelineAggregate {
 				}
 			}
 
-			// Remove any duplicate items
 			let i = this.items.length;
 			let item;
 			while (i--) {
@@ -157,7 +156,6 @@ class TimelineAggregate {
 			this.items.push(...timeline.items);
 		}
 
-		// If we are not requesting more recent items than we have, then update the cursor
 		if (options.cursor !== undefined || typeof options.limit !== 'object') {
 			this._cursor = timeline.paging?.cursor;
 		}
@@ -197,7 +195,6 @@ class LoadMoreCommand {
 	readonly description = undefined;
 	readonly tooltip = undefined;
 	readonly contextValue = undefined;
-	// Make things easier for duck typing
 	readonly id = undefined;
 	readonly icon = undefined;
 	readonly iconDark = undefined;
@@ -327,7 +324,6 @@ export class TimelinePane extends ViewPane {
 	get pageSize() {
 		let pageSize = this.configurationService.getValue<number | null | undefined>('timeline.pageSize');
 		if (pageSize === undefined || pageSize === null) {
-			// If we are paging when scrolling, then add an extra item to the end to make sure the "Load more" item is out of view
 			pageSize = Math.max(20, Math.floor(((this.tree?.renderHeight ?? 0) / ItemHeight) + (this.pageOnScroll ? 1 : -1)));
 		}
 		return pageSize;
@@ -380,10 +376,8 @@ export class TimelinePane extends ViewPane {
 		const uri = EditorResourceAccessor.getOriginalUri(this.editorService.activeEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
 
 		if ((this.uriIdentityService.extUri.isEqual(uri, this.uri) && uri !== undefined) ||
-			// Fallback to match on fsPath if we are dealing with files or git schemes
 			(uri?.fsPath === this.uri?.fsPath && (uri?.scheme === Schemas.file || uri?.scheme === 'git') && (this.uri?.scheme === Schemas.file || this.uri?.scheme === 'git'))) {
 
-			// If the uri hasn't changed, make sure we have valid caches
 			for (const source of this.timelineService.getSources()) {
 				if (this.excludedSources.has(source.id)) {
 					continue;
@@ -512,13 +506,11 @@ export class TimelinePane extends ViewPane {
 	}
 
 	private async loadTimeline(reset: boolean, sources?: string[]) {
-		// If we have no source, we are resetting all sources, so cancel everything in flight and reset caches
 		if (sources === undefined) {
 			if (reset) {
 				this.clear(true);
 			}
 
-			// TODO@eamodio: Are these the right the list of schemes to exclude? Is there a better way?
 			if (this.uri?.scheme === Schemas.vscodeSettings || this.uri?.scheme === Schemas.webviewPanel || this.uri?.scheme === Schemas.walkThrough) {
 				this.uri = undefined;
 
@@ -567,8 +559,6 @@ export class TimelinePane extends ViewPane {
 
 		const timeline = this.timelinesBySource.get(source);
 
-		// If we are paging, and there are no more items or we have enough cached items to cover the next page,
-		// don't bother querying for more
 		if (
 			!reset &&
 			options?.cursor !== undefined &&
@@ -585,7 +575,6 @@ export class TimelinePane extends ViewPane {
 				timeline.items.length > 0 &&
 				!timeline.more
 			) {
-				// If we are not resetting, have item(s), and already know there are no more to fetch, we're done here
 				return false;
 			}
 			options = { cursor: reset ? undefined : timeline?.cursor, limit: this.pageSize };
@@ -595,7 +584,6 @@ export class TimelinePane extends ViewPane {
 		if (pendingRequest !== undefined) {
 			options.cursor = pendingRequest.request.options.cursor;
 
-			// TODO@eamodio deal with concurrent requests better
 			if (typeof options.limit === 'number') {
 				if (typeof pendingRequest.request.options.limit === 'number') {
 					options.limit += pendingRequest.request.options.limit;
@@ -630,11 +618,9 @@ export class TimelinePane extends ViewPane {
 	private updateTimeline(timeline: TimelineAggregate, reset: boolean) {
 		if (reset) {
 			this.timelinesBySource.delete(timeline.source);
-			// Override the limit, to re-query for all our existing cached (possibly visible) items to keep visual continuity
 			const { oldest } = timeline;
 			this.loadTimelineForSource(timeline.source, this.uri!, true, oldest !== undefined ? { limit: { timestamp: oldest.timestamp, id: oldest.id } } : undefined);
 		} else {
-			// Override the limit, to query for any newer items
 			const { newest } = timeline;
 			this.loadTimelineForSource(timeline.source, this.uri!, false, newest !== undefined ? { limit: { timestamp: newest.timestamp, id: newest.id } } : { limit: this.pageSize });
 		}
@@ -647,10 +633,8 @@ export class TimelinePane extends ViewPane {
 		try {
 			response = await this.progressService.withProgress({ location: this.id }, () => request.result);
 		} catch {
-			// Ignore
 		}
 
-		// If the request was cancelled then it was already deleted from the pendingRequests map
 		if (!request.tokenSource.token.isCancellationRequested) {
 			this.pendingRequests.get(request.source)?.dispose();
 			this.pendingRequests.delete(request.source);
@@ -678,7 +662,6 @@ export class TimelinePane extends ViewPane {
 		if (updated) {
 			this._pendingRefresh = true;
 
-			// If we have visible items already and there are other pending requests, debounce for a bit to wait for other requests
 			if (this.hasVisibleItems && this.pendingRequests.size !== 0) {
 				this.refreshDebounced();
 			} else {
@@ -717,7 +700,6 @@ export class TimelinePane extends ViewPane {
 			}
 
 			if (timeline.items.length !== 0) {
-				// If we have any items, just say we have one for now -- the real count will be updated below
 				this._visibleItemCount = 1;
 			}
 
@@ -887,7 +869,6 @@ export class TimelinePane extends ViewPane {
 			this.visibilityDisposables = new DisposableStore();
 
 			this.editorService.onDidActiveEditorChange(this.onActiveEditorChanged, this, this.visibilityDisposables);
-			// Refresh the view on focus to update the relative timestamps
 			this.onDidFocus(() => this.refreshDebounced(), this, this.visibilityDisposables);
 
 			super.setVisible(visible);
@@ -924,7 +905,6 @@ export class TimelinePane extends ViewPane {
 
 		this.$tree = document.createElement('div');
 		this.$tree.classList.add('customview-tree', 'file-icon-themable-tree', 'hide-arrows');
-		// this.treeElement.classList.add('show-file-icons');
 		container.appendChild(this.$tree);
 
 		this.treeRenderer = this._register(this.instantiationService.createInstance(TimelineTreeRenderer, this.commands, this.viewDescriptorService.getViewLocationById(this.id)));
@@ -982,8 +962,6 @@ export class TimelinePane extends ViewPane {
 				if (item.command) {
 					let args = item.command.arguments ?? [];
 					if (item.command.id === API_OPEN_EDITOR_COMMAND_ID || item.command.id === API_OPEN_DIFF_EDITOR_COMMAND_ID) {
-						// Some commands owned by us should receive the
-						// `IOpenEvent` as context to open properly
 						args = [...args, e];
 					}
 
@@ -1013,7 +991,6 @@ export class TimelinePane extends ViewPane {
 	}
 
 	ensureValidItems() {
-		// If we don't have any non-excluded timelines, clear the tree and show the loading message
 		if (!this.hasVisibleItems || !this.timelineService.getSources().some(({ id }) => !this.excludedSources.has(id) && this.timelinesBySource.has(id))) {
 			this.tree.setChildren(null, undefined);
 			this._isEmpty = true;
@@ -1120,7 +1097,6 @@ class TimelineActionRunner extends ActionRunner {
 
 	protected override async runAction(action: IAction, { uri, item }: TimelineActionContext): Promise<void> {
 		if (!isTimelineItem(item)) {
-			// TODO@eamodio do we need to do anything else?
 			await action.run();
 			return;
 		}
@@ -1180,7 +1156,7 @@ class TimelineTreeRenderer extends Disposable implements ITreeRenderer<TreeEleme
 				instantHover: this.viewContainerLocation !== ViewContainerLocation.Panel
 			}, {
 			position: {
-				hoverPosition: HoverPosition.RIGHT // Will flip when there's no space
+				hoverPosition: HoverPosition.RIGHT
 			}
 		});
 	}
@@ -1243,7 +1219,6 @@ class TimelineTreeRenderer extends Disposable implements ITreeRenderer<TreeEleme
 		template.actionBar.actionRunner = new TimelineActionRunner();
 		template.actionBar.push(this.commands.getItemActions(item), { icon: true, label: false });
 
-		// If we are rendering the load more item, we've scrolled to the end, so trigger an event
 		if (isLoadMoreCommand(item)) {
 			setTimeout(() => this._onDidScrollToEnd.fire(item), 0);
 		}

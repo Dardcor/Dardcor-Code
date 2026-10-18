@@ -600,7 +600,6 @@ suite('getBlockPositionType()', function () {
 		);
 	});
 
-	// confirm single-line if statement behavior in JS given the special treatment by StatementTree:
 	test('inside an empty block of a single-line if statement in JS returns EmptyBlock', async function () {
 		await testPositionType(BlockPositionType.EmptyBlock, 'if (true) { âš }');
 	});

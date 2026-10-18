@@ -33,7 +33,7 @@ import { simulateInlineChat } from './inlineChatSimulator';
 import { fromFixture, getFixturesDir } from './stestUtil';
 import { DiagnosticProviderId, IOutcome, IScenario } from './types';
 
-export function fromNotebookFixture(pathOrDirnameWithinFixturesDir: string, activeCell?: number /** when provided, code in other cells will be emptied */) {
+export function fromNotebookFixture(pathOrDirnameWithinFixturesDir: string, activeCell?: number ) {
 	const filePath: string = path.join(getFixturesDir(), pathOrDirnameWithinFixturesDir);
 	const baseDirname: string = path.dirname(filePath);
 	const fileName = path.relative(baseDirname, filePath);
@@ -178,7 +178,6 @@ ssuite({ title: 'notebook', subtitle: 'edit', location: 'inline' }, () => {
 							outcome.fileContents.includes('plt.figure')
 							|| outcome.fileContents.includes('plt.gcf')
 						);
-						// check if 'plt.figure' only shows up once
 						const matches = outcome.fileContents.match(/(plt\.figure)|(plt\.gcf)/g);
 						assert.strictEqual(matches?.length, 1);
 					}
@@ -229,36 +228,11 @@ ssuite({ title: 'notebook', subtitle: 'edit', location: 'inline' }, () => {
 		});
 	});
 
-	// import matplotlib.pyplot as plt
-
-	// months = range(1, 13)
-	// nyc_temp_2000 = [20.0, 30.5, 80.1, 80.3, 56.5, 99.6]
-	// plt.plot(months, nyc_temp_2000)
-	// stest({ description: '/fix Matplotlib: x and y must have same first dimension', language: 'python' }, (testingServiceCollection) => {
-	// 	return runScenario(accessor, {
-	// 		files: [fromFixture('notebook/errors.ipynb')],
-	// 		queries: [
-	// 			{
-	// 				file: 'errors.ipynb',
-	// 				activeCell: 6,
-	// 				selection: [4, 0, 4, 0],
-	// 				query: '/fix ValueError: x and y must have same first dimension, but have shapes (12,) and (6,)',
-	// 				expectedIntent: 'edit',
-	// 				validate: async (outcome, workspace, accessor) => {
-	// 					assert.strictEqual(outcome.type, 'inlineEdit');
-	// 					assert.strictEqual(outcome.appliedEdits.length, 1);
-	// 					const edit = outcome.appliedEdits[0];
-	// 					assert.ok(edit.newText.includes('global'));
-	// 				}
-	// 			}
-	// 		]
-	// 	});
-	// });
 
 
 
 
-	// NameError: name 'df' is not defined -> should suggest rerun cell
+
 });
 
 ssuite({ title: 'notebook', subtitle: 'generate', location: 'inline' }, () => {
@@ -292,7 +266,7 @@ ssuite({ title: 'notebook', subtitle: 'generate', location: 'inline' }, () => {
 					file: 'sales.ipynb',
 					activeCell: 13,
 					selection: [0, 0, 0, 0],
-					query: 'Which was the most-ordered item? ', // How many items were orderd in total?
+					query: 'Which was the most-ordered item? ',
 					expectedIntent: 'generate',
 					validate: async (outcome, workspace, accessor) => {
 						assert.strictEqual(outcome.type, 'inlineEdit');
@@ -328,7 +302,7 @@ ssuite({ title: 'notebook', subtitle: 'generate', location: 'inline' }, () => {
 					file: 'model.ipynb',
 					activeCell: 1,
 					selection: [0, 0, 0, 0],
-					query: 'create a model to predict the likelihood of a flight being delayed based on the day of the week and the arrival airport. Use Logistic regression and calculate the accuracy of the model.', //
+					query: 'create a model to predict the likelihood of a flight being delayed based on the day of the week and the arrival airport. Use Logistic regression and calculate the accuracy of the model.',
 					expectedIntent: 'generate',
 					validate: async (outcome, workspace, accessor) => {
 						assert.strictEqual(outcome.type, 'inlineEdit');
@@ -413,9 +387,7 @@ ssuite({ title: 'notebook', subtitle: 'fix runtime', location: 'inline' }, () =>
 					expectedIntent: 'edit',
 					validate: async (outcome, workspace, accessor) => {
 						assert.strictEqual(outcome.type, 'inlineEdit');
-						// assert(outcome.appliedEdits.length > 0, 'at least 1 edit generated');
 						assert.ok(outcome.fileContents.indexOf('import pandas') >= 0);
-						// assert.ok(await isValidPythonFile(accessor, outcome.fileContents));
 					}
 				}
 			]
@@ -475,7 +447,6 @@ ssuite({ title: 'notebook', subtitle: 'fix runtime', location: 'inline' }, () =>
 					expectedIntent: 'edit',
 					validate: async (outcome, workspace, accessor) => {
 						assert.strictEqual(outcome.type, 'inlineEdit');
-						// assert.ok(outcome.fileContents.includes('.build'));
 					}
 				}
 			]
@@ -632,7 +603,6 @@ ssuite({ title: 'notebook', subtitle: 'fix runtime', location: 'inline' }, () =>
 					validate: async (outcome, workspace, accessor) => {
 						assert.strictEqual(outcome.type, 'inlineEdit');
 						assert.ok(outcome.fileContents.includes('np.array') || outcome.fileContents.includes('from numpy import'));
-						// assert.ok(await isValidPythonFile(accessor, outcome.fileContents));
 					}
 				}
 			]
@@ -783,8 +753,6 @@ ssuite({ title: 'notebook', subtitle: 'fix', location: 'inline' }, () => {
 		});
 	});
 
-	// Inspired by case 35 of /fix dataset version 10
-	// In the AML run, dardcor did not understand the error and did not fix it
 	stest({ description: '(AML-10-35) can not access member', language: 'python' }, (testingServiceCollection) => {
 		return simulateInlineChat(testingServiceCollection, {
 			files: [fromFixture('notebook/fixing/fixing7.ipynb')],
@@ -805,8 +773,6 @@ ssuite({ title: 'notebook', subtitle: 'fix', location: 'inline' }, () => {
 		});
 	});
 
-	// Inspired by case 36 of /fix dataset version 10
-	// In the AML run, dardcor did not understand the error and did not fix it
 	stest({ description: '(AML-10-36) can not be assigned 2', language: 'python' }, (testingServiceCollection) => {
 		return simulateInlineChat(testingServiceCollection, {
 			files: [fromFixture('notebook/fixing/fixing8.ipynb')],
@@ -824,8 +790,6 @@ ssuite({ title: 'notebook', subtitle: 'fix', location: 'inline' }, () => {
 		});
 	});
 
-	// Inspired by case 4 of /fix dataset version 10
-	// In the AML run, dardcor did not understand the error and did not fix it
 	stest({ description: '(AML-10-4) parameter already assigned', language: 'python' }, (testingServiceCollection) => {
 		return simulateInlineChat(testingServiceCollection, {
 			files: [fromFixture('notebook/fixing/fixing9.ipynb')],
@@ -843,8 +807,6 @@ ssuite({ title: 'notebook', subtitle: 'fix', location: 'inline' }, () => {
 		});
 	});
 
-	// Inspired by case 48 of /fix dataset version 10
-	// In the AML run, dardcor did not understand the error and did not fix it
 	stest({ description: '(AML-10-48) can not be assigned 3', language: 'python' }, (testingServiceCollection) => {
 		return simulateInlineChat(testingServiceCollection, {
 			files: [fromFixture('notebook/fixing/fixing10.ipynb')],
@@ -867,8 +829,6 @@ ssuite({ title: 'notebook', subtitle: 'fix', location: 'inline' }, () => {
 		});
 	});
 
-	// Inspired by case 58 of /fix dataset version 10
-	// The AML run has removed a big part of the code and replaced with non-minimal edits, this initial issue was not resolved
 	stest({ description: '(AML-10-58) not defined', language: 'python' }, (testingServiceCollection) => {
 		return simulateInlineChat(testingServiceCollection, {
 			files: [fromFixture('notebook/fixing/fixing11.ipynb')],
@@ -886,7 +846,6 @@ ssuite({ title: 'notebook', subtitle: 'fix', location: 'inline' }, () => {
 		});
 	});
 
-	// Inspired by case 29 of /fix dataset version 10
 	stest({ description: '(AML-10-29) instance of bool has no to_string member', language: 'python' }, (testingServiceCollection) => {
 		return simulateInlineChat(testingServiceCollection, {
 			files: [fromFixture('notebook/fixing/fixing12.ipynb')],
@@ -904,7 +863,6 @@ ssuite({ title: 'notebook', subtitle: 'fix', location: 'inline' }, () => {
 		});
 	});
 
-	// Inspired by case 110 of /fix dataset version 8
 	stest({ description: '(AML-8-110) not defined', language: 'python' }, (testingServiceCollection) => {
 		return simulateInlineChat(testingServiceCollection, {
 			files: [fromFixture('notebook/fixing/fixing13.ipynb')],
@@ -923,7 +881,6 @@ ssuite({ title: 'notebook', subtitle: 'fix', location: 'inline' }, () => {
 	});
 
 
-	// Inspired by case 73 of /fix dataset version 8
 	stest({ description: '(AML-8-73) no value for argument in function call', language: 'python' }, (testingServiceCollection) => {
 		return simulateInlineChat(testingServiceCollection, {
 			files: [fromFixture('notebook/fixing/fixing14.ipynb')],
@@ -1125,7 +1082,6 @@ ssuite.optional((opes) => !shouldEvaluate || true, { title: 'notebook', subtitle
 				async extraWorkspaceSetup(workspace) {
 					const extHostNotebook = ExtHostNotebookDocumentData.createJupyterNotebook(notebookFile.uri, notebookFile.fileContents, workspace);
 					notebook = extHostNotebook.document;
-					// TODO@DonJayamanne
 				},
 				async onBeforeStart(accessor) {
 					(accessor.get<IAlternativeNotebookContentService>(IAlternativeNotebookContentService) as MockAlternativeNotebookContentService).format = AlternativeNotebookFormat.json;

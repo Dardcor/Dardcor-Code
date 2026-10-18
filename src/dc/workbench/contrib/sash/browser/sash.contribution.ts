@@ -11,10 +11,8 @@ import { workbenchConfigurationNodeBase } from '../../../common/configuration.js
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { SashSettingsController } from './sash.js';
 
-// Sash size contribution
 registerWorkbenchContribution2(SashSettingsController.ID, SashSettingsController, WorkbenchPhase.AfterRestored);
 
-// Sash size configuration contribution
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 	.registerConfiguration({
 		...workbenchConfigurationNodeBase,

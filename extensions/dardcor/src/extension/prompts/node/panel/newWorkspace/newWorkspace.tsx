@@ -137,7 +137,6 @@ export class NewWorkspacePrompt extends PromptElement<NewWorkspacePromptProps, N
 				return { intent: instruction };
 			}
 			else {
-				// revert to default behavior
 				return { intent: { intent: 'Project', question: this.props.promptContext.query } };
 			}
 		} else {

@@ -23,13 +23,8 @@ export class IssueReporterEditorInput extends EditorInput {
 
 	readonly data: IssueReporterData | undefined;
 
-	/** Set by the editor pane to check if user has entered data */
 	hasUserInputFn: (() => boolean) | undefined;
 
-	/**
-	 * Captured screenshots/recordings mirrored from the wizard so they survive the
-	 * editor moving between parts that rebuild the wizard.
-	 */
 	savedScreenshots: readonly IScreenshot[] | undefined;
 	savedRecordings: readonly { filePath: string; durationMs: number; thumbnailDataUrl?: string }[] | undefined;
 

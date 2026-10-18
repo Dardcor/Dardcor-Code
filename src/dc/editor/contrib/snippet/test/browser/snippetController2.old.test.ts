@@ -130,73 +130,17 @@ suite('SnippetController', () => {
 		});
 	});
 
-	// test('Stops when deleting lines above', () => {
-	// 	snippetTest((editor, codeSnippet, snippetController) => {
-	// 		editor.setPosition({ lineNumber: 4, column: 2 });
-	// 		snippetController.insert(codeSnippet, 0, 0);
 
-	// 		editor.getModel()!.applyEdits([{
-	// 			forceMoveMarkers: false,
-	// 			identifier: null,
-	// 			isAutoWhitespaceEdit: false,
-	// 			range: new Range(1, 1, 3, 1),
-	// 			text: null
-	// 		}]);
 
-	// 		assert.strictEqual(snippetController.isInSnippetMode(), false);
-	// 	});
-	// });
 
-	// test('Stops when deleting lines below', () => {
-	// 	snippetTest((editor, codeSnippet, snippetController) => {
-	// 		editor.setPosition({ lineNumber: 4, column: 2 });
-	// 		snippetController.run(codeSnippet, 0, 0);
 
-	// 		editor.getModel()!.applyEdits([{
-	// 			forceMoveMarkers: false,
-	// 			identifier: null,
-	// 			isAutoWhitespaceEdit: false,
-	// 			range: new Range(8, 1, 8, 100),
-	// 			text: null
-	// 		}]);
 
-	// 		assert.strictEqual(snippetController.isInSnippetMode(), false);
-	// 	});
-	// });
 
-	// test('Stops when inserting lines above', () => {
-	// 	snippetTest((editor, codeSnippet, snippetController) => {
-	// 		editor.setPosition({ lineNumber: 4, column: 2 });
-	// 		snippetController.run(codeSnippet, 0, 0);
 
-	// 		editor.getModel()!.applyEdits([{
-	// 			forceMoveMarkers: false,
-	// 			identifier: null,
-	// 			isAutoWhitespaceEdit: false,
-	// 			range: new Range(1, 100, 1, 100),
-	// 			text: '\nHello'
-	// 		}]);
 
-	// 		assert.strictEqual(snippetController.isInSnippetMode(), false);
-	// 	});
-	// });
 
-	// test('Stops when inserting lines below', () => {
-	// 	snippetTest((editor, codeSnippet, snippetController) => {
-	// 		editor.setPosition({ lineNumber: 4, column: 2 });
-	// 		snippetController.run(codeSnippet, 0, 0);
 
-	// 		editor.getModel()!.applyEdits([{
-	// 			forceMoveMarkers: false,
-	// 			identifier: null,
-	// 			isAutoWhitespaceEdit: false,
-	// 			range: new Range(8, 100, 8, 100),
-	// 			text: '\nHello'
-	// 		}]);
 
-	// 		assert.strictEqual(snippetController.isInSnippetMode(), false);
-	// 	});
-	// });
 
 	test('Stops when calling model.setValue()', () => {
 		snippetTest((editor, codeSnippet, snippetController) => {
@@ -521,7 +465,7 @@ suite('SnippetController', () => {
 		snippetTest((editor, codeSnippet, controller) => {
 
 			editor.setSelections([
-				new Selection(1, 7, 1, 7), // primary at `this._`
+				new Selection(1, 7, 1, 7),
 				new Selection(2, 4, 2, 4),
 				new Selection(3, 6, 3, 6)
 			]);
@@ -535,7 +479,7 @@ suite('SnippetController', () => {
 		snippetTest((editor, codeSnippet, controller) => {
 
 			editor.setSelections([
-				new Selection(3, 6, 3, 6), // primary at `def._`
+				new Selection(3, 6, 3, 6),
 				new Selection(1, 7, 1, 7),
 				new Selection(2, 4, 2, 4),
 			]);
@@ -549,7 +493,7 @@ suite('SnippetController', () => {
 		snippetTest((editor, codeSnippet, controller) => {
 
 			editor.setSelections([
-				new Selection(2, 4, 2, 4), // primary at `abc`
+				new Selection(2, 4, 2, 4),
 				new Selection(3, 6, 3, 6),
 				new Selection(1, 7, 1, 7),
 			]);

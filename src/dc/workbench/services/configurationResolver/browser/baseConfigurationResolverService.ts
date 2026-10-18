@@ -147,7 +147,6 @@ export abstract class BaseConfigurationResolverService extends AbstractVariableR
 		const parsed = ConfigurationResolverExpression.parse(config);
 		const resolved = await this.resolveWithInteraction(folder, parsed, section, variables, target);
 
-		// Skip if input variable was canceled
 		if (resolved === undefined) {
 			return undefined;
 		}
@@ -158,11 +157,9 @@ export abstract class BaseConfigurationResolverService extends AbstractVariableR
 	override async resolveWithInteraction(folder: IWorkspaceFolderData | undefined, config: unknown, section?: string, variableToCommandMap?: IStringDictionary<string>, target?: ConfigurationTarget): Promise<Map<string, string> | undefined> {
 		const expr = ConfigurationResolverExpression.parse(config);
 
-		// Get values for input variables from UI
 		for (const variable of expr.unresolved()) {
 			let result: IResolvedValue | undefined;
 
-			// Command
 			if (variable.name === 'command') {
 				const commandId = (variableToCommandMap ? variableToCommandMap[variable.arg!] : undefined) || variable.arg!;
 				const value = await this.commandService.executeCommand(commandId, expr.toObject());
@@ -173,26 +170,21 @@ export abstract class BaseConfigurationResolverService extends AbstractVariableR
 					result = { value };
 				}
 			}
-			// Input
 			else if (variable.name === 'input') {
 				result = await this.showUserInput(section!, variable.arg!, await this.resolveInputs(folder, section!, target), variableToCommandMap);
 			}
-			// Contributed variable
 			else if (this._contributedVariables.has(variable.inner)) {
 				result = { value: await this._contributedVariables.get(variable.inner)!() };
 			}
 			else {
-				// Fallback to parent evaluation
 				const resolvedValue = await this.evaluateSingleVariable(variable, folder?.uri);
 				if (resolvedValue === undefined) {
-					// Not something we can handle
 					continue;
 				}
 				result = typeof resolvedValue === 'string' ? { value: resolvedValue } : resolvedValue;
 			}
 
 			if (result === undefined) {
-				// Skip the entire flow if any input variable was canceled
 				return undefined;
 			}
 
@@ -207,7 +199,6 @@ export abstract class BaseConfigurationResolverService extends AbstractVariableR
 			return undefined;
 		}
 
-		// Look at workspace configuration
 		let inputs: ConfiguredInput[] | undefined;
 		const overrides: IConfigurationOverrides = folder ? { resource: folder.uri } : {};
 		const result = this.configurationService.inspect<{ inputs?: ConfiguredInput[] }>(section, overrides);
@@ -243,7 +234,6 @@ export abstract class BaseConfigurationResolverService extends AbstractVariableR
 				lru.fromJSON(JSON.parse(contents));
 			}
 		} catch {
-			// ignored
 		}
 
 		return lru;
@@ -258,7 +248,6 @@ export abstract class BaseConfigurationResolverService extends AbstractVariableR
 			throw new VariableError(VariableKind.Input, localize('inputVariable.noInputSection', "Variable '{0}' must be defined in an '{1}' section of the debug or task configuration.", variable, 'inputs'));
 		}
 
-		// Find info for the given input variable
 		const info = inputInfos.filter(item => item.id === variable).pop();
 		if (info) {
 			const missingAttribute = (attrName: string) => {

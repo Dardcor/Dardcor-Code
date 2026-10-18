@@ -63,7 +63,6 @@ type Mode = 'run' | 'coverage';
 interface IRunTestToolParams {
 	files?: string[];
 	testNames?: string[];
-	/** File paths to return coverage info for (only used when mode === 'coverage') */
 	coverageFiles?: string[];
 	mode?: Mode;
 }
@@ -140,7 +139,6 @@ export class RunTestTool implements IToolImpl {
 
 		progress.report({ message: localize('runTestTool.invoke.progress', 'Starting test run...') });
 
-		// If the model asks for coverage but the test provider doesn't support it, use normal 'run' mode
 		if (group === TestRunProfileBitset.Coverage) {
 			if (!testCases.some(tc => this._testProfileService.capabilitiesForTest(tc.item) & TestRunProfileBitset.Coverage)) {
 				group = TestRunProfileBitset.Run;
@@ -174,7 +172,6 @@ export class RunTestTool implements IToolImpl {
 		};
 	}
 
-	/** Updates the UI progress as the test runs, resolving when the run is finished. */
 	private async _monitorRunProgress(result: LiveTestResult, progress: ToolProgress, token: CancellationToken): Promise<void> {
 		const store = new DisposableStore();
 
@@ -205,12 +202,6 @@ export class RunTestTool implements IToolImpl {
 		}).finally(() => store.dispose());
 	}
 
-	/**
-	 * Captures the test result. This is a little tricky because some extensions
-	 * trigger an 'out of bound' test run, so we actually wait for the first
-	 * test run to come in that contains one or more tasks and treat that as the
-	 * one we're looking for.
-	 */
 	private async _captureTestResult(testCases: IncrementalTestCollectionItem[], group: TestRunProfileBitset, token: CancellationToken): Promise<LiveTestResult | undefined> {
 		const store = new DisposableStore();
 		const onDidTimeout = store.add(new Emitter<void>());
@@ -241,7 +232,6 @@ export class RunTestTool implements IToolImpl {
 		}).finally(() => store.dispose());
 	}
 
-	/** Filters the test files to individual test cases based on the provided parameters. */
 	private async _getTestCasesToRun(params: IRunTestToolParams, tests: IncrementalTestCollectionItem[], progress: ToolProgress): Promise<IncrementalTestCollectionItem[]> {
 		if (!params.testNames?.length) {
 			return tests;
@@ -274,7 +264,6 @@ export class RunTestTool implements IToolImpl {
 		return filtered;
 	}
 
-	/** Gets the file tests to run based on the provided parameters. */
 	private async _getFileTestsToRun(params: IRunTestToolParams, progress: ToolProgress): Promise<IncrementalTestCollectionItem[]> {
 		if (!params.files?.length) {
 			return [...this._testService.collection.rootItems];
@@ -373,7 +362,6 @@ export class TestFailureTool implements IToolImpl {
 	}
 }
 
-/** Builds the full summary string for a completed test run. */
 export async function buildTestRunSummary(result: LiveTestResult, mode: Mode, coverageFiles: string[] | undefined): Promise<string> {
 	const failures = result.counts[TestResultState.Errored] + result.counts[TestResultState.Failed];
 	let str = `<summary passed=${result.counts[TestResultState.Passed]} failed=${failures} />\n`;
@@ -386,7 +374,6 @@ export async function buildTestRunSummary(result: LiveTestResult, mode: Mode, co
 	return str;
 }
 
-/** Gets a coverage summary from a test result, either overall or per-file. */
 export async function getCoverageSummary(result: LiveTestResult, coverageFiles: string[] | undefined): Promise<string> {
 	let str = '';
 	for (const task of result.tasks) {
@@ -417,7 +404,6 @@ export async function getCoverageSummary(result: LiveTestResult, coverageFiles: 
 	return str;
 }
 
-/** Gets a file-level coverage overview sorted by lowest coverage first. */
 export function getOverallCoverageSummary(coverage: TestCoverage): string {
 	const files = [...coverage.getAllFiles().values()]
 		.map(f => ({ path: f.uri.fsPath, pct: getTotalCoveragePercent(f.statement, f.branch, f.declaration) * 100 }))
@@ -436,7 +422,6 @@ export function getOverallCoverageSummary(coverage: TestCoverage): string {
 	return str;
 }
 
-/** Gets detailed coverage information for a single file including uncovered items. */
 export async function getFileCoverageDetails(file: FileCoverage, path: string): Promise<string> {
 	const pct = getTotalCoveragePercent(file.statement, file.branch, file.declaration) * 100;
 	let str = `<coverage path="${path}" percent=${pct.toFixed(1)} statements=${file.statement.covered}/${file.statement.total}`;
@@ -492,13 +477,12 @@ export async function getFileCoverageDetails(file: FileCoverage, path: string): 
 		if (uncoveredLines.length) {
 			str += 'uncovered lines: ' + mergeLineRanges(uncoveredLines) + '\n';
 		}
-	} catch { /* ignore - details not available */ }
+	} catch { }
 
 	str += '</coverage>\n';
 	return str;
 }
 
-/** Merges overlapping/contiguous line ranges and formats them compactly. */
 export function mergeLineRanges(ranges: [number, number][]): string {
 	if (!ranges.length) {
 		return '';
@@ -517,7 +501,6 @@ export function mergeLineRanges(ranges: [number, number][]): string {
 	return merged.map(([s, e]) => s === e ? `${s}` : `${s}-${e}`).join(', ');
 }
 
-/** Formats failure details from a test result into an XML-like string. */
 export async function getFailureDetails(result: ITestResult): Promise<string> {
 	let str = '';
 	let hadMessages = false;

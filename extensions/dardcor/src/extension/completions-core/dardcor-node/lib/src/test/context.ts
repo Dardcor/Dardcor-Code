@@ -13,7 +13,6 @@ import { SyncDescriptor } from '../../../../../../util/dardcor/platform/instanti
 import { createExtensionTestingServices } from '../../../../../test/dardcor-node/services';
 import { CompletionsTelemetryServiceBridge, ICompletionsTelemetryService } from '../../../bridge/src/completionsTelemetryServiceBridge';
 import { DocumentContext } from '../../../types/src';
-import { ICompletionsCopilotTokenManager } from '../auth/dardcorTokenManager';
 import { ICompletionsCitationManager, NoOpCitationManager } from '../citationManager';
 import { CompletionNotifier, ICompletionsNotifierService } from '../completionNotifier';
 import {
@@ -56,7 +55,6 @@ import { ICompletionsTelemetryUserConfigService, TelemetryUserConfig } from '../
 import { ICompletionsTextDocumentManagerService } from '../textDocumentManager';
 import { ICompletionsPromiseQueueService } from '../util/promiseQueue';
 import { ICompletionsRuntimeModeService, RuntimeMode } from '../util/runtimeMode';
-import { FakeCopilotTokenManager } from './dardcorTokenManager';
 import { NoFetchFetcher } from './fetcher';
 import { TestPromiseQueue } from './telemetry';
 import { TestNotificationSender } from './testHelpers';
@@ -67,13 +65,6 @@ class NullLog implements ICompletionsLogTargetService {
 	logIt(..._: unknown[]) { }
 }
 
-/**
- * Baseline for a context. Tests should prefer the specific variants outlined below.
- *
- * @see createLibTestingContext
- * @see createExtensionTestingContext
- * @see createAgentTestingContext
- */
 export function _createBaselineContext(serviceCollection: TestingServiceCollection, configProvider: InMemoryConfigProvider): TestingServiceCollection {
 	serviceCollection.set(ILanguageContextProviderService, new NullLanguageContextProviderService());
 
@@ -88,7 +79,6 @@ export function _createBaselineContext(serviceCollection: TestingServiceCollecti
 	serviceCollection.define(ICompletionsCitationManager, new NoOpCitationManager());
 	serviceCollection.define(ICompletionsNotificationSender, new TestNotificationSender());
 	serviceCollection.define(ICompletionsTelemetryReporters, new TelemetryReporters());
-	serviceCollection.define(ICompletionsCopilotTokenManager, new FakeCopilotTokenManager());
 	serviceCollection.define(ICompletionsFeaturesService, new SyncDescriptor(Features));
 	serviceCollection.define(ICompletionsTelemetryService, new SyncDescriptor(CompletionsTelemetryServiceBridge));
 	serviceCollection.define(ICompletionsNotifierService, new SyncDescriptor(CompletionNotifier));
@@ -104,7 +94,6 @@ export function _createBaselineContext(serviceCollection: TestingServiceCollecti
 	serviceCollection.define(ICompletionsPromiseQueueService, new TestPromiseQueue());
 	serviceCollection.define(ILanguageDiagnosticsService, new TestLanguageDiagnosticsService());
 
-	//ctx.set(FileSearch, new TestingFileSearch());
 	serviceCollection.define(ICompletionsPromptFactoryService, new SyncDescriptor(CompletionsPromptFactory));
 	serviceCollection.define(ICompletionsContextProviderService, new ContextProviderStatistics());
 	serviceCollection.define(ICompletionsContextProviderRegistryService,
@@ -121,9 +110,6 @@ export function _createBaselineContext(serviceCollection: TestingServiceCollecti
 	return serviceCollection;
 }
 
-/**
- * @returns a context suitable for `lib` tests.
- */
 export function createLibTestingContext() {
 	let serviceCollection = createExtensionTestingServices();
 	serviceCollection = _createBaselineContext(serviceCollection, new InMemoryConfigProvider(new DefaultsOnlyConfigProvider()));

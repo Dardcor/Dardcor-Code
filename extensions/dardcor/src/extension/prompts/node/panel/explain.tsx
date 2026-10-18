@@ -28,7 +28,6 @@ export interface ExplainPromptProps extends BasePromptElementProps {
 	promptContext: IBuildPromptContext;
 	endpoint: IChatEndpoint;
 
-	// We want these upfront if possible because these could change during async prompt rendering
 	document?: TextDocumentSnapshot;
 	selection?: vscode.Selection;
 	isInlineChat?: boolean;

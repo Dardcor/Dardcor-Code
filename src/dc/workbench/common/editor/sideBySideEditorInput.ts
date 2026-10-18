@@ -13,9 +13,6 @@ import { EditorInputCapabilities, GroupIdentifier, ISaveOptions, IRevertOptions,
 import { EditorInput, IUntypedEditorOptions } from './editorInput.js';
 import { IEditorService } from '../../services/editor/common/editorService.js';
 
-/**
- * Side by side editor inputs that have a primary and secondary side.
- */
 export class SideBySideEditorInput extends EditorInput implements ISideBySideEditorInput {
 
 	static readonly ID: string = 'workbench.editorinputs.sidebysideEditorInput';
@@ -26,29 +23,22 @@ export class SideBySideEditorInput extends EditorInput implements ISideBySideEdi
 
 	override get capabilities(): EditorInputCapabilities {
 
-		// Use primary capabilities as main capabilities...
 		let capabilities = this.primary.capabilities;
 
-		// ...with the exception of `CanSplitInGroup` which
-		// is only relevant to single editors.
 		capabilities &= ~EditorInputCapabilities.CanSplitInGroup;
 
-		// Trust: should be considered for both sides
 		if (this.secondary.hasCapability(EditorInputCapabilities.RequiresTrust)) {
 			capabilities |= EditorInputCapabilities.RequiresTrust;
 		}
 
-		// Singleton: should be considered for both sides
 		if (this.secondary.hasCapability(EditorInputCapabilities.Singleton)) {
 			capabilities |= EditorInputCapabilities.Singleton;
 		}
 
-		// ForceReveal: should be considered for both sides
 		if (this.secondary.hasCapability(EditorInputCapabilities.ForceReveal)) {
 			capabilities |= EditorInputCapabilities.ForceReveal;
 		}
 
-		// Indicate we show more than one editor
 		capabilities |= EditorInputCapabilities.MultipleEditors;
 
 		return capabilities;
@@ -56,9 +46,6 @@ export class SideBySideEditorInput extends EditorInput implements ISideBySideEdi
 
 	get resource(): URI | undefined {
 		if (this.hasIdenticalSides) {
-			// pretend to be just primary side when being asked for a resource
-			// in case both sides are the same. this can help when components
-			// want to identify this input among others (e.g. in history).
 			return this.primary.resource;
 		}
 
@@ -83,17 +70,14 @@ export class SideBySideEditorInput extends EditorInput implements ISideBySideEdi
 
 	private registerListeners(): void {
 
-		// When the primary or secondary input gets disposed, dispose this diff editor input
 		this._register(Event.once(Event.any(this.primary.onWillDispose, this.secondary.onWillDispose))(() => {
 			if (!this.isDisposed()) {
 				this.dispose();
 			}
 		}));
 
-		// Re-emit some events from the primary side to the outside
 		this._register(this.primary.onDidChangeDirty(() => this._onDidChangeDirty.fire()));
 
-		// Re-emit some events from both sides to the outside
 		this._register(this.primary.onDidChangeCapabilities(() => this._onDidChangeCapabilities.fire()));
 		this._register(this.secondary.onDidChangeCapabilities(() => this._onDidChangeCapabilities.fire()));
 		this._register(this.primary.onDidChangeLabel(() => this._onDidChangeLabel.fire()));
@@ -107,7 +91,7 @@ export class SideBySideEditorInput extends EditorInput implements ISideBySideEdi
 		}
 
 		if (this.hasIdenticalSides) {
-			return this.primary.getName(); // keep name concise when same editor is opened side by side
+			return this.primary.getName();
 		}
 
 		return localize('sideBySideLabels', "{0} - {1}", this.secondary.getName(), this.primary.getName());
@@ -235,16 +219,14 @@ export class SideBySideEditorInput extends EditorInput implements ISideBySideEdi
 
 	override async rename(group: GroupIdentifier, target: URI): Promise<IMoveResult | undefined> {
 		if (!this.hasIdenticalSides) {
-			return; // currently only enabled when both sides are identical
+			return;
 		}
 
-		// Forward rename to primary side
 		const renameResult = await this.primary.rename(group, target);
 		if (!renameResult) {
 			return undefined;
 		}
 
-		// Build a side-by-side result from the rename result
 
 		if (isEditorInput(renameResult.editor)) {
 			return {
@@ -282,7 +264,6 @@ export class SideBySideEditorInput extends EditorInput implements ISideBySideEdi
 		const primaryResourceEditorInput = this.primary.toUntyped(options);
 		const secondaryResourceEditorInput = this.secondary.toUntyped(options);
 
-		// Prevent nested side by side editors which are unsupported
 		if (
 			primaryResourceEditorInput && secondaryResourceEditorInput &&
 			!isResourceDiffEditorInput(primaryResourceEditorInput) && !isResourceDiffEditorInput(secondaryResourceEditorInput) &&
@@ -315,7 +296,7 @@ export class SideBySideEditorInput extends EditorInput implements ISideBySideEdi
 		}
 
 		if (isDiffEditorInput(otherInput) || isResourceDiffEditorInput(otherInput)) {
-			return false; // prevent subclass from matching
+			return false;
 		}
 
 		if (otherInput instanceof SideBySideEditorInput) {
@@ -330,7 +311,6 @@ export class SideBySideEditorInput extends EditorInput implements ISideBySideEdi
 	}
 }
 
-// Register SideBySide/DiffEditor Input Serializer
 interface ISerializedSideBySideEditorInput {
 	name: string | undefined;
 	description: string | undefined;

@@ -137,7 +137,6 @@ function getSinglePriorityFromContribution(value: CustomEditorPriority | undefin
 			return RegisteredEditorPriority.explicit;
 
 		case CustomEditorPriority.builtin:
-			// Builtin is only valid for builtin extensions
 			return extension.isBuiltin ? RegisteredEditorPriority.builtin : RegisteredEditorPriority.default;
 
 		default:

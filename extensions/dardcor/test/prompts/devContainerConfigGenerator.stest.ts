@@ -15,7 +15,7 @@ import { ssuite, stest } from '../base/stest';
 let index: Promise<DevContainerConfigIndex> | undefined;
 async function loadIndex() {
 	return index || (index = (async () => {
-		const indexPath = path.join(__dirname, '../test/prompts/fixtures/devcontainer/devContainerIndex.json'); // Cached copy of https://containers.dev/static/devcontainer-index.json
+		const indexPath = path.join(__dirname, '../test/prompts/fixtures/devcontainer/devContainerIndex.json');
 		const index = JSON.parse(await fs.promises.readFile(indexPath, 'utf8'));
 		const templates = index.collections
 			.filter((c: any) => c.sourceInformation.repository === 'https://github.com/devcontainers/templates')
@@ -58,21 +58,4 @@ ssuite({ title: 'Dev Container Configuration', location: 'external' }, () => {
 		});
 	}
 
-	// // npm run simulate -- --grep=devcontainer.json --n=1
-	// stest({ description: `Suggests a devcontainer.json template` }, async (testingServiceCollection) => {
-	// 	const dataPath = path.join(__dirname, '../test/prompts/fixtures/devcontainer/devContainerConfigTestData.json');
-	// 	const data = JSON.parse(await fs.promises.readFile(dataPath, 'utf8')).slice(0, 11);
-	// 	const results = [];
-	// 	for (let i = 0; i < data.length; i++) {
-	// 		const generator = new DevContainerConfigGenerator(accessor);
-	// 		const result = await generator.generate(await loadIndex(), data[i].files, CancellationToken.None);
-	// 		assert.strictEqual(result.type, 'success');
-	// 		results.push({
-	// 			...data[i],
-	// 			suggestedTemplate: result.template,
-	// 			suggestedFeatures: result.features,
-	// 		});
-	// 	}
-	// 	await fs.promises.writeFile(path.join(__dirname, '../test/prompts/devContainerConfigTestResults.json'), JSON.stringify(results, null, 4));
-	// });
 });

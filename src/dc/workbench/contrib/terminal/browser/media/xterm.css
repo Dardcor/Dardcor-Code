@@ -35,9 +35,6 @@
  *   other features.
  */
 
-/**
- *  Default styles for xterm.js
- */
 
 .xterm {
 	cursor: text;
@@ -55,10 +52,6 @@
 .xterm .xterm-helpers {
 	position: absolute;
 	top: 0;
-	/**
-	 * The z-index of the helpers must be higher than the canvases in order for
-	 * IMEs to appear on top.
-	 */
 	z-index: 5;
 }
 
@@ -66,7 +59,6 @@
 	padding: 0;
 	border: 0;
 	margin: 0;
-	/* Move textarea out of the screen to the far left, so that the cursor is not visible */
 	position: absolute;
 	opacity: 0;
 	left: -9999em;
@@ -74,14 +66,12 @@
 	width: 0;
 	height: 0;
 	z-index: -5;
-	/** Prevent wrapping so the IME appears against the textarea at the correct position */
 	white-space: nowrap;
 	overflow: hidden;
 	resize: none;
 }
 
 .xterm .composition-view {
-	/* TODO: Composition position got messed up somewhere */
 	background: #000;
 	color: #FFF;
 	display: none;
@@ -122,7 +112,6 @@
 }
 
 .xterm.enable-mouse-events {
-	/* When mouse events are enabled (eg. tmux), revert to the standard pointer cursor */
 	cursor: default;
 }
 
@@ -132,7 +121,6 @@
 }
 
 .xterm.column-select.focus {
-	/* Column selection mode */
 	cursor: crosshair;
 }
 
@@ -172,8 +160,6 @@
 }
 
 .xterm-dim {
-	/* Dim should not apply to background, so the opacity of the foreground color is applied
-	 * explicitly in the generated class and reset to 1 here */
 	opacity: 1 !important;
 }
 
@@ -249,14 +235,11 @@
 
 
 
-/* Derived from vs/base/browser/ui/scrollbar/media/scrollbar.css */
 
-/* xterm.js customization: Override xterm's cursor style */
 .xterm .xterm-scrollable-element > .xterm-scrollbar {
 	cursor: default;
 }
 
-/* Arrows */
 .xterm .xterm-scrollable-element > .xterm-scrollbar > .xterm-scra {
 	cursor: pointer;
 	font-size: 11px !important;
@@ -265,11 +248,9 @@
 .xterm .xterm-scrollable-element > .xterm-visible {
 	opacity: 1;
 
-	/* Background rule added for IE9 - to allow clicks on dom node */
 	background: rgba(0, 0, 0, 0);
 
 	transition: opacity 100ms linear;
-	/* In front of peek view */
 	z-index: 11;
 }
 
@@ -282,7 +263,6 @@
 	transition: opacity 800ms linear;
 }
 
-/* Scrollable Content Inset Shadow */
 .xterm .xterm-scrollable-element > .xterm-shadow {
 	position: absolute;
 	display: none;

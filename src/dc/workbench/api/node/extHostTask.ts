@@ -62,16 +62,14 @@ export class ExtHostTask extends ExtHostTaskBase {
 			throw new Error('Tasks to execute must include an execution');
 		}
 
-		// We have a preserved ID. So the task didn't change.
 		if (tTask._id !== undefined) {
-			// Always get the task execution first to prevent timing issues when retrieving it later
 			const handleDto = TaskHandleDTO.from(tTask, this.workspaceService);
 			const executionDTO = await this._proxy.$getTaskExecution(handleDto);
 			if (executionDTO.task === undefined) {
 				throw new Error('Task from execution DTO is undefined');
 			}
 			const execution = await this.getTaskExecution(executionDTO, task);
-			this._proxy.$executeTask(handleDto).catch(() => { /* The error here isn't actionable. */ });
+			this._proxy.$executeTask(handleDto).catch(() => { });
 			return execution;
 		} else {
 			const dto = TaskDTO.from(task, extension);
@@ -79,15 +77,11 @@ export class ExtHostTask extends ExtHostTaskBase {
 				return Promise.reject(new Error('Task is not valid'));
 			}
 
-			// If this task is a custom execution, then we need to save it away
-			// in the provided custom execution map that is cleaned up after the
-			// task is executed.
 			if (CustomExecutionDTO.is(dto.execution)) {
 				await this.addCustomExecution(dto, task, false);
 			}
-			// Always get the task execution first to prevent timing issues when retrieving it later
 			const execution = await this.getTaskExecution(await this._proxy.$getTaskExecution(dto), task);
-			this._proxy.$executeTask(dto).catch(() => { /* The error here isn't actionable. */ });
+			this._proxy.$executeTask(dto).catch(() => { });
 			return execution;
 		}
 	}
@@ -107,9 +101,6 @@ export class ExtHostTask extends ExtHostTaskBase {
 					taskDTOs.push(taskDTO);
 
 					if (CustomExecutionDTO.is(taskDTO.execution)) {
-						// The ID is calculated on the main thread task side, so, let's call into it here.
-						// We need the task id's pre-computed for custom task executions because when OnDidStartTask
-						// is invoked, we have to be able to map it back to our data.
 						taskIdPromises.push(this.addCustomExecution(taskDTO, task, true));
 					}
 				}

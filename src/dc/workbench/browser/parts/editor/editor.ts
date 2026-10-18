@@ -48,8 +48,8 @@ export const DEFAULT_EDITOR_PART_OPTIONS: IEditorPartOptions = {
 	titleScrollbarVisibility: 'auto',
 	focusRecentEditorAfterClose: true,
 	showIcons: true,
-	hasIcons: true, // 'vs-seti' is our default icon theme
-	enablePreview: true,
+	hasIcons: true,
+	enablePreview: false,
 	openPositioning: 'right',
 	openSideBySideDirection: 'right',
 	closeEmptyGroups: true,
@@ -71,8 +71,6 @@ export const DEFAULT_EDITOR_PART_OPTIONS: IEditorPartOptions = {
 	restoreViewState: true,
 	splitInGroupLayout: 'horizontal',
 	revealIfOpen: false,
-	// Properties that are Objects have to be defined as getters
-	// to ensure no consumer modifies the default values
 	get limit(): IEditorPartLimitOptions { return { enabled: false, value: 10, perEditorGroup: false, excludeDirty: false }; },
 	get decorations(): IEditorPartDecorationOptions { return { badges: true, colors: true }; },
 	get autoLockGroups(): Set<string> { return new Set<string>(); }
@@ -91,10 +89,8 @@ export function getEditorPartOptions(configurationService: IConfigurationService
 	const config = configurationService.getValue<IWorkbenchEditorConfiguration>();
 	if (config?.workbench?.editor) {
 
-		// Assign all primitive configuration over
 		Object.assign(options, config.workbench.editor);
 
-		// Special handle array types and convert to Set
 		if (isObject(config.workbench.editor.autoLockGroups)) {
 			options.autoLockGroups = DEFAULT_EDITOR_PART_OPTIONS.autoLockGroups;
 
@@ -118,7 +114,6 @@ export function getEditorPartOptions(configurationService: IConfigurationService
 
 function validateEditorPartOptions(options: IEditorPartOptions): IEditorPartOptions {
 
-	// Migrate: Show tabs (config migration kicks in very late and can cause flicker otherwise)
 	if (typeof options.showTabs === 'boolean') {
 		options.showTabs = options.showTabs ? 'multiple' : 'single';
 	}
@@ -182,9 +177,6 @@ function validateEditorPartOptions(options: IEditorPartOptions): IEditorPartOpti
 	}, options);
 }
 
-/**
- * A helper to access editor groups across all opened editor parts.
- */
 export interface IEditorPartsView {
 
 	readonly mainPart: IEditorGroupsView;
@@ -203,9 +195,6 @@ export interface IEditorPartsView {
 	bind<T extends ContextKeyValue>(contextKey: RawContextKey<T>, group: IEditorGroupView): IContextKey<T>;
 }
 
-/**
- * A helper to access and mutate editor groups within an editor part.
- */
 export interface IEditorGroupsView {
 
 	readonly windowId: number;
@@ -239,56 +228,29 @@ export interface IEditorGroupsView {
 
 export interface IEditorGroupTitleHeight {
 
-	/**
-	 * The overall height of the editor group title control.
-	 */
 	readonly total: number;
 
-	/**
-	 * The height offset to e.g. use when drawing drop overlays.
-	 * This number may be smaller than `height` if the title control
-	 * decides to have an `offset` that is within the title control
-	 * (e.g. when breadcrumbs are enabled).
-	 */
 	readonly offset: number;
 }
 
 export interface IEditorGroupViewOptions {
 
-	/**
-	 * Whether the editor group should receive keyboard focus
-	 * after creation or not.
-	 */
 	readonly preserveFocus?: boolean;
 
-	/**
-	 * Optional menu ids used by the group header and tab bar. When unset the
-	 * workbench uses the shared defaults and renders no custom header actions.
-	 */
 	readonly menuIds?: IEditorGroupMenuIds;
 
-	/** Shows the full-width group header with its configured actions and breadcrumbs. */
 	readonly showHeader?: boolean;
 }
 
 export interface IEditorGroupMenuIds {
-	/** Menu whose actions render as the leading (left) header toolbar. */
 	readonly headerPrimary?: MenuId;
-	/** Menu whose actions render as the trailing (right) header toolbar. */
 	readonly headerSecondary?: MenuId;
-	/** Menu whose actions render after the trailing header toolbar. */
 	readonly headerLayout?: MenuId;
-	/** Menu whose actions render in the editor-actions toolbar on the tab bar. */
 	readonly editorActions?: MenuId;
-	/** Menu shown when right-clicking the empty tab-bar area. */
 	readonly tabsBarContext?: MenuId;
-	/** Menu whose actions populate the add-tab (`+`) control in the tab bar. */
 	readonly tabsBarAddTab?: MenuId;
 }
 
-/**
- * A helper to access and mutate an editor group within an editor part.
- */
 export interface IEditorGroupView extends IDisposable, ISerializableView, IEditorGroup {
 
 	readonly onDidFocus: Event<void>;
@@ -300,12 +262,6 @@ export interface IEditorGroupView extends IDisposable, ISerializableView, IEdito
 
 	readonly groupsView: IEditorGroupsView;
 
-	/**
-	 * A promise that resolves when the group has been restored.
-	 *
-	 * For a group with active editor, the promise will resolve
-	 * when the active editor has finished to resolve.
-	 */
 	readonly whenRestored: Promise<void>;
 
 	readonly titleHeight: IEditorGroupTitleHeight;
@@ -353,13 +309,9 @@ export function prepareMoveCopyEditors(sourceGroup: IEditorGroup, editors: Edito
 	}
 
 	if (!activeEditor) {
-		activeEditor = inactiveEditors.shift(); // just take the first editor as active if none is active
+		activeEditor = inactiveEditors.shift();
 	}
 
-	// ensure inactive editors are then sorted by inverse visual order
-	// so that we can preserve the order in the target group. we inverse
-	// because editors will open to the side of the active editor as
-	// inactive editors, and the active editor is always the reference
 	inactiveEditors.sort((a, b) => sourceGroup.getIndexOfEditor(b) - sourceGroup.getIndexOfEditor(a));
 
 	const sortedEditors = coalesce([activeEditor, ...inactiveEditors]);
@@ -379,84 +331,39 @@ export function prepareMoveCopyEditors(sourceGroup: IEditorGroup, editors: Edito
 	return editorsWithOptions;
 }
 
-/**
- * A sub-interface of IEditorService to hide some workbench-core specific
- * events from clients.
- */
 export interface EditorServiceImpl extends IEditorService {
 
-	/**
-	 * Emitted when an editor failed to open.
-	 */
 	readonly onDidOpenEditorFail: Event<IEditorIdentifier>;
 
-	/**
-	 * Emitted when the list of most recently active editors change.
-	 */
 	readonly onDidMostRecentlyActiveEditorsChange: Event<void>;
 }
 
 export interface IInternalEditorTitleControlOptions {
 
-	/**
-	 * A hint to defer updating the title control for perf reasons.
-	 * The caller must ensure to update the title control then.
-	 */
 	readonly skipTitleUpdate?: boolean;
 }
 
 export interface IInternalEditorOpenOptions extends IInternalEditorTitleControlOptions {
 
-	/**
-	 * Whether to consider a side by side editor as matching
-	 * when figuring out if the editor to open is already
-	 * opened or not. By default, side by side editors will
-	 * not be considered as matching, even if the editor is
-	 * opened in one of the sides.
-	 */
 	readonly supportSideBySide?: SideBySideEditor.ANY | SideBySideEditor.BOTH;
 
-	/**
-	 * When set to `true`, pass DOM focus into the tab control.
-	 */
 	readonly focusTabControl?: boolean;
 
-	/**
-	 * When set to `true`, will not attempt to move the window to
-	 * the top that the editor opens in.
-	 */
 	readonly preserveWindowOrder?: boolean;
 
-	/**
-	 * Inactive editors to select after opening the active selected editor.
-	 */
 	readonly inactiveSelection?: EditorInput[];
 }
 
 export interface IInternalEditorCloseOptions extends IInternalEditorTitleControlOptions {
 
-	/**
-	 * A hint that the editor is closed due to an error opening. This can be
-	 * used to optimize how error toasts are appearing if any.
-	 */
 	readonly fromError?: boolean;
 
-	/**
-	 * Additional context as to why an editor is closed.
-	 */
 	readonly context?: EditorCloseContext;
 
-	/**
-	 * Forces the editor to close even if it declares
-	 * `EditorInputCapabilities.CannotClose`.
-	 */
 	readonly force?: boolean;
 }
 
 export interface IInternalMoveCopyOptions extends IInternalEditorOpenOptions {
 
-	/**
-	 * Whether to close the editor at the source or keep it.
-	 */
 	readonly keepCopy?: boolean;
 }

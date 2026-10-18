@@ -14,33 +14,20 @@ import { teardown } from './processes';
 import { ChildProcess } from 'child_process';
 import type { AxeResults, RunOptions } from 'axe-core';
 
-// Load axe-core source for injection into pages (works with Electron)
 let axeSource = '';
 try {
 	const axePath = require.resolve('axe-core/axe.min.js');
 	axeSource = readFileSync(axePath, 'utf-8');
 } catch {
-	// axe-core may not be installed; keep axeSource empty to avoid failing module initialization
 	axeSource = '';
 }
 
 type PageFunction<Arg, T> = (arg: Arg) => T | Promise<T>;
 
 export interface AccessibilityScanOptions {
-	/** Specific selector to scan. If not provided, scans the entire page. */
 	selector?: string;
-	/** WCAG tags to include (e.g., 'wcag2a', 'wcag2aa', 'wcag21aa'). Defaults to WCAG 2.1 AA. */
 	tags?: string[];
-	/** Rule IDs to disable for this scan. */
 	disableRules?: string[];
-	/**
-	 * Patterns to exclude from specific rules. Keys are rule IDs, values are strings to match against element target or HTML.
-	 *
-	 * **IMPORTANT**: Adding exclusions here bypasses accessibility checks. Before adding an exclusion:
-	 * 1. File an issue to track the accessibility problem
-	 * 2. Ensure there's a plan to fix the underlying issue (e.g., hover/focus states that axe can't detect)
-	 * 3. Get approval from @anthropics/accessibility team
-	 */
 	excludeRules?: { [ruleId: string]: string[] };
 }
 
@@ -85,11 +72,6 @@ export class PlaywrightDriver {
 		return this._currentPage;
 	}
 
-	/**
-	 * Get all open windows/pages.
-	 * For Electron apps, returns all Electron windows.
-	 * For browser contexts, returns all pages.
-	 */
 	getAllWindows(): playwright.Page[] {
 		if ('windows' in this.application) {
 			return (this.application as playwright.ElectronApplication).windows();
@@ -97,33 +79,21 @@ export class PlaywrightDriver {
 		return this.context.pages();
 	}
 
-	/**
-	 * Switch to a different window by index or URL pattern.
-	 * @param indexOrUrl - Window index (0-based) or a string to match against the URL.
-	 *                     When using a string, it first tries to find an exact URL match,
-	 *                     then falls back to finding the first URL that contains the pattern.
-	 * @returns The switched-to page, or undefined if not found
-	 * @note When switching windows, any existing CDP session will be cleared since it
-	 *       remains attached to the previous page and cannot be used with the new page.
-	 */
 	switchToWindow(indexOrUrl: number | string): playwright.Page | undefined {
 		const windows = this.getAllWindows();
 		if (typeof indexOrUrl === 'number') {
 			if (indexOrUrl >= 0 && indexOrUrl < windows.length) {
 				this._currentPage = windows[indexOrUrl];
-				// Clear CDP session as it's attached to the previous page
 				this._cdpSession = undefined;
 				return this._currentPage;
 			}
 		} else {
-			// First try exact match, then fall back to substring match
 			let found = windows.find(w => w.url() === indexOrUrl);
 			if (!found) {
 				found = windows.find(w => w.url().includes(indexOrUrl));
 			}
 			if (found) {
 				this._currentPage = found;
-				// Clear CDP session as it's attached to the previous page
 				this._cdpSession = undefined;
 				return this._currentPage;
 			}
@@ -131,9 +101,6 @@ export class PlaywrightDriver {
 		return undefined;
 	}
 
-	/**
-	 * Get information about all windows.
-	 */
 	getWindowsInfo(): { index: number; url: string; isCurrent: boolean }[] {
 		const windows = this.getAllWindows();
 		return windows.map((p, index) => ({
@@ -143,11 +110,6 @@ export class PlaywrightDriver {
 		}));
 	}
 
-	/**
-	 * Take a screenshot of the current window.
-	 * @param fullPage - Whether to capture the full scrollable page
-	 * @returns Screenshot as a Buffer
-	 */
 	async screenshotBuffer(fullPage: boolean = false): Promise<Buffer> {
 		return await this.page.screenshot({
 			type: 'png',
@@ -155,16 +117,10 @@ export class PlaywrightDriver {
 		});
 	}
 
-	/**
-	 * Get the accessibility snapshot of the current window.
-	 */
 	async getAccessibilitySnapshot(): Promise<string> {
 		return await this.page.ariaSnapshot({ mode: 'ai' });
 	}
 
-	/**
-	 * Click on an element using CSS selector with options.
-	 */
 	async clickSelector(selector: string, options?: { button?: 'left' | 'right' | 'middle'; clickCount?: number }): Promise<void> {
 		await this.page.click(selector, {
 			button: options?.button ?? 'left',
@@ -172,12 +128,6 @@ export class PlaywrightDriver {
 		});
 	}
 
-	/**
-	 * Type text into an element.
-	 * @param selector - CSS selector for the element
-	 * @param text - Text to type
-	 * @param slowly - Whether to type character by character (triggers key events)
-	 */
 	async typeText(selector: string, text: string, slowly: boolean = false): Promise<void> {
 		if (slowly) {
 			await this.page.type(selector, text, { delay: 50 });
@@ -186,16 +136,10 @@ export class PlaywrightDriver {
 		}
 	}
 
-	/**
-	 * Evaluate a JavaScript expression in the current window.
-	 */
 	async evaluateExpression<T = unknown>(expression: string): Promise<T> {
 		return await this.page.evaluate(expression) as T;
 	}
 
-	/**
-	 * Get information about elements matching a selector.
-	 */
 	async getLocatorInfo(selector: string, action?: 'count' | 'textContent' | 'innerHTML' | 'boundingBox' | 'isVisible'): Promise<
 		number | string[] | { x: number; y: number; width: number; height: number } | null | boolean | { count: number; firstVisible: boolean }
 	> {
@@ -220,9 +164,6 @@ export class PlaywrightDriver {
 		}
 	}
 
-	/**
-	 * Wait for an element to reach a specific state.
-	 */
 	async waitForElement(selector: string, options?: { state?: 'attached' | 'detached' | 'visible' | 'hidden'; timeout?: number }): Promise<void> {
 		await this.page.waitForSelector(selector, {
 			state: options?.state ?? 'visible',
@@ -230,37 +171,22 @@ export class PlaywrightDriver {
 		});
 	}
 
-	/**
-	 * Hover over an element.
-	 */
 	async hoverSelector(selector: string): Promise<void> {
 		await this.page.hover(selector);
 	}
 
-	/**
-	 * Drag from one element to another.
-	 */
 	async dragSelector(sourceSelector: string, targetSelector: string): Promise<void> {
 		await this.page.dragAndDrop(sourceSelector, targetSelector);
 	}
 
-	/**
-	 * Press a key or key combination.
-	 */
 	async pressKey(key: string): Promise<void> {
 		await this.page.keyboard.press(key);
 	}
 
-	/**
-	 * Move mouse to a specific position.
-	 */
 	async mouseMove(x: number, y: number): Promise<void> {
 		await this.page.mouse.move(x, y);
 	}
 
-	/**
-	 * Click at a specific position.
-	 */
 	async mouseClick(x: number, y: number, options?: { button?: 'left' | 'right' | 'middle'; clickCount?: number }): Promise<void> {
 		await this.page.mouse.click(x, y, {
 			button: options?.button ?? 'left',
@@ -268,9 +194,6 @@ export class PlaywrightDriver {
 		});
 	}
 
-	/**
-	 * Drag from one position to another.
-	 */
 	async mouseDrag(startX: number, startY: number, endX: number, endY: number): Promise<void> {
 		await this.page.mouse.move(startX, startY);
 		await this.page.mouse.down();
@@ -278,25 +201,16 @@ export class PlaywrightDriver {
 		await this.page.mouse.up();
 	}
 
-	/**
-	 * Select an option in a dropdown.
-	 */
 	async selectOption(selector: string, value: string | string[]): Promise<string[]> {
 		return await this.page.selectOption(selector, value);
 	}
 
-	/**
-	 * Fill multiple form fields at once.
-	 */
 	async fillForm(fields: { selector: string; value: string }[]): Promise<void> {
 		for (const field of fields) {
 			await this.page.fill(field.selector, field.value);
 		}
 	}
 
-	/**
-	 * Get console messages from the current window.
-	 */
 	async getConsoleMessages(): Promise<{ type: string; text: string }[]> {
 		const messages = await this.page.consoleMessages();
 		return messages.map(m => ({
@@ -305,9 +219,6 @@ export class PlaywrightDriver {
 		}));
 	}
 
-	/**
-	 * Wait for text to appear, disappear, or a specified time to pass.
-	 */
 	async waitForText(options: { text?: string; textGone?: string; timeout?: number }): Promise<void> {
 		const { text, textGone, timeout = 30000 } = options;
 
@@ -319,16 +230,10 @@ export class PlaywrightDriver {
 		}
 	}
 
-	/**
-	 * Wait for a specified time in milliseconds.
-	 */
 	async waitForTime(ms: number): Promise<void> {
 		await new Promise(resolve => setTimeout(resolve, ms));
 	}
 
-	/**
-	 * Verify an element is visible.
-	 */
 	async verifyElementVisible(selector: string): Promise<boolean> {
 		try {
 			await this.page.locator(selector).first().waitFor({ state: 'visible', timeout: 5000 });
@@ -338,9 +243,6 @@ export class PlaywrightDriver {
 		}
 	}
 
-	/**
-	 * Verify text is visible on the page.
-	 */
 	async verifyTextVisible(text: string): Promise<boolean> {
 		try {
 			await this.page.getByText(text).first().waitFor({ state: 'visible', timeout: 5000 });
@@ -350,28 +252,24 @@ export class PlaywrightDriver {
 		}
 	}
 
-	/**
-	 * Get the value of an input element.
-	 */
 	async getInputValue(selector: string): Promise<string> {
 		return await this.page.inputValue(selector);
 	}
 
 	async startTracing(name?: string): Promise<void> {
 		if (!this.options.tracing) {
-			return; // tracing disabled
+			return;
 		}
 
 		try {
 			await measureAndLog(() => this.context.tracing.startChunk({ title: name }), `startTracing${name ? ` for ${name}` : ''}`, this.options.logger);
 		} catch (error) {
-			// Ignore
 		}
 	}
 
 	async stopTracing(name?: string, persist: boolean = false): Promise<void> {
 		if (!this.options.tracing) {
-			return; // tracing disabled
+			return;
 		}
 
 		try {
@@ -383,15 +281,10 @@ export class PlaywrightDriver {
 
 			await measureAndLog(() => this.context.tracing.stopChunk({ path: persistPath }), `stopTracing${name ? ` for ${name}` : ''}`, this.options.logger);
 
-			// To ensure we have a screenshot at the end where
-			// it failed, also trigger one explicitly. Tracing
-			// does not guarantee to give us a screenshot unless
-			// some driver action ran before.
 			if (persist) {
 				await this.takeScreenshot(name);
 			}
 		} catch (error) {
-			// Ignore
 		}
 	}
 
@@ -482,7 +375,6 @@ export class PlaywrightDriver {
 
 			await measureAndLog(() => this.page.screenshot({ path: persistPath, type: 'png' }), 'takeScreenshot', this.options.logger);
 		} catch (error) {
-			// Ignore
 		}
 	}
 
@@ -492,16 +384,13 @@ export class PlaywrightDriver {
 
 	async close() {
 
-		// Stop tracing
 		try {
 			if (this.options.tracing) {
 				await measureAndLog(() => this.context.tracing.stop(), 'stop tracing', this.options.logger);
 			}
 		} catch (error) {
-			// Ignore
 		}
 
-		// Web: Extract client logs
 		if (this.options.web) {
 			try {
 				await measureAndLog(() => this.saveWebClientLogs(), 'saveWebClientLogs()', this.options.logger);
@@ -510,14 +399,12 @@ export class PlaywrightDriver {
 			}
 		}
 
-		//  exit via `close` method
 		try {
 			await measureAndLog(() => this.application.close(), 'playwright.close()', this.options.logger);
 		} catch (error) {
 			this.options.logger.log(`Error closing application (${error})`);
 		}
 
-		// Server: via `teardown`
 		if (this.serverProcess) {
 			await measureAndLog(() => teardown(this.serverProcess!, this.options.logger), 'teardown server process', this.options.logger);
 		}
@@ -566,8 +453,6 @@ export class PlaywrightDriver {
 
 	async click(selector: string, xoffset?: number | undefined, yoffset?: number | undefined) {
 		const { x, y } = await this.getElementXY(selector, xoffset, yoffset);
-		// getElementXY already incorporates both offsets (relative to the element's
-		// top-left corner) when both are provided, so don't add them again.
 		if (xoffset !== undefined && yoffset !== undefined) {
 			await this.page.mouse.click(x, y);
 		} else {
@@ -575,20 +460,6 @@ export class PlaywrightDriver {
 		}
 	}
 
-	/**
-	 * Click an element via Playwright's actionability-checked path, with a fallback
-	 * to a stable-coordinates click if Playwright refuses to interact.
-	 *
-	 * The primary path (`page.click`) is preferred because Playwright re-checks
-	 * `elementFromPoint(x, y)` immediately before dispatching, eliminating the
-	 * TOCTOU window where a sibling element could shift the target between the
-	 * position lookup and the click. The fallback only kicks in when a known
-	 * actionability error occurs — specifically when an overlay element intercepts
-	 * pointer events (the known case is Monaco's `.native-edit-context`, z-index: -10,
-	 * which `elementFromPoint` returns instead of the intended target). Other errors
-	 * (e.g. selector not found, detached element, timeout on a genuinely missing
-	 * element) are rethrown so real failures aren't silently masked.
-	 */
 	async robustClick(selector: string, timeoutMs: number = 2000): Promise<void> {
 		try {
 			await this.page.click(selector, { timeout: timeoutMs });
@@ -607,23 +478,11 @@ export class PlaywrightDriver {
 		}
 	}
 
-	/**
-	 * Returns true when the error is an actionability failure caused by an overlay
-	 * element intercepting pointer events (e.g. Monaco's `.native-edit-context`).
-	 * These are the only errors for which the stable-coordinates fallback is safe.
-	 */
 	private isPointerInterceptedError(err: unknown): boolean {
 		const message = err instanceof Error ? err.message : String(err);
 		return message.includes('intercepts pointer events');
 	}
 
-	/**
-	 * Fallback for {@link robustClick}: polls the element's click position via
-	 * getElementXY until two consecutive samples (separated by `intervalMs`) return
-	 * identical coordinates, then dispatches a mouse click at those exact stable
-	 * coordinates. Clicking the already-sampled {x,y} eliminates the re-sample
-	 * window, making the race window as small as possible (just the CDP round-trip).
-	 */
 	private async clickAtStablePosition(selector: string, intervalMs: number = 100, timeoutMs: number = 5000): Promise<void> {
 		let last: { x: number; y: number } | undefined;
 		const start = Date.now();
@@ -714,17 +573,9 @@ export class PlaywrightDriver {
 		}
 	}
 
-	/**
-	 * Run an accessibility scan on the current page using axe-core.
-	 * Uses direct script injection to work with Electron.
-	 * @param options Configuration options for the accessibility scan.
-	 * @returns The axe-core scan results including any violations found.
-	 */
 	async runAccessibilityScan(options?: AccessibilityScanOptions): Promise<AxeResults> {
-		// Inject axe-core into the page if not already present
 		await this.page.evaluate(axeSource);
 
-		// Build axe-core run options
 		const runOptions: RunOptions = {
 			runOnly: {
 				type: 'tag',
@@ -732,7 +583,6 @@ export class PlaywrightDriver {
 			}
 		};
 
-		// Disable specific rules if requested
 		if (options?.disableRules && options.disableRules.length > 0) {
 			runOptions.rules = {};
 			for (const ruleId of options.disableRules) {
@@ -740,20 +590,17 @@ export class PlaywrightDriver {
 			}
 		}
 
-		// Build context for axe.run
 		const context: { include?: string[]; exclude?: string[][] } = {};
 
 		if (options?.selector) {
 			context.include = [options.selector];
 		}
 
-		// Exclude known problematic areas
 		context.exclude = [
 			['.monaco-editor .view-lines'],
 			['.xterm-screen canvas']
 		];
 
-		// Run axe-core analysis
 		const results = await measureAndLog(
 			() => this.page.evaluate(
 				([ctx, opts]) => {
@@ -769,15 +616,9 @@ export class PlaywrightDriver {
 		return results as AxeResults;
 	}
 
-	/**
-	 * Run an accessibility scan and throw an error if any violations are found.
-	 * @param options Configuration options for the accessibility scan.
-	 * @throws Error if accessibility violations are detected.
-	 */
 	async assertNoAccessibilityViolations(options?: AccessibilityScanOptions): Promise<void> {
 		const results = await this.runAccessibilityScan(options);
 
-		// Filter out violations for specific elements based on excludeRules
 		let filteredViolations = results.violations;
 		if (options?.excludeRules) {
 			filteredViolations = results.violations.map((violation: AxeResults['violations'][number]) => {
@@ -785,11 +626,9 @@ export class PlaywrightDriver {
 				if (!excludePatterns) {
 					return violation;
 				}
-				// Filter out nodes that match any of the exclude patterns
 				const filteredNodes = violation.nodes.filter((node: AxeResults['violations'][number]['nodes'][number]) => {
 					const target = node.target.join(' ');
 					const html = node.html || '';
-					// Check if any exclude pattern appears in target or HTML
 					return !excludePatterns.some(pattern => target.includes(pattern) || html.includes(pattern));
 				});
 				return { ...violation, nodes: filteredNodes };
@@ -801,7 +640,6 @@ export class PlaywrightDriver {
 				const nodes = violation.nodes.map((node: AxeResults['violations'][number]['nodes'][number]) => {
 					const target = node.target.join(' > ');
 					const html = node.html || 'N/A';
-					// Extract class from HTML for easier identification
 					const classMatch = html.match(/class="([^"]+)"/);
 					const className = classMatch ? classMatch[1] : 'no class';
 					return [

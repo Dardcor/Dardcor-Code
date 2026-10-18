@@ -61,7 +61,7 @@ suite('ReplaceString Tool', () => {
 
 		const workingCopyDocument = new WorkingCopyOriginalDocument(document.getText());
 
-		expect(document.getText().includes(input.oldString)).toBe(false); // TAB vs SPACES
+		expect(document.getText().includes(input.oldString)).toBe(false);
 
 		let seenEdits = 0;
 

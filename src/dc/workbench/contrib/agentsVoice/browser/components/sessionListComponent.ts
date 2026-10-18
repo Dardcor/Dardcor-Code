@@ -104,7 +104,6 @@ function createSessionRow(session: SessionRowData, props: SessionListProps): HTM
 		}
 	});
 
-	// Dot or check
 	if (isSelected) {
 		const check = dom.$('span.codicon.codicon-check');
 		check.style.cssText = `font-size:10px;color:${rowLabelColor};flex-shrink:0;`;
@@ -115,13 +114,11 @@ function createSessionRow(session: SessionRowData, props: SessionListProps): HTM
 		row.append(dot);
 	}
 
-	// Label
 	const label = dom.$('span');
 	label.style.cssText = `font-size:${FONT_SIZE.body};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${rowLabelColor};font-weight:${labelWeight};`;
 	label.textContent = session.label || 'Untitled session';
 	row.append(label);
 
-	// Actions container
 	const actionsContainer = dom.$('div');
 	actionsContainer.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
 
@@ -159,7 +156,6 @@ function createSessionRow(session: SessionRowData, props: SessionListProps): HTM
 	const wrapper = dom.$('div');
 	wrapper.append(row);
 
-	// Tool confirmation
 	if (session.toolConfirmation) {
 		const tc = session.toolConfirmation;
 		const confRow = dom.$('div');
@@ -232,7 +228,6 @@ export function createSessionList(): SessionListComponent {
 			const hasGroups = props.groups && props.groups.length > 0;
 			const hasSessions = props.sessions.length > 0;
 
-			// Header row
 			const headerRow = dom.$('div');
 			headerRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:2px 2px 4px;border-bottom:1px solid var(--vscode-editorGroup-border);';
 

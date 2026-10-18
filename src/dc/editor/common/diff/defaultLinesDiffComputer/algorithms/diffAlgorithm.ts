@@ -7,9 +7,6 @@ import { forEachAdjacent } from '../../../../../base/common/arrays.js';
 import { BugIndicatingError } from '../../../../../base/common/errors.js';
 import { OffsetRange } from '../../../core/ranges/offsetRange.js';
 
-/**
- * Represents a synchronous diff algorithm. Should be executed in a worker.
-*/
 export interface IDiffAlgorithm {
 	compute(sequence1: ISequence, sequence2: ISequence, timeout?: ITimeout): DiffAlgorithmResult;
 }
@@ -25,10 +22,6 @@ export class DiffAlgorithmResult {
 
 	constructor(
 		public readonly diffs: SequenceDiff[],
-		/**
-		 * Indicates if the time out was reached.
-		 * In that case, the diffs might be an approximation and the user should be asked to rerun the diff with more time.
-		 */
 		public readonly hitTimeout: boolean,
 	) { }
 }
@@ -154,18 +147,8 @@ export interface ISequence {
 	getElement(offset: number): number;
 	get length(): number;
 
-	/**
-	 * The higher the score, the better that offset can be used to split the sequence.
-	 * Is used to optimize insertions.
-	 * Must not be negative.
-	*/
 	getBoundaryScore?(length: number): number;
 
-	/**
-	 * For line sequences, getElement returns a number representing trimmed lines.
-	 * This however checks equality for the original lines.
-	 * It prevents shifting to less matching lines.
-	 */
 	isStronglyEqual(offset1: number, offset2: number): boolean;
 }
 
@@ -191,11 +174,10 @@ export class DateTimeout implements ITimeout {
 		}
 	}
 
-	// Recommendation: Set a log-point `{this.disable()}` in the body
 	public isValid(): boolean {
 		const valid = Date.now() - this.startTime < this.timeout;
 		if (!valid && this.valid) {
-			this.valid = false; // timeout reached
+			this.valid = false;
 		}
 		return this.valid;
 	}

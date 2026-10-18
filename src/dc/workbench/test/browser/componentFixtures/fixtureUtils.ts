@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// This should be the only place that is allowed to import from @vscode/component-explorer
 // eslint-disable-next-line local/code-import-patterns
 import { defineFixture, defineFixtureGroup, defineFixtureVariants } from '@vscode/component-explorer';
 // eslint-disable-next-line local/code-import-patterns, local/code-amd-node-module
@@ -14,13 +13,8 @@ import { ModifierKeyEmitter } from '../../../../base/browser/dom.js';
 // eslint-disable-next-line local/code-import-patterns
 import '../../../../../../build/vite/style.css';
 import '../../../browser/media/style.css';
-// Import auxiliaryBarPart.css here (before any contrib/chat CSS) so the cascade
-// matches the product: chat.css loads later and overrides the auxiliarybar
-// rules where applicable. Fixtures that wrap content in `.part.auxiliarybar`
-// rely on these rules to recolor inline editors with `--vscode-sideBar-background`.
 import '../../../browser/parts/auxiliarybar/media/auxiliaryBarPart.css';
 
-// Theme
 import { IEnvironmentService } from '../../../../platform/environment/common/environment.js';
 import { IExtensionResourceLoaderService } from '../../../../platform/extensionResourceLoader/common/extensionResourceLoader.js';
 import { ThemeTypeSelector } from '../../../../platform/theme/common/theme.js';
@@ -29,13 +23,11 @@ import { ColorThemeData } from '../../../services/themes/common/colorThemeData.j
 import { ExtensionData } from '../../../services/themes/common/workbenchThemeService.js';
 import { ensureGlobalStylesInstalled, getStylesheetDocumentFiles, overrideStylesheetOrder, ReverseStylesheetsOption } from './fixtureUtilsCss.js';
 
-// Instantiation
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { ServiceIdentifier } from '../../../../platform/instantiation/common/instantiation.js';
 import { ServiceCollection } from '../../../../platform/instantiation/common/serviceCollection.js';
 import { TestInstantiationService } from '../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 
-// Test service implementations
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { mock } from '../../../../base/test/common/mock.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
@@ -98,12 +90,10 @@ import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/
 import { IChatEditingService } from '../../../contrib/chat/common/editing/chatEditingService.js';
 import { constObservable } from '../../../../base/common/observable.js';
 
-// Editor
 import { ITextModel } from '../../../../editor/common/model.js';
 
 import './fixtures.css';
 
-// Import color registrations to ensure colors are available
 import { IdleDeadline, installFakeRunWhenIdle } from '../../../../base/common/async.js';
 import { buildHistoryFromTasks, renderSwimlanes } from '../../../../base/test/common/executionGraph.js';
 import { pushRandomOverwrite } from '../../../../base/test/common/randomOverwrite.js';
@@ -145,10 +135,6 @@ sourceMapSupport.install({
 	},
 });
 
-/**
- * A storage service that never stores anything and always returns the default/fallback value.
- * This is useful for fixtures where we want consistent behavior without persisted state.
- */
 class NullStorageService implements IStorageService {
 
 	declare readonly _serviceBrand: undefined;
@@ -193,15 +179,12 @@ class NullStorageService implements IStorageService {
 	}
 
 	store(_key: string, _value: string | boolean | number | undefined | null, _scope: StorageScope, _target: StorageTarget): void {
-		// no-op
 	}
 
 	storeAll(_entries: IStorageEntry[], _external: boolean): void {
-		// no-op
 	}
 
 	remove(_key: string, _scope: StorageScope): void {
-		// no-op
 	}
 
 	isNew(_scope: StorageScope): boolean {
@@ -217,7 +200,6 @@ class NullStorageService implements IStorageService {
 	}
 
 	log(): void {
-		// no-op
 	}
 
 	keys(_scope: StorageScope, _target: StorageTarget): string[] {
@@ -234,33 +216,25 @@ class NullStorageService implements IStorageService {
 }
 
 
-// ============================================================================
-// Themes
-// ============================================================================
 
-// Eagerly bundle all built-in theme JSON files so they can be served to
-// `_loadColorTheme` via the IExtensionResourceLoaderService code path. The
-// rspack config maps these JSON files to `asset/source`, so they are imported
-// as raw text (not parsed JSON) — this lets VS Code's JSONC parser handle
-// comments and trailing commas the way it does in the real product.
 /* eslint-disable local/code-import-patterns */
 import dark_modern from '../../../../../../extensions/theme-defaults/themes/dark_modern.json' with { type: 'json' };
 import dark_plus from '../../../../../../extensions/theme-defaults/themes/dark_plus.json' with { type: 'json' };
-import dark_vs from '../../../../../../extensions/theme-defaults/themes/dark_vs.json' with { type: 'json' };
+import dark_dardcor from '../../../../../../extensions/theme-defaults/themes/dark_dardcor.json' with { type: 'json' };
 import hc_black from '../../../../../../extensions/theme-defaults/themes/hc_black.json' with { type: 'json' };
 import light_modern from '../../../../../../extensions/theme-defaults/themes/light_modern.json' with { type: 'json' };
 import light_plus from '../../../../../../extensions/theme-defaults/themes/light_plus.json' with { type: 'json' };
-import light_vs from '../../../../../../extensions/theme-defaults/themes/light_vs.json' with { type: 'json' };
+import light_dardcor from '../../../../../../extensions/theme-defaults/themes/light_dardcor.json' with { type: 'json' };
 /* eslint-enable local/code-import-patterns */
 
 const themeJsonModules: Record<string, string> = {
 	'/extensions/theme-defaults/themes/dark_modern.json': dark_modern as unknown as string,
 	'/extensions/theme-defaults/themes/dark_plus.json': dark_plus as unknown as string,
-	'/extensions/theme-defaults/themes/dark_vs.json': dark_vs as unknown as string,
+	'/extensions/theme-defaults/themes/dark_dardcor.json': dark_dardcor as unknown as string,
 	'/extensions/theme-defaults/themes/hc_black.json': hc_black as unknown as string,
 	'/extensions/theme-defaults/themes/light_modern.json': light_modern as unknown as string,
 	'/extensions/theme-defaults/themes/light_plus.json': light_plus as unknown as string,
-	'/extensions/theme-defaults/themes/light_vs.json': light_vs as unknown as string,
+	'/extensions/theme-defaults/themes/light_dardcor.json': light_dardcor as unknown as string,
 };
 
 const fixtureExtensionResourceLoaderService = new class implements IExtensionResourceLoaderService {
@@ -321,27 +295,14 @@ export async function setupTheme(container: HTMLElement, theme: ColorThemeData, 
 	container.classList.add('component-fixture', 'monaco-workbench', getPlatformClass(), 'disable-animations', ...theme.classNames);
 }
 
-/**
- * The recognized fields of the per-render `input` (passed via the CLI `--input`
- * flag), parsed once into a typed shape by {@link parseFixtureInput}.
- */
 interface FixtureRenderInput {
-	/** Whether all stylesheet documents should be reversed. */
 	readonly reverseStylesheets: boolean;
-	/** The stylesheet document range to reverse, when set. */
 	readonly reverseStylesheetsRange: Exclude<ReverseStylesheetsOption, boolean> | undefined;
-	/** Whether CSS animations and transitions are enabled. */
 	readonly enableAnimations: boolean;
-	/** Whether the render should return its virtual-time trace as `output`. */
 	readonly outputTimeTrace: boolean;
-	/** Whether the render should return the bundled stylesheet files as `output`. */
 	readonly outputStylesheetFiles: boolean;
 }
 
-/**
- * Parses the untyped render `input` into the recognized {@link FixtureRenderInput}
- * fields. Unknown/extra fields are ignored; missing fields default to off.
- */
 function parseFixtureInput(input: unknown): FixtureRenderInput {
 	if (!input || typeof input !== 'object') {
 		return { reverseStylesheets: false, reverseStylesheetsRange: undefined, enableAnimations: false, outputTimeTrace: false, outputStylesheetFiles: false };
@@ -371,7 +332,6 @@ function getReverseStylesheetsOption(input: unknown): ReverseStylesheetsOption {
 	return parsedInput.reverseStylesheetsRange ?? parsedInput.reverseStylesheets;
 }
 
-/** Inputs exposed as Component Explorer controls. */
 const fixtureInputSchema = z.object({
 	reverseStylesheets: z.boolean().default(false).describe('Reverse the order of the bundled CSS documents to surface cascade-order dependencies.'),
 	reverseStylesheetsRange: z.object({
@@ -400,34 +360,18 @@ function getPlatformClass(): string {
 }
 
 
-// ============================================================================
-// Services
-// ============================================================================
 
 export interface ServiceRegistration {
 	define<T>(id: ServiceIdentifier<T>, ctor: new (...args: never[]) => T): void;
 	defineInstance<T>(id: ServiceIdentifier<T>, instance: T): void;
-	/** Like defineInstance but accepts a partial mock - provides type checking on provided properties */
 	definePartialInstance<T>(id: ServiceIdentifier<T>, instance: Partial<T>): void;
 }
 
 export interface CreateServicesOptions {
-	/**
-	 * The color theme to use for the theme service.
-	 */
 	colorTheme?: IColorTheme;
-	/**
-	 * Additional services to register after the base editor services.
-	 */
 	additionalServices?: (registration: ServiceRegistration) => void;
 }
 
-/**
- * `ILogService` for fixtures that forwards `warn`, `error`, and `critical`
- * to the browser console so that errors logged during render (e.g. from
- * `try/catch` blocks that swallow errors into the log) become visible in
- * the component-explorer console panel.
- */
 export class FixtureLogService extends NullLogService {
 	override warn(message: string, ...args: unknown[]): void {
 		console.warn(message, ...args);
@@ -440,12 +384,6 @@ export class FixtureLogService extends NullLogService {
 	}
 }
 
-/**
- * `ModelService` for fixtures that disposes all owned text models when the
- * service itself is disposed. This is safe because `TestInstantiationService`
- * is the first item added to the fixture's `DisposableStore`, so it disposes
- * last (LIFO) — after all widgets have already torn down.
- */
 export class FixtureModelService extends ModelService {
 	override dispose(): void {
 		for (const model of this.getModels()) {
@@ -457,12 +395,6 @@ export class FixtureModelService extends ModelService {
 	}
 }
 
-/**
- * `ITextModelService` for fixtures that resolves URIs against `IModelService`.
- * Models created via `createTextModel` (which uses `IModelService.createModel`)
- * are automatically resolvable. URIs without a backing model fail loudly so
- * that callers don't silently receive a null `textEditorModel`.
- */
 export class FixtureTextModelService extends mock<ITextModelService>() {
 	constructor(@IModelService private readonly _modelService: IModelService) {
 		super();
@@ -489,10 +421,6 @@ export class FixtureTextModelService extends mock<ITextModelService>() {
 	}
 }
 
-/**
- * Creates a TestInstantiationService with all services needed for CodeEditorWidget.
- * Additional services can be registered via the options callback.
- */
 export function createEditorServices(disposables: DisposableStore, options?: CreateServicesOptions): TestInstantiationService {
 	const services = new ServiceCollection();
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -517,7 +445,6 @@ export function createEditorServices(disposables: DisposableStore, options?: Cre
 		defineInstance(id, instance as T);
 	};
 
-	// Base editor services
 	define(IAccessibilityService, TestAccessibilityService);
 	define(IKeybindingService, MockKeybindingService);
 	define(IClipboardService, TestClipboardService);
@@ -590,7 +517,6 @@ export function createEditorServices(disposables: DisposableStore, options?: Cre
 		signOut: async () => { },
 	});
 
-	// User interaction service with focus simulation enabled (all elements appear focused in fixtures)
 	defineInstance(IUserInteractionService, new MockUserInteractionService(true, false));
 
 	definePartialInstance(IActionWidgetService, {
@@ -622,7 +548,6 @@ export function createEditorServices(disposables: DisposableStore, options?: Cre
 		getEditingSession: () => undefined,
 	});
 
-	// Allow additional services to override defaults
 	options?.additionalServices?.({
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		define: <T>(id: ServiceIdentifier<T>, ctor: new (...args: any[]) => T) => {
@@ -639,15 +564,6 @@ export function createEditorServices(disposables: DisposableStore, options?: Cre
 		},
 	});
 
-	// Pass `_properDispose: true` so the underlying `InstantiationService`'s
-	// dispose runs, which disposes services it instantiated lazily from
-	// `SyncDescriptor`s (e.g. MenuService, ContextKeyService). Without this,
-	// production services with internal Disposables leak past the fixture.
-	//
-	// Don't add TestInstantiationService to disposables immediately — it must
-	// dispose runs, which disposes services it instantiated lazily from
-	// `SyncDescriptor`s (e.g. MenuService, ContextKeyService). Without this,
-	// production services with internal Disposables leak past the fixture.
 	const instantiationService = disposables.add(new TestInstantiationService(services, true, undefined, true));
 
 	disposables.add(toDisposable(() => {
@@ -662,10 +578,6 @@ export function createEditorServices(disposables: DisposableStore, options?: Cre
 	return instantiationService;
 }
 
-/**
- * Registers additional services needed by workbench components (merge editor, etc.).
- * Use with createEditorServices additionalServices option.
- */
 export function registerWorkbenchServices(registration: ServiceRegistration): void {
 	registration.defineInstance(IContextMenuService, {
 		showContextMenu: () => { },
@@ -699,9 +611,6 @@ export function registerWorkbenchServices(registration: ServiceRegistration): vo
 	registration.define(IMenuService, TestMenuService);
 	registration.define(IActionViewItemService, NullActionViewItemService);
 
-	// Workspace trust stubs so chat-input fixtures can instantiate the model
-	// picker (ModelPickerWidget reads workspace trust to detect Restricted Mode).
-	// Reports the workspace as trusted so the picker renders normally.
 	registration.defineInstance(IWorkspaceTrustManagementService, new class extends mock<IWorkspaceTrustManagementService>() {
 		override onDidChangeTrust = Event.None;
 		override readonly workspaceTrustInitialized = Promise.resolve();
@@ -713,13 +622,7 @@ export function registerWorkbenchServices(registration: ServiceRegistration): vo
 }
 
 
-// ============================================================================
-// Text Models
-// ============================================================================
 
-/**
- * Creates a text model using the ModelService.
- */
 export function createTextModel(
 	instantiationService: TestInstantiationService,
 	text: string,
@@ -733,9 +636,6 @@ export function createTextModel(
 }
 
 
-// ============================================================================
-// Fixture Adapters
-// ============================================================================
 
 export interface ThemedFixtureGroupLabels {
 	readonly kind?: 'screenshot' | 'animated';
@@ -799,8 +699,6 @@ export interface ComponentFixtureOptions {
 
 type ThemedFixtures = ReturnType<typeof defineFixtureVariants>;
 
-// Permanent logging layer that detects real timer API usage.
-// Includes handler source for identification since bundled stack traces are not useful.
 const realTimeApi = captureGlobalTimeApi();
 const logOutsideTime = false;
 if (logOutsideTime) {
@@ -813,14 +711,6 @@ if (logOutsideTime) {
 
 let fixtureRenderCounter = 0;
 
-/**
- * Creates Dark and Light fixture variants from a single render function, with optional additional theme variants.
- * The render function receives a context with container and disposableStore.
- *
- * Note: If render returns a Promise, the async work will run in background.
- * Component-explorer waits 2 animation frames after sync render returns,
- * which should be sufficient for most async setup, but timing is not guaranteed.
- */
 export function defineComponentFixture(options: ComponentFixtureOptions): ThemedFixtures {
 	const createFixture = (themeVariant: ComponentFixtureThemeVariant) => defineFixture({
 		isolation: 'none',
@@ -837,19 +727,11 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 			const input = parseFixtureInput(context.input);
 			const { label: themeLabel, theme, scopeThemingParticipants } = themeVariant;
 
-			// Replace Math.random with a seeded PRNG so fixtures render deterministically.
 			disposableStore.add(pushRandomOverwrite(42));
 
-			// Do not enable virtual time in explorer ui, as multiple fixtures are rendered in parallel.
 			const virtualTimeEnabled = (options.virtualTime?.enabled ?? true) && context.host.kind !== 'explorer-ui';
-			// Detect disposable leaks the same way unit tests do (`ensureNoDisposablesAreLeakedInTestSuite`).
 			// The tracker is global and therefore unsafe when fixtures render in parallel,
-			// so it is only enabled outside the explorer UI (e.g. in screenshot/CI mode).
 			const leakDetectionEnabled = true && context.host.kind !== 'explorer-ui';
-			// Warm up the `ModifierKeyEmitter` singleton before the leak tracker
-			// starts so its long-lived `DisposableStore` (created on first
-			// `MenuEntryActionViewItem.render`) doesn't show up as a leak in
-			// the first fixture that uses a menu toolbar.
 			if (leakDetectionEnabled) {
 				ModifierKeyEmitter.getInstance();
 			}
@@ -858,18 +740,6 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 				setDisposableTracker(tracker);
 			}
 
-			// Virtual time infrastructure lives across the whole fixture
-			// lifetime (render + dispose). This lets us advance virtual time
-			// during dispose to drain async cleanup work (e.g. `Promise.race`
-			// guards behind `timeout(1000)` that hold references until they
-			// settle) before the leak tracker checks for undisposed objects.
-			//
-			// Seed the clock with a fixed wall-clock time so any code under
-			// test that reads `Date.now()` / `new Date()` produces the same
-			// values run after run. Real time would otherwise leak in
-			// through this seed and make screenshots that include
-			// time-derived labels (e.g. "1 hour ago", "Today") drift
-			// across days, hour boundaries, and DST changes.
 			const clock = new VirtualClock(new Date('2026-05-14T12:00:00Z').getTime());
 			const p = new VirtualTimeProcessor(
 				clock,
@@ -880,21 +750,9 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 			const virtualTimeApi = createVirtualTimeApi(clock, { fakeRequestAnimationFrame: true });
 			const teardownDrainMs = options.virtualTime?.teardownDrainMs ?? 1100;
 
-			// Single async dispose orchestrates teardown order:
-			//   1. dispose user disposables (synchronous part)
-			//   2. drain virtual time (so timers scheduled during dispose
-			//      — like `Promise.race([..., timeout(1000)])` — settle and
-			//      release their captured references)
 			//   3. tear down virtual time (uninstall global API, dispose `p`)
-			//   4. stop tracker and check for leaks
-			// All on one disposable so the steps run in order.
 			context.addDisposable({
 				dispose: async () => {
-					// Re-push virtual time so any `setTimeout`/`setInterval`
-					// calls made by `dispose()` of fixture-owned objects
-					// land in `p` and can be drained below. Render unpushes
-					// virtual time when it completes (so screenshot capture
-					// etc. can use real timers), so we have to push again.
 					let teardownTimeApi: IDisposable | undefined;
 					if (virtualTimeEnabled) {
 						teardownTimeApi = pushGlobalTimeApi(virtualTimeApi);
@@ -1000,20 +858,13 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 					}
 					throw e;
 				} finally {
-					// Unpush virtual time so the post-render flow (screenshot
-					// capture, stability checks, …) runs with real timers.
 					renderTimeApi?.dispose();
 				}
 			}
 
-			// Every render gets its own trace root so that any diagnostics
-			// output by the scheduler / processor shows exactly which fixture
-			// caused each queued or historical timer, plus the full chain of
-			// setTimeout/rAF calls that led to it.
 			const fixtureRoot = createTraceRoot(`render#${++fixtureRenderCounter}(${themeLabel})`);
 
 			await TraceContext.instance.runAsHandler(fixtureRoot, actualRender, {
-				// Trace-reset escapes virtual time so it actually fires.
 				afterMicrotaskClosure: cb => nextMacrotask(realTimeApi, cb),
 			});
 
@@ -1023,10 +874,6 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 				return { output: renderSwimlanes(history) };
 			}
 
-			// The order-dependency bisection driver asks for the list of bundled
-			// stylesheet documents so it can name a conflicting document by index
-			// without itself parsing the bundle. Keeping this knowledge in the
-			// runtime means the driver only deals in indices and image hashes.
 			if (input.outputStylesheetFiles) {
 				return { output: { stylesheetFiles: await getStylesheetDocumentFiles() } };
 			}
@@ -1053,10 +900,6 @@ interface ThemedFixtureGroupOptions {
 
 type ThemedFixtureGroupFixtures = Record<string, ThemedFixtures | ReturnType<typeof defineFixtureGroup>>;
 
-/**
- * Creates a nested fixture group from themed fixtures.
- * E.g., { MergeEditor: { Dark: ..., Light: ... } } becomes a nested group: MergeEditor > Dark/Light
- */
 export function defineThemedFixtureGroup(options: ThemedFixtureGroupOptions, fixtures: ThemedFixtureGroupFixtures): ReturnType<typeof defineFixtureGroup>;
 export function defineThemedFixtureGroup(fixtures: ThemedFixtureGroupFixtures): ReturnType<typeof defineFixtureGroup>;
 export function defineThemedFixtureGroup(optionsOrFixtures: ThemedFixtureGroupOptions | ThemedFixtureGroupFixtures, fixtures?: ThemedFixtureGroupFixtures): ReturnType<typeof defineFixtureGroup> {

@@ -34,7 +34,6 @@ export interface IChatSessionArchiveNudgeOptions {
 	readonly onDismiss: () => void;
 }
 
-/** A session-scoped suggestion whose owner decides when archiving is appropriate. */
 export class ChatSessionArchiveNudge extends Disposable {
 	readonly domNode: HTMLElement;
 

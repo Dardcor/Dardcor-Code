@@ -33,7 +33,6 @@ function concatMultilineString(str: string | string[], trim?: boolean): string {
 			}
 		}
 
-		// Just trim whitespace. Leave \n in place
 		return trim ? result.replace(nonLineFeedWhiteSpaceTrim, '') : result;
 	}
 	return trim ? str.toString().replace(nonLineFeedWhiteSpaceTrim, '') : str.toString();
@@ -60,8 +59,6 @@ function convertJupyterOutputToBuffer(mime: string, value: unknown): NotebookCel
 			const stringValue = Array.isArray(value) ? concatMultilineString(value) : value;
 			return NotebookCellOutputItem.text(stringValue, mime);
 		} else if (mime.startsWith('image/') && typeof value === 'string' && mime !== 'image/svg+xml') {
-			// Images in Jupyter are stored in base64 encoded format.
-			// VS Code expects bytes when rendering images.
 			if (typeof Buffer !== 'undefined' && typeof Buffer.from === 'function') {
 				return new NotebookCellOutputItem(Buffer.from(value, 'base64'), mime);
 			} else {
@@ -73,7 +70,6 @@ function convertJupyterOutputToBuffer(mime: string, value: unknown): NotebookCel
 		} else if (mime === 'application/json') {
 			return NotebookCellOutputItem.json(value, mime);
 		} else {
-			// For everything else, treat the data as strings (or multi-line strings).
 			value = Array.isArray(value) ? concatMultilineString(value) : value;
 			return NotebookCellOutputItem.text(value as string, mime);
 		}
@@ -153,7 +149,6 @@ function splitMultilineString(source: string | string[]): string[] {
 	}
 	const str = source.toString();
 	if (str.length > 0) {
-		// Each line should be a separate entry, but end with a \n if not last entry
 		const arr = str.split('\n');
 		return arr
 			.map((s, i) => {
@@ -162,15 +157,13 @@ function splitMultilineString(source: string | string[]): string[] {
 				}
 				return s;
 			})
-			.filter(s => s.length > 0); // Skip last one if empty (it's the only one that could be length 0)
+			.filter(s => s.length > 0);
 	}
 	return [];
 }
 
 function translateCellErrorOutput(output: vscode.NotebookCellOutput) {
-	// it should have at least one output item
 	const firstItem = output.items[0];
-	// Bug in VS Code.
 	if (!firstItem.data) {
 		return {
 			output_type: 'error',
@@ -185,10 +178,6 @@ function translateCellErrorOutput(output: vscode.NotebookCellOutput) {
 		output_type: 'error',
 		ename: value.name,
 		evalue: value.message,
-		// VS Code needs an `Error` object which requires a `stack` property as a string.
-		// Its possible the format could change when converting from `traceback` to `string` and back again to `string`
-		// When .NET stores errors in output (with their .NET kernel),
-		// stack is empty, hence store the message instead of stack (so that somethign gets displayed in ipynb).
 		traceback: originalError?.traceback || splitMultilineString(value.stack || value.message || '')
 	};
 }
@@ -199,10 +188,7 @@ function convertStreamOutput(output: vscode.NotebookCellOutput) {
 		.filter((opit) => opit.mime === CellOutputMimeTypes.stderr || opit.mime === CellOutputMimeTypes.stdout)
 		.map((opit) => textDecoder.decode(opit.data))
 		.forEach(value => {
-			// Ensure each line is a separate entry in an array (ending with \n).
 			const lines = value.split('\n');
-			// If the last item in `outputs` is not empty and the first item in `lines` is not empty, then concate them.
-			// As they are part of the same line.
 			if (outputs.length && lines.length && lines[0].length > 0) {
 				outputs[outputs.length - 1] = `${outputs[outputs.length - 1]}${lines.shift()!}`;
 			}
@@ -215,7 +201,6 @@ function convertStreamOutput(output: vscode.NotebookCellOutput) {
 		outputs[index] = `${outputs[index]}\n`;
 	}
 
-	// Skip last one if empty (it's the only one that could be length 0)
 	if (outputs.length && outputs[outputs.length - 1].length === 0) {
 		outputs.pop();
 	}
@@ -249,8 +234,6 @@ function convertOutputMimeToJupyterOutput(mime: string, value: Uint8Array) {
 			const stringValue = textDecoder.decode(value);
 			return splitMultilineString(stringValue);
 		} else if (mime.startsWith('image/') && mime !== 'image/svg+xml') {
-			// Images in Jupyter are stored in base64 encoded format.
-			// VS Code expects bytes when rendering images.
 			if (typeof Buffer !== 'undefined' && typeof Buffer.from === 'function') {
 				return Buffer.from(value).toString('base64');
 			} else {
@@ -272,8 +255,6 @@ function convertOutputMimeToJupyterOutput(mime: string, value: Uint8Array) {
 function translateCellDisplayOutput(output: vscode.NotebookCellOutput): any {
 	const customMetadata = output.metadata as CellOutputMetadata | undefined;
 	let result;
-	// Possible some other extension added some output (do best effort to translate & save in ipynb).
-	// In which case metadata might not contain `outputType`.
 	const outputType = customMetadata?.outputType as OutputType;
 	switch (outputType) {
 		case 'error': {
@@ -291,7 +272,7 @@ function translateCellDisplayOutput(output: vscode.NotebookCellOutput): any {
 					prev[curr.mime] = convertOutputMimeToJupyterOutput(curr.mime, curr.data as Uint8Array);
 					return prev;
 				}, {}),
-				metadata: customMetadata?.metadata || {} // This can never be undefined.
+				metadata: customMetadata?.metadata || {}
 			};
 			break;
 		}
@@ -302,9 +283,9 @@ function translateCellDisplayOutput(output: vscode.NotebookCellOutput): any {
 					prev[curr.mime] = convertOutputMimeToJupyterOutput(curr.mime, curr.data as Uint8Array);
 					return prev;
 				}, {}),
-				metadata: customMetadata?.metadata || {}, // This can never be undefined.
+				metadata: customMetadata?.metadata || {},
 				execution_count:
-					typeof customMetadata?.executionCount === 'number' ? customMetadata?.executionCount : null // This can never be undefined, only a number or `null`.
+					typeof customMetadata?.executionCount === 'number' ? customMetadata?.executionCount : null
 			};
 			break;
 		}
@@ -315,7 +296,7 @@ function translateCellDisplayOutput(output: vscode.NotebookCellOutput): any {
 					prev[curr.mime] = convertOutputMimeToJupyterOutput(curr.mime, curr.data as Uint8Array);
 					return prev;
 				}, {}),
-				metadata: customMetadata?.metadata || {} // This can never be undefined.
+				metadata: customMetadata?.metadata || {}
 			};
 			break;
 		}
@@ -330,17 +311,12 @@ function translateCellDisplayOutput(output: vscode.NotebookCellOutput): any {
 				return translateCellErrorOutput(output);
 			}
 
-			// In the case of .NET & other kernels, we need to ensure we save ipynb correctly.
-			// Hence if we have stream output, save the output as Jupyter `stream` else `display_data`
-			// Unless we already know its an unknown output type.
 			const outputType: OutputType =
 				<OutputType>customMetadata?.outputType || (isStream ? 'stream' : 'display_data');
 			let unknownOutput: any;
 			if (outputType === 'stream') {
-				// If saving as `stream` ensure the mandatory properties are set.
 				unknownOutput = convertStreamOutput(output);
 			} else if (outputType === 'display_data') {
-				// If saving as `display_data` ensure the mandatory properties are set.
 				const displayData = {
 					data: {},
 					metadata: {},
@@ -366,8 +342,6 @@ function translateCellDisplayOutput(output: vscode.NotebookCellOutput): any {
 		}
 	}
 
-	// Account for transient data as well
-	// `transient.display_id` is used to update cell output in other cells, at least thats one use case we know of.
 	if (result && customMetadata && customMetadata.transient) {
 		result.transient = customMetadata.transient;
 	}
@@ -539,7 +513,6 @@ export class ExtHostNotebookDocumentData {
 				simulationWorkspace.addDocument(doc);
 			}
 			if (cell.outputs?.length) {
-				// throw new Error('Not implemented');
 			}
 			return doc;
 		});
@@ -643,12 +616,5 @@ export class ExtHostNotebookDocumentData {
 		this._cells[cellIndex].appendOutput(outputs);
 	}
 }
-// export const _documents = new ResourceMap<ExtHostNotebookDocumentData>();
 
-// export function addNotebookDocument(notebook: ExtHostNotebookDocumentData) {
-// 	_documents.set(notebook.uri, notebook);
-// }
 
-// export function getNotebookDocuments(): vscode.NotebookDocument[] {
-// 	return Array.from(_documents.values()).map(data => data.document);
-// }

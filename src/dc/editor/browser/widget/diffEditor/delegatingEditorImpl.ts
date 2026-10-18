@@ -36,7 +36,6 @@ export abstract class DelegatingEditor extends Disposable implements IEditor {
 	abstract getModel(): IEditorModel | null;
 	abstract setModel(model: IEditorModel | null | IDiffEditorViewModel): void;
 
-	// #region editorBrowser.IDiffEditor: Delegating to modified Editor
 
 	public getVisibleColumnFromPosition(position: IPosition): number {
 		return this._targetEditor.getVisibleColumnFromPosition(position);
@@ -166,5 +165,4 @@ export abstract class DelegatingEditor extends Disposable implements IEditor {
 		return this._targetEditor.changeDecorations(callback);
 	}
 
-	// #endregion
 }

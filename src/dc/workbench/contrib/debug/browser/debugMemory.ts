@@ -19,13 +19,10 @@ export class DebugMemoryFileSystemProvider extends Disposable implements IFileSy
 	private readonly fdMemory = new Map<number, { session: IDebugSession; region: IMemoryRegion }>();
 	private readonly changeEmitter = this._register(new Emitter<readonly IFileChange[]>());
 
-	/** @inheritdoc */
 	public readonly onDidChangeCapabilities = Event.None;
 
-	/** @inheritdoc */
 	public readonly onDidChangeFile = this.changeEmitter.event;
 
-	/** @inheritdoc */
 	public readonly capabilities = 0
 		| FileSystemProviderCapabilities.PathCaseSensitive
 		| FileSystemProviderCapabilities.FileOpenReadWriteClose;
@@ -71,7 +68,6 @@ export class DebugMemoryFileSystemProvider extends Disposable implements IFileSy
 		return disposable;
 	}
 
-	/** @inheritdoc */
 	public stat(file: URI): Promise<IStat> {
 		const { readOnly } = this.parseUri(file);
 		return Promise.resolve({
@@ -83,27 +79,22 @@ export class DebugMemoryFileSystemProvider extends Disposable implements IFileSy
 		});
 	}
 
-	/** @inheritdoc */
 	public mkdir(): never {
 		throw createFileSystemProviderError(`Not allowed`, FileSystemProviderErrorCode.NoPermissions);
 	}
 
-	/** @inheritdoc */
 	public readdir(): never {
 		throw createFileSystemProviderError(`Not allowed`, FileSystemProviderErrorCode.NoPermissions);
 	}
 
-	/** @inheritdoc */
 	public delete(): never {
 		throw createFileSystemProviderError(`Not allowed`, FileSystemProviderErrorCode.NoPermissions);
 	}
 
-	/** @inheritdoc */
 	public rename(): never {
 		throw createFileSystemProviderError(`Not allowed`, FileSystemProviderErrorCode.NoPermissions);
 	}
 
-	/** @inheritdoc */
 	public open(resource: URI, _opts: IFileOpenOptions): Promise<number> {
 		const { session, memoryReference, offset } = this.parseUri(resource);
 		const fd = this.memoryFdCounter++;
@@ -116,14 +107,12 @@ export class DebugMemoryFileSystemProvider extends Disposable implements IFileSy
 		return Promise.resolve(fd);
 	}
 
-	/** @inheritdoc */
 	public close(fd: number) {
 		this.fdMemory.get(fd)?.region.dispose();
 		this.fdMemory.delete(fd);
 		return Promise.resolve();
 	}
 
-	/** @inheritdoc */
 	public async writeFile(resource: URI, content: Uint8Array) {
 		const { offset } = this.parseUri(resource);
 		if (!offset) {
@@ -139,7 +128,6 @@ export class DebugMemoryFileSystemProvider extends Disposable implements IFileSy
 		}
 	}
 
-	/** @inheritdoc */
 	public async readFile(resource: URI) {
 		const { offset } = this.parseUri(resource);
 		if (!offset) {
@@ -157,7 +145,6 @@ export class DebugMemoryFileSystemProvider extends Disposable implements IFileSy
 		}
 	}
 
-	/** @inheritdoc */
 	public async read(fd: number, pos: number, data: Uint8Array, offset: number, length: number): Promise<number> {
 		const memory = this.fdMemory.get(fd);
 		if (!memory) {
@@ -191,7 +178,6 @@ export class DebugMemoryFileSystemProvider extends Disposable implements IFileSy
 		return readSoFar;
 	}
 
-	/** @inheritdoc */
 	public write(fd: number, pos: number, data: Uint8Array, offset: number, length: number): Promise<number> {
 		const memory = this.fdMemory.get(fd);
 		if (!memory) {
@@ -229,7 +215,6 @@ export class DebugMemoryFileSystemProvider extends Disposable implements IFileSy
 	}
 }
 
-/** A wrapper for a MemoryRegion that references a subset of data in another region. */
 class MemoryRegionView extends Disposable implements IMemoryRegion {
 	private readonly invalidateEmitter = this._register(new Emitter<IMemoryInvalidationEvent>());
 

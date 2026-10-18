@@ -240,7 +240,6 @@ export class ExtHoverAccessibleView implements IAccessibleViewImplementation {
 		const hoverService = accessor.get(IHoverService);
 
 		if (contextViewElement.classList.contains('accessible-view-container') || !extensionHoverContent) {
-			// The accessible view, itself, uses the context view service to display the text. We don't want to read that.
 			return;
 		}
 		return new AccessibleContentProvider(

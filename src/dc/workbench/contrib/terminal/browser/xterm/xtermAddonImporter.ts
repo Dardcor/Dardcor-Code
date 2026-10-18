@@ -24,7 +24,6 @@ export interface IXtermAddonNameToCtor {
 	webgl: typeof WebglAddonType;
 }
 
-// This interface lets a maps key and value be linked with generics
 interface IImportedXtermAddonMap extends Map<keyof IXtermAddonNameToCtor, IXtermAddonNameToCtor[keyof IXtermAddonNameToCtor]> {
 	get<K extends keyof IXtermAddonNameToCtor>(name: K): IXtermAddonNameToCtor[K] | undefined;
 	set<K extends keyof IXtermAddonNameToCtor>(name: K, value: IXtermAddonNameToCtor[K]): this;
@@ -32,10 +31,6 @@ interface IImportedXtermAddonMap extends Map<keyof IXtermAddonNameToCtor, IXterm
 
 const importedAddons: IImportedXtermAddonMap = new Map();
 
-/**
- * Exposes a simple interface to consumers, encapsulating the messy import xterm
- * addon import and caching logic.
- */
 export class XtermAddonImporter {
 	async importAddon<T extends keyof IXtermAddonNameToCtor>(name: T): Promise<IXtermAddonNameToCtor[T]> {
 		let addon = importedAddons.get(name);

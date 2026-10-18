@@ -55,12 +55,12 @@ suite('HighlightedLabel', () => {
 
 	test('escapeNewLines', () => {
 
-		let highlights = [{ start: 0, end: 5 }, { start: 7, end: 9 }, { start: 11, end: 12 }];// before,after,after
+		let highlights = [{ start: 0, end: 5 }, { start: 7, end: 9 }, { start: 11, end: 12 }];
 		let escaped = HighlightedLabel.escapeNewLines('ACTION\r\n_TYPE2', highlights);
 		assert.strictEqual(escaped, 'ACTION\u23CE_TYPE2');
 		assert.deepStrictEqual(highlights, [{ start: 0, end: 5 }, { start: 6, end: 8 }, { start: 10, end: 11 }]);
 
-		highlights = [{ start: 5, end: 9 }, { start: 11, end: 12 }];//overlap,after
+		highlights = [{ start: 5, end: 9 }, { start: 11, end: 12 }];
 		escaped = HighlightedLabel.escapeNewLines('ACTION\r\n_TYPE2', highlights);
 		assert.strictEqual(escaped, 'ACTION\u23CE_TYPE2');
 		assert.deepStrictEqual(highlights, [{ start: 5, end: 8 }, { start: 10, end: 11 }]);

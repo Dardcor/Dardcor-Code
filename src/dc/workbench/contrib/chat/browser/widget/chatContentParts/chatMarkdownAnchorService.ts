@@ -15,9 +15,6 @@ export interface IChatMarkdownAnchorService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Returns the currently focused anchor if any
-	 */
 	readonly lastFocusedAnchor: InlineAnchorWidget | undefined;
 
 	register(widget: InlineAnchorWidget): IDisposable;
@@ -43,12 +40,10 @@ export class ChatMarkdownAnchorService extends Disposable implements IChatMarkdo
 			throw new Error('Cannot register the same widget multiple times');
 		}
 
-		// Keep in our lists list
 		this._widgets.push(widget);
 
 		const element = widget.getHTMLElement();
 
-		// Check for currently being focused
 		if (isActiveElement(element)) {
 			this.setLastFocusedList(widget);
 		}

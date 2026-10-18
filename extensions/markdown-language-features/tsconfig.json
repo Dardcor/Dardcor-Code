@@ -10,11 +10,11 @@
 	},
 	"include": [
 		"src/**/*",
-		"../../src/vscode-dts/vscode.d.ts",
-		"../../src/vscode-dts/vscode.proposed.agentEditorComments.d.ts",
-		"../../src/vscode-dts/vscode.proposed.customEditorDiffs.d.ts",
-		"../../src/vscode-dts/vscode.proposed.documentDiff.d.ts",
-		"../../src/vscode-dts/vscode.proposed.documentSyntaxHighlighting.d.ts",
-		"../../src/vscode-dts/vscode.proposed.textEditorDiffInformation.d.ts"
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.agentEditorComments.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.customEditorDiffs.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.documentDiff.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.documentSyntaxHighlighting.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.textEditorDiffInformation.d.ts"
 	]
 }

@@ -175,7 +175,6 @@ export class LayoutData {
 			ratio = data.ratio;
 			heightInLines = data.heightInLines;
 		} catch {
-			//
 		}
 		return {
 			ratio: ratio || 0.7,
@@ -224,10 +223,8 @@ class ReferencesDragAndDrop implements ITreeDragAndDrop<TreeElement> {
 		const resources = elements.map(e => this.getDragURI(e)).filter(Boolean);
 
 		if (resources.length) {
-			// Apply resources as resource-list
 			originalEvent.dataTransfer.setData(DataTransfers.RESOURCES, JSON.stringify(resources));
 
-			// Also add as plain text for outside consumers
 			originalEvent.dataTransfer.setData(DataTransfers.TEXT, resources.join('\n'));
 		}
 	}
@@ -237,9 +234,6 @@ class ReferencesDragAndDrop implements ITreeDragAndDrop<TreeElement> {
 	dispose(): void { this.disposables.dispose(); }
 }
 
-/**
- * ZoneWidget that is shown inside the editor
- */
 export class ReferenceWidget extends peekView.PeekViewWidget {
 
 	private _model?: ReferencesModel;
@@ -260,7 +254,7 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 	private _previewContainer!: HTMLElement;
 	private _messageContainer!: HTMLElement;
 	private _dim = new dom.Dimension(0, 0);
-	private _isClosing = false; // whether or not a dispose is already in progress
+	private _isClosing = false;
 
 	constructor(
 		editor: ICodeEditor,
@@ -338,13 +332,11 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 	protected _fillBody(containerElement: HTMLElement): void {
 		this.setCssClass('reference-zone-widget');
 
-		// message pane
 		this._messageContainer = dom.append(containerElement, dom.$('div.messages'));
 		dom.hide(this._messageContainer);
 
 		this._splitView = new SplitView(containerElement, { orientation: Orientation.HORIZONTAL });
 
-		// editor
 		this._previewContainer = dom.append(containerElement, dom.$('div.preview.inline'));
 		const options: IEditorOptions = {
 			scrollBeyondLastLine: false,
@@ -366,7 +358,6 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 		dom.hide(this._previewContainer);
 		this._previewNotAvailableMessage = this._instantiationService.createInstance(TextModel, nls.localize('missingPreviewMessage', "no preview available"), PLAINTEXT_LANGUAGE_ID, TextModel.DEFAULT_CREATION_OPTIONS, null);
 
-		// tree
 		this._treeContainer = dom.append(containerElement, dom.$('div.ref-tree.inline'));
 		const treeOptions: IWorkbenchAsyncDataTreeOptions<TreeElement, FuzzyScore> = {
 			keyboardSupport: this._defaultTreeKeyboardSupport,
@@ -381,7 +372,6 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 			dnd: this._instantiationService.createInstance(ReferencesDragAndDrop)
 		};
 		if (this._defaultTreeKeyboardSupport) {
-			// the tree will consume `Escape` and prevent the widget from closing
 			this._callOnDispose.add(dom.addStandardDisposableListener(this._treeContainer, 'keydown', (e) => {
 				if (e.equals(KeyCode.Escape)) {
 					this._keybindingService.dispatchEvent(e, e.target);
@@ -402,7 +392,6 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 			treeOptions,
 		);
 
-		// split stuff
 		this._splitView.addView({
 			onDidChange: Event.None,
 			element: this._previewContainer,
@@ -431,7 +420,6 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 			}
 		}, undefined));
 
-		// listen on selection and focus
 		const onEvent = (element: TreeElement | undefined, kind: 'show' | 'goto' | 'side') => {
 			if (element instanceof OneReference) {
 				if (kind === 'show') {
@@ -470,17 +458,14 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 	setSelection(selection: OneReference): Promise<unknown> {
 		return this._revealReference(selection, true).then(() => {
 			if (!this._model) {
-				// disposed
 				return;
 			}
-			// show in tree
 			this._tree.setSelection([selection]);
 			this._tree.setFocus([selection]);
 		});
 	}
 
 	setModel(newModel: ReferencesModel | undefined): Promise<unknown> {
-		// clean up
 		this._disposeOnNewModel.clear();
 		this._model = newModel;
 		if (this._model) {
@@ -505,10 +490,8 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 		this._decorationsManager = new DecorationsManager(this._preview, this._model);
 		this._disposeOnNewModel.add(this._decorationsManager);
 
-		// listen on model changes
 		this._disposeOnNewModel.add(this._model.onDidChangeReferenceRange(reference => this._tree.rerender(reference)));
 
-		// listen on editor
 		this._disposeOnNewModel.add(this._preview.onMouseDown(e => {
 			const { event, target } = e;
 			if (event.detail !== 2) {
@@ -525,14 +508,12 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 			});
 		}));
 
-		// make sure things are rendered
 		this.container!.classList.add('results-loaded');
 		dom.show(this._treeContainer);
 		dom.show(this._previewContainer);
 		this._splitView.layout(this._dim.width);
 		this.focusOnReferenceTree();
 
-		// pick input and a reference to begin with
 		return this._tree.setInput(this._model.groups.length === 1 ? this._model.groups[0] : this._model);
 	}
 
@@ -557,13 +538,11 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 
 	private async _revealReference(reference: OneReference, revealParent: boolean): Promise<void> {
 
-		// check if there is anything to do...
 		if (this._revealedReference === reference) {
 			return;
 		}
 		this._revealedReference = reference;
 
-		// Update widget header
 		if (reference.uri.scheme !== Schemas.inMemory) {
 			this.setTitle(basenameOrAuthority(reference.uri), this._uriLabel.getUriLabel(dirname(reference.uri)));
 		} else {
@@ -585,14 +564,12 @@ export class ReferenceWidget extends peekView.PeekViewWidget {
 		const ref = await promise;
 
 		if (!this._model) {
-			// disposed
 			ref.dispose();
 			return;
 		}
 
 		dispose(this._previewModelReference);
 
-		// show in editor
 		const model = ref.object;
 		if (model) {
 			const scrollType = this._preview.getModel() === model.textEditorModel ? ScrollType.Smooth : ScrollType.Immediate;

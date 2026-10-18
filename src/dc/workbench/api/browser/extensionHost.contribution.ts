@@ -6,7 +6,6 @@
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../common/contributions.js';
 import { IInstantiationService } from '../../../platform/instantiation/common/instantiation.js';
 
-// --- other interested parties
 import { JSONValidationExtensionPoint } from '../common/jsonValidationExtensionPoint.js';
 import { ColorExtensionPoint } from '../../services/themes/common/colorExtensionPoint.js';
 import { IconExtensionPoint } from '../../services/themes/common/iconExtensionPoint.js';
@@ -15,7 +14,6 @@ import { LanguageConfigurationFileHandler } from '../../contrib/codeEditor/commo
 import { StatusBarItemsExtensionPoint } from './statusBarExtensionPoint.js';
 import { CSSExtensionPoint } from '../../services/themes/browser/cssExtensionPoint.js';
 
-// --- mainThread participants
 import './mainThreadAgentEditorComments.js';
 import './mainThreadLocalization.js';
 import './mainThreadBulkEdits.js';
@@ -114,7 +112,6 @@ export class ExtensionPoints implements IWorkbenchContribution {
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService
 	) {
-		// Classes that handle extension points...
 		this.instantiationService.createInstance(JSONValidationExtensionPoint);
 		this.instantiationService.createInstance(ColorExtensionPoint);
 		this.instantiationService.createInstance(IconExtensionPoint);

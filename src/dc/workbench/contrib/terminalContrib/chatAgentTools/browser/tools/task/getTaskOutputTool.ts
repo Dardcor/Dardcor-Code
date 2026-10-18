@@ -99,7 +99,6 @@ export class GetTaskOutputTool extends Disposable implements IToolImpl {
 			? new Map<number, IXtermMarker | undefined>()
 			: undefined;
 		if (startMarkersByTerminalInstanceId) {
-			// Background/watch tasks should read their current buffer when queried after start.
 			for (const terminal of terminals) {
 				startMarkersByTerminalInstanceId.set(terminal.instanceId, undefined);
 			}

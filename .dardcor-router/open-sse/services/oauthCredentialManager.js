@@ -5,7 +5,6 @@ import {
 } from "./tokenRefresh.js";
 import { PROVIDER_OAUTH } from "../providers/index.js";
 
-// Single source: codex.oauth.maxRefreshAgeMs (8 days) — proactive refresh window
 export const CODEX_MAX_REFRESH_AGE_MS = PROVIDER_OAUTH["codex"]?.maxRefreshAgeMs;
 
 const refreshLocks = new Map();
@@ -50,7 +49,6 @@ export function shouldRefreshCredentials(provider, credentials, nowMs = Date.now
     return true;
   }
 
-  // Proactive stale refresh for providers declaring oauth.maxRefreshAgeMs (e.g. codex)
   const maxAgeMs = PROVIDER_OAUTH[provider]?.maxRefreshAgeMs;
   if (maxAgeMs && credentials.refreshToken && isCodexRefreshStale(credentials, nowMs, maxAgeMs)) {
     return true;
@@ -105,7 +103,6 @@ export function mergeRefreshedCredentials(provider, currentCredentials, refreshe
     next.copilotTokenExpiresAt = refreshedCredentials.copilotTokenExpiresAt;
   }
 
-  // trackRefreshAt providers (e.g. codex) always stamp lastRefreshAt for staleness tracking
   if (
     PROVIDER_OAUTH[provider]?.trackRefreshAt ||
     next.accessToken ||

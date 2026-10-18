@@ -57,7 +57,6 @@ export class DocumentSetContentOperation extends BaseOperation {
 		documentStateIdBefore: DocumentStateId,
 		documentStateIdAfter: DocumentStateId,
 		logEventIdx: number,
-		/* If undefined, sets a rollback-point */
 		public readonly content: string | undefined,
 	) {
 		super(operationIdx, time, documentId, documentStateIdBefore, documentStateIdAfter, logEventIdx);

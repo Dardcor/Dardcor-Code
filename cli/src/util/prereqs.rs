@@ -137,7 +137,6 @@ async fn check_musl_interpreter() -> Result<(), String> {
 	Ok(())
 }
 
-/// Checks the glibc version, returns "true" if the default server is required.
 #[cfg(target_os = "linux")]
 async fn check_glibc_version() -> Result<bool, String> {
 	#[cfg(target_env = "gnu")]
@@ -169,23 +168,11 @@ async fn check_glibc_version() -> Result<bool, String> {
 	Ok(false)
 }
 
-/// Check for nixos to avoid mandating glibc versions. See:
-/// https://github.com/microsoft/vscode-remote-release/issues/7129
 #[allow(dead_code)]
 async fn check_is_nixos() -> bool {
 	fs::metadata(NIXOS_TEST_PATH).await.is_ok()
 }
 
-/// Do not remove this check.
-/// Provides a way to skip the server glibc requirements check from
-/// outside the install flow.
-///
-/// 1) A system process can create this
-///    file before the server is downloaded and installed.
-///
-/// 2) An environment variable declared in host
-///    that contains path to a glibc sysroot satisfying the
-///    minimum requirements.
 #[cfg(not(windows))]
 pub async fn skip_requirements_check() -> bool {
 	std::env::var("VSCODE_SERVER_CUSTOM_GLIBC_LINKER").is_ok()
@@ -199,7 +186,6 @@ pub async fn skip_requirements_check() -> bool {
 	false
 }
 
-/// Checks the glibc++ version, returns "true" if the default server is required.
 #[cfg(target_os = "linux")]
 async fn check_glibcxx_version() -> Result<bool, String> {
 	let mut libstdc_path: Option<String> = None;

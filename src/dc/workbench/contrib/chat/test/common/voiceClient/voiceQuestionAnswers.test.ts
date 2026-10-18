@@ -38,9 +38,6 @@ suite('VoiceQuestionAnswers', () => {
 
 	suite('resolveQuestionAnswers', () => {
 		test('accepts freeform when the question omits allowFreeformInput', () => {
-			// The widget and the pending payload both read an omitted flag as
-			// enabled, so rejecting here would refuse an answer the user was
-			// invited to give.
 			const { allowFreeformInput, ...omitted } = multi;
 			assert.deepStrictEqual(
 				resolveQuestionAnswers([omitted], [{ question_id: 'q_multi', values: ['auth'], freeform: 'telemetry' }]),
@@ -107,8 +104,6 @@ suite('VoiceQuestionAnswers', () => {
 			);
 		});
 
-		// A value outside the schema means the backend resolved against a stale
-		// mirror, so one bad entry rejects the whole set rather than guessing.
 		test('rejects a value that is a label rather than an option value', () => {
 			assert.strictEqual(
 				resolveQuestionAnswers([single], [{ question_id: 'q_single', value: 'West US' }]),

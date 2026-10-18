@@ -23,15 +23,14 @@ import { MarshalledId } from '../../../../../base/common/marshallingIds.js';
 import { ICodeEditor } from '../../../../../editor/browser/editorBrowser.js';
 import { isEqual } from '../../../../../base/common/resources.js';
 
-// Kernel Command
 export const SELECT_KERNEL_ID = '_notebook.selectKernel';
 export const NOTEBOOK_ACTIONS_CATEGORY = localize2('notebookActions.category', 'Notebook');
 
 export const CELL_TITLE_CELL_GROUP_ID = 'inline/cell';
 export const CELL_TITLE_OUTPUT_GROUP_ID = 'inline/output';
 
-export const NOTEBOOK_EDITOR_WIDGET_ACTION_WEIGHT = KeybindingWeight.EditorContrib; // smaller than Suggest Widget, etc
-export const NOTEBOOK_OUTPUT_WEBVIEW_ACTION_WEIGHT = KeybindingWeight.WorkbenchContrib + 1; // higher than Workbench contribution (such as Notebook List View), etc
+export const NOTEBOOK_EDITOR_WIDGET_ACTION_WEIGHT = KeybindingWeight.EditorContrib;
+export const NOTEBOOK_OUTPUT_WEBVIEW_ACTION_WEIGHT = KeybindingWeight.WorkbenchContrib + 1;
 
 export const enum CellToolbarOrder {
 	RunSection,
@@ -180,7 +179,6 @@ export abstract class NotebookAction extends Action2 {
 	}
 }
 
-// todo@rebornix, replace NotebookAction with this
 export abstract class NotebookMultiCellAction extends Action2 {
 	constructor(desc: IAction2Options) {
 		if (desc.f1 !== false) {
@@ -213,12 +211,6 @@ export abstract class NotebookMultiCellAction extends Action2 {
 
 	abstract runWithContext(accessor: ServicesAccessor, context: INotebookCommandContext | INotebookCellToolbarActionContext): Promise<void>;
 
-	/**
-	 * The action/command args are resolved in following order
-	 * `run(accessor, cellToolbarContext)` from cell toolbar
-	 * `run(accessor, ...args)` from command service with arguments
-	 * `run(accessor, undefined)` from keyboard shortcuts, command palatte, etc
-	 */
 	async run(accessor: ServicesAccessor, ...additionalArgs: any[]): Promise<void> {
 		const context = additionalArgs[0];
 
@@ -229,13 +221,11 @@ export abstract class NotebookMultiCellAction extends Action2 {
 			return this.runWithContext(accessor, context);
 		}
 
-		// handle parsed args
 		const parsedArgs = this.parseArgs(accessor, ...additionalArgs);
 		if (parsedArgs) {
 			return this.runWithContext(accessor, parsedArgs);
 		}
 
-		// no parsed args, try handle active editor
 		const editor = getEditorFromArgsOrActivePane(accessor);
 		if (editor) {
 			const selectedCellRange: ICellRange[] = editor.getSelections().length === 0 ? [editor.getFocus()] : editor.getSelections();
@@ -368,9 +358,7 @@ export function parseMultiCellExecutionArgs(accessor: ServicesAccessor, ...args:
 		};
 	}
 
-	// handle legacy arguments
 	if (isICellRange(firstArg)) {
-		// cellRange, document
 		const secondArg = args[1];
 		const editor = getEditorFromArgsOrActivePane(accessor, secondArg);
 		if (!editor) {
@@ -384,7 +372,6 @@ export function parseMultiCellExecutionArgs(accessor: ServicesAccessor, ...args:
 		};
 	}
 
-	// let's just execute the active cell
 	const context = getContextFromActiveEditor(accessor.get(IEditorService));
 	return context ? {
 		ui: false,

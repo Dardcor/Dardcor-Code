@@ -18,9 +18,6 @@ import { IKeybindingRule, KeybindingsRegistry } from '../../keybinding/common/ke
 export interface IMenuItem {
 	command: ICommandAction;
 	alt?: ICommandAction;
-	/**
-	 * Menu item is hidden if this expression returns false.
-	 */
 	when?: ContextKeyExpression;
 	group?: 'navigation' | string;
 	order?: number;
@@ -35,26 +32,8 @@ export interface ISubmenuItem {
 	group?: 'navigation' | string;
 	order?: number;
 	isSelection?: boolean;
-	/**
-	 * A split button shows the first action
-	 * as primary action and the rest of the
-	 * actions in a dropdown.
-	 *
-	 * Use `togglePrimaryAction` to promote
-	 * the action that was last used to be
-	 * the primary action and remember that
-	 * choice.
-	 */
 	isSplitButton?: boolean | {
-		/**
-		 * Will update the primary action based
-		 * on the action that was last run.
-		 */
 		togglePrimaryAction: true;
-		/**
-		 * Restricts which submenu commands can become the primary action.
-		 * Running an eligible command outside the submenu also updates the primary action.
-		 */
 		primaryActionIds?: readonly string[];
 	};
 }
@@ -332,20 +311,12 @@ export class MenuId {
 	static readonly ChatContextUsageActions = new MenuId('ChatContextUsageActions');
 	static readonly MarkerHoverStatusBar = new MenuId('MarkerHoverParticipant.StatusBar');
 
-	/**
-	 * Create or reuse a `MenuId` with the given identifier
-	 */
 	static for(identifier: string): MenuId {
 		return MenuId._instances.get(identifier) ?? new MenuId(identifier);
 	}
 
 	readonly id: string;
 
-	/**
-	 * Create a new `MenuId` with the unique identifier. Will throw if a menu
-	 * with the identifier already exists, use `MenuId.for(ident)` or a unique
-	 * identifier
-	 */
 	constructor(identifier: string) {
 		if (MenuId._instances.has(identifier)) {
 			throw new TypeError(`MenuId with identifier '${identifier}' already exists. Use MenuId.for(ident) or a unique identifier`);
@@ -390,34 +361,14 @@ export interface IMenuService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Consider using getMenuActions if you don't need to listen to events.
-	 *
-	 * Create a new menu for the given menu identifier. A menu sends events when it's entries
-	 * have changed (placement, enablement, checked-state). By default it does not send events for
-	 * submenu entries. That is more expensive and must be explicitly enabled with the
-	 * `emitEventsForSubmenuChanges` flag.
-	 */
 	createMenu(id: MenuId, contextKeyService: IContextKeyService, options?: IMenuCreateOptions): IMenu;
 
-	/**
-	 * Creates a new menu, gets the actions, and then disposes of the menu.
-	 */
 	getMenuActions(id: MenuId, contextKeyService: IContextKeyService, options?: IMenuActionOptions): [string, Array<MenuItemAction | SubmenuItemAction>][];
 
-	/**
-	 * Gets the names of the contexts that this menu listens on.
-	 */
 	getMenuContexts(id: MenuId): ReadonlySet<string>;
 
-	/**
-	 * Reset **all** menu item hidden states.
-	 */
 	resetHiddenStates(): void;
 
-	/**
-	 * Reset the menu's hidden states.
-	 */
 	resetHiddenStates(menuIds: readonly MenuId[] | undefined): void;
 }
 
@@ -463,10 +414,6 @@ export interface IMenuRegistry {
 	getCommand(id: string): ICommandAction | undefined;
 	getCommands(): ICommandsMap;
 
-	/**
-	 * @deprecated Use `appendMenuItem` or most likely use `registerAction2` instead. There should be no strong
-	 * reason to use this directly.
-	 */
 	appendMenuItems(items: Iterable<{ id: MenuId; item: IMenuItem | ISubmenuItem }>): IDisposable;
 	appendMenuItem(menu: MenuId, item: IMenuItem | ISubmenuItem): IDisposable;
 	getMenuItems(loc: MenuId): Array<IMenuItem | ISubmenuItem>;
@@ -533,8 +480,6 @@ export const MenuRegistry: IMenuRegistry = new class implements IMenuRegistry {
 			result = [];
 		}
 		if (id === MenuId.CommandPalette) {
-			// CommandPalette is special because it shows
-			// all commands by default
 			this._appendImplicitItems(result);
 		}
 		return result;
@@ -576,8 +521,6 @@ export interface IMenuItemHide {
 	readonly toggle: IAction;
 }
 
-// implements IAction, does NOT extend Action, so that no one
-// subscribes to events of Action or modified properties
 export class MenuItemAction implements IAction {
 
 	static label(action: ICommandAction, options?: IMenuActionOptions): string {
@@ -661,52 +604,26 @@ export class MenuItemAction implements IAction {
 	}
 }
 
-//#region --- IAction2
 
 type OneOrN<T> = T | T[];
 
 interface IAction2CommonOptions extends ICommandAction {
-	/**
-	 * One or many menu items.
-	 */
 	menu?: OneOrN<{ id: MenuId; precondition?: null } & Omit<IMenuItem, 'command'>>;
 
-	/**
-	 * One keybinding.
-	 */
 	keybinding?: OneOrN<Omit<IKeybindingRule, 'id'>>;
 }
 
 interface IBaseAction2Options extends IAction2CommonOptions {
 
-	/**
-	 * This type is used when an action is not going to show up in the command palette.
-	 * In that case, it's able to use a string for the `title` and `category` properties.
-	 */
 	f1?: false;
 }
 
 export interface ICommandPaletteOptions extends IAction2CommonOptions {
 
-	/**
-	 * The title of the command that will be displayed in the command palette after the category.
-	 *  This overrides {@link ICommandAction.title} to ensure a string isn't used so that the title
-	 *  includes the localized value and the original value for users using language packs.
-	 */
 	title: ICommandActionTitle;
 
-	/**
-	 * The category of the command that will be displayed in the command palette before the title suffixed.
-	 * with a colon This overrides {@link ICommandAction.title} to ensure a string isn't used so that
-	 * the title includes the localized value and the original value for users using language packs.
-	 */
 	category?: keyof typeof Categories | ILocalizedString;
 
-	/**
-	 * Shorthand to add this command to the command palette. Note: this is not the only way to declare that
-	 * a command should be in the command palette... however, enforcing ILocalizedString in the other scenarios
-	 * is much more challenging and this gets us most of the way there.
-	 */
 	f1: true;
 }
 
@@ -723,7 +640,7 @@ export abstract class Action2 {
 }
 
 export function registerAction2(ctor: { new(): Action2 }): IDisposable {
-	const disposables: IDisposable[] = []; // not using `DisposableStore` to reduce startup perf cost
+	const disposables: IDisposable[] = [];
 	const action = new ctor();
 
 	const { f1, menu, keybinding, ...command } = action.desc;
@@ -732,14 +649,12 @@ export function registerAction2(ctor: { new(): Action2 }): IDisposable {
 		throw new Error(`Cannot register two commands with the same id: ${command.id}`);
 	}
 
-	// command
 	disposables.push(CommandsRegistry.registerCommand({
 		id: command.id,
 		handler: (accessor, ...args) => action.run(accessor, ...args),
 		metadata: command.metadata ?? { description: action.desc.title }
 	}));
 
-	// menu
 	if (Array.isArray(menu)) {
 		for (const item of menu) {
 			disposables.push(MenuRegistry.appendMenuItem(item.id, { command: { ...command, precondition: item.precondition === null ? undefined : command.precondition }, ...item }));
@@ -753,7 +668,6 @@ export function registerAction2(ctor: { new(): Action2 }): IDisposable {
 		disposables.push(MenuRegistry.addCommand(command));
 	}
 
-	// keybinding
 	if (Array.isArray(keybinding)) {
 		for (const item of keybinding) {
 			disposables.push(KeybindingsRegistry.registerKeybindingRule({
@@ -776,4 +690,3 @@ export function registerAction2(ctor: { new(): Action2 }): IDisposable {
 		}
 	};
 }
-//#endregion

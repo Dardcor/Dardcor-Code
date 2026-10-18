@@ -24,9 +24,6 @@ export function applyLineChanges(original: TextDocument, modified: TextDocument,
 		let endLine = isInsertion ? diff.originalStartLineNumber : diff.originalStartLineNumber - 1;
 		let endCharacter = 0;
 
-		// if this is a deletion at the very end of the document,then we need to account
-		// for a newline at the end of the last line which may have been deleted
-		// https://github.com/microsoft/vscode/issues/59670
 		if (isDeletion && diff.originalEndLineNumber === original.lineCount) {
 			endLine -= 1;
 			endCharacter = original.lineAt(endLine).range.end.character;
@@ -38,9 +35,6 @@ export function applyLineChanges(original: TextDocument, modified: TextDocument,
 			let fromLine = diff.modifiedStartLineNumber - 1;
 			let fromCharacter = 0;
 
-			// if this is an insertion at the very end of the document,
-			// then we must start the next range after the last character of the
-			// previous line, in order to take the correct eol
 			if (isInsertion && diff.originalStartLineNumber === original.lineCount) {
 				fromLine -= 1;
 				fromCharacter = modified.lineAt(fromLine).range.end.character;
@@ -120,7 +114,6 @@ export function intersectDiffWithRange(textDocument: TextDocument, diff: LineCha
 		const modifiedStartLineNumber = intersection.start.line + 1;
 		const modifiedEndLineNumber = intersection.end.line + 1;
 
-		// heuristic: same number of lines on both sides, let's assume line by line
 		if (diff.originalEndLineNumber - diff.originalStartLineNumber === diff.modifiedEndLineNumber - diff.modifiedStartLineNumber) {
 			const delta = modifiedStartLineNumber - diff.modifiedStartLineNumber;
 			const length = modifiedEndLineNumber - modifiedStartLineNumber;
@@ -159,7 +152,6 @@ export function toLineChanges(diffInformation: TextEditorDiffInformation): LineC
 		let modifiedEndLineNumber: number;
 
 		if (x.original.startLineNumber === x.original.endLineNumberExclusive) {
-			// Insertion
 			originalStartLineNumber = x.original.startLineNumber - 1;
 			originalEndLineNumber = 0;
 		} else {
@@ -168,7 +160,6 @@ export function toLineChanges(diffInformation: TextEditorDiffInformation): LineC
 		}
 
 		if (x.modified.startLineNumber === x.modified.endLineNumberExclusive) {
-			// Deletion
 			modifiedStartLineNumber = x.modified.startLineNumber - 1;
 			modifiedEndLineNumber = 0;
 		} else {
@@ -208,14 +199,12 @@ export function compareLineChanges(a: LineChange, b: LineChange): number {
 }
 
 export function getIndexDiffInformation(textEditor: TextEditor): TextEditorDiffInformation | undefined {
-	// Diff Editor (Index)
 	return textEditor.diffInformation?.find(diff =>
 		diff.original && isGitUri(diff.original) && fromGitUri(diff.original).ref === 'HEAD' &&
 		diff.modified && isGitUri(diff.modified) && fromGitUri(diff.modified).ref === '');
 }
 
 export function getWorkingTreeDiffInformation(textEditor: TextEditor): TextEditorDiffInformation | undefined {
-	// Working tree diff information. Diff Editor (Working Tree) -> Text Editor
 	return getDiffInformation(textEditor, '~') ?? getDiffInformation(textEditor, '');
 }
 
@@ -229,9 +218,6 @@ function getDiffInformation(textEditor: TextEditor, ref: string): TextEditorDiff
 
 export interface DiffEditorSelectionHunkToolbarContext {
 	mapping: unknown;
-	/**
-	 * The original text with the selected modified changes applied.
-	*/
 	originalWithModifiedChanges: string;
 
 	modifiedUri: Uri;

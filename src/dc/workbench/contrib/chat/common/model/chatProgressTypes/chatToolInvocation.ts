@@ -53,7 +53,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 	private readonly _progress = observableValue<{ message?: string | IMarkdownString; progress: number | undefined }>(this, { progress: 0 });
 	private readonly _state: ISettableObservable<IChatToolInvocation.State>;
 
-	// Streaming-related observables
 	private readonly _partialInput = observableValue<unknown>(this, undefined);
 	private readonly _streamingMessage = observableValue<string | IMarkdownString | undefined>(this, undefined);
 
@@ -61,18 +60,10 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		return this._state;
 	}
 
-	/**
-	 * Create a tool invocation in streaming state.
-	 * Use this when the tool call is beginning to stream partial input from the LM.
-	 */
 	public static createStreaming(options: IStreamingToolCallOptions): ChatToolInvocation {
 		return new ChatToolInvocation(undefined, options.toolData, options.toolCallId, options.subagentInvocationId, undefined, { startInStreaming: true }, options.chatRequestId);
 	}
 
-	/**
-	 * Create a tool invocation already in cancelled state.
-	 * Use this when a hook denies tool execution before it even starts.
-	 */
 	public static createCancelled(options: IStreamingToolCallOptions, parameters: unknown, reason: ToolConfirmKind.Denied | ToolConfirmKind.Skipped, reasonMessage?: string | IMarkdownString): ChatToolInvocation {
 		return new ChatToolInvocation(undefined, options.toolData, options.toolCallId, options.subagentInvocationId, parameters, { startInCancelled: true, cancelReason: reason, cancelReasonMessage: reasonMessage }, options.chatRequestId);
 	}
@@ -86,7 +77,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		startOptions: { startInStreaming?: boolean; startInCancelled?: boolean; cancelReason?: ToolConfirmKind.Denied | ToolConfirmKind.Skipped; cancelReasonMessage?: string | IMarkdownString } = {},
 		chatRequestId?: string
 	) {
-		// For streaming invocations, use a default message until handleToolStream provides one
 		let defaultMessage: string | IMarkdownString = '';
 		if (startOptions.startInStreaming) {
 			defaultMessage = toolData.displayName;
@@ -107,7 +97,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		this.chatRequestId = chatRequestId;
 
 		if (startOptions.startInCancelled) {
-			// Start directly in cancelled state (e.g., when a hook denies execution)
 			this._state = observableValue(this, {
 				type: IChatToolInvocation.StateKind.Cancelled,
 				reason: startOptions.cancelReason ?? ToolConfirmKind.Denied,
@@ -116,7 +105,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 				confirmationMessages: this.confirmationMessages,
 			});
 		} else if (startOptions.startInStreaming) {
-			// Start in streaming state
 			this._state = observableValue(this, {
 				type: IChatToolInvocation.StateKind.Streaming,
 				partialInput: this._partialInput,
@@ -140,12 +128,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		}
 	}
 
-	/**
-	 * Shared confirmation handler used by every `WaitingForConfirmation` state
-	 * this invocation can enter (initial construction, transition out of
-	 * streaming, and re-arming via {@link requestConfirmation}). Denials/skips
-	 * cancel; anything else moves to executing.
-	 */
 	private _confirm(reason: ConfirmedReason): void {
 		if (reason.type === ToolConfirmKind.Denied || reason.type === ToolConfirmKind.Skipped) {
 			this._state.set({
@@ -165,32 +147,21 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		}
 	}
 
-	/**
-	 * Update the partial input observable during streaming.
-	 */
 	public updatePartialInput(input: unknown): void {
 		if (this._state.get().type !== IChatToolInvocation.StateKind.Streaming) {
-			return; // Only update in streaming state
+			return;
 		}
 		this._partialInput.set(input, undefined);
 	}
 
-	/**
-	 * Update the streaming message (from handleToolStream).
-	 */
 	public updateStreamingMessage(message: string | IMarkdownString): void {
 		const state = this._state.get();
 		if (state.type !== IChatToolInvocation.StateKind.Streaming) {
-			return; // Only update in streaming state
+			return;
 		}
 		this._streamingMessage.set(message, undefined);
 	}
 
-	/**
-	 * Notifies state observers that `toolSpecificData` has been mutated.
-	 * Since `toolSpecificData` isn't observable, this re-sets the internal
-	 * state to trigger autoruns that need to re-read tool metadata.
-	 */
 	public notifyToolSpecificDataChanged(): void {
 		const current = this._state.get();
 		this._state.set({ ...current }, undefined);
@@ -205,15 +176,10 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		this._state.set({ ...current, confirmationMessages }, undefined);
 	}
 
-	/**
-	 * Cancel a streaming invocation directly (e.g., when preToolUse hook denies).
-	 * Only works when in Streaming state.
-	 * @returns true if the cancellation was applied, false if not in streaming state
-	 */
 	public cancelFromStreaming(reason: ToolConfirmKind.Denied | ToolConfirmKind.Skipped, reasonMessage?: string | IMarkdownString): boolean {
 		const currentState = this._state.get();
 		if (currentState.type !== IChatToolInvocation.StateKind.Streaming) {
-			return false; // Only cancel from streaming state
+			return false;
 		}
 
 		this._state.set({
@@ -226,17 +192,12 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		return true;
 	}
 
-	/**
-	 * Transition from streaming state to prepared/executing state.
-	 * Called when the full tool call is ready.
-	 */
 	public transitionFromStreaming(preparedInvocation: IPreparedToolInvocation | undefined, parameters: unknown, autoConfirmed: ConfirmedReason | undefined): void {
 		const currentState = this._state.get();
 		if (currentState.type !== IChatToolInvocation.StateKind.Streaming) {
-			return; // Only transition from streaming state
+			return;
 		}
 
-		// Preserve the last streaming message if no new invocation message is provided
 		const lastStreamingMessage = this._streamingMessage.get();
 		if (lastStreamingMessage && !preparedInvocation?.invocationMessage) {
 			this.invocationMessage = lastStreamingMessage;
@@ -244,7 +205,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 
 		this._updatePreparedInvocation(preparedInvocation, parameters);
 
-		// Transition to the appropriate state
 		if (autoConfirmed) {
 			this._confirm(autoConfirmed);
 		} else if (!this.confirmationMessages?.title) {
@@ -265,10 +225,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		}
 	}
 
-	/**
-	 * Applies locally prepared parameters and presentation without changing an
-	 * invocation state already established by an external protocol.
-	 */
 	public updatePreparedInvocation(preparedInvocation: IPreparedToolInvocation | undefined, parameters: unknown): boolean {
 		const currentState = this._state.get();
 		if (currentState.type === IChatToolInvocation.StateKind.Streaming
@@ -300,7 +256,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		this.toolSpecificData = preparedInvocation.toolSpecificData;
 	}
 
-	/** Moves an active invocation into confirmation while preserving the same tool card. */
 	public requestConfirmation(preparedInvocation: IPreparedToolInvocation): void {
 		const currentType = this._state.get().type;
 		if (currentType === IChatToolInvocation.StateKind.Streaming) {
@@ -322,7 +277,7 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		this.toolSpecificData = preparedInvocation.toolSpecificData;
 
 		if (!this.confirmationMessages?.title) {
-			return; // nothing to confirm
+			return;
 		}
 
 		this._state.set({
@@ -400,10 +355,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 		this._state.set({
 			type: IChatToolInvocation.StateKind.WaitingForAuthentication,
 			server,
-			// Agent-host status can refresh while the same authentication request
-			// remains pending. Keep the callback that identifies and cancels this
-			// occurrence; replace it only after authentication resolves and the tool
-			// enters a new WaitingForAuthentication state.
 			cancel: state.type === IChatToolInvocation.StateKind.WaitingForAuthentication ? state.cancel : cancel,
 			confirmed: state.confirmed,
 			parameters: state.parameters,
@@ -434,7 +385,6 @@ export class ChatToolInvocation implements IChatToolInvocation {
 	}
 
 	public toJSON(): IChatToolInvocationSerialized {
-		// persist the serialized call as 'skipped' if we were waiting for postapproval
 		const waitingForPostApproval = this.state.get().type === IChatToolInvocation.StateKind.WaitingForPostApproval;
 		const details = waitingForPostApproval ? undefined : IChatToolInvocation.resultDetails(this);
 

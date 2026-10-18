@@ -24,14 +24,8 @@ import { Location, Range as VSCodeRange } from '../../../../../dardcorTypes';
 import { PromptReference } from '../../../../prompt/common/conversation';
 import { IPromptEndpoint } from '../../base/promptRenderer';
 
-/**
- * Maximum number of chunks that we can provide to the model.
- */
 export const MAX_CHUNKS_RESULTS = 128;
 
-/**
- * Maximum number of tokens we will ever use for chunks.
- */
 export const MAX_CHUNK_TOKEN_COUNT = 32_000;
 
 export const MAX_TOOL_CHUNK_TOKEN_COUNT = 20_000;
@@ -80,17 +74,6 @@ export class WorkspaceChunks extends PromptElement<ChunksToolProps, WorkspaceChu
 				}, this.props.telemetryInfo, progress, token),
 				token);
 		}, (execTime, status, result) => {
-			/* __GDPR__
-				"workspaceContext.perf.prepareWorkspaceChunks" : {
-					"owner": "mjbvz",
-					"comment": "Understanding the performance of including workspace context",
-					"status": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "If the call succeeded or failed" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"execTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Time in milliseconds that the call took" },
-					"resultChunkCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of chunks returned" }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent('workspaceContext.perf.prepareWorkspaceChunks', {
 				status,
 				workspaceSearchSource: this.props.telemetryInfo.callTracker.toString(),
@@ -146,21 +129,17 @@ export class WorkspaceChunkList extends PromptElement<WorkspaceChunkListProps> {
 		const references = this.toReferences(this.props.result);
 		this.props.referencesOut?.push(...references);
 
-		// TODO: references should be tied to user message. However we've deduplicated them so we need to make sure we
-		// return the correct references based on which user message we're rendering.
 		return <>
 			<references value={references} />
 
 			{this.props.result.chunks
 				.map((chunk, i) => {
-					// Give chunks a scaled priority from `X` to `X + 1` with the earliest chunks having the highest priority
 					const priority = typeof this.props.priority !== 'undefined'
 						? this.props.priority + (1 - ((i + 1) / this.props.result.chunks.length))
 						: undefined;
 
 					return { chunk, priority };
 				})
-				// Send chunks in reverse order with most relevant chunks last
 				.reverse()
 				.filter(x => x.chunk.chunk.text)
 				.map(({ chunk, priority }) => {
@@ -186,9 +165,7 @@ export class WorkspaceChunkList extends PromptElement<WorkspaceChunkListProps> {
 			if (chunk.chunk.isFullFile) {
 				fileChunks = [chunk.chunk];
 			} else if (fileChunks.some(c => c.isFullFile || c.range.containsRange(chunk.chunk.range))) {
-				// Chunk is contained by another chunk, skip
 			} else {
-				// Add chunk to list and remove any chunks that are contained by this chunk
 				fileChunks = [...fileChunks.filter(c => !chunk.chunk.range.containsRange(c.range)), chunk.chunk];
 			}
 
@@ -197,7 +174,7 @@ export class WorkspaceChunkList extends PromptElement<WorkspaceChunkListProps> {
 
 		const references = Array.from(chunksByFile.values()).flatMap(chunks => {
 			return chunks
-				.sort((a, b) => Range.compareRangesUsingStarts(a.range, b.range)) // compare ranges by starts, then ends
+				.sort((a, b) => Range.compareRangesUsingStarts(a.range, b.range))
 				.map(chunk => new PromptReference(chunk.isFullFile
 					? chunk.file
 					: new Location(chunk.file, new VSCodeRange(chunk.range.startLineNumber, chunk.range.startColumn, chunk.range.endLineNumber, chunk.range.endColumn)), undefined, { isFromTool: this.props.isToolCall }));
@@ -214,9 +191,6 @@ export interface WorkspaceContextProps extends BasePromptElementProps {
 	absolutePaths?: boolean;
 	lines1Indexed?: boolean;
 
-	/**
-	 * A way to extract references from tool results, since references aren't returned from renderElementJSON
-	 */
 	referencesOut?: PromptReference[];
 	isToolCall?: boolean;
 	maxResults?: number;

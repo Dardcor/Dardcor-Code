@@ -11,7 +11,6 @@ import { CancellationToken } from '../../../util/dardcor/base/common/cancellatio
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 
-// Extracts the "yam" from "- yam" or "yam" or "* yam" 🍠
 const LIST_RE = /\s*(?:. )?([a-z0-9_-]+)\s*/;
 
 export interface ILanguageToolsProvider {

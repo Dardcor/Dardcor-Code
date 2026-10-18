@@ -53,18 +53,10 @@ class AnnounceChatConfirmationAction extends Action2 {
 			return;
 		}
 
-		// Check for active confirmations in the chat responses. The
-		// `.chat-confirmation-widget-container` class is reused by several
-		// non-focusable parts (e.g. the tool input/output collapsible and the
-		// plan review part), so filter to the focusable instances by looking
-		// for an explicit tabindex which is only set on real confirmation
-		// dialogs (via `configureAccessibilityContainer`).
 		let firstConfirmationElement: HTMLElement | undefined;
 
 		const lastResponse = viewModel.getItems()[viewModel.getItems().length - 1];
 		if (isResponseVM(lastResponse)) {
-			// Reveal the response so its confirmation widget is rendered (the
-			// chat list is virtualized — querying before reveal can miss it).
 			pendingWidget.reveal(lastResponse);
 			// eslint-disable-next-line no-restricted-syntax
 			const confirmationWidgets = pendingWidget.domNode.querySelectorAll<HTMLElement>('.chat-confirmation-widget-container[tabindex]');
@@ -74,7 +66,6 @@ class AnnounceChatConfirmationAction extends Action2 {
 		}
 
 		if (firstConfirmationElement) {
-			// Toggle: if the confirmation is already focused, move focus back to input
 			if (firstConfirmationElement.contains(pendingWidget.domNode.ownerDocument.activeElement)) {
 				pendingWidget.focusInput();
 			} else {

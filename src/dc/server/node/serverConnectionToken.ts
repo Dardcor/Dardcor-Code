@@ -17,7 +17,7 @@ const connectionTokenRegex = /^[0-9A-Za-z_-]+$/;
 
 export const enum ServerConnectionTokenType {
 	None,
-	Optional,// TODO: Remove this soon
+	Optional,
 	Mandatory
 }
 
@@ -93,12 +93,10 @@ export async function parseServerConnectionToken(args: ServerParsedArgs, default
 export async function determineServerConnectionToken(args: ServerParsedArgs): Promise<ServerConnectionToken | ServerConnectionTokenParseError> {
 	const readOrGenerateConnectionToken = async () => {
 		if (!args['user-data-dir']) {
-			// No place to store it!
 			return generateUuid();
 		}
 		const storageLocation = path.join(args['user-data-dir'], 'token');
 
-		// First try to find a connection token
 		try {
 			const fileContents = await fs.promises.readFile(storageLocation);
 			const connectionToken = fileContents.toString().replace(/\r?\n$/, '');
@@ -107,11 +105,9 @@ export async function determineServerConnectionToken(args: ServerParsedArgs): Pr
 			}
 		} catch (err) { }
 
-		// No connection token found, generate one
 		const connectionToken = generateUuid();
 
 		try {
-			// Try to store it
 			await Promises.writeFile(storageLocation, connectionToken, { mode: 0o600 });
 		} catch (err) { }
 
@@ -121,12 +117,10 @@ export async function determineServerConnectionToken(args: ServerParsedArgs): Pr
 }
 
 export function requestHasValidConnectionToken(connectionToken: ServerConnectionToken, req: http.IncomingMessage, parsedUrl: url.UrlWithParsedQuery) {
-	// First check if there is a valid query parameter
 	if (connectionToken.validate(parsedUrl.query[connectionTokenQueryName])) {
 		return true;
 	}
 
-	// Otherwise, check if there is a valid cookie
 	const cookies = cookie.parse(req.headers.cookie || '');
 	return connectionToken.validate(cookies[connectionTokenCookieName]);
 }

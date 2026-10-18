@@ -121,7 +121,6 @@ export interface IWalkthroughStep {
 	| { svg: string; altText: string; markdown?: never; image?: never; video?: never }
 	| { video: string | { dark: string; light: string; hc: string }; poster: string | { dark: string; light: string; hc: string }; altText: string; markdown?: never; image?: never; svg?: never };
 	readonly completionEvents?: string[];
-	/** @deprecated use `completionEvents: 'onCommand:...'` */
 	readonly doneOn?: { command: string };
 	readonly when?: string;
 }
@@ -313,8 +312,6 @@ export interface IRelaxedExtensionManifest {
 	type?: string;
 	browser?: string;
 	preview?: boolean;
-	// For now this only supports pointing to l10n bundle files
-	// but it will be used for package.l10n.json files in the future
 	l10n?: string;
 	icon?: string;
 	categories?: string[];
@@ -377,29 +374,9 @@ export interface IExtension {
 	readonly preRelease: boolean;
 }
 
-/**
- * **!Do not construct directly!**
- *
- * **!Only static methods because it gets serialized!**
- *
- * This represents the "canonical" version for an extension identifier. Extension ids
- * have to be case-insensitive (due to the marketplace), but we must ensure case
- * preservation because the extension API is already public at this time.
- *
- * For example, given an extension with the publisher `"Hello"` and the name `"World"`,
- * its canonical extension identifier is `"Hello.World"`. This extension could be
- * referenced in some other extension's dependencies using the string `"hello.world"`.
- *
- * To make matters more complicated, an extension can optionally have an UUID. When two
- * extensions have the same UUID, they are considered equal even if their identifier is different.
- */
 export class ExtensionIdentifier {
 	public readonly value: string;
 
-	/**
-	 * Do not use directly. This is public to avoid mangling and thus
-	 * allow compatibility between running from source and a built version.
-	 */
 	readonly _lower: string;
 
 	constructor(value: string) {
@@ -415,20 +392,14 @@ export class ExtensionIdentifier {
 			return false;
 		}
 		if (typeof a === 'string' || typeof b === 'string') {
-			// At least one of the arguments is an extension id in string form,
-			// so we have to use the string comparison which ignores case.
 			const aValue = (typeof a === 'string' ? a : a.value);
 			const bValue = (typeof b === 'string' ? b : b.value);
 			return strings.equalsIgnoreCase(aValue, bValue);
 		}
 
-		// Now we know both arguments are ExtensionIdentifier
 		return (a._lower === b._lower);
 	}
 
-	/**
-	 * Gives the value by which to index (for equality).
-	 */
 	public static toKey(id: ExtensionIdentifier | string): string {
 		if (typeof id === 'string') {
 			return id.toLowerCase();
@@ -503,9 +474,6 @@ export class ExtensionIdentifierMap<T> {
 	}
 }
 
-/**
- * An error that is clearly from an extension, identified by the `ExtensionIdentifier`
- */
 export class ExtensionError extends Error {
 
 	readonly extension: ExtensionIdentifier;
@@ -515,9 +483,6 @@ export class ExtensionError extends Error {
 		super(`Error in extension ${ExtensionIdentifier.toKey(extensionIdentifier)}: ${detail}`, { cause });
 		this.name = 'ExtensionError';
 		this.extension = extensionIdentifier;
-		// Adopt the underlying cause's stack so error telemetry buckets by the real
-		// failure site inside the extension instead of the generic event-dispatch
-		// frames. Extension attribution relies on `this.extension`, not this stack.
 		if (cause?.stack) {
 			this.stack = cause.stack;
 		}

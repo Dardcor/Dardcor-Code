@@ -15,13 +15,10 @@ type Inner = Arc<std::sync::Mutex<Option<Vec<ServerBridgeRec>>>>;
 
 struct ServerBridgeRec {
 	id: u16,
-	// bridge is removed when there's a write loop currently active
 	bridge: Option<ServerBridge>,
 	write_queue: Vec<Vec<u8>>,
 }
 
-/// The ServerMultiplexer manages multiple server bridges and allows writing
-/// to them in a thread-safe way. It is copy, sync, and clone.
 #[derive(Clone)]
 pub struct ServerMultiplexer {
 	inner: Inner,
@@ -34,7 +31,6 @@ impl ServerMultiplexer {
 		}
 	}
 
-	/// Adds a new bridge to the multiplexer.
 	pub fn register(&self, id: u16, bridge: ServerBridge) {
 		let bridge_rec = ServerBridgeRec {
 			id,
@@ -49,7 +45,6 @@ impl ServerMultiplexer {
 		}
 	}
 
-	/// Removes a server bridge by ID.
 	pub fn remove(&self, id: u16) {
 		let mut lock = self.inner.lock().unwrap();
 		if let Some(bridges) = &mut *lock {
@@ -57,9 +52,6 @@ impl ServerMultiplexer {
 		}
 	}
 
-	/// Handle an incoming server message. This is synchronous and uses a 'write loop'
-	/// to ensure message order is preserved exactly, which is necessary for compression.
-	/// Returns false if there was no server with the given bridge_id.
 	pub fn write_message(&self, log: &log::Logger, bridge_id: u16, message: Vec<u8>) -> bool {
 		let mut lock = self.inner.lock().unwrap();
 
@@ -83,7 +75,6 @@ impl ServerMultiplexer {
 		true
 	}
 
-	/// Disposes all running server bridges.
 	pub async fn dispose(&self) {
 		let bridges = {
 			let mut lock = self.inner.lock().unwrap();
@@ -105,11 +96,6 @@ impl ServerMultiplexer {
 	}
 }
 
-/// Write loop started by `handle_server_message`. It takes the ServerBridge, and
-/// runs until there's no more items in the 'write queue'. At that point, if the
-/// record still exists in the bridges_lock (i.e. we haven't shut down), it'll
-/// return the ServerBridge so that the next handle_server_message call starts
-/// the loop again. Otherwise, it'll close the bridge.
 async fn write_loop(log: log::Logger, id: u16, mut bridge: ServerBridge, bridges_lock: Inner) {
 	let mut items_vec = vec![];
 	loop {
@@ -141,5 +127,5 @@ async fn write_loop(log: log::Logger, id: u16, mut bridge: ServerBridge, bridges
 		}
 	}
 
-	bridge.close().await.ok(); // got here from `break` above, meaning our record got cleared. Close the bridge if so
+	bridge.close().await.ok();
 }

@@ -13,14 +13,12 @@ import { chatReducer } from '../../../common/state/protocol/reducers.js';
 import { ChatOriginKind, MessageKind, ResponsePartKind, SessionStatus, ToolCallConfirmationReason, ToolCallContributorKind, ToolResultContentType, TurnState, type ChatState } from '../../../common/state/sessionState.js';
 import { ActiveClientToolSet } from '../../../node/activeClientState.js';
 
-/** Extracts the content of a Markdown response part emitted by a mapper action. */
 function markdownPartContent(action: SessionAction | ChatAction | undefined): string | undefined {
 	return action?.type === ActionType.ChatResponsePart && action.part.kind === ResponsePartKind.Markdown
 		? action.part.content
 		: undefined;
 }
 
-/** Starts an in-progress `github.search` mcpToolCall item and returns its tool call id. */
 function startMcpToolCall(state: ICodexSessionMapState, itemId: string): string {
 	mapItemStarted(state, {
 		item: { type: 'mcpToolCall', id: itemId, server: 'github', tool: 'search', status: 'inProgress', arguments: { query: 'vscode' }, mcpAppResourceUri: undefined, pluginId: null, result: null, error: null, durationMs: null } as never,
@@ -29,7 +27,6 @@ function startMcpToolCall(state: ICodexSessionMapState, itemId: string): string 
 	return state.itemToToolCall.get(itemId)!.toolCallId;
 }
 
-/** Completes a started mcpToolCall item with the given MCP result. */
 function completeMcpToolCall(state: ICodexSessionMapState, itemId: string, result: { content: unknown[]; structuredContent: unknown }): (SessionAction | ChatAction)[] {
 	return mapItemCompleted(state, {
 		item: { type: 'mcpToolCall', id: itemId, server: 'github', tool: 'search', status: 'completed', arguments: { query: 'vscode' }, mcpAppResourceUri: undefined, pluginId: null, result: { ...result, _meta: null }, error: null, durationMs: 5 } as never,
@@ -346,7 +343,6 @@ suite('codexMapAppServerEvents', () => {
 		const state = createCodexSessionMapState();
 		mapItemStarted(state, { item: { type: 'agentMessage', id: 'm1', text: 'a', phase: null, memoryCitation: null, delivery: null }, threadId: 'thr_1', turnId: 'turn_a', startedAtMs: 0 });
 		mapItemStarted(state, { item: { type: 'agentMessage', id: 'm2', text: 'b', phase: null, memoryCitation: null, delivery: null }, threadId: 'thr_1', turnId: 'turn_a', startedAtMs: 0 });
-		// A new turn resets the counter, so its first agentMessage is unseeded.
 		resetCodexTurnMapState(state);
 		const firstOfNextTurn = mapItemStarted(state, { item: { type: 'agentMessage', id: 'm3', text: 'c', phase: null, memoryCitation: null, delivery: null }, threadId: 'thr_1', turnId: 'turn_b', startedAtMs: 0 });
 		assert.strictEqual(markdownPartContent(firstOfNextTurn[0]), 'c');
@@ -372,14 +368,11 @@ suite('codexMapAppServerEvents', () => {
 			threadId: 'thr_1',
 			turn: { id: 'turn_a', items: [], itemsView: { type: 'full' } as never, status: 'inProgress' as never, error: null, startedAt: null, completedAt: null, durationMs: null },
 		}, 'prompt'));
-		// Preamble message, then the final-answer message; two distinct items.
 		apply(mapItemStarted(state, { item: { type: 'agentMessage', id: 'm1', text: '', phase: null, memoryCitation: null, delivery: null }, threadId: 'thr_1', turnId: 'turn_a', startedAtMs: 0 }));
 		apply(mapAgentMessageDelta(state, { threadId: 'thr_1', turnId: 'turn_a', itemId: 'm1', delta: 'Consolidating the recommendation and tradeoffs.' }));
 		apply(mapItemStarted(state, { item: { type: 'agentMessage', id: 'm2', text: '', phase: null, memoryCitation: null, delivery: null }, threadId: 'thr_1', turnId: 'turn_a', startedAtMs: 0 }));
 		apply(mapAgentMessageDelta(state, { threadId: 'thr_1', turnId: 'turn_a', itemId: 'm2', delta: '## Conclusion\n\nDone.' }));
 
-		// Adjacent markdown parts are coalesced by plain concatenation, so the
-		// joined text must keep `## Conclusion` at the start of a line.
 		const joined = (chat.activeTurn?.responseParts ?? [])
 			.map(part => part.kind === ResponsePartKind.Markdown ? part.content : '')
 			.join('');
@@ -428,8 +421,6 @@ suite('codexMapAppServerEvents', () => {
 		});
 		const delta = started[1] as { content: string };
 		const ready = started[2] as { invocationMessage: string; toolInput: string };
-		// A successful no-output command is deferred to coalesce a possible
-		// sandbox pre-flight re-run; with no re-run it flushes at turn end.
 		const deferred = mapItemCompleted(state, {
 			item: {
 				type: 'commandExecution', id: 'cmd_wrap',
@@ -467,8 +458,6 @@ suite('codexMapAppServerEvents', () => {
 
 	test('commandExecution coalesces a sandbox pre-flight with its approved re-run into one box', () => {
 		const state = createCodexSessionMapState();
-		// Pre-flight: codex runs the command in the sandbox first; it produces
-		// no output and completes successfully.
 		const preStarted = mapItemStarted(state, {
 			item: {
 				type: 'commandExecution', id: 'cmd_preflight',
@@ -488,7 +477,6 @@ suite('codexMapAppServerEvents', () => {
 			} as never,
 			threadId: 'thr_1', turnId: 'turn_a', completedAtMs: 0,
 		});
-		// Escalation: same command re-run under an approval prompt, new item id.
 		const escStarted = mapItemStarted(state, {
 			item: {
 				type: 'commandExecution', id: 'cmd_escalated',
@@ -509,12 +497,9 @@ suite('codexMapAppServerEvents', () => {
 		});
 		const startCount = (actions: readonly unknown[]) => actions.filter(a => (a as { type: ActionType }).type === ActionType.ChatToolCallStart).length;
 		assert.deepStrictEqual({
-			// exactly one box opened (pre-flight's), escalation reuses it
 			starts: startCount(preStarted) + startCount(escStarted),
-			// pre-flight completion deferred, escalation start emits nothing
 			preCompleted,
 			escStarted,
-			// single completion carries the escalation's real output
 			escComplete: escCompleted[0],
 		}, {
 			starts: 1,
@@ -881,9 +866,6 @@ suite('codexMapAppServerEvents', () => {
 
 	test('mcpToolCall start carries no contributor when the server has no customization', () => {
 		const state = createCodexSessionMapState();
-		// mcpCustomizationIds is empty: the agent has not applied an MCP
-		// inventory yet, so the start must not stamp a (bogus) MCP contributor —
-		// the tool then reports the default `agentHost` source.
 		const startActions = mapItemStarted(state, {
 			item: {
 				type: 'mcpToolCall', id: 'mcp_n', server: 'github', tool: 'search',
@@ -915,7 +897,6 @@ suite('codexMapAppServerEvents', () => {
 		if (!entry) {
 			throw new Error('expected a tracked tool call');
 		}
-		// The host declined the approval (recorded by respondToPermissionRequest).
 		state.declinedToolCalls.add(entry.toolCallId);
 		const actions = mapItemCompleted(state, {
 			item: {
@@ -949,9 +930,6 @@ suite('codexMapAppServerEvents', () => {
 		if (!entry) {
 			throw new Error('expected a tracked tool call');
 		}
-		// The host declined the approval (recorded by respondToPermissionRequest).
-		// The decline is drained once in the shared completion prologue, so a
-		// non-command tool type is classified as a denial just like a command.
 		state.declinedToolCalls.add(entry.toolCallId);
 		const actions = mapItemCompleted(state, {
 			item: {
@@ -981,9 +959,6 @@ suite('codexMapAppServerEvents', () => {
 			threadId: 'thr_1', turnId: 'turn_a', startedAtMs: 0,
 		});
 		const toolCallId = state.itemToToolCall.get('collab_1')!.toolCallId;
-		// spawnAgent opens a read-only child conversation (the host attaches
-		// the subagent-discovery block to this tool call), so the raw prompt
-		// is deliberately NOT dumped into the tool box.
 		assert.deepStrictEqual({
 			actions: startActions,
 			entryToolName: state.itemToToolCall.get('collab_1')!.toolName,
@@ -1135,9 +1110,6 @@ suite('codexMapAppServerEvents', () => {
 	});
 
 	test('dynamicToolCall item omits the Client contributor for a server tool', () => {
-		// A server tool is registered under its bare name and executes
-		// in-process, so it must not carry a Client contributor even when a
-		// workbench client owns the (other) client tools.
 		const toolSet = new ActiveClientToolSet();
 		toolSet.set('win-7', [{ name: 'get_magic_word' }]);
 		const state = createCodexSessionMapState(new Set(['addComment']), toolSet);

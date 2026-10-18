@@ -25,9 +25,6 @@ const languages = [
 	'zh-cn',
 ];
 
-/**
- * Copy TypeScript lib files (.d.ts, typesMap.json, and language packs) to the output directory.
- */
 async function copyTypescriptLibFiles(outDir: string): Promise<void> {
 	try {
 		const typescriptLibDir = path.join(import.meta.dirname, '..', 'node_modules', 'typescript', 'lib');
@@ -35,7 +32,6 @@ async function copyTypescriptLibFiles(outDir: string): Promise<void> {
 
 		await fs.promises.mkdir(destDir, { recursive: true });
 
-		// Copy .d.ts files
 		const libFiles = await fs.promises.readdir(typescriptLibDir);
 		for (const file of libFiles) {
 			if (file.endsWith('.d.ts')) {
@@ -43,10 +39,8 @@ async function copyTypescriptLibFiles(outDir: string): Promise<void> {
 			}
 		}
 
-		// Copy typesMap.json
 		await fs.promises.copyFile(path.join(typescriptLibDir, 'typesMap.json'), path.join(destDir, 'typesMap.json'));
 
-		// Copy language packs
 		for (const lang of languages) {
 			const langSrcDir = path.join(typescriptLibDir, lang);
 			const langDestDir = path.join(destDir, lang);
@@ -62,7 +56,6 @@ async function copyTypescriptLibFiles(outDir: string): Promise<void> {
 					}
 				}
 			} catch {
-				// Skip if language directory doesn't exist
 			}
 		}
 	} catch (error) {
@@ -73,7 +66,6 @@ async function copyTypescriptLibFiles(outDir: string): Promise<void> {
 
 
 await Promise.all([
-	// Build the browser extension entry point
 	run({
 		platform: 'browser',
 		entryPoints: {
@@ -87,7 +79,6 @@ await Promise.all([
 		},
 	}, process.argv, copyTypescriptLibFiles),
 
-	// Build the web tsserver worker
 	run({
 		platform: 'browser',
 		entryPoints: {

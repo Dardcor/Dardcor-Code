@@ -9,10 +9,10 @@ import { withTimeout } from './shared/utils';
 
 export const cleanOutput = (output: string) =>
 	output
-		.replace(/\r\n/g, '\n') // Replace carriage returns with just a normal return
-		.replace(/\x1b\[\?25h/g, '') // removes cursor character if present
-		.replace(/^\n+/, '') // strips new lines from start of output
-		.replace(/\n+$/, ''); // strips new lines from end of output
+		.replace(/\r\n/g, '\n')
+		.replace(/\x1b\[\?25h/g, '')
+		.replace(/^\n+/, '')
+		.replace(/\n+$/, '');
 
 export const executeCommandTimeout = async (
 	fallbacks: {

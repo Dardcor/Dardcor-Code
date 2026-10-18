@@ -40,8 +40,6 @@ export async function showGoToContextMenu(accessor: ServicesAccessor, editor: IC
 	const location: Location = part.part.location;
 	const menuActions: IAction[] = [];
 
-	// from all registered (not active) context menu actions select those
-	// that are a symbol navigation actions
 	const filter = new Set(MenuRegistry.getMenuItems(MenuId.EditorContext)
 		.map(item => isIMenuItem(item) ? item.command.id : generateUuid()));
 
@@ -77,7 +75,6 @@ export async function showGoToContextMenu(accessor: ServicesAccessor, editor: IC
 		}));
 	}
 
-	// show context menu
 	const useShadowDOM = editor.getOption(EditorOption.useShadowDOM);
 	contextMenuService.showContextMenu({
 		domForShadowRoot: useShadowDOM ? editor.getDomNode() ?? undefined : undefined,

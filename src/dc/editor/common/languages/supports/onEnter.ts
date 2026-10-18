@@ -50,7 +50,6 @@ export class OnEnterSupport {
 	}
 
 	public onEnter(autoIndent: EditorAutoIndentStrategy, previousLineText: string, beforeEnterText: string, afterEnterText: string): EnterAction | null {
-		// (1): `regExpRules`
 		if (autoIndent >= EditorAutoIndentStrategy.Advanced) {
 			for (let i = 0, len = this._regExpRules.length; i < len; i++) {
 				const rule = this._regExpRules[i];
@@ -68,7 +67,7 @@ export class OnEnterSupport {
 						return true;
 					}
 
-					obj.reg.lastIndex = 0; // To disable the effect of the "g" flag.
+					obj.reg.lastIndex = 0;
 					return obj.reg.test(obj.text);
 				});
 
@@ -78,7 +77,6 @@ export class OnEnterSupport {
 			}
 		}
 
-		// (2): Special indent-outdent
 		if (autoIndent >= EditorAutoIndentStrategy.Brackets) {
 			if (beforeEnterText.length > 0 && afterEnterText.length > 0) {
 				for (let i = 0, len = this._brackets.length; i < len; i++) {
@@ -91,7 +89,6 @@ export class OnEnterSupport {
 		}
 
 
-		// (4): Open bracket based logic
 		if (autoIndent >= EditorAutoIndentStrategy.Brackets) {
 			if (beforeEnterText.length > 0) {
 				for (let i = 0, len = this._brackets.length; i < len; i++) {

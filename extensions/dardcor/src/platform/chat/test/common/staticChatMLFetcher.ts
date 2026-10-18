@@ -19,7 +19,6 @@ export class StaticChatMLFetcher implements IChatMLFetcher {
 	constructor(public readonly value: StaticChatMLFetcherInput) { }
 
 	async fetchOne({ finishedCb }: IFetchMLOptions): Promise<ChatResponse> {
-		// chunk up
 		const value = typeof this.value === 'string'
 			? this.value
 			: (this.value.at(this.reqs++) || this.value.at(-1)!);
@@ -37,7 +36,6 @@ export class StaticChatMLFetcher implements IChatMLFetcher {
 			}
 		});
 
-		// stream through finishedCb
 		let responseSoFar = '';
 		for (let i = 0; i < chunks.length; i++) {
 			finishedCb?.(responseSoFar, i, chunks[i]);

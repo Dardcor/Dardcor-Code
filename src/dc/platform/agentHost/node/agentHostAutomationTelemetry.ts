@@ -9,9 +9,8 @@ import type { IAgentHostCopilotSkuClassification, IAgentHostCopilotSkuTelemetry,
 
 export type AutomationRunOutcome = 'success' | 'error' | 'cancelled' | 'timeout' | 'interrupted';
 
-/** The content-free, saved session configuration; omitted selections retain the provider default. */
 export interface IAutomationConfigurationTelemetry extends IAgentHostCopilotSkuTelemetry {
-	readonly provider: 'default' | 'other' | 'copilot' | 'copilotcli' | 'claude' | 'codex' | 'copilot-cloud';
+	readonly provider: 'default' | 'other' | 'copilot' | 'copilotcli' | 'claude' | 'codex';
 	readonly model: ReturnType<typeof toTelemetryModel>;
 	readonly modelSelectionKind: 'default' | 'auto' | 'explicit';
 	readonly mode: 'providerDefault' | 'other' | 'agent' | 'ask' | 'edit' | 'interactive' | 'plan' | 'autopilot';
@@ -22,7 +21,6 @@ export interface IAutomationConfigurationTelemetry extends IAgentHostCopilotSkuT
 	readonly hasCustomAgent: boolean;
 }
 
-/** Opaque definition/run identities and the native identifiers of a created session, when one exists. */
 export interface IAutomationRunTelemetry extends IAgentHostCopilotSkuTelemetry {
 	readonly automationId: string;
 	readonly runId: string;
@@ -170,10 +168,7 @@ export function getAutomationTelemetryProvider(provider: string | undefined): IA
 		case 'copilot':
 		case 'claude':
 		case 'codex':
-		case 'copilot-cloud':
 			return provider;
-		case 'copilot-cloud-agent':
-			return 'copilot-cloud';
 		case 'openai-codex':
 			return 'codex';
 		default:

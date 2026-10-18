@@ -33,7 +33,7 @@ impl ServerBridge {
 					Err(_) => return,
 					Ok(0) => {
 						let _ = target.server_closed().await;
-						return; // EOF
+						return;
 					}
 					Ok(s) => {
 						let send = target.server_message(&read_buf[..s]).await;

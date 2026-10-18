@@ -64,7 +64,7 @@ function PassthroughModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias
         </div>
       </div>
 
-      {/* Delete button */}
+      {}
       <button
         onClick={onDeleteAlias}
         className="p-1 hover:bg-red-50 rounded text-red-500"
@@ -124,7 +124,7 @@ export default function PassthroughModelsSection({ providerAlias, modelAliases, 
         OpenRouter supports any model. Add models and create aliases for quick access.
       </p>
 
-      {/* Add new model */}
+      {}
       <div className="flex items-end gap-2">
         <div className="flex-1">
           <label htmlFor="new-model-input" className="text-xs text-text-muted mb-1 block">Model ID (from OpenRouter)</label>
@@ -143,7 +143,7 @@ export default function PassthroughModelsSection({ providerAlias, modelAliases, 
         </Button>
       </div>
 
-      {/* Models list */}
+      {}
       {allModels.length > 0 && (
         <div className="flex flex-col gap-3">
           {allModels.map(({ id, fullModel, alias, source }) => (

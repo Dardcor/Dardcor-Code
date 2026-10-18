@@ -17,7 +17,6 @@ use super::args::AgentLogsArgs;
 use super::output::Styles;
 use super::CommandContext;
 
-/// Subscribes to a session and streams actions/notifications in real time.
 pub async fn agent_logs(ctx: CommandContext, args: AgentLogsArgs) -> Result<i32, AnyError> {
 	let client = agent::connect(&ctx, args.address.as_deref(), args.tunnel.as_deref()).await?;
 
@@ -35,7 +34,6 @@ pub async fn agent_logs(ctx: CommandContext, args: AgentLogsArgs) -> Result<i32,
 		(r, s)
 	};
 
-	// Print initial state summary.
 	print_initial_state(&args.session, &result);
 
 	let header = Styles::muted();
@@ -45,7 +43,6 @@ pub async fn agent_logs(ctx: CommandContext, args: AgentLogsArgs) -> Result<i32,
 	);
 	println!("{}", header.apply_to("─".repeat(50)));
 
-	// Stream events until Ctrl+C or the subscription closes.
 	let mut shutdown = ShutdownRequest::create_rx([ShutdownRequest::CtrlC]);
 
 	loop {
@@ -102,7 +99,6 @@ fn print_initial_state(uri: &str, result: &SubscribeResult) {
 		}
 		println!("  {} {}", label.apply_to("chats:"), session.chats.len());
 
-		// Print a brief summary of the chats in this session.
 		for chat in &session.chats {
 			let status = SessionStatus::from_bits(chat.status);
 			let marker = if status.contains(SessionStatus::InProgress) {
@@ -127,14 +123,12 @@ fn print_initial_state(uri: &str, result: &SubscribeResult) {
 fn print_action(seq: u64, action: &StateAction) {
 	let seq_str = Styles::muted().apply_to(format!("[{seq:>6}]"));
 
-	// Serialize the action to extract the "type" tag and remaining fields.
 	let value = serde_json::to_value(action).unwrap_or_default();
 	let type_name = value
 		.get("type")
 		.and_then(|v| v.as_str())
 		.unwrap_or("unknown");
 
-	// Build a compact params string from all fields except "type".
 	let params = if let Some(obj) = value.as_object() {
 		let parts: Vec<String> = obj
 			.iter()
@@ -156,7 +150,6 @@ fn print_action(seq: u64, action: &StateAction) {
 	println!("{} {} {}", seq_str, style.apply_to(type_name), params);
 }
 
-/// Picks a color for the action type name.
 fn action_style(type_name: &str) -> Style {
 	if type_name.contains("error") || type_name.contains("Failed") {
 		Styles::error()

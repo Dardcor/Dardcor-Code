@@ -61,14 +61,12 @@ export class MockChatService implements IChatService {
 
 	addSession(session: IChatModel): void {
 		this.sessions.set(session.sessionResource, session);
-		// Update the chatModels observable
 		this._chatModels.set([...this.sessions.values()], undefined);
 		this._onDidCreateModel.fire(session);
 	}
 
 	removeSession(sessionResource: URI): void {
 		this.sessions.delete(sessionResource);
-		// Update the chatModels observable
 		this._chatModels.set([...this.sessions.values()], undefined);
 	}
 

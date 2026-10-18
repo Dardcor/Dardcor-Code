@@ -61,32 +61,16 @@ ${networkRecovery}
 Here is the output of the command:\n`;
 	}
 
-	/**
-	 * Checks whether the command output contains strings that typically indicate
-	 * the sandbox blocked the operation. Used when exit code is unavailable.
-	 *
-	 * The output may contain newlines inserted by terminal wrapping, so we
-	 * strip them before testing.
-	 */
 	private _outputLooksSandboxBlocked(output: string): boolean {
 		return outputLooksSandboxBlocked(output);
 	}
 }
 
-/**
- * Checks whether the command output contains strings that typically indicate
- * the sandbox blocked the operation. The output may contain newlines inserted
- * by terminal wrapping, so we strip them before testing.
- */
 export function outputLooksSandboxBlocked(output: string): boolean {
 	const normalized = output.replace(/\n/g, ' ');
 	return /Operation not permitted|Permission denied|Read-only file system|sandbox-exec|bwrap|sandbox_violation|No such file or directory/i.test(normalized);
 }
 
-/**
- * Checks whether output clearly suggests a network failure. This is used only
- * to select automatic allow-network retries and prevent automatic unsandboxing.
- */
 export function outputLooksSandboxNetworkBlocked(output: string): boolean {
 	const normalized = output.replace(/\n/g, ' ');
 	return /Could not resolve host|Temporary failure in name resolution|Name or service not known|EAI_AGAIN|ENETUNREACH|Network is unreachable|Received HTTP code 403 from proxy after CONNECT|network (?:access )?(?:blocked|disabled)|(?:connect|socket).*(?:Operation not permitted|Permission denied)|(?:Operation not permitted|Permission denied).*(?:connect|socket)/i.test(normalized);

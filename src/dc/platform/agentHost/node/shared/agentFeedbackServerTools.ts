@@ -14,20 +14,6 @@ import { parseChatUri, type Annotation, type AnnotationOrigin, type AnnotationsS
 import type { AgentHostStateManager } from '../agentHostStateManager.js';
 import type { IServerToolDisplay, IServerToolDisplayResult, IServerToolGroup } from './agentServerToolHost.js';
 
-/**
- * Server-side implementation of the agent feedback ("comments") tools.
- *
- * These tools used to be registered on the client (agents window) and keyed
- * off an in-memory store. For agent-host sessions they now execute on the
- * server against the session's annotations channel: each comment is an
- * {@link Annotation} on `<session>/annotations`, with feedback semantics
- * carried in {@link Annotation._meta} under {@link FEEDBACK_ANNOTATION_META_KEY}
- * (see `agentFeedbackAnnotations.ts`). The functions here are pure — they read
- * the current {@link AnnotationsState} and return the annotation actions to
- * dispatch plus a textual tool result — so they can be unit tested without a
- * running state manager. The host wiring (reading the snapshot, dispatching
- * the actions) lives in the caller.
- */
 
 export const addCommentToolName = ADD_COMMENT_TOOL_NAME;
 export const listCommentsToolName = 'listComments';
@@ -36,22 +22,10 @@ export const deleteCommentsToolName = 'deleteComments';
 export const resolveCommentsToolName = 'resolveComments';
 export const viewUnreviewedCommentsToolName = VIEW_UNREVIEWED_COMMENTS_TOOL_NAME;
 
-/**
- * Feedback kinds that originate from a review the user is expected to triage
- * (a pull request review or an in-product code review) rather than being
- * authored by the user directly. Comments of these kinds that are still in the
- * `created` state are surfaced to the agent via the {@link listCommentsToolName}
- * note and revealed through {@link viewUnreviewedCommentsToolName}.
- */
 const REVIEWABLE_FEEDBACK_KINDS: ReadonlySet<string> = new Set(['prReview', 'codeReview']);
 
-/**
- * Server tools with a confirmation UI. An explicit auto-approve policy can
- * bypass the UI and is reported to the executor through its execution context.
- */
 const feedbackConfirmationToolNames: ReadonlySet<string> = new Set([viewUnreviewedCommentsToolName]);
 
-/** Whether the feedback server tool has a confirmation UI when not auto-approved. */
 export function feedbackToolRequiresConfirmation(toolName: string): boolean {
 	return feedbackConfirmationToolNames.has(toolName);
 }
@@ -114,11 +88,6 @@ const resolveCommentsInputSchema: ToolDefinition['inputSchema'] = {
 	required: ['commentIds'],
 };
 
-/**
- * {@link IAgentServerToolDefinition}s for the feedback server tools, advertised on
- * {@link SessionState.serverTools} so clients know these tools are owned and
- * executed by the agent host.
- */
 export const feedbackServerToolDefinitions: IAgentServerToolDefinition[] = [
 	{
 		name: addCommentToolName,
@@ -164,7 +133,6 @@ export const feedbackServerToolDefinitions: IAgentServerToolDefinition[] = [
 	},
 ];
 
-// --- Argument validation ------------------------------------------------------
 
 interface IOneBasedRange {
 	readonly startLineNumber: number;
@@ -262,7 +230,6 @@ function getIncludeResolvedFlag(value: unknown): boolean {
 	return value;
 }
 
-// --- Annotation <-> feedback conversion ---------------------------------------
 
 function toTextRange(range: IOneBasedRange): TextRange {
 	return {
@@ -326,18 +293,9 @@ function serializeComment(annotation: Annotation): ISerializedComment {
 	};
 }
 
-/**
- * Comments visible to the agent: everything except items still in the
- * `created` state (the agent added them but the user has not accepted them
- * yet). Mirrors the client `getListableFeedback` behavior.
- */
 function listableAnnotations(state: AnnotationsState): Annotation[] {
 	return state.annotations.filter(annotation => {
 		const meta = readMeta(annotation);
-		// The annotations channel is generic and may carry annotations produced
-		// by other features. Only annotations that carry feedback metadata are
-		// feedback comments; the feedback tools must never list, delete, or
-		// resolve unrelated annotations.
 		if (!meta || !annotation.entries?.length) {
 			return false;
 		}
@@ -346,14 +304,6 @@ function listableAnnotations(state: AnnotationsState): Annotation[] {
 	});
 }
 
-/**
- * Feedback annotations of a {@link REVIEWABLE_FEEDBACK_KINDS reviewable kind}
- * the user has flagged for reveal to the agent (via the confirmation of the
- * {@link viewUnreviewedCommentsToolName} tool). These are the comments the user
- * chose to reveal and have not yet been delivered; everything else
- * (including review comments that happen to be accepted from a previous reveal
- * or a manual accept) is excluded.
- */
 function pendingRevealAnnotations(state: AnnotationsState): Annotation[] {
 	return state.annotations.filter(annotation => {
 		const meta = readMeta(annotation);
@@ -364,7 +314,6 @@ function pendingRevealAnnotations(state: AnnotationsState): Annotation[] {
 	});
 }
 
-/** Returns a copy of {@link annotation} with the {@link IFeedbackAnnotationMeta.pendingAgentReveal} flag cleared. */
 function clearPendingReveal(annotation: Annotation): Annotation {
 	const meta = readMeta(annotation);
 	if (!meta) {
@@ -374,7 +323,6 @@ function clearPendingReveal(annotation: Annotation): Annotation {
 	return { ...annotation, _meta: { ...annotation._meta, [FEEDBACK_ANNOTATION_META_KEY]: nextMeta } };
 }
 
-/** Returns a copy of {@link annotation} in the submitted state. */
 function markSubmitted(annotation: Annotation): Annotation {
 	const meta = readMeta(annotation);
 	if (!meta) {
@@ -384,11 +332,6 @@ function markSubmitted(annotation: Annotation): Annotation {
 	return { ...annotation, _meta: { ...annotation._meta, [FEEDBACK_ANNOTATION_META_KEY]: nextMeta } };
 }
 
-/**
- * Reviewable (PR / code review) feedback annotations the user has not reviewed
- * yet, i.e. still in the `created` state. Used to build the
- * {@link listCommentsToolName} note.
- */
 function createdReviewableAnnotations(state: AnnotationsState): Annotation[] {
 	return state.annotations.filter(annotation => {
 		const meta = readMeta(annotation);
@@ -403,12 +346,6 @@ function hasRevealableComments(state: AnnotationsState): boolean {
 	return pendingRevealAnnotations(state).length > 0 || createdReviewableAnnotations(state).length > 0;
 }
 
-/**
- * A short note appended to the {@link listCommentsToolName} result when there
- * are reviewable comments the user has not accepted yet, pointing the agent at
- * {@link viewUnreviewedCommentsToolName}. Returns `undefined` (no note) when
- * there are no such comments.
- */
 function buildUnreviewedCommentsNote(state: AnnotationsState): string | undefined {
 	const created = createdReviewableAnnotations(state);
 	if (!created.length) {
@@ -436,31 +373,17 @@ function buildUnreviewedCommentsNote(state: AnnotationsState): string | undefine
 	return `There ${verb} ${subject} which the user has not reviewed yet. If the user wants you to tackle them, call the \`${viewUnreviewedCommentsToolName}\` tool to view them.`;
 }
 
-// --- Tool execution -----------------------------------------------------------
 
 export interface IFeedbackToolOutcome {
-	/** Annotation actions to dispatch on the session's annotations channel. */
 	readonly actions: readonly AnnotationsAction[];
-	/** Textual tool result returned to the agent. */
 	readonly result: string;
 }
 
-/**
- * Executes a feedback server tool against the current annotation state.
- *
- * Pure: it does not mutate {@link state}, instead returning the annotation
- * actions the caller should dispatch (so the authoritative state manager
- * remains the single writer) along with the textual tool result.
- *
- * @throws if {@link toolName} is unknown or the arguments are invalid.
- */
 export function applyFeedbackTool(state: AnnotationsState, sessionResource: string, toolName: string, rawArgs: unknown, origin: AnnotationOrigin = { session: sessionResource }): IFeedbackToolOutcome {
 	switch (toolName) {
 		case addCommentToolName: {
 			const { resourceUri, range, text } = getAddCommentArgs(rawArgs);
 			const id = generateUuid();
-			// The agent adds comments in the `created` state; the user accepts
-			// them before they are acted upon.
 			const meta: IFeedbackAnnotationMeta = { kind: 'codeReview', state: 'created', sessionResource };
 			const annotation: Annotation = {
 				id,
@@ -516,12 +439,6 @@ export function applyFeedbackTool(state: AnnotationsState, sessionResource: stri
 					result: JSON.stringify({ comments: unreviewed.map(serializeComment) }, undefined, 2),
 				};
 			}
-			// The confirmation gate runs before this body. When the user accepts
-			// the confirmation, the client flags exactly the comments they chose
-			// to reveal with `pendingAgentReveal` on the shared annotations
-			// channel. Return those comments and clear the flag after delivery;
-			// comments the user left unchecked (and review comments accepted by
-			// other means) are not flagged and so are excluded.
 			const comments = pending.map(serializeComment);
 			const actions: AnnotationsAction[] = pending.map(annotation => ({
 				type: ActionType.AnnotationsSet,
@@ -591,16 +508,6 @@ export function applyFeedbackTool(state: AnnotationsState, sessionResource: stri
 	}
 }
 
-/**
- * Display strings for the feedback ("comments") tools, authored here so every
- * provider (Copilot, Claude, Codex, …) renders them identically instead of
- * each provider's display layer re-deriving the strings from the tool name.
- * Returns `undefined` for tools this group does not own, so the caller falls
- * back to its generic display.
- *
- * {@link toolName} is the bare tool name (any transport prefix such as Claude's
- * `mcp__<server>__` has already been stripped by the dispatcher).
- */
 function getFeedbackToolDisplay(toolName: string, _args: unknown, _result?: IServerToolDisplayResult): IServerToolDisplay | undefined {
 	switch (toolName) {
 		case addCommentToolName:
@@ -638,14 +545,6 @@ function getFeedbackToolDisplay(toolName: string, _args: unknown, _result?: ISer
 	}
 }
 
-/**
- * The feedback ("comments") server-tool group, contributed to the
- * {@link AgentServerToolHost} at startup (see `node/agentService.ts`). Wraps
- * the pure {@link applyFeedbackTool} executor with the annotations-channel I/O:
- * it reads the session's current {@link AnnotationsState}, applies the tool,
- * and dispatches the resulting annotation actions through the state manager
- * (the single writer).
- */
 export const feedbackServerToolGroup: IServerToolGroup = {
 	definitions: feedbackServerToolDefinitions,
 	isEnabled(): boolean {
@@ -682,7 +581,6 @@ export const feedbackServerToolGroup: IServerToolGroup = {
 };
 
 function getFeedbackToolState(stateManager: AgentHostStateManager, chatUri: string): { mainSessionUri: string; annotationsUri: string; state: AnnotationsState } {
-	// Peer chats share feedback with their owning session.
 	const mainSessionUri = parseChatUri(chatUri)?.session ?? chatUri;
 	const annotationsUri = buildAnnotationsUri(mainSessionUri);
 	const snapshot = stateManager.getSnapshot(annotationsUri);

@@ -36,42 +36,25 @@ export interface IChatFindHost {
 	getTemplateDataForRequestId(requestId: string | undefined): IChatListItemTemplate | undefined;
 	readonly onDidRerenderRow: Event<IChatListItemTemplate>;
 	editorsInUse(): Iterable<CodeBlockPart>;
-	/** Scroll offset of the transcript, in list content space. */
 	getScrollTop(): number;
 	setScrollTop(scrollTop: number): void;
-	/** Height of the transcript's visible area. */
 	getRenderHeight(): number;
-	/** Id of the last item intersecting the viewport, used to start Find from what is on screen. */
 	getViewportAnchorItemId(): string | undefined;
 }
 
-/** Upper bound on the number of DOM ranges highlighted at once (only ever the currently mounted/visible rows). */
 const MAX_VISIBLE_HIGHLIGHTS = 500;
 
 const CHAT_FIND_WIDGET_INITIAL_WIDTH = 350;
 
-/**
- * How long typing settles before Find searches. Searching per keystroke publishes a count for
- * every prefix, so the label counts up and down while the user is still typing.
- */
 const SEARCH_DEBOUNCE_DELAY = 150;
 
-/**
- * Bounds how many times the result count waits for a fresh search to supersede the one it was
- * waiting on, so continuous typing can't keep the label pending forever.
- */
 const MAX_SETTLE_WAITS = 20;
 
 const CURRENT_MATCH_HIGHLIGHT_NAME = 'chat-find-current-match';
 const OTHER_MATCH_HIGHLIGHT_NAME = 'chat-find-other-match';
 
-/**
- * Elements that do not interrupt the flow of a line, so `Hi <b>there</b>` reads as `Hi there`.
- * Anything else starts a new line, so the tail of one block cannot fuse with the head of the next.
- */
 const INLINE_TAGS = new Set(['A', 'ABBR', 'B', 'BDI', 'BDO', 'CITE', 'CODE', 'DATA', 'DEL', 'DFN', 'EM', 'I', 'INS', 'KBD', 'MARK', 'Q', 'S', 'SAMP', 'SMALL', 'SPAN', 'STRONG', 'SUB', 'SUP', 'TIME', 'U', 'VAR']);
 
-/** The closest ancestor of `node` that starts a new line, at most `root`. */
 function nearestBlock(node: Node, root: HTMLElement): Element {
 	let element = node.parentElement;
 	while (element && element !== root && INLINE_TAGS.has(element.tagName)) {
@@ -86,14 +69,14 @@ export function findMatchRangesInDom(root: HTMLElement, regex: RegExp, limit: nu
 	let buffer = '';
 	let block: Element | undefined;
 	let separatorPending = false;
-	const walker = ownerDocument.createTreeWalker(root, 5 /* NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT */);
+	const walker = ownerDocument.createTreeWalker(root, 5 );
 	let current: Node | null;
 	while ((current = walker.nextNode())) {
 		if (excludedRoots.some(candidate => candidate.contains(current))) {
 			separatorPending = true;
 			continue;
 		}
-		if (current.nodeType !== 3 /* Node.TEXT_NODE */) {
+		if (current.nodeType !== 3 ) {
 			separatorPending ||= (current as Element).tagName === 'BR';
 			continue;
 		}
@@ -134,8 +117,6 @@ export function findMatchRangesInDom(root: HTMLElement, regex: RegExp, limit: nu
 }
 
 function toDomRange(ownerDocument: Document, nodes: { node: Text; start: number; end: number }[], start: number, end: number): Range | undefined {
-	// A match can begin or end on a block separator, which belongs to no text node, so the
-	// offsets are clamped into the nearest node rather than dropping the match.
 	const startEntry = nodes.find(n => start < n.end);
 	const endEntry = nodes.find(n => end <= n.end);
 	if (!startEntry || !endEntry || endEntry.start < startEntry.start) {
@@ -151,7 +132,6 @@ function isDetailsElement(node: Node): node is HTMLDetailsElement {
 	return (node as Element).tagName === 'DETAILS';
 }
 
-/** Opens every closed `<details>` ancestor of `node`, stopping at (and excluding) `root`. Returns whether any were toggled. */
 export function openAncestorDisclosures(root: HTMLElement, node: Node): boolean {
 	let opened = false;
 	let current: Node | null = node;
@@ -165,7 +145,6 @@ export function openAncestorDisclosures(root: HTMLElement, node: Node): boolean 
 	return opened;
 }
 
-/** Whether `show()` should capture the pre-Find focus target, so repeatedly opening an already-visible widget doesn't clobber it. */
 export function shouldCaptureFocusBeforeShow(wasVisible: boolean): boolean {
 	return !wasVisible;
 }
@@ -175,14 +154,8 @@ export function rangesEqual(a: Range, b: Range): boolean {
 		&& a.endContainer === b.endContainer && a.endOffset === b.endOffset;
 }
 
-/** Breathing room kept between a revealed match and the edge of the transcript viewport. */
 const MATCH_REVEAL_PADDING = 30;
 
-/**
- * The scroll offset that brings a match spanning `top`..`bottom` (measured from the top of the
- * viewport) into view, or `undefined` when it is already comfortably visible. Moves by the least
- * amount that clears the padding, and aligns the top of a match too tall to fit.
- */
 export function computeRevealScrollTop(scrollTop: number, renderHeight: number, top: number, bottom: number): number | undefined {
 	const alignTop = () => Math.max(0, scrollTop + top - MATCH_REVEAL_PADDING);
 	if (top < MATCH_REVEAL_PADDING) {
@@ -230,7 +203,6 @@ export function findMatchRangesInCodeBlock(codeBlock: CodeBlockPart, regex: RegE
 	return ranges;
 }
 
-/** Finds text across a chat widget's logical transcript. */
 export class ChatFindWidget extends SimpleFindWidget implements IChatFindController {
 
 	private readonly _model: ChatFindModel;
@@ -251,17 +223,10 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 	private _lastNavigationWasPrevious = false;
 	private _unlocatableSkips = 0;
 	private _pendingSearch: Promise<void> | undefined;
-	/** Pending while the active match is still being located, which can drop unreachable matches. */
 	private _settleBarrier: DeferredPromise<void> | undefined;
 
-	/** Bounds the skip walk so a query whose matches are all unlocatable cannot spin. */
 	private static readonly MAX_UNLOCATABLE_SKIPS = 50;
 
-	/**
-	 * Frames to wait for a revealed row to mount before treating a match as unreachable. The list
-	 * mounts and re-measures rows over several frames after a long scroll, so a single frame is
-	 * not enough to tell "not there yet" from "not there".
-	 */
 	private static readonly MAX_LOCATE_ATTEMPTS = 4;
 
 	constructor(
@@ -301,7 +266,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 			if (this.isVisible()) {
 				this._recomputeDelayer.trigger(() => {
 					this._model.recompute();
-					// The row usually rerenders before this debounced pass, against the old matches.
 					this._scheduleRepaint();
 				}).catch(() => { });
 			}
@@ -324,7 +288,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 			this._lastFocusedElement = this._targetWindow.document.activeElement as HTMLElement | undefined;
 		}
 		this._findWidgetVisibleKey.set(true);
-		// Opening reads the count before the seed text reaches the model, reporting "No results".
 		this._beginSettle();
 		if (focus) {
 			super.reveal(seedText);
@@ -352,7 +315,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		this._lastNavigationWasPrevious = previous;
 		this._unlocatableSkips = 0;
 		if (this._flushPendingSearch()) {
-			// The query was not searched yet, so Enter lands on its first match, not its second.
 			this._navigateToActive();
 			void this.updateResultCount();
 			return;
@@ -360,10 +322,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		this._advanceActiveMatch(previous);
 	}
 
-	/**
-	 * Runs a debounced search now, if one is still waiting. Returns whether it ran, so navigation
-	 * acts on the query the user actually typed rather than the previous one.
-	 */
 	private _flushPendingSearch(): boolean {
 		if (!this._pendingSearch) {
 			return false;
@@ -384,12 +342,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		void this.updateResultCount();
 	}
 
-	/**
-	 * Steps past a match the DOM cannot produce, so navigation never appears to do nothing. The
-	 * index predicts where the renderer puts content, and a prediction can still be wrong for
-	 * content whose placement is decided at render time; rather than stall, keep going the same
-	 * way. Bounded so a query whose matches are all unlocatable cannot spin.
-	 */
 	private _skipUnlocatableMatch(): void {
 		if (this._unlocatableSkips >= ChatFindWidget.MAX_UNLOCATABLE_SKIPS) {
 			this._completeSettle();
@@ -401,7 +353,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 
 	findFirst(): void {
 		this._unlocatableSkips = 0;
-		// Toggling an option supersedes a keystroke still waiting out the debounce.
 		this._searchDelayer.cancel();
 		this._pendingSearch = undefined;
 		this._model.setQuery(this.inputValue, this._currentFindOptions());
@@ -441,11 +392,9 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 	protected _onInputChanged(): boolean {
 		this._unlocatableSkips = 0;
 		this._scheduleSearch();
-		// Optimistic: keeps the buttons usable until `updateResultCount` corrects the label.
 		return this._model.matches.length > 0;
 	}
 
-	/** Whether the widget's query or options have moved on from what the model last searched. */
 	private _isModelStale(): boolean {
 		const options = this._currentFindOptions();
 		const current = this._model.options;
@@ -455,13 +404,7 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 			|| options.wholeWord !== current.wholeWord;
 	}
 
-	/**
-	 * Runs the search once typing pauses. Searching per keystroke would publish a count for every
-	 * prefix, and each of those counts can then shed unreachable matches, so the label ends up
-	 * ticking up and down before landing on the real number.
-	 */
 	private _scheduleSearch(): void {
-		// An option toggle also reaches here via `findFirst`; a duplicate would swallow Enter.
 		if (!this._isModelStale()) {
 			return;
 		}
@@ -477,32 +420,23 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		});
 	}
 
-	/** Marks the start of locating an active match, if one is not already in progress. */
 	private _beginSettle(): void {
 		this._settleBarrier ??= new DeferredPromise<void>();
 	}
 
-	/** Marks the active match as located, dropped, or given up on, releasing the result count. */
 	private _completeSettle(): void {
 		const barrier = this._settleBarrier;
 		this._settleBarrier = undefined;
 		void barrier?.complete();
 	}
 
-	/**
-	 * Waits for the query to be searched and its active match to be located. Locating can drop
-	 * matches that turn out to be unreachable, so reading the count before then reports a total
-	 * that is about to change.
-	 */
 	private async _whenSettled(): Promise<void> {
-		// `FindInput.onDidChange` reads the count before `onInput` schedules the search.
 		await Promise.resolve();
 		for (let attempt = 0; attempt < MAX_SETTLE_WAITS; attempt++) {
 			const pending = [this._pendingSearch, this._settleBarrier?.p].filter(isDefined);
 			if (!pending.length) {
 				return;
 			}
-			// A newer search may have started while awaiting, so re-check rather than assume.
 			await Promise.all(pending).catch(() => { });
 		}
 	}
@@ -560,7 +494,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 	private _revealActiveMatch(match: IChatFindMatch, attempt: number = 0): void {
 		const locatedMatch = this._locateMatch(match);
 		if (!locatedMatch) {
-			// A long jump outruns the list, which mounts and re-measures rows over later frames.
 			if (attempt < ChatFindWidget.MAX_LOCATE_ATTEMPTS) {
 				const item = this._findItemForMatch(match);
 				if (item) {
@@ -602,15 +535,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		}
 	}
 
-	/**
-	 * Scrolls the transcript so `rect` is in view, in either direction, and reports whether it
-	 * moved.
-	 *
-	 * Deliberately not `Element.scrollIntoView`: the chat list picks up native scrolling by
-	 * reading the container's `scrollTop` and resetting it to `0` (see `scrollToActiveElement` in
-	 * `listView.ts`), so the browser can only ever hand it a downward delta. Scrolling up — which
-	 * is now the common direction, since matches run newest first — would silently do nothing.
-	 */
 	private _scrollRectIntoView(rect: { readonly top: number; readonly bottom: number } | undefined): boolean {
 		if (!rect) {
 			return false;
@@ -629,14 +553,12 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		return true;
 	}
 
-	/** Scrolls to a match and repaints once the rows the scroll brought into view have mounted. */
 	private _revealRect(rect: { readonly top: number; readonly bottom: number } | undefined): void {
 		if (this._scrollRectIntoView(rect)) {
 			this._scheduleRepaint();
 		}
 	}
 
-	/** The match's own rectangle, falling back to its element for ranges that measure as empty. */
 	private _rangeRect(range: Range): { readonly top: number; readonly bottom: number } | undefined {
 		const rect = range.getBoundingClientRect();
 		if (rect.height > 0) {
@@ -648,10 +570,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		return element?.getBoundingClientRect();
 	}
 
-	/**
-	 * The matched line's rectangle inside an embedded editor. Only visible lines exist in the DOM,
-	 * so the position is derived from the editor's layout rather than looked up as a node.
-	 */
 	private _codeMatchRect(codeMatch: ILocatedCodeMatch): { readonly top: number; readonly bottom: number } | undefined {
 		const editor = codeMatch.codeBlock.editor;
 		const editorDomNode = editor.getDomNode();
@@ -668,7 +586,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		return this.host.getItems().find(item => item.id === match.itemId);
 	}
 
-	/** Opens every closed `<details>` ancestor of `range`, up to the transcript root. Returns whether any were toggled. */
 	private _openAncestorDisclosures(range: Range): boolean {
 		return openAncestorDisclosures(this.host.transcriptDomNode, range.startContainer);
 	}
@@ -690,11 +607,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		}
 	}
 
-	/**
-	 * The DOM subtrees that can own `match`, in document order. Matches with a rendered part use
-	 * it directly; row-level response matches search the trailing parts (error details and other
-	 * content following the response body) so their occurrence is not counted against the body.
-	 */
 	private _locateMatchRoots(match: IChatFindMatch, template: IChatListItemTemplate | undefined): HTMLElement[] {
 		if (match.partIndex >= 0) {
 			const partRoot = template?.renderedParts?.[match.partIndex]?.domNode;
@@ -710,7 +622,6 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		return template?.value ? [template.value] : [];
 	}
 
-	/** Locates the active match's DOM range within its rendered content part (or the whole row as a fallback). */
 	private _locateMatch(match: IChatFindMatch, regex?: RegExp): LocatedMatch | undefined {
 		const template = this.host.getTemplateDataForRequestId(match.itemId);
 		const roots = this._locateMatchRoots(match, template);
@@ -771,11 +682,7 @@ export class ChatFindWidget extends SimpleFindWidget implements IChatFindControl
 		const currentRanges: Range[] = [];
 		const otherRanges: Range[] = [];
 		const codeDecorations = new Map<CodeBlockPart, { range: EditorRange; current: boolean }[]>();
-		// Counts code-block matches too: they are painted as editor decorations rather than DOM
-		// ranges, so bounding only the ranges would let an all-code result set rescan every match.
 		let locatedCount = 0;
-		// Most matches usually belong to rows the virtualized list has not rendered. Skipping them
-		// on the row lookup alone keeps a transcript-wide result set from scanning parts per repaint.
 		const renderedRows = new Map<string, boolean>();
 		for (let index = 0; index < this._model.matches.length && locatedCount < MAX_VISIBLE_HIGHLIGHTS; index++) {
 			const match = this._model.matches[index];

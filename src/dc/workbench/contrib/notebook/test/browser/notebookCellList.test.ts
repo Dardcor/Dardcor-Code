@@ -52,26 +52,20 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
-				// scroll a bit, scrollTop to bottom: 5, 215
 				cellList.scrollTop = 5;
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 5);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 215);
 
-				// reveal cell 1, top 50, bottom 150, which is fully visible in the viewport
 				cellList.revealCells({ start: 1, end: 2 });
 				assert.deepStrictEqual(cellList.scrollTop, 5);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 215);
 
-				// reveal cell 2, top 150, bottom 200, which is fully visible in the viewport
 				cellList.revealCells({ start: 2, end: 3 });
 				assert.deepStrictEqual(cellList.scrollTop, 5);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 215);
 
-				// reveal cell 3, top 200, bottom 300, which is partially visible in the viewport
 				cellList.revealCells({ start: 3, end: 4 });
 				assert.deepStrictEqual(cellList.scrollTop, 90);
 			});
@@ -99,23 +93,18 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 210);
 
-				// reveal cell 3, top 200, bottom 300, which is partially visible in the viewport
 				cellList.revealCells({ start: 3, end: 4 });
 				assert.deepStrictEqual(cellList.scrollTop, 90);
 
-				// scroll to 5
 				cellList.scrollTop = 5;
 				assert.deepStrictEqual(cellList.scrollTop, 5);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 215);
 
-				// reveal cell 0, top 0, bottom 50
 				cellList.revealCells({ start: 0, end: 1 });
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 			});
@@ -141,20 +130,16 @@ suite('NotebookCellList', () => {
 				});
 
 				const cellList = createNotebookCellList(instantiationService, disposables);
-				// without paddingBottom, the last 20 px will always be hidden due to `topInsertToolbarHeight`
 				cellList.updateOptions({ paddingBottom: 100 });
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 210);
 
 				cellList.revealCells({ start: 4, end: 5 });
 				assert.deepStrictEqual(cellList.scrollTop, 140);
-				// assert.deepStrictEqual(cellList.getViewScrollBottom(), 330);
 			});
 	});
 
@@ -180,17 +165,14 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 210);
 
 				cellList.updateElementHeight(0, 60);
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 
-				// scroll to 5
 				cellList.scrollTop = 5;
 				assert.deepStrictEqual(cellList.scrollTop, 5);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 215);
@@ -222,14 +204,11 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 210);
 
-				// scroll to 5
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 50);
 				cellList.scrollTop = 5;
 				assert.deepStrictEqual(cellList.scrollTop, 5);
@@ -239,21 +218,17 @@ suite('NotebookCellList', () => {
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 100);
 				assert.deepStrictEqual(cellList.scrollHeight, 400);
 
-				// the first cell grows, and the focused cell will remain fully visible, so we don't scroll
 				assert.deepStrictEqual(cellList.scrollTop, 5);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 215);
 
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 150);
-				// the first cell grows, and the focused cell will be pushed out of view, so we scroll down
 				assert.deepStrictEqual(cellList.scrollTop, 55);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 265);
 
-				// We don't anchor to the focused cell when cells shrink
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 50);
 				assert.deepStrictEqual(cellList.scrollTop, 55);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 265);
 
-				// focus won't be visible after cell 0 grow to 250, so let's try to keep the focused cell visible
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 250);
 				assert.deepStrictEqual(cellList.scrollTop, 250 + 100 - cellList.renderHeight);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 250 + 100 - cellList.renderHeight + 210);
@@ -282,14 +257,11 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 210);
 
-				// scroll to 5
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 50);
 				cellList.scrollTop = 5;
 				assert.deepStrictEqual(cellList.scrollTop, 5);
@@ -299,7 +271,6 @@ suite('NotebookCellList', () => {
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 100);
 				assert.deepStrictEqual(cellList.scrollHeight, 400);
 
-				// Any change in cell size should not affect the scroll height with scrollToReveal set to none
 				assert.deepStrictEqual(cellList.scrollTop, 5);
 
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 50);
@@ -332,10 +303,8 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 210);
 
@@ -345,7 +314,6 @@ suite('NotebookCellList', () => {
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 100);
 				assert.deepStrictEqual(cellList.scrollHeight, 400);
 
-				// We have the cell editor focused, so we should anchor to that cell
 				assert.deepStrictEqual(cellList.scrollTop, 50);
 
 				cellList.updateElementHeight2(viewModel.cellAt(0)!, 50);
@@ -378,16 +346,13 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 210);
 
 				cellList.setFocus([4]);
 				cellList.updateElementHeight2(viewModel.cellAt(1)!, 130);
-				// the focus cell is not in the viewport, the scrolltop should not change at all
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 			});
 	});
@@ -414,10 +379,8 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(210, 100);
 
-				// init scrollTop and scrollBottom
 				assert.deepStrictEqual(cellList.scrollTop, 0);
 				assert.deepStrictEqual(cellList.getViewScrollBottom(), 210);
 
@@ -438,7 +401,6 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(100, 100);
 
 				assert.deepStrictEqual(cellList.visibleRanges, []);
@@ -463,7 +425,6 @@ suite('NotebookCellList', () => {
 				const cellList = createNotebookCellList(instantiationService, disposables);
 				cellList.attachViewModel(viewModel);
 
-				// render height 210, it can render 3 full cells and 1 partial cell
 				cellList.layout(100, 100);
 
 				assert.deepStrictEqual(cellList.visibleRanges, [{ start: 0, end: 1 }]);

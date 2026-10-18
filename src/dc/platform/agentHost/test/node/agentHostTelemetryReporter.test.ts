@@ -170,9 +170,9 @@ suite('AgentHostTelemetryReporter', () => {
 		const service = new TestRestrictedTelemetryService();
 		const reporter = new AgentHostTelemetryReporter(service);
 
-		await reporter.assistantMessageReceived(session, AgentHostClientType.AgentsWindow, undefined, tools); // dropped: no client request id
-		await reporter.assistantMessageReceived(session, AgentHostClientType.AgentsWindow, 'client-1', []); // dropped: no tools
-		await reporter.assistantMessageReceived(session, AgentHostClientType.AgentsWindow, 'client-1', tools); // emitted
+		await reporter.assistantMessageReceived(session, AgentHostClientType.AgentsWindow, undefined, tools);
+		await reporter.assistantMessageReceived(session, AgentHostClientType.AgentsWindow, 'client-1', []);
+		await reporter.assistantMessageReceived(session, AgentHostClientType.AgentsWindow, 'client-1', tools);
 
 		assert.deepStrictEqual(service.enhancedEvents, [{
 			eventName: 'request.options.tools',
@@ -190,8 +190,8 @@ suite('AgentHostTelemetryReporter', () => {
 		const service = new TestRestrictedTelemetryService();
 		const reporter = new AgentHostTelemetryReporter(service);
 
-		await reporter.userMessageText(session, AgentHostClientType.EditorWindow, '', 3); // dropped: no content
-		await reporter.userMessageText(session, AgentHostClientType.EditorWindow, 'hello agent', 3); // emitted
+		await reporter.userMessageText(session, AgentHostClientType.EditorWindow, '', 3);
+		await reporter.userMessageText(session, AgentHostClientType.EditorWindow, 'hello agent', 3);
 
 		const expected: IRestrictedCall = {
 			eventName: 'conversation.messageText',
@@ -211,8 +211,8 @@ suite('AgentHostTelemetryReporter', () => {
 		const service = new TestRestrictedTelemetryService();
 		const reporter = new AgentHostTelemetryReporter(service);
 
-		await reporter.modelMessageText(session, AgentHostClientType.AgentsWindow, '', 3, 'client-1'); // dropped: no content
-		await reporter.modelMessageText(session, AgentHostClientType.AgentsWindow, 'sure, here you go', 3, 'client-1'); // emitted
+		await reporter.modelMessageText(session, AgentHostClientType.AgentsWindow, '', 3, 'client-1');
+		await reporter.modelMessageText(session, AgentHostClientType.AgentsWindow, 'sure, here you go', 3, 'client-1');
 
 		const expected: IRestrictedCall = {
 			eventName: 'conversation.messageText',
@@ -238,20 +238,20 @@ suite('AgentHostTelemetryReporter', () => {
 			toolCounts: {}, availableTools: [],
 			turnIndex: 2, turnDuration: 1200, messageCharLen: 11,
 			numRequests: 1, totalToolCalls: 0, parallelToolCallRounds: 0, parallelToolCallsTotal: 0,
-		}); // dropped: no tools were available
+		});
 		await reporter.toolCallDetails({
 			provider: 'copilot', session, turnId: 'a1b2c3d4-0000-4000-8000-000000000000', clientType: AgentHostClientType.EditorWindow, model: 'gpt-x', responseType: 'success',
 			clientContext: { ...createUnknownAgentHostClientTelemetryContext(AgentHostClientType.EditorWindow), machineId: 'client-machine-id', devDeviceId: 'client-dev-device-id' },
 			toolCounts: {}, availableTools: ['grep', 'edit'],
 			turnIndex: 2, turnDuration: 1200, messageCharLen: 11,
 			numRequests: 1, totalToolCalls: 0, parallelToolCallRounds: 0, parallelToolCallsTotal: 0,
-		}); // emitted: tools available, even though no tool calls were made
+		});
 		await reporter.toolCallDetails({
 			provider: 'copilot', session, turnId: 'a1b2c3d4-0000-4000-8000-000000000000', clientType: AgentHostClientType.AgentsWindow, model: 'gpt-x', responseType: 'cancelled',
 			toolCounts: { grep: 2, edit: 1 }, availableTools: ['grep', 'edit'],
 			turnIndex: 3, turnDuration: 2400, messageCharLen: undefined,
 			numRequests: 2, totalToolCalls: 3, parallelToolCallRounds: 1, parallelToolCallsTotal: 2,
-		}); // emitted
+		});
 
 		assert.deepStrictEqual(service.standardEvents, [{
 			eventName: 'toolCallDetails',
@@ -615,12 +615,12 @@ suite('AgentHostTelemetryReporter', () => {
 		const service = new TestRestrictedTelemetryService();
 		const reporter = new AgentHostTelemetryReporter(service);
 
-		reporter.skillContentRead({ clientType: AgentHostClientType.Unknown, name: '', path: '/skills/x/SKILL.md', content: 'body', source: 'project', pluginName: undefined, pluginVersion: undefined }); // dropped: no name
+		reporter.skillContentRead({ clientType: AgentHostClientType.Unknown, name: '', path: '/skills/x/SKILL.md', content: 'body', source: 'project', pluginName: undefined, pluginVersion: undefined });
 		reporter.skillContentRead({
 			clientType: AgentHostClientType.AgentsWindow,
 			name: 'pdf', path: '/plugins/pdf/SKILL.md', content: 'skill body',
 			source: 'plugin', pluginName: 'pdf-plugin', pluginVersion: '1.2.3',
-		}); // emitted
+		});
 
 		const expected: IRestrictedCall = {
 			eventName: 'skillContentRead',

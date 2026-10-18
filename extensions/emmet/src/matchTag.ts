@@ -40,14 +40,12 @@ function getUpdatedSelections(document: vscode.TextDocument, rootNode: HtmlFlatN
 		return;
 	}
 
-	// If no opening/closing tag or cursor is between open and close tag, then no-op
 	if (!currentNode.open
 		|| !currentNode.close
 		|| (offset > currentNode.open.end && offset < currentNode.close.start)) {
 		return;
 	}
 
-	// Place cursor inside the close tag if cursor is inside the open tag, else place it inside the open tag
 	const finalOffset = (offset <= currentNode.open.end) ? currentNode.close.start + 2 : currentNode.start + 1;
 	return offsetRangeToSelection(document, finalOffset, finalOffset);
 }

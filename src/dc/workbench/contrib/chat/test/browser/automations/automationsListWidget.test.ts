@@ -45,14 +45,6 @@ function workspaceTarget(): AutomationTarget {
 	return { kind: 'workspace', folderUri: FOLDER, isolation: { kind: 'default' } };
 }
 
-/**
- * In-memory IAutomationService for the widget tests. Replaces the concrete
- * AutomationService, which now lives in the sessions layer. Importing it from
- * a workbench-layer test trips the `code-import-patterns` rule. The widget only
- * reads the `automations`/`runs` observables and drives create/update/delete,
- * so this fake keeps an unpersisted reactive store with just those mutations
- * plus the run-recording the tests exercise directly.
- */
 class FakeAutomationService extends mock<IAutomationService>() {
 
 	private readonly _automations = observableValue<readonly IAutomation[]>(this, []);
@@ -204,7 +196,7 @@ class FakeDialogService extends mock<IDialogService>() {
 		this.errors.push({ message, detail: detail ?? '' });
 	}
 
-	override async info(): Promise<void> { /* no-op */ }
+	override async info(): Promise<void> { }
 }
 
 class FakeAutomationDialogService extends mock<IAutomationDialogService>() {
@@ -271,9 +263,6 @@ suite('AutomationsListWidget', () => {
 		instantiation.stub(IHostService, upcastPartial<IHostService>({}));
 		instantiation.stub(ILogService, log);
 		instantiation.stub(IQuickInputService, upcastPartial<IQuickInputService>({ pick: async () => undefined }));
-		// Enable the Automations feature so mutation handlers don't
-		// short-circuit with the "feature disabled" toast. The runtime
-		// gating is exercised in a dedicated test below.
 		const configService = new TestConfigurationService({ chat: { automations: { enabled: true } } });
 		instantiation.stub(IConfigurationService, configService);
 
@@ -290,11 +279,6 @@ suite('AutomationsListWidget', () => {
 		assert.strictEqual(rows.length, 0);
 	});
 
-	// The Automations list is a virtualized WorkbenchList, which does not lay
-	// out rows in a unit-test DOM (no height). Mirroring the sibling
-	// aiCustomizationListWidget test, these cases assert the widget's public
-	// API and view-model (via getDisplayEntriesForTest / itemCount) rather than
-	// querying or clicking virtualized row elements.
 
 	test('exposes one display entry per automation', async () => {
 		const { widget, service } = setup();
@@ -442,8 +426,6 @@ suite('AutomationsListWidget', () => {
 		const { widget, service, runner, configService, dialog } = setup();
 		const a = await service.createAutomation({ name: 'A', prompt: 'p', schedule: hourly(), target: workspaceTarget(), enabled: true });
 
-		// Flip the setting off, then drive each mutating action through the
-		// public API. None of them should reach the service / runner.
 		configService.setUserConfiguration('chat.automations.enabled', false);
 		dialog.confirmResult = true;
 
@@ -572,7 +554,6 @@ suite('AutomationsListWidget', () => {
 		widget.toggleExpanded(a.id);
 		assert.strictEqual(widget.getDisplayEntriesForTest()[0].expanded, true);
 
-		// Collapse again.
 		widget.toggleExpanded(a.id);
 		assert.strictEqual(widget.getDisplayEntriesForTest()[0].expanded, false);
 	});
@@ -607,7 +588,6 @@ suite('AutomationsListWidget', () => {
 		const { widget, service } = setup();
 		const a = await service.createAutomation({ name: 'A', prompt: 'p', schedule: hourly(), target: workspaceTarget() });
 
-		// Record three runs in different states.
 		const r1 = (await service.recordRunStart(a.id, 'schedule', 1)).run;
 		await service.updateRun(r1.id, { status: 'completed', completedAt: new Date().toISOString() });
 
@@ -621,14 +601,12 @@ suite('AutomationsListWidget', () => {
 		const runs = widget.getDisplayEntriesForTest()[0].runs;
 		assert.strictEqual(runs.length, 3);
 
-		// Newest-first: catch_up pending, manual failed, schedule completed.
 		const statuses = runs.map(r => r.status);
 		assert.deepStrictEqual(statuses, ['pending', 'failed', 'completed']);
 
 		const triggers = runs.map(r => r.trigger);
 		assert.deepStrictEqual(triggers, ['catch_up', 'manual', 'schedule']);
 
-		// The failed run surfaces the error message.
 		const failed = runs.find(r => r.status === 'failed');
 		assert.strictEqual(failed?.errorMessage, 'boom');
 	});

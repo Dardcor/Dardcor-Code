@@ -15,61 +15,30 @@ import { namespaceTestTag } from './testTypes.js';
 export interface ITestExplorerFilterState {
 	_serviceBrand: undefined;
 
-	/** Current filter text */
 	readonly text: IObservableValue<string>;
 
-	/** Test ID the user wants to reveal in the explorer */
 	readonly reveal: ISettableObservable<string | undefined>;
 
-	/** A test was selected in the explorer. */
 	readonly onDidSelectTestInExplorer: Event<string | undefined>;
 
-	/** Event that fires when {@link focusInput} is invoked. */
 	readonly onDidRequestInputFocus: Event<void>;
 
-	/**
-	 * Glob list to filter for based on the {@link text}
-	 */
 	readonly globList: readonly { include: boolean; text: string }[];
 
-	/**
-	 * The user requested to filter including tags.
-	 */
 	readonly includeTags: ReadonlySet<string>;
 
-	/**
-	 * The user requested to filter excluding tags.
-	 */
 	readonly excludeTags: ReadonlySet<string>;
 
-	/**
-	 * Whether fuzzy searching is enabled.
-	 */
 	readonly fuzzy: MutableObservableValue<boolean>;
 
-	/**
-	 * Focuses the filter input in the test explorer view.
-	 */
 	focusInput(): void;
 
-	/**
-	 * Replaces the filter {@link text}.
-	 */
 	setText(text: string): void;
 
-	/**
-	 * Sets whether the {@link text} is filtering for a special term.
-	 */
 	isFilteringFor(term: TestFilterTerm): boolean;
 
-	/**
-	 * Sets whether the {@link text} includes a special filter term.
-	 */
 	toggleFilteringFor(term: TestFilterTerm, shouldFilter?: boolean): void;
 
-	/**
-	 * Called when a test in the test explorer is selected.
-	 */
 	didSelectTestInExplorer(testId: string): void;
 }
 
@@ -81,24 +50,16 @@ const trimExtraWhitespace = (str: string) => str.replace(/\s\s+/g, ' ').trim();
 export class TestExplorerFilterState extends Disposable implements ITestExplorerFilterState {
 	declare _serviceBrand: undefined;
 	private readonly focusEmitter = this._register(new Emitter<void>());
-	/**
-	 * Mapping of terms to whether they're included in the text.
-	 */
 	private termFilterState: { [K in TestFilterTerm]?: true } = {};
 
-	/** @inheritdoc */
 	public globList: { include: boolean; text: string }[] = [];
 
-	/** @inheritdoc */
 	public includeTags = new Set<string>();
 
-	/** @inheritdoc */
 	public excludeTags = new Set<string>();
 
-	/** @inheritdoc */
 	public readonly text = this._register(new MutableObservableValue(''));
 
-	/** @inheritdoc */
 	public readonly fuzzy: MutableObservableValue<boolean>;
 
 	public readonly reveal: ISettableObservable<string | undefined> = observableValue('TestExplorerFilterState.reveal', undefined);
@@ -119,17 +80,14 @@ export class TestExplorerFilterState extends Disposable implements ITestExplorer
 		}, storageService), false));
 	}
 
-	/** @inheritdoc */
 	public didSelectTestInExplorer(testId: string) {
 		this.selectTestInExplorerEmitter.fire(testId);
 	}
 
-	/** @inheritdoc */
 	public focusInput() {
 		this.focusEmitter.fire();
 	}
 
-	/** @inheritdoc */
 	public setText(text: string) {
 		if (text === this.text.value) {
 			return;
@@ -151,7 +109,6 @@ export class TestExplorerFilterState extends Disposable implements ITestExplorer
 				this.termFilterState[tag as TestFilterTerm] = true;
 			}
 
-			// recognize and parse @ctrlId:tagId or quoted like @ctrlId:"tag \\"id"
 			let isTag = false;
 			if (text[nextIndex] === ':') {
 				isTag = true;
@@ -183,8 +140,6 @@ export class TestExplorerFilterState extends Disposable implements ITestExplorer
 				nextIndex++;
 			}
 
-			// If the @-prefixed text is not a known filter term or tag,
-			// treat it as regular filter text (e.g., a test named "@smoke")
 			if (!isFilterTerm && !isTag) {
 				continue;
 			}
@@ -205,15 +160,13 @@ export class TestExplorerFilterState extends Disposable implements ITestExplorer
 			}
 		}
 
-		this.text.value = text; // purposely afterwards so everything is updated when the change event happen
+		this.text.value = text;
 	}
 
-	/** @inheritdoc */
 	public isFilteringFor(term: TestFilterTerm) {
 		return !!this.termFilterState[term];
 	}
 
-	/** @inheritdoc */
 	public toggleFilteringFor(term: TestFilterTerm, shouldFilter?: boolean) {
 		const text = this.text.value.trim();
 		if (shouldFilter !== false && !this.termFilterState[term]) {

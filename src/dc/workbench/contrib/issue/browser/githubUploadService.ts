@@ -19,9 +19,6 @@ export interface IGitHubUploadService {
 	uploadViaMobileApi(token: string, repoId: string, files: { name: string; bytes: Uint8Array; contentType: string }[]): Promise<IGitHubUploadResult[]>;
 }
 
-/**
- * Browser fallback, upload not yet supported in web.
- */
 export class BrowserGitHubUploadService implements IGitHubUploadService {
 	readonly _serviceBrand: undefined;
 

@@ -1,21 +1,9 @@
 import { KIRO_CONFIG, assertValidAwsRegion } from "../constants/oauth.js";
 
-/**
- * Kiro OAuth Service
- * Supports multiple authentication methods:
- * 1. AWS Builder ID (Device Code Flow)
- * 2. AWS IAM Identity Center/IDC (Device Code Flow)
- * 3. Google/GitHub Social Login (Authorization Code Flow + Manual Callback)
- * 4. Import Token (Manual refresh token paste)
- */
 
 const KIRO_AUTH_SERVICE = "https://prod.us-east-1.auth.desktop.kiro.dev";
 
 export class KiroService {
-  /**
-   * Register OIDC client with AWS SSO
-   * Returns clientId and clientSecret for device code flow
-   */
   async registerClient(region = "us-east-1") {
     assertValidAwsRegion(region);
     const endpoint = `https://oidc.${region}.amazonaws.com/client/register`;
@@ -47,9 +35,6 @@ export class KiroService {
     };
   }
 
-  /**
-   * Start device authorization for AWS Builder ID or IDC
-   */
   async startDeviceAuthorization(clientId, clientSecret, startUrl, region = "us-east-1") {
     assertValidAwsRegion(region);
     const endpoint = `https://oidc.${region}.amazonaws.com/device_authorization`;
@@ -82,9 +67,6 @@ export class KiroService {
     };
   }
 
-  /**
-   * Poll for token using device code (AWS Builder ID/IDC)
-   */
   async pollDeviceToken(clientId, clientSecret, deviceCode, region = "us-east-1") {
     assertValidAwsRegion(region);
     const endpoint = `https://oidc.${region}.amazonaws.com/token`;
@@ -104,7 +86,6 @@ export class KiroService {
 
     const data = await response.json();
 
-    // Handle pending/slow_down/errors
     if (!response.ok || data.error) {
       return {
         success: false,
@@ -125,24 +106,13 @@ export class KiroService {
     };
   }
 
-  /**
-   * Build Google/GitHub social login URL
-   * Returns authorization URL for manual callback flow
-   * Uses kiro:// custom protocol as required by AWS Cognito whitelist
-   */
   buildSocialLoginUrl(provider, codeChallenge, state) {
     const idp = provider === "google" ? "Google" : "Github";
-    // AWS Cognito only whitelists kiro:// protocol, not localhost
     const redirectUri = "kiro://kiro.kiroAgent/authenticate-success";
     return `${KIRO_AUTH_SERVICE}/login?idp=${idp}&redirect_uri=${encodeURIComponent(redirectUri)}&code_challenge=${codeChallenge}&code_challenge_method=S256&state=${state}&prompt=select_account`;
   }
 
-  /**
-   * Exchange authorization code for tokens (Social Login)
-   * Must use same redirect_uri as authorization request
-   */
   async exchangeSocialCode(code, codeVerifier) {
-    // Must match the redirect_uri used in buildSocialLoginUrl
     const redirectUri = "kiro://kiro.kiroAgent/authenticate-success";
 
     const response = await fetch(`${KIRO_AUTH_SERVICE}/oauth/token`, {
@@ -171,13 +141,9 @@ export class KiroService {
     };
   }
 
-  /**
-   * Refresh token using refresh token
-   */
   async refreshToken(refreshToken, providerSpecificData = {}) {
     const { authMethod, clientId, clientSecret, region } = providerSpecificData;
 
-    // AWS SSO OIDC refresh (Builder ID or IDC)
     if (clientId && clientSecret) {
       const safeRegion = region || "us-east-1";
       assertValidAwsRegion(safeRegion);
@@ -210,7 +176,6 @@ export class KiroService {
       };
     }
 
-    // Social auth refresh (Google/GitHub)
     const response = await fetch(`${KIRO_AUTH_SERVICE}/refreshToken`, {
       method: "POST",
       headers: {
@@ -235,16 +200,11 @@ export class KiroService {
     };
   }
 
-  /**
-   * Validate and import refresh token
-   */
   async validateImportToken(refreshToken) {
-    // Validate token format
     if (!refreshToken.startsWith("aorAAAAAG")) {
       throw new Error("Invalid token format. Token should start with aorAAAAAG...");
     }
 
-    // Try to refresh to validate
     try {
       const result = await this.refreshToken(refreshToken);
       return {
@@ -259,11 +219,6 @@ export class KiroService {
     }
   }
 
-  /**
-   * List available CodeWhisperer profiles for OAuth/IDC tokens and return the
-   * best-matching profileArn. API keys use the Amazon Q model catalog instead;
-   * ListAvailableProfiles does not support TokenType=API_KEY.
-   */
   async listAvailableProfiles(accessToken, region = "us-east-1") {
     assertValidAwsRegion(region);
     const endpoint = `https://codewhisperer.${region}.amazonaws.com`;
@@ -291,11 +246,6 @@ export class KiroService {
     return arnOf(match);
   }
 
-  /**
-   * Validate an API key against the Amazon Q model catalog. A bearer-only call
-   * to ListAvailableProfiles can return HTTP 200 with an empty list for an
-   * arbitrary key, so it is not proof that the key can run inference.
-   */
   async listAvailableApiKeyModels(apiKey, region = "us-east-1") {
     assertValidAwsRegion(region);
     const params = new URLSearchParams({ origin: "AI_EDITOR" });
@@ -324,10 +274,6 @@ export class KiroService {
     return models;
   }
 
-  /**
-   * Validate an API-key credential through the same Amazon Q surface used for
-   * inference. API keys are account-bound but do not require a profileArn.
-   */
   async validateApiKey(apiKey, region = "us-east-1") {
     if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
       throw new Error("API key is required");
@@ -349,9 +295,6 @@ export class KiroService {
     };
   }
 
-  /**
-   * List available models from CodeWhisperer API
-   */
   async listAvailableModels(accessToken, profileArn) {
     const endpoint = "https://codewhisperer.us-east-1.amazonaws.com";
     const target = "AmazonCodeWhispererService.ListAvailableModels";
@@ -386,15 +329,11 @@ export class KiroService {
     }));
   }
 
-  /**
-   * Fetch user email from access token (optional, for display)
-   */
   extractEmailFromJWT(accessToken) {
     try {
       const parts = accessToken.split(".");
       if (parts.length !== 3) return null;
 
-      // Decode payload (add padding if needed)
       let payload = parts[1];
       while (payload.length % 4) {
         payload += "=";

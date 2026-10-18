@@ -1,9 +1,7 @@
 #!/usr/bin/env sh
-#
 # Copyright (c) Dardcor Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for license information.
 
-# when run in remote terminal, use the remote cli
 if [ -n "$VSCODE_IPC_HOOK_CLI" ]; then
 	REMOTE_CLI="$(which -a '@@APPNAME@@' | grep /remote-cli/)"
 	if [ -n "$REMOTE_CLI" ]; then
@@ -12,7 +10,6 @@ if [ -n "$VSCODE_IPC_HOOK_CLI" ]; then
 	fi
 fi
 
-# test that VSCode wasn't installed inside WSL
 if grep -qi Microsoft /proc/version && [ -z "$DONT_PROMPT_WSL_INSTALL" ]; then
 	echo "To use @@PRODNAME@@ with the Windows Subsystem for Linux, please install @@PRODNAME@@ in Windows and uninstall the Linux version in WSL. You can then use the \`@@APPNAME@@\` command in a WSL terminal just as you would in a normal command prompt." 1>&2
 	printf "Do you want to continue anyway? [y/N] " 1>&2
@@ -28,7 +25,6 @@ if grep -qi Microsoft /proc/version && [ -z "$DONT_PROMPT_WSL_INSTALL" ]; then
 	echo "To no longer see this prompt, start @@PRODNAME@@ with the environment variable DONT_PROMPT_WSL_INSTALL defined." 1>&2
 fi
 
-# If root, ensure that --user-data-dir or --file-write is specified
 if [ "$(id -u)" = "0" ]; then
 	for i in "$@"
 	do
@@ -45,14 +41,11 @@ if [ "$(id -u)" = "0" ]; then
 fi
 
 if [ ! -L "$0" ]; then
-	# if path is not a symlink, find relatively
 	VSCODE_PATH="$(dirname "$0")/.."
 else
 	if command -v readlink >/dev/null; then
-		# if readlink exists, follow the symlink and find relatively
 		VSCODE_PATH="$(dirname "$(readlink -f "$0")")/.."
 	else
-		# else use the standard install location
 		VSCODE_PATH="/usr/share/@@APPNAME@@"
 	fi
 fi

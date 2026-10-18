@@ -29,7 +29,7 @@ export interface INormalizedVersion {
 	minorMustEqual: boolean;
 	patchBase: number;
 	patchMustEqual: boolean;
-	notBefore: number; /* milliseconds timestamp, or 0 */
+	notBefore: number;
 	isMinimum: boolean;
 }
 
@@ -184,7 +184,6 @@ export function isValidVersion(_inputVersion: string | INormalizedVersion, _inpu
 		return patchBase >= desiredPatchBase;
 	}
 
-	// Anything < 1.0.0 is compatible with >= 1.0.0, except exact matches
 	if (majorBase === 1 && desiredMajorBase === 0 && (!majorMustEqual || !minorMustEqual || !patchMustEqual)) {
 		desiredMajorBase = 1;
 		desiredMinorBase = 0;
@@ -195,40 +194,31 @@ export function isValidVersion(_inputVersion: string | INormalizedVersion, _inpu
 	}
 
 	if (majorBase < desiredMajorBase) {
-		// smaller major version
 		return false;
 	}
 
 	if (majorBase > desiredMajorBase) {
-		// higher major version
 		return (!majorMustEqual);
 	}
 
-	// at this point, majorBase are equal
 
 	if (minorBase < desiredMinorBase) {
-		// smaller minor version
 		return false;
 	}
 
 	if (minorBase > desiredMinorBase) {
-		// higher minor version
 		return (!minorMustEqual);
 	}
 
-	// at this point, minorBase are equal
 
 	if (patchBase < desiredPatchBase) {
-		// smaller patch version
 		return false;
 	}
 
 	if (patchBase > desiredPatchBase) {
-		// higher patch version
 		return (!patchMustEqual);
 	}
 
-	// at this point, patchBase are equal
 
 	if (productTs && productTs < desiredNotBefore) {
 		return false;
@@ -286,7 +276,6 @@ export function validateExtensionManifest(productVersion: string, productDate: P
 	if (typeof extensionManifest.extensionKind !== 'undefined') {
 		if (typeof extensionManifest.main === 'undefined') {
 			validations.push([Severity.Warning, nls.localize('extensionDescription.extensionKind', "property `{0}` can be defined only if property `main` is also defined.", 'extensionKind')]);
-			// not a failure case
 		}
 	}
 	if (typeof extensionManifest.main !== 'undefined') {
@@ -297,7 +286,6 @@ export function validateExtensionManifest(productVersion: string, productDate: P
 			const mainLocation = joinPath(extensionLocation, extensionManifest.main);
 			if (!isEqualOrParent(mainLocation, extensionLocation)) {
 				validations.push([Severity.Warning, nls.localize('extensionDescription.main2', "Expected `main` ({0}) to be included inside extension's folder ({1}). This might make the extension non-portable.", mainLocation.path, extensionLocation.path)]);
-				// not a failure case
 			}
 		}
 	}
@@ -309,7 +297,6 @@ export function validateExtensionManifest(productVersion: string, productDate: P
 			const browserLocation = joinPath(extensionLocation, extensionManifest.browser);
 			if (!isEqualOrParent(browserLocation, extensionLocation)) {
 				validations.push([Severity.Warning, nls.localize('extensionDescription.browser2', "Expected `browser` ({0}) to be included inside extension's folder ({1}). This might make the extension non-portable.", browserLocation.path, extensionLocation.path)]);
-				// not a failure case
 			}
 		}
 	}
@@ -333,7 +320,6 @@ export function validateExtensionManifest(productVersion: string, productDate: P
 export function isValidExtensionVersion(productVersion: string, productDate: ProductDate, extensionManifest: IExtensionManifest, extensionIsBuiltin: boolean, notices: string[]): boolean {
 
 	if (extensionIsBuiltin || (typeof extensionManifest.main === 'undefined' && typeof extensionManifest.browser === 'undefined')) {
-		// No version check for builtin or declarative extensions
 		return true;
 	}
 
@@ -341,7 +327,6 @@ export function isValidExtensionVersion(productVersion: string, productDate: Pro
 }
 
 export function isEngineValid(engine: string, version: string, date: ProductDate): boolean {
-	// TODO@joao: discuss with alex '*' doesn't seem to be a valid engine version
 	return engine === '*' || isVersionValid(version, date, engine);
 }
 
@@ -353,17 +338,12 @@ function isVersionValid(currentVersion: string, date: ProductDate, requestedVers
 		return false;
 	}
 
-	// enforce that a breaking API version is specified.
-	// for 0.X.Y, that means up to 0.X must be specified
-	// otherwise for Z.X.Y, that means Z must be specified
 	if (desiredVersion.majorBase === 0) {
-		// force that major and minor must be specific
 		if (!desiredVersion.majorMustEqual || !desiredVersion.minorMustEqual) {
 			notices.push(nls.localize('versionSpecificity1', "Version specified in `engines.vscode` ({0}) is not specific enough. For vscode versions before 1.0.0, please define at a minimum the major and minor desired version. E.g. ^0.10.0, 0.10.x, 0.11.0, etc.", requestedVersion));
 			return false;
 		}
 	} else {
-		// force that major must be specific
 		if (!desiredVersion.majorMustEqual) {
 			notices.push(nls.localize('versionSpecificity2', "Version specified in `engines.vscode` ({0}) is not specific enough. For vscode versions after 1.0.0, please define at a minimum the major desired version. E.g. ^1.10.0, 1.10.x, 1.x.x, 2.x.x, etc.", requestedVersion));
 			return false;

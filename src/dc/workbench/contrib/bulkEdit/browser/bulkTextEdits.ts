@@ -47,11 +47,9 @@ class ModelEditTask implements IDisposable {
 
 	isNoOp() {
 		if (this._edits.length > 0) {
-			// contains textual edits
 			return false;
 		}
 		if (this._newEol !== undefined && this._newEol !== this.model.getEndOfLineSequence()) {
-			// contains an eol change that is a real change
 			return false;
 		}
 		return true;
@@ -62,19 +60,15 @@ class ModelEditTask implements IDisposable {
 		const { textEdit } = resourceEdit;
 
 		if (typeof textEdit.eol === 'number') {
-			// honor eol-change
 			this._newEol = textEdit.eol;
 		}
 		if (!textEdit.range && !textEdit.text) {
-			// lacks both a range and the text
 			return;
 		}
 		if (Range.isEmpty(textEdit.range) && !textEdit.text) {
-			// no-op edit (replace empty range with empty text)
 			return;
 		}
 
-		// create edit operation
 		let range: Range;
 		if (!textEdit.range) {
 			range = this.model.getFullModelRange();
@@ -98,7 +92,7 @@ class ModelEditTask implements IDisposable {
 	apply(reason?: TextModelEditSource): void {
 		if (this._edits.length > 0) {
 			this._edits = this._edits
-				.map(this._transformSnippetStringToInsertText, this) // no editor -> no snippet mode
+				.map(this._transformSnippetStringToInsertText, this)
 				.sort((a, b) => Range.compareRangesUsingStarts(a.range, b.range));
 			this.model.pushEditOperations(null, this._edits, () => null, undefined, reason);
 		}
@@ -108,9 +102,6 @@ class ModelEditTask implements IDisposable {
 	}
 
 	protected _transformSnippetStringToInsertText(edit: ISingleSnippetEditOperation): ISingleSnippetEditOperation {
-		// transform a snippet edit (and only those) into a normal text edit
-		// for that we need to parse the snippet and get its actual text, e.g without placeholder
-		// or variable syntaxes
 		if (!edit.insertAsSnippet) {
 			return edit;
 		}
@@ -137,8 +128,6 @@ class EditorEditTask extends ModelEditTask {
 
 	override apply(reason?: TextModelEditSource): void {
 
-		// Check that the editor is still for the wanted model. It might have changed in the
-		// meantime and that means we cannot use the editor anymore (instead we perform the edit through the model)
 		if (!this._canUseEditor()) {
 			super.apply();
 			return;
@@ -147,7 +136,6 @@ class EditorEditTask extends ModelEditTask {
 		if (this._edits.length > 0) {
 			const snippetCtrl = SnippetController2.get(this._editor);
 			if (snippetCtrl && this._edits.some(edit => edit.insertAsSnippet)) {
-				// some edit is a snippet edit -> use snippet controller and ISnippetEdits
 				const snippetEdits: ISnippetEdit[] = [];
 				for (const edit of this._edits) {
 					if (edit.range && edit.text !== null) {
@@ -161,9 +149,8 @@ class EditorEditTask extends ModelEditTask {
 				snippetCtrl.apply(snippetEdits, { undoStopBefore: false, undoStopAfter: false });
 
 			} else {
-				// normal edit
 				this._edits = this._edits
-					.map(this._transformSnippetStringToInsertText, this) // mixed edits (snippet and normal) -> no snippet mode
+					.map(this._transformSnippetStringToInsertText, this)
 					.sort((a, b) => Range.compareRangesUsingStarts(a.range, b.range));
 				this._editor.executeEdits(reason, this._edits);
 			}
@@ -210,13 +197,11 @@ export class BulkTextEdits {
 	}
 
 	private _validateBeforePrepare(): void {
-		// First check if loaded models were not changed in the meantime
 		for (const array of this._edits.values()) {
 			for (const edit of array) {
 				if (typeof edit.versionId === 'number') {
 					const model = this._modelService.getModel(edit.resource);
 					if (model && model.getVersionId() !== edit.versionId) {
-						// model changed in the meantime
 						throw new Error(`${model.uri.toString()} has changed in the meantime`);
 					}
 				}
@@ -247,7 +232,6 @@ export class BulkTextEdits {
 					return;
 				}
 
-				// group edits by type (snippet, metadata, or simple) and make simple groups more minimal
 
 				const makeGroupMoreMinimal = async (start: number, end: number) => {
 					const oldEdits = edits.slice(start, end);
@@ -255,8 +239,6 @@ export class BulkTextEdits {
 					if (!newEdits) {
 						oldEdits.forEach(task.addEdit, task);
 					} else {
-						// All edits in the group have the same version id since we group the edits
-						// in the constructor by the resource URI.
 						const versionId = oldEdits[0]?.versionId;
 						newEdits.forEach(edit => task.addEdit(new ResourceTextEdit(ref.object.textEditorModel.uri, edit, versionId, undefined)));
 					}
@@ -266,8 +248,8 @@ export class BulkTextEdits {
 				let i = 0;
 				for (; i < edits.length; i++) {
 					if (edits[i].textEdit.insertAsSnippet || edits[i].metadata) {
-						await makeGroupMoreMinimal(start, i); // grouped edits until now
-						task.addEdit(edits[i]); // this edit
+						await makeGroupMoreMinimal(start, i);
+						task.addEdit(edits[i]);
 						start = i + 1;
 					}
 				}
@@ -307,7 +289,6 @@ export class BulkTextEdits {
 				throw new Error(`${validation.reason.toString()} has changed in the meantime`);
 			}
 			if (tasks.length === 1) {
-				// This edit touches a single model => keep things simple
 				const task = tasks[0];
 				if (!task.isNoOp()) {
 					const singleModelEditStackElement = new SingleModelEditStackElement(this._label, this._code, task.model, task.getBeforeCursorState());
@@ -318,7 +299,6 @@ export class BulkTextEdits {
 				}
 				this._progress.report(undefined);
 			} else {
-				// prepare multi model undo element
 				const multiModelEditStackElement = new MultiModelEditStackElement(
 					this._label,
 					this._code,

@@ -35,10 +35,6 @@ const defaultStorageWriter: IAgentHostStorageWriter = {
 	writeFile: (path, contents) => fs.promises.writeFile(path, contents, 'utf8'),
 };
 
-/**
- * A small host-owned persistent store. Reads are synchronously available after
- * construction; writes are coalesced so callers never wait on disk I/O.
- */
 export class AgentHostStorageService extends Disposable implements IAgentHostStorageService {
 	declare readonly _serviceBrand: undefined;
 

@@ -8,9 +8,6 @@ import { Color, RGBA } from '../../../base/common/color.js';
 import { activeContrastBorder, editorBackground, registerColor, editorWarningForeground, editorInfoForeground, editorWarningBorder, editorInfoBorder, contrastBorder, editorFindMatchHighlight, editorWarningBackground } from '../../../platform/theme/common/colorRegistry.js';
 import { registerThemingParticipant } from '../../../platform/theme/common/themeService.js';
 
-/**
- * Definition of the editor colors
- */
 export const editorLineHighlight = registerColor('editor.lineHighlightBackground', null, nls.localize('lineHighlight', 'Background color for the highlight of line at the cursor position.'));
 export const editorInactiveLineHighlight = registerColor('editor.inactiveLineHighlightBackground', editorLineHighlight, nls.localize('inactiveLineHighlight', 'Background color for the highlight of line at the cursor position when the editor is not focused.'));
 export const editorLineHighlightBorder = registerColor('editor.lineHighlightBorder', { dark: '#282828', light: '#eeeeee', hcDark: '#f38518', hcLight: contrastBorder }, nls.localize('lineHighlightBorderBox', 'Background color for the border around the line at the cursor position.'));
@@ -103,7 +100,6 @@ export const editorUnicodeHighlightBorder = registerColor('editorUnicodeHighligh
 export const editorUnicodeHighlightBackground = registerColor('editorUnicodeHighlight.background', editorWarningBackground, nls.localize('editorUnicodeHighlight.background', 'Background color used to highlight unicode characters.'));
 
 
-// contains all color rules that used to defined in editor/browser/widget/editor.css
 registerThemingParticipant((theme, collector) => {
 	const background = theme.getColor(editorBackground);
 	const lineHighlight = theme.getColor(editorLineHighlight);

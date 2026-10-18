@@ -61,11 +61,6 @@ const _completionItemColor = new class ColorExtractor {
 export interface ISuggestionTemplateData {
 	readonly root: HTMLElement;
 
-	/**
-	 * Flexbox
-	 * < ------------- left ------------ >     < --- right -- >
-	 * <icon><label><signature><qualifier>     <type><readmore>
-	 */
 	readonly left: HTMLElement;
 	readonly right: HTMLElement;
 
@@ -75,9 +70,6 @@ export interface ISuggestionTemplateData {
 	readonly iconContainer: HTMLElement;
 	readonly parametersLabel: HTMLElement;
 	readonly qualifierLabel: HTMLElement;
-	/**
-	 * Showing either `CompletionItem#details` or `CompletionItemLabel#type`
-	 */
 	readonly detailsLabel: HTMLElement;
 	readonly readMore: HTMLElement;
 	readonly disposables: DisposableStore;
@@ -174,13 +166,11 @@ export class ItemRenderer implements IListRenderer<CompletionItem, ISuggestionTe
 
 		const color: string[] = [];
 		if (completion.kind === CompletionItemKind.Color && _completionItemColor.extract(element, color)) {
-			// special logic for 'color' completion items
 			data.icon.className = 'icon customcolor';
 			data.iconContainer.className = 'icon hide';
 			data.colorspan.style.backgroundColor = color[0];
 
 		} else if (completion.kind === CompletionItemKind.File && this._themeService.getFileIconTheme().hasFileIcons) {
-			// special logic for 'file' completion items
 			data.icon.className = 'icon hide';
 			data.iconContainer.className = 'icon hide';
 			const labelClasses = getIconClasses(this._modelService, this._languageService, URI.from({ scheme: 'fake', path: element.textLabel }), FileKind.FILE);
@@ -188,7 +178,6 @@ export class ItemRenderer implements IListRenderer<CompletionItem, ISuggestionTe
 			labelOptions.extraClasses = labelClasses.length > detailClasses.length ? labelClasses : detailClasses;
 
 		} else if (completion.kind === CompletionItemKind.Folder && this._themeService.getFileIconTheme().hasFolderIcons) {
-			// special logic for 'folder' completion items
 			data.icon.className = 'icon hide';
 			data.iconContainer.className = 'icon hide';
 			labelOptions.extraClasses = [
@@ -196,7 +185,6 @@ export class ItemRenderer implements IListRenderer<CompletionItem, ISuggestionTe
 				getIconClasses(this._modelService, this._languageService, URI.from({ scheme: 'fake', path: completion.detail }), FileKind.FOLDER)
 			].flat();
 		} else {
-			// normal icon
 			data.icon.className = 'icon hide';
 			data.iconContainer.className = '';
 			data.iconContainer.classList.add('suggest-icon', ...ThemeIcon.asClassNameArray(CompletionItemKinds.toIcon(completion.kind)));

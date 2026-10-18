@@ -79,7 +79,7 @@ suite('Debug - StreamDebugAdapter', () => {
 	test(`StreamDebugAdapter (SocketDebugAdapter) can initialize a connection`, async () => {
 
 		const rndPort = Math.floor(Math.random() * 1000 + 8000);
-		const port = await ports.findFreePort(rndPort, 10 /* try 10 ports */, 3000 /* try up to 3 seconds */, 87 /* skip 87 ports between attempts */);
+		const port = await ports.findFreePort(rndPort, 10 , 3000 , 87 );
 		const server = net.createServer(serverConnection).listen(port);
 		const debugAdapter = new SocketDebugAdapter({
 			type: 'server',

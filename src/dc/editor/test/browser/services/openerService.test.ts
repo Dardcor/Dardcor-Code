@@ -156,7 +156,6 @@ suite('OpenerService', function () {
 
 		store.add(openerService.registerValidator({
 			shouldOpen: (resource) => {
-				// We don't want it to convert strings into URIs
 				assert.strictEqual(resource instanceof URI, false);
 				return Promise.resolve(false);
 			}
@@ -266,7 +265,6 @@ suite('OpenerService', function () {
 			await openerService.resolveExternalUri(URI.parse('file:///Users/user/folder'));
 			assert.fail('Should not reach here');
 		} catch {
-			// OK
 		}
 
 		const disposable = openerService.registerExternalUriResolver({
@@ -299,8 +297,8 @@ suite('OpenerService', function () {
 		assert.ok(await openerService.open(href));
 
 		assert.deepStrictEqual(actual, [
-			encodeURI(uri.toString(true)), // BAD, the encoded # (%23) is double encoded to %2523 (% is double encoded)
-			href // good
+			encodeURI(uri.toString(true)),
+			href
 		]);
 	});
 });

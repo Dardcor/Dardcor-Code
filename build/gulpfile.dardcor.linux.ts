@@ -237,11 +237,9 @@ function prepareSnapPackage(arch: string) {
 	const destination = getSnapBuildPath(arch);
 
 	return function () {
-		// A desktop file that is placed in snap/gui will be placed into meta/gui verbatim.
 		const desktop = gulp.src('resources/linux/code.desktop', { base: '.' })
 			.pipe(rename(`snap/gui/${product.applicationName}.desktop`));
 
-		// A desktop file that is placed in snap/gui will be placed into meta/gui verbatim.
 		const desktopUrlHandler = gulp.src('resources/linux/code-url-handler.desktop', { base: '.' })
 			.pipe(rename(`snap/gui/${product.applicationName}-url-handler.desktop`));
 
@@ -253,7 +251,6 @@ function prepareSnapPackage(arch: string) {
 			.pipe(replace('@@ICON@@', `\${SNAP}/meta/gui/${product.linuxIconName}.png`))
 			.pipe(replace('@@URLPROTOCOL@@', product.urlProtocol));
 
-		// An icon that is placed in snap/gui will be placed into meta/gui verbatim.
 		const icon = gulp.src('public/dardcor-code.png', { base: '.' })
 			.pipe(rename(`snap/gui/${product.linuxIconName}.png`));
 
@@ -263,7 +260,6 @@ function prepareSnapPackage(arch: string) {
 		const snapcraft = gulp.src('resources/linux/snap/snapcraft.yaml', { base: '.' })
 			.pipe(replace('@@NAME@@', product.applicationName))
 			.pipe(replace('@@VERSION@@', commit!.substr(0, 8)))
-			// Possible run-on values https://snapcraft.io/docs/architectures
 			.pipe(replace('@@ARCHITECTURE@@', arch === 'x64' ? 'amd64' : arch))
 			.pipe(rename('snap/snapcraft.yaml'));
 

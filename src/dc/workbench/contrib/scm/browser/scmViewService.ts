@@ -131,8 +131,6 @@ export class SCMViewService implements ISCMViewService {
 	readonly didFinishLoadingRepositories = observableValue<boolean>(this, false);
 
 	get visibleRepositories(): ISCMRepository[] {
-		// In order to match the legacy behaviour, when the repositories are sorted by discovery time,
-		// the visible repositories are sorted by the selection index instead of the discovery time.
 		if (this._repositoriesSortKey === ISCMRepositorySortKey.DiscoveryTime) {
 			return this._repositories
 				.filter(r => r.repository.provider.isHidden !== true && r.selectionIndex !== -1)
@@ -151,12 +149,10 @@ export class SCMViewService implements ISCMViewService {
 		const removed = new Set<ISCMRepository>();
 
 		for (const repositoryView of this._repositories) {
-			// Selected -> !Selected
 			if (!set.has(repositoryView.repository) && repositoryView.selectionIndex !== -1) {
 				repositoryView.selectionIndex = -1;
 				removed.add(repositoryView.repository);
 			}
-			// Selected | !Selected -> Selected
 			if (set.has(repositoryView.repository)) {
 				if (repositoryView.selectionIndex === -1) {
 					added.add(repositoryView.repository);
@@ -171,7 +167,6 @@ export class SCMViewService implements ISCMViewService {
 
 		this._onDidSetVisibleRepositories.fire({ added, removed });
 
-		// Update focus if the focused repository is not visible anymore
 		if (this._repositories.find(r => r.focused && r.selectionIndex === -1)) {
 			this.focus(this._repositories.find(r => r.selectionIndex !== -1)?.repository);
 		}
@@ -219,10 +214,6 @@ export class SCMViewService implements ISCMViewService {
 	private readonly _activeEditorObs: IObservable<EditorInput | undefined>;
 	private readonly _activeEditorRepositoryObs: IObservable<ISCMRepository | undefined>;
 
-	/**
-	* The focused repository takes precedence over the active editor repository when the observable
-	* values are updated in the same transaction (or during the initial read of the observable value).
-	*/
 	private readonly _activeRepositoryObs: IObservable<ISCMRepository | undefined>;
 	private readonly _activeRepositoryPinnedObs: ISettableObservable<ISCMRepository | undefined>;
 	private readonly _focusedRepositoryObs: IObservable<ISCMRepository | undefined>;
@@ -255,8 +246,6 @@ export class SCMViewService implements ISCMViewService {
 		try {
 			this.previousState = JSON.parse(storageService.get('scm:view:visibleRepositories', StorageScope.WORKSPACE, ''));
 
-			// If previously there were multiple visible repositories but the
-			// view mode is `single`, only restore the first visible repository.
 			if (this.previousState && this.previousState.visible.length > 1 && this.selectionModeConfig.get() === ISCMRepositorySelectionMode.Single) {
 				this.previousState = {
 					...this.previousState,
@@ -264,7 +253,6 @@ export class SCMViewService implements ISCMViewService {
 				};
 			}
 		} catch {
-			// noop
 		}
 
 		this._focusedRepositoryObs = observableFromEventOpts<ISCMRepository | undefined>(
@@ -338,9 +326,6 @@ export class SCMViewService implements ISCMViewService {
 
 		storageService.onWillSaveState(this.onWillSaveState, this, this.disposables);
 
-		// Maintain repository selection when the extension host restarts.
-		// Extension host is restarted after installing an extension update
-		// or during a profile switch.
 		extensionService.onWillStop(() => {
 			this.onWillSaveState();
 			this.didFinishLoadingRepositories.set(false, undefined);
@@ -362,16 +347,11 @@ export class SCMViewService implements ISCMViewService {
 			const index = this.previousState.all.indexOf(getProviderStorageKey(repository.provider));
 
 			if (index === -1) {
-				// This repository is not part of the previous state which means that it
-				// was either manually closed in the previous session, or the repository
-				// was added after the previous session. In this case, we should select
-				// all of the repositories.
 				const added: ISCMRepository[] = [];
 
 				this.insertRepositoryView(this._repositories, repositoryView);
 
 				if (this.selectionModeConfig.get() === ISCMRepositorySelectionMode.Multiple || !this._repositories.find(r => r.selectionIndex !== -1)) {
-					// Multiple selection mode or single selection mode (select first repository)
 					this._repositories.forEach((repositoryView, index) => {
 						if (repositoryView.selectionIndex === -1) {
 							added.push(repositoryView.repository);
@@ -387,14 +367,12 @@ export class SCMViewService implements ISCMViewService {
 			}
 
 			if (this.previousState.visible.indexOf(index) === -1) {
-				// Explicit selection started
 				if (this.didSelectRepository) {
 					this.insertRepositoryView(this._repositories, repositoryView);
 					this._onDidChangeRepositories.fire({ added: Iterable.empty(), removed: Iterable.empty() });
 					return;
 				}
 			} else {
-				// First visible repository
 				if (!this.didSelectRepository) {
 					removed = [...this.visibleRepositories];
 					this._repositories.forEach(r => {
@@ -408,17 +386,14 @@ export class SCMViewService implements ISCMViewService {
 		}
 
 		if (this.selectionModeConfig.get() === ISCMRepositorySelectionMode.Multiple || !this._repositories.find(r => r.selectionIndex !== -1)) {
-			// Multiple selection mode or single selection mode (select first repository)
 			const maxSelectionIndex = this.getMaxSelectionIndex();
 			this.insertRepositoryView(this._repositories, { ...repositoryView, selectionIndex: maxSelectionIndex + 1 });
 			this._onDidChangeRepositories.fire({ added: [repositoryView.repository], removed });
 		} else {
-			// Single selection mode (add subsequent repository)
 			this.insertRepositoryView(this._repositories, repositoryView);
 			this._onDidChangeRepositories.fire({ added: Iterable.empty(), removed });
 		}
 
-		// Focus repository if nothing is focused
 		if (!this._repositories.find(r => r.focused)) {
 			this.focus(repository);
 		}
@@ -445,17 +420,14 @@ export class SCMViewService implements ISCMViewService {
 
 		this._onDidChangeRepositories.fire({ added, removed: removed.map(r => r.repository) });
 
-		// Check if the focused repository was removed
 		if (removed.length === 1 && removed[0].focused && this.visibleRepositories.length > 0) {
 			this.focus(this.visibleRepositories[0]);
 		}
 
-		// Check if the last repository was removed
 		if (removed.length === 1 && this._repositories.length === 0) {
 			this._onDidFocusRepository.fire(undefined);
 		}
 
-		// Check if the pinned repository was removed
 		if (removed.length === 1 && removed[0].repository === this._activeRepositoryPinnedObs.get()) {
 			this._activeRepositoryPinnedObs.set(undefined, undefined);
 		}
@@ -519,17 +491,14 @@ export class SCMViewService implements ISCMViewService {
 	}
 
 	private compareRepositories(op1: ISCMRepositoryView, op2: ISCMRepositoryView): number {
-		// Sort by discovery time
 		if (this._repositoriesSortKey === ISCMRepositorySortKey.DiscoveryTime) {
 			return op1.discoveryTime - op2.discoveryTime;
 		}
 
-		// Sort by path
 		if (this._repositoriesSortKey === 'path' && op1.repository.provider.rootUri && op2.repository.provider.rootUri) {
 			return comparePaths(op1.repository.provider.rootUri.fsPath, op2.repository.provider.rootUri.fsPath);
 		}
 
-		// Sort by name, path
 		const name1 = getRepositoryName(this.workspaceContextService, op1.repository);
 		const name2 = getRepositoryName(this.workspaceContextService, op2.repository);
 
@@ -567,7 +536,6 @@ export class SCMViewService implements ISCMViewService {
 
 	private onWillSaveState(): void {
 		if (!this.didFinishLoadingRepositories.get()) {
-			// Don't remember state, if the workbench didn't really finish loading
 			return;
 		}
 

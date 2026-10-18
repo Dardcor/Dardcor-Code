@@ -29,7 +29,6 @@ export class InstallExtensionQuickAccessProvider extends PickerQuickAccessProvid
 
 	protected _getPicks(filter: string, disposables: DisposableStore, token: CancellationToken): Array<IPickerQuickAccessItem | IQuickPickSeparator> | Promise<Array<IPickerQuickAccessItem | IQuickPickSeparator>> {
 
-		// Nothing typed
 		if (!filter) {
 			return [{
 				label: localize('type', "Type an extension name to install or search.")
@@ -41,12 +40,10 @@ export class InstallExtensionQuickAccessProvider extends PickerQuickAccessProvid
 			accept: () => this.extensionsWorkbenchService.openSearch(filter)
 		};
 
-		// Extension ID typed: try to find it
 		if (/\./.test(filter)) {
 			return this.getPicksForExtensionId(filter, genericSearchPickItem, token);
 		}
 
-		// Extension name typed: offer to search it
 		return [genericSearchPickItem];
 	}
 
@@ -54,7 +51,7 @@ export class InstallExtensionQuickAccessProvider extends PickerQuickAccessProvid
 		try {
 			const [galleryExtension] = await this.galleryService.getExtensions([{ id: filter }], token);
 			if (token.isCancellationRequested) {
-				return []; // return early if canceled
+				return [];
 			}
 
 			if (!galleryExtension) {
@@ -67,7 +64,7 @@ export class InstallExtensionQuickAccessProvider extends PickerQuickAccessProvid
 			}];
 		} catch (error) {
 			if (token.isCancellationRequested) {
-				return []; // expected error
+				return [];
 			}
 
 			this.logService.error(error);

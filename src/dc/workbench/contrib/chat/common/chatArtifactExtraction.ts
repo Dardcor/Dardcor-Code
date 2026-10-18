@@ -14,7 +14,7 @@ import { IArtifactGroupConfig, IChatArtifact } from './tools/chatArtifactsServic
 import { isToolResultInputOutputDetails } from './tools/languageModelToolsService.js';
 
 const CHAT_MEMORY_FILE_SCHEME = 'chat-memory-file';
-const MEMORY_TOOL_ID = 'copilot_memory';
+const MEMORY_TOOL_IDS = new Set(['memory', 'dardcor_memory']);
 
 export namespace ChatMemoryFileResource {
 	export function createUri(memoryPath: string, sessionResource: URI): URI {
@@ -37,10 +37,6 @@ export namespace ChatMemoryFileResource {
 	}
 }
 
-/**
- * Matches a MIME type against a pattern supporting wildcards.
- * E.g. `image/*` matches `image/png`, `image/jpeg`, etc.
- */
 function matchMimeType(pattern: string, mimeType: string): boolean {
 	if (pattern === mimeType) {
 		return true;
@@ -50,9 +46,6 @@ function matchMimeType(pattern: string, mimeType: string): boolean {
 	return patternSubtype === '*' && patternType === type;
 }
 
-/**
- * Finds the first matching rule for a file path from byFilePath rules.
- */
 function findFilePathRule(
 	filePath: string,
 	byFilePath: Record<string, IArtifactGroupConfig>
@@ -66,9 +59,6 @@ function findFilePathRule(
 	return undefined;
 }
 
-/**
- * Finds the first matching rule for a MIME type from byMimeType rules.
- */
 function findMimeTypeRule(
 	mimeType: string,
 	byMimeType: Record<string, IArtifactGroupConfig>
@@ -106,10 +96,6 @@ function isMemoryWriteCommand(params: unknown): boolean {
 	return typeof command === 'string' && memoryWriteCommands.has(command);
 }
 
-/**
- * Extracts artifacts from a single response's content parts, applying the given rules.
- * Pure function, no side effects.
- */
 export function extractArtifactsFromResponse(
 	response: IResponse,
 	sessionResource: URI,
@@ -121,7 +107,6 @@ export function extractArtifactsFromResponse(
 	const seenUris = new Set<string>();
 
 	for (const part of response.value) {
-		// File writes: codeblockUri
 		if (part.kind === 'codeblockUri') {
 			const uri = part.uri;
 			const uriStr = uri.toString();
@@ -141,7 +126,6 @@ export function extractArtifactsFromResponse(
 			}
 		}
 
-		// File writes: textEditGroup
 		if (part.kind === 'textEditGroup') {
 			const uri = part.uri;
 			const uriStr = uri.toString();
@@ -161,7 +145,6 @@ export function extractArtifactsFromResponse(
 			}
 		}
 
-		// File writes: workspaceEdit
 		if (part.kind === 'workspaceEdit') {
 			for (const edit of part.edits) {
 				const uri = edit.newResource ?? edit.oldResource;
@@ -186,7 +169,6 @@ export function extractArtifactsFromResponse(
 			}
 		}
 
-		// File writes: externalEdit (from agent host file edits)
 		if (part.kind === 'externalEdit') {
 			const uri = part.uri;
 			const uriStr = uri.toString();
@@ -206,8 +188,7 @@ export function extractArtifactsFromResponse(
 			}
 		}
 
-		// Memory tool invocations
-		if ((part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') && part.toolId === MEMORY_TOOL_ID) {
+		if ((part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') && MEMORY_TOOL_IDS.has(part.toolId)) {
 			const params = IChatToolInvocation.getParameters(part);
 			const memoryPath = getMemoryPathFromParams(params);
 			if (memoryPath && isMemoryWriteCommand(params)) {
@@ -228,14 +209,12 @@ export function extractArtifactsFromResponse(
 			}
 		}
 
-		// Image results from tool invocations
 		if (part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') {
 			const details = IChatToolInvocation.resultDetails(part);
 			if (!details) {
 				continue;
 			}
 
-			// IToolResultInputOutputDetails — has output array with embedded data parts
 			if (isToolResultInputOutputDetails(details)) {
 				for (let i = 0; i < details.output.length; i++) {
 					const outputPart = details.output[i];
@@ -263,7 +242,6 @@ export function extractArtifactsFromResponse(
 				}
 			}
 
-			// IToolResultOutputDetailsSerialized — single output with mimeType + base64Data
 			if (isToolResultOutputDetailsSerialized(details)) {
 				const rule = findMimeTypeRule(details.output.mimeType, byMimeType);
 				if (rule) {

@@ -333,7 +333,6 @@ suite('ChatSessionArchiveNudge', () => {
 			pressKey(archive, key, keyCode);
 			await Promise.resolve();
 			dismiss.focus();
-			// Tab's keyup also updates ActionBar focus when the test window is inactive.
 			pressKey(dismiss, 'Tab', 9);
 			pressKey(dismiss, key, keyCode);
 

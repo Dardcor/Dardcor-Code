@@ -24,7 +24,6 @@ export interface ISearchPanelKeywordsPromptContext extends IBuildPromptContext {
 
 export class SearchPanelKeywordsPrompt extends PromptElement<ISearchPanelKeywordsPrompt> {
 
-	// todo: get workspace resolver to share TSX prompt so that we can reuse here
 	override render(state: void, sizing: PromptSizing): PromptPiece<any, any> | undefined {
 		const { query, history, chatVariables } = this.props.promptContext;
 		return (

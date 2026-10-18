@@ -19,7 +19,6 @@ export function register(tree: SymbolsTree, context: vscode.ExtensionContext): v
 	context.subscriptions.push(
 		vscode.commands.registerCommand('references-view.findReferences', () => findLocations('References', 'vscode.executeReferenceProvider')),
 		vscode.commands.registerCommand('references-view.findImplementations', () => findLocations('Implementations', 'vscode.executeImplementationProvider')),
-		// --- legacy name
 		vscode.commands.registerCommand('references-view.find', (...args: any[]) => vscode.commands.executeCommand('references-view.findReferences', ...args)),
 		vscode.commands.registerCommand('references-view.removeReferenceItem', removeReferenceItem),
 		vscode.commands.registerCommand('references-view.copy', copyCommand),
@@ -28,7 +27,6 @@ export function register(tree: SymbolsTree, context: vscode.ExtensionContext): v
 	);
 
 
-	// --- references.preferredLocation setting
 
 	let showReferencesDisposable: vscode.Disposable | undefined;
 	const config = 'references.preferredLocation';

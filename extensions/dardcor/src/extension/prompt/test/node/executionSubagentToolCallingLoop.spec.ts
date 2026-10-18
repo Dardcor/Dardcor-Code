@@ -35,7 +35,6 @@ function createMockChatRequest(): ChatRequest {
 	} as unknown as ChatRequest;
 }
 
-/** Records how the mock endpoint provider was called so tests can assert the resolution path. */
 interface IEndpointProviderProbe {
 	getAllCalls: number;
 	familyCalls: string[];

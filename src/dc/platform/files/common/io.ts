@@ -13,20 +13,11 @@ import { createFileSystemProviderError, ensureFileSystemProviderError, IFileRead
 
 export interface ICreateReadStreamOptions extends IFileReadStreamOptions {
 
-	/**
-	 * The size of the buffer to use before sending to the stream.
-	 */
 	readonly bufferSize: number;
 
-	/**
-	 * Allows to massage any possibly error that happens during reading.
-	 */
 	readonly errorTransformer?: IErrorTransformer;
 }
 
-/**
- * A helper to read a file from a provider with open/read/close capability into a stream.
- */
 export async function readFileIntoStream<T>(
 	provider: IFileSystemProviderWithOpenReadWriteCloseCapability,
 	resource: URI,
@@ -56,15 +47,12 @@ export async function readFileIntoStream<T>(
 
 async function doReadFileIntoStream<T>(provider: IFileSystemProviderWithOpenReadWriteCloseCapability, resource: URI, target: WriteableStream<T>, transformer: IDataTransformer<VSBuffer, T>, options: ICreateReadStreamOptions, token: CancellationToken): Promise<void> {
 
-	// Check for cancellation
 	throwIfCancelled(token);
 
-	// open handle through provider
 	const handle = await provider.open(resource, { create: false });
 
 	try {
 
-		// Check for cancellation
 		throwIfCancelled(token);
 
 		let totalBytesRead = 0;
@@ -76,8 +64,6 @@ async function doReadFileIntoStream<T>(provider: IFileSystemProviderWithOpenRead
 		let posInFile = options && typeof options.position === 'number' ? options.position : 0;
 		let posInBuffer = 0;
 		do {
-			// read from source (handle) at current position (pos) into buffer (buffer) at
-			// buffer position (posInBuffer) up to the size of the buffer (buffer.byteLength).
 			bytesRead = await provider.read(handle, posInFile, buffer.buffer, posInBuffer, buffer.byteLength - posInBuffer);
 
 			posInFile += bytesRead;
@@ -88,7 +74,6 @@ async function doReadFileIntoStream<T>(provider: IFileSystemProviderWithOpenRead
 				allowedRemainingBytes -= bytesRead;
 			}
 
-			// when buffer full, create a new one and emit it through stream
 			if (posInBuffer === buffer.byteLength) {
 				await target.write(transformer(buffer));
 
@@ -98,7 +83,6 @@ async function doReadFileIntoStream<T>(provider: IFileSystemProviderWithOpenRead
 			}
 		} while (bytesRead > 0 && (typeof allowedRemainingBytes !== 'number' || allowedRemainingBytes > 0) && throwIfCancelled(token) && throwIfTooLarge(totalBytesRead, options));
 
-		// wrap up with last buffer (also respect maxBytes if provided)
 		if (posInBuffer > 0) {
 			let lastChunkLength = posInBuffer;
 			if (typeof allowedRemainingBytes === 'number') {
@@ -124,7 +108,6 @@ function throwIfCancelled(token: CancellationToken): boolean {
 
 function throwIfTooLarge(totalBytesRead: number, options: ICreateReadStreamOptions): boolean {
 
-	// Return early if file is too large to load and we have configured limits
 	if (typeof options?.limits?.size === 'number' && totalBytesRead > options.limits.size) {
 		throw createFileSystemProviderError(localize('fileTooLargeError', "File is too large to open"), FileSystemProviderErrorCode.FileTooLarge);
 	}

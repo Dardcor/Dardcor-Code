@@ -17,7 +17,6 @@ import { ReferencesAtPosition } from '../panel/referencesAtPosition';
 import { CodeBlock } from '../panel/safeElements';
 import { ContextLocation, Cookbook, IFixCookbookService } from './fixCookbookService';
 
-// #region Diagnostics
 
 export type DiagnosticContext = Pick<IDocumentContext, 'document' | 'language'>;
 
@@ -42,7 +41,7 @@ export class Diagnostics extends PromptElement<DiagnosticsProps> {
 
 	async render(state: void, sizing: PromptSizing) {
 		const { diagnostics, documentContext } = this.props;
-		const isIgnored = await this.ignoreService.isCopilotIgnored(documentContext.document.uri);
+		const isIgnored = await this.ignoreService.isIgnored(documentContext.document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[documentContext.document.uri]} />;
 		}
@@ -64,9 +63,7 @@ export class Diagnostics extends PromptElement<DiagnosticsProps> {
 		);
 	}
 }
-// #endregion Diagnostics
 
-// #region DiagnosticDescription
 
 interface DiagnosticDescriptionProps extends BasePromptElementProps {
 	readonly documentContext: DiagnosticContext;
@@ -98,9 +95,7 @@ class DiagnosticDescription extends PromptElement<DiagnosticDescriptionProps> {
 	}
 }
 
-// #endregion DiagnosticDescription
 
-// #region DiagnosticRelatedInfo
 
 interface DiagnosticRelatedInfoProps extends BasePromptElementProps {
 	readonly diagnostic: Diagnostic;
@@ -162,7 +157,7 @@ export class DiagnosticRelatedInfo extends PromptElement<DiagnosticRelatedInfoPr
 			for (const relatedInformation of diagnostic.relatedInformation) {
 				try {
 					const location = relatedInformation.location;
-					if (await this.ignoreService.isCopilotIgnored(location.uri)) {
+					if (await this.ignoreService.isIgnored(location.uri)) {
 						ignoredFiles.push(location.uri);
 						continue;
 					}
@@ -182,7 +177,6 @@ export class DiagnosticRelatedInfo extends PromptElement<DiagnosticRelatedInfoPr
 						infos.push({ content: relatedCodeText, uri: location.uri, range: location.range });
 					}
 				} catch (e) {
-					// ignore
 				}
 			}
 		}
@@ -211,9 +205,7 @@ export class DiagnosticRelatedInfo extends PromptElement<DiagnosticRelatedInfoPr
 	}
 }
 
-// #endregion DiagnosticRelatedInfo
 
-// #region DiagnosticSuggestedFix
 
 export interface DiagnosticSuggestedFixProps extends BasePromptElementProps {
 	readonly cookbook: Cookbook;
@@ -231,4 +223,3 @@ export class DiagnosticSuggestedFix extends PromptElement<DiagnosticSuggestedFix
 	}
 }
 
-// #endregion DiagnosticSuggestedFix

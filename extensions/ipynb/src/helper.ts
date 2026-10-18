@@ -10,7 +10,6 @@ export function deepClone<T>(obj: T): T {
 		return obj;
 	}
 	if (obj instanceof RegExp) {
-		// See https://github.com/microsoft/TypeScript/issues/10990
 		return obj;
 	}
 	if (Array.isArray(obj)) {
@@ -28,7 +27,6 @@ export function deepClone<T>(obj: T): T {
 	return result as T;
 }
 
-// from https://github.com/microsoft/vscode/blob/43ae27a30e7b5e8711bf6b218ee39872ed2b8ef6/src/vs/base/common/objects.ts#L117
 export function objectEquals(one: any, other: any) {
 	if (one === other) {
 		return true;
@@ -83,14 +81,10 @@ export function objectEquals(one: any, other: any) {
 	return true;
 }
 
-/**
- * A helper to delay/debounce execution of a task, includes cancellation/disposal support.
- * Pulled from https://github.com/microsoft/vscode/blob/3059063b805ed0ac10a6d9539e213386bfcfb852/extensions/markdown-language-features/src/util/async.ts
- */
 export class Delayer<T> {
 
 	public defaultDelay: number;
-	private _timeout: any; // Timer
+	private _timeout: any;
 	private _cancelTimeout: Promise<T | null> | null;
 	private _onSuccess: ((value: T | PromiseLike<T> | undefined) => void) | null;
 	private _task: ITask<T> | null;
@@ -148,35 +142,23 @@ export interface ITask<T> {
 }
 
 
-/**
- * Copied from src/vs/base/common/uuid.ts
- */
 export function generateUuid(): string {
-	// use `randomUUID` if possible
 	if (typeof crypto.randomUUID === 'function') {
-		// see https://developer.mozilla.org/en-US/docs/Web/API/Window/crypto
-		// > Although crypto is available on all windows, the returned Crypto object only has one
-		// > usable feature in insecure contexts: the getRandomValues() method.
-		// > In general, you should use this API only in secure contexts.
 
 		return crypto.randomUUID.bind(crypto)();
 	}
 
-	// prep-work
 	const _data = new Uint8Array(16);
 	const _hex: string[] = [];
 	for (let i = 0; i < 256; i++) {
 		_hex.push(i.toString(16).padStart(2, '0'));
 	}
 
-	// get data
 	crypto.getRandomValues(_data);
 
-	// set version bits
 	_data[6] = (_data[6] & 0x0f) | 0x40;
 	_data[8] = (_data[8] & 0x3f) | 0x80;
 
-	// print as string
 	let i = 0;
 	let result = '';
 	result += _hex[_data[i++]];
@@ -210,9 +192,6 @@ const enum DeferredOutcome {
 }
 
 
-/**
- * Creates a promise whose resolution or rejection can be controlled imperatively.
- */
 export class DeferredPromise<T> {
 
 	private completeCallback!: ValueCallback<T>;

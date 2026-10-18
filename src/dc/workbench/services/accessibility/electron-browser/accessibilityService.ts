@@ -67,7 +67,6 @@ export class NativeAccessibilityService extends AccessibilityService implements 
 
 registerSingleton(IAccessibilityService, NativeAccessibilityService, InstantiationType.Delayed);
 
-// On linux we do not automatically detect that a screen reader is detected, thus we have to implicitly notify the renderer to enable accessibility when user configures it in settings
 class LinuxAccessibilityContribution implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.linuxAccessibility';

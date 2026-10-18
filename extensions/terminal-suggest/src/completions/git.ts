@@ -48,8 +48,6 @@ const postProcessTrackedFiles: Fig.Generator["postProcess"] = (
 				name: file,
 				icon: `fig://icon?type=${ext}&color=ff0000&badge=${item.working}`,
 				description: "Changed tracked files",
-				// If the current file already is already added
-				// we want to lower the priority
 				priority: context.some((ctx) => ctx.includes(file)) ? 50 : 100,
 			};
 		}),
@@ -76,10 +74,8 @@ const postProcessBranches =
 				.split("\n")
 				.filter((line) => line.trim() && !line.trim().startsWith("HEAD"))
 				.map((branch) => {
-					// Parse the format: branchName|author|hash|subject|timeAgo
 					const parts = branch.split("|");
 					if (parts.length < 5) {
-						// Fallback to old parsing if format doesn't match
 						let name = branch.trim();
 						const oldParts = branch.match(/\S+/g);
 						if (oldParts && oldParts.length > 1) {
@@ -150,7 +146,6 @@ const postProcessBranches =
 				});
 		};
 
-// Common git for-each-ref arguments for branch queries with commit details
 const gitBranchForEachRefArgs = [
 	"git",
 	"--no-optional-locks",
@@ -160,7 +155,6 @@ const gitBranchForEachRefArgs = [
 ] as const;
 
 export const gitGenerators = {
-	// Commit history
 	commits: {
 		script: ["git", "--no-optional-locks", "log", "--oneline", "-n", "1000"],
 		postProcess: function (out) {
@@ -186,7 +180,6 @@ export const gitGenerators = {
 		},
 	} satisfies Fig.Generator,
 
-	// user aliases
 	aliases: {
 		script: ["git", "--no-optional-locks", "config", "--get-regexp", "^alias."],
 		cache: {
@@ -232,8 +225,6 @@ export const gitGenerators = {
 		},
 	} satisfies Fig.Generator,
 
-	// Saved stashes
-	// TODO: maybe only print names of stashes
 	stashes: {
 		script: ["git", "--no-optional-locks", "stash", "list"],
 		postProcess: function (out) {
@@ -245,7 +236,6 @@ export const gitGenerators = {
 
 			return output.split("\n").map((file) => {
 				return {
-					// account for conventional commit messages
 					name: file.split(":").slice(2).join(":"),
 					insertValue: file.split(":")[0],
 					icon: `vscode://icon?type=${vscode.TerminalCompletionItemKind.ScmStash}`,
@@ -254,11 +244,6 @@ export const gitGenerators = {
 		},
 	} satisfies Fig.Generator,
 
-	// Tree-ish
-	// This needs to be fleshed out properly....
-	// e.g. what is difference to commit-ish?
-	// Refer to this:https://stackoverflow.com/questions/23303549/what-are-commit-ish-and-tree-ish-in-git/40910185
-	// https://mirrors.edge.kernel.org/pub/software/scm/git/docs/#_identifier_terminology
 
 	treeish: {
 		script: ["git", "--no-optional-locks", "diff", "--cached", "--name-only"],
@@ -280,7 +265,6 @@ export const gitGenerators = {
 		},
 	} satisfies Fig.Generator,
 
-	// All branches
 	remoteLocalBranches: {
 		script: [
 			...gitBranchForEachRefArgs,
@@ -298,8 +282,6 @@ export const gitGenerators = {
 		postProcess: postProcessBranches({ insertWithoutRemotes: true }),
 	},
 
-	// custom generator to display local branches by default or
-	// remote branches if '-r' flag is used. See branch -d for use
 	localOrRemoteBranches: {
 		custom: async (tokens, executeShellCommand) => {
 			const pp = postProcessBranches({ insertWithoutRemotes: true });
@@ -377,11 +359,9 @@ export const gitGenerators = {
 		},
 	} satisfies Fig.Generator,
 
-	// Files for staging
 	files_for_staging: {
 		script: ["git", "--no-optional-locks", "status", "--short"],
 		postProcess: (out, context) => {
-			// This whole function is a mess
 
 			const output = filterMessages(out);
 
@@ -389,11 +369,6 @@ export const gitGenerators = {
 				return [];
 			}
 			let files = output.split("\n").map((file) => {
-				// From "git --no-optional-locks status --short"
-				// M  dev/github.ts // test file that was added
-				//  M dev/kubectl.ts // test file that was not added
-				// A  test2.txt // new added and tracked file
-				// ?? test.txt // new untracked file
 				const alreadyAdded = ["M", "A"].includes(file.charAt(0));
 
 				file = file.trim();
@@ -431,13 +406,11 @@ export const gitGenerators = {
 				}
 			}
 
-			// Filter out the files that the user has already input in the current edit buffer
 			files = files.filter((item) => {
 				const file = item.file.replace(/^"|"$/g, "");
 				return !context.some((ctx) => {
 					return (
 						ctx === file ||
-						// Need to add support for proper globbing one day
 						(ctx.endsWith("*") && file.startsWith(ctx.slice(0, -1))) ||
 						(ctx.startsWith("*") && file.endsWith(ctx.slice(1)))
 					);
@@ -463,8 +436,6 @@ export const gitGenerators = {
 						ext = "folder";
 					}
 
-					// If the current file is already added
-					// we want to lower the priority
 					const priority = item.alreadyAdded ? 50 : 100;
 					return {
 						name: file,
@@ -3996,7 +3967,7 @@ const addOptions: Fig.Option[] = [
 const headSuggestions = [
 	{
 		name: "HEAD",
-		icon: "🔻", // allow-any-unicode-next-line
+		icon: "🔻",
 		description: "The most recent commit",
 	},
 	{
@@ -4006,7 +3977,6 @@ const headSuggestions = [
 	},
 ];
 
-/** Git finds these commands as "git-<name>" on your PATH */
 const optionalCommands: Record<string, Omit<Fig.Subcommand, "name">> = {
 	open: {
 		description: "Open in your browser",
@@ -4441,7 +4411,6 @@ const completionSpec: Fig.Spec = {
 			options: [
 				{
 					name: ["-m", "--message"],
-					// insertValue: "-m '{cursor}'",
 					description: "Use the given message as the commit message",
 					args: {
 						name: "message",
@@ -4958,17 +4927,13 @@ const completionSpec: Fig.Spec = {
 			args: [
 				{
 					name: "setting",
-					// All git config keys are valid
 					suggestCurrentToken: true,
 					suggestions: configSuggestions.map((suggestion) => ({
 						...suggestion,
-						icon: "⚙️", // allow-any-unicode-next-line
+						icon: "⚙️",
 					})),
 					generators: {
 						script: ["git", "config", "--get-regexp", ".*"],
-						// This is inefficient but it doesn't need to be faster - most
-						// of the time, you don't need to run `git config` commands,
-						// and when you do it's typically one or two at most.
 						postProcess: (out) =>
 							out
 								.trim()
@@ -4981,7 +4946,7 @@ const completionSpec: Fig.Spec = {
 										line.startsWith("remote.") ||
 										!configSuggestions.find(({ name }) => line === name)
 								)
-								.map((name) => ({ name, icon: "⚙️" })), // allow-any-unicode-next-line
+								.map((name) => ({ name, icon: "⚙️" })),
 					},
 				},
 				{
@@ -5310,16 +5275,7 @@ const completionSpec: Fig.Spec = {
 				isVariadic: true,
 				isOptional: true,
 
-				// We have a special setting for dot in the vuejs app
 
-				// suggestions: [
-				//     {
-				//         name: ".",
-				//         description: "current directory",
-				//         insertValue: ".",
-				//         icon: "fig://icon?type=folder"
-				//     }
-				// ],
 				generators: [gitGenerators.files_for_staging, { template: "folders" }],
 			},
 		},
@@ -5332,16 +5288,7 @@ const completionSpec: Fig.Spec = {
 				isVariadic: true,
 				isOptional: true,
 
-				// We have a special setting for dot in the vuejs app
 
-				// suggestions: [
-				//     {
-				//         name: ".",
-				//         description: "current directory",
-				//         insertValue: ".",
-				//         icon: "fig://icon?type=folder"
-				//     }
-				// ],
 				generators: gitGenerators.files_for_staging,
 			},
 		},
@@ -5492,16 +5439,7 @@ const completionSpec: Fig.Spec = {
 				isVariadic: true,
 				isOptional: true,
 
-				// We have a special setting for dot in the vuejs app
 
-				// suggestions: [
-				//     {
-				//         name: ".",
-				//         description: "current directory",
-				//         insertValue: ".",
-				//         icon: "fig://icon?type=folder"
-				//     }
-				// ],
 				generators: gitGenerators.files_for_staging,
 			},
 		},
@@ -7399,7 +7337,7 @@ const completionSpec: Fig.Spec = {
 			requiresSubcommand: false,
 			subcommands: [
 				{
-					name: "push", // TODO: support for no subcommand is missing
+					name: "push",
 					description:
 						"Save your local modifications to a new stash entry and roll them back to HEAD",
 					options: [
@@ -7434,13 +7372,12 @@ const completionSpec: Fig.Spec = {
 								name: "message",
 							},
 						},
-						{ name: "--pathspec-from-file", description: "" }, // TODO: pathspec file nul and add description
+						{ name: "--pathspec-from-file", description: "" },
 						{
 							name: "--",
 							description:
 								"Separates pathsec from options for disambiguation purposes",
 						},
-						// TODO: pathspec
 					],
 				},
 				{
@@ -9218,8 +9155,6 @@ const completionSpec: Fig.Spec = {
 				generators: gitGenerators.remoteLocalBranches,
 				isVariadic: true,
 				isOptional: true,
-				// A single dash can be used as arg to merge as short hand for the previous branch
-				// https://github.com/git/git/blob/master/Documentation/RelNotes/1.7.6.txt#L84
 				suggestions: [
 					{ name: "-", description: "Shorthand for the previous branch" },
 				],
@@ -10345,8 +10280,7 @@ const completionSpec: Fig.Spec = {
 			name: "commit -m 'msg'",
 			description: "Git commit shortcut",
 			insertValue: "commit -m '{cursor}'",
-			icon: "fig://template?color=2ecc71&badge=🔥", // allow-any-unicode-next-line
-			// type: "shortcut",
+			icon: "fig://template?color=2ecc71&badge=🔥",
 		},
 	],
 };

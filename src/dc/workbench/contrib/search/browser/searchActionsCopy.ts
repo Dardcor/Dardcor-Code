@@ -16,7 +16,6 @@ import { isWindows } from '../../../../base/common/platform.js';
 import { searchMatchComparer } from './searchCompare.js';
 import { RenderableMatch, ISearchTreeMatch, isSearchTreeMatch, ISearchTreeFileMatch, ISearchTreeFolderMatch, ISearchTreeFolderMatchWithResource, isSearchTreeFileMatch, isSearchTreeFolderMatch, isSearchTreeFolderMatchWithResource, isTextSearchHeading } from './searchTreeModel/searchTreeCommon.js';
 
-//#region Actions
 registerAction2(class CopyMatchCommandAction extends Action2 {
 
 	constructor(
@@ -128,9 +127,7 @@ registerAction2(class GetSearchResultsAction extends Action2 {
 	}
 });
 
-//#endregion
 
-//#region Helpers
 export const lineDelimiter = isWindows ? '\r\n' : '\n';
 
 async function copyPathCommand(accessor: ServicesAccessor, fileMatch: ISearchTreeFileMatch | ISearchTreeFolderMatchWithResource | undefined) {
@@ -303,4 +300,3 @@ function isAISearchResult(element: RenderableMatch | undefined | null): boolean 
 	return false;
 }
 
-//#endregion

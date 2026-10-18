@@ -1,16 +1,17 @@
-// Pricing rates for AI models — all rates in $/1M tokens
-//
-// Fallback order (first match wins):
-//   1. PROVIDER_PRICING[provider][model]  — provider-specific override
-//   2. MODEL_PRICING[model]               — canonical model price (provider-agnostic)
-//   3. PATTERN_PRICING                    — glob pattern match (e.g. "codex-*")
 
-/**
- * Canonical model pricing — provider-agnostic.
- * Cover all known models; deduplicated across providers.
- */
+export const FREE_MODEL_NAMESPACES = ["cline-free/"];
+
+export const ZERO_PRICING = {
+  input: 0, output: 0, cached: 0, reasoning: 0, cache_creation: 0,
+};
+
+export function isFreeModel(model) {
+  if (!model) return false;
+  const lower = String(model).toLowerCase();
+  return FREE_MODEL_NAMESPACES.some((ns) => lower.startsWith(ns));
+}
+
 export const MODEL_PRICING = {
-  // === Anthropic / Claude ===
   "claude-opus-4-6":              { input: 5.00,  output: 25.00, cached: 0.50,  reasoning: 25.00,  cache_creation: 6.25  },
   "claude-opus-4-5-20251101":     { input: 5.00,  output: 25.00, cached: 0.50,  reasoning: 25.00,  cache_creation: 6.25  },
   "claude-sonnet-4-6":            { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.75  },
@@ -28,9 +29,19 @@ export const MODEL_PRICING = {
   "claude-sonnet-4.6":            { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 22.50,  cache_creation: 3.00  },
   "claude-opus-4-5-thinking":     { input: 5.00,  output: 25.00, cached: 0.50,  reasoning: 37.50,  cache_creation: 5.00  },
   "claude-opus-4-6-thinking":     { input: 5.00,  output: 25.00, cached: 0.50,  reasoning: 37.50,  cache_creation: 5.00  },
+  "claude-opus-5-5-thinking":     { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
+  "claude-opus-5-5":              { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
+  "claude-opus-5-5-high":         { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
+  "claude-opus-5-5-medium":       { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
+  "claude-opus-5-5-low":          { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
   "claude-fable-5":               { input: 10.00, output: 50.00, cached: 1.00,  reasoning: 50.00,  cache_creation: 12.50 },
+  "claude-sonnet-5-5":            { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-thinking":   { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-high":       { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-medium":     { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5-5-low":        { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "claude-sonnet-5":              { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
 
-  // === OpenAI / GPT ===
   "gpt-3.5-turbo":                { input: 0.50,  output: 1.50,  cached: 0.25,  reasoning: 2.25,   cache_creation: 0.50  },
   "gpt-4":                        { input: 2.50,  output: 10.00, cached: 1.25,  reasoning: 15.00,  cache_creation: 2.50  },
   "gpt-4-turbo":                  { input: 10.00, output: 30.00, cached: 5.00,  reasoning: 45.00,  cache_creation: 10.00 },
@@ -53,12 +64,14 @@ export const MODEL_PRICING = {
   "gpt-5.6-luna":                 { input: 1.00,  output: 6.00,  cached: 0.10,  reasoning: 6.00,   cache_creation: 1.00  },
   "gpt-5.6-terra":                { input: 2.50,  output: 15.00, cached: 0.25,  reasoning: 15.00,  cache_creation: 2.50  },
   "gpt-5.6-sol":                  { input: 5.00,  output: 30.00, cached: 0.50,  reasoning: 30.00,  cache_creation: 5.00  },
-  "gpt-6-astra":                  { input: 5.00,  output: 30.00, cached: 0.50,  reasoning: 30.00,  cache_creation: 5.00  },
+  "gpt-6-astra":                  { input: 10.00, output: 50.00, cached: 1.00,  reasoning: 50.00,  cache_creation: 12.50 },
+  "gpt-6.1-sol":                  { input: 2.00,  output: 10.00, cached: 0.10,  reasoning: 10.00,  cache_creation: 2.50  },
+  "gpt-6-sol":                    { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "gpt-6-luna":                   { input: 0.10,  output: 0.50,  cached: 0.01,  reasoning: 0.50,   cache_creation: 0.125 },
   "gpt-reserve":                  { input: 1.00,  output: 5.00,  cached: 0.10,  reasoning: 5.00,   cache_creation: 1.00  },
   "o1":                           { input: 15.00, output: 60.00, cached: 7.50,  reasoning: 90.00,  cache_creation: 15.00 },
   "o1-mini":                      { input: 3.00,  output: 12.00, cached: 1.50,  reasoning: 18.00,  cache_creation: 3.00  },
 
-  // === Gemini ===
   "gemini-3.8-flash":              { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
   "gemini-3.8-flash-high":         { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
   "gemini-3.8-flash-medium":       { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
@@ -86,12 +99,9 @@ export const MODEL_PRICING = {
   "gemini-2.5-flash":             { input: 0.30,  output: 2.50,  cached: 0.03,  reasoning: 3.75,   cache_creation: 0.30  },
   "gemini-2.5-flash-lite":        { input: 0.15,  output: 1.25,  cached: 0.015, reasoning: 1.875,  cache_creation: 0.15  },
 
-  // === Qwen ===
   "qwen3-coder-plus":             { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  },
   "qwen3-coder-flash":            { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
 
-  // === Kimi ===
-  // Official platform.kimi.ai: cache-hit / cache-miss / output per 1M tokens
   "kimi-k3":                      { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.00  },
   "k3":                           { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.00  },
   "kimi-k2.7-code":               { input: 0.95,  output: 4.00,  cached: 0.19,  reasoning: 4.00,   cache_creation: 0.95  },
@@ -105,22 +115,21 @@ export const MODEL_PRICING = {
   "kimi-k2.6":                    { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  },
   "kimi-latest":                  { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  },
 
-  // === DeepSeek ===
   "deepseek-chat":                { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
   "deepseek-reasoner":            { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
   "deepseek-r1":                  { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
   "deepseek-v3.2-chat":           { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
   "deepseek-v3.2-reasoner":       { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
   "deepseek-v4-flash":            { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
+  "deepseek-v4.1-flash":          { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
+  "deepseek-flash":               { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
   "deepseek-v4-pro":              { input: 0.435, output: 0.87,  cached: 0.003625, reasoning: 0.87,  cache_creation: 0.435 },
 
-  // === GLM ===
   "glm-4.6":                      { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
   "glm-4.6v":                     { input: 0.75,  output: 3.00,  cached: 0.375, reasoning: 4.50,   cache_creation: 0.75  },
   "glm-4.7":                      { input: 0.75,  output: 3.00,  cached: 0.375, reasoning: 4.50,   cache_creation: 0.75  },
   "glm-5":                        { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  },
 
-  // === MiniMax ===
   "MiniMax-M3":                   { input: 0.30,  output: 1.20,  cached: 0.06,  reasoning: 1.80,   cache_creation: 0.30  },
   "MiniMax-M2.1":                 { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
   "MiniMax-M2.5":                 { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
@@ -128,33 +137,26 @@ export const MODEL_PRICING = {
   "minimax-m2.1":                 { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
   "minimax-m2.5":                 { input: 0.60,  output: 2.40,  cached: 0.30,  reasoning: 3.60,   cache_creation: 0.60  },
 
-  // === Grok ===
   "grok-code-fast-1":             { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
 
-  // === OpenRouter fallback ===
+  "muse-spark-1.3":                { input: 1.25, output: 4.25, cached: 0.15,  reasoning: 4.25,   cache_creation: 0 },
+  "muse-spark-1.2":                { input: 1.25, output: 4.25, cached: 0.15,  reasoning: 4.25,   cache_creation: 0 },
+  "muse-spark-1.1":                { input: 1.25, output: 4.25, cached: 0.15,  reasoning: 4.25,   cache_creation: 0 },
+  "muse-spark-1.3-contributor":    { input: 0.10, output: 0.20, cached: 0.002, reasoning: 0.20,   cache_creation: 0 },
+  "muse-spark-1.2-contributor":    { input: 0.10, output: 0.20, cached: 0.002, reasoning: 0.20,   cache_creation: 0 },
+
   "auto":                         { input: 2.00,  output: 8.00,  cached: 1.00,  reasoning: 12.00,  cache_creation: 2.00  },
 
-  // === Misc ===
   "oswe-vscode-prime":            { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  },
   "gpt-oss-120b-medium":          { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
   "vision-model":                 { input: 1.50,  output: 6.00,  cached: 0.75,  reasoning: 9.00,   cache_creation: 1.50  },
   "coder-model":                  { input: 1.50,  output: 6.00,  cached: 0.75,  reasoning: 9.00,   cache_creation: 1.50  },
 };
 
-/**
- * Provider-specific pricing overrides.
- * Only include entries where price DIFFERS from MODEL_PRICING.
- * Keyed by provider alias (cc, cx, gc, gh, ...) or provider id (openai, anthropic, ...).
- */
 export const PROVIDER_PRICING = {
-  // GitHub Copilot (gh) — explicit override, matches canonical gpt-5.3-codex rate
   gh: {
     "gpt-5.3-codex": { input: 1.75, output: 14.00, cached: 0.175, reasoning: 14.00, cache_creation: 1.75 },
   },
-  // TokenRouter — exact rates from https://api.tokenrouter.com/api/pricing ($1/1M tokens).
-  // Ratio→USD: input = model_ratio×2, output = model_ratio×completion_ratio×2.
-  // These override the canonical MODEL_PRICING/PATTERN_PRICING, whose rates often
-  // differ from TokenRouter's reseller pricing.
   tokenrouter: {
     "MiniMax-M3": { input: 0.3, output: 1.2, cached: 0.06, reasoning: 1.2 },
     "anthropic/claude-fable-5": { input: 10, output: 50, cached: 1.0, cache_creation: 12.5, reasoning: 50 },
@@ -270,13 +272,7 @@ export const PROVIDER_PRICING = {
   },
 };
 
-/**
- * Pattern-based pricing fallback — matched when no exact model entry found.
- * Patterns use simple glob: "*" matches any substring.
- * First match wins — order matters.
- */
 export const PATTERN_PRICING = [
-  // --- Codex variants ---
   { pattern: "*-codex-xhigh",   pricing: { input: 10.00, output: 40.00, cached: 5.00,  reasoning: 60.00,  cache_creation: 10.00 } },
   { pattern: "*-codex-high",    pricing: { input: 8.00,  output: 32.00, cached: 4.00,  reasoning: 48.00,  cache_creation: 8.00  } },
   { pattern: "*-codex-max",     pricing: { input: 8.00,  output: 32.00, cached: 4.00,  reasoning: 48.00,  cache_creation: 8.00  } },
@@ -288,13 +284,11 @@ export const PATTERN_PRICING = [
   { pattern: "codex-*",         pricing: { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  } },
   { pattern: "*-codex",         pricing: { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  } },
 
-  // --- Claude ---
   { pattern: "claude-opus-*",   pricing: { input: 5.00,  output: 25.00, cached: 0.50,  reasoning: 25.00,  cache_creation: 6.25  } },
   { pattern: "claude-sonnet-*", pricing: { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.75  } },
   { pattern: "claude-haiku-*",  pricing: { input: 1.00,  output: 5.00,  cached: 0.10,  reasoning: 5.00,   cache_creation: 1.25  } },
   { pattern: "claude-*",        pricing: { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.75  } },
 
-  // --- Gemini (specific first, generic last) ---
   { pattern: "gemini-*-flash-lite", pricing: { input: 0.15, output: 1.25, cached: 0.015, reasoning: 1.875, cache_creation: 0.15 } },
   { pattern: "gemini-*-flash",  pricing: { input: 0.30,  output: 2.50,  cached: 0.03,  reasoning: 3.75,   cache_creation: 0.30  } },
   { pattern: "gemini-*-pro",    pricing: { input: 2.00,  output: 12.00, cached: 0.25,  reasoning: 18.00,  cache_creation: 2.00  } },
@@ -302,7 +296,6 @@ export const PATTERN_PRICING = [
   { pattern: "gemini-2.5-*",    pricing: { input: 0.30,  output: 2.50,  cached: 0.03,  reasoning: 3.75,   cache_creation: 0.30  } },
   { pattern: "gemini-*",        pricing: { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  } },
 
-  // --- GPT (specific first, generic last) ---
   { pattern: "gpt-5.6-*",       pricing: { input: 2.50,  output: 15.00, cached: 0.25,  reasoning: 15.00,  cache_creation: 2.50  } },
   { pattern: "gpt-5.3-*",       pricing: { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  } },
   { pattern: "gpt-5.2-*",       pricing: { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  } },
@@ -313,76 +306,54 @@ export const PATTERN_PRICING = [
   { pattern: "gpt-4o",          pricing: { input: 2.50,  output: 10.00, cached: 1.25,  reasoning: 15.00,  cache_creation: 2.50  } },
   { pattern: "gpt-4*",          pricing: { input: 2.50,  output: 10.00, cached: 1.25,  reasoning: 15.00,  cache_creation: 2.50  } },
 
-  // --- o1 / o-series ---
   { pattern: "o1-*",            pricing: { input: 3.00,  output: 12.00, cached: 1.50,  reasoning: 18.00,  cache_creation: 3.00  } },
   { pattern: "o1",              pricing: { input: 15.00, output: 60.00, cached: 7.50,  reasoning: 90.00,  cache_creation: 15.00 } },
   { pattern: "o3-*",            pricing: { input: 10.00, output: 40.00, cached: 5.00,  reasoning: 60.00,  cache_creation: 10.00 } },
   { pattern: "o4-*",            pricing: { input: 2.00,  output: 8.00,  cached: 1.00,  reasoning: 12.00,  cache_creation: 2.00  } },
 
-  // --- Qwen ---
   { pattern: "qwen3-coder-*",   pricing: { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  } },
   { pattern: "qwen*-coder-*",   pricing: { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  } },
   { pattern: "qwen*",           pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
 
-  // --- Kimi ---
   { pattern: "kimi-*-thinking",  pricing: { input: 1.80,  output: 7.20,  cached: 0.90,  reasoning: 10.80,  cache_creation: 1.80  } },
   { pattern: "kimi-k3*",        pricing: { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.00  } },
   { pattern: "kimi-k2*",        pricing: { input: 1.20,  output: 4.80,  cached: 0.60,  reasoning: 7.20,   cache_creation: 1.20  } },
   { pattern: "kimi-*",          pricing: { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  } },
 
-  // --- DeepSeek ---
   { pattern: "deepseek-*reasoner*", pricing: { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 } },
   { pattern: "deepseek-r*",     pricing: { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  } },
   { pattern: "deepseek-v*",     pricing: { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  } },
   { pattern: "deepseek-*",      pricing: { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  } },
 
-  // --- GLM ---
   { pattern: "glm-5*",          pricing: { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  } },
   { pattern: "glm-4*",          pricing: { input: 0.75,  output: 3.00,  cached: 0.375, reasoning: 4.50,   cache_creation: 0.75  } },
   { pattern: "glm-*",           pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
 
-  // --- MiniMax ---
   { pattern: "MiniMax-*",       pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
   { pattern: "minimax-*",       pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
 
-  // --- Grok ---
   { pattern: "grok-code-*",     pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
   { pattern: "grok-*",          pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
 ];
 
-/**
- * Match a model ID against a glob pattern (* = wildcard). Case-insensitive:
- * registry ids mix casing (e.g. "MiniMax-M2.5" vs "minimax-m2.5").
- */
 export function matchPattern(pattern, model) {
   const regex = new RegExp("^" + pattern.split("*").map(s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$", "i");
   return regex.test(model);
 }
 
-/**
- * Resolve pricing for a model using the 3-step fallback chain:
- *   1. PROVIDER_PRICING[provider][model]
- *   2. MODEL_PRICING[model]
- *   3. PATTERN_PRICING (glob match)
- *
- * @param {string} provider
- * @param {string} model
- * @returns {object|null}
- */
 export function getPricingForModel(provider, model) {
   if (!model) return null;
 
-  // 1. Provider-specific override
   if (provider && PROVIDER_PRICING[provider]?.[model]) {
     return PROVIDER_PRICING[provider][model];
   }
 
-  // 2. Canonical model pricing (strip vendor prefix if needed: "deepseek/deepseek-chat" → "deepseek-chat")
+  if (isFreeModel(model)) return ZERO_PRICING;
+
   const baseModel = model.includes("/") ? model.split("/").pop() : model;
   if (MODEL_PRICING[baseModel]) return MODEL_PRICING[baseModel];
   if (MODEL_PRICING[model]) return MODEL_PRICING[model];
 
-  // 3. Pattern match
   for (const { pattern, pricing } of PATTERN_PRICING) {
     if (matchPattern(pattern, baseModel) || matchPattern(pattern, model)) {
       return pricing;
@@ -392,30 +363,15 @@ export function getPricingForModel(provider, model) {
   return null;
 }
 
-/**
- * Get all provider pricing (for UI / API).
- * Returns PROVIDER_PRICING — consumers should fall back to MODEL_PRICING for unlisted models.
- */
 export function getDefaultPricing() {
   return PROVIDER_PRICING;
 }
 
-/**
- * Format cost for display
- * @param {number} cost
- * @returns {string}
- */
 export function formatCost(cost) {
   if (cost === null || cost === undefined || isNaN(cost)) return "$0.00";
   return `$${cost.toFixed(2)}`;
 }
 
-/**
- * Calculate cost from tokens and pricing
- * @param {object} tokens
- * @param {object} pricing
- * @returns {number} cost in dollars
- */
 export function calculateCostFromTokens(tokens, pricing) {
   if (!tokens || !pricing) return 0;
 
@@ -424,8 +380,6 @@ export function calculateCostFromTokens(tokens, pricing) {
   const inputTokens = tokens.prompt_tokens || tokens.input_tokens || 0;
   const cachedTokens = tokens.cached_tokens || tokens.cache_read_input_tokens || 0;
   const cacheCreationTokens = tokens.cache_creation_input_tokens || 0;
-  // prompt_tokens is cache-inclusive (see canonicalizeUsage): cached + cache_creation
-  // are subsets, so subtract both to avoid charging them at the full input rate.
   const nonCachedInput = Math.max(0, inputTokens - cachedTokens - cacheCreationTokens);
 
   cost += nonCachedInput * (pricing.input / 1000000);

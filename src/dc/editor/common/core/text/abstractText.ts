@@ -123,7 +123,6 @@ export class StringText extends AbstractText {
 		return this._t.textLength;
 	}
 
-	// Override the getTransformer method to return the cached transformer
 	override getTransformer() {
 		return this._t;
 	}

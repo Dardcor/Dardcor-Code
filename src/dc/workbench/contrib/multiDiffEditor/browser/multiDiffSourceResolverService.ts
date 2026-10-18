@@ -56,7 +56,6 @@ export class MultiDiffSourceResolverService implements IMultiDiffSourceResolverS
 	private readonly _resolvers = new Set<IMultiDiffSourceResolver>();
 
 	registerResolver(resolver: IMultiDiffSourceResolver): IDisposable {
-		// throw on duplicate
 		if (this._resolvers.has(resolver)) {
 			throw new BugIndicatingError('Duplicate resolver');
 		}

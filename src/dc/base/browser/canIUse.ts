@@ -13,9 +13,6 @@ export const enum KeyboardSupport {
 	None
 }
 
-/**
- * Browser feature we can support in current platform, browser and environment.
- */
 export const BrowserFeatures = {
 	clipboard: {
 		writeText: (
@@ -40,8 +37,6 @@ export const BrowserFeatures = {
 		return KeyboardSupport.None;
 	})(),
 
-	// 'ontouchstart' in window always evaluates to true with typescript's modern typings. This causes `window` to be
-	// `never` later in `window.navigator`. That's why we need the explicit `window as Window` cast
 	touch: 'ontouchstart' in mainWindow || navigator.maxTouchPoints > 0,
 	pointerEvents: mainWindow.PointerEvent && ('ontouchstart' in mainWindow || navigator.maxTouchPoints > 0)
 };

@@ -17,7 +17,6 @@ import { registerTerminalContribution, type IDetachedCompatibleTerminalContribut
 import { terminalCommandGuideConfigSection, TerminalCommandGuideSettingId, type ITerminalCommandGuideConfiguration } from '../common/terminalCommandGuideConfiguration.js';
 import { isFullTerminalCommand } from '../../../../../platform/terminal/common/capabilities/commandDetection/terminalCommand.js';
 
-// #region Terminal Contributions
 
 class TerminalCommandGuideContribution extends Disposable implements ITerminalContribution {
 	static readonly ID = 'terminal.commandGuide';
@@ -98,4 +97,3 @@ export const TERMINAL_COMMAND_GUIDE_COLOR = registerColor('terminalCommandGuide.
 	hcLight: PANEL_BORDER
 }, localize('terminalCommandGuide.foreground', 'The foreground color of the terminal command guide that appears to the left of a command and its output on hover.'));
 
-// #endregion

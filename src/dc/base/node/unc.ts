@@ -14,8 +14,6 @@ export function getUNCHostAllowlist(): string[] {
 
 function processUNCHostAllowlist(): Set<string> | undefined {
 
-	// The property `process.uncHostAllowlist` is not available in official node.js
-	// releases, only in our own builds, so we have to probe for availability
 
 	return (process as unknown as { uncHostAllowlist?: Set<string> }).uncHostAllowlist;
 }
@@ -28,7 +26,7 @@ export function addUNCHostToAllowlist(allowedHost: string | string[]): void {
 	const allowlist = processUNCHostAllowlist();
 	if (allowlist) {
 		if (typeof allowedHost === 'string') {
-			allowlist.add(allowedHost.toLowerCase()); // UNC hosts are case-insensitive
+			allowlist.add(allowedHost.toLowerCase());
 		} else {
 			for (const host of toSafeStringArray(allowedHost)) {
 				addUNCHostToAllowlist(host);
@@ -53,13 +51,13 @@ function toSafeStringArray(arg0: unknown): string[] {
 
 export function getUNCHost(maybeUNCPath: string | undefined | null): string | undefined {
 	if (typeof maybeUNCPath !== 'string') {
-		return undefined; // require a valid string
+		return undefined;
 	}
 
 	const uncRoots = [
-		'\\\\.\\UNC\\',	// DOS Device paths (https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats)
+		'\\\\.\\UNC\\',
 		'\\\\?\\UNC\\',
-		'\\\\'			// standard UNC path
+		'\\\\'
 	];
 
 	let host = undefined;
@@ -67,12 +65,12 @@ export function getUNCHost(maybeUNCPath: string | undefined | null): string | un
 	for (const uncRoot of uncRoots) {
 		const indexOfUNCRoot = maybeUNCPath.indexOf(uncRoot);
 		if (indexOfUNCRoot !== 0) {
-			continue; // not matching any of our expected UNC roots
+			continue;
 		}
 
 		const indexOfUNCPath = maybeUNCPath.indexOf('\\', uncRoot.length);
 		if (indexOfUNCPath === -1) {
-			continue; // no path component found
+			continue;
 		}
 
 		const hostCandidate = maybeUNCPath.substring(uncRoot.length, indexOfUNCPath);

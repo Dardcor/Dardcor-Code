@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -8,9 +7,6 @@
 import { OffsetRange } from '../ranges/offsetRange';
 import { AnyEdit, BaseEdit, BaseReplacement } from './edit';
 
-/**
- * Like a normal edit, but only captures the length information.
-*/
 export class LengthEdit extends BaseEdit<LengthReplacement, LengthEdit> {
 	public static readonly empty = new LengthEdit([]);
 
@@ -46,9 +42,6 @@ export class LengthEdit extends BaseEdit<LengthReplacement, LengthEdit> {
 		return e;
 	}
 
-	/**
-	 * Creates an edit that reverts this edit.
-	 */
 	public inverse(): LengthEdit {
 		const edits: LengthReplacement[] = [];
 		let offset = 0;
@@ -73,21 +66,17 @@ export class LengthEdit extends BaseEdit<LengthReplacement, LengthEdit> {
 		let dstPos = 0;
 
 		for (const replacement of this.replacements) {
-			// Copy items before the current replacement
 			for (let i = srcPos; i < replacement.replaceRange.start; i++) {
 				newArr[dstPos++] = arr[i];
 			}
 
-			// Skip the replaced items in the source array
 			srcPos = replacement.replaceRange.endExclusive;
 
-			// Fill with the provided fillItem for insertions
 			for (let i = 0; i < replacement.newLength; i++) {
 				newArr[dstPos++] = fillItem;
 			}
 		}
 
-		// Copy any remaining items from the original array
 		while (srcPos < arr.length) {
 			newArr[dstPos++] = arr[srcPos++];
 		}

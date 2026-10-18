@@ -347,7 +347,6 @@ suite('KeybindingResolver', () => {
 		}
 
 		const items = [
-			// This one will never match because its "when" is always overwritten by another one
 			_kbItem(
 				KeyCode.KeyX,
 				'first',
@@ -356,37 +355,31 @@ suite('KeybindingResolver', () => {
 					ContextKeyExpr.notEquals('key2', false)
 				)
 			),
-			// This one always overwrites first
 			_kbItem(
 				KeyCode.KeyX,
 				'second',
 				ContextKeyExpr.equals('key2', true)
 			),
-			// This one is a secondary mapping for `second`
 			_kbItem(
 				KeyCode.KeyZ,
 				'second',
 				undefined
 			),
-			// This one sometimes overwrites first
 			_kbItem(
 				KeyCode.KeyX,
 				'third',
 				ContextKeyExpr.equals('key3', true)
 			),
-			// This one is always overwritten by another one
 			_kbItem(
 				KeyMod.CtrlCmd | KeyCode.KeyY,
 				'fourth',
 				ContextKeyExpr.equals('key4', true)
 			),
-			// This one overwrites with a chord the previous one
 			_kbItem(
 				KeyChord(KeyMod.CtrlCmd | KeyCode.KeyY, KeyCode.KeyZ),
 				'fifth',
 				undefined
 			),
-			// This one has no keybinding
 			_kbItem(
 				0,
 				'sixth',
@@ -408,32 +401,32 @@ suite('KeybindingResolver', () => {
 				undefined
 			),
 			_kbItem(
-				KeyChord(KeyMod.CtrlCmd | KeyCode.KeyK, KeyMod.CtrlCmd | KeyCode.KeyC), // cmd+k cmd+c
+				KeyChord(KeyMod.CtrlCmd | KeyCode.KeyK, KeyMod.CtrlCmd | KeyCode.KeyC),
 				'comment lines',
 				undefined
 			),
 			_kbItem(
-				KeyChord(KeyMod.CtrlCmd | KeyCode.KeyG, KeyMod.CtrlCmd | KeyCode.KeyC), // cmd+g cmd+c
+				KeyChord(KeyMod.CtrlCmd | KeyCode.KeyG, KeyMod.CtrlCmd | KeyCode.KeyC),
 				'unreachablechord',
 				undefined
 			),
 			_kbItem(
-				KeyMod.CtrlCmd | KeyCode.KeyG, // cmd+g
+				KeyMod.CtrlCmd | KeyCode.KeyG,
 				'eleven',
 				undefined
 			),
 			_kbItem(
-				[KeyMod.CtrlCmd | KeyCode.KeyK, KeyCode.KeyA, KeyCode.KeyB], // cmd+k a b
+				[KeyMod.CtrlCmd | KeyCode.KeyK, KeyCode.KeyA, KeyCode.KeyB],
 				'long multi chord',
 				undefined
 			),
 			_kbItem(
-				[KeyMod.CtrlCmd | KeyCode.KeyB, KeyMod.CtrlCmd | KeyCode.KeyC], // cmd+b cmd+c
+				[KeyMod.CtrlCmd | KeyCode.KeyB, KeyMod.CtrlCmd | KeyCode.KeyC],
 				'shadowed by long-multi-chord-2',
 				undefined
 			),
 			_kbItem(
-				[KeyMod.CtrlCmd | KeyCode.KeyB, KeyMod.CtrlCmd | KeyCode.KeyC, KeyCode.KeyI], // cmd+b cmd+c i
+				[KeyMod.CtrlCmd | KeyCode.KeyB, KeyMod.CtrlCmd | KeyCode.KeyC, KeyCode.KeyI],
 				'long-multi-chord-2',
 				undefined
 			)
@@ -442,7 +435,6 @@ suite('KeybindingResolver', () => {
 		const resolver = new KeybindingResolver(items, [], () => { });
 
 		const testKbLookupByCommand = (commandId: string, expectedKeys: number[] | number[][]) => {
-			// Test lookup
 			const lookupResult = resolver.lookupKeybindings(commandId);
 			assert.strictEqual(lookupResult.length, expectedKeys.length, 'Length mismatch @ commandId ' + commandId);
 			for (let i = 0, len = lookupResult.length; i < len; i++) {
@@ -464,17 +456,11 @@ suite('KeybindingResolver', () => {
 				const result = resolver.resolve(ctx, previousChord, chord);
 
 				if (i === len - 1) {
-					// if it's the final chord, then we should find a valid command,
-					// and there should not be a chord.
 					assert.ok(result.kind === ResultKind.KbFound, `Enters multi chord for ${commandId} at chord ${i}`);
 					assert.strictEqual(result.commandId, commandId, `Enters multi chord for ${commandId} at chord ${i}`);
 				} else if (i > 0) {
-					// if this is an intermediate chord, we should not find a valid command,
-					// and there should be an open chord we continue.
 					assert.ok(result.kind === ResultKind.MoreChordsNeeded, `Continues multi chord for ${commandId} at chord ${i}`);
 				} else {
-					// if it's not the final chord and not an intermediate, then we should not
-					// find a valid command, and we should enter a chord.
 					assert.ok(result.kind === ResultKind.MoreChordsNeeded, `Enters multi chord for ${commandId} at chord ${i}`);
 				}
 				previousChord.push(chord);

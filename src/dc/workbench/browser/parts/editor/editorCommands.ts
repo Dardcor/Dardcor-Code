@@ -372,7 +372,6 @@ function registerEditorGroupsLayoutCommands(): void {
 		applyEditorLayout(accessor, args);
 	});
 
-	// API Commands
 	CommandsRegistry.registerCommand({
 		id: 'vscode.setEditorLayout',
 		handler: (accessor: ServicesAccessor, args: EditorGroupLayout) => applyEditorLayout(accessor, args),
@@ -438,9 +437,6 @@ function registerOpenEditorAPICommands(): void {
 		];
 	}
 
-	// partial, renderer-side API command to open editor only supporting
-	// arguments that do not need to be converted from the extension host
-	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/vs/workbench/api/common/extHostApiCommands.ts#L373
 	CommandsRegistry.registerCommand({
 		id: 'vscode.open',
 		handler: (accessor, arg) => {
@@ -463,43 +459,29 @@ function registerOpenEditorAPICommands(): void {
 		const resourceOrString = typeof resourceArg === 'string' ? resourceArg : URI.from(resourceArg, true);
 		const [columnArg, optionsArg] = columnAndOptions ?? [];
 
-		// use editor options or editor view column or resource scheme
-		// as a hint to use the editor service for opening directly
 		if (optionsArg || typeof columnArg === 'number' || matchesScheme(resourceOrString, Schemas.untitled)) {
 			const [options, column] = mixinContext(context, optionsArg, columnArg);
 			const resource = URI.isUri(resourceOrString) ? resourceOrString : URI.parse(resourceOrString);
 
 			let input: IResourceEditorInput | IUntitledTextResourceEditorInput;
 			if (untitledTextEditorService.isUntitledWithAssociatedResource(resource)) {
-				// special case for untitled: we are getting a resource with meaningful
-				// path from an extension to use for the untitled editor. as such, we
-				// have to assume it as an associated resource to use when saving. we
-				// do so by setting the `forceUntitled: true` and changing the scheme
-				// to a file based one. the untitled editor service takes care to
-				// associate the path properly then.
 				input = { resource: resource.with({ scheme: pathService.defaultUriScheme }), forceUntitled: true, options, label };
 			} else {
-				// use any other resource as is
 				input = { resource, options, label };
 			}
 
 			await editorService.openEditor(input, columnToEditorGroup(editorGroupsService, configurationService, column));
 		}
 
-		// do not allow to execute commands from here
 		else if (matchesScheme(resourceOrString, Schemas.command)) {
 			return;
 		}
 
-		// finally, delegate to opener service
 		else {
 			await openerService.open(resourceOrString, { openToSide: context?.sideBySide, editorOptions: context?.editorOptions });
 		}
 	});
 
-	// partial, renderer-side API command to open diff editor only supporting
-	// arguments that do not need to be converted from the extension host
-	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/vs/workbench/api/common/extHostApiCommands.ts#L397
 	CommandsRegistry.registerCommand({
 		id: 'vscode.diff',
 		handler: (accessor, left, right, label) => {
@@ -551,9 +533,6 @@ function registerOpenEditorAPICommands(): void {
 		await editorService.openEditor({ resource: URI.from(resource, true), options: { pinned: true, ...optionsArg, override: id } }, columnToEditorGroup(editorGroupsService, configurationService, columnArg));
 	});
 
-	// partial, renderer-side API command to open diff editor only supporting
-	// arguments that do not need to be converted from the extension host
-	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/vs/workbench/api/common/extHostApiCommands.ts#L397
 	CommandsRegistry.registerCommand({
 		id: 'vscode.changes',
 		handler: (accessor, title: string, resources: [UriComponents, UriComponents?, UriComponents?][]) => {
@@ -637,13 +616,11 @@ function registerOpenEditorAtIndexCommands(): void {
 		}
 	};
 
-	// This command takes in the editor index number to open as an argument
 	CommandsRegistry.registerCommand({
 		id: OPEN_EDITOR_AT_INDEX_COMMAND_ID,
 		handler: openEditorAtIndex
 	});
 
-	// Keybindings to focus a specific index in the tab folder if tabs are enabled
 	for (let i = 0; i < 9; i++) {
 		const editorIndex = i;
 		const visibleIndex = i + 1;
@@ -678,7 +655,6 @@ function registerOpenEditorAtIndexCommands(): void {
 
 function registerFocusEditorGroupAtIndexCommands(): void {
 
-	// Keybindings to focus a specific group (2-8) in the editor area
 	for (let groupIndex = 1; groupIndex < 8; groupIndex++) {
 		KeybindingsRegistry.registerCommandAndKeybindingRule({
 			id: toCommandId(groupIndex),
@@ -689,20 +665,15 @@ function registerFocusEditorGroupAtIndexCommands(): void {
 				const editorGroupsService = accessor.get(IEditorGroupsService);
 				const configurationService = accessor.get(IConfigurationService);
 
-				// To keep backwards compatibility (pre-grid), allow to focus a group
-				// that does not exist as long as it is the next group after the last
-				// opened group. Otherwise we return.
 				if (groupIndex > editorGroupsService.count) {
 					return;
 				}
 
-				// Group exists: just focus
 				const groups = editorGroupsService.getGroups(GroupsOrder.GRID_APPEARANCE);
 				if (groups[groupIndex]) {
 					return groups[groupIndex].focus();
 				}
 
-				// Group does not exist: create new by splitting the active one of the last group
 				const direction = preferredSideBySideGroupDirection(configurationService);
 				const lastGroup = editorGroupsService.findGroup({ location: GroupLocation.LAST });
 				if (!lastGroup) {
@@ -711,7 +682,6 @@ function registerFocusEditorGroupAtIndexCommands(): void {
 
 				const newGroup = editorGroupsService.addGroup(lastGroup, direction);
 
-				// Focus
 				newGroup.focus();
 			}
 		});
@@ -751,20 +721,17 @@ export function splitEditor(editorGroupsService: IEditorGroupsService, direction
 		return;
 	}
 
-	// Only support splitting from one source group
 	const { group, editors } = resolvedContext.groupedEditors[0];
 	const preserveFocus = resolvedContext.preserveFocus;
 	const newGroup = editorGroupsService.addGroup(group, direction);
 
 	for (const editorToCopy of editors) {
 
-		// Split editor (if it can be split)
 		if (editorToCopy && !editorToCopy.hasCapability(EditorInputCapabilities.Singleton)) {
 			group.copyEditor(editorToCopy, newGroup, { preserveFocus });
 		}
 	}
 
-	// Focus
 	newGroup.focus();
 }
 
@@ -784,36 +751,30 @@ function registerSplitEditorCommands() {
 
 function registerCloseEditorCommands() {
 
-	// A special handler for "Close Editor" depending on context
-	// - keybindining: do not close sticky editors, rather open the next non-sticky editor
-	// - menu: always close editor, even sticky ones
 	function closeEditorHandler(accessor: ServicesAccessor, forceCloseStickyEditors: boolean, ...args: unknown[]): Promise<unknown> {
 		const editorGroupsService = accessor.get(IEditorGroupsService);
 		const editorService = accessor.get(IEditorService);
 
 		let keepStickyEditors: boolean | undefined = undefined;
 		if (forceCloseStickyEditors) {
-			keepStickyEditors = false; // explicitly close sticky editors
+			keepStickyEditors = false;
 		} else if (args.length) {
-			keepStickyEditors = false; // we have a context, as such this command was used e.g. from the tab context menu
+			keepStickyEditors = false;
 		} else {
-			keepStickyEditors = editorGroupsService.partOptions.preventPinnedEditorClose === 'keyboard' || editorGroupsService.partOptions.preventPinnedEditorClose === 'keyboardAndMouse'; // respect setting otherwise
+			keepStickyEditors = editorGroupsService.partOptions.preventPinnedEditorClose === 'keyboard' || editorGroupsService.partOptions.preventPinnedEditorClose === 'keyboardAndMouse';
 		}
 
-		// Skip over sticky editor and select next if we are configured to do so
 		if (keepStickyEditors) {
 			const activeGroup = editorGroupsService.activeGroup;
 			const activeEditor = activeGroup.activeEditor;
 
 			if (activeEditor && activeGroup.isSticky(activeEditor)) {
 
-				// Open next recently active in same group
 				const nextNonStickyEditorInGroup = activeGroup.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE, { excludeSticky: true })[0];
 				if (nextNonStickyEditorInGroup) {
 					return activeGroup.openEditor(nextNonStickyEditorInGroup);
 				}
 
-				// Open next recently active across all groups
 				const nextNonStickyEditorInAllGroups = editorService.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE, { excludeSticky: true })[0];
 				if (nextNonStickyEditorInAllGroups) {
 					return Promise.resolve(editorGroupsService.getGroup(nextNonStickyEditorInAllGroups.groupId)?.openEditor(nextNonStickyEditorInAllGroups.editor));
@@ -821,7 +782,6 @@ function registerCloseEditorCommands() {
 			}
 		}
 
-		// With context: proceed to close editors as instructed
 		const resolvedContext = resolveCommandsContext(args, accessor.get(IEditorService), accessor.get(IEditorGroupsService), accessor.get(IListService));
 		const preserveFocus = resolvedContext.preserveFocus;
 
@@ -843,7 +803,7 @@ function registerCloseEditorCommands() {
 	});
 
 	CommandsRegistry.registerCommand(CLOSE_PINNED_EDITOR_COMMAND_ID, (accessor, ...args: unknown[]) => {
-		return closeEditorHandler(accessor, true /* force close pinned editors */, ...args);
+		return closeEditorHandler(accessor, true , ...args);
 	});
 
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
@@ -966,7 +926,7 @@ function registerCloseEditorCommands() {
 				const editorToResolve = isDiffEditor ? editor.modified : editor;
 				const untypedEditor = isDiffEditor ? editor.toUntyped() : editorToResolve.toUntyped();
 				if (!untypedEditor) {
-					return; // Resolver can only resolve untyped editors
+					return;
 				}
 
 				untypedEditor.options = { ...editorService.activeEditorPane?.options, override: editorOverride };
@@ -981,27 +941,12 @@ function registerCloseEditorCommands() {
 					editorReplacements.set(group, editorReplacementsInGroup);
 				}
 
-				// Force replace when closing the editor without saving cannot
-				// lose data. This is the case when the dirty state lives in a
-				// working copy whose lifetime is independent of the editor:
-				// `TextFileEditorModel`s and `UntitledTextEditorModel`s are
-				// kept alive while dirty by their owning service.
-				//
-				// This way switching between a text editor and a text-document
-				// based custom editor (such as the Markdown preview) for the
-				// same resource does not trigger a save dialog.
-				//
-				// Custom-document custom editors (e.g. hex editors) maintain
-				// their dirty state in a working copy whose lifetime is tied
-				// to the editor input, so we must not skip the save prompt
-				// for those — detect this by looking for any dirty working
-				// copy that backs this editor at a different resource.
 				const resource = editorToResolve.resource;
 				let forceReplaceDirty = !!resource && (resource.scheme === Schemas.untitled || textFileService.isDirty(resource));
 				if (forceReplaceDirty && editorToResolve.isDirty()) {
 					for (const workingCopy of workingCopyService.dirtyWorkingCopies) {
 						if (isEqual(workingCopy.resource, resource)) {
-							continue; // working copy at the editor's own resource is text-based and survives close
+							continue;
 						}
 						if (workingCopyEditorService.findEditor(workingCopy)?.editor === editorToResolve) {
 							forceReplaceDirty = false;
@@ -1017,7 +962,6 @@ function registerCloseEditorCommands() {
 					options: resolvedEditor.options
 				});
 
-				// Telemetry
 				type WorkbenchEditorReopenClassification = {
 					owner: 'rebornix';
 					comment: 'Identify how a document is reopened';
@@ -1043,7 +987,6 @@ function registerCloseEditorCommands() {
 			}
 		}
 
-		// Replace editor with resolved one and make active
 		for (const [group, replacements] of editorReplacements) {
 			await group.replaceEditors(replacements);
 			await group.openEditor(replacements[0].replacement);
@@ -1058,8 +1001,8 @@ function registerCloseEditorCommands() {
 			const { group } = resolvedContext.groupedEditors[0];
 			await group.closeAllEditors();
 
-			if (group.count === 0 && editorGroupsService.getGroup(group.id) /* could be gone by now */) {
-				editorGroupsService.removeGroup(group); // only remove group if it is now empty
+			if (group.count === 0 && editorGroupsService.getGroup(group.id) ) {
+				editorGroupsService.removeGroup(group);
 			}
 		}
 	});
@@ -1439,7 +1382,7 @@ function registerOtherEditorCommands(): void {
 			const commandsContext = resolveCommandsContext(args, accessor.get(IEditorService), editorGroupsService, accessor.get(IListService));
 			const group = commandsContext.groupedEditors[0]?.group;
 			if (group) {
-				editorGroupsService.activateGroup(group); // we need the group to be active
+				editorGroupsService.activateGroup(group);
 			}
 
 			return quickInputService.quickAccess.show(ActiveGroupEditorsByMostRecentlyUsedQuickAccess.PREFIX);
@@ -1577,18 +1520,14 @@ function registerModalEditorCommands(): void {
 				precondition: EditorPartModalContext,
 				keybinding: [{
 					primary: KeyCode.Escape,
-					weight: KeybindingWeight.WorkbenchContrib + 10, // higher when no text editor or list/tree is focused...
+					weight: KeybindingWeight.WorkbenchContrib + 10,
 					when: ContextKeyExpr.and(EditorContextKeys.focus.toNegated(), RawWorkbenchListFocusContextKey.negate())
 				}, {
 					primary: KeyCode.Escape,
-					weight: KeybindingWeight.EditorContrib - 1, // ...lower to prevent accidental close when text editor is focused
+					weight: KeybindingWeight.EditorContrib - 1,
 					when: EditorContextKeys.focus
 				}, {
 					primary: KeyCode.Escape,
-					// When a list/tree is focused, still close the modal, but yield to the
-					// list/tree's own `Escape` features that should close first (the find
-					// widget and sticky scroll). The selection is intentionally not cleared
-					// first so a single `Escape` closes the modal.
 					weight: KeybindingWeight.WorkbenchContrib + 1,
 					when: ContextKeyExpr.and(RawWorkbenchListFocusContextKey, WorkbenchTreeFindOpen.negate(), WorkbenchTreeStickyScrollFocused.negate())
 				}],

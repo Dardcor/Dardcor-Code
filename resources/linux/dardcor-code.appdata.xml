@@ -4,15 +4,15 @@
 	<metadata_license>@@LICENSE@@</metadata_license>
 	<project_license>@@LICENSE@@</project_license>
 	<name>@@NAME_LONG@@</name>
-	<url type="homepage">https://code.visualstudio.com</url>
-	<summary>Visual Studio Code. Code editing. Redefined.</summary>
+	<url type="homepage">https://www.dardcor-code.web.id</url>
+	<summary>Dardcor Code. Agent-first code editing.</summary>
 	<description>
-		<p>Visual Studio Code is a new choice of tool that combines the simplicity of a code editor with what developers need for the core edit-build-debug cycle. See https://code.visualstudio.com/docs/setup/linux for installation instructions and FAQ.</p>
+		<p>Dardcor Code combines a code editor with integrated agent, terminal, and source control workflows. See https://www.dardcor-code.web.id/docs/setup/linux for installation instructions and troubleshooting.</p>
 	</description>
 	<screenshots>
 		<screenshot type="default">
-			<image>https://code.visualstudio.com/home/home-screenshot-linux-lg.png</image>
-			<caption>Editing TypeScript and searching for extensions</caption>
+			<image>https://www.dardcor-code.web.id/showcase.png</image>
+			<caption>Dardcor Code editor and agent workspace</caption>
 		</screenshot>
 	</screenshots>
 </component>

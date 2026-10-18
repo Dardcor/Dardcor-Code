@@ -91,11 +91,11 @@ suite('Workbench - Terminal Typeahead', () => {
 		let addon: TestTypeAheadAddon;
 
 		const predictedHelloo = [
-			`${CSI}?25l`, // hide cursor
-			`${CSI}2;7H`, // move cursor
-			'o', // new character
-			`${CSI}2;8H`, // place cursor back at end of line
-			`${CSI}?25h`, // show cursor
+			`${CSI}?25l`,
+			`${CSI}2;7H`,
+			'o',
+			`${CSI}2;8H`,
+			`${CSI}?25h`,
 		].join('');
 
 		const expectProcessed = (input: string, output: string) => {
@@ -147,11 +147,11 @@ suite('Workbench - Terminal Typeahead', () => {
 
 			t.onData('x');
 			expectProcessed('\box', [
-				`${CSI}?25l`, // hide cursor
-				`${CSI}2;8H`, // move cursor
-				'\box', // new data
-				`${CSI}2;9H`, // place cursor back at end of line
-				`${CSI}?25h`, // show cursor
+				`${CSI}?25l`,
+				`${CSI}2;8H`,
+				'\box',
+				`${CSI}2;9H`,
+				`${CSI}?25h`,
 			].join(''));
 			assert.strictEqual(addon.stats?.accuracy, 1);
 		});
@@ -164,12 +164,12 @@ suite('Workbench - Terminal Typeahead', () => {
 
 			t.onData('x');
 			expectProcessed('\bqx', [
-				`${CSI}?25l`, // hide cursor
-				`${CSI}2;8H`, // move cursor cursor
-				`${CSI}X`, // delete character
-				`${CSI}0m`, // reset style
-				'\bqx', // new data
-				`${CSI}?25h`, // show cursor
+				`${CSI}?25l`,
+				`${CSI}2;8H`,
+				`${CSI}X`,
+				`${CSI}0m`,
+				'\bqx',
+				`${CSI}?25h`,
 			].join(''));
 			assert.strictEqual(addon.stats?.accuracy, 0.5);
 		});
@@ -180,12 +180,12 @@ suite('Workbench - Terminal Typeahead', () => {
 			t.onData('o');
 
 			expectProcessed('q', [
-				`${CSI}?25l`, // hide cursor
-				`${CSI}2;7H`, // move cursor cursor
-				`${CSI}X`, // delete character
-				`${CSI}0m`, // reset style
-				'q', // new character
-				`${CSI}?25h`, // show cursor
+				`${CSI}?25l`,
+				`${CSI}2;7H`,
+				`${CSI}X`,
+				`${CSI}0m`,
+				'q',
+				`${CSI}?25h`,
 			].join(''));
 			assert.strictEqual(addon.stats?.accuracy, 0);
 		});
@@ -199,13 +199,10 @@ suite('Workbench - Terminal Typeahead', () => {
 			t.onData(`${CSI}${CursorMoveDirection.Back}`);
 			t.expectWritten('');
 
-			// Trigger rollback because we don't expect this data
 			onBeforeProcessData.fire({ data: 'xy' });
 
 			assert.strictEqual(
 				addon.physicalCursor(t.terminal.buffer.active)?.x,
-				// The cursor should not have changed because we've hit the
-				// boundary (start of prompt)
 				cursorXBefore);
 		});
 
@@ -218,13 +215,10 @@ suite('Workbench - Terminal Typeahead', () => {
 			t.onData(`${CSI}${CursorMoveDirection.Forwards}`);
 			t.expectWritten('');
 
-			// Trigger rollback because we don't expect this data
 			onBeforeProcessData.fire({ data: 'xy' });
 
 			assert.strictEqual(
 				addon.physicalCursor(t.terminal.buffer.active)?.x,
-				// The cursor should not have changed because we've hit the
-				// boundary (end of prompt)
 				cursorXBefore);
 		});
 
@@ -240,8 +234,6 @@ suite('Workbench - Terminal Typeahead', () => {
 
 			assert.strictEqual(
 				addon.physicalCursor(t.terminal.buffer.active)?.x,
-				// The cursor should not have changed because we've hit the
-				// boundary (start of prompt)
 				cursorXBefore);
 		});
 
@@ -254,12 +246,12 @@ suite('Workbench - Terminal Typeahead', () => {
 			t.onData('o');
 
 			expectProcessed('q', [
-				`${CSI}?25l`, // hide cursor
-				`${CSI}2;7H`, // move cursor cursor
-				`${CSI}X`, // delete character
-				`${CSI}1;38;5;1m`, // reset style
-				'q', // new character
-				`${CSI}?25h`, // show cursor
+				`${CSI}?25l`,
+				`${CSI}2;7H`,
+				`${CSI}X`,
+				`${CSI}1;38;5;1m`,
+				'q',
+				`${CSI}?25h`,
 			].join(''));
 			assert.strictEqual(addon.stats?.accuracy, 0);
 		});
@@ -269,12 +261,12 @@ suite('Workbench - Terminal Typeahead', () => {
 			addon.activate(t.terminal);
 			t.onData('o');
 			expectProcessed(`${CSI}4mo`, [
-				`${CSI}?25l`, // hide cursor
-				`${CSI}2;7H`, // move cursor
-				`${CSI}4m`, // new PTY's style
-				'o', // new character
-				`${CSI}2;8H`, // place cursor back at end of line
-				`${CSI}?25h`, // show cursor
+				`${CSI}?25l`,
+				`${CSI}2;7H`,
+				`${CSI}4m`,
+				'o',
+				`${CSI}2;8H`,
+				`${CSI}?25h`,
 			].join(''));
 			assert.strictEqual(addon.stats?.accuracy, 1);
 		});
@@ -284,13 +276,13 @@ suite('Workbench - Terminal Typeahead', () => {
 			addon.activate(t.terminal);
 			t.onData('o');
 			expectProcessed(`${CSI}?25lo${CSI}?25h`, [
-				`${CSI}?25l`, // hide cursor from PTY
-				`${CSI}?25l`, // hide cursor
-				`${CSI}2;7H`, // move cursor
-				'o', // new character
-				`${CSI}?25h`, // show cursor from PTY
-				`${CSI}2;8H`, // place cursor back at end of line
-				`${CSI}?25h`, // show cursor
+				`${CSI}?25l`,
+				`${CSI}?25l`,
+				`${CSI}2;7H`,
+				'o',
+				`${CSI}?25h`,
+				`${CSI}2;8H`,
+				`${CSI}?25h`,
 			].join(''));
 			assert.strictEqual(addon.stats?.accuracy, 1);
 		});
@@ -334,19 +326,16 @@ suite('Workbench - Terminal Typeahead', () => {
 			const t = ds.add(createMockTerminal({ lines: ['hello|'] }));
 			addon.activate(t.terminal);
 
-			// initially should not backspace (until the server confirms it)
 			t.onData('\x7F');
 			t.expectWritten('');
 			expectProcessed('\b \b', '\b \b');
 			t.cursor.x--;
 
-			// enter input on the column...
 			t.onData('o');
 			onBeforeProcessData.fire({ data: 'o' });
 			t.cursor.x++;
 			t.clearWritten();
 
-			// now that the column is 'unlocked', we should be able to predict backspace on it
 			t.onData('\x7F');
 			t.expectWritten(`${CSI}2;6H${CSI}X`);
 		});
@@ -388,10 +377,10 @@ suite('Workbench - Terminal Typeahead', () => {
 			t.onData('hi'.repeat(50));
 			t.expectWritten('');
 			expectProcessed('hi', [
-				`${CSI}?25l`, // hide cursor
-				'hi', // this greeting characters
-				...new Array(36).fill(`${CSI}3mh${CSI}23m${CSI}3mi${CSI}23m`), // rest of the greetings that fit on this line
-				`${CSI}2;81H`, // move to end of line
+				`${CSI}?25l`,
+				'hi',
+				...new Array(36).fill(`${CSI}3mh${CSI}23m${CSI}3mi${CSI}23m`),
+				`${CSI}2;81H`,
 				`${CSI}?25h`
 			].join(''));
 		});

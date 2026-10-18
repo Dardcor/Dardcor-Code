@@ -1,4 +1,3 @@
-// SD WebUI (AUTOMATIC1111) — local, noAuth
 import { nowSec } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 

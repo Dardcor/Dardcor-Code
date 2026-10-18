@@ -57,11 +57,6 @@ function rememberSessionStart(key, entry) {
   sessionStartStore.set(key, { ...entry, lastUsed: Date.now() });
 }
 
-/**
- * Preserve Kiro cacheability by freezing the first user message (`msg0`) for a
- * session, replaying that exact message as the first history user on later
- * turns, and injecting volatile current-time context only into the current turn.
- */
 export function applyKiroSessionReplay({
   conversationId,
   connectionId,

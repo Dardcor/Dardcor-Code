@@ -69,7 +69,6 @@ export class TasksResource implements IProfileResource {
 			const content = await this.fileService.readFile(profile.tasksResource);
 			return content.value.toString();
 		} catch (error) {
-			// File not found
 			if (error instanceof FileOperationError && error.fileOperationResult === FileOperationResult.FILE_NOT_FOUND) {
 				return null;
 			} else {

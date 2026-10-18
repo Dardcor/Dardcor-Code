@@ -49,45 +49,31 @@ export class SharedProcess extends Disposable {
 
 	private registerListeners(): void {
 
-		// Shared process channel connections from workbench windows
 		validatedIpcMain.on(SharedProcessChannelConnection.request, (e, nonce: string) => this.onWindowConnection(e, nonce, SharedProcessChannelConnection.response));
 
-		// Shared process raw connections from workbench windows
 		validatedIpcMain.on(SharedProcessRawConnection.request, (e, nonce: string) => this.onWindowConnection(e, nonce, SharedProcessRawConnection.response));
 
-		// Lifecycle
 		this._register(this.lifecycleMainService.onWillShutdown(() => this.onWillShutdown()));
 	}
 
 	private async onWindowConnection(e: IpcMainEvent, nonce: string, responseChannel: string): Promise<void> {
 		this.logService.trace(`[SharedProcess] onWindowConnection for: ${responseChannel}`);
 
-		// release barrier if this is the first window connection
 		if (!this.firstWindowConnectionBarrier.isOpen()) {
 			this.firstWindowConnectionBarrier.open();
 		}
 
-		// await the shared process to be overall ready
-		// we do not just wait for IPC ready because the
-		// workbench window will communicate directly
 
 		await this.whenReady();
 
-		// connect to the shared process passing the responseChannel
-		// as payload to give a hint what the connection is about
 
 		const port = await this.connect(responseChannel);
 
-		// Check back if the requesting window meanwhile closed
-		// Since shared process is delayed on startup there is
-		// a chance that the window close before the shared process
-		// was ready for a connection.
 
 		if (e.sender.isDestroyed()) {
 			return port.close();
 		}
 
-		// send the port back to the requesting window
 		e.sender.postMessage(responseChannel, nonce, [port]);
 	}
 
@@ -103,11 +89,8 @@ export class SharedProcess extends Disposable {
 		if (!this._whenReady) {
 			this._whenReady = (async () => {
 
-				// Wait for shared process being ready to accept connection
 				await this.whenIpcReady;
 
-				// Overall signal that the shared process was loaded and
-				// all services within have been created.
 
 				const whenReady = new DeferredPromise<void>();
 				this.utilityProcess?.once(SharedProcessLifecycle.initDone, () => whenReady.complete());
@@ -126,13 +109,10 @@ export class SharedProcess extends Disposable {
 		if (!this._whenIpcReady) {
 			this._whenIpcReady = (async () => {
 
-				// Always wait for first window asking for connection
 				await this.firstWindowConnectionBarrier.wait();
 
-				// Spawn shared process
 				this.createUtilityProcess();
 
-				// Wait for shared process indicating that IPC connections are accepted
 				const sharedProcessIpcReady = new DeferredPromise<void>();
 				this.utilityProcess?.once(SharedProcessLifecycle.ipcReady, () => sharedProcessIpcReady.complete());
 
@@ -147,7 +127,6 @@ export class SharedProcess extends Disposable {
 	private createUtilityProcess(): void {
 		this.utilityProcess = this._register(new UtilityProcess(this.logService, NullTelemetryService, this.lifecycleMainService));
 
-		// Install a log listener for very early shared process warnings and errors
 		this.utilityProcessLogListener = this.utilityProcess.onMessage(e => {
 			const logValue = e as { warning?: unknown; error?: unknown };
 			if (typeof logValue.warning === 'string') {
@@ -199,10 +178,8 @@ export class SharedProcess extends Disposable {
 
 	async connect(payload?: unknown): Promise<MessagePortMain> {
 
-		// Wait for shared process being ready to accept connection
 		await this.whenIpcReady;
 
-		// Connect and return message port
 		const utilityProcess = assertReturnsDefined(this.utilityProcess);
 		return utilityProcess.connect(payload);
 	}

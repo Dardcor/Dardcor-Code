@@ -6,16 +6,12 @@ import { GlobIncludeOptions } from '../../../util/common/glob';
 import { FileChunk, FileChunkAndScore } from '../../chunking/common/chunk';
 
 export enum RemoteCodeSearchIndexStatus {
-	/** The repo index is built and ready to use */
 	Ready = 'ready',
 
-	/** The repo index is being built */
 	BuildingIndex = 'building-index',
 
-	/** The repo is not indexed but we can potentially index it */
 	NotYetIndexed = 'not-yet-indexed',
 
-	/** The repo is not indexed and we cannot trigger indexing */
 	NotIndexable = 'not-indexable',
 }
 
@@ -30,13 +26,10 @@ export type RemoteCodeSearchError =
 	;
 
 interface BaseCodeSearchResult {
-	/** Tracks if the commit sha code search used differs from the one we used to compute the local diff */
 	readonly outOfSync: boolean;
 
-	/** The web URL of the remote repo, e.g. `https://github.com/microsoft/vscode` */
 	readonly remoteUrl?: string;
 
-	/** The branch name the results are from, e.g. `main` */
 	readonly refName?: string;
 }
 

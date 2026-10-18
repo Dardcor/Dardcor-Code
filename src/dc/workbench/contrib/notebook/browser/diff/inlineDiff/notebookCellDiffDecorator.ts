@@ -23,7 +23,6 @@ import { minimapGutterAddedBackground, minimapGutterDeletedBackground, minimapGu
 import { INotebookOriginalCellModelFactory } from './notebookOriginalCellModelFactory.js';
 import { InlineDecoration, InlineDecorationType } from '../../../../../../editor/common/viewModel/inlineDecorations.js';
 
-//TODO: allow client to set read-only - chateditsession should set read-only while making changes
 export class NotebookCellDiffDecorator extends DisposableStore {
 	private _viewZones: string[] = [];
 	private readonly throttledDecorator = this.add(new ThrottledDelayer(50));
@@ -199,7 +198,6 @@ export class NotebookCellDiffDecorator extends DisposableStore {
 						InlineDecorationType.Regular
 					));
 
-					// If the original range is empty, the start line number is 1 and the new range spans the entire file, don't draw an Added decoration
 					if (!(i.originalRange.isEmpty() && i.originalRange.startLineNumber === 1 && i.modifiedRange.endLineNumber === editorLineCount) && !i.modifiedRange.isEmpty()) {
 						modifiedVisualDecorations.push({
 							range: i.modifiedRange, options: chatDiffAddDecoration
@@ -207,8 +205,6 @@ export class NotebookCellDiffDecorator extends DisposableStore {
 					}
 				}
 
-				// Render an added decoration but don't also render a deleted decoration for newly inserted content at the start of the file
-				// Note, this is a workaround for the `LineRange.isEmpty()` in diffEntry.original being `false` for newly inserted content
 				const isCreatedContent = decorations.length === 1 && decorations[0].range.isEmpty() && diffEntry.original.startLineNumber === 1;
 
 				if (!diffEntry.modified.isEmpty && !(isCreatedContent && (diffEntry.modified.endLineNumberExclusive - 1) === editorLineCount)) {
@@ -219,19 +215,16 @@ export class NotebookCellDiffDecorator extends DisposableStore {
 				}
 
 				if (diffEntry.original.isEmpty) {
-					// insertion
 					modifiedVisualDecorations.push({
 						range: diffEntry.modified.toInclusiveRange()!,
 						options: addedDecoration
 					});
 				} else if (diffEntry.modified.isEmpty) {
-					// deletion
 					modifiedVisualDecorations.push({
 						range: new Range(diffEntry.modified.startLineNumber - 1, 1, diffEntry.modified.startLineNumber, 1),
 						options: deletedDecoration
 					});
 				} else {
-					// modification
 					modifiedVisualDecorations.push({
 						range: diffEntry.modified.toInclusiveRange()!,
 						options: modifiedDecoration
@@ -248,7 +241,7 @@ export class NotebookCellDiffDecorator extends DisposableStore {
 						afterLineNumber: diffEntry.modified.startLineNumber - 1,
 						heightInLines: result.heightInLines,
 						domNode,
-						ordinal: 50000 + 2 // more than https://github.com/microsoft/vscode/blob/bf52a5cfb2c75a7327c9adeaefbddc06d529dcad/src/vs/workbench/contrib/inlineChat/browser/inlineChatZoneWidget.ts#L42
+						ordinal: 50000 + 2
 					};
 
 					this._viewZones.push(viewZoneChangeAccessor.addZone(viewZoneData));

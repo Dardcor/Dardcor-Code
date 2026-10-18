@@ -283,7 +283,6 @@ suite('claudeReplayMapper', () => {
 		const messages: SessionMessage[] = [
 			makeUser('u1', 'do work'),
 			makeAssistantToolUse('a1', 'tu-orphan', 'Bash', { command: 'sleep 100' }),
-			// no matching tool_result — model crashed mid-turn
 		];
 
 		const turns = mapSessionMessagesToTurns(messages, session, logService);
@@ -296,7 +295,6 @@ suite('claudeReplayMapper', () => {
 		const messages: SessionMessage[] = [
 			makeUser('u1', 'first'),
 			makeAssistantToolUse('a1', 'tu-orphan', 'Bash', {}),
-			// no tool_result for tu-orphan
 			makeUser('u2', 'second'),
 			makeAssistantText('a2', 'clean reply'),
 		];
@@ -337,10 +335,6 @@ suite('claudeReplayMapper', () => {
 	});
 
 	test('Fixture 9: CLI slash-command echo and local-command-stdout entries are dropped', () => {
-		// On-disk shape verified empirically (claude-history skill):
-		// the `/model` echo lacks `isSynthetic` / `isMeta`, content is a
-		// raw string starting with `<command-name>`. Same for the
-		// `<local-command-stdout>` paired entry.
 		const messages: SessionMessage[] = [
 			makeUser('u1', 'what model are you'),
 			makeAssistantText('a1', 'sonnet'),
@@ -374,12 +368,6 @@ suite('claudeReplayMapper', () => {
 	});
 
 	test('Fixture 10: prompt-less subagent transcript (inner messages) maps to one turn', () => {
-		// A subagent transcript from `getSubagentMessages` carries a
-		// `parent_tool_use_id` on every envelope and has NO synthetic spawning
-		// user prompt, so it opens directly with an assistant message. The
-		// builder must synthesize an empty-prompt turn rather than dropping the
-		// inner assistant content (which would lose the whole transcript on
-		// replay). Shape mirrors a real captured subagent transcript.
 		const parent = 'toolu_parent';
 		const messages: SessionMessage[] = [
 			{
@@ -415,11 +403,6 @@ suite('claudeReplayMapper', () => {
 	});
 
 	test('Fixture 10b: top-level assistant before any user message is recovered under a placeholder prompt', () => {
-		// A truncated transcript slice (the SDK returns only the bytes after
-		// the last compact boundary for large sessions) can open mid-turn,
-		// with the user prompt cut off. The reply must still be recovered —
-		// dropping it empties the whole chat when the slice contains no user
-		// message at all.
 		const messages: SessionMessage[] = [
 			makeAssistantText('a1', 'promptless reply'),
 			makeUser('u1', 'hello'),
@@ -435,9 +418,6 @@ suite('claudeReplayMapper', () => {
 	});
 
 	test('a transcript slice with no user message at all still yields turns', () => {
-		// The reported failure mode: every envelope in the slice belonged to
-		// one long agentic turn whose prompt was truncated away, so the whole
-		// session replayed as zero turns and the chat rendered empty.
 		const messages: SessionMessage[] = [
 			makeAssistantToolUse('a1', 'tu1', 'Bash', { command: 'ls' }),
 			makeUserToolResult('r1', 'tu1', 'file.txt'),
@@ -511,7 +491,6 @@ suite('resolveForkAnchorUuid', () => {
 		};
 	}
 
-	// 3-turn transcript shared by the fork-position fixtures.
 	const threeTurns: SessionMessage[] = [
 		makeUser('u1', 'apple'),
 		makeAssistantText('a1', 'apple!'),
@@ -582,9 +561,6 @@ suite('resolveForkAnchorUuid', () => {
 	});
 
 	test('a promptless leading turn is anchorable, mirroring the replay builder', () => {
-		// The builder opens a turn keyed on the leading assistant envelope when
-		// the prompt is missing from the slice; the resolver must agree or a
-		// fork from that turn cannot be anchored.
 		const messages: SessionMessage[] = [
 			makeAssistantText('a1', 'promptless reply'),
 			makeUser('u1', 'next'),
@@ -612,8 +588,6 @@ suite('resolveForkAnchorUuid', () => {
 			makeUser('u2', 'next'),
 			makeAssistantText('a2', 'ok'),
 		];
-		// The CLI-echo envelope must not be treated as the start of a new turn,
-		// so turn u1's anchor is still a1 (not echo-1, not undefined).
 		assert.strictEqual(resolveForkAnchorUuid(messages, 'u1'), 'a1');
 	});
 });

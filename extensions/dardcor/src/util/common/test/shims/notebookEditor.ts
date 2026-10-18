@@ -41,7 +41,6 @@ export class ExtHostNotebookEditor {
 					return [];
 				},
 				revealRange(range, revealType) {
-					// no-op
 				},
 				get viewColumn() {
 					return that._viewColumn;

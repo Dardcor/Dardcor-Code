@@ -25,18 +25,6 @@ import {
 	IBrowserUrlRenderer,
 } from '../browserEditor.js';
 
-/**
- * Renders the full-pane error overlay (load failures and certificate errors)
- * inside the browser container, plus drives the navbar's cert indicator and
- * the cert-aware URL display rendering.
- *
- * Subscribes to model loading-state and navigation events and rebuilds the
- * DOM on each transition. When the underlying load error carries certificate
- * info, an additional details table and trust/back action buttons are
- * rendered inline. The site-info widget ("Not Secure" indicator) is
- * contributed as a pre-URL widget and the cert URL renderer marks the
- * `https:` prefix when a cert error is active.
- */
 class BrowserEditorErrorFeatures extends BrowserEditorContribution {
 
 	private readonly _element = $('.browser-error-container');
@@ -54,7 +42,6 @@ class BrowserEditorErrorFeatures extends BrowserEditorContribution {
 	) {
 		super(editor);
 		this._element.style.display = 'none';
-		// Sit above the placeholder screenshot and overlay-pause (orders 100/200).
 		this._content = { location: BrowserWidgetLocation.ContentArea, element: this._element, order: 300 };
 
 		this._siteInfoWidget = this._register(instantiationService.createInstance(SiteInfoWidget, this._siteInfoSlot, editor));
@@ -102,9 +89,6 @@ class BrowserEditorErrorFeatures extends BrowserEditorContribution {
 
 	private _updateCertState(): void {
 		const model = this.editor.model;
-		// Cover both paths: the cert from the most recent successful navigation
-		// (model.certificateError, set when the user trusted a cert this session)
-		// and the cert that caused the current load error.
 		const cert = model?.certificateError ?? model?.error?.certificateError;
 		this._siteInfoWidget.setCertificateError(cert);
 		this._urlRenderer.setCertificateError(cert);
@@ -137,15 +121,12 @@ class BrowserEditorErrorFeatures extends BrowserEditorContribution {
 			: `${error.errorDescription} (${error.errorCode})`;
 		errorMessage.appendChild(errorText);
 
-		// Show cert error name below description, above URL
 		if (error.certificateError) {
 			const extraWarning = $('b.browser-error-detail');
 			extraWarning.textContent = localize('browser.certErrorExtraWarning', " Your connection is not private.");
 			errorMessage.appendChild(extraWarning);
 		}
 
-		// Failures to connect via remote proxy can surface as unusual errors.
-		// We add a readable label in these cases as a hint to the user.
 		if (this.editor.model?.isRemoteSession) {
 			const remoteWarning = error.errorCode === -111 || error.errorCode === -324
 				? localize('browser.remoteErrorExtraWarning', "This usually means the host could not be found.\nEnsure the URL is correct and the server is accessible from the remote machine.")
@@ -242,11 +223,6 @@ class BrowserEditorErrorFeatures extends BrowserEditorContribution {
 	}
 }
 
-/**
- * URL renderer that, when a certificate error is active, splits an `https:`
- * prefix into its own span (styled with a red strikethrough via CSS). Other
- * URLs (and non-cert-error states) fall through to plain text.
- */
 class CertUrlRenderer implements IBrowserUrlRenderer {
 	private static readonly HTTPS_PREFIX = 'https:';
 
@@ -286,11 +262,6 @@ class CertUrlRenderer implements IBrowserUrlRenderer {
 	}
 }
 
-/**
- * Indicator button inside the URL bar that surfaces site security information
- * (e.g. certificate errors). Click/Enter shows a hover popover with details
- * and (if the user has previously trusted the cert) a revoke action.
- */
 class SiteInfoWidget extends Disposable {
 
 	private readonly _container: HTMLElement;
@@ -325,7 +296,6 @@ class SiteInfoWidget extends Disposable {
 		}));
 	}
 
-	/** Update visibility and state from a certificate error (or lack thereof). */
 	setCertificateError(certError: IBrowserViewCertificateError | undefined): void {
 		this._certError = certError;
 		this._container.style.display = certError ? '' : 'none';
@@ -368,14 +338,12 @@ class SiteInfoWidget extends Disposable {
 			revokeLink.tabIndex = 0;
 			revokeLink.addEventListener('click', () => {
 				hover?.dispose();
-				// This automatically closes the browser view.
 				this._editor.model?.untrustCertificate(certError.host, certError.fingerprint);
 			});
 			revokeLink.addEventListener('keydown', (e) => {
 				if (e.key === 'Enter' || e.key === ' ') {
 					e.preventDefault();
 					hover?.dispose();
-					// This automatically closes the browser view.
 					this._editor.model?.untrustCertificate(certError.host, certError.fingerprint);
 				}
 			});

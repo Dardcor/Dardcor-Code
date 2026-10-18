@@ -97,9 +97,8 @@ export class InlineEditsLineReplacementView extends Disposable implements IInlin
 					decorations.push(new InlineDecoration(new Range(1, modified.startColumn, 1, validatedEndColumn), 'inlineCompletions-modified-bubble', InlineDecorationType.Regular));
 				}
 
-				// TODO: All lines should be rendered at once for one dom element
 				const result = renderLines(new LineSource([tokens]), RenderOptions.fromEditor(this._editor.editor).withSetWidth(false).withScrollBeyondLastColumn(0), decorations, line, true);
-				this._editor.getOption(EditorOption.fontInfo).read(reader); // update when font info changes
+				this._editor.getOption(EditorOption.fontInfo).read(reader);
 
 				requiredWidth = Math.max(requiredWidth, result.minWidthInPx);
 
@@ -144,7 +143,6 @@ export class InlineEditsLineReplacementView extends Disposable implements IInlin
 			const topOfOriginalLines = this._editor.editor.getTopForLineNumber(startLineNumber) - scrollTop;
 			const bottomOfOriginalLines = this._editor.editor.getBottomForLineNumber(endLineNumber) - scrollTop;
 
-			// Box Widget positioning
 			const originalLinesOverlay = Rect.fromLeftTopWidthHeight(
 				editorLeftOffset + prefixLeftOffset,
 				topOfOriginalLines,
@@ -269,7 +267,7 @@ export class InlineEditsLineReplacementView extends Disposable implements IInlin
 								pointerEvents: 'auto',
 							},
 							onmousedown: e => {
-								e.preventDefault(); // This prevents that the editor loses focus
+								e.preventDefault();
 							},
 							onclick: (e) => this._onDidClick.fire(InlineEditClickEvent.create(e)),
 						}, [
@@ -334,7 +332,6 @@ export class InlineEditsLineReplacementView extends Disposable implements IInlin
 		return layout.lowerBackground.containsPoint(new Point(e.event.relativePos.x, e.event.relativePos.y));
 	}
 
-	// View Zones
 	private _previousViewZoneInfo: { height: number; lineNumber: number; id: string } | undefined;
 
 	private removePreviousViewZone(changeAccessor: IViewZoneChangeAccessor) {
@@ -355,7 +352,7 @@ export class InlineEditsLineReplacementView extends Disposable implements IInlin
 	private addViewZone(viewZoneInfo: { height: number; lineNumber: number }, changeAccessor: IViewZoneChangeAccessor) {
 		const activeViewZone = changeAccessor.addZone({
 			afterLineNumber: viewZoneInfo.lineNumber - 1,
-			heightInPx: viewZoneInfo.height, // move computation to layout?
+			heightInPx: viewZoneInfo.height,
 			domNode: $('div'),
 		});
 
@@ -374,7 +371,7 @@ function rangesToBubbleRanges(ranges: Range[]): Range[] {
 		let range = ranges.shift()!;
 		if (range.startLineNumber !== range.endLineNumber) {
 			ranges.push(new Range(range.startLineNumber + 1, 1, range.endLineNumber, range.endColumn));
-			range = new Range(range.startLineNumber, range.startColumn, range.startLineNumber, Number.MAX_SAFE_INTEGER); // TODO: this is not correct
+			range = new Range(range.startLineNumber, range.startColumn, range.startLineNumber, Number.MAX_SAFE_INTEGER);
 		}
 
 		result.push(range);

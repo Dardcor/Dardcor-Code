@@ -70,7 +70,6 @@ export class ViewCursor {
 
 		this._isVisible = true;
 
-		// Create the dom node
 		this._domNode = createFastDomNode(document.createElement('div'));
 		this._domNode.setClassName(`cursor ${MOUSE_CURSOR_TEXT_CSS_CLASS_NAME}`);
 		this._domNode.setHeight(this._context.viewLayout.getLineHeightForLineNumber(1));
@@ -149,10 +148,6 @@ export class ViewCursor {
 		return true;
 	}
 
-	/**
-	 * If `this._position` is inside a grapheme, returns the position where the grapheme starts.
-	 * Also returns the next grapheme.
-	 */
 	private _getGraphemeAwarePosition(): [Position, string] {
 		const { lineNumber, column } = this._position;
 		const lineContent = this._context.viewModel.getLineContent(lineNumber);
@@ -167,7 +162,7 @@ export class ViewCursor {
 		const lineHeight = this._context.viewLayout.getLineHeightForLineNumber(position.lineNumber);
 		const lineCursorHeight = (
 			this._lineCursorHeight === 0
-				? lineHeight // 0 indicates that the cursor should take the full line height
+				? lineHeight
 				: Math.min(lineHeight, this._lineCursorHeight)
 		);
 		const lineHeightAdjustment = (lineHeight - lineCursorHeight) / 2;
@@ -175,7 +170,6 @@ export class ViewCursor {
 		if (this._cursorStyle === TextEditorCursorStyle.Line || this._cursorStyle === TextEditorCursorStyle.LineThin) {
 			const visibleRange = ctx.visibleRangeForPosition(position);
 			if (!visibleRange || visibleRange.outsideRenderedLine) {
-				// Outside viewport
 				return null;
 			}
 
@@ -194,7 +188,6 @@ export class ViewCursor {
 			let left = visibleRange.left;
 			let paddingLeft = 0;
 			if (width >= 2 && left >= 1) {
-				// shift the cursor a bit between the characters
 				paddingLeft = 1;
 				left -= paddingLeft;
 			}
@@ -205,13 +198,11 @@ export class ViewCursor {
 
 		const visibleRangeForCharacter = ctx.linesVisibleRangesForRange(new Range(position.lineNumber, position.column, position.lineNumber, position.column + nextGrapheme.length), false);
 		if (!visibleRangeForCharacter || visibleRangeForCharacter.length === 0) {
-			// Outside viewport
 			return null;
 		}
 
 		const firstVisibleRangeForCharacter = visibleRangeForCharacter[0];
 		if (firstVisibleRangeForCharacter.outsideRenderedLine || firstVisibleRangeForCharacter.ranges.length === 0) {
-			// Outside viewport
 			return null;
 		}
 
@@ -232,7 +223,6 @@ export class ViewCursor {
 		let top = ctx.getVerticalOffsetForLineNumber(position.lineNumber) - ctx.bigNumbersDelta;
 		let height = lineHeight;
 
-		// Underline might interfere with clicking
 		if (this._cursorStyle === TextEditorCursorStyle.Underline || this._cursorStyle === TextEditorCursorStyle.UnderlineThin) {
 			top += lineHeight - 2;
 			height = 2;

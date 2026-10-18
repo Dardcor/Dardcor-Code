@@ -14,7 +14,6 @@ import { ResolveSessionConfigResult } from '../../../../../platform/agentHost/co
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { IChatWidget } from '../../../../contrib/chat/browser/chat.js';
-import { OpenAgentHostAutoApprovePickerAction, OpenAgentHostModePickerAction } from '../../../../contrib/chat/browser/agentSessions/agentHost/agentHostChatInputPicker.contribution.js';
 import { SessionType } from '../../../../contrib/chat/common/chatSessionsService.js';
 import { getNewChatSessionResource } from '../../../../contrib/chat/common/model/chatUri.js';
 import { ChatInputPart, IChatInputPartOptions, IChatInputStyles } from '../../../../contrib/chat/browser/widget/input/chatInputPart.js';
@@ -33,16 +32,8 @@ import { IChatPetService } from '../../../../contrib/chat/browser/chatPetService
 import { IChatPetWidgetService } from '../../../../contrib/chat/browser/widget/chatPetWidgetService.js';
 import { configureChatPetFixtureFileRoot, FixtureChatPetService, assertChatPetInScreenshot } from './chatPetFixtureUtils.js';
 
-/** Room above the input for the pet, which stands outside it. */
 const PET_HEADROOM = 64;
 
-/**
- * A standalone dictation / Voice Mode control rendered in the execute toolbar,
- * in one of the states its styling varies across. These controls are only shown
- * when the segmented voice pill isn't active, and each state changes some part
- * of the border / color / glow cascade in chat.css, so they are covered
- * individually rather than as a single "voice on" screenshot.
- */
 export type VoiceControlState =
 	| 'dictationIdle'
 	| 'dictationRecording'
@@ -55,9 +46,7 @@ export type VoiceControlState =
 
 interface IVoiceControlRendering {
 	readonly icon: ThemeIcon;
-	/** Applied to `.chat-input-container`, mirroring what the voice session controller does. */
 	readonly containerClasses?: readonly string[];
-	/** Applied to the toolbar `.action-item`, mirroring `setupDictationMicGlow`. */
 	readonly itemClasses?: readonly string[];
 }
 
@@ -87,31 +76,16 @@ export interface ChatInputFixtureOptions {
 	readonly artifacts?: readonly { label: string; uri: string; type: 'devServer' | 'screenshot' | 'plan' | undefined }[];
 	readonly editingSession?: IChatEditingSession;
 	readonly todos?: IChatTodo[];
-	/** Enables the agent sandbox setting so the permission picker renders its sandboxed state. */
 	readonly sandboxingEnabled?: boolean;
-	/** Seeds the input editor with this text. */
 	readonly value?: string;
-	/** Selects this range after seeding the text, to exercise selection rendering (e.g. reverse-rounded corners). */
 	readonly selection?: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number };
-	/** Sets the fixture width, useful for exercising the compact picker layout. */
 	readonly width?: number;
-	/** Applies additional widths after initial layout to exercise responsive restoration. */
 	readonly resizeWidths?: readonly number[];
-	/** Supplies models so the picker renders provider icons. */
 	readonly models?: readonly ILanguageModelChatMetadataAndIdentifier[];
-	/** Renders the production Copilot Agent Host mode and permissions pickers. */
 	readonly agentHostSessionConfig?: ResolveSessionConfigResult;
-	/** Renders a standalone dictation / Voice Mode control in the given state. */
 	readonly voiceControl?: VoiceControlState;
-	/**
-	 * Docks a notification above the input. Drives the real notification service,
-	 * so the seam between the notice and the input is produced by the stack
-	 * rather than staged.
-	 */
 	readonly notification?: IChatInputNotification;
-	/** Stands the pet on the input, wired the way `ChatWidget` wires it. */
 	readonly pet?: boolean;
-	/** Overrides the secondary picker labels for visual states such as Plan / Allow All. */
 	readonly secondaryPickerLabels?: readonly [target: string, permission: string];
 }
 
@@ -122,7 +96,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 	const artifactsObs = observableValue<readonly IArtifactSourceGroup[]>('artifactGroups', artifactGroups);
 	const sessionResource = agentHostSessionConfig ? getNewChatSessionResource(SessionType.AgentHostCopilot) : undefined;
 
-	// Sprite sheets are resolved against the file root.
 	if (pet) {
 		configureChatPetFixtureFileRoot(disposableStore);
 	}
@@ -180,7 +153,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 	container.style.width = `${width}px`;
 	container.style.backgroundColor = 'var(--vscode-sideBar-background, var(--vscode-editor-background))';
 	container.classList.add('monaco-workbench');
-	// Keeps the pet, which stands above the input, inside the screenshot.
 	if (pet) {
 		container.style.paddingTop = `${PET_HEADROOM}px`;
 	}
@@ -195,8 +167,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 	menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.openModelPicker', title: 'GPT-5.3-Codex' }, group: 'navigation', order: 3 });
 	menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.configureTools', title: '', icon: Codicon.settingsCompact }, group: 'navigation', order: 100 });
 	if (voiceControl) {
-		// Order 2 puts the voice control between the pickers and Send, where the
-		// real dictation / Voice Mode actions are contributed.
 		menuService.addItem(MenuId.ChatExecute, { command: { id: 'fixture.voiceControl', title: 'Voice', icon: voiceControlRenderings[voiceControl].icon }, group: 'navigation', order: 2 });
 	}
 	menuService.addItem(MenuId.ChatExecute, { command: { id: 'workbench.action.chat.submit', title: 'Send', icon: Codicon.arrowUpCompact }, group: 'navigation', order: 4 });
@@ -205,8 +175,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 	if (hasCustomSecondaryPickerLabels) {
 		menuService.addItem(MenuId.ChatInputSecondary, { command: { id: 'fixture.secondaryPermission', title: secondaryPickerLabels[1] }, group: 'navigation', order: 10 });
 	} else if (agentHostSessionConfig) {
-		menuService.addItem(MenuId.ChatInputSecondary, { command: { id: OpenAgentHostModePickerAction.ID, title: 'Agent Mode' }, group: 'navigation', order: 0.7 });
-		menuService.addItem(MenuId.ChatInputSecondary, { command: { id: OpenAgentHostAutoApprovePickerAction.ID, title: 'Auto-Approve' }, group: 'navigation', order: 0.8 });
 	} else {
 		menuService.addItem(MenuId.ChatInputSecondary, { command: { id: 'workbench.action.chat.openPermissionPicker', title: 'Default Permissions' }, group: 'navigation', order: 10 });
 	}
@@ -218,8 +186,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 		menus: { executeToolbar: MenuId.ChatExecute, telemetrySource: 'fixture' },
 		widgetViewKindTag: 'view',
 		inputEditorMinLines: 2,
-		// The sandbox toggle is specific to the local harness, so present the
-		// input as the local session type when exercising the sandboxed state.
 		sessionTypePickerDelegate: agentHostSessionConfig
 			? { getActiveSessionProvider: () => SessionType.AgentHostCopilot }
 			: sandboxingEnabled
@@ -244,7 +210,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 	inputPart.render(session, '', mockWidget);
 
 	if (pet) {
-		// The same host `ChatWidget` registers, so the platform comes from the input part.
 		disposableStore.add(instantiationService.invokeFunction(accessor => accessor.get(IChatPetWidgetService).register(mockWidget, {
 			parent: inputPart.element,
 			dragBounds: inputPart.inputContainerElement ?? inputPart.element,
@@ -286,11 +251,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 	}
 
 	if (voiceControl) {
-		// Apply the state classes the voice session controller and the mic-glow
-		// helper set at runtime. They are the contract between those components
-		// and the border / color / glow rules in chat.css, so driving them here
-		// is what lets a screenshot lock that cascade without standing up the
-		// whole speech service stack.
 		const { containerClasses, itemClasses } = voiceControlRenderings[voiceControl];
 		if (containerClasses?.length) {
 			session.querySelector('.chat-input-container')?.classList.add(...containerClasses);
@@ -298,8 +258,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 		if (itemClasses?.length) {
 			const item = session.querySelector('.chat-execute-toolbar .monaco-action-bar .action-item');
 			item?.classList.add(...itemClasses);
-			// The glow's intensity is audio-reactive at runtime; pin it so the
-			// screenshot is deterministic.
 			(item as HTMLElement | null)?.style.setProperty('--dictation-mic-level', '0.6');
 		}
 	}

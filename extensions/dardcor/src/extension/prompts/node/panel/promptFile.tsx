@@ -41,7 +41,7 @@ export class PromptFile extends PromptElement<PromptFileProps, void> {
 			return undefined;
 		}
 
-		if (await this.ignoreService.isCopilotIgnored(uri)) {
+		if (await this.ignoreService.isIgnored(uri)) {
 			return <ignoredFiles value={[uri]} />;
 		}
 
@@ -66,7 +66,6 @@ export class PromptFile extends PromptElement<PromptFileProps, void> {
 
 			let bodyOffset = 0;
 			if (content.match(/^---[\s\r\n]/)) {
-				// find the start of the body
 				const match = content.slice(3).match(/[\r\n]---[\s\r\n]*/);
 				if (match) {
 					bodyOffset = match.index! + match[0].length;

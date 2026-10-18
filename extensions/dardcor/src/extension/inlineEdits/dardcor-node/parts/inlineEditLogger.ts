@@ -16,11 +16,6 @@ export class InlineEditLogger extends Disposable {
 		super();
 	}
 
-	/**
-	 * Add a live log entry that appears immediately in the tree with dynamic content.
-	 * Content and icon are resolved on-demand from the logContext, and the entry
-	 * refreshes automatically as the logContext state changes.
-	 */
 	addLive(request: InlineEditRequestLogContext): void {
 		this._requestLogger.addEntry({
 			type: LoggedRequestKind.MarkdownContentRequest,

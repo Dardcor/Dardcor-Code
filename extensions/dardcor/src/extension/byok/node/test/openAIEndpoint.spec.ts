@@ -18,7 +18,6 @@ import { IInstantiationService } from '../../../../util/dardcor/platform/instant
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { OpenAIEndpoint } from '../openAIEndpoint';
 
-// Test fixtures for thinking content
 const createThinkingMessage = (thinkingId: string, thinkingText: string): Raw.ChatMessage => ({
 	role: Raw.ChatRole.Assistant,
 	content: [
@@ -148,19 +147,6 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 			expect(messages[0].cot_summary).toBe('this is my reasoning');
 		});
 
-		// Regression for https://github.com/microsoft/vscode/issues/312746
-		//
-		// When DeepSeek / Moonshot (Kimi) / Minimax reasoning models are used via BYOK
-		// (either directly through the OpenAI-compatible API or proxied through OpenRouter),
-		// the *next* turn after a tool call previously failed with HTTP 400 and an error such as:
-		//
-		//   "thinking is enabled but reasoning_content is missing in assistant tool call
-		//    message at index N"
-		//
-		// These providers require the assistant tool-call message in the request history to
-		// echo back the reasoning text under the field name `reasoning_content`. The OpenAI
-		// Chat Completions BYOK path in `OpenAIEndpoint.createRequestBody` must therefore
-		// emit `reasoning_content` alongside the CAPI-specific `cot_id` / `cot_summary` keys.
 		it('issue #312746: emits reasoning_content on assistant tool-call message for BYOK Chat Completions (DeepSeek/Kimi/Moonshot)', () => {
 			const endpoint = instaService.createInstance(OpenAIEndpoint,
 				{
@@ -177,14 +163,11 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 			const body = endpoint.createRequestBody(createTestOptions([thinkingMessage]));
 			const messages = body.messages as any[];
 
-			// CAPI-compatible keys are still emitted so the same payload also works with CAPI.
 			expect(messages[0].cot_id).toBe('reasoning-deepseek-1');
 			expect(messages[0].cot_summary).toBe('The user asked me to analyze the project. I should call the read_file tool.');
 
-			// And the DeepSeek/Kimi/Moonshot-required field is now present.
 			expect(messages[0].reasoning_content).toBe('The user asked me to analyze the project. I should call the read_file tool.');
 
-			// OpenRouter expects the reasoning echoed back under `reasoning`.
 			expect(messages[0].reasoning).toBe('The user asked me to analyze the project. I should call the read_file tool.');
 		});
 
@@ -205,7 +188,6 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 			const body = endpoint.createRequestBody(createTestOptions([thinkingMessage]));
 			const messages = body.messages as any[];
 
-			// CAPI-compatible keys remain, but the reasoning-model fields are omitted.
 			expect(messages[0].cot_id).toBe('reasoning-1');
 			expect(messages[0].cot_summary).toBe('some reasoning');
 			expect(messages[0].reasoning_content).toBeUndefined();
@@ -234,11 +216,9 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 			const messages = body.messages as any[];
 			expect(messages).toHaveLength(2);
 
-			// User message should not have thinking properties
 			expect(messages[0].cot_id).toBeUndefined();
 			expect(messages[0].cot_summary).toBeUndefined();
 
-			// Assistant message should have thinking properties
 			expect(messages[1].cot_id).toBe('reasoning-456');
 			expect(messages[1].cot_summary).toBe('complex reasoning here');
 		});
@@ -270,7 +250,7 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 			expect(body.store).toBe(true);
 			expect(body.n).toBeUndefined();
 			expect(body.stream_options).toBeUndefined();
-			expect(body.reasoning).toBeDefined(); // Should preserve reasoning object
+			expect(body.reasoning).toBeDefined();
 		});
 
 		it('should remove reasoning object when thinking is not supported', () => {
@@ -295,7 +275,7 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 
 			const body = endpoint.createRequestBody(options);
 
-			expect(body.reasoning).toBeUndefined(); // Should be removed
+			expect(body.reasoning).toBeUndefined();
 		});
 
 		it('omits previous_response_id when a caller explicitly ignores a valid Responses stateful marker', () => {
@@ -556,7 +536,6 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 		});
 
 		it('scrubs `output_config.effort` while preserving other `output_config` fields', () => {
-			// `output_config` also carries structured-output fields (e.g. `format`); only the effort may be rewritten
 			const endpoint = instaService.createInstance(OpenAIEndpoint,
 				buildModel({ supported_endpoints: [ModelSupportedEndpoint.Messages] }),
 				'test-api-key',
@@ -585,8 +564,6 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 		});
 
 		it('scrubs an unsupported `reasoning.effort` pre-populated by `createResponsesRequestBody` on a Responses request', () => {
-			// `createResponsesRequestBody` hard-codes a `'medium'` default. If the model only supports
-			// e.g. `['low', 'high']`, that default must not leak through to the wire.
 			const endpoint = instaService.createInstance(OpenAIEndpoint,
 				buildModel({
 					supported_endpoints: [ModelSupportedEndpoint.Responses],
@@ -607,8 +584,6 @@ describe('OpenAIEndpoint - Reasoning Properties', () => {
 		});
 
 		it('scrubs an unsupported pre-populated value while preserving other reasoning fields', () => {
-			// Direct invocation via the Chat Completions path: synthesize a body that already carries an
-			// unsupported effort plus a `summary` field, and verify only the effort is dropped.
 			const endpoint = instaService.createInstance(OpenAIEndpoint,
 				buildModel({
 					reasoningEffortFormat: 'responses',

@@ -32,27 +32,10 @@ declare module 'gulp-sourcemaps' {
 const REPO_ROOT_PATH = path.join(import.meta.dirname, '../..');
 
 export interface IBundleESMTaskOpts {
-	/**
-	 * The folder to read files from.
-	 */
 	src: string;
-	/**
-	 * The entry points to bundle.
-	 */
 	entryPoints: Array<bundle.IEntryPoint | string>;
-	/**
-	 * Other resources to consider (svg, etc.)
-	 */
 	resources?: string[];
-	/**
-	 * File contents interceptor for a given path.
-	 */
 	fileContentMapper?: (path: string) => ((contents: string) => Promise<string> | string) | undefined;
-	/**
-	 * Allows to skip the removal of TS boilerplate. Use this when
-	 * the entry point is small and the overhead of removing the
-	 * boilerplate makes the file larger in the end.
-	 */
 	skipTSBoilerplateRemoval?: (entryPointName: string) => boolean;
 }
 
@@ -63,8 +46,8 @@ const DEFAULT_FILE_HEADER = [
 ].join('\n');
 
 function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
-	const resourcesStream = es.through(); // this stream will contain the resources
-	const bundlesStream = es.through(); // this stream will contain the bundled files
+	const resourcesStream = es.through();
+	const bundlesStream = es.through();
 
 	const target = getBuildTarget();
 
@@ -83,16 +66,13 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 		for (const entryPoint of entryPoints) {
 			fancyLog(`Bundled entry point: ${ansiColors.yellow(entryPoint.name)}...`);
 
-			// support for 'dest' via esbuild#in/out
 			const dest = entryPoint.dest?.replace(/\.[^/.]+$/, '') ?? entryPoint.name;
 
-			// banner contents
 			const banner = {
 				js: DEFAULT_FILE_HEADER,
 				css: DEFAULT_FILE_HEADER
 			};
 
-			// TS Boilerplate
 			if (!opts.skipTSBoilerplateRemoval?.(entryPoint.name)) {
 				const tslibPath = path.join(require.resolve('tslib'), '../tslib.es6.js');
 				banner.js += await fs.promises.readFile(tslibPath, 'utf-8');
@@ -104,7 +84,6 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 					build.onLoad({ filter: /\.js$/ }, async ({ path }) => {
 						const contents = await fs.promises.readFile(path, 'utf-8');
 
-						// TS Boilerplate
 						let newContents: string;
 						if (!opts.skipTSBoilerplateRemoval?.(entryPoint.name)) {
 							newContents = bundle.removeAllTSBoilerplate(contents);
@@ -112,7 +91,6 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 							newContents = contents;
 						}
 
-						// File Content Mapper
 						const mapper = opts.fileContentMapper?.(path.replace(/\\/g, '/'));
 						if (mapper) {
 							newContents = await mapper(newContents);
@@ -126,8 +104,6 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 			const externalOverride: esbuild.Plugin = {
 				name: 'external-override',
 				setup(build) {
-					// We inline selected modules that are we depend on on startup without
-					// a conditional `await import(...)` by hooking into the resolution.
 					build.onResolve({ filter: /^minimist$/ }, () => {
 						return { path: path.join(REPO_ROOT_PATH, 'node_modules', 'minimist', 'index.js'), external: false };
 					});
@@ -136,8 +112,8 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 
 			const task = esbuild.build({
 				bundle: true,
-				packages: 'external', // "external all the things", see https://esbuild.github.io/api/#packages
-				platform: 'neutral', // makes esm
+				packages: 'external',
+				platform: 'neutral',
 				format: 'esm',
 				sourcemap: 'external',
 				plugins: [contentsMapper, externalOverride],
@@ -148,7 +124,7 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 					'.png': 'file',
 					'.sh': 'file',
 				},
-				assetNames: 'media/[name]', // moves media assets into a sub-folder "media"
+				assetNames: 'media/[name]',
 				banner,
 				entryPoints: [
 					{
@@ -157,9 +133,8 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 					}
 				],
 				outdir: path.join(REPO_ROOT_PATH, opts.src),
-				write: false, // enables res.outputFiles
-				metafile: true, // enables res.metafile
-				// minify: NOT enabled because we have a separate minify task that takes care of the TSLib banner as well
+				write: false,
+				metafile: true,
 			}).then(res => {
 				for (const file of res.outputFiles) {
 					let sourceMapFile: esbuild.OutputFile | undefined = undefined;
@@ -169,7 +144,7 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 
 					const fileProps = {
 						contents: Buffer.from(file.contents),
-						sourceMap: sourceMapFile ? JSON.parse(sourceMapFile.text) : undefined, // support gulp-sourcemaps
+						sourceMap: sourceMapFile ? JSON.parse(sourceMapFile.text) : undefined,
 						path: file.path,
 						base: path.join(REPO_ROOT_PATH, opts.src)
 					};
@@ -186,10 +161,8 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 
 	bundleAsync().then((output) => {
 
-		// bundle output (JS, CSS, SVG...)
 		es.readArray(output.files).pipe(bundlesStream);
 
-		// forward all resources
 		gulp.src(opts.resources ?? [], { base: `${opts.src}`, allowEmpty: true }).pipe(resourcesStream);
 	});
 
@@ -207,13 +180,7 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 }
 
 export interface IBundleTaskOpts {
-	/**
-	 * Destination folder for the bundled files.
-	 */
 	out: string;
-	/**
-	 * Bundle ESM modules (using esbuild).
-	*/
 	esm: IBundleESMTaskOpts;
 }
 
@@ -242,8 +209,8 @@ export function minifyTask(src: string, sourceMapBaseUrl?: string): (cb: any) =>
 					minify: true,
 					sourcemap: 'external',
 					outdir: '.',
-					packages: 'external', // "external all the things", see https://esbuild.github.io/api/#packages
-					platform: 'neutral', // makes esm
+					packages: 'external',
+					platform: 'neutral',
 					target: [target],
 					write: false,
 				}).then(res => {

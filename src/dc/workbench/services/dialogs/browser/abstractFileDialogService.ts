@@ -61,16 +61,13 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 
 	async defaultFilePath(schemeFilter = this.getSchemeFilterForWindow(), authorityFilter = this.getAuthorityFilterForWindow()): Promise<URI> {
 
-		// Check for last active file first...
 		let candidate = this.historyService.getLastActiveFile(schemeFilter, authorityFilter);
 
-		// Skip user data files (e.g. Machine/settings.json) as default path candidates
 		if (candidate && await this.isRemoteUserData(candidate)) {
 			this.logService.debug(`[FileDialogService] Skipping last active file as it is a remote user data resource: ${candidate}`);
 			candidate = undefined;
 		}
 
-		// ...then for last active file root
 		if (!candidate) {
 			candidate = this.historyService.getLastActiveWorkspaceRoot(schemeFilter, authorityFilter);
 			if (candidate) {
@@ -91,14 +88,11 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 
 	async defaultFolderPath(schemeFilter = this.getSchemeFilterForWindow(), authorityFilter = this.getAuthorityFilterForWindow()): Promise<URI> {
 
-		// Check for last active file root first...
 		let candidate = this.historyService.getLastActiveWorkspaceRoot(schemeFilter, authorityFilter);
 
-		// ...then for last active file
 		if (!candidate) {
 			candidate = this.historyService.getLastActiveFile(schemeFilter, authorityFilter);
 
-			// Skip user data files (e.g. Machine/settings.json) as default path candidates
 			if (candidate && await this.isRemoteUserData(candidate)) {
 				this.logService.debug(`[FileDialogService] Skipping last active file as it is a remote user data resource: ${candidate}`);
 				candidate = undefined;
@@ -148,7 +142,6 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 	async defaultWorkspacePath(schemeFilter = this.getSchemeFilterForWindow()): Promise<URI> {
 		let defaultWorkspacePath: URI | undefined;
 
-		// Check for current workspace config file first...
 		if (this.contextService.getWorkbenchState() === WorkbenchState.WORKSPACE) {
 			const configuration = this.contextService.getWorkspace().configuration;
 			if (configuration?.scheme === schemeFilter && isSavedWorkspace(configuration, this.environmentService) && !isTemporaryWorkspace(configuration)) {
@@ -156,7 +149,6 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 			}
 		}
 
-		// ...then fallback to default file path
 		if (!defaultWorkspacePath) {
 			defaultWorkspacePath = await this.defaultFilePath(schemeFilter);
 		}
@@ -168,7 +160,6 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 		if (this.skipDialogs()) {
 			this.logService.trace('FileDialogService: refused to show save confirmation dialog in tests.');
 
-			// no veto when we are in extension dev testing mode because we cannot assume we run interactive
 			return ConfirmResult.DONT_SAVE;
 		}
 
@@ -179,7 +170,6 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 		if (this.environmentService.enableSmokeTestDriver) {
 			this.logService.warn('DialogService: Dialog requested during smoke test.');
 		}
-		// integration tests
 		return this.environmentService.isExtensionDevelopment && !!this.environmentService.extensionTestsLocationURI;
 	}
 
@@ -335,11 +325,6 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 		return this.getSimpleFileDialog().showSaveDialog(options);
 	}
 
-	/**
-	 * Checks whether the given resource is a remote user data file
-	 * that should not be used as a default file dialog path candidate.
-	 * This covers remote user data files such as settings.json, keybindings.json, etc.
-	 */
 	private async isRemoteUserData(resource: URI): Promise<boolean> {
 		if (!this.environmentService.remoteAuthority) {
 			return false;
@@ -397,7 +382,6 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 
 		interface IFilter { name: string; extensions: string[] }
 
-		// Build the file filter by using our known languages
 		const ext: string | undefined = defaultUri ? resources.extname(defaultUri) : undefined;
 		let matchingFilter: IFilter | undefined;
 
@@ -410,37 +394,25 @@ export abstract class AbstractFileDialogService implements IFileDialogService {
 
 			const filter: IFilter = { name: languageName, extensions: distinct(extensions).slice(0, 10).map(e => trim(e, '.')) };
 
-			// https://github.com/microsoft/vscode/issues/115860
 			const extOrPlaintext = ext || PLAINTEXT_EXTENSION;
 			if (!matchingFilter && extensions.includes(extOrPlaintext)) {
 				matchingFilter = filter;
 
-				// The selected extension must be in the set of extensions that are in the filter list that is sent to the save dialog.
-				// If it isn't, add it manually. https://github.com/microsoft/vscode/issues/147657
 				const trimmedExt = trim(extOrPlaintext, '.');
 				if (!filter.extensions.includes(trimmedExt)) {
 					filter.extensions.unshift(trimmedExt);
 				}
 
-				return null; // first matching filter will be added to the top
+				return null;
 			}
 
 			return filter;
 		}));
 
-		// We have no matching filter, e.g. because the language
-		// is unknown. We still add the extension to the list of
-		// filters though so that it can be picked
-		// (https://github.com/microsoft/vscode/issues/96283)
 		if (!matchingFilter && ext) {
 			matchingFilter = { name: trim(ext, '.').toUpperCase(), extensions: [trim(ext, '.')] };
 		}
 
-		// Order of filters is
-		// - All Files (we MUST do this to fix macOS issue https://github.com/microsoft/vscode/issues/102713)
-		// - File Extension Match (if any)
-		// - All Languages
-		// - No Extension
 		options.filters = coalesce([
 			{ name: nls.localize('allFiles', "All Files"), extensions: ['*'] },
 			matchingFilter,

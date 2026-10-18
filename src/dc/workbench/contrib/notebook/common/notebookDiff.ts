@@ -25,10 +25,6 @@ interface ICell {
 	getHashValue(): number;
 	equal(cell: ICell): boolean;
 }
-// interface INotebookDiffResult {
-// 	cellsDiff: IDiffResult;
-// 	metadataChanged: boolean;
-// }
 
 export function computeDiff(originalModel: { readonly cells: readonly ICell[] }, modifiedModel: { readonly cells: readonly ICell[] }, diffResult: INotebookDiffResult) {
 	const cellChanges = diffResult.cellsDiff.changes;
@@ -40,7 +36,6 @@ export function computeDiff(originalModel: { readonly cells: readonly ICell[] },
 
 	for (let i = 0; i < cellChanges.length; i++) {
 		const change = cellChanges[i];
-		// common cells
 
 		for (let j = 0; j < change.originalStart - originalCellIndex; j++) {
 			const originalCell = originalModel.cells[originalCellIndex + j];
@@ -89,7 +84,6 @@ export function computeDiff(originalModel: { readonly cells: readonly ICell[] },
 
 function computeModifiedLCS(change: IDiffChange, originalModel: { readonly cells: readonly ICell[] }, modifiedModel: { readonly cells: readonly ICell[] }) {
 	const result: CellDiffInfo[] = [];
-	// modified cells
 	const modifiedLen = Math.min(change.originalLength, change.modifiedLength);
 
 	for (let j = 0; j < modifiedLen; j++) {
@@ -115,7 +109,6 @@ function computeModifiedLCS(change: IDiffChange, originalModel: { readonly cells
 	}
 
 	for (let j = modifiedLen; j < change.originalLength; j++) {
-		// deletion
 		result.push({
 			originalCellIndex: change.originalStart + j,
 			type: 'delete'

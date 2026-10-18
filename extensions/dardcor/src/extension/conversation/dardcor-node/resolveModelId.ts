@@ -5,11 +5,6 @@
 
 const autoModelId = 'dardcor/auto';
 
-/**
- * When the user has selected the "auto" model, replace the modelId with
- * the actual model that served the request so that downstream telemetry
- * reflects the resolved model rather than the opaque "dardcor/auto" identifier.
- */
 export function resolveModelIdForTelemetry(modelId: string, resolvedModel: string | undefined): string {
 	return modelId === autoModelId ? (resolvedModel || autoModelId) : modelId;
 }

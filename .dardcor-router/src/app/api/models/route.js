@@ -5,7 +5,6 @@ import { AI_MODELS } from "@/shared/constants/config";
 import { getProviderAlias } from "@/shared/constants/providers";
 import { getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
 
-// GET /api/models - Get models with aliases
 export async function GET() {
   try {
     const modelAliases = await getModelAliases();
@@ -37,7 +36,6 @@ export async function GET() {
         };
       });
 
-    // Custom models ride along; their stored caps override the name heuristic
     const seenFull = new Set(models.map((m) => m.fullModel));
     const customModels = (await getCustomModels()).filter((m) => {
       if (!m?.id || (m.kind || m.type || "llm") !== "llm") return false;
@@ -71,7 +69,6 @@ export async function GET() {
   }
 }
 
-// PUT /api/models - Update model alias
 export async function PUT(request) {
   try {
     const body = await request.json();
@@ -83,7 +80,6 @@ export async function PUT(request) {
 
     const modelAliases = await getModelAliases();
 
-    // Check if alias already exists for different model
     const existingModel = Object.entries(modelAliases).find(
       ([key, val]) => val === alias && key !== model
     );
@@ -92,7 +88,6 @@ export async function PUT(request) {
       return NextResponse.json({ error: "Alias already in use" }, { status: 400 });
     }
 
-    // Update alias
     await setModelAlias(model, alias);
 
     return NextResponse.json({ success: true, model, alias });

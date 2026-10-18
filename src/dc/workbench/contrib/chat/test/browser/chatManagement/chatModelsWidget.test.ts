@@ -15,12 +15,12 @@ import { ChatAgentLocation } from '../../../common/constants.js';
 function createModel(overrides: Partial<ILanguageModelChatMetadata> = {}): ILanguageModel {
 	return {
 		metadata: {
-			extension: new ExtensionIdentifier('github.copilot'),
+			extension: new ExtensionIdentifier('github.dardcor-chat'),
 			id: 'gpt-4',
 			name: 'GPT-4',
 			family: 'gpt-4',
 			version: '1.0',
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			maxInputTokens: 8192,
 			maxOutputTokens: 4096,
 			isUserSelectable: true,
@@ -29,10 +29,10 @@ function createModel(overrides: Partial<ILanguageModelChatMetadata> = {}): ILang
 			},
 			...overrides
 		},
-		identifier: 'copilot-gpt-4',
+		identifier: 'dardcor-gpt-4',
 		provider: {
-			vendor: { vendor: 'copilot', displayName: 'GitHub Copilot', isDefault: true },
-			group: { name: 'GitHub Copilot' }
+			vendor: { vendor: 'dardcor', displayName: 'Dardcor AI', isDefault: true },
+			group: { name: 'Dardcor AI' }
 		},
 	} as ILanguageModel;
 }
@@ -72,7 +72,6 @@ suite('ChatModelsWidget', () => {
 			const model = createModel({
 				inputCost: 3,
 				outputCost: 12
-				// cacheCost and cacheWriteCost intentionally omitted
 			});
 
 			const markdown = getModelHoverContent(model);
@@ -178,7 +177,6 @@ suite('ChatModelsWidget', () => {
 				v => { ran.push(v.vendor); },
 			);
 
-			// Execute every non-separator action to capture which path each one runs.
 			for (const action of actions) {
 				if (!(action instanceof Separator)) {
 					await action.run();
@@ -192,44 +190,6 @@ suite('ChatModelsWidget', () => {
 				shape: ['enable-acme', 'enable-zebra', 'enable-customoai', 'separator', 'enable-customendpoint'],
 				ran: ['acme', 'zebra', 'customoai', 'customendpoint'],
 			});
-		});
-
-		test('prepends GitHub Copilot sign-in when signed out', async () => {
-			const ran: string[] = [];
-			const actions = buildAddModelsDropdownActions(
-				[createVendor('anthropic', 'Anthropic')],
-				true,
-				vendor => { ran.push(vendor.vendor); },
-				() => { ran.push('copilot'); },
-			);
-
-			for (const action of actions) {
-				if (!(action instanceof Separator)) {
-					await action.run();
-				}
-			}
-
-			assert.deepStrictEqual({
-				actions: actions.map(action => action instanceof Separator ? 'separator' : `${action.id}:${action.label}`),
-				ran,
-			}, {
-				actions: ['signIn-github-copilot:GitHub Copilot', 'separator', 'enable-anthropic:Anthropic'],
-				ran: ['copilot', 'anthropic'],
-			});
-		});
-
-		test('offers GitHub Copilot sign-in when BYOK model addition is unavailable', () => {
-			const actions = buildAddModelsDropdownActions(
-				[createVendor('anthropic', 'Anthropic')],
-				false,
-				() => assert.fail('vendor action should not run'),
-				() => { },
-			);
-
-			assert.deepStrictEqual(
-				actions.map(action => action instanceof Separator ? 'separator' : `${action.id}:${action.label}`),
-				['signIn-github-copilot:GitHub Copilot'],
-			);
 		});
 
 		test('with no configurable vendors: no actions are returned', async () => {

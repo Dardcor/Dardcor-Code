@@ -26,9 +26,6 @@ import { MockChatSessionMetadataStore } from '../../common/test/mockChatSessionM
 import type { IClaudeSessionStateService } from '../../claude/common/claudeSessionStateService';
 import type { ClaudeFolderInfo } from '../../claude/common/claudeFolderInfo';
 
-/**
- * Fake implementation of IChatSessionWorktreeService for testing.
- */
 class FakeChatSessionWorktreeService extends mock<IChatSessionWorktreeService>() {
 	private _worktreeProperties = new Map<string, ChatSessionWorktreeProperties>();
 
@@ -57,9 +54,6 @@ class FakeChatSessionWorktreeService extends mock<IChatSessionWorktreeService>()
 	}
 }
 
-/**
- * Fake implementation of IChatSessionWorkspaceFolderService for testing.
- */
 class FakeChatSessionWorkspaceFolderService extends mock<IChatSessionWorkspaceFolderService>() {
 	private _sessionWorkspaceFolders = new Map<string, vscode.Uri>();
 	private _sessionWorkspaceFolderRepositories = new Map<string, vscode.Uri | undefined>();
@@ -113,9 +107,6 @@ class FakeChatSessionWorkspaceFolderService extends mock<IChatSessionWorkspaceFo
 	}
 }
 
-/**
- * Fake implementation of ICopilotCLISessionService for testing.
- */
 class FakeCopilotCLISessionService extends mock<ICopilotCLISessionService>() {
 	private _sessionWorkingDirs = new Map<string, vscode.Uri>();
 
@@ -128,9 +119,6 @@ class FakeCopilotCLISessionService extends mock<ICopilotCLISessionService>() {
 	}
 }
 
-/**
- * Fake implementation of IGitService for testing.
- */
 class FakeGitService extends mock<IGitService>() {
 	private _repositories = new Map<string, RepoContext>();
 	private _recentRepositories: { rootUri: vscode.Uri; lastAccessTime: number }[] = [];
@@ -166,12 +154,6 @@ class FakeGitService extends mock<IGitService>() {
 	}
 }
 
-/**
- * Mock workspace service that tracks trust requests.
- */
-/**
- * Fake implementation of IToolsService for testing.
- */
 class FakeToolsService extends mock<IToolsService>() {
 	nextConfirmationButton: string | undefined = undefined;
 	override getTool(name: string) {
@@ -192,9 +174,6 @@ class FakeToolsService extends mock<IToolsService>() {
 	});
 }
 
-/**
- * Mock workspace service that tracks trust requests.
- */
 class MockWorkspaceService extends NullWorkspaceService {
 	public trustRequests: vscode.Uri[] = [];
 	public trustResponse = true;
@@ -209,10 +188,6 @@ class MockWorkspaceService extends NullWorkspaceService {
 	}
 }
 
-/**
- * FakeFolderRepositoryManager for use in other tests.
- * Provides a configurable mock of IFolderRepositoryManager.
- */
 export class FakeFolderRepositoryManager extends mock<IFolderRepositoryManager>() {
 	private _untitledSessionFolders = new Map<string, vscode.Uri>();
 	private _folderRepoInfo = new Map<string, {
@@ -459,7 +434,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 				token
 			);
 
-			// Trust should be checked on repository path, not worktree path
 			expect(workspaceService.trustRequests[0].fsPath).toBe(vscode.Uri.file('/original-repo').fsPath);
 		});
 	});
@@ -525,7 +499,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 			const folderUri = vscode.Uri.file('/plain/folder');
 
 			manager.setNewSessionFolder(sessionId, folderUri);
-			// No git repo set for this folder
 
 			const result = await manager.initializeFolderRepository(sessionId, { stream, toolInvocationToken: mockToolInvocationToken, folder: undefined }, token);
 
@@ -542,7 +515,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 			const folderUri = vscode.Uri.file('/my/repo');
 			workspaceService.trustResponse = false;
 
-			// Use empty workspace to trigger trust check
 			workspaceService = new MockWorkspaceService([]);
 			workspaceService.trustResponse = false;
 			manager = new CopilotCLIFolderRepositoryManager(
@@ -751,9 +723,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 		describe('initializeFolderRepository', () => {
 			function createMetadataStoreWithWorktree(): MockChatSessionMetadataStore {
 				const store = new MockChatSessionMetadataStore();
-				// Register a session whose worktree path matches worktreeFolderPath so that
-				// getWorktreeSessions(folderUri) returns a session ID that the worktreeService
-				// can resolve via getWorktreeProperties.
 				void store.storeWorktreeInfo(vscode.Uri.file(worktreeFolderPath).fsPath, defaultWorktreeProps);
 				return store;
 			}
@@ -865,7 +834,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 			it('resolves repository path from worktree properties instead of git service', async () => {
 				const differentRepo = '/different-repo';
 				worktreeService.setTestWorktreeProperties(vscode.Uri.file(worktreeFolderPath).fsPath, defaultWorktreeProps);
-				// Git service would return a different repo for this folder
 				gitService.setTestRepository(vscode.Uri.file(worktreeFolderPath), {
 					rootUri: vscode.Uri.file(differentRepo),
 					kind: 'repository',
@@ -886,7 +854,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 
 				const result = await manager.initializeFolderRepository(sessionId, { stream, toolInvocationToken: mockToolInvocationToken, folder: undefined }, token);
 
-				// Should use repositoryPath from worktreeProperties, not from git service
 				expect(result.repository?.fsPath).toBe(vscode.Uri.file(originalRepoPath).fsPath);
 			});
 
@@ -912,7 +879,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 
 				const result = await manager.initializeFolderRepository(sessionId, { stream, toolInvocationToken: mockToolInvocationToken, folder: undefined }, token);
 
-				// Trust should be checked on the original repository path, not the worktree folder
 				expect(workspaceService.trustRequests.some(uri => uri.fsPath === vscode.Uri.file(originalRepoPath).fsPath)).toBe(true);
 				expect(result.trusted).toBe(false);
 			});
@@ -925,7 +891,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 					remotes: [] as string[],
 					kind: 'repository'
 				} as RepoContext);
-				// NO worktree properties registered — folder is not a tracked worktree
 				manager = new CopilotCLIFolderRepositoryManager(
 					worktreeService, workspaceFolderService, sessionService,
 					gitService, workspaceService, logService, toolsService,
@@ -1055,7 +1020,6 @@ describe('CopilotCLIFolderRepositoryManager', () => {
 
 	describe('edge cases', () => {
 		it('handles empty workspace scenarios', async () => {
-			// Create manager with no workspace folders
 			workspaceService = new MockWorkspaceService([]);
 			manager = new CopilotCLIFolderRepositoryManager(
 				worktreeService,

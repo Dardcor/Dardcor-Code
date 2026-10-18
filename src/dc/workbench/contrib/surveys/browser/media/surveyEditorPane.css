@@ -18,7 +18,6 @@
 	padding: 40px 20px 80px;
 }
 
-/* Header */
 
 .survey-editor-pane .survey-title {
 	font-size: 18px;
@@ -38,7 +37,6 @@
 	margin-bottom: 28px;
 }
 
-/* Questions */
 
 .survey-editor-pane .survey-question {
 	margin-bottom: 20px;
@@ -50,7 +48,6 @@
 	display: block;
 }
 
-/* Segmented control — uses --vscode-radio-* tokens from the Radio widget palette */
 
 .survey-editor-pane .survey-segment-group {
 	position: relative;
@@ -114,21 +111,18 @@
 	position: relative;
 }
 
-/* HC: distinct border on selected segment */
 .hc-black .survey-editor-pane .survey-segment-group .survey-segment-input:checked + .survey-segment-label,
 .hc-light .survey-editor-pane .survey-segment-group .survey-segment-input:checked + .survey-segment-label {
 	outline: 1px solid var(--vscode-contrastActiveBorder, transparent);
 	outline-offset: -1px;
 }
 
-/* HC: focus must be visually distinct from checked */
 .hc-black .survey-editor-pane .survey-segment-group .survey-segment-input:focus-visible + .survey-segment-label,
 .hc-light .survey-editor-pane .survey-segment-group .survey-segment-input:focus-visible + .survey-segment-label {
 	outline: 2px dashed var(--vscode-focusBorder);
 	outline-offset: -2px;
 }
 
-/* List-row selection — full-width clickable rows with hidden native radios */
 
 .survey-editor-pane .survey-list-group {
 	display: grid;
@@ -176,21 +170,18 @@
 	outline-offset: -1px;
 }
 
-/* HC: distinct border on selected list row */
 .hc-black .survey-editor-pane .survey-list-option:has(.survey-list-input:checked),
 .hc-light .survey-editor-pane .survey-list-option:has(.survey-list-input:checked) {
 	outline: 1px solid var(--vscode-contrastActiveBorder);
 	outline-offset: -1px;
 }
 
-/* HC: focus must be visually distinct from checked */
 .hc-black .survey-editor-pane .survey-list-option:has(.survey-list-input:focus-visible),
 .hc-light .survey-editor-pane .survey-list-option:has(.survey-list-input:focus-visible) {
 	outline: 2px dashed var(--vscode-focusBorder);
 	outline-offset: -1px;
 }
 
-/* Submit */
 
 .survey-editor-pane .survey-submit-row {
 	margin-top: 20px;
@@ -202,7 +193,6 @@
 	font-size: 12px;
 }
 
-/* Success / "sent" state */
 
 .survey-editor-pane .survey-success {
 	display: flex;
@@ -250,7 +240,6 @@
 	}
 }
 
-/* Responsive: segment stacks vertically on narrow editors */
 
 @container (max-width: 560px) {
 	.survey-editor-pane .survey-segment-group {
@@ -274,7 +263,6 @@
 	}
 }
 
-/* Responsive: list grid collapses to single column on very narrow editors */
 
 @container (max-width: 480px) {
 	.survey-editor-pane .survey-list-group.columns-2 {

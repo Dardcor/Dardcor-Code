@@ -19,9 +19,6 @@ import {
 } from '../claudeSessionSchema';
 
 describe('claudeSessionSchema', () => {
-	// ========================================================================
-	// Primitive Validators
-	// ========================================================================
 
 	describe('vIsoTimestamp', () => {
 		const validator = vIsoTimestamp();
@@ -68,7 +65,7 @@ describe('claudeSessionSchema', () => {
 				'8d4dcda5-3984-42c4-9b9e-d57f64a924dc',
 				'ABCD1234-5678-90AB-CDEF-1234567890AB',
 				'any-string-is-ok',
-				'a139fcf', // agent ID format
+				'a139fcf',
 			];
 
 			for (const uuid of uuids) {
@@ -93,9 +90,6 @@ describe('claudeSessionSchema', () => {
 		});
 	});
 
-	// ========================================================================
-	// Entry Type Validators
-	// ========================================================================
 
 	describe('vQueueOperationEntry', () => {
 		const validator = vQueueOperationEntry;
@@ -190,7 +184,6 @@ describe('claudeSessionSchema', () => {
 		it('should reject user message without required fields', () => {
 			const invalid = {
 				type: 'user',
-				// Missing uuid, sessionId, timestamp, message
 			};
 
 			const result = validator.validate(invalid);
@@ -231,7 +224,6 @@ describe('claudeSessionSchema', () => {
 			expect(result.error).toBeUndefined();
 			expect(result.content?.uuid).toBe(entry.uuid);
 
-			// Verify image source data is preserved through validation
 			const content = result.content?.message.content;
 			expect(Array.isArray(content)).toBe(true);
 			const imageBlock = (content as ContentBlock[]).find((b): b is ImageBlock => b.type === 'image');
@@ -543,9 +535,6 @@ describe('claudeSessionSchema', () => {
 		});
 	});
 
-	// ========================================================================
-	// vChainNodeFields
-	// ========================================================================
 
 	describe('vChainNodeFields', () => {
 		const validator = vChainNodeFields;

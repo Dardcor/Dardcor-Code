@@ -36,7 +36,6 @@ export function initialize<T extends IWebWorkerServerRequestHandler>(factory: IW
 
 export function bootstrapWebWorker(factory: IWebWorkerServerRequestHandlerFactory<any>) {
 	globalThis.onmessage = (_e: MessageEvent) => {
-		// Ignore first message in this case and initialize if not yet initialized
 		if (!initialized) {
 			initialize(factory);
 		}

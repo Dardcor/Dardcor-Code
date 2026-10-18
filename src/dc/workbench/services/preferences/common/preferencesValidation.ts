@@ -77,9 +77,6 @@ export function createValidator(prop: IConfigurationPropertySchema): (value: any
 	};
 }
 
-/**
- * Returns an error string if the value is invalid and can't be displayed in the settings UI for the given type.
- */
 export function getInvalidTypeError(value: any, type: undefined | string | string[]): string | undefined {
 	if (typeof type === 'undefined') {
 		return;
@@ -114,17 +111,11 @@ function valueValidatesAsType(value: any, type: string): boolean {
 
 function toRegExp(pattern: string): RegExp {
 	try {
-		// The u flag allows support for better Unicode matching,
-		// but deprecates some patterns such as [\s-9]
-		// Ref https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Character_class#description
 		return new RegExp(pattern, 'u');
 	} catch (e) {
 		try {
 			return new RegExp(pattern);
 		} catch (e) {
-			// If the pattern can't be parsed even without the 'u' flag,
-			// just log the error to avoid rendering the entire Settings editor blank.
-			// Ref https://github.com/microsoft/vscode/issues/195054
 			console.error(nls.localize('regexParsingError', "Error parsing the following regex both with and without the u flag:"), pattern);
 			return /.*/;
 		}
@@ -354,7 +345,6 @@ function getObjectValidator(prop: IConfigurationPropertySchema): ((value: any) =
 				Object.keys(value).forEach((key: string) => {
 					const data = value[key];
 
-					// Validate propertyNames.pattern - show error message once
 					if (propertyNames?.pattern && !propertyNamesErrorShown) {
 						const patternRegex = toRegExp(propertyNames.pattern);
 						if (!patternRegex.test(key)) {
@@ -407,10 +397,6 @@ function getObjectValidator(prop: IConfigurationPropertySchema): ((value: any) =
 	return null;
 }
 
-/**
- * Validates a single property name against the propertyNames.pattern schema.
- * Returns true if the key is valid, false otherwise.
- */
 export function validatePropertyName(propertyNames: IConfigurationPropertySchema['propertyNames'], key: string): boolean {
 	if (!propertyNames?.pattern) {
 		return true;

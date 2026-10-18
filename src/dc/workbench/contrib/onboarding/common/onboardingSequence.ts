@@ -10,19 +10,16 @@ import { OnboardingDismissReason } from './onboardingScenario.js';
 
 export const ONBOARDING_SEQUENCE_PRESENTATION_KIND = 'sequence';
 
-/** One entry in a heterogeneous onboarding sequence. */
 export interface IOnboardingSequenceStep<TPayload = unknown> {
 	readonly id: string;
 	readonly kind: string;
 	readonly payload: TPayload;
 }
 
-/** Payload rendered by the sequence presentation. */
 export interface IOnboardingSequencePayload {
 	readonly steps: readonly IOnboardingSequenceStep[];
 }
 
-/** Context passed to a sequence step presentation. */
 export interface IOnboardingSequenceStepContext extends IOnboardingRunContext {
 	readonly cancellationToken: CancellationToken;
 	readonly stepIndex: number;
@@ -32,24 +29,19 @@ export interface IOnboardingSequenceStepContext extends IOnboardingRunContext {
 	readonly isLastVisualStep: boolean;
 }
 
-/** Traversal result returned by one sequence step. */
 export interface IOnboardingSequenceStepResult {
 	readonly action: 'next' | 'back' | 'skipStep' | 'skipSequence' | 'abort';
 	readonly shown: boolean;
 	readonly dismissReason?: OnboardingDismissReason;
 }
 
-/** Renders one kind of sequence step. */
 export interface IOnboardingSequenceStepPresentation {
 	readonly kind: string;
-	/** Whether this kind participates in visual progress counters. */
 	readonly countsAsVisualStep: boolean;
-	/** Whether a forward revisit skips a step that already ran. */
 	readonly runOnce?: boolean;
 	runStep(step: IOnboardingSequenceStep, context: IOnboardingSequenceStepContext): Promise<IOnboardingSequenceStepResult>;
 }
 
-/** Registry of sequence step presentations by kind. */
 export interface IOnboardingSequenceStepPresentationRegistry {
 	register(presentation: IOnboardingSequenceStepPresentation): IDisposable;
 	get(kind: string): IOnboardingSequenceStepPresentation | undefined;

@@ -20,7 +20,6 @@ pub enum Quality {
 }
 
 impl Quality {
-	/// Lowercased quality name in paths and protocol
 	pub fn get_machine_name(&self) -> &'static str {
 		match self {
 			Quality::Insiders => "insiders",
@@ -29,7 +28,6 @@ impl Quality {
 		}
 	}
 
-	/// Uppercased quality display name for humans
 	pub fn get_capitalized_name(&self) -> &'static str {
 		match self {
 			Quality::Insiders => "Insiders",
@@ -38,7 +36,6 @@ impl Quality {
 		}
 	}
 
-	/// Server application name
 	pub fn server_entrypoint(&self) -> String {
 		let mut server_name = SERVER_NAME_MAP
 			.as_ref()

@@ -25,7 +25,6 @@ suite('vscode API - types', () => {
 		assert.ok(vscode.CodeActionKind.Source instanceof vscode.CodeActionKind);
 		assert.ok(vscode.CodeActionKind.SourceOrganizeImports instanceof vscode.CodeActionKind);
 		assert.ok(vscode.CodeActionKind.SourceFixAll instanceof vscode.CodeActionKind);
-		// assert.ok(vscode.QuickInputButtons.Back instanceof vscode.QuickInputButtons); never was an instance
 
 	});
 });

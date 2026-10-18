@@ -19,9 +19,6 @@ abstract class ConfigAgentActionImpl extends Action2 {
 	}
 }
 
-/**
- * Action ID for the `Configure Custom Agents` action.
- */
 const CONFIGURE_AGENTS_ACTION_ID = 'workbench.action.chat.configure.customagents';
 
 function createConfigureAgentsActionConfig(disabled: boolean) {
@@ -44,9 +41,6 @@ class ConfigureAgentsAction extends ConfigAgentActionImpl { constructor() { supe
 class ConfigureAgentsActionDisabled extends ConfigAgentActionImpl { constructor() { super(createConfigureAgentsActionConfig(true)); } }
 
 
-/**
- * Helper to register all the `Configure Custom Agents` actions.
- */
 export function registerAgentActions(): void {
 	registerAction2(ConfigureAgentsAction);
 	registerAction2(ConfigureAgentsActionDisabled);

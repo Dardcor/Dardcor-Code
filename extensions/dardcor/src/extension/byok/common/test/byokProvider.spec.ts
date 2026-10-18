@@ -4,8 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it } from 'vitest';
-import { CopilotToken } from '../../../../platform/authentication/common/dardcorToken';
-import { byokKnownModelToAPIInfo, BYOKModelCapabilities, isClientBYOKAllowed, resolveModelInfo, resolveModelTokenLimits } from '../byokProvider';
+import { byokKnownModelToAPIInfo, BYOKModelCapabilities, resolveModelInfo, resolveModelTokenLimits } from '../byokProvider';
 
 describe('byokKnownModelToAPIInfo', () => {
 	const baseCapabilities: BYOKModelCapabilities = {
@@ -45,8 +44,6 @@ describe('byokKnownModelToAPIInfo', () => {
 	});
 
 	it('derives maxInputTokens from contextWindow when maxInputTokens is omitted', () => {
-		// The value surfaced here becomes `model.maxInputTokens`, which the custom
-		// endpoint/OAI/azure providers read when building the endpoint.
 		const info = byokKnownModelToAPIInfo('TestProvider', 'm1', {
 			name: 'BigContextModel',
 			contextWindow: 1000000,
@@ -59,7 +56,6 @@ describe('byokKnownModelToAPIInfo', () => {
 		expect(info.maxOutputTokens).toBe(384000);
 	});
 });
-
 describe('resolveModelInfo', () => {
 	const baseCapabilities: BYOKModelCapabilities = {
 		name: 'TestModel',
@@ -103,8 +99,6 @@ describe('resolveModelInfo', () => {
 	});
 
 	it('honors an explicit contextWindow as the source of truth for the context window', () => {
-		// A model documented as: Context Length 1M, Max Output 384K. The user can now
-		// declare the real capability directly instead of back-computing maxInputTokens.
 		const info = resolveModelInfo('m1', 'TestProvider', undefined, {
 			...baseCapabilities,
 			contextWindow: 1000000,
@@ -113,7 +107,6 @@ describe('resolveModelInfo', () => {
 		});
 
 		expect(info.capabilities.limits?.max_context_window_tokens).toBe(1000000);
-		// The prompt budget is derived as contextWindow - maxOutputTokens.
 		expect(info.capabilities.limits?.max_prompt_tokens).toBe(1000000 - 384000);
 		expect(info.capabilities.limits?.max_output_tokens).toBe(384000);
 	});
@@ -167,39 +160,5 @@ describe('resolveModelTokenLimits', () => {
 			maxInputTokens: 616000,
 			maxOutputTokens: 384000,
 		});
-	});
-});
-
-describe('isClientBYOKAllowed', () => {
-	function mockToken(props: { isInternal?: boolean; isIndividual?: boolean; isClientBYOKEnabled?: boolean }): Omit<CopilotToken, 'token'> {
-		return {
-			isInternal: props.isInternal ?? false,
-			isIndividual: props.isIndividual ?? false,
-			isClientBYOKEnabled: () => props.isClientBYOKEnabled ?? false,
-		} as unknown as Omit<CopilotToken, 'token'>;
-	}
-
-	it('allows BYOK when there is no GitHub session (truly signed-out)', () => {
-		expect(isClientBYOKAllowed(false, undefined)).toBe(true);
-	});
-
-	it('denies BYOK when signed-in but the Copilot token is unavailable (e.g. EnterpriseManagedError)', () => {
-		expect(isClientBYOKAllowed(true, undefined)).toBe(false);
-	});
-
-	it('allows BYOK for internal users', () => {
-		expect(isClientBYOKAllowed(true, mockToken({ isInternal: true }))).toBe(true);
-	});
-
-	it('allows BYOK for individual users', () => {
-		expect(isClientBYOKAllowed(true, mockToken({ isIndividual: true }))).toBe(true);
-	});
-
-	it('allows BYOK when the token explicitly enables it (e.g. enterprise org opt-in)', () => {
-		expect(isClientBYOKAllowed(true, mockToken({ isClientBYOKEnabled: true }))).toBe(true);
-	});
-
-	it('denies BYOK for signed-in managed users when no policy flag is set', () => {
-		expect(isClientBYOKAllowed(true, mockToken({}))).toBe(false);
 	});
 });

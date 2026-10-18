@@ -193,7 +193,6 @@ class RemoteAgentConnection extends Disposable implements IRemoteAgentConnection
 		try {
 			await this._getOrCreateConnection();
 		} catch {
-			// ignored -- time is measured even if connection fails
 		}
 
 		return this._initialConnectionMs!;

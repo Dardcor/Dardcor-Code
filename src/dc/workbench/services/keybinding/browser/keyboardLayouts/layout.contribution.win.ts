@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import './en.win.js'; // 40%
+import './en.win.js';
 import './es-latin.win.js';
 import './en-in.win.js';
 import './de.win.js';

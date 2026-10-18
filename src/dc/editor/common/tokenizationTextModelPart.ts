@@ -8,9 +8,6 @@ import { StandardTokenType } from './encodedTokenAttributes.js';
 import { LineTokens } from './tokens/lineTokens.js';
 import { SparseMultilineTokens } from './tokens/sparseMultilineTokens.js';
 
-/**
- * Provides tokenization related functionality of the text model.
-*/
 export interface ITokenizationTextModelPart {
 	readonly hasTokens: boolean;
 

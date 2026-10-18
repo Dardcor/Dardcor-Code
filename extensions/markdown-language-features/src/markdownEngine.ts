@@ -14,11 +14,7 @@ import { ITextDocument } from './types/textDocument';
 import { WebviewResourceProvider } from './util/resources';
 import { isOfScheme, Schemes } from './util/schemes';
 
-/**
- * Adds begin line index to the output via the 'data-line' data attribute.
- */
 const pluginSourceMap: MarkdownIt.PluginSimple = (md): void => {
-	// Set the attribute on every possible token.
 	md.core.ruler.push('source_map_data_attribute', (state): void => {
 		for (const token of state.tokens) {
 			if (token.map && token.type !== 'inline') {
@@ -29,7 +25,6 @@ const pluginSourceMap: MarkdownIt.PluginSimple = (md): void => {
 		}
 	});
 
-	// The 'html_block' renderer doesn't respect `attrs`. We need to insert a marker.
 	const originalHtmlBlockRenderer = md.renderer.rules['html_block'];
 	if (originalHtmlBlockRenderer) {
 		md.renderer.rules['html_block'] = (tokens, idx, options, env, self) => (
@@ -39,9 +34,6 @@ const pluginSourceMap: MarkdownIt.PluginSimple = (md): void => {
 	}
 };
 
-/**
- * The markdown-it options that we expose in the settings.
- */
 type MarkdownItConfig = Readonly<Required<Pick<MarkdownIt.Options, 'breaks' | 'linkify' | 'typographer'>>>;
 
 class TokenCache {
@@ -118,7 +110,6 @@ export class MarkdownItEngine implements IMdParser {
 		this.#logger = logger;
 
 		contributionProvider.onContributionsChanged(() => {
-			// Markdown plugin contributions may have changed
 			this.#md = undefined;
 			this.#tokenCache.clean();
 		});
@@ -280,13 +271,11 @@ export class MarkdownItEngine implements IMdParser {
 		const normalizeLink = md.normalizeLink;
 		md.normalizeLink = (link: string) => {
 			try {
-				// Normalize VS Code schemes to target the current version
 				if (isOfScheme(Schemes.vscode, link) || isOfScheme(Schemes['vscode-insiders'], link)) {
 					return normalizeLink(vscode.Uri.parse(link).with({ scheme: vscode.env.uriScheme }).toString());
 				}
 
 			} catch (e) {
-				// noop
 			}
 			return normalizeLink(link);
 		};
@@ -338,7 +327,6 @@ export class MarkdownItEngine implements IMdParser {
 		md.renderer.rules.link_open = (tokens: MarkdownIt.Token[], idx: number, options, env, self) => {
 			const token = tokens[idx];
 			const href = token.attrGet('href');
-			// A string, including empty string, may be `href`.
 			if (typeof href === 'string') {
 				token.attrSet('data-href', href);
 			}
@@ -352,23 +340,17 @@ export class MarkdownItEngine implements IMdParser {
 
 	#toResourceUri(href: string, currentDocument: vscode.Uri | undefined, resourceProvider: WebviewResourceProvider | undefined): string {
 		try {
-			// Support file:// links
 			if (isOfScheme(Schemes.file, href)) {
 				const uri = vscode.Uri.parse(href);
 				if (resourceProvider) {
 					return resourceProvider.asWebviewUri(uri).toString(true);
 				}
-				// Not sure how to resolve this
 				return href;
 			}
 
-			// If original link doesn't look like a url with a scheme, assume it must be a link to a file in workspace
 			if (!/^[a-z\-]+:/i.test(href)) {
-				// Use a fake scheme for parsing
 				let uri = vscode.Uri.parse('markdown-link:' + href);
 
-				// Relative paths should be resolved correctly inside the preview but we need to
-				// handle absolute paths specially to resolve them relative to the workspace root
 				if (uri.path[0] === '/' && currentDocument) {
 					const root = vscode.workspace.getWorkspaceFolder(currentDocument);
 					if (root) {
@@ -425,7 +407,6 @@ function normalizeHighlightLang(lang: string | undefined) {
 
 		case 'tsx':
 		case 'typescriptreact':
-			// Workaround for highlight not supporting tsx: https://github.com/isagalaev/highlight.js/issues/1155
 			return 'jsx';
 
 		case 'json5':

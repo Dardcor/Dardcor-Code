@@ -828,8 +828,6 @@ export class McpGalleryService extends Disposable implements IMcpGalleryService 
 		const result = new Map<string, IMcpGalleryServerResolveResult>();
 		const mcpGalleryManifest = await this.mcpGalleryManifestService.getMcpGalleryManifest();
 		if (!mcpGalleryManifest) {
-			// Without a registry manifest we cannot determine membership; report as failed
-			// (undetermined) so callers do not treat this as a definitive "not found".
 			for (const info of infos) {
 				result.set(info.name, { status: McpGalleryResolveStatus.Failed });
 			}
@@ -874,16 +872,10 @@ export class McpGalleryService extends Disposable implements IMcpGalleryService 
 					lastError = new Error(`MCP server lookup for '${name}' returned '${mcpServer.name}'`);
 				}
 			} catch (error) {
-				// Transient/undetermined failure on this endpoint: remember it and still
-				// try the remaining endpoints before giving up.
 				lastError = error;
 			}
 		}
 
-		// Only report a definitive "not found" (undefined) when at least one endpoint
-		// was queried and every attempt returned an authoritative negative. If no
-		// endpoint could be queried, or any attempt failed transiently, surface an
-		// error so membership is treated as undetermined rather than absent.
 		if (!attempted) {
 			throw new Error(`Cannot resolve MCP server '${name}': registry manifest has no server lookup endpoint`);
 		}
@@ -942,7 +934,7 @@ export class McpGalleryService extends Disposable implements IMcpGalleryService 
 			if (nameParts.length > 0) {
 				const domainParts = nameParts[0].split('.');
 				if (domainParts.length > 0) {
-					publisher = domainParts[domainParts.length - 1]; // Always take the last part as owner
+					publisher = domainParts[domainParts.length - 1];
 				}
 			}
 			if (!displayName) {
@@ -1102,9 +1094,6 @@ export class McpGalleryService extends Disposable implements IMcpGalleryService 
 			callSite: 'mcpGalleryService.getMcpServer'
 		}, CancellationToken.None);
 
-		// A definitive 404 means the registry authoritatively does not contain this
-		// server. Any other error status (e.g. 401/403/429/5xx) is transient or
-		// undetermined and must throw so callers do not treat it as a "not found".
 		if (context.res.statusCode === 404) {
 			return undefined;
 		}

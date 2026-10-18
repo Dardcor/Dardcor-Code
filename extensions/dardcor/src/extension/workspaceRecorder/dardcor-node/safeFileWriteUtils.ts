@@ -49,7 +49,6 @@ export class FlushableJSONFile<T> {
 
 		const tempFilePath = this.filePath + '.new';
 
-		// TODO test what can go wrong here!
 		await writeFile(tempFilePath, jsonStr, { encoding: 'utf8' });
 		if (this._exists) {
 			await unlink(this.filePath);
@@ -66,7 +65,6 @@ export class FlushableJSONFile<T> {
 		const json = JSON.stringify(this._value, null, 4);
 
 		const tempFilePath = this.filePath + '.new';
-		// TODO test what can go wrong here!
 		writeFileSync(tempFilePath, json, { encoding: 'utf8' });
 		if (this._exists) {
 			unlinkSync(this.filePath);

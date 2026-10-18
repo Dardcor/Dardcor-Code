@@ -11,10 +11,6 @@ import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
 import { AbstractMeteredConnectionService, getIsBrowserConnectionMetered, IMeteredConnectionService, NavigatorWithConnection } from '../common/meteredConnection.js';
 import { METERED_CONNECTION_CHANNEL, MeteredConnectionCommand } from '../common/meteredConnectionIpc.js';
 
-/**
- * Electron-browser implementation of the metered connection service.
- * This implementation monitors navigator.connection and reports changes to the main process via IPC channel.
- */
 export class NativeMeteredConnectionService extends AbstractMeteredConnectionService {
 	private readonly _channel: IChannel;
 
@@ -33,9 +29,6 @@ export class NativeMeteredConnectionService extends AbstractMeteredConnectionSer
 		}
 	}
 
-	/**
-	 * Notify the main process about changes to the navigator connection state.
-	 */
 	protected override onChangeBrowserConnection(): void {
 		super.onChangeBrowserConnection();
 		this._channel.call(MeteredConnectionCommand.SetIsBrowserConnectionMetered, this.isBrowserConnectionMetered);

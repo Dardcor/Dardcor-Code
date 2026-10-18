@@ -34,9 +34,6 @@ export function panelPositionForDocument(document: TextDocumentContents, positio
 	return returnPosition;
 }
 
-/**
- * Trim trailing whitespace.
- */
 export async function* trimChoices(choices: AsyncIterable<APIChoice>): AsyncIterable<APIChoice> {
 	for await (const choice of choices) {
 		const choiceCopy = { ...choice };
@@ -106,9 +103,6 @@ export function normalizeCompletionText(text: string): string {
 	return text.replace(/\s+/g, '');
 }
 
-/**
- * Result of prompt processing setup
- */
 export interface PromptSetupResult {
 	prompt: Prompt;
 	trailingWs: string;
@@ -117,10 +111,6 @@ export interface PromptSetupResult {
 	ourRequestId: string;
 }
 
-/**
- * Sets up prompt extraction, telemetry, and handles common error cases.
- * Returns null if an error occurred that should terminate processing.
- */
 export async function setupPromptAndTelemetry(
 	accessor: ServicesAccessor,
 	solutionManager: SolutionManager,
@@ -134,7 +124,6 @@ export async function setupPromptAndTelemetry(
 
 	const repoInfo = extractRepoInfoInBackground(accessor, document.uri);
 
-	// Telemetry setup
 	const ourRequestId = generateUuid();
 	const tempTelemetry = TelemetryData.createAndMarkAsIssued(
 		{
@@ -148,14 +137,12 @@ export async function setupPromptAndTelemetry(
 	const featuresService = accessor.get(ICompletionsFeaturesService);
 	const instantiationService = accessor.get(IInstantiationService);
 	const logTarget = accessor.get(ICompletionsLogTargetService);
-	// Update telemetry with experiment values
 	solutionManager.savedTelemetryData = await featuresService
-		.fetchTokenAndUpdateExPValuesAndAssignments(
+		.fetchAndUpdateExPValuesAndAssignments(
 			{ uri: document.uri, languageId: document.detectedLanguageId },
 			tempTelemetry
 		);
 
-	// Add in comparison panel specific info
 	if (engineName) {
 		solutionManager.savedTelemetryData = solutionManager.savedTelemetryData!.extendedBy({
 			engineName,
@@ -167,14 +154,12 @@ export async function setupPromptAndTelemetry(
 		});
 	}
 
-	// Extract prompt
 	const promptResponse = await instantiationService.invokeFunction(extractPrompt,
 		ourRequestId,
 		createCompletionState(document, position),
 		solutionManager.savedTelemetryData!
 	);
 
-	// Handle prompt extraction errors
 	if (promptResponse.type === 'dardcorContentExclusion') {
 		return { status: 'FinishedNormally' };
 	}
@@ -194,7 +179,6 @@ export async function setupPromptAndTelemetry(
 	const prompt = promptResponse.prompt;
 	const trailingWs = promptResponse.trailingWs;
 
-	// Handle trailing whitespace adjustment
 	if (trailingWs.length > 0) {
 		solutionManager.startPosition = LocationFactory.position(
 			solutionManager.startPosition.line,
@@ -202,7 +186,6 @@ export async function setupPromptAndTelemetry(
 		);
 	}
 
-	// Update telemetry with prompt information
 	solutionManager.savedTelemetryData = solutionManager.savedTelemetryData!.extendedBy(
 		{},
 		{
@@ -224,9 +207,6 @@ export async function setupPromptAndTelemetry(
 	};
 }
 
-/**
- * Result of completion parameters setup
- */
 export interface CompletionSetupResult {
 	extra: CompletionRequestExtra;
 	postOptions: PostOptions;
@@ -234,9 +214,6 @@ export interface CompletionSetupResult {
 	engineInfo: { modelId: string; headers: CompletionHeaders };
 }
 
-/**
- * Sets up block mode, completion parameters, and finished callback.
- */
 export function setupCompletionParams(
 	accessor: ServicesAccessor,
 	document: ITextDocument,
@@ -245,7 +222,6 @@ export function setupCompletionParams(
 	solutionManager: SolutionManager,
 	telemetryData: TelemetryWithExp
 ): CompletionSetupResult {
-	// Compute block mode
 	const blockMode = accessor.get(ICompletionsBlockModeConfig).forLanguage(document.detectedLanguageId, telemetryData);
 	const isSupportedLanguage = isSupportedLanguageId(document.detectedLanguageId);
 
@@ -268,9 +244,7 @@ export function setupCompletionParams(
 
 	switch (blockMode) {
 		case BlockMode.Server:
-			// Client knows the block is done when the completion is.
 			finishedCb = () => undefined;
-			// If requested at the top-level, don't trim at all.
 			extra.force_indent = contextIndent.prev ?? -1;
 			extra.trim_by_indentation = true;
 			break;
@@ -278,7 +252,6 @@ export function setupCompletionParams(
 			finishedCb = isSupportedLanguage
 				? parsingBlockFinished(document, solutionManager.startPosition)
 				: () => undefined;
-			// If requested at the top-level, don't trim at all.
 			extra.force_indent = contextIndent.prev ?? -1;
 			extra.trim_by_indentation = true;
 			break;

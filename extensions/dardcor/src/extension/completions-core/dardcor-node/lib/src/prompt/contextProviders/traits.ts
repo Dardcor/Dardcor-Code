@@ -17,13 +17,10 @@ export function getTraitsFromContextItems(
 ): TraitWithId[] {
 	const traitsContextItems = filterContextItemsByType(resolvedContextItems, 'Trait');
 
-	// Set expectations for the traits
 	for (const item of traitsContextItems) {
 		setupExpectationsForTraits(accessor, completionId, item.data, item.providerId);
 	}
 
-	// Flatten and sort the traits by importance.
-	// TODO: once we deprecate the old API, importance should also dictate elision.
 	const traits: TraitWithId[] = traitsContextItems.flatMap(p => p.data);
 	return traits.sort((a, b) => (a.importance ?? 0) - (b.importance ?? 0));
 }
@@ -36,8 +33,6 @@ function setupExpectationsForTraits(accessor: ServicesAccessor, completionId: st
 	});
 }
 
-// Maintain a list of names for traits we'd like to report in telemetry.
-// The key is the trait name, and the value is the corresponding name of the telemetry property as listed in the hydro schema.
 const traitNamesForTelemetry: Map<string, string> = new Map([
 	['TargetFrameworks', 'targetFrameworks'],
 	['LanguageVersion', 'languageVersion'],

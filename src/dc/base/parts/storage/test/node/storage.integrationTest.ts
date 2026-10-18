@@ -53,7 +53,6 @@ flakySuite('Storage Library', function () {
 
 			await storage.init();
 
-			// Empty fallbacks
 			strictEqual(storage.get('foo', 'bar'), 'bar');
 			strictEqual(storage.getNumber('foo', 55), 55);
 			strictEqual(storage.getBoolean('foo', true), true);
@@ -64,9 +63,8 @@ flakySuite('Storage Library', function () {
 				changes.add(e.key);
 			});
 
-			await storage.whenFlushed(); // returns immediately when no pending updates
+			await storage.whenFlushed();
 
-			// Simple updates
 			const set1Promise = storage.set('bar', 'foo');
 			const set2Promise = storage.set('barNumber', 55);
 			const set3Promise = storage.set('barBoolean', true);
@@ -93,14 +91,12 @@ flakySuite('Storage Library', function () {
 
 			changes = new Set<string>();
 
-			// Does not trigger events for same update values
 			storage.set('bar', 'foo');
 			storage.set('barNumber', 55);
 			storage.set('barBoolean', true);
 			storage.set('barObject', { 'bar': 'baz' });
 			strictEqual(changes.size, 0);
 
-			// Simple deletes
 			const delete1Promise = storage.delete('bar');
 			const delete2Promise = storage.delete('barNumber');
 			const delete3Promise = storage.delete('barBoolean');
@@ -119,7 +115,6 @@ flakySuite('Storage Library', function () {
 
 			changes = new Set<string>();
 
-			// Does not trigger events for same delete values
 			storage.delete('bar');
 			storage.delete('barNumber');
 			storage.delete('barBoolean');
@@ -131,7 +126,7 @@ flakySuite('Storage Library', function () {
 			strictEqual(deletePromiseResolved, true);
 
 			await storage.close();
-			await storage.close(); // it is ok to call this multiple times
+			await storage.close();
 		});
 	});
 
@@ -160,27 +155,23 @@ flakySuite('Storage Library', function () {
 			ok(changes.has('foo'));
 			changes.clear();
 
-			// Nothing happens if changing to same value
 			const changed = new Map<string, string>();
 			changed.set('foo', 'bar');
 			database.fireDidChangeItemsExternal({ changed });
 			strictEqual(changes.size, 0);
 
-			// Change is accepted if valid
 			changed.set('foo', 'bar1');
 			database.fireDidChangeItemsExternal({ changed });
 			ok(changes.has('foo'));
 			strictEqual(storage.get('foo'), 'bar1');
 			changes.clear();
 
-			// Delete is accepted
 			const deleted = new Set<string>(['foo']);
 			database.fireDidChangeItemsExternal({ deleted });
 			ok(changes.has('foo'));
 			strictEqual(storage.get('foo', undefined), undefined);
 			changes.clear();
 
-			// Nothing happens if changing to same value
 			database.fireDidChangeItemsExternal({ deleted });
 			strictEqual(changes.size, 0);
 
@@ -509,7 +500,7 @@ flakySuite('SQLite Storage Library', function () {
 		await testDBBasics(storagePath);
 	});
 
-	(isWindows ? test.skip /* Windows will fail to write to open DB due to locking */ : test)('basics (DB that becomes corrupt during runtime stores all state from cache on close)', async () => {
+	(isWindows ? test.skip : test)('basics (DB that becomes corrupt during runtime stores all state from cache on close)', async () => {
 		const storagePath = join(testdir, 'storage.db');
 		let storage = new SQLiteStorageDatabase(storagePath);
 
@@ -529,13 +520,9 @@ flakySuite('SQLite Storage Library', function () {
 
 		await Promises.writeFile(storagePath, 'This is now a broken DB');
 
-		// we still need to trigger a check to the DB so that we get to know that
-		// the DB is corrupt. We have no extra code on shutdown that checks for the
-		// health of the DB. This is an optimization to not perform too many tasks
-		// on shutdown.
-		await storage.checkIntegrity(true).then(null, error => { } /* error is expected here but we do not want to fail */);
+		await storage.checkIntegrity(true).then(null, error => { } );
 
-		await fs.promises.unlink(backupPath); // also test that the recovery DB is backed up properly
+		await fs.promises.unlink(backupPath);
 
 		let recoveryCalled = false;
 		await storage.close(() => {
@@ -651,7 +638,7 @@ flakySuite('SQLite Storage Library', function () {
 	test('very large item value', async function () {
 		const storage = new SQLiteStorageDatabase(join(testdir, 'storage.db'));
 
-		let randomData = createLargeRandomData(); // 3.6MB
+		let randomData = createLargeRandomData();
 
 		await storage.updateItems({ insert: randomData.items });
 
@@ -860,7 +847,7 @@ flakySuite('SQLite Storage Library', function () {
 			value.push(uuid);
 		}
 
-		items.set('super.large.string', value.join()); // 3.6MB
+		items.set('super.large.string', value.join());
 
 		return { items, uuid, value };
 	}

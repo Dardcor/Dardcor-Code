@@ -446,8 +446,6 @@ function assertConfiguration(result: IParseResult, expected: Tasks.Task[]): void
 		return;
 	}
 
-	// We can't compare Ids since the parser uses UUID which are random
-	// So create a new map using the name.
 	const actualTasks: { [key: string]: Tasks.Task } = Object.create(null);
 	const actualId2Name: { [key: string]: string } = Object.create(null);
 	const actualTaskGroups = new TaskGroupMap();

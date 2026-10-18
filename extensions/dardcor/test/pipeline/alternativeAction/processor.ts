@@ -20,21 +20,6 @@ export namespace Processor {
 		readonly idToFileMap: ReadonlyMap<number, string>;
 	}
 
-	/**
-	 * Split a recording at a pivot time (the NES request bookmark for
-	 * per-request recordings, or a synthesized pivot for continuous ones) and
-	 * resolve the active document at that moment. Exposed so callers (in
-	 * particular nes-datagen cursor-jump detectors and the continuous-recording
-	 * path) can reason about what the user did *after* the pivot without
-	 * re-implementing the same splitting logic that {@link createScoring}
-	 * performs internally.
-	 *
-	 * `requestTime` is the pivot: entries with `time <= requestTime` form the
-	 * prior portion, the rest form the post-request portion.
-	 *
-	 * Returns `undefined` if the recording cannot be split (empty entries, pivot
-	 * before all entries, no resolvable active document, etc.).
-	 */
 	export function splitRecording(entries: LogEntry[], requestTime: number): ISplitRecording | undefined {
 		const processedRecording = splitRecordingAtRequestTime(entries, requestTime);
 		if (!processedRecording) {
@@ -44,13 +29,6 @@ export namespace Processor {
 		return resolveSplitRecording(processedRecording);
 	}
 
-	/**
-	 * Split a recording after the entry at `pivotEntryIndex`.
-	 *
-	 * Unlike {@link splitRecording}, this does not rely on timestamps being
-	 * monotonic or unique. Raw workspace recordings use this path because their
-	 * stateful log order is authoritative while framing timestamps can regress.
-	 */
 	export function splitRecordingAtIndex(entries: LogEntry[], pivotEntryIndex: number): ISplitRecording | undefined {
 		if (pivotEntryIndex < 0 || pivotEntryIndex >= entries.length) {
 			return undefined;
@@ -74,9 +52,6 @@ export namespace Processor {
 			return undefined;
 		}
 
-		// Pass the whole recording so cross-file targets in the post-request
-		// portion can be resolved by id even if the user only encountered the
-		// target document after the bookmark.
 		const idToFileMap = documentIndexMapping(wholeRecording);
 
 		const currentFilePath = idToFileMap.get(currentFileId);

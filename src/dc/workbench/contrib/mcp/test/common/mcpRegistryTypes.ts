@@ -17,10 +17,6 @@ import { McpServerConnection } from '../../common/mcpServerConnection.js';
 import { IMcpServerConnection, LazyCollectionState, McpCollectionDefinition, McpCollectionReference, McpConnectionState, McpDefinitionReference, McpServerDefinition, McpServerTransportType, McpServerTrust } from '../../common/mcpTypes.js';
 import { MCP } from '../../common/modelContextProtocol.js';
 
-/**
- * Implementation of IMcpMessageTransport for testing purposes.
- * Allows tests to easily send/receive messages and control the connection state.
- */
 export class TestMcpMessageTransport extends Disposable implements IMcpMessageTransport {
 	private readonly _onDidLog = this._register(new Emitter<{ level: LogLevel; message: string }>());
 	public readonly onDidLog = this._onDidLog.event;
@@ -38,7 +34,7 @@ export class TestMcpMessageTransport extends Disposable implements IMcpMessageTr
 
 		this.setResponder('initialize', () => ({
 			jsonrpc: MCP.JSONRPC_VERSION,
-			id: 1, // The handler uses 1 for the first request
+			id: 1,
 			result: {
 				protocolVersion: MCP.LATEST_PROTOCOL_VERSION,
 				serverInfo: {
@@ -57,11 +53,6 @@ export class TestMcpMessageTransport extends Disposable implements IMcpMessageTr
 		}));
 	}
 
-	/**
-	 * Set a responder function for a specific method.
-	 * The responder receives the sent message and should return a response object,
-	 * which will be simulated as a server response.
-	 */
 	public setResponder(method: string, responder: (message: unknown) => MCP.JSONRPCMessage | undefined): void {
 		if (!this._responders) {
 			this._responders = new Map();
@@ -71,9 +62,6 @@ export class TestMcpMessageTransport extends Disposable implements IMcpMessageTr
 
 	private _responders?: Map<string, (message: MCP.JSONRPCMessage) => MCP.JSONRPCMessage | undefined>;
 
-	/**
-	 * Send a message through the transport.
-	 */
 	public send(message: MCP.JSONRPCMessage): void {
 		this._sentMessages.push(message);
 		if (this._responders && 'method' in message && typeof message.method === 'string') {
@@ -87,25 +75,15 @@ export class TestMcpMessageTransport extends Disposable implements IMcpMessageTr
 		}
 	}
 
-	/**
-	 * Stop the transport.
-	 */
 	public stop(): void {
 		this._stateValue.set({ state: McpConnectionState.Kind.Stopped }, undefined);
 	}
 
-	// Test Helper Methods
 
-	/**
-	 * Simulate receiving a message from the server.
-	 */
 	public simulateReceiveMessage(message: MCP.JSONRPCMessage): void {
 		this._onDidReceiveMessage.fire(message);
 	}
 
-	/**
-	 * Simulates a reply to an 'initialized' request.
-	 */
 	public simulateInitialized() {
 		if (!this._sentMessages.length) {
 			throw new Error('initialize was not called yet');
@@ -127,30 +105,18 @@ export class TestMcpMessageTransport extends Disposable implements IMcpMessageTr
 		});
 	}
 
-	/**
-	 * Simulate a log event.
-	 */
 	public simulateLog(message: string): void {
 		this._onDidLog.fire({ level: LogLevel.Info, message });
 	}
 
-	/**
-	 * Set the connection state.
-	 */
 	public setConnectionState(state: McpConnectionState): void {
 		this._stateValue.set(state, undefined);
 	}
 
-	/**
-	 * Get all messages that have been sent.
-	 */
 	public getSentMessages(): readonly MCP.JSONRPCMessage[] {
 		return [...this._sentMessages];
 	}
 
-	/**
-	 * Clear the sent messages history.
-	 */
 	public clearSentMessages(): void {
 		this._sentMessages.length = 0;
 	}

@@ -83,10 +83,6 @@ export function defineTurnLifecycleTests(context: IAgentHostE2ETestContext): voi
 		assert.strictEqual(resubscribeResult.snapshot!.resource, sessionUri, 'follow-up turn should keep the original session resource');
 	});
 
-	// Aborting a turn is inherently a real-streaming test: on replay the
-	// recorded (intentionally truncated) response is served instantly, so
-	// there is no mid-stream window to abort. Run it only while recording
-	// against real CAPI; it is skipped in deterministic replay.
 	(runRecordOnlyTests ? test : test.skip)('can abort a running turn', async function () {
 		this.timeout(120_000);
 

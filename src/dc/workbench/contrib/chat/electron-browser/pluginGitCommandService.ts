@@ -9,14 +9,6 @@ import { generateUuid } from '../../../../base/common/uuid.js';
 import { ILocalGitService } from '../../../../platform/git/common/localGitService.js';
 import { IPluginGitService } from '../common/plugins/pluginGitService.js';
 
-/**
- * Desktop implementation that always runs git locally via the shared process.
- * The plugin cache is always on the local machine, so there is no need to
- * delegate to the git extension (which may be running on a remote host).
- *
- * Cancellation tokens are mapped to operation IDs so that cancel requests
- * survive the IPC boundary to the shared process (tokens don't serialise).
- */
 export class NativePluginGitCommandService implements IPluginGitService {
 	declare readonly _serviceBrand: undefined;
 
@@ -27,7 +19,7 @@ export class NativePluginGitCommandService implements IPluginGitService {
 	private _withCancel<T>(token: CancellationToken | undefined, fn: (operationId: string) => Promise<T>): Promise<T> {
 		const operationId = generateUuid();
 		const listener = token?.onCancellationRequested(() => {
-			this._localGitService.cancel(operationId).catch(() => { /* ignore */ });
+			this._localGitService.cancel(operationId).catch(() => { });
 		});
 		return fn(operationId).finally(() => listener?.dispose());
 	}

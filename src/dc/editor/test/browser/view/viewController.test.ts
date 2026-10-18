@@ -62,7 +62,7 @@ suite('ViewController - Bracket content selection', () => {
 		const monospaceLineBreaksComputerFactory = MonospaceLineBreaksComputerFactory.create(configuration.options);
 
 		viewModel = new ViewModel(
-			1, // editorId
+			1,
 			configuration,
 			disposables.add(instantiateTextModel(instantiationService, text, languageId)),
 			monospaceLineBreaksComputerFactory,
@@ -263,18 +263,14 @@ suite('ViewController - String content selection', () => {
 		return viewModel!.model.getValueInRange(selections[0]);
 	}
 
-	// -- Happy-path: whole string as a single token including quotes --
 
 	test('Select string content clicking right after opening double quote', () => {
-		//                0123456789...
 		const text = 'var x = "hello";';
-		// Token layout: [0..8) Other  [8..15) String("hello")  [15..16) Other
 		const controller = createViewControllerWithTokens(text, [
 			{ startIndex: 0, type: StandardTokenType.Other },
 			{ startIndex: 8, type: StandardTokenType.String },
 			{ startIndex: 15, type: StandardTokenType.Other },
 		]);
-		// Column right after opening quote: offset 9 → column 10
 		assert.strictEqual(doubleClickAt(controller, new Position(1, 10)), 'hello');
 	});
 
@@ -285,7 +281,6 @@ suite('ViewController - String content selection', () => {
 			{ startIndex: 8, type: StandardTokenType.String },
 			{ startIndex: 15, type: StandardTokenType.Other },
 		]);
-		// Column at closing quote: offset 14 → column 15
 		assert.strictEqual(doubleClickAt(controller, new Position(1, 15)), 'hello');
 	});
 
@@ -310,9 +305,7 @@ suite('ViewController - String content selection', () => {
 	});
 
 	test('Select string content containing escape characters', () => {
-		//                0123456789...
 		const text = 'var x = "hello\\"world";';
-		// Token layout: [0..8) Other  [8..22) String("hello\"world")  [22..23) Other
 		const controller = createViewControllerWithTokens(text, [
 			{ startIndex: 0, type: StandardTokenType.Other },
 			{ startIndex: 8, type: StandardTokenType.String },
@@ -322,73 +315,54 @@ suite('ViewController - String content selection', () => {
 			{ startIndex: 21, type: StandardTokenType.String },
 			{ startIndex: 22, type: StandardTokenType.Other },
 		]);
-		// Column right after opening quote: offset 9 → column 10
 		assert.strictEqual(doubleClickAt(controller, new Position(1, 10)), 'hello\\"world');
 	});
 
-	// -- Click in middle of string should NOT select the whole string --
 
 	test('Click in middle of string does not select whole string', () => {
-		//                0123456789012345678901
 		const text = 'var x = "hello world";';
-		// Token layout: [0..8) Other  [8..21) String("hello world")  [21..22) Other
 		const controller = createViewControllerWithTokens(text, [
 			{ startIndex: 0, type: StandardTokenType.Other },
 			{ startIndex: 8, type: StandardTokenType.String },
 			{ startIndex: 21, type: StandardTokenType.Other },
 		]);
-		// Click on 'w' in "world" — word select should pick 'world', not 'hello world'
 		assert.strictEqual(doubleClickAt(controller, new Position(1, 16)), 'world');
 	});
 
-	// -- Bail-out: quotes as separate tokens (theme issue #292784) --
 
 	test('Separate quote tokens fall back to word select', () => {
-		//                0         1         2
-		//                0123456789012345678901234
 		const text = 'var x = "hello world";';
-		// Theme tokenizes quotes as separate Other tokens:
-		// [0..8) Other  [8..9) Other(")  [9..20) String(hello world)  [20..21) Other(")  [21..22) Other
 		const controller = createViewControllerWithTokens(text, [
 			{ startIndex: 0, type: StandardTokenType.Other },
-			{ startIndex: 8, type: StandardTokenType.Other },   // opening "
-			{ startIndex: 9, type: StandardTokenType.String },  // hello world
-			{ startIndex: 20, type: StandardTokenType.Other },  // closing "
+			{ startIndex: 8, type: StandardTokenType.Other },
+			{ startIndex: 9, type: StandardTokenType.String },
+			{ startIndex: 20, type: StandardTokenType.Other },
 			{ startIndex: 21, type: StandardTokenType.Other },
 		]);
-		// The String token "hello world" doesn't start with a quote char → should bail out.
-		// Click right after opening quote (column 10) → word select picks just 'hello'.
 		assert.strictEqual(doubleClickAt(controller, new Position(1, 10)), 'hello');
 	});
 
-	// -- Bail-out: RTL content in string (#293384) --
 
 	test('RTL content in string falls back to word select', () => {
 		const text = 'var x = "שלום עולם";';
-		// Token layout: [0..8) Other  [8..19) String("שלום עולם")  [19..20) Other
 		const controller = createViewControllerWithTokens(text, [
 			{ startIndex: 0, type: StandardTokenType.Other },
 			{ startIndex: 8, type: StandardTokenType.String },
 			{ startIndex: 19, type: StandardTokenType.Other },
 		]);
-		// Should bail out due to RTL content → word select picks first word
 		assert.strictEqual(doubleClickAt(controller, new Position(1, 10)), 'שלום');
 	});
 
-	// -- Bail-out: mismatched quotes (#293203 — string split at braces) --
 
 	test('String token without matching closing quote falls back to word select', () => {
-		//                0123456789012345
 		const text = 'var x = "a {} b";';
-		// Hypothetical tokenizer splits: [0..8) Other  [8..11) String("a )  [11..13) Other({})  [13..17) String( b")  [17..18) Other
 		const controller = createViewControllerWithTokens(text, [
 			{ startIndex: 0, type: StandardTokenType.Other },
-			{ startIndex: 8, type: StandardTokenType.String },  // `"a ` — starts with " but doesn't end with "
-			{ startIndex: 11, type: StandardTokenType.Other },  // `{}`
-			{ startIndex: 13, type: StandardTokenType.String }, // ` b"` — ends with " but doesn't start with "
+			{ startIndex: 8, type: StandardTokenType.String },
+			{ startIndex: 11, type: StandardTokenType.Other },
+			{ startIndex: 13, type: StandardTokenType.String },
 			{ startIndex: 16, type: StandardTokenType.Other },
 		]);
-		// First String token starts with " but ends with space → bail out → word select picks 'a'
 		assert.strictEqual(doubleClickAt(controller, new Position(1, 10)), 'a');
 	});
 });

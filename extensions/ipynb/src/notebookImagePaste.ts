@@ -106,19 +106,16 @@ class DropOrPasteEditProvider implements vscode.DocumentPasteEditProvider, vscod
 			return undefined;
 		}
 
-		// create updated metadata for cell (prep for WorkspaceEdit)
 		const newAttachment = buildAttachment(currentCell, imageData);
 		if (!newAttachment) {
 			return;
 		}
 
-		// build edits
 		const additionalEdit = new vscode.WorkspaceEdit();
 		const nbEdit = vscode.NotebookEdit.updateCellMetadata(currentCell.index, newAttachment.metadata);
 		const notebookUri = currentCell.notebook.uri;
 		additionalEdit.set(notebookUri, [nbEdit]);
 
-		// create a snippet for paste
 		const insertText = new vscode.SnippetString();
 		newAttachment.filenames.forEach((filename, i) => {
 			insertText.appendText('![');
@@ -138,7 +135,6 @@ async function getDroppedImageData(
 	token: vscode.CancellationToken,
 ): Promise<readonly ImageAttachmentData[]> {
 
-	// Prefer using image data in the clipboard
 	const files = coalesce(await Promise.all(Array.from(dataTransfer, async ([mimeType, item]): Promise<ImageAttachmentData | undefined> => {
 		if (!imageMimeTypes.has(mimeType)) {
 			return;
@@ -156,7 +152,6 @@ async function getDroppedImageData(
 		return files;
 	}
 
-	// Then fallback to image files in the uri-list
 	const urlList = await dataTransfer.get('text/uri-list')?.asString();
 	if (token.isCancellationRequested) {
 		return [];
@@ -168,7 +163,6 @@ async function getDroppedImageData(
 			try {
 				uris.push(vscode.Uri.parse(resource));
 			} catch {
-				// noop
 			}
 		}
 
@@ -205,9 +199,6 @@ function getCellFromCellDocument(cellDocument: vscode.TextDocument): vscode.Note
 	return undefined;
 }
 
-/**
- *  Taken from https://github.com/microsoft/vscode/blob/743b016722db90df977feecde0a4b3b4f58c2a4c/src/vs/base/common/buffer.ts#L350-L387
- */
 function encodeBase64(buffer: Uint8Array, padded = true, urlSafe = false) {
 	const base64Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	const base64UrlSafeAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -276,9 +267,9 @@ function buildAttachment(
 		let tempFilename = filenameWithoutExt + fileExt;
 		for (let appendValue = 2; cellMetadata.attachments[tempFilename]; appendValue++) {
 			const objEntries = Object.entries(cellMetadata.attachments[tempFilename]);
-			if (objEntries.length) { // check that mime:b64 are present
+			if (objEntries.length) {
 				const [mime, attachmentb64] = objEntries[0];
-				if (mime === attachment.mimeType && attachmentb64 === b64) { // checking if filename can be reused, based on comparison of image data
+				if (mime === attachment.mimeType && attachmentb64 === b64) {
 					break;
 				} else {
 					tempFilename = filenameWithoutExt.concat(`-${appendValue}`) + fileExt;

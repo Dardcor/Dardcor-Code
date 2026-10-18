@@ -60,7 +60,6 @@ export class DiffEditorDecorations extends Disposable {
 				} else {
 					const useInlineDiff = this._options.useTrueInlineDiffRendering.read(reader) && allowsTrueInlineDiffRendering(m.lineRangeMapping);
 					for (const i of m.lineRangeMapping.innerChanges || []) {
-						// Don't show empty markers outside the line range
 						if (m.lineRangeMapping.original.contains(i.originalRange.startLineNumber)) {
 							originalDecorations.push({ range: i.originalRange, options: (i.originalRange.isEmpty() && showEmptyDecorations) ? diffDeleteDecorationEmpty : diffDeleteDecoration });
 						}

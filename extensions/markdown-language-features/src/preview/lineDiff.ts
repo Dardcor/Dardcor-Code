@@ -106,10 +106,8 @@ async function computeLineChanges(originalDocument: vscode.TextDocument, modifie
 		const modStart = change.modifiedRange.start.line;
 		const modEnd = change.modifiedRange.end.line;
 
-		// Map unchanged lines before this change
 		fillUnchangedLineMappings(mappings, lastOriginalEnd, origStart, lastModifiedEnd, modStart);
 
-		// Mark deleted and added lines within this change
 		for (let i = origStart; i < origEnd; ++i) {
 			deleted.push(i);
 			mappings.originalToModified[i] = clampLine(modStart, modifiedLineCount);
@@ -119,13 +117,11 @@ async function computeLineChanges(originalDocument: vscode.TextDocument, modifie
 			mappings.modifiedToOriginal[i] = clampLine(origStart, originalLineCount);
 		}
 
-		// Collect change indicators for deletions and modifications
 		const origChangedCount = origEnd - origStart;
 		if (origChangedCount > 0) {
 			changedLineRanges.push(change);
 		}
 
-		// Collect inner changes (character-level changes within modified lines)
 		if (change.innerChanges) {
 			for (const inner of change.innerChanges) {
 				collectInnerChangesForSide(inner.originalRange, originalInnerChanges);
@@ -137,7 +133,6 @@ async function computeLineChanges(originalDocument: vscode.TextDocument, modifie
 		lastModifiedEnd = modEnd;
 	}
 
-	// Map unchanged lines after the last change
 	fillUnchangedLineMappings(mappings, lastOriginalEnd, originalLineCount, lastModifiedEnd, modifiedLineCount);
 	fillMissingLineMappings(mappings);
 	const splitChangedLineRanges = splitChangedLineRangesByMarkdownBlocks(changedLineRanges, originalDocument, modifiedDocument);
@@ -222,13 +217,6 @@ function getLineRangeText(document: vscode.TextDocument, range: vscode.Range): s
 	return lines.join('\n');
 }
 
-/**
- * Splits a Range into per-line inner change entries.
- * For single-line ranges, emits one entry. For multi-line ranges,
- * the first line goes from startColumn to end-of-line (maxColumn),
- * middle lines are full-line, and the last line goes from column 0
- * to endColumn.
- */
 function collectInnerChangesForSide(range: vscode.Range, out: MarkdownPreviewInnerChange[]): void {
 	if (range.isEmpty) {
 		return;
@@ -236,13 +224,10 @@ function collectInnerChangesForSide(range: vscode.Range, out: MarkdownPreviewInn
 	if (range.isSingleLine) {
 		out.push({ line: range.start.line, startColumn: range.start.character, endColumn: range.end.character });
 	} else {
-		// First line: from start column to end-of-line
 		out.push({ line: range.start.line, startColumn: range.start.character, endColumn: Number.MAX_SAFE_INTEGER });
-		// Middle lines: entire line
 		for (let line = range.start.line + 1; line < range.end.line; ++line) {
 			out.push({ line, startColumn: 0, endColumn: Number.MAX_SAFE_INTEGER });
 		}
-		// Last line: from start to end column (skip if endColumn is 0, meaning the range ended at the line boundary)
 		if (range.end.character > 0) {
 			out.push({ line: range.end.line, startColumn: 0, endColumn: range.end.character });
 		}

@@ -129,11 +129,8 @@ export class RemoteTerminalChannelClient implements IPtyHostController {
 		rows: number,
 		unicodeVersion: '6' | '11'
 	): Promise<ICreateTerminalProcessResult> {
-		// Be sure to first wait for the remote configuration
 		await this._configurationService.whenRemoteConfigurationLoaded();
 
-		// We will use the resolver service to resolve all the variables in the config / launch config
-		// But then we will keep only some variables, since the rest need to be resolved on the remote side
 		const resolvedVariables = Object.create(null);
 		const lastActiveWorkspace = activeWorkspaceRootUri ? this._workspaceContextService.getWorkspaceFolder(activeWorkspaceRootUri) ?? undefined : undefined;
 		const expr = ConfigurationResolverExpression.parse({ shellLaunchConfig, configuration });
@@ -155,10 +152,6 @@ export class RemoteTerminalChannelClient implements IPtyHostController {
 
 		const resolverResult = await this._remoteAuthorityResolverService.resolveAuthority(this._remoteAuthority);
 		const resolverEnv = {
-			/**
-			 * If the extension host was spawned via a launch configuration,
-			 * include the environment provided by that launch configuration.
-			 */
 			...(this._environmentService.debugExtensionHost.env ?? {}), ...resolverResult.options?.extensionHostEnv
 		};
 
@@ -324,7 +317,6 @@ export class RemoteTerminalChannelClient implements IPtyHostController {
 		return this._channel.call(RemoteTerminalChannelRequest.SerializeTerminalState, [ids]);
 	}
 
-	// #region Pty service contribution RPC calls
 
 	installAutoReply(match: string, reply: string): Promise<void> {
 		return this._channel.call(RemoteTerminalChannelRequest.InstallAutoReply, [match, reply]);
@@ -333,5 +325,4 @@ export class RemoteTerminalChannelClient implements IPtyHostController {
 		return this._channel.call(RemoteTerminalChannelRequest.UninstallAllAutoReplies, []);
 	}
 
-	// #endregion
 }

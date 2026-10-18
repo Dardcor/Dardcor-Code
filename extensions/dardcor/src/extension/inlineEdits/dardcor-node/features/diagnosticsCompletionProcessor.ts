@@ -64,7 +64,6 @@ export class DiagnosticsCollection {
 			const oldRange = diagnostic.range;
 			const newRange = applyEditsToRanges([oldRange], edit)[0];
 
-			// If the range shrank then the diagnostic will have changed
 			if (!newRange || newRange.length < oldRange.length) {
 				diagnostic.invalidate();
 				hasInvalidated = true;
@@ -73,7 +72,6 @@ export class DiagnosticsCollection {
 
 			const contentAtOldRange = oldRange.substring(previous.value);
 
-			// If the range stays the same then the diagnostic is still valid if the content is the same
 			if (newRange.length === oldRange.length) {
 				const contentAtNewRange = newRange.substring(after.value);
 				if (contentAtOldRange === contentAtNewRange) {
@@ -85,11 +83,9 @@ export class DiagnosticsCollection {
 				continue;
 			}
 
-			// If the range grew then we need to check what got added
 			const isSamePrefix = contentAtOldRange === new OffsetRange(newRange.start, newRange.start + oldRange.length).substring(after.value);
 			const isSameSuffix = contentAtOldRange === new OffsetRange(newRange.endExclusive - oldRange.length, newRange.endExclusive).substring(after.value);
 			if (!isSamePrefix && !isSameSuffix) {
-				// The content at the diagnostic range has changed
 				diagnostic.invalidate();
 				hasInvalidated = true;
 				continue;
@@ -105,13 +101,11 @@ export class DiagnosticsCollection {
 			}
 
 			if (edgeCharacter.length !== 1 || /^[a-zA-Z0-9_]$/.test(edgeCharacter)) {
-				// The content at the diagnostic range has changed
 				diagnostic.invalidate();
 				hasInvalidated = true;
 				continue;
 			}
 
-			// We need to update the range of the diagnostic after applying the edits
 			let updatedRange: OffsetRange;
 			if (isSamePrefix) {
 				updatedRange = new OffsetRange(newRange.start, newRange.start + oldRange.length);
@@ -214,10 +208,8 @@ export class DiagnosticsCompletionProcessor extends Disposable {
 				return;
 			}
 
-			// update state because document changed
 			this._updateState();
 
-			// update state because diagnostics changed
 			reader.store.add(runOnChange(activeDocument.diagnostics, (diagnostics) => {
 				this._logger.trace(`Diagnostics changed received in processor: ${diagnostics.map(d => '\n- ' + d.message).join('')}`);
 				this._updateState();
@@ -391,7 +383,6 @@ export class DiagnosticsCompletionProcessor extends Disposable {
 		return providerResults.filter(item => !!item) as DiagnosticCompletionItem[];
 	}
 
-	// Handle Acceptance and rejection of diagnostics completion items
 
 	public handleEndOfLifetime(completionItem: DiagnosticCompletionItem, reason: vscode.InlineCompletionEndOfLifeReason): void {
 		const provider = this._diagnosticsCompletionProviders.get().find(p => p.providerName === completionItem.providerName);
@@ -417,7 +408,6 @@ export class DiagnosticsCompletionProcessor extends Disposable {
 		provider.completionItemRejected?.(item);
 	}
 
-	// Filters
 
 	private _isCompletionItemValid(item: DiagnosticCompletionItem, workspaceDocument: IObservableDocument, logContext: DiagnosticInlineEditRequestLogContext, tb: DiagnosticsCompletionHandlerTelemetry): boolean {
 		if (!item.diagnostic.isValid()) {
@@ -592,8 +582,6 @@ class AsyncWorker<T extends {}> extends Disposable {
 		return result;
 	}
 
-	// Get the active result if there is one currently
-	// Return undefined if there is currently work being done
 	getCurrentResult(): T | undefined {
 		if (this._currentResult === undefined) {
 			return undefined;
@@ -629,7 +617,7 @@ class DiagnosticsCompletionHandlerTelemetry {
 
 	addDroppedReason(reason: string, item?: DiagnosticCompletionItem): this {
 		if (item instanceof AnyDiagnosticCompletionItem) {
-			return this; // Do not track dropped reasons for "any" items
+			return this;
 		}
 
 		this._droppedReasons.push(item ? `${item.type}:${reason}` : reason);

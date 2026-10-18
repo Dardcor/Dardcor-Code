@@ -25,7 +25,6 @@ export class GitHubOrgInstructionsProvider extends Disposable implements vscode.
 	) {
 		super();
 
-		// Set up polling with provider-specific interval
 		this._register(this.githubOrgChatResourcesService.startPolling(REFRESH_INTERVAL_MS, this.pollInstructions.bind(this)));
 	}
 
@@ -61,7 +60,6 @@ export class GitHubOrgInstructionsProvider extends Disposable implements vscode.
 				return;
 			}
 
-			// Write the instructions to cache
 			const fileName = `${INSTRUCTIONS_BASE_FILE_NAME}${INSTRUCTION_FILE_EXTENSION}`;
 			const content = `---
 applyTo: '**'
@@ -69,13 +67,11 @@ applyTo: '**'
 ${instructions}`;
 			const contentChanged = await this.githubOrgChatResourcesService.writeCacheFile(PromptsType.instructions, orgId, fileName, content, { checkForChanges: true });
 
-			// If no changes, we can return
 			if (!contentChanged) {
 				this.logService.trace(`[GitHubOrgInstructionsProvider] No changes detected in cache for org ${orgId}`);
 				return;
 			}
 
-			// Otherwise, fire event to notify consumers that instructions have changed
 			this._onDidChangeInstructions.fire();
 		} catch (error) {
 			this.logService.error(`[GitHubOrgInstructionsProvider] Error polling for instructions: ${error}`);

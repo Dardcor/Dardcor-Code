@@ -19,9 +19,6 @@ export interface IOpenCallbacks {
 	openInternal: (input: EditorInput, options: IEditorOptions | undefined) => Promise<void>;
 }
 
-/*
- * This class is only intended to be subclassed and not instantiated.
- */
 export abstract class BaseBinaryResourceEditor extends EditorPlaceholder {
 
 	private readonly _onDidChangeMetadata = this._register(new Emitter<void>());
@@ -50,12 +47,10 @@ export abstract class BaseBinaryResourceEditor extends EditorPlaceholder {
 	protected async getContents(input: EditorInput, options: IEditorOptions): Promise<IEditorPlaceholderContents> {
 		const model = await input.resolve();
 
-		// Assert Model instance
 		if (!(model instanceof BinaryEditorModel)) {
 			throw new Error('Unable to open file as binary');
 		}
 
-		// Update metadata
 		const size = model.getSize();
 		this.handleMetadataChanged(typeof size === 'number' ? ByteSize.formatSize(size) : '');
 
@@ -67,10 +62,8 @@ export abstract class BaseBinaryResourceEditor extends EditorPlaceholder {
 					label: localize('openAnyway', "Open Anyway"),
 					run: async () => {
 
-						// Open in place
 						await this.callbacks.openInternal(input, options);
 
-						// Signal to listeners that the binary editor has been opened in-place
 						this._onDidOpenInPlace.fire();
 					}
 				}

@@ -38,9 +38,6 @@ import { isString } from '../../../../../base/common/types.js';
 
 export type XtermLinkMatcherHandler = (event: MouseEvent | undefined, link: string) => Promise<void>;
 
-/**
- * An object responsible for managing registration of link matchers and link providers.
- */
 export class TerminalLinkManager extends DisposableStore {
 	private _widgetManager: TerminalWidgetManager | undefined;
 	private readonly _standardLinkProviders: Map<string, ILinkProvider> = new Map();
@@ -70,7 +67,7 @@ export class TerminalLinkManager extends DisposableStore {
 		const enableFileLinksConfig = this._configurationService.getValue<ITerminalConfiguration>(TERMINAL_CONFIG_SECTION).enableFileLinks as ITerminalConfiguration['enableFileLinks'] | boolean;
 		switch (enableFileLinksConfig) {
 			case 'off':
-			case false: // legacy from v1.75
+			case false:
 				enableFileLinks = false;
 				break;
 			case 'notRemote':
@@ -78,7 +75,6 @@ export class TerminalLinkManager extends DisposableStore {
 				break;
 		}
 
-		// Setup link detectors in their order of priority
 		if (enableFileLinks) {
 			this._setupLinkDetector(TerminalMultiLineLinkDetector.id, this._instantiationService.createInstance(TerminalMultiLineLinkDetector, this._xterm, this._processInfo, this._linkResolver));
 			this._setupLinkDetector(TerminalLocalLinkDetector.id, this._instantiationService.createInstance(TerminalLocalLinkDetector, this._xterm, capabilities, this._processInfo, this._linkResolver));
@@ -86,7 +82,6 @@ export class TerminalLinkManager extends DisposableStore {
 		this._setupLinkDetector(TerminalUriLinkDetector.id, this._instantiationService.createInstance(TerminalUriLinkDetector, this._xterm, this._processInfo, this._linkResolver));
 		this._setupLinkDetector(TerminalWordLinkDetector.id, this.add(this._instantiationService.createInstance(TerminalWordLinkDetector, this._xterm)));
 
-		// Setup link openers
 		const localFileOpener = this._instantiationService.createInstance(TerminalLocalFileLinkOpener);
 		const localFolderInWorkspaceOpener = this._instantiationService.createInstance(TerminalLocalFolderInWorkspaceLinkOpener);
 		const localFolderOutsideWorkspaceOpener = this._instantiationService.createInstance(TerminalLocalFolderOutsideWorkspaceLinkOpener);
@@ -178,14 +173,11 @@ export class TerminalLinkManager extends DisposableStore {
 					activeHoverListeners = new DisposableStore();
 					activeHoverListeners.add(this._xterm.onScroll(() => clearActiveLinkHover()));
 					activeHoverListeners.add(this._xterm.onRender(renderedRange => {
-						// Convert buffer range to viewport range and check if the
-						// rendered range intersects any row of the link
 						const viewportRange = convertBufferRangeToViewport(range, hoverViewportY);
 						if (viewportRange.start.y <= renderedRange.end && viewportRange.end.y >= renderedRange.start) {
 							clearActiveLinkHover();
 						}
 					}));
-					// Clear out scheduler until next hover event
 					activeTooltipScheduler?.dispose();
 					activeTooltipScheduler = undefined;
 				}, this._configurationService.getValue('workbench.hover.delay'));
@@ -200,15 +192,11 @@ export class TerminalLinkManager extends DisposableStore {
 	private _setupLinkDetector(id: string, detector: ITerminalLinkDetector, isExternal: boolean = false): ILinkProvider {
 		const detectorAdapter = this.add(this._instantiationService.createInstance(TerminalLinkDetectorAdapter, detector));
 		this.add(detectorAdapter.onDidActivateLink(e => {
-			// Prevent default electron link handling so Alt+Click mode works normally
 			e.event?.preventDefault();
-			// Require correct modifier on click unless event is coming from linkQuickPick selection
 			if (e.event && !(e.event instanceof TerminalLinkQuickPickEvent) && !this._isLinkActivationModifierDown(e.event)) {
 				return;
 			}
-			// Just call the handler if there is no before listener
 			if (e.link.activate) {
-				// Custom activate call (external links only)
 				e.link.activate(e.link.text);
 			} else {
 				this._openLink(e.link);
@@ -254,14 +242,12 @@ export class TerminalLinkManager extends DisposableStore {
 	}
 
 	async getLinks(): Promise<{ viewport: IDetectedLinks; all: Promise<IDetectedLinks> }> {
-		// Fetch and await the viewport results
 		const viewportLinksByLinePromises: Promise<IDetectedLinks | undefined>[] = [];
 		for (let i = this._xterm.buffer.active.viewportY + this._xterm.rows - 1; i >= this._xterm.buffer.active.viewportY; i--) {
 			viewportLinksByLinePromises.push(this._getLinksForLine(i));
 		}
 		const viewportLinksByLine = await Promise.all(viewportLinksByLinePromises);
 
-		// Assemble viewport links
 		const viewportLinks: Required<Pick<IDetectedLinks, 'wordLinks' | 'webLinks' | 'fileLinks' | 'folderLinks'>> = {
 			wordLinks: [],
 			webLinks: [],
@@ -286,7 +272,6 @@ export class TerminalLinkManager extends DisposableStore {
 			}
 		}
 
-		// Fetch the remaining results async
 		const aboveViewportLinksPromises: Promise<IDetectedLinks | undefined>[] = [];
 		for (let i = this._xterm.buffer.active.viewportY - 1; i >= 0; i--) {
 			aboveViewportLinksPromises.push(this._getLinksForLine(i));
@@ -296,7 +281,6 @@ export class TerminalLinkManager extends DisposableStore {
 			belowViewportLinksPromises.push(this._getLinksForLine(i));
 		}
 
-		// Assemble all links in results
 		const allLinks: Promise<Required<Pick<IDetectedLinks, 'wordLinks' | 'webLinks' | 'fileLinks' | 'folderLinks'>>> = Promise.all(aboveViewportLinksPromises).then(async aboveViewportLinks => {
 			const belowViewportLinks = await Promise.all(belowViewportLinksPromises);
 			const allResults: Required<Pick<IDetectedLinks, 'wordLinks' | 'webLinks' | 'fileLinks' | 'folderLinks'>> = {
@@ -385,7 +369,6 @@ export class TerminalLinkManager extends DisposableStore {
 			height: this._xterm.rows
 		};
 
-		// Don't pass the mouse event as this avoids the modifier check
 		this._showHover({
 			viewportRange,
 			cellDimensions,
@@ -428,18 +411,6 @@ export class TerminalLinkManager extends DisposableStore {
 	}
 
 	private _registerStandardLinkProviders(): void {
-		// Forward any external link provider requests to the registered provider if it exists. This
-		// helps maintain the relative priority of the link providers as it's defined by the order
-		// in which they're registered in xterm.js.
-		//
-		/**
-		 * There's a bit going on here but here's another view:
-		 * - {@link externalProvideLinksCb} The external callback that gives the links (eg. from
-		 *   exthost)
-		 * - {@link proxyLinkProvider} A proxy that forwards the call over to
-		 *   {@link externalProvideLinksCb}
-		 * - {@link wrappedLinkProvider} Wraps the above in an `TerminalLinkDetectorAdapter`
-		 */
 		const proxyLinkProvider: OmitFirstArg<ITerminalExternalLinkProvider['provideLinks']> = async (bufferLineNumber) => {
 			return this.externalProvideLinksCb?.(bufferLineNumber);
 		};
@@ -484,11 +455,9 @@ export class TerminalLinkManager extends DisposableStore {
 				fallbackLabel = nls.localize('followForwardedLink', "Follow link using forwarded port");
 			}
 		} catch {
-			// No-op, already set to fallback
 		}
 
 		const markdown = new MarkdownString('', true);
-		// Escapes markdown in label & uri
 		if (label) {
 			label = markdown.appendText(label).value;
 			markdown.value = '';
@@ -499,9 +468,7 @@ export class TerminalLinkManager extends DisposableStore {
 		}
 
 		label = label || fallbackLabel;
-		// Use the label when uri is '' so the link displays correctly
 		uri = uri || label;
-		// Although if there is a space in the uri, just replace it completely
 		if (/(\s|&nbsp;)/.test(uri)) {
 			uri = nls.localize('followLinkUrl', 'Link');
 		}

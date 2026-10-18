@@ -39,7 +39,6 @@ import { AGENT_HOST_CLIENT_CONNECTION_HISTORY_RETENTION, AgentHostClientConnecti
 import { AgentHostManagedSettingsService } from '../../node/agentHostManagedSettingsService.js';
 import { AgentHostTelemetryService } from '../../node/agentHostTelemetryService.js';
 
-// ---- Mock helpers -----------------------------------------------------------
 
 class MockProtocolTransport implements IProtocolTransport {
 	constructor(readonly transportKind = AgentHostTransportKind.Unknown) { }
@@ -179,7 +178,6 @@ class MockAgentService implements IAgentService {
 
 	private _stateManager!: AgentHostStateManager;
 
-	/** Connect to the state manager so dispatchAction works correctly. */
 	setStateManager(sm: AgentHostStateManager): void {
 		this._stateManager = sm;
 	}
@@ -307,7 +305,6 @@ class MockAgentService implements IAgentService {
 	async resourceMkdir(_params: ResourceMkdirParams): Promise<ResourceMkdirResult> { return {}; }
 	readonly watchSubscribeCalls: string[] = [];
 	readonly watchUnsubscribeCalls: string[] = [];
-	/** Channels for which `onResourceWatchSubscribed` should return a descriptor. */
 	readonly liveWatchDescriptors = new Map<string, import('../../common/state/sessionProtocol.js').ResourceWatchState>();
 	async createResourceWatch(_params: import('../../common/state/sessionProtocol.js').CreateResourceWatchParams): Promise<import('../../common/state/sessionProtocol.js').CreateResourceWatchResult> {
 		throw new Error('Not implemented');
@@ -332,7 +329,6 @@ class MockAgentService implements IAgentService {
 	}
 }
 
-// ---- Helpers ----------------------------------------------------------------
 
 function notification(method: string, params?: unknown): ProtocolMessage {
 	return { jsonrpc: '2.0', method, params } as ProtocolMessage;
@@ -373,7 +369,6 @@ function waitForResponse(transport: MockProtocolTransport, id: number): Promise<
 	return Event.toPromise(Event.filter(transport.onDidSend, message => isJsonRpcResponse(message) && message.id === id));
 }
 
-// ---- Tests ------------------------------------------------------------------
 
 suite('ProtocolServerHandler', () => {
 
@@ -601,9 +596,6 @@ suite('ProtocolServerHandler', () => {
 	test('handshake rejects unsupported protocol versions', () => {
 		const transport = new MockProtocolTransport();
 		server.simulateConnection(transport);
-		// Offer a single, deliberately-unsupported version. The server should
-		// respond with -32005 and a message naming the offered/supported sets
-		// instead of a result.
 		transport.simulateMessage(request(1, 'initialize', {
 			protocolVersions: ['0.0.0'],
 			clientId: 'client-incompat',
@@ -614,7 +606,6 @@ suite('ProtocolServerHandler', () => {
 		assert.strictEqual(resp.error?.code, AHP_UNSUPPORTED_PROTOCOL_VERSION);
 		assert.match(resp.error!.message, /0\.0\.0/);
 		assert.match(resp.error!.message, new RegExp(PROTOCOL_VERSION.replace(/\./g, '\\.')));
-		// Without the upgrade-socket env var, no _meta should be advertised.
 		const data = resp.error!.data as { _meta?: { vscodeUpgradeMethod?: string } } | undefined;
 		assert.strictEqual(data?._meta?.vscodeUpgradeMethod, undefined);
 
@@ -623,9 +614,6 @@ suite('ProtocolServerHandler', () => {
 	});
 
 	test('handshake leniently picks the highest compatible offered version', () => {
-		// Mix an incompatible version with a compatible one — the server
-		// must pick the compatible one rather than rejecting on the first
-		// unknown entry.
 		const transport = new MockProtocolTransport();
 		server.simulateConnection(transport);
 		transport.simulateMessage(request(1, 'initialize', {
@@ -671,14 +659,12 @@ suite('ProtocolServerHandler', () => {
 	test('_vscodeUpgrade RPC returns MethodNotFound when no supervisor is available', async () => {
 		const transport = new MockProtocolTransport();
 		server.simulateConnection(transport);
-		// Note: NOT going through initialize first — the upgrade method must
-		// also be callable pre-handshake.
 		const responsePromise = waitForResponse(transport, 42);
 		transport.simulateMessage(request(42, '_vscodeUpgrade', {}));
 
 		const resp = await responsePromise as { error?: { code: number; message: string } };
 		assert.ok(resp.error, 'should have responded with an error');
-		assert.strictEqual(resp.error!.code, -32601 /* MethodNotFound */);
+		assert.strictEqual(resp.error!.code, -32601 );
 
 		transport.simulateClose();
 		transport.dispose();
@@ -1257,8 +1243,6 @@ suite('ProtocolServerHandler', () => {
 		stateManager.createSession(makeSessionSummary());
 		stateManager.dispatchServerAction(sessionUri, { type: ActionType.SessionReady, });
 
-		// Chat actions are emitted on the derived default-chat channel, so the
-		// client must subscribe to it (as the real UI bridge does) to see echoes.
 		const transport = connectClient('client-1', [sessionUri, defaultChatUri]);
 		transport.sent.length = 0;
 
@@ -1306,12 +1290,8 @@ suite('ProtocolServerHandler', () => {
 				action,
 			}));
 
-			// No dispatch: the gate intercepts before reaching the agent service,
-			// so the reducer never runs and synchronized state is untouched.
 			assert.deepStrictEqual(agentService.handledActions, [], `${action.type} must not be dispatched`);
 
-			// Exactly one rejection envelope, preserving the original origin so the
-			// client can reconcile its optimistic action.
 			const actionMsgs = findNotifications(transport.sent, 'action');
 			assert.strictEqual(actionMsgs.length, 1, `${action.type} should emit exactly one envelope`);
 			const envelope = actionMsgs[0].params as unknown as { action: { type: string }; origin: { clientId: string; clientSeq: number }; rejectionReason?: string };
@@ -1388,7 +1368,6 @@ suite('ProtocolServerHandler', () => {
 		stateManager.registerChangeset(changesetUri);
 
 		const transportA = connectClient('client-a-cs', [changesetUri]);
-		// Session-only subscriber: must NOT receive changeset envelopes.
 		const transportB = connectClient('client-b-cs', [sessionUri]);
 
 		transportA.sent.length = 0;
@@ -1702,11 +1681,6 @@ suite('ProtocolServerHandler', () => {
 	});
 
 	test('listSessions carries the workspace-less marker on _meta', async () => {
-		// Regression: the client resolves a session's kind (quick chat vs.
-		// workspace) from `_meta.workspaceless`, and a listing is the first
-		// thing it sees after a window reload.
-		// Dropping `_meta` here made every restored quick chat look
-		// workspace-bound and leak the host's scratch cwd as a workspace folder.
 		agentService.listedSessions.push({
 			session: URI.parse(sessionUri),
 			startTime: 1000,
@@ -1747,10 +1721,6 @@ suite('ProtocolServerHandler', () => {
 	});
 
 	test('listSessions omits _meta when the agent provides none', async () => {
-		// The wire item is built field by field and `satisfies SessionSummary`
-		// cannot catch a dropped optional, so pin the absent case too: a
-		// listing must not start manufacturing an empty `_meta` bag that later
-		// overwrites a richer one on the client.
 		agentService.listedSessions.push({
 			session: URI.parse(sessionUri),
 			startTime: 1000,
@@ -2747,8 +2717,6 @@ suite('ProtocolServerHandler', () => {
 		const changesetUri = `${sessionUri}/changeset/session`;
 		stateManager.createSession(makeSessionSummary());
 		stateManager.dispatchServerAction(sessionUri, { type: ActionType.SessionReady, });
-		// Register the changeset before the first connection so the initial
-		// subscription succeeds.
 		stateManager.registerChangeset(changesetUri);
 
 		const transport1 = connectClient('client-rc', [changesetUri]);
@@ -2756,7 +2724,6 @@ suite('ProtocolServerHandler', () => {
 		const initSeq = (resp as { result: InitializeResult }).result.serverSeq;
 		transport1.simulateClose();
 
-		// Dispatch two changeset actions while client is disconnected.
 		stateManager.dispatchServerAction(changesetUri, {
 			type: ActionType.ChangesetFileSet,
 			file: {
@@ -2772,7 +2739,6 @@ suite('ProtocolServerHandler', () => {
 			status: ChangesetStatus.Ready,
 		});
 
-		// Reconnect with same clientId and the changeset URI in subscriptions.
 		const transport2 = new MockProtocolTransport();
 		server.simulateConnection(transport2);
 		const reconnectRespPromise = waitForResponse(transport2, 1);
@@ -2861,9 +2827,6 @@ suite('ProtocolServerHandler', () => {
 		stateManager.createSession(makeSessionSummary());
 		stateManager.dispatchServerAction(sessionUri, { type: ActionType.SessionReady, });
 
-		// MockAgentService.subscribe normally just returns the existing snapshot.
-		// Override it so a missing session is restored on subscribe — this is the
-		// behavior the real AgentService provides and that reconnect now relies on.
 		const subscribeCalls: string[] = [];
 		agentService.subscribe = async (resource, _clientId) => {
 			subscribeCalls.push(resource.toString());
@@ -2880,8 +2843,6 @@ suite('ProtocolServerHandler', () => {
 		const initSeq = (initResp as { result: InitializeResult }).result.serverSeq;
 		transport1.simulateClose();
 
-		// Simulate the AgentService evicting the idle session while the client
-		// was disconnected (this is what residency eviction does in the real service).
 		stateManager.removeSession(sessionUri);
 		assert.strictEqual(stateManager.getSnapshot(sessionUri), undefined, 'precondition: state evicted');
 
@@ -2900,23 +2861,12 @@ suite('ProtocolServerHandler', () => {
 	});
 
 	test('reconnect answers replay even when initialize gave a channel no baseline', async () => {
-		// Reproduces the server half of the eternal-spinner incident. `initialize`
-		// registers a state channel whose snapshot has not materialized yet
-		// (`_addInitialSubscription` uses the SYNCHRONOUS `getSnapshot`, unlike
-		// `subscribe`, which awaits `AgentService.subscribe` and restores evicted
-		// state). The client is subscribed with no baseline from THIS process, yet
-		// the next reconnect passes the purely-global `canReplay` check and is
-		// answered with deltas only — which a client applies onto nothing.
 		const transport1 = connectClient('client-no-baseline', [sessionUri]);
 		const initResp = findResponse(transport1.sent, 1) as { result: InitializeResult };
 		const initSeq = initResp.result.serverSeq;
 		const sessionSnapshot = initResp.result.snapshots?.find(snapshot => snapshot.resource === sessionUri);
 		transport1.simulateClose();
 
-		// Mirror the incident's timing: the replay buffer is empty and the client
-		// is level with the server, so `canReplay` is true. The session then
-		// materializes DURING the async restore — exactly what happened as the
-		// restarted host restored its sessions while answering the reconnect.
 		agentService.subscribe = async (resource, _clientId) => {
 			if (!stateManager.getSnapshot(resource.toString())) {
 				stateManager.restoreSession(makeSessionSummary(), []);
@@ -2939,27 +2889,18 @@ suite('ProtocolServerHandler', () => {
 			initializeGaveSnapshot: sessionSnapshot !== undefined,
 			reconnectType: reconnectResp.result.type,
 		}, {
-			// The channel was subscribed without a baseline...
 			initializeGaveSnapshot: false,
-			// ...so the server must send a snapshot, not deltas onto nothing.
 			reconnectType: 'snapshot',
 		});
 	});
 
 	test('a channel reported missing does not deny replay for the client\'s other channels', async () => {
-		// A terminal channel from a dead host process can never be baselined:
-		// `initialize` registers it with no snapshot, and the follow-up restore
-		// reports it `missing`. Its baseline debt must be released — otherwise a
-		// single unrestorable channel would force full snapshots for every other
-		// channel this client holds, forever. (The real incident's reconnect
-		// reported 15 such terminal channels.)
 		const deadTerminal = 'agenthost-terminal:/dead-from-previous-process';
 		const transport1 = connectClient('client-missing-debt', [sessionUri, deadTerminal]);
 		const initResp = findResponse(transport1.sent, 1) as { result: InitializeResult };
 		const initSeq = initResp.result.serverSeq;
 		transport1.simulateClose();
 
-		// The session restores; the terminal cannot.
 		agentService.subscribe = async (resource, _clientId) => {
 			if (resource.toString() === deadTerminal) {
 				throw new Error('No agent for session: ' + deadTerminal);
@@ -2980,8 +2921,6 @@ suite('ProtocolServerHandler', () => {
 		}));
 		const firstResp = await firstRespPromise as { result: ReconnectResult };
 
-		// A second reconnect, now that the session has a baseline and the dead
-		// terminal has been reported missing, must be free to replay again.
 		transport2.simulateClose();
 		const transport3 = new MockProtocolTransport();
 		server.simulateConnection(transport3);
@@ -2998,21 +2937,13 @@ suite('ProtocolServerHandler', () => {
 			firstMissing: firstResp.result.type === 'replay' ? firstResp.result.missing : [],
 			secondType: secondResp.result.type,
 		}, {
-			// Debt forced a snapshot the first time, as intended...
 			firstType: 'snapshot',
 			firstMissing: [],
-			// ...and the unrestorable terminal did not poison the next reconnect.
 			secondType: 'replay',
 		});
 	});
 
 	test('reconnect re-registers the reverse-RPC filesystem authority', async () => {
-		// The server-side filesystem provider talks back to the client via
-		// reverse-RPC (e.g. `resourceList`). If the authority is not
-		// re-registered on reconnect, the agent host would fail with
-		// "No connection for authority: <clientId>" until the client
-		// reinitialized. Verify a reverse-RPC routes through the new
-		// transport after reconnect.
 		const transport1 = connectClient('client-fs');
 		transport1.simulateClose();
 
@@ -3027,8 +2958,6 @@ suite('ProtocolServerHandler', () => {
 		await reconnectRespPromise;
 		transport2.sent.length = 0;
 
-		// Wire the test's response *before* we trigger the reverse-RPC so
-		// the response is observed on the next microtask.
 		disposables.add(transport2.onDidSend(msg => {
 			if (isJsonRpcRequest(msg) && msg.method === 'resourceList') {
 				transport2.simulateMessage({
@@ -3142,8 +3071,6 @@ suite('ProtocolServerHandler', () => {
 			const transport = connectClient('client-tools', [sessionUri]);
 			transport.simulateClose();
 
-			// The active client is retained during the grace window so a quick
-			// reconnect can keep its slot.
 			assert.deepStrictEqual(stateManager.getSessionState(sessionUri)?.activeClients.map(c => c.clientId), ['client-tools']);
 			let part = stateManager.getSessionState(sessionUri)?.activeTurn?.responseParts[0];
 			assert.strictEqual(part?.kind, ResponsePartKind.ToolCall);
@@ -3151,8 +3078,6 @@ suite('ProtocolServerHandler', () => {
 
 			await new Promise(r => setTimeout(r, 30_001));
 
-			// After the grace window the active client is removed and its
-			// pending tool call is failed.
 			assert.deepStrictEqual(stateManager.getSessionState(sessionUri)?.activeClients, []);
 			part = stateManager.getSessionState(sessionUri)?.activeTurn?.responseParts[0];
 			assert.strictEqual(part?.kind, ResponsePartKind.ToolCall);
@@ -3576,7 +3501,6 @@ suite('ProtocolServerHandler', () => {
 				contributor: { kind: ToolCallContributorKind.Client, clientId: 'late-client' },
 			});
 
-			// The owning client reconnects within the grace window.
 			connectClient('late-client', [sessionUri]);
 
 			await new Promise(r => setTimeout(r, 30_001));
@@ -3598,7 +3522,6 @@ suite('ProtocolServerHandler', () => {
 				startedAt: '2025-01-01T00:00:00.000Z',
 				message: { text: 'run it', origin: { kind: MessageKind.User } },
 			});
-			// First orphaned tool call arms the grace timer.
 			stateManager.dispatchServerAction(defaultChatUri, {
 				type: ActionType.ChatToolCallStart,
 				turnId: 'turn-1',
@@ -3608,7 +3531,6 @@ suite('ProtocolServerHandler', () => {
 				contributor: { kind: ToolCallContributorKind.Client, clientId: 'disconnected-client' },
 			});
 
-			// Re-arming for a later call must retain the original deadline.
 			await new Promise(r => setTimeout(r, 20_000));
 			stateManager.dispatchServerAction(defaultChatUri, {
 				type: ActionType.ChatToolCallStart,
@@ -3619,7 +3541,6 @@ suite('ProtocolServerHandler', () => {
 				contributor: { kind: ToolCallContributorKind.Client, clientId: 'disconnected-client' },
 			});
 
-			// 31s after the FIRST call: both must have failed.
 			await new Promise(r => setTimeout(r, 11_000));
 
 			const parts = stateManager.getSessionState(sessionUri)?.activeTurn?.responseParts ?? [];
@@ -3720,7 +3641,6 @@ suite('ProtocolServerHandler', () => {
 
 		transport1.simulateClose();
 
-		// Reconnect, but do NOT resubscribe to the session.
 		const transport2 = new MockProtocolTransport();
 		server.simulateConnection(transport2);
 		const reconnectRespPromise = waitForResponse(transport2, 1);
@@ -3877,7 +3797,6 @@ suite('ProtocolServerHandler', () => {
 		});
 	});
 
-	// ---- Extension methods: auth ----------------------------------------
 
 	test('authenticate returns result via typed request', async () => {
 		const transport = connectClient('client-auth');
@@ -4009,7 +3928,6 @@ suite('ProtocolServerHandler', () => {
 	});
 
 	test('extension request preserves ProtocolError code and data', async () => {
-		// Override authenticate to throw a ProtocolError with data
 		const origHandler = agentService.authenticate;
 		agentService.authenticate = async () => { throw new ProtocolError(-32007, 'Auth required', { hint: 'sign in' }); };
 
@@ -4028,7 +3946,6 @@ suite('ProtocolServerHandler', () => {
 		agentService.authenticate = origHandler;
 	});
 
-	// ---- Connection count event -----------------------------------------
 
 	test('onDidChangeConnectionCount fires on connect and disconnect', () => {
 		const counts: number[] = [];
@@ -4083,11 +4000,9 @@ suite('ProtocolServerHandler', () => {
 		const counts: number[] = [];
 		disposables.add(handler.onDidChangeConnectionCount(c => counts.push(c)));
 
-		// Connect
 		const transport1 = connectClient('client-rc');
 		assert.deepStrictEqual(counts, [1]);
 
-		// Reconnect with same clientId (new active transport)
 		const transport2 = new MockProtocolTransport();
 		server.simulateConnection(transport2);
 		transport2.simulateMessage(request(1, 'reconnect', {
@@ -4095,20 +4010,15 @@ suite('ProtocolServerHandler', () => {
 			lastSeenServerSeq: 0,
 			subscriptions: [],
 		}));
-		// Count is unchanged because the logical clientId is already connected.
 		assert.deepStrictEqual(counts, [1, 1]);
 
-		// Old transport closes - should NOT decrement because the newer
-		// transport is still connected.
 		transport1.simulateClose();
 		assert.deepStrictEqual(counts, [1, 1]);
 
-		// New transport closes - should decrement
 		transport2.simulateClose();
 		assert.deepStrictEqual(counts, [1, 1, 0]);
 	});
 
-	// ---- createSession activeClient -------------------------------------
 
 	suite('createSession activeClient', () => {
 
@@ -4167,10 +4077,6 @@ suite('ProtocolServerHandler', () => {
 	});
 
 	suite('OTLP logs channel', () => {
-		// We need a separate handler instance that has an OtlpLogEmitter
-		// attached, so spin one up per-test using a private state manager.
-		// The outer-suite handler is left alone and continues to test the
-		// "no OTLP" code path implicitly.
 		let otlpEmitter: OtlpLogEmitter;
 		let otlpStateManager: AgentHostStateManager;
 		let otlpServer: MockProtocolServer;
@@ -4296,9 +4202,6 @@ suite('ProtocolServerHandler', () => {
 			transport.simulateClose();
 			otlpEmitter.emit({ timeUnixNano: '1', severityNumber: 9, severityText: 'info', body: 'after-close' });
 
-			// After close, no further notifications should land on the
-			// disconnected transport. (Sanity: the only message we expect
-			// was the subscribe response we already consumed.)
 			const logs = findOtlpLogs(transport.sent);
 			assert.deepStrictEqual(logs, []);
 		});
@@ -4329,8 +4232,6 @@ suite('ProtocolServerHandler', () => {
 			assert.strictEqual(logs.length, 1, 'one record should produce exactly one notification');
 			assert.strictEqual(logs[0].channel, 'ahp-otlp://logs/info', 'channel should be canonicalised');
 
-			// Unsubscribe should remove the canonical entry regardless of
-			// which URI variant the client uses to unsubscribe.
 			transport.simulateMessage(notification('unsubscribe', { channel: 'ahp-otlp://logs/info?dup=1' }));
 			otlpEmitter.emit({ timeUnixNano: '2', severityNumber: 9, severityText: 'info', body: 'after-unsub' });
 
@@ -4339,12 +4240,6 @@ suite('ProtocolServerHandler', () => {
 	});
 
 	suite('download progress channel', () => {
-		// Progress is emitted on the state manager (so it reaches both local
-		// IPC and remote WebSocket renderers through the same path as session
-		// notifications). This suite verifies the handler forwards each frame to
-		// connected clients as a `progress` notification on the root channel.
-		// Spun up per-test with a private state manager so the outer suite is
-		// unaffected.
 		let dlStateManager: AgentHostStateManager;
 		let dlServer: MockProtocolServer;
 		let dlAgentService: MockAgentService;
@@ -4408,9 +4303,6 @@ suite('ProtocolServerHandler', () => {
 	suite('resource watches', () => {
 
 		test('subscribe to a resource-watch channel returns the descriptor + bumps refcount; envelopes are routed', async () => {
-			// Pre-populate the mock so `onResourceWatchSubscribed` returns
-			// a descriptor — this is the role the production `AgentService`
-			// plays after it parses the channel URI.
 			const watchChannel = 'ahp-resource-watch:/mock-watch';
 			const descriptor = { root: 'file:///workspace', recursive: false };
 			agentService.liveWatchDescriptors.set(watchChannel, descriptor);
@@ -4438,7 +4330,6 @@ suite('ProtocolServerHandler', () => {
 			assert.strictEqual(env.channel, watchChannel);
 			assert.strictEqual(env.action.type, ActionType.ResourceWatchChanged);
 
-			// Explicit unsubscribe drops the refcount through the agent service.
 			transport.simulateMessage(notification('unsubscribe', { channel: watchChannel }));
 			assert.deepStrictEqual(agentService.watchUnsubscribeCalls, [watchChannel]);
 		});

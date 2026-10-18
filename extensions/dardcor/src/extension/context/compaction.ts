@@ -30,10 +30,6 @@ export class ContextCompactor {
 		return messages.reduce((sum, msg) => sum + estimateMessageTokens(msg), 0);
 	}
 
-	/**
-	 * Tier 1: Deterministic Basic Compaction (zero LLM token cost)
-	 * Prunes oversized tool outputs and old attachment buffers outside the recent protected turns.
-	 */
 	public static basicCompact(
 		messages: IConversationMessage[],
 		config: ICompactionConfig = DEFAULT_COMPACTION_CONFIG
@@ -80,10 +76,6 @@ export class ContextCompactor {
 		return { compacted, prunedCount };
 	}
 
-	/**
-	 * Tier 2: Agentic Structure Compaction
-	 * Synthesizes older conversation turns into a structured summary tag while preserving recent turns.
-	 */
 	public static buildAgenticSummary(
 		messages: IConversationMessage[],
 		config: ICompactionConfig = DEFAULT_COMPACTION_CONFIG

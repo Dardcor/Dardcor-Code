@@ -38,7 +38,6 @@ export class DiffEditorViewModel extends Disposable implements IDiffEditorViewMo
 		if (this._options.hideUnchangedRegions.read(r)) {
 			return this._unchangedRegions.read(r)?.regions ?? [];
 		} else {
-			// Reset state
 			transaction(tx => {
 				for (const r of this._unchangedRegions.read(undefined)?.regions || []) {
 					r.collapseAll(tx);
@@ -91,7 +90,6 @@ export class DiffEditorViewModel extends Disposable implements IDiffEditorViewMo
 		const debouncer = this._register(new RunOnceScheduler(() => contentChangedSignal.trigger(undefined), 200));
 
 		this._register(autorun(reader => {
-			/** @description collapse touching unchanged ranges */
 
 			const lastUnchangedRegions = this._unchangedRegions.read(reader);
 			if (!lastUnchangedRegions || lastUnchangedRegions.regions.some(r => r.isDragged.read(reader))) {
@@ -159,7 +157,6 @@ export class DiffEditorViewModel extends Disposable implements IDiffEditorViewMo
 				this._options.hideUnchangedRegionsContextLineCount.read(reader),
 			);
 
-			// Transfer state from cur state
 			let visibleRegions: LineRangeMapping[] | undefined = undefined;
 
 			const lastUnchangedRegions = this._unchangedRegions.get();
@@ -179,7 +176,6 @@ export class DiffEditorViewModel extends Disposable implements IDiffEditorViewMo
 								lastUnchangedRegionsOrigRanges[idx].startLineNumber,
 								lastUnchangedRegionsModRanges[idx].startLineNumber,
 								length,
-								// The visible area can shrink by edits -> we have to account for this
 								Math.min(r.visibleLineCountTop.get(), length),
 								Math.min(r.visibleLineCountBottom.get(), length - r.visibleLineCountTop.get()),
 							);
@@ -262,10 +258,8 @@ export class DiffEditorViewModel extends Disposable implements IDiffEditorViewMo
 		}));
 
 		this._register(autorun(async (reader) => {
-			/** @description compute diff */
 			const store = reader.store;
 
-			// So that they get recomputed when these settings change
 			this._options.hideUnchangedRegionsMinimumLineCount.read(reader);
 			this._options.hideUnchangedRegionsContextLineCount.read(reader);
 
@@ -301,7 +295,6 @@ export class DiffEditorViewModel extends Disposable implements IDiffEditorViewMo
 				return;
 			}
 			if (model.original.isDisposed() || model.modified.isDisposed()) {
-				// TODO@hediet fishy?
 				return;
 			}
 			result = normalizeDocumentDiff(result, model.original, model.modified);
@@ -309,7 +302,6 @@ export class DiffEditorViewModel extends Disposable implements IDiffEditorViewMo
 			result = applyModifiedEdits(result, modifiedTextEditInfos, model.original, model.modified) ?? result;
 
 			transaction(tx => {
-				/** @description write diff result */
 				updateUnchangedRegions(result, tx);
 
 				this._lastDiff = result;
@@ -434,24 +426,6 @@ export class DiffMapping {
 	constructor(
 		readonly lineRangeMapping: DetailedLineRangeMapping,
 	) {
-		/*
-		readonly movedTo: MovedText | undefined,
-		readonly movedFrom: MovedText | undefined,
-
-		if (movedTo) {
-			assertFn(() =>
-				movedTo.lineRangeMapping.modifiedRange.equals(lineRangeMapping.modifiedRange)
-				&& lineRangeMapping.originalRange.isEmpty
-				&& !movedFrom
-			);
-		} else if (movedFrom) {
-			assertFn(() =>
-				movedFrom.lineRangeMapping.originalRange.equals(lineRangeMapping.originalRange)
-				&& lineRangeMapping.modifiedRange.isEmpty
-				&& !movedTo
-			);
-		}
-		*/
 	}
 }
 
@@ -509,7 +483,7 @@ export class UnchangedRegion {
 	private readonly _visibleLineCountBottom = observableValue<number>(this, 0);
 	public readonly visibleLineCountBottom: ISettableObservable<number> = this._visibleLineCountBottom;
 
-	private readonly _shouldHideControls = derived(this, reader => /** @description isVisible */
+	private readonly _shouldHideControls = derived(this, reader =>
 		this.visibleLineCountTop.read(reader) + this.visibleLineCountBottom.read(reader) === this.lineCount && !this.isDragged.read(reader));
 
 	public readonly isDragged = observableValue<undefined | 'bottom' | 'top'>(this, undefined);
@@ -650,123 +624,7 @@ export const enum RevealPreference {
 
 function applyOriginalEdits(diff: IDocumentDiff, textEdits: TextEditInfo[], originalTextModel: ITextModel, modifiedTextModel: ITextModel): IDocumentDiff | undefined {
 	return undefined;
-	/*
-	TODO@hediet
-	if (textEdits.length === 0) {
-		return diff;
-	}
-
-	const diff2 = flip(diff);
-	const diff3 = applyModifiedEdits(diff2, textEdits, modifiedTextModel, originalTextModel);
-	if (!diff3) {
-		return undefined;
-	}
-	return flip(diff3);*/
 }
-/*
-function flip(diff: IDocumentDiff): IDocumentDiff {
-	return {
-		changes: diff.changes.map(c => c.flip()),
-		moves: diff.moves.map(m => m.flip()),
-		identical: diff.identical,
-		quitEarly: diff.quitEarly,
-	};
-}
-*/
 function applyModifiedEdits(diff: IDocumentDiff, textEdits: TextEditInfo[], originalTextModel: ITextModel, modifiedTextModel: ITextModel): IDocumentDiff | undefined {
 	return undefined;
-	/*
-	TODO@hediet
-	if (textEdits.length === 0) {
-		return diff;
-	}
-	if (diff.changes.some(c => !c.innerChanges) || diff.moves.length > 0) {
-		// TODO support these cases
-		return undefined;
-	}
-
-	const changes = applyModifiedEditsToLineRangeMappings(diff.changes, textEdits, originalTextModel, modifiedTextModel);
-
-	const moves = diff.moves.map(m => {
-		const newModifiedRange = applyEditToLineRange(m.lineRangeMapping.modified, textEdits);
-		return newModifiedRange ? new MovedText(
-			new SimpleLineRangeMapping(m.lineRangeMapping.original, newModifiedRange),
-			applyModifiedEditsToLineRangeMappings(m.changes, textEdits, originalTextModel, modifiedTextModel),
-		) : undefined;
-	}).filter(isDefined);
-
-	return {
-		identical: false,
-		quitEarly: false,
-		changes,
-		moves,
-	};*/
 }
-/*
-function applyEditToLineRange(range: LineRange, textEdits: TextEditInfo[]): LineRange | undefined {
-	let rangeStartLineNumber = range.startLineNumber;
-	let rangeEndLineNumberEx = range.endLineNumberExclusive;
-
-	for (let i = textEdits.length - 1; i >= 0; i--) {
-		const textEdit = textEdits[i];
-		const textEditStartLineNumber = lengthGetLineCount(textEdit.startOffset) + 1;
-		const textEditEndLineNumber = lengthGetLineCount(textEdit.endOffset) + 1;
-		const newLengthLineCount = lengthGetLineCount(textEdit.newLength);
-		const delta = newLengthLineCount - (textEditEndLineNumber - textEditStartLineNumber);
-
-		if (textEditEndLineNumber < rangeStartLineNumber) {
-			// the text edit is before us
-			rangeStartLineNumber += delta;
-			rangeEndLineNumberEx += delta;
-		} else if (textEditStartLineNumber > rangeEndLineNumberEx) {
-			// the text edit is after us
-			// NOOP
-		} else if (textEditStartLineNumber < rangeStartLineNumber && rangeEndLineNumberEx < textEditEndLineNumber) {
-			// the range is fully contained in the text edit
-			return undefined;
-		} else if (textEditStartLineNumber < rangeStartLineNumber && textEditEndLineNumber <= rangeEndLineNumberEx) {
-			// the text edit ends inside our range
-			rangeStartLineNumber = textEditEndLineNumber + 1;
-			rangeStartLineNumber += delta;
-			rangeEndLineNumberEx += delta;
-		} else if (rangeStartLineNumber <= textEditStartLineNumber && textEditEndLineNumber < rangeStartLineNumber) {
-			// the text edit starts inside our range
-			rangeEndLineNumberEx = textEditStartLineNumber;
-		} else {
-			rangeEndLineNumberEx += delta;
-		}
-	}
-
-	return new LineRange(rangeStartLineNumber, rangeEndLineNumberEx);
-}
-
-function applyModifiedEditsToLineRangeMappings(changes: readonly LineRangeMapping[], textEdits: TextEditInfo[], originalTextModel: ITextModel, modifiedTextModel: ITextModel): LineRangeMapping[] {
-	const diffTextEdits = changes.flatMap(c => c.innerChanges!.map(c => new TextEditInfo(
-		positionToLength(c.originalRange.getStartPosition()),
-		positionToLength(c.originalRange.getEndPosition()),
-		lengthOfRange(c.modifiedRange).toLength(),
-	)));
-
-	const combined = combineTextEditInfos(diffTextEdits, textEdits);
-
-	let lastOriginalEndOffset = lengthZero;
-	let lastModifiedEndOffset = lengthZero;
-	const rangeMappings = combined.map(c => {
-		const modifiedStartOffset = lengthAdd(lastModifiedEndOffset, lengthDiffNonNegative(lastOriginalEndOffset, c.startOffset));
-		lastOriginalEndOffset = c.endOffset;
-		lastModifiedEndOffset = lengthAdd(modifiedStartOffset, c.newLength);
-
-		return new RangeMapping(
-			Range.fromPositions(lengthToPosition(c.startOffset), lengthToPosition(c.endOffset)),
-			Range.fromPositions(lengthToPosition(modifiedStartOffset), lengthToPosition(lastModifiedEndOffset)),
-		);
-	});
-
-	const newChanges = lineRangeMappingFromRangeMappings(
-		rangeMappings,
-		originalTextModel.getLinesContent(),
-		modifiedTextModel.getLinesContent(),
-	);
-	return newChanges;
-}
-*/

@@ -24,7 +24,7 @@ import { IAgentHostCheckpointService } from '../common/agentHostCheckpointServic
 import { IAgentHostGitStateService } from '../common/agentHostGitStateService.js';
 import { IAgentHostReviewService } from '../common/agentHostReviewService.js';
 import { IAgentHostSubscriptionService } from '../common/agentHostSubscriptionService.js';
-import { CopilotApiService, ICopilotApiService } from './shared/copilotApiService.js';
+import { DardcorRouterService, IDardcorRouterService } from './shared/dardcorRouterService.js';
 import { AgentHostFileMonitorService, IAgentHostFileMonitorService } from './agentHostFileMonitorService.js';
 import { AgentHostGitService } from './agentHostGitService.js';
 import { AgentPluginManager } from './agentPluginManager.js';
@@ -32,7 +32,7 @@ import { AgentSdkDownloader, IAgentSdkDownloader } from './agentSdkDownloader.js
 import { IByokLmBridgeRegistry } from './byokLmBridgeRegistry.js';
 import { ClaudeAgentSdkService, IClaudeAgentSdkService } from './claude/claudeAgentSdkService.js';
 import { ClaudeProxyService, IClaudeProxyService } from './claude/claudeProxyService.js';
-import { ByokLmProxyService, IByokLmProxyService, NullByokLmProxyService } from './copilot/byokLmProxyService.js';
+import { ByokLmProxyService, IByokLmProxyService, NullByokLmProxyService } from './shared/byokLmProxyService.js';
 import { CodexProxyService, ICodexProxyService } from './codex/codexProxyService.js';
 import { NodeWorkerDiffComputeService } from './diffComputeService.js';
 import { NetworkDiagnosticsService, INetworkDiagnosticsService } from './networkDiagnosticsService.js';
@@ -70,7 +70,7 @@ export interface IAgentHostCoreServiceInputs {
 	readonly storageResource: URI | undefined;
 	readonly fetchFn: typeof globalThis.fetch;
 	readonly gitHubServiceOptions: GitHubServiceOptions;
-	readonly copilotApiService?: ICopilotApiService;
+	readonly dardcorRouterService?: IDardcorRouterService;
 }
 
 export function registerAgentHostCoreServices(services: ServiceCollection, inputs: IAgentHostCoreServiceInputs): void {
@@ -84,7 +84,7 @@ export function registerAgentHostCoreServices(services: ServiceCollection, input
 	services.set(IAgentHostManagedSettingsService, new SyncDescriptor(AgentHostManagedSettingsService));
 	services.set(IAgentHostOctoKitService, new SyncDescriptor(AgentHostOctoKitService, [inputs.fetchFn]));
 	services.set(IGitHubService, new SyncDescriptor(GitHubService, [inputs.gitHubServiceOptions]));
-	services.set(ICopilotApiService, inputs.copilotApiService ?? new SyncDescriptor(CopilotApiService, [inputs.fetchFn]));
+	services.set(IDardcorRouterService, inputs.dardcorRouterService ?? new SyncDescriptor(DardcorRouterService, [inputs.fetchFn]));
 	services.set(IAgentHostCustomizationEnablementService, new SyncDescriptor(AgentHostCustomizationEnablementService));
 	services.set(IAgentHostGitStateService, new SyncDescriptor(AgentHostGitStateService));
 	services.set(IAgentHostCheckpointService, new SyncDescriptor(AgentHostCheckpointService));

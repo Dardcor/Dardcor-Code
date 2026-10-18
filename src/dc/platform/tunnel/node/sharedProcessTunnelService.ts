@@ -24,7 +24,6 @@ class TunnelData extends Disposable implements IAddressProvider {
 
 	async getAddress(): Promise<IAddress> {
 		if (this._address) {
-			// address is resolved
 			return this._address;
 		}
 		if (!this._addressPromise) {
@@ -82,7 +81,6 @@ export class SharedProcessTunnelService extends Disposable implements ISharedPro
 		}
 
 		if (this._disposedTunnels.delete(id)) {
-			// This tunnel was disposed in the meantime
 			tunnelData.dispose();
 			await tunnel.dispose();
 			throw canceled();
@@ -116,7 +114,6 @@ export class SharedProcessTunnelService extends Disposable implements ISharedPro
 			return;
 		}
 
-		// Looks like this tunnel is still starting, mark the id as disposed
 		this._disposedTunnels.add(id);
 	}
 }

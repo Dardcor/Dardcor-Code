@@ -38,41 +38,23 @@ const STOP_ID_EPOCH_PREFIX = '__epoch_';
 
 type IReconstructedFileStateWithNotebook = IReconstructedFileNotExistsState | (Mutable<IReconstructedFileExistsState> & { notebook?: INotebookTextModel });
 
-/**
- * A filesystem delegate used by the checkpointing timeline such that
- * navigating in the timeline tracks the changes as agent-initiated.
- */
 export interface IChatEditingTimelineFsDelegate {
-	/** Creates a file with initial content. */
 	createFile: (uri: URI, initialContent: string) => Promise<unknown>;
-	/** Delete a URI */
 	deleteFile: (uri: URI) => Promise<void>;
-	/** Rename a URI, retaining contents */
 	renameFile: (fromUri: URI, toUri: URI) => Promise<void>;
-	/** Set a URI contents, should create it if it does not already exist */
 	setContents(uri: URI, content: string, telemetryInfo: IModifiedEntryTelemetryInfo): Promise<void>;
 }
 
-/**
- * Implementation of the checkpoint-based timeline system.
- *
- * Invariants:
- * - There is at most one checkpoint or operation per epoch
- * - _checkpoints and _operations are always sorted in ascending order by epoch
- * - _currentEpoch being equal to the epoch of an operation means that
- *   operation is _not_ currently applied
- */
 export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpointTimeline {
 
 	private _epochCounter = 0;
 	private readonly _checkpoints = observableValue<readonly ICheckpoint[]>(this, []);
 	private readonly _currentEpoch = observableValue<number>(this, 0);
-	private readonly _operations = observableValueOpts<FileOperation[]>({ equalsFn: () => false }, []); // mutable
-	private readonly _fileBaselines = new Map<string, IFileBaseline>(); // key: `${uri}::${requestId}`
+	private readonly _operations = observableValueOpts<FileOperation[]>({ equalsFn: () => false }, []);
+	private readonly _fileBaselines = new Map<string, IFileBaseline>();
 	private readonly _refCountedDiffs = new Map<string, IObservable<IEditSessionEntryDiff | undefined>>();
 	private readonly _finalizedDiffCache = new Map<string, IEditSessionEntryDiff>();
 
-	/** Gets the checkpoint, if any, we can 'undo' to. */
 	private readonly _willUndoToCheckpoint = derived(reader => {
 		const currentEpoch = this._currentEpoch.read(reader);
 		const checkpoints = this._checkpoints.read(reader);
@@ -82,11 +64,9 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 
 		const operations = this._operations.read(reader);
 
-		// Undo either to right before the current request...
 		const currentCheckpointIdx = findLastIdx(checkpoints, cp => cp.epoch < currentEpoch);
 		const startOfRequest = currentCheckpointIdx === -1 ? undefined : findLast(checkpoints, cp => cp.undoStopId === undefined, currentCheckpointIdx);
 
-		// Or to the checkpoint before the last operation in this request
 		const previousOperation = findLast(operations, op => op.epoch < currentEpoch);
 		const previousCheckpoint = previousOperation && findLast(checkpoints, cp => cp.epoch < previousOperation.epoch);
 
@@ -97,7 +77,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 			return startOfRequest;
 		}
 
-		// Special case: if we're undoing the first edit operation, undo the entire request
 		if (!operations.some(op => op.epoch > startOfRequest.epoch && op.epoch < previousCheckpoint!.epoch)) {
 			return startOfRequest;
 		}
@@ -108,10 +87,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 	public readonly canUndo: IObservable<boolean> = this._willUndoToCheckpoint.map(cp => !!cp);
 
 
-	/**
-	 * Gets the epoch we'll redo this. Unlike undo this doesn't only use checkpoints
-	 * because we could potentially redo to a 'tip' operation that's not checkpointed yet.
-	 */
 	private readonly _willRedoToEpoch = derived(reader => {
 		const currentEpoch = this._currentEpoch.read(reader);
 		const operations = this._operations.read(reader);
@@ -121,11 +96,8 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 			return undefined;
 		}
 
-		// Find the next edit operation that would be applied...
 		const nextOperation = operations.find(op => op.epoch >= currentEpoch);
 
-		// When there are no more operations, advance one request at a time
-		// by finding the next request-start checkpoint boundary.
 		if (!nextOperation) {
 			const nextRequestStart = checkpoints.find(cp => cp.epoch >= currentEpoch && cp.undoStopId === undefined);
 			if (!nextRequestStart) {
@@ -137,10 +109,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 
 		const nextCheckpoint = checkpoints.find(op => op.epoch > nextOperation.epoch);
 
-		// And figure out where we're going if we're navigating across request
-		// 1. If there is no next request or if the next target checkpoint is in
-		//    the next request, navigate there.
-		// 2. Otherwise, navigate to the end of the next request.
 		const currentCheckpoint = findLast(checkpoints, cp => cp.epoch < currentEpoch);
 		if (currentCheckpoint && nextOperation && currentCheckpoint.requestId !== nextOperation.requestId) {
 			const startOfNextRequestIdx = findLastIdx(checkpoints, (cp, i) =>
@@ -172,7 +140,7 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 
 			const maxEncounteredEpoch = Math.max(operations.at(-1)?.epoch || 0, checkpoints.at(-1)?.epoch || 0);
 			if (currentEpoch > maxEncounteredEpoch) {
-				return []; // common case -- nothing undone
+				return [];
 			}
 
 			const lastAppliedOperation = findLast(operations, op => op.epoch < currentEpoch)?.epoch || 0;
@@ -181,10 +149,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 
 			const disablement = new Map<string, string | undefined>();
 
-			// Go through the checkpoints and disable any until the one that contains the last applied operation.
-			// Subtle: the request will first make a checkpoint with an 'undefined' undo
-			// stop, and in this loop we'll "automatically" disable the entire request when
-			// we reach that checkpoint.
 			for (let i = checkpoints.length - 1; i >= 0; i--) {
 				const { undoStopId, requestId, epoch } = checkpoints[i];
 				if (epoch <= stopDisablingAtEpoch) {
@@ -261,11 +225,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 		}
 
 		if (targetCheckpoint.undoStopId === undefined) {
-			// If we're navigating to the start of a request, we want to restore the file
-			// to whatever baseline we captured, _not_ the result state from the prior request
-			// because there may have been user changes in the meantime. But we still want
-			// to set the epoch marking that checkpoint as having been undone (the second
-			// arg below) so that disablement works and so it's discarded if appropriate later.
 			return this._navigateToEpoch(targetCheckpoint.epoch + 1, targetCheckpoint.epoch);
 		} else {
 			return this._navigateToEpoch(targetCheckpoint.epoch + 1);
@@ -282,11 +241,9 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 		if (currentEpoch !== restoreToEpoch) {
 			const urisToRestore = await this._applyFileSystemOperations(currentEpoch, restoreToEpoch);
 
-			// Reconstruct content for files affected by operations in the range
 			await this._reconstructAllFileContents(restoreToEpoch, urisToRestore);
 		}
 
-		// Update current epoch
 		this._currentEpoch.set(navigateToEpoch, undefined);
 	}
 
@@ -348,8 +305,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 			toEpoch = this._checkpoints.get().find(c => c.requestId === requestId && c.undoStopId === stopId)?.epoch;
 		}
 
-		// The content URI doesn't preserve the original scheme or authority. Look through
-		// to find the operation that touched that path to get its actual URI
 		const fileURI = this._getTimelineCanonicalUriForPath(contentURI);
 
 		if (!toEpoch || !fileURI) {
@@ -378,21 +333,14 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 		return undefined;
 	}
 
-	/**
-	 * Creates a callback that is invoked when data at the stop changes. This
-	 * will not fire initially and may be debounced internally.
-	 */
 	public onDidChangeContentsAtStop(requestId: string, contentURI: URI, stopId: string | undefined, callback: (data: string) => void): IDisposable {
-		// The only case where we have data that updates is if we have an epoch pointer that's
-		// after our know epochs (e.g. pointing to the end file state after all operations).
-		// If this isn't the case, abort.
 		if (!stopId || !stopId.startsWith(STOP_ID_EPOCH_PREFIX)) {
 			return Disposable.None;
 		}
 
 		const target = Number(stopId.slice(STOP_ID_EPOCH_PREFIX.length));
 		if (target <= this._epochCounter) {
-			return Disposable.None; // already finalized
+			return Disposable.None;
 		}
 
 		const store = new DisposableStore();
@@ -424,20 +372,16 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 			throw new Error(`Checkpoint for epoch ${targetEpoch} not found`);
 		}
 
-		// Find the most appropriate baseline for this file
 		const baseline = await this._findBestBaselineForFile(uri, targetEpoch, targetCheckpoint.requestId || '');
 		if (!baseline) {
-			// File doesn't exist at this checkpoint
 			return {
 				exists: false,
 				uri,
 			};
 		}
 
-		// Get operations that affect this file from baseline to target checkpoint
 		const operations = this._getFileOperationsInRange(uri, baseline.epoch, targetEpoch);
 
-		// Replay operations to reconstruct state
 		return this._replayOperations(baseline, operations);
 	}
 
@@ -482,8 +426,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 	}
 
 	private async _findBestBaselineForFile(uri: URI, epoch: number, requestId: string): Promise<IFileBaseline | undefined> {
-		// First, iterate backwards through operations before the target checkpoint
-		// to see if the file was created/re-created more recently than any baseline
 
 		let currentRequestId = requestId;
 		const operations = this._operations.get();
@@ -493,7 +435,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 				continue;
 			}
 
-			// If the file was just created, use that as its updated baseline
 			if (operation.type === FileOperationType.Create && isEqual(operation.uri, uri)) {
 				return {
 					uri: operation.uri,
@@ -504,7 +445,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 				};
 			}
 
-			// If the file was renamed to this URI, use its old contents as the baseline
 			if (operation.type === FileOperationType.Rename && isEqual(operation.newUri, uri)) {
 				const prev = await this._findBestBaselineForFile(operation.oldUri, operation.epoch, operation.requestId);
 				if (!prev) {
@@ -524,7 +464,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 				};
 			}
 
-			// When the request ID changes, check if we have a baseline for the current request
 			if (currentRequestId && operation.requestId !== currentRequestId) {
 				const baseline = this._getFileBaseline(uri, currentRequestId);
 				if (baseline) {
@@ -535,7 +474,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 			currentRequestId = operation.requestId;
 		}
 
-		// Check the final request ID for a baseline
 		return this._getFileBaseline(uri, currentRequestId);
 	}
 
@@ -634,7 +572,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 					return state;
 				}
 
-				// Apply text edits using a temporary text model
 				return {
 					...state,
 					content: this._applyTextEditsToContent(state.content, operation.edits)
@@ -666,7 +603,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 			}
 		}).sort((a, b) => isMovingForward ? a.epoch - b.epoch : b.epoch - a.epoch);
 
-		// Apply file system operations in the correct direction
 		const urisToRestore = new ResourceSet();
 		for (const operation of operations) {
 			await this._applyFileSystemOperation(operation, isMovingForward, urisToRestore);
@@ -709,7 +645,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 				}
 				break;
 
-			// Text and notebook edits don't affect file system structure
 			case FileOperationType.TextEdit:
 			case FileOperationType.NotebookEdit:
 				urisToRestore.add(CellUri.parse(operation.uri)?.notebook ?? operation.uri);
@@ -743,7 +678,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 		return this._getEntryDiffBetweenEpochs(uri, `s\0${requestId}\0${stopId}`, epochs);
 	}
 
-	/** Gets the epoch bounds of the request. If stopRequestId is undefined, gets ONLY the single request's bounds */
 	private _getRequestEpochBounds(startRequestId: string, stopRequestId?: string): IObservable<{ start: ICheckpoint; end: ICheckpoint | undefined }> {
 		return derivedOpts<{ start: ICheckpoint; end: ICheckpoint | undefined }>({ equalsFn: (a, b) => a.start === b.start && a.end === b.end }, reader => {
 			const checkpoints = this._checkpoints.read(reader);
@@ -851,7 +785,7 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 				return { originalURI, modifiedURI, promise: new ObservablePromise(Promise.resolve(emptySessionEntryDiff(originalURI, modifiedURI))) };
 			}
 
-			refs.forEach(m => m.onChange.read(reader)); // re-read when contents change
+			refs.forEach(m => m.onChange.read(reader));
 
 			return { originalURI, modifiedURI, promise: new ObservablePromise(this._computeDiff(originalURI, modifiedURI, !!isFinal)) };
 		});
@@ -953,8 +887,6 @@ export class ChatEditingCheckpointTimelineImpl implements IChatEditingCheckpoint
 	}
 
 	private _getDiffsForFilesAtEpochs(startEpochs: IObservable<ResourceMap<number>>, endCheckpointObs: IObservable<ICheckpoint | undefined>) {
-		// URIs are never removed from the set and we never adjust baselines backwards
-		// (history is immutable) so we can easily cache to avoid regenerating diffs when new files are added
 		const prevDiffs = new ResourceMap<IObservable<IEditSessionEntryDiff | undefined>>();
 		let prevEndCheckpoint: ICheckpoint | undefined = undefined;
 

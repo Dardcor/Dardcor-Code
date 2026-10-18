@@ -58,7 +58,6 @@ export function registerInlineChatCommands(accessor: ServicesAccessor): IDisposa
 		if (typeof arg0 === 'string' && arg0) {
 			message = arg0;
 		} else {
-			// First see whether we are explaining diagnostics
 			const emptySelection = CurrentSelection.getCurrentSelection(tabsAndEditorsService, true);
 			if (emptySelection) {
 				const severeDiagnostics = vscode.languages.getDiagnostics(emptySelection.activeDocument.uri);
@@ -78,7 +77,6 @@ export function registerInlineChatCommands(accessor: ServicesAccessor): IDisposa
 			}
 
 			if (!explainingDiagnostics && emptySelection && fromPalette) {
-				// Scope selection may further refine the active selection if it was ambiguous
 				try {
 					const selectedScope = await SymbolAtCursor.getSelectedScope(
 						ignoreService,
@@ -95,14 +93,13 @@ export function registerInlineChatCommands(accessor: ServicesAccessor): IDisposa
 					}
 				} catch (ex) {
 					if (ex instanceof CancellationError) {
-						// If the user invoked Explain This from the palette and chooses not to select a scope, we should not submit the question to chat
 						return;
 					}
 					onBugIndicatingError(ex);
 				}
 			}
 		}
-		if (activeDocumentUri && selectedText && !await ignoreService.isCopilotIgnored(activeDocumentUri)) {
+		if (activeDocumentUri && selectedText && !await ignoreService.isIgnored(activeDocumentUri)) {
 			message += selectedText;
 		}
 		vscode.commands.executeCommand('workbench.action.chat.open', { query: message });
@@ -261,7 +258,6 @@ ${message}`,
 		}
 	};
 
-	// register commands
 	disposables.add(vscode.commands.registerCommand('github.dardcor.chat.explain', doExplain));
 	disposables.add(vscode.commands.registerCommand('github.dardcor.chat.explain.palette', () => doExplain(undefined, true)));
 	disposables.add(vscode.commands.registerCommand('github.dardcor.chat.review', () => instaService.createInstance(ReviewSession).review('selection', vscode.ProgressLocation.Notification)));
@@ -294,7 +290,6 @@ ${message}`,
 	disposables.add(vscode.commands.registerCommand('github.dardcor.chat.generate', doGenerate));
 	disposables.add(vscode.commands.registerCommand('github.dardcor.chat.fix', doFix));
 	disposables.add(vscode.commands.registerCommand('github.dardcor.chat.generateAltText', doGenerateAltText));
-	// register code actions
 	disposables.add(vscode.languages.registerCodeActionsProvider('*', instaService.createInstance(QuickFixesProvider), {
 		providedCodeActionKinds: QuickFixesProvider.providedCodeActionKinds,
 	}));

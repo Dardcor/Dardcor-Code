@@ -8,32 +8,17 @@ import dedent from 'ts-dedent';
 import { getBlockParser } from '../parseBlock';
 
 interface TestCase {
-	before: string; // text before the cursor
-	body?: string; // body of the block after the cursor
-	after?: string; // text after the block
+	before: string;
+	body?: string;
+	after?: string;
 }
 
-/**
- * Trimming modes for IsEmptyBlockStartTestCase below.
- */
 enum TrimMode {
 	NO_TRIM,
 	TRIM_TO_END_OF_LINE,
 	TRIM_TO_END_OF_INPUT,
 }
 
-/**
- * A convenience class for testing BlockParser.isEmptyBlockStart.
- *
- * To use this, pass a string containing a snippet of source code, and use
- * 🟢 for cursor positions at which isEmptyBlockStart should return true,
- * and ❌ for cursor positions where it should return false.  Then call
- * .test() to run the tests.
- *
- * By default, for each cursor position it trims the line from the cursor
- * to the end (i.e., the cursor is always at the end of the line) before
- * executing the test.  Set the trimMode property to change this.
- */
 class IsEmptyBlockStartTestCase {
 	private readonly text: string;
 	private readonly expectTrueOffsets: number[];
@@ -48,7 +33,6 @@ class IsEmptyBlockStartTestCase {
 		const expectTrueOffsets: number[] = [];
 		const expectFalseOffsets: number[] = [];
 		let i = 0;
-		// Must use for...of loop to avoid surrogate pair/UTF-16 weirdness
 		for (const char of testCase) {
 			switch (char) {
 				case '🟢':
@@ -87,13 +71,11 @@ class IsEmptyBlockStartTestCase {
 		}
 	}
 
-	// TODO(eaftan): It would be nice if this could test arbitrary functions.
 	async test<T>(): Promise<void> {
 		const blockParser = getBlockParser(this.languageId);
 		for (const offset of this.expectTrueOffsets) {
 			const text = this.trimText(offset);
 			const msg = `${this.text.slice(0, offset)}█${this.text.slice(offset)}`;
-			// common helper to all breaks
 			assert.strictEqual(await blockParser.isEmptyBlockStart(text, offset), true, msg);
 		}
 		for (const offset of this.expectFalseOffsets) {
@@ -134,25 +116,19 @@ function runTestCase(languageId: string, testCase: TestCase) {
 	const text = testCase.before + bodyWithAfter;
 	const blockParser = getBlockParser(languageId);
 
-	// block is expected to be empty if no body
 	const expectedEmpty = !testCase.body;
-	// block is expected to be finished after body, if there is a body and an after
 	const expectedFinish = testCase.body && testCase.after ? testCase.body.length : undefined;
 
-	// cursor position is after the before text
 	const offset = testCase.before.length;
-	// print the text with a cursor indicator on failure
 	const prettyPrint = ('\n' + testCase.before + '█' + bodyWithAfter).split('\n').join('\n\t| ');
 
 	test(`empty block start:${expectedEmpty}`, async function () {
 		const isEmpty = await blockParser.isEmptyBlockStart(text, offset);
-		// test isEmpty matched expectation
 		assert.strictEqual(isEmpty, expectedEmpty, prettyPrint);
 	});
 
 	test(`block finish:${expectedFinish}`, async function () {
 		const isFinished = await blockParser.isBlockBodyFinished(testCase.before, bodyWithAfter, offset);
-		// test isFinished matched expectation
 		assert.strictEqual(isFinished, expectedFinish, prettyPrint);
 	});
 }
@@ -170,18 +146,14 @@ function getNodeStartTestCase(testCase: string): [string, number[], number[], nu
 	const positiveTests: number[] = [];
 	const rejectedTests: number[] = [];
 
-	// Must use for...of loop to avoid surrogate pair/UTF-16 weirdness
 	for (const char of testCase) {
 		switch (char) {
-			//Test cases that should pass the test
 			case '🟢':
 				positiveTests.push(i);
 				break;
-			//Test cases that should fail the test
 			case '❌':
 				rejectedTests.push(i);
 				break;
-			//Location used for the assertions (begining of the node we want to detect)
 			case '🔵':
 				expectedResult = i;
 				break;
@@ -195,14 +167,6 @@ function getNodeStartTestCase(testCase: string): [string, number[], number[], nu
 	return [text, positiveTests, rejectedTests, expectedResult];
 }
 
-/**
- * Helper function for testing `getNodeStart`
- *
- * To use this, pass a language ID and a string containing a snippet of source code, and use
- * 🔵 for a location that's used for assertion ( begining of the node we want to detect)
- * 🟢 for cursor positions at which `getNodeStart` should return the position 🔵,
- * and ❌ for cursor positions where it shouldn't.
- */
 async function testGetNodeStart(languageId: string, testCase: string) {
 	const blockParser = getBlockParser(languageId);
 	const [code, positiveOffsets, rejectedOffsets, expected_result] = getNodeStartTestCase(testCase);
@@ -228,8 +192,6 @@ suite('parseBlock Tests', function () {
 				assert.ok(getBlockParser(language));
 			}
 
-			// Taken from https://insights.stackoverflow.com/survey/2020#most-popular-technologies and
-			// https://code.visualstudio.com/docs/languages/identifiers
 			const unsupportedLanguages = ['sql', 'java', 'shellscript', 'php', 'cpp', 'c', 'kotlin'];
 			for (const language of unsupportedLanguages) {
 				assert.throws(() => getBlockParser(language));
@@ -331,7 +293,6 @@ suite('parseBlock Tests', function () {
 		});
 
 		test('func_decl_in_middle_of_file', async function () {
-			// Trailing whitespace is intentional, do not remove!
 			const testCase = IsEmptyBlockStartTestCase.python(
 				dedent`
                     """This is a module."""
@@ -342,7 +303,6 @@ suite('parseBlock Tests', function () {
                     print("Running at toplevel")
                 `
 			).setTrimMode(TrimMode.TRIM_TO_END_OF_LINE);
-			// break 1
 			await testCase.test();
 		});
 
@@ -377,7 +337,6 @@ suite('parseBlock Tests', function () {
                 `),
 			];
 			for (const testCase of testCases) {
-				// break 2
 				await testCase.test();
 			}
 		});
@@ -399,16 +358,10 @@ suite('parseBlock Tests', function () {
 			];
 
 			for (const testCase of testCases) {
-				// break 2
 				await testCase.test();
 			}
 		});
 
-		// TODO(eaftan): Ideally this test should pass, but the parse tree for unclosed docstrings
-		// is very odd, and I can't think of a way to distinuish between a broken parse tree without
-		// a block body and one with a block body.  In practice in the extension, the check for
-		// isBlockBodyFinished prevents a multline suggestion from being given in this situation,
-		// because the block isn't finished until after the pass statement.
 		test.skip('docstring with body', async function () {
 			const testCases = [
 				IsEmptyBlockStartTestCase.python(
@@ -456,7 +409,6 @@ suite('parseBlock Tests', function () {
 			}
 		});
 
-		// regression tests for #466
 		test('block in error state', async function () {
 			const testCases = [
 				IsEmptyBlockStartTestCase.python(dedent`
@@ -501,12 +453,6 @@ suite('parseBlock Tests', function () {
                         🟢;❌
                     ❌}❌
                 `),
-				// Note: We don't try to give a multline-suggestion immediately after "async".
-				// "async" is a keyword but not a reserved one, so it may be used as an
-				// identifier.  Therefore when you have a partially written async function declaration,
-				// tree-sitter often parses it as a completed node of some other type (e.g. "async (a)"
-				// is parsed as a call of a function named "async" with arguments "a"). We'd have to do
-				// very hacky things to support this.
 				IsEmptyBlockStartTestCase.javascript(dedent`
                     ❌a❌s❌y❌n❌c❌ ❌(❌a❌)❌ ❌=❌>🟢 🟢{🟢
                         🟢;❌
@@ -566,7 +512,6 @@ suite('parseBlock Tests', function () {
 			await testCase.test();
 		});
 
-		// tree-sitter's "for_in_statement" includes both for...in and for...of.
 		test('for_in_statement', async function () {
 			const testCases = [
 				IsEmptyBlockStartTestCase.javascript(dedent`
@@ -637,8 +582,6 @@ suite('parseBlock Tests', function () {
 		});
 
 		test('switch_case, switch_default', async function () {
-			// We don't give multline suggestions for switch_case and switch_default
-			// because they are almost never blocks.
 			const testCase = IsEmptyBlockStartTestCase.javascript(dedent`
                 switch (foo) {
                     ❌c❌a❌s❌e❌ ❌b❌a❌r❌:❌
@@ -669,10 +612,6 @@ suite('parseBlock Tests', function () {
 			await testCase.test();
 		});
 
-		// For the remaining node types (e.g. "function", "generator_function"), tree-sitter
-		// uses different node types to distinguish between ones used as declarations/statements
-		// and ones used as expressions.  For example, "function_declaration" is a function declaration
-		// used as a declaration/statement, and "function" is the same thing used as an expression.
 
 		test('function', async function () {
 			const testCases = [
@@ -771,11 +710,6 @@ suite('parseBlock Tests', function () {
 			await testCase.test();
 		});
 
-		// In JS/TS, when the code doesn't parse, it can be ambiguous whether
-		// two functions are siblings or one is a local function under the other
-		// (meaning the block is not empty and we should return false).
-		//
-		// TODO(eaftan): fix this and enable the test
 		test.skip('local or siblings', async function () {
 			const testCases = [
 				IsEmptyBlockStartTestCase.javascript(
@@ -849,8 +783,6 @@ suite('parseBlock Tests', function () {
 	});
 
 	suite('TypeScript isEmptyBlockStart tests', function () {
-		// "declare" is a contextual keyword, so we don't try to give a multiline
-		// suggestion until after "global," when it transitions from an identifer to a keyword.
 		test('ambient_declaration', async function () {
 			const testCase = IsEmptyBlockStartTestCase.typescript(dedent`
                 ❌d❌e❌c❌l❌a❌r❌e❌ ❌g❌l❌o❌b❌a❌l🟢 🟢{🟢
@@ -861,8 +793,6 @@ suite('parseBlock Tests', function () {
 			await testCase.test();
 		});
 
-		// "namespace" is a contextual keyword, so we don't try to give a multiline
-		// suggestion until the open quote, when it transitions from an identifer to a keyword.
 		test('internal_module', async function () {
 			const testCase = IsEmptyBlockStartTestCase.typescript(dedent`
                 ❌n❌a❌m❌e❌s❌p❌a❌c❌e❌ ❌"🟢f🟢o🟢o🟢"🟢 🟢{🟢
@@ -873,8 +803,6 @@ suite('parseBlock Tests', function () {
 			await testCase.test();
 		});
 
-		// "module" is a contextual keyword, so we don't try to give a multiline
-		// suggestion until the open quote, when it transitions from an identifer to a keyword.
 		test('module', async function () {
 			const testCase = IsEmptyBlockStartTestCase.typescript(dedent`
                 ❌m❌o❌d❌u❌l❌e❌ ❌"🟢f🟢o🟢o🟢"🟢 🟢{🟢
@@ -924,9 +852,6 @@ suite('parseBlock Tests', function () {
 			}
 		});
 
-		// TODO(eaftan): a catch variable may have a type annotation of "any" or "unknown",
-		// but the version of tree-sitter we're using doesn't support it yet.  Add
-		// a test case when it's ready.  See https://github.com/tree-sitter/tree-sitter-typescript/commit/cad2b85fd1136a5e12d3e089030b81d9fe4a0a08
 		test('try_statement, catch_clause, finally_clause', async function () {
 			const testCases: IsEmptyBlockStartTestCase[] = [
 				IsEmptyBlockStartTestCase.typescript(dedent`
@@ -969,7 +894,6 @@ suite('parseBlock Tests', function () {
 			await testCase.test();
 		});
 
-		// tree-sitter's "for_in_statement" includes both for...in and for...of.
 		test('for_in_statement', async function () {
 			const testCases = [
 				IsEmptyBlockStartTestCase.typescript(dedent`
@@ -1052,16 +976,7 @@ suite('parseBlock Tests', function () {
                         ❌}❌
                     }
                 `),
-				// TODO(eaftan): fix sibling function issue and enable this test
-				// IsEmptyBlockStartTestCase.typescript(dedent`
-				//     class Foo {
-				//         f❌o❌o❌(❌)🟢 🟢{🟢
-				//         🟢}❌
 
-				//         ❌b❌a❌r❌(❌)🟢 🟢{🟢
-				//         🟢}❌
-				//     }
-				// `).setTrimMode(TrimMode.TRIM_TO_END_OF_LINE),
 			];
 			for (const testCase of testCases) {
 				await testCase.test();
@@ -1088,8 +1003,6 @@ suite('parseBlock Tests', function () {
 		});
 
 		test('switch_case, switch_default', async function () {
-			// We don't give multline suggestions for switch_case and switch_default
-			// because they are almost never blocks.
 			const testCase = IsEmptyBlockStartTestCase.typescript(dedent`
                 switch (foo) {
                     ❌c❌a❌s❌e❌ ❌b❌a❌r❌:❌
@@ -1111,10 +1024,6 @@ suite('parseBlock Tests', function () {
 			await testCase.test();
 		});
 
-		// For the remaining node types (e.g. "function", "generator_function"), tree-sitter
-		// uses different node types to distinguish between ones used as declarations/statements
-		// and ones used as expressions.  For example, "function_declaration" is a function declaration
-		// used as a declaration/statement, and "function" is the same thing used as an expression.
 
 		test('function', async function () {
 			const testCases = [
@@ -1297,11 +1206,6 @@ suite('parseBlock Tests', function () {
 			await testCase.test();
 		});
 
-		// In JS/TS, when the code doesn't parse, it can be ambiguous whether
-		// two functions are siblings or one is a local function under the other
-		// (meaning the block is not empty and we should return false).
-		//
-		// TODO(eaftan): fix this and enable the test
 		test.skip('local or siblings', async function () {
 			const testCases = [
 				IsEmptyBlockStartTestCase.typescript(
@@ -1625,8 +1529,6 @@ suite('parseBlock Tests', function () {
 		});
 	});
 
-	// tests for JavaScript and TypeScript: `⦃...⦄` delineates the body, `〚...〛` the type annotations,
-	// which are stripped off for JavaScript
 
 	const test1 = dedent`
         function getTextOrNull(document〚: doc | null〛) {

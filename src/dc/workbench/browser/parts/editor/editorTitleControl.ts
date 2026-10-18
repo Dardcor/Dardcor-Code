@@ -21,15 +21,8 @@ import { EditorHeaderControl } from './editorHeaderControl.js';
 
 export interface IEditorTitleControlDimensions {
 
-	/**
-	 * The size of the parent container the title control is layed out in.
-	 */
 	readonly container: Dimension;
 
-	/**
-	 * The maximum size the title control is allowed to consume based on
-	 * other controls that are positioned inside the container.
-	 */
 	readonly available: Dimension;
 }
 
@@ -148,7 +141,6 @@ export class EditorTitleControl extends Themable {
 	updateEditorLabel(editor: EditorInput): void {
 		this.editorTabsControl.updateEditorLabel(editor);
 		if (this.groupView.activeEditor === editor) {
-			// An active input may change its effective resource without being reopened.
 			this.headerControl.handleEditorsChange(true);
 		}
 	}
@@ -163,22 +155,18 @@ export class EditorTitleControl extends Themable {
 
 	updateOptions(oldOptions: IEditorPartOptions, newOptions: IEditorPartOptions): void {
 
-		// Update editor tabs control if options changed
 		if (
 			oldOptions.showTabs !== newOptions.showTabs ||
 			(newOptions.showTabs !== 'single' && oldOptions.pinnedTabsOnSeparateRow !== newOptions.pinnedTabsOnSeparateRow)
 		) {
-			// Clear old
 			this.editorTabsControlDisposable.clear();
 			this.headerControlDisposable.clear();
 			clearNode(this.parent);
 
-			// Create new
 			this.editorTabsControl = this.createEditorTabsControl();
 			this.headerControl = this.createHeaderControl();
 		}
 
-		// Forward into editor tabs control
 		else {
 			this.editorTabsControl.updateOptions(oldOptions, newOptions);
 		}
@@ -186,7 +174,6 @@ export class EditorTitleControl extends Themable {
 
 	layout(dimensions: IEditorTitleControlDimensions): Dimension {
 
-		// Layout tabs control
 		this.editorTabsControl.layout(dimensions);
 
 		this.headerControl.layout(dimensions.container.width);

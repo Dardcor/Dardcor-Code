@@ -16,10 +16,6 @@ import { createQueuedSender } from '../../../node/processes.js';
 import { removeDangerousEnvVariables } from '../../../common/processes.js';
 import { ChannelClient as IPCClient, ChannelServer as IPCServer, IChannel, IChannelClient } from '../common/ipc.js';
 
-/**
- * This implementation doesn't perform well since it uses base64 encoding for buffers.
- * We should move all implementations to use named ipc.net, so we stop depending on cp.fork.
- */
 
 export class Server<TContext extends string> extends IPCServer<TContext> {
 	constructor(ctx: TContext) {
@@ -27,7 +23,7 @@ export class Server<TContext extends string> extends IPCServer<TContext> {
 			send: r => {
 				try {
 					process.send?.((<Buffer>r.buffer).toString('base64'));
-				} catch (e) { /* not much to do */ }
+				} catch (e) { }
 			},
 			onMessage: Event.fromNodeEventEmitter(process, 'message', msg => VSBuffer.wrap(Buffer.from(msg, 'base64')))
 		}, ctx);
@@ -38,46 +34,20 @@ export class Server<TContext extends string> extends IPCServer<TContext> {
 
 export interface IIPCOptions {
 
-	/**
-	 * A descriptive name for the server this connection is to. Used in logging.
-	 */
 	serverName: string;
 
-	/**
-	 * Time in millies before killing the ipc process. The next request after killing will start it again.
-	 */
 	timeout?: number;
 
-	/**
-	 * Arguments to the module to execute.
-	 */
 	args?: string[];
 
-	/**
-	 * Environment key-value pairs to be passed to the process that gets spawned for the ipc.
-	 */
 	env?: any;
 
-	/**
-	 * Allows to assign a debug port for debugging the application executed.
-	 */
 	debug?: number;
 
-	/**
-	 * Allows to assign a debug port for debugging the application and breaking it on the first line.
-	 */
 	debugBrk?: number;
 
-	/**
-	 * If set, starts the fork with empty execArgv. If not set, execArgv from the parent process are inherited,
-	 * except --inspect= and --inspect-brk= which are filtered as they would result in a port conflict.
-	 */
 	freshExecArgv?: boolean;
 
-	/**
-	 * Enables our createQueuedSender helper for this Client. Uses a queue when the internal Node.js queue is
-	 * full of messages - see notes on that method.
-	 */
 	useQueue?: boolean;
 }
 
@@ -196,9 +166,9 @@ export class Client implements IChannelClient, IDisposable {
 			}
 
 			if (forkOpts.execArgv === undefined) {
-				forkOpts.execArgv = process.execArgv			// if not set, the forked process inherits the execArgv of the parent process
-					.filter(a => !/^--inspect(-brk)?=/.test(a)) // --inspect and --inspect-brk can not be inherited as the port would conflict
-					.filter(a => !a.startsWith('--vscode-')); 	// --vscode-* arguments are unsupported by node.js and thus need to remove
+				forkOpts.execArgv = process.execArgv
+					.filter(a => !/^--inspect(-brk)?=/.test(a))
+					.filter(a => !a.startsWith('--vscode-'));
 			}
 
 			removeDangerousEnvVariables(forkOpts.env);
@@ -210,13 +180,11 @@ export class Client implements IChannelClient, IDisposable {
 
 			const rawMessageDisposable = onRawMessage(msg => {
 
-				// Handle remote console logs specially
 				if (isRemoteConsoleLog(msg)) {
 					log(msg, `IPC Library: ${this.options.serverName}`);
 					return;
 				}
 
-				// Anything else goes to the outside
 				onMessageEmitter.fire(VSBuffer.wrap(Buffer.from(msg, 'base64')));
 			});
 
@@ -233,7 +201,7 @@ export class Client implements IChannelClient, IDisposable {
 			this.child.on('error', err => console.warn('IPC "' + this.options.serverName + '" errored with ' + err));
 
 			this.child.on('exit', (code: any, signal: any) => {
-				process.removeListener('exit' as 'loaded', onExit); // https://github.com/electron/electron/issues/21475
+				process.removeListener('exit' as 'loaded', onExit);
 				rawMessageDisposable.dispose();
 
 				this.activeRequests.forEach(r => dispose(r));

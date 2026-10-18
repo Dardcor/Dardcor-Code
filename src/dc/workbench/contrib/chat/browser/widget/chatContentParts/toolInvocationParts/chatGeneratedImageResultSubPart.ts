@@ -83,12 +83,10 @@ export function getGeneratedImageResultPartsFromContent(
 	}
 	return parts.map((part, index) => ({
 		...part,
-		// Distinguish each attachment in the gallery's visible and accessible labels.
 		uri: part.uri.with({ path: part.uri.path.replace(/generated-image(?=\.[^/]+$|$)/, `generated-image-${index + 1}`) }),
 	}));
 }
 
-/** Renders generated images as response outcomes using the shared image preview affordances. */
 export class ChatGeneratedImageResultSubPart extends BaseChatToolInvocationSubPart {
 	public readonly domNode: HTMLElement;
 	public override readonly codeblocks: IChatCodeBlockInfo[] = [];

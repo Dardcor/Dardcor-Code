@@ -9,9 +9,6 @@ import { IConfigurationService } from '../../../platform/configuration/common/co
 import { ITextResourceConfigurationService } from './textResourceConfiguration.js';
 import { URI } from '../../../base/common/uri.js';
 
-/**
- * Get the completions enablement setting name from product configuration.
- */
 function getCompletionsEnablementSettingName(): string | undefined {
 	return product.defaultChatAgent?.completionsEnablementSetting;
 }
@@ -67,11 +64,11 @@ export function isCompletionsEnabledWithTextResourceConfig(configurationService:
  */
 export function isCompletionsEnabledFromObject(completionsEnablementObject: Record<string, boolean> | undefined, modeId: string = '*'): boolean {
 	if (!isObject(completionsEnablementObject)) {
-		return false; // default to disabled if setting is not available
+		return false;
 	}
 
 	if (typeof completionsEnablementObject[modeId] !== 'undefined') {
-		return Boolean(completionsEnablementObject[modeId]); // go with setting if explicitly defined
+		return Boolean(completionsEnablementObject[modeId]);
 	}
 
 	return Boolean(completionsEnablementObject['*']); // fallback to global setting otherwise

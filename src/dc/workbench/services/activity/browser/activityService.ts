@@ -86,7 +86,6 @@ export class ActivityService extends Disposable implements IActivityService {
 			this.viewContainerActivities.set(viewContainerId, activities);
 		}
 
-		// add activity
 		activities.push(activity);
 
 		this._onDidChangeActivity.fire(viewContainer);

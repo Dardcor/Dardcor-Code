@@ -79,13 +79,10 @@ export class LinkDetector extends Disposable implements IEditorContribution {
 			if (!e.hasChanged(EditorOption.links)) {
 				return;
 			}
-			// Remove any links (for the getting disabled case)
 			this.updateDecorations([]);
 
-			// Stop any computation (for the getting disabled case)
 			this.stop();
 
-			// Start computing (for the getting enabled case)
 			this.computeLinks.schedule(0);
 		}));
 		this._register(editor.onDidChangeModelContent((e) => {
@@ -159,7 +156,6 @@ export class LinkDetector extends Disposable implements IEditorContribution {
 
 		const newDecorations: IModelDeltaDecoration[] = [];
 		if (links) {
-			// Not sure why this is sometimes null
 			for (const link of links) {
 				newDecorations.push(LinkOccurrence.decoration(link, useMetaKey));
 			}
@@ -180,7 +176,7 @@ export class LinkDetector extends Disposable implements IEditorContribution {
 	private _onEditorMouseMove(mouseEvent: ClickLinkMouseEvent, withKey: ClickLinkKeyboardEvent | null): void {
 		const useMetaKey = (this.editor.getOption(EditorOption.multiCursorModifier) === 'altKey');
 		if (this.isEnabled(mouseEvent, withKey)) {
-			this.cleanUpActiveLinkDecoration(); // always remove previous link decoration as their can only be one
+			this.cleanUpActiveLinkDecoration();
 			const occurrence = this.getLinkOccurrence(mouseEvent.target.position);
 			if (occurrence) {
 				this.editor.changeDecorations((changeAccessor) => {
@@ -215,7 +211,7 @@ export class LinkDetector extends Disposable implements IEditorContribution {
 		if (!occurrence) {
 			return;
 		}
-		this.openLinkOccurrence(occurrence, mouseEvent.hasSideBySideModifier, true /* from user gesture */);
+		this.openLinkOccurrence(occurrence, mouseEvent.hasSideBySideModifier, true );
 	}
 
 	public openLinkOccurrence(occurrence: LinkOccurrence, openToSide: boolean, fromUserGesture = false): void {
@@ -228,7 +224,6 @@ export class LinkDetector extends Disposable implements IEditorContribution {
 
 		link.resolve(CancellationToken.None).then(uri => {
 
-			// Support for relative file URIs of the shape file://./relativeFile.txt or file:///./relativeFile.txt
 			if (typeof uri === 'string' && this.editor.hasModel()) {
 				const modelUri = this.editor.getModel().uri;
 				if (modelUri.scheme === Schemas.file && uri.startsWith(`${Schemas.file}:`)) {
@@ -255,7 +250,6 @@ export class LinkDetector extends Disposable implements IEditorContribution {
 		}, err => {
 			const messageOrError =
 				err instanceof Error ? err.message : err;
-			// different error cases
 			if (messageOrError === 'invalid') {
 				this.notificationService.warn(nls.localize('invalid.url', 'Failed to open this link because it is not well-formed: {0}', link.url!.toString()));
 			} else if (messageOrError === 'missing') {
@@ -379,7 +373,6 @@ function getHoverMessage(link: Link, useMetaKey: boolean): MarkdownString {
 	if (link.url) {
 		let nativeLabel = '';
 		if (/^command:/i.test(link.url.toString())) {
-			// Don't show complete command arguments in the native tooltip
 			const match = link.url.toString().match(/^command:([^?#]+)/);
 			if (match) {
 				const commandId = match[1];

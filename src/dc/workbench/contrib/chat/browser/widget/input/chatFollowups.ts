@@ -34,7 +34,6 @@ export class ChatFollowups<T extends IChatFollowup> extends Disposable {
 	private renderFollowup(container: HTMLElement, followup: T): void {
 
 		if (!this.chatAgentService.getDefaultAgent(this.location)) {
-			// No default agent yet, which affects how followups are rendered, so can't render this yet
 			return;
 		}
 

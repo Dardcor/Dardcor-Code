@@ -1,5 +1,3 @@
-// Compact "Result of search in '...' (total N files):\n- path\n- path" output
-// (Cursor Glob tool). Groups by parent dir like find, shows basenames.
 import { SEARCH_LIST_PER_DIR_MAX, SEARCH_LIST_TOTAL_DIR_MAX } from "../constants.js";
 
 const HEADER_RE = /^Result of search in '[^']*' \(total (\d+) files?\):/;
@@ -8,7 +6,6 @@ export function searchList(input) {
   const lines = input.split("\n");
   if (lines.length === 0) return input;
 
-  // First line must be the header (validated by autodetect too)
   const header = lines[0] || "";
   const rest = lines.slice(1);
 

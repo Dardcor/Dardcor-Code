@@ -102,11 +102,11 @@ suite('claudeSubagentResolver — SUBAGENT_ID_SUFFIX_REGEX', () => {
 	test('matches canonical and drifted formats; rejects unrelated text', () => {
 		const results = [
 			'agentId: abc123 (use SendMessage with to: \'abc123\') ...',
-			'agentId:   abc123\n', // multiple spaces
-			'  agentId: abc123', // leading whitespace
-			'AgentId: ABC123', // mixed case rejected? — regex is case-insensitive
-			'noise\nagentId: xyz789 trailing', // multi-line, anchored to line start
-			'agentid:abc', // missing space after colon — rejected
+			'agentId:   abc123\n',
+			'  agentId: abc123',
+			'AgentId: ABC123',
+			'noise\nagentId: xyz789 trailing',
+			'agentid:abc',
 			'description: not an agent id',
 		].map(input => {
 			const m = SUBAGENT_ID_SUFFIX_REGEX.exec(input);
@@ -170,7 +170,7 @@ suite('claudeSubagentResolver — PromptMatchStrategy', () => {
 			parentSessionId: 'parent-sid',
 			parentTranscript: [
 				makeAgentToolCallTurn('toolu_target', { prompt: 'do the thing' }),
-				makeAgentToolCallTurn('toolu_malformed', { prompt: undefined }), // missing toolInput
+				makeAgentToolCallTurn('toolu_malformed', { prompt: undefined }),
 			],
 			token: CancellationToken.None,
 		};
@@ -258,7 +258,7 @@ suite('claudeSubagentResolver — scanTranscriptForAgentIds', () => {
 		const transcript: readonly Turn[] = [
 			makeAgentToolCallTurn('toolu_a', { suffixText: 'agentId: agenta1' }),
 			makeAgentToolCallTurn('toolu_b', { suffixText: 'no marker' }),
-			makeAgentToolCallTurn('toolu_c', { suffixText: 'agentId: agentc1', toolName: 'Bash' }), // non-subagent tool
+			makeAgentToolCallTurn('toolu_c', { suffixText: 'agentId: agentc1', toolName: 'Bash' }),
 			makeAgentToolCallTurn('toolu_d', { suffixText: 'agentId: agentd1', toolName: 'Agent' }),
 		];
 		const pairs = scanTranscriptForAgentIds(transcript);
@@ -278,11 +278,9 @@ suite('claudeSubagentResolver — getSubagentTranscript', () => {
 		const parentUri = URI.parse('copilot:/parent-sid');
 		const registry = disposables.add(new SubagentRegistry());
 
-		// Priming populates the registry with one (toolCallId, agentId) pair via the suffix scan.
 		registry.primeFromTranscript([
 			makeAgentToolCallTurn('toolu_a', { suffixText: 'agentId: agentprimeda' }),
 		]);
-		// Live write (canUseTool bridge does this in production).
 		registry.recordSpawn('toolu_b', { agentId: 'agentliveb' });
 
 		sdk.subagentMessages.set('parent-sid::agentprimeda', []);
@@ -310,13 +308,11 @@ suite('claudeSubagentResolver — getSubagentTranscript', () => {
 		const parentUri = URI.parse('copilot:/parent-sid');
 		const registry = disposables.add(new SubagentRegistry());
 
-		// No prime, no spawn record — strategies all return undefined for an unknown id.
 		const noResolve = await getSubagentTranscript(
 			URI.parse(buildSubagentSessionUri(parentUri, 'toolu_unknown')),
 			parentUri, 'parent-sid', 'toolu_unknown', registry, sdk, log, CancellationToken.None,
 		);
 
-		// Cached spawn but SDK rejects — returns [].
 		registry.recordSpawn('toolu_known', { agentId: 'agent-x' });
 		sdk.getSubagentMessagesRejection = new Error('boom');
 		const onError = await getSubagentTranscript(
@@ -331,7 +327,7 @@ suite('claudeSubagentResolver — getSubagentTranscript', () => {
 		}, {
 			noResolve: [],
 			onError: [],
-			fetchAttempts: ['agent-x'], // only the cached-hit attempted
+			fetchAttempts: ['agent-x'],
 		});
 	});
 });
@@ -451,9 +447,7 @@ suite('claudeSubagentResolver — extractSpawningPromptFromTranscript', () => {
 			makeAgentToolCallTurn('toolu_wrong_tool', { prompt: 'p', toolName: 'Read' }),
 			makeAgentToolCallTurn('toolu_bad_json', {}),
 		];
-		// Mutate the streaming turn into actual streaming status (helper defaults to Completed).
 		(transcript[1].responseParts[0] as { toolCall: { status: ToolCallStatus } }).toolCall.status = ToolCallStatus.Streaming;
-		// Mutate bad-json turn to have non-string toolInput.
 		(transcript[3].responseParts[0] as { toolCall: { toolInput: unknown } }).toolCall.toolInput = '{not json';
 
 		assert.deepStrictEqual({

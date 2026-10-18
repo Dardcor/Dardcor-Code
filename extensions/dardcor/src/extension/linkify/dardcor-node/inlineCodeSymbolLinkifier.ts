@@ -18,9 +18,6 @@ export const inlineCodeRegexp = /(?<!\[)`([^`\n]+)`(?!\])/g;
 
 const maxPotentialWordMatches = 8;
 
-/**
- * Linkifies symbol names that appear as inline code.
- */
 export class InlineCodeSymbolLinkifier implements IContributedLinkifier {
 	private readonly resolver: ReferencesSymbolResolver;
 
@@ -35,13 +32,11 @@ export class InlineCodeSymbolLinkifier implements IContributedLinkifier {
 			return;
 		}
 
-		// Collect all inline code matches first
 		const matches = [...text.matchAll(inlineCodeRegexp)];
 		if (!matches.length) {
 			return;
 		}
 
-		// Resolve unique symbol texts in parallel, then map results back to each match
 		const uniqueSymbols = [...new Set(matches.map(m => m[1]))];
 		const resolvedMap = new Map<string, readonly vscode.Location[] | undefined>();
 		const results = await Promise.all(
@@ -55,7 +50,6 @@ export class InlineCodeSymbolLinkifier implements IContributedLinkifier {
 			throw new CancellationError();
 		}
 
-		// Build output using resolution results
 		const out: LinkifiedPart[] = [];
 		let endLastMatch = 0;
 		for (let i = 0; i < matches.length; i++) {
@@ -82,7 +76,6 @@ export class InlineCodeSymbolLinkifier implements IContributedLinkifier {
 						const selectionRange = dest.loc.targetSelectionRange ?? dest.loc.targetRange;
 						info.location = new vscode.Location(dest.loc.targetUri, collapseRangeToStart(selectionRange));
 
-						// TODO: Figure out how to get the actual symbol kind here and update it
 					}
 
 					return info;

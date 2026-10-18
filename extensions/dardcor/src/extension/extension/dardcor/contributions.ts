@@ -9,13 +9,6 @@ import * as contextContribution from '../../context/dardcor/context.contribution
 import { LifecycleTelemetryContrib } from '../../telemetry/common/lifecycleTelemetryContrib';
 import { GithubTelemetryForwardingContrib } from '../../telemetry/dardcor/githubTelemetryForwardingContrib';
 
-// ###############################################################################
-// ###                                                                         ###
-// ###      Contributions that run in both web and node.js extension host.     ###
-// ###                                                                         ###
-// ###  !!! Prefer to list contributions in HERE to support them anywhere !!!  ###
-// ###                                                                         ###
-// ###############################################################################
 
 const vscodeContributions: IExtensionContributionFactory[] = [
 	asContributionFactory(LifecycleTelemetryContrib),

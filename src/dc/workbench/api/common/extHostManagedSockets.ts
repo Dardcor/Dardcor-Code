@@ -12,13 +12,6 @@ import { VSBuffer } from '../../../base/common/buffer.js';
 
 export interface IExtHostManagedSockets extends ExtHostManagedSocketsShape {
 	setFactory(socketFactoryId: number, makeConnection: () => Thenable<vscode.ManagedMessagePassing>): void;
-	/**
-	 * Opens a managed connection in-process using the currently registered
-	 * factory. Used by consumers that live inside the extension host (e.g. the
-	 * browser tunnel proxy). There is only ever one active remote per window, so
-	 * the latest factory is the correct one to dial; this avoids depending on a
-	 * factory id that can lag connection-data updates by a renderer round-trip.
-	 */
 	makeConnection(): Promise<vscode.ManagedMessagePassing>;
 	readonly _serviceBrand: undefined;
 }
@@ -40,12 +33,9 @@ export class ExtHostManagedSockets implements IExtHostManagedSockets {
 	}
 
 	setFactory(socketFactoryId: number, makeConnection: () => Thenable<vscode.ManagedMessagePassing>): void {
-		// Terminate all previous sockets
 		for (const socket of this._managedRemoteSockets.values()) {
-			// calling dispose() will lead to it removing itself from the map
 			socket.dispose();
 		}
-		// Unregister previous factory
 		if (this._factory) {
 			this._proxy.$unregisterSocketFactory(this._factory.socketFactoryId);
 		}

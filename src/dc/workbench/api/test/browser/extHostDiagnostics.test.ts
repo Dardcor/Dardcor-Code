@@ -24,10 +24,8 @@ suite('ExtHostDiagnostics', () => {
 
 	class DiagnosticsShape extends mock<MainThreadDiagnosticsShape>() {
 		override $changeMany(owner: string, entries: [UriComponents, IMarkerData[]][]): void {
-			//
 		}
 		override $clear(owner: string): void {
-			//
 		}
 	}
 
@@ -46,7 +44,7 @@ suite('ExtHostDiagnostics', () => {
 		const collection = new DiagnosticCollection('test', 'test', 100, 100, versionProvider, extUri, new DiagnosticsShape(), new Emitter());
 
 		collection.dispose();
-		collection.dispose(); // that's OK
+		collection.dispose();
 		assert.throws(() => collection.name);
 		assert.throws(() => collection.clear());
 		assert.throws(() => collection.delete(URI.parse('aa:bb')));
@@ -141,11 +139,9 @@ suite('ExtHostDiagnostics', () => {
 		assert.strictEqual(first.message, 'message-1');
 		assert.strictEqual(second.message, 'message-2');
 
-		// clear
 		collection.delete(uri);
 		assert.ok(!collection.has(uri));
 
-		// bad tuple clears 1/2
 		collection.set([
 			[uri, [new Diagnostic(new Range(0, 0, 0, 1), 'message-1')]],
 			[URI.parse('some:thing'), [new Diagnostic(new Range(0, 0, 1, 1), 'something')]],
@@ -153,11 +149,9 @@ suite('ExtHostDiagnostics', () => {
 		]);
 		assert.ok(!collection.has(uri));
 
-		// clear
 		collection.delete(uri);
 		assert.ok(!collection.has(uri));
 
-		// bad tuple clears 2/2
 		collection.set([
 			[uri, [new Diagnostic(new Range(0, 0, 0, 1), 'message-1')]],
 			[URI.parse('some:thing'), [new Diagnostic(new Range(0, 0, 1, 1), 'something')]],
@@ -321,7 +315,7 @@ suite('ExtHostDiagnostics', () => {
 			[URI.parse('aa:bb3'), [diag]],
 			[URI.parse('aa:bb4'), [diag]],
 		]);
-		assert.strictEqual(lastEntries.length, 3); // goes above the limit and then stops
+		assert.strictEqual(lastEntries.length, 3);
 	});
 
 	test('diagnostic eventing', async function () {
@@ -368,7 +362,6 @@ suite('ExtHostDiagnostics', () => {
 
 		const diag1 = new Diagnostic(new Range(1, 1, 2, 3), 'diag1');
 
-		// delete
 		collection.set(URI.parse('aa:bb'), [diag1]);
 		let p = Event.toPromise(emitter.event).then(e => {
 			assert.strictEqual(e[0].toString(), 'aa:bb');
@@ -376,7 +369,6 @@ suite('ExtHostDiagnostics', () => {
 		collection.delete(URI.parse('aa:bb'));
 		await p;
 
-		// set->undefined (as delete)
 		collection.set(URI.parse('aa:bb'), [diag1]);
 		p = Event.toPromise(emitter.event).then(e => {
 			assert.strictEqual(e[0].toString(), 'aa:bb');
@@ -438,7 +430,7 @@ suite('ExtHostDiagnostics', () => {
 		});
 
 		const collection1 = diags.createDiagnosticCollection(nullExtensionDescription.identifier, 'foo');
-		const collection2 = diags.createDiagnosticCollection(nullExtensionDescription.identifier, 'foo'); // warns, uses a different owner
+		const collection2 = diags.createDiagnosticCollection(nullExtensionDescription.identifier, 'foo');
 
 		collection1.clear();
 		collection2.clear();
@@ -466,11 +458,11 @@ suite('ExtHostDiagnostics', () => {
 		assert.strictEqual(callCount, 1);
 
 		collection.set(URI.parse('test:me'), array);
-		assert.strictEqual(callCount, 2); // equal array
+		assert.strictEqual(callCount, 2);
 
 		array.push(diag2);
 		collection.set(URI.parse('test:me'), array);
-		assert.strictEqual(callCount, 3); // same but un-equal array
+		assert.strictEqual(callCount, 3);
 	});
 
 	test('getDiagnostics does not tolerate sparse diagnostic arrays', function () {
@@ -556,7 +548,6 @@ suite('ExtHostDiagnostics', () => {
 			});
 
 
-			//
 			const uri = URI.parse('foo:bar');
 			const data: IMarkerData[] = [{
 				message: 'message',
@@ -615,14 +606,12 @@ suite('ExtHostDiagnostics', () => {
 		col.set(uriSensitive, [new Diagnostic(new Range(0, 0, 0, 0), 'sensitive')]);
 		col.set(uriInSensitive, [new Diagnostic(new Range(0, 0, 0, 0), 'insensitive')]);
 
-		// collection itself honours casing
 		assert.strictEqual(col.get(uriSensitive)?.length, 1);
 		assert.strictEqual(col.get(uriSensitiveCaseB)?.length, 0);
 
 		assert.strictEqual(col.get(uriInSensitive)?.length, 1);
 		assert.strictEqual(col.get(uriInSensitiveUpper)?.length, 1);
 
-		// languages.getDiagnostics honours casing
 		assert.strictEqual(diags.getDiagnostics(uriSensitive)?.length, 1);
 		assert.strictEqual(diags.getDiagnostics(uriSensitiveCaseB)?.length, 0);
 

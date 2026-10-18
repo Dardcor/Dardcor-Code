@@ -23,12 +23,6 @@ import {
 
 export { extractAgentHostWebSocketURL };
 
-/**
- * Locate `wsl.exe`. Prefer the absolute path under `%SystemRoot%\System32`
- * (defends against PATH hijacks on Windows hosts where `wsl.exe` is itself
- * a security boundary). Falls back to bare `wsl.exe` if `%SystemRoot%` is
- * unset so non-Windows hosts still produce a sensible value for testing.
- */
 export function getWslExePath(): string {
 	const systemRoot = process.env['SystemRoot'];
 	if (!systemRoot) {
@@ -37,11 +31,6 @@ export function getWslExePath(): string {
 	return join(systemRoot, 'System32', 'wsl.exe');
 }
 
-/**
- * Cheap probe for `wsl.exe --status`. Returns false on any non-Windows host,
- * on spawn failure (ENOENT), or on non-zero exit. Used by both the platform
- * capability check (renderer) and the picker gating logic (UI).
- */
 export async function isWSLSupported(): Promise<boolean> {
 	if (process.platform !== 'win32') {
 		return false;
@@ -65,15 +54,6 @@ export interface IRunWslCommandResult {
 	readonly exitCode: number;
 }
 
-/**
- * Spawn `wsl.exe` with `WSL_UTF8=1` and capture stdout/stderr. Modern WSL
- * builds honor `WSL_UTF8` and emit UTF-8; older builds emit null-padded
- * UTF-16LE regardless. We detect the latter by sniffing the first few bytes
- * and decode accordingly so a single helper covers both.
- *
- * Times out after {@link options.timeout} ms (default 30s); on timeout the
- * child is hard-killed and the promise rejects.
- */
 export function runWslCommand(args: readonly string[], options?: IRunWslCommandOptions): Promise<IRunWslCommandResult> {
 	return new Promise((resolve, reject) => {
 		const fullArgs = options?.distro ? ['-d', options.distro, ...args] : [...args];
@@ -94,7 +74,7 @@ export function runWslCommand(args: readonly string[], options?: IRunWslCommandO
 			settled = true;
 			try {
 				child.kill('SIGKILL');
-			} catch { /* ignore */ }
+			} catch { }
 			reject(new Error(`wsl.exe ${fullArgs.join(' ')} timed out after ${options?.timeout ?? 30_000}ms`));
 		}, options?.timeout ?? 30_000);
 
@@ -125,23 +105,13 @@ export function runWslCommand(args: readonly string[], options?: IRunWslCommandO
 	});
 }
 
-/**
- * Decode a `wsl.exe` output buffer that may be UTF-8 (modern builds with
- * `WSL_UTF8=1`) or UTF-16LE (older builds that ignore the env var). Strips
- * the BOM in either case.
- */
 export function decodeWslOutput(buffer: Buffer): string {
 	if (buffer.length === 0) {
 		return '';
 	}
-	// UTF-16LE BOM
 	if (buffer.length >= 2 && buffer[0] === 0xff && buffer[1] === 0xfe) {
 		return buffer.toString('utf16le', 2);
 	}
-	// Heuristic: WSL UTF-16LE output is ASCII text, so every other byte is
-	// 0x00. Sample the first 16 bytes (skipping byte 0 in case it's a BOM
-	// remnant). If a clear majority of odd-indexed bytes are zero, treat as
-	// UTF-16LE.
 	const sampleLen = Math.min(buffer.length, 16);
 	if (sampleLen >= 4) {
 		let zeros = 0;
@@ -167,16 +137,6 @@ export function decodeWslOutput(buffer: Buffer): string {
 	return text;
 }
 
-/**
- * Parse the output of `wsl --list --verbose`. Only WSL 2 distros are
- * returned — WSL 1 lacks the kernel features needed to host the agent.
- *
- * Robust against:
- *  - BOM, CRLF and lone LF line endings
- *  - header row with locale-dependent column names
- *  - the leading `* ` marker on the default distro
- *  - trailing whitespace and empty lines
- */
 export function parseWslListVerbose(output: string): IWSLDistro[] {
 	if (!output) {
 		return [];
@@ -190,9 +150,6 @@ export function parseWslListVerbose(output: string): IWSLDistro[] {
 		if (!line.trim()) {
 			continue;
 		}
-		// The header row starts with `NAME` (possibly preceded by leading
-		// whitespace where the `* ` marker would otherwise appear). Skip
-		// it once seen; any subsequent NAME-headed row is data.
 		if (!headerSeen) {
 			const upper = line.trim().toUpperCase();
 			if (upper.startsWith('NAME')) {
@@ -233,9 +190,6 @@ export function parseWslListVerbose(output: string): IWSLDistro[] {
 	return distros;
 }
 
-/**
- * Parse the output of `wsl --list --running --quiet`. One distro per line.
- */
 export function parseRunningDistros(output: string): string[] {
 	if (!output) {
 		return [];
@@ -254,29 +208,12 @@ export interface IComposeAgentHostBootstrapScriptArgs {
 	readonly os: string;
 	readonly arch: string;
 	readonly telemetryLevel?: TelemetryConfiguration;
-	/** Dev override; executed verbatim with no appended arguments. All CLI bootstrap is skipped. */
 	readonly remoteAgentHostCommand?: string;
 }
 
-/**
- * Compose the bash one-liner passed to `wsl.exe -d <distro> -e bash -lc`.
- *
- * Reuses the same install layout helpers as Remote-SSH
- * ({@link getRemoteCLIBin}, {@link buildCLIDownloadUrl},
- * {@link buildCleanupOldCLIsCommand}, {@link buildAgentHostBaseCommand}) so
- * a WSL-installed CLI and an SSH-installed CLI share the same
- * `~/<serverDataFolderName>/...` files inside the distro.
- *
- * SSH composes the same operations across multiple sequential `exec` calls
- * (so it can branch on lockfile reuse and CLI-install failures); WSL does
- * not have a control channel back to the host between commands and so
- * collapses the install+launch into one script per spawn. The shared layout
- * lives in the helper functions above, not in the composition itself.
- */
 export function composeAgentHostBootstrapScript(args: IComposeAgentHostBootstrapScriptArgs): string {
 	const telemetryLevel = validateAgentHostTelemetryLevel(args.telemetryLevel ?? TelemetryConfiguration.OFF);
 	if (args.remoteAgentHostCommand) {
-		// The override may not be the VS Code CLI, so pass launch restrictions out-of-band.
 		return `export ${AgentHostTelemetryLevelEnvKey}=${telemetryLevel} && ${args.remoteAgentHostCommand}`;
 	}
 	const installRoot = getRemoteCLIInstallRoot(args.serverDataFolderName);
@@ -287,11 +224,6 @@ export function composeAgentHostBootstrapScript(args: IComposeAgentHostBootstrap
 	const launch = buildWslAgentHostLaunch(agentHostCommand);
 
 	if (args.commit) {
-		// Pinned-install path. Mirrors SSH's _ensureCLIInstalledPinned: stage
-		// into a same-FS tmpdir for atomic rename, validate +x, then prune
-		// older commit-keyed binaries (keep newest 5). Touch keeps the
-		// reuse-path binary's mtime fresh so it doesn't fall out of that
-		// window.
 		const cleanup = buildCleanupOldCLIsCommand(args.serverDataFolderName, args.quality);
 		const installSteps = [
 			`tmpdir=$(mktemp -d ${installRoot}/.cli-install-XXXXXX)`,
@@ -309,8 +241,6 @@ export function composeAgentHostBootstrapScript(args: IComposeAgentHostBootstrap
 		].join(' && ');
 	}
 
-	// Loose dev-build path. Matches SSH's _ensureCLIInstalledLoose: single
-	// non-pinned binary, no retention pruning, install on first miss.
 	const installLoose = `curl -fsSL ${shellEscape(url)} | tar xz -C ${installRoot} && chmod +x ${cliBin}`;
 	return [
 		`mkdir -p ${installRoot}`,
@@ -319,9 +249,6 @@ export function composeAgentHostBootstrapScript(args: IComposeAgentHostBootstrap
 	].join(' && ');
 }
 
-/**
- * Build the WSL launch command with the CLI's disconnected-host reaper.
- */
 function buildWslAgentHostLaunch(command: string, idleTimeoutSec = 300): string {
 	if (!Number.isSafeInteger(idleTimeoutSec) || idleTimeoutSec <= 0) {
 		throw new Error(`Unsafe idle timeout value for shell interpolation: ${JSON.stringify(idleTimeoutSec)}`);
@@ -329,12 +256,6 @@ function buildWslAgentHostLaunch(command: string, idleTimeoutSec = 300): string 
 	return `exec ${command} --idle-timeout ${idleTimeoutSec}`;
 }
 
-/**
- * Validate that a string is safe to interpolate as a `wsl.exe -d <distro>`
- * argument. WSL distro names are user-creatable so they could in principle
- * contain spaces or quotes, but every distro shipped through the Store
- * matches `[A-Za-z0-9._-]+`. Reject anything else as defense-in-depth.
- */
 export function validateDistroName(name: string): string {
 	return validateShellToken(name, 'WSL distro name');
 }

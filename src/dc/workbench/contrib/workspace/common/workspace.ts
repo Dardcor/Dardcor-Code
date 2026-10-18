@@ -6,9 +6,6 @@
 import { localize } from '../../../../nls.js';
 import { RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 
-/**
- * Trust Context Keys
- */
 
 export const WorkspaceTrustContext = {
 	IsEnabled: new RawContextKey<boolean>('isWorkspaceTrustEnabled', false, localize('workspaceTrustEnabledCtx', "Whether the workspace trust feature is enabled.")),

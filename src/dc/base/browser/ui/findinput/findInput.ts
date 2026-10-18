@@ -72,7 +72,7 @@ export class FindInput extends Widget {
 	public readonly inputBox: HistoryInputBox;
 
 	private readonly _onDidOptionChange = this._register(new Emitter<boolean>());
-	public get onDidOptionChange(): Event<boolean /* via keyboard */> { return this._onDidOptionChange.event; }
+	public get onDidOptionChange(): Event<boolean > { return this._onDidOptionChange.event; }
 
 	private readonly _onKeyDown = this._register(new Emitter<IKeyboardEvent>());
 	public get onKeyDown(): Event<IKeyboardEvent> { return this._onKeyDown.event; }
@@ -176,7 +176,6 @@ export class FindInput extends Widget {
 				this._onCaseSensitiveKeyDown.fire(e);
 			}));
 
-			// Arrow-Key support to navigate between options
 			this.onkeydown(this.domNode, (event: IKeyboardEvent) => {
 				navigateToggles(event, this.domNode, () => this.getToggleDomNodes(), () => this.inputBox.focus());
 			});

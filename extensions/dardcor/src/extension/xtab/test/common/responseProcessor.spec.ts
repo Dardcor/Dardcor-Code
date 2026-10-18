@@ -32,18 +32,18 @@ suite('stream diffing', () => {
 	suite('edit window with all lines being unique', () => {
 
 		const editWindow = [
-			/* 0  */ `export function printParseTree(node: Parser.SyntaxNode, options: PrintingOptions, print: NodePrinter = ParseTreeEditor.renderNode): string[] {`,
-			/* 1  */ `	const printedNodes: string[] = [];`,
-			/* 2  */ `	traverseDFPreOrder(node, (cursor, depth) => {`,
-			/* 3  */ `		const currentNode = cursor.currentNode();`,
-			/* 4  */ `		if (options.printOnlyNamed && !currentNode.isNamed()) {`,
-			/* 5  */ `			return;`,
-			/* 6  */ `		}`,
-			/* 7  */ `		const printedNode = print(currentNode, depth, cursor.currentFieldName());`,
-			/* 8  */ `		printedNodes.push(printedNode);`,
-			/* 9  */ `	});`,
-			/* 10 */ `	return printedNodes;`,
-			/* 11 */ `}`
+			`export function printParseTree(node: Parser.SyntaxNode, options: PrintingOptions, print: NodePrinter = ParseTreeEditor.renderNode): string[] {`,
+			`	const printedNodes: string[] = [];`,
+			`	traverseDFPreOrder(node, (cursor, depth) => {`,
+			`		const currentNode = cursor.currentNode();`,
+			`		if (options.printOnlyNamed && !currentNode.isNamed()) {`,
+			`			return;`,
+			`		}`,
+			`		const printedNode = print(currentNode, depth, cursor.currentFieldName());`,
+			`		printedNodes.push(printedNode);`,
+			`	});`,
+			`	return printedNodes;`,
+			`}`
 		];
 
 		test('in stream middle - 1 line diff', async () => {
@@ -91,8 +91,8 @@ suite('stream diffing', () => {
 			updatedEditWindow.splice(2, 1,
 				'	traverse(node, (cursor, depth) => {');
 			updatedEditWindow.splice(7, 2,
-				/* 7  */ `		const myPrintedNode = print(currentNode, depth, cursor.currentFieldName());`,
-				/* 8  */ `		printedNodes.push(myPrintedNode);`);
+				`		const myPrintedNode = print(currentNode, depth, cursor.currentFieldName());`,
+				`		printedNodes.push(myPrintedNode);`);
 
 			const { patch } = await run(editWindow, updatedEditWindow);
 			expect(patch).toMatchInlineSnapshot(`
@@ -191,19 +191,19 @@ suite('stream diffing', () => {
 
 		test('matching line quite below', async () => {
 			const editWindow = [
-				/*  1 */'			if (!document) {',
-				/*  2 */'				return;',
-				/*  3 */'			}				document.selection.set(e.selections.map(s => new OffsetRange(e.textEditor.document.offsetAt(s.start), e.textEditor.document.offsetAt(s.end)), undefined);		}));',
-				/*  4 */'',
-				/*  5 */'		this._register(workspace.onDidCloseTextDocument(e => {',
-				/*  6 */'			if (!this.filter.isTrackingEnabled(e)) {',
-				/*  7 */'				return;',
-				/*  8 */'			}',
-				/*  9 */'',
-				/* 10 */'			this._tracker.handleDocumentClosed(documentUriFromTextDocument(e));',
-				/* 11 */'		}));',
-				/* 12 */'',
-				/* 13 */'		for (const doc of workspace.textDocuments) {',
+				'			if (!document) {',
+				'				return;',
+				'			}				document.selection.set(e.selections.map(s => new OffsetRange(e.textEditor.document.offsetAt(s.start), e.textEditor.document.offsetAt(s.end)), undefined);		}));',
+				'',
+				'		this._register(workspace.onDidCloseTextDocument(e => {',
+				'			if (!this.filter.isTrackingEnabled(e)) {',
+				'				return;',
+				'			}',
+				'',
+				'			this._tracker.handleDocumentClosed(documentUriFromTextDocument(e));',
+				'		}));',
+				'',
+				'		for (const doc of workspace.textDocuments) {',
 			];
 
 			const updatedEditWindow = [...editWindow];
@@ -231,17 +231,17 @@ suite('stream diffing', () => {
 
 		test('converge at two lines', async () => {
 			const editWindow = [
-				/*  1 */ `class Point3D {`,
-				/*  2 */ `    x: number;`,
-				/*  3 */ `    y: number;`,
-				/*  4 */ ``,
-				/*  5 */ `    constructor(x: number, y: number) {`,
-				/*  6 */ `        this.x = x;`,
-				/*  7 */ `        this.y = y;`,
-				/*  8 */ `    }`,
-				/*  9 */ ``,
-				/* 10 */ `    spaghetti(): number {`,
-				/* 11 */ `        return this.x + this.y;`,
+				`class Point3D {`,
+				`    x: number;`,
+				`    y: number;`,
+				``,
+				`    constructor(x: number, y: number) {`,
+				`        this.x = x;`,
+				`        this.y = y;`,
+				`    }`,
+				``,
+				`    spaghetti(): number {`,
+				`        return this.x + this.y;`,
 			];
 
 			const lineEdit = new LineEdit([
@@ -289,12 +289,12 @@ suite('stream diffing', () => {
 
 		test('prefers adding lines than removing them', async () => {
 			const editWindow = [
-				/*  1 */ `a`,
-				/*  2 */ `b`,
-				/*  3 */ `c`,
-				/*  4 */ `d`,
-				/*  5 */ `e`,
-				/*  6 */ `f`,
+				`a`,
+				`b`,
+				`c`,
+				`d`,
+				`e`,
+				`f`,
 			];
 
 			const lineEdit = new LineEdit([
@@ -423,36 +423,21 @@ describe('emitFastCursorLineChange with empty lines', () => {
 	}
 
 	it('should skip fast-emit when empty cursor line is deleted and new content matches next line prefix', async () => {
-		// This tests the lookahead fix: when cursor is on empty line and model outputs
-		// content that's a prefix of the next line, we skip fast-emit to avoid duplication.
-		// "aft" is a prefix of "after_unique" - fast-emit should be skipped.
 		const editWindow = ['before', '', 'after_unique'];
-		const updatedEditWindow = ['before', 'aft']; // partial match of next line
+		const updatedEditWindow = ['before', 'aft'];
 
 		const { edits } = await runWithFastCursor(editWindow, updatedEditWindow, 1);
 
-		// Fast-emit should NOT have triggered (no single-line early edit)
-		// Instead, we get a single final edit replacing the remaining lines
 		expect(edits.length).toBe(1);
-		expect(edits[0].lineRange.startLineNumber).toBe(2); // 1-indexed, starts at empty line
+		expect(edits[0].lineRange.startLineNumber).toBe(2);
 	});
 
 	it('should skip fast-emit when empty cursor line is deleted and new content exactly matches next line', async () => {
-		// Model outputs exactly the next line when trying to delete empty cursor line
-		// This would cause duplication without the fix
 		const editWindow = ['before', '', 'unique_after'];
-		// Model produces 'unique_after' directly (skipping empty line)
-		// But 'unique_after' is NOT in lineToIdxs because... wait, it IS in original.
-		// This scenario doesn't trigger fast-emit because candidates wouldn't be empty.
 
-		// Actually, for fast-emit to trigger, the new line must NOT exist in original.
-		// So this test with exact match won't trigger fast-emit at all.
-		// Let's test a scenario where it DOES trigger:
 
 		const { patch } = await runWithFastCursor(editWindow, ['before', 'unique_after'], 1);
 
-		// Since 'unique_after' exists at index 2 in original, candidates won't be empty.
-		// Fast-emit won't trigger. The algorithm will try convergence instead.
 		expect(patch).toMatchInlineSnapshot(`
 			[
 			  "    1   1 before",
@@ -464,39 +449,31 @@ describe('emitFastCursorLineChange with empty lines', () => {
 	});
 
 	it('should emit fast cursor change when replacing empty line with truly new content', async () => {
-		// Cursor on empty line, model replaces it with content NOT in original
-		// AND the content doesn't match/prefix the next line
 		const editWindow = ['before', '', 'zzz_after'];
 		const updatedEditWindow = ['before', 'brand_new_content', 'zzz_after'];
 
 		const { edits } = await runWithFastCursor(editWindow, updatedEditWindow, 1);
 
-		// Should emit early for the cursor line (fast-emit triggered)
 		expect(edits.length).toBe(1);
 		expect(edits[0].newLines).toEqual(['brand_new_content']);
 	});
 
 	it('should handle empty cursor line at end of document', async () => {
-		// No next line to check against - fast-emit should work normally
 		const editWindow = ['before', 'middle', ''];
 		const updatedEditWindow = ['before', 'middle', 'new_content'];
 
 		const { edits } = await runWithFastCursor(editWindow, updatedEditWindow, 2);
 
-		// Fast-emit should work (no next line to check prefix against)
 		expect(edits.length).toBe(1);
 		expect(edits[0].newLines).toEqual(['new_content']);
 	});
 
 	it('should not confuse replacement with deletion when content differs from next line', async () => {
-		// Empty cursor line, model outputs completely different content
-		// (doesn't prefix next line) - this should fast-emit
 		const editWindow = ['aaa', '', 'bbb_unique'];
 		const updatedEditWindow = ['aaa', 'xxx_completely_different', 'bbb_unique'];
 
 		const { edits } = await runWithFastCursor(editWindow, updatedEditWindow, 1);
 
-		// 'xxx_completely_different' doesn't prefix 'bbb_unique', so fast-emit should trigger
 		expect(edits.length).toBe(1);
 		expect(edits[0].newLines).toEqual(['xxx_completely_different']);
 	});
@@ -512,13 +489,10 @@ describe('isAdditiveEdit', () => {
 	});
 
 	it('should detect insertions in the middle as additive', () => {
-		// The key case: adding parameters to a function
 		expect(ResponseProcessor.isAdditiveEdit('function fib() {', 'function fib(n: number) {')).toMatchInlineSnapshot(`true`);
 
-		// Adding type annotations
 		expect(ResponseProcessor.isAdditiveEdit('const x = 5', 'const x: number = 5')).toMatchInlineSnapshot(`true`);
 
-		// Adding modifiers
 		expect(ResponseProcessor.isAdditiveEdit('function foo() {}', 'async function foo() {}')).toMatchInlineSnapshot(`true`);
 	});
 
@@ -534,10 +508,8 @@ describe('isAdditiveEdit', () => {
 	});
 
 	it('should detect replacements as non-additive', () => {
-		// Changing name (f → g) is a replacement
 		expect(ResponseProcessor.isAdditiveEdit('function fib() {', 'function gib() {')).toMatchInlineSnapshot(`false`);
 
-		// Changing value is a replacement
 		expect(ResponseProcessor.isAdditiveEdit('const x = 5', 'const x = 10')).toMatchInlineSnapshot(`false`);
 	});
 
@@ -548,30 +520,23 @@ describe('isAdditiveEdit', () => {
 	});
 
 	it('should handle whitespace changes', () => {
-		// Adding whitespace
 		expect(ResponseProcessor.isAdditiveEdit('a b', 'a  b')).toMatchInlineSnapshot(`true`);
 		expect(ResponseProcessor.isAdditiveEdit('ab', 'a b')).toMatchInlineSnapshot(`true`);
 
-		// Removing whitespace is not additive
 		expect(ResponseProcessor.isAdditiveEdit('a  b', 'a b')).toMatchInlineSnapshot(`false`);
 	});
 
 	it('should handle complex code transformations', () => {
-		// Adding optional chaining
 		expect(ResponseProcessor.isAdditiveEdit('obj.prop', 'obj?.prop')).toMatchInlineSnapshot(`true`);
 
-		// Adding template literal
 		expect(ResponseProcessor.isAdditiveEdit('`hello`', '`hello ${name}`')).toMatchInlineSnapshot(`true`);
 
-		// Adding array element
 		expect(ResponseProcessor.isAdditiveEdit('[1, 2]', '[1, 2, 3]')).toMatchInlineSnapshot(`true`);
 
-		// Adding object property (subsequence still works)
 		expect(ResponseProcessor.isAdditiveEdit('{ a: 1 }', '{ a: 1, b: 2 }')).toMatchInlineSnapshot(`true`);
 	});
 
 	it('should handle repeated characters correctly', () => {
-		// All 'a's from original must be matched in order
 		expect(ResponseProcessor.isAdditiveEdit('aaa', 'aaaa')).toMatchInlineSnapshot(`true`);
 		expect(ResponseProcessor.isAdditiveEdit('aaa', 'aXaYaZ')).toMatchInlineSnapshot(`true`);
 		expect(ResponseProcessor.isAdditiveEdit('aaaa', 'aaa')).toMatchInlineSnapshot(`false`);

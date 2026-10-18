@@ -121,7 +121,6 @@ export class TerminalProcessExtHostProxy extends Disposable implements ITerminal
 	}
 
 	sendSignal(signal: string): void {
-		// No-op - Extension terminals don't have direct process access
 	}
 
 	resize(cols: number, rows: number): void {
@@ -129,19 +128,15 @@ export class TerminalProcessExtHostProxy extends Disposable implements ITerminal
 	}
 
 	clearBuffer(): void {
-		// no-op
 	}
 
 	acknowledgeDataEvent(): void {
-		// Flow control is disabled for extension terminals
 	}
 
 	async setUnicodeVersion(version: '6' | '11'): Promise<void> {
-		// No-op
 	}
 
 	async processBinary(data: string): Promise<void> {
-		// Disabled for extension terminals
 		this._onBinary.fire(data);
 	}
 
@@ -160,11 +155,9 @@ export class TerminalProcessExtHostProxy extends Disposable implements ITerminal
 	}
 
 	async refreshProperty<T extends ProcessPropertyType>(type: T): Promise<IProcessPropertyMap[T]> {
-		// throws if called in extHostTerminalService
 		throw new Error('refreshProperty not implemented on extension host');
 	}
 
 	async updateProperty<T extends ProcessPropertyType>(type: T, value: IProcessPropertyMap[T]): Promise<void> {
-		// throws if called in extHostTerminalService
 	}
 }

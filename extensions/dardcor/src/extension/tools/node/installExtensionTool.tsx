@@ -59,7 +59,6 @@ class InstallExtensionTool implements vscode.LanguageModelTool<IInstallExtension
 		do {
 			extension = this._extensionsService.getExtension(extensionId);
 			if (extension) {
-				// If extension contributes any tools, then wait for the tools to be registered.
 				const languageModelTools = extension.packageJSON.contributes?.languageModelTools;
 				if (languageModelTools && Array.isArray(languageModelTools) && languageModelTools.length) {
 					if (languageModelTools.every((tool) => this.toolsService.getTool(tool.name))) {

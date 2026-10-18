@@ -27,7 +27,6 @@ import { Registry } from '../../registry/common/platform.js';
 import { IMarker } from '../../markers/common/markers.js';
 
 
-//#region Editor / Resources DND
 
 export const CodeDataTransfers = {
 	EDITORS: 'CodeEditors',
@@ -42,17 +41,8 @@ export const CodeDataTransfers = {
 export interface IDraggedResourceEditorInput extends IBaseTextResourceEditorInput {
 	resource: URI | undefined;
 
-	/**
-	 * A hint that the source of the dragged editor input
-	 * might not be the application but some external tool.
-	 */
 	isExternal?: boolean;
 
-	/**
-	 * Whether we probe for the dropped editor to be a workspace
-	 * (i.e. code-workspace file or even a folder), allowing to
-	 * open it as workspace instead of opening as editor.
-	 */
 	allowWorkspaceOpen?: boolean;
 }
 
@@ -60,27 +50,22 @@ export function extractEditorsDropData(e: DragEvent): Array<IDraggedResourceEdit
 	const editors: IDraggedResourceEditorInput[] = [];
 	if (e.dataTransfer && e.dataTransfer.types.length > 0) {
 
-		// Data Transfer: Code Editors
 		const rawEditorsData = e.dataTransfer.getData(CodeDataTransfers.EDITORS);
 		if (rawEditorsData) {
 			try {
 				editors.push(...parse(rawEditorsData));
 			} catch (error) {
-				// Invalid transfer
 			}
 		}
 
-		// Data Transfer: Resources
 		else {
 			try {
 				const rawResourcesData = e.dataTransfer.getData(DataTransfers.RESOURCES);
 				editors.push(...createDraggedEditorInputFromRawResourcesData(rawResourcesData));
 			} catch (error) {
-				// Invalid transfer
 			}
 		}
 
-		// Check for native file transfer
 		if (e.dataTransfer?.files) {
 			for (let i = 0; i < e.dataTransfer.files.length; i++) {
 				const file = e.dataTransfer.files[i];
@@ -88,13 +73,11 @@ export function extractEditorsDropData(e: DragEvent): Array<IDraggedResourceEdit
 					try {
 						editors.push({ resource: URI.file(getPathForFile(file)!), isExternal: true, allowWorkspaceOpen: true });
 					} catch (error) {
-						// Invalid URI
 					}
 				}
 			}
 		}
 
-		// Check for CodeFiles transfer
 		const rawCodeFiles = e.dataTransfer.getData(CodeDataTransfers.FILES);
 		if (rawCodeFiles) {
 			try {
@@ -103,11 +86,9 @@ export function extractEditorsDropData(e: DragEvent): Array<IDraggedResourceEdit
 					editors.push({ resource: URI.file(codeFile), isExternal: true, allowWorkspaceOpen: true });
 				}
 			} catch (error) {
-				// Invalid transfer
 			}
 		}
 
-		// Workbench contributions
 		const contributions = Registry.as<IDragAndDropContributionRegistry>(Extensions.DragAndDropContribution).getAll();
 		for (const contribution of contributions) {
 			const data = e.dataTransfer.getData(contribution.dataFormatKey);
@@ -115,15 +96,11 @@ export function extractEditorsDropData(e: DragEvent): Array<IDraggedResourceEdit
 				try {
 					editors.push(...contribution.getEditorInputs(data));
 				} catch (error) {
-					// Invalid transfer
 				}
 			}
 		}
 	}
 
-	// Prevent duplicates: it is possible that we end up with the same
-	// dragged editor multiple times because multiple data transfers
-	// are being used (https://github.com/microsoft/vscode/issues/128925)
 
 	const coalescedEditors: IDraggedResourceEditorInput[] = [];
 	const seen = new ResourceMap<boolean>();
@@ -142,7 +119,6 @@ export function extractEditorsDropData(e: DragEvent): Array<IDraggedResourceEdit
 export async function extractEditorsAndFilesDropData(accessor: ServicesAccessor, e: DragEvent): Promise<Array<IDraggedResourceEditorInput>> {
 	const editors = extractEditorsDropData(e);
 
-	// Web: Check for file transfer
 	if (e.dataTransfer && isWeb && containsDragType(e, DataTransfers.FILES)) {
 		const files = e.dataTransfer.items;
 		if (files) {
@@ -163,7 +139,7 @@ export function createDraggedEditorInputFromRawResourcesData(rawResourcesData: s
 	if (rawResourcesData) {
 		const resourcesRaw: string[] = JSON.parse(rawResourcesData);
 		for (const resourceRaw of resourcesRaw) {
-			if (resourceRaw.indexOf(':') > 0) { // mitigate https://github.com/microsoft/vscode/issues/124946
+			if (resourceRaw.indexOf(':') > 0) {
 				const { selection, uri } = extractSelection(URI.parse(resourceRaw));
 				editors.push({ resource: uri, options: { selection } });
 			}
@@ -182,7 +158,6 @@ interface IFileTransferData {
 
 async function extractFilesDropData(accessor: ServicesAccessor, event: DragEvent): Promise<IFileTransferData[]> {
 
-	// Try to extract via `FileSystemHandle`
 	if (WebFileSystemAccess.supported(mainWindow)) {
 		const items = event.dataTransfer?.items;
 		if (items) {
@@ -190,7 +165,6 @@ async function extractFilesDropData(accessor: ServicesAccessor, event: DragEvent
 		}
 	}
 
-	// Try to extract via `FileList`
 	const files = event.dataTransfer?.files;
 	if (!files) {
 		return [];
@@ -203,7 +177,7 @@ async function extractFileTransferData(accessor: ServicesAccessor, items: DataTr
 	const fileSystemProvider = accessor.get(IFileService).getProvider(Schemas.file);
 	// eslint-disable-next-line no-restricted-syntax
 	if (!(fileSystemProvider instanceof HTMLFileSystemProvider)) {
-		return []; // only supported when running in web
+		return [];
 	}
 
 	const results: DeferredPromise<IFileTransferData | undefined>[] = [];
@@ -254,7 +228,6 @@ export async function extractFileListData(accessor: ServicesAccessor, files: Fil
 		const file = files.item(i);
 		if (file) {
 
-			// Skip for very large files because this operation is unbuffered
 			if (file.size > 100 * ByteSize.MB) {
 				dialogService.warn(localize('fileTooLarge', "File is too large to open as untitled editor. Please upload it first into the file explorer and then try again."));
 				continue;
@@ -282,7 +255,6 @@ export async function extractFileListData(accessor: ServicesAccessor, files: Fil
 				});
 			};
 
-			// Start reading
 			reader.readAsArrayBuffer(file);
 		}
 	}
@@ -290,7 +262,6 @@ export async function extractFileListData(accessor: ServicesAccessor, files: Fil
 	return coalesce(await Promise.all(results.map(result => result.p)));
 }
 
-//#endregion
 
 export function containsDragType(event: DragEvent, ...dragTypesToFind: string[]): boolean {
 	if (!event.dataTransfer) {
@@ -300,7 +271,7 @@ export function containsDragType(event: DragEvent, ...dragTypesToFind: string[])
 	const dragTypes = event.dataTransfer.types;
 	const lowercaseDragTypes: string[] = [];
 	for (let i = 0; i < dragTypes.length; i++) {
-		lowercaseDragTypes.push(dragTypes[i].toLowerCase()); // somehow the types are lowercase
+		lowercaseDragTypes.push(dragTypes[i].toLowerCase());
 	}
 
 	for (const dragType of dragTypesToFind) {
@@ -312,7 +283,6 @@ export function containsDragType(event: DragEvent, ...dragTypesToFind: string[])
 	return false;
 }
 
-//#region DND contributions
 
 export interface IResourceStat {
 	readonly resource: URI;
@@ -321,38 +291,16 @@ export interface IResourceStat {
 }
 
 export interface IResourceDropHandler {
-	/**
-	 * Handle a dropped resource.
-	 * @param resource The resource that was dropped
-	 * @param accessor Service accessor to get services
-	 * @returns true if handled, false otherwise
-	 */
 	handleDrop(resource: URI, accessor: ServicesAccessor): Promise<boolean>;
 }
 
 export interface IDragAndDropContributionRegistry {
-	/**
-	 * Registers a drag and drop contribution.
-	 */
 	register(contribution: IDragAndDropContribution): void;
 
-	/**
-	 * Returns all registered drag and drop contributions.
-	 */
 	getAll(): IterableIterator<IDragAndDropContribution>;
 
-	/**
-	 * Register a handler for dropped resources.
-	 * @returns A disposable that unregisters the handler when disposed
-	 */
 	registerDropHandler(handler: IResourceDropHandler): IDisposable;
 
-	/**
-	 * Handle a dropped resource using registered handlers.
-	 * @param resource The resource that was dropped
-	 * @param accessor Service accessor to get services
-	 * @returns true if any handler handled the resource, false otherwise
-	 */
 	handleResourceDrop(resource: URI, accessor: ServicesAccessor): Promise<boolean>;
 }
 
@@ -398,13 +346,8 @@ export const Extensions = {
 
 Registry.add(Extensions.DragAndDropContribution, new DragAndDropContributionRegistry());
 
-//#endregion
 
-//#region DND Utilities
 
-/**
- * A singleton to store transfer data during drag & drop operations that are only valid within the application.
- */
 export class LocalSelectionTransfer<T> {
 
 	private static readonly INSTANCE = new LocalSelectionTransfer();
@@ -413,7 +356,6 @@ export class LocalSelectionTransfer<T> {
 	private proto?: T;
 
 	private constructor() {
-		// protect against external instantiation
 	}
 
 	static getInstance<T>(): LocalSelectionTransfer<T> {
@@ -473,7 +415,6 @@ function getDataAsJSON<T>(e: DragEvent, kind: string, defaultValue: T): T {
 		try {
 			return JSON.parse(rawSymbolsData);
 		} catch (error) {
-			// Invalid transfer
 		}
 	}
 
@@ -502,55 +443,17 @@ export function extractNotebookCellOutputDropData(e: DragEvent): NotebookCellOut
 	return getDataAsJSON(e, CodeDataTransfers.NOTEBOOK_CELL_OUTPUT, undefined);
 }
 
-/**
- * Payload for a dragged chat reference (a chat tab from the Agents window). The
- * producing (sessions) layer supplies both the opaque backend chat resource — the
- * value the reference entry carries verbatim — and the client-side chat resource,
- * plus the display title. The consuming (workbench chat input) drop handler needs
- * no knowledge of sessions or agent-host types: it forwards {@link chatResource}
- * into the reference entry and compares {@link clientResource} for identity only
- * (self-reference / cross-agent-host detection). The payload is transient (never
- * persisted), so carrying both resources is fine.
- */
 export interface ChatReferenceTransferData {
-	/**
-	 * The referenced chat's **opaque backend chat URI** (the value carried on
-	 * `MessageChatAttachment.resource`). Becomes the reference entry's value
-	 * verbatim; never parsed by the consuming layer.
-	 */
 	readonly chatResource: string;
-	/**
-	 * The sessions-window client chat resource (`IChat.resource`). Used for
-	 * compare-by-equality identity only — e.g. to detect a chat dropped onto its
-	 * own input, or to reject a cross-agent-host drag (which needs the client
-	 * scheme + authority the backend URI does not carry) — never parsed for
-	 * meaning.
-	 */
 	readonly clientResource: string;
-	/** The reference's display title, used for the inline `#chat:<title>` token. */
 	readonly title: string;
 }
 
-/**
- * Identifier used to carry a dragged chat reference (a chat tab from the Agents
- * window) through {@link LocalSelectionTransfer}, mirroring the editor's
- * `DraggedEditorIdentifier` pattern.
- *
- * Unlike the {@link ChatReferenceTransferData} `dataTransfer` mime payload, an
- * in-process local transfer is readable during `dragover`, so the drop target
- * can decide whether the drag is droppable (e.g. suppress the overlay for a
- * self-reference or a cross-agent-host drag) before the drop lands — avoiding a
- * "looks droppable but isn't" overlay. It carries the same fields as
- * {@link ChatReferenceTransferData}.
- */
 export class DraggedChatReferenceIdentifier {
 
 	constructor(
-		/** The referenced chat's opaque backend chat URI, forwarded into the reference entry. */
 		readonly chatResource: string,
-		/** The sessions-window client chat resource, for identity comparison only. */
 		readonly clientResource: string,
-		/** The reference's display title, used for the inline `#chat:<title>` token. */
 		readonly title: string,
 	) { }
 }
@@ -571,10 +474,6 @@ interface IElectronWebUtils {
 	};
 }
 
-/**
- * A helper to get access to Electrons `webUtils.getPathForFile` function
- * in a safe way without crashing the application when running in the web.
- */
 export function getPathForFile(file: File): string | undefined {
 	if (isNative && typeof (globalThis as IElectronWebUtils).vscode?.webUtils?.getPathForFile === 'function') {
 		return (globalThis as IElectronWebUtils).vscode?.webUtils?.getPathForFile(file);
@@ -583,4 +482,3 @@ export function getPathForFile(file: File): string | undefined {
 	return undefined;
 }
 
-//#endregion

@@ -18,7 +18,6 @@ suite('claudeBuiltinCommands', () => {
 		const container = buildClaudeBuiltinSkillsContainer(new Set());
 		assert.ok(container, 'expected a built-in container');
 
-		// Container is a non-writable Skill directory on the agent-builtin scheme.
 		assert.strictEqual(container.type, CustomizationType.Directory);
 		assert.strictEqual(container.contents, CustomizationType.Skill);
 		assert.strictEqual(container.writable, false);
@@ -34,7 +33,6 @@ suite('claudeBuiltinCommands', () => {
 			assert.ok(child.description && child.description.length > 0, `child ${child.name} should have a description`);
 		}
 
-		// Names are unique.
 		const names = children.map(c => c.name);
 		assert.strictEqual(new Set(names).size, names.length, 'built-in command names should be unique');
 	});
@@ -44,8 +42,6 @@ suite('claudeBuiltinCommands', () => {
 		const allNames = (all?.children ?? []).map(c => c.name);
 		assert.ok(allNames.includes('init'), 'precondition: `init` is a curated built-in');
 
-		// A disk skill named `init` must suppress the curated built-in of the
-		// same name (the editable file wins), so it is never duplicated.
 		const filtered = buildClaudeBuiltinSkillsContainer(new Set(['init']));
 		const filteredNames = (filtered?.children ?? []).map(c => c.name);
 		assert.ok(!filteredNames.includes('init'), '`init` should be excluded when on disk');
@@ -66,7 +62,6 @@ suite('claudeBuiltinCommands', () => {
 		assert.strictEqual(URI.parse(container.uri).scheme, AGENT_BUILTIN_CUSTOMIZATION_SCHEME);
 
 		const children = container.children ?? [];
-		// The on-disk skill is excluded; the two genuine runtime built-ins remain.
 		const summary = children.map(child => {
 			assert.strictEqual(child.type, CustomizationType.Skill);
 			const uri = URI.parse(child.uri);

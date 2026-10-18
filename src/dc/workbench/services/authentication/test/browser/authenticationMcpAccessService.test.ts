@@ -22,15 +22,12 @@ suite('AuthenticationMcpAccessService', () => {
 	setup(() => {
 		instantiationService = disposables.add(new TestInstantiationService());
 
-		// Set up storage service
 		storageService = disposables.add(new TestStorageService());
 		instantiationService.stub(IStorageService, storageService);
 
-		// Set up product service with no trusted servers by default
 		productService = { ...TestProductService };
 		instantiationService.stub(IProductService, productService);
 
-		// Create the service instance
 		authenticationMcpAccessService = disposables.add(instantiationService.createInstance(AuthenticationMcpAccessService));
 	});
 
@@ -68,7 +65,6 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('returns stored allowed state when server is in storage', () => {
-			// Add server to storage
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [{
 				id: 'stored-server',
 				name: 'Stored Server',
@@ -91,11 +87,9 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('returns true for server in storage with undefined allowed property (legacy behavior)', () => {
-			// Simulate legacy data where allowed property didn't exist
 			const legacyServer: AllowedMcpServer = {
 				id: 'legacy-server',
 				name: 'Legacy Server'
-				// allowed property is undefined
 			};
 
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [legacyServer]);
@@ -107,14 +101,12 @@ suite('AuthenticationMcpAccessService', () => {
 		test('product.json trusted servers take precedence over storage', () => {
 			productService.trustedMcpAuthAccess = ['product-trusted-server'];
 
-			// Try to store the same server as not allowed
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [{
 				id: 'product-trusted-server',
 				name: 'Product Trusted Server',
 				allowed: false
 			}]);
 
-			// Product.json should take precedence
 			const result = authenticationMcpAccessService.isAccessAllowed('github', 'user@example.com', 'product-trusted-server');
 			assert.strictEqual(result, true);
 		});
@@ -137,7 +129,6 @@ suite('AuthenticationMcpAccessService', () => {
 				{ id: 'http-server', name: 'HTTP Server', allowed: true, url: 'https://server.example.com' }
 			]);
 
-			// "foo.com" and "foo.com/" are the same origin, and the host is case-insensitive.
 			assert.strictEqual(
 				authenticationMcpAccessService.isAccessAllowedForUrl('github', 'user@example.com', 'http-server', 'https://server.example.com/'),
 				true
@@ -153,7 +144,6 @@ suite('AuthenticationMcpAccessService', () => {
 				{ id: 'http-server', name: 'HTTP Server', allowed: true, url: 'https://server.example.com/mcp' }
 			]);
 
-			// A trailing slash on a path points at a different endpoint, so the user must re-consent.
 			const result = authenticationMcpAccessService.isAccessAllowedForUrl('github', 'user@example.com', 'http-server', 'https://server.example.com/mcp/');
 			assert.strictEqual(result, undefined);
 		});
@@ -168,7 +158,6 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('breaks legacy grants that have no stored URL when a URL is supplied', () => {
-			// Legacy grant: stored before URL binding existed, so it has no URL.
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'http-server', name: 'HTTP Server', allowed: true }
 			]);
@@ -207,7 +196,6 @@ suite('AuthenticationMcpAccessService', () => {
 				{ id: 'http-server', name: 'HTTP Server', allowed: true, url: serverUrl }
 			]);
 
-			// Simulate the management UI toggling access without knowledge of the URL.
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'http-server', name: 'HTTP Server', allowed: true }
 			]);
@@ -251,7 +239,7 @@ suite('AuthenticationMcpAccessService', () => {
 			assert.ok(trustedServer1);
 			assert.strictEqual(trustedServer1.allowed, true);
 			assert.strictEqual(trustedServer1.trusted, true);
-			assert.strictEqual(trustedServer1.name, 'trusted-server-1'); // Should default to ID
+			assert.strictEqual(trustedServer1.name, 'trusted-server-1');
 
 			const trustedServer2 = result.find(s => s.id === 'trusted-server-2');
 			assert.ok(trustedServer2);
@@ -275,7 +263,6 @@ suite('AuthenticationMcpAccessService', () => {
 			assert.strictEqual(microsoftResult[0].id, 'microsoft-server');
 			assert.strictEqual(microsoftResult[0].trusted, true);
 
-			// Provider not in trusted list should return empty (no stored servers)
 			const unknownResult = authenticationMcpAccessService.readAllowedMcpServers('unknown', 'user@unknown.com');
 			assert.strictEqual(unknownResult.length, 0);
 		});
@@ -283,7 +270,6 @@ suite('AuthenticationMcpAccessService', () => {
 		test('merges stored servers with trusted servers from product.json', () => {
 			productService.trustedMcpAuthAccess = ['trusted-server'];
 
-			// Add some stored servers
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'stored-server', name: 'Stored Server', allowed: false }
 			]);
@@ -303,12 +289,10 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('updates existing stored server to be trusted when it appears in product.json', () => {
-			// First add a server as stored (not trusted)
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server-1', name: 'Server 1', allowed: false }
 			]);
 
-			// Then make it trusted via product.json
 			productService.trustedMcpAuthAccess = ['server-1'];
 
 			const result = authenticationMcpAccessService.readAllowedMcpServers('github', 'user@example.com');
@@ -316,22 +300,19 @@ suite('AuthenticationMcpAccessService', () => {
 
 			const server = result[0];
 			assert.strictEqual(server.id, 'server-1');
-			assert.strictEqual(server.allowed, true); // Should be overridden to true
-			assert.strictEqual(server.trusted, true); // Should be marked as trusted
-			assert.strictEqual(server.name, 'Server 1'); // Should keep existing name
+			assert.strictEqual(server.allowed, true);
+			assert.strictEqual(server.trusted, true);
+			assert.strictEqual(server.name, 'Server 1');
 		});
 
 		test('handles malformed JSON in storage gracefully', () => {
-			// Manually corrupt the storage
 			storageService.store('mcpserver-github-user@example.com', 'invalid json', StorageScope.APPLICATION, StorageTarget.USER);
 
-			// Should return empty array instead of throwing
 			const result = authenticationMcpAccessService.readAllowedMcpServers('github', 'user@example.com');
 			assert.strictEqual(result.length, 0);
 		});
 
 		test('handles non-array product.json configuration gracefully', () => {
-			// Set up invalid configuration
 			// eslint-disable-next-line local/code-no-any-casts
 			productService.trustedMcpAuthAccess = 'invalid-string' as any;
 
@@ -356,12 +337,10 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('updates existing MCP server allowed status', () => {
-			// First add a server
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server1', name: 'Server 1', allowed: true }
 			]);
 
-			// Then update its allowed status
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server1', name: 'Server 1', allowed: false }
 			]);
@@ -372,12 +351,10 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('updates existing MCP server name when new name is provided', () => {
-			// First add a server with default name
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server1', name: 'server1', allowed: true }
 			]);
 
-			// Then update with a proper name
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server1', name: 'My Server', allowed: true }
 			]);
@@ -388,29 +365,25 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('does not update name when new name is same as ID', () => {
-			// First add a server with a proper name
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server1', name: 'My Server', allowed: true }
 			]);
 
-			// Then try to update with ID as name (should keep existing name)
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server1', name: 'server1', allowed: false }
 			]);
 
 			const result = authenticationMcpAccessService.readAllowedMcpServers('github', 'user@example.com');
 			assert.strictEqual(result.length, 1);
-			assert.strictEqual(result[0].name, 'My Server'); // Should keep original name
-			assert.strictEqual(result[0].allowed, false); // But allowed status should update
+			assert.strictEqual(result[0].name, 'My Server');
+			assert.strictEqual(result[0].allowed, false);
 		});
 
 		test('adds new servers while preserving existing ones', () => {
-			// First add one server
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server1', name: 'Server 1', allowed: true }
 			]);
 
-			// Then add another server
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server2', name: 'Server 2', allowed: false }
 			]);
@@ -429,21 +402,17 @@ suite('AuthenticationMcpAccessService', () => {
 		test('does not store trusted servers from product.json', () => {
 			productService.trustedMcpAuthAccess = ['trusted-server'];
 
-			// Try to update a trusted server
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'trusted-server', name: 'Trusted Server', allowed: false, trusted: true },
 				{ id: 'user-server', name: 'User Server', allowed: true }
 			]);
 
-			// Check what's actually stored in storage (not including product.json servers)
 			const storageKey = 'mcpserver-github-user@example.com';
 			const storedData = JSON.parse(storageService.get(storageKey, StorageScope.APPLICATION) || '[]');
 
-			// Should only contain the user-managed server, not the trusted one
 			assert.strictEqual(storedData.length, 1);
 			assert.strictEqual(storedData[0].id, 'user-server');
 
-			// But readAllowedMcpServers should return both (including trusted from product.json)
 			const allServers = authenticationMcpAccessService.readAllowedMcpServers('github', 'user@example.com');
 			assert.strictEqual(allServers.length, 2);
 		});
@@ -453,7 +422,6 @@ suite('AuthenticationMcpAccessService', () => {
 				{ id: 'agent-host-mcp:remote/GitHub/https://api.example/mcp', name: 'GitHub', allowed: true, url: 'https://api.example/mcp', agentHost: { authority: 'remote', label: 'SSH: my-host' } }
 			]);
 
-			// A management toggle (no agentHost/url) must not clear the stored metadata.
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'agent-host-mcp:remote/GitHub/https://api.example/mcp', name: 'GitHub', allowed: true }
 			]);
@@ -489,20 +457,16 @@ suite('AuthenticationMcpAccessService', () => {
 
 	suite('removeAllowedMcpServers', () => {
 		test('removes all stored MCP servers for account', () => {
-			// First add some servers
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'server1', name: 'Server 1', allowed: true },
 				{ id: 'server2', name: 'Server 2', allowed: false }
 			]);
 
-			// Verify they exist
 			let result = authenticationMcpAccessService.readAllowedMcpServers('github', 'user@example.com');
 			assert.strictEqual(result.length, 2);
 
-			// Remove them
 			authenticationMcpAccessService.removeAllowedMcpServers('github', 'user@example.com');
 
-			// Verify they're gone
 			result = authenticationMcpAccessService.readAllowedMcpServers('github', 'user@example.com');
 			assert.strictEqual(result.length, 0);
 		});
@@ -510,19 +474,15 @@ suite('AuthenticationMcpAccessService', () => {
 		test('does not affect trusted servers from product.json', () => {
 			productService.trustedMcpAuthAccess = ['trusted-server'];
 
-			// Add some user-managed servers
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'user-server', name: 'User Server', allowed: true }
 			]);
 
-			// Verify both trusted and user servers exist
 			let result = authenticationMcpAccessService.readAllowedMcpServers('github', 'user@example.com');
 			assert.strictEqual(result.length, 2);
 
-			// Remove user servers
 			authenticationMcpAccessService.removeAllowedMcpServers('github', 'user@example.com');
 
-			// Should still have trusted server
 			result = authenticationMcpAccessService.readAllowedMcpServers('github', 'user@example.com');
 			assert.strictEqual(result.length, 1);
 			assert.strictEqual(result[0].id, 'trusted-server');
@@ -551,7 +511,6 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('handles removal of non-existent data gracefully', () => {
-			// Should not throw when trying to remove data that doesn't exist
 			assert.doesNotThrow(() => {
 				authenticationMcpAccessService.removeAllowedMcpServers('nonexistent', 'user@example.com');
 			});
@@ -567,15 +526,12 @@ suite('AuthenticationMcpAccessService', () => {
 			});
 
 			try {
-				// Should fire for update
 				authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 					{ id: 'server1', name: 'Server 1', allowed: true }
 				]);
 
-				// Should fire for remove
 				authenticationMcpAccessService.removeAllowedMcpServers('github', 'user@example.com');
 
-				// Should fire for different account
 				authenticationMcpAccessService.updateAllowedMcpServers('microsoft', 'admin@company.com', [
 					{ id: 'server2', name: 'Server 2', allowed: false }
 				]);
@@ -624,13 +580,11 @@ suite('AuthenticationMcpAccessService', () => {
 			const accountName = 'user@example.com';
 			const serverId = 'test-server';
 
-			// Initially unknown
 			assert.strictEqual(
 				authenticationMcpAccessService.isAccessAllowed(providerId, accountName, serverId),
 				undefined
 			);
 
-			// Add server as allowed
 			authenticationMcpAccessService.updateAllowedMcpServers(providerId, accountName, [
 				{ id: serverId, name: 'Test Server', allowed: true }
 			]);
@@ -640,7 +594,6 @@ suite('AuthenticationMcpAccessService', () => {
 				true
 			);
 
-			// Update to disallowed
 			authenticationMcpAccessService.updateAllowedMcpServers(providerId, accountName, [
 				{ id: serverId, name: 'Test Server', allowed: false }
 			]);
@@ -650,7 +603,6 @@ suite('AuthenticationMcpAccessService', () => {
 				false
 			);
 
-			// Remove all
 			authenticationMcpAccessService.removeAllowedMcpServers(providerId, accountName);
 
 			assert.strictEqual(
@@ -660,7 +612,6 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('multiple providers and accounts are isolated', () => {
-			// Add data for different combinations
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user1@example.com', [
 				{ id: 'server1', name: 'Server 1', allowed: true }
 			]);
@@ -673,7 +624,6 @@ suite('AuthenticationMcpAccessService', () => {
 				{ id: 'server1', name: 'Server 1', allowed: true }
 			]);
 
-			// Verify isolation
 			assert.strictEqual(
 				authenticationMcpAccessService.isAccessAllowed('github', 'user1@example.com', 'server1'),
 				true
@@ -687,7 +637,6 @@ suite('AuthenticationMcpAccessService', () => {
 				true
 			);
 
-			// Non-existent combinations should return undefined
 			assert.strictEqual(
 				authenticationMcpAccessService.isAccessAllowed('microsoft', 'user2@example.com', 'server1'),
 				undefined
@@ -700,24 +649,20 @@ suite('AuthenticationMcpAccessService', () => {
 				'microsoft': ['microsoft-trusted']
 			};
 
-			// Trusted servers should always return true regardless of storage
 			assert.strictEqual(
 				authenticationMcpAccessService.isAccessAllowed('github', 'user@example.com', 'trusted-server'),
 				true
 			);
 
-			// Try to override via storage
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'trusted-server', name: 'Trusted Server', allowed: false }
 			]);
 
-			// Should still return true
 			assert.strictEqual(
 				authenticationMcpAccessService.isAccessAllowed('github', 'user@example.com', 'trusted-server'),
 				true
 			);
 
-			// But non-trusted servers should still respect storage
 			authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 				{ id: 'user-server', name: 'User Server', allowed: false }
 			]);
@@ -729,17 +674,14 @@ suite('AuthenticationMcpAccessService', () => {
 		});
 
 		test('handles edge cases with empty or null values', () => {
-			// Empty provider/account names
 			assert.doesNotThrow(() => {
 				authenticationMcpAccessService.isAccessAllowed('', '', 'server1');
 			});
 
-			// Empty server arrays
 			assert.doesNotThrow(() => {
 				authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', []);
 			});
 
-			// Empty server ID/name
 			assert.doesNotThrow(() => {
 				authenticationMcpAccessService.updateAllowedMcpServers('github', 'user@example.com', [
 					{ id: '', name: '', allowed: true }

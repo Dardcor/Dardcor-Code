@@ -18,24 +18,11 @@ export interface IDiffService {
 }
 
 export interface IDocumentDiff {
-	/**
-	 * If true, both text models are identical (byte-wise).
-	 */
 	readonly identical: boolean;
 
-	/**
-	 * If true, the diff computation timed out and the diff might not be accurate.
-	 */
 	readonly quitEarly: boolean;
 
-	/**
-	 * Maps all modified line ranges in the original to the corresponding line ranges in the modified text model.
-	 */
 	readonly changes: readonly DetailedLineRangeMapping[];
 
-	/**
-	 * Sorted by original line ranges.
-	 * The original line ranges and the modified line ranges must be disjoint (but can be touching).
-	 */
 	readonly moves: readonly MovedText[];
 }

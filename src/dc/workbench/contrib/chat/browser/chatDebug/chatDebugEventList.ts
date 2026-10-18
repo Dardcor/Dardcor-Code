@@ -12,7 +12,6 @@ import { safeIntl } from '../../../../../base/common/date.js';
 
 const $ = DOM.$;
 
-/** Coerce a value to a string, returning a fallback for null/undefined/non-strings. */
 function safeStr(value: string | undefined | null, fallback: string = ''): string {
 	if (value === null || value === undefined || typeof value !== 'string') {
 		return fallback;
@@ -37,12 +36,10 @@ export interface IChatDebugEventTemplate {
 	readonly details: HTMLElement;
 }
 
-/** Returns the formatted creation timestamp for a debug event. */
 export function getEventCreatedText(element: IChatDebugEvent): string {
 	return dateFormatter.value.format(element.created);
 }
 
-/** Returns the display name for a debug event. */
 export function getEventNameText(element: IChatDebugEvent): string {
 	switch (element.kind) {
 		case 'toolCall': return safeStr(element.toolName, localize('chatDebug.unknownEvent', "(unknown)"));
@@ -54,7 +51,6 @@ export function getEventNameText(element: IChatDebugEvent): string {
 	}
 }
 
-/** Returns the details text for a debug event. */
 export function getEventDetailsText(element: IChatDebugEvent): string {
 	switch (element.kind) {
 		case 'toolCall': return safeStr(element.result);
@@ -108,7 +104,6 @@ export class ChatDebugEventRenderer implements IListRenderer<IChatDebugEvent, IC
 	}
 
 	disposeTemplate(_templateData: IChatDebugEventTemplate): void {
-		// noop
 	}
 }
 
@@ -138,6 +133,5 @@ export class ChatDebugEventTreeRenderer implements ITreeRenderer<IChatDebugEvent
 	}
 
 	disposeTemplate(_templateData: IChatDebugEventTemplate): void {
-		// noop
 	}
 }

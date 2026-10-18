@@ -22,7 +22,7 @@ interface IFixtureModelOptions {
 }
 
 function createModel(id: string, name: string, options: IFixtureModelOptions = {}): ILanguageModelChatMetadataAndIdentifier {
-	const vendor = options.vendor ?? 'copilot';
+	const vendor = options.vendor ?? 'dardcor';
 	return {
 		identifier: `${vendor}/${id}`,
 		metadata: {
@@ -72,7 +72,7 @@ function createConfigurableModel(): ILanguageModelChatMetadataAndIdentifier {
 function createLanguageModelsService(): ILanguageModelsService {
 	return {
 		getVendors: () => [
-			{ vendor: 'copilot', displayName: 'GitHub Copilot', isDefault: true },
+			{ vendor: 'dardcor', displayName: 'Dardcor Router', isDefault: true },
 			{ vendor: 'ollama', displayName: 'Ollama', isDefault: false },
 			{ vendor: 'openai', displayName: 'OpenAI', isDefault: false },
 		],
@@ -104,53 +104,45 @@ suite('Model picker destinations', () => {
 		buildModelPickerDestinations(models, service, placeholders)
 			.map(destination => ({ id: destination.id, label: destination.label, models: destination.models.map(model => model.metadata.name) }));
 
-	/** The destination id a provider gets, keyed by identity rather than by display name. */
 	const providerId = (vendor: string, label: string) => `provider:${getProviderGroupKey(vendor, label)}`;
 
 	test('a host that relays the built-in provider keeps its models built in', () => {
-		// An agent host registers a vendor of its own and republishes the built-in
-		// provider's catalogue under it, so neither the vendor nor the BYOK flags say
-		// where a model actually came from. Only the provider group does.
 		const relayed = createModel('gpt-5-5', 'GPT-5.5', {
-			vendor: 'agent-host-copilotcli',
+			vendor: 'agent-host-dardcorcli',
 			isBYOK: true,
-			byokModelIdentifier: 'copilot/gpt-5-5',
-			modelGroupId: 'copilot',
+			byokModelIdentifier: 'dardcor/gpt-5-5',
+			modelGroupId: 'dardcor',
 		});
 		const relayedNative = createModel('cli-model', 'CLI Model', {
-			vendor: 'agent-host-copilotcli',
+			vendor: 'agent-host-dardcorcli',
 			isBYOK: true,
-			modelGroupId: 'copilotcli',
+			modelGroupId: 'dardcorcli',
 		});
 		const relayedByok = createModel('llama-3', 'Llama 3', {
-			vendor: 'agent-host-copilotcli',
+			vendor: 'agent-host-dardcorcli',
 			isBYOK: true,
 			modelGroupId: 'ollama',
 		});
 		assert.deepStrictEqual(
 			summarize([relayed, relayedNative, relayedByok]),
 			[
-				{ id: 'builtIn', label: 'GitHub Copilot', models: ['GPT-5.5', 'CLI Model'] },
-				// The relayed model carries the host's vendor, so that is the identity it
-				// is keyed by; only the group supplies the name the user reads.
-				{ id: providerId('agent-host-copilotcli', 'Ollama'), label: 'Ollama', models: ['Llama 3'] },
+				{ id: 'builtIn', label: 'Dardcor Router', models: ['GPT-5.5', 'CLI Model'] },
+				{ id: providerId('agent-host-dardcorcli', 'Ollama'), label: 'Ollama', models: ['Llama 3'] },
 			],
 		);
 	});
 
 	test('a plan that grants only Auto still opens on the built-in destination', () => {
-		// Auto has its own row rather than a place in the list, so without this the
-		// picker would have no destination at all and open on nothing.
 		assert.deepStrictEqual(
 			summarize([auto]),
-			[{ id: 'builtIn', label: 'GitHub Copilot', models: [] }],
+			[{ id: 'builtIn', label: 'Dardcor Router', models: [] }],
 		);
 	});
 
 	test('models from only the built-in provider yield a single destination', () => {
 		assert.deepStrictEqual(
 			summarize([auto, gpt, claude]),
-			[{ id: 'builtIn', label: 'GitHub Copilot', models: ['GPT-5.5', 'Claude Sonnet 5'] }],
+			[{ id: 'builtIn', label: 'Dardcor Router', models: ['GPT-5.5', 'Claude Sonnet 5'] }],
 		);
 	});
 
@@ -158,7 +150,7 @@ suite('Model picker destinations', () => {
 		assert.deepStrictEqual(
 			summarize([gpt, llama]),
 			[
-				{ id: 'builtIn', label: 'GitHub Copilot', models: ['GPT-5.5'] },
+				{ id: 'builtIn', label: 'Dardcor Router', models: ['GPT-5.5'] },
 				{ id: providerId('ollama', 'Ollama'), label: 'Ollama', models: ['Llama 3'] },
 			],
 		);
@@ -168,7 +160,7 @@ suite('Model picker destinations', () => {
 		assert.deepStrictEqual(
 			summarize([gpt, mistral, llama]),
 			[
-				{ id: 'builtIn', label: 'GitHub Copilot', models: ['GPT-5.5'] },
+				{ id: 'builtIn', label: 'Dardcor Router', models: ['GPT-5.5'] },
 				{ id: providerId('ollama', 'Ollama'), label: 'Ollama', models: ['Llama 3'] },
 				{ id: providerId('openai', 'OpenAI'), label: 'OpenAI', models: ['Mistral Large'] },
 			],
@@ -176,13 +168,11 @@ suite('Model picker destinations', () => {
 	});
 
 	test('two providers sharing a display name each keep their own tab', () => {
-		// Nothing stops two providers from presenting the same name, and merging them
-		// would file one provider's models under the other.
 		const sameName = createModel('local-1', 'Local One', { vendor: 'ollama', isBYOK: true });
 		const alsoSameName = createModel('local-2', 'Local Two', { vendor: 'openai', isBYOK: true });
 		const service = {
 			getVendors: () => [
-				{ vendor: 'copilot', displayName: 'GitHub Copilot', isDefault: true },
+				{ vendor: 'dardcor', displayName: 'Dardcor Router', isDefault: true },
 				{ vendor: 'ollama', displayName: 'Local Models', isDefault: false },
 				{ vendor: 'openai', displayName: 'Local Models', isDefault: false },
 			],
@@ -203,7 +193,7 @@ suite('Model picker destinations', () => {
 		assert.deepStrictEqual(
 			summarize([gpt], [{ vendor: 'ollama', label: 'Ollama', message: 'Sign in to see available models.' }]),
 			[
-				{ id: 'builtIn', label: 'GitHub Copilot', models: ['GPT-5.5'] },
+				{ id: 'builtIn', label: 'Dardcor Router', models: ['GPT-5.5'] },
 				{ id: providerId('ollama', 'Ollama'), label: 'Ollama', models: [] },
 			],
 		);
@@ -211,8 +201,8 @@ suite('Model picker destinations', () => {
 
 	test('the built-in provider waiting on sign-in still gets its destination', () => {
 		assert.deepStrictEqual(
-			summarize([], [{ vendor: 'copilot', label: 'GitHub Copilot', message: 'Sign in to see available models.' }]),
-			[{ id: 'builtIn', label: 'GitHub Copilot', models: [] }],
+			summarize([], [{ vendor: 'dardcor', label: 'Dardcor Router', message: 'Sign in to see available models.' }]),
+			[{ id: 'builtIn', label: 'Dardcor Router', models: [] }],
 		);
 	});
 
@@ -222,9 +212,9 @@ suite('Model picker destinations', () => {
 		};
 		const sections = buildModelPickerSections({
 			models: [gpt, claude, gemini],
-			selectedModelId: 'copilot/gpt-5-5',
-			recentModelIds: ['copilot/gemini-3-1-pro'],
-			pinnedModelIds: ['copilot/claude-sonnet-5'],
+			selectedModelId: 'dardcor/gpt-5-5',
+			recentModelIds: ['dardcor/gemini-3-1-pro'],
+			pinnedModelIds: ['dardcor/claude-sonnet-5'],
 			controlModels,
 			showSuggested: true,
 		});
@@ -236,7 +226,6 @@ suite('Model picker destinations', () => {
 			},
 			{
 				pinned: ['Claude Sonnet 5'],
-				// The selected model rides along with the curated ones, so it is never folded away.
 				suggested: ['Gemini 3.1 Pro', 'GPT-5.5'],
 				other: [],
 			},
@@ -263,7 +252,6 @@ suite('Model picker destinations', () => {
 	});
 
 	test('a retiring model sinks below the models that are staying', () => {
-		// Alphabetically "Alpha" leads, so only the retirement can move it last.
 		const base = createModel('alpha', 'Alpha');
 		const alpha = { ...base, metadata: { ...base.metadata, warningText: { model_pending_deprecation: 'Retiring soon.' } } };
 		const sections = buildModelPickerSections({
@@ -318,8 +306,6 @@ suite('Model picker destinations', () => {
 	});
 
 	test('a model id splits into the line it belongs to and its version', () => {
-		// The id shapes a provider can use: version last, version in the middle, a
-		// multi-word line, and no version at all.
 		assert.deepStrictEqual(
 			['example-5.5', 'example-5.6-sol', 'example-1.1-lite', 'example-opus-5', 'example-prime']
 				.map(id => ({ id, ...parseModelLine(id) })),
@@ -328,14 +314,13 @@ suite('Model picker destinations', () => {
 				{ id: 'example-5.6-sol', line: 'example-sol', version: [5, 6] },
 				{ id: 'example-1.1-lite', line: 'example-lite', version: [1, 1] },
 				{ id: 'example-opus-5', line: 'example-opus', version: [5] },
-				// No version token, so it stands as its own line rather than being buried.
 				{ id: 'example-prime', line: 'example-prime', version: [] },
 			],
 		);
 	});
 
 	test('the shortlist is the newest of each line, so a launch needs no list edit', () => {
-		const line = (id: string, vendor = 'copilot') => createModel(id, id, { vendor });
+		const line = (id: string, vendor = 'dardcor') => createModel(id, id, { vendor });
 		const shortlist = (models: readonly ILanguageModelChatMetadataAndIdentifier[]) =>
 			latestOfEachLine(models).map(model => model.metadata.id).sort();
 
@@ -343,13 +328,8 @@ suite('Model picker destinations', () => {
 		assert.deepStrictEqual(
 			{
 				today: shortlist(catalogue),
-				// A newer version of a line replaces it; a line of its own joins the shortlist.
 				afterLaunch: shortlist([...catalogue, line('example-5.7-sol'), line('example-6-vega')]),
-				// `example-5.5` is the `example` line and `example-5.6-sol` is the
-				// `example-sol` line, so neither supersedes the other. Replacing a line
-				// takes a name, not a rule.
 				acrossLines: shortlist([line('example-5.5'), line('example-5.6-sol')]),
-				// Two providers can ship the same line name without displacing each other.
 				perVendor: shortlist([line('example-5.4-mini'), line('example-5-mini', 'azure')]),
 			},
 			{
@@ -370,7 +350,6 @@ suite('Model picker destinations', () => {
 			selectedModelId: undefined,
 			recentModelIds: [],
 			pinnedModelIds: [],
-			// Codex is the newest of its own line, so only a name can move it down.
 			controlModels: { 'example-5.3-codex': { label: 'Example 5.3 Codex', exists: true, demoted: true } },
 			showSuggested: true,
 		});
@@ -380,7 +359,6 @@ suite('Model picker destinations', () => {
 					suggested: sections(codex).suggested.map(model => model.metadata.id),
 					other: sections(codex).other.map(model => model.metadata.id),
 				},
-				// An offer outranks the demotion: it is time-limited and worth seeing.
 				withPromo: sections(promoCodex).suggested.map(model => model.metadata.id),
 			},
 			{
@@ -391,9 +369,6 @@ suite('Model picker destinations', () => {
 	});
 
 	test('demoting every model leaves the list open rather than empty', () => {
-		// A demotion is honoured whether or not anything replaced the model, so a config
-		// that names them all is possible. The fold has nothing to hide behind then, and
-		// the rest is shown instead of the picker opening on nothing.
 		const sections = buildModelPickerSections({
 			models: [gpt, claude],
 			selectedModelId: undefined,
@@ -409,7 +384,6 @@ suite('Model picker destinations', () => {
 			{
 				suggested: sections.suggested.length,
 				other: sections.other.map(model => model.metadata.name),
-				// False, so the caller leaves the rest expanded instead of folding it away.
 				folds: hasPromotedModels(sections),
 			},
 			{ suggested: 0, other: ['Claude Sonnet 5', 'GPT-5.5'], folds: false },
@@ -422,14 +396,12 @@ suite('Model picker destinations', () => {
 			selectedModelId: undefined,
 			recentModelIds: [],
 			pinnedModelIds: [],
-			// No entry for either: the id says enough, so a new one needs no config.
 			controlModels: {},
 			showSuggested: true,
 		});
 		assert.deepStrictEqual(
 			{
 				suggested: sections.suggested.map(model => model.metadata.id),
-				// Held back from the shortlist, not hidden: still selectable further down.
 				other: sections.other.map(model => model.metadata.id),
 			},
 			{
@@ -440,9 +412,6 @@ suite('Model picker destinations', () => {
 	});
 
 	test('a demotion names one model, so a newer one in that line surfaces again', () => {
-		// Deliberate: a demotion says "not this model", not "not this line". A line that
-		// comes back is worth seeing, which is the whole point of failing upward. The
-		// cost is that suppressing a variant has to be repeated when it is re-released.
 		const shortlist = (models: readonly ILanguageModelChatMetadataAndIdentifier[]) => buildModelPickerSections({
 			models,
 			selectedModelId: undefined,
@@ -460,7 +429,6 @@ suite('Model picker destinations', () => {
 		assert.deepStrictEqual(
 			{
 				demoted: shortlist([retired, variant]),
-				// A flagship on the line that was retired, and a re-release of the variant.
 				succeeded: shortlist([retired, variant, createModel('example-6', 'Example 6'), createModel('example-2-lite-picker', 'Example 2 Lite')]),
 			},
 			{ demoted: [], succeeded: ['example-2-lite-picker', 'example-6'] },
@@ -468,10 +436,8 @@ suite('Model picker destinations', () => {
 	});
 
 	test('a model is paired with the faster twin the provider names by id', () => {
-		// The ids and names the provider actually uses for the pair.
 		const standard = createModel('example-2.5', 'Example 2.5');
 		const fast = createModel('example-2.5-fast', 'Example 2.5 (fast mode)');
-		// Ends in the suffix but has no twin, so it is a model in its own right.
 		const orphan = createModel('some-model-fast', 'Some Model (fast mode)');
 		const variants = buildSpeedVariants([gpt, standard, fast, orphan]);
 
@@ -502,7 +468,6 @@ suite('Model picker destinations', () => {
 			{
 				neither: ['GPT-5.5', 'Example 2.5'],
 				standardSelected: ['GPT-5.5', 'Example 2.5'],
-				// The twin in use is never hidden, however the pair is collapsed.
 				fastSelected: ['GPT-5.5', 'Example 2.5 (fast mode)'],
 			},
 		);
@@ -520,7 +485,6 @@ suite('Model picker destinations', () => {
 				retiring: badge(retiring),
 				promo: badge(promo),
 				tuned: badge(tuned, { reasoningEffort: 'xhigh', contextSize: 1000000 }),
-				// Left at its defaults, so there is nothing to report.
 				untouched: badge(tuned),
 				provider: badge(gpt, {}, 'Ollama'),
 				plain: badge(gpt),
@@ -566,8 +530,6 @@ suite('Model picker destinations', () => {
 	});
 
 	test('an offer on a model this build is too old to run does not break the shortlist', () => {
-		// The promoted model is gated, so it is not among the selectable models. Reaching
-		// for it regardless used to put a hole in the shortlist and crash the sort.
 		const base = createModel('gpt-6', 'GPT-6');
 		const gatedPromo = { ...base, metadata: { ...base.metadata, promo: { id: 'p', discountPercent: 25, message: 'Save now.' } } };
 		const sections = buildModelPickerSections({
@@ -594,12 +556,11 @@ suite('Model picker destinations', () => {
 		const controlModels: IStringDictionary<IModelControlEntry> = {
 			'gpt-5-5': { label: 'GPT-5.5', featured: true, exists: true, minVSCodeVersion: '99.0.0' },
 		};
-		// Favourited and selected both name it, so it would reappear if any section kept it.
 		const sections = buildModelPickerSections({
 			models: [gpt, claude],
-			selectedModelId: 'copilot/gpt-5-5',
-			recentModelIds: ['copilot/gpt-5-5'],
-			pinnedModelIds: ['copilot/gpt-5-5'],
+			selectedModelId: 'dardcor/gpt-5-5',
+			recentModelIds: ['dardcor/gpt-5-5'],
+			pinnedModelIds: ['dardcor/gpt-5-5'],
 			controlModels: { ...controlModels, 'claude-sonnet-5': { label: 'Claude Sonnet 5', exists: true, demoted: true } },
 			showSuggested: true,
 			showUnavailable: true,

@@ -3,10 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Re-export everything from networking types module for backward compatibility
 export * from './networkingTypes';
 
-// Import what we need locally for this module's implementation
 import { ConfigKey, IConfigurationService } from '../../../../../platform/configuration/common/configurationService';
 import { IFetcherService } from '../../../../../platform/networking/common/fetcherService';
 import { IExperimentationService } from '../../../../../platform/telemetry/common/nullExperimentationService';
@@ -47,17 +45,8 @@ export class CompletionsFetcher implements ICompletionsFetcherService {
 	}
 }
 
-/**
- * Encapsulates all the functionality related to making GET/POST/DELETE requests using
- * different libraries (and in the future, different environments like web vs
- * node).
- */
 export abstract class Fetcher {
 	abstract readonly name: string;
-	/**
-	 * Returns the real implementation, not a delegator.  Used by diagnostics to ensure the fetcher name and all
-	 * reachability checks are aligned.
-	 */
 	getImplementation(): Fetcher | Promise<Fetcher> {
 		return this;
 	}

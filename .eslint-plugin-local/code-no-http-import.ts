@@ -41,7 +41,7 @@ export default new class implements eslint.Rule.RuleModule {
 			const relativeFilename = normalize(context.getFilename()).substring(REPO_ROOT.length + 1).replace(/\\/g, '/');
 			const matched = targets.some(pattern => minimatch(relativeFilename, pattern));
 			if (!matched) {
-				return {}; // file is not covered by any target pattern
+				return {};
 			}
 		}
 
@@ -55,13 +55,10 @@ export default new class implements eslint.Rule.RuleModule {
 				return;
 			}
 
-			// Allow: import type { ... } from 'http'
-			// Allow: import type * as http from 'http'
 			if (parent.type === TSESTree.AST_NODE_TYPES.ImportDeclaration && parent.importKind === 'type') {
 				return;
 			}
 
-			// Allow: export type { ... } from 'http'
 			if ('exportKind' in parent && parent.exportKind === 'type') {
 				return;
 			}

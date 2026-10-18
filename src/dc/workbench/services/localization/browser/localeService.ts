@@ -134,17 +134,13 @@ class WebActiveLanguagePackService implements IActiveLanguagePackService {
 		try {
 			const tagResult = await this.galleryService.query({ text: `tag:lp-${language}` }, CancellationToken.None);
 
-			// Only install extensions that are published by Microsoft and start with vscode-language-pack for extra certainty
 			const extensionToInstall = tagResult.firstPage.find(e => e.publisher === 'MS-CEINTL' && e.name.startsWith('vscode-language-pack'));
 			if (extensionToInstall) {
 				localeStorage.setExtensionId(extensionToInstall.identifier.id);
 				return extensionToInstall.identifier.id;
 			}
 
-			// TODO: If a non-Microsoft language pack is installed, we should prompt the user asking if they want to install that.
-			// Since no such language packs exist yet, we can wait until that happens to implement this.
 		} catch (e) {
-			// Best effort
 			this.logService.error(e);
 		}
 

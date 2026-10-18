@@ -6,7 +6,6 @@ import type { LooseRuleDefinition } from '@typescript-eslint/utils/ts-eslint';
 import fs from 'fs';
 import path from 'path';
 
-// Re-export all .ts files as rules
 const rules: Record<string, LooseRuleDefinition> = {};
 await Promise.all(
 	fs.readdirSync(import.meta.dirname)

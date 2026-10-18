@@ -77,7 +77,6 @@ export class NotebookKeymapService extends Disposable implements INotebookKeymap
 			const keymaps = extensions.filter(extension => isNotebookKeymapExtension(extension));
 			const extension = keymaps.find(extension => areSameExtensions(extension.identifier, extensionIdentifier));
 			if (extension && extension.globallyEnabled) {
-				// there is already a keymap extension
 				this.notebookKeymap[hasRecommendedKeymapKey] = true;
 				this.notebookKeymapMemento.saveMemento();
 				const otherKeymaps = keymaps.filter(extension => !areSameExtensions(extension.identifier, extensionIdentifier) && extension.globallyEnabled);

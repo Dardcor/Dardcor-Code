@@ -19,7 +19,6 @@ namespace Nodes {
 		const startRange = sourceFile.getLineAndCharacterOfPosition(textStartPosition);
 		const text = sourceFile.text.substring(textStartPosition, node.getEnd());
 		const lines = text.split(/\r?\n/g);
-		// We have an indentation on the start line
 		if (startRange.character > 0) {
 			const lineStartPosition = sourceFile.getPositionOfLineAndCharacter(startRange.line, 0);
 			const indent = sourceFile.text.substring(lineStartPosition, textStartPosition);
@@ -593,7 +592,6 @@ class ModuleEmitter extends AbstractEmitter {
 			if (declarations === undefined) {
 				continue;
 			}
-			// For now we only emit function declarations. We could also emit variable declarations.
 			if (Symbols.isFunction(member)) {
 				for (const declaration of declarations) {
 					const fileName = declaration.getSourceFile().fileName;
@@ -738,7 +736,6 @@ export class CodeSnippetBuilder extends ProgramContext implements SnippetProvide
 		if (!Symbols.isTypeAlias(symbol)) {
 			return;
 		}
-		// This should not happens since we flatten the type aliases in the symbols.
 	}
 
 	public addEnumSymbol(enm: tt.Symbol, name: string): void {

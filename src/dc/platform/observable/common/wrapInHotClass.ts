@@ -15,11 +15,6 @@ export function hotClassGetOriginalInstance<T>(value: T): T {
 	return value;
 }
 
-/**
- * Wrap a class in a reloadable wrapper.
- * When the wrapper is created, the original class is created.
- * When the original class changes, the instance is re-created.
-*/
 export function wrapInHotClass0<TArgs extends BrandedService[]>(clazz: IObservable<Result<TArgs>>): Result<TArgs> {
 	return !isHotReloadEnabled() ? clazz.get() : createWrapper(clazz, BaseClass0);
 }
@@ -58,11 +53,6 @@ class BaseClass0 extends BaseClass {
 	constructor(@IInstantiationService i: IInstantiationService) { super(i); this.init(); }
 }
 
-/**
- * Wrap a class in a reloadable wrapper.
- * When the wrapper is created, the original class is created.
- * When the original class changes, the instance is re-created.
-*/
 export function wrapInHotClass1<TArgs extends [any, ...BrandedService[]]>(clazz: IObservable<Result<TArgs>>): Result<TArgs> {
 	return !isHotReloadEnabled() ? clazz.get() : createWrapper(clazz, BaseClass1);
 }

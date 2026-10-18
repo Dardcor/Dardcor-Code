@@ -55,7 +55,6 @@ suite('CellDecorations', () => {
 					styleRemoved = !!e.removed.find(decoration => decoration.className === 'style1');
 					outputStyleRemoved = !!e.removed.find(decoration => decoration.outputClassName === 'style1');
 				});
-				// remove the first style added, which should only remove the output class
 				cell.deltaCellDecorations(decorationIds, []);
 
 				assert.ok(!cell.getCellDecorations().find(dec => dec.outputClassName === 'style1'));

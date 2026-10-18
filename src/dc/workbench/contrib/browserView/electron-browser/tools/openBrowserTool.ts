@@ -91,7 +91,7 @@ export class OpenBrowserTool implements IToolImpl {
 			throw new Error('You must provide a complete, valid URL.');
 		}
 
-		params.url = parsed.href; // Ensure URL is in a normalized format
+		params.url = parsed.href;
 
 		const uri = URI.parse(params.url);
 		if (!this.agentNetworkFilterService.isUriAllowed(uri)) {
@@ -114,7 +114,6 @@ export class OpenBrowserTool implements IToolImpl {
 		const sessionId = getSessionId(invocation);
 		const activeSessionId = invocation.context?.sessionResource.toString();
 
-		// If no URL is specified, prompt the user for a page to share.
 		if (!params.url) {
 			const allPages = [...this.browserViewService.getContextualBrowserViews({ activeSessionId }).values()];
 			if (allPages.length === 0) {
@@ -129,9 +128,6 @@ export class OpenBrowserTool implements IToolImpl {
 			}
 		}
 
-		// In a remote workspace without the remote proxy, the integrated browser
-		// runs locally and cannot reach the remote's localhost directly. Rewrite to
-		// the forwarded local address (if any) so the page can be reached.
 		const rewrite = rewriteRemoteLocalhostUrl(params.url, this.browserViewService, this.remoteExplorerService);
 		const rewriteNotice = rewrite.rewritten ? remoteUrlRewriteNotice(params.url, rewrite.url) : undefined;
 		params.url = rewrite.url;
@@ -140,14 +136,12 @@ export class OpenBrowserTool implements IToolImpl {
 			rewriteNotice ? { ...result, content: [rewriteNotice, ...result.content] } : result;
 
 		if (!params.forceNew) {
-			// If there are already-shared pages, tell the model to reuse them
 			const shared = findExistingPagesByHost(this.browserViewService, params.url, { includeBlank: true, sharingState: BrowserViewSharingState.Shared, activeSessionId });
 			const alreadyShared = await getExistingPagesResult(this.editorService, shared, { agentNetworkFilterService: this.agentNetworkFilterService });
 			if (alreadyShared) {
 				return withNotice(alreadyShared);
 			}
 
-			// If there are unshared (but shareable) pages on the same host, prompt user to share one
 			const unshared = findExistingPagesByHost(this.browserViewService, params.url, { includeBlank: false, sharingState: BrowserViewSharingState.Available, activeSessionId });
 			if (unshared.length > 0) {
 				const shareResult = await this._promptForUnsharedPages(invocation, unshared, params, token);
@@ -160,11 +154,6 @@ export class OpenBrowserTool implements IToolImpl {
 		return withNotice(await this._openNewPage(sessionId, params.url));
 	}
 
-	/**
-	 * Shows a carousel prompting the user to share one of the given unshared
-	 * browser pages instead of opening a new page. Returns `undefined` if the
-	 * prompt should be skipped or the user chose to open a new page.
-	 */
 	private async _promptForUnsharedPages(invocation: IToolInvocation, candidateEditors: BrowserEditorInput[], params: IOpenBrowserToolParams, token: CancellationToken): Promise<IToolResult | undefined> {
 
 		const chatSessionResource = invocation.context?.sessionResource;
@@ -172,10 +161,9 @@ export class OpenBrowserTool implements IToolImpl {
 		const request = this._getRequest(chatSessionResource, chatRequestId);
 
 		if (!request) {
-			return undefined; // No chat context — skip prompt, proceed to open
+			return undefined;
 		}
 
-		// In autopilot/auto-reply, don't block — just open the new page
 		if (request.modeInfo?.permissionLevel === ChatPermissionLevel.Autopilot || this.configService.getValue<boolean>(ChatConfiguration.AutoReply)) {
 			return undefined;
 		}
@@ -207,15 +195,12 @@ export class OpenBrowserTool implements IToolImpl {
 			throw new CancellationError();
 		}
 
-		// Extract the selected option
 		const selectedOptionId = this._extractSelectedOption(answerResult.answers);
 
-		// User skipped/cancelled or chose "Open new page" — fall through to open
 		if (!selectedOptionId || selectedOptionId === DECLINE_OPTION_ID) {
 			return undefined;
 		}
 
-		// User selected an existing tab
 		const editor = candidateEditors.find(e => e.id === selectedOptionId);
 		if (!editor) {
 			this.logService.warn(`[OpenBrowserTool] Selected option '${selectedOptionId}' not found.`);
@@ -229,7 +214,7 @@ export class OpenBrowserTool implements IToolImpl {
 		const options: IChatQuestion['options'] = [];
 
 		for (const editor of editors) {
-			const editorTitle = (editor.title || editor.getName()).replaceAll(' - ', '\u00A0-\u00A0'); // nbsp around hyphens to prevent formatting in the carousel
+			const editorTitle = (editor.title || editor.getName()).replaceAll(' - ', '\u00A0-\u00A0');
 			const editorUrl = editor.url || 'about:blank';
 			const truncatedUrl = editorUrl.length > 40 ? editorUrl.substring(0, 40) + '\u2026' : editorUrl;
 			options.push({
@@ -244,7 +229,6 @@ export class OpenBrowserTool implements IToolImpl {
 			});
 		}
 
-		// Default option: decline sharing
 		options.push({
 			id: DECLINE_OPTION_ID,
 			label: url

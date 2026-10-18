@@ -46,7 +46,6 @@ export class NewWorkspacePreviewFileSystemProvider implements FileSystemProvider
 		return content ?? new Uint8Array();
 	}
 
-	// #region not implemented since this filesystem impl is readonly
 	private readonly _onDidChangeFile = new EventEmitter<FileChangeEvent[]>();
 	onDidChangeFile: Event<FileChangeEvent[]> = this._onDidChangeFile.event;
 	watch(uri: Uri, options: { readonly recursive: boolean; readonly excludes: readonly string[] }): Disposable {
@@ -67,7 +66,6 @@ export class NewWorkspacePreviewFileSystemProvider implements FileSystemProvider
 	copy?(source: Uri, destination: Uri, options: { readonly overwrite: boolean }): void | Thenable<void> {
 		throw FileSystemError.NoPermissions(destination);
 	}
-	// #endregion
 
 	dispose(): void {
 		this._onDidChangeFile.dispose();

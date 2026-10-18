@@ -32,14 +32,13 @@ export class ExtensionsProposedApi {
 		this._envEnabledExtensions = new Set((_environmentService.extensionEnabledProposedApi ?? []).map(id => ExtensionIdentifier.toKey(id)));
 
 		this._envEnablesProposedApiForAll =
-			!_environmentService.isBuilt || // always allow proposed API when running out of sources
-			(_environmentService.isExtensionDevelopment && productService.quality !== 'stable') || // do not allow proposed API against stable builds when developing an extension
-			(this._envEnabledExtensions.size === 0 && Array.isArray(_environmentService.extensionEnabledProposedApi)); // always allow proposed API if --enable-proposed-api is provided without extension ID
+			!_environmentService.isBuilt ||
+			(_environmentService.isExtensionDevelopment && productService.quality !== 'stable') ||
+			(this._envEnabledExtensions.size === 0 && Array.isArray(_environmentService.extensionEnabledProposedApi));
 
 		this._productEnabledExtensions = new Map<string, ApiProposalName[]>();
 
 
-		// NEW world - product.json spells out what proposals each extension can use
 		if (productService.extensionEnabledApiProposals) {
 			for (const [k, value] of Object.entries(productService.extensionEnabledApiProposals)) {
 				const key = ExtensionIdentifier.toKey(k);
@@ -65,7 +64,6 @@ export class ExtensionsProposedApi {
 
 		const key = ExtensionIdentifier.toKey(extension.identifier);
 
-		// warn about invalid proposal and remove them from the list
 		if (isNonEmptyArray(extension.enabledApiProposals)) {
 			extension.enabledApiProposals = extension.enabledApiProposals.filter(name => {
 				const result = Boolean(allApiProposals[<ApiProposalName>name]);
@@ -78,13 +76,9 @@ export class ExtensionsProposedApi {
 
 
 		if (this._productEnabledExtensions.has(key)) {
-			// NOTE that proposals that are listed in product.json override whatever is declared in the extension
-			// itself. This is needed for us to know what proposals are used "in the wild". Merging product.json-proposals
-			// and extension-proposals would break that.
 
 			const productEnabledProposals = this._productEnabledExtensions.get(key)!;
 
-			// check for difference between product.json-declaration and package.json-declaration
 			const productSet = new Set(productEnabledProposals);
 			const extensionSet = new Set(extension.enabledApiProposals);
 			const diff = new Set([...extensionSet].filter(a => !productSet.has(a)));
@@ -102,13 +96,10 @@ export class ExtensionsProposedApi {
 		}
 
 		if (this._envEnablesProposedApiForAll || this._envEnabledExtensions.has(key)) {
-			// proposed API usage is not restricted and allowed just like the extension
-			// has declared it
 			return;
 		}
 
 		if (!extension.isBuiltin && isNonEmptyArray(extension.enabledApiProposals)) {
-			// restrictive: extension cannot use proposed API in this context and its declaration is nulled
 			this._logService.error(`Extension '${extension.identifier.value} CANNOT USE these API proposals '${extension.enabledApiProposals?.join(', ') || '*'}'. You MUST start in extension development mode or use the --enable-proposed-api command line flag`);
 			extension.enabledApiProposals = [];
 		}

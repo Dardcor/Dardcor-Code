@@ -5,16 +5,12 @@
 
 import { cloneAndChange } from '../../../util/dardcor/base/common/objects';
 
-/**
- * Categories for tool grouping in the virtual tools system
- */
 export enum ToolCategory {
 	JupyterNotebook = 'Jupyter Notebook Tools',
 	WebInteraction = 'Web Interaction',
 	VSCodeInteraction = 'VS Code Interaction',
 	Testing = 'Testing',
 	RedundantButSpecific = 'Redundant but Specific',
-	// Core tools that should not be grouped
 	Core = 'Core'
 }
 
@@ -106,9 +102,6 @@ export enum ToolName {
 	ActiveFileContextTracker = 'active_file_context_tracker',
 }
 
-/**
- * Agentic browser tool IDs that are NOT the open_browser_page tool.
- */
 export const agenticBrowserTools = [
 	ToolName.CoreClickElement,
 	ToolName.CoreScreenshotPage,
@@ -126,7 +119,6 @@ export enum ContributedToolName {
 	Codebase = 'dardcor_searchCodebase',
 	SearchWorkspaceSymbols = 'dardcor_searchWorkspaceSymbols',
 	VSCodeAPI = 'dardcor_getVSCodeAPI',
-	/** @deprecated moving to core soon */
 	RunTests = 'dardcor_runTests1',
 	FindFiles = 'dardcor_findFiles',
 	FindTextInFiles = 'dardcor_findTextInFiles',
@@ -216,13 +208,7 @@ export function mapContributedToolNamesInSchema(inputSchema: object): object {
 	return cloneAndChange(inputSchema, value => typeof value === 'string' ? mapContributedToolNamesInString(value) : undefined);
 }
 
-/**
- * Type-safe mapping of all ToolName enum values to their categories.
- * This ensures that every tool is properly categorized and provides compile-time safety.
- * When new tools are added to ToolName, they must be added here or TypeScript will error.
- */
 export const toolCategories: Record<ToolName, ToolCategory> = {
-	// Core tools (not grouped - expanded by default)
 	[ToolName.Codebase]: ToolCategory.Core,
 	[ToolName.FindTextInFiles]: ToolCategory.Core,
 	[ToolName.ReadFile]: ToolCategory.Core,
@@ -246,20 +232,16 @@ export const toolCategories: Record<ToolName, ToolCategory> = {
 	[ToolName.ExploreSubagent]: ToolCategory.Core,
 	[ToolName.ExecutionSubagent]: ToolCategory.Core,
 
-	// already enabled only when tasks are enabled
 	[ToolName.CoreRunTask]: ToolCategory.Core,
 	[ToolName.CoreGetTaskOutput]: ToolCategory.Core,
-	// never enabled, so it doesn't matter where it's categorized
 	[ToolName.EditFilesPlaceholder]: ToolCategory.Core,
 
-	// Jupyter Notebook Tools
 	[ToolName.CreateNewJupyterNotebook]: ToolCategory.JupyterNotebook,
 	[ToolName.EditNotebook]: ToolCategory.JupyterNotebook,
 	[ToolName.RunNotebookCell]: ToolCategory.JupyterNotebook,
 	[ToolName.GetNotebookSummary]: ToolCategory.JupyterNotebook,
 	[ToolName.ReadCellOutput]: ToolCategory.JupyterNotebook,
 
-	// Web Interaction
 	[ToolName.FetchWebPage]: ToolCategory.WebInteraction,
 	[ToolName.GithubSemanticRepoSearch]: ToolCategory.WebInteraction,
 	[ToolName.GithubTextSearch]: ToolCategory.WebInteraction,
@@ -274,7 +256,6 @@ export const toolCategories: Record<ToolName, ToolCategory> = {
 	[ToolName.CoreHandleDialog]: ToolCategory.WebInteraction,
 	[ToolName.CoreRunPlaywrightCode]: ToolCategory.WebInteraction,
 
-	// VS Code Interaction
 	[ToolName.SearchWorkspaceSymbols]: ToolCategory.VSCodeInteraction,
 	[ToolName.GetErrors]: ToolCategory.VSCodeInteraction,
 	[ToolName.VSCodeAPI]: ToolCategory.VSCodeInteraction,
@@ -286,12 +267,10 @@ export const toolCategories: Record<ToolName, ToolCategory> = {
 	[ToolName.CoreTerminalSelection]: ToolCategory.VSCodeInteraction,
 	[ToolName.CoreTerminalLastCommand]: ToolCategory.VSCodeInteraction,
 
-	// Testing
 	[ToolName.FindTestFiles]: ToolCategory.Testing,
 	[ToolName.CoreRunTest]: ToolCategory.Testing,
 	[ToolName.CoreTestFailure]: ToolCategory.Testing,
 
-	// Other tools - categorize appropriately
 	[ToolName.CoreConfirmationTool]: ToolCategory.VSCodeInteraction,
 	[ToolName.CoreConfirmationToolWithOptions]: ToolCategory.VSCodeInteraction,
 	[ToolName.CoreReviewPlan]: ToolCategory.VSCodeInteraction,
@@ -324,20 +303,13 @@ export const toolCategories: Record<ToolName, ToolCategory> = {
 
 
 
-/**
- * Get the category for a tool, checking both ToolName enum and external tools.
- */
 export function getToolCategory(toolName: string): ToolCategory | undefined {
 	return toolCategories.hasOwnProperty(toolName) ? toolCategories[toolName as ToolName] : undefined;
 }
 
-/**
- * Get all tools for a specific category.
- */
 export function getToolsForCategory(category: ToolCategory): string[] {
 	const result: string[] = [];
 
-	// Add tools from ToolName enum
 	for (const [toolName, toolCategory] of Object.entries(toolCategories)) {
 		if (toolCategory === category) {
 			result.push(toolName);

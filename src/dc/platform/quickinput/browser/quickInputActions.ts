@@ -29,7 +29,6 @@ function registerQuickPickCommandAndKeybindingRule(rule: PartialExcept<ICommandA
 		weight: KeybindingWeight.WorkbenchContrib,
 		when: ContextKeyExpr.and(
 			ContextKeyExpr.or(
-				// Only things that use Tree widgets
 				ContextKeyExpr.equals(quickInputTypeContextKeyValue, QuickInputType.QuickPick),
 				ContextKeyExpr.equals(quickInputTypeContextKeyValue, QuickInputType.QuickTree),
 			),
@@ -43,7 +42,6 @@ function registerQuickPickCommandAndKeybindingRule(rule: PartialExcept<ICommandA
 
 const ctrlKeyMod = isMacintosh ? KeyMod.WinCtrl : KeyMod.CtrlCmd;
 
-// This function will generate all the combinations of keybindings for the given primary keybinding
 function getSecondary(primary: number, secondary: number[], options: { withAltMod?: boolean; withCtrlMod?: boolean; withCmdMod?: boolean; withShiftMod?: boolean } = {}): number[] {
 	if (options.withAltMod) {
 		secondary.push(KeyMod.Alt + primary);
@@ -83,11 +81,9 @@ function getSecondary(primary: number, secondary: number[], options: { withAltMo
 	return secondary;
 }
 
-//#region Navigation
 
 function focusHandler(focus: QuickPickFocus, focusOnQuickNatigate?: QuickPickFocus): ICommandHandler {
 	return accessor => {
-		// Assuming this is a quick pick due to above when clause
 		const currentQuickPick = accessor.get(IQuickInputService).currentQuickInput as IQuickPick<any> | IQuickTree<any> | undefined;
 		if (!currentQuickPick) {
 			return;
@@ -124,10 +120,6 @@ registerQuickPickCommandAndKeybindingRule(
 	{ withCtrlMod: true }
 );
 
-// The next & previous separator commands are interesting because if we are in quick access mode, we are already holding a modifier key down.
-// In this case, we want that modifier key+up/down to navigate to the next/previous item, not the next/previous separator.
-// To handle this, we have a separate command for navigating to the next/previous separator when we are not in quick access mode.
-// If, however, we are in quick access mode, and you hold down an additional modifier key, we will navigate to the next/previous separator.
 
 const nextSeparatorFallbackDesc = localize('quickInput.nextSeparatorWithQuickAccessFallback', "If we're in quick access mode, this will navigate to the next item. If we are not in quick access mode, this will navigate to the next separator.");
 const prevSeparatorFallbackDesc = localize('quickInput.previousSeparatorWithQuickAccessFallback', "If we're in quick access mode, this will navigate to the previous item. If we are not in quick access mode, this will navigate to the previous separator.");
@@ -144,8 +136,6 @@ if (isMacintosh) {
 		{
 			id: 'quickInput.nextSeparator',
 			primary: KeyMod.CtrlCmd + KeyMod.Alt + KeyCode.DownArrow,
-			// Since macOS has the cmd key as the primary modifier, we need to add this additional
-			// keybinding to capture cmd+ctrl+upArrow
 			secondary: [KeyMod.CtrlCmd + KeyMod.WinCtrl + KeyCode.DownArrow],
 			handler: focusHandler(QuickPickFocus.NextSeparator)
 		},
@@ -164,8 +154,6 @@ if (isMacintosh) {
 		{
 			id: 'quickInput.previousSeparator',
 			primary: KeyMod.CtrlCmd + KeyMod.Alt + KeyCode.UpArrow,
-			// Since macOS has the cmd key as the primary modifier, we need to add this additional
-			// keybinding to capture cmd+ctrl+upArrow
 			secondary: [KeyMod.CtrlCmd + KeyMod.WinCtrl + KeyCode.UpArrow],
 			handler: focusHandler(QuickPickFocus.PreviousSeparator)
 		},
@@ -205,17 +193,13 @@ if (isMacintosh) {
 	);
 }
 
-//#endregion
 
-//#region Accept
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'quickInput.accept',
 	primary: KeyCode.Enter,
 	weight: KeybindingWeight.WorkbenchContrib,
 	when: ContextKeyExpr.and(
-		// All other kinds of Quick things handle Accept, except Widget. In other words, Accepting is a detail on the things
-		// that extend IQuickInput
 		ContextKeyExpr.notEquals(quickInputTypeContextKeyValue, QuickInputType.QuickWidget),
 		inQuickInputContext
 	),
@@ -230,15 +214,12 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 registerQuickPickCommandAndKeybindingRule(
 	{
 		id: 'quickInput.acceptInBackground',
-		// If we are in the quick pick but the input box is not focused or our cursor is at the end of the input box
 		when: ContextKeyExpr.and(
 			inQuickInputContext,
 			ContextKeyExpr.equals(quickInputTypeContextKeyValue, QuickInputType.QuickPick),
 			ContextKeyExpr.or(InputFocusedContext.negate(), endOfQuickInputBoxContext)
 		),
 		primary: KeyCode.RightArrow,
-		// Need a little extra weight to ensure this keybinding is preferred over the default cmd+alt+right arrow keybinding
-		// https://github.com/microsoft/vscode/blob/1451e4fbbbf074a4355cc537c35b547b80ce1c52/src/vs/workbench/browser/parts/editor/editorActions.ts#L1178-L1195
 		weight: KeybindingWeight.WorkbenchContrib + 50,
 		handler: (accessor) => {
 			const currentQuickPick = accessor.get(IQuickInputService).currentQuickInput as IQuickPick<any>;
@@ -248,9 +229,7 @@ registerQuickPickCommandAndKeybindingRule(
 	{ withAltMod: true, withCtrlMod: true, withCmdMod: true }
 );
 
-//#endregion
 
-//#region Hide
 
 registerQuickInputCommandAndKeybindingRule(
 	{
@@ -264,9 +243,7 @@ registerQuickInputCommandAndKeybindingRule(
 	{ withAltMod: true, withCtrlMod: true, withCmdMod: true }
 );
 
-//#endregion
 
-//#region Toggle Checkbox
 
 registerQuickPickCommandAndKeybindingRule(
 	{
@@ -287,9 +264,7 @@ registerQuickPickCommandAndKeybindingRule(
 	}
 );
 
-//#endregion
 
-//#region Toggle Hover
 
 registerQuickPickCommandAndKeybindingRule(
 	{
@@ -302,4 +277,3 @@ registerQuickPickCommandAndKeybindingRule(
 	}
 );
 
-//#endregion

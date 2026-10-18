@@ -39,23 +39,14 @@ import {
 
 const LOG_PREFIX = '[WSLRemoteAgentHost]';
 
-/**
- * Max time a stopped WSL distro may take to boot and produce the bootstrap's
- * first output. This intentionally includes VM startup and login-shell profile
- * sourcing, which can legitimately exceed the post-output idle budget.
- */
 const AGENT_HOST_INITIAL_OUTPUT_TIMEOUT_MS = 3 * 60_000;
 
-/** Max time `code agent host` may be silent after bootstrap output has started. */
 const AGENT_HOST_OUTPUT_IDLE_TIMEOUT_MS = 60_000;
 
-/** Absolute upper bound for bootstrap, including CLI and server downloads. */
 const AGENT_HOST_READY_OVERALL_TIMEOUT_MS = 10 * 60_000;
 
-/** Max time to wait for the host-side WebSocket to complete its handshake. */
 const WEBSOCKET_OPEN_TIMEOUT_MS = 30_000;
 
-/** Max stdout/stderr lines kept buffered for diagnostic context on failure. */
 const OUTPUT_BUFFER_LINES = 50;
 
 interface IWSLConnection {
@@ -121,7 +112,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 		return this._productService.commit;
 	}
 
-	/** Lazily load `require` so the `ws` native module is only resolved at runtime. */
 	private async _getNativeRequire(): Promise<NodeJS.Require> {
 		if (!this._nativeRequire) {
 			const nodeModule = await import('node:module');
@@ -136,10 +126,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 
 	async listDistros(): Promise<IWSLDistro[]> {
 		try {
-			// Run both probes in parallel so we can overlay the locale-free
-			// running set on the verbose parse (the `STATE` column from
-			// `--verbose` is localized by Windows and reads "Stopped" for
-			// every distro on non-English hosts).
 			const [verbose, running] = await Promise.all([
 				runWslCommand(['--list', '--verbose']),
 				runWslCommand(['--list', '--running', '--quiet']),
@@ -176,10 +162,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 	connect(config: IWSLAgentHostConfig): Promise<IWSLConnectResult> {
 		const distro = validateDistroName(config.distro);
 
-		// Idempotent: a second `connect` for an already-live distro returns
-		// the existing connection so the renderer-side `_setupConnection`
-		// reuses its handle (it dedupes by `connectionId`). Picking
-		// "WSL..." → same distro should be a no-op, not an error.
 		const existingId = this._distroToConnectionId.get(distro);
 		if (existingId) {
 			const existing = this._connections.get(existingId);
@@ -199,15 +181,13 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 			return existingPendingConnect;
 		}
 
-		// Reserve synchronously, before _connectUnguarded reaches its first
-		// await, so simultaneous callers cannot start concurrent downloads.
 		const pendingConnect = this._connectUnguarded(config, distro);
 		this._pendingConnects.set(distro, pendingConnect);
 		void pendingConnect.finally(() => {
 			if (this._pendingConnects.get(distro) === pendingConnect) {
 				this._pendingConnects.delete(distro);
 			}
-		}).catch(() => { /* The caller observes the original rejection. */ });
+		}).catch(() => { });
 		return pendingConnect;
 	}
 
@@ -234,12 +214,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 		this._logService.info(`${LOG_PREFIX} Spawning agent host in WSL distro '${distro}'`);
 		this._logService.trace(`${LOG_PREFIX} bootstrap script: ${script}`);
 
-		// `-e bash -lc <script>` runs a login shell so the user's PATH/profile
-		// is sourced before the CLI launches. We deliberately do NOT set
-		// `WSL_UTF8` for this spawn: it would force `wsl.exe` to recode the
-		// agent host's stdout/stderr, which is already valid UTF-8 from a
-		// Linux process. Keeping the bytes untouched also avoids surprising
-		// the URL/PID regex.
 		const child = this._spawnAgentHost(distro, script);
 
 		let url: string | undefined;
@@ -250,8 +224,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 			urlReject = rej;
 		});
 
-		// Buffer holds already-redacted lines: connection tokens never sit
-		// in shared-process memory unredacted, even on the diagnostic path.
 		const outputLines: string[] = [];
 		const appendLine = (line: string) => {
 			outputLines.push(redactToken(line));
@@ -316,11 +288,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 		};
 
 		const onStreamData = (data: Buffer) => {
-			// `decodeWslOutput` handles both UTF-8 (the agent host's own
-			// stdout when running with `WSL_UTF8` unset, which is what we
-			// spawn with) and UTF-16LE (which is how `wsl.exe`'s own error
-			// messages — "There is no distribution with the supplied name"
-			// etc. — arrive on stderr without `WSL_UTF8=1`).
 			const cleanText = removeAnsiEscapeCodes(decodeWslOutput(data));
 			for (const rawLine of cleanText.split(/\r\n|\r|\n/)) {
 				if (readySettled) {
@@ -358,11 +325,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 		child.stdout?.on('data', onStreamData);
 		child.stderr?.on('data', onStreamData);
 
-		// Race the URL parse against the child dying, initial startup silence,
-		// post-output silence, and an overall ceiling. Bootstrap downloads
-		// regularly report progress, so once output starts only silence indicates
-		// that it has become stuck.
-		// `outputLines` is already redacted in `appendLine` — no extra wrap needed.
 		if (!hasProducedOutput) {
 			initialOutputTimeoutHandle = setTimeout(() => {
 				rejectForTimeout(`Timed out waiting for agent host in '${distro}' to produce initial output: exceeded the ${AGENT_HOST_INITIAL_OUTPUT_TIMEOUT_MS}ms startup budget.`);
@@ -464,9 +426,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 		if (existingId) {
 			this._closeConnection(existingId);
 		}
-		// A pending connection is already a fresh bootstrap. Joining it avoids
-		// starting a competing downloader; callers that reconnect after it
-		// fails receive that failure and a subsequent reconnect starts anew.
 		return this.connect({ distro, name, remoteAgentHostCommand, userInitiated });
 	}
 
@@ -494,7 +453,7 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 		}
 		try {
 			conn.ws.close();
-		} catch { /* ignore */ }
+		} catch { }
 		this._killChild(conn.child);
 		this._onDidRelayClose.fire(connectionId);
 		this._onDidCloseConnection.fire(connectionId);
@@ -505,20 +464,14 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 		if (child.exitCode !== null || child.signalCode !== null) {
 			return;
 		}
-		// A detached distro-side host relies on the bootstrap's --idle-timeout to exit.
 		try {
 			child.kill();
-		} catch { /* ignore */ }
-		// Escalate to SIGKILL if the process is still alive after 2s. The
-		// `unref` cast avoids the dom/node `setTimeout` typing collision in
-		// strict mode — we only care that escalation never blocks process exit,
-		// so it is optional: outside Node (the unit-test renderer) there is no
-		// `unref` and keeping the timer referenced is harmless.
+		} catch { }
 		const escalate = setTimeout(() => {
 			if (child.exitCode === null && child.signalCode === null) {
 				try {
 					child.kill('SIGKILL');
-				} catch { /* ignore */ }
+				} catch { }
 			}
 		}, 2_000) as unknown as NodeJS.Timeout;
 		escalate.unref?.();
@@ -553,14 +506,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 		const WS = nativeRequire('ws') as typeof WebSocket;
 		const deadline = Date.now() + WEBSOCKET_OPEN_TIMEOUT_MS;
 		let lastError: unknown;
-		// On the first connect to a freshly-booted distro, the agent host
-		// prints its `ws://127.0.0.1:PORT` URL the moment it binds inside
-		// WSL — but the Windows-side localhost forward (wslrelay) needs a
-		// brief moment more to set up the port forwarding. We see this as
-		// an immediate ECONNREFUSED (wrapped in an AggregateError because
-		// Node tries IPv4 and IPv6 in parallel). Retry until the overall
-		// deadline elapses; once the forward is up the first successful
-		// `open` returns immediately.
 		for (let attempt = 0; ; attempt++) {
 			const remaining = deadline - Date.now();
 			if (remaining <= 0) {
@@ -573,8 +518,6 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 				if (!isConnectionRefused(err)) {
 					throw err;
 				}
-				// Linear backoff capped at 500ms; the forward usually comes
-				// up within a few hundred ms after the URL is printed.
 				const delay = Math.min(100 + attempt * 100, 500);
 				await new Promise(res => setTimeout(res, delay));
 			}
@@ -586,7 +529,7 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 			const timeoutHandle = setTimeout(() => {
 				try {
 					ws.close();
-				} catch { /* ignore */ }
+				} catch { }
 				reject(new Error(`${LOG_PREFIX} Timed out opening WebSocket to ${redactToken(url)} after ${timeoutMs}ms`));
 			}, timeoutMs);
 			ws.once('open', () => {
@@ -597,19 +540,13 @@ export class WSLRemoteAgentHostMainService extends Disposable implements IWSLRem
 				clearTimeout(timeoutHandle);
 				try {
 					ws.close();
-				} catch { /* ignore */ }
+				} catch { }
 				reject(err);
 			});
 		});
 	}
 }
 
-/**
- * True for the `ECONNREFUSED` shapes Node surfaces for `ws://127.0.0.1:PORT`
- * before WSL's localhost-forwarding relay has wired up the forward. Node 18+
- * wraps the parallel IPv4/IPv6 attempts in an `AggregateError`, so we have
- * to inspect the inner errors too.
- */
 function isConnectionRefused(err: unknown): boolean {
 	if (!err || typeof err !== 'object') {
 		return false;

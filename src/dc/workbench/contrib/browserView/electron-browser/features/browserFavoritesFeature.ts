@@ -41,10 +41,6 @@ import {
 
 const CONTEXT_BROWSER_URL_IS_FAVORITED = new RawContextKey<boolean>('browserUrlIsFavorited', false, localize('browser.urlIsFavorited', "Whether the current browser URL is a favorite"));
 
-/**
- * Clickable star indicator shown in the URL bar's PostUrl slot when the
- * current page is a favorite. Clicking it removes the favorite.
- */
 class FavoriteIndicator extends Disposable {
 	readonly element: HTMLElement;
 	private readonly _button: Button;
@@ -92,14 +88,6 @@ class FavoriteIndicator extends Disposable {
 	}
 }
 
-/**
- * Workspace-scoped favorites: persists a set of favorite URLs and surfaces
- * them as URL bar suggestions plus a toggle button in the picker chrome.
- *
- * Favorites are URL strings only — no titles, icons, or other metadata are
- * persisted. We can't reliably capture rich metadata for arbitrary pages
- * across reloads, and keeping the model simple avoids stale-display bugs.
- */
 export class BrowserFavoritesFeature extends BrowserEditorContribution {
 
 	private static readonly STORAGE_KEY = 'workbench.browser.favorites';
@@ -126,7 +114,6 @@ export class BrowserFavoritesFeature extends BrowserEditorContribution {
 		this._indicator = this._register(new FavoriteIndicator(instantiationService, this._keybindingService));
 		this._register(this._indicator.onDidClick(() => this.toggleCurrent()));
 
-		// React to external storage updates (e.g. another window writing the key).
 		const storageListenerStore = this._register(new DisposableStore());
 		this._register(this._storageService.onDidChangeValue(
 			StorageScope.WORKSPACE, BrowserFavoritesFeature.STORAGE_KEY, storageListenerStore,
@@ -209,7 +196,6 @@ export class BrowserFavoritesFeature extends BrowserEditorContribution {
 	}
 
 	protected override onModelAttached(model: IBrowserViewModel, store: DisposableStore): void {
-		// Button visuals, indicator visibility, and context key depend on input.url.
 		store.add(model.onDidNavigate(() => {
 			this._refresh();
 			this._onDidChangeState.fire();
@@ -272,8 +258,6 @@ export class BrowserFavoritesFeature extends BrowserEditorContribution {
 		this._onDidChangeState.fire();
 	}
 
-	// Idempotent: callers that should never re-add a favorite (e.g. the per-item
-	// delete button on suggestions) must use this rather than `_toggle`.
 	private _remove(url: string): void {
 		if (!this._urls.has(url)) {
 			return;
@@ -292,7 +276,6 @@ export class BrowserFavoritesFeature extends BrowserEditorContribution {
 
 BrowserEditor.registerContribution(BrowserFavoritesFeature);
 
-// -- Actions ----------------------------------------------------------
 
 class ToggleFavoriteAction extends Action2 {
 	static readonly ID = BrowserViewCommandId.ToggleFavorite;

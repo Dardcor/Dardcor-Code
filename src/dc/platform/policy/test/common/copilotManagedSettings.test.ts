@@ -92,10 +92,10 @@ suite('Copilot managed settings projection', () => {
 
 	test('projectManagedSettings keeps declared+typed keys, drops undeclared and type-mismatched', () => {
 		const projected = projectManagedSettings({
-			'permissions.disableBypassPermissionsMode': 'disable', // declared string -> kept
-			'limits.maxFoo': 5,                                    // declared number -> kept
-			'flags.enableBar': 'true',                             // declared boolean, got string -> dropped
-			'unknown.key': 'x',                                    // undeclared -> dropped
+			'permissions.disableBypassPermissionsMode': 'disable',
+			'limits.maxFoo': 5,
+			'flags.enableBar': 'true',
+			'unknown.key': 'x',
 		}, collectManagedSettingsDefinitions(definitions));
 
 		assert.deepStrictEqual(projected, {
@@ -130,8 +130,6 @@ suite('Copilot managed settings per-key precedence (pickManagedSettings)', () =>
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('distinct keys each win from their highest-precedence channel; a lower channel fills a gap the higher ones leave', () => {
-		// The headline per-key behavior: `shared` is contested by all three (native wins) while
-		// `nativeOnly`/`serverOnly`/`fileOnly` are each supplied by a single channel and all survive.
 		const pick = pickManagedSettings(
 			{ 'shared': 'native', 'nativeOnly': 'n' },
 			{ 'shared': 'server', 'serverOnly': 's' },
@@ -164,8 +162,6 @@ suite('Copilot managed settings per-key precedence (pickManagedSettings)', () =>
 	});
 
 	test('falsy-but-present values are real contributions and win over a lower channel', () => {
-		// `false`, `0` and `''` must not be mistaken for "unset" — a higher channel that sets them
-		// still locks the key against a lower channel's value.
 		const pick = pickManagedSettings(
 			{ 'flag': false, 'count': 0, 'name': '' },
 			undefined,
@@ -176,7 +172,6 @@ suite('Copilot managed settings per-key precedence (pickManagedSettings)', () =>
 	});
 
 	test('an explicit `undefined` hole in a higher channel falls through to a lower channel', () => {
-		// A key present-but-undefined is skipped, so a lower channel can supply it.
 		const pick = pickManagedSettings(
 			{ 'a': undefined as unknown as string, 'b': 'native' },
 			{ 'a': 'server' },
@@ -187,8 +182,6 @@ suite('Copilot managed settings per-key precedence (pickManagedSettings)', () =>
 	});
 
 	test('the merged bag is a fresh object, never an alias of an input channel bag', () => {
-		// AccountPolicyService projects `pick.values` directly, relying on it not aliasing/mutating a
-		// channel's bag.
 		const native = { 'a': 'native' };
 		const pick = pickManagedSettings(native, undefined, undefined);
 		assert.notStrictEqual(pick.values, native);
@@ -199,7 +192,6 @@ suite('Copilot managed settings per-key precedence (pickManagedSettings)', () =>
 		assert.deepStrictEqual(
 			{
 				partial: pickManagedSettings({}, { 'b': 'server' }, undefined),
-				// native + file contribute, server does not — activeSources must skip the gap.
 				gap: pickManagedSettings({ 'x': 'n' }, undefined, { 'y': 'f' }).activeSources,
 				allUndefined: pickManagedSettings(undefined, undefined, undefined),
 				allEmpty: pickManagedSettings({}, {}, {}),
@@ -214,9 +206,6 @@ suite('Copilot managed settings per-key precedence (pickManagedSettings)', () =>
 	});
 
 	test('a malicious `__proto__` key does not pollute any prototype chain', () => {
-		// Simulates a JSON-parsed bag carrying an own `__proto__` key with an object value (the
-		// classic prototype-pollution vector). Merging it must neither pollute Object.prototype nor
-		// corrupt the returned bag's own prototype.
 		const malicious = JSON.parse('{ "__proto__": { "polluted": true } }') as Record<string, string>;
 		const pick = pickManagedSettings(malicious, undefined, undefined);
 		assert.strictEqual(({} as Record<string, unknown>).polluted, undefined);

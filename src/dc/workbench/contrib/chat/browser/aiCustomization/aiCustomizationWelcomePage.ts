@@ -14,9 +14,6 @@ import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 
 const $ = DOM.$;
 
-/**
- * A migration flow offered on the overview, already resolved to display copy.
- */
 export interface ICustomizationMigrationCategorySummary {
 	readonly id: CustomizationMigrationCategoryId;
 	readonly label: string;
@@ -31,13 +28,6 @@ export interface IWelcomePageCallbacks {
 	selectSectionWithMarketplace(section: AICustomizationManagementSection): void;
 	closeEditor(): void;
 	migrateCustomizations(categoryId: CustomizationMigrationCategoryId): void;
-	/**
-	 * Prefill the chat input with a query. In the sessions window this
-	 * uses the sessions chat widget; in core VS Code it opens the chat view.
-	 *
-	 * @param options.newChat When true, always opens a new chat instead of
-	 * reusing the active one.
-	 */
 	prefillChat(query: string, options?: { isPartialQuery?: boolean; newChat?: boolean }): void;
 }
 
@@ -47,13 +37,9 @@ export interface IAICustomizationWelcomePageImplementation extends IDisposable {
 	setHarnessLabel(label: string): void;
 	setMigrationCategories(categories: readonly ICustomizationMigrationCategorySummary[]): void;
 	focus(): void;
-	/** Called when the welcome page becomes visible after navigation — clears any transient state. */
 	reset?(): void;
 }
 
-/**
- * Renders the welcome page for the AI Customization Management Editor.
- */
 export class AICustomizationWelcomePage extends Disposable {
 
 	private readonly implementation: IAICustomizationWelcomePageImplementation;

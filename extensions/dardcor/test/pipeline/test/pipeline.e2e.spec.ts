@@ -14,16 +14,6 @@ function snapshotPath(name: string): string {
 	return path.join(__dirname, 'expected', name);
 }
 
-/**
- * End-to-end tests for the nes-datagen pipeline.
- *
- * These tests exercise the full `runInputPipeline` with real fixture data,
- * verifying parsing → replay → prompt generation → response generation → output.
- *
- * Expected prompt/response contents are stored as separate snapshot files under
- * `test/pipeline/test/expected/` for easy reading and inspection.
- * Run `vitest --update` to regenerate them.
- */
 
 const configPath = path.join(__dirname, 'fixtures', 'config.json');
 
@@ -51,9 +41,6 @@ afterAll(async () => {
 	}
 });
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 interface OutputSample {
 	messages: { role: 'system' | 'user' | 'assistant'; content: string }[];
@@ -101,9 +88,6 @@ async function runPipeline(opts?: Partial<RunPipelineOptions>): Promise<{
 	return { samples, logs };
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe('nes-datagen pipeline e2e', () => {
 
@@ -115,14 +99,12 @@ describe('nes-datagen pipeline e2e', () => {
 		});
 
 		test('produces output samples for valid rows', () => {
-			// 2 valid rows (ts + py), 1 invalid row (missing recording)
 			expect(result.samples.length).toBe(2);
 		});
 
 		test('logs report correct counts in pipeline summary', () => {
 			const summaryLog = result.logs.find(l => l.includes('Pipeline:'));
 			expect(summaryLog).toBeDefined();
-			// Input 2 valid rows parsed from 3 total (1 error), all 2 replayed etc.
 			expect(summaryLog).toContain('Input(2)');
 			expect(summaryLog).toContain('Replay(2)');
 		});
@@ -130,7 +112,6 @@ describe('nes-datagen pipeline e2e', () => {
 		test('logs report parse error for invalid row', () => {
 			const parseLog = result.logs.find(l => l.includes('[1/5]'));
 			expect(parseLog).toBeDefined();
-			// Should have 1 error from the invalid record missing recording
 			expect(parseLog).toContain('1 errors');
 		});
 
@@ -170,7 +151,6 @@ describe('nes-datagen pipeline e2e', () => {
 		test('user prompt contains the document content', () => {
 			const tsSample = result.samples.find(s => s.metadata.language === 'typescript')!;
 			const userMsg = tsSample.messages.find(m => m.role === 'user')!;
-			// The prompt should reference the original document
 			expect(userMsg.content).toContain('readFile');
 			expect(userMsg.content).toContain('loadData');
 		});
@@ -178,14 +158,12 @@ describe('nes-datagen pipeline e2e', () => {
 		test('assistant response contains a diff patch for TypeScript sample', () => {
 			const tsSample = result.samples.find(s => s.metadata.language === 'typescript')!;
 			const assistantMsg = tsSample.messages.find(m => m.role === 'assistant')!;
-			// PatchBased02 format: file:line, -old, +new
 			expect(assistantMsg.content).toContain('src/loader.ts');
 		});
 
 		test('oracle edits are preserved in metadata', () => {
 			const tsSample = result.samples.find(s => s.metadata.language === 'typescript')!;
 			expect(tsSample.metadata.oracleEdits.length).toBeGreaterThan(0);
-			// The combined edit replaces `data` with `contents` in at least one location
 			const hasContentsEdit = tsSample.metadata.oracleEdits.some(
 				([, , text]) => text === 'contents'
 			);
@@ -276,7 +254,6 @@ describe('nes-datagen pipeline e2e', () => {
 			const samples = parseJsonl<OutputSample>(content);
 			expect(samples).toEqual([]);
 
-			// Should report the parse error
 			const parseLog = logs.find(l => l.includes('[1/5]'));
 			expect(parseLog).toContain('1 errors');
 		});
@@ -321,7 +298,6 @@ describe('nes-datagen pipeline e2e', () => {
 			const content = await fs.readFile(offsetOutputPath, 'utf-8');
 			const samples = parseJsonl<OutputSample>(content);
 			expect(samples.length).toBe(2);
-			// Row indices should be shifted by the offset
 			for (const sample of samples) {
 				expect(sample.metadata.rowIndex).toBeGreaterThanOrEqual(100);
 			}

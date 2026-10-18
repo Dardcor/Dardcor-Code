@@ -121,21 +121,20 @@ suite('SuggestMemories', function () {
 		buffer.setValue('    foo.');
 		mem.memorize(buffer, { lineNumber: 1, column: 1 }, item2);
 
-		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 2 }, items), 0); // leading whitespace -> ignore recent items
+		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 2 }, items), 0);
 
 		mem.memorize(buffer, { lineNumber: 1, column: 9 }, item2);
-		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 9 }, items), 1); // foo.
+		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 9 }, items), 1);
 
 		buffer.setValue('    foo.g');
-		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 10 }, items), 1); // foo.g, 'gamma' and 'game' have the same score
+		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 10 }, items), 1);
 
 		item1.score = [10, 0, 0];
-		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 10 }, items), 0); // foo.g, 'gamma' has higher score
+		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 10 }, items), 0);
 
 	});
 
 	test('intellisense is not showing top options first #43429', function () {
-		// ensure we don't memorize for whitespace prefixes
 
 		pos = { lineNumber: 2, column: 6 };
 		const mem = new LRUMemory();
@@ -143,8 +142,8 @@ suite('SuggestMemories', function () {
 		mem.memorize(buffer, pos, items[1]);
 		assert.strictEqual(mem.select(buffer, pos, items), 1);
 
-		assert.strictEqual(mem.select(buffer, { lineNumber: 3, column: 5 }, items), 0); // foo: |,
-		assert.strictEqual(mem.select(buffer, { lineNumber: 3, column: 6 }, items), 1); // foo: ,|
+		assert.strictEqual(mem.select(buffer, { lineNumber: 3, column: 5 }, items), 0);
+		assert.strictEqual(mem.select(buffer, { lineNumber: 3, column: 6 }, items), 1);
 	});
 
 	test('PrefixMemory', () => {
@@ -157,15 +156,15 @@ suite('SuggestMemories', function () {
 		const item3 = createSuggestItem('constant', 0);
 		const items = [item0, item1, item2, item3];
 
-		mem.memorize(buffer, { lineNumber: 1, column: 2 }, item1); // c -> const
-		mem.memorize(buffer, { lineNumber: 1, column: 3 }, item0); // co -> console
-		mem.memorize(buffer, { lineNumber: 1, column: 4 }, item2); // con -> constructor
+		mem.memorize(buffer, { lineNumber: 1, column: 2 }, item1);
+		mem.memorize(buffer, { lineNumber: 1, column: 3 }, item0);
+		mem.memorize(buffer, { lineNumber: 1, column: 4 }, item2);
 
 		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 1 }, items), 0);
 		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 2 }, items), 1);
 		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 3 }, items), 0);
 		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 4 }, items), 2);
-		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 7 }, items), 2); // find substr
+		assert.strictEqual(mem.select(buffer, { lineNumber: 1, column: 7 }, items), 2);
 	});
 
 });

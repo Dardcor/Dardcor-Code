@@ -157,8 +157,6 @@ suite('AgentHostGitService', () => {
 		test('separates a branch-less probe failure from a detached HEAD', () => {
 			assert.deepStrictEqual({
 				neverComputed: needsSessionGitStateRefresh(undefined),
-				// The residue of a failed `git status`, as persisted before the
-				// probe learned to withhold state it could not compute.
 				probeFailureRemnant: needsSessionGitStateRefresh({ baseBranchName: 'main' }),
 				detachedHead: needsSessionGitStateRefresh({ isDetachedHead: true, baseBranchName: 'main' }),
 				onABranch: needsSessionGitStateRefresh({ branchName: 'feature', baseBranchName: 'main' }),
@@ -281,9 +279,6 @@ suite('AgentHostGitService', () => {
 		});
 
 		test('extracts untracked entries and skips others', () => {
-			// `git status --porcelain=v1 -z` emits NUL-separated entries; the
-			// rename entry includes a second NUL-separated "from" path that
-			// must be skipped.
 			const out = '?? new.txt\x00 M edited.txt\x00R  to.txt\x00from.txt\x00?? other.txt\x00';
 			assert.deepStrictEqual(parseUntrackedPaths(out), ['new.txt', 'other.txt']);
 		});
@@ -344,8 +339,6 @@ suite('AgentHostGitService', () => {
 		const sha = 'cafe1234cafe1234cafe1234cafe1234cafe1234';
 
 		test('parses an add, modify, delete and rename in a single stream', () => {
-			// Format: alternating `--raw` and `--numstat` segments separated by
-			// NUL bytes. Renames have an extra path segment in both halves.
 			const segments: string[] = [
 				':100644 100644 0000000 1111111 M', 'modified.ts',
 				':000000 100644 0000000 2222222 A', 'added.ts',
@@ -393,12 +386,6 @@ suite('AgentHostGitService', () => {
 		});
 
 		test('anchors after side to afterRef when provided (ref->ref diffs)', () => {
-			// In a checkpoint / ref->ref diff, both the before and the after
-			// content must be anchored to commits — never to the working
-			// tree. With `afterRef` set, both `after.uri` and
-			// `after.content.uri` are `git-blob:` URIs so the diff reflects
-			// the state at that commit even if the working tree diverges
-			// (e.g. file renamed, deleted, or modified on disk since).
 			const toSha = 'beef5678beef5678beef5678beef5678beef5678';
 			const segments: string[] = [
 				':100644 100644 0000000 1111111 M', 'modified.ts',

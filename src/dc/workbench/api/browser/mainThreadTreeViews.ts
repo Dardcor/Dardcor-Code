@@ -54,8 +54,6 @@ export class MainThreadTreeViews extends Disposable implements MainThreadTreeVie
 				? new TreeViewDragAndDropController(treeViewId, options.dropMimeTypes, options.dragMimeTypes, options.hasHandleDrag, this._proxy) : undefined;
 			const viewer = this.getTreeView(treeViewId);
 			if (viewer) {
-				// Order is important here. The internal tree isn't created until the dataProvider is set.
-				// Set all other properties first!
 				viewer.showCollapseAllAction = options.showCollapseAll;
 				viewer.canSelectMany = options.canSelectMany;
 				viewer.manuallyManageCheckboxes = options.manuallyManageCheckboxes;
@@ -163,7 +161,6 @@ export class MainThreadTreeViews extends Disposable implements MainThreadTreeVie
 		let expand = Math.min(isNumber(options.expand) ? options.expand : options.expand === true ? 1 : 0, 3);
 
 		if (dataProvider.isEmpty()) {
-			// Refresh if empty
 			await treeView.refresh();
 		}
 		for (const parent of parentChain) {
@@ -266,7 +263,6 @@ class TreeViewDragAndDropController implements ITreeViewDragAndDropController {
 
 		const additionalDataTransfer = new VSDataTransfer();
 		additionalDataTransferDTO.items.forEach(([type, item]) => {
-			// For text/uri-list, reconstruct from uriListData which has been transformed by the URI transformer
 			const value = type === Mimes.uriList && item.uriListData
 				? UriList.create(item.uriListData.map(part => typeof part === 'string' ? part : URI.revive(part)))
 				: item.asString;
@@ -308,8 +304,6 @@ class TreeViewDataProvider implements ITreeViewDataProvider {
 					return this.postGetChildren(convertedChildren);
 				},
 				err => {
-					// It can happen that a tree view is disposed right as `getChildren` is called. This results in an error because the data provider gets removed.
-					// The tree will shortly get cleaned up in this case. We just need to handle the error here.
 					if (!NoTreeViewError.is(err)) {
 						this.notificationService.error(err);
 					}
@@ -334,17 +328,15 @@ class TreeViewDataProvider implements ITreeViewDataProvider {
 		if (itemsToRefreshByHandle) {
 			for (const newTreeItemHandle of Object.keys(itemsToRefreshByHandle)) {
 				const currentTreeItem = this.getItem(newTreeItemHandle);
-				if (currentTreeItem) { // Refresh only if the item exists
+				if (currentTreeItem) {
 					const newTreeItem = itemsToRefreshByHandle[newTreeItemHandle];
 					if (currentTreeItem.checkbox?.isChecked !== newTreeItem.checkbox?.isChecked) {
 						checkboxesToRefresh.push(currentTreeItem);
 					}
-					// Update the current item with refreshed item
 					this.updateTreeItem(currentTreeItem, newTreeItem);
 					if (newTreeItemHandle === newTreeItem.handle) {
 						itemsToRefresh.push(currentTreeItem);
 					} else {
-						// Update maps when handle is changed and refresh parent
 						this.itemsMap.delete(newTreeItemHandle);
 						this.itemsMap.set(currentTreeItem.handle, currentTreeItem);
 						const parent = newTreeItem.parentHandle ? this.itemsMap.get(newTreeItem.parentHandle) : null;

@@ -23,11 +23,9 @@ export class ExtHostFileSystemInfo implements ExtHostFileSystemInfoShape {
 		this.extUri = new ExtUri(uri => {
 			const capabilities = this._providerInfo.get(uri.scheme);
 			if (capabilities === undefined) {
-				// default: not ignore
 				return false;
 			}
 			if (capabilities & FileSystemProviderCapabilities.PathCaseSensitive) {
-				// configured as case sensitive
 				return false;
 			}
 			return true;

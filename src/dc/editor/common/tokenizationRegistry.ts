@@ -61,7 +61,6 @@ export class TokenizationRegistry<TSupport> implements ITokenizationRegistry<TSu
 	}
 
 	public async getOrCreate(languageId: string): Promise<TSupport | null> {
-		// check first if the support is already set
 		const tokenizationSupport = this.get(languageId);
 		if (tokenizationSupport) {
 			return tokenizationSupport;
@@ -69,7 +68,6 @@ export class TokenizationRegistry<TSupport> implements ITokenizationRegistry<TSu
 
 		const factory = this._factories.get(languageId);
 		if (!factory || factory.isResolved) {
-			// no factory or factory.resolve already finished
 			return null;
 		}
 

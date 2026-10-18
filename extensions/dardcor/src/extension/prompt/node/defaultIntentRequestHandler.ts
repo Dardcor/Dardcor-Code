@@ -61,18 +61,11 @@ import { ConversationalBaseTelemetryData, createTelemetryWithId, getModeNameForT
 
 export interface IDefaultIntentRequestHandlerOptions {
 	maxToolCallIterations: number;
-	/**
-	 * Whether to ask the user if they want to continue when the tool call limit
-	 * is exceeded. Defaults to true.
-	 */
 	confirmOnMaxToolIterations?: boolean;
 	temperature?: number;
 	overrideRequestLocation?: ChatLocation;
 }
 
-/*
-* Handles a single chat-request via an intent-invocation.
-*/
 export class DefaultIntentRequestHandler {
 
 	private readonly turn: Turn;
@@ -104,13 +97,11 @@ export class DefaultIntentRequestHandler {
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IChatWebSocketManager private readonly _chatWebSocketManager: IChatWebSocketManager,
 	) {
-		// Initialize properties
 		this.turn = conversation.getLatestTurn();
 	}
 
 	async getResult(): Promise<ChatResult> {
 		if (isToolCallLimitCancellation(this.request)) {
-			// Just some friendly text instead of an empty message on cancellation:
 			this.stream.markdown(l10n.t("Let me know if there's anything else I can help with!"));
 			if (this.request.subAgentInvocationId) {
 				this._chatWebSocketManager.closeConnection(this.conversation.sessionId, this.request.subAgentInvocationId);
@@ -137,18 +128,13 @@ export class DefaultIntentRequestHandler {
 				return confirmationResult;
 			}
 
-			// For subagent requests, use the subAgentInvocationId as the session ID.
-			// This enables explicit linking between the parent's runSubagent tool call and the subagent trajectory.
-			// For main requests, use the VS Code chat sessionId directly as the trajectory session ID.
 			const isSubagent = !!this.request.subAgentInvocationId;
 			const capturingToken = new CapturingToken(
 				this.request.prompt,
 				'comment',
 				this.request.subAgentInvocationId,
 				this.request.subAgentName,
-				// For subagents, use invocation ID as chatSessionId so spans get their own log file
 				isSubagent ? this.request.subAgentInvocationId : this.request.sessionId,
-				// For subagents, link back to the parent session
 				isSubagent ? this.request.sessionId : undefined,
 				isSubagent ? `runSubagent-${this.request.subAgentName ?? 'default'}` : undefined,
 			);
@@ -220,12 +206,10 @@ export class DefaultIntentRequestHandler {
 			return acc;
 		}, new Set<string>()));
 		for (const reference of buildPromptResult.references) {
-			// Report variables which were partially sent to the model
 			const options = reference.options ?? ('variableName' in reference.anchor && ignoredVariableReferences.has(reference.anchor.variableName)
 				? { status: { kind: 2, description: l10n.t('Part of this attachment was not sent to the model due to context window limitations.') } }
 				: undefined);
 			if (!reference.options?.isFromTool) {
-				// References reported by a tool result will be shown in a separate list, don't need to be reported as references
 				this.stream.reference2(reference.anchor, undefined, options);
 			}
 		}
@@ -239,8 +223,6 @@ export class DefaultIntentRequestHandler {
 	private makeResponseStreamParticipants(intentInvocation: IIntentInvocation): ResponseStreamParticipant[] {
 		const participants: ResponseStreamParticipant[] = [];
 
-		// 1. Tracking of code blocks. Currently used in stests. todo@connor4312:
-		// can we simplify this so it's not used otherwise?
 		participants.push(stream => {
 			const codeBlockTrackingResponseStream = this._instantiationService.createInstance(CodeBlockTrackingChatResponseStream, stream, intentInvocation.codeblocksRepresentEdits);
 			return ChatResponseStreamImpl.spy(
@@ -253,7 +235,6 @@ export class DefaultIntentRequestHandler {
 			);
 		});
 
-		// 2. Track the survival of edits made in the editor
 		if (this.documentContext && this.location === ChatLocation.Editor) {
 			participants.push(stream => {
 				const firstTurnWithAIEditCollector = this.conversation.turns.find(turn => turn.getMetadata(CopilotInteractiveEditorResponse)?.editSurvivalTracker);
@@ -267,12 +248,9 @@ export class DefaultIntentRequestHandler {
 		}
 
 
-		// 3. Track the survival of other(?) interactions
-		// todo@connor4312: can these two streams be combined?
 		const interactionOutcomeComputer = new InteractionOutcomeComputer(this.documentContext?.document.uri);
 		participants.push(stream => interactionOutcomeComputer.spyOnStream(stream));
 
-		// 4. Linkify the stream unless told otherwise, or if this is a subagent request
 		if (!intentInvocation.linkification?.disable && !this.request.subAgentInvocationId) {
 			participants.push(stream => {
 				const linkStream = this._instantiationService.createInstance(ResponseStreamWithLinkification, { requestId: this.turn.id, references: this.turn.references }, stream, intentInvocation.linkification?.additionaLinkifiers ?? [], this.token);
@@ -282,7 +260,6 @@ export class DefaultIntentRequestHandler {
 			});
 		}
 
-		// 5. General telemetry on emitted components
 		participants.push(stream => ChatResponseStreamImpl.spy(stream, (part) => {
 			if (part instanceof ChatResponseMarkdownPart) {
 				this._loop.telemetry.markEmittedMarkdown(part.value);
@@ -346,14 +323,6 @@ export class DefaultIntentRequestHandler {
 
 		store.add(Event.once(loop.onDidBuildPrompt)(this._sendInitialChatReferences, this));
 
-		// We need to wait for all response handlers to finish before
-		// we can dispose the store. This is because the telemetry machine
-		// still needs the tokenizers to count tokens. There was a case in vitests
-		// in which the store, and the tokenizers, were disposed before the telemetry
-		// machine could count the tokens, which resulted in an error.
-		// src/extension/prompt/node/chatParticipantTelemetry.ts#L521-L522
-		//
-		// cc @lramos15
 		const responseHandlers: Promise<unknown>[] = [];
 		store.add(loop.onDidReceiveResponse(res => {
 			const promise = this._onDidReceiveResponse(res);
@@ -362,7 +331,6 @@ export class DefaultIntentRequestHandler {
 		}, this));
 
 		try {
-			// Execute start hooks first (SessionStart/SubagentStart), then UserPromptSubmit
 			await loop.runStartHooks(this.stream, this.token);
 
 			const userPromptSubmitResults = await this._chatHookService.executeHook('UserPromptSubmit', this.request.hooks, { prompt: this.request.prompt } satisfies UserPromptSubmitHookInput, this.conversation.sessionId, this.token);
@@ -379,7 +347,6 @@ export class DefaultIntentRequestHandler {
 						if (additionalContext) {
 							additionalContexts.push(additionalContext);
 						}
-						// Check for block decision output
 						if (typedOutput.decision === 'block') {
 							const blockReason = typedOutput.reason || l10n.t('No reason provided');
 							this._logService.info(`[DefaultIntentRequestHandler] UserPromptSubmit hook block decision: ${blockReason}`);
@@ -403,7 +370,6 @@ export class DefaultIntentRequestHandler {
 				loop.telemetry.sendToolCallingTelemetry(result.toolCallRounds, result.availableTools, 'maxToolCalls');
 			}
 
-			// TODO need proper typing for all chat metadata and a better pattern to build it up from random places
 			result.chatResult = this.resultWithMetadatas(result.chatResult);
 			return { ...result, lastRequestTelemetry: loop.telemetry };
 		} finally {
@@ -486,7 +452,6 @@ export class DefaultIntentRequestHandler {
 	}
 
 	private processOffTopicFetchResult(baseModelTelemetry: ConversationalBaseTelemetryData): ChatResult {
-		// Create starting off topic telemetry and mark event as issued and displayed
 		this.stream.markdown(this.options.rejectionMessage);
 		this.turn.setResponse(TurnStatus.OffTopic, { message: this.options.rejectionMessage, type: 'offtopic-detection' }, baseModelTelemetry.properties.messageId, {});
 		return {};
@@ -565,7 +530,7 @@ export class DefaultIntentRequestHandler {
 				this.turn.setResponse(TurnStatus.Error, undefined, baseModelTelemetry.properties.messageId, chatResult);
 				return chatResult;
 			}
-			case ChatFetchResponseType.NotFound: // before we had `NotFound`, it would fall into Unknown, so behavior should be consistent
+			case ChatFetchResponseType.NotFound:
 			case ChatFetchResponseType.Unknown: {
 				const errorDetails = await this.getErrorDetails(fetchResult);
 				const chatResult = { errorDetails, metadata: metadataFragment };
@@ -575,12 +540,11 @@ export class DefaultIntentRequestHandler {
 			case ChatFetchResponseType.ExtensionBlocked: {
 				const errorDetails = await this.getErrorDetails(fetchResult);
 				const chatResult = { errorDetails, metadata: metadataFragment };
-				// This shouldn't happen, only 3rd party extensions should be blocked
 				this.turn.setResponse(TurnStatus.Error, undefined, baseModelTelemetry.properties.messageId, chatResult);
 				return chatResult;
 			}
 			case ChatFetchResponseType.InvalidStatefulMarker:
-				throw new Error('unreachable'); // retried within the endpoint
+				throw new Error('unreachable');
 		}
 	}
 }
@@ -588,7 +552,7 @@ export class DefaultIntentRequestHandler {
 interface IInternalRequestResult {
 	response: ChatResponse;
 	round: IToolCallRound;
-	chatResult?: ChatResult; // TODO should just be metadata
+	chatResult?: ChatResult;
 	hadIgnoredFiles: boolean;
 	lastRequestMessages: Raw.ChatMessage[];
 	lastRequestTelemetry: ChatTelemetry;
@@ -754,14 +718,6 @@ class DefaultToolCallingLoop extends ToolCallingLoop<IDefaultToolLoopOptions> {
 			return false;
 		}
 
-		// Once a mode-switched turn has successfully produced a fresh responses-api
-		// stateful marker, later requests in the same turn should resume from that
-		// new chain instead of continuing to invalidate previous_response_id.
-		// This is especially important for websocket follow-up requests after tool
-		// calls: keeping modeChanged=true for the entire turn would force the full
-		// pre-switch history back into every follow-up request, which can pull the
-		// model back toward the prior mode (for example implementation after
-		// switching into Plan mode).
 		if (this.currentToolCallRounds.some(round => !!round.statefulMarker)) {
 			return false;
 		}
@@ -795,7 +751,7 @@ class DefaultToolCallingLoop extends ToolCallingLoop<IDefaultToolLoopOptions> {
 			}
 		}
 
-		const computePromise = this.toolGrouping.compute(this.options.request.prompt, token);		// Show progress if this takes a moment...
+		const computePromise = this.toolGrouping.compute(this.options.request.prompt, token);
 		const timeout = setTimeout(() => {
 			outputStream?.progress(l10n.t('Optimizing tool selection'), async () => {
 				await computePromise;
@@ -813,8 +769,6 @@ class DefaultToolCallingLoop extends ToolCallingLoop<IDefaultToolLoopOptions> {
 	private fixMessageNames(messages: Raw.ChatMessage[]): void {
 		messages.forEach(m => {
 			if (m.role !== Raw.ChatRole.System && 'name' in m && m.name === this.options.intent?.id) {
-				// Assistant messages from the current intent should not have 'name' set.
-				// It's not well-documented how this works in OpenAI models but this seems to be the expectation
 				m.name = undefined;
 			}
 		});
@@ -824,7 +778,7 @@ class DefaultToolCallingLoop extends ToolCallingLoop<IDefaultToolLoopOptions> {
 		if (this.options.request.attempt > 0) {
 			return Math.min(
 				this.options.temperature * (this.options.request.attempt + 1),
-				2 /* MAX temperature - https://platform.openai.com/docs/api-reference/chat/create#chat/create-temperature */
+				2
 			);
 		} else {
 			return this.options.temperature;

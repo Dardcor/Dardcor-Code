@@ -12,13 +12,6 @@ import type { OtlpExportLogsParams } from '../../../common/state/protocol/channe
 import { OTLP_LOGS_CHANNEL_TEMPLATE, iterateOtlpLogRecords } from '../../../common/otlp/otlpLogEmitter.js';
 import { getAgentHostE2ETestTimeout, IServerHandle, startServer, stopServer, TestProtocolClient } from '../serverIntegrationTestHelpers.js';
 
-/**
- * End-to-end checks that the agent host server actually advertises and
- * honours the OTLP logs channel over the wire. Unit tests cover the
- * per-subscriber filter and the OTLP/JSON envelope shape — this suite
- * focuses on the protocol surface (`initialize.telemetry.logs`,
- * `subscribe` on `ahp-otlp:` URIs, and `otlp/exportLogs` notifications).
- */
 suite('Protocol WebSocket — OTLP logs channel', function () {
 
 	let server: IServerHandle;
@@ -26,11 +19,6 @@ suite('Protocol WebSocket — OTLP logs channel', function () {
 
 	suiteSetup(async function () {
 		this.timeout(getAgentHostE2ETestTimeout(15_000, 60_000));
-		// `--quiet` skips the file logger but still constructs the
-		// `OtlpLogEmitter` and adds the `OtlpEmitterLogger` as the only
-		// underlying logger, so any `logService.info(...)` call from the
-		// server flows out as an `otlp/exportLogs` notification. That is
-		// exactly what we want to assert end-to-end.
 		server = await startServer({ quiet: true });
 	});
 
@@ -86,10 +74,6 @@ suite('Protocol WebSocket — OTLP logs channel', function () {
 		});
 		await client.call('subscribe', { channel: 'ahp-otlp://logs/trace' });
 
-		// Triggering an invalid `createSession` causes the server to log
-		// the failure via `ILogService`, which fans out to the OTLP
-		// emitter. We don't care about the exact wording — only that a
-		// record arrives on the subscribed channel.
 		const notificationPromise = client.waitForNotification(
 			n => n.method === 'otlp/exportLogs' && (n.params as OtlpExportLogsParams).channel === 'ahp-otlp://logs/trace',
 		);

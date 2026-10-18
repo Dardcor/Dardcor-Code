@@ -22,14 +22,8 @@ import { IPromptFileVariableEntry, PromptFileVariableKind, toPromptFileVariableE
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
 
-/**
- * Action ID for the `Attach Instruction` action.
- */
 export const ATTACH_INSTRUCTIONS_ACTION_ID = 'workbench.action.chat.attach.instructions';
 
-/**
- * Action ID for the `Configure Instruction` action.
- */
 export const CONFIGURE_INSTRUCTIONS_ACTION_ID = 'workbench.action.chat.configure.instructions';
 
 
@@ -67,9 +61,6 @@ class ManageInstructionsFilesAction extends Action2 {
 	}
 }
 
-/**
- * Helper to register the `Attach Prompt` action.
- */
 export function registerAttachPromptActions(): void {
 	registerAction2(ManageInstructionsFilesAction);
 }

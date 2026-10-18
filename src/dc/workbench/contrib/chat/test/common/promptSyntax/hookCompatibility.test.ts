@@ -55,7 +55,6 @@ suite('HookCompatibility', () => {
 
 		suite('Claude-style matcher compatibility', () => {
 			test('parses Claude-style nested matcher structure', () => {
-				// When Claude format is pasted into Copilot hooks file
 				const json = {
 					hooks: {
 						PreToolUse: [
@@ -124,7 +123,6 @@ suite('HookCompatibility', () => {
 			});
 
 			test('handles Claude-style hook without type field', () => {
-				// Claude allows omitting the type field
 				const json = {
 					hooks: {
 						SessionStart: [
@@ -194,7 +192,6 @@ suite('HookCompatibility', () => {
 
 			const result = parseHooksFromFile(fileUri, json, workspaceRoot, userHome);
 
-			// Copilot format does not support disableAllHooks
 			assert.strictEqual(result.disabledAllHooks, false);
 			assert.strictEqual(result.hooks.size, 1);
 		});

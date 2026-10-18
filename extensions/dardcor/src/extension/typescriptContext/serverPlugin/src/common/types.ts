@@ -33,10 +33,6 @@ export interface EmitterContext extends KeyComputationContext {
 
 export abstract class ProgramContext {
 
-	/**
-	 * The symbol is skipped if it has no declarations or if one declaration
-	 * comes from a default or external library.
-	 */
 	protected getSymbolInfo(symbol: tt.Symbol): { skip: true } | { skip: false; primary: tt.SourceFile } {
 		const declarations = symbol.declarations;
 		if (declarations === undefined || declarations.length === 0) {

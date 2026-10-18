@@ -16,35 +16,12 @@ import { AgentsVoiceSettingId, AGENTS_VOICE_ENTITLED } from '../../../agentsVoic
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { DictationSettingId, IChatSpeechToTextService } from '../speechToText/chatSpeechToTextService.js';
 
-/**
- * The two mutually-exclusive voice input modes exposed in the chat input.
- * - `dictation`: speech-to-text that types the recognized words into the input box.
- * - `voice`: the live, conversational Voice Mode agent (real-time listen + talk-back).
- */
 export type VoiceInputMode = 'dictation' | 'voice';
 
-/**
- * Simulated voice-cell visual states for development/preview, so the UI can be
- * inspected without a live backend connection. `undefined` = use real state.
- */
 export type SimulatedVoiceState = 'off' | 'connecting' | 'idle' | 'listening' | 'speaking' | 'dictating';
 
-/**
- * The four push-to-talk interaction designs being compared. Each drives its own
- * prototype walkthrough (state sequence + layout + hint) so they can be evaluated
- * side by side without a live backend.
- * - `handsFree`:   auto-listen + auto-send; hold a key only to barge in / interrupt.
- * - `keyboardHold`: walkie-talkie — hold a keybinding to talk; button only connects.
- * - `buttonHold`:  hold the voice button to talk; a quick tap disconnects.
- * - `clickToggle`: tap the button to start listening, tap again to stop.
- */
 export type VoiceWalkthroughVersion = 'handsFree' | 'keyboardHold' | 'buttonHold' | 'clickToggle';
 
-/**
- * Which voice input mode is currently selected in the segmented toggle. This is the
- * single source of truth for *which* segment is highlighted — distinct from whether
- * that mode is currently active (listening / connected / speaking).
- */
 export const CHAT_VOICE_INPUT_MODE = new RawContextKey<VoiceInputMode>('chatVoiceInputMode', 'voice', { type: 'string', description: localize('chatVoiceInputMode', "The currently selected voice input mode in the chat input (dictation or voice).") });
 
 const STORAGE_KEY = 'chat.voiceInputMode.selected';
@@ -54,47 +31,33 @@ export const IVoiceInputModeService = createDecorator<IVoiceInputModeService>('v
 export interface IVoiceInputModeService {
 	readonly _serviceBrand: undefined;
 
-	/** The currently selected mode (persisted). */
 	readonly selectedMode: IObservable<VoiceInputMode>;
 
-	/** Whether live Voice Mode is enabled and its chat-input control is visible. */
 	readonly voiceAvailable: IObservable<boolean>;
 
-	/** Whether dictation is configured and its chat-input control is visible. */
 	readonly dictationAvailable: IObservable<boolean>;
 
-	/** Whether Voice Mode runs hands-free (auto-listen) vs manual push-to-talk. */
 	readonly handsFree: IObservable<boolean>;
 
-	/** Dev/preview override for the voice-cell visual state (undefined = real state). */
 	readonly simulatedVoiceState: IObservable<SimulatedVoiceState | undefined>;
 
-	/** Dev/preview override for hands-free layout (undefined = real config). */
 	readonly simulatedHandsFree: IObservable<boolean | undefined>;
 
-	/** Dev/preview: which push-to-talk version the walkthrough is demoing (undefined = none). */
 	readonly simulatedVersion: IObservable<VoiceWalkthroughVersion | undefined>;
 
-	/** Dev/preview: whether the voice cell is being "hovered" (walkthrough only). */
 	readonly simulatedHover: IObservable<boolean>;
 
-	/** Persist a new selected mode and update the context key. */
 	setSelectedMode(mode: VoiceInputMode): void;
 
-	/** Set (or clear) the dev/preview simulated voice-cell state. */
 	setSimulatedVoiceState(state: SimulatedVoiceState | undefined): void;
 
-	/** Auto-play (looping) through a push-to-talk version's states, incl. glow. */
 	startVoiceStateWalkthrough(version: VoiceWalkthroughVersion): void;
 
-	/** Advance the simulated state to the next one in the walkthrough sequence. */
 	stepVoiceStateWalkthrough(): void;
 
-	/** Stop any running walkthrough and clear the simulated state. */
 	clearSimulation(): void;
 }
 
-/** One dev/preview walkthrough: a layout flag plus a timed sequence of voice states. */
 interface IVoiceWalkthrough {
 	readonly handsFree: boolean;
 	readonly steps: readonly { readonly state: SimulatedVoiceState | undefined; readonly hover?: boolean; readonly ms?: number }[];
@@ -145,19 +108,11 @@ export class VoiceInputModeService extends Disposable implements IVoiceInputMode
 				&& AGENTS_VOICE_ENTITLED.evaluate({ getValue: key => contextKeyService.getContextKeyValue(key) })
 				&& configurationService.getValue<boolean>(AgentsVoiceSettingId.ShowButton) !== false);
 
-		// The dictation segment drives built-in on-device dictation
-		// (`workbench.action.chat.toggleSpeechToText`). `isConfigured` already
-		// requires native on-device transcription support (false on web) and the
-		// `chat.speechToText.enabled` kill-switch, so the segment only appears
-		// where clicking it can actually dictate.
 		this.dictationAvailable = observableFromEvent(this,
 			Event.any(configurationService.onDidChangeConfiguration, contextKeyService.onDidChangeContext),
 			() => chatSpeechToTextService.isConfigured
 				&& configurationService.getValue<boolean>(DictationSettingId.ShowButton) !== false);
 
-		// Hands-free mirrors the voice controller's auto-listen source of truth
-		// (`agents.voice.handsFree`, default true). In manual (non-hands-free)
-		// mode the pill shows a dedicated listen cell to start/stop each turn.
 		this.handsFree = observableFromEvent(this,
 			configurationService.onDidChangeConfiguration,
 			() => configurationService.getValue<boolean>('agents.voice.handsFree') !== false);
@@ -180,12 +135,7 @@ export class VoiceInputModeService extends Disposable implements IVoiceInputMode
 		this._simulatedVoiceState.set(state, undefined);
 	}
 
-	// Per-version walkthrough sequences. Each exercises the full lifecycle for one
-	// push-to-talk design so the bars, colors, hover previews and input-box glow can be
-	// watched exactly as a user would experience them. Sequences loop until cleared.
 	private static readonly WALKTHROUGHS: Readonly<Record<VoiceWalkthroughVersion, IVoiceWalkthrough>> = {
-		// Hands-free: connects, then auto-listens and replies; a quick listening flash
-		// during a reply represents barge-in.
 		handsFree: {
 			handsFree: true,
 			steps: [
@@ -194,39 +144,19 @@ export class VoiceInputModeService extends Disposable implements IVoiceInputMode
 				{ state: 'idle', ms: 1400 },
 				{ state: 'listening', ms: 2800 },
 				{ state: 'speaking', ms: 2800 },
-				{ state: 'listening', ms: 1600 },   // barge-in
+				{ state: 'listening', ms: 1600 },
 				{ state: 'speaking', ms: 2400 },
 				{ state: 'idle', ms: 1600 },
 				{ state: 'off', ms: 1600 },
 			],
 		},
-		// Keyboard hold-to-talk (walkie-talkie): hold the keybinding to talk; the button
-		// only connects/disconnects.
 		keyboardHold: {
 			handsFree: false,
 			steps: [
 				{ state: 'off', ms: 1600 },
 				{ state: 'connecting', ms: 1400 },
-				{ state: 'idle', ms: 2400 },        // "Hold ⌘⇧Space to talk"
-				{ state: 'listening', ms: 2800 },   // key held
-				{ state: 'speaking', ms: 2800 },    // reply
-				{ state: 'idle', ms: 1800 },
-				{ state: 'listening', ms: 2600 },
-				{ state: 'speaking', ms: 2400 },
-				{ state: 'idle', ms: 1600 },
-				{ state: 'off', ms: 1600 },
-			],
-		},
-		// Button hold-to-talk: hold the voice button to talk; a quick tap disconnects. The
-		// idle+hover step previews the tap-to-disconnect affordance.
-		buttonHold: {
-			handsFree: false,
-			steps: [
-				{ state: 'off', ms: 1600 },
-				{ state: 'connecting', ms: 1400 },
-				{ state: 'idle', ms: 2200 },
-				{ state: 'idle', hover: true, ms: 1800 },   // tap-to-disconnect preview
-				{ state: 'listening', ms: 2800 },           // button held
+				{ state: 'idle', ms: 2400 },
+				{ state: 'listening', ms: 2800 },
 				{ state: 'speaking', ms: 2800 },
 				{ state: 'idle', ms: 1800 },
 				{ state: 'listening', ms: 2600 },
@@ -235,17 +165,32 @@ export class VoiceInputModeService extends Disposable implements IVoiceInputMode
 				{ state: 'off', ms: 1600 },
 			],
 		},
-		// Click-to-toggle listening: tap to start listening, tap again to stop.
+		buttonHold: {
+			handsFree: false,
+			steps: [
+				{ state: 'off', ms: 1600 },
+				{ state: 'connecting', ms: 1400 },
+				{ state: 'idle', ms: 2200 },
+				{ state: 'idle', hover: true, ms: 1800 },
+				{ state: 'listening', ms: 2800 },
+				{ state: 'speaking', ms: 2800 },
+				{ state: 'idle', ms: 1800 },
+				{ state: 'listening', ms: 2600 },
+				{ state: 'speaking', ms: 2400 },
+				{ state: 'idle', ms: 1600 },
+				{ state: 'off', ms: 1600 },
+			],
+		},
 		clickToggle: {
 			handsFree: false,
 			steps: [
 				{ state: 'off', ms: 1600 },
 				{ state: 'connecting', ms: 1400 },
 				{ state: 'idle', ms: 2000 },
-				{ state: 'listening', ms: 2800 },   // tapped on
-				{ state: 'idle', ms: 1800 },        // tapped off
+				{ state: 'listening', ms: 2800 },
+				{ state: 'idle', ms: 1800 },
 				{ state: 'listening', ms: 2600 },
-				{ state: 'speaking', ms: 2800 },    // reply
+				{ state: 'speaking', ms: 2800 },
 				{ state: 'listening', ms: 1800 },
 				{ state: 'idle', ms: 1600 },
 				{ state: 'off', ms: 1600 },

@@ -61,18 +61,15 @@ suite('AgentHostIpcChannelTransport', () => {
 		assert.deepStrictEqual(channel.calls, [{ command: 'connect', arg: undefined }]);
 		assert.strictEqual(transport.isOpen, true);
 
-		// Inbound frame from server
 		channel.frameEmitter.fire('{"jsonrpc":"2.0","id":1,"result":{}}');
 		assert.deepStrictEqual(received, [{ jsonrpc: '2.0', id: 1, result: {} }]);
 
-		// Outbound send is serialized to a string
 		transport.send({ jsonrpc: '2.0', id: 2, result: {} });
 		assert.deepStrictEqual(channel.calls.at(-1), {
 			command: 'send',
 			arg: '{"jsonrpc":"2.0","id":2,"result":{}}',
 		});
 
-		// Server-initiated close
 		channel.closeEmitter.fire();
 		assert.strictEqual(closed, 1);
 		assert.strictEqual(transport.isOpen, false);
@@ -85,7 +82,6 @@ suite('AgentHostIpcChannelTransport', () => {
 		let closed = 0;
 		ds.add(transport.onClose(() => closed++));
 
-		// send before connect → drops + forces close once
 		transport.send({ jsonrpc: '2.0', id: 1, result: {} });
 		assert.strictEqual(closed, 1);
 		assert.strictEqual(channel.calls.find(c => c.command === 'send'), undefined);

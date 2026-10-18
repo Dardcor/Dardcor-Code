@@ -16,9 +16,6 @@ import { cleanTempDirWithRetry, createTempDir } from '../stestUtil';
 import { IFile, ITSDiagnosticRelatedInformation, ITestDiagnostic } from './diagnosticsProvider';
 import { CachingDiagnosticsProvider, setupTemporaryWorkspace } from './utils';
 
-/**
- * Class which finds TS Server diagnostics after compilation of TS files
- */
 export class TSServerDiagnosticsProvider extends CachingDiagnosticsProvider {
 	override readonly id: string;
 	override readonly cacheSalt = TestingCacheSalts.tscCacheSalt;
@@ -117,8 +114,8 @@ declare module '*'  {
 		try {
 			let diagnostics = await this.compileFolder(workspacePath, filesWithPaths);
 			if (this.ignoreImportErrors) {
-				const errorCodeThisMemberCannotHaveAnOverride = 4113; // "This member cannot have an 'override' modifier because it is not declared in the base class 'any'."
-				const errorCodeParameterOptionsImplicitlyHasAnAnyType = 7006; // "Parameter 'options' implicitly has an 'any' type."
+				const errorCodeThisMemberCannotHaveAnOverride = 4113;
+				const errorCodeParameterOptionsImplicitlyHasAnAnyType = 7006;
 				diagnostics = diagnostics.filter(d => d.code !== errorCodeThisMemberCannotHaveAnOverride && d.code !== errorCodeParameterOptionsImplicitlyHasAnAnyType);
 			}
 			return diagnostics;
@@ -242,14 +239,11 @@ declare module '*'  {
 						const contentLength = parseInt(firstLine.substring('Content-Length: '.length), 10);
 						body = stdout.substring(eolIndex + 4, eolIndex + 4 + contentLength);
 						if (body.length < contentLength) {
-							// entire body did not arrive yet
 							break;
 						}
 						stdout = stdout.substring(eolIndex + 4 + contentLength);
 					} else {
-						// Might come after the body
 						body = firstLine;
-						// Hold on to the rest of the stdout for the next iteration
 						stdout = stdout.substring(eolIndex + 2);
 					}
 
@@ -294,9 +288,6 @@ function withoutKeywords(identifiers: Set<string>): Set<string> {
 	return filteredIdentifiers;
 }
 
-/**
- * Runs `npm install` and proceeds to compile the files in the passed in folder. This is cached and is safe to use in tests.
- */
 export async function compileTSWorkspace(accessor: ITestingServicesAccessor, folderPath: string): Promise<ITestDiagnostic[]> {
 	const files = await readTSFiles(folderPath);
 	return await new TSServerDiagnosticsProvider().getDiagnostics(accessor, files);

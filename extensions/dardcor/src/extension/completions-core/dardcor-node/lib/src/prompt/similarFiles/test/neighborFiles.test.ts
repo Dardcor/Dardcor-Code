@@ -163,7 +163,7 @@ suite('neighbor files tests', function () {
 
 	test('Test open files file limit', async function () {
 		const ns = new OpenTabFiles(tdm);
-		const { docs } = await ns.getNeighborFiles(CURRENT_FILE, DEFAULT_FILE_LANGUAGE, /* maxNumNeighborFiles */ 1);
+		const { docs } = await ns.getNeighborFiles(CURRENT_FILE, DEFAULT_FILE_LANGUAGE, 1);
 		assert.strictEqual(docs.size, 1);
 	});
 
@@ -249,7 +249,6 @@ suite('Neighbor files exclusion tests', function () {
 		}
 
 		override getFileContent(uri: string): Promise<string | undefined> {
-			// we are not asserting on file content, so just return a dummy text
 			return Promise.resolve('dummy text');
 		}
 	}
@@ -305,7 +304,6 @@ suite('Neighbor files exclusion tests', function () {
 		const provider = accessor.get(ICompletionsRelatedFilesProviderService) as MockedRelatedFilesProvider;
 		const telemetryWithExp = TelemetryWithExp.createEmptyConfigForTesting();
 
-		// Positive control: with related files enabled the provider is invoked.
 		NeighborSource.reset();
 		const callCountWhenEnabled = provider.getRelatedFilesResponseCallCount;
 		await NeighborSource.getNeighborFilesAndTraits(
@@ -316,11 +314,10 @@ suite('Neighbor files exclusion tests', function () {
 			undefined,
 			undefined,
 			undefined,
-			/* includeRelatedFiles */ true
+			true
 		);
 		assert.ok(provider.getRelatedFilesResponseCallCount > callCountWhenEnabled, 'related-files provider should be invoked when includeRelatedFiles is true');
 
-		// With related files disabled the provider must not be invoked at all.
 		NeighborSource.reset();
 		const callCountWhenDisabled = provider.getRelatedFilesResponseCallCount;
 		const { docs, neighborSource, traits } = await NeighborSource.getNeighborFilesAndTraits(
@@ -331,10 +328,9 @@ suite('Neighbor files exclusion tests', function () {
 			undefined,
 			undefined,
 			undefined,
-			/* includeRelatedFiles */ false
+			false
 		);
 
-		// open-tab neighbors are still returned
 		assert.strictEqual(docs.size, 2);
 		assert.strictEqual(docs.has(FILE_T), true);
 		assert.strictEqual(docs.has(FILE_R), true);
@@ -343,10 +339,7 @@ suite('Neighbor files exclusion tests', function () {
 		assert.strictEqual(neighborSource.get(NeighboringFileType.OpenTabs)?.length, 2);
 		assert.strictEqual(neighborSource.get(NeighboringFileType.OpenTabs)?.shift(), FILE_R);
 		assert.strictEqual(neighborSource.get(NeighboringFileType.OpenTabs)?.shift(), FILE_T);
-		// no related-file traits are produced
 		assert.strictEqual(traits.length, 0);
-		// the related-files provider must not be invoked at all: this guards the
-		// promised avoidance of related-files (LSP) work, not just the returned docs
 		assert.strictEqual(provider.getRelatedFilesResponseCallCount, callCountWhenDisabled);
 	});
 });

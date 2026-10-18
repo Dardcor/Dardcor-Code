@@ -21,7 +21,6 @@ import { createExtensionUnitTestingServices } from '../../../../test/node/servic
 import { PromptRenderer, renderPromptElementJSON } from '../../base/promptRenderer';
 import { FileVariable } from '../fileVariable';
 
-// PromptNodeType enum values from @vscode/prompt-tsx (const enum values are erased at runtime)
 const PromptNodeType = {
 	Piece: 1,
 	Text: 2,
@@ -139,7 +138,6 @@ describe('FileVariable', () => {
 
 describe('FileVariable PDF support', () => {
 
-	// Valid PDF magic bytes: %PDF (\x25\x50\x44\x46) followed by version
 	const VALID_PDF_CONTENT = '%PDF-1.4\n1 0 obj\n<</Type /Catalog>>\nendobj';
 	const INVALID_PDF_CONTENT = 'This is not a PDF file at all';
 
@@ -172,7 +170,6 @@ describe('FileVariable PDF support', () => {
 			});
 		const { messages } = await renderer.render();
 
-		// Should contain a Document content part in the rendered messages
 		expect(hasDocumentContentPart(messages)).toBe(true);
 	});
 
@@ -194,7 +191,6 @@ describe('FileVariable PDF support', () => {
 			});
 		const { messages } = await renderer.render();
 
-		// Non-Anthropic model should not produce a Document content part
 		expect(hasDocumentContentPart(messages)).toBe(false);
 	});
 
@@ -216,7 +212,6 @@ describe('FileVariable PDF support', () => {
 			});
 		const { messages } = await renderer.render();
 
-		// Model without vision should not produce a Document content part
 		expect(hasDocumentContentPart(messages)).toBe(false);
 	});
 
@@ -238,7 +233,6 @@ describe('FileVariable PDF support', () => {
 			});
 		const { messages } = await renderer.render();
 
-		// Invalid PDF should not produce a Document content part
 		expect(hasDocumentContentPart(messages)).toBe(false);
 	});
 
@@ -260,7 +254,6 @@ describe('FileVariable PDF support', () => {
 			});
 		const { messages } = await renderer.render();
 
-		// File read error should not produce a Document content part
 		expect(hasDocumentContentPart(messages)).toBe(false);
 	});
 
@@ -283,7 +276,6 @@ describe('FileVariable PDF support', () => {
 			});
 		const { messages } = await renderer.render();
 
-		// Unsupported model with omitReferences should not produce a Document content part
 		expect(hasDocumentContentPart(messages)).toBe(false);
 	});
 });

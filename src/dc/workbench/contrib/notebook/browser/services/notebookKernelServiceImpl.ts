@@ -131,8 +131,6 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 	) {
 		super();
 
-		// auto associate kernels to new notebook documents, also emit event when
-		// a notebook has been closed (but don't update the memento)
 		this._register(_notebookService.onDidAddNotebookDocument(this._tryAutoBindNotebook, this));
 		this._register(_notebookService.onWillRemoveNotebookDocument(notebook => {
 			const id = NotebookTextModelLikeId.str(notebook);
@@ -144,12 +142,10 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 			this._kernelSourceActionsUpdates.delete(id);
 		}));
 
-		// restore from storage
 		try {
 			const data = JSON.parse(this._storageService.get(NotebookKernelService._storageNotebookBinding, StorageScope.WORKSPACE, '[]'));
 			this._notebookBindings.fromJSON(data);
 		} catch {
-			// ignore
 		}
 	}
 
@@ -189,12 +185,10 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 
 		const id = this._notebookBindings.get(NotebookTextModelLikeId.str(notebook));
 		if (!id) {
-			// no kernel associated
 			return;
 		}
 		const existingKernel = this._kernels.get(id);
 		if (!existingKernel || !NotebookKernelService._score(existingKernel.kernel, notebook)) {
-			// associated kernel not known, not matching
 			return;
 		}
 		if (!onlyThisKernel || existingKernel.kernel === onlyThisKernel) {
@@ -214,8 +208,6 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 		this._kernels.set(kernel.id, new KernelInfo(kernel));
 		this._onDidAddKernel.fire(kernel);
 
-		// auto associate the new kernel to existing notebooks it was
-		// associated to in the past.
 		for (const notebook of this._notebookService.getNotebookTextModels()) {
 			this._tryAutoBindNotebook(notebook, kernel);
 		}
@@ -234,7 +226,6 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 
 	getMatchingKernel(notebook: INotebookTextModelLike): INotebookKernelMatchResult {
 
-		// all applicable kernels
 		const kernels: { kernel: INotebookKernel; instanceAffinity: number; score: number }[] = [];
 		for (const info of this._kernels.values()) {
 			const score = NotebookKernelService._score(info.kernel, notebook);
@@ -242,7 +233,7 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 				kernels.push({
 					score,
 					kernel: info.kernel,
-					instanceAffinity: info.notebookPriorities.get(notebook.uri) ?? 1 /* vscode.NotebookControllerPriority.Default */,
+					instanceAffinity: info.notebookPriorities.get(notebook.uri) ?? 1 ,
 				});
 			}
 		}
@@ -251,7 +242,6 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 			.sort((a, b) => b.instanceAffinity - a.instanceAffinity || a.score - b.score || a.kernel.label.localeCompare(b.kernel.label));
 		const all = kernels.map(obj => obj.kernel);
 
-		// bound kernel
 		const selectedId = this._notebookBindings.get(NotebookTextModelLikeId.str(notebook));
 		const selected = selectedId ? this._kernels.get(selectedId)?.kernel : undefined;
 		const suggestions = kernels.filter(item => item.instanceAffinity > 1).map(item => item.kernel);
@@ -265,7 +255,7 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 			return info.selected;
 		}
 
-		const preferred = info.all.filter(kernel => this._kernels.get(kernel.id)?.notebookPriorities.get(notebook.uri) === 2 /* vscode.NotebookControllerPriority.Preferred */);
+		const preferred = info.all.filter(kernel => this._kernels.get(kernel.id)?.notebookPriorities.get(notebook.uri) === 2 );
 		if (preferred.length === 1) {
 			return preferred[0];
 		}
@@ -273,8 +263,6 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 		return info.all.length === 1 ? info.all[0] : undefined;
 	}
 
-	// a notebook has one kernel, a kernel has N notebooks
-	// notebook <-1----N-> kernel
 	selectKernelForNotebook(kernel: INotebookKernel | undefined, notebook: INotebookTextModelLike): void {
 		const key = NotebookTextModelLikeId.str(notebook);
 		const oldKernel = this._notebookBindings.get(key);
@@ -407,9 +395,6 @@ export class NotebookKernelService extends Disposable implements INotebookKernel
 		});
 	}
 
-	/**
-	 * Get kernel source actions from providers
-	 */
 	getKernelSourceActions2(notebook: INotebookTextModelLike): Promise<INotebookKernelSourceAction[]> {
 		const viewType = notebook.notebookType;
 		const providers = this._kernelSourceActionProviders.get(viewType) ?? [];

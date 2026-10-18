@@ -4,11 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import { DocumentInfo } from './prompt';
 
-/**
- * Interface for writing single-line comments in a given language.
- * Does not include the terminal new-line character (i.e. for many languages,
- * `end` will just be the empty string).
- */
 interface CommentMarker {
 	start: string;
 	end: string;
@@ -16,9 +11,6 @@ interface CommentMarker {
 
 interface ILanguageInfo {
 	readonly lineComment: CommentMarker;
-	/**
-	 * if not set, defaults to the language id
-	 */
 	readonly markdownLanguageIds?: string[];
 }
 
@@ -26,26 +18,6 @@ interface ILanguage extends ILanguageInfo {
 	readonly languageId: string;
 }
 
-/**
- * Language files in VSCode:
- * https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers
- *
- * Missing below from this list are:
- * Diff diff
- * Git git-commit and git-rebase
- * JSON json
- * ShaderLab shaderlab
- * Additional to that list are:
- * Erlang
- * Haskell
- * Kotlin
- * QL
- * Scala
- * Verilog
- *
- * Markdown ids from https://raw.githubusercontent.com/highlightjs/highlight.js/refs/heads/main/SUPPORTED_LANGUAGES.md
- * Also refer to [vscode-dardcor-chat](https://github.com/microsoft/vscode-dardcor-chat/blob/main/src/util/common/languages.ts)
- */
 export const languageMarkers: { [language: string]: ILanguageInfo } = {
 	abap: {
 		lineComment: { start: '"', end: '' },
@@ -225,7 +197,7 @@ export const languageMarkers: { [language: string]: ILanguageInfo } = {
 	},
 	ql: {
 		lineComment: { start: '//', end: '' },
-	}, // QL is a query language for CodeQL
+	},
 	r: {
 		lineComment: { start: '#', end: '' },
 	},
@@ -336,8 +308,8 @@ export function mdCodeBlockLangToLanguageId(mdLanguageId: string): string | unde
 const defaultCommentMarker: CommentMarker = { start: '//', end: '' };
 
 const dontAddLanguageMarker: string[] = [
-	'php', // We don't know if the file starts with `<?php` or not
-	'plaintext', // Doesn't admit comments
+	'php',
+	'plaintext',
 ];
 
 // prettier-ignore
@@ -349,33 +321,15 @@ const shebangLines: { [language: string]: string } = {
 	'yaml': '# YAML data'
 };
 
-/**
- * Determine if a line is a shebang line for a known language
- * @param line The line to check
- * @returns The language if it is a known shebang line, otherwise undefined
- */
 export function isShebangLine(line: string): boolean {
 	return Object.values(shebangLines).includes(line.trim());
 }
 
-/**
- * Best-effort determining whether the top of the source already contains a
- * discernible language marker, in particular a shebang line
- * @param languageId The string name of the language
- * @returns True iff we determined a recognisable language marker
- */
 // prettier-ignore
 export function hasLanguageMarker({ source }: DocumentInfo): boolean {
 	return source.startsWith('#!') || source.startsWith('<!DOCTYPE');
 }
 
-/**
- * Comment a single line of text in a given language.
- * E.g. for python, turn "hello there" into "# hello there"
- *
- * Note: This will not behave as you expect if `text` has multiple lines. In
- * that case, use {@link commentBlockAsSingles} instead.
- */
 export function comment(text: string, languageId: string) {
 	const markers = languageMarkers[languageId] ? languageMarkers[languageId].lineComment : defaultCommentMarker;
 	if (markers) {
@@ -385,15 +339,8 @@ export function comment(text: string, languageId: string) {
 	return '';
 }
 
-/**
- * Comment a block of text using single-line comments.
- *
- * The returned comment block will have a trailing newline exactly when the
- * input does.
- */
 export function commentBlockAsSingles(text: string, languageId: string) {
 	if (text === '') {
-		// Avoid spewing out a long list of blank lines
 		return '';
 	}
 	const trailingNewline = text.endsWith('\n');
@@ -402,13 +349,6 @@ export function commentBlockAsSingles(text: string, languageId: string) {
 	return trailingNewline ? commented + '\n' : commented;
 }
 
-/**
- * Return a one-line comment or text which describes the language of a
- * document, e.g. a shebang line or a comment.
- *
- * @param doc The document we want the marker for.
- * @returns A one-line string that describes the language.
- */
 export function getLanguageMarker(doc: DocumentInfo): string {
 	const { languageId } = doc;
 	if (dontAddLanguageMarker.indexOf(languageId) === -1 && !hasLanguageMarker(doc)) {
@@ -421,13 +361,6 @@ export function getLanguageMarker(doc: DocumentInfo): string {
 	return '';
 }
 
-/**
- * Return a one-line comment containing the relative path of the document, if known.
- *
- * @param doc The document we want the marker for.
- * @param defaultCommentMarker The comment marker to use if the language does not have one.
- * @returns A one-line comment that contains the relative path of the document.
- */
 export function getPathMarker(doc: DocumentInfo): string {
 	if (doc.relativePath) {
 		return `Path: ${doc.relativePath}`;
@@ -435,23 +368,10 @@ export function getPathMarker(doc: DocumentInfo): string {
 	return '';
 }
 
-/**
- * Appends a new line to a string if it does not already end with one.
- *
- * @param str String to append
- *
- * @returns A string with a new line escape character at the end.
- */
 export function newLineEnded(str: string): string {
 	return str === '' || str.endsWith('\n') ? str : str + '\n';
 }
 
-/**
- * Retrieves the language for a given language identifier.
- *
- * @param languageId - The identifier of the language. If undefined, defaults to 'plaintext'.
- * @returns The language associated with the specified language identifier.
- */
 export function getLanguage(languageId: string | undefined): ILanguage {
 	if (typeof languageId === 'string') {
 		return _getLanguage(languageId);

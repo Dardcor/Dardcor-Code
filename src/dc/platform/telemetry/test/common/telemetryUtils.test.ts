@@ -110,7 +110,6 @@ suite('TelemetryUtils', () => {
 				}
 			};
 
-			// getRemoteName should extract just the authority name
 			assert.strictEqual(cleanRemoteAuthority('ssh-remote+server1.example.com', config), 'ssh-remote');
 		});
 

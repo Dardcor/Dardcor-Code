@@ -3,31 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Component Governance (CG) NOTICE cutover.
-//
-// During each platform compile stage this script pulls the CG-generated NOTICE
-// (produced by the parallel Quality stage as the `notice_output` artifact) and
-// overwrites the repo-root ThirdPartyNotices.txt BEFORE gulp packages it
-// (build/gulpfile.vscode.ts reads 'ThirdPartyNotices.txt' at package time).
-//
-// It clones the proven copilot VSIX background-download harness: a detached
-// `deemon` poller starts at compile start (maximum overlap) and the package
-// step attaches/blocks on it right before packaging. If the artifact is ready
-// by then the added wall-clock is near-zero; otherwise we block for at most a
-// short budget and then DEGRADE to the legacy mixin notice.
-//
-// Design notes:
-//   * copy-then-overwrite: mixin-quality.ts is left untouched (shared chokepoint
-//     used by 8+ pipelines). The legacy ThirdPartyNotices.txt it lays down is
-//     our guaranteed fallback, so we never ship with NO notice.
-//   * NON-FATAL: this script always exits 0. A notice problem must never break
-//     packaging during the cutover. Steady-state can flip to fatal later.
-//   * SHORT poll budget (not the copilot 30min): a missing artifact must degrade
-//     to fallback fast, otherwise the non-fatal design is defeated by a 30min hang.
-//   * Three greppable markers so a build log answers "fresh vs stale vs off":
-//       [notice-cutover] RESULT=fresh     overwrote from notice_output (logs producer)
-//       [notice-cutover] RESULT=fallback  artifact missing -> kept legacy notice
-//       [notice-cutover] RESULT=disabled  feature flag off -> kept legacy notice
 
 import fs from 'fs';
 import path from 'path';
@@ -40,24 +15,9 @@ import { retry } from './retry.ts';
 
 const ARTIFACT_NAME = 'notice_output';
 const QUALITY_JOB_NAMES = ['Quality Checks', 'Quality'];
-// The merged, shipping NOTICE (CG + scanned extension licenses + cglicenses overrides).
 const SHIPPING_NOTICE_NAME = 'ThirdPartyNotices.new.txt';
 const TARGET_NOTICE = path.resolve('ThirdPartyNotices.txt');
 
-// Poll budget: 30 attempts x 30s = 15 minutes. Deliberately far below the
-// copilot 30min so a never-produced artifact degrades to fallback quickly, but
-// with generous margin over the parallel Quality stage (CG + scan + merge).
-// The gate accepts only once ThirdPartyNotices.new.txt has been downloaded,
-// extracted, and validated non-empty (>1KB) -- merely seeing it in the
-// container listing is NOT sufficient, because the listing entry can appear
-// before the file's content has finished committing (see waitForNotice). On
-// such a mid-upload miss we keep polling rather than falling back, so a
-// fast-compiling platform can never ship the legacy notice while its peers
-// ship the CG notice. The Quality-completion backstop ends the wait early only
-// when .new.txt was never produced at all.
-// NB: this is the OUTER artifact-availability poll. It is unrelated to the
-// inner retry() wrapper in retry.ts, which independently retries each AZDO API
-// call up to 10 times for transient network errors and emits no attempt log.
 const POLL_ATTEMPTS = 30;
 const POLL_INTERVAL_MS = 30_000;
 
@@ -76,9 +36,6 @@ interface Timeline {
 	readonly records: TimelineRecord[];
 }
 
-// We need the container `data` field (which the publish.ts Artifact type omits)
-// to list the FILES inside the notice_output container artifact. For a container
-// artifact, resource.data looks like "#/<containerId>/<rootPath>".
 interface NoticeArtifact {
 	readonly name: string;
 	readonly resource: {
@@ -93,7 +50,6 @@ interface NoticeArtifact {
 function installDiagnostics(): void {
 	process.on('uncaughtException', err => {
 		console.error('[notice-cutover] Uncaught exception:', err);
-		// Non-fatal: never break packaging because of a notice problem.
 		process.exit(0);
 	});
 	process.on('unhandledRejection', reason => {
@@ -125,17 +81,7 @@ async function getPipelineArtifacts(): Promise<NoticeArtifact[]> {
 	return result.value;
 }
 
-// Lists the FILES inside a container artifact via the AZDO container-items API.
-// NOTE: a file path can appear in this listing slightly BEFORE its content has
-// finished committing to the container (observed in build 450517: the listing
-// showed ThirdPartyNotices.new.txt one poll before the artifact download
-// actually yielded it). So this listing is a NECESSARY but not SUFFICIENT
-// readiness signal -- the caller must still download+extract+validate the file
-// before accepting it. Returns the file paths, or undefined if the listing
-// could not be retrieved (transient error) so the caller can distinguish "file
-// genuinely absent" from "could not check".
 async function listArtifactFiles(artifact: NoticeArtifact): Promise<string[] | undefined> {
-	// resource.data for a container artifact looks like: #/<containerId>/<rootPath>
 	const match = /^#\/(\d+)\/(.+)$/.exec(artifact.resource.data ?? '');
 	if (!match) {
 		return undefined;
@@ -195,9 +141,6 @@ async function unzip(zipPath: string, outputPath: string): Promise<string[]> {
 
 						const filePath = path.join(outputPath, entry.fileName);
 
-						// Zip-slip guard: ensure the resolved entry path stays within
-						// outputPath. A crafted zip could use ../ segments to escape and
-						// overwrite repo files used later in the build.
 						const resolvedOutput = path.resolve(outputPath);
 						const resolvedTarget = path.resolve(filePath);
 						if (resolvedTarget !== resolvedOutput && !resolvedTarget.startsWith(resolvedOutput + path.sep)) {
@@ -230,14 +173,6 @@ interface ExtractedNotice {
 	readonly size: number;
 }
 
-// Downloads + extracts the notice_output artifact into tmpDir and validates that
-// ThirdPartyNotices.new.txt is actually present AND non-empty (>1KB). Returns the
-// extracted notice on success, or undefined if the file is missing/too small in
-// the EXTRACTED output -- which, when the container listing claimed it was there,
-// means the content is still committing (mid-upload). The caller treats undefined
-// as "not ready yet" and re-polls; it must NEVER be treated as terminal fallback,
-// because a fast platform that hits this window would otherwise ship the legacy
-// notice while its peers ship the CG notice (the cross-arch mismatch bug).
 async function tryExtractNotice(artifact: NoticeArtifact, tmpDir: string): Promise<ExtractedNotice | undefined> {
 	fs.rmSync(tmpDir, { recursive: true, force: true });
 	fs.mkdirSync(tmpDir, { recursive: true });
@@ -256,8 +191,6 @@ async function tryExtractNotice(artifact: NoticeArtifact, tmpDir: string): Promi
 	}
 
 	const size = fs.statSync(shipping).size;
-	// Guard: a tiny file means the merge produced nothing usable OR the upload is
-	// still in flight. Either way, do not accept it -- re-poll.
 	if (size <= 1024) {
 		log(`  * ${SHIPPING_NOTICE_NAME} extracted but too small (${size} bytes; mid-upload or empty merge); will recheck next poll.`);
 		return undefined;
@@ -267,8 +200,6 @@ async function tryExtractNotice(artifact: NoticeArtifact, tmpDir: string): Promi
 	return { shippingPath: shipping, metaFile, size };
 }
 
-// Returns the validated, extracted CG NOTICE if it becomes available within the
-// short budget, otherwise undefined (caller keeps the legacy notice).
 async function waitForNotice(tmpDir: string): Promise<ExtractedNotice | undefined> {
 	const startTime = Date.now();
 
@@ -278,9 +209,6 @@ async function waitForNotice(tmpDir: string): Promise<ExtractedNotice | undefine
 		try {
 			log(`Waiting for ${ARTIFACT_NAME} artifact (attempt ${index + 1}/${POLL_ATTEMPTS}, ${elapsed}s elapsed)...`);
 
-			// The Quality job state is only a BACKSTOP (see below): if it has
-			// completed and .new.txt never even appeared in the listing, the file
-			// is never coming and we give up early instead of burning the budget.
 			const qualityJob = await getQualityJob().catch(() => undefined);
 			if (qualityJob) {
 				log(`  * Quality job: state=${qualityJob.state}, result=${qualityJob.result ?? 'n/a'}`);
@@ -291,24 +219,14 @@ async function waitForNotice(tmpDir: string): Promise<ExtractedNotice | undefine
 
 			const artifact = allArtifacts.find(a => a.name === ARTIFACT_NAME);
 			if (artifact) {
-				// The notice_output container is populated in TWO phases by the
-				// Quality stage (first generated.txt + meta, then seconds-to-minutes
-				// later the shipping .new.txt). We accept ONLY once .new.txt has been
-				// downloaded, extracted, and validated non-empty -- the listing alone
-				// races against content-commit (build 450517 armhf), so on a listing
-				// hit we attempt a real download+extract and re-poll if it isn't ready.
 				const files = await listArtifactFiles(artifact).catch(() => undefined);
 				if (files === undefined) {
-					// Could not list (transient error or unexpected data shape). Do not
-					// give up; just retry next poll. The budget still bounds the wait.
 					log('  * could not list notice_output files yet; will recheck next poll');
 				} else {
 					log(`  * notice_output files: ${files.map(f => path.basename(f)).join(', ') || '(empty)'}`);
 					if (files.some(f => path.basename(f) === SHIPPING_NOTICE_NAME)) {
 						log(`  * ${SHIPPING_NOTICE_NAME} listed; verifying extracted content...`);
 						const extracted = await tryExtractNotice(artifact, tmpDir).catch(err => {
-							// A download/extract failure here (e.g. partial zip mid-upload)
-							// is NOT terminal: keep polling within budget.
 							log(`  * download/extract attempt failed (${err}); will recheck next poll.`);
 							return undefined;
 						});
@@ -316,13 +234,7 @@ async function waitForNotice(tmpDir: string): Promise<ExtractedNotice | undefine
 							log(`  * ${SHIPPING_NOTICE_NAME} extracted and validated (${extracted.size} bytes); accepting.`);
 							return extracted;
 						}
-						// Listed but not yet downloadable/valid: fall through to wait + re-poll.
-						// Deliberately NO early give-up here even if the Quality job reports
-						// "completed" -- the artifact upload is async (continueOnError) and may
-						// still be finalizing, so we let the budget bound the wait.
 					} else if (qualityJob && qualityJob.state === 'completed') {
-						// BACKSTOP: .new.txt was never even listed AND Quality finished
-						// => it is never coming. Fall back instead of polling the full budget.
 						log(`  * Quality job completed but ${SHIPPING_NOTICE_NAME} never appeared in artifact; giving up.`);
 						return undefined;
 					} else {
@@ -349,10 +261,6 @@ async function waitForNotice(tmpDir: string): Promise<ExtractedNotice | undefine
 async function main(): Promise<void> {
 	installDiagnostics();
 
-	// Feature flag = instant rollback. Default ON during the cutover validation;
-	// set VSCODE_OVERWRITE_TPN=false to force the legacy mixin notice. Check is
-	// case-insensitive on purpose so YAML casing (true/false vs True/False) can't
-	// silently break the rollback lever.
 	if ((process.env['VSCODE_OVERWRITE_TPN'] ?? '').trim().toLowerCase() === 'false') {
 		log('RESULT=disabled feature flag off (VSCODE_OVERWRITE_TPN=false); keeping legacy notice.');
 		return;
@@ -361,14 +269,11 @@ async function main(): Promise<void> {
 	const tmpDir = path.resolve('.build/tmp-notice');
 	const notice = await waitForNotice(tmpDir);
 	if (!notice) {
-		// Only reached on GENUINE exhaustion or a confirmed never-produced artifact
-		// -- never on a transient mid-upload miss (those re-poll inside waitForNotice).
 		log(`RESULT=fallback ${SHIPPING_NOTICE_NAME} unavailable within budget; keeping legacy notice.`);
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 		return;
 	}
 
-	// Log provenance for legal traceability: which build/commit produced this NOTICE.
 	if (notice.metaFile) {
 		log('NOTICE provenance:');
 		for (const line of fs.readFileSync(notice.metaFile, 'utf8').split(/\r?\n/)) {
@@ -386,7 +291,6 @@ async function main(): Promise<void> {
 }
 
 main().catch(err => {
-	// Non-fatal: log and exit 0 so packaging proceeds with the legacy notice.
 	console.error('[notice-cutover] Non-fatal error; keeping legacy notice:', err);
 	process.exitCode = 0;
 });

@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -13,12 +12,6 @@ import { DebugNameData } from '../debugName';
 import { getLogger } from '../logging/logging';
 import { DebugLocation } from '../debugLocation';
 
-/**
- * Creates an observable value.
- * Observers get informed when the value changes.
- * @template TChange An arbitrary type to describe how or why the value changed. Defaults to `void`.
- * Observers will receive every single change value.
- */
 
 export function observableValue<T, TChange = void>(name: string, initialValue: T): ISettableObservable<T, TChange>;
 export function observableValue<T, TChange = void>(owner: object, initialValue: T): ISettableObservable<T, TChange>;
@@ -99,10 +92,6 @@ export class ObservableValue<T, TChange = void>
 		this._value = value as T;
 	}
 }
-/**
- * A disposable observable. When disposed, its value is also disposed.
- * When a new value is set, the previous value is disposed.
- */
 
 export function disposableObservableValue<T extends IDisposable | undefined, TChange = void>(nameOrOwner: string | object, initialValue: T, debugLocation = DebugLocation.ofCaller()): ISettableObservable<T, TChange> & IDisposable {
 	let debugNameData: DebugNameData;

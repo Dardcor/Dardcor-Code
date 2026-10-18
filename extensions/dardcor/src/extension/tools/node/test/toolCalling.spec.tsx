@@ -204,10 +204,6 @@ suite('ChatToolCalls thinking handling', () => {
 	});
 
 	test('historical: includes thinking on messages API for adaptive-thinking models', async () => {
-		// Adaptive-thinking models (Opus 4.6+/Sonnet 4.6+) keep previous-turn
-		// thinking blocks by default and accept them re-sent — replaying keeps
-		// the assistant message bytes stable so the prompt-cache prefix
-		// survives the turn boundary.
 		const opus = makeEndpoint('claude-opus-4.8', 'messages', true);
 		const sonnet = makeEndpoint('claude-sonnet-4.6', 'messages', true);
 		expect(hasThinkingPart(await render(opus, [makeThinkingRound('claude-opus-4.8')], true))).toBe(true);
@@ -215,9 +211,6 @@ suite('ChatToolCalls thinking handling', () => {
 	});
 
 	test('historical: drops thinking on messages API for budget-mode models even when modelId matches', async () => {
-		// Budget-mode models (Haiku 4.5, Sonnet ≤4.5) strictly validate any
-		// provided previous-turn thinking blocks ("cannot be modified") and
-		// 400 on our reconstructed blocks — #318076.
 		const endpoint = makeEndpoint('claude-haiku-4-5', 'messages', false);
 		const result = await render(endpoint, [makeThinkingRound('claude-haiku-4-5')], true);
 		expect(hasThinkingPart(result)).toBe(false);
@@ -262,7 +255,6 @@ suite('ChatToolCalls thinking handling', () => {
 
 	test('historical: backward-compat reads phaseModelId when modelId is missing', async () => {
 		const endpoint = makeEndpoint('gpt-5', 'responses');
-		// Older persisted rounds use `phaseModelId` instead of `modelId`.
 		const round = ToolCallRound.create({
 			id: 'r1',
 			response: 'thinking response',

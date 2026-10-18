@@ -42,17 +42,6 @@ export function createApprovalReasonBadge(
 	return widget;
 }
 
-/**
- * Creates a {@link ToolRiskBadgeWidget} for a tool confirmation surface, or `undefined` when the
- * feature is disabled or the tool is unknown. A cached assessment renders synchronously; otherwise
- * the badge shows a loading state and assesses asynchronously, hiding itself on failure.
- *
- * The widget and its assessment token are registered on `store`, so disposing the store cancels
- * any in-flight assessment. The widget is returned so terminal confirmations can attach
- * `setDetails` / `onDidHide`; most callers only need its `domNode` as a `footerBanner`.
- *
- * `kind` selects the rubric (terminal vs. generic); when omitted it is auto-detected from the tool id.
- */
 export function createToolRiskBadge(
 	store: DisposableStore,
 	instantiationService: IInstantiationService,
@@ -62,7 +51,6 @@ export function createToolRiskBadge(
 	parameters: unknown,
 	kind?: ToolRiskPromptKind,
 ): ToolRiskBadgeWidget | undefined {
-	// Check the feature flag before the tool lookup so it is skipped when disabled.
 	if (!riskAssessmentService.isEnabled()) {
 		return undefined;
 	}

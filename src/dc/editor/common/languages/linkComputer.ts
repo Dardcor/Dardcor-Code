@@ -27,7 +27,7 @@ export const enum State {
 	AlmostThere = 11,
 	End = 12,
 	Accept = 13,
-	LastKnownState = 14 // marker, custom states may follow
+	LastKnownState = 14
 }
 
 export type Edge = [State, number, State];
@@ -100,7 +100,6 @@ export class StateMachine {
 	}
 }
 
-// State machine for http:// or https:// or file://
 let _stateMachine: StateMachine | null = null;
 function getStateMachine(): StateMachine {
 	if (_stateMachine === null) {
@@ -154,7 +153,6 @@ function getClassifier(): CharacterClassifier<CharacterClass> {
 	if (_classifier === null) {
 		_classifier = new CharacterClassifier<CharacterClass>(CharacterClass.None);
 
-		// allow-any-unicode-next-line
 		const FORCE_TERMINATION_CHARACTERS = ' \t<>\'\"、。｡､，．：；‘〈「『〔（［｛｢｣｝］）〕』」〉’｀～…|';
 		for (let i = 0; i < FORCE_TERMINATION_CHARACTERS.length; i++) {
 			_classifier.set(FORCE_TERMINATION_CHARACTERS.charCodeAt(i), CharacterClass.ForceTermination);
@@ -171,7 +169,6 @@ function getClassifier(): CharacterClassifier<CharacterClass> {
 export class LinkComputer {
 
 	private static _createLink(classifier: CharacterClassifier<CharacterClass>, line: string, lineNumber: number, linkBeginIndex: number, linkEndIndex: number): ILink {
-		// Do not allow to end link in certain characters...
 		let lastIncludedCharIndex = linkEndIndex - 1;
 		do {
 			const chCode = line.charCodeAt(lastIncludedCharIndex);
@@ -182,7 +179,6 @@ export class LinkComputer {
 			lastIncludedCharIndex--;
 		} while (lastIncludedCharIndex > linkBeginIndex);
 
-		// Handle links enclosed in parens, square brackets and curlys.
 		if (linkBeginIndex > 0) {
 			const charCodeBeforeLink = line.charCodeAt(linkBeginIndex - 1);
 			const lastCharCodeInLink = line.charCodeAt(lastIncludedCharIndex);
@@ -192,9 +188,6 @@ export class LinkComputer {
 				|| (charCodeBeforeLink === CharCode.OpenSquareBracket && lastCharCodeInLink === CharCode.CloseSquareBracket)
 				|| (charCodeBeforeLink === CharCode.OpenCurlyBrace && lastCharCodeInLink === CharCode.CloseCurlyBrace)
 			) {
-				// Do not end in ) if ( is before the link start
-				// Do not end in ] if [ is before the link start
-				// Do not end in } if { is before the link start
 				lastIncludedCharIndex--;
 			}
 		}
@@ -259,8 +252,6 @@ export class LinkComputer {
 							chClass = (hasOpenCurlyBracket ? CharacterClass.None : CharacterClass.ForceTermination);
 							break;
 
-						// The following three rules make it that ' or " or ` are allowed inside links
-						// only if the link is wrapped by some other quote character
 						case CharCode.SingleQuote:
 						case CharCode.DoubleQuote:
 						case CharCode.BackTick:
@@ -273,18 +264,15 @@ export class LinkComputer {
 							}
 							break;
 						case CharCode.Asterisk:
-							// `*` terminates a link if the link began with `*`
 							chClass = (linkBeginChCode === CharCode.Asterisk) ? CharacterClass.ForceTermination : CharacterClass.None;
 							break;
 						case CharCode.Space:
-							// ` ` allow space in between [ and ]
 							chClass = (inSquareBrackets ? CharacterClass.None : CharacterClass.ForceTermination);
 							break;
 						default:
 							chClass = classifier.get(chCode);
 					}
 
-					// Check if character terminates link
 					if (chClass === CharacterClass.ForceTermination) {
 						result.push(LinkComputer._createLink(classifier, line, i, linkBeginIndex, j));
 						resetStateMachine = true;
@@ -293,14 +281,12 @@ export class LinkComputer {
 
 					let chClass: CharacterClass;
 					if (chCode === CharCode.OpenSquareBracket) {
-						// Allow for the authority part to contain ipv6 addresses which contain [ and ]
 						hasOpenSquareBracket = true;
 						chClass = CharacterClass.None;
 					} else {
 						chClass = classifier.get(chCode);
 					}
 
-					// Check if character terminates link
 					if (chClass === CharacterClass.ForceTermination) {
 						resetStateMachine = true;
 					} else {
@@ -319,7 +305,6 @@ export class LinkComputer {
 					hasOpenSquareBracket = false;
 					hasOpenCurlyBracket = false;
 
-					// Record where the link started
 					linkBeginIndex = j + 1;
 					linkBeginChCode = chCode;
 				}
@@ -337,14 +322,8 @@ export class LinkComputer {
 	}
 }
 
-/**
- * Returns an array of all links contains in the provided
- * document. *Note* that this operation is computational
- * expensive and should not run in the UI thread.
- */
 export function computeLinks(model: ILinkComputerTarget | null): ILink[] {
 	if (!model || typeof model.getLineCount !== 'function' || typeof model.getLineContent !== 'function') {
-		// Unknown caller!
 		return [];
 	}
 	return LinkComputer.computeLinks(model);

@@ -43,7 +43,7 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 
 	private currentCancellationTokenSources = new ResourceMap<CancellationTokenSource>();
 
-	private static readonly MAX_CELL_LINES = 5000; // Skip extremely large cells
+	private static readonly MAX_CELL_LINES = 5000;
 
 	constructor(
 		private readonly notebookEditor: INotebookEditor,
@@ -76,7 +76,7 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 	}
 
 	private async updateInlineVariables(event: ICellExecutionStateChangedEvent): Promise<void> {
-		if (event.changed) { // undefined -> execution was completed, so return on all else. no code should execute until we know it's an execution completion
+		if (event.changed) {
 			return;
 		}
 
@@ -85,13 +85,11 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 			return;
 		}
 
-		// Cancel any ongoing request in this cell
 		const existingSource = this.currentCancellationTokenSources.get(cell.uri);
 		if (existingSource) {
 			existingSource.cancel();
 		}
 
-		// Create a new CancellationTokenSource for the new request per cell
 		this.currentCancellationTokenSources.set(cell.uri, new CancellationTokenSource());
 		const token = this.currentCancellationTokenSources.get(cell.uri)!.token;
 
@@ -112,7 +110,6 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 		const inlineValuesSetting = this.configurationService.getValue<'on' | 'auto' | 'off'>(NotebookSetting.notebookInlineValues);
 		const hasInlineValueProvider = this.languageFeaturesService.inlineValuesProvider.has(model);
 
-		// Skip if setting is off or if auto and no provider is registered
 		if (inlineValuesSetting === 'off' || (inlineValuesSetting === 'auto' && !hasInlineValueProvider)) {
 			return;
 		}
@@ -122,12 +119,11 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 		const inlineDecorations: IModelDeltaDecoration[] = [];
 
 		if (hasInlineValueProvider) {
-			// use extension based provider, borrowed from https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/debug/browser/debugEditorContribution.ts#L679
 			const lastLine = model.getLineCount();
 			const lastColumn = model.getLineMaxColumn(lastLine);
 			const ctx: InlineValueContext = {
-				frameId: 0, // ignored, we won't have a stack from since not in a debug session
-				stoppedLocation: new Range(lastLine, lastColumn, lastLine, lastColumn) // executing cell by cell, so "stopped" location would just be the end of document
+				frameId: 0,
+				stoppedLocation: new Range(lastLine, lastColumn, lastLine, lastColumn)
 			};
 
 			const providers = this.languageFeaturesService.inlineValuesProvider.ordered(model).reverse();
@@ -147,9 +143,9 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 
 				const kernel = this.notebookKernelService.getMatchingKernel(notebook);
 				const kernelVars: VariablesResult[] = [];
-				if (result.some(iv => iv.type === 'variable')) { // if anyone will need a lookup, get vars now to avoid needing to do it multiple times
+				if (result.some(iv => iv.type === 'variable')) {
 					if (!this.notebookEditor.hasModel()) {
-						return; // should not happen, a cell will be executed
+						return;
 					}
 					const variables = kernel.selected?.provideVariables(event.notebook, undefined, 'named', 0, token);
 					if (variables) {
@@ -168,7 +164,7 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 						case 'variable': {
 							const name = (iv as InlineValueVariableLookup).variableName;
 							if (!name) {
-								continue; // skip to next var, no valid name to lookup with
+								continue;
 							}
 							const value = kernelVars.find(v => v.name === name)?.value;
 							if (!value) {
@@ -178,7 +174,7 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 							break;
 						}
 						case 'expression': {
-							continue; // no active debug session, so evaluate would break
+							continue;
 						}
 					}
 
@@ -189,7 +185,7 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 							lineSegments = [];
 							lineDecorations.set(line, lineSegments);
 						}
-						if (!lineSegments.some(iv => iv.text === text)) { // de-dupe
+						if (!lineSegments.some(iv => iv.text === text)) {
 							lineSegments.push(new InlineSegment(iv.range.startColumn, text));
 						}
 					}
@@ -200,7 +196,6 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 
 			await Promise.all(promises);
 
-			// sort line segments and concatenate them into a decoration
 			lineDecorations.forEach((segments, line) => {
 				if (segments.length > 0) {
 					segments.sort((a, b) => a.column - b.column);
@@ -218,9 +213,9 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 				}
 			});
 
-		} else if (inlineValuesSetting === 'on') { // fallback approach only when setting is 'on'
+		} else if (inlineValuesSetting === 'on') {
 			if (!this.notebookEditor.hasModel()) {
-				return; // should not happen, a cell will be executed
+				return;
 			}
 			const kernel = this.notebookKernelService.getMatchingKernel(this.notebookEditor.textModel);
 			const variables = kernel?.selected?.provideVariables(event.notebook, undefined, 'named', 0, token);
@@ -239,31 +234,26 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 				return;
 			}
 
-			// Skip processing for extremely large cells
 			if (document.getLineCount() > NotebookInlineVariablesController.MAX_CELL_LINES) {
 				return;
 			}
 
 			const processedVars = new Set<string>();
 
-			// Get both function ranges and comment ranges
 			const functionRanges = this.getFunctionRanges(document);
 			const commentedRanges = this.getCommentedRanges(document);
 			const ignoredRanges = [...functionRanges, ...commentedRanges];
 			const lineDecorations = new Map<number, InlineSegment[]>();
 
-			// For each variable name found in the kernel results
 			for (const varName of varNames) {
 				if (processedVars.has(varName)) {
 					continue;
 				}
 
-				// Look for variable usage globally - using word boundaries to ensure exact matches
 				const regex = new RegExp(`\\b${varName}\\b(?!\\w)`, 'g');
 				let lastMatchOutsideIgnored: { line: number; column: number } | null = null;
 				let foundMatch = false;
 
-				// Scan lines in reverse to find last occurrence first
 				const lines = document.getValue().split('\n');
 				for (let lineNumber = lines.length - 1; lineNumber >= 0; lineNumber--) {
 					const line = lines[lineNumber];
@@ -273,19 +263,18 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 						const startIndex = match.index;
 						const pos = new Position(lineNumber + 1, startIndex + 1);
 
-						// Check if this position is in any ignored range (function or comment)
 						if (!this.isPositionInRanges(pos, ignoredRanges)) {
 							lastMatchOutsideIgnored = {
 								line: lineNumber + 1,
 								column: startIndex + 1
 							};
 							foundMatch = true;
-							break; // Take first match in reverse order (which is last chronologically)
+							break;
 						}
 					}
 
 					if (foundMatch) {
-						break; // We found our last valid occurrence, no need to check earlier lines
+						break;
 					}
 				}
 
@@ -297,7 +286,7 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 						lineSegments = [];
 						lineDecorations.set(lastMatchOutsideIgnored.line, lineSegments);
 					}
-					if (!lineSegments.some(iv => iv.text === inlineVal)) { // de-dupe
+					if (!lineSegments.some(iv => iv.text === inlineVal)) {
 						lineSegments.push(new InlineSegment(lastMatchOutsideIgnored.column, inlineVal));
 					}
 				}
@@ -305,7 +294,6 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 				processedVars.add(varName);
 			}
 
-			// sort line segments and concatenate them into a decoration
 			lineDecorations.forEach((segments, line) => {
 				if (segments.length > 0) {
 					segments.sort((a, b) => a.column - b.column);
@@ -347,11 +335,9 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 		for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
 			const line = lines[lineNumber];
 
-			// Check for Python function/class declarations
 			const pythonMatch = line.match(pythonFunctionDeclRegex);
 			if (pythonMatch) {
 				if (inFunction) {
-					// If we're already in a function and find another at the same or lower indent, close the current one
 					const currentIndent = pythonMatch[1].length;
 					if (currentIndent <= pythonIndentLevel) {
 						functionRanges.push(new Range(functionStartLine + 1, 1, lineNumber, line.length + 1));
@@ -367,18 +353,13 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 				continue;
 			}
 
-			// Check indentation for Python functions
 			if (inFunction) {
-				// Skip empty lines
 				if (line.trim() === '') {
 					continue;
 				}
 
-				// Get the indentation of the current line
 				const currentIndent = line.match(/^\s*/)?.[0].length ?? 0;
 
-				// If we hit a line with same or lower indentation than where the function started,
-				// we've exited the function
 				if (currentIndent <= pythonIndentLevel) {
 					functionRanges.push(new Range(functionStartLine + 1, 1, lineNumber, line.length + 1));
 					inFunction = false;
@@ -387,7 +368,6 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 			}
 		}
 
-		// Handle case where Python function is at the end of the document
 		if (inFunction) {
 			functionRanges.push(new Range(functionStartLine + 1, 1, lines.length, lines[lines.length - 1].length + 1));
 		}
@@ -433,7 +413,6 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 		try {
 			return this.getCommentedRangesByAccurateTokenization(document);
 		} catch (e) {
-			// Fall back to manual parsing if tokenization fails
 			return this.getCommentedRangesByManualParsing(document);
 		}
 	}
@@ -442,51 +421,42 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 		const commentRanges: Range[] = [];
 		const lineCount = document.getLineCount();
 
-		// Skip processing for extremely large documents
 		if (lineCount > NotebookInlineVariablesController.MAX_CELL_LINES) {
 			return commentRanges;
 		}
 
-		// Process each line - force tokenization if needed and process tokens in a single pass
 		for (let lineNumber = 1; lineNumber <= lineCount; lineNumber++) {
-			// Force tokenization if needed
 			if (!document.tokenization.hasAccurateTokensForLine(lineNumber)) {
 				document.tokenization.forceTokenization(lineNumber);
 			}
 
 			const lineTokens = document.tokenization.getLineTokens(lineNumber);
 
-			// Skip lines with no tokens
 			if (lineTokens.getCount() === 0) {
 				continue;
 			}
 
 			let startCharacter: number | undefined;
 
-			// Check each token in the line
 			for (let tokenIndex = 0; tokenIndex < lineTokens.getCount(); tokenIndex++) {
 				const tokenType = lineTokens.getStandardTokenType(tokenIndex);
 
 				if (tokenType === StandardTokenType.Comment || tokenType === StandardTokenType.String || tokenType === StandardTokenType.RegEx) {
 					if (startCharacter === undefined) {
-						// Start of a comment or string
 						startCharacter = lineTokens.getStartOffset(tokenIndex);
 					}
 
 					const endCharacter = lineTokens.getEndOffset(tokenIndex);
 
-					// Check if this is the end of the comment/string section (either end of line or different token type follows)
 					const isLastToken = tokenIndex === lineTokens.getCount() - 1;
 					const nextTokenDifferent = !isLastToken &&
 						lineTokens.getStandardTokenType(tokenIndex + 1) !== tokenType;
 
 					if (isLastToken || nextTokenDifferent) {
-						// End of comment/string section
 						commentRanges.push(new Range(lineNumber, startCharacter + 1, lineNumber, endCharacter + 1));
 						startCharacter = undefined;
 					}
 				} else {
-					// Reset when we hit a non-comment, non-string token
 					startCharacter = undefined;
 				}
 			}
@@ -500,7 +470,6 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 		const lines = document.getValue().split('\n');
 		const languageId = document.getLanguageId();
 
-		// Different comment patterns by language
 		const lineCommentToken =
 			languageId === 'python' ? '#' :
 				languageId === 'javascript' || languageId === 'typescript' ? '//' :
@@ -518,7 +487,6 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 			const line = lines[lineNumber];
 			const trimmedLine = line.trim();
 
-			// Skip empty lines
 			if (trimmedLine.length === 0) {
 				continue;
 			}
@@ -559,7 +527,6 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 			}
 		}
 
-		// Handle block comment at end of file
 		if (inBlockComment) {
 			commentRanges.push(new Range(
 				blockCommentStartLine + 1,
@@ -587,10 +554,9 @@ export class NotebookInlineVariablesController extends Disposable implements INo
 	private initCellContentListener(cell: ICellViewModel) {
 		const cellModel = cell.textModel;
 		if (!cellModel) {
-			return; // should not happen
+			return;
 		}
 
-		// Clear decorations on content change
 		this.cellContentListeners.set(cell.uri, cellModel.onDidChangeContent(() => {
 			this.clearCellInlineDecorations(cell);
 		}));

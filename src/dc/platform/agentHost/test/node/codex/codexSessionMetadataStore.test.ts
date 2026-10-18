@@ -101,8 +101,6 @@ suite('CodexSessionMetadataStore', () => {
 			managedWorkingDirectory: managed.toString(),
 		});
 
-		// Adopting a user folder must be able to change `cwd` while explicitly
-		// clearing the managed path — the two fields are never coupled.
 		await store.write(session, { cwd: userFolder, managedWorkingDirectory: null, ownsManagedWorkingDirectory: false });
 		const afterAdopt = await store.read(session);
 		assert.deepStrictEqual({
@@ -116,8 +114,6 @@ suite('CodexSessionMetadataStore', () => {
 
 	test('an overlay written before this field existed reads back with no managed working directory', async () => {
 		const database = new TestSessionDatabase();
-		// Simulates a legacy overlay: only the boolean flag and `cwd` were ever
-		// written, the explicit path key was never introduced yet.
 		await database.setMetadata('codex.ownsManagedWorkingDirectory', 'true');
 		await database.setMetadata('codex.cwd', URI.file('/Users/dev/adopted-later').toString());
 		const store = new CodexSessionMetadataStore(createSessionDataService(database), new NullLogService());

@@ -10,15 +10,7 @@ import type { NotebookCellMetadata } from '../../../common/notebookCommon.js';
 import type * as rendererApi from 'vscode-notebook-renderer';
 import type { NotebookCellOutputTransferData } from '../../../../../../platform/dnd/browser/dnd.js';
 
-// !! IMPORTANT !! ----------------------------------------------------------------------------------
-// import { RenderOutputType } from 'dc/workbench/contrib/notebook/browser/notebookBrowser';
-// We can ONLY IMPORT as type in this module. This also applies to const enums that would evaporate
-// in normal compiles but remain a dependency in transpile-only compiles
-// !! IMPORTANT !! ----------------------------------------------------------------------------------
 
-// !! IMPORTANT !! everything must be in-line within the webviewPreloads
-// function. Imports are not allowed. This is stringified and injected into
-// the webview.
 
 declare namespace globalThis {
 	const acquireVsCodeApi: () => ({
@@ -93,9 +85,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 	/* eslint-disable no-restricted-globals, no-restricted-syntax */
 
-	// The use of global `window` should be fine in this context, even
-	// with aux windows. This code is running from within an `iframe`
-	// where there is only one `window` object anyway.
 
 	const userAgent = navigator.userAgent;
 	const isChrome = (userAgent.indexOf('Chrome') >= 0);
@@ -130,7 +119,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 				if (disposed) {
 					return;
 				}
-				const end = Date.now() + 15; // one frame at 64fps
+				const end = Date.now() + 15;
 				runner(Object.freeze({
 					didTimeout: true,
 					timeRemaining() {
@@ -177,8 +166,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 		if (!outputFocus) {
 			return;
 		}
-		// Possible we're tabbing through the elements of the same output.
-		// Lets see if focus is set back to the same output.
 		lastFocusedOutput = undefined;
 		setTimeout(() => {
 			if (lastFocusedOutput?.id === outputFocus.id) {
@@ -199,7 +186,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 		);
 	};
 
-	// check if an input element is focused within the output element
 	const checkOutputInputFocus = (e: FocusEvent) => {
 		lastFocusedOutput = getOutputContainer(e);
 		const activeElement = window.document.activeElement;
@@ -237,7 +223,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 					}
 					handleDataUrl(node.href, node.download);
 				} else if (node.getAttribute('href')?.trim().startsWith('#')) {
-					// Scrolling to location within current doc
 
 					if (!node.hash) {
 						postNotebookMessage<webviewMessages.IScrollToRevealMessage>('scroll-to-reveal', { scrollTop: 0 });
@@ -246,11 +231,9 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 					const targetId = node.hash.substring(1);
 
-					// Check outer document first
 					let scrollTarget: Element | null | undefined = event.view.document.getElementById(targetId);
 
 					if (!scrollTarget) {
-						// Fallback to checking preview shadow doms
 						for (const preview of event.view.document.querySelectorAll('.preview')) {
 							scrollTarget = preview.shadowRoot?.getElementById(targetId);
 							if (scrollTarget) {
@@ -325,13 +308,11 @@ async function webviewPreloads(ctx: PreloadContext) {
 			return;
 		}
 
-		// If we're pressing `Shift+Up/Down` then we want to select a line at a time.
 		if (e.shiftKey && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
-			e.stopPropagation(); // We don't want the notebook to handle this, default behavior is what we need.
+			e.stopPropagation();
 			return;
 		}
 
-		// We want to handle just `Shift + PageUp/PageDown` & `Shift + Cmd + ArrowUp/ArrowDown` (for mac)
 		if (!(e.code === 'PageUp' || e.code === 'PageDown') && !(e.metaKey && (e.code === 'ArrowDown' || e.code === 'ArrowUp'))) {
 			return;
 		}
@@ -342,13 +323,11 @@ async function webviewPreloads(ctx: PreloadContext) {
 		}
 		const activeElement = window.document.activeElement;
 		if (activeElement && hasActiveEditableElement(activeElement, window.document)) {
-			// Leave for default behavior.
 			return;
 		}
 
-		// These should change the scroll position, not adjust the selected cell in the notebook
-		e.stopPropagation(); // We don't want the notebook to handle this.
-		e.preventDefault(); // We will handle selection.
+		e.stopPropagation();
+		e.preventDefault();
 
 		const { anchorNode, anchorOffset } = selection;
 		const range = document.createRange();
@@ -370,12 +349,11 @@ async function webviewPreloads(ctx: PreloadContext) {
 		}
 		const activeElement = window.document.activeElement;
 		if (activeElement && hasActiveEditableElement(activeElement, window.document)) {
-			// The input element will handle this.
 			return;
 		}
 
 		if ((e.key === 'a' && e.ctrlKey) || (e.metaKey && e.key === 'a')) {
-			e.preventDefault(); // We will handle selection in editor code.
+			e.preventDefault();
 			return;
 		}
 	};
@@ -497,7 +475,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 	};
 
 	function elementHasContent(height: number) {
-		// we need to account for a potential 1px top and bottom border on a child within the output container
 		return height > 2.1;
 	}
 
@@ -531,7 +508,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 					}
 
 					if (!observedElementInfo.output) {
-						// markup, update directly
 						this.updateHeight(observedElementInfo, entry.target.offsetHeight);
 						continue;
 					}
@@ -542,7 +518,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 						(!hasContent && observedElementInfo.lastKnownPadding !== 0);
 
 					if (shouldUpdatePadding) {
-						// Do not update dimension in resize observer
 						window.requestAnimationFrame(() => {
 							if (hasContent) {
 								entry.target.style.padding = `${ctx.style.outputNodePadding}px ${ctx.style.outputNodePadding}px ${ctx.style.outputNodePadding}px ${ctx.style.outputNodeLeftPadding}px`;
@@ -577,8 +552,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 		}
 
 		private postResizeMessage(cellId: string) {
-			// Debounce this callback to only happen after
-			// 250 ms. Don't need resize events that often.
 			clearTimeout(this._outputResizeTimer);
 			this._outputResizeTimer = setTimeout(() => {
 				postNotebookMessage('outputResized', {
@@ -606,8 +579,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 		if (node.hasAttribute('recentlyScrolled')) {
 			if (lastTimeScrolled && Date.now() - lastTimeScrolled > 400) {
-				// it has been a while since we actually scrolled
-				// if scroll velocity increases significantly, it's likely a new scroll event
 				if (!!previousDelta && deltaY < 0 && deltaY < previousDelta - 8) {
 					clearTimeout(scrollTimeout);
 					scrolledElement?.removeAttribute('recentlyScrolled');
@@ -618,8 +589,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 					return false;
 				}
 
-				// the tail end of a smooth scrolling event (from a trackpad) can go on for a while
-				// so keep swallowing it, but we can shorten the timeout since the events occur rapidly
 				clearTimeout(scrollTimeout);
 				scrollTimeout = setTimeout(() => { scrolledElement?.removeAttribute('recentlyScrolled'); }, 50);
 			} else {
@@ -640,23 +609,16 @@ async function webviewPreloads(ctx: PreloadContext) {
 				return false;
 			}
 
-			// scroll up
 			if (event.deltaY < 0 && node.scrollTop > 0) {
-				// there is still some content to scroll
 				flagRecentlyScrolled(node);
 				return true;
 			}
 
-			// scroll down
 			if (event.deltaY > 0 && node.scrollTop + node.clientHeight < node.scrollHeight) {
-				// per https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollHeight
-				// scrollTop is not rounded but scrollHeight and clientHeight are
-				// so we need to check if the difference is less than some threshold
 				if (node.scrollHeight - node.scrollTop - node.clientHeight < 2) {
 					continue;
 				}
 
-				// if the node is not scrollable, we can continue. We don't check the computed style always as it's expensive
 				if (window.getComputedStyle(node).overflowY === 'hidden' || window.getComputedStyle(node).overflowY === 'visible') {
 					continue;
 				}
@@ -683,7 +645,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				deltaX: event.deltaX,
 				deltaY: event.deltaY,
 				deltaZ: event.deltaZ,
-				// Refs https://github.com/microsoft/vscode/issues/146403#issuecomment-1854538928
 				wheelDelta: event.wheelDelta && isChrome ? (event.wheelDelta / window.devicePixelRatio) : event.wheelDelta,
 				wheelDeltaX: event.wheelDeltaX && isChrome ? (event.wheelDeltaX / window.devicePixelRatio) : event.wheelDeltaX,
 				wheelDeltaY: event.wheelDeltaY && isChrome ? (event.wheelDeltaY / window.devicePixelRatio) : event.wheelDeltaY,
@@ -730,21 +691,17 @@ async function webviewPreloads(ctx: PreloadContext) {
 	}
 
 	function _internalHighlightRange(range: Range, tagName = 'mark', attributes = {}) {
-		// derived from https://github.com/Treora/dom-highlight-range/blob/master/highlight-range.js
 
-		// Return an array of the text nodes in the range. Split the start and end nodes if required.
 		function _textNodesInRange(range: Range): Text[] {
 			if (!range.startContainer.ownerDocument) {
 				return [];
 			}
 
-			// If the start or end node is a text node and only partly in the range, split it.
 			if (range.startContainer.nodeType === Node.TEXT_NODE && range.startOffset > 0) {
 				const startContainer = range.startContainer as Text;
-				const endOffset = range.endOffset; // (this may get lost when the splitting the node)
+				const endOffset = range.endOffset;
 				const createdNode = startContainer.splitText(range.startOffset);
 				if (range.endContainer === startContainer) {
-					// If the end was in the same container, it will now be in the newly created node.
 					range.setEnd(createdNode, endOffset - range.startOffset);
 				}
 
@@ -758,7 +715,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				(range.endContainer as Text).splitText(range.endOffset);
 			}
 
-			// Collect the text nodes.
 			const walker = range.startContainer.ownerDocument.createTreeWalker(
 				range.commonAncestorContainer,
 				NodeFilter.SHOW_TEXT,
@@ -767,19 +723,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 			walker.currentNode = range.startContainer;
 
-			// // Optimise by skipping nodes that are explicitly outside the range.
-			// const NodeTypesWithCharacterOffset = [
-			//  Node.TEXT_NODE,
-			//  Node.PROCESSING_INSTRUCTION_NODE,
-			//  Node.COMMENT_NODE,
-			// ];
-			// if (!NodeTypesWithCharacterOffset.includes(range.startContainer.nodeType)) {
-			//   if (range.startOffset < range.startContainer.childNodes.length) {
-			//     walker.currentNode = range.startContainer.childNodes[range.startOffset];
-			//   } else {
-			//     walker.nextSibling(); // TODO verify this is correct.
-			//   }
-			// }
 
 			const nodes: Text[] = [];
 			if (walker.currentNode.nodeType === Node.TEXT_NODE) {
@@ -795,7 +738,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 			return nodes;
 		}
 
-		// Replace [node] with <tagName ...attributes>[node]</tagName>
 		function wrapNodeInHighlight(node: Text, tagName: string, attributes: any) {
 			const highlightElement = node.ownerDocument.createElement(tagName);
 			Object.keys(attributes).forEach(key => {
@@ -814,22 +756,18 @@ async function webviewPreloads(ctx: PreloadContext) {
 			};
 		}
 
-		// First put all nodes in an array (splits start and end nodes if needed)
 		const nodes = _textNodesInRange(range);
 
-		// Highlight each node
 		const highlightElements: Element[] = [];
 		for (const nodeIdx in nodes) {
 			const highlightElement = wrapNodeInHighlight(nodes[nodeIdx], tagName, attributes);
 			highlightElements.push(highlightElement);
 		}
 
-		// Remove a highlight element created with wrapNodeInHighlight.
 		function _removeHighlight(highlightElement: Element) {
 			if (highlightElement.childNodes.length === 1) {
 				highlightElement.replaceWith(highlightElement.firstChild!);
 			} else {
-				// If the highlight somehow contains multiple nodes now, move them all.
 				while (highlightElement.firstChild) {
 					highlightElement.parentNode?.insertBefore(highlightElement.firstChild, highlightElement);
 				}
@@ -837,9 +775,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 			}
 		}
 
-		// Return a function that cleans up the highlightElements.
 		function _removeHighlights() {
-			// Remove each of the created highlightElements.
 			for (const highlightIdx in highlightElements) {
 				_removeHighlight(highlightElements[highlightIdx]);
 			}
@@ -997,7 +933,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 	const outputItemRequests = new class {
 		private _requestPool = 0;
-		private readonly _requests = new Map</*requestId*/number, { resolve: (x: webviewMessages.OutputItemEntry | undefined) => void }>();
+		private readonly _requests = new Map< number, { resolve: (x: webviewMessages.OutputItemEntry | undefined) => void }>();
 
 		getOutputItem(outputId: string, mime: string) {
 			const requestId = this._requestPool++;
@@ -1086,7 +1022,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 			});
 		}
 
-		const allOutputItemCache = new Map</*mime*/string, Promise<(rendererApi.OutputItem & ExtendedOutputItem) | undefined>>();
+		const allOutputItemCache = new Map< string, Promise<(rendererApi.OutputItem & ExtendedOutputItem) | undefined>>();
 		const allOutputItemList = Object.freeze(allOutputItemData.map(outputItem => {
 			const mime = outputItem.mime;
 			return Object.freeze({
@@ -1264,7 +1200,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 		}
 
 		_refreshRegistry(updateMatchesHighlight = true) {
-			// for performance reasons, only update the full list of highlights when we need to
 			if (updateMatchesHighlight) {
 				this._matchesHighlight.clear();
 			}
@@ -1354,31 +1289,24 @@ async function webviewPreloads(ctx: PreloadContext) {
 	function extractSelectionLine(selection: Selection): ISearchPreviewInfo {
 		const range = selection.getRangeAt(0);
 
-		// we need to keep a reference to the old selection range to re-apply later
 		const oldRange = range.cloneRange();
 		const captureLength = selection.toString().length;
 
-		// use selection API to modify selection to get entire line (the first line if multi-select)
 
-		// collapse selection to start so that the cursor position is at beginning of match
 		selection.collapseToStart();
 
-		// extend selection in both directions to select the line
 		selection.modify('move', 'backward', 'lineboundary');
 		selection.modify('extend', 'forward', 'lineboundary');
 
 		const line = selection.toString();
 
-		// using the original range and the new range, we can find the offset of the match from the line start.
 		const rangeStart = getStartOffset(selection.getRangeAt(0), oldRange);
 
-		// line range for match
 		const lineRange = {
 			start: rangeStart,
 			end: rangeStart + captureLength,
 		};
 
-		// re-add the old range so that the selection is restored
 		selection.removeAllRanges();
 		selection.addRange(oldRange);
 
@@ -1386,8 +1314,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 	}
 
 	function getStartOffset(lineRange: Range, originalRange: Range) {
-		// sometimes, the old and new range are in different DOM elements (ie: when the match is inside of <b></b>)
-		// so we need to find the first common ancestor DOM element and find the positions of the old and new range relative to that.
 		const firstCommonAncestor = findFirstCommonAncestor(lineRange.startContainer, originalRange.startContainer);
 
 		const selectionOffset = getSelectionOffsetRelativeTo(firstCommonAncestor, lineRange.startContainer) + lineRange.startOffset;
@@ -1395,7 +1321,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 		return textOffset - selectionOffset;
 	}
 
-	// modified from https://stackoverflow.com/a/68583466/16253823
 	function findFirstCommonAncestor(nodeA: Node, nodeB: Node) {
 		const range = new Range();
 		range.setStart(nodeA, 0);
@@ -1417,7 +1342,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 		return length;
 	}
 
-	// modified from https://stackoverflow.com/a/48812529/16253823
 	function getSelectionOffsetRelativeTo(parentElement: Node, currentNode: Node | null): number {
 		if (!currentNode) {
 			return 0;
@@ -1429,7 +1353,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 		}
 
 
-		// count the number of chars before the current dom elem and the start of the dom
 		let prevSibling = currentNode.previousSibling;
 		while (prevSibling) {
 			offset += getTextContentLength(prevSibling);
@@ -1455,11 +1378,11 @@ async function webviewPreloads(ctx: PreloadContext) {
 			document.designMode = 'On';
 
 			while (find && matches.length < 500) {
-				find = (window as unknown as { find: (query: string, caseSensitive: boolean, backwards: boolean, wrapAround: boolean, wholeWord: boolean, searchInFrames: boolean, includeMarkup: boolean) => boolean }).find(query, /* caseSensitive*/ !!options.caseSensitive,
-				/* backwards*/ false,
-				/* wrapAround*/ false,
-				/* wholeWord */ !!options.wholeWord,
-				/* searchInFrames*/ true,
+				find = (window as unknown as { find: (query: string, caseSensitive: boolean, backwards: boolean, wrapAround: boolean, wholeWord: boolean, searchInFrames: boolean, includeMarkup: boolean) => boolean }).find(query, !!options.caseSensitive,
+				false,
+				false,
+				!!options.wholeWord,
+				true,
 					false);
 
 				if (find) {
@@ -1469,14 +1392,11 @@ async function webviewPreloads(ctx: PreloadContext) {
 						break;
 					}
 
-					// Markdown preview are rendered in a shadow DOM.
 					if (options.includeMarkup && selection.rangeCount > 0 && selection.getRangeAt(0).startContainer.nodeType === 1
 						&& (selection.getRangeAt(0).startContainer as Element).classList.contains('markup')) {
-						// markdown preview container
 						const preview = (selection.anchorNode?.firstChild as Element);
 						const root = preview.shadowRoot as ShadowRoot & { getSelection: () => Selection };
 						const shadowSelection = root?.getSelection ? root?.getSelection() : null;
-						// find the match in the shadow dom by checking the selection inside the shadow dom
 						if (shadowSelection && shadowSelection.anchorNode) {
 							matches.push({
 								type: 'preview',
@@ -1490,10 +1410,8 @@ async function webviewPreloads(ctx: PreloadContext) {
 						}
 					}
 
-					// Outputs might be rendered inside a shadow DOM.
 					if (options.includeOutput && selection.rangeCount > 0 && selection.getRangeAt(0).startContainer.nodeType === 1
 						&& (selection.getRangeAt(0).startContainer as Element).classList.contains('output_container')) {
-						// output container
 						const cellId = selection.getRangeAt(0).startContainer.parentElement!.id;
 						const outputNode = (selection.anchorNode?.firstChild as Element);
 						const root = outputNode.shadowRoot as ShadowRoot & { getSelection: () => Selection };
@@ -1516,7 +1434,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 					if (anchorNode) {
 						const lastEl: any = matches.length ? matches[matches.length - 1] : null;
 
-						// Optimization: avoid searching for the output container
 						if (lastEl && lastEl.container.contains(anchorNode) && options.includeOutput) {
 							matches.push({
 								type: lastEl.type,
@@ -1529,14 +1446,12 @@ async function webviewPreloads(ctx: PreloadContext) {
 							});
 
 						} else {
-							// Traverse up the DOM to find the container
 							for (let node = anchorNode as Element | null; node; node = node.parentElement) {
 								if (!(node instanceof Element)) {
 									break;
 								}
 
 								if (node.classList.contains('output') && options.includeOutput) {
-									// inside output
 									const cellId = node.parentElement?.parentElement?.id;
 									if (cellId) {
 										matches.push({
@@ -1589,9 +1504,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 	const copyOutputImage = async (outputId: string, altOutputId: string, textAlternates?: { mimeType: string; content: string }[], retries = 5) => {
 		if (!window.document.hasFocus() && retries > 0) {
-			// copyImage can be called from outside of the webview, which means this function may be running whilst the webview is gaining focus.
-			// Since navigator.clipboard.write requires the document to be focused, we need to wait for focus.
-			// We cannot use a listener, as there is a high chance the focus is gained during the setup of the listener resulting in us missing it.
 			setTimeout(() => { copyOutputImage(outputId, altOutputId, textAlternates, retries - 1); }, 50);
 			return;
 		}
@@ -1626,7 +1538,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				};
 				const imageToCopy = await ensureImageLoaded(image);
 
-				// Build clipboard data with both image and text formats
 				const clipboardData: Record<string, any> = {
 					'image/png': new Promise((resolve) => {
 						const canvas = document.createElement('canvas');
@@ -1646,7 +1557,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 					})
 				};
 
-				// Add text alternates if provided
 				if (textAlternates) {
 					for (const alternate of textAlternates) {
 						clipboardData[alternate.mimeType] = alternate.content;
@@ -1709,12 +1619,10 @@ async function webviewPreloads(ctx: PreloadContext) {
 				const data = event.data;
 				if (data.createOnIdle) {
 					outputRunner.enqueueIdle(data.outputId, signal => {
-						// cancel the idle callback if it exists
 						return viewModel.renderOutputCell(data, signal);
 					});
 				} else {
 					outputRunner.enqueue(data.outputId, signal => {
-						// cancel the idle callback if it exists
 						return viewModel.renderOutputCell(data, signal);
 					});
 				}
@@ -1722,8 +1630,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 			}
 			case 'view-scroll':
 				{
-					// const date = new Date();
-					// console.log('----- will scroll ----  ', date.getMinutes() + ':' + date.getSeconds() + ':' + date.getMilliseconds());
 
 					event.data.widgets.forEach(widget => {
 						outputRunner.enqueue(widget.outputId, () => {
@@ -1808,8 +1714,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 			}
 			case 'markupDecorations': {
 				const markupCell = window.document.getElementById(event.data.cellId);
-				// The cell may not have been added yet if it is out of view.
-				// Decorations will be added when the cell is shown.
 				if (markupCell) {
 					markupCell?.classList.add(...event.data.addedClassNames);
 					markupCell?.classList.remove(...event.data.removedClassNames);
@@ -1828,13 +1732,11 @@ async function webviewPreloads(ctx: PreloadContext) {
 				for (let i = documentStyle.length - 1; i >= 0; i--) {
 					const property = documentStyle[i];
 
-					// Don't remove properties that the webview might have added separately
 					if (property && property.startsWith('--notebook-')) {
 						documentStyle.removeProperty(property);
 					}
 				}
 
-				// Re-add new properties
 				for (const [name, value] of Object.entries(event.data.styles)) {
 					documentStyle.setProperty(`--${name}`, value);
 				}
@@ -1978,12 +1880,10 @@ async function webviewPreloads(ctx: PreloadContext) {
 			return this._loadPromise;
 		}
 
-		/** Inner function cached in the _loadPromise(). */
 		private async _load(): Promise<rendererApi.RendererApi | undefined> {
 			this.postDebugMessage('Start loading renderer');
 
 			try {
-				// Preloads need to be loaded before loading renderers.
 				await kernelPreloads.waitForAllCurrent();
 
 				const importStart = performance.now();
@@ -2004,7 +1904,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 					this.postDebugMessage('Activating dependant renderers', { dependents: dependantRenderers.map(x => x.id).join(', ') });
 				}
 
-				// Load all renderers that extend this renderer
 				await Promise.all(dependantRenderers.map(async d => {
 					const renderer = renderers.getRenderer(d.id);
 					if (!renderer) {
@@ -2014,8 +1913,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 					try {
 						return await renderer.load();
 					} catch (e) {
-						// Squash any errors extends errors. They won't prevent the renderer
-						// itself from working, so just log them.
 						console.error(e);
 						this.postDebugMessage('Activating dependant renderer failed', { dependent: d.id, error: e + '' });
 						return undefined;
@@ -2038,20 +1935,12 @@ async function webviewPreloads(ctx: PreloadContext) {
 	}
 
 	const kernelPreloads = new class {
-		private readonly preloads = new Map<string /* uri */, Promise<unknown>>();
+		private readonly preloads = new Map<string , Promise<unknown>>();
 
-		/**
-		 * Returns a promise that resolves when the given preload is activated.
-		 */
 		public waitFor(uri: string) {
 			return this.preloads.get(uri) || Promise.resolve(new Error(`Preload not ready: ${uri}`));
 		}
 
-		/**
-		 * Loads a preload.
-		 * @param uri URI to load from
-		 * @param originalUri URI to show in an error message if the preload is invalid.
-		 */
 		public load(uri: string) {
 			const promise = Promise.all([
 				runKernelPreload(uri),
@@ -2062,10 +1951,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 			return promise;
 		}
 
-		/**
-		 * Returns a promise that waits for all currently-registered preloads to
-		 * activate before resolving.
-		 */
 		public waitForAllCurrent() {
 			return Promise.all([...this.preloads.values()].map(p => p.catch(err => err)));
 		}
@@ -2074,10 +1959,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 	const outputRunner = new class {
 		private readonly outputs = new Map<string, { abort: AbortController; queue: Promise<unknown> }>();
 
-		/**
-		 * Pushes the action onto the list of actions for the given output ID,
-		 * ensuring that it's run in-order.
-		 */
 		public enqueue(outputId: string, action: (cancelSignal: AbortSignal) => unknown) {
 			this.pendingOutputCreationRequest.get(outputId)?.dispose();
 			this.pendingOutputCreationRequest.delete(outputId);
@@ -2105,11 +1986,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 			}));
 		}
 
-		/**
-		 * Cancels the rendering of all outputs.
-		 */
 		public cancelAll() {
-			// Delete all pending idle requests
 			this.pendingOutputCreationRequest.forEach(r => r.dispose());
 			this.pendingOutputCreationRequest.clear();
 
@@ -2119,11 +1996,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 			this.outputs.clear();
 		}
 
-		/**
-		 * Cancels any ongoing rendering out an output.
-		 */
 		public cancelOutput(outputId: string) {
-			// Delete the pending idle request if it exists
 			this.pendingOutputCreationRequest.get(outputId)?.dispose();
 			this.pendingOutputCreationRequest.delete(outputId);
 
@@ -2136,7 +2009,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 	};
 
 	const renderers = new class {
-		private readonly _renderers = new Map</* id */ string, Renderer>();
+		private readonly _renderers = new Map< string, Renderer>();
 
 		constructor() {
 			for (const renderer of ctx.rendererData) {
@@ -2210,12 +2083,10 @@ async function webviewPreloads(ctx: PreloadContext) {
 				return;
 			}
 
-			// Try primary renderer first
 			if (!(await this._doRender(item, element, primaryRenderer, signal)).continue) {
 				return;
 			}
 
-			// Primary renderer failed in an expected way. Fallback to render the next mime types
 			for (const additionalItemData of item._allOutputItems) {
 				if (additionalItemData.mime === item.mime) {
 					continue;
@@ -2230,13 +2101,12 @@ async function webviewPreloads(ctx: PreloadContext) {
 					const renderer = this.findRenderer(undefined, additionalItem);
 					if (renderer) {
 						if (!(await this._doRender(additionalItem, element, renderer, signal)).continue) {
-							return; // We rendered successfully
+							return;
 						}
 					}
 				}
 			}
 
-			// All renderers have failed and there is nothing left to fallback to
 			const errorMessage = (window.document.documentElement.style.getPropertyValue('--notebook-cell-renderer-fallbacks-exhausted') || '').replace('$0', () => item.mime);
 			this.showRenderError(item, element, errorMessage);
 		}
@@ -2244,7 +2114,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 		private async _doRender(item: rendererApi.OutputItem, element: HTMLElement, renderer: Renderer, signal: AbortSignal): Promise<{ continue: boolean }> {
 			try {
 				await renderer.renderOutputItem(item, element, signal);
-				return { continue: false }; // We rendered successfully
+				return { continue: false };
 			} catch (e) {
 				if (signal.aborted) {
 					return { continue: false };
@@ -2253,7 +2123,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 				if (e instanceof Error && e.name === renderFallbackErrorName) {
 					return { continue: true };
 				} else {
-					throw e; // Bail and let callers handle unknown errors
+					throw e;
 				}
 			}
 		}
@@ -2269,10 +2139,8 @@ async function webviewPreloads(ctx: PreloadContext) {
 					.filter((renderer) => renderer.data.mimeTypes.includes(info.mime) && !renderer.data.entrypoint.extends);
 
 				if (renderers.length) {
-					// De-prioritize built-in renderers
 					renderers.sort((a, b) => +a.data.isBuiltin - +b.data.isBuiltin);
 
-					// Use first renderer we find in sorted list
 					renderer = renderers[0];
 				}
 			}
@@ -2503,7 +2371,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 		private readonly outputItem: ExtendedOutputItem;
 
-		/// Internal field that holds text content
 		private _content: { readonly value: string; readonly version: number; readonly metadata: NotebookCellMetadata };
 
 		private _isDisposed = false;
@@ -2651,7 +2518,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 					case 'LINK':
 					case 'SCRIPT':
 					case 'STYLE':
-						// not worth sending over since it will be stripped before rendering
 						break;
 
 					default:
@@ -2719,7 +2585,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 	class OutputCell {
 		public readonly element: HTMLElement;
-		private readonly outputElements = new Map</*outputId*/ string, OutputContainer>();
+		private readonly outputElements = new Map< string, OutputContainer>();
 
 		constructor(cellId: string) {
 			const container = window.document.getElementById('container')!;
@@ -2761,19 +2627,17 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 		public async renderOutputElement(data: webviewMessages.ICreationRequestMessage, preloadErrors: ReadonlyArray<Error | undefined>, signal: AbortSignal) {
 			const startTime = Date.now();
-			const outputElement /** outputNode */ = this.createOutputElement(data);
+			const outputElement = this.createOutputElement(data);
 			await outputElement.render(data.content, data.rendererId, preloadErrors, signal);
 
-			// don't hide until after this step so that the height is right
-			outputElement/** outputNode */.element.style.visibility = data.initiallyHidden ? 'hidden' : '';
+			outputElement .element.style.visibility = data.initiallyHidden ? 'hidden' : '';
 
 			if (!!data.executionId && !!data.rendererId) {
 				let outputSize: number | undefined = undefined;
-				if (data.content.type === 1 /* extension */) {
+				if (data.content.type === 1 ) {
 					outputSize = data.content.output.valueBytes.length;
 				}
 
-				// Only send performance messages for non-empty outputs up to a certain size
 				if (outputSize !== undefined && outputSize > 0 && outputSize < 100 * 1024) {
 					postNotebookMessage<webviewMessages.IPerformanceMessage>('notebookPerformanceMessage', {
 						cellId: data.cellId,
@@ -2823,8 +2687,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				outputElement.updateScroll(request.outputOffset);
 
 				if (request.forceDisplay && outputElement.outputNode) {
-					// TODO @rebornix @mjbvz, there is a misalignment here.
-					// We set output visibility on cell container, other than output container or output node itself.
 					outputElement.outputNode.element.style.visibility = '';
 				}
 			}
@@ -2942,7 +2804,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				postNotebookMessage<webviewMessages.IMouseLeaveMessage>('mouseleave', { id: outputId });
 			});
 
-			// Add drag handler
 			this.element.addEventListener('dragstart', (e: DragEvent) => {
 				if (!e.dataTransfer) {
 					return;
@@ -2955,7 +2816,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				e.dataTransfer.setData('notebook-cell-output', JSON.stringify(outputData));
 			});
 
-			// Add alt key handlers
 			window.addEventListener('keydown', (e) => {
 				if (e.altKey) {
 					this.element.draggable = true;
@@ -2968,7 +2828,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				}
 			});
 
-			// Handle window blur to reset draggable state
 			window.addEventListener('blur', () => {
 				this.element.draggable = this.isImageOutput;
 			});
@@ -2984,7 +2843,7 @@ async function webviewPreloads(ctx: PreloadContext) {
 			this.renderTaskAbort = undefined;
 
 			this._content = { preferredRendererId, preloadErrors };
-			if (content.type === 0 /* RenderOutputType.Html */) {
+			if (content.type === 0 ) {
 				const trustedHtml = ttPolicy?.createHTML(content.htmlContent) ?? content.htmlContent;
 				this.element.innerHTML = trustedHtml as string;  // CodeQL [SM03712] The content comes from renderer extensions, not from direct user input.
 			} else if (preloadErrors.some(e => e instanceof Error)) {
@@ -3001,7 +2860,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				const controller = new AbortController();
 				this.renderTaskAbort = controller;
 
-				// Abort rendering if caller aborts
 				signal?.addEventListener('abort', () => controller.abort());
 
 				try {
@@ -3023,8 +2881,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 			const verticalPadding = parseFloat(cps.paddingTop) + parseFloat(cps.paddingBottom);
 			const contentHeight = offsetHeight - verticalPadding;
 			if (elementHasContent(contentHeight) && cps.padding === '0px') {
-				// we set padding to zero if the output has no content (then we can have a zero-height output DOM node)
-				// thus we need to ensure the padding is accounted when updating the init height of the output
 				dimensionUpdater.updateHeight(this.outputId, offsetHeight + ctx.style.outputNodePadding * 2, {
 					isOutput: true,
 					init: true
@@ -3038,7 +2894,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				});
 				this.element.style.padding = `0 ${ctx.style.outputNodePadding}px 0 ${ctx.style.outputNodeLeftPadding}`;
 			} else {
-				// we have a zero-height output DOM node
 				dimensionUpdater.updateHeight(this.outputId, 0, {
 					isOutput: true,
 					init: true,
@@ -3066,13 +2921,10 @@ async function webviewPreloads(ctx: PreloadContext) {
 
 		private currentDrag: { cellId: string; clientY: number } | undefined;
 
-		// Transparent overlay that prevents elements from inside the webview from eating
-		// drag events.
 		private dragOverlay?: HTMLElement;
 
 		constructor() {
 			window.document.addEventListener('dragover', e => {
-				// Allow dropping dragged markup cells
 				e.preventDefault();
 			});
 
@@ -3125,8 +2977,6 @@ async function webviewPreloads(ctx: PreloadContext) {
 				dragOffsetY: e.clientY,
 			});
 
-			// Continuously send updates while dragging instead of relying on `updateDrag`.
-			// This lets us scroll the list based on drag position.
 			const trySendDragUpdate = () => {
 				if (this.currentDrag?.cellId !== cellId) {
 					return;
@@ -3176,8 +3026,6 @@ export function preloadsScriptStr(styleValues: PreloadStyles, options: PreloadOp
 		isWorkspaceTrusted,
 		nonce,
 	};
-	// TS will try compiling `import()` in webviewPreloads, so use a helper function instead
-	// of using `import(...)` directly
 	return `
 		const __import = (x) => import(x);
 		(${webviewPreloads})(

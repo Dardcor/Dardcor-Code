@@ -59,8 +59,6 @@ export class DiffEditorHeightCalculatorService {
 			const unchangeRegionsHeight = numberOfHiddenSections * HeightOfHiddenLinesRegionInDiffEditor;
 			const visibleLineCount = orginalNumberOfLines + numberOfNewLines - numberOfHiddenLines;
 
-			// TODO: When we have a horizontal scrollbar, we need to add 12 to the height.
-			// Right now there's no way to determine if a horizontal scrollbar is visible in the editor.
 			return (visibleLineCount * this.lineHeight) + getEditorPadding(visibleLineCount).top + getEditorPadding(visibleLineCount).bottom + unchangeRegionsHeight;
 		} finally {
 			originalModel.dispose();

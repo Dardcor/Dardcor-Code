@@ -186,7 +186,6 @@
 					text-align: center;
 					padding: 0 4px;
 
-					/* Hide the spinner buttons that some browsers render for number inputs. */
 					&::-webkit-inner-spin-button,
 					&::-webkit-outer-spin-button {
 						appearance: none;
@@ -371,13 +370,9 @@
 	.browser-container {
 		overflow: visible;
 		border-radius: var(--vscode-cornerRadius-small);
-		/*  Absolutely positioned within the wrapper; size and position are set
-			inline from JS (already snapped to the physical-pixel grid) so the
-			WebContentsView placed by the main process and the placeholder
-			screenshot align on the same pixels. */
 		position: absolute;
 		outline: none !important;
-		z-index: 0; /* Important: creates a new stacking context for the gradient border trick */
+		z-index: 0;
 
 		&::before {
 			content: '';
@@ -453,7 +448,6 @@
 			background: var(--vscode-sash-hoverBorder);
 		}
 
-		/* SE corner drag handle indicator. */
 		& > .orthogonal-drag-handle {
 			box-sizing: border-box;
 			border-radius: 2px;
@@ -618,7 +612,6 @@
 		z-index: 10;
 		overflow: hidden;
 
-		/* Override SimpleFindWidget absolute positioning to flow in layout */
 		.simple-find-part-wrapper {
 			position: relative;
 			top: 0;
@@ -652,12 +645,10 @@
 				}
 			}
 
-			/* Hide whole word and regex toggles */
 			.codicon-whole-word,
 			.codicon-regex {
 				display: none;
 			}
-			/* Adjust input width to account for fewer toggles */
 			.input {
 				width: calc(100% - 16px) !important;
 			}
@@ -719,7 +710,6 @@
 
 	}
 
-	/* Site info indicator in URL bar */
 	.browser-site-info-container {
 		display: flex;
 		align-items: center;
@@ -782,7 +772,6 @@
 		text-decoration: line-through;
 	}
 
-	/* Certificate error page styles */
 	.browser-error-icon {
 		margin-bottom: 12px;
 
@@ -848,7 +837,6 @@
 		}
 	}
 
-	/* Site info hover popover */
 	.browser-site-info-hover-content {
 		padding: 4px 8px;
 		width: 320px;

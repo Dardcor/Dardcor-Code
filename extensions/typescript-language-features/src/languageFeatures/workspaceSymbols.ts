@@ -83,7 +83,6 @@ class TypeScriptWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvide
 					return this.client.toOpenTsFilePath(document);
 				}
 			} catch {
-				// noop
 			}
 		}
 		return this.client.toOpenTsFilePath(document);
@@ -121,9 +120,6 @@ class TypeScriptWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvide
 	}
 
 	private getDocument(): vscode.TextDocument | undefined {
-		// typescript wants to have a resource even when asking
-		// general questions so we check the active editor. If this
-		// doesn't match we take the first TS document.
 
 		const activeDocument = vscode.window.activeTextEditor?.document;
 		if (activeDocument) {

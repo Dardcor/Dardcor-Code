@@ -71,8 +71,8 @@ export class ScrollState implements IScrollDimensions, IScrollPosition {
 			scrollTop = scrollTop | 0;
 		}
 
-		this.rawScrollLeft = scrollLeft; // before validation
-		this.rawScrollTop = scrollTop; // before validation
+		this.rawScrollLeft = scrollLeft;
+		this.rawScrollTop = scrollTop;
 
 		if (width < 0) {
 			width = 0;
@@ -208,17 +208,8 @@ export interface INewScrollPosition {
 }
 
 export interface IScrollableOptions {
-	/**
-	 * Define if the scroll values should always be integers.
-	 */
 	forceIntegerValues: boolean;
-	/**
-	 * Set the duration (ms) used for smooth scroll animations.
-	 */
 	smoothScrollDuration: number;
-	/**
-	 * A function to schedule an update at the next frame (used for smooth scroll animations).
-	 */
 	scheduleAtNextAnimationFrame: (callback: () => void) => IDisposable;
 }
 
@@ -267,14 +258,9 @@ export class Scrollable extends Disposable {
 		const newState = this._state.withScrollDimensions(dimensions, useRawScrollPositions);
 		this._setState(newState, Boolean(this._smoothScrolling));
 
-		// Validate outstanding animated scroll position target
 		this._smoothScrolling?.acceptScrollDimensions(this._state);
 	}
 
-	/**
-	 * Returns the final scroll position that the instance will have once the smooth scroll animation concludes.
-	 * If no scroll animation is occurring, it will return the current scroll position instead.
-	 */
 	public getFutureScrollPosition(): IScrollPosition {
 		if (this._smoothScrolling) {
 			return this._smoothScrolling.to;
@@ -282,19 +268,13 @@ export class Scrollable extends Disposable {
 		return this._state;
 	}
 
-	/**
-	 * Returns the current scroll position.
-	 * Note: This result might be an intermediate scroll position, as there might be an ongoing smooth scroll animation.
-	 */
 	public getCurrentScrollPosition(): IScrollPosition {
 		return this._state;
 	}
 
 	public setScrollPositionNow(update: INewScrollPosition): void {
-		// no smooth scrolling requested
 		const newState = this._state.withScrollPosition(update);
 
-		// Terminate any outstanding smooth scrolling
 		if (this._smoothScrolling) {
 			this._smoothScrolling.dispose();
 			this._smoothScrolling = null;
@@ -305,22 +285,18 @@ export class Scrollable extends Disposable {
 
 	public setScrollPositionSmooth(update: INewScrollPosition, reuseAnimation?: boolean): void {
 		if (this._smoothScrollDuration === 0) {
-			// Smooth scrolling not supported.
 			return this.setScrollPositionNow(update);
 		}
 
 		if (this._smoothScrolling) {
-			// Combine our pending scrollLeft/scrollTop with incoming scrollLeft/scrollTop
 			update = {
 				scrollLeft: (typeof update.scrollLeft === 'undefined' ? this._smoothScrolling.to.scrollLeft : update.scrollLeft),
 				scrollTop: (typeof update.scrollTop === 'undefined' ? this._smoothScrolling.to.scrollTop : update.scrollTop)
 			};
 
-			// Validate `update`
 			const validTarget = this._state.withScrollPosition(update);
 
 			if (this._smoothScrolling.to.scrollLeft === validTarget.scrollLeft && this._smoothScrolling.to.scrollTop === validTarget.scrollTop) {
-				// No need to interrupt or extend the current animation since we're going to the same place
 				return;
 			}
 			let newSmoothScrolling: SmoothScrollingOperation;
@@ -332,13 +308,11 @@ export class Scrollable extends Disposable {
 			this._smoothScrolling.dispose();
 			this._smoothScrolling = newSmoothScrolling;
 		} else {
-			// Validate `update`
 			const validTarget = this._state.withScrollPosition(update);
 
 			this._smoothScrolling = SmoothScrollingOperation.start(this._state, validTarget, this._smoothScrollDuration);
 		}
 
-		// Begin smooth scrolling animation
 		this._smoothScrolling.animationFrameDisposable = this._scheduleAtNextAnimationFrame(() => {
 			if (!this._smoothScrolling) {
 				return;
@@ -362,8 +336,6 @@ export class Scrollable extends Disposable {
 		this._setState(newState, true);
 
 		if (!this._smoothScrolling) {
-			// Looks like someone canceled the smooth scrolling
-			// from the scroll event handler
 			return;
 		}
 
@@ -373,7 +345,6 @@ export class Scrollable extends Disposable {
 			return;
 		}
 
-		// Continue smooth scrolling animation
 		this._smoothScrolling.animationFrameDisposable = this._scheduleAtNextAnimationFrame(() => {
 			if (!this._smoothScrolling) {
 				return;
@@ -386,7 +357,6 @@ export class Scrollable extends Disposable {
 	private _setState(newState: ScrollState, inSmoothScrolling: boolean): void {
 		const oldState = this._state;
 		if (oldState.equals(newState)) {
-			// no change
 			return;
 		}
 		this._state = newState;
@@ -460,7 +430,6 @@ export class SmoothScrollingOperation {
 		if (delta > 2.5 * viewportSize) {
 			let stop1: number, stop2: number;
 			if (from < to) {
-				// scroll to 75% of the viewportSize
 				stop1 = from + 0.75 * viewportSize;
 				stop2 = to - 0.75 * viewportSize;
 			} else {
@@ -505,7 +474,6 @@ export class SmoothScrollingOperation {
 	}
 
 	public static start(from: ISmoothScrollPosition, to: ISmoothScrollPosition, duration: number): SmoothScrollingOperation {
-		// +10 / -10 : pretend the animation already started for a quicker response to a scroll request
 		duration = duration + 10;
 		const startTime = Date.now() - 10;
 

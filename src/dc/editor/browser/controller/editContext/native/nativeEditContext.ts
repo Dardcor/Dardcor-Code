@@ -35,7 +35,6 @@ import { ILogService } from '../../../../../platform/log/common/log.js';
 import { inputLatency } from '../../../../../base/browser/performance.js';
 import { ViewportData } from '../../../../common/viewLayout/viewLinesViewportData.js';
 
-// Corresponds to classes in nativeEditContext.css
 enum CompositionClassName {
 	NONE = 'edit-context-composition-none',
 	SECONDARY = 'edit-context-composition-secondary',
@@ -52,7 +51,6 @@ interface ITextUpdateEvent {
 
 export class NativeEditContext extends AbstractEditContext {
 
-	// Text area used to handle paste events
 	public readonly domNode: FastDomNode<HTMLDivElement>;
 	private readonly _imeTextArea: FastDomNode<HTMLTextAreaElement>;
 	private readonly _editContext: EditContext;
@@ -61,7 +59,6 @@ export class NativeEditContext extends AbstractEditContext {
 	private _previousEditContextText: string = '';
 	private _editContextPrimarySelection: Selection = new Selection(1, 1, 1, 1);
 
-	// Overflow guard container
 	private readonly _parent: HTMLElement;
 	private _parentBounds: DOMRect | null = null;
 	private _decorations: string[] = [];
@@ -118,14 +115,9 @@ export class NativeEditContext extends AbstractEditContext {
 		this._register(addDisposableListener(this.domNode.domNode, 'copy', (e) => {
 			this.logService.trace('NativeEditContext#copy');
 
-			// !!!!!
-			// This is a workaround for what we think is an Electron bug where
-			// execCommand('copy') does not always work (it does not fire a clipboard event)
-			// !!!!!
-			// We signal that we have executed a copy command
 			CopyOptions.electronBugWorkaroundCopyEventHasFired = true;
 
-			const copyEvent = createClipboardCopyEvent(e, /* isCut */ false, this._context, this.logService, isFirefox);
+			const copyEvent = createClipboardCopyEvent(e, false, this._context, this.logService, isFirefox);
 			this._onWillCopy.fire(copyEvent);
 			if (copyEvent.isHandled) {
 				return;
@@ -134,13 +126,11 @@ export class NativeEditContext extends AbstractEditContext {
 		}));
 		this._register(addDisposableListener(this.domNode.domNode, 'cut', (e) => {
 			this.logService.trace('NativeEditContext#cut');
-			const cutEvent = createClipboardCopyEvent(e, /* isCut */ true, this._context, this.logService, isFirefox);
+			const cutEvent = createClipboardCopyEvent(e, true, this._context, this.logService, isFirefox);
 			this._onWillCut.fire(cutEvent);
 			if (cutEvent.isHandled) {
 				return;
 			}
-			// Pretend here we touched the text area, as the `cut` event will most likely
-			// result in a `selectionchange` event which we want to ignore
 			this._screenReaderSupport.onWillCut();
 			cutEvent.ensureClipboardGetsEditorData();
 			this.logService.trace('NativeEditContext#cut (before viewController.cut)');
@@ -190,7 +180,6 @@ export class NativeEditContext extends AbstractEditContext {
 			this._viewController.paste(pasteEvent.text, pasteOnNewLine, multicursorText, mode);
 		}));
 
-		// Edit context events
 		this._register(editContextAddDisposableListener(this._editContext, 'textformatupdate', (e) => this._handleTextFormatUpdate(e)));
 		this._register(editContextAddDisposableListener(this._editContext, 'characterboundsupdate', (e) => this._updateCharacterBounds(e)));
 		let highSurrogateCharacter: string | undefined;
@@ -220,18 +209,12 @@ export class NativeEditContext extends AbstractEditContext {
 		}));
 		this._register(editContextAddDisposableListener(this._editContext, 'compositionstart', (e) => {
 			this._updateEditContext();
-			// Utlimately fires onDidCompositionStart() on the editor to notify for example suggest model of composition state
-			// Updates the composition state of the cursor controller which determines behavior of typing with interceptors
 			this._viewController.compositionStart();
-			// Emits ViewCompositionStartEvent which can be depended on by ViewEventHandlers
 			this._context.viewModel.onCompositionStart();
 		}));
 		this._register(editContextAddDisposableListener(this._editContext, 'compositionend', (e) => {
 			this._updateEditContext();
-			// Utlimately fires compositionEnd() on the editor to notify for example suggest model of composition state
-			// Updates the composition state of the cursor controller which determines behavior of typing with interceptors
 			this._viewController.compositionEnd();
-			// Emits ViewCompositionEndEvent which can be depended on by ViewEventHandlers
 			this._context.viewModel.onCompositionEnd();
 		}));
 		let reenableTracking: boolean = false;
@@ -263,10 +246,8 @@ export class NativeEditContext extends AbstractEditContext {
 		}));
 	}
 
-	// --- Public methods ---
 
 	public override dispose(): void {
-		// Force blue the dom node so can write in pane with no native edit context after disposal
 		this.domNode.domNode.editContext = undefined;
 		this.domNode.domNode.blur();
 		this.domNode.domNode.remove();
@@ -278,16 +259,11 @@ export class NativeEditContext extends AbstractEditContext {
 		this._screenReaderSupport.setAriaOptions(options);
 	}
 
-	/* Last rendered data needed for correct hit-testing and determining the mouse position.
-	 * Without this, the selection will blink as incorrect mouse position is calculated */
 	public getLastRenderData(): Position | null {
 		return this._primarySelection.getPosition();
 	}
 
 	public override onBeforeRender(viewportData: ViewportData): void {
-		// We need to read the position of the container dom node
-		// It is best to do this before we begin touching the DOM at all
-		// Because the sync layout will be fast if we do it here
 		this._parentBounds = this._parent.getBoundingClientRect();
 	}
 
@@ -315,7 +291,6 @@ export class NativeEditContext extends AbstractEditContext {
 	}
 
 	public override onDecorationsChanged(e: ViewDecorationsChangedEvent): boolean {
-		// true for inline decorations that can end up relayouting text
 		return true;
 	}
 
@@ -370,7 +345,6 @@ export class NativeEditContext extends AbstractEditContext {
 	public focus(): void {
 		this._focusTracker.focus();
 
-		// If the editor is off DOM, focus cannot be really set, so let's double check that we have managed to set the focus
 		this.refreshFocusState();
 	}
 
@@ -378,8 +352,6 @@ export class NativeEditContext extends AbstractEditContext {
 		this._focusTracker.refreshFocusState();
 	}
 
-	// TODO: added as a workaround fix for https://github.com/microsoft/vscode/issues/229825
-	// When this issue will be fixed the following should be removed.
 	public setEditContextOnDomNode(): void {
 		const targetWindow = getWindow(this.domNode.domNode);
 		const targetWindowId = getWindowId(targetWindow);
@@ -389,7 +361,6 @@ export class NativeEditContext extends AbstractEditContext {
 		}
 	}
 
-	// --- Private methods ---
 
 	private _onKeyUp(e: KeyboardEvent) {
 		inputLatency.onKeyUp();
@@ -399,7 +370,6 @@ export class NativeEditContext extends AbstractEditContext {
 	private _onKeyDown(e: KeyboardEvent) {
 		inputLatency.onKeyDown();
 		const standardKeyboardEvent = new StandardKeyboardEvent(e);
-		// When the IME is visible, the keys, like arrow-left and arrow-right, should be used to navigate in the IME, and should not be propagated further
 		if (standardKeyboardEvent.keyCode === KeyCode.KEY_IN_COMPOSITION) {
 			standardKeyboardEvent.stopPropagation();
 		}
@@ -552,8 +522,6 @@ export class NativeEditContext extends AbstractEditContext {
 		const verticalOffsetStart = this._context.viewLayout.getVerticalOffsetForLineNumber(viewSelection.startLineNumber);
 		const verticalOffsetEnd = this._context.viewLayout.getVerticalOffsetAfterLineNumber(viewSelection.endLineNumber);
 
-		// !!! Make sure this doesn't force an extra layout
-		// !!! by using the cached parent bounds read in onBeforeRender
 		const parentBounds = this._parentBounds!;
 		const top = parentBounds.top + verticalOffsetStart - this._scrollTop;
 		const height = verticalOffsetEnd - verticalOffsetStart;

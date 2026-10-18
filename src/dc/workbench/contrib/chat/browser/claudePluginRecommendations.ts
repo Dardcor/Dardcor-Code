@@ -39,19 +39,12 @@ export class AgentPluginRecommendations extends Disposable implements IWorkbench
 			return;
 		}
 
-		// Build a set of installed plugin keys ("name@marketplace") from
-		// storage without triggering any network fetch.
 		const installedKeys = new Set<string>();
 		for (const entry of this._pluginMarketplaceService.installedPlugins.get()) {
 			const key = `${entry.plugin.name}@${entry.plugin.marketplace}`;
 			installedKeys.add(key);
 		}
 
-		// Only count recommendations that resolve to a known marketplace
-		// plugin. Otherwise the @recommended search would land on an empty
-		// list (see microsoft/vscode#315347). Fall back to a fresh fetch
-		// when the cache hasn't been populated yet so first-run sessions
-		// with valid recommendations still notify.
 		let fetched: readonly IMarketplacePlugin[] = this._pluginMarketplaceService.lastFetchedPlugins.get();
 		if (fetched.length === 0) {
 			try {

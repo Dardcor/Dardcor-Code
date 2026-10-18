@@ -30,14 +30,11 @@ export class ChatTitleProvider implements vscode.ChatTitleProvider {
 		token: vscode.CancellationToken,
 	): Promise<string | undefined> {
 
-		// Get the first user message directly from the context
-		// Use instanceof to properly check if the first item is a ChatRequestTurn
 		const firstRequest = context.history.find(item => item instanceof ChatRequestTurn);
 		if (!firstRequest) {
 			return '';
 		}
 
-		// Extract the parent session ID from the context's sessionResource (provided by VS Code)
 		const sessionResource = context.sessionResource;
 		const parentChatSessionId = sessionResource ? sessionResourceToId(URI.from(sessionResource)) : undefined;
 

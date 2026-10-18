@@ -16,7 +16,6 @@ suite('network', () => {
 
 	(isWeb ? test.skip : test)('FileAccess: URI (native)', () => {
 
-		// asCodeUri() & asFileUri(): simple, without authority
 		let originalFileUri = URI.file('network.test.ts');
 		let browserUri = FileAccess.uriToBrowserUri(originalFileUri);
 		assert.ok(browserUri.authority.length > 0);
@@ -24,7 +23,6 @@ suite('network', () => {
 		assert.strictEqual(fileUri.authority.length, 0);
 		assert(isEqual(originalFileUri, fileUri));
 
-		// asCodeUri() & asFileUri(): with authority
 		originalFileUri = URI.file('network.test.ts').with({ authority: 'test-authority' });
 		browserUri = FileAccess.uriToBrowserUri(originalFileUri);
 		assert.strictEqual(browserUri.authority, originalFileUri.authority);

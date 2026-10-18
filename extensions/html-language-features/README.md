@@ -4,6 +4,6 @@
 
 ## Features
 
-See [HTML in Visual Studio Code](https://code.visualstudio.com/docs/languages/html) to learn about the features of this extension.
+See [HTML in Visual Studio Code](https://www.dardcor-code.web.id/docs/languages/html) to learn about the features of this extension.
 
 Please read the [CONTRIBUTING.md](https://github.com/microsoft/vscode/blob/master/extensions/html-language-features/CONTRIBUTING.md) file to learn how to contribute to this extension.

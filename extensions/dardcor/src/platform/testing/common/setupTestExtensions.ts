@@ -9,22 +9,11 @@ export interface ISetupTestExtension {
 }
 
 interface ILanguageExtensionData {
-	/** Languages where the extension used to test the language is well-known */
 	forLanguage?: {
 		extension: ISetupTestExtension;
-		/**
-		 * Frameworks where, if the user asks to setup tests in that framework,
-		 * we recommend this extension.
-		 */
 		associatedFrameworks?: string[];
 	};
 
-	/**
-	 * Frameworks where the extension used to test the framework is well-known.
-	 * Should include popular extensions from src/platform/testing/node/testDepsResolver.ts
-	 * in cases where the extension is mainstream enough that it's unambiguously
-	 * the one to recommend.
-	 */
 	perFramework?: Map<string, ISetupTestExtension>;
 }
 
@@ -38,7 +27,6 @@ const jsTsExtensionData: ILanguageExtensionData = {
 	]),
 };
 
-/** Languages where the extension used to test the language is well-known */
 export const testExtensionsForLanguage: Readonly<Map<string, ILanguageExtensionData>> = new Map([
 	['python', {
 		forLanguage: {

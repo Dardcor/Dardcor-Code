@@ -19,9 +19,6 @@ import { MarkdownString } from '../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { MemoryTool } from '../memoryTool';
 
-/**
- * Capturing telemetry service that records all events for assertion.
- */
 class MockCapturingTelemetryService extends NullTelemetryService {
 	readonly events: { eventName: string; properties?: TelemetryEventProperties; measurements?: TelemetryEventMeasurements }[] = [];
 
@@ -73,7 +70,6 @@ suite('MemoryTool', () => {
 		mockTelemetry.clear();
 	});
 
-	// --- Path validation ---
 
 	test('rejects paths not starting with /memories/', async () => {
 		const result = await invokeMemoryTool(tool, { command: 'view', path: '/other/path' });
@@ -87,7 +83,6 @@ suite('MemoryTool', () => {
 		expect(text).toContain('Error: Path traversal is not allowed');
 	});
 
-	// --- Local view ---
 
 	test('view returns file not exist message for missing path', async () => {
 		const result = await invokeMemoryTool(tool, { command: 'view', path: '/memories/session/nonexistent.md' });
@@ -117,7 +112,7 @@ suite('MemoryTool', () => {
 			return;
 		}
 		const dirUri = URI.joinPath(URI.from(storageUri), `memory-tool/memories/${TEST_SESSION_ID}`);
-		mockFs.mockDirectory(dirUri, [['notes.md', 1 /* FileType.File */]]);
+		mockFs.mockDirectory(dirUri, [['notes.md', 1 ]]);
 
 		const childUri = URI.joinPath(dirUri, 'notes.md');
 		mockFs.mockFile(childUri, 'content');
@@ -133,7 +128,7 @@ suite('MemoryTool', () => {
 			return;
 		}
 		const userDirUri = URI.joinPath(globalStorageUri, 'memory-tool/memories');
-		mockFs.mockDirectory(userDirUri, [['user-note.md', 1 /* FileType.File */]]);
+		mockFs.mockDirectory(userDirUri, [['user-note.md', 1 ]]);
 		const childUri = URI.joinPath(userDirUri, 'user-note.md');
 		mockFs.mockFile(childUri, 'user content');
 
@@ -161,7 +156,6 @@ suite('MemoryTool', () => {
 		expect(text).toContain('lines 2-4');
 	});
 
-	// --- Local create ---
 
 	test('create creates a new session file', async () => {
 		const result = await invokeMemoryTool(tool, {
@@ -190,7 +184,6 @@ suite('MemoryTool', () => {
 		expect(text).toContain('Error: File /memories/session/existing.md already exists');
 	});
 
-	// --- Local str_replace ---
 
 	test('str_replace replaces unique text', async () => {
 		const storageUri = accessor.get(IVSCodeExtensionContext).storageUri;
@@ -246,7 +239,6 @@ suite('MemoryTool', () => {
 		expect(text).toContain('Multiple occurrences');
 	});
 
-	// --- Local insert ---
 
 	test('insert adds text at specified line', async () => {
 		const storageUri = accessor.get(IVSCodeExtensionContext).storageUri;
@@ -284,7 +276,6 @@ suite('MemoryTool', () => {
 		expect(text).toContain('Invalid `insert_line` parameter');
 	});
 
-	// --- Local delete ---
 
 	test('delete removes a file', async () => {
 		const storageUri = accessor.get(IVSCodeExtensionContext).storageUri;
@@ -311,7 +302,6 @@ suite('MemoryTool', () => {
 		expect(text).toContain('does not exist');
 	});
 
-	// --- Local rename ---
 
 	test('rename moves a file', async () => {
 		const storageUri = accessor.get(IVSCodeExtensionContext).storageUri;
@@ -359,13 +349,11 @@ suite('MemoryTool', () => {
 		expect(text).toContain('already exists');
 	});
 
-	// --- Session isolation ---
 
 	test('different sessions have isolated storage', async () => {
 		const sessionA = 'vscode-chat-session://local/session-aaa';
 		const sessionB = 'vscode-chat-session://local/session-bbb';
 
-		// Create a file in session A
 		const resultA = await invokeMemoryTool(tool, {
 			command: 'create',
 			path: '/memories/session/shared-name.md',
@@ -373,7 +361,6 @@ suite('MemoryTool', () => {
 		}, sessionA);
 		expect(getResultText(resultA as never)).toContain('File created successfully');
 
-		// Create a file with the same name in session B — should not conflict
 		const resultB = await invokeMemoryTool(tool, {
 			command: 'create',
 			path: '/memories/session/shared-name.md',
@@ -381,14 +368,12 @@ suite('MemoryTool', () => {
 		}, sessionB);
 		expect(getResultText(resultB as never)).toContain('File created successfully');
 
-		// View from session A returns session A content
 		const viewA = await invokeMemoryTool(tool, {
 			command: 'view',
 			path: '/memories/session/shared-name.md',
 		}, sessionA);
 		expect(getResultText(viewA as never)).toContain('session A content');
 
-		// View from session B returns session B content
 		const viewB = await invokeMemoryTool(tool, {
 			command: 'view',
 			path: '/memories/session/shared-name.md',
@@ -396,7 +381,6 @@ suite('MemoryTool', () => {
 		expect(getResultText(viewB as never)).toContain('session B content');
 	});
 
-	// --- Repo path routing ---
 
 	describe('repo path operations', () => {
 		test('create repo memory writes file locally', async () => {
@@ -410,7 +394,6 @@ suite('MemoryTool', () => {
 		});
 	});
 
-	// --- Telemetry ---
 
 	describe('telemetry', () => {
 		test('emits memoryToolInvoked for session view', async () => {

@@ -23,17 +23,12 @@ export function setHomeDir(homeDir: vscode.Uri) {
 }
 
 export function getEmmetHelper() {
-	// Lazy load vscode-emmet-helper instead of importing it
-	// directly to reduce the start-up time of the extension
 	if (!_emmetHelper) {
 		_emmetHelper = require('@vscode/emmet-helper');
 	}
 	return _emmetHelper;
 }
 
-/**
- * Update Emmet Helper to use user snippets from the extensionsPath setting
- */
 export function updateEmmetExtensionsPath(forceRefresh: boolean = false) {
 	const helper = getEmmetHelper();
 	let extensionsPath = vscode.workspace.getConfiguration('emmet').get<string[]>('extensionsPath');
@@ -52,27 +47,19 @@ export function updateEmmetExtensionsPath(forceRefresh: boolean = false) {
 	}
 }
 
-/**
- * Migrate old configuration(string) for extensionsPath to new type(string[])
- * https://github.com/microsoft/vscode/issues/117517
- */
 export function migrateEmmetExtensionsPath() {
-	// Get the detail info of emmet.extensionsPath setting
 	const config = vscode.workspace.getConfiguration().inspect('emmet.extensionsPath');
 
-	// Update Global setting if the value type is string or the value is null
 	if (typeof config?.globalValue === 'string') {
 		vscode.workspace.getConfiguration().update('emmet.extensionsPath', [config.globalValue], true);
 	} else if (config?.globalValue === null) {
 		vscode.workspace.getConfiguration().update('emmet.extensionsPath', [], true);
 	}
-	// Update Workspace setting if the value type is string or the value is null
 	if (typeof config?.workspaceValue === 'string') {
 		vscode.workspace.getConfiguration().update('emmet.extensionsPath', [config.workspaceValue], false);
 	} else if (config?.workspaceValue === null) {
 		vscode.workspace.getConfiguration().update('emmet.extensionsPath', [], false);
 	}
-	// Update WorkspaceFolder setting if the value type is string or the value is null
 	if (typeof config?.workspaceFolderValue === 'string') {
 		vscode.workspace.getConfiguration().update('emmet.extensionsPath', [config.workspaceFolderValue]);
 	} else if (config?.workspaceFolderValue === null) {
@@ -80,9 +67,6 @@ export function migrateEmmetExtensionsPath() {
 	}
 }
 
-/**
- * Mapping between languages that support Emmet and completion trigger characters
- */
 export const LANGUAGE_MODES: { [id: string]: string[] } = {
 	'html': ['!', '.', '}', ':', '*', '$', ']', '/', '>', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
 	'jade': ['!', '.', '}', ':', '*', '$', ']', '/', '>', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
@@ -117,10 +101,6 @@ export function validate(allowStylesheet: boolean = true): boolean {
 }
 
 export function getMappingForIncludedLanguages(): Record<string, string> {
-	// Explicitly map languages that have built-in grammar in VS Code to their parent language
-	// to get emmet completion support
-	// For other languages, users will have to use `emmet.includeLanguages` or
-	// language specific extensions can provide emmet completion support
 	const MAPPED_MODES: Record<string, string> = {
 		'handlebars': 'html',
 		'php': 'html'
@@ -137,14 +117,6 @@ export function getMappingForIncludedLanguages(): Record<string, string> {
 	return finalMappedModes;
 }
 
-/**
-* Get the corresponding emmet mode for given vscode language mode
-* E.g.: jsx for typescriptreact/javascriptreact or pug for jade
-* If the language is not supported by emmet or has been excluded via `excludeLanguages` setting,
-* then nothing is returned
-*
-* @param excludedLanguages Array of language ids that user has chosen to exclude for emmet
-*/
 export function getEmmetMode(language: string, mappedModes: Record<string, string>, excludedLanguages: string[]): string | undefined {
 	if (!language || excludedLanguages.includes(language)) {
 		return;
@@ -158,10 +130,10 @@ export function getEmmetMode(language: string, mappedModes: Record<string, strin
 		language = mappedModes[language];
 	}
 
-	if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) { // treat tsx like jsx
+	if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) {
 		language = 'jsx';
 	}
-	else if (language === 'sass-indented') { // map sass-indented to sass
+	else if (language === 'sass-indented') {
 		language = 'sass';
 	}
 	else if (language === 'jade' || language === 'pug') {
@@ -180,12 +152,6 @@ const openBrace = 123;
 const slash = 47;
 const star = 42;
 
-/**
- * Traverse the given document backward & forward from given position
- * to find a complete ruleset, then parse just that to return a Stylesheet
- * @param document vscode.TextDocument
- * @param position vscode.Position
- */
 export function parsePartialStylesheet(document: vscode.TextDocument, position: vscode.Position): FlatStylesheet | undefined {
 	const isCSS = document.languageId === 'css';
 	const positionOffset = document.offsetAt(position);
@@ -246,7 +212,6 @@ export function parsePartialStylesheet(document: vscode.TextDocument, position: 
 		}
 	}
 
-	// Go forward until we find a closing brace.
 	while (!stream.eof() && !stream.eat(closeBrace)) {
 		if (stream.peek() === slash) {
 			consumeCommentForwards();
@@ -264,7 +229,6 @@ export function parsePartialStylesheet(document: vscode.TextDocument, position: 
 	let currentLine = position.line;
 	let exit = false;
 
-	// Go back until we found an opening brace. If we find a closing one, consume its pair and continue.
 	while (!exit && openBracesToFind > 0 && !stream.sof()) {
 		consumeLineCommentBackwards();
 
@@ -294,7 +258,6 @@ export function parsePartialStylesheet(document: vscode.TextDocument, position: 
 		}
 	}
 
-	// We are at an opening brace. We need to include its selector.
 	currentLine = document.positionAt(stream.pos).line;
 	openBracesToFind = 0;
 	let foundSelector = false;
@@ -336,9 +299,6 @@ export function parsePartialStylesheet(document: vscode.TextDocument, position: 
 	}
 }
 
-/**
- * Returns node corresponding to given position in the given root node
- */
 export function getFlatNode(root: FlatNode | undefined, offset: number, includeNodeBoundary: boolean): FlatNode | undefined {
 	if (!root) {
 		return;
@@ -355,9 +315,6 @@ export function getFlatNode(root: FlatNode | undefined, offset: number, includeN
 			return getFlatNodeChildren(child.children) ?? child;
 		}
 		else if ('close' in child) {
-			// We have an HTML node in this case.
-			// In case this node is an invalid unpaired HTML node,
-			// we still want to search its children
 			const htmlChild = <HtmlFlatNode>child;
 			if (htmlChild.open && !htmlChild.close) {
 				return getFlatNodeChildren(htmlChild.children);
@@ -381,15 +338,10 @@ export function getFlatNode(root: FlatNode | undefined, offset: number, includeN
 
 export const allowedMimeTypesInScriptTag = ['text/html', 'text/plain', 'text/x-template', 'text/template', 'text/ng-template'];
 
-/**
- * Finds the HTML node within an HTML document at a given position
- * If position is inside a script tag of type template, then it will be parsed to find the inner HTML node as well
- */
 export function getHtmlFlatNode(documentText: string, root: FlatNode | undefined, offset: number, includeNodeBoundary: boolean): HtmlFlatNode | undefined {
 	let currentNode: HtmlFlatNode | undefined = <HtmlFlatNode | undefined>getFlatNode(root, offset, includeNodeBoundary);
 	if (!currentNode) { return; }
 
-	// If the currentNode is a script one, first set up its subtree and then find HTML node.
 	if (currentNode.name === 'script' && currentNode.children.length === 0) {
 		const scriptNodeBody = setupScriptNodeSubtree(documentText, currentNode);
 		if (scriptNodeBody) {
@@ -410,7 +362,6 @@ export function setupScriptNodeSubtree(documentText: string, scriptNode: HtmlFla
 				&& allowedMimeTypesInScriptTag.includes(x.value.toString())));
 	if (isTemplateScript
 		&& scriptNode.open) {
-		// blank out the rest of the document and generate the subtree.
 		const beforePadding = ' '.repeat(scriptNode.open.end);
 		const endToUse = scriptNode.close ? scriptNode.close.start : scriptNode.end;
 		const scriptBodyText = beforePadding + documentText.substring(scriptNode.open.end, endToUse);
@@ -425,7 +376,6 @@ export function setupScriptNodeSubtree(documentText: string, scriptNode: HtmlFla
 }
 
 export function setupCdataNodeSubtree(documentText: string, cdataNode: HtmlFlatNode): string {
-	// blank out the rest of the document and generate the subtree.
 	const cdataStart = '<![CDATA[';
 	const cdataEnd = ']]>';
 	const startToUse = cdataNode.start + cdataStart.length;
@@ -462,9 +412,6 @@ export function offsetRangeToVsRange(document: vscode.TextDocument, start: numbe
 	return new vscode.Range(startPos, endPos);
 }
 
-/**
- * Returns the deepest non comment node under given node
- */
 export function getDeepestFlatNode(node: FlatNode | undefined): FlatNode | undefined {
 	if (!node || !node.children || node.children.length === 0 || !node.children.find(x => x.type !== 'comment')) {
 		return node;
@@ -554,29 +501,23 @@ export function findPrevWord(propertyValue: string, pos: number): [number | unde
 }
 
 export function getNodesInBetween(node1: FlatNode, node2: FlatNode): FlatNode[] {
-	// Same node
 	if (sameNodes(node1, node2)) {
 		return [node1];
 	}
 
-	// Not siblings
 	if (!sameNodes(node1.parent, node2.parent)) {
-		// node2 is ancestor of node1
 		if (node2.start < node1.start) {
 			return [node2];
 		}
 
-		// node1 is ancestor of node2
 		if (node2.start < node1.end) {
 			return [node1];
 		}
 
-		// Get the highest ancestor of node1 that should be commented
 		while (node1.parent && node1.parent.end < node2.start) {
 			node1 = node1.parent;
 		}
 
-		// Get the highest ancestor of node2 that should be commented
 		while (node2.parent && node2.parent.start > node1.start) {
 			node2 = node2.parent;
 		}
@@ -593,11 +534,9 @@ export function getNodesInBetween(node1: FlatNode, node2: FlatNode): FlatNode[] 
 }
 
 export function sameNodes(node1: FlatNode | undefined, node2: FlatNode | undefined): boolean {
-	// return true if they're both undefined
 	if (!node1 && !node2) {
 		return true;
 	}
-	// return false if only one of them is undefined
 	if (!node1 || !node2) {
 		return false;
 	}
@@ -608,12 +547,11 @@ export function getEmmetConfiguration(syntax: string) {
 	const emmetConfig = vscode.workspace.getConfiguration('emmet');
 	const syntaxProfiles = Object.assign({}, emmetConfig['syntaxProfiles'] || {});
 	const preferences = Object.assign({}, emmetConfig['preferences'] || {});
-	// jsx, xml and xsl syntaxes need to have self closing tags unless otherwise configured by user
 	if (syntax === 'jsx' || syntax === 'xml' || syntax === 'xsl') {
 		syntaxProfiles[syntax] = syntaxProfiles[syntax] || {};
 		if (typeof syntaxProfiles[syntax] === 'object'
-			&& !syntaxProfiles[syntax].hasOwnProperty('self_closing_tag') // Old Emmet format
-			&& !syntaxProfiles[syntax].hasOwnProperty('selfClosingStyle') // Emmet 2.0 format
+			&& !syntaxProfiles[syntax].hasOwnProperty('self_closing_tag')
+			&& !syntaxProfiles[syntax].hasOwnProperty('selfClosingStyle')
 		) {
 			syntaxProfiles[syntax] = {
 				...syntaxProfiles[syntax],
@@ -633,10 +571,6 @@ export function getEmmetConfiguration(syntax: string) {
 	};
 }
 
-/**
- * Itereates by each child, as well as nested child's children, in their order
- * and invokes `fn` for each. If `fn` function returns `false`, iteration stops
- */
 export function iterateCSSToken(token: FlatCssToken, fn: (x: any) => any): boolean {
 	for (let i = 0, il = token.size; i < il; i++) {
 		if (fn(token.item(i)) === false || iterateCSSToken(token.item(i), fn) === false) {
@@ -646,17 +580,10 @@ export function iterateCSSToken(token: FlatCssToken, fn: (x: any) => any): boole
 	return true;
 }
 
-/**
- * Returns `name` CSS property from given `rule`
- */
 export function getCssPropertyFromRule(rule: FlatRule, name: string): FlatProperty | undefined {
 	return rule.children.find(node => node.type === 'property' && node.name === name) as FlatProperty;
 }
 
-/**
- * Returns css property under caret in given editor or `null` if such node cannot
- * be found
- */
 export function getCssPropertyFromDocument(editor: vscode.TextEditor, position: vscode.Position): FlatProperty | null {
 	const document = editor.document;
 	const rootNode = getRootNode(document, true);
@@ -729,9 +656,6 @@ export function getPathBaseName(path: string): string {
 }
 
 export function getSyntaxes() {
-	/**
-	 * List of all known syntaxes, from emmetio/emmet
-	 */
 	return {
 		markup: ['html', 'xml', 'xsl', 'jsx', 'js', 'pug', 'slim', 'haml'],
 		stylesheet: ['css', 'sass', 'scss', 'less', 'sss', 'stylus']

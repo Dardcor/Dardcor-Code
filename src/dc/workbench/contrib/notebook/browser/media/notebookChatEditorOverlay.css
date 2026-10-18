@@ -5,16 +5,11 @@
 
 .notebook-chat-editor-overlay-widget {
 	position: absolute;
-	/** Based on chat widget for regular editors **/
 	right: 28px;
-	/** Based on chat widget for regular editors **/
 	bottom: 23px;
-	/** In notebook.css we set this to 22px, we need to revert this to standards **/
 	line-height: 1.4em;
 }
 
-/** Copied from src/vs/workbench/contrib/chat/browser/media/chatEditorOverlay.css **/
-/** Copied until we unify these, for now its separate **/
 .notebook-chat-editor-overlay-widget {
 	padding: 0px;
 	color: var(--vscode-button-foreground);

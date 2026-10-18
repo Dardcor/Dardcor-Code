@@ -45,7 +45,6 @@ export class MockChatModeService implements IChatModeService {
 		return this._modesView;
 	}
 
-	/** Test helper to fire the change event for the cached modes view. */
 	fireDidChange(): void {
 		this._onDidChange.fire();
 	}

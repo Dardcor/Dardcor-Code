@@ -47,7 +47,6 @@ class CellStatusBarLanguagePickerProvider implements INotebookCellStatusBarItemP
 			if (registeredId) {
 				displayLanguage = this._languageService.getLanguageName(displayLanguage) ?? displayLanguage;
 			} else {
-				// add unregistered lanugage warning item
 				const searchTooltip = localize('notebook.cell.status.searchLanguageExtensions', "Unknown cell language. Click to search for '{0}' extensions", cell.language);
 				statusBarItems.push({
 					text: `$(dialog-warning)`,
@@ -115,9 +114,9 @@ class CellStatusBarLanguageDetectionProvider implements INotebookCellStatusBarIt
 
 		if (!this.cache.has(cellUri)) {
 			this.cache.set(cellUri, {
-				cellLanguage: currentLanguageId, // force a re-compute upon a change in configured language
-				updateTimestamp: 0, // facilitates a disposable-free debounce operation
-				contentVersion: 1, // dont run for the initial contents, only on update
+				cellLanguage: currentLanguageId,
+				updateTimestamp: 0,
+				contentVersion: 1,
 			});
 		}
 

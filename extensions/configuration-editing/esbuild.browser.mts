@@ -9,9 +9,6 @@ import { run } from '../esbuild-extension-common.mts';
 const srcDir = path.join(import.meta.dirname, 'src');
 const outDir = path.join(import.meta.dirname, 'dist', 'browser');
 
-/**
- * Plugin to redirect `./node/net` imports to `./browser/net` for the browser build.
- */
 const browserNetPlugin: Plugin = {
 	name: 'browser-net-redirect',
 	setup(build) {

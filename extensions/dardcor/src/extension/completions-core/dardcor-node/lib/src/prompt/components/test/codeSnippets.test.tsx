@@ -69,7 +69,6 @@ suite('Code Snippets Component', function () {
 		assert.deepStrictEqual(chunk.length, 2);
 		assert.deepStrictEqual(chunk[1].props?.key, '1');
 		assert.deepStrictEqual(chunk[1].props?.source, codeSnippets[0]);
-		// Assert content
 		assert.deepStrictEqual(
 			querySnapshot(snapshot.snapshot!, 'CodeSnippets[0].Chunk[0].Text'),
 			'Compare this snippet from something.ts:'

@@ -22,9 +22,6 @@ export class IgnoreFile {
 
 	constructor() { }
 
-	/**
-	 * With a given ignore file, create the ignore instance and add its contents
-	 */
 	setIgnoreFile(workspaceRoot: URI | undefined, ignoreFile: URI, contents: string) {
 		let scope = '';
 		if (workspaceRoot) {
@@ -37,7 +34,6 @@ export class IgnoreFile {
 		this._ignoreMap.set(ignoreFile.fsPath, {
 			ignore: ignore().add(contents),
 			patterns: splitLines(contents)
-				// Remove comments and empty lines
 				.filter(x => x.trim() && !x.startsWith('#'))
 				.map(gitignoreToMinimatch)
 				.map(pattern => scope ? posix.join(scope, pattern) : pattern)
@@ -47,19 +43,12 @@ export class IgnoreFile {
 		this._ignoreCache.clear();
 	}
 
-	/**
-	 * Removes the ignore file from being tracked
-	 * @param ignoreFile The ignore file URI
-	 */
 	removeIgnoreFile(ignoreFile: URI) {
 		this._ignoreMap.delete(ignoreFile.fsPath);
 		this._searchRankCache = null;
 		this._ignoreCache.clear();
 	}
 
-	/**
-		* Remove all ignore instances for a given workspace
-	*/
 	removeWorkspace(workspace: URI) {
 		let count = 0;
 		for (const f of this._ignoreMap.keys()) {
@@ -69,7 +58,6 @@ export class IgnoreFile {
 			}
 		}
 		if (count > 0) {
-			// Invalidate the search rank cache
 			this._searchRankCache = null;
 			this._ignoreCache.clear();
 		}
@@ -79,9 +67,6 @@ export class IgnoreFile {
 		return [...this._ignoreMap.values()].flatMap(x => x.patterns);
 	}
 
-	/**
-	 * Check if a given file is ignored finding its ignore instance first
-	 */
 	isIgnored(file: URI) {
 		if (this._ignoreMap.size === 0) {
 			return false;
@@ -96,18 +81,16 @@ export class IgnoreFile {
 		let result = { ignored: false, unignored: false };
 
 		try {
-			// We need to traverse up the tree using the first file we see, if it doesnt exist continue looking
 			const searchRank = this._searchRank;
 			for (const cur of searchRank) {
 				ignoreIterations += 1;
 
-				const dir = dirname(cur); // is like /Users/username/Project/
-				const rel = relative(dir, target); // is like src/index.ts
+				const dir = dirname(cur);
+				const rel = relative(dir, target);
 				if (rel.startsWith('..')) {
-					continue; // is outside of the scope of this file
+					continue;
 				}
 
-				// if the target is a descendant of the ignore location, check this ignore file
 				if (dir !== target && isDescendant(dir, target)) {
 					const entry = this._ignoreMap.get(cur);
 					if (!entry) {
@@ -139,12 +122,6 @@ export class IgnoreFile {
 	}
 }
 
-/**
- * Checks if a path is a descendant of another path
- * @param parent The parent path
- * @param descendant The descendant path
- * @returns True if a descendant, false otherwise
- */
 function isDescendant(parent: string, descendant: string) {
 	if (parent === descendant) {
 		return true;

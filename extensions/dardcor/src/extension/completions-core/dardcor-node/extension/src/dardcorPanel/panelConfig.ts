@@ -4,15 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as constants from '../constants';
-import { CopilotPanelVisible } from '../constants';
+import { DardcorPanelVisible } from '../constants';
 import { PanelConfig } from '../panelShared/basePanelTypes';
 
-// Configuration for the GitHub Copilot Suggestions Panel
 export const dardcorPanelConfig: PanelConfig = {
 	panelTitle: 'Dardcor AI Suggestions',
 	webviewId: 'Dardcor AI Suggestions',
 	webviewScriptName: 'suggestionsPanelWebview.js',
-	contextVariable: CopilotPanelVisible,
+	contextVariable: DardcorPanelVisible,
 	commands: {
 		accept: constants.CMDAcceptCursorPanelSolutionClient,
 		navigatePrevious: constants.CMDNavigatePreviousPanelSolutionClient,

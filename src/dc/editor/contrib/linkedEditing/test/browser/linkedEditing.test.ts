@@ -145,9 +145,6 @@ suite('linked editing', () => {
 		text: '<ooo></ooo>'
 	};
 
-	/**
-	 * Simple insertion
-	 */
 	testCase('Simple insert - initial', state, async (editor) => {
 		const pos = new Position(1, 2);
 		await editor.setPosition(pos);
@@ -166,9 +163,6 @@ suite('linked editing', () => {
 		await editor.trigger('keyboard', Handler.Type, { text: 'i' });
 	}, '<oooi></oooi>');
 
-	/**
-	 * Simple insertion - end
-	 */
 	testCase('Simple insert end - initial', state, async (editor) => {
 		const pos = new Position(1, 8);
 		await editor.setPosition(pos);
@@ -187,9 +181,6 @@ suite('linked editing', () => {
 		await editor.trigger('keyboard', Handler.Type, { text: 'i' });
 	}, '<oooi></oooi>');
 
-	/**
-	 * Boundary insertion
-	 */
 	testCase('Simple insert - out of boundary', state, async (editor) => {
 		const pos = new Position(1, 1);
 		await editor.setPosition(pos);
@@ -214,9 +205,6 @@ suite('linked editing', () => {
 		await editor.trigger('keyboard', Handler.Type, { text: 'i' });
 	}, '<ooo></ooo>i');
 
-	/**
-	 * Insert + Move
-	 */
 	testCase('Continuous insert', state, async (editor) => {
 		const pos = new Position(1, 2);
 		await editor.setPosition(pos);
@@ -240,9 +228,6 @@ suite('linked editing', () => {
 		await editor.trigger('keyboard', Handler.Type, { text: 'i' });
 	}, '<iooo>i</iooo>');
 
-	/**
-	 * Selection insert
-	 */
 	testCase('Selection insert - simple', state, async (editor) => {
 		const pos = new Position(1, 2);
 		await editor.setPosition(pos);
@@ -264,21 +249,7 @@ suite('linked editing', () => {
 		await editor.trigger('keyboard', Handler.Type, { text: 'i' });
 	}, 'ioo></oo>');
 
-	/**
-	 * @todo
-	 * Undefined behavior
-	 */
-	// testCase('Selection insert - across two boundary', state, async (editor) => {
-	// 	const pos = new Position(1, 2);
-	// 	await editor.setPosition(pos);
-	// 	await linkedEditingContribution.updateLinkedUI(pos);
-	// 	await editor.setSelection(new Range(1, 4, 1, 9));
-	// 	await editor.trigger('keyboard', Handler.Type, { text: 'i' });
-	// }, '<ooioo>');
 
-	/**
-	 * Break out behavior
-	 */
 	testCase('Breakout - type space', state, async (editor) => {
 		const pos = new Position(1, 5);
 		await editor.setPosition(pos);
@@ -317,9 +288,6 @@ suite('linked editing', () => {
 		await editor.trigger('keyboard', Handler.Paste, { text: ' i' });
 	}, '<oo io></ooo>');
 
-	/**
-	 * Break out with custom provider wordPattern
-	 */
 
 	const state3 = {
 		...state,
@@ -367,9 +335,6 @@ suite('linked editing', () => {
 		await editor.trigger('keyboard', Handler.Type, { text: 'i' });
 	}, '<iooo></ooo>');
 
-	/**
-	 * Delete
-	 */
 	testCase('Delete - left char', state, async (editor) => {
 		const pos = new Position(1, 5);
 		await editor.setPosition(pos);
@@ -397,26 +362,7 @@ suite('linked editing', () => {
 		editor.undo();
 	}, '<ooo></ooo>');
 
-	/**
-	 * Todo: Fix test
-	 */
-	// testCase('Delete - left all', state, async (editor) => {
-	// 	const pos = new Position(1, 3);
-	// 	await editor.setPosition(pos);
-	// 	await linkedEditingContribution.updateLinkedUI(pos);
-	// 	await editor.trigger('keyboard', 'deleteAllLeft', {});
-	// }, '></>');
 
-	/**
-	 * Todo: Fix test
-	 */
-	// testCase('Delete - left all then undo', state, async (editor) => {
-	// 	const pos = new Position(1, 5);
-	// 	await editor.setPosition(pos);
-	// 	await linkedEditingContribution.updateLinkedUI(pos);
-	// 	await editor.trigger('keyboard', 'deleteAllLeft', {});
-	// 	editor.undo();
-	// }, '></ooo>');
 
 	testCase('Delete - left all then undo twice', state, async (editor) => {
 		const pos = new Position(1, 5);
@@ -440,9 +386,6 @@ suite('linked editing', () => {
 		await editor.trigger('keyboard', 'deleteLeft', {});
 	}, 'oo></oo>');
 
-	/**
-	 * Undo / redo
-	 */
 	testCase('Undo/redo - simple undo', state, async (editor) => {
 		const pos = new Position(1, 2);
 		await editor.setPosition(pos);
@@ -459,9 +402,6 @@ suite('linked editing', () => {
 		editor.redo();
 	}, '<iooo></iooo>');
 
-	/**
-	 * Multi line
-	 */
 	const state2 = {
 		text: [
 			'<ooo>',

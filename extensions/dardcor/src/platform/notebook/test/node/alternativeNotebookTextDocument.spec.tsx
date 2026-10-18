@@ -69,8 +69,8 @@ describe('Alternative Notebook (text) Content', () => {
 
 				expect(altDocSnapshot.getText()).toMatchSnapshot();
 
-				expect(altDocSnapshot.getText()).not.toContain('\r\n'); // Ensure no CRLF, only LF
-				expect(altDocSnapshot.getText()).toContain('\n'); // Ensure no CRLF, only LF
+				expect(altDocSnapshot.getText()).not.toContain('\r\n');
+				expect(altDocSnapshot.getText()).toContain('\n');
 			});
 		});
 	});
@@ -109,7 +109,6 @@ describe('Alternative Notebook (text) Content', () => {
 			expect(altDocSnapshot.fromAltRange(new Range(1, 0, 3, 0))).toEqual([[notebook.cellAt(0), new Range(0, 0, 1, 9)]]);
 			expect(altDocSnapshot.toAltOffsetRange(notebook.cellAt(0), [new Range(0, 0, 1, 9)])).toEqual([new OffsetRange(53, 73)]);
 
-			// Translating alt text range across cells will only return contents of one cell.
 			expect(altDocSnapshot.getText(new OffsetRange(53, 140))).toBe('import sys\nimport os\n#%% vscode.cell [id=#VSC-bdb3864a] [language=python]\nimport pandas');
 			expect(altDocSnapshot.fromAltOffsetRange(new OffsetRange(53, 140))).toEqual([[notebook.cellAt(0), new Range(0, 0, 1, 9)], [notebook.cellAt(1), new Range(0, 0, 0, 13)]]);
 			expect(altDocSnapshot.fromAltRange(new Range(1, 0, 4, 13))).toEqual([[notebook.cellAt(0), new Range(0, 0, 1, 9)], [notebook.cellAt(1), new Range(0, 0, 0, 13)]]);
@@ -207,7 +206,6 @@ describe('Alternative Notebook (text) Content', () => {
 			expect(altDocSnapshot.fromAltRange(new Range(1, 0, 3, 0))).toEqual([[notebook.cellAt(2), new Range(0, 0, 1, 9)]]);
 			expect(altDocSnapshot.toAltOffsetRange(notebook.cellAt(2), [new Range(0, 0, 1, 9)])).toEqual([new OffsetRange(53, 73)]);
 
-			// Translating alt text range across cells will only return contents of one cell.
 			expect(altDocSnapshot.getText(new OffsetRange(53, 140))).toBe('import sys\nimport os\n#%% vscode.cell [id=#VSC-53ab90bb] [language=python]\nimport pandas');
 			expect(altDocSnapshot.fromAltOffsetRange(new OffsetRange(53, 140))).toEqual([[notebook.cellAt(2), new Range(0, 0, 1, 9)], [notebook.cellAt(4), new Range(0, 0, 0, 13)]]);
 			expect(altDocSnapshot.fromAltRange(new Range(1, 0, 4, 13))).toEqual([[notebook.cellAt(2), new Range(0, 0, 1, 9)], [notebook.cellAt(4), new Range(0, 0, 0, 13)]]);
@@ -305,7 +303,6 @@ describe('Alternative Notebook (text) Content', () => {
 			expect(altDocSnapshot.fromAltRange(new Range(10, 0, 12, 0))).toEqual([[notebook.cellAt(2), new Range(0, 0, 1, 9)]]);
 			expect(altDocSnapshot.toAltOffsetRange(notebook.cellAt(2), [new Range(0, 0, 1, 9)])).toEqual([new OffsetRange(233, 253)]);
 
-			// Translating alt text range across cells will only return contents of one cell.
 			expect(altDocSnapshot.getText(new OffsetRange(53, 254))).toBe(']\n"""\n# This is a sample notebook\n"""\n#%% vscode.cell [id=#VSC-bdb3864a] [language=markdown]\n"""\n## Header\n### Sub Heading\n"""\n#%% vscode.cell [id=#VSC-8862d4f3] [language=python]\nimport sys\nimport os\n');
 			expect(altDocSnapshot.fromAltOffsetRange(new OffsetRange(53, 254))).toEqual([
 				[notebook.cellAt(0), new Range(0, 0, 0, 27)],
@@ -406,7 +403,6 @@ describe('Alternative Notebook (text) Content', () => {
 			expect(altDocSnapshot.fromAltRange(new Range(1, 0, 2, 9))).toEqual([[notebook.cellAt(0), new Range(0, 0, 1, 9)]]);
 			expect(altDocSnapshot.toAltOffsetRange(notebook.cellAt(0), [new Range(0, 0, 1, 9)])).toEqual([new OffsetRange(53, 73)]);
 
-			// Translating alt text range across cells will only return contents of one cell.
 			expect(altDocSnapshot.getText(new OffsetRange(53, 140))).toBe('import sys\nimport os\n#%% vscode.cell [id=#VSC-bdb3864a] [language=python]\nimport pandas');
 			expect(altDocSnapshot.fromAltOffsetRange(new OffsetRange(53, 140))).toEqual([[notebook.cellAt(0), new Range(0, 0, 1, 9)], [notebook.cellAt(1), new Range(0, 0, 0, 13)]]);
 			expect(altDocSnapshot.fromAltRange(new Range(0, 0, 4, 13))).toEqual([[notebook.cellAt(0), new Range(0, 0, 1, 9)], [notebook.cellAt(1), new Range(0, 0, 0, 13)]]);
@@ -476,7 +472,6 @@ describe('Alternative Notebook (text) Content', () => {
 				const updatedAltText = newDoc.getText();
 				altDoc.applyCellChanges(e.document, e.contentChanges);
 
-				// Verify the alt text is updated correctly
 				expect(updatedAltText).toBe(edit!.apply(altDocSnapshot.getText()));
 				expect(updatedAltText).toBe(altDoc.getText());
 
@@ -579,7 +574,6 @@ describe('Alternative Notebook (text) Content', () => {
 				const updatedAltText = newDoc.getText();
 				altDoc.applyCellChanges(e.document, e.contentChanges);
 
-				// Verify the alt text is updated correctly
 				expect(updatedAltText).toBe(edit!.apply(altDocSnapshot.getText()));
 				expect(updatedAltText).toBe(altDoc.getText());
 				return updatedAltText;
@@ -751,7 +745,6 @@ describe('Alternative Notebook (text) Content', () => {
 
 				const updatedAltText = newDoc.getText();
 
-				// Verify the alt text is updated correctly
 				expect(updatedAltText).toBe(edit!.apply(altDocSnapshot.getText()));
 
 				return updatedAltText;
@@ -924,7 +917,6 @@ describe('Alternative Notebook (text) Content', () => {
 				const updatedAltText = newDoc.getText();
 				altDoc.applyCellChanges(e.document, e.contentChanges);
 
-				// Verify the alt text is updated correctly
 				expect(updatedAltText).toBe(edit!.apply(altDocSnapshot.getText()));
 				expect(updatedAltText).toBe(altDoc.getText());
 
@@ -946,139 +938,6 @@ describe('Alternative Notebook (text) Content', () => {
 					}]
 				})).toMatchSnapshot();
 			});
-			// test(`replace multiple lines`, async () => {
-			// 	expect(getUpdatedAltText({
-			// 		document: notebook.cellAt(0).document,
-			// 		reason: undefined,
-			// 		detailedReason: {
-			// 			source: 'cursor',
-			// 			metadata: {}
-			// 		},
-			// 		contentChanges: [{
-			// 			range: new Range(1, 7, 1, 14),
-			// 			rangeOffset: 28,
-			// 			rangeLength: 7,
-			// 			text: 'Say Something',
-			// 		}, {
-			// 			range: new Range(0, 0, 0, 20),
-			// 			rangeOffset: 0,
-			// 			rangeLength: 20,
-			// 			text: '# Top level print statements',
-			// 		}]
-			// 	})).toMatchSnapshot();
-			// });
-			// test(`replace text with smaller text`, async () => {
-			// 	expect(getUpdatedAltText({
-			// 		document: notebook.cellAt(0).document,
-			// 		reason: undefined,
-			// 		detailedReason: {
-			// 			source: 'cursor',
-			// 			metadata: {}
-			// 		},
-			// 		contentChanges: [{
-			// 			range: new Range(0, 7, 0, 18),
-			// 			rangeOffset: 7,
-			// 			rangeLength: 11,
-			// 			text: 'Foo Bar',
-			// 		}]
-			// 	})).toMatchSnapshot();
-			// });
-			// test(`replace text with larger text`, async () => {
-			// 	expect(getUpdatedAltText({
-			// 		document: notebook.cellAt(0).document,
-			// 		reason: undefined,
-			// 		detailedReason: {
-			// 			source: 'cursor',
-			// 			metadata: {}
-			// 		},
-			// 		contentChanges: [{
-			// 			range: new Range(0, 7, 0, 18),
-			// 			rangeOffset: 7,
-			// 			rangeLength: 11,
-			// 			text: 'This is a longer piece of text',
-			// 		}]
-			// 	})).toMatchSnapshot();
-			// });
-			// test(`replace while inserting a few lines`, async () => {
-			// 	expect(getUpdatedAltText({
-			// 		document: notebook.cellAt(0).document,
-			// 		reason: undefined,
-			// 		detailedReason: {
-			// 			source: 'cursor',
-			// 			metadata: {}
-			// 		},
-			// 		contentChanges: [{
-			// 			range: new Range(0, 7, 0, 20),
-			// 			rangeOffset: 7,
-			// 			rangeLength: 13,
-			// 			text: 'Foo Bar")\nprint("Another line")\nprint("Yet another line")',
-			// 		}]
-			// 	})).toMatchSnapshot();
-			// });
-			// test(`insert a few lines`, async () => {
-			// 	expect(getUpdatedAltText({
-			// 		document: notebook.cellAt(0).document,
-			// 		reason: undefined,
-			// 		detailedReason: {
-			// 			source: 'cursor',
-			// 			metadata: {}
-			// 		},
-			// 		contentChanges: [{
-			// 			range: new Range(0, 20, 0, 20),
-			// 			rangeOffset: 20,
-			// 			rangeLength: 0,
-			// 			text: '\nprint("Another line")\nprint("Yet another line")',
-			// 		}]
-			// 	})).toMatchSnapshot();
-			// });
-			// test(`remove a line`, async () => {
-			// 	expect(getUpdatedAltText({
-			// 		document: notebook.cellAt(0).document,
-			// 		reason: undefined,
-			// 		detailedReason: {
-			// 			source: 'cursor',
-			// 			metadata: {}
-			// 		},
-			// 		contentChanges: [{
-			// 			range: new Range(0, 20, 1, 16),
-			// 			rangeOffset: 20,
-			// 			rangeLength: 17,
-			// 			text: '',
-			// 		}]
-			// 	})).toMatchSnapshot();
-			// });
-			// test(`remove two lines`, async () => {
-			// 	expect(getUpdatedAltText({
-			// 		document: notebook.cellAt(0).document,
-			// 		reason: undefined,
-			// 		detailedReason: {
-			// 			source: 'cursor',
-			// 			metadata: {}
-			// 		},
-			// 		contentChanges: [{
-			// 			range: new Range(0, 20, 2, 16),
-			// 			rangeOffset: 20,
-			// 			rangeLength: 34,
-			// 			text: '',
-			// 		}]
-			// 	})).toMatchSnapshot();
-			// });
-			// test(`merge two lines`, async () => {
-			// 	expect(getUpdatedAltText({
-			// 		document: notebook.cellAt(0).document,
-			// 		reason: undefined,
-			// 		detailedReason: {
-			// 			source: 'cursor',
-			// 			metadata: {}
-			// 		},
-			// 		contentChanges: [{
-			// 			range: new Range(0, 20, 1, 0),
-			// 			rangeOffset: 20,
-			// 			rangeLength: 1,
-			// 			text: '',
-			// 		}]
-			// 	})).toMatchSnapshot();
-			// });
 		});
 	});
 	describe('Cell Add/Delete', () => {
@@ -1099,7 +958,6 @@ describe('Alternative Notebook (text) Content', () => {
 				const updatedAltText = newDoc.getText();
 				altDoc.applyNotebookChanges(e);
 				if (edit) {
-					// Verify the edit is generated correctly
 					expect(edit.apply(originalText)).toBe(updatedAltText);
 				}
 				expect(altDoc.getText()).toBe(updatedAltText);
@@ -1215,7 +1073,6 @@ describe('Alternative Notebook (text) Content', () => {
 				altDoc.applyNotebookChanges(e);
 				const updatedAltText = newDoc.getText();
 				if (edit) {
-					// Verify the edit is generated correctly
 					expect(edit.apply(originalText)).toBe(updatedAltText);
 				}
 				expect(altDoc.getText()).toBe(updatedAltText);

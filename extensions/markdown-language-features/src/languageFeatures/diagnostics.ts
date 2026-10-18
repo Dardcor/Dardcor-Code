@@ -8,7 +8,6 @@ import { CommandManager } from '../commandManager';
 import { isMarkdownFile } from '../util/file';
 
 
-// Copied from markdown language service
 export enum DiagnosticCode {
 	link_noSuchReferences = 'link.no-such-reference',
 	link_noSuchHeaderInOwnFile = 'link.no-such-header-in-own-file',

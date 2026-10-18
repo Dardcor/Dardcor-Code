@@ -1,9 +1,6 @@
-// Generic config-driven TTS handlers — dispatched by ttsConfig.format.
-// Each handler accepts { baseUrl, apiKey, text, modelId, voiceId } and returns { base64, format }.
 import { responseToBase64, throwUpstreamError } from "./_base.js";
 import minimaxTts from "./minimax.js";
 
-// Hyperbolic: POST { text } → { audio: base64 }
 async function hyperbolic({ baseUrl, apiKey, text }) {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -15,7 +12,6 @@ async function hyperbolic({ baseUrl, apiKey, text }) {
   return { base64: data.audio, format: "mp3" };
 }
 
-// Deepgram: model via query, Token auth, returns binary
 async function deepgram({ baseUrl, apiKey, text, modelId }) {
   const url = new URL(baseUrl);
   url.searchParams.set("model", modelId || "aura-asteria-en");
@@ -28,7 +24,6 @@ async function deepgram({ baseUrl, apiKey, text, modelId }) {
   return responseToBase64(res, "mp3");
 }
 
-// Nvidia NIM: POST { input: { text }, voice, model } → binary
 async function nvidia({ baseUrl, apiKey, text, modelId, voiceId }) {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -39,7 +34,6 @@ async function nvidia({ baseUrl, apiKey, text, modelId, voiceId }) {
   return responseToBase64(res, "wav");
 }
 
-// HuggingFace: POST {baseUrl}/{modelId} { inputs: text } → binary
 async function huggingface({ baseUrl, apiKey, text, modelId }) {
   if (!modelId || modelId.includes("..")) throw new Error("Invalid HuggingFace model ID");
   const res = await fetch(`${baseUrl}/${modelId}`, {
@@ -51,7 +45,6 @@ async function huggingface({ baseUrl, apiKey, text, modelId }) {
   return responseToBase64(res, "wav");
 }
 
-// Fish Audio: model travels in an HTTP header, the voice is a reference_id, returns binary
 async function fishAudio({ baseUrl, apiKey, text, modelId, voiceId }) {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -70,7 +63,6 @@ async function fishAudio({ baseUrl, apiKey, text, modelId, voiceId }) {
   return responseToBase64(res, "mp3");
 }
 
-// Inworld: Basic auth, JSON { audioContent }
 async function inworld({ baseUrl, apiKey, text, modelId, voiceId }) {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -88,7 +80,6 @@ async function inworld({ baseUrl, apiKey, text, modelId, voiceId }) {
   return { base64: data.audioContent, format: "mp3" };
 }
 
-// Cartesia: X-API-Key header
 async function cartesia({ baseUrl, apiKey, text, modelId, voiceId }) {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -108,7 +99,6 @@ async function cartesia({ baseUrl, apiKey, text, modelId, voiceId }) {
   return responseToBase64(res, "mp3");
 }
 
-// PlayHT: token format "userId:apiKey", voice = s3 URL
 async function playht({ baseUrl, apiKey, text, modelId, voiceId }) {
   const [userId, key] = (apiKey || ":").split(":");
   const res = await fetch(baseUrl, {
@@ -131,7 +121,6 @@ async function playht({ baseUrl, apiKey, text, modelId, voiceId }) {
   return responseToBase64(res, "mp3");
 }
 
-// Coqui (local, noAuth): POST { text, speaker_id } → WAV
 async function coqui({ baseUrl, text, voiceId }) {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -142,7 +131,6 @@ async function coqui({ baseUrl, text, voiceId }) {
   return responseToBase64(res, "wav");
 }
 
-// Tortoise (local, noAuth)
 async function tortoise({ baseUrl, text, voiceId }) {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -153,7 +141,6 @@ async function tortoise({ baseUrl, text, voiceId }) {
   return responseToBase64(res, "wav");
 }
 
-// OpenAI-compatible upstream (qwen3-tts, etc.)
 async function openaiCompat({ baseUrl, apiKey, text, modelId, voiceId }) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
@@ -172,7 +159,6 @@ async function openaiCompat({ baseUrl, apiKey, text, modelId, voiceId }) {
   return responseToBase64(res, "mp3");
 }
 
-// format → handler dispatcher
 export const FORMAT_HANDLERS = {
   hyperbolic,
   deepgram,

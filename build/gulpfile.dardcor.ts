@@ -26,9 +26,9 @@ import { config } from './lib/electron.ts';
 import { createAsar } from './lib/asar.ts';
 import minimist from 'minimist';
 import { compileBuildWithoutManglingTask, compileBuildWithManglingTask } from './gulpfile.compile.ts';
-import { compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileAllExtensionsBuildTask, compileExtensionMediaBuildTask, cleanExtensionsBuildTask, compileCopilotExtensionBuildTask } from './gulpfile.extensions.ts';
+import { compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileAllExtensionsBuildTask, compileExtensionMediaBuildTask, cleanExtensionsBuildTask } from './gulpfile.extensions.ts';
 import { copyCodiconsTask } from './lib/compilation.ts';
-import { ensureCopilotPlatformPackage, getCopilotExcludeFilter, getCopilotRuntimePrebuildFiles, getCopilotTgrepExcludeFilter, getMxcExcludeFilter, getRipgrepExcludeFilter, prepareBuiltInCopilotRipgrepShim } from './lib/copilot.ts';
+import { getMxcExcludeFilter, getRipgrepExcludeFilter } from './lib/nativePackageFilters.ts';
 import { ensureOSProxyResolverPlatformPackage, getOSProxyResolverExcludeFilter, getOSProxyResolverPlatformFiles } from './lib/osProxyResolver.ts';
 import { readAgentSdkResults } from './agent-sdk/common.ts';
 import { readDictationRuntimeResults } from './dictation-runtime/common.ts';
@@ -45,7 +45,6 @@ const rcedit = promisify(rceditCallback);
 const root = path.dirname(import.meta.dirname);
 const commit = getVersion(root);
 
-// Build
 const vscodeEntryPoints = [
 	buildfile.workerEditor,
 	buildfile.workerExtensionHost,
@@ -61,29 +60,22 @@ const vscodeEntryPoints = [
 
 const vscodeResourceIncludes = [
 
-	// NLS
 	'out-build/nls.messages.json',
 	'out-build/nls.keys.json',
 
-	// Workbench
 	'out-build/dc/code/electron-browser/workbench/workbench.html',
 
-	// Electron Preload
 	'out-build/dc/base/parts/sandbox/electron-browser/preload.js',
 	'out-build/dc/base/parts/sandbox/electron-browser/preload-aux.js',
 	'out-build/dc/platform/browserView/electron-browser/preload-browserView.js',
 
-	// Node Scripts
 	'out-build/dc/base/node/{terminateProcess.sh,cpuUsage.sh,ps.sh}',
 
-	// Touchbar
 	'out-build/dc/workbench/browser/parts/editor/media/*.png',
 	'out-build/dc/workbench/contrib/debug/browser/media/*.png',
 
-	// External Terminal
 	'out-build/dc/workbench/contrib/externalTerminal/**/*.scpt',
 
-	// Terminal shell integration
 	'out-build/dc/workbench/contrib/terminal/common/scripts/*.fish',
 	'out-build/dc/workbench/contrib/terminal/common/scripts/*.ps1',
 	'out-build/dc/workbench/contrib/terminal/common/scripts/*.psm1',
@@ -91,40 +83,30 @@ const vscodeResourceIncludes = [
 	'out-build/dc/workbench/contrib/terminal/common/scripts/*.zsh',
 	'out-build/dc/workbench/contrib/terminal/common/scripts/psreadline/**',
 
-	// Accessibility Signals
 	'out-build/dc/platform/accessibilitySignal/browser/media/*.mp3',
 	'out-build/dc/workbench/contrib/agentsVoice/browser/media/*.mp3',
 
-	// Welcome
 	'out-build/dc/workbench/contrib/welcomeGettingStarted/common/media/**/*.{svg,png}',
 	'out-build/dc/workbench/contrib/welcomeOnboarding/browser/media/*.svg',
 
-	// Chat Pet
 	'out-build/dc/workbench/contrib/chat/browser/widget/media/chatPet/*.{gif,png}',
 
-	// Extensions
 	'out-build/dc/workbench/contrib/extensions/browser/media/{theme-icon.png,language-icon.svg}',
 	'out-build/dc/workbench/services/extensionManagement/common/media/*.{svg,png}',
 
-	// Webview
 	'out-build/dc/workbench/contrib/webview/browser/pre/*.{js,html}',
 
-	// Extension Host Worker
 	'out-build/dc/workbench/services/extensions/worker/webWorkerExtensionHostIframe.html',
 
-	// Tree Sitter highlights
 	'out-build/dc/editor/common/languages/highlights/*.scm',
 
-	// Tree Sitter injection queries
 	'out-build/dc/editor/common/languages/injections/*.scm'
 ];
 
 const vscodeResources = [
 
-	// Includes
 	...vscodeResourceIncludes,
 
-	// Excludes
 	'!out-build/dc/code/browser/**',
 	'!out-build/dc/editor/standalone/**',
 	'!out-build/dc/code/**/*-dev.html',
@@ -140,10 +122,6 @@ const bootstrapEntryPoints = [
 
 const bundleVSCodeTask = task.define('bundle-vscode', task.series(
 	util.rimraf('out-dardcor-code'),
-	// Optimize: bundles source files automatically based on
-	// import statements based on the passed in entry points.
-	// In addition, concat window related bootstrap files into
-	// a single file.
 	optimize.bundleTask(
 		{
 			out: 'out-dardcor-code',
@@ -188,11 +166,8 @@ task.task(task.define('core-ci', task.series(
 	compileNonNativeExtensionsBuildTask,
 	compileExtensionMediaBuildTask,
 	writeISODate('out-build'),
-	// Type-check with tsgo (no emit)
 	task.define('tsgo-typecheck', () => spawnTsgo(path.join(root, 'src', 'tsconfig.json'), { taskName: 'tsgo-typecheck', noEmit: true })),
-	// Transpile individual files to out-build first (for unit tests)
 	task.define('esbuild-out-build', () => runEsbuildTranspile('out-build', false)),
-	// Then bundle for shipping (bundles also write NLS files to out-build)
 	task.parallel(
 		task.define('esbuild-vscode-min', () => runEsbuildBundle('out-dardcor-code-min', true, true, 'desktop', `${sourceMappingURLBase}/core`)),
 		task.define('esbuild-vscode-reh-min', () => runEsbuildBundle('out-dardcor-code-reh-min', true, true, 'server', `${sourceMappingURLBase}/core`)),
@@ -200,13 +175,6 @@ task.task(task.define('core-ci', task.series(
 	)
 )));
 
-/**
- * Compute checksums for some files.
- *
- * @param out The out folder to read the file from.
- * @param filenames The paths to compute a checksum for.
- * @return A map of paths to checksums.
- */
 function computeChecksums(out: string, filenames: string[]): Record<string, string> {
 	const result: Record<string, string> = {};
 	filenames.forEach(function (filename) {
@@ -218,12 +186,6 @@ function computeChecksums(out: string, filenames: string[]): Record<string, stri
 	return result;
 }
 
-/**
- * Compute checksums for a file.
- *
- * @param filename The absolute path to a filename.
- * @return The checksum for `filename`.
- */
 function computeChecksum(filename: string): string {
 	const contents = fs.readFileSync(filename);
 
@@ -236,14 +198,6 @@ function computeChecksum(filename: string): string {
 	return hash;
 }
 
-// foundry-local-sdk (on-device chat dictation) ships a prebuilt N-API addon
-// (`foundry_local_napi.node`) inside its tarball, and its native core libraries
-// are fetched per-RID into `foundry-local-core/<platform>-<arch>/` at install
-// time. The addon requires a newer glibc than VS Code's minimum supported Linux
-// distros, so we deliberately do NOT ship any of this native payload: it is
-// downloaded on demand at runtime, only on supported platforms, into a per-user
-// cache (see `src/dc/platform/localTranscription/node/foundryLocalRuntime.ts`).
-// Exclude every prebuilt addon and core library from the package here.
 function getFoundryLocalExcludeFilter(): string[] {
 	return [
 		'**',
@@ -282,11 +236,47 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			return !set.has(platform);
 		}).map(ext => `!.build/extensions/${ext.name}/**`);
 
-		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { cwd: root, base: path.join(root, '.build'), dot: true });
+		const unusedExtensionsExclusions = [
+			'!.build/extensions/clojure/**',
+			'!.build/extensions/coffeescript/**',
+			'!.build/extensions/fsharp/**',
+			'!.build/extensions/groovy/**',
+			'!.build/extensions/hlsl/**',
+			'!.build/extensions/julia/**',
+			'!.build/extensions/latex/**',
+			'!.build/extensions/perl/**',
+			'!.build/extensions/r/**',
+			'!.build/extensions/razor/**',
+			'!.build/extensions/restructuredtext/**',
+			'!.build/extensions/shaderlab/**',
+			'!.build/extensions/swift/**',
+			'!.build/extensions/vb/**',
+			'!.build/extensions/grunt/**',
+			'!.build/extensions/gulp/**',
+			'!.build/extensions/jake/**',
+			'!.build/extensions/vscode-api-tests/**',
+			'!.build/extensions/vscode-colorize-tests/**',
+			'!.build/extensions/vscode-colorize-perf-tests/**',
+			'!.build/extensions/vscode-test-resolver/**',
+			'!.build/extensions/theme-abyss/**',
+			'!.build/extensions/theme-kimbie-dark/**',
+			'!.build/extensions/theme-monokai-dimmed/**',
+			'!.build/extensions/theme-quietlight/**',
+			'!.build/extensions/theme-red/**',
+			'!.build/extensions/theme-solarized-dark/**',
+			'!.build/extensions/theme-solarized-light/**',
+			'!.build/extensions/theme-tomorrow-night-blue/**',
+		];
 
-		const sourceFilterPattern = stripSourceMapsInPackagingTasks
-			? ['**', '!**/*.{js,css}.map']
-			: ['**'];
+		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions, ...unusedExtensionsExclusions], { cwd: root, base: path.join(root, '.build'), dot: true });
+
+		const sourceFilterPattern = [
+			'**',
+			'!**/*.tsbuildinfo',
+			'!**/*.{js,css}.map',
+			'!**/extensions/**/src/**',
+			'!**/extensions/**/{test,tests}/**',
+		];
 		const sources = es.merge(src, extensions)
 			.pipe(filter(sourceFilterPattern, { dot: true }));
 
@@ -319,16 +309,10 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				json.date = readISODate(out);
 				json.checksums = checksums;
 				json.version = version;
-				// Stamp agentSdks from the per-platform results file produced
-				// by `build/agent-sdk/produce.ts` (an earlier pipeline step).
-				// Local dev: file absent → empty → not stamped.
 				const agentSdks = readAgentSdkResults();
 				if (Object.keys(agentSdks).length > 0) {
 					json.agentSdks = agentSdks;
 				}
-				// Stamp dictationRuntime from the per-platform results file
-				// produced by `build/dictation-runtime/produce.ts`. Local dev /
-				// unsupported target: file absent → undefined → not stamped.
 				const dictationRuntime = readDictationRuntimeResults();
 				if (dictationRuntime) {
 					json.dictationRuntime = dictationRuntime;
@@ -342,16 +326,23 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 
 		const license = gulp.src([product.licenseFileName, 'ThirdPartyNotices.txt', 'licenses/**'], { cwd: root, base: root, allowEmpty: true });
 
-		// TODO the API should be copied to `out` during compile, not here
-		const api = gulp.src('src/vscode-dts/vscode.d.ts', { cwd: root }).pipe(rename('out/vscode-dts/vscode.d.ts'));
+		const api = gulp.src('src/dardcor-dts/dardcor.d.ts', { cwd: root }).pipe(rename('out/dardcor-dts/dardcor.d.ts'));
 
 		const telemetry = gulp.src('.build/telemetry/**', { cwd: root, base: path.join(root, '.build/telemetry'), dot: true, allowEmpty: true });
 
 		const jsFilter = util.filter(data => !data.isDirectory() && /\.js$/.test(data.path));
 		const productionDependencies = getProductionDependencies(root);
-		const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat('!**/*.mk', '!extensions/copilot/node_modules/@github/copilot/shims.txt');
+		const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat('!**/*.mk');
 
-		const depFilterPattern = ['**', `!**/${config.version}/**`, '!**/bin/darwin-arm64-87/**', '!**/package-lock.json', '!**/yarn.lock'];
+		const depFilterPattern = [
+			'**',
+			`!**/${config.version}/**`,
+			'!**/bin/darwin-arm64-87/**',
+			'!**/package-lock.json',
+			'!**/yarn.lock',
+			'!**/@microsoft/mxc-sdk/**',
+			'!**/node_modules/playwright-core/**'
+		];
 		if (stripSourceMapsInPackagingTasks) {
 			depFilterPattern.push('!**/*.{js,css}.map');
 		}
@@ -360,13 +351,9 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			.pipe(filter(depFilterPattern))
 			.pipe(util.cleanNodeModules(path.join(import.meta.dirname, '.moduleignore')))
 			.pipe(util.cleanNodeModules(path.join(import.meta.dirname, `.moduleignore.${process.platform}`)));
-		ensureCopilotPlatformPackage(platform, arch);
-		const copilotRuntimePrebuilds = gulp.src(getCopilotRuntimePrebuildFiles(platform, arch), { base: '.', dot: true, allowEmpty: true });
 		ensureOSProxyResolverPlatformPackage(platform, arch);
 		const osProxyResolverPlatformPackage = gulp.src(getOSProxyResolverPlatformFiles(platform, arch), { base: '.', dot: true, allowEmpty: true });
-		const deps = es.merge(cleanedDeps, copilotRuntimePrebuilds, osProxyResolverPlatformPackage)
-			.pipe(filter(getCopilotExcludeFilter(platform, arch)))
-			.pipe(filter(getCopilotTgrepExcludeFilter(platform, arch)))
+		const deps = es.merge(cleanedDeps, osProxyResolverPlatformPackage)
 			.pipe(filter(getRipgrepExcludeFilter(platform, arch)))
 			.pipe(filter(getMxcExcludeFilter(arch)))
 			.pipe(filter(getFoundryLocalExcludeFilter()))
@@ -378,43 +365,19 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				'**/*.node',
 				'**/package.json',
 				'**/@vscode/ripgrep-universal/bin/**',
-				// Only the platform-specific Copilot CLI packages (`@github/copilot-<os>-<arch>`)
-				// need to be unpacked: the CLI is spawned as a subprocess and is a
-				// self-locating bundle that memory-maps files and resolves its native
-				// addons / sub-binaries relative to its own on-disk location, so it cannot
-				// run from inside the archive. `@github/copilot-sdk` is intentionally NOT
-				// matched here — it is pure JavaScript that the agent host loads via
-				// `import` (ASAR-aware), so it stays in the archive.
-				'**/@github/copilot-{darwin,linux,linuxmusl,win32}-*/**',
-				'**/@microsoft/mxc-sdk/bin/**',
 				'**/node-pty/build/Release/*',
 				'**/node-pty/build/Release/conpty/*',
-				// node-pty prebuilds: newer versions resolve native binaries from
-				// `prebuilds/<platform>-<arch>/` (conpty.node, conpty_console_list.node,
-				// conpty/conpty.dll, conpty/OpenConsole.exe on Windows;
-				// pty.node + spawn-helper on macOS/Linux). These must be unpacked
-				// so that the terminal process can find conpty.dll and friends at runtime.
 				'**/node-pty/prebuilds/**',
 				'**/node-pty/lib/worker/conoutSocketWorker.js',
 				'**/node-pty/lib/shared/conout.js',
-				// node-pty spawns `conoutSocketWorker.js` as a Worker from the unpacked
-				// tree (Windows only). Unpack node-pty's `package.json` alongside it so
-				// Node finds a `package.json` without `"type": "module"` when walking up
-				// from the worker file. Otherwise the lookup reaches the app's own
-				// `package.json` (`"type": "module"`), the CommonJS worker is loaded as
-				// ESM and throws `exports is not defined`, the worker never signals ready,
-				// and node-pty blocks the pty host on `ConnectNamedPipe`.
 				'**/node-pty/package.json',
 				'**/*.wasm',
 				'**/@vscode/vsce-sign/bin/*',
 			], [
 				'**/*.mk',
 			], [
-				'node_modules/vsda/**', // retain copy of `vsda` in node_modules for internal use
-				// The sandbox runtime is spawned as a standalone Node subprocess (no ASAR
-				// resolution hook), so it and its transitive JS dependencies must remain as
-				// real files under `node_modules`. Keep them duplicated out of the archive.
-				'node_modules/@vscode/sandbox-runtime/**', // includes its nested `commander`
+				'node_modules/vsda/**',
+				'node_modules/@vscode/sandbox-runtime/**',
 				'node_modules/@pondwader/socks5-server/**',
 				'node_modules/shell-quote/**',
 				'node_modules/zod/**'
@@ -492,13 +455,15 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 		let result: NodeJS.ReadWriteStream = all
 			.pipe(util.skipDirectories())
 			.pipe(util.fixWin32DirectoryPermissions())
-			.pipe(filter(['**', '!**/.github/**'], { dot: true })) // https://github.com/microsoft/vscode/issues/116523
+			.pipe(filter(['**', '!**/.github/**'], { dot: true }))
 			.pipe(electron(electronConfig))
 			.pipe(filter([
 				'**',
 				'!LICENSE',
 				'!version',
 				'!**/default_app.asar',
+				'!**/locales/!(en-US|id).pak',
+				'!**/LICENSES.chromium.html',
 				...(platform === 'darwin' ? ['!**/Contents/Applications', '!**/Contents/Applications/**'] : []),
 				...(platform === 'win32' ? ['!**/electron_proxy.exe'] : []),
 			], { dot: true }));
@@ -646,9 +611,6 @@ function hasAuthenticodeSignature(filePath: string): Promise<boolean> {
 }
 
 async function stripAuthenticodeSignature(filePath: string): Promise<void> {
-	// ESRP's `signtool /as` (append) fails with 0x800700C1 on PEs whose existing
-	// Authenticode signature was invalidated by rcedit. Strip cleanly first so
-	// rcedit operates on an unsigned PE.
 	if (!await hasAuthenticodeSignature(filePath)) {
 		return;
 	}
@@ -678,8 +640,6 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 			glob('**/*.node', { cwd, ignore: ['extensions/node_modules/@parcel/watcher/**', '**/*-linux/**', '**/*-darwin/**', '**/linux-x64/**', '**/linux-arm64/**', '**/darwin-x64/**', '**/darwin-arm64/**'] }),
 			glob('**/rg.exe', { cwd }),
 			glob('**/tgrep.exe', { cwd }),
-			glob('**/node_modules.asar.unpacked/@github/copilot-win32-*/builtin-plugins/computer-use/*/win32-*/computer-use-mcp.exe', { cwd }),
-			glob('**/node_modules.asar.unpacked/@github/copilot-win32-*/builtin-plugins/computer-use/*/win32-*/CopilotComputerUse.exe', { cwd }),
 			glob('**/*explorer_command*.dll', { cwd }),
 		])).flatMap(o => o);
 		const packageJson = JSON.parse(await fs.promises.readFile(path.join(cwd, versionedResourcesFolder, 'resources', 'app', 'package.json'), 'utf8'));
@@ -710,26 +670,6 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 	};
 }
 
-function prepareCopilotRipgrepShimTask(platform: string, arch: string, destinationFolderName: string) {
-	const outputDir = path.join(path.dirname(root), destinationFolderName);
-
-	return async () => {
-		// On Windows with win32VersionedUpdate, app resources live under a
-		// commit-hash prefix: {output}/{commitHash}/resources/app/
-		const versionedResourcesFolder = util.getVersionedResourcesFolder(platform, commit!);
-		const appBase = platform === 'darwin'
-			? path.join(outputDir, `${product.nameLong}.app`, 'Contents', 'Resources', 'app')
-			: path.join(outputDir, versionedResourcesFolder, 'resources', 'app');
-		const appNodeModulesDir = path.join(appBase, 'node_modules.asar.unpacked');
-
-		const builtInCopilotExtensionDir = path.join(appBase, 'extensions', 'copilot');
-		if (!fs.existsSync(path.join(builtInCopilotExtensionDir, 'package.json'))) {
-			return;
-		}
-		prepareBuiltInCopilotRipgrepShim(platform, arch, builtInCopilotExtensionDir, appNodeModulesDir);
-	};
-}
-
 function bundleDardcorRouterTask(platform: string, destinationFolderName: string) {
 	const outputDir = path.join(path.dirname(root), destinationFolderName);
 
@@ -751,10 +691,8 @@ function bundleDardcorRouterTask(platform: string, destinationFolderName: string
 			fs.rmSync(routerDest, { recursive: true, force: true });
 			fs.mkdirSync(routerDest, { recursive: true });
 
-			// Copy primary standalone bundle into routerDest
 			fs.cpSync(standaloneSrc, routerDest, { recursive: true, force: true });
 
-			// Ensure all generated server chunks are present in routerDest
 			const origServerChunks = path.join(routerSrc, '.next', 'server', 'chunks');
 			const destServerChunks = path.join(routerDest, '.next', 'server', 'chunks');
 			if (fs.existsSync(origServerChunks)) {
@@ -762,7 +700,6 @@ function bundleDardcorRouterTask(platform: string, destinationFolderName: string
 				fs.cpSync(origServerChunks, destServerChunks, { recursive: true, force: true });
 			}
 
-			// Ensure static assets are present in routerDest
 			const origStatic = path.join(routerSrc, '.next', 'static');
 			const destStatic = path.join(routerDest, '.next', 'static');
 			if (fs.existsSync(origStatic)) {
@@ -770,7 +707,6 @@ function bundleDardcorRouterTask(platform: string, destinationFolderName: string
 				fs.cpSync(origStatic, destStatic, { recursive: true, force: true });
 			}
 
-			// Ensure public folder if present is copied
 			const origPublic = path.join(routerSrc, 'public');
 			const destPublic = path.join(routerDest, 'public');
 			if (fs.existsSync(origPublic)) {
@@ -786,6 +722,26 @@ function bundleDardcorRouterTask(platform: string, destinationFolderName: string
 			if (fs.existsSync(packageJson)) {
 				fs.copyFileSync(packageJson, path.join(routerDest, 'package.json'));
 			}
+
+			const walkAndPrune = (dir: string) => {
+				if (!fs.existsSync(dir)) return;
+				const entries = fs.readdirSync(dir, { withFileTypes: true });
+				for (const entry of entries) {
+					const fullPath = path.join(dir, entry.name);
+					if (entry.isDirectory()) {
+						if (entry.name === '.git' || entry.name === 'test' || entry.name === 'tests') {
+							fs.rmSync(fullPath, { recursive: true, force: true });
+						} else {
+							walkAndPrune(fullPath);
+						}
+					} else if (entry.isFile()) {
+						if (entry.name.endsWith('.map') || (entry.name.endsWith('.md') && entry.name !== 'README.md')) {
+							fs.rmSync(fullPath, { force: true });
+						}
+					}
+				}
+			};
+			walkAndPrune(routerDest);
 		}
 	};
 }
@@ -877,8 +833,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 			util.rimraf(path.join(buildRoot, destinationFolderName)),
 			packageTask(platform, arch, sourceFolderName, destinationFolderName, opts),
 			pruneNonTargetPrebuildsTask(platform, arch, destinationFolderName),
-			bundleDardcorRouterTask(platform, destinationFolderName),
-			prepareCopilotRipgrepShimTask(platform, arch, destinationFolderName)
+			bundleDardcorRouterTask(platform, destinationFolderName)
 		];
 
 		if (platform === 'win32') {
@@ -905,7 +860,6 @@ BUILD_TARGETS.forEach(buildTarget => {
 				copyCodiconsTask,
 				cleanExtensionsBuildTask,
 				compileNonNativeExtensionsBuildTask,
-				compileCopilotExtensionBuildTask,
 				compileExtensionMediaBuildTask,
 				writeISODate('out-build'),
 				esbuildBundleTask,
@@ -916,7 +870,6 @@ BUILD_TARGETS.forEach(buildTarget => {
 				minified ? compileBuildWithManglingTask : compileBuildWithoutManglingTask,
 				cleanExtensionsBuildTask,
 				compileNonNativeExtensionsBuildTask,
-				compileCopilotExtensionBuildTask,
 				compileExtensionMediaBuildTask,
 				minified ? minifyVSCodeTask : bundleVSCodeTask,
 				vscodeTaskCI
@@ -936,7 +889,6 @@ BUILD_TARGETS.forEach(buildTarget => {
 	}
 });
 
-// #region nls
 
 task.task(task.define(
 	'vscode-translations-export',
@@ -972,4 +924,3 @@ task.task('vscode-translations-import', function () {
 	}));
 });
 
-// #endregion

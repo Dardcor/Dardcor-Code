@@ -19,18 +19,6 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 
 export const UNKNOWN_SOURCE_LABEL = nls.localize('unknownSource', "Unknown Source");
 
-/**
- * Debug URI format
- *
- * a debug URI represents a Source object and the debug session where the Source comes from.
- *
- *       debug:arbitrary_path?session=123e4567-e89b-12d3-a456-426655440000&ref=1016
- *       \___/ \____________/ \__________________________________________/ \______/
- *         |          |                             |                          |
- *      scheme   source.path                    session id            source.reference
- *
- *
- */
 
 export class Source {
 
@@ -134,20 +122,17 @@ export function getUriFromSource(raw: DebugProtocol.Source, path: string | undef
 		if (typeof raw.sourceReference === 'number' && raw.sourceReference > 0) {
 			return URI.from({
 				scheme: DEBUG_SCHEME,
-				path: path?.replace(/^\/+/g, '/'), // #174054
+				path: path?.replace(/^\/+/g, '/'),
 				query: `session=${sessionId}&ref=${raw.sourceReference}`
 			});
 		}
 
-		if (path && isUriString(path)) {	// path looks like a uri
+		if (path && isUriString(path)) {
 			return uriIdentityService.asCanonicalUri(URI.parse(path));
 		}
-		// assume a filesystem path
 		if (path && isAbsolute(path)) {
 			return uriIdentityService.asCanonicalUri(URI.file(path));
 		}
-		// path is relative: since VS Code cannot deal with this by itself
-		// create a debug url that will result in a DAP 'source' request when the url is resolved.
 		return uriIdentityService.asCanonicalUri(URI.from({
 			scheme: DEBUG_SCHEME,
 			path,

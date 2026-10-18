@@ -17,7 +17,7 @@ import { equals } from '../utils/objects';
 import { DiagnosticsManager } from './diagnostics';
 import FileConfigurationManager from './fileConfigurationManager';
 import { applyCodeActionCommands, getEditForCodeAction } from './util/codeAction';
-import { CompositeCommand, EditorChatFollowUp, EditorChatFollowUp_Args, Expand } from './util/copilot';
+import { CompositeCommand, EditorChatFollowUp, EditorChatFollowUp_Args, Expand } from './util/editorChat';
 import { conditionalRegistration, requireSomeCapability } from './util/dependentRegistration';
 
 type ApplyCodeActionCommand_args = {
@@ -38,15 +38,6 @@ class ApplyCodeActionCommand implements Command {
 	) { }
 
 	public async execute({ document, action, diagnostic, followupAction }: ApplyCodeActionCommand_args): Promise<boolean> {
-		/* __GDPR__
-			"quickFix.execute" : {
-				"owner": "mjbvz",
-				"fixName" : { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
-				"${include}": [
-					"${TypeScriptCommonProperties}"
-				]
-			}
-		*/
 		this.telemetryReporter.logTelemetry('quickFix.execute', {
 			fixName: action.fixName
 		});
@@ -72,15 +63,6 @@ class ApplyFixAllCodeAction implements Command {
 	) { }
 
 	public async execute(args: ApplyFixAllCodeAction_args): Promise<void> {
-		/* __GDPR__
-			"quickFixAll.execute" : {
-				"owner": "mjbvz",
-				"fixName" : { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
-				"${include}": [
-					"${TypeScriptCommonProperties}"
-				]
-			}
-		*/
 		this.telemetryReporter.logTelemetry('quickFixAll.execute', {
 			fixName: args.action.tsAction.fixName
 		});
@@ -91,9 +73,6 @@ class ApplyFixAllCodeAction implements Command {
 	}
 }
 
-/**
- * Unique set of diagnostics keyed on diagnostic range and error code.
- */
 class DiagnosticsSet {
 	public static from(diagnostics: vscode.Diagnostic[]) {
 		const values = new Map<string, vscode.Diagnostic>();
@@ -156,7 +135,6 @@ class CodeActionSet {
 
 	public addAction(action: VsCodeCodeAction) {
 		if (action.isAI) {
-			// there are no separate fixAllActions for AI, and no duplicates, so return immediately
 			this._aiActions.add(action);
 			return;
 		}
@@ -169,7 +147,6 @@ class CodeActionSet {
 		this._actions.add(action);
 
 		if (action.tsAction.fixId) {
-			// If we have an existing fix all action, then make sure it follows this action
 			const existingFixAll = this._fixAllActions.get(action.tsAction.fixId);
 			if (existingFixAll) {
 				this._actions.delete(existingFixAll);
@@ -181,7 +158,6 @@ class CodeActionSet {
 	public addFixAllAction(fixId: {}, action: VsCodeCodeAction) {
 		const existing = this._fixAllActions.get(fixId);
 		if (existing) {
-			// reinsert action at back of actions list
 			this._actions.delete(existing);
 		}
 		this.addAction(action);
@@ -249,7 +225,6 @@ class TypeScriptQuickFixProvider implements vscode.CodeActionProvider<VsCodeCode
 
 		let diagnostics = context.diagnostics;
 		if (this.client.bufferSyncSupport.hasPendingDiagnostics(document.uri)) {
-			// Delay for 500ms when there are pending diagnostics before recomputing up-to-date diagnostics.
 			await new Promise((resolve) => {
 				setTimeout(resolve, 500);
 			});
@@ -259,7 +234,6 @@ class TypeScriptQuickFixProvider implements vscode.CodeActionProvider<VsCodeCode
 			}
 			const allDiagnostics: vscode.Diagnostic[] = [];
 
-			// Match ranges again after getting new diagnostics
 			for (const diagnostic of this.diagnosticsManager.getDiagnostics(document.uri)) {
 				if (range.intersection(diagnostic.range)) {
 					const newLen = allDiagnostics.push(diagnostic);
@@ -446,7 +420,6 @@ class TypeScriptQuickFixProvider implements vscode.CodeActionProvider<VsCodeCode
 			return results;
 		}
 
-		// Make sure there are multiple different diagnostics of the same type in the file
 		if (!this.diagnosticsManager.getDiagnostics(resource).some(x => {
 			if (x === diagnostic) {
 				return false;
@@ -475,10 +448,7 @@ class TypeScriptQuickFixProvider implements vscode.CodeActionProvider<VsCodeCode
 	}
 }
 
-// Some fix all actions can actually fix multiple different diagnostics. Make sure we still show the fix all action
-// in such cases
 const fixAllErrorCodes = new Map<number, number>([
-	// Missing async
 	[2339, 2339],
 	[2345, 2339],
 ]);

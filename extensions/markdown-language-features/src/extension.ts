@@ -31,23 +31,17 @@ function startServer(context: vscode.ExtensionContext, parser: IMdParser): Promi
 
 	const serverModule = context.asAbsolutePath(
 		isDebugBuild
-			// For local non bundled version of vscode-markdown-languageserver
-			// ? './node_modules/vscode-markdown-languageserver/out/node/workerMain'
 			? './node_modules/vscode-markdown-languageserver/dist/node/workerMain'
 			: './dist/serverWorkerMain'
 	);
 
-	// The debug options for the server
 	const debugOptions = { execArgv: ['--nolazy', '--inspect=' + (7000 + Math.round(Math.random() * 999))] };
 
-	// If the extension is launch in debug mode the debug server options are use
-	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
 	};
 
-	// pass the location of the localization bundle to the server
 	process.env['VSCODE_L10N_BUNDLE_LOCATION'] = vscode.l10n.uri?.toString() ?? '';
 
 	return startClient((id, name, clientOptions) => {

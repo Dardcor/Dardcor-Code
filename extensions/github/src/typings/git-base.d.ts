@@ -17,16 +17,6 @@ export interface GitBaseExtension {
 	readonly enabled: boolean;
 	readonly onDidChangeEnablement: Event<boolean>;
 
-	/**
-	 * Returns a specific API version.
-	 *
-	 * Throws error if git-base extension is disabled. You can listed to the
-	 * [GitBaseExtension.onDidChangeEnablement](#GitBaseExtension.onDidChangeEnablement)
-	 * event to know when the extension becomes enabled/disabled.
-	 *
-	 * @param version Version number.
-	 * @returns API instance
-	 */
 	getAPI(version: 1): API;
 }
 
@@ -36,7 +26,7 @@ export interface PickRemoteSourceOptions {
 	readonly providerName?: string;
 	readonly title?: string;
 	readonly placeholder?: string;
-	readonly branch?: boolean; // then result is PickRemoteSourceResult
+	readonly branch?: boolean;
 	readonly showRecentSources?: boolean;
 }
 
@@ -47,9 +37,6 @@ export interface PickRemoteSourceResult {
 
 export interface RemoteSourceAction {
 	readonly label: string;
-	/**
-	 * Codicon name
-	 */
 	readonly icon: string;
 	run(branch: string): void;
 }
@@ -58,9 +45,6 @@ export interface RemoteSource {
 	readonly name: string;
 	readonly description?: string;
 	readonly detail?: string;
-	/**
-	 * Codicon name
-	 */
 	readonly icon?: string;
 	readonly url: string | string[];
 }
@@ -71,9 +55,6 @@ export interface RecentRemoteSource extends RemoteSource {
 
 export interface RemoteSourceProvider {
 	readonly name: string;
-	/**
-	 * Codicon name
-	 */
 	readonly icon?: string;
 	readonly label?: string;
 	readonly placeholder?: string;

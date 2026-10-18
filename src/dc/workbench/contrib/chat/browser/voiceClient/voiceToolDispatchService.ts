@@ -8,8 +8,6 @@ import { constObservable } from '../../../../../base/common/observable.js';
 import { localize } from '../../../../../nls.js';
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../../../../platform/instantiation/common/extensions.js';
-import { IAgentSessionsService } from '../agentSessions/agentSessionsService.js';
-import { AgentSessionStatus, getAgentChangesSummary } from '../agentSessions/agentSessionsModel.js';
 import { IChatPlanReviewResult, IChatQuestionAnswers, IChatQuestionCarousel, IChatSendRequestOptions, IChatService, IChatToolInvocation, ToolConfirmKind } from '../../common/chatService/chatService.js';
 import { IBackendQuestionAnswer, resolveQuestionAnswers } from '../../common/voiceClient/voiceQuestionAnswers.js';
 import { ChatQuestionCarouselData } from '../../common/model/chatProgressTypes/chatQuestionCarouselData.js';
@@ -20,35 +18,19 @@ import { ChatAgentLocation, ChatModeKind } from '../../common/constants.js';
 import { ILanguageModelToolsService } from '../../common/tools/languageModelToolsService.js';
 import { IVoiceDispatchResult, IVoiceModelReference, IVoiceToolCall, markPendingIdResolved, peekPendingId } from '../../common/voiceClient/voiceClientService.js';
 import { getVoiceConfirmationType } from '../../common/voiceClient/voiceConfirmation.js';
-import { CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { isExplicitFileOrImageVariableEntry } from '../../common/attachments/chatVariableEntries.js';
 
-/**
- * Callbacks that require access to the chat widget or view state.
- * Implemented by the ChatViewPane to bridge UI concerns.
- */
 export interface IVoiceToolDispatchDelegate {
-	/** Accept input text in the current chat widget. Returns false if no widget available. */
 	acceptInput(text: string): boolean;
-	/** Get the resource URI of the currently active session. */
 	getCurrentSessionResource(): Promise<URI | undefined>;
-	/** Switch the view to a different session by resource URI. */
 	switchToSession(resource: URI): Promise<boolean>;
-	/** Set the session all subsequent voice turns and actions belong to. */
 	setTargetSession(resource: URI): void;
-	/** The explicit voice target, or the currently shown session when unpinned. */
 	getTargetSessionResource(): URI | undefined;
-	/** Select a model in the currently shown voice input. */
 	selectModel(requestedModel: string): Promise<IVoiceModelSelectionResult>;
-	/** Attach files in the currently shown voice input. */
 	attachFiles?(resources: readonly URI[]): Promise<IVoiceAttachmentResult>;
-	/** Get the set of auto-approved session resource strings. */
 	getAutoApprovedSessions(): Set<string>;
-	/** Mark all current sessions as auto-approved. */
 	addAllAutoApprovedSessions(): void;
-	/** Remove a session from auto-approved set. */
 	removeAutoApprovedSession(resource: string): void;
-	/** Trigger an auto-approve check cycle. */
 	triggerAutoApproveCheck(): void;
 }
 
@@ -77,7 +59,6 @@ function normalizeModelName(value: string): string {
 	return value.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-/** Resolve only exact identifiers or unique normalized names; never guess among similar models. */
 export function resolveVoiceModel(models: readonly ILanguageModelChatMetadataAndIdentifier[], requestedModel: string): IVoiceModelSelectionResult & { readonly identifier?: string } {
 	const exactIdentifier = models.find(model => model.identifier === requestedModel);
 	if (exactIdentifier) {
@@ -110,31 +91,15 @@ export function resolveVoiceModel(models: readonly ILanguageModelChatMetadataAnd
 export interface IVoiceToolDispatchService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Set the delegate that bridges widget/UI concerns.
-	 * Must be called before dispatching tool calls.
-	 */
 	setDelegate(delegate: IVoiceToolDispatchDelegate): void;
 
-	/**
-	 * Dispatch a tool call and return the result string.
-	 */
 	dispatchToolCall(toolCall: IVoiceToolCall): Promise<string>;
 
-	/**
-	 * Apply a backend-resolved response to whatever a session is waiting on.
-	 *
-	 * Separate from `dispatchToolCall` because it answers with a structured
-	 * outcome rather than a string: the backend only speaks an acknowledgement
-	 * for something it has actually observed, so "it landed" and "it didn't"
-	 * have to be distinguishable.
-	 */
 	respondToSession(toolCall: IVoiceToolCall): Promise<IVoiceDispatchResult>;
 }
 
 export const IVoiceToolDispatchService = createDecorator<IVoiceToolDispatchService>('voiceToolDispatchService');
 
-/** Action labels displayed in the status bar during tool execution. */
 const ACTION_LABELS: Record<string, string> = {
 	send_to_chat: localize('agentsVoice.action.sendToChat', "Sending to chat..."),
 	get_session_info: localize('agentsVoice.action.getSessionInfo', "Checking sessions..."),
@@ -154,7 +119,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 	private _delegate: IVoiceToolDispatchDelegate | undefined;
 
 	constructor(
-		@IAgentSessionsService private readonly agentSessionsService: IAgentSessionsService,
 		@IChatService private readonly chatService: IChatService,
 		@ILanguageModelToolsService private readonly toolsService: ILanguageModelToolsService,
 	) { }
@@ -163,7 +127,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		this._delegate = delegate;
 	}
 
-	/** Get the action label for a tool call name. */
 	static getActionLabel(name: string): string {
 		return ACTION_LABELS[name] ?? localize('agentsVoice.action.working', "Working...");
 	}
@@ -279,11 +242,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		if (!sessionId) {
 			return undefined;
 		}
-		const agentSessions = this.agentSessionsService.model.sessions
-			.find(session => !session.isArchived() && session.resource.toString() === sessionId);
-		if (agentSessions) {
-			return agentSessions.resource;
-		}
 		for (const model of this.chatService.chatModels.get()) {
 			if (model.sessionResource.toString() === sessionId) {
 				return model.sessionResource;
@@ -291,9 +249,7 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		}
 
 		const normalizedSessionId = sessionId.trim().toLocaleLowerCase();
-		const labeledSessions = this.agentSessionsService.model.sessions.filter(session =>
-			!session.isArchived() && session.label?.trim().toLocaleLowerCase() === normalizedSessionId
-		);
+		const labeledSessions: any[] = [];
 		if (labeledSessions.length === 1) {
 			return labeledSessions[0].resource;
 		}
@@ -325,15 +281,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		return { ok: true, resource };
 	}
 
-	/**
-	 * Apply a backend-resolved response to the exact pending part it names.
-	 *
-	 * Routing is by `pending_id` + `request_id` with no fallback: the path this
-	 * replaces fell back to the focused session, so a spoken "yes" could approve
-	 * a prompt the user was not looking at. A response that cannot find its part
-	 * is reported as stale instead. Answer values are matched exactly; see
-	 * `resolveQuestionAnswers`.
-	 */
 	async respondToSession(toolCall: IVoiceToolCall): Promise<IVoiceDispatchResult> {
 		const args = toolCall.args;
 		const argString = (key: string): string => {
@@ -353,9 +300,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		if (!resolved) {
 			return { ok: false, reason: 'no_session' };
 		}
-		// A freshly loaded session holds its only reference here, so everything
-		// that reads the model, including the awaited confirmation send, has to
-		// happen before it is released.
 		try {
 			return await this._applyResponse(
 				resolved.model,
@@ -407,9 +351,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 			if (getVoiceConfirmationType([part]) !== 'tool') {
 				return { ok: false, reason: 'unsupported' };
 			}
-			// A provider may keep multiple rehydrated copies pending while it sends
-			// this response. Retire the shared occurrence before invoking the callback
-			// so none of those copies can submit the same approval a second time.
 			markPendingIdResolved(pendingId);
 			const confirmed = IChatToolInvocation.confirmWith(
 				part as IChatToolInvocation,
@@ -445,54 +386,18 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		return true;
 	}
 
-	/** Resolve a coding session id to its chat model, never falling back to the focused session. */
 	private async _resolveModelForResponse(codingSessionId: string): Promise<{ model: IChatModel; dispose(): void } | undefined> {
 		if (!codingSessionId) {
 			return undefined;
-		}
-		const agentSession = this.agentSessionsService.model.sessions
-			.find(session => !session.isArchived() && session.resource.toString() === codingSessionId);
-		if (agentSession) {
-			const loaded = this.chatService.getSession(agentSession.resource);
-			if (loaded) {
-				return { model: loaded, dispose: () => { } };
-			}
 		}
 		for (const chatModel of this.chatService.chatModels.get()) {
 			if (chatModel.sessionResource.toString() === codingSessionId) {
 				return { model: chatModel, dispose: () => { } };
 			}
 		}
-		if (!agentSession) {
-			return undefined;
-		}
-		const cts = new CancellationTokenSource();
-		const ref = await this.chatService
-			.acquireOrLoadSession(agentSession.resource, ChatAgentLocation.Chat, cts.token, 'voice-respond')
-			.catch(() => undefined);
-		cts.dispose();
-		if (!ref) {
-			return undefined;
-		}
-		const model = this.chatService.getSession(agentSession.resource);
-		if (!model) {
-			ref.dispose();
-			return undefined;
-		}
-		// This reference is the only thing keeping the just-loaded session alive;
-		// releasing it here would let the model be disposed out from under the
-		// caller, potentially mid-`sendRequest`.
-		return { model, dispose: () => ref.dispose() };
+		return undefined;
 	}
 
-	/**
-	 * Fill in a question carousel exactly as the widget's own submit path does.
-	 *
-	 * A `skip` carries whatever the user answered before saying "skip", which on
-	 * an untouched form is nothing at all. That empty case is why skipping is its
-	 * own response type: an `answer` with zero answers is indistinguishable from
-	 * a backend that resolved nothing, and is correctly refused below.
-	 */
 	private _answerCarousel(
 		requestId: string,
 		carousel: IChatQuestionCarousel,
@@ -506,9 +411,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 			return { ok: false, reason: 'stale_pending' };
 		}
 		const raw = response['answers'];
-		// Only an absent `answers` means "none". A present non-array is a
-		// malformed call, and coercing it to empty would let a skip succeed while
-		// discarding whatever was actually meant.
 		if (raw !== undefined && !Array.isArray(raw)) {
 			return { ok: false, reason: 'invalid_answer' };
 		}
@@ -522,22 +424,12 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		} else if (!skip) {
 			return { ok: false, reason: 'invalid_answer' };
 		}
-		// The widget refuses to submit while a required question is blank, so a
-		// spoken answer must not be able to submit what a click cannot. Absence is
-		// the only blank possible: `resolveQuestionAnswers` rejects rather than
-		// emitting an empty value. The backend only dispatches a fully answered
-		// form, so this is a backstop.
 		if (!skip && carousel.questions.some(question => question.required && answers?.[question.id] === undefined)) {
 			return { ok: false, reason: 'invalid_answer' };
 		}
-		// Checked before mutating: a form with neither a deferred completion nor
-		// an id to notify cannot be resolved, and marking it used would leave it
-		// answered on screen while the assistant reports that it did not land.
 		if (!(carousel instanceof ChatQuestionCarouselData) && !carousel.resolveId) {
 			return { ok: false, reason: 'unsupported' };
 		}
-		// `dismiss` also completes the deferred promise an agent-hosted carousel
-		// is blocked on; marking it used without that leaves the agent waiting.
 		if (carousel instanceof ChatQuestionCarouselData) {
 			carousel.dismiss(answers);
 		} else {
@@ -552,10 +444,10 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 
 
 	private async _gatherSessionInfo(): Promise<string> {
-		const agentSessions = this.agentSessionsService.model.sessions.filter(session => !session.isArchived());
+		const agentSessions: any[] = [];
 		const currentResource = await this._delegate?.getCurrentSessionResource();
 		const activeResource = this._delegate?.getTargetSessionResource() ?? currentResource;
-		const agentResources = new Set(agentSessions.map(session => session.resource.toString()));
+		const agentResources = new Set(agentSessions.map((session: any) => session.resource.toString()));
 		const inputDetails = (model: IChatModel | undefined) => {
 			const state = model?.inputModel?.state?.get();
 			const selected = state?.selectedModel;
@@ -577,15 +469,12 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 			return summary || undefined;
 		};
 
-		const sessionData: Array<Record<string, unknown> & { state: string; is_active: boolean; last_activity: number }> = agentSessions.map(session => {
+		const sessionData: Array<Record<string, unknown> & { state: string; is_active: boolean; last_activity: number }> = agentSessions.map((session: any) => {
 			const model = this.chatService.getSession(session.resource);
-			const changes = getAgentChangesSummary(session.changes);
+			const changes = session.changes as any;
 			const state = model
 				? model.requestNeedsInput?.get() ? 'waiting_for_input' : model.hasActiveRequest?.get() ? 'working' : 'idle'
-				: session.status === AgentSessionStatus.InProgress ? 'working'
-					: session.status === AgentSessionStatus.NeedsInput ? 'waiting_for_input'
-						: session.status === AgentSessionStatus.Completed ? 'idle'
-							: 'unknown';
+				: 'unknown';
 			const lastActivity = session.timing.lastRequestEnded ?? session.timing.lastRequestStarted ?? session.timing.created ?? 0;
 			return {
 				id: session.resource.toString(),
@@ -642,21 +531,17 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		});
 	}
 
-	/**
-	 * Resolve a coding_session_id (resource URI string) to an IAgentSession.
-	 * Falls back to the currently active session when id is missing/unknown.
-	 */
 	private async _resolveSession(coding_session_id: string | undefined) {
-		const sessions = this.agentSessionsService.model.sessions.filter(s => !s.isArchived());
+		const sessions: any[] = [];
 		if (coding_session_id) {
-			const match = sessions.find(s => s.resource.toString() === coding_session_id);
+			const match = sessions.find((s: any) => s.resource.toString() === coding_session_id);
 			if (match) {
 				return match;
 			}
 		}
 		const currentResource = await this._delegate?.getCurrentSessionResource();
 		if (currentResource) {
-			const active = sessions.find(s => s.resource.toString() === currentResource.toString());
+			const active = sessions.find((s: any) => s.resource.toString() === currentResource.toString());
 			if (active) {
 				return active;
 			}
@@ -664,10 +549,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		return sessions[0];
 	}
 
-	/**
-	 * Gather files touched + per-file insertions/deletions for a session.
-	 * Returns a JSON string keyed for the LLM follow-up to summarize.
-	 */
 	private async _gatherSessionChanges(coding_session_id: string | undefined): Promise<string> {
 		const session = await this._resolveSession(coding_session_id);
 		if (!session) {
@@ -682,8 +563,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 
 		if (Array.isArray(changes)) {
 			for (const c of changes) {
-				// Both IChatSessionFileChange and IChatSessionFileChange2 carry a URI;
-				// prefer modifiedUri (most accurate post-edit), fall back to uri.
 				const uri = (c as { modifiedUri?: URI }).modifiedUri ?? (c as { uri?: URI }).uri;
 				const path = uri ? this._formatPath(uri) : '(unknown)';
 				files.push({ path, insertions: c.insertions, deletions: c.deletions });
@@ -692,7 +571,6 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 			}
 			totalFiles = files.length;
 		} else if (changes && !Array.isArray(changes)) {
-			// Already in summary form — we don't have per-file data.
 			const summary = changes as { files: number; insertions: number; deletions: number };
 			totalInsertions = summary.insertions;
 			totalDeletions = summary.deletions;
@@ -704,15 +582,11 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 			total_files: totalFiles,
 			total_insertions: totalInsertions,
 			total_deletions: totalDeletions,
-			files: files.slice(0, 20), // cap so LLM context stays bounded
+			files: files.slice(0, 20),
 			truncated: files.length > 20,
 		});
 	}
 
-	/**
-	 * Gather the last N user/assistant turns of a coding session — actual
-	 * conversation content, trimmed for spoken summarization.
-	 */
 	private async _gatherSessionThread(coding_session_id: string | undefined, lastN: number): Promise<string> {
 		const session = await this._resolveSession(coding_session_id);
 		if (!session) {
@@ -749,10 +623,7 @@ export class VoiceToolDispatchService implements IVoiceToolDispatchService {
 		});
 	}
 
-	/** Render a URI as a short relative-ish path for spoken summaries. */
 	private _formatPath(uri: URI): string {
-		// Take last 2 segments — enough for the model to identify the file
-		// without dumping full workspace paths into the prompt.
 		const parts = uri.path.split('/').filter(Boolean);
 		if (parts.length <= 2) {
 			return uri.path.replace(/^\//, '');

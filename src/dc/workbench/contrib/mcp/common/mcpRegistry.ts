@@ -119,7 +119,6 @@ export class McpRegistry extends Disposable implements IMcpRegistry {
 		const currentCollections = this._collections.get();
 		const toReplace = currentCollections.find(c => c.id === collection.id);
 
-		// Incoming collections replace the "lazy" versions. See `ExtensionMcpDiscovery` for an example.
 		if (toReplace && !toReplace.lazy) {
 			return Disposable.None;
 		} else if (toReplace) {
@@ -162,9 +161,8 @@ export class McpRegistry extends Disposable implements IMcpRegistry {
 		for (const collection of toDiscover) {
 			const rec = current.find(c => c.id === collection.id);
 			if (!rec) {
-				// ignored
 			} else if (rec.lazy) {
-				rec.lazy.removed?.(); // did not get replaced by the non-lazy version
+				rec.lazy.removed?.();
 			} else {
 				found.push(rec);
 			}
@@ -295,7 +293,7 @@ export class McpRegistry extends Disposable implements IMcpRegistry {
 			autorunSelfDisposable(reader => {
 				const map = interaction.participants.observable.read(reader);
 				if (Iterable.some(map.values(), p => p.s === 'unknown')) {
-					return; // wait to gather all calls
+					return;
 				}
 
 				reader.dispose();
@@ -317,11 +315,6 @@ export class McpRegistry extends Disposable implements IMcpRegistry {
 		return !!trustedDefinitionIds?.includes(definition.id);
 	}
 
-	/**
-	 * Confirms with the user which of the provided definitions should be trusted.
-	 * Returns undefined if the user cancelled the flow, or the list of trusted
-	 * definition IDs otherwise.
-	 */
 	protected async _promptForTrustOpenDialog(definitions: { definition: McpServerDefinition; collection: McpCollectionDefinition }[]): Promise<string[] | undefined> {
 		function labelFor(r: { definition: McpServerDefinition; collection: McpCollectionDefinition }) {
 			const originURI = r.definition.presentation?.origin?.uri || r.collection.presentation?.origin;
@@ -470,7 +463,6 @@ export class McpRegistry extends Disposable implements IMcpRegistry {
 			delegate.substituteVariables(definition, launch),
 		]);
 
-		// pre-fill the variables we already resolved to avoid extra prompting
 		const expr = ConfigurationResolverExpression.parse(McpServerLaunch.toSerialized(withRemoteFilled));
 		for (const replacement of expr.unresolved()) {
 			if (previouslyStored.hasOwnProperty(replacement.id)) {
@@ -478,19 +470,16 @@ export class McpRegistry extends Disposable implements IMcpRegistry {
 			}
 		}
 
-		// Check if there are still unresolved variables that would require interaction
 		if (errorOnUserInteraction) {
 			const unresolved = Array.from(expr.unresolved());
 			if (unresolved.length > 0) {
 				throw new UserInteractionRequiredError('variables');
 			}
 		}
-		// resolve variables requiring user input
 		await this._configurationResolverService.resolveWithInteraction(folder, expr, section, undefined, target);
 
 		await this._updateStorageWithExpressionInputs(inputStorage, expr);
 
-		// resolve other non-interactive variables, returning the final object
 		const resolved = await this._configurationResolverService.resolveAsync(folder, expr);
 		return McpServerLaunch.fromSerialized(resolved);
 	}
@@ -534,7 +523,7 @@ export class McpRegistry extends Disposable implements IMcpRegistry {
 		if (collection.resolveServerLanch) {
 			launch = await collection.resolveServerLanch(definition);
 			if (!launch) {
-				return undefined; // interaction cancelled by user
+				return undefined;
 			}
 		}
 
@@ -544,7 +533,6 @@ export class McpRegistry extends Disposable implements IMcpRegistry {
 			if (definition.devMode && debug) {
 				launch = await this._instantiationService.invokeFunction(accessor => accessor.get(IMcpDevModeDebugging).transform(definition, launch!));
 			}
-			// If sandbox is enabled for this server, attempt to launch in sandbox
 			launch = await this._mcpSandboxService.launchInSandboxIfEnabled(definition, launch, collection.remoteAuthority ?? undefined, collection.configTarget);
 		} catch (e) {
 			if (e instanceof UserInteractionRequiredError) {

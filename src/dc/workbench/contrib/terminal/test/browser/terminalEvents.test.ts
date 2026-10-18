@@ -12,7 +12,6 @@ import { TerminalCapabilityStore } from '../../../../../platform/terminal/common
 import { createInstanceCapabilityEventMultiplexer } from '../../browser/terminalEvents.js';
 import { ITerminalInstance } from '../../browser/terminal.js';
 
-// Mock implementations for testing
 class MockCwdDetectionCapability implements ICwdDetectionCapability {
 	readonly type = TerminalCapability.CwdDetection;
 	readonly cwds: string[] = [];
@@ -127,17 +126,14 @@ suite('Terminal Events', () => {
 				capturedData = e;
 			}));
 
-			// Add a new instance with capability
 			const capability = store.add(new MockCwdDetectionCapability());
 			const capabilities = store.add(new TerminalCapabilityStore());
 			const instance = createMockTerminalInstance(2, capabilities);
 
 			onAddInstance.fire(instance);
 
-			// Add capability to the instance after it's added to the multiplexer
 			capabilities.add(TerminalCapability.CwdDetection, capability);
 
-			// Fire an event from the capability
 			capability.fireEvent('new-instance-data');
 
 			strictEqual(eventFired, true, 'Event should be fired from new instance');
@@ -167,14 +163,11 @@ suite('Terminal Events', () => {
 				eventCount++;
 			}));
 
-			// Fire event before removal
 			capability.fireEvent('before-removal');
 			strictEqual(eventCount, 1, 'Event should be fired before removal');
 
-			// Remove the instance
 			onRemoveInstance.fire(instance);
 
-			// Fire event after removal - should not be received
 			capability.fireEvent('after-removal');
 			strictEqual(eventCount, 1, 'Event should not be fired after instance removal');
 		});
@@ -201,11 +194,9 @@ suite('Terminal Events', () => {
 				capturedData = e;
 			}));
 
-			// Add capability to existing instance
 			const capability = store.add(new MockCwdDetectionCapability());
 			capabilities.add(TerminalCapability.CwdDetection, capability);
 
-			// Fire an event from the newly added capability
 			capability.fireEvent('added-capability-data');
 
 			strictEqual(eventFired, true, 'Event should be fired from newly added capability');
@@ -235,12 +226,10 @@ suite('Terminal Events', () => {
 				eventCount++;
 			}));
 
-			// Fire event before removing capability
 			capability.fireEvent('before-capability-removal');
 			strictEqual(eventCount, 1, 'Event should be fired before capability removal');
 
-			// Remove the capability
-			capabilities.remove(TerminalCapability.CwdDetection);			// Fire event after capability removal - should not be received
+			capabilities.remove(TerminalCapability.CwdDetection);
 			capability.fireEvent('after-capability-removal');
 			strictEqual(eventCount, 1, 'Event should not be fired after capability removal');
 		});
@@ -271,7 +260,6 @@ suite('Terminal Events', () => {
 				events.push(e);
 			}));
 
-			// Fire events from both capabilities
 			capability1.fireEvent('data-from-instance1');
 			capability2.fireEvent('data-from-instance2');
 
@@ -305,14 +293,11 @@ suite('Terminal Events', () => {
 				eventCount++;
 			}));
 
-			// Fire event before disposal
 			capability.fireEvent('before-disposal');
 			strictEqual(eventCount, 1, 'Event should be fired before disposal');
 
-			// Dispose everything
 			testStore.dispose();
 
-			// Fire event after disposal - should not be received
 			capability.fireEvent('after-disposal');
 			strictEqual(eventCount, 1, 'Event should not be fired after disposal');
 		});
@@ -334,7 +319,6 @@ suite('Terminal Events', () => {
 				eventFired = true;
 			}));
 
-			// No instances, so no events should be fired initially
 			strictEqual(eventFired, false, 'No events should be fired with empty instances array');
 		});
 	});

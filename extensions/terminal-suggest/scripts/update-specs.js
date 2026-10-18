@@ -93,41 +93,31 @@ const upstreamSpecs = [
 	'xxd',
 	'zip',
 
-	// OS package management
 	'apt',
 	'brew',
 
-	// Editors
 	'nano',
 	'vim',
 
-	// Shells
 	'ssh',
 
-	// Android
 	'adb',
 
-	// Docker
 	'docker',
 	'docker-compose',
 
-	// Dotnet
 	'dotnet',
 
-	// Go
 	'go',
 
-	// JavaScript / TypeScript
 	'node',
 	'nvm',
 	'yo',
 
-	// Python
 	'python',
 	'python3',
 	'ruff',
 
-	// Ruby
 	'bundle',
 	'ruby',
 ];
@@ -218,7 +208,6 @@ for (const spec of upstreamSpecs) {
 	fs.writeFileSync(destination, content);
 }
 
-// Generate upstreamSpecs.ts with re-exports
 function specToExportName(spec) {
 	return spec.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 }

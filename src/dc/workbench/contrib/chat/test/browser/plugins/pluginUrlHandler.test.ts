@@ -73,7 +73,6 @@ suite('PluginUrlHandler', () => {
 		const configService = new TestConfigurationService({
 			[ChatConfiguration.PluginMarketplaces]: ['existing/marketplace'],
 		});
-		// Track updateValue calls
 		const origUpdate = configService.updateValue.bind(configService);
 		configService.updateValue = async (key: string, value: unknown, target?: ConfigurationTarget) => {
 			state.configUpdates.push({ key, value, target: target ?? ConfigurationTarget.USER });
@@ -97,7 +96,6 @@ suite('PluginUrlHandler', () => {
 			},
 		} as unknown as IEditorService);
 
-		// IInstantiationService: delegate createInstance to the TestInstantiationService itself
 		instantiationService.stub(IInstantiationService, instantiationService);
 
 		instantiationService.stub(ILogService, new NullLogService());
@@ -117,7 +115,6 @@ suite('PluginUrlHandler', () => {
 		return URI.from({ scheme: 'vscode', authority: 'chat-plugin', path, query });
 	}
 
-	// --- routing ---
 
 	test('ignores unrelated authority', async () => {
 		const { handler } = createHandler();
@@ -129,7 +126,6 @@ suite('PluginUrlHandler', () => {
 		assert.strictEqual(await handler.handleURL(uri('/unknown', 'source=foo/bar')), false);
 	});
 
-	// --- install: plain text ---
 
 	test('install with plain-text owner/repo source', async () => {
 		const { handler, state } = createHandler();
@@ -138,7 +134,6 @@ suite('PluginUrlHandler', () => {
 		assert.deepStrictEqual(state.installedSources, ['anthropics/claude-code']);
 	});
 
-	// --- install: base64 ---
 
 	test('install with base64-encoded source', async () => {
 		const { handler, state } = createHandler();
@@ -148,7 +143,6 @@ suite('PluginUrlHandler', () => {
 		assert.deepStrictEqual(state.installedSources, ['anthropics/claude-code']);
 	});
 
-	// --- install: dialog declined ---
 
 	test('install does nothing when dialog is declined', async () => {
 		const { handler, state } = createHandler({ dialogConfirmResult: false });
@@ -157,7 +151,6 @@ suite('PluginUrlHandler', () => {
 		assert.deepStrictEqual(state.installedSources, []);
 	});
 
-	// --- install: missing/invalid source ---
 
 	test('install handles missing source param', async () => {
 		const { handler, state } = createHandler();
@@ -181,7 +174,6 @@ suite('PluginUrlHandler', () => {
 		assert.deepStrictEqual(state.installedSources, []);
 	});
 
-	// --- add-marketplace: plain text ---
 
 	test('add-marketplace with plain-text ref', async () => {
 		const { handler, state } = createHandler();
@@ -191,7 +183,6 @@ suite('PluginUrlHandler', () => {
 		assert.deepStrictEqual(state.configUpdates[0].value, ['existing/marketplace', 'anthropics/claude-code']);
 	});
 
-	// --- add-marketplace: base64 ---
 
 	test('add-marketplace with base64-encoded ref', async () => {
 		const { handler, state } = createHandler();
@@ -202,7 +193,6 @@ suite('PluginUrlHandler', () => {
 		assert.deepStrictEqual(state.configUpdates[0].value, ['existing/marketplace', 'anthropics/claude-code']);
 	});
 
-	// --- add-marketplace: dedup ---
 
 	test('add-marketplace does not duplicate existing entry', async () => {
 		const { handler, state } = createHandler();
@@ -213,13 +203,11 @@ suite('PluginUrlHandler', () => {
 
 	test('add-marketplace deduplicates by canonical ID', async () => {
 		const { handler, state } = createHandler();
-		// The URL form of the same GitHub shorthand should match canonically
 		const result = await handler.handleURL(uri('/add-marketplace', 'ref=existing%2Fmarketplace'));
 		assert.strictEqual(result, true);
 		assert.strictEqual(state.configUpdates.length, 0);
 	});
 
-	// --- add-marketplace: dialog declined ---
 
 	test('add-marketplace does nothing when dialog is declined', async () => {
 		const { handler, state } = createHandler({ dialogConfirmResult: false });
@@ -228,7 +216,6 @@ suite('PluginUrlHandler', () => {
 		assert.strictEqual(state.configUpdates.length, 0);
 	});
 
-	// --- add-marketplace: missing/invalid ref ---
 
 	test('add-marketplace handles missing ref param', async () => {
 		const { handler, state } = createHandler();
@@ -244,7 +231,6 @@ suite('PluginUrlHandler', () => {
 		assert.strictEqual(state.configUpdates.length, 0);
 	});
 
-	// --- install with plugin targeting ---
 
 	function makeMarketplacePlugin(name: string, marketplace: string): IMarketplacePlugin {
 		const [owner, repo] = marketplace.split('/');
@@ -277,7 +263,6 @@ suite('PluginUrlHandler', () => {
 		const result = await handler.handleURL(uri('/install', 'source=acme/plugins&plugin=my-plugin'));
 		assert.strictEqual(result, true);
 		assert.deepStrictEqual(state.installedSources, ['acme/plugins']);
-		// Plugin editor was opened
 		assert.strictEqual(state.openedEditorInputs.length, 1);
 		assert.strictEqual(state.openedEditorInputs[0].item.name, 'my-plugin');
 	});

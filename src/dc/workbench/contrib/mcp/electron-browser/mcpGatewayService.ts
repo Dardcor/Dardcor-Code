@@ -12,12 +12,6 @@ import { IMcpGatewayServerInfo, IMcpGatewayService, McpGatewayChannelName } from
 import { IRemoteAgentService } from '../../../services/remote/common/remoteAgentService.js';
 import { IMcpGatewayResult, IMcpGatewayResultServer, IWorkbenchMcpGatewayService } from '../common/mcpGatewayService.js';
 
-/**
- * Electron workbench implementation of the MCP Gateway Service.
- *
- * This implementation can create gateways either in the main process (local)
- * or on a remote server (if connected).
- */
 export class WorkbenchMcpGatewayService implements IWorkbenchMcpGatewayService {
 	declare readonly _serviceBrand: undefined;
 

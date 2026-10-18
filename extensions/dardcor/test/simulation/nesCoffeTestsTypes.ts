@@ -4,9 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import * as yaml from 'yaml';
 
-/**
- * Types for CoffE completion stests.
- */
 export namespace CompletionStests {
 
 	export interface TestDocument {
@@ -27,10 +24,6 @@ export namespace CompletionStests {
 		completion: TestCompletionTarget;
 	}
 
-	/**
-	 * Parses YAML file contents into a TestInput object.
-	 * Converts kebab-case property names to camelCase.
-	 */
 	export function parseTestInput(fileContents: string): TestInput {
 		return yaml.parse(fileContents, {
 			reviver: (_, value) => {
@@ -58,16 +51,10 @@ export namespace CompletionStests {
 		start: Position;
 		end: Position;
 	}
-	// export namepsace Range {
-	// 	export function of
-	// }
 
 
 	export interface TestCompletion {
 		insertText: string;
-		/**
-		 * Actual ghost text shown to the user.
-		 */
 		displayText: string;
 		range: Range;
 	}

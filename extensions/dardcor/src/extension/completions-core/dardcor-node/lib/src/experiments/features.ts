@@ -12,7 +12,6 @@ import {
 	DEFAULT_PROMPT_ALLOCATION_PERCENT,
 	DEFAULT_SUFFIX_MATCH_THRESHOLD
 } from '../../../prompt/src/prompt';
-import { CopilotToken, ICompletionsCopilotTokenManager } from '../auth/dardcorTokenManager';
 import { BlockMode } from '../config';
 import { TelemetryData, TelemetryWithExp } from '../telemetry';
 import { createCompletionsFilters } from './defaultExpFilters';
@@ -29,7 +28,6 @@ type InternalContextProviderExpSettings = {
 	params?: Record<string, string | boolean | number>;
 };
 
-/** General-purpose API for accessing ExP variable values. */
 export class Features implements ICompletionsFeaturesService {
 	declare _serviceBrand: undefined;
 
@@ -39,50 +37,20 @@ export class Features implements ICompletionsFeaturesService {
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IExperimentationService private readonly experimentationService: IExperimentationService,
-		@ICompletionsCopilotTokenManager private readonly dardcorTokenManager: ICompletionsCopilotTokenManager,
 	) {
 		this.includeNeighboringFilesDefault = new Map<string, boolean>();
 		this.excludeRelatedFilesDefault = new Map<string, boolean>();
 	}
 
-	/**
-	 * Central logic for obtaining the assignments of treatment groups
-	 * for a given set of filters (i.e. descriptors of who is getting the treatment).
-	 * Also gets the values of variables controlled by experiment.
-	 *
-	 * This function should be called **exactly once** at the start of every
-	 * 'completion request' in the client (e.g. ghostText, panel request or chat conversation).
-	 *
-	 * It is called with an initial set of filters, (FeaturesFilterArgs)
-	 * but it adds many of its own.
-	 * At first the general background filters like extension version.
-	 * Then it will check ExP assignments for the first time, to find out
-	 * whether there are any assignments of a special granularity
-	 * (i.e. the concept that we want to redraw assignments based on
-	 * time bucket, or checksum of time, etc).
-	 *
-	 * On most calls to this function, the assignment fetches will be the
-	 * assignments from previously used filters, so they will be cached and return fast.
-	 *
-	 * @param telemetryData The base telemetry object to which the experimental filters, ExP
-	 * variable values, and experimental assignments will be added. All properties and measurements
-	 * of the input telemetryData will be present in the output TelemetryWithExp object.
-	 * Every telemetry data used to generate ExP scorecards (e.g. ghostText events) must
-	 * include the correct experiment assignments in order to properly create those
-	 * scorecards.
-	 */
 	async updateExPValuesAndAssignments(
 		filtersInfo?: CompletionsFiltersInfo,
 		telemetryData: TelemetryData = TelemetryData.createAndMarkAsIssued()
 	): Promise<TelemetryWithExp> {
-		// We should not allow accidentally overwriting existing ExP vals/assignments.
-		// This doesn't stop all misuse cases, but should prevent some trivial ones.
 		if (telemetryData instanceof TelemetryWithExp) {
 			throw new Error('updateExPValuesAndAssignments should not be called with TelemetryWithExp');
 		}
 
-		const token = this.dardcorTokenManager.token ?? await this.dardcorTokenManager.getToken();
-		const { filters, exp } = this.createExpConfigAndFilters(token);
+		const { filters, exp } = this.createExpConfigAndFilters();
 
 		return new TelemetryWithExp(telemetryData.properties, telemetryData.measurements, telemetryData.issuedTime, {
 			filters,
@@ -90,18 +58,14 @@ export class Features implements ICompletionsFeaturesService {
 		});
 	}
 
-	/**
-	 * Request a Copilot token and use that token to call updateExPValuesAndAssignments. Do NOT call this at startup.
-	 * Instead, register a onCopilotToken handler and use that token with updateExPValuesAndAssignments directly.
-	 */
-	async fetchTokenAndUpdateExPValuesAndAssignments(
+	async fetchAndUpdateExPValuesAndAssignments(
 		filtersInfo?: CompletionsFiltersInfo,
 		telemetryData?: TelemetryData
 	) {
 		return await this.updateExPValuesAndAssignments(filtersInfo, telemetryData);
 	}
 
-	private createExpConfigAndFilters(token: CopilotToken) {
+	private createExpConfigAndFilters() {
 
 		const exp2: Partial<Record<ExpTreatmentVariables, ExpTreatmentVariableValue>> = {};
 		for (const varName of Object.values<ExpTreatmentVariables>(ExpTreatmentVariables)) {
@@ -112,11 +76,10 @@ export class Features implements ICompletionsFeaturesService {
 		}
 
 		const features = Object.entries(exp2).map(([name, value]) => {
-			// Based on what tas-client does in https://github.com/microsoft/tas-client/blob/2bd24c976273b671892aad99139af2c7c7dc3b26/tas-client/src/tas-client/FeatureProvider/TasApiFeatureProvider.ts#L59
 			return name + (value ? '' : 'cf');
 		});
 		const exp = new ExpConfig(exp2, features.join(';'));
-		const filterMap = this.instantiationService.invokeFunction(createCompletionsFilters, token);
+		const filterMap = this.instantiationService.invokeFunction(createCompletionsFilters);
 		const filterRecord: Partial<Record<Filter, string>> = {};
 		for (const [key, value] of filterMap.entries()) {
 			filterRecord[key] = value;
@@ -126,13 +89,10 @@ export class Features implements ICompletionsFeaturesService {
 		return { filters, exp };
 	}
 
-	/** Get the entries from this.assignments corresponding to given settings. */
 	async getFallbackExpAndFilters(): Promise<{ filters: FilterSettings; exp: ExpConfig }> {
-		const token = this.dardcorTokenManager.token ?? await this.dardcorTokenManager.getToken();
-		return this.createExpConfigAndFilters(token);
+		return this.createExpConfigAndFilters();
 	}
 
-	/** Override for BlockMode to send in the request. */
 	overrideBlockMode(telemetryWithExp: TelemetryWithExp): BlockMode | undefined {
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.OverrideBlockMode] as BlockMode) ||
@@ -140,19 +100,15 @@ export class Features implements ICompletionsFeaturesService {
 		);
 	}
 
-	/** Functions with arguments, passed via object destructuring */
 
-	/** @returns the string for dardcorcustomengine, or "" if none is set. */
 	customEngine(telemetryWithExp: TelemetryWithExp): string {
 		return (telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.CustomEngine] as string) ?? '';
 	}
 
-	/** @returns the string for dardcorcustomenginetargetengine, or undefined if none is set. */
 	customEngineTargetEngine(telemetryWithExp: TelemetryWithExp): string | undefined {
 		return telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.CustomEngineTargetEngine] as string;
 	}
 
-	/** @returns the percent of prompt tokens to be allocated to the suffix */
 	suffixPercent(telemetryWithExp: TelemetryWithExp): number {
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.SuffixPercent] as number) ??
@@ -160,7 +116,6 @@ export class Features implements ICompletionsFeaturesService {
 		);
 	}
 
-	/** @returns the percentage match threshold for using the cached suffix */
 	suffixMatchThreshold(telemetryWithExp: TelemetryWithExp): number {
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.SuffixMatchThreshold] as number) ??
@@ -168,7 +123,6 @@ export class Features implements ICompletionsFeaturesService {
 		);
 	}
 
-	/** @returns whether to enable the inclusion of C++ headers as neighbor files. */
 	cppHeadersEnableSwitch(telemetryWithExp: TelemetryWithExp): boolean {
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.CppHeadersEnableSwitch] as boolean) ??
@@ -176,7 +130,6 @@ export class Features implements ICompletionsFeaturesService {
 		);
 	}
 
-	/** @returns whether to use included related files as neighbor files for C# (vscode experiment). */
 	relatedFilesVSCodeCSharp(telemetryWithExp: TelemetryWithExp): boolean {
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.RelatedFilesVSCodeCSharp] as boolean) ??
@@ -184,7 +137,6 @@ export class Features implements ICompletionsFeaturesService {
 		);
 	}
 
-	/** @returns whether to use included related files as neighbor files for TS/JS (vscode experiment). */
 	relatedFilesVSCodeTypeScript(telemetryWithExp: TelemetryWithExp): boolean {
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[
@@ -193,14 +145,12 @@ export class Features implements ICompletionsFeaturesService {
 		);
 	}
 
-	/** @returns whether to use included related files as neighbor files (vscode experiment). */
 	relatedFilesVSCode(telemetryWithExp: TelemetryWithExp): boolean {
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.RelatedFilesVSCode] as boolean) ?? false
 		);
 	}
 
-	/** @returns the list of context providers IDs to enable. The special value `*` enables all context providers. */
 	contextProviders(telemetryWithExp: TelemetryWithExp): string[] {
 		const providers = (telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.ContextProviders] ??
 			'') as string;
@@ -290,7 +240,6 @@ export class Features implements ICompletionsFeaturesService {
 		return result;
 	}
 
-	/** @returns the maximal number of tokens of prompt AND completion */
 	maxPromptCompletionTokens(telemetryWithExp: TelemetryWithExp): number {
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.MaxPromptCompletionTokens] as number) ??
@@ -312,7 +261,6 @@ export class Features implements ICompletionsFeaturesService {
 		);
 	}
 
-	/** Custom parameters for language specific Context Providers. */
 	cppContextProviderParams(telemetryWithExp: TelemetryWithExp): string | undefined {
 		const cppContextProviderParams = telemetryWithExp.filtersAndExp.exp.variables[
 			ExpTreatmentVariables.CppContextProviderParams
@@ -402,9 +350,6 @@ export class Features implements ICompletionsFeaturesService {
 	}
 
 	maxMultilineTokens(telemetryWithExp: TelemetryWithExp): number {
-		// p50 line length is 19 characters (p95 is 73)
-		// average token length is around 4 characters
-		// the below value has quite a bit of buffer while bringing the limit in significantly from 500
 		return (
 			(telemetryWithExp.filtersAndExp.exp.variables[ExpTreatmentVariables.MaxMultilineTokens] as number) ?? 200
 		);

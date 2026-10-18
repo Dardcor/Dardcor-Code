@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { RenderPromptResult } from '@vscode/prompt-tsx';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IConversationOptions } from '../../../platform/chat/common/conversationOptions';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
@@ -31,7 +30,6 @@ export class GitHubPullRequestTitleAndDescriptionGenerator implements TitleAndDe
 		@IEndpointProvider private readonly endpointProvider: IEndpointProvider,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@INotificationService private readonly notificationService: INotificationService,
-		@IAuthenticationService private readonly authService: IAuthenticationService,
 	) {
 		this.logService.info('[githubTitleAndDescriptionProvider] Initializing GitHub PR title and description provider provider.');
 	}
@@ -60,11 +58,11 @@ export class GitHubPullRequestTitleAndDescriptionGenerator implements TitleAndDe
 	private async excludePatches(allPatches: { patch: string; fileUri?: string; previousFileUri?: string }[]): Promise<string[]> {
 		const patches: string[] = [];
 		for (const patch of allPatches) {
-			if (patch.fileUri && await this.ignoreService.isCopilotIgnored(URI.parse(patch.fileUri))) {
+			if (patch.fileUri && await this.ignoreService.isIgnored(URI.parse(patch.fileUri))) {
 				continue;
 			}
 
-			if (patch.previousFileUri && patch.previousFileUri !== patch.fileUri && await this.ignoreService.isCopilotIgnored(URI.parse(patch.previousFileUri))) {
+			if (patch.previousFileUri && patch.previousFileUri !== patch.fileUri && await this.ignoreService.isIgnored(URI.parse(patch.previousFileUri))) {
 				continue;
 			}
 
@@ -99,8 +97,8 @@ export class GitHubPullRequestTitleAndDescriptionGenerator implements TitleAndDe
 			);
 
 		this.lastContext = { commitMessages, patches };
-		if (fetchResult.type === ChatFetchResponseType.QuotaExceeded || (fetchResult.type === ChatFetchResponseType.RateLimited && this.authService.dardcorToken?.isNoAuthUser)) {
-			await this.notificationService.showQuotaExceededDialog({ isNoAuthUser: this.authService.dardcorToken?.isNoAuthUser ?? false });
+		if (fetchResult.type === ChatFetchResponseType.QuotaExceeded || fetchResult.type === ChatFetchResponseType.RateLimited) {
+			await this.notificationService.showWarningMessage('Dardcor Router is rate limited or the selected model has reached its quota. Check the Router provider or retry later.');
 		}
 
 		if (fetchResult.type !== ChatFetchResponseType.Success) {
@@ -119,7 +117,6 @@ export class GitHubPullRequestTitleAndDescriptionGenerator implements TitleAndDe
 			return undefined;
 		}
 
-		// adjust delimter as the model sometimes adds more +s
 		while (workingValue.charAt(firstIndexOfDelimiter + delimiter.length) === '+') {
 			delimiter += '+';
 		}
@@ -129,11 +126,9 @@ export class GitHubPullRequestTitleAndDescriptionGenerator implements TitleAndDe
 		const splitOnPlus = workingValue.split(delimiter).filter(s => s.trim().length > 0);
 		let splitOnLines: string[];
 		if (splitOnPlus.length === 1) {
-			// If there's only one line, split on newlines as the model has left out some +++ delimiters
 			splitOnLines = splitOnPlus[0].split('\n');
 		} else if (splitOnPlus.length > 1) {
 			if (hasTemplate) {
-				// When using a template, keep description whitespace as-is.
 				splitOnLines = splitOnPlus;
 			} else {
 				const descriptionLines = splitOnPlus.slice(1).map(line => line.split('\n')).flat().filter(s => s.trim().length > 0);
@@ -155,7 +150,6 @@ export class GitHubPullRequestTitleAndDescriptionGenerator implements TitleAndDe
 
 			description = '';
 			const descriptionLines = splitOnLines.slice(1);
-			// The description can be kind of self referential. Clean it up.
 			for (const line of descriptionLines) {
 				if (line.includes('commit message')) {
 					continue;
@@ -174,16 +168,12 @@ export class GitHubPullRequestTitleAndDescriptionGenerator implements TitleAndDe
 	}
 
 	private async createPRTitleAndDescriptionPrompt(commitMessages: string[], patches: string[], issues: { reference: string; content: string }[] | undefined, template: string | undefined, compareBranch: string | undefined, charLimit: number): Promise<RenderPromptResult> {
-		// Reserve 20% of the character limit for the safety rules and instructions
 		const availableChars = charLimit - Math.floor(charLimit * 0.2);
 
-		// Remove diffs if needed (shortest diffs first)
 		let totalChars = patches.join('\n\n').length;
 		if (totalChars > availableChars) {
-			// Sort diffs by length
 			patches.sort((a, b) => a.length - b.length);
 
-			// Remove diff(s) until we are under the character limit
 			while (totalChars > availableChars && patches.length > 0) {
 				const lastPatch = patches.pop()!;
 				totalChars -= lastPatch.length;

@@ -8,7 +8,6 @@ const SAVE_VALUE = "__save_key__";
 
 export default function ApiKeySelect({ value, onChange, apiKeys = [], cloudEnabled = false, className = "" }) {
   const [savedKeys, setSavedKeys] = useState([]);
-  // Custom mode is sticky once the user types, so an emptied input doesn't jump back to a dropdown option
   const [customMode, setCustomMode] = useState(false);
   const [customInput, setCustomInput] = useState("");
 
@@ -27,7 +26,6 @@ export default function ApiKeySelect({ value, onChange, apiKeys = [], cloudEnabl
     [apiKeys, savedKeys]
   );
 
-  // Derive the active option from value — no sync effects needed when the parent updates it
   const matched = value ? options.find((o) => o.value === value || o.url === value) : null;
   const mode = matched ? matched.value : (customMode || value ? CUSTOM_VALUE : (options[0]?.value ?? CUSTOM_VALUE));
   const inputValue = customMode ? customInput : (value || "");

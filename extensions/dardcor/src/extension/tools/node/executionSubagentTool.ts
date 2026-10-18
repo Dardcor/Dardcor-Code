@@ -19,18 +19,16 @@ import { Conversation, Turn } from '../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { ExecutionSubagentToolCallingLoop, IBackgroundCommand } from '../../prompt/node/executionSubagentToolCallingLoop';
 import { ToolName } from '../common/toolNames';
-import { CopilotToolMode, ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { AgentToolMode, IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { stripFinalAnswerTags, updateSubagentInvocation } from './subagentToolUtils';
 
 export interface IExecutionSubagentParams {
 
-	/** What to execute, and what to look for in the output. Can include exact commands to run, or a description of an execution task. */
 	query: string;
-	/** User-visible description shown while invoking */
 	description: string;
 }
 
-class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
+class ExecutionSubagentTool implements IAgentTool<IExecutionSubagentParams> {
 	public static readonly toolName = ToolName.ExecutionSubagent;
 	public static readonly nonDeferred = true;
 	private _inputContext: IBuildPromptContext | undefined;
@@ -54,13 +52,7 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 
 		const request = this._inputContext.request!;
 		const parentSessionId = this._inputContext.conversation?.sessionId ?? generateUuid();
-		// Use the parent tool call ID so nested tools render in the parent's subagent region.
-		// Programmatic invocations without a streamed parent still need an ID for tracing.
 		const parentToolCallId = options.chatStreamToolCallId;
-		// Generate a stable session ID for this subagent invocation that will be used:
-		// 1. As subAgentInvocationId in the subagent's tool context
-		// 2. As subAgentInvocationId in toolMetadata for parent trajectory linking
-		// 3. As the session_id in the subagent's own trajectory
 		const subAgentInvocationId = parentToolCallId ?? generateUuid();
 
 		const toolCallLimit = this.configurationService.getExperimentBasedConfig(ConfigKey.Advanced.ExecutionSubagentToolCallLimit, this.experimentationService);
@@ -90,36 +82,22 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 			modelName,
 		});
 
-		// Create a new capturing token to group this execution subagent and all its nested tool calls
-		// Similar to how DefaultIntentRequestHandler does it
-		// Pass the subAgentInvocationId so the trajectory uses this ID for explicit linking
-		// Fall back to request.sessionId (matches the parent's CapturingToken.chatSessionId set in
-		// DefaultIntentRequestHandler), then conversation.sessionId, when the AsyncLocalStorage
-		// CapturingToken context isn't propagated across the chat-tool-invocation boundary (otherwise
-		// PARENT_CHAT_SESSION_ID would be missing and the subagent would upload as a standalone cloud session).
 		const parentChatSessionId = getCurrentCapturingToken()?.chatSessionId ?? request.sessionId ?? parentSessionId;
 		const executionSubagentToken = new CapturingToken(
 			`Execution: ${options.input.query.substring(0, 50)}${options.input.query.length > 50 ? '...' : ''}`,
 			'execution',
 			subAgentInvocationId,
-			'execution',  // subAgentName for trajectory tracking
-			// Use invocation ID as chatSessionId so spans get their own log file
+			'execution',
 			subAgentInvocationId,
-			// Link back to the parent session for debug log grouping and cloud session folding
 			parentChatSessionId,
 			'executionSubagent',
 		);
 
-		// Wrap the loop execution in captureInvocation with the new token
-		// All nested tool calls will now be logged under this same CapturingToken
 		const loopResult = await this.requestLogger.captureInvocation(executionSubagentToken, () => loop.run(stream, token));
 
-		// Build subagent trajectory metadata that will be logged via toolMetadata
-		// All nested tool calls are already logged by ToolCallingLoop.logToolResult()
 		const toolMetadata = {
 			query: options.input.query,
 			description: options.input.description,
-			// The subAgentInvocationId links this tool call to the subagent's trajectory
 			subAgentInvocationId: subAgentInvocationId,
 			agentName: 'execution',
 			modelName,
@@ -132,9 +110,6 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 			subagentResponse = `The execution subagent request failed with this message:\n${loopResult.response.type}: ${loopResult.response.reason}`;
 		}
 
-		// If any terminal commands moved to the background (timeout or async) during
-		// the subagent's run, append a Note line for each on the line(s) immediately
-		// after the final </final_answer>.
 		subagentResponse = appendBackgroundCommandNotesToFinalAnswer(subagentResponse, loop.backgroundCommands);
 		subagentResponse = stripFinalAnswerTags(subagentResponse);
 		updateSubagentInvocation(stream, parentToolCallId, ToolName.ExecutionSubagent, {
@@ -145,7 +120,6 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 			result: subagentResponse,
 		});
 
-		// toolMetadata will be automatically included in exportAllPromptLogsAsJsonCommand
 		const result = new ExtendedLanguageModelToolResult([new LanguageModelTextPart(subagentResponse)]);
 		result.toolMetadata = toolMetadata;
 		result.toolResultMessage = new MarkdownString(l10n.t`Execution complete: ${options.input.description}`);
@@ -158,7 +132,7 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 		};
 	}
 
-	async resolveInput(input: IExecutionSubagentParams, promptContext: IBuildPromptContext, _mode: CopilotToolMode): Promise<IExecutionSubagentParams> {
+	async resolveInput(input: IExecutionSubagentParams, promptContext: IBuildPromptContext, _mode: AgentToolMode): Promise<IExecutionSubagentParams> {
 		this._inputContext = promptContext;
 		return input;
 	}
@@ -166,12 +140,6 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 
 ToolRegistry.registerTool(ExecutionSubagentTool);
 
-/**
- * Appends a `Note: ...` line for each stopped terminal command (timed out or
- * invoked in async/background mode) on the line(s) immediately after the final
- * `</final_answer>` of the subagent's response. If no `<final_answer>` block is
- * present, appends the notes to the end of the response.
- */
 function appendBackgroundCommandNotesToFinalAnswer(
 	response: string,
 	backgroundCommands: readonly IBackgroundCommand[],

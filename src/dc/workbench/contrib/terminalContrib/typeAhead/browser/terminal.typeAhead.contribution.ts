@@ -39,7 +39,6 @@ class TerminalTypeAheadContribution extends DisposableStore implements ITerminal
 			}
 		}));
 
-		// Reset the addon when the terminal launches or relaunches
 		this.add(this._ctx.processManager.onProcessReady(() => {
 			this._addon?.reset();
 		}));

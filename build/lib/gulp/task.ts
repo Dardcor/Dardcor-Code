@@ -30,7 +30,6 @@ export function task(name: string, fn: Task): Task;
 export function task(fn: Task): Task;
 export function task(name: string): Task | undefined;
 export function task(nameOrFn: string | Task, fn?: Task): Task | undefined {
-	// Lookup form: task('name')
 	if (typeof nameOrFn === 'string' && fn === undefined) {
 		return g.task(nameOrFn) as Task | undefined;
 	}
@@ -69,12 +68,9 @@ export function parallel(...tasks: Task[]): PromiseTask {
 
 export function define(name: string, task: Task): Task {
 	if (task._tasks) {
-		// This is a composite task
 		const lastTask = task._tasks[task._tasks.length - 1];
 
 		if (lastTask._tasks || lastTask.taskName) {
-			// This is a composite task without a real task function
-			// => generate a fake task function
 			return define(name, series(task, () => Promise.resolve()));
 		}
 
@@ -83,7 +79,6 @@ export function define(name: string, task: Task): Task {
 		return task;
 	}
 
-	// This is a simple task
 	task.taskName = name;
 	task.displayName = name;
 	return task;
@@ -105,10 +100,8 @@ async function _execute(task: Task): Promise<void> {
 }
 
 async function _doExecute(task: Task): Promise<void> {
-	// Always invoke as if it were a callback task
 	return new Promise((resolve, reject) => {
 		if (task.length === 1) {
-			// this is a callback task
 			task((err) => {
 				if (err) {
 					return reject(err);
@@ -121,18 +114,15 @@ async function _doExecute(task: Task): Promise<void> {
 		const taskResult = task();
 
 		if (typeof taskResult === 'undefined') {
-			// this is a sync task
 			resolve();
 			return;
 		}
 
 		if (_isPromise(taskResult)) {
-			// this is a promise returning task
 			taskResult.then(resolve, reject);
 			return;
 		}
 
-		// this is a stream returning task
 		taskResult.on('end', _ => resolve());
 		taskResult.on('error', err => reject(err));
 	});

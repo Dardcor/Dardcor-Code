@@ -2,11 +2,6 @@ import { NextResponse } from "next/server";
 import { KiroService } from "@/lib/oauth/services/kiro";
 import { createProviderConnection } from "@/models";
 
-/**
- * POST /api/oauth/kiro/social-exchange
- * Exchange authorization code for tokens (Google/GitHub social login)
- * Callback URL will be in format: kiro://kiro.kiroAgent/authenticate-success?code=XXX&state=YYY
- */
 export async function POST(request) {
   try {
     const { code, codeVerifier, provider } = await request.json();
@@ -27,16 +22,13 @@ export async function POST(request) {
 
     const kiroService = new KiroService();
 
-    // Exchange code for tokens (redirect_uri handled internally)
     const tokenData = await kiroService.exchangeSocialCode(
       code,
       codeVerifier
     );
 
-    // Extract email from JWT if available
     const email = kiroService.extractEmailFromJWT(tokenData.accessToken);
 
-    // Save to database
     const connection = await createProviderConnection({
       provider: "kiro",
       authType: "oauth",
@@ -46,7 +38,7 @@ export async function POST(request) {
       email: email || null,
       providerSpecificData: {
         profileArn: tokenData.profileArn,
-        authMethod: provider, // "google" or "github"
+        authMethod: provider,
         provider: provider.charAt(0).toUpperCase() + provider.slice(1),
       },
       testStatus: "active",

@@ -18,11 +18,6 @@ import { SedFileWriteParser } from '../../terminal/common/autoApprove/sedFileWri
 import { sortAutoApproveRules } from '../../terminal/common/autoApprove/sortAutoApproveRules.js';
 import type { AgentHostTerminalAutoApproveRuleValue, AgentHostTerminalAutoApproveRules } from '../common/agentHostSchema.js';
 
-/**
- * Redirect destinations that do not result in a write to an arbitrary file
- * on disk: the /dev sinks that discard output (`/dev/null`) or write back to
- * the same terminal (`/dev/stdout`, `/dev/stderr`, `/dev/tty`).
- */
 const SAFE_POSIX_REDIRECT_TARGETS: ReadonlySet<string> = new Set([
 	'/dev/null',
 	'/dev/stdout',
@@ -30,18 +25,11 @@ const SAFE_POSIX_REDIRECT_TARGETS: ReadonlySet<string> = new Set([
 	'/dev/tty',
 ]);
 
-/**
- * Returns true when the given redirection destination is known to be safe:
- * either the shell's null/output sink or a file-descriptor duplication target
- * like `&1` (used in `2>&1`).
- */
 function isSafeRedirectDestination(dest: string, isPowerShell?: boolean): boolean {
 	let cleaned = dest.trim();
 	if (cleaned.length === 0) {
 		return false;
 	}
-	// `$null` discards output in PowerShell like /dev/null; variable names are
-	// case-insensitive. Quoted forms are strings rather than the null sink.
 	if (isPowerShell && cleaned.toLowerCase() === '$null') {
 		return true;
 	}
@@ -49,23 +37,12 @@ function isSafeRedirectDestination(dest: string, isPowerShell?: boolean): boolea
 		(cleaned.startsWith('"') && cleaned.endsWith('"'))) {
 		cleaned = cleaned.slice(1, -1);
 	}
-	// File-descriptor duplication: `&N`, optionally followed by `-` to close.
 	if (/^&[0-9]+-?$/.test(cleaned)) {
 		return true;
 	}
-	// PowerShell uses `$null` as its null sink. In particular, `/dev/null`
-	// resolves as a filesystem path on Windows.
 	return !isPowerShell && SAFE_POSIX_REDIRECT_TARGETS.has(cleaned);
 }
 
-/**
- * Classification of a tree-sitter `file_redirect` node.
- * - `read`: input-only redirect (`<`, `<&N`) — never writes.
- * - `safeWrite`: write to a known-safe sink (`/dev/null`, fd duplication, ...).
- * - `unsafeWrite`: write to an arbitrary destination. The destination string
- *   (with surrounding quotes stripped) is included when it could be parsed,
- *   so the caller may decide whether the target is acceptable.
- */
 type FileRedirectClassification =
 	| { kind: 'read' }
 	| { kind: 'safeWrite' }
@@ -91,78 +68,29 @@ function classifyFileRedirect(redirectText: string, isPowerShell?: boolean): Fil
 	return { kind: 'unsafeWrite', dest };
 }
 
-/**
- * Matches a PowerShell command token of the form `-flag=` or `--flag=` at the
- * start of input or following whitespace. Used to work around a tree-sitter
- * PowerShell grammar limitation where POSIX-style `--flag=value` arguments
- * (e.g. `git log --format="a|b"`) are parsed as assignment expressions and
- * truncate the surrounding command. Mirrors the workbench's
- * `TreeSitterCommandParser` workaround.
- *
- * See https://github.com/microsoft/vscode/issues/294010
- * TODO: Remove once upstream tree-sitter PowerShell grammar is updated.
- */
 const pwshFlagEqualsRegex = /(^|\s)(-{1,2}[\w-]+)=/g;
 
-// TODO: Remove once upstream tree-sitter PowerShell grammar is updated.
 function maskPwshFlagEquals(commandLine: string): string {
 	return commandLine.replace(pwshFlagEqualsRegex, (_, pre, flag) => `${pre}${flag} `);
 }
 
-/**
- * Matches PowerShell redirects glued to their target (`2>$null`, `>out.txt`,
- * `*>>log.txt`). The grammar parses these as `generic_token` command arguments
- * rather than `redirection` nodes, which only cover the spaced form.
- */
 const pwshNoSpaceRedirectRegex = /^[0-9*]?>>?/;
 
-/**
- * Result of a command auto-approval check.
- * - `approved`: all sub-commands match allow rules and none are denied
- * - `denied`: at least one sub-command matches a deny rule
- * - `noMatch`: no rule matched — requires user confirmation
- */
 export type CommandApprovalResult = 'approved' | 'denied' | 'noMatch';
 
-/** Structured outcome of {@link CommandAutoApprover.evaluate}. */
 export interface ICommandApprovalEvaluation {
-	/** Final approval outcome, identical to {@link CommandAutoApprover.shouldAutoApprove}. */
 	readonly result: CommandApprovalResult;
-	/** Whether a missing allow rule is the only reason confirmation is required. */
 	readonly autoApproveRuleResolvable: boolean;
 }
 
-/** Options for {@link CommandAutoApprover.shouldAutoApprove}. */
 export interface IShouldAutoApproveOptions {
-	/**
-	 * Predicate that decides whether a write redirection to the given
-	 * destination is acceptable. Called once per write-redirect destination
-	 * found in the command line; the destination is the raw string the user
-	 * typed (with surrounding quotes stripped). The predicate is responsible
-	 * for resolving relative paths and applying its own policy.
-	 *
-	 * When omitted, any write redirect to a destination outside the known-safe
-	 * sinks (e.g. `/dev/null`) downgrades the result to `noMatch`.
-	 */
 	readonly isWriteDestApproved?: (dest: string) => boolean;
-	/**
-	 * Effective VS Code `chat.tools.terminal.autoApprove` rules forwarded from
-	 * the renderer. When omitted, the agent host falls back to its bundled
-	 * default rules for compatibility with older clients.
-	 */
 	readonly autoApproveRules?: AgentHostTerminalAutoApproveRules;
-	/**
-	 * Shell grammar to parse the command line with. PowerShell commands are
-	 * parsed with the PowerShell grammar. Sub-command rules are matched
-	 * case-insensitively, like PowerShell itself; full-command rules retain
-	 * their configured casing. Defaults to `bash`.
-	 */
 	readonly language?: 'bash' | 'powershell';
 }
 
 interface IAutoApproveRule {
 	readonly regex: RegExp;
-	/** Case-insensitive variant of {@link regex}, used for PowerShell matching. */
 	readonly regexCaseInsensitive: RegExp;
 }
 
@@ -219,21 +147,6 @@ async function loadTreeSitterResources(): Promise<ITreeSitterResources> {
 	};
 }
 
-/**
- * Auto-approves or denies shell commands based on terminal auto-approve rules.
- *
- * Uses tree-sitter to parse compound commands (`foo && bar`) into
- * sub-commands that are individually checked against allow/deny lists.
- * The rules are normally forwarded from VS Code's
- * `chat.tools.terminal.autoApprove` setting. A bundled default table is kept
- * as a compatibility fallback for clients that have not forwarded rules yet.
- *
- * Tree-sitter is initialized eagerly; call {@link initialize} and await the
- * result before using {@link shouldAutoApprove} to guarantee synchronous
- * parsing. If tree-sitter fails to load or parse the command,
- * {@link shouldAutoApprove} returns `noMatch` so the user is prompted for
- * confirmation rather than auto-approving based on the command name alone.
- */
 export class CommandAutoApprover extends Disposable {
 
 	private _fallbackRules: IAutoApproveRules | undefined;
@@ -252,28 +165,14 @@ export class CommandAutoApprover extends Disposable {
 		this._initPromise = this._initTreeSitter();
 	}
 
-	/**
-	 * Returns a promise that resolves once tree-sitter WASM has been loaded.
-	 * Await this before processing any events to guarantee that
-	 * {@link shouldAutoApprove} can parse commands synchronously.
-	 */
 	initialize(): Promise<void> {
 		return this._initPromise;
 	}
 
-	/**
-	 * Synchronously check whether the given command line should be auto-approved.
-	 * Uses tree-sitter (if loaded) to parse compound commands into sub-commands.
-	 *
-	 * When the command contains write redirections, `options.isWriteDestApproved`
-	 * is consulted for each destination. If every destination is approved by the
-	 * predicate, write redirections do not block auto-approval.
-	 */
 	shouldAutoApprove(commandLine: string, options?: IShouldAutoApproveOptions): CommandApprovalResult {
 		return this.evaluate(commandLine, options).result;
 	}
 
-	/** Evaluates the command and reports whether adding a persistent allow rule could resolve the result. */
 	evaluate(commandLine: string, options?: IShouldAutoApproveOptions): ICommandApprovalEvaluation {
 		const trimmed = commandLine.trimStart();
 		if (trimmed.length === 0) {
@@ -312,7 +211,6 @@ export class CommandAutoApprover extends Disposable {
 			if (sedFileWriteParser.canHandle(subCommand)) {
 				return 'denied';
 			}
-			// Deny transient env var assignments
 			if (transientEnvVarRegex.test(subCommand)) {
 				return 'denied';
 			}
@@ -329,12 +227,10 @@ export class CommandAutoApprover extends Disposable {
 	}
 
 	private _matchSingleCommand(command: string, rules: IAutoApproveRules, isPowerShell: boolean): CommandApprovalResult {
-		// Check deny rules first
 		if (this._matchesRule(command, rules.denyRules, isPowerShell)) {
 			return 'denied';
 		}
 
-		// Then check allow rules
 		if (this._matchesRule(command, rules.allowRules, isPowerShell)) {
 			return 'approved';
 		}
@@ -348,12 +244,9 @@ export class CommandAutoApprover extends Disposable {
 
 	private _matchesRule(command: string, rules: readonly IAutoApproveRule[], isPowerShell?: boolean): boolean {
 		for (const rule of rules) {
-			// PowerShell rule matching is case-insensitive, like the shell itself.
 			if ((isPowerShell ? rule.regexCaseInsensitive : rule.regex).test(command)) {
 				return true;
 			}
-			// Ignore a leading ( for PowerShell commands: it's a command pattern
-			// operating on the output of a command, e.g. `(Get-Content README.md) ...`.
 			if (isPowerShell && command.startsWith('(') && rule.regexCaseInsensitive.test(command.slice(1))) {
 				return true;
 			}
@@ -361,7 +254,6 @@ export class CommandAutoApprover extends Disposable {
 		return false;
 	}
 
-	// ---- Tree-sitter --------------------------------------------------------
 
 	private _extractSubCommands(commandLine: string, isPowerShell: boolean): { subCommands: string[]; unsafeWriteDests: (string | undefined)[] } | undefined {
 		const language = isPowerShell ? this._powershellLanguage : this._bashLanguage;
@@ -371,9 +263,6 @@ export class CommandAutoApprover extends Disposable {
 
 		try {
 			this._parser.setLanguage(language);
-			// The PowerShell grammar truncates commands around `--flag=value`
-			// arguments, so they are masked before parsing (positions are
-			// preserved) and capture text is sliced from the original.
 			const masked = isPowerShell ? maskPwshFlagEquals(commandLine) : commandLine;
 			const tree = this._parser.parse(masked);
 			if (!tree) {
@@ -385,11 +274,6 @@ export class CommandAutoApprover extends Disposable {
 					this._logService.trace('[CommandAutoApprover] PowerShell parse contains errors, requiring confirmation');
 					return undefined;
 				}
-				// No-space PowerShell redirects (`2>$null`) parse as generic_token
-				// command arguments rather than redirection nodes, so both are
-				// captured and filtered by shape below. Assignments and method
-				// invocations are captured so the command line can fail closed
-				// when it contains code the rules cannot see.
 				const query = new this._queryClass(language, isPowerShell
 					? '(command) @command (redirection) @redirection (generic_token) @generic_token (assignment_expression) @unanalyzable (invokation_expression) @unanalyzable'
 					: '(command) @command (file_redirect) @file_redirect (heredoc_redirect) @heredoc_redirect (herestring_redirect) @herestring_redirect (variable_assignment) @unanalyzable (declaration_command) @unanalyzable');
@@ -404,15 +288,11 @@ export class CommandAutoApprover extends Disposable {
 					} else if (capture.name === 'unanalyzable' && (capture.node.type !== 'variable_assignment' || capture.node.parent?.type !== 'command')) {
 						unanalyzableType ??= capture.node.type;
 					} else if (capture.name === 'file_redirect' || capture.name === 'redirection' || (capture.name === 'generic_token' && pwshNoSpaceRedirectRegex.test(text))) {
-						// Writes to known-safe sinks (e.g. `> /dev/null`, `2>$null`)
-						// and file-descriptor duplications (e.g. `2>&1`) are allowed.
 						const cls = classifyFileRedirect(text, isPowerShell);
 						if (cls.kind === 'unsafeWrite') {
 							unsafeWriteDests.push(cls.dest);
 						}
 					} else if (capture.name === 'heredoc_redirect' || capture.name === 'herestring_redirect') {
-						// Heredoc/herestring feed data into stdin; they do not write
-						// files, so they are not treated as write redirects here.
 					}
 				}
 				query.delete();
@@ -444,15 +324,11 @@ export class CommandAutoApprover extends Disposable {
 				try {
 					parser.delete();
 				} catch {
-					// WASM memory may already be freed
 				}
 			}));
 
 			this._parser = parser;
 			this._queryClass = resources.queryClass;
-			// A grammar that fails to load leaves its language undefined, so
-			// commands for that shell fall back to `noMatch` and require
-			// confirmation rather than auto-approving.
 			if (resources.bashLanguage.status === 'fulfilled') {
 				this._bashLanguage = resources.bashLanguage.value;
 			} else {
@@ -469,7 +345,6 @@ export class CommandAutoApprover extends Disposable {
 		}
 	}
 
-	// ---- Rules --------------------------------------------------------------
 
 	private _compileRules(ruleConfig: AgentHostTerminalAutoApproveRules | undefined): IAutoApproveRules {
 		if (!ruleConfig) {
@@ -525,10 +400,8 @@ export class CommandAutoApprover extends Disposable {
 	}
 }
 
-// ---- Regex conversion -------------------------------------------------------
 
 function convertAutoApproveEntryToRegex(value: string): RegExp {
-	// If wrapped in `/`, treat as regex
 	const regexMatch = value.match(/^\/(?<pattern>.+)\/(?<flags>[dgimsuvy]*)$/);
 	const regexPattern = regexMatch?.groups?.pattern;
 	if (regexPattern) {
@@ -558,7 +431,6 @@ function convertAutoApproveEntryToRegex(value: string): RegExp {
 
 	let sanitizedValue: string;
 
-	// Match both path separators if it looks like a path
 	if (value.includes('/') || value.includes('\\')) {
 		let pattern = value.replace(/[/\\]/g, '%%PATH_SEP%%');
 		pattern = escapeRegExpCharacters(pattern);
@@ -571,15 +443,8 @@ function convertAutoApproveEntryToRegex(value: string): RegExp {
 	return new RegExp(`^${sanitizedValue}\\b`);
 }
 
-// ---- Default rules ----------------------------------------------------------
-//
-// Compatibility fallback for clients that do not forward the VS Code
-// `chat.tools.terminal.autoApprove` setting.
-// TODO: Remove this fallback once all agent-host clients are guaranteed to
-// forward `chat.tools.terminal.autoApprove` before shell approvals run.
 
 const DEFAULT_TERMINAL_AUTO_APPROVE_RULES: Readonly<Record<string, AgentHostTerminalAutoApproveRuleValue>> = {
-	// Safe readonly commands
 	cd: true,
 	echo: true,
 	ls: true,
@@ -608,18 +473,14 @@ const DEFAULT_TERMINAL_AUTO_APPROVE_RULES: Readonly<Record<string, AgentHostTerm
 
 	grep: true,
 
-	// Safe git sub-commands
 	...gitAutoApproveRules,
 
-	// Docker readonly sub-commands
 	'/^docker\\s+(ps|images|info|version|inspect|logs|top|stats|port|diff|search|events)\\b/': true,
 	'/^docker\\s+(container|image|network|volume|context|system)\\s+(ls|ps|inspect|history|show|df|info)\\b/': true,
 	'/^docker\\s+compose\\s+(ps|ls|top|logs|images|config|version|port|events)\\b/': true,
 
-	// PowerShell
 	...powershellAutoApproveRules,
 
-	// Package manager read-only commands
 	'/^npm\\s+(ls|list|outdated|view|info|show|explain|why|root|prefix|bin|search|doctor|fund|repo|bugs|docs|home|help(-search)?)\\b/': true,
 	'/^npm\\s+config\\s+(list|get)\\b/': true,
 	'/^npm\\s+pkg\\s+get\\b/': true,
@@ -635,12 +496,10 @@ const DEFAULT_TERMINAL_AUTO_APPROVE_RULES: Readonly<Record<string, AgentHostTerm
 	'/^pnpm\\s+audit\\b(?!.*\\bfix\\b)/': true,
 	'/^pnpm\\s+config\\s+(list|get)\\b/': true,
 
-	// Safe lockfile-only installs
 	'npm ci': true,
 	'/^yarn\\s+install\\s+--frozen-lockfile\\b/': true,
 	'/^pnpm\\s+install\\s+--frozen-lockfile\\b/': true,
 
-	// Safe commands with dangerous arg blocking
 	column: true,
 	'/^column\\b.*\\s-c\\s+[0-9]{4,}/': false,
 	date: true,
@@ -649,19 +508,11 @@ const DEFAULT_TERMINAL_AUTO_APPROVE_RULES: Readonly<Record<string, AgentHostTerm
 	'/^find\\b.*\\s-(delete|exec|execdir|fprint|fprintf|fls|ok|okdir)\\b/': false,
 	rg: true,
 	'/^rg\\b.*\\s(--pre|--hostname-bin)\\b/': false,
-	// TODO: replace sed deny regexes with a shared script analyzer — https://github.com/microsoft/vscode/issues/329218
 	sed: true,
 	'/^sed\\b.*\\s(-[a-zA-Z]*(e|f)[a-zA-Z]*|--expression|--file)\\b/': false,
 	'/^sed\\b.*s\\/.*\\/.*\\/[ew]/': false,
-	// Quoted positional script whose first command is e/r/R/w/W. The opening quote is
-	// captured so the closing quote must match it, and whitespace and `!` are allowed
-	// around the optional address since sed ignores them. The option prefix also skips
-	// the separate operand consumed by -l/--line-length.
 	'/^sed\\b(?:\\s+(?:(?:-l|--line-length)\\s+\\S+|--line-length=\\S+|-\\S+))*\\s+([\'"])\\s*(?:(?:\\d+|\\$|\\/(?:\\\\.|[^\\/])*\\/)(?:\\s*,\\s*(?:\\d+|\\$|\\/(?:\\\\.|[^\\/])*\\/))?)?\\s*!?\\s*[erRwW](?:\\s|\\1)/': false,
-	// Same dangerous commands after a `;` or `{` separator inside a quoted script.
-	// Escaped characters are consumed before testing for the matching closing quote.
 	'/^sed\\b(?:\\s+(?:(?:-l|--line-length)\\s+\\S+|--line-length=\\S+|-\\S+))*\\s+([\'"])(?:\\\\.|(?!\\1).)*[;{]\\s*(?:(?:\\d+|\\$|\\/(?:\\\\.|[^\\/])*\\/)(?:\\s*,\\s*(?:\\d+|\\$|\\/(?:\\\\.|[^\\/])*\\/))?)?\\s*!?\\s*[erRwW](?:\\s|\\1|[;}])/': false,
-	// Unquoted positional script form (e.g. `sed 1e id`, `sed w file`, `sed /pat/e file`)
 	'/^sed\\b(?:\\s+(?:(?:-l|--line-length)\\s+\\S+|--line-length=\\S+|-\\S+))*\\s+(?:(?:\\d+|\\$|\\/(?:\\\\.|[^\\/])*\\/)(?:\\s*,\\s*(?:\\d+|\\$|\\/(?:\\\\.|[^\\/])*\\/))?)?\\s*!?\\s*[erRwW](?:\\s|$)/': false,
 	...sortAutoApproveRules,
 	tree: true,
@@ -669,7 +520,6 @@ const DEFAULT_TERMINAL_AUTO_APPROVE_RULES: Readonly<Record<string, AgentHostTerm
 	'/^xxd$/': true,
 	'/^xxd\\b(\\s+-\\S+)*\\s+[^-\\s]\\S*$/': true,
 
-	// Dangerous commands
 	rm: false,
 	rmdir: false,
 	del: false,

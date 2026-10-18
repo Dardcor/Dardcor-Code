@@ -58,8 +58,6 @@ export class BaseActionViewItem extends Disposable implements IActionViewItem {
 		if (action instanceof Action) {
 			this._register(action.onDidChange(event => {
 				if (!this.element) {
-					// we have not been rendered yet, so there
-					// is no point in updating the UI
 					return;
 				}
 
@@ -120,16 +118,15 @@ export class BaseActionViewItem extends Disposable implements IActionViewItem {
 			container.draggable = true;
 
 			if (isFirefox) {
-				// Firefox: requires to set a text data transfer to get going
 				this._register(addDisposableListener(container, EventType.DRAG_START, e => e.dataTransfer?.setData(DataTransfers.TEXT, this._action.label)));
 			}
 		}
 
-		this._register(addDisposableListener(element, TouchEventType.Tap, e => this.onClick(e, true))); // Preserve focus on tap #125470
+		this._register(addDisposableListener(element, TouchEventType.Tap, e => this.onClick(e, true)));
 
 		this._register(addDisposableListener(element, EventType.MOUSE_DOWN, e => {
 			if (!enableDragging) {
-				EventHelper.stop(e, true); // do not run when dragging is on because that would disable it
+				EventHelper.stop(e, true);
 			}
 
 			if (this._action.enabled && e.button === 0) {
@@ -138,10 +135,6 @@ export class BaseActionViewItem extends Disposable implements IActionViewItem {
 		}));
 
 		if (platform.isMacintosh) {
-			// macOS: allow to trigger the button when holding Ctrl+key and pressing the
-			// main mouse button. This is for scenarios where e.g. some interaction forces
-			// the Ctrl+key to be pressed and hold but the user still wants to interact
-			// with the actions (for example quick access in quick navigation mode).
 			this._register(addDisposableListener(element, EventType.CONTEXT_MENU, e => {
 				if (e.button === 0 && e.ctrlKey === true) {
 					this.onClick(e);
@@ -152,7 +145,6 @@ export class BaseActionViewItem extends Disposable implements IActionViewItem {
 		this._register(addDisposableListener(element, EventType.CLICK, e => {
 			EventHelper.stop(e, true);
 
-			// menus do not use the click event
 			if (!(this.options && this.options.isMenu)) {
 				this.onClick(e);
 			}
@@ -177,8 +169,6 @@ export class BaseActionViewItem extends Disposable implements IActionViewItem {
 		this.actionRunner.run(this._action, context);
 	}
 
-	// Only set the tabIndex on the element once it is about to get focused
-	// That way this element wont be a tab stop when it is not needed #106441
 	focus(): void {
 		if (this.element) {
 			this.element.tabIndex = 0;
@@ -210,11 +200,9 @@ export class BaseActionViewItem extends Disposable implements IActionViewItem {
 	}
 
 	protected updateEnabled(): void {
-		// implement in subclass
 	}
 
 	protected updateLabel(): void {
-		// implement in subclass
 	}
 
 	protected getClass(): string | undefined {
@@ -256,11 +244,9 @@ export class BaseActionViewItem extends Disposable implements IActionViewItem {
 	}
 
 	protected updateClass(): void {
-		// implement in subclass
 	}
 
 	protected updateChecked(): void {
-		// implement in subclass
 	}
 
 	override dispose(): void {
@@ -327,7 +313,7 @@ export class ActionViewItem extends BaseActionViewItem {
 
 	private getDefaultAriaRole(): 'presentation' | 'menuitem' | 'tab' | 'button' {
 		if (this._action.id === Separator.ID) {
-			return 'presentation'; // A separator is a presentation item
+			return 'presentation';
 		} else {
 			if (this.options.isMenu) {
 				return 'menuitem';
@@ -339,8 +325,6 @@ export class ActionViewItem extends BaseActionViewItem {
 		}
 	}
 
-	// Only set the tabIndex on the element once it is about to get focused
-	// That way this element wont be a tab stop when it is not needed #106441
 	override focus(): void {
 		if (this.label) {
 			this.label.tabIndex = 0;

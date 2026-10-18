@@ -129,17 +129,7 @@ suite('TextSearchResult', () => {
 		assert.strictEqual(new TextSearchMatch('foo bar\r\n', range, previewOptions).previewText, 'foo bar');
 	});
 
-	// test('all lines of multiline match', () => {
-	// 	const previewOptions: ITextSearchPreviewOptions = {
-	// 		matchLines: 5,
-	// 		charsPerLine: 10000
-	// 	};
 
-	// 	const range = new SearchRange(5, 4, 6, 3);
-	// 	const result = new TextSearchResult('foo bar\nfoo bar', range, previewOptions);
-	// 	assert.deepStrictEqual(result.range, range);
-	// 	assertPreviewRangeText('bar\nfoo', result);
-	// });
 });
 
 suite('isFilePatternMatch', () => {

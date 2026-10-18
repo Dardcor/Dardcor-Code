@@ -10,7 +10,6 @@ import { installAllHandlers, retry } from '../../utils';
 export function setup(logger: Logger) {
 	describe('Search', () => {
 
-		// Shared before/after handling
 		installAllHandlers(logger);
 
 		after(function () {
@@ -62,7 +61,7 @@ export function setup(logger: Logger) {
 			await app.workbench.search.removeFileMatch('app.js', '2 results in 2 files');
 		});
 
-		it.skip('replaces first search result with a replace term', async function () { // TODO@roblourens https://github.com/microsoft/vscode/issues/137195
+		it.skip('replaces first search result with a replace term', async function () {
 			const app = this.app as Application;
 
 			await app.workbench.search.searchFor('body');
@@ -81,7 +80,6 @@ export function setup(logger: Logger) {
 
 	describe('Quick Open', () => {
 
-		// Shared before/after handling
 		installAllHandlers(logger);
 
 		it('quick open search produces correct result', async function () {

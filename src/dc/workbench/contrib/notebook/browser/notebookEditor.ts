@@ -56,11 +56,6 @@ import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 const NOTEBOOK_EDITOR_VIEW_STATE_PREFERENCE_KEY = 'NotebookEditorViewState';
 const NOTEBOOK_WEB_HOST_OPEN_CONFIRMED_KEY = 'notebook.webHost.openConfirmed';
 
-/**
- * Notebook resources that have already been confirmed for opening in a serverless web
- * session. This prevents re-prompting when the user switches back to an already-open
- * notebook, while still gating the first open of each notebook.
- */
 const confirmedWebHostNotebooks = new Set<string>();
 
 
@@ -76,7 +71,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 
 	private readonly _inputListener = this._register(new MutableDisposable());
 
-	// override onDidFocus and onDidBlur to be based on the NotebookEditorWidget element
 	private readonly _onDidFocusWidget = this._register(new Emitter<void>());
 	override get onDidFocus(): Event<void> { return this._onDidFocusWidget.event; }
 	private readonly _onDidBlurWidget = this._register(new Emitter<void>());
@@ -142,11 +136,9 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 	override get minimumWidth(): number { return 220; }
 	override get maximumWidth(): number { return Number.POSITIVE_INFINITY; }
 
-	// these setters need to exist because this extends from EditorPane
-	override set minimumWidth(value: number) { /*noop*/ }
-	override set maximumWidth(value: number) { /*noop*/ }
+	override set minimumWidth(value: number) { }
+	override set maximumWidth(value: number) { }
 
-	//#region Editor Core
 	override get scopedContextKeyService(): IContextKeyService | undefined {
 		return this._widget.value?.scopedContextKeyService;
 	}
@@ -158,7 +150,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 
 	override getActionViewItem(action: IAction, options: IActionViewItemOptions): IActionViewItem | undefined {
 		if (action.id === SELECT_KERNEL_ID) {
-			// this is being disposed by the consumer
 			return this._register(this._instantiationService.createInstance(NotebooKernelActionViewItem, action, this, options));
 		}
 		return undefined;
@@ -188,7 +179,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 		if (!visible) {
 			this._saveEditorViewState(this.input);
 			if (this.input && this._widget.value) {
-				// the widget is not transfered to other editor inputs
 				this._widget.value.onWillHide();
 			}
 		}
@@ -208,13 +198,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 		return !!value && (DOM.isAncestorOfActiveElement(value.getDomNode() || DOM.isAncestorOfActiveElement(value.getOverflowContainerDomNode())));
 	}
 
-	/**
-	 * When running serverless on the web (i.e. in the browser with no remote server
-	 * connected), prompt the user to confirm that they really want to open the notebook.
-	 * The confirmation is only shown the first time a given notebook is opened in the
-	 * session (so switching back to an already-open notebook does not re-prompt), and the
-	 * choice can be remembered for the whole workspace via a "Don't ask again" checkbox.
-	 */
 	private async _confirmOpenOnWebHost(input: NotebookEditorInput): Promise<void> {
 		const isServerlessWeb = isWeb && !this._environmentService.remoteAuthority;
 		if (!isServerlessWeb) {
@@ -273,8 +256,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 
 			this._widgetDisposableStore.clear();
 
-			// there currently is a widget which we still own so
-			// we need to hide it before getting a new widget
 			this._widget.value?.onWillHide();
 
 			this._widget = <IBorrowValue<NotebookEditorWidget>>this._instantiationService.invokeFunction(this._notebookWidgetService.retrieveWidget, this.group.id, input, undefined, this._pagePosition?.dimension, this.window);
@@ -291,20 +272,14 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 				this._widget.value!.layout(this._pagePosition.dimension, this._rootElement, this._pagePosition.position);
 			}
 
-			// only now `setInput` and yield/await. this is AFTER the actual widget is ready. This is very important
-			// so that others synchronously receive a notebook editor with the correct widget being set
 			await super.setInput(input, options, context, token);
 			const model = await input.resolve(options, perf);
 			perf.mark('inputLoaded');
 
-			// Check for cancellation
 			if (token.isCancellationRequested) {
 				return undefined;
 			}
 
-			// The widget has been taken away again. This can happen when the tab has been closed while
-			// loading was in progress, in particular when open the same resource as different view type.
-			// When this happen, retry once
 			if (!this._widget.value) {
 				if (noRetry) {
 					return undefined;
@@ -331,7 +306,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 						, run: async () => {
 							const d = this._notebookService.onAddViewType(viewType => {
 								if (viewType === input.viewType) {
-									// serializer is registered, try to open again
 									this._editorService.openEditor({ resource: input.resource });
 									d.dispose();
 								}
@@ -354,12 +328,9 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 						id: 'workbench.notebook.action.openAsText', label: localize('notebookOpenAsText', "Open As Text"), run: async () => {
 							const backup = await this._workingCopyBackupService.resolve({ resource: input.resource, typeId: NotebookWorkingCopyTypeIdentifier.create(input.viewType) });
 							if (backup) {
-								// with a backup present, we must resort to opening the backup contents
-								// as untitled text file to not show the wrong data to the user
 								const contents = await streamToBuffer(backup.value);
 								this._editorService.openEditor({ resource: undefined, contents: contents.toString() });
 							} else {
-								// without a backup present, we can open the original resource
 								this._editorService.openEditor({ resource: input.resource, options: { override: DEFAULT_EDITOR_ASSOCIATION.id, pinned: true } });
 							}
 						}
@@ -372,7 +343,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 
 			const viewState = options?.viewState ?? this._loadNotebookEditorViewState(input);
 
-			// We might be moving the notebook widget between groups, and these services are tied to the group
 			this._widget.value.setParentContextKeyService(this._contextKeyService);
 			this._widget.value.setEditorProgressService(this._editorProgressService);
 
@@ -403,7 +373,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 				throw e;
 			}
 
-			// Handle case where a file is too large to open without confirmation
 			if ((<FileOperationError>e).fileOperationResult === FileOperationResult.FILE_TOO_LARGE) {
 				let message: string;
 				if (e instanceof TooLargeFileOperationError) {
@@ -429,12 +398,11 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 						}
 
 						if (activeEditorResource.toString() === input.resource?.toString()) {
-							// Replace the current editor with the text editor
 							return this._editorService.openEditor({
 								resource: activeEditorResource,
 								options: {
 									override: DEFAULT_EDITOR_ASSOCIATION.id,
-									pinned: true // new file gets pinned by default
+									pinned: true
 								}
 							});
 						}
@@ -523,7 +491,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 			}
 		}
 
-		// Notebook information
 		let codeCellCount: number | undefined = undefined;
 		let mdCellCount: number | undefined = undefined;
 		let outputCount: number | undefined = undefined;
@@ -647,8 +614,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 		if (result) {
 			return result;
 		}
-		// when we don't have a view state for the group/input-tuple then we try to use an existing
-		// editor for the same resource.
 		for (const group of this._editorGroupService.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE)) {
 			if (group.activeEditorPane !== this && group.activeEditorPane instanceof NotebookEditor && group.activeEditor?.matches(input)) {
 				return group.activeEditorPane._widget.value?.getEditorViewState();
@@ -667,12 +632,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 		}
 
 		if (this.input.resource.toString() !== this.textModel?.uri.toString() && this._widget.value?.hasModel()) {
-			// input and widget mismatch
-			// this happens when
-			// 1. open document A, pin the document
-			// 2. open document B
-			// 3. close document B
-			// 4. a layout is triggered
 			return;
 		}
 
@@ -681,7 +640,6 @@ export class NotebookEditor extends EditorPane implements INotebookEditorPane, I
 		}
 	}
 
-	//#endregion
 }
 
 class NotebookEditorSelection implements IEditorPaneSelection {

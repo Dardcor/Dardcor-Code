@@ -15,7 +15,7 @@ export function ensureTunnelDir() {
 export function loadState() {
   try {
     if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
-  } catch { /* ignore corrupt state */ }
+  } catch { }
   return null;
 }
 
@@ -27,7 +27,7 @@ export function saveState(state) {
 export function clearState() {
   try {
     if (fs.existsSync(STATE_FILE)) fs.unlinkSync(STATE_FILE);
-  } catch { /* ignore */ }
+  } catch { }
 }
 
 export function generateShortId() {

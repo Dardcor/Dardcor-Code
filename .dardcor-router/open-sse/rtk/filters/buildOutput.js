@@ -1,8 +1,4 @@
-// Compress build tool output (npm, cargo, pip, maven, gradle, etc.)
-// Keeps: errors, warnings, final summary
-// Strips: progress logs, verbose "Compiling X" lists, download logs
 
-// Cargo/rustc error continuation: " --> file:line", "  |", "N | code", "  = note: ..."
 const RE_CARGO_ERR_CONT = /^\s*(-->|\||\d+\s*\||=)/;
 const DEPRECATION_KEEP = 3;
 
@@ -21,7 +17,6 @@ export function buildOutput(input) {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Continuation of cargo error block: keep verbatim while in block
     if (inCargoError) {
       if (!trimmed) { inCargoError = false; continue; }
       if (RE_CARGO_ERR_CONT.test(line)) { errors.push(line); continue; }
@@ -97,7 +92,6 @@ export function buildOutput(input) {
 
   let out = "";
 
-  // Keep first N deprecations verbatim (package name + reason), count the rest
   const keepDep = deprecations.slice(0, DEPRECATION_KEEP);
   for (const d of keepDep) out += `${d}\n`;
   if (deprecations.length > DEPRECATION_KEEP) {

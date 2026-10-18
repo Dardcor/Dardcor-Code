@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/** -- icons */
 
 .monaco-workbench {
 	.codicon-testing-error-icon {
@@ -31,7 +30,6 @@
 	}
 }
 
-/** -- explorer */
 .test-explorer {
 	display: flex;
 	flex-direction: column;
@@ -196,9 +194,7 @@
 }
 
 .codicon-testing-loading-icon::before {
-	/* Use steps to throttle FPS to reduce CPU usage */
 	animation: codicon-spin 1.25s steps(30) infinite;
-	/* Ensure rotation happens around exact center to prevent wobble */
 	transform-origin: center center;
 }
 
@@ -216,7 +212,6 @@
 	display: block;
 }
 
-/** -- peek */
 .monaco-editor .zone-widget.test-output-peek .zone-widget-container.peekview-widget {
 	border-top-width: 2px;
 	border-bottom-width: 2px;
@@ -316,7 +311,6 @@
 	height: 100%;
 }
 
-/** -- filter  */
 .monaco-action-bar.testing-filter-action-bar {
 	flex-shrink: 0;
 	margin: 4px 12px;
@@ -357,7 +351,6 @@
 	align-items: center;
 }
 
-/** -- decorations  */
 
 .monaco-editor .testing-run-glyph {
 	cursor: pointer;
@@ -455,7 +448,7 @@
 		width: 15px;
 		left: -10px;
 		z-index: -1;
-		stroke-width: 0.71px; /* 1 / sqrt(2) */
+		stroke-width: 0.71px;
 		stroke: var(--vscode-testing-message-error-badgeBorder);
 	}
 }
@@ -468,7 +461,6 @@
 	background: var(--vscode-testing-message-info-lineBackground) !important;
 }
 
-/** -- coverage  */
 
 .test-coverage-bars {
 	display: flex;
@@ -582,7 +574,6 @@
 	}
 }
 
-/** -- coverage in the explorer  */
 
 .explorer-item-with-test-coverage {
 	display: flex;
@@ -594,10 +585,8 @@
 
 .explorer-item-with-test-coverage .monaco-icon-label::after {
 	margin-right: 12px;
-	/* slightly reduce because the bars handle the scrollbar margin */
 }
 
-/** -- coverage decorations  */
 
 .coverage-deco-gutter {
 	z-index: 0;
@@ -687,7 +676,6 @@
 		font-size: 0.7em;
 		margin: 0 0.7em 0 0.4em;
 		padding: 0.2em 0 0.2em 0.2em;
-		/* display: inline-block; */
 		border-top-left-radius: 2px;
 		border-bottom-left-radius: 2px;
 

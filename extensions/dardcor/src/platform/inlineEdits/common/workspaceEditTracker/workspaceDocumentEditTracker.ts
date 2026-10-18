@@ -30,7 +30,7 @@ export class WorkspaceDocumentEditHistory extends Disposable {
 		this._register(autorun(reader => {
 			const branch = reader.readObservable(observableGit.branch);
 			if (branch === undefined) {
-				return; // probably git extension hasn't activated or no repository found, so don't do anything
+				return;
 			}
 			this._lastGitCheckout = now();
 			this._documentState.forEach(d => d.resetEditHistory());
@@ -64,7 +64,7 @@ export class WorkspaceDocumentEditHistory extends Disposable {
 		if (!this._lastGitCheckout) {
 			return false;
 		}
-		const isInCooldown = now() - this._lastGitCheckout < 2 * 1000 /* 2 seconds */;
+		const isInCooldown = now() - this._lastGitCheckout < 2 * 1000 ;
 		if (!isInCooldown) {
 			this._lastGitCheckout = undefined;
 		}

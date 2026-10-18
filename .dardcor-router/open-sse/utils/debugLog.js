@@ -1,5 +1,3 @@
-// Debug logging utility — only active in dev mode (NODE_ENV !== "production")
-// Outputs are tagged with [DBG:tag] for easy grep/filter
 const isDev = process.env.NODE_ENV !== "production";
 
 function ts() {

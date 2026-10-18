@@ -15,19 +15,11 @@ import { PromptsType } from '../common/promptSyntax/promptTypes.js';
 import { ILanguageModelToolsService } from '../common/tools/languageModelToolsService.js';
 import { TipEligibilityStorageKeys } from './chatTipStorageKeys.js';
 
-/**
- * Interface for tip definitions that have exclusion criteria tracked by this class.
- * This subset is all TipEligibilityTracker needs to know about tip definitions.
- */
 export interface ITipExclusionConfig {
 	readonly id: string;
-	/** Command IDs that, if ever executed, make this tip ineligible. */
 	readonly excludeWhenCommandsExecuted?: readonly string[];
-	/** Chat mode names that, if ever used, make this tip ineligible. */
 	readonly excludeWhenModesUsed?: readonly string[];
-	/** Tool IDs that, if ever invoked, make this tip ineligible. */
 	readonly excludeWhenToolsInvoked?: readonly string[];
-	/** File-based exclusion configuration. */
 	readonly excludeWhenPromptFilesExist?: {
 		readonly promptType: PromptsType;
 		readonly agentFileType?: AgentInstructionFileType;
@@ -35,11 +27,6 @@ export interface ITipExclusionConfig {
 	};
 }
 
-/**
- * Tracks user-level signals that determine whether certain tips should be
- * excluded. Persists state to application storage and disposes listeners once all
- * signals of interest have been observed.
- */
 export class TipEligibilityTracker extends Disposable {
 
 	private readonly _executedCommands: Set<string>;
@@ -53,16 +40,10 @@ export class TipEligibilityTracker extends Disposable {
 	private readonly _commandListener = this._register(new MutableDisposable());
 	private readonly _toolListener = this._register(new MutableDisposable());
 
-	/**
-	 * Tip IDs excluded because prompt files of the required type exist in the workspace.
-	 * Tips with `excludeUntilChecked` are pre-added and removed if no files are found.
-	 */
 	private readonly _excludedByFiles = new Set<string>();
 
-	/** Tips that have file-based exclusions, kept for re-checks. */
 	private readonly _tipsWithFileExclusions: readonly ITipExclusionConfig[];
 
-	/** Generation counter per tip ID to discard stale async file-check results. */
 	private readonly _fileCheckGeneration = new Map<string, number>();
 	private readonly _fileChecksInFlight = new Map<string, Promise<void>>();
 
@@ -76,7 +57,6 @@ export class TipEligibilityTracker extends Disposable {
 	) {
 		super();
 
-		// --- Restore persisted state -------------------------------------------
 
 		const storedCmds = this._readApplicationWithProfileFallback(TipEligibilityStorageKeys.ExecutedCommands);
 		this._executedCommands = new Set<string>(storedCmds ? JSON.parse(storedCmds) : []);
@@ -87,7 +67,6 @@ export class TipEligibilityTracker extends Disposable {
 		const storedTools = this._readApplicationWithProfileFallback(TipEligibilityStorageKeys.InvokedTools);
 		this._invokedTools = new Set<string>(storedTools ? JSON.parse(storedTools) : []);
 
-		// --- Derive what still needs tracking ----------------------------------
 
 		this._pendingCommands = new Set<string>();
 		for (const tip of tips) {
@@ -116,7 +95,6 @@ export class TipEligibilityTracker extends Disposable {
 			}
 		}
 
-		// --- Set up command listener (auto-disposes when all seen) --------------
 
 		if (this._pendingCommands.size > 0) {
 			this._commandListener.value = commandService.onDidExecuteCommand(e => {
@@ -124,11 +102,9 @@ export class TipEligibilityTracker extends Disposable {
 			});
 		}
 
-		// --- Set up tool listener (auto-disposes when all seen) -----------------
 
 		if (this._pendingTools.size > 0) {
 			this._toolListener.value = this._languageModelToolsService.onDidInvokeTool(e => {
-				// Track explicit tool IDs
 				if (this._pendingTools.has(e.toolId)) {
 					this._invokedTools.add(e.toolId);
 					this._pendingTools.delete(e.toolId);
@@ -142,7 +118,6 @@ export class TipEligibilityTracker extends Disposable {
 			});
 		}
 
-		// --- Async file checks -------------------------------------------------
 
 		this._tipsWithFileExclusions = tips.filter(t => t.excludeWhenPromptFilesExist);
 		for (const tip of this._tipsWithFileExclusions) {
@@ -152,7 +127,6 @@ export class TipEligibilityTracker extends Disposable {
 			this._checkForPromptFiles(tip);
 		}
 
-		// Re-check agent file exclusions when custom agents change (covers late discovery)
 		this._register(this._promptsService.onDidChangeCustomAgents(() => {
 			for (const tip of this._tipsWithFileExclusions) {
 				if (tip.excludeWhenPromptFilesExist!.promptType === PromptsType.agent) {
@@ -176,11 +150,6 @@ export class TipEligibilityTracker extends Disposable {
 		}
 	}
 
-	/**
-	 * Records the current chat mode (kind + name) so future tip eligibility
-	 * checks can exclude mode-related tips. No-ops once all tracked modes
-	 * have been observed.
-	 */
 	recordCurrentMode(contextKeyService: IContextKeyService): void {
 		if (this._pendingModes.size === 0) {
 			return;
@@ -204,9 +173,6 @@ export class TipEligibilityTracker extends Disposable {
 		}
 	}
 
-	/**
-	 * Returns `true` when the tip should be **excluded** from the eligible set.
-	 */
 	isExcluded(tip: ITipExclusionConfig): boolean {
 		if (tip.excludeWhenCommandsExecuted) {
 			for (const cmd of tip.excludeWhenCommandsExecuted) {
@@ -239,10 +205,6 @@ export class TipEligibilityTracker extends Disposable {
 		return false;
 	}
 
-	/**
-	 * Revalidates all file-based tip exclusions. Tips with `excludeUntilChecked`
-	 * are conservatively hidden until the re-check completes.
-	 */
 	refreshPromptFileExclusions(): void {
 		for (const tip of this._tipsWithFileExclusions) {
 			if (tip.excludeWhenPromptFilesExist!.excludeUntilChecked) {
@@ -281,7 +243,6 @@ export class TipEligibilityTracker extends Disposable {
 				config.agentFileType ? this._promptsService.listAgentInstructions(CancellationToken.None) : Promise.resolve([]),
 			]);
 
-			// Discard stale result if a newer check was started while we were awaiting
 			if (this._fileCheckGeneration.get(tip.id) !== generation) {
 				return;
 			}

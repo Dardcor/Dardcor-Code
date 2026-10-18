@@ -37,7 +37,7 @@ export class JSONEditingService implements IJSONEditingService {
 	}
 
 	write(resource: URI, values: IJSONValue[]): Promise<void> {
-		return Promise.resolve(this.queue.queue(() => this.doWriteConfiguration(resource, values))); // queue up writes to prevent race conditions
+		return Promise.resolve(this.queue.queue(() => this.doWriteConfiguration(resource, values)));
 	}
 
 	private async doWriteConfiguration(resource: URI, values: IJSONValue[]): Promise<void> {
@@ -52,10 +52,6 @@ export class JSONEditingService implements IJSONEditingService {
 	private async writeToBuffer(model: ITextModel, values: IJSONValue[]): Promise<URI | undefined> {
 		let disposable: IDisposable | undefined;
 		try {
-			// Optimization: we apply edits to a text model and save it
-			// right after. Use the files config service to signal this
-			// to the workbench to optimise the UI during this operation.
-			// For example, avoids to briefly show dirty indicators.
 			disposable = this.filesConfigurationService.enableAutoSaveAfterShortDelay(model.uri);
 
 			let hasEdits: boolean = false;
@@ -91,7 +87,6 @@ export class JSONEditingService implements IJSONEditingService {
 		const eol = model.getEOL();
 		const { path, value } = configurationValue;
 
-		// With empty path the entire file is being replaced, so we just use JSON.stringify
 		if (!path.length) {
 			const content = JSON.stringify(value, null, insertSpaces ? ' '.repeat(tabSize) : '\t');
 			return [{
@@ -138,7 +133,6 @@ export class JSONEditingService implements IJSONEditingService {
 
 	private toErrorMessage(error: JSONEditingErrorCode): string {
 		switch (error) {
-			// User issues
 			case JSONEditingErrorCode.ERROR_INVALID_FILE: {
 				return nls.localize('errorInvalidFile', "Unable to write into the file. Please open the file to correct errors/warnings in the file and try again.");
 			}

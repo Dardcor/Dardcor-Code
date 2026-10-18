@@ -3,17 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Chat memory smoke runner.
- *
- * Intended workflow:
- * - Run `node .github/skills/auto-perf-optimize/scripts/chat-memory-smoke.mts --iterations 3 --no-heap-snapshots` for a fast health check.
- * - Run `node .github/skills/auto-perf-optimize/scripts/chat-memory-smoke.mts --iterations 8 --heap-snapshot-label 03-iteration-01 --heap-snapshot-label 03-iteration-08` when comparing post-warmup heap snapshots.
- * - Inspect the output folder's summary.json, screenshots, and optional heap/*.heapsnapshot files.
- *
- * The default profile is persistent at .build/auto-perf-optimize/user-data so auth can be reused across performance runners.
- * Pass --temporary-user-data when a clean, disposable profile is required; combine it with --seed-user-data-dir to start from a logged-in seed.
- */
 
 import { chromium, type Browser, type CDPSession, type Locator, type Page } from 'playwright-core';
 import { spawn, type ChildProcess } from 'node:child_process';

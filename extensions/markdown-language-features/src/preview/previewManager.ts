@@ -111,7 +111,6 @@ export class MarkdownPreviewManager extends Disposable implements vscode.Webview
 		}));
 
 		this._register(vscode.window.onDidChangeActiveTextEditor(textEditor => {
-			// When at a markdown file, apply existing scroll settings
 			if (textEditor?.document && isMarkdownFile(textEditor.document)) {
 				const line = this.#topmostLineMonitor.getPreviousStaticEditorLineByUri(textEditor.document.uri);
 				if (typeof line === 'number') {
@@ -179,7 +178,6 @@ export class MarkdownPreviewManager extends Disposable implements vscode.Webview
 		if (preview instanceof DynamicMarkdownPreview) {
 			preview.toggleLock();
 
-			// Close any previews that are now redundant, such as having two dynamic previews in the same editor group
 			for (const otherPreview of this.#dynamicPreviews) {
 				if (otherPreview !== preview && preview.matches(otherPreview)) {
 					otherPreview.dispose();
@@ -217,7 +215,7 @@ export class MarkdownPreviewManager extends Disposable implements vscode.Webview
 		} catch (e) {
 			console.error(e);
 
-			webview.webview.html = /* html */`<!DOCTYPE html>
+			webview.webview.html = `<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
@@ -371,7 +369,6 @@ export class MarkdownPreviewManager extends Disposable implements vscode.Webview
 		this.#trackActive(preview);
 
 		preview.onDidChangeViewState(() => {
-			// Remove other dynamic previews in our column
 			disposeAll(Array.from(this.#dynamicPreviews).filter(otherPreview => preview !== otherPreview && preview.matches(otherPreview)));
 		});
 		return preview;

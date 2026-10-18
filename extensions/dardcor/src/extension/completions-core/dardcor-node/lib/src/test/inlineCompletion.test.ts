@@ -38,7 +38,6 @@ suite('getInlineCompletions()', function () {
 		serviceCollection.define(ICompletionsOpenAIFetcherService, new SyncDescriptor(LiveOpenAIFetcher));
 		const accessor = serviceCollection.createTestingAccessor();
 
-		// Setup closures with the state as default
 		function requestInlineCompletions(textDoc = doc, pos = position) {
 			const instaService = accessor.get(IInstantiationService);
 			const ghostText = instaService.createInstance(GhostText);
@@ -77,7 +76,6 @@ suite('getInlineCompletions()', function () {
 			assert.strictEqual(firstResponse[0].insertText, firstCompletionText);
 			telemetryShown(accessor, firstResponse[0]);
 
-			// We're expecting 2 completion requests: one we explicitly requested, and a follow-up speculative request in the background.
 			return await completionsDeferred.promise;
 		});
 
@@ -116,7 +114,7 @@ suite('getInlineCompletions()', function () {
 		assert.deepStrictEqual(response[0].range, LocationFactory.range(LocationFactory.position(1, 0), position));
 
 		telemetryShown(accessor, response[0]);
-		await completionsDeferred.promise; // Wait for speculative request to be sent
+		await completionsDeferred.promise;
 
 		const docv2 = createTextDocument(
 			doc.uri,
@@ -175,14 +173,11 @@ suite('getInlineCompletions()', function () {
 			assert.strictEqual(firstResponse?.length, 1);
 			assert.strictEqual(firstResponse[0].insertText, firstCompletionText);
 
-			// Verify speculative request is not made before shown
 			await delay(50);
 			assert.strictEqual(networkResponse.callCount, 1, 'Expected only the initial network call');
 
-			// Call telemetryShown to trigger speculative request
 			telemetryShown(accessor, firstResponse[0]);
 
-			// Wait for speculative request to complete
 			return await completionsDeferred.promise;
 		});
 

@@ -25,87 +25,36 @@ import { Schemas } from '../../../base/common/network.js';
 
 export interface IStorageMainOptions {
 
-	/**
-	 * If enabled, storage will not persist to disk
-	 * but into memory.
-	 */
 	readonly useInMemoryStorage?: boolean;
 }
 
-/**
- * Provides access to application, profile and workspace storage from
- * the electron-main side that is the owner of all storage connections.
- */
 export interface IStorageMain extends IDisposable {
 
-	/**
-	 * Emitted whenever data is updated or deleted.
-	 */
 	readonly onDidChangeStorage: Event<IStorageChangeEvent>;
 
-	/**
-	 * Emitted when the storage is closed.
-	 */
 	readonly onDidCloseStorage: Event<void>;
 
-	/**
-	 * Access to all cached items of this storage service.
-	 */
 	readonly items: Map<string, string>;
 
-	/**
-	 * Allows to join on the `init` call having completed
-	 * to be able to safely use the storage.
-	 */
 	readonly whenInit: Promise<void>;
 
-	/**
-	 * Provides access to the `IStorage` implementation which will be
-	 * in-memory for as long as the storage has not been initialized.
-	 */
 	readonly storage: IStorage;
 
-	/**
-	 * The file path of the underlying storage file if any.
-	 */
 	readonly path: string | undefined;
 
-	/**
-	 * Required call to ensure the service can be used.
-	 */
 	init(): Promise<void>;
 
-	/**
-	 * Retrieve an element stored with the given key from storage. Use
-	 * the provided defaultValue if the element is null or undefined.
-	 */
 	get(key: string, fallbackValue: string): string;
 	get(key: string, fallbackValue?: string): string | undefined;
 
-	/**
-	 * Store a string value under the given key to storage. The value will
-	 * be converted to a string.
-	 */
 	set(key: string, value: string | boolean | number | undefined | null): void;
 
-	/**
-	 * Delete an element stored under the provided key from storage.
-	 */
 	delete(key: string): void;
 
-	/**
-	 * Whether the storage is using in-memory persistence or not.
-	 */
 	isInMemory(): boolean;
 
-	/**
-	 * Attempts to reduce the DB size via optimization commands if supported.
-	 */
 	optimize(): Promise<void>;
 
-	/**
-	 * Close the storage connection.
-	 */
 	close(): Promise<void>;
 }
 
@@ -123,7 +72,7 @@ abstract class BaseStorageMain extends Disposable implements IStorageMain {
 	private readonly _onDidCloseStorage = this._register(new Emitter<void>());
 	readonly onDidCloseStorage = this._onDidCloseStorage.event;
 
-	private _storage = this._register(new Storage(new InMemoryStorageDatabase(), { hint: StorageHint.STORAGE_IN_MEMORY })); // storage is in-memory until initialized
+	private _storage = this._register(new Storage(new InMemoryStorageDatabase(), { hint: StorageHint.STORAGE_IN_MEMORY }));
 	get storage(): IStorage { return this._storage; }
 
 	abstract get path(): string | undefined;
@@ -150,27 +99,20 @@ abstract class BaseStorageMain extends Disposable implements IStorageMain {
 		if (!this.initializePromise) {
 			this.initializePromise = (async () => {
 				if (this.state !== StorageState.None) {
-					return; // either closed or already initialized
+					return;
 				}
 
 				try {
 
-					// Create storage via subclasses
 					const storage = this._register(await this.doCreate());
 
-					// Replace our in-memory storage with the real
-					// once as soon as possible without awaiting
-					// the init call.
 					this._storage.dispose();
 					this._storage = storage;
 
-					// Re-emit storage changes via event
 					this._register(storage.onDidChangeStorage(e => this._onDidChangeStorage.fire(e)));
 
-					// Await storage init
 					await this.doInit(storage);
 
-					// Ensure we track whether storage is new or not
 					const isNewStorage = storage.getBoolean(IS_NEW_KEY);
 					if (isNewStorage === undefined) {
 						storage.set(IS_NEW_KEY, true);
@@ -181,10 +123,8 @@ abstract class BaseStorageMain extends Disposable implements IStorageMain {
 					this.logService.error(`[storage main] initialize(): Unable to init storage due to ${error}`);
 				} finally {
 
-					// Update state
 					this.state = StorageState.Initialized;
 
-					// Mark init promise as completed
 					this.whenInitPromise.complete();
 				}
 			})();
@@ -228,20 +168,14 @@ abstract class BaseStorageMain extends Disposable implements IStorageMain {
 
 	async close(): Promise<void> {
 
-		// Measure how long it takes to close storage
 		const watch = new StopWatch(false);
 		await this.doClose();
 		watch.stop();
 
-		// If close() is taking a long time, there is
-		// a chance that the underlying DB is large
-		// either on disk or in general. In that case
-		// log some additional info to further diagnose
 		if (watch.elapsed() > BaseStorageMain.LOG_SLOW_CLOSE_THRESHOLD) {
 			await this.logSlowClose(watch);
 		}
 
-		// Signal as event
 		this._onDidCloseStorage.fire();
 	}
 
@@ -264,18 +198,12 @@ abstract class BaseStorageMain extends Disposable implements IStorageMain {
 
 	private async doClose(): Promise<void> {
 
-		// Ensure we are not accidentally leaving
-		// a pending initialized storage behind in
-		// case `close()` was called before `init()`
-		// finishes.
 		if (this.initializePromise) {
 			await this.initializePromise;
 		}
 
-		// Update state
 		this.state = StorageState.Closed;
 
-		// Propagate to storage lib
 		await this._storage.close();
 	}
 }
@@ -326,21 +254,16 @@ export class ApplicationStorageMain extends BaseProfileAwareStorageMain {
 	protected override async doInit(storage: IStorage): Promise<void> {
 		await super.doInit(storage);
 
-		// Apply telemetry values as part of the application storage initialization
 		this.updateTelemetryState(storage);
 	}
 
 	private updateTelemetryState(storage: IStorage): void {
 
-		// First session date (once)
 		const firstSessionDate = storage.get(firstSessionDateStorageKey, undefined);
 		if (firstSessionDate === undefined) {
 			storage.set(firstSessionDateStorageKey, new Date().toUTCString());
 		}
 
-		// Last / current session (always)
-		// previous session date was the "current" one at that time
-		// current session date is "now"
 		const lastSessionDate = storage.get(currentSessionDateStorageKey, undefined);
 		const currentSessionDate = new Date().toUTCString();
 		storage.set(lastSessionDateStorageKey, typeof lastSessionDate === 'undefined' ? null : lastSessionDate);
@@ -456,12 +379,10 @@ export class WorkspaceStorageMain extends BaseStorageMain {
 
 	private async prepareWorkspaceStorageFolder(): Promise<{ storageFilePath: string; wasCreated: boolean }> {
 
-		// Return early if using inMemory storage
 		if (this.options.useInMemoryStorage) {
 			return { storageFilePath: SQLiteStorageDatabase.IN_MEMORY_PATH, wasCreated: true };
 		}
 
-		// Otherwise, ensure the storage folder exists on disk
 		const workspaceStorageFolderPath = join(this.environmentService.workspaceStorageHome.with({ scheme: Schemas.file }).fsPath, this.workspace.id);
 		const workspaceStorageDatabasePath = join(workspaceStorageFolderPath, WorkspaceStorageMain.WORKSPACE_STORAGE_NAME);
 
@@ -470,10 +391,8 @@ export class WorkspaceStorageMain extends BaseStorageMain {
 			return { storageFilePath: workspaceStorageDatabasePath, wasCreated: false };
 		}
 
-		// Ensure storage folder exists
 		await fs.promises.mkdir(workspaceStorageFolderPath, { recursive: true });
 
-		// Write metadata into folder (but do not await)
 		this.ensureWorkspaceStorageFolderMeta(workspaceStorageFolderPath);
 
 		return { storageFilePath: workspaceStorageDatabasePath, wasCreated: true };
@@ -504,7 +423,7 @@ export class WorkspaceStorageMain extends BaseStorageMain {
 export class InMemoryStorageMain extends BaseStorageMain {
 
 	get path(): string | undefined {
-		return undefined; // in-memory has no path
+		return undefined;
 	}
 
 	protected async doCreate(): Promise<Storage> {

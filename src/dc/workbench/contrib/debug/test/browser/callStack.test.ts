@@ -41,7 +41,6 @@ export function createTestSession(model: DebugModel, name = 'mockSession', optio
 		getViewModel(): any {
 			return {
 				updateViews(): void {
-					// noop
 				}
 			};
 		}
@@ -86,7 +85,6 @@ suite('Debug - CallStack', () => {
 		sinon.restore();
 	});
 
-	// Threads
 
 	test('threads simple', () => {
 		const threadId = 1;
@@ -118,7 +116,6 @@ suite('Debug - CallStack', () => {
 		const threadName2 = 'secondThread';
 		const stoppedReason = 'breakpoint';
 
-		// Add the threads
 		const session = createTestSession(model);
 		disposables.add(session);
 		model.addSession(session);
@@ -133,7 +130,6 @@ suite('Debug - CallStack', () => {
 			}]
 		});
 
-		// Stopped event with all threads stopped
 		model.rawUpdate({
 			sessionId: session.getId(),
 			threads: [{
@@ -153,7 +149,6 @@ suite('Debug - CallStack', () => {
 		const thread1 = session.getThread(threadId1)!;
 		const thread2 = session.getThread(threadId2)!;
 
-		// at the beginning, callstacks are obtainable but not available
 		assert.strictEqual(session.getAllThreads().length, 2);
 		assert.strictEqual(thread1.name, threadName1);
 		assert.strictEqual(thread1.stopped, true);
@@ -164,20 +159,15 @@ suite('Debug - CallStack', () => {
 		assert.strictEqual(thread2.getCallStack().length, 0);
 		assert.strictEqual(thread2.stoppedDetails!.reason, undefined);
 
-		// after calling getCallStack, the callstack becomes available
-		// and results in a request for the callstack in the debug adapter
 		await thread1.fetchCallStack();
 		assert.notStrictEqual(thread1.getCallStack().length, 0);
 
 		await thread2.fetchCallStack();
 		assert.notStrictEqual(thread2.getCallStack().length, 0);
 
-		// calling multiple times getCallStack doesn't result in multiple calls
-		// to the debug adapter
 		await thread1.fetchCallStack();
 		await thread2.fetchCallStack();
 
-		// clearing the callstack results in the callstack not being available
 		thread1.clearCallStack();
 		assert.strictEqual(thread1.stopped, true);
 		assert.strictEqual(thread1.getCallStack().length, 0);
@@ -199,14 +189,12 @@ suite('Debug - CallStack', () => {
 		const threadName2 = 'secondThread';
 		const stoppedReason = 'breakpoint';
 
-		// Add the threads
 		const session = createTestSession(model);
 		disposables.add(session);
 		model.addSession(session);
 
 		session.raw = upcastPartial<RawDebugSession>(mockRawSession);
 
-		// Stopped event with all threads stopped
 		model.rawUpdate({
 			sessionId: session.getId(),
 			threads: [{
@@ -260,7 +248,6 @@ suite('Debug - CallStack', () => {
 
 		session.raw = upcastPartial<RawDebugSession>(mockRawSession);
 
-		// Add the threads
 		model.rawUpdate({
 			sessionId: session.getId(),
 			threads: [{
@@ -269,7 +256,6 @@ suite('Debug - CallStack', () => {
 			}]
 		});
 
-		// Stopped event with only one thread stopped
 		model.rawUpdate({
 			sessionId: session.getId(),
 			threads: [{
@@ -289,8 +275,6 @@ suite('Debug - CallStack', () => {
 		const stoppedThread = session.getThread(stoppedThreadId)!;
 		const runningThread = session.getThread(runningThreadId)!;
 
-		// the callstack for the stopped thread is obtainable but not available
-		// the callstack for the running thread is not obtainable nor available
 		assert.strictEqual(stoppedThread.name, stoppedThreadName);
 		assert.strictEqual(stoppedThread.stopped, true);
 		assert.strictEqual(session.getAllThreads().length, 2);
@@ -301,21 +285,15 @@ suite('Debug - CallStack', () => {
 		assert.strictEqual(runningThread.getCallStack().length, 0);
 		assert.strictEqual(runningThread.stoppedDetails, undefined);
 
-		// after calling getCallStack, the callstack becomes available
-		// and results in a request for the callstack in the debug adapter
 		await stoppedThread.fetchCallStack();
 		assert.notStrictEqual(stoppedThread.getCallStack().length, 0);
 		assert.strictEqual(runningThread.getCallStack().length, 0);
 		assert.strictEqual(sessionStub.callCount, 1);
 
-		// calling getCallStack on the running thread returns empty array
-		// and does not return in a request for the callstack in the debug
-		// adapter
 		await runningThread.fetchCallStack();
 		assert.strictEqual(runningThread.getCallStack().length, 0);
 		assert.strictEqual(sessionStub.callCount, 1);
 
-		// clearing the callstack results in the callstack not being available
 		stoppedThread.clearCallStack();
 		assert.strictEqual(stoppedThread.stopped, true);
 		assert.strictEqual(stoppedThread.getCallStack().length, 0);
@@ -431,7 +409,6 @@ suite('Debug - CallStack', () => {
 		assert.deepStrictEqual(decorations[1].range, new Range(1, 2, 1, Constants.MAX_SAFE_SMALL_INTEGER));
 		assert.strictEqual(decorations[1].options.className, 'debug-top-stack-frame-line');
 		assert.strictEqual(decorations[1].options.isWholeLine, true);
-		// Inline decoration gets rendered in this case
 		assert.strictEqual(decorations[2].options.before?.inlineClassName, 'debug-top-stack-frame-column');
 		assert.deepStrictEqual(decorations[2].range, new Range(1, 2, 1, Constants.MAX_SAFE_SMALL_INTEGER));
 	});
@@ -471,7 +448,6 @@ suite('Debug - CallStack', () => {
 		const threadName2 = 'secondThread';
 		const stoppedReason = 'breakpoint';
 
-		// Add the threads
 		const session = new class extends DebugSession {
 			override get state(): State {
 				return State.Stopped;
@@ -494,7 +470,6 @@ suite('Debug - CallStack', () => {
 			}]
 		});
 
-		// Stopped event with all threads stopped
 		model.rawUpdate({
 			sessionId: session.getId(),
 			threads: [{
@@ -515,7 +490,6 @@ suite('Debug - CallStack', () => {
 		const runningThread = session.getThread(threadId2);
 
 		let toFocus = getStackFrameThreadAndSessionToFocus(model, undefined);
-		// Verify stopped session and stopped thread get focused
 		assert.deepStrictEqual(toFocus, { stackFrame: undefined, thread: thread, session: session });
 
 		toFocus = getStackFrameThreadAndSessionToFocus(model, undefined, undefined, runningSession);

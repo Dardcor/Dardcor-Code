@@ -122,12 +122,10 @@ export class MockLanguageModelToolsService extends Disposable implements ILangua
 	}
 
 	beginToolCall(_options: IBeginToolCallOptions): IChatToolInvocation | undefined {
-		// Mock implementation - return undefined
 		return undefined;
 	}
 
 	async updateToolStream(_toolCallId: string, _partialInput: unknown, _token: CancellationToken): Promise<void> {
-		// Mock implementation - do nothing
 	}
 
 	toolSets: IObservable<readonly IToolSet[]> = constObservable([]);

@@ -36,7 +36,6 @@ export class BaseGHTelemetrySender implements ITelemetrySender {
 			const token = this._tokenStore.dardcorToken;
 			this._processToken(token);
 		}));
-		// Rebuild the loggers when the domains change as they need to send to new endpoints
 		this._disposables.add(this._domainService.onDidChangeDomains(() => {
 			this._standardTelemetryLogger.dispose();
 			this._standardTelemetryLogger = this._createTelemetryLogger(false);
@@ -94,7 +93,6 @@ export class BaseGHTelemetrySender implements ITelemetrySender {
 
 		definedTelemetryDataStub.makeReadyForSending(this._configService, this._envService, this._telemetryConfig);
 
-		// send a placeholder to standard ("insecure") telemetry
 		this.sendTelemetryEvent('exception', definedTelemetryDataStub.properties, definedTelemetryDataStub.measurements);
 
 		if (!this._enhancedTelemetryLogger) {
@@ -105,7 +103,6 @@ export class BaseGHTelemetrySender implements ITelemetrySender {
 		const definedTelemetryDataSecure = TelemetryData.createAndMarkAsIssued({ origin });
 		definedTelemetryDataSecure.makeReadyForSending(this._configService, this._envService, this._telemetryConfig);
 
-		// and the real error, which might contain arbitrary data, to enhanced telemetry.
 		this._enhancedTelemetryLogger.logError(error, definedTelemetryDataSecure);
 	}
 
@@ -113,7 +110,6 @@ export class BaseGHTelemetrySender implements ITelemetrySender {
 		const telemetryData = TelemetryData.createAndMarkAsIssued(eventPropertiesToSimpleObject(properties), measurements);
 		telemetryData.makeReadyForSending(this._configService, this._envService, this._telemetryConfig);
 		const newPropeties: Mutable<TelemetryEventProperties> = {};
-		// This disables VS Code's default sanitization
 		for (const key in telemetryData.properties) {
 			newPropeties[key] = new TelemetryTrustedValue(telemetryData.properties[key]);
 		}

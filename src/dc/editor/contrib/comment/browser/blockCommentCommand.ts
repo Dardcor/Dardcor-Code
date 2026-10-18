@@ -46,11 +46,9 @@ export class BlockCommentCommand implements ICommand {
 				continue;
 			}
 			if (codeA >= CharCode.A && codeA <= CharCode.Z && codeA + 32 === codeB) {
-				// codeA is upper-case variant of codeB
 				continue;
 			}
 			if (codeB >= CharCode.A && codeB <= CharCode.Z && codeB + 32 === codeA) {
-				// codeB is upper-case variant of codeA
 				continue;
 			}
 
@@ -77,7 +75,6 @@ export class BlockCommentCommand implements ICommand {
 				const lineBetweenTokens = startLineText.substring(startTokenIndex + startToken.length, endTokenIndex);
 
 				if (lineBetweenTokens.indexOf(endToken) >= 0) {
-					// force to add a block comment
 					startTokenIndex = -1;
 					endTokenIndex = -1;
 				}
@@ -86,7 +83,6 @@ export class BlockCommentCommand implements ICommand {
 				const endLineBeforeEndToken = endLineText.substring(0, endTokenIndex);
 
 				if (startLineAfterStartToken.indexOf(endToken) >= 0 || endLineBeforeEndToken.indexOf(endToken) >= 0) {
-					// force to add a block comment
 					startTokenIndex = -1;
 					endTokenIndex = -1;
 				}
@@ -96,14 +92,11 @@ export class BlockCommentCommand implements ICommand {
 		let ops: ISingleEditOperation[];
 
 		if (startTokenIndex !== -1 && endTokenIndex !== -1) {
-			// Consider spaces as part of the comment tokens
 			if (insertSpace && startTokenIndex + startToken.length < startLineText.length && startLineText.charCodeAt(startTokenIndex + startToken.length) === CharCode.Space) {
-				// Pretend the start token contains a trailing space
 				startToken = startToken + ' ';
 			}
 
 			if (insertSpace && endTokenIndex > 0 && endLineText.charCodeAt(endTokenIndex - 1) === CharCode.Space) {
-				// Pretend the end token contains a leading space
 				endToken = ' ' + endToken;
 				endTokenIndex -= 1;
 			}
@@ -124,19 +117,16 @@ export class BlockCommentCommand implements ICommand {
 		const res: ISingleEditOperation[] = [];
 
 		if (!Range.isEmpty(r)) {
-			// Remove block comment start
 			res.push(EditOperation.delete(new Range(
 				r.startLineNumber, r.startColumn - startToken.length,
 				r.startLineNumber, r.startColumn
 			)));
 
-			// Remove block comment end
 			res.push(EditOperation.delete(new Range(
 				r.endLineNumber, r.endColumn,
 				r.endLineNumber, r.endColumn + endToken.length
 			)));
 		} else {
-			// Remove both continuously
 			res.push(EditOperation.delete(new Range(
 				r.startLineNumber, r.startColumn - startToken.length,
 				r.endLineNumber, r.endColumn + endToken.length
@@ -150,13 +140,10 @@ export class BlockCommentCommand implements ICommand {
 		const res: ISingleEditOperation[] = [];
 
 		if (!Range.isEmpty(r)) {
-			// Insert block comment start
 			res.push(EditOperation.insert(new Position(r.startLineNumber, r.startColumn), startToken + (insertSpace ? ' ' : '')));
 
-			// Insert block comment end
 			res.push(EditOperation.insert(new Position(r.endLineNumber, r.endColumn), (insertSpace ? ' ' : '') + endToken));
 		} else {
-			// Insert both continuously
 			res.push(EditOperation.replace(new Range(
 				r.startLineNumber, r.startColumn,
 				r.endLineNumber, r.endColumn
@@ -174,7 +161,6 @@ export class BlockCommentCommand implements ICommand {
 		const languageId = model.getLanguageIdAtPosition(startLineNumber, startColumn);
 		const config = this.languageConfigurationService.getLanguageConfiguration(languageId).comments;
 		if (!config || !config.blockCommentStartToken || !config.blockCommentEndToken) {
-			// Mode does not support block comments
 			return;
 		}
 
@@ -195,7 +181,7 @@ export class BlockCommentCommand implements ICommand {
 			);
 		} else {
 			const srcRange = inverseEditOperations[0].range;
-			const deltaColumn = this._usedEndToken ? -this._usedEndToken.length - 1 : 0; // minus 1 space before endToken
+			const deltaColumn = this._usedEndToken ? -this._usedEndToken.length - 1 : 0;
 			return new Selection(
 				srcRange.endLineNumber,
 				srcRange.endColumn + deltaColumn,

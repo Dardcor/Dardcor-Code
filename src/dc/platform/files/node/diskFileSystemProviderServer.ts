@@ -21,9 +21,6 @@ export interface ISessionFileWatcher extends IDisposable {
 	watch(req: number, resource: URI, opts: IWatchOptions): IDisposable;
 }
 
-/**
- * A server implementation for a IPC based file system provider client.
- */
 export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposable implements IServerChannel<T> {
 
 	constructor(
@@ -73,7 +70,6 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 
 	protected abstract transformIncoming(uriTransformer: IURITransformer, _resource: UriComponents, supportVSCodeResource?: boolean): URI;
 
-	//#region File Metadata Resolving
 
 	private stat(uriTransformer: IURITransformer, _resource: UriComponents): Promise<IStat> {
 		const resource = this.transformIncoming(uriTransformer, _resource, true);
@@ -93,9 +89,7 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 		return this.provider.readdir(resource);
 	}
 
-	//#endregion
 
-	//#region File Reading/Writing
 
 	private async readFile(uriTransformer: IURITransformer, _resource: UriComponents, opts?: IFileAtomicReadOptions): Promise<VSBuffer> {
 		const resource = this.transformIncoming(uriTransformer, _resource, true);
@@ -111,8 +105,6 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 		const emitter = new Emitter<ReadableStreamEventPayload<VSBuffer>>({
 			onDidRemoveLastListener: () => {
 
-				// Ensure to cancel the read operation when there is no more
-				// listener on the other side to prevent unneeded work.
 				cts.cancel();
 			}
 		});
@@ -123,10 +115,8 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 			onError: error => emitter.fire(error),
 			onEnd: () => {
 
-				// Forward event
 				emitter.fire('end');
 
-				// Cleanup
 				emitter.dispose();
 				cts.dispose();
 			}
@@ -153,7 +143,7 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 
 	private async read(fd: number, pos: number, length: number): Promise<[VSBuffer, number]> {
 		const buffer = VSBuffer.alloc(length);
-		const bufferOffset = 0; // offset is 0 because we create a buffer to read into for each call
+		const bufferOffset = 0;
 		const bytesRead = await this.provider.read(fd, pos, buffer.buffer, bufferOffset, length);
 
 		return [buffer, bytesRead];
@@ -163,9 +153,7 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 		return this.provider.write(fd, pos, data.buffer, offset, length);
 	}
 
-	//#endregion
 
-	//#region Move/Copy/Delete/Create Folder
 
 	private mkdir(uriTransformer: IURITransformer, _resource: UriComponents): Promise<void> {
 		const resource = this.transformIncoming(uriTransformer, _resource);
@@ -193,9 +181,7 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 		return this.provider.copy(source, target, opts);
 	}
 
-	//#endregion
 
-	//#region Clone File
 
 	private cloneFile(uriTransformer: IURITransformer, _source: UriComponents, _target: UriComponents): Promise<void> {
 		const source = this.transformIncoming(uriTransformer, _source);
@@ -204,18 +190,13 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 		return this.provider.cloneFile(source, target);
 	}
 
-	//#endregion
 
-	//#region File Watching
 
-	private readonly sessionToWatcher = new Map<string /* session ID */, ISessionFileWatcher>();
-	private readonly watchRequests = new Map<string /* session ID + request ID */, IDisposable>();
+	private readonly sessionToWatcher = new Map<string , ISessionFileWatcher>();
+	private readonly watchRequests = new Map<string , IDisposable>();
 
 	private onFileChange(uriTransformer: IURITransformer, sessionId: string): Event<IFileChange[] | string> {
 
-		// We want a specific emitter for the given session so that events
-		// from the one session do not end up on the other session. As such
-		// we create a `SessionFileWatcher` and a `Emitter` for that session.
 
 		const emitter = new Emitter<IFileChange[] | string>({
 			onWillAddFirstListener: () => {
@@ -250,7 +231,6 @@ export abstract class AbstractDiskFileSystemProviderChannel<T> extends Disposabl
 
 	protected abstract createSessionFileWatcher(uriTransformer: IURITransformer, emitter: Emitter<IFileChange[] | string>): ISessionFileWatcher;
 
-	//#endregion
 
 	override dispose(): void {
 		super.dispose();
@@ -271,14 +251,6 @@ export abstract class AbstractSessionFileWatcher extends Disposable implements I
 
 	private readonly watcherRequests = new Map<number, IDisposable>();
 
-	// To ensure we use one file watcher per session, we keep a
-	// disk file system provider instantiated for this session.
-	// The provider is cheap and only stateful when file watching
-	// starts.
-	//
-	// This is important because we want to ensure that we only
-	// forward events from the watched paths for this session and
-	// not other clients that asked to watch other paths.
 	private readonly fileWatcher: DiskFileSystemProvider;
 
 	constructor(
@@ -312,11 +284,11 @@ export abstract class AbstractSessionFileWatcher extends Disposable implements I
 	}
 
 	protected getRecursiveWatcherOptions(environmentService: IEnvironmentService): IRecursiveWatcherOptions | undefined {
-		return undefined; // subclasses can override
+		return undefined;
 	}
 
 	protected getExtraExcludes(environmentService: IEnvironmentService): string[] | undefined {
-		return undefined; // subclasses can override
+		return undefined;
 	}
 
 	watch(req: number, resource: URI, opts: IWatchOptions): IDisposable {

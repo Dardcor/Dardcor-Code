@@ -209,7 +209,6 @@ suite('MultiplexPolicyService', () => {
 			const C = policyService.getPolicyValue('PolicySettingC');
 			const D = policyService.getPolicyValue('PolicySettingD');
 
-			// No policy is set
 			assert.strictEqual(A, undefined);
 			assert.strictEqual(B, undefined);
 			assert.strictEqual(C, undefined);
@@ -295,7 +294,7 @@ suite('MultiplexPolicyService', () => {
 			const C = policyService.getPolicyValue('PolicySettingC');
 			const D = policyService.getPolicyValue('PolicySettingD');
 
-			assert.strictEqual(A, undefined); // Not tagged with preview tags
+			assert.strictEqual(A, undefined);
 			assert.strictEqual(B, 'policyValueB');
 			assert.strictEqual(C, JSON.stringify(['policyValueC1', 'policyValueC2']));
 			assert.strictEqual(D, false);
@@ -412,7 +411,6 @@ suite('MultiplexPolicyService', () => {
 	test('union-typed (array | null) policy preserves an empty array (lockdown) distinct from unset', async () => {
 		await clear();
 
-		// Policy set to an empty array (e.g. a lockdown allowlist): must round-trip to `[]`, not `undefined`.
 		const setPolicyData: IPolicyData = { chat_preview_features_enabled: false };
 		defaultAccountService.setDefaultAccountProvider(new DefaultAccountProvider(BASE_DEFAULT_ACCOUNT, setPolicyData));
 		await defaultAccountService.refresh();

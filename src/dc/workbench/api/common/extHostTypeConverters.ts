@@ -336,19 +336,19 @@ export namespace DiagnosticSeverity {
 export namespace ViewColumn {
 	export function from(column?: vscode.ViewColumn): EditorGroupColumn {
 		if (typeof column === 'number' && column >= types.ViewColumn.One) {
-			return column - 1; // adjust zero index (ViewColumn.ONE => 0)
+			return column - 1;
 		}
 
 		if (column === types.ViewColumn.Beside) {
 			return SIDE_GROUP;
 		}
 
-		return ACTIVE_GROUP; // default is always the active group
+		return ACTIVE_GROUP;
 	}
 
 	export function to(position: EditorGroupColumn): vscode.ViewColumn {
 		if (typeof position === 'number' && position >= 0) {
-			return position + 1; // adjust to index (ViewColumn.ONE => 1)
+			return position + 1;
 		}
 
 		throw new Error(`invalid 'EditorGroupColumn'`);
@@ -396,7 +396,6 @@ export namespace MarkdownString {
 			res = { value: '' };
 		}
 
-		// extract uris into a separate object
 		const resUris: { [href: string]: UriComponents } = Object.create(null);
 		res.uris = resUris;
 
@@ -406,7 +405,6 @@ export namespace MarkdownString {
 				uri = uri.with({ query: _uriMassage(uri.query, resUris) });
 				resUris[href] = uri;
 			} catch (e) {
-				// ignore
 			}
 			return '';
 		};
@@ -432,7 +430,6 @@ export namespace MarkdownString {
 		try {
 			data = parse(part);
 		} catch (e) {
-			// ignore
 		}
 		if (!data) {
 			return part;
@@ -482,7 +479,7 @@ export function fromRangeOrRangeWithMessage(ranges: vscode.Range[] | vscode.Deco
 					? MarkdownString.fromMany(r.hoverMessage)
 					: (r.hoverMessage ? MarkdownString.from(r.hoverMessage) : undefined),
 				// eslint-disable-next-line local/code-no-any-casts
-				renderOptions: <any> /* URI vs Uri */r.renderOptions
+				renderOptions: <any> r.renderOptions
 			};
 		});
 	} else {
@@ -645,8 +642,6 @@ export namespace WorkspaceEdit {
 
 		if (value instanceof types.WorkspaceEdit) {
 
-			// collect all files that are to be created so that their version
-			// information (in case they exist as text model already) can be ignored
 			const toCreate = new ResourceSet();
 			for (const entry of value._allEntries()) {
 				if (entry._type === types.FileEditType.File && URI.isUri(entry.to) && entry.from === undefined) {
@@ -666,7 +661,6 @@ export namespace WorkspaceEdit {
 						}
 					}
 
-					// file operation
 					result.edits.push({
 						oldResource: entry.from,
 						newResource: entry.to,
@@ -675,7 +669,6 @@ export namespace WorkspaceEdit {
 					});
 
 				} else if (entry._type === types.FileEditType.Text) {
-					// text edits
 					result.edits.push({
 						resource: entry.uri,
 						textEdit: TextEdit.from(entry.edit),
@@ -696,7 +689,6 @@ export namespace WorkspaceEdit {
 					});
 
 				} else if (entry._type === types.FileEditType.Cell) {
-					// cell edit
 					result.edits.push({
 						metadata: entry.metadata,
 						resource: entry.uri,
@@ -705,7 +697,6 @@ export namespace WorkspaceEdit {
 					});
 
 				} else if (entry._type === types.FileEditType.CellReplace) {
-					// cell replace
 					result.edits.push({
 						metadata: entry.metadata,
 						resource: entry.uri,
@@ -1240,7 +1231,6 @@ export namespace CompletionItem {
 		result.preselect = suggestion.preselect;
 		result.commitCharacters = suggestion.commitCharacters;
 
-		// range
 		if (editorRange.Range.isIRange(suggestion.range)) {
 			result.range = Range.to(suggestion.range);
 		} else if (typeof suggestion.range === 'object') {
@@ -1248,7 +1238,6 @@ export namespace CompletionItem {
 		}
 
 		result.keepWhitespace = typeof suggestion.insertTextRules === 'undefined' ? false : Boolean(suggestion.insertTextRules & languages.CompletionItemInsertTextRule.KeepWhitespace);
-		// 'insertText'-logic
 		if (typeof suggestion.insertTextRules !== 'undefined' && suggestion.insertTextRules & languages.CompletionItemInsertTextRule.InsertAsSnippet) {
 			result.insertText = new types.SnippetString(suggestion.insertText);
 		} else {
@@ -1381,7 +1370,6 @@ export namespace DocumentLink {
 			try {
 				target = typeof link.url === 'string' ? URI.parse(link.url, true) : URI.revive(link.url);
 			} catch (err) {
-				// ignore
 			}
 		}
 		const result = new types.DocumentLink(Range.to(link.range), target);
@@ -1595,16 +1583,11 @@ export namespace GlobPattern {
 			return pattern;
 		}
 
-		// This is slightly bogus because we declare this method to accept
-		// `vscode.GlobPattern` which can be `vscode.RelativePattern` class,
-		// but given we cannot enforce classes from our vscode.d.ts, we have
-		// to probe for objects too
-		// Refs: https://github.com/microsoft/vscode/issues/140771
 		if (isRelativePatternShape(pattern) || isLegacyRelativePatternShape(pattern)) {
 			return new types.RelativePattern(pattern.baseUri ?? pattern.base, pattern.pattern).toJSON();
 		}
 
-		return pattern; // preserve `undefined` and `null`
+		return pattern;
 	}
 
 	function isRelativePatternShape(obj: unknown): obj is { base: string; baseUri: URI; pattern: string } {
@@ -1618,9 +1601,6 @@ export namespace GlobPattern {
 
 	function isLegacyRelativePatternShape(obj: unknown): obj is { base: string; pattern: string } {
 
-		// Before 1.64.x, `RelativePattern` did not have any `baseUri: Uri`
-		// property. To preserve backwards compatibility with older extensions
-		// we allow this old format when creating the `vscode.RelativePattern`.
 
 		const rp = obj as { base: string; pattern: string } | undefined | null;
 		if (!rp) {
@@ -1652,7 +1632,7 @@ export namespace LanguageSelector {
 		} else if (typeof selector === 'string') {
 			return selector;
 		} else {
-			const filter = selector as vscode.DocumentFilter; // TODO: microsoft/TypeScript#42768
+			const filter = selector as vscode.DocumentFilter;
 			return {
 				language: filter.language,
 				scheme: filter.scheme,
@@ -1838,7 +1818,7 @@ export namespace NotebookStatusBarItem {
 		const command = typeof item.command === 'string' ? { title: '', command: item.command } : item.command;
 		return {
 			alignment: item.alignment === types.NotebookCellStatusBarAlignment.Left ? notebooks.CellStatusbarAlignment.Left : notebooks.CellStatusbarAlignment.Right,
-			command: commandsConverter.toInternal(command, disposables), // TODO@roblou
+			command: commandsConverter.toInternal(command, disposables),
 			text: item.text,
 			tooltip: item.tooltip,
 			accessibilityInformation: item.accessibilityInformation,
@@ -2001,7 +1981,7 @@ export namespace TestResults {
 	const convertTestResultItem = (node: IPrefixTreeNode<TestResultItem.Serialized>, parent?: vscode.TestResultSnapshot): vscode.TestResultSnapshot | undefined => {
 		const item = node.value;
 		if (!item) {
-			return undefined; // should be unreachable
+			return undefined;
 		}
 
 		const snapshot: vscode.TestResultSnapshot = ({
@@ -2035,7 +2015,6 @@ export namespace TestResults {
 			tree.insert(TestId.fromString(item.item.extId).path, item);
 		}
 
-		// Get the first node with a value in each subtree of IDs.
 		const queue = [tree.nodes];
 		const roots: IPrefixTreeNode<TestResultItem.Serialized>[] = [];
 		while (queue.length) {
@@ -2257,7 +2236,6 @@ export namespace DataTransferItem {
 			try {
 				return URI.parse(part);
 			} catch {
-				// noop
 			}
 
 			return part;
@@ -2351,7 +2329,7 @@ export namespace LanguageModelChatMessage {
 					} else if (part.type === 'prompt_tsx') {
 						return new types.LanguageModelPromptTsxPart(part.value);
 					} else {
-						return undefined; // Strip unknown parts
+						return undefined;
 					}
 				}));
 				return new types.LanguageModelToolResultPart(c.toolCallId, content, c.isError);
@@ -2406,7 +2384,6 @@ export namespace LanguageModelChatMessage {
 								audience: part.audience
 							} satisfies IChatResponseDataPart;
 						} else {
-							// Strip unknown parts
 							return undefined;
 						}
 					})),
@@ -2530,7 +2507,6 @@ export namespace LanguageModelChatMessage2 {
 								audience: part.audience
 							} satisfies IChatResponseDataPart;
 						} else {
-							// Strip unknown parts
 							return undefined;
 						}
 					})),
@@ -2786,7 +2762,6 @@ export namespace ChatResponseMultiDiffPart {
 
 export namespace ChatResponseAnchorPart {
 	export function from(part: vscode.ChatResponseAnchorPart): Dto<IChatContentInlineReference> {
-		// Work around type-narrowing confusion between vscode.Uri and URI
 		const isUri = (thing: unknown): thing is vscode.Uri => URI.isUri(thing);
 		const isSymbolInformation = (thing: object): thing is vscode.SymbolInformation => 'name' in thing;
 
@@ -2912,7 +2887,6 @@ export namespace ChatResponseExtensionsPart {
 
 export namespace ChatResponsePullRequestPart {
 	export function from(part: Omit<vscode.ChatResponsePullRequestPart, 'command'> & { command?: vscode.Command }, commandsConverter: CommandsConverter, commandDisposables: DisposableStore): Dto<IChatPullRequestContent> {
-		// If the command isn't in the converter, then this session may have been restored, and the command args don't exist anymore
 		let command: extHostProtocol.ICommandDto;
 		if (!part.command) {
 			if (!part.uri) {
@@ -2953,15 +2927,12 @@ export namespace ChatResponseMovePart {
 
 export namespace ChatToolInvocationPart {
 	export function from(part: vscode.ChatToolInvocationPart): IChatToolInvocationSerialized | IChatExternalToolInvocationUpdate {
-		// Check if toolSpecificData is ChatMcpToolInvocationData (has input and output)
-		// If so, convert to resultDetails for rendering via ChatInputOutputMarkdownProgressPart
 		let resultDetails: IToolResultInputOutputDetails | undefined;
 		let toolSpecificData: any;
 
 		if (part.toolSpecificData && isChatMcpToolInvocationData(part.toolSpecificData)) {
-			// Convert ChatMcpToolInvocationData to IToolResultInputOutputDetails
 			resultDetails = convertMcpToResultDetails(part.toolSpecificData, part.isError);
-			toolSpecificData = undefined; // MCP data goes to resultDetails, not toolSpecificData
+			toolSpecificData = undefined;
 		} else {
 			toolSpecificData = part.toolSpecificData ? convertToolSpecificData(part.toolSpecificData) : undefined;
 		}
@@ -2972,9 +2943,6 @@ export namespace ChatToolInvocationPart {
 				? ToolInvocationPresentation.HiddenAfterComplete
 				: undefined;
 
-		// When isComplete is explicitly set (not undefined), use the update DTO to enable
-		// live tool invocation updates. Extensions can push with isComplete: false to start
-		// an in-progress invocation, then push again with isComplete: true to complete it.
 		if (part.enablePartialUpdate) {
 			return {
 				kind: 'externalToolInvocationUpdate',
@@ -2989,7 +2957,6 @@ export namespace ChatToolInvocationPart {
 			};
 		}
 
-		// Convert extension API ChatToolInvocationPart to internal serialized format (legacy path)
 		return {
 			kind: 'toolInvocationSerialized',
 			toolCallId: part.toolCallId,
@@ -3000,7 +2967,6 @@ export namespace ChatToolInvocationPart {
 			isConfirmed: part.isConfirmed,
 			isComplete: true,
 			source: ToolDataSource.External,
-			// isError: part.isError ?? false,
 			toolSpecificData,
 			resultDetails,
 			presentation,
@@ -3031,7 +2997,6 @@ export namespace ChatToolInvocationPart {
 	}
 
 	function convertToolSpecificData(data: any): any {
-		// Convert extension API terminal tool data to internal format
 		if ('command' in data && 'language' in data) {
 			return {
 				kind: 'terminal',
@@ -3059,7 +3024,6 @@ export namespace ChatToolInvocationPart {
 
 			return result;
 		} else if ('todoList' in data && Array.isArray(data.todoList)) {
-			// Convert extension API todo tool data to internal format
 			return {
 				kind: 'todoList',
 				todoList: data.todoList.map((todo: any) => ({
@@ -3069,14 +3033,12 @@ export namespace ChatToolInvocationPart {
 				}))
 			};
 		} else if ('input' in data && 'output' in data && !Array.isArray(data.output)) {
-			// Convert extension API simple tool invocation data to internal format
 			return {
 				kind: 'simpleToolInvocation',
 				input: typeof data.input === 'string' ? data.input : '',
 				output: typeof data.output === 'string' ? data.output : ''
 			};
 		} else if (data && 'values' in data && Array.isArray(data.values)) {
-			// Convert extension API resources tool data to internal format
 			return {
 				kind: 'resources',
 				values: data.values.map((v: any) => {
@@ -3088,7 +3050,6 @@ export namespace ChatToolInvocationPart {
 				})
 			};
 		} else if (data instanceof types.ChatSubagentToolInvocationData) {
-			// Convert extension API subagent tool data to internal format
 			return {
 				kind: 'subagent',
 				description: data.description,
@@ -3102,7 +3063,6 @@ export namespace ChatToolInvocationPart {
 	}
 
 	function todoStatusEnumToString(status: types.ChatTodoStatus | string): string {
-		// Handle enum values
 		switch (status) {
 			case types.ChatTodoStatus.NotStarted:
 				return 'not-started';
@@ -3160,16 +3120,13 @@ export namespace ChatToolInvocationPart {
 	}
 
 	function convertFromInternalToolSpecificData(data: any): any {
-		// Convert internal terminal tool data to extension API format
 		if (data.kind === 'terminal') {
 			if (data.commandLine) {
-				// New format with commandLine
 				const result: any = {
 					commandLine: data.commandLine,
 					language: data.language
 				};
 
-				// Map internal 'terminalCommandOutput' -> extension 'output'
 				if (data.terminalCommandOutput) {
 					result.output = {
 						text: data.terminalCommandOutput.text,
@@ -3178,7 +3135,6 @@ export namespace ChatToolInvocationPart {
 					};
 				}
 
-				// Map internal 'terminalCommandState' -> extension 'state'
 				if (data.terminalCommandState) {
 					result.state = {
 						exitCode: data.terminalCommandState.exitCode,
@@ -3188,7 +3144,6 @@ export namespace ChatToolInvocationPart {
 
 				return result;
 			} else {
-				// Legacy format with command
 				return {
 					command: data.command,
 					language: data.language
@@ -3200,7 +3155,6 @@ export namespace ChatToolInvocationPart {
 				language: data.language
 			};
 		} else if (data.kind === 'todoList') {
-			// Convert internal todo tool data to extension API format
 			return {
 				todoList: data.todoList.map((todo: any, index: number) => {
 					const parsed = Number(todo.id);
@@ -3237,7 +3191,6 @@ export namespace ChatTaskResult {
 
 export namespace ChatResponseCommandButtonPart {
 	export function from(part: vscode.ChatResponseCommandButtonPart, commandsConverter: CommandsConverter, commandDisposables: DisposableStore): Dto<IChatCommandButton> {
-		// If the command isn't in the converter, then this session may have been restored, and the command args don't exist anymore
 		const command = commandsConverter.toInternal(part.value, commandDisposables) ?? { command: part.value.command, title: part.value.title };
 		return {
 			kind: 'command',
@@ -3245,7 +3198,6 @@ export namespace ChatResponseCommandButtonPart {
 		};
 	}
 	export function to(part: Dto<IChatCommandButton>, commandsConverter: CommandsConverter): vscode.ChatResponseCommandButtonPart {
-		// If the command isn't in the converter, then this session may have been restored, and the command args don't exist anymore
 		return new types.ChatResponseCommandButtonPart(commandsConverter.fromInternal(part.command) ?? { command: part.command.id, title: part.command.title });
 	}
 }
@@ -3358,7 +3310,7 @@ export namespace ChatResponseReferencePart {
 				value: value.reference.value && mapValue(value.reference.value)
 			} :
 				mapValue(value.reference)
-		) as vscode.ChatResponseReferencePart; // 'value' is extended with variableName
+		) as vscode.ChatResponseReferencePart;
 	}
 }
 
@@ -3799,7 +3751,6 @@ export namespace ChatAgentResult {
 				return new types.LanguageModelPromptTsxPart(value.value);
 			} else if (value.$mid === MarshalledId.LanguageModelDataPart) {
 				let buffer: Uint8Array;
-				// correction for old data serialized pre-303151
 				if (value.data && typeof value.data === 'object' && value.data.type === 'Buffer' && Array.isArray(value.data.data)) {
 					buffer = new Uint8Array(value.data.data);
 				} else if (typeof value.data === 'string') {
@@ -3823,7 +3774,6 @@ export namespace ChatAgentResult {
 export namespace ChatAgentUserActionEvent {
 	export function to(result: IChatAgentResult, event: IChatUserActionEvent, commandsConverter: CommandsConverter): vscode.ChatUserActionEvent | undefined {
 		if (event.action.kind === 'vote') {
-			// Is the "feedback" type
 			return;
 		}
 
@@ -4106,12 +4056,6 @@ export namespace IconPath {
 		return iconPath;
 	}
 
-	/**
-	 * Converts a {@link vscode.IconPath} to an {@link extHostProtocol.IconPathDto}.
-	 * @note This function will tolerate strings specified instead of URIs in IconPath for historical reasons.
-	 * Such strings are treated as file paths and converted using {@link URI.file} function, not {@link URI.from}.
-	 * See https://github.com/microsoft/vscode/issues/110432#issuecomment-726144556 for context.
-	 */
 	export function from(value: undefined): undefined;
 	export function from(value: vscode.IconPath): extHostProtocol.IconPathDto;
 	export function from(value: vscode.IconPath | undefined): extHostProtocol.IconPathDto | undefined;
@@ -4133,10 +4077,6 @@ export namespace IconPath {
 		}
 	}
 
-	/**
-	 * Converts a {@link extHostProtocol.IconPathDto} to a {@link vscode.IconPath}.
-	 * @note This is a strict conversion and we assume types are correct in this case.
-	 */
 	export function to(value: undefined): undefined;
 	export function to(value: extHostProtocol.IconPathDto): vscode.IconPath;
 	export function to(value: extHostProtocol.IconPathDto | undefined): vscode.IconPath | undefined;
@@ -4209,7 +4149,6 @@ export namespace McpServerDefinition {
 		);
 	}
 
-	/** Converts from the IPC DTO to the API type. */
 	export function to(dto: McpServerDefinitionType.Serialized): vscode.McpServerDefinition {
 		const launch = McpServerLaunch.fromSerialized(dto.launch);
 		if (launch.type === McpServerTransportType.HTTP) {
@@ -4295,13 +4234,13 @@ export namespace ChatSessionItem {
 		}
 
 		switch (status) {
-			case 0: // vscode.ChatSessionStatus.Failed
+			case 0:
 				return ChatSessionStatus.Failed;
-			case 1: // vscode.ChatSessionStatus.Completed
+			case 1:
 				return ChatSessionStatus.Completed;
-			case 2: // vscode.ChatSessionStatus.InProgress
+			case 2:
 				return ChatSessionStatus.InProgress;
-			case 3: // vscode.ChatSessionStatus.NeedsInput
+			case 3:
 				return ChatSessionStatus.NeedsInput;
 			default:
 				return undefined;
@@ -4309,7 +4248,6 @@ export namespace ChatSessionItem {
 	}
 
 	export function from(sessionContent: vscode.ChatSessionItem): Dto<IChatSessionItem> {
-		// Support both new (created, lastRequestStarted, lastRequestEnded) and old (startTime, endTime) timing properties
 		const timing = sessionContent.timing;
 		const created = timing?.created ?? timing?.startTime ?? 0;
 		const lastRequestStarted = timing?.lastRequestStarted ?? timing?.startTime;

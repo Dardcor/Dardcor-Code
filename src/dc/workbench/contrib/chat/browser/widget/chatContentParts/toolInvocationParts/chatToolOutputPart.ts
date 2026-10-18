@@ -22,7 +22,6 @@ import { ChatProgressSubPart } from '../chatProgressContentPart.js';
 import { IChatOutputPartStateCache, IOutputPartState } from '../chatOutputPartStateCache.js';
 import { BaseChatToolInvocationSubPart } from './chatToolInvocationSubPart.js';
 
-// TODO: see if we can reuse existing types instead of adding ChatToolOutputSubPart
 export class ChatToolOutputSubPart extends BaseChatToolInvocationSubPart {
 
 	public readonly domNode: HTMLElement;
@@ -76,10 +75,8 @@ export class ChatToolOutputSubPart extends BaseChatToolInvocationSubPart {
 		const parent = dom.$('div.webview-output');
 		parent.style.maxHeight = '80vh';
 
-		// Try to restore cached state, or create new state
 		const partState: IOutputPartState = this.stateCache.get(toolInvocation.toolCallId) ?? { height: 0 };
 
-		// Always update the cache with the current state reference
 		this.stateCache.set(toolInvocation.toolCallId, partState);
 
 		if (partState.height) {
@@ -91,7 +88,6 @@ export class ChatToolOutputSubPart extends BaseChatToolInvocationSubPart {
 		const progressPart = this._register(this.instantiationService.createInstance(ChatProgressSubPart, progressMessage, ThemeIcon.modify(Codicon.loading, 'spin'), undefined));
 		parent.appendChild(progressPart.domNode);
 
-		// TODO: we also need to show the tool output in the UI
 		this.chatOutputItemRendererService.renderOutputPart(details.output.mimeType, details.output.value.buffer, parent, {
 			webviewState: partState.webviewState,
 			chatSessionResource: this.context.element.sessionResource,
@@ -112,7 +108,6 @@ export class ChatToolOutputSubPart extends BaseChatToolInvocationSubPart {
 				partState.height = newHeight;
 			}));
 
-			// When the webview is disconnected from the DOM due to being hidden, we need to reload it when it is shown again.
 			this._register(this.context.onDidChangeVisibility(visible => {
 				if (visible) {
 					renderedItem.reinitialize();

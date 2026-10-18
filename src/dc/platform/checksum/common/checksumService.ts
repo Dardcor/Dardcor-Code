@@ -12,8 +12,5 @@ export interface IChecksumService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Computes the checksum of the contents of the resource.
-	 */
 	checksum(resource: URI): Promise<string>;
 }

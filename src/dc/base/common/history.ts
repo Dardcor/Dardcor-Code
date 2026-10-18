@@ -45,7 +45,6 @@ export class HistoryNavigator<T> implements INavigator<T> {
 	}
 
 	public next(): T | null {
-		// This will navigate past the end of the last element, and in that case the input should be cleared
 		return this._navigator.next();
 	}
 
@@ -136,10 +135,6 @@ interface HistoryNode<T> {
 	next: HistoryNode<T> | undefined;
 }
 
-/**
- * The right way to use HistoryNavigator2 is for the last item in the list to be the user's uncommitted current text. eg empty string, or whatever has been typed. Then
- * the user can navigate away from the last item through the list, and back to it. When updating the last item, call replaceLast.
- */
 export class HistoryNavigator2<T> {
 
 	private valueSet: Set<T>;
@@ -194,9 +189,6 @@ export class HistoryNavigator2<T> {
 		}
 	}
 
-	/**
-	 * @returns old last value
-	 */
 	replaceLast(value: T): T {
 		if (this.identityFn(this.tail.value) === this.identityFn(value)) {
 			return value;

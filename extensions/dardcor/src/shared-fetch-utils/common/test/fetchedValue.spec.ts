@@ -144,7 +144,7 @@ describe('FetchedValue', () => {
 
 			const second = await fv.resolve();
 			expect(second).toBeUndefined();
-			expect(undefinedFetchCount).toBe(1); // should not re-fetch
+			expect(undefinedFetchCount).toBe(1);
 		});
 	});
 });

@@ -19,9 +19,6 @@ export default new class NoUnlayeredFiles implements eslint.Rule.RuleModule {
 
 	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
-		// Use only the path relative to extensions/dardcor/ to avoid false positives
-		// from the repo directory name (e.g., "vscode" is both a layer name and the
-		// checkout directory, so absolute paths always contain it).
 		const dardcorPrefix = `extensions${path.sep}dardcor${path.sep}`;
 		const idx = context.filename.indexOf(dardcorPrefix);
 		const relativePath = idx >= 0

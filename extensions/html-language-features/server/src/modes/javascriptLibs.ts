@@ -8,7 +8,6 @@ import { readFileSync } from 'fs';
 
 const contents: { [name: string]: string } = {};
 
-// Resolve the server root from either the compiled `out` tree or the source tree.
 const thisDir = import.meta.dirname;
 const serverFolder = basename(thisDir) === 'dist' ? dirname(thisDir) : dirname(dirname(thisDir));
 const TYPESCRIPT_LIB_SOURCE = join(serverFolder, '../../node_modules/typescript/lib');
@@ -21,7 +20,7 @@ export function loadLibrary(name: string) {
 		if (name === 'jquery') {
 			libPath = JQUERY_PATH;
 		} else {
-			libPath = join(TYPESCRIPT_LIB_SOURCE, name); // from source
+			libPath = join(TYPESCRIPT_LIB_SOURCE, name);
 		}
 		try {
 			content = readFileSync(libPath).toString();

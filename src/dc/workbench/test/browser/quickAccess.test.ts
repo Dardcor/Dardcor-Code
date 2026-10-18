@@ -58,7 +58,6 @@ suite('QuickAccess', () => {
 			store.add(toDisposable(() => providerDefaultDisposed = true));
 			store.add(token.onCancellationRequested(() => providerDefaultCanceled = true));
 
-			// bring up provider #3
 			setTimeout(() => this.quickInputService.quickAccess.show(providerDescriptor3.prefix));
 
 			return store;
@@ -96,7 +95,6 @@ suite('QuickAccess', () => {
 			const store = new DisposableStore();
 			store.add(token.onCancellationRequested(() => provider3Canceled = true));
 
-			// hide without picking
 			setTimeout(() => picker.hide());
 
 			store.add(toDisposable(() => provider3Disposed = true));
@@ -146,14 +144,11 @@ suite('QuickAccess', () => {
 		const registry = (Registry.as<IQuickAccessRegistry>(Extensions.Quickaccess));
 		const restore = (registry as QuickAccessRegistry).clear();
 
-		// Use real ContextKeyService that properly evaluates rules
 		const contextKeyService = disposables.add(new ContextKeyService(new TestConfigurationService()));
 		const localDisposables = new DisposableStore();
 
-		// Create a context key that starts as undefined (falsy)
 		const contextKey = contextKeyService.createKey<boolean | undefined>('testQuickAccessContextKey', undefined);
 
-		// Register a provider with a when condition that requires testQuickAccessContextKey to be truthy
 		const providerWithWhen = {
 			ctor: TestProvider1,
 			prefix: 'whentest',
@@ -162,33 +157,24 @@ suite('QuickAccess', () => {
 		};
 		localDisposables.add(registry.registerQuickAccessProvider(providerWithWhen));
 
-		// Verify the expression works with the context key service
 		assert.strictEqual(contextKeyService.contextMatchesRules(providerWithWhen.when), false);
 
-		// Provider with false when condition should not be found
 		assert.strictEqual(registry.getQuickAccessProvider('whentest', contextKeyService), undefined);
 
-		// Should not appear in the list of providers
 		let providers = registry.getQuickAccessProviders(contextKeyService);
 		assert.ok(!providers.some(p => p.prefix === 'whentest'));
 
-		// Set the context key to true
 		contextKey.set(true);
 
-		// Verify the expression now matches
 		assert.strictEqual(contextKeyService.contextMatchesRules(providerWithWhen.when), true);
 
-		// Now the provider should be found
 		assert.strictEqual(registry.getQuickAccessProvider('whentest', contextKeyService), providerWithWhen);
 
-		// Should appear in the list of providers
 		providers = registry.getQuickAccessProviders(contextKeyService);
 		assert.ok(providers.some(p => p.prefix === 'whentest'));
 
-		// Set context key back to undefined (falsy)
 		contextKey.set(undefined);
 
-		// Provider should not be found again
 		assert.strictEqual(registry.getQuickAccessProvider('whentest', contextKeyService), undefined);
 
 		localDisposables.dispose();
@@ -451,7 +437,6 @@ suite('QuickAccess', () => {
 		await part.activeGroup.closeAllEditors();
 	});
 
-	//#region attach dispatch tests
 
 	interface ITestAttachPickItem extends IPickerQuickAccessItem {
 		label: string;
@@ -580,5 +565,4 @@ suite('QuickAccess', () => {
 		restore();
 	});
 
-	//#endregion
 });

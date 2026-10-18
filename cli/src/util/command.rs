@@ -70,7 +70,6 @@ where
 		})
 }
 
-/// Makes a new Command, setting flags to avoid extra windows on win32
 #[cfg(windows)]
 pub fn new_tokio_command(exe: impl AsRef<OsStr>) -> Command {
 	let mut p = tokio::process::Command::new(exe);
@@ -78,14 +77,11 @@ pub fn new_tokio_command(exe: impl AsRef<OsStr>) -> Command {
 	p
 }
 
-/// Makes a new Command, setting flags to avoid extra windows on win32
 #[cfg(not(windows))]
 pub fn new_tokio_command(exe: impl AsRef<OsStr>) -> Command {
 	tokio::process::Command::new(exe)
 }
 
-/// Makes a new command to run the target script. For windows, ensures it's run
-/// in a cmd.exe context.
 #[cfg(windows)]
 pub fn new_script_command(script: impl AsRef<OsStr>) -> Command {
 	let mut cmd = new_tokio_command("cmd");
@@ -95,14 +91,11 @@ pub fn new_script_command(script: impl AsRef<OsStr>) -> Command {
 	cmd
 }
 
-/// Makes a new command to run the target script. For windows, ensures it's run
-/// in a cmd.exe context.
 #[cfg(not(windows))]
 pub fn new_script_command(script: impl AsRef<OsStr>) -> Command {
-	new_tokio_command(script) // it's assumed scripts are already +x and don't need extra handling
+	new_tokio_command(script)
 }
 
-/// Makes a new Command, setting flags to avoid extra windows on win32
 #[cfg(windows)]
 pub fn new_std_command(exe: impl AsRef<OsStr>) -> std::process::Command {
 	let mut p = std::process::Command::new(exe);
@@ -113,32 +106,11 @@ pub fn new_std_command(exe: impl AsRef<OsStr>) -> std::process::Command {
 	p
 }
 
-/// Makes a new Command, setting flags to avoid extra windows on win32
 #[cfg(not(windows))]
 pub fn new_std_command(exe: impl AsRef<OsStr>) -> std::process::Command {
 	std::process::Command::new(exe)
 }
 
-/// Configure a [`std::process::Command`] / [`tokio::process::Command`] so the
-/// spawned child detaches from the parent's session / process group and
-/// therefore survives the parent process exiting.
-///
-/// * **Unix** — registers a `pre_exec` hook that calls `setsid()` so the
-///   child runs in its own session, with no controlling terminal, and
-///   does not receive `SIGHUP` / `SIGINT` propagated from the CLI's
-///   terminal.
-/// * **Windows** — sets `CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW`
-///   creation flags. `CREATE_NEW_PROCESS_GROUP` makes the child immune to
-///   the parent's `Ctrl+C` / `Ctrl+Break`; `CREATE_NO_WINDOW` gives the
-///   child its own (hidden) console so it survives the parent console
-///   closing AND prevents `cmd.exe`-based scripts from popping a
-///   visible window the way `DETACHED_PROCESS` would (cmd.exe calls
-///   `AllocConsole` when it has no console at all).
-///
-/// Callers that need the child to truly outlive the parent should also
-/// set `kill_on_drop(false)` on tokio commands and avoid retaining the
-/// `Child` handle across the parent's exit (the OS will reap the
-/// detached child as an orphan).
 pub trait DetachFromParent {
 	fn detach_from_parent(&mut self) -> &mut Self;
 }
@@ -160,11 +132,6 @@ impl DetachFromParent for tokio::process::Command {
 #[cfg(unix)]
 fn apply_detach_flags_std(cmd: &mut std::process::Command) {
 	use std::os::unix::process::CommandExt as _;
-	// SAFETY: setsid() is async-signal-safe and only manipulates the new
-	// child's session/process group. We return the syscall error so the
-	// caller sees the failure instead of silently leaving the child in
-	// the parent's session (where it would still receive the parent's
-	// SIGHUP/SIGINT — the exact thing the detach is meant to prevent).
 	unsafe {
 		cmd.pre_exec(|| {
 			if libc::setsid() == -1 {
@@ -185,10 +152,6 @@ fn apply_detach_flags_std(cmd: &mut std::process::Command) {
 
 #[cfg(unix)]
 fn apply_detach_flags_tokio(cmd: &mut tokio::process::Command) {
-	// SAFETY: setsid() is async-signal-safe and only manipulates the new
-	// child's session/process group. We return the syscall error so the
-	// caller sees the failure instead of silently leaving the child in
-	// the parent's session.
 	unsafe {
 		cmd.pre_exec(|| {
 			if libc::setsid() == -1 {
@@ -201,24 +164,17 @@ fn apply_detach_flags_tokio(cmd: &mut tokio::process::Command) {
 
 #[cfg(windows)]
 fn apply_detach_flags_tokio(cmd: &mut tokio::process::Command) {
-	// `tokio::process::Command::creation_flags` is an inherent
-	// Windows-only method; no trait import needed. Note: this REPLACES
-	// any prior flags, so we re-include `CREATE_NO_WINDOW` (which
-	// `new_tokio_command` originally set) instead of relying on it
-	// being preserved.
 	cmd.creation_flags(
 		winapi::um::winbase::CREATE_NEW_PROCESS_GROUP | winapi::um::winbase::CREATE_NO_WINDOW,
 	);
 }
 
-/// Kills and processes and all of its children.
 #[cfg(windows)]
 pub async fn kill_tree(process_id: u32) -> Result<(), CodeError> {
 	capture_command("taskkill", &["/t", "/pid", &process_id.to_string()]).await?;
 	Ok(())
 }
 
-/// Kills and processes and all of its children.
 #[cfg(not(windows))]
 pub async fn kill_tree(process_id: u32) -> Result<(), CodeError> {
 	use futures::future::join_all;
@@ -253,8 +209,6 @@ pub async fn kill_tree(process_id: u32) -> Result<(), CodeError> {
 				}
 			}
 		}
-		// pgrep exit codes: 0 = matches found, 1 = no matches (expected for
-		// leaf processes), 2/3 = syntax or operational error worth surfacing.
 		let status = child.wait().await.map_err(|e| CodeError::CommandFailed {
 			command: format!("pgrep -P {parent_str}"),
 			code: -1,
@@ -270,16 +224,9 @@ pub async fn kill_tree(process_id: u32) -> Result<(), CodeError> {
 		}
 	}
 
-	// Rusty version of https://github.com/microsoft/vscode-js-debug/blob/main/src/targets/node/terminateProcess.sh
-	// Walk the full descendant tree (not just direct children) so we
-	// terminate shell launchers, their node child, and any grandchildren
-	// (e.g. bootstrap-fork) the server has spawned. See issue #319516.
 
 	let mut all_pids: Vec<u32> = vec![process_id];
 	let mut queue: VecDeque<u32> = VecDeque::from([process_id]);
-	// Surface a spawn failure for the root lookup so callers don't get a
-	// silent "killed" result while descendants leak. Descendant lookups
-	// race with the processes dying naturally, so we tolerate those.
 	let mut first = true;
 	while let Some(pid) = queue.pop_front() {
 		let children = match children_of(pid).await {
@@ -294,9 +241,6 @@ pub async fn kill_tree(process_id: u32) -> Result<(), CodeError> {
 		}
 	}
 
-	// All kills run concurrently — fanning out is fine because each `kill`
-	// just sends SIGTERM, and ordering between unrelated processes does
-	// not matter for correctness.
 	let kill_futures: Vec<_> = all_pids
 		.into_iter()
 		.map(|pid| tokio::spawn(kill_single_pid(pid.to_string())))
@@ -312,17 +256,8 @@ mod tests {
 	use std::time::{Duration, Instant};
 	use tokio::io::AsyncBufReadExt;
 
-	/// Spawns a depth-3 process tree (sh -> sh -> sleep) and verifies
-	/// `kill_tree` terminates every descendant, not just the direct child.
 	#[tokio::test]
 	async fn kill_tree_terminates_full_descendant_tree() {
-		// Outer sh forks an inner sh which forks `sleep`. Each level
-		// prints its own pid (and only its own) on a dedicated line so
-		// the test reads exactly three distinct descendant pids in a
-		// deterministic order: inner-sh pid, then sleep pid (the third
-		// "ready" line lets us wait until both have been spawned before
-		// proceeding). All three layers then block in `wait` so they
-		// stay alive for the duration of the test.
 		let script = "\
 			sh -c 'sleep 30 & sleep_pid=$!; echo $$; echo $sleep_pid; echo ready; wait $sleep_pid' & \
 			inner_pid=$!; \
@@ -356,10 +291,6 @@ mod tests {
 			.trim()
 			.parse()
 			.expect("sleep pid integer");
-		// The "ready" sentinel only flushes after both prior echos have
-		// been written, which only happens after both descendants have
-		// been spawned. This avoids the fork/echo race that could otherwise
-		// observe the pid before the kernel finishes creating it.
 		assert_eq!(
 			reader.next_line().await.expect("read ready").as_deref(),
 			Some("ready")
@@ -372,9 +303,6 @@ mod tests {
 
 		kill_tree(root_pid).await.expect("kill_tree succeeds");
 
-		// Reap the outer sh ourselves so `process_exists(root_pid)` doesn't
-		// observe it as a lingering zombie. Inner sh and sleep get reparented
-		// to init once outer sh exits, and init reaps them shortly after.
 		let _ = child.wait().await;
 
 		let deadline = Instant::now() + Duration::from_secs(10);

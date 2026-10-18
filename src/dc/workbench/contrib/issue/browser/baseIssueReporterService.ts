@@ -35,9 +35,6 @@ import { IAuthenticationService } from '../../../services/authentication/common/
 
 const MAX_URL_LENGTH = 7500;
 
-// Github API and issues on web has a limit of 65536. If extension data is too large, we will allow users to downlaod and attach it as a file.
-// We round down to be safe.
-// ref https://github.com/github/issues/issues/12858
 
 const MAX_EXTENSION_DATA_LENGTH = 60000;
 
@@ -117,7 +114,6 @@ export class BaseIssueReporterService extends Disposable {
 				const potentialSessions = githubSessions.filter(session => session.scopes.includes('repo'));
 				githubAccessToken = potentialSessions[0]?.accessToken;
 			} catch (e) {
-				// Ignore
 			}
 
 			this.data.githubAccessToken = githubAccessToken;
@@ -202,12 +198,10 @@ export class BaseIssueReporterService extends Disposable {
 		this.handleExtensionData(data.enabledExtensions);
 		this.setUpTypes();
 
-		// Handle case where extension is pre-selected through the command
 		if ((data.data || data.uri) && targetExtension) {
 			this.updateExtensionStatus(targetExtension);
 		}
 
-		// initialize the reporting button(s)
 		// eslint-disable-next-line no-restricted-syntax
 		const issueReporterElement = this.getElementById('issue-reporter');
 		if (issueReporterElement) {
@@ -236,12 +230,10 @@ export class BaseIssueReporterService extends Disposable {
 		// eslint-disable-next-line no-restricted-syntax
 		const issueReporterElement = this.getElementById('issue-reporter');
 		if (!issueReporterElement) {
-			// shouldn't occur -- throw?
 			return;
 		}
 
 
-		// public elements section
 		// eslint-disable-next-line no-restricted-syntax
 		let publicElements = this.getElementById('public-elements');
 		if (!publicElements) {
@@ -254,7 +246,6 @@ export class BaseIssueReporterService extends Disposable {
 		this.updatePublicRepoLink(publicElements);
 
 
-		// private filing section
 		// eslint-disable-next-line no-restricted-syntax
 		let internalElements = this.getElementById('internal-elements');
 		if (!internalElements) {
@@ -297,17 +288,15 @@ export class BaseIssueReporterService extends Disposable {
 			return;
 		}
 
-		// Dispose of the existing button
 		if (this.publicGithubButton) {
 			this.publicGithubButton.dispose();
 		}
 
-		// setup button + dropdown if applicable
-		if (!this.acknowledged && this.needsUpdate) { // * old version and hasn't ack'd
+		if (!this.acknowledged && this.needsUpdate) {
 			this.publicGithubButton = this._register(new Button(container, unthemedButtonStyles));
 			this.publicGithubButton.label = localize('acknowledge', "Confirm Version Acknowledgement");
 			this.publicGithubButton.enabled = false;
-		} else if (this.data.githubAccessToken && this.isPreviewEnabled()) { // * has access token, create by default, preview dropdown
+		} else if (this.data.githubAccessToken && this.isPreviewEnabled()) {
 			this.publicGithubButton = this._register(new ButtonWithDropdown(container, {
 				contextMenuProvider: this.contextMenuService,
 				actions: [this.previewAction],
@@ -319,14 +308,14 @@ export class BaseIssueReporterService extends Disposable {
 			}));
 			this.publicGithubButton.label = localize('createOnGitHub', "Create on GitHub");
 			this.publicGithubButton.enabled = true;
-		} else if (this.data.githubAccessToken && !this.isPreviewEnabled()) { // * Access token but invalid preview state: simple Button (create only)
+		} else if (this.data.githubAccessToken && !this.isPreviewEnabled()) {
 			this.publicGithubButton = this._register(new Button(container, unthemedButtonStyles));
 			this._register(this.publicGithubButton.onDidClick(() => {
 				this.createAction.run();
 			}));
 			this.publicGithubButton.label = localize('createOnGitHub', "Create on GitHub");
 			this.publicGithubButton.enabled = true;
-		} else { // * No access token: simple Button (preview only)
+		} else {
 			this.publicGithubButton = this._register(new Button(container, unthemedButtonStyles));
 			this._register(this.publicGithubButton.onDidClick(() => {
 				this.previewAction.run();
@@ -335,7 +324,6 @@ export class BaseIssueReporterService extends Disposable {
 			this.publicGithubButton.enabled = true;
 		}
 
-		// make sure that the repo link is after the button
 		// eslint-disable-next-line no-restricted-syntax
 		const repoLink = this.getElementById('show-repo-name');
 		if (repoLink) {
@@ -372,7 +360,6 @@ export class BaseIssueReporterService extends Disposable {
 			});
 			show(issueRepoName);
 		} else if (issueRepoName) {
-			// clear styles
 			issueRepoName.removeAttribute('style');
 			hide(issueRepoName);
 		}
@@ -385,7 +372,6 @@ export class BaseIssueReporterService extends Disposable {
 			return;
 		}
 
-		// Dispose of the existing button
 		if (this.internalGithubButton) {
 			this.internalGithubButton.dispose();
 		}
@@ -408,19 +394,18 @@ export class BaseIssueReporterService extends Disposable {
 		// eslint-disable-next-line no-restricted-syntax
 		const container = this.getElementById('internal-elements');
 		if (!container) {
-			// shouldn't happen
 			return;
 		}
 
 		if (this.data.githubAccessToken && this.data.privateUri) {
 			show(container);
-			container.style.display = ''; //todo: necessary even with show?
+			container.style.display = '';
 			if (this.internalGithubButton) {
 				this.internalGithubButton.enabled = this.publicGithubButton?.enabled ?? false;
 			}
 		} else {
 			hide(container);
-			container.style.display = 'none'; //todo: necessary even with hide?
+			container.style.display = 'none';
 		}
 	}
 
@@ -500,7 +485,6 @@ export class BaseIssueReporterService extends Disposable {
 			};
 		});
 
-		// Sort extensions by name
 		extensionOptions.sort((a, b) => {
 			const aName = a.name.toLowerCase();
 			const bName = b.name.toLowerCase();
@@ -558,15 +542,12 @@ export class BaseIssueReporterService extends Disposable {
 								iconElement.classList.remove(...ThemeIcon.asClassNameArray(Codicon.loading), 'codicon-modifier-spin');
 							}
 							this.removeLoading(iconElement);
-							// if not using command, should have no configuration data in fields we care about and check later.
 							this.clearExtensionData();
 
-							// case when previous extension was opened from normal openIssueReporter command
 							selectedExtension.data = undefined;
 							selectedExtension.uri = undefined;
 						}
 						if (this.selectedExtension === selectedExtensionId) {
-							// repopulates the fields with the new data given the selected extension.
 							this.updateExtensionStatus(matches[0]);
 							this.openReporter = false;
 						}
@@ -579,7 +560,6 @@ export class BaseIssueReporterService extends Disposable {
 					}
 				}
 
-				// Update internal action visibility after explicit selection
 				this.updateInternalElementsVisibility();
 			});
 		}
@@ -696,7 +676,6 @@ export class BaseIssueReporterService extends Disposable {
 			const issueDescription = (<HTMLInputElement>e.target).value;
 			this.issueReporterModel.update({ issueDescription });
 
-			// Only search for extension issues on title change
 			if (this.issueReporterModel.fileOnExtension() === false) {
 				// eslint-disable-next-line no-restricted-syntax
 				const title = (<HTMLInputElement>this.getElementById('issue-title')).value;
@@ -733,7 +712,6 @@ export class BaseIssueReporterService extends Disposable {
 			this.searchIssues(title, fileOnExtension, fileOnMarketplace);
 		});
 
-		// We handle clicks in the dropdown actions now
 
 		this.addEventListener('disableExtensions', 'click', () => {
 			this.issueFormService.reloadWithExtensionsDisabled();
@@ -753,7 +731,6 @@ export class BaseIssueReporterService extends Disposable {
 
 		this.window.document.onkeydown = async (e: KeyboardEvent) => {
 			const cmdOrCtrlKey = isMacintosh ? e.metaKey : e.ctrlKey;
-			// Cmd/Ctrl+Enter previews issue and closes window
 			if (cmdOrCtrlKey && e.key === 'Enter') {
 				this.delayedSubmit.trigger(async () => {
 					this.setSubmittingState(true);
@@ -767,7 +744,6 @@ export class BaseIssueReporterService extends Disposable {
 				});
 			}
 
-			// Cmd/Ctrl + w closes issue window
 			if (cmdOrCtrlKey && e.key === 'w') {
 				e.stopPropagation();
 				e.preventDefault();
@@ -776,15 +752,12 @@ export class BaseIssueReporterService extends Disposable {
 				const issueTitle = (<HTMLInputElement>this.getElementById('issue-title'))!.value;
 				const { issueDescription } = this.issueReporterModel.getData();
 				if (!this.hasBeenSubmitted && (issueTitle || issueDescription)) {
-					// fire and forget
 					this.issueFormService.showConfirmCloseDialog();
 				} else {
 					this.close();
 				}
 			}
 
-			// With latest electron upgrade, cmd+a is no longer propagating correctly for inputs in this window on mac
-			// Manually perform the selection
 			if (isMacintosh) {
 				if (cmdOrCtrlKey && e.key === 'a' && e.target) {
 					if (isHTMLInputElement(e.target) || isHTMLTextAreaElement(e.target)) {
@@ -794,7 +767,6 @@ export class BaseIssueReporterService extends Disposable {
 			}
 		};
 
-		// Handle the guidance link specifically to use openerService
 		this.addEventListener('review-guidance-help-text', 'click', (e: Event) => {
 			const target = e.target as HTMLElement;
 			if (target.tagName === 'A' && target.getAttribute('target') === '_blank') {
@@ -881,7 +853,6 @@ export class BaseIssueReporterService extends Disposable {
 				return this.searchGitHub(repo, title);
 			}
 
-			// If the extension has no repository, display empty search results
 			if (this.issueReporterModel.getData().selectedExtension) {
 				this.clearSearchResults();
 				return this.displaySearchResults([]);
@@ -956,10 +927,8 @@ export class BaseIssueReporterService extends Disposable {
 					throw new Error('Unexpected response, no candidates property');
 				}
 			}).catch(_ => {
-				// Ignore
 			});
 		}).catch(_ => {
-			// Ignore
 		});
 	}
 
@@ -1073,7 +1042,6 @@ export class BaseIssueReporterService extends Disposable {
 	}
 
 	public async renderBlocks(): Promise<void> {
-		// Depending on Issue Type, we render different blocks and text
 		const { issueType, fileOnExtension, fileOnMarketplace, selectedExtension } = this.issueReporterModel.getData();
 		// eslint-disable-next-line no-restricted-syntax
 		const blockContainer = this.getElementById('block-container');
@@ -1108,7 +1076,6 @@ export class BaseIssueReporterService extends Disposable {
 		// eslint-disable-next-line no-restricted-syntax
 		const extensionDataTextArea = this.getElementById('extension-data')!;
 
-		// Hide all by default
 		hide(blockContainer);
 		hide(systemBlock);
 		hide(processBlock);
@@ -1132,8 +1099,8 @@ export class BaseIssueReporterService extends Disposable {
 		if (extensionData && extensionData.length > MAX_EXTENSION_DATA_LENGTH) {
 			show(downloadExtensionDataLink);
 			const date = new Date();
-			const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
-			const formattedTime = date.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+			const formattedDate = date.toISOString().split('T')[0];
+			const formattedTime = date.toTimeString().split(' ')[0].replace(/:/g, '-');
 			const fileName = `extensionData_${formattedDate}_${formattedTime}.md`;
 			const handleLinkClick = async () => {
 				const downloadPath = await this.fileDialogService.showSaveDialog({
@@ -1170,11 +1137,9 @@ export class BaseIssueReporterService extends Disposable {
 			show(extensionDataBlock);
 		}
 
-		// only if we know comes from the open reporter command
 		if (fileOnExtension && this.openReporter) {
 			(extensionDataTextArea as HTMLTextAreaElement).readOnly = true;
 			setTimeout(() => {
-				// delay to make sure from command or not
 				if (this.openReporter) {
 					show(extensionDataBlock);
 				}
@@ -1287,7 +1252,6 @@ export class BaseIssueReporterService extends Disposable {
 
 	public async createIssue(shouldCreate?: boolean, privateUri?: boolean): Promise<boolean> {
 		const selectedExtension = this.issueReporterModel.getData().selectedExtension;
-		// Short circuit if the extension provides a custom issue handler
 		if (this.nonGitHubIssueUrl) {
 			const url = this.getExtensionBugsUrl();
 			if (url) {
@@ -1297,8 +1261,6 @@ export class BaseIssueReporterService extends Disposable {
 		}
 
 		if (!this.validateInputs()) {
-			// If inputs are invalid, set focus to the first one and add listeners on them
-			// to detect further changes
 			// eslint-disable-next-line no-restricted-syntax
 			const invalidInput = this.window.document.getElementsByClassName('invalid-input');
 			if (invalidInput.length) {
@@ -1388,7 +1350,6 @@ export class BaseIssueReporterService extends Disposable {
 				url.searchParams.set('template', 'bug_report.md');
 				return url.toString();
 			} catch {
-				// fallback if baseUrl is not a valid URL
 				return baseUrl + '&template=bug_report.md';
 			}
 		}
@@ -1403,15 +1364,11 @@ export class BaseIssueReporterService extends Disposable {
 				: this.product.reportIssueUrl!;
 	}
 
-	// for when command 'workbench.action.openIssueReporter' passes along a
-	// `privateUri` UriComponents value
 	public getPrivateIssueUrl(): string | undefined {
 		return URI.revive(this.data.privateUri)?.toString();
 	}
 
 	public parseGitHubUrl(url: string): undefined | { repositoryName: string; owner: string } {
-		// Assumes a GitHub url to a particular repo, https://github.com/repositoryName/owner.
-		// Repository name and owner cannot contain '/'
 		const match = /^https?:\/\/github\.com\/([^\/]*)\/([^\/]*).*/.exec(url);
 		if (match && match.length) {
 			return {
@@ -1429,12 +1386,9 @@ export class BaseIssueReporterService extends Disposable {
 		let repositoryUrl = '';
 		const bugsUrl = this.getExtensionBugsUrl();
 		const extensionUrl = this.getExtensionRepositoryUrl();
-		// If given, try to match the extension's bug url
 		if (bugsUrl && bugsUrl.match(/^https?:\/\/github\.com\/([^\/]*)\/([^\/]*)\/?(\/issues)?$/)) {
-			// matches exactly: https://github.com/owner/repo/issues
 			repositoryUrl = normalizeGitHubUrl(bugsUrl);
 		} else if (extensionUrl && extensionUrl.match(/^https?:\/\/github\.com\/([^\/]*)\/([^\/]*)$/)) {
-			// matches exactly: https://github.com/owner/repo
 			repositoryUrl = normalizeGitHubUrl(extensionUrl);
 		} else {
 			this.nonGitHubIssueUrl = true;
@@ -1465,7 +1419,6 @@ export class BaseIssueReporterService extends Disposable {
 	public async updateExtensionStatus(extension: IssueReporterExtensionData) {
 		this.issueReporterModel.update({ selectedExtension: extension });
 
-		// uses this.configuuration.data to ensure that data is coming from `openReporter` command.
 		const template = this.data.issueBody;
 		if (template) {
 			// eslint-disable-next-line no-restricted-syntax
@@ -1531,7 +1484,6 @@ export class BaseIssueReporterService extends Disposable {
 	}
 
 	public setLoading(element: HTMLElement) {
-		// Show loading
 		this.openReporter = true;
 		this.loadingExtensionData = true;
 		this.updateButtonStates();
@@ -1654,14 +1606,11 @@ export class BaseIssueReporterService extends Disposable {
 
 	private async openLink(eventOrUrl: MouseEvent | string): Promise<void> {
 		if (typeof eventOrUrl === 'string') {
-			// Direct URL call
 			await this.openerService.open(eventOrUrl, { openExternal: true });
 		} else {
-			// MouseEvent call
 			const event = eventOrUrl;
 			event.preventDefault();
 			event.stopPropagation();
-			// Exclude right click
 			if (event.which < 3) {
 				await this.openerService.open((<HTMLAnchorElement>event.target).href, { openExternal: true });
 			}
@@ -1685,7 +1634,6 @@ export class BaseIssueReporterService extends Disposable {
 	}
 }
 
-// helper functions
 
 export function hide(el: Element | undefined | null) {
 	el?.classList.add('hidden');

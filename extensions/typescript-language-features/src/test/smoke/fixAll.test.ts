@@ -18,7 +18,6 @@ suite.skip('TypeScript Fix All', () => {
 	const _disposables: vscode.Disposable[] = [];
 
 	setup(async () => {
-		// the tests assume that typescript features are registered
 		await vscode.extensions.getExtension('vscode.typescript-language-features')!.activate();
 	});
 

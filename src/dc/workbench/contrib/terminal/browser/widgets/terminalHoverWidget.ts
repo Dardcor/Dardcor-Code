@@ -49,7 +49,6 @@ export class TerminalHover extends Disposable implements ITerminalWidget {
 			content: this._text,
 			actions: this._actions,
 			linkHandler: this._linkHandler,
-			// .xterm-hover lets xterm know that the hover is part of a link
 			additionalClasses: ['xterm-hover']
 		});
 		if (hover) {
@@ -73,7 +72,6 @@ class CellHoverTarget extends Widget implements IHoverTarget {
 		this._domNode = $('div.terminal-hover-targets.xterm-hover');
 		const rowCount = this._options.viewportRange.end.y - this._options.viewportRange.start.y + 1;
 
-		// Add top target row
 		const width = (this._options.viewportRange.end.y > this._options.viewportRange.start.y ? this._options.terminalDimensions.width - this._options.viewportRange.start.x : this._options.viewportRange.end.x - this._options.viewportRange.start.x + 1) * this._options.cellDimensions.width;
 		const topTarget = $('div.terminal-hover-target.hoverHighlight');
 		topTarget.style.left = `${this._options.viewportRange.start.x * this._options.cellDimensions.width}px`;
@@ -82,7 +80,6 @@ class CellHoverTarget extends Widget implements IHoverTarget {
 		topTarget.style.height = `${this._options.cellDimensions.height}px`;
 		this._targetElements.push(this._domNode.appendChild(topTarget));
 
-		// Add middle target rows
 		if (rowCount > 2) {
 			const middleTarget = $('div.terminal-hover-target.hoverHighlight');
 			middleTarget.style.left = `0px`;
@@ -92,7 +89,6 @@ class CellHoverTarget extends Widget implements IHoverTarget {
 			this._targetElements.push(this._domNode.appendChild(middleTarget));
 		}
 
-		// Add bottom target row
 		if (rowCount > 1) {
 			const bottomTarget = $('div.terminal-hover-target.hoverHighlight');
 			bottomTarget.style.left = `0px`;

@@ -19,7 +19,7 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { IRemoteTunnelService, INACTIVE_TUNNEL_MODE, TunnelMode, TunnelStatus } from '../../../../platform/remoteTunnel/common/remoteTunnel.js';
 import { RemoteTunnelCommandIds } from '../../remoteTunnel/electron-browser/remoteTunnel.contribution.js';
 
-const TUNNEL_ACCESS_DOCS_URL = 'https://aka.ms/vscode-agent-tunnel-access';
+const TUNNEL_ACCESS_DOCS_URL = 'https://www.dardcor-code.web.id/docs/remote/tunnels';
 
 export interface IRemoteTunnelAccessState {
 	readonly isSharing: boolean;

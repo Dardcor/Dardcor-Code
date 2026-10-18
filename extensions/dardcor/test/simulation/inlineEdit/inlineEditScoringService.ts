@@ -21,7 +21,6 @@ export interface IInlineEditScoringService {
 	scoreEdit(scoredEditsFilePath: string, context: ScoringContext, docId: DocumentId, editDocumentValue: StringText, edit: RootedEdit | undefined): Promise<EditScoreResult | undefined>;
 }
 
-/** JSON Serializable */
 export type ScoringContext = { kind: 'unknown'; documentValueBeforeEdit: string } | { kind: 'recording'; recording: IRecordingInformation };
 
 export type EditScoreResultCategory = 'bad' | 'valid' | 'nextEdit';
@@ -31,11 +30,6 @@ const USE_SIMPLE_SCORING = true;
 export class EditScoreResult {
 	constructor(
 		public readonly category: EditScoreResultCategory,
-		/**
-		 * When comparing two edits with the same scoreCategory, the one with the higher score is considered better.
-		 * The score does not convey any other meaning (such as its absolute value).
-		 * Should be below 100.
-		 */
 		public readonly score: number,
 	) { }
 
@@ -84,11 +78,11 @@ class InlineEditScoringService implements IInlineEditScoringService {
 			const value = existing.file.value;
 			if (!value) {
 				existing.scoredEdits = ScoredEdits.create(context);
-				shouldWrite = true; // first test run
+				shouldWrite = true;
 			} else {
 				existing.scoredEdits = ScoredEdits.fromJson(value, context);
-				shouldWrite = existing.scoredEdits.removeUnscored(); // we deleted all unscored edits (might be re-added though)
-				const shouldNormalizeExisting = false; // Edits are now normalized before adding to the score database.
+				shouldWrite = existing.scoredEdits.removeUnscored();
+				const shouldNormalizeExisting = false;
 				if (shouldNormalizeExisting) {
 					shouldWrite = existing.scoredEdits.normalizeEdits(editDocumentValue.value) || shouldWrite;
 				}
@@ -97,7 +91,7 @@ class InlineEditScoringService implements IInlineEditScoringService {
 
 		const result = existing.scoredEdits.getScoreOrAddAsUnscored(docId, edit);
 		if (!result) {
-			shouldWrite = true; // edit was added as unscored
+			shouldWrite = true;
 		}
 
 		if (shouldWrite) {
@@ -111,7 +105,6 @@ class InlineEditScoringService implements IInlineEditScoringService {
 
 class ScoredEdits {
 	public static fromJson(data: IScoredEdits, scoringContext: ScoringContext): ScoredEdits {
-		// TOD check if context matches!
 		return new ScoredEdits(scoringContext, data.edits);
 	}
 
@@ -200,7 +193,6 @@ class ScoredEdits {
 				'$web-editor.default-url': 'https://microsoft.github.io/vscode-workbench-recorder-viewer/?editRating',
 			},
 			edits: this._edits,
-			// Last, so that it is easier to review the file
 			scoringContext: this._scoringContext,
 		};
 	}
@@ -231,27 +223,20 @@ class EditMatcher {
 		if (editDocumentUri !== this.documentUri) {
 			return false;
 		}
-		// TODO improve! (check if strings after applied the edits are the same)
 		return equalsIfDefined(this.edit, edit?.edit, thisEqualsC());
 	}
 }
 
-/** JSON Serializable */
 interface IScoredEdits {
 	edits: IScoredEdit[];
 	scoringContext: ScoringContext;
 }
 
-/** JSON Serializable */
 interface IScoredEdit<TUnscored = 'unscored'> {
 	documentUri: string;
 	edit: ISerializedEdit | null;
 	scoreCategory: EditScoreResultCategory | TUnscored;
 
-	/**
-	 * When comparing two edits with the same scoreCategory, the one with the higher score is considered better.
-	 * The score does not convey any other meaning (such as its absolute value).
-	 */
 	score: number | TUnscored;
 }
 
@@ -259,5 +244,4 @@ function isScoredEdit(edit: IScoredEdit<any>): edit is IScoredEdit<never> {
 	return edit.score !== 'unscored' && edit.scoreCategory !== 'unscored';
 }
 
-// Has to be a singleton to avoid writing race conditions
 export const inlineEditScoringService = new InlineEditScoringService();

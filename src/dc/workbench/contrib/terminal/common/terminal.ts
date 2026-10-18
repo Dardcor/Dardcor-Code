@@ -29,11 +29,6 @@ export const TERMINAL_CONFIG_SECTION = 'terminal.integrated';
 
 export const DEFAULT_LETTER_SPACING = 0;
 export const MINIMUM_LETTER_SPACING = -5;
-// HACK: On Linux it's common for fonts to include an underline that is rendered lower than the
-// bottom of the cell which causes it to be cut off due to `overflow:hidden` in the DOM renderer.
-// See:
-// - https://github.com/microsoft/vscode/issues/211933
-// - https://github.com/xtermjs/xterm.js/issues/4067
 export const DEFAULT_LINE_HEIGHT = isLinux ? 1.1 : 1;
 
 export const MINIMUM_FONT_WEIGHT = 1;
@@ -48,9 +43,6 @@ export interface ITerminalProfileResolverService {
 
 	readonly defaultProfileName: string | undefined;
 
-	/**
-	 * Resolves the icon of a shell launch config if this will use the default profile
-	 */
 	resolveIcon(shellLaunchConfig: IShellLaunchConfig, os: OperatingSystem): void;
 	resolveShellLaunchConfig(shellLaunchConfig: IShellLaunchConfig, options: IShellLaunchConfigResolveOptions): Promise<void>;
 	getDefaultProfile(options: IShellLaunchConfigResolveOptions): Promise<ITerminalProfile>;
@@ -80,12 +72,6 @@ export interface ITerminalProfileService {
 	registerInternalContributedProfile(profile: IExtensionTerminalProfile): IDisposable;
 	getContributedProfileProvider(extensionIdentifier: string, id: string): ITerminalProfileProvider | undefined;
 	registerTerminalProfileProvider(extensionIdentifier: string, id: string, profileProvider: ITerminalProfileProvider): IDisposable;
-	/**
-	 * Overrides the default contributed terminal profile. When set,
-	 * {@link getContributedDefaultProfile} returns the matching profile
-	 * regardless of the user's configuration. Dispose the returned
-	 * disposable to remove the override.
-	 */
 	overrideDefaultProfile(extensionIdentifier: string, id: string): IDisposable;
 }
 
@@ -248,10 +234,6 @@ export interface IRemoteTerminalAttachTarget {
 }
 
 export interface IBeforeProcessDataEvent {
-	/**
-	 * The data of the event, this can be modified by the event listener to change what gets sent
-	 * to the terminal.
-	 */
 	data: string;
 }
 
@@ -260,7 +242,6 @@ export interface IDefaultShellAndArgsRequest {
 	callback: (shell: string, args: string[] | string | undefined) => void;
 }
 
-/** Read-only process information that can apply to detached terminals. */
 export interface ITerminalProcessInfo {
 	readonly processState: ProcessState;
 	readonly ptyProcessReady: Promise<void>;
@@ -320,21 +301,11 @@ export interface ITerminalProcessManager extends IDisposable, ITerminalProcessIn
 }
 
 export const enum ProcessState {
-	// The process has not been initialized yet.
 	Uninitialized = 1,
-	// The process is currently launching, the process is marked as launching
-	// for a short duration after being created and is helpful to indicate
-	// whether the process died as a result of bad shell and args.
 	Launching = 2,
-	// The process is running normally.
 	Running = 3,
-	// The process was killed during launch, likely as a result of bad shell and
-	// args.
 	KilledDuringLaunch = 4,
-	// The process was killed by the user (the event originated from VS Code).
 	KilledByUser = 5,
-	// The process was killed by itself, for example the shell crashed or `exit`
-	// was run.
 	KilledByProcess = 6
 }
 
@@ -363,29 +334,11 @@ export interface IStartExtensionTerminalRequest {
 }
 
 export interface ITerminalStatus {
-	/** An internal string ID used to identify the status. */
 	id: string;
-	/**
-	 * The severity of the status, this defines both the color and how likely the status is to be
-	 * the "primary status".
-	 */
 	severity: Severity;
-	/**
-	 * An icon representing the status, if this is not specified it will not show up on the terminal
-	 * tab and will use the generic `info` icon when hovering.
-	 */
 	icon?: ThemeIcon;
-	/**
-	 * What to show for this status in the terminal's hover.
-	 */
 	tooltip?: string | undefined;
-	/**
-	 * What to show for this status in the terminal's hover when details are toggled.
-	 */
 	detailedTooltip?: string | undefined;
-	/**
-	 * Actions to expose on hover.
-	 */
 	hoverActions?: ITerminalStatusHoverAction[];
 }
 
@@ -395,9 +348,6 @@ export interface ITerminalStatusHoverAction {
 	run: () => void;
 }
 
-/**
- * Context for actions taken on terminal instances.
- */
 export interface ISerializedTerminalInstanceContext {
 	$mid: MarshalledId.TerminalContext;
 	instanceId: number;

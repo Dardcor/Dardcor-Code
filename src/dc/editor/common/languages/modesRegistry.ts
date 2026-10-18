@@ -11,7 +11,6 @@ import { Disposable, IDisposable } from '../../../base/common/lifecycle.js';
 import { Mimes } from '../../../base/common/mime.js';
 import { IConfigurationRegistry, Extensions as ConfigurationExtensions } from '../../../platform/configuration/common/configurationRegistry.js';
 
-// Define extension point ids
 export const Extensions = {
 	ModesRegistry: 'editor.modesRegistry'
 };
@@ -68,7 +67,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 				'editor.unicodeHighlight.ambiguousCharacters': false,
 				'editor.unicodeHighlight.invisibleCharacters': false
 			},
-			// TODO: Below is a workaround for: https://github.com/microsoft/vscode/issues/240567
 			'[go]': {
 				'editor.insertSpaces': false
 			},

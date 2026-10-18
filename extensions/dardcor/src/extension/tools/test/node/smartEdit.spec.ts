@@ -66,7 +66,6 @@ describe('Smart Edit Engine', () => {
 				'}'
 			].join('\n');
 
-			// LLM forgot slight naming in inner line
 			const oldString = [
 				'function processOrder(order) {',
 				'    validate(order);',

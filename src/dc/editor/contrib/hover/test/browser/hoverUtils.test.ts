@@ -90,7 +90,6 @@ suite('Hover Utils', () => {
 
 		function createMockElement(left: number, top: number, width: number, height: number): HTMLElement {
 			const element = document.createElement('div');
-			// Mock getDomNodePagePosition by setting up the element's bounding rect
 			element.getBoundingClientRect = () => ({
 				left,
 				top,
@@ -114,10 +113,10 @@ suite('Hover Utils', () => {
 
 		test('returns true when mouse is on element edges', () => {
 			const element = createMockElement(100, 100, 200, 100);
-			assert.strictEqual(isMousePositionWithinElement(element, 100, 100), false); // top-left corner
-			assert.strictEqual(isMousePositionWithinElement(element, 300, 100), false); // top-right corner
-			assert.strictEqual(isMousePositionWithinElement(element, 100, 200), false); // bottom-left corner
-			assert.strictEqual(isMousePositionWithinElement(element, 300, 200), false); // bottom-right corner
+			assert.strictEqual(isMousePositionWithinElement(element, 100, 100), false);
+			assert.strictEqual(isMousePositionWithinElement(element, 300, 100), false);
+			assert.strictEqual(isMousePositionWithinElement(element, 100, 200), false);
+			assert.strictEqual(isMousePositionWithinElement(element, 300, 200), false);
 		});
 
 		test('returns false when mouse is left of element', () => {

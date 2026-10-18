@@ -9,14 +9,6 @@ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry'
 import { hash } from '../../../util/dardcor/base/common/hash';
 import { URI } from '../../../util/dardcor/base/common/uri';
 
-/**
- * Sends `skillContentRead` telemetry for a skill invocation.
- * Shared between the skill tool and the readFile tool to ensure consistent
- * telemetry when skills are loaded through either path.
- *
- * TODO: Add pluginNameHash and pluginVersion properties once vscode core's
- * extensionPromptFileProvider command exposes IAgentPluginService metadata.
- */
 export function sendSkillContentReadTelemetry(
 	telemetryService: ITelemetryService,
 	customInstructionsService: ICustomInstructionsService,

@@ -97,7 +97,6 @@ export class SimpleSuggestDetailsWidget {
 		this.domNode.style.fontSize = fontSizePx;
 		this.domNode.style.lineHeight = `${lineHeight / fontSize}`;
 		this.domNode.style.fontWeight = fontWeight;
-		// this.domNode.style.fontFeatureSettings = fontInfo.fontFeatureSettings;
 		this._type.style.fontFamily = fontFamily;
 		this._close.style.height = lineHeightPx;
 		this._close.style.width = lineHeightPx;
@@ -171,7 +170,6 @@ export class SimpleSuggestDetailsWidget {
 
 		this.domNode.classList.remove('no-docs', 'no-type');
 
-		// --- details
 
 		if (hasDetail && detail) {
 			const cappedDetail = detail.length > 100000 ? `${detail.substr(0, 100000)}…` : detail;
@@ -186,7 +184,6 @@ export class SimpleSuggestDetailsWidget {
 			this.domNode.classList.add('no-type');
 		}
 
-		// // --- documentation
 
 		dom.clearNode(this._docs);
 		if (hasDocs && typeof documentation === 'string') {
@@ -294,7 +291,6 @@ export class SimpleSuggestDetailsOverlay {
 
 	private _added: boolean = false;
 	private _anchorBox?: dom.IDomNodePagePosition;
-	// private _preferAlignAtTop: boolean = true;
 	private _userSize?: dom.Dimension;
 	private _topLeft?: TopLeftPosition;
 	private readonly _preventPlacements?: ReadonlySet<SimpleSuggestDetailsPlacement>;
@@ -384,7 +380,6 @@ export class SimpleSuggestDetailsOverlay {
 			this._container.removeChild(this._resizable.domNode);
 			this._added = false;
 			this._anchorBox = undefined;
-			// this._topLeft = undefined;
 		}
 		if (sessionEnded) {
 			this._userSize = undefined;
@@ -409,7 +404,6 @@ export class SimpleSuggestDetailsOverlay {
 
 		type Placement = { top: number; left: number; fit: number; maxSizeTop: dom.Dimension; maxSizeBottom: dom.Dimension; minSize: dom.Dimension };
 
-		// EAST
 		const eastPlacement: Placement = (function () {
 			const width = bodyBox.width - (anchorBox.left + anchorBox.width + info.borderWidth + info.horizontalPadding);
 			const left = -info.borderWidth + anchorBox.left + anchorBox.width;
@@ -418,7 +412,6 @@ export class SimpleSuggestDetailsOverlay {
 			return { top: defaultTop, left, fit: width - size.width, maxSizeTop, maxSizeBottom, minSize: defaultMinSize.with(Math.min(width, defaultMinSize.width)) };
 		})();
 
-		// WEST
 		const westPlacement: Placement = (function () {
 			const width = anchorBox.left - info.borderWidth - info.horizontalPadding;
 			const left = Math.max(info.horizontalPadding, anchorBox.left - size.width - info.borderWidth);
@@ -427,7 +420,6 @@ export class SimpleSuggestDetailsOverlay {
 			return { top: defaultTop, left, fit: width - size.width, maxSizeTop, maxSizeBottom, minSize: defaultMinSize.with(Math.min(width, defaultMinSize.width)) };
 		})();
 
-		// SOUTH
 		const southPlacement: Placement = (function () {
 			const left = anchorBox.left;
 			const top = -info.borderWidth + anchorBox.top + anchorBox.height;
@@ -435,7 +427,6 @@ export class SimpleSuggestDetailsOverlay {
 			return { top, left, fit: maxSizeBottom.height - size.height, maxSizeBottom, maxSizeTop: maxSizeBottom, minSize: defaultMinSize.with(maxSizeBottom.width) };
 		})();
 
-		// NORTH
 		const northPlacement: Placement = (function () {
 			const width = Math.max(anchorBox.width - info.borderHeight, 0);
 			const left = anchorBox.left;
@@ -446,7 +437,6 @@ export class SimpleSuggestDetailsOverlay {
 			return { top, left, fit: maxSize.height - size.height, maxSizeTop: maxSize, maxSizeBottom: maxSize, minSize: defaultMinSize.with(maxSize.width) };
 		})();
 
-		// take first placement that fits or the first with "least bad" fit
 		const placementEntries: [SimpleSuggestDetailsPlacement, Placement][] = [
 			[SimpleSuggestDetailsPlacement.East, eastPlacement],
 			[SimpleSuggestDetailsPlacement.South, southPlacement],
@@ -461,7 +451,6 @@ export class SimpleSuggestDetailsOverlay {
 			?? candidates.reduce<Placement | undefined>((best, current) => !best || current.fit > best.fit ? current : best, undefined)
 			?? eastPlacement;
 
-		// top/bottom placement
 		const bottom = anchorBox.top + anchorBox.height - info.borderHeight;
 		let alignAtTop: boolean;
 		let height = size.height;
@@ -470,7 +459,6 @@ export class SimpleSuggestDetailsOverlay {
 			height = maxHeight;
 		}
 		let maxSize: dom.Dimension;
-		// if (preferAlignAtTop) {
 		if (height <= placement.maxSizeTop.height) {
 			alignAtTop = true;
 			maxSize = placement.maxSizeTop;
@@ -478,15 +466,6 @@ export class SimpleSuggestDetailsOverlay {
 			alignAtTop = false;
 			maxSize = placement.maxSizeBottom;
 		}
-		// } else {
-		// 	if (height <= placement.maxSizeBottom.height) {
-		// 		alignAtTop = false;
-		// 		maxSize = placement.maxSizeBottom;
-		// 	} else {
-		// 		alignAtTop = true;
-		// 		maxSize = placement.maxSizeTop;
-		// 	}
-		// }
 
 		let { top, left } = placement;
 		if (!alignAtTop && height > anchorBox.height) {
@@ -494,7 +473,6 @@ export class SimpleSuggestDetailsOverlay {
 		}
 		const editorDomNode = this._container;
 		if (editorDomNode) {
-			// get bounding rectangle of the suggest widget relative to the editor
 			const editorBoundingBox = editorDomNode.getBoundingClientRect();
 			top -= editorBoundingBox.top;
 			left -= editorBoundingBox.left;
@@ -511,7 +489,6 @@ export class SimpleSuggestDetailsOverlay {
 
 	private _applyTopLeft(topLeft: { left: number; top: number }): void {
 		this._topLeft = topLeft;
-		// this._editor.layoutOverlayWidget(this);
 		this._resizable.domNode.style.top = `${topLeft.top}px`;
 		this._resizable.domNode.style.left = `${topLeft.left}px`;
 		this._resizable.domNode.style.position = 'absolute';

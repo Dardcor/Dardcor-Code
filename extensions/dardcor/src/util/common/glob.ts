@@ -27,18 +27,8 @@ export function isMatch(uri: URI, glob: vscode.GlobPattern): boolean {
 }
 
 export interface GlobIncludeOptions {
-	/**
-	 * Globs for files to explicitly include in the search.
-	 *
-	 * If this is provided, only files matching these globs will be included.
-	 */
 	readonly include?: readonly vscode.GlobPattern[];
 
-	/**
-	 * Globs for files to exclude from the search.
-	 *
-	 * This takes precedence over the {@linkcode include} globs.
-	 */
 	readonly exclude?: readonly vscode.GlobPattern[];
 }
 
@@ -61,9 +51,7 @@ export function shouldInclude(uri: URI, options: GlobIncludeOptions | undefined)
 export function combineGlob(glob1: string | vscode.RelativePattern, glob2: string | vscode.RelativePattern): string {
 	let stringGlob1 = typeof glob1 === 'string' ? glob1 : glob1.baseUri.toString() + glob1.pattern;
 	let stringGlob2 = typeof glob2 === 'string' ? glob2 : glob2.baseUri.toString() + glob2.pattern;
-	// Remove any bracket expansion from the globs
 	stringGlob1 = stringGlob1.replace(/\{.*\}/g, '');
 	stringGlob2 = stringGlob2.replace(/\{.*\}/g, '');
-	// Combine them into one bracket expanded glob pattern
 	return `{${stringGlob1},${stringGlob2}}`;
 }

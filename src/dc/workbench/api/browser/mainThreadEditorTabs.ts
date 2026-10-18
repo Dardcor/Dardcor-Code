@@ -39,13 +39,9 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 
 	private readonly _dispoables = new DisposableStore();
 	private readonly _proxy: IExtHostEditorTabsShape;
-	// List of all groups and their corresponding tabs, this is **the** model
 	private _tabGroupModel: IEditorTabGroupDto[] = [];
-	// Lookup table for finding group by id
 	private readonly _groupLookup: Map<number, IEditorTabGroupDto> = new Map();
-	// Lookup table for finding tab by id
 	private readonly _tabInfoLookup: Map<string, TabInfo> = new Map();
-	// Tracks the currently open MultiDiffEditorInputs to listen to resource changes
 	private readonly _multiDiffEditorInputListeners: DisposableMap<MultiDiffEditorInput> = new DisposableMap();
 
 	constructor(
@@ -58,7 +54,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 
 		this._proxy = extHostContext.getProxy(ExtHostContext.ExtHostEditorTabs);
 
-		// Main listener which responds to events from the editor service
 		this._dispoables.add(editorService.onDidEditorsChange((event) => {
 			try {
 				this._updateTabsModel(event);
@@ -70,12 +65,9 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 
 		this._dispoables.add(this._multiDiffEditorInputListeners);
 
-		// Structural group changes (add, remove, move, etc) are difficult to patch.
-		// Since they happen infrequently we just rebuild the entire model
 		this._dispoables.add(this._editorGroupsService.onDidAddGroup(() => this._createTabsModel()));
 		this._dispoables.add(this._editorGroupsService.onDidRemoveGroup(() => this._createTabsModel()));
 
-		// Once everything is read go ahead and initialize the model
 		this._editorGroupsService.whenReady.then(() => this._createTabsModel());
 	}
 
@@ -85,12 +77,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		this._dispoables.dispose();
 	}
 
-	/**
-	 * Creates a tab object with the correct properties
-	 * @param editor The editor input represented by the tab
-	 * @param group The group the tab is in
-	 * @returns A tab object
-	 */
 	private _buildTabObject(group: IEditorGroup, editor: EditorInput, editorIndex: number): IEditorTabDto {
 		const editorId = editor.editorId;
 		const tab: IEditorTabDto = {
@@ -128,7 +114,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		if (editor instanceof SideBySideEditorInput && !(editor instanceof DiffEditorInput)) {
 			const primaryResource = editor.primary.resource;
 			const secondaryResource = editor.secondary.resource;
-			// If side by side editor with same resource on both sides treat it as a singular tab kind
 			if (editor.primary instanceof AbstractTextResourceEditorInput
 				&& editor.secondary instanceof AbstractTextResourceEditorInput
 				&& isEqual(primaryResource, secondaryResource)
@@ -225,15 +210,8 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		return { kind: TabInputKind.UnknownInput };
 	}
 
-	/**
-	 * Generates a unique id for a tab
-	 * @param editor The editor input
-	 * @param groupId The group id
-	 * @returns A unique identifier for a specific tab
-	 */
 	private _generateTabId(editor: EditorInput, groupId: number) {
 		let resourceString: string | undefined;
-		// Properly get the resource and account for side by side editors
 		const resource = EditorResourceAccessor.getCanonicalUri(editor, { supportSideBySide: SideBySideEditor.BOTH });
 		if (resource instanceof URI) {
 			resourceString = resource.toString();
@@ -243,28 +221,18 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		return `${groupId}~${editor.editorId}-${editor.typeId}-${resourceString} `;
 	}
 
-	/**
-	 * Called whenever a group activates, updates the model by marking the group as active an notifies the extension host
-	 */
 	private _onDidGroupActivate() {
 		const activeGroupId = this._editorGroupsService.activeGroup.id;
 		const activeGroup = this._groupLookup.get(activeGroupId);
 		if (activeGroup) {
-			// Ok not to loop as exthost accepts last active group
 			activeGroup.isActive = true;
 			this._proxy.$acceptTabGroupUpdate(activeGroup);
 		}
 	}
 
-	/**
-	 * Called when the tab label changes
-	 * @param groupId The id of the group the tab exists in
-	 * @param editorInput The editor input represented by the tab
-	 */
 	private _onDidTabLabelChange(groupId: number, editorInput: EditorInput, editorIndex: number) {
 		const tabId = this._generateTabId(editorInput, groupId);
 		const tabInfo = this._tabInfoLookup.get(tabId);
-		// If tab is found patch, else rebuild
 		if (tabInfo) {
 			tabInfo.tab.label = editorInput.getName();
 			this._proxy.$acceptTabOperation({
@@ -279,17 +247,9 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		}
 	}
 
-	/**
-	 * Called when a new tab is opened
-	 * @param groupId The id of the group the tab is being created in
-	 * @param editorInput The editor input being opened
-	 * @param editorIndex The index of the editor within that group
-	 */
 	private _onDidTabOpen(groupId: number, editorInput: EditorInput, editorIndex: number) {
 		const group = this._editorGroupsService.getGroup(groupId);
-		// Even if the editor service knows about the group the group might not exist yet in our model
 		const groupInModel = this._groupLookup.get(groupId) !== undefined;
-		// Means a new group was likely created so we rebuild the model
 		if (!group || !groupInModel) {
 			this._createTabsModel();
 			return;
@@ -298,10 +258,8 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		if (!tabs) {
 			return;
 		}
-		// Splice tab into group at index editorIndex
 		const tabObject = this._buildTabObject(group, editorInput, editorIndex);
 		tabs.splice(editorIndex, 0, tabObject);
-		// Update lookup
 		const tabId = this._generateTabId(editorInput, groupId);
 		this._tabInfoLookup.set(tabId, { group, editorInput, tab: tabObject });
 
@@ -329,28 +287,19 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		});
 	}
 
-	/**
-	 * Called when a tab is closed
-	 * @param groupId The id of the group the tab is being removed from
-	 * @param editorIndex The index of the editor within that group
-	 */
 	private _onDidTabClose(groupId: number, editorIndex: number) {
 		const group = this._editorGroupsService.getGroup(groupId);
 		const tabs = this._groupLookup.get(groupId)?.tabs;
-		// Something is wrong with the model state so we rebuild
 		if (!group || !tabs) {
 			this._createTabsModel();
 			return;
 		}
-		// Splice tab into group at index editorIndex
 		const removedTab = tabs.splice(editorIndex, 1);
 
-		// Index must no longer be valid so we return prematurely
 		if (removedTab.length === 0) {
 			return;
 		}
 
-		// Update lookup
 		this._tabInfoLookup.delete(removedTab[0]?.id ?? '');
 
 		if (removedTab[0]?.input instanceof MultiDiffEditorInput) {
@@ -365,21 +314,13 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		});
 	}
 
-	/**
-	 * Called when the active tab changes
-	 * @param groupId The id of the group the tab is contained in
-	 * @param editorIndex The index of the tab
-	 */
 	private _onDidTabActiveChange(groupId: number, editorIndex: number) {
-		// TODO @lramos15 use the tab lookup here if possible. Do we have an editor input?!
 		const tabs = this._groupLookup.get(groupId)?.tabs;
 		if (!tabs) {
 			return;
 		}
 		const activeTab = tabs[editorIndex];
-		// No need to loop over as the exthost uses the most recently marked active tab
 		activeTab.isActive = true;
-		// Send DTO update to the exthost
 		this._proxy.$acceptTabOperation({
 			groupId,
 			index: editorIndex,
@@ -389,16 +330,9 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 
 	}
 
-	/**
-	 * Called when the dirty indicator on the tab changes
-	 * @param groupId The id of the group the tab is in
-	 * @param editorIndex The index of the tab
-	 * @param editor The editor input represented by the tab
-	 */
 	private _onDidTabDirty(groupId: number, editorIndex: number, editor: EditorInput) {
 		const tabId = this._generateTabId(editor, groupId);
 		const tabInfo = this._tabInfoLookup.get(tabId);
-		// Something wrong with the model state so we rebuild
 		if (!tabInfo) {
 			this._logService.error('Invalid model for dirty change, rebuilding');
 			this._createTabsModel();
@@ -413,24 +347,16 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		});
 	}
 
-	/**
-	 * Called when the tab is pinned/unpinned
-	 * @param groupId The id of the group the tab is in
-	 * @param editorIndex The index of the tab
-	 * @param editor The editor input represented by the tab
-	 */
 	private _onDidTabPinChange(groupId: number, editorIndex: number, editor: EditorInput) {
 		const tabId = this._generateTabId(editor, groupId);
 		const tabInfo = this._tabInfoLookup.get(tabId);
 		const group = tabInfo?.group;
 		const tab = tabInfo?.tab;
-		// Something wrong with the model state so we rebuild
 		if (!group || !tab) {
 			this._logService.error('Invalid model for sticky change, rebuilding');
 			this._createTabsModel();
 			return;
 		}
-		// Whether or not the tab has the pin icon (internally it's called sticky)
 		tab.isPinned = group.isSticky(editorIndex);
 		this._proxy.$acceptTabOperation({
 			groupId,
@@ -440,24 +366,16 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		});
 	}
 
-	/**
- * Called when the tab is preview / unpreviewed
- * @param groupId The id of the group the tab is in
- * @param editorIndex The index of the tab
- * @param editor The editor input represented by the tab
- */
 	private _onDidTabPreviewChange(groupId: number, editorIndex: number, editor: EditorInput) {
 		const tabId = this._generateTabId(editor, groupId);
 		const tabInfo = this._tabInfoLookup.get(tabId);
 		const group = tabInfo?.group;
 		const tab = tabInfo?.tab;
-		// Something wrong with the model state so we rebuild
 		if (!group || !tab) {
 			this._logService.error('Invalid model for sticky change, rebuilding');
 			this._createTabsModel();
 			return;
 		}
-		// Whether or not the tab has the pin icon (internally it's called pinned)
 		tab.isPreview = !group.isPinned(editorIndex);
 		this._proxy.$acceptTabOperation({
 			kind: TabModelOperationKind.TAB_UPDATE,
@@ -469,21 +387,18 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 
 	private _onDidTabMove(groupId: number, editorIndex: number, oldEditorIndex: number, editor: EditorInput) {
 		const tabs = this._groupLookup.get(groupId)?.tabs;
-		// Something wrong with the model state so we rebuild
 		if (!tabs) {
 			this._logService.error('Invalid model for move change, rebuilding');
 			this._createTabsModel();
 			return;
 		}
 
-		// Move tab from old index to new index
 		const removedTab = tabs.splice(oldEditorIndex, 1);
 		if (removedTab.length === 0) {
 			return;
 		}
 		tabs.splice(editorIndex, 0, removedTab[0]);
 
-		// Notify exthost of move
 		this._proxy.$acceptTabOperation({
 			kind: TabModelOperationKind.TAB_MOVE,
 			groupId,
@@ -493,12 +408,9 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		});
 	}
 
-	/**
-	 * Builds the model from scratch based on the current state of the editor service.
-	 */
 	private _createTabsModel(): void {
 		if (this._editorGroupsService.groups.length === 0) {
-			return; // skip this invalid state, it may happen when the entire editor area is transitioning to other state ("editor working sets")
+			return;
 		}
 
 		this._tabGroupModel = [];
@@ -515,7 +427,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 			group.editors.forEach((editor, editorIndex) => {
 				const tab = this._buildTabObject(group, editor, editorIndex);
 				tabs.push(tab);
-				// Add information about the tab to the lookup
 				this._tabInfoLookup.set(this._generateTabId(editor, group.id), {
 					group,
 					tab,
@@ -527,14 +438,9 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 			this._groupLookup.set(group.id, currentTabGroupModel);
 			tabs = [];
 		}
-		// notify the ext host of the new model
 		this._proxy.$acceptEditorTabModel(this._tabGroupModel);
 	}
 
-	/**
-	 * The main handler for the tab events
-	 * @param events The list of events to process
-	 */
 	private _updateTabsModel(changeEvent: IEditorsChangeEvent): void {
 		const event = changeEvent.event;
 		const groupId = changeEvent.groupId;
@@ -582,12 +488,8 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 					break;
 				}
 			case GroupModelChangeKind.EDITOR_TRANSIENT:
-				// Currently not exposed in the API
 				break;
 			case GroupModelChangeKind.EDITORS_SELECTION:
-				// Multi-select state of editors is workbench-internal and not exposed in the tabs API.
-				// Treat as no-op so we do not rebuild the entire model (which would invalidate
-				// any `vscode.Tab` references the extension is currently holding).
 				break;
 			case GroupModelChangeKind.EDITOR_MOVE:
 				if (isGroupEditorMoveEvent(event) && event.editor && event.editorIndex !== undefined && event.oldEditorIndex !== undefined) {
@@ -595,11 +497,9 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 					break;
 				}
 			default:
-				// If it's not an optimized case we rebuild the tabs model from scratch
 				this._createTabsModel();
 		}
 	}
-	//#region Messages received from Ext Host
 	$moveTab(tabId: string, index: number, viewColumn: EditorGroupColumn, preserveFocus?: boolean): void {
 		const groupId = columnToEditorGroup(this._editorGroupsService, this._configurationService, viewColumn);
 		const tabInfo = this._tabInfoLookup.get(tabId);
@@ -612,10 +512,8 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		if (!sourceGroup) {
 			return;
 		}
-		// If group index is out of bounds then we make a new one that's to the right of the last group
 		if (this._groupLookup.get(groupId) === undefined) {
 			let direction = GroupDirection.RIGHT;
-			// Make sure we respect the user's preferred side direction
 			if (viewColumn === SIDE_GROUP) {
 				direction = preferredSideBySideGroupDirection(this._configurationService);
 			}
@@ -627,16 +525,13 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 			return;
 		}
 
-		// Similar logic to if index is out of bounds we place it at the end
 		if (index < 0 || index > targetGroup.editors.length) {
 			index = targetGroup.editors.length;
 		}
-		// Find the correct EditorInput using the tab info
 		const editorInput = tabInfo?.editorInput;
 		if (!editorInput) {
 			return;
 		}
-		// Move the editor to the target group
 		sourceGroup.moveEditor(editorInput, targetGroup, { index, preserveFocus });
 		return;
 	}
@@ -648,7 +543,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 			const tab = tabInfo?.tab;
 			const group = tabInfo?.group;
 			const editorTab = tabInfo?.editorInput;
-			// If not found skip
 			if (!group || !tab || !tabInfo || !editorTab) {
 				continue;
 			}
@@ -659,12 +553,10 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 				groupEditors.push(editorTab);
 			}
 		}
-		// Loop over keys of the groups map and call closeEditors
 		const results: boolean[] = [];
 		for (const [group, editors] of groups) {
 			results.push(await group.closeEditors(editors, { preserveFocus }));
 		}
-		// TODO @jrieken This isn't quite right how can we say true for some but not others?
 		return results.every(result => result);
 	}
 
@@ -674,7 +566,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 			const group = this._editorGroupsService.getGroup(groupId);
 			if (group) {
 				groupCloseResults.push(await group.closeAllEditors());
-				// Make sure group is empty but still there before removing it
 				if (group.count === 0 && this._editorGroupsService.getGroup(group.id)) {
 					this._editorGroupsService.removeGroup(group);
 				}
@@ -682,5 +573,4 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		}
 		return groupCloseResults.every(result => result);
 	}
-	//#endregion
 }

@@ -3,18 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------------------------
- *  Merge CG-generated and extension-scanned NOTICE files into a single output.
- *
- *  - Keys by lowercased name@version so multiple shipped versions are preserved
- *  - CG entries win on collision; scanner cargo entries override CG on stub
- *    collisions (SPDX-as-body replaced with real fetched license text)
- *  - Logs every package with its source
- *  - Produces ThirdPartyNotices.new.txt
- *
- *  Usage:
- *    node merge-notices.js --cg <path> --extensions <path> --output <path>
- *--------------------------------------------------------------------------------------------*/
 
 import fs from 'fs';
 import { applyOverrides, readCglicenses } from './apply-overrides.js';
@@ -61,13 +49,10 @@ function parseNoticeFile(filePath: string): NoticeEntry[] {
 			continue;
 		}
 
-		// Skip file header lines
 		if (headerLine.startsWith('NOTICES AND INFORMATION') || headerLine.startsWith('Do Not Translate')) {
 			continue;
 		}
 
-		// Validate this looks like a real package header, not license prose
-		// following a decorative dash line inside a LICENSE body.
 		if (!isPackageHeader(headerLine)) {
 			continue;
 		}
@@ -134,21 +119,18 @@ export function computeUnaccounted(
 	const presentNamesLower = new Set([...merged.values()].map(e => e.name.toLowerCase()));
 	const out: Array<{ name: string; version: string; reason: string }> = [];
 
-	// (a) Genuinely absent: scanner failed AND the name never landed in the notice.
 	for (const item of unresolved) {
 		if (!presentNamesLower.has(item.name.toLowerCase())) {
 			out.push({ name: item.name, version: item.version, reason: item.reason });
 		}
 	}
 
-	// (b) Present but with an empty license body.
 	for (const entry of merged.values()) {
 		if (!entry.licenseText || entry.licenseText.trim() === '') {
 			out.push({ name: entry.name, version: entry.version, reason: 'no-license-text' });
 		}
 	}
 
-	// Dedupe by `<name>@<version>` (a pkg may appear from both sources).
 	const seen = new Set<string>();
 	const deduped: Array<{ name: string; version: string; reason: string }> = [];
 	for (const u of out) {
@@ -186,7 +168,6 @@ async function mainAsync(): Promise<void> {
 		process.exit(1);
 	}
 
-	// Parse both inputs
 	const cgEntries = cgPath ? parseNoticeFile(cgPath) : [];
 	const extEntries = extPath ? parseNoticeFile(extPath) : [];
 
@@ -198,12 +179,6 @@ async function mainAsync(): Promise<void> {
 	console.log(`  Entries parsed: ${extEntries.length}`);
 	console.log('');
 
-	// Build merged map -- CG entries go in first (they win on conflicts).
-	// Key is `<name>@<version>` so multiple versions of the same package are
-	// preserved as separate entries (per CELA guidance: keep every shipped
-	// version's license text, even if license text is identical between versions).
-	// Entries with no version fall back to a name-only key to keep them distinct
-	// from versioned siblings.
 	const merged = new Map<string, NoticeEntry & { source: string }>();
 	const mergeKey = (e: NoticeEntry) => `${e.name.toLowerCase()}@${e.version || ''}`;
 
@@ -216,10 +191,6 @@ async function mainAsync(): Promise<void> {
 
 	const cgCount = merged.size;
 
-	// Load the scanner's stub-override index (sibling of the --extensions file).
-	// These `<name>@<version>` keys identify CG entries whose body is a stub (the
-	// SPDX expression instead of real license text); for them the scanner entry
-	// must WIN the collision, overriding CG's stub with the real fetched text.
 	const stubOverrideKeys = new Set<string>();
 	const stubOverridePath = args['stuboverride'] || (extPath ? extPath + '.stuboverride.json' : '');
 	if (stubOverridePath && fs.existsSync(stubOverridePath)) {
@@ -239,21 +210,16 @@ async function mainAsync(): Promise<void> {
 		}
 	}
 
-	// Add extension entries (only if same name+version not already covered by CG)
 	let extAdded = 0;
 	let extSkipped = 0;
 	let extStubOverridden = 0;
 	const extAddedNames: string[] = [];
 	const extSkippedNames: string[] = [];
-	// Override keys that actually collided with a CG entry (so the override took
-	// effect). Used after the loop to surface keys that never collided.
 	const collidedOverrideKeys = new Set<string>();
 
 	for (const entry of extEntries) {
 		const key = mergeKey(entry);
 		if (merged.has(key)) {
-			// Normally CG wins the collision. Exception: cargo stub-override keys --
-			// the scanner replaces CG's SPDX-as-body stub with real fetched text.
 			if (stubOverrideKeys.has(key)) {
 				merged.set(key, { ...entry, source: 'cargo-stub-override' });
 				extStubOverridden++;
@@ -270,12 +236,6 @@ async function mainAsync(): Promise<void> {
 		}
 	}
 
-	// Stub-override only flips priority on a `name@version` collision. If CG
-	// recorded a crate at a DIFFERENT version than Cargo.lock resolved, there is
-	// no collision: the scanner entry is added as a separate record and CG's stub
-	// SURVIVES -- a silent divergence (the scanner's cargoStubOverride counter
-	// still claimed success). Warn loudly for any override key that never
-	// collided so the mismatch is visible to the operator.
 	const uncollidedOverrideKeys = [...stubOverrideKeys].filter(k => !collidedOverrideKeys.has(k)).sort();
 	if (uncollidedOverrideKeys.length > 0) {
 		console.warn(`  WARN: ${uncollidedOverrideKeys.length} stub-override key(s) never collided with a CG entry -- CG's stub may survive at a different version. Verify these crates' notice text:`);
@@ -285,7 +245,6 @@ async function mainAsync(): Promise<void> {
 		console.log('');
 	}
 
-	// Log what happened
 	console.log(`--- Component Governance provided ${cgCount} packages ---`);
 	console.log('  (Source: ClearlyDefined license database via notice@0 task)');
 	console.log('');
@@ -310,8 +269,6 @@ async function mainAsync(): Promise<void> {
 		console.log('');
 	}
 
-	// Apply cglicenses.json overrides (the manual "last ~4%" gap-fill file).
-	// CELA-approved: overrides come from human-authored entries, not the tool.
 	let overridesApplied = 0;
 	let overridesInjected = 0;
 	let overrideEntryCount = 0;
@@ -325,9 +282,6 @@ async function mainAsync(): Promise<void> {
 				const overrides = readCglicenses(cglicensesPath);
 				console.log(`--- Applying ${overrides.length} cglicenses.json overrides ---`);
 
-				// Load the scanner's presence index (packages on disk with no license
-				// file). This lets applyOverrides tell "present but unlicensed" (inject)
-				// apart from "not shipped" (stale -> warn + skip).
 				const presencePath = args['presence'] || (extPath ? extPath + '.presence.json' : '');
 				const presentNames = new Set<string>();
 				if (presencePath && fs.existsSync(presencePath)) {
@@ -365,9 +319,6 @@ async function mainAsync(): Promise<void> {
 				}
 				if (result.staleNames.length > 0) {
 					console.warn(`  ${result.staleNames.length} override(s) reference a package not present in THIS build. A package can be absent because it is platform-specific (it only ships on other OS/arch builds) OR because the override is genuinely stale. Verify across platforms before removing anything from cglicenses.json:`);
-					// Heuristic: flag names that contain a platform/arch token so a
-					// single-platform build doesn't lead someone to delete an override
-					// that other-platform builds still rely on.
 					const platformToken = /(darwin|win32|linux|linuxmusl|alpine|freebsd|android|arm64|x64|ia32|armhf|ppc64|s390x|musl)/i;
 					for (const name of result.staleNames.sort()) {
 						const hint = platformToken.test(name)
@@ -382,9 +333,6 @@ async function mainAsync(): Promise<void> {
 						console.warn(`    ? unmatched: ${name}`);
 					}
 				}
-				// Stale overrides are warn-only and NEVER fail the build (the PR-time
-				// check is the real gate). --strict still fails on genuine errors and on
-				// unmatched (no-usable-text) overrides.
 				if (strict && (result.errors.length > 0 || result.unmatchedNames.length > 0)) {
 					console.error('--strict: failing build due to override errors or unmatched entries');
 					process.exit(2);
@@ -399,7 +347,6 @@ async function mainAsync(): Promise<void> {
 		}
 	}
 
-	// Sort and render
 	const sorted = [...merged.values()].sort((a, b) =>
 		a.name.toLowerCase().localeCompare(b.name.toLowerCase())
 	);
@@ -436,9 +383,6 @@ required to debug changes to any libraries licensed under the GNU Lesser General
 		if (entry.url) {
 			output += entry.url + '\n';
 		}
-		// Provenance annotations help reviewers trace where each license text
-		// came from. Gated behind --provenance so they can be stripped from the
-		// final shipped NOTICE when we cut over from the shadow copy.
 		if (provenance) {
 			if (entry.source === 'extension-scanner') {
 				output += '(license text obtained directly from package LICENSE file)\n';
@@ -465,21 +409,11 @@ required to debug changes to any libraries licensed under the GNU Lesser General
 
 	const sizeMB = (output.length / 1024 / 1024).toFixed(2);
 
-	// Reconcile the numbers so the summary is self-explaining. Only three inputs
-	// ADD a row to the final NOTICE: CG packages, brand-new extension-scanner
-	// packages, and injected overrides. Everything else either lands on a package
-	// CG already covers (folded -> no new row) or edits an existing row in place
-	// (count-neutral). "Found" is the gross discovery count across all sources;
-	// "included" is what actually ships after folding the overlaps.
 	const extScannerFound = extAdded + extStubOverridden + extSkipped;
 	const totalFound = cgCount + extScannerFound + overridesInjected;
 	const totalFolded = extSkipped + extStubOverridden;
 	const totalIncluded = sorted.length;
 
-	// Load the scanner's unresolved index (packages it tried to resolve but
-	// produced no row for). Cross-checked against the final merged notice below so
-	// packages rescued downstream (e.g. a cglicenses.json override) are excluded.
-	// Never throws — a missing/garbled sibling just yields an empty list.
 	const unresolvedPath = args['unresolved'] || (extPath ? extPath + '.unresolved.json' : '');
 	let unresolvedList: Array<{ name: string; version: string; reason: string }> = [];
 	if (unresolvedPath && fs.existsSync(unresolvedPath)) {
@@ -527,20 +461,15 @@ required to debug changes to any libraries licensed under the GNU Lesser General
 	const unaccounted = computeUnaccounted(merged, unresolvedList);
 	console.log('');
 	if (unaccounted.length > 0) {
-		// Surface as warnings so they show up in the ADO build log's warning count
-		// and any warning-count tooling. Informational only -- never fails the build.
 		console.warn(`  Packages NOT accounted for in the final NOTICE: ${unaccounted.length}`);
 		console.warn('  (genuinely absent, or present with an empty license body -- need a cglicenses.json override or upstream fix)');
 		for (const u of unaccounted) {
 			console.warn(`    ! ${u.name}@${u.version || '(no version)'} -- ${u.reason}`);
 		}
 	} else {
-		// Zero is good news, not a warning.
 		console.log(`  Packages NOT accounted for in the final NOTICE: ${unaccounted.length}`);
 	}
 
-	// Defensive: if a future code path mutates the merged map without updating a
-	// counter, this catches the drift instead of silently shipping a wrong total.
 	if (totalFound - totalFolded !== totalIncluded) {
 		console.warn(`  WARN: merge accounting mismatch -- found(${totalFound}) - folded(${totalFolded}) = ${totalFound - totalFolded}, but the final NOTICE has ${totalIncluded} packages. A source or override path is uncounted.`);
 	}
@@ -549,7 +478,6 @@ required to debug changes to any libraries licensed under the GNU Lesser General
 	console.log(`  Output: ${outputPath} (${sizeMB} MB)`);
 }
 
-// Only run mainAsync() when merge-notices is the entry point -- not when a test
 // or another module imports the exported helpers (mirrors scan-licenses.ts).
 if (/merge-notices(\.[jt]s)?$/.test(process.argv[1] || '')) {
 	mainAsync().catch(err => { console.error(err); process.exit(1); });

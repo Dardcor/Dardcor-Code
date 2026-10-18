@@ -10,54 +10,27 @@ import type { JsonValue } from './protocol/generated/serde_json/JsonValue.js';
 import { localize } from '../../../../nls.js';
 import { unwrapShellInvocation } from './codexShellCommand.js';
 
-/**
- * Auto-review (guardian) notifications are emitted by the app-server with
- * `ts-rs`-generated camelCase field names. The `thread/approveGuardianDeniedAction`
- * request, however, echoes back a `codex_protocol::protocol::GuardianAssessmentEvent`
- * that is (de)serialized with plain `serde` — which uses **snake_case** for enum
- * variants, enum values, and the tagged-union `type` discriminant. The two shapes
- * therefore diverge (`inProgress` vs `in_progress`, `networkAccess` vs
- * `network_access`, `unifiedExec` vs `unified_exec`, `toolName` vs `tool_name`, …),
- * so we cannot round-trip the notification payload verbatim.
- *
- * These helpers translate the camelCase completed-review notification into the
- * snake_case `GuardianAssessmentEvent` JSON that the app-server can deserialize,
- * and summarise a review action for display on the approval card.
- */
 
-/** camelCase {@link GuardianApprovalReviewStatus} value -> snake_case `GuardianAssessmentStatus`. */
 function guardianStatusToEvent(status: string): string {
 	switch (status) {
 		case 'inProgress': return 'in_progress';
 		case 'timedOut': return 'timed_out';
-		// `approved`, `denied`, `aborted` are identical in both casings.
 		default: return status;
 	}
 }
 
-/** camelCase {@link GuardianCommandSource} value -> snake_case. */
 function commandSourceToEvent(source: string): string {
 	return source === 'unifiedExec' ? 'unified_exec' : source;
 }
 
-/** camelCase {@link NetworkApprovalProtocol} value -> snake_case. */
 function networkProtocolToEvent(protocol: string): string {
 	switch (protocol) {
 		case 'socks5Tcp': return 'socks5_tcp';
 		case 'socks5Udp': return 'socks5_udp';
-		// `http`, `https` are identical in both casings.
 		default: return protocol;
 	}
 }
 
-/**
- * camelCase {@link RequestPermissionProfile} -> snake_case. The `network`
- * profile (`{ enabled }`) is identical in both casings, but the file-system
- * profile renames `fileSystem` -> `file_system` and `globScanMaxDepth` ->
- * `glob_scan_max_depth`. Its `read`/`write`/`entries` members (and the entry
- * `path`/`access` fields) are already snake_case in the notification, so they
- * round-trip verbatim.
- */
 function requestPermissionProfileToEvent(profile: RequestPermissionProfile): JsonValue {
 	const fs = profile.fileSystem;
 	let fileSystem: JsonValue = null;
@@ -74,11 +47,6 @@ function requestPermissionProfileToEvent(profile: RequestPermissionProfile): Jso
 	return { network: profile.network as JsonValue, file_system: fileSystem };
 }
 
-/**
- * Translate the camelCase notification action into the snake_case
- * `GuardianAssessmentAction` (`#[serde(tag = "type", rename_all = "snake_case")]`)
- * that `thread/approveGuardianDeniedAction` deserializes.
- */
 export function guardianReviewActionToEventAction(action: GuardianApprovalReviewAction): JsonValue {
 	switch (action.type) {
 		case 'command':
@@ -96,11 +64,6 @@ export function guardianReviewActionToEventAction(action: GuardianApprovalReview
 	}
 }
 
-/**
- * Build the snake_case `GuardianAssessmentEvent` JSON expected by
- * `thread/approveGuardianDeniedAction` from a completed-review notification.
- * Optional fields are omitted when absent (the Rust struct defaults them).
- */
 export function toGuardianAssessmentEventJson(notification: ItemGuardianApprovalReviewCompletedNotification): JsonValue {
 	const event: Record<string, JsonValue> = {
 		id: notification.reviewId,
@@ -130,24 +93,15 @@ export function toGuardianAssessmentEventJson(notification: ItemGuardianApproval
 	return event;
 }
 
-/** A human-readable summary of a reviewed action for the approval card. */
 export interface IGuardianActionSummary {
-	/** Short title (e.g. `"Network access"`). */
 	readonly title: string;
-	/** Detail line describing the specific action (e.g. the command or host). */
 	readonly detail: string;
-	/** Closest matching tool kind for iconography, when one applies. */
 	readonly toolKind?: 'terminal' | 'search';
 }
 
-/** Summarise a review action for display on the denied-action approval card. */
 export function summarizeGuardianReviewAction(action: GuardianApprovalReviewAction): IGuardianActionSummary {
 	switch (action.type) {
 		case 'command':
-			// Display-only: unwrap the OS shell wrapper (`/bin/zsh -lc '…'`) so the
-			// denial notice and "Approve anyway" card show the same clean command
-			// as the terminal pill. The raw action is still round-tripped verbatim
-			// to the app-server via toGuardianAssessmentEventJson on approval.
 			return { title: 'Run command', detail: unwrapShellInvocation(action.command), toolKind: 'terminal' };
 		case 'execve':
 			return { title: 'Run program', detail: unwrapShellInvocation([action.program, ...action.argv].join(' ')), toolKind: 'terminal' };
@@ -162,27 +116,13 @@ export function summarizeGuardianReviewAction(action: GuardianApprovalReviewActi
 	}
 }
 
-/** Escape the inline-code span so an embedded backtick can't break out of it. */
 function inlineCode(text: string): string {
-	// Use a fence long enough to contain any run of backticks in the text, per
-	// CommonMark's variable-length code-span rule, and pad with spaces when the
-	// content itself starts/ends with a backtick.
 	const longestRun = (text.match(/`+/g) ?? []).reduce((max, run) => Math.max(max, run.length), 0);
 	const fence = '`'.repeat(longestRun + 1);
 	const padding = text.startsWith('`') || text.endsWith('`') ? ' ' : '';
 	return `${fence}${padding}${text}${padding}${fence}`;
 }
 
-/**
- * Compose the durable denial notice for an auto-review denial, rendered as a
- * Markdown response part (which survives turn completion and, unlike a transient
- * progress/system-notification message, is not dropped by the live streaming
- * path) so the user always learns *why* an action was blocked — including the
- * reviewer rationale — even when the turn ends before the best-effort "Approve
- * anyway" card can be acted on. The notice is emitted as a blockquote so it
- * stays visually distinct from the model's own prose even when adjacent
- * Markdown parts are concatenated into one rendered block.
- */
 export function formatGuardianDenialNotification(summary: IGuardianActionSummary, rationale: string | null): string {
 	const detail = summary.detail?.trim();
 	const header = '**Auto-review denied**';
@@ -196,12 +136,9 @@ export function formatGuardianDenialNotification(summary: IGuardianActionSummary
 		lines.push('', ...reason.split('\n'));
 	}
 	const quoted = lines.map(line => (line ? `> ${line}` : '>')).join('\n');
-	// Leading blank line separates the blockquote from any preceding Markdown
-	// part; trailing newline keeps subsequent model output on its own block.
 	return `\n\n${quoted}\n`;
 }
 
-/** Compose a compact, collapsible notification for a review that did not decide. */
 export function formatGuardianReviewStatusNotification(summary: IGuardianActionSummary, status: 'timedOut' | 'aborted', rationale: string | null): string {
 	const title = status === 'timedOut'
 		? localize('codex.guardianReview.timedOut', "Auto-review timed out")

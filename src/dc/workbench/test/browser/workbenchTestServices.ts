@@ -193,7 +193,6 @@ import { IWorkingCopyService, WorkingCopyService } from '../../services/workingC
 import { TestChatEntitlementService, TestContextService, TestExtensionService, TestFileService, TestHistoryService, TestLifecycleService, TestLoggerService, TestMarkerService, TestProductService, TestStorageService, TestTextResourcePropertiesService, TestWorkspaceTrustManagementService, TestWorkspaceTrustRequestService } from '../common/workbenchTestServices.js';
 import { DefaultAccountService } from '../../services/accounts/browser/defaultAccount.js';
 
-// Backcompat export
 export { TestFileService, TestLifecycleService };
 
 export function createFileEditorInput(instantiationService: IInstantiationService, resource: URI): FileEditorInput {
@@ -591,7 +590,6 @@ export class TestMenuService implements IMenuService {
 	}
 
 	resetHiddenStates(): void {
-		// nothing
 	}
 }
 
@@ -1090,8 +1088,6 @@ export class TestEditorService extends Disposable implements EditorServiceImpl {
 	openEditor(editor: IResourceEditorInput | IUntitledTextResourceEditorInput, group?: PreferredGroup): Promise<IEditorPane | undefined>;
 	openEditor(editor: IResourceDiffEditorInput, group?: PreferredGroup): Promise<ITextDiffEditorPane | undefined>;
 	async openEditor(editor: EditorInput | IUntypedEditorInput, optionsOrGroup?: IEditorOptions | PreferredGroup, group?: PreferredGroup): Promise<IEditorPane | undefined> {
-		// openEditor takes ownership of the input, register it to the TestEditorService
-		// so it's not marked as leaked during tests.
 		if ('dispose' in editor) {
 			this._register(editor);
 		}
@@ -1236,7 +1232,7 @@ export class TestWillShutdownEvent implements WillShutdownEvent {
 		this.value.push(typeof promise === 'function' ? promise() : promise);
 	}
 
-	force() { /* No-Op in tests */ }
+	force() { }
 }
 
 export class TestTextResourceConfigurationService implements ITextResourceConfigurationService {

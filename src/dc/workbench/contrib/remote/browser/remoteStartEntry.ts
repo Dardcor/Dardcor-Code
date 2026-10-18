@@ -46,7 +46,6 @@ export class RemoteStartEntry extends Disposable implements IWorkbenchContributi
 	private registerActions(): void {
 		const category = nls.localize2('remote.category', "Remote");
 
-		// Show Remote Start Action
 		const startEntry = this;
 		this._register(registerAction2(class extends Action2 {
 			constructor() {
@@ -81,7 +80,6 @@ export class RemoteStartEntry extends Disposable implements IWorkbenchContributi
 
 	private async _init(): Promise<void> {
 
-		// Check if installed and enabled
 		const installed = (await this.extensionManagementService.getInstalled()).find(value => ExtensionIdentifier.equals(value.identifier.id, this.remoteExtensionId));
 		if (installed) {
 			if (this.extensionEnablementService.isEnabled(installed)) {

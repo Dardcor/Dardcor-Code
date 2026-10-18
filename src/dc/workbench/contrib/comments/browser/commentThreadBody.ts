@@ -53,7 +53,6 @@ export class CommentThreadBody<T extends IRange | ICellRange = IRange> extends D
 		super();
 
 		this._register(dom.addDisposableListener(container, dom.EventType.FOCUS_IN, e => {
-			// TODO @rebornix, limit T to IRange | ICellRange
 			this.commentService.setActiveEditingCommentThread(this._commentThread);
 		}));
 	}
@@ -189,7 +188,6 @@ export class CommentThreadBody<T extends IRange | ICellRange = IRange> extends D
 			}
 		}
 
-		// del removed elements
 		for (let i = commentElementsToDel.length - 1; i >= 0; i--) {
 			const commentToDelete = commentElementsToDel[i];
 			this._commentDisposable.deleteAndDispose(commentToDelete);
@@ -231,7 +229,6 @@ export class CommentThreadBody<T extends IRange | ICellRange = IRange> extends D
 
 		this._commentThread = commentThread;
 		this._commentElements = newCommentNodeList;
-		// Start editing *after* updating the thread and elements to avoid a sequencing issue https://github.com/microsoft/vscode/issues/239191
 		await Promise.all(startEditing);
 
 		if (newCommentsInEditMode.length) {

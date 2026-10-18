@@ -12,9 +12,6 @@ type ObservableArrayToChangesData<T extends Record<string, IObservableWithChange
 	[Key in keyof T]: {
 		value: ObservableResult<T[Key]>;
 		changes: T[Key]['TChange'][];
-		/**
-		 * The value of the observable before the changes. `undefined` if
-		 */
 		previous: ObservableResult<T[Key]> | undefined;
 	}
 };

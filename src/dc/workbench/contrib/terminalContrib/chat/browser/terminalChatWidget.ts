@@ -45,11 +45,8 @@ import { Selection } from '../../../../../editor/common/core/selection.js';
 const enum Constants {
 	HorizontalMargin = 10,
 	VerticalMargin = 30,
-	/** The right padding of the widget, this should align exactly with that in the editor. */
 	RightPadding = 12,
-	/** The max allowed height of the widget. */
 	MaxHeight = 480,
-	/** The max allowed height of the widget as a percentage of the terminal viewport. */
 	MaxHeightPercentageOfViewport = 0.75,
 }
 
@@ -133,7 +130,6 @@ export class TerminalChatWidget extends Disposable {
 			{
 				location: ChatAgentLocation.Terminal,
 				resolveData: () => {
-					// TODO@meganrogge return something that identifies this terminal
 					return undefined;
 				}
 			},
@@ -219,14 +215,12 @@ export class TerminalChatWidget extends Disposable {
 
 		const style = getActiveWindow().getComputedStyle(xtermElement);
 
-		// Calculate width
 		const xtermLeftPadding = parseInt(style.paddingLeft);
 		const width = xtermElement.clientWidth - xtermLeftPadding - Constants.RightPadding;
 		if (width === 0) {
 			return;
 		}
 
-		// Calculate height
 		const terminalViewportHeight = this._getTerminalViewportHeight();
 		const widgetAllowedPercentBasedHeight = (terminalViewportHeight ?? 0) * Constants.MaxHeightPercentageOfViewport;
 		const height = Math.max(Math.min(Constants.MaxHeight, this._inlineChatWidget.contentHeight, widgetAllowedPercentBasedHeight), this._inlineChatWidget.minHeight);
@@ -234,7 +228,6 @@ export class TerminalChatWidget extends Disposable {
 			return;
 		}
 
-		// Layout
 		this._dimension = new Dimension(width, height);
 		this._inlineChatWidget.layout(this._dimension);
 		this._inlineChatWidget.domNode.style.paddingLeft = `${xtermLeftPadding}px`;
@@ -561,16 +554,12 @@ class TerminalInlineChatWidget extends InlineChatWidget {
 			return;
 		}
 
-		// Look for the code block in the rendered response
 		const codeBlocks = this.chatWidget.getCodeBlockInfosForResponse(item);
 		const info = codeBlocks[codeBlockIndex];
 		if (info?.uri) {
 			return this._modelService.getModel(info.uri) ?? undefined;
 		}
 
-		// Fallback: if the code block hasn't been rendered yet (e.g. due to
-		// timing between response completion and list rendering), parse the
-		// markdown directly and create a transient model.
 		const markdown = item.response.getMarkdown();
 		let currentCodeBlockIndex = 0;
 		let foundText: string | undefined;

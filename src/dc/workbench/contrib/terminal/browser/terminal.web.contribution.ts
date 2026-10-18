@@ -12,8 +12,6 @@ import { TerminalContextKeys } from '../common/terminalContextKey.js';
 
 registerSingleton(ITerminalProfileResolverService, BrowserTerminalProfileResolverService, InstantiationType.Delayed);
 
-// Register standard external terminal keybinding as integrated terminal when in web as the
-// external terminal is not available
 KeybindingsRegistry.registerKeybindingRule({
 	id: TerminalCommandId.New,
 	weight: KeybindingWeight.WorkbenchContrib,

@@ -193,13 +193,11 @@ export default new class implements eslint.Rule.RuleModule {
 			const restrictions = (typeof option.restrictions === 'string' ? [option.restrictions] : option.restrictions).slice(0);
 
 			if (targetIsVS) {
-				// Always add "vs/nls" and "vs/amdX"
 				restrictions.push('vs/nls.js');
-				restrictions.push('vs/amdX.js'); // TODO@jrieken remove after ESM is real
+				restrictions.push('vs/amdX.js');
 			}
 
 			if (targetIsVS && option.layer) {
-				// single layer => simple substitution for /~
 				const layerRule = findLayer(option.layer);
 				if (layerRule) {
 					const [config, testConfig] = generateConfig(layerRule, target, restrictions);
@@ -210,7 +208,6 @@ export default new class implements eslint.Rule.RuleModule {
 					}
 				}
 			} else if (targetIsVS && /\/\~$/.test(target)) {
-				// generate all layers
 				for (const layerRule of layerRules) {
 					const [config, testConfig] = generateConfig(layerRule, target, restrictions);
 					configs.push(config);
@@ -228,7 +225,6 @@ export default new class implements eslint.Rule.RuleModule {
 		const targetIsVS = /^src\/vs\//.test(getRelativeFilename(context));
 		if (targetIsVS) {
 
-			// ESM: check for import ending with ".js" or ".css"
 			if (importPath[0] === '.' && !importPath.endsWith('.js') && !importPath.endsWith('.css')) {
 				context.report({
 					loc: node.loc,
@@ -236,7 +232,6 @@ export default new class implements eslint.Rule.RuleModule {
 				});
 			}
 
-			// check for import being relative
 			if (importPath.startsWith('vs/')) {
 				context.report({
 					loc: node.loc,
@@ -245,12 +240,10 @@ export default new class implements eslint.Rule.RuleModule {
 			}
 		}
 
-		// resolve relative paths
 		if (importPath[0] === '.') {
 			const relativeFilename = getRelativeFilename(context);
 			importPath = path.posix.join(path.posix.dirname(relativeFilename), importPath);
 			if (/^src\/vs\//.test(importPath)) {
-				// resolve using base url
 				importPath = importPath.substring('src/'.length);
 			}
 		}
@@ -266,7 +259,6 @@ export default new class implements eslint.Rule.RuleModule {
 		}
 
 		if (!matched) {
-			// None of the restrictions matched
 			context.report({
 				loc: node.loc,
 				messageId: 'badImport',
@@ -278,9 +270,6 @@ export default new class implements eslint.Rule.RuleModule {
 	}
 };
 
-/**
- * Returns the filename relative to the project root and using `/` as separators
- */
 function getRelativeFilename(context: eslint.Rule.RuleContext): string {
 	const filename = path.normalize(context.getFilename());
 	return filename.substring(REPO_ROOT.length).replace(/\\/g, '/');

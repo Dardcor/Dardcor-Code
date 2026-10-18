@@ -23,7 +23,7 @@ import { ChatRequestVariableSet } from '../../attachments/chatVariableEntries.js
 import { isByokModel } from '../../chatSelectedModel.js';
 import { IChatProgress, IChatService } from '../../chatService/chatService.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind } from '../../constants.js';
-import { AUTO_RAW_MODEL_ID, COPILOT_VENDOR_ID, ILanguageModelChatMetadata, ILanguageModelsService } from '../../languageModels.js';
+import { AUTO_RAW_MODEL_ID, DARD_COR_VENDOR_ID, ILanguageModelChatMetadata, ILanguageModelsService } from '../../languageModels.js';
 import type { ChatModel, IChatRequestModeInstructions } from '../../model/chatModel.js';
 import { getChatSessionType } from '../../model/chatUri.js';
 import { IChatAgentRequest, IChatAgentResult, IChatAgentService } from '../../participants/chatAgents.js';
@@ -92,10 +92,8 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 	private readonly _onDidUpdateToolData = this._register(new Emitter<void>());
 	readonly onDidUpdateToolData: Event<void> = this._onDidUpdateToolData.event;
 
-	/** Hack to port data between prepare/invoke */
 	private readonly _resolvedModels = new Map<string, IResolvedSubagentModel>();
 
-	/** Tracks the current subagent nesting depth per session to detect and limit recursion. */
 	private readonly _sessionDepth = new Map<string, number>();
 
 	private _autoModelResolution: Promise<string | undefined> | undefined;
@@ -165,7 +163,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 			throw new Error('toolInvocationToken is required for this tool');
 		}
 
-		// Get the chat model and request for writing progress
 		const model = this.chatService.getSession(invocation.context.sessionResource) as ChatModel | undefined;
 		if (!model) {
 			throw new Error('Chat model not found for session');
@@ -177,13 +174,11 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 		const store = new DisposableStore();
 
 		try {
-			// Get the default agent
 			const defaultAgent = this.chatAgentService.getDefaultAgent(ChatAgentLocation.Chat, ChatModeKind.Agent);
 			if (!defaultAgent) {
 				return createToolSimpleTextResult('Error: No default agent available');
 			}
 
-			// Resolve mode-specific configuration if subagentId is provided
 			let modeModelId = invocation.modelId;
 			let modeTools = invocation.userSelectedTools;
 			let modeInstructions: IChatRequestModeInstructions | undefined;
@@ -199,7 +194,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 				this.validateSubagentAllowed(subAgentName, currentModeInstructions);
 				subagent = await this.getSubAgentByName(subAgentName);
 				if (subagent) {
-					// Check the pre-resolved model cache from prepareToolInvocation
 					const cached = this._resolvedModels.get(invocation.callId);
 					if (cached) {
 						this._resolvedModels.delete(invocation.callId);
@@ -207,19 +201,15 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 						resolvedModelName = cached.resolvedModelName;
 						modelSelectionSource = cached.selectionSource;
 					} else {
-						// Fallback: resolve the model here if prepare didn't cache it
 						const resolved = await this.resolveSubagentModel(subagent, invocation.modelId, args.model);
 						modeModelId = resolved.modeModelId;
 						resolvedModelName = resolved.resolvedModelName;
 						modelSelectionSource = resolved.selectionSource;
 					}
 
-					// Use mode-specific tools if available
 					const modeCustomTools = subagent.tools;
 					if (modeCustomTools) {
-						// Convert the mode's custom tools (array of qualified names) to UserSelectedTools format
 						const enablementMap = this.languageModelToolsService.toToolAndToolSetEnablementMap(modeCustomTools, undefined);
-						// Convert enablement map to UserSelectedTools (Record<string, boolean>)
 						modeTools = {};
 						for (const [tool, enabled] of enablementMap) {
 							if (!isToolSet(tool)) {
@@ -244,7 +234,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 			} else {
 				modeInstructions = currentModeInstructions;
 
-				// No subagent name - clean up any cached entry and resolve model from explicit parameter or main model
 				const cached = this._resolvedModels.get(invocation.callId);
 				if (cached) {
 					this._resolvedModels.delete(invocation.callId);
@@ -259,32 +248,24 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 				}
 			}
 
-			// Track whether we should collect markdown (after the last tool invocation)
 			const markdownParts: string[] = [];
 
-			// Generate a stable subAgentInvocationId for routing edits to this subagent's content part.
-			// Use chatStreamToolCallId when available because that is what ChatToolInvocation.toolCallId
-			// uses in the renderer (see PR #302863), and the subagent grouping matches on toolCallId.
 			const subAgentInvocationId = invocation.chatStreamToolCallId ?? invocation.callId ?? `subagent-${generateUuid()}`;
 
 			let inEdit = false;
 			const progressCallback = (parts: IChatProgress[]) => {
 				for (const part of parts) {
-					// Usage events carry the subagent's running credit total; keep the
-					// latest for its hover and fold it into the parent response total.
 					if (part.kind === 'usage') {
 						if (typeof part.copilotCredits === 'number' && Number.isFinite(part.copilotCredits) && part.copilotCredits >= 0) {
 							subagentCredits = Math.max(subagentCredits ?? 0, part.copilotCredits);
 						}
 						continue;
 					}
-					// Write certain parts immediately to the model
 					if (part.kind === 'textEdit' || part.kind === 'notebookEdit' || part.kind === 'codeblockUri') {
 						if (part.kind === 'codeblockUri' && !inEdit) {
 							inEdit = true;
 							model.acceptResponseProgress(request, { kind: 'markdownContent', content: new MarkdownString('```\n') });
 						}
-						// Attach subAgentInvocationId to codeblockUri parts so they can be routed to the subagent content part
 						if (part.kind === 'codeblockUri') {
 							model.acceptResponseProgress(request, { ...part, subAgentInvocationId });
 						} else {
@@ -298,13 +279,11 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 							inEdit = false;
 						}
 
-						// Collect markdown content for the tool result
 						markdownParts.push(part.content.value);
 					}
 				}
 			};
 
-			// Determine whether the subagent should be allowed to spawn its own subagents.
 			const allowInvocationsFromSubagents = this.configurationService.getValue<boolean>(ChatConfiguration.SubagentsAllowInvocationsFromSubagents) ?? false;
 			const maxDepth = allowInvocationsFromSubagents ? RUN_SUBAGENT_MAX_NESTING_DEPTH : 0;
 			const sessionKey = invocation.context.sessionResource.toString();
@@ -312,14 +291,12 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 			const depthAllowed = currentDepth + 1 <= maxDepth;
 
 			if (!modeTools) {
-				// Initialize modeTools so that we can still enforce the max depth restriction
 				modeTools = {};
 			}
 
-			// Only further-restrict RunSubagentTool: do not re-enable it if it was explicitly disabled.
 			const existingRunSubagentEnablement = modeTools[RunSubagentTool.Id];
 			if (existingRunSubagentEnablement !== false) {
-				modeTools[RunSubagentTool.Id] = depthAllowed; // only enable the Run Subagent tool if we are under the max depth limit
+				modeTools[RunSubagentTool.Id] = depthAllowed;
 			}
 
 			modeTools[ManageTodoListToolToolId] = false;
@@ -330,13 +307,11 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 			}
 
 			const variableSet = new ChatRequestVariableSet();
-			// When the extension is responsible for instruction collection, skip the core path entirely.
 			if (this.configurationService.getValue<boolean>(ChatConfiguration.CollectInstructionsInExtension) !== true) {
 				const computer = this.instantiationService.createInstance(ComputeAutomaticInstructions, ChatModeKind.Agent, modeTools, modeInstructions?.allowedSubagents, getChatSessionType(invocation.context.sessionResource));
 				await computer.collect(variableSet, token);
 			}
 
-			// Collect hooks from hook .json files
 			let collectedHooks: ChatRequestHooks | undefined;
 			try {
 				const info = await this.promptsService.getHooks(token);
@@ -346,7 +321,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 			}
 
 			// Merge subagent-level hooks (from the agent's frontmatter) with global hooks.
-			// Remap Stop hooks to SubagentStop since the agent is running as a subagent.
 			if (subagent?.hooks) {
 				const remapped: ChatRequestHooks = { ...subagent.hooks };
 				if (remapped[HookType.Stop]) {
@@ -359,7 +333,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 				collectedHooks = mergeHooks(collectedHooks, remapped);
 			}
 
-			// Build the agent request
 			const agentRequest: IChatAgentRequest = {
 				sessionResource: invocation.context.sessionResource,
 				requestId: invocation.callId ?? `subagent-${Date.now()}`,
@@ -378,14 +351,12 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 				hasHooksEnabled: !!collectedHooks && Object.values(collectedHooks).some(arr => arr && arr.length > 0),
 			};
 
-			// Subscribe to tool invocations to clear markdown parts when a tool is invoked
 			store.add(this.languageModelToolsService.onDidInvokeTool(e => {
 				if (e.subagentInvocationId === subAgentInvocationId) {
 					markdownParts.length = 0;
 				}
 			}));
 
-			// Invoke the agent, tracking nesting depth for recursion detection
 			this.telemetryService.publicLog2<SubagentModelSelectionEvent, SubagentModelSelectionClassification>('chat.subagentModelSelection', {
 				selectionSource: modelSelectionSource,
 			});
@@ -408,22 +379,17 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 				}
 			}
 
-			// Check for errors
 			if (result?.errorDetails) {
 				return createToolSimpleTextResult(`Agent error: ${result.errorDetails.message}`);
 			}
 
-			// This is a hack due to the fact that edits are represented as empty codeblocks with URIs. That needs to be cleaned up,
-			// in the meantime, just strip an empty codeblock left behind.
 			const resultText = markdownParts.join('').replace(/^\n*```\n+```\n*/g, '').trim() || 'Agent completed with no output';
 
-			// Store result in toolSpecificData for serialization
 			if (invocation.toolSpecificData?.kind === 'subagent') {
 				invocation.toolSpecificData.result = resultText;
 				invocation.toolSpecificData.modelName = resolvedModelName;
 			}
 
-			// Return result with toolMetadata containing subAgentInvocationId for trajectory tracking
 			return {
 				content: [{
 					kind: 'text',
@@ -457,10 +423,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 		return agents.find(agent => agent.name === name && agent.enabled);
 	}
 
-	/**
-	 * Checks if a model exceeds the main model's cost tier based on multiplier.
-	 * @returns An object with `exceeds: true` and a reason string if blocked, or `exceeds: false` if allowed.
-	 */
 	private checkMultiplierConstraint(modelId: string, mainModelId: string | undefined): { exceeds: false } | { exceeds: true; reason: string } {
 		if (!mainModelId || modelId === mainModelId) {
 			return { exceeds: false };
@@ -481,10 +443,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 		return { exceeds: false };
 	}
 
-	/**
-	 * Returns information about available models for error messages.
-	 * Includes which models are unavailable due to multiplier restrictions.
-	 */
 	private getAvailableModelsInfo(mainModelId: string | undefined): string {
 		const models = this.languageModelsService.getLanguageModelIds()
 			.map(id => ({ id, metadata: this.languageModelsService.lookupLanguageModel(id) }))
@@ -519,14 +477,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 		return parts.join('. ') || 'No models available.';
 	}
 
-	/**
-	 * Resolves the model to be used by a subagent.
-	 * @param explicitModelQualifiedName Optional explicit model specified by the caller.
-	 *        If provided and not found or not allowed, throws an error with available models.
-	 * @param currentModeInstructions The current agent inherited when no subagent is requested.
-	 *        Its configured model keeps precedence over the Auto default.
-	 * @throws Error if the requested model is not found or exceeds the main model's cost tier.
-	 */
 	private async resolveSubagentModel(subagent: ICustomAgent | undefined, mainModelId: string | undefined, explicitModelQualifiedName?: string, currentModeInstructions?: IChatRequestModeInstructions): Promise<IResolvedSubagentModel> {
 		let modeModelId = mainModelId;
 		let explicitModelResolved = false;
@@ -534,7 +484,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 		let selectionSource: SubagentModelSelectionSource = 'mainModel';
 		const mainModelMetadata = mainModelId ? this.languageModelsService.lookupLanguageModel(mainModelId) : undefined;
 
-		// Explicit model parameter takes highest priority
 		if (explicitModelQualifiedName) {
 			const lm = this.languageModelsService.lookupLanguageModelByQualifiedName(explicitModelQualifiedName);
 			if (lm?.identifier) {
@@ -542,7 +491,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 				explicitModelResolved = true;
 				selectionSource = 'explicitModel';
 			} else {
-				// Model not found - throw error with available models
 				throw new Error(`Requested model '${explicitModelQualifiedName}' not found. ${this.getAvailableModelsInfo(mainModelId)}`);
 			}
 		}
@@ -550,16 +498,12 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 		if (subagent && !explicitModelResolved) {
 			const modeModelQualifiedNames = subagent.model;
 			if (modeModelQualifiedNames) {
-				// When the main model is BYOK (flagged via `metadata.isBYOK`), skip Copilot/CAPI fallback models
-				// for built-in agents (e.g. Explore), whose model list is a curated convenience fallback. A
-				// user-authored agent's model list is a deliberate choice and is always honored as-is.
 				const mainModelIsByok = !!mainModelMetadata && isByokModel(mainModelMetadata);
-				const skipCopilotFallbacks = mainModelIsByok && isBuiltinAgent(subagent.source, subagent.uri, this.productService);
-				// Find the actual model identifier from the qualified name(s)
+				const skipDardcorFallbacks = mainModelIsByok && isBuiltinAgent(subagent.source, subagent.uri, this.productService);
 				for (const qualifiedName of modeModelQualifiedNames) {
 					const lmByQualifiedName = this.languageModelsService.lookupLanguageModelByQualifiedName(qualifiedName);
 					if (lmByQualifiedName?.identifier) {
-						if (skipCopilotFallbacks && lmByQualifiedName.metadata.vendor === COPILOT_VENDOR_ID) {
+						if (skipDardcorFallbacks && lmByQualifiedName.metadata.vendor === DARD_COR_VENDOR_ID) {
 							continue;
 						}
 						modeModelId = lmByQualifiedName.identifier;
@@ -585,7 +529,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 			}
 		}
 
-		// Check multiplier constraint - throw error if requested model exceeds main model's cost tier
 		if (modeModelId && !usesAutoDefault) {
 			const check = this.checkMultiplierConstraint(modeModelId, mainModelId);
 			if (check.exceeds) {
@@ -617,7 +560,7 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 	private findEligibleAutoModelId(modelIds: readonly string[]): string | undefined {
 		return modelIds.find(modelId => {
 			const metadata = this.languageModelsService.lookupLanguageModel(modelId);
-			return metadata?.vendor === COPILOT_VENDOR_ID
+			return metadata?.vendor === DARD_COR_VENDOR_ID
 				&& metadata.id === AUTO_RAW_MODEL_ID
 				&& this.isSelectableForAgentMode(metadata);
 		});
@@ -625,7 +568,7 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 
 	private resolveAutoModelId(): Promise<string | undefined> {
 		const cachedModelId = this.findEligibleAutoModelId(this.languageModelsService.getLanguageModelIds());
-		if (cachedModelId || this.languageModelsService.hasResolvedVendor(COPILOT_VENDOR_ID)) {
+		if (cachedModelId || this.languageModelsService.hasResolvedVendor(DARD_COR_VENDOR_ID)) {
 			return Promise.resolve(cachedModelId);
 		}
 		this._autoModelResolution ??= this.activateAutoModel();
@@ -634,7 +577,7 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 
 	private async activateAutoModel(): Promise<string | undefined> {
 		try {
-			const modelIds = await this.languageModelsService.selectLanguageModels({ vendor: COPILOT_VENDOR_ID, id: AUTO_RAW_MODEL_ID });
+			const modelIds = await this.languageModelsService.selectLanguageModels({ vendor: DARD_COR_VENDOR_ID, id: AUTO_RAW_MODEL_ID });
 			return this.findEligibleAutoModelId(modelIds);
 		} catch (error) {
 			this.logService.warn('RunSubagentTool: Failed to resolve the Auto model, keeping the main model', error);
@@ -652,7 +595,6 @@ export class RunSubagentTool extends Disposable implements IToolImpl {
 		}
 		const subagent = requestedAgentName ? await this.getSubAgentByName(requestedAgentName) : undefined;
 
-		// Resolve the model early and cache it for invoke()
 		const resolved = await this.resolveSubagentModel(subagent, context.modelId, args.model, currentModeInstructions);
 		this._resolvedModels.set(context.toolCallId, resolved);
 

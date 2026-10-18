@@ -447,10 +447,6 @@ export class NotebookTextDiffList extends WorkbenchList<IDiffElementViewModelBas
 
 	getCellViewScrollTop(element: IDiffElementViewModelBase): number {
 		const index = this.indexOf(element);
-		// if (index === undefined || index < 0 || index >= this.length) {
-		// 	this._getViewIndexUpperBound(element);
-		// 	throw new ListError(this.listUser, `Invalid index ${index}`);
-		// }
 
 		return this.view.elementTop(index);
 	}
@@ -493,7 +489,7 @@ export class NotebookTextDiffList extends WorkbenchList<IDiffElementViewModelBas
 
 		if (styles.listFocusBackground) {
 			content.push(`.monaco-list${suffix}:focus > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.focused { background-color: ${styles.listFocusBackground}; }`);
-			content.push(`.monaco-list${suffix}:focus > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.focused:hover { background-color: ${styles.listFocusBackground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix}:focus > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.focused:hover { background-color: ${styles.listFocusBackground}; }`);
 		}
 
 		if (styles.listFocusForeground) {
@@ -502,7 +498,7 @@ export class NotebookTextDiffList extends WorkbenchList<IDiffElementViewModelBas
 
 		if (styles.listActiveSelectionBackground) {
 			content.push(`.monaco-list${suffix}:focus > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.selected { background-color: ${styles.listActiveSelectionBackground}; }`);
-			content.push(`.monaco-list${suffix}:focus > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.selected:hover { background-color: ${styles.listActiveSelectionBackground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix}:focus > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.selected:hover { background-color: ${styles.listActiveSelectionBackground}; }`);
 		}
 
 		if (styles.listActiveSelectionForeground) {
@@ -525,12 +521,12 @@ export class NotebookTextDiffList extends WorkbenchList<IDiffElementViewModelBas
 
 		if (styles.listInactiveFocusBackground) {
 			content.push(`.monaco-list${suffix} > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.focused { background-color:  ${styles.listInactiveFocusBackground}; }`);
-			content.push(`.monaco-list${suffix} > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.focused:hover { background-color:  ${styles.listInactiveFocusBackground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix} > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.focused:hover { background-color:  ${styles.listInactiveFocusBackground}; }`);
 		}
 
 		if (styles.listInactiveSelectionBackground) {
 			content.push(`.monaco-list${suffix} > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.selected { background-color:  ${styles.listInactiveSelectionBackground}; }`);
-			content.push(`.monaco-list${suffix} > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.selected:hover { background-color:  ${styles.listInactiveSelectionBackground}; }`); // overwrite :hover style in this case!
+			content.push(`.monaco-list${suffix} > div.monaco-scrollable-element > .monaco-list-rows > .monaco-list-row.selected:hover { background-color:  ${styles.listInactiveSelectionBackground}; }`);
 		}
 
 		if (styles.listInactiveSelectionForeground) {

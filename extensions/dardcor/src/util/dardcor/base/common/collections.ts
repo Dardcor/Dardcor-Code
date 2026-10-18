@@ -1,26 +1,13 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * An interface for a JavaScript object that
- * acts a dictionary. The keys are strings.
- */
 export type IStringDictionary<V> = Record<string, V>;
 
-/**
- * An interface for a JavaScript object that
- * acts a dictionary. The keys are numbers.
- */
 export type INumberDictionary<V> = Record<number, V>;
 
-/**
- * Groups the collection into a dictionary based on the provided
- * group function.
- */
 export function groupBy<K extends string | number | symbol, V>(data: readonly V[], groupFn: (element: V) => K): Partial<Record<K, V[]>> {
 	const result: Partial<Record<K, V[]>> = Object.create(null);
 	for (const element of data) {
@@ -80,13 +67,6 @@ export function diffMaps<K, V>(before: Map<K, V>, after: Map<K, V>): { removed: 
 	return { removed, added };
 }
 
-/**
- * Computes the intersection of two sets.
- *
- * @param setA - The first set.
- * @param setB - The second iterable.
- * @returns A new set containing the elements that are in both `setA` and `setB`.
- */
 export function intersection<T>(setA: Set<T>, setB: Iterable<T>): Set<T> {
 	const result = new Set<T>();
 	for (const elem of setB) {

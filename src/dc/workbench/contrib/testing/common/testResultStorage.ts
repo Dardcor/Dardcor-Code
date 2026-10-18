@@ -26,24 +26,13 @@ const CLEANUP_PROBABILITY = 0.2;
 export interface ITestResultStorage {
 	_serviceBrand: undefined;
 
-	/**
-	 * Retrieves the list of stored test results.
-	 */
 	read(): Promise<HydratedTestResult[]>;
 
-	/**
-	 * Persists the list of test results.
-	 */
 	persist(results: ReadonlyArray<ITestResult>): Promise<void>;
 }
 
 export const ITestResultStorage = createDecorator('ITestResultStorage');
 
-/**
- * Data revision this version of VS Code deals with. Should be bumped whenever
- * a breaking change is made to the stored results, which will cause previous
- * revisions to be discarded.
- */
 const currentRevision = 1;
 
 export abstract class BaseTestResultStorage extends Disposable implements ITestResultStorage {
@@ -64,9 +53,6 @@ export abstract class BaseTestResultStorage extends Disposable implements ITestR
 		}, storageService));
 	}
 
-	/**
-	 * @override
-	 */
 	public async read(): Promise<HydratedTestResult[]> {
 		const results = await Promise.all(this.stored.get([]).map(async (rec) => {
 			if (rec.rev !== currentRevision) {
@@ -94,28 +80,18 @@ export abstract class BaseTestResultStorage extends Disposable implements ITestR
 		return defined.map(({ result }) => result);
 	}
 
-	/**
-	 * @override
-	 */
 	public getResultOutputWriter(resultId: string) {
 		const stream = newWriteableBufferStream();
 		this.storeOutputForResultId(resultId, stream);
 		return stream;
 	}
 
-	/**
-	 * @override
-	 */
 	public async persist(results: ReadonlyArray<ITestResult>): Promise<void> {
 		const toDelete = new Map(this.stored.get([]).map(({ id, bytes }) => [id, bytes]));
 		const toStore: { rev: number; id: string; bytes: number }[] = [];
 		const todo: Promise<unknown>[] = [];
 		let budget = RETAIN_MAX_BYTES;
 
-		// Run until either:
-		// 1. We store all results
-		// 2. We store the max results
-		// 3. We store the min results, and have no more byte budget
 		for (
 			let i = 0;
 			i < results.length && i < RETAIN_MAX_RESULTS && (budget > 0 || toStore.length < RETAIN_MIN_RESULTS);
@@ -149,34 +125,16 @@ export abstract class BaseTestResultStorage extends Disposable implements ITestR
 		await Promise.all(todo);
 	}
 
-	/**
-	 * Reads serialized results for the test. Is allowed to throw.
-	 */
 	protected abstract readForResultId(id: string): Promise<ISerializedTestResults | undefined>;
 
-	/**
-	 * Reads output as a stream for the test.
-	 */
 	protected abstract readOutputForResultId(id: string): Promise<VSBufferReadableStream>;
 
-	/**
-	 * Reads an output range for the test.
-	 */
 	protected abstract readOutputRangeForResultId(id: string, offset: number, length: number): Promise<VSBuffer>;
 
-	/**
-	 * Deletes serialized results for the test.
-	 */
 	protected abstract deleteForResultId(id: string): Promise<unknown>;
 
-	/**
-	 * Stores test results by ID.
-	 */
 	protected abstract storeForResultId(id: string, data: ISerializedTestResults): Promise<unknown>;
 
-	/**
-	 * Reads serialized results for the test. Is allowed to throw.
-	 */
 	protected abstract storeOutputForResultId(id: string, input: VSBufferWriteableStream): Promise<void>;
 }
 
@@ -261,9 +219,6 @@ export class TestResultStorage extends BaseTestResultStorage {
 		await this.fileService.createFile(this.getResultOutputPath(id), input);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public override async persist(results: ReadonlyArray<ITestResult>) {
 		await super.persist(results);
 		if (Math.random() < CLEANUP_PROBABILITY) {
@@ -271,10 +226,6 @@ export class TestResultStorage extends BaseTestResultStorage {
 		}
 	}
 
-	/**
-	 * Cleans up orphaned files. For instance, output can get orphaned if it's
-	 * written but the editor is closed before the test run is complete.
-	 */
 	private async cleanupDereferenced() {
 		const { children } = await this.fileService.resolve(this.directory);
 		if (!children) {

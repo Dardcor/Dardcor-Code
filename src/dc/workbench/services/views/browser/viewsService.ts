@@ -79,7 +79,6 @@ export class ViewsService extends Disposable implements IViewsService {
 		this._register(this.viewDescriptorService.onDidChangeViewContainers(({ added, removed }) => this.onDidChangeContainers(added, removed)));
 		this._register(this.viewDescriptorService.onDidChangeContainerLocation(({ viewContainer, from, to }) => this.onDidChangeContainerLocation(viewContainer, from, to)));
 
-		// View Container Visibility
 		this._register(this.paneCompositeService.onDidPaneCompositeOpen(e => this._onDidChangeViewContainerVisibility.fire({ id: e.composite.getId(), visible: true, location: e.viewContainerLocation })));
 		this._register(this.paneCompositeService.onDidPaneCompositeClose(e => this._onDidChangeViewContainerVisibility.fire({ id: e.composite.getId(), visible: false, location: e.viewContainerLocation })));
 
@@ -148,7 +147,6 @@ export class ViewsService extends Disposable implements IViewsService {
 		this.deregisterPaneComposite(viewContainer, from);
 		this.registerPaneComposite(viewContainer, to);
 
-		// Open view container if part is visible and there is only one view container in location
 		if (
 			this.layoutService.isVisible(this.paneCompositeService.getPartId(to)) &&
 			this.viewDescriptorService.getViewContainersByLocation(to).filter(vc => this.isViewContainerActive(vc.id)).length === 1
@@ -199,7 +197,6 @@ export class ViewsService extends Disposable implements IViewsService {
 		return this.paneCompositeService.getPaneComposite(compositeId, location);
 	}
 
-	// One view container can be visible at a time in a location
 	isViewContainerVisible(id: string): boolean {
 		const viewContainer = this.viewDescriptorService.getViewContainerById(id);
 		if (!viewContainer) {
@@ -214,7 +211,6 @@ export class ViewsService extends Disposable implements IViewsService {
 		return this.paneCompositeService.getActivePaneComposite(viewContainerLocation)?.getId() === id;
 	}
 
-	// Multiple view containers can be active/inactive at a time in a location
 	isViewContainerActive(id: string): boolean {
 		const viewContainer = this.viewDescriptorService.getViewContainerById(id);
 		if (!viewContainer) {
@@ -338,9 +334,6 @@ export class ViewsService extends Disposable implements IViewsService {
 							this.paneCompositeService.hideActivePaneComposite(location);
 						}
 
-						// The blur event doesn't fire on WebKit when the focused element is hidden,
-						// so the context key needs to be forced here too otherwise a view may still
-						// think it's showing, breaking toggle commands.
 						if (this.focusedViewContextKey.get() === id) {
 							this.focusedViewContextKey.reset();
 						}
@@ -524,10 +517,8 @@ export class ViewsService extends Disposable implements IViewsService {
 
 					const viewLocation = viewDescriptorService.getViewLocationById(viewDescriptor.id);
 					if (viewDescriptorService.getViewLocationById(viewDescriptor.id) === ViewContainerLocation.Sidebar) {
-						// focus the editor if the view is focused and in the side bar
 						editorGroupService.activeGroup.focus();
 					} else if (viewLocation !== null) {
-						// otherwise hide the part where the view lives if focused
 						layoutService.setPartHidden(true, that.paneCompositeService.getPartId(viewLocation));
 					}
 				} else {
@@ -625,7 +616,6 @@ export class ViewsService extends Disposable implements IViewsService {
 				const defaultContainer = viewDescriptorService.getDefaultContainerById(viewDescriptor.id)!;
 				const containerModel = viewDescriptorService.getViewContainerModel(defaultContainer)!;
 
-				// The default container is hidden so we should try to reset its location first
 				if (defaultContainer.hideIfEmpty && containerModel.visibleViewDescriptors.length === 0) {
 					const defaultLocation = viewDescriptorService.getDefaultViewContainerLocation(defaultContainer)!;
 					viewDescriptorService.moveViewContainerToLocation(defaultContainer, defaultLocation, undefined, this.desc.id);
@@ -655,13 +645,10 @@ export class ViewsService extends Disposable implements IViewsService {
 			protected createViewPaneContainer(element: HTMLElement): ViewPaneContainer {
 				const viewPaneContainerDisposables = this._register(new DisposableStore());
 
-				// Use composite's instantiation service to get the editor progress service for any editors instantiated within the composite
 				const viewPaneContainer = that.createViewPaneContainer(element, viewContainer, viewContainerLocation, viewPaneContainerDisposables, this.instantiationService);
 
-				// Only updateTitleArea for non-filter views: microsoft/vscode-remote-release#3676
 				if (!(viewPaneContainer instanceof FilterViewPaneContainer)) {
 					viewPaneContainerDisposables.add(Event.any(viewPaneContainer.onDidAddViews, viewPaneContainer.onDidRemoveViews, viewPaneContainer.onTitleAreaUpdate)(() => {
-						// Update title area since there is no better way to update secondary actions
 						this.updateTitleArea();
 					}));
 				}
@@ -712,4 +699,4 @@ export class ViewsService extends Disposable implements IViewsService {
 
 function getEnabledViewContainerContextKey(viewContainerId: string): string { return `viewContainer.${viewContainerId}.enabled`; }
 
-registerSingleton(IViewsService, ViewsService, InstantiationType.Eager /* Eager because it registers viewlets and panels in the constructor which are required during workbench layout */);
+registerSingleton(IViewsService, ViewsService, InstantiationType.Eager );

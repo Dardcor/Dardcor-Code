@@ -5,7 +5,6 @@
 
 import { env } from './process.js';
 
-// Define the enumeration for Desktop Environments
 enum DesktopEnvironment {
 	UNKNOWN = 'UNKNOWN',
 	CINNAMON = 'CINNAMON',

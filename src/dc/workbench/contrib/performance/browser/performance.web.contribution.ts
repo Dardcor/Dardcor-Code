@@ -8,7 +8,6 @@ import { Registry } from '../../../../platform/registry/common/platform.js';
 import { Extensions, IWorkbenchContributionsRegistry } from '../../../common/contributions.js';
 import { BrowserResourcePerformanceMarks, BrowserStartupTimings } from './startupTimings.js';
 
-// -- startup timings
 
 Registry.as<IWorkbenchContributionsRegistry>(Extensions.Workbench).registerWorkbenchContribution(
 	BrowserResourcePerformanceMarks,

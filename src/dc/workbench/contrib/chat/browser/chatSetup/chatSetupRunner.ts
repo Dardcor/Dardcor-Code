@@ -95,11 +95,6 @@ export interface IChatSetupDialogOptions {
 	readonly renderFooter?: (container: HTMLElement) => IDisposable | undefined;
 }
 
-/**
- * Whether this strategy sends the user to a provider's sign-in page. `DefaultSetup`
- * is excluded: for an already signed-in user it installs and signs up with no
- * browser round trip.
- */
 function entersProviderAuthentication(strategy: ChatSetupStrategy): boolean {
 	switch (strategy) {
 		case ChatSetupStrategy.SetupWithEnterpriseProvider:
@@ -155,9 +150,6 @@ export class ChatSetupDialog extends Disposable {
 				},
 				buttonOptions: options.buttons.map(button => {
 					const classes = button.classes;
-					// Claim the sign-in window while the click's activation is still live;
-					// see `reserveWindowForExternalOpen`. Only installed mobile apps (fatal,
-					// no tab to fall back to) and Safari (recoverable via "Retry") need this.
 					const opensBrowser = (isMobileStandalone() || isSafari) && entersProviderAuthentication(button.strategy);
 					if (!classes && !opensBrowser) {
 						return undefined;
@@ -208,12 +200,6 @@ export async function showChatSetupDialogWithCancellation(
 	}
 }
 
-/**
- * Whether the sign-in dialog should offer "Continue with Microsoft". The dialog treats it as one
- * more provider button, exactly like Google and Apple: it goes to whichever host the default
- * account provider points at, and a host that cannot broker a Microsoft identity refuses it in the
- * authentication extension rather than here.
- */
 export function shouldShowMicrosoftProvider(configurationService: IConfigurationService): boolean {
 	return configurationService.getValue<boolean>(ChatMicrosoftAuthenticationEnabledSettingId) === true;
 }
@@ -327,33 +313,27 @@ export class ChatSetup {
 			this.context.update({ later: true });
 			this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: 'failedNotTrusted', installDuration: 0, signUpErrorCode: undefined, provider: undefined });
 
-			return { dialogSkipped, success: undefined /* canceled */ };
+			return { dialogSkipped, success: undefined };
 		}
 		if (options?.cancellationToken?.isCancellationRequested) {
 			return { dialogSkipped, success: undefined };
 		}
 
 		if (!wasTrusted) {
-			// Trust was just granted: the chat extension is (re)activating, and the
-			// entitlement only resolves once it is up. Wait for activation so the
-			// dialog decision below isn't made from a stale "signed out" entitlement
-			// (which would briefly show the sign-in dialog to an already-signed-in
-			// user). Bounded, so a genuinely signed-out / slow case still proceeds.
 			await this.whenChatExtensionActivated();
 		}
 
 		let setupStrategy: ChatSetupStrategy;
 		if (options?.setupStrategy !== undefined) {
-			setupStrategy = options.setupStrategy; // caller provided a specific strategy, skip dialog
+			setupStrategy = options.setupStrategy;
 		} else if (!options?.forceSignInDialog) {
-			// Dardcor Code: Always bypass "Sign in to use Agents" dialog
 			setupStrategy = ChatSetupStrategy.DefaultSetup;
 		} else {
 			setupStrategy = await this.showDialog(options);
 		}
 
 		if (setupStrategy === ChatSetupStrategy.DefaultSetup && this.defaultAccountService.getDefaultAccountAuthenticationProvider().enterprise) {
-			setupStrategy = ChatSetupStrategy.SetupWithEnterpriseProvider; // users with a configured provider go through provider setup
+			setupStrategy = ChatSetupStrategy.SetupWithEnterpriseProvider;
 		}
 
 		let success: ChatSetupResultValue = undefined;
@@ -366,8 +346,6 @@ export class ChatSetup {
 			}
 
 			if (setupStrategy !== ChatSetupStrategy.Canceled && !options?.disableChatViewReveal) {
-				// Show the chat view now to better indicate progress
-				// while installing the extension or returning from sign in
 				this.widgetService.revealWidget();
 			}
 
@@ -388,7 +366,6 @@ export class ChatSetup {
 					success = await this.controller.value.setupWithProvider({ useEnterpriseProvider: false, useSocialProvider: 'microsoft', additionalScopes: options?.additionalScopes, forceAnonymous: options?.forceAnonymous, cancellationToken: setupCancellation.token });
 					break;
 				case ChatSetupStrategy.DefaultSetup:
-					// Dardcor Code: Zero-Login bypass
 					success = true;
 					break;
 				case ChatSetupStrategy.Canceled:
@@ -407,7 +384,6 @@ export class ChatSetup {
 			}
 		} finally {
 			setupCancellation.dispose();
-			// no browser window was opened, so the reservation is still blank
 		}
 
 		if (success) {
@@ -417,10 +393,6 @@ export class ChatSetup {
 		return { success, dialogSkipped, error: setupError, errorAlreadyHandled };
 	}
 
-	/**
-	 * Whether the default chat extension has finished activating. `activationTimes`
-	 * is only set once activation completes, so `undefined` means "not yet active".
-	 */
 	private isChatExtensionActivated(): boolean {
 		const status = this.extensionService.getExtensionsStatus();
 		for (const id of Object.keys(status)) {
@@ -431,11 +403,6 @@ export class ChatSetup {
 		return false;
 	}
 
-	/**
-	 * Resolves once the default chat extension has finished activating (bounded by
-	 * a timeout). Detection relies only on the extension lifecycle, so it never
-	 * touches the user's authentication session.
-	 */
 	private async whenChatExtensionActivated(timeoutMs = 10000): Promise<void> {
 		if (!defaultChat.chatExtensionId || this.isChatExtensionActivated()) {
 			return;
@@ -467,7 +434,7 @@ export class ChatSetup {
 		const dialog = this.instantiationService.createInstance(ChatSetupDialog, this.layoutService.activeContainer, {
 			title: this.getDialogTitle(options),
 			buttons,
-			icon: options?.dialogIcon ?? Codicon.copilotLarge,
+			icon: options?.dialogIcon ?? Codicon.sparkle,
 			disableCloseButton: options?.disableCloseButton ?? false,
 			footer: getChatSetupDialogFooter(options?.forceAnonymous, this.telemetryService.telemetryLevel, this.defaultAccountService.resolveGitHubUrl(GitHubPaths.copilotSettings)),
 			extraClasses: options?.dialogExtraClasses,
@@ -490,7 +457,7 @@ export class ChatSetup {
 		}
 
 		if (this.context.state.entitlement === ChatEntitlement.Unknown || options?.forceSignInDialog) {
-			return localize('signIn', "Sign in to use GitHub Copilot");
+			return localize('signIn', "Sign in to use Dardcor AI");
 		}
 
 		return localize('startUsing', "Start using AI Features");
@@ -498,9 +465,7 @@ export class ChatSetup {
 
 }
 
-//#endregion
 
 export function refreshTokens(commandService: ICommandService): void {
-	// ugly, but we need to signal to the extension that entitlements changed
 	commandService.executeCommand(defaultChat.chatRefreshTokenCommand);
 }

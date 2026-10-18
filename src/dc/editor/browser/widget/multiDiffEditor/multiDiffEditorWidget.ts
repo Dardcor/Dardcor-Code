@@ -68,26 +68,11 @@ export class MultiDiffEditorWidget extends Disposable {
 	}
 
 	public setViewModel(viewModel: MultiDiffEditorViewModel | undefined, options?: { readonly preserveFocus?: boolean; readonly viewState?: IMultiDiffEditorViewState }): void {
-		// `MultiDiffEditor.clearInput()` awaits `super.clearInput()` before it
-		// calls `setViewModel(undefined)`; during that await the editor pane and
-		// its scoped instantiation service can be disposed. Once this widget is
-		// disposed the `_widgetImpl` derived is no longer observed, so reading it
-		// here would re-create the impl via `createInstance` on the disposed
-		// instantiation service and throw. Bail out instead.
 		if (this._store.isDisposed) {
 			return;
 		}
-		// An editor opened with `preserveFocus` (e.g. restored in the background
-		// or on a session switch) must not have its automatic first-change
-		// selection steal keyboard focus from elsewhere (such as the chat input).
 		this._widgetImpl.get().setPreserveFocusOnLoad(!!options?.preserveFocus);
 
-		// Apply the view model and the (optional) restored view state in a single
-		// transaction so the widget's automatic first-change navigation, which runs
-		// when the model is set, already sees the restored active item/collapsed
-		// state instead of navigating to (and focusing) the first file. Without a
-		// view state, clear any pending restoration state so the new model cannot
-		// inherit the previous model's collapsed/selection/scroll state.
 		transaction(tx => {
 			this._viewModel.set(viewModel, tx);
 			if (options?.viewState) {
@@ -102,12 +87,6 @@ export class MultiDiffEditorWidget extends Disposable {
 		this._dimension.set(dimension, undefined);
 	}
 
-	/**
-	 * Overrides whether the embedded diffs render side by side (`true`) or inline
-	 * (`false`) as editor-local state, independent of the
-	 * `diffEditor.renderSideBySide` setting. Responsive inline fallback is disabled
-	 * unless explicitly enabled.
-	 */
 	public setRenderSideBySide(renderSideBySide: boolean, options?: { readonly useInlineViewWhenSpaceIsLimited?: boolean }): void {
 		this._diffLayoutOptions.set({
 			renderSideBySide,
@@ -128,7 +107,6 @@ export class MultiDiffEditorWidget extends Disposable {
 		this.setRenderSideBySide(!(this._diffLayoutOptions.get()?.renderSideBySide ?? true));
 	}
 
-	/** Reserves empty space below the last diff entry. */
 	public setPaddingBottom(px: number): void {
 		this._paddingBottomPx.set(px, undefined);
 	}

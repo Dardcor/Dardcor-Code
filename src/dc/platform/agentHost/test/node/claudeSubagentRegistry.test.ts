@@ -42,7 +42,7 @@ suite('SubagentSpawn', () => {
 
 		const beforeSet = spawn.agentId;
 		spawn.setAgentId('agent-1');
-		spawn.setAgentId('agent-2'); // ignored: first-writer-wins
+		spawn.setAgentId('agent-2');
 		const afterSet = spawn.agentId;
 
 		spawn.subagentType = 'Explore';
@@ -68,7 +68,7 @@ suite('SubagentSpawn', () => {
 		}, {
 			toolUseId: 'toolu_x',
 			beforeSet: undefined,
-			afterSet: 'agent-1', // second setAgentId silently dropped
+			afterSet: 'agent-1',
 			subagentType: 'Explore',
 			description: 'Count files',
 			background: true,
@@ -167,11 +167,11 @@ suite('SubagentRegistry', () => {
 			makeAgentToolCallTurn('toolu_a', { suffixText: 'agentId: agentaaa\n(use SendMessage with to: \'agentaaa\')' }),
 			makeAgentToolCallTurn('toolu_b', { suffixText: 'no suffix here' }),
 			makeAgentToolCallTurn('toolu_c', { suffixText: 'agentId: agentccc' }),
-			makeAgentToolCallTurn('toolu_d', { suffixText: 'agentId: agentddd', toolName: 'Read' }), // not a subagent tool
+			makeAgentToolCallTurn('toolu_d', { suffixText: 'agentId: agentddd', toolName: 'Read' }),
 		];
 
 		registry.primeFromTranscript(transcript);
-		registry.primeFromTranscript(transcript); // idempotent
+		registry.primeFromTranscript(transcript);
 
 		assert.deepStrictEqual({
 			a: registry.getSpawn('toolu_a')?.agentId,

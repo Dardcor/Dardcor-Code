@@ -28,7 +28,6 @@ export class FileWatcherManager {
 	}>();
 
 	create(id: number, uri: vscode.Uri, watchParentDirs: boolean, listeners: { create?: () => void; change?: () => void; delete?: () => void }): void {
-		// Non-writable file systems do not support file watching
 		if (!vscode.workspace.fs.isWritableFileSystem(uri.scheme)) {
 			return;
 		}
@@ -42,7 +41,6 @@ export class FileWatcherManager {
 		if (listeners.delete) { watcher.onDidDelete(listeners.delete); }
 
 		if (watchParentDirs && uri.scheme !== Schemes.untitled) {
-			// We need to watch the parent directories too for when these are deleted / created
 			for (let dirUri = Utils.dirname(uri); dirUri.path.length > 1; dirUri = Utils.dirname(dirUri)) {
 				const disposables: IDisposable[] = [];
 
@@ -57,21 +55,17 @@ export class FileWatcherManager {
 
 				if (listeners.create) {
 					disposables.push(parentDirWatcher.watcher.onDidCreate(async () => {
-						// Just because the parent dir was created doesn't mean our file was created
 						try {
 							const stat = await vscode.workspace.fs.stat(uri);
 							if (stat.type === vscode.FileType.File) {
 								listeners.create!();
 							}
 						} catch {
-							// Noop
 						}
 					}));
 				}
 
 				if (listeners.delete) {
-					// When the parent dir is deleted, consider our file deleted too
-					// TODO: this fires if the file previously did not exist and then the parent is deleted
 					disposables.push(parentDirWatcher.watcher.onDidDelete(listeners.delete));
 				}
 

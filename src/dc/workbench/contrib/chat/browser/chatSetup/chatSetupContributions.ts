@@ -45,7 +45,7 @@ import { IExtension, IExtensionsWorkbenchService } from '../../../extensions/com
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { IChatSessionsService } from '../../common/chatSessionsService.js';
 import { ChatAIDisabledSettingId, ChatAgentLocation, ChatConfiguration, ChatModeKind } from '../../common/constants.js';
-import { CHAT_CATEGORY, CHAT_SETUP_ACTION_ID, CHAT_SETUP_SUPPORT_ANONYMOUS_ACTION_ID } from '../actions/chatActions.js';
+import { CHAT_CATEGORY, CHAT_OPEN_ACTION_ID, CHAT_SETUP_ACTION_ID, CHAT_SETUP_SUPPORT_ANONYMOUS_ACTION_ID } from '../actions/chatActions.js';
 import { ChatViewContainerId, IChatWidget, IChatWidgetService } from '../chat.js';
 import { ChatInputNotificationSeverity, IChatInputNotificationService } from '../widget/input/chatInputNotificationService.js';
 import { chatViewsWelcomeRegistry } from '../viewsWelcome/chatViewsWelcome.js';
@@ -82,7 +82,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 		const context = chatEntitlementService.context?.value;
 		const requests = chatEntitlementService.requests?.value;
 		if (!context || !requests) {
-			return; // disabled
+			return;
 		}
 
 		const controller = new Lazy(() => this._register(this.instantiationService.createInstance(ChatSetupController, context, requests)));
@@ -95,7 +95,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 	}
 
 	private registerSetupAgents(context: ChatEntitlementContext, controller: Lazy<ChatSetupController>): void {
-		const defaultAgentDisposables = markAsSingleton(new MutableDisposable()); // prevents flicker on window reload
+		const defaultAgentDisposables = markAsSingleton(new MutableDisposable());
 		const vscodeAgentDisposables = markAsSingleton(new MutableDisposable());
 
 		const renameProviderDisposables = markAsSingleton(new MutableDisposable());
@@ -103,15 +103,12 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 		const updateRegistration = () => {
 
-			// Agent + Tools
 			{
 				if (!context.state.hidden && !context.state.disabledInWorkspace) {
 
-					// Default Agents (always, even if installed to allow for speedy requests right on startup)
 					if (!defaultAgentDisposables.value) {
 						const disposables = defaultAgentDisposables.value = new DisposableStore();
 
-						// Panel Agents
 						const panelAgentDisposables = disposables.add(new DisposableStore());
 						for (const mode of [ChatModeKind.Ask, ChatModeKind.Edit, ChatModeKind.Agent]) {
 							const { agent, disposable } = SetupAgent.registerDefaultAgents(this.instantiationService, ChatAgentLocation.Chat, mode, context, controller);
@@ -120,11 +117,6 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 								panelAgentDisposables.add(agent.onUnresolvableError(() => {
 									const panelAgentHasGuidance = chatViewsWelcomeRegistry.get().some(descriptor => this.contextKeyService.contextMatchesRules(descriptor.when));
 									if (panelAgentHasGuidance) {
-										// An unresolvable error from our agent registrations means that
-										// Chat is unhealthy for some reason. We clear our panel
-										// registration to give Chat a chance to show a custom message
-										// to the user from the views and stop pretending as if there was
-										// a functional agent.
 										this.logService.error('[chat setup] Unresolvable error from Chat agent registration, clearing registration.');
 										panelAgentDisposables.dispose();
 									}
@@ -132,13 +124,11 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 							}
 						}
 
-						// Inline Agents
 						disposables.add(SetupAgent.registerDefaultAgents(this.instantiationService, ChatAgentLocation.Terminal, ChatModeKind.Ask, context, controller).disposable);
 						disposables.add(SetupAgent.registerDefaultAgents(this.instantiationService, ChatAgentLocation.Notebook, ChatModeKind.Ask, context, controller).disposable);
 						disposables.add(SetupAgent.registerDefaultAgents(this.instantiationService, ChatAgentLocation.EditorInline, ChatModeKind.Ask, context, controller).disposable);
 					}
 
-					// Built-In Agent + Tool (unless completed, signed-in and enabled)
 					if ((!context.state.completed || context.state.entitlement === ChatEntitlement.Unknown || context.state.entitlement === ChatEntitlement.Unresolved) && !vscodeAgentDisposables.value) {
 						const disposables = vscodeAgentDisposables.value = new DisposableStore();
 						disposables.add(SetupAgent.registerBuiltInAgents(this.instantiationService, context, controller));
@@ -149,11 +139,10 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				}
 
 				if (context.state.completed) {
-					vscodeAgentDisposables.clear(); // we need to do this to prevent showing duplicate agent/tool entries in the list
+					vscodeAgentDisposables.clear();
 				}
 			}
 
-			// Rename Provider
 			{
 				if (!context.state.completed && !context.state.hidden && !context.state.disabledInWorkspace) {
 					if (!renameProviderDisposables.value) {
@@ -164,7 +153,6 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				}
 			}
 
-			// Code Actions Provider
 			{
 				if (!context.state.completed && !context.state.hidden && !context.state.disabledInWorkspace) {
 					if (!codeActionsProviderDisposables.value) {
@@ -184,16 +172,12 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 		const updateGrowthSession = () => {
 			const experimentEnabled = this.configurationService.getValue<boolean>(ChatConfiguration.GrowthNotificationEnabled) === true;
-			// Show for users who don't have completed the Chat setup yet.
-			// Additional conditions (e.g., anonymous, entitlement) can be layered here.
 			const shouldShow = experimentEnabled && !chatEntitlementService.sentiment.completed;
 			if (shouldShow && !growthSessionDisposables.value) {
 				const disposables = new DisposableStore();
 				const controller = disposables.add(this.instantiationService.createInstance(GrowthSessionController));
 				if (!controller.isDismissed) {
 					disposables.add(registerGrowthSession(this.chatSessionsService, controller));
-					// Fully unregister when dismissed to prevent cached session from
-					// appearing during filtered model updates from other providers.
 					disposables.add(controller.onDidDismiss(() => {
 						growthSessionDisposables.clear();
 					}));
@@ -212,7 +196,6 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 	private registerActions(context: ChatEntitlementContext, requests: ChatEntitlementRequests, controller: Lazy<ChatSetupController>): void {
 
-		//#region Global Chat Setup Actions
 
 		class ChatSetupTriggerAction extends Action2 {
 
@@ -367,9 +350,6 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 				const entitlement = context.state.entitlement;
 				if (!isProUser(entitlement)) {
-					// If the user is not yet Pro, we listen to window focus to refresh the token
-					// when the user has come back to the window assuming the user signed up.
-					// This serves as a fallback when the redirect does not fire.
 					windowFocusListener.value = hostService.onDidChangeFocus(focus => this.onWindowFocus(focus, commandService));
 				}
 			}
@@ -433,20 +413,13 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 		}
 
 		registerAction2(ChatSetupTriggerAction);
-		// Dardcor Code: Disable sign in actions
-		// registerAction2(ChatSetupTriggerForceSignInDialogAction);
-		// registerAction2(ChatSetupFromAccountsAction);
-		// registerAction2(ChatSetupSignInTitleBarAction);
-		// registerAction2(ToggleSignInTitleBarAction);
 		registerAction2(ChatSetupTriggerSupportAnonymousAction);
 		registerAction2(UpgradePlanAction);
 		registerAction2(ManageAdditionalSpendAction);
 
-		//#endregion
 
-		//#region Editor Context Menu
 
-		function registerGenerateCodeCommand(coreCommand: 'chat.internal.explain' | 'chat.internal.fix' | 'chat.internal.review', actualCommand: string): void {
+		function registerGenerateCodeCommand(coreCommand: 'chat.internal.explain' | 'chat.internal.fix' | 'chat.internal.review'): void {
 
 			CommandsRegistry.registerCommand(coreCommand, async (accessor, ...args) => {
 				const commandService = accessor.get(ICommandService);
@@ -465,27 +438,30 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 						const markers = AICodeActionsHelper.warningOrErrorMarkersAtRange(markerService, uri, range);
 
-						const actualCommand = coreCommand === 'chat.internal.explain'
+						const action = coreCommand === 'chat.internal.explain'
 							? AICodeActionsHelper.explainMarkers(markers)
 							: AICodeActionsHelper.fixMarkers(markers, range);
 
-						await commandService.executeCommand(actualCommand.id, ...(actualCommand.arguments ?? []));
+						await commandService.executeCommand(action.id, ...(action.arguments ?? []));
 
 						break;
 					}
 					case 'chat.internal.review': {
 						const result = await commandService.executeCommand(CHAT_SETUP_SUPPORT_ANONYMOUS_ACTION_ID);
 						if (result) {
-							await commandService.executeCommand(actualCommand);
+							await commandService.executeCommand(CHAT_OPEN_ACTION_ID, {
+								query: '@workspace /review',
+								isPartialQuery: true,
+							});
 						}
 						break;
 					}
 				}
 			});
 		}
-		registerGenerateCodeCommand('chat.internal.explain', 'github.copilot.chat.explain');
-		registerGenerateCodeCommand('chat.internal.fix', 'github.copilot.chat.fix');
-		registerGenerateCodeCommand('chat.internal.review', 'github.copilot.chat.review');
+		registerGenerateCodeCommand('chat.internal.explain');
+		registerGenerateCodeCommand('chat.internal.fix');
+		registerGenerateCodeCommand('chat.internal.review');
 
 		const internalGenerateCodeContext = ContextKeyExpr.and(
 			ChatContextKeys.Setup.hidden.negate(),
@@ -536,7 +512,6 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 	private async checkExtensionInstallation(context: ChatEntitlementContext): Promise<void> {
 
-		// When developing extensions, await registration and then check
 		if (this.environmentService.isExtensionDevelopment) {
 			await this.extensionService.whenInstalledExtensionsRegistered();
 			if (this.extensionService.extensions.find(ext => ExtensionIdentifier.equals(ext.identifier, defaultChat.chatExtensionId))) {
@@ -545,13 +520,11 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 			}
 		}
 
-		// Await extensions to be ready to be queried
 		await this.extensionsWorkbenchService.queryLocal();
 
-		// Listen to extensions change and process extensions once
 		this._register(Event.runAndSubscribe<IExtension | undefined>(this.extensionsWorkbenchService.onChange, e => {
 			if (e && !ExtensionIdentifier.equals(e.identifier.id, defaultChat.chatExtensionId)) {
-				return; // unrelated event
+				return;
 			}
 
 			const defaultChatExtension = this.extensionsWorkbenchService.local.find(value => ExtensionIdentifier.equals(value.identifier.id, defaultChat.chatExtensionId));
@@ -565,10 +538,10 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				if (disabled) {
 					const state = this.extensionEnablementService.getEnablementState(defaultChatExtension.local);
 					if (state === EnablementState.DisabledByTrustRequirement) {
-						disabled = false; // not disabled by user choice but
-						untrusted = true; // by missing workspace trust
+						disabled = false;
+						untrusted = true;
 					} else if (state === EnablementState.DisabledWorkspace) {
-						disabledInWorkspace = true; // disabled at workspace level
+						disabledInWorkspace = true;
 					}
 				}
 			} else {
@@ -617,11 +590,9 @@ class ChatSetupExtensionUrlHandler implements IExtensionUrlHandlerOverride {
 	private async _handleUpgradeSuccess(): Promise<boolean> {
 		this.telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: 'workbench.action.chat.upgradePlan', from: 'redirect' });
 
-		// Refresh entitlements and tokens to pick up the new plan
 		await this.chatEntitlementService.update(CancellationToken.None);
 		refreshTokens(this.commandService);
 
-		// Show a chat input notification informing the user
 		this.chatInputNotificationService.setNotification({
 			id: ChatSetupExtensionUrlHandler.UPGRADE_SUCCESS_NOTIFICATION_ID,
 			severity: ChatInputNotificationSeverity.Info,
@@ -652,7 +623,7 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 
 		const context = chatEntitlementService.context?.value;
 		if (!context) {
-			return; // disabled
+			return;
 		}
 
 		this.registerListeners();
@@ -668,14 +639,13 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 			if (fromEvent) {
 				this.maybeHideAuxiliaryBar();
 			}
-		} else if (chatDisabled.value === false && fromEvent /* do not enable extensions unless its an explicit settings change */) {
+		} else if (chatDisabled.value === false && fromEvent ) {
 			this.maybeEnableOrDisableExtension(typeof chatDisabled.workspaceValue === 'boolean' ? EnablementState.EnabledWorkspace : EnablementState.EnabledGlobally);
 		}
 	}
 
 	private async registerListeners(): Promise<void> {
 
-		// Configuration changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (!e.affectsConfiguration(ChatAIDisabledSettingId)) {
 				return;
@@ -684,11 +654,10 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 			this.handleChatDisabled(true);
 		}));
 
-		// Extension installation
 		await this.extensionsWorkbenchService.queryLocal();
 		this._register(this.extensionsWorkbenchService.onChange(e => {
 			if (e && !ExtensionIdentifier.equals(e.identifier.id, defaultChat.chatExtensionId)) {
-				return; // unrelated event
+				return;
 			}
 
 			const defaultChatExtension = this.extensionsWorkbenchService.local.find(value => ExtensionIdentifier.equals(value.identifier.id, defaultChat.chatExtensionId));
@@ -727,10 +696,10 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 			container => this.viewDescriptorService.getViewContainerModel(container).activeViewDescriptors.length > 0
 		);
 		if (
-			(activeContainers.length === 0) ||  													// chat view is already gone but we know it was there before
-			(activeContainers.length === 1 && activeContainers.at(0)?.id === ChatViewContainerId) 	// chat view is the only view which is going to go away
+			(activeContainers.length === 0) ||
+			(activeContainers.length === 1 && activeContainers.at(0)?.id === ChatViewContainerId)
 		) {
-			this.layoutService.setPartHidden(true, Parts.AUXILIARYBAR_PART); // hide if there are no views in the secondary sidebar
+			this.layoutService.setPartHidden(true, Parts.AUXILIARYBAR_PART);
 		}
 	}
 
@@ -768,6 +737,5 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 	}
 }
 
-//#endregion
 
 

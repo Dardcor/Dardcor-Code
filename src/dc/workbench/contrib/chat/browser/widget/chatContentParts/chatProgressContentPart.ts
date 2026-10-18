@@ -59,19 +59,15 @@ export class ChatProgressContentPart extends Disposable implements IChatContentP
 		this.showSpinner = forceShowSpinner ?? shouldShowSpinner(followingContent, context.element);
 		this.isHidden = forceShowMessage !== true && followingContent.some(part => part.kind !== 'progressMessage');
 		if (this.isHidden) {
-			// Placeholder, don't show the progress message
 			this.domNode = $('');
 			return;
 		}
 
 		if (this.showSpinner && this.configurationService.getValue(AccessibilityWorkbenchSettingId.VerboseChatProgressUpdates)) {
-			// this step is in progress, communicate it to SR users
 			alert(stripIcons(renderAsPlaintext(progress.content)));
 		}
 		const isLoadingIcon = icon && ThemeIcon.isEqual(icon, ThemeIcon.modify(Codicon.loading, 'spin'));
-		// Even if callers request shimmer, only the active (spinner-visible) progress row should animate.
 		const useShimmer = (shimmer ?? (!icon || isLoadingIcon)) && this.showSpinner;
-		// if we have shimmer, don't show spinner
 		const codicon = useShimmer ? Codicon.check : (icon ?? (this.showSpinner ? ThemeIcon.modify(Codicon.loading, 'spin') : Codicon.check));
 		const result = this.chatContentMarkdownRenderer.render(progress.content);
 		result.element.classList.add('progress-step');
@@ -89,11 +85,6 @@ export class ChatProgressContentPart extends Disposable implements IChatContentP
 		this.renderedMessage.value = result;
 	}
 
-	/**
-	 * Applies the shimmer treatment and returns the elements that actually animate, so their
-	 * animation phase can be synced. A partial shimmer wraps only the leading verb in spans;
-	 * otherwise the whole message paragraph shimmers.
-	 */
 	private applyShimmer(element: HTMLElement): readonly HTMLElement[] {
 		const firstChild = element.firstElementChild;
 		const messageElement = isHTMLElement(firstChild) && firstChild.tagName === 'P' ? firstChild : element;
@@ -106,11 +97,6 @@ export class ChatProgressContentPart extends Disposable implements IChatContentP
 		return this.wrapLeadingText(messageElement, boundary);
 	}
 
-	/**
-	 * How many leading characters of the progress message should shimmer. Ask-question rows
-	 * shimmer everything before the ` (` summary; streaming rows shimmer only the stable leading
-	 * verb so moving parts (line counts, file names) stay still. Non-positive skips partial shimmer.
-	 */
 	private computeShimmerBoundary(messageElement: HTMLElement): number {
 		if (isAskQuestionsToolInvocation(this.toolInvocation!)) {
 			return messageElement.textContent?.indexOf(' (') ?? -1;
@@ -158,13 +144,11 @@ export class ChatProgressContentPart extends Disposable implements IChatContentP
 			return;
 		}
 
-		// Render the new message
 		const result = this._register(this.chatContentMarkdownRenderer.render(content));
 		result.element.classList.add('progress-step');
 		this._fileWidgetStore.clear();
 		renderFileWidgets(result.element, this.instantiationService, this.chatMarkdownAnchorService, this._fileWidgetStore);
 
-		// Replace the old message container with the new one
 		if (this.renderedMessage.value) {
 			this.renderedMessage.value.element.replaceWith(result.element);
 		} else {
@@ -175,16 +159,12 @@ export class ChatProgressContentPart extends Disposable implements IChatContentP
 	}
 
 	hasSameContent(other: IChatRendererContent, followingContent: IChatRendererContent[], element: ChatTreeItem): boolean {
-		// Progress parts render render until some other content shows up, then they hide.
-		// When some other content shows up, need to signal to be rerendered as hidden.
 		if (followingContent.some(part => part.kind !== 'progressMessage') && !this.isHidden) {
 			return false;
 		}
 
-		// Needs rerender when spinner state changes
 		const showSpinner = shouldShowSpinner(followingContent, element);
 
-		// Needs rerender when content changes
 		if (other.kind === 'progressMessage' && other.content.value !== this.currentContent.value) {
 			return false;
 		}
@@ -201,11 +181,6 @@ function shouldShowSpinner(followingContent: IChatRendererContent[], element: Ch
 	return isResponseVM(element) && !element.isComplete && followingContent.length === 0;
 }
 
-/**
- * Length of the leading, non-moving portion of a streaming progress message — the verb before
- * the first digit, `(`, or inline element (e.g. a file anchor). Trailing whitespace is excluded
- * so the shimmer ends on the word rather than the gap before the static suffix.
- */
 function leadingStableTextLength(messageElement: HTMLElement): number {
 	const fullText = messageElement.textContent ?? '';
 	let length = 0;
@@ -231,11 +206,6 @@ function leadingStableTextLength(messageElement: HTMLElement): number {
 const SHIMMER_ANIMATION_DURATION_MS = 2000;
 const shimmerEpochMs = Date.now();
 
-/**
- * Aligns freshly-rendered shimmer elements to a shared timeline via a negative `animation-delay`.
- * Streaming progress recreates its DOM on every update, which would otherwise restart the CSS
- * animation from 0% and make the sweep appear frozen; a phase offset keeps it continuous.
- */
 function syncShimmerPhase(animatedElements: readonly HTMLElement[]): void {
 	const animationDelay = `-${(Date.now() - shimmerEpochMs) % SHIMMER_ANIMATION_DURATION_MS}ms`;
 	for (const element of animatedElements) {
@@ -274,20 +244,12 @@ export class ChatProgressSubPart extends Disposable {
 	}
 }
 
-/**
- * Picks a working-progress label, debounced per response so rapid
- * re-instantiations during streaming reuse the previous label instead of
- * flickering. Each response gets its own dwell window keyed by
- * `element.id`; stale entries are pruned opportunistically on each call.
- */
 const WORKING_LABEL_MIN_DWELL_MS = 1200;
 const lastPickedWorkingLabelByElement = new Map<string, { label: string; pickedAt: number }>();
 
 function pickWorkingLabel(elementId: string, configurationService: IConfigurationService): string {
 	const now = Date.now();
 
-	// Prune entries older than the dwell window. The map only holds entries
-	// for actively-streaming responses, so this stays small.
 	for (const [id, entry] of lastPickedWorkingLabelByElement) {
 		if (now - entry.pickedAt >= WORKING_LABEL_MIN_DWELL_MS) {
 			lastPickedWorkingLabelByElement.delete(id);

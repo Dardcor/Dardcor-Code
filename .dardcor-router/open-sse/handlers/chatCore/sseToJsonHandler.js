@@ -6,7 +6,6 @@ import { PROVIDERS } from "../../config/providers.js";
 import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { ROLE, RESPONSES_ITEM } from "../../translator/schema/index.js";
 
-// Responses-API providers (e.g. codex) may emit SSE without content-type + use Responses output shape
 const isResponsesProvider = (p) => PROVIDERS[p]?.format === FORMATS.OPENAI_RESPONSES;
 import { saveRequestDetail, appendRequestLog } from "@/lib/usageDb.js";
 
@@ -19,10 +18,6 @@ function textFromResponsesMessageItem(item) {
   return "";
 }
 
-/**
- * Codex / Responses API may emit many alternating reasoning + message items.
- * Early message blocks often have empty output_text; the user-visible answer is usually in the last non-empty message.
- */
 function pickAssistantMessageForChatCompletion(output) {
   if (!Array.isArray(output)) return { msgItem: null, textContent: null };
   const messages = output.filter((item) => item?.type === "message");
@@ -35,17 +30,12 @@ function pickAssistantMessageForChatCompletion(output) {
   return { msgItem: last, textContent: textFromResponsesMessageItem(last) };
 }
 
-/**
- * Convert an OpenAI Chat Completions JSON body into the Responses API shape.
- * Inlined here (not imported from nonStreamingHandler.js) to avoid a circular
- * import. Mirrors openAICompletionToResponses in nonStreamingHandler.js.
- */
 function extractCustomToolInput(argumentsValue) {
   const argumentsText = typeof argumentsValue === "string" ? argumentsValue : JSON.stringify(argumentsValue || {});
   try {
     const parsed = JSON.parse(argumentsText);
     if (parsed && typeof parsed === "object" && typeof parsed.input === "string") return parsed.input;
-  } catch { /* raw freeform input */ }
+  } catch { }
   return argumentsText;
 }
 
@@ -105,10 +95,6 @@ function chatCompletionToResponses(responseBody, customToolNames = null) {
   };
 }
 
-/**
- * Parse OpenAI-style SSE text into a single chat completion JSON.
- * Used when provider forces streaming but client wants non-streaming.
- */
 export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
   const chunks = [];
   let streamError = null;
@@ -122,7 +108,7 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
       const chunk = JSON.parse(payload);
       if (chunk?.error) streamError = chunk.error;
       else chunks.push(chunk);
-    } catch { /* ignore malformed lines */ }
+    } catch { }
   }
 
   if (streamError) return { error: streamError };
@@ -131,7 +117,7 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
   const first = chunks[0];
   const contentParts = [];
   const reasoningParts = [];
-  const toolCallMap = new Map(); // index -> { id, type, function: { name, arguments } }
+  const toolCallMap = new Map();
   let finishReason = "stop";
   let usage = null;
 
@@ -143,7 +129,6 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
     if (choice?.finish_reason) finishReason = choice.finish_reason;
     if (chunk?.usage && typeof chunk.usage === "object") usage = chunk.usage;
 
-    // Accumulate tool_calls from streaming deltas
     if (Array.isArray(delta.tool_calls)) {
       for (const tc of delta.tool_calls) {
         const idx = tc.index ?? 0;
@@ -175,14 +160,10 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
   return result;
 }
 
-/**
- * Handle case: provider forced streaming but client wants JSON.
- * Supports both Codex/Responses API SSE and standard Chat Completions SSE.
- */
 export async function handleForcedSSEToJson({ providerResponse, sourceFormat, targetFormat, provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, customToolNames, toolNameMap, trackDone, appendLog, reqTag, log }) {
   const contentType = providerResponse.headers.get("content-type") || "";
   const isSSE = contentType.includes("text/event-stream") || (contentType === "" && isResponsesProvider(provider));
-  if (!isSSE) return null; // not handled here
+  if (!isSSE) return null;
 
   trackDone();
 
@@ -192,10 +173,6 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
     providerRequest: finalBody || translatedBody || null
   };
 
-  // Codex/Responses API SSE path
-  // Branch on the UPSTREAM format (targetFormat = format we spoke to the provider in),
-  // not the client format: a Responses-API client behind a chat-native forced-streaming
-  // provider still receives chat SSE chunks, which must go through the standard path.
   const isCodexResponsesApi = isResponsesProvider(provider) || targetFormat === FORMATS.OPENAI_RESPONSES;
   if (isCodexResponsesApi) {
     try {
@@ -207,8 +184,6 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
       saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true });
       if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency: { total: Date.now() - requestStartTime } }));
 
-      // Same cache-inclusive total for the recorded detail, so the DB and the
-      // client-facing usage can never disagree.
       const inTokensForLog = (usage.input_tokens || 0)
         + (usage.cache_read_input_tokens || usage.cached_tokens || 0)
         + (usage.cache_creation_input_tokens || 0);
@@ -223,17 +198,10 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
         status: "success"
       }, { endpoint: clientRawRequest?.endpoint || null })).catch(() => {});
 
-      // Client is Responses API → return as-is
       if (sourceFormat === FORMATS.OPENAI_RESPONSES) {
         return { success: true, response: new Response(JSON.stringify(jsonResponse), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
       }
 
-      // Build client-format response.
-      // input_tokens EXCLUDES cached tokens on cache-capable upstreams, so summing
-      // only input+output under-reports prompt_tokens — measured: 2012 reported
-      // where the real prompt was ~5344 with 5332 served from cache. Fold the cache
-      // counters in, and keep them visible in prompt_tokens_details so a client can
-      // tell a cache hit from a small prompt.
       const cacheRead = usage.cache_read_input_tokens || usage.cached_tokens || 0;
       const cacheCreate = usage.cache_creation_input_tokens || 0;
       const inTokens = (usage.input_tokens || 0) + cacheRead + cacheCreate;
@@ -245,7 +213,6 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
         : {};
       let finalResp;
 
-      // Extract tool calls from Responses API output (function_call items)
       const funcCallItems = (jsonResponse.output || []).filter(item => item.type === "function_call");
       const toolCalls = funcCallItems.map((item, idx) => ({
         id: item.call_id || `call_${item.name}_${Date.now()}_${idx}`,
@@ -288,7 +255,6 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
     }
   }
 
-  // Standard Chat Completions SSE path
   try {
     const sseText = await providerResponse.text();
     const parsed = parseSSEToOpenAIResponse(sseText, model);
@@ -320,19 +286,8 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
       status: "success"
     }, { endpoint: clientRawRequest?.endpoint || null })).catch(() => {});
 
-    // Re-attach usage explicitly. This handler already HAS the correct usage — it is
-    // the same object written to the usage DB, and for a cached Claude request that DB
-    // row reads cache_read_input_tokens: 11022 — yet the client was observed receiving
-    // no usage field at all (verified 2026-08-04 with a fingerprinted payload matched
-    // on both sides). Whatever drops it between assembly and serialisation, the client
-    // must not be left unable to account for its own token spend: a caller cannot tell
-    // a 90%-cached request from a cheap one without this.
     if (usage && Object.keys(usage).length > 0) parsed.usage = usage;
 
-    // Strip reasoning_content only when content is non-empty.
-    // When content is empty (e.g. thinking models that used all tokens for reasoning),
-    // reasoning_content is the only useful output and must be preserved.
-    // Previously this was unconditional, which broke Qwen3.5, Claude extended thinking, etc.
     if (parsed?.choices) {
       for (const choice of parsed.choices) {
         if (choice?.message?.reasoning_content && choice.message.content) {
@@ -341,12 +296,6 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
       }
     }
 
-    // A Responses-format client (e.g. Codex) forced this provider to stream,
-    // but wants JSON back. parseSSEToOpenAIResponse yields a Chat Completions
-    // body; convert it to the Responses `output` shape so tool_calls are not
-    // lost on the non-streaming return path. Inlined (not imported from
-    // nonStreamingHandler.js) to avoid a circular import: nonStreamingHandler
-    // already imports parseSSEToOpenAIResponse from this module.
     const finalBody = sourceFormat === FORMATS.OPENAI_RESPONSES
       ? chatCompletionToResponses(parsed, customToolNames)
       : parsed;

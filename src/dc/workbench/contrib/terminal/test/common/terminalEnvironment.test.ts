@@ -52,7 +52,7 @@ suite('Workbench - TerminalEnvironment', () => {
 		test('should fallback to en_US when no locale is provided', () => {
 			const env2: { [key: string]: any } = { FOO: 'bar' };
 			addTerminalEnvironmentKeys(env2, '1.2.3', undefined, 'on');
-			strictEqual(env2['LANG'], 'en_US.UTF-8', 'LANG is equal to en_US.UTF-8 as fallback.'); // More info on issue #14586
+			strictEqual(env2['LANG'], 'en_US.UTF-8', 'LANG is equal to en_US.UTF-8 as fallback.');
 		});
 		test('should fallback to en_US when an invalid locale is provided', () => {
 			const env3 = { LANG: 'replace' };
@@ -200,7 +200,6 @@ suite('Workbench - TerminalEnvironment', () => {
 	});
 
 	suite('getCwd', () => {
-		// This helper checks the paths in a cross-platform friendly manner
 		function assertPathsMatch(a: string, b: string): void {
 			strictEqual(Uri.file(a).fsPath, Uri.file(b).fsPath);
 		}

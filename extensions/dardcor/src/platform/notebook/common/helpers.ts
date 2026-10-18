@@ -22,44 +22,20 @@ export class LineOfText {
 	}
 }
 
-/** End of Line for alternative Notebook contnt is always \n */
 export const EOL = '\n';
 export type LineOfCellText = {
 	type: 'start';
-	/**
-	 * The cell index of the cell that this line belongs to.
-	*/
 	index: number;
 	id?: string;
-	/**
-	 * The Uri of the cell that this line belongs to.
-	 * Undefined if this is a cell that doesn't belong in the actual notebook.
-	*/
 	uri?: Uri;
-	/**
-	 * Language of the cell.
-	*/
 	language?: string;
-	/**
-	 * The type of cell.
-	*/
 	kind: NotebookCellKind;
 } | {
 	type: 'line';
-	/**
-	 * A line of text from a cell. Does not include the newline character.
-	 */
 	line: string;
-	/**
-	 * The cell index of the cell that this line belongs to.
-	 */
 	index: number;
 } | {
 	type: 'end';
-	/**
-	 *
-	 * The cell index of the cell that this line belongs to.
-	 */
 	index: number;
 };
 
@@ -98,19 +74,12 @@ export function getCellIdMap(notebook: NotebookDocument): Map<string, NotebookCe
 
 const cellIdCache = new WeakMap<NotebookCell, string>();
 
-/** The length of the hash portion of cell IDs */
 const CELL_ID_HASH_LENGTH = 8;
 
-/** Use a unique enough cell id prefix so that we can easily identify cell ids*/
 const CELL_ID_PREFIX = '#VSC-';
 
-/** RegExp to match all Cell Ids */
 export const CellIdPatternRe = new RegExp(`(\\s+|^|\\b|\\W)(#VSC-[a-f0-9]{${CELL_ID_HASH_LENGTH}})\\b`, 'gi');
 
-/**
- * Sometimes the model may return a cellId that is not in the expected format.
- * This function attempts to convert such cellIds to the expected format.
- */
 export function normalizeCellId(cellId: string): string {
 	if (cellId.startsWith(CELL_ID_PREFIX)) {
 		return cellId;
@@ -127,7 +96,6 @@ export function normalizeCellId(cellId: string): string {
 	if (cellId.startsWith('-')) {
 		return `#VSC${cellId}`;
 	}
-	// Possible case where the cellId is just a hash without the prefix
 	return cellId.length === CELL_ID_HASH_LENGTH ? `${CELL_ID_PREFIX}${cellId}` : cellId;
 }
 
@@ -144,12 +112,6 @@ export function getNotebookId(notebook: NotebookDocument): string {
 	return id;
 }
 
-/**
- * Given a Notebook cell returns a unique identifier for the cell.
- * The identifier is based on the cell's URI and is cached for performance.
- * This is useful for tracking cells across sessions or for referencing cells in a consistent manner.
- * The cell Id will have a specicial prefix as well do as to easily identify it as a cell Id.
- */
 export function getCellId(cell: NotebookCell): string {
 	let oldId = cellIdCache.get(cell);
 	if (oldId) {
@@ -174,7 +136,6 @@ export function getDefaultLanguage(notebook: NotebookDocument): string | undefin
 	if (codeCell) {
 		return codeCell.document.languageId;
 	}
-	// Fallback for Jupyter Notebooks that do not have a code cell.
 	if (notebook.notebookType === 'jupyter-notebook') {
 		return notebook.metadata?.language_info?.name || notebook.metadata?.kernelspec?.language || 'python';
 	}
@@ -203,10 +164,9 @@ export function requestHasNotebookRefs(request: ChatRequest, notebookService: IN
 
 export function parseAndCleanStack(jsonString: string): string {
 	try {
-		// Parse the JSON string
 		const parsed = JSON.parse(jsonString) as Partial<Error>;
 		return removeAnsiEscapeCodes(parsed?.stack || parsed.message || '') || parsed.message || parsed.name || jsonString;
 	} catch {
-		return jsonString; // Return the original string if parsing fails
+		return jsonString;
 	}
 }

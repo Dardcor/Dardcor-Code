@@ -5,18 +5,11 @@ import { getServerCredentials } from "../config/index.js";
 import { startLocalServer } from "../utils/server.js";
 import { spinner as createSpinner } from "../utils/ui.js";
 
-/**
- * iFlow OAuth Service
- * Uses Authorization Code flow with Basic Auth
- */
 export class IFlowService {
   constructor() {
     this.config = IFLOW_CONFIG;
   }
 
-  /**
-   * Build iFlow authorization URL
-   */
   buildAuthUrl(redirectUri, state) {
     const params = new URLSearchParams({
       loginMethod: this.config.extraParams.loginMethod,
@@ -29,11 +22,7 @@ export class IFlowService {
     return `${this.config.authorizeUrl}?${params.toString()}`;
   }
 
-  /**
-   * Exchange authorization code for tokens
-   */
   async exchangeCode(code, redirectUri) {
-    // Create Basic Auth header
     const basicAuth = Buffer.from(
       `${this.config.clientId}:${this.config.clientSecret}`
     ).toString("base64");
@@ -62,9 +51,6 @@ export class IFlowService {
     return await response.json();
   }
 
-  /**
-   * Get user info from iFlow
-   */
   async getUserInfo(accessToken) {
     const response = await fetch(
       `${this.config.userInfoUrl}?accessToken=${encodeURIComponent(accessToken)}`,
@@ -89,9 +75,6 @@ export class IFlowService {
     return result.data;
   }
 
-  /**
-   * Save iFlow tokens to server
-   */
   async saveTokens(tokens, userInfo) {
     const { server, token, userId } = getServerCredentials();
 
@@ -119,16 +102,12 @@ export class IFlowService {
     return await response.json();
   }
 
-  /**
-   * Complete iFlow OAuth flow
-   */
   async connect() {
     const spinner = createSpinner("Starting iFlow OAuth...").start();
 
     try {
       spinner.text = "Starting local server...";
 
-      // Start local server for callback
       let callbackParams = null;
       const { port, close } = await startLocalServer((params) => {
         callbackParams = params;
@@ -137,19 +116,15 @@ export class IFlowService {
       const redirectUri = `http://localhost:${port}/callback`;
       spinner.succeed(`Local server started on port ${port}`);
 
-      // Generate state
       const state = crypto.randomBytes(32).toString("base64url");
 
-      // Build authorization URL
       const authUrl = this.buildAuthUrl(redirectUri, state);
 
       console.log("\nOpening browser for iFlow authentication...");
       console.log(`If browser doesn't open, visit:\n${authUrl}\n`);
 
-      // Open browser
       await open(authUrl);
 
-      // Wait for callback
       spinner.start("Waiting for iFlow authorization...");
 
       await new Promise((resolve, reject) => {
@@ -178,17 +153,14 @@ export class IFlowService {
 
       spinner.start("Exchanging code for tokens...");
 
-      // Exchange code for tokens
       const tokens = await this.exchangeCode(callbackParams.code, redirectUri);
 
       spinner.text = "Fetching user info...";
 
-      // Get user info (includes API key)
       const userInfo = await this.getUserInfo(tokens.access_token);
 
       spinner.text = "Saving tokens to server...";
 
-      // Save tokens to server
       await this.saveTokens(tokens, userInfo);
 
       spinner.succeed(`iFlow connected successfully! (${userInfo.email || userInfo.phone})`);

@@ -111,7 +111,7 @@ class MarketplaceThemesPicker implements IDisposable {
 
 			const options = { text: `${this.marketplaceQuery} ${value}`, pageSize: 20 };
 			const pager = await this.extensionGalleryService.query(options, token);
-			for (let i = 0; i < pager.total && i < 1; i++) { // loading multiple pages is turned of for now to avoid flickering
+			for (let i = 0; i < pager.total && i < 1; i++) {
 				if (token.isCancellationRequested) {
 					break;
 				}
@@ -253,7 +253,6 @@ class MarketplaceThemesPicker implements IDisposable {
 				title: localize('installing extensions', "Installing Extension {0}...", galleryExtension.displayName)
 			}, async () => {
 				await this.extensionManagementService.installFromGallery(galleryExtension, {
-					// Setting this to false is how you get the extension to be synced with Settings Sync (if enabled).
 					isMachineScoped: false,
 				});
 			});
@@ -349,7 +348,7 @@ class InstalledThemesPicker {
 				disposables.add(quickpick.onDidAccept(async _ => {
 					isCompleted = true;
 					const theme = quickpick.selectedItems[0];
-					if (!theme || theme.configureItem) { // 'pick in marketplace' entry
+					if (!theme || theme.configureItem) {
 						if (!theme || theme.configureItem === ConfigureItem.EXTENSIONS_VIEW) {
 							this.extensionsWorkbenchService.openSearch(`${this.options.marketplaceTag} ${quickpick.value}`);
 						} else if (theme.configureItem === ConfigureItem.BROWSE_GALLERY) {
@@ -686,18 +685,15 @@ function isItem(i: QuickPickInput<ThemeItem>): i is ThemeItem {
 	return (<any>i)['type'] !== 'separator';
 }
 
-const defaultThemeDescriptions: Record<string, string> = {
-	[ThemeSettingDefaults.COLOR_THEME_LIGHT]: localize('defaultLight', "Default Light"),
-	[ThemeSettingDefaults.COLOR_THEME_DARK]: localize('defaultDark', "Default Dark"),
-};
-
 function toEntry(theme: IWorkbenchTheme): ThemeItem {
 	const settingId = theme.settingsId ?? undefined;
+	const isOmitted = settingId === 'Visual Studio Dark' || settingId === 'Visual Studio Light' || settingId === 'Dark (Dardcor Classic)' || settingId === 'Light (Dardcor Classic)' || settingId === ThemeSettingDefaults.COLOR_THEME_DARK || settingId === ThemeSettingDefaults.COLOR_THEME_LIGHT;
+	const description = isOmitted ? undefined : (theme.description ?? (theme.label === settingId ? undefined : settingId));
 	const item: ThemeItem = {
 		id: theme.id,
 		theme: theme,
 		label: theme.label,
-		description: defaultThemeDescriptions[settingId ?? ''] ?? theme.description ?? (theme.label === settingId ? undefined : settingId),
+		description,
 	};
 	if (theme.extensionData) {
 		item.buttons = [configureButton];

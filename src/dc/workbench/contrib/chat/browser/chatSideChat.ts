@@ -7,12 +7,6 @@ import * as dom from '../../../../base/browser/dom.js';
 import { IChatSideChatSelection } from '../common/chatSideChatService.js';
 import { IChatWidget } from './chat.js';
 
-/**
- * Captures the user's current text selection within `widget`'s transcript so a
- * side chat can be anchored to it. Returns `undefined` when there is no
- * meaningful selection, when it falls outside the widget, or when it lives in
- * the input editor (which holds the question being asked, not the source text).
- */
 export function captureSideChatSelection(widget: IChatWidget | undefined): IChatSideChatSelection | undefined {
 	if (!widget) {
 		return undefined;

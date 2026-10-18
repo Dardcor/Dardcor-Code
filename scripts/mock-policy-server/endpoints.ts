@@ -28,17 +28,11 @@ export interface EndpointPreset {
 }
 
 export interface EndpointDef {
-	/** Stable id used by the API + GUI. */
 	id: string;
-	/** Human label for the GUI tab. */
 	label: string;
-	/** URL path the server serves / Code OSS calls. */
 	path: string;
-	/** Key under product.json `defaultChatAgent`. */
 	productKey: string;
-	/** One-line summary for the GUI. */
 	description: string;
-	/** First preset is used as the default body. */
 	presets: EndpointPreset[];
 }
 

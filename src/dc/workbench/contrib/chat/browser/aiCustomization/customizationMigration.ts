@@ -47,10 +47,6 @@ const retainedPromptHeaderKeys = new Set([
 	PromptHeaderAttributes.argumentHint,
 ]);
 
-/**
- * Prompt files become skills because agent-host harnesses have no prompt-file concept;
- * every other customization keeps its type and only changes location.
- */
 export function migratePromptFileToSkill(promptFile: MigratableConfiguration, content: string, skillNameOverride?: string): IMigratedPromptFile {
 	const parser = new PromptFileParser();
 	const parsed = parser.parse(promptFile.uri, content);

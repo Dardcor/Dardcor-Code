@@ -7,31 +7,30 @@ import { TextDocument, WebviewPanel } from 'vscode';
 import { IVSCodeExtensionContext } from '../../../../../../platform/extContext/common/extensionContext';
 import { BaseSuggestionsPanel, SolutionContent, WebviewMessage } from '../panelShared/baseSuggestionsPanel';
 import { PanelCompletion } from './common';
-import { CopilotSuggestionsPanelManager } from './dardcorSuggestionsPanelManager';
+import { DardcorSuggestionsPanelManager } from './dardcorSuggestionsPanelManager';
 import { dardcorPanelConfig } from './panelConfig';
 
-export interface CopilotSolutionsMessage {
+export interface DardcorSolutionsMessage {
 	command: 'solutionsUpdated';
 	solutions: SolutionContent[];
 	percentage: number;
 }
 
-export class CopilotSuggestionsPanel extends BaseSuggestionsPanel<PanelCompletion> {
+export class DardcorSuggestionsPanel extends BaseSuggestionsPanel<PanelCompletion> {
 	constructor(
 		webviewPanel: WebviewPanel,
 		document: TextDocument,
-		suggestionsPanelManager: CopilotSuggestionsPanelManager,
+		suggestionsPanelManager: DardcorSuggestionsPanelManager,
 		@IVSCodeExtensionContext contextService: IVSCodeExtensionContext,
 	) {
 		super(webviewPanel, document, suggestionsPanelManager, dardcorPanelConfig, contextService);
 	}
 
 	protected renderSolutionContent(item: PanelCompletion, baseContent: SolutionContent): SolutionContent {
-		// Copilot panel just returns the base content without modifications
 		return baseContent;
 	}
 
-	protected createSolutionsMessage(content: SolutionContent[], percentage: number): CopilotSolutionsMessage {
+	protected createSolutionsMessage(content: SolutionContent[], percentage: number): DardcorSolutionsMessage {
 		return {
 			command: 'solutionsUpdated',
 			solutions: content,

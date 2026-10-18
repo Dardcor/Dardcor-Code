@@ -16,8 +16,6 @@ import { Tag } from '../../prompts/node/base/tag';
 import { summarizeDocument } from '../../prompts/node/inline/summarizedDocument/summarizeDocumentHelpers';
 import { CodeBlock } from '../../prompts/node/panel/safeElements';
 
-// Finds the file that is testing a given file. Uses the findFiles API and file name
-// heuristics for this.
 
 export type TestExampleFile = {
 	kind: 'candidateTestFile' | 'anyTestFile';
@@ -26,9 +24,6 @@ export type TestExampleFile = {
 
 type Props = PromptElementProps<TestExampleFile>;
 
-/**
- * @remark Does NOT respected dardcor-ignore. Parent element must make sure the URI is not dardcor-ignored.
- */
 export class TestExample extends PromptElement<Props> {
 
 	constructor(
@@ -64,7 +59,6 @@ export class TestExample extends PromptElement<Props> {
 		let pathToTestFile: string = testExampleFile.path;
 		if (workspaceOfTestFile !== undefined) {
 			pathToTestFile = path.relative(workspaceOfTestFile.path, testExampleFile.path);
-			// Convert the path separator to be platform-independent
 			pathToTestFile = pathToTestFile.split(path.sep).join('/');
 		}
 

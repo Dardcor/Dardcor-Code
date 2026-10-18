@@ -212,7 +212,6 @@ suite('Artifact Server Tools', () => {
 			legacyAdd: displayName('add_artifact'),
 			legacyRemove: getServerToolDisplay('remove_artifact', { id: 'id-1' })?.displayName,
 			legacyList: getServerToolDisplay('list_artifacts', undefined)?.displayName,
-			// Claude prefixes server tools on the wire; the suffix still resolves.
 			transportPrefixed: displayName('mcp__vscode__add_artifact'),
 			unknown: displayName('not_a_tool'),
 		}, {

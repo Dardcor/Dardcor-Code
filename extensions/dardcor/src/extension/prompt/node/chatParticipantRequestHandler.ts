@@ -53,11 +53,6 @@ export interface IChatAgentArgs {
 	intentId?: string;
 }
 
-/**
- * Handles a single chat request:
- * 1) selects intent
- * 2) invoke intent via `IIntentRequestHandler/AbstractIntentRequestHandler`
- */
 export class ChatParticipantRequestHandler {
 
 	public readonly conversation: Conversation;
@@ -99,8 +94,6 @@ export class ChatParticipantRequestHandler {
 
 		if (request.location2 instanceof ChatRequestEditorData) {
 
-			// don't send back references that are the same as the document as the one from which
-			// the request has been made
 
 			const documentUri = request.location2.document.uri;
 
@@ -115,7 +108,6 @@ export class ChatParticipantRequestHandler {
 
 		const { turns, sessionId } = _instantiationService.invokeFunction(accessor => addHistoryToConversation(accessor, rawHistory));
 		normalizeSummariesOnRounds(turns);
-		// Use session ID from history, then VS Code's request.sessionId, then fallback to UUID
 		const actualSessionId = sessionId ?? request.sessionId ?? generateUuid();
 
 		this.documentContext = IDocumentContext.inferDocumentContext(request, tabsAndEditorsService.activeTextEditor, turns);
@@ -144,7 +136,7 @@ export class ChatParticipantRequestHandler {
 		} else if (request.location2 instanceof ChatRequestNotebookData) {
 			return ChatLocation.Notebook;
 		}
-		switch (request.location) { // deprecated, but location2 does not yet allow to distinguish between panel, editing session and others
+		switch (request.location) {
 			case VSChatLocation.Editor:
 				return ChatLocation.Editor;
 			case VSChatLocation.Panel:
@@ -169,14 +161,11 @@ export class ChatParticipantRequestHandler {
 
 			let removeVariable;
 			try {
-				// Filter out variables which contain paths which are ignored
-				removeVariable = await this._ignoreService.isCopilotIgnored(uri);
+				removeVariable = await this._ignoreService.isIgnored(uri);
 			} catch {
-				// Non-existent files will be handled elsewhere. This might be a virtual document so it's ok if the fs service can't find it.
 			}
 
 			if (removeVariable && ref.range) {
-				// Also sanitize the user message since file paths are sensitive
 				this.turn.request.message = this.turn.request.message.slice(0, ref.range[0]) + this.turn.request.message.slice(ref.range[1]);
 			}
 
@@ -189,7 +178,6 @@ export class ChatParticipantRequestHandler {
 	}
 
 	private async _shouldAskForPermissiveAuth(): Promise<boolean> {
-		// The user has confirmed that they want to auth, so prompt them.
 		const findConfirmRequest = this.request.acceptedConfirmationData?.find(ref => ref?.authPermissionPrompted);
 		if (findConfirmRequest) {
 			this.request = await this._authenticationUpgradeService.handleConfirmationRequest(this.stream, this.request, this.rawHistory);
@@ -197,9 +185,7 @@ export class ChatParticipantRequestHandler {
 			return false;
 		}
 
-		// Only ask for confirmation if we're invoking the codebase tool or workspace chat participant
 		const isWorkspaceCall = this.request.toolReferences.some(ref => ref.name === ContributedToolName.Codebase);
-		// and only if we can't access all repos in the workspace
 		if (isWorkspaceCall && await this._authenticationUpgradeService.shouldRequestPermissiveSessionUpgrade()) {
 			this._authenticationUpgradeService.showPermissiveSessionUpgradeInChat(this.stream, this.request);
 			return true;
@@ -209,7 +195,6 @@ export class ChatParticipantRequestHandler {
 
 	async getResult(): Promise<ICopilotChatResult> {
 		if (await this._shouldAskForPermissiveAuth()) {
-			// Return a random response
 			return {
 				metadata: {
 					modelMessageId: this.turn.responseId ?? '',
@@ -223,8 +208,6 @@ export class ChatParticipantRequestHandler {
 		this._logService.trace(`[${ChatLocation.toStringShorter(this.location)}] chat request received from extension host`);
 		try {
 
-			// sanitize the variables of all requests
-			// this is done here because all intents must honor ignored files
 			this.request = await this.sanitizeVariables();
 
 			const command = this.chatAgentArgs.intentId ?
@@ -234,8 +217,6 @@ export class ChatParticipantRequestHandler {
 			let result = this.checkCommandUsage(command);
 
 			if (!result) {
-				// this is norm-case, e.g checkCommandUsage didn't produce an error-result
-				// and we proceed with the actual intent invocation
 
 				const history = this.conversation.turns.slice(0, -1);
 				const intent = await this.selectIntent(command, history);
@@ -275,9 +256,6 @@ export class ChatParticipantRequestHandler {
 
 			this._conversationStore.addConversation(this.turn.id, this.conversation);
 
-			// mixin fixed metadata shape into result. Modified in place because the object is already
-			// cached in the conversation store and we want the full information when looking this up
-			// later
 			mixin(result, {
 				metadata: {
 					modelMessageId: this.turn.responseId ?? '',
@@ -291,7 +269,6 @@ export class ChatParticipantRequestHandler {
 			return <ICopilotChatResult>result;
 
 		} catch (err) {
-			// TODO This method should not throw at all, but return a result with errorDetails, and call the IConversationStore
 			throw err;
 		} finally {
 			this._chatQuotaService.resetTurnCredits(this.turn.id);
@@ -299,7 +276,7 @@ export class ChatParticipantRequestHandler {
 	}
 
 	private async selectIntent(command: CommandDetails | undefined, history: Turn[]): Promise<IIntent> {
-		if (!command?.intent && this.location === ChatLocation.Editor) { // TODO@jrieken do away with location specific code
+		if (!command?.intent && this.location === ChatLocation.Editor) {
 
 			let preferredIntent: Intent | undefined;
 			if (this.documentContext && this.request.attempt === 0 && history.length === 0) {
@@ -322,7 +299,6 @@ export class ChatParticipantRequestHandler {
 			const commandAgent = getAgentForIntent(command.intent.id as Intent, this.location);
 			let usage = '';
 			if (commandAgent) {
-				// If the command was used, it must have an agent
 				usage = `@${commandAgent.agent} `;
 				if (commandAgent.command) {
 					usage += ` /${commandAgent.command}`;
@@ -348,8 +324,6 @@ export function addHistoryToConversation(accessor: ServicesAccessor, history: Re
 	let previousChatRequestTurn: ChatRequestTurn | undefined;
 
 	for (const entry of history) {
-		// The extension API model technically supports arbitrary requests/responses not in pairs, but this isn't used anywhere,
-		// so we can just fit this to our Conversation model for now.
 		if (entry instanceof ChatRequestTurn) {
 			previousChatRequestTurn = entry;
 		} else {
@@ -374,9 +348,6 @@ export function addHistoryToConversation(accessor: ServicesAccessor, history: Re
 	return { turns, sessionId };
 }
 
-/**
- * Try to find an existing `Turn` instance that we created previously based on the responseId of a vscode turn.
- */
 function findExistingTurnFromVSCodeChatHistoryTurn(accessor: ServicesAccessor, turn: ChatRequestTurn | ChatResponseTurn): Turn | undefined {
 	const conversationStore = accessor.get(IConversationStore);
 	const responseId = getResponseIdFromVSCodeChatHistoryTurn(turn);
@@ -392,9 +363,6 @@ function getResponseIdFromVSCodeChatHistoryTurn(turn: ChatRequestTurn | ChatResp
 	return undefined;
 }
 
-/**
- * Try as best as possible to create a `Turn` object from data that comes from vscode.
- */
 function createTurnFromVSCodeChatHistoryTurns(
 	accessor: ServicesAccessor,
 	chatRequestTurn: ChatRequestTurn,
@@ -416,7 +384,6 @@ function createTurnFromVSCodeChatHistoryTurns(
 		chatRequestAsTurn2.modeInstructions2,
 	);
 
-	// Take just the content messages
 	const content = chatResponseTurn.response.map(r => {
 		if (r instanceof ChatResponseMarkdownPart) {
 			return r.value.value;
@@ -479,7 +446,6 @@ function anchorPartToMarkdown(workspaceService: IWorkspaceService, anchor: ChatR
 		path = getWorkspaceFileDisplayPath(workspaceService, anchor.value.location.uri);
 		text = `\`${anchor.value.name}\``;
 	} else {
-		// Unknown anchor type
 		return '';
 	}
 

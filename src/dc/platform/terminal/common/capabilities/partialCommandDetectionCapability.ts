@@ -9,16 +9,9 @@ import { IPartialCommandDetectionCapability, TerminalCapability } from './capabi
 import type { IMarker, Terminal } from '@xterm/headless';
 
 const enum Constants {
-	/**
-	 * The minimum size of the prompt in which to assume the line is a command.
-	 */
 	MinimumPromptLength = 2
 }
 
-/**
- * This capability guesses where commands are based on where the cursor was when enter was pressed.
- * It's very hit or miss but it's often correct and better than nothing.
- */
 export class PartialCommandDetectionCapability extends DisposableStore implements IPartialCommandDetectionCapability {
 	readonly type = TerminalCapability.PartialCommandDetection;
 
@@ -39,7 +32,6 @@ export class PartialCommandDetectionCapability extends DisposableStore implement
 			if (params.length >= 1 && (params[0] === 2 || params[0] === 3)) {
 				this._clearCommandsInViewport();
 			}
-			// We don't want to override xterm.js' default behavior, just augment it
 			return false;
 		}));
 		if (this._onDidExecuteText) {
@@ -67,7 +59,6 @@ export class PartialCommandDetectionCapability extends DisposableStore implement
 	}
 
 	private _clearCommandsInViewport(): void {
-		// Find the number of commands on the tail end of the array that are within the viewport
 		let count = 0;
 		for (let i = this._commands.length - 1; i >= 0; i--) {
 			if (this._commands[i].line < this._terminal.buffer.active.baseY) {
@@ -75,7 +66,6 @@ export class PartialCommandDetectionCapability extends DisposableStore implement
 			}
 			count++;
 		}
-		// Remove them
 		this._commands.splice(this._commands.length - count, count);
 	}
 }

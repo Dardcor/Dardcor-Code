@@ -22,19 +22,13 @@ use crate::{
 pub const SERVER_FOLDER_NAME: &str = "server";
 
 pub struct ServerPaths {
-	// Directory into which the server is downloaded
 	pub server_dir: PathBuf,
-	// Executable path, within the server_id
 	pub executable: PathBuf,
-	// File where logs for the server should be written.
 	pub logfile: PathBuf,
-	// File where the process ID for the server should be written.
 	pub pidfile: PathBuf,
 }
 
 impl ServerPaths {
-	// Queries the system to determine the process ID of the running server.
-	// Returns the process ID, if the server is running.
 	pub fn get_running_pid(&self) -> Option<u32> {
 		if let Some(pid) = self.read_pid() {
 			return match machine::process_at_path_exists(pid, &self.executable) {
@@ -44,7 +38,6 @@ impl ServerPaths {
 		}
 
 		if let Some(pid) = machine::find_running_process(&self.executable) {
-			// attempt to backfill process ID:
 			self.write_pid(pid).ok();
 			return Some(pid);
 		}
@@ -52,7 +45,6 @@ impl ServerPaths {
 		None
 	}
 
-	/// Delete the server directory
 	pub fn delete(&self) -> Result<(), WrappedError> {
 		remove_dir_all(&self.server_dir).map_err(|e| {
 			wrap(
@@ -62,7 +54,6 @@ impl ServerPaths {
 		})
 	}
 
-	// VS Code Server pid
 	pub fn write_pid(&self, pid: u32) -> Result<(), WrappedError> {
 		write(&self.pidfile, format!("{pid}")).map_err(|e| {
 			wrap(
@@ -87,11 +78,9 @@ pub struct InstalledServer {
 }
 
 impl InstalledServer {
-	/// Gets path information about where a specific server should be stored.
 	pub fn server_paths(&self, p: &LauncherPaths) -> ServerPaths {
 		let server_dir = self.get_install_folder(p);
 		ServerPaths {
-			// allow using the OSS server in development via an override
 			executable: if let Some(p) = option_env!("VSCODE_CLI_OVERRIDE_SERVER_PATH") {
 				PathBuf::from(p)
 			} else {
@@ -115,7 +104,6 @@ impl InstalledServer {
 	}
 }
 
-/// Prunes servers not currently running, and returns the deleted servers.
 pub fn prune_stopped_servers(launcher_paths: &LauncherPaths) -> Result<Vec<ServerPaths>, AnyError> {
 	get_all_servers(launcher_paths)
 		.into_iter()
@@ -126,7 +114,6 @@ pub fn prune_stopped_servers(launcher_paths: &LauncherPaths) -> Result<Vec<Serve
 		.map_err(AnyError::from)
 }
 
-// Gets a list of all servers which look like they might be running.
 pub fn get_all_servers(lp: &LauncherPaths) -> Vec<InstalledServer> {
 	let mut servers: Vec<InstalledServer> = vec![];
 	if let Ok(children) = read_dir(lp.server_cache.path()) {

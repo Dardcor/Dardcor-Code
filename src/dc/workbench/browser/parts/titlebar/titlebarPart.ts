@@ -72,19 +72,10 @@ export interface ITitleProperties {
 
 export interface ITitlebarPart extends IDisposable {
 
-	/**
-	 * An event when the menubar visibility changes.
-	 */
 	readonly onMenubarVisibilityChange: Event<boolean>;
 
-	/**
-	 * Update some environmental title properties.
-	 */
 	updateProperties(properties: ITitleProperties): void;
 
-	/**
-	 * Adds variables to be supported in the window title.
-	 */
 	registerVariables(variables: ITitleVariable[]): void;
 }
 
@@ -115,7 +106,6 @@ export class BrowserTitleService extends MultiWindowParts<BrowserTitlebarPart> i
 
 	private registerActions(): void {
 
-		// Focus action
 		const that = this;
 		this._register(registerAction2(class FocusTitleBar extends Action2 {
 
@@ -151,12 +141,11 @@ export class BrowserTitleService extends MultiWindowParts<BrowserTitlebarPart> i
 		}));
 	}
 
-	//#region Auxiliary Titlebar Parts
 
 	createAuxiliaryTitlebarPart(container: HTMLElement, editorGroupsContainer: IEditorGroupsContainer, instantiationService: IInstantiationService): IAuxiliaryTitlebarPart {
 		const titlebarPartContainer = $('.part.titlebar', { role: 'none' });
 		titlebarPartContainer.style.position = 'relative';
-		container.insertBefore(titlebarPartContainer, container.firstChild); // ensure we are first element
+		container.insertBefore(titlebarPartContainer, container.firstChild);
 
 		const disposables = new DisposableStore();
 
@@ -183,10 +172,8 @@ export class BrowserTitleService extends MultiWindowParts<BrowserTitlebarPart> i
 		return instantiationService.createInstance(AuxiliaryBrowserTitlebarPart, container, editorGroupsContainer, this.mainPart);
 	}
 
-	//#endregion
 
 
-	//#region Service Implementation
 
 	readonly onMenubarVisibilityChange: Event<boolean>;
 
@@ -221,12 +208,10 @@ export class BrowserTitleService extends MultiWindowParts<BrowserTitlebarPart> i
 		return this.mainPart.windowTitle;
 	}
 
-	//#endregion
 }
 
 export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
-	//#region IView
 
 	readonly minimumWidth: number = 0;
 	readonly maximumWidth: number = Number.POSITIVE_INFINITY;
@@ -243,9 +228,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 	get maximumHeight(): number { return this.minimumHeight; }
 
-	//#endregion
 
-	//#region Events
 
 	private _onMenubarVisibilityChange = this._register(new Emitter<boolean>());
 	readonly onMenubarVisibilityChange = this._onMenubarVisibilityChange.event;
@@ -253,7 +236,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 	private readonly _onWillDispose = this._register(new Emitter<void>());
 	readonly onWillDispose = this._onWillDispose.event;
 
-	//#endregion
 
 	protected rootContainer!: HTMLElement;
 	protected windowControlsContainer: HTMLElement | undefined;
@@ -380,7 +362,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			this.updateStyles();
 		}
 
-		// Custom menu bar (disabled if auxiliary)
 		if (!this.isAuxiliary && !hasNativeMenu(this.configurationService, this.titleBarStyle) && (!isMacintosh || isWeb)) {
 			if (event.affectsConfiguration(MenuSettings.MenuBarVisibility)) {
 				if (this.currentMenubarVisibility === 'compact') {
@@ -391,7 +372,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 		}
 
-		// Actions
 		if (hasCustomTitlebar(this.configurationService, this.titleBarStyle) && this.actionToolBar) {
 			const affectsLayoutControl = event.affectsConfiguration(LayoutSettings.LAYOUT_ACTIONS);
 			const affectsActivityControl = event.affectsConfiguration(LayoutSettings.ACTIVITY_BAR_LOCATION);
@@ -403,7 +383,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 		}
 
-		// Command Center
 		if (event.affectsConfiguration(LayoutSettings.COMMAND_CENTER)) {
 			this.recreateTitle();
 		}
@@ -429,7 +408,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 	protected installMenubar(): void {
 		if (this.menubar) {
-			return; // If the menubar is already installed, skip
+			return;
 		}
 
 		const customMenubar = this.instantiationService.createInstance(CustomMenubarControl);
@@ -479,15 +458,12 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 		this.centerContent = append(this.rootContainer, $('.titlebar-center'));
 		this.rightContent = append(this.rootContainer, $('.titlebar-right'));
 
-		// App Icon (Windows, Linux)
 		if (isWindows || isLinux) {
 			this.appIcon = prepend(this.leftContent, $('a.window-appicon'));
 		}
 
-		// Draggable region that we can manipulate for #52522
 		this.dragRegion = prepend(this.rootContainer, $('div.titlebar-drag-region'));
 
-		// Menubar: install a custom menu bar depending on configuration
 		if (
 			!this.isAuxiliary &&
 			!hasNativeMenu(this.configurationService, this.titleBarStyle) &&
@@ -497,11 +473,9 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			this.installMenubar();
 		}
 
-		// Title
 		this.title = append(this.centerContent, $('div.window-title'));
 		this.createTitle();
 
-		// Center-Adjacent Toolbar (e.g., update indicator)
 		if (hasCustomTitlebar(this.configurationService, this.titleBarStyle)) {
 			const centerAdjacentToolBarElement = append(this.rightContent, $('div.center-adjacent-toolbar-container'));
 			this.centerAdjacentToolBarElement = centerAdjacentToolBarElement;
@@ -515,18 +489,9 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 				hoverDelegate: this.hoverDelegate
 			}));
 
-			// Re-evaluate fit when items change (e.g. the update indicator appears), see #303222.
 			this.centerAdjacentToolBarDisposable.add(centerAdjacentToolBar.onDidChangeMenuItems(() => this.updateTitleBarToolBarOverflow()));
 		}
 
-		// Create Toolbar Actions
-		if (hasCustomTitlebar(this.configurationService, this.titleBarStyle)) {
-			this.actionToolBarElement = append(this.rightContent, $('div.action-toolbar-container'));
-			this.createActionToolBar();
-			this.createActionToolBarMenus();
-		}
-
-		// Update Toolbar
 		if (hasCustomTitlebar(this.configurationService, this.titleBarStyle)) {
 			const updateToolBarElement = append(this.rightContent, $('div.update-toolbar-container'));
 			this.updateToolBarElement = updateToolBarElement;
@@ -543,13 +508,16 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			this.updateToolBarDisposable.add(updateToolBar.onDidChangeMenuItems(() => this.updateTitleBarToolBarOverflow()));
 		}
 
-		// Window Controls Container
+		if (hasCustomTitlebar(this.configurationService, this.titleBarStyle)) {
+			this.actionToolBarElement = append(this.rightContent, $('div.action-toolbar-container'));
+			this.createActionToolBar();
+			this.createActionToolBarMenus();
+		}
+
 		if (!hasNativeTitlebar(this.configurationService, this.titleBarStyle)) {
 			let primaryWindowControlsLocation = isMacintosh ? 'left' : 'right';
 			if (isMacintosh && isNative) {
 
-				// Check if the locale is RTL, macOS will move traffic lights in RTL locales
-				// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/textInfo
 
 				const localeInfo = safeIntl.Locale(platformLocale).value;
 				const textInfo = (localeInfo as { textInfo?: unknown }).textInfo;
@@ -559,17 +527,10 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 
 			if (isMacintosh && isNative && primaryWindowControlsLocation === 'left') {
-				// macOS native: controls are on the left and the container is not needed to make room
-				// for something, except for web where a custom menu being supported). not putting the
-				// container helps with allowing to move the window when clicking very close to the
-				// window control buttons.
 			} else if (getWindowControlsStyle(this.configurationService) === WindowControlsStyle.HIDDEN) {
-				// Linux/Windows: controls are explicitly disabled
 			} else {
 				this.windowControlsContainer = append(primaryWindowControlsLocation === 'left' ? this.leftContent : this.rightContent, $('div.window-controls-container'));
 				if (isWeb) {
-					// Web: its possible to have control overlays on both sides, for example on macOS
-					// with window controls on the left and PWA controls on the right.
 					append(primaryWindowControlsLocation === 'left' ? this.rightContent : this.leftContent, $('div.window-controls-container'));
 				}
 
@@ -579,11 +540,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 		}
 
-		// Context menu over title bar: depending on the OS and the location of the click this will either be
-		// the overall context menu for the entire title bar or a specific title context menu.
-		// Windows / Linux: we only support the overall context menu on the title bar
-		// macOS: we support both the overall context menu and the title context menu.
-		//        in addition, we allow Cmd+click to bring up the title context menu.
 		{
 			this._register(addDisposableListener(this.rootContainer, EventType.CONTEXT_MENU, e => {
 				EventHelper.stop(e);
@@ -601,11 +557,11 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			if (isMacintosh) {
 				this._register(addDisposableListener(this.title, EventType.MOUSE_DOWN, e => {
 					if (e.metaKey) {
-						EventHelper.stop(e, true /* stop bubbling to prevent command center from opening */);
+						EventHelper.stop(e, true );
 
 						this.onContextMenu(e, MenuId.TitleBarTitleContext);
 					}
-				}, true /* capture phase to prevent command center from opening */));
+				}, true ));
 			}
 		}
 
@@ -619,14 +575,13 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 		const isShowingTitleInNativeTitlebar = hasNativeTitlebar(this.configurationService, this.titleBarStyle);
 
-		// Text Title
 		if (!this.isCommandCenterVisible) {
 			if (!isShowingTitleInNativeTitlebar) {
 				this.title.textContent = this.windowTitle.value;
 				this.titleDisposables.add(this.windowTitle.onDidChange(() => {
 					this.title.textContent = this.windowTitle.value;
 					if (this.lastLayoutDimensions) {
-						this.updateLayout(this.lastLayoutDimensions); // layout menubar and other renderings in the titlebar
+						this.updateLayout(this.lastLayoutDimensions);
 					}
 				}));
 			} else {
@@ -634,7 +589,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 		}
 
-		// Menu Title
 		else {
 			const commandCenter = this.instantiationService.createInstance(CommandCenterControl, this.windowTitle, this.hoverDelegate);
 			reset(this.title, commandCenter.element);
@@ -644,7 +598,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 	private actionViewItemProvider(action: IAction, options: IBaseActionViewItemOptions): IActionViewItem | undefined {
 
-		// --- Custom view items registered via IActionViewItemService
 		for (const menuId of [MenuId.TitleBar, MenuId.LayoutControlMenu]) {
 			const customViewItem = this.actionViewItemService.lookUp(menuId, action.id);
 			if (customViewItem) {
@@ -655,7 +608,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 		}
 
-		// --- Activity Actions
 		if (!this.isAuxiliary) {
 			if (action.id === GLOBAL_ACTIVITY_ID) {
 				return this.instantiationService.createInstance(SimpleGlobalActivityActionViewItem, { position: () => HoverPosition.BELOW }, options);
@@ -665,7 +617,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 		}
 
-		// --- Editor Actions
 		const activeEditorPane = this.editorGroupsContainer.activeGroup?.activeEditorPane;
 		if (activeEditorPane && activeEditorPane instanceof EditorPane) {
 			const result = activeEditorPane.getActionViewItem(action, options);
@@ -675,7 +626,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 		}
 
-		// Check extensions
 		return createActionViewItem(this.instantiationService, action, { ...options, menuAsChild: false });
 	}
 
@@ -687,8 +637,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 	private createActionToolBar(): void {
 
-		// Creates the action tool bar. Depends on the configuration of the title bar menus
-		// Requires to be recreated whenever editor actions enablement changes
 
 		this.actionToolBarDisposable.clear();
 
@@ -702,7 +650,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			dropdownMenuClassName: WORKBENCH_MENU_MOTION_CLASS,
 			dropdownMenuCloseAnimation: workbenchMenuCloseAnimation,
 			telemetrySource: 'titlePart',
-			highlightToggledItems: this.isAuxiliary, // Only show toggled state for auxiliary title bars
+			highlightToggledItems: this.isAuxiliary,
 			actionViewItemProvider: (action, options) => this.actionViewItemProvider(action, options),
 			hoverDelegate: this.hoverDelegate
 		}));
@@ -720,9 +668,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 		const updateToolBarActions = () => {
 			const actions: IToolbarActions = { primary: [], secondary: [] };
 
-			// --- Leading Global Actions (rendered before layout controls; opt-in via TitleBarLeadingActionsGroup).
-			// Use a scratch bucket so non-leading actions don't leak into the shared `secondary` (overflow) list here;
-			// they are added by the trailing global-actions pass below.
 			if (this.globalToolbarMenu) {
 				const leading: IToolbarActions = { primary: [], secondary: [] };
 				fillInActionBarActions(
@@ -734,7 +679,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 				actions.primary.push(new Separator());
 			}
 
-			// --- Editor Actions
 			if (this.editorActionsEnabled) {
 				this.editorActionsChangeDisposable.clear();
 
@@ -750,7 +694,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 				}
 			}
 
-			// --- Layout Actions
 			if (this.layoutToolbarMenu) {
 				fillInActionBarActions(
 					this.layoutToolbarMenu.getActions(),
@@ -759,8 +702,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 				);
 			}
 
-			// --- Global Actions (after layout so e.g. notification bell appears to the right of layout controls).
-			// Filter out the leading group up front so it isn't duplicated into the overflow `secondary` bucket.
 			if (this.globalToolbarMenu) {
 				const trailingGroups = this.globalToolbarMenu.getActions().filter(([group]) => group !== TitleBarLeadingActionsGroup);
 				fillInActionBarActions(
@@ -769,9 +710,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 				);
 			}
 
-			// --- Activity Actions (always at the end)
 			if (this.activityActionsEnabled) {
-				// actions.primary.push(ACCOUNTS_ACTIVITY_TILE_ACTION);
 
 				actions.primary.push(GLOBAL_ACTIVITY_TITLE_ACTION);
 			}
@@ -779,13 +718,10 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			this.actionToolBar.setActions(prepareActions(actions.primary), prepareActions(actions.secondary));
 		};
 
-		// Create/Update the menus which should be in the title tool bar
 
 		if (update.editorActions) {
 			this.editorToolbarMenuDisposables.clear();
 
-			// The editor toolbar menu is handled by the editor group so we do not need to manage it here.
-			// However, depending on the active editor, we need to update the context and action runner of the toolbar menu.
 			if (this.editorActionsEnabled && this.editorGroupsContainer.activeGroup?.activeEditor) {
 				const context: IEditorCommandsContext = { groupId: this.editorGroupsContainer.activeGroup.id };
 
@@ -836,7 +772,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 	override updateStyles(): void {
 		super.updateStyles();
 
-		// Part container
 		if (this.element) {
 			if (this.isInactive) {
 				this.element.classList.add('inactive');
@@ -845,10 +780,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			}
 
 			const titleBackground = this.getColor(this.isInactive ? TITLE_BAR_INACTIVE_BACKGROUND : TITLE_BAR_ACTIVE_BACKGROUND, (color, theme) => {
-				// LCD Rendering Support: the title bar part is a defining its own GPU layer.
-				// To benefit from LCD font rendering, we must ensure that we always set an
-				// opaque background color. As such, we compute an opaque color given we know
-				// the background color is the workbench background.
 				return color.isOpaque() ? color : color.makeOpaque(WORKBENCH_BACKGROUND(theme));
 			}) || '';
 			this.element.style.backgroundColor = titleBackground;
@@ -875,7 +806,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 	protected onContextMenu(e: MouseEvent, menuId: MenuId): void {
 		const event = new StandardMouseEvent(getWindow(this.element), e);
 
-		// Show it
 		this.contextMenuService.showContextMenu({
 			getAnchor: () => event,
 			menuId,
@@ -925,9 +855,6 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 	}
 
 	get preventZoom(): boolean {
-		// Prevent zooming behavior if any of the following conditions are met:
-		// 1. Shrinking below the window control size (zoom < 1)
-		// 2. No custom items are present in the title bar
 
 		return getZoomFactor(getWindow(this.element)) < 1 || !this.hasZoomableElements;
 	}
@@ -937,13 +864,9 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 		super.layoutContents(width, height);
 
-		// Run after `layoutContents` so the title bar reflects its new width when measuring overflow.
 		this.updateTitleBarToolBarOverflow();
 	}
 
-	/**
-	 * Hides optional title bar toolbars when showing them would push the trailing window controls off-screen (#303222).
-	 */
 	private updateTitleBarToolBarOverflow(): void {
 		const centerAdjacentToolBarElement = this.centerAdjacentToolBarElement?.classList.contains('has-no-actions') ? undefined : this.centerAdjacentToolBarElement;
 		const updateToolBarElement = this.updateToolBarElement?.classList.contains('has-no-actions') ? undefined : this.updateToolBarElement;
@@ -1064,11 +987,6 @@ export class AuxiliaryBrowserTitlebarPart extends BrowserTitlebarPart implements
 
 	override get preventZoom(): boolean {
 
-		// Prevent zooming behavior if any of the following conditions are met:
-		// 1. Shrinking below the window control size (zoom < 1)
-		// 2. No custom items are present in the main title bar
-		// The auxiliary title bar never contains any zoomable items itself,
-		// but we want to match the behavior of the main title bar.
 
 		return getZoomFactor(getWindow(this.element)) < 1 || !this.mainTitlebar.hasZoomableElements;
 	}

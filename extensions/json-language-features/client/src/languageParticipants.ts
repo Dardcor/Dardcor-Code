@@ -5,18 +5,8 @@
 
 import { Event, EventEmitter, extensions } from 'vscode';
 
-/**
- * JSON language participant contribution.
- */
 interface LanguageParticipantContribution {
-	/**
-	 * The id of the language which participates with the JSON language server.
-	 */
 	languageId: string;
-	/**
-	 * true if the language allows comments and false otherwise.
-	 * TODO: implement server side setting
-	 */
 	comments?: boolean;
 }
 

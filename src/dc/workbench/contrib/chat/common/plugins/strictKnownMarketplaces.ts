@@ -8,29 +8,10 @@ import { isEqual } from '../../../../../base/common/resources.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { IMarketplaceReference, MarketplaceReferenceKind, parseMarketplaceReference } from './marketplaceReference.js';
 
-/**
- * The allowlist entry type for `chat.plugins.strictMarketplaces`. Re-exported
- * from `base/common` so chat plugin code can import it alongside the matcher it
- * operates with; the same type is consumed by the managed-settings adapter.
- */
 export type { IStrictMarketplaceSource };
 
-/**
- * The value of the `chat.plugins.strictMarketplaces` allowlist.
- * - `undefined`: no restrictions — all marketplaces are allowed.
- * - `[]`: complete lockdown — no marketplace is allowed.
- * - non-empty array: only marketplaces matching an entry are allowed.
- */
 export type StrictKnownMarketplaces = readonly IStrictMarketplaceSource[];
 
-/**
- * Coerces a resolved configuration value into a {@link StrictKnownMarketplaces}
- * allowlist. Returns `undefined` (meaning "no restrictions") when the value is
- * not an array — which is also how an unset policy surfaces (the registered
- * `null` default). Malformed entries (non-objects or entries without a string
- * `source`) are dropped so a bad managed-settings payload degrades to "no match"
- * rather than throwing during matching.
- */
 export function getStrictKnownMarketplaces(value: unknown): StrictKnownMarketplaces | undefined {
 	if (!Array.isArray(value)) {
 		return undefined;
@@ -39,12 +20,6 @@ export function getStrictKnownMarketplaces(value: unknown): StrictKnownMarketpla
 		typeof entry === 'object' && entry !== null && typeof entry.source === 'string');
 }
 
-/**
- * Checks whether a marketplace reference is allowed by the strict allowlist.
- *
- * @param allowlist `undefined` allows everything, `[]` blocks everything,
- * otherwise the reference must match at least one entry.
- */
 export function isMarketplaceReferenceAllowed(allowlist: StrictKnownMarketplaces | undefined, ref: IMarketplaceReference): boolean {
 	if (allowlist === undefined) {
 		return true;
@@ -58,8 +33,6 @@ export function isMarketplaceReferenceAllowed(allowlist: StrictKnownMarketplaces
 function matchesAllowlistEntry(entry: IStrictMarketplaceSource, ref: IMarketplaceReference): boolean {
 	switch (entry.source) {
 		case 'github': {
-			// VS Code marketplace references do not model an in-repo path, so an
-			// entry that pins a `path` can never match.
 			if (typeof entry.repo !== 'string' || entry.path !== undefined) {
 				return false;
 			}
@@ -81,7 +54,6 @@ function matchesAllowlistEntry(entry: IStrictMarketplaceSource, ref: IMarketplac
 			return !!candidate && candidate.canonicalId === ref.canonicalId;
 		}
 		case 'npm': {
-			// npm is not a supported marketplace source in VS Code.
 			return false;
 		}
 		case 'file':
@@ -89,8 +61,6 @@ function matchesAllowlistEntry(entry: IStrictMarketplaceSource, ref: IMarketplac
 			if (ref.kind !== MarketplaceReferenceKind.LocalFileUri || !ref.localRepositoryUri || typeof entry.path !== 'string') {
 				return false;
 			}
-			// Note: `~` is not expanded here (no home-dir resolution in the common
-			// layer); enterprise allowlists should use absolute paths.
 			return isEqual(ref.localRepositoryUri, URI.file(entry.path));
 		}
 		case 'hostPattern': {
@@ -111,7 +81,6 @@ function matchesAllowlistEntry(entry: IStrictMarketplaceSource, ref: IMarketplac
 	}
 }
 
-/** Appends (or replaces) a `#ref` fragment on a marketplace value. */
 function appendRef(value: string, ref: string | undefined): string {
 	if (!ref) {
 		return value;
@@ -121,7 +90,6 @@ function appendRef(value: string, ref: string | undefined): string {
 	return `${base}#${ref}`;
 }
 
-/** Extracts the host of a marketplace reference for `hostPattern` matching. */
 function extractHost(ref: IMarketplaceReference): string | undefined {
 	if (ref.kind === MarketplaceReferenceKind.GitHubShorthand) {
 		return 'github.com';
@@ -129,7 +97,6 @@ function extractHost(ref: IMarketplaceReference): string | undefined {
 	if (ref.kind !== MarketplaceReferenceKind.GitUri) {
 		return undefined;
 	}
-	// scp-style git URLs: `git@host:path`.
 	const scpMatch = /^[\w._-]+@([\w.-]+):/.exec(ref.cloneUrl);
 	if (scpMatch) {
 		return scpMatch[1].toLowerCase();
@@ -150,7 +117,6 @@ function extractHost(ref: IMarketplaceReference): string | undefined {
 	}
 }
 
-/** Tests a regex pattern against a value, treating invalid patterns as non-matching. */
 function testPattern(pattern: string, value: string): boolean {
 	try {
 		return new RegExp(pattern).test(value);

@@ -8,9 +8,6 @@ import { URI } from '../../../../../base/common/uri.js';
 import { NotebookCellTextModel } from './notebookCellTextModel.js';
 import { ISelectionState, NotebookCellMetadata } from '../notebookCommon.js';
 
-/**
- * It should not modify Undo/Redo stack
- */
 export interface ITextCellEditingDelegate {
 	insertCell?(index: number, cell: NotebookCellTextModel, endSelections?: ISelectionState): void;
 	deleteCell?(index: number, endSelections?: ISelectionState): void;
@@ -57,14 +54,12 @@ export class MoveCellEdit implements IResourceUndoRedoElement {
 export class SpliceCellsEdit implements IResourceUndoRedoElement {
 	type: UndoRedoElementType.Resource = UndoRedoElementType.Resource;
 	get label() {
-		// Compute the most appropriate labels
 		if (this.diffs.length === 1 && this.diffs[0][1].length === 0) {
 			return this.diffs[0][2].length > 1 ? 'Insert Cells' : 'Insert Cell';
 		}
 		if (this.diffs.length === 1 && this.diffs[0][2].length === 0) {
 			return this.diffs[0][1].length > 1 ? 'Delete Cells' : 'Delete Cell';
 		}
-		// Default to Insert Cell
 		return 'Insert Cell';
 	}
 	code: string = 'undoredo.textBufferEdit';

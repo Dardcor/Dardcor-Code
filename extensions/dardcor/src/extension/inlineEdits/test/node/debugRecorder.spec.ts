@@ -17,8 +17,6 @@ import { DebugRecorder } from '../../node/debugRecorder';
 
 suite('Debug recorder', () => {
 
-	// like `Date.now()` but repeats the same time on every 4th invocation
-	// eg 1 2 3 4 4 5 6 7 8 8 9 ...
 	function createRepeatingGetNow() {
 		let last = 0;
 		let next = 1;
@@ -243,10 +241,10 @@ suite('Debug recorder', () => {
 		test('filters entries outside [from, to]', () => {
 			const { recorder, setNow, insertEdit } = setup();
 
-			setNow(1000); insertEdit('a'); // before range
-			setNow(2000); insertEdit('b'); // in range
-			setNow(3000); insertEdit('c'); // in range
-			setNow(4000); insertEdit('d'); // after range
+			setNow(1000); insertEdit('a');
+			setNow(2000); insertEdit('b');
+			setNow(3000); insertEdit('c');
+			setNow(4000); insertEdit('d');
 
 			setNow(5000);
 			const log = recorder.getLogInRange(1500, 3500);
@@ -266,7 +264,6 @@ suite('Debug recorder', () => {
 			const log = recorder.getLogInRange(3000, 4000);
 
 			assert(log);
-			// Header is always emitted; per-doc framing is skipped when no in-range entries.
 			expect(log.filter(e => e.kind !== 'header')).toHaveLength(0);
 		});
 
@@ -276,7 +273,6 @@ suite('Debug recorder', () => {
 			const recorder = new DebugRecorder(workspace, () => nowMs);
 			const workspaceRoot = URI.parse('file:///workspace');
 
-			// Document opens at t=5000 — well after the requested slice [1000, 4000].
 			const doc = workspace.addDocument({ id: DocumentId.create('file:///workspace/late.ts'), workspaceRoot, initialValue: 'hello' });
 			doc.applyEdit(new StringEdit([StringReplacement.replace(new OffsetRange(5, 5), '!')]));
 
@@ -290,20 +286,16 @@ suite('Debug recorder', () => {
 		test('fast-forwards baseValue when fromTimeMs > baseValueTime', () => {
 			const { recorder, setNow, insertEdit } = setup();
 
-			// Base value is 'hello' at creation (~1000)
 			setNow(1500); insertEdit(' world');
 			setNow(2000); insertEdit('!');
 			setNow(3000); insertEdit('?');
 
-			// Slice covers [2500, 3500]: the 'hello world!' state at 2000 should be the setContent
 			setNow(3500);
 			const log = recorder.getLogInRange(2500, 3500);
 
 			assert(log);
 			const setContent = log.find(e => e.kind === 'setContent') as Extract<LogEntry, { kind: 'setContent' }>;
 			expect(setContent.content).toBe('hello world!');
-			// Framing carries the true baseValueTime (2000) even though it pre-dates the slice —
-			// matches what production WorkspaceRecorder emits.
 			expect(setContent.time).toBe(2000);
 
 			const changes = log.filter(e => e.kind === 'changed') as Extract<LogEntry, { kind: 'changed' }>[];
@@ -333,9 +325,6 @@ suite('Debug recorder', () => {
 			const setContent = log.find(e => e.kind === 'setContent') as Extract<LogEntry, { kind: 'setContent' }>;
 			const changes = log.filter(e => e.kind === 'changed') as Extract<LogEntry, { kind: 'changed' }>[];
 
-			// setContent starts at v=1; consecutive `changed` entries should be 2, 3, 4 — no phantom
-			// gaps caused by intervening selection events. Matches what WorkspaceRecorder writes
-			// in production using VS Code's real model version.
 			expect(setContent.v).toBe(1);
 			expect(changes.map(c => c.v)).toEqual([2, 3, 4]);
 		});

@@ -128,7 +128,6 @@ abstract class NavigateAction extends ChatEditingEditorAction {
 			return;
 		}
 
-		//ELSE: wrap inside the same file
 		this.next
 			? ctrl.next(true)
 			: ctrl.previous(true);
@@ -166,7 +165,6 @@ async function openNextOrPreviousChange(accessor: ServicesAccessor, session: ICh
 	}
 
 	if (session.entries.get().includes(newEntry)) {
-		// make sure newEntry is still valid!
 		newEntry.getEditorIntegration(pane).reveal(next);
 	}
 
@@ -194,7 +192,7 @@ abstract class KeepOrUndoAction extends ChatEditingEditorAction {
 			f1: true,
 			keybinding: {
 				when: ContextKeyExpr.or(EditorContextKeys.focus, NOTEBOOK_EDITOR_FOCUSED),
-				weight: KeybindingWeight.WorkbenchContrib + 10, // win over new-window-action
+				weight: KeybindingWeight.WorkbenchContrib + 10,
 				primary: _keep
 					? KeyMod.CtrlCmd | KeyCode.Enter
 					: KeyMod.CtrlCmd | KeyCode.Backspace,
@@ -288,7 +286,6 @@ abstract class AcceptRejectHunkAction extends ChatEditingEditorAction {
 		}
 
 		if (configService.getValue<boolean>(ChatConfiguration.RevealNextChangeOnResolve) && entry.changesCount.get() === 0) {
-			// no more changes, move to next file
 			await instaService.invokeFunction(openNextOrPreviousChange, session, entry, true);
 		}
 	}
@@ -413,7 +410,6 @@ export class AcceptAllEditsAction extends ChatEditingEditorAction {
 }
 
 
-// --- multi file diff
 
 abstract class MultiDiffAcceptDiscardAction extends Action2 {
 
@@ -464,7 +460,7 @@ abstract class MultiDiffAcceptDiscardAction extends Action2 {
 }
 
 
-const explainMultiDiffSchemes = [CHAT_EDITING_MULTI_DIFF_SOURCE_RESOLVER_SCHEME, 'copilotcli-worktree-changes', 'copilotcloud-pr-changes'];
+const explainMultiDiffSchemes = [CHAT_EDITING_MULTI_DIFF_SOURCE_RESOLVER_SCHEME, 'copilotcli-worktree-changes'];
 
 class ExplainMultiDiffAction extends Action2 {
 
@@ -494,7 +490,6 @@ class ExplainMultiDiffAction extends Action2 {
 			return;
 		}
 
-		// Check if we're in a multi-diff editor
 		if (!(activePane instanceof MultiDiffEditor) || !activePane.viewModel) {
 			return;
 		}
@@ -504,12 +499,10 @@ class ExplainMultiDiffAction extends Action2 {
 			return;
 		}
 
-		// Dispose existing widgets for this input and create new store
 		this._widgetsByInput.get(input)?.dispose();
 		const widgetsStore = new DisposableStore();
 		this._widgetsByInput.set(input, widgetsStore);
 
-		// Dispose widgets when the input is disposed
 		Event.once(input.onWillDispose)(() => {
 			widgetsStore.dispose();
 			this._widgetsByInput.delete(input);
@@ -518,21 +511,17 @@ class ExplainMultiDiffAction extends Action2 {
 		const viewModel = activePane.viewModel;
 		const items = viewModel.items.get();
 
-		// Try to extract chat session resource from the multi-diff editor URI or by scanning sessions
 		let chatSessionResource: URI | undefined;
 		if (input instanceof MultiDiffEditorInput && input.resource?.scheme === CHAT_EDITING_MULTI_DIFF_SOURCE_RESOLVER_SCHEME) {
 			chatSessionResource = parseChatMultiDiffUri(input.resource).chatSessionResource;
 		}
 		if (!chatSessionResource) {
-			// Scan sessions to find one that owns files in this multi-diff editor
-			// Use goToFileUri if available, otherwise extract file path from the modified URI
 			const fileUris = items.map(item => {
 				const docDiffItem = item.documentDiffItem as IDocumentDiffItemWithMultiDiffEditorItem | undefined;
 				const goToFileUri = docDiffItem?.multiDiffEditorItem?.goToFileUri;
 				if (goToFileUri) {
 					return goToFileUri;
 				}
-				// Fallback: extract file path from the modified URI (e.g., git: URIs have the path)
 				const modifiedUri = docDiffItem?.multiDiffEditorItem?.modifiedUri ?? item.modifiedUri;
 				if (modifiedUri?.path) {
 					return URI.file(modifiedUri.path);
@@ -547,7 +536,6 @@ class ExplainMultiDiffAction extends Action2 {
 			}
 		}
 
-		// First pass: collect all diffs grouped by file
 		const diffsByFile = new Map<string, {
 			editor: ICodeEditor;
 			changes: DetailedLineRangeMapping[];
@@ -561,13 +549,11 @@ class ExplainMultiDiffAction extends Action2 {
 				continue;
 			}
 
-			// Try to get the editor for this item
 			const editorInfo = activePane.tryGetCodeEditor(modifiedUri);
 			if (!editorInfo) {
 				continue;
 			}
 
-			// Get diff info from the view model
 			const diffEditorVM = item.diffEditorViewModel as DiffEditorViewModel;
 			await diffEditorVM.waitForDiff();
 
@@ -579,10 +565,8 @@ class ExplainMultiDiffAction extends Action2 {
 			const fileKey = modifiedUri.toString();
 			const existing = diffsByFile.get(fileKey);
 			if (existing) {
-				// Add changes to existing file entry
 				existing.changes.push(...diff.mappings.map(m => m.lineRangeMapping));
 			} else {
-				// Create new file entry
 				diffsByFile.set(fileKey, {
 					editor: editorInfo.editor,
 					changes: diff.mappings.map(m => m.lineRangeMapping),
@@ -592,11 +576,9 @@ class ExplainMultiDiffAction extends Action2 {
 			}
 		}
 
-		// Second pass: create managers for each file with all its changes
 		const allDiffInfos: IExplanationDiffInfo[] = [];
 
 		for (const fileData of diffsByFile.values()) {
-			// Build diff info with all changes for this file
 			const diffInfo: IExplanationDiffInfo = {
 				changes: fileData.changes,
 				identical: false,
@@ -605,7 +587,6 @@ class ExplainMultiDiffAction extends Action2 {
 			};
 			allDiffInfos.push(diffInfo);
 
-			// Create a widget manager for this file - it will observe state from model manager
 			const manager = new ChatEditingExplanationWidgetManager(
 				fileData.editor,
 				chatWidgetService,
@@ -616,8 +597,6 @@ class ExplainMultiDiffAction extends Action2 {
 			widgetsStore.add(manager);
 		}
 
-		// Generate explanations for all files in a single request
-		// This populates state which triggers the managers' autoruns to create widgets
 		if (allDiffInfos.length > 0) {
 			widgetsStore.add(explanationModelManager.generateExplanations(allDiffInfos, chatSessionResource, CancellationToken.None));
 		}

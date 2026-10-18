@@ -20,10 +20,6 @@ class CodeLensViewZone implements IViewZone {
 	readonly domNode: HTMLElement;
 
 	afterLineNumber: number;
-	/**
-	 * We want that this view zone, which reserves space for a code lens appears
-	 * as close as possible to the next line, so we use a very large value here.
-	 */
 	readonly afterColumn = Constants.MAX_SAFE_SMALL_INTEGER;
 	heightInPx: number;
 
@@ -58,7 +54,6 @@ class CodeLensContentWidget implements IContentWidget {
 
 	private static _idPool: number = 0;
 
-	// Editor.IContentWidget.allowEditorOverflow
 	readonly allowEditorOverflow: boolean = false;
 	readonly suppressMouseDown: boolean = true;
 
@@ -110,11 +105,9 @@ class CodeLensContentWidget implements IContentWidget {
 		}
 
 		if (!hasSymbol) {
-			// symbols but no commands
 			dom.reset(this._domNode, dom.$('span', undefined, 'no commands'));
 
 		} else {
-			// symbols and commands
 			dom.reset(this._domNode, ...children);
 			if (this._isEmpty && animate) {
 				this._domNode.classList.add('fadein');
@@ -210,8 +203,6 @@ export class CodeLensWidget {
 		this._editor = editor;
 		this._data = data;
 
-		// create combined range, track all ranges with decorations,
-		// check if there is already something to render
 		this._decorationIds = [];
 		let range: Range | undefined;
 		const lenses: CodeLens[] = [];
@@ -227,7 +218,6 @@ export class CodeLensWidget {
 				options: codeLensDecorationOptions
 			}, id => this._decorationIds[i] = id);
 
-			// the range contains all lenses on this line
 			if (!range) {
 				range = Range.lift(codeLensData.symbol.range);
 			} else {
@@ -301,7 +291,6 @@ export class CodeLensWidget {
 			return null;
 		}
 
-		// Read editor current state
 		for (let i = 0; i < this._decorationIds.length; i++) {
 			const range = model.getDecorationRange(this._decorationIds[i]);
 			if (range) {

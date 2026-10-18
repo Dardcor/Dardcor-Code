@@ -28,9 +28,6 @@ export class ServerTelemetryChannel extends Disposable implements IServerChannel
 
 			case 'logTelemetry': {
 				const { eventName, data } = arg;
-				// Logging is done directly to the appender instead of through the telemetry service
-				// as the data sent from the client has already had common properties added to it and
-				// has already been sent to the telemetry output channel
 				if (this.telemetryAppender) {
 					return this.telemetryAppender.log(eventName, data);
 				}
@@ -50,7 +47,6 @@ export class ServerTelemetryChannel extends Disposable implements IServerChannel
 				return;
 			}
 		}
-		// Command we cannot handle so we throw an error
 		throw new Error(`IPC Command ${command} not found`);
 	}
 
@@ -58,10 +54,6 @@ export class ServerTelemetryChannel extends Disposable implements IServerChannel
 		throw new Error('Not supported');
 	}
 
-	/**
-	 * Disposing the channel also disables the telemetryService as there is
-	 * no longer a way to control it
-	 */
 	public override dispose(): void {
 		this.telemetryService.updateInjectedTelemetryLevel(TelemetryLevel.NONE);
 		super.dispose();

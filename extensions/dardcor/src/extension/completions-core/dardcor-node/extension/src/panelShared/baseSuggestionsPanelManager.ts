@@ -53,7 +53,6 @@ export abstract class BaseSuggestionsPanelManager<TPanelCompletion extends BaseP
 		});
 
 		const suggestionPanel = this.createSuggestionsPanel(panel, document, this);
-		// Listen for the panel disposal event to clear our reference
 		suggestionPanel.onDidDispose(() => {
 			if (this.activeWebviewPanel === suggestionPanel) {
 				this.activeWebviewPanel = undefined;

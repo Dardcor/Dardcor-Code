@@ -11,7 +11,6 @@ import { ITerminalInstanceService } from '../../../terminal/browser/terminal.js'
 import { TERMINAL_CONFIG_SECTION } from '../../../terminal/common/terminal.js';
 import { TerminalAutoRepliesSettingId, type ITerminalAutoRepliesConfiguration } from '../common/terminalAutoRepliesConfiguration.js';
 
-// #region Workbench contributions
 
 export class TerminalAutoRepliesContribution extends Disposable implements IWorkbenchContribution {
 	static ID = 'terminalAutoReplies';
@@ -29,10 +28,8 @@ export class TerminalAutoRepliesContribution extends Disposable implements IWork
 	}
 
 	private _installListenersOnBackend(backend: ITerminalBackend): void {
-		// Listen for config changes
 		const initialConfig = this._configurationService.getValue<ITerminalAutoRepliesConfiguration>(TERMINAL_CONFIG_SECTION);
 		for (const match of Object.keys(initialConfig.autoReplies)) {
-			// Ensure the reply is valid
 			const reply = initialConfig.autoReplies[match] as string | null;
 			if (reply) {
 				backend.installAutoReply(match, reply);
@@ -44,7 +41,6 @@ export class TerminalAutoRepliesContribution extends Disposable implements IWork
 				backend.uninstallAllAutoReplies();
 				const config = this._configurationService.getValue<ITerminalAutoRepliesConfiguration>(TERMINAL_CONFIG_SECTION);
 				for (const match of Object.keys(config.autoReplies)) {
-					// Ensure the reply is valid
 					const reply = config.autoReplies[match] as string | null;
 					if (reply) {
 						backend.installAutoReply(match, reply);
@@ -57,4 +53,3 @@ export class TerminalAutoRepliesContribution extends Disposable implements IWork
 
 registerWorkbenchContribution2(TerminalAutoRepliesContribution.ID, TerminalAutoRepliesContribution, WorkbenchPhase.AfterRestored);
 
-// #endregion Contributions

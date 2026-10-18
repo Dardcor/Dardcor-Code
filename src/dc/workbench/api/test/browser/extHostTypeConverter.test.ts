@@ -35,11 +35,11 @@ suite('ExtHostTypeConverter', function () {
 
 		data = MarkdownString.from('Hello [link](foo)');
 		assert.strictEqual(data.value, 'Hello [link](foo)');
-		assert.strictEqual(isEmptyObject(data.uris), true); // no scheme, no uri
+		assert.strictEqual(isEmptyObject(data.uris), true);
 
 		data = MarkdownString.from('Hello [link](www.noscheme.bad)');
 		assert.strictEqual(data.value, 'Hello [link](www.noscheme.bad)');
-		assert.strictEqual(isEmptyObject(data.uris), true); // no scheme, no uri
+		assert.strictEqual(isEmptyObject(data.uris), true);
 
 		data = MarkdownString.from('Hello [link](foo:path)');
 		assert.strictEqual(data.value, 'Hello [link](foo:path)');
@@ -49,7 +49,6 @@ suite('ExtHostTypeConverter', function () {
 		data = MarkdownString.from('hello@foo.bar');
 		assert.strictEqual(data.value, 'hello@foo.bar');
 		assert.strictEqual(size(data.uris!), 1);
-		// assert.ok(!!data.uris!['mailto:hello@foo.bar']);
 
 		data = MarkdownString.from('*hello* [click](command:me)');
 		assert.strictEqual(data.value, '*hello* [click](command:me)');
@@ -75,7 +74,6 @@ suite('ExtHostTypeConverter', function () {
 
 	test('LanguageModelChatMessage2 converters preserve tool-result data parts across the provider boundary #313920', function () {
 
-		// Platform converters round-trip data parts unchanged (unknown mime types aren't stripped), so the producer must gate emission (#313920).
 		const CACHE_CONTROL_MIME = 'cache_control';
 
 		const toolResult = new extHostTypes.LanguageModelToolResultPart('call-1', [
@@ -99,7 +97,7 @@ suite('ExtHostTypeConverter', function () {
 			marshalled: {
 				$mid: MarshalledId.LanguageModelDataPart,
 				mimeType: 'cache_control',
-				data: 'ZXBoZW1lcmFs', // base64('ephemeral')
+				data: 'ZXBoZW1lcmFs',
 				audience: undefined,
 			},
 			naiveSerialization: '{"$mid":24,"mimeType":"cache_control","data":"ZXBoZW1lcmFs"}',
@@ -109,7 +107,6 @@ suite('ExtHostTypeConverter', function () {
 	test('NPM script explorer running a script from the hover does not work #65561', function () {
 
 		const data = MarkdownString.from('*hello* [click](command:npm.runScriptFromHover?%7B%22documentUri%22%3A%7B%22%24mid%22%3A1%2C%22external%22%3A%22file%3A%2F%2F%2Fc%253A%2Ffoo%2Fbaz.ex%22%2C%22path%22%3A%22%2Fc%3A%2Ffoo%2Fbaz.ex%22%2C%22scheme%22%3A%22file%22%7D%2C%22script%22%3A%22dev%22%7D)');
-		// assert that both uri get extracted but that the latter is only decoded once...
 		assert.strictEqual(size(data.uris!), 2);
 		for (const value of Object.values(data.uris!)) {
 			if (value.scheme === 'file') {

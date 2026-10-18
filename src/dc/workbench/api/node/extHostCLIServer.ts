@@ -131,7 +131,6 @@ export class CLIServerBase {
 				try {
 					urisToOpen.push({ folderUri: URI.parse(s) });
 				} catch (e) {
-					// ignore
 				}
 			}
 		}
@@ -144,7 +143,6 @@ export class CLIServerBase {
 						urisToOpen.push({ fileUri: URI.parse(s) });
 					}
 				} catch (e) {
-					// ignore
 				}
 			}
 		}
@@ -158,10 +156,9 @@ export class CLIServerBase {
 		for (const uriString of data.uris) {
 			const uri = URI.parse(uriString);
 			if (uri.scheme === 'file') {
-				// skip file:// uris, they refer to the file system of the remote that have no meaning on the local machine
 				continue;
 			}
-			await this._commands.executeCommand('_remoteCLI.openExternal', uriString); // always send the string, workaround for #112577
+			await this._commands.executeCommand('_remoteCLI.openExternal', uriString);
 		}
 	}
 

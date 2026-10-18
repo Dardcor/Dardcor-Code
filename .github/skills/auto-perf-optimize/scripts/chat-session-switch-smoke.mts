@@ -3,19 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Chat session-switching memory smoke runner.
- *
- * Creates several chat sessions with different content types (codeblocks,
- * markdown, terminal commands), then repeatedly switches between them by
- * clicking in the sessions list. Verifies that switching does not leak.
- *
- * Intended workflow:
- * - Fast health check:
- *   node .github/skills/auto-perf-optimize/scripts/chat-session-switch-smoke.mts --switch-iterations 3 --no-heap-snapshots
- * - Targeted snapshots:
- *   node .github/skills/auto-perf-optimize/scripts/chat-session-switch-smoke.mts --switch-iterations 8 --heap-snapshot-label 04-switch-01 --heap-snapshot-label 04-switch-08
- */
 
 import { chromium, type Browser, type CDPSession, type Page } from 'playwright-core';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -32,7 +19,6 @@ import { prepareUserDataProfile } from './userDataProfile.mts';
 const root = path.resolve(import.meta.dirname, '..', '..', '..', '..');
 const codeScript = process.platform === 'win32' ? path.join(root, 'scripts', 'code.bat') : path.join(root, 'scripts', 'code.sh');
 
-// Chat selectors
 const chatViewSelector = 'div[id="workbench.panel.chat"]';
 const chatInputElementSelector = '.native-edit-context, textarea';
 const chatInputEditorSelector = `${chatViewSelector} .interactive-input-part .monaco-editor[role="code"]`;
@@ -40,10 +26,8 @@ const chatResponseSelector = `${chatViewSelector} .interactive-item-container.in
 const chatResponseLoadingSelector = `${chatResponseSelector}.chat-response-loading`;
 const chatResponseCompleteSelector = `${chatResponseSelector}:not(.chat-response-loading)`;
 
-// Session list selectors
 const sessionItemSelector = '.agent-session-item';
 
-// Markers
 const activeChatInputMarker = 'data-session-switch-smoke-input';
 const activeChatInputSelector = `[${activeChatInputMarker}="true"]`;
 const activeChatInputEditorMarker = 'data-session-switch-smoke-input-editor';
@@ -114,7 +98,6 @@ interface LaunchedCode {
 	terminate(signal: NodeJS.Signals): boolean;
 }
 
-// Prompts designed to generate different content types
 const SESSION_PROMPTS = [
 	{
 		contentType: 'codeblocks',
@@ -183,7 +166,6 @@ async function main(): Promise<void> {
 		await page.screenshot({ path: path.join(outputDir, '01-workbench.png') });
 		samples.push(await sampleHeap(session, outputDir, '01-restored'));
 
-		// --- Phase 1: Create sessions with different content types ---
 		console.log('\n=== Phase 1: Creating sessions with different content types ===');
 
 		for (let i = 0; i < SESSION_PROMPTS.length; i++) {
@@ -191,10 +173,8 @@ async function main(): Promise<void> {
 			console.log(`\n--- Creating session ${i + 1} (${contentType}) ---`);
 
 			if (i === 0) {
-				// First session: just open chat
 				await openChat(page);
 			} else {
-				// Subsequent sessions: create new chat
 				await createNewChatSession(page);
 			}
 
@@ -210,17 +190,14 @@ async function main(): Promise<void> {
 		await writeSummary(outputDir, samples, sessions, options.switchIterations);
 		samples.push(await sampleHeap(session, outputDir, '02-sessions-created'));
 
-		// --- Phase 2: Show sessions list ---
 		console.log('\n=== Phase 2: Showing sessions sidebar ===');
 		await showSessionsSidebar(page);
 		await delay(1000);
 		await page.screenshot({ path: path.join(outputDir, '03-sessions-sidebar.png') });
 		samples.push(await sampleHeap(session, outputDir, '03-sidebar-shown'));
 
-		// --- Phase 3: Switch between sessions ---
 		console.log('\n=== Phase 3: Switching between sessions ===');
 
-		// Warmup: do 3 switch cycles before the first measured snapshot
 		console.log('\n--- Warmup: 3 switch cycles ---');
 		for (let warmup = 0; warmup < 3; warmup++) {
 			for (let s = 0; s < SESSION_PROMPTS.length; s++) {
@@ -235,7 +212,6 @@ async function main(): Promise<void> {
 			const label = String(iteration).padStart(2, '0');
 			console.log(`\n--- Switch iteration ${iteration} ---`);
 
-			// Click through each session in the list
 			for (let s = 0; s < SESSION_PROMPTS.length; s++) {
 				await clickSessionInList(page, s);
 				await waitForSessionContentToLoad(page);
@@ -270,7 +246,6 @@ async function main(): Promise<void> {
 	}
 }
 
-// ---- Code Launch & Connect ----
 
 function launchCode(dirs: { userDataDir: string; extensionDir: string }): LaunchedCode {
 	const args = [
@@ -396,7 +371,6 @@ async function findWorkbenchPage(browser: Browser): Promise<Page> {
 	throw new Error('Timed out waiting for the workbench page and smoke-test driver');
 }
 
-// ---- Chat Interaction ----
 
 async function openChat(page: Page): Promise<string> {
 	if (!await hasVisibleChatInputEditor(page)) {
@@ -497,7 +471,6 @@ async function clearChatInput(page: Page): Promise<void> {
 }
 
 async function createNewChatSession(page: Page): Promise<void> {
-	// Use the new chat keyboard shortcut
 	const shortcut = 'Control+L';
 	await page.keyboard.press(shortcut);
 	await delay(500);
@@ -516,7 +489,6 @@ async function sendAndWaitForResponse(page: Page, message: string): Promise<stri
 	await typeInChat(page, message);
 	await page.keyboard.press('Enter');
 
-	// Wait for response to start
 	await page.waitForFunction(
 		({ responseSelector, loadingSelector, count, textBefore: tb }) => {
 			const getResponseText = (element: Element | undefined) => {
@@ -541,7 +513,6 @@ async function sendAndWaitForResponse(page: Page, message: string): Promise<stri
 		{ timeout: options.firstResponseTimeout }
 	);
 
-	// Wait for response to complete
 	await page.waitForFunction(
 		({ completeSelector, loadingSelector, countBefore, textBefore: tb }) => {
 			const getResponseText = (element: Element | undefined) => {
@@ -569,7 +540,6 @@ async function getLatestChatResponseText(page: Page): Promise<string | undefined
 	}, chatResponseSelector);
 }
 
-// ---- Session List Interaction ----
 
 async function dismissDialogs(page: Page): Promise<void> {
 	const dialogBlocker = page.locator('.monaco-dialog-modal-block');
@@ -588,34 +558,24 @@ async function dismissDialogs(page: Page): Promise<void> {
 async function showSessionsSidebar(page: Page): Promise<void> {
 	await dismissDialogs(page);
 
-	// Use command palette to show sessions sidebar
 	await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+P' : 'Control+Shift+P');
 	await delay(300);
 	await page.keyboard.type('Show Sessions', { delay: 30 });
 	await delay(500);
 
-	// Press Enter to execute the first matching command
 	await page.keyboard.press('Enter');
 	await delay(1000);
 
-	// Dismiss any dialogs that appeared as a side effect
 	await dismissDialogs(page);
 
-	// Verify sessions list is visible
 	const sessionItems = await page.locator(sessionItemSelector).count();
 	console.log(`[sessions] sidebar shown, ${sessionItems} session items visible`);
 }
 
 async function clickSessionInList(page: Page, sessionIndex: number): Promise<void> {
-	// Dismiss any modal dialogs before clicking
 	await dismissDialogs(page);
 
-	// The sessions list shows the newest sessions at the top (under TODAY section).
-	// Our newly-created sessions are at the top. We need to click within
-	// the TODAY section, which are the first items in the list.
-	// sessionIndex 0 = first session we created (at top of TODAY section)
 
-	// Find session items that are in the TODAY section (most recent)
 	const sessionItems = page.locator(sessionItemSelector);
 	const count = await sessionItems.count();
 
@@ -623,7 +583,6 @@ async function clickSessionInList(page: Page, sessionIndex: number): Promise<voi
 		throw new Error('No session items found in the sessions list');
 	}
 
-	// Click directly by index (0 = first/newest)
 	const targetIndex = Math.min(sessionIndex, count - 1);
 	const targetItem = sessionItems.nth(targetIndex);
 
@@ -635,7 +594,6 @@ async function clickSessionInList(page: Page, sessionIndex: number): Promise<voi
 }
 
 async function waitForSessionContentToLoad(page: Page): Promise<void> {
-	// Wait for the chat view to have at least one response and be settled
 	const stopWatch = StopWatch.create();
 	while (stopWatch.elapsed() < 15000) {
 		const isSettled = await page.evaluate(({ responseSelector, viewSelector, loadingSelector }) => {
@@ -643,9 +601,7 @@ async function waitForSessionContentToLoad(page: Page): Promise<void> {
 			if (!chatView) {
 				return false;
 			}
-			// Check if there's at least one response in the view
 			const responses = chatView.querySelectorAll(responseSelector);
-			// Check no loading indicators
 			const loading = chatView.querySelectorAll(loadingSelector);
 			return responses.length > 0 && loading.length === 0;
 		}, {
@@ -662,7 +618,6 @@ async function waitForSessionContentToLoad(page: Page): Promise<void> {
 	console.log('[sessions] warning: timed out waiting for session content to load');
 }
 
-// ---- Heap Sampling ----
 
 async function sampleHeap(cdpSession: CDPSession, outputDir: string, label: string): Promise<HeapSample> {
 	await forceGarbageCollection(cdpSession);
@@ -730,7 +685,6 @@ function shouldTakeHeapSnapshot(label: string): boolean {
 	return options.heapSnapshots && (!options.heapSnapshotLabels || options.heapSnapshotLabels.has(label));
 }
 
-// ---- Summary & Output ----
 
 function printSummary(samples: HeapSample[], outputDir: string): void {
 	console.log(`\nSummary written to ${path.join(outputDir, 'summary.json')}`);
@@ -773,7 +727,6 @@ function analyzeMemoryTrend(samples: HeapSample[]): MemoryTrend {
 	};
 }
 
-// ---- Utilities ----
 
 function formatBytes(bytes: number | undefined): string {
 	if (typeof bytes !== 'number') {
@@ -809,7 +762,6 @@ function getJson(url: string): Promise<void> {
 	});
 }
 
-// ---- Argument Parsing ----
 
 function parseArgs(args: string[]): Options {
 	const timestamp = new Date().toISOString().replace(/[:.]/g, '-');

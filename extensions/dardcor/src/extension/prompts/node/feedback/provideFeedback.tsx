@@ -58,7 +58,7 @@ export class ProvideFeedbackPrompt extends PromptElement<ProvideFeedbackPromptPr
 					Use developer-friendly terms and analogies in your explanations.<br />
 					Provide clear and relevant examples when helpful.
 				</SystemMessage>
-				{/* {this.props.history && <><ConversationHistory priority={600} history={this.props.history} /></>} */}
+				{}
 				<UserMessage flexGrow={1}>
 					<ProjectLabels flexGrow={1} priority={700} />
 					<CustomInstructions chatVariables={this.props.chatVariables} priority={850} languageId={this.props.input[0]?.document.languageId} customIntroduction={'When providing feedback for code, please check for these user provided coding guidelines.'} includeCodeFeedbackInstructions={true} />

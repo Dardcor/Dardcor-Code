@@ -37,7 +37,7 @@ suite('Files - TextFileEditorTracker', () => {
 	class TestTextFileEditorTracker extends TextFileEditorTracker {
 
 		protected override getDirtyTextFileTrackerDelay(): number {
-			return 5; // encapsulated in a method for tests to override
+			return 5;
 		}
 	}
 
@@ -108,10 +108,9 @@ suite('Files - TextFileEditorTracker', () => {
 
 		await model.save();
 
-		// change event (watcher)
 		accessor.fileService.fireFileChanges(new FileChangesEvent([{ resource, type: FileChangeType.UPDATED }], false));
 
-		await timeout(0); // due to event updating model async
+		await timeout(0);
 
 		assert.strictEqual(snapshotToString(model.createSnapshot()!), 'Hello Html');
 

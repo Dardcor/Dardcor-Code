@@ -34,7 +34,6 @@ export class ContiguousTokensEditing {
 		const tokens = toUint32Array(lineTokens);
 		const tokensCount = (tokens.length >>> 1);
 
-		// special case: deleting everything
 		if (fromChIndex === 0 && tokens[tokens.length - 2] === toChIndex) {
 			return EMPTY_LINE_TOKENS;
 		}
@@ -44,7 +43,6 @@ export class ContiguousTokensEditing {
 		const fromTokenEndOffset = tokens[fromTokenIndex << 1];
 
 		if (toChIndex < fromTokenEndOffset) {
-			// the delete range is inside a single token
 			const delta = (toChIndex - fromChIndex);
 			for (let i = fromTokenIndex; i < tokensCount; i++) {
 				tokens[i << 1] -= delta;
@@ -74,7 +72,6 @@ export class ContiguousTokensEditing {
 		}
 
 		if (dest === tokens.length) {
-			// nothing to trim
 			return lineTokens;
 		}
 
@@ -94,7 +91,6 @@ export class ContiguousTokensEditing {
 			return lineTokens;
 		}
 		if (_otherTokens === null) {
-			// cannot determine combined line length...
 			return null;
 		}
 		const myTokens = toUint32Array(lineTokens);
@@ -114,7 +110,6 @@ export class ContiguousTokensEditing {
 
 	public static insert(lineTokens: Uint32Array | ArrayBuffer | null, chIndex: number, textLength: number): Uint32Array | ArrayBuffer | null {
 		if (lineTokens === null || lineTokens === EMPTY_LINE_TOKENS) {
-			// nothing to do
 			return lineTokens;
 		}
 

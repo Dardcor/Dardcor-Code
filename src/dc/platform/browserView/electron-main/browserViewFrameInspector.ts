@@ -48,7 +48,6 @@ interface IActiveInspection extends IDisposable {
 	stop(): Promise<void>;
 }
 
-/** Slightly customised CDP debugger inspect highlight colours. */
 export const inspectHighlightConfig = {
 	showInfo: true,
 	showRulers: false,
@@ -95,16 +94,6 @@ function useScopedDisposal() {
 	return store;
 }
 
-/**
- * Per-frame element inspector backed by a dedicated CDP session.
- *
- * Owns the full lifecycle of element inspection for a single frame:
- * CDP domain initialization, element picking (overlay + CDP modes),
- * node data extraction, and highlight management.
- *
- * Fires {@link onDidInspectElement} when an element is selected via
- * CDP inspect mode (debugger paused).
- */
 export class BrowserViewFrameInspector extends Disposable {
 
 	private _isDisposed = false;
@@ -122,21 +111,12 @@ export class BrowserViewFrameInspector extends Disposable {
 	private _isPaused = false;
 	private readonly _activeInspection = this._register(new MutableDisposable<IActiveInspection>());
 
-	/** Whether this frame's JavaScript execution is currently paused by the debugger. */
 	get isPaused(): boolean { return this._isPaused; }
 
-	/** Whether element inspection is currently active on this frame. */
 	get isInspecting(): boolean { return !!this._activeInspection.value; }
 
-	/** The CDP frame ID for this frame. */
 	get frameId(): string { return this._frameId; }
 
-	/**
-	 * @param connection The CDP session that owns this frame's target.
-	 * @param frame The Electron WebFrameMain for this frame.
-	 * @param _uniqueContextId The unique execution context ID for Runtime calls in this frame.
-	 * @param _frameId The CDP frame ID for this frame.
-	 */
 	constructor(
 		readonly connection: ICDPConnection,
 		readonly frame: Electron.WebFrameMain,
@@ -153,14 +133,8 @@ export class BrowserViewFrameInspector extends Disposable {
 			switch (event.method) {
 				case 'Overlay.inspectNodeRequested': {
 					const params = event.params as { backendNodeId: number };
-					// Only handle this event when VS Code's own element picker is active.
-					// This event also fires when the user inspects elements via the
-					// DevTools built-in inspect cursor — in that case we must not
-					// silently add the element to Copilot Chat as context.
 					if (params?.backendNodeId && this.isInspecting) {
 						try {
-							// Verify the node belongs to this frame (important when
-							// sharing a session with same-origin siblings).
 							const { node } = await this.connection.sendCommand('DOM.describeNode', {
 								backendNodeId: params.backendNodeId,
 							}) as { node: { frameId?: string } };
@@ -170,7 +144,6 @@ export class BrowserViewFrameInspector extends Disposable {
 							const nodeData = await this.extractNodeData({ backendNodeId: params.backendNodeId });
 							this._onDidInspectElement.fire(nodeData);
 						} catch {
-							// Best effort.
 						}
 					}
 					break;
@@ -184,7 +157,6 @@ export class BrowserViewFrameInspector extends Disposable {
 			}
 		}));
 
-		// Listen for element-picked IPC from this frame's preload
 		const onPicked = async (event: Electron.IpcMainEvent, result: { elementId?: string; comment?: string }) => {
 			if (!result?.elementId || event.senderFrame !== this.frame) {
 				return;
@@ -194,7 +166,6 @@ export class BrowserViewFrameInspector extends Disposable {
 				this._onDidInspectElement.fire({ ...nodeData, elementId: result.elementId, comment: result.comment });
 			} catch {
 				this._updateElementComments({ pendingCommentIdsToDiscard: [result.elementId] });
-				// Best effort; user can re-pick.
 			}
 		};
 		frame.ipc.on('vscode:browserView:elementPicked', onPicked);
@@ -207,7 +178,6 @@ export class BrowserViewFrameInspector extends Disposable {
 		frame.ipc.on('vscode:browserView:elementCommentRemoved', onCommentRemoved);
 		this._register({ dispose: () => frame.ipc.removeListener('vscode:browserView:elementCommentRemoved', onCommentRemoved) });
 
-		// Listen for pick-stopped IPC from this frame's preload
 		const onPickStopped = (event: Electron.IpcMainEvent) => {
 			if (event.senderFrame !== this.frame) {
 				return;
@@ -237,18 +207,10 @@ export class BrowserViewFrameInspector extends Disposable {
 		super.dispose();
 	}
 
-	/**
-	 * Send the theme to this frame's preload.
-	 */
 	setTheme(theme: IBrowserViewTheme): void {
 		this.frame.postMessage('vscode:browserView:setTheme', theme);
 	}
 
-	/**
-	 * Start element inspection on this frame.
-	 * Uses CDP inspect mode if paused, otherwise the preload picker.
-	 * Stores a disposable so stop always tears down the correct mode.
-	 */
 	async startInspection(options: IBrowserElementSelectionOptions): Promise<void> {
 		const mode = this._isPaused && options.mode !== BrowserElementSelectionMode.Comment ? 'cdp' : 'preload';
 		if (this._activeInspection.value?.mode === mode) {
@@ -275,7 +237,6 @@ export class BrowserViewFrameInspector extends Disposable {
 					});
 					await this.connection.sendCommand('Overlay.hideHighlight');
 				} catch {
-					// Best effort.
 				}
 			};
 			this._activeInspection.value = {
@@ -310,9 +271,6 @@ export class BrowserViewFrameInspector extends Disposable {
 		}
 	}
 
-	/**
-	 * Stop element inspection on this frame.
-	 */
 	async stopInspection(): Promise<void> {
 		await this._stopInspection();
 	}
@@ -327,9 +285,6 @@ export class BrowserViewFrameInspector extends Disposable {
 		}
 	}
 
-	/**
-	 * Resolve an element by its preload-tracked id and extract full node data.
-	 */
 	async extractNodeDataById(elementId: string): Promise<IElementData> {
 		const { result } = await this.connection.sendCommand('Runtime.evaluate', {
 			expression: `window.__vscode_helpers?.getElement(${JSON.stringify(elementId)})`,
@@ -344,17 +299,11 @@ export class BrowserViewFrameInspector extends Disposable {
 		return this.extractNodeData({ objectId: result.objectId });
 	}
 
-	/**
-	 * Extract full element data from a CDP node reference.
-	 */
 	async extractNodeData(id: { backendNodeId?: number; objectId?: string }): Promise<IElementData> {
 		const data = await extractNodeData(this.connection, id);
 		return { ...data, url: this.frame.url };
 	}
 
-	/**
-	 * Get the visual viewport scale for this frame.
-	 */
 	async getVisualViewportScale(): Promise<number> {
 		try {
 			const result = await this.connection.sendCommand('Page.getLayoutMetrics') as ILayoutMetricsResult;
@@ -365,14 +314,10 @@ export class BrowserViewFrameInspector extends Disposable {
 				}
 			}
 		} catch {
-			// Ignore execution errors while loading and use defaults.
 		}
 		return 1;
 	}
 
-	/**
-	 * Create a handle to an element tracked by the preload script.
-	 */
 	getElementHandle(elementId: string): IFrameElementHandle {
 		let disposed = false;
 		return {
@@ -481,7 +426,6 @@ export async function extractNodeData(connection: ICDPConnection, id: { backendN
 		currentNode = currentNode.parentId ? discoveredNodesByNodeId[currentNode.parentId] : undefined;
 	}
 
-	// Build the computed style string and filtered computedStyles record
 	let computedStyle = rulesText;
 	let computedStyles: Record<string, string> | undefined;
 	try {
@@ -489,7 +433,6 @@ export async function extractNodeData(connection: ICDPConnection, id: { backendN
 		if (computedStyleArray) {
 			computedStyles = {};
 
-			// Collect resolved property values into a map for shorthand collapsing
 			const resolvedMap = new Map<string, string>();
 			const varLines: string[] = [];
 
@@ -498,19 +441,16 @@ export async function extractNodeData(connection: ICDPConnection, id: { backendN
 					continue;
 				}
 
-				// Include in computedStyles record: referenced vars + key UI properties
 				if (referencedVars.has(prop.name) || keyComputedProperties.has(prop.name)) {
 					computedStyles[prop.name] = prop.value;
 				}
 
-				// Include in resolved values: any property explicitly set by stylesheets
 				if (authorPropertyNames.has(prop.name)) {
 					resolvedMap.set(prop.name, prop.value);
 				} else if (userAgentPropertyNames.has(prop.name)) {
-					resolvedMap.set(prop.name, `${prop.value} /*UA*/`); // Mark it as coming from User Agent styles.
+					resolvedMap.set(prop.name, `${prop.value} /*UA*/`);
 				}
 
-				// Include referenced CSS variable values
 				if (referencedVars.has(prop.name)) {
 					varLines.push(`${prop.name}: ${prop.value};`);
 				}

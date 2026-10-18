@@ -36,7 +36,6 @@ interface IDebugProtocolVariableWithContext extends DebugProtocol.Variable {
 export class ExpressionContainer implements IExpressionContainer {
 
 	public static readonly allValues = new Map<string, string>();
-	// Use chunks to support variable paging #9537
 	private static readonly BASE_CHUNK_SIZE = 100;
 
 	public type: string | undefined;
@@ -63,7 +62,7 @@ export class ExpressionContainer implements IExpressionContainer {
 
 	set reference(value: number | undefined) {
 		this._reference = value;
-		this.children = undefined; // invalidate children cache
+		this.children = undefined;
 	}
 
 	async evaluateLazy(): Promise<void> {
@@ -84,7 +83,6 @@ export class ExpressionContainer implements IExpressionContainer {
 		this.memoryReference = dummyVar.memoryReference;
 		this.presentationHint = dummyVar.presentationHint;
 		this.valueLocationReference = dummyVar.valueLocationReference;
-		// Also call overridden method to adopt subclass props
 		this.adoptLazyResponse(dummyVar);
 	}
 
@@ -108,17 +106,14 @@ export class ExpressionContainer implements IExpressionContainer {
 			return this.fetchVariables(undefined, undefined, undefined);
 		}
 
-		// Check if object has named variables, fetch them independent from indexed variables #9670
 		const children = this.namedVariables ? await this.fetchVariables(undefined, undefined, 'named') : [];
 
-		// Use a dynamic chunk size based on the number of elements #9774
 		let chunkSize = ExpressionContainer.BASE_CHUNK_SIZE;
 		while (!!this.indexedVariables && this.indexedVariables > chunkSize * ExpressionContainer.BASE_CHUNK_SIZE) {
 			chunkSize *= ExpressionContainer.BASE_CHUNK_SIZE;
 		}
 
 		if (!!this.indexedVariables && this.indexedVariables > chunkSize) {
-			// There are a lot of children, create fake intermediate values that represent chunks #9537
 			const numberOfChunks = Math.ceil(this.indexedVariables / chunkSize);
 			for (let i = 0; i < numberOfChunks; i++) {
 				const start = (this.startOfVariables || 0) + i * chunkSize;
@@ -146,7 +141,6 @@ export class ExpressionContainer implements IExpressionContainer {
 	}
 
 	get hasChildren(): boolean {
-		// only variables with reference > 0 have children.
 		return !!this.reference && this.reference > 0 && !this.presentationHint?.lazy;
 	}
 
@@ -178,7 +172,6 @@ export class ExpressionContainer implements IExpressionContainer {
 		}
 	}
 
-	// The adapter explicitly sents the children count of an expression only if there are lots of children which should be chunked.
 	private get getChildrenInChunks(): boolean {
 		return !!this.indexedVariables;
 	}
@@ -290,7 +283,6 @@ export class VisualizedExpression implements IExpression {
 		return this.session;
 	}
 
-	/** Edits the value, sets the {@link errorMessage} and returns false if unsuccessful */
 	public async edit(newValue: string) {
 		try {
 			await this.visualizer.editTreeItem(this.treeId, this.treeItem, newValue);
@@ -313,8 +305,6 @@ export class Expression extends ExpressionContainer implements IExpression {
 	constructor(public name: string, id = generateUuid()) {
 		super(undefined, undefined, 0, id);
 		this.available = false;
-		// name is not set if the expression is just being added
-		// in that case do not set default value to prevent flashing #14499
 		if (name) {
 			this.value = Expression.DEFAULT_VALUE;
 		}
@@ -362,7 +352,6 @@ export class Expression extends ExpressionContainer implements IExpression {
 
 export class Variable extends ExpressionContainer implements IExpression {
 
-	// Used to show the error message coming from the adapter when setting the value #7807
 	public errorMessage: string | undefined;
 
 	constructor(
@@ -400,7 +389,6 @@ export class Variable extends ExpressionContainer implements IExpression {
 		}
 
 		try {
-			// Send out a setExpression for debug extensions that do not support set variables https://github.com/microsoft/vscode/issues/124679#issuecomment-869844437
 			if (this.session.capabilities.supportsSetExpression && !this.session.capabilities.supportsSetVariable && this.evaluateName) {
 				return this.setExpression(value, stackFrame);
 			}
@@ -527,8 +515,6 @@ export class StackFrame implements IStackFrame {
 
 				const usedIds = new Set<number>();
 				return response.body.scopes.map(rs => {
-					// form the id based on the name and location so that it's the
-					// same across multiple pauses to retain expansion state
 					let id = 0;
 					do {
 						id = stringHash(`${rs.name}:${rs.line}:${rs.column}`, id);
@@ -634,7 +620,6 @@ export class Thread implements IThread {
 	getTopStackFrame(): IStackFrame | undefined {
 		const callStack = this.getCallStack();
 		const stopReason = this.stoppedDetails?.reason;
-		// Allow stack frame without source and with instructionReferencePointer as top stack frame when using disassembly view.
 		const firstAvailableStackFrame = callStack.find(sf => !!(
 			((stopReason === 'instruction breakpoint' || (stopReason === 'step' && this.lastSteppingGranularity === 'instruction')) && sf.instructionPointerReference) ||
 			(sf.source && sf.source.available && (KEEP_SUBTLE_FRAME_AT_TOP_REASONS.includes(stopReason!) || !isFrameDeemphasized(sf)))));
@@ -650,20 +635,12 @@ export class Thread implements IThread {
 		return nls.localize({ key: 'running', comment: ['indicates state'] }, "Running");
 	}
 
-	/**
-	 * Queries the debug adapter for the callstack and returns a promise
-	 * which completes once the call stack has been retrieved.
-	 * If the thread is not stopped, it returns a promise to an empty array.
-	 * Only fetches the first stack frame for performance reasons. Calling this method consecutive times
-	 * gets the remainder of the call stack.
-	 */
 	async fetchCallStack(levels = 20): Promise<void> {
 		if (this.stopped) {
 			const start = this.callStack.length;
 			const callStack = await this.getCallStackImpl(start, levels);
 			this.reachedEndOfCallStack = callStack.length < levels;
 			if (start < this.callStack.length) {
-				// Set the stack frames for exact position we requested. To make sure no concurrent requests create duplicate stack frames #30660
 				this.callStack.splice(start, this.callStack.length - start);
 			}
 			this.callStack = this.callStack.concat(callStack || []);
@@ -705,9 +682,6 @@ export class Thread implements IThread {
 		}
 	}
 
-	/**
-	 * Returns exception info promise if the exception was thrown, otherwise undefined
-	 */
 	get exceptionInfo(): Promise<IExceptionInfo | undefined> {
 		if (this.stoppedDetails && this.stoppedDetails.reason === 'exception') {
 			if (this.session.capabilities.supportsExceptionInfoRequest) {
@@ -754,9 +728,6 @@ export class Thread implements IThread {
 	}
 }
 
-/**
- * Gets a URI to a memory in the given session ID.
- */
 export const getUriForDebugMemory = (
 	sessionId: string,
 	memoryReference: string,
@@ -774,10 +745,8 @@ export const getUriForDebugMemory = (
 export class MemoryRegion extends Disposable implements IMemoryRegion {
 	private readonly invalidateEmitter = this._register(new Emitter<IMemoryInvalidationEvent>());
 
-	/** @inheritdoc */
 	public readonly onDidInvalidate = this.invalidateEmitter.event;
 
-	/** @inheritdoc */
 	public readonly writable: boolean;
 
 	constructor(private readonly memoryReference: string, private readonly session: IDebugSession) {
@@ -916,10 +885,8 @@ export abstract class BaseBreakpoint extends Enablement implements IBaseBreakpoi
 		const allData = Array.from(this.sessionData.values());
 		const verifiedData = distinct(allData.filter(d => d.verified), d => `${d.line}:${d.column}`);
 		if (verifiedData.length) {
-			// In case multiple session verified the breakpoint and they provide different data show the intial data that the user set (corner case)
 			this.data = verifiedData.length === 1 ? verifiedData[0] : undefined;
 		} else {
-			// No session verified the breakpoint
 			this.data = allData.length ? allData[0] : undefined;
 		}
 	}
@@ -1233,7 +1200,7 @@ export class DataBreakpoint extends BaseBreakpoint implements IDataBreakpoint {
 	) {
 		super(id, opts);
 		this.description = opts.description;
-		if ('dataId' in opts) { //  back compat with old saved variables in 1.87
+		if ('dataId' in opts) {
 			opts.src = { type: DataBreakpointSetType.Variable, dataId: opts.dataId as string };
 		}
 		this.src = opts.src;
@@ -1349,10 +1316,6 @@ export class ExceptionBreakpoint extends BaseBreakpoint implements IExceptionBre
 		}
 	}
 
-	/**
-	 * Used to specify which breakpoints to show when no session is specified.
-	 * Useful when no session is active and we want to show the exception breakpoints from the last session.
-	 */
 	setFallback(isFallback: boolean) {
 		this.fallback = isFallback;
 	}
@@ -1361,10 +1324,6 @@ export class ExceptionBreakpoint extends BaseBreakpoint implements IExceptionBre
 		return true;
 	}
 
-	/**
-	 * Checks if the breakpoint is applicable for the specified session.
-	 * If sessionId is undefined, returns true if this breakpoint is a fallback breakpoint.
-	 */
 	isSupportedSession(sessionId?: string): boolean {
 		return sessionId ? this.supportedSessions.has(sessionId) : this.fallback;
 	}
@@ -1514,8 +1473,6 @@ export class DebugModel extends Disposable implements IDebugModel {
 	}
 
 	getSessions(includeInactive = false): IDebugSession[] {
-		// By default do not return inactive sessions.
-		// However we are still holding onto inactive sessions due to repl and debug service session revival (eh scenario)
 		return this.sessions.filter(s => includeInactive || s.state !== State.Inactive);
 	}
 
@@ -1539,11 +1496,9 @@ export class DebugModel extends Disposable implements IDebugModel {
 	addSession(session: IDebugSession): void {
 		this.sessions = this.sessions.filter(s => {
 			if (s.getId() === session.getId()) {
-				// Make sure to de-dupe if a session is re-initialized. In case of EH debugging we are adding a session again after an attach.
 				return false;
 			}
 			if (this.shouldDisposeSession(s, session)) {
-				// Make sure to remove all inactive sessions that are using the same configuration as the new session
 				s.dispose();
 				return false;
 			}
@@ -1558,7 +1513,6 @@ export class DebugModel extends Disposable implements IDebugModel {
 
 		let index = -1;
 		if (session.parentSession) {
-			// Make sure that child sessions are placed after the parent session
 			index = this.sessions.findLastIndex(s => s.parentSession === session.parentSession || s === session.parentSession);
 		}
 		if (index >= 0) {
@@ -1620,9 +1574,6 @@ export class DebugModel extends Disposable implements IDebugModel {
 		}
 	}
 
-	/**
-	 * Update the call stack and notify the call stack view that changes have occurred.
-	 */
 	async fetchCallstack(thread: IThread, levels?: number): Promise<void> {
 
 		if ((<Thread>thread).reachedEndOfCallStack) {
@@ -1646,7 +1597,6 @@ export class DebugModel extends Disposable implements IDebugModel {
 
 	refreshTopOfCallstack(thread: Thread, fetchFullStack = true): { topCallStack: Promise<void>; wholeCallStack: Promise<void> } {
 		if (thread.session.capabilities.supportsDelayedStackTraceLoading) {
-			// For improved performance load the first stack frame and then load the rest async.
 			let topCallStack = Promise.resolve();
 			const wholeCallStack = new Promise<void>((c, e) => {
 				topCallStack = thread.fetchCallStack(1).then(() => {
@@ -1779,8 +1729,6 @@ export class DebugModel extends Disposable implements IDebugModel {
 		this.exceptionBreakpoints.forEach(ebp => ebp.setSupportedSession(sessionId, false));
 	}
 
-	// Set last focused session as fallback session.
-	// This is done to keep track of the exception breakpoints to show when no session is active.
 	setExceptionBreakpointFallbackSession(sessionId: string): void {
 		this.exceptionBreakpoints.forEach(ebp => ebp.setFallback(ebp.isSupportedSession(sessionId)));
 	}
@@ -1934,7 +1882,7 @@ export class DebugModel extends Disposable implements IDebugModel {
 					label: duplicate ? `${mode.label} (${debugType})` : mode.label,
 					firstFromDebugType: debugType,
 					description: mode.description,
-					appliesTo: mode.appliesTo.slice(), // avoid later mutations
+					appliesTo: mode.appliesTo.slice(),
 				});
 			}
 		}
@@ -2084,12 +2032,6 @@ export class DebugModel extends Disposable implements IDebugModel {
 	removeInstructionBreakpoints(instructionReference?: string, offset?: number, address?: bigint): void {
 		let removed: InstructionBreakpoint[] = [];
 		if (address !== undefined) {
-			// Prefer matching by resolved memory address: `instructionReference` is
-			// allowed by the Debug Adapter Protocol to change between disassemble
-			// requests (e.g. after symbol reloads), so matching on reference+offset
-			// alone would fail to locate the breakpoint that the user is trying to
-			// toggle off. The `address` on an `InstructionBreakpoint` is the stable
-			// resolved memory address and uniquely identifies it.
 			for (let i = 0; i < this.instructionBreakpoints.length; i++) {
 				const ibp = this.instructionBreakpoints[i];
 				if (ibp.address === address) {

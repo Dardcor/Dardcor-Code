@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { commands, languages, window } from 'vscode';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IEnvService } from '../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
@@ -15,7 +14,7 @@ import { ILogService } from '../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { isNotebookCell } from '../../../util/common/notebooks';
 import { Disposable, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
-import { autorun, derived, derivedDisposable, observableFromEvent } from '../../../util/dardcor/base/common/observable';
+import { autorun, derived, derivedDisposable } from '../../../util/dardcor/base/common/observable';
 import { join } from '../../../util/dardcor/base/common/path';
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
@@ -58,26 +57,12 @@ export class InlineEditProviderFeature {
 
 	private readonly _inlineEditsProviderId = makeSettable(this._configurationService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsProviderId, this._expService));
 
-	private readonly _hideInternalInterface = this._configurationService.getConfigObservable(ConfigKey.TeamInternal.InlineEditsHideInternalInterface);
 	private readonly _enableDiagnosticsProvider = this._configurationService.getExperimentBasedConfigObservable(ConfigKey.InlineEditsEnableDiagnosticsProvider, this._expService);
 	private readonly _yieldToCopilot = this._configurationService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsYieldToCopilot, this._expService);
 	private readonly _excludedProviders = this._configurationService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsExcludedProviders, this._expService).map(v => v ? v.split(',').map(v => v.trim()).filter(v => v !== '') : []);
-	private readonly _dardcorToken = observableFromEvent(this, this._authenticationService.onDidCopilotTokenChange, () => this._authenticationService.dardcorToken);
+	public readonly inlineEditsEnabled = derived(this, () => false);
 
-	public readonly inlineEditsEnabled = derived(this, (reader) => {
-		const dardcorToken = this._dardcorToken.read(reader);
-		if (dardcorToken === undefined) {
-			return false;
-		}
-		if (dardcorToken.isCompletionsQuotaExceeded) {
-			return false;
-		}
-		return true;
-	});
-
-	private readonly _internalActionsEnabled = derived(this, (reader) => {
-		return !!this._dardcorToken.read(reader)?.isInternal && !this._hideInternalInterface.read(reader);
-	});
+	private readonly _internalActionsEnabled = derived(this, () => false);
 
 	public readonly isInlineEditsLogFileEnabledObservable = this._configurationService.getConfigObservable(ConfigKey.TeamInternal.InlineEditsLogContextRecorderEnabled);
 
@@ -88,7 +73,6 @@ export class InlineEditProviderFeature {
 	constructor(
 		@IVSCodeExtensionContext private readonly _vscodeExtensionContext: IVSCodeExtensionContext,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
-		@IAuthenticationService private readonly _authenticationService: IAuthenticationService,
 		@IExperimentationService private readonly _expService: IExperimentationService,
 		@IEnvService private readonly _envService: IEnvService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
@@ -96,11 +80,9 @@ export class InlineEditProviderFeature {
 	}
 
 	public setContext(): IDisposable {
-		// TODO: this should be reactive to config changes
 		const enableEnhancedNotebookNES = this._configurationService.getExperimentBasedConfig(ConfigKey.Advanced.UseAlternativeNESNotebookFormat, this._expService) || this._configurationService.getExperimentBasedConfig(ConfigKey.UseAlternativeNESNotebookFormat, this._expService);
 		commands.executeCommand('setContext', useEnhancedNotebookNESContextKey, enableEnhancedNotebookNES);
 
-		// Set context key for inline edits enabled state (used for keybindings)
 		return autorun((reader) => {
 			const enabled = this.inlineEditsEnabled.read(reader);
 			void commands.executeCommand('setContext', 'github.dardcor.inlineEditsEnabled', enabled);
@@ -149,7 +131,6 @@ export class InlineEditProviderFeature {
 				workspace,
 			));
 
-			// Create the expected edit capture controller
 			const expectedEditCaptureController = reader.store.add(this._instantiationService.createInstance(
 				ExpectedEditCaptureController,
 				model.debugRecorder
@@ -172,7 +153,7 @@ export class InlineEditProviderFeature {
 			reader.store.add(languages.registerInlineCompletionItemProvider('*', provider, {
 				displayName: provider.displayName,
 				yieldTo: this._yieldToCopilot.read(reader) ? ['github.dardcor'] : undefined,
-				debounceDelayMs: 0, // set 0 debounce to ensure consistent delays/timings
+				debounceDelayMs: 0,
 				groupId: 'nes',
 				excludes,
 			}));
@@ -202,7 +183,6 @@ export class InlineEditProviderFeature {
 				void commands.executeCommand(reportFeedbackCommandId, { logContext });
 			}));
 
-			// Register expected edit capture commands
 			reader.store.add(commands.registerCommand(captureExpectedStartCommandId, () => {
 				void expectedEditCaptureController.startCapture('manual');
 			}));
@@ -224,7 +204,7 @@ export class InlineEditProviderFeature {
 
 export const learnMoreCommandId = 'github.dardcor.debug.inlineEdit.learnMore';
 
-export const learnMoreLink = 'https://aka.ms/vscode-nes';
+export const learnMoreLink = 'https://www.dardcor-code.web.id/docs/editor/inline-completions';
 
 export const clearCacheCommandId = 'github.dardcor.debug.inlineEdit.clearCache';
 export const reportNotebookNESIssueCommandId = 'github.dardcor.debug.inlineEdit.reportNotebookNESIssue';

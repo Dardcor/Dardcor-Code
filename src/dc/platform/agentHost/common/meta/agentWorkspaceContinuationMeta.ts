@@ -9,12 +9,10 @@ interface IHasAgentWorkspaceContinuationMeta {
 	readonly _meta?: Record<string, unknown>;
 }
 
-/** Whether the message is the internal request that resumes a turn after workspace conversion. */
 export function isAgentWorkspaceContinuationMessage(source: IHasAgentWorkspaceContinuationMeta): boolean {
 	return source._meta?.[AGENT_WORKSPACE_CONTINUATION_META_KEY] === true;
 }
 
-/** Serializes the workspace-continuation marker for the open protocol bag. */
 export function toAgentWorkspaceContinuationMessageMeta(): Record<string, unknown> {
 	return { [AGENT_WORKSPACE_CONTINUATION_META_KEY]: true };
 }

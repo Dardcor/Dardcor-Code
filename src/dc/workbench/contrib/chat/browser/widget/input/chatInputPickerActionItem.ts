@@ -17,15 +17,12 @@ import { ITelemetryService } from '../../../../../../platform/telemetry/common/t
 import { IChatExecuteActionContext } from '../../actions/chatExecuteActions.js';
 
 export interface IChatInputPickerOptions {
-	/**
-	 * Provides a fallback anchor element when the picker's own element
-	 * is not available in the DOM (e.g., when inside an overflow menu).
-	 */
 	readonly getOverflowAnchor?: () => HTMLElement | undefined;
 
 	readonly actionContext?: IChatExecuteActionContext;
 
 	readonly compact: IObservable<boolean>;
+	readonly iconOnly?: boolean;
 
 	readonly minimal?: IObservable<boolean>;
 
@@ -40,10 +37,6 @@ export function withChatInputPickerMotion(listOptions: IActionListOptions | unde
 	};
 }
 
-/**
- * Base class for chat input picker action items (model picker, mode picker, session target picker).
- * Provides common anchor resolution logic for dropdown positioning.
- */
 export abstract class ChatInputPickerActionViewItem extends ActionWidgetDropdownActionViewItem {
 	private _externalAnchor: HTMLElement | undefined;
 
@@ -71,7 +64,7 @@ export abstract class ChatInputPickerActionViewItem extends ActionWidgetDropdown
 		super(action, optionsWithAnchor, actionWidgetService, keybindingService, contextKeyService, telemetryService);
 
 		this._register(autorun(reader => {
-			const compact = this.pickerOptions.compact.read(reader);
+			const compact = this.pickerOptions.iconOnly === true || this.pickerOptions.compact.read(reader);
 			if (this.element) {
 				this.element.classList.toggle('compact', compact);
 				this.renderLabel(this.element);
@@ -79,10 +72,6 @@ export abstract class ChatInputPickerActionViewItem extends ActionWidgetDropdown
 		}));
 	}
 
-	/**
-	 * Returns the anchor element for the dropdown.
-	 * Falls back to the overflow anchor if this element is not in the DOM.
-	 */
 	protected getAnchorElement(): HTMLElement {
 		if (this._externalAnchor?.isConnected) {
 			return this._externalAnchor;
@@ -102,8 +91,7 @@ export abstract class ChatInputPickerActionViewItem extends ActionWidgetDropdown
 		super.render(container);
 		container.classList.add('chat-input-picker-item');
 
-		// Apply initial collapsed state now that this.element exists
-		const compact = this.pickerOptions.compact.get();
+		const compact = this.pickerOptions.iconOnly === true || this.pickerOptions.compact.get();
 		if (this.element) {
 			this.element.classList.toggle('compact', compact);
 			this.renderLabel(this.element);
@@ -111,7 +99,6 @@ export abstract class ChatInputPickerActionViewItem extends ActionWidgetDropdown
 	}
 
 	override setFocusable(_focusable: boolean): void {
-		// Chat input pickers are distinct Tab stops, not only roving toolbar items.
 		this._updateTabIndex();
 	}
 

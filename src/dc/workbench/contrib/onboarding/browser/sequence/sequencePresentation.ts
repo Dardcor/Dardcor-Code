@@ -10,7 +10,6 @@ import { IOnboardingPresentation, IOnboardingRunContext } from '../../common/onb
 import { IOnboardingRunResult, IOnboardingScenario, OnboardingDismissReason, OnboardingOutcome } from '../../common/onboardingScenario.js';
 import { IOnboardingSequencePayload, IOnboardingSequenceStep, IOnboardingSequenceStepPresentation, ONBOARDING_SEQUENCE_PRESENTATION_KIND, onboardingSequenceStepPresentationRegistry } from '../../common/onboardingSequence.js';
 
-/** Runs a heterogeneous sequence while leaving each step's rendering to its registered kind. */
 export class OnboardingSequencePresentation extends Disposable implements IOnboardingPresentation {
 	readonly kind = ONBOARDING_SEQUENCE_PRESENTATION_KIND;
 

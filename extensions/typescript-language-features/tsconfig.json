@@ -13,11 +13,11 @@
 	},
 	"include": [
 		"src/**/*",
-		"../../src/vscode-dts/vscode.d.ts",
-		"../../src/vscode-dts/vscode.proposed.codeActionAI.d.ts",
-		"../../src/vscode-dts/vscode.proposed.codeActionRanges.d.ts",
-		"../../src/vscode-dts/vscode.proposed.multiDocumentHighlightProvider.d.ts",
-		"../../src/vscode-dts/vscode.proposed.workspaceTrust.d.ts",
-		"../../src/vscode-dts/vscode.proposed.editorHoverVerbosityLevel.d.ts",
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.codeActionAI.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.codeActionRanges.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.multiDocumentHighlightProvider.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.workspaceTrust.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.editorHoverVerbosityLevel.d.ts",
 	]
 }

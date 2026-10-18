@@ -33,7 +33,6 @@ describe('NesXtabHistoryTracker', () => {
 		return stripTrailingWhitespace(history.map(h => h.edit.toString()).join('\n---\n'));
 	}
 
-	/** Strip trailing whitespace from each line to avoid fragile snapshots. */
 	function stripTrailingWhitespace(s: string): string {
 		return s.replace(/[^\S\n]+$/gm, '');
 	}
@@ -563,25 +562,13 @@ describe('NesXtabHistoryTracker', () => {
 
 	describe('proximity strategy', () => {
 
-		/**
-		 * Content layout (5 lines):
-		 * line 1: "aaa"
-		 * line 2: "bbb"
-		 * line 3: "ccc"
-		 * line 4: "ddd"
-		 * line 5: "eee"
-		 *
-		 * Edit on line 1, then edit on line 2 — 0 lines apart → should merge with lineGap=1
-		 */
 		it('merges edits within lineGap', () => {
 			const recording: IRecordingInformation = {
 				log: [
 					{ documentType: 'workspaceRecording@1.0', kind: 'header', repoRootUri: 'file:///Users/john/myProject', time: 0, uuid: '' },
 					{ time: 10, id: 0, kind: 'documentEncountered', relativePath: 'src/a.ts' },
 					{ time: 11, id: 0, v: 1, kind: 'setContent', content: 'aaa\nbbb\nccc\nddd\neee' },
-					// Replace line 1: "aaa" → "AAA" (offset 0-3)
 					{ time: 12, id: 0, v: 2, kind: 'changed', edit: [[0, 3, 'AAA']] },
-					// Replace line 2: "bbb" → "BBB" (offset 4-7, after "AAA\n")
 					{ time: 13, id: 0, v: 3, kind: 'changed', edit: [[4, 7, 'BBB']] },
 				]
 			};
@@ -589,7 +576,6 @@ describe('NesXtabHistoryTracker', () => {
 			const tracker = createTracker(replayer.workspace, undefined, XtabEditMergeStrategy.proximity(1));
 			replayer.replay();
 
-			// Should produce 1 merged entry (adjacent lines, gap=0 ≤ 1)
 			expect(tracker.getHistory().length).toBe(1);
 			expect(historyToString(tracker)).toMatchInlineSnapshot(`
 				"-   1     aaa
@@ -602,18 +588,13 @@ describe('NesXtabHistoryTracker', () => {
 			`);
 		});
 
-		/**
-		 * Edit on line 1, then edit on line 5 — 3 lines apart → should NOT merge with lineGap=1
-		 */
 		it('does not merge edits beyond lineGap', () => {
 			const recording: IRecordingInformation = {
 				log: [
 					{ documentType: 'workspaceRecording@1.0', kind: 'header', repoRootUri: 'file:///Users/john/myProject', time: 0, uuid: '' },
 					{ time: 10, id: 0, kind: 'documentEncountered', relativePath: 'src/a.ts' },
 					{ time: 11, id: 0, v: 1, kind: 'setContent', content: 'aaa\nbbb\nccc\nddd\neee' },
-					// Replace line 1: "aaa" → "AAA" (offset 0-3)
 					{ time: 12, id: 0, v: 2, kind: 'changed', edit: [[0, 3, 'AAA']] },
-					// Replace line 5: "eee" → "EEE" (offset 16-19, after "AAA\nbbb\nccc\nddd\n")
 					{ time: 13, id: 0, v: 3, kind: 'changed', edit: [[16, 19, 'EEE']] },
 				]
 			};
@@ -621,7 +602,6 @@ describe('NesXtabHistoryTracker', () => {
 			const tracker = createTracker(replayer.workspace, undefined, XtabEditMergeStrategy.proximity(1));
 			replayer.replay();
 
-			// Should produce 2 separate entries (distance = 3 > 1)
 			expect(historyToString(tracker)).toMatchInlineSnapshot(`
 				"-   1     aaa
 				+       1 AAA
@@ -636,18 +616,13 @@ describe('NesXtabHistoryTracker', () => {
 			`);
 		});
 
-		/**
-		 * Edit on line 1, then edit on line 3 with lineGap=2 → distance=1, should merge
-		 */
 		it('merges edits exactly at lineGap boundary', () => {
 			const recording: IRecordingInformation = {
 				log: [
 					{ documentType: 'workspaceRecording@1.0', kind: 'header', repoRootUri: 'file:///Users/john/myProject', time: 0, uuid: '' },
 					{ time: 10, id: 0, kind: 'documentEncountered', relativePath: 'src/a.ts' },
 					{ time: 11, id: 0, v: 1, kind: 'setContent', content: 'aaa\nbbb\nccc\nddd\neee' },
-					// Replace line 1
 					{ time: 12, id: 0, v: 2, kind: 'changed', edit: [[0, 3, 'AAA']] },
-					// Replace line 3 (offset 8-11, after "AAA\nbbb\n")
 					{ time: 13, id: 0, v: 3, kind: 'changed', edit: [[8, 11, 'CCC']] },
 				]
 			};
@@ -655,7 +630,6 @@ describe('NesXtabHistoryTracker', () => {
 			const tracker = createTracker(replayer.workspace, undefined, XtabEditMergeStrategy.proximity(2));
 			replayer.replay();
 
-			// distance between line 1 and line 3 is 1 (one line apart), which is ≤ 2
 			expect(historyToString(tracker)).toMatchInlineSnapshot(`
 				"-   1     aaa
 				+       1 AAA
@@ -667,16 +641,13 @@ describe('NesXtabHistoryTracker', () => {
 			`);
 		});
 
-		/** lineGap=0 merges only when edits are on the same line (or touching lines) */
 		it('lineGap=0 does not merge edits on non-adjacent lines', () => {
 			const recording: IRecordingInformation = {
 				log: [
 					{ documentType: 'workspaceRecording@1.0', kind: 'header', repoRootUri: 'file:///Users/john/myProject', time: 0, uuid: '' },
 					{ time: 10, id: 0, kind: 'documentEncountered', relativePath: 'src/a.ts' },
 					{ time: 11, id: 0, v: 1, kind: 'setContent', content: 'aaa\nbbb\nccc' },
-					// Replace on line 1
 					{ time: 12, id: 0, v: 2, kind: 'changed', edit: [[0, 3, 'AAA']] },
-					// Replace on line 3 (offset 8-11)
 					{ time: 13, id: 0, v: 3, kind: 'changed', edit: [[8, 11, 'CCC']] },
 				]
 			};
@@ -684,7 +655,6 @@ describe('NesXtabHistoryTracker', () => {
 			const tracker = createTracker(replayer.workspace, undefined, XtabEditMergeStrategy.proximity(0));
 			replayer.replay();
 
-			// distance=1 > 0 → should NOT merge
 			expect(historyToString(tracker)).toMatchInlineSnapshot(`
 				"-   1     aaa
 				+       1 AAA
@@ -701,9 +671,6 @@ describe('NesXtabHistoryTracker', () => {
 
 	describe('hybrid strategy', () => {
 
-		/**
-		 * Two rapid edits on adjacent lines → should merge
-		 */
 		it('merges rapid edits in same region', () => {
 			const recording: IRecordingInformation = {
 				log: [
@@ -720,7 +687,6 @@ describe('NesXtabHistoryTracker', () => {
 			const tracker = createTracker(replayer.workspace, undefined, XtabEditMergeStrategy.hybrid(1, 2000));
 			replayer.replay();
 
-			// Both edits arrive at the same overridden time, within splitAfterMs and within lineGap → merge
 			expect(tracker.getHistory().length).toBe(1);
 			expect(historyToString(tracker)).toMatchInlineSnapshot(`
 				"-   1     aaa
@@ -733,9 +699,6 @@ describe('NesXtabHistoryTracker', () => {
 			`);
 		});
 
-		/**
-		 * Same region but long pause between edits → should split
-		 */
 		it('splits edits separated by long pause', () => {
 			const recording: IRecordingInformation = {
 				log: [
@@ -751,20 +714,16 @@ describe('NesXtabHistoryTracker', () => {
 			const replayer = new ObservableWorkspaceRecordingReplayer(recording);
 			const tracker = createTracker(replayer.workspace, undefined, XtabEditMergeStrategy.hybrid(1, 500));
 
-			// Replay header + document + setContent
-			replayer.step(); // header
-			replayer.step(); // documentEncountered
-			replayer.step(); // setContent
+			replayer.step();
+			replayer.step();
+			replayer.step();
 
-			// First edit at time 1000
 			overrideNowValue(1000);
-			replayer.step(); // changed: AAA
+			replayer.step();
 
-			// Second edit at time 2000, 1000ms later > 500ms splitAfterMs
 			overrideNowValue(2000);
-			replayer.step(); // changed: BBB
+			replayer.step();
 
-			// Should produce 2 separate entries
 			expect(historyToString(tracker)).toMatchInlineSnapshot(`
 				"-   1     aaa
 				+       1 AAA
@@ -781,9 +740,6 @@ describe('NesXtabHistoryTracker', () => {
 			`);
 		});
 
-		/**
-		 * Rapid edits but far apart → should split due to distance despite being rapid
-		 */
 		it('splits rapid edits that are far apart', () => {
 			overrideNowValue(1000);
 
@@ -792,9 +748,7 @@ describe('NesXtabHistoryTracker', () => {
 					{ documentType: 'workspaceRecording@1.0', kind: 'header', repoRootUri: 'file:///Users/john/myProject', time: 0, uuid: '' },
 					{ time: 10, id: 0, kind: 'documentEncountered', relativePath: 'src/a.ts' },
 					{ time: 11, id: 0, v: 1, kind: 'setContent', content: 'aaa\nbbb\nccc\nddd\neee' },
-					// Line 1 edit
 					{ time: 12, id: 0, v: 2, kind: 'changed', edit: [[0, 3, 'AAA']] },
-					// Line 5 edit (offset 16-19, distance=3 > lineGap=1)
 					{ time: 13, id: 0, v: 3, kind: 'changed', edit: [[16, 19, 'EEE']] },
 				]
 			};
@@ -802,7 +756,6 @@ describe('NesXtabHistoryTracker', () => {
 			const tracker = createTracker(replayer.workspace, undefined, XtabEditMergeStrategy.hybrid(1, 5000));
 			replayer.replay();
 
-			// Even though both are rapid (same overrideNowValue), distance=3 > lineGap=1 → split
 			expect(historyToString(tracker)).toMatchInlineSnapshot(`
 				"-   1     aaa
 				+       1 AAA
@@ -817,19 +770,14 @@ describe('NesXtabHistoryTracker', () => {
 			`);
 		});
 
-		/**
-		 * Three edit bursts: rapid-on-same-line, pause, rapid-on-same-line → 2 entries
-		 */
 		it('creates separate entries per logical burst', () => {
 			const recording: IRecordingInformation = {
 				log: [
 					{ documentType: 'workspaceRecording@1.0', kind: 'header', repoRootUri: 'file:///Users/john/myProject', time: 0, uuid: '' },
 					{ time: 10, id: 0, kind: 'documentEncountered', relativePath: 'src/a.ts' },
 					{ time: 11, id: 0, v: 1, kind: 'setContent', content: 'aaa\nbbb\nccc' },
-					// Burst 1: two rapid edits on line 1
 					{ time: 12, id: 0, v: 2, kind: 'changed', edit: [[0, 1, 'A']] },
 					{ time: 13, id: 0, v: 3, kind: 'changed', edit: [[1, 2, 'A']] },
-					// Burst 2: edit on line 1 again, after pause
 					{ time: 14, id: 0, v: 4, kind: 'changed', edit: [[2, 3, 'A']] },
 				]
 			};
@@ -838,23 +786,18 @@ describe('NesXtabHistoryTracker', () => {
 			const replayer = new ObservableWorkspaceRecordingReplayer(recording);
 			const tracker = createTracker(replayer.workspace, undefined, XtabEditMergeStrategy.hybrid(1, 500));
 
-			// Replay header + document + setContent
-			replayer.step(); // header
-			replayer.step(); // documentEncountered
-			replayer.step(); // setContent
+			replayer.step();
+			replayer.step();
+			replayer.step();
 
-			// Burst 1
 			overrideNowValue(1000);
-			replayer.step(); // edit 1
+			replayer.step();
 			overrideNowValue(1100);
-			replayer.step(); // edit 2
+			replayer.step();
 
-			// Pause...
-			// Burst 2
 			overrideNowValue(5000);
-			replayer.step(); // edit 3
+			replayer.step();
 
-			// Burst 1 merged into 1 entry, burst 2 is separate → 2 entries
 			expect(historyToString(tracker)).toMatchInlineSnapshot(`
 				"-   1     aaa
 				+       1 AAa

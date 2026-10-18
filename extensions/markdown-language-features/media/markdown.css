@@ -15,7 +15,6 @@ body {
 	padding-top: 1em;
 }
 
-/* Reset margin top for elements */
 h1, h2, h3, h4, h5, h6,
 p, ol, ul, pre {
 	margin-top: 0;
@@ -88,13 +87,11 @@ body.showEditorSelection .code-line {
 	background-color: var(--vscode-diffEditor-removedTextBackground);
 }
 
-/* Hide the empty marker spans so they don't affect layout */
 [data-diff-start],
 [data-diff-end] {
 	display: contents;
 }
 
-/* Change indicator — shown where lines were deleted or modified */
 .diff-change-indicator {
 	position: relative;
 	height: 4px;
@@ -102,7 +99,6 @@ body.showEditorSelection .code-line {
 	z-index: 1;
 }
 
-/* Single visual element for the entire arrow + bar shape (avoids transparent color overlap) */
 .diff-change-indicator::before {
 	content: "";
 	position: absolute;
@@ -122,7 +118,6 @@ body.showEditorSelection .code-line {
 	pointer-events: none;
 }
 
-/* Transparent hover target over the gutter arrow area */
 .diff-change-indicator-arrow {
 	display: block;
 	position: absolute;
@@ -147,12 +142,10 @@ body.showEditorSelection .code-line {
 	max-width: 80vw;
 }
 
-/* Modified lines override the left gutter bar color */
 .code-line-diff-modified.code-line-diff-added {
 	box-shadow: none;
 }
 
-/* Modification indicator uses a subtler style placed after the changed block */
 .diff-change-indicator-modification {
 	height: 2px;
 	background: repeating-linear-gradient(
@@ -168,7 +161,6 @@ body.showEditorSelection .code-line {
 	background: inherit;
 }
 
-/* Left gutter bar for modification blocks */
 .diff-modification-gutter {
 	position: absolute;
 	top: 0;
@@ -290,7 +282,6 @@ body.showEditorSelection li.code-line:hover:before {
 	border-left: 3px solid rgba(255, 160, 0, 1);
 }
 
-/* Prevent `sub` and `sup` elements from affecting line height */
 sub,
 sup {
 	line-height: 0;
@@ -425,7 +416,6 @@ pre code {
 	background: none;
 }
 
-/** Theming */
 
 pre {
 	position: relative;
@@ -433,7 +423,6 @@ pre {
 	border: 1px solid var(--vscode-widget-border);
 }
 
-/* Code block copy button */
 .code-block-copy-button {
 	position: absolute;
 	top: 8px;
@@ -497,7 +486,6 @@ pre:hover > .code-block-copy-button,
 	border-color: rgba(255, 255, 255, 0.18);
 }
 
-/* Frontmatter rendering */
 table.frontmatter {
 	margin-bottom: 16px;
 	border-collapse: collapse;

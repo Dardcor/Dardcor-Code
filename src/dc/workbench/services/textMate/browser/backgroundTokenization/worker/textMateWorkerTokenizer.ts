@@ -155,7 +155,6 @@ export class TextMateWorkerTokenizer extends MirrorTextModel {
 
 				const deltaMs = new Date().getTime() - startTime;
 				if (deltaMs > 20) {
-					// yield to check for changes
 					break;
 				}
 			}
@@ -176,7 +175,6 @@ export class TextMateWorkerTokenizer extends MirrorTextModel {
 
 			const deltaMs = new Date().getTime() - startTime;
 			if (deltaMs > 20) {
-				// yield to check for changes
 				setTimeout0(() => this._tokenize());
 				return;
 			}

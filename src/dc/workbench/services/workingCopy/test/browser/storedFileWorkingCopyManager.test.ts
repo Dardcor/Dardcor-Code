@@ -59,7 +59,7 @@ suite('StoredFileWorkingCopyManager', () => {
 		});
 
 		const resolvePromise = manager.resolve(resource);
-		assert.ok(manager.get(resource)); // working copy known even before resolved()
+		assert.ok(manager.get(resource));
 		assert.strictEqual(manager.workingCopies.length, 1);
 
 		const workingCopy1 = await resolvePromise;
@@ -390,7 +390,6 @@ suite('StoredFileWorkingCopyManager', () => {
 
 		assert.strictEqual(manager.workingCopies.length, 0);
 
-		// dispose does not remove from working copy service, only `destroy` should
 		assert.strictEqual(accessor.workingCopyService.workingCopies.length, 3);
 
 		disposables.add(await firstPromise);

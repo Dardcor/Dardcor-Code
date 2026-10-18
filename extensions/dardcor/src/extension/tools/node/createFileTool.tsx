@@ -27,7 +27,7 @@ import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { processFullRewriteNewNotebook } from '../../prompts/node/codeMapper/codeMapper';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { IToolsService } from '../common/toolsService';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { ActionType } from './applyPatch/parser';
@@ -41,7 +41,7 @@ export interface ICreateFileParams {
 }
 
 
-export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
+export class CreateFileTool implements IAgentTool<ICreateFileParams> {
 	public static toolName = ToolName.CreateFile;
 	public static readonly nonDeferred = true;
 
@@ -70,7 +70,6 @@ export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
 			throw new Error('Invalid stream');
 		}
 
-		// Validate parameters
 		if (!options.input.filePath || options.input.content === undefined) {
 			throw new Error('Invalid input: filePath and content are required');
 		}
@@ -85,10 +84,8 @@ export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
 				doc = await this.workspaceService.openTextDocumentAndSnapshot(uri);
 			}
 		} catch (e) {
-			// ignored
 		}
 
-		// note: fileExists could be `false` but we might still get a `doc` if it's held in memory
 		if (fileExists && !!doc?.getText()) {
 			if (hasSupportedNotebooks) {
 				throw new Error(`File already exists. You must use the ${ToolName.EditNotebook} tool to modify it.`);
@@ -102,8 +99,6 @@ export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
 		const modelId = options.model && (await this.endpointProvider.getChatEndpoint(options.model)).model;
 
 		if (hasSupportedNotebooks) {
-			// Its possible we have a code block with a language id
-			// Also possible we have file paths in the content.
 			let content = options.input.content;
 			const processor = new CodeBlockProcessor(() => undefined, () => undefined, (codeBlock) => content = codeBlock.code);
 			processor.processMarkdown(options.input.content);
@@ -114,9 +109,6 @@ export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
 			this.sendTelemetry(options.chatRequestId, modelId, fileExtension);
 		} else {
 			const content = removeLeadingFilepathComment(options.input.content, languageId, options.input.filePath);
-			// When the file has been deleted from disk but VS Code still holds a stale
-			// in-memory doc with content, use a full-document replace so the old buffer
-			// is overwritten rather than prepended to (https://github.com/microsoft/vscode/issues/311043).
 			if (!fileExists && doc && doc.getText().length > 0) {
 				const lastLine = doc.lineCount - 1;
 				this._promptContext.stream.textEdit(uri, TextEdit.replace(new ExtRange(0, 0, lastLine, doc.lineAt(lastLine).text.length), content));
@@ -148,9 +140,6 @@ export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
 		]);
 	}
 
-	/**
-	 * Don't copy this helper, this is generally not a good pattern because it's vulnerable to race conditions. But the fileSystemService doesn't give us a proper atomic method for this.
-	 */
 	private async fileExists(uri: URI): Promise<boolean> {
 		try {
 			await this.fileSystemService.stat(uri);
@@ -176,7 +165,7 @@ export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
 			async () => this.instantiationService.invokeFunction(
 				formatDiffAsUnified,
 				uri,
-				'', // Empty initial content
+				'',
 				content
 			),
 			options.forceConfirmationReason,
@@ -195,7 +184,6 @@ export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
 	async handleToolStream(options: vscode.LanguageModelToolInvocationStreamOptions<ICreateFileParams>, _token: vscode.CancellationToken): Promise<vscode.LanguageModelToolStreamResult> {
 		let invocationMessage: MarkdownString;
 
-		// rawInput is now a partial object (parsed via tryParsePartialToolInput)
 		const partialInput = options.rawInput as Partial<ICreateFileParams> | undefined;
 
 		if (partialInput && typeof partialInput === 'object') {
@@ -222,14 +210,6 @@ export class CreateFileTool implements ICopilotTool<ICreateFileParams> {
 	}
 
 	private sendTelemetry(requestId: string | undefined, model: string | undefined, fileExtension: string) {
-		/* __GDPR__
-			"createFileToolInvoked" : {
-				"owner": "bhavyaus",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-				"fileExtension": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The file extension of the created file" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('createFileToolInvoked', {
 			requestId,
 			model,

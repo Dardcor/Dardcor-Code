@@ -60,8 +60,6 @@ export class LogContextRecorder extends Disposable {
 
 	public handleShown(nextEditResult: INextEditResult) {
 		const requestId = nextEditResult.requestId;
-		// If the user doesn't interact with the suggestion for 10s,
-		//  we'll consider it ignored
 		const timer = setTimeout(() => {
 			const req = this._inlineEditLogger.getRequestById(requestId);
 			if (req) {
@@ -137,7 +135,6 @@ class LogContextRecorderImpl extends Disposable {
 		}
 
 		if (logFileExists && shouldStartNewLog) {
-			// log rotation
 			const date = new Date();
 
 			function formatDateFileNameSafe(date: Date): string {
@@ -146,7 +143,6 @@ class LogContextRecorderImpl extends Disposable {
 
 			await rename(logFilePath, path.join(recordingDirPath, `${state.value.logCount}.${formatDateFileNameSafe(date)}${LogContextRecorder.fileSuffix}`));
 
-			// Reset state after truncating the log
 			state.setValue({
 				version: currentVersion,
 				logCount: state.value.logCount + 1,
@@ -191,14 +187,11 @@ class LogContextRecorderImpl extends Disposable {
 		this._log.flushSync();
 	}
 
-	// Decide if a request should be logged
 	private shouldLog(entry: InlineEditRequestLogContext): boolean {
 		if (this._loggedRequests.has(entry.requestId)) {
 			return false;
 		}
 
-		// We keep a buffer of requests to ensure the set
-		// doesn't keep increasing throughout a session.
 		if (this._loggedRequests.size >= this._logBufferSize) {
 			const oldest = this._loggedQueue.shift();
 			if (oldest !== undefined) {
@@ -208,7 +201,6 @@ class LogContextRecorderImpl extends Disposable {
 		return true;
 	}
 
-	// Updated appendEntry using the helper method
 	public appendEntry(entry: InlineEditRequestLogContext): void {
 		if (!this.shouldLog(entry)) {
 			return;

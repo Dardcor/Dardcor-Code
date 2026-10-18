@@ -54,17 +54,9 @@ const restartTunnelOnConfigurationChanges: readonly string[] = [
 	CONFIGURATION_KEY_PREVENT_SLEEP,
 ];
 
-// This is the session used run the tunnel access.
-// if set, the remote tunnel access is currently enabled.
-// if not set, the remote tunnel access is currently disabled.
 const TUNNEL_ACCESS_SESSION = 'remoteTunnelSession';
-// Boolean indicating whether the tunnel should be installed as a service.
 const TUNNEL_ACCESS_IS_SERVICE = 'remoteTunnelIsService';
 
-/**
- * This service runs on the shared service. It is running the `code-tunnel` command
- * to make the current machine available for remote access.
- */
 export class RemoteTunnelService extends Disposable implements IRemoteTunnelService {
 
 	declare readonly _serviceBrand: undefined;
@@ -80,13 +72,6 @@ export class RemoteTunnelService extends Disposable implements IRemoteTunnelServ
 
 	private readonly _logger: ILogger;
 
-	/**
-	 * "Mode" in the terminal state we want to get to -- started, stopped, and
-	 * the attributes associated with each.
-	 *
-	 * At any given time, work may be ongoing to get `_tunnelStatus` into a
-	 * state that reflects the desired `mode`.
-	 */
 	private _mode: TunnelMode = INACTIVE_TUNNEL_MODE;
 
 	private _tunnelProcess: CancelablePromise<any> | undefined;
@@ -186,22 +171,14 @@ export class RemoteTunnelService extends Disposable implements IRemoteTunnelServ
 		if (!this._tunnelCommand) {
 			let binParentLocation;
 			if (isMacintosh) {
-				// appRoot = /Applications/Dardcor Code.app/Contents/Resources/app
-				// bin = /Applications/Dardcor Code.app/Contents/Resources/app/bin
 				binParentLocation = this.environmentService.appRoot;
 			} else if (isWindows) {
 				if (this.productService.win32VersionedUpdate) {
-					// appRoot = C:\Users\<name>\AppData\Local\Programs\Dardcor Code\<version>\resources\app
-					// bin = C:\Users\<name>\AppData\Local\Programs\Dardcor Code\bin
 					binParentLocation = dirname(dirname(dirname(this.environmentService.appRoot)));
 				} else {
-					// appRoot = C:\Users\<name>\AppData\Local\Programs\Dardcor Code\resources\app
-					// bin = C:\Users\<name>\AppData\Local\Programs\Dardcor Code\bin
 					binParentLocation = dirname(dirname(this.environmentService.appRoot));
 				}
 			} else {
-				// appRoot = /usr/share/dardcor-code/resources/app
-				// bin = /usr/share/dardcor-code/bin
 				binParentLocation = dirname(dirname(this.environmentService.appRoot));
 			}
 			this._tunnelCommand = join(binParentLocation, 'bin', `${this.productService.tunnelApplicationName}${isWindows ? '.exe' : ''}`);
@@ -232,7 +209,6 @@ export class RemoteTunnelService extends Disposable implements IRemoteTunnelServ
 		}
 
 		if (this._mode.active) {
-			// Be careful to only uninstall the service if we're the ones who installed it:
 			const needsServiceUninstall = this._mode.asService;
 			this.setMode(INACTIVE_TUNNEL_MODE);
 
@@ -288,8 +264,6 @@ export class RemoteTunnelService extends Disposable implements IRemoteTunnelServ
 				return;
 			}
 
-			// split and find the line, since in dev builds additional noise is
-			// added by cargo to the output.
 			let status: {
 				service_installed: boolean;
 				tunnel: object | null;
@@ -306,8 +280,6 @@ export class RemoteTunnelService extends Disposable implements IRemoteTunnelServ
 			isServiceInstalled = status.service_installed;
 			this._logger.info(status.tunnel ? 'Other tunnel running, attaching...' : 'No other tunnel running');
 
-			// If a tunnel is running but the mode isn't "active", we'll still attach
-			// to the tunnel to show its state in the UI. If neither are true, disconnect
 			if (!status.tunnel && !this._mode.active) {
 				this.setTunnelStatus(TunnelStates.disconnected());
 				return;
@@ -361,10 +333,6 @@ export class RemoteTunnelService extends Disposable implements IRemoteTunnelServ
 
 		let serviceInstallFailed = false;
 		if (this._mode.active && this._mode.asService && !isServiceInstalled) {
-			// I thought about calling `code tunnel kill` here, but having multiple
-			// tunnel processes running is pretty much idempotent. If there's
-			// another tunnel process running, the service process will
-			// take over when it exits, no hard feelings.
 			serviceInstallFailed = await this.installTunnelService(args) === false;
 		}
 
@@ -426,7 +394,6 @@ export class RemoteTunnelService extends Disposable implements IRemoteTunnelServ
 		this._tunnelProcess = serveCommand;
 		serveCommand.finally(() => {
 			if (serveCommand === this._tunnelProcess) {
-				// process exited unexpectedly
 				this._logger.info(`tunnel process terminated`);
 				this._tunnelProcess = undefined;
 				this._mode = INACTIVE_TUNNEL_MODE;

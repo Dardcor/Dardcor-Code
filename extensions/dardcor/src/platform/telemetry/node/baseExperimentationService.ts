@@ -85,17 +85,12 @@ export class UserInfoStore extends Disposable {
 		return this._isVscodeTeamMember;
 	}
 
-	/**
-	 * The list of organization IDs the user belongs to.
-	 * This can be used in ExP to target specific organizations via the X-GitHub-Copilot-OrganizationList filter.
-	 */
 	get organizationList(): string[] | undefined {
 		return this._organizationList;
 	}
 
 	private updateUserInfo(internalOrg?: string, sku?: string, isFcv1?: boolean, isSn?: boolean, isVscodeTeamMember?: boolean, organizationList?: string[]): void {
 		if (this._internalOrg === internalOrg && this._sku === sku && this._isFcv1 === isFcv1 && this._isSn === isSn && this._isVscodeTeamMember === isVscodeTeamMember && equals(this._organizationList, organizationList)) {
-			// no change
 			return;
 		}
 
@@ -141,14 +136,12 @@ export class BaseExperimentationService extends Disposable implements IExperimen
 
 		this._userInfoStore = new UserInfoStore(context, dardcorTokenStore);
 
-		// Refresh treatments when user info changes
 		this._register(this._userInfoStore.onDidChangeUserInfo(async () => {
 			await this._delegate.getTreatmentVariableAsync('vscode', 'refresh');
 			this._logService.trace(`[BaseExperimentationService] User info changed, refreshed treatments`);
 			this._signalTreatmentsChangeEvent();
 		}));
 
-		// Refresh treatments every hour
 		this._refreshTimer.cancelAndSet(async () => {
 			await this._delegate.getTreatmentVariableAsync('vscode', 'refresh');
 			this._logService.trace(`[BaseExperimentationService] Refreshed treatments on timer`);
@@ -192,8 +185,6 @@ export class BaseExperimentationService extends Disposable implements IExperimen
 		return result;
 	}
 
-	// Note: This is only temporarily until we have fully migrated to the new completions implementation.
-	// At that point, we can remove this method and the related code.
 	private _completionsFilters: Map<string, string> = new Map<string, string>();
 	async setCompletionsFilters(filters: Map<string, string>): Promise<void> {
 		if (equalMap(this._completionsFilters, filters)) {

@@ -28,7 +28,7 @@ class FileLogger extends AbstractMessageLogger implements ILogger {
 	) {
 		super();
 		this.setLevel(level);
-		this.flushDelayer = new ThrottledDelayer<void>(100 /* buffer saves over a short time */);
+		this.flushDelayer = new ThrottledDelayer<void>(100 );
 		this.initializePromise = this.initialize();
 	}
 

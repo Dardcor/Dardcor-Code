@@ -40,20 +40,16 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 		const titleContainer = this.titleContainer = parent;
 		titleContainer.draggable = true;
 
-		// Container listeners
 		this.registerContainerListeners(titleContainer);
 
-		// Gesture Support
 		this._register(Gesture.addTarget(titleContainer));
 
 		const labelContainer = $('.label-container');
 		titleContainer.appendChild(labelContainer);
 
-		// Editor Label
 		this.editorLabel = this._register(this.instantiationService.createInstance(ResourceLabel, labelContainer, {})).element;
 		this._register(addDisposableListener(this.editorLabel.element, EventType.CLICK, e => this.onTitleLabelClick(e)));
 
-		// Breadcrumbs
 		this.breadcrumbsControlFactory = this._register(this.instantiationService.createInstance(BreadcrumbsControlFactory, labelContainer, this.groupView, {
 			showFileIcons: false,
 			showSymbolIcons: true,
@@ -64,9 +60,8 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 		}));
 		this._register(this.breadcrumbsControlFactory.onDidEnablementChange(() => this.handleBreadcrumbsEnablementChange()));
 		titleContainer.classList.toggle('breadcrumbs', Boolean(this.breadcrumbsControl));
-		this._register(toDisposable(() => titleContainer.classList.remove('breadcrumbs'))); // important to remove because the container is a shared dom node
+		this._register(toDisposable(() => titleContainer.classList.remove('breadcrumbs')));
 
-		// Create editor actions toolbar
 		this.createEditorActionsToolBar(titleContainer, ['title-actions']);
 
 		return titleContainer;
@@ -74,7 +69,6 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 
 	private registerContainerListeners(titleContainer: HTMLElement): void {
 
-		// Drag & Drop support
 		let lastDragEvent: DragEvent | undefined = undefined;
 		let isNewWindowOperation = false;
 		this._register(new DragAndDropObserver(titleContainer, {
@@ -83,16 +77,12 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 			onDragEnd: e => { this.onGroupDragEnd(e, lastDragEvent, titleContainer, isNewWindowOperation); },
 		}));
 
-		// Pin on double click
 		this._register(addDisposableListener(titleContainer, EventType.DBLCLICK, e => this.onTitleDoubleClick(e)));
 
-		// Detect mouse click
 		this._register(addDisposableListener(titleContainer, EventType.AUXCLICK, e => this.onTitleAuxClick(e)));
 
-		// Detect touch
 		this._register(addDisposableListener(titleContainer, TouchEventType.Tap, (e: GestureEvent) => this.onTitleTap(e)));
 
-		// Context Menu
 		for (const event of [EventType.CONTEXT_MENU, TouchEventType.Contextmenu]) {
 			this._register(addDisposableListener(titleContainer, event, e => {
 				if (this.tabsModel.activeEditor) {
@@ -105,7 +95,6 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 	private onTitleLabelClick(e: MouseEvent): void {
 		EventHelper.stop(e, false);
 
-		// delayed to let the onTitleClick() come first which can cause a focus change which can close quick access
 		setTimeout(() => this.quickInputService.quickAccess.show());
 	}
 
@@ -116,8 +105,8 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 	}
 
 	private onTitleAuxClick(e: MouseEvent): void {
-		if (e.button === 1 /* Middle Button */ && this.tabsModel.activeEditor) {
-			EventHelper.stop(e, true /* for https://github.com/microsoft/vscode/issues/56715 */);
+		if (e.button === 1 && this.tabsModel.activeEditor) {
+			EventHelper.stop(e, true );
 
 			if (!this.tabsModel.activeEditor.hasCapability(EditorInputCapabilities.CannotClose) && !preventEditorClose(this.tabsModel, this.tabsModel.activeEditor, EditorCloseMethod.MOUSE, this.groupsView.partOptions)) {
 				this.groupView.closeEditor(this.tabsModel.activeEditor);
@@ -127,20 +116,11 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 
 	private onTitleTap(e: GestureEvent): void {
 
-		// We only want to open the quick access picker when
-		// the tap occurred over the editor label, so we need
-		// to check on the target
-		// (https://github.com/microsoft/vscode/issues/107543)
 		const target = e.initialTarget;
 		if (!(isHTMLElement(target)) || !this.editorLabel || !isAncestor(target, this.editorLabel.element)) {
 			return;
 		}
 
-		// TODO@rebornix gesture tap should open the quick access
-		// editorGroupView will focus on the editor again when there
-		// are mouse/pointer/touch down events we need to wait a bit as
-		// `GesureEvent.Tap` is generated from `touchstart` and then
-		// `touchend` events, which are not an atom event.
 		setTimeout(() => this.quickInputService.quickAccess.show(), 50);
 	}
 
@@ -162,7 +142,6 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 	}
 
 	beforeCloseEditor(editor: EditorInput): void {
-		// Nothing to do before closing an editor
 	}
 
 	closeEditor(editor: EditorInput): void {
@@ -203,12 +182,10 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 		this.ifEditorIsActive(editor, () => {
 			const titleContainer = assertReturnsDefined(this.titleContainer);
 
-			// Signal dirty (unless saving)
 			if (editor.isDirty() && !editor.isSaving()) {
 				titleContainer.classList.add('dirty');
 			}
 
-			// Otherwise, clear dirty
 			else {
 				titleContainer.classList.remove('dirty');
 			}
@@ -236,9 +213,9 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 
 	private ifActiveEditorChanged(fn: () => void): boolean {
 		if (
-			!this.activeLabel.editor && this.tabsModel.activeEditor || 						// active editor changed from null => editor
-			this.activeLabel.editor && !this.tabsModel.activeEditor || 						// active editor changed from editor => null
-			(!this.activeLabel.editor || !this.tabsModel.isActive(this.activeLabel.editor))	// active editor changed from editorA => editorB
+			!this.activeLabel.editor && this.tabsModel.activeEditor ||
+			this.activeLabel.editor && !this.tabsModel.activeEditor ||
+			(!this.activeLabel.editor || !this.tabsModel.isActive(this.activeLabel.editor))
 		) {
 			fn();
 
@@ -250,17 +227,17 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 
 	private ifActiveEditorPropertiesChanged(fn: () => void): void {
 		if (!this.activeLabel.editor || !this.tabsModel.activeEditor) {
-			return; // need an active editor to check for properties changed
+			return;
 		}
 
 		if (this.activeLabel.pinned !== this.tabsModel.isPinned(this.tabsModel.activeEditor)) {
-			fn(); // only run if pinned state has changed
+			fn();
 		}
 	}
 
 	private ifEditorIsActive(editor: EditorInput, fn: () => void): void {
 		if (this.tabsModel.isActive(editor)) {
-			fn();  // only run if editor is current active
+			fn();
 		}
 	}
 
@@ -273,7 +250,6 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 
 		this.activeLabel = { editor, pinned: isEditorPinned };
 
-		// Update Breadcrumbs
 		if (this.breadcrumbsControl) {
 			if (isGroupActive) {
 				this.breadcrumbsControl.update();
@@ -283,7 +259,6 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 			}
 		}
 
-		// Clear if there is no editor
 		const [titleContainer, editorLabel] = assertReturnsAllDefined(this.titleContainer, this.editorLabel);
 		if (!editor) {
 			titleContainer.classList.remove('dirty');
@@ -291,19 +266,16 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 			this.clearEditorActionsToolbar();
 		}
 
-		// Otherwise render it
 		else {
 
-			// Dirty state
 			this.updateEditorDirty(editor);
 
-			// Editor Label
 			const { labelFormat } = this.groupsView.partOptions;
 			let description: string;
 			if (this.breadcrumbsControl && !this.breadcrumbsControl.isHidden()) {
-				description = ''; // hide description when showing breadcrumbs
+				description = '';
 			} else if (labelFormat === 'default' && !isGroupActive) {
-				description = ''; // hide description when group is not active and style is 'default'
+				description = '';
 			} else {
 				description = editor.getDescription(this.getVerbosity(labelFormat)) || '';
 			}
@@ -333,7 +305,6 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 				titleContainer.style.color = this.getColor(TAB_UNFOCUSED_ACTIVE_FOREGROUND) || '';
 			}
 
-			// Update Editor Actions Toolbar
 			this.updateEditorActionsToolbar();
 		}
 	}
@@ -349,12 +320,10 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 	protected override prepareEditorActions(editorActions: IToolbarActions): IToolbarActions {
 		const isGroupActive = this.groupsView.activeGroup === this.groupView;
 
-		// Active: allow all actions
 		if (isGroupActive) {
 			return editorActions;
 		}
 
-		// Inactive: only show "Close, "Unlock" and secondary actions
 		else {
 			return {
 				primary: this.groupsView.partOptions.alwaysShowEditorActions ? editorActions.primary : editorActions.primary.filter(action => action.id === CLOSE_EDITOR_COMMAND_ID || action.id === UNLOCK_GROUP_COMMAND_ID),
@@ -364,10 +333,6 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 	}
 
 	protected override prepareEditorLayoutActions(editorActions: IToolbarActions): IToolbarActions {
-		// Surface the editor layout actions (`MenuId.EditorTitleLayout`) even when tabs are
-		// shown as a single tab. This menu is only populated by the Agents window (e.g. the
-		// Maximize/Restore Editor Area actions), so showing it here has no effect on the
-		// regular workbench where the menu is empty.
 		return editorActions;
 	}
 

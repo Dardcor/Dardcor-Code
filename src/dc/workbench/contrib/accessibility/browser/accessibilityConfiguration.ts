@@ -27,10 +27,6 @@ export const accessibleViewContainsCodeBlocks = new RawContextKey<boolean>('acce
 export const accessibleViewHasUnassignedKeybindings = new RawContextKey<boolean>('accessibleViewHasUnassignedKeybindings', undefined, undefined);
 export const accessibleViewHasAssignedKeybindings = new RawContextKey<boolean>('accessibleViewHasAssignedKeybindings', undefined, undefined);
 
-/**
- * Miscellaneous settings tagged with accessibility and implemented in the accessibility contrib but
- * were better to live under workbench for discoverability.
- */
 export const enum AccessibilityWorkbenchSettingId {
 	DimUnfocusedEnabled = 'accessibility.dimUnfocused.enabled',
 	DimUnfocusedOpacity = 'accessibility.dimUnfocused.opacity',
@@ -962,7 +958,7 @@ export class DynamicSpeechAccessibilityConfiguration extends Disposable implemen
 
 	private updateConfiguration(): void {
 		if (!this.speechService.hasSpeechProvider) {
-			return; // these settings require a speech provider
+			return;
 		}
 
 		const languages = this.getLanguages();

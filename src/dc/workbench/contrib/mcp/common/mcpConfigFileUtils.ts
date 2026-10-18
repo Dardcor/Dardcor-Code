@@ -9,7 +9,6 @@ import { ITextModel } from '../../../../editor/common/model.js';
 
 export const getMcpServerMapping = (opts: {
 	model: ITextModel;
-	// Path to MCP servers in the config.
 	pathToServers: string[];
 }): Map<string, Location> => {
 	const tree = jsonParseTree(opts.model.getValue());

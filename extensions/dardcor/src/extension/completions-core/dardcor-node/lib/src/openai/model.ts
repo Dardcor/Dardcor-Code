@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
 import { ICompletionModelInformation, IEndpointProvider } from '../../../../../../platform/endpoint/common/endpointProvider';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
 import { Disposable } from '../../../../../../util/dardcor/base/common/lifecycle';
@@ -11,7 +10,6 @@ import { IInstantiationService } from '../../../../../../util/dardcor/platform/i
 import { getUserSelectedModelConfiguration } from '../../../extension/src/modelPickerUserSelection';
 import { TokenizerName } from '../../../prompt/src/tokenization';
 import { Emitter, Event } from '../util/event';
-import { onCopilotToken } from '../auth/dardcorTokenNotifier';
 import { ConfigKey, getConfig } from '../config';
 import { ICompletionsFeaturesService } from '../experiments/featuresService';
 import { ICompletionsLogTargetService, LogLevel } from '../logger';
@@ -28,7 +26,7 @@ export interface ICompletionsModelManagerService {
 	getCurrentModelRequestInfo(featureSettings?: TelemetryWithExp): ModelRequestInfo;
 }
 
-const FallbackModelId = 'gpt-41-dardcor';
+const FallbackModelId = '';
 export class AvailableModelsManager extends Disposable implements ICompletionsModelManagerService {
 	declare _serviceBrand: undefined;
 	fetchedModelData: ICompletionModelInformation[] = [];
@@ -42,25 +40,20 @@ export class AvailableModelsManager extends Disposable implements ICompletionsMo
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@ICompletionsFeaturesService private readonly _featuresService: ICompletionsFeaturesService,
 		@IEndpointProvider private readonly _endpointProvider: IEndpointProvider,
-		@IAuthenticationService authenticationService: IAuthenticationService,
 		@ICompletionsLogTargetService private readonly _logService: ICompletionsLogTargetService,
 	) {
 		super();
 
 		if (shouldFetch) {
-			this._register(onCopilotToken(authenticationService, () => this.refreshAvailableModels()));
+			this._register(this._endpointProvider.onDidModelsRefresh(() => this.refreshAvailableModels()));
+			void this.refreshAvailableModels();
 		}
 	}
 
-	// This will get its initial call after the initial token got fetched
 	private async refreshAvailableModels(): Promise<void> {
-		await this.refreshModels();
+		await this.refreshModels(false);
 	}
 
-	/**
-	 * Returns the default model, determined by the order returned from the API
-	 * Note: this does NOT fetch models to avoid side effects
-	 */
 	getDefaultModelId(): string {
 		if (this.fetchedModelData) {
 			const fetchedDefaultModel = AvailableModelsManager.filterCompletionModels(
@@ -76,18 +69,14 @@ export class AvailableModelsManager extends Disposable implements ICompletionsMo
 		return FallbackModelId;
 	}
 
-	async refreshModels(): Promise<void> {
-		const fetchedData = await this._endpointProvider.getAllCompletionModels(true);
+	async refreshModels(forceRefresh = false): Promise<void> {
+		const fetchedData = await this._endpointProvider.getAllCompletionModels(forceRefresh);
 		if (fetchedData) {
 			this.fetchedModelData = fetchedData;
 			this._onDidChangeModels.fire();
 		}
 	}
 
-	/**
-	 * Returns a list of models that are available for generic completions.
-	 * Calls to CAPI to retrieve the list.
-	 */
 	getGenericCompletionModels(): ModelItem[] {
 		const filteredResult = AvailableModelsManager.filterCompletionModels(
 			this.fetchedModelData,
@@ -103,7 +92,6 @@ export class AvailableModelsManager extends Disposable implements ICompletionsMo
 		if (modelItem) {
 			return modelItem.tokenizer as TokenizerName;
 		}
-		// The tokenizer the default model uses
 		return TokenizerName.o200k;
 	}
 
@@ -162,7 +150,6 @@ export class AvailableModelsManager extends Disposable implements ICompletionsMo
 		const targetEngine = featureSettings ? this._featuresService.customEngineTargetEngine(featureSettings) : undefined;
 
 		if (userSelectedCompletionModel) {
-			// If the user selected completion model matches the targetEngine, use the custom engine
 			if (customEngine && targetEngine && userSelectedCompletionModel === targetEngine) {
 				return new ModelRequestInfo(customEngine, 'exp');
 			}

@@ -198,7 +198,6 @@ registerAction2(class RevealInSideBarForSearchResultsAction extends Action2 {
 	}
 });
 
-// Find in Files by default is the same as View: Show Search, but can be configured to open a search editor instead with the `search.mode` binding
 registerAction2(class FindInFilesAction extends Action2 {
 
 	constructor(
@@ -255,7 +254,6 @@ registerAction2(class FindInFilesAction extends Action2 {
 });
 
 registerAction2(class FindInFolderAction extends Action2 {
-	// from explorer
 	constructor() {
 		super({
 			id: Constants.SearchCommandIds.FindInFolderId,
@@ -282,7 +280,6 @@ registerAction2(class FindInFolderAction extends Action2 {
 });
 
 registerAction2(class FindInWorkspaceAction extends Action2 {
-	// from explorer
 	constructor() {
 		super({
 			id: Constants.SearchCommandIds.FindInWorkspaceId,
@@ -316,7 +313,6 @@ registerAction2(class FindInWorkspaceAction extends Action2 {
 	}
 });
 
-//#region Helpers
 async function expandSelectSubtree(accessor: ServicesAccessor) {
 	const viewsService = accessor.get(IViewsService);
 	const searchView = getSearchView(viewsService);
@@ -440,4 +436,3 @@ async function modifySearchFileTypePattern(accessor: ServicesAccessor, fileMatch
 }
 
 
-//#endregion

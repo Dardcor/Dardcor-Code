@@ -38,13 +38,11 @@ export default new class implements eslint.Rule.RuleModule {
 		const allowedPaths = context.options as string[];
 		const filePath = normalize(relative(REPO_ROOT, normalize(context.getFilename()))).replace(/\\/g, '/');
 
-		// Skip whitelisted files
 		if (allowedPaths.some(pattern => filePath === pattern || minimatch(filePath, pattern))) {
 			return {};
 		}
 
 		return createImportRuleListener((node, value) => {
-			// Allow `import type` and `export type` declarations
 			if (node.parent?.type === TSESTree.AST_NODE_TYPES.ImportDeclaration && node.parent.importKind === 'type') {
 				return;
 			}
@@ -52,17 +50,14 @@ export default new class implements eslint.Rule.RuleModule {
 				return;
 			}
 
-			// Allow relative imports
 			if (value.startsWith('.')) {
 				return;
 			}
 
-			// Allow Node.js built-in modules
 			if (nodeBuiltins.has(value)) {
 				return;
 			}
 
-			// Allow electron
 			if (value === 'electron') {
 				return;
 			}

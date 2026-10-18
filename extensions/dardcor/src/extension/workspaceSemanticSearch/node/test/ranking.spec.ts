@@ -10,7 +10,6 @@ import { Range } from '../../../../util/dardcor/editor/common/core/range';
 import { combineRankingInsights } from '../combinedRank';
 
 suite('combineRankingInsights', () => {
-	// Helper function to create a FileChunk object
 	function createFileChunk(path: string, text: string, startLine: number, endLine: number): FileChunk {
 		return {
 			file: URI.file(path),
@@ -20,7 +19,6 @@ suite('combineRankingInsights', () => {
 		};
 	}
 
-	// Helper function to create a FileChunkAndScore object
 	function createFileChunkAndScore(
 		path: string,
 		text: string,
@@ -55,8 +53,8 @@ suite('combineRankingInsights', () => {
 
 		const result = combineRankingInsights(chunks, llmResponse);
 
-		expect(result.llmBestRank).toBe(0);  // 'file1' is at index 0
-		expect(result.llmWorstRank).toBe(2); // 'file3' is at index 2
+		expect(result.llmBestRank).toBe(0);
+		expect(result.llmWorstRank).toBe(2);
 	});
 
 	it('returns -1 when no LLM selections match', () => {
@@ -99,7 +97,7 @@ suite('combineRankingInsights', () => {
 
 		const result = combineRankingInsights(chunks, llmResponse);
 
-		expect(result.llmBestRank).toBe(0); // 'fileA' at index 0
-		expect(result.llmWorstRank).toBe(3); // 'fileD' at index 3
+		expect(result.llmBestRank).toBe(0);
+		expect(result.llmWorstRank).toBe(3);
 	});
 });

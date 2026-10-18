@@ -35,7 +35,6 @@ import { Extensions } from '../../panecomposite.js';
 
 export class PanelPart extends AbstractPaneCompositePart {
 
-	//#region IView
 
 	readonly minimumWidth: number = 300;
 	readonly maximumWidth: number = Number.POSITIVE_INFINITY;
@@ -43,8 +42,6 @@ export class PanelPart extends AbstractPaneCompositePart {
 	readonly maximumHeight: number = Number.POSITIVE_INFINITY;
 
 	get preferredHeight(): number | undefined {
-		// Don't worry about titlebar or statusbar visibility
-		// The difference is minimal and keeps this function clean
 		return this.layoutService.mainContainerDimension.height * 0.4;
 	}
 
@@ -63,7 +60,6 @@ export class PanelPart extends AbstractPaneCompositePart {
 		return Math.max(width, 300);
 	}
 
-	//#endregion
 
 	static readonly activePanelSettingsKey = 'workbench.panelpart.activepanelid';
 
@@ -148,11 +144,11 @@ export class PanelPart extends AbstractPaneCompositePart {
 			fillExtraContextMenuActions: actions => this.fillExtraContextMenuActions(actions),
 			compositeSize: 0,
 			iconSize: 16,
-			compact: true, // Only applies to icons, not labels
+			compact: true,
 			overflowActionSize: 44,
 			colors: theme => ({
-				activeBackgroundColor: theme.getColor(PANEL_BACKGROUND), // Background color for overflow action
-				inactiveBackgroundColor: theme.getColor(PANEL_BACKGROUND), // Background color for overflow action
+				activeBackgroundColor: theme.getColor(PANEL_BACKGROUND),
+				inactiveBackgroundColor: theme.getColor(PANEL_BACKGROUND),
 				activeBorderBottomColor: theme.getColor(PANEL_ACTIVE_TITLE_BORDER),
 				activeForegroundColor: theme.getColor(PANEL_ACTIVE_TITLE_FOREGROUND),
 				inactiveForegroundColor: theme.getColor(PANEL_INACTIVE_TITLE_FOREGROUND),
@@ -197,17 +193,16 @@ export class PanelPart extends AbstractPaneCompositePart {
 		let dimensions: Dimension;
 		switch (this.layoutService.getPanelPosition()) {
 			case Position.RIGHT:
-				dimensions = new Dimension(width - 1, height); // Take into account the 1px border when layouting
+				dimensions = new Dimension(width - 1, height);
 				break;
 			case Position.TOP:
-				dimensions = new Dimension(width, height - 1); // Take into account the 1px border when layouting
+				dimensions = new Dimension(width, height - 1);
 				break;
 			default:
 				dimensions = new Dimension(width, height);
 				break;
 		}
 
-		// Layout contents
 		super.layout(dimensions.width, dimensions.height, top, left);
 	}
 

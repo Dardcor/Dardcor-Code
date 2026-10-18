@@ -43,7 +43,6 @@ import { equalsSubject, getSubjectTestItem, InspectSubject, MessageSubject, Task
 import { OutputPeekTree } from './testResultsTree.js';
 import './testResultsViewContent.css';
 
-/** UI state that can be saved/restored, used to give a nice experience when switching stack frames */
 export interface ITestResultsViewContentUiState {
 	splitViewWidths: number[];
 }
@@ -109,7 +108,6 @@ class MessageStackFrame extends CustomStackFrame {
 }
 
 function runInLast(accessor: ServicesAccessor, bitset: TestRunProfileBitset, subject: InspectSubject) {
-	// Let the full command do its thing if we want to run the whole set of tests
 	if (subject instanceof TaskSubject) {
 		return accessor.get(ICommandService).executeCommand(
 			bitset === TestRunProfileBitset.Debug ? TestCommandId.DebugLastRun : TestCommandId.ReRunLastRun,
@@ -188,11 +186,10 @@ export class TestResultsViewContent extends Disposable {
 	private messageContainer!: HTMLElement;
 	private contentProviders!: IPeekOutputRenderer[];
 	private contentProvidersUpdateLimiter = this._register(new Limiter(1));
-	private isTreeLeft = false; // Track layout setting
+	private isTreeLeft = false;
 
 	public current?: InspectSubject;
 
-	/** Fired when a tree item is selected. Populated only on .fillBody() */
 	public onDidRequestReveal!: Event<InspectSubject>;
 
 	public readonly onClose = this.onCloseEmitter.event;
@@ -215,11 +212,11 @@ export class TestResultsViewContent extends Disposable {
 	}
 
 	private get diffViewIndex() {
-		return this.isTreeLeft ? 1 : 0; // Content view index
+		return this.isTreeLeft ? 1 : 0;
 	}
 
 	private get historyViewIndex() {
-		return this.isTreeLeft ? 0 : 1; // Tree view index
+		return this.isTreeLeft ? 0 : 1;
 	}
 
 	constructor(
@@ -294,7 +291,6 @@ export class TestResultsViewContent extends Disposable {
 
 		this.onDidRequestReveal = tree.onDidRequestReview;
 
-		// Add views in the correct order based on layout setting
 		const stackView = {
 			onDidChange: Event.None,
 			element: this.stackContainer,
@@ -328,7 +324,6 @@ export class TestResultsViewContent extends Disposable {
 			this.swapViews();
 		}
 
-		// Configure visibility for the tree view
 		this.splitView.setViewVisible(this.historyViewIndex, historyVisible.value);
 		this._register(historyVisible.onDidChange(visible => {
 			this.splitView.setViewVisible(this.historyViewIndex, visible);
@@ -339,10 +334,6 @@ export class TestResultsViewContent extends Disposable {
 		}
 	}
 
-	/**
-	 * Shows a message in-place without showing or changing the peek location.
-	 * This is mostly used if peeking a message without a location.
-	 */
 	public reveal(opts: {
 		subject: InspectSubject;
 		preserveFocus: boolean;
@@ -374,9 +365,6 @@ export class TestResultsViewContent extends Disposable {
 		))]);
 	}
 
-	/**
-	 * Collapses all displayed stack frames.
-	 */
 	public collapseStack() {
 		this.callStackWidget.collapseAll();
 	}
@@ -390,9 +378,6 @@ export class TestResultsViewContent extends Disposable {
 			return frames;
 		}
 
-		// If the test extension just sets the top frame as the same location
-		// where the message is displayed, in the case of a peek in an editor,
-		// don't show it again because it's just a duplicate
 		const topFrame = frames[0];
 		const peekLocation = subject.revealLocation;
 		const isTopFrameSame = peekLocation && topFrame.position && topFrame.uri
@@ -404,8 +389,6 @@ export class TestResultsViewContent extends Disposable {
 	}
 
 	private async prepareTopFrame(subject: InspectSubject, callFrames: ITestMessageStackFrame[]) {
-		// ensure the messageContainer is in the DOM so renderers can calculate the
-		// dimensions before it's rendered in the list.
 		this.messageContainer.style.visibility = 'hidden';
 		this.stackContainer.appendChild(this.messageContainer);
 
@@ -528,7 +511,6 @@ class FollowupActionWidget extends Disposable {
 		const cts = this.visibleStore.add(new CancellationTokenSource());
 		const start = Date.now();
 
-		// Wait for completion otherwise results will not be available to the ext host:
 		if (subject.result instanceof LiveTestResult && !subject.result.completedAt) {
 			await new Promise(r => Event.once((subject.result as LiveTestResult).onComplete)(r));
 		}

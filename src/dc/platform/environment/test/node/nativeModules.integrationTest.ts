@@ -13,7 +13,7 @@ function testErrorMessage(module: string): string {
 
 flakySuite('Native Modules (all platforms)', () => {
 
-	(isMacintosh ? test.skip : test)('kerberos', async () => { // Somehow fails on macOS ARM?
+	(isMacintosh ? test.skip : test)('kerberos', async () => {
 		const { default: kerberos } = await import('kerberos');
 		assert.ok(typeof kerberos.initializeClient === 'function', testErrorMessage('kerberos'));
 	});
@@ -113,7 +113,6 @@ flakySuite('Native Modules (all platforms)', () => {
 
 	test('@vscode/proxy-agent', async () => {
 		const proxyAgent = await import('@vscode/proxy-agent');
-		// This call will load `@vscode/proxy-agent` which is a native module that we want to test on Windows
 		const windowsCerts = await proxyAgent.loadSystemCertificates({
 			loadSystemCertificatesFromNode: () => undefined,
 			log: {

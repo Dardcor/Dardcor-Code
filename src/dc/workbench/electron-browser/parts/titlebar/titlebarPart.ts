@@ -32,7 +32,6 @@ import { IsWindowAlwaysOnTopContext } from '../../../common/contextkeys.js';
 
 export class NativeTitlebarPart extends BrowserTitlebarPart {
 
-	//#region IView
 
 	override get minimumHeight(): number {
 		if (!isMacintosh) {
@@ -52,7 +51,6 @@ export class NativeTitlebarPart extends BrowserTitlebarPart {
 		return 28;
 	}
 
-	//#endregion
 
 	private maxRestoreControl: HTMLElement | undefined;
 	private resizer: HTMLElement | undefined;
@@ -101,10 +99,8 @@ export class NativeTitlebarPart extends BrowserTitlebarPart {
 
 	protected override onMenubarVisibilityChanged(visible: boolean): void {
 
-		// Hide title when toggling menu bar
 		if ((isWindows || isLinux) && this.currentMenubarVisibility === 'toggle' && visible) {
 
-			// Hack to fix issue #52522 with layered webkit-app-region elements appearing under cursor
 			if (this.dragRegion) {
 				hide(this.dragRegion);
 				setTimeout(() => show(this.dragRegion!), 50);
@@ -160,12 +156,10 @@ export class NativeTitlebarPart extends BrowserTitlebarPart {
 		const targetWindow = getWindow(parent);
 		const targetWindowId = getWindowId(targetWindow);
 
-		// Native menu controller
 		if (isMacintosh || hasNativeMenu(this.configurationService)) {
 			this._register(this.instantiationService.createInstance(NativeMenubarControl));
 		}
 
-		// App Icon (Native Windows/Linux)
 		if (this.appIcon) {
 			this.onUpdateAppIconDragBehavior();
 
@@ -174,20 +168,17 @@ export class NativeTitlebarPart extends BrowserTitlebarPart {
 			})));
 		}
 
-		// Custom Window Controls (Native Windows/Linux)
 		if (
-			!hasNativeTitlebar(this.configurationService) &&		// not for native title bars
-			!useWindowControlsOverlay(this.configurationService) &&	// not when controls are natively drawn
+			!hasNativeTitlebar(this.configurationService) &&
+			!useWindowControlsOverlay(this.configurationService) &&
 			this.windowControlsContainer
 		) {
 
-			// Minimize
 			const minimizeIcon = append(this.windowControlsContainer, $('div.window-icon.window-minimize' + ThemeIcon.asCSSSelector(Codicon.chromeMinimize)));
 			this._register(addDisposableListener(minimizeIcon, EventType.CLICK, () => {
 				this.nativeHostService.minimizeWindow({ targetWindowId });
 			}));
 
-			// Restore
 			this.maxRestoreControl = append(this.windowControlsContainer, $('div.window-icon.window-max-restore'));
 			this._register(addDisposableListener(this.maxRestoreControl, EventType.CLICK, async () => {
 				const maximized = await this.nativeHostService.isMaximized({ targetWindowId });
@@ -198,13 +189,11 @@ export class NativeTitlebarPart extends BrowserTitlebarPart {
 				return this.nativeHostService.maximizeWindow({ targetWindowId });
 			}));
 
-			// Close
 			const closeIcon = append(this.windowControlsContainer, $('div.window-icon.window-close' + ThemeIcon.asCSSSelector(Codicon.chromeClose)));
 			this._register(addDisposableListener(closeIcon, EventType.CLICK, () => {
 				this.nativeHostService.closeWindow({ targetWindowId });
 			}));
 
-			// Resizer
 			this.resizer = append(this.rootContainer, $('div.resizer'));
 			this._register(Event.runAndSubscribe(this.layoutService.onDidChangeWindowMaximized, ({ windowId, maximized }) => {
 				if (windowId === targetWindowId) {
@@ -213,8 +202,6 @@ export class NativeTitlebarPart extends BrowserTitlebarPart {
 			}, { windowId: targetWindowId, maximized: this.layoutService.isWindowMaximized(targetWindow) }));
 		}
 
-		// Window System Context Menu
-		// See https://github.com/electron/electron/issues/24893
 		if (isWindows && !hasNativeTitlebar(this.configurationService)) {
 			this._register(this.nativeHostService.onDidTriggerWindowSystemContextMenu(({ windowId, x, y }) => {
 				if (targetWindowId !== windowId) {
@@ -252,7 +239,6 @@ export class NativeTitlebarPart extends BrowserTitlebarPart {
 	override updateStyles(): void {
 		super.updateStyles();
 
-		// Part container
 		if (this.element) {
 			if (useWindowControlsOverlay(this.configurationService)) {
 				if (
@@ -341,11 +327,6 @@ export class AuxiliaryNativeTitlebarPart extends NativeTitlebarPart implements I
 
 	override get preventZoom(): boolean {
 
-		// Prevent zooming behavior if any of the following conditions are met:
-		// 1. Shrinking below the window control size (zoom < 1)
-		// 2. No custom items are present in the main title bar
-		// The auxiliary title bar never contains any zoomable items itself,
-		// but we want to match the behavior of the main title bar.
 
 		return getZoomFactor(getWindow(this.element)) < 1 || !this.mainTitlebar.hasZoomableElements;
 	}

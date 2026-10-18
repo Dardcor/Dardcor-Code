@@ -13,7 +13,6 @@ import { allKnownQueries } from '../../node/treeSitterQueries';
 import { insertRangeMarkers } from './markers';
 
 suite('getDocumentableNodeIfOnIdentifier', () => {
-	// TODO@ulugbekna: rewrite all tests using insertRangeMarkers for better visualization
 
 	test('should return undefined for range not containing an identifier', async () => {
 		const result = await _getDocumentableNodeIfOnIdentifier(

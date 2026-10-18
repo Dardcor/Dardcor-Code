@@ -4,9 +4,6 @@ export const existingUsersandGroups: Fig.Generator = {
 		const nFlagUsed = tokens.find((token) => /^-.*n.*/.test(token));
 
 		let shell: string;
-		// Using `:` as a trigger, check to see if a colon is added
-		// in the current command. If it is, get the system groups
-		// else retrieve the list of system users
 		if (colonAdded) {
 			const { stdout } = await executeShellCommand({
 				command: "bash",
@@ -27,15 +24,9 @@ export const existingUsersandGroups: Fig.Generator = {
 		return (
 			shell
 				.split("\n")
-				// The shell command retrieves a table
-				// with rows that look like `user uid`
-				// so each row is split again to get the
-				// user/group and uid/gid
 				.map((line) => line.split(" "))
 				.map((value) => {
 					return {
-						// If the user has entered the option n
-						// suggest the uid/gid instead of user/group
 						name: nFlagUsed ? value[1] : value[0],
 						description: colonAdded
 							? `Group - ${nFlagUsed ? value[0] : `gid: ${value[1]}`}`

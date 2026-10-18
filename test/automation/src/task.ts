@@ -34,9 +34,6 @@ export class Task {
 	}
 
 	async assertTasks(filter: string, expected: ITaskConfigurationProperties[], type: 'run' | 'configure') {
-		// TODO https://github.com/microsoft/vscode/issues/242535
-		// Artificial delay before running non hidden tasks
-		// so that entries from configureTask show up in the quick access.
 		await wait(1000);
 		type === 'run' ? await this.quickaccess.runCommand('workbench.action.tasks.runTask', { keepOpen: true }) : await this.quickaccess.runCommand('workbench.action.tasks.configureTask', { keepOpen: true });
 		if (expected.length === 0) {
@@ -44,9 +41,7 @@ export class Task {
 		}
 		if (expected.length > 0 && !expected[0].hide) {
 			await this.quickinput.waitForQuickInputElements(e => e.length > 1 && e.some(label => label.trim() === filter.trim()));
-			// select the expected task
 			await this.quickinput.selectQuickInputElement(0, true);
-			// Continue without scanning the output
 			await this.quickinput.selectQuickInputElement(0);
 			if (expected[0].icon) {
 				await this.terminal.assertSingleTab({ color: expected[0].icon.color, icon: expected[0].icon.id || 'tools' });
@@ -60,13 +55,12 @@ export class Task {
 		await this.quickinput.selectQuickInputElement(0);
 		await this.quickaccess.runCommand('editor.action.selectAll');
 		await this.code.dispatchKeybinding('Delete', async () => {
-			// TODO https://github.com/microsoft/vscode/issues/242535
 			await wait(100);
 		});
 		const taskStringLines: string[] = [
-			'{', // Brackets auto close
+			'{',
 			'"version": "2.0.0",',
-			'"tasks": [{' // Brackets auto close
+			'"tasks": [{'
 		];
 		for (let [key, value] of Object.entries(properties)) {
 			if (typeof value === 'object') {
@@ -84,7 +78,6 @@ export class Task {
 			await this.editor.waitForTypeInEditor('tasks.json', `${line}`);
 			if (i !== taskStringLines.length - 1) {
 				await this.code.dispatchKeybinding('Enter', async () => {
-					// TODO https://github.com/microsoft/vscode/issues/242535
 					await wait(100);
 				});
 			}

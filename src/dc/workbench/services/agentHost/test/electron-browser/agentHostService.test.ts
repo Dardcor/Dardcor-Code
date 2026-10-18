@@ -104,8 +104,6 @@ suite('AgentHostPrewarmContribution', () => {
 		instantiationService.stub(ILogService, new NullLogService());
 		instantiationService.stub(IWorkbenchEnvironmentService, { remoteAuthority });
 
-		// Register the contribution before the emitters so its listeners are
-		// disposed before the emitters they are attached to.
 		const contribution = disposables.add(instantiationService.createInstance(AgentHostPrewarmContribution));
 		disposables.add(onAgentHostStart);
 		disposables.add(onDidRefetchAssignments);

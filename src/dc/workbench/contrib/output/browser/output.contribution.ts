@@ -48,27 +48,22 @@ import { OutputAccessibilityHelp } from './outputAccessibilityHelp.js';
 
 const IMPORTED_LOG_ID_PREFIX = 'importedLog.';
 
-// Register Service
 registerSingleton(IOutputService, OutputService, InstantiationType.Delayed);
 
-// Register Accessibility Help
 AccessibleViewRegistry.register(new OutputAccessibilityHelp());
 
-// Register Output Mode
 ModesRegistry.registerLanguage({
 	id: OUTPUT_MODE_ID,
 	extensions: [],
 	mimetypes: [OUTPUT_MIME]
 });
 
-// Register Log Output Mode
 ModesRegistry.registerLanguage({
 	id: LOG_MODE_ID,
 	extensions: [],
 	mimetypes: [LOG_MIME]
 });
 
-// register output container
 const outputViewIcon = registerIcon('output-view-icon', Codicon.output, nls.localize('outputViewIcon', 'View icon of the output view.'));
 const VIEW_CONTAINER: ViewContainer = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry).registerViewContainer({
 	id: OUTPUT_VIEW_ID,
@@ -815,7 +810,6 @@ class OutputContribution extends Disposable implements IWorkbenchContribution {
 				if (result?.length) {
 					const channelName = basename(result[0]);
 					const channelId = `${IMPORTED_LOG_ID_PREFIX}${Date.now()}`;
-					// Register and show the channel
 					Registry.as<IOutputChannelRegistry>(Extensions.OutputChannels).registerChannel({
 						id: channelId,
 						label: channelName,

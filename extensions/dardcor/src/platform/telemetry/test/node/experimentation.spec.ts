@@ -60,7 +60,6 @@ class MockTASExperimentationService implements ITASExperimentationService {
 			return this._initializePromise;
 		}
 
-		// Resolve after 100ms to simulate async initialization
 		this._initializePromise = new Promise<void>((resolve) => {
 			setTimeout(() => {
 				this._initialized = true;
@@ -76,7 +75,6 @@ class MockTASExperimentationService implements ITASExperimentationService {
 			return this._initialFetch;
 		}
 
-		// Resolve after 100ms to simulate async fetch
 		this._initialFetch = new Promise<void>((resolve) => {
 			setTimeout(() => {
 				this._fetchedTreatments = true;
@@ -108,21 +106,18 @@ class MockTASExperimentationService implements ITASExperimentationService {
 		const org = this.userInfoStore.internalOrg;
 		const sku = this.userInfoStore.sku;
 
-		// Track requests for testing
 		this.treatmentRequests.push({ configId, name, org, sku });
 
 		return toExpectedTreatment(name, org, sku) as T | undefined;
 	}
 
 	getTreatmentVariableAsync<T extends boolean | number | string>(configId: string, name: string, checkCache?: boolean): Promise<T | undefined> {
-		// Track refresh calls
 		if (configId === 'vscode' && name === 'refresh') {
 			this.refreshCallCount++;
 		}
 		return Promise.resolve(this.getTreatmentVariable(configId, name));
 	}
 
-	// Test helper methods
 	reset(): void {
 		this.refreshCallCount = 0;
 		this.treatmentRequests = [];
@@ -153,9 +148,7 @@ describe('ExP Service Tests', () => {
 	});
 
 	beforeEach(() => {
-		// Reset the mock service before each test
 		expService.mockTasService.reset();
-		// Clear any existing tokens
 		dardcorTokenService.dardcorToken = undefined;
 	});
 
@@ -175,7 +168,6 @@ describe('ExP Service Tests', () => {
 
 		let treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 
-		// Sign in as GitHub with Pro SKU
 		dardcorTokenService.dardcorToken = GitHubProToken;
 		await treatmentsChangePromise;
 
@@ -185,7 +177,6 @@ describe('ExP Service Tests', () => {
 
 		treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 
-		// Sign in as GitHub and Microsoft with Enterprise SKU
 		dardcorTokenService.dardcorToken = GitHubAndMicrosoftEnterpriseToken;
 		await treatmentsChangePromise;
 
@@ -195,7 +186,6 @@ describe('ExP Service Tests', () => {
 
 		treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 
-		// Sign in as Microsoft with Enterprise SKU
 		dardcorTokenService.dardcorToken = MicrosoftEnterpriseToken;
 		await treatmentsChangePromise;
 
@@ -205,7 +195,6 @@ describe('ExP Service Tests', () => {
 
 		treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 
-		// Sign in as NoOrg with Free SKU
 		dardcorTokenService.dardcorToken = NoOrgFreeToken;
 		await treatmentsChangePromise;
 
@@ -215,7 +204,6 @@ describe('ExP Service Tests', () => {
 
 		treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 
-		// Sign out
 		dardcorTokenService.dardcorToken = undefined;
 		await treatmentsChangePromise;
 
@@ -227,15 +215,12 @@ describe('ExP Service Tests', () => {
 	it('should trigger treatments refresh when user info changes', async () => {
 		await expService.hasTreatments();
 
-		// Reset mock to track refresh calls
 		expService.mockTasService.reset();
 
-		// Change token should trigger refresh
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = GitHubProToken;
 		await treatmentsChangePromise;
 
-		// Verify refresh was called
 		expect(expService.mockTasService.refreshCallCount).toBe(1);
 	});
 
@@ -244,15 +229,12 @@ describe('ExP Service Tests', () => {
 		await extensionContext.globalState.update(UserInfoStore.INTERNAL_ORG_STORAGE_KEY, 'github');
 		await extensionContext.globalState.update(UserInfoStore.SKU_STORAGE_KEY, 'pro');
 
-		// Create new service instance to test initialization
 		const newExpService = accessor.get(IInstantiationService).createInstance(TestExperimentationService);
 		await newExpService.hasTreatments();
 
-		// Should use cached values initially
 		const treatment = newExpService.getTreatmentVariable<string>('test');
 		expect(treatment).toBe(toExpectedTreatment('test', 'github', 'pro'));
 
-		// Clean up
 		await extensionContext.globalState.update(UserInfoStore.INTERNAL_ORG_STORAGE_KEY, undefined);
 		await extensionContext.globalState.update(UserInfoStore.SKU_STORAGE_KEY, undefined);
 	});
@@ -260,20 +242,16 @@ describe('ExP Service Tests', () => {
 	it('should handle multiple treatment variables', async () => {
 		await expService.hasTreatments();
 
-		// Set up promise BEFORE token change
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = GitHubProToken;
 		await treatmentsChangePromise;
 
-		// Test string treatment
 		const stringTreatment = expService.getTreatmentVariable<string>('stringVar');
 		expect(stringTreatment).toBe(toExpectedTreatment('stringVar', 'github', 'pro'));
 
-		// Test different config and variable names
 		const anotherTreatment = expService.getTreatmentVariable<string>('featureFlag');
 		expect(anotherTreatment).toBe(toExpectedTreatment('featureFlag', 'github', 'pro'));
 
-		// Verify all requests were tracked
 		const requests = expService.mockTasService.treatmentRequests;
 		expect(requests.some(r => r.name === 'stringVar')).toBe(true);
 		expect(requests.some(r => r.name === 'featureFlag')).toBe(true);
@@ -282,33 +260,27 @@ describe('ExP Service Tests', () => {
 	it('should not fire events when relevant user info does not change', async () => {
 		await expService.hasTreatments();
 
-		// Query a treatment to register it for change detection
 		expService.getTreatmentVariable<string>('testTreatment');
 
-		// Set initial token with promise BEFORE token change
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = GitHubProToken;
 		await treatmentsChangePromise;
 
-		// Reset mock
 		expService.mockTasService.reset();
 
 		let eventFired = false;
 		const eventHandler = () => { eventFired = true; };
 		expService.onDidTreatmentsChange(eventHandler);
 
-		// We need a separate token just to make sure we get passed the dardcor token change guard
 		const newGitHubProToken = new CopilotToken(createTestExtendedTokenInfo({
 			token: 'github-test', username: 'fake',
 			sku: 'pro', dardcor_plan: 'unknown',
 			organization_list: ['4535c7beffc844b46bb1ed4aa04d759a']
 		}));
-		dardcorTokenService.dardcorToken = newGitHubProToken; // Same token
+		dardcorTokenService.dardcorToken = newGitHubProToken;
 
-		// Wait a bit to see if event fires
 		await new Promise(resolve => setTimeout(resolve, 50));
 
-		// Event should not have fired since user info didn't change
 		expect(eventFired).toBe(false);
 		expect(expService.mockTasService.refreshCallCount).toBe(0);
 	});
@@ -358,14 +330,11 @@ describe('ExP Service Tests', () => {
 	});
 
 	it('should return undefined before initialization completes', async () => {
-		// Create a fresh service that hasn't been initialized yet
 		const newExpService = accessor.get(IInstantiationService).createInstance(TestExperimentationService);
 
-		// Should return undefined before initialization
 		const treatmentBeforeInit = newExpService.getTreatmentVariable<string>('test');
 		expect(treatmentBeforeInit).toBeUndefined();
 
-		// Initialize and verify it works
 		await newExpService.hasTreatments();
 		const treatmentAfterInit = newExpService.getTreatmentVariable<string>('test');
 		expect(treatmentAfterInit).toBeDefined();
@@ -374,11 +343,9 @@ describe('ExP Service Tests', () => {
 	it('should persist user info to global state', async () => {
 		await expService.hasTreatments();
 
-		// Clear any existing cached values
 		await extensionContext.globalState.update(UserInfoStore.INTERNAL_ORG_STORAGE_KEY, undefined);
 		await extensionContext.globalState.update(UserInfoStore.SKU_STORAGE_KEY, undefined);
 
-		// Set a token and wait for update
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = GitHubProToken;
 		await treatmentsChangePromise;
@@ -393,45 +360,34 @@ describe('ExP Service Tests', () => {
 	it('should only include previously queried treatments in change events', async () => {
 		await expService.hasTreatments();
 
-		// Query one treatment before sign-in
 		const queriedTreatment = expService.getTreatmentVariable<string>('queriedTreatment');
 		expect(queriedTreatment).toBe(toExpectedTreatment('queriedTreatment', undefined, undefined));
 
-		// Don't query another treatment (notQueriedTreatment)
 
-		// Set up promise for treatment changes
 		let treatmentChangePromise = GetNewTreatmentsChangedPromise();
 
-		// Sign in - this should trigger treatment changes
 		dardcorTokenService.dardcorToken = GitHubProToken;
 		let treatmentChangeEvent = await treatmentChangePromise;
 
-		// Verify only the previously queried treatment is in the affected list
 		expect(treatmentChangeEvent).toBeDefined();
 		expect(treatmentChangeEvent.affectedTreatmentVariables).toContain('queriedTreatment');
 		expect(treatmentChangeEvent.affectedTreatmentVariables).not.toContain('notQueriedTreatment');
 
-		// Now query the treatment that wasn't queried before to verify it has the new value
 		const notQueriedTreatment = expService.getTreatmentVariable<string>('notQueriedTreatment');
 		expect(notQueriedTreatment).toBe(toExpectedTreatment('notQueriedTreatment', 'github', 'pro'));
 
-		// And verify the previously queried treatment has the updated value
 		const updatedQueriedTreatment = expService.getTreatmentVariable<string>('queriedTreatment');
 		expect(updatedQueriedTreatment).toBe(toExpectedTreatment('queriedTreatment', 'github', 'pro'));
 
-		// Set up promise for treatment changes
 		treatmentChangePromise = GetNewTreatmentsChangedPromise();
 
-		// Sign out - this should trigger another treatment change event
 		dardcorTokenService.dardcorToken = undefined;
 		treatmentChangeEvent = await treatmentChangePromise;
 
-		// Verify both queried treatments are in the affected list now
 		expect(treatmentChangeEvent).toBeDefined();
 		expect(treatmentChangeEvent.affectedTreatmentVariables).toContain('queriedTreatment');
 		expect(treatmentChangeEvent.affectedTreatmentVariables).toContain('notQueriedTreatment');
 
-		// Verify both treatments have the signed-out value
 		const signedOutQueriedTreatment = expService.getTreatmentVariable<string>('queriedTreatment');
 		expect(signedOutQueriedTreatment).toBe(toExpectedTreatment('queriedTreatment', undefined, undefined));
 		const signedOutNotQueriedTreatment = expService.getTreatmentVariable<string>('notQueriedTreatment');
@@ -441,12 +397,10 @@ describe('ExP Service Tests', () => {
 	it('should detect VS Code team member correctly', async () => {
 		await expService.hasTreatments();
 
-		// Sign in as VS Code team member
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = VscodeTeamMemberToken;
 		await treatmentsChangePromise;
 
-		// Verify isVscodeTeamMember is set in UserInfoStore
 		const userInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 		expect(userInfoStore.isVscodeTeamMember).toBe(true);
 	});
@@ -454,12 +408,10 @@ describe('ExP Service Tests', () => {
 	it('should detect non-VS Code team member correctly', async () => {
 		await expService.hasTreatments();
 
-		// Sign in as non VS Code team member
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = NonVscodeTeamMemberToken;
 		await treatmentsChangePromise;
 
-		// Verify isVscodeTeamMember is set correctly in UserInfoStore
 		const userInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 		expect(userInfoStore.isVscodeTeamMember).toBe(false);
 	});
@@ -467,10 +419,8 @@ describe('ExP Service Tests', () => {
 	it('should persist VS Code team member status to global state', async () => {
 		await expService.hasTreatments();
 
-		// Clear any existing cached values
 		await extensionContext.globalState.update(UserInfoStore.IS_VSCODE_TEAM_MEMBER_STORAGE_KEY, undefined);
 
-		// Set a token and wait for update
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = VscodeTeamMemberToken;
 		await treatmentsChangePromise;
@@ -484,38 +434,31 @@ describe('ExP Service Tests', () => {
 		// Simulate cached value in global state
 		await extensionContext.globalState.update(UserInfoStore.IS_VSCODE_TEAM_MEMBER_STORAGE_KEY, true);
 
-		// Create new UserInfoStore instance to test initialization
 		const newUserInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 
-		// Should use cached value initially (when no token is present)
 		expect(newUserInfoStore.isVscodeTeamMember).toBe(true);
 
-		// Clean up
 		await extensionContext.globalState.update(UserInfoStore.IS_VSCODE_TEAM_MEMBER_STORAGE_KEY, undefined);
 	});
 
 	it('should track organization list for targeting', async () => {
 		await expService.hasTreatments();
 
-		// Set a token with organizations
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = GitHubAndMicrosoftEnterpriseToken;
 		await treatmentsChangePromise;
 
-		// Verify organization list is correctly tracked
 		const userInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 		expect(userInfoStore.organizationList).toBeDefined();
-		expect(userInfoStore.organizationList).toContain('4535c7beffc844b46bb1ed4aa04d759a'); // GitHub org
-		expect(userInfoStore.organizationList).toContain('a5db0bcaae94032fe715fb34a5e4bce2'); // Microsoft org
+		expect(userInfoStore.organizationList).toContain('4535c7beffc844b46bb1ed4aa04d759a');
+		expect(userInfoStore.organizationList).toContain('a5db0bcaae94032fe715fb34a5e4bce2');
 	});
 
 	it('should persist organization list to global state', async () => {
 		await expService.hasTreatments();
 
-		// Clear any existing cached values
 		await extensionContext.globalState.update(UserInfoStore.ORGANIZATION_LIST_STORAGE_KEY, undefined);
 
-		// Set a token and wait for update
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = GitHubAndMicrosoftEnterpriseToken;
 		await treatmentsChangePromise;
@@ -532,25 +475,20 @@ describe('ExP Service Tests', () => {
 		const testOrgList = ['org1', 'org2', 'org3'];
 		await extensionContext.globalState.update(UserInfoStore.ORGANIZATION_LIST_STORAGE_KEY, testOrgList);
 
-		// Create new UserInfoStore instance to test initialization
 		const newUserInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 
-		// Should use cached value initially (when no token is present)
 		expect(newUserInfoStore.organizationList).toEqual(testOrgList);
 
-		// Clean up
 		await extensionContext.globalState.update(UserInfoStore.ORGANIZATION_LIST_STORAGE_KEY, undefined);
 	});
 
 	it('should handle empty organization list', async () => {
 		await expService.hasTreatments();
 
-		// Set a token with no organizations
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = NoOrgFreeToken;
 		await treatmentsChangePromise;
 
-		// Verify organization list is empty
 		const userInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 		expect(userInfoStore.organizationList).toBeDefined();
 		expect(userInfoStore.organizationList?.length).toBe(0);
@@ -559,24 +497,18 @@ describe('ExP Service Tests', () => {
 	it('should trigger treatment refresh when VS Code team membership changes', async () => {
 		await expService.hasTreatments();
 
-		// Start as signed out
 		dardcorTokenService.dardcorToken = undefined;
 
-		// Wait a bit for any pending state
 		await new Promise(resolve => setTimeout(resolve, 50));
 
-		// Reset mock to track refresh calls
 		expService.mockTasService.reset();
 
-		// Sign in as VS Code team member - this will trigger a user info change (from undefined to a value)
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = VscodeTeamMemberToken;
 		await treatmentsChangePromise;
 
-		// Verify refresh was called
 		expect(expService.mockTasService.refreshCallCount).toBe(1);
 
-		// Verify the UserInfoStore has the correct value
 		const userInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 		expect(userInfoStore.isVscodeTeamMember).toBe(true);
 	});
@@ -584,12 +516,10 @@ describe('ExP Service Tests', () => {
 	it('should detect sn token flag correctly', async () => {
 		await expService.hasTreatments();
 
-		// Sign in with sn=1 token
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = SnEnabledToken;
 		await treatmentsChangePromise;
 
-		// Verify isSn is set in UserInfoStore
 		const userInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 		expect(userInfoStore.isSn).toBe(true);
 	});
@@ -597,12 +527,10 @@ describe('ExP Service Tests', () => {
 	it('should detect sn token flag as false when explicitly disabled', async () => {
 		await expService.hasTreatments();
 
-		// Sign in with sn=0 token
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = SnDisabledToken;
 		await treatmentsChangePromise;
 
-		// Verify isSn is false in UserInfoStore
 		const userInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 		expect(userInfoStore.isSn).toBe(false);
 	});
@@ -610,10 +538,8 @@ describe('ExP Service Tests', () => {
 	it('should persist sn flag to global state', async () => {
 		await expService.hasTreatments();
 
-		// Clear any existing cached values
 		await extensionContext.globalState.update(UserInfoStore.IS_SN_STORAGE_KEY, undefined);
 
-		// Set a token and wait for update
 		const treatmentsChangePromise = GetNewTreatmentsChangedPromise();
 		dardcorTokenService.dardcorToken = SnEnabledToken;
 		await treatmentsChangePromise;
@@ -627,13 +553,10 @@ describe('ExP Service Tests', () => {
 		// Simulate cached value in global state
 		await extensionContext.globalState.update(UserInfoStore.IS_SN_STORAGE_KEY, true);
 
-		// Create new UserInfoStore instance to test initialization
 		const newUserInfoStore = new UserInfoStore(extensionContext, dardcorTokenService);
 
-		// Should use cached value initially (when no token is present)
 		expect(newUserInfoStore.isSn).toBe(true);
 
-		// Clean up
 		await extensionContext.globalState.update(UserInfoStore.IS_SN_STORAGE_KEY, undefined);
 	});
 });

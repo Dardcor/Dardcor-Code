@@ -15,7 +15,6 @@ import { IWorkbenchService } from '../../workbench/common/workbenchService';
 import { distance, Embedding, EmbeddingType, EmbeddingVector, IEmbeddingsComputer } from './embeddingsComputer';
 import { BaseEmbeddingsIndex, EmbeddingCacheType, IEmbeddingsCache, LocalEmbeddingsCache, RemoteCacheType, RemoteEmbeddingsExtensionCache } from './embeddingsIndex';
 
-// A command entry in the embedding index
 export type CommandListItem = {
 	key: string;
 	embedding?: EmbeddingVector;
@@ -24,7 +23,6 @@ export type CommandListItem = {
 	originalLabel: string;
 };
 
-// A setting entry in the embedding index
 export type SettingListItem = {
 	key: string;
 	type: string;
@@ -56,8 +54,6 @@ export function settingItemToContext(item: SettingListItem): string {
 	return result;
 }
 
-// Lifted from proposed API
-// TODO @lramos15 where should things like this go?
 enum RelatedInformationType {
 	SymbolInformation = 1,
 	CommandInformation = 2,
@@ -87,23 +83,14 @@ abstract class RelatedInformationProviderEmbeddingsIndex<V extends { key: string
 		this.isIndexLoaded = false;
 	}
 
-	/**
-	 * Returns related information for the given query
-	 * @param query The base string which will be compared against indexed items
-	 * @param types The types of related information to return
-	 * @param token A cancellation token to cancel the request
-	 * @returns An array of RelatedInformationResult objects
-	 */
 	async provideRelatedInformation(query: string, token: CancellationToken): Promise<RelatedInformationResult[]> {
 		const similarityStart = Date.now();
 		if (!this.isIndexLoaded) {
-			// Queue off the calculation, but don't await as the user doesn't need to wait for it
 			this.calculateEmbeddings();
 			this._logService.debug(`Related Information: Index not loaded yet triggering background calculation, returning ${Date.now() - similarityStart}ms`);
 			return [];
 		}
 		if (token.isCancellationRequested) {
-			// return an array of 0s the same length as comparisons
 			this._logService.debug(`Related Information: Request cancelled, returning ${Date.now() - similarityStart}ms`);
 			return [];
 		}
@@ -111,7 +98,6 @@ abstract class RelatedInformationProviderEmbeddingsIndex<V extends { key: string
 		const embeddingResult = await this.embeddingsComputer.computeEmbeddings(EmbeddingType.text3small_512, [query], {}, new TelemetryCorrelationId('RelatedInformationProviderEmbeddingsIndex::provideRelatedInformation'), token);
 		this._logService.debug(`Related Information: Remote similarly request took ${Date.now() - startOfEmbeddingRequest}ms`);
 		if (token.isCancellationRequested) {
-			// return an array of 0s the same length as comparisons
 			this._logService.debug(`Related Information: Request cancelled or no embeddings computed, returning ${Date.now() - similarityStart}ms`);
 			return [];
 		}
@@ -136,7 +122,6 @@ abstract class RelatedInformationProviderEmbeddingsIndex<V extends { key: string
 
 		this.logService.debug(`Related Information: Successfully Calculated, returning ${Date.now() - similarityStart}ms`);
 
-		// Only log non-cancelled settings related information queries
 		if (this.relatedInformationConfig.type === RelatedInformationType.SettingInformation) {
 			this.telemetryService.sendInternalMSFTTelemetryEvent('relatedInformationSettings', { query });
 		}
@@ -167,7 +152,7 @@ class CommandIdIndex extends RelatedInformationProviderEmbeddingsIndex<CommandLi
 			embeddingscache,
 			{
 				type: RelatedInformationType.CommandInformation,
-				threshold: /* min threshold of 0 for text-3-small*/ 0,
+				threshold: 0,
 				maxResults: 100,
 			},
 			logService,
@@ -177,7 +162,6 @@ class CommandIdIndex extends RelatedInformationProviderEmbeddingsIndex<CommandLi
 
 	protected override async getLatestItems(): Promise<CommandListItem[]> {
 		const allCommands = await this.workbenchService.getAllCommands();
-		// This isn't in the command palette, but it's a useful command to suggest
 		allCommands.push({
 			label: 'Extensions: Search the marketplace for extensions',
 			command: 'workbench.extensions.search',
@@ -228,7 +212,7 @@ class SettingsIndex extends RelatedInformationProviderEmbeddingsIndex<SettingLis
 			embeddingsCache,
 			{
 				type: RelatedInformationType.SettingInformation,
-				threshold: /* min threshold of 0 for text-3-small*/ 0,
+				threshold: 0,
 				maxResults: 100,
 			},
 			logService,
@@ -276,10 +260,6 @@ export interface ICombinedEmbeddingIndex {
 
 export const ICombinedEmbeddingIndex = createServiceIdentifier<ICombinedEmbeddingIndex>('ICombinedEmbeddingIndex');
 
-/**
- * Combines the settings and command indexes into a single index. This is what is consumed externally
- * If necessary, the individual indices can be accessed
- */
 export class VSCodeCombinedIndexImpl implements ICombinedEmbeddingIndex {
 	declare readonly _serviceBrand: undefined;
 	public readonly commandIdIndex: CommandIdIndex;
@@ -289,7 +269,6 @@ export class VSCodeCombinedIndexImpl implements ICombinedEmbeddingIndex {
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IEnvService envService: IEnvService
 	) {
-		// Local embeddings cache version is locked to 1.98
 		const settingsEmbeddingsCache = useRemoteCache ?
 			instantiationService.createInstance(RemoteEmbeddingsExtensionCache, EmbeddingCacheType.GLOBAL, 'settingEmbeddings', sanitizeVSCodeVersion(envService.getEditorInfo().version), EmbeddingType.text3small_512, RemoteCacheType.Settings) :
 			instantiationService.createInstance(LocalEmbeddingsCache, EmbeddingCacheType.GLOBAL, 'settingEmbeddings', '1.98', EmbeddingType.text3small_512);

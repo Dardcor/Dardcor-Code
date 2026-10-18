@@ -31,7 +31,7 @@ import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer'
 import { BinaryFileHexdump, hexdumpIfBinary } from '../../prompts/node/panel/binaryFileHexdump';
 import { CodeBlock } from '../../prompts/node/panel/safeElements';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { getImageMimeType } from './imageToolUtils';
 import { assertFileNotContentExcluded, assertFileOkForTool, isFileExternalAndNeedsConfirmation, resolveToolInputPath } from './toolUtils';
@@ -99,14 +99,12 @@ const getParamRanges = (params: ReadFileParams, snapshot: NotebookDocumentSnapsh
 	let end: number;
 	let truncated = false;
 	if (isParamsV2(params)) {
-		// Check if offset is out of bounds before clamping
 		if (params.offset !== undefined && params.offset > snapshot.lineCount) {
 			throw new Error(`Invalid offset ${params.offset}: file only has ${snapshot.lineCount} line${snapshot.lineCount === 1 ? '' : 's'}. Line numbers are 1-indexed.`);
 		}
 		const limit = clamp(params.limit || Infinity, 1, MAX_LINES_PER_READ - 1);
 		start = clamp(params.offset ?? 1, 1, snapshot.lineCount);
 		end = clamp(start + limit, 1, snapshot.lineCount);
-		// signal truncation if we applied a limit to the lines other than what the model requested
 		truncated = limit !== params.limit && end < snapshot.lineCount;
 	} else {
 		start = clamp(params.startLine, 1, snapshot.lineCount);
@@ -120,7 +118,7 @@ const getParamRanges = (params: ReadFileParams, snapshot: NotebookDocumentSnapsh
 	return { start, end, truncated };
 };
 
-export class ReadFileTool implements ICopilotTool<ReadFileParams> {
+export class ReadFileTool implements IAgentTool<ReadFileParams> {
 	public static toolName = ToolName.ReadFile;
 	public static readonly nonDeferred = true;
 	private _promptContext: IBuildPromptContext | undefined;
@@ -150,7 +148,6 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 				throw new Error(`Cannot read image files with ${ToolName.ReadFile}. Use ${ToolName.ViewImage} instead.`);
 			}
 
-			// Handle binary files — read raw bytes and check for null bytes
 			const binary = await hexdumpIfBinary(this.fileSystemService, uri);
 			if (binary) {
 				const input = options.input;
@@ -195,8 +192,6 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 						this.instantiationService,
 						ReadFileResult,
 						{ uri, startLine: ranges.start, endLine: ranges.end, truncated: ranges.truncated, snapshot: documentSnapshot, languageModel: this._promptContext?.request?.model, useCodeFences, mode },
-						// If we are not called with tokenization options, have _some_ fake tokenizer
-						// otherwise we end up returning the entire document on every readFile.
 						options.tokenizationOptions ?? {
 							tokenBudget: 600,
 							countTokens: (t) => Promise.resolve(t.length * 3 / 4)
@@ -225,13 +220,11 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 				throw new Error(`Cannot read image files with ${ToolName.ReadFile}. Use ${ToolName.ViewImage} instead.`);
 			}
 
-			// Check if file is external (outside workspace, not open in editor, etc.)
 			const isExternal = await this.instantiationService.invokeFunction(
 				accessor => isFileExternalAndNeedsConfirmation(accessor, uri!, this._promptContext, { readOnly: true, workingDirectory: options.workingDirectory })
 			);
 
 			if (isExternal) {
-				// Still check content exclusion (dardcor ignore)
 				await this.instantiationService.invokeFunction(
 					accessor => assertFileNotContentExcluded(accessor, uri!)
 				);
@@ -240,8 +233,6 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 
 				const message = this.workspaceService.getWorkspaceFolders().length === 1 ? new MarkdownString(l10n.t`${formatUriForFileWidget(uri)} is outside of the current folder in ${formatUriForFileWidget(folderUri)}.`) : new MarkdownString(l10n.t`${formatUriForFileWidget(uri)} is outside of the current workspace in ${formatUriForFileWidget(folderUri)}.`);
 
-				// Return confirmation request for external file
-				// The folder-based "allow this session" option is provided by the core confirmation contribution
 				return {
 					invocationMessage: new MarkdownString(l10n.t`Reading ${formatUriForFileWidget(uri)}`),
 					pastTenseMessage: new MarkdownString(l10n.t`Read ${formatUriForFileWidget(uri)}`),
@@ -273,7 +264,6 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 
 		const { start, end } = getParamRanges(input, documentSnapshot);
 
-		// Refresh available extension prompt files only if reading a skill.md file (can be file or virtual URI)
 		if (extUriBiasedIgnorePathCase.basename(uri).toLowerCase() === 'skill.md') {
 			await this.customInstructionsService.refreshExtensionPromptFiles();
 		}
@@ -301,7 +291,6 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 			};
 		}
 
-		// Jump to the start of the range, don't select the whole range
 		const readLocation = new Location(uri, new Range(start - 1, 0, start - 1, 0));
 		if (this.customInstructionsService.isSkillFile(uri)) {
 			if (skillInfo) {
@@ -348,27 +337,11 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 		const fileType = skillInfo ? 'skill' : '';
 		const nameField = extensionSkillInfo ? extensionSkillInfo.skillName : skillInfo ? getCachedSha256Hash(skillInfo.skillName) : '';
 
-		/* __GDPR__
-			"readFileToolInvoked" : {
-				"owner": "roblourens",
-				"comment": "The read_file tool was invoked",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"interactionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current interaction." },
-				"toolOutcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the invocation was successful, or a failure reason" },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-				"linesRead": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of lines that were read" },
-				"truncated": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The file length was truncated" },
-				"isV2": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the tool is a v2 version" },
-				"isEntireFile": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the entire file was read with v2 params" },
-				"fileType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The type of file being read" },
-				"nameField": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The name of the agent customization. Plain text for extension sources, otherwise hashed." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('readFileToolInvoked',
 			{
 				requestId: options.chatRequestId,
 				interactionId: options.chatRequestId,
-				toolOutcome: outcome, // Props named "outcome" often get stuck in the kusto pipeline
+				toolOutcome: outcome,
 				isV2: isParamsV2(options.input) ? 'true' : 'false',
 				isEntireFile: isParamsV2(options.input) && options.input.offset === undefined && options.input.limit === undefined ? 'true' : 'false',
 				fileType,
@@ -381,8 +354,6 @@ export class ReadFileTool implements ICopilotTool<ReadFileParams> {
 			}
 		);
 
-		// Send separate skillContentRead event only for successful skill file reads.
-		// Reuses extensionSkillInfo/skillInfo already computed above.
 		if (skillInfo && documentSnapshot && uri && this.customInstructionsService.isSkillMdFile(uri)) {
 			const content = documentSnapshot instanceof TextDocumentSnapshot ? documentSnapshot.getText() : '';
 			sendSkillContentReadTelemetry(this.telemetryService, this.customInstructionsService, this.extensionsService, uri, skillInfo, content);
@@ -432,7 +403,6 @@ class ReadFileResult extends PromptElement<ReadFileResultProps> {
 	}
 
 	override async render() {
-		// Only check content exclusion (dardcor ignore) - external file confirmation was already handled in prepareInvocation
 		await this.instantiationService.invokeFunction(accessor => assertFileNotContentExcluded(accessor, this.props.uri));
 
 		const documentSnapshot = this.props.snapshot;

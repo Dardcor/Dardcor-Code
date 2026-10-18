@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// allow-any-unicode-comment-file
 
 import { localize } from '../../../../../../nls.js';
 import * as DOM from '../../../../../../base/browser/dom.js';
@@ -78,7 +77,7 @@ export class CodeCell extends Disposable {
 		const initialEditorDimension = { height: this.calculateInitEditorHeight(), width: this.viewCell.layoutInfo.editorWidth };
 		this._cellLayout = new CodeCellLayout(this._useNewApproachForEditorLayout, notebookEditor, viewCell, templateData, { debug }, initialEditorDimension);
 		this.initializeEditor(initialEditorDimension);
-		this._renderedInputCollapseState = false; // editor is always expanded initially
+		this._renderedInputCollapseState = false;
 
 		this.registerNotebookEditorListeners();
 		this.registerViewCellLayoutChange();
@@ -130,11 +129,9 @@ export class CodeCell extends Disposable {
 		}));
 
 
-		// Render Outputs
 		this.viewCell.editorHeight = initialEditorDimension.height;
 		this._outputContainerRenderer.render();
-		this._renderedOutputCollapseState = false; // the output is always rendered initially
-		// Need to do this after the intial renderOutput
+		this._renderedOutputCollapseState = false;
 		this.initialViewUpdateExpanded();
 
 		this._register(this.viewCell.onLayoutInfoRead(() => {
@@ -217,7 +214,6 @@ export class CodeCell extends Disposable {
 			if (model && this.templateData.editor) {
 				this._reigsterModelListeners(model);
 
-				// set model can trigger view update, which can lead to dispose of this cell
 				this.templateData.editor.setModel(model);
 
 				if (this._isDisposed) {
@@ -234,7 +230,7 @@ export class CodeCell extends Disposable {
 					if (
 						this.notebookEditor.getActiveCell() === this.viewCell &&
 						this.viewCell.focusMode === CellFocusMode.Editor &&
-						(this.notebookEditor.hasEditorFocus() || this.notebookEditor.getDomNode().ownerDocument.activeElement === this.notebookEditor.getDomNode().ownerDocument.body)) // Don't steal focus from other workbench parts, but if body has focus, we can take it
+						(this.notebookEditor.hasEditorFocus() || this.notebookEditor.getDomNode().ownerDocument.activeElement === this.notebookEditor.getDomNode().ownerDocument.body))
 					{
 						this.templateData.editor.focus();
 					}
@@ -293,7 +289,7 @@ export class CodeCell extends Disposable {
 		if (this._useNewApproachForEditorLayout) {
 			return;
 		}
-		const extraOffset = -6 /** distance to the top of the cell editor, which is 6px under the focus indicator */ - 1 /** border */;
+		const extraOffset = -6 - 1 ;
 		const min = 0;
 
 		const scrollTop = this.notebookEditor.scrollTop;
@@ -302,21 +298,18 @@ export class CodeCell extends Disposable {
 
 		const notebookEditorLayout = this.notebookEditor.getLayoutInfo();
 
-		// we should stop adjusting the top when users are viewing the bottom of the cell editor
 		const editorMaxHeight = notebookEditorLayout.height
 			- notebookEditorLayout.stickyHeight
-			- 26 /** notebook toolbar */;
+			- 26 ;
 
 		const maxTop =
 			this.viewCell.layoutInfo.editorHeight
-			// + this.viewCell.layoutInfo.statusBarHeight
 			- editorMaxHeight
 			;
 		const top = maxTop > 20 ?
 			clamp(min, diff, maxTop) :
 			min;
 		this.templateData.editorPart.style.top = `${top}px`;
-		// scroll the editor with top
 		this.templateData.editor.setScrollTop(top);
 	}
 
@@ -344,7 +337,6 @@ export class CodeCell extends Disposable {
 
 		if (this._useNewApproachForEditorLayout) {
 			this._register(this.templateData.editor.onDidScrollChange(e => {
-				// Option 4: Gate scroll-driven reactions during active drag-selection
 				if (this._pointerDownInEditor || this._pointerDraggingInEditor) {
 					return;
 				}
@@ -358,7 +350,6 @@ export class CodeCell extends Disposable {
 				const diff = e.scrollTop - (this._cellLayout._lastChangedEditorScrolltop ?? 0);
 				if (this._cellLayout.editorVisibility === 'Full (Small Viewport)' && typeof this._cellLayout._lastChangedEditorScrolltop === 'number') {
 					this._debug(`Scroll Change (1) = ${e.scrollTop} changed by ${diff} (notebook scrollTop: ${scrollTop}, setEditorScrollTop: ${e.scrollTop})`);
-					// this.templateData.editor.setScrollTop(e.scrollTop);
 				} else if (this._cellLayout.editorVisibility === 'Bottom Clipped' && typeof this._cellLayout._lastChangedEditorScrolltop === 'number') {
 					this._debug(`Scroll Change (2) = ${e.scrollTop} changed by ${diff} (notebook scrollTop: ${scrollTop}, setNotebookScrollTop: ${scrollTop + e.scrollTop})`);
 					this.notebookEditor.setScrollTop(scrollTop + e.scrollTop);
@@ -377,15 +368,12 @@ export class CodeCell extends Disposable {
 
 		this._register(this.templateData.editor.onDidChangeCursorSelection((e) => {
 			if (
-				// do not reveal the cell into view if this selection change was caused by restoring editors
 				e.source === 'restoreState' || e.oldModelVersionId === 0
-				// nor if the text editor is not actually focused (e.g. inline chat is focused and modifying the cell content)
 				|| !this.templateData.editor.hasTextFocus()
 			) {
 				return;
 			}
 
-			// Option 3: Avoid relayouts during active pointer drag to prevent stuck selection mode
 			if ((this._pointerDownInEditor || this._pointerDraggingInEditor) && this._useNewApproachForEditorLayout) {
 				return;
 			}
@@ -419,7 +407,6 @@ export class CodeCell extends Disposable {
 	private _reigsterModelListeners(model: ITextModel) {
 		this._register(model.onDidChangeTokens(() => {
 			if (this.viewCell.isInputCollapsed && this._inputCollapseElement) {
-				// flush the collapsed input with the latest tokens
 				const content = this._getRichTextFromLineTokens(model);
 				this._inputCollapseElement.innerHTML = (collapsedCellTTPolicy?.createHTML(content) ?? content) as string;
 				this._attachInputExpandButton(this._inputCollapseElement);
@@ -428,13 +415,6 @@ export class CodeCell extends Disposable {
 	}
 
 	private registerMouseListener() {
-		// Pointer-state handling in notebook cell editors has a couple of easy-to-regress edge cases:
-		// 1) Holding the left mouse button while wheel/trackpad scrolling should scroll as usual.
-		//    We therefore only treat the interaction as an "active drag selection" after actual pointer movement.
-		// 2) "Stuck selection mode" can occur if we miss the corresponding mouseup (e.g. releasing outside the window,
-		//    focus loss, or ESC cancelling Monaco selection/drag). When this happens, leaving any of our drag/pointer
-		//    flags set will incorrectly gate scroll/layout syncing and make the editor feel stuck.
-		//    To avoid that, we reset state on multiple cancellation paths and also self-heal on mousemove.
 		const resetPointerState = () => {
 			this._pointerDownInEditor = false;
 			this._pointerDraggingInEditor = false;
@@ -442,15 +422,11 @@ export class CodeCell extends Disposable {
 		};
 
 		this._register(this.templateData.editor.onMouseDown(e => {
-			// prevent default on right mouse click, otherwise it will trigger unexpected focus changes
-			// the catch is, it means we don't allow customization of right button mouse down handlers other than the built in ones.
 			if (e.event.rightButton) {
 				e.event.preventDefault();
 			}
 
 			if (this._useNewApproachForEditorLayout) {
-				// Track pointer-down and pointer-drag separately.
-				// Holding the left button while wheel/trackpad scrolling should behave like normal scrolling.
 				if (e.event.leftButton) {
 					this._pointerDownInEditor = true;
 					this._pointerDraggingInEditor = false;
@@ -465,14 +441,12 @@ export class CodeCell extends Disposable {
 					return;
 				}
 
-				// Self-heal: if we missed a mouseup (e.g. focus loss), clear the drag state as soon as we can observe it.
 				if (!e.event.leftButton) {
 					resetPointerState();
 					return;
 				}
 
 				if (!this._pointerDraggingInEditor) {
-					// Only consider it a drag-selection once the pointer actually moves with the left button down.
 					this._pointerDraggingInEditor = true;
 					this._cellLayout.setPointerDown(true);
 				}
@@ -480,7 +454,6 @@ export class CodeCell extends Disposable {
 		}
 
 		if (this._useNewApproachForEditorLayout) {
-			// Ensure we reset pointer-down even if mouseup lands outside the editor
 			const win = DOM.getWindow(this.notebookEditor.getDomNode());
 			this._register(DOM.addDisposableListener(win, 'mouseup', resetPointerState));
 			this._register(DOM.addDisposableListener(win, 'pointerup', resetPointerState));
@@ -495,9 +468,6 @@ export class CodeCell extends Disposable {
 	}
 
 	private shouldPreserveEditor() {
-		// The DOM focus needs to be adjusted:
-		// when a cell editor should be focused
-		// the document active element is inside the notebook editor or the document body (cell editor being disposed previously)
 		return this.notebookEditor.getActiveCell() === this.viewCell
 			&& this.viewCell.focusMode === CellFocusMode.Editor
 			&& (this.notebookEditor.hasEditorFocus() || this.notebookEditor.getDomNode().ownerDocument.activeElement === this.notebookEditor.getDomNode().ownerDocument.body);
@@ -546,16 +516,13 @@ export class CodeCell extends Disposable {
 	}
 
 	private _collapseInput() {
-		// hide the editor and execution label, keep the run button
 		DOM.hide(this.templateData.editorPart);
 		this.templateData.container.classList.toggle('input-collapsed', true);
 
-		// remove input preview
 		this._removeInputCollapsePreview();
 
 		this._collapsedExecutionIcon.setVisibility(true);
 
-		// update preview
 		const richEditorText = this.templateData.editor.hasModel() ? this._getRichTextFromLineTokens(this.templateData.editor.getModel()) : this._getRichText(this.viewCell.textBuffer, this.viewCell.language);
 		const element = DOM.$('div.cell-collapse-preview');
 		element.innerHTML = (collapsedCellTTPolicy?.createHTML(richEditorText) ?? richEditorText) as string;
@@ -659,7 +626,7 @@ export class CodeCell extends Disposable {
 		const maxHeight = Math.min(
 			editorLayout.height
 			- editorLayout.stickyHeight
-			- 26 /** notebook toolbar */,
+			- 26 ,
 			dimension.height
 		);
 		this._debug(`Layout Editor: Width = ${dimension.width}, Height = ${maxHeight} (Requested: ${dimension.height}, Editor Layout Height: ${editorLayout.height}, Sticky: ${editorLayout.stickyHeight})`);
@@ -714,9 +681,7 @@ export class CodeCell extends Disposable {
 	override dispose() {
 		this._isDisposed = true;
 
-		// move focus back to the cell list otherwise the focus goes to body
 		if (this.shouldPreserveEditor()) {
-			// now the focus is on the monaco editor for the cell but detached from the rows.
 			this.editorPool.preserveFocusedEditor(this.viewCell);
 		}
 
@@ -758,95 +723,6 @@ export class CodeCellLayout {
 	public setPointerDown(isDown: boolean) {
 		this._pointerDown = isDown;
 	}
-	/**
-	 * Dynamically lays out the code cell's Monaco editor to simulate a "sticky" run/exec area while
-	 * constraining the visible editor height to the notebook viewport. It adjusts two things:
-	 *  - The absolute `top` offset of the editor part inside the cell (so the run / execution order
-	 *    area remains visible for a limited vertical travel band ~45px).
-	 *  - The editor's layout height plus the editor's internal scroll position (`editorScrollTop`) to
-	 *    crop content when the cell is partially visible (top or bottom clipped) or when content is
-	 *    taller than the viewport.
-	 *
-	 * Additional invariants:
-	 *  - Content height stability: once the layout has been initialized, scroll-driven re-layouts can
-	 *    observe transient Monaco content heights that reflect the current clipped layout (rather than
-	 *    the full input height). To keep the notebook list layout stable (avoiding overlapping cells
-	 *    while navigating/scrolling), we store the actual content height in `_establishedContentHeight`
-	 *    and reuse it for scroll-driven relayouts. This prevents the editor from shrinking back to its
-	 *    initial height after content has been added (e.g., pasting text) or when Monaco reports a
-	 *    transient smaller content height while the cell is clipped.
-	 *
-	 *    We refresh `_establishedContentHeight` when the editor's content size changes
-	 *    (`onDidContentSizeChange`) and also when width/layout changes can affect wrapping-driven height
-	 *    (`viewCellLayoutChange`/`nbLayoutChange`).
-	 *  - Pointer-drag gating: while the user is holding the mouse button down in the editor (drag
-	 *    selection or potential drag selection), we avoid programmatic `editor.setScrollTop(...)` updates
-	 *    to prevent selection/scroll feedback loops and "stuck selection" behavior.
-	 *
-	 * ---------------------------------------------------------------------------
-	 * SECTION 1. OVERALL NOTEBOOK VIEW (EACH CELL HAS AN 18px GAP ABOVE IT)
-	 * Legend:
-	 *   GAP (between cells & before first cell) ............. 18px
-	 *   CELL PADDING (top & bottom inside cell) ............. 6px
-	 *   STATUS BAR HEIGHT (typical) ......................... 22px
-	 *   LINE HEIGHT (logic clamp) ........................... 21px
-	 *   BORDER/OUTLINE HEIGHT (visual conceal adjustment) ... 1px
-	 *   EDITOR_HEIGHT (example visible editor) .............. 200px (capped by viewport)
-	 *   EDITOR_CONTENT_HEIGHT (example full content) ........ 380px (e.g. 50 lines)
-	 *   extraOffset = -(CELL_PADDING + BORDER_HEIGHT) ....... -7
-	 *
-	 *   (The list ensures the editor's laid out height never exceeds viewport height.)
-	 *
-	 *   ┌────────────────────────────── Notebook Viewport (scrolling container) ────────────────────────────┐
-	 *   │ (scrollTop)                                                                                       │
-	 *   │                                                                                                   │
-	 *   │  18px GAP (top spacing before first cell)                                                         │
-	 *   │  ▼                                                                                                │
-	 *   │  ┌──────── Cell A Outer Container ────────────────────────────────────────────────────────────┐   │
-	 *   │  │ ▲ 6px top padding                                                                          │   │
-	 *   │  │ │                                                                                          │   │
-	 *   │  │ │  ┌─ Execution Order / Run Column (~45px vertical travel band)─┐  ┌─ Editor Part ───────┐ │   │
-	 *   │  │ │  │ (Run button, execution # label)                            │  │ Visible Lines ...   │ │   │
-	 *   │  │ │  │                                                            │  │                     │ │   │
-	 *   │  │ │  │                                                            │  │ EDITOR_HEIGHT=200px │ │   │
-	 *   │  │ │  │                                                            │  │ (Content=380px)     │ │   │
-	 *   │  │ │  └────────────────────────────────────────────────────────────┘  └─────────────────────┘ │   │
-	 *   │  │ │                                                                                          │   │
-	 *   │  │ │  ┌─ Status Bar (22px) ─────────────────────────────────────────────────────────────────┐ │   │
-	 *   │  │ │  │ language | indent | selection info | kernel/status bits ...                         │ │   │
-	 *   │  │ │  └─────────────────────────────────────────────────────────────────────────────────────┘ │   │
-	 *   │  │ │                                                                                          │   │
-	 *   │  │ ▼ 6px bottom padding                                                                       │   │
-	 *   │  └────────────────────────────────────────────────────────────────────────────────────────────┘   │
-	 *   │  18px GAP                                                                                         │
-	 *   │  ┌──────── Cell B Outer Container ────────────────────────────────────────────────────────────┐   │
-	 *   │  │ (same structure as Cell A)                                                                 │   │
-	 *   │  └────────────────────────────────────────────────────────────────────────────────────────────┘   │
-	 *   │                                                                                                   │
-	 *   │ (scrollBottom)                                                                                    │
-	 *   └───────────────────────────────────────────────────────────────────────────────────────────────────┘
-	 *
-	 * SECTION 2. SINGLE CELL STRUCTURE (VERTICAL LAYERS)
-	 *
-	 *   Inter-Cell GAP (18px)
-	 *   ┌─────────────────────────────── Cell Wrapper (<li>) ──────────────────────────────┐
-	 *   │ ┌──────────────────────────── .cell-inner-container ───────────────────────────┐ │
-	 *   │ │ 6px top padding                                                              │ │
-	 *   │ │                                                                              │ │
-	 *   │ │ ┌─ Left Gutter (Run / Exec / Focus Border) ─┬──────── Editor Part ─────────┐ │ │
-	 *   │ │ │  Sticky vertical travel (~45px allowance) │  (Monaco surface)            │ │ │
-	 *   │ │ │                                         │  Visible height 200px          │ │ │
-	 *   │ │ │                                         │  Content height 380px          │ │ │
-	 *   │ │ └─────────────────────────────────────────┴────────────────────────────────┘ │ │
-	 *   │ │                                                                              │ │
-	 *   │ │ ┌─ Status Bar (22px) ──────────────────────────────────────────────────────┐ │ │
-	 *   │ │ │ language | indent | selection | kernel | state                           │ │ │
-	 *   │ │ └──────────────────────────────────────────────────────────────────────────┘ │ │
-	 *   │ │ 6px bottom padding                                                           │ │
-	 *   │ └──────────────────────────────────────────────────────────────────────────────┘ │
-	 *   │ (Outputs region begins at outputContainerOffset below input area)                │
-	 *   └──────────────────────────────────────────────────────────────────────────────────┘
-	 */
 	public layoutEditor(reason: CellLayoutChangeReason): void {
 		if (!this._enabled) {
 			return;
@@ -857,16 +733,14 @@ export class CodeCellLayout {
 			return;
 		}
 
-		const LINE_HEIGHT = this.notebookEditor.getLayoutInfo().fontInfo.lineHeight; // 21;
+		const LINE_HEIGHT = this.notebookEditor.getLayoutInfo().fontInfo.lineHeight;
 		const CELL_TOP_MARGIN = this.viewCell.layoutInfo.topMargin;
-		const CELL_OUTLINE_WIDTH = this.viewCell.layoutInfo.outlineWidth; // 1 extra px for border (we don't want to be able to see the cell border when scrolling up);
+		const CELL_OUTLINE_WIDTH = this.viewCell.layoutInfo.outlineWidth;
 		const STATUSBAR_HEIGHT = this.viewCell.layoutInfo.statusBarHeight;
 
 
 		const editor = this.templateData.editor;
 		const editorLayout = this.templateData.editor.getLayoutInfo();
-		// If we've already initialized once, we should use the viewCell layout info for editor width.
-		// E.g. when resizing VS Code window or notebook editor (horizontal space changes).
 		const editorWidth = this._initialized && (reason === 'nbLayoutChange' || reason === 'viewCellLayoutChange') ? this.viewCell.layoutInfo.editorWidth : editorLayout.width;
 		const editorHeight = this.viewCell.layoutInfo.editorHeight;
 		const scrollTop = this.notebookEditor.scrollTop;
@@ -876,52 +750,21 @@ export class CodeCellLayout {
 		let editorContentHeight: number;
 		const isInit = !this._initialized && reason === 'init';
 		if (isInit) {
-			// CONTENT HEIGHT SELECTION (INIT)
-			// -------------------------------
-			// Editors are pooled and may be re-attached to different cells as the user scrolls.
-			// At the moment a pooled editor is first attached to a new cell, Monaco can still
-			// report the previous cell's `getContentHeight()` (for example a tall multi-line
-			// cell) even though the new cell only contains a single line. If we trusted that
-			// stale value here, the very first layout of the new cell would render with an
-			// oversized editor and visually overlap the next cell.
-			//
-			// To avoid this, the initial layout ignores `getContentHeight()` entirely and uses
-			// the notebook's own notion of the editor height for this cell
-			// (`_initialEditorDimension.height`). This value is derived from the cell model
-			// (line count + padding) and is stable across editor reuse. Once the model has
-			// been resolved and Monaco reports a real content height, subsequent layout
-			// reasons (`onDidContentSizeChange`, `viewCellLayoutChange`, `nbLayoutChange`)
-			// will refresh `_establishedContentHeight` in the normal way.
 			editorContentHeight = this._initialEditorDimension.height;
 			this._establishedContentHeight = editorContentHeight;
 		} else {
-			// CONTENT HEIGHT SELECTION (NON-INIT)
-			// -----------------------------------
-			// For all non-init reasons, we rely on Monaco's `getContentHeight()` together with
-			// `_establishedContentHeight` to keep the notebook list layout stable while
-			// scrolling and resizing:
-			//  - `onDidContentSizeChange` / `viewCellLayoutChange` / `nbLayoutChange` update
-			//    `_establishedContentHeight` to the latest full content height.
-			//  - `nbDidScroll` reuses `_establishedContentHeight` so that transient, smaller
-			//    values reported while the editor itself is clipped do not shrink the row
-			//    height (which would otherwise cause overlapping cells).
 			const gotContentHeight = editor.getContentHeight();
-			// If we've already calculated the editor content height once before and the contents haven't changed, use that.
 			const fallbackEditorContentHeight = gotContentHeight === -1 ? Math.max(editor.getLayoutInfo().height, this._initialEditorDimension.height) : gotContentHeight;
 			const shouldRefreshContentHeight = !this._initialized || reason === 'onDidContentSizeChange' || reason === 'viewCellLayoutChange' || reason === 'nbLayoutChange';
 			if (shouldRefreshContentHeight) {
-				// Update the established content height when content changes, during initialization,
-				// or when width/layout changes can affect wrapping-driven height.
 				editorContentHeight = fallbackEditorContentHeight;
 				this._establishedContentHeight = editorContentHeight;
 			} else {
-				// Reuse the previously established content height to avoid transient Monaco content height changes during scroll
 				editorContentHeight = this._establishedContentHeight ?? fallbackEditorContentHeight;
 			}
 		}
 		const editorBottom = elementTop + this.viewCell.layoutInfo.outputContainerOffset;
 		const scrollBottom = this.notebookEditor.scrollBottom;
-		// When loading, scrollBottom -scrollTop === 0;
 		const viewportHeight = scrollBottom - scrollTop === 0 ? this.notebookEditor.getLayoutInfo().height : scrollBottom - scrollTop;
 		const outputContainerOffset = this.viewCell.layoutInfo.outputContainerOffset;
 		const scrollDirection: 'down' | 'up' = typeof this._previousScrollBottom === 'number' ? (scrollBottom < this._previousScrollBottom ? 'up' : 'down') : 'down';
@@ -941,20 +784,19 @@ export class CodeCellLayout {
 				height = clamp(editorContentHeight, minimumEditorHeight, editorContentHeight);
 				this._editorVisibility = 'Full';
 			} else {
-				height = clamp(scrollBottom - (elementTop + CELL_TOP_MARGIN) - STATUSBAR_HEIGHT, minimumEditorHeight, editorContentHeight) + (2 * CELL_OUTLINE_WIDTH); // We don't want bottom border to be visible.;
+				height = clamp(scrollBottom - (elementTop + CELL_TOP_MARGIN) - STATUSBAR_HEIGHT, minimumEditorHeight, editorContentHeight) + (2 * CELL_OUTLINE_WIDTH);
 				this._editorVisibility = 'Bottom Clipped';
 				editorScrollTop = 0;
 			}
 		} else {
 			if (viewportHeight <= editorContentHeight && scrollBottom <= editorBottom) {
 				const minimumEditorHeight = LINE_HEIGHT + this.notebookEditor.notebookOptions.getLayoutConfiguration().editorTopPadding;
-				height = clamp(viewportHeight - STATUSBAR_HEIGHT, minimumEditorHeight, editorContentHeight - STATUSBAR_HEIGHT) + (2 * CELL_OUTLINE_WIDTH); // We don't want bottom border to be visible.
+				height = clamp(viewportHeight - STATUSBAR_HEIGHT, minimumEditorHeight, editorContentHeight - STATUSBAR_HEIGHT) + (2 * CELL_OUTLINE_WIDTH);
 				this._editorVisibility = 'Full (Small Viewport)';
 				editorScrollTop = top;
 			} else {
 				const minimumEditorHeight = LINE_HEIGHT;
 				height = clamp(editorContentHeight - (scrollTop - (elementTop + CELL_TOP_MARGIN)), minimumEditorHeight, editorContentHeight);
-				// Check if the cell is visible.
 				if (scrollTop > editorBottom) {
 					this._editorVisibility = 'Invisible';
 				} else {
@@ -979,7 +821,6 @@ export class CodeCellLayout {
 				width: this._initialized ? editorWidth : this._initialEditorDimension.width,
 				height
 			}, true);
-			// Option 3: Avoid programmatic scrollTop changes while user is actively dragging selection
 			if (!this._pointerDown && editorScrollTop >= 0) {
 				this._lastChangedEditorScrolltop = editorScrollTop;
 				editor.setScrollTop(editorScrollTop);

@@ -29,35 +29,19 @@ export class TextureAtlas extends Disposable {
 	private readonly _warmedUpRasterizers = new Set<number>();
 	private readonly _allocatorType: AllocatorType;
 
-	/**
-	 * The maximum number of texture atlas pages. This is currently a hard static cap that must not
-	 * be reached.
-	 */
 	static readonly maximumPageCount = 16;
 
-	/**
-	 * The main texture atlas pages which are both larger textures and more efficiently packed
-	 * relative to the scratch page. The idea is the main pages are drawn to and uploaded to the GPU
-	 * much less frequently so as to not drop frames.
-	 */
 	private readonly _pages: TextureAtlasPage[] = [];
 	get pages(): IReadableTextureAtlasPage[] { return this._pages; }
 
 	readonly pageSize: number;
 
-	/**
-	 * A maps of glyph keys to the page to start searching for the glyph. This is set before
-	 * searching to have as little runtime overhead (branching, intermediate variables) as possible,
-	 * so it is not guaranteed to be the actual page the glyph is on. But it is guaranteed that all
-	 * pages with a lower index do not contain the glyph.
-	 */
 	private readonly _glyphPageIndex: GlyphMap<number> = new NKeyMap();
 
 	private readonly _onDidDeleteGlyphs = this._register(new Emitter<void>());
 	readonly onDidDeleteGlyphs = this._onDidDeleteGlyphs.event;
 
 	constructor(
-		/** The maximum texture size supported by the GPU. */
 		private readonly _maxTextureSize: number,
 		options: ITextureAtlasOptions | undefined,
 		private readonly _decorationStyleCache: DecorationStyleCache,
@@ -87,16 +71,12 @@ export class TextureAtlas extends Disposable {
 		const firstPage = this._instantiationService.createInstance(TextureAtlasPage, 0, this.pageSize, this._allocatorType);
 		this._pages.push(firstPage);
 
-		// IMPORTANT: The first glyph on the first page must be an empty glyph such that zeroed out
-		// cells end up rendering nothing
-		// TODO: This currently means the first slab is for 0x0 glyphs and is wasted
 		const nullRasterizer = new GlyphRasterizer(1, '', 1, this._decorationStyleCache);
 		firstPage.getGlyph(nullRasterizer, '', 0, 0);
 		nullRasterizer.dispose();
 	}
 
 	clear() {
-		// Clear all pages
 		for (const page of this._pages) {
 			page.dispose();
 		}
@@ -105,30 +85,21 @@ export class TextureAtlas extends Disposable {
 		this._warmedUpRasterizers.clear();
 		this._warmUpTask.clear();
 
-		// Recreate first
 		this._initFirstPage();
 
-		// Tell listeners
 		this._onDidDeleteGlyphs.fire();
 	}
 
 	getGlyph(rasterizer: IGlyphRasterizer, chars: string, tokenMetadata: number, decorationStyleSetId: number, x: number): Readonly<ITextureAtlasPageGlyph> {
-		// TODO: Encode font size and family into key
-		// Ignore metadata that doesn't affect the glyph
 		tokenMetadata &= ~(MetadataConsts.LANGUAGEID_MASK | MetadataConsts.TOKEN_TYPE_MASK | MetadataConsts.BALANCED_BRACKETS_MASK);
 
-		// Add x offset for sub-pixel rendering to the unused portion or tokenMetadata. This
-		// converts the decimal part of the x to a range from 0 to 9, where 0 = 0.0px x offset,
-		// 9 = 0.9px x offset
 		tokenMetadata |= Math.floor((x % 1) * 10);
 
-		// Warm up common glyphs
 		if (!this._warmedUpRasterizers.has(rasterizer.id)) {
 			this._warmUpAtlas(rasterizer);
 			this._warmedUpRasterizers.add(rasterizer.id);
 		}
 
-		// Try get the glyph, overflowing to a new page if necessary
 		return this._tryGetGlyph(this._glyphPageIndex.get(chars, tokenMetadata, decorationStyleSetId, rasterizer.cacheKey) ?? 0, rasterizer, chars, tokenMetadata, decorationStyleSetId);
 	}
 
@@ -160,10 +131,6 @@ export class TextureAtlas extends Disposable {
 		return this._pages.map(e => e.getStats());
 	}
 
-	/**
-	 * Warms up the atlas by rasterizing all printable ASCII characters for each token color. This
-	 * is distrubuted over multiple idle callbacks to avoid blocking the main thread.
-	 */
 	private _warmUpAtlas(rasterizer: IGlyphRasterizer): void {
 		const colorMap = this._colorMap;
 		if (!colorMap) {
@@ -171,8 +138,6 @@ export class TextureAtlas extends Disposable {
 		}
 		this._warmUpTask.value?.clear();
 		const taskQueue = this._warmUpTask.value = this._instantiationService.createInstance(IdleTaskQueue);
-		// Warm up using roughly the larger glyphs first to help optimize atlas allocation
-		// A-Z
 		for (let code = CharCode.A; code <= CharCode.Z; code++) {
 			for (const fgColor of colorMap.keys()) {
 				taskQueue.enqueue(() => {
@@ -182,7 +147,6 @@ export class TextureAtlas extends Disposable {
 				});
 			}
 		}
-		// a-z
 		for (let code = CharCode.a; code <= CharCode.z; code++) {
 			for (const fgColor of colorMap.keys()) {
 				taskQueue.enqueue(() => {
@@ -192,7 +156,6 @@ export class TextureAtlas extends Disposable {
 				});
 			}
 		}
-		// Remaining ascii
 		for (let code = CharCode.ExclamationMark; code <= CharCode.Tilde; code++) {
 			for (const fgColor of colorMap.keys()) {
 				taskQueue.enqueue(() => {

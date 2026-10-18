@@ -35,29 +35,20 @@ export function isAnchor(obj: unknown): obj is IAnchor | OmitOptional<IAnchor> {
 }
 
 export interface IDelegate {
-	/**
-	 * The anchor where to position the context view.
-	 * Use a `HTMLElement` to position the view at the element,
-	 * a `StandardMouseEvent` to position it at the mouse position
-	 * or an `IAnchor` to position it at a specific location.
-	 */
 	getAnchor(): HTMLElement | StandardMouseEvent | IAnchor;
 	render(container: HTMLElement): IDisposable | null;
 	focus?(): void;
 	layout?(): void;
-	anchorAlignment?: AnchorAlignment; // default: left
-	anchorPosition?: AnchorPosition; // default: below
-	anchorAxisAlignment?: AnchorAxisAlignment; // default: vertical
+	anchorAlignment?: AnchorAlignment;
+	anchorPosition?: AnchorPosition;
+	anchorAxisAlignment?: AnchorAxisAlignment;
 	preventAvoid?: boolean;
-	canRelayout?: boolean; // default: true
+	canRelayout?: boolean;
 	onDOMEvent?(e: Event, activeElement: HTMLElement): void;
 	onHide?(data?: unknown): void;
 	closeAnimation?: IContextViewCloseAnimation;
 
-	/**
-	 * context views with higher layers are rendered higher in z-index order
-	 */
-	layer?: number; // Default: 0
+	layer?: number;
 }
 
 export interface IContextViewCloseAnimation {
@@ -85,7 +76,7 @@ export const contextViewMenuCloseAnimation: IContextViewCloseAnimation = {
 };
 
 function getContextViewMenuMotionCss(enabledSelectorPrefix: string): string {
-	return /* css */ `
+	return `
 	${enabledSelectorPrefix} .context-view.${CONTEXT_VIEW_MENU_MOTION_CLASS} {
 		animation: none;
 		box-shadow: none;
@@ -158,13 +149,9 @@ export interface IContextViewProvider {
 }
 
 export function getAnchorRect(anchor: HTMLElement | StandardMouseEvent | IAnchor): IRect {
-	// Get the element's position and size (to anchor the view)
 	if (DOM.isHTMLElement(anchor)) {
 		const elementPosition = DOM.getDomNodePagePosition(anchor);
 
-		// In areas where zoom is applied to the element or its ancestors, we need to adjust the size of the element
-		// e.g. The title bar has counter zoom behavior meaning it applies the inverse of zoom level.
-		// Window Zoom Level: 1.5, Title Bar Zoom: 1/1.5, Size Multiplier: 1.5
 		const zoom = DOM.getDomNodeZoomLevel(anchor);
 
 		return {
@@ -184,10 +171,6 @@ export function getAnchorRect(anchor: HTMLElement | StandardMouseEvent | IAnchor
 		return {
 			top: anchor.posy,
 			left: anchor.posx,
-			// We are about to position the context view where the mouse
-			// cursor is. To prevent the view being exactly under the mouse
-			// when showing and thus potentially triggering an action within,
-			// we treat the mouse location like a small sized block element.
 			width: 2,
 			height: 2
 		};
@@ -228,7 +211,7 @@ export class ContextView extends Disposable {
 		this.useShadowDOM = domPosition === ContextViewDOMPosition.FIXED_SHADOW;
 
 		if (container === this.container && usedShadowDOM === this.useShadowDOM) {
-			return; // container is the same and no shadow DOM usage has changed
+			return;
 		}
 
 		if (this.container) {
@@ -292,7 +275,6 @@ export class ContextView extends Disposable {
 			this.hide(undefined, true);
 		}
 
-		// Show static box
 		DOM.clearNode(this.view);
 		this.view.className = 'context-view monaco-component';
 		this.view.style.top = '0px';
@@ -305,16 +287,12 @@ export class ContextView extends Disposable {
 		this.view.style.position = this.useFixedPosition ? 'fixed' : 'absolute';
 		DOM.show(this.view);
 
-		// Render content
 		this.toDisposeOnClean = delegate.render(this.view) || Disposable.None;
 
-		// Set active delegate
 		this.delegate = delegate;
 
-		// Layout
 		this.doLayout();
 
-		// Focus
 		this.delegate.focus?.();
 	}
 
@@ -338,12 +316,10 @@ export class ContextView extends Disposable {
 	}
 
 	private doLayout(): void {
-		// Check that we still have a delegate - this.delegate.layout may have hidden
 		if (!this.isVisible()) {
 			return;
 		}
 
-		// Get anchor
 		const anchor = getAnchorRect(this.delegate!.getAnchor());
 		const containerWindow = this.container ? DOM.getWindow(this.container) : DOM.getActiveWindow();
 		const viewport = { top: containerWindow.pageYOffset, left: containerWindow.pageXOffset, width: containerWindow.innerWidth, height: containerWindow.innerHeight };
@@ -483,7 +459,7 @@ export class ContextView extends Disposable {
 	}
 }
 
-const SHADOW_ROOT_CSS = /* css */ `
+const SHADOW_ROOT_CSS = `
 	:host {
 		all: initial; /* 1st rule so subsequent properties are reset. */
 	}

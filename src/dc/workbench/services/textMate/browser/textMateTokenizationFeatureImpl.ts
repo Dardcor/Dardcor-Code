@@ -157,7 +157,6 @@ export class TextMateTokenizationFeature extends Disposable implements ITextMate
 				const scope = scopes[i];
 				const language = grammar.embeddedLanguages[scope];
 				if (typeof language !== 'string') {
-					// never hurts to be too careful
 					continue;
 				}
 				if (this._languageService.isRegisteredLanguageId(language)) {
@@ -254,7 +253,6 @@ export class TextMateTokenizationFeature extends Disposable implements ITextMate
 	}
 
 	private _canCreateGrammarFactory(): boolean {
-		// Check if extension point is ready
 		return !!this._grammarDefinitions;
 	}
 	private async _getOrCreateGrammarFactory(): Promise<TMGrammarFactory> {
@@ -268,7 +266,6 @@ export class TextMateTokenizationFeature extends Disposable implements ITextMate
 			createOnigString: (str: string) => vscodeOniguruma.createOnigString(str)
 		});
 
-		// Avoid duplicate instantiations
 		if (this._grammarFactory) {
 			return this._grammarFactory;
 		}
@@ -331,7 +328,6 @@ export class TextMateTokenizationFeature extends Disposable implements ITextMate
 			return new TokenizationSupportWithLineLimit(encodedLanguageId, tokenization, store, maxTokenizationLineLength);
 		} catch (err) {
 			if (err.message && err.message === missingTMGrammarErrorMessage) {
-				// Don't log this error message
 				return null;
 			}
 			onUnexpectedError(err);
@@ -394,9 +390,6 @@ export class TextMateTokenizationFeature extends Disposable implements ITextMate
 	private async _loadVSCodeOnigurumaWASM(): Promise<Response | ArrayBuffer> {
 		if (isWeb) {
 			const response = await fetch(resolveAmdNodeModulePath('vscode-oniguruma', 'release/onig.wasm'));
-			// Using the response directly only works if the server sets the MIME type 'application/wasm'.
-			// Otherwise, a TypeError is thrown when using the streaming compiler.
-			// We therefore use the non-streaming compiler :(.
 			return await response.arrayBuffer();
 		} else {
 			const response = await fetch(this._environmentService.isBuilt
@@ -409,9 +402,7 @@ export class TextMateTokenizationFeature extends Disposable implements ITextMate
 	private _reportTokenizationTime(timeMs: number, languageId: string, sourceExtensionId: string | undefined, lineLength: number, fromWorker: boolean, isRandomSample: boolean): void {
 		const key = fromWorker ? 'async' : 'sync';
 
-		// 50 events per hour (one event has a low probability)
 		if (TextMateTokenizationFeature.reportTokenizationTimeCounter[key] > 50) {
-			// Don't flood telemetry with too many events
 			return;
 		}
 		if (TextMateTokenizationFeature.reportTokenizationTimeCounter[key] === 0) {

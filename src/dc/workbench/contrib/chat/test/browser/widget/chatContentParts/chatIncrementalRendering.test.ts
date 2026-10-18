@@ -55,9 +55,7 @@ suite('lastBlockBoundary', () => {
 
 	test('ignores boundary inside fence but finds one outside', () => {
 		const text = 'before\n\n```\ninside\n\nfence\n```\n\nafter';
-		// First \n\n at index 6 (before fence), inside fence at ~18, after fence at ~28
 		const result = lastBlockBoundary(text);
-		// The last valid boundary should be the one after the closing ```
 		assert.ok(result > 6, `Expected boundary after fence close, got ${result}`);
 	});
 
@@ -74,12 +72,10 @@ suite('lastBlockBoundary', () => {
 	test('handles multiple code fences', () => {
 		const text = '```\nfirst\n```\n\nbetween\n\n```\nsecond\n```\n\nend';
 		const result = lastBlockBoundary(text);
-		// Last valid \n\n is after the second closing fence
 		assert.ok(result > 20, `Expected last boundary near end, got ${result}`);
 	});
 
 	test('handles triple backticks mid-line (not a fence)', () => {
-		// Triple backticks must be at the start of a line to count as a fence
 		const text = 'text ``` not a fence\n\nafter';
 		assert.strictEqual(lastBlockBoundary(text), 20);
 	});
@@ -102,7 +98,6 @@ suite('lastBlockBoundary', () => {
 	test('handles mixed backtick and tilde fences', () => {
 		const text = '~~~\ntilde code\n\ninside tilde\n~~~\n\n```\nbacktick code\n\ninside backtick\n```\n\nafter both';
 		const result = lastBlockBoundary(text);
-		// The last valid boundary should be after the closing ```
 		assert.ok(result > 40, `Expected boundary after both fences, got ${result}`);
 	});
 });
@@ -170,7 +165,6 @@ suite('IncrementalDOMMorpher', () => {
 			const morpher = createMorpher();
 			morpher.seed('hello');
 			assert.strictEqual(morpher.tryMorph('hello world'), true);
-			// Now a rewrite of earlier content
 			assert.strictEqual(morpher.tryMorph('hi world'), false);
 		});
 
@@ -180,16 +174,13 @@ suite('IncrementalDOMMorpher', () => {
 			morpher.setRenderCallback(md => rendered.push(md));
 			morpher.seed('');
 
-			// Append content with a block boundary
 			morpher.tryMorph('paragraph one\n\nparagraph two');
-			// The callback fires asynchronously via rAF, not synchronously
 			assert.strictEqual(rendered.length, 0, 'Should not render synchronously');
 		});
 
 		test('returns true for content without block boundary (buffered)', () => {
 			const morpher = createMorpher();
 			morpher.seed('');
-			// No \n\n — content is buffered
 			assert.strictEqual(morpher.tryMorph('partial paragraph'), true);
 		});
 
@@ -200,17 +191,12 @@ suite('IncrementalDOMMorpher', () => {
 			morpher.setRenderCallback(md => rendered.push(md));
 			morpher.seed('');
 
-			// Append content with no \n\n at all — previously this would
-			// never render because getRenderable returned lastRendered (empty seed).
 			morpher.tryMorph('single block no paragraph breaks');
 
-			// Flush the rAF — the full content should render since
-			// there are no paragraph boundaries to buffer at.
 			await new Promise(r => mainWindow.requestAnimationFrame(r));
 			assert.strictEqual(rendered.length, 1);
 			assert.strictEqual(rendered[0], 'single block no paragraph breaks');
 
-			// Further appends should also render
 			morpher.tryMorph('single block no paragraph breaks — more words');
 			await new Promise(r => mainWindow.requestAnimationFrame(r));
 			assert.strictEqual(rendered.length, 2);
@@ -223,9 +209,7 @@ suite('IncrementalDOMMorpher', () => {
 		test('sets baseline markdown', () => {
 			const morpher = createMorpher();
 			morpher.seed('initial content');
-			// After seeding, tryMorph with same content is a no-op
 			assert.strictEqual(morpher.tryMorph('initial content'), true);
-			// And appending works
 			assert.strictEqual(morpher.tryMorph('initial content more'), true);
 		});
 
@@ -236,7 +220,6 @@ suite('IncrementalDOMMorpher', () => {
 			const morpher = createMorpher(domNode);
 
 			morpher.seed('some content', false);
-			// No animation classes should be applied since all children are "revealed"
 			for (const child of Array.from(domNode.children)) {
 				assert.strictEqual(
 					(child as HTMLElement).classList.contains('chat-smooth-animate-fade'),
@@ -253,7 +236,6 @@ suite('IncrementalDOMMorpher', () => {
 			const morpher = createMorpher(domNode);
 
 			morpher.seed('some content', true);
-			// Children should have the animation class
 			for (const child of Array.from(domNode.children)) {
 				assert.strictEqual(
 					(child as HTMLElement).classList.contains('chat-smooth-animate-fade'),
@@ -313,16 +295,13 @@ suite('IncrementalDOMMorpher', () => {
 			morpher.seed('');
 			morpher.setRenderCallback(() => { });
 			morpher.tryMorph('hello\n\nworld');
-			// Dispose before rAF fires
 			morpher.dispose();
-			// No error should occur — rAF is cancelled
 		});
 	});
 
 	suite('updateStreamRate', () => {
 
 		test('flushes remaining buffered content on completion for paragraph buffer', async () => {
-			// Use paragraph buffer (default)
 			configService.setUserConfiguration(ChatConfiguration.IncrementalRenderingBuffering, 'paragraph');
 			const morpher = createMorpher();
 			const rendered: string[] = [];
@@ -330,21 +309,15 @@ suite('IncrementalDOMMorpher', () => {
 			morpher.seed('');
 
 			const fullContent = 'paragraph one\n\nparagraph two trailing';
-			// Append content where the tail has no \n\n boundary
 			morpher.tryMorph(fullContent);
 
-			// Flush the rAF so the paragraph-boundary render fires
 			await new Promise(r => mainWindow.requestAnimationFrame(r));
-			// Only content up to the last \n\n should have rendered
 			assert.strictEqual(rendered.length, 1);
 			assert.strictEqual(rendered[0], 'paragraph one\n\n');
 
-			// Signal stream completion — should schedule a render of
-			// the full content including the unbounded tail.
 			morpher.updateStreamRate(100, true);
 			await new Promise(r => mainWindow.requestAnimationFrame(r));
 
-			// The render callback should now have the full content
 			assert.strictEqual(rendered.length, 2);
 			assert.strictEqual(rendered[1], fullContent);
 		});
@@ -399,11 +372,9 @@ suite('BlockAnimation', () => {
 		anim.animate(container.children, 0, 1, 0);
 		assert.strictEqual(parent.classList.contains('chat-smooth-animate-rise'), true);
 
-		// Simulate animationend bubbling from nested child
 		const bubbledEvent = new AnimationEvent('animationend', { bubbles: true });
 		nested.dispatchEvent(bubbledEvent);
 
-		// Parent should still have the animation class
 		assert.strictEqual(
 			parent.classList.contains('chat-smooth-animate-rise'),
 			true,
@@ -424,7 +395,6 @@ suite('BlockAnimation', () => {
 		anim.animate(container.children, 0, 1, 0);
 		assert.strictEqual(child.classList.contains('chat-smooth-animate-blur'), true);
 
-		// Simulate direct animationend on the child itself
 		const directEvent = new AnimationEvent('animationend', { bubbles: true });
 		child.dispatchEvent(directEvent);
 
@@ -452,7 +422,6 @@ suite('BlockAnimation', () => {
 		const delays = Array.from(container.children).map(
 			c => parseInt((c as HTMLElement).style.getPropertyValue('--chat-smooth-delay'))
 		);
-		// Each successive child should have a larger delay
 		assert.ok(delays[1] > delays[0], `Second delay ${delays[1]} should be greater than first ${delays[0]}`);
 		assert.ok(delays[2] > delays[1], `Third delay ${delays[2]} should be greater than second ${delays[1]}`);
 	});
@@ -465,14 +434,9 @@ suite('WordBuffer', () => {
 	test('setRate with isComplete uses at least MIN_RATE_AFTER_COMPLETE', () => {
 		const buffer = new WordBuffer();
 
-		// Setting a low rate with isComplete should floor to 80
 		buffer.setRate(10, true);
-		// Verify by checking filterFlush behavior: with rate=80,
-		// after enough elapsed time, words should be revealed faster
-		// than at rate=10.
 		const md = 'word1 word2 word3 word4 word5 word6 word7 word8 word9 word10';
 		const result1 = buffer.filterFlush(md);
-		// First call reveals 1 word
 		assert.ok(result1 !== undefined, 'First flush should reveal content');
 	});
 
@@ -488,7 +452,6 @@ suite('WordBuffer', () => {
 	test('setRate during streaming clamps between MIN_RATE and MAX_RATE', () => {
 		const buffer = new WordBuffer();
 
-		// Rate below MIN_RATE should be clamped up
 		buffer.setRate(1, false);
 		const md = 'word1 word2 word3';
 		const result = buffer.filterFlush(md);
@@ -508,7 +471,6 @@ suite('WordBuffer', () => {
 		const buffer = new WordBuffer();
 		buffer.setRate(1, false);
 
-		// First flush reveals 1 word, but there are more
 		buffer.filterFlush('word1 word2 word3 word4 word5');
 		assert.strictEqual(buffer.needsNextFrame, true, 'Should need another frame when words remain');
 	});
@@ -517,7 +479,6 @@ suite('WordBuffer', () => {
 		const buffer = new WordBuffer();
 		buffer.setRate(2000, false);
 
-		// With a very high rate and single word, all content is revealed
 		buffer.filterFlush('hello');
 		assert.strictEqual(buffer.needsNextFrame, false, 'Should not need another frame when all words shown');
 	});

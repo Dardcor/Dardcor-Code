@@ -8,7 +8,7 @@ import { spawn, ChildProcess } from 'child_process';
 import * as http from 'http';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface ILiveBrowserParams {
 	action: 'launch' | 'navigate' | 'click' | 'type' | 'scroll' | 'screenshot' | 'getConsoleLogs' | 'close';
@@ -18,7 +18,7 @@ export interface ILiveBrowserParams {
 	scrollDelta?: number;
 }
 
-export class LiveBrowserInspectorTool implements ICopilotTool<ILiveBrowserParams> {
+export class LiveBrowserInspectorTool implements IAgentTool<ILiveBrowserParams> {
 	public static readonly toolName = ToolName.LiveBrowserInspector;
 
 	private static browserProcess?: ChildProcess;
@@ -53,14 +53,12 @@ export class LiveBrowserInspectorTool implements ICopilotTool<ILiveBrowserParams
 					`[${new Date().toLocaleTimeString()}] Live Browser session initialized for: ${targetUrl}`
 				];
 
-				// Check if Chrome with remote debugging is already running
 				const cdpInfo = await this.queryCdpJsonVersion();
 				let connectionStatus = '';
 
 				if (cdpInfo) {
 					connectionStatus = `Connected to active Chrome DevTools endpoint (Browser: ${cdpInfo.Browser}, Protocol: ${cdpInfo['Protocol-Version']})`;
 				} else {
-					// Launch Chrome or default browser with debugging enabled
 					try {
 						const isWin = process.platform === 'win32';
 						const chromePath = isWin
@@ -77,7 +75,6 @@ export class LiveBrowserInspectorTool implements ICopilotTool<ILiveBrowserParams
 
 						connectionStatus = `Launched browser instance pointing to: ${targetUrl} (Port 9222)`;
 					} catch {
-						// Fallback: Open using VS Code simple browser or external opener
 						await vscode.env.openExternal(vscode.Uri.parse(targetUrl));
 						connectionStatus = `Opened URL in system browser: ${targetUrl}`;
 					}

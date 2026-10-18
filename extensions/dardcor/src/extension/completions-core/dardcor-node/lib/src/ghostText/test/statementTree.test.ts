@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// WARNING: the file needs to keep space for some of the tests. So please don;t reformat.
 
 import assert from 'assert';
 import dedent from 'ts-dedent';
@@ -33,10 +32,7 @@ suite('StatementTree', function () {
 		);
 	});
 
-	// Test for types of statements we want to match in supported languages and
-	// document the behavior of the current grammar:
 
-	// MARK: JavaScript / TypeScript
 
 	suite('JavaScript / Typescript', function () {
 		['javascript', 'javascriptreact', 'jsx', 'typescript', 'typescriptreact'].forEach(language => {
@@ -120,7 +116,6 @@ suite('StatementTree', function () {
 
 		test('recognizes single-expression if / else statements on a single line as single statements', async function () {
 			await testStatementBuilding('typescript', `▶️if (x) y = 1; else y = 2;◀️`);
-			// Since TS and JS are different grammars and the else property changed to alternative ensure we are good in JS as well.
 			await testStatementBuilding('javascript', `▶️if (x) y = 1; else y = 2;◀️`);
 		});
 
@@ -163,7 +158,6 @@ suite('StatementTree', function () {
 		});
 
 		test('recognizes for statements', async function () {
-			// The termination expression is not it's own statement anymore.
 			await testStatementBuilding(
 				'typescript',
 				dedent`
@@ -421,7 +415,6 @@ suite('StatementTree', function () {
 		});
 	});
 
-	// MARK: Python
 
 	suite('Python', function () {
 		test('python is supported', function () {
@@ -679,9 +672,6 @@ suite('StatementTree', function () {
 		});
 
 		test('recognizes docstrings as expressions', async function () {
-			// this is slightly odd that the grammar gives these an expression type,
-			// but it is ok for the purposes of completion trimming and block
-			// position determination
 			await testStatementBuilding(
 				'python',
 				dedent`
@@ -757,8 +747,6 @@ suite('StatementTree', function () {
 		});
 
 		test('permits type aliases but omits the type keyword from the statement', async function () {
-			// this is to document the behavior of the current grammar
-			// type alias is not supported in 0.23 Python grammar. Results in no statement.
 			await testStatementBuilding('python', `type Vector = list[float]`);
 		});
 
@@ -873,7 +861,6 @@ suite('StatementTree', function () {
 		});
 	});
 
-	// MARK: Go
 
 	suite('Go', function () {
 		test('go is supported', function () {
@@ -1423,7 +1410,6 @@ suite('StatementTree', function () {
 		}
 	});
 
-	// MARK: Php
 	suite('PHP', function () {
 		test('Php is supported', function () {
 			assert.strictEqual(StatementTree.isSupported('php'), true);
@@ -1737,7 +1723,6 @@ suite('StatementTree', function () {
 		});
 	});
 
-	// MARK: Ruby
 	suite('Ruby', function () {
 		test('ruby is supported', function () {
 			assert.strictEqual(StatementTree.isSupported('ruby'), true);
@@ -2127,7 +2112,6 @@ suite('StatementTree', function () {
 		});
 	});
 
-	// MARK: Java
 
 	suite('Java', function () {
 		test('java is supported', function () {
@@ -2813,7 +2797,6 @@ suite('StatementTree', function () {
 		}
 	});
 
-	// MARK: C#
 
 	suite('C#', function () {
 		test('csharp is supported', function () {
@@ -3793,7 +3776,6 @@ suite('StatementTree', function () {
 		}
 	});
 
-	// MARK: C, C++
 
 	suite('C, C++', function () {
 		const languages = ['c', 'cpp'];
@@ -4468,13 +4450,6 @@ suite('StatementTree', function () {
 		});
 	});
 
-	/**
-	 * Use `▶️` and `◀️` to mark the beginning and end of statements in the test text.
-	 *
-	 * If `❚` (`'\u275A'`) is present in the text, it represents the cursor, and the region
-	 * between the cursor and end of the text is passed as the offsets for tree building
-	 * (otherwise, the full text region is used).
-	 */
 	async function testStatementBuilding(language: string, text: string) {
 		const delim = /▶️|◀️|❚/;
 		const statements: StatementNodeSpec[] = [];

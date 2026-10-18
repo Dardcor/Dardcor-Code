@@ -10,11 +10,11 @@ import { IPosition, ITextDocument } from '../../../lib/src/textDocument';
 import { solutionCountTarget } from '../lib/dardcorPanel/common';
 import { BaseSuggestionsPanelManager, ListDocumentInterface } from '../panelShared/baseSuggestionsPanelManager';
 import { PanelCompletion } from './common';
-import { CopilotListDocument } from './dardcorListDocument';
-import { CopilotSuggestionsPanel } from './dardcorSuggestionsPanel';
+import { DardcorListDocument } from './dardcorListDocument';
+import { DardcorSuggestionsPanel } from './dardcorSuggestionsPanel';
 import { dardcorPanelConfig } from './panelConfig';
 
-export class CopilotSuggestionsPanelManager extends BaseSuggestionsPanelManager<PanelCompletion> {
+export class DardcorSuggestionsPanelManager extends BaseSuggestionsPanelManager<PanelCompletion> {
 	constructor(
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IVSCodeExtensionContext extensionContext: IVSCodeExtensionContext,
@@ -25,16 +25,16 @@ export class CopilotSuggestionsPanelManager extends BaseSuggestionsPanelManager<
 	protected createListDocument(
 		wrapped: ITextDocument,
 		position: IPosition,
-		panel: CopilotSuggestionsPanel
+		panel: DardcorSuggestionsPanel
 	): ListDocumentInterface {
-		return this._instantiationService.createInstance(CopilotListDocument, wrapped, position, panel, solutionCountTarget);
+		return this._instantiationService.createInstance(DardcorListDocument, wrapped, position, panel, solutionCountTarget);
 	}
 
 	protected createSuggestionsPanel(
 		panel: WebviewPanel,
 		document: TextDocument,
 		manager: this
-	): CopilotSuggestionsPanel {
-		return this._instantiationService.createInstance(CopilotSuggestionsPanel, panel, document, manager);
+	): DardcorSuggestionsPanel {
+		return this._instantiationService.createInstance(DardcorSuggestionsPanel, panel, document, manager);
 	}
 }

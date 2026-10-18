@@ -18,7 +18,6 @@ import { ChatEntitlement } from '../../../../services/chat/common/chatEntitlemen
 import { ChatErrorLevel } from '../../common/chatService/chatService.js';
 import type { ErrorInfo } from '../../../../../platform/agentHost/common/state/protocol/state.js';
 
-/** Wraps a `_meta` bag in a minimal {@link ErrorInfo} so the reader sees the right source type. */
 function errorInfo(meta: Record<string, unknown> | undefined): ErrorInfo {
 	return { errorType: 'e', message: 'm', _meta: meta };
 }
@@ -65,11 +64,6 @@ suite('ChatErrorMessages', () => {
 			assert.strictEqual(details?.message, 'You\'ve reached your monthly chat messages quota. Upgrade to Copilot Pro or wait for your allowance to renew.');
 		});
 
-		// Drift guard: the node layer (platform/agentHost/node/shared/forwardedChatError.ts)
-		// encodes IForwardedChatError independently of this consumer (the layers cannot
-		// share types). This pins the exact payload shape the node side emits — including
-		// every fetchError.type its classifiers can produce — so a shape change on either
-		// side is caught here instead of silently failing to render.
 		test('accepts the payload shape and every type the node layer emits', () => {
 			const nodeTypes = ['quotaExceeded', 'rateLimited', 'canceled', 'badRequest', 'agent_unauthorized', 'notFound', 'failed', 'length'];
 			const resolved = nodeTypes.map(type => getChatErrorDetailsFromMeta(errorInfo({
@@ -85,8 +79,6 @@ suite('ChatErrorMessages', () => {
 					isUsageBasedBilling: false,
 				},
 			}))?.code);
-			// Every node-emitted type resolves to a defined details object whose code is
-			// the fetch type (or, for quota, the more specific capiError code).
 			assert.deepStrictEqual(resolved, ['some_code', 'rateLimited', 'canceled', 'badRequest', 'agent_unauthorized', 'notFound', 'failed', 'length']);
 		});
 	});

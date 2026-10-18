@@ -15,7 +15,7 @@ import { ExtendedLanguageModelToolResult, LanguageModelDataPart, LanguageModelPr
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { RunNotebookCellOutput } from './runNotebookCellTool';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { getCellIdMap } from '../../../platform/notebook/common/helpers';
@@ -23,7 +23,7 @@ import { INotebookService } from '../../../platform/notebook/common/notebookServ
 import { ILogService } from '../../../platform/log/common/logService';
 import { ChatImageMimeType } from '../../conversation/common/languageModelChatMessageHelpers';
 
-export class GetNotebookCellOutputTool implements ICopilotTool<IGetNotebookCellOutputToolParams> {
+export class GetNotebookCellOutputTool implements IAgentTool<IGetNotebookCellOutputToolParams> {
 	public static toolName = ToolName.ReadCellOutput;
 	private _promptContext: IBuildPromptContext | undefined;
 
@@ -46,8 +46,6 @@ export class GetNotebookCellOutputTool implements ICopilotTool<IGetNotebookCellO
 			sendOutcomeTelemetry(this.telemetryService, this.endpointProvider, options, 'invalid_file_path');
 			throw new Error(`Invalid file path`);
 		}
-		// Sometimes we get the notebook cell Uri in the resource.
-		// Resolve this to notebook.
 		let notebook = findNotebook(uri, this.workspaceService.notebookDocuments);
 		if (notebook) {
 			uri = notebook.uri;
@@ -124,16 +122,6 @@ ToolRegistry.registerTool(GetNotebookCellOutputTool);
 async function sendOutcomeTelemetry(telemetryService: ITelemetryService, endpointProvider: IEndpointProvider | undefined, options: vscode.LanguageModelToolInvocationOptions<IGetNotebookCellOutputToolParams>, outcome: string) {
 	const model = (options.model && endpointProvider && (await endpointProvider.getChatEndpoint(options.model)).model);
 
-	/* __GDPR__
-		"getNotebookCellOutput.toolOutcome" : {
-			"owner": "donjayamanne",
-			"comment": "Tracks the tool used to get Notebook cell outputs",
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-			"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook (this measure is used to identify notebook related telemetry)." },
-			"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Outcome of the edit operation" },
-			"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the request." }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('getNotebookCellOutput.toolOutcome',
 		{ requestId: options.chatRequestId, outcome, model }, { isNotebook: 1 }
 	);

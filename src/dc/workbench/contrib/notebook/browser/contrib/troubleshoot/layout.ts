@@ -74,7 +74,6 @@ export class TroubleshootController extends Disposable implements INotebookEdito
 			this._createCellOverlay(cell, i);
 		}
 
-		// Add listener for new cells
 		this._localStore.add(this._notebookEditor.onDidChangeViewCells(e => {
 			const addedCells = e.splices.reduce((acc, [, , newCells]) => [...acc, ...newCells], [] as ICellViewModel[]);
 			for (let i = 0; i < addedCells.length; i++) {
@@ -105,7 +104,6 @@ export class TroubleshootController extends Disposable implements INotebookEdito
 				zIndex: '1000'
 			}
 		}, [
-			// Top line
 			n.div({
 				style: {
 					position: 'absolute',
@@ -116,7 +114,6 @@ export class TroubleshootController extends Disposable implements INotebookEdito
 					backgroundColor: 'rgba(0, 0, 255, 0.7)'
 				}
 			}),
-			// Text label for the notebook overlay
 			n.div({
 				style: {
 					position: 'absolute',
@@ -146,7 +143,6 @@ export class TroubleshootController extends Disposable implements INotebookEdito
 			const listViewTop = this._notebookEditor.getLayoutInfo().listViewOffsetTop;
 
 			if (this._notebookOverlayDomNode) {
-				// Update label
 				// eslint-disable-next-line no-restricted-syntax
 				const labelElement = this._notebookOverlayDomNode.querySelector('div:nth-child(2)') as HTMLElement;
 				if (labelElement) {
@@ -154,7 +150,6 @@ export class TroubleshootController extends Disposable implements INotebookEdito
 					labelElement.style.top = `${listViewTop}px`;
 				}
 
-				// Update top line
 				// eslint-disable-next-line no-restricted-syntax
 				const topLineElement = this._notebookOverlayDomNode.querySelector('div:first-child') as HTMLElement;
 				if (topLineElement) {
@@ -216,12 +211,9 @@ export class TroubleshootController extends Disposable implements INotebookEdito
 
 		if (overlayId) {
 
-			// Update overlay when layout changes
 			const updateLayout = () => {
-				// Update label text
 				label.textContent = getLayoutInfo();
 
-				// Refresh the overlay position
 				if (overlayId) {
 					this._notebookEditor.changeCellOverlays((accessor) => {
 						accessor.layoutOverlay(overlayId!);
@@ -291,7 +283,6 @@ export class TroubleshootController extends Disposable implements INotebookEdito
 				dispose(deletedCells);
 			});
 
-			// Add the overlays
 			const addedCells = e.splices.reduce((acc, [, , newCells]) => [...acc, ...newCells], [] as ICellViewModel[]);
 			for (let i = 0; i < addedCells.length; i++) {
 				const cellIndex = this._notebookEditor.getCellIndex(addedCells[i]);

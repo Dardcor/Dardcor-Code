@@ -33,7 +33,6 @@ suite('vscode API - env.power', () => {
 	test('power save blocker can be started and disposed', async () => {
 		const blocker = await vscode.env.power.startPowerSaveBlocker('prevent-app-suspension');
 		assert.strictEqual(typeof blocker.id, 'number');
-		// Power save blocker is not supported in browser (id === -1), so isStarted will be false
 		const isSupported = blocker.id >= 0;
 		assert.strictEqual(blocker.isStarted, isSupported);
 
@@ -44,7 +43,6 @@ suite('vscode API - env.power', () => {
 	test('power save blocker with prevent-display-sleep type', async () => {
 		const blocker = await vscode.env.power.startPowerSaveBlocker('prevent-display-sleep');
 		assert.strictEqual(typeof blocker.id, 'number');
-		// Power save blocker is not supported in browser (id === -1), so isStarted will be false
 		const isSupported = blocker.id >= 0;
 		assert.strictEqual(blocker.isStarted, isSupported);
 
@@ -75,7 +73,6 @@ suite('vscode API - env.power', () => {
 		disposables.push(vscode.env.power.onDidLockScreen(() => { }));
 		disposables.push(vscode.env.power.onDidUnlockScreen(() => { }));
 
-		// Dispose all listeners
 		disposables.forEach(d => d.dispose());
 	});
 });

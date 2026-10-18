@@ -14,10 +14,7 @@ use std::path::PathBuf;
 use zip::read::ZipFile;
 use zip::{self, ZipArchive};
 
-// Borrowed and modified from https://github.com/zip-rs/zip/blob/master/examples/extract.rs
 
-/// Returns whether all files in the archive start with the same path segment.
-/// If so, it's an indication we should skip that segment when extracting.
 fn should_skip_first_segment(archive: &mut ZipArchive<File>) -> bool {
 	let first_name = {
 		let file = archive
@@ -44,7 +41,7 @@ fn should_skip_first_segment(archive: &mut ZipArchive<File>) -> bool {
 		}
 	}
 
-	archive.len() > 1 // prefix removal is invalid if there's only a single file
+	archive.len() > 1
 }
 
 pub fn unzip_file<T>(file: File, parent_path: &Path, mut reporter: T) -> Result<(), WrappedError>
@@ -70,10 +67,6 @@ where
 		let outpath: PathBuf = match file.enclosed_name() {
 			Some(path) => {
 				let relative: PathBuf = path.iter().skip(skip_segments_no).collect();
-				// Skip bare top-level directory entries that become empty once
-				// their single segment has been stripped. Only directory entries
-				// are skipped; non-directory entries with an empty relative path
-				// fall through to `safe_extract_join`, which rejects them.
 				if relative.as_os_str().is_empty()
 					&& (file.is_dir() || file.name().ends_with('/'))
 				{

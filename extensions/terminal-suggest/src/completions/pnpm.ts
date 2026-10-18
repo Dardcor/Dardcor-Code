@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// GENERATORS
 
 import { npmScriptsGenerator, npmSearchGenerator } from './npm';
 import { dependenciesGenerator, nodeClis } from './yarn';
@@ -28,13 +27,11 @@ const searchBranches: Fig.Generator = {
 			const parts = elm.match(/\S+/g);
 			if (parts && parts.length > 1) {
 				if (parts[0] === '*') {
-					// Current branch.
 					return {
 						name: elm.replace('*', '').trim(),
 						description: 'Current branch',
 					};
 				} else if (parts[0] === '+') {
-					// Branch checked out in another worktree.
 					name = elm.replace('+', '').trim();
 				}
 			}
@@ -51,22 +48,6 @@ const searchBranches: Fig.Generator = {
 const generatorInstalledPackages: Fig.Generator = {
 	script: ['pnpm', 'ls'],
 	postProcess: function (out) {
-		/**
-		 * out
-		 * @example
-		 * ```
-		 * Legend: production dependency, optional only, dev only
-		 *
-		 * /xxxx/xxxx/<package-name> (PRIVATE)
-		 *
-		 * dependencies:
-		 * lodash 4.17.21
-		 * foo link:packages/foo
-		 *
-		 * devDependencies:
-		 * typescript 4.7.4
-		 * ```
-		 */
 		if (out.includes('ERR_PNPM')) {
 			return [];
 		}
@@ -74,14 +55,13 @@ const generatorInstalledPackages: Fig.Generator = {
 		const output = out
 			.split('\n')
 			.slice(3)
-			// remove empty lines, '*dependencies:' lines, local workspace packages (eg: 'foo':'workspace:*')
 			.filter(
 				(item) =>
 					!!item &&
 					!item.toLowerCase().includes('dependencies') &&
 					!item.includes('link:')
 			)
-			.map((item) => item.replace(/\s/, '@')); // typescript 4.7.4 -> typescript@4.7.4
+			.map((item) => item.replace(/\s/, '@'));
 
 		return output.map((pkg) => {
 			return {
@@ -105,7 +85,6 @@ pnpm supports a rich selector syntax for picking packages by name or by relation
 More details: https://pnpm.io/filtering`,
 };
 
-/** Options that being appended for `pnpm i` and `add` */
 const INSTALL_BASE_OPTIONS: Fig.Option[] = [
 	{
 		name: '--offline',
@@ -132,7 +111,6 @@ const INSTALL_BASE_OPTIONS: Fig.Option[] = [
 	},
 ];
 
-/** Base options for pnpm i when run without any arguments */
 const INSTALL_OPTIONS: Fig.Option[] = [
 	{
 		name: ['-P', '--save-prod'],
@@ -170,7 +148,6 @@ Use this flag to instruct pnpm to ignore NODE_ENV and take its production status
 	},
 ];
 
-/** Base options for pnpm add */
 const INSTALL_PACKAGE_OPTIONS: Fig.Option[] = [
 	{
 		name: ['-P', '--save-prod'],
@@ -214,7 +191,6 @@ For instance, pnpm add debug -W`,
 	FILTER_OPTION,
 ];
 
-// SUBCOMMANDS
 const SUBCOMMANDS_MANAGE_DEPENDENCIES: Fig.Subcommand[] = [
 	{
 		name: 'add',
@@ -234,7 +210,6 @@ In a CI environment, installation fails if a lockfile is present but needs an up
 Inside a workspace, pnpm install installs all dependencies in all the projects.
 If you want to disable this behavior, set the recursive-install setting to false`,
 		async generateSpec(tokens) {
-			// `pnpm i` with args is an `pnpm add` alias
 			const hasArgs =
 				tokens.filter((token) => token.trim() !== '' && !token.startsWith('-'))
 					.length > 2;
@@ -471,7 +446,6 @@ This is similar to yarn unlink, except pnpm re-installs the dependency after rem
 		args: {
 			name: 'package',
 			isVariadic: true,
-			// TODO: would be nice to have a generator of all patched packages
 		},
 	},
 ];
@@ -944,10 +918,8 @@ const recursiveSubcommands = subcommands.filter((subcommand) => {
 	return recursiveSubcommandsNames.includes(subcommand.name);
 });
 
-// RECURSIVE SUBCOMMAND INDEX
 SUBCOMMANDS_MISC[1].subcommands = recursiveSubcommands;
 
-// common options
 const COMMON_OPTIONS: Fig.Option[] = [
 	{
 		name: ['-C', '--dir'],
@@ -979,7 +951,6 @@ const COMMON_OPTIONS: Fig.Option[] = [
 	},
 ];
 
-// SPEC
 const completionSpec: Fig.Spec = {
 	name: 'pnpm',
 	description: 'Fast, disk space efficient package manager',

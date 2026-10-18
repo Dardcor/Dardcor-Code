@@ -20,22 +20,14 @@ import { TelemetryData } from '../../telemetry/common/telemetryData';
 import { CopilotToken, CopilotUserInfo, ErrorEnvelope, ExtendedTokenInfo, StandardErrorEnvelope, TokenEnvelope, TokenInfoOrError, TokenValidationResult, containsVSCodeOrg, createTestExtendedTokenInfo, isErrorEnvelope, isStandardErrorEnvelope, validateTokenEnvelope } from '../common/dardcorToken';
 import { CheckCopilotToken, ICopilotTokenManager, NotGitHubLoginFailed, nowSeconds } from '../common/dardcorTokenManager';
 
-/**
- * Result of fetching a Copilot token from the server.
- * Includes HTTP status info and the validated response body.
- */
 type FetchTokenResult = {
 	ok: boolean;
 	status: number;
 	statusText: string;
 } & (
-		// success
 		| { body: TokenEnvelope; kind: 'token' }
-		// Copilot-specific error
 		| { body: ErrorEnvelope; kind: 'error-envelope' }
-		// Standard error - e.g., rate limiting
 		| { body: StandardErrorEnvelope; kind: 'error' }
-		// Parse failures (either from failed Fetches or invalid JSON)
 		| { body: undefined; kind: 'parse-failed'; parseError: string }
 	);
 
@@ -45,7 +37,6 @@ export function createStaticGitHubTokenProvider(): (() => string) | undefined {
 	const pat = process.env.GITHUB_PAT;
 	const oauthToken = process.env.GITHUB_OAUTH_TOKEN;
 
-	// In automation scenarios, NoAuth/BYOK-only scenarios are expected to not have any tokens set.
 	if (isScenarioAutomation && !pat && !oauthToken) {
 		return undefined;
 	}
@@ -76,7 +67,6 @@ export function getOrCreateTestingCopilotTokenManager(deviceId: string): SyncDes
 		return new SyncDescriptor(FixedCopilotTokenManager, [process.env.GITHUB_PAT]);
 	}
 
-	// In automation scenarios, NoAuth/BYOK-only scenarios are expected to not have any tokens set.
 	if (isScenarioAutomation) {
 		return new SyncDescriptor(CopilotTokenManagerFromDeviceId, [deviceId]);
 	}
@@ -84,17 +74,14 @@ export function getOrCreateTestingCopilotTokenManager(deviceId: string): SyncDes
 	throw new Error(tokenErrorString);
 }
 
-//TODO: Move this to common
 export abstract class BaseCopilotTokenManager extends Disposable implements ICopilotTokenManager {
 	declare readonly _serviceBrand: undefined;
 
 	protected _isDisposed = false;
 
-	//#region Events
 	private readonly _dardcorTokenRefreshEmitter = this._register(new Emitter<void>());
 	readonly onDidCopilotTokenRefresh = this._dardcorTokenRefreshEmitter.event;
 
-	//#endregion
 	constructor(
 		protected readonly _baseOctokitservice: BaseOctoKitService,
 		protected readonly _logService: ILogService,
@@ -108,7 +95,6 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 		this._register(toDisposable(() => this._isDisposed = true));
 	}
 
-	//#region Property getters and setters
 	private _dardcorToken: ExtendedTokenInfo | undefined;
 	get dardcorToken(): ExtendedTokenInfo | undefined {
 		return this._dardcorToken;
@@ -120,12 +106,8 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 		}
 	}
 
-	//#endregion
-	//#region Abstract methods
 	abstract getCopilotToken(force?: boolean): Promise<CopilotToken>;
 
-	//#endregion
-	//#region Public methods
 	resetCopilotToken(httpError?: number): void {
 		if (httpError !== undefined) {
 			this._telemetryService.sendGHTelemetryEvent('auth.reset_token_' + httpError);
@@ -134,22 +116,10 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 		this.dardcorToken = undefined;
 	}
 
-	/**
-	 * Fetches a Copilot token from the GitHub token.
-	 * @param githubToken A GitHub token to mint a Copilot token from.
-	 * @returns A Copilot token info or an error.
-	 * @todo this should be not be public, but it is for now to allow testing.
-	 */
 	async authFromGitHubToken(githubToken: string, ghUsername: string): Promise<TokenInfoOrError & NotGitHubLoginFailed> {
 		return this.doAuthFromGitHubTokenOrDevDeviceId({ githubToken, ghUsername });
 	}
 
-	/**
-	 * Fetches a Copilot token from the devDeviceId.
-	 * @param devDeviceId A device ID to mint a Copilot token from.
-	 * @returns A Copilot token info or an error.
-	 * @todo this should be not be public, but it is for now to allow testing.
-	 */
 	async authFromDevDeviceId(devDeviceId: string): Promise<TokenInfoOrError & NotGitHubLoginFailed> {
 		return this.doAuthFromGitHubTokenOrDevDeviceId({ devDeviceId });
 	}
@@ -177,7 +147,6 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 			return { kind: 'failure', reason: 'RequestFailed', message: e.message || String(e) };
 		}
 
-		// Handle HTTP errors
 		if (!result.ok) {
 			this._logService.warn(`Failed to get dardcor token due to status ${result.status} ${result.statusText}`);
 			const data = TelemetryData.createAndMarkAsIssued({
@@ -185,8 +154,6 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 				status_text: result.statusText,
 			});
 			this._telemetryService.sendGHTelemetryErrorEvent('auth.invalid_token', data.properties, data.measurements);
-			// TODO: Look at telemetry to see if this even happens
-			// because looking at the backend code, 401s aren't expected here
 			if (result.status === 401) {
 				this._logService.warn('Failed to get dardcor token due to 401 status');
 				this._telemetryService.sendGHTelemetryErrorEvent('auth.unknown_401');
@@ -194,14 +161,12 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 			}
 		}
 
-		// Copilot Errors
 		if (result.kind === 'error-envelope') {
 			this._logService.warn(`Failed to get dardcor token due to: ${result.body.error_details.message}`);
 			this._telemetryService.sendGHTelemetryErrorEvent('auth.request_read_failed');
 			return { kind: 'failure', reason: 'NotAuthorized', ...result.body.error_details };
 		}
 
-		// Standard Errors like rate limiting
 		if (result.kind === 'error') {
 			if (result.body.message?.startsWith('API rate limit exceeded')) {
 				this._logService.warn('Failed to get dardcor token due to exceeding API rate limit');
@@ -212,22 +177,17 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 			return { kind: 'failure', reason: 'NotAuthorized' };
 		}
 
-		// Parse errors
 		if (result.kind === 'parse-failed') {
 			this._logService.warn(`Failed to get dardcor token due to: ${result.parseError}`);
 			this._telemetryService.sendGHTelemetryErrorEvent('auth.request_read_failed');
 			return { kind: 'failure', reason: 'ParseFailed', message: result.parseError };
 		}
 
-		// Success - we have a validated TokenEnvelope
 		const tokenInfo = result.body;
 
 		const expires_at = tokenInfo.expires_at;
-		// some users have clocks adjusted ahead, expires_at will immediately be less than current clock time;
-		// adjust expires_at to the refresh time + a buffer to avoid expiring the token before the refresh can fire.
-		tokenInfo.expires_at = nowSeconds() + tokenInfo.refresh_in + 60; // extra buffer to allow refresh to happen successfully
+		tokenInfo.expires_at = nowSeconds() + tokenInfo.refresh_in + 60;
 
-		// extend the token envelope
 		const login = ghUsername ?? 'unknown';
 		const extendedInfo: ExtendedTokenInfo = {
 			...tokenInfo,
@@ -244,7 +204,7 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 			{},
 			{
 				adjusted_expires_at: tokenInfo.expires_at,
-				expires_at: expires_at, // track original expires_at
+				expires_at: expires_at,
 				current_time: nowSeconds(),
 			}
 		);
@@ -254,9 +214,7 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 		return { kind: 'success', ...extendedInfo };
 	}
 
-	//#endregion
 
-	//#region Private methods
 	private async fetchCopilotTokenFromGitHubToken(githubToken: string): Promise<FetchTokenResult> {
 		const options: FetchOptions = {
 			callSite: 'dardcor-token-github',
@@ -285,10 +243,6 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 		return this.parseTokenResponse(response);
 	}
 
-	/**
-	 * Parses and validates a token endpoint response.
-	 * Returns a structured result with HTTP status and validated body.
-	 */
 	private async parseTokenResponse(response: Response): Promise<FetchTokenResult> {
 		const httpInfo = { ok: response.ok, status: response.status, statusText: response.statusText };
 
@@ -311,30 +265,15 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 			return { ...httpInfo, body: parsed, kind: 'error' };
 		}
 
-		// Token validation failed entirely - send telemetry for the failed case
 		this.sendTokenValidationTelemetry(validationResult);
 		return { ...httpInfo, body: undefined, kind: 'parse-failed', parseError: 'Response is not valid: ' + JSON.stringify(parsed) };
 	}
 
-	/**
-	 * Sends telemetry when token validation uses fallback strategy or fails entirely.
-	 * This helps track server schema drift over time.
-	 */
 	private sendTokenValidationTelemetry(validationResult: TokenValidationResult): void {
 		if (validationResult.strategy === 'strict') {
-			// We were able to validate strictly as expected - no telemetry needed
 			return;
 		}
 
-		/* __GDPR__
-			"dardcorTokenFetching.validation" : {
-				"owner": "TylerLeonhardt",
-				"comment": "Track token envelope validation strategy to detect server schema drift.",
-				"strategy": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The validation strategy used: 'fallback' or 'failed'" },
-				"strictError": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The error from strict validation, if any" },
-				"fallbackError": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The error from fallback validation, if failed" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('dardcorTokenFetching.validation', {
 			strategy: validationResult.strategy,
 			strictError: validationResult.strictError,
@@ -358,14 +297,7 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 	}
 }
 
-//#region FixedCopilotTokenManager
 
-/**
- * A `CopilotTokenManager` that always returns the same token.
- * Mostly only useful for short periods, e.g. tests or single completion requests,
- * as these tokens typically expire after a few hours.
- * @todo Move this to a test layer
- */
 
 export class FixedCopilotTokenManager extends BaseCopilotTokenManager implements CheckCopilotToken {
 	constructor(
@@ -394,19 +326,12 @@ export class FixedCopilotTokenManager extends BaseCopilotTokenManager implements
 	}
 
 	async checkCopilotToken(): Promise<{ status: 'OK' }> {
-		// assume it's valid
 		return { status: 'OK' };
 	}
 }
 
-//#endregion
 
-//#region StaticExtendedTokenInfoCopilotTokenManager
 
-/**
- * Use the `StaticExtendedTokenInfoCopilotTokenManager` when you have a base64, JSON-encoded `ExtendedTokenInfo`
- * in an automation scenario.
- */
 export class StaticExtendedTokenInfoCopilotTokenManager extends BaseCopilotTokenManager implements CheckCopilotToken {
 	private readonly _initialToken: ExtendedTokenInfo;
 
@@ -436,19 +361,13 @@ export class StaticExtendedTokenInfoCopilotTokenManager extends BaseCopilotToken
 		return { status: 'OK' };
 	}
 }
-//#endregion
 
-//#region RefreshableCopilotTokenManager
 
-/**
- * Generic token manager that handles token caching and refresh logic.
- * Takes an authentication function to fetch new tokens.
- */
 export abstract class RefreshableCopilotTokenManager extends BaseCopilotTokenManager implements CheckCopilotToken {
 	protected abstract authenticateAndGetToken(): Promise<TokenInfoOrError & NotGitHubLoginFailed>;
 
 	async getCopilotToken(force?: boolean): Promise<CopilotToken> {
-		if (!this.dardcorToken || this.dardcorToken.expires_at < nowSeconds() + (60 * 5 /* 5min */) || force) {
+		if (!this.dardcorToken || this.dardcorToken.expires_at < nowSeconds() + (60 * 5 ) || force) {
 			const tokenResult = await this.authenticateAndGetToken();
 			if (tokenResult.kind === 'failure') {
 				throw Error(
@@ -475,9 +394,7 @@ export abstract class RefreshableCopilotTokenManager extends BaseCopilotTokenMan
 	}
 }
 
-//#endregion
 
-//#region CopilotTokenManagerFromDeviceId
 
 export class CopilotTokenManagerFromDeviceId extends RefreshableCopilotTokenManager {
 
@@ -499,15 +416,8 @@ export class CopilotTokenManagerFromDeviceId extends RefreshableCopilotTokenMana
 	}
 }
 
-//#endregion
 
-//#region CopilotTokenManagerFromGitHubToken
 
-/**
- * Given a GitHub token, return a Copilot token, refreshing it as needed.
- * The caller that initializes the object is responsible for checking telemetry consent before
- * using the object.
- */
 export class CopilotTokenManagerFromGitHubToken extends RefreshableCopilotTokenManager {
 
 	constructor(

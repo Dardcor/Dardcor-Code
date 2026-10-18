@@ -4,14 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { PromptFileContribution } from '../../agents/dardcor-node/promptFileContrib';
-import { AuthenticationContrib } from '../../authentication/dardcor-node/authentication.contribution';
 import { BYOKContrib } from '../../byok/dardcor-node/byokContribution';
 import { ChatDebugFileLoggerContribution } from '../../chat/dardcor-node/chatDebugFileLoggerService';
-import { ChatQuotaContribution } from '../../chat/dardcor-node/chatQuota.contribution';
 import { ChatSessionContextContribution } from '../../chatSessionContext/dardcor-node/chatSessionContextProvider';
 import { ChatSessionsContrib } from '../../chatSessions/dardcor-node/chatSessions';
 import { SessionStoreTracker } from '../../chronicle/dardcor-node/sessionStoreTracker';
-import * as sessionSyncContribution from '../../chronicle/dardcor-node/sessionSync.contribution';
 import * as chatBlockLanguageContribution from '../../codeBlocks/dardcor-node/chatBlockLanguageFeatures.contribution';
 import { IExtensionContributionFactory, asContributionFactory } from '../../common/contributions';
 import { CompletionsUnificationContribution } from '../../completions/dardcor-node/completionsUnificationContribution';
@@ -23,7 +20,6 @@ import { ConversationFeature } from '../../conversation/dardcor-node/conversatio
 import { FeedbackCommandContribution } from '../../conversation/dardcor-node/feedbackContribution';
 import { LanguageModelAccess } from '../../conversation/dardcor-node/languageModelAccess';
 import { LogWorkspaceStateContribution } from '../../conversation/dardcor-node/logWorkspaceState';
-import { RemoteAgentContribution } from '../../conversation/dardcor-node/remoteAgents';
 import { DiagnosticsContextContribution } from '../../diagnosticsContext/dardcor/diagnosticsContextProvider';
 import { LanguageModelProxyContrib } from '../../externalAgents/dardcor-node/lmProxyContrib';
 import { WalkthroughCommandContribution } from '../../getting-started/dardcor-node/commands';
@@ -38,7 +34,7 @@ import { FetcherTelemetryContribution, LoggingActionsContrib } from '../../log/d
 import { RequestLogTree } from '../../log/dardcor-node/requestLogTree';
 import { McpSetupCommands } from '../../mcp/dardcor-node/commands';
 import { NotebookFollowCommands } from '../../notebook/dardcor-node/followActions';
-import { CopilotDebugCommandContribution } from '../../onboardDebug/dardcor-node/dardcorDebugCommandContribution';
+import { DardcorDebugCommandContribution } from '../../onboardDebug/dardcor-node/dardcorDebugCommandContribution';
 import { OnboardTerminalTestsContribution } from '../../onboardDebug/dardcor-node/onboardTerminalTestsContribution';
 import { OTelContrib } from '../../otel/dardcor-node/otelContrib';
 import { PowerStateLogger } from '../../power/dardcor-node/powerStateLogger';
@@ -57,32 +53,21 @@ import * as workspaceIndexingContribution from '../../workspaceChunkSearch/dardc
 import { WorkspaceRecorderFeature } from '../../workspaceRecorder/dardcor-node/workspaceRecorderFeature';
 import vscodeContributions from '../dardcor/contributions';
 
-// ###################################################################################################
-// ###                                                                                             ###
-// ###                   Node contributions run ONLY in node.js extension host.                    ###
-// ###                                                                                             ###
-// ### !!! Prefer to list contributions in ../vscode/contributions.ts to support them anywhere !!! ###
-// ###                                                                                             ###
-// ###################################################################################################
 
 export const vscodeNodeContributions: IExtensionContributionFactory[] = [
 	...vscodeContributions,
 	asContributionFactory(ExtensionStateCommandContribution),
 	asContributionFactory(ConversationFeature),
-	asContributionFactory(AuthenticationContrib),
 	chatBlockLanguageContribution,
 	asContributionFactory(LoggingActionsContrib),
 	asContributionFactory(FetcherTelemetryContribution),
 	asContributionFactory(PowerStateLogger),
 	asContributionFactory(ContextKeysContribution),
-	asContributionFactory(CopilotDebugCommandContribution),
+	asContributionFactory(DardcorDebugCommandContribution),
 	asContributionFactory(DebugCommandsContribution),
 	asContributionFactory(LanguageModelAccess),
 	asContributionFactory(WalkthroughCommandContribution),
 	asContributionFactory(JointCompletionsProviderContribution),
-	// replaced by JointCompletionsProviderContribution
-	// asContributionFactory(InlineEditProviderFeatureContribution),
-	// asContributionFactory(CompletionsCoreContribution),
 	asContributionFactory(SettingsSchemaFeature),
 	asContributionFactory(WorkspaceRecorderFeature),
 	asContributionFactory(SurveyCommandContribution),
@@ -90,7 +75,6 @@ export const vscodeNodeContributions: IExtensionContributionFactory[] = [
 	asContributionFactory(InlineCompletionContribution),
 	asContributionFactory(NesRenameContribution),
 	asContributionFactory(SearchPanelCommands),
-	asContributionFactory(ChatQuotaContribution),
 	asContributionFactory(NotebookFollowCommands),
 	asContributionFactory(PromptFileContextContribution),
 	asContributionFactory(ScmContextProviderContribution),
@@ -102,22 +86,14 @@ export const vscodeNodeContributions: IExtensionContributionFactory[] = [
 	asContributionFactory(GitHubMcpContrib),
 	asContributionFactory(OTelContrib),
 	asContributionFactory(SessionStoreTracker),
-	sessionSyncContribution,
 	asContributionFactory(BYOKContrib),
 ];
 
-/**
- * These contributions are special in that they are only instantiated
- * when the user is logged in and chat is enabled.
- * Anything that contributes a dardcor chat feature that doesn't need
- * to run when chat is not enabled should be added here.
-*/
 export const vscodeNodeChatContributions: IExtensionContributionFactory[] = [
 	asContributionFactory(ConfigurationMigrationContribution),
 	asContributionFactory(RequestLogTree),
 	asContributionFactory(OnboardTerminalTestsContribution),
 	asContributionFactory(ToolsContribution),
-	asContributionFactory(RemoteAgentContribution),
 	asContributionFactory(AiMappedEditsContrib),
 	asContributionFactory(RenameSuggestionsContrib),
 	asContributionFactory(LogWorkspaceStateContribution),

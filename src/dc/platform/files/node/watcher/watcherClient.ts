@@ -24,8 +24,6 @@ export class UniversalWatcherClient extends AbstractUniversalWatcherClient {
 
 	protected override createWatcher(disposables: DisposableStore): IUniversalWatcher {
 
-		// Fork the universal file watcher and build a client around
-		// its server for passing over requests and receiving events.
 		const client = disposables.add(new Client(
 			FileAccess.asFileUri('bootstrap-fork').fsPath,
 			{
@@ -34,12 +32,11 @@ export class UniversalWatcherClient extends AbstractUniversalWatcherClient {
 				env: {
 					VSCODE_ESM_ENTRYPOINT: 'dc/platform/files/node/watcher/watcherMain',
 					VSCODE_PIPE_LOGGING: 'true',
-					VSCODE_VERBOSE_LOGGING: 'true' // transmit console logs from server to client
+					VSCODE_VERBOSE_LOGGING: 'true'
 				}
 			}
 		));
 
-		// React on unexpected termination of the watcher process
 		disposables.add(client.onDidProcessExit(({ code, signal }) => this.onError(`terminated by itself with code ${code}, signal: ${signal} (ETERM)`)));
 
 		return ProxyChannel.toService<IUniversalWatcher>(getNextTickChannel(client.getChannel('watcher')));

@@ -9,9 +9,6 @@ import 'mocha';
 import * as vscode from 'vscode';
 import { assertNoRpc, closeAllEditors } from '../utils';
 
-/**
- * Extracts all text content from a LanguageModelToolResult.
- */
 function extractTextContent(result: vscode.LanguageModelToolResult): string {
 	return result.content
 		.filter((c): c is vscode.LanguageModelTextPart => c instanceof vscode.LanguageModelTextPart)
@@ -24,12 +21,10 @@ function extractTextContent(result: vscode.LanguageModelToolResult): string {
 	let clearNotificationsInterval: ReturnType<typeof setInterval> | undefined;
 
 	setup(async () => {
-		// Periodically clear notifications to prevent them from interrupting the browser.
 		clearNotificationsInterval = setInterval(() => {
 			vscode.commands.executeCommand('notifications.clearAll');
 		}, 500);
 
-		// Enable browser chat tools
 		const browserConfig = vscode.workspace.getConfiguration('workbench.browser');
 		await browserConfig.update('enableChatTools', true, vscode.ConfigurationTarget.Global);
 
@@ -110,28 +105,21 @@ function extractTextContent(result: vscode.LanguageModelToolResult): string {
 		assert.match(output, /Page ID:/, `Expected output to contain "Page ID:", got: ${output}`);
 	});
 
-	// Loads `file:///<workspaceFolder>/index.html`. Skipped in remote
-	// workspaces: the workspace folder is a `vscode-remote://` URI so it
-	// isn't added to the local `file://` trust allowlist.
 	(vscode.env.remoteName ? test.skip : test)('basic browser tool interactions', async function () {
 		this.timeout(60000);
 
-		// Build a file:// URL to the test workspace's index.html
 		const workspaceFolders = vscode.workspace.workspaceFolders;
 		assert.ok(workspaceFolders && workspaceFolders.length > 0, 'Expected a workspace folder');
 		const indexHtmlPath = path.join(workspaceFolders[0].uri.fsPath, 'index.html');
 		const fileUrl = vscode.Uri.file(indexHtmlPath).toString();
 
-		// Open the page
 		const openOutput = await invokeTool('open_browser_page', { url: fileUrl });
 		assert.match(openOutput, /Page ID:/, `Expected open output to contain "Page ID:", got: ${openOutput}`);
 
-		// Extract the page ID from the output
 		const pageIdMatch = openOutput.match(/Page ID:\s*(\S+)/);
 		assert.ok(pageIdMatch, `Could not extract Page ID from: ${openOutput}`);
 		const pageId = pageIdMatch[1];
 
-		// Type a message into the input field
 		const typeOutput = await invokeTool('type_in_page', {
 			pageId,
 			text: 'test message',
@@ -140,7 +128,6 @@ function extractTextContent(result: vscode.LanguageModelToolResult): string {
 		});
 		assert.ok(typeOutput, 'Expected type output');
 
-		// Click the "Send Message" button
 		const clickOutput = await invokeTool('click_element', {
 			pageId,
 			selector: '#sendBtn',
@@ -148,14 +135,12 @@ function extractTextContent(result: vscode.LanguageModelToolResult): string {
 		});
 		assert.ok(clickOutput, 'Expected click output');
 
-		// Wait for the worker to process the message and update the page
 		const runOutput = await invokeTool('run_playwright_code', {
 			pageId,
 			code: `await page.waitForSelector('#output:text-is("test message")'); return "done";`,
 		});
 		assert.match(runOutput, /Result: "done"/, `Expected run_playwright_code output to contain result "done", got: ${runOutput}`);
 
-		// Read the page to verify the output element was populated
 		const readOutput = await invokeTool('read_page', { pageId });
 		assert.ok(readOutput.includes('test message'), `Expected page to contain worker response "test message", got: ${readOutput}`);
 	});

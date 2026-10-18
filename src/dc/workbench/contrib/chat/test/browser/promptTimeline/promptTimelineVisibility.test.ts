@@ -35,7 +35,6 @@ suite('PromptTimeline visibility', () => {
 			pendingTreeStickyScroll: isStickyPromptHeaderShown(widget(ChatAgentLocation.Chat, false), pendingTreeStickyScroll),
 			settingOff: isStickyPromptHeaderShown(widget(ChatAgentLocation.Chat, false), disabled),
 			experimentalTreeStickyScroll: isStickyPromptHeaderShown(widget(ChatAgentLocation.Chat, false), experimentalTreeStickyScroll),
-			// Quick chat and the new-session composer render their input on top, so no header is mounted.
 			inputOnTop: isStickyPromptHeaderShown(widget(ChatAgentLocation.Chat, true), enabled),
 			otherLocation: isStickyPromptHeaderShown(widget(ChatAgentLocation.EditorInline, false), enabled),
 		}, {

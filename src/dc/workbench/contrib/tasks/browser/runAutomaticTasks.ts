@@ -48,13 +48,11 @@ export class RunAutomaticTasks extends Disposable implements IWorkbenchContribut
 			return;
 		}
 		const { value, userValue } = this._configurationService.inspect<string>(ALLOW_AUTOMATIC_TASKS);
-		// If user explicitly set it to 'off', don't run or prompt
 		if (this._hasRunTasks || (value === 'off' && userValue !== undefined)) {
 			return;
 		}
 		this._hasRunTasks = true;
 		this._logService.trace('RunAutomaticTasks: Trying to run tasks.');
-		// Wait until we have task system info (the extension host and workspace folders are available).
 		if (!this._taskService.hasTaskSystemInfo) {
 			this._logService.trace('RunAutomaticTasks: Awaiting task system info.');
 			await Event.toPromise(Event.once(this._taskService.onDidChangeTaskSystemInfo));
@@ -65,8 +63,6 @@ export class RunAutomaticTasks extends Disposable implements IWorkbenchContribut
 		let autoTasks = this._findAutoTasks(this._taskService, workspaceTasks);
 		this._logService.trace(`RunAutomaticTasks: taskNames=${JSON.stringify(autoTasks.taskNames)}`);
 
-		// As seen in some cases with the Remote SSH extension, the tasks configuration is loaded after we have come
-		// to this point. Let's give it some extra time.
 		if (autoTasks.taskNames.length === 0) {
 			const updatedWithinTimeout = await Promise.race([
 				new Promise<boolean>((resolve) => {
@@ -170,7 +166,6 @@ export class RunAutomaticTasks extends Disposable implements IWorkbenchContribut
 		if (hasShownPromptForAutomaticTasks) {
 			return;
 		}
-		// We have automatic tasks - prompt to allow.
 		const allow = await this._showPrompt(notificationService, storageService, openerService, configurationService, taskNames, locations);
 		if (allow) {
 			this._runTasks(taskService, tasks);

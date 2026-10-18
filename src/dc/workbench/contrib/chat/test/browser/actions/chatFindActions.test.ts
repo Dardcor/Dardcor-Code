@@ -58,7 +58,6 @@ suite('resolveFocusedChatWidget', () => {
 	});
 });
 
-// Register actions once so the keybindings appear in KeybindingsRegistry.
 registerChatFindActions();
 
 suite('Chat Find keybinding resolution', () => {

@@ -13,11 +13,6 @@ import {
 	renderSwimlanes,
 } from './executionGraph.js';
 
-/**
- * Fluent builder for hand-crafting `ExecutionHistory` literals in tests.
- * Keeps call sites short: `h.root('A')`, `h.fire(0, 'setTimeout', rootA)`,
- * `h.fire(16, 'rAF', parentEvent)`.
- */
 class HistoryBuilder {
 	readonly roots: ExecutionRoot[] = [];
 	readonly events: ExecutionEvent[] = [];
@@ -56,8 +51,6 @@ suite('executionGraph', () => {
 		const t1 = h.fire(16, 'rAF', t0);
 		h.fire(32, 'rAF', t1);
 
-		// Slot-based indentation: all events are last-children, so all
-		// share slot 0. No visual indentation for the tree structure.
 		assert.strictEqual(renderSwimlanes(h.build()), [
 			'            A',
 			' +0ms ├─ setTimeout',
@@ -71,8 +64,6 @@ suite('executionGraph', () => {
 		const A = h.root('A');
 		const B = h.root('B');
 
-		// A: setTimeout(+0) spawns rAF(+16) and setTimeout(+50)
-		//    rAF(+16) -> rAF(+32)
 		const aT0 = h.fire(0, 'setTimeout', A);
 		const bT10 = h.fire(10, 'setTimeout', B);
 		const aRaf16 = h.fire(16, 'requestAnimationFrame', aT0);
@@ -82,8 +73,6 @@ suite('executionGraph', () => {
 		h.fire(50, 'setTimeout', aT0);
 
 		const out = renderSwimlanes(h.build());
-		// Slot-based indentation: last-children share their parent's slot.
-		// B lane: bT10 at slot 0, bRaf26 (last-child) at slot 0, bT46 (last-child) at slot 0.
 		assert.strictEqual(out, [
 			'                     A                             B',
 			' +0ms ├─ setTimeout',

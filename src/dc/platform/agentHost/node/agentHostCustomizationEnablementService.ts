@@ -22,7 +22,6 @@ import { IAgentHostWorktreeIsolation, type IAgentHostWorktreePendingState } from
 const STORAGE_KEY = 'customizationEnablement';
 const LRU_STORAGE_KEY = 'customizationEnablementLru';
 const SESSION_METADATA_KEY = 'customizationEnablement';
-/** Bounds orphaned durable decisions, whose source-derived keys become unreachable when their plugin disappears. */
 const MAX_PERSISTED_DECISIONS = 512;
 
 interface IPersistedEnablement {
@@ -68,10 +67,6 @@ export interface ICustomizationEnablementTarget {
 	readonly isClientBundled?: boolean;
 }
 
-/**
- * `pending` means the directory is not registered yet; `workspaceless` explicitly means there is none.
- * Keeping them distinct prevents workspace decisions from being silently discarded while registration is pending.
- */
 export type WorkingDirectoryState =
 	| { readonly kind: 'directory'; readonly uri: URI }
 	| { readonly kind: 'workspaceless' }
@@ -104,11 +99,6 @@ export interface IAgentHostCustomizationEnablementService {
 	whenIdle(): Promise<void>;
 }
 
-/**
- * Returns the scope-appropriate identity for a customization decision.
- *
- * Session decisions use a customization id because it need only be stable within that session; durable decisions use stable source-derived identities because plugin child ids contain materialized paths and content hashes.
- */
 export function getCustomizationEnablementKey(target: ICustomizationEnablementTarget, kind: CustomizationEnablementKind): string {
 	if (kind === CustomizationEnablementKind.Session) {
 		return target.id;
@@ -149,18 +139,10 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 	private _persistent: IPersistedEnablement;
 	private _lru: ILruEntry[];
 	private readonly _clientGlobalEnablement = new Map<string, Map<string, boolean>>();
-	/**
-	 * Loaded once and authoritative for synchronous resolution, which runs while customizations are published.
-	 * An async read here could mistake an unavailable result for an absent decision.
-	 */
 	private readonly _sessionEnablement = new Map<string, Map<string, boolean>>();
 	private readonly _sessionLoads = new Map<string, Promise<void>>();
 	private readonly _sessionsById = new Map<string, string>();
 	private readonly _pendingSessionWrites = new Set<Promise<void>>();
-	/**
-	 * Retains writes made before session metadata or directory registration resolves.
-	 * Replayed after either session load or a working-directory event, while resolution reports `pending` rather than no decision.
-	 */
 	private readonly _pendingReplacements = new Map<string, IPendingReplacement>();
 	private readonly _worktree: IAgentHostWorktreePendingState;
 
@@ -195,9 +177,6 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 		this._register(this._worktree.onDidChangeWorkingDirectoryPending(sessionId => {
 			const session = this._sessionsById.get(sessionId);
 			if (session === undefined) {
-				// A worktree can become pending before this service initializes its
-				// session. It cannot have produced a resolution yet; initialization
-				// reads the current pending state, and any later clear is observed.
 				return;
 			}
 			this._notifyDecisionChanged([session]);
@@ -401,7 +380,6 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 
 	private _replaceNonGlobalEnablement(session: string, target: ICustomizationEnablementTarget, enablement: readonly CustomizationEnablement[], workingDirectory: Exclude<WorkingDirectoryState, { kind: 'pending' }>): void {
 		const byKind = new Map(enablement.map(entry => [entry.kind, entry]));
-		// A scope absent from the incoming list is CLEARED; replacement is never a patch.
 		if (workingDirectory.kind === 'directory') {
 			this._setWorkspace(session, target, workingDirectory.uri, byKind.get(CustomizationEnablementKind.Workspace)?.enabled);
 		}
@@ -411,8 +389,6 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 
 	async whenIdle(): Promise<void> {
 		await this._storageService.whenIdle();
-		// A settled write removes itself and does not queue another write, so each
-		// loop pass strictly reduces this set to any writes queued concurrently.
 		while (this._pendingSessionWrites.size > 0) {
 			await Promise.allSettled([...this._pendingSessionWrites]);
 		}
@@ -463,10 +439,6 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 		this._persist();
 	}
 
-	/**
-	 * `undefined` clears a scope, and a decision matching its inherited value is cleared too.
-	 * This lets the UI restore inheritance without a third 'Inherit' action.
-	 */
 	private _setPersistentDecision(scope: ILruEntry['scope'], decisions: Record<string, boolean>, key: string, enabled: boolean | undefined, inherited: boolean, workingDirectory?: string): void {
 		if (enabled === undefined || enabled === inherited) {
 			delete decisions[key];
@@ -505,7 +477,6 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 		this._persist();
 	}
 
-	/** Needs the working-directory state to calculate the lower-scope inherited value before clearing. */
 	private _setSession(session: string, target: ICustomizationEnablementTarget, workingDirectory: Exclude<WorkingDirectoryState, { kind: 'pending' }>, enabled: boolean | undefined): void {
 		const enablement = this._sessionEnablement.get(session);
 		if (enablement === undefined) {
@@ -570,8 +541,6 @@ export class AgentHostCustomizationEnablementService extends Disposable implemen
 
 	private _touchLru(entry: ILruEntry): void {
 		this._removeLru(entry.scope, entry.key, entry.workingDirectory);
-		// Recency is deliberately updated only on writes, not reads, to keep
-		// persistence cheap and deterministic across restarts.
 		this._lru.push(entry);
 	}
 

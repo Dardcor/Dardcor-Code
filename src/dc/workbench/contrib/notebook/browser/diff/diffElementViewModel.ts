@@ -27,7 +27,6 @@ import { NotebookDocumentMetadataTextModel } from '../../common/model/notebookMe
 
 const PropertyHeaderHeight = 25;
 
-// From `.monaco-editor .diff-hidden-lines .center` in src/vs/editor/browser/widget/diffEditor/style.css
 export const HeightOfHiddenLinesRegionInDiffEditor = 24;
 
 export const DefaultLineHeight = 17;
@@ -96,7 +95,6 @@ export class DiffElementPlaceholderViewModel extends DiffElementViewModelBase {
 		return this.totalHeight;
 	}
 	override layoutChange(): void {
-		//
 	}
 	showHiddenCells() {
 		this._unfoldHiddenCells.fire();
@@ -613,7 +611,6 @@ export abstract class DiffElementCellViewModelBase extends DiffElementViewModelB
 
 		if (this.renderOutput) {
 			if (this.isOutputEmpty()) {
-				// single line;
 				return 24;
 			}
 			return this.getRichOutputTotalHeight() + metadataHeight;
@@ -684,9 +681,6 @@ export class SideBySideDiffElementViewModel extends DiffElementCellViewModelBase
 	declare readonly modified: DiffNestedCellViewModel;
 	override readonly type: 'unchanged' | 'modified';
 
-	/**
-	 * The height of the editor when the unchanged lines are collapsed.
-	 */
 	private editorHeightWithUnchangedLinesCollapsed?: number;
 	constructor(
 		mainDocumentTextModel: NotebookTextModel,
@@ -830,7 +824,6 @@ export class SideBySideDiffElementViewModel extends DiffElementCellViewModelBase
 			return false;
 		}
 
-		// outputs are not changed
 
 		return (this.original?.outputs || []).length === 0;
 	}
@@ -978,7 +971,6 @@ export class SingleSideDiffElementViewModel extends DiffElementCellViewModelBase
 			return true;
 		}
 
-		// outputs are not changed
 
 		return (this.original?.outputs || this.modified?.outputs || []).length === 0;
 	}
@@ -1003,7 +995,6 @@ export function outputEqual(a: ICellOutput, b: ICellOutput): OutputComparison {
 		return OutputComparison.Other;
 	}
 
-	// metadata not equal
 	for (let j = 0; j < a.outputs.length; j++) {
 		const aOutputItem = a.outputs[j];
 		const bOutputItem = b.outputs[j];

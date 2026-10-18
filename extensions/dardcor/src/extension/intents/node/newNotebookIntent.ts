@@ -82,7 +82,6 @@ export class NewNotebookResponseProcessor {
 		if (this._incodeblock) {
 			const codeblockEnd = textDelta.indexOf('```');
 			if (codeblockEnd === -1) {
-				// didn't find closing yet
 				this.stagedTextToApply = textDelta;
 
 				this.applyDeltaToTurn('', turn);
@@ -92,13 +91,11 @@ export class NewNotebookResponseProcessor {
 				}
 				return;
 			} else {
-				// found closing
 				this._incodeblock = false;
 				textDelta = textDelta.substring(0, codeblockEnd) + '```';
 				try {
 					this.applyDeltaToTurn(textDelta, turn);
 				} catch (_e) {
-					// const errorMessage = (e as Error)?.message ?? 'Unknown error';
 				} finally {
 					this.reporting = false;
 					this.stagedTextToApply = '';
@@ -137,7 +134,6 @@ export class NewNotebookResponseProcessor {
 			}
 		}
 
-		// We have no stop word or partial, so apply the text to the progress and turn
 		this.applyDeltaToProgress(textDelta, progress);
 		this.applyDeltaToTurn(textDelta, turn);
 		this.stagedTextToApply = '';
@@ -179,7 +175,7 @@ export class NewNotebookResponseProcessor {
 					.filter(LineFilters.createCodeBlockFilter())
 					.map(line => {
 						// eslint-disable-next-line local/code-no-unused-expressions
-						newNotebook.value; // force the notebook to be created
+						newNotebook.value;
 						return line;
 					}));
 				const created = this.createNewNotebook2(sourceLines, newNotebook.value, token);
@@ -209,7 +205,6 @@ export class NewNotebookResponseProcessor {
 		return [];
 	}
 
-	// different than the one in the tool, this one can't rely on the output stream workaround
 	private async createNewNotebook2(lines: AsyncIterable<LineOfText>, newNotebook: Promise<NotebookDocument>, token: CancellationToken) {
 		const promises: Promise<unknown>[] = [];
 		const telemetryOptions: NotebookEditGenerationTelemtryOptions = {
@@ -231,7 +226,6 @@ export class NewNotebookResponseProcessor {
 	}
 }
 
-// different than the one in the tool, this one can't rely on the output stream workaround
 function filterFilePathFromCodeBlock2(source: AsyncIterable<LineOfText>): AsyncIterable<LineOfText> {
 	return new AsyncIterableObject<LineOfText>(async (emitter) => {
 		let index = -1;
@@ -245,7 +239,6 @@ function filterFilePathFromCodeBlock2(source: AsyncIterable<LineOfText>): AsyncI
 	});
 }
 
-// @Yoyokrazy -- look at removing the following fn's as debt. newNb is likely not needed at minimum
 export async function newNotebookCodeCell(instantiationService: IInstantiationService, chatMLFetcher: IChatMLFetcher, endpoint: IChatEndpoint, options: IConversationOptions, history: readonly Raw.ChatMessage[] | undefined, description: string, section: INotebookSection, existingCode: string, languageId: string, uri: Uri, token: CancellationToken) {
 	const { messages } = await renderPromptElement(instantiationService, endpoint, NewNotebookCodeGenerationPrompt, {
 		history,

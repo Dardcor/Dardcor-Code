@@ -24,7 +24,6 @@ import { BaseChatToolInvocationSubPart } from './chatToolInvocationSubPart.js';
 import { getToolApprovalMessage, shouldShimmerForTool } from './chatToolPartUtilities.js';
 
 export class ChatInputOutputMarkdownProgressPart extends BaseChatToolInvocationSubPart {
-	/** Remembers expanded tool parts on re-render */
 	private static readonly _expandedByDefault = new WeakMap<IChatToolInvocation | IChatToolInvocationSerialized, boolean>();
 
 	public readonly domNode: HTMLElement;
@@ -52,7 +51,6 @@ export class ChatInputOutputMarkdownProgressPart extends BaseChatToolInvocationS
 
 		let codeBlockIndex = codeBlockStartIndex;
 
-		// Simple factory to create code part data objects
 		const createCodePart = (data: string, languageId = 'json'): IChatCollapsibleIOCodePart => ({
 			kind: 'code',
 			data,
@@ -92,7 +90,7 @@ export class ChatInputOutputMarkdownProgressPart extends BaseChatToolInvocationS
 		};
 
 		let processedOutput = output;
-		if (typeof output === 'string') { // back compat with older stored versions
+		if (typeof output === 'string') {
 			processedOutput = [{ type: 'embed', value: output, isText: true }];
 		}
 
@@ -117,14 +115,10 @@ export class ChatInputOutputMarkdownProgressPart extends BaseChatToolInvocationS
 					} else if (o.isText && !o.asResource) {
 						return createCodePart(o.value, getOutputLanguageId(o));
 					} else {
-						// Defer base64 decoding to avoid expensive decode during scroll.
-						// The value will be decoded lazily in ChatToolOutputContentSubPart.
 						const permalinkUri = ChatResponseResource.createUri(context.element.sessionResource, toolInvocation.toolCallId, i, permalinkBasename);
 						if (!o.isText) {
-							// Pass base64 string for lazy decoding
 							return { kind: 'data', base64Value: o.value, mimeType: o.mimeType, uri: permalinkUri, audience: o.audience };
 						} else {
-							// Text content: encode immediately since it's not expensive
 							return { kind: 'data', value: new TextEncoder().encode(o.value), mimeType: o.mimeType, uri: permalinkUri, audience: o.audience };
 						}
 					}

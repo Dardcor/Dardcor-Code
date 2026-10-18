@@ -87,7 +87,6 @@ export class PasteImageProvider implements DocumentPasteEditProvider {
 		let mimeType: string | undefined;
 		let imageItem: IDataTransferItem | undefined;
 
-		// Find the first matching image type in the dataTransfer
 		for (const type of supportedMimeTypes) {
 			imageItem = dataTransfer.get(type);
 			if (imageItem) {
@@ -132,7 +131,6 @@ export class PasteImageProvider implements DocumentPasteEditProvider {
 			return;
 		}
 
-		// Make sure to attach only new contexts
 		const currentContextIds = new Set(target.attachments.map(attachment => attachment.id));
 		if (currentContextIds.has(scaledImageContext.id)) {
 			return;
@@ -172,7 +170,6 @@ export function isImage(array: Uint8Array): boolean {
 		return false;
 	}
 
-	// Magic numbers (identification bytes) for various image formats
 	const identifier: { [key: string]: number[] } = {
 		png: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
 		jpeg: [0xFF, 0xD8, 0xFF],
@@ -257,8 +254,6 @@ class CopyAttachmentsProvider implements DocumentPasteEditProvider {
 
 		const dynamicVariables = target.inlineReferences;
 		const referencedIds = new Set(dynamicVariables.map(variable => variable.id));
-		// A ranged attachment whose reference is not carried along would be pruned
-		// as an orphan by the receiving input, so send it as a plain attachment.
 		const attachments = target.attachments.map(attachment =>
 			attachment.range && !referencedIds.has(attachment.id) ? { ...attachment, range: undefined } : attachment);
 
@@ -295,7 +290,6 @@ class CopyAttachmentsProvider implements DocumentPasteEditProvider {
 		try {
 			pastedData = revive(JSON.parse(rawData));
 		} catch {
-			//
 		}
 
 		if (!Array.isArray(pastedData?.attachments) && !Array.isArray(pastedData?.dynamicVariables)) {
@@ -440,9 +434,6 @@ export class PasteTextProvider implements DocumentPasteEditProvider {
 			return;
 		}
 
-		// Clipboard flavors that own the paste outright. Meaningful HTML is not one
-		// of them: converting a long paste to Markdown and inserting it inline is
-		// exactly what the artifact exists to avoid, so length decides that case.
 		const hasRicherPaste = !!copiedContext
 			|| dataTransfer.has(CHAT_ATTACHMENT_MIME_TYPE)
 			|| dataTransfer.matches('image/*');
@@ -502,9 +493,7 @@ export function createPastedTextArtifact(
 	text: string,
 	existingAttachments: readonly IChatRequestVariableEntry[],
 	options?: {
-		/** Richer representation to store instead of `text`, e.g. Markdown from pasted HTML. */
 		readonly content?: string;
-		/** Character count the paste must exceed to become an attachment. */
 		readonly minLength?: number;
 	},
 ): { readonly attachment: IChatRequestPasteVariableEntry; readonly referenceText: string } | undefined {
@@ -716,7 +705,6 @@ async function resolveSymbolReference(
 				}
 			}
 		} catch {
-			// Use default icon.
 		}
 	}
 
@@ -829,8 +817,6 @@ class PasteSymbolProvider implements DocumentPasteEditProvider {
 						this.pasteTargetService.getTarget(model.uri)?.addInlineReference(dynamicRef);
 					},
 					undo: () => {
-						// The text removal by undo is sufficient; the dynamic variable
-						// model auto-cleans when the decoration text changes.
 					}
 				}]
 			}
@@ -854,8 +840,6 @@ class PasteHtmlProvider implements DocumentPasteEditProvider {
 			return;
 		}
 
-		// Only activate on automatic paste — for explicit "Paste As" the user
-		// likely wants the raw text or an attachment, not a converted markdown form.
 		if (context.triggerKind !== DocumentPasteTriggerKind.Automatic) {
 			return;
 		}
@@ -866,14 +850,12 @@ class PasteHtmlProvider implements DocumentPasteEditProvider {
 			return;
 		}
 
-		// Skip if the HTML is trivially plain text (no meaningful tags)
 		if (!isMeaningfulHtml(htmlText)) {
 			return;
 		}
 
 		const markdown = convertHtmlToMarkdown(htmlText);
 
-		// If conversion produced nothing useful, fall back
 		if (!markdown) {
 			return;
 		}
@@ -891,7 +873,6 @@ class PasteHtmlProvider implements DocumentPasteEditProvider {
 	}
 }
 
-/** The Markdown form of pasted HTML, when the HTML carries real formatting. */
 async function getMeaningfulMarkdown(dataTransfer: IReadonlyVSDataTransfer): Promise<string | undefined> {
 	const htmlText = await dataTransfer.get(Mimes.html)?.asString();
 	if (!htmlText || !isMeaningfulHtml(htmlText)) {
@@ -927,8 +908,6 @@ export class ChatPasteProvidersFeature extends Disposable {
 				this._register(languageFeaturesService.documentPasteEditProvider.register({ scheme, pattern: '*', hasAccessToAllModels: true }, provider));
 			}
 		}
-		// Symbol paste inserts a `#sym:` token that is only meaningful alongside a
-		// standalone inline reference, which the widget-backed inputs provide.
 		this._register(languageFeaturesService.documentPasteEditProvider.register({ scheme: Schemas.vscodeChatInput, pattern: '*', hasAccessToAllModels: true }, instaService.createInstance(PasteSymbolProvider)));
 		this._register(languageFeaturesService.documentPasteEditProvider.register('*', instaService.createInstance(CopyTextProvider)));
 	}

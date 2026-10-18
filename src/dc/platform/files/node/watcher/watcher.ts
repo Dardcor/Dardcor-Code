@@ -39,9 +39,6 @@ export class UniversalWatcher extends Disposable implements IUniversalWatcher {
 		this.requests = requests;
 		this.failedRecursiveRequests = 0;
 
-		// Watch recursively first to give recursive watchers a chance
-		// to step in for non-recursive watch requests, thus reducing
-		// watcher duplication.
 
 		let error: Error | undefined;
 		try {
@@ -65,12 +62,10 @@ export class UniversalWatcher extends Disposable implements IUniversalWatcher {
 
 	async setVerboseLogging(enabled: boolean): Promise<void> {
 
-		// Log stats
 		if (enabled && this.requests.length > 0) {
 			this._onDidLogMessage.fire({ type: 'trace', message: computeStats(this.requests, this.failedRecursiveRequests, this.recursiveWatcher, this.nonRecursiveWatcher) });
 		}
 
-		// Forward to watchers
 		await Promises.settled([
 			this.recursiveWatcher.setVerboseLogging(enabled),
 			this.nonRecursiveWatcher.setVerboseLogging(enabled)

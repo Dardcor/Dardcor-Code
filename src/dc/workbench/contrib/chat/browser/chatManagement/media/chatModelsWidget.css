@@ -7,7 +7,6 @@
 	padding-right: 24px;
 }
 
-/** Search and button container styling **/
 
 .models-widget .models-search-and-button-container {
 	display: flex;
@@ -53,7 +52,6 @@
 	padding: 6px 8px 6px 4px;
 }
 
-/** Table styling **/
 
 .models-widget .models-table-container {
 	width: 100%;
@@ -108,7 +106,6 @@
 }
 
 
-/** Model Name column styling **/
 
 .models-widget .models-table-container .monaco-table-td .model-name-container {
 	display: flex;
@@ -185,7 +182,6 @@
 	color: var(--vscode-editorWarning-foreground);
 }
 
-/** Actions column styling **/
 
 .models-widget .models-table-container .monaco-list-row .monaco-table-tr.models-model-row .models-table-column.models-actions-column .actions-container {
 	display: none;
@@ -204,7 +200,6 @@
 	margin-right: 9px;
 }
 
-/** Cost column styling **/
 
 .models-widget .models-table-container .monaco-table-td .model-cost-grid {
 	display: grid;
@@ -220,7 +215,6 @@
 	white-space: nowrap;
 }
 
-/** Token Limits column styling **/
 
 .models-widget .models-table-container .monaco-table-td .model-token-limits {
 	display: flex;
@@ -239,7 +233,6 @@
 	font-size: var(--vscode-codiconFontSize-compact);
 }
 
-/** Capabilities column styling **/
 
 .models-widget .models-table-container .monaco-table-td .model-capabilities {
 	display: flex;
@@ -263,7 +256,6 @@
 	opacity: 0.8;
 }
 
-/** Vendor row styling **/
 
 .models-widget .models-table-container .models-vendor-row {
 	background-color: var(--vscode-keybindingTable-headerBackground);
@@ -278,16 +270,13 @@
 	font-weight: bold;
 }
 
-/** Model row styling **/
 
-/** Row alternating colors **/
 .models-widget .models-table-container .monaco-table .monaco-list-row[data-parity=odd]:not(.focused):not(.selected):not(:hover) .monaco-table-tr:not(.models-vendor-row),
 .models-widget .models-table-container .monaco-table .monaco-list:not(:focus) .monaco-list-row[data-parity=odd].focused:not(.selected):not(:hover) .monaco-table-tr:not(.models-vendor-row),
 .models-widget .models-table-container .monaco-table .monaco-list:not(.focused) .monaco-list-row[data-parity=odd].focused:not(.selected):not(:hover) .monaco-table-tr:not(.models-vendor-row) {
 	background-color: var(--vscode-editor-background);
 }
 
-/** Hidden row styling **/
 
 .models-widget .models-table-container .monaco-table-tr.models-row-hidden .model-name,
 .models-widget .models-table-container .monaco-table-tr.models-row-hidden .model-cost-grid,
@@ -309,10 +298,6 @@
 	justify-content: flex-end;
 }
 
-/** Visibility toggle action in the gutter column.
- * The action is only visible on row focus/hover, or when the model/group
- * is currently hidden so the user can spot what to click to bring it
- * back. **/
 .models-widget .models-table-container .monaco-table-td .models-gutter-column .model-visibility-toggle {
 	visibility: hidden;
 }

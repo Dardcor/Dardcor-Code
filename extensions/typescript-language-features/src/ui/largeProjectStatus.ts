@@ -21,7 +21,7 @@ class ExcludeHintItem {
 	constructor(
 		private readonly telemetryReporter: TelemetryReporter
 	) {
-		this._item = vscode.window.createStatusBarItem('status.typescript.exclude', vscode.StatusBarAlignment.Right, 98 /* to the right of typescript version status (99) */);
+		this._item = vscode.window.createStatusBarItem('status.typescript.exclude', vscode.StatusBarAlignment.Right, 98 );
 		this._item.name = vscode.l10n.t("TypeScript: Configure Excludes");
 		this._item.command = 'js.projectStatus.command';
 	}
@@ -45,14 +45,6 @@ class ExcludeHintItem {
 		this._item.tooltip = vscode.l10n.t("To enable project-wide JavaScript/TypeScript language features, exclude large folders with source files that you do not work on.");
 		this._item.color = '#A5DF3B';
 		this._item.show();
-		/* __GDPR__
-			"js.hintProjectExcludes" : {
-				"owner": "mjbvz",
-				"${include}": [
-					"${TypeScriptCommonProperties}"
-				]
-			}
-		*/
 		this.telemetryReporter.logTelemetry('js.hintProjectExcludes');
 	}
 }

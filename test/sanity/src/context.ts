@@ -13,9 +13,6 @@ import path from 'path';
 import { Browser, chromium, ElectronApplication, Page, webkit } from 'playwright';
 import { Capability, detectCapabilities } from './detectors.js';
 
-/**
- * Response from https://update.code.visualstudio.com/api/versions/commit:<commit>/<target>/<quality>
- */
 interface ITargetMetadata {
 	url: string;
 	name: string;
@@ -27,16 +24,11 @@ interface ITargetMetadata {
 	supportsFastUpdate: boolean;
 }
 
-/**
- * Provides context and utilities for VS Code sanity tests.
- */
 export class TestContext {
 	private static readonly authenticodeInclude = /^.+\.(exe|dll|sys|cab|cat|msi|jar|ocx|ps1|psm1|psd1|ps1xml|pssc1)$/i;
-	// MXC SDK ships per-arch SPDX catalog manifests that Get-AuthenticodeSignature reports as UnknownError.
 	private static readonly authenticodeExclude = /[\\/]node_modules[\\/]@microsoft[\\/]mxc-sdk[\\/]bin[\\/][^\\/]+[\\/]_manifest[\\/][^\\/]+[\\/]manifest\.cat$/i;
 	private static readonly versionInfoInclude = /^.+\.(exe|dll|node|msi)$/i;
 	private static readonly versionInfoFileExclude = /^(dxil\.dll|ffmpeg\.dll|msalruntime\.dll)$/i;
-	// MXC SDK binaries under bin are signed, but they do not carry a ProductName VersionInfo resource.
 	private static readonly versionInfoPathExclude = /(?:^|[\\/])node_modules(?:\.asar\.unpacked)?[\\/]@microsoft[\\/]mxc-sdk[\\/]bin[\\/]/i;
 	private static readonly dpkgLockError = /dpkg frontend lock was locked by another process|unable to acquire the dpkg frontend lock|could not get lock \/var\/lib\/dpkg\/lock-frontend/i;
 
@@ -60,23 +52,13 @@ export class TestContext {
 	}>) {
 	}
 
-	/**
-	 * Returns true if the current process is running as root.
-	 */
 	public readonly isRootUser = process.getuid?.() === 0;
 
-	/**
-	 * Returns the detected capabilities of the current system.
-	 */
 	public readonly capabilities = detectCapabilities();
 
-	/**
-	 * Returns the OS temp directory with expanded long names on Windows.
-	 */
 	public readonly osTempDir = (() => {
 		let tempDir = fs.realpathSync(os.tmpdir());
 
-		// On Windows, expand short 8.3 file names to long names
 		if (os.platform() === 'win32') {
 			tempDir = fs.realpathSync.native(tempDir);
 		}
@@ -84,13 +66,6 @@ export class TestContext {
 		return tempDir;
 	})();
 
-	/**
-	 * Runs a test only if the required capabilities are present.
-	 * @param name The name of the test.
-	 * @param require The required capabilities for the test.
-	 * @param fn The test function.
-	 * @returns The Mocha test object or void if the test is skipped.
-	 */
 	public test(name: string, require: Capability[], fn: () => Promise<void>): Mocha.Test | void {
 		if (!this.options.downloadOnly && require.some(o => !this.capabilities.has(o))) {
 			return;
@@ -128,14 +103,8 @@ export class TestContext {
 		});
 	}
 
-	/**
-	 * The console outputs collected during the current test.
-	 */
 	public consoleOutputs: string[] = [];
 
-	/**
-	 * Logs a message with a timestamp.
-	 */
 	public log(message: string) {
 		const line = `[${new Date().toISOString()}] ${message}`;
 		this.consoleOutputs.push(line);
@@ -144,9 +113,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Logs an error message and throws an Error.
-	 */
 	public error(message: string): never {
 		const line = `[${new Date().toISOString()}] ERROR: ${message}`;
 		this.consoleOutputs.push(line);
@@ -154,26 +120,16 @@ export class TestContext {
 		throw new Error(message);
 	}
 
-	/**
-	 * Logs a warning message with a timestamp.
-	 */
 	public warn(message: string) {
 		const line = `[${new Date().toISOString()}] WARNING: ${message}`;
 		this.consoleOutputs.push(line);
 		console.warn(`##vso[task.logissue type=warning]${line}`);
 	}
 
-	/**
-	 * Returns a promise that resolves after the specified delay in milliseconds.
-	 * @param delay The delay in milliseconds to wait before resolving the promise.
-	 */
 	private timeout(delay: number) {
 		return new Promise(resolve => setTimeout(resolve, delay));
 	}
 
-	/**
-	 * Creates a new temporary directory and returns its path.
-	 */
 	public createTempDir(): string {
 		const tempDir = fs.mkdtempSync(path.join(this.osTempDir, 'vscode-sanity'));
 		this.log(`Created temp directory: ${tempDir}`);
@@ -181,9 +137,6 @@ export class TestContext {
 		return tempDir;
 	}
 
-	/**
-	 * Creates a new temporary directory in WSL and returns its path.
-	 */
 	public createWslTempDir(): string {
 		const tempDir = `/tmp/vscode-sanity-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 		this.log(`Creating WSL temp directory: ${tempDir}`);
@@ -192,30 +145,17 @@ export class TestContext {
 		return tempDir;
 	}
 
-	/**
-	 * Deletes a directory in WSL.
-	 * @param dir The WSL directory path to delete.
-	 */
 	public deleteWslDir(dir: string): void {
 		this.log(`Deleting WSL directory: ${dir}`);
 		this.runNoErrors('wsl', 'rm', '-rf', dir);
 	}
 
-	/**
-	 * Converts a Windows path to a WSL path.
-	 * @param windowsPath The Windows path to convert (e.g., 'C:\Users\test').
-	 * @returns The WSL path (e.g., '/mnt/c/Users/test').
-	 */
 	public toWslPath(windowsPath: string): string {
 		return windowsPath
 			.replace(/^([A-Za-z]):/, (_, drive) => `/mnt/${drive.toLowerCase()}`)
 			.replaceAll('\\', '/');
 	}
 
-	/**
-	 * Returns the name of the default WSL distribution.
-	 * @returns The default WSL distribution name (e.g., 'Ubuntu').
-	 */
 	public getDefaultWslDistro(): string {
 		const result = this.runNoErrors('wsl', '--list', '--quiet');
 		const distro = result.stdout.trim().split('\n')[0].replace(/\0/g, '').trim();
@@ -226,9 +166,6 @@ export class TestContext {
 		return distro;
 	}
 
-	/**
-	 * Returns the WSL version of the Ubuntu distribution, or undefined if not found.
-	 */
 	public getUbuntuWslVersion(): number | undefined {
 		if (this.wslVersion !== undefined) {
 			return this.wslVersion;
@@ -257,9 +194,6 @@ export class TestContext {
 		return undefined;
 	}
 
-	/**
-	 * Ensures that the directory for the specified file path exists.
-	 */
 	public ensureDirExists(filePath: string) {
 		const dir = path.dirname(filePath);
 		if (!fs.existsSync(dir)) {
@@ -267,9 +201,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Cleans up all temporary directories created during the test run.
-	 */
 	public cleanup() {
 		for (const dir of this.tempDirs) {
 			this.log(`Deleting temp directory: ${dir}`);
@@ -292,11 +223,6 @@ export class TestContext {
 		this.wslTempDirs.clear();
 	}
 
-	/**
-	 * Fetches a URL and ensures there are no errors.
-	 * @param url The URL to fetch.
-	 * @returns The fetch Response object.
-	 */
 	public async fetchNoErrors(url: string): Promise<Response & { body: NodeJS.ReadableStream }> {
 		const maxRetries = 5;
 		let lastError: Error | undefined;
@@ -330,11 +256,6 @@ export class TestContext {
 		this.error(`Failed to fetch ${url} after ${maxRetries} attempts: ${lastError?.message}`);
 	}
 
-	/**
-	 * Fetches metadata for a specific VS Code release target.
-	 * @param target The target platform (e.g., 'cli-linux-x64').
-	 * @returns The target metadata.
-	 */
 	public async fetchMetadata(target: string): Promise<ITargetMetadata> {
 		const url = `https://update.code.visualstudio.com/api/versions/commit:${this.options.commit}/${target}/${this.options.quality}`;
 
@@ -350,11 +271,6 @@ export class TestContext {
 		return result;
 	}
 
-	/**
-	 * Downloads installer for specified VS Code release target.
-	 * @param target The target platform (e.g., 'cli-linux-x64').
-	 * @returns The path to the downloaded file.
-	 */
 	public async downloadTarget(target: string): Promise<string> {
 		const { url, sha256hash } = await this.fetchMetadata(target);
 		const filePath = path.join(this.createTempDir(), path.basename(url));
@@ -367,11 +283,6 @@ export class TestContext {
 		return filePath;
 	}
 
-	/**
-	 * Validates the SHA-256 hash of a file.
-	 * @param filePath The path to the file to validate.
-	 * @param expectedHash The expected SHA-256 hash in hexadecimal format.
-	 */
 	public validateSha256Hash(filePath: string, expectedHash: string) {
 		this.log(`Validating SHA256 hash for ${filePath}`);
 
@@ -383,10 +294,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Validates the Authenticode signature of a Windows executable.
-	 * @param filePath The path to the file to validate.
-	 */
 	public validateAuthenticodeSignature(filePath: string) {
 		if (!this.options.checkSigning || !this.capabilities.has('windows')) {
 			this.log(`Skipping Authenticode signature validation for ${filePath} (signing checks disabled)`);
@@ -397,9 +304,6 @@ export class TestContext {
 		this.validateAuthenticodeSignaturesForFiles([filePath]);
 	}
 
-	/**
-	 * Collects all files matching the Authenticode include pattern from the specified directory recursively.
-	 */
 	private collectAuthenticodeFiles(dir: string, files: string[]): void {
 		const entries = fs.readdirSync(dir, { withFileTypes: true });
 		for (const entry of entries) {
@@ -416,9 +320,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Validates Authenticode signatures for the specified list of files in a single PowerShell call.
-	 */
 	private validateAuthenticodeSignaturesForFiles(files: string[]): void {
 		if (files.length === 0) {
 			return;
@@ -445,10 +346,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Validates Authenticode signatures for all executable files in the specified directory.
-	 * @param dir The directory to scan for executable files.
-	 */
 	public validateAllAuthenticodeSignatures(dir: string) {
 		if (!this.options.checkSigning || !this.capabilities.has('windows')) {
 			this.log(`Skipping Authenticode signature validation for ${dir} (signing checks disabled)`);
@@ -461,9 +358,6 @@ export class TestContext {
 		this.validateAuthenticodeSignaturesForFiles(files);
 	}
 
-	/**
-	 * Collects all files matching the VersionInfo include pattern from the specified directory recursively.
-	 */
 	private collectVersionInfoFiles(dir: string, files: string[]): void {
 		const entries = fs.readdirSync(dir, { withFileTypes: true });
 		for (const entry of entries) {
@@ -480,10 +374,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Validates that a Windows binary has a non-empty ProductName in VersionInfo.
-	 * @param filePath The path to the file to validate.
-	 */
 	public validateVersionInfo(filePath: string) {
 		if (!this.options.checkSigning || !this.capabilities.has('windows')) {
 			this.log(`Skipping VersionInfo validation for ${filePath} (signing checks disabled)`);
@@ -494,9 +384,6 @@ export class TestContext {
 		this.validateVersionInfoForFiles([filePath]);
 	}
 
-	/**
-	 * Validates VersionInfo ProductName for the specified list of files in a single PowerShell call.
-	 */
 	private validateVersionInfoForFiles(files: string[]): void {
 		if (files.length === 0) {
 			return;
@@ -523,10 +410,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Validates that all .exe, .dll, .node and .msi binaries in the specified directory have a non-empty ProductName in VersionInfo.
-	 * @param dir The directory to scan for binary files.
-	 */
 	public validateAllVersionInfo(dir: string) {
 		if (!this.options.checkSigning || !this.capabilities.has('windows')) {
 			this.log(`Skipping VersionInfo validation for ${dir} (signing checks disabled)`);
@@ -539,10 +422,6 @@ export class TestContext {
 		this.validateVersionInfoForFiles(files);
 	}
 
-	/**
-	 * Validates the codesign signature of a macOS binary or app bundle.
-	 * @param filePath The path to the file or app bundle to validate.
-	 */
 	public validateCodesignSignature(filePath: string) {
 		if (!this.options.checkSigning || !this.capabilities.has('darwin')) {
 			this.log(`Skipping codesign signature validation for ${filePath} (signing checks disabled)`);
@@ -572,10 +451,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Validates codesign signatures for all Mach-O binaries in the specified directory.
-	 * @param dir The directory to scan for Mach-O binaries.
-	 */
 	public validateAllCodesignSignatures(dir: string) {
 		if (!this.options.checkSigning || !this.capabilities.has('darwin')) {
 			this.log(`Skipping codesign signature validation for ${dir} (signing checks disabled)`);
@@ -586,7 +461,6 @@ export class TestContext {
 		for (const file of files) {
 			const filePath = path.join(dir, file.name);
 			if (file.isDirectory()) {
-				// For .app bundles, validate the bundle itself, not its contents
 				if (file.name.endsWith('.app') || file.name.endsWith('.framework')) {
 					this.validateCodesignSignature(filePath);
 				} else {
@@ -598,11 +472,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Checks if a file is a Mach-O binary by examining its magic number.
-	 * @param filePath The path to the file to check.
-	 * @returns True if the file is a Mach-O binary.
-	 */
 	private isMachOBinary(filePath: string): boolean {
 		try {
 			const file = fs.openSync(filePath, 'r');
@@ -617,21 +486,11 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Downloads and unpacks the specified VS Code release target.
-	 * @param target The target platform (e.g., 'cli-linux-x64').
-	 * @returns The path to the unpacked directory.
-	 */
 	public async downloadAndUnpack(target: string): Promise<string> {
 		const filePath = await this.downloadTarget(target);
 		return this.unpackArchive(filePath);
 	}
 
-	/**
-	 * Unpacks a .zip or .tar.gz archive to a temporary directory.
-	 * @param archivePath The path to the archive file.
-	 * @returns The path to the temporary directory where the archive was unpacked.
-	 */
 	public unpackArchive(archivePath: string): string {
 		const dir = this.createTempDir();
 
@@ -642,16 +501,10 @@ export class TestContext {
 		return dir;
 	}
 
-	/**
-	 * Mounts a macOS DMG file and returns the mount point.
-	 * @param dmgPath The path to the DMG file.
-	 * @returns The path to the mounted volume.
-	 */
 	public mountDmg(dmgPath: string): string {
 		this.log(`Mounting DMG ${dmgPath}`);
 		const result = this.runNoErrors('hdiutil', 'attach', dmgPath, '-nobrowse', '-readonly');
 
-		// Parse the output to find the mount point (last column of the last line)
 		const lines = result.stdout.trim().split('\n');
 		const lastLine = lines[lines.length - 1];
 		const mountPoint = lastLine.split('\t').pop()?.trim();
@@ -664,33 +517,17 @@ export class TestContext {
 		return mountPoint;
 	}
 
-	/**
-	 * Unmounts a macOS DMG volume.
-	 * @param mountPoint The path to the mounted volume.
-	 */
 	public unmountDmg(mountPoint: string): void {
 		this.log(`Unmounting DMG ${mountPoint}`);
 		this.runNoErrors('hdiutil', 'detach', mountPoint);
 		this.log(`Unmounted DMG ${mountPoint}`);
 	}
 
-	/**
-	 * Runs a command synchronously.
-	 * @param command The command to run.
-	 * @param args Optional arguments for the command.
-	 * @returns The result of the spawnSync call.
-	 */
 	public run(command: string, ...args: string[]): SpawnSyncReturns<string> {
 		this.log(`Running command: ${command} ${args.join(' ')}`);
 		return spawnSync(command, args, { encoding: 'utf-8' }) as SpawnSyncReturns<string>;
 	}
 
-	/**
-	 * Runs a command synchronously and ensures it succeeds.
-	 * @param command The command to run.
-	 * @param args Optional arguments for the command.
-	 * @returns The result of the spawnSync call.
-	 */
 	public runNoErrors(command: string, ...args: string[]): SpawnSyncReturns<string> {
 		const result = this.run(command, ...args);
 		if (result.error !== undefined) {
@@ -704,12 +541,6 @@ export class TestContext {
 		return result;
 	}
 
-	/**
-	 * Runs a command with sudo if not running as root, and ensures it succeeds.
-	 * @param command The command to run.
-	 * @param args Optional arguments for the command.
-	 * @returns The result of the spawnSync call.
-	 */
 	private runSudoNoErrors(command: string, ...args: string[]): SpawnSyncReturns<string> {
 		if (this.isRootUser) {
 			return this.runNoErrors(command, ...args);
@@ -718,9 +549,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Runs a dpkg command with retries if the frontend lock is busy, and ensures it succeeds.
-	 */
 	private async runDpkgNoErrors(...args: string[]) {
 		const command = this.isRootUser ? 'dpkg' : 'sudo';
 		const commandArgs = this.isRootUser ? args : ['dpkg', ...args];
@@ -756,10 +584,6 @@ export class TestContext {
 		this.error(lastError ?? `Command failed after ${maxRetries} attempts because the dpkg frontend lock remained busy`);
 	}
 
-	/**
-	 * Kills a process and all its child processes.
-	 * @param pid The process ID to kill.
-	 */
 	public killProcessTree(pid: number): void {
 		this.log(`Killing process tree for PID: ${pid}`);
 		if (os.platform() === 'win32') {
@@ -770,11 +594,6 @@ export class TestContext {
 		this.log(`Killed process tree for PID: ${pid}`);
 	}
 
-	/**
-	 * Returns the Windows installation directory for VS Code based on the installation type and quality.
-	 * @param type The type of installation ('user' or 'system').
-	 * @returns The path to the VS Code installation directory.
-	 */
 	private getWindowsInstallDir(type: 'user' | 'system'): string {
 		let parentDir: string;
 		if (type === 'system') {
@@ -793,11 +612,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Installs a Microsoft Installer package silently.
-	 * @param installerPath The path to the installer executable.
-	 * @returns The path to the installed VS Code executable.
-	 */
 	public installWindowsApp(type: 'user' | 'system', installerPath: string): string {
 		this.log(`Installing ${installerPath} in silent mode`);
 		this.runNoErrors(installerPath, '/silent', '/mergetasks=!runcode');
@@ -825,10 +639,6 @@ export class TestContext {
 		return entryPoint;
 	}
 
-	/**
-	 * Uninstalls a Windows application silently.
-	 * @param type The type of installation ('user' or 'system').
-	 */
 	public async uninstallWindowsApp(type: 'user' | 'system') {
 		const appDir = this.getWindowsInstallDir(type);
 		const uninstallerPath = path.join(appDir, 'unins000.exe');
@@ -846,11 +656,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Installs VS Code Linux DEB package.
-	 * @param packagePath The path to the DEB file.
-	 * @returns The path to the installed VS Code executable.
-	 */
 	public async installDeb(packagePath: string): Promise<string> {
 		const name = this.getLinuxBinaryName();
 		const entryPoint = path.join('/usr/share', name, name);
@@ -866,10 +671,6 @@ export class TestContext {
 		return entryPoint;
 	}
 
-	/**
-	 * Uninstalls VS Code Linux DEB package. Safe to call when the package is not
-	 * installed (no-op) so that test cleanup in a `finally` block is always safe.
-	 */
 	public async uninstallDeb() {
 		const name = this.getLinuxBinaryName();
 		const packagePath = path.join('/usr/share', name, name);
@@ -889,11 +690,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Installs VS Code Linux RPM package.
-	 * @param packagePath The path to the RPM file.
-	 * @returns The path to the installed VS Code executable.
-	 */
 	public installRpm(packagePath: string): string {
 		const name = this.getLinuxBinaryName();
 		const installedBinary = path.join('/usr/bin', name);
@@ -910,10 +706,6 @@ export class TestContext {
 		return entryPoint;
 	}
 
-	/**
-	 * Uninstalls VS Code Linux RPM package. Safe to call when the package is not
-	 * installed (no-op) so that test cleanup in a `finally` block is always safe.
-	 */
 	public async uninstallRpm() {
 		const name = this.getLinuxBinaryName();
 		const packagePath = path.join('/usr/bin', name);
@@ -933,11 +725,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Installs VS Code Linux Snap package.
-	 * @param packagePath The path to the Snap file.
-	 * @returns The path to the installed VS Code executable.
-	 */
 	public installSnap(packagePath: string): string {
 		const name = this.getLinuxBinaryName();
 		const snapWrapper = path.join('/snap/bin', name);
@@ -949,16 +736,11 @@ export class TestContext {
 		this.runSudoNoErrors('snap', 'install', packagePath, '--classic', '--dangerous');
 		this.log(`Installed ${packagePath} successfully`);
 
-		// Snap wrapper scripts are in /snap/bin, but actual Electron binary is in /snap/<package>/current/usr/share/
 		const entryPoint = `/snap/${name}/current/usr/share/${name}/${name}`;
 		this.log(`Installed VS Code executable at: ${entryPoint}`);
 		return entryPoint;
 	}
 
-	/**
-	 * Uninstalls VS Code Linux Snap package. Safe to call when the package is not
-	 * installed (no-op) so that test cleanup in a `finally` block is always safe.
-	 */
 	public async uninstallSnap() {
 		const name = this.getLinuxBinaryName();
 		const packagePath = path.join('/snap/bin', name);
@@ -978,9 +760,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Returns the Linux binary name based on quality.
-	 */
 	private getLinuxBinaryName(): string {
 		switch (this.options.quality) {
 			case 'stable':
@@ -992,11 +771,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Returns the entry point executable for the VS Code Desktop installation in the specified directory.
-	 * @param dir The directory of the VS Code installation.
-	 * @returns The path to the entry point executable.
-	 */
 	public getDesktopEntryPoint(dir: string): string {
 		let filePath: string = '';
 
@@ -1062,11 +836,6 @@ export class TestContext {
 		return filePath;
 	}
 
-	/**
-	 * Returns the entry point executable for the VS Code CLI in the specified directory.
-	 * @param dir The directory containing unpacked CLI files.
-	 * @returns The path to the CLI entry point executable.
-	 */
 	public getCliEntryPoint(dir: string): string {
 		let filename: string;
 		switch (this.options.quality) {
@@ -1093,12 +862,6 @@ export class TestContext {
 		return entryPoint;
 	}
 
-	/**
-	 * Returns the entry point executable for the VS Code server in the specified directory.
-	 * @param dir The directory containing unpacked server files.
-	 * @param forWsl If true, returns the Linux entry point (for running in WSL on Windows).
-	 * @returns The path to the server entry point executable.
-	 */
 	public getServerEntryPoint(dir: string, forWsl = false): string {
 		let filename: string;
 		switch (this.options.quality) {
@@ -1125,9 +888,6 @@ export class TestContext {
 		return entryPoint;
 	}
 
-	/**
-	 * Returns the first subdirectory within the specified directory.
-	 */
 	public getFirstSubdirectory(dir: string): string {
 		const subDir = fs.readdirSync(dir, { withFileTypes: true }).filter(o => o.isDirectory()).at(0)?.name;
 		if (!subDir) {
@@ -1136,11 +896,6 @@ export class TestContext {
 		return path.join(dir, subDir);
 	}
 
-	/**
-	 * Creates a portable data directory in the specified unpacked VS Code directory.
-	 * @param dir The directory where VS Code was unpacked.
-	 * @returns The path to the created portable data directory.
-	 */
 	public createPortableDataDir(dir: string): string {
 		const dataDir = path.join(dir, os.platform() === 'darwin' ? 'code-portable-data' : 'data');
 
@@ -1151,10 +906,6 @@ export class TestContext {
 		return dataDir;
 	}
 
-	/**
-	 * Launches a web browser for UI testing.
-	 * @returns The launched Browser instance.
-	 */
 	public async launchBrowser(): Promise<Browser> {
 		this.log(`Launching web browser`);
 		const headless = this.options.headlessBrowser;
@@ -1185,21 +936,12 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Awaits a page promise and sets the default timeout.
-	 * @param pagePromise The promise that resolves to a Page.
-	 * @returns The page with the timeout configured.
-	 */
 	public async getPage(pagePromise: Promise<Page>): Promise<Page> {
 		const page = await pagePromise;
 		page.setDefaultTimeout(3 * 60 * 1000);
 		return page;
 	}
 
-	/**
-	 * Closes a Playwright Electron application gracefully, falling back to a forced
-	 * kill of the process tree if the close hangs (for example after a renderer crash).
-	 */
 	public async closeElectronApp(app: ElectronApplication, timeoutMs = 60_000): Promise<void> {
 		this.log('Closing the application');
 		const pid = app.process().pid;
@@ -1230,11 +972,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Returns a per-test crash dump directory for the desktop app to use with
-	 * `--crash-reporter-directory`. Returns undefined if `--crash-dumps-dir` was
-	 * not provided.
-	 */
 	public getCrashDumpsDir(): string | undefined {
 		if (!this.options.crashDumpsDir || !this.currentTestName) {
 			return undefined;
@@ -1243,9 +980,6 @@ export class TestContext {
 		return path.join(this.options.crashDumpsDir, sanitizedName);
 	}
 
-	/**
-	 * Captures a screenshot of the current page if one is active.
-	 */
 	public async captureScreenshot(page: Page) {
 		if (!this.currentTestName) {
 			return;
@@ -1263,13 +997,6 @@ export class TestContext {
 		}
 	}
 
-	/**
-	 * Constructs a web server URL with optional token and folder parameters.
-	 * @param port The port number of the web server.
-	 * @param token The optional authentication token.
-	 * @param folder The optional workspace folder path to open.
-	 * @returns The constructed web server URL.
-	 */
 	public getWebServerUrl(port: string, token?: string, folder?: string): URL {
 		const url = new URL(`http://localhost:${port}`);
 		if (token) {
@@ -1285,12 +1012,6 @@ export class TestContext {
 		return url;
 	}
 
-	/**
-	 * Returns the tunnel URL for the VS Code server.
-	 * @param baseUrl The base URL for *vscode.dev/tunnel connection.
-	 * @param workspaceDir Optional folder path to open
-	 * @returns The tunnel URL with folder in pathname.
-	 */
 	public getTunnelUrl(baseUrl: string, workspaceDir?: string): string {
 		const url = new URL(baseUrl);
 		url.searchParams.set('vscode-version', this.options.commit);
@@ -1304,24 +1025,14 @@ export class TestContext {
 		return url.toString();
 	}
 
-	/**
-	 * Returns a random alphanumeric token of length 10.
-	 */
 	public getRandomToken(): string {
 		return Array.from({ length: 10 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
 	}
 
-	/**
-	 * Returns a unique port number, starting from 3010 and incrementing.
-	 */
 	public getUniquePort(): string {
 		return String(this.nextPort++);
 	}
 
-	/**
-	 * Returns the default WSL server extensions directory path.
-	 * @returns The path to the extensions directory (e.g., '~/.vscode-server-insiders/extensions').
-	 */
 	public getWslServerExtensionsDir(): string {
 		let serverDir: string;
 		switch (this.options.quality) {
@@ -1338,13 +1049,6 @@ export class TestContext {
 		return `~/${serverDir}/extensions`;
 	}
 
-	/**
-	 * Runs a VS Code command-line application (such as server or CLI).
-	 * @param name The name of the app as it will appear in logs.
-	 * @param command Command to run.
-	 * @param args Arguments for the command.
-	 * @param onLine Callback to handle output lines.
-	 */
 	public async runCliApp(name: string, command: string, args: string[], onLine: (text: string) => Promise<boolean | void | undefined>) {
 		this.log(`Starting ${name} with command line: ${command} ${args.join(' ')}`);
 

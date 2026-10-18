@@ -94,7 +94,6 @@ export class WebviewViewPane extends ViewPane {
 
 		this._register(this.webviewViewService.onNewResolverRegistered(e => {
 			if (e.viewType === this.id) {
-				// Potentially re-activate if we have a new resolver
 				this.updateTreeVisibility();
 			}
 		}));
@@ -125,10 +124,6 @@ export class WebviewViewPane extends ViewPane {
 		this._container = container;
 		this._rootContainer = undefined;
 
-		// The webview iframe lives in an overlay at the document root for DOM
-		// reasons (iframes can't be reparented). This means it's outside the
-		// normal Tab order of the sidebar. Add a tabbable proxy element so
-		// keyboard users can Tab into the webview content.
 		container.tabIndex = 0;
 		container.setAttribute('role', 'document');
 		this._register(addDisposableListener(container, 'focus', (e) => {
@@ -187,7 +182,6 @@ export class WebviewViewPane extends ViewPane {
 			this.viewState[storageKeys.webviewState] = webview.state;
 		}));
 
-		// Re-dispatch all drag events back to the drop target to support view drag drop
 		for (const event of [EventType.DRAG, EventType.DRAG_END, EventType.DRAG_ENTER, EventType.DRAG_LEAVE, EventType.DRAG_START]) {
 			this._webviewDisposables.add(addDisposableListener(this._webview.value.container, event, e => {
 				e.preventDefault();
@@ -200,8 +194,6 @@ export class WebviewViewPane extends ViewPane {
 
 		const source = this._webviewDisposables.add(new CancellationTokenSource());
 
-		// Cancel in-flight revival when the webview is torn down (dispose or re-activation)
-		// so the webview view service drops any pending `_awaitingRevival` entry for this view.
 		this._webviewDisposables.add(toDisposable(() => source.cancel()));
 
 		this.withProgress(async () => {
@@ -223,7 +215,6 @@ export class WebviewViewPane extends ViewPane {
 				set badge(badge: IViewBadge | undefined) { self.updateBadge(badge); },
 
 				dispose: () => {
-					// Only reset and clear the webview itself. Don't dispose of the view container
 					this._activated = false;
 					this._webview.clear();
 					this._webviewDisposables.clear();

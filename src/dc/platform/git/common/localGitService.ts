@@ -11,11 +11,6 @@ export interface IGitPullOptions {
 	readonly allowHardResetOnDivergence?: boolean;
 }
 
-/**
- * Low-level service for executing git commands on the local machine.
- * Used in the shared process where Node.js APIs are available.
- * All path arguments are native file-system paths.
- */
 export interface ILocalGitService {
 	readonly _serviceBrand: undefined;
 

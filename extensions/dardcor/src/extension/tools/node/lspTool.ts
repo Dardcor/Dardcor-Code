@@ -8,7 +8,7 @@ import { IPromptPathRepresentationService } from '../../../platform/prompts/comm
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface ILspParams {
 	operation: 'goToDefinition' | 'findReferences' | 'hover' | 'documentSymbol' | 'workspaceSymbol' | 'goToImplementation' | 'prepareCallHierarchy' | 'incomingCalls' | 'outgoingCalls';
@@ -18,7 +18,7 @@ export interface ILspParams {
 	query?: string;
 }
 
-export class LanguageServerProtocolTool implements ICopilotTool<ILspParams> {
+export class LanguageServerProtocolTool implements IAgentTool<ILspParams> {
 	public static readonly toolName = ToolName.LanguageServerProtocol;
 
 	constructor(
@@ -47,13 +47,11 @@ export class LanguageServerProtocolTool implements ICopilotTool<ILspParams> {
 			}
 			uri = vscode.Uri.file(resolved.fsPath);
 
-			// Warm up the Language Server for documents not yet active in memory
 			try {
 				await vscode.workspace.openTextDocument(uri);
 			} catch { }
 		}
 
-		// VS Code Position is 0-indexed, while tool parameters use editor-style 1-indexing
 		const targetPosition = new vscode.Position(Math.max(0, line - 1), Math.max(0, character - 1));
 
 		switch (operation) {

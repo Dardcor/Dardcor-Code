@@ -52,7 +52,6 @@ class ListDirTool implements vscode.LanguageModelTool<IListDirParams> {
 	async prepareInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<IListDirParams>, token: vscode.CancellationToken): Promise<vscode.PreparedToolInvocation | undefined> {
 		const uri = resolveToolInputPath(options.input.path, this.promptPathRepresentationService);
 
-		// Check if directory is external (outside workspace)
 		const isExternal = this.instantiationService.invokeFunction(
 			(accessor: ServicesAccessor) => isDirExternalAndNeedsConfirmation(accessor, uri, this._promptContext, { readOnly: true, workingDirectory: options.workingDirectory })
 		);

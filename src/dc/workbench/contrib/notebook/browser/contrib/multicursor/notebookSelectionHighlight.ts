@@ -22,9 +22,6 @@ class NotebookSelectionHighlighter extends Disposable implements INotebookEditor
 	private anchorCell: [ICellViewModel, ICodeEditor] | undefined;
 	private readonly anchorDisposables = new DisposableStore();
 
-	// right now this lets us mimic the more performant cache implementation of the text editor (doesn't need to be a delayer)
-	// todo: in the future, implement caching and change to a 250ms delay upon recompute
-	// private readonly runDelayer: Delayer<void> = this._register(new Delayer<void>(0));
 
 	constructor(
 		private readonly notebookEditor: INotebookEditor,
@@ -88,18 +85,13 @@ class NotebookSelectionHighlighter extends Disposable implements INotebookEditor
 			return;
 		}
 
-		// TODO: isTooLargeForTokenization check, notebook equivalent?
-		// unlikely that any one cell's textmodel would be too large
 
-		// get the word
 		const textModel = this.anchorCell[0].textModel;
 		if (!textModel || textModel.isTooLargeForTokenization()) {
 			return;
 		}
 		const s = this.anchorCell[0].getSelections()[0];
 		if (s.startLineNumber !== s.endLineNumber || s.isEmpty()) {
-			// empty selections do nothing
-			// multiline forbidden for perf reasons
 			return;
 		}
 		const searchText = this.getSearchText(s, textModel);

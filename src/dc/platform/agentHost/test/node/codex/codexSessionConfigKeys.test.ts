@@ -22,7 +22,7 @@ import { IAgentHostCustomizationEnablementService } from '../../../node/agentHos
 import { IAgentSdkDownloader } from '../../../node/agentSdkDownloader.js';
 import { RecordingAgentSdkDownloader } from '../testAgentSdkDownloader.js';
 import { IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE } from '../../../common/agentHostCheckpointService.js';
-import { ICopilotApiService } from '../../../node/shared/copilotApiService.js';
+import { IDardcorRouterService } from '../../../node/shared/dardcorRouterService.js';
 import { SessionConfigKey } from '../../../common/sessionConfigKeys.js';
 import { IAgentHostOTelService } from '../../../common/otel/agentHostOTelService.js';
 import { IAgentHostSessionTitleSignal } from '../../../node/agentHostSessionTitleSignal.js';
@@ -36,7 +36,7 @@ function createAgent(disposables: Pick<DisposableStore, 'add'>): CodexAgent {
 	const instantiationService = new TestInstantiationService();
 	const logService = new NullLogService();
 	instantiationService.stub(ISessionDataService, { _serviceBrand: undefined });
-	instantiationService.stub(ICopilotApiService, { _serviceBrand: undefined });
+	instantiationService.stub(IDardcorRouterService, { _serviceBrand: undefined });
 	instantiationService.stub(ICodexProxyService, { _serviceBrand: undefined });
 	instantiationService.stub(IAgentConfigurationService, {
 		_serviceBrand: undefined,
@@ -107,11 +107,8 @@ suite('codexSessionConfigKeys', () => {
 				autoReview: resolveCodexPermissionsPreset('auto-review'),
 				fullAccess: resolveCodexPermissionsPreset('full-access'),
 			},
-			// A stored preset is the source of truth and expands to all three axes.
 			fromPreset: resolveCodexPermissions({ [CodexSessionConfigKey.PermissionsPreset]: 'full-access' }, legacyDefaults),
-			// Without a preset, legacy per-axis keys are honored with a `user` reviewer.
 			fromLegacyKeys: resolveCodexPermissions({ [CodexSessionConfigKey.SandboxMode]: 'read-only', [CodexSessionConfigKey.ApprovalPolicy]: 'never' }, legacyDefaults),
-			// Empty config falls back entirely to the provided defaults.
 			fromDefaults: resolveCodexPermissions(undefined, legacyDefaults),
 		}, {
 			presets: {
@@ -132,16 +129,12 @@ suite('codexSessionConfigKeys', () => {
 		const fullAccess = await agent.resolveChatConfig({ config: { [CodexSessionConfigKey.PermissionsPreset]: 'full-access' } });
 
 		assert.deepStrictEqual({
-			// The visible schema is reduced to Mode + one permissions preset + Permissions.
 			schemaProperties: Object.keys(defaulted.schema.properties).sort(),
-			// Codex drops "Autopilot" (no native equivalent — it would duplicate
-			// "Interactive"), so the Mode picker offers only interactive + plan.
 			modeEnum: defaulted.schema.properties[SessionConfigKey.Mode].enum,
 			defaultedValues: {
 				mode: defaulted.values[SessionConfigKey.Mode],
 				preset: defaulted.values[CodexSessionConfigKey.PermissionsPreset],
 			},
-			// The preset is session-mutable and echoed back unchanged.
 			fullAccessPreset: fullAccess.values[CodexSessionConfigKey.PermissionsPreset],
 		}, {
 			schemaProperties: [SessionConfigKey.Mode, CodexSessionConfigKey.PermissionsPreset, SessionConfigKey.Permissions].sort(),
@@ -154,29 +147,17 @@ suite('codexSessionConfigKeys', () => {
 	test('inverts presets and migrates legacy axes without escalating', () => {
 		const defaults = { approvalPolicy: 'on-request' as const, sandboxMode: 'workspace-write' as const };
 		assert.deepStrictEqual({
-			// Every preset round-trips through expand → invert; a `read-only`
-			// sandbox is not representable by any preset.
 			invert: {
 				default: presetForResolvedPermissions(resolveCodexPermissionsPreset('default')),
 				autoReview: presetForResolvedPermissions(resolveCodexPermissionsPreset('auto-review')),
 				fullAccess: presetForResolvedPermissions(resolveCodexPermissionsPreset('full-access')),
 				readOnly: presetForResolvedPermissions({ approvalPolicy: 'on-request', sandboxMode: 'read-only', approvalsReviewer: 'user' }),
 			},
-			// An explicit preset is kept verbatim.
 			explicit: migrateCodexPermissionValues({ [CodexSessionConfigKey.PermissionsPreset]: 'auto-review' }, defaults),
-			// Legacy axes equal to a preset are migrated to it (raw axes dropped).
 			migrated: migrateCodexPermissionValues({ [CodexSessionConfigKey.SandboxMode]: 'workspace-write', [CodexSessionConfigKey.ApprovalPolicy]: 'on-request' }, defaults),
-			// A legacy `never` + `workspace-write` combo has no exact preset but is
-			// snapped onto `default` so the chip and the resolved (on-request) axes
-			// stay in sync instead of running without ever prompting.
 			snappedDefault: migrateCodexPermissionValues({ [CodexSessionConfigKey.SandboxMode]: 'workspace-write', [CodexSessionConfigKey.ApprovalPolicy]: 'never' }, defaults),
-			// A legacy off-preset `danger-full-access` combo is snapped onto
-			// `full-access` so the chip honestly reflects the full machine access.
 			snappedFullAccess: migrateCodexPermissionValues({ [CodexSessionConfigKey.SandboxMode]: 'danger-full-access', [CodexSessionConfigKey.ApprovalPolicy]: 'on-request' }, defaults),
-			// Legacy `read-only` axes are preserved verbatim with NO preset — the
-			// escalation the reviewer flagged.
 			preserved: migrateCodexPermissionValues({ [CodexSessionConfigKey.SandboxMode]: 'read-only' }, defaults),
-			// Empty config resolves to the default preset.
 			empty: migrateCodexPermissionValues(undefined, defaults),
 		}, {
 			invert: { default: 'default', autoReview: 'auto-review', fullAccess: 'full-access', readOnly: undefined },
@@ -193,8 +174,6 @@ suite('codexSessionConfigKeys', () => {
 		const agent = createAgent(disposables);
 		const legacyDefaults = { approvalPolicy: 'on-request' as const, sandboxMode: 'workspace-write' as const };
 
-		// A pre-preset session persisted only the individual axes (read-only)
-		// plus an unrelated non-permission setting.
 		const legacy = await agent.resolveChatConfig({
 			config: {
 				[CodexSessionConfigKey.SandboxMode]: 'read-only',
@@ -202,7 +181,6 @@ suite('codexSessionConfigKeys', () => {
 				[CodexSessionConfigKey.ModelReasoningEffort]: 'high',
 			},
 		});
-		// A legacy session whose axes map exactly onto a preset is migrated to it.
 		const migratable = await agent.resolveChatConfig({
 			config: {
 				[CodexSessionConfigKey.SandboxMode]: 'danger-full-access',
@@ -211,15 +189,10 @@ suite('codexSessionConfigKeys', () => {
 		});
 
 		assert.deepStrictEqual({
-			// read-only has no equivalent preset: axes preserved, NO preset
-			// inserted, and the effective permissions stay read-only.
 			legacyPreset: legacy.values[CodexSessionConfigKey.PermissionsPreset],
 			legacySandbox: legacy.values[CodexSessionConfigKey.SandboxMode],
 			legacyEffective: resolveCodexPermissions(legacy.values, legacyDefaults),
-			// Non-permission settings survive the restore round-trip.
 			legacyEffort: legacy.values[CodexSessionConfigKey.ModelReasoningEffort],
-			// danger-full-access + never == the full-access preset: migrated, raw
-			// axes dropped.
 			migratablePreset: migratable.values[CodexSessionConfigKey.PermissionsPreset],
 			migratableSandbox: migratable.values[CodexSessionConfigKey.SandboxMode],
 		}, {

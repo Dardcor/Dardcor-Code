@@ -93,9 +93,6 @@ suite('Agent Host Endpoint Registry (schema v2)', () => {
 	});
 
 	test('derives a stable, cross-language identity hash input and file name', () => {
-		// These vectors are shared byte-for-byte with the Rust CLI
-		// (`cli/src/tunnels/agent_host_registry.rs`); both languages must
-		// derive the same `entries/<sha256hex>.json` name for a given identity.
 		const hashName = (type: 'editor' | 'standalone', pid: number, instanceId: string) =>
 			createHash('sha256').update(getAgentHostEndpointIdentityHashInput({ type, pid, instanceId }), 'utf8').digest('hex');
 

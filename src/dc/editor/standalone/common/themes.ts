@@ -7,7 +7,6 @@ import { editorActiveIndentGuide1, editorIndentGuide1 } from '../../common/core/
 import { IStandaloneThemeData } from './standaloneTheme.js';
 import { editorBackground, editorForeground, editorInactiveSelection, editorSelectionHighlight } from '../../../platform/theme/common/colorRegistry.js';
 
-/* -------------------------------- Begin vs theme -------------------------------- */
 export const vs: IStandaloneThemeData = {
 	base: 'vs',
 	inherit: false,
@@ -76,10 +75,8 @@ export const vs: IStandaloneThemeData = {
 		[editorSelectionHighlight]: '#ADD6FF4D'
 	}
 };
-/* -------------------------------- End vs theme -------------------------------- */
 
 
-/* -------------------------------- Begin vs-dark theme -------------------------------- */
 export const vs_dark: IStandaloneThemeData = {
 	base: 'vs-dark',
 	inherit: false,
@@ -147,11 +144,9 @@ export const vs_dark: IStandaloneThemeData = {
 		[editorSelectionHighlight]: '#ADD6FF26'
 	}
 };
-/* -------------------------------- End vs-dark theme -------------------------------- */
 
 
 
-/* -------------------------------- Begin hc-black theme -------------------------------- */
 export const hc_black: IStandaloneThemeData = {
 	base: 'hc-black',
 	inherit: false,
@@ -208,9 +203,7 @@ export const hc_black: IStandaloneThemeData = {
 		[editorActiveIndentGuide1]: '#FFFFFF',
 	}
 };
-/* -------------------------------- End hc-black theme -------------------------------- */
 
-/* -------------------------------- Begin hc-light theme -------------------------------- */
 export const hc_light: IStandaloneThemeData = {
 	base: 'hc-light',
 	inherit: false,
@@ -267,5 +260,4 @@ export const hc_light: IStandaloneThemeData = {
 		[editorActiveIndentGuide1]: '#292929',
 	}
 };
-/* -------------------------------- End hc-light theme -------------------------------- */
 

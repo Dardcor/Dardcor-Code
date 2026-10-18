@@ -18,8 +18,6 @@ import { TerminalContribCommandId } from '../../../terminal/terminalContribExpor
 import { ChatContextKeyExprs, ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind } from '../../common/constants.js';
 import { isStickyPromptHeaderShown } from '../promptTimeline/promptTimelineWidgetContrib.js';
-import { FocusAgentSessionsAction } from '../agentSessions/agentSessionsActions.js';
-import { AGENT_SESSION_RENAME_ACTION_ID } from '../agentSessions/agentSessions.js';
 import { IChatWidgetService, isIChatResourceViewContext } from '../chat.js';
 import { ChatEditingShowChangesAction, ViewPreviousEditsAction } from '../chatEditing/chatEditingActions.js';
 
@@ -90,8 +88,6 @@ export function getAccessibilityHelpText(type: 'panelChat' | 'inlineChat' | 'qui
 		} else {
 			content.push(localize('chat.differencePanel', 'The chat view is a persistent interface that also supports navigating suggested follow-up questions, while the quick chat view is a transient interface for making and viewing requests.'));
 			content.push(localize('workbench.action.chat.newChat', 'To create a new chat session, invoke the New Chat command{0}.', '<keybinding:workbench.action.chat.newChat>'));
-			content.push(localize('workbench.action.chat.focusAgentSessionsViewer', 'You can focus the agent sessions list by invoking the Focus Agent Sessions command{0}.', `<keybinding:${FocusAgentSessionsAction.id}>`));
-			content.push(localize('chat.externalSessionFilter', 'The agent sessions filter includes an External submenu. Use it to choose whether external sessions from another application are shown for the last 24 hours, the last 7 days, always, or not at all.'));
 			content.push(localize('workbench.action.chat.openAgentHostFolderPicker', 'When starting an agent session in a multi-root workspace, you can choose which root folder it runs in by invoking the Folder command{0}, then selecting a folder from the list.', '<keybinding:workbench.action.chat.openAgentHostFolderPicker>'));
 			content.push(localize('chat.agentHostApprovalsPicker', 'When an agent session exposes approval presets, use Tab to reach the Approvals picker and choose how it handles workspace access, commands, and the internet.'));
 		}
@@ -185,13 +181,8 @@ export function getAccessibilityHelpText(type: 'panelChat' | 'inlineChat' | 'qui
 		content.push(localize('inlineChat.diff', "Once in the diff editor, enter review mode with{0}. Use up and down arrows to navigate lines with the proposed changes.", AccessibleDiffViewerNext.id));
 		content.push(localize('inlineChat.toolbar', "Use tab to reach conditional parts like commands, status, message responses and more."));
 	}
-	// Find is enabled on the chat view and chat editors, but not on quick chat, inline chat or the
-	// input window (see `enableFind` in each host's view options).
 	if (type === 'panelChat' || type === 'editsView' || type === 'agentView') {
 		content.push(localize('chat.find', 'To search the chat transcript, invoke Find in Chat{0}. Find Next{1} and Find Previous{2} move between results, scrolling each one into view.', '<keybinding:workbench.action.chat.find>', '<keybinding:workbench.action.chat.findNext>', '<keybinding:workbench.action.chat.findPrevious>'));
-	}
-	if (type === 'panelChat' || type === 'editsView' || type === 'agentView') {
-		content.push(localize('chat.renameSession', 'To rename the current chat session when supported, invoke the Rename command{0}. Agent Host sessions can be renamed after sending the first request.', `<keybinding:${AGENT_SESSION_RENAME_ACTION_ID}>`));
 	}
 	content.push(localize('chat.attachments.pastedText', "Long pasted text, including single-line text, is stored as an attached text item and replaced in the input with a numbered inline reference."));
 	content.push(localize('chat.paste.asText', "To paste the clipboard as plain text, without converting it to Markdown or storing it as an attachment, invoke Paste as Text{0}.", '<keybinding:editor.action.pasteAsText>'));
@@ -230,7 +221,6 @@ export function getChatAccessibilityHelpProvider(accessor: ServicesAccessor, edi
 				inputEditor.focus();
 
 			} else if (type === 'inlineChat') {
-				// TODO@jrieken find a better way for this
 				const ctrl = <{ focus(): void } | undefined>editor?.getContribution(INLINE_CHAT_ID);
 				ctrl?.focus();
 
@@ -240,8 +230,6 @@ export function getChatAccessibilityHelpProvider(accessor: ServicesAccessor, edi
 	);
 }
 
-// The when clauses for actions may not be true when we invoke the accessible view, so we need to provide the keybinding label manually
-// to ensure it's correct
 function getChatFocusKeybindingLabel(keybindingService: IKeybindingService, type: 'agentView' | 'panelChat' | 'inlineChat' | 'quickChat', focus?: 'lastFocused' | 'last' | 'input'): string | undefined {
 	let kbs;
 	const fallback = ' (unassigned keybinding)';
@@ -263,7 +251,6 @@ function getChatFocusKeybindingLabel(keybindingService: IKeybindingService, type
 			kb = kbs.find(kb => kb.getAriaLabel()?.includes('DownArrow'))?.getAriaLabel();
 		}
 	} else {
-		// Quick chat
 		if (focus !== 'input') {
 			kb = kbs.find(kb => kb.getAriaLabel()?.includes('DownArrow'))?.getAriaLabel();
 		} else {

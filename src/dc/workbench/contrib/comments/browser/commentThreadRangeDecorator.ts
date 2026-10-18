@@ -108,8 +108,6 @@ export class CommentThreadRangeDecorator extends Disposable {
 				}
 
 				const range = thread.range;
-				// We only want to show a range decoration when there's the range spans either multiple lines
-				// or, when is spans multiple characters on the sample line
 				if (!range || (range.startLineNumber === range.endLineNumber) && (range.startColumn === range.endColumn)) {
 					return;
 				}

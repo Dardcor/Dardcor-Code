@@ -43,10 +43,10 @@ export enum OutputMonitorState {
 }
 
 export const enum PollingConsts {
-	MinIdleEvents = 2, // Minimum number of idle checks before considering the terminal idle
+	MinIdleEvents = 2,
 	MinPollingDuration = 500,
-	FirstPollingMaxDuration = 20000, // 20 seconds
-	ExtendedPollingMaxDuration = 120000, // 2 minutes
-	MaxPollingIntervalDuration = 10000, // 10 seconds - grows via exponential backoff
+	FirstPollingMaxDuration = 20000,
+	ExtendedPollingMaxDuration = 120000,
+	MaxPollingIntervalDuration = 10000,
 	MaxRecursionCount = 5
 }

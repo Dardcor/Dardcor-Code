@@ -43,11 +43,6 @@ export interface IWorkspaceService {
 	asRelativePath(pathOrUri: string | Uri, includeWorkspaceFolder?: boolean): string;
 	applyEdit(edit: WorkspaceEdit): Thenable<boolean>;
 
-	/**
-	 * Ensures that the workspace has fully loaded before returning. This is useful for
-	 * virtual workspaces where we need to ensure that the contents of the workspace
-	 * has been downloaded before we can use them.
-	 */
 	ensureWorkspaceIsFullyLoaded(): Promise<void>;
 	isResourceTrusted(resource: Uri): Thenable<boolean>;
 	requestResourceTrust(options: ResourceTrustRequestOptions): Thenable<boolean | undefined>;
@@ -81,7 +76,6 @@ export abstract class AbstractWorkspaceService implements IWorkspaceService {
 	abstract requestWorkspaceTrust(options?: WorkspaceTrustRequestOptions): Thenable<boolean | undefined>;
 
 	asRelativePath(pathOrUri: string | Uri, includeWorkspaceFolder?: boolean): string {
-		// Copied from the implementation in vscode/extHostWorkspace.ts
 		let resource: URI | undefined;
 		let path: string = '';
 		if (typeof pathOrUri === 'string') {
@@ -120,7 +114,6 @@ export abstract class AbstractWorkspaceService implements IWorkspaceService {
 	}
 
 	async openNotebookDocumentAndSnapshot(uri: Uri, format: 'xml' | 'json' | 'text'): Promise<NotebookDocumentSnapshot> {
-		// Possible we have an untitled file opened as a notebook.
 		const doc = findNotebook(uri, this.notebookDocuments) || await this.openNotebookDocument(uri);
 
 		return NotebookDocumentSnapshot.create(doc, format);
@@ -190,7 +183,6 @@ export class NullWorkspaceService extends AbstractWorkspaceService implements ID
 	override async openNotebookDocument(notebookType: string, content?: NotebookData): Promise<NotebookDocument>;
 	override async openNotebookDocument(arg1: Uri | string, arg2?: NotebookData): Promise<NotebookDocument> {
 		if (typeof arg1 === 'string') {
-			// Handle the overload for notebookType and content
 			throw new Error('Not implemented');
 		} else {
 			const notebook = this.notebookDocuments.find(d => d.uri.toString() === arg1.toString());
@@ -215,7 +207,6 @@ export class NullWorkspaceService extends AbstractWorkspaceService implements ID
 	}
 
 	override ensureWorkspaceIsFullyLoaded(): Promise<void> {
-		// We aren't using virtual workspaces here, so we can just return
 		return Promise.resolve();
 	}
 

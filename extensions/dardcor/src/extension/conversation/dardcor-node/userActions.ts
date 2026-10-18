@@ -67,23 +67,8 @@ export class UserFeedbackService implements IUserFeedbackService {
 			return;
 		}
 
-		// Don't use e.action.responseId, it will go away
 		switch (e.action.kind) {
 			case 'copy':
-				/* __GDPR__
-					"panel.action.copy" : {
-						"owner": "digitarald",
-						"comment": "Counts copied code blocks from a chat panel response",
-						"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language of the currently open document." },
-						"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for this message request." },
-						"codeBlockIndex": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Index of the code block in the response." },
-						"copyType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "If the copy was done via the context menu or the toolbar." },
-						"characterCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of characters copied." },
-						"lineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of lines copied." },
-						"participant": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": false, "comment": "The name of the chat participant for this message." },
-						"command": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": false, "comment": "The command used for the chat participant." }
-					}
-				*/
 				this.telemetryService.sendMSFTTelemetryEvent('panel.action.copy', {
 					languageId: document?.languageId,
 					requestId: result.metadata?.responseId,
@@ -98,19 +83,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 				GenAiMetrics.incrementUserActionCount(this.otelService, 'copy');
 				break;
 			case 'insert':
-				/* __GDPR__
-					"panel.action.insert" : {
-						"owner": "digitarald",
-						"comment": "Counts inserts on a chat panel response",
-						"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language of the currently open document." },
-						"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for this message request." },
-						"codeBlockIndex": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Index of the code block in the response." },
-						"characterCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of characters copied." },
-						"participant": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": false, "comment": "The name of the chat participant for this message." },
-						"command": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": false, "comment": "The command used for the chat participant." },
-						"newFile": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "If the insert was done in a new file." }
-					}
-				*/
 				this.telemetryService.sendMSFTTelemetryEvent('panel.action.insert', {
 					languageId: document?.languageId,
 					requestId: result.metadata?.responseId,
@@ -124,16 +96,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 				GenAiMetrics.incrementUserActionCount(this.otelService, 'insert');
 				break;
 			case 'followUp':
-				/* __GDPR__
-					"panel.action.followup" : {
-						"owner": "digitarald",
-						"comment": "Counts generic actions on a chat panel response",
-						"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language of the currently open document." },
-						"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for the message request that is being followed-up." },
-						"participant": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The name of the chat participant for this message." },
-						"command": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The command used for the chat participant." }
-					}
-				*/
 				this.telemetryService.sendMSFTTelemetryEvent('panel.action.followup', {
 					languageId: document?.languageId,
 					requestId: result.metadata?.responseId,
@@ -160,20 +122,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 						});
 					}
 
-					/* __GDPR__
-						"panel.edit.feedback" : {
-							"owner": "joyceerhl",
-							"comment": "Counts accept/reject actions for a proposed edit from panel chat",
-							"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language of the currently open document." },
-							"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for the message request that is being followed-up." },
-							"participant": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The name of the chat participant for this message." },
-							"command": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The command used for the chat participant." },
-							"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The user decision taken for the edited file" },
-							"hasRemainingEdits": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether there are additional unactioned edits in the file." },
-							"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook." },
-							"isNotebookCell": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook cell." }
-						}
-					*/
 					this.telemetryService.sendMSFTTelemetryEvent('panel.edit.feedback', {
 						languageId: document?.languageId,
 						requestId: result.metadata?.responseId,
@@ -271,14 +219,12 @@ export class UserFeedbackService implements IUserFeedbackService {
 		if (e.action.kind === 'copy' || e.action.kind === 'insert') {
 			let measurements = {};
 
-			// Both copy and insert actions have a totalCharacters property
 			measurements = {
 				totalCharacters: e.action.totalCharacters,
 				totalLines: e.action.totalLines,
 				isAgent: agentId === getChatParticipantIdFromName(editsAgentName) ? 1 : 0,
 			};
 
-			// Copy actions have a copiedCharacters/Lines property since this includes manual copying which can be partial
 			let compType: 'full' | 'partial' = 'full';
 			if (e.action.kind === 'copy') {
 				measurements = {
@@ -291,7 +237,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 				}
 			}
 
-			// If there is a document and selection, include cursor location
 			if (document && selection) {
 				measurements = {
 					...measurements,
@@ -317,7 +262,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 		}
 
 		if (e.action.kind === 'apply') {
-			// Note- this event is fired after a "keep"
 			this.handleApplyAction(e.action, agentId, result);
 		}
 	}
@@ -349,18 +293,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 
 		const result = e.result as ICopilotChatResultIn;
 
-		/* __GDPR__
-		"panel.action.vote" : {
-			"owner": "digitarald",
-			"comment": "Counts votes on a chat panel response",
-			"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language of the currently open document." },
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for this message request." },
-			"direction": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "If the vote was positive or negative." },
-			"participant": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": false, "comment": "The name of the chat participant for this message." },
-			"command": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": false, "comment": "The command used for the chat participant." },
-			"conversationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the conversation." }
-		}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('panel.action.vote', {
 			languageId: document?.languageId,
 			requestId: result.metadata?.responseId,
@@ -368,7 +300,7 @@ export class UserFeedbackService implements IUserFeedbackService {
 			command: result.metadata?.command,
 			conversationId: result.metadata?.sessionId
 		}, {
-			direction: e.kind === vscode.ChatResultFeedbackKind.Helpful ? 1 : 2, // map to previous enum values
+			direction: e.kind === vscode.ChatResultFeedbackKind.Helpful ? 1 : 2,
 		});
 
 		sendUserActionTelemetry(
@@ -388,7 +320,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 		GenAiMetrics.incrementUserFeedbackCount(this.otelService, otelRating);
 	}
 
-	// --- inline
 
 
 	private _handleChatUserAction(sessionId: string | undefined, conversation: Conversation, event: vscode.ChatUserActionEvent) {
@@ -440,7 +371,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 		const intentId = intent?.id;
 		const languageId = response.promptQuery.document.languageId;
 
-		// TODO: Only collect for /fix
 		const diagnosticsTelemetryData = (
 			intentId === Intent.Fix
 				? findDiagnosticsTelemetry(selection, this.languageDiagnosticsService.getDiagnostics(response.promptQuery.document.uri))
@@ -474,30 +404,9 @@ export class UserFeedbackService implements IUserFeedbackService {
 		if (kind === InteractiveEditorResponseFeedbackKind.Accepted && response.editSurvivalTracker) {
 			response.editSurvivalTracker.startReporter(res => reportInlineEditSurvivalEvent(res, sharedProps, sharedMeasures, this.otelService));
 		}
-		(response as any).editSurvivalTracker = undefined; // TODO@jrieken
+		(response as any).editSurvivalTracker = undefined;
 
 		const accepted = (kind === InteractiveEditorResponseFeedbackKind.Accepted) ? 1 : 0;
-		/* __GDPR__
-			"inline.done" : {
-				"owner": "digitarald",
-				"comment": "Metadata about an inline code suggestion being accepted or undone",
-				"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The current file language." },
-				"replyType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "How response is shown in the interface." },
-				"conversationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the inline assistant conversation." },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"command": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The command which was used in providing the response." },
-				"accepted": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the user accepted the suggested code or discarded it." },
-				"selectionLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many lines are in the current selection." },
-				"wholeRangeLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many lines are in the expanded whole range." },
-				"editCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many edits are suggested." },
-				"editLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many lines are in all suggested edits." },
-				"problemsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many problems are in the current code." },
-				"selectionProblemsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many problems are in the current selected code." },
-				"diagnosticsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many diagnostic codes are in the current code." },
-				"selectionDiagnosticsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many diagnostic codes are in the current code." },
-				"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('inline.done', sharedProps, {
 			...sharedMeasures, accepted
 		});
@@ -542,30 +451,6 @@ export class UserFeedbackService implements IUserFeedbackService {
 }
 
 function reportInlineEditSurvivalEvent(res: EditSurvivalResult, sharedProps: TelemetryEventProperties | undefined, sharedMeasures: TelemetryEventMeasurements | undefined, otelService: IOTelService) {
-	/* __GDPR__
-		"inline.trackEditSurvival" : {
-			"owner": "hediet",
-			"comment": "Tracks how much percent of the AI edits surived after 5 minutes of accepting",
-			"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The current file language." },
-			"replyType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "How response is shown in the interface." },
-			"conversationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the inline assistant conversation." },
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-			"command": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The command which was used in providing the response." },
-			"survivalRateFourGram": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the AI edit is still present in the document." },
-			"survivalRateNoRevert": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the ranges the AI touched ended up being reverted." },
-			"didBranchChange": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Indicates if the branch changed in the meantime. If the branch changed (value is 1), this event should probably be ignored." },
-			"timeDelayMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The time delay between the user accepting the edit and measuring the survival rate." },
-			"selectionLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many lines are in the current selection." },
-			"wholeRangeLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many lines are in the expanded whole range." },
-			"editCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many edits are suggested." },
-			"editLineCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many lines are in all suggested edits." },
-			"problemsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many problems are in the current code." },
-			"selectionProblemsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many problems are in the current selected code." },
-			"diagnosticsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many diagnostic codes are in the current code." },
-			"selectionDiagnosticsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many diagnostic codes are in the current selected code." },
-			"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook" }
-		}
-	*/
 	res.telemetryService.sendMSFTTelemetryEvent('inline.trackEditSurvival', sharedProps, {
 		...sharedMeasures,
 		survivalRateFourGram: res.fourGram,

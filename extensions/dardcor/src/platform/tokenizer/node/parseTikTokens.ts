@@ -7,7 +7,6 @@ import { readFileSync } from 'fs';
 import { readVariableLengthQuantity } from '../../../util/common/variableLengthQuantity';
 import { VSBuffer } from '../../../util/dardcor/base/common/buffer';
 
-/** See `script/build/compressTikToken.ts` */
 export const parseTikTokenBinary = (file: string): Map<Uint8Array, number> => {
 	const contents = readFileSync(file);
 	const result = new Map<Uint8Array, number>();

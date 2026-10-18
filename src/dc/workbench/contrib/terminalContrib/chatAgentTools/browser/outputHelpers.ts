@@ -10,16 +10,9 @@ export const MAX_OUTPUT_LENGTH = 20000;
 const PREVIEW_CHARS = 500;
 
 export interface IGetOutputOptions {
-	/** When set, only return the last N non-empty lines from the bottom of the buffer. */
 	lastNLines?: number;
 }
 
-/**
- * Truncates output that exceeds the max length, keeping a preview from the
- * beginning and the tail of the output with guidance for the model.
- * If a filePath is provided, includes it in the message so the model can
- * read the full output using file-reading tools.
- */
 export function truncateLargeOutput(output: string, filePath?: string): string {
 	const totalLength = output.length;
 	const previewEnd = Math.min(PREVIEW_CHARS, totalLength);
@@ -42,9 +35,6 @@ export function truncateLargeOutput(output: string, filePath?: string): string {
 	return header + preview + separator + tail;
 }
 
-/**
- * Extracts raw output text from the terminal buffer without any truncation or formatting.
- */
 export function getRawOutput(instance: ITerminalInstance, startMarker?: IXtermMarker, options?: IGetOutputOptions): string {
 	if (!instance.xterm || !instance.xterm.raw) {
 		return '';
@@ -64,7 +54,6 @@ export function getRawOutput(instance: ITerminalInstance, startMarker?: IXtermMa
 		if (!line) {
 			continue;
 		}
-		// NOTE: xterm stores wrapping state on the *next* line, not the current one.
 		const isWrapped = !!buffer.getLine(y + 1)?.isWrapped;
 		currentLine += line.translateToString(!isWrapped);
 		if (!isWrapped) {
@@ -86,13 +75,6 @@ export function getRawOutput(instance: ITerminalInstance, startMarker?: IXtermMa
 	return output;
 }
 
-/**
- * Gets output from the terminal buffer without truncation or formatting.
- *
- * NOTE: This function does NOT truncate output. Callers that return output
- * to the model should use {@link LargeOutputFileWriter.processOutput} to
- * handle large output (writes to file + truncates inline).
- */
 export function getOutput(instance: ITerminalInstance, startMarker?: IXtermMarker, options?: IGetOutputOptions): string {
 	return getRawOutput(instance, startMarker, options);
 }

@@ -13,10 +13,8 @@ import { UriList } from '../../util/uriList';
 import { resolveSnippet } from './snippets';
 import { mediaFileExtensions, MediaKind } from '../../util/mimes';
 
-/** Base kind for any sort of markdown link, including both path and media links */
 export const baseLinkEditKind = vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link');
 
-/** Kind for normal markdown links, i.e. `[text](path/to/file.md)` */
 export const linkEditKind = baseLinkEditKind.append('uri');
 
 export const imageEditKind = baseLinkEditKind.append('image');
@@ -28,7 +26,6 @@ export function getSnippetLabelAndKind(counter: { readonly insertedAudioCount: n
 	kind: vscode.DocumentDropOrPasteEditKind;
 } {
 	if (counter.insertedVideoCount > 0 || counter.insertedAudioCount > 0) {
-		// Any media plus links
 		if (counter.insertedLinkCount > 0) {
 			return {
 				label: vscode.l10n.t('Insert Markdown Media and Links'),
@@ -36,7 +33,6 @@ export function getSnippetLabelAndKind(counter: { readonly insertedAudioCount: n
 			};
 		}
 
-		// Any media plus images
 		if (counter.insertedImageCount > 0) {
 			return {
 				label: vscode.l10n.t('Insert Markdown Media and Images'),
@@ -44,7 +40,6 @@ export function getSnippetLabelAndKind(counter: { readonly insertedAudioCount: n
 			};
 		}
 
-		// Audio only
 		if (counter.insertedAudioCount > 0 && !counter.insertedVideoCount) {
 			return {
 				label: vscode.l10n.t('Insert Markdown Audio'),
@@ -52,7 +47,6 @@ export function getSnippetLabelAndKind(counter: { readonly insertedAudioCount: n
 			};
 		}
 
-		// Video only
 		if (counter.insertedVideoCount > 0 && !counter.insertedAudioCount) {
 			return {
 				label: vscode.l10n.t('Insert Markdown Video'),
@@ -60,13 +54,11 @@ export function getSnippetLabelAndKind(counter: { readonly insertedAudioCount: n
 			};
 		}
 
-		// Mix of audio and video
 		return {
 			label: vscode.l10n.t('Insert Markdown Media'),
 			kind: baseLinkEditKind,
 		};
 	} else if (counter.insertedImageCount > 0) {
-		// Mix of images and links
 		if (counter.insertedLinkCount > 0) {
 			return {
 				label: vscode.l10n.t('Insert Markdown Images and Links'),
@@ -74,7 +66,6 @@ export function getSnippetLabelAndKind(counter: { readonly insertedAudioCount: n
 			};
 		}
 
-		// Just images
 		return {
 			label: counter.insertedImageCount > 1
 				? vscode.l10n.t('Insert Markdown Images')
@@ -108,10 +99,8 @@ export function createInsertUriListEdit(
 	let insertedAudioCount = 0;
 	let insertedVideoCount = 0;
 
-	// Use 1 for all empty ranges but give non-empty range unique indices starting after 1
 	let placeHolderStartIndex = 1 + urlList.entries.length;
 
-	// Sort ranges by start position
 	const orderedRanges = [...ranges].sort((a, b) => a.start.compareTo(b.start));
 	const allRangesAreEmpty = orderedRanges.every(range => range.isEmpty);
 
@@ -144,20 +133,10 @@ interface UriListSnippetOptions {
 
 	readonly placeholderStartIndex?: number;
 
-	/**
-	 * Hints how links should be inserted, e.g. as normal markdown link or as an image.
-	 *
-	 * By default this is inferred from the uri. If you use `media`, we will insert the resource as an image, video, or audio.
-	 */
 	readonly linkKindHint?: vscode.DocumentDropOrPasteEditKind | 'media';
 
 	readonly separator?: string;
 
-	/**
-	 * Prevents uris from being made relative to the document.
-	 *
-	 * This is mostly useful for `file:` uris.
-	 */
 	readonly preserveAbsoluteUris?: boolean;
 }
 
@@ -281,9 +260,6 @@ function getDesiredLinkKind(uri: vscode.Uri, uriFileKind: MediaKind | undefined,
 function getRelativeMdPath(dir: vscode.Uri | undefined, file: vscode.Uri): string | undefined {
 	if (dir && dir.scheme === file.scheme && dir.authority === file.authority) {
 		if (file.scheme === Schemes.file) {
-			// On windows, we must use the native `path.relative` to generate the relative path
-			// so that drive-letters are resolved cast insensitively. However we then want to
-			// convert back to a posix path to insert in to the document.
 			const relativePath = path.relative(dir.fsPath, file.fsPath);
 			return path.posix.normalize(relativePath.split(path.sep).join(path.posix.sep));
 		}
@@ -307,12 +283,10 @@ function escapeBrackets(value: string): string {
 }
 
 function needsBracketLink(mdPath: string): boolean {
-	// Links with whitespace or control characters must be enclosed in brackets
 	if (mdPath.startsWith('<') || /\s|[\u007F\u0000-\u001f]/.test(mdPath)) {
 		return true;
 	}
 
-	// Check if the link has mis-matched parens
 	if (!/[\(\)]/.test(mdPath)) {
 		return false;
 	}

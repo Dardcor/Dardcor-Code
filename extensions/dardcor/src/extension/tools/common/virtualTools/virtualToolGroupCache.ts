@@ -36,7 +36,6 @@ export class ToolGroupingCache implements IToolGroupingCache {
 			try {
 				cached.lru.forEach(([k, v]) => this._value.set(k, v));
 			} catch (e) {
-				// ignored
 			}
 		}
 	}

@@ -128,9 +128,6 @@ export namespace Iterable {
 		return count;
 	}
 
-	/**
-	 * Returns an iterable slice of the array, with the same semantics as `array.slice()`.
-	 */
 	export function* slice<T>(arr: ReadonlyArray<T>, from: number, to = arr.length): Iterable<T> {
 		if (from < -arr.length) {
 			from = 0;
@@ -150,10 +147,6 @@ export namespace Iterable {
 		}
 	}
 
-	/**
-	 * Consumes `atMost` elements from iterable and returns the consumed elements,
-	 * and an iterable for the rest of the elements.
-	 */
 	export function consume<T>(iterable: Iterable<T>, atMost: number = Number.POSITIVE_INFINITY): [T[], Iterable<T>] {
 		const consumed: T[] = [];
 

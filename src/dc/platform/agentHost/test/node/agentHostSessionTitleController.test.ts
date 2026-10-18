@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../common/dardcorRouterModel.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
@@ -16,31 +16,31 @@ import { withEphemeralSessionMeta } from '../../common/meta/agentEphemeralSessio
 import { ActionType, NotificationType } from '../../common/state/sessionActions.js';
 import { buildChatUri, buildDefaultChatUri, MessageKind, ResponsePartKind, SessionStatus, ToolCallConfirmationReason, ToolCallStatus, TurnState, type ResponsePart, type SessionSummary, type ToolCallCompletedState, type Turn } from '../../common/state/sessionState.js';
 import { type AutoMergeMethod, type CreatedPullRequest, type GitHubIssueOrPullRequest, type IAgentHostOctoKitService } from '../../node/shared/agentHostOctoKitService.js';
-import { type ICopilotApiService, type ICopilotApiServiceRequestOptions, type ICopilotUtilityChatCompletionRequest } from '../../node/shared/copilotApiService.js';
+import { type IDardcorRouterService, type IDardcorRouterRequestOptions, type IDardcorUtilityChatCompletionRequest } from '../../node/shared/dardcorRouterService.js';
 import { AGENT_HOST_TITLE_SOURCE_AGENT, AGENT_HOST_TITLE_SOURCE_AUTO, customChatTitleSourceMetadataKey, SESSION_CUSTOM_TITLE_SOURCE_KEY } from '../../node/shared/persistSessionMetadata.js';
 import { sessionServerToolDefinitions } from '../../node/shared/sessionServerTools.js';
 import { createSessionDataService, TestSessionDatabase } from '../common/sessionTestHelpers.js';
 
-class TestCopilotApiService implements ICopilotApiService {
+class TestDardcorRouterService implements IDardcorRouterService {
 	declare readonly _serviceBrand: undefined;
 
-	readonly utilityCalls: { token: string; request: ICopilotUtilityChatCompletionRequest; options?: ICopilotApiServiceRequestOptions }[] = [];
+	readonly utilityCalls: { request: IDardcorUtilityChatCompletionRequest; options?: IDardcorRouterRequestOptions }[] = [];
 	response = 'Generated title';
 	responsePromise: Promise<string> | undefined;
 	error: Error | undefined;
 
-	messages(_githubToken: string, _request: Anthropic.MessageCreateParamsStreaming, _options?: ICopilotApiServiceRequestOptions): AsyncGenerator<Anthropic.MessageStreamEvent>;
-	messages(_githubToken: string, _request: Anthropic.MessageCreateParamsNonStreaming, _options?: ICopilotApiServiceRequestOptions): Promise<Anthropic.Message>;
+	messages(_request: Anthropic.MessageCreateParamsStreaming, _options?: IDardcorRouterRequestOptions): AsyncGenerator<Anthropic.MessageStreamEvent>;
+	messages(_request: Anthropic.MessageCreateParamsNonStreaming, _options?: IDardcorRouterRequestOptions): Promise<Anthropic.Message>;
 	messages(): AsyncGenerator<Anthropic.MessageStreamEvent> | Promise<Anthropic.Message> {
 		throw new Error('not used');
 	}
 	async countTokens(): Promise<Anthropic.MessageTokensCount> { throw new Error('not used'); }
-	async models(): Promise<CCAModel[]> { return []; }
+	async models(): Promise<IDardcorRouterModel[]> { return []; }
 	async responses(): Promise<Response> { throw new Error('not used'); }
 	async resolveRestrictedTelemetryContext() { return { restrictedTelemetryEnabled: false, trackingId: undefined, telemetryEndpoint: undefined }; }
 	async resolveApiEndpoint() { return undefined; }
-	async utilityChatCompletion(githubToken: string, request: ICopilotUtilityChatCompletionRequest, options?: ICopilotApiServiceRequestOptions): Promise<string> {
-		this.utilityCalls.push({ token: githubToken, request, options });
+	async utilityChatCompletion(request: IDardcorUtilityChatCompletionRequest, options?: IDardcorRouterRequestOptions): Promise<string> {
+		this.utilityCalls.push({ request, options });
 		if (this.error) {
 			throw this.error;
 		}
@@ -126,7 +126,7 @@ suite('AgentHostSessionTitleController', () => {
 	}
 
 	function setup(
-		copilotApiService = new TestCopilotApiService(),
+		dardcorRouterService = new TestDardcorRouterService(),
 		title = '',
 		getGitHubCopilotToken = () => 'gh-token',
 		octoKitService = new TestAgentHostOctoKitService(),
@@ -141,7 +141,7 @@ suite('AgentHostSessionTitleController', () => {
 		session: URI;
 		db: TestSessionDatabase;
 		titleActions: string[];
-		copilotApiService: TestCopilotApiService;
+		dardcorRouterService: TestDardcorRouterService;
 		octoKitService: TestAgentHostOctoKitService;
 	} {
 		const stateManager = disposables.add(new AgentHostStateManager(new NullLogService()));
@@ -156,26 +156,25 @@ suite('AgentHostSessionTitleController', () => {
 		}));
 		const controller = disposables.add(new AgentHostSessionTitleController(stateManager, {
 			sessionDataService: createSessionDataService(db),
-			getGitHubCopilotToken,
 			getGitHubToken,
 			getGitHubHost,
 			gitHubContextRequestTimeout,
 			octoKitService,
-			copilotApiService,
+			dardcorRouterService,
 			isActiveAgentTitleGenerationEnabled: () => activeAgentTitleGeneration,
 		}, new NullLogService()));
-		return { controller, stateManager, session, db, titleActions, copilotApiService, octoKitService };
+		return { controller, stateManager, session, db, titleActions, dardcorRouterService, octoKitService };
 	}
 
 	test('active-agent mode completes the word crossing the 40-character fallback target without utility generation', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, session, db, titleActions } = setup(copilotApiService, '', undefined, undefined, undefined, undefined, undefined, true);
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, session, db, titleActions } = setup(dardcorRouterService, '', undefined, undefined, undefined, undefined, undefined, true);
 
 		controller.seedTitleFromFirstMessage(session.toString(), 'Investigate why restored Agent Host sessions sometimes lose titles');
 		const instruction = await controller.prepareInstructionForAgent(session.toString(), buildDefaultChatUri(session));
 
 		assert.deepStrictEqual(titleActions, ['Investigate why restored Agent Host sessions...']);
-		assert.strictEqual(copilotApiService.utilityCalls.length, 0);
+		assert.strictEqual(dardcorRouterService.utilityCalls.length, 0);
 		assert.strictEqual(instruction, 'Reminder: This chat currently has an auto-generated or placeholder title. If the user references an issue or PR, fetch it first. Please give the chat a short, descriptive title based on the user\'s intent by calling `rename_chat` with `automatic: true`, silently and without a preamble. The user must not know that you are renaming. Do not skip it.');
 		await waitForCondition(async () => await db.getMetadata(SESSION_CUSTOM_TITLE_SOURCE_KEY) === AGENT_HOST_TITLE_SOURCE_AUTO, 'auto provenance should be persisted');
 	});
@@ -213,7 +212,7 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('does not generate or instruct titles for ephemeral sessions', async () => {
-		const { controller, session, titleActions, copilotApiService } = setup(undefined, '', undefined, undefined, undefined, undefined, undefined, true, true);
+		const { controller, session, titleActions, dardcorRouterService } = setup(undefined, '', undefined, undefined, undefined, undefined, undefined, true, true);
 
 		controller.seedTitleFromFirstMessage(session.toString(), 'Optimize an inline edit');
 		controller.seedProvisionalTitle(session.toString(), 'Provisional inline edit');
@@ -222,7 +221,7 @@ suite('AgentHostSessionTitleController', () => {
 
 		assert.deepStrictEqual({
 			titleActions,
-			utilityCalls: copilotApiService.utilityCalls.length,
+			utilityCalls: dardcorRouterService.utilityCalls.length,
 			instruction: await controller.prepareInstructionForAgent(session.toString(), buildDefaultChatUri(session)),
 		}, {
 			titleActions: [],
@@ -248,12 +247,12 @@ suite('AgentHostSessionTitleController', () => {
 
 		assert.ok((await enabled.controller.prepareInstructionForAgent(enabled.session.toString(), buildDefaultChatUri(enabled.session)))?.includes('`rename_chat`'));
 		assert.strictEqual(await disabled.controller.prepareInstructionForAgent(disabled.session.toString(), buildDefaultChatUri(disabled.session)), undefined);
-		assert.strictEqual(disabled.copilotApiService.utilityCalls.length, 1);
+		assert.strictEqual(disabled.dardcorRouterService.utilityCalls.length, 1);
 	});
 
 	test('active-agent mode reminds peer chats and keeps deterministic fork provenance without utility calls', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db } = setup(copilotApiService, 'Session title', undefined, undefined, undefined, undefined, undefined, true);
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db } = setup(dardcorRouterService, 'Session title', undefined, undefined, undefined, undefined, undefined, true);
 		const chat = buildChatUri(session.toString(), 'peer-1');
 		stateManager.addChat(session.toString(), chat, {});
 		controller.seedTitleFromFirstMessage(session.toString(), 'Investigate peer chat', chat);
@@ -262,7 +261,7 @@ suite('AgentHostSessionTitleController', () => {
 		assert.strictEqual(instruction, 'Reminder: This chat currently has an auto-generated or placeholder title. If the user references an issue or PR, fetch it first. Please give the chat a short, descriptive title based on the user\'s intent by calling `rename_chat` with `automatic: true`, silently and without a preamble. The user must not know that you are renaming. Do not skip it.');
 
 		controller.generateForkedTitle(session.toString(), undefined, [], 'Forked: Session title', 'Session title');
-		assert.strictEqual(copilotApiService.utilityCalls.length, 0);
+		assert.strictEqual(dardcorRouterService.utilityCalls.length, 0);
 		await waitForCondition(async () => await db.getMetadata(SESSION_CUSTOM_TITLE_SOURCE_KEY) === AGENT_HOST_TITLE_SOURCE_AUTO, 'fork auto provenance should be persisted');
 		await waitForCondition(async () => await db.getMetadata(customChatTitleSourceMetadataKey(chat)) === AGENT_HOST_TITLE_SOURCE_AUTO, 'peer auto provenance should be persisted');
 	});
@@ -314,9 +313,9 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('clearSession cancels generation and clears every title-state collection', () => {
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.responsePromise = new Promise(() => { });
-		const { controller, stateManager, session } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.responsePromise = new Promise(() => { });
+		const { controller, stateManager, session } = setup(dardcorRouterService);
 		const provisionalChat = buildChatUri(session.toString(), 'peer-provisional');
 		const renamedChat = buildChatUri(session.toString(), 'peer-renamed');
 		stateManager.addChat(session.toString(), provisionalChat, {});
@@ -344,18 +343,17 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage applies fallback and persists generated title', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.response = '"Generated title."';
-		const { controller, session, db, titleActions } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.response = '"Generated title."';
+		const { controller, session, db, titleActions } = setup(dardcorRouterService);
 
 		controller.seedTitleFromFirstMessage(session.toString(), '  Please   explain title generation  ');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted');
 
 		assert.deepStrictEqual({
 			titles: titleActions,
-			token: copilotApiService.utilityCalls[0]?.token,
-			maxTokens: copilotApiService.utilityCalls[0]?.request.maxTokens,
-			promptIncludesUserText: copilotApiService.utilityCalls[0]?.request.messages.some(message => message.content.includes('Please   explain title generation')),
+			maxTokens: dardcorRouterService.utilityCalls[0]?.request.maxTokens,
+			promptIncludesUserText: dardcorRouterService.utilityCalls[0]?.request.messages.some(message => message.content.includes('Please   explain title generation')),
 			persistedTitle: await db.getMetadata('customTitle'),
 		}, {
 			titles: ['Please explain title generation', 'Generated title'],
@@ -367,17 +365,17 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage appends every unique GitHub issue and pull request', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#123', { title: 'Issue title', body: 'Issue body' });
 		octoKitService.responses.set('microsoft/vscode#456', { title: 'Pull request title', body: 'Pull request body' });
-		const { controller, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 		const prompt = 'Fix https://github.com/microsoft/vscode/issues/123 and review https://github.com/microsoft/vscode/pull/456. Duplicate: https://www.github.com/microsoft/vscode/issues/123#issuecomment-1';
 
 		controller.seedTitleFromFirstMessage(session.toString(), prompt);
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted');
 
-		const userMessage = copilotApiService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content;
+		const userMessage = dardcorRouterService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content;
 		assert.deepStrictEqual({
 			calls: octoKitService.calls.map(call => ({ owner: call.owner, repo: call.repo, number: call.number, token: call.token })),
 			userMessage,
@@ -407,16 +405,16 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage only fetches links from the configured GitHub host', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#456', { title: 'Enterprise issue', body: 'Enterprise body' });
-		const { controller, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService, () => 'github-token', undefined, () => 'github.enterprise.test');
+		const { controller, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService, () => 'github-token', undefined, () => 'github.enterprise.test');
 		const prompt = 'Compare https://github.com/microsoft/vscode/issues/123 with https://github.enterprise.test/microsoft/vscode/issues/456';
 
 		controller.seedTitleFromFirstMessage(session.toString(), prompt);
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted');
 
-		const userMessage = copilotApiService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
+		const userMessage = dardcorRouterService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			calls: octoKitService.calls.map(call => call.number),
 			hasGitHubIssue: userMessage.includes('microsoft/vscode#123'),
@@ -429,19 +427,19 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage fetches at most ten GitHub references', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		const links: string[] = [];
 		for (let number = 1; number <= 11; number++) {
 			octoKitService.responses.set(`microsoft/vscode#${number}`, { title: `Issue ${number}`, body: `Body ${number}` });
 			links.push(`https://github.com/microsoft/vscode/issues/${number}`);
 		}
-		const { controller, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 
 		controller.seedTitleFromFirstMessage(session.toString(), links.join(' '));
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted');
 
-		const userMessage = copilotApiService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
+		const userMessage = dardcorRouterService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			calls: octoKitService.calls.map(call => call.number),
 			hasTenthContext: userMessage.includes('The title of the issue is: Issue 10'),
@@ -454,31 +452,31 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage omits GitHub context when the request fails', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#123', new Error('Not found'));
-		const { controller, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 		const prompt = 'Fix https://github.com/microsoft/vscode/issues/123';
 
 		controller.seedTitleFromFirstMessage(session.toString(), prompt);
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted');
 
-		const userMessage = copilotApiService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content;
+		const userMessage = dardcorRouterService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content;
 		assert.strictEqual(userMessage, `Please write a brief title for the following request:\n\n${prompt}`);
 	});
 
 	test('seedTitleFromFirstMessage keeps successful GitHub context when another request fails', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#123', { title: 'Issue title', body: 'Issue body' });
 		octoKitService.responses.set('microsoft/vscode#456', new Error('Not found'));
-		const { controller, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 		const prompt = 'Fix https://github.com/microsoft/vscode/issues/123 and https://github.com/microsoft/vscode/pull/456';
 
 		controller.seedTitleFromFirstMessage(session.toString(), prompt);
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted');
 
-		const userMessage = copilotApiService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
+		const userMessage = dardcorRouterService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			hasIssue: userMessage.includes('The title of the issue is: Issue title'),
 			hasPullRequest: userMessage.includes('GitHub pull request microsoft/vscode#456'),
@@ -489,16 +487,16 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage times out GitHub context requests', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.pendingResponses.add('microsoft/vscode#123');
-		const { controller, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService, () => 'github-token', 1);
+		const { controller, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService, () => 'github-token', 1);
 		const prompt = 'Fix https://github.com/microsoft/vscode/issues/123';
 
 		controller.seedTitleFromFirstMessage(session.toString(), prompt);
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted after the GitHub request times out');
 
-		const userMessage = copilotApiService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content;
+		const userMessage = dardcorRouterService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content;
 		assert.deepStrictEqual({
 			requestAborted: octoKitService.calls[0].signal.aborted,
 			userMessage,
@@ -509,15 +507,15 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage caps each appended GitHub body at 4000 characters', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#123', { title: 'Issue title', body: `start\n${'x'.repeat(30_000)}\nend` });
-		const { controller, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 
 		controller.seedTitleFromFirstMessage(session.toString(), 'Fix https://github.com/microsoft/vscode/issues/123');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted');
 
-		const userMessage = copilotApiService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
+		const userMessage = dardcorRouterService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
 		const context = userMessage.slice(userMessage.indexOf('GitHub issue and pull request context:'));
 		const bodyMarker = 'The body of the issue is:\n';
 		const body = context.slice(context.indexOf(bodyMarker) + bodyMarker.length);
@@ -535,16 +533,16 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage caps the combined prompt and GitHub context', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#123', { title: `start${'x'.repeat(30_000)}end`, body: '' });
-		const { controller, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 		const prompt = 'Fix https://github.com/microsoft/vscode/issues/123';
 
 		controller.seedTitleFromFirstMessage(session.toString(), prompt);
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Generated title', 'generated title should be persisted');
 
-		const userMessage = copilotApiService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
+		const userMessage = dardcorRouterService.utilityCalls[0].request.messages.find(message => message.role === 'user')?.content ?? '';
 		const promptContent = userMessage.slice(userMessage.indexOf(prompt));
 		const context = userMessage.slice(userMessage.indexOf('GitHub issue and pull request context:'));
 		assert.deepStrictEqual({
@@ -572,9 +570,9 @@ suite('AgentHostSessionTitleController', () => {
 		const titles: { title: string; persistedTitle: string | undefined }[] = [];
 
 		for (const testCase of cases) {
-			const copilotApiService = new TestCopilotApiService();
-			copilotApiService.response = testCase.response;
-			const { controller, stateManager, session, db } = setup(copilotApiService);
+			const dardcorRouterService = new TestDardcorRouterService();
+			dardcorRouterService.response = testCase.response;
+			const { controller, stateManager, session, db } = setup(dardcorRouterService);
 
 			controller.seedTitleFromFirstMessage(session.toString(), 'Fix chat title generation');
 			await waitForCondition(async () => {
@@ -601,9 +599,9 @@ suite('AgentHostSessionTitleController', () => {
 		const titles: { title: string; persistedTitle: string | undefined }[] = [];
 
 		for (const testCase of cases) {
-			const copilotApiService = new TestCopilotApiService();
-			copilotApiService.response = testCase.response;
-			const { controller, stateManager, session, db } = setup(copilotApiService);
+			const dardcorRouterService = new TestDardcorRouterService();
+			dardcorRouterService.response = testCase.response;
+			const { controller, stateManager, session, db } = setup(dardcorRouterService);
 
 			controller.seedTitleFromFirstMessage(session.toString(), testCase.prompt);
 			await waitForCondition(async () => {
@@ -620,13 +618,13 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage does not clobber a changed title', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		let resolveTitle!: (title: string) => void;
-		copilotApiService.responsePromise = new Promise(resolve => { resolveTitle = resolve; });
-		const { controller, stateManager, session, db } = setup(copilotApiService);
+		dardcorRouterService.responsePromise = new Promise(resolve => { resolveTitle = resolve; });
+		const { controller, stateManager, session, db } = setup(dardcorRouterService);
 
 		controller.seedTitleFromFirstMessage(session.toString(), 'Create title tests');
-		await waitForCondition(() => copilotApiService.utilityCalls.length === 1, 'title generation should start');
+		await waitForCondition(() => dardcorRouterService.utilityCalls.length === 1, 'title generation should start');
 		stateManager.dispatchServerAction(session.toString(), {
 			type: ActionType.SessionTitleChanged,
 			title: 'Manual title',
@@ -644,19 +642,19 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('cancelTitleGeneration cancels delayed generated title application', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		let resolveTitle!: (title: string) => void;
-		copilotApiService.responsePromise = new Promise(resolve => { resolveTitle = resolve; });
-		const { controller, stateManager, session, db } = setup(copilotApiService);
+		dardcorRouterService.responsePromise = new Promise(resolve => { resolveTitle = resolve; });
+		const { controller, stateManager, session, db } = setup(dardcorRouterService);
 
 		controller.seedTitleFromFirstMessage(session.toString(), 'Investigate title cancellation');
-		await waitForCondition(() => copilotApiService.utilityCalls.length === 1, 'title generation should start');
+		await waitForCondition(() => dardcorRouterService.utilityCalls.length === 1, 'title generation should start');
 		controller.cancelTitleGeneration(session.toString());
 		resolveTitle('Generated title');
 		await Promise.resolve();
 
 		assert.deepStrictEqual({
-			aborted: copilotApiService.utilityCalls[0].options?.signal?.aborted,
+			aborted: dardcorRouterService.utilityCalls[0].options?.signal?.aborted,
 			title: stateManager.getSessionState(session.toString())?.title,
 			persistedTitle: await db.getMetadata('customTitle'),
 		}, {
@@ -667,14 +665,14 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage skips sessions with an existing title', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db, titleActions } = setup(copilotApiService, 'Forked: Source title');
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db, titleActions } = setup(dardcorRouterService, 'Forked: Source title');
 
 		controller.seedTitleFromFirstMessage(session.toString(), 'Continue forked session');
 		await Promise.resolve();
 
 		assert.deepStrictEqual({
-			calls: copilotApiService.utilityCalls.length,
+			calls: dardcorRouterService.utilityCalls.length,
 			title: stateManager.getSessionState(session.toString())?.title,
 			titles: titleActions,
 			persistedTitle: await db.getMetadata('customTitle'),
@@ -687,8 +685,8 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedProvisionalTitle titles the session from the suggestion without generating', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db, titleActions } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db, titleActions } = setup(dardcorRouterService);
 
 		controller.seedProvisionalTitle(session.toString(), 'ls -la');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'ls -la', 'provisional title should be persisted');
@@ -697,7 +695,7 @@ suite('AgentHostSessionTitleController', () => {
 			title: stateManager.getSessionState(session.toString())?.title,
 			titles: titleActions,
 			persistedTitle: await db.getMetadata('customTitle'),
-			utilityCalls: copilotApiService.utilityCalls.length,
+			utilityCalls: dardcorRouterService.utilityCalls.length,
 		}, {
 			title: 'ls -la',
 			titles: ['ls -la'],
@@ -707,8 +705,8 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedProvisionalTitle refreshes a provisional title with a later suggestion', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db } = setup(dardcorRouterService);
 
 		controller.seedProvisionalTitle(session.toString(), 'ls -la');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'ls -la', 'first provisional title should be persisted');
@@ -717,7 +715,7 @@ suite('AgentHostSessionTitleController', () => {
 
 		assert.deepStrictEqual({
 			title: stateManager.getSessionState(session.toString())?.title,
-			utilityCalls: copilotApiService.utilityCalls.length,
+			utilityCalls: dardcorRouterService.utilityCalls.length,
 		}, {
 			title: 'git status',
 			utilityCalls: 0,
@@ -725,8 +723,8 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedProvisionalTitle does not clobber a changed title', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db, titleActions } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db, titleActions } = setup(dardcorRouterService);
 
 		controller.seedProvisionalTitle(session.toString(), 'ls -la');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'ls -la', 'provisional title should be persisted');
@@ -744,16 +742,14 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage replaces a provisional title with a generated title', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.response = 'Explain the build';
-		const { controller, stateManager, session, db, titleActions } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.response = 'Explain the build';
+		const { controller, stateManager, session, db, titleActions } = setup(dardcorRouterService);
 
-		// A `!command` seeds a provisional title and records a (local) turn.
 		controller.seedProvisionalTitle(session.toString(), 'ls -la');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'ls -la', 'provisional title should be persisted');
 		stateManager.seedDefaultChatTurns(session.toString(), [firstTurn('!ls -la', [])]);
 
-		// The first real request supersedes it with a generated title.
 		controller.seedTitleFromFirstMessage(session.toString(), 'Explain how the build works');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Explain the build', 'generated title should replace the provisional title');
 
@@ -769,9 +765,9 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('seedTitleFromFirstMessage persists its fallback when replacing a provisional title', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.error = new Error('Title generation unavailable');
-		const { controller, stateManager, session, db } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.error = new Error('Title generation unavailable');
+		const { controller, stateManager, session, db } = setup(dardcorRouterService);
 
 		controller.seedProvisionalTitle(session.toString(), 'ls -la');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'ls -la', 'provisional title should be persisted');
@@ -820,23 +816,23 @@ suite('AgentHostSessionTitleController', () => {
 		};
 	}
 
-	async function seedFirstTitle(controller: AgentHostSessionTitleController, copilotApiService: TestCopilotApiService, db: TestSessionDatabase, session: URI, userPrompt: string, title: string): Promise<void> {
-		copilotApiService.response = title;
+	async function seedFirstTitle(controller: AgentHostSessionTitleController, dardcorRouterService: TestDardcorRouterService, db: TestSessionDatabase, session: URI, userPrompt: string, title: string): Promise<void> {
+		dardcorRouterService.response = title;
 		controller.seedTitleFromFirstMessage(session.toString(), userPrompt);
 		await waitForCondition(async () => await db.getMetadata('customTitle') === title, 'first title should be persisted');
 	}
 
 	test('refineTitleFromFirstTurn regenerates the title from the first-turn context', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db } = setup(copilotApiService);
-		await seedFirstTitle(controller, copilotApiService, db, session, 'Add dark mode toggle', 'First title');
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db } = setup(dardcorRouterService);
+		await seedFirstTitle(controller, dardcorRouterService, db, session, 'Add dark mode toggle', 'First title');
 
-		copilotApiService.response = 'Dark mode setting';
+		dardcorRouterService.response = 'Dark mode setting';
 		stateManager.seedDefaultChatTurns(session.toString(), [firstTurn('Add dark mode toggle', [textPart('Implemented the toggle in the settings editor.')])]);
 		controller.refineTitleFromFirstTurn(session.toString());
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Dark mode setting', 'refined title should be persisted');
 
-		const lastCall = copilotApiService.utilityCalls[copilotApiService.utilityCalls.length - 1];
+		const lastCall = dardcorRouterService.utilityCalls[dardcorRouterService.utilityCalls.length - 1];
 		const userMessage = lastCall.request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			title: stateManager.getSessionState(session.toString())?.title,
@@ -854,10 +850,10 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('refineTitleFromFirstTurn does not clobber a title changed in the meantime', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db } = setup(copilotApiService);
-		await seedFirstTitle(controller, copilotApiService, db, session, 'Add dark mode toggle', 'First title');
-		const callsAfterSeed = copilotApiService.utilityCalls.length;
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db } = setup(dardcorRouterService);
+		await seedFirstTitle(controller, dardcorRouterService, db, session, 'Add dark mode toggle', 'First title');
+		const callsAfterSeed = dardcorRouterService.utilityCalls.length;
 
 		stateManager.dispatchServerAction(session.toString(), { type: ActionType.SessionTitleChanged, title: 'Manual title' });
 		stateManager.seedDefaultChatTurns(session.toString(), [firstTurn('Add dark mode toggle', [textPart('Implemented the toggle.')])]);
@@ -865,7 +861,7 @@ suite('AgentHostSessionTitleController', () => {
 		await Promise.resolve();
 
 		assert.deepStrictEqual({
-			calls: copilotApiService.utilityCalls.length,
+			calls: dardcorRouterService.utilityCalls.length,
 			title: stateManager.getSessionState(session.toString())?.title,
 		}, {
 			calls: callsAfterSeed,
@@ -874,20 +870,20 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('refineTitleFromFirstTurn ignores tool calls and reasoning, keeping only text parts', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db } = setup(copilotApiService);
-		await seedFirstTitle(controller, copilotApiService, db, session, 'Add dark mode toggle', 'First title');
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db } = setup(dardcorRouterService);
+		await seedFirstTitle(controller, dardcorRouterService, db, session, 'Add dark mode toggle', 'First title');
 
-		copilotApiService.response = 'Refined title';
+		dardcorRouterService.response = 'Refined title';
 		stateManager.seedDefaultChatTurns(session.toString(), [firstTurn('Add dark mode toggle', [
 			reasoningPart('Thinking about THINKING_MARKER the approach'),
 			toolCallPart('SearchTool', 'searched the workspace TOOL_MARKER'),
 			textPart('Added the toggle TEXT_MARKER to settings.'),
 		])]);
 		controller.refineTitleFromFirstTurn(session.toString());
-		await waitForCondition(() => copilotApiService.utilityCalls.length >= 2, 'refine should issue a utility call');
+		await waitForCondition(() => dardcorRouterService.utilityCalls.length >= 2, 'refine should issue a utility call');
 
-		const lastCall = copilotApiService.utilityCalls[copilotApiService.utilityCalls.length - 1];
+		const lastCall = dardcorRouterService.utilityCalls[dardcorRouterService.utilityCalls.length - 1];
 		const userMessage = lastCall.request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			includesText: userMessage.includes('TEXT_MARKER'),
@@ -901,17 +897,17 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('refineTitleFromFirstTurn truncates the middle of an oversized text response', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, session, db } = setup(copilotApiService);
-		await seedFirstTitle(controller, copilotApiService, db, session, 'Add dark mode toggle', 'First title');
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, session, db } = setup(dardcorRouterService);
+		await seedFirstTitle(controller, dardcorRouterService, db, session, 'Add dark mode toggle', 'First title');
 
-		copilotApiService.response = 'Refined title';
+		dardcorRouterService.response = 'Refined title';
 		const hugeResponse = 'A'.repeat(15000) + ' MIDDLE_MARKER ' + 'B'.repeat(15000);
 		stateManager.seedDefaultChatTurns(session.toString(), [firstTurn('Add dark mode toggle', [textPart(hugeResponse)])]);
 		controller.refineTitleFromFirstTurn(session.toString());
-		await waitForCondition(() => copilotApiService.utilityCalls.length >= 2, 'refine should issue a utility call');
+		await waitForCondition(() => dardcorRouterService.utilityCalls.length >= 2, 'refine should issue a utility call');
 
-		const lastCall = copilotApiService.utilityCalls[copilotApiService.utilityCalls.length - 1];
+		const lastCall = dardcorRouterService.utilityCalls[dardcorRouterService.utilityCalls.length - 1];
 		const userMessage = lastCall.request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			withinBudget: userMessage.length <= 20200,
@@ -927,19 +923,19 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('refineTitleFromFirstTurn appends GitHub context from the request and offers the current title', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#123', { title: 'Agent Host logs an error when a local commit is not on GitHub', body: 'Issue body' });
-		const { controller, stateManager, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, stateManager, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 		const request = 'Tackle this issue: https://github.com/microsoft/vscode/issues/123';
-		await seedFirstTitle(controller, copilotApiService, db, session, request, 'First title');
+		await seedFirstTitle(controller, dardcorRouterService, db, session, request, 'First title');
 
-		copilotApiService.response = 'Missing commit lookup error';
+		dardcorRouterService.response = 'Missing commit lookup error';
 		stateManager.seedDefaultChatTurns(session.toString(), [firstTurn(request, [textPart('Fixed the pull request lookup.')])]);
 		controller.refineTitleFromFirstTurn(session.toString());
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Missing commit lookup error', 'refined title should be persisted');
 
-		const lastCall = copilotApiService.utilityCalls[copilotApiService.utilityCalls.length - 1];
+		const lastCall = dardcorRouterService.utilityCalls[dardcorRouterService.utilityCalls.length - 1];
 		const userMessage = lastCall.request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			fetched: octoKitService.calls.map(call => call.number),
@@ -955,20 +951,20 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('refineTitleFromFirstTurn ignores GitHub links the agent only mentioned in its response', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#123', { title: 'Requested issue', body: 'Issue body' });
 		octoKitService.responses.set('microsoft/vscode#456', { title: 'Mentioned issue', body: 'Other body' });
-		const { controller, stateManager, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, stateManager, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 		const request = 'Tackle this issue: https://github.com/microsoft/vscode/issues/123';
-		await seedFirstTitle(controller, copilotApiService, db, session, request, 'First title');
+		await seedFirstTitle(controller, dardcorRouterService, db, session, request, 'First title');
 
-		copilotApiService.response = 'Refined title';
+		dardcorRouterService.response = 'Refined title';
 		stateManager.seedDefaultChatTurns(session.toString(), [firstTurn(request, [textPart('This also affects https://github.com/microsoft/vscode/issues/456')])]);
 		controller.refineTitleFromFirstTurn(session.toString());
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Refined title', 'refined title should be persisted');
 
-		const lastCall = copilotApiService.utilityCalls[copilotApiService.utilityCalls.length - 1];
+		const lastCall = dardcorRouterService.utilityCalls[dardcorRouterService.utilityCalls.length - 1];
 		const userMessage = lastCall.request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			fetched: octoKitService.calls.map(call => call.number),
@@ -980,20 +976,20 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('refineTitleFromFirstTurn keeps the issue title within budget despite an oversized response', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		const octoKitService = new TestAgentHostOctoKitService();
 		octoKitService.responses.set('microsoft/vscode#123', { title: 'Local commit lookup fails', body: 'C'.repeat(30_000) });
-		const { controller, stateManager, session, db } = setup(copilotApiService, '', () => 'gh-token', octoKitService);
+		const { controller, stateManager, session, db } = setup(dardcorRouterService, '', () => 'gh-token', octoKitService);
 		const request = 'Tackle this issue: https://github.com/microsoft/vscode/issues/123';
-		await seedFirstTitle(controller, copilotApiService, db, session, request, 'First title');
+		await seedFirstTitle(controller, dardcorRouterService, db, session, request, 'First title');
 
-		copilotApiService.response = 'Refined title';
+		dardcorRouterService.response = 'Refined title';
 		const hugeResponse = 'A'.repeat(15_000) + ' MIDDLE_MARKER ' + 'B'.repeat(15_000);
 		stateManager.seedDefaultChatTurns(session.toString(), [firstTurn(request, [textPart(hugeResponse)])]);
 		controller.refineTitleFromFirstTurn(session.toString());
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Refined title', 'refined title should be persisted');
 
-		const lastCall = copilotApiService.utilityCalls[copilotApiService.utilityCalls.length - 1];
+		const lastCall = dardcorRouterService.utilityCalls[dardcorRouterService.utilityCalls.length - 1];
 		const userMessage = lastCall.request.messages.find(message => message.role === 'user')?.content ?? '';
 		const promptContent = userMessage.slice(userMessage.indexOf('User request:'), userMessage.indexOf('\n\nIts current title is:'));
 		assert.deepStrictEqual({
@@ -1022,9 +1018,9 @@ suite('AgentHostSessionTitleController', () => {
 	}
 
 	test('generateForkedTitle replaces the inherited title using the whole forked conversation', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.response = 'Compaction strategy';
-		const { controller, stateManager, session, db, titleActions } = setup(copilotApiService, 'Forked: Source title');
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.response = 'Compaction strategy';
+		const { controller, stateManager, session, db, titleActions } = setup(dardcorRouterService, 'Forked: Source title');
 
 		stateManager.seedDefaultChatTurns(session.toString(), [
 			turn('turn-1', 'Add dark mode toggle', [textPart('Implemented the toggle in settings.')]),
@@ -1034,7 +1030,7 @@ suite('AgentHostSessionTitleController', () => {
 		controller.generateForkedTitle(session.toString(), undefined, turns, 'Forked: Source title', 'Source title');
 		await waitForCondition(async () => await db.getMetadata('customTitle') === 'Compaction strategy', 'forked title should be persisted');
 
-		const userMessage = copilotApiService.utilityCalls[0]?.request.messages.find(message => message.role === 'user')?.content ?? '';
+		const userMessage = dardcorRouterService.utilityCalls[0]?.request.messages.find(message => message.role === 'user')?.content ?? '';
 		assert.deepStrictEqual({
 			titles: titleActions,
 			persistedTitle: await db.getMetadata('customTitle'),
@@ -1053,14 +1049,14 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('generateForkedTitle does not clobber a title changed during generation', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		let resolveTitle!: (title: string) => void;
-		copilotApiService.responsePromise = new Promise(resolve => { resolveTitle = resolve; });
-		const { controller, stateManager, session, db } = setup(copilotApiService, 'Forked: Source title');
+		dardcorRouterService.responsePromise = new Promise(resolve => { resolveTitle = resolve; });
+		const { controller, stateManager, session, db } = setup(dardcorRouterService, 'Forked: Source title');
 
 		stateManager.seedDefaultChatTurns(session.toString(), [turn('turn-1', 'Add dark mode toggle', [textPart('Done.')])]);
 		controller.generateForkedTitle(session.toString(), undefined, stateManager.getSessionState(session.toString())!.turns, 'Forked: Source title');
-		await waitForCondition(() => copilotApiService.utilityCalls.length === 1, 'forked title generation should start');
+		await waitForCondition(() => dardcorRouterService.utilityCalls.length === 1, 'forked title generation should start');
 		stateManager.dispatchServerAction(session.toString(), { type: ActionType.SessionTitleChanged, title: 'Manual title' });
 		resolveTitle('Generated title');
 		await Promise.resolve();
@@ -1075,9 +1071,9 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('generateExternalSessionTitle titles a surfaced external session from its first prompt', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		copilotApiService.response = 'Flaky renderer test';
-		const { controller, stateManager, db } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		dardcorRouterService.response = 'Flaky renderer test';
+		const { controller, stateManager, db } = setup(dardcorRouterService);
 		const external = URI.parse('agenthost-session://claude/external-session');
 		const summaryTitles: (string | undefined)[] = [];
 		disposables.add(stateManager.onDidEmitNotification(n => {
@@ -1088,7 +1084,6 @@ suite('AgentHostSessionTitleController', () => {
 
 		stateManager.announceSurfacedSession(createSummary(external));
 		await controller.generateExternalSessionTitle(external.toString(), 'Fix the flaky renderer test');
-		// No polling: awaiting the call must mean the title is applied and persisted.
 
 		assert.deepStrictEqual({
 			summaryTitles,
@@ -1104,22 +1099,21 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('generateExternalSessionTitle does not clobber a rename during generation', async () => {
-		const copilotApiService = new TestCopilotApiService();
+		const dardcorRouterService = new TestDardcorRouterService();
 		let resolveTitle!: (title: string) => void;
-		copilotApiService.responsePromise = new Promise(resolve => { resolveTitle = resolve; });
-		const { controller, stateManager, db } = setup(copilotApiService);
+		dardcorRouterService.responsePromise = new Promise(resolve => { resolveTitle = resolve; });
+		const { controller, stateManager, db } = setup(dardcorRouterService);
 		const external = URI.parse('agenthost-session://claude/external-session');
 
 		stateManager.announceSurfacedSession(createSummary(external));
 		const generation = controller.generateExternalSessionTitle(external.toString(), 'Fix the flaky renderer test');
-		await waitForCondition(() => copilotApiService.utilityCalls.length === 1, 'title generation should start');
+		await waitForCondition(() => dardcorRouterService.utilityCalls.length === 1, 'title generation should start');
 		controller.markTitleRenamed(external.toString());
 		resolveTitle('Flaky renderer test');
-		// Also proves a cancelled generation settles rather than hanging its caller.
 		await generation;
 
 		assert.deepStrictEqual({
-			aborted: copilotApiService.utilityCalls[0].options?.signal?.aborted,
+			aborted: dardcorRouterService.utilityCalls[0].options?.signal?.aborted,
 			persistedTitle: await db.getMetadata('customTitle'),
 		}, {
 			aborted: true,
@@ -1128,8 +1122,8 @@ suite('AgentHostSessionTitleController', () => {
 	});
 
 	test('generateExternalSessionTitle keeps an already persisted title', async () => {
-		const copilotApiService = new TestCopilotApiService();
-		const { controller, stateManager, db } = setup(copilotApiService);
+		const dardcorRouterService = new TestDardcorRouterService();
+		const { controller, stateManager, db } = setup(dardcorRouterService);
 		const external = URI.parse('agenthost-session://claude/external-session');
 		await db.setMetadata('customTitle', 'Renamed by the user');
 
@@ -1137,7 +1131,7 @@ suite('AgentHostSessionTitleController', () => {
 		await controller.generateExternalSessionTitle(external.toString(), 'Fix the flaky renderer test');
 
 		assert.deepStrictEqual({
-			utilityCalls: copilotApiService.utilityCalls.length,
+			utilityCalls: dardcorRouterService.utilityCalls.length,
 			persistedTitle: await db.getMetadata('customTitle'),
 		}, {
 			utilityCalls: 0,

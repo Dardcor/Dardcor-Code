@@ -30,7 +30,6 @@ export class ToggleCellToolbarPositionAction extends Action2 {
 	async run(accessor: ServicesAccessor, context: any): Promise<void> {
 		const editor = context && context.ui ? (context as INotebookActionContext).notebookEditor : undefined;
 		if (editor && editor.hasModel()) {
-			// from toolbar
 			const viewType = editor.textModel.viewType;
 			const configurationService = accessor.get(IConfigurationService);
 			const toolbarPosition = configurationService.getValue<string | { [key: string]: string }>(NotebookSetting.cellToolbarLocation);
@@ -41,9 +40,7 @@ export class ToggleCellToolbarPositionAction extends Action2 {
 
 	togglePosition(viewType: string, toolbarPosition: string | { [key: string]: string }): { [key: string]: string } {
 		if (typeof toolbarPosition === 'string') {
-			// legacy
 			if (['left', 'right', 'hidden'].indexOf(toolbarPosition) >= 0) {
-				// valid position
 				const newViewValue = toolbarPosition === 'right' ? 'left' : 'right';
 				const config: { [key: string]: string } = {
 					default: toolbarPosition
@@ -51,7 +48,6 @@ export class ToggleCellToolbarPositionAction extends Action2 {
 				config[viewType] = newViewValue;
 				return config;
 			} else {
-				// invalid position
 				const config: { [key: string]: string } = {
 					default: 'right',
 				};

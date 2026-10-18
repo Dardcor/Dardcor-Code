@@ -170,14 +170,14 @@ suite('Strings', () => {
 		assert.strictEqual(strings.lcut('foo bar', 0), '');
 		assert.strictEqual(strings.lcut('foo bar', 1), 'bar');
 		assert.strictEqual(strings.lcut('foo bar', 3), 'bar');
-		assert.strictEqual(strings.lcut('foo bar', 4), 'bar'); // Leading whitespace trimmed
+		assert.strictEqual(strings.lcut('foo bar', 4), 'bar');
 		assert.strictEqual(strings.lcut('foo bar', 5), 'foo bar');
 		assert.strictEqual(strings.lcut('test string 0.1.2.3', 3), '2.3');
 
 		assert.strictEqual(strings.lcut('foo bar', 0, '…'), '…');
 		assert.strictEqual(strings.lcut('foo bar', 1, '…'), '…bar');
 		assert.strictEqual(strings.lcut('foo bar', 3, '…'), '…bar');
-		assert.strictEqual(strings.lcut('foo bar', 4, '…'), '…bar'); // Leading whitespace trimmed
+		assert.strictEqual(strings.lcut('foo bar', 4, '…'), '…bar');
 		assert.strictEqual(strings.lcut('foo bar', 5, '…'), 'foo bar');
 		assert.strictEqual(strings.lcut('test string 0.1.2.3', 3, '…'), '…2.3');
 
@@ -200,7 +200,7 @@ suite('Strings', () => {
 		assert.strictEqual(strings.rcut('foo bar', 0), '');
 		assert.strictEqual(strings.rcut('foo bar', 1), '');
 		assert.strictEqual(strings.rcut('foo bar', 3), 'foo');
-		assert.strictEqual(strings.rcut('foo bar', 4), 'foo'); // Trailing whitespace trimmed
+		assert.strictEqual(strings.rcut('foo bar', 4), 'foo');
 		assert.strictEqual(strings.rcut('foo bar', 5), 'foo');
 		assert.strictEqual(strings.rcut('foo bar', 7), 'foo bar');
 		assert.strictEqual(strings.rcut('foo bar', 10), 'foo bar');
@@ -209,7 +209,7 @@ suite('Strings', () => {
 		assert.strictEqual(strings.rcut('foo bar', 0, '…'), '…');
 		assert.strictEqual(strings.rcut('foo bar', 1, '…'), '…');
 		assert.strictEqual(strings.rcut('foo bar', 3, '…'), 'foo…');
-		assert.strictEqual(strings.rcut('foo bar', 4, '…'), 'foo…'); // Trailing whitespace trimmed
+		assert.strictEqual(strings.rcut('foo bar', 4, '…'), 'foo…');
 		assert.strictEqual(strings.rcut('foo bar', 5, '…'), 'foo…');
 		assert.strictEqual(strings.rcut('foo bar', 7, '…'), 'foo bar');
 		assert.strictEqual(strings.rcut('foo bar', 10, '…'), 'foo bar');
@@ -249,7 +249,6 @@ suite('Strings', () => {
 		assert.strictEqual(strings.ltrim('///', '/'), '');
 		assert.strictEqual(strings.ltrim('', ''), '');
 		assert.strictEqual(strings.ltrim('', '/'), '');
-		// Multi-character needle with consecutive repetitions
 		assert.strictEqual(strings.ltrim('---hello', '---'), 'hello');
 		assert.strictEqual(strings.ltrim('------hello', '---'), 'hello');
 		assert.strictEqual(strings.ltrim('---------hello', '---'), 'hello');
@@ -267,7 +266,6 @@ suite('Strings', () => {
 		assert.strictEqual(strings.rtrim('///', '/'), '');
 		assert.strictEqual(strings.rtrim('', ''), '');
 		assert.strictEqual(strings.rtrim('', '/'), '');
-		// Multi-character needle with consecutive repetitions (bug fix)
 		assert.strictEqual(strings.rtrim('hello---', '---'), 'hello');
 		assert.strictEqual(strings.rtrim('hello------', '---'), 'hello');
 		assert.strictEqual(strings.rtrim('hello---------', '---'), 'hello');
@@ -320,19 +318,15 @@ suite('Strings', () => {
 	});
 
 	test('isFullWidthCharacter', () => {
-		// Fullwidth ASCII (FF01-FF5E)
 		assert.strictEqual(strings.isFullWidthCharacter('Ａ'.charCodeAt(0)), true, 'Ａ U+FF21 fullwidth A');
 		assert.strictEqual(strings.isFullWidthCharacter('？'.charCodeAt(0)), true, '？ U+FF1F fullwidth question mark');
 		assert.strictEqual(strings.isFullWidthCharacter('＃'.charCodeAt(0)), true, '＃ U+FF03 fullwidth number sign');
 		assert.strictEqual(strings.isFullWidthCharacter('＝'.charCodeAt(0)), true, '＝ U+FF1D fullwidth equals sign');
 
-		// Hiragana (3040-309F)
 		assert.strictEqual(strings.isFullWidthCharacter('あ'.charCodeAt(0)), true, 'あ U+3042 hiragana');
 
-		// Fullwidth symbols (FFE0-FFE6)
 		assert.strictEqual(strings.isFullWidthCharacter('￥'.charCodeAt(0)), true, '￥ U+FFE5 fullwidth yen sign');
 
-		// Regular ASCII should not be full width
 		assert.strictEqual(strings.isFullWidthCharacter('A'.charCodeAt(0)), false, 'A regular ASCII');
 		assert.strictEqual(strings.isFullWidthCharacter('?'.charCodeAt(0)), false, '? regular ASCII');
 	});
@@ -363,15 +357,12 @@ suite('Strings', () => {
 	});
 
 	test('createRegExp', () => {
-		// Empty
 		assert.throws(() => strings.createRegExp('', false));
 
-		// Escapes appropriately
 		assert.strictEqual(strings.createRegExp('abc', false).source, 'abc');
 		assert.strictEqual(strings.createRegExp('([^ ,.]*)', false).source, '\\(\\[\\^ ,\\.\\]\\*\\)');
 		assert.strictEqual(strings.createRegExp('([^ ,.]*)', true).source, '([^ ,.]*)');
 
-		// Whole word
 		assert.strictEqual(strings.createRegExp('abc', false, { wholeWord: true }).source, '\\babc\\b');
 		assert.strictEqual(strings.createRegExp('abc', true, { wholeWord: true }).source, '\\babc\\b');
 		assert.strictEqual(strings.createRegExp(' abc', true, { wholeWord: true }).source, ' abc\\b');
@@ -413,7 +404,6 @@ suite('Strings', () => {
 		assert.ok(strings.fuzzyContains('hello world', 'H'));
 		assert.ok(strings.fuzzyContains('Explorer', 'E'));
 		assert.ok(strings.fuzzyContains('hello world', 'HW'));
-		// toLowerCase() can lengthen the query (İ -> i̇); every lowered code unit must still be matched
 		assert.ok(strings.fuzzyContains('\u0130ab', '\u0130b'));
 		assert.ok(!strings.fuzzyContains('\u0130ab', '\u0130x'));
 	});
@@ -530,7 +520,6 @@ suite('Strings', () => {
 		test('CSI sequences', () => {
 			const CSI = '\x1b[';
 			const sequences = [
-				// Base cases from https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Functions-using-CSI-_-ordered-by-the-final-character_s_
 				`${CSI}42@`,
 				`${CSI}42 @`,
 				`${CSI}42A`,
@@ -635,13 +624,12 @@ suite('Strings', () => {
 				`${CSI}42'~`,
 				`${CSI}42$~`,
 
-				// Common SGR cases:
-				`${CSI}1;31m`, // multiple attrs
-				`${CSI}105m`, // bright background
-				`${CSI}48:5:128m`, // 256 indexed color
-				`${CSI}48;5;128m`, // 256 indexed color alt
-				`${CSI}38:2:0:255:255:255m`, // truecolor
-				`${CSI}38;2;255;255;255m`, // truecolor alt
+				`${CSI}1;31m`,
+				`${CSI}105m`,
+				`${CSI}48:5:128m`,
+				`${CSI}48;5;128m`,
+				`${CSI}38:2:0:255:255:255m`,
+				`${CSI}38;2;255;255;255m`,
 			];
 
 			for (const sequence of sequences) {
@@ -760,7 +748,7 @@ suite('Strings', () => {
 	test('multibyteAwareBtoa', () => {
 		assert.ok(strings.multibyteAwareBtoa('hello world').length > 0);
 		assert.ok(strings.multibyteAwareBtoa('平仮名').length > 0);
-		assert.ok(strings.multibyteAwareBtoa(new Array(100000).fill('vs').join('')).length > 0); // https://github.com/microsoft/vscode/issues/112013
+		assert.ok(strings.multibyteAwareBtoa(new Array(100000).fill('vs').join('')).length > 0);
 	});
 
 	ensureNoDisposablesAreLeakedInTestSuite();

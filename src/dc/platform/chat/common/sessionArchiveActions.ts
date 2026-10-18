@@ -76,10 +76,6 @@ export function getChatSessionArchiveActionPresentation(wording: ChatSessionArch
 	return wording === ChatSessionArchiveActionWording.MarkAsDone ? markAsDoneActionPresentation : archiveActionPresentation;
 }
 
-/**
- * The label used for the group of archived sessions, following the configured
- * archive action wording.
- */
 export function getChatSessionArchivedSectionLabel(wording: ChatSessionArchiveActionWording): string {
 	return wording === ChatSessionArchiveActionWording.MarkAsDone
 		? localize('chatSession.section.done', "Done")

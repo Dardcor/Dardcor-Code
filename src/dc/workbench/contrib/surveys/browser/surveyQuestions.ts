@@ -19,14 +19,8 @@ interface ISurveyQuestionBase {
 	readonly id: string;
 	readonly label: string;
 	readonly options: readonly ISurveyOption[];
-	/** When true, the question must be answered before submission. */
 	readonly required?: boolean;
-	/**
-	 * The telemetry field name this answer maps to in the `survey/submit` event.
-	 * When set, the selected option ID (or numeric index if {@link asMeasurement} is true) is emitted under this key.
-	 */
 	readonly telemetryKey?: string;
-	/** When true, the answer is logged as a numeric index into the options array (0-based) with `isMeasurement`. */
 	readonly asMeasurement?: boolean;
 }
 
@@ -37,7 +31,6 @@ export interface ISurveySegmentQuestion extends ISurveyQuestionBase {
 export interface ISurveyRadioQuestion extends ISurveyQuestionBase {
 	readonly type: SurveyQuestionType.Radio;
 	readonly columns?: number;
-	/** When true, randomize all options except the final option. */
 	readonly shuffleOptions?: boolean;
 }
 
@@ -50,10 +43,6 @@ export interface ISurveyDefinition {
 	readonly questions: readonly ISurveyQuestion[];
 }
 
-/**
- * Product-Market Fit survey for GitHub Copilot.
- * Based on the Sean Ellis "very disappointed" test.
- */
 export const CopilotPMFSurvey: ISurveyDefinition = {
 	id: 'copilot-pmf',
 	title: localize('survey.copilotPmf.title', "Help Us Improve Dardcor AI"),

@@ -110,11 +110,6 @@ export const enum Status {
 
 export interface Change {
 
-	/**
-	 * Returns either `originalUri` or `renameUri`, depending
-	 * on whether this change is a rename change. When
-	 * in doubt always use `uri` over the other two alternatives.
-	 */
 	readonly uri: Uri;
 	readonly originalUri: Uri;
 	readonly renameUri: Uri | undefined;
@@ -154,14 +149,9 @@ export interface RepositoryAccessDetails {
 	readonly lastAccessTime: number;
 }
 
-/**
- * Log options.
- */
 export interface LogOptions {
-	/** Max number of log entries to retrieve. If not specified, the default is 32. */
 	readonly maxEntries?: number;
 	readonly path?: string;
-	/** A commit range, such as "0a47c67f0fb52dd11562af48658bc1dff1d75a38..0bb4bdea78e1db44d728fd6894720071e303304f" */
 	readonly range?: string;
 	readonly reverse?: boolean;
 	readonly sortByAuthorDate?: boolean;
@@ -188,12 +178,6 @@ export interface CommitOptions {
 	requireUserConfig?: boolean;
 	useEditor?: boolean;
 	verbose?: boolean;
-	/**
-	 * string    - execute the specified command after the commit operation
-	 * undefined - execute the command specified in git.postCommitCommand
-	 *             after the commit operation
-	 * null      - do not execute any command after the commit operation
-	 */
 	postCommitCommand?: string | null;
 }
 
@@ -211,14 +195,8 @@ export interface InitOptions {
 
 export interface CloneOptions {
 	parentPath?: Uri;
-	/**
-	 * ref is only used if the repository cache is missed.
-	 */
 	ref?: string;
 	recursive?: boolean;
-	/**
-	 * If no postCloneAction is provided, then the users setting for git.openAfterClone is used.
-	 */
 	postCloneAction?: 'none';
 }
 
@@ -343,7 +321,7 @@ export interface RemoteSource {
 
 export interface RemoteSourceProvider {
 	readonly name: string;
-	readonly icon?: string; // codicon name
+	readonly icon?: string;
 	readonly supportsQuery?: boolean;
 	getRemoteSources(query?: string): ProviderResult<RemoteSource[]>;
 	getBranches?(url: string): ProviderResult<string[]>;
@@ -352,7 +330,7 @@ export interface RemoteSourceProvider {
 
 export interface RemoteSourcePublisher {
 	readonly name: string;
-	readonly icon?: string; // codicon name
+	readonly icon?: string;
 	publishRepository(repository: Repository): Promise<void>;
 }
 
@@ -427,11 +405,6 @@ export interface API {
 	getRepositoryRoot(uri: Uri): Promise<Uri | null>;
 	getRepositoryWorkspace(uri: Uri): Promise<Uri[] | null>;
 	init(root: Uri, options?: InitOptions): Promise<Repository | null>;
-	/**
-	 * Checks the cache of known cloned repositories, and clones if the repository is not found.
-	 * Make sure to pass `postCloneAction` 'none' if you want to have the uri where you can find the repository returned.
-	 * @returns The URI of a folder or workspace file which, when opened, will open the cloned repository.
-	 */
 	clone(uri: Uri, options?: CloneOptions): Promise<Uri | null>;
 	openRepository(root: Uri): Promise<Repository | null>;
 
@@ -449,16 +422,6 @@ export interface GitExtension {
 	readonly enabled: boolean;
 	readonly onDidChangeEnablement: Event<boolean>;
 
-	/**
-	 * Returns a specific API version.
-	 *
-	 * Throws error if git extension is disabled. You can listen to the
-	 * [GitExtension.onDidChangeEnablement](#GitExtension.onDidChangeEnablement) event
-	 * to know when the extension becomes enabled/disabled.
-	 *
-	 * @param version Version number.
-	 * @returns API instance
-	 */
 	getAPI(version: 1): API;
 }
 

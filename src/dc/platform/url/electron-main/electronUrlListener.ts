@@ -16,16 +16,6 @@ import { IURLService } from '../common/url.js';
 import { IProtocolUrl } from './url.js';
 import { IWindowsMainService } from '../../windows/electron-main/windows.js';
 
-/**
- * A listener for URLs that are opened from the OS and handled by VSCode.
- * Depending on the platform, this works differently:
- * - Windows: we use `app.setAsDefaultProtocolClient()` to register VSCode with the OS
- *            and additionally add the `open-url` command line argument to identify.
- * - macOS:   we rely on `app.on('open-url')` to be called by the OS
- * - Linux:   we have a special shortcut installed (`resources/linux/code-url-handler.desktop`)
- *            that calls VSCode with the `open-url` command line argument
- *            (https://github.com/microsoft/vscode/pull/56727)
- */
 export class ElectronURLListener extends Disposable {
 
 	private uris: IProtocolUrl[] = [];
@@ -44,24 +34,19 @@ export class ElectronURLListener extends Disposable {
 		if (initialProtocolUrls) {
 			logService.trace('ElectronURLListener initialUrisToHandle:', initialProtocolUrls.map(url => url.originalUrl));
 
-			// the initial set of URIs we need to handle once the window is ready
 			this.uris = initialProtocolUrls;
 		}
 
-		// Windows: install as protocol handler
-		// Skip in portable mode: the registered command wouldn't preserve
-		// portable mode settings, causing issues with OAuth flows.
 		if (isWindows && !environmentMainService.isPortable) {
 			const windowsParameters = environmentMainService.isBuilt ? [] : [`"${environmentMainService.appRoot}"`];
 			windowsParameters.push('--open-url', '--');
 			app.setAsDefaultProtocolClient(productService.urlProtocol, process.execPath, windowsParameters);
 		}
 
-		// macOS: listen to `open-url` events from here on to handle
 		const onOpenElectronUrl = Event.map(
 			Event.fromNodeEventEmitter(app, 'open-url', (event: ElectronEvent, url: string) => ({ event, url })),
 			({ event, url }) => {
-				event.preventDefault(); // always prevent default and return the url as string
+				event.preventDefault();
 
 				return url;
 			});
@@ -75,7 +60,6 @@ export class ElectronURLListener extends Disposable {
 			this.urlService.open(uri, { originalUrl: url });
 		}));
 
-		// Send initial links to the window once it has loaded
 		const isWindowReady = windowsMainService.getWindows()
 			.filter(window => window.isReady)
 			.length > 0;

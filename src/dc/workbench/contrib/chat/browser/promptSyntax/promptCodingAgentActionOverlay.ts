@@ -59,7 +59,6 @@ export class PromptCodingAgentActionOverlayWidget extends Disposable implements 
 			}
 		}));
 
-		// initial visibility
 		this._updateVisibility();
 	}
 
@@ -110,7 +109,7 @@ export class PromptCodingAgentActionOverlayWidget extends Disposable implements 
 			const promptName = await this._promptsService.getPromptSlashCommandName(model.uri, CancellationToken.None);
 
 			const agents = this._remoteCodingAgentService.getAvailableAgents();
-			const agent = agents[0]; // Use the first available agent
+			const agent = agents[0];
 			if (!agent) {
 				return;
 			}

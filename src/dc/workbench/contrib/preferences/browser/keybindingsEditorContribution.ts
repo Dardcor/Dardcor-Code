@@ -50,7 +50,6 @@ class DefineKeybindingEditorContribution extends Disposable implements IDefineKe
 
 	private _update(): void {
 		this._keybindingDecorationRenderer.value = isInterestingEditorModel(this._editor, this._userDataProfileService)
-			// Decorations are shown for the default keybindings.json **and** for the user keybindings.json
 			? this._instantiationService.createInstance(KeybindingEditorDecorationsRenderer, this._editor)
 			: undefined;
 	}
@@ -164,7 +163,6 @@ export class KeybindingEditorDecorationsRenderer extends Disposable {
 			if (!resolvedKeybinding.isWYSIWYG()) {
 				const uiLabel = resolvedKeybinding.getLabel();
 				if (typeof uiLabel === 'string' && value.value.toLowerCase() === uiLabel.toLowerCase()) {
-					// coincidentally, this is actually WYSIWYG
 					return null;
 				}
 				return this._createDecoration(false, resolvedKeybinding.getLabel(), usLabel, model, value);
@@ -206,12 +204,10 @@ export class KeybindingEditorDecorationsRenderer extends Disposable {
 		let overviewRulerColor: ThemeColor;
 
 		if (isError) {
-			// this is the error case
 			msg = new MarkdownString().appendText(NLS_KB_LAYOUT_ERROR_MESSAGE);
 			className = 'keybindingError';
 			overviewRulerColor = themeColorFromId(overviewRulerError);
 		} else {
-			// this is the info case
 			if (usLabel && uiLabel !== usLabel) {
 				msg = new MarkdownString(
 					nls.localize({
@@ -244,7 +240,6 @@ export class KeybindingEditorDecorationsRenderer extends Disposable {
 			endPosition.lineNumber, endPosition.column
 		);
 
-		// icon + highlight + message decoration
 		return {
 			range: range,
 			options: {

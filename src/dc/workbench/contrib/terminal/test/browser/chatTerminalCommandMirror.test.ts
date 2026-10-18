@@ -64,7 +64,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 				const line = buffer.getLine(i);
 				lines.push(line?.translateToString(true) ?? '');
 			}
-			// Trim trailing empty lines
 			while (lines.length > 0 && lines[lines.length - 1] === '') {
 				lines.pop();
 			}
@@ -130,8 +129,8 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('wrapped line', async () => {
-			const source = await createXterm(20, 10); // narrow terminal
-			const longLine = 'a'.repeat(50); // exceeds 20 cols
+			const source = await createXterm(20, 10);
+			const longLine = 'a'.repeat(50);
 			await write(source, longLine);
 
 			const mirror = await mirrorViaVT(source);
@@ -169,8 +168,7 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('content with scrollback (partial buffer)', async () => {
-			const source = await createXterm(80, 5, 5); // 5 rows visible, 5 scrollback = 10 total
-			// Write enough to push into scrollback
+			const source = await createXterm(80, 5, 5);
 			for (let i = 1; i <= 12; i++) {
 				await write(source, `line ${i}\r\n`);
 			}
@@ -201,7 +199,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 			}
 			startMarker.dispose();
 
-			// Mirror should contain just the content from marker onwards
 			const mirrorText = getBufferText(mirror);
 			strictEqual(mirrorText.includes('output line 1'), true);
 			strictEqual(mirrorText.includes('output line 2'), true);
@@ -224,83 +221,57 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 			const marker = source.raw.registerMarker(0)!;
 			await write(source, 'initial\r\n');
 
-			// First mirror with initial content
 			const vt1 = await source.getRangeAsVT(marker, undefined, true) ?? '';
 			const mirror = await createXterm();
 			await write(mirror, vt1);
 
-			// Add more content to source
 			await write(source, 'added\r\n');
 			const vt2 = await source.getRangeAsVT(marker, undefined, true) ?? '';
 
-			// Append only the new part to mirror
 			const appended = vt2.slice(vt1.length);
 			if (appended) {
 				await write(mirror, appended);
 			}
 
-			// Create a fresh mirror with full VT to compare against
 			const freshMirror = await createXterm();
 			await write(freshMirror, vt2);
 
 			marker.dispose();
 
-			// Incremental mirror should match fresh mirror
 			strictEqual(getBufferText(mirror), getBufferText(freshMirror));
 		});
 
 		test('VT divergence detection prevents corruption (Windows scenario)', async () => {
-			// This test simulates the Windows issue where VT sequences can differ
-			// between calls even for equivalent visual content. On Windows, the
-			// serializer can produce different escape sequences (e.g., different
-			// line endings or cursor positioning) causing the prefix to diverge.
-			//
-			// Without boundary checking, blindly slicing would corrupt output:
-			// - vt1: "Line1\r\nLine2" (length 13)
-			// - vt2: "Line1\nLine2\nLine3" (different format, but starts similarly)
-			// - slice(13) on vt2 would give "ine3" instead of the full new content
 
 			const mirror = await createXterm();
 
-			// Simulate first VT snapshot
 			const vt1 = 'Line1\r\nLine2';
 			await write(mirror, vt1);
 			strictEqual(getBufferText(mirror), 'Line1\nLine2');
 
-			// Simulate divergent VT snapshot (different escape sequences for same content)
-			// This mimics what can happen on Windows where the VT serializer
-			// produces different output between calls
 			const vt2 = 'DifferentPrefix' + 'Line3';
 
-			// Use the actual utility function to test boundary checking
 			const boundaryMatches = vtBoundaryMatches(vt2, vt1, vt1.length);
 
-			// Boundary should NOT match because the prefix diverged
 			strictEqual(boundaryMatches, false, 'Boundary check should detect divergence');
 
-			// Use \x1bc (RIS) + new content in one write to avoid a blank frame
 			await write(mirror, `\x1bc${vt2}`);
 
-			// Final content should be the complete new VT, not corrupted
 			strictEqual(getBufferText(mirror), 'DifferentPrefixLine3');
 		});
 
 		test('boundary check allows append when VT prefix matches', async () => {
 			const mirror = await createXterm();
 
-			// First VT snapshot
 			const vt1 = 'Line1\r\nLine2\r\n';
 			await write(mirror, vt1);
 
-			// Second VT snapshot that properly extends the first
 			const vt2 = vt1 + 'Line3\r\n';
 
-			// Use the actual utility function to test boundary checking
 			const boundaryMatches = vtBoundaryMatches(vt2, vt1, vt1.length);
 
 			strictEqual(boundaryMatches, true, 'Boundary check should pass when prefix matches');
 
-			// Append should work correctly
 			const appended = vt2.slice(vt1.length);
 			await write(mirror, appended);
 
@@ -308,16 +279,12 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('incremental updates use append path (not full rewrite) in normal operation', async () => {
-			// This test verifies that in normal operation (VT prefix matches),
-			// we use the efficient append path rather than full rewrite.
 
 			const source = await createXterm();
 			const marker = source.raw.registerMarker(0)!;
 
-			// Build up content incrementally, simulating streaming output
 			const writes: string[] = [];
 
-			// Step 1: Initial content
 			await write(source, 'output line 1\r\n');
 			const vt1 = await source.getRangeAsVT(marker, undefined, true) ?? '';
 
@@ -325,21 +292,17 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 			await write(mirror, vt1);
 			writes.push(vt1);
 
-			// Step 2: Add more content - should use append path
 			await write(source, 'output line 2\r\n');
 			const vt2 = await source.getRangeAsVT(marker, undefined, true) ?? '';
 
-			// Verify VT extends properly (prefix matches)
 			strictEqual(vt2.startsWith(vt1), true, 'VT2 should start with VT1');
 
-			// Append only the new part (this is what the append path does)
 			const appended2 = vt2.slice(vt1.length);
 			strictEqual(appended2.length > 0, true, 'Should have new content to append');
 			strictEqual(appended2.length < vt2.length, true, 'Append should be smaller than full rewrite');
 			await write(mirror, appended2);
 			writes.push(appended2);
 
-			// Step 3: Add more content - should continue using append path
 			await write(source, 'output line 3\r\n');
 			const vt3 = await source.getRangeAsVT(marker, undefined, true) ?? '';
 
@@ -353,11 +316,8 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 
 			marker.dispose();
 
-			// Verify final content is correct
 			strictEqual(getBufferText(mirror), 'output line 1\noutput line 2\noutput line 3');
 
-			// Verify we used the append path (total bytes written should be roughly
-			// equal to total VT, not 3x the total due to full rewrites)
 			const totalWritten = writes.reduce((sum, w) => sum + w.length, 0);
 			const fullRewriteWouldBe = vt1.length + vt2.length + vt3.length;
 			strictEqual(totalWritten < fullRewriteWouldBe, true,
@@ -422,10 +382,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 
 	suite('computeMaxBufferColumnWidth', () => {
 
-		/**
-		 * Creates a mock buffer with the given lines.
-		 * Each string represents a line; characters are cells, spaces are empty cells.
-		 */
 		function createMockBuffer(lines: string[], cols: number = 80): { readonly length: number; getLine(y: number): { readonly length: number; getCell(x: number): { getChars(): string } | undefined } | undefined } {
 			return {
 				length: lines.length,
@@ -478,22 +434,21 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('ignores trailing spaces (empty cells)', () => {
-			// Spaces are treated as empty cells in our mock
 			const buffer = createMockBuffer(['hello     ']);
 			strictEqual(computeMaxBufferColumnWidth(buffer, 80), 5);
 		});
 
 		test('respects cols parameter to clamp line length', () => {
-			const buffer = createMockBuffer(['abcdefghijklmnop']); // 16 chars, no spaces
+			const buffer = createMockBuffer(['abcdefghijklmnop']);
 			strictEqual(computeMaxBufferColumnWidth(buffer, 10), 10);
 		});
 
 		test('handles lines with content at different positions', () => {
 			const buffer = createMockBuffer([
-				'a',           // width 1
-				'  b',         // content at col 2, but width is 3
-				'    c',       // content at col 4, but width is 5
-				'      d'      // content at col 6, width is 7
+				'a',
+				'  b',
+				'    c',
+				'      d'
 			]);
 			strictEqual(computeMaxBufferColumnWidth(buffer, 80), 7);
 		});
@@ -517,7 +472,7 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('handles line with all empty cells', () => {
-			const buffer = createMockBuffer(['     ']); // all spaces = empty cells
+			const buffer = createMockBuffer(['     ']);
 			strictEqual(computeMaxBufferColumnWidth(buffer, 80), 0);
 		});
 
@@ -600,22 +555,18 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('respects custom window size parameter', () => {
-			// With default window (50), this would match since the diff is at position 70
 			const prefix = 'A'.repeat(80);
 			const oldVT = prefix;
-			const newVT = 'X' + 'A'.repeat(79) + 'NewContent'; // differs at position 0
+			const newVT = 'X' + 'A'.repeat(79) + 'NewContent';
 
-			// With window of 50, only checks chars 30-80, which would match
 			strictEqual(vtBoundaryMatches(newVT, oldVT, oldVT.length, 50), true);
 
-			// With window of 100, would check chars 0-80, which would NOT match
 			strictEqual(vtBoundaryMatches(newVT, oldVT, oldVT.length, 100), false);
 		});
 
 		test('detects divergence in escape sequences (Windows scenario)', () => {
-			// Simulates Windows issue where VT escape sequences differ
 			const oldVT = '\x1b[0m\x1b[1mBold\x1b[0m\r\n';
-			const newVT = '\x1b[0m\x1b[22mBold\x1b[0m\r\nMore'; // Different escape code for bold
+			const newVT = '\x1b[0m\x1b[22mBold\x1b[0m\r\nMore';
 			strictEqual(vtBoundaryMatches(newVT, oldVT, oldVT.length), false);
 		});
 
@@ -637,8 +588,8 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 				wide: computeChatTerminalMirrorCols(1224, makeFont(10), 1),
 				floored: computeChatTerminalMirrorCols(1200, makeFont(10), 1),
 			}, {
-				wide: 120, // floor((1224 - 20) / 10)
-				floored: 118, // (1200 - 20) / 10
+				wide: 120,
+				floored: 118,
 			});
 		});
 
@@ -647,7 +598,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('accounts for letter spacing in device pixels', () => {
-			// floor((1224 - 24) * 2 / (10 * 2 + 1))
 			strictEqual(computeChatTerminalMirrorCols(1224, makeFont(10, 1), 2), 114);
 		});
 
@@ -681,7 +631,7 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 
 		test('narrow widths wrap to the fitting column count, minimum one column', () => {
 			deepStrictEqual({
-				narrow: computeChatTerminalMirrorCols(100, makeFont(10), 1), // (100 - 20) / 10
+				narrow: computeChatTerminalMirrorCols(100, makeFont(10), 1),
 				tiny: computeChatTerminalMirrorCols(25, makeFont(10), 1),
 			}, {
 				narrow: 8,
@@ -714,7 +664,7 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 
 		test('resizes the detached terminal to cols computed from the width', async () => {
 			const mirror = createSnapshotMirror({ text: 'hello' });
-			await mirror.layout(1224); // floor((1224 - 20) / 10) = 120 cols
+			await mirror.layout(1224);
 			strictEqual(fakes.length, 1);
 			strictEqual(fakes[0].raw.cols, 120);
 		});
@@ -744,8 +694,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 				cols: fakes[0].raw.cols,
 				lineCount: computeSnapshotLineCount(fakes[0].raw.buffer.active),
 				maxColumnWidth: computeMaxBufferColumnWidth(fakes[0].raw.buffer.active, fakes[0].raw.cols),
-				// Re-wrapping must come from xterm's native resize reflow, not a buffer
-				// rewrite, which would flash a cleared frame on every resize
 				writeCalls: fakes[0].counters.writeCalls,
 			}, {
 				cols: 120,
@@ -772,8 +720,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('drops a persisted lineCount that reflects the old wrap width', async () => {
-			// Producers persist lineCount wrapped at the source terminal's cols; after a
-			// width layout the rendered row count is the ground truth for the box height
 			const mirror = createSnapshotMirror({ text: 'x'.repeat(100), lineCount: 2 });
 			await mirror.layout(1224);
 			const result = await mirror.render();
@@ -781,7 +727,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('keeps an explicit lineCount for truncated output', async () => {
-			// Truncated snapshots under-represent the real output, so the persisted count wins
 			const mirror = createSnapshotMirror({ text: 'short', truncated: true, lineCount: 42 });
 			const result = await mirror.render();
 			strictEqual(result?.lineCount, 42);
@@ -812,7 +757,7 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 				fakes[0].raw.element!.style.paddingLeft = '4px';
 				fakes[0].raw.element!.style.paddingRight = '0px';
 				await mirror.layout(1224);
-				strictEqual(fakes[0].raw.cols, 122); // floor((1224 - 4) / 10)
+				strictEqual(fakes[0].raw.cols, 122);
 			} finally {
 				container.remove();
 			}
@@ -869,10 +814,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 			return raw.buffer.active.getLine(y)?.translateToString(true) ?? '';
 		}
 
-		/**
-		 * Writes a finished command whose output is a single 100 character line, which soft-wraps
-		 * onto two rows in the 80 column source terminal.
-		 */
 		async function createWrappedCommand(source: XtermTerminal): Promise<ITerminalCommand> {
 			const executedMarker = source.raw.registerMarker(0)!;
 			await write(source, 'x'.repeat(100) + '\r\n');
@@ -888,7 +829,7 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 			const source = await createXterm();
 			const command = await createWrappedCommand(source);
 			const mirror = createCommandMirror(source, command);
-			await mirror.layout(1224); // floor((1224 - 20) / 10) = 120 cols
+			await mirror.layout(1224);
 			deepStrictEqual({
 				cols: fakes[0].raw.cols,
 				writeCalls: fakes[0].counters.writeCalls,
@@ -916,11 +857,7 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 				cols: fakes[0].raw.cols,
 				line0: lineText(fakes[0].raw, 0),
 				maxColumnWidth: computeMaxBufferColumnWidth(fakes[0].raw.buffer.active, fakes[0].raw.cols),
-				// The reported line count must reflect the re-wrapped mirror rows, not the
-				// source terminal's wrap at its own cols, so the box height matches
 				lineCount: result?.lineCount,
-				// Re-wrapping must come from xterm's native resize reflow, not a buffer
-				// rewrite, which would flash a cleared frame on every resize
 				writeCalls: fakes[0].counters.writeCalls,
 			}, {
 				cols: 120,
@@ -990,7 +927,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 				xtermAddonImporter: new TestXtermAddonImporter(),
 			}, undefined));
 			const mirror = store.add(instantiationService.createInstance(DetachedTerminalCommandMirror, source, {} as ITerminalCommand));
-			// layout creates the detached terminal without needing a rendered command
 			await mirror.layout(1224);
 			return mirror;
 		}
@@ -998,7 +934,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		test('snapshot mirror reports the mirror cell height once the terminal exists', async () => {
 			const mirror = createSnapshotMirror({ text: 'hello' });
 			await mirror.render();
-			// charHeight 14 × lineHeight 1 from the fake font
 			strictEqual(mirror.getRowHeightPx(), 14);
 		});
 
@@ -1008,8 +943,6 @@ suite('Workbench - ChatTerminalCommandMirror', () => {
 		});
 
 		test('uses the exact fractional cell height without per-row rounding', async () => {
-			// The DOM renderer paints each row at the exact css cell height; ceiling the
-			// per-row value would accumulate across rows and slice the last row
 			nextFont = { fontFamily: 'monospace', fontSize: 12, letterSpacing: 0, lineHeight: 1.1, charWidth: 10, charHeight: 14.4 };
 			const mirror = createSnapshotMirror({ text: 'hello' });
 			await mirror.render();

@@ -36,7 +36,6 @@ import { IPreferencesService } from '../../services/preferences/common/preferenc
 import { QuickInputAlignmentContextKey } from '../../../platform/quickinput/browser/quickInput.js';
 import { IEditorGroupsService } from '../../services/editor/common/editorGroupsService.js';
 
-// Register Icons
 const menubarIcon = registerIcon('menuBar', Codicon.layoutMenubar, localize('menuBarIcon', "Represents the menu bar"));
 const activityBarLeftIcon = registerIcon('activity-bar-left', Codicon.layoutActivitybarLeft, localize('activityBarLeft', "Represents the activity bar in the left position"));
 const activityBarRightIcon = registerIcon('activity-bar-right', Codicon.layoutActivitybarRight, localize('activityBarRight', "Represents the activity bar in the right position"));
@@ -61,7 +60,6 @@ const zenModeIcon = registerIcon('zenMode', Codicon.target, localize('zenModeIco
 
 export const ToggleActivityBarVisibilityActionId = 'workbench.action.toggleActivityBarVisibility';
 
-// --- Toggle Centered Layout
 
 registerAction2(class extends Action2 {
 
@@ -93,7 +91,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Set Sidebar Position
 const sidebarPositionConfigurationKey = 'workbench.sideBar.location';
 
 class MoveSidebarPositionAction extends Action2 {
@@ -135,7 +132,6 @@ class MoveSidebarLeftAction extends MoveSidebarPositionAction {
 registerAction2(MoveSidebarRightAction);
 registerAction2(MoveSidebarLeftAction);
 
-// --- Toggle Sidebar Position
 
 export class ToggleSidebarPositionAction extends Action2 {
 
@@ -247,7 +243,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarAppearanceMenu, {
 	order: 2
 });
 
-// --- Toggle Editor Visibility
 
 registerAction2(class extends Action2 {
 
@@ -261,7 +256,6 @@ registerAction2(class extends Action2 {
 			category: Categories.View,
 			f1: true,
 			toggled: MainEditorAreaVisibleContext,
-			// the workbench grid currently prevents us from supporting panel maximization with non-center panel alignment
 			precondition: ContextKeyExpr.and(IsAuxiliaryWindowFocusedContext.toNegated(), ContextKeyExpr.or(PanelAlignmentContext.isEqualTo('center'), PanelPositionContext.notEqualsTo('bottom')))
 		});
 	}
@@ -278,7 +272,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarViewMenu, {
 	order: 1
 });
 
-// Toggle Sidebar Visibility
 
 export class ToggleSidebarVisibilityAction extends Action2 {
 
@@ -324,7 +317,6 @@ export class ToggleSidebarVisibilityAction extends Action2 {
 
 		layoutService.setPartHidden(isCurrentlyVisible, Parts.SIDEBAR_PART);
 
-		// Announce visibility change to screen readers
 		const alertMessage = isCurrentlyVisible
 			? localize('sidebarHidden', "Primary Side Bar hidden")
 			: localize('sidebarVisible', "Primary Side Bar shown");
@@ -387,7 +379,6 @@ MenuRegistry.appendMenuItems([
 	}
 ]);
 
-// --- Toggle Statusbar Visibility
 
 export class ToggleStatusbarVisibilityAction extends Action2 {
 
@@ -426,7 +417,6 @@ export class ToggleStatusbarVisibilityAction extends Action2 {
 
 registerAction2(ToggleStatusbarVisibilityAction);
 
-// ------------------- Editor Tabs Layout --------------------------------
 
 export abstract class AbstractSetShowTabsAction extends Action2 {
 
@@ -447,7 +437,6 @@ export abstract class AbstractSetShowTabsAction extends Action2 {
 	}
 }
 
-// --- Hide Editor Tabs
 
 export class HideEditorTabsAction extends AbstractSetShowTabsAction {
 
@@ -460,7 +449,6 @@ export class HideEditorTabsAction extends AbstractSetShowTabsAction {
 	}
 }
 
-// --- Hide Editor Tabs (Zen Mode)
 
 export class ZenHideEditorTabsAction extends AbstractSetShowTabsAction {
 
@@ -473,7 +461,6 @@ export class ZenHideEditorTabsAction extends AbstractSetShowTabsAction {
 	}
 }
 
-// --- Show Multiple Editor Tabs
 
 export class ShowMultipleEditorTabsAction extends AbstractSetShowTabsAction {
 
@@ -487,7 +474,6 @@ export class ShowMultipleEditorTabsAction extends AbstractSetShowTabsAction {
 	}
 }
 
-// --- Show Multiple Editor Tabs (Zen Mode)
 
 export class ZenShowMultipleEditorTabsAction extends AbstractSetShowTabsAction {
 
@@ -501,7 +487,6 @@ export class ZenShowMultipleEditorTabsAction extends AbstractSetShowTabsAction {
 	}
 }
 
-// --- Show Single Editor Tab
 
 export class ShowSingleEditorTabAction extends AbstractSetShowTabsAction {
 
@@ -519,7 +504,6 @@ registerAction2(HideEditorTabsAction);
 registerAction2(ShowMultipleEditorTabsAction);
 registerAction2(ShowSingleEditorTabAction);
 
-// --- Show Single Editor Tab (Zen Mode)
 
 export class ZenShowSingleEditorTabAction extends AbstractSetShowTabsAction {
 
@@ -533,7 +517,6 @@ export class ZenShowSingleEditorTabAction extends AbstractSetShowTabsAction {
 	}
 }
 
-// --- Tab Bar Submenu in View Appearance Menu
 
 MenuRegistry.appendMenuItem(MenuId.MenubarAppearanceMenu, {
 	submenu: MenuId.EditorTabsBarShowTabsSubmenu,
@@ -543,7 +526,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarAppearanceMenu, {
 	when: InEditorZenModeContext.negate()
 });
 
-// --- Show Editor Actions in Title Bar
 
 export class EditorActionsTitleBarAction extends Action2 {
 
@@ -567,7 +549,6 @@ export class EditorActionsTitleBarAction extends Action2 {
 }
 registerAction2(EditorActionsTitleBarAction);
 
-// --- Editor Actions Default Position
 
 export class EditorActionsDefaultAction extends Action2 {
 
@@ -594,7 +575,6 @@ export class EditorActionsDefaultAction extends Action2 {
 }
 registerAction2(EditorActionsDefaultAction);
 
-// --- Hide Editor Actions
 
 export class HideEditorActionsAction extends Action2 {
 
@@ -618,7 +598,6 @@ export class HideEditorActionsAction extends Action2 {
 }
 registerAction2(HideEditorActionsAction);
 
-// --- Hide Editor Actions
 
 export class ShowEditorActionsAction extends Action2 {
 
@@ -642,7 +621,6 @@ export class ShowEditorActionsAction extends Action2 {
 }
 registerAction2(ShowEditorActionsAction);
 
-// --- Editor Actions Position Submenu in View Appearance Menu
 
 MenuRegistry.appendMenuItem(MenuId.MenubarAppearanceMenu, {
 	submenu: MenuId.EditorActionsPositionSubmenu,
@@ -651,7 +629,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarAppearanceMenu, {
 	order: 11
 });
 
-// --- Configure Tabs Layout
 
 export class ConfigureEditorTabsAction extends Action2 {
 
@@ -672,7 +649,6 @@ export class ConfigureEditorTabsAction extends Action2 {
 }
 registerAction2(ConfigureEditorTabsAction);
 
-// --- Configure Editor
 
 export class ConfigureEditorAction extends Action2 {
 
@@ -693,7 +669,6 @@ export class ConfigureEditorAction extends Action2 {
 }
 registerAction2(ConfigureEditorAction);
 
-// --- Toggle Pinned Tabs On Separate Row
 
 registerAction2(class extends Action2 {
 
@@ -718,7 +693,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Toggle Menu Bar
 
 if (isWindows || isLinux || isWeb) {
 	registerAction2(class ToggleMenubarAction extends Action2 {
@@ -746,7 +720,6 @@ if (isWindows || isLinux || isWeb) {
 		}
 	});
 
-	// Add separately to title bar context menu so we can use a different title
 	for (const menuId of [MenuId.TitleBarContext, MenuId.TitleBarTitleContext]) {
 		MenuRegistry.appendMenuItem(menuId, {
 			command: {
@@ -761,7 +734,6 @@ if (isWindows || isLinux || isWeb) {
 	}
 }
 
-// --- Reset View Locations
 
 registerAction2(class extends Action2 {
 
@@ -779,7 +751,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Move View
 
 registerAction2(class extends Action2 {
 
@@ -925,7 +896,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Move Focused View
 
 class MoveFocusedViewAction extends Action2 {
 
@@ -1084,7 +1054,6 @@ class MoveFocusedViewAction extends Action2 {
 
 registerAction2(MoveFocusedViewAction);
 
-// --- Reset Focused View Location
 
 registerAction2(class extends Action2 {
 
@@ -1126,15 +1095,14 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Resize View
 
 abstract class BaseResizeViewAction extends Action2 {
 
-	protected static readonly RESIZE_INCREMENT = 60; // This is a css pixel size
+	protected static readonly RESIZE_INCREMENT = 60;
 
 	protected resizePart(widthChange: number, heightChange: number, layoutService: IWorkbenchLayoutService, partToResize?: Parts): void {
 		if (layoutService.activeContainer !== layoutService.mainContainer) {
-			return; // we do not support resizing in auxiliary windows
+			return;
 		}
 
 		let part: Parts | undefined;
@@ -1266,7 +1234,6 @@ registerAction2(DecreaseViewSizeAction);
 registerAction2(DecreaseViewWidthAction);
 registerAction2(DecreaseViewHeightAction);
 
-//#region Quick Input Alignment Actions
 
 registerAction2(class AlignQuickInputTopAction extends Action2 {
 
@@ -1300,7 +1267,6 @@ registerAction2(class AlignQuickInputCenterAction extends Action2 {
 	}
 });
 
-//#endregion
 
 type ContextualLayoutVisualIcon = { iconA: ThemeIcon; iconB: ThemeIcon; whenA: ContextKeyExpression };
 type LayoutVisualIcon = ThemeIcon | ContextualLayoutVisualIcon;
@@ -1391,11 +1357,6 @@ for (const { active } of [...ToggleVisibilityActions, ...MoveSideBarActions, ...
 	}
 }
 
-/**
- * Matches the title bar's `editorActionsEnabled` getter: true when editor
- * actions render in the title bar (either explicitly, or because tabs are
- * hidden and the location defaults there).
- */
 const EditorActionsInTitleBar = ContextKeyExpr.or(
 	ContextKeyExpr.equals(`config.${LayoutSettings.EDITOR_ACTIONS_LOCATION}`, EditorActionsLocation.TITLEBAR),
 	ContextKeyExpr.and(
@@ -1581,7 +1542,6 @@ registerAction2(class CustomizeLayoutAction extends Action2 {
 					configurationService.updateValue(id, config.defaultValue);
 				};
 
-				// Reset all layout options
 				resetSetting('workbench.activityBar.location');
 				resetSetting('workbench.sideBar.location');
 				resetSetting('workbench.statusBar.visible');

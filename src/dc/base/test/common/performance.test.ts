@@ -6,7 +6,6 @@ import assert from 'assert';
 import { clearMarks, getMarks, mark } from '../../common/performance.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from './utils.js';
 
-// Each test uses a unique prefix via a counter to avoid singleton state leaking between tests.
 let testCounter = 0;
 function uniquePrefix(): string {
 	return `test/perf/${testCounter++}/`;

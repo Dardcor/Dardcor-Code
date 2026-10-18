@@ -21,16 +21,8 @@ import { IChatSpeechToTextService } from './chatSpeechToTextService.js';
 import { DictationDownloadRing, getDictationDownloadHoverContent } from './dictationDownloadRing.js';
 import { addMicButtonContextMenuListener, getDictationContextMenuActions } from './micButtonMenuActions.js';
 
-/** Command whose keybinding the context menu targets while the model prepares. */
 const TOGGLE_DICTATION_COMMAND_ID = 'workbench.action.chat.toggleSpeechToText';
 
-/**
- * Toolbar affordance shown while the on-device dictation model prepares. During
- * an actual model download (a confirmed cache miss) it shows a download icon
- * wrapped by a progress ring, plus a rich hover reporting the percentage.
- * Otherwise (loading an already-cached model, or the cloud backend connecting)
- * it shows a plain spinner.
- */
 export class DictationDownloadActionViewItem extends MenuEntryActionViewItem {
 
 	private readonly _ring = this._register(new MutableDisposable<DictationDownloadRing>());
@@ -57,14 +49,8 @@ export class DictationDownloadActionViewItem extends MenuEntryActionViewItem {
 		container.classList.add('dictation-download-item');
 		this._applyState();
 
-		// The download state flips as the model moves from loading a cached
-		// model to downloading (cache miss) and back, so re-render the icon and
-		// ring whenever it changes.
 		this._register(this._speechToTextService.onDidChangeDownloadingModel(() => this._applyState()));
 
-		// Keep the mic context menu available while the model prepares so the
-		// affordance doesn't lose Select Microphone / Disable Dictation during
-		// first-use download.
 		this._register(addMicButtonContextMenuListener(
 			container,
 			() => getDictationContextMenuActions(this._commandService, this._configurationService, this._keybindingService, TOGGLE_DICTATION_COMMAND_ID),
@@ -81,9 +67,6 @@ export class DictationDownloadActionViewItem extends MenuEntryActionViewItem {
 		if (!this.label) {
 			return;
 		}
-		// Show the download icon + progress ring only during an actual model
-		// download (a confirmed cache miss). Otherwise show a plain spinner; its
-		// spin animation is driven by CSS off the `codicon-loading-compact` class.
 		if (this._speechToTextService.isDownloadingModel) {
 			this.label.classList.remove(...ThemeIcon.asClassNameArray(Codicon.loadingCompact));
 			this.label.classList.add(...ThemeIcon.asClassNameArray(Codicon.micDownloadCompact));

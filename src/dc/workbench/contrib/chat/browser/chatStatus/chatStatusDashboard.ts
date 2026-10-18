@@ -75,35 +75,14 @@ type ChatSettingChangedEvent = {
 };
 
 export interface IChatStatusDashboardOptions {
-	/** When true, disables the Inline Suggestions settings section (toggles for all files, language, next edit). */
 	disableInlineSuggestionsSettings?: boolean;
-	/** When true, disables the inline completions model selection section. */
 	disableModelSelection?: boolean;
-	/** When true, disables the inline completions provider options section. */
 	disableProviderOptions?: boolean;
-	/** When true, disables the completions snooze button. */
 	disableCompletionsSnooze?: boolean;
-	/** When true, the Quick Settings region is rendered always-expanded without a collapsible header. */
 	disableQuickSettingsCollapsible?: boolean;
 
-	/**
-	 * When provided, the title header (plan name + manage / CTA actions) is
-	 * rendered into this caller-owned container instead of inline at the top
-	 * of the dashboard. Use this to embed the title header in a host layout
-	 * without reaching into the dashboard's private DOM.
-	 */
 	titleHeaderContainer?: HTMLElement;
-	/**
-	 * When true, uses a compact 2x2 grid layout for quota indicators:
-	 * plan name + percentage on the top row, reset date + label on the bottom.
-	 * The separate header (plan name + manage action) is not rendered.
-	 */
 	compactQuotaLayout?: boolean;
-	/**
-	 * When provided, CTA buttons (Manage Budget, Upgrade) are rendered into
-	 * this caller-owned container instead of the dashboard header. Use this
-	 * in compact mode to place action buttons in the host header.
-	 */
 	ctaButtonsContainer?: HTMLElement;
 }
 
@@ -164,7 +143,6 @@ export class ChatStatusDashboard extends DomWidget {
 			!this.options?.disableProviderOptions ||
 			!this.options?.disableCompletionsSnooze;
 
-		// Title header with plan name, CTA buttons, and manage action
 		let headerAdditionalSpendButton: Button | undefined;
 		let headerUpgradeButton: Button | undefined;
 		if (hasUsageSection && !this.options?.compactQuotaLayout) {
@@ -178,7 +156,6 @@ export class ChatStatusDashboard extends DomWidget {
 				run: () => this.runCommandAndClose(() => this.openerService.open(URI.parse(this.defaultAccountService.resolveGitHubUrl(GitHubPaths.copilotSettings)))),
 			}));
 
-			// Add Additional Spend / Upgrade buttons to the header
 			const canConfigureAdditionalSpend = this.chatEntitlementService.entitlement === ChatEntitlement.EDU || this.chatEntitlementService.entitlement === ChatEntitlement.Pro || this.chatEntitlementService.entitlement === ChatEntitlement.ProPlus || this.chatEntitlementService.entitlement === ChatEntitlement.Max;
 			const showUpgrade = this.chatEntitlementService.quotas.canUpgradePlan ?? false;
 
@@ -208,7 +185,6 @@ export class ChatStatusDashboard extends DomWidget {
 			}
 		}
 
-		// CTA buttons for compact mode — rendered into a caller-provided container
 		if (hasUsageSection && this.options?.compactQuotaLayout && this.options.ctaButtonsContainer) {
 			const ctaContainer = this.options.ctaButtonsContainer;
 			const canConfigureAdditionalSpend = this.chatEntitlementService.entitlement === ChatEntitlement.EDU || this.chatEntitlementService.entitlement === ChatEntitlement.Pro || this.chatEntitlementService.entitlement === ChatEntitlement.ProPlus || this.chatEntitlementService.entitlement === ChatEntitlement.Max;
@@ -230,20 +206,16 @@ export class ChatStatusDashboard extends DomWidget {
 			}
 		}
 
-		// Compact mode class for CSS targeting
 		if (this.options?.compactQuotaLayout) {
 			this.element.classList.add('compact');
 		}
 
-		// Always trigger a fresh quota fetch when the dashboard opens
 		const updatePromise = this.chatEntitlementService.update(token);
 
-		// Usage section — always shown inline
 		if (hasVisibleUsageContent) {
 			this.renderUsageContent(this.element, token, headerAdditionalSpendButton, headerUpgradeButton, updatePromise);
 		}
 
-		// Premium chat included indicator (shown when premium chat is unlimited)
 		const hasPremiumUnlimited = !!premiumChat?.unlimited;
 		const creditsUsed = hasPremiumUnlimited && !isPooledQuotaDepleted ? premiumChat?.creditsUsed : undefined;
 		if (typeof creditsUsed === 'number') {
@@ -278,18 +250,15 @@ export class ChatStatusDashboard extends DomWidget {
 			}
 		}
 
-		// Next Edit Suggestions — collapsible region
 		if (hasQuickSettingsContent) {
 			const hasContentAbove = hasUsageSection || hasVisibleUsageContent || hasPremiumUnlimited;
 			this.renderInlineSuggestionsSection(hasContentAbove);
 		}
 
-		// Contributed sections (e.g. Codebase Semantic Index) — each gets its own collapsible
 		if (contributedEntries.length > 0) {
 			this.renderContributedSections(contributedEntries);
 		}
 
-		// New to Chat / Signed out
 		this.renderSetupSection();
 	}
 
@@ -301,16 +270,13 @@ export class ChatStatusDashboard extends DomWidget {
 		if (chatQuota || premiumChatQuota || completionsQuota) {
 			const resetLabel = this.formatGlobalResetLabel();
 
-			// Global quota callout (shown at the top, before quota indicators)
 			const globalCalloutUpdater = this.createGlobalQuotaCallout(container);
 			const { calloutVisible: initialCalloutVisible } = globalCalloutUpdater();
 
-			// Update header additional spend button visibility based on callout
 			if (headerAdditionalSpendButton) {
 				headerAdditionalSpendButton.element.style.display = initialCalloutVisible ? '' : 'none';
 			}
 
-			// Update header upgrade button visibility: hide when manage budget button is visible
 			if (headerUpgradeButton) {
 				headerUpgradeButton.element.style.display = (headerAdditionalSpendButton && initialCalloutVisible) ? 'none' : '';
 			}
@@ -333,7 +299,6 @@ export class ChatStatusDashboard extends DomWidget {
 				premiumChatQuotaIndicator = this.createQuotaIndicator(container, premiumChatQuota, premiumChatLabel, premiumChatResetLabel, compact ? planName : undefined);
 			}
 
-			// Additional Budget indicator (overage bar, shown when overage_entitlement > 0)
 			let additionalBudgetIndicator: ((quota: IQuotaSnapshot | string) => void) | undefined;
 			let additionalBudgetElement: HTMLElement | undefined;
 			const initialOverageEntitlement = this.chatEntitlementService.quotas.additionalUsageEntitlement ?? 0;
@@ -362,7 +327,6 @@ export class ChatStatusDashboard extends DomWidget {
 				completionsQuotaIndicator = this.createQuotaIndicator(container, completionsQuota, localize('completionsLabel', "Inline Suggestions"), resetLabel, compact ? planName : undefined);
 			}
 
-			// Update indicators from current quota state
 			const updateIndicators = () => {
 				const { chat: chatQuota, premiumChat: premiumChatQuota, completions: completionsQuota } = this.chatEntitlementService.quotas;
 				if (chatQuota) {
@@ -399,7 +363,6 @@ export class ChatStatusDashboard extends DomWidget {
 				}
 			};
 
-			// Update once when the initial fetch completes
 			(async () => {
 				await updatePromise;
 				if (token.isCancellationRequested) {
@@ -408,12 +371,10 @@ export class ChatStatusDashboard extends DomWidget {
 				updateIndicators();
 			})();
 
-			// Update dynamically when quota data changes while the dashboard is open
 			this._store.add(this.chatEntitlementService.onDidChangeQuotaRemaining(() => updateIndicators()));
 			this._store.add(this.chatEntitlementService.onDidChangeQuotaExceeded(() => updateIndicators()));
 		}
 
-		// Anonymous Indicator
 		else if (this.chatEntitlementService.anonymous && this.chatEntitlementService.sentiment.completed) {
 			this.createQuotaIndicator(container, localize('quotaLimited', "Limited"), localize('chatsLabel', "Chat messages"));
 		}
@@ -423,7 +384,6 @@ export class ChatStatusDashboard extends DomWidget {
 		const nonCollapsible = !!this.options?.disableQuickSettingsCollapsible;
 		const collapsed = !nonCollapsible && this.storageService.getBoolean(ChatStatusDashboard.QUICK_SETTINGS_COLLAPSED_KEY, StorageScope.PROFILE, true);
 
-		// Compute status based on effective enablement for the active editor's language
 		const activeLanguageId = this.editorService.activeTextEditorLanguageId;
 		const getStatusText = () => {
 			if (!this.canUseChat()) {
@@ -475,7 +435,6 @@ export class ChatStatusDashboard extends DomWidget {
 			this._store.add(addDisposableListener(disclosureHeader, EventType.CLICK, () => toggle()));
 		}
 
-		// Update status text when completions setting changes
 		if (statusEl) {
 			this._store.add(this.configurationService.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration(defaultChat.completionsEnablementSetting)) {
@@ -494,11 +453,9 @@ export class ChatStatusDashboard extends DomWidget {
 			let linkDescription = typeof item.label === 'string' ? undefined : item.label.helpText;
 			const section = this.element.appendChild($('div.contributed-section'));
 
-			// Single non-collapsible header row
 			const header = section.appendChild($('div.collapsible-header.non-collapsible'));
 			header.appendChild($('span.collapsible-label', undefined, headerLabel));
 
-			// Info icon (replaces chevron) — shows helpText in a nested hover
 			if (linkDescription || headerLink) {
 				const infoIcon = header.appendChild($('span.contributed-info-icon'));
 				infoIcon.classList.add(...ThemeIcon.asClassNameArray(Codicon.info));
@@ -518,7 +475,6 @@ export class ChatStatusDashboard extends DomWidget {
 				}, { reducedDelay: true }));
 			}
 
-			// Status text (right-aligned via margin-left: auto)
 			const statusEl = header.appendChild($('span.collapsible-status'));
 			const statusDisposables = this._store.add(new MutableDisposable<DisposableStore>());
 			const renderStatus = (text: string): void => {
@@ -528,7 +484,6 @@ export class ChatStatusDashboard extends DomWidget {
 			};
 			renderStatus(item.description);
 
-			// Show tooltip on hover of the status text
 			let currentTooltip = item.tooltip;
 			if (currentTooltip) {
 				this._store.add(this.hoverService.setupDelayedHover(statusEl, () => ({
@@ -536,7 +491,6 @@ export class ChatStatusDashboard extends DomWidget {
 				}), { reducedDelay: true }));
 			}
 
-			// Detail (action link) rendered inline
 			const sectionDisposables = this._store.add(new MutableDisposable());
 			const sectionStore = new DisposableStore();
 			sectionDisposables.value = sectionStore;
@@ -547,19 +501,15 @@ export class ChatStatusDashboard extends DomWidget {
 				this.renderTextPlus(detailEl, item.detail, sectionStore);
 			}
 
-			// Listen for updates to re-render status and detail
 			this._store.add(this.chatStatusItemService.onDidChange(e => {
 				if (e.entry.id === item.id) {
-					// Update status in header
 					statusEl.textContent = '';
 					renderStatus(e.entry.description);
 					currentTooltip = e.entry.tooltip;
 
-					// Update mutable hover content references
 					headerLink = typeof e.entry.label === 'string' ? undefined : e.entry.label.link;
 					linkDescription = typeof e.entry.label === 'string' ? undefined : e.entry.label.helpText;
 
-					// Re-render detail content
 					const newStore = new DisposableStore();
 					sectionDisposables.value = newStore;
 
@@ -585,8 +535,6 @@ export class ChatStatusDashboard extends DomWidget {
 		const newUser = isNewUser(this.chatEntitlementService) && !hasByokModels;
 		const anonymousUser = this.chatEntitlementService.anonymous;
 		const disabled = this.chatEntitlementService.sentiment.disabled || this.chatEntitlementService.sentiment.untrusted;
-		// Keep the Sign-in entry visible even when BYOK models are present so air-gapped
-		// users can still authenticate to unlock the full Copilot experience.
 		const signedOut = this.chatEntitlementService.entitlement === ChatEntitlement.Unknown;
 		if (!(newUser || signedOut || disabled)) {
 			return;
@@ -639,14 +587,12 @@ export class ChatStatusDashboard extends DomWidget {
 	}
 
 	private renderInlineSuggestionsContent(container: HTMLElement): void {
-		// Settings (editor-specific)
 		if (!this.options?.disableInlineSuggestionsSettings) {
 			this.createSettings(container);
 		}
 
 		const providers = (!this.options?.disableModelSelection || !this.options?.disableProviderOptions) ? this.languageFeaturesService.inlineCompletionsProvider.allNoModel() : undefined;
 
-		// Model Selection (editor-specific)
 		if (!this.options?.disableModelSelection && providers) {
 			const provider = providers.find(p => p.modelInfo && p.modelInfo.models.length > 0);
 
@@ -674,7 +620,6 @@ export class ChatStatusDashboard extends DomWidget {
 			}
 		}
 
-		// Provider Options (editor-specific)
 		if (!this.options?.disableProviderOptions && providers) {
 			for (const provider of providers) {
 				if (provider.providerOptions && provider.providerOptions.length > 0) {
@@ -702,7 +647,6 @@ export class ChatStatusDashboard extends DomWidget {
 			}
 		}
 
-		// Completions Snooze (editor-specific)
 		if (!this.options?.disableCompletionsSnooze && this.canUseChat()) {
 			const snooze = append(container, $('div.snooze-completions'));
 			this.createCompletionsSnooze(snooze, localize('settings.snooze', "Snooze"));
@@ -711,15 +655,15 @@ export class ChatStatusDashboard extends DomWidget {
 
 	private canUseChat(): boolean {
 		if (!this.chatEntitlementService.sentiment.completed || this.chatEntitlementService.sentiment.disabled || this.chatEntitlementService.sentiment.untrusted) {
-			return false; // chat not completed or not enabled
+			return false;
 		}
 
 		if (this.chatEntitlementService.entitlement === ChatEntitlement.Unknown || this.chatEntitlementService.entitlement === ChatEntitlement.Available) {
-			return this.chatEntitlementService.anonymous; // signed out or not-yet-signed-up users can only use Chat if anonymous access is allowed
+			return this.chatEntitlementService.anonymous;
 		}
 
 		if (this.chatEntitlementService.entitlement === ChatEntitlement.Free && this.chatEntitlementService.quotas.chat?.percentRemaining === 0 && this.chatEntitlementService.quotas.completions?.percentRemaining === 0) {
-			return false; // free user with no quota left
+			return false;
 		}
 
 		return true;
@@ -914,8 +858,6 @@ export class ChatStatusDashboard extends DomWidget {
 			const isUsageBasedBilling = quotas.usageBasedBilling === true;
 
 			// Only chat quotas drive the global callout. Reaching the inline
-			// suggestions (completions) limit pauses ghost text only, so it must
-			// not trigger the "Copilot is paused" message reserved for chat limits.
 			const allQuotas: IQuotaSnapshot[] = [];
 			if (quotas.chat && !quotas.chat.unlimited) { allQuotas.push(quotas.chat); }
 			if (quotas.premiumChat && !quotas.premiumChat.unlimited) { allQuotas.push(quotas.premiumChat); }
@@ -923,8 +865,6 @@ export class ChatStatusDashboard extends DomWidget {
 			const maxUsedPercentage = allQuotas.length > 0 ? Math.max(...allQuotas.map(q => Math.max(0, 100 - q.percentRemaining))) : 0;
 			const isPooledQuotaExhausted = quotas.premiumChat?.unlimited && quotas.premiumChat.hasQuota === false;
 
-			// Business/Enterprise: hasQuota === false is the authoritative signal
-			// that the org has blocked usage, regardless of overages or remaining quota.
 			if (isEnterpriseUser && isPooledQuotaExhausted) {
 				quotaCallout.style.display = '';
 				quotaCallout.className = 'quota-callout info';
@@ -978,7 +918,6 @@ export class ChatStatusDashboard extends DomWidget {
 		const modeId = this.editorService.activeTextEditorLanguageId;
 		const settings = container.appendChild($('div.settings'));
 
-		// --- Inline Suggestions
 		{
 			const globalSetting = append(settings, $('div.setting'));
 			this.createInlineSuggestionsSetting(globalSetting, localize('settings.codeCompletions.allFiles', "Ghost text suggestions"), '*');
@@ -999,7 +938,6 @@ export class ChatStatusDashboard extends DomWidget {
 			}
 		}
 
-		// --- Next edit suggestions
 		{
 			const setting = append(settings, $('div.setting'));
 			this.createNextEditSuggestionsSetting(setting, localize('settings.nextEditSuggestions', "Next edit suggestions"), this.getCompletionsSettingAccessor(modeId));
@@ -1200,8 +1138,6 @@ export class ChatStatusDashboard extends DomWidget {
 			}
 		});
 
-		// enablement of NES depends on completions setting
-		// so we have to update our checkbox state accordingly
 		if (!completionsSettingAccessor.readSetting()) {
 			container.classList.add('disabled');
 			checkbox.disable();
@@ -1266,7 +1202,6 @@ export class ChatStatusDashboard extends DomWidget {
 			return false;
 		};
 
-		// Update every second if there's time remaining
 		const timerDisposables = this._store.add(new DisposableStore());
 		function updateIntervalTimer() {
 			timerDisposables.clear();

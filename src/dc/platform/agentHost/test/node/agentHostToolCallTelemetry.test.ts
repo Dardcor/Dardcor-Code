@@ -100,13 +100,6 @@ class CapturingTelemetryService implements ITelemetryService {
 	setCommonProperty(): void { }
 }
 
-/**
- * Integration tests covering the {@link AgentHostToolCallTracker} as it is
- * driven through {@link AgentSideEffects}. These exercise the full wiring
- * (tool-call start stamping, completion emission, dedup and the in-flight
- * leak guard) so we cover both the tracker and its integration with the
- * side-effect dispatch in one place.
- */
 suite('AgentSideEffects — tool call telemetry', () => {
 
 	const disposables = new DisposableStore();
@@ -280,7 +273,7 @@ suite('AgentSideEffects — tool call telemetry', () => {
 				updateSessionWorkspace: async () => { },
 			}],
 		);
-		const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+		const instantiationService = disposables.add(new InstantiationService(services, true));
 		const chatContributions = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 		services.set(IAgentHostChatContributions, chatContributions);
 		services.set(IAgentHostTurnService, new AgentHostTurnService(stateManager, chatContributions, instantiationService));
@@ -293,9 +286,6 @@ suite('AgentSideEffects — tool call telemetry', () => {
 		services.set(IAgentHostToolCallTracker, disposables.add(instantiationService.createInstance(AgentHostToolCallTracker)));
 		const localCommands = disposables.add(instantiationService.createInstance(AgentHostLocalCommands));
 		services.set(IAgentHostLocalCommands, localCommands);
-		// Blocked/unblocked tool-call telemetry is reported by
-		// `SessionInputNeededContribution`, so the built-in contributions must be
-		// registered for this graph to mirror production wiring.
 		disposables.add(registerBuiltInChatContributions(chatContributions));
 		sideEffects = disposables.add(instantiationService.createInstance(AgentSideEffects, stateManager, customizationEnablementService, {
 			getAgent: () => agent,
@@ -690,8 +680,6 @@ suite('AgentSideEffects — tool call telemetry', () => {
 
 		toolStart('turn-1', 'tc-inflight', 'bash');
 		fire({ type: ActionType.ChatTurnCancelled, turnId: 'turn-1', duration: 1000 });
-		// A late completion after the turn ended must not emit: the start entry
-		// was cleared, so there is no timing to report.
 		toolComplete('turn-1', 'tc-inflight', { success: true, pastTenseMessage: 'ran' });
 
 		assert.strictEqual(toolEvents().length, 0);

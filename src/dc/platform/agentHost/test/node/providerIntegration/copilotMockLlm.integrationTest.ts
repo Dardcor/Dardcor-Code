@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Agent Host integration tests using the real Copilot provider and a synthetic local LLM.
- */
 
 import assert from 'assert';
 import { existsSync } from 'fs';
@@ -68,7 +65,7 @@ suite('Agent Host Provider Integration — Copilot with Mock LLM', function () {
 		for (const session of createdSessions) {
 			try {
 				await client.call('disposeSession', { session }, 5000);
-			} catch { /* best-effort */ }
+			} catch { }
 		}
 		createdSessions.length = 0;
 		client.close();
@@ -76,7 +73,7 @@ suite('Agent Host Provider Integration — Copilot with Mock LLM', function () {
 		for (const dir of tempDirs) {
 			try {
 				await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-			} catch { /* best-effort */ }
+			} catch { }
 		}
 		tempDirs.length = 0;
 	});
@@ -107,15 +104,8 @@ suite('Agent Host Provider Integration — Copilot with Mock LLM', function () {
 	});
 });
 
-/**
- * Idle-session release exercised against the real Copilot SDK and a mock LLM.
- * The dedicated server uses a zero residency cap and short provider-veto retry
- * so release is deterministic without changing production policy.
- */
 suite('Agent Host Provider Integration — Copilot Idle Release', function () {
 
-	// Short enough that a post-unsubscribe wait reliably outlasts it, long
-	// enough that the intra-test subscribe calls in createProviderSession don't race it.
 	const RELEASE_RETRY_MS = 500;
 
 	let server: IServerHandle;
@@ -180,7 +170,7 @@ suite('Agent Host Provider Integration — Copilot Idle Release', function () {
 		for (const session of createdSessions) {
 			try {
 				await client.call('disposeSession', { session }, 5000);
-			} catch { /* best-effort */ }
+			} catch { }
 		}
 		createdSessions.length = 0;
 		client.close();
@@ -188,7 +178,7 @@ suite('Agent Host Provider Integration — Copilot Idle Release', function () {
 		for (const dir of tempDirs) {
 			try {
 				await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-			} catch { /* best-effort */ }
+			} catch { }
 		}
 		tempDirs.length = 0;
 	});
@@ -251,12 +241,6 @@ suite('Agent Host Provider Integration — Copilot Idle Release', function () {
 
 		const assistantMarkdown = (turns: ISessionWithDefaultChat['turns'], turnId: string): string =>
 			turns.find(t => t.id === turnId)?.responseParts.map(p => p.kind === ResponsePartKind.Markdown ? p.content : '').join('\n') ?? '';
-		// Project each turn onto its durable transcript content: the user message
-		// and the assistant's rendered markdown. Live-only or reconstructed fields
-		// (regenerated response-part ids, the internal turn id which is rebuilt
-		// from the SDK event log on restore, per-turn `usage` token telemetry that
-		// is not persisted) legitimately do not survive a restore-from-disk, so
-		// "lossless" is asserted over the transcript the user sees.
 		const transcript = (turns: ISessionWithDefaultChat['turns']) =>
 			turns.map(t => ({ message: t.message.text, markdown: assistantMarkdown(turns, t.id) }));
 
@@ -264,8 +248,6 @@ suite('Agent Host Provider Integration — Copilot Idle Release', function () {
 		tempDirs.push(workspaceDir);
 		const sessionUri = await createProviderSession(client, COPILOT_CONFIG, 'real-sdk-mock-release', createdSessions, URI.file(workspaceDir));
 
-		// Drive one turn so the session has durable SDK state (a persisted event
-		// log) backed by a live SDK session that owns real per-session resources.
 		const firstProbe = 'MOCK_RELEASE_PROBE_1';
 		dispatchTurn(client, sessionUri, 'turn-release-1', `Reply with exactly: ${firstProbe}`, 1);
 		const firstResult = await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete') || isActionNotification(n, 'chat/error'), 90_000);
@@ -274,22 +256,14 @@ suite('Agent Host Provider Integration — Copilot Idle Release', function () {
 		const before = await fetchSessionWithChat(client, sessionUri);
 		assert.match(assistantMarkdown(before.turns, 'turn-release-1'), new RegExp(`\\b${firstProbe}\\b`, 'i'), 'first turn should have completed before release');
 
-		// Drop every subscriber. The zero-capacity server drops cached protocol
-		// state and releases the live SDK session while preserving its event log.
 		for (const channel of [buildDefaultChatUri(sessionUri), sessionUri]) {
 			client.notify('unsubscribe', { channel });
 		}
 		await timeout(RELEASE_RETRY_MS + 2000);
 
-		// Re-subscribe: the server restores the session from disk and the provider
-		// resumes the SDK session on demand. The restored transcript must match
-		// the pre-release view.
 		const after = await fetchSessionWithChat(client, sessionUri);
 		assert.deepStrictEqual(transcript(after.turns), transcript(before.turns), 'restored transcript must match the pre-release state');
 
-		// Drive a SECOND turn after the release/resume cycle. This is the key
-		// assertion: it proves the SDK session resumed cleanly rather than wedging
-		// the runtime — the exact failure mode idle release could introduce.
 		client.clearReceived();
 		const secondProbe = 'MOCK_RELEASE_PROBE_2';
 		dispatchTurn(client, sessionUri, 'turn-release-2', `Reply with exactly: ${secondProbe}`, 2);

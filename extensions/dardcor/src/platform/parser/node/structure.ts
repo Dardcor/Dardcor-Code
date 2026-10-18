@@ -33,7 +33,6 @@ export class StructureComputer {
 		const queries = syntacticallyValidAtoms[lang];
 
 		if (queries.length === 0) {
-			// language not supported
 			return undefined;
 		}
 
@@ -44,7 +43,6 @@ export class StructureComputer {
 				.flatMap(e => e.captures)
 				.sort((a, b) => TreeSitterOffsetRange.compare(a.node, b.node));
 
-			// Exclude captures contained in ranges marked with ".exclude_captures"
 			const excludedRanges: TreeSitterOffsetRange[] = [];
 			for (const capture of captures) {
 				if (capture.name.endsWith('.exclude_captures')) {
@@ -61,28 +59,22 @@ export class StructureComputer {
 				const currentNode = currentCapture.node;
 
 				if (excludedRanges.some(r => TreeSitterOffsetRange.isEqual(r, currentNode))) {
-					// This node should be excluded
 					continue;
 				}
 
-				// find a parent node that contains the current capture
 				let currentParent: OverlayNode;
 				do {
-					currentParent = parentStack.pop()!; // ! because we know there will be the root node
+					currentParent = parentStack.pop()!;
 				} while (currentParent && !TreeSitterOffsetRange.doesContain(currentParent, currentNode));
 
-				// nodes that need to be merged with their child, e.g.,
-				// Given `export const foo = 1;`, we can't just remove `const foo = 1;` because then syntax doesn't make sense
 				const ambientParents = new Set(['export_statement', 'ambient_declaration']);
 
-				if (ambientParents.has(currentParent.kind)) { // merge the parent with the child
+				if (ambientParents.has(currentParent.kind)) {
 
 					currentParent.kind = currentNode.type;
 					parentStack.push(currentParent);
 
 				} else {
-					// get a more specific node kind
-					// js/ts/tsx: kind `method_definition` with identifier "constructor" -> kind `constructor`
 					let nodeKind = currentNode.type;
 					if ((lang === WASMLanguage.TypeScript || lang === WASMLanguage.TypeScriptTsx || lang === WASMLanguage.JavaScript) &&
 						nodeKind === 'method_definition' && currentNode.namedChildren.some(c => c.type === 'property_identifier' && c.text === 'constructor')) {
@@ -104,9 +96,6 @@ export class StructureComputer {
 
 					let endIndex = currentNode.endIndex;
 
-					// currentNode should subsume sibling nodes that are trivial, eg `;`, `,`, same-line comment
-					// if trivial sibling node is itself captured as a separate node, then it becomes a child node of currentNode, ie currentNode would have a comment as a child
-					// else it's just part of the node
 					if (currentNode.nextSibling !== null) {
 						let nextSibling: SyntaxNode | null = currentNode.nextSibling;
 
@@ -114,7 +103,7 @@ export class StructureComputer {
 							while (nextSibling &&
 								(nextSibling.type === ';' ||
 									nextSibling.type === ',' ||
-									(nextSibling.type === 'comment' && !source.substring(endIndex, nextSibling.startIndex).includes('\n') /* on the same line */))
+									(nextSibling.type === 'comment' && !source.substring(endIndex, nextSibling.startIndex).includes('\n') ))
 							) {
 								excludedRanges.push(TreeSitterOffsetRange.ofSyntaxNode(nextSibling));
 								endIndex = nextSibling.endIndex;

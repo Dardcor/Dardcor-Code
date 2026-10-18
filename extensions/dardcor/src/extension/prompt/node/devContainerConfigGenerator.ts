@@ -76,23 +76,6 @@ export class DevContainerConfigGenerator {
 
 		const suggestions = fetchResult.type === ChatFetchResponseType.Success ? this.processGeneratedConfig(fetchResult.value, templates, features) : undefined;
 
-		/* __GDPR__
-			"devcontainer.generateConfig" : {
-				"owner": "chrmarti",
-				"comment": "Metadata about the Dev Container Config generation",
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that is used in the endpoint." },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"responseType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The result type of the response." },
-				"templateId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The chosen template id." },
-				"featureIds": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The chosen feature ids." },
-				"originalFilenameCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of filenames." },
-				"originalFilenameLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The length of the filenames." },
-				"processedFilenameCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of filenames after processing." },
-				"processedFilenameLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The length of the filenames after processing." },
-				"timeToRequest": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "How long it took to start the request." },
-				"timeToComplete": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "How long it took to complete the request." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('devcontainer.generateConfig', {
 			model: endpoint.model,
 			requestId: fetchResult.requestId,
@@ -118,13 +101,10 @@ export class DevContainerConfigGenerator {
 	private processFilenames(filenames: string[], charLimit: number): string[] {
 		const result: string[] = [...filenames];
 
-		// Reserve 10% of the character limit for the safety rules and instructions
 		const availableChars = Math.floor(charLimit * 0.9);
 
-		// Remove filenames if needed
 		let totalChars = result.join('\n').length;
 		if (totalChars > availableChars) {
-			// Remove filenames until we are under the character limit
 			while (totalChars > availableChars && result.length > 0) {
 				const lastDiff = result.pop()!;
 				totalChars -= lastDiff.length;
@@ -137,7 +117,7 @@ export class DevContainerConfigGenerator {
 	private processGeneratedConfig(message: string, availableTemplates: DevContainerConfigTemplate[], availableFeatures: DevContainerConfigFeature[]) {
 		let template = availableTemplates.find(t => new RegExp(`\\b${escapeRegExpCharacters(t.id)}\\b`).test(message))?.id;
 		if (template === 'ghcr.io/devcontainers/templates/javascript-node') {
-			template = 'ghcr.io/devcontainers/templates/typescript-node'; // Rarely suggested otherwise.
+			template = 'ghcr.io/devcontainers/templates/typescript-node';
 		}
 		return {
 			template: template,

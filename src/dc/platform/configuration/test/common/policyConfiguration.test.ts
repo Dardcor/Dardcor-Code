@@ -321,20 +321,15 @@ suite('PolicyConfiguration', () => {
 
 		await testObject.initialize();
 
-		// The owner declares restrictedValue; the reference is a pure pointer. The registered
-		// definition must be the owner's.
 		const definition = policyService.policyDefinitions['PolicyShared'];
 		assert.strictEqual(definition?.type, 'boolean');
 		assert.strictEqual(definition?.restrictedValue, true);
 	});
 
 	test('change: a late-registering owner supersedes an earlier reference definition', async () => {
-		// Only the reference for `PolicyOrphanReference` is registered initially (models the editor
-		// window: the agent-host reference loads eagerly while the extension policy owner loads later).
 		await fileService.writeFile(policyFile, VSBuffer.fromString(JSON.stringify({ 'PolicyOrphanReference': false })));
 		await testObject.initialize();
 
-		// The synthesized reference definition carries no restrictedValue.
 		assert.strictEqual(testObject.configurationModel.getValue('policy.orphanReferenceSetting'), false);
 		assert.strictEqual(policyService.policyDefinitions['PolicyOrphanReference']?.restrictedValue, undefined);
 
@@ -361,8 +356,6 @@ suite('PolicyConfiguration', () => {
 			Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration(ownerNode);
 			await promise;
 
-			// The owner's definition (with restrictedValue) must now supersede the reference's, and
-			// both settings remain gated by the same policy value.
 			assert.strictEqual(policyService.policyDefinitions['PolicyOrphanReference']?.restrictedValue, true);
 			assert.strictEqual(testObject.configurationModel.getValue('policy.lateOwner'), false);
 			assert.strictEqual(testObject.configurationModel.getValue('policy.orphanReferenceSetting'), false);
@@ -399,8 +392,6 @@ suite('PolicyConfiguration', () => {
 		await promise;
 		assert.strictEqual(policyService.policyDefinitions['PolicyOrphanReference']?.restrictedValue, true);
 
-		// Removing the owner must re-resolve the policy and fall back to the surviving reference,
-		// so the owner-only restrictedValue no longer applies.
 		promise = Event.toPromise(testObject.onDidChangeConfiguration);
 		registry.deregisterConfigurations([ownerNode]);
 		await promise;

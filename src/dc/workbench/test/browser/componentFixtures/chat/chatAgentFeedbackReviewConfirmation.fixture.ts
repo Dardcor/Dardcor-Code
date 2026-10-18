@@ -79,13 +79,6 @@ function createToolInvocation(toolCallId: string): ChatToolInvocation {
 	);
 }
 
-/**
- * Mock command service that backs the confirmation renderer. Returns the
- * comments associated with the requesting session for the "get comments"
- * command (so each carousel item can resolve its own set) and no-ops for the
- * reveal / delete / accept actions so the fixture renders without touching the
- * real feedback service.
- */
 function createCommandService(commentsBySession: ReadonlyMap<string, readonly IChatAgentFeedbackReviewComment[]>): ICommandService {
 	return new class extends mock<ICommandService>() {
 		override readonly onWillExecuteCommand = Event.None;
@@ -105,14 +98,6 @@ function renderConfirmation(context: ComponentFixtureContext, comments: readonly
 	renderConfirmations(context, [comments]);
 }
 
-/**
- * Renders one tool confirmation per supplied comment set, all hosted inside a
- * real {@link ChatToolConfirmationCarouselPart} so the confirmation is shown
- * with the same overlay chrome (title, Allow All / Skip / expand actions and,
- * for multiple confirmations, the step indicator and navigation arrows) it has
- * in the chat input. Each confirmation resolves its own comments via a distinct
- * session resource.
- */
 function renderConfirmations(context: ComponentFixtureContext, commentSets: readonly (readonly IChatAgentFeedbackReviewComment[])[]): void {
 	const { container, disposableStore } = context;
 
@@ -157,9 +142,9 @@ function renderConfirmations(context: ComponentFixtureContext, commentSets: read
 		ChatToolInvocationPart,
 		tool,
 		contextByToolCallId.get(tool.toolCallId)!,
-		undefined!, // renderer — unused by the agent feedback confirmation sub part
-		undefined!, // listPool — unused by the agent feedback confirmation sub part
-		undefined!, // editorPool — unused by the agent feedback confirmation sub part
+		undefined!,
+		undefined!,
+		undefined!,
 		() => 480,
 		undefined,
 		0,
@@ -170,15 +155,8 @@ function renderConfirmations(context: ComponentFixtureContext, commentSets: read
 	container.style.width = '680px';
 	container.style.padding = '8px';
 	container.classList.add('interactive-session');
-	// In product the carousel is hosted in the chat input, which sits on the
-	// side bar / panel background; reproduce that backdrop on the host element
-	// so the carousel reads correctly in place instead of on a transparent
-	// surface.
 	container.style.backgroundColor = 'var(--vscode-sideBar-background, var(--vscode-editor-background))';
 
-	// The carousel layout/visibility CSS keys off
-	// `.interactive-session .interactive-input-part > .chat-tool-confirmation-carousel-container`,
-	// so reproduce that ancestry here.
 	const inputPart = dom.$('.interactive-input-part');
 	const carouselContainer = dom.$('.chat-tool-confirmation-carousel-container');
 	inputPart.appendChild(carouselContainer);
@@ -187,9 +165,6 @@ function renderConfirmations(context: ComponentFixtureContext, commentSets: read
 	carouselContainer.appendChild(carousel.domNode);
 }
 
-// ============================================================================
-// Sample comments
-// ============================================================================
 
 const prComment: IChatAgentFeedbackReviewComment = {
 	id: 'pr-1',
@@ -212,9 +187,6 @@ const longComment: IChatAgentFeedbackReviewComment = {
 	fileUri: URI.file('/workspace/src/platform/agentHost/node/agentService.ts'),
 };
 
-// ============================================================================
-// Fixtures
-// ============================================================================
 
 export default defineThemedFixtureGroup({ path: 'chat/' }, {
 	SingleComment: defineComponentFixture({

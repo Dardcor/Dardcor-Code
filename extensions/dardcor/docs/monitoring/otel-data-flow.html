@@ -20,7 +20,6 @@
   .node .label { font-weight: 600; font-size: 12px; }
   .node .sub { font-size: 10px; fill: #8b949e; }
 
-  /* Provider colors */
   .provider-a rect { fill: #1a2332; stroke: #58a6ff; }
   .provider-b rect { fill: #1a2a1a; stroke: #3fb950; }
   .provider-none rect { fill: #2a1a2a; stroke: #bc8cff; }
@@ -78,7 +77,7 @@
 
 <div class="tab-content">
 
-<!-- OVERVIEW -->
+
 <div class="tab-pane active" id="tab-overview">
 <svg viewBox="0 0 1100 720" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -90,11 +89,11 @@
     <marker id="ah-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bc8cff"/></marker>
   </defs>
 
-  <!-- Extension Host Process boundary -->
+  
   <rect x="10" y="10" width="850" height="700" rx="10" fill="none" stroke="#30363d" stroke-dasharray="8,4"/>
   <text x="24" y="32" fill="#8b949e" font-size="11" font-family="monospace">VS Code Extension Host Process</text>
 
-  <!-- Provider A: NodeOTelService -->
+  
   <g class="node provider-a" transform="translate(30,50)">
     <rect width="260" height="90"/>
     <text x="12" y="20" class="label" fill="#58a6ff">Provider A: NodeOTelService</text>
@@ -104,7 +103,7 @@
     <text x="12" y="80" class="sub">Emitters: onDidCompleteSpan, onDidEmitSpanEvent</text>
   </g>
 
-  <!-- Provider B: SDK BasicTracerProvider -->
+  
   <g class="node provider-b" transform="translate(30,170)">
     <rect width="260" height="90"/>
     <text x="12" y="20" class="label" fill="#3fb950">Provider B: SDK BasicTracerProvider</text>
@@ -114,7 +113,7 @@
     <text x="12" y="80" class="sub">SpanProcessors: BatchSP + BridgeSP</text>
   </g>
 
-  <!-- Bridge SpanProcessor -->
+  
   <g class="node bridge" transform="translate(30,290)">
     <rect width="260" height="70"/>
     <text x="12" y="20" class="label" fill="#39d353">CopilotCliBridgeSpanProcessor</text>
@@ -123,7 +122,7 @@
     <text x="12" y="66" class="sub">Filters: only forwards registered traceIds</text>
   </g>
 
-  <!-- Foreground Agent -->
+  
   <g class="node provider-a" transform="translate(340,50)">
     <rect width="220" height="70"/>
     <text x="12" y="20" class="label">Foreground Agent</text>
@@ -132,7 +131,7 @@
     <text x="12" y="66" class="sub">invoke_agent → chat → execute_tool</text>
   </g>
 
-  <!-- CLI Background Agent -->
+  
   <g class="node provider-b" transform="translate(340,150)">
     <rect width="220" height="90"/>
     <text x="12" y="20" class="label">CLI Background Agent</text>
@@ -142,7 +141,7 @@
     <text x="12" y="80" class="sub">+ subagents, permissions, hooks</text>
   </g>
 
-  <!-- CLI Background Extension Wrapper -->
+  
   <g class="node provider-a" transform="translate(340,270)">
     <rect width="220" height="55"/>
     <text x="12" y="20" class="label">CLI Extension Wrapper</text>
@@ -150,7 +149,7 @@
     <text x="12" y="50" class="sub">invoke_agent copilotcli (tracer A)</text>
   </g>
 
-  <!-- Claude Agent -->
+  
   <g class="node provider-none" transform="translate(340,355)">
     <rect width="220" height="70"/>
     <text x="12" y="20" class="label" fill="#bc8cff">Claude Code Agent</text>
@@ -159,7 +158,7 @@
     <text x="12" y="66" class="sub">invoke_agent → execute_tool (flat)</text>
   </g>
 
-  <!-- Claude Subprocess -->
+  
   <g class="node process" transform="translate(340,455)">
     <rect width="220" height="55"/>
     <text x="12" y="20" class="label">Claude Code Subprocess</text>
@@ -167,7 +166,7 @@
     <text x="12" y="50" class="sub">Metrics + events only (no traces)</text>
   </g>
 
-  <!-- CLI Terminal -->
+  
   <g class="node process" transform="translate(340,540)">
     <rect width="220" height="55"/>
     <text x="12" y="20" class="label">CLI Terminal Process</text>
@@ -175,7 +174,7 @@
     <text x="12" y="50" class="sub">Full SDK OTel (independent traces)</text>
   </g>
 
-  <!-- Debug Panel: Trajectory Provider -->
+  
   <g class="node debug-panel" transform="translate(620,50)">
     <rect width="230" height="70"/>
     <text x="12" y="20" class="label" fill="#d29922">OTelChatDebugLogProvider</text>
@@ -184,7 +183,7 @@
     <text x="12" y="66" class="sub">Feeds: Agent Debug Log panel UI</text>
   </g>
 
-  <!-- Debug Panel: File Logger -->
+  
   <g class="node debug-panel" transform="translate(620,150)">
     <rect width="230" height="55"/>
     <text x="12" y="20" class="label" fill="#d29922">ChatDebugFileLoggerService</text>
@@ -192,7 +191,7 @@
     <text x="12" y="50" class="sub">Writes: debug-logs/<sessionId>/main.jsonl</text>
   </g>
 
-  <!-- OTLP Exporter (Provider A) -->
+  
   <g class="node exporter" transform="translate(620,240)">
     <rect width="230" height="55"/>
     <text x="12" y="20" class="label" fill="#f85149">OTLP Exporter (Provider A)</text>
@@ -200,7 +199,7 @@
     <text x="12" y="50" class="sub">Exports foreground + CLI wrapper spans</text>
   </g>
 
-  <!-- OTLP Exporter (Provider B) -->
+  
   <g class="node exporter" transform="translate(620,325)">
     <rect width="230" height="55"/>
     <text x="12" y="20" class="label" fill="#f85149">OTLP Exporter (Provider B)</text>
@@ -208,7 +207,7 @@
     <text x="12" y="50" class="sub">Exports SDK native spans</text>
   </g>
 
-  <!-- Grafana / External -->
+  
   <g class="node exporter" transform="translate(620,420)">
     <rect width="230" height="55"/>
     <text x="12" y="20" class="label" fill="#f85149">Grafana / Jaeger / Collector</text>
@@ -216,59 +215,59 @@
     <text x="12" y="50" class="sub">Shows full trace hierarchy</text>
   </g>
 
-  <!-- === ARROWS === -->
+  
 
-  <!-- Provider A → Debug Panel (onDidCompleteSpan) -->
+  
   <path d="M 290,95 L 310,85 Q 615,55 620,85" class="arrow arrow-data" marker-end="url(#ah-blue)"/>
   <text x="390" y="48" fill="#58a6ff" font-size="9">onDidCompleteSpan</text>
 
-  <!-- Provider A → File Logger -->
+  
   <path d="M 290,110 L 615,175" class="arrow arrow-data" marker-end="url(#ah-blue)"/>
 
-  <!-- Provider A → OTLP A -->
+  
   <path d="M 290,130 Q 450,260 620,267" class="arrow arrow-export" marker-end="url(#ah-red)"/>
   <text x="420" y="228" fill="#f85149" font-size="9">BatchSpanProcessor</text>
 
-  <!-- Bridge → Provider A (injectCompletedSpan → onDidCompleteSpan) -->
+  
   <path d="M 290,325 Q 600,290 620,85" class="arrow arrow-bridge" marker-end="url(#ah-green)"/>
   <text x="470" y="160" fill="#39d353" font-size="9">injectCompletedSpan()</text>
 
-  <!-- Provider B → OTLP B -->
+  
   <path d="M 290,215 Q 450,330 620,350" class="arrow arrow-export" marker-end="url(#ah-red)"/>
 
-  <!-- Provider B → Bridge -->
+  
   <path d="M 160,260 L 160,290" class="arrow arrow-bridge" marker-end="url(#ah-green)"/>
   <text x="165" y="278" fill="#39d353" font-size="9">onEnd()</text>
 
-  <!-- OTLP A → Grafana -->
+  
   <path d="M 735,295 L 735,420" class="arrow arrow-export" marker-end="url(#ah-red)"/>
-  <!-- OTLP B → Grafana -->
+  
   <path d="M 755,380 L 755,420" class="arrow arrow-export" marker-end="url(#ah-red)"/>
 
-  <!-- CLI wrapper → traceparent → SDK -->
+  
   <path d="M 450,325 L 450,240" class="arrow arrow-context" marker-end="url(#ah-purple)"/>
   <text x="455" y="285" fill="#bc8cff" font-size="9">traceparent</text>
 
-  <!-- Env vars → CLI Terminal -->
+  
   <path d="M 290,355 Q 320,540 340,565" class="arrow arrow-env" marker-end="url(#ah-yellow)"/>
   <text x="265" y="480" fill="#d29922" font-size="9">env vars</text>
 
-  <!-- Env vars → Claude subprocess -->
+  
   <path d="M 290,355 Q 320,455 340,480" class="arrow arrow-env" marker-end="url(#ah-yellow)"/>
 
-  <!-- CLI Terminal → Grafana (independent) -->
+  
   <path d="M 560,565 Q 750,540 750,475" class="arrow arrow-export" marker-end="url(#ah-red)"/>
   <text x="630" y="530" fill="#f85149" font-size="9">independent traces</text>
 
-  <!-- Claude subprocess → Grafana -->
+  
   <path d="M 560,480 Q 760,490 760,475" class="arrow arrow-export" marker-end="url(#ah-red)"/>
   <text x="610" y="498" fill="#f85149" font-size="9">metrics+events</text>
 
-  <!-- Claude → Debug Panel (synthetic) -->
+  
   <path d="M 560,390 Q 610,200 620,120" class="arrow arrow-data" marker-end="url(#ah-blue)"/>
   <text x="580" y="260" fill="#bc8cff" font-size="9">synthetic spans</text>
 
-  <!-- Config source -->
+  
   <g class="node" transform="translate(30,630)">
     <rect width="260" height="70" fill="#161b22" stroke="#30363d" rx="6"/>
     <text x="12" y="20" class="label" fill="#8b949e">resolveOTelConfig()</text>
@@ -277,7 +276,7 @@
     <text x="12" y="66" class="sub">Kill switch: telemetry.telemetryLevel=off</text>
   </g>
 
-  <!-- Config → Providers -->
+  
   <path d="M 160,630 L 160,360" class="arrow arrow-env" marker-end="url(#ah-yellow)"/>
   <text x="85" y="500" fill="#d29922" font-size="9">OTelConfig</text>
   <path d="M 200,630 Q 310,600 350,540" class="arrow arrow-env" marker-end="url(#ah-yellow)"/>
@@ -285,7 +284,7 @@
 </svg>
 </div>
 
-<!-- FOREGROUND AGENT -->
+
 <div class="tab-pane" id="tab-foreground">
 <svg viewBox="0 0 900 380" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -296,7 +295,7 @@
   <text x="20" y="24" fill="#58a6ff" font-size="14" font-weight="600">Foreground Agent — Provider A Only</text>
   <text x="20" y="42" fill="#8b949e" font-size="11">All spans created by tracer A (extension's NodeOTelService)</text>
 
-  <!-- Span hierarchy -->
+  
   <g transform="translate(30,60)">
     <rect x="0" y="0" width="400" height="280" rx="8" fill="#161b22" stroke="#30363d"/>
     <text x="12" y="20" fill="#58a6ff" font-size="12" font-weight="600">Span Hierarchy (tracer A)</text>
@@ -325,7 +324,7 @@
     <text x="16" y="270" fill="#8b949e" font-size="10">All spans have copilot_chat.chat_session_id</text>
   </g>
 
-  <!-- Flow -->
+  
   <g transform="translate(460,60)">
     <rect x="0" y="0" width="200" height="50" rx="6" fill="#1a2332" stroke="#58a6ff"/>
     <text x="12" y="20" fill="#58a6ff" font-size="11" font-weight="600">NodeOTelService</text>
@@ -347,7 +346,7 @@
 </svg>
 </div>
 
-<!-- CLI BACKGROUND -->
+
 <div class="tab-pane" id="tab-cli-bg">
 <svg viewBox="0 0 1000 620" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -360,7 +359,7 @@
   <text x="20" y="24" fill="#3fb950" font-size="14" font-weight="600">CLI Background Agent — Two Providers (Bridge Architecture)</text>
   <text x="20" y="42" fill="#8b949e" font-size="11">Extension root span (tracer A) + SDK native spans (tracer B) + Bridge for debug panel</text>
 
-  <!-- Extension root span -->
+  
   <g transform="translate(30,60)">
     <rect width="380" height="130" rx="8" fill="#161b22" stroke="#30363d"/>
     <text x="12" y="20" fill="#58a6ff" font-size="12" font-weight="600">Extension Root (tracer A)</text>
@@ -374,7 +373,7 @@
     <text x="16" y="120" fill="#8b949e" font-size="9">SDK spans inherit this traceId → same trace in Grafana ✅</text>
   </g>
 
-  <!-- SDK native spans -->
+  
   <g transform="translate(30,210)">
     <rect width="380" height="280" rx="8" fill="#161b22" stroke="#30363d"/>
     <text x="12" y="20" fill="#3fb950" font-size="12" font-weight="600">SDK Native Spans (tracer B, same traceId)</text>
@@ -404,15 +403,15 @@
     <text x="16" y="274" fill="#3fb950" font-size="9" font-weight="600">✅ All spans reach debug panel via bridge</text>
   </g>
 
-  <!-- Data flow -->
+  
   <g transform="translate(450,60)">
-    <!-- Provider B box -->
+    
     <rect width="210" height="60" rx="6" fill="#1a2a1a" stroke="#3fb950"/>
     <text x="12" y="20" fill="#3fb950" font-size="11" font-weight="600">Provider B (SDK)</text>
     <text x="12" y="38" fill="#8b949e" font-size="10">BatchSpanProcessor → OTLP</text>
     <text x="12" y="52" fill="#8b949e" font-size="10">BridgeSpanProcessor → ext (injected)</text>
 
-    <!-- Bridge box -->
+    
     <rect x="0" y="80" width="210" height="65" rx="6" fill="#1a2a2a" stroke="#39d353"/>
     <text x="12" y="98" fill="#39d353" font-size="11" font-weight="600">BridgeSpanProcessor ✅</text>
     <text x="12" y="114" fill="#8b949e" font-size="10">Injected via internal _spanProcessors</text>
@@ -420,27 +419,27 @@
 
     <path d="M 105,60 L 105,80" stroke="#39d353" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#ah3-green)"/>
 
-    <!-- Provider A for injection -->
+    
     <rect x="0" y="165" width="210" height="50" rx="6" fill="#1a2332" stroke="#58a6ff"/>
     <text x="12" y="185" fill="#58a6ff" font-size="11" font-weight="600">NodeOTelService (Provider A)</text>
     <text x="12" y="201" fill="#8b949e" font-size="10">injectCompletedSpan → fire event</text>
 
     <path d="M 105,145 L 105,165" stroke="#39d353" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#ah3-green)"/>
 
-    <!-- Debug panel -->
+    
     <rect x="0" y="235" width="210" height="40" rx="6" fill="#2a2218" stroke="#d29922"/>
     <text x="12" y="260" fill="#d29922" font-size="11" font-weight="600">Debug Panel ✅ (full hierarchy)</text>
 
     <path d="M 105,215 L 105,235" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ah3-blue)"/>
     <text x="110" y="228" fill="#58a6ff" font-size="9">onDidCompleteSpan</text>
 
-    <!-- OTLP — this works fine -->
+    
     <rect x="240" y="0" width="200" height="40" rx="6" fill="#2a1a1a" stroke="#f85149"/>
     <text x="252" y="25" fill="#f85149" font-size="11">OTLP → Grafana ✅</text>
 
     <path d="M 210,30 L 240,20" stroke="#f85149" stroke-width="1.5" marker-end="url(#ah3-red)"/>
 
-    <!-- Key insight -->
+    
     <rect x="0" y="300" width="440" height="100" rx="8" fill="#161b22" stroke="#39d353"/>
     <text x="16" y="320" fill="#39d353" font-size="12" font-weight="600">HOW: Bridge injection via OTel v2 internals</text>
     <text x="16" y="340" fill="#8b949e" font-size="10">1. api.trace.getTracerProvider() → ProxyTracerProvider</text>
@@ -449,7 +448,7 @@
     <text x="16" y="388" fill="#8b949e" font-size="10">4. ._spanProcessors.push(bridge) — same pattern SDK uses in forceFlush()</text>
   </g>
 
-  <!-- Working path annotation -->
+  
   <g transform="translate(30,510)">
     <rect width="920" height="80" rx="8" fill="#161b22" stroke="#3fb950"/>
     <text x="16" y="20" fill="#3fb950" font-size="12" font-weight="600">✅ Full data flow working</text>
@@ -460,7 +459,7 @@
 </svg>
 </div>
 
-<!-- CLI TERMINAL -->
+
 <div class="tab-pane" id="tab-cli-term">
 <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -472,7 +471,7 @@
   <text x="20" y="42" fill="#8b949e" font-size="11">Extension only forwards env vars. No bridge. No debug panel visibility.</text>
 
   <g transform="translate(30,60)">
-    <!-- Extension -->
+    
     <rect width="250" height="70" rx="6" fill="#161b22" stroke="#30363d"/>
     <text x="12" y="20" fill="#58a6ff" font-size="11" font-weight="600">Extension (at terminal creation)</text>
     <text x="12" y="40" fill="#8b949e" font-size="10">deriveCopilotCliOTelEnv(config, {})</text>
@@ -481,7 +480,7 @@
     <path d="M 250,50 L 310,50" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#ah4-yellow)"/>
     <text x="255" y="42" fill="#d29922" font-size="9">env vars</text>
 
-    <!-- Terminal process -->
+    
     <rect x="310" y="0" width="250" height="130" rx="6" fill="#161b22" stroke="#8b949e"/>
     <text x="322" y="20" fill="#8b949e" font-size="11" font-weight="600">Terminal Process (copilot binary)</text>
     <text x="322" y="40" fill="#8b949e" font-size="10">Own OtelLifecycle + BasicTracerProvider</text>
@@ -492,11 +491,11 @@
 
     <path d="M 560,65 L 620,65" stroke="#f85149" stroke-width="1.5" marker-end="url(#ah4-red)"/>
 
-    <!-- Grafana -->
+    
     <rect x="620" y="30" width="150" height="40" rx="6" fill="#2a1a1a" stroke="#f85149"/>
     <text x="632" y="55" fill="#f85149" font-size="11">Grafana ✅</text>
 
-    <!-- No debug panel -->
+    
     <rect x="620" y="90" width="150" height="40" rx="6" fill="#21262d" stroke="#484f58"/>
     <text x="632" y="115" fill="#484f58" font-size="11">Debug Panel ❌</text>
     <text x="622" y="148" fill="#484f58" font-size="9">Separate process — spans</text>
@@ -505,7 +504,7 @@
 </svg>
 </div>
 
-<!-- CLAUDE -->
+
 <div class="tab-pane" id="tab-claude">
 <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -517,7 +516,7 @@
   <text x="20" y="24" fill="#bc8cff" font-size="14" font-weight="600">Claude Code — Synthetic Spans (Only Option)</text>
   <text x="20" y="42" fill="#8b949e" font-size="11">Child process internal spans inaccessible. Extension creates spans from message loop.</text>
 
-  <!-- Span hierarchy -->
+  
   <g transform="translate(30,60)">
     <rect width="380" height="200" rx="8" fill="#161b22" stroke="#30363d"/>
     <text x="12" y="20" fill="#bc8cff" font-size="12" font-weight="600">Extension Synthetic Spans (tracer A)</text>
@@ -540,7 +539,7 @@
     <text x="16" y="195" fill="#8b949e" font-size="9">FLAT hierarchy — no subagent nesting, no permissions</text>
   </g>
 
-  <!-- Claude subprocess -->
+  
   <g transform="translate(30,280)">
     <rect width="380" height="80" rx="8" fill="#161b22" stroke="#8b949e"/>
     <text x="12" y="20" fill="#8b949e" font-size="12" font-weight="600">Claude Code Subprocess (separate process)</text>
@@ -549,7 +548,7 @@
     <text x="12" y="72" fill="#8b949e" font-size="10">claude_code.tool_result, claude_code.api_request</text>
   </g>
 
-  <!-- Flow -->
+  
   <g transform="translate(460,60)">
     <rect width="210" height="50" rx="6" fill="#1a2332" stroke="#58a6ff"/>
     <text x="12" y="20" fill="#58a6ff" font-size="11" font-weight="600">NodeOTelService</text>
@@ -565,11 +564,11 @@
 
     <path d="M 210,25 L 240,20" stroke="#f85149" stroke-width="1.5" marker-end="url(#ah5-red)"/>
 
-    <!-- Subprocess → Grafana -->
+    
     <path d="M -50,260 Q 300,300 350,40" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#ah5-red)"/>
     <text x="220" y="200" fill="#f85149" font-size="9">subprocess metrics/events</text>
 
-    <!-- Limitation callout -->
+    
     <rect x="0" y="170" width="440" height="80" rx="8" fill="#161b22" stroke="#bc8cff"/>
     <text x="16" y="190" fill="#bc8cff" font-size="12" font-weight="600">WHY SYNTHETIC (not bridge)?</text>
     <text x="16" y="210" fill="#8b949e" font-size="10">• Claude SDK runs as separate child process</text>
@@ -579,9 +578,9 @@
 </svg>
 </div>
 
-</div><!-- tab-content -->
+</div>
 
-<!-- Info cards -->
+
 <div class="section">
 <h3>Key Design Facts</h3>
 <div class="info-grid">

@@ -327,7 +327,6 @@ export default function ProxyPoolsPage() {
     }
   };
 
-  // Cleanup selectedIds when pools change
   useEffect(() => {
     setSelectedIds((prev) => prev.filter((id) => proxyPools.some((p) => p.id === id)));
   }, [proxyPools]);
@@ -1049,7 +1048,7 @@ export default function ProxyPoolsPage() {
         </div>
       </Modal>
 
-      {/* Confirm Modal */}
+      {}
       <ConfirmModal
         isOpen={!!confirmState}
         onClose={() => setConfirmState(null)}

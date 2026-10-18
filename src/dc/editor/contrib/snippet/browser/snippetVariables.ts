@@ -46,8 +46,8 @@ export const KnownSnippetVariableNames = Object.freeze<{ [key: string]: true }>(
 	'TM_DIRECTORY': true,
 	'TM_DIRECTORY_BASE': true,
 	'TM_FILEPATH': true,
-	'CURSOR_INDEX': true, // 0-offset
-	'CURSOR_NUMBER': true, // 1-offset
+	'CURSOR_INDEX': true,
+	'CURSOR_NUMBER': true,
 	'RELATIVE_FILEPATH': true,
 	'BLOCK_COMMENT_START': true,
 	'BLOCK_COMMENT_END': true,
@@ -62,7 +62,6 @@ export const KnownSnippetVariableNames = Object.freeze<{ [key: string]: true }>(
 export class CompositeSnippetVariableResolver implements VariableResolver {
 
 	constructor(private readonly _delegates: VariableResolver[]) {
-		//
 	}
 
 	resolve(variable: Variable): string | undefined {
@@ -84,7 +83,6 @@ export class SelectionBasedVariableResolver implements VariableResolver {
 		private readonly _selectionIdx: number,
 		private readonly _overtypingCapturer: OvertypingCapturer | undefined
 	) {
-		//
 	}
 
 	resolve(variable: Variable): string | undefined {
@@ -95,7 +93,6 @@ export class SelectionBasedVariableResolver implements VariableResolver {
 			let value = this._model.getValueInRange(this._selection) || undefined;
 			let isMultiline = this._selection.startLineNumber !== this._selection.endLineNumber;
 
-			// If there was no selected text, try to get last overtyped text
 			if (!value && this._overtypingCapturer) {
 				const info = this._overtypingCapturer.getLastOvertypedInfo(this._selectionIdx);
 				if (info) {
@@ -105,10 +102,6 @@ export class SelectionBasedVariableResolver implements VariableResolver {
 			}
 
 			if (value && isMultiline && variable.snippet) {
-				// Selection is a multiline string which we indentation we now
-				// need to adjust. We compare the indentation of this variable
-				// with the indentation at the editor position and add potential
-				// extra indentation to the value
 
 				const line = this._model.getLineContent(this._selection.startLineNumber);
 				const lineLeadingWhitespace = getLeadingWhitespace(line, 0, this._selection.startColumn - 1);
@@ -164,7 +157,6 @@ export class ModelBasedVariableResolver implements VariableResolver {
 		private readonly _labelService: ILabelService,
 		private readonly _model: ITextModel
 	) {
-		//
 	}
 
 	resolve(variable: Variable): string | undefined {
@@ -217,7 +209,6 @@ export class ClipboardBasedVariableResolver implements VariableResolver {
 		private readonly _selectionCount: number,
 		private readonly _spread: boolean
 	) {
-		//
 	}
 
 	resolve(variable: Variable): string | undefined {
@@ -230,9 +221,6 @@ export class ClipboardBasedVariableResolver implements VariableResolver {
 			return undefined;
 		}
 
-		// `spread` is assigning each cursor a line of the clipboard
-		// text whenever there the line count equals the cursor count
-		// and when enabled
 		if (this._spread) {
 			const lines = clipboardText.split(/\r\n|\n|\r/).filter(s => !isFalsyOrWhitespace(s));
 			if (lines.length === this._selectionCount) {
@@ -248,7 +236,6 @@ export class CommentBasedVariableResolver implements VariableResolver {
 		private readonly _selection: Selection,
 		@ILanguageConfigurationService private readonly _languageConfigurationService: ILanguageConfigurationService
 	) {
-		//
 	}
 	resolve(variable: Variable): string | undefined {
 		const { name } = variable;
@@ -330,7 +317,6 @@ export class WorkspaceBasedVariableResolver implements VariableResolver {
 	constructor(
 		private readonly _workspaceService: IWorkspaceContextService | undefined,
 	) {
-		//
 	}
 
 	resolve(variable: Variable): string | undefined {

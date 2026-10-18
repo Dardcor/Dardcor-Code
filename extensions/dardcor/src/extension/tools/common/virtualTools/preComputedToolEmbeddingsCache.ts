@@ -39,7 +39,6 @@ export class PreComputedToolEmbeddingsCache implements IToolEmbeddingsCache {
 	}
 
 	public set(): void {
-		// Read-only cache
 	}
 
 	private async _loadEmbeddings() {

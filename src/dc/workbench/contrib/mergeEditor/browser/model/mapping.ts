@@ -14,9 +14,6 @@ import { LineRangeEdit } from './editing.js';
 import { MergeEditorLineRange } from './lineRange.js';
 import { addLength, lengthBetweenPositions, rangeContainsPosition, rangeIsBeforeOrTouching } from './rangeUtils.js';
 
-/**
- * Represents a mapping of an input line range to an output line range.
-*/
 export class LineRangeMapping {
 	public static join(mappings: readonly LineRangeMapping[]): LineRangeMapping | undefined {
 		return mappings.reduce<undefined | LineRangeMapping>((acc, cur) => acc ? acc.join(cur) : cur, undefined);
@@ -76,9 +73,6 @@ export class LineRangeMapping {
 	}
 }
 
-/**
-* Represents a total monotonous mapping of line ranges in one document to another document.
-*/
 export class DocumentLineRangeMap {
 	public static betweenOutputs(
 		inputToOutput1: readonly LineRangeMapping[],
@@ -91,11 +85,6 @@ export class DocumentLineRangeMap {
 	}
 
 	constructor(
-		/**
-		 * The line range mappings that define this document mapping.
-		 * The space between two input ranges must equal the space between two output ranges.
-		 * These holes act as dense sequence of 1:1 line mappings.
-		*/
 		public readonly lineRangeMappings: LineRangeMapping[],
 		public readonly inputLineCount: number
 	) {
@@ -143,9 +132,6 @@ export class DocumentLineRangeMap {
 	}
 }
 
-/**
- * Aligns two mappings with a common input range.
- */
 export class MappingAlignment<T extends LineRangeMapping> {
 	public static compute<T extends LineRangeMapping>(
 		fromInputToOutput1: readonly T[],
@@ -217,9 +203,6 @@ export class MappingAlignment<T extends LineRangeMapping> {
 	}
 }
 
-/**
- * A line range mapping with inner range mappings.
-*/
 export class DetailedLineRangeMapping extends LineRangeMapping {
 	public static override join(mappings: readonly DetailedLineRangeMapping[]): DetailedLineRangeMapping | undefined {
 		return mappings.reduce<undefined | DetailedLineRangeMapping>((acc, cur) => acc ? acc.join(cur) : cur, undefined);
@@ -285,15 +268,11 @@ export class DetailedLineRangeMapping extends LineRangeMapping {
 	}
 }
 
-/**
- * Represents a mapping of an input range to an output range.
-*/
 export class RangeMapping {
 	constructor(public readonly inputRange: Range, public readonly outputRange: Range) {
 	}
 	toString(): string {
 		function rangeToString(range: Range) {
-			// TODO@hediet make this the default Range.toString
 			return `[${range.startLineNumber}:${range.startColumn}, ${range.endLineNumber}:${range.endColumn})`;
 		}
 
@@ -329,15 +308,8 @@ export class RangeMapping {
 	}
 }
 
-/**
-* Represents a total monotonous mapping of ranges in one document to another document.
-*/
 export class DocumentRangeMap {
 	constructor(
-		/**
-		 * The line range mappings that define this document mapping.
-		 * Can have holes.
-		*/
 		public readonly rangeMappings: RangeMapping[],
 		public readonly inputLineCount: number
 	) {
@@ -345,10 +317,7 @@ export class DocumentRangeMap {
 			rangeMappings,
 			(m1, m2) =>
 				rangeIsBeforeOrTouching(m1.inputRange, m2.inputRange) &&
-				rangeIsBeforeOrTouching(m1.outputRange, m2.outputRange) /*&&
-				lengthBetweenPositions(m1.inputRange.getEndPosition(), m2.inputRange.getStartPosition()).equals(
-					lengthBetweenPositions(m1.outputRange.getEndPosition(), m2.outputRange.getStartPosition())
-				)*/
+				rangeIsBeforeOrTouching(m1.outputRange, m2.outputRange)
 		));
 	}
 

@@ -104,7 +104,6 @@ suite('WorkspaceFolderIdMap', () => {
 		const uri = URI.file('/home/user/my-project');
 		const original = map1.getIdForFolder(uri);
 
-		// Create a new instance with the same store
 		const map2 = new WorkspaceFolderIdMap(store);
 		const restored = map2.getIdForFolder(uri);
 
@@ -117,7 +116,6 @@ suite('WorkspaceFolderIdMap', () => {
 		const map1 = new WorkspaceFolderIdMap(store);
 		map1.getIdForFolder(URI.file('/a/my-project'));
 
-		// New instance should know 'my-proje' is taken
 		const map2 = new WorkspaceFolderIdMap(store);
 		const p2 = map2.getIdForFolder(URI.file('/b/my-project'));
 

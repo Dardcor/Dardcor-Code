@@ -323,7 +323,6 @@ function getRepositoryAsset(version: IRawGalleryExtensionVersion): IGalleryExten
 
 function getDownloadAsset(version: IRawGalleryExtensionVersion): IGalleryExtensionAsset {
 	return {
-		// always use fallbackAssetUri for download asset to hit the Marketplace API so that downloads are counted
 		uri: `${version.fallbackAssetUri}/${AssetType.VSIX}?redirect=true${version.targetPlatform ? `&targetPlatform=${version.targetPlatform}` : ''}`,
 		fallbackUri: `${version.fallbackAssetUri}/${AssetType.VSIX}${version.targetPlatform ? `?targetPlatform=${version.targetPlatform}` : ''}`
 	};
@@ -407,19 +406,15 @@ function getTargetPlatformForExtensionVersion(version: IRawGalleryExtensionVersi
 function getAllTargetPlatforms(rawGalleryExtension: IRawGalleryExtension): TargetPlatform[] {
 	const allTargetPlatforms = distinct(rawGalleryExtension.versions.map(getTargetPlatformForExtensionVersion));
 
-	// Is a web extension only if it has WEB_EXTENSION_TAG
 	const isWebExtension = !!rawGalleryExtension.tags?.includes(WEB_EXTENSION_TAG);
 
-	// Include Web Target Platform only if it is a web extension
 	const webTargetPlatformIndex = allTargetPlatforms.indexOf(TargetPlatform.WEB);
 	if (isWebExtension) {
 		if (webTargetPlatformIndex === -1) {
-			// Web extension but does not has web target platform -> add it
 			allTargetPlatforms.push(TargetPlatform.WEB);
 		}
 	} else {
 		if (webTargetPlatformIndex !== -1) {
-			// Not a web extension but has web target platform -> remove it
 			allTargetPlatforms.splice(webTargetPlatformIndex, 1);
 		}
 	}
@@ -428,13 +423,11 @@ function getAllTargetPlatforms(rawGalleryExtension: IRawGalleryExtension): Targe
 }
 
 export function sortExtensionVersions(versions: IRawGalleryExtensionVersion[], preferredTargetPlatform: TargetPlatform): IRawGalleryExtensionVersion[] {
-	/* It is expected that versions from Marketplace are sorted by version. So we are just sorting by preferred targetPlatform */
 	for (let index = 0; index < versions.length; index++) {
 		const version = versions[index];
 		if (version.version === versions[index - 1]?.version) {
 			let insertionIndex = index;
 			const versionTargetPlatform = getTargetPlatformForExtensionVersion(version);
-			/* put it at the beginning */
 			if (versionTargetPlatform === preferredTargetPlatform) {
 				while (insertionIndex > 0 && versions[insertionIndex - 1].version === version.version) { insertionIndex--; }
 			}
@@ -447,24 +440,6 @@ export function sortExtensionVersions(versions: IRawGalleryExtensionVersion[], p
 	return versions;
 }
 
-/**
- * Filters extension versions to return only the relevant versions for a given target platform.
- *
- * This function processes a list of extension versions (expected to be sorted by version descending)
- * and returns a filtered list containing:
- * 1. All versions that are NOT compatible with the target platform (for other platforms)
- * 2. At most one compatible release version (the first/latest one encountered)
- * 3. At most one compatible pre-release version (the first/latest one encountered)
- *
- * When a platform-specific version (exactly matching targetPlatform) is encountered with the same
- * version number as a previously stored universal/undefined version, it replaces that version.
- * This ensures platform-specific builds are preferred over universal builds for the same version.
- *
- * @param versions - Array of extension versions, expected to be sorted by version number descending
- * @param targetPlatform - The target platform to filter for (e.g., LINUX_X64, WIN32_X64)
- * @param allTargetPlatforms - All target platforms the extension supports
- * @returns Filtered array of versions relevant for the target platform
- */
 export function filterLatestExtensionVersionsForTargetPlatform(versions: IRawGalleryExtensionVersion[], targetPlatform: TargetPlatform, allTargetPlatforms: TargetPlatform[]): IRawGalleryExtensionVersion[] {
 	const latestVersions: IRawGalleryExtensionVersion[] = [];
 
@@ -474,14 +449,11 @@ export function filterLatestExtensionVersionsForTargetPlatform(versions: IRawGal
 		const versionTargetPlatform = getTargetPlatformForExtensionVersion(version);
 		const isCompatibleWithTargetPlatform = isTargetPlatformCompatible(versionTargetPlatform, allTargetPlatforms, targetPlatform);
 
-		// Always include versions that are NOT compatible with the target platform
 		if (!isCompatibleWithTargetPlatform) {
 			latestVersions.push(version);
 			continue;
 		}
 
-		// For compatible versions, only include the first (latest) of each type
-		// Prefer specific target platform matches over undefined/universal platforms only when version numbers are the same
 		if (isPreReleaseVersion(version)) {
 			if (preReleaseVersionIndex === -1) {
 				preReleaseVersionIndex = latestVersions.length;
@@ -503,13 +475,6 @@ export function filterLatestExtensionVersionsForTargetPlatform(versions: IRawGal
 }
 
 function setTelemetry(extension: IGalleryExtension, index: number, querySource?: string): void {
-	/* __GDPR__FRAGMENT__
-	"GalleryExtensionTelemetryData2" : {
-		"index" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-		"querySource": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"queryActivityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-	}
-	*/
 	extension.telemetryData = { index, querySource, queryActivityId: extension.queryContext?.[SEARCH_ACTIVITY_HEADER_NAME] };
 }
 
@@ -663,7 +628,6 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 		}
 
 		if (extensionInfosByName.length) {
-			// report telemetry data for additional query
 			this.telemetryService.publicLog2<
 				{ count: number },
 				{
@@ -776,7 +740,6 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 					if (galleryExtension === 'LATEST_IS_OUTDATED') {
 						this.logService.debug(`Skipping query API fallback for extension ${extensionInfo.id} because the latest gallery version is older than the current version`);
 					} else {
-						// fallback to query
 						this.telemetryService.publicLog2<
 							{
 								extension: string;
@@ -812,7 +775,6 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 					}
 				}
 
-				// fallback to query
 				this.logService.error(`Error while getting the latest version for the extension ${extensionInfo.id}.`, getErrorMessage(error));
 				this.telemetryService.publicLog2<
 					{
@@ -874,7 +836,6 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 		const targetPlatform = options.targetPlatform ?? CURRENT_TARGET_PLATFORM;
 		const latestExtensionVersionsForTargetPlatform = filterLatestExtensionVersionsForTargetPlatform(latestVersions, targetPlatform, allTargetPlatforms);
 
-		// First, find a valid version matching the requested type (pre-release or release)
 		const result = await this.getValidRawGalleryExtensionVersion(
 			rawGalleryExtension,
 			latestExtensionVersionsForTargetPlatform,
@@ -888,12 +849,10 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 				version: extensionInfo.preRelease ? VersionKind.Prerelease : VersionKind.Release
 			}, allTargetPlatforms);
 
-		// For release version requests, simply return the found release version
 		if (!extensionInfo.preRelease) {
 			return result;
 		}
 
-		// For pre-release version requests, we need to consider both pre-release and release versions
 		const prereleaseVersion = result;
 		const releaseVersion = await this.getValidRawGalleryExtensionVersion(
 			rawGalleryExtension,
@@ -908,16 +867,12 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 				version: VersionKind.Release
 			}, allTargetPlatforms);
 
-		// When both versions exist, return whichever has the higher version number
 		if (prereleaseVersion && releaseVersion) {
 			return semver.gt(releaseVersion.version, prereleaseVersion.version) ? releaseVersion : prereleaseVersion;
 		}
 
-		// Special handling for compatible version requests
 		if (options.compatible) {
-			// If we have a compatible release version, check if it's better than any pre-release
 			if (releaseVersion) {
-				// Check if there exists any pre-release version (ignoring compatibility)
 				const anyPrereleaseVersion = await this.getValidRawGalleryExtensionVersion(
 					rawGalleryExtension,
 					latestExtensionVersionsForTargetPlatform,
@@ -931,8 +886,6 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 						version: VersionKind.Prerelease
 					}, allTargetPlatforms);
 
-				// If no pre-release exists or the release version is greater, prefer the compatible release
-				// This ensures users get a stable compatible version when pre-releases aren't newer or compatible
 				if (!anyPrereleaseVersion || semver.gt(releaseVersion.version, anyPrereleaseVersion.version)) {
 					return releaseVersion;
 				}
@@ -940,7 +893,6 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			return prereleaseVersion;
 		}
 
-		// Return pre-release if available, otherwise release, otherwise null
 		return prereleaseVersion ?? releaseVersion ?? null;
 	}
 
@@ -1000,7 +952,7 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 		const hasPreRelease = hasPreReleaseForExtension(extension.id, this.productService);
 		const excludeVersionRange = getExcludeVersionRangeForExtension(extension.id, this.productService);
 
-		if (extension.isPreReleaseVersion && hasPreRelease === false /* Skip if hasPreRelease is not defined for this extension */) {
+		if (extension.isPreReleaseVersion && hasPreRelease === false ) {
 			return false;
 		}
 
@@ -1008,14 +960,12 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			return false;
 		}
 
-		// Specific version
 		if (isString(version)) {
 			if (extension.version !== version) {
 				return false;
 			}
 		}
 
-		// Prerelease or release version kind
 		else if (version === VersionKind.Release || version === VersionKind.Prerelease) {
 			if (extension.isPreReleaseVersion !== (version === VersionKind.Prerelease)) {
 				return false;
@@ -1103,19 +1053,16 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			.withPage(1, pageSize);
 
 		if (text) {
-			// Use category filter instead of "category:themes"
 			text = text.replace(/\bcategory:("([^"]*)"|([^"]\S*))(\s+|\b|$)/g, (_, quotedCategory, category) => {
 				query = query.withFilter(FilterType.Category, category || quotedCategory);
 				return '';
 			});
 
-			// Use tag filter instead of "tag:debuggers"
 			text = text.replace(/\btag:("([^"]*)"|([^"]\S*))(\s+|\b|$)/g, (_, quotedTag, tag) => {
 				query = query.withFilter(FilterType.Tag, tag || quotedTag);
 				return '';
 			});
 
-			// Use featured filter
 			text = text.replace(/\bfeatured(\s+|\b|$)/g, () => {
 				query = query.withFilter(FilterType.Featured);
 				return '';
@@ -1184,30 +1131,18 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 	private async queryGalleryExtensions(query: Query, criteria: ExtensionsCriteria, extensionGalleryManifest: IExtensionGalleryManifest, token: CancellationToken): Promise<{ extensions: IGalleryExtension[]; total: number }> {
 		const flags = query.flags;
 
-		/**
-		 * If both version flags (IncludeLatestVersionOnly and IncludeVersions) are included, then only include latest versions (IncludeLatestVersionOnly) flag.
-		 */
 		if (query.flags.includes(Flag.IncludeLatestVersionOnly) && query.flags.includes(Flag.IncludeVersions)) {
 			query = query.withFlags(...query.flags.filter(flag => flag !== Flag.IncludeVersions));
 		}
 
-		/**
-		 * If version flags (IncludeLatestVersionOnly and IncludeVersions) are not included, default is to query for latest versions (IncludeLatestVersionOnly).
-		 */
 		if (!query.flags.includes(Flag.IncludeLatestVersionOnly) && !query.flags.includes(Flag.IncludeVersions)) {
 			query = query.withFlags(...query.flags, Flag.IncludeLatestVersionOnly);
 		}
 
-		/**
-		 * If versions criteria exist or every requested extension is for release version and has a pre-release version, then remove latest flags and add all versions flag.
-		 */
 		if (criteria.versions?.length || criteria.isQueryForReleaseVersionFromPreReleaseVersion) {
 			query = query.withFlags(...query.flags.filter(flag => flag !== Flag.IncludeLatestVersionOnly), Flag.IncludeVersions);
 		}
 
-		/**
-		 * Add necessary extension flags
-		 */
 		query = query.withFlags(...query.flags, Flag.IncludeAssetUri, Flag.IncludeCategoryAndTags, Flag.IncludeFiles, Flag.IncludeStatistics, Flag.IncludeVersionProperties);
 		const { galleryExtensions: rawGalleryExtensions, total, context } = await this.queryRawGalleryExtensions(query, extensionGalleryManifest, token);
 
@@ -1245,11 +1180,9 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			const includePreRelease = isBoolean(criteria.includePreRelease) ? criteria.includePreRelease : !!criteria.includePreRelease.find(extensionIdentifierWithPreRelease => areSameExtensions(extensionIdentifierWithPreRelease, extensionIdentifier))?.includePreRelease;
 			const allTargetPlatforms = getAllTargetPlatforms(rawGalleryExtension);
 			if (criteria.compatible) {
-				// Skip looking for all versions if requested for a web-compatible extension and it is not a web extension.
 				if (isNotWebExtensionInWebTargetPlatform(allTargetPlatforms, criteria.targetPlatform)) {
 					continue;
 				}
-				// Skip looking for all versions if the extension is not allowed.
 				if (this.allowedExtensionsService.isAllowed({ id: extensionIdentifier.id, publisherDisplayName: rawGalleryExtension.publisher.displayName }) !== true) {
 					continue;
 				}
@@ -1268,17 +1201,7 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			);
 			const extension = rawGalleryExtensionVersion ? toExtension(rawGalleryExtension, rawGalleryExtensionVersion, allTargetPlatforms, extensionGalleryManifest, this.productService, context) : null;
 			if (!extension
-				/** Need all versions if the extension is a pre-release version but
-				 * 		- the query is to look for a release version or
-				 * 		- the extension has no release version
-				 * Get all versions to get or check the release version
-				*/
 				|| (extension.properties.isPreReleaseVersion && (!includePreRelease || !extension.hasReleaseVersion))
-				/**
-				 * Need all versions if the extension is a release version with a different target platform than requested and also has a pre-release version
-				 * Because, this is a platform specific extension and can have a newer release version supporting this platform.
-				 * See https://github.com/microsoft/vscode/issues/139628
-				*/
 				|| (!extension.properties.isPreReleaseVersion && extension.properties.targetPlatform !== criteria.targetPlatform && extension.hasPreReleaseVersion)
 			) {
 				needAllVersions.set(rawGalleryExtension.extensionId, index);
@@ -1347,10 +1270,6 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			return null;
 		}
 
-		/**
-		 * Fallback: Return the latest version
-		 * This can happen when the extension does not have a release version or does not have a version compatible with the given target platform.
-		 */
 		return rawGalleryExtension.versions[0];
 	}
 
@@ -1377,12 +1296,10 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 		}
 
 		query = query
-			/* Always exclude non validated extensions */
 			.withFlags(...query.flags, Flag.ExcludeNonValidated)
 			.withFilter(FilterType.Target, 'Microsoft.VisualStudio.Code');
 
 		const unpublishedFlag = extensionGalleryManifest.capabilities.extensionQuery.flags?.find(f => f.name === Flag.Unpublished);
-		/* Always exclude unpublished extensions */
 		if (unpublishedFlag) {
 			query = query.withFilter(FilterType.ExcludeWithFlags, String(unpublishedFlag.value));
 		}
@@ -1685,7 +1602,7 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 				headers,
 				callSite: 'extensionGalleryService.reportStatistic'
 			}, CancellationToken.None);
-		} catch (error) { /* Ignore */ }
+		} catch (error) { }
 	}
 
 	async download(extension: IGalleryExtension, location: URI, operation: InstallOperation): Promise<void> {
@@ -1709,21 +1626,11 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			try {
 				await this.fileService.del(location);
 			} catch (e) {
-				/* ignore */
 				this.logService.warn(`Error while deleting the file ${location.toString()}`, getErrorMessage(e));
 			}
 			throw new ExtensionGalleryError(getErrorMessage(error), ExtensionGalleryErrorCode.DownloadFailedWriting);
 		}
 
-		/* __GDPR__
-			"galleryService:downloadVSIX" : {
-				"owner": "sandy081",
-				"duration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-				"${include}": [
-					"${GalleryExtensionTelemetryData}"
-				]
-			}
-		*/
 		this.telemetryService.publicLog('galleryService:downloadVSIX', { ...data, duration: new Date().getTime() - startTime });
 	}
 
@@ -1741,7 +1648,6 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			try {
 				await this.fileService.del(location);
 			} catch (e) {
-				/* ignore */
 				this.logService.warn(`Error while deleting the file ${location.toString()}`, getErrorMessage(e));
 			}
 			throw new ExtensionGalleryError(getErrorMessage(error), ExtensionGalleryErrorCode.DownloadFailedWriting);
@@ -1846,7 +1752,7 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 				) {
 					versions.push(version);
 				}
-			} catch (error) { /* Ignore error and skip version */ }
+			} catch (error) { }
 		}));
 
 		const result: IGalleryExtensionVersion[] = [];

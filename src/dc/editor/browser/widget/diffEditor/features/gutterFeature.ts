@@ -75,10 +75,8 @@ export class DiffEditorGutter extends Disposable {
 			return mappings?.find(m => m.lineRangeMapping.modified.contains(cursorPosition.lineNumber));
 		});
 		this._selectedDiffs = derived(this, (reader) => {
-			/** @description selectedDiffs */
 			const model = this._diffModel.read(reader);
 			const diff = model?.diff.read(reader);
-			// Return `emptyArr` because it is a constant. [] is always a new array and would trigger a change.
 			if (!diff) { return emptyArr; }
 
 			const selections = this._editors.modifiedSelections.read(reader);
@@ -239,7 +237,6 @@ class DiffToolBar extends Disposable implements IGutterItemView {
 		this._register(appendRemoveOnDispose(target, this._elements.root));
 
 		this._register(autorun(reader => {
-			/** @description update showAlways */
 			const showAlways = this._showAlways.read(reader);
 			this._elements.root.classList.toggle('noTransition', true);
 			this._elements.root.classList.toggle('showAlways', showAlways);
@@ -290,7 +287,6 @@ class DiffToolBar extends Disposable implements IGutterItemView {
 
 		let itemHeight = this._elements.buttons.clientHeight;
 		this._isSmall.set(this._item.get().mapping.original.startLineNumber === 1 && itemRange.length < 30, undefined);
-		// Item might have changed
 		itemHeight = this._elements.buttons.clientHeight;
 
 		const middleHeight = itemRange.length / 2 - itemHeight / 2;
@@ -321,9 +317,6 @@ class DiffToolBar extends Disposable implements IGutterItemView {
 export interface DiffEditorSelectionHunkToolbarContext {
 	mapping: DetailedLineRangeMapping;
 
-	/**
-	 * The original text with the selected modified changes applied.
-	*/
 	originalWithModifiedChanges: string;
 
 	modifiedUri: URI;

@@ -270,7 +270,6 @@ suite('NotebookKernel', function () {
 		assert.strictEqual(interruptCallCount, 2);
 		assert.strictEqual(tokenCancelCount, 0);
 
-		// should cancelling the cells end the execution task?
 		task.end(false);
 	});
 
@@ -289,7 +288,7 @@ suite('NotebookKernel', function () {
 			task.token.onCancellationRequested(async () => {
 				await task.replaceOutput(new NotebookCellOutput([NotebookCellOutputItem.text('canceled')]));
 				task.end(true);
-				b.open(); // use barrier to signal that cancellation has happened
+				b.open();
 			})
 		);
 

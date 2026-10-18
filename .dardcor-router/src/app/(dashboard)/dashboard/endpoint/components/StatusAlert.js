@@ -1,6 +1,5 @@
 "use client";
 
-/** Reusable status alert */
 export default function StatusAlert({ status, className = "" }) {
   const renderMessage = (msg) => {
     const parts = msg.split(/(https?:\/\/[^\s]+)/g);

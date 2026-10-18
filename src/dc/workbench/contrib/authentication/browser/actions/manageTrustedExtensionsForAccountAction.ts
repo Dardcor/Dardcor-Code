@@ -76,7 +76,6 @@ class ManageTrustedExtensionsForAccountActionImpl {
 		picker.show();
 	}
 
-	//#region Account Query Resolution
 
 	private async _resolveAccountQuery(providerId: string | undefined, accountLabel: string | undefined): Promise<IAccountQuery | undefined> {
 		if (providerId && accountLabel) {
@@ -113,15 +112,12 @@ class ManageTrustedExtensionsForAccountActionImpl {
 		return accounts;
 	}
 
-	//#endregion
 
-	//#region Item Retrieval and Quick Pick Creation
 
 	private async _getItems(accountQuery: IAccountQuery) {
 		const allowedExtensions = accountQuery.extensions().getAllowedExtensions();
 		const extensionIdToDisplayName = new Map<string, string>();
 
-		// Get display names for all allowed extensions
 		const resolvedExtensions = await Promise.all(allowedExtensions.map(ext => this._extensionService.getExtension(ext.id)));
 		resolvedExtensions.forEach((resolved, i) => {
 			if (resolved) {
@@ -129,14 +125,12 @@ class ManageTrustedExtensionsForAccountActionImpl {
 			}
 		});
 
-		// Filter out extensions that are not currently installed and enrich with display names
 		const filteredExtensions = allowedExtensions
 			.filter(ext => extensionIdToDisplayName.has(ext.id))
 			.map(ext => {
 				const usage = accountQuery.extension(ext.id).getUsage();
 				return {
 					...ext,
-					// Use the extension display name from the extension service
 					name: extensionIdToDisplayName.get(ext.id)!,
 					lastUsed: usage.length > 0 ? Math.max(...usage.map(u => u.lastUsed)) : ext.lastUsed
 				};
@@ -185,7 +179,6 @@ class ManageTrustedExtensionsForAccountActionImpl {
 		const disposableStore = new DisposableStore();
 		const quickPick = disposableStore.add(this._quickInputService.createQuickPick<TrustedExtensionsQuickPickItem>({ useSeparators: true }));
 
-		// Configure quick pick
 		quickPick.canSelectMany = true;
 		quickPick.customButton = true;
 		quickPick.customLabel = localize('manageTrustedExtensions.cancel', 'Cancel');
@@ -193,7 +186,6 @@ class ManageTrustedExtensionsForAccountActionImpl {
 		quickPick.title = localize('manageTrustedExtensions', "Manage Trusted Extensions");
 		quickPick.placeholder = localize('manageExtensions', "Choose which extensions can access this account");
 
-		// Set up event handlers
 		disposableStore.add(quickPick.onDidAccept(() => {
 			const updatedAllowedList = quickPick.items
 				.filter((item): item is TrustedExtensionsQuickPickItem => item.type !== 'separator')
@@ -220,5 +212,4 @@ class ManageTrustedExtensionsForAccountActionImpl {
 		return quickPick;
 	}
 
-	//#endregion
 }

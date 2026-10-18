@@ -50,10 +50,6 @@ export class EditTelemetryContribution extends Disposable {
 			r.store.add(instantiationService.createInstance(AiStatsFeature, annotatedDocuments.read(r)));
 		}));
 
-		// Register no-op fallbacks so that extensions can always call these
-		// commands even when AiContributionFeature is not active.
-		// AiContributionFeature overrides these with real implementations
-		// when active, and the no-ops restore when it is disposed.
 		this._register(CommandsRegistry.registerCommand('_aiEdits.hasAiContributions', () => false));
 		this._register(CommandsRegistry.registerCommand('_aiEdits.clearAiContributions', () => { }));
 		this._register(CommandsRegistry.registerCommand('_aiEdits.clearAllAiContributions', () => { }));

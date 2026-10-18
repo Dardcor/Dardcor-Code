@@ -19,7 +19,6 @@ function synced(uri: string, opts: { dir?: string; enabled?: boolean; nonce?: st
 			uri,
 			name: opts.name ?? uri,
 			...(opts.enabled === false ? {
-				// TODO: Step 2 selects the persisted enablement scope.
 				enablement: [{ kind: CustomizationEnablementKind.Global, enabled: false }],
 			} : {}),
 			...(opts.enablement !== undefined ? { enablement: [...opts.enablement] } : {}),

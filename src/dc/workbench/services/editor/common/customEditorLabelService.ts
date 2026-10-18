@@ -56,7 +56,6 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 
 	private registerListeners(): void {
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			// Cache the enabled state
 			if (e.affectsConfiguration(CustomEditorLabelService.SETTING_ID_ENABLED)) {
 				const oldEnablement = this.enabled;
 				this.storeEnablementState();
@@ -65,7 +64,6 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 				}
 			}
 
-			// Cache the patterns
 			else if (e.affectsConfiguration(CustomEditorLabelService.SETTING_ID_PATTERNS)) {
 				this.cache.clear();
 				this.storeCustomPatterns();
@@ -161,7 +159,6 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 		let parsedPath: undefined | ParsedPath;
 		return template.replace(this._parsedTemplateExpression, (match: string, variable: string, ...args: unknown[]) => {
 			parsedPath = parsedPath ?? parsePath(resource.path);
-			// named group matches
 			const { dirnameN = '0', extnameN = '0' } = args.pop() as { dirnameN?: string; extnameN?: string };
 
 			if (variable === 'filename') {
@@ -201,7 +198,6 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 	}
 
 	private getNthDirname(path: string, n: number): string | undefined {
-		// grand-parent/parent/filename.ext1.ext2 -> [grand-parent, parent]
 		path = path.startsWith('/') ? path.slice(1) : path;
 		const pathFragments = path.split('/');
 
@@ -213,9 +209,8 @@ export class CustomEditorLabelService extends Disposable implements ICustomEdito
 	}
 
 	private getNthExtname(fullFileName: string, n: number): string | undefined {
-		// file.ext1.ext2.ext3 -> [file, ext1, ext2, ext3]
 		const extensionNameFragments = this.removeLeadingDot(fullFileName).split('.');
-		extensionNameFragments.shift(); // remove the first element which is the file name
+		extensionNameFragments.shift();
 
 		return this.getNthFragment(extensionNameFragments, n);
 	}

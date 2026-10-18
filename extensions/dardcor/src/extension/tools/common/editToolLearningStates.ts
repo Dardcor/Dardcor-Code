@@ -14,19 +14,12 @@ export interface IEditToolLearningData {
 }
 
 export const enum LearningConfig {
-	/** Rolling window size for tracking recent edit successes/failures per tool */
 	WINDOW_SIZE = 100,
-	/** Maximum number of models to keep in memory cache before LRU eviction */
 	CACHE_SIZE = 50,
-	/** Minimum attempts before making state transition decisions */
 	MIN_SAMPLE_SIZE = LearningConfig.WINDOW_SIZE * (2 / 3),
-	/** Success rate threshold for considering replace_string to be a usable tool */
 	SR_SUCCESS_THRESHOLD = 0.8,
-	/** Failure rate threshold to disable replace_string */
 	SR_FAILURE_THRESHOLD = 0.3,
-	/** Success rate threshold for considering multi_replace_string to be a usable tool */
 	MULTISR_SUCCESS_THRESHOLD = 0.7,
-	/** Failure rate threshold to disable multi_replace_string */
 	MULTISR_FAILURE_THRESHOLD = 0.4,
 }
 
@@ -51,7 +44,6 @@ interface ToolLearningData {
 	attempts: number;
 }
 
-// Top-level helper functions
 function getSuccessRate(successBitset: bigint, totalAttempts: number): number {
 	if (totalAttempts === 0) {
 		return 0;
@@ -91,9 +83,6 @@ export const EDIT_TOOL_LEARNING_STATES: Record<State, StateConfig> = {
 				sampleSize(d, ToolName.ReplaceString) > LearningConfig.MIN_SAMPLE_SIZE &&
 				successRate(d, ToolName.ReplaceString) < LearningConfig.SR_FAILURE_THRESHOLD,
 			[State.ReplaceStringForced]: d => {
-				// Models are instructed to prefer replace_string to insert_edit. If
-				// this model is not doing that (more than 70% of edits are insert_edit),
-				// force it to so we can get more data.
 				const editFileAttempts = sampleSize(d, ToolName.EditFile);
 				const replaceStringAttempts = sampleSize(d, ToolName.ReplaceString);
 				return editFileAttempts > LearningConfig.MIN_SAMPLE_SIZE && editFileAttempts / (editFileAttempts + replaceStringAttempts) > 0.7;
@@ -123,7 +112,6 @@ export const EDIT_TOOL_LEARNING_STATES: Record<State, StateConfig> = {
 		},
 	},
 
-	// Terminal states have no transitions
 	[State.EditFileOnly]: {
 		allowedTools: [ToolName.EditFile],
 	},

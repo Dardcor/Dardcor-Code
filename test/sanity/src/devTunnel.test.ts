@@ -9,46 +9,12 @@ import { GitHubAuth } from './githubAuth.js';
 import { UITest } from './uiTest.js';
 
 export function setup(context: TestContext) {
-	/*
-	TODO: @dmitrivMS Reenable other platforms once throttling issues with GitHub account are resolved.
 
-	context.test('dev-tunnel-alpine-arm64', ['alpine', 'arm64', 'browser', 'github-account'], async () => {
-		const dir = await context.downloadAndUnpack('cli-alpine-arm64');
-		const entryPoint = context.getCliEntryPoint(dir);
-		await testCliApp(entryPoint);
-	});
 
-	context.test('dev-tunnel-alpine-x64', ['alpine', 'x64', 'browser', 'github-account'], async () => {
-		const dir = await context.downloadAndUnpack('cli-alpine-x64');
-		const entryPoint = context.getCliEntryPoint(dir);
-		await testCliApp(entryPoint);
-	});
 
-	context.test('dev-tunnel-linux-arm64', ['linux', 'arm64', 'browser', 'github-account'], async () => {
-		const dir = await context.downloadAndUnpack('cli-linux-arm64');
-		const entryPoint = context.getCliEntryPoint(dir);
-		await testCliApp(entryPoint);
-	});
 
-	context.test('dev-tunnel-linux-armhf', ['linux', 'arm32', 'browser', 'github-account'], async () => {
-		const dir = await context.downloadAndUnpack('cli-linux-armhf');
-		const entryPoint = context.getCliEntryPoint(dir);
-		await testCliApp(entryPoint);
-	});
 
-	context.test('dev-tunnel-linux-x64', ['linux', 'x64', 'browser', 'github-account'], async () => {
-		const dir = await context.downloadAndUnpack('cli-linux-x64');
-		const entryPoint = context.getCliEntryPoint(dir);
-		await testCliApp(entryPoint);
-	});
 
-	context.test('dev-tunnel-darwin-arm64', ['darwin', 'arm64', 'browser', 'github-account'], async () => {
-		const dir = await context.downloadAndUnpack('cli-darwin-arm64');
-		context.validateAllCodesignSignatures(dir);
-		const entryPoint = context.getCliEntryPoint(dir);
-		await testCliApp(entryPoint);
-	});
-	*/
 
 	context.test('dev-tunnel-darwin-x64', ['darwin', 'x64', 'browser', 'github-account'], async () => {
 		const dir = await context.downloadAndUnpack('cli-darwin-x64');
@@ -57,23 +23,7 @@ export function setup(context: TestContext) {
 		await testCliApp(entryPoint);
 	});
 
-	/** TODO: @dmitrivMS Fix flakiness and then reenable
-	context.test('dev-tunnel-win32-arm64', ['windows', 'arm64', 'browser', 'github-account'], async () => {
-		const dir = await context.downloadAndUnpack('cli-win32-arm64');
-		context.validateAllAuthenticodeSignatures(dir);
-		context.validateAllVersionInfo(dir);
-		const entryPoint = context.getCliEntryPoint(dir);
-		await testCliApp(entryPoint);
-	});
 
-	context.test('dev-tunnel-win32-x64', ['windows', 'x64', 'browser', 'github-account'], async () => {
-		const dir = await context.downloadAndUnpack('cli-win32-x64');
-		context.validateAllAuthenticodeSignatures(dir);
-		context.validateAllVersionInfo(dir);
-		const entryPoint = context.getCliEntryPoint(dir);
-		await testCliApp(entryPoint);
-	});
-	*/
 
 	async function testCliApp(entryPoint: string) {
 		if (context.options.downloadOnly) {

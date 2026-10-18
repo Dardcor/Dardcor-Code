@@ -108,8 +108,8 @@ export class TestCell extends NotebookCellTextModel {
 			{ transientCellMetadata: {}, transientDocumentMetadata: {}, transientOutputs: false, cellContentMetadata: {} },
 			languageService,
 			DefaultEndOfLine.LF,
-			undefined, // defaultCollapseConfig
-			undefined,  // languageDetectionService
+			undefined,
+			undefined,
 			new NullNotebookLoggingService()
 		);
 	}
@@ -195,7 +195,6 @@ export class NotebookEditorTestModel extends EditorModel implements INotebookEdi
 			this._dirty = false;
 			this._onDidChangeDirty.fire();
 			this._onDidSave.fire({});
-			// todo, flush all states
 			return true;
 		}
 

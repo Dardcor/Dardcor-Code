@@ -70,7 +70,7 @@ class ContextResolver implements Copilot.ContextResolver<Copilot.SupportedContex
 	) { }
 
 	async resolve(request: Copilot.ResolveRequest, token: CancellationToken): Promise<Copilot.SupportedContextItem[]> {
-		return []; // resolve only on timeout to ensure the state of diagnostics is as fresh as possible
+		return [];
 	}
 
 	resolveOnTimeout(request: Copilot.ResolveRequest): Copilot.SupportedContextItem[] {

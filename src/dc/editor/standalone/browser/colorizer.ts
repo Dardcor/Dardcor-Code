@@ -146,8 +146,8 @@ function _fakeColorize(lines: string[], tabSize: number, languageIdCodec: ILangu
 		tokens[0] = line.length;
 		const lineTokens = new LineTokens(tokens, line, languageIdCodec);
 
-		const isBasicASCII = ViewLineRenderingData.isBasicASCII(line, /* check for basic ASCII */true);
-		const containsRTL = ViewLineRenderingData.containsRTL(line, isBasicASCII, /* check for RTL */true);
+		const isBasicASCII = ViewLineRenderingData.isBasicASCII(line, true);
+		const containsRTL = ViewLineRenderingData.containsRTL(line, isBasicASCII, true);
 		const renderResult = renderViewLine(new RenderLineInput(
 			false,
 			true,
@@ -188,8 +188,8 @@ function _actualColorize(lines: string[], tabSize: number, tokenizationSupport: 
 		const tokenizeResult = tokenizationSupport.tokenizeEncoded(line, true, state);
 		LineTokens.convertToEndOffset(tokenizeResult.tokens, line.length);
 		const lineTokens = new LineTokens(tokenizeResult.tokens, line, languageIdCodec);
-		const isBasicASCII = ViewLineRenderingData.isBasicASCII(line, /* check for basic ASCII */true);
-		const containsRTL = ViewLineRenderingData.containsRTL(line, isBasicASCII, /* check for RTL */true);
+		const isBasicASCII = ViewLineRenderingData.isBasicASCII(line, true);
+		const containsRTL = ViewLineRenderingData.containsRTL(line, isBasicASCII, true);
 		const renderResult = renderViewLine(new RenderLineInput(
 			false,
 			true,

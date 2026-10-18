@@ -49,21 +49,10 @@ interface StylesheetScanResult {
 	readonly rootAnchoredHasOffset: number | undefined;
 }
 
-/**
- * Whether a selector contains a `:has()` attached to a compound that anchors on
- * `body`, `html`, `:root` or `.monaco-workbench` - complete tokens only, at any
- * position within the compound (`.style-override.monaco-workbench:has()` counts,
- * `.monaco-workbench .foo:has()` and `.monaco-workbench-like:has()` do not).
- * Such rules make DOM mutations anywhere pay workbench-wide style invalidation
- * (microsoft/vscode#324985).
- */
 export function containsRootAnchoredHas(css: string): boolean {
 	return scanSelector(css, 0, css.length, true, false).containsRootAnchoredHas;
 }
 
-/**
- * Returns the offset of the first root-anchored `:has()` in a stylesheet.
- */
 export function findRootAnchoredHas(css: string): number | undefined {
 	if (!mayContainHasPseudo(css)) {
 		return undefined;

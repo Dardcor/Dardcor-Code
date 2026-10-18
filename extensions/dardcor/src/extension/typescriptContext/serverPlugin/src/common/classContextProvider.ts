@@ -136,8 +136,6 @@ export class ClassBlueprintSearch extends Search<SimilarClassDeclaration> {
 	}
 
 	public score(program: tt.Program, context: RequestContext): number {
-		// We have no abstract member. The program is only
-		// of interest if it includes the extends class.
 		if (this.abstractMembers === 0) {
 			if (this.extends === undefined) {
 				return -1;
@@ -170,11 +168,8 @@ export class ClassBlueprintSearch extends Search<SimilarClassDeclaration> {
 		if (possible === undefined) {
 			return -1;
 		}
-		// this.abstractMembers !== 0 here.
 		let result = possible / this.abstractMembers;
 
-		// now factor the neighbor files in to prefer a program where all neighbor files are
-		// part of.
 		const neighborFiles = context.neighborFiles;
 		if (neighborFiles.length === 0) {
 			return result;
@@ -242,7 +237,6 @@ export class ClassBlueprintSearch extends Search<SimilarClassDeclaration> {
 								result = { declaration: candidate, matchesAbstractMembers: matchesAbstractMembers };
 							}
 						}
-						// Here we can be smart. We could for 30ms continue to search for a better match and then return the best match.
 						if (result !== undefined && result.matchesAbstractMembers === this.abstractMembers) {
 							return result;
 						}

@@ -40,7 +40,6 @@
 }
 
 .monaco-breadcrumbs .notebook-outline-element .element-decoration {
-	/* Don't show markers inline with breadcrumbs */
 	display: none;
 }
 

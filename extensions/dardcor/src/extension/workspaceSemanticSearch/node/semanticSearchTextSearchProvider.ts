@@ -81,10 +81,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 		@IRerankerService private readonly _rerankerService: IRerankerService,
 	) {
 		super();
-		// Drop the cached utility endpoint whenever the endpoint provider
-		// reports a model refresh — for example because the user changed the
-		// `chat.utilitySmallModel` override. The next call to `getEndpoint`
-		// will re-resolve through the provider.
 		this._register(this._endpointProvider.onDidModelsRefresh(() => {
 			this._endpoint = undefined;
 		}));
@@ -104,7 +100,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 			return new VSCodeRange(new Position(0, 0), new Position(0, 0));
 		}
 		if (symbolsToHighlight && symbolsToHighlight.length > 0) {
-			// Find the first symbol that actually exists in the previewText
 			for (const symbol of symbolsToHighlight) {
 				const index = previewText.indexOf(symbol.text);
 				if (index !== -1) {
@@ -114,7 +109,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 					);
 				}
 			}
-			// If no symbol is found, fall through to default below
 		}
 		const firstNonWhitespaceIndex = strings.firstNonWhitespaceIndex(previewText);
 		const startIndex = firstNonWhitespaceIndex !== -1 && firstNonWhitespaceIndex !== previewText.length ?
@@ -264,7 +258,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 			const combinedChunks = combinedRank.map(chunk => chunk.chunk);
 			await this.reportSearchResults(rankingResults, combinedChunks, progress, token);
 
-			// call workspace chunk search service with options to do reranking
 			if (this._rerankerService.isAvailable) {
 				try {
 					this.workspaceChunkSearch.searchFileChunks(
@@ -296,7 +289,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 						this.reportTelemetry();
 					});
 				} catch (ex) {
-					// ignore rerank errors
 					this._logService.error(`SemanticSearchTextSearchProvider::provideAITextSearchResults rerank failed. error=${ex}`);
 				}
 			} else {
@@ -311,25 +303,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 	}
 
 	reportTelemetry() {
-		/* __GDPR__
-		"dardcor.search.request" : {
-			"owner": "osortega",
-			"comment": "Dardcor AI search request.",
-			"chunkCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of dardcor search code chunks." },
-			"rankResult": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Result of the dardcor search ranking." },
-			"rankResultsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of the results from dardcor search ranking." },
-			"combinedResultsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of combined results from dardcor search." },
-			"chunkSearchDuration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Duration of the chunk search" },
-			"llmFilteringDuration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Duration of the LLM filtering" },
-			"llmBestRank": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Best rank (lowest index) among LLM-selected chunks in the original retrieval ranking." },
-			"llmWorstRank": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Worst rank (highest index) among LLM-selected chunks in the original retrieval ranking." },
-			"llmSelectedCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of chunks selected by LLM from the initial retrieval." },
-			"rawLlmRankingResultsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of raw results returned by the LLM." },
-			"parseResult": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Indicates the result of parsing the LLM response." },
-			"llmBestInRerank": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Best rank (lowest index) among LLM-selected chunks in the reranked results." },
-			"llmWorstInRerank": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Worst rank (highest index) among LLM-selected chunks in the reranked results." }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('dardcor.search.request', {
 			rankResult: SemanticSearchTextSearchProvider.feedBackTelemetry.rankResult,
 			parseResult: SemanticSearchTextSearchProvider.feedBackTelemetry.parseResult,
@@ -351,48 +324,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 			&& SemanticSearchTextSearchProvider.feedBackTelemetry.llmWorstRank !== undefined
 			&& SemanticSearchTextSearchProvider.feedBackTelemetry.llmSelectedCount !== undefined
 		) {
-			/* __GDPR__
-			"semanticSearch.ranking" : {
-				"owner": "rebornix",
-				"comment": "Semantic search request ranking.",
-				"llmBestRank": {
-					"classification": "SystemMetaData",
-					"purpose": "FeatureInsight",
-					"isMeasurement": true,
-					"comment": "Best rank (lowest index) among LLM-selected chunks in the original retrieval ranking."
-				},
-				"llmWorstRank": {
-					"classification": "SystemMetaData",
-					"purpose": "FeatureInsight",
-					"isMeasurement": true,
-					"comment": "Worst rank (highest index) among LLM-selected chunks in the original retrieval ranking."
-				},
-				"llmSelectedCount": {
-					"classification": "SystemMetaData",
-					"purpose": "FeatureInsight",
-					"isMeasurement": true,
-					"comment": "Number of chunks selected by LLM from the initial retrieval."
-				},
-				"rawLlmRankingResultsCount": {
-					"classification": "SystemMetaData",
-					"purpose": "FeatureInsight",
-					"isMeasurement": true,
-					"comment": "Number of raw results returned by the LLM."
-				},
-				"llmBestInRerank": {
-					"classification": "SystemMetaData",
-					"purpose": "FeatureInsight",
-					"isMeasurement": true,
-					"comment": "Best rank (lowest index) among LLM-selected chunks in the reranked results."
-				},
-				"llmWorstInRerank": {
-					"classification": "SystemMetaData",
-					"purpose": "FeatureInsight",
-					"isMeasurement": true,
-					"comment": "Worst rank (highest index) among LLM-selected chunks in the reranked results."
-				}
-			}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('semanticSearch.ranking', {}, {
 				llmBestRank: SemanticSearchTextSearchProvider.feedBackTelemetry.llmBestRank,
 				llmWorstRank: SemanticSearchTextSearchProvider.feedBackTelemetry.llmWorstRank,
@@ -471,7 +402,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 				token,
 			);
 		}));
-		//report the rest of the combined results without the LLM ranked ones
 		for (const chunk of combinedChunks.slice(rankingResults.length)) {
 			const docContainingRef = await this.workspaceService.openTextDocumentAndSnapshot(chunk.file);
 			const resultAST = this._parserService.getTreeSitterAST(
@@ -575,15 +505,6 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 					}
 				});
 
-			/* __GDPR__
-		"dardcor.search.keywords" : {
-			"owner": "osortega",
-			"comment": "Dardcor AI keywords request.",
-			"keywordResult": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Result of the dardcor keywords request." },
-			"keywordsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of keywords found by dardcor search." },
-			"keywordSearchDuration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Duration of the keyword search" }
-			}
-		*/
 			this._telemetryService.sendMSFTTelemetryEvent('dardcor.search.keywords', {
 				keywordResult: fetchResult.type,
 			}, {
@@ -594,12 +515,10 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 	}
 
 	private processKeyword(keyword: string, chunks: FileChunk[]): string | undefined {
-		// Clean up keyword if it ends with any kind of bracket pairs
 		const cleanedKeyword = keyword.replace(/[\(\[\{].*[\)\]\}]/g, '').trim();
 		if (cleanedKeyword.length === 0) {
 			return undefined;
 		}
-		// Make sure the keyword exists in any chunk
 		const foundChunk = chunks.find(chunk => {
 			return chunk.text.includes(cleanedKeyword);
 		});
@@ -634,7 +553,6 @@ export async function getSearchResults(
 	const results: vscode.TextSearchMatch2[] = [];
 
 	const getResultsRanges = async () => {
-		// get all chunks per file
 		const fileChunks: { [key: string]: FileChunk[] } = {};
 		fileResults.forEach(fileResult => {
 			const filePath = fileResult.file.path;

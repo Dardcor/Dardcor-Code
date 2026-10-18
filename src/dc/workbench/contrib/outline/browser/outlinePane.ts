@@ -146,7 +146,6 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 
 		this._disposables.add(this.onDidChangeBodyVisibility(visible => {
 			if (!visible) {
-				// stop everything when not visible
 				this._editorListener.clear();
 				this._editorPaneDisposables.clear();
 				this._editorControlDisposables.clear();
@@ -202,7 +201,6 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 		this._editorPaneDisposables.clear();
 
 		if (pane) {
-			// react to control changes from within pane (https://github.com/microsoft/vscode/issues/134008)
 			this._editorPaneDisposables.add(pane.onDidChangeControl(() => {
 				this._editorControlChangePromise = this._handleEditorControlChanged(pane);
 			}));
@@ -213,7 +211,6 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 
 	private async _handleEditorControlChanged(pane: IEditorPane | undefined): Promise<void> {
 
-		// persist state
 		const resource = EditorResourceAccessor.getOriginalUri(pane?.input);
 		const didCapture = this._captureViewState();
 
@@ -273,22 +270,18 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 
 		ctxFocused.bindTo(tree.contextKeyService);
 
-		// update tree, listen to changes
 		const updateTree = () => {
 			if (newOutline.isEmpty) {
-				// no more elements
 				this._showMessage(localize('no-symbols', "No symbols found in document '{0}'", basename(resource)));
 				this._captureViewState(resource);
 				tree.setInput(undefined);
 
 			} else if (!tree.getInput()) {
-				// first: init tree
 				this._domNode.classList.remove('message');
 				const state = this._treeStates.get(`${newOutline.outlineKind}/${newOutline.uri}`);
 				tree.setInput(newOutline, state && AbstractTreeViewState.lift(state));
 
 			} else {
-				// update: refresh tree
 				this._domNode.classList.remove('message');
 				tree.updateChildren();
 			}
@@ -296,24 +289,19 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 		updateTree();
 		this._editorControlDisposables.add(newOutline.onDidChange(updateTree));
 
-		// feature: apply panel background to tree
 		this._editorControlDisposables.add(this.viewDescriptorService.onDidChangeLocation(({ views }) => {
 			if (views.some(v => v.id === this.id)) {
 				tree.updateOptions({ overrideStyles: this.getLocationBasedColors().listOverrideStyles });
 			}
 		}));
 
-		// feature: filter on type - keep tree and menu in sync
 		this._editorControlDisposables.add(tree.onDidChangeFindMode(mode => this._outlineViewState.filterOnType = mode === TreeFindMode.Filter));
 
-		// feature: reveal outline selection in editor
-		// on change -> reveal/select defining range
 		let idPool = 0;
 		this._editorControlDisposables.add(tree.onDidOpen(async e => {
 			const myId = ++idPool;
 			const isDoubleClick = e.browserEvent?.type === 'dblclick';
 			if (!isDoubleClick) {
-				// workaround for https://github.com/microsoft/vscode/issues/206424
 				await timeout(150);
 				if (myId !== idPool) {
 					return;
@@ -321,7 +309,6 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 			}
 			await newOutline.reveal(e.element, e.editorOptions, e.sideBySide, isDoubleClick);
 		}));
-		// feature: reveal editor selection in outline
 		const revealActiveElement = () => {
 			if (!this._outlineViewState.followCursor || !newOutline.activeElement) {
 				return;
@@ -330,7 +317,6 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 			while (item) {
 				const top = tree.getRelativeTop(item);
 				if (top === null) {
-					// not visible -> reveal
 					tree.reveal(item, 0.5);
 				}
 				if (tree.getRelativeTop(item) !== null) {
@@ -338,14 +324,12 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 					tree.setSelection([item]);
 					break;
 				}
-				// STILL not visible -> try parent
 				item = tree.getParentElement(item);
 			}
 		};
 		revealActiveElement();
 		this._editorControlDisposables.add(newOutline.onDidChange(revealActiveElement));
 
-		// feature: update view when user state changes
 		this._editorControlDisposables.add(this._outlineViewState.onDidChange((e: { followCursor?: boolean; sortBy?: boolean; filterOnType?: boolean }) => {
 			this._outlineViewState.persist(this._storageService);
 			if (e.filterOnType) {
@@ -360,7 +344,6 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 			}
 		}));
 
-		// feature: expand all nodes when filtering (not when finding)
 		let viewState: AbstractTreeViewState | undefined;
 		this._editorControlDisposables.add(tree.onDidChangeFindPattern(pattern => {
 			if (tree.findMode === TreeFindMode.Highlight) {
@@ -375,7 +358,6 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 			}
 		}));
 
-		// feature: update all-collapsed context key
 		const updateAllCollapsedCtx = () => {
 			this._ctxAllCollapsed.set(tree.getNode(null).children.every(node => !node.collapsible || node.collapsed));
 		};
@@ -383,7 +365,6 @@ export class OutlinePane extends ViewPane implements IOutlinePane {
 		this._editorControlDisposables.add(tree.onDidChangeModel(updateAllCollapsedCtx));
 		updateAllCollapsedCtx();
 
-		// last: set tree property and wire it up to one of our context keys
 		tree.layout(this._treeDimensions?.height, this._treeDimensions?.width);
 		this._tree = tree;
 		this._editorControlDisposables.add(toDisposable(() => {

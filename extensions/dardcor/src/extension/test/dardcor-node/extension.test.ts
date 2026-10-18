@@ -43,9 +43,6 @@ suite('Extension tests', function () {
 		assert.ok(accessor);
 	});
 
-	// TODO@lramos15 has to be skipped, when we don't have a token, because
-	// of the eventual call to `getOrCreateTestingCopilotTokenManager` which
-	// requires a token in a sync fashion.
 	test.skip('can create test context', async function () {
 		const extensionContext = {
 			extensionMode: ExtensionMode.Test,

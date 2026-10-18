@@ -154,7 +154,6 @@ export class FakeAnnotatedDocuments extends Disposable implements IAnnotatedDocu
 	}
 }
 
-/** Can contain "≪" and "≫" to add context, e.g. e≪l≫ only matches the first l in `hello`. */
 type SearchString = string;
 
 function findOffsetRange(str: string, search: SearchString): OffsetRange {
@@ -186,15 +185,12 @@ export class MutableObservableWorkspace extends ObservableWorkspace {
 	private readonly _openDocuments = observableValue<readonly IObservableDocument[], { added: readonly IObservableDocument[]; removed: readonly IObservableDocument[] }>(this, []);
 	public readonly documents = this._openDocuments;
 
-	private readonly _documents = new Map</* uri */ string, MutableObservableDocument>();
+	private readonly _documents = new Map< string, MutableObservableDocument>();
 
 	constructor() {
 		super();
 	}
 
-	/**
-	 * Dispose to remove.
-	*/
 	public createDocument(options: { uri: URI; workspaceRoot?: URI; initialValue?: string; initialVersionId?: number; languageId?: string }, tx: ITransaction | undefined = undefined): MutableObservableDocument {
 		assert(!this._documents.has(options.uri.toString()));
 

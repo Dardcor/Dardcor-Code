@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Load styles for the remaining onboarding variant.
 import './media/variationA.css';
 
 import { localize2 } from '../../../../nls.js';

@@ -5,7 +5,7 @@
 import { createServiceIdentifier } from '../../../../../util/common/services';
 import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsFileSystemService } from './fileSystem';
-import { CopilotTextDocument, ITextDocument, TextDocumentIdentifier, TextDocumentResult } from './textDocument';
+import { DardcorTextDocument, ITextDocument, TextDocumentIdentifier, TextDocumentResult } from './textDocument';
 import { ICompletionsTextDocumentManagerService } from './textDocumentManager';
 import { isDocumentValid } from './util/documentEvaluation';
 import { basename } from './util/uri';
@@ -45,9 +45,6 @@ export class FileReader implements ICompletionsFileReaderService {
 		return this.readFile(doc.uri);
 	}
 
-	/**
-	 * @deprecated use `getOrReadTextDocument` instead
-	 */
 	protected async readFile(uri: string): Promise<TextDocumentResult<ITextDocument>> {
 		const documentResult = await this.documentManagerService.getTextDocumentWithValidation({ uri });
 		if (documentResult.status !== 'notfound') {
@@ -55,17 +52,14 @@ export class FileReader implements ICompletionsFileReaderService {
 		}
 		try {
 			const fileSizeMB = await this.getFileSizeMB(uri);
-			// Note: the real production behavior actually blocks files larger than 5MB
 			if (fileSizeMB > 1) {
-				// Using notfound instead of invalid because of the mapping in statusFromTextDocumentResult
 				return { status: 'notfound' as const, message: 'File too large' };
 			}
 			const text = await this.doReadFile(uri);
 
-			// Note, that we check for blocked files even for empty files!
 			const rcmResult = await this.instantiationService.invokeFunction(isDocumentValid, { uri });
 			if (rcmResult.status === 'valid') {
-				const doc = CopilotTextDocument.create(uri, 'UNKNOWN', -1, text);
+				const doc = DardcorTextDocument.create(uri, 'UNKNOWN', -1, text);
 				return { status: 'valid' as const, document: doc };
 			}
 

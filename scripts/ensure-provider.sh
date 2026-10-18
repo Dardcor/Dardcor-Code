@@ -18,11 +18,9 @@ is_port_listening() {
 }
 
 if is_port_listening; then
-	# Provider already running, no collision
 	exit 0
 fi
 
-# Clean up stale PID file
 if [ -f "$PID_FILE" ]; then
 	OLD_PID=$(cat "$PID_FILE" 2>/dev/null || true)
 	if [ -n "$OLD_PID" ] && ! kill -0 "$OLD_PID" 2>/dev/null; then
@@ -57,7 +55,6 @@ if [ -d "$PROVIDER_DIR" ]; then
 		)
 	fi
 
-	# Wait briefly for provider to bind port
 	for i in {1..15}; do
 		if is_port_listening; then
 			break

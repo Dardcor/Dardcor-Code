@@ -381,7 +381,6 @@ class ActionBarRenderer implements ITableRenderer<ActionBarCell, IActionBarTempl
 	}
 
 	renderElement(element: ActionBarCell, index: number, templateData: IActionBarTemplateData): void {
-		// reset
 		templateData.actionBar.clear();
 		templateData.icon.className = 'ports-view-actionbar-cell-icon';
 		templateData.icon.style.display = 'none';
@@ -491,7 +490,6 @@ class ActionBarRenderer implements ITableRenderer<ActionBarCell, IActionBarTempl
 	}
 
 	private renderInputBox(templateData: IActionBarTemplateData, editableData: IEditableData): void {
-		// Required for FireFox. The blur event doesn't fire on FireFox when you just mash the "+" button to forward a port.
 		if (this.inputDone) {
 			this.inputDone(false, false);
 			this.inputDone = undefined;
@@ -591,10 +589,6 @@ class TunnelItem implements ITunnelItem {
 			tunnelService);
 	}
 
-	/**
-	 * Removes all non-serializable properties from the tunnel
-	 * @returns A new TunnelItem without any services
-	 */
 	public strip(): TunnelItem | undefined {
 		return new TunnelItem(
 			this.tunnelType,
@@ -655,7 +649,6 @@ class TunnelItem implements ITunnelItem {
 		let description: string = '';
 		if (this.runningProcess) {
 			if (this.pid && this.remoteExplorerService?.namedProcesses.has(this.pid)) {
-				// This is a known process. Give it a friendly name.
 				description = this.remoteExplorerService.namedProcesses.get(this.pid)!;
 			} else {
 				description = this.runningProcess.replace(/\0/g, ' ').trim();
@@ -733,10 +726,8 @@ const TunnelPrivacyEnabledContextKey = new RawContextKey<boolean>('tunnelPrivacy
 const TunnelProtocolContextKey = new RawContextKey<TunnelProtocol | undefined>('tunnelProtocol', TunnelProtocol.Http, true);
 const TunnelViewFocusContextKey = new RawContextKey<boolean>('tunnelViewFocus', false, nls.localize('tunnel.focusContext', "Whether the Ports view has focus."));
 const TunnelViewSelectionKeyName = 'tunnelViewSelection';
-// host:port
 const TunnelViewSelectionContextKey = new RawContextKey<string | undefined>(TunnelViewSelectionKeyName, undefined, true);
 const TunnelViewMultiSelectionKeyName = 'tunnelViewMultiSelection';
-// host:port[]
 const TunnelViewMultiSelectionContextKey = new RawContextKey<string[] | undefined>(TunnelViewMultiSelectionKeyName, undefined, true);
 const PortChangableContextKey = new RawContextKey<boolean>('portChangable', false, true);
 const ProtocolChangeableContextKey = new RawContextKey<boolean>('protocolChangable', true, true);
@@ -760,7 +751,6 @@ export class TunnelPanel extends ViewPane {
 	private portChangableContextKey: IContextKey<boolean>;
 	private protocolChangableContextKey: IContextKey<boolean>;
 	private isEditing: boolean = false;
-	// TODO: Should this be removed?
 	//@ts-expect-error
 	private titleActions: IAction[] = [];
 	private lastFocus: number[] = [];
@@ -955,7 +945,6 @@ export class TunnelPanel extends ViewPane {
 			if (this.isEditing) {
 				widgetContainer.classList.add('highlight');
 				if (!e) {
-					// When we are in editing mode for a new forward, rather than updating an existing one we need to reveal the input box since it might be out of view.
 					this.table?.reveal(this.table.indexOf(this.viewModel.input));
 				}
 			} else {
@@ -1100,9 +1089,7 @@ export class TunnelPanelDescriptor implements IViewDescriptor {
 	readonly ctorDescriptor: SyncDescriptor<TunnelPanel>;
 	readonly canToggleVisibility = true;
 	readonly hideByDefault = false;
-	// group is not actually used for views that are not extension contributed. Use order instead.
 	readonly group = 'details@0';
-	// -500 comes from the remote explorer viewOrderDelegate
 	readonly order = -500;
 	readonly remoteAuthority?: string | string[];
 	readonly canMoveView = true;
@@ -1582,7 +1569,7 @@ namespace SetTunnelProtocolAction {
 	}
 }
 
-const tunnelViewCommandsWeightBonus = 10; // give our commands a little bit more weight over other default list/tree commands
+const tunnelViewCommandsWeightBonus = 10;
 
 const isForwardedExpr = TunnelTypeContextKey.isEqualTo(TunnelType.Forwarded);
 const isForwardedOrDetectedExpr = ContextKeyExpr.or(isForwardedExpr, TunnelTypeContextKey.isEqualTo(TunnelType.Detected));
@@ -1677,7 +1664,6 @@ MenuRegistry.appendMenuItem(MenuId.TunnelContext, ({
 		isForwardedOrDetectedExpr,
 		isNotMultiSelectionExpr)
 }));
-// The group 0_manage is used by extensions, so try not to change it
 MenuRegistry.appendMenuItem(MenuId.TunnelContext, ({
 	group: '0_manage',
 	order: 1,

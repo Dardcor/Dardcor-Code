@@ -155,7 +155,6 @@ class FileItem extends BreadcrumbsItem {
 	}
 
 	render(container: HTMLElement): void {
-		// file/folder
 		const label = this._labels.create(container, { hoverDelegate: this._hoverDelegate });
 		const options = {
 			hidePath: true,
@@ -187,13 +186,12 @@ function createBreadcrumbDndObserver(accessor: ServicesAccessor, container: HTML
 				return;
 			}
 
-			// Set data transfer
 			event.dataTransfer.effectAllowed = 'copyMove';
 
 			instantiationService.invokeFunction(accessor => {
 				if (URI.isUri(item)) {
 					fillEditorsDragData(accessor, [item], event);
-				} else { // Symbol
+				} else {
 					fillEditorsDragData(accessor, [{ resource: item.uri, selection: item.symbol.range }], event);
 
 					fillInSymbolsDragData([{
@@ -222,11 +220,6 @@ export interface IBreadcrumbsControlOptions {
 	readonly showPlaceholder: boolean;
 	readonly dragEditor: boolean;
 	readonly widgetStyles?: IBreadcrumbsWidgetStyles;
-	/**
-	 * Whether to show a dropdown on the right-hand side that lets the user switch between the editors
-	 * that can open the active resource (e.g. Text Editor vs. Markdown Preview). Only makes sense for
-	 * the dedicated breadcrumbs bar below tabs, not the inline single-tab breadcrumbs.
-	 */
 	readonly showEditorTypePicker?: boolean;
 }
 
@@ -374,8 +367,6 @@ export class BreadcrumbsControl {
 		if (dim) {
 			this._lastLayoutDimension = dim;
 		}
-		// When the editor type dropdown is visible it occupies space on the right, so shrink the
-		// breadcrumbs widget accordingly to avoid it rendering behind the dropdown.
 		if (dim && this._editorTypeNode) {
 			const editorTypeWidth = this._editorTypeNode.offsetWidth;
 			dim = new dom.Dimension(Math.max(0, dim.width - editorTypeWidth), dim.height);
@@ -419,13 +410,10 @@ export class BreadcrumbsControl {
 	update(): boolean {
 		this._breadcrumbsDisposables.clear();
 
-		// honor diff editors and such
 		const uri = EditorResourceAccessor.getCanonicalUri(this._editorGroup.activeEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
 		const wasHidden = this.isHidden();
 
 		if (!uri || !this._fileService.hasProvider(uri)) {
-			// cleanup and return when there is no input or when
-			// we cannot handle this input
 			this._ckBreadcrumbsPossible.set(false);
 			this._ckBreadcrumbsHasSymbols.set(false);
 			if (!wasHidden) {
@@ -436,7 +424,6 @@ export class BreadcrumbsControl {
 			}
 		}
 
-		// display uri which can be derived from certain inputs
 		const fileInfoUri = EditorResourceAccessor.getOriginalUri(this._editorGroup.activeEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
 
 		this.show();
@@ -505,7 +492,6 @@ export class BreadcrumbsControl {
 		this._breadcrumbsDisposables.add(updateScrollbarSizeListener);
 		this._breadcrumbsDisposables.add(updateScrollbarVisibilityListener);
 
-		// close picker on hide/update
 		this._breadcrumbsDisposables.add({
 			dispose: () => {
 				if (this._breadcrumbsPickerShowing) {
@@ -532,9 +518,6 @@ export class BreadcrumbsControl {
 			editorTypeHover.update(localize('editorType.hover', "Editor: {0}", label));
 		}
 
-		// The dropdown width may have changed (different editor label or visibility toggled). Since the
-		// breadcrumbs widget uses an explicit pixel width that reserves room for the dropdown, re-run the
-		// layout so the widget shrinks/grows to match the new dropdown width.
 		const currentWidth = this._editorTypeNode?.offsetWidth ?? 0;
 		if (this._lastLayoutDimension && currentWidth !== previousWidth) {
 			this.layout(this._lastLayoutDimension);
@@ -612,7 +595,6 @@ export class BreadcrumbsControl {
 
 		const group = this._getEditorGroup(event.payload);
 		if (group !== undefined) {
-			// reveal the item
 			this._widget.setFocused(undefined);
 			this._widget.setSelection(undefined);
 			this._revealInEditor(event, element, group);
@@ -620,14 +602,12 @@ export class BreadcrumbsControl {
 		}
 
 		if (this._cfUseQuickPick.getValue()) {
-			// using quick pick
 			this._widget.setFocused(undefined);
 			this._widget.setSelection(undefined);
 			this._quickInputService.quickAccess.show(element instanceof OutlineElement2 ? '@' : '');
 			return;
 		}
 
-		// show picker
 		let picker: BreadcrumbsFilePicker | BreadcrumbsOutlinePicker;
 		let pickerAnchor: { x: number; y: number };
 
@@ -664,7 +644,7 @@ export class BreadcrumbsControl {
 			getAnchor: () => {
 				if (!pickerAnchor) {
 					const window = dom.getWindow(this.domNode);
-					const maxInnerWidth = window.innerWidth - 8 /*a little less the full widget*/;
+					const maxInnerWidth = window.innerWidth - 8 ;
 					let maxHeight = Math.min(window.innerHeight * 0.7, 300);
 
 					const pickerWidth = Math.min(maxInnerWidth, Math.max(240, maxInnerWidth / 4.17));
@@ -674,7 +654,7 @@ export class BreadcrumbsControl {
 					const data = dom.getDomNodePagePosition(event.node);
 					const y = data.top + data.height + pickerArrowSize;
 					if (y + maxHeight >= window.innerHeight) {
-						maxHeight = window.innerHeight - y - 30 /* room for shadow and status bar*/;
+						maxHeight = window.innerHeight - y - 30 ;
 					}
 					let x = data.left;
 					if (x + pickerWidth >= maxInnerWidth) {
@@ -721,7 +701,6 @@ export class BreadcrumbsControl {
 			if (element.kind === FileKind.FILE) {
 				await this._editorService.openEditor({ resource: element.uri, options: { pinned } }, group);
 			} else {
-				// show next picker
 				const items = this._widget.getItems();
 				const idx = items.indexOf(event.item);
 				this._widget.setFocused(items[idx + 1]);
@@ -785,7 +764,6 @@ export class BreadcrumbsControlFactory {
 
 		this._disposables.add(fileService.onDidChangeFileSystemProviderRegistrations(e => {
 			if (this._control?.model && this._control.model.resource.scheme !== e.scheme) {
-				// ignore if the scheme of the breadcrumbs resource is not affected
 				return;
 			}
 			if (this._control?.update()) {
@@ -807,9 +785,7 @@ export class BreadcrumbsControlFactory {
 	}
 }
 
-//#region commands
 
-// toggle command
 registerAction2(class ToggleBreadcrumb extends Action2 {
 
 	constructor() {
@@ -844,9 +820,7 @@ registerAction2(class ToggleBreadcrumb extends Action2 {
 
 });
 
-// focus/focus-and-select
 function focusAndSelectHandler(accessor: ServicesAccessor, select: boolean): void {
-	// find widget and focus/select
 	const groups = accessor.get(IEditorGroupsService);
 	const breadcrumbs = accessor.get(IBreadcrumbsService);
 	const widget = breadcrumbs.getWidget(groups.activeGroup.id);
@@ -896,8 +870,6 @@ registerAction2(class FocusBreadcrumbs extends Action2 {
 	}
 });
 
-// this commands is only enabled when breadcrumbs are
-// disabled which it then enables and focuses
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'breadcrumbs.toggleToOn',
 	weight: KeybindingWeight.WorkbenchContrib,
@@ -906,18 +878,16 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	handler: async accessor => {
 		const instant = accessor.get(IInstantiationService);
 		const config = accessor.get(IConfigurationService);
-		// check if enabled and iff not enable
 		const isEnabled = BreadcrumbsConfig.IsEnabled.bindTo(config);
 		if (!isEnabled.getValue()) {
 			await isEnabled.updateValue(true);
-			await timeout(50); // hacky - the widget might not be ready yet...
+			await timeout(50);
 		}
 		isEnabled.dispose();
 		return instant.invokeFunction(focusAndSelectHandler, true);
 	}
 });
 
-// navigation
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'breadcrumbs.focusNext',
 	weight: KeybindingWeight.WorkbenchContrib,
@@ -1060,14 +1030,12 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 		const element = <IFileStat | unknown>tree.getFocus()[0];
 
 		if (URI.isUri((<IFileStat>element)?.resource)) {
-			// IFileStat: open file in editor
 			return editors.openEditor({
 				resource: (<IFileStat>element).resource,
 				options: { pinned: true }
 			}, SIDE_GROUP);
 		}
 
-		// IOutline: check if this the outline and iff so reveal element
 		const input = tree.getInput();
 		if (input && typeof (<IOutline<unknown>>input).outlineKind === 'string') {
 			return (<IOutline<unknown>>input).reveal(element, {
@@ -1077,7 +1045,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 		}
 	}
 });
-//#endregion
 
 registerAction2(class CopyBreadcrumbPath extends Action2 {
 	constructor() {
@@ -1119,7 +1086,6 @@ registerAction2(class CopyBreadcrumbPath extends Action2 {
 			return;
 		}
 
-		// Get separator with language override support
 		const resource = groups.activeGroup.activeEditorPane.input.resource;
 		const config = BreadcrumbsConfig.SymbolPathSeparator.bindTo(configurationService);
 		const separator = config.getValue(resource && { resource }) ?? '.';

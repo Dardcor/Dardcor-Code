@@ -27,11 +27,6 @@ function createMockHeaders(entries: Record<string, string> = {}): { get(name: st
 	return { get: (name: string) => lower[name.toLowerCase()] ?? null };
 }
 
-/**
- * Creates a mock response with a real stream-backed body so that middleware
- * cloning (tee) works correctly. Token responses go through the middleware
- * pipeline where {@link cloneResponse} reads the body stream.
- */
 function makeMockTokenResponse(body: { available_models: string[]; expires_at: number; session_token: string }) {
 	const serialized = JSON.stringify(body);
 	return {
@@ -100,7 +95,6 @@ describe('AutomodeService', () => {
 	}
 
 	function enableRouter(): void {
-		// Router is now always enabled for panel chat — no config key needed.
 	}
 
 	beforeEach(() => {
@@ -165,7 +159,6 @@ describe('AutomodeService', () => {
 
 			await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [mockChatEndpoint]);
 
-			// Verify that router API was NOT called for inline chat
 			expect(mockCAPIClientService.makeRequest).not.toHaveBeenCalledWith(
 				expect.anything(),
 				expect.objectContaining({ type: RequestType.ModelRouter })
@@ -177,7 +170,6 @@ describe('AutomodeService', () => {
 
 			const gpt4oEndpoint = createEndpoint('gpt-4o', 'OpenAI');
 
-			// Mock makeRequest to handle both auto mode token and router API calls
 			(mockCAPIClientService.makeRequest as ReturnType<typeof vi.fn>).mockImplementation((_body: any, opts: any) => {
 				if (opts?.type === RequestType.ModelRouter) {
 					return Promise.resolve({
@@ -214,12 +206,10 @@ describe('AutomodeService', () => {
 
 			const result = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [mockChatEndpoint, gpt4oEndpoint]);
 
-			// Verify that router API was called for panel chat
 			expect(mockCAPIClientService.makeRequest).toHaveBeenCalledWith(
 				expect.objectContaining({ method: 'POST' }),
 				expect.objectContaining({ type: RequestType.ModelRouter })
 			);
-			// Router should have selected gpt-4o
 			expect(result.model).toBe('gpt-4o');
 		});
 
@@ -289,7 +279,6 @@ describe('AutomodeService', () => {
 
 			await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [mockChatEndpoint]);
 
-			// Verify that router API was NOT called for terminal chat
 			expect(mockCAPIClientService.makeRequest).not.toHaveBeenCalledWith(
 				expect.anything(),
 				expect.objectContaining({ type: RequestType.ModelRouter })
@@ -311,13 +300,11 @@ describe('AutomodeService', () => {
 			};
 
 			const result = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [openaiEndpoint, claudeEndpoint]);
-			// claude-sonnet is first in available_models and has a known endpoint
 			expect(result.model).toBe('claude-sonnet');
 		});
 
 		it('should skip models without known endpoints and pick the first match', async () => {
 			const openaiEndpoint = createEndpoint('gpt-4o', 'OpenAI');
-			// available_models has 'unknown-model' first, but no known endpoint for it
 			mockApiResponse(['unknown-model', 'gpt-4o']);
 
 			automodeService = createService();
@@ -337,7 +324,6 @@ describe('AutomodeService', () => {
 			const openaiMiniEndpoint = createEndpoint('gpt-4o-mini', 'OpenAI');
 			const claudeEndpoint = createEndpoint('claude-sonnet', 'Anthropic');
 
-			// First mint: gpt-4o is first available, token expires in 1s to trigger immediate refresh
 			mockApiResponse(['gpt-4o', 'claude-sonnet'], 'token-1', 1);
 
 			automodeService = createService();
@@ -350,12 +336,10 @@ describe('AutomodeService', () => {
 			const firstResult = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [openaiEndpoint, openaiMiniEndpoint, claudeEndpoint]);
 			expect(firstResult.model).toBe('gpt-4o');
 
-			// Set up new token response, then advance timers to trigger refresh
 			mockApiResponse(['claude-sonnet', 'gpt-4o-mini'], 'token-2');
 			await vi.advanceTimersByTimeAsync(1);
 
 			const secondResult = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [openaiEndpoint, openaiMiniEndpoint, claudeEndpoint]);
-			// Should pick gpt-4o-mini because it's the first model from the same provider (OpenAI)
 			expect(secondResult.model).toBe('gpt-4o-mini');
 			vi.useRealTimers();
 		});
@@ -365,7 +349,6 @@ describe('AutomodeService', () => {
 			const openaiEndpoint = createEndpoint('gpt-4o', 'OpenAI');
 			const claudeEndpoint = createEndpoint('claude-sonnet', 'Anthropic');
 
-			// First mint: gpt-4o is first available, token expires in 1s to trigger immediate refresh
 			mockApiResponse(['gpt-4o', 'claude-sonnet'], 'token-1', 1);
 
 			automodeService = createService();
@@ -378,12 +361,10 @@ describe('AutomodeService', () => {
 			const firstResult = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [openaiEndpoint, claudeEndpoint]);
 			expect(firstResult.model).toBe('gpt-4o');
 
-			// Set up new token response with only Anthropic models, then advance timers
 			mockApiResponse(['claude-sonnet'], 'token-2');
 			await vi.advanceTimersByTimeAsync(1);
 
 			const secondResult = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [openaiEndpoint, claudeEndpoint]);
-			// No OpenAI models available, should fall back to first available (claude-sonnet)
 			expect(secondResult.model).toBe('claude-sonnet');
 		});
 
@@ -402,7 +383,6 @@ describe('AutomodeService', () => {
 
 			const firstResult = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [openaiEndpoint, claudeEndpoint]);
 			const secondResult = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [openaiEndpoint, claudeEndpoint]);
-			// Same object reference since token didn't change
 			expect(secondResult).toBe(firstResult);
 		});
 
@@ -497,7 +477,6 @@ describe('AutomodeService', () => {
 			};
 
 			const result = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [claudeEndpoint, gpt4oEndpoint]);
-			// Should fall back to first available model (claude-sonnet)
 			expect(result.model).toBe('claude-sonnet');
 			expect(mockLogService.error).toHaveBeenCalledWith(
 				expect.stringContaining('Failed to get routed model'),
@@ -513,8 +492,6 @@ describe('AutomodeService', () => {
 
 			(mockCAPIClientService.makeRequest as ReturnType<typeof vi.fn>).mockImplementation((req: any, opts: any) => {
 				if (opts?.type === RequestType.ModelRouter) {
-					// Return a pending promise that rejects when the signal is aborted,
-					// simulating a real in-flight request cancelled by the 1s timeout.
 					return new Promise((_resolve, reject) => {
 						const signal: AbortSignal = req.signal;
 						if (signal?.aborted) {
@@ -547,11 +524,9 @@ describe('AutomodeService', () => {
 			};
 
 			const resultPromise = automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [claudeEndpoint, gpt4oEndpoint]);
-			// Advance past the 2.5-second router timeout to trigger the abort
 			await vi.advanceTimersByTimeAsync(2500);
 
 			const result = await resultPromise;
-			// Should fall back to first available model (claude-sonnet)
 			expect(result.model).toBe('claude-sonnet');
 			expect(mockLogService.error).toHaveBeenCalledWith(
 				expect.stringContaining('routerTimeout'),
@@ -576,7 +551,6 @@ describe('AutomodeService', () => {
 			};
 
 			const result = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [gpt4oEndpoint]);
-			// Router returned unknown model, should fall back to first available
 			expect(result.model).toBe('gpt-4o');
 		});
 
@@ -586,7 +560,6 @@ describe('AutomodeService', () => {
 			const gpt4oMiniEndpoint = createEndpoint('gpt-4o-mini', 'OpenAI');
 			const claudeEndpoint = createEndpoint('claude-sonnet', 'Anthropic');
 
-			// First turn: router picks gpt-4o
 			mockRouterResponse(
 				['gpt-4o', 'gpt-4o-mini', 'claude-sonnet'],
 				{ chosen_model: 'gpt-4o', candidate_models: ['gpt-4o', 'gpt-4o-mini', 'claude-sonnet'] }
@@ -602,7 +575,6 @@ describe('AutomodeService', () => {
 			const firstResult = await automodeService.resolveAutoModeEndpoint(chatRequest1 as ChatRequest, [gpt4oEndpoint, gpt4oMiniEndpoint, claudeEndpoint]);
 			expect(firstResult.model).toBe('gpt-4o');
 
-			// Second turn: router would return claude, but should be skipped (cached gpt-4o returned)
 			mockRouterResponse(
 				['gpt-4o', 'gpt-4o-mini', 'claude-sonnet'],
 				{ chosen_model: 'claude-sonnet', candidate_models: ['claude-sonnet', 'gpt-4o-mini'] }
@@ -615,7 +587,6 @@ describe('AutomodeService', () => {
 			};
 
 			const secondResult = await automodeService.resolveAutoModeEndpoint(chatRequest2 as ChatRequest, [gpt4oEndpoint, gpt4oMiniEndpoint, claudeEndpoint]);
-			// Router is skipped after first turn — cached model returned
 			expect(secondResult.model).toBe('gpt-4o');
 		});
 
@@ -624,7 +595,6 @@ describe('AutomodeService', () => {
 			const gpt4oEndpoint = createEndpoint('gpt-4o', 'OpenAI');
 			const claudeEndpoint = createEndpoint('claude-sonnet', 'Anthropic');
 
-			// First turn: router picks gpt-4o
 			mockRouterResponse(
 				['gpt-4o', 'claude-sonnet'],
 				{ chosen_model: 'gpt-4o', candidate_models: ['gpt-4o', 'claude-sonnet'] }
@@ -640,10 +610,8 @@ describe('AutomodeService', () => {
 			const firstResult = await automodeService.resolveAutoModeEndpoint(chatRequest1 as ChatRequest, [gpt4oEndpoint, claudeEndpoint]);
 			expect(firstResult.model).toBe('gpt-4o');
 
-			// Invalidate the cache (simulates compaction)
 			automodeService.invalidateRouterCache({ sessionId: 'session-no-same-provider' } as ChatRequest);
 
-			// Second turn: router is re-run after invalidation, picks claude-sonnet
 			mockRouterResponse(
 				['gpt-4o', 'claude-sonnet'],
 				{ chosen_model: 'claude-sonnet', candidate_models: ['claude-sonnet'] }
@@ -678,12 +646,10 @@ describe('AutomodeService', () => {
 
 			await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [gpt4oEndpoint, claudeEndpoint]);
 
-			// Reset to track further calls
 			const routerCallCount = (mockCAPIClientService.makeRequest as ReturnType<typeof vi.fn>).mock.calls
 				.filter((call: any[]) => call[1]?.type === RequestType.ModelRouter).length;
 			expect(routerCallCount).toBe(1);
 
-			// Second call with same prompt — should NOT call router again
 			await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [gpt4oEndpoint, claudeEndpoint]);
 
 			const routerCallCount2 = (mockCAPIClientService.makeRequest as ReturnType<typeof vi.fn>).mock.calls
@@ -703,7 +669,6 @@ describe('AutomodeService', () => {
 
 			automodeService = createService();
 
-			// Turn 1: image request — router IS called now
 			const imageRequest: Partial<ChatRequest> = {
 				location: ChatLocation.Panel,
 				prompt: 'describe this image',
@@ -717,14 +682,12 @@ describe('AutomodeService', () => {
 				expect.anything(),
 				expect.objectContaining({ type: RequestType.ModelRouter })
 			);
-			// Reset mock call tracking
 			(mockCAPIClientService.makeRequest as ReturnType<typeof vi.fn>).mockClear();
 			mockRouterResponse(
 				['gpt-4o', 'claude-sonnet'],
 				{ chosen_model: 'gpt-4o', candidate_models: ['gpt-4o'] }
 			);
 
-			// Turn 2: new prompt — router should NOT be called (skipRouter after first turn)
 			const textRequest: Partial<ChatRequest> = {
 				location: ChatLocation.Panel,
 				prompt: 'write a function',
@@ -733,7 +696,6 @@ describe('AutomodeService', () => {
 
 			await automodeService.resolveAutoModeEndpoint(textRequest as ChatRequest, [gpt4oEndpoint, claudeEndpoint]);
 
-			// Router should not have been called on turn 2
 			expect(mockCAPIClientService.makeRequest).not.toHaveBeenCalledWith(
 				expect.anything(),
 				expect.objectContaining({ type: RequestType.ModelRouter })
@@ -760,7 +722,6 @@ describe('AutomodeService', () => {
 
 			const result = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [gpt4oEndpoint, claudeEndpoint]);
 			expect(result.model).toBe('gpt-4o');
-			// Verify router WAS called (not skipped)
 			const routerCall = (mockCAPIClientService.makeRequest as ReturnType<typeof vi.fn>).mock.calls.find(([, opts]) => opts?.type === RequestType.ModelRouter);
 			expect(routerCall).toBeDefined();
 			const [routerRequestBody] = routerCall!;
@@ -800,9 +761,7 @@ describe('AutomodeService', () => {
 			};
 
 			const result = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [gpt4oEndpoint, claudeEndpoint]);
-			// Should fall back to default selection, then vision fallback picks gpt-4o
 			expect(result.model).toBe('gpt-4o');
-			// Verify the router was called and the error code was passed through from the server
 			expect(mockCAPIClientService.makeRequest).toHaveBeenCalledWith(
 				expect.anything(),
 				expect.objectContaining({ type: RequestType.ModelRouter })
@@ -814,9 +773,6 @@ describe('AutomodeService', () => {
 		});
 
 		it('should fall back to routerError when router returns non-JSON error body', async () => {
-			// When the router returns an HTML error page or other non-JSON body,
-			// errorCode should be undefined and fallbackReason should be 'routerError'
-			// — NOT the raw response body leaked into telemetry.
 			enableRouter();
 			const gpt4oEndpoint = createEndpoint('gpt-4o', 'OpenAI');
 
@@ -848,7 +804,6 @@ describe('AutomodeService', () => {
 
 			const result = await automodeService.resolveAutoModeEndpoint(chatRequest as ChatRequest, [gpt4oEndpoint]);
 			expect(result.model).toBe('gpt-4o');
-			// Should log generic 'routerError', NOT the HTML body
 			expect(mockLogService.error).toHaveBeenCalledWith(
 				expect.stringContaining('(routerError)'),
 				expect.anything()
@@ -856,8 +811,6 @@ describe('AutomodeService', () => {
 		});
 
 		it('should fall back to routerError when router returns JSON without error field', async () => {
-			// When the server returns valid JSON but without an 'error' field,
-			// errorCode should be undefined and fallbackReason should be 'routerError'.
 			enableRouter();
 			const gpt4oEndpoint = createEndpoint('gpt-4o', 'OpenAI');
 
@@ -897,7 +850,6 @@ describe('AutomodeService', () => {
 
 		it('should be a no-op when invalidateRouterCache is called with unknown conversationId', async () => {
 			automodeService = createService();
-			// Should not throw
 			automodeService.invalidateRouterCache({ sessionId: 'nonexistent-session' } as ChatRequest);
 		});
 
@@ -1081,9 +1033,6 @@ describe('AutomodeService', () => {
 			const codexEndpoint = createEndpoint('gpt-5.3-codex', 'OpenAI');
 			const miniEndpoint = createEndpoint('gpt-5.4-mini', 'OpenAI');
 
-			// Server re-ranked the pick: candidate_models[0] is gpt-5.3-codex but the
-			// authoritative chosen_model is gpt-5.4-mini. The telemetry candidateModel
-			// must reflect chosen_model so router-pick vs actual comparisons are valid.
 			mockRouterResponse(
 				['gpt-5.3-codex', 'gpt-5.4-mini'],
 				{ chosen_model: 'gpt-5.4-mini', candidate_models: ['gpt-5.3-codex', 'gpt-5.4-mini'] }
@@ -1270,8 +1219,6 @@ describe('AutomodeService', () => {
 			enableRouter();
 			const gpt41Endpoint = createEndpoint('gpt-4.1', 'OpenAI');
 
-			// chosen_model is not in knownEndpoints, so selection falls back to
-			// the ordered candidate_models list and picks the first resolvable one.
 			mockRouterResponse(
 				['gpt-4.1'],
 				{ chosen_model: 'unknown-new-model', candidate_models: ['unknown-new-model', 'gpt-4.1'] }
@@ -1293,9 +1240,6 @@ describe('AutomodeService', () => {
 			const codexEndpoint = createEndpoint('gpt-5.3-codex', 'OpenAI');
 			const miniEndpoint = createEndpoint('gpt-5.4-mini', 'OpenAI');
 
-			// Server re-ranked the pick (e.g. Cost Sorting experiment): chosen_model
-			// is gpt-5.4-mini even though candidate_models[0] is gpt-5.3-codex. The
-			// client must send the chosen_model, per the auto-intent-service contract.
 			mockRouterResponse(
 				['gpt-5.3-codex', 'gpt-5.4-mini'],
 				{ chosen_model: 'gpt-5.4-mini', candidate_models: ['gpt-5.3-codex', 'gpt-5.4-mini'] }
@@ -1317,10 +1261,6 @@ describe('AutomodeService', () => {
 			const codexEndpoint = createEndpoint('gpt-5.3-codex', 'OpenAI');
 			const miniEndpoint = createEndpoint('gpt-5.4-mini', 'OpenAI');
 
-			// The "Routed to <model>" explainability label reads the routing
-			// decision surfaced via consumeLastRoutingDecision(). It must match the
-			// served endpoint (chosen_model), otherwise the label diverges from the
-			// model shown in the response footer (candidate_models[0]).
 			mockRouterResponse(
 				['gpt-5.3-codex', 'gpt-5.4-mini'],
 				{ chosen_model: 'gpt-5.4-mini', candidate_models: ['gpt-5.3-codex', 'gpt-5.4-mini'] }

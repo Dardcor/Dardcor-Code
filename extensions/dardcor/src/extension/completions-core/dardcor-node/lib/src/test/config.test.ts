@@ -15,7 +15,6 @@ import {
 suite('getConfig', function () {
 	for (const key of Object.values(ConfigKey)) {
 		test(`has default for ${key}`, function () {
-			// No news is good news
 			getConfigDefaultForKey(key);
 		});
 	}

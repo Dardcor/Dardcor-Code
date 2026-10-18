@@ -93,9 +93,6 @@ impl CliServiceManager for WindowsService {
 			return handle.run_service(self.log, launcher_paths).await;
 		}
 
-		// Start as a hidden subprocess to avoid showing cmd.exe on startup.
-		// Fixes https://github.com/microsoft/vscode/issues/184058
-		// I also tried the winapi ShowWindow, but that didn't yield fruit.
 		new_std_command(std::env::current_exe().unwrap())
 			.args(std::env::args().skip(1))
 			.env(DID_LAUNCH_AS_HIDDEN_PROCESS, "1")

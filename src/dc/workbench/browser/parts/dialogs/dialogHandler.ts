@@ -49,7 +49,7 @@ export class BrowserDialogHandler extends AbstractDialogHandler {
 
 		const buttons = this.getPromptButtons(prompt);
 
-		const { button, checkboxChecked } = await this.doShow(prompt.type, prompt.message, buttons, prompt.detail, prompt.cancelButton ? buttons.length - 1 : -1 /* Disabled */, prompt.checkbox, undefined, typeof prompt?.custom === 'object' ? prompt.custom : undefined, prompt.token);
+		const { button, checkboxChecked } = await this.doShow(prompt.type, prompt.message, buttons, prompt.detail, prompt.cancelButton ? buttons.length - 1 : -1 , prompt.checkbox, undefined, typeof prompt?.custom === 'object' ? prompt.custom : undefined, prompt.token);
 
 		return this.getPromptResult(prompt, button, checkboxChecked);
 	}
@@ -92,18 +92,13 @@ export class BrowserDialogHandler extends AbstractDialogHandler {
 		}
 	}
 
-	/** Default link handler for Markdown rendered within a dialog, see {@link openLinkFromMarkdown}. */
 	private defaultMarkdownActionHandler(link: string, mdStr: IMarkdownString): Promise<boolean> {
-		return openLinkFromMarkdown(this.openerService, link, mdStr.isTrusted, true /* skip URL validation to prevent another dialog from showing which is unsupported */);
+		return openLinkFromMarkdown(this.openerService, link, mdStr.isTrusted, true );
 	}
 
 	private async doShow(type: Severity | DialogType | undefined, message: string, buttons?: string[], detail?: string | IMarkdownString, cancelId?: number, checkbox?: ICheckbox, inputs?: IInputElement[], customOptions?: ICustomDialogOptions, token?: CancellationToken): Promise<IDialogResult> {
 		const dialogDisposables = new DisposableStore();
 
-		// A Markdown `detail` is rendered ahead of time into a plain element:
-		// the base `Dialog` widget has no Markdown rendering capability of its
-		// own (it lives below the platform layer), so it is handed the result
-		// via `detailElement` instead of the raw `IMarkdownString`.
 		const detailElement = typeof detail === 'object' ? dialogDisposables.add(this.markdownRendererService.render(detail, {
 			actionHandler: (link, mdStr) => this.defaultMarkdownActionHandler(link, mdStr),
 		})).element : undefined;

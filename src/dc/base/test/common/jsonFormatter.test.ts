@@ -26,7 +26,7 @@ suite('JSON - formatter', () => {
 			const edit = edits[i];
 			assert(edit.offset >= 0 && edit.length >= 0 && edit.offset + edit.length <= content.length);
 			assert(typeof edit.content === 'string');
-			assert(lastEditOffset >= edit.offset + edit.length); // make sure all edits are ordered
+			assert(lastEditOffset >= edit.offset + edit.length);
 			lastEditOffset = edit.offset;
 			content = content.substring(0, edit.offset) + edit.content + content.substring(edit.offset + edit.length);
 		}

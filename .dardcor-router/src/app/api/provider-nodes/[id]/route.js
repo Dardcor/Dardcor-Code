@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteProviderConnectionsByProvider, deleteProviderNode, getProviderConnections, getProviderNodeById, updateProviderConnection, updateProviderNode } from "@/models";
 
-// PUT /api/provider-nodes/[id] - Update provider node
 export async function PUT(request, { params }) {
   try {
     const { id } = await params;
@@ -21,7 +20,6 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: "Prefix is required" }, { status: 400 });
     }
 
-    // Only validate apiType for OpenAI Compatible nodes
     if (node.type === "openai-compatible" && (!apiType || !["chat", "responses"].includes(apiType))) {
       return NextResponse.json({ error: "Invalid OpenAI compatible API type" }, { status: 400 });
     }
@@ -32,15 +30,13 @@ export async function PUT(request, { params }) {
 
     let sanitizedBaseUrl = baseUrl.trim();
     
-    // Sanitize Base URL for Anthropic Compatible
     if (node.type === "anthropic-compatible") {
       sanitizedBaseUrl = sanitizedBaseUrl.replace(/\/$/, "");
       if (sanitizedBaseUrl.endsWith("/messages")) {
-        sanitizedBaseUrl = sanitizedBaseUrl.slice(0, -9); // remove /messages
+        sanitizedBaseUrl = sanitizedBaseUrl.slice(0, -9);
       }
     }
 
-    // Sanitize Base URL for Custom Embedding (strip trailing slash and /embeddings)
     if (node.type === "custom-embedding") {
       sanitizedBaseUrl = sanitizedBaseUrl.replace(/\/$/, "");
       if (sanitizedBaseUrl.endsWith("/embeddings")) {
@@ -80,7 +76,6 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE /api/provider-nodes/[id] - Delete provider node and its connections
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;

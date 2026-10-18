@@ -10,9 +10,6 @@ export default class ErrorTelemetry extends BaseErrorTelemetry {
 	protected override installErrorListeners(): void {
 		setUnexpectedErrorHandler(err => console.error(err));
 
-		// Print a console message when rejection isn't handled within N seconds. For details:
-		// see https://nodejs.org/api/process.html#process_event_unhandledrejection
-		// and https://nodejs.org/api/process.html#process_event_rejectionhandled
 		const unhandledPromises: Promise<unknown>[] = [];
 		process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
 			unhandledPromises.push(promise);
@@ -42,7 +39,6 @@ export default class ErrorTelemetry extends BaseErrorTelemetry {
 			}
 		});
 
-		// Print a console message when an exception isn't handled.
 		process.on('uncaughtException', (err: Error | NodeJS.ErrnoException) => {
 			if (isSigPipeError(err)) {
 				return;

@@ -9,7 +9,6 @@ import type { ICommonProperties } from '../../telemetry/common/telemetry.js';
 import { OneDataSystemAppender } from '../../telemetry/node/1dsAppender.js';
 import type { IAgentHostInternalTelemetryContext, IAgentHostInternalTelemetrySink, TelemetryMeasurements, TelemetryProps } from './agentHostRestrictedTelemetry.js';
 
-// Public instrumentation key shipped as internalLargeStorageAriaKey in extensions/copilot/package.json.
 const INTERNAL_LARGE_STORAGE_ARIA_KEY = 'ec712b3202c5462fb6877acae7f1f9d7-c19ad55e-3e3c-4f99-984b-827f6d95bd9e-6917';
 const INTERNAL_EVENT_PREFIX = 'GitHub.copilot-chat';
 const INTERNAL_EXTENSION_ID = 'GitHub.copilot-chat';

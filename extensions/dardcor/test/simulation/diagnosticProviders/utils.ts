@@ -17,9 +17,6 @@ import { CACHING_DIAGNOSTICS_PROVIDER_CACHE_SALT } from '../../cacheSalt';
 import { cleanTempDirWithRetry, createTempDir } from '../stestUtil';
 import { DiagnosticsProvider, IFile, ITestDiagnostic } from './diagnosticsProvider';
 
-/**
- * Abstract class which finds diagnostics for a set of files and stores them in a cache path
- */
 export abstract class CachingDiagnosticsProvider extends DiagnosticsProvider {
 	protected readonly id = this.constructor.name;
 
@@ -29,10 +26,8 @@ export abstract class CachingDiagnosticsProvider extends DiagnosticsProvider {
 	protected get cacheVersion(): number { return CACHING_DIAGNOSTICS_PROVIDER_CACHE_SALT; }
 
 	override async getDiagnostics(accessor: ITestingServicesAccessor, files: IFile[]): Promise<ITestDiagnostic[]> {
-		// Always use / as separators in file names to avoid cache misses on Windows
 		files = files.map(f => ({ ...f, fileName: f.fileName.replace(/\\/g, '/') }));
 
-		// Keep files stable and maximize cache hits by sorting them by file name
 		files.sort((a, b) => a.fileName.localeCompare(b.fileName));
 
 		const cacheKey = computeSHA256(`${this.id}-v${this.cacheVersion}-${JSON.stringify(files)}`);
@@ -49,9 +44,6 @@ export abstract class CachingDiagnosticsProvider extends DiagnosticsProvider {
 	protected abstract computeDiagnostics(files: IFile[]): Promise<ITestDiagnostic[]>;
 }
 
-/**
- * Abstract class for defining diagnostics provider which provide linting errors
- */
 export abstract class LintingDiagnosticsProvider extends CachingDiagnosticsProvider {
 
 	protected override async computeDiagnostics(_files: IFile[]): Promise<ITestDiagnostic[]> {

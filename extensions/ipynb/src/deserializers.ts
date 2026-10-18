@@ -22,13 +22,11 @@ export function getPreferredLanguage(metadata?: nbformat.INotebookMetadata) {
 		metadata?.language_info?.name ||
 		(metadata?.kernelspec as unknown as { language: string })?.language;
 
-	// Default to python language only if the Python extension is installed.
 	const defaultLanguage =
 		extensions.getExtension('ms-python.python')
 			? 'python'
 			: (extensions.getExtension('ms-dotnettools.dotnet-interactive-vscode') ? 'csharp' : 'python');
 
-	// Note, whatever language is returned here, when the user selects a kernel, the cells (of blank documents) get updated based on that kernel selection.
 	return translateKernelLanguageToMonaco(jupyterLanguage || defaultLanguage);
 }
 
@@ -76,9 +74,6 @@ function sortOutputItemsBasedOnDisplayOrder(outputItems: NotebookCellOutputItem[
 	return outputItems
 		.map(item => {
 			let index = orderOfMimeTypes.findIndex((mime) => isMimeTypeMatch(mime, item.mime));
-			// Sometimes we can have mime types with empty data, e.g. when using holoview we can have `application/vnd.holoviews_load.v0+json` with empty value.
-			// & in these cases we have HTML/JS and those take precedence.
-			// https://github.com/microsoft/vscode-jupyter/issues/6109
 			if (isEmptyVendoredMimeType(item)) {
 				index = -1;
 			}
@@ -90,11 +85,6 @@ function sortOutputItemsBasedOnDisplayOrder(outputItems: NotebookCellOutputItem[
 		.sort((outputItemA, outputItemB) => outputItemA.index - outputItemB.index).map(item => item.item);
 }
 
-/**
- * Concatenates a multiline string or an array of strings into a single string.
- * Also normalizes line endings to use LF (`\n`) instead of CRLF (`\r\n`).
- * Same is done in serializer as well.
- */
 function concatMultilineCellSource(source: string | string[]): string {
 	return concatMultilineString(source).replace(/\r\n/g, '\n');
 }
@@ -128,8 +118,6 @@ function convertJupyterOutputToBuffer(mime: string, value: unknown): NotebookCel
 			const stringValue = Array.isArray(value) ? concatMultilineString(value) : value;
 			return NotebookCellOutputItem.text(stringValue, mime);
 		} else if (mime.startsWith('image/') && typeof value === 'string' && mime !== 'image/svg+xml') {
-			// Images in Jupyter are stored in base64 encoded format.
-			// VS Code expects bytes when rendering images.
 			if (typeof Buffer !== 'undefined' && typeof Buffer.from === 'function') {
 				return new NotebookCellOutputItem(Buffer.from(value, 'base64'), mime);
 			} else {
@@ -141,7 +129,6 @@ function convertJupyterOutputToBuffer(mime: string, value: unknown): NotebookCel
 		} else if (mime === 'application/json') {
 			return NotebookCellOutputItem.json(value, mime);
 		} else {
-			// For everything else, treat the data as strings (or multi-line strings).
 			value = Array.isArray(value) ? concatMultilineString(value) : value;
 			return NotebookCellOutputItem.text(value as string, mime);
 		}
@@ -153,8 +140,6 @@ function convertJupyterOutputToBuffer(mime: string, value: unknown): NotebookCel
 function getNotebookCellMetadata(cell: nbformat.ICell): {
 	[key: string]: any;
 } {
-	// We put this only for VSC to display in diff view.
-	// Else we don't use this.
 	const cellMetadata: CellMetadata = {};
 	if (cell.cell_type === 'code') {
 		if (typeof cell['execution_count'] === 'number') {
@@ -179,7 +164,6 @@ function getNotebookCellMetadata(cell: nbformat.ICell): {
 }
 
 function getOutputMetadata(output: nbformat.IOutput): CellOutputMetadata {
-	// Add on transient data if we have any. This should be removed by our save functions elsewhere.
 	const metadata: CellOutputMetadata = {
 		outputType: output.output_type
 	};
@@ -206,23 +190,6 @@ function getOutputMetadata(output: nbformat.IOutput): CellOutputMetadata {
 function translateDisplayDataOutput(
 	output: nbformat.IDisplayData | nbformat.IDisplayUpdate | nbformat.IExecuteResult
 ): NotebookCellOutput {
-	// Metadata could be as follows:
-	// We'll have metadata specific to each mime type as well as generic metadata.
-	/*
-	IDisplayData = {
-		output_type: 'display_data',
-		data: {
-			'image/jpg': '/////'
-			'image/png': '/////'
-			'text/plain': '/////'
-		},
-		metadata: {
-			'image/png': '/////',
-			'background': true,
-			'xyz': '///
-		}
-	}
-	*/
 	const metadata = getOutputMetadata(output);
 	const items: NotebookCellOutputItem[] = [];
 	if (output.data) {
@@ -262,29 +229,6 @@ cellOutputMappers.set('error', translateErrorOutput);
 cellOutputMappers.set('stream', translateStreamOutput);
 
 export function jupyterCellOutputToCellOutput(output: nbformat.IOutput): NotebookCellOutput {
-	/**
-	 * Stream, `application/x.notebook.stream`
-	 * Error, `application/x.notebook.error-traceback`
-	 * Rich, { mime: value }
-	 *
-	 * outputs: [
-			new vscode.NotebookCellOutput([
-				new vscode.NotebookCellOutputItem('application/x.notebook.stream', 2),
-				new vscode.NotebookCellOutputItem('application/x.notebook.stream', 3),
-			]),
-			new vscode.NotebookCellOutput([
-				new vscode.NotebookCellOutputItem('text/markdown', '## header 2'),
-				new vscode.NotebookCellOutputItem('image/svg+xml', [
-					"<svg baseProfile=\"full\" height=\"200\" version=\"1.1\" width=\"300\" xmlns=\"http://www.w3.org/2000/svg\">\n",
-					"  <rect fill=\"blue\" height=\"100%\" width=\"100%\"/>\n",
-					"  <circle cx=\"150\" cy=\"100\" fill=\"green\" r=\"80\"/>\n",
-					"  <text fill=\"white\" font-size=\"60\" text-anchor=\"middle\" x=\"150\" y=\"125\">SVG</text>\n",
-					"</svg>"
-					]),
-			]),
-		]
-	 *
-	 */
 	const fn = cellOutputMappers.get(output.output_type as nbformat.OutputType);
 	let result: NotebookCellOutput;
 	if (fn) {
@@ -351,9 +295,6 @@ function createNotebookCellDataFromJupyterCell(
 	return;
 }
 
-/**
- * Converts a NotebookModel into VS Code format.
- */
 export function jupyterNotebookModelToNotebookData(
 	notebookContent: Partial<nbformat.INotebookContent>,
 	preferredLanguage: string

@@ -90,7 +90,7 @@ export default function GrokBuildToolCard({
   const [selectedApiKey, setSelectedApiKey] = useState(apiKeys?.[0]?.key || "");
   const [selectedModel, setSelectedModel] = useState(initialModel);
   const [subagentModels, setSubagentModels] = useState(initialSubagents);
-  const [modelTarget, setModelTarget] = useState(null); // "main" or subagent type
+  const [modelTarget, setModelTarget] = useState(null);
   const [modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
@@ -186,7 +186,6 @@ export default function GrokBuildToolCard({
       });
       const data = await res.json();
       if (res.ok) {
-        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Main and subagent models applied successfully!" });
         checkStatus();

@@ -11,21 +11,19 @@ import { SyncDescriptor } from '../../../util/dardcor/platform/instantiation/com
 import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ServiceCollection } from '../../../util/dardcor/platform/instantiation/common/serviceCollection';
 import { CompletionsTelemetryServiceBridge, ICompletionsTelemetryService } from './bridge/src/completionsTelemetryServiceBridge';
-import { LoggingCitationManager } from './extension/src/codeReferencing/citationManager';
 import { CompletionsObservableWorkspace } from './extension/src/completionsObservableWorkspace';
 import { disableCompletions, enableCompletions, toggleCompletions, VSCodeConfigProvider, VSCodeEditorInfo } from './extension/src/config';
 import { CMDDisableCompletionsChat, CMDDisableCompletionsClient, CMDEnableCompletionsChat, CMDEnableCompletionsClient, CMDOpenDocumentationClient, CMDOpenLogsClient, CMDOpenModelPickerChat, CMDOpenModelPickerClient, CMDToggleCompletionsChat, CMDToggleCompletionsClient, CMDToggleStatusMenuChat, CMDToggleStatusMenuClient } from './extension/src/constants';
 import { contextProviderMatch } from './extension/src/contextProviderMatch';
 import { registerPanelSupport } from './extension/src/dardcorPanel/common';
-import { CopilotExtensionStatus, ICompletionsExtensionStatus } from './extension/src/extensionStatus';
+import { DardcorCompletionStatus, ICompletionsExtensionStatus } from './extension/src/extensionStatus';
 import { extensionFileSystem } from './extension/src/fileSystem';
 import { ModelPickerManager } from './extension/src/modelPicker';
-import { CopilotStatusBar } from './extension/src/statusBar';
-import { CopilotStatusBarPickMenu } from './extension/src/statusBarPicker';
+import { DardcorCompletionStatusBar } from './extension/src/statusBar';
+import { DardcorStatusBarPickMenu } from './extension/src/statusBarPicker';
 import { ExtensionTextDocumentManager } from './extension/src/textDocumentManager';
 import { exception } from './extension/src/dardcorInlineCompletionItemProvider';
-import { CopilotTokenManagerImpl, ICompletionsCopilotTokenManager } from './lib/src/auth/dardcorTokenManager';
-import { ICompletionsCitationManager } from './lib/src/citationManager';
+import { ICompletionsCitationManager, NoOpCitationManager } from './lib/src/citationManager';
 import { CompletionNotifier, ICompletionsNotifierService } from './lib/src/completionNotifier';
 import { ICompletionsObservableWorkspace } from './lib/src/completionsObservableWorkspace';
 import { ICompletionsConfigProvider, ICompletionsEditorAndPluginInfo } from './lib/src/config';
@@ -68,7 +66,6 @@ import { ICompletionsTextDocumentManagerService } from './lib/src/textDocumentMa
 import { ICompletionsPromiseQueueService, PromiseQueue } from './lib/src/util/promiseQueue';
 import { ICompletionsRuntimeModeService, RuntimeMode } from './lib/src/util/runtimeMode';
 
-/** @public */
 export function createContext(serviceAccessor: ServicesAccessor, store: DisposableStore): IInstantiationService {
 	const logService = serviceAccessor.get(ILogService);
 
@@ -95,11 +92,10 @@ export function createContext(serviceAccessor: ServicesAccessor, store: Disposab
 	serviceCollection.set(ICompletionsSpeculativeRequestCache, new SpeculativeRequestCache());
 	serviceCollection.set(ICompletionsNotificationSender, new SyncDescriptor(ExtensionNotificationSender));
 	serviceCollection.set(ICompletionsEditorAndPluginInfo, new VSCodeEditorInfo());
-	serviceCollection.set(ICompletionsExtensionStatus, new CopilotExtensionStatus());
+	serviceCollection.set(ICompletionsExtensionStatus, new DardcorCompletionStatus());
 	serviceCollection.set(ICompletionsFeaturesService, new SyncDescriptor(Features));
 	serviceCollection.set(ICompletionsObservableWorkspace, new SyncDescriptor(CompletionsObservableWorkspace));
-	serviceCollection.set(ICompletionsStatusReporter, new SyncDescriptor(CopilotStatusBar, ['github.dardcor.languageStatus']));
-	serviceCollection.set(ICompletionsCopilotTokenManager, new SyncDescriptor(CopilotTokenManagerImpl, [false]));
+	serviceCollection.set(ICompletionsStatusReporter, new SyncDescriptor(DardcorCompletionStatusBar, ['github.dardcor.languageStatus']));
 	serviceCollection.set(ICompletionsTextDocumentManagerService, new SyncDescriptor(ExtensionTextDocumentManager));
 	serviceCollection.set(ICompletionsFileReaderService, new SyncDescriptor(FileReader));
 	serviceCollection.set(ICompletionsBlockModeConfig, new SyncDescriptor(ConfigBlockModeConfig));
@@ -116,7 +112,7 @@ export function createContext(serviceAccessor: ServicesAccessor, store: Disposab
 	serviceCollection.set(ICompletionsFileSystemService, extensionFileSystem);
 	serviceCollection.set(ICompletionsContextProviderRegistryService, new SyncDescriptor(CachedContextProviderRegistry, [CoreContextProviderRegistry, contextProviderMatch]));
 	serviceCollection.set(ICompletionsPromiseQueueService, new PromiseQueue());
-	serviceCollection.set(ICompletionsCitationManager, new SyncDescriptor(LoggingCitationManager));
+	serviceCollection.set(ICompletionsCitationManager, new NoOpCitationManager());
 	serviceCollection.set(ICompletionsContextProviderService, new ContextProviderStatistics());
 	serviceCollection.set(ICompletionsPromptFactoryService, new SyncDescriptor(CompletionsPromptFactory));
 	serviceCollection.set(ICompletionsFetcherService, new SyncDescriptor(CompletionsFetcher));
@@ -125,17 +121,9 @@ export function createContext(serviceAccessor: ServicesAccessor, store: Disposab
 	return serviceAccessor.get(IInstantiationService).createChild(serviceCollection, store);
 }
 
-/** @public */
 export function setup(serviceAccessor: ServicesAccessor, disposables: DisposableStore) {
-	// This must be registered before activation!
-	// CodeQuote needs to listen for the initial token notification event.
-	disposables.add(serviceAccessor.get(ICompletionsCitationManager).register());
-
-	// Register to listen for changes to the active document to keep track
-	// of last access time
 	disposables.add(registerDocumentTracker(serviceAccessor));
 
-	// Register the context providers enabled by default.
 	const defaultContextProviders = serviceAccessor.get(ICompletionsDefaultContextProviders);
 	defaultContextProviders.add('ms-vscode.cpptools');
 	defaultContextProviders.add('promptfile-ai-context-provider');
@@ -165,7 +153,6 @@ function registerEnablementCommands(accessor: ServicesAccessor): IDisposable {
 	const disposables = new DisposableStore();
 	const instantiationService = accessor.get(IInstantiationService);
 
-	// Enable/Disable/Toggle completions commands [with Command Palette support]
 	function enable(id: string): IDisposable {
 		return registerCommandWrapper(accessor, id, async () => {
 			await instantiationService.invokeFunction(enableCompletions);
@@ -182,12 +169,10 @@ function registerEnablementCommands(accessor: ServicesAccessor): IDisposable {
 		});
 	}
 
-	// To support command palette
 	disposables.add(enable(CMDEnableCompletionsChat));
 	disposables.add(disable(CMDDisableCompletionsChat));
 	disposables.add(toggle(CMDToggleCompletionsChat));
 
-	// To support keybindings/main functionality
 	disposables.add(enable(CMDEnableCompletionsClient));
 	disposables.add(disable(CMDDisableCompletionsClient));
 	disposables.add(toggle(CMDToggleCompletionsClient));
@@ -208,7 +193,6 @@ function registerModelPickerCommands(accessor: ServicesAccessor): IDisposable {
 		});
 	}
 
-	// Model picker command [with Command Palette support]
 	disposables.add(registerModelPicker(CMDOpenModelPickerClient));
 	disposables.add(registerModelPicker(CMDOpenModelPickerChat));
 
@@ -219,20 +203,11 @@ function registerStatusBar(accessor: ServicesAccessor): IDisposable {
 	const disposables = new DisposableStore();
 
 	const instantiationService = accessor.get(IInstantiationService);
-	const dardcorTokenManagerService = accessor.get(ICompletionsCopilotTokenManager);
 	const extensionStatusService = accessor.get(ICompletionsExtensionStatus);
 
-	// Status menu command [with Command Palette support]
 	function registerStatusMenu(menuId: string): IDisposable {
 		return registerCommandWrapper(accessor, menuId, async () => {
-			if (extensionStatusService.kind === 'Error') {
-				// Try for a fresh token to clear up the error, but don't block the UI for too long.
-				await Promise.race([
-					dardcorTokenManagerService.primeToken(),
-					new Promise(resolve => setTimeout(resolve, 100)),
-				]);
-			}
-			instantiationService.createInstance(CopilotStatusBarPickMenu).showStatusMenu();
+			instantiationService.createInstance(DardcorStatusBarPickMenu).showStatusMenu();
 		});
 	}
 	disposables.add(registerStatusMenu(CMDToggleStatusMenuClient));

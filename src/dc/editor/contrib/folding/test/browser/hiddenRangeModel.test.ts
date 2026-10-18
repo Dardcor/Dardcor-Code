@@ -30,16 +30,16 @@ suite('Hidden Range Model', () => {
 
 	test('hasRanges', () => {
 		const lines = [
-		/* 1*/	'/**',
-		/* 2*/	' * Comment',
-		/* 3*/	' */',
-		/* 4*/	'class A {',
-		/* 5*/	'  void foo() {',
-		/* 6*/	'    if (true) {',
-		/* 7*/	'      //hello',
-		/* 8*/	'    }',
-		/* 9*/	'  }',
-		/* 10*/	'}'];
+		'/**',
+		' * Comment',
+		' */',
+		'class A {',
+		'  void foo() {',
+		'    if (true) {',
+		'      //hello',
+		'    }',
+		'  }',
+		'}'];
 
 		const textModel = createTextModel(lines.join('\n'));
 		const foldingModel = new FoldingModel(textModel, new TestDecorationProvider(textModel));

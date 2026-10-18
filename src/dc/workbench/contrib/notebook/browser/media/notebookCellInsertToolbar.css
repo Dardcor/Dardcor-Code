@@ -45,7 +45,7 @@
 }
 
 .monaco-workbench .notebookOverlay .cell-list-top-cell-toolbar-container .monaco-toolbar {
-	margin-top: 3px; /* This is the minimum to keep the top edge from being cut off at the top of the editor */
+	margin-top: 3px;
 }
 
 .monaco-workbench .notebookOverlay .cell-list-top-cell-toolbar-container .monaco-toolbar .action-item,

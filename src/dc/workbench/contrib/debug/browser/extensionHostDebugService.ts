@@ -42,7 +42,6 @@ class BrowserExtensionHostDebugService extends ExtensionHostDebugChannelClient i
 		if (connection) {
 			channel = connection.getChannel(ExtensionHostDebugBroadcastChannel.ChannelName);
 		} else {
-			// Extension host debugging not supported in serverless.
 			channel = { call: async () => Promise.resolve(undefined!), listen: () => Event.None };
 		}
 
@@ -58,22 +57,18 @@ class BrowserExtensionHostDebugService extends ExtensionHostDebugChannelClient i
 			logService.warn('Extension Host Debugging not available due to missing workspace provider.');
 		}
 
-		// Reload window on reload request
 		this._register(this.onReload(event => {
 			if (environmentService.isExtensionDevelopment && environmentService.debugExtensionHost.debugId === event.sessionId) {
 				hostService.reload();
 			}
 		}));
 
-		// Close window on close request
 		this._register(this.onClose(event => {
 			if (environmentService.isExtensionDevelopment && environmentService.debugExtensionHost.debugId === event.sessionId) {
 				hostService.close();
 			}
 		}));
 
-		// Remember workspace as last used for extension development
-		// (unless this is API tests) to restore for a future session
 		if (environmentService.isExtensionDevelopment && !environmentService.extensionTestsLocationURI) {
 			const workspaceId = toWorkspaceIdentifier(contextService.getWorkspace());
 			if (isSingleFolderWorkspaceIdentifier(workspaceId) || isWorkspaceIdentifier(workspaceId)) {
@@ -87,7 +82,6 @@ class BrowserExtensionHostDebugService extends ExtensionHostDebugChannelClient i
 
 	override async openExtensionDevelopmentHostWindow(args: string[], _debugRenderer: boolean): Promise<IOpenExtensionWindowResult> {
 
-		// Add environment parameters required for debug to work
 		const environment = new Map<string, string>();
 
 		const fileUriArg = this.findArgument('file-uri', args);
@@ -111,7 +105,6 @@ class BrowserExtensionHostDebugService extends ExtensionHostDebugChannelClient i
 			}
 		}
 
-		// Find out which workspace to open debug window on
 		let debugWorkspace: IWorkspace = undefined;
 		const folderUriArg = this.findArgument('folder-uri', args);
 		if (folderUriArg) {
@@ -135,12 +128,10 @@ class BrowserExtensionHostDebugService extends ExtensionHostDebugChannelClient i
 						debugWorkspace = { folderUri: URI.revive(serializedWorkspace.folderUri) };
 					}
 				} catch (error) {
-					// ignore
 				}
 			}
 		}
 
-		// Validate workspace exists
 		if (debugWorkspace) {
 			const debugWorkspaceResource = isFolderToOpen(debugWorkspace) ? debugWorkspace.folderUri : isWorkspaceToOpen(debugWorkspace) ? debugWorkspace.workspaceUri : undefined;
 			if (debugWorkspaceResource) {
@@ -151,10 +142,9 @@ class BrowserExtensionHostDebugService extends ExtensionHostDebugChannelClient i
 			}
 		}
 
-		// Open debug window as new window. Pass arguments over.
 		const success = await this.workspaceProvider.open(debugWorkspace, {
-			reuse: false, 								// debugging always requires a new window
-			payload: Array.from(environment.entries())	// mandatory properties to enable debugging
+			reuse: false,
+			payload: Array.from(environment.entries())
 		});
 
 		return { success };

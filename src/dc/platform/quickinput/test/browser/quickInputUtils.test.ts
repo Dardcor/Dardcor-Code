@@ -84,20 +84,16 @@ suite('QuickInputUtils', () => {
 			});
 
 			assert.strictEqual(action.id, 'toggle-id');
-			// For toggle buttons, tooltip is used as label
 			assert.strictEqual(action.label, 'Toggle Test');
 			assert.strictEqual(action.tooltip, '');
 			assert.notStrictEqual(action.checked, undefined);
 
-			// Initial state
 			assert.strictEqual(action.checked, false);
 			assert.strictEqual(toggle.checked, false);
 
-			// Run the action
 			action.run();
 			assert.strictEqual(runCalled, true);
 
-			// Toggle state should be flipped
 			assert.strictEqual(action.checked, true);
 			assert.strictEqual(toggle.checked, true);
 		});
@@ -117,7 +113,6 @@ suite('QuickInputUtils', () => {
 			assert.strictEqual(action.checked, true);
 			assert.strictEqual(toggle.checked, true);
 
-			// Run should flip the state
 			action.run();
 
 			assert.strictEqual(action.checked, false);
@@ -143,7 +138,6 @@ suite('QuickInputUtils', () => {
 
 			const action = quickInputButtonToAction(button, 'test-id', () => { });
 
-			// The label property exists on the button but the action's label is initially empty
 			assert.strictEqual(action.label, '');
 		});
 	});

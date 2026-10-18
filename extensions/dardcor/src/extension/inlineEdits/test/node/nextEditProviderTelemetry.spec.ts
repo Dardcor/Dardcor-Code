@@ -36,9 +36,9 @@ function createMockNextEditResult(): INextEditResult {
 
 function createMockBuilder(doc?: MutableObservableDocument): NextEditProviderTelemetryBuilder {
 	return new NextEditProviderTelemetryBuilder(
-		undefined, // gitExtensionService
-		undefined, // notebookService
-		undefined, // workspaceService
+		undefined,
+		undefined,
+		undefined,
 		'test-provider',
 		doc,
 	);
@@ -65,7 +65,7 @@ describe('TelemetrySender', () => {
 	});
 
 	describe('scheduleSendingEnhancedTelemetry', () => {
-		const initialTimeoutMs = 2 * 60 * 1000; // matches production value
+		const initialTimeoutMs = 2 * 60 * 1000;
 
 		test('sends after initial timeout when no workspace', async () => {
 			const senderNoWorkspace = new TelemetrySender(undefined, telemetryService);
@@ -93,7 +93,6 @@ describe('TelemetrySender', () => {
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Advance 5s — idle timer fires
 			await vi.advanceTimersByTimeAsync(5_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 		});
@@ -109,15 +108,12 @@ describe('TelemetrySender', () => {
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Wait 3s, then type in a DIFFERENT document
 			await vi.advanceTimersByTimeAsync(3_000);
 			otherDoc.setValue(new StringText('typing in other file'));
 
-			// 3s after typing → still not sent
 			await vi.advanceTimersByTimeAsync(3_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// 2 more seconds → 5s since last activity → sends
 			await vi.advanceTimersByTimeAsync(2_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 		});
@@ -131,7 +127,6 @@ describe('TelemetrySender', () => {
 
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 
-			// Simulate continuous typing every 2s for 30s
 			for (let i = 0; i < 15; i++) {
 				await vi.advanceTimersByTimeAsync(2_000);
 				doc.setValue(new StringText(`edit ${i}`));
@@ -172,14 +167,11 @@ describe('TelemetrySender', () => {
 
 			sender.scheduleSendingEnhancedTelemetry(result, builder);
 
-			// Advance past the 2-minute timeout to enter idle-wait phase
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Dispose during idle-wait phase (before 5s idle timer fires)
 			sender.dispose();
 
-			// Advance past both idle timer and hard cap — nothing should be sent
 			await vi.advanceTimersByTimeAsync(5_000 + 30_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 		});
@@ -189,7 +181,6 @@ describe('TelemetrySender', () => {
 		const initialTimeoutMs = 2 * 60 * 1000;
 
 		function getSendingReason(event: { properties?: TelemetryEventProperties }): IEnhancedTelemetrySendingReason | undefined {
-			// Sending reason may be at top level (when alternativeAction is absent) or embedded in alternativeAction
 			const topLevel = event.properties?.['enhancedTelemetrySendingReason'];
 			if (topLevel) { return JSON.parse(String(topLevel)); }
 			const altAction = event.properties?.['alternativeAction'];
@@ -235,7 +226,6 @@ describe('TelemetrySender', () => {
 			sender.scheduleSendingEnhancedTelemetry(result, builder);
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 
-			// Simulate continuous typing every 2s for 30s
 			for (let i = 0; i < 15; i++) {
 				await vi.advanceTimersByTimeAsync(2_000);
 				doc.setValue(new StringText(`edit ${i}`));
@@ -250,7 +240,6 @@ describe('TelemetrySender', () => {
 			const doc = workspace.addDocument({ id: DocumentId.create('file:///test.ts'), workspaceRoot, initialValue: 'line0\nline1\nline2' });
 			const result = createMockNextEditResult();
 
-			// Set initial selection on line 0 BEFORE creating builder (so originalSelectionLine is captured)
 			doc.setSelection([OffsetRange.fromTo(0, 0)], undefined, 0);
 			const builder = createMockBuilder(doc);
 
@@ -258,11 +247,10 @@ describe('TelemetrySender', () => {
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Wait 1s (no recent typing), then jump selection to line 2 (offset 12 = start of "line2")
 			await vi.advanceTimersByTimeAsync(1_000);
 			doc.setSelection([OffsetRange.fromTo(12, 12)], undefined, 2);
 
-			await vi.advanceTimersByTimeAsync(0); // flush
+			await vi.advanceTimersByTimeAsync(0);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 			const reason = getSendingReason(telemetryService.enhancedEvents[0]);
 			expect(reason).toEqual({
@@ -279,7 +267,6 @@ describe('TelemetrySender', () => {
 			const otherDoc = workspace.addDocument({ id: DocumentId.create('file:///other.ts'), workspaceRoot, initialValue: 'other0\nother1\nother2' });
 			const result = createMockNextEditResult();
 
-			// Set initial selection BEFORE creating builder
 			doc.setSelection([OffsetRange.fromTo(0, 0)], undefined, 0);
 			const builder = createMockBuilder(doc);
 
@@ -287,11 +274,10 @@ describe('TelemetrySender', () => {
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Wait 1s, then "jump" to other file by changing its selection
 			await vi.advanceTimersByTimeAsync(1_000);
-			otherDoc.setSelection([OffsetRange.fromTo(7, 7)], undefined, 1); // line 1 of other.ts ("other1")
+			otherDoc.setSelection([OffsetRange.fromTo(7, 7)], undefined, 1);
 
-			await vi.advanceTimersByTimeAsync(0); // flush
+			await vi.advanceTimersByTimeAsync(0);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 			const reason = getSendingReason(telemetryService.enhancedEvents[0]);
 			expect(reason).toEqual({
@@ -313,14 +299,12 @@ describe('TelemetrySender', () => {
 			sender.scheduleSendingEnhancedTelemetry(result, builder);
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 
-			// Move selection within the same line (offset 5 is still line 0)
 			await vi.advanceTimersByTimeAsync(1_000);
 			doc.setSelection([OffsetRange.fromTo(5, 5)], undefined, 0);
 
 			await vi.advanceTimersByTimeAsync(0);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Eventually sends via idle timer
 			await vi.advanceTimersByTimeAsync(5_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 			expect(getSendingReason(telemetryService.enhancedEvents[0])?.reason).toBe('idle');
@@ -336,15 +320,12 @@ describe('TelemetrySender', () => {
 			sender.scheduleSendingEnhancedTelemetry(result, builder);
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 
-			// Type first (triggers lastTypingTime update), then immediately move selection
 			doc.setValue(new StringText('line0\nline1\nline2!'));
 			doc.setSelection([OffsetRange.fromTo(12, 12)], undefined, 2);
 
 			await vi.advanceTimersByTimeAsync(0);
-			// Should NOT have sent — selection change within 200ms of typing is ignored
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Sends via idle timer instead
 			await vi.advanceTimersByTimeAsync(5_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 			expect(getSendingReason(telemetryService.enhancedEvents[0])?.reason).toBe('idle');
@@ -354,7 +335,6 @@ describe('TelemetrySender', () => {
 			const doc = workspace.addDocument({ id: DocumentId.create('file:///test.ts'), workspaceRoot, initialValue: 'line0\nline1' });
 			const otherDoc = workspace.addDocument({ id: DocumentId.create('file:///other.ts'), workspaceRoot, initialValue: 'other0\nother1' });
 
-			// Both docs have pre-existing selections before idle-wait starts
 			doc.setSelection([OffsetRange.fromTo(0, 0)], undefined, 0);
 			otherDoc.setSelection([OffsetRange.fromTo(7, 7)], undefined, 1);
 
@@ -364,11 +344,9 @@ describe('TelemetrySender', () => {
 			sender.scheduleSendingEnhancedTelemetry(result, builder);
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 
-			// No selection changes — should NOT trigger user_jump
 			await vi.advanceTimersByTimeAsync(1_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Eventually sends via idle timer
 			await vi.advanceTimersByTimeAsync(5_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 			expect(getSendingReason(telemetryService.enhancedEvents[0])?.reason).toBe('idle');
@@ -381,19 +359,15 @@ describe('TelemetrySender', () => {
 
 			sender.scheduleSendingEnhancedTelemetry(result, builder);
 
-			// Enter idle-wait phase
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			// Send via the direct path (error/cancel scenario)
 			const directBuilder = createMockBuilder(undefined);
 			sender.sendTelemetry(result, directBuilder);
 
-			// Flush async _doSendEnhancedTelemetry
 			await vi.advanceTimersByTimeAsync(0);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 
-			// Advance past idle and hard cap — should NOT send again
 			await vi.advanceTimersByTimeAsync(5_000 + 30_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 		});
@@ -401,13 +375,11 @@ describe('TelemetrySender', () => {
 		test('sends undefined "from" when builder has no doc', async () => {
 			workspace.addDocument({ id: DocumentId.create('file:///test.ts'), workspaceRoot, initialValue: 'line0\nline1' });
 			const result = createMockNextEditResult();
-			// No doc on builder — nesDocId and nesDocLine will be undefined
 			const builder = createMockBuilder(undefined);
 
 			sender.scheduleSendingEnhancedTelemetry(result, builder);
 			await vi.advanceTimersByTimeAsync(initialTimeoutMs);
 
-			// Idle sends — reason should have no nesDocId so from is undefined
 			await vi.advanceTimersByTimeAsync(5_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 			const reason = getSendingReason(telemetryService.enhancedEvents[0]);
@@ -422,26 +394,18 @@ describe('TelemetrySender', () => {
 
 			sender.scheduleSendingEnhancedTelemetry(result, builder1);
 
-			// After 1 minute, reschedule with a new builder
 			await vi.advanceTimersByTimeAsync(60_000);
 			sender.scheduleSendingEnhancedTelemetry(result, builder2);
 
-			// Original 2-min timeout would fire at 120s, but it was cancelled
-			// New 2-min timeout fires at 60s + 120s = 180s
-			await vi.advanceTimersByTimeAsync(60_000); // at 120s total
-			expect(telemetryService.enhancedEvents).toHaveLength(0); // old one cancelled
+			await vi.advanceTimersByTimeAsync(60_000);
+			expect(telemetryService.enhancedEvents).toHaveLength(0);
 
-			await vi.advanceTimersByTimeAsync(60_000 + 5_000); // at 185s total — new timeout + idle
+			await vi.advanceTimersByTimeAsync(60_000 + 5_000);
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
 		});
 	});
 
 	describe('fetchResult disambiguation', () => {
-		// `eventPropertiesToSimpleObject` drops falsy property values (including `""`), so
-		// once a payload reaches the wire, "model responded with empty string" looks identical
-		// to "fetch was canceled/failed" and to "no fetch happened". The `fetchResult` property
-		// on the enhanced/restricted event is what lets consumers tell them apart in the
-		// `dardcor_v0_next_edit_suggestion_restricted_code_snippet` table.
 
 		function buildStatelessTelemetry(response: Promise<FetchResultWithStats> | undefined): IStatelessNextEditTelemetry {
 			return {
@@ -493,7 +457,6 @@ describe('TelemetrySender', () => {
 			builder.nesBuilder.setStatelessNextEditTelemetry(buildStatelessTelemetry(response));
 
 			sender.sendTelemetry(result, builder);
-			// `_doSendEnhancedTelemetry` is async — flush its awaits so the event is recorded.
 			await vi.advanceTimersByTimeAsync(0);
 
 			expect(telemetryService.enhancedEvents).toHaveLength(1);
@@ -523,7 +486,6 @@ describe('TelemetrySender', () => {
 
 			const properties = await sendAndFlush(response);
 			expect(properties?.fetchResult).toBe(ChatFetchResponseType.Success);
-			// `eventPropertiesToSimpleObject` strips falsy values, including an empty string response.
 			expect(properties?.modelResponse).toBeUndefined();
 		});
 

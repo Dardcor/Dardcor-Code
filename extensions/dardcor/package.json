@@ -22,7 +22,7 @@
   "icon": "assets/dardcor-code.png",
   "pricing": "Trial",
   "engines": {
-    "vscode": "^1.132.0",
+    "vscode": "^1.0.0",
     "npm": ">=9.0.0",
     "node": ">=22.14.0"
   },
@@ -160,7 +160,6 @@
     "chatSessionCustomizationProvider"
   ],
   "contributes": {
-
     "languageModelTools": [
       {
         "name": "dardcor_searchCodebase",
@@ -1257,7 +1256,7 @@
                 "query",
                 "reindex"
               ],
-              "description": "The action to perform. 'query' (default) executes a SQL query. 'reindex' rebuilds the local session index and syncs to cloud if enabled."
+              "description": "The action to perform. 'query' (default) executes a SQL query. 'reindex' rebuilds the local session index from available debug logs."
             },
             "query": {
               "type": "string",
@@ -1299,16 +1298,57 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "filePath": { "type": "string", "description": "Target file path to mutate" },
-            "mutationType": { "type": "string", "enum": ["morph_function", "inject_member", "reconcile_imports", "wrap_node", "rename_symbol"], "description": "Type of AST mutation" },
-            "identifier": { "type": "string", "description": "Target symbol or node identifier" },
-            "newCode": { "type": "string", "description": "New body code for function morphing" },
-            "memberSignature": { "type": "string", "description": "Member signature for interface/class injection" },
-            "wrapKind": { "type": "string", "enum": ["try_catch", "memo", "null_check"], "description": "Wrapper kind" },
-            "newIdentifierName": { "type": "string", "description": "New name for symbol rename" },
-            "description": { "type": "string", "description": "Short explanation of the mutation" }
+            "filePath": {
+              "type": "string",
+              "description": "Target file path to mutate"
+            },
+            "mutationType": {
+              "type": "string",
+              "enum": [
+                "morph_function",
+                "inject_member",
+                "reconcile_imports",
+                "wrap_node",
+                "rename_symbol"
+              ],
+              "description": "Type of AST mutation"
+            },
+            "identifier": {
+              "type": "string",
+              "description": "Target symbol or node identifier"
+            },
+            "newCode": {
+              "type": "string",
+              "description": "New body code for function morphing"
+            },
+            "memberSignature": {
+              "type": "string",
+              "description": "Member signature for interface/class injection"
+            },
+            "wrapKind": {
+              "type": "string",
+              "enum": [
+                "try_catch",
+                "memo",
+                "null_check"
+              ],
+              "description": "Wrapper kind"
+            },
+            "newIdentifierName": {
+              "type": "string",
+              "description": "New name for symbol rename"
+            },
+            "description": {
+              "type": "string",
+              "description": "Short explanation of the mutation"
+            }
           },
-          "required": ["filePath", "mutationType", "identifier", "description"]
+          "required": [
+            "filePath",
+            "mutationType",
+            "identifier",
+            "description"
+          ]
         }
       },
       {
@@ -1321,15 +1361,45 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "action": { "type": "string", "enum": ["inspect_session", "evaluate_expression", "set_probe", "clear_probes"], "description": "Action to execute" },
-            "expression": { "type": "string", "description": "Expression to evaluate in active runtime memory" },
-            "filePath": { "type": "string", "description": "File path for runtime probe" },
-            "lineNumber": { "type": "integer", "description": "Line number for probe" },
-            "condition": { "type": "string", "description": "Conditional expression for probe trigger" },
-            "frameId": { "type": "integer", "description": "Call stack frame ID" },
-            "description": { "type": "string", "description": "Short summary of debug inspection" }
+            "action": {
+              "type": "string",
+              "enum": [
+                "inspect_session",
+                "evaluate_expression",
+                "set_probe",
+                "clear_probes"
+              ],
+              "description": "Action to execute"
+            },
+            "expression": {
+              "type": "string",
+              "description": "Expression to evaluate in active runtime memory"
+            },
+            "filePath": {
+              "type": "string",
+              "description": "File path for runtime probe"
+            },
+            "lineNumber": {
+              "type": "integer",
+              "description": "Line number for probe"
+            },
+            "condition": {
+              "type": "string",
+              "description": "Conditional expression for probe trigger"
+            },
+            "frameId": {
+              "type": "integer",
+              "description": "Call stack frame ID"
+            },
+            "description": {
+              "type": "string",
+              "description": "Short summary of debug inspection"
+            }
           },
-          "required": ["action", "description"]
+          "required": [
+            "action",
+            "description"
+          ]
         }
       },
       {
@@ -1342,13 +1412,38 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "action": { "type": "string", "enum": ["create_shadow", "mutate_shadow", "merge_shadow", "destroy_shadow"], "description": "Action on shadow worktree" },
-            "branchId": { "type": "string", "description": "Unique identifier for the shadow branch" },
-            "filePath": { "type": "string", "description": "Relative file path inside shadow sandbox" },
-            "fileContent": { "type": "string", "description": "File content to write in shadow sandbox" },
-            "description": { "type": "string", "description": "Summary of shadow branch operation" }
+            "action": {
+              "type": "string",
+              "enum": [
+                "create_shadow",
+                "mutate_shadow",
+                "merge_shadow",
+                "destroy_shadow"
+              ],
+              "description": "Action on shadow worktree"
+            },
+            "branchId": {
+              "type": "string",
+              "description": "Unique identifier for the shadow branch"
+            },
+            "filePath": {
+              "type": "string",
+              "description": "Relative file path inside shadow sandbox"
+            },
+            "fileContent": {
+              "type": "string",
+              "description": "File content to write in shadow sandbox"
+            },
+            "description": {
+              "type": "string",
+              "description": "Summary of shadow branch operation"
+            }
           },
-          "required": ["action", "branchId", "description"]
+          "required": [
+            "action",
+            "branchId",
+            "description"
+          ]
         }
       },
       {
@@ -1361,12 +1456,27 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "packageName": { "type": "string", "description": "Package name in node_modules" },
-            "errorTraceSnippet": { "type": "string", "description": "Stack trace snippet referencing node_modules" },
-            "relativeVendorFilePath": { "type": "string", "description": "Relative path inside vendor package" },
-            "description": { "type": "string", "description": "Summary of inspection" }
+            "packageName": {
+              "type": "string",
+              "description": "Package name in node_modules"
+            },
+            "errorTraceSnippet": {
+              "type": "string",
+              "description": "Stack trace snippet referencing node_modules"
+            },
+            "relativeVendorFilePath": {
+              "type": "string",
+              "description": "Relative path inside vendor package"
+            },
+            "description": {
+              "type": "string",
+              "description": "Summary of inspection"
+            }
           },
-          "required": ["packageName", "description"]
+          "required": [
+            "packageName",
+            "description"
+          ]
         }
       },
       {
@@ -1379,11 +1489,30 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "targetUrlOrFilePath": { "type": "string", "description": "Target local dev URL or HTML/CSS file path" },
-            "checkType": { "type": "string", "enum": ["responsive_matrix", "css_overflow_audit", "accessibility_contrast", "animation_jank"], "description": "Audit check type" },
-            "description": { "type": "string", "description": "Summary of visual check" }
+            "targetUrlOrFilePath": {
+              "type": "string",
+              "description": "Target local dev URL or HTML/CSS file path"
+            },
+            "checkType": {
+              "type": "string",
+              "enum": [
+                "responsive_matrix",
+                "css_overflow_audit",
+                "accessibility_contrast",
+                "animation_jank"
+              ],
+              "description": "Audit check type"
+            },
+            "description": {
+              "type": "string",
+              "description": "Summary of visual check"
+            }
           },
-          "required": ["targetUrlOrFilePath", "checkType", "description"]
+          "required": [
+            "targetUrlOrFilePath",
+            "checkType",
+            "description"
+          ]
         }
       },
       {
@@ -1396,14 +1525,42 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "problemStatement": { "type": "string", "description": "The complex engineering or algorithmic problem to solve" },
-            "candidateApproachA": { "type": "string", "description": "Candidate approach or code snippet A" },
-            "candidateApproachB": { "type": "string", "description": "Candidate approach or code snippet B" },
-            "participatingModels": { "type": "array", "items": { "type": "string" }, "description": "List of models to consult" },
-            "strictnessLevel": { "type": "string", "enum": ["normal", "mathematical_invariance"], "description": "Strictness of arbitration" },
-            "description": { "type": "string", "description": "Summary of swarm consensus request" }
+            "problemStatement": {
+              "type": "string",
+              "description": "The complex engineering or algorithmic problem to solve"
+            },
+            "candidateApproachA": {
+              "type": "string",
+              "description": "Candidate approach or code snippet A"
+            },
+            "candidateApproachB": {
+              "type": "string",
+              "description": "Candidate approach or code snippet B"
+            },
+            "participatingModels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of models to consult"
+            },
+            "strictnessLevel": {
+              "type": "string",
+              "enum": [
+                "normal",
+                "mathematical_invariance"
+              ],
+              "description": "Strictness of arbitration"
+            },
+            "description": {
+              "type": "string",
+              "description": "Summary of swarm consensus request"
+            }
           },
-          "required": ["problemStatement", "description"]
+          "required": [
+            "problemStatement",
+            "description"
+          ]
         }
       },
       {
@@ -1416,12 +1573,31 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "filePath": { "type": "string", "description": "File path to audit for security taint flow" },
-            "scanDepth": { "type": "string", "enum": ["shallow", "deep_taint_flow"], "description": "Depth of taint flow analysis" },
-            "autoPatch": { "type": "boolean", "description": "Whether to synthesize an automated patch" },
-            "description": { "type": "string", "description": "Summary of security audit" }
+            "filePath": {
+              "type": "string",
+              "description": "File path to audit for security taint flow"
+            },
+            "scanDepth": {
+              "type": "string",
+              "enum": [
+                "shallow",
+                "deep_taint_flow"
+              ],
+              "description": "Depth of taint flow analysis"
+            },
+            "autoPatch": {
+              "type": "boolean",
+              "description": "Whether to synthesize an automated patch"
+            },
+            "description": {
+              "type": "string",
+              "description": "Summary of security audit"
+            }
           },
-          "required": ["filePath", "description"]
+          "required": [
+            "filePath",
+            "description"
+          ]
         }
       },
       {
@@ -1434,12 +1610,32 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "mode": { "type": "string", "enum": ["full_tri_layer", "lsp_only", "terminal_buffer_only", "process_health_only"], "description": "Mode of sentinel sweep" },
-            "targetPortOrService": { "type": "string", "description": "Optional port or service name to verify health" },
-            "errorPatternFilter": { "type": "string", "description": "Optional regex pattern to search in terminal output" },
-            "description": { "type": "string", "description": "Summary of runtime sentinel check" }
+            "mode": {
+              "type": "string",
+              "enum": [
+                "full_tri_layer",
+                "lsp_only",
+                "terminal_buffer_only",
+                "process_health_only"
+              ],
+              "description": "Mode of sentinel sweep"
+            },
+            "targetPortOrService": {
+              "type": "string",
+              "description": "Optional port or service name to verify health"
+            },
+            "errorPatternFilter": {
+              "type": "string",
+              "description": "Optional regex pattern to search in terminal output"
+            },
+            "description": {
+              "type": "string",
+              "description": "Summary of runtime sentinel check"
+            }
           },
-          "required": ["description"]
+          "required": [
+            "description"
+          ]
         }
       },
       {
@@ -1454,15 +1650,40 @@
           "properties": {
             "operation": {
               "type": "string",
-              "enum": ["goToDefinition", "findReferences", "hover", "documentSymbol", "workspaceSymbol", "goToImplementation", "prepareCallHierarchy", "incomingCalls", "outgoingCalls"],
+              "enum": [
+                "goToDefinition",
+                "findReferences",
+                "hover",
+                "documentSymbol",
+                "workspaceSymbol",
+                "goToImplementation",
+                "prepareCallHierarchy",
+                "incomingCalls",
+                "outgoingCalls"
+              ],
               "description": "LSP semantic operation to execute"
             },
-            "filePath": { "type": "string", "description": "Relative or absolute target document path" },
-            "line": { "type": "number", "description": "1-based line number" },
-            "character": { "type": "number", "description": "1-based character column offset" },
-            "query": { "type": "string", "description": "Optional search query for workspaceSymbol" }
+            "filePath": {
+              "type": "string",
+              "description": "Relative or absolute target document path"
+            },
+            "line": {
+              "type": "number",
+              "description": "1-based line number"
+            },
+            "character": {
+              "type": "number",
+              "description": "1-based character column offset"
+            },
+            "query": {
+              "type": "string",
+              "description": "Optional search query for workspaceSymbol"
+            }
           },
-          "required": ["operation", "filePath"]
+          "required": [
+            "operation",
+            "filePath"
+          ]
         }
       },
       {
@@ -1475,9 +1696,14 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "mentionQuery": { "type": "string", "description": "Prompt text containing slash context mentions" }
+            "mentionQuery": {
+              "type": "string",
+              "description": "Prompt text containing slash context mentions"
+            }
           },
-          "required": ["mentionQuery"]
+          "required": [
+            "mentionQuery"
+          ]
         }
       },
       {
@@ -1490,11 +1716,22 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "command": { "type": "string", "description": "Shell command line to execute" },
-            "cwd": { "type": "string", "description": "Optional working directory" },
-            "timeoutMs": { "type": "number", "description": "Execution timeout in milliseconds" }
+            "command": {
+              "type": "string",
+              "description": "Shell command line to execute"
+            },
+            "cwd": {
+              "type": "string",
+              "description": "Optional working directory"
+            },
+            "timeoutMs": {
+              "type": "number",
+              "description": "Execution timeout in milliseconds"
+            }
           },
-          "required": ["command"]
+          "required": [
+            "command"
+          ]
         }
       },
       {
@@ -1507,10 +1744,24 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "action": { "type": "string", "enum": ["check", "track", "markFresh", "listStale"], "description": "Tracking action to perform" },
-            "filePath": { "type": "string", "description": "File path to track or verify" }
+            "action": {
+              "type": "string",
+              "enum": [
+                "check",
+                "track",
+                "markFresh",
+                "listStale"
+              ],
+              "description": "Tracking action to perform"
+            },
+            "filePath": {
+              "type": "string",
+              "description": "File path to track or verify"
+            }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         }
       },
       {
@@ -1528,26 +1779,48 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "question": { "type": "string", "description": "The clarification question text" },
+                  "question": {
+                    "type": "string",
+                    "description": "The clarification question text"
+                  },
                   "options": {
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
-                        "label": { "type": "string", "description": "Option label" },
-                        "description": { "type": "string", "description": "Option description" }
+                        "label": {
+                          "type": "string",
+                          "description": "Option label"
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Option description"
+                        }
                       },
-                      "required": ["label"]
+                      "required": [
+                        "label"
+                      ]
                     }
                   },
-                  "isMultiSelect": { "type": "boolean", "description": "Allow multiple choices" },
-                  "allowCustomResponse": { "type": "boolean", "description": "Allow custom user write-in response" }
+                  "isMultiSelect": {
+                    "type": "boolean",
+                    "description": "Allow multiple choices"
+                  },
+                  "allowCustomResponse": {
+                    "type": "boolean",
+                    "description": "Allow custom user write-in response"
+                  }
                 },
-                "required": ["question", "options"]
+                "required": [
+                  "question",
+                  "options"
+                ]
               }
             }
           },
-          "required": ["questions"]
+          "required": [
+            "questions"
+          ]
         }
       },
       {
@@ -1560,11 +1833,22 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "code": { "type": "string", "description": "JavaScript orchestration script to execute in sandbox" },
-            "timeoutMs": { "type": "number", "description": "Execution timeout limit in milliseconds" },
-            "maxOutputBytes": { "type": "number", "description": "Maximum output bytes returned" }
+            "code": {
+              "type": "string",
+              "description": "JavaScript orchestration script to execute in sandbox"
+            },
+            "timeoutMs": {
+              "type": "number",
+              "description": "Execution timeout limit in milliseconds"
+            },
+            "maxOutputBytes": {
+              "type": "number",
+              "description": "Maximum output bytes returned"
+            }
           },
-          "required": ["code"]
+          "required": [
+            "code"
+          ]
         }
       },
       {
@@ -1577,11 +1861,29 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "action": { "type": "string", "enum": ["createCheckpoint", "restoreCheckpoint", "listCheckpoints", "diffCheckpoint", "getLatestCheckpoint"], "description": "Snapshot operation" },
-            "checkpointId": { "type": "string", "description": "Checkpoint commit hash for restore/diff" },
-            "description": { "type": "string", "description": "Description note for the checkpoint" }
+            "action": {
+              "type": "string",
+              "enum": [
+                "createCheckpoint",
+                "restoreCheckpoint",
+                "listCheckpoints",
+                "diffCheckpoint",
+                "getLatestCheckpoint"
+              ],
+              "description": "Snapshot operation"
+            },
+            "checkpointId": {
+              "type": "string",
+              "description": "Checkpoint commit hash for restore/diff"
+            },
+            "description": {
+              "type": "string",
+              "description": "Description note for the checkpoint"
+            }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         }
       },
       {
@@ -1594,13 +1896,40 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "action": { "type": "string", "enum": ["launch", "navigate", "click", "type", "scroll", "screenshot", "getConsoleLogs", "close"], "description": "Browser action" },
-            "url": { "type": "string", "description": "URL to launch or navigate" },
-            "selector": { "type": "string", "description": "CSS selector to click or type into" },
-            "text": { "type": "string", "description": "Text to type into selector" },
-            "scrollDelta": { "type": "number", "description": "Scroll delta in pixels" }
+            "action": {
+              "type": "string",
+              "enum": [
+                "launch",
+                "navigate",
+                "click",
+                "type",
+                "scroll",
+                "screenshot",
+                "getConsoleLogs",
+                "close"
+              ],
+              "description": "Browser action"
+            },
+            "url": {
+              "type": "string",
+              "description": "URL to launch or navigate"
+            },
+            "selector": {
+              "type": "string",
+              "description": "CSS selector to click or type into"
+            },
+            "text": {
+              "type": "string",
+              "description": "Text to type into selector"
+            },
+            "scrollDelta": {
+              "type": "number",
+              "description": "Scroll delta in pixels"
+            }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         }
       },
       {
@@ -1613,11 +1942,27 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "action": { "type": "string", "enum": ["discoverRules", "loadRules", "toggleRule"], "description": "Rule action" },
-            "rulePath": { "type": "string", "description": "File path of the rule to toggle" },
-            "enabled": { "type": "boolean", "description": "Whether the rule should be enabled" }
+            "action": {
+              "type": "string",
+              "enum": [
+                "discoverRules",
+                "loadRules",
+                "toggleRule"
+              ],
+              "description": "Rule action"
+            },
+            "rulePath": {
+              "type": "string",
+              "description": "File path of the rule to toggle"
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether the rule should be enabled"
+            }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         }
       }
     ],
@@ -1986,9 +2331,9 @@
         ]
       },
       {
-        "id": "github.dardcor.vscode",
-        "name": "vscode",
-        "fullName": "VS Code",
+        "id": "github.dardcor.dardcor-code",
+        "name": "dardcor-code",
+        "fullName": "Dardcor Code",
         "description": "%dardcor.vscode.description%",
         "when": "!github.dardcor.interactiveSession.disabled",
         "sampleRequest": "%dardcor.vscode.sampleRequest%",
@@ -1998,7 +2343,7 @@
         "disambiguation": [
           {
             "category": "vscode_configuration_questions",
-            "description": "The user wants to learn about, use, or configure the Visual Studio Code. Use this category if the users question is specifically about commands, settings, keybindings, extensions and other features available in Visual Studio Code. Do not use this category to answer questions about generating code or creating new projects including Visual Studio Code extensions.",
+            "description": "The user wants to learn about, use, or configure Dardcor Code. Use this category if the users question is specifically about commands, settings, keybindings, extensions and other features available in Dardcor Code. Do not use this category to answer questions about generating code or creating new projects including Dardcor Code extensions.",
             "examples": [
               "Switch to light mode.",
               "Keyboard shortcut to toggle terminal visibility.",
@@ -2073,11 +2418,6 @@
       {
         "vendor": "dardcor",
         "displayName": "Dardcor Code"
-      },
-      {
-        "vendor": "dardcorcli",
-        "displayName": "Dardcor AI CLI",
-        "when": "false"
       },
       {
         "vendor": "claude-code",
@@ -2713,63 +3053,11 @@
       {
         "icon": "$(chat-sparkle)",
         "title": "%dardcor.title%",
-        "content": "%github.dardcor.viewsWelcome.individual.expired%",
-        "when": "github.dardcor.interactiveSession.individual.expired && !github.dardcor.hasByokModels"
-      },
-      {
-        "icon": "$(chat-sparkle)",
-        "title": "%dardcor.title%",
-        "content": "%github.dardcor.viewsWelcome.enterprise%",
-        "when": "github.dardcor.interactiveSession.enterprise.disabled && !github.dardcor.hasByokModels"
-      },
-      {
-        "icon": "$(chat-sparkle)",
-        "title": "%dardcor.title%",
-        "content": "%github.dardcor.viewsWelcome.offline%",
-        "when": "github.dardcor.offline && !github.dardcor.hasByokModels"
-      },
-      {
-        "icon": "$(chat-sparkle)",
-        "title": "%dardcor.title%",
-        "content": "%github.dardcor.viewsWelcome.invalidToken%",
-        "when": "github.dardcor.interactiveSession.invalidToken && !github.dardcor.hasByokModels"
-      },
-      {
-        "icon": "$(chat-sparkle)",
-        "title": "%dardcor.title%",
-        "content": "%github.dardcor.viewsWelcome.rateLimited%",
-        "when": "github.dardcor.interactiveSession.rateLimited && !github.dardcor.hasByokModels"
-      },
-      {
-        "icon": "$(chat-sparkle)",
-        "title": "%dardcor.title%",
-        "content": "%github.dardcor.viewsWelcome.gitHubLoginFailed%",
-        "when": "github.dardcor.interactiveSession.gitHubLoginFailed && !github.dardcor.hasByokModels"
-      },
-      {
-        "icon": "$(chat-sparkle)",
-        "title": "%dardcor.title%",
-        "content": "%github.dardcor.viewsWelcome.contactSupport%",
-        "when": "github.dardcor.interactiveSession.contactSupport && !github.dardcor.hasByokModels"
-      },
-      {
-        "icon": "$(chat-sparkle)",
-        "title": "%dardcor.title%",
-        "content": "%github.dardcor.viewsWelcome.chatDisabled%",
-        "when": "github.dardcor.interactiveSession.chatDisabled && !github.dardcor.hasByokModels"
-      },
-      {
-        "icon": "$(chat-sparkle)",
-        "title": "%dardcor.title%",
         "content": "%github.dardcor.viewsWelcome.switchToReleaseChannel%",
         "when": "github.dardcor.interactiveSession.switchToReleaseChannel"
       }
     ],
     "commands": [
-      {
-        "command": "github.dardcor.chat.triggerPermissiveSignIn",
-        "title": "%github.dardcor.command.triggerPermissiveSignIn%"
-      },
       {
         "command": "dardcor.claude.agents",
         "title": "Manage Agents",
@@ -2786,92 +3074,10 @@
         "category": "Claude Agent"
       },
       {
-        "command": "github.dardcor.cli.sessions.delete",
-        "title": "%github.dardcor.command.deleteAgentSession%",
-        "icon": "$(close)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "agents.github.dardcor.cli.deleteSessions",
-        "title": "%github.dardcor.command.deleteAgentSession%",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.resumeInTerminal",
-        "title": "%github.dardcor.command.cli.sessions.resumeInTerminal%",
-        "icon": "$(terminal)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.rename",
-        "title": "%github.dardcor.command.cli.sessions.rename%",
-        "icon": "$(edit)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.setTitle",
-        "title": "%github.dardcor.command.cli.sessions.setTitle%",
-        "category": "Dardcor AI CLI"
-      },
-      {
         "command": "github.dardcor.claude.sessions.rename",
         "title": "%github.dardcor.command.claude.sessions.rename%",
         "icon": "$(edit)",
         "category": "Claude"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.openRepository",
-        "title": "%github.dardcor.command.cli.sessions.openRepository%",
-        "icon": "$(folder-opened)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.openWorktreeInNewWindow",
-        "title": "%github.dardcor.command.cli.sessions.openWorktreeInNewWindow%",
-        "icon": "$(folder-opened)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.openWorktreeInTerminal",
-        "title": "%github.dardcor.command.cli.sessions.openWorktreeInTerminal%",
-        "icon": "$(terminal)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.copyWorktreeBranchName",
-        "title": "%github.dardcor.command.cli.sessions.copyWorktreeBranchName%",
-        "icon": "$(copy)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.commitToWorktree",
-        "title": "%github.dardcor.command.cli.sessions.commitToWorktree%",
-        "icon": "$(git-commit)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.sessions.commitToRepository",
-        "title": "%github.dardcor.command.cli.sessions.commitToRepository%",
-        "icon": "$(git-commit)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.cli.newSession",
-        "title": "%github.dardcor.command.cli.newSession%",
-        "icon": "$(terminal)",
-        "category": "Chat"
-      },
-      {
-        "command": "github.dardcor.cli.newSessionToSide",
-        "title": "%github.dardcor.command.cli.newSessionToSide%",
-        "icon": "$(terminal)",
-        "category": "Chat"
-      },
-      {
-        "command": "github.dardcor.cli.openInCopilotCLI",
-        "title": "%github.dardcor.command.cli.openInCopilotCLI%",
-        "icon": "$(terminal)",
-        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.chat.compact",
@@ -3181,15 +3387,6 @@
         "category": "Chat"
       },
       {
-        "command": "github.dardcor.chat.rerunWithCopilotDebug",
-        "title": "%github.dardcor.command.rerunWithCopilotDebug%",
-        "category": "Chat"
-      },
-      {
-        "command": "github.dardcor.chat.startCopilotDebugCommand",
-        "title": "Start Dardcor AI Debug"
-      },
-      {
         "command": "github.dardcor.chat.clearTemporalContext",
         "title": "Clear Temporal Context",
         "category": "Developer"
@@ -3281,12 +3478,6 @@
         "icon": "$(broadcast)"
       },
       {
-        "command": "github.dardcor.sessionSync.deleteSessions",
-        "title": "%github.dardcor.command.sessionSync.deleteSessions%",
-        "category": "Chat",
-        "enablement": "github.dardcor.sessionSearch.enabled && config.chat.sessionSync.enabled"
-      },
-      {
         "command": "github.dardcor.chronicle.reindex",
         "title": "%github.dardcor.command.chronicle.reindex%",
         "category": "Chat",
@@ -3346,24 +3537,6 @@
         "icon": "$(pinned-dirty)"
       },
       {
-        "command": "github.dardcor.cloud.resetWorkspaceConfirmations",
-        "title": "%github.dardcor.command.resetCloudAgentWorkspaceConfirmations%"
-      },
-      {
-        "command": "github.dardcor.cloud.sessions.openInBrowser",
-        "title": "%github.dardcor.command.openCopilotAgentSessionsInBrowser%",
-        "icon": "$(link-external)"
-      },
-      {
-        "command": "github.dardcor.cloud.sessions.proxy.closeChatSessionPullRequest",
-        "title": "%github.dardcor.command.closeChatSessionPullRequest.title%"
-      },
-      {
-        "command": "github.dardcor.cloud.sessions.installPRExtension",
-        "title": "%github.dardcor.command.installPRExtension.title%",
-        "icon": "$(extensions)"
-      },
-      {
         "command": "github.dardcor.chat.openSuggestionsPanel",
         "title": "Open Completions Panel",
         "enablement": "github.dardcor.extensionUnification.activated && !isWeb",
@@ -3400,33 +3573,6 @@
         "enablement": "github.dardcor.extensionUnification.activated && !isWeb && github.dardcor.completions.hasMultipleModels"
       },
       {
-        "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges",
-        "title": "%github.dardcor.command.applyCopilotCLIAgentSessionChanges%",
-        "enablement": "!chatSessionRequestInProgress",
-        "category": "Dardcor AI"
-      },
-      {
-        "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges.apply",
-        "title": "%github.dardcor.chat.applyCopilotCLIAgentSessionChanges.apply%",
-        "enablement": "!chatSessionRequestInProgress",
-        "icon": "$(git-stash-pop)",
-        "category": "Dardcor AI"
-      },
-      {
-        "command": "github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.merge",
-        "title": "%github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.merge%",
-        "enablement": "!chatSessionRequestInProgress",
-        "icon": "$(git-merge)",
-        "category": "Dardcor AI"
-      },
-      {
-        "command": "github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync",
-        "title": "%github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync%",
-        "enablement": "!chatSessionRequestInProgress",
-        "icon": "$(sync)",
-        "category": "Dardcor AI"
-      },
-      {
         "command": "github.dardcor.sessions.commit",
         "title": "%github.dardcor.command.sessions.commit%",
         "enablement": "!chatSessionRequestInProgress && !sessions.hasGitOperationInProgress",
@@ -3448,20 +3594,6 @@
         "category": "Dardcor AI"
       },
       {
-        "command": "github.dardcor.chat.createPullRequestCopilotCLIAgentSession.createPR",
-        "title": "%github.dardcor.chat.createPullRequestCopilotCLIAgentSession.createPR%",
-        "enablement": "!chatSessionRequestInProgress && !sessions.hasGitOperationInProgress",
-        "icon": "$(git-pull-request-create)",
-        "category": "Dardcor AI"
-      },
-      {
-        "command": "github.dardcor.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR",
-        "title": "%github.dardcor.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR%",
-        "enablement": "!chatSessionRequestInProgress && !sessions.hasGitOperationInProgress",
-        "icon": "$(git-pull-request-draft)",
-        "category": "Dardcor AI"
-      },
-      {
         "command": "github.dardcor.sessions.discardChanges",
         "title": "%github.dardcor.command.sessions.discardChanges%",
         "enablement": "!chatSessionRequestInProgress",
@@ -3469,59 +3601,10 @@
         "category": "Dardcor AI"
       },
       {
-        "command": "github.dardcor.chat.dardcorCLI.addFileReference",
-        "title": "%github.dardcor.command.chat.dardcorCLI.addFileReference%",
-        "enablement": "github.dardcor.chat.dardcorCLI.hasSession",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.chat.dardcorCLI.addSelection",
-        "title": "%github.dardcor.command.chat.dardcorCLI.addSelection%",
-        "enablement": "github.dardcor.chat.dardcorCLI.hasSession",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.chat.dardcorCLI.acceptDiff",
-        "title": "%github.dardcor.command.chat.dardcorCLI.acceptDiff%",
-        "enablement": "github.dardcor.chat.dardcorCLI.hasActiveDiff",
-        "icon": "$(check)",
-        "category": "Dardcor AI CLI"
-      },
-      {
-        "command": "github.dardcor.chat.dardcorCLI.rejectDiff",
-        "title": "%github.dardcor.command.chat.dardcorCLI.rejectDiff%",
-        "enablement": "github.dardcor.chat.dardcorCLI.hasActiveDiff",
-        "icon": "$(close)",
-        "category": "Dardcor AI CLI"
-      },
-      {
         "command": "github.dardcor.chat.checkoutPullRequestReroute",
         "title": "%github.dardcor.command.checkoutPullRequestReroute.title%",
         "icon": "$(git-pull-request)",
         "category": "GitHub Pull Request"
-      },
-      {
-        "command": "github.dardcor.chat.cloudSessions.createPullRequestForTask",
-        "title": "%github.dardcor.command.cloudSessions.createPullRequestForTask.title%",
-        "icon": "$(git-pull-request-create)",
-        "category": "GitHub Pull Request"
-      },
-      {
-        "command": "github.dardcor.chat.cloudSessions.openPullRequestForTask",
-        "title": "%github.dardcor.command.cloudSessions.openPullRequestForTask.title%",
-        "icon": "$(git-pull-request)",
-        "category": "GitHub Pull Request"
-      },
-      {
-        "command": "github.dardcor.chat.cloudSessions.openRepository",
-        "title": "%github.dardcor.command.cloudSessions.openRepository.title%",
-        "icon": "$(repo)",
-        "category": "Dardcor AI"
-      },
-      {
-        "command": "github.dardcor.chat.cloudSessions.clearCaches",
-        "title": "%github.dardcor.command.cloudSessions.clearCaches.title%",
-        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.sessions.refreshChanges",
@@ -3563,6 +3646,15 @@
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(repo)",
         "category": "Dardcor AI"
+      },
+      {
+        "command": "github.dardcor.chat.rerunWithDardcorDebug",
+        "title": "%github.dardcor.command.rerunWithDardcorDebug%",
+        "category": "Chat"
+      },
+      {
+        "command": "github.dardcor.chat.startDardcorDebugCommand",
+        "title": "Start Dardcor Debug Command"
       }
     ],
     "configuration": [
@@ -3570,16 +3662,6 @@
         "title": "Dardcor AI Chat",
         "id": "stable",
         "properties": {
-          "github.dardcor.chat.backgroundAgent.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.backgroundAgent.enabled%"
-          },
-          "github.dardcor.chat.cloudAgent.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cloudAgent.enabled%"
-          },
           "github.dardcor.chat.localIndex.enabled": {
             "type": "boolean",
             "default": true,
@@ -3773,7 +3855,7 @@
             "additionalProperties": {
               "type": "boolean"
             },
-            "markdownDescription": "Enable or disable auto triggering of Dardcor AI completions for specified [languages](https://code.visualstudio.com/docs/languages/identifiers). You can still trigger suggestions manually using `Alt + \\`"
+            "markdownDescription": "Enable or disable auto triggering of Dardcor AI completions for specified [languages](https://www.dardcor-code.web.id/docs/languages/identifiers). You can still trigger suggestions manually using `Alt + \\`"
           },
           "github.dardcor.selectedCompletionModel": {
             "type": "string",
@@ -3875,11 +3957,6 @@
             "tags": [
               "onExp"
             ]
-          },
-          "github.dardcor.chat.imageUpload.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.imageUpload.enabled%"
           }
         }
       },
@@ -3996,23 +4073,6 @@
               "experimental"
             ]
           },
-          "github.dardcor.chat.cloudAgentBackend.version": {
-            "type": "string",
-            "default": "v1",
-            "enum": [
-              "v1",
-              "v2"
-            ],
-            "enumDescriptions": [
-              "%github.dardcor.config.cloudAgentBackend.version.v1%",
-              "%github.dardcor.config.cloudAgentBackend.version.v2%"
-            ],
-            "markdownDescription": "%github.dardcor.config.cloudAgentBackend.version%",
-            "tags": [
-              "experimental",
-              "onExp"
-            ]
-          },
           "github.dardcor.chat.switchAgent.enabled": {
             "type": "boolean",
             "default": false,
@@ -4072,7 +4132,7 @@
                       "text": "Use underscore for field names."
                     },
                     {
-                      "text": "Always add a comment: 'Generated by Copilot'."
+                      "text": "Always add a comment: 'Generated by Dardcor'."
                     }
                   ]
                 }
@@ -4086,7 +4146,7 @@
                   "file": ".dardcor-codeGeneration-instructions.md"
                 },
                 {
-                  "text": "Always add a comment: 'Generated by Copilot'."
+                  "text": "Always add a comment: 'Generated by Dardcor'."
                 }
               ]
             ],
@@ -5395,159 +5455,10 @@
               "experimental"
             ]
           },
-          "github.dardcor.chat.cli.mcp.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.mcp.enabled%",
-            "tags": [
-              "advanced",
-              "experimental"
-            ]
-          },
-          "github.dardcor.chat.cli.sandbox.enabled": {
-            "type": "string",
-            "enum": [
-              "off",
-              "on",
-              "allowNetwork"
-            ],
-            "enumDescriptions": [
-              "%github.dardcor.config.cli.sandbox.enabled.offDescription%",
-              "%github.dardcor.config.cli.sandbox.enabled.onDescription%",
-              "%github.dardcor.config.cli.sandbox.enabled.allowNetworkDescription%"
-            ],
-            "default": "off",
-            "markdownDescription": "%github.dardcor.config.cli.sandbox.enabled%",
-            "tags": [
-              "advanced",
-              "experimental"
-            ]
-          },
-          "github.dardcor.chat.cli.branchSupport.enabled": {
-            "type": "boolean",
-            "default": false,
-            "markdownDescription": "%github.dardcor.config.cli.branchSupport.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.showExternalSessions": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.showExternalSessions%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.planExitMode.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.planExitMode.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.autoModel.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.autoModel.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
           "github.dardcor.chat.agent.modelDetails.enabled": {
             "type": "boolean",
             "default": true,
             "markdownDescription": "%github.dardcor.config.chat.agent.modelDetails.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.planCommand.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.planCommand.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.lazyLoadSessionItem.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.lazyLoadSessionItem.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.aiGenerateBranchNames.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.aiGenerateBranchNames.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.forkSessions.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.forkSessions.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.isolationOption.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.isolationOption.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.autoCommit.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.autoCommit.enabled%",
-            "tags": [
-              "advanced",
-              "experimental"
-            ]
-          },
-          "github.dardcor.chat.cli.sessionController.enabled": {
-            "type": "boolean",
-            "default": false,
-            "markdownDescription": "%github.dardcor.config.cli.sessionController.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.thinkingEffort.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.thinkingEffort.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.sessionControllerForSessionsApp.enabled": {
-            "type": "boolean",
-            "default": false,
-            "markdownDescription": "%github.dardcor.config.cli.sessionControllerForSessionsApp.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.terminalLinks.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.terminalLinks.enabled%",
-            "tags": [
-              "advanced"
-            ]
-          },
-          "github.dardcor.chat.cli.remote.enabled": {
-            "type": "boolean",
-            "default": true,
-            "markdownDescription": "%github.dardcor.config.cli.remote.enabled%",
             "tags": [
               "advanced"
             ]
@@ -5657,9 +5568,9 @@
             "default": false,
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelEnabled"
+              "name": "DardcorOtelEnabled"
             },
-            "markdownDescription": "Enable OpenTelemetry trace/metric/log emission for Dardcor AI Chat operations. Precedence: enterprise policy > env var `COPILOT_OTEL_ENABLED` > user setting. Requires window reload.",
+            "markdownDescription": "Enable OpenTelemetry trace/metric/log emission for Dardcor AI Chat operations. Precedence: enterprise policy > env var `DARDCOR_OTEL_ENABLED` > user setting. Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5675,7 +5586,7 @@
             "default": "otlp-http",
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelProtocol"
+              "name": "DardcorOtelProtocol"
             },
             "markdownDescription": "OTel exporter type for Dardcor AI Chat telemetry. Configurable in user settings or managed by enterprise policy (policy takes precedence). Requires window reload.",
             "tags": [
@@ -5693,7 +5604,7 @@
             "default": "",
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelOtlpProtocol"
+              "name": "DardcorOtelOtlpProtocol"
             },
             "markdownDescription": "OTLP wire protocol for Dardcor AI Chat OTel data, mirroring `OTEL_EXPORTER_OTLP_PROTOCOL`. `http/protobuf` selects the protobuf-over-HTTP exporter; the default (empty) uses `http/json`. Precedence: enterprise policy > env var > user setting. Requires window reload.",
             "tags": [
@@ -5705,7 +5616,7 @@
             "default": "http://localhost:4318",
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelEndpoint"
+              "name": "DardcorOtelEndpoint"
             },
             "markdownDescription": "OTLP collector endpoint URL for Dardcor AI Chat OTel data. Precedence: enterprise policy > env var `OTEL_EXPORTER_OTLP_ENDPOINT` > user setting. Requires window reload.",
             "tags": [
@@ -5717,9 +5628,9 @@
             "default": false,
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelCaptureContent"
+              "name": "DardcorOtelCaptureContent"
             },
-            "markdownDescription": "Capture input/output messages, system instructions, and tool definitions in OTel telemetry. **Contains potentially sensitive data.** Precedence: enterprise policy > env var `COPILOT_OTEL_CAPTURE_CONTENT` > user setting. Requires window reload.",
+            "markdownDescription": "Capture input/output messages, system instructions, and tool definitions in OTel telemetry. **Contains potentially sensitive data.** Precedence: enterprise policy > env var `DARDCOR_OTEL_CAPTURE_CONTENT` > user setting. Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5729,7 +5640,7 @@
             "default": "",
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelServiceName"
+              "name": "DardcorOtelServiceName"
             },
             "markdownDescription": "OTel `service.name` resource attribute for Dardcor AI Chat OTel data. Configurable in user settings only. Env var `OTEL_SERVICE_NAME` takes precedence over the setting; enterprise policy takes precedence over both. Requires window reload.",
             "tags": [
@@ -5744,7 +5655,7 @@
             "default": {},
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelResourceAttributes"
+              "name": "DardcorOtelResourceAttributes"
             },
             "markdownDescription": "Additional OTel resource attributes for Dardcor AI Chat OTel data, as a `{ \"key\": \"value\" }` map. Configurable in user settings only. Merged per-key with `OTEL_RESOURCE_ATTRIBUTES` env (env wins over the setting); enterprise policy wins over both. Requires window reload.",
             "tags": [
@@ -5759,7 +5670,7 @@
             "default": {},
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelHeaders"
+              "name": "DardcorOtelHeaders"
             },
             "markdownDescription": "Extra OTLP exporter headers (e.g. auth tokens) for Dardcor AI Chat OTel data, as a `{ \"key\": \"value\" }` map. Applied directly to the OTLP exporter, not via environment variables. Configurable in user settings only. Merged per-key with `OTEL_EXPORTER_OTLP_HEADERS` env (env wins over the setting); enterprise policy wins over both. **Contains potentially sensitive credentials.** Requires window reload.",
             "tags": [
@@ -5771,7 +5682,7 @@
             "default": 0,
             "minimum": 0,
             "scope": "application",
-            "markdownDescription": "Maximum size **in characters** for free-form OTel content attributes (prompts, responses, tool arguments/results, hook input/output). `0` (the default) disables truncation so backends without per-attribute size limits receive full JSON payloads. Set to a positive value when your OTel backend caps attribute size — consult your backend's documentation for its per-attribute limit. Truncated values are suffixed with `...[truncated, original N chars]`. Configurable in user settings only. Env var `COPILOT_OTEL_MAX_ATTRIBUTE_SIZE_CHARS` takes precedence. Requires window reload.",
+            "markdownDescription": "Maximum size **in characters** for free-form OTel content attributes (prompts, responses, tool arguments/results, hook input/output). `0` (the default) disables truncation so backends without per-attribute size limits receive full JSON payloads. Set to a positive value when your OTel backend caps attribute size — consult your backend's documentation for its per-attribute limit. Truncated values are suffixed with `...[truncated, original N chars]`. Configurable in user settings only. Env var `DARDCOR_OTEL_MAX_ATTRIBUTE_SIZE_CHARS` takes precedence. Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5781,7 +5692,7 @@
             "default": "",
             "scope": "application",
             "policyReference": {
-              "name": "CopilotOtelOutfile"
+              "name": "DardcorOtelOutfile"
             },
             "markdownDescription": "File path for file-based OTel exporter output (JSON-lines). When set, overrides exporter type to `file`. Configurable in user settings or managed by enterprise policy (policy takes precedence). Requires window reload.",
             "tags": [
@@ -5848,32 +5759,10 @@
           "command": "github.dardcor.chat.notebook.disableFollowCellExecution",
           "when": "config.github.dardcor.chat.notebook.followCellExecution.enabled && github.dardcor.notebookFollowInSessionEnabled && github.dardcor.notebookAgentModeUsage && !config.notebook.globalToolbar",
           "group": "navigation@10"
-        },
-        {
-          "command": "github.dardcor.chat.dardcorCLI.acceptDiff",
-          "group": "navigation@1",
-          "when": "github.dardcor.chat.dardcorCLI.hasActiveDiff"
-        },
-        {
-          "command": "github.dardcor.chat.dardcorCLI.rejectDiff",
-          "group": "navigation@2",
-          "when": "github.dardcor.chat.dardcorCLI.hasActiveDiff"
         }
       ],
-      "editor/title/context": [
-        {
-          "command": "github.dardcor.chat.dardcorCLI.addFileReference",
-          "group": "dardcor",
-          "when": "github.dardcor.chat.dardcorCLI.hasSession && !inOutput && resourceScheme != 'vscode-webview' && resourceScheme != 'webview-panel'"
-        }
-      ],
-      "explorer/context": [
-        {
-          "command": "github.dardcor.chat.dardcorCLI.addFileReference",
-          "group": "dardcor",
-          "when": "github.dardcor.chat.dardcorCLI.hasSession && !explorerResourceIsFolder"
-        }
-      ],
+      "editor/title/context": [],
+      "explorer/context": [],
       "editor/context": [
         {
           "command": "github.dardcor.chat.fix",
@@ -5889,16 +5778,6 @@
           "command": "github.dardcor.chat.review",
           "when": "config.github.dardcor.chat.reviewSelection.enabled && !github.dardcor.interactiveSession.disabled && chatSetupCompleted && resourceScheme != 'vscode-chat-code-block'",
           "group": "1_chat@6"
-        },
-        {
-          "command": "github.dardcor.chat.dardcorCLI.addFileReference",
-          "group": "dardcor",
-          "when": "github.dardcor.chat.dardcorCLI.hasSession && !inOutput && resourceScheme != 'vscode-webview' && resourceScheme != 'webview-panel'"
-        },
-        {
-          "command": "github.dardcor.chat.dardcorCLI.addSelection",
-          "group": "dardcor",
-          "when": "github.dardcor.chat.dardcorCLI.hasSession && editorHasSelection && !inOutput && resourceScheme != 'vscode-webview' && resourceScheme != 'webview-panel'"
         }
       ],
       "chat/editor/inlineGutter": [
@@ -5913,40 +5792,14 @@
           "group": "2_chat@3"
         }
       ],
-      "chat/input/editing/sessionToolbar": [
-        {
-          "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges.apply",
-          "when": "chatSessionType == dardcorcli && workbenchState != empty",
-          "group": "navigation@0"
-        },
-        {
-          "command": "github.dardcor.chat.checkoutPullRequestReroute",
-          "when": "chatSessionType == dardcor-cloud-agent && chatSessionPullRequest != 'none' && !github.vscode-pull-request-github.activated && gitOpenRepositoryCount != 0",
-          "group": "navigation@0"
-        },
-        {
-          "command": "github.dardcor.chat.cloudSessions.createPullRequestForTask",
-          "when": "chatSessionType == dardcor-cloud-agent && github.dardcor.chat.cloudTaskCanCreatePullRequest",
-          "group": "navigation@0"
-        },
-        {
-          "command": "github.dardcor.chat.cloudSessions.openPullRequestForTask",
-          "when": "chatSessionType == dardcor-cloud-agent && github.dardcor.chat.cloudTaskCanOpenPullRequest",
-          "group": "navigation@0"
-        }
-      ],
+      "chat/input/editing/sessionToolbar": [],
       "chat/contextUsage/actions": [
         {
           "command": "github.dardcor.chat.compact",
           "when": "!chatIsAgentHostSession"
         }
       ],
-      "chat/newSession": [
-        {
-          "command": "github.dardcor.cli.newSession",
-          "group": "4_recommendations@0"
-        }
-      ],
+      "chat/newSession": [],
       "testing/item/result": [
         {
           "command": "github.dardcor.tests.fixTestFailure.fromInline",
@@ -5963,23 +5816,7 @@
       ],
       "commandPalette": [
         {
-          "command": "github.dardcor.cli.openInCopilotCLI",
-          "when": "false"
-        },
-        {
           "command": "github.dardcor.debug.extensionState",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.commitToWorktree",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.commitToRepository",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.triggerPermissiveSignIn",
           "when": "false"
         },
         {
@@ -5993,14 +5830,6 @@
         {
           "command": "github.dardcor.debug.workbenchState",
           "when": "true"
-        },
-        {
-          "command": "github.dardcor.chat.rerunWithCopilotDebug",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.startCopilotDebugCommand",
-          "when": "false"
         },
         {
           "command": "github.dardcor.git.generateCommitMessage",
@@ -6175,91 +6004,11 @@
           "when": "false"
         },
         {
-          "command": "github.dardcor.cli.sessions.delete",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.resumeInTerminal",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.rename",
-          "when": "false"
-        },
-        {
           "command": "github.dardcor.claude.sessions.rename",
           "when": "false"
         },
         {
-          "command": "github.dardcor.cli.sessions.setTitle",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.openRepository",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.openWorktreeInNewWindow",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.openWorktreeInTerminal",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.copyWorktreeBranchName",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cloud.sessions.openInBrowser",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cloud.sessions.proxy.closeChatSessionPullRequest",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.cloud.sessions.installPRExtension",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges.apply",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.merge",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.createPullRequestCopilotCLIAgentSession.createPR",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR",
-          "when": "false"
-        },
-        {
           "command": "github.dardcor.chat.checkoutPullRequestReroute",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.cloudSessions.openRepository",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.cloudSessions.createPullRequestForTask",
-          "when": "false"
-        },
-        {
-          "command": "github.dardcor.chat.cloudSessions.openPullRequestForTask",
           "when": "false"
         },
         {
@@ -6498,13 +6247,7 @@
           "when": "config.github.dardcor.chat.reviewAgent.enabled && github.dardcor.chat.reviewDiff.enabled && scmProvider == git && scmProviderRootUri in github.dardcor.chat.reviewDiff.enabledRootUris"
         }
       ],
-      "scm/sourceControl": [
-        {
-          "command": "github.dardcor.cli.openInCopilotCLI",
-          "group": "3_worktree@1",
-          "when": "scmProvider == git"
-        }
-      ],
+      "scm/sourceControl": [],
       "scm/resourceGroup/context": [
         {
           "command": "github.dardcor.chat.review.stagedChanges",
@@ -6613,62 +6356,12 @@
           "when": "config.git.enabled && !git.missing && !isInDiffEditor && !isMergeEditor && resource in git.mergeChanges && git.activeResourceHasMergeConflicts && chatSetupCompleted"
         }
       ],
-      "multiDiffEditor/content": [
-        {
-          "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges",
-          "when": "resourceScheme == dardcorcli-worktree-changes && workbenchState != empty"
-        }
-      ],
+      "multiDiffEditor/content": [],
       "chat/chatSessions": [
         {
           "command": "github.dardcor.claude.sessions.rename",
           "when": "chatSessionType == claude-code",
           "group": "1_edit@4"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.delete",
-          "when": "chatSessionType == dardcorcli",
-          "group": "1_edit@10"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.rename",
-          "when": "chatSessionType == dardcorcli",
-          "group": "1_edit@4"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.openWorktreeInNewWindow",
-          "when": "chatSessionType == dardcorcli",
-          "group": "2_open@1"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.openWorktreeInTerminal",
-          "when": "chatSessionType == dardcorcli",
-          "group": "2_open@2"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.copyWorktreeBranchName",
-          "when": "chatSessionType == dardcorcli",
-          "group": "2_open@3"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.resumeInTerminal",
-          "when": "chatSessionType == dardcorcli",
-          "group": "2_open@4"
-        },
-        {
-          "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges",
-          "when": "chatSessionType == dardcorcli && workbenchState != empty",
-          "group": "3_apply@0"
-        },
-        {
-          "command": "github.dardcor.cloud.sessions.openInBrowser",
-          "when": "chatSessionType == dardcor-cloud-agent",
-          "group": "navigation@10"
-        },
-        {
-          "command": "github.dardcor.cloud.sessions.proxy.closeChatSessionPullRequest",
-          "when": "chatSessionType == dardcor-cloud-agent",
-          "group": "1_edit@10"
         }
       ],
       "chatSessions/item/context": [
@@ -6676,20 +6369,9 @@
           "command": "github.dardcor.claude.sessions.rename",
           "when": "sessionType == claude-code && sessionProviderId == default-dardcor",
           "group": "1_edit@4"
-        },
-        {
-          "command": "github.dardcor.cli.sessions.rename",
-          "when": "sessionType == dardcorcli && sessionProviderId == default-dardcor",
-          "group": "1_edit@4"
         }
       ],
-      "chat/multiDiff/context": [
-        {
-          "command": "github.dardcor.cloud.sessions.installPRExtension",
-          "when": "chatSessionType == dardcor-cloud-agent && !github.dardcor.prExtensionInstalled",
-          "group": "inline@1"
-        }
-      ],
+      "chat/multiDiff/context": [],
       "chat/customizations/create": [
         {
           "command": "dardcor.claude.agents",
@@ -6743,18 +6425,6 @@
       }
     ],
     "terminalQuickFixes": [
-      {
-        "id": "dardcor-chat.fixWithCopilot",
-        "commandLineMatcher": ".+",
-        "commandExitResult": "error",
-        "outputMatcher": {
-          "anchor": "bottom",
-          "length": 1,
-          "lineMatcher": ".+",
-          "offset": 0
-        },
-        "kind": "explain"
-      },
       {
         "id": "dardcor-chat.generateCommitMessage",
         "commandLineMatcher": "git add .+",
@@ -6846,18 +6516,6 @@
     },
     "keybindings": [
       {
-        "command": "github.dardcor.chat.dardcorCLI.addFileReference",
-        "key": "ctrl+shift+.",
-        "mac": "cmd+shift+.",
-        "when": "github.dardcor.chat.dardcorCLI.hasSession && editorTextFocus"
-      },
-      {
-        "command": "github.dardcor.chat.rerunWithCopilotDebug",
-        "key": "ctrl+alt+.",
-        "mac": "cmd+alt+.",
-        "when": "github.dardcor-chat.activated && terminalShellIntegrationEnabled && terminalFocus && !terminalAltBufferActive"
-      },
-      {
         "command": "github.dardcor.nes.captureExpected.confirm",
         "key": "ctrl+enter",
         "mac": "cmd+enter",
@@ -6867,6 +6525,12 @@
         "command": "github.dardcor.nes.captureExpected.abort",
         "key": "escape",
         "when": "dardcorNesCaptureMode && editorTextFocus"
+      },
+      {
+        "command": "github.dardcor.chat.rerunWithDardcorDebug",
+        "key": "ctrl+alt+.",
+        "mac": "cmd+alt+.",
+        "when": "github.dardcor-chat.activated && terminalShellIntegrationEnabled && terminalFocus && !terminalAltBufferActive"
       }
     ],
     "walkthroughs": [
@@ -7035,12 +6699,7 @@
         "url": "ccsettings://root/schema.json"
       }
     ],
-    "typescriptServerPlugins": [
-      {
-        "name": "@vscode/copilot-typescript-server-plugin",
-        "enableForWorkspaceTypeScriptVersions": true
-      }
-    ],
+    "typescriptServerPlugins": [],
     "chatSessions": [
       {
         "type": "claude-code",
@@ -7056,7 +6715,6 @@
         "canDelegate": true,
         "requiresCustomModels": true,
         "supportsAutoModel": false,
-        "requiresCopilotSignIn": true,
         "capabilities": {
           "supportsFileAttachments": true,
           "supportsImageAttachments": true
@@ -7103,84 +6761,6 @@
             "description": "Compact the conversation history to save context tokens"
           }
         ]
-      },
-      {
-        "type": "dardcorcli",
-        "name": "cli",
-        "displayName": "Dardcor AI CLI",
-        "icon": "$(dardcor)",
-        "welcomeTitle": "Dardcor AI CLI",
-        "welcomeMessage": "Run tasks in the background with the Copilot CLI",
-        "inputPlaceholder": "Run tasks in the background with the Copilot CLI, type `#` for adding context",
-        "order": 1,
-        "canDelegate": true,
-        "description": "%github.dardcor.session.providerDescription.background%",
-        "when": "config.github.dardcor.chat.backgroundAgent.enabled",
-        "supportsAutoModel": true,
-        "requiresCopilotSignIn": true,
-        "capabilities": {
-          "supportsFileAttachments": true,
-          "supportsProblemAttachments": true,
-          "supportsToolAttachments": false,
-          "supportsImageAttachments": true,
-          "supportsSymbolAttachments": true,
-          "supportsSearchResultAttachments": true,
-          "supportsSourceControlAttachments": true,
-          "supportsPromptAttachments": true,
-          "supportsHandOffs": true
-        },
-        "commands": [
-          {
-            "name": "delegate",
-            "description": "Delegate chat session to cloud agent and create associated PR",
-            "when": "config.github.dardcor.chat.cloudAgent.enabled"
-          },
-          {
-            "name": "compact",
-            "description": "%github.dardcor.command.cli.compact.description%"
-          },
-          {
-            "name": "plan",
-            "description": "%github.dardcor.command.cli.plan.description%",
-            "when": "config.github.dardcor.chat.cli.planCommand.enabled"
-          },
-          {
-            "name": "fleet",
-            "description": "%github.dardcor.command.cli.fleet.description%",
-            "when": "false"
-          },
-          {
-            "name": "remote",
-            "description": "%github.dardcor.command.cli.remote.description%",
-            "when": "config.github.dardcor.chat.cli.remote.enabled"
-          }
-        ],
-        "customAgentTarget": "github-dardcor",
-        "requiresCustomModels": true,
-        "autoAttachReferences": true,
-        "useRequestToPopulateBuiltInPickers": true
-      },
-      {
-        "type": "dardcor-cloud-agent",
-        "alternativeIds": [
-          "dardcor-swe-agent"
-        ],
-        "name": "cloud",
-        "displayName": "Cloud",
-        "icon": "$(cloud)",
-        "welcomeTitle": "Cloud Agent",
-        "welcomeMessage": "Delegate tasks to the cloud",
-        "inputPlaceholder": "Delegate tasks to the cloud, type `#` for adding context",
-        "order": 2,
-        "canDelegate": true,
-        "description": "%github.dardcor.session.providerDescription.cloud%",
-        "when": "config.github.dardcor.chat.cloudAgent.enabled",
-        "supportsAutoModel": false,
-        "requiresCopilotSignIn": true,
-        "capabilities": {
-          "supportsFileAttachments": true
-        },
-        "autoAttachReferences": true
       }
     ],
     "chatAgents": [],
@@ -7250,7 +6830,7 @@
         ]
       },
       {
-        "path": "./assets/prompts/skills/install-vscode-extension/SKILL.md",
+        "path": "./assets/prompts/skills/install-dardcor-extension/SKILL.md",
         "when": "config.github.dardcor.chat.installExtensionSkill.enabled && config.github.dardcor.chat.newWorkspaceCreation.enabled",
         "sessionTypes": [
           "local"
@@ -7260,20 +6840,6 @@
         "path": "./assets/prompts/skills/get-search-view-results/SKILL.md",
         "sessionTypes": [
           "local"
-        ]
-      },
-      {
-        "path": "./assets/prompts/skills/troubleshoot/SKILL.md",
-        "sessionTypes": [
-          "local",
-          "dardcorcli"
-        ]
-      },
-      {
-        "path": "./assets/prompts/skills/agent-customization/SKILL.md",
-        "sessionTypes": [
-          "local",
-          "dardcorcli"
         ]
       },
       {
@@ -7464,7 +7030,6 @@
     "@anthropic-ai/claude-agent-sdk": "0.2.112",
     "@anthropic-ai/sdk": "^0.82.0",
     "@github/blackbird-external-ingest-utils": "^0.3.0",
-    "@github/copilot": "npm:@github/copilot@^1.0.73",
     "@google/genai": "^1.22.0",
     "@humanwhocodes/gitignore-to-minimatch": "1.0.2",
     "@microsoft/tiktokenizer": "^1.0.10",
@@ -7484,7 +7049,6 @@
     "@opentelemetry/sdk-logs": "^0.212.0",
     "@opentelemetry/sdk-metrics": "^2.5.1",
     "@opentelemetry/sdk-trace-node": "^2.5.1",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
     "@sinclair/typebox": "^0.34.41",
     "@vscode/copilot-api": "npm:@vscode/copilot-api@^0.4.3",
     "@vscode/extension-telemetry": "^1.5.1",
@@ -7492,12 +7056,10 @@
     "@vscode/prompt-tsx": "^0.4.0-alpha.8",
     "@vscode/tree-sitter-wasm": "0.0.5-php.2",
     "@vscode/webview-ui-toolkit": "^1.3.1",
-    "@xterm/headless": "^5.5.0",
     "ajv": "^8.18.0",
     "applicationinsights": "^2.9.7",
     "best-effort-json-parser": "^1.2.1",
     "diff": "^8.0.3",
-    "express": "^5.2.1",
     "ignore": "^7.0.5",
     "isbinaryfile": "^5.0.4",
     "jsonc-parser": "^3.3.1",

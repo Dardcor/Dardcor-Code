@@ -9,10 +9,6 @@ import * as nls from '../../../../nls.js';
 import { registerColor, ColorIdentifier, ColorDefaults, editorFindMatch, editorFindMatchHighlight, overviewRulerFindMatchForeground, editorSelectionBackground, transparent, editorHoverHighlight } from '../../../../platform/theme/common/colorRegistry.js';
 import { EDITOR_DRAG_AND_DROP_BACKGROUND, PANEL_BORDER, TAB_ACTIVE_BORDER } from '../../../common/theme.js';
 
-/**
- * The color identifiers for the terminal's ansi colors. The index in the array corresponds to the index
- * of the color in the terminal color table.
- */
 export const ansiColorIdentifiers: ColorIdentifier[] = [];
 
 export const TERMINAL_BACKGROUND_COLOR = registerColor('terminal.background', null, nls.localize('terminal.background', 'The background color of the terminal, this allows coloring the terminal differently to the panel.'));
@@ -61,7 +57,6 @@ export const TERMINAL_OVERVIEW_RULER_BORDER_COLOR = registerColor('terminalOverv
 export const TERMINAL_FIND_MATCH_BACKGROUND_COLOR = registerColor('terminal.findMatchBackground', {
 	dark: editorFindMatch,
 	light: editorFindMatch,
-	// Use regular selection background in high contrast with a thick border
 	hcDark: null,
 	hcLight: '#0F4A85'
 }, nls.localize('terminal.findMatchBackground', 'Color of the current search match in the terminal. The color must not be opaque so as not to hide underlying terminal content.'), true);

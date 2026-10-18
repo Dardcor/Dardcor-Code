@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* File icons in trees */
 
 .file-icon-themable-tree.align-icons-and-twisties .monaco-tl-twistie:not(.force-twistie):not(.collapsible),
 .file-icon-themable-tree .align-icon-with-twisty .monaco-tl-twistie:not(.force-twistie):not(.collapsible),
@@ -15,7 +14,6 @@
 	visibility: hidden;
 }
 
-/* Misc */
 
 .file-icon-themable-tree .monaco-list-row .content .monaco-highlighted-label .highlight,
 .pane-body .monaco-tl-contents .monaco-highlighted-label .highlight {
@@ -221,7 +219,6 @@
 	opacity: 0.6;
 }
 
-/* makes spinning icons square */
 .customview-tree .monaco-list .monaco-list-row .custom-view-tree-node-item > .custom-view-tree-node-item-resourceLabel > .custom-view-tree-node-item-icon.codicon.codicon-modifier-spin {
 	padding-left: 6px;
 	margin-left: -6px;
@@ -254,7 +251,6 @@
 	display: block;
 }
 
-/* When horizontal scrolling is enabled, shift actions back to the viewport's right edge */
 .customview-tree .monaco-list.horizontal-scrolling .monaco-list-row:has(.actions .action-item):hover .custom-view-tree-node-item .actions,
 
 .customview-tree .monaco-list.horizontal-scrolling .monaco-list-row:has(.actions .action-item).selected .custom-view-tree-node-item .actions,
@@ -283,7 +279,6 @@
 	background-color: var(--vscode-list-focusBackground);
 }
 
-/* filter view pane */
 
 .monaco-workbench .auxiliarybar.pane-composite-part > .title.has-composite-bar > .title-actions .monaco-action-bar .action-item.viewpane-filter-container {
 	max-width: inherit;

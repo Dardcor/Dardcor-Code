@@ -20,12 +20,7 @@ import type { ISerializedWorkspaceState, IWorkspaceStateChangeFile, IWorkspaceSt
 import { extensionHostWorkspaceUri, isInExtensionHost } from './isInExtensionHost';
 import { WORKSPACE_PATH } from './simulationWorkspaceServices';
 
-/**
- * Contains a subset of the properties of the prompt context model.
- * This is what is hydrated from the snapshot to form the testing prompt context model
- */
 export interface IDeserializedWorkspaceState {
-	// The repo context for each workspace folder. Undefined if the workspace folder is not a git repo
 	readonly repositories: Array<RepoContext | undefined> | undefined;
 	readonly workspaceFolders: URI[] | undefined;
 	readonly workspaceFolderPath: string | undefined;
@@ -65,7 +60,6 @@ export function deserializeWorkbenchState(scenarioFolderPath: string, stateFileP
 		throw new Error('Currently only supporting a single workspace folder');
 	}
 
-	// workspace folder is relative to the scenario folder
 	let workspaceFolderPath = state.workspaceFoldersFilePaths ? path.join(scenarioFolderPath, state.workspaceFoldersFilePaths[0]) : scenarioFolderPath;
 	let workspaceFolderUri = state.workspaceFolderFilePath ? Uri.file(path.join(scenarioFolderPath, state.workspaceFolderFilePath)) : URI.file(WORKSPACE_PATH);
 	let workspaceFolders = [workspaceFolderUri];
@@ -77,7 +71,6 @@ export function deserializeWorkbenchState(scenarioFolderPath: string, stateFileP
 		workspaceFolders = [workspaceFolderUri];
 	}
 
-	// all other resources are relative to the workspace folder
 	function readFileSync(filePath: string) {
 		return fs.readFileSync(path.join(workspaceFolderPath, filePath), 'utf8');
 	}
@@ -132,7 +125,6 @@ export function deserializeWorkbenchState(scenarioFolderPath: string, stateFileP
 		extHostNotebookEditor = new ExtHostNotebookEditor(activeNotebookDocument, activeNotebookEditor.selections.map(selection => new NotebookRange(selection.start, selection.end)));
 	}
 
-	// No active text editor so skip constructing one
 	if (!state.activeTextEditor) {
 		return {
 			activeFileDiagnostics,
@@ -214,6 +206,5 @@ export const noopFileSystemWatcher = new class implements vscode.FileSystemWatch
 	onDidChange = Event.None;
 	onDidDelete = Event.None;
 	dispose() {
-		// noop
 	}
 };

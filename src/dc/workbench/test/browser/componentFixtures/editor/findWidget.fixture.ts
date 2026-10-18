@@ -115,7 +115,6 @@ async function renderFindWidget(options: FindFixtureOptions): Promise<void> {
 		replaceString: options.replaceString ?? '',
 	}, false);
 
-	// Wait for the CSS transition (top: -64px → 0, 200ms linear)
 	await new Promise(resolve => setTimeout(resolve, 300));
 }
 

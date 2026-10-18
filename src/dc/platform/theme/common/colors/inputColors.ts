@@ -5,17 +5,14 @@
 
 import * as nls from '../../../../nls.js';
 
-// Import the effects we need
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { registerColor, transparent, lighten, darken, ColorTransformType } from '../colorUtils.js';
 
-// Import the colors we need
 import { foreground, contrastBorder, focusBorder, iconForeground } from './baseColors.js';
 import { editorWidgetBackground } from './editorColors.js';
 import { listHoverBackground } from './listColors.js';
 
 
-// ----- input
 
 export const inputBackground = registerColor('input.background',
 	{ dark: '#3C3C3C', light: Color.white, hcDark: Color.black, hcLight: Color.white },
@@ -30,7 +27,7 @@ export const inputBorder = registerColor('input.border',
 	nls.localize('inputBoxBorder', "Input box border."));
 
 export const inputActiveOptionBorder = registerColor('inputOption.activeBorder',
-	{ dark: '#7C4DFF', light: '#007ACC', hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: '#7C4DFF', light: '#7C4DFF', hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('inputBoxActiveOptionBorder', "Border color of activated options in input fields."));
 
 export const inputActiveOptionHoverBackground = registerColor('inputOption.hoverBackground',
@@ -50,7 +47,6 @@ export const inputPlaceholderForeground = registerColor('input.placeholderForegr
 	nls.localize('inputPlaceholderForeground', "Input box foreground color for placeholder text."));
 
 
-// ----- input validation
 
 export const inputValidationInfoBackground = registerColor('inputValidation.infoBackground',
 	{ dark: '#063B49', light: '#D6ECF2', hcDark: Color.black, hcLight: Color.white },
@@ -61,7 +57,7 @@ export const inputValidationInfoForeground = registerColor('inputValidation.info
 	nls.localize('inputValidationInfoForeground', "Input validation foreground color for information severity."));
 
 export const inputValidationInfoBorder = registerColor('inputValidation.infoBorder',
-	{ dark: '#007acc', light: '#007acc', hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: '#7C4DFF', light: '#7C4DFF', hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('inputValidationInfoBorder', "Input validation border color for information severity."));
 
 export const inputValidationWarningBackground = registerColor('inputValidation.warningBackground',
@@ -89,7 +85,6 @@ export const inputValidationErrorBorder = registerColor('inputValidation.errorBo
 	nls.localize('inputValidationErrorBorder', "Input validation border color for error severity."));
 
 
-// ----- select
 
 export const selectBackground = registerColor('dropdown.background',
 	{ dark: '#3C3C3C', light: Color.white, hcDark: Color.black, hcLight: Color.white },
@@ -108,7 +103,6 @@ export const selectBorder = registerColor('dropdown.border',
 	nls.localize('dropdownBorder', "Dropdown border."));
 
 
-// ------ button
 
 export const buttonForeground = registerColor('button.foreground',
 	Color.white,
@@ -119,7 +113,7 @@ export const buttonSeparator = registerColor('button.separator',
 	nls.localize('buttonSeparator', "Button separator color."));
 
 export const buttonBackground = registerColor('button.background',
-	{ dark: '#4A148C', light: '#007ACC', hcDark: Color.black, hcLight: '#0F4A85' },
+	{ dark: '#7C4DFF', light: '#7C4DFF', hcDark: Color.black, hcLight: '#0F4A85' },
 	nls.localize('buttonBackground', "Button background color."));
 
 export const buttonHoverBackground = registerColor('button.hoverBackground',
@@ -146,7 +140,6 @@ export const buttonSecondaryHoverBackground = registerColor('button.secondaryHov
 	{ dark: lighten(listHoverBackground, 0.2), light: lighten(listHoverBackground, 0.2), hcDark: null, hcLight: null },
 	nls.localize('buttonSecondaryHoverBackground', "Secondary button background color when hovering."));
 
-// ------ radio
 
 export const radioActiveForeground = registerColor('radio.activeForeground',
 	inputActiveOptionForeground,
@@ -176,7 +169,6 @@ export const radioInactiveHoverBackground = registerColor('radio.inactiveHoverBa
 	inputActiveOptionHoverBackground,
 	nls.localize('radioHoverBackground', "Background color of inactive active radio option when hovering."));
 
-// ------ checkbox
 
 export const checkboxBackground = registerColor('checkbox.background',
 	selectBackground,
@@ -207,7 +199,6 @@ export const checkboxDisabledForeground = registerColor('checkbox.disabled.foreg
 	nls.localize('checkbox.disabled.foreground', "Foreground of a disabled checkbox."));
 
 
-// ------ keybinding label
 
 export const keybindingLabelBackground = registerColor('keybindingLabel.background',
 	{ dark: new Color(new RGBA(128, 128, 128, 0.17)), light: new Color(new RGBA(221, 221, 221, 0.4)), hcDark: Color.transparent, hcLight: Color.transparent },

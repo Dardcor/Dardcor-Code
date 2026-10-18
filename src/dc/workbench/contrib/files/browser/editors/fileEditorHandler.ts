@@ -22,7 +22,7 @@ interface ISerializedFileEditorInput {
 	name?: string;
 	description?: string;
 	encoding?: string;
-	modeId?: string; // should be `languageId` but is kept for backwards compatibility
+	modeId?: string;
 }
 
 export class FileEditorInputSerializer implements IEditorSerializer {
@@ -37,11 +37,11 @@ export class FileEditorInputSerializer implements IEditorSerializer {
 		const preferredResource = fileEditorInput.preferredResource;
 		const serializedFileEditorInput: ISerializedFileEditorInput = {
 			resourceJSON: resource.toJSON(),
-			preferredResourceJSON: isEqual(resource, preferredResource) ? undefined : preferredResource, // only storing preferredResource if it differs from the resource
+			preferredResourceJSON: isEqual(resource, preferredResource) ? undefined : preferredResource,
 			name: fileEditorInput.getPreferredName(),
 			description: fileEditorInput.getPreferredDescription(),
 			encoding: fileEditorInput.getEncoding(),
-			modeId: fileEditorInput.getPreferredLanguageId() // only using the preferred user associated language here if available to not store redundant data
+			modeId: fileEditorInput.getPreferredLanguageId()
 		};
 
 		return JSON.stringify(serializedFileEditorInput);
@@ -94,9 +94,6 @@ export class FileEditorWorkingCopyEditorHandler extends Disposable implements IW
 			return false;
 		}
 
-		// Naturally it would make sense here to check for `instanceof FileEditorInput`
-		// but because some custom editors also leverage text file based working copies
-		// we need to do a weaker check by only comparing for the resource
 
 		return isEqual(workingCopy.resource, editor.resource);
 	}

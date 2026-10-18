@@ -62,7 +62,6 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 const category = Categories.Test;
 
 const enum ActionOrder {
-	// Navigation:
 	Refresh = 10,
 	Run,
 	Debug,
@@ -70,14 +69,13 @@ const enum ActionOrder {
 	RunContinuous,
 	RunUsing,
 
-	// Submenu:
 	Collapse,
 	ClearResults,
 	DisplayMode,
 	Sort,
 	GoToTest,
 	HideTest,
-	ContinuousRunTest = -1 >>> 1, // max int, always at the end to avoid shifting on hover
+	ContinuousRunTest = -1 >>> 1,
 }
 
 const hasAnyTestProvider = ContextKeyGreaterExpr.create(TestingContextKeys.providerCount.key, 0);
@@ -169,9 +167,6 @@ abstract class RunVisibleAction extends ViewAction<TestingExplorerView> {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public runInView(accessor: ServicesAccessor, view: TestingExplorerView, ...elements: TestItemTreeElement[]): Promise<unknown> {
 		const { include, exclude } = view.getTreeIncludeExclude(this.bitset, elements.map(e => e.test));
 		return accessor.get(ITestService).runTests({
@@ -439,7 +434,6 @@ function selectContinuousRunProfiles(
 		return Promise.resolve([]);
 	}
 
-	// special case: don't bother to quick a pickpick if there's only a single profile
 	if (items.length === 1) {
 		return Promise.resolve([items[0].profile]);
 	}
@@ -533,9 +527,6 @@ abstract class ExecuteSelectedAction extends ViewAction<TestingExplorerView> {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public runInView(accessor: ServicesAccessor, view: TestingExplorerView): Promise<ITestResult | undefined> {
 		const { include, exclude } = view.getTreeIncludeExclude(this.group);
 		return accessor.get(ITestService).runTests({ tests: include, exclude, group: this.group });
@@ -547,9 +538,6 @@ export class GetSelectedProfiles extends Action2 {
 		super({ id: TestCommandId.GetSelectedProfiles, title: localize2('getSelectedProfiles', 'Get Selected Profiles') });
 	}
 
-	/**
-	 * @override
-	 */
 	public override run(accessor: ServicesAccessor) {
 		const profiles = accessor.get(ITestProfileService);
 		return [
@@ -573,9 +561,6 @@ export class GetExplorerSelection extends ViewAction<TestingExplorerView> {
 		super({ id: TestCommandId.GetExplorerSelection, title: localize2('getExplorerSelection', 'Get Explorer Selection'), viewId: Testing.ExplorerViewId });
 	}
 
-	/**
-	 * @override
-	 */
 	public override runInView(_accessor: ServicesAccessor, view: TestingExplorerView) {
 		const { include, exclude } = view.getTreeIncludeExclude(TestRunProfileBitset.Run, undefined, 'selected');
 		const mapper = (i: InternalTestItem) => i.item.extId;
@@ -730,9 +715,6 @@ export class CancelTestRunAction extends Action2 {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public async run(accessor: ServicesAccessor, resultId?: string, taskId?: string) {
 		const resultService = accessor.get(ITestResultService);
 		const testService = accessor.get(ITestService);
@@ -764,9 +746,6 @@ export class TestingViewAsListAction extends ViewAction<TestingExplorerView> {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public runInView(_accessor: ServicesAccessor, view: TestingExplorerView) {
 		view.viewModel.viewMode = TestExplorerViewMode.List;
 	}
@@ -788,9 +767,6 @@ export class TestingViewAsTreeAction extends ViewAction<TestingExplorerView> {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public runInView(_accessor: ServicesAccessor, view: TestingExplorerView) {
 		view.viewModel.viewMode = TestExplorerViewMode.Tree;
 	}
@@ -813,9 +789,6 @@ export class TestingSortByStatusAction extends ViewAction<TestingExplorerView> {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public runInView(_accessor: ServicesAccessor, view: TestingExplorerView) {
 		view.viewModel.viewSorting = TestExplorerViewSorting.ByStatus;
 	}
@@ -837,9 +810,6 @@ export class TestingSortByLocationAction extends ViewAction<TestingExplorerView>
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public runInView(_accessor: ServicesAccessor, view: TestingExplorerView) {
 		view.viewModel.viewSorting = TestExplorerViewSorting.ByLocation;
 	}
@@ -861,9 +831,6 @@ export class TestingSortByDurationAction extends ViewAction<TestingExplorerView>
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public runInView(_accessor: ServicesAccessor, view: TestingExplorerView) {
 		view.viewModel.viewSorting = TestExplorerViewSorting.ByDuration;
 	}
@@ -916,9 +883,6 @@ export class CollapseAllAction extends ViewAction<TestingExplorerView> {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public runInView(_accessor: ServicesAccessor, view: TestingExplorerView) {
 		view.viewModel.collapseAll();
 	}
@@ -950,9 +914,6 @@ export class ClearTestResultsAction extends Action2 {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public run(accessor: ServicesAccessor) {
 		accessor.get(ITestResultService).clear();
 	}
@@ -991,13 +952,6 @@ export class GoToTest extends Action2 {
 }
 
 async function getTestsAtCursor(testService: ITestService, uriIdentityService: IUriIdentityService, uri: URI, position: Position, filter?: (test: InternalTestItem) => boolean) {
-	// testsInFile will descend in the test tree. We assume that as we go
-	// deeper, ranges get more specific. We'll want to run all tests whose
-	// range is equal to the most specific range we find (see #133519)
-	//
-	// If we don't find any test whose range contains the position, we pick
-	// the closest one before the position. Again, if we find several tests
-	// whose range is equal to the closest one, we run them all.
 
 	let bestNodes: InternalTestItem[] = [];
 	let bestRange: Range | undefined;
@@ -1014,7 +968,6 @@ async function getTestsAtCursor(testService: ITestService, uriIdentityService: I
 			const irange = Range.lift(test.item.range);
 			if (irange.containsPosition(position)) {
 				if (bestRange && Range.equalsRange(test.item.range, bestRange)) {
-					// check that a parent isn't already included (#180760)
 					if (!bestNodes.some(b => TestId.isChild(b.item.extId, test.item.extId))) {
 						bestNodes.push(test);
 					}
@@ -1061,9 +1014,6 @@ abstract class ExecuteTestAtCursor extends Action2 {
 		});
 	}
 
-	/**
-	 * @override
-	 */
 	public async run(accessor: ServicesAccessor) {
 		const codeEditorService = accessor.get(ICodeEditorService);
 		const editorService = accessor.get(IEditorService);
@@ -1096,13 +1046,6 @@ abstract class ExecuteTestAtCursor extends Action2 {
 		}
 
 
-		// testsInFile will descend in the test tree. We assume that as we go
-		// deeper, ranges get more specific. We'll want to run all tests whose
-		// range is equal to the most specific range we find (see #133519)
-		//
-		// If we don't find any test whose range contains the position, we pick
-		// the closest one before the position. Again, if we find several tests
-		// whose range is equal to the closest one, we run them all.
 		const testsToRun = await showDiscoveringWhile(progressService,
 			getTestsAtCursor(
 				testService,
@@ -1272,9 +1215,6 @@ abstract class ExecuteTestsInCurrentFile extends Action2 {
 		return { completedAt: undefined };
 	}
 
-	/**
-	 * @override
-	 */
 	public run(accessor: ServicesAccessor, files?: URI[]) {
 		if (files?.length) {
 			return this._runByUris(accessor, files);
@@ -1296,8 +1236,6 @@ abstract class ExecuteTestsInCurrentFile extends Action2 {
 
 		const testService = accessor.get(ITestService);
 
-		// Iterate through the entire collection and run any tests that are in the
-		// uri. See #138007.
 		const queue = [testService.collection.rootIds];
 		const discovered: InternalTestItem[] = [];
 		while (queue.length) {
@@ -1384,9 +1322,6 @@ export const discoverAndRunTests = async (
 };
 
 abstract class RunOrDebugExtsByPath extends Action2 {
-	/**
-	 * @override
-	 */
 	public async run(accessor: ServicesAccessor, ...args: unknown[]) {
 		const testService = accessor.get(ITestService);
 		await discoverAndRunTests(
@@ -1412,9 +1347,6 @@ abstract class RunOrDebugFailedTests extends RunOrDebugExtsByPath {
 			},
 		});
 	}
-	/**
-	 * @inheritdoc
-	 */
 	protected getTestExtIdsToRun(accessor: ServicesAccessor) {
 		const { results } = accessor.get(ITestResultService);
 		const ids = new Set<string>();
@@ -1456,7 +1388,6 @@ abstract class RunOrDebugLastRun extends Action2 {
 		return lastResult?.request;
 	}
 
-	/** @inheritdoc */
 	public override async run(accessor: ServicesAccessor, runId?: string) {
 		const resultService = accessor.get(ITestResultService);
 		const lastResult = runId ? resultService.results.find(r => r.id === runId) : resultService.results[0];
@@ -1475,8 +1406,6 @@ abstract class RunOrDebugLastRun extends Action2 {
 			accessor.get(IProgressService),
 			req.targets.flatMap(t => t.testIds),
 			tests => {
-				// If we're requesting a re-run in the same group and have the same profiles
-				// as were used before, then use those exactly. Otherwise guess naively.
 				if (this.getGroup() & req.group && req.targets.every(profileExists)) {
 					return testService.runResolvedTests({
 						targets: req.targets,
@@ -1603,7 +1532,6 @@ abstract class RunOrDebugFailedFromLastRun extends Action2 {
 
 	protected abstract getGroup(): TestRunProfileBitset;
 
-	/** @inheritdoc */
 	public override async run(accessor: ServicesAccessor, runId?: string) {
 		const resultService = accessor.get(ITestResultService);
 		const testService = accessor.get(ITestService);
@@ -1844,7 +1772,7 @@ export class OpenCoverage extends Action2 {
 }
 
 abstract class TestNavigationAction extends SymbolNavigationAction {
-	protected testService!: ITestService; // little hack...
+	protected testService!: ITestService;
 	protected uriIdentityService!: IUriIdentityService;
 
 	override runEditorCommand(accessor: ServicesAccessor, editor: ICodeEditor, ...args: unknown[]) {
@@ -1886,7 +1814,6 @@ class GoToRelatedTest extends GoToRelatedTestAction {
 			title: localize2('testing.goToRelatedTest', 'Go to Related Test'),
 			category,
 			precondition: ContextKeyExpr.and(
-				// todo@connor4312: make this more explicit based on cursor position
 				ContextKeyExpr.not(TestingContextKeys.activeEditorHasTests.key), TestingContextKeys.canGoToRelatedTest,
 			),
 			menu: [{
@@ -1910,7 +1837,6 @@ class PeekRelatedTest extends GoToRelatedTestAction {
 			category,
 			precondition: ContextKeyExpr.and(
 				TestingContextKeys.canGoToRelatedTest,
-				// todo@connor4312: make this more explicit based on cursor position
 				ContextKeyExpr.not(TestingContextKeys.activeEditorHasTests.key),
 				PeekContext.notInPeekEditor,
 				EditorContextKeys.isInEmbeddedEditor.toNegated()

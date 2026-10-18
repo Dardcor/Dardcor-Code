@@ -370,7 +370,6 @@ suite('Protocol WebSocket - Resource Operations', function () {
 		}), /resource not found/i);
 	});
 
-	// File watcher delivery is unreliable in all environments.
 	(isLinux || isWindows || isMacintosh ? test.skip : test)('non-recursive resource watch emits a change action', async function () {
 		const watch = await client.call<{ channel: string }>('createResourceWatch', {
 			channel: ROOT_STATE_URI,

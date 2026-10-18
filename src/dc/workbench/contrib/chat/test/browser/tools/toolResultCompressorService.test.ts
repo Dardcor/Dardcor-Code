@@ -24,13 +24,11 @@ class CapturingLogService extends NullLogService {
 
 function makeService(opts: { enabled: boolean; log?: ILogService }): ToolResultCompressorService {
 	const config = new TestConfigurationService({ chat: { tools: { compressOutput: { enabled: opts.enabled } } } });
-	// Also register raw key so getValue<boolean>(key) returns the value.
 	config.setUserConfiguration(ChatConfiguration.CompressOutputEnabled, opts.enabled);
 	return new ToolResultCompressorService(config, NullTelemetryService, opts.log ?? new NullLogService());
 }
 
 function longText(prefix: string): string {
-	// Must exceed MIN_COMPRESSIBLE_LENGTH so filters get a chance to run.
 	return prefix + ' ' + 'x'.repeat(MIN_COMPRESSIBLE_LENGTH + 100);
 }
 
@@ -85,12 +83,9 @@ suite('ToolResultCompressorService', () => {
 		svc.registerFilter(replaceWithFooFilter);
 		const out = svc.maybeCompress(TOOL, {}, textResult(longText('a'), longText('b'), longText('c')));
 		ok(out);
-		// Throwing filter is invoked exactly once on the first text part, then disabled.
 		strictEqual(calls, 1);
 		strictEqual(log.warnings.length, 1);
 		ok(log.warnings[0].includes('thrower'));
-		// The other filter still rewrites every text part. Each emitted part starts
-		// with the compression banner and ends with the filter's replacement text.
 		for (const part of out!.content) {
 			strictEqual(part.kind, 'text');
 			const value = (part as { value: string }).value;
@@ -130,7 +125,6 @@ suite('ToolResultCompressorService', () => {
 	test('skips text parts shorter than the minimum compressible length', () => {
 		const svc = make({ enabled: true });
 		svc.registerFilter(replaceWithFooFilter);
-		// Nothing was compressed because the part was below the threshold.
 		strictEqual(svc.maybeCompress(TOOL, {}, textResult('tiny')), undefined);
 	});
 });

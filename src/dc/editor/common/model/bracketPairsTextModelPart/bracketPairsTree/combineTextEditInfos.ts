@@ -15,18 +15,12 @@ export function combineTextEditInfos(textEditInfoFirst: TextEditInfo[], textEdit
 		return textEditInfoFirst;
 	}
 
-	// s0: State before any edits
 	const s0ToS1Map = new ArrayQueue(toLengthMapping(textEditInfoFirst));
-	// s1: State after first edit, but before second edit
 	const s1ToS2Map = toLengthMapping(textEditInfoSecond) as (LengthMapping | { lengthBefore: undefined; lengthAfter: undefined; modified: false })[];
-	s1ToS2Map.push({ modified: false, lengthBefore: undefined, lengthAfter: undefined }); // Copy everything from old to new
-	// s2: State after both edits
+	s1ToS2Map.push({ modified: false, lengthBefore: undefined, lengthAfter: undefined });
 
 	let curItem: LengthMapping | undefined = s0ToS1Map.dequeue();
 
-	/**
-	 * @param s1Length Use undefined for length "infinity"
-	 */
 	function nextS0ToS1MapWithS1LengthOf(s1Length: Length | undefined): LengthMapping[] {
 		if (s1Length === undefined) {
 			const arr = s0ToS1Map.takeWhile(v => true) || [];
@@ -84,9 +78,6 @@ export function combineTextEditInfos(textEditInfoFirst: TextEditInfo[], textEdit
 
 class LengthMapping {
 	constructor(
-		/**
-		 * If false, length before and length after equal.
-		 */
 		public readonly modified: boolean,
 		public readonly lengthBefore: Length,
 		public readonly lengthAfter: Length,

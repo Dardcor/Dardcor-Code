@@ -28,21 +28,13 @@ import { JumpToView } from '../jumpToView.js';
 import { TextModelValueReference } from '../../../../model/textModelValueReference.js';
 
 export interface ILongDistancePreviewProps {
-	nextCursorPosition: Position | null; // assert: nextCursorPosition !== null  xor  diff.length > 0
+	nextCursorPosition: Position | null;
 	diff: DetailedLineRangeMapping[];
 	model: SimpleInlineSuggestModel;
 	inlineSuggestInfo: InlineSuggestionGutterMenuData;
-	/**
-	 * The URI of the file the edit targets.
-	 * When undefined (or same as the editor's model URI), the edit targets the current file.
-	 */
 	target: TextModelValueReference;
 }
 
-/**
- * Widens the previewed range around `targetLineNumber` by `contextLineCount` lines on each side,
- * clamped to the model bounds. With `contextLineCount === 0` this returns just the target line.
- */
 function expandLineRangeWithContext(targetLineNumber: number, contextLineCount: number, lineCount: number): LineRange {
 	const clampedTarget = Math.max(1, Math.min(lineCount, targetLineNumber));
 	const startLineNumber = Math.max(1, clampedTarget - contextLineCount);
@@ -55,7 +47,7 @@ export class LongDistancePreviewEditor extends Disposable {
 	private readonly _previewEditorObs;
 
 	private readonly _previewRef = n.ref<HTMLDivElement>();
-	public readonly element = n.div({ class: 'preview', style: { /*pointerEvents: 'none'*/ }, ref: this._previewRef });
+	public readonly element = n.div({ class: 'preview', style: { }, ref: this._previewRef });
 
 	private _parentEditorObs: ObservableCodeEditor;
 
@@ -75,7 +67,6 @@ export class LongDistancePreviewEditor extends Disposable {
 			const tm = this._state.read(reader)?.textModel || null;
 
 			if (tm) {
-				// Avoid transitions from tm -> null -> tm, where tm -> tm would be a no-op.
 				this.previewEditor.setModel(tm.dangerouslyGetUnderlyingModel());
 			}
 		}));
@@ -102,7 +93,6 @@ export class LongDistancePreviewEditor extends Disposable {
 			})));
 		}
 
-		// Mirror the cursor position. Allows the gutter arrow to point in the correct direction.
 		this._register(autorun((reader) => {
 			if (!this._properties.read(reader)) {
 				return;
@@ -118,7 +108,6 @@ export class LongDistancePreviewEditor extends Disposable {
 			if (!state) {
 				return;
 			}
-			// Ensure there is enough space to the left of the line number for the gutter indicator to fits.
 			const lineNumberDigets = (state.visibleLineRange.endLineNumberExclusive - 1).toString().length;
 			this.previewEditor.updateOptions({ lineNumbersMinChars: lineNumberDigets + 1 });
 		}));
@@ -179,7 +168,6 @@ export class LongDistancePreviewEditor extends Disposable {
 			? TextModelValueReference.snapshot(this._previewTextModel)
 			: props.target;
 
-		// Optionally widen the previewed range with surrounding context lines (e.g. when the target line is empty).
 		const contextLineCount = this._parentEditorObs.getOption(EditorOption.inlineSuggest).read(reader).edits.longDistanceHintContextLineCount;
 		const displayModel = mode === 'modified' ? this._previewTextModel : props.target.dangerouslyGetUnderlyingModel();
 		const visibleLineRange = expandLineRangeWithContext(targetLineNumber, contextLineCount, displayModel.getLineCount());
@@ -207,17 +195,14 @@ export class LongDistancePreviewEditor extends Disposable {
 					bracketPairsHorizontal: false,
 					highlightActiveIndentation: false,
 				},
-				editContext: false, // is a bit faster
+				editContext: false,
 				rulers: [],
 				padding: { top: 0, bottom: 0 },
-				//folding: false,
 				selectOnLineNumbers: false,
 				selectionHighlight: false,
 				columnSelection: false,
 				overviewRulerBorder: false,
 				overviewRulerLanes: 0,
-				//lineDecorationsWidth: 0,
-				//lineNumbersMinChars: 0,
 				revealHorizontalRightPadding: 0,
 				bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: false },
 				scrollBeyondLastLine: false,
@@ -242,8 +227,7 @@ export class LongDistancePreviewEditor extends Disposable {
 	}
 
 	public readonly updatePreviewEditorEffect = derived(this, reader => {
-		// this._widgetContent.readEffect(reader);
-		this._previewEditorObs.model.read(reader); // update when the model is set
+		this._previewEditorObs.model.read(reader);
 
 		const range = this._state.read(reader)?.visibleLineRange;
 		if (!range) {
@@ -294,7 +278,6 @@ export class LongDistancePreviewEditor extends Disposable {
 		}
 
 
-		// find the horizontal range we want to show.
 		const preferredRange = growUntilVariableBoundaries(editor.getModel()!, firstCharacterChange, 5);
 		const leftOffset = this._previewEditorObs.getLeftOfPosition(preferredRange.getStartPosition(), reader);
 		const rightOffset = this._previewEditorObs.getLeftOfPosition(preferredRange.getEndPosition(), reader);
@@ -312,7 +295,7 @@ export class LongDistancePreviewEditor extends Disposable {
 			preferredRangeToReveal,
 			maxEditorWidth: trueContentWidth + l.contentLeft,
 			contentWidth: trueContentWidth,
-			nonContentWidth: l.contentLeft, // Width of area that is not content
+			nonContentWidth: l.contentLeft,
 		};
 	}
 
@@ -336,7 +319,7 @@ export class LongDistancePreviewEditor extends Disposable {
 			className: 'inlineCompletions-char-delete',
 			description: 'char-delete',
 			isWholeLine: false,
-			zIndex: 1, // be on top of diff background decoration
+			zIndex: 1,
 		});
 
 		const diffWholeLineAddDecoration = ModelDecorationOptions.register({
@@ -351,7 +334,7 @@ export class LongDistancePreviewEditor extends Disposable {
 			shouldFillLineOnLineBreak: true,
 		});
 
-		const hideEmptyInnerDecorations = true; // diff.mode === 'lineReplacement';
+		const hideEmptyInnerDecorations = true;
 		for (const m of diff.diff) {
 			if (m.modified.isEmpty || m.original.isEmpty) {
 				if (!m.original.isEmpty) {
@@ -362,7 +345,6 @@ export class LongDistancePreviewEditor extends Disposable {
 				}
 			} else {
 				for (const i of m.innerChanges || []) {
-					// Don't show empty markers outside the line range
 					if (m.original.contains(i.originalRange.startLineNumber) && !(hideEmptyInnerDecorations && i.originalRange.isEmpty())) {
 						originalDecorations.push({
 							range: i.originalRange,
@@ -371,7 +353,6 @@ export class LongDistancePreviewEditor extends Disposable {
 								shouldFillLineOnLineBreak: false,
 								className: classNames(
 									'inlineCompletions-char-delete',
-									// i.originalRange.isSingleLine() && diff.mode === 'insertionInline' && 'single-line-inline',
 									i.originalRange.isEmpty() && 'empty',
 								),
 								zIndex: 1
@@ -392,11 +373,6 @@ export class LongDistancePreviewEditor extends Disposable {
 	});
 }
 
-/*
- * Grows the range on each ends until it includes a none-variable-name character
- * or the next character would be a whitespace character
- * or the maxGrow limit is reached
- */
 function growUntilVariableBoundaries(textModel: ITextModel, range: Range, maxGrow: number): Range {
 	const startPosition = range.getStartPosition();
 	const endPosition = range.getEndPosition();

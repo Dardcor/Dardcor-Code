@@ -15,9 +15,6 @@ import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IChatSessionMetadataStore, RepositoryProperties, WorkspaceFolderEntry } from '../../common/chatSessionMetadataStore';
 import { ChatSessionWorkspaceFolderService } from '../chatSessionWorkspaceFolderServiceImpl';
 
-/**
- * Mock implementation of globalState for testing
- */
 class MockGlobalState implements vscode.Memento {
 	private data = new Map<string, unknown>();
 
@@ -39,13 +36,9 @@ class MockGlobalState implements vscode.Memento {
 	}
 
 	setKeysForSync(_keys: readonly string[]): void {
-		// No-op for testing
 	}
 }
 
-/**
- * Mock implementation of IVSCodeExtensionContext for testing
- */
 class MockExtensionContext extends mock<IVSCodeExtensionContext>() {
 	public override globalState = new MockGlobalState();
 
@@ -58,9 +51,6 @@ class MockExtensionContext extends mock<IVSCodeExtensionContext>() {
 	override extensionUri = vscode.Uri.file('/mock/extension');
 }
 
-/**
- * Mock implementation of ILogService for testing
- */
 class MockLogService extends mock<ILogService>() {
 	override trace = vi.fn();
 	override info = vi.fn();
@@ -132,7 +122,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 			await service.trackSessionWorkspaceFolder(sessionId, folderPath);
 			const afterTime = Date.now();
 
-			// Verify that metadataStore was called with correct timestamp
 			expect(metadataStore.storeWorkspaceFolderInfo).toHaveBeenCalledWith(
 				sessionId,
 				expect.objectContaining({ folderPath })
@@ -148,7 +137,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 
 			await service.trackSessionWorkspaceFolder(sessionId, folderPath);
 
-			// Verify metadata store was called
 			expect(metadataStore.storeWorkspaceFolderInfo).toHaveBeenCalledWith(
 				sessionId,
 				expect.objectContaining({ folderPath })
@@ -170,23 +158,19 @@ describe('ChatSessionWorkspaceFolderService', () => {
 		});
 
 		it('should trigger cleanup when exceeding MAX_ENTRIES', async () => {
-			// Track MAX_ENTRIES + 1 entries to trigger cleanup
 			const MAX_ENTRIES = 1500;
 
-			// Pre-fill globalState with old entries
 			const oldData: Record<string, unknown> = {};
 			for (let i = 0; i < MAX_ENTRIES; i++) {
 				oldData[`session-old-${i}`] = {
 					folderPath: vscode.Uri.file(`/old/path/${i}`).fsPath,
-					timestamp: Date.now() - 10000 + i  // Incrementing timestamps
+					timestamp: Date.now() - 10000 + i
 				};
 			}
 			await extensionContext.globalState.update('github.dardcor.cli.sessionWorkspaceFolders', oldData);
 
-			// Add one more entry to trigger cleanup
 			await service.trackSessionWorkspaceFolder('session-new', vscode.Uri.file('/new/path').fsPath);
 
-			// Verify that cleanup occurred (some old entries should be gone)
 			const data = extensionContext.globalState.get<Record<string, unknown>>('github.dardcor.cli.sessionWorkspaceFolders', {});
 			const entryCount = Object.keys(data).length;
 			expect(entryCount).toBeLessThan(MAX_ENTRIES + 1);
@@ -222,9 +206,8 @@ describe('ChatSessionWorkspaceFolderService', () => {
 		});
 
 		it('should handle malformed data gracefully', async () => {
-			// Manually inject malformed data
 			await extensionContext.globalState.update('github.dardcor.cli.sessionWorkspaceFolders', {
-				'session-bad': {} // Missing folderPath
+				'session-bad': {}
 			});
 
 			const result = await service.getSessionWorkspaceFolder('session-bad');
@@ -232,7 +215,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 		});
 
 		it('should return undefined if folderPath is empty string', async () => {
-			// Manually inject entry with empty folderPath
 			await extensionContext.globalState.update('github.dardcor.cli.sessionWorkspaceFolders', {
 				'session-empty': { folderPath: '', timestamp: Date.now() }
 			});
@@ -242,7 +224,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 		});
 
 		it('should fall back to metadata store when session is not in memory', async () => {
-			// Session not tracked in-memory, but metadata store has it
 			const folderPath = vscode.Uri.file('/metadata-store/folder').fsPath;
 			metadataStore.getSessionWorkspaceFolder.mockResolvedValueOnce(vscode.Uri.file(folderPath));
 
@@ -258,7 +239,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 
 			await service.trackSessionWorkspaceFolder(sessionId, inMemoryPath);
 
-			// Even if metadata store would return something different
 			metadataStore.getSessionWorkspaceFolder.mockResolvedValueOnce(vscode.Uri.file('/store/different'));
 
 			const result = await service.getSessionWorkspaceFolder(sessionId);
@@ -332,7 +312,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 		});
 
 		it('should handle deletion of non-existent session', async () => {
-			// Should not throw
 			await expect(service.deleteTrackedWorkspaceFolder('non-existent')).resolves.toBeUndefined();
 		});
 
@@ -354,17 +333,15 @@ describe('ChatSessionWorkspaceFolderService', () => {
 		it('should keep newer entries and remove older ones', async () => {
 			const MAX_ENTRIES = 1500;
 
-			// Create old entries with predictable timestamps
 			const oldData: Record<string, unknown> = {};
 			for (let i = 0; i < MAX_ENTRIES; i++) {
 				oldData[`session-old-${i}`] = {
 					folderPath: vscode.Uri.file(`/old/path/${i}`).fsPath,
-					timestamp: 1000 + i  // Older timestamps
+					timestamp: 1000 + i
 				};
 			}
 			await extensionContext.globalState.update('github.dardcor.cli.sessionWorkspaceFolders', oldData);
 
-			// Add a new entry with current timestamp
 			const now = Date.now();
 			const data = extensionContext.globalState.get<Record<string, unknown>>('github.dardcor.cli.sessionWorkspaceFolders', {});
 			(data as any)['session-new'] = {
@@ -373,12 +350,10 @@ describe('ChatSessionWorkspaceFolderService', () => {
 			};
 			await extensionContext.globalState.update('github.dardcor.cli.sessionWorkspaceFolders', data);
 
-			// Trigger cleanup by adding another entry
 			await service.trackSessionWorkspaceFolder('session-trigger', vscode.Uri.file('/trigger/path').fsPath);
 
 			const finalData = extensionContext.globalState.get<Record<string, unknown>>('github.dardcor.cli.sessionWorkspaceFolders', {});
 
-			// The newest entries should be preserved
 			expect(finalData['session-new']).toBeDefined();
 		});
 	});
@@ -426,7 +401,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 				const second = await service.getWorkspaceChanges(sessionId);
 
 				expect(first).toBe(second);
-				// getRepository is called once for the first call, the second uses cache
 				expect(gitService.getRepository).toHaveBeenCalledTimes(1);
 			});
 
@@ -490,13 +464,11 @@ describe('ChatSessionWorkspaceFolderService', () => {
 			});
 
 			it('should cache empty result when session has no repository properties', async () => {
-				// Session with no stored repository properties
 				const result1 = await service.getWorkspaceChanges('no-repo-session');
 				const result2 = await service.getWorkspaceChanges('no-repo-session');
 
 				expect(result1).toEqual([]);
 				expect(result2).toEqual([]);
-				// Should only read metadata once — subsequent call uses the negative cache
 				expect(metadataStore.getRepositoryProperties).toHaveBeenCalledTimes(1);
 			});
 
@@ -504,17 +476,14 @@ describe('ChatSessionWorkspaceFolderService', () => {
 				const repo = makeRepoContext();
 				gitService.getRepository = vi.fn().mockResolvedValue(repo);
 
-				// First call: no repo properties → negative-cached, returns []
 				const result1 = await service.getWorkspaceChanges('late-init-session');
 				expect(result1).toEqual([]);
 
-				// Later: repo properties are provided via trackSessionWorkspaceFolder
 				await service.trackSessionWorkspaceFolder('late-init-session', '/repo', {
 					repositoryPath: '/repo',
 					branchName: 'main',
 				});
 
-				// Second call: negative cache should be cleared, should re-read metadata
 				const result2 = await service.getWorkspaceChanges('late-init-session');
 				expect(result2).toBeDefined();
 				expect(metadataStore.getRepositoryProperties).toHaveBeenCalledTimes(2);
@@ -531,7 +500,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 					branchName: 'main',
 				});
 
-				// Clear cache between calls to force re-entry into getWorkspaceChanges
 				await service.getWorkspaceChanges(sessionId);
 				service.clearWorkspaceChanges(sessionId);
 				await service.getWorkspaceChanges(sessionId);
@@ -539,7 +507,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 				service.clearWorkspaceChanges(sessionId);
 				await service.getWorkspaceChanges(sessionId);
 
-				// All 3 calls should have hit getRepository (cache was manually cleared each time)
 				expect(gitService.getRepository).toHaveBeenCalledTimes(3);
 			});
 
@@ -574,15 +541,11 @@ describe('ChatSessionWorkspaceFolderService', () => {
 				await service.getWorkspaceChanges(sessionId1);
 				await service.getWorkspaceChanges(sessionId2);
 
-				// Invalidate only sessionId1's cache
 				service.clearWorkspaceChanges(sessionId1);
 
-				// sessionId2 should still use cache
 				await service.getWorkspaceChanges(sessionId2);
-				// sessionId1 needs refresh
 				await service.getWorkspaceChanges(sessionId1);
 
-				// sessionId1: called twice (initial + after invalidation), sessionId2: called once (cached)
 				const calls = (gitService.getRepository as ReturnType<typeof vi.fn>).mock.calls;
 				const sessionId1Calls = calls.filter((c: URI[]) => c[0].fsPath === folder1.fsPath).length;
 				const sessionId2Calls = calls.filter((c: URI[]) => c[0].fsPath === folder2.fsPath).length;
@@ -595,7 +558,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 				const repoPath = '/shared-repo';
 
 				gitService.getRepository = vi.fn().mockImplementation(async () => {
-					// Simulate async work
 					await new Promise(resolve => setTimeout(resolve, 10));
 					return repo;
 				});
@@ -614,7 +576,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 					baseBranchName: 'main',
 				});
 
-				// Fire both concurrently — they share the same repo+baseBranch
 				const [result1, result2] = await Promise.all([
 					service.getWorkspaceChanges(sessionId1),
 					service.getWorkspaceChanges(sessionId2),
@@ -623,7 +584,6 @@ describe('ChatSessionWorkspaceFolderService', () => {
 				expect(result1).toBeDefined();
 				expect(result2).toBeDefined();
 
-				// Session B should reuse the result computed by session A via shared repo-level cache
 				expect(result1).toBe(result2);
 				expect(gitService.getRepository).toHaveBeenCalledTimes(1);
 			});
@@ -675,17 +635,14 @@ describe('ChatSessionWorkspaceFolderService', () => {
 					branchName: 'develop',
 				});
 
-				// Populate caches
 				await service.getWorkspaceChanges(sessionId1);
 				await service.getWorkspaceChanges(sessionId2);
 				expect(gitService.getRepository).toHaveBeenCalledTimes(2);
 
-				// Clear via folder URI
 				const clearedIds = service.clearWorkspaceChanges(folder);
 				expect(clearedIds).toContain(sessionId1);
 				expect(clearedIds).toContain(sessionId2);
 
-				// Both sessions should need to re-fetch
 				await service.getWorkspaceChanges(sessionId1);
 				await service.getWorkspaceChanges(sessionId2);
 				expect(gitService.getRepository).toHaveBeenCalledTimes(4);
@@ -701,12 +658,10 @@ describe('ChatSessionWorkspaceFolderService', () => {
 				const folder = vscode.Uri.file('/my-folder');
 				const sessionId = 'session-eager';
 
-				// Before tracking, no associations
 				expect(service.clearWorkspaceChanges(folder)).toEqual([]);
 
 				await service.trackSessionWorkspaceFolder(sessionId, folder.fsPath);
 
-				// After tracking, association exists immediately (no need to call getWorkspaceChanges first)
 				expect(service.clearWorkspaceChanges(folder)).toEqual([sessionId]);
 			});
 

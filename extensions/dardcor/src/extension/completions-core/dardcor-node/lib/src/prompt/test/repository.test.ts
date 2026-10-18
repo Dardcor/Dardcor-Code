@@ -44,7 +44,6 @@ suite('Extract repo info tests', function () {
 
 		assert.ok(info);
 
-		// url and pathname get their own special treatment because they depend on how the repo was cloned.
 		const { url, pathname, repoId, ...repoInfo } = info;
 
 		assert.deepStrictEqual(repoInfo, {
@@ -78,7 +77,6 @@ suite('Extract repo info tests', function () {
 
 		assert.ok(info);
 
-		// url and pathname get their own special treatment because they depend on how the repo was cloned.
 		const { url, pathname, repoId, ...repoInfo } = info;
 
 		assert.deepStrictEqual(repoInfo, {

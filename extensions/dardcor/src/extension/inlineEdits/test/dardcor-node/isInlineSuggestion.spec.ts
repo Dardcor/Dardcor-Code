@@ -129,16 +129,13 @@ suite('toInlineSuggestion', () => {
 
 	test('multi-line insertion on next line extends range to cursor', () => {
 		const document = createMockDocument(['This is line 1,', 'This is line 2,', 'This is line 5,']);
-		const cursorPosition = new Position(1, 15); // end of "This is line 2,"
+		const cursorPosition = new Position(1, 15);
 		const replaceRange = new Range(2, 0, 2, 0);
 		const replaceText = 'This is line 3,\nThis is line 4,\n';
 
 		const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
 		assert.isDefined(result);
-		// Range is an empty range at the cursor for a pure insertion
 		assert.deepStrictEqual(result!.range, new Range(1, 15, 1, 15));
-		// Text is prepended with the newline between cursor and original range,
-		// and the trailing newline is dropped so we don't introduce a blank line.
 		assert.strictEqual(result!.newText, '\n' + replaceText.replace(/\r?\n$/, ''));
 	});
 
@@ -151,8 +148,6 @@ suite('toInlineSuggestion', () => {
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
-	// Even though this would be a nice way to render the suggestion, ghost text view on the core side
-	// is not able to render such suggestions
 	test('should not use ghost text when inserting on existing line below', () => {
 		const document = createMockDocument(['This is line 1,', 'This is line 2,', '', 'This is line 4,']);
 		const cursorPosition = new Position(1, 15);
@@ -162,31 +157,25 @@ suite('toInlineSuggestion', () => {
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
-	// Tests probing the behavior change: multi-line next-line insertions
-	// where newText does not end with '\n'
 
 	test('multi-line insertion on next empty line without trailing newline is not an inline suggestion', () => {
 		const document = createMockDocument(['function foo(', '', 'other']);
-		const cursorPosition = new Position(0, 13); // end of "function foo("
-		const replaceRange = new Range(1, 0, 1, 0); // empty line
+		const cursorPosition = new Position(0, 13);
+		const replaceRange = new Range(1, 0, 1, 0);
 		const replaceText = '  a: string,\n  b: number\n)';
 
-		// newText does not end with '\n'. The original line terminator after the
-		// cursor cannot be consumed by ghost text, so pulling the insertion up to
-		// the cursor would leave a spurious blank line — not representable.
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
 	test('multi-line insertion on next non-empty line with trailing newline', () => {
 		const document = createMockDocument(['function foo(', ')', 'other']);
-		const cursorPosition = new Position(0, 13); // end of "function foo("
-		const replaceRange = new Range(1, 0, 1, 0); // non-empty line ")"
+		const cursorPosition = new Position(0, 13);
+		const replaceRange = new Range(1, 0, 1, 0);
 		const replaceText = '  a: string,\n  b: number\n';
 
 		const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
 		assert.isDefined(result);
 		assert.deepStrictEqual(result!.range, new Range(0, 13, 0, 13));
-		// Trailing '\n' is dropped to avoid a spurious blank line.
 		assert.strictEqual(result!.newText, '\n' + replaceText.replace(/\r?\n$/, ''));
 	});
 
@@ -196,7 +185,6 @@ suite('toInlineSuggestion', () => {
 		const replaceRange = new Range(1, 0, 1, 0);
 		const replaceText = '  a: string,\n  b: number';
 
-		// newText doesn't end with \n, and target line ")" is non-empty → undefined
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
@@ -206,7 +194,6 @@ suite('toInlineSuggestion', () => {
 		const replaceRange = new Range(1, 0, 1, 0);
 		const replaceText = '  a: string';
 
-		// Single-line text has no \n — neither endsWith nor includes matches
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
@@ -283,16 +270,13 @@ function createDocumentSymbol(
 	);
 }`;
 
-		// The replacement lands on the empty last line and does not end with '\n',
-		// so it cannot be rendered as ghost text without a spurious trailing blank line.
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
-	// --- Branch 1 regression: next-line insertion edge cases ---
 
 	test('next-line: cursor mid-line extends through the unchanged line suffix', () => {
 		const document = createMockDocument(['function foo(bar', '', 'other']);
-		const cursorPosition = new Position(0, 8); // middle of "function foo(bar"
+		const cursorPosition = new Position(0, 8);
 		const replaceRange = new Range(1, 0, 1, 0);
 		const replaceText = '  param1,\n  param2\n';
 
@@ -307,10 +291,9 @@ function createDocumentSymbol(
 	test('next-line: non-empty range on next line falls through and is rejected', () => {
 		const document = createMockDocument(['function foo(', 'old content', 'other']);
 		const cursorPosition = new Position(0, 13);
-		const replaceRange = new Range(1, 0, 1, 11); // non-empty range replacing "old content"
+		const replaceRange = new Range(1, 0, 1, 11);
 		const replaceText = 'new content\n';
 
-		// range.isEmpty is false → branch 1 skipped, branch 2 rejects (different line)
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
@@ -334,17 +317,15 @@ function createDocumentSymbol(
 		const replaceRange = new Range(2, 0, 2, 0);
 		const replaceText = 'inserted\n';
 
-		// cursorPos.line + 1 !== range.start.line → rejected
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
 	test('next-line: empty range at non-zero column on next line is rejected', () => {
 		const document = createMockDocument(['function foo(', '    ', 'other']);
 		const cursorPosition = new Position(0, 13);
-		const replaceRange = new Range(1, 4, 1, 4); // empty range at col 4
+		const replaceRange = new Range(1, 4, 1, 4);
 		const replaceText = 'a: string,\n  b: number\n';
 
-		// range.start.character !== 0 → rejected
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
@@ -357,20 +338,18 @@ function createDocumentSymbol(
 		const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
 		assert.isDefined(result);
 		assert.deepStrictEqual(result!.range, new Range(0, 6, 0, 6));
-		// Trailing '\n' is dropped — only the prepended newline remains.
 		assert.strictEqual(result!.newText, '\n');
 	});
 
 	test('next-line: cursor at end of an empty line', () => {
 		const document = createMockDocument(['', '', 'other']);
-		const cursorPosition = new Position(0, 0); // end of empty line 0
+		const cursorPosition = new Position(0, 0);
 		const replaceRange = new Range(1, 0, 1, 0);
 		const replaceText = 'new line\n';
 
 		const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
 		assert.isDefined(result);
 		assert.deepStrictEqual(result!.range, new Range(0, 0, 0, 0));
-		// Trailing '\n' is dropped to avoid a spurious blank line.
 		assert.strictEqual(result!.newText, '\nnew line');
 	});
 
@@ -380,7 +359,6 @@ function createDocumentSymbol(
 		const replaceRange = new Range(1, 0, 1, 0);
 		const replaceText = 'inserted\n';
 
-		// cursorPos.line + 1 !== range.start.line (1 !== 3)
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
@@ -419,8 +397,6 @@ function createDocumentSymbol(
 			});
 			assert.strictEqual(applyEdit(document, result!.range, result!.newText), applyEdit(document, replaceRange, replaceText));
 
-			// With rebasing disabled the non-empty next-line range cannot be pulled
-			// up by the ungated fallback, so the edit must not be rebased.
 			assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText, false));
 		});
 
@@ -495,13 +471,9 @@ function createDocumentSymbol(
 								const result = toInlineSuggestion(cursorPosition, document, range, newText);
 								const scenario = JSON.stringify({ documentText, cursorPosition, range, newText });
 
-								// Completeness: every representable edit is offered as a suggestion.
 								if (representable) {
 									assert.isDefined(result, scenario);
 								}
-								// Soundness: any offered suggestion must reproduce the edit
-								// exactly. This catches spurious-newline acceptances that the
-								// oracle classifies as non-representable.
 								if (result !== undefined) {
 									assert.strictEqual(applyEdit(document, result.range, result.newText), applyEdit(document, range, newText), scenario);
 								}
@@ -513,12 +485,11 @@ function createDocumentSymbol(
 		});
 	});
 
-	// --- Branch 2 regression: same-line edit edge cases ---
 
 	test('same-line: edit after cursor is extended back to cursor', () => {
 		const document = createMockDocument(['abcdef']);
 		const cursorPosition = new Position(0, 1);
-		const replaceRange = new Range(0, 3, 0, 6); // replaces "def"
+		const replaceRange = new Range(0, 3, 0, 6);
 		const replaceText = 'defgh';
 
 		const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
@@ -534,7 +505,6 @@ function createDocumentSymbol(
 		const replaceRange = new Range(0, 0, 0, 6);
 		const replaceText = 'XXXX_modified';
 
-		// "abcd" !== "XXXX" → text before cursor mismatch
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
@@ -542,7 +512,7 @@ function createDocumentSymbol(
 		const document = createMockDocument(['abcxyz']);
 		const cursorPosition = new Position(0, 0);
 		const replaceRange = new Range(0, 0, 0, 6);
-		const replaceText = 'abc'; // "abcxyz" is not a subword of "abc"
+		const replaceText = 'abc';
 
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
@@ -553,7 +523,6 @@ function createDocumentSymbol(
 		const replaceRange = new Range(0, 0, 0, 3);
 		const replaceText = '';
 
-		// "abc" is not a subword of "" → rejected
 		assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 	});
 
@@ -563,7 +532,6 @@ function createDocumentSymbol(
 		const replaceRange = new Range(0, 3, 0, 3);
 		const replaceText = '';
 
-		// Empty replaced text is trivially a subword of empty new text
 		const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
 		assert.isDefined(result);
 		assert.deepStrictEqual(result!.range, new Range(0, 3, 0, 3));
@@ -600,18 +568,13 @@ function createDocumentSymbol(
 		const replaceRange = new Range(0, 0, 0, 4);
 		const replaceText = 'console.log';
 
-		// "clog" IS a subword of "console.log" (c...o...l...og)
-		// But text before cursor: replaced[0..1]="c", new[0..1]="c" → match
 		const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
 		assert.isDefined(result);
 		assert.strictEqual(result!.newText, 'console.log');
 	});
 
-	// --- Prefix-stripping: multi-line range reduction ---
 
 	test('prefix-strip: multi-line range reduced to single-line edit on cursor line', () => {
-		// Range spans lines 0-1, replaced text = "abc\ndef", newText = "abc\ndefghi"
-		// Common prefix up to newline = "abc\n", strip it → range becomes (1,0)-(1,3), newText = "defghi"
 		const document = createMockDocument(['abc', 'def', 'other']);
 		const cursorPosition = new Position(1, 0);
 		const replaceRange = new Range(0, 0, 1, 3);
@@ -624,8 +587,6 @@ function createDocumentSymbol(
 	});
 
 	test('prefix-strip: no newline in common prefix, multi-line range still rejected', () => {
-		// Range spans lines 0-1, replaced = "ab\ncd", newText = "abXY"
-		// Common prefix = "ab" but no newline → no stripping → multi-line range rejected
 		const document = createMockDocument(['ab', 'cd', 'other']);
 		const cursorPosition = new Position(0, 0);
 		const replaceRange = new Range(0, 0, 1, 2);
@@ -635,8 +596,6 @@ function createDocumentSymbol(
 	});
 
 	test('prefix-strip: strips multiple newlines to last boundary', () => {
-		// Range spans 3 lines: "line0\nline1\nxy", newText = "line0\nline1\nxyz"
-		// Common prefix includes two newlines, stripping to last → range becomes (2,0)-(2,2)
 		const document = createMockDocument(['line0', 'line1', 'xy', 'other']);
 		const cursorPosition = new Position(2, 0);
 		const replaceRange = new Range(0, 0, 2, 2);
@@ -649,8 +608,6 @@ function createDocumentSymbol(
 	});
 
 	test('prefix-strip: after stripping still multi-line, rejected', () => {
-		// Range spans 3 lines: "a\nb\nc", newText = "a\nB\nC"
-		// Common prefix up to newline = "a\n", strip → range becomes (1,0)-(2,1) which is still multi-line
 		const document = createMockDocument(['a', 'b', 'c', 'other']);
 		const cursorPosition = new Position(1, 0);
 		const replaceRange = new Range(0, 0, 2, 1);
@@ -660,7 +617,6 @@ function createDocumentSymbol(
 	});
 
 	test('prefix-strip: reduced to single line but cursor on different line, rejected', () => {
-		// Strip reduces range to line 1, but cursor is on line 0
 		const document = createMockDocument(['abc', 'def', 'other']);
 		const cursorPosition = new Position(0, 2);
 		const replaceRange = new Range(0, 0, 1, 3);
@@ -670,8 +626,6 @@ function createDocumentSymbol(
 	});
 
 	test('prefix-strip: reduced to single line, subword check fails', () => {
-		// After stripping "abc\n", range = (1,0)-(1,3) with replaced "def", newText = "xy"
-		// "def" is not a subword of "xy"
 		const document = createMockDocument(['abc', 'def', 'other']);
 		const cursorPosition = new Position(1, 0);
 		const replaceRange = new Range(0, 0, 1, 3);
@@ -681,7 +635,6 @@ function createDocumentSymbol(
 	});
 
 	test('prefix-strip: diverges before first newline, no stripping', () => {
-		// replaced = "ax\nyz", newText = "ab\nyz" → common prefix "a" has no newline → no strip
 		const document = createMockDocument(['ax', 'yz']);
 		const cursorPosition = new Position(0, 0);
 		const replaceRange = new Range(0, 0, 1, 2);
@@ -691,11 +644,6 @@ function createDocumentSymbol(
 	});
 
 	test('prefix-strip: range starts mid-line, strips prefix through newline', () => {
-		// Document: "hello world", "  ns", "other"
-		// Range (0,6)-(1,4) → replaced text = "world\n  ns", newText = "world\n  new_stuff"
-		// Common prefix = "world\n  " → last newline at index 5, strip "world\n"
-		// Reduced range: (1,0)-(1,4), newText = "  new_stuff"
-		// isSubword("  ns", "  new_stuff") → true
 		const document = createMockDocument(['hello world', '  ns', 'other']);
 		const cursorPosition = new Position(1, 0);
 		const replaceRange = new Range(0, 6, 1, 4);
@@ -708,8 +656,6 @@ function createDocumentSymbol(
 	});
 
 	test('prefix-strip: empty newText after stripping prefix', () => {
-		// replaced = "abc\n", newText = "abc\n" → after stripping "abc\n", replaced="" and newText=""
-		// This is a no-op on the second line, succeeds as empty edit
 		const document = createMockDocument(['abc', '', 'other']);
 		const cursorPosition = new Position(1, 0);
 		const replaceRange = new Range(0, 0, 1, 0);
@@ -751,15 +697,13 @@ const fieldLabels: Record<keyof FormData, string> = {
 };
 `;
 		const document = createTextDocumentData(Uri.from({ scheme: 'test', path: '/test/file.tsx' }), doc, 'typescriptreact').document;
-		const cursorPosition = new Position(22, 26); // end of `    lastName: "Last Name",`
+		const cursorPosition = new Position(22, 26);
 		const replaceRange = new Range(23, 0, 23, 0);
 		const replaceText = '    password: "Password",\n';
 
 		const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText, true);
 		assert.isDefined(result);
 		assert.deepStrictEqual(result!.range, new Range(22, 26, 22, 26));
-		// Trailing '\n' is dropped because the original line terminator after
-		// the cursor is preserved.
 		assert.strictEqual(result!.newText, '\n    password: "Password",');
 	});
 
@@ -776,15 +720,13 @@ const fieldLabels: Record<keyof FormData, string> = {
 
 		test('next-line insertion: trailing CRLF is dropped (no dangling \\r)', () => {
 			const document = createCRLFDocument(['function foo(', '', 'other']);
-			const cursorPosition = new Position(0, 13); // end of "function foo("
-			const replaceRange = new Range(1, 0, 1, 0); // empty line
+			const cursorPosition = new Position(0, 13);
+			const replaceRange = new Range(1, 0, 1, 0);
 			const replaceText = '  a: string,\r\n  b: number\r\n';
 
 			const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
 			assert.isDefined(result);
 			assert.deepStrictEqual(result!.range, new Range(0, 13, 0, 13));
-			// The trailing CRLF must be stripped entirely; no dangling '\r'
-			// should leak into the suggestion text.
 			assert.strictEqual(result!.newText, '\r\n  a: string,\r\n  b: number');
 		});
 
@@ -809,30 +751,22 @@ const fieldLabels: Record<keyof FormData, string> = {
 			const result = toInlineSuggestion(cursorPosition, document, replaceRange, replaceText);
 			assert.isDefined(result);
 			assert.deepStrictEqual(result!.range, new Range(0, 6, 0, 6));
-			// Only the prepended CRLF between cursor and original range remains.
 			assert.strictEqual(result!.newText, '\r\n');
 		});
 
 		test('next-line insertion: bare LF newText in a CRLF document is not an inline suggestion', () => {
-			// The edit inserts a lone '\n' on the next line, producing a bare-LF
-			// blank line in a CRLF document. A cursor pull-up would re-use the
-			// document's '\r\n', which is a different edit, so this must be rejected.
 			const document = createCRLFDocument(['a', 'b']);
-			const cursorPosition = new Position(0, 1); // end of "a"
+			const cursorPosition = new Position(0, 1);
 			const replaceRange = new Range(1, 0, 1, 0);
 			const replaceText = '\n';
 
 			assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
-			// Also exercise the ungated fallback (advanced disabled).
 			assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText, false));
 		});
 
 		test('next-line insertion: ungated fallback pulls up a CRLF-terminated insertion (advanced disabled)', () => {
-			// With rebasing disabled, tryAdjustNextLineInsertion must still pull an
-			// empty-range next-line insertion up to the cursor when newText ends with
-			// the document's CRLF, dropping exactly that trailing break.
 			const document = createCRLFDocument(['function foo(', '', 'other']);
-			const cursorPosition = new Position(0, 13); // end of "function foo("
+			const cursorPosition = new Position(0, 13);
 			const replaceRange = new Range(1, 0, 1, 0);
 			const replaceText = '  a: string,\r\n  b: number\r\n';
 
@@ -846,21 +780,12 @@ const fieldLabels: Record<keyof FormData, string> = {
 
 	suite('multi-line range, no common prefix', () => {
 
-		// Regression: when commonLen === 0 and the replaced text starts with '\n',
-		// `lastIndexOf('\n', -1)` would (incorrectly) clamp to 0 and report a
-		// match, causing the leading newline to be stripped — which can collapse
-		// the multi-line range into a same-line "suggestion" that the function
-		// then accepts. With the original substring-based check, no strip occurs
-		// and the result is `undefined`.
 		test('does not strip leading newline when nothing is in common', () => {
 			const document = createMockDocument(['abc', 'x', 'rest']);
-			// replacedText = '\nx', newText[0]='Y' differs from '\n', commonLen=0.
 			const replaceRange = new Range(0, 3, 1, 1);
 			const cursorPosition = new Position(1, 1);
 			const replaceText = 'Yx';
 
-			// The range cannot legitimately be collapsed to a single line, so
-			// the function must not synthesize a ghost-text suggestion.
 			assert.isUndefined(toInlineSuggestion(cursorPosition, document, replaceRange, replaceText));
 		});
 	});

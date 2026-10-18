@@ -7,25 +7,15 @@ import { URI } from '../../../../../base/common/uri.js';
 import { IWorkspaceFolder } from '../../../../../platform/workspace/common/workspace.js';
 import { IRoutableSession, isHighConfidenceSessionRoute, ISessionRouteResult } from '../../common/sessionRouter.js';
 
-/** Number of top-ranked candidates whose conversation content should be resolved. */
 export const ROUTE_ENRICH_MAX_CANDIDATES = 12;
 const RELATED_SESSION_FOLDER_CONFIDENCE = 0.35;
 
-/**
- * Extracts the task from an explicit request to start a new session.
- * Requests that merely mention creating another resource are deliberately ignored.
- */
 export function parseExplicitNewSessionRequest(utterance: string): string | undefined {
 	const match = /^(?:please\s+)?(?:create|start|open)\s+(?:a\s+)?new\s+(?:chat\s+)?session(?:\s+(?:to|for|and)\s+|\s*[:,-]\s*)(.+)$/i.exec(utterance.trim());
 	const task = match?.[1]?.trim();
 	return task || undefined;
 }
 
-/**
- * Chooses the workspace folder for a newly routed session. Explicit folder
- * mentions win, followed by a sufficiently related session's folder and then
- * the caller's default.
- */
 export function resolveNewSessionWorkspaceFolder(
 	utterance: string,
 	folders: readonly IWorkspaceFolder[],
@@ -39,10 +29,6 @@ export function resolveNewSessionWorkspaceFolder(
 		?? folders[0]?.uri;
 }
 
-/**
- * Bounds transcript enrichment while preserving the model's preliminary order.
- * Any remaining slots favor active and recently updated sessions.
- */
 export function selectRouterShortlist(
 	candidates: readonly IRoutableSession[],
 	preliminaryResults: readonly ISessionRouteResult[],
@@ -77,7 +63,6 @@ export function selectRouterShortlist(
 	return shortlist;
 }
 
-/** Selects the top result only when it clears the shared confidence threshold. */
 export function selectBestSessionRoute(results: readonly ISessionRouteResult[]): ISessionRouteResult | undefined {
 	const top = results[0];
 	return top && isHighConfidenceSessionRoute(top) ? top : undefined;

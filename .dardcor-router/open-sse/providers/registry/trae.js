@@ -1,8 +1,3 @@
-// Trae (ByteDance marscode) provider registry entry.
-// Chat = SOLO remote agent API:
-//   POST {base}/chat_sessions → {data:{chat_session_id, message_id}}
-//   GET  {base}/chat_sessions/{id}/events?reply_to_message_id=... → SSE
-//   Auth: Authorization: Cloud-IDE-JWT <jwt>
 export default {
   id: "trae",
   alias: "tr",
@@ -21,7 +16,6 @@ export default {
     notice: { signupUrl: "https://www.trae.ai" },
   },
   transport: {
-    // SOLO remote agent base — verified working chat endpoint.
     baseUrl: "https://core-normal.trae.ai/api/remote/v1",
     format: "openai",
     headers: {
@@ -29,7 +23,6 @@ export default {
       "X-Preferenced-Language": "en",
       "Referer": "https://solo.trae.ai/",
     },
-    // Auth: Cloud-IDE-JWT scheme on Authorization — injected by executor buildHeaders.
     auth: {
       combined: true,
       header: "Authorization",
@@ -50,17 +43,13 @@ export default {
     clientSecret: "-",
     platform: "trae",
     pollInterval: 1500,
-    // Login guidance returns LoginHost for browser open.
     loginGuidanceUrl: "https://api.marscode.com/cloudide/api/v3/trae/GetLoginGuidance",
-    // ExchangeToken: refresh -> access (POST JSON, body below).
     tokenUrl: "https://api.marscode.com/cloudide/api/v3/trae/oauth/ExchangeToken",
     exchangeTokenUrl: "https://api.marscode.com/cloudide/api/v3/trae/oauth/ExchangeToken",
     refreshUrl: "https://api.marscode.com/cloudide/api/v3/trae/oauth/ExchangeToken",
     userInfoUrl: "https://api.marscode.com/cloudide/api/v3/trae/GetUserInfo",
-    // Trae refresh uses custom JSON body, not OAuth form — handled by refresh.js, not config-driven.
     refresh: { encoding: "json" },
   },
-  // Model catalog (IDE flow, core-normal.trae.ai).
   models: [
     { id: "auto", name: "Auto (Server Picks)" },
     { id: "work", name: "Work (Fast)" },

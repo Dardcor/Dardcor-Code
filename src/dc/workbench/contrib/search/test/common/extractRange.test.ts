@@ -49,17 +49,11 @@ suite('extractRangeFromFilter', () => {
 	suite('ranges', function () {
 		const base = '/some/path/file.txt';
 		const testSpecs = [
-			// line range: "20-40"
 			{ filter: `${base}:20-40`, range: { startLineNumber: 20, startColumn: 1, endLineNumber: 40, endColumn: 1 } },
-			// line and column range: "20:3-40:5"
 			{ filter: `${base}:20:3-40:5`, range: { startLineNumber: 20, startColumn: 3, endLineNumber: 40, endColumn: 5 } },
-			// end column defaults to start of the end line: "20:3-40"
 			{ filter: `${base}:20:3-40`, range: { startLineNumber: 20, startColumn: 3, endLineNumber: 40, endColumn: 1 } },
-			// mixed separators: "20#3-40,5"
 			{ filter: `${base}#20#3-40,5`, range: { startLineNumber: 20, startColumn: 3, endLineNumber: 40, endColumn: 5 } },
-			// paren style: "(20,3-40,5)"
 			{ filter: `${base}(20,3-40,5)`, range: { startLineNumber: 20, startColumn: 3, endLineNumber: 40, endColumn: 5 } },
-			// dangling separator falls back to single line: "20-"
 			{ filter: `${base}:20-`, range: { startLineNumber: 20, startColumn: 1, endLineNumber: 20, endColumn: 1 } },
 		];
 		for (const { filter, range } of testSpecs) {
@@ -76,13 +70,9 @@ suite('extractRangeFromFilter', () => {
 
 	suite('unless', function () {
 		const testSpecs = [
-			// alpha-only symbol after unless
 			{ filter: '/some/path/file.txt@alphasymbol', unless: ['@'], result: undefined },
-			// unless as first char
 			{ filter: '@/some/path/file.txt (19,20)', unless: ['@'], result: undefined },
-			// unless as last char
 			{ filter: '/some/path/file.txt (19,20)@', unless: ['@'], result: undefined },
-			// unless before ,
 			{
 				filter: '/some/@path/file.txt (19,20)', unless: ['@'], result: {
 					filter: '/some/@path/file.txt',
@@ -94,7 +84,6 @@ suite('extractRangeFromFilter', () => {
 					}
 				}
 			},
-			// unless before :
 			{
 				filter: '/some/@path/file.txt:19:20', unless: ['@'], result: {
 					filter: '/some/@path/file.txt',
@@ -106,7 +95,6 @@ suite('extractRangeFromFilter', () => {
 					}
 				}
 			},
-			// unless before #
 			{
 				filter: '/some/@path/file.txt#19', unless: ['@'], result: {
 					filter: '/some/@path/file.txt',

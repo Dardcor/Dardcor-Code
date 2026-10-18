@@ -122,11 +122,6 @@ const ThemeToggler = ({ theme, toggleTheme }: { theme: ThemeKind; toggleTheme: (
 
 const ADHOC_REQUEST_OPTION = 'adhocRequest';
 
-/**
- * Options for the workbench mode selector. The test-source entries put the
- * workbench into 'tests' mode and select a {@link TestSource}; the adhoc entry
- * switches to the standalone "Adhoc request sender" mode.
- */
 const modeOptions: { value: string; label: string; source?: TestSource }[] = [
 	{ value: String(TestSource.Local), label: 'Local', source: TestSource.Local },
 	{ value: String(TestSource.NesExternal), label: 'NES External', source: TestSource.NesExternal },

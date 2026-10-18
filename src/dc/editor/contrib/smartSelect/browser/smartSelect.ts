@@ -44,7 +44,6 @@ class SelectionRanges {
 		}
 		const res = new SelectionRanges(index, this.ranges);
 		if (res.ranges[index].equalsRange(this.ranges[this.index])) {
-			// next range equals this range, retry with next-next
 			return res.mov(fwd);
 		}
 		return res;
@@ -84,27 +83,22 @@ export class SmartSelectController implements IEditorContribution {
 
 			await provideSelectionRanges(this._languageFeaturesService.selectionRangeProvider, model, selections.map(s => s.getPosition()), this._editor.getOption(EditorOption.smartSelect), CancellationToken.None).then(ranges => {
 				if (!arrays.isNonEmptyArray(ranges) || ranges.length !== selections.length) {
-					// invalid result
 					return;
 				}
 				if (!this._editor.hasModel() || !arrays.equals(this._editor.getSelections(), selections, (a, b) => a.equalsSelection(b))) {
-					// invalid editor state
 					return;
 				}
 
 				for (let i = 0; i < ranges.length; i++) {
 					ranges[i] = ranges[i].filter(range => {
-						// filter ranges inside the selection
 						return range.containsPosition(selections[i].getStartPosition()) && range.containsPosition(selections[i].getEndPosition());
 					});
-					// prepend current selection
 					ranges[i].unshift(selections[i]);
 				}
 
 
 				this._state = ranges.map(ranges => new SelectionRanges(0, ranges));
 
-				// listen to caret move and forget about state
 				this._selectionListener?.dispose();
 				this._selectionListener = this._editor.onDidChangeCursorPosition(() => {
 					if (!this._ignoreSelection) {
@@ -116,7 +110,6 @@ export class SmartSelectController implements IEditorContribution {
 		}
 
 		if (!this._state) {
-			// no state
 			return;
 		}
 		this._state = this._state.map(state => state.mov(forward));
@@ -172,7 +165,6 @@ class GrowSelectionAction extends AbstractSmartSelect {
 	}
 }
 
-// renamed command id
 CommandsRegistry.registerCommandAlias('editor.action.smartSelect.grow', 'editor.action.smartSelect.expand');
 
 class ShrinkSelectionAction extends AbstractSmartSelect {
@@ -212,10 +204,9 @@ export interface SelectionRangesOptions {
 export async function provideSelectionRanges(registry: LanguageFeatureRegistry<languages.SelectionRangeProvider>, model: ITextModel, positions: Position[], options: SelectionRangesOptions, token: CancellationToken): Promise<Range[][]> {
 
 	const providers = registry.all(model)
-		.concat(new WordSelectionRangeProvider(options.selectSubwords)); // ALWAYS have word based selection range
+		.concat(new WordSelectionRangeProvider(options.selectSubwords));
 
 	if (providers.length === 1) {
-		// add word selection and bracket selection when no provider exists
 		providers.unshift(new BracketSelectionRangeProvider());
 	}
 
@@ -248,7 +239,6 @@ export async function provideSelectionRanges(registry: LanguageFeatureRegistry<l
 			return [];
 		}
 
-		// sort all by start/end position
 		oneRawRanges.sort((a, b) => {
 			if (Position.isBefore(a.getStartPosition(), b.getStartPosition())) {
 				return 1;
@@ -263,8 +253,6 @@ export async function provideSelectionRanges(registry: LanguageFeatureRegistry<l
 			}
 		});
 
-		// remove ranges that don't contain the former range or that are equal to the
-		// former range
 		const oneRanges: Range[] = [];
 		let last: Range | undefined;
 		for (const range of oneRawRanges) {
@@ -278,19 +266,15 @@ export async function provideSelectionRanges(registry: LanguageFeatureRegistry<l
 			return oneRanges;
 		}
 
-		// add ranges that expand trivia at line starts and ends whenever a range
-		// wraps onto the a new line
 		const oneRangesWithTrivia: Range[] = [oneRanges[0]];
 		for (let i = 1; i < oneRanges.length; i++) {
 			const prev = oneRanges[i - 1];
 			const cur = oneRanges[i];
 			if (cur.startLineNumber !== prev.startLineNumber || cur.endLineNumber !== prev.endLineNumber) {
-				// add line/block range without leading/failing whitespace
 				const rangeNoWhitespace = new Range(prev.startLineNumber, model.getLineFirstNonWhitespaceColumn(prev.startLineNumber), prev.endLineNumber, model.getLineLastNonWhitespaceColumn(prev.endLineNumber));
 				if (rangeNoWhitespace.containsRange(prev) && !rangeNoWhitespace.equalsRange(prev) && cur.containsRange(rangeNoWhitespace) && !cur.equalsRange(rangeNoWhitespace)) {
 					oneRangesWithTrivia.push(rangeNoWhitespace);
 				}
-				// add line/block range
 				const rangeFull = new Range(prev.startLineNumber, 1, prev.endLineNumber, model.getLineMaxColumn(prev.endLineNumber));
 				if (rangeFull.containsRange(prev) && !rangeFull.equalsRange(rangeNoWhitespace) && cur.containsRange(rangeFull) && !cur.equalsRange(rangeFull)) {
 					oneRangesWithTrivia.push(rangeFull);

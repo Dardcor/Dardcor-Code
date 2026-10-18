@@ -57,7 +57,6 @@ export function nextSiblingOrParentSibling(newCursor: TreeSitter.TreeCursor, old
 }
 
 export function getClosestPreviousNodes(cursor: TreeSitter.TreeCursor, tree: TreeSitter.Tree): TreeSitter.Node | undefined {
-	// Go up parents until the end of the parent is before the start of the current.
 	const findPrev = tree.walk();
 	findPrev.resetTo(cursor);
 

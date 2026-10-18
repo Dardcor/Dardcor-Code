@@ -14,6 +14,5 @@ export abstract class EditorWorkerHost {
 		workerClient.setChannel<EditorWorkerHost>(EditorWorkerHost.CHANNEL_NAME, obj);
 	}
 
-	// foreign host request
 	abstract $fhr(method: string, args: unknown[]): Promise<unknown>;
 }

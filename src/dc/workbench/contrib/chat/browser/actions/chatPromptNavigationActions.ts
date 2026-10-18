@@ -69,50 +69,39 @@ function navigateUserPrompts(accessor: ServicesAccessor, reverse: boolean) {
 		return;
 	}
 
-	// Get all user prompts (requests) in the conversation
 	const userPrompts = items.filter((item): item is IChatRequestViewModel => isRequestVM(item));
 	if (userPrompts.length === 0) {
 		return;
 	}
 
-	// Find the currently focused item
 	const focused = widget.getFocus();
 	let currentIndex = -1;
 
 	if (focused) {
 		if (isRequestVM(focused)) {
-			// If a request is focused, find its index in the user prompts array
 			currentIndex = userPrompts.findIndex(prompt => prompt.id === focused.id);
 		} else if (isResponseVM(focused)) {
-			// If a response is focused, find the associated request's index
-			// Response view models have a requestId property
 			currentIndex = userPrompts.findIndex(prompt => prompt.id === focused.requestId);
 		}
 	}
 
-	// Calculate next index
 	let nextIndex: number;
 	if (currentIndex === -1) {
-		// No current focus, go to first or last prompt based on direction
 		nextIndex = reverse ? userPrompts.length - 1 : 0;
 	} else {
-		// Navigate to next/previous prompt
 		nextIndex = reverse ? currentIndex - 1 : currentIndex + 1;
 
-		// Clamp instead of wrap and stay at boundaries when trying to navigate past ends
 		if (nextIndex < 0) {
-			nextIndex = 0; // already at first, do not move further
+			nextIndex = 0;
 		} else if (nextIndex >= userPrompts.length) {
-			nextIndex = userPrompts.length - 1; // already at last, do not move further
+			nextIndex = userPrompts.length - 1;
 		}
 
-		// avoid re-focusing if we didn't actually move
 		if (nextIndex === currentIndex) {
-			return; // no change in focus
+			return;
 		}
 	}
 
-	// Focus and reveal the selected user prompt
 	const targetPrompt = userPrompts[nextIndex];
 	if (targetPrompt) {
 		widget.focus(targetPrompt);

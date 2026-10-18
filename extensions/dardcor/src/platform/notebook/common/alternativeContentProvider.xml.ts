@@ -112,7 +112,6 @@ export class AlternativeXmlNotebookContentProvider extends BaseAlternativeNotebo
 			const line = lineOfText.value;
 			if ((line.startsWith(StartDelimter) || line.startsWith(StartEmptyCellDelimter)) && (index < 0 || (endDelimiterSeen || (previousLineEndedWithEndCellMarker && previousLine)))) {
 				if (!endDelimiterSeen && previousLineEndedWithEndCellMarker && previousLine) {
-					// Last line didn't finish, emit that, but strip the end delimiter.
 					previousLine.line = previousLine.line.substring(0, previousLine.line.lastIndexOf(EndDelimter));
 					yield previousLine;
 					yield { type: 'end', index: previousLine.index };
@@ -124,9 +123,6 @@ export class AlternativeXmlNotebookContentProvider extends BaseAlternativeNotebo
 				endDelimiterSeen = false;
 				const lineOfCellText: LineOfCellText = { type: 'start', index, uri: undefined, language: undefined, kind: NotebookCellKind.Code };
 				const cellParts = extractCellParts(line, defaultLanguage);
-				// LLM returns duplicate cell with the same id.
-				// We need tests for this.
-				// this is a work around to treat subsequent cells as new cells.
 				if (cellParts.id && cellIdMap.get(cellParts.id)?.document.languageId === cellParts.language) {
 					if (cellIdsSeen.has(cellParts.id)) {
 						cellParts.id = '';
@@ -134,8 +130,6 @@ export class AlternativeXmlNotebookContentProvider extends BaseAlternativeNotebo
 						cellIdsSeen.add(cellParts.id);
 					}
 				} else {
-					// Possible duplicate cell with the same id but different language.
-					// In such cases, treat them as new cells.
 					cellParts.id = '';
 				}
 				const cell = cellIdMap.get(cellParts.id)?.document.languageId === cellParts.language ? cellIdMap.get(cellParts.id) : undefined;
@@ -146,8 +140,6 @@ export class AlternativeXmlNotebookContentProvider extends BaseAlternativeNotebo
 				yield lineOfCellText;
 			} else if (line.startsWith(EndDelimter)) {
 				if (previousLineEndedWithEndCellMarker && previousLine) {
-					// The last line somehow ends with the cell marker (must have been added by the user),
-					// yield the previous line.
 					yield previousLine;
 				}
 
@@ -157,8 +149,6 @@ export class AlternativeXmlNotebookContentProvider extends BaseAlternativeNotebo
 				yield { type: 'end', index };
 			} else if (index >= 0) {
 				if (previousLineEndedWithEndCellMarker && previousLine) {
-					// Some how we have two subsequent lines that end with the cell marker,
-					// Weird, shoudl not happen, if it does, yield the previous line.
 					yield previousLine;
 					previousLine = undefined;
 				}
@@ -177,7 +167,6 @@ export class AlternativeXmlNotebookContentProvider extends BaseAlternativeNotebo
 		const cellIdMap = getCellIdMap(notebook);
 		const cellOffsetMap: { offset: number; cell: NotebookCell }[] = [];
 
-		// Parse the text to find cell markers and build the offset map
 		const lines = text.split(EOL);
 		let currentOffset = 0;
 
@@ -192,7 +181,6 @@ export class AlternativeXmlNotebookContentProvider extends BaseAlternativeNotebo
 				);
 
 				if (cell) {
-					// Calculate offset: skip the cell marker line
 					const eolLength = EOL.length;
 					const offset = currentOffset + line.length + eolLength;
 
@@ -228,12 +216,10 @@ function extractCellParts(line: string, defaultLanguage: string | undefined): { 
 	const languageMatch = line.match(/language="([^"]+)"/);
 	if (!languageMatch) {
 		if (isXmlContent(line) && typeof defaultLanguage === 'string') {
-			// If we have a cell marker but no language, we assume the default language.
 			return { id: idMatch ? idMatch[1].trim() : '', language: defaultLanguage };
 		}
 		throw new Error(`Invalid cell part in ${line}`);
 	}
 
-	// New cells will not have an id.
 	return { id: idMatch ? idMatch[1].trim() : '', language: languageMatch[1].trim() };
 }

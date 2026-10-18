@@ -156,21 +156,20 @@ export class AuxiliaryWindow extends BaseWindow implements IAuxiliaryWindow {
 
 		this._register(addDisposableListener(this.window, EventType.RESIZE, () => this.layout()));
 
-		this._register(addDisposableListener(this.container, EventType.SCROLL, () => this.container.scrollTop = 0)); 						// Prevent container from scrolling (#55456)
+		this._register(addDisposableListener(this.container, EventType.SCROLL, () => this.container.scrollTop = 0));
 
 		if (isWeb) {
-			this._register(addDisposableListener(this.container, EventType.DROP, e => EventHelper.stop(e, true))); 							// Prevent default navigation on drop
-			this._register(addDisposableListener(this.container, EventType.WHEEL, e => e.preventDefault(), { passive: false })); 			// Prevent the back/forward gestures in macOS
-			this._register(addDisposableListener(this.container, EventType.CONTEXT_MENU, e => EventHelper.stop(e, true))); 					// Prevent native context menus in web
+			this._register(addDisposableListener(this.container, EventType.DROP, e => EventHelper.stop(e, true)));
+			this._register(addDisposableListener(this.container, EventType.WHEEL, e => e.preventDefault(), { passive: false }));
+			this._register(addDisposableListener(this.container, EventType.CONTEXT_MENU, e => EventHelper.stop(e, true)));
 		} else {
-			this._register(addDisposableListener(this.window.document.body, EventType.DRAG_OVER, (e: DragEvent) => EventHelper.stop(e)));	// Prevent drag feedback on <body>
-			this._register(addDisposableListener(this.window.document.body, EventType.DROP, (e: DragEvent) => EventHelper.stop(e)));		// Prevent default navigation on drop
+			this._register(addDisposableListener(this.window.document.body, EventType.DRAG_OVER, (e: DragEvent) => EventHelper.stop(e)));
+			this._register(addDisposableListener(this.window.document.body, EventType.DROP, (e: DragEvent) => EventHelper.stop(e)));
 		}
 	}
 
 	private handleBeforeUnload(e: BeforeUnloadEvent): void {
 
-		// Check for veto from a listening component
 		let veto: string | undefined;
 		this._onBeforeUnload.fire({
 			veto(reason) {
@@ -185,7 +184,6 @@ export class AuxiliaryWindow extends BaseWindow implements IAuxiliaryWindow {
 			return;
 		}
 
-		// Check for confirm before close setting
 		const confirmBeforeCloseSetting = this.configurationService.getValue<'always' | 'never' | 'keyboardOnly'>('window.confirmBeforeClose');
 		const confirmBeforeClose = confirmBeforeCloseSetting === 'always' || (confirmBeforeCloseSetting === 'keyboardOnly' && ModifierKeyEmitter.getInstance().isModifierPressed);
 		if (confirmBeforeClose) {
@@ -208,18 +206,11 @@ export class AuxiliaryWindow extends BaseWindow implements IAuxiliaryWindow {
 
 	private handleUnload(): void {
 
-		// Event
 		this._onUnload.fire();
 	}
 
 	layout(): void {
 
-		// Split layout up into two events so that downstream components
-		// have a chance to participate in the beginning or end of the
-		// layout phase.
-		// This helps to build the auxiliary window in another component
-		// in the `onWillLayout` phase and then let other compoments
-		// react when the overall layout has finished in `onDidLayout`.
 
 		const dimension = getClientArea(this.window.document.body, DEFAULT_AUX_WINDOW_DIMENSIONS, this.container);
 		this._onWillLayout.fire(dimension);
@@ -254,7 +245,7 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 
 	declare readonly _serviceBrand: undefined;
 
-	private static WINDOW_IDS = getWindowId(mainWindow) + 1; // start from the main window ID + 1
+	private static WINDOW_IDS = getWindowId(mainWindow) + 1;
 
 	private readonly _onDidOpenAuxiliaryWindow = this._register(new Emitter<IAuxiliaryWindowOpenEvent>());
 	readonly onDidOpenAuxiliaryWindow = this._onDidOpenAuxiliaryWindow.event;
@@ -281,7 +272,6 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 			throw new Error(localize('unableToOpenWindowError', "Unable to open a new window."));
 		}
 
-		// Add a `vscodeWindowId` property to identify auxiliary windows
 		const resolvedWindowId = await this.resolveWindowId(targetWindow);
 		ensureCodeWindow(targetWindow, resolvedWindowId);
 
@@ -353,8 +343,6 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 		};
 
 		if (!options?.bounds && newWindowBounds.x === activeWindowBounds.x && newWindowBounds.y === activeWindowBounds.y) {
-			// Offset the new window a bit so that it does not overlap
-			// with the active window, unless bounds are provided
 			newWindowBounds = {
 				...newWindowBounds,
 				x: newWindowBounds.x + 30,
@@ -369,7 +357,6 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 			`width=${newWindowBounds.width}`,
 			`height=${newWindowBounds.height}`,
 
-			// non-standard properties
 			options?.nativeTitlebar ? 'window-native-titlebar=yes' : undefined,
 			options?.disableFullscreen ? 'window-disable-fullscreen=yes' : undefined,
 			options?.alwaysOnTop ? 'window-always-on-top=yes' : undefined,
@@ -382,13 +369,13 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 			options?.backgroundColor && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(options.backgroundColor) ? `window-background-color=${options.backgroundColor}` : undefined,
 		]);
 
-		const auxiliaryWindow = mainWindow.open(isFirefox ? '' /* FF immediately fires an unload event if using about:blank */ : 'about:blank', undefined, features.join(','));
+		const auxiliaryWindow = mainWindow.open(isFirefox ? '' : 'about:blank', undefined, features.join(','));
 		if (!auxiliaryWindow && isWeb) {
 			return (await this.dialogService.prompt({
 				type: Severity.Warning,
 				message: localize('unableToOpenWindow', "The browser blocked opening a new window. Press 'Retry' to try again."),
 				custom: {
-					markdownDetails: [{ markdown: new MarkdownString(localize('unableToOpenWindowDetail', "Please allow pop-ups for this website in your [browser settings]({0}).", 'https://aka.ms/allow-vscode-popup'), true) }]
+					markdownDetails: [{ markdown: new MarkdownString(localize('unableToOpenWindowDetail', "Please allow pop-ups for this website in your [browser settings]({0}).", 'https://www.dardcor-code.web.id/docs/troubleshooting/browser-popups'), true) }]
 				},
 				buttons: [
 					{
@@ -409,9 +396,6 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 
 	protected createContainer(auxiliaryWindow: CodeWindow, disposables: DisposableStore, options?: IAuxiliaryWindowOpenOptions): { stylesLoaded: Barrier; container: HTMLElement } {
 		auxiliaryWindow.document.createElement = function () {
-			// Disallow `createElement` because it would create
-			// HTML Elements in the "wrong" context and break
-			// code that does "instanceof HTMLElement" etc.
 			throw new Error('Not allowed to create elements in child window JavaScript context. Always use the main window so that "xyz instanceof HTMLElement" continues to work.');
 		};
 
@@ -450,7 +434,7 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 	private applyCSS(auxiliaryWindow: CodeWindow, disposables: DisposableStore) {
 		mark('code/auxiliaryWindow/willApplyCSS');
 
-		const mapOriginalToClone = new Map<Node /* original */, Node /* clone */>();
+		const mapOriginalToClone = new Map<Node , Node >();
 
 		const stylesLoaded = new Barrier();
 		stylesLoaded.wait().then(() => mark('code/auxiliaryWindow/didLoadCSSStyles'));
@@ -481,10 +465,6 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 			mapOriginalToClone.set(originalNode, clonedNode);
 		}
 
-		// Clone all style elements and stylesheet links from the window to the child window
-		// and keep track of <link> elements to settle to signal that styles have loaded
-		// Increment pending links right from the beginning to ensure we only settle when
-		// all style related nodes have been cloned.
 		pendingLinksToSettle++;
 		try {
 			// eslint-disable-next-line no-restricted-syntax
@@ -495,32 +475,25 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 			onLinkSettled();
 		}
 
-		// Global stylesheets in <head> are cloned in a special way because the mutation
-		// observer is not firing for changes done via `style.sheet` API. Only text changes
-		// can be observed.
 		disposables.add(cloneGlobalStylesheets(auxiliaryWindow));
 
-		// Listen to new stylesheets as they are being added or removed in the main window
-		// and apply to child window (including changes to existing stylesheets elements)
 		disposables.add(sharedMutationObserver.observe(mainWindow.document.head, disposables, { childList: true, subtree: true })(mutations => {
 			for (const mutation of mutations) {
 				if (
-					mutation.type !== 'childList' ||						// only interested in added/removed nodes
-					mutation.target.nodeName.toLowerCase() === 'title' || 	// skip over title changes that happen frequently
-					mutation.target.nodeName.toLowerCase() === 'script' || 	// block <script> changes that are unsupported anyway
-					mutation.target.nodeName.toLowerCase() === 'meta'		// do not observe <meta> elements for now
+					mutation.type !== 'childList' ||
+					mutation.target.nodeName.toLowerCase() === 'title' ||
+					mutation.target.nodeName.toLowerCase() === 'script' ||
+					mutation.target.nodeName.toLowerCase() === 'meta'
 				) {
 					continue;
 				}
 
 				for (const node of mutation.addedNodes) {
 
-					// <style>/<link> element was added
 					if (isHTMLElement(node) && (node.tagName.toLowerCase() === 'style' || node.tagName.toLowerCase() === 'link')) {
 						cloneNode(node);
 					}
 
-					// text-node was changed, try to apply to our clones
 					else if (node.nodeType === Node.TEXT_NODE && node.parentNode) {
 						const clonedNode = mapOriginalToClone.get(node.parentNode);
 						if (clonedNode) {
@@ -547,7 +520,6 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 	private applyHTML(auxiliaryWindow: CodeWindow, disposables: DisposableStore): HTMLElement {
 		mark('code/auxiliaryWindow/willApplyHTML');
 
-		// Create workbench container and apply classes
 		const container = $('div', { role: 'application' });
 		position(container, 0, 0, 0, 0, 'relative');
 		container.style.display = 'flex';
@@ -555,10 +527,9 @@ export class BrowserAuxiliaryWindowService extends Disposable implements IAuxili
 		container.style.flexDirection = 'column';
 		auxiliaryWindow.document.body.append(container);
 
-		// Track attributes
 		disposables.add(trackAttributes(mainWindow.document.documentElement, auxiliaryWindow.document.documentElement));
 		disposables.add(trackAttributes(mainWindow.document.body, auxiliaryWindow.document.body));
-		disposables.add(trackAttributes(this.layoutService.mainContainer, container, ['class'])); // only class attribute
+		disposables.add(trackAttributes(this.layoutService.mainContainer, container, ['class']));
 
 		mark('code/auxiliaryWindow/didApplyHTML');
 

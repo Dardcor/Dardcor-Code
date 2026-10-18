@@ -5,7 +5,7 @@
 
 .monaco-editor .codelens-decoration {
 	overflow: hidden;
-	display: inline-flex !important; /* !important to override inline display:block style */
+	display: inline-flex !important;
 	align-items: center;
 	text-overflow: ellipsis;
 	white-space: nowrap;

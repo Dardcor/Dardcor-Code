@@ -77,10 +77,8 @@ suite('rawMessagesToMessagesAPI', function () {
 		const toolResult = findToolResult(result.messages);
 		expect(toolResult).toBeDefined();
 
-		// cache_control should be on the tool_result block itself
 		expect(toolResult!.cache_control).toEqual({ type: 'ephemeral' });
 
-		// cache_control should NOT be on inner content blocks
 		if (Array.isArray(toolResult!.content)) {
 			for (const inner of toolResult!.content) {
 				expect(('cache_control' in inner) ? inner.cache_control : undefined).toBeUndefined();
@@ -361,7 +359,6 @@ suite('rawMessagesToMessagesAPI', function () {
 
 			const toolResult = findToolResult(result.messages);
 			expect(toolResult).toBeDefined();
-			// No valid tool references, content should be undefined (empty filtered)
 			expect(toolResult!.content).toBeUndefined();
 		});
 
@@ -372,8 +369,6 @@ suite('rawMessagesToMessagesAPI', function () {
 
 			const toolResult = findToolResult(result.messages);
 			expect(toolResult).toBeDefined();
-			// When validToolNames is undefined, tool_reference conversion is skipped
-			// and the original text content is preserved as a fallback
 			const content = toolResult!.content as TextBlockParam[];
 			expect(content).toHaveLength(1);
 			expect(content[0].type).toBe('text');
@@ -401,7 +396,6 @@ suite('rawMessagesToMessagesAPI', function () {
 
 			const result = rawMessagesToMessagesAPI(messages);
 
-			// Falls back to normal text content since JSON parse fails
 			const toolResult = findToolResult(result.messages);
 			expect(toolResult).toBeDefined();
 			const content = toolResult!.content as ContentBlockParam[];
@@ -433,7 +427,6 @@ suite('rawMessagesToMessagesAPI', function () {
 
 			const toolResult = findToolResult(result.messages);
 			expect(toolResult).toBeDefined();
-			// Should be normal text, not tool_reference blocks
 			const content = toolResult!.content as ContentBlockParam[];
 			expect(content).toHaveLength(1);
 			expect(content[0]).toEqual(expect.objectContaining({ type: 'text', text: '["mcp__github__list_issues"]' }));
@@ -512,7 +505,6 @@ suite('rawMessagesToMessagesAPI', function () {
 
 		const toolResult = findToolResult(result.messages);
 		expect(toolResult).toBeDefined();
-		// Orphaned cache breakpoint with no content to attach to is silently dropped
 		expect(toolResult!.cache_control).toBeUndefined();
 		expect(toolResult!.content).toBeUndefined();
 	});
@@ -560,10 +552,6 @@ suite('rawMessagesToMessagesAPI', function () {
 		});
 
 		test('empty-text block with a signature stays a thinking block (never redacted_thinking)', function () {
-			// Regression: `display: "omitted"` or budget-pruned thinking has an empty `thinking`
-			// field but a valid signature. Previously this was misclassified as a redacted_thinking
-			// block and shipped the signature as `data`, which the Anthropic API rejects with
-			// "Invalid 'data' in 'redacted_thinking' block".
 			const result = rawMessagesToMessagesAPI(assistantWithThinking({ id: 't1', text: '', encrypted: 'sig123' }));
 			const content = assertContentArray(result.messages[0].content);
 			expect(content[0]).toEqual({ type: 'thinking', thinking: '', signature: 'sig123' });
@@ -578,10 +566,6 @@ suite('rawMessagesToMessagesAPI', function () {
 	});
 
 	suite('merging consecutive assistant messages', function () {
-		// #327646: merging rounds whose tool results were dropped used to splice several
-		// responses' signed thinking blocks into one assistant message, which the API
-		// rejects with "thinking or redacted_thinking blocks in the latest assistant
-		// message cannot be modified". Only one response's blocks may survive a merge.
 		function assistantRound(thinking: { text: string; encrypted: string; redacted?: boolean } | undefined, text: string, toolCallId?: string): Raw.ChatMessage {
 			return {
 				role: Raw.ChatRole.Assistant,
@@ -627,7 +611,6 @@ suite('rawMessagesToMessagesAPI', function () {
 				assistantRound({ text: 'second', encrypted: 'sig2' }, 'b'),
 				assistantRound({ text: 'third', encrypted: 'sig3' }, 'c', 'toolu_c'),
 			]);
-			// Only the run belonging to the round that still owns a tool call survives.
 			expect(result.messages).toEqual([{
 				role: 'assistant',
 				content: [
@@ -909,10 +892,6 @@ suite('isExtendedCacheTtlEnabled', function () {
 		disposables = new DisposableStore();
 		const services = disposables.add(createPlatformServices(disposables));
 		const accessor = services.createTestingAccessor();
-		// All callers of `isExtendedCacheTtlEnabled` resolve `IConfigurationService` through DI to
-		// an `InMemoryConfigurationService` instance (see `createPlatformServices`). Re-narrowing it
-		// here lets the tests use `setConfig` to flip the experiment-based gate without going
-		// through experimentation infrastructure.
 		configurationService = accessor.get(IConfigurationService) as InMemoryConfigurationService;
 		experimentationService = accessor.get(IExperimentationService);
 	});
@@ -926,8 +905,6 @@ suite('isExtendedCacheTtlEnabled', function () {
 	});
 
 	test('composes all four gates: returns true only when model + config + Agent location + non-subagent all align', function () {
-		// Positive composition + negative on each axis. If a future refactor short-circuits
-		// before reading any single gate (e.g. drops the config check), one of these flips.
 		enableConfig();
 		const probe = (model: string, location: ChatLocation | undefined, sub: boolean) =>
 			isExtendedCacheTtlEnabled(model, configurationService, experimentationService, location, sub);
@@ -946,10 +923,6 @@ suite('isExtendedCacheTtlEnabled', function () {
 	});
 
 	test('returns false when location is undefined', function () {
-		// The gate requires an explicit `ChatLocation.Agent`. Callers that route through
-		// subclass overrides which drop the `location` argument (e.g. `super.getExtraHeaders()`
-		// without arguments — see `OpenRouterEndpoint`, `AzureOpenAIEndpoint`, etc.) are
-		// correctly excluded so the beta header is never sent for non-Agent paths.
 		enableConfig();
 		expect(isExtendedCacheTtlEnabled(ELIGIBLE_MODEL, configurationService, experimentationService, undefined, false)).toBe(false);
 	});
@@ -960,15 +933,11 @@ suite('isExtendedCacheTtlEnabled', function () {
 	});
 
 	test('delegates model gate to modelSupportsExtendedCacheTtl', function () {
-		// Full model boundaries are covered by the `modelSupportsExtendedCacheTtl` suite.
-		// Here we only verify the delegation is wired up.
 		enableConfig();
 		expect(isExtendedCacheTtlEnabled('gpt-5', configurationService, experimentationService, ChatLocation.Agent, false)).toBe(false);
 	});
 
 	test('returns false for non-Agent chat locations', function () {
-		// Inline chat, terminal chat, notebook chat, and the Claude CLI proxy passthrough are all
-		// out of scope for extended cache TTL — only the main agent conversation qualifies.
 		enableConfig();
 		expect({
 			Panel: isExtendedCacheTtlEnabled(ELIGIBLE_MODEL, configurationService, experimentationService, ChatLocation.Panel, false),
@@ -1007,7 +976,6 @@ suite('isExtendedCacheTtlMessagesEnabled', function () {
 	});
 
 	test('parent on/off x sub on/off matrix', function () {
-		// [parentEnabled, sub, expected]
 		const cases: ReadonlyArray<readonly [boolean, boolean, boolean]> = [
 			[false, false, false],
 			[true, false, false],
@@ -1018,8 +986,6 @@ suite('isExtendedCacheTtlMessagesEnabled', function () {
 			configurationService.setConfig(ConfigKey.Advanced.AnthropicExtendedCacheTtlMessages, sub);
 			return [parent, sub, isExtendedCacheTtlMessagesEnabled(parent, configurationService, experimentationService)] as const;
 		});
-		// Only "both on" produces true — sub is a strict sub-toggle of parent.
-		// Model/location/subagent gates are inherited via the parent and covered in its suite.
 		expect(actual).toEqual(cases);
 	});
 });
@@ -1243,10 +1209,6 @@ suite('clearAllCacheControl', function () {
 	});
 
 	test('caps total cc count at 4 even when upstream loaded markers', function () {
-		// Repro: a prompt-tsx prompt (e.g. inlineChatPrompt) emits multiple
-		// <cacheBreakpoint> parts that rawContentToAnthropicContent translates
-		// into cache_control fields. Without clearAllCacheControl we'd add
-		// our own on top → exceed Anthropic's 4-cc limit → 400.
 		const tools: AnthropicMessagesTool[] = [
 			{ name: 't', description: '', input_schema: { type: 'object', properties: {}, required: [] } },
 		];
@@ -1261,7 +1223,6 @@ suite('clearAllCacheControl', function () {
 		addMessagesApiCacheControl({ messages, system });
 		addToolsAndSystemCacheControl(tools, { messages, system });
 
-		// Exactly 4 ccs, all in the deterministic positions we own.
 		expect([
 			...tools.flatMap((t, i) => t.cache_control ? [`tools[${i}]`] : []),
 			...ccPositions({ messages, system }),
@@ -1357,12 +1318,8 @@ describe('createMessagesRequestBody reasoning effort', () => {
 	});
 
 	test('falls back to the requested effort when adaptive model declares no supportsReasoningEffort', () => {
-		// Every adaptive-thinking Claude model accepts output_config.effort even
-		// when the endpoint metadata doesn't declare it — a user-selected effort
-		// must not be silently dropped (#cacheExplorer effort visibility).
 		const endpoint = createMockEndpoint({
 			supportsAdaptiveThinking: true,
-			// supportsReasoningEffort is undefined
 		});
 		const options = createMinimalOptions({
 			modelCapabilities: { enableThinking: true, reasoningEffort: 'high' },
@@ -1377,7 +1334,6 @@ describe('createMessagesRequestBody reasoning effort', () => {
 	test('defaults to high effort (the provider default) when adaptive model declares no supportsReasoningEffort and none is requested', () => {
 		const endpoint = createMockEndpoint({
 			supportsAdaptiveThinking: true,
-			// supportsReasoningEffort is absent — the capability is not declared
 		});
 		const options = createMinimalOptions({
 			modelCapabilities: { enableThinking: true },
@@ -1390,9 +1346,6 @@ describe('createMessagesRequestBody reasoning effort', () => {
 	});
 
 	test('omits effort when supportsReasoningEffort is explicitly empty', () => {
-		// An empty list is a declaration that the model supports no effort
-		// levels — distinct from the capability being absent, which falls
-		// back to the adaptive default.
 		const endpoint = createMockEndpoint({
 			supportsAdaptiveThinking: true,
 			supportsReasoningEffort: [],
@@ -1412,7 +1365,6 @@ describe('createMessagesRequestBody reasoning effort', () => {
 			supportsAdaptiveThinking: false,
 			maxThinkingBudget: 32000,
 			minThinkingBudget: 1024,
-			// supportsReasoningEffort is undefined
 		});
 		const options = createMinimalOptions({
 			modelCapabilities: { enableThinking: true, reasoningEffort: 'medium' },
@@ -1440,9 +1392,6 @@ describe('createMessagesRequestBody reasoning effort', () => {
 	});
 
 	test('sends xhigh when the endpoint declares it (Opus 4.8 metadata)', () => {
-		// Opus 4.7+ metadata declares xhigh/max and the Opus 4.8 picker
-		// defaults to xhigh — a hardcoded low|medium|high validator used to
-		// silently drop it, so no effort reached the wire at all.
 		const endpoint = createMockEndpoint({
 			supportsAdaptiveThinking: true,
 			supportsReasoningEffort: ['low', 'medium', 'high', 'xhigh', 'max'],
@@ -1458,8 +1407,6 @@ describe('createMessagesRequestBody reasoning effort', () => {
 	});
 
 	test('accepts any level the endpoint declares, including unknown future ones', () => {
-		// Validation is purely metadata-driven — a new level (as xhigh/max
-		// once were) must work without a client change.
 		const endpoint = createMockEndpoint({
 			supportsAdaptiveThinking: true,
 			supportsReasoningEffort: ['low', 'ultra'],
@@ -1484,7 +1431,6 @@ describe('createMessagesRequestBody reasoning effort', () => {
 
 		const body = instantiationService.invokeFunction(createMessagesRequestBody, options, endpoint.model, endpoint);
 
-		// Middle of the declared list — never a level the endpoint rejects.
 		expect(body.output_config).toEqual({ effort: 'high' });
 	});
 
@@ -1577,7 +1523,6 @@ describe('createMessagesRequestBody tool search deferral', () => {
 	beforeEach(() => {
 		disposables = new DisposableStore();
 		const services = disposables.add(createPlatformServices(disposables));
-		// Non-deferred allowlist matches production: core tools + tool_search itself.
 		const nonDeferred = new Set(['read_file', 'grep_search', CUSTOM_TOOL_SEARCH_NAME]);
 		services.define(IToolDeferralService, {
 			_serviceBrand: undefined,
@@ -1588,10 +1533,6 @@ describe('createMessagesRequestBody tool search deferral', () => {
 	});
 
 	test('does not set defer_loading when tool_search is not in the request tool list', () => {
-		// Repro for https://github.com/microsoft/vscode/issues/311946: a custom agent
-		// with `tools: ['my-mcp-server/*']` filters out tool_search. Without this gate,
-		// every MCP tool gets defer_loading=true and Anthropic rejects the request with
-		// "At least one tool must have defer_loading=false."
 		const endpoint = createMockEndpoint(true);
 		const options = createOptions([makeTool('some_mcp_tool'), makeTool('another_mcp_tool')]);
 
@@ -1728,7 +1669,7 @@ suite('processNonStreamingResponseFromMessagesEndpoint', () => {
 		);
 
 		await expect(async () => {
-			for await (const _c of completions) { /* consume */ }
+			for await (const _c of completions) { }
 		}).rejects.toThrow('Anthropic API error: Bad request');
 	});
 
@@ -1790,7 +1731,6 @@ suite('processNonStreamingResponseFromMessagesEndpoint', () => {
 			results.push(c);
 		}
 
-		// prompt_tokens = input_tokens + cache_creation + cache_read = 50 + 20 + 30 = 100
 		expect(results[0].usage?.prompt_tokens).toBe(100);
 		expect(results[0].usage?.prompt_tokens_details?.cached_tokens).toBe(30);
 	});
@@ -1942,7 +1882,7 @@ suite('processNonStreamingResponseFromMessagesEndpoint', () => {
 			telemetryData,
 		);
 		await expect(async () => {
-			for await (const _c of completions) { /* consume */ }
+			for await (const _c of completions) { }
 		}).rejects.toThrow('Failed to parse non-streaming Anthropic response');
 	});
 
@@ -2019,7 +1959,7 @@ suite('processNonStreamingResponseFromMessagesEndpoint', () => {
 			async (_text, _idx, delta) => { deltas.push(delta); return undefined; },
 			telemetryData,
 		);
-		for await (const _c of completions) { /* consume */ }
+		for await (const _c of completions) { }
 		expect(deltas).toHaveLength(1);
 		expect(deltas[0].dardcorToolCalls).toHaveLength(1);
 	});
@@ -2046,7 +1986,6 @@ suite('processNonStreamingResponseFromMessagesEndpoint', () => {
 			results.push(c);
 		}
 		expect(results).toHaveLength(1);
-		// All token counts should default to 0
 		expect(results[0].usage?.prompt_tokens).toBe(0);
 		expect(results[0].usage?.completion_tokens).toBe(0);
 	});
@@ -2096,8 +2035,6 @@ suite('AnthropicMessagesProcessor streaming cache_creation', () => {
 	}
 
 	test('redacted_thinking content block propagates redacted:true on the thinking delta', () => {
-		// Regression: the converter relies on an explicit `redacted` flag (not empty text)
-		// to decide redacted_thinking vs thinking. The streaming accumulator must set it.
 		const processor = makeProcessor();
 		const deltas: IResponseDelta[] = [];
 		const capture: FinishedCallback = async (_text, _idx, delta) => { deltas.push(delta); return undefined; };
@@ -2129,11 +2066,6 @@ suite('AnthropicMessagesProcessor streaming cache_creation', () => {
 	});
 
 	test('message_start cache_creation survives a message_delta that omits the breakdown', () => {
-		// Production happy path: Anthropic only emits the cache_creation breakdown
-		// in message_start. message_delta updates other usage fields but typically
-		// has no cache_creation. The ?? fallback in the processor must preserve
-		// the values seen in message_start — including 0 (a common control-arm
-		// value) which would be wiped out by a `||` regression.
 		const processor = makeProcessor();
 		const noop = async () => undefined;
 
@@ -2160,9 +2092,6 @@ suite('AnthropicMessagesProcessor streaming cache_creation', () => {
 			},
 		}, noop);
 
-		// message_delta with usage but no cache_creation breakdown — mirrors
-		// what every observed backend (Anthropic 1P, Bedrock, Vertex) emits in
-		// the final delta of a stream.
 		processor.push({
 			type: 'message_delta',
 			delta: { type: 'message_delta', stop_reason: 'end_turn' },
@@ -2183,9 +2112,6 @@ suite('AnthropicMessagesProcessor streaming cache_creation', () => {
 	});
 
 	test('message_delta cache_creation overrides message_start values', () => {
-		// Defensive: if a backend ever did emit the breakdown in message_delta,
-		// the later values should win (matches the existing overwrite pattern
-		// for cache_creation_input_tokens / cache_read_input_tokens).
 		const processor = makeProcessor();
 		const noop = async () => undefined;
 
@@ -2234,9 +2160,6 @@ suite('AnthropicMessagesProcessor streaming cache_creation', () => {
 	});
 
 	test('streaming thinking_tokens from message_delta surfaces as reasoning_tokens', () => {
-		// Anthropic typically reports thinking_tokens in the final message_delta
-		// (after the cumulative output_tokens count is known). Matches the
-		// observed payload shape from CAPI/Anthropic 1P/Bedrock/Vertex.
 		const processor = makeProcessor();
 		const noop = async () => undefined;
 

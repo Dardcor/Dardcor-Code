@@ -15,7 +15,6 @@ import { generateScenarioTestRunner } from './scenarioTest';
 		const scenarioFolder = inputPath ?? path.join(__dirname, '..', 'test/scenarios/test-scenario-fix-python');
 		const scenarios: Scenario[] = fetchConversationScenarios(scenarioFolder);
 
-		// Dynamically create a test case per each entry in the scenarios array
 		for (let i = 0; i < scenarios.length; i++) {
 			const name = scenarios[i][0].name;
 			const label = name.replace('case', 'Case #').replace('.conversation.json', '');

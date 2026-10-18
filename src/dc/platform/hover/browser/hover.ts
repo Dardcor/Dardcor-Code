@@ -30,7 +30,7 @@ export class WorkbenchHoverDelegate extends Disposable implements IHoverDelegate
 	private _delay: number;
 	get delay(): number | ((content: IManagedHoverContentOrFactory) => number) {
 		if (this.isInstantlyHovering()) {
-			return 0; // show instantly when a hover was recently shown
+			return 0;
 		}
 
 		if (this.hoverOptions?.dynamicDelay) {
@@ -62,7 +62,6 @@ export class WorkbenchHoverDelegate extends Disposable implements IHoverDelegate
 	showHover(options: IHoverDelegateOptions, focus?: boolean): IHoverWidget | undefined {
 		const overrideOptions = typeof this.overrideOptions === 'function' ? this.overrideOptions(options, focus) : this.overrideOptions;
 
-		// close hover on escape
 		this.hoverDisposables.clear();
 		const targets = isHTMLElement(options.target) ? [options.target] : options.target.targetElements;
 		for (const target of targets) {
@@ -115,7 +114,6 @@ export class WorkbenchHoverDelegate extends Disposable implements IHoverDelegate
 	}
 }
 
-// TODO@benibenj remove this, only temp fix for contextviews
 export const nativeHoverDelegate: IHoverDelegate = {
 	showHover: function (): IHoverWidget | undefined {
 		throw new Error('Native hover function not implemented.');

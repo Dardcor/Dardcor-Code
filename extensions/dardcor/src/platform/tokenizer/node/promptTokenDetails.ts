@@ -7,35 +7,21 @@ import { Raw } from '@vscode/prompt-tsx';
 import type { ChatResultPromptTokenDetail, LanguageModelToolInformation } from 'vscode';
 import { ITokenizer } from '../../../util/common/tokenizer';
 
-/**
- * Categories for prompt token breakdown
- */
 export const PromptTokenCategory = {
 	System: 'System',
 	UserContext: 'User Context',
 } as const;
 
-/**
- * Labels for prompt token breakdown within categories
- */
 export const PromptTokenLabel = {
-	// System category
 	SystemInstructions: 'System Instructions',
 	Tools: 'Tool Definitions',
 
-	// User Context category
 	Messages: 'Messages',
 	Files: 'Files',
 	ToolResults: 'Tool Results',
 } as const;
 
-/**
- * Mapping from XML tag names in message content to labels.
- * These tags are used by prompt-tsx to structure content.
- * Tags not in this mapping default to User Context / Messages.
- */
 const tagToLabelMapping: Record<string, { category: string; label: string }> = {
-	// System category - Instructions (LLM behavior guidance)
 	instructions: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	toolUseInstructions: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	editFileInstructions: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
@@ -55,10 +41,8 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	searchExtensionToolUseInstructions: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	extensionSearchResponseRules: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	grounding: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
-	// Model-specific instruction tags
 	gptAgentInstructions: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	coding_agent_instructions: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
-	// Workflow and planning instructions
 	workflowGuidance: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	structuredWorkflow: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	taskTracking: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
@@ -68,7 +52,6 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	testing: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	validating_work: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	progress_updates: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
-	// Personality and communication style
 	personality: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	communicationStyle: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	communicationExamples: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
@@ -76,12 +59,10 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	ambition_vs_precision: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	autonomy_and_persistence: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	contextManagement: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
-	// Final answer formatting
 	final_answer_formatting: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	final_answer_instructions: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	final_answer_structure_and_style_guidelines: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	presenting_your_work_and_final_message: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
-	// Other system-level guidance
 	tool_preambles: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	tool_use: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	parallel_tool_use_instructions: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
@@ -101,7 +82,6 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	responseTemplate: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 	importantReminders: { category: PromptTokenCategory.System, label: PromptTokenLabel.SystemInstructions },
 
-	// User Context category - Files (file-based context and attachments)
 	attachment: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	attachments: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	file: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
@@ -114,7 +94,6 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	languageServerContext: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	symbolDefinitions: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	symbol: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
-	// Code context
 	codeToTest: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	testsFile: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	testExample: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
@@ -123,23 +102,19 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	relatedTest: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	relatedSource: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	readme: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
-	// Git/diff context
 	'original-code': { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	'code-changes': { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	changeDescription: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	currentChange: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
-	// Notebook cells
 	cell: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	cellsAbove: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	cellsBelow: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	'cell-output': { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	'notebook-cell-output': { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	some_of_the_cells_after_edit: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
-	// Workspace and environment info (treated as file-like context)
 	workspaceFolder: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 	projectLabels: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Files },
 
-	// User Context category - Tool Results (diagnostics and errors)
 	error: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.ToolResults },
 	errors: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.ToolResults },
 	compileError: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.ToolResults },
@@ -156,8 +131,6 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	expectedOutput: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.ToolResults },
 	match: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.ToolResults },
 
-	// User Context category - Messages (user input and conversation, also examples)
-	// Note: tags not in this mapping default to Messages
 	userRequest: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	UserRequest: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	userPrompt: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
@@ -171,25 +144,21 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	todoList: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	task: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	toolReferences: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
-	// Conversation/history elements
 	user: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	assistant: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	tool: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	'conversation-summary': { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	message: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	summary: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
-	// Examples (few-shot)
 	example: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	examples: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	response: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	Response: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	request: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
-	// VS Code specific context
 	settings: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	command: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	currentVSCodeVersion: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	releaseNotes: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
-	// Example tags for VS Code participant
 	singleSettingExample: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	singleCommandExample: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	multipleSettingsExample: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
@@ -198,45 +167,27 @@ const tagToLabelMapping: Record<string, { category: string; label: string }> = {
 	invalidQuestionExample: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	marketplaceSearchExample: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	extensionResponseExample: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
-	// File context hints
 	'file-selection': { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	'file-cursor-context': { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	'additional-info': { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 	instruction: { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages },
 };
 
-/**
- * Default mapping for unknown tags
- */
 const defaultTagMapping = { category: PromptTokenCategory.UserContext, label: PromptTokenLabel.Messages };
 
-/**
- * Options for computing prompt token details
- */
 export interface IPromptTokenDetailOptions {
-	/** The messages that make up the prompt */
 	messages: Raw.ChatMessage[];
-	/** The tokenizer to use for counting tokens */
 	tokenizer: ITokenizer;
-	/** The total prompt token count (if already known, avoids recomputation) */
 	totalPromptTokens?: number;
-	/** The tools available to the model */
 	tools?: readonly LanguageModelToolInformation[];
 }
 
-/**
- * Internal structure for accumulating token counts by category and label
- */
 interface TokenCounts {
 	[category: string]: {
 		[label: string]: number;
 	};
 }
 
-/**
- * Parses text content to extract token counts per tagged section.
- * Unknown tags default to User Context / Messages.
- */
 async function parseTextContentTokens(
 	text: string,
 	tokenizer: ITokenizer,
@@ -244,7 +195,6 @@ async function parseTextContentTokens(
 ): Promise<number> {
 	let accountedTokens = 0;
 
-	// Find all XML tags in the text
 	const allTagsRegex = /<([a-zA-Z_][\w.\-]*)[^>]*>[\s\S]*?<\/\1>/g;
 	let tagMatch;
 	const processedRanges: Array<{ start: number; end: number }> = [];
@@ -255,7 +205,6 @@ async function parseTextContentTokens(
 		const matchStart = tagMatch.index;
 		const matchEnd = matchStart + fullMatch.length;
 
-		// Check if this range overlaps with an already processed range (nested tag)
 		const isNested = processedRanges.some(
 			range => matchStart >= range.start && matchEnd <= range.end
 		);
@@ -277,25 +226,16 @@ async function parseTextContentTokens(
 	return accountedTokens;
 }
 
-/**
- * Computes the prompt token detail breakdown showing percentage of tokens used
- * by different categories (System, Conversation, Context).
- *
- * @param options - Options containing messages, tokenizer, and optional pre-computed total
- * @returns Promise resolving to an array of ChatResultPromptTokenDetail with percentages
- */
 export async function computePromptTokenDetails(
 	options: IPromptTokenDetailOptions
 ): Promise<ChatResultPromptTokenDetail[]> {
 	const { messages, tokenizer, tools } = options;
 
-	// Compute token counts by category and label
 	const counts: TokenCounts = {
 		[PromptTokenCategory.System]: {},
 		[PromptTokenCategory.UserContext]: {},
 	};
 
-	// Count tokens per message based on role and content
 	for (const message of messages) {
 		const messageTokens = await tokenizer.countMessageTokens(message);
 
@@ -306,16 +246,13 @@ export async function computePromptTokenDetails(
 				break;
 
 			case Raw.ChatRole.User: {
-				// Parse content parts for more granular categorization
 				let accountedTokens = 0;
 
 				for (const part of message.content) {
 					if (part.type === Raw.ChatCompletionContentPartKind.Text) {
-						// Parse tagged sections in text content
 						const taggedTokens = await parseTextContentTokens(part.text, tokenizer, counts);
 						accountedTokens += taggedTokens;
 					} else if (part.type === Raw.ChatCompletionContentPartKind.Image || part.type === Raw.ChatCompletionContentPartKind.Document) {
-						// Count image/document tokens as Files
 						const partTokens = await tokenizer.tokenLength(part);
 						counts[PromptTokenCategory.UserContext][PromptTokenLabel.Files] =
 							(counts[PromptTokenCategory.UserContext][PromptTokenLabel.Files] || 0) + partTokens;
@@ -323,7 +260,6 @@ export async function computePromptTokenDetails(
 					}
 				}
 
-				// Any unaccounted tokens go to Messages
 				const unaccountedTokens = messageTokens - accountedTokens;
 				if (unaccountedTokens > 0) {
 					counts[PromptTokenCategory.UserContext][PromptTokenLabel.Messages] =
@@ -333,27 +269,23 @@ export async function computePromptTokenDetails(
 			}
 
 			case Raw.ChatRole.Tool:
-				// Tool messages are tool results
 				counts[PromptTokenCategory.UserContext][PromptTokenLabel.ToolResults] =
 					(counts[PromptTokenCategory.UserContext][PromptTokenLabel.ToolResults] || 0) + messageTokens;
 				break;
 
 			case Raw.ChatRole.Assistant:
 			default:
-				// Assistant messages are part of conversation history
 				counts[PromptTokenCategory.UserContext][PromptTokenLabel.Messages] =
 					(counts[PromptTokenCategory.UserContext][PromptTokenLabel.Messages] || 0) + messageTokens;
 				break;
 		}
 	}
 
-	// Count tool tokens
 	if (tools && tools.length > 0) {
 		const toolTokens = await tokenizer.countToolTokens(tools);
 		counts[PromptTokenCategory.System][PromptTokenLabel.Tools] = toolTokens;
 	}
 
-	// Calculate total tokens
 	let totalTokens = options.totalPromptTokens;
 	if (totalTokens === undefined) {
 		totalTokens = await tokenizer.countMessagesTokens(messages);
@@ -362,7 +294,6 @@ export async function computePromptTokenDetails(
 		}
 	}
 
-	// Convert counts to percentages
 	const details: ChatResultPromptTokenDetail[] = [];
 
 	for (const [category, labels] of Object.entries(counts)) {

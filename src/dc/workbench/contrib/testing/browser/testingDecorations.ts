@@ -85,7 +85,6 @@ interface ITestDecoration extends IPublicTestDecoration {
 	click(e: IEditorMouseEvent): boolean;
 }
 
-/** Value for saved decorations, providing fast accessors for the hot 'syncDecorations' path */
 class CachedDecorations {
 	private readonly runByIdKey = new Map<string, RunTestDecoration>();
 
@@ -93,18 +92,15 @@ class CachedDecorations {
 		return this.runByIdKey.size;
 	}
 
-	/** Gets a test run decoration that contains exactly the given test IDs */
 	public getForExactTests(testIds: string[]) {
 		const key = testIds.sort().join('\0\0');
 		return this.runByIdKey.get(key);
 	}
-	/** Adds a new test run decroation */
 	public addTest(d: RunTestDecoration) {
 		const key = d.testIds.sort().join('\0\0');
 		this.runByIdKey.set(key, d);
 	}
 
-	/** Finds an extension by VS Code event ID */
 	public getById(decorationId: string) {
 		for (const d of this.runByIdKey.values()) {
 			if (d.id === decorationId) {
@@ -114,7 +110,6 @@ class CachedDecorations {
 		return undefined;
 	}
 
-	/** Iterate over all decorations */
 	*[Symbol.iterator](): IterableIterator<ITestDecoration> {
 		for (const d of this.runByIdKey.values()) {
 			yield d;
@@ -128,25 +123,14 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 	private generation = 0;
 	private readonly changeEmitter = this._register(new Emitter<void>());
 	private readonly decorationCache = new ResourceMap<{
-		/** The document version at which ranges have been updated, requiring rerendering */
 		rangeUpdateVersionId?: number;
-		/** Counter for the results rendered in the document */
 		generation: number;
 		isAlt?: boolean;
 		value: CachedDecorations;
 	}>();
 
-	/**
-	 * List of messages that should be hidden because an editor changed their
-	 * underlying ranges. I think this is good enough, because:
-	 *  - Message decorations are never shown across reloads; this does not
-	 *    need to persist
-	 *  - Message instances are stable for any completed test results for
-	 *    the duration of the session.
-	 */
 	private readonly invalidatedMessages = new WeakSet<ITestMessage>();
 
-	/** @inheritdoc */
 	public readonly onDidChange = this.changeEmitter.event;
 
 	constructor(
@@ -164,9 +148,6 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 
 		const debounceInvalidate = this._register(new RunOnceScheduler(() => this.invalidate(), 100));
 
-		// If ranges were updated in the document, mark that we should explicitly
-		// sync decorations to the published lines, since we assume that everything
-		// is up to date. This prevents issues, as in #138632, #138835, #138922.
 		this._register(this.testService.onWillProcessDiff(diff => {
 			for (const entry of diff) {
 				if (entry.op !== TestDiffOpType.DocumentSynced) {
@@ -220,13 +201,11 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 		}));
 	}
 
-	/** @inheritdoc */
 	public invalidateResultMessage(message: ITestMessage) {
 		this.invalidatedMessages.add(message);
 		this.invalidate();
 	}
 
-	/** @inheritdoc */
 	public syncDecorations(resource: URI): CachedDecorations {
 		const model = this.modelService.getModel(resource);
 		if (!model) {
@@ -241,7 +220,6 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 		return this.applyDecorations(model);
 	}
 
-	/** @inheritdoc */
 	public getDecoratedTestPosition(resource: URI, testId: string) {
 		const model = this.modelService.getModel(resource);
 		if (!model) {
@@ -253,7 +231,6 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 			return undefined;
 		}
 
-		// decoration is collapsed, so the range is meaningless; only position matters.
 		return model.getDecorationRange(decoration.id)?.getStartPosition();
 	}
 
@@ -262,9 +239,6 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 		this.changeEmitter.fire();
 	}
 
-	/**
-	 * Sets whether alternate actions are shown for the model.
-	 */
 	public updateDecorationsAlternateAction(resource: URI, isAlt: boolean) {
 		const model = this.modelService.getModel(resource);
 		const cached = this.decorationCache.get(resource);
@@ -285,9 +259,6 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 		});
 	}
 
-	/**
-	 * Applies the current set of test decorations to the given text model.
-	 */
 	private applyDecorations(model: ITextModel) {
 		const gutterEnabled = getTestingConfiguration(this.configurationService, TestingConfigKeys.GutterEnabled);
 		const cached = this.decorationCache.get(model.uri);
@@ -311,7 +282,6 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 				const multi = tests.length > 1;
 				let existing = lastDecorations.getForExactTests(tests.map(t => t.test.item.extId));
 
-				// see comment in the constructor for what's going on here
 				if (existing && testRangesUpdated && model.getDecorationRange(existing.id)?.startLineNumber !== line) {
 					existing = undefined;
 				}
@@ -357,14 +327,8 @@ export class TestingDecorationService extends Disposable implements ITestingDeco
 }
 
 export class TestingDecorations extends Disposable implements IEditorContribution {
-	/**
-	 * Results invalidated by editor changes.
-	 */
 	public static invalidatedTests = new WeakSet<TestResultItem | ITestMessage>();
 
-	/**
-	 * Gets the decorations associated with the given code editor.
-	 */
 	public static get(editor: ICodeEditor): TestingDecorations | null {
 		return editor.getContribution<TestingDecorations>(Testing.DecorationsContributionId);
 	}
@@ -467,9 +431,6 @@ export class TestingDecorations extends Disposable implements IEditorContributio
 
 			let changed = false;
 			for (const [message, deco] of this.loggedMessageDecorations) {
-				// invalidate decorations if either the line they're on was changed,
-				// or if the range of the test was changed. The range of the test is
-				// not always present, so check bo.
 				const invalidate = evts.some(e => e.changes.some(c =>
 					c.range.startLineNumber <= deco.line && c.range.endLineNumber >= deco.line
 					|| (deco.resultItem?.item.range && deco.resultItem.item.range.startLineNumber <= c.range.startLineNumber && deco.resultItem.item.range.endLineNumber >= c.range.endLineNumber)
@@ -527,9 +488,6 @@ export class TestingDecorations extends Disposable implements IEditorContributio
 
 		(async () => {
 			for await (const _tests of testsInFile(this.testService, this.uriIdentityService, uri, false)) {
-				// consume the iterator so that all tests in the file get expanded. Or
-				// at least until the URI changes. If new items are requested, changes
-				// will be trigged in the `onDidProcessDiff` callback.
 				if (this._currentUri !== uri) {
 					break;
 				}
@@ -579,7 +537,6 @@ export class TestingDecorations extends Disposable implements IEditorContributio
 			}
 			for (let taskId = 0; taskId < test.tasks.length; taskId++) {
 				const state = test.tasks[taskId];
-				// push error decorations first so they take precedence over normal output
 				for (let i = 0; i < state.messages.length; i++) {
 					const m = state.messages[i];
 					if (m.type !== TestMessageType.Error || this.isMessageInvalidated(m)) {
@@ -595,8 +552,6 @@ export class TestingDecorations extends Disposable implements IEditorContributio
 
 					const model = this.editor.getModel();
 					if (model && (line < 1 || line > model.getLineCount())) {
-						// The message location was recorded against a previous document
-						// state; the referenced line no longer exists after edits.
 						continue;
 					}
 
@@ -798,9 +753,7 @@ const enum LensContentWidgetVars {
 }
 
 abstract class TitleLensContentWidget {
-	/** @inheritdoc */
 	public readonly allowEditorOverflow = false;
-	/** @inheritdoc */
 	public readonly suppressMouseDown = true;
 
 	private readonly _domNode = dom.$('span');
@@ -850,15 +803,12 @@ abstract class TitleLensContentWidget {
 		});
 	}
 
-	/** @inheritdoc */
 	public abstract getId(): string;
 
-	/** @inheritdoc */
 	public getDomNode() {
 		return this._domNode;
 	}
 
-	/** @inheritdoc */
 	public dispose() {
 		this.editor.changeViewZones(accessor => {
 			if (this.viewZoneId) {
@@ -869,7 +819,6 @@ abstract class TitleLensContentWidget {
 		this.editor.removeContentWidget(this);
 	}
 
-	/** @inheritdoc */
 	public getPosition(): IContentWidgetPosition {
 		return {
 			position: { column: 0, lineNumber: 0 },
@@ -902,7 +851,6 @@ class ActualLensContentWidget extends TitleLensContentWidget {
 }
 
 abstract class RunTestDecoration {
-	/** @inheritdoc */
 	public id = '';
 
 	public get line() {
@@ -942,11 +890,9 @@ abstract class RunTestDecoration {
 		this.editorDecoration.options.glyphMarginHoverMessage = new MarkdownString().appendText(this.getGutterLabel());
 	}
 
-	/** @inheritdoc */
 	public click(e: IEditorMouseEvent): boolean {
 		if (e.target.type !== MouseTargetType.GUTTER_GLYPH_MARGIN
 			|| e.target.detail.glyphMarginLane !== GLYPH_MARGIN_LANE
-			// handled by editor gutter context menu
 			|| e.event.rightButton
 			|| isMacintosh && e.event.leftButton && e.event.ctrlKey
 		) {
@@ -973,10 +919,6 @@ abstract class RunTestDecoration {
 		return true;
 	}
 
-	/**
-	 * Updates the decoration to match the new set of tests.
-	 * @returns true if options were changed, false otherwise
-	 */
 	public replaceOptions(newTests: readonly {
 		test: IncrementalTestCollectionItem;
 		resultItem: TestResultItem | undefined;
@@ -1003,16 +945,10 @@ abstract class RunTestDecoration {
 		return true;
 	}
 
-	/**
-	 * Gets whether this decoration serves as the run button for the given test ID.
-	 */
 	public isForTest(testId: string) {
 		return this.tests.some(t => t.test.item.extId === testId);
 	}
 
-	/**
-	 * Called when the decoration is clicked on.
-	 */
 	abstract getContextMenuActions(): IReference<IAction[]>;
 
 	protected runWith(profile: TestRunProfileBitset) {
@@ -1041,9 +977,6 @@ abstract class RunTestDecoration {
 		}
 	}
 
-	/**
-	 * Gets context menu actions relevant for a singel test.
-	 */
 	protected getTestContextMenuActions(test: InternalTestItem, resultItem?: TestResultItem): IReference<IAction[]> {
 		const testActions: Action[] = [];
 		const capabilities = this.testProfileService.capabilitiesForTest(test.item);
@@ -1297,7 +1230,7 @@ class TestMessageDecoration implements ITestDecoration {
 		const options = editorService.resolveDecorationOptions(TestMessageDecoration.decorationId, true);
 		const hoverText = renderTestMessageAsText(message);
 		options.hoverMessage = new MarkdownString().appendText(hoverText);
-		options.zIndex = 10; // todo: in spite of the z-index, this appears behind gitlens
+		options.zIndex = 10;
 		options.className = `testing-inline-message-severity-${severity}`;
 		options.isWholeLine = true;
 		options.stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges;
@@ -1361,7 +1294,6 @@ const ERROR_CONTENT_WIDGET_HEIGHT = 20;
 class TestErrorContentWidget extends Disposable implements IContentWidget {
 	private readonly id = generateUuid();
 
-	/** @inheritdoc */
 	public readonly allowEditorOverflow = false;
 
 	private readonly node = dom.h('div.test-error-content-widget', [
@@ -1451,7 +1383,7 @@ class TestErrorContentWidget extends Disposable implements IContentWidget {
 					|| (resultItem.item.range && resultItem.item.range.startLineNumber <= c.range.startLineNumber && resultItem.item.range.endLineNumber >= c.range.endLineNumber)
 				) {
 					TestingDecorations.invalidatedTests.add(this.resultItem);
-					this.dispose(); // todo
+					this.dispose();
 				}
 
 				const adjust = count(c.text, '\n') - (c.range.endLineNumber - c.range.startLineNumber);

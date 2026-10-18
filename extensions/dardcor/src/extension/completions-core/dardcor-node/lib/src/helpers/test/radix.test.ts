@@ -146,12 +146,6 @@ suite('LRURadixTrie', function () {
 	});
 
 	test('handles unicode characters with multiple code points', function () {
-		/* Note: this behavior is arguably incorrect. Ideally, unicode characters
-		 * comprising multiple code points would be treated as single characters.
-		 * However, to do so would require converting all strings to arrays with
-		 * Array.from and no longer using native string methods such as
-		 * startsWith.  This performance hit from that is likely not worth fixing
-		 * this behavior. */
 		trie.set('ðŸ¤¦', 'no modifiers');
 		trie.set('ðŸ¤¦ðŸ½', 'type 3');
 		trie.set('ðŸ¤¦ðŸ½â€â™‚', 'man type 3');

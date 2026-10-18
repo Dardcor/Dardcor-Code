@@ -31,8 +31,6 @@ suite('OtlpLogEmitter', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('level <-> severity number mappings are inverse-ish', () => {
-		// Each VS Code level → severity number, then back, should land on
-		// the same level (the boundary numbers are picked to make this hold).
 		const cases: [LogLevel, number][] = [
 			[LogLevel.Trace, 1],
 			[LogLevel.Debug, 5],
@@ -90,7 +88,6 @@ suite('OtlpLogEmitter', () => {
 		logger.warn('hello warn');
 		logger.error('hello error');
 
-		// Filter out timestamp for stable assertion (timeUnixNano is real-time).
 		const sanitised = received.map(r => ({ severityNumber: r.severityNumber, severityText: r.severityText, body: r.body }));
 		assert.deepStrictEqual(sanitised, [
 			{ severityNumber: 1, severityText: 'trace', body: 'hello trace' },
@@ -212,8 +209,6 @@ suite('OtlpLogEmitter', () => {
 			...iterateOtlpLogRecords({ resourceLogs: 'nope' }),
 			...iterateOtlpLogRecords(undefined),
 		];
-		// One malformed record passes through with sensible defaults; the
-		// rest are silently dropped without throwing.
 		assert.deepStrictEqual(decoded, [{
 			timeUnixNano: '0',
 			severityNumber: 0,

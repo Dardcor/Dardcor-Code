@@ -24,22 +24,11 @@ import { ITestCoverageService } from '../common/testCoverageService.js';
 import { safeIntl } from '../../../../base/common/date.js';
 
 export interface TestCoverageBarsOptions {
-	/**
-	 * Whether the bars should be shown in a more compact way, where only the
-	 * overall bar is shown and more details are given in the hover.
-	 */
 	compact: boolean;
-	/**
-	 * Whether the overall stat is shown, defaults to true.
-	 */
 	overall?: boolean;
-	/**
-	 * Container in which is render the bars.
-	 */
 	container: HTMLElement;
 }
 
-/** Type that can be used to render coverage bars */
 export type CoverageBarSource = Pick<AbstractFileCoverage, 'statement' | 'branch' | 'declaration'>;
 
 export class ManagedTestCoverageBars extends Disposable {
@@ -69,7 +58,6 @@ export class ManagedTestCoverageBars extends Disposable {
 	private readonly visibleStore = this._register(new DisposableStore());
 	private readonly customHovers: IManagedHover[] = [];
 
-	/** Gets whether coverage is currently visible for the resource. */
 	public get visible() {
 		return !!this._coverage;
 	}
@@ -127,7 +115,7 @@ export class ManagedTestCoverageBars extends Disposable {
 		} else {
 			el.overall.style.display = 'none';
 		}
-		if ('tpcBar' in el) { // compact mode
+		if ('tpcBar' in el) {
 			renderBar(el.tpcBar, overallStat, false, thresholds);
 		} else {
 			renderBar(el.statement, coverUtils.percent(coverage.statement), coverage.statement.total === 0, thresholds);
@@ -147,7 +135,6 @@ const renderBar = (bar: HTMLElement, pct: number | undefined, isZero: boolean, t
 
 	bar.style.display = 'block';
 	bar.style.width = `${barWidth}px`;
-	// this is floored so the bar is only completely filled at 100% and not 99.9%
 	bar.style.setProperty('--test-bar-width', `${Math.floor(pct * 16)}px`);
 
 	if (isZero) {
@@ -178,10 +165,6 @@ const getOverallHoverText = (coverage: CoverageBarSource): IManagedHoverTooltipM
 	};
 };
 
-/**
- * Renders test coverage bars for a resource in the given container. It will
- * not render anything unless a test coverage report has been opened.
- */
 export class ExplorerTestCoverageBars extends ManagedTestCoverageBars implements IExplorerFileContribution {
 	private readonly resource = observableValue<URI | undefined>(this, undefined);
 	private static hasRegistered = false;
@@ -225,7 +208,6 @@ export class ExplorerTestCoverageBars extends ManagedTestCoverageBars implements
 		}));
 	}
 
-	/** @inheritdoc */
 	public setResource(resource: URI | undefined, transaction?: ITransaction) {
 		this.resource.set(resource, transaction);
 	}

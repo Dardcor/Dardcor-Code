@@ -8,16 +8,6 @@ import { ExtensionIdentifier } from '../../../../../../platform/extensions/commo
 import { IProductService } from '../../../../../../platform/product/common/productService.js';
 import { IAgentSource, PromptsStorage } from '../service/promptsService.js';
 
-/**
- * Checks if a prompt file is organization-provided.
- * Organization-provided prompt files come from the built-in chat extension
- * and are located under a `/github/` path.
- *
- * @param uri The URI of the prompt file
- * @param extensionId The extension identifier that provides the prompt file
- * @param productService The product service to get the built-in chat extension ID
- * @returns `true` if the prompt file is organization-provided, `false` otherwise
- */
 export function isOrganizationPromptFile(uri: URI, extensionId: ExtensionIdentifier, productService: IProductService): boolean {
 	const chatExtensionId = productService.defaultChatAgent?.chatExtensionId;
 	if (!chatExtensionId) {
@@ -28,11 +18,6 @@ export function isOrganizationPromptFile(uri: URI, extensionId: ExtensionIdentif
 	return isFromBuiltinChatExtension && pathContainsGithub;
 }
 
-/**
- * Checks if a custom agent is considered "builtin" - i.e. shipped by the
- * built-in chat extension and not organization-provided. Used for telemetry
- * to decide whether the agent name is safe to send as-is.
- */
 export function isBuiltinAgent(source: IAgentSource, uri: URI, productService: IProductService): boolean {
 	if (source.storage !== PromptsStorage.extension) {
 		return false;

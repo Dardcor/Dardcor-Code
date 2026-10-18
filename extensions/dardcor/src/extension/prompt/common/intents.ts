@@ -17,7 +17,6 @@ import { IToolGrouping } from '../../tools/common/virtualTools/virtualToolTypes'
 import { ChatVariablesCollection } from './chatVariablesCollection';
 import { Conversation, Turn } from './conversation';
 
-// TODO Move these to Conversation
 export interface IToolCall {
 	name: string;
 	arguments: string;
@@ -32,32 +31,17 @@ export interface IToolCallRound {
 	toolCalls: IToolCall[];
 	thinking?: ThinkingData;
 	statefulMarker?: string;
-	/**
-	 * The local summary generation included when an extension-contributed/BYOK
-	 * response created this marker. Used only at the `vscode.lm` boundary to
-	 * reject BYOK markers that still reference pre-summary server history;
-	 * first-party WebSocket summary compatibility remains manager-owned.
-	 */
 	statefulMarkerSummarizedAtRoundId?: string;
-	/** Compaction data from the Responses API, round-tripped in outgoing requests */
 	compaction?: OpenAIContextManagementResponse;
-	/** Epoch millis (`Date.now()`) when this round started. */
 	timestamp?: number;
-	/**
-	 * Additional context from a hook that was executed after this round completed.
-	 * For example, when a stop hook blocks the agent from stopping, this contains
-	 * the message to show the model about what requirements must be addressed.
-	 */
 	hookContext?: string;
-	/** The phase of the agent loop during which this tool call round occurred. */
 	phase?: string;
-	/** The model ID. */
 	modelId?: string;
 }
 
 export interface InternalToolReference extends vscode.ChatLanguageModelToolReference {
 	readonly id: string;
-	readonly input?: Object; // Allows to pass input to tool invocations internally
+	readonly input?: Object;
 }
 
 export namespace InternalToolReference {
@@ -85,30 +69,12 @@ export interface IBuildPromptContext {
 	};
 	readonly modeInstructions?: vscode.ChatRequestModeInstructions;
 
-	/**
-	 * The accumulated tool call rounds for the current ongoing response.
-	 */
 	readonly toolCallRounds?: readonly IToolCallRound[];
 	readonly toolCallResults?: Record<string, vscode.LanguageModelToolResult>;
 	readonly toolGrouping?: IToolGrouping;
 
-	/**
-	 * Models are encouraged to make parallel tool calls. Sometimes, they even
-	 * do. If this happens for edit calls, because the application of text edits
-	 * is async, we need to keep track of the edited versions of documented we
-	 * see otherwise there is a race condition that can lead to garbled edits.
-	 *
-	 * This property is used by edit tools to stash their edited documents within
-	 * an edit turn, and will try to reuse a previous tool's version of the
-	 * document when available. The map is created anew each turn.
-	 */
 	turnEditedDocuments?: ResourceMap<NotebookDocumentSnapshot | TextDocumentSnapshot>;
 
-	/**
-	 * URIs that are explicitly allowed for editing without user confirmation.
-	 * This is used by features like inline chat to pre-approve the document
-	 * being edited.
-	 */
 	readonly allowedEditUris?: ResourceSet;
 
 	readonly editedFileEvents?: readonly vscode.ChatRequestEditedFileEvent[];
@@ -116,30 +82,12 @@ export interface IBuildPromptContext {
 	readonly request?: ChatRequest;
 	readonly stream?: vscode.ChatResponseStream;
 	readonly isContinuation?: boolean;
-	/**
-	 * True when the query contains a stop hook message that should be rendered
-	 * as a user message, even during a continuation. This is used to distinguish
-	 * between a normal continuation ("Please continue") and a stop hook
-	 * continuation that requires a specific user message.
-	 */
 	readonly hasStopHookQuery?: boolean;
-	/**
-	 * Additional context provided by a hook.
-	 */
 	readonly additionalHookContext?: string;
-	/**
-	 * The headerRequestId from the most recent parent fetch response.
-	 * Used by subagent tools to link their telemetry back to the parent's HTTP request.
-	 */
 	readonly parentHeaderRequestId?: string;
-	/**
-	 * The modelCallId from the most recent parent model call.
-	 * Used by subagent tools to link their telemetry back to the parent's specific model call.
-	 */
 	readonly parentModelCallId?: string;
 }
 
-/** Returns the subagent invocation that owns tools emitted from this prompt context. */
 export function getSubAgentInvocationId(context: IBuildPromptContext): string | undefined {
 	return context.tools?.subAgentInvocationId ?? context.request?.subAgentInvocationId;
 }

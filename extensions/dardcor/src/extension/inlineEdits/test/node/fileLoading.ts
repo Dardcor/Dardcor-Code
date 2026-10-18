@@ -6,17 +6,14 @@
 import { readFile } from 'fs/promises';
 import { join } from '../../../../util/dardcor/base/common/path';
 
-type FileRef = { filePath: string | { fullPath: string } } | {/** Relative */ fileName: string; fileContents: string };
+type FileRef = { filePath: string | { fullPath: string } } | { fileName: string; fileContents: string };
 
 export interface ILoadedFile {
 	fileContents: string;
-	fileName?: string; // relative
-	filePath?: string; // absolute
+	fileName?: string;
+	filePath?: string;
 }
 
-/**
- * This function allows [tools](https://github.com/microsoft/vscode-ts-file-path-support/tree/main) to inline/extract the file content.
- */
 export async function loadFile(data: FileRef): Promise<ILoadedFile> {
 	let fileName: string | undefined = undefined;
 	let filePath: string | undefined = undefined;
@@ -44,11 +41,9 @@ export async function loadJSON<T>(data: FileRef): Promise<T> {
 	return JSON.parse(fileContents);
 }
 
-/** See https://github.com/microsoft/vscode-ts-file-path-support */
 export type RelativeFilePath<T extends string> = string & { baseDir?: T }; export interface IInlineEditBaseFile {
 	fileContents: string;
 
-	/** Relative or absolute */
 	virtualFileName: string;
 }
 

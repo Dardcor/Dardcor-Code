@@ -10,9 +10,6 @@ import { Range } from '../core/range.js';
 import { Selection } from '../core/selection.js';
 import { PositionAffinity, TrackedRangeStickiness } from '../model.js';
 
-/**
- * Represents a single cursor.
-*/
 export class Cursor {
 
 	public modelState!: SingleCursorState;
@@ -48,7 +45,6 @@ export class Cursor {
 
 	private _updateTrackedRange(context: CursorContext): void {
 		if (!this._trackSelection) {
-			// don't track the selection
 			return;
 		}
 		this._selTrackedRange = context.model._setTrackedRange(this._selTrackedRange, this.modelState.selection, TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges);
@@ -66,7 +62,6 @@ export class Cursor {
 		const range = context.model._getTrackedRange(this._selTrackedRange!)!;
 
 		if (this.modelState.selection.isEmpty() && !range.isEmpty()) {
-			// Avoid selecting text when recovering from markers
 			return Selection.fromRange(range.collapseToEnd(), this.modelState.selection.getDirection());
 		}
 
@@ -98,7 +93,6 @@ export class Cursor {
 		const validSEndPosition = this._validatePositionWithCache(viewModel, sEndPosition, sStartPosition, validSStartPosition);
 
 		if (position.equals(validPosition) && sStartPosition.equals(validSStartPosition) && sEndPosition.equals(validSEndPosition)) {
-			// fast path: the state is valid
 			return viewState;
 		}
 
@@ -120,7 +114,6 @@ export class Cursor {
 			if (!viewState) {
 				return;
 			}
-			// We only have the view state => compute the model state
 			const selectionStart = context.model.validateRange(
 				context.coordinatesConverter.convertViewRangeToModelRange(viewState.selectionStart)
 			);
@@ -131,7 +124,6 @@ export class Cursor {
 
 			modelState = new SingleCursorState(selectionStart, viewState.selectionStartKind, viewState.selectionStartLeftoverVisibleColumns, position, viewState.leftoverVisibleColumns);
 		} else {
-			// Validate new model state
 			const selectionStart = context.model.validateRange(modelState.selectionStart);
 			const selectionStartLeftoverVisibleColumns = modelState.selectionStart.equalsRange(selectionStart) ? modelState.selectionStartLeftoverVisibleColumns : 0;
 
@@ -144,14 +136,12 @@ export class Cursor {
 		}
 
 		if (!viewState) {
-			// We only have the model state => compute the view state
 			const viewSelectionStart1 = context.coordinatesConverter.convertModelPositionToViewPosition(new Position(modelState.selectionStart.startLineNumber, modelState.selectionStart.startColumn));
 			const viewSelectionStart2 = context.coordinatesConverter.convertModelPositionToViewPosition(new Position(modelState.selectionStart.endLineNumber, modelState.selectionStart.endColumn));
 			const viewSelectionStart = new Range(viewSelectionStart1.lineNumber, viewSelectionStart1.column, viewSelectionStart2.lineNumber, viewSelectionStart2.column);
 			const viewPosition = context.coordinatesConverter.convertModelPositionToViewPosition(modelState.position);
 			viewState = new SingleCursorState(viewSelectionStart, modelState.selectionStartKind, modelState.selectionStartLeftoverVisibleColumns, viewPosition, modelState.leftoverVisibleColumns);
 		} else {
-			// Validate new view state
 			const viewSelectionStart = context.coordinatesConverter.validateViewRange(viewState.selectionStart, modelState.selectionStart);
 			const viewPosition = context.coordinatesConverter.validateViewPosition(viewState.position, modelState.position);
 			viewState = new SingleCursorState(viewSelectionStart, modelState.selectionStartKind, modelState.selectionStartLeftoverVisibleColumns, viewPosition, modelState.leftoverVisibleColumns);

@@ -70,7 +70,6 @@ class ExtendedTestFileService extends TestFileService {
 	}
 
 	override async stat(resource: URI) {
-		// Check if the resource exists in our map
 		if (!this.uriToContentMap.has(resource)) {
 			throw new Error(`File not found: ${resource.toString()}`);
 		}
@@ -127,27 +126,20 @@ suite('FetchWebPageTool', () => {
 			CancellationToken.None
 		);
 
-		// Should have 7 results (one for each input URL)
 		assert.strictEqual(result.content.length, 7, 'Should have result for each input URL');
 
-		// HTTP and HTTPS URLs should have their content from web extractor
 		assert.strictEqual(result.content[0].value, 'HTTPS content', 'HTTPS URL should return content');
 		assert.strictEqual(result.content[1].value, 'HTTP content', 'HTTP URL should return content');
 
-		// MCP resources should have their content from file service
 		assert.strictEqual(result.content[2].value, 'MCP resource content', 'test:// URL should return content from file service');
 		assert.strictEqual(result.content[3].value, 'Custom MCP content', 'mcp-resource:// URL should return content from file service');
 
-		// Nonexistent file should be marked as invalid
 		assert.strictEqual(result.content[4].value, 'Invalid URL', 'Nonexistent file should be invalid');
 
-		// Unsupported scheme (ftp) should be marked as invalid since file service can't handle it
 		assert.strictEqual(result.content[5].value, 'Invalid URL', 'ftp:// URL should be invalid');
 
-		// Invalid URL should be marked as invalid
 		assert.strictEqual(result.content[6].value, 'Invalid URL', 'Invalid URL should be invalid');
 
-		// All successfully fetched URLs should be in toolResultDetails
 		assert.strictEqual(Array.isArray(result.toolResultDetails) ? result.toolResultDetails.length : 0, 4, 'Should have 4 valid URLs in toolResultDetails');
 	});
 
@@ -252,7 +244,6 @@ suite('FetchWebPageTool', () => {
 			new MockAgentNetworkFilterService(),
 		);
 
-		// Test empty array
 		const emptyResult = await tool.invoke(
 			{ callId: 'test-call-2', toolId: 'fetch-page', parameters: { urls: [] }, context: undefined },
 			() => Promise.resolve(0),
@@ -262,7 +253,6 @@ suite('FetchWebPageTool', () => {
 		assert.strictEqual(emptyResult.content.length, 1, 'Empty array should return single message');
 		assert.strictEqual(emptyResult.content[0].value, 'No valid URLs provided.', 'Should indicate no valid URLs');
 
-		// Test undefined
 		const undefinedResult = await tool.invoke(
 			{ callId: 'test-call-3', toolId: 'fetch-page', parameters: {}, context: undefined },
 			() => Promise.resolve(0),
@@ -272,7 +262,6 @@ suite('FetchWebPageTool', () => {
 		assert.strictEqual(undefinedResult.content.length, 1, 'Undefined URLs should return single message');
 		assert.strictEqual(undefinedResult.content[0].value, 'No valid URLs provided.', 'Should indicate no valid URLs');
 
-		// Test array with invalid URLs
 		const invalidResult = await tool.invoke(
 			{ callId: 'test-call-4', toolId: 'fetch-page', parameters: { urls: ['', ' ', 'invalid-scheme-that-fileservice-cannot-handle://test'] }, context: undefined },
 			() => Promise.resolve(0),
@@ -341,7 +330,6 @@ suite('FetchWebPageTool', () => {
 	});
 
 	test('should not show confirmation dialog for file URIs inside the workspace', async () => {
-		// Use a workspace rooted at /workspaceRoot
 		const workspaceRoot = URI.file('/workspaceRoot');
 		const workspaceContextService = new TestContextService(testWorkspace(workspaceRoot));
 
@@ -359,7 +347,6 @@ suite('FetchWebPageTool', () => {
 			new MockAgentNetworkFilterService(),
 		);
 
-		// File inside workspace - should NOT trigger confirmation
 		const preparation = await tool.prepareToolInvocation(
 			{ parameters: { urls: [URI.file('/workspaceRoot/plan.md').toString()] }, toolCallId: 'test-file-in-ws', chatSessionResource: undefined },
 			CancellationToken.None
@@ -370,7 +357,6 @@ suite('FetchWebPageTool', () => {
 	});
 
 	test('should show confirmation dialog for file URIs outside the workspace', async () => {
-		// Use a workspace rooted at /workspaceRoot
 		const workspaceRoot = URI.file('/workspaceRoot');
 		const workspaceContextService = new TestContextService(testWorkspace(workspaceRoot));
 
@@ -387,7 +373,6 @@ suite('FetchWebPageTool', () => {
 			new MockAgentNetworkFilterService(),
 		);
 
-		// File outside workspace - should still trigger confirmation
 		const preparation = await tool.prepareToolInvocation(
 			{ parameters: { urls: [URI.file('/tmp/external-plan.md').toString()] }, toolCallId: 'test-file-outside-ws', chatSessionResource: undefined },
 			CancellationToken.None
@@ -398,12 +383,9 @@ suite('FetchWebPageTool', () => {
 	});
 
 	test('file URI that traverses out of the workspace requires confirmation', async () => {
-		// Regression: a `..` traversal that escapes the workspace must not be judged as inside it.
-		// The membership check and the read must agree on the canonical (normalized) path.
 		const workspaceRoot = URI.file('/workspaceRoot');
 		const workspaceContextService = new TestContextService(testWorkspace(workspaceRoot));
 
-		// The real target, after resolving `..`, lives outside the workspace.
 		const fileContentMap = new ResourceMap<string | VSBuffer>([
 			[URI.file('/etc/secret.txt'), 'secret content'],
 		]);
@@ -427,8 +409,6 @@ suite('FetchWebPageTool', () => {
 	});
 
 	test('file URI with `..` that stays inside the workspace still skips confirmation', async () => {
-		// Normalization must not over-block: an in-workspace path that happens to contain `..`
-		// resolves back inside the workspace and should not prompt.
 		const workspaceRoot = URI.file('/workspaceRoot');
 		const workspaceContextService = new TestContextService(testWorkspace(workspaceRoot));
 
@@ -468,13 +448,12 @@ suite('FetchWebPageTool', () => {
 		const tool = new FetchWebPageTool(
 			new TestWebContentExtractorService(webContentMap),
 			new ExtendedTestFileService(fileContentMap),
-			new MockTrustedDomainService([]), // No trusted domains
+			new MockTrustedDomainService([]),
 			new MockChatService(),
 			workspaceContextService,
 			new MockAgentNetworkFilterService(),
 		);
 
-		// Mix: one untrusted web URI + one workspace file URI
 		const preparation = await tool.prepareToolInvocation(
 			{
 				parameters: { urls: ['https://example.com', URI.file('/workspaceRoot/plan.md').toString()] },
@@ -484,9 +463,7 @@ suite('FetchWebPageTool', () => {
 			CancellationToken.None
 		);
 		assert.ok(preparation, 'Should return prepared invocation');
-		// Confirmation should only be for the web URI
 		assert.ok(preparation.confirmationMessages?.title, 'Should show confirmation for untrusted web URI');
-		// The confirmation message should mention only the web URI, not the workspace file
 		const msgValue = typeof preparation.confirmationMessages?.message === 'string'
 			? preparation.confirmationMessages.message
 			: preparation.confirmationMessages?.message?.value ?? '';
@@ -544,9 +521,6 @@ suite('FetchWebPageTool', () => {
 			[URI.parse('file:///home/victim/.ssh/id_rsa'), 'secret key']
 		]);
 
-		// The user only ever pasted a web URL that happens to contain the file URI as a
-		// query-parameter value. It must NOT be treated as an explicit request for the file,
-		// so the confirmation dialog must still be shown.
 		const tool = new FetchWebPageTool(
 			new TestWebContentExtractorService(new ResourceMap<string>()),
 			new ExtendedTestFileService(fileContentMap),
@@ -584,8 +558,6 @@ suite('FetchWebPageTool', () => {
 			[URI.file('/tmp/external-plan.md'), 'External plan content']
 		]);
 
-		// The user explicitly referenced the file URI as its own token, so it should be
-		// treated as user-approved even though it lives outside the workspace.
 		const tool = new FetchWebPageTool(
 			new TestWebContentExtractorService(new ResourceMap<string>()),
 			new ExtendedTestFileService(fileContentMap),
@@ -623,9 +595,6 @@ suite('FetchWebPageTool', () => {
 			[URI.file('/etc/secret.txt'), 'secret content']
 		]);
 
-		// The user only ever typed a bare filesystem path (no `file://` scheme). It must not be
-		// treated as a referenced resource — a scheme-less token must not default to a file URI
-		// and auto-approve a matching read.
 		const tool = new FetchWebPageTool(
 			new TestWebContentExtractorService(new ResourceMap<string>()),
 			new ExtendedTestFileService(fileContentMap),
@@ -656,7 +625,6 @@ suite('FetchWebPageTool', () => {
 	});
 
 	test('should return message for binary files indicating they are not supported', async () => {
-		// Create binary content (a simple PNG-like header with null bytes)
 		const binaryContent = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D]);
 		const binaryBuffer = VSBuffer.wrap(binaryContent);
 
@@ -686,28 +654,22 @@ suite('FetchWebPageTool', () => {
 			CancellationToken.None
 		);
 
-		// Should have 2 results
 		assert.strictEqual(result.content.length, 2, 'Should have 2 results');
 
-		// First result should be a text part with binary not supported message
 		assert.strictEqual(result.content[0].kind, 'text', 'Binary file should return text part');
 		if (result.content[0].kind === 'text') {
 			assert.strictEqual(result.content[0].value, 'Binary files are not supported at the moment.', 'Should return not supported message');
 		}
 
-		// Second result should be a text part for the text file
 		assert.strictEqual(result.content[1].kind, 'text', 'Text file should return text part');
 		if (result.content[1].kind === 'text') {
 			assert.strictEqual(result.content[1].value, 'This is text content', 'Should return text content');
 		}
 
-		// Both files should be in toolResultDetails since they were successfully fetched
 		assert.strictEqual(Array.isArray(result.toolResultDetails) ? result.toolResultDetails.length : 0, 2, 'Should have 2 valid URLs in toolResultDetails');
 	});
 
 	test('PNG files are now supported as image data parts (regression test)', async () => {
-		// This test ensures that PNG files that previously returned "not supported"
-		// messages now return proper image data parts
 		const binaryContent = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D]);
 		const binaryBuffer = VSBuffer.wrap(binaryContent);
 
@@ -736,10 +698,8 @@ suite('FetchWebPageTool', () => {
 			CancellationToken.None
 		);
 
-		// Should have 1 result
 		assert.strictEqual(result.content.length, 1, 'Should have 1 result');
 
-		// PNG file should now be returned as a data part, not a "not supported" message
 		assert.strictEqual(result.content[0].kind, 'data', 'PNG file should return data part');
 		if (result.content[0].kind === 'data') {
 			assert.strictEqual(result.content[0].value.mimeType, 'image/png', 'Should have PNG MIME type');
@@ -748,14 +708,12 @@ suite('FetchWebPageTool', () => {
 	});
 
 	test('should correctly distinguish between binary and text content', async () => {
-		// Create content that might be ambiguous
 		const jsonData = '{"name": "test", "value": 123}';
-		// Create definitely binary data - some random bytes with null bytes that don't follow UTF-16 pattern
-		const realBinaryData = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x00, 0x00, 0x00, 0x0D, 0xFF, 0x00, 0xAB]); // More clearly binary
+		const realBinaryData = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x00, 0x00, 0x00, 0x0D, 0xFF, 0x00, 0xAB]);
 
 		const fileContentMap = new ResourceMap<string | VSBuffer>([
-			[URI.parse('file:///data.json'), jsonData], // Should be detected as text
-			[URI.parse('file:///binary.dat'), VSBuffer.wrap(realBinaryData)] // Should be detected as binary
+			[URI.parse('file:///data.json'), jsonData],
+			[URI.parse('file:///binary.dat'), VSBuffer.wrap(realBinaryData)]
 		]);
 
 		const tool = new FetchWebPageTool(
@@ -779,13 +737,11 @@ suite('FetchWebPageTool', () => {
 			CancellationToken.None
 		);
 
-		// JSON should be returned as text
 		assert.strictEqual(result.content[0].kind, 'text', 'JSON should be detected as text');
 		if (result.content[0].kind === 'text') {
 			assert.strictEqual(result.content[0].value, jsonData, 'Should return JSON as text');
 		}
 
-		// Binary data should be returned as not supported message
 		assert.strictEqual(result.content[1].kind, 'text', 'Binary content should return text part with message');
 		if (result.content[1].kind === 'text') {
 			assert.strictEqual(result.content[1].value, 'Binary files are not supported at the moment.', 'Should return not supported message');
@@ -793,7 +749,6 @@ suite('FetchWebPageTool', () => {
 	});
 
 	test('Supported image files are returned as data parts', async () => {
-		// Test data for different supported image formats
 		const pngData = VSBuffer.fromString('fake PNG data');
 		const jpegData = VSBuffer.fromString('fake JPEG data');
 		const gifData = VSBuffer.fromString('fake GIF data');
@@ -828,38 +783,32 @@ suite('FetchWebPageTool', () => {
 			CancellationToken.None
 		);
 
-		// All images should be returned as data parts
 		assert.strictEqual(result.content.length, 5, 'Should have 5 results');
 
-		// Check PNG
 		assert.strictEqual(result.content[0].kind, 'data', 'PNG should be data part');
 		if (result.content[0].kind === 'data') {
 			assert.strictEqual(result.content[0].value.mimeType, 'image/png', 'PNG should have correct MIME type');
 			assert.strictEqual(result.content[0].value.data, pngData, 'PNG should have correct data');
 		}
 
-		// Check JPEG
 		assert.strictEqual(result.content[1].kind, 'data', 'JPEG should be data part');
 		if (result.content[1].kind === 'data') {
 			assert.strictEqual(result.content[1].value.mimeType, 'image/jpeg', 'JPEG should have correct MIME type');
 			assert.strictEqual(result.content[1].value.data, jpegData, 'JPEG should have correct data');
 		}
 
-		// Check GIF
 		assert.strictEqual(result.content[2].kind, 'data', 'GIF should be data part');
 		if (result.content[2].kind === 'data') {
 			assert.strictEqual(result.content[2].value.mimeType, 'image/gif', 'GIF should have correct MIME type');
 			assert.strictEqual(result.content[2].value.data, gifData, 'GIF should have correct data');
 		}
 
-		// Check WebP
 		assert.strictEqual(result.content[3].kind, 'data', 'WebP should be data part');
 		if (result.content[3].kind === 'data') {
 			assert.strictEqual(result.content[3].value.mimeType, 'image/webp', 'WebP should have correct MIME type');
 			assert.strictEqual(result.content[3].value.data, webpData, 'WebP should have correct data');
 		}
 
-		// Check BMP
 		assert.strictEqual(result.content[4].kind, 'data', 'BMP should be data part');
 		if (result.content[4].kind === 'data') {
 			assert.strictEqual(result.content[4].value.mimeType, 'image/bmp', 'BMP should have correct MIME type');
@@ -896,13 +845,11 @@ suite('FetchWebPageTool', () => {
 			CancellationToken.None
 		);
 
-		// Text should be returned as text part
 		assert.strictEqual(result.content[0].kind, 'text', 'Text file should be text part');
 		if (result.content[0].kind === 'text') {
 			assert.strictEqual(result.content[0].value, textData, 'Text should have correct content');
 		}
 
-		// Image should be returned as data part
 		assert.strictEqual(result.content[1].kind, 'data', 'Image file should be data part');
 		if (result.content[1].kind === 'data') {
 			assert.strictEqual(result.content[1].value.mimeType, 'image/png', 'Image should have correct MIME type');
@@ -938,7 +885,6 @@ suite('FetchWebPageTool', () => {
 			CancellationToken.None
 		);
 
-		// Both should be returned as data parts despite uppercase extensions
 		assert.strictEqual(result.content[0].kind, 'data', 'PNG with uppercase extension should be data part');
 		if (result.content[0].kind === 'data') {
 			assert.strictEqual(result.content[0].value.mimeType, 'image/png', 'Should have correct MIME type');
@@ -950,7 +896,6 @@ suite('FetchWebPageTool', () => {
 		}
 	});
 
-	// Comprehensive tests for toolResultDetails
 	suite('toolResultDetails', () => {
 		test('should include only successfully fetched URIs in correct order', async () => {
 			const webContentMap = new ResourceMap<string>([
@@ -973,12 +918,12 @@ suite('FetchWebPageTool', () => {
 			);
 
 			const testUrls = [
-				'https://success1.com',       // index 0 - should be in toolResultDetails
-				'invalid-url',                // index 1 - should NOT be in toolResultDetails
-				'file:///success.txt',        // index 2 - should be in toolResultDetails
-				'https://success2.com',       // index 3 - should be in toolResultDetails
-				'file:///nonexistent.txt',    // index 4 - should NOT be in toolResultDetails
-				'mcp-resource://server/file.txt' // index 5 - should be in toolResultDetails
+				'https://success1.com',
+				'invalid-url',
+				'file:///success.txt',
+				'https://success2.com',
+				'file:///nonexistent.txt',
+				'mcp-resource://server/file.txt'
 			];
 
 			const result = await tool.invoke(
@@ -988,15 +933,12 @@ suite('FetchWebPageTool', () => {
 				CancellationToken.None
 			);
 
-			// Verify toolResultDetails contains exactly the successful URIs
 			assert.ok(Array.isArray(result.toolResultDetails), 'toolResultDetails should be an array');
 			assert.strictEqual(result.toolResultDetails.length, 4, 'Should have 4 successful URIs');
 
-			// Check that all entries are URI objects
 			const uriDetails = result.toolResultDetails as URI[];
 			assert.ok(uriDetails.every(uri => uri instanceof URI), 'All toolResultDetails entries should be URI objects');
 
-			// Check specific URIs are included (web URIs first, then successful file URIs)
 			const expectedUris = [
 				'https://success1.com/',
 				'https://success2.com/',
@@ -1007,7 +949,6 @@ suite('FetchWebPageTool', () => {
 			const actualUriStrings = uriDetails.map(uri => uri.toString());
 			assert.deepStrictEqual(actualUriStrings.sort(), expectedUris.sort(), 'Should contain exactly the expected successful URIs');
 
-			// Verify content array matches input order (including failures)
 			assert.strictEqual(result.content.length, 6, 'Content should have result for each input URL');
 			assert.strictEqual(result.content[0].value, 'Content 1', 'First web URI content');
 			assert.strictEqual(result.content[1].value, 'Invalid URL', 'Invalid URL marked as invalid');
@@ -1018,10 +959,8 @@ suite('FetchWebPageTool', () => {
 		});
 
 		test('should exclude failed web requests from toolResultDetails', async () => {
-			// Set up web content extractor that will throw for some URIs
 			const webContentMap = new ResourceMap<string>([
 				[URI.parse('https://success.com'), 'Success content']
-				// https://failure.com not in map - will throw error
 			]);
 
 			const tool = new FetchWebPageTool(
@@ -1034,8 +973,8 @@ suite('FetchWebPageTool', () => {
 			);
 
 			const testUrls = [
-				'https://success.com',  // Should succeed
-				'https://failure.com'   // Should fail (not in content map)
+				'https://success.com',
+				'https://failure.com'
 			];
 
 			try {
@@ -1046,12 +985,8 @@ suite('FetchWebPageTool', () => {
 					CancellationToken.None
 				);
 
-				// If the web extractor throws, it should be handled gracefully
-				// But in this test setup, the TestWebContentExtractorService throws for missing content
 				assert.fail('Expected test web content extractor to throw for missing URI');
 			} catch (error) {
-				// This is expected behavior with the current test setup
-				// The TestWebContentExtractorService throws when content is not found
 				assert.ok(error.message.includes('No content configured for URI'), 'Should throw for unconfigured URI');
 			}
 		});
@@ -1059,7 +994,6 @@ suite('FetchWebPageTool', () => {
 		test('should exclude failed file reads from toolResultDetails', async () => {
 			const fileContentMap = new ResourceMap<string | VSBuffer>([
 				[URI.parse('file:///existing.txt'), 'File exists']
-				// file:///missing.txt not in map - will throw error
 			]);
 
 			const tool = new FetchWebPageTool(
@@ -1072,8 +1006,8 @@ suite('FetchWebPageTool', () => {
 			);
 
 			const testUrls = [
-				'file:///existing.txt',  // Should succeed
-				'file:///missing.txt'    // Should fail (not in file map)
+				'file:///existing.txt',
+				'file:///missing.txt'
 			];
 
 			const result = await tool.invoke(
@@ -1083,14 +1017,12 @@ suite('FetchWebPageTool', () => {
 				CancellationToken.None
 			);
 
-			// Verify only successful file URI is in toolResultDetails
 			assert.ok(Array.isArray(result.toolResultDetails), 'toolResultDetails should be an array');
 			assert.strictEqual(result.toolResultDetails.length, 1, 'Should have only 1 successful URI');
 
 			const uriDetails = result.toolResultDetails as URI[];
 			assert.strictEqual(uriDetails[0].toString(), 'file:///existing.txt', 'Should contain only the successful file URI');
 
-			// Verify content reflects both attempts
 			assert.strictEqual(result.content.length, 2, 'Should have results for both input URLs');
 			assert.strictEqual(result.content[0].value, 'File exists', 'First file should have content');
 			assert.strictEqual(result.content[1].value, 'Invalid URL', 'Second file should be marked invalid');
@@ -1116,12 +1048,12 @@ suite('FetchWebPageTool', () => {
 			);
 
 			const testUrls = [
-				'invalid-scheme://bad',      // Invalid URI
-				'https://web-success.com',   // Web success
-				'file:///file-missing.txt',  // File failure
-				'file:///file-success.txt',  // File success
-				'completely-invalid-url',    // Invalid URL format
-				'mcp-resource://good/file.txt' // MCP success
+				'invalid-scheme://bad',
+				'https://web-success.com',
+				'file:///file-missing.txt',
+				'file:///file-success.txt',
+				'completely-invalid-url',
+				'mcp-resource://good/file.txt'
 			];
 
 			const result = await tool.invoke(
@@ -1131,7 +1063,6 @@ suite('FetchWebPageTool', () => {
 				CancellationToken.None
 			);
 
-			// Should have 3 successful URIs: web-success, file-success, mcp-success
 			assert.ok(Array.isArray(result.toolResultDetails), 'toolResultDetails should be an array');
 			assert.strictEqual((result.toolResultDetails as URI[]).length, 3, 'Should have 3 successful URIs');
 
@@ -1145,7 +1076,6 @@ suite('FetchWebPageTool', () => {
 
 			assert.deepStrictEqual(actualUriStrings.sort(), expectedSuccessful.sort(), 'Should contain exactly the successful URIs');
 
-			// Verify content array reflects all inputs in original order
 			assert.strictEqual(result.content.length, 6, 'Should have results for all input URLs');
 			assert.strictEqual(result.content[0].value, 'Invalid URL', 'Invalid scheme marked as invalid');
 			assert.strictEqual(result.content[1].value, 'Web success', 'Web success content');
@@ -1157,8 +1087,8 @@ suite('FetchWebPageTool', () => {
 
 		test('should return empty toolResultDetails when all requests fail', async () => {
 			const tool = new FetchWebPageTool(
-				new TestWebContentExtractorService(new ResourceMap<string>()), // Empty - all web requests fail
-				new ExtendedTestFileService(new ResourceMap<string | VSBuffer>()), // Empty - all file ,
+				new TestWebContentExtractorService(new ResourceMap<string>()),
+				new ExtendedTestFileService(new ResourceMap<string | VSBuffer>()),
 				new MockTrustedDomainService([]),
 				new MockChatService(),
 				new TestContextService(),
@@ -1180,13 +1110,11 @@ suite('FetchWebPageTool', () => {
 					CancellationToken.None
 				);
 
-				// If web extractor doesn't throw, check the results
 				assert.ok(Array.isArray(result.toolResultDetails), 'toolResultDetails should be an array');
 				assert.strictEqual((result.toolResultDetails as URI[]).length, 0, 'Should have no successful URIs');
 				assert.strictEqual(result.content.length, 4, 'Should have results for all input URLs');
 				assert.ok(result.content.every(content => content.value === 'Invalid URL'), 'All content should be marked as invalid');
 			} catch (error) {
-				// Expected with TestWebContentExtractorService when no content is configured
 				assert.ok(error.message.includes('No content configured for URI'), 'Should throw for unconfigured URI');
 			}
 		});
@@ -1236,7 +1164,6 @@ suite('FetchWebPageTool', () => {
 				CancellationToken.None
 			);
 
-			// Both files should be successful and in toolResultDetails
 			assert.ok(Array.isArray(result.toolResultDetails), 'toolResultDetails should be an array');
 			assert.strictEqual((result.toolResultDetails as URI[]).length, 2, 'Should have 2 successful file URIs');
 
@@ -1244,7 +1171,6 @@ suite('FetchWebPageTool', () => {
 			assert.strictEqual(uriDetails[0].toString(), 'file:///image.png', 'Should include image file');
 			assert.strictEqual(uriDetails[1].toString(), 'file:///document.txt', 'Should include text file');
 
-			// Check content types
 			assert.strictEqual(result.content[0].kind, 'data', 'Image should be data part');
 			assert.strictEqual(result.content[1].kind, 'text', 'Text file should be text part');
 		});

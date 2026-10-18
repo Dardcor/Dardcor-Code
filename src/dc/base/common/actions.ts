@@ -52,11 +52,6 @@ export interface IActionChangeEvent {
 	readonly checked?: boolean;
 }
 
-/**
- * A concrete implementation of {@link IAction}.
- *
- * Note that in most cases you should use the lighter-weight {@linkcode toAction} function instead.
- */
 export class Action extends Disposable implements IAction {
 
 	protected _onDidChange = this._register(new Emitter<IActionChangeEvent>());
@@ -202,14 +197,10 @@ export class ActionRunner extends Disposable implements IActionRunner {
 
 export class Separator implements IAction {
 
-	/**
-	 * Joins all non-empty lists of actions with separators.
-	 */
 	public static join(...actionLists: readonly IAction[][]) {
 		let out: IAction[] = [];
 		for (const list of actionLists) {
 			if (!list.length) {
-				// skip
 			} else if (out.length) {
 				out = [...out, new Separator(), ...list];
 			} else {
@@ -220,9 +211,6 @@ export class Separator implements IAction {
 		return out;
 	}
 
-	/**
-	 * Removes leading, trailing, and consecutive duplicate separators in-place and returns the actions.
-	 */
 	public static clean(actions: IAction[]): IAction[] {
 		while (actions.length > 0 && actions[0].id === Separator.ID) {
 			actions.shift();

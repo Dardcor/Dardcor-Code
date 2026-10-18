@@ -9,15 +9,10 @@ import { URI } from '../../../../base/common/uri.js';
 export const TEST_DATA_SCHEME = 'vscode-test-data';
 
 export const enum TestUriType {
-	/** All console output for a task */
 	TaskOutput,
-	/** All console output for a test in a task */
 	TestOutput,
-	/** Specific message in a test */
 	ResultMessage,
-	/** Specific actual output message in a test */
 	ResultActualOutput,
-	/** Specific expected output message in a test */
 	ResultExpectedOutput,
 }
 

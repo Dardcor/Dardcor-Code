@@ -243,7 +243,6 @@ suite('WorkingCopyFileService', () => {
 			}
 		}));
 
-		// Create
 		let cts = new CancellationTokenSource();
 		let promise: Promise<unknown> = accessor.workingCopyFileService.create([{ resource }], cts.token);
 		cts.cancel();
@@ -251,7 +250,6 @@ suite('WorkingCopyFileService', () => {
 		assert.strictEqual(canceled, true);
 		canceled = false;
 
-		// Create Folder
 		cts = new CancellationTokenSource();
 		promise = accessor.workingCopyFileService.createFolder([{ resource }], cts.token);
 		cts.cancel();
@@ -259,7 +257,6 @@ suite('WorkingCopyFileService', () => {
 		assert.strictEqual(canceled, true);
 		canceled = false;
 
-		// Move
 		cts = new CancellationTokenSource();
 		promise = accessor.workingCopyFileService.move([{ file: { source: resource, target: resource } }], cts.token);
 		cts.cancel();
@@ -267,7 +264,6 @@ suite('WorkingCopyFileService', () => {
 		assert.strictEqual(canceled, true);
 		canceled = false;
 
-		// Copy
 		cts = new CancellationTokenSource();
 		promise = accessor.workingCopyFileService.copy([{ file: { source: resource, target: resource } }], cts.token);
 		cts.cancel();
@@ -275,7 +271,6 @@ suite('WorkingCopyFileService', () => {
 		assert.strictEqual(canceled, true);
 		canceled = false;
 
-		// Delete
 		cts = new CancellationTokenSource();
 		promise = accessor.workingCopyFileService.delete([{ resource }], cts.token);
 		cts.cancel();

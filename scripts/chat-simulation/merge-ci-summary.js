@@ -25,7 +25,6 @@ const fs = require('fs');
 const path = require('path');
 const { welchTTest, loadConfig } = require('./common/utils');
 
-// -- CLI args ----------------------------------------------------------------
 
 function parseArgs() {
 	const args = process.argv.slice(2);
@@ -64,7 +63,6 @@ function parseArgs() {
 	return opts;
 }
 
-// -- Merge logic -------------------------------------------------------------
 
 /**
  * Find all results.json and baseline-*.json files across group directories,
@@ -77,9 +75,6 @@ function mergeResults(resultsDir) {
 		.map(d => path.join(resultsDir, d))
 		.filter(d => fs.statSync(d).isDirectory());
 
-	// Fallback: when download-artifact extracts a single artifact directly into
-	// resultsDir (no artifact-named subdirectory), treat resultsDir itself as the
-	// sole group directory if it contains a .chat-simulation-data folder.
 	if (groupDirs.length === 0) {
 		const simDataDir = path.join(resultsDir, '.chat-simulation-data');
 		if (fs.existsSync(simDataDir) && fs.statSync(simDataDir).isDirectory()) {
@@ -104,17 +99,14 @@ function mergeResults(resultsDir) {
 	/** @type {string | undefined} */
 	let threshold;
 
-	// Read per-metric thresholds from config.jsonc (same source as the perf script)
 	const perfConfig = loadConfig('perfRegression');
 	/** @type {Record<string, number | string>} */
 	const metricThresholds = perfConfig.metricThresholds ?? {};
 
 	for (const groupDir of groupDirs) {
-		// Find results.json (may be in a timestamped subdir under .chat-simulation-data)
 		const simDataDir = path.join(groupDir, '.chat-simulation-data');
 		if (!fs.existsSync(simDataDir)) { continue; }
 
-		// Search for results.json in timestamped subdirs
 		const subdirs = fs.readdirSync(simDataDir).filter(d => {
 			const full = path.join(simDataDir, d);
 			return fs.statSync(full).isDirectory() && /^\d{4}-/.test(d);
@@ -132,7 +124,6 @@ function mergeResults(resultsDir) {
 				}
 			}
 
-			// Find baseline-*.json in the same dir
 			const baselineFiles = fs.readdirSync(path.join(simDataDir, subdir))
 				.filter(f => f.startsWith('baseline-') && f.endsWith('.json'));
 			for (const bf of baselineFiles) {
@@ -144,7 +135,6 @@ function mergeResults(resultsDir) {
 			}
 		}
 
-		// Also check for baseline cached at top-level .chat-simulation-data
 		const topBaselines = fs.readdirSync(simDataDir)
 			.filter(f => f.startsWith('baseline-') && f.endsWith('.json'));
 		for (const bf of topBaselines) {
@@ -155,7 +145,6 @@ function mergeResults(resultsDir) {
 			}
 		}
 
-		// Read threshold/metricThresholds from the group's ci-summary or config
 		const ciSummaryPath = path.join(simDataDir, 'ci-summary.md');
 		if (fs.existsSync(ciSummaryPath)) {
 			const content = fs.readFileSync(ciSummaryPath, 'utf-8');
@@ -181,7 +170,6 @@ function mergeResults(resultsDir) {
 	return { report: mergedReport, baseline: mergedBaseline, baselineBuildVersion, threshold: threshold ? parseInt(threshold, 10) / 100 : undefined, metricThresholds };
 }
 
-// -- Summary generation (unified, single-header format) ----------------------
 
 const GITHUB_REPO = 'https://github.com/microsoft/vscode';
 
@@ -268,10 +256,6 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 		['extHostHeapDelta', 'extHost', 'MB'],
 		['extHostHeapDeltaPostGC', 'extHost', 'MB'],
 	];
-	// layoutCount / recalcStyleCount are informational (inflated by CSS
-	// animations, compositor-driven, cheap) and do NOT gate — real layout cost is
-	// gated via layoutDurationMs below / timeToComplete. longAnimationFrameCount
-	// is likewise informational only (noisy, compositor-driven). See SKILL.md.
 	const regressionMetricNames = new Set([
 		'timeToFirstToken', 'timeToComplete', 'layoutDurationMs',
 		'forcedReflowCount', 'longTaskCount',
@@ -280,7 +264,6 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 	const lines = [];
 	const scenarios = Object.keys(jsonReport.scenarios);
 
-	// -- Collect verdicts ------------------------------------------------
 	/** @type {Map<string, { metric: string, verdict: string, change: number, pValue: string, basStr: string, curStr: string }[]>} */
 	const scenarioVerdicts = new Map();
 	let totalRegressions = 0;
@@ -335,7 +318,6 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 		scenarioVerdicts.set(scenario, verdicts);
 	}
 
-	// -- Header ----------------------------------------------------------
 	const hasRegressions = totalRegressions > 0;
 	const hasLeakFailure = !!opts.hasLeakFailure;
 	const hasFailed = hasRegressions || hasLeakFailure;
@@ -384,7 +366,6 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 	lines.push(`| **Platform** | ${jsonReport.platform || 'linux'} / x64 |`);
 	lines.push('');
 
-	// -- Overview table --------------------------------------------------
 	lines.push('## Overview');
 	lines.push('');
 	lines.push('| Scenario | TTFT | Complete | Layouts | Styles | LoAF | Verdict |');
@@ -414,7 +395,6 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 	}
 	lines.push('');
 
-	// -- Regressions & improvements (compact table) ----------------------
 	const notableRows = [];
 	for (const scenario of scenarios) {
 		const verdicts = scenarioVerdicts.get(scenario) || [];
@@ -439,7 +419,6 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 		lines.push('');
 	}
 
-	// -- Full details (collapsible) --------------------------------------
 	lines.push('<details><summary>Full metric details per scenario</summary>');
 	lines.push('');
 
@@ -482,7 +461,6 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 	lines.push('</details>');
 	lines.push('');
 
-	// -- Raw run data (collapsible) --------------------------------------
 	lines.push('<details><summary>Raw run data</summary>');
 	lines.push('');
 	for (const scenario of scenarios) {
@@ -520,7 +498,6 @@ function generateUnifiedSummary(jsonReport, baseline, opts) {
 	return lines.join('\n');
 }
 
-// -- Main --------------------------------------------------------------------
 
 function main() {
 	const opts = parseArgs();
@@ -540,7 +517,6 @@ function main() {
 		console.log(`[merge] Baseline: ${baselineBuildVersion || 'unknown'} (${Object.keys(baseline.scenarios).length} scenarios)`);
 	}
 
-	// Read leak summary early so we can reflect it in the header verdict
 	let leakSummaryContent = '';
 	let hasLeakFailure = false;
 	if (opts.leakSummary && fs.existsSync(opts.leakSummary)) {
@@ -558,7 +534,6 @@ function main() {
 		hasLeakFailure,
 	});
 
-	// Append leak summary if available
 	let fullSummary = summary;
 	if (leakSummaryContent) {
 		fullSummary += '\n' + leakSummaryContent;

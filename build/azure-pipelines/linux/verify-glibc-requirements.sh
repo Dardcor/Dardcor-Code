@@ -9,7 +9,6 @@ elif [ "$VSCODE_ARCH" == "armhf" ]; then
   TRIPLE="arm-rpi-linux-gnueabihf"
 fi
 
-# Get all files with .node extension from server folder
 files=$(find $SEARCH_PATH -name "*.node" -not -path "*prebuilds*" -not -path "*extensions/node_modules/@parcel/watcher*" -o -type f -executable -name "node")
 
 echo "Verifying requirements for files: $files"

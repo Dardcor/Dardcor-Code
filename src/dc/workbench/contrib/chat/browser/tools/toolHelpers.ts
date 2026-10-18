@@ -24,21 +24,12 @@ export interface ISymbolToolInput {
 	lineContent: string;
 }
 
-/**
- * Returns whether a resource is within the active working directory, or within
- * a workspace folder when no explicit working directory is set.
- */
 export function isSymbolToolResourceInScope(resource: URI, workspaceContextService: IWorkspaceContextService, uriIdentityService: IUriIdentityService, workingDirectory?: URI): boolean {
 	const normalizedResource = uriIdentityService.extUri.normalizePath(resource);
 	const scopeRoots = workingDirectory ? [workingDirectory] : workspaceContextService.getWorkspace().folders.map(folder => folder.uri);
 	return scopeRoots.some(root => uriIdentityService.extUri.isEqualOrParent(normalizedResource, uriIdentityService.extUri.normalizePath(root)));
 }
 
-/**
- * Resolves an in-scope URI from tool input. Accepts either a full URI string or
- * a file path relative to the working directory when one is provided, or to the
- * first workspace folder otherwise.
- */
 export function resolveSymbolToolFileUri(input: ISymbolToolInput, workspaceContextService: IWorkspaceContextService, uriIdentityService: IUriIdentityService, workingDirectory?: URI): URI | undefined {
 	if (input.uri) {
 		const uri = uriIdentityService.extUri.normalizePath(URI.parse(input.uri));
@@ -52,14 +43,6 @@ export function resolveSymbolToolFileUri(input: ISymbolToolInput, workspaceConte
 	return undefined;
 }
 
-/**
- * Gets the chat permission level that should apply to a tool invocation.
- *
- * When a request id is available, the request-stamped permission level is the
- * source of truth for that invocation. If the request cannot be resolved (for
- * example during early streaming), fall back to the live session widget and then
- * the latest request in the chat model.
- */
 export function getChatPermissionLevelForToolInvocation(
 	chatSessionResource: URI | undefined,
 	chatRequestId: string | undefined,
@@ -86,10 +69,6 @@ export function getChatPermissionLevelForToolInvocation(
 	return model?.getRequests().at(-1)?.modeInfo?.permissionLevel ?? ChatPermissionLevel.Default;
 }
 
-/**
- * Translates the chat permission level for a tool invocation into the
- * platform-neutral sandbox precheck inputs.
- */
 export function getSandboxPrecheckInputsForToolInvocation(
 	chatSessionResource: URI | undefined,
 	chatRequestId: string | undefined,
@@ -100,12 +79,6 @@ export function getSandboxPrecheckInputsForToolInvocation(
 	return chatPermissionLevel === undefined ? undefined : { isDefaultApprovalPermissionEnabled: !isAutoApproveLevel(chatPermissionLevel) };
 }
 
-/**
- * Finds the line number in the model that matches the given line content.
- * Whitespace is normalized so that extra spaces in the input still match.
- *
- * @returns The 1-based line number, or `undefined` if not found.
- */
 export function findLineNumber(model: ITextModel, lineContent: string): number | undefined {
 	const parts = lineContent.trim().split(/\s+/);
 	const pattern = parts.map(escapeRegExpCharacters).join('\\s+');
@@ -116,25 +89,15 @@ export function findLineNumber(model: ITextModel, lineContent: string): number |
 	return matches[0].range.startLineNumber;
 }
 
-/**
- * Finds the 1-based column of a symbol within a line of text using word
- * boundary matching.
- *
- * @returns The 1-based column, or `undefined` if not found.
- */
 export function findSymbolColumn(lineText: string, symbol: string): number | undefined {
 	const pattern = new RegExp(`\\b${escapeRegExpCharacters(symbol)}\\b`);
 	const match = pattern.exec(lineText);
 	if (match) {
-		return match.index + 1; // 1-based column
+		return match.index + 1;
 	}
 	return undefined;
 }
 
-/**
- * Creates an error tool result with the given message as both the content
- * and the tool result message.
- */
 export function errorResult(message: string): IToolResult {
 	const result = createToolSimpleTextResult(message);
 	result.toolResultMessage = new MarkdownString(message);

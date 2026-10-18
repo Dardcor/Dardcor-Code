@@ -17,7 +17,6 @@ export async function getDisabledByProvider(providerAlias) {
   return row ? (parseJson(row.value, []) || []) : [];
 }
 
-// Atomic read-merge-write inside a transaction (no JS yield mid-transaction).
 export async function disableModels(providerAlias, ids) {
   if (!providerAlias || !Array.isArray(ids)) return;
   const db = await getAdapter();

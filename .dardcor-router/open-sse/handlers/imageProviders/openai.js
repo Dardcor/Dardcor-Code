@@ -1,4 +1,3 @@
-// OpenAI-compatible adapter (used by openai, minimax, openrouter, recraft)
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 
 const imageCfg = (id) => PROVIDER_MEDIA[id]?.imageConfig || {};
@@ -20,7 +19,6 @@ export default function createOpenAIAdapter(providerId) {
       if (quality) full.quality = quality;
       if (style) full.style = style;
       if (response_format) full.response_format = response_format;
-      // bodyFields whitelist (e.g. xAI accepts only model/prompt/n/response_format)
       if (Array.isArray(cfg.bodyFields)) {
         const req = {};
         for (const f of cfg.bodyFields) if (full[f] !== undefined) req[f] = full[f];

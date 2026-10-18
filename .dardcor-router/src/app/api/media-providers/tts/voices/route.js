@@ -1,7 +1,6 @@
 import { VOICE_FETCHERS } from "open-sse/handlers/ttsCore.js";
 import { NextResponse } from "next/server";
 
-// Map locale code → country name
 const LOCALE_NAMES = new Intl.DisplayNames(["en"], { type: "region" });
 const LANG_NAMES   = new Intl.DisplayNames(["en"], { type: "language" });
 
@@ -12,13 +11,6 @@ function langName(code) {
   try { return LANG_NAMES.of(code); } catch { return code; }
 }
 
-/**
- * GET /api/media-providers/tts/voices
- * Query:
- *   ?provider=edge-tts | local-device | elevenlabs  (default: edge-tts)
- *   ?lang=en     (optional filter by lang code)
- *   ?apiKey=xxx  (required for elevenlabs)
- */
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -31,7 +23,6 @@ export async function GET(request) {
       return NextResponse.json({ error: `Provider '${provider}' does not support voice listing` }, { status: 400 });
     }
 
-    // ElevenLabs requires API key
     const raw = provider === "elevenlabs" ? await fetcher(apiKey) : await fetcher();
     const useElevenShape = provider === "elevenlabs" || provider === "gemini";
     let voices;
@@ -60,7 +51,6 @@ export async function GET(request) {
         category: v.category,
       }));
     } else {
-      // edge-tts (default)
       voices = raw.map((v) => {
         const [lang, country] = v.Locale.split("-");
         return {
@@ -78,10 +68,8 @@ export async function GET(request) {
       });
     }
 
-    // Apply filter
     if (langFilter) voices = voices.filter((v) => v.lang === langFilter);
 
-    // Group by language
     const byLang = {};
     for (const v of voices) {
       const key = v.lang;
@@ -89,7 +77,6 @@ export async function GET(request) {
       byLang[key].voices.push(v);
     }
 
-    // Sorted language list
     const languages = Object.values(byLang).sort((a, b) => a.name.localeCompare(b.name));
 
     return NextResponse.json({ voices, languages, byLang });

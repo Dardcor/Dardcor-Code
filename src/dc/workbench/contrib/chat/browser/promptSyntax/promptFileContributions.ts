@@ -49,10 +49,6 @@ export class PromptLanguageFeaturesProvider extends Disposable implements IWorkb
 	}
 }
 
-/**
- * Tracks open code editors and validates prompt models that are visible in an editor.
- * Only emits markers for models that are currently open in an editor.
- */
 class PromptValidatorContribution extends Disposable {
 
 	private readonly validator: PromptValidator;
@@ -81,7 +77,6 @@ class PromptValidatorContribution extends Disposable {
 			trackers.clear();
 		}));
 
-		// Increment the ref count for a model, creating a tracker if needed
 		const acquire = (editor: ICodeEditor): void => {
 			const model = editor.getModel();
 			if (!model) {
@@ -98,7 +93,6 @@ class PromptValidatorContribution extends Disposable {
 			}
 		};
 
-		// Decrement the ref count, disposing the tracker when it reaches zero
 		const release = (uri: URI): void => {
 			const tracker = trackers.get(uri);
 			if (tracker && --tracker.refCount === 0) {
@@ -113,7 +107,6 @@ class PromptValidatorContribution extends Disposable {
 		const onCodeEditorAdd = (editor: ICodeEditor) => {
 			acquire(editor);
 			const store = new DisposableStore();
-			// Track model changes within the editor (e.g. when a different file is opened in the same editor)
 			store.add(editor.onDidChangeModel((e) => {
 				if (e.oldModelUrl) {
 					release(e.oldModelUrl);
@@ -130,17 +123,14 @@ class PromptValidatorContribution extends Disposable {
 			perEditorDisposables.set(editor.getId(), store);
 		};
 
-		// Track models from editors that are currently open
 		for (const editor of this.codeEditorService.listCodeEditors()) {
 			onCodeEditorAdd(editor);
 		}
 
-		// When an editor is added, start tracking its model
 		this.localDisposables.add(this.codeEditorService.onCodeEditorAdd((editor: ICodeEditor) => {
 			onCodeEditorAdd(editor);
 		}));
 
-		// When an editor is removed, clean up its per-editor listeners and release its model
 		this.localDisposables.add(this.codeEditorService.onCodeEditorRemove((editor: ICodeEditor) => {
 			perEditorDisposables.deleteAndDispose(editor.getId());
 			const model = editor.getModel();

@@ -17,10 +17,7 @@ import { distance, Embedding, EmbeddingInputType, EmbeddingType, IEmbeddingsComp
 import { ILogService } from '../../log/common/logService';
 import { IGithubAvailableEmbeddingTypesService } from '../../workspaceChunkSearch/common/githubAvailableEmbeddingTypes';
 
-/**
- * The maximum content length to sent to the chunking endpoint.
- */
-const maxContentLength = 1.5 * 1024 * 1024; // 1.5 MB
+const maxContentLength = 1.5 * 1024 * 1024;
 
 
 class UrlContent implements ChunkableContent {
@@ -30,7 +27,6 @@ class UrlContent implements ChunkableContent {
 		private readonly _originalText: string,
 	) { }
 
-	// Markdown - https://github.com/github-linguist/linguist/blob/c27ac0c1daf3865e2b45ee3908d06b5825161d17/lib/linguist/languages.yml#L4323
 	readonly githubLanguageId = 222;
 
 	async getText(): Promise<string> {
@@ -57,27 +53,17 @@ export class UrlChunkEmbeddingsIndex extends Disposable {
 		super();
 	}
 
-	/**
-	 * Compute query-relevance chunk scores for each fetched URL.
-	 *
-	 * Returns `undefined` when ranking is unavailable (no GitHub session, no
-	 * embedding types, or the chunking endpoint failed). Callers should fall
-	 * back to returning the raw fetched content rather than blocking on auth,
-	 * since the page itself has already been retrieved.
-	 */
 	async findInUrls(
 		files: ReadonlyArray<{ readonly uri: URI; readonly content: string }>,
 		query: string,
 		token: CancellationToken,
 	): Promise<FileChunkAndScore[][] | undefined> {
-		const embeddingType = await raceCancellationError(this._availableEmbeddingTypesService.getPreferredType(/*silent*/ true), token);
+		const embeddingType = await raceCancellationError(this._availableEmbeddingTypesService.getPreferredType( true), token);
 		if (!embeddingType) {
 			this._logService.info('urlChunkEmbeddingsIndex: No embedding types available, skipping chunk ranking.');
 			return undefined;
 		}
 
-		// Acquire auth silently — never prompt sign-in just to rank chunks of an
-		// already-fetched page (see https://github.com/microsoft/vscode/issues/320070).
 		this._logService.trace(`urlChunkEmbeddingsIndex: Getting auth token `);
 		const authToken = await raceCancellationError(this.tryGetAuthToken(), token);
 		if (!authToken) {

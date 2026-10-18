@@ -50,10 +50,8 @@ suite('Session workspace-less meta', () => {
 		const tagged = withSessionWorkspaceless(withOther, true);
 
 		assert.strictEqual(readSessionWorkspaceless(tagged), true);
-		// Co-existing well-known slots are preserved.
 		assert.deepStrictEqual(tagged?.['github'], { owner: 'octo' });
 
-		// Clearing removes only the workspace-less slot; an otherwise empty bag collapses to undefined.
 		assert.strictEqual(withSessionWorkspaceless(tagged, false)?.[SESSION_META_WORKSPACELESS_KEY], undefined);
 		assert.strictEqual(withSessionWorkspaceless({ [SESSION_META_WORKSPACELESS_KEY]: true }, false), undefined);
 	});

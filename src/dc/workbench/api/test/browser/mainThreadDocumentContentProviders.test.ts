@@ -75,10 +75,8 @@ suite('MainThreadDocumentContentProviders', function () {
 			},
 			new class extends mock<IEditorWorkerService>() {
 				override async computeMoreMinimalEdits(_uri: URI, data: TextEdit[] | undefined) {
-					// Simulate async operation
 					await new Promise(resolve => setTimeout(resolve, 10));
 
-					// Dispose model during the async operation if flag is set
 					if (disposeModelDuringEdit) {
 						model.dispose();
 					}
@@ -91,15 +89,12 @@ suite('MainThreadDocumentContentProviders', function () {
 		store.add(model);
 		store.add(providers);
 
-		// First call should work normally
 		await providers.$onVirtualDocumentChange(uri, 'updated');
 		assert.strictEqual(model.getValue(), 'updated');
 
-		// Second call should not throw even though model gets disposed during async operation
 		disposeModelDuringEdit = true;
 		await providers.$onVirtualDocumentChange(uri, 'should not apply');
 
-		// Model should be disposed and value unchanged
 		assert.ok(model.isDisposed());
 	});
 });

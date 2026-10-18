@@ -90,17 +90,6 @@ class TelemetrySender {
 		this.sendSpeculativeRequestTelemetryCounter++;
 
 		if (shouldSendTelemetry) {
-			/* __GDPR__
-				"typescript-context-plugin.completion-context.speculative" : {
-					"owner": "dirkb",
-					"comment": "Telemetry for dardcor inline completion context",
-					"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-					"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the request" },
-					"originalRequestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The original request id for which this is a speculative request" },
-					"numberOfItems": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of items in the speculative request", "isMeasurement": true },
-					"sampleTelemetry": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The sampling rate for telemetry. A value of 1 means every request is logged, a value of 5 means every 5th request is logged, etc.", "isMeasurement": true }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent(
 				'typescript-context-plugin.completion-context.speculative',
 				{
@@ -133,38 +122,6 @@ class TelemetrySender {
 		const shouldSendTelemetry = sampleTelemetry === 1 || this.sendRequestTelemetryCounter % sampleTelemetry === 0;
 		this.sendRequestTelemetryCounter++;
 		if (shouldSendTelemetry) {
-			/* __GDPR__
-				"typescript-context-plugin.completion-context.request" : {
-					"owner": "dirkb",
-					"comment": "Telemetry for dardcor inline completion context",
-					"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-					"opportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The opportunity id" },
-					"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the request" },
-					"trigger": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The trigger kind of the request" },
-					"cacheRequest": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The cache request that was used to populate the cache" },
-					"nodePath": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The syntax kind path to the AST node the position resolved to." },
-					"cancelled": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request got cancelled on the client side" },
-					"timedOut": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request timed out on the server side" },
-					"tokenBudgetExhausted": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the token budget was exhausted" },
-					"serverTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time taken on the server side", "isMeasurement": true },
-					"contextComputeTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time taken on the server side to compute the context", "isMeasurement": true },
-					"timeTaken": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time taken to provide the completion", "isMeasurement": true },
-					"total": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Total number of context items", "isMeasurement": true },
-					"snippets": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of code snippets", "isMeasurement": true },
-					"traits": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of traits", "isMeasurement": true },
-					"yielded": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of yielded items", "isMeasurement": true },
-					"items": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Detailed information about each context item delivered." },
-					"totalSize": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Total size of all context items", "isMeasurement": true },
-					"fileSize": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The size of the file", "isMeasurement": true },
-					"cachedItems": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of cache items", "isMeasurement": true },
-					"referencedItems": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of referenced items", "isMeasurement": true },
-					"isSpeculative": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request was speculative" },
-					"beforeCacheState": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The cache state before the request was sent" },
-					"afterCacheState": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The cache state after the request was sent" },
-					"fromCache": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the context was fully provided from cache" },
-					"sampleTelemetry": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The sampling rate for telemetry. A value of 1 means every request is logged, a value of 5 means every 5th request is logged, etc.", "isMeasurement": true }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent(
 				'typescript-context-plugin.completion-context.request',
 				{
@@ -203,16 +160,6 @@ class TelemetrySender {
 		if (data.errorData !== undefined && data.errorData.length > 0) {
 			const errorData = data.errorData;
 			for (const error of errorData) {
-				/* __GDPR__
-					"typescript-context-plugin.completion-context.error" : {
-						"owner": "dirkb",
-						"comment": "Telemetry for dardcor inline completion context errors",
-						"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-						"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the request" },
-						"code": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The failure code", "isMeasurement": true },
-						"message": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The failure message" }
-					}
-				*/
 				this.telemetryService.sendMSFTTelemetryEvent(
 					'typescript-context-plugin.completion-context.error',
 					{
@@ -233,22 +180,6 @@ class TelemetrySender {
 		const stats = data.stats;
 		const items = stats.items;
 		const totalSize = stats.totalSize;
-		/* __GDPR__
-			"typescript-context-plugin.completion-context.on-timeout" : {
-				"owner": "dirkb",
-				"comment": "Telemetry for dardcor inline completion context on timeout",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-				"opportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The opportunity id" },
-				"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the request" },
-				"total": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Total number of context items", "isMeasurement": true },
-				"snippets": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of code snippets", "isMeasurement": true },
-				"traits": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of traits", "isMeasurement": true },
-				"yielded": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of yielded items", "isMeasurement": true },
-				"items": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Detailed information about each context item delivered." },
-				"totalSize": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Total size of all context items", "isMeasurement": true },
-				"cacheState": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The cache state for the onTimeout request" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'typescript-context-plugin.completion-context.on-timeout',
 			{
@@ -270,18 +201,6 @@ class TelemetrySender {
 	}
 
 	public sendRequestFailureTelemetry(context: RequestContext, data: { error: protocol.ErrorCode; message: string; stack?: string }): void {
-		/* __GDPR__
-			"typescript-context-plugin.completion-context.failed" : {
-				"owner": "dirkb",
-				"comment": "Telemetry for dardcor inline completion context in failure case",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-				"opportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The opportunity id" },
-				"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the request" },
-				"code:": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The failure code" },
-				"message": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The failure message" },
-				"stack": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The failure stack" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'typescript-context-plugin.completion-context.failed',
 			{
@@ -296,16 +215,6 @@ class TelemetrySender {
 	}
 
 	public sendRequestCancelledTelemetry(context: RequestContext, timeTaken: number): void {
-		/* __GDPR__
-			"typescript-context-plugin.completion-context.cancelled" : {
-				"owner": "dirkb",
-				"comment": "Telemetry for dardcor inline completion context in cancellation case",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-				"opportunityId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The opportunity id" },
-				"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the request" },
-				"timeTaken": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time taken to provide the completion", "isMeasurement": true }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'typescript-context-plugin.completion-context.cancelled',
 			{
@@ -324,15 +233,6 @@ class TelemetrySender {
 		if (response !== undefined) {
 			const body: protocol.PingResponse['body'] | undefined = response?.body;
 			if (body?.kind === 'ok') {
-				/* __GDPR__
-					"typescript-context-plugin.activation.ok" : {
-						"owner": "dirkb",
-						"comment": "Telemetry for TypeScript server plugin",
-						"session": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the TypeScript server had a session" },
-						"supported": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the TypeScript server version is supported" },
-						"version": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The version of the TypeScript server" }
-					}
-				*/
 				this.telemetryService.sendMSFTTelemetryEvent(
 					'typescript-context-plugin.activation.ok',
 					{
@@ -361,17 +261,6 @@ class TelemetrySender {
 	}
 
 	public sendActivationFailedTelemetry(location: ErrorLocation, part: ErrorPart, message: string, stack?: string | undefined, version?: string | undefined): void {
-		/* __GDPR__
-			"typescript-context-plugin.activation.failed" : {
-				"owner": "dirkb",
-				"comment": "Telemetry for TypeScript server plugin",
-				"location": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The location of the failure" },
-				"part": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The part that errored" },
-				"message": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The failure message" },
-				"stack": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The failure stack" },
-				"version": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The version" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'typescript-context-plugin.activation.failed',
 			{
@@ -385,15 +274,6 @@ class TelemetrySender {
 	}
 
 	private sendUnknownPingResponseTelemetry(location: ErrorLocation, part: ErrorPart, response: object): void {
-		/* __GDPR__
-			"typescript-context-plugin.activation.unknown-ping-response" : {
-				"owner": "dirkb",
-				"comment": "Telemetry for TypeScript server plugin",
-				"location": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The location of the failure" },
-				"part": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The part that errored" },
-				"response": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The response literal" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'typescript-context-plugin.activation.unknown-ping-response',
 			{
@@ -405,15 +285,6 @@ class TelemetrySender {
 	}
 
 	public sendIntegrationTelemetry(requestId: string, document: string, versionMismatch?: string): void {
-		/* __GDPR__
-			"typescript-context-plugin.integration.failed" : {
-				"owner": "dirkb",
-				"comment": "Telemetry for Copilot inline chat integration.",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-				"document": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The document for which the integration failed" },
-				"versionMismatch": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The version mismatch" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'typescript-context-plugin.integration.failed',
 			{
@@ -426,13 +297,6 @@ class TelemetrySender {
 
 	public sendInlineCompletionProviderTelemetry(source: KnownSources, registered: boolean): void {
 		if (registered) {
-			/* __GDPR__
-				"typescript-context-plugin.inline-completion-provider.registered" : {
-					"owner": "dirkb",
-					"comment": "Telemetry for Copilot inline completions",
-					"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the request" }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent(
 				'typescript-context-plugin.inline-completion-provider.registered',
 				{
@@ -440,13 +304,6 @@ class TelemetrySender {
 				}
 			);
 		} else {
-			/* __GDPR__
-				"typescript-context-plugin.inline-completion-provider.unregistered" : {
-					"owner": "dirkb",
-					"comment": "Telemetry for Copilot inline completions",
-					"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the request" }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent(
 				'typescript-context-plugin.inline-completion-provider.unregistered',
 				{
@@ -619,7 +476,6 @@ class RunnableResultManager implements vscode.Disposable {
 		}
 
 		const serverItems: Set<protocol.ContextItemKey> = new Set();
-		// Add new client side context items to the item map.
 		if (body.contextItems !== undefined && body.contextItems.length > 0) {
 			for (const item of body.contextItems) {
 				if (protocol.ContextItem.hasKey(item)) {
@@ -703,12 +559,10 @@ class RunnableResultManager implements vscode.Disposable {
 				}
 				break;
 			case CacheState.PartiallyPopulated:
-				// If the cache is partially populated we can only stay in that state.
 				break;
 			case CacheState.FullyPopulated:
 				switch (state) {
 					case protocol.ContextRunnableState.Finished:
-						// If the cache is fully populated we can only stay in that state.
 						break;
 					case protocol.ContextRunnableState.IsFull:
 					case protocol.ContextRunnableState.InProgress:
@@ -756,8 +610,6 @@ class RunnableResultManager implements vscode.Disposable {
 				}
 			}
 		}
-		// Sort them by priority so that the most important items are emitted first if they
-		// are contained in more than one runnable result.
 		return results.sort((a, b) => {
 			return a.priority < b.priority ? 1 : a.priority > b.priority ? -1 : 0;
 		});
@@ -814,7 +666,6 @@ class RunnableResultManager implements vscode.Disposable {
 					return;
 				}
 
-				// Add cached context items to the result;
 				for (const item of rr.items) {
 					if (!protocol.ContextItem.hasKey(item)) {
 						continue;
@@ -834,7 +685,6 @@ class RunnableResultManager implements vscode.Disposable {
 					items.set(key, item);
 				}
 			};
-			// We don't need to sort by priority here since the data is used for the next cache request.
 			for (const [id, item] of this.results.entries()) {
 				const scope = item.cache?.scope;
 				if (scope === undefined || scope.kind !== protocol.CacheScopeKind.WithinRange) {
@@ -859,17 +709,14 @@ class RunnableResultManager implements vscode.Disposable {
 			return false;
 		}
 
-		// Same document, version and position. Cache can be full used.
 		if (this.requestInfo.version === document.version && this.requestInfo.position.isEqual(position)) {
 			return true;
 		}
 
-		// Document is older than cached request. Not up to date.
 		if (this.requestInfo.version > document.version) {
 			return false;
 		}
 
-		// if the position is not contained in all ranges return false.
 		for (const runnable of this.withInRangeRunnableResults) {
 			if (!runnable.range.contains(position)) {
 				return false;
@@ -892,19 +739,15 @@ class RunnableResultManager implements vscode.Disposable {
 	}
 
 	private applyTextContentChangeEventToWithinRange(event: vscode.TextDocumentContentChangeEvent, range: vscode.Range): vscode.Range {
-		// The start stays untouched since the change range is contained in the range.
 		const eventRange = event.range;
 		const eventText = event.text;
 
-		// Calculate how many lines the new text adds or removes
 		const linesDelta = (eventText.match(/\n/g) || []).length - (eventRange.end.line - eventRange.start.line);
 
-		// Calculate the new end position
 		const endLine = range.end.line + linesDelta;
 
 		let endCharacter = range.end.character;
 		if (eventRange.end.line === range.end.line) {
-			// Calculate the character delta for the last line of the change
 			const lastNewLineIndex = eventText.lastIndexOf('\n');
 			const newTextLength = lastNewLineIndex !== -1 ? eventText.length - lastNewLineIndex - 1 : eventText.length;
 			const oldTextLength = eventRange.end.character - (eventRange.end.line > eventRange.start.line ? 0 : eventRange.start.character);
@@ -921,21 +764,17 @@ class RunnableResultManager implements vscode.Disposable {
 		const changeRange = event.range;
 		const eventText = event.text;
 
-		// Quick optimization: if change is completely after last range, no ranges need adjustment
 		const lastRange = ranges[ranges.length - 1];
 		if (changeRange.start.isAfter(lastRange.end)) {
 			return ranges;
 		}
-		// Calculate how many lines the new text adds or removes
 		const linesDelta = (eventText.match(/\n/g) || []).length - (changeRange.end.line - changeRange.start.line);
 		const adjustedRanges: vscode.Range[] = [];
 
 		for (const range of ranges) {
 			if (range.end.isBefore(changeRange.start)) {
-				// Range is completely before change, no adjustment needed
 				adjustedRanges.push(range);
 			} else if (range.start.isAfter(changeRange.end)) {
-				// Range is completely after change, adjust by lines delta
 				if (linesDelta === 0) {
 					adjustedRanges.push(range);
 				} else {
@@ -946,7 +785,6 @@ class RunnableResultManager implements vscode.Disposable {
 				}
 			} else {
 
-				// The range intersects with the range with will invalidate the cache entry.
 				return undefined;
 			}
 		}
@@ -992,8 +830,6 @@ class NeighborFileModel implements vscode.Disposable {
 			}
 		}));
 		this.disposables.add(vscode.window.tabGroups.onDidChangeTabs((e: vscode.TabChangeEvent) => {
-			// We don't track open tabs here to ensure we only track documents that are
-			// actually focused. Otherwise opening multiple tabs at once would cause too much churn.
 			for (const tab of e.closed) {
 				if (tab.input instanceof vscode.TabInputText) {
 					const uri = tab.input.uri.toString();
@@ -1303,16 +1139,13 @@ export class LanguageContextServiceImpl implements ILanguageContextService, vsco
 		let activated = false;
 
 		try {
-			// Check that the TypeScript extension is installed and runs in the same extension host.
 			const typeScriptExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
 			if (typeScriptExtension === undefined) {
 				return false;
 			}
 
-			// Make sure the TypeScript extension is activated.
 			await typeScriptExtension.activate();
 
-			// Send a ping request to see if the TS server plugin got installed correctly.
 			const response: protocol.PingResponse | undefined = await vscode.commands.executeCommand('typescript.tsserverRequest', '_.dardcor.ping', LanguageContextServiceImpl.ExecConfig, CancellationToken.None);
 			this.telemetrySender.sendActivationTelemetry(response, undefined);
 			if (response !== undefined) {
@@ -1339,7 +1172,6 @@ export class LanguageContextServiceImpl implements ILanguageContextService, vsco
 		}
 		if (this.inflightCachePopulationRequest !== undefined) {
 			if (!this.inflightCachePopulationRequest.matches(document, position)) {
-				// We have a request running. Do not issue another cache request but remember the pending request.
 				this.pendingRequest = new PendingRequestInfo(document, position, context);
 			}
 			return;
@@ -1347,7 +1179,6 @@ export class LanguageContextServiceImpl implements ILanguageContextService, vsco
 		const startTime = Date.now();
 		const contextRequestState = this.runnableResultManager.getContextRequestState(document, position);
 		if (contextRequestState !== undefined && contextRequestState.server.length === 0) {
-			// There is nothing to do on the server. Cache is up to date.
 			return;
 		}
 		const neighborFiles: string[] = this.neighborFileModel.getNeighborFiles(document);
@@ -1388,7 +1219,6 @@ export class LanguageContextServiceImpl implements ILanguageContextService, vsco
 				contextItemResult.referencedItems += referenced;
 				contextItemResult.serverComputed = serverComputed;
 				if (resolved.length > 0) {
-					// Update the stats for telemetry.
 					for (const runnableResult of resolved) {
 						for (const converted of contextItemResult.update(runnableResult)) {
 							forDebugging?.push(converted.item);
@@ -1408,14 +1238,13 @@ export class LanguageContextServiceImpl implements ILanguageContextService, vsco
 			this.logService.error(error, `Error populating cache for document: ${document.uri.toString()} at position: ${position.line + 1}:${position.character + 1}`);
 		}
 		if (this.pendingRequest !== undefined) {
-			// We had a pending request. Clear it and try to populate the cache again.
 			const pendingRequest = this.pendingRequest;
 			this.pendingRequest = undefined;
 			const textEditor = vscode.window.activeTextEditor;
 			if (textEditor !== undefined) {
 				const document = textEditor.document;
 				if (document.uri.toString() === pendingRequest.document && document.version === pendingRequest.version && document.validatePosition(pendingRequest.position).isEqual(pendingRequest.position)) {
-					this.populateCache(document, pendingRequest.position, pendingRequest.context).catch(() => { /* handled in populateCache */ });
+					this.populateCache(document, pendingRequest.position, pendingRequest.context).catch(() => { });
 				}
 			}
 		}
@@ -1445,8 +1274,6 @@ export class LanguageContextServiceImpl implements ILanguageContextService, vsco
 			this.onTimeoutData.resultBuilder = contextItemResult;
 		}
 		const characterBudget = this.getCharacterBudget(context, document);
-		// We first collect all items to yield so that the state of the cache doesn't change underneath us.
-		// This could otherwise happen if the cache population request finishes while we are yielding items.
 		const itemsToYield: ContextItem[] = [];
 		const { mandatory, optional, onTimeout } = this.getRunnables(document, position, cachePopulationRequestInflight);
 		if (this.onTimeoutData !== undefined) {
@@ -1483,15 +1310,10 @@ export class LanguageContextServiceImpl implements ILanguageContextService, vsco
 				yield item;
 			}
 
-			// Recheck for an inflight request and join it if it is for the same document and position.
 			if (this.inflightCachePopulationRequest !== undefined && this.inflightCachePopulationRequest.matchesDocument(document)) {
 				cacheRequest = 'inflight';
-				// We have an inflight request for the same document and position.
-				// We wait for the server promise to resolve and then see if we can yield items from the
-				// inflight request.
 				const timeOut = Math.max(0, Math.min(context.timeBudget ?? LanguageContextServiceImpl.defaultCachePopulationRaceTimeout, LanguageContextServiceImpl.defaultCachePopulationRaceTimeout));
 				const result = await Promise.race([this.inflightCachePopulationRequest.serverPromise, new Promise((resolve) => setTimeout(resolve, timeOut)).then(() => 'timedOut')]);
-				// The server promised resolved first. So the inflight request is done.
 				if (result !== 'timedOut') {
 					this.inflightCachePopulationRequest = undefined;
 					if (this.onTimeoutData !== undefined) {
@@ -1626,7 +1448,6 @@ class CachePopulationTrigger implements vscode.Disposable {
 
 		this.selectionChangeDebouncer = this.disposables.add(new ThrottledDebouncer());
 		this.disposables.add(vscode.workspace.onDidChangeTextDocument((event) => {
-			// console.log(`Text document change ${Date.now()}`);
 			this.didChangeTextDocument(event);
 		}));
 
@@ -1635,12 +1456,10 @@ class CachePopulationTrigger implements vscode.Disposable {
 		}));
 
 		this.disposables.add(vscode.window.onDidChangeTextEditorSelection(async (event) => {
-			// console.log(`Selection ${Date.now()}`);
 			this.didChangeTextEditorSelection(event);
 		}));
 		this.disposables.add(vscode.languages.registerInlineCompletionItemProvider([{ scheme: 'file', language: 'typescript' }, { scheme: 'file', language: 'typescriptreact' }], {
 			provideInlineCompletionItems: async (document, position, context, _token) => {
-				// console.log(`Inline completion ${Date.now()}`);
 				this.onInlineCompletion(document, position, context);
 				return undefined;
 			}
@@ -1686,7 +1505,6 @@ class CachePopulationTrigger implements vscode.Disposable {
 		const document = event.textEditor.document;
 		const tokenBudget = this.tokenBudgetProvider.getTokenBudget(document);
 		if (tokenBudget <= 0) {
-			// There is no token budget left, so we don't want to trigger the cache population.
 			return;
 		}
 		const position = this.getPosition(event);
@@ -1711,7 +1529,6 @@ class CachePopulationTrigger implements vscode.Disposable {
 	private onInlineCompletion(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext): void {
 		const tokenBudget = this.tokenBudgetProvider.getTokenBudget(document);
 		if (tokenBudget <= 0) {
-			// There is no token budget left, so we don't want to trigger the cache population.
 			return;
 		}
 		this.populateCache(document, position, tokenBudget, context.requestUuid, TriggerKind.completion, false);
@@ -1736,13 +1553,10 @@ class CachePopulationTrigger implements vscode.Disposable {
 		}
 		const line = document.lineAt(range.start.line);
 		const end = line.text.substring(range.start.character);
-		// If we are not on an empty line or the end of the line is not empty, we don't want to trigger the context request.
 		if (line.text.trim().length !== 0 && end.length > 0) {
 			return undefined;
 		}
 
-		// If the last document change was within 500 ms, we don't want to trigger the context request. Instead we wait for the next change or
-		// a normal inline completion request.
 		if (this.lastDocumentChange !== undefined && this.lastDocumentChange.document === document.uri.toString() && time - this.lastDocumentChange.time < 500) {
 			return undefined;
 		}
@@ -1773,7 +1587,6 @@ class CachePopulationTrigger implements vscode.Disposable {
 			proposedEdits: undefined
 		};
 		this.languageContextService.populateCache(document, position, context).catch(() => {
-			// Error got log inside the cache population call.
 		});
 	}
 }
@@ -1821,7 +1634,6 @@ export class InlineCompletionContribution implements vscode.Disposable, TokenBud
 			this.disposables.add(vscode.window.registerTreeDataProvider('context-inspector', new InspectorDataProvider(languageContextService)));
 		}
 
-		// Check if there are any TypeScript files open in the workspace.
 		const open = vscode.workspace.textDocuments.some((document) => document.languageId === 'typescript' || document.languageId === 'typescriptreact');
 		if (open) {
 			this.typeScriptFileOpen();
@@ -1885,7 +1697,6 @@ export class InlineCompletionContribution implements vscode.Disposable, TokenBud
 			const self = this;
 			const resolver: Copilot.ContextResolver<Copilot.SupportedContextItem> = {
 				resolve(request: Copilot.ResolveRequest, token: vscode.CancellationToken): Promise<Copilot.SupportedContextItem[]> | AsyncIterable<Copilot.SupportedContextItem> {
-					// console.log(`Resolve request ${Date.now()}`);
 					const isSpeculativeRequest = request.documentContext.proposedEdits !== undefined;
 					const [document, position] = self.getDocumentAndPosition(request, token);
 					if (document === undefined || position === undefined) {
@@ -1970,13 +1781,11 @@ export class InlineCompletionContribution implements vscode.Disposable, TokenBud
 				resolver: resolver
 			};
 
-			// For legacy register with the dardcor API
 			const dardcorAPI = await this.getCopilotApi();
 			if (dardcorAPI !== undefined) {
 				this.registrations.add(dardcorAPI.registerContextProvider(provider));
 			}
 
-			// Register with chat always.
 			this.registrations.add(this.languageContextProviderService.registerContextProvider(provider, [ProviderTarget.Completions, ProviderTarget.NES]));
 			this.telemetrySender.sendInlineCompletionProviderTelemetry(KnownSources.completion, true);
 			logService.info('Registered TypeScript context provider with Copilot inline completions.');
@@ -1986,7 +1795,6 @@ export class InlineCompletionContribution implements vscode.Disposable, TokenBud
 	}
 
 	private async isTypeScriptRunning(): Promise<boolean> {
-		// Check that the TypeScript extension is installed and runs in the same extension host.
 		const typeScriptExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
 		if (typeScriptExtension === undefined) {
 			this.telemetrySender.sendActivationFailedTelemetry(ErrorLocation.Client, ErrorPart.TypescriptPlugin, 'TypeScript extension not found', undefined);
@@ -2069,8 +1877,6 @@ export class InlineCompletionContribution implements vscode.Disposable, TokenBud
 	private async getCopilotApi(): Promise<Copilot.ContextProviderApiV1 | undefined> {
 		const dardcorExtension = vscode.extensions.getExtension('GitHub.dardcor');
 		if (dardcorExtension === undefined) {
-			// this.telemetrySender.sendActivationFailedTelemetry(ErrorLocation.Client, ErrorPart.CopilotExtension, 'Copilot extension not found', undefined);
-			// this.logService.error('Copilot extension not found');
 			return undefined;
 		}
 		try {

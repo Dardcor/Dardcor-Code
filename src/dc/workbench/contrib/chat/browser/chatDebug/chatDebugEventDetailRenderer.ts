@@ -9,9 +9,6 @@ import { safeIntl } from '../../../../../base/common/date.js';
 
 const numberFormatter = safeIntl.NumberFormat();
 
-/**
- * Format the detail text for a debug event (used when no resolved content is available).
- */
 export function formatEventDetail(event: IChatDebugEvent): string {
 	switch (event.kind) {
 		case 'toolCall': {

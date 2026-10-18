@@ -18,10 +18,6 @@ import { Position } from '../../../common/core/position.js';
 import { editorWhitespaces } from '../../../common/core/editorColorRegistry.js';
 import { OffsetRange } from '../../../common/core/ranges/offsetRange.js';
 
-/**
- * The whitespace overlay will visual certain whitespace depending on the
- * current editor configuration (boundary, selection, etc.).
- */
 export class WhitespaceOverlay extends DynamicViewOverlay {
 
 	private readonly _context: ViewContext;
@@ -44,7 +40,6 @@ export class WhitespaceOverlay extends DynamicViewOverlay {
 		super.dispose();
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const newOptions = new WhitespaceOptions(this._context.configuration);
@@ -82,7 +77,6 @@ export class WhitespaceOverlay extends DynamicViewOverlay {
 	public override onZonesChanged(e: viewEvents.ViewZonesChangedEvent): boolean {
 		return true;
 	}
-	// --- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
 		if (this._options.renderWhitespace === 'none') {
@@ -101,7 +95,6 @@ export class WhitespaceOverlay extends DynamicViewOverlay {
 				for (const selection of selections) {
 
 					if (selection.endLineNumber < lineNumber || selection.startLineNumber > lineNumber) {
-						// Selection does not intersect line
 						continue;
 					}
 
@@ -144,8 +137,6 @@ export class WhitespaceOverlay extends DynamicViewOverlay {
 		const wsmiddotDiff = Math.abs(wsmiddotWidth - spaceWidth);
 		const middotDiff = Math.abs(middotWidth - spaceWidth);
 
-		// U+2E31 - WORD SEPARATOR MIDDLE DOT
-		// U+00B7 - MIDDLE DOT
 		const renderSpaceCharCode = (wsmiddotDiff < middotDiff ? 0x2E31 : 0xB7);
 
 		const canUseHalfwidthRightwardsArrow = this._options.canUseHalfwidthRightwardsArrow;
@@ -180,12 +171,10 @@ export class WhitespaceOverlay extends DynamicViewOverlay {
 			}
 
 			if (onlyTrailing && !lineIsEmptyOrWhitespace && charIndex <= lastNonWhitespaceIndex) {
-				// If rendering only trailing whitespace, check that the charIndex points to trailing whitespace.
 				continue;
 			}
 
 			if (onlyBoundary && charIndex >= firstNonWhitespaceIndex && charIndex <= lastNonWhitespaceIndex && chCode === CharCode.Space) {
-				// rendering only boundary whitespace
 				const prevChCode = (charIndex - 1 >= 0 ? lineContent.charCodeAt(charIndex - 1) : CharCode.Null);
 				const nextChCode = (charIndex + 1 < len ? lineContent.charCodeAt(charIndex + 1) : CharCode.Null);
 				if (prevChCode !== CharCode.Space && nextChCode !== CharCode.Space) {
@@ -202,7 +191,6 @@ export class WhitespaceOverlay extends DynamicViewOverlay {
 			}
 
 			if (selections && !(currentSelection && currentSelection.start <= charIndex && charIndex < currentSelection.endExclusive)) {
-				// If rendering whitespace on selection, check that the charIndex falls within a selection
 				continue;
 			}
 
@@ -289,7 +277,6 @@ class WhitespaceOptions {
 		const fontInfo = options.get(EditorOption.fontInfo);
 		const experimentalWhitespaceRendering = options.get(EditorOption.experimentalWhitespaceRendering);
 		if (experimentalWhitespaceRendering === 'off') {
-			// whitespace is rendered in the view line
 			this.renderWhitespace = 'none';
 			this.renderWithSVG = false;
 		} else if (experimentalWhitespaceRendering === 'svg') {

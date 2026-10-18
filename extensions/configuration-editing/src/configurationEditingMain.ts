@@ -10,22 +10,16 @@ import { provideInstalledExtensionProposals } from './extensionsProposals';
 import './importExportProfiles';
 
 export function activate(context: vscode.ExtensionContext): void {
-	//settings.json suggestions
 	context.subscriptions.push(registerSettingsCompletions());
 
-	//extensions suggestions
 	context.subscriptions.push(...registerExtensionsCompletions());
 
-	// launch.json variable suggestions
 	context.subscriptions.push(registerVariableCompletions('**/launch.json'));
 
-	// task.json variable suggestions
 	context.subscriptions.push(registerVariableCompletions('**/tasks.json'));
 
-	// Workspace file launch/tasks variable completions
 	context.subscriptions.push(registerVariableCompletions('**/*.code-workspace'));
 
-	// keybindings.json/package.json context key suggestions
 	context.subscriptions.push(registerContextKeyCompletions());
 }
 

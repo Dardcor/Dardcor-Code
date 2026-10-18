@@ -43,7 +43,7 @@ suite('Date', () => {
 		test('daysAgo', () => {
 			const daysAgo = new Date();
 			daysAgo.setDate(daysAgo.getDate() - 5);
-			daysAgo.setHours(daysAgo.getHours() - 2); // 2 hours further to avoid DST issues
+			daysAgo.setHours(daysAgo.getHours() - 2);
 			strictEqual(fromNowByDay(daysAgo, true), '5 days ago');
 		});
 	});

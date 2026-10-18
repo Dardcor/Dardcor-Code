@@ -15,7 +15,6 @@ export interface IClaudeSlashCommandRequest {
 	readonly command: string | undefined;
 }
 
-// Import all slash command handlers to trigger self-registration
 import './slashCommands/index';
 
 export interface IClaudeSlashCommandResult {
@@ -26,26 +25,12 @@ export interface IClaudeSlashCommandResult {
 export interface IClaudeSlashCommandService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Try to handle a slash command from the user's request.
-	 *
-	 * Checks `request.command` first (VS Code slash command), then falls back to
-	 * parsing a `/command` pattern from `request.prompt`.
-	 *
-	 * @param request - The user's request containing prompt and optional command
-	 * @param stream - Response stream for sending messages to the chat
-	 * @param token - Cancellation token
-	 * @returns Object indicating whether the command was handled and the result
-	 */
 	tryHandleCommand(
 		request: IClaudeSlashCommandRequest,
 		stream: vscode.ChatResponseStream,
 		token: CancellationToken
 	): Promise<IClaudeSlashCommandResult>;
 
-	/**
-	 * Get all registered command names.
-	 */
 	getRegisteredCommands(): readonly string[];
 }
 
@@ -62,7 +47,6 @@ export class ClaudeSlashCommandService extends Disposable implements IClaudeSlas
 		@ILogService private readonly logService: ILogService,
 	) {
 		super();
-		// Initialize eagerly to register VS Code commands at startup
 		this._ensureInitialized();
 	}
 
@@ -71,7 +55,6 @@ export class ClaudeSlashCommandService extends Disposable implements IClaudeSlas
 		stream: vscode.ChatResponseStream,
 		token: CancellationToken
 	): Promise<IClaudeSlashCommandResult> {
-		// 1. Check request.command (VS Code slash command selected via UI)
 		if (request.command) {
 			const handler = this._getHandler(request.command.toLowerCase());
 			if (handler) {
@@ -80,7 +63,6 @@ export class ClaudeSlashCommandService extends Disposable implements IClaudeSlas
 			}
 		}
 
-		// 2. Fall back to parsing /command from the prompt text
 		const match = request.prompt.trim().match(/^\/(\w+)(?:\s+(.*))?$/);
 		if (!match) {
 			return { handled: false };
@@ -111,22 +93,18 @@ export class ClaudeSlashCommandService extends Disposable implements IClaudeSlas
 			return;
 		}
 
-		// Instantiate all registered handlers and cache them by command name
 		const ctors = getClaudeSlashCommandRegistry();
 		for (const ctor of ctors) {
 			const handler = this.instantiationService.createInstance(ctor);
 			const commandKey = handler.commandName.toLowerCase();
-			// This shouldn't happen unless we accidentally register duplicates
 			if (this._handlerCache.has(commandKey)) {
 				this.logService.warn(`Duplicate Claude slash command name "${handler.commandName}" detected. Ignoring handler ${ctor.name || 'unknown constructor'}.`);
 				continue;
 			}
 			this._handlerCache.set(commandKey, handler);
 
-			// Register VS Code command if commandId is provided
 			if (handler.commandId) {
 				this._register(vscode.commands.registerCommand(handler.commandId, () => {
-					// Invoke with no args and no stream (Command Palette mode)
 					return handler.handle('', undefined, CancellationToken.None);
 				}));
 			}

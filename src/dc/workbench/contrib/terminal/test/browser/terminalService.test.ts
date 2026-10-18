@@ -131,7 +131,6 @@ suite('Workbench - TerminalService', () => {
 		});
 		test('should show prompt when confirmOnKill is panel and panel terminal is closed', async () => {
 			await setConfirmOnKill(configurationService, 'panel');
-			// No child process cases
 			dialogService.setConfirmResult({ confirmed: false });
 			terminalService.safeDisposeTerminal({
 				target: TerminalLocation.Panel,
@@ -146,7 +145,6 @@ suite('Workbench - TerminalService', () => {
 				onExit: onExitEmitter.event,
 				dispose: () => onExitEmitter.fire(undefined)
 			} satisfies Partial<ITerminalInstance> as unknown as ITerminalInstance);
-			// Child process cases
 			dialogService.setConfirmResult({ confirmed: false });
 			await terminalService.safeDisposeTerminal({
 				target: TerminalLocation.Panel,
@@ -163,7 +161,6 @@ suite('Workbench - TerminalService', () => {
 		});
 		test('should show prompt when confirmOnKill is always and panel terminal is closed', async () => {
 			await setConfirmOnKill(configurationService, 'always');
-			// No child process cases
 			dialogService.setConfirmResult({ confirmed: false });
 			terminalService.safeDisposeTerminal({
 				target: TerminalLocation.Panel,
@@ -178,7 +175,6 @@ suite('Workbench - TerminalService', () => {
 				onExit: onExitEmitter.event,
 				dispose: () => onExitEmitter.fire(undefined)
 			} satisfies Partial<ITerminalInstance> as unknown as ITerminalInstance);
-			// Child process cases
 			dialogService.setConfirmResult({ confirmed: false });
 			await terminalService.safeDisposeTerminal({
 				target: TerminalLocation.Panel,

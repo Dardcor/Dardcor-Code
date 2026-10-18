@@ -10,9 +10,6 @@ const enum DeferredOutcome {
 	Rejected
 }
 
-/**
- * Copied from src\vs\base\common\async.ts
- */
 export class DeferredPromise<T> {
 
 	private completeCallback!: ValueCallback<T>;

@@ -73,7 +73,6 @@ function trimLineFeed(text: string): string {
 	return text;
 }
 
-//#region Assertion
 
 function testLinesContent(str: string, pieceTable: PieceTreeBase) {
 	const lines = splitLines(str);
@@ -100,7 +99,6 @@ function testLinesContent(str: string, pieceTable: PieceTreeBase) {
 function testLineStarts(str: string, pieceTable: PieceTreeBase) {
 	const lineStarts = [0];
 
-	// Reset regex to search from the beginning
 	const _regex = new RegExp(/\r\n|\r|\n/g);
 	_regex.lastIndex = 0;
 	let prevMatchStartIndex = -1;
@@ -109,7 +107,6 @@ function testLineStarts(str: string, pieceTable: PieceTreeBase) {
 	let m: RegExpExecArray | null;
 	do {
 		if (prevMatchStartIndex + prevMatchLength === str.length) {
-			// Reached the end of the line
 			break;
 		}
 
@@ -125,7 +122,6 @@ function testLineStarts(str: string, pieceTable: PieceTreeBase) {
 			matchStartIndex === prevMatchStartIndex &&
 			matchLength === prevMatchLength
 		) {
-			// Exit early if the regex matches the same range twice
 			break;
 		}
 
@@ -173,7 +169,6 @@ function assertTreeInvariants(T: PieceTreeBase): void {
 
 function depth(n: TreeNode): number {
 	if (n === SENTINEL) {
-		// The leafs are black
 		return 1;
 	}
 	assert(depth(n.left) === depth(n.right));
@@ -210,7 +205,6 @@ function assertValidTree(T: PieceTreeBase): void {
 	assertValidNode(T.root);
 }
 
-//#endregion
 
 suite('inserts and deletes', () => {
 	const ds = ensureNoDisposablesAreLeakedInTestSuite();
@@ -865,7 +859,6 @@ suite('get text in range', () => {
 		const pieceTable = pieceTree.getPieceTree();
 		pieceTable.insert(8, 'fh\ni\njk');
 		pieceTable.delete(7, 2);
-		// 'a\nb\nc\ndh\ni\njk'
 
 		assert.strictEqual(pieceTable.getValueInRange(new Range(1, 1, 1, 3)), 'a\n');
 		assert.strictEqual(pieceTable.getValueInRange(new Range(2, 1, 2, 3)), 'b\n');
@@ -1001,7 +994,6 @@ suite('get text in range', () => {
 		const pieceTable = pieceTree.getPieceTree();
 		pieceTable.insert(8, 'fh\ni\njk');
 		pieceTable.delete(7, 2);
-		// 'a\nb\nc\ndh\ni\njk'
 
 		assert.strictEqual(pieceTable.getLineRawContent(1), 'a\n');
 		assert.strictEqual(pieceTable.getLineRawContent(2), 'b\n');
@@ -1632,18 +1624,13 @@ suite('random is unsupervised', () => {
 		const pieceTree = createTextBuffer([str], false);
 		ds.add(pieceTree);
 		const pieceTable = pieceTree.getPieceTree();
-		// let output = '';
 		for (let i = 0; i < 1000; i++) {
 			if (Math.random() < 0.6) {
-				// insert
 				const text = randomStr(100);
 				const pos = randomInt(str.length + 1);
 				pieceTable.insert(pos, text);
 				str = str.substring(0, pos) + text + str.substring(pos);
-				// output += `pieceTable.insert(${pos}, '${text.replace(/\n/g, '\\n').replace(/\r/g, '\\r')}');\n`;
-				// output += `str = str.substring(0, ${pos}) + '${text.replace(/\n/g, '\\n').replace(/\r/g, '\\r')}' + str.substring(${pos});\n`;
 			} else {
-				// delete
 				const pos = randomInt(str.length);
 				const length = Math.min(
 					str.length - pos,
@@ -1651,12 +1638,9 @@ suite('random is unsupervised', () => {
 				);
 				pieceTable.delete(pos, length);
 				str = str.substring(0, pos) + str.substring(pos + length);
-				// output += `pieceTable.delete(${pos}, ${length});\n`;
-				// output += `str = str.substring(0, ${pos}) + str.substring(${pos} + ${length});\n`
 
 			}
 		}
-		// console.log(output);
 
 		assert.strictEqual(pieceTable.getLinesRawContent(), str);
 
@@ -1679,13 +1663,11 @@ suite('random is unsupervised', () => {
 
 		for (let i = 0; i < 1000; i++) {
 			if (Math.random() < 0.6) {
-				// insert
 				const text = randomStr(100);
 				const pos = randomInt(str.length + 1);
 				pieceTable.insert(pos, text);
 				str = str.substring(0, pos) + text + str.substring(pos);
 			} else {
-				// delete
 				const pos = randomInt(str.length);
 				const length = Math.min(
 					str.length - pos,
@@ -1714,13 +1696,11 @@ suite('random is unsupervised', () => {
 
 		for (let i = 0; i < 50; i++) {
 			if (Math.random() < 0.6) {
-				// insert
 				const text = randomStr(30);
 				const pos = randomInt(str.length + 1);
 				pieceTable.insert(pos, text);
 				str = str.substring(0, pos) + text + str.substring(pos);
 			} else {
-				// delete
 				const pos = randomInt(str.length);
 				const length = Math.min(
 					str.length - pos,

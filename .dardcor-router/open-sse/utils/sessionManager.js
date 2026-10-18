@@ -1,21 +1,10 @@
-/**
- * Session Manager for Antigravity Cloud Code
- *
- * Handles session ID generation and caching for prompt caching continuity.
- * Mimics the Antigravity binary behavior: generates a session ID at startup
- * and keeps it for the process lifetime, scoped per account/connection.
- *
- * Reference: antigravity-claude-proxy/src/cloudcode/session-manager.js
- */
 
 import crypto from "crypto";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
 
-// Runtime storage: Key = connectionId, Value = { sessionId, lastUsed }
 const runtimeSessionStore = new Map();
 const continuationStore = new Map();
 
-// Periodically evict entries that haven't been used within TTL
 const cleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of runtimeSessionStore) {
@@ -25,23 +14,8 @@ const cleanupInterval = setInterval(() => {
     }
 }, MEMORY_CONFIG.sessionCleanupIntervalMs);
 
-// Allow Node.js to exit even if interval is still active
 if (cleanupInterval.unref) cleanupInterval.unref();
 
-/**
- * Get or create a session ID for the given connection.
- *
- * The binary generates a session ID once at startup: `rs() + Date.now()`.
- * Since dardcor-code is long-running, we simulate this "per-launch" behavior by
- * storing a generated ID in memory for each connection.
- *
- * - If dardcor-code restarts, the ID changes (matching binary restart behavior).
- * - Within a running instance, the ID is stable for that connection.
- * - This enables prompt caching while using the EXACT random logic of the binary.
- *
- * @param {string} connectionId - The connection identifier (email or unique ID)
- * @returns {string} A stable session ID string matching binary format
- */
 export function deriveSessionId(connectionId) {
     if (!connectionId) {
         return generateBinaryStyleId();
@@ -53,7 +27,6 @@ export function deriveSessionId(connectionId) {
         return existing.sessionId;
     }
 
-    // Evict oldest entry if store exceeds max size (safety cap between cleanup cycles)
     const MAX_SESSIONS = 1000;
     if (runtimeSessionStore.size >= MAX_SESSIONS) {
       const oldest = runtimeSessionStore.keys().next().value;
@@ -65,33 +38,22 @@ export function deriveSessionId(connectionId) {
     return sessionId;
 }
 
-/**
- * Generate a Session ID using the binary's exact logic.
- * Format: `rs() + Date.now()` where `rs()` is randomUUID
- *
- * @returns {string} A session ID in binary format
- */
 export function generateBinaryStyleId() {
     return crypto.randomUUID() + Date.now().toString();
 }
 
-/**
- * Clears all session IDs (e.g. useful for testing or explicit reset)
- */
 export function clearSessionStore() {
     runtimeSessionStore.clear();
     assistantSessionStore.clear();
     continuationStore.clear();
 }
 
-// Conversation-stable session store: Key = hash(scope+assistant text), Value = { sessionId, lastUsed }
 const assistantSessionStore = new Map();
 const ASSISTANT_MIN_LEN = 50;
 const ASSISTANT_CAP_LEN = 50;
 const MAX_ASSISTANT_SESSIONS = 5000;
 const MAX_CONTINUATION_SESSIONS = 5000;
 
-// Client headers/body fields that carry an upstream session id (priority order)
 const SESSION_HEADER_KEYS = ["x-session-id", "session-id", "session_id", "x-amp-thread-id"];
 const CLAUDE_CODE_SESSION_RE = /_session_([a-f0-9-]+)$/;
 const CLAUDE_CODE_SESSION_HEADER = "x-claude-code-session-id";
@@ -100,7 +62,6 @@ function sha16(text) {
     return crypto.createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
-// Normalize a session id candidate (trim, length cap)
 function normalizeSessionId(value) {
     if (typeof value !== "string") return null;
     const v = value.trim();
@@ -108,25 +69,21 @@ function normalizeSessionId(value) {
     return v;
 }
 
-// Extract Claude Code session id from metadata.user_id (_session_{uuid} | JSON {session_id})
 function extractClaudeCodeSession(userId) {
     if (typeof userId !== "string" || !userId) return null;
     const m = userId.match(CLAUDE_CODE_SESSION_RE);
     if (m) return m[1];
     if (userId[0] === "{") {
-        try { return normalizeSessionId(JSON.parse(userId)?.session_id); } catch { /* noop */ }
+        try { return normalizeSessionId(JSON.parse(userId)?.session_id); } catch { }
     }
     return null;
 }
 
-// Lowercase-key lookup for raw client headers
 function headerValue(headers, key) {
     if (!headers || typeof headers !== "object") return null;
     return normalizeSessionId(headers[key] ?? headers[key.toLowerCase()]);
 }
 
-// Read client-provided session id from headers/body (no generation)
-// Antigravity envelope carries session in request.sessionId; requestId embeds conversation uuid
 const ANTIGRAVITY_CONV_RE = /^[a-z]+\/([0-9a-f-]{36})\//i;
 function extractAntigravitySession(body) {
     const sid = body?.request?.sessionId;
@@ -136,8 +93,6 @@ function extractAntigravitySession(body) {
 }
 
 function extractClientSessionId(headers, body, scope = "") {
-    // Claude Code sends the session in a header AND in metadata.user_id; the header
-    // survives translation to formats that drop metadata (e.g. Responses API).
     const claude = extractClaudeCodeSession(body?.metadata?.user_id)
         || headerValue(headers, CLAUDE_CODE_SESSION_HEADER);
     if (claude) return `claude:${claude}`;
@@ -163,7 +118,6 @@ function requestMessages(body) {
     return [];
 }
 
-// Accumulate assistant text from OpenAI/Responses-style input/messages (cap-limited)
 function accumulateAssistantText(body) {
     const items = requestMessages(body);
     if (!items) return "";
@@ -179,7 +133,6 @@ function accumulateAssistantText(body) {
     return text;
 }
 
-// Stable session id keyed on accumulated assistant text (avoids collision on identical first user prompt)
 function assistantTextSessionId(scope, body) {
     const text = accumulateAssistantText(body);
     if (text.length < ASSISTANT_MIN_LEN) return null;
@@ -197,18 +150,6 @@ function assistantTextSessionId(scope, body) {
     return sessionId;
 }
 
-/**
- * Resolve a conversation-stable session id (generalizes Codex resolveCacheSessionId).
- * Priority: client session → accumulated-assistant-text hash → workspaceId → per-connection.
- *
- * @param {object} opts
- * @param {object} [opts.headers] - Raw client request headers (lowercase keys)
- * @param {object} [opts.body] - Parsed request body
- * @param {string} [opts.connectionId] - Connection identifier (fallback scope)
- * @param {string} [opts.workspaceId] - Provider workspace id (account-wide fallback)
- * @param {string} [opts.scope] - Provider scope to isolate cache keys across providers
- * @returns {{sessionId: string, ephemeral: boolean}} A session id plus whether it is one-shot
- */
 export function resolveSessionIdentity({ headers, body, connectionId, workspaceId, scope = "" } = {}) {
     const client = extractClientSessionId(headers, body, scope);
     if (client) return { sessionId: client, ephemeral: false };
@@ -242,13 +183,10 @@ export function resolveContinuationId({ sessionId, connectionId, scope = "", eph
     return continuationId;
 }
 
-// Capture session id from request body + credentials (envelope still intact here)
 export function captureSessionId(body, credentials, connectionId, scope = "") {
     return resolveSessionId({ headers: credentials?.rawHeaders, body, connectionId, scope });
 }
 
-// Convert any session id to Antigravity numeric format "-<int64>" (matches real AG / CLIProxyAPI).
-// Already-numeric ids (native AG sessionId) pass through unchanged.
 export function toNumericSessionId(sessionId) {
     const v = normalizeSessionId(sessionId);
     if (!v) return null;
@@ -258,7 +196,6 @@ export function toNumericSessionId(sessionId) {
     return `-${n.toString()}`;
 }
 
-// Cleanup expired assistant-session entries
 const assistantCleanup = setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of assistantSessionStore) {

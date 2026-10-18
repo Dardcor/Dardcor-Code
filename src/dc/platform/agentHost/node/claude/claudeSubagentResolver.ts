@@ -17,33 +17,18 @@ import { IClaudeAgentSdkService } from './claudeAgentSdkService.js';
 import { mapSessionMessagesToTurns } from './claudeReplayMapper.js';
 import { scanTranscriptForAgentIds, SUBAGENT_TOOL_NAMES, type SubagentRegistry } from './claudeSubagentRegistry.js';
 
-/**
- * One link in the resolver chain. Each strategy consults a different
- * SDK primitive to map a `toolCallId` back to an `agentId`. Strategies
- * are ordered cheapest-first inside {@link getSubagentTranscript}
- * (TextSuffix → PromptMatch → Native).
- */
 export interface ISubagentLookupStrategy {
-	/** Short label, used as a category in any future telemetry counter. */
 	readonly name: string;
-	/** Returns the agentId or `undefined` if this strategy cannot resolve the input. */
 	lookup(toolCallId: string, ctx: ISubagentLookupContext): Promise<string | undefined>;
 }
 
 export interface ISubagentLookupContext {
 	readonly parentUri: URI;
-	/** SDK session id (`AgentSession.id(parentUri)`). Precomputed so strategies don't repeat the work. */
 	readonly parentSessionId: string;
-	/** Pre-fetched parent transcript when available; otherwise the strategy must fetch its own. */
 	readonly parentTranscript?: readonly Turn[];
 	readonly token: CancellationToken;
 }
 
-/**
- * Strategy 1 — scan the parent transcript for the synthetic agentId
- * suffix. Cheapest path: the transcript is usually already in memory
- * from the live session or the parent's own replay fetch.
- */
 export class TextSuffixStrategy implements ISubagentLookupStrategy {
 	readonly name = 'text_suffix';
 
@@ -61,12 +46,6 @@ export class TextSuffixStrategy implements ISubagentLookupStrategy {
 	}
 }
 
-/**
- * Shared transcript-fetch helper for strategies that need the parent
- * transcript and weren't given one via {@link ISubagentLookupContext.parentTranscript}.
- * Returns `undefined` (and logs a warning tagged with `strategyLabel`)
- * on any SDK error so callers can short-circuit cleanly.
- */
 export async function fetchParentTurns(
 	sdk: IClaudeAgentSdkService,
 	logService: ILogService,
@@ -85,16 +64,7 @@ export async function fetchParentTurns(
 	}
 }
 
-// #region locally-defined validator adapters
 
-/**
- * Thin convenience wrappers over the base validators in
- * `src/vs/base/common/validation.ts`. The base API returns a
- * `{content, error}` discriminated union (built for full schema
- * validation); these wrappers collapse that to `T | undefined` for the
- * narrow `is-it-this-type?` checks below where we just need a
- * structural narrowing of arbitrary SDK JSON payloads.
- */
 function vString(input: unknown): string | undefined {
 	const r = vStringValidator().validate(input);
 	return r.error ? undefined : r.content;
@@ -108,14 +78,7 @@ function vObj(input: unknown): Record<string, unknown> | undefined {
 	return r.content as Record<string, unknown>;
 }
 
-// #endregion
 
-/**
- * Strategy 2 — list every subagent the SDK knows for this parent and
- * compare each one's first user message against the parent's
- * `Agent.tool_use.input.prompt`. Bulletproof when TextSuffix misses
- * (e.g. SDK reformats the suffix) at the cost of two extra SDK calls.
- */
 export class PromptMatchStrategy implements ISubagentLookupStrategy {
 	readonly name = 'prompt_match';
 
@@ -168,12 +131,6 @@ export class PromptMatchStrategy implements ISubagentLookupStrategy {
 	}
 }
 
-/**
- * Pure transcript scan: locate the spawning subagent tool call by id
- * and return its `prompt` input field, or `undefined` if not a
- * subagent tool, still streaming, or input is malformed. Exported so
- * it can be tested independently of SDK fetch behavior.
- */
 export function extractSpawningPromptFromTranscript(transcript: readonly Turn[], toolCallId: string): string | undefined {
 	for (const turn of transcript) {
 		for (const part of turn.responseParts) {
@@ -326,12 +283,6 @@ function extractFirstUserText(messages: readonly { readonly type?: string; reado
 	return undefined;
 }
 
-/**
- * Strategy 3 — placeholder for a future SDK primitive that returns the
- * spawning `tool_use_id` alongside each subagent id. Currently the SDK
- * exposes no such API; this class returns `undefined` and the resolver
- * falls back to the other strategies.
- */
 export class NativeStrategy implements ISubagentLookupStrategy {
 	readonly name = 'native';
 	async lookup(): Promise<string | undefined> {
@@ -339,26 +290,12 @@ export class NativeStrategy implements ISubagentLookupStrategy {
 	}
 }
 
-/**
- * Side-effecting collaborators the strategy chain uses. Pulled out so
- * {@link resolveAgentIdViaChain} is a pure orchestrator: tests can
- * drive it with in-memory stubs without standing up a full SDK or
- * registry.
- */
 interface IResolveChainDeps {
 	readonly strategies: readonly ISubagentLookupStrategy[];
 	readonly cacheGet: (toolCallId: string) => string | undefined;
 	readonly cacheSet: (toolCallId: string, agentId: string) => void;
 }
 
-/**
- * Chain orchestration extracted so it can be tested in isolation. Cache
- * hit short-circuits the chain; otherwise strategies run in order, the
- * first non-undefined hit wins, the cache is populated.
- *
- * Cancellation is checked between strategies — a cancelled token resolves
- * to `undefined`.
- */
 export async function resolveAgentIdViaChain(
 	toolCallId: string,
 	ctx: ISubagentLookupContext,
@@ -381,11 +318,6 @@ export async function resolveAgentIdViaChain(
 	return undefined;
 }
 
-/**
- * Build the production strategy chain. Pulled out so callers
- * ({@link getSubagentTranscript}, tests, etc.) construct a single
- * canonical ordering instead of inlining it.
- */
 function buildDefaultStrategies(sdk: IClaudeAgentSdkService, logService: ILogService): readonly ISubagentLookupStrategy[] {
 	return [
 		new TextSuffixStrategy(sdk, logService),
@@ -395,17 +327,6 @@ function buildDefaultStrategies(sdk: IClaudeAgentSdkService, logService: ILogSer
 	];
 }
 
-/**
- * Fetch a subagent's transcript by URI. Cache lookup goes through the
- * parent session's {@link SubagentRegistry} (each spawn carries its
- * `agentId`); on a miss, the strategy chain runs and the resolved
- * agentId is recorded back onto the spawn (first-writer-wins) for
- * future calls.
- *
- * Resilient: returns `[]` on any unresolvable agentId or SDK error
- * after warn-logging. Throws only on a malformed (non-subagent) URI,
- * which indicates a programming error in the caller.
- */
 export async function getSubagentTranscript(
 	subagentUri: URI,
 	parentUri: URI,

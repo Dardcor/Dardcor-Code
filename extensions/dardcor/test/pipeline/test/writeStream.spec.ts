@@ -40,9 +40,6 @@ describe('openWriteStream', () => {
 	});
 
 	test('does not raise uncaughtException when the file system rejects the write', async () => {
-		// Writing to a directory path that does not exist surfaces as an async
-		// `'error'` event on the stream. Without our `'error'` listener this would
-		// terminate the process; we expect the write or close to reject instead.
 		const missingDir = path.join(tmpDir, 'does-not-exist', 'out.txt');
 		const writer = openWriteStream(missingDir);
 

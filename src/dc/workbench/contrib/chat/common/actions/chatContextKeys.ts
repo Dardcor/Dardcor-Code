@@ -71,39 +71,14 @@ export namespace ChatContextKeys {
 	export const enabled = new RawContextKey<boolean>('chatIsEnabled', false, { type: 'boolean', description: localize('chatIsEnabled', "True when chat is enabled because a default chat participant is activated with an implementation.") });
 	export const accountPolicyGateActive = ChatAccountPolicyGateActiveContext;
 
-	/**
-	 * True when the chat widget is locked to the coding agent session.
-	 */
 	export const lockedToCodingAgent = new RawContextKey<boolean>('lockedToCodingAgent', false, { type: 'boolean', description: localize('lockedToCodingAgent', "True when the chat widget is locked to the coding agent session.") });
 	export const lockedCodingAgentId = new RawContextKey<string>('lockedCodingAgentId', '', { type: 'string', description: localize('lockedCodingAgentId', "The agent ID when the chat widget is locked to a coding agent session.") });
-	/**
-	 * Widget-scoped: true when the chat shown in this widget is read-only (non-interactive),
-	 * e.g. an observable worker chat. Read-only chats hide the composer and do not offer
-	 * mutating actions such as Start Over or Restore Checkpoint.
-	 */
 	export const readOnly = new RawContextKey<boolean>('chatIsReadonly', false, { type: 'boolean', description: localize('chatIsReadonly', "True when the chat shown in the widget is read-only (non-interactive).") });
-	/**
-	 * Widget-scoped: true when this chat widget is locked to an Agent Host-backed chat session.
-	 */
 	export const chatIsAgentHostSession = new RawContextKey<boolean>('chatIsAgentHostSession', false, { type: 'boolean', description: localize('chatIsAgentHostSession', "True when the chat widget is locked to an Agent Host session.") });
-	/**
-	 * Widget-scoped: logical Agent Host provider ID for this chat widget, e.g. `copilotcli`, `claude`, or `codex`.
-	 */
 	export const chatAgentHostProviderId = new RawContextKey<string>('chatAgentHostProviderId', '', { type: 'string', description: localize('chatAgentHostProviderId', "The Agent Host provider ID when the chat widget is locked to an Agent Host session.") });
-	/** Widget-scoped: whether the locked Agent Host provider pins an immutable primary working directory. */
 	export const chatAgentHostHasImmutablePrimaryWorkingDirectory = new RawContextKey<boolean>('chatAgentHostHasImmutablePrimaryWorkingDirectory', false, { type: 'boolean', description: localize('chatAgentHostHasImmutablePrimaryWorkingDirectory', "True when the locked Agent Host provider pins an immutable primary working directory.") });
-	/** Widget-scoped: whether the multi-root Folder picker should be shown for this session. Defaults to hidden; the harness decision reveals it, so the chip never flashes visible-then-hidden. */
 	export const chatAgentHostFolderPickerVisible = new RawContextKey<boolean>('chatAgentHostFolderPickerVisible', false, { type: 'boolean', description: localize('chatAgentHostFolderPickerVisible', "True when the multi-root Folder picker should be shown for this Agent Host session (revealed by the harness decision).") });
-	/**
-	 * True when the chat session has a customAgentTarget defined in its contribution,
-	 * which means the mode picker should be shown with filtered custom agents.
-	 */
 	export const chatSessionHasCustomAgentTarget = new RawContextKey<boolean>('chatSessionHasCustomAgentTarget', false, { type: 'boolean', description: localize('chatSessionHasCustomAgentTarget', "True when the chat session has a customAgentTarget defined to filter modes.") });
-	/**
-	 * True when the current chat session has models that specifically target it
-	 * via `targetChatSessionType`, which means the model picker should be shown
-	 * even when the widget is locked to a coding agent.
-	 */
 	export const chatSessionHasTargetedModels = new RawContextKey<boolean>('chatSessionHasTargetedModels', false, { type: 'boolean', description: localize('chatSessionHasTargetedModels', "True when the chat session has language models that target it via targetChatSessionType.") });
 	export const agentSupportsAttachments = new RawContextKey<boolean>('agentSupportsAttachments', false, { type: 'boolean', description: localize('agentSupportsAttachments', "True when the chat agent supports attachments.") });
 	export const withinEditSessionDiff = new RawContextKey<boolean>('withinEditSessionDiff', false, { type: 'boolean', description: localize('withinEditSessionDiff', "True when the chat widget dispatches to the edit session chat.") });
@@ -135,7 +110,6 @@ export namespace ChatContextKeys {
 	export const hasRemoteCodingAgent = new RawContextKey<boolean>('hasRemoteCodingAgent', false, localize('hasRemoteCodingAgent', "Whether any remote coding agent is available"));
 	export const hasCanDelegateProviders = new RawContextKey<boolean>('chatHasCanDelegateProviders', false, { type: 'boolean', description: localize('chatHasCanDelegateProviders', "True when there are chat session providers with delegation support available.") });
 	export const enableRemoteCodingAgentPromptFileOverlay = new RawContextKey<boolean>('enableRemoteCodingAgentPromptFileOverlay', false, localize('enableRemoteCodingAgentPromptFileOverlay', "Whether the remote coding agent prompt file overlay feature is enabled"));
-	/** Used by the extension to skip the quit confirmation when #new wants to open a new folder */
 	export const skipChatRequestInProgressMessage = new RawContextKey<boolean>('chatSkipRequestInProgressMessage', false, { type: 'boolean', description: localize('chatSkipRequestInProgressMessage', "True when the chat request in progress message should be skipped.") });
 
 	// Re-exported from chat entitlement service
@@ -168,10 +142,6 @@ export namespace ChatContextKeys {
 	export const agentSessionsViewerPosition = new RawContextKey<number>('agentSessionsViewerPosition', undefined, { type: 'number', description: localize('agentSessionsViewerPosition', "Position of the agent sessions view in the chat view.") });
 	export const agentSessionsViewerVisible = new RawContextKey<boolean>('agentSessionsViewerVisible', undefined, { type: 'boolean', description: localize('agentSessionsViewerVisible', "Visibility of the agent sessions view in the chat view.") });
 	export const agentSessionType = new RawContextKey<string>('chatSessionType', '', { type: 'string', description: localize('agentSessionType', "The type of the current agent session item.") });
-	/**
-	 * Whether the agent session item has an associated pull request. Tri-state, so gate with
-	 * `chatSessionPullRequest != 'none'` to keep contributions visible when the state is unknown.
-	 */
 	export const agentSessionPullRequest = new RawContextKey<string>('chatSessionPullRequest', '', { type: 'string', description: localize('agentSessionPullRequest', "Whether the current agent session item has an associated pull request: 'available' or 'none'. Unset when the pull request state is unknown.") });
 	export const chatSessionSupportsDelegation = new RawContextKey<boolean>('chatSessionSupportsDelegation', true, { type: 'boolean', description: localize('chatSessionSupportsDelegation', "True when the current session type supports delegation.") });
 	export const hasPendingDelegationTarget = new RawContextKey<boolean>('chatHasPendingDelegationTarget', false, { type: 'boolean', description: localize('chatHasPendingDelegationTarget', "True when a delegation (continue in) target is selected but the request has not been submitted yet.") });
@@ -186,15 +156,11 @@ export namespace ChatContextKeys {
 
 	export const isKatexMathElement = new RawContextKey<boolean>('chatIsKatexMathElement', false, { type: 'boolean', description: localize('chatIsKatexMathElement', "True when focusing a KaTeX math element.") });
 
-	/**
-	 * True when the user has submitted a chat request using any of the `/create-*` slash commands.
-	 * This is persisted in application storage and used to suppress onboarding tips once discovered.
-	 */
 	export const hasUsedCreateSlashCommands = new RawContextKey<boolean>('chatHasUsedCreateSlashCommands', false, { type: 'boolean', description: localize('chatHasUsedCreateSlashCommands', "True when the user has used any of the /create-* slash commands.") });
 
 	export const contextUsageHasBeenOpened = new RawContextKey<boolean>('chatContextUsageHasBeenOpened', false, { type: 'boolean', description: localize('chatContextUsageHasBeenOpened', "True when the user has opened the context window usage details.") });
 
-	export const newChatButtonExperimentIcon = new RawContextKey<string>('chatNewChatButtonExperimentIcon', '', { type: 'string', description: localize('chatNewChatButtonExperimentIcon', "The icon variant for the new chat button, controlled by experiment. Values: 'copilot', 'new-session', 'comment', or empty for default.") });
+	export const newChatButtonExperimentIcon = new RawContextKey<string>('chatNewChatButtonExperimentIcon', '', { type: 'string', description: localize('chatNewChatButtonExperimentIcon', "The icon variant for the new chat button, controlled by experiment. Values: 'dardcor', 'new-session', 'comment', or empty for default.") });
 }
 
 export namespace ChatContextKeyExprs {
@@ -204,17 +170,8 @@ export namespace ChatContextKeyExprs {
 		ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
 	);
 
-	/**
-	 * True when the locked coding agent is an Agent Host session.
-	 * These sessions use {@link AgentHostSnapshotController} which supports checkpoint-based restore.
-	 */
 	export const isAgentHostSession = ChatContextKeys.chatIsAgentHostSession.isEqualTo(true);
 
-	/**
-	 * True when an agent session item (e.g. in the sessions viewer) is an agent
-	 * host session (agent-host-* or remote-*). Keyed on {@link ChatContextKeys.agentSessionType}
-	 * rather than the locked coding agent, for use in session item menus and keybindings.
-	 */
 	export const isAgentHostSessionItem = ContextKeyExpr.or(
 		ContextKeyExpr.regex(ChatContextKeys.agentSessionType.key, /^agent-host-/),
 		ContextKeyExpr.regex(ChatContextKeys.agentSessionType.key, /^remote-/),

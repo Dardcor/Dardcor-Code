@@ -85,17 +85,17 @@ suite('Diff', () => {
 	test('LcsDiff - different strings tests', function () {
 		this.timeout(10000);
 		lcsTest('heLLo world', 'hello orlando', 'heo orld');
-		lcsTest('abcde', 'acd', 'acd'); // simple
-		lcsTest('abcdbce', 'bcede', 'bcde'); // skip
-		lcsTest('abcdefgabcdefg', 'bcehafg', 'bceafg'); // long
-		lcsTest('abcde', 'fgh', ''); // no match
+		lcsTest('abcde', 'acd', 'acd');
+		lcsTest('abcdbce', 'bcede', 'bcde');
+		lcsTest('abcdefgabcdefg', 'bcehafg', 'bceafg');
+		lcsTest('abcde', 'fgh', '');
 		lcsTest('abcfabc', 'fabc', 'fabc');
 		lcsTest('0azby0', '9axbzby9', 'azby');
 		lcsTest('0abc00000', '9a1b2c399999', 'abc');
 
-		lcsTest('fooBar', 'myfooBar', 'fooBar'); // all insertions
-		lcsTest('fooBar', 'fooMyBar', 'fooBar'); // all insertions
-		lcsTest('fooBar', 'fooBar', 'fooBar'); // identical sequences
+		lcsTest('fooBar', 'myfooBar', 'fooBar');
+		lcsTest('fooBar', 'fooMyBar', 'fooBar');
+		lcsTest('fooBar', 'fooBar', 'fooBar');
 	});
 });
 
@@ -106,8 +106,6 @@ suite('Diff - Ported from VS', () => {
 		const left = 'abcdef';
 		const right = 'abxxcyyydzzzzezzzzzzzzzzzzzzzzzzzzf';
 
-		// We use a long non-matching portion at the end of the right-side string, so the backwards tracking logic
-		// doesn't get there first.
 		let predicateCallCount = 0;
 
 		let diff = new LcsDiff(new StringDiffSequence(left), new StringDiffSequence(right), function (leftIndex, longestMatchSoFar) {
@@ -117,23 +115,19 @@ suite('Diff - Ported from VS', () => {
 
 			assert.strictEqual(leftIndex, 1);
 
-			// cancel processing
 			return false;
 		});
 		let changes = diff.ComputeDiff(true).changes;
 
 		assert.strictEqual(predicateCallCount, 1);
 
-		// Doesn't include 'c', 'd', or 'e', since we quit on the first request
 		assertAnswer(left, right, changes, 'abf');
 
 
 
-		// Cancel after the first match ('c')
 		diff = new LcsDiff(new StringDiffSequence(left), new StringDiffSequence(right), function (leftIndex, longestMatchSoFar) {
-			assert(longestMatchSoFar <= 1); // We never see a match of length > 1
+			assert(longestMatchSoFar <= 1);
 
-			// Continue processing as long as there hasn't been a match made.
 			return longestMatchSoFar < 1;
 		});
 		changes = diff.ComputeDiff(true).changes;
@@ -142,11 +136,9 @@ suite('Diff - Ported from VS', () => {
 
 
 
-		// Cancel after the second match ('d')
 		diff = new LcsDiff(new StringDiffSequence(left), new StringDiffSequence(right), function (leftIndex, longestMatchSoFar) {
-			assert(longestMatchSoFar <= 2); // We never see a match of length > 2
+			assert(longestMatchSoFar <= 2);
 
-			// Continue processing as long as there hasn't been a match made.
 			return longestMatchSoFar < 2;
 		});
 		changes = diff.ComputeDiff(true).changes;
@@ -155,14 +147,12 @@ suite('Diff - Ported from VS', () => {
 
 
 
-		// Cancel *one iteration* after the second match ('d')
 		let hitSecondMatch = false;
 		diff = new LcsDiff(new StringDiffSequence(left), new StringDiffSequence(right), function (leftIndex, longestMatchSoFar) {
-			assert(longestMatchSoFar <= 2); // We never see a match of length > 2
+			assert(longestMatchSoFar <= 2);
 
 			const hitYet = hitSecondMatch;
 			hitSecondMatch = longestMatchSoFar > 1;
-			// Continue processing as long as there hasn't been a match made.
 			return !hitYet;
 		});
 		changes = diff.ComputeDiff(true).changes;
@@ -171,11 +161,9 @@ suite('Diff - Ported from VS', () => {
 
 
 
-		// Cancel after the third and final match ('e')
 		diff = new LcsDiff(new StringDiffSequence(left), new StringDiffSequence(right), function (leftIndex, longestMatchSoFar) {
-			assert(longestMatchSoFar <= 3); // We never see a match of length > 3
+			assert(longestMatchSoFar <= 3);
 
-			// Continue processing as long as there hasn't been a match made.
 			return longestMatchSoFar < 3;
 		});
 		changes = diff.ComputeDiff(true).changes;

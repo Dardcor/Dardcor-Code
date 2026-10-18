@@ -117,7 +117,6 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 
 		const hover = this._store.add(this._hoverService.setupManagedHover(this._hoverDelegate, container, this.getTooltip()));
 
-		// update label & tooltip when window title changes
 		this._store.add(this._windowTitle.onDidChange(() => {
 			hover.update(this.getTooltip());
 		}));
@@ -135,7 +134,6 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 		for (let i = 0; i < groups.length; i++) {
 			const group = groups[i];
 
-			// nested toolbar
 			const toolbar = this._instaService.createInstance(WorkbenchToolBar, container, {
 				hiddenItemStrategy: HiddenItemStrategy.NoHide,
 				telemetrySource: 'commandCenterCenter',
@@ -163,8 +161,6 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 							container.role = 'button';
 							container.setAttribute('aria-description', this.getTooltip());
 
-							// When agent control mode is 'compact', hide search icon and left-align the label
-							// Backward compat: the old boolean setting (true) and the new default (undefined) both map to compact
 							const aiFeaturesDisabled = that._configurationService.getValue<boolean>(ChatAIDisabledSettingId) === true;
 							const aiCustomizationsDisabled = that._configurationService.getValue<boolean>('disableAICustomizations') === true
 								|| that._configurationService.getValue<boolean>('workbench.disableAICustomizations') === true;
@@ -175,13 +171,11 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 
 							const action = this.action;
 
-							// icon (search) - hidden in compact mode
 							const searchIcon = document.createElement('span');
 							searchIcon.ariaHidden = 'true';
 							searchIcon.className = action.class ?? '';
 							searchIcon.classList.add('search-icon');
 
-							// label: just workspace name and optional decorations
 							const label = this._getLabel();
 							const labelElement = document.createElement('span');
 							labelElement.classList.add('search-label');
@@ -194,13 +188,11 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 
 							const hover = this._store.add(that._hoverService.setupManagedHover(that._hoverDelegate, container, this.getTooltip()));
 
-							// update label & tooltip when window title changes
 							this._store.add(that._windowTitle.onDidChange(() => {
 								hover.update(this.getTooltip());
 								labelElement.textContent = this._getLabel();
 							}));
 
-							// update label & tooltip when tabs visibility changes
 							this._store.add(that._editorGroupService.onDidChangeEditorPartOptions(({ newPartOptions, oldPartOptions }) => {
 								if (newPartOptions.showTabs !== oldPartOptions.showTabs) {
 									hover.update(this.getTooltip());
@@ -240,7 +232,6 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 			this._store.add(toolbar);
 
 
-			// spacer
 			if (i < groups.length - 1) {
 				const icon = renderIcon(Codicon.circleSmallFilled);
 				icon.style.padding = '0 8px';
@@ -253,7 +244,6 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 
 	protected override getTooltip() {
 
-		// tooltip: full windowTitle
 		const kb = this._keybindingService.lookupKeybinding(this.action.id)?.getLabel();
 		const title = kb
 			? localize('title', "Search {0} ({1}) \u2014 {2}", this._windowTitle.workspaceName, kb, this._windowTitle.value)

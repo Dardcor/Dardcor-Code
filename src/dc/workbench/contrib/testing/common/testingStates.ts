@@ -8,11 +8,6 @@ import { TestResultState } from './testTypes.js';
 
 export type TreeStateNode = { statusNode: true; state: TestResultState; priority: number };
 
-/**
- * List of display priorities for different run states. When tests update,
- * the highest-priority state from any of their children will be the state
- * reflected in the parent node.
- */
 export const statePriority: { [K in TestResultState]: number } = {
 	[TestResultState.Running]: 6,
 	[TestResultState.Errored]: 5,
@@ -56,11 +51,6 @@ export const maxPriority = (...states: TestResultState[]) => {
 
 export const statesInOrder = Object.keys(statePriority).map(s => Number(s) as TestResultState).sort(cmpPriority);
 
-/**
- * Some states are considered terminal; once these are set for a given test run, they
- * are not reset back to a non-terminal state, or to a terminal state with lower
- * priority.
- */
 export const terminalStatePriorities: { [key in TestResultState]?: number } = {
 	[TestResultState.Passed]: 0,
 	[TestResultState.Skipped]: 1,
@@ -68,12 +58,8 @@ export const terminalStatePriorities: { [key in TestResultState]?: number } = {
 	[TestResultState.Errored]: 3,
 };
 
-/**
- * Count of the number of tests in each run state.
- */
 export type TestStateCount = { [K in TestResultState]: number };
 
 export const makeEmptyCounts = (): TestStateCount => {
-	// shh! don't tell anyone this is actually an array!
 	return new Uint32Array(statesInOrder.length) as unknown as TestStateCount;
 };

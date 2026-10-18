@@ -24,11 +24,6 @@ import { renderChangesSummaryFileList } from './chatChangesSummaryPart.js';
 import { ChatCollapsibleContentPart } from './chatCollapsibleContentPart.js';
 import { IChatContentPart, IChatContentPartRenderContext } from './chatContentParts.js';
 
-/**
- * Renders a single agent turn's changes as a checkpoint-style summary: a
- * `N files changed +ins -del` header, where the counts open the changes and the
- * rest of the header is a disclosure that expands to the list of changed files.
- */
 export class ChatTurnPillsContentPart extends Disposable implements IChatContentPart {
 
 	readonly domNode: HTMLElement;
@@ -49,8 +44,6 @@ export class ChatTurnPillsContentPart extends Disposable implements IChatContent
 		this.domNode = $('.chat-turn-pills-part');
 
 		const providedDiffs = this._chatResponseFileChangesService.getChangesForRequest(_content.sessionResource, _content.requestId) ?? constObservable([]);
-		// The provider observable is rebuilt on reconnect and starts out empty, so
-		// keep the last non-empty result rather than dropping a rendered summary.
 		this._diffs = derivedObservableWithCache<readonly IEditSessionEntryDiff[]>(this, (reader, lastValue) => {
 			const diffs = providedDiffs.read(reader);
 			return diffs.length > 0 || diffs === AUTHORITATIVE_EMPTY_CHAT_RESPONSE_FILE_CHANGES ? diffs : (lastValue ?? diffs);

@@ -65,7 +65,6 @@ suite('ChatResponseAccessibleView', () => {
 				},
 				language: 'bash'
 			};
-			// Should prefer userEdited over toolEdited over original
 			assert.strictEqual(getToolSpecificDataDescription(terminalData), 'npm install --save-dev');
 		});
 
@@ -212,9 +211,9 @@ suite('ChatResponseAccessibleView', () => {
 			};
 			const result = getToolSpecificDataDescription(resourcesData);
 			assert.ok(result.includes('file1.ts'));
-			assert.ok(result.includes(':1')); // Line number included for Locations
+			assert.ok(result.includes(':1'));
 			assert.ok(result.includes('file2.ts'));
-			assert.ok(result.includes(':5')); // Line number included for Locations
+			assert.ok(result.includes(':5'));
 		});
 
 		test('returns resources list for mixed URIs and Locations', () => {
@@ -228,7 +227,7 @@ suite('ChatResponseAccessibleView', () => {
 			const result = getToolSpecificDataDescription(resourcesData);
 			assert.ok(result.includes('file1.ts'));
 			assert.ok(result.includes('file2.ts'));
-			assert.ok(result.includes(':10')); // Line number for Location only
+			assert.ok(result.includes(':10'));
 		});
 
 		test('returns empty for empty resources array', () => {
@@ -410,7 +409,6 @@ suite('ChatResponseAccessibleView', () => {
 				details,
 				true
 			);
-			// Should have tool-specific data but not the "Input:" label
 			assert.ok(result.includes('npm test'));
 			assert.ok(!result.includes('Input:'));
 		});

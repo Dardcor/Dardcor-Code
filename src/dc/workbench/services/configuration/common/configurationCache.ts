@@ -25,7 +25,6 @@ export class ConfigurationCache implements IConfigurationCache {
 	}
 
 	needsCaching(resource: URI): boolean {
-		// Cache all non native resources
 		return !this.donotCacheResourcesWithSchemes.includes(resource.scheme);
 	}
 

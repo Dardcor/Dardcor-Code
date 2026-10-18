@@ -132,13 +132,9 @@ export default defineThemedFixtureGroup({ path: 'chat/input/' }, {
 		render: context => renderChatInput(context, { agentHostSessionConfig: copilotHarnessSessionConfig, width: 500, resizeWidths: [180] }),
 	}),
 	WithArtifacts: defineComponentFixture({ render: context => renderChatInput(context, { artifacts: sampleArtifacts }) }),
-	// The notice/input seam, the subject of #330483. Driven through the real
-	// notification service so the squared corner comes from the stack.
 	WithNotification: defineComponentFixture({
 		render: context => renderChatInput(context, { notification: sampleNotification })
 	}),
-	// A run of three: notice, todo list, then the input. Covers a notice docking
-	// to a widget rather than straight to the input.
 	WithNotificationAndTodos: defineComponentFixture({
 		render: context => renderChatInput(context, { notification: sampleNotification, todos: sampleTodos })
 	}),
@@ -161,9 +157,6 @@ export default defineThemedFixtureGroup({ path: 'chat/input/' }, {
 			todos: sampleTodos,
 		})
 	}),
-	// Standalone dictation / Voice Mode controls, shown when the segmented voice
-	// pill isn't active. Each state changes part of the border / color / glow
-	// cascade, so they are covered individually.
 	VoiceDictationIdle: defineComponentFixture({ render: context => renderChatInput(context, { voiceControl: 'dictationIdle' }) }),
 	VoiceDictationRecording: defineComponentFixture({ render: context => renderChatInput(context, { voiceControl: 'dictationRecording' }) }),
 	VoiceDictationPreparing: defineComponentFixture({ render: context => renderChatInput(context, { voiceControl: 'dictationPreparing' }) }),
@@ -173,12 +166,10 @@ export default defineThemedFixtureGroup({ path: 'chat/input/' }, {
 	VoiceModeSpeaking: defineComponentFixture({ render: context => renderChatInput(context, { voiceControl: 'voiceSpeaking' }) }),
 	VoiceModeDisconnect: defineComponentFixture({ render: context => renderChatInput(context, { voiceControl: 'voiceDisconnect' }) }),
 
-	// Where the pet lands, with and without a notice docked above the input (#332570).
 	WithPet: defineComponentFixture({ render: context => renderChatInput(context, { pet: true }) }),
 	WithPetAndNotification: defineComponentFixture({
 		render: context => renderChatInput(context, { pet: true, notification: sampleNotification })
 	}),
-	// Notification and todo list are separate stack members, so they genuinely coexist.
 	WithPetAndNotificationAndTodos: defineComponentFixture({
 		render: context => renderChatInput(context, { pet: true, notification: sampleNotification, todos: sampleTodos })
 	}),

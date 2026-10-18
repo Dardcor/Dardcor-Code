@@ -48,7 +48,6 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
     }
   }, [isExpanded]);
 
-  // Sync models from existing config
   useEffect(() => {
     if (status?.opencode?.models) {
       setSelectedModels(status.opencode.models);
@@ -57,7 +56,6 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
       setActiveModel(status.opencode.activeModel);
     }
 
-    // Parse subagent settings from agent.explorer if exists
     if (status?.config?.agent?.explorer?.model?.startsWith("dardcor-code/")) {
       setSubagentModel(status.config.agent.explorer.model.replace("dardcor-code/", ""));
     }
@@ -148,7 +146,6 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
       });
       const data = await res.json();
       if (res.ok) {
-        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkStatus();
@@ -289,8 +286,8 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
           {!checking && status?.installed && (
             <>
               <div className="flex flex-col gap-2">
-                {/* Current base URL */}
-                {/* Endpoint (selector) */}
+                {}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Select Endpoint</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -306,7 +303,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
                   />
                 </div>
 
-                {/* Current configured */}
+                {}
                 {status?.config?.provider?.["dardcor-code"]?.options?.baseURL && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
@@ -317,14 +314,14 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
                   </div>
                 )}
 
-                {/* API Key */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">API Key</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                   <ApiKeySelect value={selectedApiKey} onChange={setSelectedApiKey} apiKeys={apiKeys} cloudEnabled={cloudEnabled} />
                 </div>
 
-                {/* Models */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-start sm:gap-2">
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right pt-1">Models</span>
                   <span className="material-symbols-outlined text-text-muted text-[14px] mt-1.5">arrow_forward</span>
@@ -404,7 +401,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
                   </div>
                 </div>
 
-                {/* Subagent Model */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Subagent Model</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>

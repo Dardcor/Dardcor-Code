@@ -9,7 +9,6 @@ import { alert as ariaAlert } from '../../../../../base/browser/ui/aria/aria.js'
 import { renderIcon } from '../../../../../base/browser/ui/iconLabel/iconLabels.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
-import { IMarkdownString } from '../../../../../base/common/htmlContent.js';
 import { KeyCode } from '../../../../../base/common/keyCodes.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { autorun } from '../../../../../base/common/observable.js';
@@ -25,27 +24,16 @@ import { ChatRequestQueueKind, ChatSendResult, IChatSendRequestOptions, IChatSer
 import { IChatSessionHistoryItem, IChatSessionsService } from '../../common/chatSessionsService.js';
 import { getChatSessionType } from '../../common/model/chatUri.js';
 import { heuristicScore, IRoutableSession, isHighConfidenceSessionRoute, ISessionRouteResult, ISessionRouter, ROUTER_FIELD_CLIP_LENGTH } from '../../common/sessionRouter.js';
-import { AgentSessionProviders, AgentSessionTarget } from '../agentSessions/agentSessions.js';
-import { IAgentHostNewSessionFolderService } from '../agentSessions/agentHost/agentHostNewSessionFolderService.js';
-import { IAgentSession, AgentSessionStatus } from '../agentSessions/agentSessionsModel.js';
-import { IAgentSessionsService } from '../agentSessions/agentSessionsService.js';
 import { IChatWidgetService } from '../chat.js';
 import { ChatWidget } from '../widget/chatWidget.js';
 import { parseExplicitNewSessionRequest, resolveNewSessionWorkspaceFolder, ROUTE_ENRICH_MAX_CANDIDATES, selectBestSessionRoute, selectRouterShortlist } from './chatSessionRoutingHelpers.js';
 
 import './media/chatSessionRouting.css';
 
-/** Maximum number of high-confidence session options shown in the destination picker. */
 const ROUTE_MAX_CHOICES = 6;
 
-/**
- * How long the pending-send badge counts down before auto-dispatching to the
- * routed target. Long enough to read the target and intervene, short enough to
- * keep a hands-free/voice flow moving.
- */
 const ROUTE_AUTOSEND_DELAY_MS = 10000;
 
-/** Resolved destination for a submitted request: an existing session or a new one. */
 type PendingTarget =
 	| { readonly kind: 'session'; readonly sessionId: string; readonly label: string; readonly confidence: number }
 	| NewSessionTarget;
@@ -67,42 +55,11 @@ interface IDispatchResult {
 
 type SubmissionPhase = 'idle' | 'routing' | 'awaitingChoice' | 'dispatching';
 
-function statusToString(status: AgentSessionStatus): string {
-	switch (status) {
-		case AgentSessionStatus.Failed: return 'failed';
-		case AgentSessionStatus.Completed: return 'idle';
-		case AgentSessionStatus.InProgress: return 'working';
-		default: return 'unknown';
-	}
-}
-
-function isCopilotRoutingProvider(provider: string): boolean {
-	return provider === AgentSessionProviders.Background
-		|| provider === AgentSessionProviders.Cloud
-		|| provider === AgentSessionProviders.AgentHostCopilot;
-}
-
-/** Flatten a `string | IMarkdownString | undefined` field to plain text. */
-function markdownToText(value: string | IMarkdownString | undefined): string | undefined {
-	if (!value) {
-		return undefined;
-	}
-	const text = (typeof value === 'string' ? value : value.value).trim();
-	return text || undefined;
-}
-
-/**
- * Extract plain text from a response history item by concatenating its markdown
- * parts. Kept coarse and clipped: the router only needs a gist of the latest
- * response, not a faithful render, so non-text parts (tools, trees, etc.) are
- * ignored. Returns `undefined` when the response has no textual content.
- */
 function historyResponseToText(item: Extract<IChatSessionHistoryItem, { type: 'response' }>): string | undefined {
 	let text = '';
 	for (const part of item.parts) {
 		if (part.kind === 'markdownContent') {
 			text += part.content.value;
-			// Enough to characterize the response; avoid walking a huge transcript.
 			if (text.length >= ROUTER_FIELD_CLIP_LENGTH * 2) {
 				break;
 			}
@@ -112,48 +69,21 @@ function historyResponseToText(item: Extract<IChatSessionHistoryItem, { type: 'r
 	return text || undefined;
 }
 
-/**
- * The surface (floating input window, quick chat, …) that hosts a routed chat
- * input. Supplies the widget being routed, its own scratch session to exclude
- * from candidates, and where the advisory badge should be inserted.
- */
 export interface IChatSessionRoutingHost {
-	/** The chat widget whose submission is being routed. */
 	readonly widget: ChatWidget;
-	/** Resource of the host's own scratch session, excluded from routing candidates. */
 	getOwnSessionResource(): URI | undefined;
-	/** Session whose currently displayed question or approval the voice input answers directly. */
 	getPendingReplySessionResource?(): URI | undefined;
-	/** Session provider selected for a newly created destination. */
-	getNewSessionTarget?(): AgentSessionTarget | undefined;
-	/**
-	 * Insert the advisory badge into the host DOM near the input.
-	 * If the host has no surface to place it, leave the badge disconnected and
-	 * the controller will fall back to an immediate dispatch.
-	 */
+	getNewSessionTarget?(): any | undefined;
 	placeBadge(badge: HTMLElement): void;
-	/** Notify the host that a new request will be independently routed. */
 	onWillRoute?(): void;
-	/** Notify the host immediately before sending so stale destination state can be invalidated. */
 	onWillDispatchRoute?(resource: URI): void;
-	/** Roll back pre-dispatch state when the send is rejected or fails. */
 	onDidRejectRoute?(resource: URI): void;
-	/** Notify the host when a single-target route resolves, or clear it for fan-out. */
 	onDidResolveRoute?(resource: URI | undefined, kind?: 'existing_session' | 'new_session', isVoiceModeInput?: boolean, requestId?: string): void;
 }
 
-/**
- * Shared routing + advisory-badge behaviour for chat input surfaces. Scores a
- * submitted utterance against existing agent sessions, resolves a pending target
- * (best match above threshold, else a new session), then shows a ranked panel
- * that counts down and auto-sends. The user can change or fan out the selection,
- * abort, or keep typing to cancel before it fires.
- */
 export class ChatSessionRoutingController extends Disposable {
 
-	/** Active pending-send badge + auto-send timers; replaced/cleared per submission. */
 	private readonly _pendingSend = this._register(new MutableDisposable<IDisposable>());
-	/** Cancellation for the in-flight submission; canceled when the host tears down. */
 	private readonly _submitCts = this._register(new MutableDisposable<CancellationTokenSource>());
 	private readonly _submitDraftListeners = this._register(new MutableDisposable<IDisposable>());
 
@@ -161,24 +91,16 @@ export class ChatSessionRoutingController extends Disposable {
 		private readonly host: IChatSessionRoutingHost,
 		private readonly debugOwner: string,
 		@IChatService private readonly chatService: IChatService,
-		@IAgentSessionsService private readonly agentSessionsService: IAgentSessionsService,
 		@IChatSessionsService private readonly chatSessionsService: IChatSessionsService,
 		@ISessionRouter private readonly sessionRouter: ISessionRouter,
 		@IChatWidgetService private readonly chatWidgetService: IChatWidgetService,
 		@ILogService private readonly logService: ILogService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
-		@IAgentHostNewSessionFolderService private readonly newSessionFolderService: IAgentHostNewSessionFolderService,
 		@IQuickInputService private readonly quickInputService: IQuickInputService,
 	) {
 		super();
 	}
 
-	/**
-	 * Intercept a submission before local execution: score it against existing
-	 * sessions, resolve a pending target, and show the advisory badge. Always
-	 * returns `true` (handled) so the input-only widget never runs the request on
-	 * its own scratch session.
-	 */
 	async handleSubmit(query: string, _mode: ChatModeKind, attachedContext?: IChatRequestVariableEntry[], isVoiceModeInput?: boolean): Promise<boolean> {
 		const submittedUtterance = query.trim();
 		if (!submittedUtterance) {
@@ -187,20 +109,13 @@ export class ChatSessionRoutingController extends Disposable {
 		const explicitNewSessionTask = parseExplicitNewSessionRequest(submittedUtterance);
 		const utterance = explicitNewSessionTask ?? submittedUtterance;
 
-		// A new submission supersedes any pending badge from a previous one.
 		this._submitCts.value?.cancel();
 		this._submitDraftListeners.clear();
 		this._pendingSend.clear();
 
-		// Immediately reflect that the request was accepted so the send button
-		// greys out while routing runs (it is intercepted off-model, so the
-		// widget's own submit state never changes). Cleared when the submission
-		// resolves, is cancelled, or the user edits the draft.
 		this._setSubmissionPhase('routing');
 		ariaAlert(localize('chatSessionRouting.findingDestination', "Finding the best chat for your request."));
 
-		// The host cancels the in-flight submission on teardown so we never
-		// dispatch after close.
 		const cts = new CancellationTokenSource();
 		this._submitCts.value = cts;
 		const token = cts.token;
@@ -247,9 +162,6 @@ export class ChatSessionRoutingController extends Disposable {
 			return true;
 		}
 
-		// Every candidate receives a lightweight semantic pass before we bound the
-		// more expensive transcript enrichment. This prevents an older, generically
-		// named but relevant session from being excluded by local metadata alone.
 		const preliminaryResults = candidates.length > ROUTE_ENRICH_MAX_CANDIDATES
 			? await this._route(candidates, utterance, token)
 			: [];
@@ -296,7 +208,6 @@ export class ChatSessionRoutingController extends Disposable {
 		});
 	}
 
-	/** Cancel any in-flight submission and remove the pending badge. */
 	cancelPending(): void {
 		this._cancelPending(true);
 	}
@@ -315,7 +226,6 @@ export class ChatSessionRoutingController extends Disposable {
 		this.host.widget.input.setSubmitPending(phase !== 'idle', phase === 'routing' || phase === 'dispatching');
 	}
 
-	/** Run the router, degrading to an empty ranking on failure/cancellation. */
 	private async _route(candidates: IRoutableSession[], utterance: string, token: CancellationToken): Promise<ISessionRouteResult[]> {
 		try {
 			const results = await this.sessionRouter.route({ utterance, sessions: candidates }, token);
@@ -331,10 +241,6 @@ export class ChatSessionRoutingController extends Disposable {
 		}
 	}
 
-	/**
-	 * Pick the single pending target the badge pre-selects: the top match if it
-	 * clears the confidence threshold, otherwise a brand-new session.
-	 */
 	private _resolveTarget(results: ISessionRouteResult[], candidates: IRoutableSession[], newSessionTarget: NewSessionTarget): PendingTarget {
 		const labelById = new Map(candidates.map(c => [c.sessionId, c.label]));
 		const chosen = selectBestSessionRoute(results);
@@ -349,42 +255,8 @@ export class ChatSessionRoutingController extends Disposable {
 		};
 	}
 
-	/**
-	 * Snapshot the current agent sessions as routing candidates. Excludes the
-	 * host's own scratch session so it can never route to itself, and local chats:
-	 * routing targets the headless, out-of-view agent sessions (cloud/background/
-	 * agent-host) this surface exists to fan requests out to, and those are the
-	 * ones whose conversation content is available and meaningful to match on.
-	 * Awaits the session model so a pending first-load/refresh isn't missed.
-	 */
-	private async _collectCandidateSessions(token: CancellationToken): Promise<IRoutableSession[]> {
-		try {
-			await this.agentSessionsService.model.resolve(undefined);
-		} catch (err) {
-			this.logService.warn('[chatSessionRouting] resolving agent sessions failed:', err);
-		}
-		if (token.isCancellationRequested) {
-			return [];
-		}
-		const ownResource = this.host.getOwnSessionResource()?.toString();
-		return this.agentSessionsService.model.sessions
-			.filter(session => session.resource.toString() !== ownResource
-				&& isCopilotRoutingProvider(session.providerType)
-				&& !session.isArchived()
-				&& this.chatSessionsService.getChatSessionContribution(getChatSessionType(session.resource))?.isReadOnly !== true)
-			.map(session => this._toRoutableSession(session));
-	}
-
-	private _toRoutableSession(session: IAgentSession): IRoutableSession {
-		return {
-			sessionId: session.resource.toString(),
-			label: session.label,
-			status: statusToString(session.status),
-			lastActivity: session.timing?.lastRequestEnded ?? session.timing?.lastRequestStarted ?? session.timing?.created,
-			description: markdownToText(session.description),
-			repo: session.metadata?.repositoryPath,
-			cwd: session.metadata?.workingDirectoryPath,
-		};
+	private async _collectCandidateSessions(_token: CancellationToken): Promise<IRoutableSession[]> {
+		return [];
 	}
 
 	private _resolveNewSessionTarget(
@@ -395,7 +267,7 @@ export class ChatSessionRoutingController extends Disposable {
 	): NewSessionTarget {
 		const folders = this.workspaceContextService.getWorkspace().folders;
 		const folder = this._folderFromAttachments(attachedContext)
-			?? resolveNewSessionWorkspaceFolder(utterance, folders, results, candidates, this.newSessionFolderService.getDefaultFolder());
+			?? resolveNewSessionWorkspaceFolder(utterance, folders, results, candidates, undefined);
 		return {
 			kind: 'new',
 			label: folder
@@ -416,13 +288,6 @@ export class ChatSessionRoutingController extends Disposable {
 		return undefined;
 	}
 
-	/**
-	 * Enrich the shortlisted candidates with conversation content (first
-	 * request, most recent request, and a truncated most recent response) so the
-	 * final score can match on what a session is actually about rather than just
-	 * its title. Each fetch degrades independently: a session whose content can't
-	 * be resolved is kept as-is on its metadata.
-	 */
 	private async _enrichCandidates(candidates: IRoutableSession[], token: CancellationToken): Promise<IRoutableSession[]> {
 		return Promise.all(candidates.map(candidate => this._enrichCandidate(candidate, token)));
 	}
@@ -448,7 +313,6 @@ export class ChatSessionRoutingController extends Disposable {
 		}
 	}
 
-	/** Fold the first/most-recent request and most-recent response into a candidate. */
 	private _applyHistory(candidate: IRoutableSession, history: readonly IChatSessionHistoryItem[]): IRoutableSession {
 		let firstRequest: string | undefined;
 		let lastRequest: string | undefined;
@@ -473,10 +337,6 @@ export class ChatSessionRoutingController extends Disposable {
 		return { ...candidate, firstRequest, lastRequest, lastResponse };
 	}
 
-	/**
-	 * Show the advisory destination picker. A confident session match counts
-	 * down and auto-sends; an uncertain route waits for an explicit choice.
-	 */
 	private _beginPendingSend(
 		target: PendingTarget,
 		newSessionTarget: NewSessionTarget,
@@ -510,11 +370,6 @@ export class ChatSessionRoutingController extends Disposable {
 		this._renderCountdownBadge(badge, store, target, newSessionTarget, results, candidates, submittedInput, submittedAttachmentIds, utterance, requestOptions, cts);
 	}
 
-	/**
-	 * Confident-match badge: names the routed session and counts down, then
-	 * auto-sends. The user can select another destination, choose several,
-	 * abort, or keep typing to cancel before it fires.
-	 */
 	private _renderCountdownBadge(
 		badge: HTMLElement,
 		store: DisposableStore,
@@ -849,21 +704,16 @@ export class ChatSessionRoutingController extends Disposable {
 		let lastAnnouncement = labelElement.textContent;
 		let observedActivity = !waitForActivity;
 		const update = (requestInProgress = model?.requestInProgress.get() ?? false, needsInput = !!model?.requestNeedsInput.get()) => {
-			const sessionStatus = this.agentSessionsService.model.getSession(resource)?.status;
 			let icon = waitForActivity && !observedActivity ? Codicon.clock : Codicon.pass;
-			if (needsInput || sessionStatus === AgentSessionStatus.NeedsInput) {
+			if (needsInput) {
 				observedActivity = true;
 				icon = Codicon.question;
 				labelElement.textContent = localize('chatSessionRouting.needsInputIn', "{0} needs your input", label);
-			} else if (requestInProgress || sessionStatus === AgentSessionStatus.InProgress) {
+			} else if (requestInProgress) {
 				observedActivity = true;
 				icon = Codicon.loading;
 				labelElement.textContent = localize('chatSessionRouting.runningIn', "Running in {0}", label);
-			} else if (sessionStatus === AgentSessionStatus.Failed) {
-				observedActivity = true;
-				icon = Codicon.error;
-				labelElement.textContent = localize('chatSessionRouting.failedIn', "Failed in {0}", label);
-			} else if (observedActivity && (sessionStatus === AgentSessionStatus.Completed || model?.hasRequests)) {
+			} else if (observedActivity && model?.hasRequests) {
 				labelElement.textContent = localize('chatSessionRouting.completedIn', "Completed in {0}", label);
 			}
 			mark.replaceChildren(renderIcon(icon));
@@ -877,7 +727,6 @@ export class ChatSessionRoutingController extends Disposable {
 		} else {
 			update();
 		}
-		store.add(this.agentSessionsService.model.onDidChangeSessions(() => update()));
 	}
 
 	private _showFanoutOutcomes(targets: readonly PendingTarget[], results: readonly IDispatchResult[]): void {
@@ -950,7 +799,6 @@ export class ChatSessionRoutingController extends Disposable {
 		ariaAlert(message.textContent);
 	}
 
-	/** Append an accessible link-style action to the badge. */
 	private _addActionLink(store: DisposableStore, badge: HTMLElement, text: string, run: () => void): void {
 		const el = dom.append(badge, dom.$('a.chat-routing-badge-action', { role: 'button', tabindex: '0' }));
 		el.textContent = text;
@@ -963,7 +811,6 @@ export class ChatSessionRoutingController extends Disposable {
 		}));
 	}
 
-	/** Dispatch a resolved pending target. */
 	private async _dispatchTo(target: PendingTarget, submittedInput: string, submittedAttachmentIds: readonly string[], utterance: string, requestOptions: IChatSendRequestOptions, token: CancellationToken, notifyRoute = true): Promise<IDispatchResult> {
 		if (target.kind === 'new') {
 			return this._dispatchToNewSession(submittedInput, submittedAttachmentIds, utterance, requestOptions, token, notifyRoute, target.folder);
@@ -999,8 +846,6 @@ export class ChatSessionRoutingController extends Disposable {
 				}
 				result = await this._sendRequest(target, utterance, {
 					...requestOptions,
-					// Existing Agent Host queues retain their session model. Their
-					// remote queue protocol has no per-request model override.
 					userSelectedModelId: undefined,
 					agentIdSilent: getChatSessionType(target),
 					queue: ChatRequestQueueKind.Queued,
@@ -1045,8 +890,8 @@ export class ChatSessionRoutingController extends Disposable {
 	private async _dispatchToNewSession(submittedInput: string, submittedAttachmentIds: readonly string[], utterance: string, requestOptions: IChatSendRequestOptions, token: CancellationToken, notifyRoute: boolean, folder?: URI): Promise<IDispatchResult> {
 		let routeResource: URI | undefined;
 		try {
-			const sessionTarget = this.host.getNewSessionTarget?.() ?? AgentSessionProviders.Local;
-			const ref = sessionTarget === AgentSessionProviders.Local
+			const sessionTarget = this.host.getNewSessionTarget?.() ?? 'local';
+			const ref = sessionTarget === 'local'
 				? this.chatService.startNewLocalSession(ChatAgentLocation.Chat, { debugOwner: `${this.debugOwner}-new` })
 				: await this.chatService.acquireOrLoadSession(
 					URI.from({ scheme: sessionTarget, path: `/untitled-${generateUuid()}` }),
@@ -1064,9 +909,6 @@ export class ChatSessionRoutingController extends Disposable {
 				return { status: 'rejected' };
 			}
 			folder ??= this._resolveNewSessionTarget(utterance, requestOptions.attachedContext, [], []).folder;
-			if (folder) {
-				this.newSessionFolderService.setFolder(ref.object.sessionResource, folder);
-			}
 			let result: IDispatchResult;
 			let requestId: string | undefined;
 			try {
@@ -1075,7 +917,7 @@ export class ChatSessionRoutingController extends Disposable {
 				}
 				result = await this._sendRequest(ref.object.sessionResource, utterance, {
 					...requestOptions,
-					agentIdSilent: sessionTarget === AgentSessionProviders.Local ? undefined : sessionTarget,
+					agentIdSilent: sessionTarget === 'local' ? undefined : sessionTarget,
 				});
 				requestId = result.requestId ?? (result.status === 'sent' ? ref.object.lastRequest?.id : undefined);
 			} finally {
@@ -1118,11 +960,6 @@ export class ChatSessionRoutingController extends Disposable {
 				completion: this._resolveQueuedCompletion(resource, result.deferred),
 			};
 		}
-		// A sent result does not carry the request id directly, and reading
-		// `model.lastRequest` here races request creation (especially when an
-		// untitled agent session is replaced by its durable resource). The response
-		// model is the authoritative owner of the stable request id and is created
-		// independently of response completion, so wait only for that model.
 		const response = await result.data.responseCreatedPromise;
 		return { status: 'sent', resource: result.newSessionResource ?? resource, requestId: response.requestId };
 	}
@@ -1142,11 +979,6 @@ export class ChatSessionRoutingController extends Disposable {
 		}
 	}
 
-	/**
-	 * Clear the input (and its explicit attachments) only if the editor still
-	 * holds exactly what was submitted, so a newer draft typed while the request
-	 * was in flight is preserved.
-	 */
 	private _attachmentIds(): string[] {
 		return this.host.widget.attachmentModel.attachments.map(attachment => attachment.id);
 	}
@@ -1164,8 +996,6 @@ export class ChatSessionRoutingController extends Disposable {
 	}
 
 	override dispose(): void {
-		// The host widget can be disposed before this controller by a shared
-		// disposable store, so teardown must cancel without touching its UI.
 		this._cancelPending(false);
 		super.dispose();
 	}

@@ -10,18 +10,10 @@
 	<div id="mocha"></div>
 	<script src="../../../node_modules/mocha/mocha.js"></script>
 	<script>
-		// !!! DO NOT CHANGE !!!
-		// Our unit tests may run in environments without
-		// display (e.g. from builds) and tests may by
-		// accident bring up native dialogs or even open
-		// windows. This we cannot allow as it may crash
-		// the test run.
-		// !!! DO NOT CHANGE !!!
 		window.open = function () { throw new Error('window.open() is not supported in tests!'); };
 		window.alert = function () { throw new Error('window.alert() is not supported in tests!'); }
 		window.confirm = function () { throw new Error('window.confirm() is not supported in tests!'); }
 
-		// Ignore uncaught cancelled promise errors
 		window.addEventListener('unhandledrejection', e => {
 			const name = e && e.reason && e.reason.name;
 
@@ -37,12 +29,6 @@
 		const $globalThis = globalThis;
 		const setTimeout0IsFaster = (typeof $globalThis.postMessage === 'function' && !$globalThis.importScripts);
 
-		/**
-		 * See https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#:~:text=than%204%2C%20then-,set%20timeout%20to%204,-.
-		 *
-		 * Works similarly to `setTimeout(0)` but doesn't suffer from the 4ms artificial delay
-		 * that browsers set when the nesting level is > 5.
-		 */
 		const setTimeout0 = (() => {
 			if (setTimeout0IsFaster) {
 				const pending = [];
@@ -85,10 +71,8 @@
 		const out = !!isBuild ? 'out-build' : 'out';
 		const tasks =[];
 
-		// configure loader
 		const baseUrl = window.location.href;
 
-		// generate import map
 		const importMapParent = document.currentScript.parentNode;
 		const importMap = {
 			imports: {
@@ -102,7 +86,6 @@
 			}
 		}
 
-		// ---- CSS tricks
 
 		const cssDataBase64 = urlParams.get('_devCssData');
 		if (typeof cssDataBase64 === 'string') {
@@ -112,7 +95,6 @@
 			document.head.appendChild(style);
 
 			globalThis._VSCODE_CSS_LOAD = function (url) {
-				// debugger;
 				style.sheet.insertRule(`@import url(${url});`);
 			};
 
@@ -146,7 +128,6 @@
 			document.body.append(bootstrapScript);
 		});
 
-		// set up require
 
 		globalThis._VSCODE_FILE_ROOT = new URL('../../../src', baseUrl).href;
 		globalThis.require = {
@@ -263,10 +244,8 @@
 	<script type="text" id="bootstrap">
 		const {data: {modules, grep}, manual} = await globalThis._VSCODE_TEST_RUN
 
-		// load
 		await loadModules(modules);
 
-		// run
 		await new Promise((resolve, reject) => {
 			if (grep) {
 				mocha.grep(grep);

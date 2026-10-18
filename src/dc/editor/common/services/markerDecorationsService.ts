@@ -103,7 +103,6 @@ export class MarkerDecorationsService extends Disposable implements IMarkerDecor
 			this._markerDecorations.delete(model.uri);
 		}
 
-		// clean up markers for internal, transient models
 		if (model.uri.scheme === Schemas.inMemory
 			|| model.uri.scheme === Schemas.internal
 			|| model.uri.scheme === Schemas.vscode) {
@@ -112,10 +111,8 @@ export class MarkerDecorationsService extends Disposable implements IMarkerDecor
 	}
 
 	private _updateDecorations(markerDecorations: MarkerDecorations): void {
-		// Limit to the first 500 errors/warnings
 		let markers = this._markerService.read({ resource: markerDecorations.model.uri, take: 500 });
 
-		// filter markers from suppressed ranges
 		const suppressedRanges = this._suppressedRanges.get(markerDecorations.model.uri);
 		if (suppressedRanges) {
 			markers = markers.filter(marker => {
@@ -131,7 +128,7 @@ export class MarkerDecorationsService extends Disposable implements IMarkerDecor
 
 class MarkerDecorations extends Disposable {
 
-	private readonly _map = new BidirectionalMap<IMarker, /*decoration id*/string>();
+	private readonly _map = new BidirectionalMap<IMarker, string>();
 
 	constructor(
 		readonly model: ITextModel
@@ -145,8 +142,6 @@ class MarkerDecorations extends Disposable {
 
 	public update(markers: IMarker[]): boolean {
 
-		// We use the fact that marker instances are not recreated when different owners
-		// update. So we can compare references to find out what changed since the last update.
 
 		const { added, removed } = diffSets(new Set(this._map.keys()), new Set(markers));
 
@@ -192,8 +187,6 @@ class MarkerDecorations extends Disposable {
 		let ret = Range.lift(rawMarker);
 
 		if (rawMarker.severity === MarkerSeverity.Hint && !this._hasMarkerTag(rawMarker, MarkerTag.Unnecessary) && !this._hasMarkerTag(rawMarker, MarkerTag.Deprecated)) {
-			// * never render hints on multiple lines
-			// * make enough space for three dots
 			ret = ret.setEndPosition(ret.startLineNumber, ret.startColumn + 2);
 		}
 
@@ -204,8 +197,6 @@ class MarkerDecorations extends Disposable {
 				model.getLineMaxColumn(ret.startLineNumber);
 
 			if (maxColumn === 1 || ret.endColumn >= maxColumn) {
-				// empty line or behind eol
-				// keep the range as is, it will be rendered 1ch wide
 				return ret;
 			}
 

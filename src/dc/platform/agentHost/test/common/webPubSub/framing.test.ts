@@ -9,9 +9,8 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { Reassembler } from '../../../common/webPubSub/chunking.js';
 import { FramingError, RELIABLE_JSON_SUBPROTOCOL, buildPublish, parseInbound } from '../../../common/webPubSub/framing.js';
 
-/** Standard base64 (padded) of an ASCII string — equivalent to `btoa(s)` for ASCII input. */
 function b64(s: string): string {
-	return encodeBase64(VSBuffer.fromString(s), true /* padded */, false /* urlSafe */);
+	return encodeBase64(VSBuffer.fromString(s), true , false );
 }
 
 const GROUP = 'user.u1.env.e1.client.c1.to-client';

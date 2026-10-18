@@ -82,7 +82,7 @@ export function getOutputStreamText(output: ICellOutputViewModel): { text: strin
 const decoder = new TextDecoder();
 
 export function getOutputText(mimeType: string, buffer: IOutputItemDto, shortError: boolean = false): string {
-	let text = `${mimeType}`; // default in case we can't get the text value for some reason.
+	let text = `${mimeType}`;
 
 	const charLimit = 100000;
 	text = decoder.decode(buffer.data.slice(0, charLimit).buffer);
@@ -99,7 +99,6 @@ export function getOutputText(mimeType: string, buffer: IOutputItemDto, shortErr
 				text = error.stack;
 			}
 		} catch {
-			// just use raw text
 		}
 	}
 

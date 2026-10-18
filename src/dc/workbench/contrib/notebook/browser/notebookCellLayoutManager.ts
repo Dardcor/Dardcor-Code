@@ -36,7 +36,6 @@ export class NotebookCellLayoutManager extends Disposable {
 		this.loggingService.debug('cell layout', layoutTag);
 		const viewIndex = this._list.getViewIndex(cell);
 		if (viewIndex === undefined) {
-			// the cell is hidden
 			return;
 		}
 
@@ -58,12 +57,10 @@ export class NotebookCellLayoutManager extends Disposable {
 				}
 
 				if (!this.notebookWidget.viewModel?.hasCell(cell)) {
-					// Cell removed in the meantime?
 					return;
 				}
 
 				if (this._list.getViewIndex(cell) === undefined) {
-					// Cell can be hidden
 					return;
 				}
 
@@ -74,13 +71,10 @@ export class NotebookCellLayoutManager extends Disposable {
 				this.checkStackDepth();
 
 				if (!this.notebookWidget.hasEditorFocus()) {
-					// Do not scroll inactive notebook
-					// https://github.com/microsoft/vscode/issues/145340
 					const cellIndex = this.notebookWidget.viewModel?.getCellIndex(cell);
 					const visibleRanges = this.notebookWidget.visibleRanges;
 					if (cellIndex !== undefined
 						&& visibleRanges && visibleRanges.length && visibleRanges[0].start === cellIndex
-						// cell is partially visible
 						&& this._list.scrollTop > this.notebookWidget.getAbsoluteTopOfElement(cell)
 					) {
 						return this._list.updateElementHeight2(cell, height, Math.min(cellIndex + 1, this.notebookWidget.getLength() - 1));

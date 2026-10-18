@@ -7,7 +7,6 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { createChatFindHighlightRegistry, IChatFindHighlightWindow, supportsCssHighlightApi } from '../../../browser/widget/chatFind/chatFindHighlights.js';
 
-/** A minimal fake `Highlight` + `CSS.highlights` pair, so composition can be tested without a real browser API. */
 function fakeHighlightWindow(): IChatFindHighlightWindow & { highlights: Map<string, Set<Range>>; priorities: Map<string, number | undefined> } {
 	const highlights = new Map<string, Set<Range>>();
 	const priorities = new Map<string, number | undefined>();

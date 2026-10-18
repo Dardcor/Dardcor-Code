@@ -12,18 +12,12 @@ import { defaultButtonStyles } from '../../../../../platform/theme/browser/defau
 
 const $ = DOM.$;
 
-/**
- * Install state of a gallery item, used to drive the install button label and enablement.
- */
 export const enum GalleryItemInstallState {
 	Uninstalled,
 	Installing,
 	Installed,
 }
 
-/**
- * Adapts a list element to the data and actions a gallery row needs.
- */
 export interface IGalleryItemProvider<TElement> {
 	getLabel(element: TElement): string;
 	getPublisherDisplayName(element: TElement): string | undefined;
@@ -43,11 +37,6 @@ interface IGalleryItemTemplateData {
 	readonly templateDisposables: DisposableStore;
 }
 
-/**
- * Reusable list renderer for a gallery row with an Install button. Shared by the Chat
- * Customizations tools, MCP server and plugin marketplace lists. All rows share a single set of
- * `.gallery-item*` styles; data and actions are supplied via {@link IGalleryItemProvider}.
- */
 export class GalleryItemRenderer<TElement> implements IListRenderer<TElement, IGalleryItemTemplateData> {
 
 	constructor(

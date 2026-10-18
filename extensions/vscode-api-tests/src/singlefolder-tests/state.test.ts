@@ -11,7 +11,6 @@ suite('vscode API - globalState / workspaceState', () => {
 
 	let extensionContext: ExtensionContext;
 	suiteSetup(async () => {
-		// Trigger extension activation and grab the context as some tests depend on it
 		await extensions.getExtension('vscode.vscode-api-tests')?.activate();
 		extensionContext = global.testExtensionContext;
 	});

@@ -67,10 +67,6 @@ suite('ModelSelection', () => {
 	});
 
 	test('treats a resolved-but-empty agent-host vendor as still loading (pending)', () => {
-		// Agent-host vendors publish their models asynchronously after the agent host connects, so —
-		// like Copilot — an empty resolution during startup is transient (pending), not conclusive.
-		// This is the root fix for the "restored agent-host session shows Auto" bug: without it the
-		// absent model resolves as `unavailable`, and the restore gives up instead of waiting.
 		const resolvedVendors = new Set(['agent-host-copilotcli', 'remote-abc-copilotcli']);
 		const liveVendors = new Set<string>();
 		const vendorResolution = {
@@ -81,7 +77,6 @@ suite('ModelSelection', () => {
 		const remoteDesired = 'remote-abc-copilotcli:gpt-5.6-sol';
 		const emptyLocal = resolveModelIdentifierFromCatalog([], localDesired, vendorResolution);
 		const emptyRemote = resolveModelIdentifierFromCatalog([], remoteDesired, vendorResolution);
-		// Once the agent-host pool has published models (but not this one) the absence is conclusive.
 		liveVendors.add('agent-host-copilotcli');
 		const loadedWithout = resolveModelIdentifierFromCatalog([], localDesired, vendorResolution);
 
@@ -93,10 +88,6 @@ suite('ModelSelection', () => {
 	});
 
 	test('treats an agent-host pool of only bridged BYOK models as still loading (pending)', () => {
-		// The agent host mirrors the workbench's BYOK models into its pool as soon as the bridge is
-		// up, but its own catalog only arrives once it has connected and authenticated. That first
-		// wave must not make the vendor look live, or a restored session's model resolves as
-		// `unavailable` and the restore falls back to an arbitrary bridged model.
 		const sessionType = 'agent-host-copilotcli';
 		const hostModel = (identifier: string, byokModelIdentifier?: string): ILanguageModelChatMetadataAndIdentifier => {
 			const base = model(identifier);

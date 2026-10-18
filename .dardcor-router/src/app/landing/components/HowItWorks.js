@@ -12,10 +12,10 @@ export default function HowItWorks() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {/* Connection line */}
+          {}
           <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-[2px] bg-linear-to-r from-gray-700 via-[#f97815] to-gray-700 -z-10"></div>
           
-          {/* Step 1: CLI & SDKs */}
+          {}
           <div className="flex flex-col gap-6 relative group">
             <div className="w-24 h-24 rounded-2xl bg-[#181411] border border-[#3a2f27] flex items-center justify-center shadow-xl group-hover:border-gray-500 transition-colors z-10 mx-auto md:mx-0">
               <span className="material-symbols-outlined text-4xl text-gray-300">terminal</span>
@@ -28,7 +28,7 @@ export default function HowItWorks() {
             </div>
           </div>
 
-          {/* Step 2: Dardcor Router Hub */}
+          {}
           <div className="flex flex-col gap-6 relative group md:items-center md:text-center">
             <div className="w-24 h-24 rounded-2xl bg-[#181411] border-2 border-[#f97815] flex items-center justify-center shadow-[0_0_30px_rgba(249,120,21,0.2)] z-10 mx-auto">
               <span className="material-symbols-outlined text-4xl text-[#f97815] animate-pulse">hub</span>
@@ -41,7 +41,7 @@ export default function HowItWorks() {
             </div>
           </div>
 
-          {/* Step 3: AI Providers */}
+          {}
           <div className="flex flex-col gap-6 relative group md:items-end md:text-right">
             <div className="w-24 h-24 rounded-2xl bg-[#181411] border border-[#3a2f27] flex items-center justify-center shadow-xl group-hover:border-gray-500 transition-colors z-10 mx-auto md:mx-0">
               <div className="grid grid-cols-2 gap-2">

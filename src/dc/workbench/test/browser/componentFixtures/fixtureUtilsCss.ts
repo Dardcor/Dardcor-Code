@@ -28,38 +28,15 @@ let iconsStyleSheetCache: CSSStyleSheet | undefined;
 const themeStyleSheetCache = new WeakMap<ColorThemeData, CSSStyleSheet>();
 const installedThemes = new WeakSet<ColorThemeData>();
 
-/**
- * Controls how the bundled stylesheet documents are reordered.
- * - `false`: keep the original (product) order.
- * - `true`: reverse the order of all documents.
- * - `{ fromIndex, toIndex }`: reverse only the documents in the half-open
- *   index range `[fromIndex, toIndex)`. This is what the order-dependency
- *   bisection uses to narrow down which documents conflict.
- */
 export type ReverseStylesheetsOption = boolean | { readonly fromIndex: number; readonly toIndex: number };
 
-/**
- * Matches the `@css-source: <path>` marker that `cssSourceMarkerLoader` injects
- * before each source file's CSS in the concatenated bundle. These markers are
- * the canonical per-source-file delimiters: every CSS module processed by the
- * build gets exactly one, and it carries the module's repo-relative path.
- */
 const CSS_SOURCE_MARKER_REGEX = /\/\*\s*@css-source:\s*(\S+)\s*\*\//g;
 
 interface StylesheetDocument {
-	/** Repo-relative source path from the `@css-source` marker. */
 	readonly file: string;
-	/** The marker plus the file's CSS, up to the next marker. */
 	readonly text: string;
 }
 
-/**
- * Splits the concatenated bundle into per-source-file documents at the
- * `@css-source` markers. Any text before the first marker is returned as the
- * `preamble` and kept in place. This single definition of a "document" is used
- * for both reversal and the index→file reporting, so the bisection driver never
- * needs to understand the bundle format.
- */
 function parseStylesheetDocuments(cssText: string): { readonly preamble: string; readonly documents: readonly StylesheetDocument[] } {
 	const markers = Array.from(cssText.matchAll(CSS_SOURCE_MARKER_REGEX));
 	if (markers.length === 0) {
@@ -74,13 +51,6 @@ function parseStylesheetDocuments(cssText: string): { readonly preamble: string;
 	return { preamble, documents };
 }
 
-/**
- * Reverses the order of whole documents within `[fromIndex, toIndex)` (or all
- * documents when `option === true`), preserving rule order inside each document.
- * Because adopted stylesheets are applied after the document's `<link>`/`<style>`
- * sheets in the cascade, this reversed copy wins source-order ties and surfaces
- * order-dependent conflicts.
- */
 function reverseDocuments(cssText: string, option: Exclude<ReverseStylesheetsOption, false>): string {
 	const { preamble, documents } = parseStylesheetDocuments(cssText);
 	if (documents.length < 2) {
@@ -96,11 +66,6 @@ function reverseDocuments(cssText: string, option: Exclude<ReverseStylesheetsOpt
 	return preamble + reordered.map(doc => doc.text).join('');
 }
 
-/**
- * Reads the raw source text of a stylesheet (which, unlike `cssRules`, retains
- * comments such as the `@css-source` markers). Falls back to serialized rules
- * when the source cannot be read.
- */
 async function readStyleSheetSource(sheet: CSSStyleSheet): Promise<string> {
 	const owner = sheet.ownerNode;
 	if (owner instanceof HTMLStyleElement) {
@@ -110,36 +75,20 @@ async function readStyleSheetSource(sheet: CSSStyleSheet): Promise<string> {
 		try {
 			return await (await fetch(sheet.href)).text();
 		} catch {
-			// Fall back to serialized rules below.
 		}
 	}
 	try {
 		return Array.from(sheet.cssRules, rule => rule.cssText).join('\n');
 	} catch {
-		// Cross-origin stylesheets can't be read
 		return '';
 	}
 }
 
 interface Bundle {
-	/**
-	 * The document's own stylesheets that make up the concatenated product CSS
-	 * (those carrying `@css-source` markers), snapshotted once. These are what the
-	 * reversal overlay reproduces and what it disables while active; harness
-	 * stylesheets (reset, explorer UI, HMR) are deliberately excluded.
-	 */
 	readonly sheets: readonly CSSStyleSheet[];
-	/** Their concatenated raw source, retaining the `@css-source` markers. */
 	readonly rawSources: string;
 }
 
-/**
- * Reads the bundled product stylesheets once and caches both the snapshot and
- * their concatenated raw source. Only sheets carrying `@css-source` markers are
- * included, so harness-owned stylesheets are never reordered or disabled. Unlike
- * serialized `cssRules`, the raw source retains the markers that delimit
- * per-source-file documents, so it can be reordered by {@link reverseDocuments}.
- */
 function readBundle(): Promise<Bundle> {
 	return bundlePromise ??= (async () => {
 		const sheets = Array.from(document.styleSheets);
@@ -154,12 +103,6 @@ function readBundle(): Promise<Bundle> {
 	})();
 }
 
-/**
- * The repo-relative source files of the bundled stylesheet documents, in product
- * order. Index `i` is the document that a `reverseStylesheetsRange` refers to,
- * so the bisection driver uses this to name a conflicting document — keeping all
- * knowledge of the bundle format inside the runtime.
- */
 export async function getStylesheetDocumentFiles(): Promise<string[]> {
 	const { rawSources } = await readBundle();
 	return parseStylesheetDocuments(rawSources).documents.map(doc => doc.file);
@@ -234,17 +177,6 @@ export async function ensureGlobalStylesInstalled(theme: ColorThemeData, scopeTh
 	installedThemes.add(theme);
 }
 
-/**
- * Temporarily reorders the bundled stylesheet documents for the lifetime of the
- * returned disposable, so the order-dependency fuzzer can flip cascade ties that
- * are decided purely by source order. While active, the bundled product sheets
- * are disabled and replaced wholesale by the reordered copy in the overlay, so
- * the originals cannot contribute competing declarations.
- *
- * Concurrent fixtures share the document stylesheets. The most recently applied
- * override wins until it is disposed.
- * {@link ensureGlobalStylesInstalled} must have resolved first.
- */
 export function overrideStylesheetOrder(option: Exclude<ReverseStylesheetsOption, false>): IDisposable {
 	if (!overlaySheet || !bundle) {
 		throw new Error('ensureGlobalStylesInstalled() must resolve before overriding the stylesheet order.');

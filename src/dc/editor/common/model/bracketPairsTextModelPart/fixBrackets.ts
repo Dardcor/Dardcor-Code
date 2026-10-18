@@ -45,7 +45,6 @@ export function fixBracketsInLine(tokens: IViewLineTokens, languageConfiguration
 				str += closingTokenText;
 			}
 		} else if (node.kind === AstNodeKind.UnexpectedClosingBracket) {
-			// remove the bracket
 		} else if (node.kind === AstNodeKind.Text || node.kind === AstNodeKind.Bracket) {
 			str += line.substring(
 				lengthGetColumnCountIfZeroLineCount(offset),

@@ -8,7 +8,6 @@ import { setTerminalTestSettings } from './terminal-helpers';
 
 export function setup(options?: { skipSuite: boolean }) {
 	(options?.skipSuite ? describe.skip : describe)('Terminal stickyScroll', () => {
-		// Acquire automation API
 		let app: Application;
 		let terminal: Terminal;
 		let settingsEditor: SettingsEditor;
@@ -25,9 +24,6 @@ export function setup(options?: { skipSuite: boolean }) {
 			await settingsEditor.clearUserSettings();
 		});
 
-		// A polling approach is used to avoid test flakiness. While it's not ideal that this
-		// occurs, the main purpose of the tests is to verify sticky scroll shows and updates,
-		// not edge case race conditions on terminal start up
 		async function checkCommandAndOutput(
 			command: string,
 			exitCode: number,
@@ -36,13 +32,10 @@ export function setup(options?: { skipSuite: boolean }) {
 		): Promise<void> {
 			const data = generateCommandAndOutput(prompt, command, exitCode);
 			await terminal.runCommandWithValue(TerminalCommandIdWithValue.WriteDataToTerminal, data);
-			// Verify line count
 			await app.code.waitForElements('.terminal-sticky-scroll .xterm-rows > *', true, e => e.length === expectedLineCount);
-			// Verify content
 			const element = await app.code.getElement('.terminal-sticky-scroll .xterm-rows');
 			if (
 				element &&
-				// New lines don't come through in textContent
 				element.textContent.indexOf(`${prompt.replace(/\\r\\n/g, '')}${command}`) >= 0
 			) {
 				return;
@@ -50,33 +43,25 @@ export function setup(options?: { skipSuite: boolean }) {
 			throw new Error(`Failed for command ${command}, exitcode ${exitCode}, text content ${element?.textContent}`);
 		}
 
-		// Don't use beforeEach as that ignores the retry count, createEmptyTerminal has been
-		// flaky in the past
 		async function beforeEachSetup() {
-			// Create the simplest system profile to get as little process interaction as possible
 			await terminal.createEmptyTerminal();
 		}
 
 		it('should show sticky scroll when appropriate', async () => {
 			await beforeEachSetup();
 
-			// Write prompt, fill viewport, finish command, print new prompt, verify sticky scroll
 			await checkCommandAndOutput('sticky scroll 1', 0);
 
-			// And again with a failed command
 			await checkCommandAndOutput('sticky scroll 2', 1);
 		});
 
 		it('should support multi-line prompt', async () => {
 			await beforeEachSetup();
 
-			// Standard multi-line prompt
 			await checkCommandAndOutput('sticky scroll 1', 0, 'Multi-line\\r\\nPrompt> ', 2);
 
-			// New line before prompt
 			await checkCommandAndOutput('sticky scroll 2', 0, '\\r\\nMulti-line Prompt> ', 1);
 
-			// New line before multi-line prompt
 			await checkCommandAndOutput('sticky scroll 3', 0, '\\r\\nMulti-line\\r\\nPrompt> ', 2);
 		});
 	});

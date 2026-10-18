@@ -14,9 +14,6 @@ export interface IWebviewPortMapping {
 	readonly extensionHostPort: number;
 }
 
-/**
- * Manages port mappings for a single webview.
- */
 export class WebviewPortMappingManager implements IDisposable {
 
 	private readonly _tunnels = new Map<number, RemoteTunnel>();

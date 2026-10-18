@@ -9,9 +9,6 @@ import { IEnvService } from '../../env/common/envService';
 import { IFetcherService, NO_FETCH_TELEMETRY, WebSocketConnection } from '../../networking/common/fetcherService';
 import { LICENSE_AGREEMENT } from './licenseAgreement';
 
-/**
- * Interface for CAPI client service
- */
 export interface ICAPIClientService extends CAPIClient {
 	readonly _serviceBrand: undefined;
 	abExpContext: string | undefined;
@@ -39,7 +36,6 @@ export abstract class BaseCAPIClientService extends CAPIClient implements ICAPIC
 	}
 
 	override makeRequest<T>(request: MakeRequestOptions, requestMetadata: RequestMetadata): Promise<T> {
-		// Inject AB Exp Context headers (legacy VScode-ABExpContext and new standardized X-Copilot-Client-Exp-Assignment-Context) if available
 		if (this.abExpContext) {
 			if (!request.headers) {
 				request.headers = {};
@@ -47,7 +43,6 @@ export abstract class BaseCAPIClientService extends CAPIClient implements ICAPIC
 			request.headers['VScode-ABExpContext'] = this.abExpContext;
 			request.headers['X-Copilot-Client-Exp-Assignment-Context'] = this.abExpContext;
 		}
-		// Expected high request volume events that we don't need to collect fetch telemetry for
 		if (
 			requestMetadata.type === RequestType.Telemetry ||
 			requestMetadata.type === RequestType.ChatCompletions ||

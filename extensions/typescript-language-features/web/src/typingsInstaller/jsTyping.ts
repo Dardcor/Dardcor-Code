@@ -2,7 +2,6 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-/// Utilities copied from ts.JsTyping internals
 
 export const enum NameValidationResult {
 	Ok,
@@ -28,8 +27,6 @@ enum CharacterCodes {
 
 const maxPackageNameLength = 214;
 
-// Validates package name using rules defined at https://docs.npmjs.com/files/package.json
-// Copied from typescript/jsTypings.ts
 export function validatePackageNameWorker(packageName: string, supportScopedPackage: true): ScopedPackageNameValidationResult;
 export function validatePackageNameWorker(packageName: string, supportScopedPackage: false): NameValidationResult;
 export function validatePackageNameWorker(packageName: string, supportScopedPackage: boolean): PackageNameValidationResult {
@@ -46,16 +43,14 @@ export function validatePackageNameWorker(packageName: string, supportScopedPack
 		return NameValidationResult.NameStartsWithUnderscore;
 	}
 
-	// check if name is scope package like: starts with @ and has one '/' in the middle
-	// scoped packages are not currently supported
 	if (supportScopedPackage) {
 		const matches = /^@([^/]+)\/([^/]+)$/.exec(packageName);
 		if (matches) {
-			const scopeResult = validatePackageNameWorker(matches[1], /*supportScopedPackage*/ false);
+			const scopeResult = validatePackageNameWorker(matches[1], false);
 			if (scopeResult !== NameValidationResult.Ok) {
 				return { name: matches[1], isScopeName: true, result: scopeResult };
 			}
-			const packageResult = validatePackageNameWorker(matches[2], /*supportScopedPackage*/ false);
+			const packageResult = validatePackageNameWorker(matches[2], false);
 			if (packageResult !== NameValidationResult.Ok) {
 				return { name: matches[2], isScopeName: false, result: packageResult };
 			}

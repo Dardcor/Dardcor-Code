@@ -47,10 +47,6 @@ const incompatibleFlags = [
 	'AGENT_HOST_UPDATE_SNAPSHOTS',
 ];
 
-/**
- * Every entrypoint that makes up the portable suite: the conformance tier
- * (registered once) plus one parity entrypoint per provider.
- */
 const e2eGlob = '**/agentHost/test/node/e2e/{providers/*AgentHostE2E,conformance/*}.integrationTest.js';
 
 function main(): void {
@@ -251,16 +247,6 @@ interface ISurfaceGroup {
 	readonly uncovered: readonly string[];
 }
 
-/**
- * Records how much of the Agent Host Protocol the E2E suites actually touch.
- *
- * Line coverage measures the current host implementation; this measures the
- * contract, so it stays meaningful if the implementation behind
- * `IAgentHostTarget` is replaced. A symbol counts as covered when it crosses
- * the wire in either direction, which is a floor on how well it is tested — the
- * value is in the `uncovered` lists, which name contract areas that no test
- * exercises at all.
- */
 function writeProtocolSurfaceStats(): void {
 	const observed = readObservedSurface();
 	const stats = {
@@ -312,11 +298,6 @@ function buildSurfaceGroup(declared: readonly string[], observed: ReadonlySet<st
 	};
 }
 
-/**
- * Extracts `@method` tags from the generated protocol sources. Both commands
- * and notifications are documented the same way, so the two are told apart by
- * the file they are declared in.
- */
 function declaredMethods(fileName: 'commands.ts' | 'notifications.ts'): readonly string[] {
 	const methods = new Set<string>();
 	for (const directory of protocolSourceDirectories()) {
@@ -339,7 +320,6 @@ function declaredNotifications(): readonly string[] {
 	return declaredMethods('notifications.ts');
 }
 
-/** Extracts the `ActionType` enum members, which are the action discriminants. */
 function declaredActions(): readonly string[] {
 	const source = readFileSync(join(protocolRoot, 'common', 'actions.ts'), 'utf8');
 	const enumBody = /export const enum ActionType \{([^}]*)\}/.exec(source);

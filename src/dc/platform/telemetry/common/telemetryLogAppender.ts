@@ -28,7 +28,6 @@ export class TelemetryLogAppender extends Disposable implements ITelemetryAppend
 		if (logger) {
 			this.logger = this._register(logger);
 		} else {
-			// Not a perfect check, but a nice way to indicate if we only have logging enabled for debug purposes and nothing is actually being sent
 			const justLoggingAndNotSending = isLoggingOnly(productService, environmentService);
 			const logSuffix = justLoggingAndNotSending ? ' (Not Sent)' : '';
 			this.logger = this._register(loggerService.createLogger(id,

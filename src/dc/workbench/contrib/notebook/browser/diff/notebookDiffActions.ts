@@ -31,7 +31,6 @@ import { TextEditorSelectionRevealType, type ITextEditorOptions } from '../../..
 import product from '../../../../../platform/product/common/product.js';
 import { ctxHasEditorModification, ctxHasRequestInProgress } from '../../../chat/browser/chatEditing/chatEditingEditorContextKeys.js';
 
-// ActiveEditorContext.isEqualTo(SearchEditorConstants.SearchEditorID)
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -420,28 +419,7 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// registerAction2(class extends Action2 {
-// 	constructor() {
-// 		super(
-// 			{
-// 				id: 'notebook.diff.cell.switchOutputRenderingStyle',
-// 				title: localize('notebook.diff.cell.switchOutputRenderingStyle', "Switch Outputs Rendering"),
-// 				icon: renderOutputIcon,
-// 				f1: false,
-// 				menu: {
-// 					id: MenuId.NotebookDiffCellOutputsTitle
-// 				}
-// 			}
-// 		);
-// 	}
-// 	run(accessor: ServicesAccessor, context?: DiffElementViewModelBase) {
-// 		if (!context) {
-// 			return;
-// 		}
 
-// 		context.renderOutput = true;
-// 	}
-// });
 
 
 registerAction2(class extends Action2 {
@@ -744,7 +722,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 		},
 		'notebook.diff.experimental.toggleInline': {
 			type: 'boolean',
-			default: typeof product.quality === 'string' && product.quality !== 'stable', // only enable as default in insiders
+			default: typeof product.quality === 'string' && product.quality !== 'stable',
 			markdownDescription: localize('notebook.diff.toggleInline', "Enable the command to toggle the experimental notebook inline diff editor.")
 		},
 	}

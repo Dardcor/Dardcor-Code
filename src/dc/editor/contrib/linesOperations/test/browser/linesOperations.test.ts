@@ -550,7 +550,6 @@ suite('Editor Contrib - Line Operations', () => {
 					const joinLinesAction = new JoinLinesAction();
 
 					editor.setSelections([
-						/** primary cursor */
 						new Selection(5, 2, 5, 2),
 						new Selection(1, 2, 1, 2),
 						new Selection(3, 2, 4, 2),
@@ -562,7 +561,6 @@ suite('Editor Contrib - Line Operations', () => {
 					executeAction(joinLinesAction, editor);
 					assert.strictEqual(model.getLinesContent().join('\n'), 'hello world\nhello world\nhello world\nhello world\n\nhello world');
 					assertSelection(editor, [
-						/** primary cursor */
 						new Selection(3, 4, 3, 8),
 						new Selection(1, 6, 1, 6),
 						new Selection(2, 2, 2, 8),
@@ -638,11 +636,9 @@ suite('Editor Contrib - Line Operations', () => {
 					'charlie',
 				], {}, (editor) => {
 					const reverseLinesAction = new ReverseLinesAction();
-					// cursor at third column of third line 'charlie'
 					editor.setPosition(new Position(3, 3));
 
 					executeAction(reverseLinesAction, editor);
-					// cursor at third column of *first* line 'charlie'
 					assert.deepStrictEqual(editor.getPosition(), new Position(1, 3));
 				});
 		});
@@ -694,7 +690,6 @@ suite('Editor Contrib - Line Operations', () => {
 					const model = editor.getModel()!;
 					const reverseLinesAction = new ReverseLinesAction();
 
-					// Select lines 2-4
 					editor.setSelection(new Selection(2, 1, 4, 6));
 					executeAction(reverseLinesAction, editor);
 					assert.deepStrictEqual(model.getLinesContent(), ['line1', 'line4', 'line3', 'line2', 'line5']);
@@ -713,7 +708,6 @@ suite('Editor Contrib - Line Operations', () => {
 					const model = editor.getModel()!;
 					const reverseLinesAction = new ReverseLinesAction();
 
-					// Select partial lines 2-4 (from middle of line2 to middle of line4)
 					editor.setSelection(new Selection(2, 3, 4, 3));
 					executeAction(reverseLinesAction, editor);
 					assert.deepStrictEqual(model.getLinesContent(), ['line1', 'line4', 'line3', 'line2', 'line5']);
@@ -733,7 +727,6 @@ suite('Editor Contrib - Line Operations', () => {
 					const model = editor.getModel()!;
 					const reverseLinesAction = new ReverseLinesAction();
 
-					// Select lines 1-2 and lines 4-5
 					editor.setSelections([new Selection(1, 1, 2, 6), new Selection(4, 1, 5, 6)]);
 					executeAction(reverseLinesAction, editor);
 					assert.deepStrictEqual(model.getLinesContent(), ['line2', 'line1', 'line3', 'line5', 'line4', 'line6']);
@@ -750,15 +743,10 @@ suite('Editor Contrib - Line Operations', () => {
 				], {}, (editor) => {
 					const reverseLinesAction = new ReverseLinesAction();
 
-					// Select lines 1-3
 					editor.setSelection(new Selection(1, 2, 3, 3));
 					executeAction(reverseLinesAction, editor);
 
-					// After reversal, selection should be updated to maintain relative position
-					// Originally line 1 col 2 -> line 3 col 3, so after reversal should be line 3 col 2 -> line 1 col 3
 					const selection = editor.getSelection()!;
-					// The selection should cover the same logical text after reversal
-					// Range normalization ensures startLineNumber <= endLineNumber
 					assert.strictEqual(selection.startLineNumber, 1);
 					assert.strictEqual(selection.startColumn, 3);
 					assert.strictEqual(selection.endLineNumber, 3);
@@ -776,7 +764,6 @@ suite('Editor Contrib - Line Operations', () => {
 					const model = editor.getModel()!;
 					const reverseLinesAction = new ReverseLinesAction();
 
-					// Select only line 2
 					editor.setSelection(new Selection(2, 1, 2, 6));
 					executeAction(reverseLinesAction, editor);
 					assert.deepStrictEqual(model.getLinesContent(), ['line3', 'line2', 'line1']);
@@ -795,7 +782,6 @@ suite('Editor Contrib - Line Operations', () => {
 					const model = editor.getModel()!;
 					const reverseLinesAction = new ReverseLinesAction();
 
-					// Select from line 2 to line 4 column 1 (should exclude line 4)
 					editor.setSelection(new Selection(2, 1, 4, 1));
 					executeAction(reverseLinesAction, editor);
 					assert.deepStrictEqual(model.getLinesContent(), ['line1', 'line3', 'line2', 'line4', 'line5']);
@@ -861,7 +847,6 @@ suite('Editor Contrib - Line Operations', () => {
 			}
 		);
 
-		// fix #16633
 		withTestCodeEditor(
 			[
 				'',

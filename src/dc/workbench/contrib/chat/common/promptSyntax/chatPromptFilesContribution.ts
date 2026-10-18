@@ -157,22 +157,15 @@ export class ChatPromptFilesExtensionPointHandler implements IWorkbenchContribut
 	}
 }
 
-/**
- * Result type for the extension prompt file provider command.
- */
 export interface IExtensionPromptFileResult {
 	readonly uri: UriComponents;
 	readonly type: PromptsType;
 	readonly extensionId: string;
 }
 
-/**
- * Register the command to list all extension-contributed prompt files.
- */
 CommandsRegistry.registerCommand('_listExtensionPromptFiles', async (accessor): Promise<IExtensionPromptFileResult[]> => {
 	const promptsService = accessor.get(IPromptsService);
 
-	// Get extension prompt files for all prompt types in parallel
 	const [agents, instructions, prompts, skills, hooks] = await Promise.all([
 		promptsService.listPromptFiles(PromptsType.agent, CancellationToken.None),
 		promptsService.listPromptFiles(PromptsType.instructions, CancellationToken.None),
@@ -181,10 +174,6 @@ CommandsRegistry.registerCommand('_listExtensionPromptFiles', async (accessor): 
 		promptsService.listPromptFiles(PromptsType.hook, CancellationToken.None),
 	]);
 
-	// Combine all files and collect extension- and plugin-contributed ones.
-	// Plugin files are included so the copilot extension can trust them and
-	// serve them to the LLM without a confirmation dialog when connected to a
-	// remote (where they are emitted as vscode-local:/... URIs).
 	const result: IExtensionPromptFileResult[] = [];
 	for (const file of [...agents, ...instructions, ...prompts, ...skills, ...hooks]) {
 		if (file.storage === PromptsStorage.extension) {

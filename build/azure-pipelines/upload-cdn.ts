@@ -19,7 +19,6 @@ mime.define({
 	'application/json': ['code-snippets'],
 });
 
-// From default AFD configuration
 const MimeTypesToCompress = new Set([
 	'application/eot',
 	'application/font',
@@ -105,7 +104,7 @@ async function main(): Promise<void> {
 			this.emit('data', f);
 		}));
 
-	console.log(`Uploading files to CDN...`); // debug
+	console.log(`Uploading files to CDN...`);
 	await wait(out);
 
 	const listing = new Vinyl({
@@ -118,7 +117,7 @@ async function main(): Promise<void> {
 		.pipe(gzip({ append: false }))
 		.pipe(azureStorage.upload(options(true)));
 
-	console.log(`Uploading: files.txt (${files.length} files)`); // debug
+	console.log(`Uploading: files.txt (${files.length} files)`);
 	await wait(filesOut);
 }
 

@@ -106,7 +106,6 @@ export const ContextMenu: React.FC = () => {
 				position: 'absolute',
 				top: menuPosition.y,
 				left: menuPosition.x,
-				// border: '1px solid gray',
 				zIndex: 1000,
 			}}
 		>

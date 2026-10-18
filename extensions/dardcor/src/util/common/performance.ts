@@ -23,7 +23,6 @@ const perf: IMonacoPerformanceMarks = (globalThis as { MonacoPerformanceMarks?: 
 
 const chatExtPrefix = 'code/chat/ext/';
 
-/** Tracks all mark names emitted per session so they can be cleared individually. */
 const chatExtMarksBySession = new Map<string, Set<string>>();
 
 /**
@@ -57,29 +56,16 @@ const chatExtMarksBySession = new Map<string, Set<string>>();
  * `code/chat/ext/willWaitForCopilotToken` → `code/chat/ext/didWaitForCopilotToken`
  */
 export const ChatExtPerfMark = {
-	/** Chat participant handler starts */
 	WillHandleParticipant: 'willHandleParticipant',
-	/** Chat participant handler completes */
 	DidHandleParticipant: 'didHandleParticipant',
-	/** Prompt building starts (per turn) */
 	WillBuildPrompt: 'willBuildPrompt',
-	/** Prompt building completes (per turn) */
 	DidBuildPrompt: 'didBuildPrompt',
-	/** LLM fetch starts (per turn) */
 	WillFetch: 'willFetch',
-	/** LLM fetch completes (per turn) */
 	DidFetch: 'didFetch',
 } as const;
 
 export type ChatExtPerfMarkName = typeof ChatExtPerfMark[keyof typeof ChatExtPerfMark];
 
-/**
- * Emits a performance mark scoped to a chat session:
- * `code/chat/ext/<sessionId>/<name>`
- *
- * Marks persist in the extension host process until explicitly cleared
- * via {@link clearChatExtMarks}.
- */
 export function markChatExt(sessionId: string | undefined, name: ChatExtPerfMarkName): void {
 	if (sessionId) {
 		const fullName = `${chatExtPrefix}${sessionId}/${name}`;
@@ -93,9 +79,6 @@ export function markChatExt(sessionId: string | undefined, name: ChatExtPerfMark
 	}
 }
 
-/**
- * Clears all performance marks for the given chat session.
- */
 export function clearChatExtMarks(sessionId: string): void {
 	const names = chatExtMarksBySession.get(sessionId);
 	if (names) {
@@ -107,32 +90,18 @@ export function clearChatExtMarks(sessionId: string): void {
 }
 
 export const ChatExtGlobalPerfMark = {
-	/** Extension activation starts */
 	WillActivate: 'willActivate',
-	/** Extension activation completes */
 	DidActivate: 'didActivate',
-	/** Waiting for Copilot token starts */
 	WillWaitForCopilotToken: 'willWaitForCopilotToken',
-	/** Copilot token received */
 	DidWaitForCopilotToken: 'didWaitForCopilotToken',
 } as const;
 
 export type ChatExtGlobalPerfMarkName = typeof ChatExtGlobalPerfMark[keyof typeof ChatExtGlobalPerfMark];
 
-/**
- * Emits a global (non-session-scoped) performance mark:
- * `code/chat/ext/<name>`
- *
- * Used for one-time activation marks like `willActivate` / `didActivate`.
- */
 export function markChatExtGlobal(name: ChatExtGlobalPerfMarkName): void {
 	perf.mark(`${chatExtPrefix}${name}`);
 }
 
-/**
- * Returns all marks currently stored in the polyfill.
- * Useful for tests and diagnostics.
- */
 export function getChatExtMarks(): { name: string; startTime: number }[] {
 	return perf.getMarks();
 }

@@ -18,9 +18,6 @@ import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { AbstractTextEditor } from './textEditor.js';
 import { Dimension } from '../../../../base/browser/dom.js';
 
-/**
- * A text editor using the code editor widget.
- */
 export abstract class AbstractTextCodeEditor<T extends IEditorViewState> extends AbstractTextEditor<T> implements ITextEditorPane {
 
 	protected editorControl: ICodeEditor | undefined = undefined;
@@ -64,16 +61,16 @@ export abstract class AbstractTextCodeEditor<T extends IEditorViewState> extends
 
 		const model = this.editorControl.getModel();
 		if (!model) {
-			return undefined; // view state always needs a model
+			return undefined;
 		}
 
 		const modelUri = model.uri;
 		if (!modelUri) {
-			return undefined; // model URI is needed to make sure we save the view state correctly
+			return undefined;
 		}
 
 		if (!isEqual(modelUri, resource)) {
-			return undefined; // prevent saving view state for a model that is not the expected one
+			return undefined;
 		}
 
 		return this.editorControl.saveViewState() as unknown as T ?? undefined;

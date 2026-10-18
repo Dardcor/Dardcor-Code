@@ -9,9 +9,6 @@ import { ILogService } from './logService';
 
 type MeasureCallBack<R> = (time: number, status: 'success' | 'failed' | 'cancelled', result: R | undefined) => void;
 
-/**
- * Helper that collects how long a block of code takes to execute.
- */
 
 export async function measureExecTime<R>(fn: () => PromiseLike<R>, cb: MeasureCallBack<R>): Promise<R> {
 	const sw = new StopWatch();
@@ -25,9 +22,6 @@ export async function measureExecTime<R>(fn: () => PromiseLike<R>, cb: MeasureCa
 	}
 }
 
-/**
- * Helper that logs how long a block of code takes to execute.
- */
 export async function logExecTime<R>(logService: ILogService, name: string, fn: () => PromiseLike<R>, measureCb?: MeasureCallBack<R>): Promise<R> {
 	return measureExecTime(() => {
 		logService.trace(`${name} started`);
@@ -38,9 +32,6 @@ export async function logExecTime<R>(logService: ILogService, name: string, fn: 
 	});
 }
 
-/**
- * Decorator that adds logging for how long the method takes to execute.
- */
 export function LogExecTime<T>(
 	getLogService: (self: T) => ILogService,
 	logName: string,
@@ -60,9 +51,6 @@ export function LogExecTime<T>(
 }
 
 
-/**
- * Decorator that adds a callback about how long an async method takes to execute.
- */
 export function MeasureExecTime<T>(cb: (this: T, time: number, status: 'success' | 'failed' | 'cancelled') => void) {
 	return function (target: T, propertyKey: string, descriptor: PropertyDescriptor) {
 		const originalMethod = descriptor.value;

@@ -20,23 +20,10 @@ export const CLAUDE_REASONING_EFFORT_PROPERTY = 'reasoningEffort';
 
 export interface IClaudeCodeModels {
 	readonly _serviceBrand: undefined;
-	/**
-	 * Resolves a Claude endpoint for the given requested model ID.
-	 * Falls back to the fallback model ID if the requested model doesn't match,
-	 * then to the newest Sonnet, newest Haiku, or any Claude endpoint.
-	 * Returns `undefined` if no Claude endpoint can be found.
-	 */
 	resolveEndpoint(requestedModel: ParsedClaudeModelId | string | undefined, fallbackModelId: ParsedClaudeModelId | undefined): Promise<IChatEndpoint | undefined>;
 
-	/**
-	 * Resolves the reasoning effort level for the given requested model ID and requested reasoning effort.
-	 */
 	resolveReasoningEffort(requestedModel: ParsedClaudeModelId | string | undefined, requestedReasoningEffort: string | undefined): Promise<EffortLevel | undefined>;
 
-	/**
-	 * Registers a LanguageModelChatProvider so that Claude models appear in
-	 * VS Code's built-in model picker for the claude-code session type.
-	 */
 	registerLanguageModelChatProvider(lm: typeof vscode['lm']): void;
 }
 
@@ -65,10 +52,8 @@ export class ClaudeCodeModels extends Disposable implements IClaudeCodeModels {
 				return this._provideLanguageModelChatInfo();
 			},
 			provideLanguageModelChatResponse: async (_model, _messages, _options, _progress, _token) => {
-				// Implemented via chat participants.
 			},
 			provideTokenCount: async (_model, _text, _token) => {
-				// Token counting is not currently supported for the claude provider.
 				return 0;
 			}
 		};
@@ -129,7 +114,6 @@ export class ClaudeCodeModels extends Disposable implements IClaudeCodeModels {
 	public async resolveEndpoint(requestedModel: ParsedClaudeModelId | string | undefined, fallbackModelId: ParsedClaudeModelId | undefined): Promise<IChatEndpoint | undefined> {
 		const endpoints = await this._getEndpoints();
 
-		// 1. Exact match for the requested model
 		if (requestedModel) {
 			let parsedModel: ParsedClaudeModelId | undefined;
 			if (typeof requestedModel === 'string') {
@@ -144,7 +128,6 @@ export class ClaudeCodeModels extends Disposable implements IClaudeCodeModels {
 			}
 		}
 
-		// 2. Exact match for the fallback model from session state
 		if (fallbackModelId) {
 			const fallback = endpoints.find(e => e.model === fallbackModelId.toEndpointModelId());
 			if (fallback) {
@@ -152,19 +135,16 @@ export class ClaudeCodeModels extends Disposable implements IClaudeCodeModels {
 			}
 		}
 
-		// 3. Newest Sonnet (endpoints are sorted by name descending)
 		const sonnet = endpoints.find(e => e.family?.includes('sonnet') || e.model.includes('sonnet'));
 		if (sonnet) {
 			return sonnet;
 		}
 
-		// 4. Newest Haiku
 		const haiku = endpoints.find(e => e.family?.includes('haiku') || e.model.includes('haiku'));
 		if (haiku) {
 			return haiku;
 		}
 
-		// 5. Any model (these are already only Anthropic models)
 		return endpoints[0];
 	}
 
@@ -172,8 +152,6 @@ export class ClaudeCodeModels extends Disposable implements IClaudeCodeModels {
 		try {
 			const endpoints = await this.endpointProvider.getAllChatEndpoints();
 
-			// Filter for Anthropic models that are available in the model picker
-			// and use the Messages API (required for Claude Code)
 			const claudeEndpoints = endpoints.filter(e =>
 				e.supportsToolCalls &&
 				e.showInModelPicker &&
@@ -200,9 +178,6 @@ export function isEffortLevel(value: string): value is EffortLevel {
 	return SUPPORTED_EFFORT_LEVELS.includes(value as EffortLevel);
 }
 
-/**
- * Picks the reasoning effort to use for an endpoint given a requested level.
- */
 export function pickReasoningEffort(endpoint: IChatEndpoint | undefined, requestedReasoningEffort: string | undefined): EffortLevel | undefined {
 	if (!endpoint || !endpoint.supportsReasoningEffort || endpoint.supportsReasoningEffort.length === 0) {
 		return undefined;

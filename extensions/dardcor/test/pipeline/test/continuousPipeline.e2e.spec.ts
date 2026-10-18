@@ -10,16 +10,6 @@ import { NesDatagenInputFormat, NesDatagenSampleTask, PivotStrategy } from '../.
 import { runInputPipeline, RunPipelineOptions } from '../pipeline';
 import { allContinuousRecords, continuousFixtures } from './fixtures/continuousFixtureData';
 
-/**
- * End-to-end tests for the nes-datagen pipeline on the **continuous** input
- * format (`--input-format=continuous`).
- *
- * These exercise the full `runInputPipeline` — continuous parse → pivot
- * synthesis → split → replay → prompt/response generation → output — with real
- * fixture data, mirroring `pipeline.e2e.spec.ts` for the alternative-action
- * path. The fixtures are crafted so each valid slice has exactly one eligible
- * pivot, making the output deterministic regardless of the pivot RNG seed.
- */
 
 const configPath = path.join(__dirname, 'fixtures', 'config.json');
 
@@ -104,7 +94,6 @@ describe('nes-datagen continuous pipeline e2e', () => {
 		});
 
 		test('produces one oracle-only sample per valid slice', () => {
-			// 2 valid slices (ts + py); the capped slice is dropped at parse.
 			expect(result.samples.length).toBe(2);
 		});
 
@@ -147,8 +136,6 @@ describe('nes-datagen continuous pipeline e2e', () => {
 
 		test('docContent is the slice content at the pivot (pre-oracle)', () => {
 			const ts = result.samples.find(s => s.metadata.language === 'typescript')!;
-			// Context reflects the pre-pivot edit but not the oracle: the
-			// original `add` is present and has not yet been renamed to `sum`.
 			expect(ts.metadata.docContent).toContain('export function add(');
 			expect(ts.metadata.docContent).not.toContain('sum');
 		});
@@ -171,15 +158,11 @@ describe('nes-datagen continuous pipeline e2e', () => {
 	});
 
 	test('a slice whose oracle edit is malformed is isolated, not fatal', async () => {
-		// Overlapping replacements in the post-pivot `changed` make the split
-		// throw; the batch must still produce the sibling sample rather than abort.
 		const badEntries = [
 			{ kind: 'meta', data: { repoRootUri: 'file:///workspace' } },
 			{ kind: 'documentEncountered', id: 0, time: 3000, relativePath: 'src/bad.ts' },
 			{ kind: 'setContent', id: 0, time: 3001, content: 'const value = 1;\n', v: 0 },
-			// Pre-pivot edit → the only eligible pivot (a later `changed` follows).
 			{ kind: 'changed', id: 0, time: 3002, edit: [[0, 0, '// x\n']], v: 1 },
-			// Malformed oracle: the two replacements overlap.
 			{ kind: 'changed', id: 0, time: 3004, edit: [[6, 11, 'a'], [8, 13, 'b']], v: 2 },
 		];
 		const badRecord = { recording: JSON.stringify({ entries: badEntries, entriesSize: 100 }) };
@@ -214,7 +197,6 @@ describe('nes-datagen continuous pipeline e2e', () => {
 		expect(samples.length).toBe(1);
 		expect(samples[0].metadata.filePath).toContain('src/math.ts');
 
-		// The malformed slice is surfaced as a replay error, not swallowed.
 		const replayLog = logs.find(l => l.includes('[2/5]'));
 		expect(replayLog).toContain('1 errors');
 	});

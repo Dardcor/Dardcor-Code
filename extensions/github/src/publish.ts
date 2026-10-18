@@ -63,7 +63,6 @@ export async function publishRepository(gitAPI: GitAPI, repository?: Repository)
 		const user = await octokit.users.getAuthenticated({});
 		owner = user.data.login;
 	} catch (e) {
-		// User has cancelled sign in
 		quickpick.dispose();
 		return;
 	}
@@ -102,7 +101,6 @@ export async function publishRepository(gitAPI: GitAPI, repository?: Repository)
 				const fullName = `${owner}/${repo}`;
 				const result = await octokit.repos.get({ owner, repo: repo });
 				if (result.data.full_name.toLowerCase() !== fullName.toLowerCase()) {
-					// Repository has moved permanently due to it being renamed
 					break;
 				}
 				quickpick.items = [{ label: `$(error) GitHub repository already exists`, description: `$(github) ${fullName}`, alwaysShow: true }];

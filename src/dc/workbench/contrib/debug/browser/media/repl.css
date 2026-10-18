@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Debug repl */
 
 .monaco-workbench .repl {
 	height: 100%;
@@ -36,15 +35,13 @@
 }
 
 .monaco-workbench .repl .repl-tree.word-wrap .monaco-tl-contents {
-	/* Wrap words but also do not trim whitespace #6275 */
 	word-wrap: break-word;
 	white-space: pre-wrap;
-	/* Break on all #7533 */
 	word-break: break-all;
 }
 
 .monaco-workbench .repl .repl-tree.word-wrap .monaco-tl-contents .expression.nested-variable {
-	white-space: pre; /* Preserve whitespace but don't wrap */
+	white-space: pre;
 }
 
 .monaco-workbench .repl .repl-tree .monaco-tl-twistie.collapsible + .monaco-tl-contents,
@@ -65,7 +62,6 @@
 }
 
 .monaco-workbench .repl .repl-tree .output.expression.value-and-source .count-badge-wrapper .monaco-count-badge {
-	/* Allow the badge to be a bit shorter so it does not look cut off */
 	min-height: 16px;
 	word-break: keep-all;
 }
@@ -86,7 +82,6 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	text-align: right;
-	/*Use direction so the source shows elipses on the left*/
 	direction: rtl;
 	max-width: 400px;
 	user-select: none;
@@ -107,7 +102,6 @@
 	align-items: center;
 }
 
-/* Do not render show more in REPL suggest widget status bar */
 .monaco-workbench .repl .repl-input-wrapper .suggest-status-bar .monaco-action-bar.right {
 	display: none;
 }
@@ -122,19 +116,16 @@
 	font-weight: 600;
 }
 
-/* Output coloring  and styling */
 .monaco-workbench .repl .repl-tree .output.expression > .ignore {
 	font-style: italic;
 }
 
-/* ANSI Codes */
 .monaco-workbench .repl .repl-tree .output.expression .code-bold	{ font-weight: bold; }
 .monaco-workbench .repl .repl-tree .output.expression .code-italic	{ font-style: italic; }
 .monaco-workbench .repl .repl-tree .output.expression .code-underline { text-decoration: underline;  text-decoration-style:solid; }
 .monaco-workbench .repl .repl-tree .output.expression .code-double-underline { text-decoration: underline;  text-decoration-style:double; }
 .monaco-workbench .repl .repl-tree .output.expression .code-strike-through { text-decoration:line-through;  text-decoration-style:solid; }
 .monaco-workbench .repl .repl-tree .output.expression .code-overline { text-decoration:overline;  text-decoration-style:solid; }
-/* because they can exist at same time we need all the possible underline(or double-underline),overline and strike-through combinations */
 .monaco-workbench .repl .repl-tree .output.expression .code-overline.code-underline.code-strike-through { text-decoration: overline underline line-through; text-decoration-style:solid; }
 .monaco-workbench .repl .repl-tree .output.expression .code-overline.code-underline { text-decoration: overline underline; text-decoration-style:solid; }
 .monaco-workbench .repl .repl-tree .output.expression .code-overline.code-strike-through { text-decoration: overline line-through; text-decoration-style:solid; }

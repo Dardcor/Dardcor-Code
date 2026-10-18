@@ -38,11 +38,9 @@ class ExtHostEditorTab {
 
 	get apiObject(): vscode.Tab {
 		if (!this._apiObject) {
-			// Don't want to lose reference to parent `this` in the getters
 			const that = this;
 			const obj: vscode.Tab = {
 				get isActive() {
-					// We use a getter function here to always ensure at most 1 active tab per group and prevent iteration for being required
 					return that._dto.id === that._activeTabIdGetter();
 				},
 				get label() {
@@ -119,17 +117,14 @@ class ExtHostEditorTabGroup {
 	constructor(dto: IEditorTabGroupDto, activeGroupIdGetter: () => number | undefined) {
 		this._dto = dto;
 		this._activeGroupIdGetter = activeGroupIdGetter;
-		// Construct all tabs from the given dto
 		this._reconcileTabs(dto);
 	}
 
 	get apiObject(): vscode.TabGroup {
 		if (!this._apiObject) {
-			// Don't want to lose reference to parent `this` in the getters
 			const that = this;
 			const obj: vscode.TabGroup = {
 				get isActive() {
-					// We use a getter function here to always ensure at most 1 active group and prevent iteration for being required
 					return that._dto.groupId === that._activeGroupIdGetter();
 				},
 				get viewColumn() {
@@ -159,14 +154,6 @@ class ExtHostEditorTabGroup {
 		this._dto = dto;
 	}
 
-	/**
-	 * Accepts a full group dto during a complete tab-model resync, reusing the
-	 * existing {@link ExtHostEditorTab} instances for tabs that still exist so
-	 * their (and this group's) frozen `apiObject` keeps a stable identity.
-	 * Extensions routinely key `Map`/`WeakMap`/`Set` collections by these
-	 * objects, so recreating them on every resync would break those lookups and
-	 * leak whatever they retain.
-	 */
 	acceptModelUpdate(dto: IEditorTabGroupDto) {
 		this._dto = dto;
 		this._reconcileTabs(dto);
@@ -193,10 +180,8 @@ class ExtHostEditorTabGroup {
 	}
 
 	acceptTabOperation(operation: TabOperation): ExtHostEditorTab {
-		// In the open case we add the tab to the group
 		if (operation.kind === TabModelOperationKind.TAB_OPEN) {
 			const tab = new ExtHostEditorTab(operation.tabDto, this, () => this.activeTabId());
-			// Insert tab at editor index
 			this._tabs.splice(operation.index, 0, tab);
 			if (operation.tabDto.isActive) {
 				this._activeTabId = tab.tabId;
@@ -215,7 +200,6 @@ class ExtHostEditorTabGroup {
 			if (operation.oldIndex === undefined) {
 				throw new Error('Invalid old index on move IPC');
 			}
-			// Splice to remove at old index and insert at new index === moving the tab
 			const tab = this._tabs.splice(operation.oldIndex, 1)[0];
 			if (!tab) {
 				throw new Error(`Tab move updated received for index ${operation.oldIndex} which does not exist`);
@@ -230,16 +214,12 @@ class ExtHostEditorTabGroup {
 		if (operation.tabDto.isActive) {
 			this._activeTabId = operation.tabDto.id;
 		} else if (this._activeTabId === operation.tabDto.id && !operation.tabDto.isActive) {
-			// Events aren't guaranteed to be in order so if we receive a dto that matches the active tab id
-			// but isn't active we mark the active tab id as empty. This prevent onDidActiveTabChange from
-			// firing incorrectly
 			this._activeTabId = '';
 		}
 		tab.acceptDtoUpdate(operation.tabDto);
 		return tab;
 	}
 
-	// Not a getter since it must be a function to be used as a callback for the tabs
 	activeTabId(): string {
 		return this._activeTabId;
 	}
@@ -252,7 +232,6 @@ export class ExtHostEditorTabs implements IExtHostEditorTabs {
 	private readonly _onDidChangeTabs = new Emitter<vscode.TabChangeEvent>();
 	private readonly _onDidChangeTabGroups = new Emitter<vscode.TabGroupChangeEvent>();
 
-	// Have to use ! because this gets initialized via an RPC proxy
 	private _activeGroupId!: number;
 
 	private _extHostTabGroups: ExtHostEditorTabGroup[] = [];
@@ -267,10 +246,8 @@ export class ExtHostEditorTabs implements IExtHostEditorTabs {
 		if (!this._apiObject) {
 			const that = this;
 			const obj: vscode.TabGroups = {
-				// never changes -> simple value
 				onDidChangeTabGroups: that._onDidChangeTabGroups.event,
 				onDidChangeTabs: that._onDidChangeTabs.event,
-				// dynamic -> getters
 				get all() {
 					return Object.freeze(that._extHostTabGroups.map(group => group.apiObject));
 				},
@@ -284,22 +261,12 @@ export class ExtHostEditorTabs implements IExtHostEditorTabs {
 					if (!tabsOrTabGroups.length) {
 						return true;
 					}
-					// Check which type was passed in and call the appropriate close
-					// Casting is needed as typescript doesn't seem to infer enough from this
 					if (isTabGroup(tabsOrTabGroups[0])) {
 						return this._closeGroups(tabsOrTabGroups as vscode.TabGroup[], preserveFocus);
 					} else {
 						return this._closeTabs(tabsOrTabGroups as vscode.Tab[], preserveFocus);
 					}
 				},
-				// move: async (tab: vscode.Tab, viewColumn: ViewColumn, index: number, preserveFocus?: boolean) => {
-				// 	const extHostTab = this._findExtHostTabFromApi(tab);
-				// 	if (!extHostTab) {
-				// 		throw new Error('Invalid tab');
-				// 	}
-				// 	this._proxy.$moveTab(extHostTab.tabId, index, typeConverters.ViewColumn.from(viewColumn), preserveFocus);
-				// 	return;
-				// }
 			};
 			this._apiObject = Object.freeze(obj);
 		}
@@ -316,12 +283,6 @@ export class ExtHostEditorTabs implements IExtHostEditorTabs {
 		const opened: vscode.TabGroup[] = [];
 		const changed: vscode.TabGroup[] = [];
 
-		// Reuse the existing group instances for groups that still exist so that
-		// the `vscode.TabGroup` (and nested `vscode.Tab`) objects keep a stable
-		// identity across a full model resync, matching the granular update
-		// paths. Without this, every resync (e.g. opening/closing an editor
-		// group) hands extensions brand-new objects, silently breaking and
-		// leaking any `Map`/`WeakMap`/`Set` keyed by tab groups or tabs.
 		const existingGroupsById = new Map<number, ExtHostEditorTabGroup>();
 		for (const group of this._extHostTabGroups) {
 			existingGroupsById.set(group.groupId, group);
@@ -339,7 +300,6 @@ export class ExtHostEditorTabs implements IExtHostEditorTabs {
 			return group;
 		});
 
-		// Set the active tab group id
 		const activeTabGroupId = assertReturnsDefined(tabGroups.find(group => group.isActive === true)?.groupId);
 		if (activeTabGroupId !== undefined && this._activeGroupId !== activeTabGroupId) {
 			this._activeGroupId = activeTabGroupId;
@@ -366,7 +326,6 @@ export class ExtHostEditorTabs implements IExtHostEditorTabs {
 		}
 		const tab = group.acceptTabOperation(operation);
 
-		// Construct the tab change event based on the operation
 		switch (operation.kind) {
 			case TabModelOperationKind.TAB_OPEN:
 				this._onDidChangeTabs.fire(Object.freeze({
@@ -433,7 +392,6 @@ export class ExtHostEditorTabs implements IExtHostEditorTabs {
 	}
 }
 
-//#region Utils
 function isTabGroup(obj: unknown): obj is vscode.TabGroup {
 	const tabGroup = obj as vscode.TabGroup;
 	if (tabGroup.tabs !== undefined) {
@@ -441,4 +399,3 @@ function isTabGroup(obj: unknown): obj is vscode.TabGroup {
 	}
 	return false;
 }
-//#endregion

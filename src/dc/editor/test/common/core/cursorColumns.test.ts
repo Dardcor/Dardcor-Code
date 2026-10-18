@@ -131,7 +131,6 @@ suite('CursorColumns', () => {
 			assert.strictEqual(CursorColumns.columnFromVisibleColumn(text, visibleColumn, tabSize), expected);
 		}
 
-		// testColumnFromVisibleColumn('\t\tvar x = 3;', 4, 0, 1);
 		testColumnFromVisibleColumn('\t\tvar x = 3;', 4, 1, 1);
 		testColumnFromVisibleColumn('\t\tvar x = 3;', 4, 2, 1);
 		testColumnFromVisibleColumn('\t\tvar x = 3;', 4, 3, 2);

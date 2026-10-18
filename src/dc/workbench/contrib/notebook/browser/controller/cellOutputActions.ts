@@ -127,7 +127,6 @@ function getOutputViewModelFromContext(outputContext: INotebookOutputActionConte
 	}
 
 	if (!outputViewModel) {
-		// not able to find the output from the provided context, use the active cell
 		const activeCell = notebookEditor.getActiveCell();
 		if (!activeCell) {
 			return undefined;
@@ -171,7 +170,6 @@ registerAction2(class OpenCellOutputInEditorAction extends Action2 {
 		const outputViewModel = getOutputViewModelFromContext(outputContext, notebookEditor);
 
 		if (outputViewModel?.model.outputId && notebookEditor.textModel?.uri) {
-			// reserve notebook document reference since the active notebook editor might not be pinned so it can be replaced by the output editor
 			const ref = await notebookModelService.resolve(notebookEditor.textModel.uri);
 			await openerService.open(CellUri.generateCellOutputUriWithId(notebookEditor.textModel.uri, outputViewModel.model.outputId));
 			ref.dispose();
@@ -214,7 +212,6 @@ registerAction2(class SaveCellOutputImageAction extends Action2 {
 
 		const mimeType = outputViewModel.pickedMimeType?.mimeType;
 
-		// Only handle image mime types
 		if (!mimeType?.startsWith('image/')) {
 			return;
 		}
@@ -225,7 +222,6 @@ registerAction2(class SaveCellOutputImageAction extends Action2 {
 			return;
 		}
 
-		// Determine file extension based on mime type
 		const mimeToExt: { [key: string]: string } = {
 			'image/png': 'png',
 			'image/jpeg': 'jpg',
@@ -253,7 +249,7 @@ registerAction2(class SaveCellOutputImageAction extends Action2 {
 		});
 
 		if (!uri) {
-			return; // User cancelled
+			return;
 		}
 
 		try {
@@ -302,7 +298,6 @@ registerAction2(class OpenCellOutputInNotebookOutputEditorAction extends Action2
 			return;
 		}
 
-		// get cell index
 		const cellViewModel = notebookEditor.getCellByHandle(genericCellViewModel.handle);
 		if (!cellViewModel) {
 			return;
@@ -312,7 +307,6 @@ registerAction2(class OpenCellOutputInNotebookOutputEditorAction extends Action2
 			return;
 		}
 
-		// get output index
 		const outputIndex = genericCellViewModel.outputsViewModels.indexOf(outputViewModel);
 		if (outputIndex === -1) {
 			return;
@@ -322,7 +316,6 @@ registerAction2(class OpenCellOutputInNotebookOutputEditorAction extends Action2
 			return;
 		}
 
-		// craft rich output URI to pass data to the notebook output editor/viewer
 		const outputURI = CellUri.generateOutputEditorUri(
 			notebookEditor.textModel.uri,
 			cellViewModel.id,

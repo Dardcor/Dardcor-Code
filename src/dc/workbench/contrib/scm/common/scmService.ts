@@ -129,7 +129,7 @@ class SCMInput extends Disposable implements ISCMInput {
 
 				this.didChangeHistory = false;
 			}));
-		} else { // in memory only
+		} else {
 			this.historyNavigator = new HistoryNavigator2([''], 100);
 		}
 
@@ -312,8 +312,6 @@ class SCMInputHistory {
 		return history;
 	}
 
-	// Migrates from Application scope storage to Workspace scope.
-	// TODO@joaomoreno: Change from January 2024 onwards such that the only code is to remove all `scm/input:` storage keys
 	private migrateStorage(): boolean {
 		let didSomethingChange = false;
 		const machineKeys = Iterable.filter(this.storageService.keys(StorageScope.APPLICATION, StorageTarget.MACHINE), key => key.startsWith('scm/input:'));
@@ -359,7 +357,7 @@ export class SCMService implements ISCMService {
 
 	declare readonly _serviceBrand: undefined;
 
-	_repositories = new Map<string, ISCMRepository>();  // used in tests
+	_repositories = new Map<string, ISCMRepository>();
 	get repositories(): Iterable<ISCMRepository> { return this._repositories.values(); }
 	get repositoryCount(): number { return this._repositories.size; }
 

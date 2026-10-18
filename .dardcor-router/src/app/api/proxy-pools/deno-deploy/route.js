@@ -128,7 +128,7 @@ export async function POST(request) {
 
     let status = revision.status;
     let attempts = 0;
-    const maxAttempts = 30; // 30 * 2s = 60s max
+    const maxAttempts = 30;
     while (status === "queued" || status === "building") {
       if (attempts >= maxAttempts) {
         throw new Error("Deploy timed out after 60 seconds");

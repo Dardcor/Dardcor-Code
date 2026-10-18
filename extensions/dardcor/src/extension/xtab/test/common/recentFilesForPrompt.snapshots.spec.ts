@@ -10,7 +10,6 @@ import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/
 import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { buildCodeSnippetsUsingPagedClipping } from '../../common/recentFilesForPrompt';
 
-// --- Helpers ---
 
 function computeTokens(s: string) {
 	return Math.ceil(s.length / 4);
@@ -48,7 +47,6 @@ function makeOpts(overrides: {
 	};
 }
 
-/** Compute byte offset of line `lineIdx` (0-based) in a StringText. */
 function lineOffset(content: StringText, lineIdx: number): number {
 	const lines = content.getLines();
 	let offset = 0;
@@ -63,9 +61,7 @@ function lineRange(content: StringText, lineIdx: number): OffsetRange {
 	return new OffsetRange(start, start + content.getLines()[lineIdx].length);
 }
 
-// --- Realistic file content ---
 
-// A TypeScript service class (37 lines, ~273 tokens total across 4 pages of 10)
 const tsServiceFile = new StringText([
 	`import { Injectable } from '@angular/core';`,
 	`import { HttpClient } from '@angular/common/http';`,
@@ -106,7 +102,6 @@ const tsServiceFile = new StringText([
 	`}`,
 ].join('\n'));
 
-// A React component (38 lines)
 const reactComponentFile = new StringText([
 	`import React, { useState, useEffect } from 'react';`,
 	`import { UserService } from './userService';`,
@@ -150,7 +145,6 @@ const reactComponentFile = new StringText([
 	`}`,
 ].join('\n'));
 
-// A tsconfig.json (18 lines, ~58 tokens per page)
 const configFile = new StringText([
 	`{`,
 	`  "compilerOptions": {`,
@@ -176,14 +170,12 @@ const serviceId = DocumentId.create('file:///src/services/userService.ts');
 const componentId = DocumentId.create('file:///src/components/UserProfile.tsx');
 const configId = DocumentId.create('file:///tsconfig.json');
 
-// --- Snapshot tests ---
 
 suite('Clipping strategy snapshots', () => {
 
 	suite('AroundEditRange — clips centered on edit locations, greedy budget', () => {
 
 		test('single file: centers clip on edit near the bottom of the file', () => {
-			// Edit to the `deleteUser` method (line 34)
 			const { snippets } = buildSnippets(
 				[{ id: serviceId, content: tsServiceFile, focalRanges: [lineRange(tsServiceFile, 34)] }],
 				makeOpts({ maxTokens: 100, pageSize: 10, clippingStrategy: RecentFileClippingStrategy.AroundEditRange }),
@@ -208,9 +200,7 @@ suite('Clipping strategy snapshots', () => {
 		test('two files: each clipped around its own edit location', () => {
 			const { snippets } = buildSnippets(
 				[
-					// Edit on component: the return JSX (line 32)
 					{ id: componentId, content: reactComponentFile, focalRanges: [lineRange(reactComponentFile, 32)] },
-					// Edit on service: updateUser method (line 30)
 					{ id: serviceId, content: tsServiceFile, focalRanges: [lineRange(tsServiceFile, 30)] },
 				],
 				makeOpts({ maxTokens: 300, pageSize: 10, clippingStrategy: RecentFileClippingStrategy.AroundEditRange }),
@@ -286,9 +276,7 @@ suite('Clipping strategy snapshots', () => {
 		test('two files with equal edits: budget split evenly', () => {
 			const { snippets } = buildSnippets(
 				[
-					// Edit on component: the useEffect block (line 14)
 					{ id: componentId, content: reactComponentFile, focalRanges: [lineRange(reactComponentFile, 14)], editEntryCount: 1 },
-					// Edit on service: createUser method (line 26)
 					{ id: serviceId, content: tsServiceFile, focalRanges: [lineRange(tsServiceFile, 26)], editEntryCount: 1 },
 				],
 				makeOpts({ maxTokens: 250, pageSize: 10, clippingStrategy: RecentFileClippingStrategy.Proportional }),
@@ -329,9 +317,7 @@ suite('Clipping strategy snapshots', () => {
 		test('file with more edits gets more expansion budget', () => {
 			const { snippets } = buildSnippets(
 				[
-					// Service file: 3 edits (higher weight), edit on getUsers (line 18)
 					{ id: serviceId, content: tsServiceFile, focalRanges: [lineRange(tsServiceFile, 18)], editEntryCount: 3 },
-					// Config file: 1 edit, edit on "strict" (line 5)
 					{ id: configId, content: configFile, focalRanges: [lineRange(configFile, 5)], editEntryCount: 1 },
 				],
 				makeOpts({ maxTokens: 250, pageSize: 10, clippingStrategy: RecentFileClippingStrategy.Proportional }),
@@ -379,7 +365,6 @@ suite('Clipping strategy snapshots', () => {
 				makeOpts({ maxTokens: 150, pageSize: 10, clippingStrategy: RecentFileClippingStrategy.Proportional }),
 			);
 
-			// Config (oldest) should be dropped
 			expect(docsInPrompt.has(configId)).toBe(false);
 			expect(snippets).toMatchInlineSnapshot(`
 				[
@@ -403,7 +388,6 @@ suite('Clipping strategy snapshots', () => {
 
 	suite('Strategy comparison — same file and edit, different strategies', () => {
 
-		// Edit on createUser method (line 26, near the middle-bottom)
 		const editFocalRange = lineRange(tsServiceFile, 26);
 
 		test('AroundEditRange: clips centered on the edit location', () => {

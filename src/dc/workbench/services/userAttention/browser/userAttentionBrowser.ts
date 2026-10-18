@@ -16,10 +16,6 @@ import { ILogService, LogLevel } from '../../../../platform/log/common/log.js';
 import { IHostService } from '../../host/browser/host.js';
 import { IUserAttentionService } from '../common/userAttentionService.js';
 
-/**
- * The user attention timeout in milliseconds.
- * User is considered attentive if there was activity within this time frame.
- */
 const USER_ATTENTION_TIMEOUT_MS = 60_000;
 
 export class UserAttentionService extends Disposable implements IUserAttentionService {
@@ -121,7 +117,6 @@ export class UserAttentionServiceEnv extends Disposable {
 			this._isUserActive.set(true, undefined);
 		}
 
-		// An activity event accounts for 500ms for immediate use activity
 		this._activityDebounceTimeout = setTimeout(() => {
 			this._isUserActive.set(false, undefined);
 			this._activityDebounceTimeout = undefined;

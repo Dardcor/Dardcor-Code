@@ -11,19 +11,13 @@ import { FileChunk } from '../common/chunk';
 import { MAX_CHUNK_SIZE_TOKENS, NaiveChunker } from './naiveChunker';
 
 interface NaiveChunkingOptions {
-	/**
-	 * The desired maximum length of each chunk in tokens
-	 */
 	readonly maxTokenLength?: number;
 	readonly validateChunkLengths?: boolean;
-	readonly includeExtraBodyOutsideRange?: boolean; // only gets applied if limitToRange is set
+	readonly includeExtraBodyOutsideRange?: boolean;
 }
 
 export interface INaiveChunkingService {
 
-	/**
-	 * Splits `text` into smaller chunks of roughly equal length using a scrolling window approach.
-	 */
 	chunkFile(endpoint: TokenizationEndpoint, fileUri: Uri, text: string, options: NaiveChunkingOptions, token: CancellationToken): Promise<FileChunk[]>;
 }
 
@@ -33,7 +27,7 @@ export class NaiveChunkingService implements INaiveChunkingService {
 
 	declare _serviceBrand: undefined;
 
-	private readonly naiveChunkers = new Map</*endpoint */ string, NaiveChunker>();
+	private readonly naiveChunkers = new Map< string, NaiveChunker>();
 
 	constructor(
 		@ITokenizerProvider private readonly tokenizerProvider: ITokenizerProvider,

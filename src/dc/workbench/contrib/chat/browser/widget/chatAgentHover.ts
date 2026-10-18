@@ -132,12 +132,6 @@ export function getChatAgentHoverOptions(getAgent: () => IChatAgentData | undefi
 		},
 	};
 
-	// `actions` is a getter so the agent is only resolved at hover-show time.
-	// Some callers (e.g. chatListRenderer) construct these options before the
-	// surrounding template is initialized, so calling `getAgent()` eagerly here
-	// would hit a TDZ on the captured `template` variable.
-	// Core agents (e.g. agent host) have a placeholder extension id and no real
-	// extension to view, so we omit the action for them.
 	return {
 		get actions() {
 			return getAgent()?.isCore ? [] : [viewExtensionAction];

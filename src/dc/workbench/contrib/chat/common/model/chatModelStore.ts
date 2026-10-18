@@ -94,9 +94,6 @@ export class ChatModelStore extends Disposable {
 		return this._models.values();
 	}
 
-	/**
-	 * Get a ChatModel directly without acquiring a reference.
-	 */
 	public get(uri: URI): ChatModel | undefined {
 		return this._models.get(this.toKey(uri));
 	}
@@ -229,17 +226,12 @@ export class ChatModelStore extends Disposable {
 				}
 				reference.dispose();
 
-				// Break the reference from this wrapper to the ChatModel so that
-				// stale holders of this IChatModelReference cannot retain the model.
 				(wrapped as { object: ChatModel | null }).object = null;
 			}
 		};
 		return wrapped;
 	}
 
-	/**
-	 * For test use only
-	 */
 	async waitForModelDisposals(): Promise<void> {
 		await Promise.all(this._pendingDisposals);
 	}

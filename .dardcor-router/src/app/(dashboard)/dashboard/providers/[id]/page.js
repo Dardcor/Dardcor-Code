@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
-import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, ChatGPTWebAuthModal, DeepSeekWebAuthModal, GeminiWebAuthModal, XiaomiMimoAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
+import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, XiaomiMimoAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, getProviderAlias, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, AI_PROVIDERS } from "@/shared/constants/providers";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
@@ -104,12 +104,11 @@ export default function ProviderDetailPage() {
         return;
       }
     }
-    // Xiaomi Desktop: auto-import local credentials first, OAuth as fallback
     if (providerId === "xiaomi-mimo") {
       setShowXiaomiMimoModal(true);
       return;
     }
-    if (isOAuth || providerId === "chatgpt-web") {
+    if (isOAuth) {
       openOAuthConnection();
       return;
     }
@@ -123,7 +122,7 @@ export default function ProviderDetailPage() {
   };
 
   const triggerAddConnection = () => {
-    if (isOAuth || providerId === "chatgpt-web") {
+    if (isOAuth) {
       triggerOAuthConnection();
       return;
     }
@@ -154,11 +153,11 @@ export default function ProviderDetailPage() {
       }
     : (OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId] || FREE_PROVIDERS[providerId] || FREE_TIER_PROVIDERS[providerId] || WEB_COOKIE_PROVIDERS[providerId]);
   const authModes = providerInfo?.authModes || [];
-  const isOAuth = !!OAUTH_PROVIDERS[providerId] || !!FREE_PROVIDERS[providerId] || authModes.includes("oauth") || ["chatgpt-web", "deepseek-web", "gemini-web"].includes(providerId);
+  const isOAuth = !!OAUTH_PROVIDERS[providerId] || !!FREE_PROVIDERS[providerId] || authModes.includes("oauth");
   const supportsApiKeyAuth = !!APIKEY_PROVIDERS[providerId] || authModes.includes("apikey");
   const isFreeNoAuth = !!FREE_PROVIDERS[providerId]?.noAuth;
   const staticModels = getModelsByProviderId(providerId);
-  const isDynamicLiveModelProvider = ["cursor", "chatgpt-web", "deepseek-web", "gemini-web"].includes(providerId);
+  const isDynamicLiveModelProvider = ["cursor"].includes(providerId);
   const models = isDynamicLiveModelProvider && liveModels.length > 0
     ? liveModels
     : staticModels;
@@ -178,15 +177,12 @@ export default function ProviderDetailPage() {
     : providerId === "kimi" ? "Kimi API Key"
     : providerId === "qoder" ? "PAT"
     : "API Key";
-  // Resolve suffix "(level)" for a model when a thinking level is picked and the model supports it.
   const resolveThinkingSuffix = (modelId) => {
     if (!thinkingMode || thinkingMode === "auto") return null;
     const levels = getThinkingLevels(providerId, modelId);
     return levels && levels.includes(thinkingMode) ? thinkingMode : null;
   };
   const providerStorageAlias = isCompatible ? providerId : providerAlias;
-  // Union of levels across this provider's reasoning models — drives the level picker options.
-  // Include custom models too (e.g. manually added gpt-5.6-sol → max).
   const providerThinkingLevels = (() => {
     const set = new Set();
     const seen = new Set();
@@ -271,7 +267,6 @@ export default function ProviderDetailPage() {
     }
   };
 
-  // Define callbacks BEFORE the useEffect that uses them
   const fetchAliases = useCallback(async () => {
     try {
       const res = await fetch("/api/models/alias");
@@ -296,7 +291,6 @@ export default function ProviderDetailPage() {
     }
   }, []);
 
-  // Fetch free models from Kilo API for kilocode provider
   useEffect(() => {
     if (providerId !== "kilocode") return;
     fetch("/api/providers/kilo/free-models")
@@ -324,11 +318,9 @@ export default function ProviderDetailPage() {
       if (proxyPoolsRes.ok) {
         setProxyPools(proxyPoolsData.proxyPools || []);
       }
-      // Load per-provider strategy override
       const override = (settingsData.providerStrategies || {})[providerId] || {};
       setProviderStrategy(override.fallbackStrategy || null);
       setProviderStickyLimit(override.stickyRoundRobinLimit != null ? String(override.stickyRoundRobinLimit) : "1");
-      // Load per-provider thinking config
       const thinkingCfg = (settingsData.providerThinking || {})[providerId] || {};
       setThinkingMode(thinkingCfg.mode || "auto");
       const autoPingSettingsKey = AUTO_PING_SETTINGS_KEYS[providerId];
@@ -337,8 +329,6 @@ export default function ProviderDetailPage() {
       if (nodesRes.ok) {
         let node = (nodesData.nodes || []).find((entry) => entry.id === providerId) || null;
 
-        // Newly created compatible nodes can be briefly unavailable on one worker.
-        // Retry a few times before showing "Provider not found".
         if (!node && isCompatible) {
           for (let attempt = 0; attempt < 3; attempt += 1) {
             await new Promise((resolve) => setTimeout(resolve, 150));
@@ -383,7 +373,6 @@ export default function ProviderDetailPage() {
       const settingsData = settingsRes.ok ? await settingsRes.json() : {};
       const current = settingsData.providerStrategies || {};
 
-      // Build override: null strategy means remove override, use global
       const override = {};
       if (strategy) override.fallbackStrategy = strategy;
       if (strategy === "round-robin" && stickyLimit !== "") {
@@ -473,9 +462,6 @@ export default function ProviderDetailPage() {
     fetchDisabledModels();
   }, [fetchConnections, fetchAliases, fetchCustomModels, fetchDisabledModels]);
 
-  // Dynamic providers model availability is account-specific and changes frequently.
-  // Load the active account's live catalog for the dashboard; the static
-  // registry remains the fallback while the request is pending or unavailable.
   useEffect(() => {
     if (!isDynamicLiveModelProvider) {
       setLiveModels([]);
@@ -501,7 +487,6 @@ export default function ProviderDetailPage() {
     return () => { cancelled = true; };
   }, [providerId, connections, isDynamicLiveModelProvider]);
 
-  // Fetch suggested models from provider's public API (if configured)
   useEffect(() => {
     const fetcher = (OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId] || FREE_PROVIDERS[providerId] || FREE_TIER_PROVIDERS[providerId])?.modelsFetcher;
     if (!fetcher) return;
@@ -694,7 +679,6 @@ export default function ProviderDetailPage() {
     }
   };
 
-  // Fetch Qoder model list and automatically add to available models
   const handleImportQoderModels = async () => {
     if (importingQoderModels) return;
     const activeConnection = connections.find((conn) => conn.isActive !== false);
@@ -722,7 +706,6 @@ export default function ProviderDetailPage() {
         const modelId = model.id || model.name;
         if (!modelId) continue;
         
-        // Qoder model ID format may be "qoder/auto" or "auto", need to remove prefix
         const cleanModelId = modelId.replace(/^qoder\//, "");
         const alreadyExists = customModels.some(
           (entry) => entry.providerAlias === providerStorageAlias && entry.id === cleanModelId && (entry.kind || entry.type || "llm") === "llm"
@@ -747,8 +730,6 @@ export default function ProviderDetailPage() {
       setImportingQoderModels(false);
     }
   };
-  // Fetch the live Cline /models catalog and add every model not yet present.
-  // Cline and ClinePass share the same catalog endpoint (api.cline.bot/api/v1/models).
   const handleImportClineModels = async () => {
     if (importingClineModels) return;
     const activeConnection = connections.find((conn) => conn.isActive !== false);
@@ -1002,7 +983,6 @@ export default function ProviderDetailPage() {
   };
 
   const handleSwapPriority = async (index1, index2) => {
-    // Optimistic update state
     const newConnections = [...connections];
     [newConnections[index1], newConnections[index2]] = [newConnections[index2], newConnections[index1]];
     setConnections(newConnections);
@@ -1273,8 +1253,6 @@ export default function ProviderDetailPage() {
         />
       );
     }
-    // Combine hardcoded models with Kilo free models (deduplicated)
-    // Exclude non-llm models (embedding, tts, etc.) — they have dedicated pages under media-providers
     const allModels = [
       ...models,
       ...kiloFreeModels.filter((fm) => !models.some((m) => m.id === fm.id)),
@@ -1292,7 +1270,7 @@ export default function ProviderDetailPage() {
 
     return (
       <div className="flex flex-wrap gap-3">
-        {/* Custom models first */}
+        {}
         {customModelRows.map((model) => (
           <ModelRow
             key={`${model.source}-${model.fullModel}`}
@@ -1346,7 +1324,7 @@ export default function ProviderDetailPage() {
           );
         })}
 
-        {/* Add model button — inline, same style as model chips */}
+        {}
         <button
           onClick={() => setShowAddCustomModel(true)}
           className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary transition-colors hover:border-primary hover:bg-primary/5 sm:w-auto"
@@ -1355,7 +1333,7 @@ export default function ProviderDetailPage() {
           Add Model
         </button>
 
-        {/* Import Qoder models button — only show for qoder provider */}
+        {}
         {providerId === "qoder" && connections.some((conn) => conn.isActive !== false) && (
           <button
             onClick={handleImportQoderModels}
@@ -1369,7 +1347,7 @@ export default function ProviderDetailPage() {
           </button>
         )}
 
-        {/* Import Cline /models catalog button — only show for cline and clinepass providers */}
+        {}
         {(providerId === "cline" || providerId === "clinepass") && connections.some((conn) => conn.isActive !== false) && (
           <button
             onClick={handleImportClineModels}
@@ -1383,7 +1361,7 @@ export default function ProviderDetailPage() {
           </button>
         )}
 
-        {/* Suggested models from provider API — show only models not yet added */}
+        {}
         {suggestedModels.length > 0 && (() => {
           const addedFullModels = new Set([
             ...Object.values(modelAliases),
@@ -1416,7 +1394,7 @@ export default function ProviderDetailPage() {
           );
         })()}
 
-        {/* Disabled models — restorable */}
+        {}
         {disabledDisplayModels.length > 0 && (
           <div className="w-full mt-2">
             <p className="text-xs text-text-muted mb-2">Disabled models ({disabledDisplayModels.length}):</p>
@@ -1459,7 +1437,6 @@ export default function ProviderDetailPage() {
     );
   }
 
-  // Determine icon path: OpenAI Compatible providers use specialized icons
   const getHeaderIconPath = () => {
     if (isOpenAICompatible && providerInfo.apiType) {
       return providerInfo.apiType === "responses" ? "/providers/oai-r.png" : "/providers/oai-cc.png";
@@ -1472,7 +1449,7 @@ export default function ProviderDetailPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6 px-1 sm:gap-8 sm:px-0">
-      {/* Header */}
+      {}
       <div className="min-w-0">
         <Link
           href="/dashboard/providers"
@@ -1670,7 +1647,7 @@ export default function ProviderDetailPage() {
         </Card>
       )}
 
-      {/* Connections */}
+      {}
       {isFreeNoAuth ? (
         <NoAuthProxyCard providerId={providerId} />
       ) : (
@@ -1722,7 +1699,7 @@ export default function ProviderDetailPage() {
                   )}
                 </>
               )}
-              {/* Round Robin toggle */}
+              {}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-text-muted font-medium">Round Robin</span>
                 <Toggle
@@ -1906,7 +1883,7 @@ export default function ProviderDetailPage() {
         </Card>
       )}
 
-      {/* Models */}
+      {}
       <Card>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -1956,7 +1933,7 @@ export default function ProviderDetailPage() {
 
       {bulkActionModal}
 
-      {/* Modals */}
+      {}
       {providerId === "kiro" ? (
         <KiroOAuthWrapper
           isOpen={showOAuthModal}
@@ -1966,24 +1943,6 @@ export default function ProviderDetailPage() {
         />
       ) : providerId === "cursor" ? (
         <CursorAuthModal
-          isOpen={showOAuthModal}
-          onSuccess={handleOAuthSuccess}
-          onClose={() => setShowOAuthModal(false)}
-        />
-      ) : providerId === "chatgpt-web" ? (
-        <ChatGPTWebAuthModal
-          isOpen={showOAuthModal}
-          onSuccess={handleOAuthSuccess}
-          onClose={() => setShowOAuthModal(false)}
-        />
-      ) : providerId === "deepseek-web" ? (
-        <DeepSeekWebAuthModal
-          isOpen={showOAuthModal}
-          onSuccess={handleOAuthSuccess}
-          onClose={() => setShowOAuthModal(false)}
-        />
-      ) : providerId === "gemini-web" ? (
-        <GeminiWebAuthModal
           isOpen={showOAuthModal}
           onSuccess={handleOAuthSuccess}
           onClose={() => setShowOAuthModal(false)}
@@ -2005,7 +1964,7 @@ export default function ProviderDetailPage() {
         />
       )}
 
-      {/* Xiaomi Desktop: auto-import local credentials modal */}
+      {}
       <XiaomiMimoAuthModal
         isOpen={showXiaomiMimoModal}
         onSuccess={handleOAuthSuccess}
@@ -2082,7 +2041,7 @@ export default function ProviderDetailPage() {
         />
       )}
 
-      {/* AG Risk Confirmation Modal */}
+      {}
       <ConfirmModal
         isOpen={showAgRiskModal}
         onClose={() => setShowAgRiskModal(false)}
@@ -2094,7 +2053,7 @@ export default function ProviderDetailPage() {
         variant="danger"
       />
 
-      {/* Confirm Modal */}
+      {}
       <ConfirmModal
         isOpen={!!confirmState}
         onClose={() => setConfirmState(null)}

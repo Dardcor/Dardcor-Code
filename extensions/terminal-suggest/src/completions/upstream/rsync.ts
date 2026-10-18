@@ -835,9 +835,6 @@ const completionSpec: Fig.Spec = {
 		{ name: ["-6", "--ipv6"], description: "Prefer IPv6" },
 		{ name: "--version", description: "Print version number" },
 		{
-			/*
-			 * This is according with rsync spec.
-			 */
 			// eslint-disable-next-line @withfig/fig-linter/no-duplicate-options-subcommands
 			name: ["-h", "--help"],
 			description: "Show help for rsync (-h is --help only if used alone)",

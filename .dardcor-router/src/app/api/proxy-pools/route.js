@@ -41,7 +41,6 @@ function buildUsageMap(connections = []) {
   return usageMap;
 }
 
-// GET /api/proxy-pools - List proxy pools
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -74,7 +73,6 @@ export async function GET(request) {
   }
 }
 
-// POST /api/proxy-pools - Create proxy pool
 export async function POST(request) {
   try {
     const body = await request.json();

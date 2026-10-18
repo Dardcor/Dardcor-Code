@@ -26,11 +26,6 @@ export function getAriaId(index: number): string {
 export interface ISimpleSuggestionTemplateData {
 	readonly root: HTMLElement;
 
-	/**
-	 * Flexbox
-	 * < ------------- left ------------ >     < --- right -- >
-	 * <icon><label><signature><qualifier>     <type><readmore>
-	 */
 	readonly left: HTMLElement;
 	readonly right: HTMLElement;
 
@@ -40,11 +35,7 @@ export interface ISimpleSuggestionTemplateData {
 	readonly iconContainer: HTMLElement;
 	readonly parametersLabel: HTMLElement;
 	readonly qualifierLabel: HTMLElement;
-	/**
-	 * Showing either `CompletionItem#details` or `CompletionItemLabel#type`
-	 */
 	readonly detailsLabel: HTMLElement;
-	// readonly readMore: HTMLElement;
 	readonly disposables: DisposableStore;
 }
 
@@ -100,8 +91,6 @@ export class SimpleSuggestWidgetItemRenderer implements IListRenderer<SimpleComp
 		const qualifierLabel = append(left, $('span.qualifier-label'));
 		const detailsLabel = append(right, $('span.details-label'));
 
-		// const readMore = append(right, $('span.readMore' + ThemeIcon.asCSSSelector(suggestMoreInfoIcon)));
-		// readMore.title = nls.localize('readMore', "Read More");
 
 		const configureFont = () => {
 			const fontFeatureSettings = '';
@@ -118,8 +107,6 @@ export class SimpleSuggestWidgetItemRenderer implements IListRenderer<SimpleComp
 			main.style.lineHeight = lineHeightPx;
 			icon.style.height = lineHeightPx;
 			icon.style.width = lineHeightPx;
-			// readMore.style.height = lineHeightPx;
-			// readMore.style.width = lineHeightPx;
 		};
 
 		configureFont();
@@ -137,16 +124,8 @@ export class SimpleSuggestWidgetItemRenderer implements IListRenderer<SimpleComp
 			matches: createMatches(element.score)
 		};
 
-		// const color: string[] = [];
-		// if (completion.kind === CompletionItemKind.Color && _completionItemColor.extract(element, color)) {
-		// 	// special logic for 'color' completion items
-		// 	data.icon.className = 'icon customcolor';
-		// 	data.iconContainer.className = 'icon hide';
-		// 	data.colorspan.style.backgroundColor = color[0];
 
-		// } else
 		if (completion.kindLabel === 'File' && this._themeService.getFileIconTheme().hasFileIcons) {
-			// special logic for 'file' completion items
 			data.icon.className = 'icon hide';
 			data.iconContainer.className = 'icon hide';
 			const labelClasses = getIconClasses(this._modelService, this._languageService, URI.from({ scheme: 'fake', path: element.textLabel }), FileKind.FILE);
@@ -154,7 +133,6 @@ export class SimpleSuggestWidgetItemRenderer implements IListRenderer<SimpleComp
 			labelOptions.extraClasses = labelClasses.length > detailClasses.length ? labelClasses : detailClasses;
 
 		} else if (completion.kindLabel === 'Folder' && this._themeService.getFileIconTheme().hasFolderIcons) {
-			// special logic for 'folder' completion items
 			data.icon.className = 'icon hide';
 			data.iconContainer.className = 'icon hide';
 			labelOptions.extraClasses = [
@@ -162,16 +140,11 @@ export class SimpleSuggestWidgetItemRenderer implements IListRenderer<SimpleComp
 				getIconClasses(this._modelService, this._languageService, URI.from({ scheme: 'fake', path: completion.detail }), FileKind.FOLDER)
 			].flat();
 		} else {
-			// normal icon
 			data.icon.className = 'icon hide';
 			data.iconContainer.className = '';
 			data.iconContainer.classList.add('suggest-icon', ...ThemeIcon.asClassNameArray(completion.icon || Codicon.symbolText));
 		}
 
-		// if (completion.tags && completion.tags.indexOf(CompletionItemTag.Deprecated) >= 0) {
-		// 	labelOptions.extraClasses = (labelOptions.extraClasses || []).concat(['deprecated']);
-		// 	labelOptions.matches = [];
-		// }
 
 		data.iconLabel.setLabel(element.textLabel, undefined, labelOptions);
 		if (typeof completion.label === 'string') {
@@ -185,30 +158,9 @@ export class SimpleSuggestWidgetItemRenderer implements IListRenderer<SimpleComp
 			data.root.classList.remove('string-label');
 		}
 
-		// if (this._editor.getOption(EditorOption.suggest).showInlineDetails) {
 		show(data.detailsLabel);
-		// } else {
-		// 	hide(data.detailsLabel);
-		// }
 
-		// if (canExpandCompletionItem(element)) {
-		// 	data.right.classList.add('can-expand-details');
-		// 	show(data.readMore);
-		// 	data.readMore.onmousedown = e => {
-		// 		e.stopPropagation();
-		// 		e.preventDefault();
-		// 	};
-		// 	data.readMore.onclick = e => {
-		// 		e.stopPropagation();
-		// 		e.preventDefault();
-		// 		this._onDidToggleDetails.fire();
-		// 	};
-		// } else {
 		data.right.classList.remove('can-expand-details');
-		// hide(data.readMore);
-		// data.readMore.onmousedown = null;
-		// data.readMore.onclick = null;
-		// }
 	}
 
 	disposeTemplate(templateData: ISimpleSuggestionTemplateData): void {

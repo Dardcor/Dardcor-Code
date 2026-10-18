@@ -19,20 +19,14 @@ import { ITerminalChatService, ITerminalInstance, ITerminalLocationOptions, ITer
 import { ITerminalProfileProvider, ITerminalProfileService } from '../common/terminal.js';
 
 export interface IAgentHostTerminalCreateOptions {
-	/** Human-readable terminal name. */
 	readonly name?: string;
-	/** Initial working directory. */
 	readonly cwd?: URI;
-	/** Terminal location (panel, editor, split, etc.). */
 	readonly location?: ITerminalLocationOptions;
 }
 
 export interface IAgentHostEntry {
-	/** Display name for the profile. */
 	readonly name: string;
-	/** Address or identifier for the host. */
 	readonly address: string;
-	/** Getter for the connection (may be lazily resolved). */
 	readonly getConnection: () => IAgentConnection | undefined;
 }
 
@@ -50,55 +44,22 @@ export const IAgentHostTerminalService = createDecorator<IAgentHostTerminalServi
 export interface IAgentHostTerminalService {
 	readonly _serviceBrand: undefined;
 
-	/** Observable list of registered agent host terminal profiles. */
 	readonly profiles: IObservable<readonly IAgentHostTerminalProfileInfo[]>;
 
-	/**
-	 * Ensures a named profile exists for the given address, expanding any
-	 * collapsed quickpick profile if needed. Returns the profile info, or
-	 * `undefined` if no entry is registered for the address.
-	 */
 	getProfileForConnection(address: string): IAgentHostTerminalProfileInfo | undefined;
 
-	/**
-	 * Registers an agent host entry. The service reconciles entries into
-	 * terminal profiles automatically. Dispose the returned disposable to
-	 * remove the entry.
-	 */
 	registerEntry(entry: IAgentHostEntry): IDisposable;
 
-	/**
-	 * Creates a new interactive terminal on the given agent host connection.
-	 */
 	createTerminal(connection: IAgentConnection, options?: IAgentHostTerminalCreateOptions): Promise<ITerminalInstance>;
 
-	/**
-	 * Creates a terminal for the agent host registered at the given address,
-	 * resolving the connection from the registered entry. Returns `undefined`
-	 * if no entry is registered for the address.
-	 */
 	createTerminalForEntry(address: string, options?: IAgentHostTerminalCreateOptions): Promise<ITerminalInstance | undefined>;
 
-	/**
-	 * Reconnects all active terminals that belonged to {@link oldClientId}
-	 * to a new agent host connection. Only terminals matching the old
-	 * client are touched — terminals from other hosts are left alone.
-	 */
 	reconnectTerminals(newConnection: IAgentConnection, oldClientId: string): Promise<{ recovered: number; total: number }>;
 
-	/**
-	 * Attaches to an existing server-side terminal by subscribing to its
-	 * state without creating a new process.
-	 */
 	reviveTerminal(connection: IAgentConnection, terminalUri: URI, terminalToolSessionId: string): Promise<ITerminalInstance>;
 
-	/** Attach a non-pty output channel directly to chat without creating a terminal instance. */
 	attachOutputTerminal(connection: IAgentConnection, terminalUri: URI, terminalToolSessionId: string): IDisposable;
 
-	/**
-	 * Sets the default cwd used by profile providers when no explicit cwd
-	 * is provided. Call with `undefined` to clear.
-	 */
 	setDefaultCwd(cwd: URI | undefined): void;
 }
 
@@ -113,12 +74,7 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 
 	private _defaultCwd: URI | undefined;
 
-	/** Revived terminal instances, keyed by terminal URI string. */
 	private readonly _revivedInstances = new Map<string, ITerminalInstance>();
-	/**
-	 * Active AgentHostPty instances with their owning connection clientId,
-	 * keyed by terminal URI string. Used for reconnection scoping.
-	 */
 	private readonly _activePtys = new Map<string, { pty: AgentHostPty; clientId: string }>();
 	private readonly _pendingRevives = new Map<string, Promise<ITerminalInstance>>();
 
@@ -132,7 +88,6 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 		super();
 	}
 
-	// #region Profile management
 
 	registerEntry(entry: IAgentHostEntry): IDisposable {
 		this._entries.push(entry);
@@ -151,7 +106,6 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 		if (!entry) {
 			return undefined;
 		}
-		// Expand the collapsed quickpick profile into a named one if needed
 		if (!this._profileRegistrations.has(address)) {
 			this._usedHosts.add(address);
 			this._reconcile();
@@ -168,11 +122,9 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 		const desiredProfiles = new Map<string, IAgentHostEntry>();
 
 		if (entries.length === 0) {
-			// No hosts — no profiles
 		} else if (entries.length === 1) {
 			desiredProfiles.set(entries[0].address, entries[0]);
 		} else {
-			// Multiple hosts — show named profiles for used ones
 			let displaying = 0;
 			for (const address of this._usedHosts) {
 				const entry = entries.find(e => e.address === address);
@@ -195,7 +147,6 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 			}
 		}
 
-		// Diff registrations
 		for (const [key, entry] of desiredProfiles) {
 			if (!this._profileRegistrations.has(key)) {
 				this._registerProfile(key, entry, entries);
@@ -207,7 +158,6 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 			}
 		}
 
-		// Update observable
 		const infos: IAgentHostTerminalProfileInfo[] = [];
 		for (const [key] of desiredProfiles) {
 			infos.push({
@@ -279,7 +229,6 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 		this._profileRegistrations.set(key, store);
 	}
 
-	// #endregion
 
 	async createTerminalForEntry(address: string, options?: IAgentHostTerminalCreateOptions): Promise<ITerminalInstance | undefined> {
 		const entry = this._entries.find(e => e.address === address);
@@ -399,9 +348,6 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 	}
 
 	async reconnectTerminals(newConnection: IAgentConnection, oldClientId: string): Promise<{ recovered: number; total: number }> {
-		// Only reconnect terminals that belonged to the old connection
-		// identified by oldClientId. In multi-host setups, other hosts'
-		// terminals are left untouched.
 		const entries = [...this._activePtys.entries()].filter(
 			([, entry]) => entry.clientId === oldClientId
 		);
@@ -413,7 +359,6 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 				entry.pty.reconnect(newConnection).then(success => {
 					if (success) {
 						recovered++;
-						// Update the clientId to the new connection
 						entry.clientId = newConnection.clientId;
 					} else {
 						console.warn(`[AgentHostTerminalService] Failed to reconnect terminal: ${key}`);

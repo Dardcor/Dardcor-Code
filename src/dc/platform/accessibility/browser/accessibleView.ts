@@ -68,36 +68,14 @@ export const enum NavigationType {
 
 export interface IAccessibleViewOptions {
 	readMoreUrl?: string;
-	/**
-	 * Defaults to markdown
-	 */
 	language?: string;
 	type: AccessibleViewType;
-	/**
-	 * By default, places the cursor on the top line of the accessible view.
-	 * If set to 'initial-bottom', places the cursor on the bottom line initially and returns it to the bottom when the content changes.
-	 * If set to 'initial-bottom-preserve', places the cursor on the bottom line initially and preserves its position when the content changes.
-	 * If set to 'bottom', places the cursor on the bottom line of the accessible view.
-	 */
 	position?: 'bottom' | 'initial-bottom' | 'initial-bottom-preserve';
-	/**
-	 * @returns a string that will be used as the content of the help dialog
-	 * instead of the one provided by default.
-	 */
 	customHelp?: () => string;
-	/**
-	 * If this provider might want to request to be shown again, provide an ID.
-	 */
 	id?: AccessibleViewProviderId;
 
-	/**
-	 * Keybinding items to configure
-	 */
 	configureKeybindingItems?: IQuickPickItem[];
 
-	/**
-	 * Keybinding items that are already configured
-	 */
 	configuredKeybindingItems?: IQuickPickItem[];
 }
 
@@ -105,18 +83,8 @@ export interface IAccessibleViewOptions {
 export interface IAccessibleViewContentProvider extends IBasicContentProvider, IDisposable {
 	id: AccessibleViewProviderId;
 	verbositySettingKey: string;
-	/**
-	 * Note that a Codicon class should be provided for each action.
-	 * If not, a default will be used.
-	 */
 	onKeyDown?(e: IKeyboardEvent): void;
-	/**
-	 * When the language is markdown, this is provided by default.
-	 */
 	getSymbols?(): IAccessibleViewSymbol[];
-	/**
-	 * Note that this will only take effect if the provider has an ID.
-	 */
 	readonly onDidRequestClearLastProvider?: Event<AccessibleViewProviderId>;
 }
 
@@ -135,7 +103,6 @@ export interface IPosition {
 
 export interface IAccessibleViewService {
 	readonly _serviceBrand: undefined;
-	// The provider will be disposed when the view is closed
 	show(provider: AccesibleViewContentProvider, position?: IPosition): void;
 	showLastProvider(id: AccessibleViewProviderId): void;
 	showAccessibleViewHelp(): void;
@@ -147,10 +114,6 @@ export interface IAccessibleViewService {
 	getPosition(id: AccessibleViewProviderId): IPosition | undefined;
 	setPosition(position: IPosition, reveal?: boolean, select?: boolean): void;
 	getLastPosition(): IPosition | undefined;
-	/**
-	 * If the setting is enabled, provides the open accessible view hint as a localized string.
-	 * @param verbositySettingKey The setting key for the verbosity of the feature
-	 */
 	getOpenAriaHint(verbositySettingKey: string): string | null;
 	getCodeBlockContext(): ICodeBlockActionContext | undefined;
 	configureKeybindings(unassigned: boolean): void;

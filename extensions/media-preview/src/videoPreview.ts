@@ -67,7 +67,7 @@ class VideoPreview extends MediaPreview {
 		const nonce = generateUuid();
 
 		const cspSource = this._webviewEditor.webview.cspSource;
-		return /* html */`<!DOCTYPE html>
+		return `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -103,7 +103,6 @@ class VideoPreview extends MediaPreview {
 			return null;
 		}
 
-		// Avoid adding cache busting if there is already a query string
 		if (resource.query) {
 			return webviewEditor.webview.asWebviewUri(resource).toString();
 		}

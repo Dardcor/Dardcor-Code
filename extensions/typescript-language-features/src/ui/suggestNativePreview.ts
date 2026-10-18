@@ -17,19 +17,15 @@ export async function suggestNativePreview(
 		return;
 	}
 
-	// Only show when the window is active
 	if (!vscode.window.state.active) {
 		return;
 	}
 
-	// Only show when the nightly extension is installed
 	if (!vscode.extensions.getExtension('ms-vscode.vscode-typescript-next')) {
 		return;
 	}
 
-	// Don't show if the native preview extension is already installed
 	if (getTsNativeExtension()) {
-		// Also don't prompt in the future
 		await context.globalState.update(suggestNativePreviewStorageKey, true);
 		return;
 	}
@@ -50,12 +46,11 @@ export async function suggestNativePreview(
 		learnMore,
 		dismiss,
 	);
-	// Don't show again
 	await context.globalState.update(suggestNativePreviewStorageKey, true);
 
 	if (selection === install) {
 		await vscode.commands.executeCommand('workbench.extensions.installExtension', tsNativeExtensionOldId);
 	} else if (selection === learnMore) {
-		await vscode.env.openExternal(vscode.Uri.parse('https://aka.ms/vscode-try-ts-7-learn-more'));
+		await vscode.env.openExternal(vscode.Uri.parse('https://www.dardcor-code.web.id/docs/languages/typescript/preview'));
 	}
 }

@@ -10,14 +10,12 @@ import * as platform from '../common/platform.js';
 
 function extractKeyCode(e: KeyboardEvent): KeyCode {
 	if (e.charCode) {
-		// "keypress" events mostly
 		const char = String.fromCharCode(e.charCode).toUpperCase();
 		return KeyCodeUtils.fromString(char);
 	}
 
 	const keyCode = e.keyCode;
 
-	// browser quirks
 	if (keyCode === 3) {
 		return KeyCode.PauseBreak;
 	} else if (browser.isFirefox) {
@@ -27,7 +25,6 @@ function extractKeyCode(e: KeyboardEvent): KeyCode {
 				if (platform.isLinux) { return KeyCode.IntlBackslash; }
 				break;
 			case 61: return KeyCode.Equal;
-			// based on: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#numpad_keys
 			case 107: return KeyCode.NumpadAdd;
 			case 109: return KeyCode.NumpadSubtract;
 			case 173: return KeyCode.Minus;
@@ -37,14 +34,12 @@ function extractKeyCode(e: KeyboardEvent): KeyCode {
 		}
 	} else if (browser.isWebKit) {
 		if (platform.isMacintosh && keyCode === 93) {
-			// the two meta keys in the Mac have different key codes (91 and 93)
 			return KeyCode.Meta;
 		} else if (!platform.isMacintosh && keyCode === 92) {
 			return KeyCode.Meta;
 		}
 	}
 
-	// cross browser keycodes:
 	return EVENT_KEY_CODE_MAP[keyCode] || KeyCode.Unknown;
 }
 
@@ -152,16 +147,8 @@ export class StandardKeyboardEvent implements IKeyboardEvent {
 		this.altGraphKey = e.getModifierState?.('AltGraph');
 		this.code = e.code;
 
-		// Browsers are inconsistent while an IME composition is in flight: most keystrokes arrive as
-		// `keyCode: 229` (which maps to `KEY_IN_COMPOSITION`), but some platform/IME combinations
-		// report the real key code for keys the IME owns - notably the Enter that commits a
-		// composition, but also Space, Escape and the arrows used to pick candidates. Normalize to
-		// `KEY_IN_COMPOSITION` so that "the IME owns this keystroke" has a single representation
-		// that `equals()`, direct `keyCode` readers and keybinding resolution all understand,
-		// instead of acting on a key the user never directed at the application.
 		this.keyCode = e.isComposing ? KeyCode.KEY_IN_COMPOSITION : extractKeyCode(e);
 
-		// console.info(e.type + ": keyCode: " + e.keyCode + ", which: " + e.which + ", charCode: " + e.charCode + ", detail: " + e.detail + " ====> " + this.keyCode + ' -- ' + KeyCode[this.keyCode]);
 
 		this.ctrlKey = this.ctrlKey || this.keyCode === KeyCode.Ctrl;
 		this.altKey = this.altKey || this.keyCode === KeyCode.Alt;
@@ -171,7 +158,6 @@ export class StandardKeyboardEvent implements IKeyboardEvent {
 		this._asKeybinding = this._computeKeybinding();
 		this._asKeyCodeChord = this._computeKeyCodeChord();
 
-		// console.log(`code: ${e.code}, keyCode: ${e.keyCode}, key: ${e.key}`);
 	}
 
 	public preventDefault(): void {

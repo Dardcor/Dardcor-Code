@@ -1,15 +1,8 @@
-/**
- * Responses API Transformer
- * Converts OpenAI Chat Completions SSE to Codex Responses API SSE format
- * Can be used in both Next.js and Cloudflare Workers
- */
 
 import fs from "fs";
 import path from "path";
 
-// Create log directory for responses (Node.js only)
 export function createResponsesLogger(model, logsDir = null) {
-  // Skip logging in worker environment (no fs)
   if (typeof fs.mkdirSync !== "function") {
     return null;
   }
@@ -46,11 +39,6 @@ export function createResponsesLogger(model, logsDir = null) {
   };
 }
 
-/**
- * Create TransformStream that converts Chat Completions SSE to Responses API SSE
- * @param {Object} logger - Optional logger instance
- * @returns {TransformStream}
- */
 export function createResponsesApiTransformStream(logger = null) {
   const state = {
     seq: 0,
@@ -86,7 +74,6 @@ export function createResponsesApiTransformStream(logger = null) {
     controller.enqueue(encoder.encode(output));
   };
 
-  // Helper to start reasoning
   const startReasoning = (controller, idx) => {
     if (!state.reasoningId) {
       state.reasoningId = `rs_${state.responseId}_${idx}`;
@@ -270,7 +257,6 @@ export function createResponsesApiTransformStream(logger = null) {
         const idx = choice.index || 0;
         const delta = choice.delta || {};
 
-        // Emit initial events
         if (!state.started) {
           state.started = true;
           state.responseId = parsed.id ? `resp_${parsed.id}` : state.responseId;
@@ -299,13 +285,11 @@ export function createResponsesApiTransformStream(logger = null) {
           });
         }
 
-        // Handle reasoning_content (OpenAI native format)
         if (delta.reasoning_content) {
           startReasoning(controller, idx);
           emitReasoningDelta(controller, delta.reasoning_content);
         }
 
-        // Handle text content (may contain <think> tags)
         if (delta.content) {
           let content = delta.content;
 
@@ -331,7 +315,6 @@ export function createResponsesApiTransformStream(logger = null) {
             continue;
           }
 
-          // Regular text content
           if (content) {
             if (!state.msgItemAdded[idx]) {
               state.msgItemAdded[idx] = true;
@@ -370,7 +353,6 @@ export function createResponsesApiTransformStream(logger = null) {
           }
         }
 
-        // Handle tool_calls
         if (delta.tool_calls) {
           closeMessage(controller, idx);
 
@@ -414,7 +396,6 @@ export function createResponsesApiTransformStream(logger = null) {
           }
         }
 
-        // Handle finish_reason
         if (choice.finish_reason) {
           for (const i in state.msgItemAdded) closeMessage(controller, i);
           closeReasoning(controller);

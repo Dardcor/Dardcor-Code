@@ -267,7 +267,6 @@ export class CommentNodeRenderer implements IListRenderer<ITreeNode<CommentNode>
 	}
 
 	private getIcon(threadState?: CommentThreadState, hasDraft?: boolean): ThemeIcon {
-		// Priority: draft > unresolved > resolved
 		if (hasDraft) {
 			return Codicon.commentDraft;
 		} else if (threadState === CommentThreadState.Unresolved) {
@@ -293,7 +292,6 @@ export class CommentNodeRenderer implements IListRenderer<ITreeNode<CommentNode>
 
 		templateData.threadMetadata.icon.classList.remove(...Array.from(templateData.threadMetadata.icon.classList.values())
 			.filter(value => value.startsWith('codicon')));
-		// Check if any comment in the thread has draft state
 		const hasDraft = node.element.thread.comments?.some(comment => comment.state === CommentState.Draft);
 		templateData.threadMetadata.icon.classList.add(...ThemeIcon.asClassNameArray(this.getIcon(node.element.threadState, hasDraft)));
 		if (node.element.threadState !== undefined) {
@@ -400,7 +398,6 @@ export class Filter implements ITreeFilter<ResourceWithCommentThreads | CommentN
 	}
 
 	private filterResourceMarkers(resourceMarkers: ResourceWithCommentThreads): TreeFilterResult<FilterData> {
-		// Filter by text. Do not apply negated filters on resources instead use exclude patterns
 		if (this.options.textFilter.text && !this.options.textFilter.negate) {
 			const uriMatches = FilterOptions._filter(this.options.textFilter.text, basename(resourceMarkers.resource));
 			if (uriMatches) {
@@ -424,29 +421,21 @@ export class Filter implements ITreeFilter<ResourceWithCommentThreads | CommentN
 		}
 
 		const textMatches =
-			// Check body of comment for value
 			FilterOptions._messageFilter(this.options.textFilter.text, typeof comment.comment.body === 'string' ? comment.comment.body : comment.comment.body.value)
-			// Check first user for value
 			|| FilterOptions._messageFilter(this.options.textFilter.text, comment.comment.userName)
-			// Check all replies for value
 			|| (comment.replies.map(reply => {
-				// Check user for value
 				return FilterOptions._messageFilter(this.options.textFilter.text, reply.comment.userName)
-					// Check body of reply for value
 					|| FilterOptions._messageFilter(this.options.textFilter.text, typeof reply.comment.body === 'string' ? reply.comment.body : reply.comment.body.value);
 			}).filter(value => !!value) as IMatch[][]).flat();
 
-		// Matched and not negated
 		if (textMatches.length && !this.options.textFilter.negate) {
 			return { visibility: true, data: { type: FilterDataType.Comment, textMatches } };
 		}
 
-		// Matched and negated - exclude it only if parent visibility is not set
 		if (textMatches.length && this.options.textFilter.negate && parentVisibility === TreeVisibility.Recurse) {
 			return false;
 		}
 
-		// Not matched and negated - include it only if parent visibility is not set
 		if ((textMatches.length === 0) && this.options.textFilter.negate && parentVisibility === TreeVisibility.Recurse) {
 			return true;
 		}

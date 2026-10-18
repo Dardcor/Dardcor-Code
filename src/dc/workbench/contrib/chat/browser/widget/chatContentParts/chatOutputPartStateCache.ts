@@ -69,7 +69,6 @@ export class ChatOutputPartStateCache implements IChatOutputPartStateCache {
 				}
 			}
 		} catch {
-			// ignore parse errors
 		}
 	}
 }

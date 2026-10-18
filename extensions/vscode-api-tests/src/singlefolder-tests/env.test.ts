@@ -34,15 +34,13 @@ suite('vscode API - env', () => {
 		const knownWorkspaceExtension = extensions.getExtension('vscode.git');
 		const knownUiAndWorkspaceExtension = extensions.getExtension('vscode.media-preview');
 		if (typeof remoteName === 'undefined') {
-			// not running in remote, so we expect both extensions
 			assert.ok(knownWorkspaceExtension);
 			assert.ok(knownUiAndWorkspaceExtension);
 			assert.strictEqual(ExtensionKind.UI, knownUiAndWorkspaceExtension!.extensionKind);
 		} else if (typeof remoteName === 'string') {
-			// running in remote, so we only expect workspace extensions
 			assert.ok(knownWorkspaceExtension);
 			if (env.uiKind === UIKind.Desktop) {
-				assert.ok(!knownUiAndWorkspaceExtension); // we currently can only access extensions that run on same host
+				assert.ok(!knownUiAndWorkspaceExtension);
 			} else {
 				assert.ok(knownUiAndWorkspaceExtension);
 			}

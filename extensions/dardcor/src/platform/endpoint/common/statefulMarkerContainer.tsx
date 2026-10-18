@@ -6,9 +6,6 @@
 import { BasePromptElementProps, PromptElement, Raw } from '@vscode/prompt-tsx';
 import { CustomDataPartMimeTypes } from './endpointTypes';
 
-/**
- * A type representing a stateful marker that can be stored in an opaque part in raw chat messages.
- */
 interface IStatefulMarkerContainer {
 	type: typeof CustomDataPartMimeTypes.StatefulMarker;
 	value: StatefulMarkerWithModel;
@@ -17,11 +14,6 @@ interface IStatefulMarkerContainer {
 export type StatefulMarkerWithModel = {
 	modelId: string;
 	marker: string;
-	/**
-	 * The local summary generation included when an extension-contributed/BYOK
-	 * response created this marker. Used only to filter stale markers before
-	 * crossing the `vscode.lm` boundary; first-party state is managed separately.
-	 */
 	summarizedAtRoundId?: string;
 };
 
@@ -29,9 +21,6 @@ export interface IStatefulMarkerContainerProps extends BasePromptElementProps {
 	statefulMarker: StatefulMarkerWithModel;
 }
 
-/**
- * Helper to store the statefulMarker as part of a prompt-tsx assistant message
- */
 export class StatefulMarkerContainer extends PromptElement<IStatefulMarkerContainerProps> {
 	render() {
 		const { statefulMarker } = this.props;
@@ -40,9 +29,6 @@ export class StatefulMarkerContainer extends PromptElement<IStatefulMarkerContai
 	}
 }
 
-/**
- * Check whether an opaque content part is a StatefulMarkerContainer and retrieve the stateful marker if so
- */
 export function rawPartAsStatefulMarker(part: Raw.ChatCompletionContentPartOpaque): StatefulMarkerWithModel | undefined {
 	const value = part.value;
 	if (!value || typeof value !== 'object') {
@@ -66,7 +52,6 @@ export function decodeStatefulMarker(data: Uint8Array): StatefulMarkerWithModel 
 	return { modelId, marker };
 }
 
-/** Gets stateful markers from the messages, from the most to least recent */
 export function* getAllStatefulMarkersAndIndicies(messages: readonly Raw.ChatMessage[]) {
 	for (let idx = messages.length - 1; idx >= 0; idx--) {
 		const message = messages[idx];
@@ -93,10 +78,6 @@ export function getStatefulMarkerAndIndex(modelId: string, messages: readonly Ra
 	return undefined;
 }
 
-/**
- * Finds the message index of a specific stateful marker value in the message history.
- * Returns the index if found, undefined otherwise.
- */
 export function getIndexOfStatefulMarker(markerValue: string, messages: readonly Raw.ChatMessage[]): number | undefined {
 	for (const entry of getAllStatefulMarkersAndIndicies(messages)) {
 		if (entry.statefulMarker.marker === markerValue) {

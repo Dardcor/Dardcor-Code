@@ -19,36 +19,23 @@ import { IEmbedderTerminalOptions } from '../services/terminal/common/embedderTe
 let created = false;
 const workbenchPromise = new DeferredPromise<IWorkbench>();
 
-/**
- * Creates the workbench with the provided options in the provided container.
- *
- * @param domElement the container to create the workbench in
- * @param options for setting up the workbench
- */
 export function create(domElement: HTMLElement, options: IWorkbenchConstructionOptions): IDisposable {
 
-	// Mark start of workbench
 	mark('code/didLoadWorkbenchMain');
 
-	// Assert that the workbench is not created more than once. We currently
-	// do not support this and require a full context switch to clean-up.
 	if (created) {
 		throw new Error('Unable to create the VSCode workbench more than once.');
 	} else {
 		created = true;
 	}
 
-	// Register commands if any
 	if (Array.isArray(options.commands)) {
 		for (const command of options.commands) {
 
 			CommandsRegistry.registerCommand(command.id, (accessor, ...args) => {
-				// we currently only pass on the arguments but not the accessor
-				// to the command to reduce our exposure of internal API.
 				return command.handler(...args);
 			});
 
-			// Commands with labels appear in the command palette
 			if (command.label) {
 				for (const menu of asArray(command.menu ?? Menu.CommandPalette)) {
 					MenuRegistry.appendMenuItem(asMenuId(menu), { command: { id: command.id, title: command.label } });
@@ -57,7 +44,6 @@ export function create(domElement: HTMLElement, options: IWorkbenchConstructionO
 		}
 	}
 
-	// Startup workbench and resolve waiters
 	let instantiatedWorkbench: IWorkbench | undefined = undefined;
 	new BrowserMain(domElement, options).open().then(workbench => {
 		instantiatedWorkbench = workbench;
@@ -82,9 +68,6 @@ function asMenuId(menu: Menu): MenuId {
 
 export namespace commands {
 
-	/**
-	 * {@linkcode IWorkbench.commands IWorkbench.commands.executeCommand}
-	 */
 	export async function executeCommand(command: string, ...args: unknown[]): Promise<unknown> {
 		const workbench = await workbenchPromise.p;
 
@@ -94,9 +77,6 @@ export namespace commands {
 
 export namespace logger {
 
-	/**
-	 * {@linkcode IWorkbench.logger IWorkbench.logger.log}
-	 */
 	export function log(level: LogLevel, message: string) {
 		workbenchPromise.p.then(workbench => workbench.logger.log(level, message));
 	}
@@ -104,27 +84,18 @@ export namespace logger {
 
 export namespace env {
 
-	/**
-	 * {@linkcode IWorkbench.env IWorkbench.env.retrievePerformanceMarks}
-	 */
 	export async function retrievePerformanceMarks(): Promise<[string, readonly PerformanceMark[]][]> {
 		const workbench = await workbenchPromise.p;
 
 		return workbench.env.retrievePerformanceMarks();
 	}
 
-	/**
-	 * {@linkcode IWorkbench.env IWorkbench.env.getUriScheme}
-	 */
 	export async function getUriScheme(): Promise<string> {
 		const workbench = await workbenchPromise.p;
 
 		return workbench.env.getUriScheme();
 	}
 
-	/**
-	 * {@linkcode IWorkbench.env IWorkbench.env.openUri}
-	 */
 	export async function openUri(target: URI | UriComponents): Promise<boolean> {
 		const workbench = await workbenchPromise.p;
 
@@ -134,9 +105,6 @@ export namespace env {
 
 export namespace window {
 
-	/**
-	 * {@linkcode IWorkbench.window IWorkbench.window.withProgress}
-	 */
 	export async function withProgress<R>(
 		options: IProgressOptions | IProgressDialogOptions | IProgressNotificationOptions | IProgressWindowOptions | IProgressCompositeOptions,
 		task: (progress: IProgress<IProgressStep>) => Promise<R>
@@ -159,17 +127,11 @@ export namespace window {
 
 export namespace workspace {
 
-	/**
-	 * {@linkcode IWorkbench.workspace IWorkbench.workspace.didResolveRemoteAuthority}
-	 */
 	export async function didResolveRemoteAuthority() {
 		const workbench = await workbenchPromise.p;
 		await workbench.workspace.didResolveRemoteAuthority();
 	}
 
-	/**
-	 * {@linkcode IWorkbench.workspace IWorkbench.workspace.openTunnel}
-	 */
 	export async function openTunnel(tunnelOptions: ITunnelOptions): Promise<ITunnel> {
 		const workbench = await workbenchPromise.p;
 

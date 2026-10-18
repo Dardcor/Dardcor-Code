@@ -99,7 +99,6 @@ suite('ChatThinkingContentPart', () => {
 		mockConfigurationService = new TestConfigurationService();
 		instantiationService.stub(IConfigurationService, mockConfigurationService);
 
-		// Create a mock markdown renderer
 		mockMarkdownRenderer = {
 			render: (_markdown: IMarkdownString, options?: MarkdownRenderOptions, outElement?: HTMLElement): IRenderedMarkdown => {
 				const element = outElement ?? mainWindow.document.createElement('div');
@@ -112,7 +111,6 @@ suite('ChatThinkingContentPart', () => {
 			}
 		};
 
-		// Mock the anchor service
 		mockAnchorService = {
 			_serviceBrand: undefined,
 			register: () => toDisposable(() => { }),
@@ -120,7 +118,6 @@ suite('ChatThinkingContentPart', () => {
 		};
 		instantiationService.stub(IChatMarkdownAnchorService, mockAnchorService);
 
-		// Mock hover service
 		mockHoverService = {
 			_serviceBrand: undefined,
 			showHover: () => undefined,
@@ -134,7 +131,6 @@ suite('ChatThinkingContentPart', () => {
 		} as unknown as IHoverService;
 		instantiationService.stub(IHoverService, mockHoverService);
 
-		// Mock language models service
 		mockLanguageModelsService = {
 			_serviceBrand: undefined,
 			onDidChangeLanguageModels: Event.None,
@@ -297,7 +293,6 @@ suite('ChatThinkingContentPart', () => {
 
 			const button = part.domNode.querySelector('.chat-used-context-label .monaco-button');
 			assert.ok(button, 'Should have collapse button');
-			// The title should contain the extracted text
 			const labelElement = button.querySelector('.icon-label');
 			assert.ok(labelElement?.textContent?.includes('Reading configuration files') || button.textContent?.includes('Reading configuration files'),
 				'Title should contain extracted text');
@@ -318,7 +313,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// In collapsed mode, content wrapper should not be initialized
 			const contentList = part.domNode.querySelector('.chat-used-context-list');
 			assert.strictEqual(contentList, null, 'Content should not be rendered when collapsed');
 		});
@@ -338,12 +332,10 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Click the button to expand
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			assert.ok(button, 'Should have expand button');
 			button.click();
 
-			// Now content should be rendered
 			const contentList = part.domNode.querySelector('.chat-used-context-list');
 			assert.ok(contentList, 'Content should be rendered after expanding');
 		});
@@ -408,72 +400,63 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// In CollapsedPreview mode, should be expanded while streaming
 			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false,
 				'Should be expanded during streaming in CollapsedPreview mode');
 		});
 
 		test('should be collapsed when complete', () => {
 			const content = createThinkingPart('**Completed task**');
-			const context = createMockRenderContext(true); // isComplete = true
+			const context = createMockRenderContext(true);
 
 			const part = store.add(instantiationService.createInstance(
 				ChatThinkingContentPart,
 				content,
 				context,
 				mockMarkdownRenderer,
-				true // streamingCompleted
+				true
 			));
 
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// When complete, should be collapsed
 			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), true,
 				'Should be collapsed when complete');
 		});
 
 		test('should be collapsed when streamingCompleted is true even if element.isComplete is false (look-ahead completion)', () => {
-			// This tests the scenario where we know the thinking part is complete
-			// based on look-ahead (subsequent non-pinnable parts exist), but the
-			// overall response is still in progress
 			const content = createThinkingPart('**Finished analyzing**');
-			const context = createMockRenderContext(false); // element.isComplete = false
+			const context = createMockRenderContext(false);
 
 			const part = store.add(instantiationService.createInstance(
 				ChatThinkingContentPart,
 				content,
 				context,
 				mockMarkdownRenderer,
-				true // streamingCompleted = true (look-ahead detected this thinking is done)
+				true
 			));
 
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Even though element.isComplete is false, this thinking part should be
-			// collapsed because streamingCompleted is true (determined by look-ahead)
 			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), true,
 				'Should be collapsed when streamingCompleted is true, even if element.isComplete is false');
 		});
 
 		test('should use lazy rendering when streamingCompleted is true even if element.isComplete is false', () => {
-			// Verify lazy rendering is triggered when streamingCompleted=true and element.isComplete=false
 			const content = createThinkingPart('**Looking ahead completed**');
-			const context = createMockRenderContext(false); // element.isComplete = false
+			const context = createMockRenderContext(false);
 
 			const part = store.add(instantiationService.createInstance(
 				ChatThinkingContentPart,
 				content,
 				context,
 				mockMarkdownRenderer,
-				true // streamingCompleted = true
+				true
 			));
 
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Content should not be rendered because it's collapsed (lazy rendering)
 			const contentList = part.domNode.querySelector('.chat-used-context-list');
 			assert.strictEqual(contentList, null, 'Content should not be rendered when streamingCompleted=true (collapsed = lazy)');
 		});
@@ -520,8 +503,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Fixed mode should initialize content immediately (eager rendering)
-			// The scrollable element should be present
 			const scrollableContent = part.domNode.querySelector('.monaco-scrollable-element');
 			assert.ok(scrollableContent, 'Should have scrollable element in fixed mode (eager rendering)');
 		});
@@ -749,15 +730,12 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// First expand to render content
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
-			// Update the thinking content
 			const updatedContent = createThinkingPart('**Updated thinking**', content.id);
 			part.updateThinking(updatedContent);
 
-			// Verify the content was updated
 			const thinkingItem = part.domNode.querySelector('.chat-thinking-item');
 			assert.ok(thinkingItem, 'Should have thinking item');
 		});
@@ -810,15 +788,12 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Expand first
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
-			// Update with new title
 			part.updateThinking(createThinkingPart('**Second title**', content.id));
 			part.updateThinking(createThinkingPart('**Third title**', content.id));
 
-			// The part should track these titles for finalization
 			assert.ok(part.domNode, 'Part should still be valid');
 		});
 
@@ -913,8 +888,6 @@ suite('ChatThinkingContentPart', () => {
 				rowTexts,
 				hasLiteralMarkers: part.domNode.textContent?.includes('**') ?? false,
 			}, {
-				// First block drops its title header ("Reviewing the plan"); the grouped
-				// block keeps both of its headers so neither is lost.
 				rowTexts: ['Weighing tradeoffs', 'Editing files', 'Verifying the change'],
 				hasLiteralMarkers: false,
 			});
@@ -1129,7 +1102,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Stays collapsed (rows never lazily render) through streaming and a tool call.
 			part.updateThinking(createThinkingPart('**Analyzing the request**\n\n**Planning the edits**', content.id));
 			const toolInvocation = {
 				kind: 'toolInvocation',
@@ -1164,7 +1136,6 @@ suite('ChatThinkingContentPart', () => {
 			const markdownRenderer: IMarkdownRenderer = {
 				render: (markdown, options, target) => renderMarkdown(markdown, options, target),
 			};
-			// The first block is a single-header block (renders as one block, drops nothing).
 			const content = createThinkingPart('**Reading the file**', 'block-0');
 			const part = store.add(instantiationService.createInstance(
 				ChatThinkingContentPart,
@@ -1176,7 +1147,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// A later grouped block is the first multi-header summary; collapsed through completion.
 			part.setupThinkingContainer(createThinkingPart('**Analyzing the request**\n\n**Planning the edits**', 'block-1'));
 			part.finalizeTitleIfDefault();
 
@@ -1188,7 +1158,6 @@ suite('ChatThinkingContentPart', () => {
 			const markdownRenderer: IMarkdownRenderer = {
 				render: (markdown, options, target) => renderMarkdown(markdown, options, target),
 			};
-			// Two multi-header summary blocks grouped, collapsed through completion.
 			const content = createThinkingPart('**Analyzing the request**\n\n**Reviewing constraints**', 'block-0');
 			const part = store.add(instantiationService.createInstance(
 				ChatThinkingContentPart,
@@ -1202,14 +1171,12 @@ suite('ChatThinkingContentPart', () => {
 
 			part.setupThinkingContainer(createThinkingPart('**Editing files**\n\n**Verifying output**', 'block-1'));
 			part.finalizeTitleIfDefault();
-			// Expand afterwards to materialize the lazy blocks.
 			part.domNode.querySelector<HTMLElement>('.monaco-button')?.click();
 
 			const titleButton = part.domNode.querySelector('.chat-used-context-label .monaco-button');
 			const rows = Array.from(part.domNode.querySelectorAll<HTMLElement>('.chat-thinking-item.markdown-content'), row => row.textContent?.trim());
 			assert.deepStrictEqual({
 				title: titleButton?.textContent?.trim(),
-				// The later block's leading header is not the tracked title, so it is kept as a row.
 				keepsLaterHeader: rows.includes('Editing files'),
 			}, {
 				title: 'Analyzing the request',
@@ -1340,10 +1307,8 @@ suite('ChatThinkingContentPart', () => {
 				};
 			};
 
-			// Append item while collapsed
 			part.appendItem(factory, 'test-tool-id');
 
-			// Factory should NOT be called yet due to lazy rendering
 			assert.strictEqual(factoryCalled, false, 'Factory should not be called when collapsed (lazy rendering)');
 		});
 
@@ -1362,7 +1327,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Expand first
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
@@ -1374,10 +1338,8 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			};
 
-			// Append item while expanded
 			part.appendItem(factory, 'test-tool-id');
 
-			// Factory should be called immediately when expanded
 			assert.strictEqual(factoryCalled, true, 'Factory should be called immediately when expanded');
 		});
 
@@ -1404,15 +1366,12 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			};
 
-			// Append item while collapsed
 			part.appendItem(factory, 'test-tool-id');
 			assert.strictEqual(factoryCalled, false, 'Factory should not be called yet');
 
-			// Now expand
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
-			// Factory should now be called
 			assert.strictEqual(factoryCalled, true, 'Factory should be called after expanding');
 		});
 
@@ -1437,7 +1396,6 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: $('div.test-tool-item') };
 			};
 
-			// Append and then remove
 			part.appendItem(factory, 'test-tool-to-remove');
 			const removed = part.removeLazyItem('test-tool-to-remove');
 
@@ -1446,10 +1404,6 @@ suite('ChatThinkingContentPart', () => {
 		});
 
 		test('lazy items should preserve append order when mixing tool and markdown items', () => {
-			// This test verifies that when tool invocations and markdown items are appended
-			// in a specific order while collapsed, the DOM order matches the append order
-			// when expanded. This catches the bug where markdown items render before
-			// tool items because markdown isn't lazy.
 			const content = createThinkingPart('**Working**');
 			const context = createMockRenderContext(false);
 
@@ -1466,8 +1420,6 @@ suite('ChatThinkingContentPart', () => {
 
 			const appendOrder: string[] = [];
 
-			// Append in order: tool1, markdown, tool2
-			// Tool 1
 			part.appendItem(() => {
 				appendOrder.push('tool1');
 				const div = $('div.test-item');
@@ -1476,7 +1428,6 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			}, 'tool-1');
 
-			// Markdown content (simulated - no toolInvocationId means it's markdown-like)
 			const markdownItem: IChatMarkdownContent = {
 				kind: 'markdownContent',
 				content: { value: 'test markdown' }
@@ -1489,7 +1440,6 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			}, undefined, markdownItem);
 
-			// Tool 2
 			part.appendItem(() => {
 				appendOrder.push('tool2');
 				const div = $('div.test-item');
@@ -1498,21 +1448,16 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			}, 'tool-2');
 
-			// Nothing should have rendered yet
 			assert.strictEqual(appendOrder.length, 0, 'No items should be rendered while collapsed');
 
-			// Now expand to trigger lazy rendering
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
-			// All items should now be rendered
 			assert.strictEqual(appendOrder.length, 3, 'All 3 items should be rendered after expanding');
 
-			// Verify the render order matches append order
 			assert.deepStrictEqual(appendOrder, ['tool1', 'markdown', 'tool2'],
 				'Items should render in the same order they were appended (tool1, markdown, tool2)');
 
-			// Also verify the DOM order
 			const wrapper = part.domNode.querySelector('.chat-used-context-list');
 			const toolWrappers = wrapper?.querySelectorAll('.chat-thinking-tool-wrapper');
 			assert.ok(toolWrappers, 'Should have tool wrappers');
@@ -1528,10 +1473,6 @@ suite('ChatThinkingContentPart', () => {
 		});
 
 		test('setupThinkingContainer should preserve order with lazy tool items', () => {
-			// This test reproduces the bug where markdown parts added via setupThinkingContainer
-			// render before tool parts because setupThinkingContainer doesn't use lazy rendering.
-			// Expected behavior: tool1, thinking2, tool2 in DOM order
-			// Bug behavior: thinking2 renders before tool1 because its not lazy
 			const initialContent = createThinkingPart('**Initial thinking**', 'thinking-1');
 			const context = createMockRenderContext(false);
 
@@ -1546,7 +1487,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Append tool1 while collapsed (lazy)
 			let tool1Rendered = false;
 			part.appendItem(() => {
 				tool1Rendered = true;
@@ -1556,12 +1496,9 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			}, 'tool-1');
 
-			// Now setupThinkingContainer is called for a new thinking section
-			// This simulates what happens when a new thinking part arrives during streaming
 			const newThinkingContent = createThinkingPart('**Second thinking section**', 'thinking-2');
 			part.setupThinkingContainer(newThinkingContent);
 
-			// Append tool2 while collapsed (lazy)
 			let tool2Rendered = false;
 			part.appendItem(() => {
 				tool2Rendered = true;
@@ -1571,27 +1508,20 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			}, 'tool-2');
 
-			// Tools should not have rendered yet
 			assert.strictEqual(tool1Rendered, false, 'Tool 1 should not render while collapsed');
 			assert.strictEqual(tool2Rendered, false, 'Tool 2 should not render while collapsed');
 
-			// Now expand
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
-			// Everything should render now
 			assert.strictEqual(tool1Rendered, true, 'Tool 1 should render after expand');
 			assert.strictEqual(tool2Rendered, true, 'Tool 2 should render after expand');
 
-			// Get all rendered items and check their order
 			const wrapper = part.domNode.querySelector('.chat-used-context-list');
 			assert.ok(wrapper, 'Should have wrapper');
 
-			// The children should be in order: initial-thinking, tool1-wrapper, thinking2, tool2-wrapper
-			// Get all direct children to check order
 			const children = Array.from(wrapper!.children);
 
-			// Find indices of our items
 			const tool1Index = children.findIndex(el =>
 				el.classList.contains('chat-thinking-tool-wrapper') &&
 				el.querySelector('[data-test-id="tool1"]')
@@ -1601,34 +1531,17 @@ suite('ChatThinkingContentPart', () => {
 				el.querySelector('[data-test-id="tool2"]')
 			);
 
-			// Find thinking containers (they have class chat-thinking-item)
 			const thinkingItems = children.filter(el => el.classList.contains('chat-thinking-item'));
 
-			// We should have 2 thinking items (initial and the one from setupThinkingContainer)
-			// and 2 tool wrappers
 			assert.ok(thinkingItems.length >= 1, 'Should have at least one thinking item');
 			assert.ok(tool1Index >= 0, 'Should find tool1');
 			assert.ok(tool2Index >= 0, 'Should find tool2');
 
-			// The key assertion: tool1 should come before tool2 in DOM order
-			// and any thinking content between them should also be in order
 			assert.ok(tool1Index < tool2Index,
 				`Tool1 (index ${tool1Index}) should come before Tool2 (index ${tool2Index}) in DOM order`);
 		});
 
 		test('markdown via updateThinking should preserve order with lazy tool items (BUG: markdown renders before tools)', () => {
-			// This test exposes the lazy rendering bug where markdown content from updateThinking/
-			// setupThinkingContainer gets rendered immediately and placed in DOM before tool items.
-			//
-			// The bug flow:
-			// 1. Tool1 arrives → appendItem() → stored in lazyItems (not rendered yet)
-			// 2. Thinking/markdown arrives → setupThinkingContainer() → textContainer created,
-			//    updateThinking() → renderMarkdown() renders IMMEDIATELY into textContainer
-			// 3. Tool2 arrives → appendItem() → stored in lazyItems (not rendered yet)
-			// 4. User expands → initContent() creates wrapper, adds textContainer FIRST,
-			//    then materializes lazyItems (tools)
-			//
-			// Result: DOM order is [markdown, tool1, tool2] instead of [tool1, markdown, tool2]
 			const initialContent = createThinkingPart('', 'thinking-1');
 			const context = createMockRenderContext(false);
 
@@ -1643,7 +1556,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Step 1: Tool1 arrives while collapsed - should be lazy
 			part.appendItem(() => {
 				const div = $('div.test-item');
 				div.setAttribute('data-test-id', 'tool1');
@@ -1652,12 +1564,9 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			}, 'tool-1');
 
-			// Step 2: New thinking section arrives - this uses setupThinkingContainer + updateThinking
-			// In the bug, this creates textContainer and renders markdown immediately
 			const thinkingContent = createThinkingPart('**Analyzing the codebase**', 'thinking-2');
 			part.setupThinkingContainer(thinkingContent);
 
-			// Step 3: Tool2 arrives while collapsed - should be lazy
 			part.appendItem(() => {
 				const div = $('div.test-item');
 				div.setAttribute('data-test-id', 'tool2');
@@ -1666,17 +1575,14 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			}, 'tool-2');
 
-			// Now expand to trigger lazy rendering
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
-			// Get the wrapper and check DOM order
 			const wrapper = part.domNode.querySelector('.chat-used-context-list');
 			assert.ok(wrapper, 'Should have wrapper after expanding');
 
 			const children = Array.from(wrapper!.children);
 
-			// Find indices
 			const tool1Index = children.findIndex(el =>
 				el.querySelector('[data-test-id="tool1"]')
 			);
@@ -1691,8 +1597,6 @@ suite('ChatThinkingContentPart', () => {
 			assert.ok(tool2Index >= 0, `Should find tool2 in DOM (found at index ${tool2Index})`);
 			assert.ok(markdownIndex >= 0, `Should find markdown in DOM (found at index ${markdownIndex})`);
 
-			// The key assertion: order should match arrival order (tool1, markdown, tool2)
-			// BUG: Currently markdown is always first because it's not lazy
 			assert.ok(tool1Index < markdownIndex,
 				`BUG: Tool1 (index ${tool1Index}) should come BEFORE markdown (index ${markdownIndex}) ` +
 				`because tool1 was appended first. Current DOM order indicates markdown is eagerly ` +
@@ -1702,20 +1606,6 @@ suite('ChatThinkingContentPart', () => {
 		});
 
 		test('lazy thinking items should show updated content after streaming updates', () => {
-			// This test exposes the bug where streaming updates to thinking content are lost
-			// when the thinking part is collapsed.
-			//
-			// Bug flow:
-			// 1. setupThinkingContainer(content1) creates lazy item with content1
-			// 2. updateThinking(content2) is called with updated streaming content
-			//    - this.content is updated to content2
-			//    - this.currentThinkingValue is updated
-			//    - but the lazy item still stores content1
-			// 3. User expands:
-			//    - initContent creates a NEW textContainer with currentThinkingValue (latest)
-			//    - materializeLazyItem appends ANOTHER container from lazy item with stale content
-			//
-			// Result: Duplicate thinking containers, one with correct content, one with stale
 			const initialContent = createThinkingPart('', 'thinking-1');
 			const context = createMockRenderContext(false);
 
@@ -1730,38 +1620,28 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Step 1: New thinking section arrives while collapsed
 			const thinkingContent1 = createThinkingPart('**Starting analysis**', 'thinking-2');
 			part.setupThinkingContainer(thinkingContent1);
 
-			// Step 2: Streaming continues - more content arrives via updateThinking
 			const thinkingContent2 = createThinkingPart('**Starting analysis** Looking at the code structure...', 'thinking-2');
 			part.updateThinking(thinkingContent2);
 
-			// Step 3: Even more streaming content
 			const thinkingContent3 = createThinkingPart('**Starting analysis** Looking at the code structure... Found the issue in the parser module.', 'thinking-2');
 			part.updateThinking(thinkingContent3);
 
-			// Now expand to trigger lazy rendering
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
-			// Get the rendered content
 			const wrapper = part.domNode.querySelector('.chat-used-context-list');
 			assert.ok(wrapper, 'Should have wrapper after expanding');
 
-			// Get ALL thinking items - the bug creates duplicate containers
 			const thinkingItems = wrapper!.querySelectorAll('.chat-thinking-item.markdown-content');
 
-			// BUG: There should only be ONE thinking item, but the bug causes TWO:
-			// 1. One from initContent with correct current content
-			// 2. One from materializeLazyItem with stale content
 			assert.strictEqual(thinkingItems.length, 1,
 				`BUG: Should have exactly 1 thinking item, but got ${thinkingItems.length}. ` +
 				`materializeLazyItem creates a duplicate container from the lazy item. ` +
 				`Items: ${Array.from(thinkingItems).map(i => `"${i.textContent}"`).join(', ')}`);
 
-			// Also verify the single item has the latest content
 			if (thinkingItems.length === 1) {
 				const renderedText = thinkingItems[0].textContent || '';
 				assert.ok(
@@ -1772,8 +1652,6 @@ suite('ChatThinkingContentPart', () => {
 		});
 
 		test('lazy thinking items should work without streaming updates after setupThinkingContainer', () => {
-			// Edge case: setupThinkingContainer is called but no subsequent updateThinking arrives
-			// In this case, the lazy item's content should be used when materializing
 			const initialContent = createThinkingPart('', 'thinking-1');
 			const context = createMockRenderContext(false);
 
@@ -1788,22 +1666,18 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Only call setupThinkingContainer, no subsequent updateThinking
 			const thinkingContent = createThinkingPart('**Analyzing files**', 'thinking-2');
 			part.setupThinkingContainer(thinkingContent);
 
-			// Expand to trigger lazy rendering
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
-			// Get the rendered content
 			const wrapper = part.domNode.querySelector('.chat-used-context-list');
 			assert.ok(wrapper, 'Should have wrapper after expanding');
 
 			const thinkingItems = wrapper!.querySelectorAll('.chat-thinking-item.markdown-content');
 			assert.strictEqual(thinkingItems.length, 1, 'Should have exactly 1 thinking item');
 
-			// The content should be the one from setupThinkingContainer
 			const renderedText = thinkingItems[0].textContent || '';
 			assert.ok(
 				renderedText.includes('Analyzing files'),
@@ -1859,7 +1733,6 @@ suite('ChatThinkingContentPart', () => {
 			const content = createThinkingPart('**Content**\nSome detailed reasoning that differs from the title');
 			const context = createMockRenderContext(false);
 
-			// Use CollapsedPreview to start expanded
 			mockConfigurationService.setUserConfiguration('chat.agent.thinkingStyle', ThinkingDisplayMode.CollapsedPreview);
 
 			const part = store.add(instantiationService.createInstance(
@@ -1873,7 +1746,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Should be expanded initially
 			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false);
 
 			part.collapseContent();
@@ -1899,7 +1771,6 @@ suite('ChatThinkingContentPart', () => {
 
 			part.finalizeTitleIfDefault();
 
-			// The button should now show a check icon
 			const iconElement = part.domNode.querySelector('.codicon-check-compact');
 			assert.ok(iconElement, 'Should have check icon after finalization');
 			assert.ok(part.domNode.classList.contains('chat-collapsible-content-animated'), 'Should enable content animation after finalization');
@@ -1990,8 +1861,6 @@ suite('ChatThinkingContentPart', () => {
 			const context = createMockRenderContext(true);
 			const thinkingId = 'reasoning-part-1';
 
-			// Seed the persisted title cache as if a previous session render had
-			// generated and stored a header for this reasoning-only block.
 			const storageService = instantiationService.get(IStorageService);
 			const cacheKey = `${chatSessionResourceToId(context.element.sessionResource)}:${thinkingId}`;
 			storageService.store(
@@ -2114,7 +1983,6 @@ suite('ChatThinkingContentPart', () => {
 
 			const otherThinking: IChatRendererContent = createThinkingPart('**Different**', 'id-1');
 
-			// When the id is the same, hasSameContent returns true (other.id !== this.id is false)
 			const result = part.hasSameContent(otherThinking, [], context.element);
 			assert.strictEqual(result, false, 'Should return false for thinking part with same id');
 		});
@@ -2162,7 +2030,6 @@ suite('ChatThinkingContentPart', () => {
 			assert.ok(button, 'Button should exist');
 			assert.strictEqual(button.getAttribute('aria-expanded'), 'false', 'Should have aria-expanded="false" when collapsed');
 
-			// Expand
 			button.click();
 
 			assert.strictEqual(button.getAttribute('aria-expanded'), 'true', 'Should have aria-expanded="true" when expanded');
@@ -2177,13 +2044,12 @@ suite('ChatThinkingContentPart', () => {
 				content,
 				context,
 				mockMarkdownRenderer,
-				false // not streaming completed
+				false
 			));
 
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Should have circle-filled icon (not loading spinner) while streaming
 			const circleIcon = part.domNode.querySelector('.codicon-circle-filled-compact');
 			assert.ok(circleIcon, 'Should have circle-filled icon while streaming');
 		});
@@ -2504,7 +2370,6 @@ suite('ChatThinkingContentPart', () => {
 				return { domNode: div };
 			}, streamingReplaceTool.toolId, streamingReplaceTool);
 
-			// The title should show "Editing files" instead of "Replace String in File"
 			const button = part.domNode.querySelector('.chat-used-context-label .monaco-button');
 			assert.ok(button, 'Should have collapse button');
 			const labelText = button.querySelector('.icon-label')?.textContent ?? button.textContent ?? '';
@@ -2557,7 +2422,6 @@ suite('ChatThinkingContentPart', () => {
 			mainWindow.document.body.appendChild(part.domNode);
 			disposables.add(toDisposable(() => part.domNode.remove()));
 
-			// Non-streaming (executing) edit tool should show its invocation message
 			const executingReplaceTool = createMockExecutingToolInvocation(
 				'copilot_replaceString', 'Replacing 5 lines in file.ts', 'call-3'
 			);
@@ -2759,7 +2623,6 @@ suite('ChatThinkingContentPart', () => {
 
 			part.finalizeTitleIfDefault();
 
-			// Fire diff event
 			diffEmitter.fire(createDiffData(10, 3));
 
 			const addedEl = part.domNode.querySelector('.label-added');
@@ -2994,7 +2857,6 @@ suite('ChatThinkingContentPart', () => {
 			const diffEmitter1 = store.add(new Emitter<IChatContentPartDiffData>());
 			const diffEmitter2 = store.add(new Emitter<IChatContentPartDiffData>());
 
-			// Append two edit pills
 			part.appendItem(
 				() => ({ domNode: $('div.test-edit-pill-1') }),
 				'edit-part-1',
@@ -3012,14 +2874,11 @@ suite('ChatThinkingContentPart', () => {
 
 			part.finalizeTitleIfDefault();
 
-			// Fire diff events for both
 			diffEmitter1.fire(createDiffData(5, 2, 'first.ts'));
 			diffEmitter2.fire(createDiffData(8, 1, 'second.ts'));
 
-			// Remove the first edit pill
 			part.removeEditPillByPartId('edit-part-1');
 
-			// Aggregated diff should only reflect the second pill now
 			const addedEl = part.domNode.querySelector('.label-added');
 			const removedEl = part.domNode.querySelector('.label-removed');
 			assert.strictEqual(addedEl?.textContent, '+8');
@@ -3053,12 +2912,10 @@ suite('ChatThinkingContentPart', () => {
 				disposable: eagerDisposable,
 			});
 
-			// Append while collapsed — factory is NOT called
 			part.appendItem(factory, 'test-tool', undefined, undefined, undefined, eagerDisposable);
 
 			assert.strictEqual(disposed, false, 'Should not be disposed yet');
 
-			// Dispose the thinking part without ever expanding
 			part.domNode.remove();
 			part.dispose();
 
@@ -3086,16 +2943,13 @@ suite('ChatThinkingContentPart', () => {
 				disposable: eagerDisposable,
 			});
 
-			// Append while collapsed
 			part.appendItem(factory, 'test-tool', undefined, undefined, undefined, eagerDisposable);
 
-			// Expand to trigger factory call
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 
 			assert.strictEqual(disposed, false, 'Should not be disposed yet');
 
-			// Dispose
 			part.domNode.remove();
 			part.dispose();
 
@@ -3116,7 +2970,6 @@ suite('ChatThinkingContentPart', () => {
 
 			mainWindow.document.body.appendChild(part.domNode);
 
-			// Expand first so factory is called immediately
 			const button = part.domNode.querySelector('.monaco-button') as HTMLElement;
 			button?.click();
 

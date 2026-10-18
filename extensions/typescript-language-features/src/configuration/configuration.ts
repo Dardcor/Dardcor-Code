@@ -53,7 +53,6 @@ export namespace TsServerLogLevel {
 export const enum SyntaxServerConfiguration {
 	Never,
 	Always,
-	/** Use a single syntax server for every request, even on desktop */
 	Auto,
 }
 
@@ -214,7 +213,6 @@ export abstract class BaseServiceConfigurationProvider implements ServiceConfigu
 		if (enabled !== undefined) {
 			return !enabled;
 		}
-		// Fall back to the old deprecated setting
 		return configuration.get<boolean>('typescript.disableAutomaticTypeAcquisition', false);
 	}
 
@@ -231,9 +229,8 @@ export abstract class BaseServiceConfigurationProvider implements ServiceConfigu
 			case 'auto': return SyntaxServerConfiguration.Auto;
 		}
 
-		// Fallback to deprecated setting
 		const deprecatedValue = configuration.get<boolean | string>('typescript.tsserver.useSeparateSyntaxServer', true);
-		if (deprecatedValue === 'forAllRequests') { // Undocumented setting
+		if (deprecatedValue === 'forAllRequests') {
 			return SyntaxServerConfiguration.Always;
 		}
 		if (deprecatedValue === true) {
@@ -243,7 +240,6 @@ export abstract class BaseServiceConfigurationProvider implements ServiceConfigu
 	}
 
 	protected readEnableDiagnosticsTelemetry(): boolean {
-		// This setting does not appear in the settings view, as it is not to be enabled by users outside the team
 		return readUnifiedConfig<boolean>('enableDiagnosticsTelemetry', false, { fallbackSection: 'typescript' });
 	}
 
@@ -254,10 +250,10 @@ export abstract class BaseServiceConfigurationProvider implements ServiceConfigu
 	private readUseVsCodeWatcher(configuration: vscode.WorkspaceConfiguration): boolean {
 		const watcherExcludes = configuration.get<Record<string, boolean>>('files.watcherExclude') ?? {};
 		if (
-			watcherExcludes['**/node_modules/*/**'] === true || // VS Code default prior to 1.94.x
+			watcherExcludes['**/node_modules/*/**'] === true ||
 			watcherExcludes['**/node_modules/**'] === true ||
 			watcherExcludes['**/node_modules'] === true ||
-			watcherExcludes['**'] === true	 					// VS Code Watching is entirely disabled
+			watcherExcludes['**'] === true
 		) {
 			return false;
 		}
@@ -282,7 +278,6 @@ export abstract class BaseServiceConfigurationProvider implements ServiceConfigu
 			return undefined;
 		}
 
-		// Returned value may be a proxy. Clone it into a normal object
 		return { ...(watchOptions ?? {}) };
 	}
 

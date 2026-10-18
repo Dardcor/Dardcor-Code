@@ -14,10 +14,6 @@ import { IEditorResolverService, RegisteredEditorInfo, RegisteredEditorPriority,
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { REOPEN_ACTIVE_EDITOR_WITH_COMMAND_ID } from './editorCommands.js';
 
-/**
- * Describes the editors available for the active editor's resource, i.e. the different editor types
- * (e.g. "Text Editor" vs. "Markdown Preview") that the resource can be reopened with.
- */
 export interface IAvailableEditorTypes {
 	readonly resource: URI;
 	readonly isDiffEditor: boolean;
@@ -27,11 +23,6 @@ export interface IAvailableEditorTypes {
 	readonly editors: RegisteredEditorInfo[];
 }
 
-/**
- * Determines the editors available for the given active editor's resource. Returns `undefined` when
- * there is nothing meaningful to switch between: no resource, only the default text editor, or an
- * exclusive editor (e.g. the hex editor, for which `getEditors` returns an empty list).
- */
 export function getAvailableEditorTypes(activeEditor: EditorInput | null | undefined, editorResolverService: IEditorResolverService): IAvailableEditorTypes | undefined {
 	const standardDiffResources = isDiffEditorInput(activeEditor) ? {
 		original: activeEditor.original.resource,
@@ -56,7 +47,6 @@ export function getAvailableEditorTypes(activeEditor: EditorInput | null | undef
 	};
 }
 
-/** Whether a custom editor can be selected by default for the resource. */
 export function hasDefaultEditorAssociation(available: IAvailableEditorTypes, configuredDefaultEditor: string | undefined): boolean {
 	if (configuredDefaultEditor !== undefined && configuredDefaultEditor !== DEFAULT_EDITOR_ASSOCIATION.id) {
 		return true;
@@ -72,10 +62,6 @@ export function hasDefaultEditorAssociation(available: IAvailableEditorTypes, co
 	});
 }
 
-/**
- * The label to show for an editor type. In a diff context the default text editor is presented as
- * "Text Diff Editor" to match how it actually opens.
- */
 export function editorTypeDisplayLabel(editor: RegisteredEditorInfo, isDiffEditor: boolean): string {
 	if (isDiffEditor && editor.id === DEFAULT_EDITOR_ASSOCIATION.id) {
 		return localize('textDiffEditor', "Text Diff Editor");
@@ -83,11 +69,6 @@ export function editorTypeDisplayLabel(editor: RegisteredEditorInfo, isDiffEdito
 	return editor.label;
 }
 
-/**
- * Builds the actions that let the user switch between the editor types available for a resource:
- * one "reopen with" action per available editor (the current one checked), a "Set Default" submenu
- * for persisting the choice, and — for diffs — actions to open either side as a standalone editor.
- */
 export function createEditorTypeActions(
 	available: IAvailableEditorTypes,
 	editorResolverService: IEditorResolverService,
@@ -96,8 +77,6 @@ export function createEditorTypeActions(
 ): IAction[] {
 	const glob = `*${extUri.extname(available.resource)}`;
 
-	// Show the contributing extension in parentheses, but only for extension-provided editors.
-	// Built-in providers share this localized label, so their (redundant) source is omitted.
 	const builtinProviderLabel = localize('builtinProviderDisplayName', "Built-in");
 	const labelWithSource = (editor: RegisteredEditorInfo) => {
 		const label = editorTypeDisplayLabel(editor, available.isDiffEditor);
@@ -106,7 +85,6 @@ export function createEditorTypeActions(
 			: label;
 	};
 
-	// Reopen the active editor with the chosen editor type. The currently active type is checked.
 	const reopenActions: IAction[] = available.editors.map(editor => toAction({
 		id: editor.id,
 		label: labelWithSource(editor),
@@ -114,10 +92,6 @@ export function createEditorTypeActions(
 		run: () => commandService.executeCommand(REOPEN_ACTIVE_EDITOR_WITH_COMMAND_ID, editor.id)
 	}));
 
-	// Persist the chosen editor as the default for this file type. For diffs this updates the
-	// specialized `workbench.diffEditorAssociations` setting instead of the general one. The
-	// currently configured default (if any) is checked. Setting a default also reopens the active
-	// editor with that type so the change takes effect immediately.
 	const configuredDefault = editorResolverService.getConfiguredDefaultEditor(available.resource, available.isDiffEditor);
 	const setDefaultActions: IAction[] = available.editors.map(editor => toAction({
 		id: `setDefault.${editor.id}`,
@@ -138,7 +112,6 @@ export function createEditorTypeActions(
 
 	const actions: IAction[] = [...reopenActions, new Separator(), setDefaultSubmenu];
 
-	// For diffs, offer to open either side as a standalone editor.
 	if (available.isDiffEditor) {
 		actions.push(new Separator());
 		if (available.originalResource) {

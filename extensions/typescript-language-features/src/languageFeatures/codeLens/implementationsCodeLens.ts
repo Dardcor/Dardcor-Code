@@ -72,14 +72,12 @@ export default class TypeScriptImplementationsCodeLensProvider extends TypeScrip
 
 		const locations = response.body
 			.map(reference =>
-				// Only take first line on implementation: https://github.com/microsoft/vscode/issues/23924
 				new vscode.Location(this.client.toResource(reference.file),
 					reference.start.line === reference.end.line
 						? typeConverters.Range.fromTextSpan(reference)
 						: new vscode.Range(
 							typeConverters.Position.fromLocation(reference.start),
 							new vscode.Position(reference.start.line, 0))))
-			// Exclude original from implementations
 			.filter(location =>
 				!(location.uri.toString() === codeLens.document.toString() &&
 					location.range.start.line === codeLens.range.start.line &&
@@ -108,12 +106,10 @@ export default class TypeScriptImplementationsCodeLensProvider extends TypeScrip
 		item: Proto.NavigationTree,
 		parent: Proto.NavigationTree | undefined
 	): vscode.Range | undefined {
-		// Always show on interfaces
 		if (item.kind === PConst.Kind.interface) {
 			return getSymbolRange(document, item);
 		}
 
-		// Always show on abstract classes/properties
 		if (
 			(item.kind === PConst.Kind.class ||
 				item.kind === PConst.Kind.method ||
@@ -125,7 +121,6 @@ export default class TypeScriptImplementationsCodeLensProvider extends TypeScrip
 			return getSymbolRange(document, item);
 		}
 
-		// If configured, show on interface methods
 		if (
 			item.kind === PConst.Kind.method &&
 			parent?.kind === PConst.Kind.interface &&
@@ -135,13 +130,11 @@ export default class TypeScriptImplementationsCodeLensProvider extends TypeScrip
 		}
 
 
-		// If configured, show on all class methods
 		if (
 			item.kind === PConst.Kind.method &&
 			parent?.kind === PConst.Kind.class &&
 			this._showOnAllClassMethods.getValue(document)
 		) {
-			// But not private ones as these can never be overridden
 			if (/\bprivate\b/.test(item.kindModifiers ?? '')) {
 				return undefined;
 			}

@@ -31,10 +31,6 @@ export class TextMateWorkerTokenizerController extends Disposable {
 	public readonly controllerId;
 	private readonly _pendingChanges: IModelContentChangedEvent[];
 
-	/**
-	 * These states will eventually equal the worker states.
-	 * _states[i] stores the state at the end of line number i+1.
-	 */
 	private readonly _states;
 
 	private readonly _loggingEnabled;
@@ -94,7 +90,6 @@ export class TextMateWorkerTokenizerController extends Disposable {
 		});
 
 		this._register(autorun(reader => {
-			/** @description update maxTokenizationLineLength */
 			const maxTokenizationLineLength = this._maxTokenizationLineLength.read(reader);
 			this._worker.$acceptMaxTokenizationLineLength(this.controllerId, maxTokenizationLineLength);
 		}));
@@ -109,18 +104,11 @@ export class TextMateWorkerTokenizerController extends Disposable {
 		this._worker.$retokenize(this.controllerId, startLineNumber, endLineNumberExclusive);
 	}
 
-	/**
-	 * This method is called from the worker through the worker host.
-	 */
 	public async setTokensAndStates(controllerId: number, versionId: number, rawTokens: Uint8Array, fontTokens: ISerializedAnnotation<IFontTokenOption>[], stateDeltas: StateDeltas[]): Promise<void> {
 		if (this.controllerId !== controllerId) {
-			// This event is for an outdated controller (the worker didn't receive the delete/create messages yet), ignore the event.
 			return;
 		}
 
-		// _states state, change{k}, ..., change{versionId}, state delta base & rawTokens, change{j}, ..., change{m}, current renderer state
-		//                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                ^^^^^^^^^^^^^^^^^^^^^^^^^
-		//                | past changes                                                   | future states
 
 		let tokens = ContiguousMultilineTokensBuilder.deserialize(
 			new Uint8Array(rawTokens)
@@ -140,7 +128,6 @@ export class TextMateWorkerTokenizerController extends Disposable {
 			console.log('Applying changes to local states', changes);
 		}
 
-		// Apply past changes to _states
 		while (
 			this._pendingChanges.length > 0 &&
 			this._pendingChanges[0].versionId <= versionId
@@ -159,14 +146,10 @@ export class TextMateWorkerTokenizerController extends Disposable {
 				this._pendingChanges.map((c) => linesLengthEditFromModelContentChange(c.changes))
 			);
 
-			// Filter tokens in lines that got changed in the future to prevent flickering
-			// These tokens are recomputed anyway.
 			const b = new ContiguousMultilineTokensBuilder();
 			for (const t of tokens) {
 				for (let i = t.startLineNumber; i <= t.endLineNumber; i++) {
 					const result = curToFutureTransformerTokens.transform(i - 1);
-					// If result is undefined, the current line got touched by an edit.
-					// The webworker will send us new tokens for all the new/touched lines after it received the edits.
 					if (result !== undefined) {
 						b.add(i, t.getLineTokens(i) as Uint32Array);
 					}
@@ -174,7 +157,6 @@ export class TextMateWorkerTokenizerController extends Disposable {
 			}
 			tokens = b.finalize();
 
-			// Apply future changes to tokens
 			for (const change of this._pendingChanges) {
 				for (const innerChanges of change.changes) {
 					for (let j = 0; j < tokens.length; j++) {
@@ -196,7 +178,6 @@ export class TextMateWorkerTokenizerController extends Disposable {
 		}
 
 
-		// Apply state deltas to _states and _backgroundTokenizationStore
 		for (const d of stateDeltas) {
 			let prevState = d.startLineNumber <= 1 ? this._initialState : this._states.getEndState(d.startLineNumber - 1);
 			for (let i = 0; i < d.stateDeltas.length; i++) {
@@ -211,8 +192,6 @@ export class TextMateWorkerTokenizerController extends Disposable {
 
 				const offset = curToFutureTransformerStates.transform(d.startLineNumber + i - 1);
 				if (offset !== undefined) {
-					// Only set the state if there is no future change in this line,
-					// as this might make consumers believe that the state/tokens are accurate
 					this._backgroundTokenizationStore.setEndState(offset + 1, state);
 				}
 
@@ -223,7 +202,6 @@ export class TextMateWorkerTokenizerController extends Disposable {
 				prevState = state;
 			}
 		}
-		// First set states, then tokens, so that events fired from set tokens don't read invalid states
 		this._backgroundTokenizationStore.setTokens(tokens);
 		this._backgroundTokenizationStore.setFontInfo(fontTokensUpdate);
 	}

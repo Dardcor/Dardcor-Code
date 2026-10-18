@@ -25,11 +25,6 @@ interface IWidgetMap {
 	[key: string]: IWidgetData;
 }
 
-/*
- * This view part for rendering the overlay widgets, which are
- * floating widgets positioned based on the editor's viewport,
- * such as the find widget.
- */
 export class ViewOverlayWidgets extends ViewPart {
 
 	private readonly _viewDomNode: FastDomNode<HTMLElement>;
@@ -76,7 +71,6 @@ export class ViewOverlayWidgets extends ViewPart {
 		return this._domNode;
 	}
 
-	// ---- begin view event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -90,7 +84,6 @@ export class ViewOverlayWidgets extends ViewPart {
 		return true;
 	}
 
-	// ---- end view event handlers
 
 	private _widgetCanOverflow(widget: IOverlayWidget): boolean {
 		const options = this._context.configuration.options;
@@ -107,7 +100,6 @@ export class ViewOverlayWidgets extends ViewPart {
 			domNode: domNode
 		};
 
-		// This is sync because a widget wants to be in the dom
 		domNode.setPosition('absolute');
 		domNode.setAttribute('widgetId', widget.getId());
 
@@ -200,7 +192,6 @@ export class ViewOverlayWidgets extends ViewPart {
 			const { top, left } = widgetData.preference;
 			const fixedOverflowWidgets = this._context.configuration.options.get(EditorOption.fixedOverflowWidgets);
 			if (fixedOverflowWidgets && this._widgetCanOverflow(widgetData.widget)) {
-				// top, left are computed relative to the editor and we need them relative to the page
 				const editorBoundingBox = this._viewDomNodeRect;
 				domNode.setTop(top + editorBoundingBox.top);
 				domNode.setLeft(left + editorBoundingBox.left);

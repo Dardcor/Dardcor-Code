@@ -8,10 +8,6 @@ import { IToolResultCompressor, IToolResultFilter, IToolResultFilterOutput } fro
 import { ICommandSegment, parseCommand, parseCommandHead as _parseCommandHead, segmentHasFlag, segmentHead } from './terminalCommandParser.js';
 import { TerminalOutputCache } from './terminalOutputCache.js';
 
-/**
- * Input shape used by the core `run_in_terminal` tool. We only depend on the
- * `command` field; everything else is ignored.
- */
 interface ITerminalInput {
 	command?: string;
 }
@@ -24,15 +20,8 @@ function isTerminalInput(input: unknown): input is ITerminalInput {
 	return terminalInput.command === undefined || typeof terminalInput.command === 'string';
 }
 
-/** Backwards-compatible re-export so existing tests/consumers keep working. */
 export const parseCommandHead = _parseCommandHead;
 
-/**
- * Build a filter matcher that fires when any segment of the command line
- * has the given `(head, sub)` shape, optionally restricted by a flag
- * predicate. `sub === '*'` matches any subcommand; `sub === null` matches
- * commands with no subcommand.
- */
 function makeMatcher(opts: {
 	head: string;
 	sub?: string | readonly string[] | '*' | null;
@@ -73,18 +62,7 @@ function makeMatcher(opts: {
 	};
 }
 
-// ---------------------------------------------------------------------------
-// VCS
-// ---------------------------------------------------------------------------
 
-/**
- * Compresses `git diff` / `git show` output by reducing context lines to a
- * tighter window and dropping the huge no-op chunks that diffs of generated
- * files (lockfiles, snapshots) produce.
- *
- * Notably this does **not** match `git difftool`, which prints a different
- * format and would be corrupted by hunk-header rewriting.
- */
 export const gitDiffFilter: IToolResultFilter = {
 	id: 'terminal.git-diff',
 	toolIds: [TerminalToolId.RunInTerminal],
@@ -191,7 +169,6 @@ export const gitDiffFilter: IToolResultFilter = {
 	},
 };
 
-/** Trim `git log` output: collapse multiple blank-line runs. */
 export const gitLogFilter: IToolResultFilter = {
 	id: 'terminal.git-log',
 	toolIds: [TerminalToolId.RunInTerminal],
@@ -219,7 +196,6 @@ export const gitLogFilter: IToolResultFilter = {
 	},
 };
 
-/** Drop the long "(use ... )" hint blocks in `git status`. */
 export const gitStatusFilter: IToolResultFilter = {
 	id: 'terminal.git-status',
 	toolIds: [TerminalToolId.RunInTerminal],
@@ -245,15 +221,7 @@ export const gitStatusFilter: IToolResultFilter = {
 	},
 };
 
-// ---------------------------------------------------------------------------
-// File ops
-// ---------------------------------------------------------------------------
 
-/**
- * Compresses `ls -l` / `ls -la` output by dropping permission/owner/size
- * columns and keeping only the entry name. Plain `ls` is already terse and
- * passes through.
- */
 export const lsFilter: IToolResultFilter = {
 	id: 'terminal.ls',
 	toolIds: [TerminalToolId.RunInTerminal],
@@ -365,9 +333,6 @@ export const treeFilter: IToolResultFilter = {
 	apply: (text) => capLines(text, MAX_LIST_LINES, 'tree'),
 };
 
-// ---------------------------------------------------------------------------
-// Test runners
-// ---------------------------------------------------------------------------
 
 function compressTestRunnerOutput(text: string): IToolResultFilterOutput {
 	const lines = text.split('\n');
@@ -427,9 +392,6 @@ export const testRunnerFilter: IToolResultFilter = {
 	apply: (text) => compressTestRunnerOutput(text),
 };
 
-// ---------------------------------------------------------------------------
-// Build tools
-// ---------------------------------------------------------------------------
 
 function compressBuildOutput(text: string): IToolResultFilterOutput {
 	const dropPatterns: RegExp[] = [
@@ -490,9 +452,6 @@ export const buildToolFilter: IToolResultFilter = {
 	apply: (text) => compressBuildOutput(text),
 };
 
-// ---------------------------------------------------------------------------
-// Linters
-// ---------------------------------------------------------------------------
 
 function compressLinterOutput(text: string): IToolResultFilterOutput {
 	const lines = text.split('\n');
@@ -543,15 +502,7 @@ export const linterFilter: IToolResultFilter = {
 	apply: (text) => compressLinterOutput(text),
 };
 
-// ---------------------------------------------------------------------------
-// Package managers
-// ---------------------------------------------------------------------------
 
-/**
- * Compresses `npm install` / `yarn` / `pnpm install` output by stripping
- * progress lines and audit summary noise, keeping the package summary plus
- * any error/warning lines.
- */
 export const npmInstallFilter: IToolResultFilter = {
 	id: 'terminal.npm-install',
 	toolIds: [TerminalToolId.RunInTerminal],
@@ -576,7 +527,6 @@ export const npmInstallFilter: IToolResultFilter = {
 					return true;
 				}
 				if (head.sub === undefined) {
-					// Bare `yarn` / `pnpm` is implicit install in the project root.
 					return true;
 				}
 			}
@@ -608,11 +558,7 @@ export const npmInstallFilter: IToolResultFilter = {
 	},
 };
 
-// ---------------------------------------------------------------------------
-// Misc utilities
-// ---------------------------------------------------------------------------
 
-/** Sort + dedupe `env` / `printenv` output. */
 export const envFilter: IToolResultFilter = {
 	id: 'terminal.env',
 	toolIds: [TerminalToolId.RunInTerminal],
@@ -624,16 +570,11 @@ export const envFilter: IToolResultFilter = {
 		if (!parsed) {
 			return false;
 		}
-		// We don't go through makeMatcher() here because `env` is also a
-		// wrapper and gets stripped during parsing — only fire when there's
-		// nothing else (i.e. `env` is itself the program).
 		for (const seg of parsed.segments) {
 			const head = segmentHead(seg);
 			if (head?.head === 'printenv') {
 				return true;
 			}
-			// After wrapper-stripping, bare `env` survives only when there was
-			// no inner program (i.e. the user invoked `env` with no args).
 			if (head === undefined && seg.wrappers.length > 0 && seg.wrappers[seg.wrappers.length - 1] === 'env' && seg.tokens.length === 0) {
 				return true;
 			}
@@ -649,22 +590,17 @@ export const envFilter: IToolResultFilter = {
 };
 
 export function registerTerminalCompressors(compressor: IToolResultCompressor): void {
-	// VCS
 	compressor.registerFilter(gitDiffFilter);
 	compressor.registerFilter(gitLogFilter);
 	compressor.registerFilter(gitStatusFilter);
-	// File ops
 	compressor.registerFilter(lsFilter);
 	compressor.registerFilter(findFilter);
 	compressor.registerFilter(grepFilter);
 	compressor.registerFilter(treeFilter);
-	// Test / build / lint
 	compressor.registerFilter(testRunnerFilter);
 	compressor.registerFilter(buildToolFilter);
 	compressor.registerFilter(linterFilter);
-	// Package managers
 	compressor.registerFilter(npmInstallFilter);
-	// Misc
 	compressor.registerFilter(envFilter);
 
 	compressor.registerCache(new TerminalOutputCache());

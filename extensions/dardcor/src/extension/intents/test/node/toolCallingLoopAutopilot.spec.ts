@@ -20,9 +20,6 @@ import { TestToolsService } from '../../../tools/node/test/testToolsService';
 import { IToolCallingLoopOptions, IToolCallSingleResult, ToolCallingLoop } from '../../node/toolCallingLoop';
 import { MockChatHookService } from './mockChatHookService';
 
-/**
- * Concrete test implementation that exposes autopilot-related protected methods.
- */
 class AutopilotTestToolCallingLoop extends ToolCallingLoop<IToolCallingLoopOptions> {
 	protected override async buildPrompt(_buildPromptContext: IBuildPromptContext): Promise<IBuildPromptResult> {
 		return nullRenderPromptResult();
@@ -48,24 +45,14 @@ class AutopilotTestToolCallingLoop extends ToolCallingLoop<IToolCallingLoopOptio
 		(this as any).autopilotRetryCount++;
 	}
 
-	/**
-	 * Simulate the autopilotStopHookActive flag being set (as it would be in run()).
-	 */
 	public setAutopilotStopHookActive(value: boolean): void {
-		// Access the private-ish field via prototype trick
 		(this as any).autopilotStopHookActive = value;
 	}
 
-	/**
-	 * Push a fake round into the internal toolCallRounds.
-	 */
 	public addToolCallRound(round: IToolCallRound): void {
 		(this as any).toolCallRounds.push(round);
 	}
 
-	/**
-	 * Expose ensureAutopilotTools for testing.
-	 */
 	public testEnsureAutopilotTools(tools: LanguageModelToolInformation[]): LanguageModelToolInformation[] {
 		return this.ensureAutopilotTools(tools);
 	}
@@ -186,13 +173,11 @@ describe('ToolCallingLoop autopilot', () => {
 		it('should stop after MAX_AUTOPILOT_ITERATIONS', async () => {
 			const loop = createLoop('autopilot');
 
-			// Iterate 3 times (MAX_AUTOPILOT_ITERATIONS = 3)
 			for (let i = 0; i < 3; i++) {
 				const msg = await loop.testShouldAutopilotContinue(createMockSingleResult());
 				expect(msg).toContain('task_complete');
 			}
 
-			// 4th call should return undefined — hit the cap
 			const msg = await loop.testShouldAutopilotContinue(createMockSingleResult());
 			expect(msg).toBeUndefined();
 		});
@@ -200,11 +185,8 @@ describe('ToolCallingLoop autopilot', () => {
 		it('should bail when prior nudge produced no tool calls', async () => {
 			const loop = createLoop('autopilot');
 
-			// Simulate that we already nudged once and set the flag
 			loop.setAutopilotStopHookActive(true);
 
-			// Should bail — the previous nudge produced no tool calls, so further nudges
-			// would just waste tokens (the model is effectively done).
 			const result = await loop.testShouldAutopilotContinue(createMockSingleResult());
 			expect(result).toBeUndefined();
 		});
@@ -220,16 +202,12 @@ describe('ToolCallingLoop autopilot', () => {
 		it('should allow another nudge after autopilotStopHookActive is reset', async () => {
 			const loop = createLoop('autopilot');
 
-			// First nudge
 			const msg1 = await loop.testShouldAutopilotContinue(createMockSingleResult());
 			expect(msg1).toContain('task_complete');
 
-			// Simulate the run() loop setting the flag then the model making progress
 			loop.setAutopilotStopHookActive(true);
-			// Reset as if tool calls were made (what run() does now)
 			loop.setAutopilotStopHookActive(false);
 
-			// Second nudge should work
 			const msg2 = await loop.testShouldAutopilotContinue(createMockSingleResult());
 			expect(msg2).toContain('task_complete');
 		});
@@ -275,7 +253,6 @@ describe('ToolCallingLoop autopilot', () => {
 		it('ignores task_complete as a stop signal — the classifier still decides', async () => {
 			const loop = createLoop('autopilot');
 			enableAdvancedAutopilot(loop);
-			// Even though task_complete was called, advanced autopilot defers to the classifier.
 			loop.addToolCallRound(createMockRound(['task_complete']));
 			stubClassifier(loop, { done: false, reason: 'still missing tests' });
 			const msg = await loop.testShouldAutopilotContinue(createMockSingleResult());
@@ -365,7 +342,6 @@ describe('ToolCallingLoop autopilot', () => {
 			for (let i = 0; i < 2; i++) {
 				loop.incrementAutopilotRetryCount();
 			}
-			// 2 retries done, still under the cap of 3
 			expect(loop.testShouldAutoRetry(mockResponse(ChatFetchResponseType.Failed))).toBe(true);
 		});
 	});
@@ -386,9 +362,6 @@ describe('ToolCallingLoop autopilot', () => {
 			);
 			disposables.add(loop);
 
-			// The actual extension happens in run(), which we can't easily call
-			// without a full mock of runOne, but we verified the cap of 200
-			// exists in the source. The important thing is the constant behavior.
 			expect((loop as any).options.toolCallLimit).toBe(150);
 		});
 

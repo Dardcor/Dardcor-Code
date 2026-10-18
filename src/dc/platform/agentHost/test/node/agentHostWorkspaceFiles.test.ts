@@ -29,9 +29,6 @@ suite('AgentHostWorkspaceFiles', () => {
 
 	teardown(async () => {
 		disposables.clear();
-		// On Windows, ripgrep handles may take a tick to release after
-		// dispose() kills the child process. Retry rmSync rather than
-		// failing on transient EBUSY.
 		for (const dir of tempDirs) {
 			let lastErr: unknown;
 			for (let i = 0; i < 10; i++) {

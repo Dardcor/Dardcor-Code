@@ -32,9 +32,6 @@ export interface Matches {
 
 export interface KeybindingLabelOptions extends IKeybindingLabelStyles {
 	renderUnboundKeybindings?: boolean;
-	/**
-	 * Default false.
-	 */
 	disableTitle?: boolean;
 }
 

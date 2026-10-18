@@ -515,13 +515,12 @@ suite('CodeBlockProcessor', () => {
 			'\n',
 			'Here is a code block:\n',
 			'\n',
-			'```markdown\n', // line 9
+			'```markdown\n',
 			'# Unrelated\n',
 			'## Unrelated\n',
 			'### Inside\n',
 			'```\n',
 		];
-		// process character by character to simulate streaming
 		lines.join('').split('').forEach(s =>
 			tracker.processMarkdown(s)
 		);

@@ -10,25 +10,12 @@ import { isAgentHostTarget, localChatSessionType } from '../../../common/chatSes
 import { isByokModel } from '../../../common/chatSelectedModel.js';
 import { getChatSessionType, isUntitledChatSession } from '../../../common/model/chatUri.js';
 
-/**
- * Whether the surface can run this model at all, given the mode it is in and where it is shown.
- * Supplied by the surface so these rules do not have to be restated in terms of its inputs.
- */
 export type IsModelSupportedHere = (model: ILanguageModelChatMetadataAndIdentifier) => boolean;
 
-/** Whether the vendor published this itself, rather than it being an agent-host copy of a BYOK model. */
 function isOwnModel(model: ILanguageModelChatMetadataAndIdentifier): boolean {
 	return model.metadata.byokModelIdentifier === undefined;
 }
 
-/**
- * Filter models based on session type.
- * When a session has a specific type (and it's not 'local'), only models targeting that
- * session type are returned. Otherwise, general-purpose models are returned.
- *
- * `isUserSelectable` defaults to `true` when omitted: only an explicit `false` hides
- * the model from the picker and this model-selection flow.
- */
 export function filterModelsForSession(
 	models: ILanguageModelChatMetadataAndIdentifier[],
 	sessionType: string | undefined,
@@ -50,9 +37,6 @@ export function filterModelsForSession(
 	);
 }
 
-/**
- * Check if a model is suitable for the current chat mode (e.g., agent mode requires tool calling).
- */
 export function isModelSupportedForMode(
 	model: ILanguageModelChatMetadataAndIdentifier,
 	currentModeKind: ChatModeKind,
@@ -63,9 +47,6 @@ export function isModelSupportedForMode(
 	return true;
 }
 
-/**
- * Check if a model is suitable for inline chat (editor inline) usage.
- */
 export function isModelSupportedForInlineChat(
 	model: ILanguageModelChatMetadataAndIdentifier,
 	location: ChatAgentLocation,
@@ -76,9 +57,6 @@ export function isModelSupportedForInlineChat(
 	return !!model.metadata.capabilities?.toolCalling;
 }
 
-/**
- * Check if any models in the pool target a specific session type.
- */
 export function hasModelsTargetingSession(
 	allModels: ILanguageModelChatMetadataAndIdentifier[],
 	sessionType: string | undefined,
@@ -89,11 +67,6 @@ export function hasModelsTargetingSession(
 	return allModels.some(m => m.metadata.targetChatSessionType === sessionType);
 }
 
-/**
- * Check if a model is valid for the current session's model pool.
- * If the session has targeted models, the model must target that session type.
- * If no models target this session, the model must not be session-specific.
- */
 export function isModelValidForSession(
 	model: ILanguageModelChatMetadataAndIdentifier,
 	allModels: ILanguageModelChatMetadataAndIdentifier[],
@@ -114,14 +87,6 @@ export function isModelValidForSession(
  */
 export const getAgentHostByokManageModelsIdentifier = ILanguageModelChatMetadata.getAgentHostByokManageModelsIdentifier;
 
-/**
- * Whether a model should be hidden from the picker given the user's Manage Models
- * visibility toggles. Matches the model by its own identifier and, for agent-host
- * copies of extension BYOK models, additionally by the reconstructed original
- * identifier (see {@link getAgentHostByokManageModelsIdentifier}) — which includes
- * any user-configured provider group carried across the bridge — so a BYOK model
- * hidden in Manage Models is also hidden in the agent-host picker.
- */
 export function isModelHiddenInPicker(
 	model: ILanguageModelChatMetadataAndIdentifier,
 	isModelHidden: (identifier: string) => boolean,
@@ -133,19 +98,6 @@ export function isModelHiddenInPicker(
 	return manageModelsIdentifier !== undefined && isModelHidden(manageModelsIdentifier);
 }
 
-/**
- * Whether the selected model carried by the shared, session-type-agnostic untitled draft
- * (`chat.untitledInputState`) must be dropped before the draft is applied to an empty session
- * that is being opened.
- *
- * The draft is shared across all session types, so its `selectedModel` can belong to a
- * different pool in either direction — e.g. a `copilot/*` model leaking into an agent-host
- * session, or an `agent-host-*` model leaking into a general/local session. Applying such a
- * cross-pool model while the session is opening lets the sync resolve it to (and persist) a
- * wrong default over the destination pool's persisted model. Dropped when present but not valid
- * for `sessionType`; an in-pool draft model is kept. See
- * `chatInputPart._getPersistedEmptyInputState`.
- */
 export function shouldDropAgnosticDraftModel(
 	draftModel: ILanguageModelChatMetadataAndIdentifier | undefined,
 	allModels: ILanguageModelChatMetadataAndIdentifier[],
@@ -154,47 +106,19 @@ export function shouldDropAgnosticDraftModel(
 	return !!draftModel && !isModelValidForSession(draftModel, allModels, sessionType);
 }
 
-/**
- * Whether the input should treat a session as a brand-new conversation, which is what unlocks the
- * shared new-chat draft, the default mode/permission level, and `chat.defaultModel`.
- *
- * `hasNoRequests` is sampled when the input binds, and a contributed session's requests load after
- * that — so on its own it reports a started agent-host session as new. A contributed session's
- * resource keeps its `untitled-` path until the session is started, so it stays accurate
- * regardless of load timing. Local sessions have no such marker and rely on `hasNoRequests`.
- */
 export function isNewConversation(sessionResource: URI, hasNoRequests: boolean): boolean {
 	return hasNoRequests
 		&& (getChatSessionType(sessionResource) === localChatSessionType || isUntitledChatSession(sessionResource));
 }
 
-/**
- * Whether a chat input counts as bound to a conversation that is already underway.
- *
- * An unbound input counts as started: a session switch clears the bound model for the duration of
- * an async load while the outgoing session type is still published, and a notice must not surface
- * in that window. Only a model seen to be request-free is unstarted.
- */
 export function isSessionStarted(hasBoundModel: boolean, hasRequests: boolean): boolean {
 	return !hasBoundModel || hasRequests;
 }
 
-/**
- * Whether the persisted per-session-type model should be restored (into the picker) when the
- * input switches to a session.
- *
- * True only for a FRESH untitled own-pool session — one with no incoming `selectedModel` in its
- * own input state. A session that already carries its own model (a transferred/handoff or
- * startup-restored draft) keeps that model in-memory and is left alone.
- */
 export function shouldRestorePerTypeModelOnSessionSwitch(isEmpty: boolean, sessionOwnsPool: boolean, hadIncomingModel: boolean): boolean {
 	return isEmpty && sessionOwnsPool && !hadIncomingModel;
 }
 
-/**
- * Whether two models bill the same way. A BYOK model and a first-party one can share id, family and
- * name, so matching across them changes which account is billed; two copies of one key do match.
- */
 function isSameBillingIdentity(
 	a: ILanguageModelChatMetadataAndIdentifier,
 	b: ILanguageModelChatMetadataAndIdentifier,
@@ -208,13 +132,6 @@ function isSameBillingIdentity(
 	return (a.metadata.byokModelIdentifier ?? a.identifier) === (b.metadata.byokModelIdentifier ?? b.identifier);
 }
 
-/**
- * Find a model in `pool` that matches `previous` by id, then family, then
- * name (case-insensitive). Used to carry a selection across model pools
- * (e.g. `copilot/claude-sonnet-4.6` → `agent-host-copilotcli:claude-sonnet-4.6`).
- * Returns `undefined` when no candidate matches.
- * Candidates that would change which account is billed are never matches.
- */
 export function findBestMatchingModel(
 	previous: ILanguageModelChatMetadataAndIdentifier | undefined,
 	pool: readonly ILanguageModelChatMetadataAndIdentifier[],
@@ -234,12 +151,6 @@ export function findBestMatchingModel(
 		?? (name ? candidates.find(m => m.metadata.name?.trim().toLowerCase() === name) : undefined);
 }
 
-/**
- * Determines whether the current model should be reset because it is no longer
- * compatible with the current mode, session, or availability.
- *
- * Returns true if the model should be reset to default.
- */
 export function shouldResetModelToDefault(
 	currentModel: ILanguageModelChatMetadataAndIdentifier | undefined,
 	availableModels: ILanguageModelChatMetadataAndIdentifier[],
@@ -247,24 +158,18 @@ export function shouldResetModelToDefault(
 	allModels: ILanguageModelChatMetadataAndIdentifier[],
 	sessionType: string | undefined,
 ): boolean {
-	// Nothing selected yet is not a reason to reset: with an empty catalog there is nothing to
-	// reset *to*, and with a partly-published one the first model to arrive is an arbitrary
-	// stand-in. Waiting lets the intended model be applied when it appears.
 	if (!currentModel) {
 		return false;
 	}
 
-	// Model is no longer in the available list
 	if (!availableModels.some(m => m.identifier === currentModel.identifier)) {
 		return true;
 	}
 
-	// Model not usable on this surface (mode, or where it is shown)
 	if (!isModelSupportedHere(currentModel)) {
 		return true;
 	}
 
-	// Model not valid for current session
 	if (!isModelValidForSession(currentModel, allModels, sessionType)) {
 		return true;
 	}
@@ -272,20 +177,6 @@ export function shouldResetModelToDefault(
 	return false;
 }
 
-/**
- * Determines whether a model from a sync state should be applied to the current view.
- *
- * Returns an action:
- * - `'keep'`    - the view already has the same model; no change needed.
- * - `'apply'`   - the state model is valid; the caller should switch to it.
- * - `'default'` - the state model is incompatible (wrong session pool, unsupported
- *                 mode, or missing inline-chat capability); the caller should fall
- *                 back to the default model for the current location.
- *
- * @param isModelSupportedHere Optional because some callers (e.g. unit tests, or
- *   code paths that only care about session-pool validation) cannot say. When
- *   omitted, only session-pool membership is validated.
- */
 export function resolveModelFromSyncState(
 	stateModel: ILanguageModelChatMetadataAndIdentifier,
 	currentModel: ILanguageModelChatMetadataAndIdentifier | undefined,
@@ -293,17 +184,14 @@ export function resolveModelFromSyncState(
 	sessionType: string | undefined,
 	isModelSupportedHere?: IsModelSupportedHere,
 ): { action: 'keep' | 'apply' | 'default' } {
-	// Validate the state model belongs to this session's model pool first.
 	if (!isModelValidForSession(stateModel, allModels, sessionType)) {
 		return { action: 'default' };
 	}
 
-	// Already the same model and valid for the new pool — nothing to do
 	if (currentModel && currentModel.identifier === stateModel.identifier) {
 		return { action: 'keep' };
 	}
 
-	// When the surface can say, also validate that it can run the model at all
 	if (isModelSupportedHere && !isModelSupportedHere(stateModel)) {
 		return { action: 'default' };
 	}
@@ -311,19 +199,6 @@ export function resolveModelFromSyncState(
 	return { action: 'apply' };
 }
 
-/**
- * Merges live models with cached models per-vendor, evicting cache for vendors no longer contributed.
- *
- * - `resolvedVendors`: vendors that have finished resolving. An empty live list for these is authoritative
- *   (e.g. BYOK key removed), so their cache is dropped.
- * - Copilot is the exception: its models are gated on an async token that can resolve slower than fast/local BYOK
- *   providers, so an early empty resolution is transient. Keeping its cache avoids resetting (and persisting) a
- *   restored Copilot selection to a BYOK default, which also preserves the selection across sign-out/in (see #321037).
- * - An agent-host vendor is judged on models of its OWN: it also publishes bridged copies of the workbench's
- *   BYOK models, and counting those as live evicts the cache mid-publication and persists the gap.
- * - When nothing is contributed yet and there are no live models (startup / reload), the full cache is returned to
- *   avoid flickering the picker to empty.
- */
 export function mergeModelsWithCache(
 	liveModels: ILanguageModelChatMetadataAndIdentifier[],
 	cachedModels: ILanguageModelChatMetadataAndIdentifier[],
@@ -340,8 +215,6 @@ export function mergeModelsWithCache(
 		if (!contributedVendors.has(vendor) || ownLiveVendors.has(vendor)) {
 			return false;
 		}
-		// Only bridged copies so far, so the vendor has not finished publishing. Its own models are
-		// kept; the bridged ones are already live, so a removed key must not come back from cache.
 		if (liveVendors.has(vendor) && isAgentHostTarget(vendor)) {
 			return isOwnModel(m);
 		}
@@ -353,13 +226,6 @@ export function mergeModelsWithCache(
 	return [...liveModels, ...usableCached];
 }
 
-/**
- * Determines whether the currently selected model should be reset to default
- * when the language model list changes.
- *
- * Returns true if the model should be reset to default (i.e., the selected model
- * is no longer in the available models list).
- */
 export function shouldResetOnModelListChange(
 	currentModelId: string | undefined,
 	availableModels: ILanguageModelChatMetadataAndIdentifier[],
@@ -371,14 +237,6 @@ export function shouldResetOnModelListChange(
 }
 
 
-/**
- * The selection a request should be sent with, given what an inline request editor had chosen.
- *
- * Resubmitting an edited request must use the picker the user actually chose in. That editor is
- * torn down before the request is built, so its selection is captured up front and always wins
- *
- * `edited` is `undefined` when no inline edit is in flight, in which case the composer is correct.
- */
 export function resolveEditedRequestSelection<T>(edited: T | undefined, composer: T): T {
 	return edited ?? composer;
 }

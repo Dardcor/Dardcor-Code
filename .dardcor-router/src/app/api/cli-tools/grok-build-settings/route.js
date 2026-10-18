@@ -30,7 +30,7 @@ const checkGrokInstalled = async () => {
       try {
         await fs.access(candidate);
         return true;
-      } catch { /* try next */ }
+      } catch { }
     }
     return false;
   }
@@ -55,13 +55,13 @@ const normalizeContextWindow = (value, model) => {
 };
 
 const normalizeSubagentModels = (value) => {
-  if (value === undefined) return undefined; // backwards-compatible callers leave current overrides untouched
+  if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const result = {};
   for (const type of GROK_SUBAGENT_TYPES) {
     const entry = value[type];
     const model = typeof entry === "string" ? entry.trim() : entry?.model?.trim();
-    if (!model) continue; // blank means inherit the main model
+    if (!model) continue;
     result[type] = {
       model,
       contextWindow: normalizeContextWindow(entry?.contextWindow, model),

@@ -7,7 +7,6 @@ import { DataConsumer, Dispatch, StateUpdater, TypePredicate } from './hooks';
 import { TokenizerName } from '../tokenization';
 import { CancellationToken } from 'vscode-languageserver-protocol';
 
-// --------- Prompt component types
 
 export type PromptComponentChild = PromptElement | string | number | undefined;
 
@@ -23,40 +22,9 @@ interface PromptAttributes {
 export type PromptElementProps<P = object> = P & Readonly<PromptAttributes & { children?: PromptComponentChildren }>;
 
 export interface ComponentContext {
-	/**
-	 * Hook to manage component state that can change over time.
-	 * @param initialState - Initial state value or function that returns initial state
-	 * @returns A tuple containing current state and setter function
-	 * @example
-	 * function Counter(props: PromptElementProps, context: ComponentContext) {
-	 *   const [count, setCount] = context.useState(0);
-	 *   return <Text>Count: {count}</Text>;
-	 * }
-	 */
 	useState<S = undefined>(): [S | undefined, Dispatch<StateUpdater<S | undefined>>];
 	useState<S>(initialState: S | (() => S)): [S, Dispatch<StateUpdater<S>>];
 
-	/**
-	 * Hook to subscribe to typed external data streams with type checking.
-	 * @param typePredicate - TypeScript type predicate function for runtime type checking
-	 * @param consumer - Callback function that receives type-checked data
-	 * @example
-	 * function DataViewer(props: PromptElementProps, context: ComponentContext) {
-	 *   interface MessageData {
-	 *     message: string;
-	 *   }
-	 *
-	 *   function isMessageData(data: unknown): data is MessageData {
-	 *     return typeof data === 'object' && data !== null &&
-	 *            'message' in data && typeof (data as any).message === 'string';
-	 *   }
-	 *
-	 *   context.useData(
-	 *     isMessageData,
-	 *     (data) => console.log(data.message)
-	 *   );
-	 * }
-	 */
 	useData<T>(typePredicate: TypePredicate<T>, consumer: DataConsumer<T>): void;
 }
 
@@ -73,22 +41,15 @@ export interface FunctionComponent<P = PromptAttributes> {
 	(props: PromptElementProps<P>, context: ComponentContext): PromptComponentChildren;
 }
 
-/**
- * Data structure returned by prompt component functions and used by the `virtualize` function to construct a virtual prompt.
- */
 export interface PromptElement<P = PromptAttributes> {
 	type: FunctionComponent<P> | FragmentFunction;
 	props: P & { children: PromptComponentChildren };
 }
 
-// --------- Prompt snapshot and rendering types
 export interface PromptSnapshotNodeStatistics {
 	updateDataTimeMs?: number;
 }
 
-/**
- * A prompt snapshot node is a node in the virtual prompt tree in its immutable form.
- */
 export interface PromptSnapshotNode {
 	name: string;
 	path: string;
@@ -117,7 +78,6 @@ export type ComponentStatistics = {
 	expectedTokens?: number;
 	actualTokens?: number;
 	updateDataTimeMs?: number;
-	// This field is only used internally, and even tho we send it to CTS it's not telemetrized
 	source?: unknown;
 };
 
@@ -135,15 +95,11 @@ export interface PromptRenderOptions {
 	delimiter?: string;
 }
 
-// --------- Components
 type TextPromptComponentChild = string | number | undefined;
 interface TextPromptElementProps extends PromptElementProps {
 	children?: TextPromptComponentChild[] | TextPromptComponentChild;
 }
 
-/**
- * Basic component to represent text in a prompt.
- */
 export function Text(props: TextPromptElementProps) {
 	if (props.children) {
 		if (Array.isArray(props.children)) {
@@ -155,9 +111,6 @@ export function Text(props: TextPromptElementProps) {
 	return;
 }
 
-/**
- * Basic component to represent a group of components that gets elided all together or not at all.
- */
 export function Chunk(props: PromptElementProps) {
 	return props.children;
 }

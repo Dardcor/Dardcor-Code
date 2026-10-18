@@ -22,7 +22,6 @@ const { execSync, execFileSync, spawn } = require('child_process');
 const ROOT = path.join(__dirname, '..', '..', '..');
 const DATA_DIR = path.join(ROOT, '.chat-simulation-data');
 
-// -- Config loading ----------------------------------------------------------
 
 /** @param {string} text */
 function stripJsoncComments(text) { return text.replace(/\/\/.*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''); }
@@ -38,7 +37,6 @@ function loadConfig(section) {
 	return config[section] ?? {};
 }
 
-// -- Electron path resolution ------------------------------------------------
 
 /**
  * Derive the VS Code repo root from an Electron executable path.
@@ -51,7 +49,6 @@ function loadConfig(section) {
 function getRepoRoot(electronPath) {
 	const buildIdx = electronPath.indexOf(`${path.sep}.build${path.sep}`);
 	if (buildIdx === -1) {
-		// Also check for posix separators (path may be user-supplied)
 		const posixIdx = electronPath.indexOf('/.build/');
 		if (posixIdx === -1) { return undefined; }
 		return electronPath.slice(0, posixIdx);
@@ -114,8 +111,6 @@ async function resolveBuild(buildArg) {
 		const exePath = await downloadAndUnzipVSCode(buildArg);
 		console.log(`[chat-simulation] Downloaded: ${exePath}`);
 
-		// Check if copilot is already bundled as a built-in extension
-		// (recent Insiders/Stable builds ship it in the app's extensions/ dir).
 		const builtinExtDir = getBuiltinExtensionsDir(exePath);
 		const hasCopilotBuiltin = builtinExtDir && fs.existsSync(builtinExtDir)
 			&& fs.readdirSync(builtinExtDir).some(e => e === 'copilot');
@@ -123,9 +118,6 @@ async function resolveBuild(buildArg) {
 		if (hasCopilotBuiltin) {
 			console.log(`[chat-simulation] Copilot is bundled as a built-in extension`);
 		} else {
-			// Install copilot-chat from the marketplace into our shared
-			// extensions dir so it's available when we launch with
-			// --extensions-dir=DATA_DIR/extensions.
 			const extDir = path.join(DATA_DIR, 'extensions');
 			fs.mkdirSync(extDir, { recursive: true });
 			const [cli, ...cliArgs] = resolveCliArgsFromVSCodeExecutablePath(exePath);
@@ -150,7 +142,6 @@ async function resolveBuild(buildArg) {
 	return path.resolve(buildArg);
 }
 
-// -- Storage pre-seeding -----------------------------------------------------
 
 /**
  * Pre-seed the VS Code storage database to prevent the
@@ -172,7 +163,6 @@ function preseedStorage(userDataDir) {
 	execFileSync('sqlite3', [dbPath, sql]);
 }
 
-// -- Launch helpers ----------------------------------------------------------
 
 /**
  * Build the environment variables for launching VS Code with the mock server.
@@ -199,9 +189,6 @@ function buildEnv(mockServer, { isDevBuild = true } = {}) {
 			endpoints: { api: mockServer.url, proxy: mockServer.url },
 		})).toString('base64'),
 	};
-	// Dev-only flags — these tell Electron to load the app from source (out/)
-	// instead of the packaged app. Setting them on a stable build causes it
-	// to fail to show a window.
 	if (isDevBuild) {
 		env.NODE_ENV = 'development';
 		env.VSCODE_DEV = '1';
@@ -218,18 +205,8 @@ function buildEnv(mockServer, { isDevBuild = true } = {}) {
  * @returns {string[]}
  */
 function buildArgs(userDataDir, extDir, logsDir, { isDevBuild = true, extHostInspectPort = 0, traceFile = '', appRoot = ROOT, gcObjectStats = false } = {}) {
-	// Chromium switches must come BEFORE the app path (ROOT) — Chromium
-	// only processes switches that precede the first non-switch argument.
 	const chromiumFlags = [];
 	if (traceFile) {
-		// IMPORTANT: `disabled-by-default-v8.gc_stats` is intentionally OFF by
-		// default. It makes V8 run GC_OBJECT_DUMP_STATISTICS (a full per-type
-		// heap object dump) on every major GC, inflating a ~15ms GC pause to
-		// ~550ms. When such a GC lands in the measured request window it
-		// corrupts timeToFirstToken (bimodal ~250ms vs ~900ms). `v8.gc` +
-		// `disabled-by-default-v8.gc` still provide the GC events we count.
-		// Opt in via `--gc-object-stats` only for deliberate GC deep-dives
-		// (never for timing runs), accepting that timings become unreliable.
 		const gcCategories = gcObjectStats
 			? 'v8.gc,disabled-by-default-v8.gc,disabled-by-default-v8.gc_stats'
 			: 'v8.gc,disabled-by-default-v8.gc';
@@ -251,7 +228,6 @@ function buildArgs(userDataDir, extDir, logsDir, { isDevBuild = true, extHostIns
 		'--enable-smoke-test-driver',
 		'--disable-extensions',
 	];
-	// vscode-api-tests only exists in the dev build
 	if (isDevBuild) {
 		args.push('--disable-extension=vscode.vscode-api-tests');
 	}
@@ -261,7 +237,6 @@ function buildArgs(userDataDir, extDir, logsDir, { isDevBuild = true, extHostIns
 	if (process.env.CI && process.platform === 'linux') {
 		args.push('--no-sandbox');
 	}
-	// Enable extension host inspector for profiling/heap snapshots
 	if (extHostInspectPort > 0) {
 		args.push(`--inspect-extensions=${extHostInspectPort}`);
 	}
@@ -281,14 +256,10 @@ function writeSettings(userDataDir, mockServer, overrides) {
 		'github.copilot.advanced.debug.overrideProxyUrl': mockServer.url,
 		'github.copilot.advanced.debug.overrideCapiUrl': mockServer.url,
 		'chat.allowAnonymousAccess': true,
-		// Disable MCP servers — they start async and add unpredictable
-		// delay that pollutes perf measurements.
 		'chat.mcp.discovery.enabled': false,
 		'chat.mcp.enabled': false,
 		'github.copilot.chat.githubMcpServer.enabled': false,
 		'github.copilot.chat.cli.mcp.enabled': false,
-		// Auto-approve all tool invocations (YOLO mode) so tool call
-		// scenarios don't block on confirmation dialogs.
 		'chat.tools.global.autoApprove': true,
 		...overrides,
 	}, null, '\t'));
@@ -306,7 +277,6 @@ function prepareRunDir(runId, mockServer, settingsOverrides) {
 	const userDataDir = path.join(tmpBase, `run-${runId}`);
 	const extDir = path.join(DATA_DIR, 'extensions');
 	const logsDir = path.join(tmpBase, 'logs', `run-${runId}`);
-	// Retry rmSync to handle ENOTEMPTY race conditions from Electron cache locks
 	for (let attempt = 0; attempt < 3; attempt++) {
 		try {
 			fs.rmSync(userDataDir, { recursive: true, force: true });
@@ -328,9 +298,7 @@ function prepareRunDir(runId, mockServer, settingsOverrides) {
 	return { userDataDir, extDir, logsDir };
 }
 
-// -- VS Code launch via CDP --------------------------------------------------
 
-// -- Extension host inspector ------------------------------------------------
 
 /** @type {number} */
 let nextExtHostPort = 29222;
@@ -351,7 +319,6 @@ function getNextExtHostInspectPort() {
 async function connectToExtHostInspector(port, opts = {}) {
 	const { verbose = false, timeoutMs = 30_000 } = opts;
 
-	// Wait for the inspector endpoint to be available
 	const deadline = Date.now() + timeoutMs;
 	/** @type {any} */
 	let wsUrl;
@@ -530,7 +497,6 @@ async function launchVSCode(executable, launchArgs, env, opts = {}) {
 		stdio: opts.verbose ? 'inherit' : ['ignore', 'ignore', 'ignore'],
 	});
 
-	// Track early exit
 	let exitError = /** @type {Error | null} */ (null);
 	child.once('exit', (code, signal) => {
 		if (!exitError) {
@@ -538,7 +504,6 @@ async function launchVSCode(executable, launchArgs, env, opts = {}) {
 		}
 	});
 
-	// Wait for CDP
 	try {
 		await waitForCDP(port);
 	} catch (e) {
@@ -553,19 +518,12 @@ async function launchVSCode(executable, launchArgs, env, opts = {}) {
 		page,
 		browser,
 		close: async () => {
-			// Trigger app.quit() so Chromium flushes trace buffers and
-			// writes --trace-startup-file. Using Cmd+Q / Alt+F4 triggers
-			// the full Electron quit lifecycle including trace flush.
-			// window.close() only closes the BrowserWindow without
-			// triggering app-level quit.
 			try {
 				const quitKey = process.platform === 'darwin' ? 'Meta+KeyQ' : 'Alt+F4';
 				await page.keyboard.press(quitKey);
 			} catch {
-				// Page may already be closed
 			}
 			const pid = child.pid;
-			// Wait for graceful exit (up to 30s for trace flush)
 			await new Promise(resolve => {
 				const timer = setTimeout(() => {
 					if (pid) {
@@ -577,10 +535,7 @@ async function launchVSCode(executable, launchArgs, env, opts = {}) {
 				}, 30_000);
 				child.once('exit', () => { clearTimeout(timer); resolve(undefined); });
 			});
-			// Disconnect CDP after the process has exited
 			await browser.close().catch(() => { });
-			// Kill crashpad handler — it self-daemonizes and outlives the
-			// parent. Wait briefly for it to detach, then kill by pattern.
 			await new Promise(r => setTimeout(r, 500));
 			try { execSync('pkill -9 -f crashpad_handler.*vscode-chat-simulation', { stdio: 'ignore' }); }
 			catch { }
@@ -588,7 +543,6 @@ async function launchVSCode(executable, launchArgs, env, opts = {}) {
 	};
 }
 
-// -- Statistics --------------------------------------------------------------
 
 /**
  * @param {number[]} values
@@ -626,14 +580,11 @@ function removeOutliers(values) {
 function betaIncomplete(x, a, b) {
 	if (x <= 0) { return 0; }
 	if (x >= 1) { return 1; }
-	// Use symmetry relation when x > (a+1)/(a+b+2) for better convergence
 	if (x > (a + 1) / (a + b + 2)) {
 		return 1 - betaIncomplete(1 - x, b, a);
 	}
-	// Log-beta via Stirling: lnBeta(a,b) = lnGamma(a)+lnGamma(b)-lnGamma(a+b)
 	const lnBeta = lnGamma(a) + lnGamma(b) - lnGamma(a + b);
 	const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lnBeta) / a;
-	// Lentz's continued fraction
 	const maxIter = 200;
 	const eps = 1e-14;
 	let c = 1, d = 1 - (a + b) * x / (a + 1);
@@ -641,12 +592,10 @@ function betaIncomplete(x, a, b) {
 	d = 1 / d;
 	let result = d;
 	for (let m = 1; m <= maxIter; m++) {
-		// Even step
 		let num = m * (b - m) * x / ((a + 2 * m - 1) * (a + 2 * m));
 		d = 1 + num * d; if (Math.abs(d) < eps) { d = eps; } d = 1 / d;
 		c = 1 + num / c; if (Math.abs(c) < eps) { c = eps; }
 		result *= d * c;
-		// Odd step
 		num = -(a + m) * (a + b + m) * x / ((a + 2 * m) * (a + 2 * m + 1));
 		d = 1 + num * d; if (Math.abs(d) < eps) { d = eps; } d = 1 / d;
 		c = 1 + num / c; if (Math.abs(c) < eps) { c = eps; }
@@ -705,7 +654,6 @@ function welchTTest(a, b) {
 	const seDiff = Math.sqrt(seA + seB);
 	if (seDiff === 0) { return null; }
 	const t = (meanB - meanA) / seDiff;
-	// Welch-Satterthwaite degrees of freedom
 	const df = (seA + seB) ** 2 / ((seA ** 2) / (a.length - 1) + (seB ** 2) / (b.length - 1));
 	const pValue = tDistPValue(t, df);
 	const significant = pValue < 0.05;

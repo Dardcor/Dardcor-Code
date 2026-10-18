@@ -1,6 +1,5 @@
 "use client";
 
-/** Inline tooltip, Claude Code CLI style */
 export default function Tooltip({ text }) {
   return (
     <span className="relative group inline-flex items-center">

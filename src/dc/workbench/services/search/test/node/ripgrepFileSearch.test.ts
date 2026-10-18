@@ -24,7 +24,6 @@ suite('RipgrepFileSearch - etc', () => {
 			['c:\\', 'glob\\**', '/glob\\**'],
 			['\\\\localhost\\c$\\foo\\bar', 'glob/**', '\\\\localhost\\c$\\foo\\bar\\glob\\**'],
 
-			// absolute paths are not resolved further
 			['c:/foo/bar', '/path/something', '/path/something'],
 			['c:/foo/bar', 'c:\\project\\folder', '/project\\folder']
 		].forEach(testGetAbsGlob);
@@ -35,7 +34,6 @@ suite('RipgrepFileSearch - etc', () => {
 			['/foo/bar', 'glob/**', '/foo/bar/glob/**'],
 			['/', 'glob/**', '/glob/**'],
 
-			// absolute paths are not resolved further
 			['/', '/project/folder', '/project/folder'],
 		].forEach(testGetAbsGlob);
 	});

@@ -13,15 +13,6 @@ import { IAgentNetworkFilterService } from '../../networkFilter/common/networkFi
 import { BrowserViewGroupRemoteService } from './browserViewGroupRemoteService.js';
 import { PlaywrightService } from './playwrightService.js';
 
-/**
- * IPC channel for the Playwright service.
- *
- * Each connected window gets its own {@link PlaywrightService},
- * keyed by the opaque IPC connection context. The client sends an
- * `__initialize` call with its numeric window ID before any other
- * method calls, which eagerly creates the instance. When a window
- * disconnects the instance is automatically disposed.
- */
 export class PlaywrightChannel extends Disposable implements IServerChannel<string> {
 
 	private readonly _instances = this._register(new DisposableMap<string, PlaywrightService>());
@@ -54,7 +45,6 @@ export class PlaywrightChannel extends Disposable implements IServerChannel<stri
 	}
 
 	call<T>(ctx: string, command: string, arg?: unknown): Promise<T> {
-		// Handle the one-time initialization call that creates the instance
 		if (command === '__initialize') {
 			if (typeof arg !== 'number') {
 				throw new Error(`Invalid argument for __initialize: expected window ID as number, got ${typeof arg}`);

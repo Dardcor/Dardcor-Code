@@ -77,7 +77,7 @@ export class OverlayToolbarDecorator extends Disposable {
 			const toolbar = document.createElement('div');
 			toolbarContainer.appendChild(toolbar);
 			toolbar.className = 'chat-diff-change-content-widget';
-			toolbar.classList.add('hover'); // Show by default
+			toolbar.classList.add('hover');
 			toolbar.style.position = 'relative';
 			toolbar.style.top = '18px';
 			toolbar.style.zIndex = '10';
@@ -125,7 +125,7 @@ export class OverlayToolbarDecorator extends Disposable {
 					if (!action.class) {
 						return new class extends ActionViewItem {
 							constructor() {
-								super(undefined, action, { ...options, keybindingNotRenderedWithLabel: true /* hide keybinding for actions without icon */, icon: false, label: true });
+								super(undefined, action, { ...options, keybindingNotRenderedWithLabel: true , icon: false, label: true });
 							}
 						};
 					}

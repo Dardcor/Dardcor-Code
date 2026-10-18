@@ -218,11 +218,10 @@ function updateContent(c: EmbeddedRegion, content: string): string {
 
 function substituteWithWhitespace(result: string, start: number, end: number, oldContent: string, before: string, after: string) {
 	result += before;
-	let accumulatedWS = -before.length; // start with a negative value to account for the before string
+	let accumulatedWS = -before.length;
 	for (let i = start; i < end; i++) {
 		const ch = oldContent[i];
 		if (ch === '\n' || ch === '\r') {
-			// only write new lines, skip the whitespace
 			accumulatedWS = 0;
 			result += ch;
 		} else {

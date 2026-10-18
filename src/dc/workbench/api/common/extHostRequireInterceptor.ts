@@ -87,13 +87,8 @@ export abstract class RequireInterceptor {
 	}
 }
 
-//#region --- module renames
 
 class NodeModuleAliasingModuleFactory implements IAlternativeModuleProvider {
-	/**
-	 * Map of aliased internal node_modules, used to allow for modules to be
-	 * renamed without breaking extensions. In the form "original -> new name".
-	 */
 	private static readonly aliased: ReadonlyMap<string, string> = new Map([
 		['vscode-ripgrep', '@vscode/ripgrep-universal'],
 		['@vscode/ripgrep', '@vscode/ripgrep-universal'],
@@ -105,9 +100,6 @@ class NodeModuleAliasingModuleFactory implements IAlternativeModuleProvider {
 	constructor(@IExtHostInitDataService initData: IExtHostInitDataService) {
 		if (initData.environment.appRoot && NodeModuleAliasingModuleFactory.aliased.size) {
 			const root = escapeRegExpCharacters(this.forceForwardSlashes(initData.environment.appRoot.fsPath));
-			// decompose ${appRoot}/node_modules/foo/bin to ['${appRoot}/node_modules/', 'foo', '/bin'],
-			// and likewise the more complex form ${appRoot}/node_modules.asar.unpacked/@vcode/foo/bin
-			// to ['${appRoot}/node_modules.asar.unpacked/',' @vscode/foo', '/bin'].
 			const npmIdChrs = `[a-z0-9_.-]`;
 			const npmModuleName = `@${npmIdChrs}+\\/${npmIdChrs}+|${npmIdChrs}+`;
 			const moduleFolders = 'node_modules|node_modules\\.asar(?:\\.unpacked)?';
@@ -141,9 +133,7 @@ class NodeModuleAliasingModuleFactory implements IAlternativeModuleProvider {
 	}
 }
 
-//#endregion
 
-//#region --- vscode-module
 
 class VSCodeNodeModuleFactory implements INodeModuleFactory {
 	public readonly nodeModuleName = ['vscode', 'dardcor'];
@@ -162,7 +152,6 @@ class VSCodeNodeModuleFactory implements INodeModuleFactory {
 
 	public load(_request: string, parent: URI): any {
 
-		// get extension id from filename and api for extension
 		const ext = this._extensionPaths.findSubstr(parent);
 		if (ext) {
 			let apiImpl = this._extApiImpl.get(ext.identifier);
@@ -173,7 +162,6 @@ class VSCodeNodeModuleFactory implements INodeModuleFactory {
 			return apiImpl;
 		}
 
-		// fall back to a default implementation
 		if (!this._defaultApiImpl) {
 			let extensionPathsPretty = '';
 			this._extensionPaths.forEach((value, index) => extensionPathsPretty += `\t${index} -> ${value.identifier.value}\n`);
@@ -184,9 +172,7 @@ class VSCodeNodeModuleFactory implements INodeModuleFactory {
 	}
 }
 
-//#endregion
 
-//#region --- opn/open-module
 
 interface OpenOptions {
 	wait: boolean;
@@ -221,7 +207,6 @@ class OpenNodeModuleFactory implements INodeModuleFactory {
 
 		this._impl = (target, options) => {
 			const uri: URI = URI.parse(target);
-			// If we have options use the original method.
 			if (options) {
 				return this.callOriginal(target, options);
 			}
@@ -235,7 +220,6 @@ class OpenNodeModuleFactory implements INodeModuleFactory {
 	}
 
 	public load(request: string, parent: URI, original: LoadFunction): any {
-		// get extension id from filename and api for extension
 		const extension = this._extensionPaths.findSubstr(parent);
 		if (extension) {
 			this._extensionId = extension.identifier.value;
@@ -276,4 +260,3 @@ class OpenNodeModuleFactory implements INodeModuleFactory {
 	}
 }
 
-//#endregion

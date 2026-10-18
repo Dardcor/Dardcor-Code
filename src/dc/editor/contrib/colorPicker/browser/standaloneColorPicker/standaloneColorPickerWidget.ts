@@ -26,7 +26,6 @@ import { InsertButton } from '../colorPickerParts/colorPickerInsertButton.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 
 class StandaloneColorPickerResult {
-	// The color picker result consists of: an array of color results and a boolean indicating if the color was found in the editor
 	constructor(
 		public readonly value: StandaloneColorPickerHover,
 		public readonly foundInEditor: boolean
@@ -85,9 +84,7 @@ export class StandaloneColorPickerWidget extends Disposable implements IContentW
 		this._register(focusTracker.onDidFocus(_ => {
 			this.focus();
 		}));
-		// When the cursor position changes, hide the color picker
 		this._register(this._editor.onDidChangeCursorPosition(() => {
-			// Do not hide the color picker when the cursor changes position due to the keybindings
 			if (!this._selectionSetInEditor) {
 				this.hide();
 			} else {
@@ -217,7 +214,6 @@ export class StandaloneColorPickerWidget extends Disposable implements IContentW
 		closeButton?.onClicked(() => {
 			this.hide();
 		});
-		// When found in the editor, highlight the selection in the editor
 		if (foundInEditor) {
 			if (enterButton) {
 				enterButton.button.textContent = 'Replace';

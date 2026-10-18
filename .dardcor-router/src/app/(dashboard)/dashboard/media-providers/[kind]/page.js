@@ -7,8 +7,6 @@ import { Card, Badge, Button, Toggle, AddCustomEmbeddingModal } from "@/shared/c
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS, getProvidersByKind } from "@/shared/constants/providers";
 
-// Kinds that support combos (currently disabled for image/tts — temporarily hidden).
-// webSearch/webFetch handled by /web page.
 const COMBO_KINDS = new Set([]);
 const COMBO_BASE_NAMES = { image: "image-combo", tts: "tts-combo" };
 
@@ -145,7 +143,6 @@ export default function MediaProviderKindPage() {
   const [combos, setCombos] = useState([]);
   const [showAddCustomEmbedding, setShowAddCustomEmbedding] = useState(false);
 
-  // webSearch/webFetch listing pages are merged into /web
   useEffect(() => {
     if (kind === "webSearch" || kind === "webFetch") {
       router.replace("/dashboard/media-providers/web");
@@ -181,7 +178,6 @@ export default function MediaProviderKindPage() {
   const providers = getProvidersByKind(kind);
   const kindCombos = combos.filter((c) => c.kind === kind);
 
-  // Map custom nodes to MediaProviderCard shape
   const customProviders = customNodes.map((n) => ({
     id: n.id,
     name: n.name || "Custom Embedding",

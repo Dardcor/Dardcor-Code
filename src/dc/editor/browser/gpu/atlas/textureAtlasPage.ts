@@ -19,10 +19,6 @@ export class TextureAtlasPage extends Disposable implements IReadableTextureAtla
 	private _version: number = 0;
 	get version(): number { return this._version; }
 
-	/**
-	 * The maximum number of glyphs that can be drawn to the page. This is currently a hard static
-	 * cap that must not be reached as it will cause the GPU buffer to overflow.
-	 */
 	static readonly maximumGlyphCount = 5_000;
 
 	private _usedArea: IBoundingBox = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -58,7 +54,6 @@ export class TextureAtlasPage extends Disposable implements IReadableTextureAtla
 			default: this._allocator = allocatorType(this._canvas, textureIndex); break;
 		}
 
-		// Reduce impact of a memory leak if this object is not released
 		this._register(toDisposable(() => {
 			this._canvas.width = 1;
 			this._canvas.height = 1;
@@ -66,33 +61,24 @@ export class TextureAtlasPage extends Disposable implements IReadableTextureAtla
 	}
 
 	public getGlyph(rasterizer: IGlyphRasterizer, chars: string, tokenMetadata: number, decorationStyleSetId: number): Readonly<ITextureAtlasPageGlyph> | undefined {
-		// IMPORTANT: There are intentionally no intermediate variables here to aid in runtime
-		// optimization as it's a very hot function
 		return this._glyphMap.get(chars, tokenMetadata, decorationStyleSetId, rasterizer.cacheKey) ?? this._createGlyph(rasterizer, chars, tokenMetadata, decorationStyleSetId);
 	}
 
 	private _createGlyph(rasterizer: IGlyphRasterizer, chars: string, tokenMetadata: number, decorationStyleSetId: number): Readonly<ITextureAtlasPageGlyph> | undefined {
-		// Ensure the glyph can fit on the page
 		if (this._glyphInOrderSet.size >= TextureAtlasPage.maximumGlyphCount) {
 			return undefined;
 		}
 
-		// Rasterize and allocate the glyph
 		const rasterizedGlyph = rasterizer.rasterizeGlyph(chars, tokenMetadata, decorationStyleSetId, this._colorMap);
 		const glyph = this._allocator.allocate(rasterizedGlyph);
 
-		// Ensure the glyph was allocated
 		if (glyph === undefined) {
-			// TODO: undefined here can mean the glyph was too large for a slab on the page, this
-			// can lead to big problems if we don't handle it properly https://github.com/microsoft/vscode/issues/232984
 			return undefined;
 		}
 
-		// Save the glyph
 		this._glyphMap.set(glyph, chars, tokenMetadata, decorationStyleSetId, rasterizer.cacheKey);
 		this._glyphInOrderSet.add(glyph);
 
-		// Update page version and it's tracked used area
 		this._version++;
 		this._usedArea.right = Math.max(this._usedArea.right, glyph.x + glyph.w - 1);
 		this._usedArea.bottom = Math.max(this._usedArea.bottom, glyph.y + glyph.h - 1);

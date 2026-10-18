@@ -171,7 +171,6 @@ suite('Workbench - TerminalInstance', () => {
 
 		test('should create an instance of TerminalInstance with env from default profile', async () => {
 			terminalInstance = await createTerminalInstance();
-			// Wait for the terminal instance to resolve shell launch config env.
 			await new Promise(resolve => setTimeout(resolve, 100));
 			deepStrictEqual(terminalInstance.shellLaunchConfig.env, { TEST: 'TEST' });
 		});
@@ -242,14 +241,11 @@ suite('Workbench - TerminalInstance', () => {
 			}));
 
 
-			// Simulate setting the title via API (as the task system would do)
 			await taskTerminal.rename('Test Task Name');
 			strictEqual(taskTerminal.title, 'Test Task Name');
 
-			// Simulate a process title change (which happens when task completes)
 			await taskTerminal.rename('some-process-name', TitleEventSource.Process);
 
-			// Verify that the task name is preserved
 			strictEqual(taskTerminal.title, 'Test Task Name', 'Task terminal should preserve API-set title');
 		});
 
@@ -541,11 +537,6 @@ suite('Workbench - TerminalInstance', () => {
 		test('should resolve to "" when the template variables are empty', () => {
 			const terminalLabelComputer = createLabelComputer({ terminal: { integrated: { tabs: { separator: ' - ', title: '', description: '' } } } });
 			terminalLabelComputer.refreshLabel(createInstance({ capabilities, processName: '' }));
-			// TODO:
-			// terminalLabelComputer.onLabelChanged(e => {
-			// 	strictEqual(e.title, '');
-			// 	strictEqual(e.description, '');
-			// });
 			strictEqual(terminalLabelComputer.title, '');
 			strictEqual(terminalLabelComputer.description, '');
 		});
@@ -655,10 +646,8 @@ suite('Workbench - TerminalInstance', () => {
 		test('should provide cwdFolder for all cwds only when in multi-root', () => {
 			const terminalLabelComputer = createLabelComputer({ terminal: { integrated: { tabs: { separator: ' ~ ', title: '${process}${separator}${cwdFolder}', description: '${cwdFolder}' } } } });
 			terminalLabelComputer.refreshLabel(createInstance({ capabilities, processName: 'process', workspaceFolder: { uri: URI.from({ scheme: Schemas.file, path: ROOT_1 }) } as IWorkspaceFolder, cwd: ROOT_1 }));
-			// single-root, cwd is same as root
 			strictEqual(terminalLabelComputer.title, 'process');
 			strictEqual(terminalLabelComputer.description, '');
-			// multi-root
 			terminalLabelComputer.refreshLabel(createInstance({ capabilities, processName: 'process', workspaceFolder: { uri: URI.from({ scheme: Schemas.file, path: ROOT_1 }) } as IWorkspaceFolder, cwd: ROOT_2 }));
 			if (isWindows) {
 				strictEqual(terminalLabelComputer.title, 'process');
@@ -701,13 +690,11 @@ suite('Workbench - TerminalInstance', () => {
 				capabilities.add(TerminalCapability.CwdDetection, mockCwdDetection as unknown as ICwdDetectionCapability);
 			}
 
-			// Mock file service
 			mockFileService = {
 				canHandleResource: async (_resource: URI) => options.fileServiceCanHandle !== false,
 				exists: async (resource: URI) => options.fileExists !== false
 			};
 
-			// Mock path service
 			mockPathService = {
 				fileURI: async (path: string) => {
 					if (options.remoteAuthority) {
@@ -808,14 +795,11 @@ suite('Workbench - TerminalInstance', () => {
 		});
 
 		test('should return undefined when fileService cannot handle the resource (VS Code web ENOPRO scenario)', async () => {
-			// Simulates server-linux-x64-web where remoteAuthority is falsy from the
-			// terminal's perspective, so URI.file() is produced but the browser
-			// FileService has no file:// provider registered.
 			const testCwd = '/workspace/my-project';
 			const instance = createMockTerminalInstance({
 				cwd: testCwd,
 				fileExists: true,
-				fileServiceCanHandle: false  // file:// provider absent
+				fileServiceCanHandle: false
 			});
 
 			const result = await instance.getCwdResource();

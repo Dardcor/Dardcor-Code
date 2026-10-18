@@ -1,8 +1,7 @@
-// ElevenLabs TTS — voice id with optional model_id prefix
 import { Buffer } from "node:buffer";
 
 const VOICES_TTL = 24 * 60 * 60 * 1000;
-const _voicesCache = new Map(); // by API key
+const _voicesCache = new Map();
 
 export async function fetchElevenLabsVoices(apiKey) {
   if (!apiKey) throw new Error("ElevenLabs API key required");
@@ -15,7 +14,6 @@ export async function fetchElevenLabsVoices(apiKey) {
   });
   if (!res.ok) throw new Error(`ElevenLabs voices fetch failed: ${res.status}`);
   const data = await res.json();
-  // Normalize: derive lang from labels for grouping
   const voices = (data.voices || []).map((v) => ({ ...v, lang: v.labels?.language || "en" }));
   _voicesCache.set(apiKey, { voices, time: now });
   return voices;

@@ -110,7 +110,7 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 				return;
 			}
 
-			report.didAddCoverage.read(reader); // re-read if changes when there's no report
+			report.didAddCoverage.read(reader);
 			return { file, testId: coverage.filterToTest.read(reader) };
 		});
 
@@ -179,7 +179,6 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 				return;
 			}
 
-			// Decorations adjust to local changes made in-editor, keep them synced in case the file is reopened:
 			for (const decoration of model.getAllDecorations()) {
 				const own = this.decorationIds.get(decoration.id);
 				if (own) {
@@ -256,18 +255,10 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 		}));
 	}
 
-	/**
-	 * Navigate to the next missed (uncovered) line from the current cursor position.
-	 * @returns true if navigation occurred, false if no missed line was found
-	 */
 	public goToNextMissedLine(): boolean {
 		return this.navigateToMissedLine(true);
 	}
 
-	/**
-	 * Navigate to the previous missed (uncovered) line from the current cursor position.
-	 * @returns true if navigation occurred, false if no missed line was found
-	 */
 	public goToPreviousMissedLine(): boolean {
 		return this.navigateToMissedLine(false);
 	}
@@ -285,9 +276,7 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 		let firstMissed: { lineNumber: number; range: Range } | undefined;
 		let lastMissed: { lineNumber: number; range: Range } | undefined;
 
-		// Find the closest missed line before and after the current position
 		for (const [, { detail, options }] of this.decorationIds) {
-			// Check if this is a missed line (CLASS_MISS in lineNumberClassName)
 			if (options.lineNumberClassName?.includes(CLASS_MISS)) {
 				const range = detail.range;
 				if (range.isEmpty()) {
@@ -297,7 +286,6 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 				const lineNumber = range.startLineNumber;
 				const missedLine = { lineNumber, range };
 
-				// Track first and last missed lines for wrap-around
 				if (!firstMissed || lineNumber < firstMissed.lineNumber) {
 					firstMissed = missedLine;
 				}
@@ -305,7 +293,6 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 					lastMissed = missedLine;
 				}
 
-				// Track closest before and after current line
 				if (lineNumber < currentLine) {
 					if (!closestBefore || lineNumber > closestBefore.lineNumber) {
 						closestBefore = missedLine;
@@ -318,10 +305,9 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 			}
 		}
 
-		// Determine target line based on direction
 		const targetLine = next
-			? (closestAfter || firstMissed)  // Next: closest after, or wrap to first
-			: (closestBefore || lastMissed);  // Previous: closest before, or wrap to last
+			? (closestAfter || firstMissed)
+			: (closestBefore || lastMissed);
 
 		if (targetLine) {
 			this.editor.setPosition(new Position(targetLine.lineNumber, 1));
@@ -339,7 +325,6 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 			return this.clear();
 		}
 
-		// Update context key to indicate inline coverage details are available
 		this.hasInlineCoverageDetails.set(details.ranges.length > 0, undefined);
 
 		this.displayedStore.clear();
@@ -350,10 +335,9 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 				if (detail.type === DetailType.Branch) {
 					const hits = detail.detail.branches![detail.branch].count;
 					const cls = hits ? CLASS_HIT : CLASS_MISS;
-					// don't bother showing the miss indicator if the condition wasn't executed at all:
 					const showMissIndicator = !hits && range.isEmpty() && detail.detail.branches!.some(b => b.count);
 					const options: IModelDecorationOptions = {
-						showIfCollapsed: showMissIndicator, // only avoid collapsing if we want to show the miss indicator
+						showIfCollapsed: showMissIndicator,
 						description: 'coverage-gutter',
 						lineNumberClassName: `coverage-deco-gutter ${cls}`,
 						minimap: showMinimap ? {
@@ -366,7 +350,7 @@ export class CodeCoverageDecorations extends Disposable implements IEditorContri
 						target.hoverMessage = description;
 						if (showMissIndicator) {
 							target.after = {
-								content: '\xa0'.repeat(BRANCH_MISS_INDICATOR_CHARS), // nbsp
+								content: '\xa0'.repeat(BRANCH_MISS_INDICATOR_CHARS),
 								inlineClassName: `coverage-deco-branch-miss-indicator ${ThemeIcon.asClassName(testingCoverageMissingBranch)}`,
 								inlineClassNameAffectsLetterSpacing: true,
 								cursorStops: InjectedTextCursorStops.None,
@@ -472,11 +456,6 @@ export class CoverageDetailsModel {
 
 	constructor(public readonly details: CoverageDetails[], textModel: ITextModel) {
 
-		//#region decoration generation
-		// Coverage from a provider can have a range that contains smaller ranges,
-		// such as a function declaration that has nested statements. In this we
-		// make sequential, non-overlapping ranges for each detail for display in
-		// the editor without ugly overlaps.
 		const detailRanges: DetailRange[] = details.map(detail => ({
 			range: tidyLocation(detail.location),
 			primary: true,
@@ -499,8 +478,6 @@ export class CoverageDetailsModel {
 			}
 		}
 
-		// type ordering is done so that function declarations come first on a tie so that
-		// single-statement functions (`() => foo()` for example) get inline decorations.
 		detailRanges.sort((a, b) => Range.compareRangesUsingStarts(a.range, b.range) || a.metadata.detail.type - b.metadata.detail.type);
 
 		const stack: DetailRange[] = [];
@@ -516,29 +493,22 @@ export class CoverageDetailsModel {
 		};
 
 		for (const item of detailRanges) {
-			// 1. Ensure that any ranges in the stack that ended before this are flushed
 			const start = item.range.getStartPosition();
 			while (stack[stack.length - 1]?.range.containsPosition(start) === false) {
 				pop();
 			}
 
-			// Empty ranges (usually representing missing branches) can be added
-			// without worry about overlay.
 			if (item.range.isEmpty()) {
 				result.push(item);
 				continue;
 			}
 
-			// 2. Take the last (overlapping) item in the stack, push range before
-			// the `item.range` into the result and modify its stack to push the start
-			// until after the `item.range` ends.
 			const prev = stack[stack.length - 1];
 			if (prev) {
 				const primary = prev.primary;
 				const si = prev.range.setEndPosition(start.lineNumber, start.column);
 				prev.range = prev.range.setStartPosition(item.range.endLineNumber, item.range.endColumn);
 				prev.primary = false;
-				// discard the previous range if it became empty, e.g. a nested statement
 				if (prev.range.isEmpty()) { stack.pop(); }
 				result.push({ range: si, primary, metadata: prev.metadata });
 			}
@@ -548,10 +518,8 @@ export class CoverageDetailsModel {
 		while (stack.length) {
 			pop();
 		}
-		//#endregion
 	}
 
-	/** Gets the markdown description for the given detail */
 	public describe(detail: CoverageDetailsWithBranch, model: ITextModel): IMarkdownString | undefined {
 		if (detail.type === DetailType.Declaration) {
 			return namedDetailLabel(detail.name, detail);
@@ -582,7 +550,7 @@ export class CoverageDetailsModel {
 
 function namedDetailLabel(name: string, detail: IStatementCoverage | IDeclarationCoverage) {
 	return new MarkdownString().appendMarkdown(
-		!detail.count // 0 or false
+		!detail.count
 			? localize('coverage.declExecutedNo', '`{0}` was not executed.', name)
 			: typeof detail.count === 'number'
 				? localize('coverage.declExecutedCount', '`{0}` was executed {1} time(s).', name, detail.count)
@@ -590,8 +558,6 @@ function namedDetailLabel(name: string, detail: IStatementCoverage | IDeclaratio
 	);
 }
 
-// 'tidies' the range by normalizing it into a range and removing leading
-// and trailing whitespace.
 function tidyLocation(location: Range | Position): Range {
 	if (location instanceof Position) {
 		return Range.fromPositions(location, new Position(location.lineNumber, 0x7FFFFFFF));
@@ -676,17 +642,14 @@ class CoverageToolbarWidget extends Disposable implements IOverlayWidget {
 		}));
 	}
 
-	/** @inheritdoc */
 	public getId(): string {
 		return 'coverage-summary-widget';
 	}
 
-	/** @inheritdoc */
 	public getDomNode(): HTMLElement {
 		return this._domNode.root;
 	}
 
-	/** @inheritdoc */
 	public getPosition(): IOverlayWidgetPosition | null {
 		return {
 			preference: OverlayWidgetPositionPreference.TOP_CENTER,
@@ -732,7 +695,6 @@ class CoverageToolbarWidget extends Disposable implements IOverlayWidget {
 		toggleAction.tooltip = this.keybindingService.appendKeybinding(TOGGLE_INLINE_COMMAND_TEXT, TOGGLE_INLINE_COMMAND_ID);
 
 		const hasUncoveredStmt = current.coverage.statement.covered < current.coverage.statement.total;
-		// Navigation buttons for missed coverage lines
 		this.actionBar.push(new ActionWithIcon(
 			'goToPreviousMissed',
 			GO_TO_PREVIOUS_MISSED_LINE_TITLE.value,
@@ -791,12 +753,12 @@ class CoverageToolbarWidget extends Disposable implements IOverlayWidget {
 
 		this.editor.addOverlayWidget(this);
 		this.editor.changeViewZones(accessor => {
-			viewZoneId = accessor.addZone({ // make space for the widget
+			viewZoneId = accessor.addZone({
 				afterLineNumber: 0,
 				afterColumn: 0,
 				domNode: document.createElement('div'),
 				heightInPx: 30,
-				ordinal: -1, // show before code lenses
+				ordinal: -1,
 			});
 		});
 
@@ -836,8 +798,6 @@ registerAction2(class ToggleInlineCoverage extends Action2 {
 	constructor() {
 		super({
 			id: TOGGLE_INLINE_COMMAND_ID,
-			// note: ideally this would be "show inline", but the command palette does
-			// not use the 'toggled' titles, so we need to make this generic.
 			title: localize2('coverage.toggleInline', "Toggle Inline Coverage"),
 			category: Categories.Test,
 			keybinding: {
@@ -951,9 +911,6 @@ registerAction2(class FilterCoverageToTestInEditor extends Action2 {
 			...tests.map(id => ({ ...coverUtils.getLabelForItem(result, id, commonPrefix), testId: id, buttons })),
 		];
 
-		// These handle the behavior that reveals the start of coverage when the
-		// user picks from the quickpick. Scroll position is restored if the user
-		// exits without picking an item, or picks "all tests".
 		const scrollTop = activeEditor?.getScrollTop() || 0;
 		const revealScrollCts = new MutableDisposable<CancellationTokenSource>();
 
@@ -977,7 +934,7 @@ registerAction2(class FilterCoverageToTestInEditor extends Action2 {
 								activeEditor?.revealLineNearTop(first.location instanceof Position ? first.location.lineNumber : first.location.startLineNumber);
 							}
 						},
-						() => { /* ignored */ }
+						() => { }
 					);
 					testCoverageService.filterToTest.set(entry.testId, undefined);
 				}

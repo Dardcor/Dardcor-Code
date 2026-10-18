@@ -17,7 +17,6 @@ export class UseState {
 	useState<S>(initialState?: S | (() => S)): [S | undefined, Dispatch<StateUpdater<S | undefined>>] {
 		const index = this.currentIndex;
 
-		// Initialize state if not exists
 		if (this.states[index] === undefined) {
 			const initial = typeof initialState === 'function' ? (initialState as () => S)() : initialState;
 			this.states[index] = initial;

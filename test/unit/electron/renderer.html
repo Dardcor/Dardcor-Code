@@ -13,18 +13,10 @@
 
 	<script>
 
-		// !!! DO NOT CHANGE !!!
-		// Our unit tests may run in environments without
-		// display (e.g. from builds) and tests may by
-		// accident bring up native dialogs or even open
-		// windows. This we cannot allow as it may crash
-		// the test run.
-		// !!! DO NOT CHANGE !!!
 		window.open = function () { throw new Error('window.open() is not supported in tests!'); };
 		window.alert = function () { throw new Error('window.alert() is not supported in tests!'); }
 		window.confirm = function () { throw new Error('window.confirm() is not supported in tests!'); }
 
-		// Ignore uncaught cancelled promise errors
 		window.addEventListener('unhandledrejection', e => {
 			const name = e && e.reason && e.reason.name;
 
@@ -42,14 +34,7 @@
 		const basePath = require('path').join(__dirname, `../../../${outdir}/`);
 		const baseUrl = require('url').pathToFileURL(basePath);
 
-		// Tests run in a renderer that IS node-enabled. So we will encounter imports for node-modules which isn't
-		// supported by blink/chromium. To work around this, we generate an import map that maps all node modules
-		// to a blob that exports all properties of the module as named exports and the module itself as default.
 
-		// Some CommonJS modules export keys that are reserved words in ES module syntax
-		// (e.g. zod exports `enum`, `default`, `function`). Generating `export const enum = ...`
-		// for those would fail to parse, so skip them. Hoisted to outer scope so we don't
-		// reallocate the Set / regex for every dependency the import map covers.
 		const RESERVED_EXPORT_NAMES = new Set(['break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'enum', 'export', 'extends', 'false', 'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof', 'new', 'null', 'return', 'super', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'var', 'void', 'while', 'with', 'yield', 'let', 'static', 'implements', 'interface', 'package', 'private', 'protected', 'public', 'await']);
 		const VALID_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -59,13 +44,9 @@
 				_mod = require(name);
 
 			} catch (err) {
-				// These are somewhat expected because of platform differences (windows vs mac vs linux) or because of node/electron binary differences
-				// console.error(`[ESM] Failed to require ${name}`);
-				// console.error(err);
 				return undefined;
 			}
 
-			// export all properties and the module itself as default
 			let jsSrc = `const _mod = require('${name}')\n`;
 			for (const name of Object.keys(_mod)) {
 				if (RESERVED_EXPORT_NAMES.has(name) || !VALID_IDENTIFIER.test(name)) {
@@ -80,7 +61,6 @@
 			return url;
 		}
 
-		// generate import map
 		const importMap = {
 			imports: {
 				assert: new URL('../test/unit/assert.js', baseUrl).href,
@@ -104,7 +84,6 @@
 			importMap.imports[name] = url;
 		}
 
-		//2: CSS modules
 		const style = document.createElement('style');
 		style.type = 'text/css';
 		document.head.appendChild(style);

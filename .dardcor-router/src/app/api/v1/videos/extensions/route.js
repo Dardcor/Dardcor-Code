@@ -10,7 +10,6 @@ export async function OPTIONS() {
   });
 }
 
-/** POST /v1/videos/extensions - async video extension (xAI Grok Imagine) */
 export async function POST(request) {
   return await handleVideoCreate(request, "extensions");
 }

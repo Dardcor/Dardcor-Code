@@ -185,15 +185,12 @@ export class FoldingController extends Disposable implements IEditorContribution
 		return this._foldingLimitReporter;
 	}
 
-	/**
-	 * Store view state.
-	 */
 	public saveViewState(): FoldingStateMemento | undefined {
 		const model = this.editor.getModel();
 		if (!model || !this._isEnabled || model.isTooLargeForTokenization()) {
 			return {};
 		}
-		if (this.foldingModel) { // disposed ?
+		if (this.foldingModel) {
 			const collapsedRegions = this.foldingModel.getMemento();
 			const provider = this.rangeProvider ? this.rangeProvider.id : undefined;
 			return { collapsedRegions, lineCount: model.getLineCount(), provider, foldedImports: this._currentModelHasFoldedImports };
@@ -201,9 +198,6 @@ export class FoldingController extends Disposable implements IEditorContribution
 		return undefined;
 	}
 
-	/**
-	 * Restore view state.
-	 */
 	public restoreViewState(state: FoldingStateMemento): void {
 		const model = this.editor.getModel();
 		if (!model || !this._isEnabled || model.isTooLargeForTokenization() || !this.hiddenRangeModel) {
@@ -229,7 +223,6 @@ export class FoldingController extends Disposable implements IEditorContribution
 
 		const model = this.editor.getModel();
 		if (!this._isEnabled || !model || model.isTooLargeForTokenization()) {
-			// huge files get no view model, so they cannot support hidden areas
 			return;
 		}
 
@@ -247,7 +240,7 @@ export class FoldingController extends Disposable implements IEditorContribution
 		this.cursorChangedScheduler = new RunOnceScheduler(() => this.revealCursor(), 200);
 		this.localToDispose.add(this.cursorChangedScheduler);
 		this.localToDispose.add(this.languageFeaturesService.foldingRangeProvider.onDidChange(() => this.onFoldingStrategyChanged()));
-		this.localToDispose.add(this.editor.onDidChangeModelLanguageConfiguration(() => this.onFoldingStrategyChanged())); // covers model language changes as well
+		this.localToDispose.add(this.editor.onDidChangeModelLanguageConfiguration(() => this.onFoldingStrategyChanged()));
 		this.localToDispose.add(this.editor.onDidChangeModelContent(e => this.onDidChangeModelContent(e)));
 		this.localToDispose.add(this.editor.onDidChangeCursorPosition(() => this.onCursorPositionChanged()));
 		this.localToDispose.add(this.editor.onMouseDown(e => this.onEditorMouseDown(e)));
@@ -282,7 +275,7 @@ export class FoldingController extends Disposable implements IEditorContribution
 			return this.rangeProvider;
 		}
 		const indentRangeProvider = new IndentRangeProvider(editorModel, this.languageConfigurationService, this._foldingLimitReporter);
-		this.rangeProvider = indentRangeProvider; // fallback
+		this.rangeProvider = indentRangeProvider;
 		if (this._useFoldingProviders && this.foldingModel) {
 			const selectedProviders = FoldingController.getFoldingRangeProviders(this.languageFeaturesService, editorModel);
 			if (selectedProviders.length > 0) {
@@ -310,14 +303,14 @@ export class FoldingController extends Disposable implements IEditorContribution
 			}
 			this.foldingModelPromise = this.updateScheduler.trigger(() => {
 				const foldingModel = this.foldingModel;
-				if (!foldingModel) { // null if editor has been disposed, or folding turned off
+				if (!foldingModel) {
 					return null;
 				}
 				const sw = new StopWatch();
 				const provider = this.getRangeProvider(foldingModel.textModel);
 				const foldingRegionPromise = this.foldingRegionPromise = createCancelablePromise(token => provider.compute(token));
 				return foldingRegionPromise.then(foldingRanges => {
-					if (foldingRanges && foldingRegionPromise === this.foldingRegionPromise) { // new request or cancelled in the meantime?
+					if (foldingRanges && foldingRegionPromise === this.foldingRegionPromise) {
 						let scrollState: StableEditorScrollState | undefined;
 
 						if (this._foldingImportsByDefault && !this._currentModelHasFoldedImports) {
@@ -328,13 +321,11 @@ export class FoldingController extends Disposable implements IEditorContribution
 							}
 						}
 
-						// some cursors might have moved into hidden regions, make sure they are in expanded regions
 						const selections = this.editor.getSelections();
 						foldingModel.update(foldingRanges, toSelectedLines(selections));
 
 						scrollState?.restore(this.editor);
 
-						// update debounce info
 						const newValue = this.updateDebounceInfo.update(foldingModel.textModel, sw.elapsed());
 						if (this.updateScheduler) {
 							this.updateScheduler.defaultDelay = newValue;
@@ -372,7 +363,7 @@ export class FoldingController extends Disposable implements IEditorContribution
 		if (!foldingModel) {
 			return;
 		}
-		foldingModel.then(foldingModel => { // null is returned if folding got disabled in the meantime
+		foldingModel.then(foldingModel => {
 			if (foldingModel) {
 				const selections = this.editor.getSelections();
 				if (selections && selections.length > 0) {
@@ -411,10 +402,8 @@ export class FoldingController extends Disposable implements IEditorContribution
 				const offsetLeftInGutter = e.target.element!.offsetLeft;
 				const gutterOffsetX = data.offsetX - offsetLeftInGutter;
 
-				// const gutterOffsetX = data.offsetX - data.glyphMarginWidth - data.lineNumbersWidth - data.glyphMarginLeft;
 
-				// TODO@joao TODO@alex TODO@martin this is such that we don't collide with dirty diff
-				if (gutterOffsetX < 4) { // the whitespace between the border and the real folding icon border is 4px
+				if (gutterOffsetX < 4) {
 					return;
 				}
 
@@ -484,7 +473,6 @@ export class FoldingController extends Disposable implements IEditorContribution
 							toToggle.push(r);
 						}
 					}
-					// if any surrounding regions are folded, unfold those. Otherwise, fold all surrounding
 					if (toToggle.length === 0) {
 						toToggle = toMaybeToggle;
 					}
@@ -498,7 +486,6 @@ export class FoldingController extends Disposable implements IEditorContribution
 							}
 						}
 					}
-					// when recursive, first only collapse all children. If all are already folded or there are no children, also fold parent.
 					if (isCollapsed || !recursive || toToggle.length === 0) {
 						toToggle.push(region);
 					}
@@ -575,7 +562,7 @@ abstract class FoldingAction<T> extends EditorAction {
 
 	protected getLineNumbers(args: FoldingArguments, editor: ICodeEditor) {
 		if (args && args.selectionLines) {
-			return args.selectionLines.map(l => l + 1); // to 0-bases line numbers
+			return args.selectionLines.map(l => l + 1);
 		}
 		return this.getSelectedLines(editor);
 	}
@@ -773,7 +760,6 @@ class FoldAction extends FoldingAction<FoldingArguments> {
 		const direction = args && args.direction;
 
 		if (typeof levels !== 'number' && typeof direction !== 'string') {
-			// fold the region at the location or if already collapsed, the first uncollapsed parent instead.
 			setCollapseStateUp(foldingModel, true, lineNumbers);
 		} else {
 			if (direction === 'up') {
@@ -1044,7 +1030,6 @@ class FoldLevelAction extends FoldingAction<void> {
 	}
 }
 
-/** Action to go to the parent fold of current line */
 class GotoParentFoldAction extends FoldingAction<void> {
 	constructor() {
 		super({
@@ -1074,7 +1059,6 @@ class GotoParentFoldAction extends FoldingAction<void> {
 	}
 }
 
-/** Action to go to the previous fold of current line */
 class GotoPreviousFoldAction extends FoldingAction<void> {
 	constructor() {
 		super({
@@ -1104,7 +1088,6 @@ class GotoPreviousFoldAction extends FoldingAction<void> {
 	}
 }
 
-/** Action to go to the next fold of current line */
 class GotoNextFoldAction extends FoldingAction<void> {
 	constructor() {
 		super({
@@ -1238,7 +1221,7 @@ class ToggleImportFoldAction extends FoldingAction<void> {
 }
 
 
-registerEditorContribution(FoldingController.ID, FoldingController, EditorContributionInstantiation.Eager); // eager because it uses `saveViewState`/`restoreViewState`
+registerEditorContribution(FoldingController.ID, FoldingController, EditorContributionInstantiation.Eager);
 registerEditorAction(UnfoldAction);
 registerEditorAction(UnFoldRecursivelyAction);
 registerEditorAction(FoldAction);

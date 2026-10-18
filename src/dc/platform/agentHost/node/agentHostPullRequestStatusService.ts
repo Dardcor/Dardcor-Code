@@ -21,29 +21,16 @@ import { AgentHostStateManager, IAgentHostStateManager } from './agentHostStateM
 import { parsePullRequestUrl } from './agentMergeController.js';
 import { isAgentMergePullRequestReadyForReview, readAgentMergeSessionState } from '../common/agentMerge.js';
 
-/**
- * Merge states GitHub reports for a pull request that can still be merged
- * directly. `UNSTABLE` means only non-required checks are failing, which does
- * not block a merge.
- */
 const MERGEABLE_STATES = new Set(['CLEAN', 'HAS_HOOKS', 'UNSTABLE']);
 
-/**
- * Live GitHub state of a session's pull request, reduced to what the changeset
- * operation provider needs to decide which pull request operations to
- * advertise.
- */
 export interface IAgentHostPullRequestStatus {
-	/** GraphQL node id, required by the node-scoped mutations. */
 	readonly pullRequestId?: string;
 	readonly number: number;
 	readonly url: string;
 	readonly headSha?: string;
 	readonly state: 'open' | 'closed' | 'merged';
 	readonly draft: boolean;
-	/** True once the pull request is open and can be merged as-is. */
 	readonly mergeReady: boolean;
-	/** Whether Agent Merge has observed all required checks and review feedback as ready. */
 	readonly agentMergeReadyForReview?: boolean;
 	readonly viewerCanEnableAutoMerge: boolean;
 	readonly autoMergeEnabled: boolean;
@@ -52,39 +39,15 @@ export interface IAgentHostPullRequestStatus {
 
 export const IAgentHostPullRequestStatusService = createDecorator<IAgentHostPullRequestStatusService>('agentHostPullRequestStatusService');
 
-/**
- * Tracks the live GitHub state of the pull request belonging to each session a
- * client is currently watching.
- *
- * A pull request subscription costs GitHub API budget, so the watcher is scoped
- * to sessions that have at least one changeset subscriber — in practice the
- * session whose changes the user has open. It normally subscribes only to the
- * `core` and `mergeability` fragments. While Agent Merge is enabled it adds
- * the required-check and review fragments already needed by Agent Merge so the
- * host can advertise the correct draft pull request operation.
- */
 export interface IAgentHostPullRequestStatusService extends IDisposable {
 	readonly _serviceBrand: undefined;
 
-	/** Fires with the session key whose pull request status changed. */
 	readonly onDidChangePullRequestStatus: Event<string>;
 
-	/**
-	 * The last observed pull request status for `sessionKey`, or `undefined`
-	 * while the session has no watched pull request or its first snapshot has
-	 * not resolved yet. Callers MUST treat `undefined` as "unknown" rather than
-	 * "no pull request".
-	 */
 	getPullRequestStatus(sessionKey: string): IAgentHostPullRequestStatus | undefined;
 
-	/** Records a successful direct merge before the next GitHub refresh completes. */
 	markPullRequestMerged(sessionKey: string, pullRequestUrl: string): void;
 
-	/**
-	 * Re-reads the pull request from GitHub, bypassing cached fragments. Used
-	 * after a mutation so the advertised operations reflect the new state
-	 * without waiting for the next poll.
-	 */
 	refresh(sessionKey: string): Promise<void>;
 }
 
@@ -95,7 +58,6 @@ interface IWatch extends IDisposable {
 	status?: IAgentHostPullRequestStatus;
 }
 
-/** Whether a session should be watched, or why it should not be. */
 type IWatchTarget =
 	| { readonly kind: 'watch'; readonly pullRequestUrl: string }
 	| { readonly kind: 'skip'; readonly reason: string };
@@ -132,16 +94,6 @@ export class AgentHostPullRequestStatusService extends Disposable implements IAg
 		this._register(this._gitHubService.credentials.onDidInvalidate(event => this._handleCredentialInvalidation(event)));
 	}
 
-	/**
-	 * Rebuilds watches whose backing pull request resource the resource service
-	 * has thrown away.
-	 *
-	 * An account or endpoint change disposes the resource outright, leaving a
-	 * subscription whose snapshot can never update — the button bar would then
-	 * advertise stale operations until some unrelated git or subscription event
-	 * happened to trigger a resync. A replaced or re-authenticated credential
-	 * keeps the resource and refreshes it in place, so those need nothing here.
-	 */
 	private _handleCredentialInvalidation(event: GitHubCredentialInvalidation): void {
 		if (event.reason === 'replacement' || event.reason === 'authentication') {
 			return;
@@ -211,14 +163,6 @@ export class AgentHostPullRequestStatusService extends Disposable implements IAg
 		super.dispose();
 	}
 
-	/**
-	 * Starts, replaces, or stops the watch for `sessionKey` so it matches the
-	 * session's current eligibility. Serialized per session because resolving
-	 * the pull request ref needs a credential, and two overlapping syncs would
-	 * otherwise race to install different subscriptions. Changes observed while
-	 * a sync is in flight are coalesced into one follow-up run so the watch
-	 * never settles on state that was already stale when it was read.
-	 */
 	private _sync(sessionKey: string): void {
 		if (this._pendingSyncs.has(sessionKey)) {
 			this._staleSyncs.add(sessionKey);
@@ -271,9 +215,6 @@ export class AgentHostPullRequestStatusService extends Disposable implements IAg
 		if (this._abortController.signal.aborted) {
 			return;
 		}
-		// The pull request URL carries its own host: after a restore or an
-		// endpoint switch the same owner/repo/number can name a different GitHub
-		// instance, which must never be read with this account's credential.
 		if (credential.account.host.toLowerCase() !== parsed.apiHost.toLowerCase()) {
 			const reason = `the signed in account (${credential.account.host}) does not host ${parsed.owner}/${parsed.repo}#${parsed.number} (${parsed.apiHost})`;
 			this._stopWatch(sessionKey, reason);
@@ -282,8 +223,6 @@ export class AgentHostPullRequestStatusService extends Disposable implements IAg
 		}
 		const ref: PullRequestRef = { ...credential.account, owner: parsed.owner, repo: parsed.repo, number: parsed.number };
 
-		// Eligibility can have changed while the credential was in flight; the
-		// follow-up run installs the watch the session actually needs.
 		const current = this._getWatchTarget(sessionKey);
 		if (current.kind === 'skip' || current.pullRequestUrl !== target.pullRequestUrl) {
 			this._logService.trace(`[AgentHostPullRequestStatusService] Retrying sync because the session changed while resolving credentials: session=${sessionKey}`);
@@ -354,11 +293,6 @@ export class AgentHostPullRequestStatusService extends Disposable implements IAg
 		this._updateStatus(sessionKey, watch, watch.subscription.resource.snapshot.get());
 	}
 
-	/**
-	 * The pull request this session should be watching, or the reason it is not
-	 * eligible. The reason is carried rather than collapsed into `undefined` so
-	 * a missing button bar can be explained from the logs alone.
-	 */
 	private _getWatchTarget(sessionKey: string): IWatchTarget {
 		const state = this._stateManager.getSessionState(sessionKey);
 		if (!state) {
@@ -403,8 +337,6 @@ export class AgentHostPullRequestStatusService extends Disposable implements IAg
 		if (this._watches.get(sessionKey) !== watch) {
 			return;
 		}
-		// The single most useful line when a button bar shows the "wrong"
-		// action: it names every flag the operation provider branches on.
 		this._logService.debug(`[AgentHostPullRequestStatusService] Status changed: session=${sessionKey}, pr=${describeRef(watch.ref)}, from=[${describeStatus(previous)}], to=[${describeStatus(status)}]`);
 		if (status) {
 			this._publishPullRequestState(sessionKey, status.url, status.state);
@@ -435,12 +367,10 @@ export class AgentHostPullRequestStatusService extends Disposable implements IAg
 	}
 }
 
-/** Compact `owner/repo#number` form used in every log line. */
 function describeRef(ref: PullRequestRef): string {
 	return `${ref.owner}/${ref.repo}#${ref.number}`;
 }
 
-/** Renders the flags the operation provider branches on, for log lines. */
 function describeStatus(status: IAgentHostPullRequestStatus | undefined): string {
 	if (!status) {
 		return 'unresolved';
@@ -456,19 +386,12 @@ function describeStatus(status: IAgentHostPullRequestStatus | undefined): string
 	].join(', ');
 }
 
-/**
- * Reduces a snapshot to {@link IAgentHostPullRequestStatus}, or `undefined`
- * while either fragment the button bar depends on is still unresolved. Holding
- * back on partial data keeps the client from flashing a wrong primary button.
- */
 function toPullRequestStatus(snapshot: PullRequestSnapshot, agentMergeCommentWatermark?: string): IAgentHostPullRequestStatus | undefined {
 	const core = snapshot.core.value;
 	if (!core) {
 		return undefined;
 	}
 
-	// A merged or closed pull request has nothing left to act on, so it is
-	// reported without waiting for mergeability — which GitHub stops updating.
 	if (core.state !== 'open') {
 		return {
 			...(core.id ? { pullRequestId: core.id } : {}),

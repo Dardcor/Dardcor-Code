@@ -12,11 +12,11 @@
 	},
 	"include": [
 		"src/**/*",
-		"../../src/vscode-dts/vscode.d.ts",
-		"../../src/vscode-dts/vscode.proposed.chatOutputRenderer.d.ts",
-		"../../src/vscode-dts/vscode.proposed.chatParticipantAdditions.d.ts",
-		"../../src/vscode-dts/vscode.proposed.languageModelThinkingPart.d.ts",
-		"../../src/vscode-dts/vscode.proposed.chatParticipantPrivate.d.ts",
-		"../../src/vscode-dts/vscode.proposed.languageModelProxy.d.ts"
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.chatOutputRenderer.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.chatParticipantAdditions.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.languageModelThinkingPart.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.chatParticipantPrivate.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.languageModelProxy.d.ts"
 	]
 }

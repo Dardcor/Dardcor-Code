@@ -41,8 +41,6 @@ export function* getSemanticTokens(jsLanguageService: ts.LanguageService, docume
 }
 
 
-// typescript encodes type and modifiers in the classification:
-// TSClassification = (TokenType + 1) << 8 + TokenModifier
 
 const enum TokenType {
 	class = 0,

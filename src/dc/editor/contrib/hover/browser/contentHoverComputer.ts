@@ -35,7 +35,6 @@ export class ContentHoverComputer implements IHoverComputer<ContentHoverComputer
 		const lineNumber = anchor.range.startLineNumber;
 
 		if (lineNumber > model.getLineCount()) {
-			// invalid line
 			return [];
 		}
 
@@ -50,7 +49,6 @@ export class ContentHoverComputer implements IHoverComputer<ContentHoverComputer
 			const endColumn = (d.range.endLineNumber === lineNumber) ? d.range.endColumn : maxColumn;
 
 			if (d.options.showIfCollapsed) {
-				// Relax check around `showIfCollapsed` decorations to also include +/- 1 character
 				if (startColumn > anchor.range.startColumn + 1 || anchor.range.endColumn - 1 > endColumn) {
 					return false;
 				}

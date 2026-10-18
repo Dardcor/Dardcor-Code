@@ -3,21 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Do not edit, from https://github.com/microsoft/vscode-js-debug/blob/272c88ddf0b806325a1c723b6369d524d6e9409b/src/common/streamSplitter.ts#L1
 
 import { Transform } from 'stream';
 
-/**
- * A Transform stream that splits the input on the "splitter" substring.
- * The resulting chunks will contain (and trail with) the splitter match.
- * The last chunk when the stream ends will be emitted even if a splitter
- * is not encountered.
- */
 export class StreamSplitter extends Transform {
 	private prefix: Buffer[] = [];
 	private readonly splitter: number;
 
-	/** Suffix added after each split chunk. */
 	protected splitSuffix = Buffer.alloc(0);
 
 	constructor(splitter: string | number | Buffer) {

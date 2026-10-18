@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { DeferredPromise, timeout } from '../../../../../../base/common/async.js';
-import { Emitter, Event } from '../../../../../../base/common/event.js';
+import { Emitter } from '../../../../../../base/common/event.js';
 import { IDisposable } from '../../../../../../base/common/lifecycle.js';
 import { constObservable, observableValue } from '../../../../../../base/common/observable.js';
 import { URI } from '../../../../../../base/common/uri.js';
@@ -21,7 +21,6 @@ import { ILogService, NullLogService } from '../../../../../../platform/log/comm
 import { McpServerType } from '../../../../../../platform/mcp/common/mcpPlatformTypes.js';
 import { StorageScope } from '../../../../../../platform/storage/common/storage.js';
 import { IMcpService, IMcpServer, IMcpWorkbenchService, IWorkbenchMcpServer, McpCollectionDefinition, McpServerDefinition, McpServerTransportType, McpServerTrust } from '../../../../mcp/common/mcpTypes.js';
-import { IAgentHostCustomizationService } from '../../../browser/agentSessions/agentHost/agentHostCustomizationService.js';
 import { ICustomizationMigrationAvailabilityService } from '../../../browser/aiCustomization/customizationMigrationAvailabilityService.js';
 import { CUSTOMIZATION_MIGRATION_CATEGORIES } from '../../../browser/aiCustomization/customizationMigrationCategories.js';
 import { ChatConfiguration } from '../../../common/constants.js';
@@ -179,12 +178,6 @@ suite('CustomizationMigrationAvailabilityService', () => {
 			override readonly whenInitialLocalMcpServersLoaded = Promise.resolve();
 		};
 
-		const agentHostCustomizationsChanged = store.add(new Emitter<void>());
-		const agentHostCustomizationService = new class extends mock<IAgentHostCustomizationService>() {
-			override readonly onDidChangeCustomAgents = Event.None;
-			override readonly onDidChangeCustomizations = agentHostCustomizationsChanged.event;
-		};
-
 		const descriptor = getSingletonServiceDescriptors().find(([id]) => id === ICustomizationMigrationAvailabilityService)?.[1];
 		assert.ok(descriptor);
 		const instantiationService = store.add(new TestInstantiationService(new ServiceCollection(
@@ -194,7 +187,6 @@ suite('CustomizationMigrationAvailabilityService', () => {
 			[IPromptsService, promptsService],
 			[IMcpService, mcpService],
 			[IMcpWorkbenchService, mcpWorkbenchService],
-			[IAgentHostCustomizationService, agentHostCustomizationService],
 			[ILogService, new NullLogService()],
 			[ICustomizationMigrationAvailabilityService, new SyncDescriptor(descriptor.ctor, descriptor.staticArguments)],
 		)));
@@ -213,7 +205,6 @@ suite('CustomizationMigrationAvailabilityService', () => {
 			mcpServers,
 			mcpWorkbenchChanged,
 			mcpWorkbenchReset,
-			agentHostCustomizationsChanged,
 		};
 	}
 
@@ -239,7 +230,6 @@ suite('CustomizationMigrationAvailabilityService', () => {
 		runtimeServer.enablement.set(ContributionEnablementState.DisabledProfile, undefined);
 		testObject.mcpWorkbenchChanged.fire(undefined);
 		testObject.mcpWorkbenchReset.fire();
-		testObject.agentHostCustomizationsChanged.fire();
 	}
 
 	test('skips discovery while disabled and respects every category gate', async () => {
@@ -329,11 +319,8 @@ suite('CustomizationMigrationAvailabilityService', () => {
 		testObject.mcpWorkbenchReset.fire();
 		await waitFor(() => testObject.migrationService.calls.length === 6);
 
-		testObject.agentHostCustomizationsChanged.fire();
-		await waitFor(() => testObject.migrationService.calls.length === 7);
-
 		assert.deepStrictEqual(testObject.migrationService.calls, Array.from(
-			{ length: 7 },
+			{ length: 6 },
 			() => CustomizationMigrationType.McpServers,
 		));
 	});

@@ -22,11 +22,6 @@ interface VsCodeApi {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 
-/**
- * The editor's view state, persisted as webview state (`getState`/`setState`) so
- * the scroll and cursor position are restored when the webview is reloaded or the
- * custom editor is re-created (e.g. after switching sessions and back).
- */
 interface PersistedViewState {
 	scrollTop?: number;
 	selection?: { anchor: number; active: number };
@@ -41,7 +36,6 @@ class Editor extends Disposable {
 
 	readonly #comments = new CommentsModel();
 	#commentsView: VsCodeV2CommentsView | undefined;
-	/** Whether the workbench feedback store currently accepts new comments for this resource. */
 	readonly #acceptsComments = observableValue<boolean>('acceptsComments', false);
 	readonly #vscode = acquireVsCodeApi();
 	readonly #syntaxHighlighter = new WebviewSyntaxHighlighter((message) => this.#vscode.postMessage(message));
@@ -102,13 +96,8 @@ class Editor extends Disposable {
 
 	#createView(host: HTMLElement, readonly: boolean, content: string): void {
 		const model = this.model;
-		// The scroll + cursor position last persisted for this document, captured
-		// before any listener below can overwrite it, so it survives the editor being
-		// re-created (e.g. after a session switch).
 		const savedViewState = this.#getViewState();
 
-		// Start in the last globally chosen edit/read-only mode. The lock toggle in
-		// the editor drives `readonlyMode` from here on; changes are persisted below.
 		model.readonlyMode.set(readonly, undefined);
 
 		const view = this._register(new EditorView(model, {
@@ -160,19 +149,11 @@ class Editor extends Disposable {
 		this._register(new EditorController(model, view));
 		host.appendChild(view.element);
 
-		// Render comments as the VS Code V2 markdown cards. The card colours come
-		// from the webview's own `--vscode-*` theme variables; `theme` only picks
-		// the light/dark token wrapper. `resolveLine` maps a comment's start offset
-		// to a 1-based line for the card header.
 		const isLight = document.body.classList.contains('vscode-light');
 		this.#commentsView = this._register(new VsCodeV2CommentsView(this.#comments, view, {
 			theme: isLight ? 'light' : 'dark',
 			resolveLine: (offset) => model.sourceText.get().value.slice(0, offset).split('\n').length,
 		}));
-		// The comment input (the gdocs-style "add a comment" affordance) is only
-		// useful when the workbench feedback store will actually accept the comment;
-		// otherwise submitting is a no-op. Mount the controller only while the
-		// resource is in scope for a session, and tear it down when it leaves scope.
 		let commentController: CommentModeController | undefined;
 		this._register(autorun((reader) => {
 			const accepts = reader.readObservable(this.#acceptsComments);
@@ -189,11 +170,6 @@ class Editor extends Disposable {
 		}));
 		this._register({ dispose: () => commentController?.dispose() });
 
-		// The comment card's delete button mutates the local CommentsModel
-		// directly. Mirror those removals back to the extension so the shared
-		// store (and the code editor) stay in sync. Removals coming from an
-		// extension-driven update set `#isUpdatingComments`, so they are not
-		// echoed back.
 		let knownCommentIds = new Set(this.#comments.comments.get().map(comment => comment.id));
 		this._register(autorun((reader) => {
 			const currentIds = new Set(reader.readObservable(this.#comments.comments).map(comment => comment.id));
@@ -207,8 +183,6 @@ class Editor extends Disposable {
 			knownCommentIds = currentIds;
 		}));
 
-		// Load the document content, then restore the persisted cursor so it lands on
-		// the same text. Offsets are clamped defensively in case the document shifted.
 		model.sourceText.set(new StringValue(content), undefined);
 		if (savedViewState.selection) {
 			const max = content.length;
@@ -217,8 +191,6 @@ class Editor extends Disposable {
 			model.selection.set(new Selection(anchor, active), undefined);
 		}
 
-		// Persist scroll as webview state (throttled to a frame). Registered after the
-		// restore above so it never clobbers the values we are about to restore.
 		let scrollSaveScheduled = false;
 		const saveScroll = (): void => {
 			scrollSaveScheduled = false;
@@ -232,8 +204,6 @@ class Editor extends Disposable {
 		host.addEventListener('scroll', onScroll, { passive: true });
 		this._register({ dispose: () => host.removeEventListener('scroll', onScroll) });
 
-		// Flush the latest scroll synchronously before the webview is hidden or torn
-		// down, since the frame-throttled save above may not have run yet.
 		const onHide = (): void => {
 			if (document.visibilityState === 'hidden') {
 				this.#patchViewState({ scrollTop: host.scrollTop });
@@ -243,15 +213,12 @@ class Editor extends Disposable {
 		window.addEventListener('pagehide', saveScroll);
 		this._register({ dispose: () => { document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', saveScroll); } });
 
-		// Persist the cursor whenever it moves.
 		this._register(autorun((reader) => {
 			const sel = reader.readObservable(this.model.selection);
 			this.#patchViewState({ selection: sel ? { anchor: sel.anchor, active: sel.active } : undefined });
 		}));
 
 		// Persist the edit/read-only mode as the global default whenever the lock
-		// toggle flips it, so the next Markdown editor opens in the same mode. The
-		// initial (restored) value is skipped so opening an editor doesn't re-write it.
 		let firstReadonly = true;
 		this._register(autorun((reader) => {
 			const isReadonly = reader.readObservable(this.model.readonlyMode);
@@ -261,9 +228,6 @@ class Editor extends Disposable {
 			firstReadonly = false;
 		}));
 
-		// Forward user edits to the extension. Edits are ignored by the model while
-		// read-only, so this is a no-op in that mode; keeping it always registered
-		// means unlocking a read-only editor immediately resumes edit forwarding.
 		let previousText = this.model.sourceText.get().value;
 		this._register(autorun((reader) => {
 			const text = reader.readObservable(this.model.sourceText).value;
@@ -273,9 +237,6 @@ class Editor extends Disposable {
 			previousText = text;
 		}));
 
-		// Restore scroll last: content height settles over a few frames (async parse,
-		// syntax highlighting, mermaid), so re-apply until it sticks.
-		// TODO@copilot: Consider using a more robust method for restoring scroll position, e.g. by waiting for the editor to stabilize
 		this.#restoreScroll(host, savedViewState.scrollTop);
 	}
 

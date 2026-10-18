@@ -43,8 +43,6 @@ function createTestWindow(language = 'en-US'): Window & typeof globalThis {
 			if (property === 'WebSocket') {
 				return TestWebSocket;
 			}
-			// Native timer methods are branded to their owning `window` and throw
-			// "Illegal invocation" when called with a Proxy as `this`; bind to the real target.
 			if (property === 'setInterval' || property === 'clearInterval') {
 				return target[property].bind(target);
 			}
@@ -760,9 +758,6 @@ suite('VoiceClientService', () => {
 		assert.strictEqual(service.currentSessionId, 'session-1');
 		assert.strictEqual(service.isResuming, false);
 
-		// Simulate a reconnect attempt: the socket opens (marking us as
-		// resuming the prior session id) but the server can't resume and
-		// starts a brand new session instead.
 		socket().onopen?.();
 		assert.strictEqual(service.isResuming, true);
 
@@ -929,8 +924,6 @@ suite('VoiceClientService', () => {
 
 
 	test('gives up after the reconnect budget rather than retrying for minutes', async () => {
-		// The budget is deliberately short: a user watching a reconnect would rather
-		// be told it failed than wait. Pin it so it cannot silently grow again.
 		const { service } = createService();
 		const fatal: IVoiceFatalDisconnect[] = [];
 		store.add(service.onFatalDisconnect(event => fatal.push(event)));

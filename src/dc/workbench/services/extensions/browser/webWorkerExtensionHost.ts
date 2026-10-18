@@ -99,7 +99,6 @@ export class WebWorkerExtensionHost extends Disposable implements IExtensionHost
 			const commit = this._productService.commit;
 			const quality = this._productService.quality;
 			if (webEndpointUrlTemplate && commit && quality) {
-				// Try to keep the web worker extension host iframe origin stable by storing it in workspace storage
 				const key = 'webWorkerExtensionHostIframeStableOriginUUID';
 				let stableOriginUUID = this._storageService.get(key, StorageScope.WORKSPACE);
 				if (typeof stableOriginUUID === 'undefined') {
@@ -109,7 +108,7 @@ export class WebWorkerExtensionHost extends Disposable implements IExtensionHost
 				const hash = await parentOriginHash(mainWindow.origin, stableOriginUUID);
 				const baseUrl = (
 					webEndpointUrlTemplate
-						.replace('{{uuid}}', `v--${hash}`) // using `v--` as a marker to require `parentOrigin`/`salt` verification
+						.replace('{{uuid}}', `v--${hash}`)
 						.replace('{{commit}}', commit)
 						.replace('{{quality}}', quality)
 				);
@@ -220,15 +219,12 @@ export class WebWorkerExtensionHost extends Disposable implements IExtensionHost
 		this._layoutService.mainContainer.appendChild(iframe);
 		this._register(toDisposable(() => iframe.remove()));
 
-		// await MessagePort and use it to directly communicate
-		// with the worker extension host
 		await barrier.wait();
 
 		if (barrierHasError) {
 			throw barrierError;
 		}
 
-		// Send over message ports for extension API
 		const messagePorts = this._environmentService.options?.messagePorts ?? new Map();
 		iframe.contentWindow!.postMessage({ type: 'vscode.init', data: messagePorts }, '*', [...messagePorts.values()]);
 
@@ -254,10 +250,6 @@ export class WebWorkerExtensionHost extends Disposable implements IExtensionHost
 	}
 
 	private async _performHandshake(protocol: IMessagePassingProtocol): Promise<IMessagePassingProtocol> {
-		// extension host handshake happens below
-		// (1) <== wait for: Ready
-		// (2) ==> send: init data
-		// (3) <== wait for: Initialized
 
 		await Event.toPromise(Event.filter(protocol.onMessage, msg => isMessageOfType(msg, MessageType.Ready)));
 		if (this._isTerminating) {
@@ -298,7 +290,6 @@ export class WebWorkerExtensionHost extends Disposable implements IExtensionHost
 		const workspace = this._contextService.getWorkspace();
 		const nlsBaseUrl = this._productService.extensionsGallery?.nlsBaseUrl;
 		let nlsUrlWithDetails: URI | undefined = undefined;
-		// Only use the nlsBaseUrl if we are using a language other than the default, English.
 		if (nlsBaseUrl && this._productService.commit && !platform.Language.isDefaultVariant()) {
 			nlsUrlWithDetails = URI.joinPath(URI.parse(nlsBaseUrl), this._productService.commit, this._productService.version, platform.Language.value());
 		}

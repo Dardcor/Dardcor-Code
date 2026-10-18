@@ -116,7 +116,6 @@
 		width: 100%;
 	}
 
-	/* TODO@jrieken this isn't the nicest selector... */
 	.request-in-progress .monaco-editor [class^="ced-chat-session-detail"]::after {
 		animation: pulse-opacity 2.5s ease-in-out infinite;
 	}
@@ -193,7 +192,6 @@
 	max-width: 132px;
 }
 
-/* status */
 
 .monaco-workbench .inline-chat > .status {
 	display: flex;
@@ -310,7 +308,6 @@
 	}
 }
 
-/* TODO@jrieken not needed? */
 .monaco-workbench .inline-chat .status .monaco-toolbar .action-label.checked {
 	color: var(--vscode-inputOption-activeForeground);
 	background-color: var(--vscode-inputOption-activeBackground);
@@ -333,7 +330,6 @@
 	display: none;
 }
 
-/* Termination card (zone widget) — aligned with overlay widget */
 
 .monaco-workbench .inline-chat-terminated-card {
 	padding: 4px;
@@ -348,7 +344,6 @@
 	display: none;
 }
 
-/* Markdown scrollable area */
 .monaco-workbench .inline-chat-terminated-card > .monaco-scrollable-element {
 	width: 100%;
 }
@@ -382,7 +377,6 @@
 	white-space: pre-wrap;
 }
 
-/* Content row: toolbar */
 .monaco-workbench .inline-chat-terminated-card > .content-row {
 	display: flex;
 	align-items: center;
@@ -396,7 +390,6 @@
 	white-space: nowrap;
 }
 
-/* Status Placeholder */
 .monaco-workbench .zone-widget.inline-chat-widget .status-placeholder {
 	margin-left: auto;
 	opacity: 0;

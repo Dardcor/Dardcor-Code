@@ -35,8 +35,6 @@ const checkInstalled = async () => {
 const readJson = async (filePath) => {
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    // Tolerate JSONC (trailing commas) and treat unparseable files as "no config"
-    // rather than throwing a 500 that the UI misreads as "tool not installed".
     const stripped = content.replace(/,(\s*[}\]])/g, "$1");
     return JSON.parse(stripped);
   } catch (error) {
@@ -85,7 +83,6 @@ export async function POST(request) {
 
     await fs.mkdir(getDataDir(), { recursive: true });
 
-    // Cline expects base WITHOUT /v1
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl.slice(0, -3) : baseUrl;
 
     const globalState = (await readJson(getGlobalStatePath())) || {};

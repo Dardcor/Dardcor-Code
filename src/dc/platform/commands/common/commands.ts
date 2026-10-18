@@ -37,13 +37,6 @@ export interface ICommand<Args extends unknown[] = unknown[], R = void> {
 }
 
 export interface ICommandMetadata {
-	/**
-	 * NOTE: Please use an ILocalizedString. string is in the type for backcompat for now.
-	 * A short summary of what the command does. This will be used in:
-	 * - API commands
-	 * - when showing keybindings that have no other UX
-	 * - when searching for commands in the Command Palette
-	 */
 	readonly description: ILocalizedString | string;
 	readonly args?: ReadonlyArray<{
 		readonly name: string;
@@ -84,7 +77,6 @@ export const CommandsRegistry: ICommandRegistry = new class implements ICommandR
 			return this.registerCommand({ id: idOrCommand, handler });
 		}
 
-		// add argument validation if rich command metadata is provided
 		if (idOrCommand.metadata && Array.isArray(idOrCommand.metadata.args)) {
 			const constraints: Array<TypeConstraint | undefined> = [];
 			for (const arg of idOrCommand.metadata.args) {
@@ -97,7 +89,6 @@ export const CommandsRegistry: ICommandRegistry = new class implements ICommandR
 			};
 		}
 
-		// find a place to store the command
 		const { id } = idOrCommand;
 
 		let commands = this._commands.get(id);
@@ -116,7 +107,6 @@ export const CommandsRegistry: ICommandRegistry = new class implements ICommandR
 			}
 		});
 
-		// tell the world about this command
 		this._onDidRegisterCommand.fire(id);
 
 		return markAsSingleton(ret);

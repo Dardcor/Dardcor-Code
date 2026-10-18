@@ -35,11 +35,9 @@ class NotebookKernelDetection extends Disposable implements IWorkbenchContributi
 					return;
 				}
 
-				// parse the event to get the notebook type
 				const notebookType = e.event.substring('onNotebook:'.length);
 
 				if (notebookType === '*') {
-					// ignore
 					return;
 				}
 
@@ -48,7 +46,6 @@ class NotebookKernelDetection extends Disposable implements IWorkbenchContributi
 				const extensionStatus = this._extensionService.getExtensionsStatus();
 				this._extensionService.extensions.forEach(extension => {
 					if (extensionStatus[extension.identifier.value].activationTimes) {
-						// already activated
 						return;
 					}
 					if (extension.activationEvents?.includes(e.event)) {
@@ -74,7 +71,6 @@ class NotebookKernelDetection extends Disposable implements IWorkbenchContributi
 				clearTimeout(timer);
 			}
 
-			// activation state might not be updated yet, postpone to next frame
 			timer = setTimeout(() => {
 				const taskToDelete: string[] = [];
 				for (const [notebookType, task] of this._detectionMap) {

@@ -11,7 +11,6 @@ export function setup(options?: { skipSuite: boolean }) {
 		let terminal: Terminal;
 		let settingsEditor: SettingsEditor;
 
-		// Acquire automation API
 		before(async function () {
 			const app = this.app as Application;
 			terminal = app.workbench.terminal;
@@ -25,15 +24,11 @@ export function setup(options?: { skipSuite: boolean }) {
 
 		describe('Auto replies', function () {
 
-			// HACK: Retry this suite only on Windows because conpty can rarely lead to unexpected behavior which would
-			// cause flakiness. If this does happen, the feature is expected to fail.
 			if (process.platform === 'win32') {
 				this.retries(3);
 			}
 
 			async function writeTextForAutoReply(text: string): Promise<void> {
-				// Put the matching word in quotes to avoid powershell coloring the first word and
-				// on a new line to avoid cursor move/line switching sequences
 				await terminal.runCommandInTerminal(`"\r${text}`, true);
 			}
 

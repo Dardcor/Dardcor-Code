@@ -16,10 +16,6 @@ export const enum StatusBarElement {
 	LANGUAGE_STATUS = 7
 }
 
-// Status bar items in the editor area can shift right when a new neighbor
-// (e.g. the language status `{}` provided by extensions) is inserted
-// asynchronously. Clicks on these items must use a stability-aware path to
-// avoid TOCTOU races between the position lookup and click dispatch.
 const EDITOR_AREA_ITEMS: ReadonlySet<StatusBarElement> = new Set([
 	StatusBarElement.SELECTION_STATUS,
 	StatusBarElement.INDENTATION_STATUS,

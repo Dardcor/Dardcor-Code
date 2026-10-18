@@ -19,14 +19,12 @@ use crate::{
 	},
 };
 
-/// Implementation of the VS Code Update service for use in the CLI.
 #[derive(Clone)]
 pub struct UpdateService {
 	client: BoxedHttp,
 	log: log::Logger,
 }
 
-/// Describes a specific release, can be created manually or returned from the update service.
 #[derive(Clone, Eq, PartialEq)]
 pub struct Release {
 	pub name: String,
@@ -109,7 +107,6 @@ impl UpdateService {
 		})
 	}
 
-	/// Gets the latest commit for the target of the given quality.
 	pub async fn get_latest_commit(
 		&self,
 		platform: Platform,
@@ -145,7 +142,6 @@ impl UpdateService {
 		})
 	}
 
-	/// Gets the download stream for the release.
 	pub async fn get_download_stream(&self, release: &Release) -> Result<SimpleResponse, AnyError> {
 		let update_endpoint = get_update_endpoint()?;
 		let download_segment = release
@@ -243,8 +239,6 @@ impl Platform {
 			Platform::LinuxX64Legacy => "server-linux-legacy-x64",
 			Platform::LinuxARM64 => "server-linux-arm64",
 			Platform::LinuxARM64Legacy => "server-linux-legacy-arm64",
-			// No remote server is built for arm32 since Node.js dropped
-			// 32-bit Linux on armv7 in v24.
 			Platform::LinuxARM32 | Platform::LinuxARM32Legacy => return None,
 			Platform::DarwinX64 => "server-darwin",
 			Platform::DarwinARM64 => "server-darwin-arm64",

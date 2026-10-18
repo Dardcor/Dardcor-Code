@@ -19,7 +19,7 @@ import { FolderQuerySearchTree } from './folderQuerySearchTree.js';
 interface IInternalFileMatch {
 	base: URI;
 	original?: URI;
-	relativePath?: string; // Not present for extraFiles or absolute path matches
+	relativePath?: string;
 	basename: string;
 	size?: number;
 }
@@ -81,33 +81,28 @@ class FileSearchEngine {
 				_onResult(match);
 			};
 
-			// Support that the file pattern is a full path to a file that exists
 			if (this.isCanceled) {
 				return resolve({ limitHit: this.isLimitHit });
 			}
 
-			// For each extra file
 			if (this.config.extraFileResources) {
 				this.config.extraFileResources
 					.forEach(extraFile => {
-						const extraFileStr = extraFile.toString(); // ?
+						const extraFileStr = extraFile.toString();
 						const basename = path.basename(extraFileStr);
 						if (this.globalExcludePattern && this.globalExcludePattern(extraFileStr, basename)) {
-							return; // excluded
+							return;
 						}
 
-						// File: Check for match on file pattern and include pattern
 						this.matchFile(onResult, { base: extraFile, basename });
 					});
 			}
 
-			// For each root folder'
 
-			// NEW: can just call with an array of folder info
 			this.doSearch(folderQueries, onResult).then(stats => {
 				resolve({
 					limitHit: this.isLimitHit,
-					stats: stats || undefined // Only looking at single-folder workspace stats...
+					stats: stats || undefined
 				});
 			}, (err: Error) => {
 				reject(new Error(toErrorMessage(err)));
@@ -165,7 +160,6 @@ class FileSearchEngine {
 						return;
 					}
 
-					// TODO: Optimize siblings clauses with ripgrep here.
 					this.addDirectoryEntries(fqFolderInfo.tree, fqFolderInfo.folder, relativePath, onResult);
 				});
 			}
@@ -225,7 +219,6 @@ class FileSearchEngine {
 	}
 
 	private addDirectoryEntries({ pathToEntries }: IDirectoryTree, base: URI, relativeFile: string, onResult: (result: IInternalFileMatch) => void) {
-		// Support relative paths to files from a root resource (ignores excludes)
 		if (this.filePattern && strings.equals(relativeFile, this.filePattern, this.config.ignoreGlobCase)) {
 			const basename = path.basename(this.filePattern);
 			this.matchFile(onResult, { base: base, relativePath: this.filePattern, basename });
@@ -259,10 +252,6 @@ class FileSearchEngine {
 				const entry = entries[i];
 				const { relativePath, basename } = entry;
 
-				// Check exclude pattern
-				// If the user searches for the exact file name, we adjust the glob matching
-				// to ignore filtering by siblings because the user seems to know what they
-				// are searching for and we want to include the result in that case anyway
 				if (queryTester.matchesExcludesSync(relativePath, basename, !strings.equals(filePattern, basename, ignoreGlobCase) ? hasSibling : undefined)) {
 					continue;
 				}
@@ -272,7 +261,7 @@ class FileSearchEngine {
 					matchDirectory(sub);
 				} else {
 					if (strings.equals(relativePath, filePattern, ignoreGlobCase)) {
-						continue; // ignore file if its path matches with the file pattern because that is already matched above
+						continue;
 					}
 
 					self.matchFile(onResult, entry);
@@ -305,9 +294,6 @@ interface IInternalSearchComplete {
 	stats?: IFileSearchProviderStats;
 }
 
-/**
- * For backwards compatibility, store both a cancellation token and a session object. The session object is the new implementation, where
- */
 class SessionLifecycle {
 	private _obj: object | undefined;
 	public readonly tokenSource: CancellationTokenSource;
@@ -327,7 +313,7 @@ class SessionLifecycle {
 
 	cancel() {
 		this.tokenSource.cancel();
-		this._obj = undefined; // dereference
+		this._obj = undefined;
 	}
 }
 
@@ -363,9 +349,7 @@ export class FileSearchManager {
 	}
 
 	clearCache(cacheKey: string): void {
-		// cancel the token
 		this.sessions.get(cacheKey)?.cancel();
-		// with no reference to this, it will be removed from WeakMaps
 		this.sessions.delete(cacheKey);
 	}
 
@@ -387,7 +371,6 @@ export class FileSearchManager {
 				resource: resources.joinPath(match.base, match.relativePath)
 			};
 		} else {
-			// extraFileResources
 			return {
 				resource: match.base
 			};

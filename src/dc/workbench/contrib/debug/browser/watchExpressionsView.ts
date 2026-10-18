@@ -103,7 +103,6 @@ export class WatchExpressionsView extends ViewPane implements IDebugViewWithVari
 			keyboardNavigationLabelProvider: {
 				getKeyboardNavigationLabel: (e: IExpression) => {
 					if (e === this.debugService.getViewModel().getSelectedExpression()?.expression) {
-						// Don't filter input box
 						return undefined;
 					}
 
@@ -126,7 +125,6 @@ export class WatchExpressionsView extends ViewPane implements IDebugViewWithVari
 				this.needsRefresh = true;
 			} else {
 				if (we && !we.name) {
-					// We are adding a new input box, no need to re-evaluate watch expressions
 					useCachedEvaluation = true;
 				}
 				await this.tree.updateChildren();
@@ -167,7 +165,6 @@ export class WatchExpressionsView extends ViewPane implements IDebugViewWithVari
 				}
 
 				if (expression.name) {
-					// Only rerender if the input is already done since otherwise the tree is not yet aware of the new element
 					this.tree.rerender(expression);
 				}
 			} else if (!expression && horizontalScrolling !== undefined) {
@@ -200,17 +197,14 @@ export class WatchExpressionsView extends ViewPane implements IDebugViewWithVari
 
 	private onMouseDblClick(e: ITreeMouseEvent<IExpression>): void {
 		if ((e.browserEvent.target as HTMLElement).className.indexOf('twistie') >= 0) {
-			// Ignore double click events on twistie
 			return;
 		}
 
 		const element = e.element;
-		// double click on primitive value: open input box to be able to select and copy value.
 		const selectedExpression = this.debugService.getViewModel().getSelectedExpression();
 		if ((element instanceof Expression && element !== selectedExpression?.expression) || (element instanceof VisualizedExpression && element.treeItem.canEdit)) {
 			this.debugService.getViewModel().setSelectedExpression(element, false);
 		} else if (!element) {
-			// Double click in watch panel triggers to add a new watch expression
 			this.debugService.addWatchExpression();
 		}
 	}
@@ -250,7 +244,6 @@ class WatchExpressionsDelegate implements IListVirtualDelegate<IExpression> {
 			return VisualizedVariableRenderer.ID;
 		}
 
-		// Variable
 		return VariablesRenderer.ID;
 	}
 }
@@ -316,7 +309,6 @@ export class WatchExpressionsRenderer extends AbstractExpressionsRenderer {
 		const showType = this.configurationService.getValue<IDebugConfiguration>('debug').showVariableTypes;
 		if (showType && expression.type) {
 			text = typeof expression.value === 'string' ? `${expression.name}: ` : expression.name;
-			//render type
 			data.type.textContent = expression.type + ' =';
 		} else {
 			text = typeof expression.value === 'string' ? `${expression.name} =` : expression.name;
@@ -391,9 +383,6 @@ export class WatchExpressionsRenderer extends AbstractExpressionsRenderer {
 	}
 }
 
-/**
- * Gets a context key overlay that has context for the given expression.
- */
 function getContextForWatchExpressionMenu(parentContext: IContextKeyService, expression: IExpression, additionalContext: [string, unknown][] = []) {
 	const session = expression.getSession();
 	return parentContext.createOverlay([
@@ -407,9 +396,6 @@ function getContextForWatchExpressionMenu(parentContext: IContextKeyService, exp
 	]);
 }
 
-/**
- * Gets a context key overlay that has context for the given expression, including data access info.
- */
 async function getContextForWatchExpressionMenuWithDataAccess(parentContext: IContextKeyService, expression: IExpression, debugService: IDebugService, logService: ILogService) {
 	const session = expression.getSession();
 	if (!session || !session.capabilities.supportsDataBreakpoints) {
@@ -421,26 +407,19 @@ async function getContextForWatchExpressionMenuWithDataAccess(parentContext: ICo
 	let dataBreakpointInfoResponse;
 
 	try {
-		// Per DAP spec:
-		// - If evaluateName is available: use it as an expression (top-level evaluation)
-		// - Otherwise, check if it's a Variable: use name + parent reference (container-relative)
-		// - Otherwise: use name as an expression
 		if ('evaluateName' in expression && expression.evaluateName) {
-			// Use evaluateName if available (more precise for evaluation context)
 			dataBreakpointInfoResponse = await session.dataBreakpointInfo(
 				expression.evaluateName as string,
 				undefined,
 				stackFrame?.frameId
 			);
 		} else if (expression instanceof Variable) {
-			// Variable without evaluateName: use name relative to parent container
 			dataBreakpointInfoResponse = await session.dataBreakpointInfo(
 				expression.name,
 				expression.parent.reference,
 				stackFrame?.frameId
 			);
 		} else {
-			// Expression without evaluateName: use name as the expression to evaluate
 			dataBreakpointInfoResponse = await session.dataBreakpointInfo(
 				expression.name,
 				undefined,
@@ -448,7 +427,6 @@ async function getContextForWatchExpressionMenuWithDataAccess(parentContext: ICo
 			);
 		}
 	} catch (error) {
-		// silently continue without data breakpoint support for this item
 		logService.error('Failed to get data breakpoint info for watch expression:', error);
 	}
 
@@ -489,7 +467,6 @@ class WatchExpressionsAccessibilityProvider implements IListAccessibilityProvide
 			return localize('watchExpressionAriaLabel', "{0}, value {1}", element.name, element.value);
 		}
 
-		// Variable
 		return localize('watchVariableAriaLabel', "{0}, value {1}", element.name, element.value);
 	}
 }
@@ -515,11 +492,9 @@ class WatchExpressionsDragAndDrop implements ITreeDragAndDrop<IExpression> {
 
 		let dropEffectPosition: ListDragOverEffectPosition | undefined = undefined;
 		if (targetIndex === undefined) {
-			// Hovering over the list
 			dropEffectPosition = ListDragOverEffectPosition.After;
 			targetIndex = -1;
 		} else {
-			// Hovering over an element
 			switch (targetSector) {
 				case ListViewTargetSector.TOP:
 				case ListViewTargetSector.CENTER_TOP:
@@ -608,7 +583,7 @@ registerAction2(class Collapse extends ViewAction<WatchExpressionsView> {
 	}
 });
 
-export const ADD_WATCH_ID = 'workbench.debug.viewlet.action.addWatchExpression'; // Use old and long id for backwards compatibility
+export const ADD_WATCH_ID = 'workbench.debug.viewlet.action.addWatchExpression';
 export const ADD_WATCH_LABEL = localize('addWatchExpression', "Add Expression");
 
 registerAction2(class AddWatchExpressionAction extends Action2 {
@@ -637,7 +612,7 @@ export const REMOVE_WATCH_EXPRESSIONS_LABEL = localize('removeAllWatchExpression
 registerAction2(class RemoveAllWatchExpressionsAction extends Action2 {
 	constructor() {
 		super({
-			id: REMOVE_WATCH_EXPRESSIONS_COMMAND_ID, // Use old and long id for backwards compatibility
+			id: REMOVE_WATCH_EXPRESSIONS_COMMAND_ID,
 			title: REMOVE_WATCH_EXPRESSIONS_LABEL,
 			f1: false,
 			icon: watchExpressionsRemoveAll,

@@ -23,9 +23,9 @@ suite('File Reader', function () {
 		serviceCollection.define(
 			ICompletionsFileSystemService,
 			new FakeFileSystem({
-				'/test.ts': FakeFileSystem.file('const foo', { ctime: 0, mtime: 0, size: 0.1 * 1024 * 1024 }), // .1MB
+				'/test.ts': FakeFileSystem.file('const foo', { ctime: 0, mtime: 0, size: 0.1 * 1024 * 1024 }),
 				'/empty.ts': '',
-				'/large.ts': FakeFileSystem.file('very large file', { ctime: 0, mtime: 0, size: 1.1 * 1024 * 1024 }), // 1.1MB
+				'/large.ts': FakeFileSystem.file('very large file', { ctime: 0, mtime: 0, size: 1.1 * 1024 * 1024 }),
 			})
 		);
 		accessor = serviceCollection.createTestingAccessor();

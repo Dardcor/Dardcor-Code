@@ -36,7 +36,6 @@ export class TokenizationSupportWithLineLimit extends Disposable implements ITok
 	}
 
 	tokenizeEncoded(line: string, hasEOL: boolean, state: IState): EncodedTokenizationResult {
-		// Do not attempt to tokenize if a line is too long
 		if (line.length >= this._maxTokenizationLineLength.get()) {
 			return nullTokenizeEncoded(this._encodedLanguageId, state);
 		}

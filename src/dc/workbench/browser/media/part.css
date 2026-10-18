@@ -24,7 +24,7 @@
 
 .monaco-workbench .part > .title,
 .monaco-workbench .part > .header-or-footer {
-	display: none; /* Parts have to opt in to show area */
+	display: none;
 }
 
 .monaco-workbench .part > .title,
@@ -92,7 +92,7 @@
 .monaco-workbench .part.editor > .content .editor-group-container > .monaco-progress-container {
 	position: absolute;
 	left: 0;
-	top: 33px; /* at the bottom of the 35px height title container */
-	z-index: 5; /* on top of things */
+	top: 33px;
+	z-index: 5;
 }
 

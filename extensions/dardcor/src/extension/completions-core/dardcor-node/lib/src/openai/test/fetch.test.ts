@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
-import * as Sinon from 'sinon';
 import { Completions, ICompletionsFetchService } from '../../../../../../../platform/nesFetch/common/completionsFetchService';
 import { ResponseStream } from '../../../../../../../platform/nesFetch/common/responseStream';
 import { HeadersImpl } from '../../../../../../../platform/networking/common/fetcherService';
@@ -15,15 +14,13 @@ import { generateUuid } from '../../../../../../../util/dardcor/base/common/uuid
 import { SyncDescriptor } from '../../../../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CancellationTokenSource } from '../../../../types/src';
-import { ICompletionsCopilotTokenManager } from '../../auth/dardcorTokenManager';
 import { ICompletionsStatusReporter, StatusChangedEvent, StatusReporter } from '../../progress';
 import { TelemetryWithExp } from '../../telemetry';
 import { createLibTestingContext } from '../../test/context';
 import { withInMemoryTelemetry } from '../../test/telemetry';
 import {
-	CMDQuotaExceeded,
 	CompletionParams,
-	CopilotUiKind,
+	DardcorInlineUiKind,
 	ICompletionsOpenAIFetcherService,
 	LiveOpenAIFetcher, sanitizeRequestOptionTelemetry
 } from '../fetch';
@@ -32,7 +29,6 @@ import { SyntheticCompletions } from '../fetch.fake';
 suite('"Fetch" unit tests', function () {
 	let accessor: ServicesAccessor;
 	let serviceCollection: TestingServiceCollection;
-	let resetSpy: Sinon.SinonSpy<Parameters<ICompletionsCopilotTokenManager['resetToken']>>;
 	let mockFetchService: MockCompletionsFetchService;
 
 	setup(function () {
@@ -41,11 +37,10 @@ suite('"Fetch" unit tests', function () {
 		serviceCollection.define(ICompletionsFetchService, mockFetchService);
 		serviceCollection.define(ICompletionsOpenAIFetcherService, new SyncDescriptor(LiveOpenAIFetcher));
 		accessor = serviceCollection.createTestingAccessor();
-		resetSpy = Sinon.spy(accessor.get(ICompletionsCopilotTokenManager), 'resetToken');
 	});
 
 	test('Empty/whitespace completions are stripped', async function () {
-		const fetcher = new SyntheticCompletions(['', ' ', '\n'], accessor.get(ICompletionsCopilotTokenManager));
+		const fetcher = new SyntheticCompletions(['', ' ', '\n']);
 		const params: CompletionParams = {
 			prompt: {
 				prefix: '',
@@ -56,7 +51,7 @@ suite('"Fetch" unit tests', function () {
 			repoInfo: undefined,
 			engineModelId: '',
 			count: 1,
-			uiKind: CopilotUiKind.GhostText,
+			uiKind: DardcorInlineUiKind.GhostText,
 			ourRequestId: generateUuid(),
 			extra: {},
 		};
@@ -68,7 +63,6 @@ suite('"Fetch" unit tests', function () {
 			cancellationToken
 		);
 		assert.deepStrictEqual(res.type, 'success');
-		// keep the type checker happy
 		if (res.type !== 'success') {
 			throw new Error(`internal error: res.type is not 'success'`);
 		}
@@ -93,7 +87,7 @@ suite('"Fetch" unit tests', function () {
 			repoInfo: undefined,
 			engineModelId: 'dardcor-codex',
 			count: 1,
-			uiKind: CopilotUiKind.GhostText,
+			uiKind: DardcorInlineUiKind.GhostText,
 			postOptions: {},
 			ourRequestId: generateUuid(),
 			extra: {},
@@ -114,13 +108,13 @@ suite('"Fetch" unit tests', function () {
 		assert.deepStrictEqual(lastParams?.extra?.context, params.prompt.context);
 	});
 
-	test('properly handles 466 (client outdated) responses from proxy', async function () {
+	test('reports HTTP 466 as a Router client error', async function () {
 		const statusReporter = new TestStatusReporter();
 		const result = await assertResponseWithStatus(466, statusReporter);
 
-		assert.deepStrictEqual(result, { type: 'failed', reason: 'client not supported: response-text' });
-		assert.deepStrictEqual(statusReporter.kind, 'Error');
-		assert.deepStrictEqual(statusReporter.message, 'response-text');
+		assert.deepStrictEqual(result, { type: 'failed', reason: 'unhandled status from server: 466 response-text' });
+		assert.deepStrictEqual(statusReporter.kind, 'Warning');
+		assert.deepStrictEqual(statusReporter.message, 'Dardcor Router returned an HTTP 466 error: response-text');
 		assert.deepStrictEqual(statusReporter.eventCount, 1);
 	});
 
@@ -133,30 +127,25 @@ suite('"Fetch" unit tests', function () {
 		assert.deepStrictEqual(statusReporter.message, 'Last response was a 518 error');
 	});
 
-	test('calls out possible proxy for 4xx requests without x-github-request-id', async function () {
+	test('reports Router client errors without GitHub-specific diagnostics', async function () {
 		const statusReporter = new TestStatusReporter();
-		const result = await assertResponseWithStatus(418, statusReporter, { 'x-github-request-id': '' });
+		const result = await assertResponseWithStatus(418, statusReporter);
 
 		assert.deepStrictEqual(result, { type: 'failed', reason: 'unhandled status from server: 418 response-text' });
 		assert.deepStrictEqual(statusReporter.kind, 'Warning');
-		assert.deepStrictEqual(
-			statusReporter.message,
-			'Last response was a 418 error and does not appear to originate from GitHub. Is a proxy or firewall intercepting this request? https://gh.io/dardcor-firewall'
-		);
+		assert.deepStrictEqual(statusReporter.message, 'Dardcor Router returned an HTTP 418 error: response-text');
 	});
 
-	test('HTTP `Unauthorized` invalidates token', async function () {
+	test('HTTP `Unauthorized` reports a Router API key error without refreshing credentials', async function () {
 		const result = await assertResponseWithContext(accessor, 401);
 
-		assert.deepStrictEqual(result, { type: 'failed', reason: 'token expired or invalid: 401' });
-		assert.ok(resetSpy.calledOnce, 'resetToken should have been called once');
+		assert.deepStrictEqual(result, { type: 'failed', reason: 'Dardcor Router rejected the configured API key (HTTP 401).' });
 	});
 
-	test('HTTP `Forbidden` invalidates token', async function () {
+	test('HTTP `Forbidden` reports a Router API key error without refreshing credentials', async function () {
 		const result = await assertResponseWithContext(accessor, 403);
 
-		assert.deepStrictEqual(result, { type: 'failed', reason: 'token expired or invalid: 403' });
-		assert.ok(resetSpy.calledOnce, 'resetToken should have been called once');
+		assert.deepStrictEqual(result, { type: 'failed', reason: 'Dardcor Router rejected the configured API key (HTTP 403).' });
 	});
 
 	test('HTTP `Too many requests` enforces rate limiting locally', async function () {
@@ -178,10 +167,7 @@ suite('"Fetch" unit tests', function () {
 		assert.deepStrictEqual(limited, { type: 'canceled', reason: 'rate limited' });
 	});
 
-	test.skip('properly handles 402 (free plan exhausted) responses from proxy', async function () {
-		const fetcherService = accessor.get(ICompletionsOpenAIFetcherService);
-		const tokenManager = accessor.get(ICompletionsCopilotTokenManager);
-		await tokenManager.primeToken(); // Trigger initial status
+	test.skip('reports HTTP 402 from Router without assuming a GitHub quota', async function () {
 		const statusReporter = new TestStatusReporter();
 
 		const serviceCollectionClone = serviceCollection.clone();
@@ -189,25 +175,9 @@ suite('"Fetch" unit tests', function () {
 		const accessorClone = serviceCollectionClone.createTestingAccessor();
 		const result = await assertResponseWithContext(accessorClone, 402);
 
-		assert.deepStrictEqual(result, { type: 'failed', reason: 'monthly free code completions exhausted' });
-		assert.deepStrictEqual(statusReporter.kind, 'Error');
-		assert.match(statusReporter.message, /limit/);
-		assert.deepStrictEqual(statusReporter.eventCount, 1);
-		assert.deepStrictEqual(statusReporter.command, CMDQuotaExceeded);
-		const exhausted = await fetcherService.fetchAndStreamCompletions(
-			fakeCompletionParams(),
-			TelemetryWithExp.createEmptyConfigForTesting(),
-			() => Promise.reject(new Error()),
-			new CancellationTokenSource().token
-		);
-		assert.deepStrictEqual(exhausted, { type: 'canceled', reason: 'monthly free code completions exhausted' });
-
-		tokenManager.resetToken();
-		await tokenManager.getToken();
-
-		const refreshed = await assertResponseWithContext(accessorClone, 429);
-		assert.deepStrictEqual(refreshed, { type: 'failed', reason: 'rate limited' });
-		assert.deepStrictEqual(statusReporter.kind, 'Error');
+		assert.deepStrictEqual(result, { type: 'failed', reason: 'response-text' });
+		assert.deepStrictEqual(statusReporter.kind, 'Warning');
+		assert.deepStrictEqual(statusReporter.message, 'response-text');
 	});
 
 	test('additional headers are included in the request', async function () {
@@ -222,7 +192,7 @@ suite('"Fetch" unit tests', function () {
 			repoInfo: undefined,
 			engineModelId: 'dardcor-codex',
 			count: 1,
-			uiKind: CopilotUiKind.GhostText,
+			uiKind: DardcorInlineUiKind.GhostText,
 			ourRequestId: generateUuid(),
 			headers: { Host: 'bla' },
 			extra: {},
@@ -309,7 +279,7 @@ suite('Telemetry sent on fetch', function () {
 			repoInfo: undefined,
 			engineModelId: 'dardcor-codex',
 			count: 1,
-			uiKind: CopilotUiKind.GhostText,
+			uiKind: DardcorInlineUiKind.GhostText,
 			postOptions: {},
 			ourRequestId: generateUuid(),
 			extra: {},
@@ -327,12 +297,6 @@ suite('Telemetry sent on fetch', function () {
 		const hasContext = standardEvents.some(event => event.properties['request_option_extra']?.includes('context'));
 		assert.strictEqual(hasContext, false, 'Standard telemetry event should not include context');
 
-		// todo@dbaeumer we need to understand what our restricted telemetry story is.
-		// const restrictedEvents = enhancedReporter.events;
-		// const hasRestrictedContext = restrictedEvents.some(event =>
-		//     event.properties['request_option_extra']?.includes('context')
-		// );
-		// assert.strictEqual(hasRestrictedContext, true, 'Restricted telemetry event should include context');
 	});
 
 	test('If context is provided, include it in `engine.prompt` telemetry events', function () { });
@@ -363,14 +327,12 @@ async function assertResponseWithStatus(
 	serviceCollection.define(ICompletionsFetchService, mockFetch);
 	serviceCollection.define(ICompletionsOpenAIFetcherService, new SyncDescriptor(LiveOpenAIFetcher));
 	const accessor = serviceCollection.createTestingAccessor();
-	const dardcorTokenManager = accessor.get(ICompletionsCopilotTokenManager);
-	await dardcorTokenManager.primeToken(); // Trigger initial status
 	return assertResponseWithContext(accessor, statusCode, headers);
 }
 
 async function assertResponseWithContext(accessor: ServicesAccessor, statusCode: number, headers?: Record<string, string>) {
 	const fakeHeaders = new HeadersImpl({
-		'x-github-request-id': '1',
+		'x-request-id': '1',
 		...headers,
 	});
 	const mockFetch = (() => {
@@ -416,7 +378,7 @@ function fakeCompletionParams(): CompletionParams {
 		ourRequestId: generateUuid(),
 		engineModelId: 'foo/bar',
 		count: 1,
-		uiKind: CopilotUiKind.GhostText,
+		uiKind: DardcorInlineUiKind.GhostText,
 		postOptions: {},
 		extra: {},
 	};
@@ -444,7 +406,6 @@ class MockCompletionsFetchService implements ICompletionsFetchService {
 			this.nextResult = undefined;
 			return result;
 		}
-		// Default: return a cancelled result
 		return Result.error(new Completions.RequestCancelled());
 	}
 

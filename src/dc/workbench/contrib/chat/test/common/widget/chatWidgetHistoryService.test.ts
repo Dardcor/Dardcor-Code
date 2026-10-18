@@ -17,14 +17,12 @@ suite('ChatWidgetHistoryService', () => {
 	const testDisposables = ensureNoDisposablesAreLeakedInTestSuite();
 
 	setup(() => {
-		// Clear memento cache before each test to prevent state leakage
 		Memento.clear(StorageScope.APPLICATION);
 		Memento.clear(StorageScope.PROFILE);
 		Memento.clear(StorageScope.WORKSPACE);
 	});
 
 	function createHistoryService(): ChatWidgetHistoryService {
-		// Create fresh instances for each test to avoid state leakage
 		const instantiationService = testDisposables.add(new TestInstantiationService());
 		const storageService = testDisposables.add(new TestStorageService());
 		instantiationService.stub(IStorageService, storageService);
@@ -113,7 +111,7 @@ suite('ChatWidgetHistoryService', () => {
 
 		const history = historyService.getHistory(ChatAgentLocation.Chat);
 		assert.strictEqual(history.length, ChatInputHistoryMaxEntries);
-		assert.strictEqual(history[0].inputText, 'query 10'); // First 10 should be dropped
+		assert.strictEqual(history[0].inputText, 'query 10');
 		assert.strictEqual(history[history.length - 1].inputText, `query ${ChatInputHistoryMaxEntries + 9}`);
 	});
 
@@ -166,14 +164,12 @@ suite('ChatHistoryNavigator', () => {
 	const testDisposables = ensureNoDisposablesAreLeakedInTestSuite();
 
 	setup(() => {
-		// Clear memento cache before each test to prevent state leakage
 		Memento.clear(StorageScope.APPLICATION);
 		Memento.clear(StorageScope.PROFILE);
 		Memento.clear(StorageScope.WORKSPACE);
 	});
 
 	function createNavigator(): ChatHistoryNavigator {
-		// Create fresh instances for each test to avoid state leakage
 		const instantiationService = testDisposables.add(new TestInstantiationService());
 		const storageService = testDisposables.add(new TestStorageService());
 		instantiationService.stub(IStorageService, storageService);
@@ -261,7 +257,6 @@ suite('ChatHistoryNavigator', () => {
 		const current = nav.current();
 		assert.strictEqual(current?.inputText, 'second edited');
 
-		// Original history should be unchanged
 		assert.strictEqual(nav.values[1].inputText, 'second');
 	});
 
@@ -277,7 +272,6 @@ suite('ChatHistoryNavigator', () => {
 
 		nav.append(createInputState('second'));
 
-		// After append, cursor should be at end and overlay cleared
 		assert.ok(nav.isAtEnd());
 		nav.previous();
 		assert.strictEqual(nav.current()?.inputText, 'second');
@@ -291,7 +285,7 @@ suite('ChatHistoryNavigator', () => {
 		assert.ok(nav.isAtStart());
 
 		const prev = nav.previous();
-		assert.strictEqual(prev?.inputText, 'only'); // Should stay at first
+		assert.strictEqual(prev?.inputText, 'only');
 		assert.ok(nav.isAtStart());
 	});
 
@@ -350,20 +344,16 @@ suite('ChatHistoryNavigator', () => {
 
 	test('should handle cursor adjustment when max entries reached', () => {
 		const nav = createNavigator();
-		// Add entries up to the max
 		for (let i = 0; i < ChatInputHistoryMaxEntries; i++) {
 			nav.append(createInputState(`entry ${i}`));
 		}
 
-		// Navigate to middle of history
 		for (let i = 0; i < 20; i++) {
 			nav.previous();
 		}
 
-		// Add one more entry (should drop oldest)
 		nav.append(createInputState('new entry'));
 
-		// Cursor should be at end after append
 		assert.ok(nav.isAtEnd());
 	});
 
@@ -394,10 +384,8 @@ suite('ChatHistoryNavigator', () => {
 		assert.strictEqual(nav1.values.length, 2);
 		assert.strictEqual(nav2.values.length, 2);
 
-		// nav1 should stay at same position (pointing to query 1)
 		assert.strictEqual(nav1.current()?.inputText, 'query 1');
 
-		// nav2 should be at end
 		assert.ok(nav2.isAtEnd());
 	});
 
@@ -416,30 +404,24 @@ suite('ChatHistoryNavigator', () => {
 		nav1.append(createInputState('query 2'));
 		nav1.append(createInputState('query 3'));
 
-		// Both at end
 		assert.ok(nav1.isAtEnd());
 		assert.ok(nav2.isAtEnd());
 
-		// Move nav1 back to 'query 2'
 		nav1.previous();
 		assert.strictEqual(nav1.current()?.inputText, 'query 3');
 		nav1.previous();
 		assert.strictEqual(nav1.current()?.inputText, 'query 2');
 
-		// Move nav2 back to 'query 1'
 		nav2.previous();
 		nav2.previous();
 		nav2.previous();
 		assert.strictEqual(nav2.current()?.inputText, 'query 1');
 
-		// Append new query
 		nav1.append(createInputState('query 4'));
 
-		// nav1 should be at end (because it appended)
 		assert.ok(nav1.isAtEnd());
 		assert.strictEqual(nav1.values.length, 4);
 
-		// nav2 should stay at 'query 1'
 		assert.strictEqual(nav2.current()?.inputText, 'query 1');
 		assert.strictEqual(nav2.values.length, 4);
 	});

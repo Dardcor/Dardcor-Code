@@ -87,14 +87,12 @@ export class MarkerController implements IEditorContribution {
 		this._sessionDispoables.add(this._model);
 		this._sessionDispoables.add(this._widget);
 
-		// follow cursor
 		this._sessionDispoables.add(this._editor.onDidChangeCursorPosition(e => {
 			if (!this._model?.selected || !Range.containsPosition(this._model?.selected.marker, e.position)) {
 				this._model?.resetIndex();
 			}
 		}));
 
-		// update markers
 		this._sessionDispoables.add(this._model.onDidChange(() => {
 			if (!this._widget || !this._widget.position || !this._model) {
 				return;
@@ -107,7 +105,6 @@ export class MarkerController implements IEditorContribution {
 			}
 		}));
 
-		// open related
 		this._sessionDispoables.add(this._widget.onDidSelectRelatedInformation(related => {
 			this._editorService.openCodeEditor({
 				resource: related.resource,
@@ -153,7 +150,6 @@ export class MarkerController implements IEditorContribution {
 			return;
 		}
 		if (model.selected.marker.resource.toString() !== textModel.uri.toString()) {
-			// show in different editor
 			this._cleanUp();
 			const otherEditor = await this._editorService.openCodeEditor({
 				resource: model.selected.marker.resource,
@@ -166,7 +162,6 @@ export class MarkerController implements IEditorContribution {
 			}
 
 		} else {
-			// show in this editor
 			this._widget!.showAtMarker(model.selected.marker, model.selected.index, model.selected.total);
 		}
 	}

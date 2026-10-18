@@ -5,7 +5,6 @@
 
 import * as nls from '../../../../nls.js';
 
-// Import the effects we need
 import { Color } from '../../../../base/common/color.js';
 import { registerColor, transparent } from '../colorUtils.js';
 
@@ -35,7 +34,7 @@ export const iconForeground = registerColor('icon.foreground',
 	nls.localize('iconForeground', "The default color for icons in the workbench."));
 
 export const focusBorder = registerColor('focusBorder',
-	{ dark: '#7C4DFF', light: '#0090F1', hcDark: '#F38518', hcLight: '#006BBD' },
+	{ dark: '#7C4DFF', light: '#7C4DFF', hcDark: '#F38518', hcLight: '#006BBD' },
 	nls.localize('focusBorder', "Overall border color for focused elements. This color is only used if not overridden by a component."));
 
 export const contrastBorder = registerColor('contrastBorder',
@@ -51,14 +50,13 @@ export const selectionBackground = registerColor('selection.background',
 	nls.localize('selectionBackground', "The background color of text selections in the workbench (e.g. for input fields or text areas). Note that this does not apply to selections within the editor."));
 
 
-// ------ text link
 
 export const textLinkForeground = registerColor('textLink.foreground',
-	{ light: '#006AB1', dark: '#7C4DFF', hcDark: '#21A6FF', hcLight: '#0F4A85' },
+	{ light: '#6A1B9A', dark: '#7C4DFF', hcDark: '#21A6FF', hcLight: '#0F4A85' },
 	nls.localize('textLinkForeground', "Foreground color for links in text."));
 
 export const textLinkActiveForeground = registerColor('textLink.activeForeground',
-	{ light: '#006AB1', dark: '#7C4DFF', hcDark: '#21A6FF', hcLight: '#0F4A85' },
+	{ light: '#7C4DFF', dark: '#7C4DFF', hcDark: '#21A6FF', hcLight: '#0F4A85' },
 	nls.localize('textLinkActiveForeground', "Foreground color for links in text when clicked on and on mouse hover."));
 
 export const textSeparatorForeground = registerColor('textSeparator.foreground',
@@ -66,10 +64,9 @@ export const textSeparatorForeground = registerColor('textSeparator.foreground',
 	nls.localize('textSeparatorForeground', "Color for text separators."));
 
 
-// ------ text preformat
 
 export const textPreformatForeground = registerColor('textPreformat.foreground',
-	{ light: '#A31515', dark: '#D7BA7D', hcDark: '#FFFFFF', hcLight: '#FFFFFF' },
+	{ light: '#6A1B9A', dark: '#B388FF', hcDark: '#D1B3FF', hcLight: '#6A1B9A' },
 	nls.localize('textPreformatForeground', "Foreground color for preformatted text segments."));
 
 export const textPreformatBackground = registerColor('textPreformat.background',
@@ -79,18 +76,16 @@ export const textPreformatBorder = registerColor('textPreformat.border',
 	{ light: null, dark: null, hcDark: contrastBorder, hcLight: null },
 	nls.localize('textPreformatBorder', "Border color for preformatted text segments."));
 
-// ------ text block quote
 
 export const textBlockQuoteBackground = registerColor('textBlockQuote.background',
 	{ light: '#f2f2f2', dark: '#222222', hcDark: null, hcLight: '#F2F2F2' },
 	nls.localize('textBlockQuoteBackground', "Background color for block quotes in text."));
 
 export const textBlockQuoteBorder = registerColor('textBlockQuote.border',
-	{ light: '#7C4DFF80', dark: '#7C4DFF80', hcDark: Color.white, hcLight: '#292929' },
+	{ light: '#6A1B9A80', dark: '#6A1B9A80', hcDark: Color.white, hcLight: '#292929' },
 	nls.localize('textBlockQuoteBorder', "Border color for block quotes in text."));
 
 
-// ------ text code block
 
 export const textCodeBlockBackground = registerColor('textCodeBlock.background',
 	{ light: '#dcdcdc66', dark: '#0a0a0a66', hcDark: Color.black, hcLight: '#F2F2F2' },

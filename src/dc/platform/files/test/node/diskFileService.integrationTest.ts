@@ -105,7 +105,7 @@ export class TestDiskFileSystemProvider extends DiskFileSystemProvider {
 
 		if (this.invalidStatSize) {
 			// eslint-disable-next-line local/code-no-any-casts
-			(res as any).size = String(res.size) as any; // for https://github.com/microsoft/vscode/issues/72909
+			(res as any).size = String(res.size) as any;
 		} else if (this.smallStatSize) {
 			// eslint-disable-next-line local/code-no-any-casts
 			(res as any).size = 1;
@@ -134,7 +134,7 @@ export class TestDiskFileSystemProvider extends DiskFileSystemProvider {
 	}
 }
 
-DiskFileSystemProvider.configureFlushOnWrite(false); // speed up all unit tests by disabling flush on write
+DiskFileSystemProvider.configureFlushOnWrite(false);
 
 flakySuite('Disk File Service', function () {
 
@@ -446,7 +446,7 @@ flakySuite('Disk File Service', function () {
 		assert.strictEqual(basename(realpath.fsPath), 'deep');
 	});
 
-	(isWindows ? test.skip /* windows: cannot create file symbolic link without elevated context */ : test)('resolve - file symbolic link', async () => {
+	(isWindows ? test.skip : test)('resolve - file symbolic link', async () => {
 		const link = URI.file(join(testDir, 'lorem.txt-linked'));
 		await promises.symlink(join(testDir, 'lorem.txt'), link.fsPath);
 
@@ -497,7 +497,6 @@ flakySuite('Disk File Service', function () {
 		assert.ok(result.ctime > 0);
 	});
 
-	// The executable bit does not exist on Windows so use a condition not skip
 	if (!isWindows) {
 		test('stat - executable', async () => {
 			const nonExecutable = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/executable/non_executable');
@@ -520,7 +519,7 @@ flakySuite('Disk File Service', function () {
 		return testDeleteFile(false, true);
 	});
 
-	(isLinux /* trash is unreliable on Linux */ ? test.skip : test)('deleteFile (useTrash)', async () => {
+	(isLinux ? test.skip : test)('deleteFile (useTrash)', async () => {
 		return testDeleteFile(true, false);
 	});
 
@@ -551,7 +550,7 @@ flakySuite('Disk File Service', function () {
 		assert.strictEqual((<FileOperationError>error).fileOperationResult, FileOperationResult.FILE_NOT_FOUND);
 	}
 
-	(isWindows ? test.skip /* windows: cannot create file symbolic link without elevated context */ : test)('deleteFile - symbolic link (exists)', async () => {
+	(isWindows ? test.skip : test)('deleteFile - symbolic link (exists)', async () => {
 		const target = URI.file(join(testDir, 'lorem.txt'));
 		const link = URI.file(join(testDir, 'lorem.txt-linked'));
 		await promises.symlink(target.fsPath, link.fsPath);
@@ -570,10 +569,10 @@ flakySuite('Disk File Service', function () {
 		assert.strictEqual(event!.resource.fsPath, link.fsPath);
 		assert.strictEqual(event!.operation, FileOperation.DELETE);
 
-		assert.strictEqual(existsSync(target.fsPath), true); // target the link pointed to is never deleted
+		assert.strictEqual(existsSync(target.fsPath), true);
 	});
 
-	(isWindows ? test.skip /* windows: cannot create file symbolic link without elevated context */ : test)('deleteFile - symbolic link (pointing to nonexistent file)', async () => {
+	(isWindows ? test.skip : test)('deleteFile - symbolic link (pointing to nonexistent file)', async () => {
 		const target = URI.file(join(testDir, 'foo'));
 		const link = URI.file(join(testDir, 'bar'));
 		await promises.symlink(target.fsPath, link.fsPath);
@@ -599,7 +598,7 @@ flakySuite('Disk File Service', function () {
 		return testDeleteFolderRecursive(false, { postfix: '.vsctmp' });
 	});
 
-	(isLinux /* trash is unreliable on Linux */ ? test.skip : test)('deleteFolder (recursive, useTrash)', async () => {
+	(isLinux ? test.skip : test)('deleteFolder (recursive, useTrash)', async () => {
 		return testDeleteFolderRecursive(true, false);
 	});
 
@@ -1241,10 +1240,8 @@ flakySuite('Disk File Service', function () {
 
 		const targetParent = URI.file(testDir);
 
-		// same path is a no-op
 		await service.cloneFile(source1, source1);
 
-		// simple clone to existing parent folder path
 		const target1 = targetParent.with({ path: posix.join(targetParent.path, `${posix.basename(source1.path)}-clone`) });
 
 		await service.cloneFile(source1, URI.file(target1.fsPath));
@@ -1256,7 +1253,6 @@ flakySuite('Disk File Service', function () {
 
 		assert.strictEqual(source1Size, target1Size);
 
-		// clone to same path overwrites
 		await service.cloneFile(source2, URI.file(target1.fsPath));
 
 		target1Size = (await service.resolve(target1, { resolveMetadata: true })).size;
@@ -1264,7 +1260,6 @@ flakySuite('Disk File Service', function () {
 		assert.strictEqual(source2Size, target1Size);
 		assert.notStrictEqual(source1Size, target1Size);
 
-		// clone creates missing folders ad-hoc
 		const target2 = targetParent.with({ path: posix.join(targetParent.path, 'foo', 'bar', `${posix.basename(source1.path)}-clone`) });
 
 		await service.cloneFile(source1, URI.file(target2.fsPath));
@@ -1411,11 +1406,9 @@ flakySuite('Disk File Service', function () {
 		const resource1 = URI.file(join(testDir, 'lorem.txt'));
 		const resource2 = URI.file(join(testDir, 'some_utf16le.css'));
 
-		// load in sequence and keep data
 		const value1 = await service.readFile(resource1);
 		const value2 = await service.readFile(resource2);
 
-		// load in parallel in expect the same result
 		const result = await Promise.all([
 			service.readFile(resource1),
 			service.readFile(resource2)
@@ -1581,7 +1574,7 @@ flakySuite('Disk File Service', function () {
 		assert.strictEqual(error.fileOperationResult, FileOperationResult.FILE_IS_DIRECTORY);
 	});
 
-	(isWindows /* error code does not seem to be supported on windows */ ? test.skip : test)('readFile - FILE_NOT_DIRECTORY', async () => {
+	(isWindows ? test.skip : test)('readFile - FILE_NOT_DIRECTORY', async () => {
 		const resource = URI.file(join(testDir, 'lorem.txt', 'file.txt'));
 
 		let error: FileOperationError | undefined = undefined;
@@ -1692,7 +1685,6 @@ flakySuite('Disk File Service', function () {
 	async function testFileTooLarge() {
 		await doTestFileTooLarge(false);
 
-		// Also test when the stat size is wrong
 		fileProvider.setSmallStatSize(true);
 		return doTestFileTooLarge(true);
 	}
@@ -1714,7 +1706,7 @@ flakySuite('Disk File Service', function () {
 		assert.strictEqual(error!.fileOperationResult, FileOperationResult.FILE_TOO_LARGE);
 	}
 
-	(isWindows ? test.skip /* windows: cannot create file symbolic link without elevated context */ : test)('readFile - dangling symbolic link - https://github.com/microsoft/vscode/issues/116049', async () => {
+	(isWindows ? test.skip : test)('readFile - dangling symbolic link - https://github.com/microsoft/vscode/issues/116049', async () => {
 		const link = URI.file(join(testDir, 'small.js-link'));
 		await promises.symlink(join(testDir, 'small.js'), link.fsPath);
 
@@ -1763,7 +1755,7 @@ flakySuite('Disk File Service', function () {
 		const contents = 'Hello World';
 		const resource = URI.file(join(testDir, 'test.txt'));
 
-		writeFileSync(resource.fsPath, ''); // create file
+		writeFileSync(resource.fsPath, '');
 
 		assert.ok((await service.canCreateFile(resource)) instanceof Error);
 
@@ -1784,7 +1776,7 @@ flakySuite('Disk File Service', function () {
 		const contents = 'Hello World';
 		const resource = URI.file(join(testDir, 'test.txt'));
 
-		writeFileSync(resource.fsPath, ''); // create file
+		writeFileSync(resource.fsPath, '');
 
 		assert.strictEqual(await service.canCreateFile(resource, { overwrite: true }), true);
 		const fileStat = await service.createFile(resource, VSBuffer.fromString(contents), { overwrite: true });
@@ -1855,7 +1847,7 @@ flakySuite('Disk File Service', function () {
 		return testWriteFile(true);
 	});
 
-	(isWindows ? test.skip /* windows: cannot create file symbolic link without elevated context */ : test)('writeFile - atomic writing does not break symlinks', async () => {
+	(isWindows ? test.skip : test)('writeFile - atomic writing does not break symlinks', async () => {
 		const link = URI.file(join(testDir, 'lorem.txt-linked'));
 		await promises.symlink(join(testDir, 'lorem.txt'), link.fsPath);
 
@@ -2003,7 +1995,7 @@ flakySuite('Disk File Service', function () {
 
 		const readPromises = Promise.all(['0', '00', '000', '0000', '00000'].map(async () => {
 			const fileContent = await service.readFile(resource, { atomic: true });
-			assert.ok(fileContent.value.byteLength > 0); // `atomic: true` ensures we never read a truncated file
+			assert.ok(fileContent.value.byteLength > 0);
 		}));
 
 		await Promise.all([writePromises, readPromises]);
@@ -2027,9 +2019,6 @@ flakySuite('Disk File Service', function () {
 			try {
 				await provider.write(fd, 0, VSBuffer.fromString(content).buffer, 0, contentBuffer.byteLength);
 
-				// Here since `close` is not called, all other writes are
-				// waiting on the barrier to release, so doing a readFile
-				// should give us a consistent view of the file contents
 				assert.strictEqual((await promises.readFile(resource.fsPath)).toString(), content);
 			} finally {
 				await provider.close(fd);
@@ -2081,7 +2070,7 @@ flakySuite('Disk File Service', function () {
 			error = e;
 		}
 
-		assert.ok(error); // expected because `new-folder` does not exist
+		assert.ok(error);
 
 		await promises.mkdir(newFolder);
 
@@ -2115,11 +2104,8 @@ flakySuite('Disk File Service', function () {
 		const fd = await provider.open(resource, { create: true, unlock: false });
 		try {
 
-			// Start reading while write is pending
 			atomicReadPromise = provider.readFile(resource, { atomic: true });
 
-			// Simulate a slow write, giving the read
-			// a chance to succeed if it were not atomic
 			await timeout(20);
 
 			await provider.write(fd, 0, newContentBuffer, 0, newContentBuffer.byteLength);
@@ -2412,10 +2398,10 @@ flakySuite('Disk File Service', function () {
 		const content = readFileSync(resource.fsPath).toString();
 		assert.strictEqual(content, 'Small File');
 
-		const newContent = content; // same content
+		const newContent = content;
 		await service.writeFile(resource, VSBuffer.fromString(newContent), { etag: stat.etag, mtime: stat.mtime });
 
-		const newContentLeadingToNoError = newContent; // writing the same content should be OK
+		const newContentLeadingToNoError = newContent;
 
 		const fakeMtime = 1000;
 		const actualSize = newContent.length;
@@ -2438,10 +2424,10 @@ flakySuite('Disk File Service', function () {
 		const content = readFileSync(resource.fsPath).toString();
 		assert.strictEqual(content, 'Small File');
 
-		const newContent = content; // same content
+		const newContent = content;
 		let error: FileOperationError | undefined = undefined;
 		try {
-			await service.writeFile(resource, VSBuffer.fromString(newContent), { etag: 'anything', mtime: 0 } /* fake it */);
+			await service.writeFile(resource, VSBuffer.fromString(newContent), { etag: 'anything', mtime: 0 } );
 		} catch (err) {
 			error = err;
 		}
@@ -2457,10 +2443,10 @@ flakySuite('Disk File Service', function () {
 		const content = readFileSync(resource.fsPath).toString();
 		assert.strictEqual(content, 'Small File');
 
-		const newContent = content.split('').reverse().join(''); // reverse content
+		const newContent = content.split('').reverse().join('');
 		let error: FileOperationError | undefined = undefined;
 		try {
-			await service.writeFile(resource, VSBuffer.fromString(newContent), { etag: 'anything', mtime: 0 } /* fake it */);
+			await service.writeFile(resource, VSBuffer.fromString(newContent), { etag: 'anything', mtime: 0 } );
 		} catch (err) {
 			error = err;
 		}
@@ -2477,10 +2463,6 @@ flakySuite('Disk File Service', function () {
 		const file2 = joinPath(newFolder, 'file-2');
 		const file3 = joinPath(newFolder, 'file-3');
 
-		// this essentially verifies that the mkdirp logic implemented
-		// in the file service is able to receive multiple requests for
-		// the same folder and will not throw errors if another racing
-		// call succeeded first.
 		const newContent = 'Updates to the small file';
 		await Promise.all([
 			service.writeFile(file1, VSBuffer.fromString(newContent)),
@@ -2637,7 +2619,6 @@ flakySuite('Disk File Service', function () {
 	}
 
 	test('appendFile - throws when provider does not support append', async () => {
-		// Remove FileAppend capability - should throw error
 		setCapabilities(fileProvider, FileSystemProviderCapabilities.FileOpenReadWriteClose);
 
 		const resource = URI.file(join(testDir, 'small.txt'));
@@ -2657,7 +2638,6 @@ flakySuite('Disk File Service', function () {
 	test('read - mixed positions', async () => {
 		const resource = URI.file(join(testDir, 'lorem.txt'));
 
-		// read multiple times from position 0
 		let buffer = VSBuffer.alloc(1024);
 		let fd = await fileProvider.open(resource, { create: false });
 		for (let i = 0; i < 3; i++) {
@@ -2666,7 +2646,6 @@ flakySuite('Disk File Service', function () {
 		}
 		await fileProvider.close(fd);
 
-		// read multiple times at various locations
 		buffer = VSBuffer.alloc(1024);
 		fd = await fileProvider.open(resource, { create: false });
 
@@ -2684,7 +2663,7 @@ flakySuite('Disk File Service', function () {
 		assert.strictEqual(buffer.slice(0, 12).toString(), ' consectetur');
 		posInFile += 12;
 
-		await fileProvider.read(fd, 98 /* no longer in sequence of posInFile */, buffer.buffer, 0, 9);
+		await fileProvider.read(fd, 98 , buffer.buffer, 0, 9);
 		assert.strictEqual(buffer.slice(0, 9).toString(), 'fermentum');
 
 		await fileProvider.read(fd, 27, buffer.buffer, 0, 12);
@@ -2696,7 +2675,7 @@ flakySuite('Disk File Service', function () {
 		await fileProvider.read(fd, 0, buffer.buffer, 0, 26);
 		assert.strictEqual(buffer.slice(0, 26).toString(), 'Lorem ipsum dolor sit amet');
 
-		await fileProvider.read(fd, posInFile /* back in sequence */, buffer.buffer, 0, 11);
+		await fileProvider.read(fd, posInFile , buffer.buffer, 0, 11);
 		assert.strictEqual(buffer.slice(0, 11).toString(), ' adipiscing');
 
 		await fileProvider.close(fd);

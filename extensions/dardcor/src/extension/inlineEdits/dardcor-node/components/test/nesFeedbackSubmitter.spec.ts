@@ -8,13 +8,8 @@ import { LogEntry } from '../../../../../platform/workspaceRecorder/common/works
 import { FeedbackFile, NesFeedbackSubmitter } from '../nesFeedbackSubmitter';
 import { TestLogService } from '../../../../../platform/testing/common/testLogService';
 
-/**
- * Creates a minimal test instance of NesFeedbackSubmitter for testing private methods.
- * We use a subclass to expose private methods for testing.
- */
 class TestableNesFeedbackSubmitter extends NesFeedbackSubmitter {
 	constructor() {
-		// Create minimal mock implementations
 		const mockAuthService = {
 			_serviceBrand: undefined,
 			isMinimalMode: false,
@@ -40,13 +35,11 @@ class TestableNesFeedbackSubmitter extends NesFeedbackSubmitter {
 		super(new TestLogService(), mockAuthService as any, mockFetcherService as any);
 	}
 
-	// Expose private methods for testing
 	public testExtractDocumentPathsFromRecordings(files: FeedbackFile[]): string[] {
 		return (this as any)._extractDocumentPathsFromRecordings(files);
 	}
 
 	public testFilterRecordingsByExcludedPaths(files: FeedbackFile[], excludedPaths: string[]): FeedbackFile[] {
-		// Compute nextUserEditPaths for the test (mimics what submitFromFolder does)
 		const nextUserEditPaths = new Map<string, string | undefined>();
 		for (const file of files) {
 			if (file.name.endsWith('.recording.w.json')) {
@@ -203,7 +196,6 @@ describe('NesFeedbackSubmitter', () => {
 
 			const result = submitter.testFilterRecordingsByExcludedPaths(files, []);
 
-			// Should return exact same array reference (fast path)
 			expect(result).toBe(files);
 		});
 
@@ -227,7 +219,7 @@ describe('NesFeedbackSubmitter', () => {
 			const result = submitter.testFilterRecordingsByExcludedPaths(files, ['src/exclude.ts']);
 
 			const parsed = JSON.parse(result[0].content);
-			expect(parsed.log).toHaveLength(3); // header + documentEncountered + changed for id 1
+			expect(parsed.log).toHaveLength(3);
 
 			const documentPaths = parsed.log
 				.filter((e: LogEntry) => e.kind === 'documentEncountered')
@@ -289,7 +281,6 @@ describe('NesFeedbackSubmitter', () => {
 
 			const result = submitter.testFilterRecordingsByExcludedPaths(files, ['src/exclude.ts']);
 
-			// Both recording and metadata should be skipped
 			expect(result).toHaveLength(0);
 		});
 
@@ -332,7 +323,6 @@ describe('NesFeedbackSubmitter', () => {
 							{ kind: 'header', documentType: 'workspaceRecording@1.0', repoRootUri: 'file:///repo', time: 0, uuid: 'test' },
 							{ kind: 'documentEncountered', id: 1, relativePath: 'src/file.ts', time: 0 },
 						] satisfies LogEntry[]
-						// No nextUserEdit
 					})
 				},
 				{
@@ -357,7 +347,6 @@ describe('NesFeedbackSubmitter', () => {
 
 			const result = submitter.testFilterRecordingsByExcludedPaths(files, ['src/file.ts']);
 
-			// Only capture-2 should be included (both recording and metadata)
 			expect(result).toHaveLength(2);
 			expect(result.map(f => f.name).sort()).toEqual(['capture-2.metadata.json', 'capture-2.recording.w.json']);
 		});
@@ -381,7 +370,7 @@ describe('NesFeedbackSubmitter', () => {
 
 			expect(result).toHaveLength(1);
 			const parsed = JSON.parse(result[0].content);
-			expect(parsed.log).toHaveLength(2); // header + documentEncountered for keep.ts
+			expect(parsed.log).toHaveLength(2);
 			expect(parsed.log[0].kind).toBe('header');
 			expect(parsed.log[0].uuid).toBe('test-uuid');
 		});
@@ -397,7 +386,6 @@ describe('NesFeedbackSubmitter', () => {
 
 			const result = submitter.testFilterRecordingsByExcludedPaths(files, ['anything']);
 
-			// Files with invalid JSON are skipped because nextUserEdit cannot be determined
 			expect(result).toHaveLength(0);
 		});
 	});
@@ -426,18 +414,14 @@ describe('NesFeedbackSubmitter', () => {
 
 			const parsed = JSON.parse(result.content);
 
-			// Should have: header, documentEncountered(1), setContent(1), changed(1), selectionChanged(1)
 			expect(parsed.log).toHaveLength(5);
 
-			// Verify no entries for id 2
 			const entriesWithId2 = parsed.log.filter((e: any) => e.id === 2);
 			expect(entriesWithId2).toHaveLength(0);
 
-			// Verify all entries for id 1 are present
 			const entriesWithId1 = parsed.log.filter((e: any) => e.id === 1);
 			expect(entriesWithId1).toHaveLength(4);
 
-			// nextUserEdit should be preserved
 			expect(parsed.nextUserEdit).toBeDefined();
 			expect(parsed.nextUserEdit.relativePath).toBe('src/keep.ts');
 		});
@@ -471,16 +455,12 @@ describe('NesFeedbackSubmitter', () => {
 
 			const parsed = JSON.parse(result.content);
 
-			// Should have header, meta, bookmark (but not documentEncountered)
 			expect(parsed.log).toHaveLength(3);
 			expect(parsed.log.map((e: any) => e.kind)).toEqual(['header', 'meta', 'bookmark']);
-			// nextUserEdit is preserved (its path is not excluded)
 			expect(parsed.nextUserEdit).toBeDefined();
 		});
 
 		test('should preserve nextUserEdit (caller is responsible for checking exclusion)', () => {
-			// Note: _filterSingleRecording assumes the caller already verified nextUserEdit is not excluded.
-			// The filtering of recordings with excluded nextUserEdit happens in _filterRecordingsByExcludedPaths.
 			const file: FeedbackFile = {
 				name: 'test.recording.w.json',
 				content: JSON.stringify({
@@ -496,10 +476,8 @@ describe('NesFeedbackSubmitter', () => {
 			const result = submitter.testFilterSingleRecording(file, new Set(['src/exclude.ts']));
 
 			const parsed = JSON.parse(result.content);
-			// nextUserEdit is preserved (filtering happens at a higher level)
 			expect(parsed.nextUserEdit).toBeDefined();
 			expect(parsed.nextUserEdit.relativePath).toBe('src/keep.ts');
-			// But the excluded document is filtered out
 			const docPaths = parsed.log
 				.filter((e: any) => e.kind === 'documentEncountered')
 				.map((e: any) => e.relativePath);
@@ -509,18 +487,15 @@ describe('NesFeedbackSubmitter', () => {
 
 	describe('performance', () => {
 		test('should filter large recordings efficiently', () => {
-			// Generate a large recording with 10,000 log entries across 100 documents
 			const documentCount = 100;
-			const entriesPerDocument = 100; // Total: 10,000 entries
+			const entriesPerDocument = 100;
 			const log: LogEntry[] = [
 				{ kind: 'header', documentType: 'workspaceRecording@1.0', repoRootUri: 'file:///repo', time: 0, uuid: 'perf-test' }
 			];
 
-			// Add document encounters and their events
 			for (let docId = 1; docId <= documentCount; docId++) {
 				log.push({ kind: 'documentEncountered', id: docId, relativePath: `src/file${docId}.ts`, time: docId });
 
-				// Add multiple events per document
 				for (let i = 0; i < entriesPerDocument - 1; i++) {
 					const time = docId * 1000 + i;
 					if (i % 3 === 0) {
@@ -535,27 +510,21 @@ describe('NesFeedbackSubmitter', () => {
 
 			const largeFile: FeedbackFile = {
 				name: 'large-capture.recording.w.json',
-				// nextUserEdit points to an even file so it won't be excluded
 				content: JSON.stringify({ log, nextUserEdit: { relativePath: 'src/file2.ts', edit: [] } })
 			};
 
-			// Exclude half the documents (odd-numbered files)
 			const excludedPaths = Array.from({ length: documentCount / 2 }, (_, i) => `src/file${i * 2 + 1}.ts`);
 
-			// Measure filtering time
 			const startTime = performance.now();
 			const result = submitter.testFilterRecordingsByExcludedPaths([largeFile], excludedPaths);
 			const endTime = performance.now();
 			const durationMs = endTime - startTime;
 
-			// Verify correctness - recording should be included since nextUserEdit is not excluded
 			expect(result).toHaveLength(1);
 			const parsed = JSON.parse(result[0].content);
 			const remainingDocCount = parsed.log.filter((e: any) => e.kind === 'documentEncountered').length;
 			expect(remainingDocCount).toBe(documentCount / 2);
 
-			// Performance assertion: should complete within 100ms even for large files
-			// This threshold is conservative to avoid flaky tests on slower CI machines
 			expect(durationMs).toBeLessThan(100);
 		});
 

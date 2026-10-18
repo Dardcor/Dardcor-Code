@@ -8,14 +8,9 @@ import { Codicon } from '../../../../../base/common/codicons.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 
-/**
- * Wire up a collapsible toggle on a chevron+header+content triple.
- * Handles icon switching and display toggling.
- */
 export function setupCollapsibleToggle(chevron: HTMLElement, header: HTMLElement, contentEl: HTMLElement, disposables: DisposableStore, initiallyCollapsed: boolean = false, scrollable?: { scanDomNode(): void }): void {
 	let collapsed = initiallyCollapsed;
 
-	// Accessibility: make header keyboard-focusable and expose toggle semantics
 	header.tabIndex = 0;
 	header.role = 'button';
 	chevron.setAttribute('aria-hidden', 'true');

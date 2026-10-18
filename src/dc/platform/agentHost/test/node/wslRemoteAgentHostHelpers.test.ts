@@ -18,10 +18,6 @@ suite('WSL Remote Agent Host Helpers', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	suite('parseWslListVerbose', () => {
-		// Build a verbose-list output from a structured row description so
-		// the test cases stay readable. The whitespace shape mirrors what
-		// `wsl.exe --list --verbose` emits in practice (default marker is
-		// `* ` at column 0; the data columns are space-padded).
 		function row(opts: { name: string; state: string; version: number; isDefault?: boolean }): string {
 			const marker = opts.isDefault ? '* ' : '  ';
 			return `${marker}${opts.name.padEnd(24, ' ')}${opts.state.padEnd(16, ' ')}${opts.version}`;

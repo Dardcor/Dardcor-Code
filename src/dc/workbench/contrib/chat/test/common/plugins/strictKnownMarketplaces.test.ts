@@ -31,7 +31,7 @@ suite('strictKnownMarketplaces', () => {
 			null,
 			42,
 			'github',
-			{ repo: 'owner/repo' }, // missing source
+			{ repo: 'owner/repo' },
 		];
 		assert.deepStrictEqual(getStrictKnownMarketplaces(value), [{ source: 'github', repo: 'owner/repo' }]);
 	});

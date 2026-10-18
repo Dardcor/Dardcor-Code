@@ -48,7 +48,6 @@ suite('ExtHostDecorations', function () {
 		let calledA = false;
 		let calledB = false;
 
-		// never returns
 		extHostDecorations.registerFileDecorationProvider({
 
 			provideFileDecoration() {
@@ -57,7 +56,6 @@ suite('ExtHostDecorations', function () {
 			}
 		}, nullExtensionDescription);
 
-		// always returns
 		extHostDecorations.registerFileDecorationProvider({
 
 			provideFileDecoration() {
@@ -78,7 +76,7 @@ suite('ExtHostDecorations', function () {
 		const [first, second] = requests;
 
 		const firstResult = await Promise.race([first, timeout(30).then(() => false)]);
-		assert.strictEqual(typeof firstResult, 'boolean'); // never finishes...
+		assert.strictEqual(typeof firstResult, 'boolean');
 
 		const secondResult = await Promise.race([second, timeout(30).then(() => false)]);
 		assert.strictEqual(typeof secondResult, 'object');

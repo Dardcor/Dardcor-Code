@@ -57,7 +57,6 @@ export class ResourceGlobMatcher extends Disposable {
 	private updateExpressions(fromEvent: boolean): void {
 		let changed = false;
 
-		// Add expressions per workspaces that got added
 		for (const folder of this.contextService.getWorkspace().folders) {
 			const folderUriStr = folder.uri.toString();
 
@@ -81,11 +80,10 @@ export class ResourceGlobMatcher extends Disposable {
 			}
 		}
 
-		// Remove expressions per workspace no longer present
 		const foldersMap = new ResourceSet(this.contextService.getWorkspace().folders.map(folder => folder.uri));
 		for (const [folder] of this.mapFolderToConfiguredExpression) {
 			if (folder === ResourceGlobMatcher.NO_FOLDER) {
-				continue; // always keep this one
+				continue;
 			}
 
 			if (!foldersMap.has(URI.parse(folder))) {
@@ -96,7 +94,6 @@ export class ResourceGlobMatcher extends Disposable {
 			}
 		}
 
-		// Always set for resources outside workspace as well
 		const globalNewExpression = this.doGetExpression(undefined);
 		const globalCurrentExpression = this.mapFolderToConfiguredExpression.get(ResourceGlobMatcher.NO_FOLDER);
 		if (globalNewExpression) {
@@ -133,11 +130,6 @@ export class ResourceGlobMatcher extends Disposable {
 
 		let hasAbsolutePath = false;
 
-		// Check the expression for absolute paths/globs
-		// and specifically for Windows, make sure the
-		// drive letter is lowercased, because we later
-		// check with `URI.fsPath` which is always putting
-		// the drive letter lowercased.
 
 		const massagedExpression: IExpression = Object.create(null);
 		for (const key of keys) {
@@ -147,7 +139,7 @@ export class ResourceGlobMatcher extends Disposable {
 
 			let massagedKey = key;
 
-			const driveLetter = getDriveLetter(massagedKey, true /* probe for windows */);
+			const driveLetter = getDriveLetter(massagedKey, true );
 			if (driveLetter) {
 				const driveLetterLower = driveLetter.toLowerCase();
 				if (driveLetter !== driveLetter.toLowerCase()) {
@@ -169,7 +161,7 @@ export class ResourceGlobMatcher extends Disposable {
 		hasSibling?: (name: string) => boolean
 	): boolean {
 		if (this.mapFolderToParsedExpression.size === 0) {
-			return false; // return early: no expression for this matcher
+			return false;
 		}
 
 		const folder = this.contextService.getWorkspaceFolder(resource);
@@ -184,13 +176,9 @@ export class ResourceGlobMatcher extends Disposable {
 		}
 
 		if (!expressionForFolder) {
-			return false; // return early: no expression for this resource
+			return false;
 		}
 
-		// If the resource if from a workspace, convert its absolute path to a relative
-		// path so that glob patterns have a higher probability to match. For example
-		// a glob pattern of "src/**" will not match on an absolute path "/folder/src/file.txt"
-		// but can match on "src/file.txt"
 
 		let resourcePathToMatch: string | undefined;
 		if (folder) {
@@ -203,9 +191,6 @@ export class ResourceGlobMatcher extends Disposable {
 			return true;
 		}
 
-		// If the configured expression has an absolute path, we also check for absolute paths
-		// to match, otherwise we potentially miss out on matches. We only do that if we previously
-		// matched on the relative path.
 
 		if (resourcePathToMatch !== this.uriToPath(resource) && expressionConfigForFolder?.hasAbsolutePath) {
 			return !!expressionForFolder(this.uriToPath(resource), undefined, hasSibling);

@@ -44,7 +44,7 @@ export class HiddenRangeModel implements IDisposable {
 	private updateHiddenRanges(): void {
 		let updateHiddenAreas = false;
 		const newHiddenAreas: IRange[] = [];
-		let i = 0; // index into hidden
+		let i = 0;
 		let k = 0;
 
 		let lastCollapsedStart = Number.MAX_VALUE;
@@ -56,15 +56,13 @@ export class HiddenRangeModel implements IDisposable {
 				continue;
 			}
 
-			const startLineNumber = ranges.getStartLineNumber(i) + 1; // the first line is not hidden
+			const startLineNumber = ranges.getStartLineNumber(i) + 1;
 			const endLineNumber = ranges.getEndLineNumber(i);
 			if (lastCollapsedStart <= startLineNumber && endLineNumber <= lastCollapsedEnd) {
-				// ignore ranges contained in collapsed regions
 				continue;
 			}
 
 			if (!updateHiddenAreas && k < this._hiddenRanges.length && this._hiddenRanges[k].startLineNumber === startLineNumber && this._hiddenRanges[k].endLineNumber === endLineNumber) {
-				// reuse the old ranges
 				newHiddenAreas.push(this._hiddenRanges[k]);
 				k++;
 			} else {

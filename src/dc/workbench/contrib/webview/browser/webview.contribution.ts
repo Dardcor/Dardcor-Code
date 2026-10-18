@@ -27,8 +27,6 @@ function overrideCommandForWebview(command: MultiCommand | undefined, f: (webvie
 			return true;
 		}
 
-		// When focused in a custom menu try to fallback to the active webview
-		// This is needed for context menu actions and the menubar
 		if (getActiveElement()?.classList.contains('action-menu-item')) {
 			const editorService = accessor.get(IEditorService);
 			if (editorService.activeEditor instanceof WebviewInput) {
@@ -86,5 +84,4 @@ if (PasteAction) {
 	});
 }
 
-// Register webview find accessibility help
 AccessibleViewRegistry.register(new WebviewFindAccessibilityHelp());

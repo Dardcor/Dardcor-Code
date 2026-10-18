@@ -33,7 +33,6 @@ function assertFilesMatch(expected: string[], actual: string[]) {
 
 ssuite({ title: 'semanticSearch', location: 'panel' }, (inputPath) => {
 
-	// No default cases checked in at the moment
 	if (!inputPath) {
 		return;
 	}
@@ -58,8 +57,6 @@ ssuite({ title: 'semanticSearch', location: 'panel' }, (inputPath) => {
 						} catch (e) {
 							return { success: false, errorMessage: e.message };
 						}
-						// TODO: incorporate `keywords` into the test.
-						// They should already be on the tests, but to test solely file retrieval first, we can ignore them for now.
 					}
 					return { success: false, errorMessage: 'expectedRetrieval not defined' };
 				}));

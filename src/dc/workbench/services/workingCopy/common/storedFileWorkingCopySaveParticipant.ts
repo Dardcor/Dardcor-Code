@@ -37,17 +37,14 @@ export class StoredFileWorkingCopySaveParticipant extends Disposable {
 	async participate(workingCopy: IStoredFileWorkingCopy<IStoredFileWorkingCopyModel>, context: IStoredFileWorkingCopySaveParticipantContext, progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
 		const cts = new CancellationTokenSource(token);
 
-		// undoStop before participation
 		workingCopy.model?.pushStackElement();
 
-		// report to the "outer" progress
 		progress.report({
 			message: localize('saveParticipants1', "Running Code Actions and Formatters...")
 		});
 
 		let bubbleCancel = false;
 
-		// create an "inner" progress to allow to skip over long running save participants
 		await this.progressService.withProgress({
 			priority: NotificationPriority.URGENT,
 			location: ProgressLocation.Notification,
@@ -73,8 +70,6 @@ export class StoredFileWorkingCopySaveParticipant extends Disposable {
 					if (!isCancellationError(err)) {
 						this.logService.error(err);
 					} else if (!cts.token.isCancellationRequested) {
-						// we see a cancellation error BUT the token didn't signal it
-						// this means the participant wants the save operation to be cancelled
 						cts.cancel();
 						bubbleCancel = true;
 					}
@@ -84,7 +79,6 @@ export class StoredFileWorkingCopySaveParticipant extends Disposable {
 			cts.cancel();
 		});
 
-		// undoStop after participation
 		workingCopy.model?.pushStackElement();
 
 		cts.dispose();

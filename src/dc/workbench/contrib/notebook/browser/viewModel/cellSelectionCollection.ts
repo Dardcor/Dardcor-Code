@@ -7,7 +7,6 @@ import { Emitter, Event } from '../../../../../base/common/event.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { cellRangesEqual, ICellRange } from '../../common/notebookRange.js';
 
-// Challenge is List View talks about `element`, which needs extra work to convert to ICellRange as we support Folding and Cell Move
 export class NotebookCellSelectionCollection extends Disposable {
 
 	private readonly _onDidChangeSelection = this._register(new Emitter<string>());

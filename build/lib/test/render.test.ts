@@ -613,7 +613,7 @@ suite('Render Functions', () => {
 
 			const result = renderMacOSPolicy(product, [mockPolicy], translations);
 
-			assert.strictEqual(result.manifests.length, 3); // en-us + 2 translations
+			assert.strictEqual(result.manifests.length, 3);
 			assert.strictEqual(result.manifests[0].languageId, 'en-us');
 			assert.strictEqual(result.manifests[1].languageId, 'fr-fr');
 			assert.strictEqual(result.manifests[2].languageId, 'de-de');
@@ -772,7 +772,7 @@ suite('Render Functions', () => {
 
 			const result = renderGP(product, [mockPolicy], translations);
 
-			assert.strictEqual(result.adml.length, 3); // en-us + 2 translations
+			assert.strictEqual(result.adml.length, 3);
 			assert.strictEqual(result.adml[0].languageId, 'en-us');
 			assert.strictEqual(result.adml[1].languageId, 'fr-fr');
 			assert.strictEqual(result.adml[2].languageId, 'de-de');

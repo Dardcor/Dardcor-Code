@@ -34,8 +34,6 @@ export async function activate(ctx: RendererContext<void>) {
 			const result = render.call(this, tokens, options, env);
 			const shadowRoot = document.getElementById(env?.outputItem.id)?.shadowRoot;
 
-			// The active VS Code theme may have changed since the last render, so re-resolve
-			// the theme variables before reinitializing mermaid for this batch of diagrams.
 			const extensionConfig = loadExtensionConfig();
 			themeTracker.refresh();
 			mermaid.initialize(buildMermaidConfig(extensionConfig, themeTracker));

@@ -101,7 +101,6 @@ function getQuotaResets(element: HTMLElement): [string, string][] {
 	const indicators = element.querySelectorAll('.quota-indicator:not(.included)');
 	return Array.from(indicators).map(el => [
 		el.querySelector('.quota-title > span:not(.quota-reset)')?.textContent ?? '',
-		// The time of day is locale and timezone dependent, so only its presence is asserted.
 		(el.querySelector('.quota-reset')?.textContent ?? '').replace(/ at .+$/, ' at <time>')
 	]);
 }
@@ -496,7 +495,6 @@ suite('ChatStatusDashboard', () => {
 		});
 	});
 
-	// --- COPILOT FREE ---
 
 	test('Free — PRU: shows Chat messages and Inline Suggestions', () => {
 		const dashboard = createDashboard(createEntitlementService({
@@ -544,7 +542,6 @@ suite('ChatStatusDashboard', () => {
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['100%', '100%']);
 	});
 
-	// --- COPILOT PRO (EDU/Pro) ---
 
 	test('EDU/Pro — PRU: shows Chat messages, Premium requests, and Inline Suggestions', () => {
 		const dashboard = createDashboard(createEntitlementService({
@@ -594,7 +591,6 @@ suite('ChatStatusDashboard', () => {
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['100%']);
 	});
 
-	// --- COPILOT PRO+ ---
 
 	test('Pro+ — PRU: shows Premium requests and Inline Suggestions', () => {
 		const dashboard = createDashboard(createEntitlementService({
@@ -629,7 +625,6 @@ suite('ChatStatusDashboard', () => {
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['100%']);
 	});
 
-	// --- COPILOT MAX ---
 
 	test('Max Yearly — no TBB: shows unlimited Premium Requests included indicator', () => {
 		const dashboard = createDashboard(createEntitlementService({
@@ -638,9 +633,7 @@ suite('ChatStatusDashboard', () => {
 			entitlement: ChatEntitlement.Max,
 		}));
 
-		// Unlimited quotas are not shown as quota indicators
 		assert.deepStrictEqual(getQuotaLabels(dashboard.element), []);
-		// Instead shown as "included" indicator
 		assert.deepStrictEqual(getIncludedLabels(dashboard.element), ['Premium Requests']);
 	});
 
@@ -655,7 +648,6 @@ suite('ChatStatusDashboard', () => {
 		assert.deepStrictEqual(getIncludedLabels(dashboard.element), ['Credits']);
 	});
 
-	// --- BUSINESS / ENTERPRISE ---
 
 	test('Enterprise Managed — PRU: shows Premium requests with unlimited included', () => {
 		const dashboard = createDashboard(createEntitlementService({
@@ -782,7 +774,6 @@ suite('ChatStatusDashboard', () => {
 		assert.deepStrictEqual(getQuotaLabels(dashboard.element), ['Credits']);
 	});
 
-	// --- HOVER: CREDIT FRACTIONS ---
 
 	test('Hover shows credit fractions when entitlement is available', () => {
 		const dashboard = createDashboard(createEntitlementService({
@@ -794,15 +785,12 @@ suite('ChatStatusDashboard', () => {
 		const quotaPercentages = dashboard.element.querySelectorAll('.quota-indicator:not(.included) .quota-percentage');
 		assert.strictEqual(quotaPercentages.length, 2);
 
-		// Before hover: shows percentages
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['20%', '30%']);
 
-		// Hover: shows credit fractions
 		quotaPercentages[0].dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
 		const chatValue = quotaPercentages[0].querySelector('.quota-value');
 		assert.ok(chatValue?.textContent?.includes('/'));
 
-		// Mouse leave: reverts to percentage
 		quotaPercentages[0].dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['20%', '30%']);
 	});
@@ -817,10 +805,8 @@ suite('ChatStatusDashboard', () => {
 		const quotaPercentages = dashboard.element.querySelectorAll('.quota-indicator:not(.included) .quota-percentage');
 		assert.strictEqual(quotaPercentages.length, 2);
 
-		// Before hover: shows percentages
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['20%', '30%']);
 
-		// Hover: still shows percentages (no entitlement data)
 		quotaPercentages[0].dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['20%', '30%']);
 	});
@@ -835,15 +821,12 @@ suite('ChatStatusDashboard', () => {
 		const quotaPercentages = dashboard.element.querySelectorAll('.quota-indicator:not(.included) .quota-percentage');
 		assert.strictEqual(quotaPercentages.length, 2);
 
-		// Before focus: shows percentages
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['20%', '30%']);
 
-		// Focus: shows credit fractions
 		quotaPercentages[0].dispatchEvent(new FocusEvent('focus', { bubbles: true }));
 		const chatValue = quotaPercentages[0].querySelector('.quota-value');
 		assert.ok(chatValue?.textContent?.includes('/'));
 
-		// Blur: reverts to percentage
 		quotaPercentages[0].dispatchEvent(new FocusEvent('blur', { bubbles: true }));
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['20%', '30%']);
 	});
@@ -858,10 +841,8 @@ suite('ChatStatusDashboard', () => {
 		const quotaPercentages = dashboard.element.querySelectorAll('.quota-indicator:not(.included) .quota-percentage');
 		assert.strictEqual(quotaPercentages.length, 2);
 
-		// Before hover: shows percentages
 		const valuesBefore = getQuotaValues(dashboard.element);
 
-		// Hover: still shows percentages (entitlement is 0, no meaningful total)
 		quotaPercentages[0].dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), valuesBefore);
 	});
@@ -877,7 +858,6 @@ suite('ChatStatusDashboard', () => {
 		assert.strictEqual(quotaPercentage.tabIndex, 0);
 	});
 
-	// --- CALLOUT MESSAGES ---
 
 	test('Callout: no callout when quota is not approaching limit', () => {
 		const dashboard = createDashboard(createEntitlementService({
@@ -1070,7 +1050,6 @@ suite('ChatStatusDashboard', () => {
 		assert.strictEqual(getCalloutText(dashboard.element), 'Copilot has paused because your limits are reached. Please contact your admin to increase your limits.');
 	});
 
-	// --- LIVE UPDATES ---
 
 	function createMutableEntitlementService(opts: {
 		chat?: IQuotaConfig;
@@ -1103,7 +1082,6 @@ suite('ChatStatusDashboard', () => {
 		const dashboard = createDashboard(svc);
 		assert.deepStrictEqual(getQuotaValues(dashboard.element), ['20%', '30%']);
 
-		// Simulate fresh quota data arriving
 		(svc as { quotas: typeof svc.quotas }).quotas = {
 			...svc.quotas,
 			chat: { percentRemaining: 50, unlimited: false },
@@ -1125,7 +1103,6 @@ suite('ChatStatusDashboard', () => {
 		const dashboard = createDashboard(svc);
 		assert.strictEqual(getCalloutText(dashboard.element), null);
 
-		// Quota becomes exhausted
 		(svc as { quotas: typeof svc.quotas }).quotas = {
 			...svc.quotas,
 			premiumChat: { percentRemaining: 0, unlimited: false },
@@ -1145,12 +1122,10 @@ suite('ChatStatusDashboard', () => {
 
 		const dashboard = createDashboard(svc);
 
-		// No callout initially (quota < 75% used), so button should be hidden
 		const headerButton = dashboard.element.querySelector('.header-cta-button') as HTMLElement;
 		assert.ok(headerButton);
 		assert.strictEqual(headerButton.style.display, 'none');
 
-		// Quota approaches limit (>= 75% used)
 		(svc as { quotas: typeof svc.quotas }).quotas = {
 			...svc.quotas,
 			premiumChat: { percentRemaining: 20, unlimited: false },

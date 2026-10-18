@@ -3,22 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------------------------
- *  Focused unit checks for Section 7 (pre-built built-in extension dependency
- *  enumeration) of scan-licenses.ts.
- *
- *  Run:  npx tsx section7.test.ts
- *
- *  Covers (no network required):
- *    1. readBuiltInExtensionNames - extracting extension names from product.json
- *       (builtInExtensions + webBuiltInExtensions, missing keys, non-string names).
- *    2. enumerateLockfileProdDeps - walking a lockfileVersion 2/3 `packages` map
- *       (skips root/dev/link/arch entries, dedups, last-node_modules name, and
- *       returns [] for lockfileVersion 1).
- *    3. readBuiltInExtensionManifest - extracting name+version+repo (for self-fetch).
- *    4. builtInExtensionLockfileUrl - building the public raw.githubusercontent.com
- *       package-lock.json URL (no token), rejecting non-GitHub/missing inputs.
- *--------------------------------------------------------------------------------------------*/
 
 import { readBuiltInExtensionNames, enumerateLockfileProdDeps, readBuiltInExtensionManifest, builtInExtensionLockfileUrl } from './scan-licenses.js';
 
@@ -35,7 +19,6 @@ function check(name: string, cond: boolean): void {
 	}
 }
 
-// -- 1. readBuiltInExtensionNames ---------------------------------------------
 console.log('readBuiltInExtensionNames - product.json shapes:');
 
 const realShape = {
@@ -64,22 +47,19 @@ check('skips entries without a string name', readBuiltInExtensionNames({
 	builtInExtensions: [{ name: 'good' }, { version: '1.0.0' }, { name: 42 }, { name: '' }, null],
 }).join(',') === 'good');
 
-// -- 2. enumerateLockfileProdDeps ---------------------------------------------
 console.log('enumerateLockfileProdDeps - lockfileVersion 2/3 packages map:');
 
 const lockV3 = {
 	lockfileVersion: 3,
 	packages: {
-		'': { name: 'js-debug', version: '1.117.0' },               // root - skip
+		'': { name: 'js-debug', version: '1.117.0' },
 		'node_modules/acorn-loose': { version: '8.4.0' },
 		'node_modules/astring': { version: '1.8.6' },
 		'node_modules/preact': { version: '10.20.0' },
-		'node_modules/typescript': { version: '5.4.0', dev: true },  // dev - skip
+		'node_modules/typescript': { version: '5.4.0', dev: true },
 		'node_modules/@vscode/l10n': { version: '0.0.18' },
 		'node_modules/@c4312/chromehash': { version: '0.3.0' },
-		// nested: name is taken after the LAST node_modules/
 		'node_modules/execa/node_modules/signal-exit': { version: '3.0.7' },
-		// workspace link - skip
 		'node_modules/local-pkg': { version: '1.0.0', link: true },
 	},
 };
@@ -103,7 +83,7 @@ const lockDupe = {
 	lockfileVersion: 2,
 	packages: {
 		'node_modules/color': { version: '4.2.3' },
-		'node_modules/foo/node_modules/color': { version: '3.2.1' }, // same name, different tree
+		'node_modules/foo/node_modules/color': { version: '3.2.1' },
 	},
 };
 check('dedups same dependency name', enumerateLockfileProdDeps(lockDupe).filter(d => d.name === 'color').length === 1);
@@ -120,9 +100,9 @@ console.log('enumerateLockfileProdDeps - arch packages owned by Section 5:');
 const lockArch = {
 	lockfileVersion: 3,
 	packages: {
-		'node_modules/esbuild': { version: '0.21.0' },              // parent - keep
-		'node_modules/@esbuild/linux-x64': { version: '0.21.0' },   // arch - skip
-		'node_modules/@esbuild/darwin-arm64': { version: '0.21.0' },// arch - skip
+		'node_modules/esbuild': { version: '0.21.0' },
+		'node_modules/@esbuild/linux-x64': { version: '0.21.0' },
+		'node_modules/@esbuild/darwin-arm64': { version: '0.21.0' },
 	},
 };
 const archDeps = enumerateLockfileProdDeps(lockArch).map(d => d.name);
@@ -130,7 +110,6 @@ check('keeps arch-independent parent esbuild', archDeps.includes('esbuild'));
 check('skips @esbuild/linux-x64 (Section 5 owns it)', !archDeps.includes('@esbuild/linux-x64'));
 check('skips @esbuild/darwin-arm64 (Section 5 owns it)', !archDeps.includes('@esbuild/darwin-arm64'));
 
-// -- 3. readBuiltInExtensionManifest ------------------------------------------
 console.log('readBuiltInExtensionManifest - name + version + repo:');
 
 const manifestShape = {
@@ -157,7 +136,6 @@ check('manifest defaults missing version/repo to empty string', (() => {
 	return m.length === 1 && m[0].version === '' && m[0].repo === '';
 })());
 
-// -- 4. builtInExtensionLockfileUrl -------------------------------------------
 console.log('builtInExtensionLockfileUrl - public raw URL (no token):');
 
 check('builds the js-debug raw URL at the version tag',
@@ -174,7 +152,6 @@ check('missing version -> undefined', builtInExtensionLockfileUrl('https://githu
 check('missing repo -> undefined', builtInExtensionLockfileUrl('', '1.0.0') === undefined);
 check('non-GitHub host -> undefined', builtInExtensionLockfileUrl('https://gitlab.com/foo/bar', '1.0.0') === undefined);
 
-// -- summary ------------------------------------------------------------------
 console.log('');
 console.log(`Section 7 unit checks: ${passed} passed, ${failed} failed`);
 if (failed > 0) {

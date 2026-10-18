@@ -40,17 +40,12 @@ import { IClaudeWorkspaceFolderService } from '../../common/claudeWorkspaceFolde
 import { builtinSlashCommands } from '../../common/builtinSlashCommands';
 import { ClaudeChatSessionContentProvider, ClaudeChatSessionItemController } from '../claudeChatSessionContentProvider';
 
-// Expose the most recently created items map so tests can inspect controller items.
 let lastCreatedItemsMap: Map<string, vscode.ChatSessionItem>;
-// Expose the most recently registered fork handler so tests can invoke it directly.
 let lastForkHandler: ((sessionResource: vscode.Uri, request: vscode.ChatRequestTurn2 | undefined, token: CancellationToken) => Thenable<vscode.ChatSessionItem>) | undefined;
-// Expose the most recently registered getChatSessionInputState handler so tests can invoke it.
 let lastGetChatSessionInputState: vscode.ChatSessionControllerGetInputState | undefined;
 
-// Emitter that backs vscode.extensions.onDidChange for tests that exercise SDK install flows.
 let extensionsDidChangeEmitter: Emitter<void>;
 
-// Patch vscode shim with missing namespaces before any production code imports it.
 beforeAll(() => {
 	(vscodeShim as Record<string, unknown>).commands = {
 		registerCommand: vi.fn().mockReturnValue({ dispose: () => { } }),
@@ -96,7 +91,6 @@ beforeAll(() => {
 						onDidChange: emitter.event,
 						onDidDispose: Event.None,
 					};
-					// Proxy that fires onDidChange when groups are replaced
 					return new Proxy(state, {
 						set(target, prop, value) {
 							(target as any)[prop] = value;
@@ -149,17 +143,12 @@ function createMockAgentManager(): ClaudeAgentManager {
 	} as unknown as ClaudeAgentManager;
 }
 
-/** Creates a TestChatRequest with a mock model that has an id property */
 function createTestRequest(prompt: string): TestChatRequest {
 	const request = new TestChatRequest(prompt);
 	(request as any).model = { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', family: 'claude' };
 	return request;
 }
 
-/**
- * Adds a session item to the controller's items map.
- * This simulates what newChatSessionItemHandler does when VS Code creates a new session.
- */
 function seedSessionItem(sessionId: string): void {
 	const resource = ClaudeSessionUri.forSessionId(sessionId);
 	const item: vscode.ChatSessionItem = {
@@ -169,10 +158,6 @@ function seedSessionItem(sessionId: string): void {
 	lastCreatedItemsMap.set(resource.toString(), item);
 }
 
-/**
- * Builds a minimal permission mode input state group with the given mode selected.
- * Defaults to 'acceptEdits' if no mode specified.
- */
 function buildPermissionModeGroup(selectedMode: string = 'acceptEdits'): vscode.ChatSessionProviderOptionGroup {
 	const items = [
 		{ id: 'default', name: 'Ask before edits' },
@@ -190,9 +175,6 @@ function buildPermissionModeGroup(selectedMode: string = 'acceptEdits'): vscode.
 	};
 }
 
-/**
- * Builds a minimal folder input state group with the given folder selected.
- */
 function buildFolderGroup(selectedFolderPath: string, allFolderPaths?: string[]): vscode.ChatSessionProviderOptionGroup {
 	const paths = allFolderPaths ?? [selectedFolderPath];
 	const items = paths.map(p => ({ id: p, name: path.basename(p) }));
@@ -205,10 +187,6 @@ function buildFolderGroup(selectedFolderPath: string, allFolderPaths?: string[])
 	};
 }
 
-/**
- * Builds inputState groups for test chat contexts.
- * Always includes a permission mode group. Folder group is added when folderPath is provided.
- */
 function buildInputStateGroups(options?: { permissionMode?: string; folderPath?: string; allFolderPaths?: string[] }): vscode.ChatSessionProviderOptionGroup[] {
 	const groups: vscode.ChatSessionProviderOptionGroup[] = [
 		buildPermissionModeGroup(options?.permissionMode),
@@ -219,10 +197,6 @@ function buildInputStateGroups(options?: { permissionMode?: string; folderPath?:
 	return groups;
 }
 
-/**
- * Workspace service whose folder list can be mutated at runtime so tests can
- * exercise folder-change events through the observable pipeline.
- */
 class MutableWorkspaceService extends TestWorkspaceService {
 	private _folders: URI[];
 
@@ -291,10 +265,6 @@ function createProviderWithServices(
 	return { provider, accessor };
 }
 
-/**
- * Invokes the getChatSessionInputState handler that was set by the provider.
- * Pass a sessionResource for existing sessions, or undefined for new sessions.
- */
 async function getInputState(
 	sessionResource?: vscode.Uri,
 	previousInputState?: vscode.ChatSessionInputState,
@@ -313,10 +283,6 @@ function getGroup(state: vscode.ChatSessionInputState, groupId: string): vscode.
 	return state.groups.find(g => g.id === groupId);
 }
 
-/**
- * Runs the handler for a session and returns the values committed to session state service.
- * This is how tests verify permission mode / folder resolution without reaching into internals.
- */
 async function runHandlerAndCapture(
 	contentProvider: ClaudeChatSessionContentProvider,
 	testAccessor: ITestingServicesAccessor,
@@ -383,7 +349,6 @@ describe('ChatSessionContentProvider', () => {
 		store.clear();
 	});
 
-	// #region Provider-Level Tests
 
 	describe('provideChatSessionContent', () => {
 		it('returns empty history when no existing session', async () => {
@@ -397,9 +362,7 @@ describe('ChatSessionContentProvider', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region New Session Input State
 
 	describe('new session input state via getChatSessionInputState', () => {
 		it('defaults to acceptEdits for permission mode', async () => {
@@ -410,7 +373,6 @@ describe('ChatSessionContentProvider', () => {
 		});
 
 		it('restores previous permission mode selection', async () => {
-			// First, get an initial state and change the permission mode
 			const initialState = await getInputState();
 			const permissionGroup = getGroup(initialState, 'permissionMode');
 			const planItem = permissionGroup!.items.find(i => i.id === 'plan');
@@ -418,7 +380,6 @@ describe('ChatSessionContentProvider', () => {
 				g.id === 'permissionMode' ? { ...g, selected: planItem } : g
 			);
 
-			// Now get a new state that restores from the previous one
 			const restoredState = await getInputState(undefined, initialState);
 			const restoredGroup = getGroup(restoredState, 'permissionMode');
 			expect(restoredGroup!.selected?.id).toBe('plan');
@@ -449,9 +410,7 @@ describe('ChatSessionContentProvider', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Folder Option Tests
 
 	describe('folder option - single-root workspace', () => {
 		it('does NOT include folder option group for single-root workspace', async () => {
@@ -527,7 +486,6 @@ describe('ChatSessionContentProvider', () => {
 			const sessionUri = createClaudeSessionUri('test-session');
 			const result = await multiRootProvider.provideChatSessionContent(sessionUri, CancellationToken.None);
 
-			// Without input state context, options should be empty
 			expect(result.options).toEqual({});
 		});
 
@@ -557,14 +515,12 @@ describe('ChatSessionContentProvider', () => {
 		});
 
 		it('locked folder option preserves the selected folder, not the first one', async () => {
-			// Set folderB as the session's folder via sessionStateService
 			const sessionStateService = multiRootAccessor.get(IClaudeSessionStateService);
 			sessionStateService.setFolderInfoForSession('pre-created-session', {
 				cwd: folderB.fsPath,
 				additionalDirectories: [folderA.fsPath],
 			});
 
-			// Now load the same session as an existing session
 			const session = {
 				id: 'pre-created-session',
 				messages: [{
@@ -580,7 +536,6 @@ describe('ChatSessionContentProvider', () => {
 			const folderGroup = getGroup(state, 'folder');
 			expect(folderGroup).toBeDefined();
 			expect(folderGroup!.selected?.locked).toBe(true);
-			// Should show folder B (the selected folder), not folder A (the first)
 			expect(folderGroup!.selected?.id).toBe(folderB.fsPath);
 		});
 	});
@@ -658,11 +613,8 @@ describe('ChatSessionContentProvider', () => {
 		});
 	});
 
-	// #endregion
 
-	// #endregion
 
-	// #region Initial Session Options
 
 	describe('initial session options on new sessions', () => {
 		let mockAgentManager: ClaudeAgentManager;
@@ -847,9 +799,7 @@ describe('ChatSessionContentProvider', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region isNewSession Handling
 
 	describe('isNewSession determination via session service', () => {
 		let mockAgentManager: ClaudeAgentManager;
@@ -926,12 +876,10 @@ describe('ChatSessionContentProvider', () => {
 			const handler = handlerProvider.createHandler();
 			const stream = new MockChatResponseStream();
 
-			// First request: no session on disk yet → new session
 			vi.mocked(mockSessionService.getSession).mockResolvedValue(undefined);
 			const firstContext = createChatContext('real-uuid-123');
 			await handler(createTestRequest('first'), firstContext, stream, CancellationToken.None);
 
-			// Second request: session now exists on disk → resumed
 			vi.mocked(mockSessionService.getSession).mockResolvedValue({
 				id: 'real-uuid-123',
 				messages: [{ type: 'user', message: { role: 'user', content: 'first' } }],
@@ -946,9 +894,7 @@ describe('ChatSessionContentProvider', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Handler Integration
 
 	describe('handler integration', () => {
 		let mockAgentManager: ClaudeAgentManager;
@@ -1054,7 +1000,6 @@ describe('ChatSessionContentProvider', () => {
 
 			const result = await handler(new TestChatRequest('/test'), context, stream, CancellationToken.None);
 
-			// Slash command handled → no agent call
 			expect(vi.mocked(mockAgentManager.handleRequest)).not.toHaveBeenCalled();
 			expect(result).toEqual({ metadata: { command: '/test' } });
 		});
@@ -1142,24 +1087,13 @@ describe('ChatSessionContentProvider', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Observable pipeline reactivity
 
-	/**
-	 * These tests drive the input-state observable pipeline end-to-end via the
-	 * external signals it observes (config change, workspace folder change,
-	 * session-state change, session start) and assert the resulting
-	 * `state.groups` reflect each event. This is the "series of events" testing
-	 * the observable refactor was designed to enable.
-	 */
 	describe('observable pipeline reactivity', () => {
 		const folderA = URI.file('/project-a');
 		const folderB = URI.file('/project-b');
 
 		async function flushMicrotasks(): Promise<void> {
-			// Autoruns that schedule async work (e.g. MRU fetch when workspace goes empty)
-			// settle on the microtask queue. Two ticks covers chained thenables.
 			await Promise.resolve();
 			await Promise.resolve();
 		}
@@ -1192,18 +1126,15 @@ describe('ChatSessionContentProvider', () => {
 			expect(folderGroup).toBeDefined();
 			expect(folderGroup!.items.map(i => i.id)).toEqual([folderA.fsPath, folderB.fsPath]);
 
-			// Add a third folder
 			const folderC = URI.file('/project-c');
 			mutableWs.setFolders([folderA, folderB, folderC]);
 			folderGroup = getGroup(state, 'folder');
 			expect(folderGroup!.items.map(i => i.id)).toEqual([folderA.fsPath, folderB.fsPath, folderC.fsPath]);
 
-			// Transition to a single folder → group hides
 			mutableWs.setFolders([folderA]);
 			folderGroup = getGroup(state, 'folder');
 			expect(folderGroup).toBeUndefined();
 
-			// Back to multi-root
 			mutableWs.setFolders([folderA, folderB]);
 			folderGroup = getGroup(state, 'folder');
 			expect(folderGroup!.items.map(i => i.id)).toEqual([folderA.fsPath, folderB.fsPath]);
@@ -1232,7 +1163,6 @@ describe('ChatSessionContentProvider', () => {
 			const { accessor: localAccessor } = createProviderWithServices(store, [workspaceFolderUri], mocks);
 			const sessionStateService = localAccessor.get(IClaudeSessionStateService);
 
-			// Mark as existing so the pipeline wires up the external permission autorun
 			const existingSession = { id: 'external-session', messages: [], subagents: [] };
 			vi.mocked(mocks.mockSessionService.getSession).mockResolvedValue(existingSession as any);
 
@@ -1272,12 +1202,9 @@ describe('ChatSessionContentProvider', () => {
 			const sessionUri = createClaudeSessionUri('prev-state-session');
 			const firstState = await getInputState(sessionUri);
 
-			// Simulate getChatSessionInputState being called again with previousInputState
-			// (e.g. user refocuses the chat window). The pipeline is rebuilt from scratch.
 			const restoredState = await getInputState(sessionUri, firstState);
 			expect(getGroup(restoredState, 'permissionMode')!.selected?.id).not.toBe('plan');
 
-			// Permission mode changes externally (e.g. EnterPlanMode tool call)
 			sessionStateService.setPermissionModeForSession('prev-state-session', 'plan');
 			expect(getGroup(restoredState, 'permissionMode')!.selected?.id).toBe('plan');
 
@@ -1289,13 +1216,11 @@ describe('ChatSessionContentProvider', () => {
 			const mocks = createDefaultMocks();
 			createProviderWithServices(store, [folderA, folderB], mocks);
 
-			// New session (no sessionResource) — folder is unlocked
 			const newState = await getInputState();
 			let folderGroup = getGroup(newState, 'folder')!;
 			expect(folderGroup.items.every(i => !i.locked)).toBe(true);
 			expect(folderGroup.selected?.locked).toBeUndefined();
 
-			// Existing session (sessionResource provided) — folder is locked
 			vi.mocked(mocks.mockSessionService.getSession).mockResolvedValue({
 				id: 'started-session',
 				messages: [{ type: 'user', message: { role: 'user', content: 'Hello' } }],
@@ -1314,10 +1239,8 @@ describe('ChatSessionContentProvider', () => {
 			const mutableWs = new MutableWorkspaceService([folderA, folderB]);
 			createProviderWithServices(store, [], mocks, undefined, mutableWs);
 
-			// First state — mark it as started to get locked items
 			const initialState = await getInputState();
 			const initialGroup = getGroup(initialState, 'folder')!;
-			// Synthesize a locked previousInputState (matching what a started session looks like)
 			const lockedGroups: vscode.ChatSessionProviderOptionGroup[] = initialState.groups.map(g =>
 				g.id === 'folder'
 					? {
@@ -1333,15 +1256,12 @@ describe('ChatSessionContentProvider', () => {
 				onDidChange: Event.None,
 				onDidDispose: Event.None,
 			};
-			// sanity check
 			expect(initialGroup.items.map(i => i.id)).toEqual([folderA.fsPath, folderB.fsPath]);
 
-			// Restore from the locked previous state
 			const restoredState = await getInputState(undefined, lockedPrevious);
 			let restoredGroup = getGroup(restoredState, 'folder')!;
 			expect(restoredGroup.items.every(i => i.locked === true)).toBe(true);
 
-			// Now workspace folders change — lock must persist
 			const folderC = URI.file('/project-c');
 			mutableWs.setFolders([folderA, folderB, folderC]);
 			restoredGroup = getGroup(restoredState, 'folder')!;
@@ -1350,15 +1270,9 @@ describe('ChatSessionContentProvider', () => {
 		});
 	});
 
-	// #endregion
 });
 
-// #region FakeGitService
 
-/**
- * A git service mock with event emitters that can be fired in tests.
- * Unlike MockGitService, this supports onDidOpenRepository event firing.
- */
 class FakeGitService extends mock<IGitService>() {
 	private readonly _onDidOpenRepository = new Emitter<RepoContext>();
 	override readonly onDidOpenRepository = this._onDidOpenRepository.event;
@@ -1386,9 +1300,7 @@ class FakeGitService extends mock<IGitService>() {
 	}
 }
 
-// #endregion
 
-// #region Test helpers
 
 function buildRepoContext(overrides: {
 	rootUri?: URI;
@@ -1451,7 +1363,6 @@ function buildDiskSession(id: string, overrides: Partial<IClaudeCodeSessionInfo>
 	} as IClaudeCodeSessionInfo;
 }
 
-// #endregion
 
 describe('ClaudeChatSessionItemController', () => {
 	const store = new DisposableStore();
@@ -1513,7 +1424,6 @@ describe('ClaudeChatSessionItemController', () => {
 		store.clear();
 	});
 
-	// #region updateItemStatus
 
 	describe('updateItemStatus', () => {
 		beforeEach(() => {
@@ -1682,9 +1592,7 @@ describe('ClaudeChatSessionItemController', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Session item properties
 
 	describe('session item properties', () => {
 		beforeEach(() => {
@@ -1730,7 +1638,6 @@ describe('ClaudeChatSessionItemController', () => {
 			const item = getItem('disk-session');
 			expect(item!.label).toBe('Disk Label');
 			expect(item!.tooltip).toBe('Claude Code session: Disk Label');
-			// timing.created is derived from created
 			expect(item!.timing!.created).toBe(new Date('2024-06-01T12:00:00Z').getTime());
 		});
 
@@ -1786,9 +1693,7 @@ describe('ClaudeChatSessionItemController', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Badge visibility
 
 	describe('badge visibility', () => {
 		it('does not show badge in single-root workspace with zero repos', async () => {
@@ -1872,7 +1777,6 @@ describe('ClaudeChatSessionItemController', () => {
 			await controller.updateItemStatus('test', ChatSessionStatus.InProgress, 'hello');
 
 			const item = getItem('test');
-			// No disk session → no folderName → no badge even though multi-root
 			expect(item!.badge).toBeUndefined();
 		});
 
@@ -1938,14 +1842,11 @@ describe('ClaudeChatSessionItemController', () => {
 			await controller.updateItemStatus('test', ChatSessionStatus.InProgress, 'hello');
 
 			const item = getItem('test');
-			// Only 1 non-worktree repo → no badge
 			expect(item!.badge).toBeUndefined();
 		});
 	});
 
-	// #endregion
 
-	// #region Git event refresh
 
 	describe('git event refresh', () => {
 		it('recomputes badge when a repository opens', async () => {
@@ -1961,17 +1862,14 @@ describe('ClaudeChatSessionItemController', () => {
 			vi.mocked(mockSessionService.getSession).mockResolvedValue(sessionInfo as any);
 			vi.mocked(mockSessionService.getAllSessions).mockResolvedValue([sessionInfo]);
 
-			// Initially no repos → single-root with 0 repos, _computeShowBadge returns false
 			await controller.updateItemStatus('test', ChatSessionStatus.Completed, 'hello');
 			expect(getItem('test')!.badge).toBeUndefined();
 
-			// Now simulate two repos opening (monorepo scenario)
 			const repo1 = { rootUri: URI.file('/project/r1'), kind: 'repository' } as unknown as RepoContext;
 			const repo2 = { rootUri: URI.file('/project/r2'), kind: 'repository' } as unknown as RepoContext;
 			fakeGit.repositories = [repo1, repo2];
 			fakeGit.fireOpenRepository(repo2);
 
-			// Flush microtask queue so the async _refreshItems completes.
 			await new Promise(r => setTimeout(r, 0));
 
 			const refreshedItem = getItem('test');
@@ -1998,11 +1896,9 @@ describe('ClaudeChatSessionItemController', () => {
 			await controller.updateItemStatus('test', ChatSessionStatus.Completed, 'hello');
 			expect(getItem('test')!.badge).toBeDefined();
 
-			// Close one repo → single non-worktree repo → badge should disappear
 			fakeGit.repositories = [repo1];
 			fakeGit.fireCloseRepository(repo2);
 
-			// Flush microtask queue so the async _refreshItems completes.
 			await new Promise(r => setTimeout(r, 0));
 
 			const refreshedItem = getItem('test');
@@ -2028,7 +1924,6 @@ describe('ClaudeChatSessionItemController', () => {
 			expect(itemBeforeRefresh).toBeDefined();
 			expect(itemBeforeRefresh!.status).toBe(ChatSessionStatus.InProgress);
 
-			// Trigger a refresh via git event
 			const repo1 = { rootUri: URI.file('/project/r1'), kind: 'repository' } as unknown as RepoContext;
 			fakeGit.repositories = [repo1];
 			fakeGit.fireOpenRepository(repo1);
@@ -2041,11 +1936,8 @@ describe('ClaudeChatSessionItemController', () => {
 		});
 	});
 
-	// #endregion
 
-	// #endregion
 
-	// #region forkHandler
 
 	describe('forkHandler', () => {
 		beforeEach(() => {
@@ -2090,7 +1982,6 @@ describe('ClaudeChatSessionItemController', () => {
 				label: 'Original',
 			});
 
-			// Seed the parent session with non-default state
 			const sessionStateService = lastControllerAccessor.get(IClaudeSessionStateService);
 			sessionStateService.setPermissionModeForSession('sess-1', 'plan');
 			sessionStateService.setFolderInfoForSession('sess-1', {
@@ -2171,9 +2062,7 @@ describe('ClaudeChatSessionItemController', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Session metadata enrichment
 
 	describe('session metadata enrichment', () => {
 		it('includes enriched git metadata when repository exists', async () => {
@@ -2297,9 +2186,7 @@ describe('ClaudeChatSessionItemController', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Command handlers
 
 	describe('command handlers', () => {
 		it('commit command sends /commit prompt to the session', async () => {
@@ -2396,9 +2283,7 @@ describe('ClaudeChatSessionItemController', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region SDK install listener
 
 	describe('SDK install listener', () => {
 		it('does not refresh items when the SDK is already available and onDidChange fires', () => {
@@ -2442,7 +2327,6 @@ describe('ClaudeChatSessionItemController', () => {
 		});
 	});
 
-	// #endregion
 });
 
 function createClaudeSessionUri(id: string): URI {

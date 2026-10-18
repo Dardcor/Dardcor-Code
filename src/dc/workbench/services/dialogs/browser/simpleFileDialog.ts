@@ -131,12 +131,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 	private remoteAgentEnvironment: IRemoteAgentEnvironment | null | undefined;
 	private separator: string = '/';
 
-	/**
-	 * When set, the dialog is scoped to a specific URI authority (e.g.
-	 * for browsing an `agenthost://{authority}/...` filesystem that
-	 * uses per-connection authorities rather than the global
-	 * {@link remoteAuthority}).
-	 */
 	private scopedAuthority: string | undefined;
 	private readonly onBusyChangeEmitter = this._register(new Emitter<boolean>());
 	private updatingPromise: CancelablePromise<boolean> | undefined;
@@ -261,18 +255,12 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 		if (!path.startsWith('\\\\')) {
 			path = path.replace(/\\/g, '/');
 		}
-		// When scoped to a specific authority (e.g. agenthost://host/...),
-		// construct the URI directly with the authority to avoid
-		// toLocalResource stripping or replacing it.
 		if (this.scopedAuthority) {
 			return URI.from({ scheme: this.scheme, authority: this.scopedAuthority, path, query: hintUri?.query, fragment: hintUri?.fragment });
 		}
 		const uri: URI = this.scheme === Schemas.file ? URI.file(path) : URI.from({ scheme: this.scheme, path, query: hintUri?.query, fragment: hintUri?.fragment });
-		// If the default scheme is file, then we don't care about the remote authority or the hint authority
 		const authority = (uri.scheme === Schemas.file) ? undefined : (this.remoteAuthority ?? hintUri?.authority);
 		return resources.toLocalResource(uri, authority,
-			// If there is a remote authority, then we should use the system's default URI as the local scheme.
-			// If there is *no* remote authority, then we should use the default scheme for this dialog as that is already local.
 			authority ? this.pathService.defaultUriScheme : uri.scheme);
 	}
 
@@ -288,14 +276,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 		return Schemas.file;
 	}
 
-	/**
-	 * Returns the per-URI authority from {@link defaultUri} if the dialog
-	 * should be scoped to a specific authority (e.g. `agenthost://host/...`).
-	 *
-	 * Returns `undefined` when the authority matches the global
-	 * {@link remoteAuthority} (standard SSH remotes), since that path is
-	 * already handled by the existing logic.
-	 */
 	private getScopedAuthority(defaultUri: URI | undefined): string | undefined {
 		if (defaultUri
 			&& defaultUri.scheme === this.scheme
@@ -314,9 +294,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 	}
 
 	protected getUserHome(trueHome = false): Promise<URI> {
-		// When scoped to a custom authority, the platform userHome is not
-		// meaningful (it would return a local file:// path). Use the root
-		// of the scoped filesystem as the home directory instead.
 		if (this.scopedAuthority) {
 			return Promise.resolve(URI.from({ scheme: this.scheme, authority: this.scopedAuthority, path: '/' }));
 		}
@@ -326,8 +303,7 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 	}
 
 	private normalizeUri(uri: URI): URI {
-		uri = resources.addTrailingPathSeparator(uri, this.separator); // Ensures that c: is c:/ since this comes from user input and can be incorrect.
-		// To be consistent, we should never have a trailing path separator on directories (or anything else). Will not remove from c:/.
+		uri = resources.addTrailingPathSeparator(uri, this.separator);
 		uri = resources.removeTrailingPathSeparator(uri);
 		return uri;
 	}
@@ -345,7 +321,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 			try {
 				stat = await this.fileService.stat(this.options.defaultUri);
 			} catch (e) {
-				// The file or folder doesn't exist
 			}
 			if (!stat || !stat.isDirectory) {
 				homedir = resources.dirname(this.options.defaultUri);
@@ -434,7 +409,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 			const busyDisposable = this._register(new MutableDisposable());
 			const handleAccept = () => {
 				if (this.busy) {
-					// Save the accept until the file picker is not busy.
 					busyDisposable.value = this.onBusyChangeEmitter.event((busy: boolean) => {
 						if (!busy) {
 							handleAccept();
@@ -466,7 +440,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 
 			this._register(this.filePickBox.onDidChangeActive(i => {
 				isAcceptHandled = false;
-				// update input box to match the first selected item
 				if ((i.length === 1) && this.isSelectionChangeFromUser()) {
 					this.filePickBox.validationMessage = undefined;
 					const userPath = this.constructFullUserPath();
@@ -504,9 +477,7 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 
 	private async handleValueChange(value: string) {
 		try {
-			// onDidChangeValue can also be triggered by the auto complete, so if it looks like the auto complete, don't do anything
 			if (this.isValueChangeFromUser()) {
-				// If the user has just entered more bad path, don't change anything
 				if (!equalsIgnoreCase(value, this.constructFullUserPath()) && (!this.isBadSubpath(value) || this.canTildaEscapeHatch(value))) {
 					this.filePickBox.validationMessage = undefined;
 					const filePickBoxUri = this.filePickBoxValue();
@@ -526,7 +497,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 				}
 			}
 		} catch {
-			// Since any text can be entered in the input box, there is potential for error causing input. If this happens, do nothing.
 		}
 	}
 
@@ -570,7 +540,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 	}
 
 	private filePickBoxValue(): URI {
-		// The file pick box can't render everything, so we use the current folder to create the uri so that it is an existing path.
 		const directUri = this.remoteUriFrom(this.filePickBox.value.trimRight(), this.currentFolder);
 		const currentPath = this.pathFromUri(this.currentFolder);
 		if (equalsIgnoreCase(this.filePickBox.value, currentPath)) {
@@ -599,8 +568,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 				if (this.trailing) {
 					await this.updateItems(item.uri, true, this.trailing);
 				} else {
-					// When possible, cause the update to happen by modifying the input box.
-					// This allows all input box updates to happen first, and uses the same code path as the user typing.
 					const newPath = this.pathFromUri(item.uri);
 					if (startsWithIgnoreCase(newPath, this.filePickBox.value) && (equalsIgnoreCase(item.label, resources.basename(item.uri)))) {
 						this.filePickBox.valueSelection = [this.pathFromUri(this.currentFolder).length, this.filePickBox.value.length];
@@ -616,7 +583,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 				return;
 			}
 		} else if (!this.updatingPromise) {
-			// If the items have updated, don't try to resolve
 			if ((await this.tryUpdateItems(this.filePickBox.value, this.filePickBoxValue())) !== UpdateResult.NotUpdated) {
 				this.filePickBox.busy = false;
 				return;
@@ -624,7 +590,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 		}
 
 		let resolveValue: URI | undefined;
-		// Find resolve value
 		if (this.filePickBox.activeItems.length === 0) {
 			resolveValue = this.filePickBoxValue();
 		} else if (this.filePickBox.activeItems.length === 1) {
@@ -667,7 +632,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 
 	private tryAddTrailingSeparatorToDirectory(uri: URI, stat: IFileStatWithPartialMetadata): URI {
 		if (stat.isDirectory) {
-			// At this point we know it's a directory and can add the trailing path separator
 			if (!this.endsWithSlash(uri.path)) {
 				return resources.addTrailingPathSeparator(uri);
 			}
@@ -693,16 +657,12 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 				try {
 					stat = await this.fileService.stat(valueUri);
 				} catch (e) {
-					// do nothing
 				}
 				if (stat?.isDirectory && (resources.basename(valueUri) !== '.') && this.endsWithSlash(value)) {
 					valueUri = this.tryAddTrailingSeparatorToDirectory(valueUri, stat);
 					return await this.updateItems(valueUri) ? UpdateResult.UpdatedWithTrailing : UpdateResult.Updated;
 				} else if (this.endsWithSlash(value)) {
-					// The input box contains a path that doesn't exist on the system.
 					this.filePickBox.validationMessage = nls.localize('remoteFileDialog.badPath', 'The path does not exist. Use ~ to go to your home directory.');
-					// Save this bad path. It can take too long to a stat on every user entered character, but once a user enters a bad path they are likely
-					// to keep typing more bad path. We can compare against this bad path and see if the user entered path starts with it.
 					this.badPath = value;
 					return UpdateResult.InvalidPath;
 				} else {
@@ -716,7 +676,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 						try {
 							statWithoutTrailing = await this.fileService.stat(inputUriDirname);
 						} catch (e) {
-							// do nothing
 						}
 						if (statWithoutTrailing?.isDirectory) {
 							this.badPath = undefined;
@@ -743,7 +702,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 		const asUri = this.remoteUriFrom(value);
 		const inputBasename = resources.basename(asUri);
 		const userPath = this.constructFullUserPath();
-		// Make sure that the folder whose children we are currently viewing matches the path in the input
 		const pathsEqual = equalsIgnoreCase(userPath, value.substring(0, userPath.length)) ||
 			equalsIgnoreCase(value, userPath.substring(0, value.length));
 		if (pathsEqual) {
@@ -772,27 +730,22 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 
 	private setAutoComplete(startingValue: string, startingBasename: string, quickPickItem: FileQuickPickItem, force: boolean = false): boolean {
 		if (this.busy) {
-			// We're in the middle of something else. Doing an auto complete now can result jumbled or incorrect autocompletes.
 			this.userEnteredPathSegment = startingBasename;
 			this.autoCompletePathSegment = '';
 			return false;
 		}
 		const itemBasename = quickPickItem.label;
-		// Either force the autocomplete, or the old value should be one smaller than the new value and match the new value.
 		if (itemBasename === '..') {
-			// Don't match on the up directory item ever.
 			this.userEnteredPathSegment = '';
 			this.autoCompletePathSegment = '';
 			this.activeItem = quickPickItem;
 			if (force) {
-				// clear any selected text
 				getActiveDocument().execCommand('insertText', false, '');
 			}
 			return false;
 		} else if (!force && (itemBasename.length >= startingBasename.length) && equalsIgnoreCase(itemBasename.substr(0, startingBasename.length), startingBasename)) {
 			this.userEnteredPathSegment = startingBasename;
 			this.activeItem = quickPickItem;
-			// Changing the active items will trigger the onDidActiveItemsChanged. Clear the autocomplete first, then set it after.
 			this.autoCompletePathSegment = '';
 			if (quickPickItem.isFolder || !this.trailing) {
 				this.filePickBox.activeItems = [quickPickItem];
@@ -808,7 +761,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 			this.activeItem = quickPickItem;
 			if (!this.accessibilityService.isScreenReaderOptimized()) {
 				this.filePickBox.valueSelection = [this.pathFromUri(this.currentFolder, true).length, this.filePickBox.value.length];
-				// use insert text to preserve undo buffer
 				this.insertText(this.pathAppend(this.currentFolder, this.autoCompletePathSegment), this.autoCompletePathSegment);
 				this.filePickBox.valueSelection = [this.filePickBox.value.length - this.autoCompletePathSegment.length, this.filePickBox.value.length];
 			}
@@ -836,7 +788,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 	private addPostfix(uri: URI): URI {
 		let result = uri;
 		if (this.requiresTrailing && this.options.filters && this.options.filters.length > 0 && !resources.hasTrailingPathSeparator(uri)) {
-			// Make sure that the suffix is added. If the user deleted it, we automatically add it here
 			let hasExt: boolean = false;
 			const currentExt = resources.extname(uri).substr(1);
 			for (let i = 0; i < this.options.filters.length; i++) {
@@ -886,9 +837,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 				if (!isResolving) {
 					resolve(false);
 					this.filePickBox.show();
-					// The quick pick UI's list is shared between quick picks, so showing the
-					// yes/no prompt above replaced the items in the underlying list. Re-assign
-					// the items so they are rendered again when the file picker is shown.
 					const currentItems = this.filePickBox.items;
 					this.filePickBox.items = currentItems;
 				}
@@ -917,25 +865,19 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 			statDirname = await this.fileService.stat(resources.dirname(uri));
 			stat = await this.fileService.stat(uri);
 		} catch (e) {
-			// do nothing
 		}
 
-		if (this.requiresTrailing) { // save
+		if (this.requiresTrailing) {
 			if (stat?.isDirectory) {
-				// Can't do this
 				this.filePickBox.validationMessage = nls.localize('remoteFileDialog.validateFolder', 'The folder already exists. Please use a new file name.');
 				return false;
 			} else if (stat) {
-				// Replacing a file.
-				// Show a yes/no prompt
 				const message = nls.localize('remoteFileDialog.validateExisting', '{0} already exists. Are you sure you want to overwrite it?', resources.basename(uri));
 				return this.yesNoPrompt(uri, message);
 			} else if (!(isValidBasename(resources.basename(uri), this.isWindows))) {
-				// Filename not allowed
 				this.filePickBox.validationMessage = nls.localize('remoteFileDialog.validateBadFilename', 'Please enter a valid file name.');
 				return false;
 			} else if (!statDirname) {
-				// Folder to save in doesn't exist
 				const message = nls.localize('remoteFileDialog.validateCreateDirectory', 'The folder {0} does not exist. Would you like to create it?', resources.basename(resources.dirname(uri)));
 				return this.yesNoPrompt(uri, message);
 			} else if (!statDirname.isDirectory) {
@@ -945,9 +887,8 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 				this.filePickBox.validationMessage = nls.localize('remoteFileDialog.validateReadonlyFolder', 'This folder cannot be used as a save destination. Please choose another folder');
 				return false;
 			}
-		} else { // open
+		} else {
 			if (!stat) {
-				// For a folder-only picker, offer to create the folder if a writable ancestor exists.
 				if (this.allowFolderSelection && !this.allowFileSelection
 					&& await this.canCreateFolder(uri, statDirname)) {
 					const message = nls.localize('remoteFileDialog.validateCreateDirectoryOpen', 'The folder {0} does not exist. Would you like to create it?', resources.basename(uri));
@@ -963,18 +904,15 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 						return false;
 					}
 				}
-				// File or folder doesn't exist
 				this.filePickBox.validationMessage = nls.localize('remoteFileDialog.validateNonexistentDir', 'Please enter a path that exists.');
 				return false;
 			} else if (uri.path === '/' && this.isWindows) {
 				this.filePickBox.validationMessage = nls.localize('remoteFileDialog.windowsDriveLetter', 'Please start the path with a drive letter.');
 				return false;
 			} else if (stat.isDirectory && !this.allowFolderSelection) {
-				// Folder selected when folder selection not permitted
 				this.filePickBox.validationMessage = nls.localize('remoteFileDialog.validateFileOnly', 'Please select a file.');
 				return false;
 			} else if (!stat.isDirectory && !this.allowFileSelection) {
-				// File selected when file selection not permitted
 				this.filePickBox.validationMessage = nls.localize('remoteFileDialog.validateFolderOnly', 'Please select a folder.');
 				return false;
 			}
@@ -1008,7 +946,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 		}
 	}
 
-	// Returns true if there is a file at the end of the URI.
 	private async updateItems(newFolder: URI, force: boolean = false, trailing?: string): Promise<boolean> {
 		this.busy = true;
 		this.autoCompletePathSegment = '';
@@ -1028,7 +965,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 					result = true;
 				}
 			} catch (e) {
-				// The file/directory doesn't exist
 			}
 			const newValue = trailing ? this.pathAppend(newFolder, trailing) : this.pathFromUri(newFolder, true);
 			const currentFolder = this.endsWithSlash(newFolder.path) ? newFolder : resources.addTrailingPathSeparator(newFolder, this.separator);
@@ -1045,16 +981,13 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 				this.filePickBox.itemActivation = ItemActivation.NONE;
 				this.filePickBox.items = items;
 
-				// the user might have continued typing while we were updating. Only update the input box if it doesn't match the directory.
 				if (!equalsIgnoreCase(this.filePickBox.value, newValue) && (force || wasDotDot)) {
 					this.filePickBox.valueSelection = [0, this.filePickBox.value.length];
 					this.insertText(newValue, newValue);
 				}
 				if (force && trailing && isSave) {
-					// Keep the cursor position in front of the save as name.
 					this.filePickBox.valueSelection = [this.filePickBox.value.length - trailing.length, this.filePickBox.value.length - trailing.length];
 				} else if (!trailing) {
-					// If there is trailing, we don't move the cursor. If there is no trailing, cursor goes at the end.
 					this.filePickBox.valueSelection = [this.filePickBox.value.length, this.filePickBox.value.length];
 				}
 				this.busy = false;
@@ -1072,8 +1005,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 	}
 
 	private pathFromUri(uri: URI, endWithSeparator: boolean = false): string {
-		// For authority-scoped schemes, use the raw path component instead
-		// of fsPath, which would prepend the authority as a UNC prefix.
 		let result: string;
 		if (this.scopedAuthority) {
 			result = uri.path.replace(/\n/g, '');
@@ -1120,8 +1051,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 	}
 
 	private async createBackItem(currFolder: URI): Promise<FileQuickPickItem | undefined> {
-		// For authority-scoped URIs, compare within the original scheme so
-		// that the authority is preserved and the root is detected correctly.
 		const compareScheme = this.scopedAuthority ? this.scheme : Schemas.file;
 		const compareAuthority = this.scopedAuthority ?? '';
 		const fileRepresentationCurr = currFolder.with({ scheme: compareScheme, authority: compareAuthority });
@@ -1151,7 +1080,6 @@ export class SimpleFileDialog extends Disposable implements ISimpleFileDialog {
 				}
 			}
 		} catch (e) {
-			// ignore
 			console.log(e);
 		}
 		if (token.isCancellationRequested) {

@@ -15,7 +15,6 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { Schemas } from '../../../../base/common/network.js';
 import { ResourceContextKey } from '../../../common/contextkeys.js';
 
-//#region Delete
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -41,4 +40,3 @@ registerAction2(class extends Action2 {
 	}
 });
 
-//#endregion

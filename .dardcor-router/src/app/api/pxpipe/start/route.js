@@ -7,8 +7,6 @@ import { getPxpipeStatus } from "@/lib/pxpipe/service.js";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-// "Start" in library mode = warm the in-process transform module.
-// Auto-installs first when the package is missing and pxpipeAutoInstall is on.
 export async function POST() {
   try {
     if (!getInstallInfo().installed) {

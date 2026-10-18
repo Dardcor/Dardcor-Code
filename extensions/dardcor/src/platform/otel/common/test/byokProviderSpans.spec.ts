@@ -9,14 +9,6 @@ import { emitInferenceDetailsEvent } from '../genAiEvents';
 import { SpanKind, SpanStatusCode } from '../otelService';
 import { CapturingOTelService } from './capturingOTelService';
 
-/**
- * Tests BYOK-style span emission patterns — verifying that chat spans
- * are created with correct kind, attributes, status codes, and that
- * content capture is properly gated on config.captureContent.
- *
- * These validate the instrumentation patterns used in anthropicProvider,
- * geminiNativeProvider, and chatMLFetcher.
- */
 describe('BYOK Provider Span Emission', () => {
 	it('creates chat span with CLIENT kind and model attributes', () => {
 		const otel = new CapturingOTelService();
@@ -76,7 +68,6 @@ describe('BYOK Provider Span Emission', () => {
 	it('does NOT capture content when captureContent is false', () => {
 		const otel = new CapturingOTelService({ captureContent: false });
 
-		// Simulate the input capture gating pattern used in BYOK providers
 		const span = otel.startSpan('chat gpt-4o', { kind: SpanKind.CLIENT, attributes: {} });
 		if (otel.config.captureContent) {
 			span.setAttribute(GenAiAttr.INPUT_MESSAGES, 'should not appear');

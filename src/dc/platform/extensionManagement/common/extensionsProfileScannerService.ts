@@ -30,14 +30,8 @@ interface IStoredProfileExtension {
 
 export const enum ExtensionsProfileScanningErrorCode {
 
-	/**
-	 * Error when trying to scan extensions from a profile that does not exist.
-	 */
 	ERROR_PROFILE_NOT_FOUND = 'ERROR_PROFILE_NOT_FOUND',
 
-	/**
-	 * Error when profile file is invalid.
-	 */
 	ERROR_INVALID_CONTENT = 'ERROR_INVALID_CONTENT',
 
 }
@@ -129,7 +123,6 @@ export abstract class AbstractExtensionsProfileScannerService extends Disposable
 				} else {
 					for (const existing of existingExtensions) {
 						if (extensions.some(([e]) => areSameExtensions(e.identifier, existing.identifier) && e.manifest.version !== existing.version)) {
-							// Remove the existing extension with different version
 							extensionsToRemove.push(existing);
 						} else {
 							result.push(existing);
@@ -223,7 +216,6 @@ export abstract class AbstractExtensionsProfileScannerService extends Disposable
 		return this.getResourceAccessQueue(file).queue(async () => {
 			let extensions: IScannedProfileExtension[] = [];
 
-			// Read
 			let storedProfileExtensions: IStoredProfileExtension[] | undefined;
 			try {
 				const content = await this.fileService.readFile(file);
@@ -232,7 +224,6 @@ export abstract class AbstractExtensionsProfileScannerService extends Disposable
 				if (toFileOperationResult(error) !== FileOperationResult.FILE_NOT_FOUND) {
 					throw error;
 				}
-				// migrate from old location, remove this after couple of releases
 				if (this.uriIdentityService.extUri.isEqual(file, this.userDataProfilesService.defaultProfile.extensionsResource)) {
 					storedProfileExtensions = await this.migrateFromOldDefaultProfileExtensionsLocation();
 				}
@@ -244,7 +235,6 @@ export abstract class AbstractExtensionsProfileScannerService extends Disposable
 				if (!Array.isArray(storedProfileExtensions)) {
 					this.throwInvalidConentError(file);
 				}
-				// TODO @sandy081: Remove this migration after couple of releases
 				let migrate = false;
 				for (const e of storedProfileExtensions) {
 					if (!isStoredProfileExtension(e)) {
@@ -252,7 +242,6 @@ export abstract class AbstractExtensionsProfileScannerService extends Disposable
 					}
 					let location: URI;
 					if (isString(e.relativeLocation) && e.relativeLocation) {
-						// Extension in new format. No migration needed.
 						location = this.resolveExtensionLocation(e.relativeLocation);
 					} else if (isString(e.location)) {
 						this.logService.warn(`Extensions profile: Ignoring extension with invalid location: ${e.location}`);
@@ -261,7 +250,6 @@ export abstract class AbstractExtensionsProfileScannerService extends Disposable
 						location = URI.revive(e.location);
 						const relativePath = this.toRelativePath(location);
 						if (relativePath) {
-							// Extension in old format. Migrate to new format.
 							migrate = true;
 							e.relativeLocation = relativePath;
 						}
@@ -283,13 +271,11 @@ export abstract class AbstractExtensionsProfileScannerService extends Disposable
 				}
 			}
 
-			// Update
 			if (updateFn) {
 				extensions = updateFn(extensions);
 				const storedProfileExtensions: IStoredProfileExtension[] = extensions.map(e => ({
 					identifier: e.identifier,
 					version: e.version,
-					// retain old format so that old clients can read it
 					location: e.location.toJSON(),
 					relativeLocation: this.toRelativePath(e.location),
 					metadata: e.metadata
@@ -341,7 +327,6 @@ export abstract class AbstractExtensionsProfileScannerService extends Disposable
 						this.logService.warn('Skipping migrating from old default profile locaiton: Found invalid data', parsedData);
 					}
 				} catch (error) {
-					/* Ignore */
 					this.logService.error(error);
 				}
 

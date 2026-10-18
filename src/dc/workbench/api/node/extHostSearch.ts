@@ -23,7 +23,7 @@ import type * as vscode from 'vscode';
 
 export class NativeExtHostSearch extends ExtHostSearch implements IDisposable {
 
-	protected _pfs: typeof pfs = pfs; // allow extending for tests
+	protected _pfs: typeof pfs = pfs;
 
 	private _internalFileSearchHandle: number = -1;
 	private _internalFileSearchProvider: SearchService | null = null;

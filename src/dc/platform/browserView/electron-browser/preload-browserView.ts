@@ -6,7 +6,6 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-restricted-syntax */
 
-// Only `import type` is allowed in preload scripts — Electron preloads cannot resolve module imports at runtime.
 import type { BrowserElementSelectionMode, IBrowserElementCommentsUpdate, IBrowserElementSelectionOptions, IBrowserViewPreloadLocalizedStrings, IBrowserViewTheme, IBrowserViewRect } from '../common/browserView.js';
 
 const commentElementSelectionMode = 'comment' as BrowserElementSelectionMode;
@@ -21,28 +20,10 @@ let localizedStrings: IBrowserViewPreloadLocalizedStrings = {
 	removeElementComment: 'Remove element comment',
 };
 
-/**
- * Preload script for pages loaded in Integrated Browser
- *
- * It runs in an isolated context that Electron calls an "isolated world".
- * Specifically the isolated world with worldId 999, which shows in DevTools as "Electron Isolated Context".
- * Despite being isolated, it still runs on the same page as the JS from the actual loaded website
- * which runs on the so-called "main world" (worldId 0. In DevTools as "top").
- *
- * Learn more: see Electron docs for Security, contextBridge, and Context Isolation.
- */
 function init() {
 	const { contextBridge, ipcRenderer } = require('electron');
 
-	// #######################################################################
-	// ###                                                                 ###
-	// ###       !!! DO NOT USE GET/SET PROPERTIES ANYWHERE HERE !!!       ###
-	// ###       !!!  UNLESS THE ACCESS IS WITHOUT SIDE EFFECTS  !!!       ###
-	// ###       (https://github.com/electron/electron/issues/25516)       ###
-	// ###                                                                 ###
-	// #######################################################################
 
-	// Ctrl/Cmd keybindings that correspond to native editing shortcuts and should be handled by the browser / OS and not forwarded to the workbench.
 	const nativeCtrlCmdKeybindings = {
 		mac: {
 			always: new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'backspace', 'delete']),
@@ -56,14 +37,11 @@ function init() {
 		}
 	};
 
-	// Listen for keydown events that the page did not handle and forward them for shortcut handling.
 	window.addEventListener('keydown', (event) => {
-		// Require that the event is trusted -- i.e. user-initiated.
 		if (!(event instanceof KeyboardEvent) || !event.isTrusted) {
 			return;
 		}
 
-		// If the event was already handled by the page, do not forward it.
 		if (event.defaultPrevented) {
 			return;
 		}
@@ -73,36 +51,29 @@ function init() {
 			/^F\d+$/.test(event.key) ||
 			event.key.startsWith('Audio') || event.key.startsWith('Media') || event.key.startsWith('Browser');
 
-		// Only forward if there's a command modifier or it's a non-editing key
-		// (most plain key events should just be handled natively by the browser and not forwarded)
 		if (!(event.ctrlKey || event.altKey || event.metaKey) && !isNonEditingKey) {
 			return;
 		}
 
-		// Never handle plain modifier key presses as keybindings
 		if (event.key === 'Control' || event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta') {
 			return;
 		}
 
 		const isMac = navigator.platform.indexOf('Mac') >= 0;
 
-		// Alt+Key special character handling (Alt + Numpad keys on Windows/Linux, Alt + any key on Mac)
 		if (event.altKey && !event.ctrlKey && !event.metaKey) {
 			if (isMac || /^Numpad\d+$/.test(event.code)) {
 				return;
 			}
 		}
 
-		// Allow Shift+F10 for context menu
 		if (event.key === 'F10' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
 			return;
 		}
 
-		// Allow native shortcuts to be handled by the browser
 		const ctrlCmd = isMac ? event.metaKey : event.ctrlKey;
 		if (ctrlCmd && !event.altKey) {
 			let key = event.key.toLowerCase();
-			// Prefer remapped Latin letters, falling back to the physical key for non-Latin layouts.
 			if (!/^[a-z]$/.test(key) && /^Key[A-Z]$/.test(event.code)) {
 				key = event.code.slice(3).toLowerCase();
 			}
@@ -114,13 +85,11 @@ function init() {
 				return;
 			}
 
-			// Emoji picker on Mac
 			if (isMac && event.ctrlKey && !event.shiftKey && key === ' ') {
 				return;
 			}
 		}
 
-		// Everything else should be forwarded to the workbench for potential shortcut handling.
 		event.preventDefault();
 		event.stopPropagation();
 		ipcRenderer.send('vscode:browserView:keydown', {
@@ -183,7 +152,6 @@ function init() {
 		}
 	}, { capture: true });
 
-	// Invoked over IPC to support frames (executeJavaScriptInIsolatedWorld doesn't exist on WebFrameMain).
 	ipcRenderer.on('vscode:browserView:setTheme', (_event: unknown, theme: IBrowserViewTheme) => {
 		elementPicker.setTheme(theme);
 		areaPicker.setTheme(theme);
@@ -235,14 +203,8 @@ function init() {
 	};
 
 	const isolatedHelpers = {
-		/**
-		 * Get the currently selected text in the page.
-		 */
 		getSelectedText(): string {
 			try {
-				// Even if the page has overridden window.getSelection, our call here will still reach the original
-				// implementation. That's because Electron proxies functions, such as getSelectedText here, that are
-				// exposed to a different context via exposeInIsolatedWorld or exposeInMainWorld.
 				return window.getSelection()?.toString() ?? '';
 			} catch {
 				return '';
@@ -250,24 +212,16 @@ function init() {
 		}
 	};
 
-	// Generate a unique token for this frame instance. This token is used to
-	// correlate the Electron WebFrameMain (available via IPC senderFrame) with
-	// the CDP target session (discoverable via Runtime.evaluate in the main world).
 	const frameToken = `frame-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 	const mainWorldHelpers = {
 		getElement,
-		/** Opaque token exposed for CDP-side frame matching. */
 		getFrameToken(): string { return frameToken; }
 	};
 
 	try {
 		// Use `contextBridge` APIs to expose globals to the same isolated world where this preload script runs (worldId 999).
-		// The isolatedHelpers object will be recursively frozen (and for functions also proxied) by Electron to prevent
-		// modification within the given context.
 		contextBridge.exposeInIsolatedWorld(999, 'browserViewAPI', isolatedHelpers);
-		// Expose helpers on `window.__vscode_helpers` in the page's main world
-		// for CDP `Runtime.evaluate` (which runs against the main world) to use.
 		contextBridge.exposeInMainWorld('__vscode_helpers', mainWorldHelpers);
 	} catch (error) {
 		console.error(error);
@@ -276,12 +230,6 @@ function init() {
 	ipcRenderer.send('vscode:browserView:preloadReady', frameToken);
 }
 
-/**
- * Find the deepest element that contains every element in `candidates`.
- * Walks up `parentElement` from each candidate to build chains, then
- * returns the last shared element. Returns `undefined` if the chains
- * don't overlap (shouldn't happen for elements in the same document).
- */
 function findCommonVisibleAncestor(candidates: readonly (Node | null | undefined)[]): Element | undefined {
 	const filteredNodes = candidates.filter(c => !!c) as Node[];
 	const unique = [...new Set(filteredNodes.map(node => node instanceof Element ? node : node.parentElement).filter(e => !!e))] as Element[];
@@ -289,7 +237,6 @@ function findCommonVisibleAncestor(candidates: readonly (Node | null | undefined
 		return undefined;
 	}
 
-	// Find the nearest visible ancestor of a single element.
 	const findVisible = (el: Element): Element => {
 		for (let cur: Element | null = el; cur; cur = cur.parentElement) {
 			const width = cur instanceof HTMLElement ? cur.offsetWidth : cur.clientWidth;
@@ -305,13 +252,11 @@ function findCommonVisibleAncestor(candidates: readonly (Node | null | undefined
 		return findVisible(unique[0]);
 	}
 
-	// Build the ancestor chain for the first candidate (root → element).
 	const firstChain: Element[] = [];
 	for (let cur: Element | null = unique[0]; cur; cur = cur.parentElement) {
 		firstChain.unshift(cur);
 	}
 
-	// Reduce to chain prefix shared with every other candidate.
 	let common = firstChain;
 	for (let i = 1; i < unique.length; i++) {
 		const otherChain: Element[] = [];
@@ -359,16 +304,6 @@ type CommentAnimation = {
 	supporting: Animation[];
 };
 
-/**
- * Element-pick controller used by the "Add Element to Chat" flow.
- *
- * `start({ theme })` mounts a transparent overlay on the page that
- * highlights the element under the pointer (click) or finds the deepest
- * common ancestor of the elements covered by a click+drag rectangle. On
- * selection the picked `Element` is registered with the shared `track()`
- * helper and the host is notified with the resulting id; the overlay is
- * then torn down. `stop()` tears down without picking.
- */
 class ElementPicker {
 	private static readonly _DRAG_THRESHOLD_PX = 4;
 	private static readonly _COMMENT_PIN_SIZE = 22;
@@ -385,7 +320,6 @@ class ElementPicker {
 	private _continuous = false;
 	private _commentMode = false;
 
-	// DOM — created once in the constructor, reused across start/stop cycles.
 	private readonly _shadowHost: HTMLDivElement;
 	private readonly _commentBackdrop: SVGSVGElement;
 	private readonly _commentBackdropCutout: SVGRectElement;
@@ -409,7 +343,6 @@ class ElementPicker {
 	private readonly _pendingComments = new Map<string, PendingElementComment>();
 	private readonly _scheduledCommentPins = new Map<string, ScheduledCommentPin>();
 
-	// Interaction state (reset on stop)
 	private _dragStart: { x: number; y: number } | undefined;
 	private _dragStartTarget: Element | undefined;
 	private _highlightTarget: Element | undefined;
@@ -434,8 +367,6 @@ class ElementPicker {
 		private readonly _onCommentRemoved: (elementId: string) => void,
 		private readonly _onStopped: () => void
 	) {
-		// Build the shadow DOM tree once. The host is appended/removed from the
-		// document on start/stop so the overlay only captures events when active.
 		const shadowHost = document.createElement('div');
 		shadowHost.setAttribute('data-vscode-pick-host', '');
 		shadowHost.style.cssText = 'position: absolute; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: none;';
@@ -639,15 +570,11 @@ class ElementPicker {
 		this._selectionActive = true;
 		this._overlay.style.display = 'block';
 
-		// Inject a stylesheet into the page to override all cursors while element selection is active,
-		// so the cursor always appears as a normal pointer even when over e.g. links.
-		// Updated to crosshair in _onPointerDown, reset in _onPointerUp.
 		const cursorStyle = document.createElement('style');
 		cursorStyle.textContent = ElementPicker._CURSOR_DEFAULT;
 		document.head.appendChild(cursorStyle);
 		this._cursorStylesheet = cursorStyle;
 
-		// Register high-frequency listeners only while selection is active.
 		window.addEventListener('pointermove', this._onPointerMove, true);
 		document.addEventListener('pointerleave', this._onPointerLeave, true);
 		window.addEventListener('pointerdown', this._onPointerDown, true);
@@ -692,7 +619,6 @@ class ElementPicker {
 		this._cursorStylesheet?.remove();
 		this._cursorStylesheet = undefined;
 
-		// Remove high-frequency listeners.
 		window.removeEventListener('pointermove', this._onPointerMove, true);
 		document.removeEventListener('pointerleave', this._onPointerLeave, true);
 		window.removeEventListener('pointerdown', this._onPointerDown, true);
@@ -719,10 +645,6 @@ class ElementPicker {
 		this._unmountWhenIdle();
 	}
 
-	/**
-	 * Update the theme colors applied to the overlay.
-	 * Can be called at any time; takes effect immediately.
-	 */
 	setTheme(theme: IBrowserViewTheme): void {
 		ElementPicker._applyTheme(this._shadowHost, theme);
 		this._reducedMotion = theme.reducedMotion ?? false;
@@ -741,10 +663,6 @@ class ElementPicker {
 		return event.target instanceof Element ? event.target : undefined;
 	}
 
-	/**
-	 * Highlight a specific element without starting a pick session.
-	 * Mounts the shadow host if not already in the document.
-	 */
 	highlight(element: Element): void {
 		this._ensureMounted();
 		this._externalHighlightTarget = element;
@@ -752,10 +670,6 @@ class ElementPicker {
 		this._updateHighlight(element);
 	}
 
-	/**
-	 * Hide any current highlight. If no pick session is active, also
-	 * removes the shadow host from the document.
-	 */
 	hideHighlight(): void {
 		this._externalHighlightTarget = undefined;
 		if (this._commentTarget) {
@@ -819,7 +733,6 @@ class ElementPicker {
 		this._unmountWhenIdle();
 	}
 
-	// --- Event handlers ---
 
 	private _onPointerMove = (e: PointerEvent): void => {
 		if (!this._selectionActive) {
@@ -860,9 +773,6 @@ class ElementPicker {
 		this._dragbox.style.top = `${top}px`;
 		this._dragbox.style.width = `${dx}px`;
 		this._dragbox.style.height = `${dy}px`;
-		// Live preview of the deepest common ancestor that the region
-		// currently resolves to, so the user sees exactly what will be
-		// selected if they release the drag now.
 		this._updateHighlight(this._pickRegionAncestor({ x: left, y: top, width: dx, height: dy }));
 	};
 
@@ -947,14 +857,12 @@ class ElementPicker {
 		}
 
 		if (dx < ElementPicker._DRAG_THRESHOLD_PX && dy < ElementPicker._DRAG_THRESHOLD_PX) {
-			// Click → pick the element under the pointer.
 			const target = this._dragStartTarget ?? this._pickElementAt(e.clientX, e.clientY);
 			this._dragStartTarget = undefined;
 			if (target) {
 				this._commit(target, { x: e.clientX, y: e.clientY });
 			}
 		} else {
-			// Drag → pick the deepest common ancestor of the region.
 			this._dragStartTarget = undefined;
 			this._dragbox.style.display = 'none';
 			this._updateHighlight(undefined);
@@ -1054,7 +962,6 @@ class ElementPicker {
 		}
 	}
 
-	// --- Picking helpers ---
 
 	private _getFocusedElement(): Element | undefined {
 		if (!document.hasFocus()) {
@@ -1070,7 +977,6 @@ class ElementPicker {
 		return activeElement;
 	}
 
-	/** Return the page element under a viewport point, skipping our own overlay host. */
 	private _pickElementAt(x: number, y: number): Element | undefined {
 		const candidates = document.elementsFromPoint(x, y);
 		for (const el of candidates) {
@@ -1082,12 +988,6 @@ class ElementPicker {
 		return undefined;
 	}
 
-	/**
-	 * Resolve the element that "covers" a drag rectangle.
-	 *
-	 * Samples `elementFromPoint` at the 4 corners, 4 edge midpoints, and
-	 * center, then returns their deepest common ancestor.
-	 */
 	private _pickRegionAncestor(rect: IBrowserViewRect): Element | undefined {
 		const { x, y, width, height } = rect;
 		const x2 = x + width;
@@ -1096,9 +996,9 @@ class ElementPicker {
 		const cy = y + height / 2;
 		const samples: Element[] = [];
 		for (const [sx, sy] of [
-			[x, y], [x2, y], [x, y2], [x2, y2],       // corners
-			[cx, y], [cx, y2], [x, cy], [x2, cy],      // edge midpoints
-			[cx, cy]                                     // center
+			[x, y], [x2, y], [x, y2], [x2, y2],
+			[cx, y], [cx, y2], [x, cy], [x2, cy],
+			[cx, cy]
 		]) {
 			const el = this._pickElementAt(sx, sy);
 			if (el) {
@@ -1108,7 +1008,6 @@ class ElementPicker {
 		return findCommonVisibleAncestor(samples);
 	}
 
-	// --- Highlight ---
 
 	private _renderHighlight(target: Element): void {
 		const highlight = this._highlight;
@@ -1120,9 +1019,8 @@ class ElementPicker {
 		const viewportHeight = window.innerHeight;
 		const viewportWidth = document.documentElement.clientWidth;
 		const visibleRect = this._getVisibleTargetBounds(rect);
-		const labelHeight = 22; // label height (20) + 2px gap above the box.
+		const labelHeight = 22;
 
-		// Highlight box is in *page* coordinates so it scrolls with the document.
 		highlight.style.display = 'block';
 		highlight.style.left = `${rect.left + scrollX}px`;
 		highlight.style.top = `${rect.top + scrollY}px`;
@@ -1134,7 +1032,6 @@ class ElementPicker {
 		this._highlightShape.setAttribute('width', `${visibleRect.width}`);
 		this._highlightShape.setAttribute('height', `${visibleRect.height}`);
 		this._highlightShape.setAttribute('rx', '2');
-		// Label is in *viewport* coordinates and sticky-clamped to the viewport.
 		const tagName = String(target.tagName || '').toLowerCase();
 		const idPart = target.id ? `#${target.id}` : '';
 		const classPart = target.classList.length
@@ -1146,10 +1043,6 @@ class ElementPicker {
 		label.style.display = 'inline-flex';
 		const idealTop = rect.top - labelHeight;
 		const labelTop = Math.max(0, Math.min(viewportHeight - labelHeight, idealTop));
-		// Use clientWidth (excludes scrollbar) rather than innerWidth so the
-		// label doesn't extend behind the scrollbar on Windows/Linux.
-		// Position label at the element's left edge, but push it left if it
-		// would overflow the viewport. Clamp to 0 so it never goes off-screen.
 		label.style.left = '0';
 		const naturalWidth = label.offsetWidth;
 		const idealLeft = rect.left;
@@ -1279,7 +1172,6 @@ class ElementPicker {
 		this._renderHighlight(target);
 	}
 
-	// --- Commit ---
 
 	private _commit(target: Element, anchor?: { x: number; y: number }): void {
 		if (!this._selectionActive) {
@@ -1289,11 +1181,8 @@ class ElementPicker {
 			this._showCommentComposer(target, anchor ?? this._getDefaultCommentAnchor(target), anchor !== undefined);
 			return;
 		}
-		// Wait a frame so any pending event handlers can be completed in the selecting active state.
 		requestAnimationFrame(() => {
 			if (!this._continuous) {
-				// Tear down the overlay before notifying the host so any
-				// screenshot capture doesn't include our chrome.
 				this.stop();
 			} else {
 				this._updateHighlight(undefined);
@@ -1774,16 +1663,7 @@ class ElementPicker {
 		}
 	}
 
-	// --- Static helpers ---
 
-	/**
-	 * Inject the shadow-root stylesheet. Custom properties on the host
-	 * element drive the colors so the workbench can theme them.
-	 *
-	 * We deliberately do **not** use a `*` selector with `all: initial` —
-	 * that would also reset `<style>`'s default `display: none`, causing
-	 * the literal CSS source to render as page text.
-	 */
 	private static _buildStyle(): HTMLStyleElement {
 		const style = document.createElement('style');
 		style.textContent = `
@@ -1813,8 +1693,8 @@ class ElementPicker {
 				opacity: 1;
 			}
 			.highlight-shape {
-				fill: color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 12%, transparent);
-				stroke: var(--vscode-focusBorder, #0078d4);
+				fill: color-mix(in srgb, var(--vscode-focusBorder, #7C4DFF) 12%, transparent);
+				stroke: var(--vscode-focusBorder, #7C4DFF);
 				stroke-width: 2px;
 			}
 			.overlay {
@@ -2004,7 +1884,7 @@ class ElementPicker {
 				padding: 0;
 				border: var(--vscode-strokeThickness, 1px) solid var(--vscode-editorWidget-background, #252526);
 				border-radius: var(--vscode-cornerRadius-circle, 9999px);
-				background: var(--vscode-button-background, #0078d4);
+				background: var(--vscode-button-background, #6A1B9A);
 				color: var(--vscode-button-foreground, white);
 				box-shadow: 0 2px 6px var(--vscode-widget-shadow, transparent);
 				transition: width 140ms cubic-bezier(0.2, 0, 0, 1), height 140ms cubic-bezier(0.2, 0, 0, 1), border-width 140ms cubic-bezier(0.2, 0, 0, 1);
@@ -2019,7 +1899,7 @@ class ElementPicker {
 				transition: opacity 80ms linear;
 			}
 			.comment-send:focus-visible, .comment-preview-remove:focus-visible, .comment-pin:focus-visible, .comment-input:focus-visible {
-				outline: 2px solid var(--vscode-focusBorder, #0078d4);
+				outline: 2px solid var(--vscode-focusBorder, #7C4DFF);
 				outline-offset: 2px;
 			}
 			:host(.reduce-motion) .comment-backdrop-fill,
@@ -2032,7 +1912,7 @@ class ElementPicker {
 				position: fixed; box-sizing: border-box;
 				display: inline-flex; align-items: center; gap: 6px; height: 20px; padding: 0 6px;
 				max-width: min(100%, 320px);
-				background: var(--vscode-button-background, #0078d4);
+				background: var(--vscode-button-background, #6A1B9A);
 				color: var(--vscode-button-foreground, white);
 				font-family: inherit;
 				font-size: 11px; line-height: 20px;
@@ -2076,13 +1956,6 @@ class ElementPicker {
 	}
 }
 
-/**
- * Drag-to-select rectangle picker used by the "Add Area Screenshot to Chat"
- * flow. Mounts a transparent shadow overlay that captures pointer
- * events, draws a dotted rubber-band rectangle while dragging, and on pointer
- * up reports the selected region in **viewport coordinates**. ESC or a
- * zero-area drag cancels the pick.
- */
 class AreaPicker {
 	private static readonly _MIN_AREA_PX = 4;
 	private static readonly _CURSOR_CROSSHAIR = '/* VS Code injected style */ * { cursor: crosshair !important; }';
@@ -2106,9 +1979,6 @@ class AreaPicker {
 		root.appendChild(AreaPicker._buildStyle());
 		this._shadowHost = shadowHost;
 
-		// A fixed full-viewport layer below the dragbox so the page underneath
-		// doesn't receive hover/click events while we're picking. The layer is
-		// transparent — the actual page is still visible.
 		const overlay = document.createElement('div');
 		overlay.className = 'overlay';
 		root.appendChild(overlay);
@@ -2129,7 +1999,6 @@ class AreaPicker {
 		document.documentElement.appendChild(this._shadowHost);
 		this._selectionActive = true;
 
-		// Force a crosshair cursor across the whole page while picking.
 		const cursorStyle = document.createElement('style');
 		cursorStyle.setAttribute('data-vscode-area-pick-cursor', '');
 		cursorStyle.textContent = AreaPicker._CURSOR_CROSSHAIR;
@@ -2152,12 +2021,6 @@ class AreaPicker {
 		this._onStopped();
 	}
 
-	/**
-	 * Synchronous teardown of the overlay, cursor style, and event listeners.
-	 * Used by both {@link stop} (which then fires `_onStopped`) and `_onPointerUp`
-	 * (which fires `_onPicked` or `_onStopped` after teardown completes, so the
-	 * IPC consumer can capture the page without our overlay in the frame).
-	 */
 	private _teardown(): void {
 		this._selectionActive = false;
 		this._shadowHost.remove();
@@ -2225,8 +2088,6 @@ class AreaPicker {
 		const width = Math.abs(e.clientX - start.x);
 		const height = Math.abs(e.clientY - start.y);
 
-		// Tear down the overlay before committing so the IPC consumer can
-		// immediately start a screenshot without our dragbox being in the way.
 		this._teardown();
 
 		e.preventDefault();
@@ -2237,22 +2098,11 @@ class AreaPicker {
 			return;
 		}
 
-		// Keep rectangle in viewport (client) coordinates to match other screenshot
-		// capture call sites that pass viewport-space bounds as pageRect. The
-		// main-process clip math (`pageRect * visualViewportScale * zoomFactor`)
-		// measures from the visual viewport origin, so subtract the visual
-		// viewport's offset (non-zero only when pinch-panned) to convert layout-
-		// viewport client coords into the same coord space that Add Element to
-		// Chat's CDP box-model bounds use.
 		const vv = window.visualViewport;
 		const offsetLeft = vv?.offsetLeft ?? 0;
 		const offsetTop = vv?.offsetTop ?? 0;
 		const rect = { x: left - offsetLeft, y: top - offsetTop, width, height };
 
-		// The synchronous DOM teardown above is the prerequisite — the next compositor
-		// frame won't contain the overlay. Waiting for that frame to actually land
-		// before reading the GPU surface is the consumer's responsibility (see
-		// `awaitNextPaint` in `BrowserView.captureScreenshot`).
 		this._onPicked(rect);
 	};
 
@@ -2293,8 +2143,8 @@ class AreaPicker {
 			}
 			.dragbox {
 				position: fixed; box-sizing: border-box;
-				border: 1px dashed var(--vscode-focusBorder, #0078d4);
-				background: color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 12%, transparent);
+				border: 1px dashed var(--vscode-focusBorder, #7C4DFF);
+				background: color-mix(in srgb, var(--vscode-focusBorder, #7C4DFF) 12%, transparent);
 				z-index: 2;
 				pointer-events: auto;
 			}

@@ -16,20 +16,9 @@ import { getWordAtText } from '../../../../../../editor/common/core/wordHelper.j
 import { chatVariableLeader } from '../../requestParser/chatParserTypes.js';
 import { ILanguageModelToolsService } from '../../tools/languageModelToolsService.js';
 
-/**
- * Provides autocompletion for the variables inside prompt bodies.
- * - #file: paths to files and folders in the workspace
- * - # tool names
- */
 export class PromptBodyAutocompletion implements CompletionItemProvider {
-	/**
-	 * Debug display name for this provider.
-	 */
 	public readonly _debugDisplayName: string = 'PromptBodyAutocompletion';
 
-	/**
-	 * List of trigger characters handled by this provider.
-	 */
 	public readonly triggerCharacters = [':', '.', '/', '\\'];
 
 	constructor(
@@ -38,10 +27,6 @@ export class PromptBodyAutocompletion implements CompletionItemProvider {
 	) {
 	}
 
-	/**
-	 * The main function of this provider that calculates
-	 * completion items based on the provided arguments.
-	 */
 	public async provideCompletionItems(model: ITextModel, position: Position, context: CompletionContext, token: CancellationToken): Promise<CompletionList | undefined> {
 		const promptsType = getPromptsTypeForLanguageId(model.getLanguageId());
 		if (!promptsType) {
@@ -55,7 +40,6 @@ export class PromptBodyAutocompletion implements CompletionItemProvider {
 		switch (reference.type) {
 			case 'file':
 				if (reference.contentRange.containsPosition(position)) {
-					// inside the link range
 					await this.collectFilePathCompletions(model, position, reference.contentRange, suggestions);
 				} else {
 					await this.collectDefaultCompletions(model, reference.range, promptsType, suggestions);
@@ -93,14 +77,14 @@ export class PromptBodyAutocompletion implements CompletionItemProvider {
 		const pathUntilPosition = model.getValueInRange(pathRange.setEndPosition(position.lineNumber, position.column));
 		const pathSeparator = pathUntilPosition.includes('/') || !pathUntilPosition.includes('\\') ? '/' : '\\';
 		let parentFolderPath: string;
-		if (pathUntilPosition.match(/[^\/]\.\.$/i)) { // ends with `..`
+		if (pathUntilPosition.match(/[^\/]\.\.$/i)) {
 			parentFolderPath = pathUntilPosition + pathSeparator;
 		} else {
 			let i = pathUntilPosition.length - 1;
 			while (i >= 0 && ![CharCode.Slash, CharCode.Backslash].includes(pathUntilPosition.charCodeAt(i))) {
 				i--;
 			}
-			parentFolderPath = pathUntilPosition.substring(0, i + 1); // the segment up to the `/` or `\` before the position
+			parentFolderPath = pathUntilPosition.substring(0, i + 1);
 		}
 
 		const retriggerCommand = { id: 'editor.action.triggerSuggest', title: 'Suggest' };
@@ -122,7 +106,6 @@ export class PromptBodyAutocompletion implements CompletionItemProvider {
 				}
 			}
 		} catch (e) {
-			// ignore errors accessing the folder location
 		}
 
 		suggestions.push({
@@ -135,9 +118,6 @@ export class PromptBodyAutocompletion implements CompletionItemProvider {
 		});
 	}
 
-	/**
-	 * Finds a file reference that suites the provided `position`.
-	 */
 	private async findVariableReference(model: ITextModel, position: Position, token: CancellationToken): Promise<{ contentRange: Range; type: string; range: Range } | undefined> {
 		if (model.getLineContent(1).trimEnd() === '---') {
 			let i = 2;
@@ -145,7 +125,6 @@ export class PromptBodyAutocompletion implements CompletionItemProvider {
 				i++;
 			}
 			if (i >= position.lineNumber) {
-				// inside front matter
 				return undefined;
 			}
 		}

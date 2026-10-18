@@ -15,15 +15,12 @@ export class NotebookExectionStatusBarItemProvider implements vscode.NotebookCel
 		cell: vscode.NotebookCell,
 		token: vscode.CancellationToken
 	): Promise<vscode.NotebookCellStatusBarItem[]> {
-		// check if quickfix contributions should come from core instead of dardcor
 		const coreQuickFix = vscode.workspace.getConfiguration('notebook').get<boolean>('cellFailureDiagnostics');
 		if (coreQuickFix) {
 			return [];
 		}
 
 		if (cell.kind === vscode.NotebookCellKind.Markup) {
-			// show generate button for markdown cells
-			// only show this when `notebook.experimental.cellChat` is enabled and the cell is not empty
 			const enabled = vscode.workspace.getConfiguration('notebook.experimental').get<boolean>('cellChat');
 
 			if (!enabled) {
@@ -80,7 +77,6 @@ export class NotebookExectionStatusBarItemProvider implements vscode.NotebookCel
 			}
 
 			const title = l10n.t('Fix using Dardcor AI');
-			// remove the file and line number from the error message as they are in-memory
 			const joinedMessage = [err.name, err.message].filter(Boolean).join(': ').replace(/\s*\(\S+,\s*line\s*\d+\)/, '');
 
 			return [

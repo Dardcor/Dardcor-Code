@@ -46,21 +46,19 @@ export class CodeMapperPatchRewritePrompt extends PromptElement<CodeMapperPrompt
 
 	async render(state: void, sizing: PromptSizing) {
 		if (isNewDocument(this.props.request)) {
-			// TODO@joyceerhl @aeschli remove the find/replace variant
 			return;
 		}
 
 		const document = this.props.request.existingDocument;
 
-		const isIgnored = await this.ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this.ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}
 
-		const inputDocCharLimit = (sizing.endpoint.modelMaxPromptTokens / 3) * 4; // consume one 3rd of the model window, estimating roughly 4 chars per token;
+		const inputDocCharLimit = (sizing.endpoint.modelMaxPromptTokens / 3) * 4;
 		let projectedDocument: ProjectedDocument;
-		if (document.getText().length > inputDocCharLimit && document instanceof TextDocumentSnapshot) { // TODO@rebornix @DonJayamanne handle large notebook document
-			// only compute the summarized document if needed
+		if (document.getText().length > inputDocCharLimit && document instanceof TextDocumentSnapshot) {
 			const structure = await getStructure(this.parserService, document, undefined);
 			projectedDocument = summarizeDocumentSync(inputDocCharLimit, document, undefined, structure, { tryPreserveTypeChecking: false });
 		} else {
@@ -122,7 +120,7 @@ export class CodeMapperPatchRewritePrompt extends PromptElement<CodeMapperPrompt
 					</Tag>
 				</SystemMessage>
 				<UserMessage priority={700}>
-					<CompositeElement /*priority={600} TODO@aeschli commented out for fixed prompt-tsx issue */>
+					<CompositeElement >
 						{
 							projectedDocument.text.length > 0 ?
 								<>
@@ -181,7 +179,7 @@ export class CodeMapperFullRewritePrompt extends PromptElement<CodeMapperPromptP
 		if (isNewDocument(this.props.request)) {
 			const validDocumentContext = [];
 			for (const context of this.props.request.workingSet) {
-				const isIgnored = await this.ignoreService.isCopilotIgnored(context.uri);
+				const isIgnored = await this.ignoreService.isIgnored(context.uri);
 				if (!isIgnored) {
 					validDocumentContext.push(context);
 				}
@@ -203,7 +201,7 @@ export class CodeMapperFullRewritePrompt extends PromptElement<CodeMapperPromptP
 				</SystemMessage>
 				<UserMessage priority={700}>
 					<PrioritizedList priority={690} descending={true}>
-						{/* Skip empty files since they contain no useful context */}
+						{}
 						{validDocumentContext.map(document => (document.lineCount === 0 ? undefined : <Chunk>
 							<>
 								I have the following code from the file {document.uri.toString()} open in the editor, starting from line 1 to line {document.lineCount}.<br />
@@ -232,7 +230,7 @@ export class CodeMapperFullRewritePrompt extends PromptElement<CodeMapperPromptP
 		}
 
 		const document = this.props.request.existingDocument;
-		const isIgnored = await this.ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this.ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}

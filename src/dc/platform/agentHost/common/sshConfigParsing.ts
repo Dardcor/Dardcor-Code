@@ -5,15 +5,11 @@
 
 import { isSSHStrictHostKeyChecking, type ISSHResolvedConfig } from './sshRemoteAgentHost.js';
 
-/** Strip inline comments from an SSH config value. */
 export function stripSSHComment(s: string): string {
 	const idx = s.indexOf(' #');
 	return idx !== -1 ? s.substring(0, idx).trim() : s;
 }
 
-/**
- * Extract Host aliases from SSH config content (without following Includes).
- */
 export function parseSSHConfigHostEntries(content: string): string[] {
 	const hosts: string[] = [];
 	for (const line of content.split('\n')) {
@@ -34,11 +30,6 @@ export function parseSSHConfigHostEntries(content: string): string[] {
 	return hosts;
 }
 
-/**
- * Split a space-separated `ssh -G` path list, honoring double quotes so paths
- * containing spaces survive. `ssh -G` emits `userknownhostsfile` and
- * `globalknownhostsfile` as one line holding several paths.
- */
 function parseSSHPathList(value: string): string[] {
 	const paths: string[] = [];
 	const pattern = /"([^"]*)"|(\S+)/g;
@@ -52,9 +43,6 @@ function parseSSHPathList(value: string): string[] {
 	return paths;
 }
 
-/**
- * Parse `ssh -G` output into a resolved config object.
- */
 export function parseSSHGOutput(stdout: string): ISSHResolvedConfig {
 	const map = new Map<string, string>();
 	const identityFiles: string[] = [];

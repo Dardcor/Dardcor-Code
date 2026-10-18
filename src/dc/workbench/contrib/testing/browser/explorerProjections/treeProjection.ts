@@ -37,9 +37,6 @@ const computedStateAccessor: IComputedStateAndDurationAccessor<TreeTestItemEleme
 	},
 };
 
-/**
- * Test tree element element that groups be hierarchy.
- */
 class TreeTestItemElement extends TestItemTreeElement {
 	/**
 	 * Own, non-computed state.
@@ -92,9 +89,6 @@ class TreeTestItemElement extends TestItemTreeElement {
 	}
 }
 
-/**
- * Projection that lists tests in their traditional tree view.
- */
 export class TreeProjection extends Disposable implements ITestTreeProjection {
 	private readonly updateEmitter = this._register(new Emitter<void>());
 
@@ -103,17 +97,11 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 
 	private readonly items = new Map<string, TreeTestItemElement>();
 
-	/**
-	 * Gets root elements of the tree.
-	 */
 	private get rootsWithChildren(): Iterable<TreeTestItemElement> {
 		const rootsIt = Iterable.map(this.testService.collection.rootItems, r => this.items.get(r.item.extId));
 		return Iterable.filter(rootsIt, (r): r is TreeTestItemElement => !!r?.children.size);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly onUpdate = this.updateEmitter.event;
 
 	constructor(
@@ -124,7 +112,6 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 		super();
 		this._register(testService.onDidProcessDiff((diff) => this.applyDiff(diff)));
 
-		// when test results are cleared, recalculate all state
 		this._register(results.onResultsChanged((evt) => {
 			if (!('removed' in evt)) {
 				return;
@@ -137,16 +124,12 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 			}
 		}));
 
-		// when test states change, reflect in the tree
 		this._register(results.onTestChanged(ev => {
 			if (ev.reason === TestResultItemChangeReason.NewMessage) {
-				return; // no effect in the tree
+				return;
 			}
 
 			let result = ev.item;
-			// if the state is unset, or the latest run is not making the change,
-			// double check that it's valid. Retire calls might cause previous
-			// emit a state change for a test run that's already long completed.
 			if (result.ownComputedState === TestResultState.Unset || ev.result !== results.results[0]) {
 				const fallback = results.getStateById(result.item.extId);
 				if (fallback) {
@@ -159,11 +142,7 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 				return;
 			}
 
-			// Skip refreshing the duration if we can trivially tell it didn't change.
 			const refreshDuration = ev.reason === TestResultItemChangeReason.OwnStateChange && ev.previousOwnDuration !== result.ownDuration;
-			// For items without children, always use the computed state. They are
-			// either leaves (for which it's fine) or nodes where we haven't expanded
-			// children and should trust whatever the result service gives us.
 			const explicitComputed = item.children.size ? undefined : result.computedState;
 
 			item.retired = !!result.retired;
@@ -179,16 +158,10 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 		}
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getElementByTestId(testId: string): TestItemTreeElement | undefined {
 		return this.items.get(testId);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	private applyDiff(diff: TestsDiff) {
 		for (const op of diff) {
 			switch (op.op) {
@@ -205,8 +178,6 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 						break;
 					}
 
-					// parent needs to be re-rendered on an expand update, so that its
-					// children are rewritten.
 					const needsParentUpdate = existing.test.expand === TestItemExpandState.NotExpandable && patch.expand;
 					existing.update(patch);
 					if (needsParentUpdate) {
@@ -223,9 +194,6 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 						break;
 					}
 
-					// Removing the first element will cause the root to be hidden.
-					// Changing first-level elements will need the root to re-render if
-					// there are no other controllers with items.
 					const parent = toRemove.parent;
 					const affectsRootElement = toRemove.depth === 1 && (parent?.children.size === 1 || !Iterable.some(this.rootsWithChildren, (_, i) => i === 1));
 					this.changedParents.add(affectsRootElement ? null : parent);
@@ -251,9 +219,6 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 		}
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public applyTo(tree: ObjectTree<TestExplorerTreeElement, FuzzyScore>) {
 		for (const parent of this.changedParents) {
 			if (!parent || tree.hasElement(parent)) {
@@ -271,9 +236,6 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 		this.resortedParents.clear();
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public expandElement(element: TestItemTreeElement, depth: number): void {
 		if (!(element instanceof TreeTestItemElement)) {
 			return;
@@ -303,8 +265,6 @@ export class TreeProjection extends Disposable implements ITestTreeProjection {
 		treeElement.parent?.children.add(treeElement);
 		this.items.set(treeElement.test.item.extId, treeElement);
 
-		// The first element will cause the root to be shown. The first element of
-		// a parent may need to re-render it for #204805.
 		const affectsParent = treeElement.parent?.children.size === 1;
 		const affectedParent = affectsParent ? treeElement.parent.parent : treeElement.parent;
 		this.changedParents.add(affectedParent);

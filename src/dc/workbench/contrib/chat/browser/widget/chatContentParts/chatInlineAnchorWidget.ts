@@ -73,10 +73,6 @@ type InlineAnchorWidgetMetadata = {
 export interface IRenderFileWidgetsOptions {
 	readonly openResource?: (resource: URI, editorOptions: ITextEditorOptions) => Promise<boolean>;
 
-	/**
-	 * Wraps opening the resource so that callers can observe which editors a click on the
-	 * anchor opened, for example to close them again later.
-	 */
 	readonly trackOpen?: (open: () => Promise<void>) => Promise<void>;
 }
 
@@ -84,8 +80,6 @@ export function renderFileWidgets(element: HTMLElement, instantiationService: II
 	// eslint-disable-next-line no-restricted-syntax
 	const links = element.querySelectorAll('a');
 	links.forEach(a => {
-		// Empty link text -> render file widget
-		// Also support metadata format: [linkText](file:///...uri?vscodeLinkType=...)
 		const linkText = a.textContent?.trim();
 		let shouldRenderWidget = false;
 		let metadata: InlineAnchorWidgetMetadata | undefined;
@@ -96,14 +90,12 @@ export function renderFileWidgets(element: HTMLElement, instantiationService: II
 			try {
 				uri = URI.parse(href);
 			} catch {
-				// Invalid URI, skip rendering widget
 			}
 		}
 
 		if (!linkText) {
 			shouldRenderWidget = true;
 		} else if (uri) {
-			// Check for vscodeLinkType in query parameters
 			const searchParams = new URLSearchParams(uri.query);
 			const vscodeLinkType = searchParams.get('vscodeLinkType');
 			if (vscodeLinkType) {
@@ -113,7 +105,6 @@ export function renderFileWidgets(element: HTMLElement, instantiationService: II
 				};
 				shouldRenderWidget = true;
 
-				// Strip vscodeLinkType from the URI once we've extracted the metadata for better compatibility with different FS
 				searchParams.delete('vscodeLinkType');
 				const remainingQuery = searchParams.toString();
 				uri = uri.with({ query: remainingQuery });
@@ -224,7 +215,6 @@ export class InlineAnchorWidget extends Disposable {
 				})
 				.catch(() => { });
 
-			// Context menu (context key service created lazily on first context menu open)
 			let contextKeyService: IContextKeyService | undefined;
 			let isFolderContext: IContextKey<boolean> | undefined;
 			let contextMenuInitialized = false;
@@ -265,7 +255,6 @@ export class InlineAnchorWidget extends Disposable {
 				});
 			}));
 
-			// Add line range label for screen readers
 			if (location.range) {
 				if (location.range.startLineNumber === location.range.endLineNumber) {
 					element.setAttribute('aria-label', nls.localize('chat.inlineAnchor.ariaLabel.line', "{0} line {1}", filePathLabel, location.range.startLineNumber));
@@ -282,11 +271,9 @@ export class InlineAnchorWidget extends Disposable {
 		const fragment = location.range ? `${location.range.startLineNumber},${location.range.startColumn}` : '';
 		element.setAttribute('data-href', (fragment ? location.uri.with({ fragment }) : location.uri).toString());
 
-		// Hover
 		const relativeLabel = labelService.getUriLabel(location.uri, { relative: true });
 		this._register(hoverService.setupManagedHover(getDefaultHoverDelegate('element'), element, relativeLabel));
 
-		// Drag and drop
 		if (this.data.kind !== 'symbol') {
 			element.draggable = true;
 			this._register(dom.addDisposableListener(element, 'dragstart', e => {
@@ -301,7 +288,6 @@ export class InlineAnchorWidget extends Disposable {
 			}));
 		}
 
-		// Click handler to open with custom editor association from chat.editorAssociations setting
 		this._register(dom.addDisposableListener(element, 'click', async (e) => {
 			dom.EventHelper.stop(e, true);
 
@@ -318,7 +304,6 @@ export class InlineAnchorWidget extends Disposable {
 					return;
 				}
 
-				// If the reference is an image file and the carousel is enabled, open the carousel
 				const mimeType = getMediaMime(location.uri.path);
 				if (mimeType?.startsWith('image/') && this.configurationService.getValue<boolean>(ChatConfiguration.ImageCarouselEnabled)) {
 					await this.chatImageCarouselService.openCarouselAtResource(location.uri);
@@ -354,7 +339,6 @@ export class InlineAnchorWidget extends Disposable {
 	}
 }
 
-//#region Resource context menu
 
 registerAction2(class AddFileToChatAction extends Action2 {
 
@@ -384,9 +368,7 @@ registerAction2(class AddFileToChatAction extends Action2 {
 	}
 });
 
-//#endregion
 
-//#region Resource keybindings
 
 registerAction2(class CopyResourceAction extends Action2 {
 
@@ -414,8 +396,6 @@ registerAction2(class CopyResourceAction extends Action2 {
 			return;
 		}
 
-		// TODO: we should also write out the standard mime types so that external programs can use them
-		// like how `fillEditorsDragData` works but without having an event to work with.
 		const resource = anchor.data.kind === 'symbol' ? anchor.data.symbol.location.uri : anchor.data.uri;
 		clipboardService.writeResources([resource]);
 	}
@@ -489,9 +469,7 @@ registerAction2(class OpenToSideResourceAction extends Action2 {
 	}
 });
 
-//#endregion
 
-//#region Symbol context menu
 
 registerAction2(class GoToDefinitionAction extends Action2 {
 
@@ -619,4 +597,3 @@ registerAction2(class GoToReferencesAction extends Action2 {
 	}
 });
 
-//#endregion

@@ -8,10 +8,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/
 import { IAutomationSchedule } from '../../../common/automations/automation.js';
 import { computeNextRunAt } from '../../../common/automations/schedule.js';
 
-/**
- * Builds a local-time `Date` from year/month/day/hour/minute. Used so test
- * fixtures read as wall-clock instants regardless of the host timezone.
- */
 function localDate(year: number, month: number, day: number, hour = 0, minute = 0): Date {
 	return new Date(year, month - 1, day, hour, minute, 0, 0);
 }
@@ -57,7 +53,6 @@ suite('Automations - computeNextRunAt', () => {
 	});
 
 	test('weekly: same weekday and time in the future returns today', () => {
-		// 2026-06-01 is a Monday (getDay() === 1)
 		const schedule: IAutomationSchedule = { interval: 'weekly', scheduleHour: 9, scheduleMinute: 0, scheduleDay: 1 };
 		const now = localDate(2026, 6, 1, 7, 0);
 		assert.deepStrictEqual(computeNextRunAt(schedule, now), localDate(2026, 6, 1, 9, 0));
@@ -70,14 +65,12 @@ suite('Automations - computeNextRunAt', () => {
 	});
 
 	test('weekly: future weekday this week', () => {
-		// Now = Mon (1). Target = Fri (5).
 		const schedule: IAutomationSchedule = { interval: 'weekly', scheduleHour: 9, scheduleMinute: 0, scheduleDay: 5 };
 		const now = localDate(2026, 6, 1, 7, 0);
 		assert.deepStrictEqual(computeNextRunAt(schedule, now), localDate(2026, 6, 5, 9, 0));
 	});
 
 	test('weekly: past weekday this week wraps to next week', () => {
-		// Now = Thu (4). Target = Mon (1).
 		const schedule: IAutomationSchedule = { interval: 'weekly', scheduleHour: 9, scheduleMinute: 0, scheduleDay: 1 };
 		const now = localDate(2026, 6, 4, 7, 0);
 		assert.deepStrictEqual(computeNextRunAt(schedule, now), localDate(2026, 6, 8, 9, 0));
@@ -101,29 +94,21 @@ suite('Automations - computeNextRunAt', () => {
 	});
 
 	test('daily: spring-forward day is not skipped', () => {
-		// 2026-03-08 02:30 local is in the spring-forward gap in US timezones
-		// (clock jumps 02:00 → 03:00). Even outside DST timezones the test
-		// asserts the calendar-date semantics: starting 23:30 the day before,
-		// `tomorrow` must be the *next calendar day*, not the day after that.
 		const schedule: IAutomationSchedule = { interval: 'daily', scheduleHour: 2, scheduleMinute: 30, scheduleDay: 0 };
-		const now = localDate(2026, 3, 7, 23, 30); // Saturday March 7, 23:30
+		const now = localDate(2026, 3, 7, 23, 30);
 		const next = computeNextRunAt(schedule, now);
 		assert.ok(next);
-		// Next run must be Sunday March 8, not Monday March 9. `localDate`
-		// may shift 02:30 forward into the DST gap on actual DST hosts, but
-		// the *date* must land on the 8th, never the 9th.
 		assert.strictEqual(next.getDate(), 8, `expected next.getDate()===8, got ${next.toString()}`);
 		assert.strictEqual(next.getMonth(), 2);
 	});
 
 	test('weekly: spring-forward across the boundary lands on the correct calendar day', () => {
-		// Weekly on Sunday 02:30, now = Saturday March 7 23:30.
 		const schedule: IAutomationSchedule = { interval: 'weekly', scheduleHour: 2, scheduleMinute: 30, scheduleDay: 0 };
 		const now = localDate(2026, 3, 7, 23, 30);
 		const next = computeNextRunAt(schedule, now);
 		assert.ok(next);
 		assert.strictEqual(next.getDate(), 8);
-		assert.strictEqual(next.getDay(), 0); // Sunday
+		assert.strictEqual(next.getDay(), 0);
 	});
 
 	test('rejects unknown intervals', () => {

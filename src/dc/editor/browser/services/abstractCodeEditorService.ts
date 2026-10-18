@@ -108,7 +108,6 @@ export abstract class AbstractCodeEditorService extends Disposable implements IC
 		for (const editor of editors) {
 
 			if (editor.hasTextFocus()) {
-				// bingo!
 				return editor;
 			}
 
@@ -749,9 +748,6 @@ class DecorationCSSRules {
 		this._providerArgs.styleSheet.removeRulesContainingSelector(this._unThemedSelector);
 	}
 
-	/**
-	 * Build the CSS for decorations styled via `className`.
-	 */
 	private getCSSTextForModelDecorationClassName(opts: IThemeDecorationRenderOptions | undefined): string {
 		if (!opts) {
 			return '';
@@ -763,9 +759,6 @@ class DecorationCSSRules {
 		return cssTextArr.join('');
 	}
 
-	/**
-	 * Build the CSS for decorations styled via `inlineClassName`.
-	 */
 	private getCSSTextForModelDecorationInlineClassName(opts: IThemeDecorationRenderOptions | undefined): string {
 		if (!opts) {
 			return '';
@@ -778,9 +771,6 @@ class DecorationCSSRules {
 		return cssTextArr.join('');
 	}
 
-	/**
-	 * Build the CSS for decorations styled before or after content.
-	 */
 	private getCSSTextForModelDecorationContentClassName(opts: IContentDecorationRenderOptions | undefined): string {
 		if (!opts) {
 			return '';
@@ -793,7 +783,7 @@ class DecorationCSSRules {
 				cssTextArr.push(strings.format(_CSS_MAP.contentIconPath, cssJs.asCSSUrl(URI.revive(opts.contentIconPath))));
 			}
 			if (typeof opts.contentText === 'string') {
-				const truncated = opts.contentText.match(/^.*$/m)![0]; // only take first line
+				const truncated = opts.contentText.match(/^.*$/m)![0];
 				const escaped = truncated.replace(/['\\]/g, '\\$&');
 
 				cssTextArr.push(strings.format(_CSS_MAP.contentText, escaped));
@@ -807,9 +797,6 @@ class DecorationCSSRules {
 		return cssTextArr.join('');
 	}
 
-	/**
-	 * Build the CSS for decorations styled via `glyphMarginClassName`.
-	 */
 	private getCSSTextForModelDecorationGlyphMarginClassName(opts: IThemeDecorationRenderOptions | undefined): string {
 		if (!opts) {
 			return '';

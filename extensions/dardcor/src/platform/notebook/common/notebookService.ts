@@ -38,6 +38,5 @@ export interface INotebookService {
 	getFollowState(): boolean;
 	ensureKernelSelected(notebook: Uri): Promise<void>;
 	hasSupportedNotebooks(uri: Uri): boolean;
-	// testing utility
 	setVariables(notebook: Uri, variables: VariablesResult[]): void;
 }

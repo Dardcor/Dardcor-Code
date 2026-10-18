@@ -27,7 +27,6 @@ export class CompilerOptionsRunnable extends AbstractContextRunnable {
 
 	public static VersionTraitKey: string = Trait.createContextItemKey(TraitKind.Version);
 
-	// Traits to collect from the compiler options in the format of [trait kind, trait description, context key, CompilerOptions.enumType (if applicable)]
 	public static traitsToCollect: [TraitKind, string, ContextItemKey, unknown | undefined][] = [
 		[TraitKind.Module, 'The TypeScript module system used in this project is ', Trait.createContextItemKey(TraitKind.Module), ts.ModuleKind],
 		[TraitKind.ModuleResolution, 'The TypeScript module resolution strategy used in this project is ', Trait.createContextItemKey(TraitKind.ModuleResolution), ts.ModuleResolutionKind],
@@ -204,11 +203,7 @@ export class TypeOfLocalsRunnable extends AbstractContextRunnable {
 			return;
 		}
 		const sourceFile = token.getSourceFile();
-		// When we try to capture locals outside of a callable (e.g. top level in a source file) we capture the declarations as
-		// scope. If we are inside the body of the callable defines the scope.
 		let variableDeclarations: Set<tt.VariableDeclarationList> | undefined = this.cacheScope === undefined ? new Set() : undefined;
-		// The symbols are block scope variables. We try to find the type of the variable
-		// to include it in the context.
 		for (const symbol of inScope) {
 			cancellationToken.throwIfCancellationRequested();
 			if (this.excludes.has(symbol)) {
@@ -277,7 +272,6 @@ export class TypesOfNeighborFilesRunnable extends AbstractContextRunnable {
 				continue;
 			}
 			const sourceFileSymbol = symbols.getLeafSymbolAtLocation(neighborSourceFile);
-			// The neighbor file might have been seen when importing a value module
 			if (sourceFileSymbol === undefined) {
 				continue;
 			}
@@ -340,8 +334,6 @@ export class ImportsRunnable extends AbstractContextRunnable {
 			if (scope.kind === CacheScopeKind.WithinRange) {
 				return true;
 			} else if (scope.kind === CacheScopeKind.OutsideRange) {
-				// If we have a cache info that means we have an within range cache scope.
-				// So we can't use the cached result since we need to emit a new scope.
 				return this.cacheInfo === undefined;
 			}
 		}
@@ -567,8 +559,6 @@ export abstract class FunctionLikeContextProvider extends ContextProvider {
 		token.throwIfCancellationRequested();
 		result.addPrimary(new SignatureRunnable(session, languageService, context, this.functionLikeDeclaration),);
 
-		// If we already have a callable provider then we don't need to compute anything
-		// around the cursor location.
 		if (!this.computeContext.isFirstCallableProvider(this)) {
 			return;
 		}

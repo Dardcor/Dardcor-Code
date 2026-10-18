@@ -20,9 +20,7 @@ class AlternativeNotebookCellSnapshot {
 	private readonly positionTransformer: PositionOffsetTransformer;
 	private readonly crlfTranslator: CrLfOffsetTranslator;
 	public readonly lineCount: number;
-	/** Range of the alternative cell code */
 	public readonly altRange: Range;
-	/** Last line in the actual cell code */
 	private readonly lastLineLength: number;
 	public static fromNotebookCell(cell: NotebookCell, blockComment: [string, string], lineCommentStart: string): AlternativeNotebookCellSnapshot {
 		const summary = summarize(cell);
@@ -57,7 +55,7 @@ class AlternativeNotebookCellSnapshot {
 				range,
 				rangeLength: endOffset - rangeOffset,
 				rangeOffset,
-				text: e.text.replace(/\r\n|\n/g, EOL), // Normalize line endings to EOL
+				text: e.text.replace(/\r\n|\n/g, EOL),
 			};
 		});
 	}
@@ -78,13 +76,11 @@ class AlternativeNotebookCellSnapshot {
 	}
 
 	public toAltOffset(position: Position): number {
-		// Remove the lines we've added for the cell marker and block comments
 		const extraLinesAdded = this.cell.kind === NotebookCellKind.Markup ? 2 : 1;
 		return this.positionTransformer.getOffset(new Position(position.line + extraLinesAdded, position.character));
 	}
 
 	public toAltRange(range: Range): Range {
-		// Remove the lines we've added for the cell marker and block comments
 		const extraLinesAdded = this.cell.kind === NotebookCellKind.Markup ? 2 : 1;
 		return new Range(range.start.line + extraLinesAdded, range.start.character, range.end.line + extraLinesAdded, range.end.character);
 	}
@@ -95,7 +91,6 @@ class AlternativeNotebookCellSnapshot {
 		const startPosition = this.positionTransformer.getPosition(startOffset);
 		const endPosition = this.positionTransformer.getPosition(endOffset);
 
-		// Remove the lines we've added for the cell marker and block comments
 		const extraLinesAddedAtStart = this.cell.kind === NotebookCellKind.Markup ? 2 : 1;
 		const extraLinesAddedAtEnd = this.cell.kind === NotebookCellKind.Markup ? 1 : 0;
 
@@ -114,12 +109,10 @@ class AlternativeNotebookCellSnapshot {
 				endLineEndColumn = this.lastLineLength;
 			}
 		}
-		// If the original start was in a line that part of the prefix, then we need to start from line 0, character 0.
 		const startCharacter = startPosition.line - extraLinesAddedAtStart >= 0 ? startPosition.character : 0;
 		return new Range(startLine, startCharacter, endLine, endLineEndColumn);
 	}
 	public fromAltRange(range: Range): Range {
-		// Remove the lines we've added for the cell marker and block comments
 		const extraLinesAdded = this.cell.kind === NotebookCellKind.Markup ? 2 : 1;
 		const extraLinesAddedAtEnd = this.cell.kind === NotebookCellKind.Markup ? 1 : 0;
 
@@ -142,16 +135,14 @@ function buildAlternativeCells<T>(cellItems: readonly T[], altCelBuilder: (cellI
 		const startLine = lineCount;
 		const startOffset = offset;
 		lineCount += altCell.lineCount;
-		offset += altCell.altText.length + EOL.length; // EOL is added between cells
+		offset += altCell.altText.length + EOL.length;
 		return { altCell, startLine, startOffset };
 	});
 }
 
 type AltCellInfo = {
 	altCell: AlternativeNotebookCellSnapshot;
-	/** Line number at which this cell starts within the Alternative Notebook */
 	startLine: number;
-	/** Character offset at which this cell starts within the Alternative Notebook */
 	startOffset: number;
 };
 
@@ -167,12 +158,6 @@ abstract class AbstractAlternativeNotebookDocument {
 		}
 	}
 
-	/**
-	 * Get the cell associated with a text document.
-	 * @param textDocument The text document to find the cell for.
-	 * @returns The notebook cell associated with the text document, or undefined if not found.
-	 * If a cell was inserted into the notebook and this instance hasn't been updated yet, it will return undefined.
-	 */
 	public getCell(textDocument: TextDocument): NotebookCell | undefined {
 		return this.cellTextDocuments.get(textDocument);
 	}
@@ -257,7 +242,7 @@ abstract class AbstractAlternativeNotebookDocument {
 					return adjustedRange;
 				});
 			} else {
-				offset += altCell.altText.length + EOL.length; // EOL is added between cells
+				offset += altCell.altText.length + EOL.length;
 			}
 		}
 		return [];
@@ -273,7 +258,7 @@ abstract class AbstractAlternativeNotebookDocument {
 					return adjustedRange;
 				});
 			} else {
-				offset += altCell.altText.length + EOL.length; // EOL is added between cells
+				offset += altCell.altText.length + EOL.length;
 			}
 		}
 		return [];
@@ -379,7 +364,6 @@ function withNotebookChangesAndEdit(cells: readonly AltCellInfo[], blockComment:
 	if (!events.length) {
 		return [cells, undefined];
 	}
-	// If we've only added md cells, then its a noop.
 	if (events.every(e => e.removedCells.length === 0 && e.addedCells.every(c => c.kind === NotebookCellKind.Markup))) {
 		return [cells, undefined];
 	}
@@ -403,7 +387,6 @@ function withNotebookChangesAndEdit(cells: readonly AltCellInfo[], blockComment:
 				newCellsContent = `${EOL}${newCellsContent}`;
 			}
 		}
-		// if we have some cells after the insertion, then we need to insert an EOL at the end.
 		if (event.range.end < altCells.length) {
 			if (newCellsContent) {
 				newCellsContent += EOL;
@@ -421,20 +404,10 @@ function withNotebookChangesAndEdit(cells: readonly AltCellInfo[], blockComment:
 	return [altCells, edit];
 }
 
-/**
- * Represents the Notebook as a alternative text (Jupytext like) document that is mutable.
- * Not to be used when dealing with agents for editing or reading notebooks.
- * Use only with NES or other exceptional cases.
- */
 export function createAlternativeNotebookDocument(notebook: NotebookDocument, excludeMarkdownCells: boolean = true): IAlternativeNotebookDocument {
 	return AlternativeNotebookDocument.create(notebook, excludeMarkdownCells);
 }
 
-/**
- * Represents the Notebook as an alternative text (Jupytext like) document that is immutable.
- * Not to be used when dealing with agents for editing or reading notebooks.
- * Use only with NES or other exceptional cases.
- */
 export function createAlternativeNotebookDocumentSnapshot(notebook: NotebookDocument, excludeMarkdownCells: boolean = true): IAlternativeNotebookDocumentSnapshot {
 	return AlternativeNotebookDocumentSnapshot.create(notebook, excludeMarkdownCells);
 }
@@ -465,7 +438,7 @@ function toAltCellTextDocumentContentChangeEvents(notebook: AbstractAlternativeN
 			range,
 			rangeLength: rangeOffset.endExclusive - rangeOffset.start,
 			rangeOffset: rangeOffset.start,
-			text: e.text.replace(/\r\n|\n/g, EOL), // Normalize line endings to EOL
+			text: e.text.replace(/\r\n|\n/g, EOL),
 		} as typeof e;
 	}));
 }

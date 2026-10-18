@@ -32,7 +32,6 @@ export class MockChatSessionMetadataStore implements IChatSessionMetadataStore {
 	}
 
 	async refresh(): Promise<void> {
-		// no-op in mock — there is no on-disk state to reload.
 	}
 
 	async storeWorktreeInfo(sessionId: string, properties: ChatSessionWorktreeProperties): Promise<void> {

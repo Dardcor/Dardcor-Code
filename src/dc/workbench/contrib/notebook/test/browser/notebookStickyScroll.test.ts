@@ -112,14 +112,14 @@ suite('NotebookEditorStickyScroll', () => {
 	test('test1: should render 0->1, 	visible range 3->8', async function () {
 		await withTestNotebook(
 			[
-				['# header a', 'markdown', CellKind.Markup, [], {}],	// 0
-				['## header aa', 'markdown', CellKind.Markup, [], {}],	// 50
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 100
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 150
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 200
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 250
-				['# header b', 'markdown', CellKind.Markup, [], {}],	// 300
-				['var c = 2;', 'javascript', CellKind.Code, [], {}]		// 350
+				['# header a', 'markdown', CellKind.Markup, [], {}],
+				['## header aa', 'markdown', CellKind.Markup, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['# header b', 'markdown', CellKind.Markup, [], {}],
+				['var c = 2;', 'javascript', CellKind.Code, [], {}]
 			],
 			async (editor, viewModel, ds) => {
 				viewModel.restoreEditorViewState({
@@ -150,15 +150,15 @@ suite('NotebookEditorStickyScroll', () => {
 	test('test2: should render 0, 		visible range 6->9 so collapsing next 2 against following section', async function () {
 		await withTestNotebook(
 			[
-				['# header a', 'markdown', CellKind.Markup, [], {}],	// 0
-				['## header aa', 'markdown', CellKind.Markup, [], {}],	// 50
-				['### header aaa', 'markdown', CellKind.Markup, [], {}],// 100
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 150
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 200
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 250
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 300
-				['# header b', 'markdown', CellKind.Markup, [], {}],	// 350
-				['var c = 2;', 'javascript', CellKind.Code, [], {}]		// 400
+				['# header a', 'markdown', CellKind.Markup, [], {}],
+				['## header aa', 'markdown', CellKind.Markup, [], {}],
+				['### header aaa', 'markdown', CellKind.Markup, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['# header b', 'markdown', CellKind.Markup, [], {}],
+				['var c = 2;', 'javascript', CellKind.Code, [], {}]
 			],
 			async (editor, viewModel, ds) => {
 				viewModel.restoreEditorViewState({
@@ -174,7 +174,7 @@ suite('NotebookEditorStickyScroll', () => {
 				cellList.attachViewModel(viewModel);
 				cellList.layout(400, 100);
 
-				editor.setScrollTop(325); // room for a single header
+				editor.setScrollTop(325);
 				editor.visibleRanges = [{ start: 6, end: 9 }];
 
 				const outline = getOutline(editor);
@@ -189,16 +189,16 @@ suite('NotebookEditorStickyScroll', () => {
 	test('test3: should render 0->2, 	collapsing against equivalent level header', async function () {
 		await withTestNotebook(
 			[
-				['# header a', 'markdown', CellKind.Markup, [], {}],	// 0
-				['## header aa', 'markdown', CellKind.Markup, [], {}],	// 50
-				['### header aaa', 'markdown', CellKind.Markup, [], {}],// 100
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 150
-				['### header aab', 'markdown', CellKind.Markup, [], {}],// 200
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 250
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 300
-				['var b = 1;', 'javascript', CellKind.Code, [], {}],	// 350
-				['# header b', 'markdown', CellKind.Markup, [], {}],	// 400
-				['var c = 2;', 'javascript', CellKind.Code, [], {}]		// 450
+				['# header a', 'markdown', CellKind.Markup, [], {}],
+				['## header aa', 'markdown', CellKind.Markup, [], {}],
+				['### header aaa', 'markdown', CellKind.Markup, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['### header aab', 'markdown', CellKind.Markup, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['# header b', 'markdown', CellKind.Markup, [], {}],
+				['var c = 2;', 'javascript', CellKind.Code, [], {}]
 			],
 			async (editor, viewModel, ds) => {
 				viewModel.restoreEditorViewState({
@@ -214,7 +214,7 @@ suite('NotebookEditorStickyScroll', () => {
 				cellList.attachViewModel(viewModel);
 				cellList.layout(400, 100);
 
-				editor.setScrollTop(175); // room for a single header
+				editor.setScrollTop(175);
 				editor.visibleRanges = [{ start: 3, end: 10 }];
 
 				const outline = getOutline(editor);
@@ -226,7 +226,6 @@ suite('NotebookEditorStickyScroll', () => {
 			});
 	});
 
-	// outdated/improper behavior
 	test('test4: should render 0, 		scrolltop halfway through cell 0', async function () {
 		await withTestNotebook(
 			[
@@ -348,16 +347,16 @@ suite('NotebookEditorStickyScroll', () => {
 	test('test7: should render 0->1, 	collapsing against next section', async function () {
 		await withTestNotebook(
 			[
-				['# header a', 'markdown', CellKind.Markup, [], {}], 		//0
-				['## header aa', 'markdown', CellKind.Markup, [], {}], 		//50
-				['### header aaa', 'markdown', CellKind.Markup, [], {}], 	//100
-				['#### header aaaa', 'markdown', CellKind.Markup, [], {}], 	//150
-				['var b = 1;', 'javascript', CellKind.Code, [], {}], 		//200
-				['var b = 1;', 'javascript', CellKind.Code, [], {}], 		//250
-				['var b = 1;', 'javascript', CellKind.Code, [], {}], 		//300
-				['var b = 1;', 'javascript', CellKind.Code, [], {}], 		//350
-				['# header b', 'markdown', CellKind.Markup, [], {}], 		//400
-				['## header bb', 'markdown', CellKind.Markup, [], {}], 		//450
+				['# header a', 'markdown', CellKind.Markup, [], {}],
+				['## header aa', 'markdown', CellKind.Markup, [], {}],
+				['### header aaa', 'markdown', CellKind.Markup, [], {}],
+				['#### header aaaa', 'markdown', CellKind.Markup, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['var b = 1;', 'javascript', CellKind.Code, [], {}],
+				['# header b', 'markdown', CellKind.Markup, [], {}],
+				['## header bb', 'markdown', CellKind.Markup, [], {}],
 				['### header bbb', 'markdown', CellKind.Markup, [], {}],
 				['var c = 2;', 'javascript', CellKind.Code, [], {}]
 			],

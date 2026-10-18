@@ -43,11 +43,6 @@ IMPORTANT: The file and line do NOT need to be the definition of the symbol. Any
 
 If the tool returns an error, retry with corrected input - ensure the file path is correct, the line content matches the actual file content, and the symbol name appears in that line.`;
 
-/**
- * Static description that does not depend on the set of registered reference
- * providers, so it stays byte-stable across requests as language extensions
- * activate during a turn.
- */
 const StaticModelDescription = BaseModelDescription + `
 
 If the file's language has no reference provider registered, the tool returns an error.`;
@@ -117,13 +112,11 @@ export class UsagesTool extends Disposable implements IToolImpl {
 	async invoke(invocation: IToolInvocation, _countTokens: CountTokensCallback, _progress: ToolProgress, token: CancellationToken): Promise<IToolResult> {
 		const input = invocation.parameters as ISymbolToolInput;
 
-		// --- resolve URI ---
 		const uri = resolveSymbolToolFileUri(input, this._workspaceContextService, this._uriIdentityService, invocation.context?.workingDirectory);
 		if (!uri) {
 			return errorResult(localize('tool.usages.invalidFile', 'Provide either "uri" (a full URI) or "filePath" (a workspace-relative path) to identify a file within the current workspace or working directory.'));
 		}
 
-		// --- open text model ---
 		const ref = await this._textModelService.createModelReference(uri);
 		try {
 			const model = ref.object.textEditorModel;
@@ -132,13 +125,11 @@ export class UsagesTool extends Disposable implements IToolImpl {
 				return errorResult(`No reference provider available for this file's language. The usages tool may not support this language.`);
 			}
 
-			// --- find line containing lineContent ---
 			const lineNumber = findLineNumber(model, input.lineContent);
 			if (lineNumber === undefined) {
 				return errorResult(`Could not find line content "${input.lineContent}" in ${uri.toString()}. Provide the exact text from the line where the symbol appears.`);
 			}
 
-			// --- find symbol in that line ---
 			const lineText = model.getLineContent(lineNumber);
 			const column = findSymbolColumn(lineText, input.symbol);
 			if (column === undefined) {
@@ -147,7 +138,6 @@ export class UsagesTool extends Disposable implements IToolImpl {
 
 			const position = new Position(lineNumber, column);
 
-			// --- query references, definitions, implementations in parallel ---
 			const [definitions, allReferences, implementations] = await Promise.all([
 				getDefinitionsAtPosition(this._languageFeaturesService.definitionProvider, model, position, false, token),
 				getReferencesAtPosition(this._languageFeaturesService.referenceProvider, model, position, false, false, token),
@@ -162,7 +152,6 @@ export class UsagesTool extends Disposable implements IToolImpl {
 				return result;
 			}
 
-			// --- classify and format results with previews ---
 			const previews = await this._getLinePreviews(input.symbol, references, workingDirectory, token);
 
 			const lines: string[] = [];
@@ -200,7 +189,6 @@ export class UsagesTool extends Disposable implements IToolImpl {
 	private async _getLinePreviews(symbol: string, references: LocationLink[], workingDirectory: URI | undefined, token: CancellationToken): Promise<(string | undefined)[]> {
 		const previews: (string | undefined)[] = new Array(references.length);
 
-		// Build a lookup: (uriString, lineNumber) → index in references array
 		const lookup = new Map<string, number>();
 		const needSearch = new ResourceSet();
 
@@ -208,7 +196,6 @@ export class UsagesTool extends Disposable implements IToolImpl {
 			const ref = references[i];
 			const lineNumber = Range.lift(ref.range).startLineNumber;
 
-			// Try already-open models first
 			const existingModel = this._modelService.getModel(ref.uri);
 			if (existingModel) {
 				previews[i] = existingModel.getLineContent(lineNumber).trim();
@@ -222,10 +209,7 @@ export class UsagesTool extends Disposable implements IToolImpl {
 			return previews;
 		}
 
-		// Use ISearchService to search for the symbol name, restricted to the
-		// referenced files. This is backed by ripgrep for file:// URIs.
 		try {
-			// Build includePattern from workspace-relative paths
 			const folders = workingDirectory ? [{ uri: workingDirectory }] : this._workspaceContextService.getWorkspace().folders;
 			const relativePaths: string[] = [];
 			for (const uri of needSearch) {
@@ -265,7 +249,7 @@ export class UsagesTool extends Disposable implements IToolImpl {
 							continue;
 						}
 						for (const range of textMatch.rangeLocations) {
-							const lineNumber = range.source.startLineNumber + 1; // 0-based → 1-based
+							const lineNumber = range.source.startLineNumber + 1;
 							const key = `${fileMatch.resource.toString()}:${lineNumber}`;
 							const idx = lookup.get(key);
 							if (idx !== undefined) {
@@ -277,7 +261,6 @@ export class UsagesTool extends Disposable implements IToolImpl {
 				}
 			}
 		} catch {
-			// search might fail, leave remaining previews as undefined
 		}
 
 		return previews;

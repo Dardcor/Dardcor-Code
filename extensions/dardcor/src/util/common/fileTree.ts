@@ -23,7 +23,6 @@ export function fileTreePartToMarkdown(fileTree: vscode.ChatResponseFileTreePart
 		return output;
 	};
 
-	// Start with an empty string or the base directory if provided
 	let markdown = `${fileTree.baseUri.path.replace('/', '')}\n`;
 	const lastChildIndex = fileTree.value.length - 1;
 	fileTree.value.forEach((tree, index) => {

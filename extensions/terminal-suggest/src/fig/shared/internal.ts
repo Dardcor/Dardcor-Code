@@ -15,16 +15,11 @@ export type Suggestion<ArgT = Metadata.ArgMeta> = Override<
 	Fig.Suggestion,
 	{
 		type?: SuggestionType;
-		// Whether or not to add a space after suggestion, e.g. if user completes a
-		// subcommand that takes a mandatory arg.
 		shouldAddSpace?: boolean;
-		// Whether or not to add a separator after suggestion, e.g. for options with requiresSeparator
 		separatorToAdd?: string;
 		args?: ArgT[];
-		// Generator information to determine whether suggestion should be filtered.
 		generator?: Fig.Generator;
 		getQueryTerm?: (x: string) => string;
-		// fuzzyMatchData?: (Result | null)[];
 		originalType?: SuggestionType;
 	}
 >;

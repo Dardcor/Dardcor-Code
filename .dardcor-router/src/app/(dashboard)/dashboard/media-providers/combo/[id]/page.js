@@ -7,7 +7,6 @@ import { Card, Button, Input, Toggle, ModelSelectModal } from "@/shared/componen
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { AI_PROVIDERS, MEDIA_PROVIDER_KINDS } from "@/shared/constants/providers";
 
-// Parse "providerId/model" or just "providerId" → { providerId, model }
 function parseModelEntry(entry) {
   if (typeof entry !== "string") return { providerId: "", model: "" };
   const idx = entry.indexOf("/");
@@ -38,7 +37,6 @@ const EXAMPLE_BODIES = {
   tts: (n) => ({ model: n, input: "Hello, this is a test.", voice: "alloy" }),
 };
 
-// Map combo.kind → listing route to go back to
 function getListingHref(kind) {
   if (kind === "webSearch" || kind === "webFetch") return "/dashboard/media-providers/web";
   return `/dashboard/media-providers/${kind}`;
@@ -87,7 +85,7 @@ export default function ComboDetailPage() {
       setRoundRobin(s.comboStrategies?.[c.name]?.fallbackStrategy === "round-robin");
       const allLogs = logsRes.ok ? await logsRes.json() : [];
       setLogs(allLogs.filter((l) => typeof l === "string" && l.includes(c.name)).slice(0, 50));
-    } catch { /* noop */ }
+    } catch { }
     setLoading(false);
   };
 
@@ -190,19 +188,16 @@ export default function ComboDetailPage() {
         return;
       }
       const ctype = res.headers.get("content-type") || "";
-      // Binary image
       if (ctype.startsWith("image/")) {
         const blob = await res.blob();
         setTestResult({ imageUrl: URL.createObjectURL(blob), latencyMs });
         return;
       }
-      // Binary audio
       if (ctype.startsWith("audio/") || ctype === "application/octet-stream") {
         const blob = await res.blob();
         setTestResult({ audioUrl: URL.createObjectURL(blob), latencyMs });
         return;
       }
-      // JSON — could be image (data[0].b64_json/url) or generic
       const data = await res.json();
       const first = data?.data?.[0];
       const imageUrl = first?.b64_json
@@ -215,7 +210,6 @@ export default function ComboDetailPage() {
     setTesting(false);
   };
 
-  // Mask large b64_json strings to keep JSON view readable
   function maskB64(obj) {
     if (!obj || typeof obj !== "object") return obj;
     if (Array.isArray(obj)) return obj.map(maskB64);
@@ -241,7 +235,7 @@ export default function ComboDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
+      {}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <Link href={backHref} className="text-text-muted hover:text-primary">
@@ -260,7 +254,7 @@ export default function ComboDetailPage() {
         </Button>
       </div>
 
-      {/* Settings Card */}
+      {}
       <Card>
         <h2 className="text-lg font-semibold mb-3">Settings</h2>
         <div className="flex flex-col gap-4">
@@ -278,7 +272,7 @@ export default function ComboDetailPage() {
         </div>
       </Card>
 
-      {/* Providers Card */}
+      {}
       <Card>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
           <div>
@@ -329,7 +323,7 @@ export default function ComboDetailPage() {
         )}
       </Card>
 
-      {/* Test Example Card */}
+      {}
       {combo.kind && examplePath && (
         <Card>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
@@ -381,7 +375,7 @@ export default function ComboDetailPage() {
         </Card>
       )}
 
-      {/* Usage Logs Card */}
+      {}
       <Card>
         <h2 className="text-lg font-semibold mb-3">Usage Logs</h2>
         {logs.length === 0 ? (

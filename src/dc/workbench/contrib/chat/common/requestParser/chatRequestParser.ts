@@ -16,15 +16,13 @@ import { IPromptsService, matchesSessionType } from '../promptSyntax/service/pro
 import { ToolAndToolSetEnablementMap, IToolData, IToolSet, isToolSet } from '../tools/languageModelToolsService.js';
 import { ChatRequestAgentPart, ChatRequestAgentSubcommandPart, ChatRequestDynamicVariablePart, ChatRequestSlashCommandPart, ChatRequestSlashPromptPart, ChatRequestTextPart, ChatRequestToolPart, ChatRequestToolSetPart, IParsedChatRequest, IParsedChatRequestPart, chatAgentLeader, chatSubcommandLeader, chatVariableLeader } from './chatParserTypes.js';
 
-export const agentReg = /^@([\w_\-\.]+)(?=(\s|$|\b))/i; // An @-agent
-export const variableReg = /^#([\w_\-]+)(:\d+)?(?=(\s|$|\b))/i; // A #-variable with an optional numeric : arg (@response:2)
-export const slashReg = /^\/([\p{L}\d_\-\.:]+)(?=(\s|$|\b))/iu; // A / command
+export const agentReg = /^@([\w_\-\.]+)(?=(\s|$|\b))/i;
+export const variableReg = /^#([\w_\-]+)(:\d+)?(?=(\s|$|\b))/i;
+export const slashReg = /^\/([\p{L}\d_\-\.:]+)(?=(\s|$|\b))/iu;
 
 export interface IChatParserContext {
-	/** Used only as a disambiguator, when the query references an agent that has a duplicate with the same name. */
 	selectedAgent?: IChatAgentData;
 	mode?: ChatModeKind;
-	/** Parse as this agent, even when it does not appear in the query text */
 	forcedAgent?: IChatAgentData;
 	attachmentCapabilities?: IChatAgentAttachmentCapabilities;
 	sessionType?: string;
@@ -39,7 +37,7 @@ export class ChatRequestParser {
 	) { }
 
 	parseChatRequest(sessionResource: URI, message: string, location: ChatAgentLocation = ChatAgentLocation.Chat, context: IChatParserContext = {}): IParsedChatRequest {
-		const references = this.variableService.getDynamicVariables(sessionResource); // must access this list before any async calls
+		const references = this.variableService.getDynamicVariables(sessionResource);
 		const selectedToolAndToolSets = this.variableService.getSelectedToolAndToolSets(sessionResource);
 		if (!context.sessionType) {
 			context = { ...context, sessionType: getChatSessionType(sessionResource) };
@@ -83,7 +81,6 @@ export class ChatRequestParser {
 
 			if (newPart) {
 				if (i !== 0) {
-					// Insert a part for all the text we passed over, then insert the new parsed part
 					const previousPart = parts.at(-1);
 					const previousPartEnd = previousPart?.range.endExclusive ?? 0;
 					const previousPartEditorRangeEndLine = previousPart?.editorRange.endLineNumber ?? 1;
@@ -138,8 +135,6 @@ export class ChatRequestParser {
 			}
 		}
 
-		// If there is more than one agent with this name, and the user picked it from the suggest widget, then the selected agent should be in the
-		// context and we use that one.
 		const agent = agents.length > 1 && context?.selectedAgent ?
 			context.selectedAgent :
 			agents.find((a) => a.locations.includes(location));
@@ -152,11 +147,9 @@ export class ChatRequestParser {
 		}
 
 		if (parts.some(p => p instanceof ChatRequestAgentPart)) {
-			// Only one agent allowed
 			return;
 		}
 
-		// The agent must come first
 		if (parts.some(p => (p instanceof ChatRequestTextPart && p.text.trim() !== '') || !(p instanceof ChatRequestAgentPart))) {
 			return;
 		}
@@ -201,18 +194,6 @@ export class ChatRequestParser {
 			return;
 		}
 
-		if (parts.some(p => !(p instanceof ChatRequestAgentPart) && !(p instanceof ChatRequestSlashPromptPart) && !(p instanceof ChatRequestTextPart && p.text.trim() === ''))) {
-			return;
-		}
-
-		// only whitespace after the last part
-		const previousPart = parts.at(-1);
-		const previousPartEnd = previousPart?.range.endExclusive ?? 0;
-		const textSincePreviousPart = fullMessage.slice(previousPartEnd, offset);
-		if (textSincePreviousPart.trim() !== '') {
-			return;
-		}
-
 		const [full, command] = nextSlashMatch;
 		const slashRange = new OffsetRange(offset, offset + full.length);
 		const slashEditorRange = new Range(position.lineNumber, position.column, position.lineNumber, position.column + full.length);
@@ -222,7 +203,6 @@ export class ChatRequestParser {
 		if (usedAgent) {
 			const subCommand = usedAgent.slashCommands.find(c => c.name === command);
 			if (subCommand) {
-				// Valid agent subcommand
 				return new ChatRequestAgentSubcommandPart(slashRange, slashEditorRange, subCommand);
 			}
 		}
@@ -230,30 +210,17 @@ export class ChatRequestParser {
 		const capabilities = context?.attachmentCapabilities ?? usedAgent?.capabilities;
 		const slashCommands = this.slashCommandService.getCommands(location, context?.mode ?? ChatModeKind.Ask);
 		const slashCommand = slashCommands.find(c => c.command === command && matchesSessionType(c.sessionTypes, context?.sessionType));
-		// If there is no agent, we allow any slash command.
-		// If there is an agent, we let
-		// * silent ones go through since they are only UI-facing and don't influence chat history
-		// * slash commands that support prompt attachments, since those are meant to be used in conjunction with an agent and we can assume the agent can handle them.
 		if (!usedAgent || slashCommand?.silent || capabilities?.supportsPromptAttachments) {
 			if (slashCommand) {
-				// Valid standalone slash command
 				return new ChatRequestSlashCommandPart(slashRange, slashEditorRange, slashCommand);
 			} else if (!usedAgent) {
-				// check for with default agent for this location
 				const defaultAgent = this.agentService.getDefaultAgent(location, context?.mode);
 				const subCommand = defaultAgent?.slashCommands.find(c => c.name === command);
 				if (subCommand) {
-					// Valid default agent subcommand
 					return new ChatRequestAgentSubcommandPart(slashRange, slashEditorRange, subCommand);
 				}
 			}
 
-			// Fallback: try `<cmd>:<sub>` if a prompt with that combined name exists.
-			// Supports the space-form subcommand grammar (e.g. `/chronicle tips` resolves to
-			// the `chronicle:tips` prompt) so users don't need to type the colon separator.
-			// Checked before bare-command interpretation because `isValidSlashCommandName` is
-			// syntactic only — bare `<cmd>` always passes, so we must commit to the longer
-			// match here when the discovered prompt list contains it.
 			const afterSlash = remainingMessage.slice(full.length);
 			const subMatch = afterSlash.match(/^[ \t]+([\p{L}\d_\-\.]+)/u);
 			if (subMatch) {
@@ -267,7 +234,6 @@ export class ChatRequestParser {
 				}
 			}
 
-			// if there's no agent or attachments are supported, asume it is a prompt slash command
 			if (this.promptsService.isValidSlashCommandName(command)) {
 				return new ChatRequestSlashPromptPart(slashRange, slashEditorRange, command);
 			}

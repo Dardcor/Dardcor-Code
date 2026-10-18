@@ -6,11 +6,6 @@
 import type { FetchOptions, RequestMetadata } from '@vscode/copilot-api';
 import { Response } from '../../../networking/common/fetcherService';
 
-/**
- * A mock implementation of ICAPIClientService for testing.
- * Returns an empty successful response by default.
- * Note: Does not fully implement ICAPIClientService - only the methods needed for tests.
- */
 export class MockCAPIClientService {
 	declare readonly _serviceBrand: undefined;
 
@@ -27,9 +22,6 @@ export class MockCAPIClientService {
 		body: null,
 	} as unknown as Response;
 
-	/**
-	 * Sets the mock response to return from makeRequest.
-	 */
 	setMockResponse(response: Partial<Response>): void {
 		this._mockResponse = { ...this._mockResponse, ...response } as Response;
 	}

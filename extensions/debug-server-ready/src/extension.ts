@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import * as util from 'util';
 import { randomUUID } from 'crypto';
 
-const PATTERN = 'listening on.* (https?://\\S+|[0-9]+)'; // matches "listening on port 3000" or "Now listening on: https://localhost:5001"
+const PATTERN = 'listening on.* (https?://\\S+|[0-9]+)';
 const URI_PORT_FORMAT = 'http://localhost:%s';
 const URI_FORMAT = '%s';
 const WEB_ROOT = '${workspaceFolder}';
@@ -22,7 +22,6 @@ interface ServerReadyAction {
 	killOnServerStop?: boolean;
 }
 
-// From src/vs/base/common/strings.ts
 const CSI_SEQUENCE = /(?:\x1b\[|\x9b)[=?>!]?[\d;:]*["$#'* ]?[a-zA-Z@^`{}|~]/;
 const OSC_SEQUENCE = /(?:\x1b\]|\x9d).*?(?:\x1b\\|\x07|\x9c)/;
 const ESC_SEQUENCE = /\x1b(?:[ #%\(\)\*\+\-\.\/]?[a-zA-Z0-9\|}~@])/;
@@ -32,10 +31,6 @@ const CONTROL_SEQUENCES = new RegExp('(?:' + [
 	ESC_SEQUENCE.source,
 ].join('|') + ')', 'g');
 
-/**
- * Froms vs/base/common/strings.ts in core
- * @see https://github.com/microsoft/vscode/blob/22a2a0e833175c32a2005b977d7fbd355582e416/src/vs/base/common/strings.ts#L736
- */
 function removeAnsiEscapeCodes(str: string): string {
 	if (str) {
 		str = str.replace(CONTROL_SEQUENCES, '');
@@ -100,7 +95,6 @@ class ServerReadyDetector extends vscode.Disposable {
 		if (!this.terminalDataListener) {
 			this.terminalDataListener = vscode.window.onDidWriteTerminalData(async e => {
 
-				// first find the detector with a matching pid
 				const pid = await e.terminal.processId;
 				const str = removeAnsiEscapeCodes(e.data);
 				for (const [, detector] of this.detectors) {
@@ -110,7 +104,6 @@ class ServerReadyDetector extends vscode.Disposable {
 					}
 				}
 
-				// if none found, try all detectors until one matches
 				for (const [, detector] of this.detectors) {
 					if (detector.detectPattern(str)) {
 						return;
@@ -123,7 +116,6 @@ class ServerReadyDetector extends vscode.Disposable {
 	private constructor(private session: vscode.DebugSession) {
 		super(() => this.internalDispose());
 
-		// Re-used the triggered of the parent session, if one exists
 		if (session.parentSession) {
 			this.trigger = ServerReadyDetector.start(session.parentSession)?.trigger ?? new Trigger();
 		} else {
@@ -159,8 +151,6 @@ class ServerReadyDetector extends vscode.Disposable {
 
 		let uri;
 		if (captureString === '') {
-			// nothing captured by reg exp -> use the uriFormat as the target uri without substitution
-			// verify that format does not contain '%s'
 			const format = args.uriFormat || '';
 			if (format.indexOf('%s') >= 0) {
 				const errMsg = vscode.l10n.t("Format uri ('{0}') uses a substitution placeholder but pattern did not capture anything.", format);
@@ -169,9 +159,7 @@ class ServerReadyDetector extends vscode.Disposable {
 			}
 			uri = format;
 		} else {
-			// if no uriFormat is specified guess the appropriate format based on the captureString
 			const format = args.uriFormat || (/^[0-9]+$/.test(captureString) ? URI_PORT_FORMAT : URI_FORMAT);
-			// verify that format only contains a single '%s'
 			const s = format.split('%s');
 			if (s.length !== 2) {
 				const errMsg = vscode.l10n.t("Format uri ('{0}') must contain exactly one substitution placeholder.", format);
@@ -214,7 +202,6 @@ class ServerReadyDetector extends vscode.Disposable {
 				break;
 
 			default:
-				// not supported
 				break;
 		}
 	}
@@ -262,13 +249,6 @@ class ServerReadyDetector extends vscode.Disposable {
 		});
 	}
 
-	/**
-	 * Starts a debug session given a debug configuration name (saved in launch.json) or a debug configuration object.
-	 *
-	 * @param session The parent debugSession
-	 * @param name The name of the configuration to launch. If config it set, it assumes it is the same as config.name.
-	 * @param config [Optional] Instead of starting a debug session by debug configuration name, use a debug configuration object instead.
-	 */
 	private async startDebugSession(session: vscode.DebugSession, name: string, config?: vscode.DebugConfiguration) {
 		const args = session.configuration.serverReadyAction as ServerReadyAction;
 		if (!args.killOnServerStop) {
@@ -317,7 +297,6 @@ class ServerReadyDetector extends vscode.Disposable {
 				}
 			});
 
-			// In case the debug session of interest was never caught anyhow.
 			this.disposables.add(listener);
 			this.disposables.add(cancellationListener);
 		});
@@ -356,7 +335,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 function startTrackerForType(context: vscode.ExtensionContext, type: string) {
 
-	// scan debug console output for a PORT message
 	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory(type, {
 		createDebugAdapterTracker(session: vscode.DebugSession) {
 			const detector = ServerReadyDetector.start(session);
@@ -379,7 +357,7 @@ function startTrackerForType(context: vscode.ExtensionContext, type: string) {
 						}
 						if (m.type === 'request' && m.command === 'runInTerminal' && m.arguments) {
 							if (m.arguments.kind === 'integrated') {
-								runInTerminalRequestSeq = m.seq; // remember this to find matching response
+								runInTerminalRequestSeq = m.seq;
 							}
 						}
 					},

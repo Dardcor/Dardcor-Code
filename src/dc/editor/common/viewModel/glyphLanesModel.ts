@@ -12,7 +12,7 @@ const MAX_LANE = GlyphMarginLane.Right;
 export class GlyphMarginLanesModel implements IGlyphMarginLanesModel {
 	private lanes: Uint8Array;
 	private persist = 0;
-	private _requiredLanes = 1; // always render at least one lane
+	private _requiredLanes = 1;
 
 	constructor(maxLine: number) {
 		this.lanes = new Uint8Array(Math.ceil(((maxLine + 1) * MAX_LANE) / 8));

@@ -26,9 +26,6 @@ export class NotebookCellOutputTextModel extends Disposable implements ICellOutp
 		return this._rawOutput.outputId;
 	}
 
-	/**
-	 * Alternative output id that's reused when the output is updated.
-	 */
 	private _alternativeOutputId: string;
 
 	get alternativeOutputId(): string {
@@ -76,7 +73,6 @@ export class NotebookCellOutputTextModel extends Disposable implements ICellOutp
 		});
 	}
 
-	// mime: versionId: buffer length
 	private versionedBufferLengths: Record<string, Record<number, number>> = {};
 
 	appendedSinceVersion(versionId: number, mime: string): VSBuffer | undefined {
@@ -91,8 +87,6 @@ export class NotebookCellOutputTextModel extends Disposable implements ICellOutp
 
 	private optimizeOutputItems() {
 		if (this.outputs.length > 1 && this.outputs.every(item => isTextStreamMime(item.mime))) {
-			// Look for the mimes in the items, and keep track of their order.
-			// Merge the streams into one output item, per mime type.
 			const mimeOutputs = new Map<string, Uint8Array[]>();
 			const mimeTypes: string[] = [];
 			this.outputs.forEach(item => {
@@ -114,7 +108,6 @@ export class NotebookCellOutputTextModel extends Disposable implements ICellOutp
 					data: compressionResult.data
 				});
 				if (compressionResult.didCompression) {
-					// we can't rely on knowing buffer lengths if we've erased previous lines
 					this.versionedBufferLengths = {};
 				}
 			});
@@ -123,7 +116,6 @@ export class NotebookCellOutputTextModel extends Disposable implements ICellOutp
 
 	asDto(): IOutputDto {
 		return {
-			// data: this._data,
 			metadata: this._rawOutput.metadata,
 			outputs: this._rawOutput.outputs,
 			outputId: this._rawOutput.outputId

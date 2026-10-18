@@ -45,15 +45,6 @@ async function findMarkdownFilesInDir(uri: Uri): Promise<Uri[]> {
 		.map(([name]) => Uri.joinPath(uri, name));
 }
 
-/**
- * PR templates can be:
- * - In the root, `docs`, or `.github` folders, called `pull_request_template.md` or `PULL_REQUEST_TEMPLATE.md`
- * - Or, in a `PULL_REQUEST_TEMPLATE` directory directly below the root, `docs`, or `.github` folders, called `*.md`
- *
- * NOTE This method is a modified copy of a method with same name at microsoft/vscode-pull-request-github repository:
- *   https://github.com/microsoft/vscode-pull-request-github/blob/0a0c3c6c21c0b9c2f4d5ffbc3f8c6a825472e9e6/src/github/folderRepositoryManager.ts#L1061
- *
- */
 export async function findPullRequestTemplates(repositoryRootUri: Uri): Promise<Uri[]> {
 	const results = await Promise.allSettled([
 		...PR_TEMPLATE_FILES.map(x => assertMarkdownFiles(Uri.joinPath(repositoryRootUri, x.dir), x.files)),
@@ -131,38 +122,19 @@ export class GithubPushErrorHandler implements PushErrorHandler {
 		if (error.gitErrorCode === GitErrorCodes.PermissionDenied) {
 			await this.handlePermissionDeniedError(repository, remote, refspec, owner, repo);
 
-			/* __GDPR__
-				"pushErrorHandler" : {
-					"owner": "lszomoru",
-					"handler": { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-				}
-			*/
 			this.telemetryReporter.sendTelemetryEvent('pushErrorHandler', { handler: 'PermissionDenied' });
 
 			return true;
 		}
 
-		// Push protection
 		if (/GH009: Secrets detected!/i.test(error.stderr)) {
 			await this.handlePushProtectionError(owner, repo, error.stderr);
 
-			/* __GDPR__
-				"pushErrorHandler" : {
-					"owner": "lszomoru",
-					"handler": { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-				}
-			*/
 			this.telemetryReporter.sendTelemetryEvent('pushErrorHandler', { handler: 'PushRejected.PushProtection' });
 
 			return true;
 		}
 
-		/* __GDPR__
-			"pushErrorHandler" : {
-				"owner": "lszomoru",
-				"handler": { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-			}
-		*/
 		this.telemetryReporter.sendTelemetryEvent('pushErrorHandler', { handler: 'None' });
 
 		return false;
@@ -189,11 +161,9 @@ export class GithubPushErrorHandler implements PushErrorHandler {
 
 			type CreateForkResponseData = Awaited<ReturnType<typeof octokit.repos.createFork>>['data'];
 
-			// Issue: what if the repo already exists?
 			let ghRepository: CreateForkResponseData;
 			try {
 				if (isInCodespaces()) {
-					// Call into the codespaces extension to fork the repository
 					const resp = await commands.executeCommand<{ repository: CreateForkResponseData; ref: string }>('github.codespaces.forkRepository');
 					if (!resp) {
 						throw new Error('Unable to fork respository');
@@ -220,10 +190,8 @@ export class GithubPushErrorHandler implements PushErrorHandler {
 
 			progress.report({ message: l10n.t('Pushing changes...'), increment: 33 });
 
-			// Issue: what if there's already an `upstream` repo?
 			await repository.renameRemote(remote.name, 'upstream');
 
-			// Issue: what if there's already another `origin` repo?
 			const protocol = workspace.getConfiguration('github').get<'https' | 'ssh'>('gitProtocol');
 			const remoteUrl = protocol === 'https' ? ghRepository.clone_url : ghRepository.ssh_url;
 			await repository.addRemote('origin', remoteUrl);
@@ -232,7 +200,6 @@ export class GithubPushErrorHandler implements PushErrorHandler {
 				await repository.fetch('origin', remoteName);
 				await repository.setBranchUpstream(localName, `origin/${remoteName}`);
 			} catch {
-				// noop
 			}
 
 			await repository.push('origin', localName, true);
@@ -240,7 +207,6 @@ export class GithubPushErrorHandler implements PushErrorHandler {
 			return [octokit, ghRepository] as const;
 		});
 
-		// yield
 		(async () => {
 			const openOnGitHub = l10n.t('Open on GitHub');
 			const createPR = l10n.t('Create PR');
@@ -299,7 +265,6 @@ export class GithubPushErrorHandler implements PushErrorHandler {
 	}
 
 	private async handlePushProtectionError(owner: string, repo: string, stderr: string): Promise<void> {
-		// Open command output in an editor
 		const timestamp = new Date().getTime();
 		const uri = Uri.parse(`github-output:/github-error-${timestamp}`);
 		this.commandErrors.set(uri, stderr);
@@ -312,12 +277,11 @@ export class GithubPushErrorHandler implements PushErrorHandler {
 			this.commandErrors.set(uri, stderr);
 		}
 
-		// Show dialog
 		const learnMore = l10n.t('Learn More');
 		const message = l10n.t('Your push to "{0}/{1}" was rejected by GitHub because push protection is enabled and one or more secrets were detected.', owner, repo);
 		const answer = await window.showWarningMessage(message, { modal: true }, learnMore);
 		if (answer === learnMore) {
-			commands.executeCommand('vscode.open', 'https://aka.ms/vscode-github-push-protection');
+			commands.executeCommand('vscode.open', 'https://www.dardcor-code.web.id/docs/security/github-push-protection');
 		}
 	}
 

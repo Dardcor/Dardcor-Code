@@ -23,7 +23,6 @@ export default new class MissingTSXLinebreak implements eslint.Rule.RuleModule {
 				let jsxText = text;
 				let index = node.range[0];
 
-				// Remove leading linebreaks
 				const match = jsxText.match(/^\r?\n/);
 				if (match) {
 					jsxText = jsxText.slice(match[0].length);
@@ -47,11 +46,10 @@ export default new class MissingTSXLinebreak implements eslint.Rule.RuleModule {
 				}
 
 				if (errorLocs.length < 2) {
-					return; // All text is on one line
+					return;
 				}
 
 				if (lastFragment.trim().length === 0) {
-					// Last fragment is whitespace, it might be followed by another JSX element, which we already auto insert linebreaks for
 					const nextChild = context.sourceCode.getTokenAfter(node);
 					if (!nextChild || nextChild?.value === '<') {
 						errorLocs.pop();

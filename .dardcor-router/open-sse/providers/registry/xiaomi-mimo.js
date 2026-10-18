@@ -1,11 +1,5 @@
 import { CLAUDE_API_HEADERS } from "../shared.js";
 
-// Dual auth (same pattern as kimi):
-//   - API key (sk-...)      → cloud API on api.xiaomimimo.com
-//   - Desktop account/OAuth → same cloud host, plus the Desktop-exclusive Preview
-//     models served by the account-service route on mimo-server-cn.xiaomimimo.com
-//     (authorized by a Xiaomi account session cookie, not the key).
-// Endpoint is picked per model in the executor, same as opencode-go's /responses split.
 export default {
   id: "xiaomi-mimo",
   priority: 290,
@@ -30,12 +24,19 @@ export default {
   category: "oauth",
   authModes: ["oauth", "apikey"],
   hasOAuth: true,
+  regions: [
+    { id: "cn", label: "China (中国大陆)" },
+    { id: "sgp", label: "Singapore (新加坡)" },
+    { id: "ams", label: "Europe · Amsterdam (欧洲)" },
+    { id: "ru", label: "Russia (俄罗斯)" },
+    { id: "in", label: "India (印度)" },
+  ],
+  defaultRegion: "sgp",
   serviceKinds: ["llm", "tts"],
   transport: {
     baseUrl: "https://api.xiaomimimo.com/v1/chat/completions",
     validateUrl: "https://api.xiaomimimo.com/v1/models",
   },
-  // Multi-endpoint: pick the transport matching client sourceFormat to skip translation.
   transports: [
     {
       format: "openai",
@@ -50,11 +51,9 @@ export default {
     },
   ],
   models: [
-    // Desktop-exclusive — served by the account-service route, which only accepts
-    // OpenAI format, so supportedFormats pins them to the openai transport.
-    { id: "mimo-x-pro-preview", name: "MiMo-X-Pro-Preview", upstreamModelId: "xiaomi/mimo-x-pro-preview", supportedFormats: ["openai"] },
-    { id: "mimo-x-flash-preview", name: "MiMo-X-Flash-Preview", upstreamModelId: "xiaomi/mimo-x-flash-preview", supportedFormats: ["openai"] },
-    // Cloud API models (api.xiaomimimo.com/v1)
+    { id: "mimo-v2.6-pro", name: "MiMo V2.6 Pro", upstreamModelId: "xiaomi/mimo-v2.6-pro", supportedFormats: ["openai"] },
+    { id: "mimo-v2.6-flash", name: "MiMo V2.6 Flash", upstreamModelId: "xiaomi/mimo-v2.6-flash", supportedFormats: ["openai"] },
+    { id: "mimo-v2.6-pro-ultraspeed", name: "MiMo V2.6 Pro UltraSpeed", upstreamModelId: "xiaomi/mimo-v2.6-pro-ultraspeed", supportedFormats: ["openai"] },
     { id: "mimo-v2.5-pro", name: "MiMo V2.5 Pro" },
     { id: "mimo-v2.5", name: "MiMo V2.5" },
     { id: "mimo-v2-omni", name: "MiMo V2 Omni" },
@@ -71,13 +70,9 @@ export default {
     usage: true,
     usageApikey: true,
   },
-  // Custom OAuth — non-standard ECDH encrypted-callback flow.
-  // Handled by the Xiaomi MiMo OAuth service, not the generic PKCE pipeline.
   oauth: {
     custom: true,
     authorizeUrl: "https://platform.xiaomimimo.com/authorize",
-    // The callback carries ?u=<ECDH-encrypted payload> instead of ?code=.
-    // Decryption yields { uid, sk, url }.
     callbackParam: "u",
     kn: "mimocode",
   },

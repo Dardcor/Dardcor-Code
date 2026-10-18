@@ -24,8 +24,8 @@ export class DiffServiceImpl implements IDiffService {
 	constructor(private _useWorker = true) {
 		this._worker = new Lazy(() => {
 			const workerPath = firstExistingPath([
-				path.join(__dirname, 'diffWorker.js'), // after bundling by esbuild
-				path.join(__dirname, '../../../../dist/diffWorker.js'), // relative to the typescript source file (for tsx)
+				path.join(__dirname, 'diffWorker.js'),
+				path.join(__dirname, '../../../../dist/diffWorker.js'),
 			]);
 
 			if (workerPath === undefined) {
@@ -47,7 +47,6 @@ export class DiffServiceImpl implements IDiffService {
 			await this._worker.value.proxy.computeDiff(original, modified, options) :
 			await diffWorker.computeDiff(original, modified, options);
 
-		// Convert from space efficient JSON data to rich objects.
 		const diff: IDocumentDiff = {
 			identical: result.identical,
 			quitEarly: result.quitEarly,

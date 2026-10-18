@@ -37,16 +37,6 @@ export class McpGatewayToolBrokerChannel extends Disposable implements IServerCh
 	private readonly _onDidChangeResources = this._register(new Emitter<void>());
 	private readonly _onDidChangeServers = this._register(new Emitter<readonly IMcpGatewayServerDescriptor[]>());
 
-	/**
-	 * Per-server promise that races server startup against the grace period timeout.
-	 * Once set for a server, subsequent list calls await the already-resolved promise
-	 * and return immediately instead of waiting again.
-	 *
-	 * The `resolved` flag tracks whether the promise has settled. If a server's
-	 * cacheState regresses to Unknown/Outdated after the promise resolved (e.g.
-	 * after a cache reset), `_waitForStartup` discards the stale entry and creates
-	 * a fresh race so the server gets another chance to start.
-	 */
 	private readonly _startupGrace = new Map<string, { promise: Promise<boolean>; resolved: boolean }>();
 
 	constructor(
@@ -110,9 +100,6 @@ export class McpGatewayToolBrokerChannel extends Disposable implements IServerCh
 	private _waitForStartup(server: IMcpServer): Promise<boolean> {
 		const id = server.definition.id;
 		const existing = this._startupGrace.get(id);
-		// If the previous grace promise already resolved but the server is still
-		// Unknown/Outdated, the entry is stale (e.g. caches were reset). Discard
-		// it so we create a fresh race below.
 		if (existing?.resolved) {
 			const state = server.cacheState.get();
 			if (state === McpServerCacheState.Unknown || state === McpServerCacheState.Outdated) {

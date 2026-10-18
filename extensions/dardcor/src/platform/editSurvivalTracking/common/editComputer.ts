@@ -13,15 +13,6 @@ import { IWorkspaceService } from '../../workspace/common/workspaceService';
 
 export class EditComputer extends Disposable {
 	private readonly _baseDocumentText = this._document.getText();
-	/**
-	 * ```
-	 * _baseText
-	 * ----diffEdits---->
-	 * _baseDocumentText
-	 * ----_editsOnTop---->
-	 * _document.getText()
-	 * ```
-	*/
 	private _editsOnTop: StringEdit = StringEdit.empty;
 
 	constructor(
@@ -59,11 +50,6 @@ export class EditComputer extends Disposable {
 export interface ISyncEditProvider {
 	readonly baseText: string;
 	readonly document: vscode.TextDocument;
-	/**
-	 * ```
-	 * baseText ----getEditsSinceInitial()----> document.getText()
-	 * ```
-	*/
 	getEditsSinceInitial(): StringEdit;
 }
 
@@ -86,13 +72,6 @@ export class DocumentEditRecorder extends Disposable {
 		}));
 	}
 
-	/**
-	 * ```
-	 * this.initialTextVersion
-	 * ----this.getEdits()---->
-	 * this.textDocument.version
-	 * ```
-	*/
 	getEdits(): StringEdit {
 		if (this._store.isDisposed) {
 			throw new BugIndicatingError('DocumentEditRecorder has been disposed');

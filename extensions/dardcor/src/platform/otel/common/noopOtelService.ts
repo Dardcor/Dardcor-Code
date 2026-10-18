@@ -17,10 +17,6 @@ const noopSpan: ISpanHandle = {
 	end() { },
 };
 
-/**
- * No-op implementation of IOTelService.
- * All methods are zero-cost when OTel is disabled.
- */
 export class NoopOTelService implements IOTelService {
 	declare readonly _serviceBrand: undefined;
 	readonly config: OTelConfig;

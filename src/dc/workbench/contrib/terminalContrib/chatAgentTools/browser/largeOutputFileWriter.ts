@@ -12,15 +12,6 @@ import { ITerminalLogService } from '../../../../../platform/terminal/common/ter
 import { IEnvironmentService } from '../../../../../platform/environment/common/environment.js';
 import { MAX_OUTPUT_LENGTH, truncateLargeOutput } from './outputHelpers.js';
 
-/**
- * Writes large terminal output to temp files so the model can read the full
- * output using file-reading tools. Tracks created files for cleanup on dispose.
- *
- * Mirrors copilot-agent-runtime's largeOutputHandler.ts pattern:
- * - Output exceeding MAX_OUTPUT_LENGTH is written to a temp file
- * - A truncated preview (head + tail) is returned with the file path
- * - Files are cleaned up when sessions end or this writer is disposed
- */
 export class LargeOutputFileWriter extends Disposable {
 
 	private readonly _tempFiles = new Set<URI>();
@@ -33,11 +24,6 @@ export class LargeOutputFileWriter extends Disposable {
 		super();
 	}
 
-	/**
-	 * If the output exceeds MAX_OUTPUT_LENGTH, writes it to a temp file and
-	 * returns a truncated message with the file path. Otherwise returns the
-	 * output unchanged.
-	 */
 	async processOutput(output: string): Promise<string> {
 		if (output.length <= MAX_OUTPUT_LENGTH) {
 			return output;
@@ -45,7 +31,6 @@ export class LargeOutputFileWriter extends Disposable {
 
 		const filePath = await this._writeToTempFile(output);
 		if (!filePath) {
-			// File write failed, fall back to truncation without file reference
 			return truncateLargeOutput(output);
 		}
 
@@ -58,7 +43,6 @@ export class LargeOutputFileWriter extends Disposable {
 			const dirUri = URI.joinPath(this._environmentService.cacheHome, 'copilot-terminal-output');
 			const fileUri = URI.joinPath(dirUri, fileName);
 
-			// Pretty-print JSON in the file for readability (matches agent-runtime behavior)
 			const fileContent = this._prettyPrintIfJson(output);
 			await this._fileService.writeFile(fileUri, VSBuffer.fromString(fileContent));
 			this._tempFiles.add(fileUri);
@@ -83,12 +67,9 @@ export class LargeOutputFileWriter extends Disposable {
 		}
 	}
 
-	/**
-	 * Cleans up all tracked temp files. Called on session end.
-	 */
 	cleanup(): void {
 		for (const fileUri of this._tempFiles) {
-			this._fileService.del(fileUri).catch(() => { /* ignore cleanup errors */ });
+			this._fileService.del(fileUri).catch(() => { });
 		}
 		this._tempFiles.clear();
 	}

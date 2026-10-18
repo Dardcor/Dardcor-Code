@@ -21,7 +21,6 @@ export interface IAgentMessageSessionDelegationMeta {
 
 export type IAgentMessageDelegationMeta = IAgentMessageThreadDelegationMeta | IAgentMessageSessionDelegationMeta;
 
-/** Parses recognized Agent Host message-delegation metadata. */
 export function parseAgentMessageDelegationMeta(value: unknown): IAgentMessageDelegationMeta | undefined {
 	if (!value || typeof value !== 'object' || Array.isArray(value)) {
 		return undefined;
@@ -42,12 +41,10 @@ export function parseAgentMessageDelegationMeta(value: unknown): IAgentMessageDe
 	};
 }
 
-/** Reads recognized Agent Host message-delegation metadata. */
 export function readAgentMessageDelegationMeta(source: IHasMessageDelegationMeta): IAgentMessageDelegationMeta | undefined {
 	return parseAgentMessageDelegationMeta(source._meta?.[MESSAGE_DELEGATION_META_KEY]);
 }
 
-/** Serializes Agent Host message-delegation metadata for the open protocol bag. */
 export function toAgentMessageDelegationMeta(meta: IAgentMessageDelegationMeta): Record<string, unknown> {
 	return { [MESSAGE_DELEGATION_META_KEY]: meta };
 }

@@ -173,7 +173,6 @@ export class NotebookDiffOverviewRuler extends Themable {
 
 	private _renderCanvas(ctx: CanvasRenderingContext2D, width: number, height: number, scrollHeight: number, ratio: number) {
 		if (!this._insertColorHex || !this._removeColorHex) {
-			// no op when colors are not yet known
 			return;
 		}
 

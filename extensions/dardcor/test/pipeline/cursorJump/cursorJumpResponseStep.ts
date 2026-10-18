@@ -25,12 +25,6 @@ export interface ICrossFileGeneratedResponse {
 	};
 }
 
-/**
- * Format a same-file jump as `<lineNumber>` (0-based, document-line space).
- * Returns an error when the target line falls outside the prompt's kept
- * range — the predictor rejects such outputs at parse time so we drop the
- * sample at generation time instead of poisoning the dataset.
- */
 export function generateSameFileResponse(
 	jump: ISameFileJump,
 	keptRange: OffsetRange,
@@ -48,10 +42,6 @@ export function generateSameFileResponse(
 	};
 }
 
-/**
- * Format a cross-file jump as `<normalizedPath>:<lineNumber>`.
- * `jump.toLine` is guaranteed non-undefined by `detectCrossFileJump`.
- */
 export function generateCrossFileResponse(
 	jump: ICrossFileJump,
 	cursorAtRequestLine: number,

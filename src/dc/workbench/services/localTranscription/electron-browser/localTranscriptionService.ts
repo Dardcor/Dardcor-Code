@@ -11,14 +11,6 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { ILocalTranscriptionService, localTranscriptionChannelName } from '../../../../platform/localTranscription/common/localTranscription.js';
 import { IUtilityProcessWorkerWorkbenchService } from '../../utilityProcess/electron-browser/utilityProcessWorkerWorkbenchService.js';
 
-/**
- * Platform/architecture combinations for which the Foundry Local native runtime
- * ships a prebuilt addon and core libraries, and packaging keeps them (see the
- * Foundry Local bundling in build/gulpfile.vscode.ts). On anything else (e.g.
- * darwin/x64, linux/armhf) the native runtime is absent, so on-device
- * transcription cannot run and the feature must report itself unsupported rather
- * than showing a mic that fails on use.
- */
 const SUPPORTED_TARGETS = new Set<string>([
 	'darwin-arm64',
 	'linux-x64',
@@ -31,12 +23,6 @@ function isOnDeviceTranscriptionSupported(): boolean {
 	return !!platform && !!arch && SUPPORTED_TARGETS.has(`${platform}-${arch}`);
 }
 
-/**
- * Renderer-side proxy for the on-device transcription service, which runs in a
- * utility process (heavy: Foundry Local native ASR runtime — onnxruntime +
- * onnxruntime-genai). The worker is spun up lazily on first use and torn down
- * with the window.
- */
 export class LocalTranscriptionService {
 
 	declare readonly _serviceBrand: undefined;
@@ -59,10 +45,6 @@ export class LocalTranscriptionService {
 					moduleId: 'dc/platform/localTranscription/node/localTranscriptionMain',
 					type: 'localTranscription',
 					name: 'local-transcription',
-					// The on-device dictation runtime is downloaded from our CDN and its
-					// native addon (foundry_local_napi.node) is signed by a third party,
-					// so on macOS it must load in the plugin helper (library validation
-					// disabled) to avoid a Team ID mismatch dlopen failure.
 					allowLoadingUnsignedLibraries: true
 				});
 				return client.getChannel(localTranscriptionChannelName);
@@ -102,13 +84,6 @@ export class LocalTranscriptionService {
 	stop() { return this._getProxy().stop(); }
 	cancel() { return this._getProxy().cancel(); }
 
-	/**
-	 * Read VS Code's `http.proxy`/`http.noProxy`/`http.proxyStrictSSL`/
-	 * `http.proxyAuthorization` settings so the utility process can honor a proxy
-	 * configured only in VS Code (not in the OS environment). Returns empty values
-	 * when unset, in which case the process's inherited environment proxy still
-	 * applies and TLS verification stays on.
-	 */
 	private _resolveProxyConfig(): { proxyUrl: string | undefined; noProxy: string | undefined; proxyStrictSSL: boolean | undefined; proxyAuthorization: string | undefined } {
 		const proxyUrl = this.configurationService.getValue<string>('http.proxy')?.trim() || undefined;
 		const noProxyList = this.configurationService.getValue<string[]>('http.noProxy');

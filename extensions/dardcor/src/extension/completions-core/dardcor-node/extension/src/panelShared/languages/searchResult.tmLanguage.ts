@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import { LanguageInput } from 'shiki/core';
 
-// This file is generated from ./generateTMLanguage.js.
 export const searchResult: LanguageInput = {
 	name: 'search-result',
 	scopeName: 'text.searchResult',

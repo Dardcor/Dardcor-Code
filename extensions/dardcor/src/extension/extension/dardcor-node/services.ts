@@ -63,8 +63,6 @@ import { InMemoryOTelService } from '../../../platform/otel/node/inMemoryOTelSer
 import { IOTelSqliteStore, OTelSqliteStore } from '../../../platform/otel/node/sqlite/otelSqliteStore';
 import { IParserService } from '../../../platform/parser/node/parserService';
 import { ParserServiceImpl } from '../../../platform/parser/node/parserServiceImpl';
-import { IProxyModelsService } from '../../../platform/proxyModels/common/proxyModelsService';
-import { ProxyModelsService } from '../../../platform/proxyModels/node/proxyModelsService';
 import { AdoCodeSearchService, IAdoCodeSearchService } from '../../../platform/remoteCodeSearch/common/adoCodeSearchService';
 import { GithubCodeSearchService, IGithubCodeSearchService } from '../../../platform/remoteCodeSearch/common/githubCodeSearchService';
 import { ICodeSearchAuthenticationService } from '../../../platform/remoteCodeSearch/node/codeSearchRepoAuth';
@@ -102,8 +100,8 @@ import { ChatHookService } from '../../chat/dardcor-node/chatHookService';
 import { HooksOutputChannel } from '../../chat/dardcor-node/hooksOutputChannel';
 import { SessionTranscriptService } from '../../chat/dardcor-node/sessionTranscriptService';
 import { CommandServiceImpl, ICommandService } from '../../commands/node/commandService';
-import { ICopilotInlineCompletionItemProviderService } from '../../completions/common/dardcorInlineCompletionItemProviderService';
-import { CopilotInlineCompletionItemProviderService } from '../../completions/dardcor-node/dardcorInlineCompletionItemProviderService';
+import { IDardcorInlineCompletionItemProviderService } from '../../completions/common/dardcorInlineCompletionItemProviderService';
+import { DardcorInlineCompletionItemProviderService } from '../../completions/dardcor-node/dardcorInlineCompletionItemProviderService';
 import { ApiEmbeddingsIndex, IApiEmbeddingsIndex } from '../../context/node/resolvers/extensionApi';
 import { IPromptWorkspaceLabels, PromptWorkspaceLabels } from '../../context/node/resolvers/promptWorkspaceLabels';
 import { ChatAgentService } from '../../conversation/dardcor-node/chatParticipants';
@@ -151,13 +149,6 @@ import { PromptsServiceImpl } from '../../../platform/promptFiles/dardcor-node/p
 import { IPromptsService } from '../../../platform/promptFiles/common/promptsService';
 import { AutomaticInstructionsCollector, IAutomaticInstructionsCollector } from '../../../platform/promptFiles/node/automaticInstructionsCollector';
 
-// ###########################################################################################
-// ###                                                                                     ###
-// ###               Node services that run ONLY in node.js extension host.                ###
-// ###                                                                                     ###
-// ###  !!! Prefer to list services in ../vscode/services.ts to support them anywhere !!!  ###
-// ###                                                                                     ###
-// ###########################################################################################
 
 export function registerServices(builder: IInstantiationServiceBuilder, extensionContext: ExtensionContext): void {
 	const isTestMode = extensionContext.extensionMode === ExtensionMode.Test;
@@ -187,11 +178,6 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	const ariaKey = extensionContext.extension.packageJSON.ariaKey ?? '';
 	if (isTestMode || isScenarioAutomation) {
 		setupTelemetry(builder, extensionContext, internalAIKey, ariaKey);
-		// If we're in testing mode, then most code will be called from an actual test,
-		// and not from here. However, some objects will capture the `accessor` we pass
-		// here and then re-use it later. This is particularly the case for those objects
-		// which implement VSCode interfaces so can't be changed to take `accessor` in their
-		// method parameters.
 		builder.define(ICopilotTokenManager, getOrCreateTestingCopilotTokenManager(env.devDeviceId));
 	} else {
 		setupTelemetry(builder, extensionContext, internalAIKey, ariaKey);
@@ -213,7 +199,7 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(IGithubCodeSearchService, new SyncDescriptor(GithubCodeSearchService));
 	builder.define(IGithubAvailableEmbeddingTypesService, new SyncDescriptor(GithubAvailableEmbeddingTypesService));
 
-	builder.define(IParserService, new SyncDescriptor(ParserServiceImpl, [/*useWorker*/ true]));
+	builder.define(IParserService, new SyncDescriptor(ParserServiceImpl, [ true]));
 	builder.define(IIntentService, new SyncDescriptor(IntentService));
 	builder.define(INaiveChunkingService, new SyncDescriptor(NaiveChunkingService));
 	builder.define(IWorkspaceFileIndex, new SyncDescriptor(WorkspaceFileIndex));
@@ -241,7 +227,7 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(IChatMLFetcher, new SyncDescriptor(ChatMLFetcherImpl));
 	builder.define(IChatWebSocketManager, new SyncDescriptor(ChatWebSocketManager));
 	builder.define(IFeedbackReporter, new SyncDescriptor(FeedbackReporter));
-	builder.define(IApiEmbeddingsIndex, new SyncDescriptor(ApiEmbeddingsIndex, [/*useRemoteCache*/ true]));
+	builder.define(IApiEmbeddingsIndex, new SyncDescriptor(ApiEmbeddingsIndex, [ true]));
 	builder.define(IGithubApiFetcherService, new SyncDescriptor(GithubApiFetcherService));
 	builder.define(IAdoCodeSearchService, new SyncDescriptor(AdoCodeSearchService));
 	builder.define(ISettingsEditorSearchService, new SyncDescriptor(SettingsEditorSearchServiceImpl));
@@ -261,33 +247,26 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(ICodeSearchAuthenticationService, new SyncDescriptor(VsCodeCodeSearchAuthenticationService));
 	builder.define(ITodoListContextProvider, new SyncDescriptor(TodoListContextProvider));
 	builder.define(IRerankerService, new SyncDescriptor(RerankerService));
-	builder.define(IProxyModelsService, new SyncDescriptor(ProxyModelsService));
 	builder.define(IPowerService, new SyncDescriptor(PowerService));
 	builder.define(IInlineEditsModelService, new SyncDescriptor(InlineEditsModelService));
 	builder.define(IUndesiredModelsManager, new SyncDescriptor(UndesiredModels.Manager));
-	builder.define(ICopilotInlineCompletionItemProviderService, new SyncDescriptor(CopilotInlineCompletionItemProviderService));
+	builder.define(IDardcorInlineCompletionItemProviderService, new SyncDescriptor(DardcorInlineCompletionItemProviderService));
 	builder.define(ISimilarFilesContextService, new SyncDescriptor(SimilarFilesContextService));
 	builder.define(IGitHubOrgChatResourcesService, new SyncDescriptor(GitHubOrgChatResourcesService));
 	builder.define(IToolResultContentRenderer, new SyncDescriptor(ToolResultContentRenderer));
 
-	// Chronicle session store — tracks sessions, turns, files, and refs for /standup
 	const sessionStoreDbPath = extensionContext.globalStorageUri
 		? path.join(extensionContext.globalStorageUri.fsPath, 'session-store.db')
 		: path.join(os.tmpdir(), 'dardcor-session-store.db');
-	// On remote workspaces the storage path is typically a network filesystem
-	// that does not honour the POSIX locking WAL mode requires, so use a more
-	// robust rollback-journal configuration there.
 	const sessionStore = new SessionStore(sessionStoreDbPath, { remote: !!env.remoteName });
 	builder.define(ISessionStore, sessionStore);
 
-	// OTel SQLite store — created lazily, DB file only appears when dbSpanExporter.enabled is true
 	const otelDbPath = extensionContext.globalStorageUri
 		? path.join(extensionContext.globalStorageUri.fsPath, 'agent-traces.db')
 		: path.join(os.tmpdir(), 'dardcor-agent-traces.db');
 	const otelSqliteStore = new OTelSqliteStore(otelDbPath);
 	builder.define(IOTelSqliteStore, otelSqliteStore);
 
-	// OTel service — resolve config from env + settings, create appropriate impl
 	const otelSettings = workspace.getConfiguration('github.dardcor.chat.otel');
 	const policyValue = <T>(key: string): T | undefined => (otelSettings.inspect<T>(key) as { policyValue?: T } | undefined)?.policyValue;
 	const otelConfig = resolveOTelConfig({
@@ -316,10 +295,7 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 		sessionId: env.sessionId,
 	});
 	if (otelConfig.enabled) {
-		// Dynamic import to avoid loading OTel SDK when disabled
 		const { NodeOTelService } = require('../../../platform/otel/node/otelServiceImpl') as typeof import('../../../platform/otel/node/otelServiceImpl');
-		// Log callback routes OTel messages to the extension output channel (via ILogService wired in OTelContrib)
-		// During early init before ILogService is available, messages go to console as fallback
 		const logFn: import('../../../platform/otel/node/otelServiceImpl').OTelLogFn = (level, msg) => {
 			if (level === 'error') { console.error(msg); }
 			else if (level === 'warn') { console.warn(msg); }
@@ -334,7 +310,6 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 function setupMSFTExperimentationService(builder: IInstantiationServiceBuilder, extensionContext: ExtensionContext) {
 	const experimentsEnabled = workspace.getConfiguration('workbench').get<boolean>('enableExperiments', true);
 	if (ExtensionMode.Production === extensionContext.extensionMode && !isScenarioAutomation && experimentsEnabled) {
-		// Intitiate the experimentation service
 		builder.define(IExperimentationService, new SyncDescriptor(MicrosoftExperimentationService));
 	} else {
 		builder.define(IExperimentationService, new NullExperimentationService());
@@ -352,7 +327,6 @@ function setupTelemetry(builder: IInstantiationServiceBuilder, extensionContext:
 			APP_INSIGHTS_KEY_ENHANCED,
 		]));
 	} else {
-		// If we're developing or testing we don't want telemetry to be sent, so we turn it off
 		builder.define(ITelemetryService, new NullTelemetryService());
 	}
 

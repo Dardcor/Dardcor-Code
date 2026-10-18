@@ -13,7 +13,6 @@ import codeCompletionSpec from './completions/code';
 import codeInsidersCompletionSpec from './completions/code-insiders';
 import codeTunnelCompletionSpec from './completions/code-tunnel';
 import codeTunnelInsidersCompletionSpec from './completions/code-tunnel-insiders';
-import copilotSpec from './completions/copilot';
 import gitCompletionSpec from './completions/git';
 import ghCompletionSpec from './completions/gh';
 import npmCompletionSpec from './completions/npm';
@@ -49,7 +48,7 @@ const inflightRequests: Map<string, Promise<ICompletionResource[] | undefined>> 
 let pathExecutableCache: PathExecutableCache;
 const CACHE_KEY = 'terminalSuggestGlobalsCacheV2';
 let globalStorageUri: vscode.Uri;
-const CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+const CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7;
 
 function getCacheKey(machineId: string, remoteAuthority: string | undefined, shellType: TerminalShellType): string {
 	return `${machineId}:${remoteAuthority ?? 'local'}:${shellType}`;
@@ -62,7 +61,6 @@ export const availableSpecs: Fig.Spec[] = [
 	codeCompletionSpec,
 	codeTunnelCompletionSpec,
 	codeTunnelInsidersCompletionSpec,
-	copilotSpec,
 	gitCompletionSpec,
 	ghCompletionSpec,
 	npmCompletionSpec,
@@ -76,8 +74,7 @@ export const availableSpecs: Fig.Spec[] = [
 const getShellSpecificGlobals: Map<TerminalShellType, (options: ExecOptionsWithStringEncoding, existingCommands?: Set<string>) => Promise<(string | ICompletionResource)[]>> = new Map([
 	[TerminalShellType.Bash, getBashGlobals],
 	[TerminalShellType.Zsh, getZshGlobals],
-	[TerminalShellType.GitBash, getBashGlobals], // Git Bash is a bash shell
-	// TODO: Ghost text in the command line prevents completions from working ATM for fish
+	[TerminalShellType.GitBash, getBashGlobals],
 	[TerminalShellType.Fish, getFishGlobals],
 	[TerminalShellType.PowerShell, getPwshGlobals],
 	[TerminalShellType.WindowsPowerShell, getPwshGlobals],
@@ -90,7 +87,6 @@ async function getShellGlobals(
 	remoteAuthority?: string
 ): Promise<ICompletionResource[] | undefined> {
 	if (!machineId) {
-		// fallback: don't cache
 		return await fetchAndCacheShellGlobals(shellType, existingCommands, undefined, undefined);
 	}
 	const cacheKey = getCacheKey(machineId, remoteAuthority, shellType);
@@ -99,7 +95,6 @@ async function getShellGlobals(
 	const existingCommandsArr = existingCommands ? Array.from(existingCommands) : undefined;
 	let shouldRefresh = false;
 	if (cached) {
-		// Evict if too old
 		if (now - cached.timestamp > CACHE_MAX_AGE_MS) {
 			cachedGlobals.delete(cacheKey);
 			await writeGlobalsCache();
@@ -112,16 +107,10 @@ async function getShellGlobals(
 				shouldRefresh = true;
 			}
 			if (!shouldRefresh && cached.commands) {
-				// NOTE: This used to trigger a background refresh in order to ensure all commands
-				// are up to date, but this ends up launching way too many processes. Especially on
-				// Windows where this caused significant performance issues as processes can block
-				// the extension host for several seconds
-				// (https://github.com/microsoft/vscode/issues/259343).
 				return cached.commands;
 			}
 		}
 	}
-	// No cache or should refresh
 	return await fetchAndCacheShellGlobals(shellType, existingCommands, machineId, remoteAuthority);
 }
 
@@ -134,25 +123,21 @@ async function fetchAndCacheShellGlobals(
 ): Promise<ICompletionResource[] | undefined> {
 	const cacheKey = getCacheKey(machineId ?? 'no-machine-id', remoteAuthority, shellType);
 
-	// Check if there's a cached entry
 	const cached = cachedGlobals.get(cacheKey);
 	if (cached) {
 		return cached.commands;
 	}
 
-	// Check if there's already an in-flight request for this cache key
 	const existingRequest = inflightRequests.get(cacheKey);
 	if (existingRequest) {
-		// Wait for the existing request to complete rather than spawning a new process
 		return existingRequest;
 	}
 
-	// Create a new request and store it in the inflight map
 	const requestPromise = (async () => {
 		try {
 			let execShellType = shellType;
 			if (shellType === TerminalShellType.GitBash) {
-				execShellType = TerminalShellType.Bash; // Git Bash is a bash shell
+				execShellType = TerminalShellType.Bash;
 			}
 			const options: ExecOptionsWithStringEncoding = { encoding: 'utf-8', shell: execShellType, windowsHide: true };
 			const mixedCommands: (string | ICompletionResource)[] | undefined = await getShellSpecificGlobals.get(shellType)?.(options, existingCommands);
@@ -173,12 +158,10 @@ async function fetchAndCacheShellGlobals(
 			}
 			return;
 		} finally {
-			// Always remove the promise from inflight requests when done
 			inflightRequests.delete(cacheKey);
 		}
 	})();
 
-	// Store the promise in the inflight map
 	inflightRequests.set(cacheKey, requestPromise);
 
 	return requestPromise;
@@ -189,7 +172,6 @@ async function writeGlobalsCache(): Promise<void> {
 	if (!globalStorageUri) {
 		return;
 	}
-	// Remove old entries
 	const now = Date.now();
 	for (const [key, value] of cachedGlobals.entries()) {
 		if (now - value.timestamp > CACHE_MAX_AGE_MS) {
@@ -201,7 +183,6 @@ async function writeGlobalsCache(): Promise<void> {
 		obj[key] = value;
 	}
 	try {
-		// Ensure the directory exists
 		const terminalSuggestDir = vscode.Uri.joinPath(globalStorageUri, 'terminal-suggest');
 		await vscode.workspace.fs.createDirectory(terminalSuggestDir);
 		const cacheFile = vscode.Uri.joinPath(terminalSuggestDir, `${CACHE_KEY}.json`);
@@ -228,9 +209,7 @@ async function readGlobalsCache(): Promise<void> {
 			}
 		}
 	} catch (err) {
-		// File might not exist yet, which is expected on first run
 		if (err instanceof vscode.FileSystemError && err.code === 'FileNotFound') {
-			// This is expected on first run
 			return;
 		}
 		console.error('Failed to read terminal suggest globals cache:', err);
@@ -247,7 +226,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	globalStorageUri = context.globalStorageUri;
 	await readGlobalsCache();
 
-	// Get a machineId for this install (persisted per machine, not synced)
 	const machineId = await vscode.env.machineId;
 	const remoteAuthority = vscode.env.remoteName;
 
@@ -335,7 +313,7 @@ async function watchPathDirectories(context: vscode.ExtensionContext, env: ITerm
 
 	const activeWatchers = new Set<string>();
 
-	let debounceTimer: NodeJS.Timeout | undefined; // debounce in case many file events fire at once
+	let debounceTimer: NodeJS.Timeout | undefined;
 	function handleChange() {
 		if (debounceTimer) {
 			clearTimeout(debounceTimer);
@@ -346,10 +324,8 @@ async function watchPathDirectories(context: vscode.ExtensionContext, env: ITerm
 		}, 300);
 	}
 
-	// Watch each directory
 	for (const dir of pathDirectories) {
 		if (activeWatchers.has(dir)) {
-			// Skip if already watching this directory
 			continue;
 		}
 
@@ -359,7 +335,6 @@ async function watchPathDirectories(context: vscode.ExtensionContext, env: ITerm
 				continue;
 			}
 		} catch {
-			// File not found
 			continue;
 		}
 
@@ -375,12 +350,6 @@ async function watchPathDirectories(context: vscode.ExtensionContext, env: ITerm
 	}
 }
 
-/**
- * Adjusts the current working directory based on a given current command string if it is a folder.
- * @param currentCommandString - The current command string, which might contain a folder path prefix.
- * @param currentCwd - The current working directory.
- * @returns The new working directory.
- */
 export async function resolveCwdFromCurrentCommandString(currentCommandString: string, currentCwd?: vscode.Uri): Promise<vscode.Uri | undefined> {
 	const prefix = currentCommandString.split(/\s+/).pop()?.trim() ?? '';
 
@@ -388,13 +357,8 @@ export async function resolveCwdFromCurrentCommandString(currentCommandString: s
 		return;
 	}
 	try {
-		// Get the nearest folder path from the prefix. This ignores everything after the `/` as
-		// they are what triggers changes in the directory.
 		let lastSlashIndex: number;
 		if (isWindows) {
-			// TODO: This support is very basic, ideally the slashes supported would depend upon the
-			//       shell type. For example git bash under Windows does not allow using \ as a path
-			//       separator.
 			lastSlashIndex = prefix.lastIndexOf('\\');
 			if (lastSlashIndex === -1) {
 				lastSlashIndex = prefix.lastIndexOf('/');
@@ -404,14 +368,10 @@ export async function resolveCwdFromCurrentCommandString(currentCommandString: s
 		}
 		const relativeFolder = lastSlashIndex === -1 ? '' : prefix.slice(0, lastSlashIndex);
 
-		// Don't pre-resolve paths with .. segments - let the completion service handle those
-		// to avoid double-navigation (e.g., typing ../ would resolve cwd to parent here,
-		// then completion service would navigate up again from the already-parent cwd)
 		if (relativeFolder.includes('..')) {
 			return undefined;
 		}
 
-		// Use vscode.Uri.joinPath for path resolution
 		const resolvedUri = vscode.Uri.joinPath(currentCwd, relativeFolder);
 
 		const stat = await vscode.workspace.fs.stat(resolvedUri);
@@ -419,32 +379,24 @@ export async function resolveCwdFromCurrentCommandString(currentCommandString: s
 			return resolvedUri;
 		}
 	} catch {
-		// Ignore errors
 	}
 
-	// No valid path found
 	return undefined;
 }
 
-// Retrurns the string that represents the current command and its arguments up to the cursor position.
-// Uses shell specific separators to determine the current command and its arguments.
 export function getCurrentCommandAndArgs(commandLine: string, cursorIndex: number, shellType: TerminalShellType | undefined): string {
 
-	// Return an empty string if the command line is empty after trimming
 	if (commandLine.trim() === '') {
 		return '';
 	}
 
-	// Check if cursor is not at the end and there's non-whitespace after the cursor
 	if (cursorIndex < commandLine.length && /\S/.test(commandLine[cursorIndex])) {
 		return '';
 	}
 
-	// Extract the part of the line up to the cursor position
 	const beforeCursor = commandLine.slice(0, cursorIndex);
 
 	const resetChars = shellType ? shellTypeResetChars.get(shellType) ?? defaultShellTypeResetChars : defaultShellTypeResetChars;
-	// Find the last reset character before the cursor
 	let lastResetIndex = -1;
 	for (const char of resetChars) {
 		const idx = beforeCursor.lastIndexOf(char);
@@ -453,7 +405,6 @@ export function getCurrentCommandAndArgs(commandLine: string, cursorIndex: numbe
 		}
 	}
 
-	// The start of the current command string is after the last reset char (plus one for the char itself)
 	const currentCommandStart = lastResetIndex + 1;
 	const currentCommandString = beforeCursor.slice(currentCommandStart).replace(/^\s+/, '');
 
@@ -488,7 +439,7 @@ export async function getCompletionItemsFromSpecs(
 		const spaceIndex = currentCommandString.indexOf(' ');
 		const commandEndIndex = spaceIndex === -1 ? currentCommandString.length : spaceIndex;
 		const lastDotIndex = currentCommandString.lastIndexOf('.', commandEndIndex);
-		if (lastDotIndex > 0) { // Don't treat dotfiles as extensions
+		if (lastDotIndex > 0) {
 			currentCommandString = currentCommandString.substring(0, lastDotIndex) + currentCommandString.substring(spaceIndex);
 		}
 	}
@@ -522,11 +473,9 @@ export async function getCompletionItemsFromSpecs(
 	}
 
 	if (tokenType === TokenType.Command) {
-		// Include builitin/available commands in the results
 		const labels = new Set(items.map((i) => typeof i.label === 'string' ? i.label : i.label.label));
 		for (const command of availableCommands) {
 			const commandTextLabel = typeof command.label === 'string' ? command.label : command.label.label;
-			// Remove any file extension for matching on Windows
 			const labelWithoutExtension = isWindows ? commandTextLabel.replace(/\.[^ ]+$/, '') : commandTextLabel;
 			if (!labels.has(labelWithoutExtension)) {
 				items.push(createCompletionItem(

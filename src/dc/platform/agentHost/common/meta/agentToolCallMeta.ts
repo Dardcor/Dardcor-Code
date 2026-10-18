@@ -5,75 +5,34 @@
 
 import type { Mutable } from '../../../../base/common/types.js';
 
-/** Anything carrying a tool call's `_meta` bag (persisted state or wire actions). */
 interface IHasToolCallMeta {
 	readonly _meta?: Record<string, unknown>;
 }
 
-/**
- * Well-known typed view over a tool call's open `_meta` bag. Producers and
- * consumers agree on these keys here so the two sides can't drift; always read
- * the bag through {@link readToolCallMeta}, which validates each field and drops
- * wrong-typed values.
- */
 export interface IToolCallMeta {
-	/**
-	 * VS Code rendering hint. `terminal` routes the call to the command/output
-	 * renderer, `subagent` to the subagent UI, `search` to the search renderer,
-	 * and `read` keeps incomplete resource arguments out of streaming display;
-	 * everything else falls through to the generic invocation renderer. Set by
-	 * the agent adapter, never matched on raw tool name by the renderer.
-	 */
 	readonly toolKind?: ToolKind;
-	/** Shell language for a `terminal` tool call (drives syntax highlighting). */
 	readonly language?: string;
-	/** Short task description for a `subagent` tool call (e.g. "Find related files"). */
 	readonly subagentDescription?: string;
-	/** Agent name for a `subagent` tool call (e.g. "explore"). */
 	readonly subagentAgentName?: string;
-	/** Chat URI of the subagent this tool call spawns, stamped by the host (see {@link buildSubagentChatUri}); the resource may not be registered yet. */
 	readonly subagentChatUri?: string;
-	/** Originating MCP server name, when the call came from an MCP server. */
 	readonly mcpServerName?: string;
-	/** Originating MCP tool name, when the call came from an MCP server. */
 	readonly mcpToolName?: string;
-	/** MCP App render data, when the call exposes an interactive App surface. */
 	readonly ui?: IToolCallUiMeta;
-	/**
-	 * Set by the host's side-effect layer when the call was auto-approved
-	 * because of an `autoApprove` session-config setting (rather than an
-	 * explicit user action), so the client can render it as setting-driven.
-	 */
 	readonly autoApproveBySetting?: boolean;
-	/** Whether adding a persistent terminal auto-approve rule can suppress future prompts for this confirmation. */
 	readonly autoApproveRuleResolvable?: boolean;
-	/** Transient runtime corpus for the local client tool-search invocation. */
 	readonly toolSearchCandidates?: readonly IToolSearchCandidate[];
-	/** Latest progress message from a running tool; transient, meaningful only while Running. */
 	readonly progressMessage?: string;
 }
 
-/** Minimal metadata needed to embed and rank a deferred tool. */
 export interface IToolSearchCandidate {
 	readonly name: string;
 	readonly description: string;
 }
 
-/**
- * The set of VS Code-recognized tool-call rendering kinds. Add a new value here
- * (and teach the renderer to handle it) rather than matching on tool name.
- */
 export type ToolKind = 'terminal' | 'subagent' | 'search' | 'read';
 
-/**
- * MCP App render data carried under {@link IToolCallMeta.ui}. Clients gate
- * mounting the App webview on both a `resourceUri` and a `channel` being
- * present.
- */
 export interface IToolCallUiMeta {
-	/** The MCP App's UI resource URI (an `ui://` resource the App renders). */
 	readonly resourceUri: string;
-	/** AHP `mcp://` channel the App's sub-RPCs route back through, when ready. */
 	readonly channel?: string;
 }
 
@@ -117,10 +76,6 @@ function readToolSearchCandidates(value: unknown): readonly IToolSearchCandidate
 	return result;
 }
 
-/**
- * Reads the well-known {@link IToolCallMeta} keys from a tool call's `_meta`
- * bag, dropping unknown keys and wrong-typed values.
- */
 export function readToolCallMeta(source: IHasToolCallMeta): IToolCallMeta {
 	const meta = source._meta;
 	if (!meta) {
@@ -144,12 +99,6 @@ export function readToolCallMeta(source: IHasToolCallMeta): IToolCallMeta {
 	return result;
 }
 
-/**
- * Serializes a typed {@link IToolCallMeta} into the `_meta` record, dropping
- * `undefined` entries and returning `undefined` when empty. Build a tool call's
- * `_meta` through this so producers stay in lock-step with
- * {@link readToolCallMeta}.
- */
 export function toToolCallMeta(meta: IToolCallMeta): Record<string, unknown> | undefined {
 	const result: Record<string, unknown> = {};
 	for (const [key, value] of Object.entries(meta)) {

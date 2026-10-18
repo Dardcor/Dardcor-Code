@@ -59,7 +59,7 @@ suite('WorkingCopyBackupTracker (browser)', function () {
 		}
 
 		protected override getBackupScheduleDelay(): number {
-			return 10; // Reduce timeout for tests
+			return 10;
 		}
 
 		get pendingBackupOperationCount(): number { return this.pendingBackupOperations.size; }
@@ -156,7 +156,6 @@ suite('WorkingCopyBackupTracker (browser)', function () {
 		const resource: URI = toResource.call(this, '/path/custom.txt');
 		const customWorkingCopy = disposables.add(new TestBackupWorkingCopy(resource));
 
-		// Normal
 		customWorkingCopy.setDirty(true);
 		assert.strictEqual(tracker.pendingBackupOperationCount, 1);
 		await workingCopyBackupService.joinBackupResource();
@@ -173,7 +172,6 @@ suite('WorkingCopyBackupTracker (browser)', function () {
 		await workingCopyBackupService.joinDiscardBackup();
 		assert.strictEqual(workingCopyBackupService.hasBackupSync(customWorkingCopy), false);
 
-		// Cancellation
 		customWorkingCopy.setDirty(true);
 		await timeout(0);
 		customWorkingCopy.setDirty(false);
@@ -200,7 +198,6 @@ suite('WorkingCopyBackupTracker (browser)', function () {
 
 		accessor = instantiationService.createInstance(TestServiceAccessor);
 
-		// Backup 2 normal files and 2 untitled files
 		const untitledFile1WorkingCopyId = toUntypedWorkingCopyId(untitledFile1);
 		const untitledFile2WorkingCopyId = toTypedWorkingCopyId(untitledFile2);
 		await workingCopyBackupService.backup(untitledFile1WorkingCopyId, bufferToReadable(VSBuffer.fromString('untitled-1')));
@@ -282,7 +279,6 @@ suite('WorkingCopyBackupTracker (browser)', function () {
 				createEditor: workingCopy => { throw new Error('unexpected'); }
 			});
 		} catch (error) {
-			// ignore
 		}
 
 		assert.strictEqual(tracker.getUnrestoredBackups().size, 4);
@@ -366,7 +362,6 @@ suite('WorkingCopyBackupTracker (browser)', function () {
 		for (const editor of accessor.editorService.editors) {
 			assert.ok(editor instanceof TestUntitledTextEditorInput);
 
-			// assert that we only call `resolve` on inactive editors
 			if (accessor.editorService.isVisible(editor)) {
 				assert.strictEqual(editor.resolved, false);
 			} else {

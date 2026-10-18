@@ -90,7 +90,6 @@ suite('ContextKeyService', () => {
 			[IContextKeyService, contextKeyService],
 			[ITelemetryService, new class extends mock<ITelemetryService>() {
 				override async publicLog2() {
-					//
 				}
 			}]
 		)));
@@ -185,7 +184,6 @@ suite('ContextKeyService', () => {
 			eventFired = true;
 		}));
 
-		// Set the same array content (different reference)
 		key.set(['a', 'b', 'c']);
 
 		assert.strictEqual(eventFired, false, 'Should not fire event when setting identical array');
@@ -200,7 +198,6 @@ suite('ContextKeyService', () => {
 			eventFired = true;
 		}));
 
-		// Set a different array
 		key.set(['a', 'b', 'd']);
 
 		assert.strictEqual(eventFired, true, 'Should fire event when setting different array');
@@ -216,7 +213,6 @@ suite('ContextKeyService', () => {
 			eventFired = true;
 		}));
 
-		// Set the same object content (different reference)
 		key.set({ foo: 'bar', count: 42 });
 
 		assert.strictEqual(eventFired, false, 'Should not fire event when setting identical object');
@@ -232,7 +228,6 @@ suite('ContextKeyService', () => {
 			eventFired = true;
 		}));
 
-		// Set a different object
 		key.set({ foo: 'bar', count: 43 });
 
 		assert.strictEqual(eventFired, true, 'Should fire event when setting different object');
@@ -247,7 +242,6 @@ suite('ContextKeyService', () => {
 			eventFired = true;
 		}));
 
-		// Set another empty array
 		key.set([]);
 
 		assert.strictEqual(eventFired, false, 'Should not fire event when setting identical empty array');
@@ -263,7 +257,6 @@ suite('ContextKeyService', () => {
 			eventFired = true;
 		}));
 
-		// Set the same array content with colon-separated values
 		key.set(['a:b', 'c:d']);
 
 		assert.strictEqual(eventFired, false, 'Should not fire event when setting identical array with complex values');
@@ -278,7 +271,6 @@ suite('ContextKeyService', () => {
 			eventFired = true;
 		}));
 
-		// Set the same string value
 		key.set('hello');
 
 		assert.strictEqual(eventFired, false, 'Should not fire event when setting identical string');
@@ -293,7 +285,6 @@ suite('ContextKeyService', () => {
 			eventFired = true;
 		}));
 
-		// Set a different number value
 		key.set(43);
 
 		assert.strictEqual(eventFired, true, 'Should fire event when setting different number');
@@ -304,20 +295,13 @@ suite('ContextKeyService', () => {
 		const scoped = root.createScoped(document.createElement('div'));
 		const child = scoped.createScoped(document.createElement('div'));
 
-		// Set a value on the child so we can observe it
 		child.createKey('testKey', 'value');
 		assert.strictEqual(child.getContextKeyValue('testKey'), 'value');
 
-		// Dispose the intermediate scoped service first
 		scoped.dispose();
 
-		// Now dispose the child — this should still forward to root
-		// and clean up the child's context entry. Before the fix,
-		// ScopedContextKeyService.disposeContext bailed out when
-		// _isDisposed was true, leaking Context objects.
 		child.dispose();
 
-		// The child's context should no longer be accessible through root
 		assert.strictEqual(root.getContextKeyValue('testKey'), undefined,
 			'Child context should be cleaned up even when parent scoped service was disposed first');
 	});

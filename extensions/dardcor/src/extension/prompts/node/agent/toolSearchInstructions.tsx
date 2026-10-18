@@ -18,11 +18,6 @@ export interface DeferredToolListReminderProps extends BasePromptElementProps {
 	readonly availableTools: readonly LanguageModelToolInformation[] | undefined;
 }
 
-/**
- * True when `availableTools` contains at least one tool that the deferral
- * service treats as deferred. Shared between the system-prompt guidance and
- * the global-context list so they appear/disappear together.
- */
 export function hasDeferredTool(
 	availableTools: readonly LanguageModelToolInformation[] | undefined,
 	toolDeferralService: IToolDeferralService,
@@ -60,19 +55,6 @@ export class ToolSearchToolPromptOptimized extends PromptElement<ToolSearchToolP
 	}
 }
 
-/**
- * Emits the list of deferred tools. Rendered inside `GlobalAgentContext` so it
- * appears once at the start of the conversation and is then frozen for the
- * remainder of the session via `GlobalContextMessageMetadata` — keeps the
- * list out of every per-turn user message and out of the system prompt prefix.
- *
- * Self-gates on `endpoint.supportsToolSearch`. The surrounding `<Tag>` name
- * matches the reference used by `tool_search`'s tool description.
- *
- * Note: the snapshot is taken at first render. Tools that become available
- * later in the conversation (e.g. MCP servers connecting mid-session) won't
- * appear in this list.
- */
 export class DeferredToolListReminder extends PromptElement<DeferredToolListReminderProps> {
 	constructor(
 		props: PromptElementProps<DeferredToolListReminderProps>,

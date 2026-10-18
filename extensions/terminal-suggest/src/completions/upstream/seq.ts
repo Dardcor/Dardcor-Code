@@ -42,7 +42,6 @@ const completionSpec: Fig.Spec = {
 			},
 		},
 		{
-			// TODO(platform): macos only option
 			name: ["-t", "--terminator"],
 			description: "Use string to terminate sequence of numbers",
 			insertValue: `-t "{cursor}"`,

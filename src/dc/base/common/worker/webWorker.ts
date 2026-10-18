@@ -23,7 +23,6 @@ export interface IWebWorker extends IDisposable {
 let webWorkerWarningLogged = false;
 export function logOnceWebWorkerWarning(err: unknown): void {
 	if (!isWeb) {
-		// running tests
 		return;
 	}
 	if (!webWorkerWarningLogged) {
@@ -161,13 +160,13 @@ class WebWorkerProtocol {
 		const handler = {
 			get: (target: Record<PropertyKey, unknown>, name: PropertyKey) => {
 				if (typeof name === 'string' && !target[name]) {
-					if (propertyIsDynamicEvent(name)) { // onDynamic...
+					if (propertyIsDynamicEvent(name)) {
 						target[name] = (arg: unknown): Event<unknown> => {
 							return this.listen(channel, name, arg);
 						};
-					} else if (propertyIsEvent(name)) { // on...
+					} else if (propertyIsEvent(name)) {
 						target[name] = this.listen(channel, name, undefined);
-					} else if (name.charCodeAt(0) === CharCode.DollarSign) { // $...
+					} else if (name.charCodeAt(0) === CharCode.DollarSign) {
 						target[name] = async (...myArgs: unknown[]) => {
 							await sendMessageBarrier?.();
 							return this.sendMessage(channel, name, myArgs);
@@ -227,7 +226,6 @@ class WebWorkerProtocol {
 			this._send(new ReplyMessage(this._workerId, req, r, undefined));
 		}, (e) => {
 			if (e.detail instanceof Error) {
-				// Loading errors have a detail property that points to the actual error
 				e.detail = transformErrorForSerialization(e.detail);
 			}
 			this._send(new ReplyMessage(this._workerId, req, undefined, transformErrorForSerialization(e)));
@@ -302,9 +300,6 @@ export interface IWebWorkerServer {
 	getChannel<T extends object>(channel: string): Proxied<T>;
 }
 
-/**
- * Main thread side
- */
 export class WebWorkerClient<W extends object> extends Disposable implements IWebWorkerClient<W> {
 
 	private readonly _worker: IWebWorker;
@@ -341,7 +336,6 @@ export class WebWorkerClient<W extends object> extends Disposable implements IWe
 		});
 		this._protocol.setWorkerId(this._worker.getId());
 
-		// Send initialize message
 		this._onModuleLoaded = this._protocol.sendMessage(DEFAULT_CHANNEL, INITIALIZE, [
 			this._worker.getId(),
 		]).then(() => { });
@@ -416,12 +410,10 @@ export class WebWorkerClient<W extends object> extends Disposable implements IWe
 }
 
 function propertyIsEvent(name: string): boolean {
-	// Assume a property is an event if it has a form of "onSomething"
 	return name[0] === 'o' && name[1] === 'n' && strings.isUpperAsciiLetter(name.charCodeAt(2));
 }
 
 function propertyIsDynamicEvent(name: string): boolean {
-	// Assume a property is a dynamic event (a method that returns an event) if it has a form of "onDynamicSomething"
 	return /^onDynamic/.test(name) && strings.isUpperAsciiLetter(name.charCodeAt(9));
 }
 
@@ -435,9 +427,6 @@ export interface IWebWorkerServerRequestHandlerFactory<T extends IWebWorkerServe
 	(workerServer: IWebWorkerServer): T;
 }
 
-/**
- * Worker side
- */
 export class WebWorkerServer<T extends IWebWorkerServerRequestHandler> implements IWebWorkerServer {
 
 	public readonly requestHandler: T;

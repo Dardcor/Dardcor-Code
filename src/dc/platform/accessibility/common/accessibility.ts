@@ -27,9 +27,6 @@ export interface IAccessibilityService {
 }
 
 export const enum AccessibilitySupport {
-	/**
-	 * This should be the browser case where it is not known if a screen reader is attached or no.
-	 */
 	Unknown = 0,
 
 	Disabled = 1,

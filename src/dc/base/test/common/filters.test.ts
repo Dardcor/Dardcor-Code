@@ -71,7 +71,7 @@ suite('Filters', () => {
 		filterNotOk(matchesPrefix, 'x', 'alpha');
 		filterOk(matchesPrefix, 'A', 'alpha', [{ start: 0, end: 1 }]);
 		filterOk(matchesPrefix, 'AlPh', 'alPHA', [{ start: 0, end: 4 }]);
-		filterNotOk(matchesPrefix, 'T', '4'); // see https://github.com/microsoft/vscode/issues/22401
+		filterNotOk(matchesPrefix, 'T', '4');
 	});
 
 	test('CamelCaseFilter', () => {
@@ -228,15 +228,11 @@ suite('Filters', () => {
 
 		filterOk(matchesWords, 'öäk', 'Öhm: Älles Klar', [{ start: 0, end: 1 }, { start: 5, end: 6 }, { start: 11, end: 12 }]);
 
-		// Handles issue #123915
 		filterOk(matchesWords, 'C++', 'C/C++: command', [{ start: 2, end: 5 }]);
 
-		// Handles issue #154533
 		filterOk(matchesWords, '.', ':', []);
 		filterOk(matchesWords, '.', '.', [{ start: 0, end: 1 }]);
 
-		// assert.ok(matchesWords('gipu', 'Category: Git: Pull', true) === null);
-		// assert.deepStrictEqual(matchesWords('pu', 'Category: Git: Pull', true), [{ start: 15, end: 17 }]);
 
 		filterOk(matchesWords, 'bar', 'foo-bar');
 		filterOk(matchesWords, 'bar test', 'foo-bar test');
@@ -255,10 +251,6 @@ suite('Filters', () => {
 	});
 
 	test('matchesWords performance (#309582)', function () {
-		// Searching for a term containing a word separator (e.g. `.`) against
-		// command-id-like targets used to cause catastrophic backtracking and
-		// freeze the Keyboard Shortcuts editor. Without the fix this loop
-		// exceeds Mocha's default test timeout.
 		const targets = [
 			'workbench.action.terminal.focusNextLine',
 			'editor.action.clipboardCopyAction',
@@ -415,13 +407,13 @@ suite('Filters', () => {
 		assertMatches(
 			'jfjfjfjfjfjfjfjfjfj',
 			'fJfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfj',
-			'f^J^f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^jfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfj', // strong match
+			'f^J^f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^jfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfj',
 			fuzzyScore
 		);
 		assertMatches(
 			'jfjfjfjfjfjfjfjfjfj',
 			'fjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfj',
-			'f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^jfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfj', // any match
+			'f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^j^f^jfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfj',
 			fuzzyScore, { firstMatchCanBeWeak: true }
 		);
 	});
@@ -457,7 +449,7 @@ suite('Filters', () => {
 		const word = new Array<void>(123).join('a');
 		const pattern = new Array<void>(120).join('a');
 		fuzzyScore(pattern, pattern.toLowerCase(), 0, word, word.toLowerCase(), 0);
-		assert.ok(true); // must not explode
+		assert.ok(true);
 	});
 
 	test('Vscode 1.12 no longer obeys \'sortText\' in completion items (from language server), #26096', function () {
@@ -503,35 +495,23 @@ suite('Filters', () => {
 		assertTopScore(fuzzyScore, 'cons', 2, 'ArrayBufferConstructor', 'Console', 'console');
 		assertTopScore(fuzzyScore, 'Foo', 1, 'foo', 'Foo', 'foo');
 
-		// #24904
 		assertTopScore(fuzzyScore, 'onMess', 1, 'onmessage', 'onMessage', 'onThisMegaEscape');
 
 		assertTopScore(fuzzyScore, 'CC', 1, 'camelCase', 'CamelCase');
 		assertTopScore(fuzzyScore, 'cC', 0, 'camelCase', 'CamelCase');
-		// assertTopScore(fuzzyScore, 'cC', 1, 'ccfoo', 'camelCase');
-		// assertTopScore(fuzzyScore, 'cC', 1, 'ccfoo', 'camelCase', 'foo-cC-bar');
 
-		// issue #17836
-		// assertTopScore(fuzzyScore, 'TEdit', 1, 'TextEditorDecorationType', 'TextEdit', 'TextEditor');
 		assertTopScore(fuzzyScore, 'p', 4, 'parse', 'posix', 'pafdsa', 'path', 'p');
 		assertTopScore(fuzzyScore, 'pa', 0, 'parse', 'pafdsa', 'path');
 
-		// issue #14583
 		assertTopScore(fuzzyScore, 'log', 3, 'HTMLOptGroupElement', 'ScrollLogicalPosition', 'SVGFEMorphologyElement', 'log', 'logger');
 		assertTopScore(fuzzyScore, 'e', 2, 'AbstractWorker', 'ActiveXObject', 'else');
 
-		// issue #14446
 		assertTopScore(fuzzyScore, 'workbench.sideb', 1, 'workbench.editor.defaultSideBySideLayout', 'workbench.sideBar.location');
 
-		// issue #11423
 		assertTopScore(fuzzyScore, 'editor.r', 2, 'diffEditor.renderSideBySide', 'editor.overviewRulerlanes', 'editor.renderControlCharacter', 'editor.renderWhitespace');
-		// assertTopScore(fuzzyScore, 'editor.R', 1, 'diffEditor.renderSideBySide', 'editor.overviewRulerlanes', 'editor.renderControlCharacter', 'editor.renderWhitespace');
-		// assertTopScore(fuzzyScore, 'Editor.r', 0, 'diffEditor.renderSideBySide', 'editor.overviewRulerlanes', 'editor.renderControlCharacter', 'editor.renderWhitespace');
 
 		assertTopScore(fuzzyScore, '-mo', 1, '-ms-ime-mode', '-moz-columns');
-		// dupe, issue #14861
 		assertTopScore(fuzzyScore, 'convertModelPosition', 0, 'convertModelPositionToViewPosition', 'convertViewToModelPosition');
-		// dupe, issue #14942
 		assertTopScore(fuzzyScore, 'is', 0, 'isValidViewletId', 'import statement');
 
 		assertTopScore(fuzzyScore, 'title', 1, 'files.trimTrailingWhitespace', 'window.title');
@@ -630,7 +610,6 @@ suite('Filters', () => {
 		assert.ok(bBoost);
 		assert.ok(aBoost[0] < bBoost[0]);
 
-		// also works with wordStart > 0 (https://github.com/microsoft/vscode/issues/187921)
 		const wordPrefix = '$(symbol-function) ';
 		aBoost = fuzzyScore(prefix, prefix, 0, `${wordPrefix}${a}`, `${wordPrefix}${a}`.toLowerCase(), wordPrefix.length, { boostFullMatch: true, firstMatchCanBeWeak: true });
 		bBoost = fuzzyScore(prefix, prefix, 0, `${wordPrefix}${b}`, `${wordPrefix}${b}`.toLowerCase(), wordPrefix.length, { boostFullMatch: true, firstMatchCanBeWeak: true });

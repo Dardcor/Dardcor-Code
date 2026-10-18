@@ -9,14 +9,10 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-// Mirror the executor's resolveDevinBin discovery so the dashboard's status
-// matches what the runtime actually spawns.
 const candidateDevinPaths = () => {
   const home = os.homedir();
   const isWin = os.platform() === "win32";
   const localAppData = process.env.LOCALAPPDATA || path.join(home, "AppData", "Local");
-  // Mirror resolveDevinBin in the executor — cover installer + common
-  // package-manager locations so detection matches runtime resolution.
   return isWin
     ? [
       path.join(localAppData, "devin", "cli", "bin", "devin.exe"),
@@ -35,21 +31,18 @@ const candidateDevinPaths = () => {
 };
 
 const checkDevinInstalled = async () => {
-  // 1. PATH lookup
   try {
     const isWindows = os.platform() === "win32";
     const command = isWindows ? "where devin" : "which devin";
     await execAsync(command, { windowsHide: true });
     return { installed: true, source: "path" };
   } catch {
-    // fall through to filesystem probes
   }
-  // 2. Known installer paths
   for (const candidate of candidateDevinPaths()) {
     try {
       await fs.access(candidate);
       return { installed: true, source: candidate };
-    } catch { /* keep probing */ }
+    } catch { }
   }
   return { installed: false, source: null };
 };
@@ -63,7 +56,6 @@ const readDevinVersion = async () => {
   }
 };
 
-// GET — install detection only. No config to write: the binary handles its own auth.
 export async function GET() {
   try {
     const { installed, source } = await checkDevinInstalled();

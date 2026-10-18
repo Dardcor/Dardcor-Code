@@ -1,32 +1,21 @@
-/**
- * Google usage handlers (Gemini CLI + Antigravity)
- */
 
 import { CLIENT_METADATA } from "../../config/appConstants.js";
 import { ANTIGRAVITY_IDE_USER_AGENT, ANTIGRAVITY_IDE_VERSION, ANTIGRAVITY_OAUTH_CLIENT } from "../../providers/shared.js";
 import { U, parseResetTime, normalizeCloudCodeProjectId, fetchWithTimeout } from "./shared.js";
 import { fetchAntigravityWeeklyQuota } from "./antigravity-weekly.js";
 
-// Antigravity API config (from Quotio) — urls from registry, oauth client + dynamic UA kept here
 const ANTIGRAVITY_CONFIG = {
   ...U("antigravity"),
   ...ANTIGRAVITY_OAUTH_CLIENT,
   userAgent: ANTIGRAVITY_IDE_USER_AGENT,
 };
 
-/**
- * Gemini CLI Usage — fetch per-model quota via Cloud Code Assist API.
- * Uses retrieveUserQuota (same endpoint as `gemini /stats`) returning
- * per-model buckets with remainingFraction + resetTime.
- */
 export async function getGeminiUsage(accessToken, providerSpecificData, proxyOptions = null) {
   if (!accessToken) {
     return { plan: "Free", message: "Gemini CLI access token not available." };
   }
 
   try {
-    // Resolve project id: prefer connection-stored id, else loadCodeAssist lookup.
-    // #1271: OAuth save stores projectId on the connection, not providerSpecificData.
     let projectId = normalizeCloudCodeProjectId(providerSpecificData?.projectId);
     let plan = "Free";
 
@@ -69,7 +58,7 @@ export async function getGeminiUsage(accessToken, providerSpecificData, proxyOpt
         if (!bucket.modelId || bucket.remainingFraction == null) continue;
 
         const remainingFraction = Number(bucket.remainingFraction) || 0;
-        const total = 1000; // Normalized base, matches antigravity convention
+        const total = 1000;
         const remaining = Math.round(total * remainingFraction);
         const used = Math.max(0, total - remaining);
 
@@ -89,9 +78,6 @@ export async function getGeminiUsage(accessToken, providerSpecificData, proxyOpt
   }
 }
 
-/**
- * Get Gemini CLI subscription info via loadCodeAssist
- */
 async function getGeminiSubscriptionInfo(accessToken, proxyOptions = null) {
   try {
     const response = await fetchWithTimeout(
@@ -114,12 +100,8 @@ async function getGeminiSubscriptionInfo(accessToken, proxyOptions = null) {
   }
 }
 
-/**
- * Antigravity Usage - Fetch quota from Google Cloud Code API
- */
 export async function getAntigravityUsage(accessToken, providerSpecificData, proxyOptions = null) {
   try {
-    // Fetch subscription info once — reuse for both projectId and plan
     const subscriptionInfo = await getAntigravitySubscriptionInfo(accessToken, proxyOptions);
     const projectId = subscriptionInfo?.cloudaicompanionProject || null;
 
@@ -158,16 +140,10 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     const data = await response.json();
     const quotas = {};
 
-    // Detect tier: free-tier accounts only have weekly quotas (no separate 5h window).
-    // On free-tier, fetchAvailableModels returns misleading per-model quota info
-    // (missing remainingFraction defaults to 0, or reflects the weekly limit not a 5h window).
     const paidTierId = subscriptionInfo?.paidTier?.id;
     const isFreeTier = !paidTierId || paidTierId === "free-tier";
 
-    // Parse model quotas only for paid-tier accounts.
-    // Free-tier accounts skip this — their only meaningful quota is the weekly limit.
     if (!isFreeTier && data.models) {
-      // Filter only recommended/important models (must match PROVIDER_MODELS ag ids)
       const importantModels = [
         'gemini-3.8-flash-high',
         'gemini-3.8-flash-medium',
@@ -185,17 +161,14 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
         'claude-sonnet-4-6',
         'claude-opus-4-6-thinking',
         'gpt-oss-120b-medium',
-        // Image generation models
         'gemini-3.1-flash-image',
       ];
 
       for (const [modelKey, info] of Object.entries(data.models)) {
-        // Skip models without quota info
         if (!info.quotaInfo) {
           continue;
         }
 
-        // Skip internal models and non-important models
         if (info.isInternal || !importantModels.includes(modelKey)) {
           continue;
         }
@@ -203,12 +176,10 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
         const remainingFraction = info.quotaInfo.remainingFraction || 0;
         const remainingPercentage = remainingFraction * 100;
 
-        // Convert percentage to used/total for UI compatibility
-        const total = 1000; // Normalized base
+        const total = 1000;
         const remaining = Math.round(total * remainingFraction);
         const used = total - remaining;
 
-        // Use modelKey as key (matches PROVIDER_MODELS id)
         quotas[modelKey] = {
           used,
           total,
@@ -220,7 +191,6 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
       }
     }
 
-    // Best-effort weekly quota overlay — never blocks or breaks per-model results
     try {
       const weeklyQuotas = await fetchAntigravityWeeklyQuota(
         accessToken,
@@ -228,11 +198,6 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
         proxyOptions
       );
 
-      // Reconcile weekly quota against model family status:
-      // If every model in a family is locked/exhausted (remainingPercentage === 0)
-      // until a future reset time, the weekly limit cannot be 100% available.
-      // On Google's Free Starter tier, retrieveUserQuotaSummary buggily reports
-      // remainingFraction: 1 even after the starter quota is depleted and all models 429.
       const entries = Object.entries(quotas);
       const geminiModels = entries.filter(([k]) => k.startsWith("gemini-") && !k.includes("image"));
       const claudeModels = entries.filter(([k]) => k.startsWith("claude-"));
@@ -267,7 +232,6 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
 
       Object.assign(quotas, weeklyQuotas);
     } catch {
-      // Silently ignore — weekly is best-effort
     }
 
     return {
@@ -281,9 +245,6 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
   }
 }
 
-/**
- * Get Antigravity subscription info
- */
 async function getAntigravitySubscriptionInfo(accessToken, proxyOptions = null) {
   try {
     const response = await fetchWithTimeout(ANTIGRAVITY_CONFIG.loadProjectApiUrl, {

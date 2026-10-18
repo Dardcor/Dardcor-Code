@@ -16,7 +16,7 @@ import { ContextManagementResponse, CUSTOM_TOOL_SEARCH_NAME, getContextManagemen
 import { IToolDeferralService } from '../../../platform/networking/common/toolDeferralService';
 import { IResponseDelta, OpenAiFunctionTool } from '../../../platform/networking/common/fetch';
 import { APIUsage } from '../../../platform/networking/common/openai';
-import { CopilotChatAttr, emitInferenceDetailsEvent, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, type OTelModelOptions, StdAttr, stringifyToolDefinitionsForOTel, toSystemInstructions, truncateForOTel } from '../../../platform/otel/common/index';
+import { DardcorChatAttr, emitInferenceDetailsEvent, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, type OTelModelOptions, StdAttr, stringifyToolDefinitionsForOTel, toSystemInstructions, truncateForOTel } from '../../../platform/otel/common/index';
 import { IOTelService, SpanKind, SpanStatusCode } from '../../../platform/otel/common/otelService';
 import { IRequestLogger } from '../../../platform/requestLogger/common/requestLogger';
 import { retrieveCapturingTokenByCorrelation, runWithCapturingToken } from '../../../platform/requestLogger/node/requestLogger';
@@ -61,7 +61,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 		return Math.min(32000, maxOutputTokens - 1, 16000);
 	}
 
-	// Filters the byok known models based on what the anthropic API knows as well
 	protected async getAllModels(silent: boolean, apiKey: string | undefined): Promise<ExtendedLanguageModelChatInformation<LanguageModelChatConfiguration>[]> {
 		if (!apiKey && silent) {
 			return [];
@@ -74,7 +73,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 				if (this._knownModels && this._knownModels[model.id]) {
 					modelList[model.id] = this._knownModels[model.id];
 				} else {
-					// Mix in generic capabilities for models we don't know
 					modelList[model.id] = {
 						maxInputTokens: 100000,
 						maxOutputTokens: 16000,
@@ -93,16 +91,12 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 	}
 
 	async provideLanguageModelChatResponse(model: ExtendedLanguageModelChatInformation<LanguageModelChatConfiguration>, messages: Array<LanguageModelChatMessage | LanguageModelChatMessage2>, options: ProvideLanguageModelChatResponseOptions, progress: Progress<LanguageModelResponsePart2>, token: CancellationToken): Promise<void> {
-		// Restore CapturingToken context if correlation ID was passed through modelOptions.
-		// This handles the case where AsyncLocalStorage context was lost crossing VS Code IPC.
 		const correlationId = (options as { modelOptions?: OTelModelOptions }).modelOptions?._capturingTokenCorrelationId;
 		const capturingToken = correlationId ? retrieveCapturingTokenByCorrelation(correlationId) : undefined;
 		const telemetryTurn = (options as { modelOptions?: OTelModelOptions }).modelOptions?._telemetryTurn;
 
-		// Restore OTel trace context to link spans back to the agent trace
 		const parentTraceContext = (options as { modelOptions?: OTelModelOptions }).modelOptions?._otelTraceContext ?? undefined;
 
-		// OTel span handle — created outside doRequest, enriched inside with usage data
 		let otelSpan: ReturnType<typeof this._otelService.startSpan> | undefined;
 
 		const doRequest = async () => {
@@ -114,7 +108,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 
 			const anthropicClient = new Anthropic({ apiKey });
 
-			// Convert the messages from the API format into messages that we can use against anthropic
 			const { system, messages: convertedMessages } = apiMessageToAnthropicMessage(messages as LanguageModelChatMessage[]);
 
 			const requestId = generateUuid();
@@ -144,17 +137,13 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 
 			const memoryToolEnabled = modelSupportsMemory(model.id);
 
-			// Requires the client-side tool_search tool in the request: without it, defer-loaded tools can't be retrieved.
-			// If the user disables tool_search in the tool picker, it won't be present here and tool search is skipped.
 			const toolSearchEnabled = modelSupportsToolSearch(model.id)
 				&& !!options.tools?.some(t => t.name === CUSTOM_TOOL_SEARCH_NAME);
 
-			// Build tools array, handling both standard tools and native Anthropic tools
 			const tools: Anthropic.Beta.BetaToolUnion[] = [];
 
 			let hasMemoryTool = false;
 			for (const tool of (options.tools ?? [])) {
-				// Handle native Anthropic memory tool (only for models that support it)
 				if (tool.name === 'memory' && memoryToolEnabled) {
 
 					hasMemoryTool = true;
@@ -165,7 +154,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					continue;
 				}
 
-				// Mark tools for deferred loading when tool search is enabled, except for frequently used tools
 				const shouldDefer = toolSearchEnabled ? !this._toolDeferralService.isNonDeferredTool(tool.name) : undefined;
 
 				if (!tool.inputSchema) {
@@ -190,8 +178,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 				});
 			}
 
-			// Check if web search is enabled and append web_search tool if not already present.
-			// We need to do this because there is no local web_search tool definition we can replace.
 			const webSearchEnabled = this._configurationService.getExperimentBasedConfig(ConfigKey.AnthropicWebSearchToolEnabled, this._experimentationService);
 			let webSearchDomainConflictError: string | undefined;
 			if (webSearchEnabled && !tools.some(tool => 'name' in tool && tool.name === 'web_search')) {
@@ -218,8 +204,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					webSearchTool.blocked_domains = blockedDomains;
 				}
 
-				// Add user location if configured
-				// Note: All fields are optional according to Anthropic docs
 				if (userLocation && (userLocation.city || userLocation.region || userLocation.country || userLocation.timezone)) {
 					webSearchTool.user_location = {
 						type: 'approximate',
@@ -232,11 +216,9 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 
 			const thinkingBudget = this._getThinkingBudget(model.id, model.maxOutputTokens);
 
-			// Check if model supports adaptive thinking
 			const modelCapabilities = this._knownModels?.[model.id];
 			const supportsAdaptiveThinking = modelCapabilities?.adaptiveThinking ?? false;
 
-			// Build context management configuration
 			const thinkingEnabled = supportsAdaptiveThinking || (thinkingBudget ?? 0) > 0;
 			const contextManagement = isAnthropicContextEditingEnabled(model.id, this._configurationService, this._experimentationService) ? getContextManagementFromConfig(
 				this._configurationService,
@@ -244,7 +226,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 				thinkingEnabled
 			) : undefined;
 
-			// Build betas array for beta API features (adaptive thinking doesn't need interleaved-thinking beta)
 			const betas: string[] = [];
 			if (thinkingBudget && !supportsAdaptiveThinking) {
 				betas.push('interleaved-thinking-2025-05-14');
@@ -299,7 +280,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 							}]
 						};
 					} else if (i instanceof LanguageModelToolResultPart) {
-						// Handle tool results - extract text from content
 						const resultText = i.content.map(c => c instanceof LanguageModelTextPart ? c.value : '').join('');
 						return {
 							text: `[Tool Result ${i.callId}]: ${resultText}`
@@ -308,7 +288,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 						return { text: '' };
 					}
 				});
-				// TODO: @bhavyaus - Add telemetry tracking for context editing (contextEditingApplied, contextEditingClearedTokens, contextEditingEditCount) like messagesApi.ts does
 				if (result.contextManagement) {
 					responseDeltas.push({
 						text: '',
@@ -327,7 +306,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					resolvedModel: model.id
 				}, responseDeltas);
 
-				// Enrich OTel span with usage data from the Anthropic response
 				if (otelSpan && result.usage) {
 					otelSpan.setAttributes({
 						[GenAiAttr.USAGE_INPUT_TOKENS]: result.usage.prompt_tokens ?? 0,
@@ -339,11 +317,10 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 						[GenAiAttr.RESPONSE_ID]: requestId,
 						[GenAiAttr.RESPONSE_FINISH_REASONS]: ['stop'],
 						[GenAiAttr.REQUEST_STREAM]: true,
-						...(result.ttft ? { [CopilotChatAttr.TIME_TO_FIRST_TOKEN]: result.ttft } : {}),
+						...(result.ttft ? { [DardcorChatAttr.TIME_TO_FIRST_TOKEN]: result.ttft } : {}),
 						...(result.ttft ? { [GenAiAttr.RESPONSE_TIME_TO_FIRST_CHUNK]: result.ttft / 1000 } : {}),
 						[GenAiAttr.REQUEST_MAX_TOKENS]: model.maxOutputTokens ?? 0,
 					});
-					// Opt-in content capture
 					if (this._otelService.config.captureContent) {
 						const responseText = wrappedProgress.items
 							.filter((p): p is LanguageModelTextPart => p instanceof LanguageModelTextPart)
@@ -360,7 +337,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					}
 				}
 
-				// Record OTel metrics for this Anthropic LLM call
 				if (result.usage) {
 					const durationSec = (Date.now() - issuedTime) / 1000;
 					const metricAttrs = { operationName: GenAiOperationName.CHAT, providerName: AnthropicLMProvider.providerId, requestModel: model.id, responseModel: model.id };
@@ -371,7 +347,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					if (result.ttft) { GenAiMetrics.recordTimeToFirstChunk(this._otelService, result.ttft / 1000, metricAttrs); }
 				}
 
-				// Emit OTel inference details event
 				emitInferenceDetailsEvent(
 					this._otelService,
 					{ model: model.id, maxTokens: model.maxOutputTokens },
@@ -384,79 +359,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					} : undefined,
 				);
 
-				// Send success telemetry matching response.success format
-				/* __GDPR__
-					"response.success" : {
-						"owner": "digitarald",
-						"comment": "Report quality details for a successful service response.",
-						"reason": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Reason for why a response finished" },
-						"filterReason": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Reason for why a response was filtered" },
-						"source": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Source of the initial request" },
-						"initiatorType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request was initiated by a user or an agent" },
-						"requestKind": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Resolved X-Interaction-Type for the request: 'conversation-agent', 'conversation-subagent', 'conversation-background', 'conversation-panel', 'conversation-inline', 'conversation-edits', 'conversation-other', 'conversation-notebook', or 'conversation-terminal'" },
-						"model": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Model selection for the response" },
-						"modelInvoked": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Actual model invoked for the response" },
-						"apiType": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "API type for the response- chat completions or responses" },
-						"conversationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Id for the current chat conversation." },
-						"requestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Id of the current turn request" },
-						"gitHubRequestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "GitHub request id if available" },
-						"associatedRequestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Another request ID that this request is associated with (eg, the originating request of a summarization request)." },
-						"turn": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "How many turns have been made in the conversation.", "isMeasurement": true },
-						"reasoningEffort": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Reasoning effort level" },
-						"reasoningSummary": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Reasoning summary level" },
-						"fetcher": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The fetcher used for the request" },
-						"transport": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The transport used for the request (http or websocket)" },
-						"totalTokenMax": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Maximum total token window", "isMeasurement": true },
-						"clientPromptTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of prompt tokens, locally counted", "isMeasurement": true },
-						"promptTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of prompt tokens, server side counted", "isMeasurement": true },
-						"promptCacheTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of prompt tokens hitting cache as reported by server", "isMeasurement": true },
-						"promptCacheCreation1hTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Cache-creation input tokens written with the 1h (extended) TTL, billed at 2x base rate. Only populated when Anthropic reports the cache_creation breakdown.", "isMeasurement": true },
-						"promptCacheCreation5mTokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Cache-creation input tokens written with the default 5m TTL, billed at 1.25x base rate. Only populated when Anthropic reports the cache_creation breakdown.", "isMeasurement": true },
-						"tokenCountMax": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Maximum generated tokens", "isMeasurement": true },
-						"tokenCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of generated tokens", "isMeasurement": true },
-						"reasoningTokens": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of reasoning tokens", "isMeasurement": true },
-						"acceptedPredictionTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of tokens in the prediction that appeared in the completion", "isMeasurement": true },
-						"rejectedPredictionTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of tokens in the prediction that appeared in the completion", "isMeasurement": true },
-						"completionTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of tokens in the output", "isMeasurement": true },
-						"timeToFirstToken": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Time to first token", "isMeasurement": true },
-						"timeToFirstTokenEmitted": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Time to first token emitted (visible text)", "isMeasurement": true },
-						"timeToComplete": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Time to complete the request", "isMeasurement": true },
-						"issuedTime": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Timestamp when the request was issued", "isMeasurement": true },
-						"isVisionRequest": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether the request was for a vision model", "isMeasurement": true },
-						"imageCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of input images attached to the request", "isMeasurement": true },
-						"totalImageBytes": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Sum of byte sizes for attached input images when known", "isMeasurement": true },
-						"maxImageBytes": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Largest known input image byte size in the request", "isMeasurement": true },
-						"maxImageWidth": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Largest known input image width in the request", "isMeasurement": true },
-						"maxImageHeight": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Largest known input image height in the request", "isMeasurement": true },
-						"maxImagePixels": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Largest known input image pixel count in the request", "isMeasurement": true },
-						"totalImagePixels": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Sum of known input image pixel counts in the request", "isMeasurement": true },
-						"imagePngCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of PNG input images", "isMeasurement": true },
-						"imageJpegCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of JPEG input images", "isMeasurement": true },
-						"imageGifCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of GIF input images", "isMeasurement": true },
-						"imageWebpCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of WebP input images", "isMeasurement": true },
-						"imageUnknownMimeCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of input images whose MIME type is unknown or unsupported", "isMeasurement": true },
-						"imageClipboardCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of input images sourced from clipboard or paste", "isMeasurement": true },
-						"imageScreenshotCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of input images sourced from screenshot capture", "isMeasurement": true },
-						"imageFileCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of input images sourced from local file attachment", "isMeasurement": true },
-						"imageUrlCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of input images sourced from URL", "isMeasurement": true },
-						"imageUnknownSourceCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Count of input images whose source could not be determined", "isMeasurement": true },
-						"isBYOK": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request was for a BYOK model", "isMeasurement": true },
-						"isAuto": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request was for an Auto model", "isMeasurement": true },
-						"bytesReceived": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of bytes received in the response", "isMeasurement": true },
-						"retryAfterError": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Error of the original request." },
-						"retryAfterErrorGitHubRequestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "GitHub request id of the original request if available" },
-						"connectivityTestError": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Error of the connectivity test." },
-						"connectivityTestErrorGitHubRequestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "GitHub request id of the connectivity test request if available" },
-						"retryAfterFilterCategory": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "If the response was filtered and this is a retry attempt, this contains the original filtered content category." },
-						"suspendEventSeen": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether a system suspend event was seen during the request", "isMeasurement": true },
-						"resumeEventSeen": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether a system resume event was seen during the request", "isMeasurement": true },
-						"subType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Sub-type of the request" },
-						"modelCallId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Unique identifier for this model call" },
-						"parentRequestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "For a subagent: the VS Code chat request id of the parent turn that invoked this subagent (matches panel.request.parentRequestId)." },
-						"parentModelCallId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Model call ID of the parent request for subagent calls" },
-						"iterationNumber": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Iteration number within the tool calling loop" }
-					}
-				*/
 				this._telemetryService.sendTelemetryEvent('response.success', { github: true, microsoft: true }, {
 					source: 'byok.anthropic',
 					model: model.id,
@@ -495,7 +397,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 							}]
 						};
 					} else if (i instanceof LanguageModelToolResultPart) {
-						// Handle tool results - extract text from content
 						const resultText = i.content.map(c => c instanceof LanguageModelTextPart ? c.value : '').join('');
 						return {
 							text: `[Tool Result ${i.callId}]: ${resultText}`
@@ -508,7 +409,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 			}
 		};
 
-		// Create OTel span and execute with trace context + CapturingToken
 		const executeRequest = async () => {
 			const chatSessionId = capturingToken?.chatSessionId;
 			const parentChatSessionId = capturingToken?.parentChatSessionId;
@@ -521,18 +421,15 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					[GenAiAttr.REQUEST_MODEL]: model.id,
 					...(chatSessionId ? { [GenAiAttr.CONVERSATION_ID]: chatSessionId } : {}),
 					[GenAiAttr.AGENT_NAME]: 'AnthropicBYOK',
-					[CopilotChatAttr.MAX_PROMPT_TOKENS]: model.maxInputTokens,
-					...(chatSessionId ? { [CopilotChatAttr.SESSION_ID]: chatSessionId } : {}),
-					...(chatSessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}),
-					...(parentChatSessionId ? { [CopilotChatAttr.PARENT_CHAT_SESSION_ID]: parentChatSessionId } : {}),
-					...(debugLogLabel ? { [CopilotChatAttr.DEBUG_LOG_LABEL]: debugLogLabel } : {}),
+					[DardcorChatAttr.MAX_PROMPT_TOKENS]: model.maxInputTokens,
+					...(chatSessionId ? { [DardcorChatAttr.SESSION_ID]: chatSessionId } : {}),
+					...(chatSessionId ? { [DardcorChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}),
+					...(parentChatSessionId ? { [DardcorChatAttr.PARENT_CHAT_SESSION_ID]: parentChatSessionId } : {}),
+					...(debugLogLabel ? { [DardcorChatAttr.DEBUG_LOG_LABEL]: debugLogLabel } : {}),
 					[StdAttr.SERVER_ADDRESS]: 'api.anthropic.com',
 				},
 			});
-			// Opt-in: capture input messages in OTel GenAI format
 			if (this._otelService.config.captureContent) {
-				// Tool definitions on the chat span (issue #299934) with `parameters`
-				// per OTel GenAI semantic conventions (issue #300318).
 				const toolDefsJson = stringifyToolDefinitionsForOTel(options.tools);
 				if (toolDefsJson) {
 					otelSpan.setAttribute(GenAiAttr.TOOL_DEFINITIONS, truncateForOTel(toolDefsJson, this._otelService.config.maxAttributeSizeChars));
@@ -544,7 +441,7 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 						otelSpan.setAttribute(GenAiAttr.SYSTEM_INSTRUCTIONS, truncateForOTel(JSON.stringify(systemInstructions), this._otelService.config.maxAttributeSizeChars));
 					}
 					otelSpan.setAttribute(GenAiAttr.INPUT_MESSAGES, truncateForOTel(JSON.stringify(inputMsgs), this._otelService.config.maxAttributeSizeChars));
-				} catch { /* swallow */ }
+				} catch { }
 			}
 			try {
 				const result = capturingToken
@@ -567,7 +464,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 	}
 
 	async provideTokenCount(model: LanguageModelChatInformation, text: string | LanguageModelChatMessage | LanguageModelChatMessage2, token: CancellationToken): Promise<number> {
-		// Simple estimation - actual token count would require Claude's tokenizer
 		return Math.ceil(text.toString().length / 4);
 	}
 
@@ -621,7 +517,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 						jsonInput: ''
 					};
 				} else if ('content_block' in chunk && chunk.content_block.type === 'server_tool_use') {
-					// Handle server-side tool use (e.g., web_search)
 					pendingServerToolCall = {
 						toolId: chunk.content_block.id,
 						name: chunk.content_block.name,
@@ -646,7 +541,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					}
 
 					const resultBlock = chunk.content_block as Anthropic.Messages.WebSearchToolResultBlock;
-					// Handle potential error in web search
 					if (!Array.isArray(resultBlock.content)) {
 						this._logService.error(`Web search error: ${(resultBlock.content as Anthropic.Messages.WebSearchToolResultError).error_code}`);
 						continue;
@@ -660,7 +554,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 						encrypted_content: result.encrypted_content
 					}));
 
-					// Format according to Anthropic's web_search_tool_result specification
 					const toolResult = {
 						type: 'web_search_tool_result',
 						tool_use_id: pendingServerToolCall.toolId,
@@ -669,7 +562,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 
 					const searchResults = JSON.stringify(toolResult, null, 2);
 
-					// TODO: @bhavyaus - instead of just pushing text, create a specialized WebSearchResult part
 					progress.report(new LanguageModelToolResultPart(
 						pendingServerToolCall.toolId!,
 						[new LanguageModelTextPart(searchResults)]
@@ -688,10 +580,8 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					hasText ||= chunk.delta.text?.length > 0;
 				} else if (chunk.delta.type === 'citations_delta') {
 					if ('citation' in chunk.delta) {
-						// TODO: @bhavyaus - instead of just pushing text, create a specialized Citation part
 						const citation = chunk.delta.citation as Anthropic.Messages.CitationsWebSearchResultLocation;
 						if (citation.type === 'web_search_result_location') {
-							// Format citation according to Anthropic specification
 							const citationData = {
 								type: 'web_search_result_location',
 								url: citation.url,
@@ -700,13 +590,10 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 								cited_text: citation.cited_text
 							};
 
-							// Format citation as readable blockquote with source link
 							const referenceText = `\n> "${citation.cited_text}" — [${vscode.l10n.t('Source')}](${citation.url})\n\n`;
 
-							// Report formatted reference text to user
 							progress.report(new LanguageModelTextPart(referenceText));
 
-							// Store the citation data in the correct format for multi-turn conversations
 							progress.report(new LanguageModelToolResultPart(
 								'citation',
 								[new LanguageModelTextPart(JSON.stringify(citationData, null, 2))]
@@ -719,7 +606,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 						progress.report(new LanguageModelThinkingPart(chunk.delta.thinking || ''));
 					}
 				} else if (chunk.delta.type === 'signature_delta') {
-					// Accumulate signature
 					if (pendingThinking) {
 						pendingThinking.signature = (pendingThinking.signature || '') + (chunk.delta.signature || '');
 					}
@@ -727,7 +613,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					pendingToolCall.jsonInput = (pendingToolCall.jsonInput || '') + (chunk.delta.partial_json || '');
 
 					try {
-						// Try to parse the accumulated JSON to see if it's complete
 						const parsedJson = JSON.parse(pendingToolCall.jsonInput);
 						progress.report(new LanguageModelToolCallPart(
 							pendingToolCall.toolId!,
@@ -736,7 +621,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 						));
 						pendingToolCall = undefined;
 					} catch {
-						// JSON is not complete yet, continue accumulating
 						continue;
 					}
 				} else if (chunk.delta.type === 'input_json_delta' && pendingServerToolCall) {
@@ -775,12 +659,10 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 			}
 
 			if (chunk.type === 'message_start') {
-				// TODO final output tokens: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":46}}
 				usage = {
 					completion_tokens: -1,
 					prompt_tokens: chunk.message.usage.input_tokens + (chunk.message.usage.cache_creation_input_tokens ?? 0) + (chunk.message.usage.cache_read_input_tokens ?? 0),
 					total_tokens: -1,
-					// Cast needed: Anthropic returns cache_creation_input_tokens which APIUsage.prompt_tokens_details doesn't define
 					prompt_tokens_details: {
 						cached_tokens: chunk.message.usage.cache_read_input_tokens ?? 0,
 						cache_creation_input_tokens: chunk.message.usage.cache_creation_input_tokens
@@ -791,7 +673,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 					usage.completion_tokens = chunk.usage.output_tokens;
 					usage.total_tokens = usage.prompt_tokens + chunk.usage.output_tokens;
 				}
-				// Handle context management response
 				if ('context_management' in chunk && chunk.context_management) {
 					contextManagementResponse = chunk.context_management as ContextManagementResponse;
 					const totalClearedTokens = contextManagementResponse.applied_edits.reduce(
@@ -799,7 +680,6 @@ export class AnthropicLMProvider extends AbstractLanguageModelChatProvider {
 						0
 					);
 					this._logService.info(`BYOK Anthropic context editing applied: cleared ${totalClearedTokens} tokens across ${contextManagementResponse.applied_edits.length} edits`);
-					// Emit context management via LanguageModelDataPart so it flows through to toolCallingLoop
 					progress.report(new LanguageModelDataPart(
 						new TextEncoder().encode(JSON.stringify(contextManagementResponse)),
 						CustomDataPartMimeTypes.ContextManagement

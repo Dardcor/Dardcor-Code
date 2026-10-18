@@ -66,10 +66,10 @@ for (const lineEnding of ['\n', '\r\n']) {
 						<CompletionsContext>
 							<AnotherComponent number={1} />
 							<MyNestedComponent />
-							{/* This is intentionally placed here so that it's far from the other AnotherComponent*/}
+							{}
 							<AnotherComponent number={2} />
 							<>
-								{/* This is intentionally in a fragment to check that it's skipped */}
+								{}
 								<Text>Raw text</Text>
 							</>
 							<>
@@ -295,7 +295,6 @@ for (const lineEnding of ['\n', '\r\n']) {
 					`Expected tokens for ${expected.componentPath} do not match`
 				);
 				assert.strictEqual(actual.actualTokens, expected.actualTokens);
-				// Instead of a fixed number, just ensure updateDataTimeMs is a non-negative number.
 				if (actual.updateDataTimeMs) {
 					assert.ok(
 						typeof actual.updateDataTimeMs === 'number' && actual.updateDataTimeMs >= 0,
@@ -309,7 +308,6 @@ for (const lineEnding of ['\n', '\r\n']) {
 			const rendered = renderer.render(snapshot!, renderingOptions);
 			assert.deepStrictEqual(rendered.status, 'ok');
 			const metadata = rendered.metadata;
-			// Make updateDataTimeMs a constant value to ensure it doesn't affect the test.
 			const actualStatsFiltered = metadata.componentStatistics.map(stats => {
 				if (stats.updateDataTimeMs) {
 					stats.updateDataTimeMs = 42;
@@ -423,18 +421,13 @@ for (const lineEnding of ['\n', '\r\n']) {
 		});
 
 		test('elides both prefix and suffix partially', function () {
-			// Use tighter token limits to force partial elision on both sides.
 			const prompt = renderer.render(snapshot!, {
 				...renderingOptions,
 				promptTokenLimit: 20,
 				suffixPercent: 10,
 			});
-			// We don't have the exact expected strings, but we verify that both prefix and suffix
-			// have been elided compared to the full expectations.
 			assert.strictEqual(prompt.status, 'ok');
-			// The elided prefix should be shorter than the full expected one.
 			assert.ok(prompt.prefix.length < fullExpectedPrefix.length, 'Expected prefix to be elided');
-			// The elided suffix should also be shorter than the full expected suffix, if any elision took place.
 			if (fullExpectedSuffix.length > 0) {
 				assert.ok(prompt.suffix.length < fullExpectedSuffix.length, 'Expected suffix to be elided');
 			}
@@ -548,10 +541,8 @@ for (const lineEnding of ['\n', '\r\n']) {
 			const virtualPrompt = new VirtualPrompt(prompt);
 			const pipe = virtualPrompt.createPipe();
 			await pipe.pump(createCompletionRequestData(accessor, textDocumentWithFirstSuffix, position));
-			// Snapshot caches the suffix
 			virtualPrompt.snapshot();
 
-			// The position is the same, since the start of the document doesn't change
 			const textDocumentWithSecondSuffix = createTextDocument(
 				fileUri,
 				'typescript',
@@ -561,7 +552,6 @@ for (const lineEnding of ['\n', '\r\n']) {
 			await pipe.pump(createCompletionRequestData(accessor, textDocumentWithSecondSuffix, position));
 			const { snapshot: snapshotWithDefaultThreshold } = virtualPrompt.snapshot();
 
-			// the first suffix is used, since they are similar enough
 			const renderedWithDefaultThreshold = renderer.render(
 				snapshotWithDefaultThreshold!,
 				renderOptionsWithSuffix
@@ -582,7 +572,6 @@ for (const lineEnding of ['\n', '\r\n']) {
 			);
 			const { snapshot: snapshotWithLowerThreshold } = virtualPrompt.snapshot();
 
-			// The second suffix is used, since the matching threshold is lower
 			const renderedWithLowerThreshold = renderer.render(snapshotWithLowerThreshold!, renderOptionsWithSuffix);
 			assert.deepStrictEqual(renderedWithLowerThreshold.status, 'ok');
 			assert.deepStrictEqual(renderedWithLowerThreshold.suffix, secondSuffix);
@@ -611,10 +600,8 @@ for (const lineEnding of ['\n', '\r\n']) {
 			const virtualPrompt = new VirtualPrompt(prompt);
 			const pipe = virtualPrompt.createPipe();
 			await pipe.pump(createCompletionRequestData(accessor, textDocumentWithFirstSuffix, position));
-			// Snapshot caches the suffix
 			virtualPrompt.snapshot();
 
-			// The position is the same, since the start of the document doesn't change
 			const textDocumentWithSecondSuffix = createTextDocument(
 				fileUri,
 				'typescript',
@@ -624,29 +611,20 @@ for (const lineEnding of ['\n', '\r\n']) {
 			await pipe.pump(createCompletionRequestData(accessor, textDocumentWithSecondSuffix, position));
 			const { snapshot } = virtualPrompt.snapshot();
 
-			// the second suffix is used, since they are not similar enough
 			const rendered = renderer.render(snapshot!, renderOptionsWithSuffix);
 			assert.deepStrictEqual(rendered.status, 'ok');
 			assert.deepStrictEqual(rendered.suffix, secondSuffix);
 		});
 
-		// captures a test for https://github.com/microsoft/vscode/issues/295450
 		test('does not use cached suffix when first token changes due to content shifting to prefix', async function () {
-			// Simulates the scenario where user is typing inside a JSDoc comment block.
-			// Initially the cursor is on a blank line before a `/**` comment, so the suffix
-			// starts with `/**`. After the user types inside the comment, the `/**` moves to
-			// the prefix and the suffix should start with `*` (comment continuation), not `/**`.
 			const renderOptionsWithSuffix: CompletionsPromptRenderOptions = {
 				...renderingOptions,
 				promptTokenLimit: 2000,
 				suffixPercent: 50,
 			};
 
-			// Build a long enough suffix so the ~3 token edit distance at the start
-			// falls below the 10% threshold (need 30+ tokens total).
 			const longBody = new Array(20).fill(0).map((_, i) => `export function helper${i}(x: number): number { return x + ${i}; }`).join('\n');
 
-			// Step 1: cursor on blank line before the JSDoc comment
 			const firstDoc = createTextDocument(
 				fileUri,
 				'typescript',
@@ -662,11 +640,8 @@ for (const lineEnding of ['\n', '\r\n']) {
 			const virtualPrompt = new VirtualPrompt(prompt);
 			const pipe = virtualPrompt.createPipe();
 			await pipe.pump(createCompletionRequestData(accessor, firstDoc, firstPosition));
-			// Snapshot caches the suffix (starts with `/**`)
 			virtualPrompt.snapshot();
 
-			// Step 2: user typed `/**\n * B` — cursor is now inside the comment block
-			// The `/**` is now part of the prefix, and the suffix should NOT start with `/**`
 			const secondDoc = createTextDocument(
 				fileUri,
 				'typescript',
@@ -679,7 +654,6 @@ for (const lineEnding of ['\n', '\r\n']) {
 
 			const rendered = renderer.render(snapshot!, renderOptionsWithSuffix);
 			assert.deepStrictEqual(rendered.status, 'ok');
-			// The suffix must NOT start with `/**` — that content is now in the prefix
 			assert.ok(!rendered.suffix.startsWith('/**'), `Suffix should not start with "/**" but got: "${rendered.suffix.slice(0, 80)}..."`);
 			assert.ok(rendered.suffix.startsWith('* Last batch'), `Suffix should start with "* Last batch" but got: "${rendered.suffix.slice(0, 80)}..."`);
 		});
@@ -801,12 +775,10 @@ for (const lineEnding of ['\n', '\r\n']) {
 			const virtualPrompt = new VirtualPrompt(prompt);
 			const pipe = virtualPrompt.createPipe();
 
-			// First render
 			await pipe.pump(createCompletionRequestData(accessor, textDocument, position));
 			const { snapshot } = virtualPrompt.snapshot();
 			const renderedPrompt = renderer.render(snapshot!, renderingOptions);
 
-			// Second render
 			const { snapshot: snapshotTwo } = virtualPrompt.snapshot();
 			const renderedPromptTwo = renderer.render(snapshotTwo!, renderingOptions);
 
@@ -835,16 +807,14 @@ for (const lineEnding of ['\n', '\r\n']) {
 			const virtualPrompt = new VirtualPrompt(prompt);
 			const pipe = virtualPrompt.createPipe();
 
-			// First render
 			await pipe.pump(createCompletionRequestData(accessor, textDocument, position));
 			const { snapshot } = virtualPrompt.snapshot();
 			const renderedPrompt = renderer.render(snapshot!, renderingOptions);
 
-			// Second render
 			const updatedTextDocument = createTextDocument(
 				fileUri,
 				'typescript',
-				1, // Notice version change
+				1,
 				`import * from './bar.ts'\n|\nfunction g`
 			);
 			const updatedPosition = updatedTextDocument.positionAt(updatedTextDocument.getText().indexOf('|'));

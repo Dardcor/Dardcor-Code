@@ -2,12 +2,12 @@
 
 The **agent host** is a separate utility process (under `src/vs/platform/agentHost/`) that hosts native Copilot, Claude, and Codex runtimes instead of using the extension's in-process harnesses. The agent host has its own OTel pipeline so provider-native traces can be exported to a collector or persisted locally for inspection.
 
-This is the architecture and integration reference for OTel in Agent Host sessions. It lives next to `IAgentHostOTelService` in [node/otel/agentHostOTelService.ts](node/otel/agentHostOTelService.ts) because Agent Host runs outside the extension host. Local Copilot Chat remains an independent extension-host pipeline configured with `github.copilot.chat.otel.*` and documented in [`extensions/copilot/docs/monitoring/agent_monitoring.md`](../../../../extensions/copilot/docs/monitoring/agent_monitoring.md).
+This is the architecture and integration reference for OTel in Agent Host sessions. It lives next to `IAgentHostOTelService` in [node/otel/agentHostOTelService.ts](node/otel/agentHostOTelService.ts) because Agent Host runs outside the extension host. Local Copilot Chat remains an independent extension-host pipeline configured with `github.dardcor.chat.otel.*` and documented in [`extensions/copilot/docs/monitoring/agent_monitoring.md`](../../../../extensions/copilot/docs/monitoring/agent_monitoring.md).
 
 | Property | Agent Host OTel | Extension OTel |
 |---|---|---|
 | Process | Separate utility process (`src/vs/platform/agentHost/node/`) | Extension host |
-| Settings prefix | `chat.agentHost.otel.*` | `github.copilot.chat.otel.*` |
+| Settings prefix | `chat.agentHost.otel.*` | `github.dardcor.chat.otel.*` |
 | Service | `IAgentHostOTelService` (`node/otel/agentHostOTelService.ts`) | `IOTelService` (`extensions/copilot/src/platform/otel/`) |
 | SDK | Copilot `TelemetryConfig`, Claude environment, and Codex `otel.*` launch overrides | `@opentelemetry/sdk-node` directly |
 | Persistence | `<userData>/agent-host/otel/agent-host-traces.db` | `<extensionGlobalStorage>/otel/spans.db` |
@@ -52,7 +52,7 @@ flowchart LR
 ```
 
 - **Pass-through mode** (default when only `otlpEndpoint` is configured): the SDK is constructed with the user's exporter settings unmodified and exports directly. SDK span data is not intercepted; the agent host additionally emits the session-title metadata span described below through the configured exporter.
-- **DB mode** (`COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED=true`): `AgentHostOTelService` starts a `LocalOtlpHttpReceiver` on `127.0.0.1` with an ephemeral port, then configures every native provider's trace exporter to use that loopback over OTLP/HTTP JSON. For each batch the receiver decodes the body and inserts spans into `OTelSqliteStore` (`onSpans`). If an OTLP/HTTP JSON external endpoint is also configured, the receiver fans the normalized JSON trace body out to an `OtlpHttpForwarder` (`onForward`) so the collector keeps receiving traces alongside the local DB. For OTLP/HTTP protobuf and OTLP/gRPC external protocols, traces remain in SQLite while native logs and metrics still export directly.
+- **DB mode** (`DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED=true`): `AgentHostOTelService` starts a `LocalOtlpHttpReceiver` on `127.0.0.1` with an ephemeral port, then configures every native provider's trace exporter to use that loopback over OTLP/HTTP JSON. For each batch the receiver decodes the body and inserts spans into `OTelSqliteStore` (`onSpans`). If an OTLP/HTTP JSON external endpoint is also configured, the receiver fans the normalized JSON trace body out to an `OtlpHttpForwarder` (`onForward`) so the collector keeps receiving traces alongside the local DB. For OTLP/HTTP protobuf and OTLP/gRPC external protocols, traces remain in SQLite while native logs and metrics still export directly.
 
 ## Native Provider Signal Routing
 
@@ -125,21 +125,21 @@ The workbench-side starter translates the settings above into the following env 
 
 | Variable | Sourced From | Notes |
 |---|---|---|
-| `COPILOT_OTEL_ENABLED` | `chat.agentHost.otel.enabled` | Set to `true` only when the setting is on. |
-| `COPILOT_OTEL_EXPORTER_TYPE` | `chat.agentHost.otel.exporterType` | |
+| `DARDCOR_OTEL_ENABLED` | `chat.agentHost.otel.enabled` | Set to `true` only when the setting is on. |
+| `DARDCOR_OTEL_EXPORTER_TYPE` | `chat.agentHost.otel.exporterType` | |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `chat.agentHost.otel.otlpEndpoint` | Standard OTel endpoint. |
-| `COPILOT_OTEL_ENDPOINT` | (inherited) | Alternate endpoint used only when `OTEL_EXPORTER_OTLP_ENDPOINT` is unset. |
+| `DARDCOR_OTEL_ENDPOINT` | (inherited) | Alternate endpoint used only when `OTEL_EXPORTER_OTLP_ENDPOINT` is unset. |
 | `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` | `chat.agentHost.otel.captureContent` | |
-| `COPILOT_OTEL_FILE_EXPORTER_PATH` | `chat.agentHost.otel.outfile` | |
-| `COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED` | `chat.agentHost.otel.dbSpanExporter.enabled` | |
+| `DARDCOR_OTEL_FILE_EXPORTER_PATH` | `chat.agentHost.otel.outfile` | |
+| `DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED` | `chat.agentHost.otel.dbSpanExporter.enabled` | |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | (inherited or enterprise policy) | `grpc` and `http/grpc` select gRPC; `http/protobuf` selects HTTP protobuf; other values use HTTP JSON. Set from the managed `telemetry.protocol` when configured. |
-| `COPILOT_OTEL_PROTOCOL` | (inherited) | Alternate protocol used only when `OTEL_EXPORTER_OTLP_PROTOCOL` is unset. |
-| `COPILOT_OTEL_SOURCE_NAME` | (inherited) | Instrumentation scope name used by Copilot and host-produced metadata spans. |
+| `DARDCOR_OTEL_PROTOCOL` | (inherited) | Alternate protocol used only when `OTEL_EXPORTER_OTLP_PROTOCOL` is unset. |
+| `DARDCOR_OTEL_SOURCE_NAME` | (inherited) | Instrumentation scope name used by Copilot and host-produced metadata spans. |
 | `OTEL_SERVICE_NAME` | (inherited or enterprise policy) | `service.name` resource attribute; set from the managed `telemetry.serviceName`. |
 | `OTEL_RESOURCE_ATTRIBUTES` | (inherited or enterprise policy) | Extra resource attributes (`k=v,k2=v2`); set from the managed `telemetry.resourceAttributes`. |
 | `OTEL_EXPORTER_OTLP_HEADERS` | (inherited) | Auth headers (for example, `Authorization=<value>`). **Not** delivered from managed settings — env delivery would leak the secret to tool subprocesses; managed headers apply to the Copilot Chat extension only. |
 
-Inside Agent Host, OTel activates when `COPILOT_OTEL_ENABLED` or `COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED` is truthy, or when an OTLP endpoint or file-exporter path is non-empty. This allows inherited environment configuration to enable OTel without a local VS Code setting.
+Inside Agent Host, OTel activates when `DARDCOR_OTEL_ENABLED` or `DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED` is truthy, or when an OTLP endpoint or file-exporter path is non-empty. This allows inherited environment configuration to enable OTel without a local VS Code setting.
 
 > **Activation timing.** Env vars are bound at agent host **spawn time**. Changing a setting while the agent host is already running has no effect until the host respawns — restart VS Code or reload the window if you change these settings mid-session.
 
@@ -198,12 +198,12 @@ src/vs/platform/otel/
 
 | Setting | Env var |
 |---|---|
-| `chat.agentHost.otel.enabled` | `COPILOT_OTEL_ENABLED` |
-| `chat.agentHost.otel.exporterType` | `COPILOT_OTEL_EXPORTER_TYPE` |
-| `chat.agentHost.otel.otlpEndpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` (`COPILOT_OTEL_ENDPOINT` is also accepted when the standard variable is unset) |
+| `chat.agentHost.otel.enabled` | `DARDCOR_OTEL_ENABLED` |
+| `chat.agentHost.otel.exporterType` | `DARDCOR_OTEL_EXPORTER_TYPE` |
+| `chat.agentHost.otel.otlpEndpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` (`DARDCOR_OTEL_ENDPOINT` is also accepted when the standard variable is unset) |
 | `chat.agentHost.otel.captureContent` | `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` |
-| `chat.agentHost.otel.outfile` | `COPILOT_OTEL_FILE_EXPORTER_PATH` |
-| `chat.agentHost.otel.dbSpanExporter.enabled` | `COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED` |
+| `chat.agentHost.otel.outfile` | `DARDCOR_OTEL_FILE_EXPORTER_PATH` |
+| `chat.agentHost.otel.dbSpanExporter.enabled` | `DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED` |
 
 `OTEL_EXPORTER_OTLP_HEADERS` flows via env inheritance only. `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_SERVICE_NAME`, and `OTEL_RESOURCE_ATTRIBUTES` are not translated from the local `chat.agentHost.otel.*` settings, but **enterprise managed settings (policy)** can set them on the spawned host: the renderer forwards the resolved policy to the starter, and managed values win over inherited env.
 

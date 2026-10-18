@@ -19,7 +19,7 @@
 }
 
 .monaco-workbench .simple-find-part {
-	visibility: hidden; /* Use visibility to maintain flex layout while hidden otherwise interferes with transition */
+	visibility: hidden;
 	z-index: 10;
 	position: relative;
 	top: -45px;

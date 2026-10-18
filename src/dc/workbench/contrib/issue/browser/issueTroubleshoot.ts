@@ -62,7 +62,7 @@ class TroubleShootState {
 			) {
 				return new TroubleShootState(data.stage, data.profile);
 			}
-		} catch { /* ignore */ }
+		} catch { }
 		return undefined;
 	}
 
@@ -267,7 +267,7 @@ class TroubleshootIssueService extends Disposable implements ITroubleshootIssueS
 			return undefined;
 		}
 
-		const opened = await this.openerService.open(URI.parse('https://aka.ms/vscode-insiders'));
+		const opened = await this.openerService.open(URI.parse('https://www.dardcor-code.web.id/updates/insiders'));
 		if (!opened) {
 			return undefined;
 		}

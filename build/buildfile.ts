@@ -41,8 +41,6 @@ export const keyboardMaps = [
 ];
 
 export const code = [
-	// 'dc/code/electron-main/main' is not included here because it comes in via ./src/main.js
-	// 'dc/code/node/cli' is not included here because it comes in via ./src/cli.js
 	createModuleDescription('dc/code/node/cliProcessMain'),
 	createModuleDescription('dc/code/electron-utility/sharedProcess/sharedProcessMain'),
 	createModuleDescription('dc/code/electron-browser/workbench/workbench'),
@@ -51,8 +49,6 @@ export const code = [
 export const codeWeb = createModuleDescription('dc/code/browser/workbench/workbench');
 
 export const codeServer = [
-	// 'dc/server/node/server.main' is not included here because it gets inlined via ./src/server-main.js
-	// 'dc/server/node/server.cli' is not included here because it gets inlined via ./src/server-cli.js
 	createModuleDescription('dc/workbench/api/node/extensionHostProcess'),
 	createModuleDescription('dc/platform/files/node/watcher/watcherMain'),
 	createModuleDescription('dc/platform/terminal/node/ptyHostMain'),

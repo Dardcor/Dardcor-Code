@@ -48,9 +48,6 @@ function commitTestState(
 	sessionStateService.setFolderInfoForSession(sessionId, TEST_FOLDER_INFO);
 }
 
-/**
- * Creates a mock SDK service that emits a configurable sequence of messages.
- */
 function createToolCallSdkService(messageFactory: (sessionId: string) => AsyncGenerator<SDKAssistantMessage | SDKUserMessageType | SDKResultMessage, void, unknown>): IClaudeCodeSdkService {
 	return {
 		_serviceBrand: undefined,
@@ -87,7 +84,6 @@ function createOTelService() {
 	return { otelService, spans };
 }
 
-/** Creates a typed assistant message with tool_use content blocks */
 function makeAssistantMessage(sessionId: string, content: Anthropic.Beta.Messages.BetaContentBlock[]): SDKAssistantMessage {
 	return {
 		type: 'assistant',
@@ -107,7 +103,6 @@ function makeAssistantMessage(sessionId: string, content: Anthropic.Beta.Message
 	} as SDKAssistantMessage;
 }
 
-/** Creates a typed user message with tool_result content blocks */
 function makeUserMessage(sessionId: string, content: Anthropic.Messages.ToolResultBlockParam[]): SDKUserMessageType {
 	return {
 		type: 'user',
@@ -120,10 +115,7 @@ function makeUserMessage(sessionId: string, content: Anthropic.Messages.ToolResu
 	} as SDKUserMessageType;
 }
 
-/** Creates a standard result message to end a turn */
 function makeResultMessage(sessionId: string): SDKResultMessage {
-	// SDKResultMessage requires deep NonNullableUsage fields that are irrelevant
-	// to OTel tests. Use the repo-standard pattern of as unknown as SDKResultMessage.
 	return {
 		type: 'result',
 		subtype: 'error_max_turns',
@@ -186,14 +178,13 @@ describe('Claude Session OTel Tool Spans', () => {
 
 		await session.invoke(createMockChatRequest('read file'), stream, undefined, CancellationToken.None);
 
-		// Should have a user_message span + an execute_tool span
 		const toolSpan = spans.find(s => s.name === 'execute_tool Read');
 		expect(toolSpan).toBeDefined();
 		expect(toolSpan!.attributes['gen_ai.operation.name']).toBe('execute_tool');
 		expect(toolSpan!.attributes['gen_ai.tool.name']).toBe('Read');
 		expect(toolSpan!.attributes['gen_ai.tool.call.id']).toBe('tu-1');
 		expect(toolSpan!.attributes['dardcor_chat.chat_session_id']).toBe(sessionId);
-		expect(toolSpan!.status.code).toBe(1); // SpanStatusCode.OK
+		expect(toolSpan!.status.code).toBe(1);
 		expect(toolSpan!.attributes['gen_ai.tool.call.arguments']).toContain('file_path');
 		expect(toolSpan!.attributes['gen_ai.tool.call.result']).toContain('file contents here');
 	});
@@ -231,7 +222,7 @@ describe('Claude Session OTel Tool Spans', () => {
 
 		const toolSpan = spans.find(s => s.name === 'execute_tool Write');
 		expect(toolSpan).toBeDefined();
-		expect(toolSpan!.status.code).toBe(2); // SpanStatusCode.ERROR
+		expect(toolSpan!.status.code).toBe(2);
 		expect(toolSpan!.status.message).toContain('Permission denied');
 		expect(toolSpan!.attributes['gen_ai.tool.call.result']).toContain('ERROR');
 	});
@@ -239,13 +230,11 @@ describe('Claude Session OTel Tool Spans', () => {
 	it('correctly correlates multiple concurrent tool calls', async () => {
 		const sessionId = 'otel-test-3';
 		const sdkService = createToolCallSdkService(sid => (async function* () {
-			// Assistant emits two tool_use blocks in one message
 			yield makeAssistantMessage(sid, [
 				{ type: 'tool_use', id: 'tu-a', name: 'Read', input: { file_path: '/a.ts' } },
 				{ type: 'tool_use', id: 'tu-b', name: 'Glob', input: { pattern: '*.ts' } },
 			]);
 
-			// Results come in reverse order
 			yield makeUserMessage(sid, [
 				{ type: 'tool_result', tool_use_id: 'tu-b', content: 'glob result' },
 				{ type: 'tool_result', tool_use_id: 'tu-a', content: 'read result' },
@@ -277,8 +266,8 @@ describe('Claude Session OTel Tool Spans', () => {
 		expect(globSpan).toBeDefined();
 		expect(readSpan!.attributes['gen_ai.tool.call.result']).toContain('read result');
 		expect(globSpan!.attributes['gen_ai.tool.call.result']).toContain('glob result');
-		expect(readSpan!.status.code).toBe(1); // OK
-		expect(globSpan!.status.code).toBe(1); // OK
+		expect(readSpan!.status.code).toBe(1);
+		expect(globSpan!.status.code).toBe(1);
 	});
 
 	it('emits user_message span for user prompts', async () => {

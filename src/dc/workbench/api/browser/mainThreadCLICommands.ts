@@ -25,7 +25,6 @@ import { IExtensionManagementServerService } from '../../services/extensionManag
 import { IExtensionManifestPropertiesService } from '../../services/extensions/common/extensionManifestPropertiesService.js';
 
 
-// this class contains the commands that the CLI server is reying on
 
 CommandsRegistry.registerCommand('_remoteCLI.openExternal', function (accessor: ServicesAccessor, uri: UriComponents | string): Promise<boolean> {
 	const openerService = accessor.get(IOpenerService);
@@ -121,7 +120,6 @@ class RemoteExtensionManagementCLI extends ExtensionManagementCLI {
 
 	protected override validateExtensionKind(manifest: IExtensionManifest): boolean {
 		if (!this._extensionManifestPropertiesService.canExecuteOnWorkspace(manifest)
-			// Web extensions installed on remote can be run in web worker extension host
 			&& !(isWeb && this._extensionManifestPropertiesService.canExecuteOnWeb(manifest))) {
 			this.logger.info(localize('cannot be installed', "Cannot install the '{0}' extension because it is declared to not run in this setup.", getExtensionId(manifest.publisher, manifest.name)));
 			return false;

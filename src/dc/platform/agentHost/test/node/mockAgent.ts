@@ -19,14 +19,9 @@ import { ActionType, type AuthRequiredParams } from '../../common/state/sessionA
 import { ResponsePartKind, ToolCallConfirmationReason, ToolCallStatus, ToolResultContentType, CustomizationLoadStatus, buildDefaultChatUri, createErrorResponsePart, isAhpChatChannel, isDefaultChatUri, parseChatUri, parseSubagentSessionUri, type ClientPluginCustomization, type Customization, type PendingMessage, type StringOrMarkdown, type ToolCallResult, type Turn, type UsageInfo } from '../../common/state/sessionState.js';
 import { hasKey } from '../../../../base/common/types.js';
 
-/** Well-known auto-generated title used by the 'with-title' prompt. */
 export const MOCK_AUTO_TITLE = 'Automatically generated title';
 
 function uriKey(session: URI): string {
-	// Build a stable key from raw URI fields without invoking `toString()`,
-	// which would mutate the URI's `_formatted` cache and break
-	// `assert.deepStrictEqual` comparisons in tests that capture the URI
-	// before it is observed elsewhere.
 	return `${session.scheme}://${session.authority}${session.path}${session.query ? '?' + session.query : ''}${session.fragment ? '#' + session.fragment : ''}`;
 }
 
@@ -47,10 +42,6 @@ interface IMockSendMessageCall {
 	readonly clientType?: AgentHostClientType;
 }
 
-/**
- * General-purpose mock agent for unit tests. Tracks all method calls
- * for assertion and exposes {@link fireProgress} to inject progress events.
- */
 export class MockAgent implements IAgent {
 	private readonly _discoveredChatsEmitter = new Emitter<readonly IAgentDiscoveredChat[]>();
 	readonly onDidDiscoverChats = this._discoveredChatsEmitter.event;
@@ -73,7 +64,6 @@ export class MockAgent implements IAgent {
 
 	private readonly _sessions = new Map<string, URI>();
 	private readonly _initialChats = new Set<string>();
-	/** Active turn IDs per session, captured from sendMessage(). */
 	private readonly _activeTurnIds = new Map<string, string>();
 
 
@@ -90,20 +80,11 @@ export class MockAgent implements IAgent {
 	readonly setClientToolsCalls: { clientId: string; tools: readonly ToolDefinition[] }[] = [];
 	readonly removeActiveClientCalls: { chat: URI; clientId: string }[] = [];
 	readonly modelCallTurnCorrelationCalls: { chat: URI; modelCallId: string; turnId: string }[] = [];
-	/**
-	 * Every host-supplied {@link IAgentChatContext} this agent was handed,
-	 * keyed by the boundary it arrived at. Lets shared tests assert that Agent
-	 * Host stamps the exhaustive `kind` / `origin` / `customizations` seam on
-	 * every addressed chat operation.
-	 */
 	readonly chatContexts: { boundary: string; chat: URI; context: IAgentChatContext | URI | undefined }[] = [];
-	/** Active-client fan-out recorded exactly as Agent Host supplied it. */
 	readonly activeClientCalls: { chat: URI; context: URI | IAgentChatContext; clientId: string; hostCustomizations: readonly Customization[] | undefined }[] = [];
-	/** Host customizations handed to {@link getChatCustomizations}. */
 	readonly sessionCustomizationsCalls: { session: URI; hostCustomizations: readonly Customization[] | undefined }[] = [];
 	readonly clientToolCallCompleteCalls: { chat: URI; toolCallId: string; result: ToolCallResult; context?: IAgentChatContext }[] = [];
 	readonly truncateChatCalls: { chat: URI; turnId: string | undefined; context: URI | IAgentChatContext | undefined }[] = [];
-	/** Configurable return value for getCustomizations. */
 	customizations: Customization[] = [];
 	private readonly _onDidCustomizationsChange = new Emitter<void>();
 	readonly onDidCustomizationsChange = this._onDidCustomizationsChange.event;
@@ -114,18 +95,10 @@ export class MockAgent implements IAgent {
 		return this.getSessionCustomizations?.(configurationResource, hostCustomizations) ?? this.customizations;
 	};
 
-	/**
-	 * Configurable session history. Tests construct {@link IHistoryRecord}
-	 * entries (the agent-internal intermediate shape) and the mock converts
-	 * them to {@link Turn}s on demand. Subagent URIs are routed to filtered
-	 * subagent turns via {@link buildSubagentTurnsFromHistory}.
-	 */
 	sessionMessages: IHistoryRecord[] = [];
-	/** Usage stamped onto every reconstructed turn (e.g. an Auto-model stub). */
 	turnUsageOverride: UsageInfo | undefined = undefined;
 	chatModel: ModelSelection | undefined;
 
-	/** Optional overrides applied to session metadata from listSessions. */
 	sessionMetadataOverrides: Partial<Omit<IAgentSessionMetadata, 'session'>> = {};
 
 	constructor(
@@ -195,18 +168,11 @@ export class MockAgent implements IAgent {
 			: undefined;
 	}
 
-	/** Optional override for the working directory returned by initializing createChat. */
 	resolvedWorkingDirectory: URI | undefined;
 
-	/**
-	 * When set, {@link sendMessage} rejects with this error after recording the
-	 * call — used to simulate a failed first-turn materialization (e.g. worktree
-	 * or branch setup throwing).
-	 */
 	sendMessageError: Error | undefined;
 	lastCreateSessionConfig: IAgentCreateSessionConfig | undefined;
 
-	/** Backing helper for an initializing {@link chats}.createChat call. */
 	private _createSessionRecord(session: URI, config: IAgentCreateSessionConfig | undefined): IAgentCreateChatResult {
 		this.lastCreateSessionConfig = config;
 		this._sessions.set(AgentSession.id(session), session);
@@ -266,10 +232,7 @@ export class MockAgent implements IAgent {
 		return turns;
 	}
 
-	/** Backing helper for {@link chats}.releaseChat: records a non-destructive release. */
 	private _releaseSessionRecord(session: URI): void {
-		// Non-destructive: record the call but keep the session in the catalog
-		// so a later restore/resume still finds its durable data.
 		this.releaseSessionCalls.push(session);
 	}
 
@@ -291,7 +254,6 @@ export class MockAgent implements IAgent {
 	}
 
 	respondToUserInputRequest(): void {
-		// no-op for tests
 	}
 
 	async changeModel(session: URI, model: ModelSelection, chat?: URI): Promise<void> {
@@ -302,21 +264,12 @@ export class MockAgent implements IAgent {
 		this.changeAgentCalls.push({ session, agent, chat });
 	}
 
-	/**
-	 * Create an additional (peer) chat. The base mock is single-chat and
-	 * rejects; multi-chat test subclasses override this.
-	 */
 	async createChat(_session: URI, _chat: URI, _options?: IAgentCreateChatOptions): Promise<IAgentCreateChatResult | void> {
 		throw new Error(`Agent ${this.id} does not support multiple chats`);
 	}
 
-	/** Dispose an additional (peer) chat. Overridden by multi-chat subclasses. */
 	async disposeChat(_session: URI, _chat: URI): Promise<void> { }
 
-	/**
-	 * Map an already-resolved chat URI to the `(session, chat)` pair the
-	 * mock records calls against (mirroring the real agents).
-	 */
 	private _resolveChatTarget(chat: URI, context?: URI | IAgentChatContext): { session: URI; chat: URI } {
 		if (context) {
 			return { session: resolveAgentChatContext(context, chat).configurationResource, chat };
@@ -328,7 +281,6 @@ export class MockAgent implements IAgent {
 		return { session: URI.parse(parsed.session), chat: URI.parse(chat.toString()) };
 	}
 
-	/** Records a host-supplied chat context for later assertion. */
 	private _recordContext(boundary: string, chat: URI, context: URI | IAgentChatContext | undefined): void {
 		this.chatContexts.push({ boundary, chat, context });
 	}
@@ -362,9 +314,6 @@ export class MockAgent implements IAgent {
 			});
 		},
 		releaseChat: (chatUri: URI, context: URI | IAgentChatContext): Promise<void> => {
-			// Unlike dispose, release has no separate session-level finalize
-			// hook: every addressed chat (default or peer) maps directly to
-			// this mock's session-level release bookkeeping.
 			this._recordContext('releaseChat', chatUri, context);
 			const { session } = this._resolveChatTarget(chatUri, context);
 			this._releaseSessionRecord(session);
@@ -460,19 +409,10 @@ export class MockAgent implements IAgent {
 
 	async shutdown(): Promise<void> { }
 
-	/**
-	 * Fires an {@link AgentSignal} on this agent.
-	 */
 	fireProgress(signal: AgentSignal): void {
 		this._onDidChatProgress.fire(signal);
 	}
 
-	/**
-	 * Looks up the active turn id captured from the most recent
-	 * {@link sendMessage} call for a given session. Returns `undefined` if
-	 * the session has no active turn yet (e.g. tests that fire progress
-	 * without first calling sendMessage).
-	 */
 	getActiveTurnId(session: URI): string | undefined {
 		return this._activeTurnIds.get(uriKey(session));
 	}
@@ -489,13 +429,6 @@ export class MockAgent implements IAgent {
 	}
 }
 
-/**
- * Well-known URI of a pre-existing session seeded in {@link ScriptedMockAgent}.
- * This session appears in `listSessions()` and has message history via
- * `getSessionMessages()`, but was never created through the server's
- * `handleCreateSession`. It simulates a session from a previous server
- * lifetime for testing the restore-on-subscribe path.
- */
 export const PRE_EXISTING_SESSION_URI = AgentSession.uri('mock', 'pre-existing-session');
 
 export class ScriptedMockAgent implements IAgent {
@@ -514,10 +447,6 @@ export class ScriptedMockAgent implements IAgent {
 
 	private readonly _sessions = new Map<string, URI>();
 
-	/**
-	 * Message history for the pre-existing session: a single user→assistant
-	 * turn with a tool call.
-	 */
 	private readonly _preExistingMessages: IHistoryRecord[] = [
 		{ type: 'message', role: 'user', session: PRE_EXISTING_SESSION_URI, messageId: 'h-msg-1', content: 'What files are here?' },
 		{ type: 'tool_start', session: PRE_EXISTING_SESSION_URI, toolCallId: 'h-tc-1', toolName: 'list_files', displayName: 'List Files', invocationMessage: 'Listing files...' },
@@ -525,15 +454,11 @@ export class ScriptedMockAgent implements IAgent {
 		{ type: 'message', role: 'assistant', session: PRE_EXISTING_SESSION_URI, messageId: 'h-msg-2', content: 'Here are the files: file1.ts and file2.ts' },
 	];
 
-	// Track pending permission requests
 	private readonly _pendingPermissions = new Map<string, (approved: boolean) => void>();
-	// Track the active turn ID per session, captured from sendMessage().
 	private readonly _activeTurnIds = new Map<string, string>();
-	// Track pending abort callbacks for slow responses
 	private readonly _pendingAborts = new Map<string, () => void>();
 
 	constructor() {
-		// Seed the pre-existing session so it appears in listSessions()
 		this._sessions.set(AgentSession.id(PRE_EXISTING_SESSION_URI), PRE_EXISTING_SESSION_URI);
 		queueMicrotask(() => {
 			void this.listExternalChats().then(chats => {
@@ -543,9 +468,6 @@ export class ScriptedMockAgent implements IAgent {
 			}, () => { });
 		});
 
-		// Allow integration tests to seed additional pre-existing sessions across
-		// server restarts via env var. The value is a comma-separated list of
-		// session URIs (e.g. `mock://pre-1,mock://pre-2`).
 		const seeded = process.env['VSCODE_AGENT_HOST_MOCK_SEED_SESSIONS'];
 		if (seeded) {
 			for (const raw of seeded.split(',')) {
@@ -705,7 +627,6 @@ export class ScriptedMockAgent implements IAgent {
 				break;
 
 			case 'permission': {
-				// Fire tool_start to create the tool, then pending_confirmation to request confirmation
 				(async () => {
 					await timeout(10);
 					for (const s of _toolStart(chat, sessionStr, tid, 'tc-perm-1', 'shell', 'Shell', 'Run a test command')) {
@@ -726,7 +647,6 @@ export class ScriptedMockAgent implements IAgent {
 			}
 
 			case 'write-file': {
-				// Fire tool_start + pending_confirmation with write permission for a regular file (should be auto-approved)
 				(async () => {
 					await timeout(10);
 					for (const s of _toolStart(chat, sessionStr, tid, 'tc-write-1', 'create', 'Create File', 'Create file')) {
@@ -734,7 +654,6 @@ export class ScriptedMockAgent implements IAgent {
 					}
 					await timeout(5);
 					this._onDidChatProgress.fire(_pendingConfirmation(chat, 'tc-write-1', 'Write src/app.ts', { permissionKind: 'write', permissionPath: mockWorkspacePath('src/app.ts') }));
-					// Auto-approved writes resolve immediately — complete the tool and turn
 					await timeout(10);
 					this._fireSequence([
 						_toolComplete(chat, sessionStr, tid, 'tc-write-1', { pastTenseMessage: 'Wrote file', content: [{ type: ToolResultContentType.Text, text: 'ok' }], success: true }),
@@ -745,7 +664,6 @@ export class ScriptedMockAgent implements IAgent {
 			}
 
 			case 'write-env': {
-				// Fire tool_start + pending_confirmation with write permission for .env (should be blocked)
 				(async () => {
 					await timeout(10);
 					for (const s of _toolStart(chat, sessionStr, tid, 'tc-write-env-1', 'create', 'Create File', 'Create file')) {
@@ -766,7 +684,6 @@ export class ScriptedMockAgent implements IAgent {
 			}
 
 			case 'run-safe-command': {
-				// Fire tool_start + pending_confirmation with shell permission for an allowed command (should be auto-approved)
 				(async () => {
 					await timeout(10);
 					for (const s of _toolStart(chat, sessionStr, tid, 'tc-shell-1', 'bash', 'Run Command', 'Run command')) {
@@ -774,7 +691,6 @@ export class ScriptedMockAgent implements IAgent {
 					}
 					await timeout(5);
 					this._onDidChatProgress.fire(_pendingConfirmation(chat, 'tc-shell-1', 'ls -la', { permissionKind: 'shell', toolInput: 'ls -la' }));
-					// Auto-approved shell commands resolve immediately
 					await timeout(10);
 					this._fireSequence([
 						_toolComplete(chat, sessionStr, tid, 'tc-shell-1', { pastTenseMessage: 'Ran command', content: [{ type: ToolResultContentType.Text, text: 'file1.ts\nfile2.ts' }], success: true }),
@@ -785,7 +701,6 @@ export class ScriptedMockAgent implements IAgent {
 			}
 
 			case 'run-dangerous-command': {
-				// Fire tool_start + pending_confirmation with shell permission for a denied command (should require confirmation)
 				(async () => {
 					await timeout(10);
 					for (const s of _toolStart(chat, sessionStr, tid, 'tc-shell-deny-1', 'bash', 'Run Command', 'Run command')) {
@@ -806,21 +721,6 @@ export class ScriptedMockAgent implements IAgent {
 			}
 
 			case 'orphan-confirmation': {
-				// Regression scenario for a `pending_confirmation` that
-				// arrives without an active protocol turn (the session would
-				// otherwise hang forever). Reproduces a hook-triggered
-				// continuation that runs *after* the protocol turn has
-				// already completed:
-				//   1. A tool runs and the turn completes — the state manager
-				//      no longer has an active turn.
-				//   2. The continuation dispatches a new tool with an empty
-				//      turnId and emits `pending_confirmation` while there is
-				//      no active turn.
-				// The read targets a path inside the working directory, so the
-				// host auto-approves it and calls `respondToPermissionRequest`,
-				// which resolves the callback below and lets the session
-				// continue. Without the fix the signal is dropped, the callback
-				// never fires, and the session hangs.
 				(async () => {
 					await timeout(10);
 					for (const s of _toolStart(chat, sessionStr, tid, 'tc-orphan-initial', 'bash', 'Run Command', 'Run command')) {
@@ -829,12 +729,8 @@ export class ScriptedMockAgent implements IAgent {
 					await timeout(5);
 					this._onDidChatProgress.fire(_toolComplete(chat, sessionStr, tid, 'tc-orphan-initial', { pastTenseMessage: 'Ran command', content: [{ type: ToolResultContentType.Text, text: 'ok' }], success: true }));
 					await timeout(5);
-					// Complete the turn — the state manager clears the active turn.
 					this._onDidChatProgress.fire(_idle(chat, sessionStr, tid));
 
-					// Hook-triggered continuation: a new tool starts with an
-					// empty turnId and `pending_confirmation` arrives while
-					// there is no active turn.
 					await timeout(10);
 					for (const s of _toolStart(chat, sessionStr, '', 'tc-orphan', 'view', 'Read', 'Read file')) {
 						this._onDidChatProgress.fire(s);
@@ -891,7 +787,6 @@ export class ScriptedMockAgent implements IAgent {
 				break;
 
 			case 'slow': {
-				// Slow response for cancel testing — fires delta after a long delay
 				const timer = setTimeout(() => {
 					const ctx = this._ctx(chat);
 					this._fireSequence([
@@ -904,13 +799,8 @@ export class ScriptedMockAgent implements IAgent {
 			}
 
 			case 'client-tool': {
-				// Fires tool_start with toolClientId followed by pending_confirmation
-				// (without confirmationTitle) to simulate a client-provided tool
-				// that is ready for execution. The real SDK handler fires
-				// tool_ready once its deferred is in place.
 				(async () => {
 					await timeout(10);
-					// Client tools don't get auto-ready — toolStart with toolClientId only emits tool_start
 					this._onDidChatProgress.fire(_action(chat, {
 						type: ActionType.ChatToolCallStart,
 						turnId: tid,
@@ -922,8 +812,6 @@ export class ScriptedMockAgent implements IAgent {
 					await timeout(5);
 					this._onDidChatProgress.fire(_pendingConfirmation(chat, 'tc-client-1', 'Running tests...', { toolInput: '{}' }));
 				})();
-				// The tool stays pending — the client is responsible for dispatching toolCallComplete.
-				// Once complete, fire a response delta and idle.
 				this._pendingPermissions.set('tc-client-1', () => {
 					this._fireSequence([
 						_markdown(chat, sessionStr, tid, 'Client tool done.'),
@@ -934,7 +822,6 @@ export class ScriptedMockAgent implements IAgent {
 			}
 
 			case 'client-tool-with-permission': {
-				// Fires tool_start with toolClientId followed by a permission request.
 				(async () => {
 					await timeout(10);
 					this._onDidChatProgress.fire(_action(chat, {
@@ -961,10 +848,6 @@ export class ScriptedMockAgent implements IAgent {
 			}
 
 			case 'subagent': {
-				// Spawns a subagent: parent `task` tool starts (emits start +
-				// auto-ready as a pair), then `subagent_started` creates the
-				// child session, then an inner tool runs in the child session
-				// (routed via `parentToolCallId`).
 				this._fireSequence([
 					..._toolStart(chat, sessionStr, tid, 'tc-task-1', 'task', 'Task', 'Spawning subagent', { toolKind: 'subagent', subagentAgentName: 'explore', subagentDescription: 'Explore' }),
 					{ kind: 'subagent_started', chat, toolCallId: 'tc-task-1', agentName: 'explore', agentDisplayName: 'Explore', agentDescription: 'Exploration helper' },
@@ -980,9 +863,6 @@ export class ScriptedMockAgent implements IAgent {
 
 			default:
 				if (prompt.startsWith('terminal-edit:')) {
-					// Test prompt: simulate a terminal command that edits a file on disk
-					// without emitting any ToolResultFileEditContent. The test relies on the
-					// git-driven diff path to pick this up. Format: `terminal-edit:<absPath>`.
 					const filePath = prompt.slice('terminal-edit:'.length);
 					void (async () => {
 						for (const s of _toolStart(chat, sessionStr, tid, 'tc-term-edit-1', 'bash', 'Run Command', 'Edit file via shell')) {
@@ -995,8 +875,6 @@ export class ScriptedMockAgent implements IAgent {
 							_idle(chat, sessionStr, tid),
 						]);
 					})().catch(err => {
-						// Surface failures deterministically — an unhandled rejection
-						// would make the test suite flaky.
 						this._fireSequence([
 							_markdown(chat, sessionStr, tid, 'terminal-edit failed: ' + (err instanceof Error ? err.message : String(err))),
 							_idle(chat, sessionStr, tid),
@@ -1013,7 +891,6 @@ export class ScriptedMockAgent implements IAgent {
 	}
 
 	setPendingMessages(chat: URI, steeringMessage: PendingMessage | undefined, _queuedMessages: readonly PendingMessage[]): void {
-		// When steering is set, consume it on the next tick
 		if (steeringMessage) {
 			timeout(20).then(() => {
 				this._onDidChatProgress.fire({ kind: 'steering_consumed', chat: isAhpChatChannel(chat.toString()) ? chat : URI.parse(buildDefaultChatUri(chat)), id: steeringMessage.id });
@@ -1039,16 +916,11 @@ export class ScriptedMockAgent implements IAgent {
 	private didCompleteToolCalls = new Set<string>();
 
 	onClientToolCallComplete(chat: URI, toolCallId: string, result: ToolCallResult): void {
-		// The mock's event model is chat-channel oriented (sendMessage fires
-		// every turn signal on the chat URI). Emit the completion on the chat
-		// channel the tool was started on so the parked turn callback — which
-		// captured that same chat URI — resolves on the right channel.
 		const key = `${chat.toString()}:${toolCallId}`;
 		if (this.didCompleteToolCalls.has(key)) {
 			return;
 		}
 		this.didCompleteToolCalls.add(key);
-		// Fire tool_complete action signal and resolve any pending callback.
 		const { sessionStr, turnId } = this._ctx(chat);
 		this._onDidChatProgress.fire(_toolComplete(chat, sessionStr, turnId, toolCallId, result));
 		const callback = this._pendingPermissions.get(toolCallId);
@@ -1063,8 +935,6 @@ export class ScriptedMockAgent implements IAgent {
 		if (subagentInfo) {
 			return buildSubagentTurnsFromHistory(this._preExistingMessages, subagentInfo.toolCallId, session.toString());
 		}
-		// Restore addresses the default chat by its channel URI; normalize it
-		// back to the session URI (mirroring the real agents' getSessionMessages).
 		const parsed = parseChatUri(session);
 		const normalized = parsed && isDefaultChatUri(session) ? URI.parse(parsed.session) : session;
 		if (normalized.toString() === PRE_EXISTING_SESSION_URI.toString()) {
@@ -1082,13 +952,8 @@ export class ScriptedMockAgent implements IAgent {
 	}
 
 	async changeModel(_session: URI, _model: ModelSelection): Promise<void> {
-		// Mock agent doesn't track model state
 	}
 
-	/**
-	 * Map an already-resolved chat URI to the `(session, chat)` pair the
-	 * scripted mock's per-chat context is keyed by.
-	 */
 	private _resolveChatTarget(chat: URI, context?: URI | IAgentChatContext): { session: URI; chat: URI } {
 		if (context) {
 			return { session: resolveAgentChatContext(context, chat).configurationResource, chat };
@@ -1130,7 +995,6 @@ export class ScriptedMockAgent implements IAgent {
 			return this.changeModel(session, model);
 		},
 		changeAgent: (chat: URI, _agent: AgentSelection | undefined, context: URI | IAgentChatContext): Promise<void> => {
-			// Scripted mock does not track agent selection.
 			resolveAgentChatContext(context, chat);
 			return Promise.resolve();
 		},
@@ -1150,7 +1014,6 @@ export class ScriptedMockAgent implements IAgent {
 	}
 
 	async truncateChat(_chat: URI, _turnId?: string, _context?: URI | IAgentChatContext): Promise<void> {
-		// Mock agent accepts truncation without side effects
 	}
 
 	respondToPermissionRequest(toolCallId: string, approved: boolean): void {
@@ -1162,7 +1025,6 @@ export class ScriptedMockAgent implements IAgent {
 	}
 
 	respondToUserInputRequest(): void {
-		// no-op for tests
 	}
 
 	async authenticate(_resource: string, _token: string): Promise<boolean> {
@@ -1176,10 +1038,6 @@ export class ScriptedMockAgent implements IAgent {
 		this._onDidChatProgress.dispose();
 	}
 
-	/**
-	 * Fires a sequence of {@link AgentSignal}s with staggered 10 ms delays
-	 * so the state manager processes them in order.
-	 */
 	private _fireSequence(signals: AgentSignal[]): void {
 		let delay = 0;
 		for (const signal of signals) {
@@ -1188,7 +1046,6 @@ export class ScriptedMockAgent implements IAgent {
 		}
 	}
 
-	/** Builds the session-string + turnId context for signal construction. */
 	private _ctx(session: URI): { sessionStr: string; turnId: string } {
 		return {
 			sessionStr: session.toString(),
@@ -1197,22 +1054,14 @@ export class ScriptedMockAgent implements IAgent {
 	}
 }
 
-// =============================================================================
-// Test-event helpers
-// =============================================================================
 
-// =============================================================================
-// Signal factory helpers
-// =============================================================================
 
 let _mockPartIdCounter = 0;
 
-/** Wraps a session action into an {@link IAgentActionSignal}. */
 function _action(session: URI, action: import('../../common/state/sessionActions.js').SessionAction | import('../../common/state/sessionActions.js').ChatAction, parentToolCallId?: string): IAgentActionSignal {
 	return { kind: 'action', resource: session, action, parentToolCallId };
 }
 
-/** Creates a markdown {@link ResponsePartKind.Markdown} response part signal. */
 function _markdown(session: URI, sessionStr: string, turnId: string, content: string, parentToolCallId?: string): IAgentActionSignal {
 	return _action(session, {
 		type: ActionType.ChatResponsePart,
@@ -1221,7 +1070,6 @@ function _markdown(session: URI, sessionStr: string, turnId: string, content: st
 	}, parentToolCallId);
 }
 
-/** Creates a reasoning {@link ResponsePartKind.Reasoning} response part signal. */
 function _reasoning(session: URI, sessionStr: string, turnId: string, content: string): IAgentActionSignal {
 	return _action(session, {
 		type: ActionType.ChatResponsePart,
@@ -1230,30 +1078,22 @@ function _reasoning(session: URI, sessionStr: string, turnId: string, content: s
 	});
 }
 
-/** Creates a {@link ActionType.ChatTurnComplete} signal. */
 function _idle(session: URI, sessionStr: string, turnId: string): IAgentActionSignal {
 	return _action(session, { type: ActionType.ChatTurnComplete, turnId, duration: 1 });
 }
 
-/** Creates a {@link ActionType.ChatError} signal. */
 function _error(session: URI, sessionStr: string, turnId: string, errorType: string, message: string, stack?: string): IAgentActionSignal {
 	return _action(session, { type: ActionType.ChatError, turnId, duration: 1, part: createErrorResponsePart({ errorType, message, stack }) });
 }
 
-/** Creates a {@link ActionType.SessionTitleChanged} signal. */
 function _titleChanged(session: URI, sessionStr: string, title: string): IAgentActionSignal {
 	return _action(session, { type: ActionType.SessionTitleChanged, title });
 }
 
-/** Creates a {@link ActionType.ChatUsage} signal. */
 function _usage(session: URI, sessionStr: string, turnId: string, usage: UsageInfo): IAgentActionSignal {
 	return _action(session, { type: ActionType.ChatUsage, turnId, usage });
 }
 
-/**
- * Creates tool-start signals: a {@link ActionType.ChatToolCallStart} and,
- * for non-client tools, an auto-ready {@link ActionType.ChatToolCallReady}.
- */
 function _toolStart(session: URI, sessionStr: string, turnId: string, toolCallId: string, toolName: string, displayName: string, invocationMessage: StringOrMarkdown, opts?: {
 	toolInput?: string;
 	toolKind?: string;
@@ -1294,12 +1134,10 @@ function _toolStart(session: URI, sessionStr: string, turnId: string, toolCallId
 	return signals;
 }
 
-/** Creates a {@link ActionType.ChatToolCallComplete} signal. */
 function _toolComplete(session: URI, sessionStr: string, turnId: string, toolCallId: string, result: ToolCallResult, parentToolCallId?: string): IAgentActionSignal {
 	return _action(session, { type: ActionType.ChatToolCallComplete, turnId, toolCallId, result }, parentToolCallId);
 }
 
-/** Creates a {@link IAgentToolPendingConfirmationSignal}. */
 function _pendingConfirmation(session: URI, toolCallId: string, invocationMessage: StringOrMarkdown, opts?: {
 	toolInput?: string;
 	confirmationTitle?: StringOrMarkdown;

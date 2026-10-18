@@ -35,9 +35,6 @@ export interface IChatMLFetcher {
 
 	fetchOne(options: IFetchMLOptions, token: CancellationToken): Promise<ChatResponse>;
 
-	/**
-	 * Note: the returned array of strings may be less than `n` (e.g., in case there were errors during streaming)
-	 */
 	fetchMany(options: IFetchMLOptions, token: CancellationToken): Promise<ChatResponses>;
 }
 
@@ -50,7 +47,6 @@ export class FetchStreamSource {
 	private _stream = new AsyncIterableSource<IResponsePart>();
 	private _paused?: (IResponsePartWithText | undefined)[];
 
-	// This means that we will only show one instance of each annotation type, but the IDs are not correct and there is no other way
 	private _seenAnnotationTypes = new Set<string>();
 
 	public get stream(): AsyncIterableObject<IResponsePart> {
@@ -86,10 +82,9 @@ export class FetchStreamSource {
 		}
 
 		if (delta.codeVulnAnnotations) {
-			// We can only display vulnerabilities inside codeblocks, and it's ok to discard annotations that fell outside of them
 			const numTripleBackticks = text.match(/(^|\n)```/g)?.length ?? 0;
 			const insideCodeblock = numTripleBackticks % 2 === 1;
-			if (!insideCodeblock || text.match(/(^|\n)```\w*\s*$/)) { // Not inside a codeblock, or right on the start triple-backtick of a codeblock
+			if (!insideCodeblock || text.match(/(^|\n)```\w*\s*$/)) {
 				delta.codeVulnAnnotations = undefined;
 			}
 		}
@@ -120,7 +115,6 @@ export class FetchStreamRecorder {
 	public readonly callback: FinishedCallback;
 	public readonly deltas: IResponseDelta[] = [];
 
-	// TTFTe
 	private _firstTokenEmittedTime: number | undefined;
 	public get firstTokenEmittedTime(): number | undefined {
 		return this._firstTokenEmittedTime;
@@ -128,7 +122,6 @@ export class FetchStreamRecorder {
 
 	private _lastOutputChunkTime: number | undefined;
 	private readonly _outputChunkGapsMs: number[] = [];
-	/** Inter-chunk arrival gaps (ms) between consecutive content-bearing output chunks, used for the GenAI `time_per_output_chunk` metric. */
 	public get outputChunkGapsMs(): readonly number[] {
 		return this._outputChunkGapsMs;
 	}

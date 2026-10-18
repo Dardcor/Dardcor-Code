@@ -57,11 +57,9 @@ export class NewWorkspaceInitializer extends Disposable {
 		const entries = await this.fileSystemService.readDirectory(workspace[0]);
 		const isEffectivelyEmpty = entries.every(([name]) => name === '.git');
 		if (!isEffectivelyEmpty) {
-			// workspace is not empty and we've already initialized it
 			newWorkspaceContextsList.splice(exactIndex, 1);
 			this._extensionContext.globalState.update(NEW_WORKSPACE_STORAGE_KEY, newWorkspaceContextsList);
 		} else {
-			// workspace is still empty, so ask to setup again
 			const result = await vscode.window.showInformationMessage(message, { modal: true, detail }, confirm);
 			if (result === confirm) {
 				vscode.commands.executeCommand('workbench.action.chat.open', { mode: 'agent', query: context.userPrompt });

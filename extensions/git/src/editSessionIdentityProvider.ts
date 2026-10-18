@@ -59,12 +59,10 @@ export class GitEditSessionIdentityProvider implements vscode.EditSessionIdentit
 			if (normalizedIdentity1.remote === normalizedIdentity2.remote &&
 				normalizedIdentity1.ref === normalizedIdentity2.ref &&
 				normalizedIdentity1.sha === normalizedIdentity2.sha) {
-				// This is a perfect match
 				return vscode.EditSessionIdentityMatch.Complete;
 			} else if (normalizedIdentity1.remote === normalizedIdentity2.remote &&
 				normalizedIdentity1.ref === normalizedIdentity2.ref &&
 				normalizedIdentity1.sha !== normalizedIdentity2.sha) {
-				// Same branch and remote but different SHA
 				return vscode.EditSessionIdentityMatch.Partial;
 			} else {
 				return vscode.EditSessionIdentityMatch.None;
@@ -89,7 +87,6 @@ export class GitEditSessionIdentityProvider implements vscode.EditSessionIdentit
 		await repository.status();
 
 		if (!repository.HEAD?.commit) {
-			// Handle publishing empty repository with no commits
 
 			const yes = vscode.l10n.t('Yes');
 			const selection = await vscode.window.showInformationMessage(
@@ -103,8 +100,6 @@ export class GitEditSessionIdentityProvider implements vscode.EditSessionIdentit
 			await repository.commit('Initial commit', { all: true });
 			await vscode.commands.executeCommand('git.publish');
 		} else if (!repository.HEAD?.upstream && repository.HEAD?.type === RefType.Head) {
-			// If this branch hasn't been published to the remote yet,
-			// ensure that it is published before Continue On is invoked
 
 			const publishBranch = vscode.l10n.t('Publish Branch');
 			const selection = await vscode.window.showInformationMessage(

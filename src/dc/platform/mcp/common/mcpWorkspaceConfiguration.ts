@@ -17,7 +17,6 @@ export const enum McpResourceFormat {
 export const WORKSPACE_ROOT_MCP_CONFIG_FILE = '.mcp.json';
 export const WORKSPACE_ROOT_MCP_COLLECTION_ID_PREFIX = 'workspace-dot-mcp.';
 
-/** Validates new root-file installs without silently dropping unsupported configuration. */
 export function getWorkspaceRootMcpConfigurationError(server: IInstallableMcpServer): string | undefined {
 	const unsupported = (property: string) => localize('unsupportedWorkspaceRootMcpProperty', "'{0}' is not supported in .mcp.json. Use .vscode/mcp.json.", property);
 	if (server.inputs !== undefined && (!Array.isArray(server.inputs) || server.inputs.length > 0)) {
@@ -81,7 +80,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
 	return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-/** Reads either root-file shape; malformed entries do not hide neighboring servers. */
 export function parseWorkspaceRootMcpConfiguration(content: string): { readonly wrapped: boolean; readonly servers: Record<string, IMcpServerConfiguration> } {
 	const errors: ParseError[] = [];
 	const value: unknown = parse(content, errors, { allowTrailingComma: true, allowEmptyContent: false });

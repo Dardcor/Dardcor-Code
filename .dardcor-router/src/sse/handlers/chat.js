@@ -25,11 +25,6 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
 
-/**
- * Handle chat completion request
- * Supports: OpenAI, Claude, Gemini, OpenAI Responses API formats
- * Format detection and translation handled by translator
- */
 export async function handleChat(request, clientRawRequest = null) {
   let body;
   try {
@@ -39,7 +34,6 @@ export async function handleChat(request, clientRawRequest = null) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
 
-  // Build clientRawRequest for logging (if not provided)
   if (!clientRawRequest) {
     const url = new URL(request.url);
     clientRawRequest = {
@@ -48,15 +42,10 @@ export async function handleChat(request, clientRawRequest = null) {
       headers: Object.fromEntries(request.headers.entries())
     };
   }
-  // Claude Code marks a 1M-context request as `<model>[1m]`; the marker matches
-  // no combo, alias or provider/model pair, so it must not reach resolution.
-  // The capability travels in the anthropic-beta header, forwarded as-is.
   const { model: modelStr, contextMarker } = stripModelContextMarker(body.model);
   if (contextMarker) body.model = modelStr;
 
-  // Request summary is emitted as the unified "▶" line in chatCore (has fmt/thinking/account)
 
-  // Log API key (masked)
   const authHeader = request.headers.get("Authorization");
   const apiKey = extractApiKey(request);
   if (authHeader && apiKey) {
@@ -66,7 +55,6 @@ export async function handleChat(request, clientRawRequest = null) {
     log.debug("AUTH", "No API key provided (local mode)");
   }
 
-  // Enforce API key if enabled in settings
   const settings = await getSettings();
   if (settings.requireApiKey) {
     if (!apiKey) {
@@ -85,17 +73,14 @@ export async function handleChat(request, clientRawRequest = null) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
   }
 
-  // Bypass naming/warmup requests before combo rotation to avoid wasting rotation slots
   const userAgent = request?.headers?.get("user-agent") || "";
   const bypassResponse = handleBypassRequest(body, modelStr, userAgent, !!settings.ccFilterNaming);
   if (bypassResponse) return bypassResponse.response || bypassResponse;
 
   const requiredCapabilities = detectRequiredCapabilities(body);
 
-  // Check if model is a combo (has multiple models with fallback)
   const comboModels = await getComboModels(modelStr);
   if (comboModels) {
-    // Check for combo-specific strategy first, fallback to global
     const comboStrategies = settings.comboStrategies || {};
     const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
     const comboStrategy = comboSpecificStrategy || settings.comboStrategy || "fallback";
@@ -138,8 +123,6 @@ export async function handleChat(request, clientRawRequest = null) {
     });
   }
 
-  // Single model request — may still switch to a capacity-adapter model if the
-  // target lacks a capability the request needs (e.g. no vision, request has an image).
   const soloAugmented = augmentModelsWithCapacityAdapter([modelStr], requiredCapabilities, settings);
   if (soloAugmented.length > 1) {
     const adapterAdded = soloAugmented.filter((m) => m !== modelStr);
@@ -160,18 +143,13 @@ export async function handleChat(request, clientRawRequest = null) {
   return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey);
 }
 
-/**
- * Handle single model chat request
- */
 async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null) {
   const modelInfo = await getModelInfo(modelStr);
 
-  // If provider is null, this might be a combo name - check and handle
   if (!modelInfo.provider) {
     const comboModels = await getComboModels(modelStr);
     if (comboModels) {
       const chatSettings = await getSettings();
-      // Check for combo-specific strategy first, fallback to global
       const comboStrategies = chatSettings.comboStrategies || {};
       const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
       const comboStrategy = comboSpecificStrategy || chatSettings.comboStrategy || "fallback";
@@ -220,12 +198,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
 
   const { provider, model } = modelInfo;
 
-  // Routing shown in the unified "▶" line (client model → provider/model)
 
-  // Extract userAgent from request
   const userAgent = request?.headers?.get("user-agent") || "";
 
-  // Try with available accounts (fallback on errors)
   const excludeConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;
@@ -233,10 +208,91 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   while (true) {
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model);
 
-    // All accounts unavailable
     if (!credentials || credentials.allRateLimited) {
+      const errorMsg = lastError || credentials?.lastError || "Unavailable";
+      const bracketCodeMatch = typeof errorMsg === "string" ? errorMsg.match(/\[(\d{3})\]/) : null;
+      const bracketCode = bracketCodeMatch ? parseInt(bracketCodeMatch[1], 10) : null;
+      const errCode = lastStatus || credentials?.lastErrorCode || bracketCode;
+
+      const isCreditExhausted = errCode === 402 ||
+        /insufficient_credits|credits required|insufficient balance/i.test(errorMsg);
+
+      if (isCreditExhausted) {
+        log.warn("CHAT", `[${provider}/${model}] Insufficient credits/balance (402)`);
+        const suggestedFreeModels = provider === "cline"
+          ? ["cl/cline-free/step-5-preview", "cl/cline-free/mimo-v2.6-flash", "cl/cline-free/muse-spark-1.3-contributor", "cl/cline-free/solar-mini4"]
+          : (provider === "kilocode" ? ["kc/kilo-auto/free", "kc/stepfun/step-5-preview-free"] : []);
+        return new Response(
+          JSON.stringify({
+            error: {
+              code: "insufficient_credits",
+              status: 402,
+              message: `[${provider}/${model}] Insufficient credits/balance. Please switch to a free model or add credits.`,
+              provider,
+              model,
+              suggested_free_models: suggestedFreeModels,
+              details: errorMsg
+            }
+          }),
+          { status: 402, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const isAuthError = errCode === 401 || /unauthorized/i.test(errorMsg);
+      if (isAuthError) {
+        log.warn("CHAT", `[${provider}/${model}] Authentication failed (401)`);
+        return new Response(
+          JSON.stringify({
+            error: {
+              code: "unauthorized",
+              status: 401,
+              message: `[${provider}/${model}] Authentication failed. Please re-authenticate your ${provider} account or refresh token.`,
+              provider,
+              model,
+              details: errorMsg
+            }
+          }),
+          { status: 401, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const isPlanRequired = (errCode === 403 || /pricingUrl|pricing|forbidden/i.test(errorMsg));
+      if (isPlanRequired) {
+        log.warn("CHAT", `[${provider}/${model}] Paid subscription or credits required (403)`);
+        return new Response(
+          JSON.stringify({
+            error: {
+              code: "forbidden_plan_required",
+              status: 403,
+              message: `[${provider}/${model}] A paid plan or subscription is required for this model.`,
+              provider,
+              model,
+              details: errorMsg
+            }
+          }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const isNotFound = errCode === 404 || /model_not_found|does not exist/i.test(errorMsg);
+      if (isNotFound) {
+        log.warn("CHAT", `[${provider}/${model}] Model not found (404)`);
+        return new Response(
+          JSON.stringify({
+            error: {
+              code: "model_not_found",
+              status: 404,
+              message: `[${provider}/${model}] Model not found on upstream provider.`,
+              provider,
+              model,
+              details: errorMsg
+            }
+          }),
+          { status: 404, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
       if (credentials?.allRateLimited) {
-        const errorMsg = lastError || credentials.lastError || "Unavailable";
         const status = HTTP_STATUS.SERVICE_UNAVAILABLE;
         log.warn("CHAT", `[${provider}/${model}] ${errorMsg} (${credentials.retryAfterHuman})`);
         return unavailableResponse(status, `[${provider}/${model}] ${errorMsg}`, credentials.retryAfter, credentials.retryAfterHuman);
@@ -249,20 +305,16 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
 
-    // Account selection shown in the unified "▶" line (acc:...)
     const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
 
-    // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
     if ((provider === "antigravity" || provider === "gemini-cli") && !refreshedCredentials.projectId) {
       const pid = await getProjectIdForConnection(credentials.connectionId, refreshedCredentials.accessToken, provider);
       if (pid) {
         refreshedCredentials.projectId = pid;
-        // Persist to DB in background so subsequent requests have it immediately
         updateProviderCredentials(credentials.connectionId, { projectId: pid }).catch(() => { });
       }
     }
 
-    // Use shared chatCore
     const chatSettings = await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
     const result = await handleChatCore({
@@ -287,11 +339,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       pxpipeEnabled: !!chatSettings.pxpipeEnabled,
       pxpipeMinChars: chatSettings.pxpipeMinChars,
       pxpipeTimeoutMs: chatSettings.pxpipeTimeoutMs,
-      // Lazily warms the in-process module on first use; null when not installed (fail-open)
       pxpipeTransform: chatSettings.pxpipeEnabled ? await getPxpipeTransform() : null,
       onPxpipeEvent: appendPxpipeEvent,
       providerThinking,
-      // Detect source format by endpoint + body
       sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
@@ -302,14 +352,12 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       },
       onRequestSuccess: async () => {
         await clearAccountError(credentials.connectionId, credentials, model);
-        // "Consecutive" strikes: a success clears the breaker for this pair.
         clearAntigravityStrikes(credentials.connectionId, model);
       }
     });
 
     if (result.success) return result.response;
 
-    // Antigravity 409/429: refresh live quota to get exact resetAt before locking
     let quotaResetMs = null;
     let resetsAtMs = result.resetsAtMs;
     if (provider === "antigravity" && (result.status === 409 || result.status === 429)) {
@@ -320,8 +368,6 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       if (quotaResetMs) resetsAtMs = quotaResetMs;
     }
 
-    // Exhausted Antigravity model is blocked only in RAM cache until upstream resetAt.
-    // Do not persist a modelLock_* for this path.
     const shouldFallback = provider === "antigravity" && quotaResetMs
       ? true
       : (await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model, resetsAtMs)).shouldFallback;

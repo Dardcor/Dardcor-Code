@@ -463,7 +463,6 @@ TaskDefinitionRegistry.onReady().then(() => {
 
 export function updateTaskDefinitions() {
 	for (const taskType of TaskDefinitionRegistry.all()) {
-		// Check that we haven't already added this task type
 		if (taskDefinitions.find(schema => {
 			return schema.properties?.type?.enum?.find ? schema.properties?.type.enum.find(element => element === taskType.taskType) : undefined;
 		})) {
@@ -472,7 +471,6 @@ export function updateTaskDefinitions() {
 
 		const schema: IJSONSchema = Objects.deepClone(taskConfiguration);
 		const schemaProperties = schema.properties!;
-		// Since we do this after the schema is assigned we need to patch the refs.
 		schemaProperties.type = {
 			type: 'string',
 			description: nls.localize('JsonSchema.customizations.customizes.type', 'The task type to customize'),
@@ -483,7 +481,6 @@ export function updateTaskDefinitions() {
 		} else {
 			schema.required = [];
 		}
-		// Customized tasks require that the task type be set.
 		schema.required.push('type');
 		if (taskType.properties) {
 			for (const key of Object.keys(taskType.properties)) {
@@ -531,7 +528,6 @@ taskDescriptionProperties.taskName.deprecationMessage = nls.localize(
 	'JsonSchema.tasks.taskName.deprecated',
 	'The task\'s name property is deprecated. Use the label property instead.'
 );
-// Clone the taskDescription for process task before setting a default to prevent two defaults #115281
 const processTask = Objects.deepClone(taskDescription);
 taskDescription.default = {
 	label: 'My Task',
@@ -560,7 +556,6 @@ taskDescriptionProperties.isTestCommand.deprecationMessage = nls.localize(
 	'The property isTestCommand is deprecated. Use the group property instead. See also the 1.14 release notes.'
 );
 
-// Process tasks are almost identical schema-wise to shell tasks, but they are required to have a command
 processTask.properties!.type = {
 	type: 'string',
 	enum: ['process'],

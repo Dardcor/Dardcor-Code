@@ -4,16 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import path from 'path';
-import fs from 'fs';
+import { getRemoteNodeVersion } from './util.ts';
 
 const root = path.dirname(path.dirname(import.meta.dirname));
-const npmrcPath = path.join(root, 'remote', '.npmrc');
-const npmrc = fs.readFileSync(npmrcPath, 'utf8');
-const version = /^(?:npm_config_)?target="(.*)"$/m.exec(npmrc)?.[1];
-
-if (!version) {
-	throw new Error('Failed to extract Node version from .npmrc');
-}
+const { nodeVersion: version } = getRemoteNodeVersion();
 
 const platform = process.platform;
 const arch = process.arch;

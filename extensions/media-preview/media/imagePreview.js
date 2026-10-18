@@ -66,7 +66,6 @@
 
 	const initialState = vscode.getState() || { scale: 'fit', offsetX: 0, offsetY: 0 };
 
-	// State
 	let scale = initialState.scale;
 	let ctrlPressed = false;
 	let altPressed = false;
@@ -74,7 +73,6 @@
 	let consumeClick = true;
 	let isActive = false;
 
-	// Elements
 	const container = document.body;
 	const image = document.createElement('img');
 
@@ -89,7 +87,6 @@
 			image.classList.remove('pixelated');
 			// @ts-ignore Non-standard CSS property
 			image.style.zoom = 'normal';
-			// Clear explicit dimensions so the image can scale-to-fit naturally
 			image.style.minWidth = '';
 			image.style.minHeight = '';
 			vscode.setState(undefined);
@@ -106,9 +103,6 @@
 
 			image.classList.remove('scale-to-fit');
 
-			// For images without intrinsic dimensions (e.g. SVGs with only
-			// a viewBox), set explicit pixel dimensions so that CSS zoom has
-			// something concrete to scale.
 			if (!image.naturalWidth || !image.naturalHeight) {
 				const baseWidth = image.clientWidth || container.clientWidth;
 				const baseHeight = image.clientHeight || container.clientHeight;
@@ -159,9 +153,6 @@
 		if (image.naturalWidth) {
 			scale = image.clientWidth / image.naturalWidth;
 		} else {
-			// For images without intrinsic dimensions (e.g. SVGs with
-			// only a viewBox), start at 1x since there is no meaningful
-			// natural size to compute a ratio from.
 			scale = 1;
 		}
 		updateScale(scale);
@@ -250,12 +241,11 @@
 			consumeClick = false;
 			return;
 		}
-		// left click
 		if (scale === 'fit') {
 			firstZoom();
 		}
 
-		if (!(isMac ? altPressed : ctrlPressed)) { // zoom in
+		if (!(isMac ? altPressed : ctrlPressed)) {
 			zoomIn();
 		} else {
 			zoomOut();
@@ -263,7 +253,6 @@
 	});
 
 	container.addEventListener('wheel', (/** @type {WheelEvent} */ e) => {
-		// Prevent pinch to zoom
 		if (e.ctrlKey) {
 			e.preventDefault();
 		}
@@ -273,7 +262,7 @@
 		}
 
 		const isScrollWheelKeyPressed = isMac ? altPressed : ctrlPressed;
-		if (!isScrollWheelKeyPressed && !e.ctrlKey) { // pinching is reported as scroll wheel + ctrl
+		if (!isScrollWheelKeyPressed && !e.ctrlKey) {
 			return;
 		}
 
@@ -389,9 +378,6 @@
 
 	async function copyImage(retries = 5) {
 		if (!document.hasFocus() && retries > 0) {
-			// copyImage is called at the same time as webview.reveal, which means this function is running whilst the webview is gaining focus.
-			// Since navigator.clipboard.write requires the document to be focused, we need to wait for focus.
-			// We cannot use a listener, as there is a high chance the focus is gained during the setup of the listener resulting in us missing it.
 			setTimeout(() => { copyImage(retries - 1); }, 20);
 			return;
 		}

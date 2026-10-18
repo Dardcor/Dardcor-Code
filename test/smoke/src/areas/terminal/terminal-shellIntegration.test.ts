@@ -11,7 +11,6 @@ export function setup(options?: { skipSuite: boolean }) {
 		let terminal: Terminal;
 		let settingsEditor: SettingsEditor;
 		let app: Application;
-		// Acquire automation API
 		before(async function () {
 			app = this.app as Application;
 			terminal = app.workbench.terminal;
@@ -26,7 +25,6 @@ export function setup(options?: { skipSuite: boolean }) {
 			await terminal.runCommandWithValue(TerminalCommandIdWithValue.NewWithProfile, process.platform === 'win32' ? 'PowerShell' : 'bash');
 		}
 
-		// TODO: Some agents may not have pwsh installed?
 		(process.platform === 'win32' ? describe.skip : describe)(`Process-based tests`, function () {
 			before(async function () {
 				await setTerminalTestSettings(app, [['terminal.integrated.shellIntegration.enabled', 'true']]);
@@ -84,9 +82,6 @@ export function setup(options?: { skipSuite: boolean }) {
 			});
 		});
 
-		// These are integration tests that only test the UI side by simulating process writes.
-		// Because of this, they do not test the shell integration scripts, only what the scripts
-		// are expected to write.
 		describe('Write data-based tests', () => {
 			before(async function () {
 				await setTerminalTestSettings(app);
@@ -95,12 +90,8 @@ export function setup(options?: { skipSuite: boolean }) {
 				await settingsEditor.clearUserSettings();
 			});
 
-			// Don't use beforeEach as that ignores the retry count, createEmptyTerminal has been
-			// flaky in the past
 			async function beforeEachSetup() {
-				// Use the simplest profile to get as little process interaction as possible
 				await terminal.createEmptyTerminal();
-				// Erase all content and reset cursor to top
 				await terminal.runCommandWithValue(TerminalCommandIdWithValue.WriteDataToTerminal, `${csi('2J')}${csi('3J')}${csi('H')}`);
 			}
 

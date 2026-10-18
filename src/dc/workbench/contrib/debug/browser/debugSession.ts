@@ -56,7 +56,7 @@ export class DebugSession implements IDebugSession {
 	rememberedCapabilities?: DebugProtocol.Capabilities;
 
 	private _subId: string | undefined;
-	raw: RawDebugSession | undefined; // used in tests
+	raw: RawDebugSession | undefined;
 	private initialized = false;
 	private _options: IDebugSessionOptions;
 
@@ -79,9 +79,7 @@ export class DebugSession implements IDebugSession {
 	private stoppedDetails: IRawStoppedDetails[] = [];
 	private readonly statusQueue = this.rawListeners.add(new ThreadStatusScheduler());
 
-	/** Test run this debug session was spawned by */
 	public readonly correlatedTestRun?: LiveTestResult;
-	/** Whether we terminated the correlated run yet. Used so a 2nd terminate request goes through to the underlying session. */
 	private didTerminateTestRun?: boolean;
 
 	private readonly _onDidChangeState = new Emitter<void>();
@@ -99,10 +97,6 @@ export class DebugSession implements IDebugSession {
 	private _name: string | undefined;
 	private readonly _onDidChangeName = new Emitter<string>();
 
-	/**
-	 * Promise set while enabling dependent breakpoints to block the debugger
-	 * from continuing from a stopped state.
-	 */
 	private _waitToResume?: Promise<unknown>;
 
 	constructor(
@@ -147,13 +141,11 @@ export class DebugSession implements IDebugSession {
 			}));
 		}
 
-		// Cast here, it's not possible to reference a hydrated result in this code path.
 		this.correlatedTestRun = options?.testRun
 			? (testResultService.getResult(options.testRun.runId) as LiveTestResult)
 			: this.parentSession?.correlatedTestRun;
 
 		if (this.correlatedTestRun) {
-			// Listen to the test completing because the user might have taken the cancel action rather than stopping the session.
 			toDispose.add(this.correlatedTestRun.onComplete(() => this.terminate()));
 		}
 
@@ -162,7 +154,6 @@ export class DebugSession implements IDebugSession {
 			toDispose.add(compoundRoot.onDidSessionStop(() => this.terminate()));
 		}
 		this.passFocusScheduler = new RunOnceScheduler(() => {
-			// If there is some session or thread that is stopped pass focus to it
 			if (this.debugService.getModel().getSessions().some(s => s.state === State.Stopped) || this.getAllThreads().some(t => t.stopped)) {
 				if (typeof this.lastContinuedThreadId === 'number') {
 					const thread = this.debugService.getViewModel().focusedThread;
@@ -183,8 +174,6 @@ export class DebugSession implements IDebugSession {
 		const parent = this._options.parentSession;
 		if (parent) {
 			toDispose.add(parent.onDidEndAdapter(() => {
-				// copy the parent repl and get a new detached repl for this child, and
-				// remove its parent, if it's still running
 				if (!this.hasSeparateRepl() && this.raw?.isInShutdown === false) {
 					this.repl = this.repl.clone();
 					replListener.value = this.repl.onDidChangeElements((e) => this._onDidChangeREPLElements.fire(e));
@@ -248,7 +237,6 @@ export class DebugSession implements IDebugSession {
 
 
 	get autoExpandLazyVariables(): boolean {
-		// This tiny helper avoids converting the entire debug model to use service injection
 		const screenReaderOptimized = this.accessibilityService.isScreenReaderOptimized();
 		const value = this.configurationService.getValue<IDebugConfiguration>('debug').autoExpandLazyVariables;
 		return value === 'auto' && screenReaderOptimized || value === 'on';
@@ -295,7 +283,6 @@ export class DebugSession implements IDebugSession {
 		return this.raw ? this.raw.capabilities : Object.create(null);
 	}
 
-	//---- events
 	get onDidChangeState(): Event<void> {
 		return this._onDidChangeState.event;
 	}
@@ -312,7 +299,6 @@ export class DebugSession implements IDebugSession {
 		return this._onDidChangeName.event;
 	}
 
-	//---- DAP events
 
 	get onDidCustomEvent(): Event<DebugProtocol.Event> {
 		return this._onDidCustomEvent.event;
@@ -338,15 +324,10 @@ export class DebugSession implements IDebugSession {
 		return this._onDidInvalidMemory.event;
 	}
 
-	//---- DAP requests
 
-	/**
-	 * create and initialize a new debug adapter for this session
-	 */
 	async initialize(dbgr: IDebugger): Promise<void> {
 
 		if (this.raw) {
-			// if there was already a connection make sure to remove old listeners
 			await this.shutdown();
 		}
 
@@ -363,15 +344,15 @@ export class DebugSession implements IDebugSession {
 				pathFormat: 'path',
 				linesStartAt1: true,
 				columnsStartAt1: true,
-				supportsVariableType: true, // #8858
-				supportsVariablePaging: true, // #9537
-				supportsRunInTerminalRequest: true, // #10574
-				locale: platform.language, // #169114
-				supportsProgressReporting: true, // #92253
-				supportsInvalidatedEvent: true, // #106745
-				supportsMemoryReferences: true, //#129684
-				supportsArgsCanBeInterpretedByShell: true, // #149910
-				supportsMemoryEvent: true, // #133643
+				supportsVariableType: true,
+				supportsVariablePaging: true,
+				supportsRunInTerminalRequest: true,
+				locale: platform.language,
+				supportsProgressReporting: true,
+				supportsInvalidatedEvent: true,
+				supportsMemoryReferences: true,
+				supportsArgsCanBeInterpretedByShell: true,
+				supportsMemoryEvent: true,
 				supportsStartDebuggingRequest: true,
 				supportsANSIStyling: true,
 			});
@@ -389,9 +370,6 @@ export class DebugSession implements IDebugSession {
 		}
 	}
 
-	/**
-	 * launch or attach to the debuggee
-	 */
 	async launchOrAttach(config: IConfig): Promise<void> {
 		if (!this.raw) {
 			throw new Error(localize('noDebugAdapter', "No debugger available, can not send '{0}'", 'launch or attach'));
@@ -400,7 +378,6 @@ export class DebugSession implements IDebugSession {
 			throw canceled();
 		}
 
-		// __sessionID only used for EH debugging (but we add it always for now...)
 		config.__sessionId = this.getId();
 		try {
 			await this.raw.launchOrAttach(config);
@@ -410,9 +387,6 @@ export class DebugSession implements IDebugSession {
 		}
 	}
 
-	/**
-	 * Terminate any linked test run.
-	 */
 	cancelCorrelatedTestRun() {
 		if (this.correlatedTestRun && !this.correlatedTestRun.completedAt) {
 			this.didTerminateTestRun = true;
@@ -420,12 +394,8 @@ export class DebugSession implements IDebugSession {
 		}
 	}
 
-	/**
-	 * terminate the current debug adapter session
-	 */
 	async terminate(restart = false): Promise<void> {
 		if (!this.raw) {
-			// Adapter went down but it did not send a 'terminated' event, simulate like the event has been sent
 			this.onDidExitAdapter();
 		}
 
@@ -447,12 +417,8 @@ export class DebugSession implements IDebugSession {
 		}
 	}
 
-	/**
-	 * end the current debug adapter session
-	 */
 	async disconnect(restart = false, suspend = false): Promise<void> {
 		if (!this.raw) {
-			// Adapter went down but it did not send a 'terminated' event, simulate like the event has been sent
 			this.onDidExitAdapter();
 		}
 
@@ -460,7 +426,6 @@ export class DebugSession implements IDebugSession {
 		if (this._options.lifecycleManagedByParent && this.parentSession) {
 			await this.parentSession.disconnect(restart, suspend);
 		} else if (this.raw) {
-			// TODO terminateDebuggee should be undefined by default?
 			await this.raw.disconnect({ restart, terminateDebuggee: false, suspendDebuggee: suspend });
 		}
 
@@ -469,9 +434,6 @@ export class DebugSession implements IDebugSession {
 		}
 	}
 
-	/**
-	 * restart debug adapter session
-	 */
 	async restart(): Promise<void> {
 		if (!this.raw) {
 			throw new Error(localize('noDebugAdapter', "No debugger available, can not send '{0}'", 'restart'));
@@ -498,7 +460,6 @@ export class DebugSession implements IDebugSession {
 		if (breakpointsToSend.length && !rawSource.adapterData) {
 			rawSource.adapterData = breakpointsToSend[0].adapterData;
 		}
-		// Normalize all drive letters going out from vscode to debug adapters so we are consistent with our resolving #43959
 		if (rawSource.path) {
 			rawSource.path = normalizeDriveLetter(rawSource.path);
 		}
@@ -849,7 +810,6 @@ export class DebugSession implements IDebugSession {
 		if (source) {
 			rawSource = source.raw;
 		} else {
-			// create a Source
 			const data = Source.getEncodedDebugData(resource);
 			rawSource = { path: data.path, sourceReference: data.sourceReference };
 		}
@@ -940,7 +900,6 @@ export class DebugSession implements IDebugSession {
 		return { column: 1, ...location.body, source };
 	}
 
-	//---- threads
 
 	getThread(threadId: number): Thread | undefined {
 		return this.threads.get(threadId);
@@ -993,10 +952,8 @@ export class DebugSession implements IDebugSession {
 		data.threads.forEach(thread => {
 			this.threadIds.push(thread.id);
 			if (!this.threads.has(thread.id)) {
-				// A new thread came in, initialize it.
 				this.threads.set(thread.id, new Thread(this, thread.name, thread.id));
 			} else if (thread.name) {
-				// Just the thread name got updated #18244
 				const oldThread = this.threads.get(thread.id);
 				if (oldThread) {
 					oldThread.name = thread.name;
@@ -1004,7 +961,6 @@ export class DebugSession implements IDebugSession {
 			}
 		});
 		this.threads.forEach(t => {
-			// Remove all old threads which are no longer part of the update #75980
 			if (this.threadIds.indexOf(t.threadId) === -1) {
 				this.threads.delete(t.threadId);
 			}
@@ -1012,8 +968,6 @@ export class DebugSession implements IDebugSession {
 
 		const stoppedDetails = data.stoppedDetails;
 		if (stoppedDetails) {
-			// Set the availability of the threads' callstacks depending on
-			// whether the thread is stopped or not
 			if (stoppedDetails.allThreadsStopped) {
 				this.threads.forEach(thread => {
 					thread.stoppedDetails = thread.threadId === stoppedDetails.threadId ? stoppedDetails : { reason: thread.stoppedDetails?.reason };
@@ -1023,7 +977,6 @@ export class DebugSession implements IDebugSession {
 			} else {
 				const thread = typeof stoppedDetails.threadId === 'number' ? this.threads.get(stoppedDetails.threadId) : undefined;
 				if (thread) {
-					// One thread is stopped, only update that thread.
 					thread.stoppedDetails = stoppedDetails;
 					thread.clearCallStack();
 					thread.stopped = true;
@@ -1061,7 +1014,6 @@ export class DebugSession implements IDebugSession {
 		this.registerListeners();
 	}
 
-	//---- private
 
 	private registerListeners(): void {
 		if (!this.raw) {
@@ -1080,7 +1032,6 @@ export class DebugSession implements IDebugSession {
 					try {
 						await this.raw.configurationDone();
 					} catch (e) {
-						// Disconnect the debug session on configuration done error #10596
 						this.notificationService.error(e);
 						this.raw?.disconnect({});
 					}
@@ -1089,7 +1040,6 @@ export class DebugSession implements IDebugSession {
 				return undefined;
 			};
 
-			// Send all breakpoints
 			try {
 				await this.debugService.sendAllBreakpoints(this);
 			} finally {
@@ -1114,7 +1064,6 @@ export class DebugSession implements IDebugSession {
 				const focusedThread = viewModel.focusedThread;
 				this.passFocusScheduler.cancel();
 				if (focusedThread && event.body.threadId === focusedThread.threadId) {
-					// De-focus the thread in case it was focused
 					this.debugService.focusStackFrame(undefined, undefined, viewModel.focusedSession, { explicit: false });
 				}
 			}
@@ -1158,7 +1107,6 @@ export class DebugSession implements IDebugSession {
 				return Promise.resolve();
 			});
 
-			// We need to pass focus to other sessions / threads with a timeout in case a quick stop event occurs #130321
 			this.lastContinuedThreadId = allThreads ? undefined : event.body.threadId;
 			this.passFocusScheduler.schedule();
 			this._onDidChangeState.fire();
@@ -1168,7 +1116,6 @@ export class DebugSession implements IDebugSession {
 		this.rawListeners.add(this.raw.onDidOutput(async event => {
 			const outputSeverity = event.body.category === 'stderr' ? Severity.Error : event.body.category === 'console' ? Severity.Warning : Severity.Info;
 
-			// When a variables event is received, execute immediately to obtain the variables value #126967
 			if (event.body.variablesReference) {
 				const source = event.body.source && event.body.line ? {
 					lineNumber: event.body.line,
@@ -1177,19 +1124,14 @@ export class DebugSession implements IDebugSession {
 				} : undefined;
 				const container = new ExpressionContainer(this, undefined, event.body.variablesReference, generateUuid());
 				const children = container.getChildren();
-				// we should put appendToRepl into queue to make sure the logs to be displayed in correct order
-				// see https://github.com/microsoft/vscode/issues/126967#issuecomment-874954269
 				outputQueue.queue(async () => {
 					const resolved = await children;
-					// For single logged variables, try to use the output if we can so
-					// present a better (i.e. ANSI-aware) representation of the output
 					if (resolved.length === 1) {
 						this.appendToRepl({ output: event.body.output, expression: resolved[0], sev: outputSeverity, source }, event.body.category === 'important');
 						return;
 					}
 
 					resolved.forEach((child) => {
-						// Since we can not display multiple trees in a row, we are displaying these variables one after the other (ignoring their names)
 						// eslint-disable-next-line local/code-no-any-casts
 						(<any>child).name = null;
 						this.appendToRepl({ output: '', expression: child, sev: outputSeverity, source }, event.body.category === 'important');
@@ -1203,11 +1145,8 @@ export class DebugSession implements IDebugSession {
 				}
 
 				if (event.body.category === 'telemetry') {
-					// only log telemetry events from debug adapter if the debug extension provided the telemetry key
-					// and the user opted in telemetry
 					const telemetryEndpoint = this.raw.dbgr.getCustomTelemetryEndpoint();
 					if (telemetryEndpoint && this.telemetryService.telemetryLevel !== TelemetryLevel.NONE) {
-						// __GDPR__TODO__ We're sending events in the name of the debug extension and we can not ensure that those are declared correctly.
 						let data = event.body.data;
 						if (!telemetryEndpoint.sendErrorTelemetry && event.body.data) {
 							data = filterExceptionsFromTelemetry(event.body.data);
@@ -1219,7 +1158,6 @@ export class DebugSession implements IDebugSession {
 					return;
 				}
 
-				// Make sure to append output in the correct order by properly waiting on preivous promises #33822
 				const source = event.body.source && event.body.line ? {
 					lineNumber: event.body.line,
 					column: event.body.column ? event.body.column : 1,
@@ -1234,7 +1172,6 @@ export class DebugSession implements IDebugSession {
 				if (event.body.group === 'end') {
 					this.repl.endGroup();
 					if (!event.body.output) {
-						// Only return if the end event does not have additional output in it
 						return;
 					}
 				}
@@ -1325,7 +1262,6 @@ export class DebugSession implements IDebugSession {
 		}));
 		this.rawListeners.add(this.raw.onDidInvalidated(async event => {
 			const areas = event.body.areas || ['all'];
-			// If invalidated event only requires to update variables or watch, do that, otherwise refetch threads https://github.com/microsoft/vscode/issues/106745
 			if (areas.includes('threads') || areas.includes('stacks') || areas.includes('all')) {
 				this.cancelAllRequests();
 				this.model.clearThreads(this.getId(), true);
@@ -1335,8 +1271,6 @@ export class DebugSession implements IDebugSession {
 				if (details.length) {
 					await Promise.all(details.map(d => this.handleStop(d)));
 				} else if (!this.fetchThreadsScheduler.value.isScheduled()) {
-					// threads are fetched as a side-effect of processing the stopped
-					// event(s), but if there are none, schedule a thread update manually (#282777)
 					this.fetchThreadsScheduler.value.schedule();
 				}
 			}
@@ -1354,9 +1288,6 @@ export class DebugSession implements IDebugSession {
 		this.passFocusScheduler.cancel();
 		this.stoppedDetails.push(event);
 
-		// do this very eagerly if we have hitBreakpointIds, since it may take a
-		// moment for breakpoints to set and we want to do our best to not miss
-		// anything
 		if (event.hitBreakpointIds) {
 			this._waitToResume = this.enableDependentBreakpoints(event.hitBreakpointIds);
 		}
@@ -1366,7 +1297,6 @@ export class DebugSession implements IDebugSession {
 			async (threadId, token) => {
 				const hasLotsOfThreads = event.threadId === undefined && this.threadIds.length > 10;
 
-				// If the focus for the current session is on a non-existent thread, clear the focus.
 				const focusedThread = this.debugService.getViewModel().focusedThread;
 				const focusedThreadDoesNotExist = focusedThread !== undefined && focusedThread.session === this && !this.threads.has(focusedThread.threadId);
 				if (focusedThreadDoesNotExist) {
@@ -1375,15 +1305,11 @@ export class DebugSession implements IDebugSession {
 
 				const thread = typeof threadId === 'number' ? this.getThread(threadId) : undefined;
 				if (thread) {
-					// Call fetch call stack twice, the first only return the top stack frame.
-					// Second retrieves the rest of the call stack. For performance reasons #25605
-					// Second call is only done if there's few threads that stopped in this event.
-					const promises = this.model.refreshTopOfCallstack(<Thread>thread, /* fetchFullStack= */!hasLotsOfThreads);
+					const promises = this.model.refreshTopOfCallstack(<Thread>thread, !hasLotsOfThreads);
 					const focus = async () => {
 						if (focusedThreadDoesNotExist || (!event.preserveFocusHint && thread.getCallStack().length)) {
 							const focusedStackFrame = this.debugService.getViewModel().focusedStackFrame;
 							if (!focusedStackFrame || focusedStackFrame.thread.session === this) {
-								// Only take focus if nothing is focused, or if the focus is already on the current session
 								const preserveFocus = !this.configurationService.getValue<IDebugConfiguration>('debug').focusEditorOnBreak;
 								await this.debugService.focusStackFrame(undefined, thread, undefined, { preserveFocus });
 							}
@@ -1396,7 +1322,7 @@ export class DebugSession implements IDebugSession {
 								if (this.configurationService.getValue<IDebugConfiguration>('debug').focusWindowOnBreak && !this.workbenchEnvironmentService.extensionTestsLocationURI) {
 									const activeWindow = getActiveWindow();
 									if (!activeWindow.document.hasFocus()) {
-										await this.hostService.focus(mainWindow, { mode: FocusMode.Force /* Application may not be active */ });
+										await this.hostService.focus(mainWindow, { mode: FocusMode.Force });
 									}
 								}
 							}
@@ -1405,7 +1331,7 @@ export class DebugSession implements IDebugSession {
 
 					await promises.topCallStack;
 
-					if (!event.hitBreakpointIds) { // if hitBreakpointIds are present, this is handled earlier on
+					if (!event.hitBreakpointIds) {
 						this._waitToResume = this.enableDependentBreakpoints(thread);
 					}
 
@@ -1422,7 +1348,6 @@ export class DebugSession implements IDebugSession {
 
 					const focusedStackFrame = this.debugService.getViewModel().focusedStackFrame;
 					if (!focusedStackFrame || isFrameDeemphasized(focusedStackFrame)) {
-						// The top stack frame can be deemphesized so try to focus again #68616
 						focus();
 					}
 				}
@@ -1448,9 +1373,7 @@ export class DebugSession implements IDebugSession {
 			breakpoints = this.getBreakpointsAtPosition(frame.source.uri, frame.range.startLineNumber, frame.range.endLineNumber, frame.range.startColumn, frame.range.endColumn);
 		}
 
-		// find the current breakpoints
 
-		// check if the current breakpoints are dependencies, and if so collect and send the dependents to DA
 		const urisToResend = new Set<string>();
 		this.model.getBreakpoints({ triggeredOnly: true, enabledOnly: true }).forEach(bp => {
 			breakpoints.forEach(cbp => {
@@ -1486,11 +1409,9 @@ export class DebugSession implements IDebugSession {
 		this._onDidEndAdapter.fire(event);
 	}
 
-	// Disconnects and clears state. Session can be initialized again for a new connection.
 	private shutdown(): void {
 		this.rawListeners.clear();
 		if (this.raw) {
-			// Send out disconnect and immediatly dispose (do not wait for response) #127418
 			this.raw.disconnect({});
 			this.raw.dispose();
 			this.raw = undefined;
@@ -1522,7 +1443,6 @@ export class DebugSession implements IDebugSession {
 		this._waitToResume = undefined;
 	}
 
-	//---- sources
 
 	getSourceForUri(uri: URI): Source | undefined {
 		return this.sources.get(this.uriIdentityService.asCanonicalUri(uri).toString());
@@ -1534,10 +1454,8 @@ export class DebugSession implements IDebugSession {
 		const found = this.sources.get(uriKey);
 		if (found) {
 			source = found;
-			// merge attributes of new into existing
 			source.raw = mixin(source.raw, raw);
 			if (source.raw && raw) {
-				// Always take the latest presentation hint from adapter #42139
 				source.raw.presentationHint = raw.presentationHint;
 			}
 		} else {
@@ -1571,7 +1489,6 @@ export class DebugSession implements IDebugSession {
 		this.cancellationMap.clear();
 	}
 
-	// REPL
 
 	getReplElements(): IReplElement[] {
 		return this.repl.getReplElements();
@@ -1587,7 +1504,6 @@ export class DebugSession implements IDebugSession {
 
 	async addReplExpression(stackFrame: IStackFrame | undefined, expression: string): Promise<void> {
 		await this.repl.addReplExpression(this, stackFrame, expression);
-		// Evaluate all watch expressions and fetch variables again since repl evaluation might have changed some.
 		this.debugService.getViewModel().updateViews();
 	}
 
@@ -1599,46 +1515,16 @@ export class DebugSession implements IDebugSession {
 	}
 }
 
-/**
- * Keeps track of events for threads, and cancels any previous operations for
- * a thread when the thread goes into a new state. Currently, the operations a thread has are:
- *
- * - started
- * - stopped
- * - continue
- * - exited
- *
- * In each case, the new state preempts the old state, so we don't need to
- * queue work, just cancel old work. It's up to the caller to make sure that
- * no UI effects happen at the point when the `token` is cancelled.
- */
 export class ThreadStatusScheduler extends Disposable {
-	/**
-	 * An array of set of thread IDs. When a 'stopped' event is encountered, the
-	 * editor refreshes its thread IDs. In the meantime, the thread may change
-	 * state it again. So the editor puts a Set into this array when it starts
-	 * the refresh, and checks it after the refresh is finished, to see if
-	 * any of the threads it looked up should now be invalidated.
-	 */
 	private pendingCancellations: Set<number | undefined>[] = [];
 
-	/**
-	 * Cancellation tokens for currently-running operations on threads.
-	 */
 	private readonly threadOps = this._register(new DisposableMap<number, CancellationTokenSource>());
 
-	/**
-	 * Runs the operation.
-	 * If thread is undefined it affects all threads.
-	 */
 	public async run(threadIdsP: Promise<number[]> | number[], operation: (threadId: number, ct: CancellationToken) => Promise<unknown>) {
 		const cancelledWhileLookingUpThreads = new Set<number | undefined>();
 		this.pendingCancellations.push(cancelledWhileLookingUpThreads);
 		const threadIds = await threadIdsP;
 
-		// Now that we got our threads,
-		// 1. Remove our pending set, and
-		// 2. Cancel any slower callers who might also have found this thread
 		for (let i = 0; i < this.pendingCancellations.length; i++) {
 			const s = this.pendingCancellations[i];
 			if (s === cancelledWhileLookingUpThreads) {
@@ -1666,10 +1552,6 @@ export class ThreadStatusScheduler extends Disposable {
 		}));
 	}
 
-	/**
-	 * Cancels all ongoing state operations on the given threads.
-	 * If threads is undefined it cancel all threads.
-	 */
 	public cancel(threadIds?: readonly number[]) {
 		if (!threadIds) {
 			for (const [_, op] of this.threadOps) {

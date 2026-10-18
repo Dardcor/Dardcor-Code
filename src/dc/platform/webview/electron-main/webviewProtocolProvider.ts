@@ -21,7 +21,6 @@ export class WebviewProtocolProvider implements IDisposable {
 	constructor(
 		@IFileService private readonly _fileService: IFileService
 	) {
-		// Register the protocol for loading webview html
 		const webviewHandler = this.handleWebviewRequest.bind(this);
 		protocol.handle(Schemas.vscodeWebview, webviewHandler);
 	}
@@ -50,7 +49,6 @@ export class WebviewProtocolProvider implements IDisposable {
 				return new Response(null, { status: 403 });
 			}
 		} catch {
-			// noop
 		}
 		return new Response(null, { status: 500 });
 	}

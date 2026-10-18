@@ -35,22 +35,12 @@ type CacheEntry = {
 
 
 export interface IWorkspaceChunkAndEmbeddingCache extends IDisposable {
-	/**
-	 * Checks if {@linkcode file} is currently indexed. Does not wait for any current indexing operation to complete.
-	 */
 	isIndexed(file: FileRepresentation): Promise<boolean>;
 
-	/**
-	 * Returns the chunks and embeddings for the given file, or undefined if not available.
-	 */
 	get(file: FileRepresentation): Promise<readonly FileChunkWithEmbedding[] | undefined>;
 
 	getCurrentChunksForUri(uri: URI): ReadonlyMap<string, FileChunkWithEmbedding> | undefined;
 
-	/**
-	 * Updates the cache for the given file by computing the chunks and embeddings.
-	 * Returns the updated chunks and embeddings.
-	 */
 	update(file: FileRepresentation, compute: (token: CancellationToken) => Promise<readonly FileChunkWithEmbedding[] | undefined>): Promise<readonly FileChunkWithEmbedding[] | undefined>;
 }
 
@@ -75,7 +65,6 @@ class OldDiskCache {
 		try {
 			await fileSystem.delete(cachePath);
 		} catch {
-			// noop
 		}
 	}
 
@@ -162,20 +151,16 @@ class DbCache implements IWorkspaceChunkAndEmbeddingCache {
 
 			const versionResult = db.prepare('SELECT version, embeddingModel FROM CacheMeta LIMIT 1').get();
 			if (!versionResult || versionResult.version !== this.version || versionResult.embeddingModel !== embeddingType.id) {
-				// Clear everything
 				db.exec('DELETE FROM CacheMeta; DELETE FROM Files; DELETE FROM FileChunks;');
 			}
 
-			// Update cache metadata
 			db.exec('DELETE FROM CacheMeta;');
 			db.prepare('INSERT INTO CacheMeta (version, embeddingModel) VALUES (?, ?)').run(this.version, embeddingType.id);
 
-			// Clean up old disk db if it exists
 			if (cacheRoot !== ':memory:') {
 				void instantiationService.invokeFunction(accessor => OldDiskCache.deleteDiskCache(accessor, cacheRoot));
 			}
 
-			// Validate all files in the database against the workspace index and remove any that are no longer present
 			await raceCancellationError(workspaceIndex.initialize(), token);
 
 			const allFilesStmt = db.prepare('SELECT id, uri FROM Files');
@@ -188,7 +173,6 @@ class DbCache implements IWorkspaceChunkAndEmbeddingCache {
 							continue;
 						}
 					} catch {
-						// noop
 					}
 
 					db.prepare('DELETE FROM Files WHERE id = ?').run(row.id as number);
@@ -215,9 +199,6 @@ class DbCache implements IWorkspaceChunkAndEmbeddingCache {
 		this.db.close();
 	}
 
-	/**
-	 * Checks if {@linkcode file} is currently indexed. Does not wait for any current indexing operation to complete.
-	 */
 	async isIndexed(file: FileRepresentation): Promise<boolean> {
 		const entry = await this.getEntry(file);
 		return entry?.state === 'resolved';
@@ -230,7 +211,6 @@ class DbCache implements IWorkspaceChunkAndEmbeddingCache {
 	getCurrentChunksForUri(uri: URI): ReadonlyMap<string, FileChunkWithEmbedding> | undefined {
 		const entry = this._inMemory.get(uri);
 		if (entry?.state === 'pending') {
-			// Still being computed
 			return undefined;
 		}
 
@@ -238,7 +218,6 @@ class DbCache implements IWorkspaceChunkAndEmbeddingCache {
 			return undefined;
 		}
 
-		// Should be written to the database
 		const all = this.db.prepare(`SELECT fc.text, fc.range_startLineNumber, fc.range_startColumn, fc.range_endLineNumber, fc.range_endColumn, fc.embedding, fc.chunkHash FROM Files f JOIN FileChunks fc ON f.id = fc.fileId WHERE f.uri = ?`).all(uri.toString());
 		if (all.length > 0) {
 			const out = new Map<string, FileChunkWithEmbedding>();
@@ -301,7 +280,6 @@ class DbCache implements IWorkspaceChunkAndEmbeddingCache {
 		const existingInMemory = this._inMemory.get(file.uri);
 		const inContentVersionId = await file.getFastContentVersionId();
 		if (existingInMemory?.contentVersionId === inContentVersionId) {
-			// Already up to date
 			return existingInMemory.value;
 		}
 
@@ -310,7 +288,6 @@ class DbCache implements IWorkspaceChunkAndEmbeddingCache {
 			return written.value;
 		}
 
-		// Overwrite
 		if (existingInMemory?.state === 'pending') {
 			existingInMemory.value.cancel();
 		}

@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 
 const KILO_MODELS_URL = "https://api.kilo.ai/api/gateway/models";
 
-// In-memory cache with TTL
 let cachedModels = null;
 let cacheTimestamp = 0;
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL_MS = 60 * 60 * 1000;
 
 export async function GET() {
   const now = Date.now();
 
-  // Return cached result if still valid
   if (cachedModels && now - cacheTimestamp < CACHE_TTL_MS) {
     return NextResponse.json({ models: cachedModels, cached: true });
   }
@@ -42,7 +40,6 @@ export async function GET() {
 
     return NextResponse.json({ models: freeModels, cached: false });
   } catch (error) {
-    // Return cached data if available, even if expired
     if (cachedModels) {
       return NextResponse.json({ models: cachedModels, cached: true, warning: error.message });
     }

@@ -62,7 +62,6 @@ export function parseSearchParams(modelResponseString: string): any {
 		try {
 			parsed = parse(codeBlock.code);
 		} catch (e) {
-			// Ignore
 		}
 
 		if (parsed) {

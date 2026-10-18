@@ -17,11 +17,6 @@ import {
 import { registerToolPermissionHandler } from '../claudeToolPermissionRegistry';
 import { ClaudeToolNames } from '../claudeTools';
 
-/**
- * Handler for the AskUserQuestion tool.
- * Delegates to the core vscode_askQuestions tool for improved UX with step navigation,
- * back button support, and custom text input.
- */
 export class AskUserQuestionHandler implements IClaudeToolPermissionHandler<ClaudeToolNames.AskUserQuestion> {
 	public readonly toolNames = [ClaudeToolNames.AskUserQuestion] as const;
 
@@ -40,7 +35,6 @@ export class AskUserQuestionHandler implements IClaudeToolPermissionHandler<Clau
 				toolInvocationToken: context.toolInvocationToken,
 			}, CancellationToken.None);
 
-			// Parse the result
 			const firstPart = result.content.at(0);
 			if (!(firstPart instanceof LanguageModelTextPart)) {
 				return {
@@ -51,7 +45,6 @@ export class AskUserQuestionHandler implements IClaudeToolPermissionHandler<Clau
 
 			const toolResult: IAnswerResult = JSON.parse(firstPart.value);
 
-			// Check if all questions were skipped
 			const allSkipped = Object.values(toolResult.answers).every(a => a.skipped);
 			if (allSkipped) {
 				return {
@@ -60,12 +53,10 @@ export class AskUserQuestionHandler implements IClaudeToolPermissionHandler<Clau
 				};
 			}
 
-			// Transform result back to SDK expected format (answers keyed by question text)
 			const answers: Record<string, string> = {};
 			for (const questionItem of input.questions) {
 				const answer = toolResult.answers[questionItem.header];
 				if (answer && !answer.skipped) {
-					// Combine selected options and free text
 					const parts: string[] = [...answer.selected];
 					if (answer.freeText) {
 						parts.push(answer.freeText);
@@ -90,7 +81,6 @@ export class AskUserQuestionHandler implements IClaudeToolPermissionHandler<Clau
 	}
 }
 
-// Self-register the handler
 registerToolPermissionHandler(
 	[ClaudeToolNames.AskUserQuestion],
 	AskUserQuestionHandler

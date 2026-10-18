@@ -23,10 +23,6 @@ export interface IConversationTestCase {
 	answer?: string;
 	applyChatCodeBlocks?: boolean;
 	json?: any;
-	/**
-	 * A map of all tools that should (`true`) and should not (`false`) be used in this request.
-	 * For agent mode, these selections are layered on top of the default agent tools.
-	 */
 	tools?: Record<string, boolean>;
 }
 
@@ -47,16 +43,13 @@ export type ScenarioEvaluator = (
 export type Scenario = IConversationTestCase[];
 
 function createTestNameFromPath(folderName: string, fileName: string): string {
-	// Test file is <number>.conversation.json
 	if (/^\d+\.conversation\.json$/.test(fileName)) {
 		return `${folderName}.${fileName}`;
 	}
-	// Test file contains scenario information
 	return fileName;
 }
 
 export function fetchConversationScenarios(scenarioFolderPath: string): Scenario[] {
-	// Test files are only in the root so don't have to worry about nested folders
 	const testFiles = fs.readdirSync(scenarioFolderPath).filter(f => f.endsWith('.conversation.json'));
 
 	const scenarios: Scenario[] = [];

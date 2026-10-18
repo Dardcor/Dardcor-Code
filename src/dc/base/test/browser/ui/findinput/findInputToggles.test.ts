@@ -21,7 +21,6 @@ suite('navigateToggles', () => {
 	let toggles: HTMLElement[];
 
 	function keydown(keyCode: number): StandardKeyboardEvent {
-		// `keyCode` is legacy but is what `StandardKeyboardEvent` reads, so it has to be set explicitly.
 		const init: KeyboardEventInit & { keyCode: number } = { keyCode };
 		const event = new KeyboardEvent('keydown', init);
 		Object.defineProperty(event, 'keyCode', { get: () => init.keyCode });

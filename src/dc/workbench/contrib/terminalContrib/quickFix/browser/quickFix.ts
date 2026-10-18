@@ -34,12 +34,6 @@ export type TerminalQuickFixCallback = (matchResult: ITerminalCommandMatchResult
 export type TerminalQuickFixCallbackExtension = (terminalCommand: ITerminalCommand, lines: string[] | undefined, option: ITerminalQuickFixOptions, token: CancellationToken) => Promise<ITerminalQuickFix[] | ITerminalQuickFix | undefined>;
 
 export interface ITerminalQuickFixProvider {
-	/**
-	 * Provides terminal quick fixes
-	 * @param commandMatchResult The command match result for which to provide quick fixes
-	 * @param token A cancellation token indicating the result is no longer needed
-	 * @return Terminal quick fix(es) if any
-	 */
 	provideTerminalQuickFixes(terminalCommand: ITerminalCommand, lines: string[] | undefined, option: ITerminalQuickFixOptions, token: CancellationToken): Promise<ITerminalQuickFix[] | ITerminalQuickFix | undefined>;
 }
 
@@ -68,7 +62,6 @@ export interface ITerminalQuickFix {
 export interface ITerminalQuickFixTerminalCommandAction extends ITerminalQuickFix {
 	type: TerminalQuickFixType.TerminalCommand;
 	terminalCommand: string;
-	// TODO: Should this depend on whether alt is held?
 	shouldExecute?: boolean;
 }
 export interface ITerminalQuickFixOpenerAction extends ITerminalQuickFix {

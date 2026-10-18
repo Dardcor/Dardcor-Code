@@ -10,10 +10,9 @@ export function setup(logger: Logger) {
 
 	describe('Localization', () => {
 
-		// Shared before/after handling
 		installAllHandlers(logger, opts => {
-			opts.verbose = true; // enable verbose logging for tracing
-			opts.snapshots = true; // enable network tab in devtools for tracing since we install an extension
+			opts.verbose = true;
+			opts.snapshots = true;
 			return opts;
 		});
 

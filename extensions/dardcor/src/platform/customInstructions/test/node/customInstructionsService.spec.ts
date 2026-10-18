@@ -26,18 +26,15 @@ suite('CustomInstructionsService - Skills', () => {
 	beforeEach(async () => {
 		const services = createPlatformServices();
 
-		// Setup workspace with a workspace folder
 		const workspaceFolders = [URI.file('/workspace')];
 		services.define(IWorkspaceService, new SyncDescriptor(
 			TestWorkspaceService,
 			[workspaceFolders, []]
 		));
 
-		// Create a configuration service that allows setting values
 		configService = new InMemoryConfigurationService(new DefaultsOnlyConfigurationService());
 		services.define(IConfigurationService, configService);
 
-		// Enable the agent skills setting
 		await configService.setNonExtensionConfig('chat.useAgentSkills', true);
 
 		accessor = services.createTestingAccessor();
@@ -85,7 +82,6 @@ suite('CustomInstructionsService - Skills', () => {
 		});
 
 		test('should return undefined when useAgentSkills setting is disabled', async () => {
-			// Disable the setting
 			await configService.setNonExtensionConfig('chat.useAgentSkills', false);
 
 			const skillFileUri = URI.file('/workspace/.github/skills/myskill/SKILL.md');
@@ -232,7 +228,6 @@ suite('CustomInstructionsService - Skills', () => {
 				'~/my-skills': true
 			});
 
-			// userHome is /home/testuser in NullNativeEnvService
 			const skillFileUri = URI.file('/home/testuser/my-skills/myskill/SKILL.md');
 			const skillInfo = customInstructionsService.getSkillInfo(skillFileUri);
 
@@ -246,7 +241,6 @@ suite('CustomInstructionsService - Skills', () => {
 				'custom-skills': true
 			});
 
-			// Relative paths are joined to workspace folder (/workspace)
 			const skillFileUri = URI.file('/workspace/custom-skills/myskill/SKILL.md');
 			const skillInfo = customInstructionsService.getSkillInfo(skillFileUri);
 
@@ -273,15 +267,12 @@ suite('CustomInstructionsService - Skills', () => {
 				'local-skills': true
 			});
 
-			// Check absolute path
 			const skill1 = customInstructionsService.getSkillInfo(URI.file('/custom/skills/skill1/SKILL.md'));
 			expect(skill1?.skillName).toBe('skill1');
 
-			// Check tilde path
 			const skill2 = customInstructionsService.getSkillInfo(URI.file('/home/testuser/my-skills/skill2/SKILL.md'));
 			expect(skill2?.skillName).toBe('skill2');
 
-			// Check relative path
 			const skill3 = customInstructionsService.getSkillInfo(URI.file('/workspace/local-skills/skill3/SKILL.md'));
 			expect(skill3?.skillName).toBe('skill3');
 		});
@@ -318,7 +309,6 @@ suite('CustomInstructionsService - Skills', () => {
 				'/custom/skills': true
 			});
 
-			// Default .github/skills should still work
 			const defaultSkillFile = URI.file('/workspace/.github/skills/myskill/SKILL.md');
 			const skillInfo = customInstructionsService.getSkillInfo(defaultSkillFile);
 
@@ -364,7 +354,6 @@ suite('CustomInstructionsService - Skills', () => {
 				'~/.dardcor/instructions': true
 			});
 
-			// userHome is /home/testuser in NullNativeEnvService
 			const instructionFileUri = URI.file('/home/testuser/.dardcor/instructions/setup.instructions.md');
 			expect(await customInstructionsService.isExternalInstructionsFile(instructionFileUri)).toBe(true);
 		});
@@ -396,7 +385,6 @@ suite('CustomInstructionsService - Skills', () => {
 			const absoluteFileUri = URI.file('/custom/instructions/setup.instructions.md');
 			expect(await customInstructionsService.isExternalInstructionsFile(absoluteFileUri)).toBe(true);
 
-			// userHome is /home/testuser in NullNativeEnvService
 			const tildeFileUri = URI.file('/home/testuser/.dardcor/instructions/setup.instructions.md');
 			expect(await customInstructionsService.isExternalInstructionsFile(tildeFileUri)).toBe(true);
 		});

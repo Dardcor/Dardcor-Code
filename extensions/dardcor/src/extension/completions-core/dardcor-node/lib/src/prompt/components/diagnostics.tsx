@@ -76,10 +76,7 @@ export const Diagnostics = (props: DiagnosticsProps, context: ComponentContext) 
 		return;
 	}
 
-	// Sort by importance, with the most important first
 	validChunks.sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0));
-	// Reverse the order so the most important snippet is last. Note, that we don't directly
-	// sort in ascending order to handle importance 0 correctly.
 	validChunks.reverse();
 
 	return validChunks.map(diagnosticBag => {
@@ -91,7 +88,6 @@ export const Diagnostics = (props: DiagnosticsProps, context: ComponentContext) 
 		);
 		let values: Diagnostic[] = diagnosticBag.values;
 		if (document !== undefined && document.uri.toString() === diagnosticBag.uri.toString() && position !== undefined) {
-			// Create a copy of the diagnostics to avoid mutating the original array in the context item in case it is used elsewhere.
 			values = diagnosticBag.values.slice();
 			values.sort((a, b) => {
 				const aDist = Math.abs(a.range.start.line - position.line);

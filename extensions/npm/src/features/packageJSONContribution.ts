@@ -108,7 +108,6 @@ export class PackageJSONContribution implements IJSONContribution {
 
 							}
 						} catch (e) {
-							// ignore
 						}
 						collector.setAsIncomplete();
 					} else {
@@ -167,7 +166,6 @@ export class PackageJSONContribution implements IJSONContribution {
 							}
 						}
 					} catch (e) {
-						// ignore
 					}
 					collector.setAsIncomplete();
 				} else {
@@ -256,8 +254,6 @@ export class PackageJSONContribution implements IJSONContribution {
 	}
 
 	private isValidNPMName(name: string): boolean {
-		// following rules from https://github.com/npm/validate-npm-package-name,
-		// leading slash added as additional security measure
 		if (!name || name.length > 214 || name.match(/^[-_.\s]/)) {
 			return false;
 		}
@@ -275,7 +271,7 @@ export class PackageJSONContribution implements IJSONContribution {
 
 	private async fetchPackageInfo(pack: string, resource: Uri | undefined): Promise<ViewPackageInfo | undefined> {
 		if (!this.isValidNPMName(pack)) {
-			return undefined; // avoid unnecessary lookups
+			return undefined;
 		}
 		let info: ViewPackageInfo | undefined;
 		let installedVersion: string | undefined;
@@ -295,20 +291,11 @@ export class PackageJSONContribution implements IJSONContribution {
 		return info;
 	}
 
-	/**
-	 * Runs an npm command and returns its stdout, or undefined if the command fails.
-	 * Sets up cwd from resource, applies corepack env vars, and handles win32 shell quoting.
-	 * Pass ignoreError=true to return stdout even when the command exits with a non-zero code.
-	 */
 	private async runNpmCommand(npmCommandPath: string, args: string[], resource: Uri | undefined): Promise<string | undefined> {
 		const cp = await import('child_process');
 		return new Promise((resolve, _reject) => {
 			const cwd = resource && resource.scheme === 'file' ? dirname(resource.fsPath) : undefined;
 
-			// corepack npm wrapper would automatically update package.json. disable that behavior.
-			// COREPACK_ENABLE_AUTO_PIN disables the package.json overwrite, and
-			// COREPACK_ENABLE_PROJECT_SPEC makes the npm view command succeed
-			//   even if packageManager specified a package manager other than npm.
 			const env = { ...process.env, COREPACK_ENABLE_AUTO_PIN: '0', COREPACK_ENABLE_PROJECT_SPEC: '0' };
 			let options: cp.ExecFileOptions = { cwd, env };
 			let commandPath: string = npmCommandPath;
@@ -336,7 +323,6 @@ export class PackageJSONContribution implements IJSONContribution {
 					homepage: content['homepage']
 				};
 			} catch (e) {
-				// ignore
 			}
 		}
 		return undefined;
@@ -359,7 +345,6 @@ export class PackageJSONContribution implements IJSONContribution {
 			};
 		}
 		catch (e) {
-			//ignore
 		}
 		return undefined;
 	}
@@ -373,7 +358,6 @@ export class PackageJSONContribution implements IJSONContribution {
 				const version = content?.dependencies?.[pack]?.version;
 				return typeof version === 'string' ? version : undefined;
 			} catch (e) {
-				// ignore
 			}
 		}
 		return undefined;

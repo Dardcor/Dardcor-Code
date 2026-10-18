@@ -23,7 +23,6 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 
 	private hasRequestedPermissiveSessionUpgrade = false;
 
-	//#region Localization
 	private _permissionRequest = l10n.t('Permission Request');
 	private _permissionRequestGrant = l10n.t('Grant');
 	private _permissionRequestNotNow = l10n.t('Not Now');
@@ -32,7 +31,6 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 	private readonly _onDidGrantAuthUpgrade = this._register(new Emitter<void>());
 	public readonly onDidGrantAuthUpgrade = this._onDidGrantAuthUpgrade.event;
 
-	//#endregion
 	constructor(
 		@IAuthenticationService private readonly _authenticationService: IAuthenticationService,
 		@IGitService private readonly gitService: IGitService,
@@ -41,7 +39,6 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 	) {
 		super();
-		// If the user signs out, reset the upgrade state
 		this._register(this._authenticationService.onDidAuthenticationChange(() => {
 			if (this._authenticationService.anyGitHubSession) {
 				this.hasRequestedPermissiveSessionUpgrade = false;
@@ -52,27 +49,22 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 	async shouldRequestPermissiveSessionUpgrade(): Promise<boolean> {
 		let reason: string = 'true';
 		try {
-			// We don't want to be annoying
 			if (this.hasRequestedPermissiveSessionUpgrade) {
 				reason = 'false - already requested';
 				return false;
 			}
-			// The user does not want to be asked
 			if (this._authenticationService.isMinimalMode) {
 				reason = 'false - minimal mode';
 				return false;
 			}
-			// We already have a permissive session
 			if (await this._authenticationService.getGitHubSession('permissive', { silent: true })) {
 				reason = 'false - already have permissive session';
 				return false;
 			}
-			// The user is not signed in at all
 			if (!(await this._authenticationService.getGitHubSession('any', { silent: true }))) {
 				reason = 'false - not signed in';
 				return false;
 			}
-			// The user has access to all repositories
 			if (await this._canAccessAllRepositories()) {
 				reason = 'false - access to all repositories';
 				return false;
@@ -100,7 +92,6 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 			});
 			return true;
 		} catch (e) {
-			// User cancelled so show the badge
 			await this._authenticationService.getGitHubSession('permissive', {});
 			return false;
 		}
@@ -117,7 +108,6 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 		stream.confirmation(
 			this._permissionRequest,
 			detail || l10n.t('To get more relevant Chat results, we need permission to read the contents of your repository on GitHub.'),
-			// TODO: Change this shape to include request via a dedicated field
 			{ authPermissionPrompted: true, ...data, context },
 			[
 				this._permissionRequestGrant,
@@ -140,7 +130,6 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 					await this._authenticationService.getGitHubSession('permissive', { createIfNone: { detail: l10n.t('Sign in to GitHub with additional permissions for enhanced features.') } });
 					this._onDidGrantAuthUpgrade.fire();
 				} catch (e) {
-					// User cancelled so show the badge
 					await this._authenticationService.getGitHubSession('permissive', {});
 				}
 				break;
@@ -152,15 +141,12 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 			case `${this._permissionRequestNeverAskAgain}: "${this._permissionRequest}"`:
 				this.logService.trace('User chose never ask again for permission');
 				await this.configurationService.setConfig(ConfigKey.Shared.AuthPermissions, AuthPermissionMode.Minimal);
-				// Change this back to false to handle if the user changes back to allowing permissive tokens.
 				this.hasRequestedPermissiveSessionUpgrade = false;
 				stream.markdown(l10n.t('Ok. I saved this decision to the `{0}` setting', ConfigKey.Shared.AuthPermissions.fullyQualifiedId) + '\n\n');
 				break;
 		}
 
 		const previousRequest = findLast(history, item => item instanceof ChatRequestTurn) as ChatRequestTurn | undefined;
-		// Simple types can be used from the findConfirmationRequested request. Classes will have been serialized and not deserialized into class instances.
-		// Props that exist on the history entry are used, otherwise fall back to either the current request or the saved request.
 		if (previousRequest) {
 			return {
 				prompt: previousRequest.prompt,
@@ -182,7 +168,6 @@ export class AuthenticationChatUpgradeService extends Disposable implements IAut
 				hasHooksEnabled: request.hasHooksEnabled,
 			};
 		} else {
-			// Something went wrong, history item was deleted or lost?
 			return {
 				prompt: findConfirmationRequested.prompt,
 				command: findConfirmationRequested.command,

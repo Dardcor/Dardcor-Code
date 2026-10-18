@@ -32,20 +32,16 @@ suite('NpmScriptAutoApprover', () => {
 	let fileService: FileService;
 	let fileSystemProvider: InMemoryFileSystemProvider;
 
-	// Use inMemory scheme to avoid platform-specific path issues
 	const cwd = URI.from({ scheme: Schemas.inMemory, path: '/workspace/project' });
 
 	setup(async () => {
 		fileService = store.add(new FileService(new NullLogService()));
 
-		// Register file: scheme provider for tree-sitter WASM grammar loading
 		store.add(fileService.registerProvider(Schemas.file, new TestIPCFileSystemProvider()));
 
-		// Register inMemory: scheme provider for test package.json files
 		fileSystemProvider = store.add(new InMemoryFileSystemProvider());
 		store.add(fileService.registerProvider(Schemas.inMemory, fileSystemProvider));
 
-		// Create workspace directory structure
 		await fileService.createFolder(cwd);
 
 		configurationService = new TestConfigurationService();
@@ -61,10 +57,8 @@ suite('NpmScriptAutoApprover', () => {
 
 		approver = store.add(instantiationService.createInstance(NpmScriptAutoApprover));
 
-		// Enable npm script auto-approve by default for tests
 		configurationService.setUserConfiguration(TerminalChatAgentToolsSettingId.AutoApproveWorkspaceNpmScripts, true);
 
-		// Setup workspace
 		const workspace = new Workspace('test', [toWorkspaceFolder(cwd)]);
 		workspaceContextService.setWorkspace(workspace);
 	});
@@ -94,7 +88,6 @@ suite('NpmScriptAutoApprover', () => {
 		test('npm run lint - script exists', () => t('npm run lint', { lint: 'eslint .' }, true));
 		test('npm run-script build - script exists', () => t('npm run-script build', { build: 'tsc' }, true));
 
-		// npm shorthand commands (npm test, npm start, npm stop, npm restart)
 		test('npm test - shorthand script exists', () => t('npm test', { test: 'jest' }, true));
 		test('npm start - shorthand script exists', () => t('npm start', { start: 'node index.js' }, true));
 		test('npm stop - shorthand script exists', () => t('npm stop', { stop: 'pkill node' }, true));
@@ -104,7 +97,6 @@ suite('NpmScriptAutoApprover', () => {
 		test('npm startevil - word boundary prevents match', () => t('npm startevil', { start: 'node index.js', startevil: 'evil' }, false));
 		test('npm install - built-in command, not a script', () => t('npm install', { install: 'echo should not match' }, false));
 
-		// Scripts with colons (namespaced scripts)
 		test('npm run build:prod - script with colon exists', () => t('npm run build:prod', { 'build:prod': 'tsc --build' }, true));
 		test('npm run test:unit - script with colon exists', () => t('npm run test:unit', { 'test:unit': 'jest --testPathPattern=unit' }, true));
 		test('npm run lint:fix - script with colon exists', () => t('npm run lint:fix', { 'lint:fix': 'eslint . --fix' }, true));
@@ -123,11 +115,9 @@ suite('NpmScriptAutoApprover', () => {
 		test('yarn run build - script exists', () => t('yarn run build', { build: 'tsc' }, true));
 		test('yarn run test - script exists', () => t('yarn run test', { test: 'jest' }, true));
 
-		// Yarn shorthand (yarn <script>)
 		test('yarn build - script exists (shorthand)', () => t('yarn build', { build: 'tsc' }, true));
 		test('yarn test - script exists (shorthand)', () => t('yarn test', { test: 'jest' }, true));
 
-		// Yarn built-in commands should not match
 		test('yarn install - built-in command, not a script', () => t('yarn install', { install: 'echo should not match' }, false));
 		test('yarn add - built-in command, not a script', () => t('yarn add lodash', { add: 'echo should not match' }, false));
 
@@ -138,11 +128,9 @@ suite('NpmScriptAutoApprover', () => {
 		test('pnpm run build - script exists', () => t('pnpm run build', { build: 'tsc' }, true));
 		test('pnpm run test - script exists', () => t('pnpm run test', { test: 'jest' }, true));
 
-		// pnpm shorthand (pnpm <script>)
 		test('pnpm build - script exists (shorthand)', () => t('pnpm build', { build: 'tsc' }, true));
 		test('pnpm test - script exists (shorthand)', () => t('pnpm test', { test: 'jest' }, true));
 
-		// pnpm built-in commands should not match
 		test('pnpm install - built-in command, not a script', () => t('pnpm install', { install: 'echo should not match' }, false));
 		test('pnpm add - built-in command, not a script', () => t('pnpm add lodash', { add: 'echo should not match' }, false));
 
@@ -189,7 +177,6 @@ suite('NpmScriptAutoApprover', () => {
 
 	suite('workspace folder security', () => {
 		test('cwd outside workspace - does not auto-approve', async () => {
-			// Create package.json outside workspace
 			const outsideCwd = URI.from({ scheme: Schemas.inMemory, path: '/outside/project' });
 			await fileService.createFolder(outsideCwd);
 			const outsidePackageJsonUri = URI.joinPath(outsideCwd, 'package.json');

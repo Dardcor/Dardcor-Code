@@ -11,7 +11,6 @@ const ANY_PROFILE_NAME = '^((?!JavaScript Debug Terminal).)*$';
 
 export function setup(options?: { skipSuite: boolean }) {
 	(options?.skipSuite ? describe.skip : describe)('Terminal Profiles', () => {
-		// Acquire automation API
 		let terminal: Terminal;
 		let settingsEditor: SettingsEditor;
 
@@ -31,8 +30,6 @@ export function setup(options?: { skipSuite: boolean }) {
 			await terminal.assertSingleTab({ name: ANY_PROFILE_NAME });
 		});
 
-		// This test alone fails in web & remote smoke tests with the introduction of dialogs showing
-		// in smoke tests. It's likely due to the other changes in this commit in the terminal service.
 		it.skip('should set the default profile to a contributed one', async () => {
 			await terminal.runCommandWithValue(TerminalCommandIdWithValue.SelectDefaultProfile, CONTRIBUTED_PROFILE_NAME);
 			await terminal.createTerminal();

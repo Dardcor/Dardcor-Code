@@ -42,7 +42,6 @@ export class BuiltinExtensionsScannerService implements IBuiltinExtensionsScanne
 	) {
 		if (isWeb) {
 			const nlsBaseUrl = productService.extensionsGallery?.nlsBaseUrl;
-			// Only use the nlsBaseUrl if we are using a language other than the default, English.
 			if (nlsBaseUrl && productService.commit && !Language.isDefaultVariant()) {
 				this.nlsUrl = URI.joinPath(URI.parse(nlsBaseUrl), productService.commit, productService.version, Language.value());
 			}
@@ -52,17 +51,15 @@ export class BuiltinExtensionsScannerService implements IBuiltinExtensionsScanne
 				let bundledExtensions: IBundledExtension[] = [];
 
 				if (environmentService.isBuilt) {
-					// Built time configuration (do NOT modify)
-					bundledExtensions = [/*BUILD->INSERT_BUILTIN_EXTENSIONS*/];
+					bundledExtensions = [];
 				} else {
-					// Find builtin extensions by checking for DOM
 					// eslint-disable-next-line no-restricted-syntax
 					const builtinExtensionsElement = mainWindow.document.getElementById('vscode-workbench-builtin-extensions');
 					const builtinExtensionsElementAttribute = builtinExtensionsElement ? builtinExtensionsElement.getAttribute('data-settings') : undefined;
 					if (builtinExtensionsElementAttribute) {
 						try {
 							bundledExtensions = JSON.parse(builtinExtensionsElementAttribute);
-						} catch (error) { /* ignore error*/ }
+						} catch (error) { }
 					}
 				}
 
@@ -94,7 +91,6 @@ export class BuiltinExtensionsScannerService implements IBuiltinExtensionsScanne
 		if (!this.nlsUrl) {
 			return localizeManifest(this.logService, manifest, fallbackTranslations);
 		}
-		// the `package` endpoint returns the translations in a key-value format similar to the package.nls.json file.
 		const uri = URI.joinPath(this.nlsUrl, extensionId, 'package');
 		try {
 			const res = await this.extensionResourceLoaderService.readExtensionResource(uri);

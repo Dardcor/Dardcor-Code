@@ -17,9 +17,6 @@ suite('claudeToolDenial', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('claudeToolDenialCode classifies every known deny message and nothing else', () => {
-		// Each known deny `message` returned from `canUseTool` maps to its
-		// cancellation code; any other (genuine tool-error) message stays
-		// unclassified so telemetry reports `error` rather than `userCancelled`.
 		const classified = {
 			userDeclined: claudeToolDenialCode(CLAUDE_USER_DECLINED_MESSAGE),
 			planDeclined: claudeToolDenialCode(CLAUDE_PLAN_DECLINED_MESSAGE),

@@ -11,7 +11,7 @@ function splitUriList(str: string): string[] {
 
 function parseUriList(str: string): string[] {
 	return splitUriList(str)
-		.filter(value => !value.startsWith('#')) // Remove comments
+		.filter(value => !value.startsWith('#'))
 		.map(value => value.trim());
 }
 
@@ -22,7 +22,6 @@ export class UriList {
 			try {
 				return { uri: vscode.Uri.parse(line), str: line };
 			} catch {
-				// Uri parse failure
 				return undefined;
 			}
 		})));

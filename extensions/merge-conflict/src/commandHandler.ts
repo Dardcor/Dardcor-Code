@@ -84,11 +84,9 @@ export default class CommandHandler implements vscode.Disposable {
 
 	async compare(editor: vscode.TextEditor, conflict: interfaces.IDocumentMergeConflict | null) {
 
-		// No conflict, command executed from command palette
 		if (!conflict) {
 			conflict = await this.findConflictContainingSelection(editor);
 
-			// Still failed to find conflict, warn the user and exit
 			if (!conflict) {
 				vscode.window.showWarningMessage(vscode.l10n.t("Editor cursor is not within a merge conflict"));
 				return;
@@ -97,7 +95,6 @@ export default class CommandHandler implements vscode.Disposable {
 
 		const conflicts = await this.tracker.getConflicts(editor.document);
 
-		// Still failed to find conflict, warn the user and exit
 		if (!conflicts) {
 			vscode.window.showWarningMessage(vscode.l10n.t("Editor cursor is not within a merge conflict"));
 			return;
@@ -131,7 +128,7 @@ export default class CommandHandler implements vscode.Disposable {
 		);
 
 		const docPath = editor.document.uri.path;
-		const fileName = docPath.substring(docPath.lastIndexOf('/') + 1); // avoid NodeJS path to keep browser webpack small
+		const fileName = docPath.substring(docPath.lastIndexOf('/') + 1);
 		const title = vscode.l10n.t("{0}: Current Changes ↔ Incoming Changes", fileName);
 		const mergeConflictConfig = vscode.workspace.getConfiguration('merge-conflict');
 		const openToTheSide = mergeConflictConfig.get<string>('diffViewPosition');
@@ -170,11 +167,6 @@ export default class CommandHandler implements vscode.Disposable {
 			tokenAfterCurrentBlock = conflict.commonAncestors[0].header;
 		}
 
-		// Figure out if the cursor is in current or incoming, we do this by seeing if
-		// the active position is before or after the range of the splitter or common
-		// ancestors marker. We can use this trick as the previous check in
-		// findConflictByActiveSelection will ensure it's within the conflict range, so
-		// we don't falsely identify "current" or "incoming" if outside of a conflict range.
 		if (editor.selection.active.isBefore(tokenAfterCurrentBlock.start)) {
 			typeToAccept = interfaces.CommitType.Current;
 		}
@@ -203,7 +195,6 @@ export default class CommandHandler implements vscode.Disposable {
 		const navigationResult = await this.findConflictForNavigation(editor, direction);
 
 		if (!navigationResult) {
-			// Check for autoNavigateNextConflict, if it's enabled(which indicating no conflict remain), then do not show warning
 			const mergeConflictConfig = vscode.workspace.getConfiguration('merge-conflict');
 			if (mergeConflictConfig.get<boolean>('autoNavigateNextConflict.enabled')) {
 				return;
@@ -216,11 +207,9 @@ export default class CommandHandler implements vscode.Disposable {
 			return;
 		}
 		else if (!navigationResult.conflict) {
-			// TODO: Show error message?
 			return;
 		}
 
-		// Move the selection to the first line of the conflict
 		editor.selection = new vscode.Selection(navigationResult.conflict.range.start, navigationResult.conflict.range.start);
 		editor.revealRange(navigationResult.conflict.range, vscode.TextEditorRevealType.Default);
 	}
@@ -229,12 +218,10 @@ export default class CommandHandler implements vscode.Disposable {
 
 		let conflict: interfaces.IDocumentMergeConflict | null;
 
-		// If launched with known context, take the conflict from that
 		if (args[0] === 'known-conflict') {
 			conflict = args[1];
 		}
 		else {
-			// Attempt to find a conflict that matches the current cursor position
 			conflict = await this.findConflictContainingSelection(editor);
 		}
 
@@ -243,11 +230,9 @@ export default class CommandHandler implements vscode.Disposable {
 			return;
 		}
 
-		// Tracker can forget as we know we are going to do an edit
 		this.tracker.forget(editor.document);
 		conflict.commitEdit(type, editor);
 
-		// navigate to the next merge conflict
 		const mergeConflictConfig = vscode.workspace.getConfiguration('merge-conflict');
 		if (mergeConflictConfig.get<boolean>('autoNavigateNextConflict.enabled')) {
 			this.navigateNext(editor);
@@ -263,10 +248,8 @@ export default class CommandHandler implements vscode.Disposable {
 			return;
 		}
 
-		// For get the current state of the document, as we know we are doing to do a large edit
 		this.tracker.forget(editor.document);
 
-		// Apply all changes as one edit
 		await editor.edit((edit) => conflicts.forEach(conflict => {
 			conflict.applyEdit(type, editor.document, edit);
 		}));
@@ -282,10 +265,8 @@ export default class CommandHandler implements vscode.Disposable {
 				continue;
 			}
 
-			// For get the current state of the document, as we know we are doing to do a large edit
 			this.tracker.forget(document);
 
-			// Apply all changes as one edit
 			conflicts.forEach(conflict => {
 				conflict.applyEdit(type, document, { replace: (range, newText) => edit.replace(document.uri, range, newText) });
 			});
@@ -360,7 +341,6 @@ export default class CommandHandler implements vscode.Disposable {
 			}
 		}
 
-		// Went all the way to the end, return the head
 		return {
 			canNavigate: true,
 			conflict: fallback()

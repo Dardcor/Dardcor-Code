@@ -94,7 +94,6 @@ export class SimulationOutcomeImpl implements ISimulationOutcome {
 
 	public async write(): Promise<void> {
 		for (const [category, entries] of this.outcome) {
-			// When running a subset of tests, we will copy over the old existing test results for tests that were not executed
 			const filePath = path.join(outcomePath, this._getCategoryFilename(category));
 
 			if (!this._runningAllTests) {
@@ -121,7 +120,6 @@ export class SimulationOutcomeImpl implements ISimulationOutcome {
 			entries.sort((a, b) => a.name.localeCompare(b.name));
 			await fs.promises.writeFile(filePath, JSON.stringify(entries, undefined, '\t'));
 		}
-		// console.log(this.outcome);
 	}
 
 	private _getCategoryFilename(category: string): string {
@@ -129,7 +127,6 @@ export class SimulationOutcomeImpl implements ISimulationOutcome {
 	}
 
 	public async cleanFolder(): Promise<void> {
-		// Clean the outcome folder
 		const names = await fs.promises.readdir(outcomePath);
 		const entries = new Set(names.filter(name => name.endsWith('.json')));
 		for (const [category, _] of this.outcome) {

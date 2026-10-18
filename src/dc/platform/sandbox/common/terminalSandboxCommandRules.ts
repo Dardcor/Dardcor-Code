@@ -15,9 +15,7 @@ export interface ITerminalSandboxCommandRule<T> {
 	readonly value: T;
 	readonly subcommands?: readonly string[];
 	readonly optionsWithValue?: ReadonlySet<string>;
-	/** Context-wide guard for rules, such as OS-specific sandbox capabilities. */
 	readonly condition?: (context: ITerminalSandboxCommandRuleContext) => boolean;
-	/** Command-specific guard for argument-sensitive rules. */
 	readonly when?: (command: ITerminalSandboxCommand) => boolean;
 }
 

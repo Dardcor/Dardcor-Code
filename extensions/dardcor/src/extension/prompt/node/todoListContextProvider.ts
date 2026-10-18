@@ -61,7 +61,6 @@ export class TodoListContextProvider implements ITodoListContextProvider {
 				CancellationToken.None
 			);
 		} catch (error) {
-			// Ignore failures when clearing the todo context
 		}
 	}
 

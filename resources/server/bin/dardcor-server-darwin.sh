@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-#
 # Copyright (c) Dardcor Corporation. All rights reserved.
-#
 
 case "$1" in
 	--inspect*) INSPECT="$1"; shift;;

@@ -69,7 +69,6 @@ const domEval = (container: Element) => {
 			}
 		}
 
-		// TODO@connor4312: should script with src not be removed?
 		container.appendChild(scriptTag).parentNode!.removeChild(scriptTag);
 	}
 };
@@ -239,8 +238,6 @@ function createMinimalError(errorLocation: string | undefined, headerMessage: st
 	function addButton(linkElement: HTMLElement) {
 		const button = document.createElement('li');
 		button.appendChild(linkElement);
-		// the :hover css selector doesn't work in the webview,
-		// so we need to add the hover class manually
 		button.onmouseover = function () {
 			button.classList.add('hover');
 		};
@@ -305,12 +302,10 @@ function onKeypressHandler(e: KeyboardEvent) {
 	if (e.code === 'ArrowDown' || e.code === 'ArrowUp' ||
 		e.code === 'End' || e.code === 'Home' ||
 		e.code === 'PageUp' || e.code === 'PageDown') {
-		// These should change the scroll position, not adjust the selected cell in the notebook
 		e.stopPropagation();
 	}
 }
 
-// if there is a scrollable output, it will be scrolled to the given value if provided or the bottom of the element
 function initializeScroll(scrollableElement: HTMLElement, disposables: DisposableStore, scrollTop?: number) {
 	if (scrollableElement.classList.contains(scrollableClass)) {
 		const scrollbarVisible = scrollableElement.scrollHeight > scrollableElement.clientHeight;
@@ -325,11 +320,9 @@ function initializeScroll(scrollableElement: HTMLElement, disposables: Disposabl
 	}
 }
 
-// Find the scrollTop of the existing scrollable output, return undefined if at the bottom or element doesn't exist
 function findScrolledHeight(container: HTMLElement): number | undefined {
 	const scrollableElement = container.querySelector('.' + scrollableClass);
 	if (scrollableElement && scrollableElement.scrollHeight - scrollableElement.scrollTop - scrollableElement.clientHeight > 2) {
-		// not scrolled to the bottom
 		return scrollableElement.scrollTop;
 	}
 	return undefined;
@@ -342,11 +335,6 @@ function scrollingEnabled(output: OutputItem, options: RenderOptions) {
 		metadata.scrollable : options.outputScrolling;
 }
 
-//  div.cell_container
-//    div.output_container
-//      div.output.output-stream		<-- outputElement parameter
-//        div.scrollable? tabindex="0" 	<-- contentParent
-//          div output-item-id="{guid}"	<-- content from outputItem parameter
 function renderStream(outputInfo: OutputWithAppend, outputElement: HTMLElement, error: boolean, ctx: IRichRenderContext): IDisposable {
 	const disposableStore = createDisposableStore();
 	const outputScrolling = scrollingEnabled(outputInfo, ctx.settings);
@@ -357,7 +345,6 @@ function renderStream(outputInfo: OutputWithAppend, outputElement: HTMLElement, 
 	const scrollTop = outputScrolling ? findScrolledHeight(outputElement) : undefined;
 
 	const previousOutputParent = getPreviousMatchingContentGroup(outputElement);
-	// If the previous output item for the same cell was also a stream, append this output to the previous
 	if (previousOutputParent) {
 		const existingContent = previousOutputParent.querySelector(`[output-item-id="${outputInfo.id}"]`) as HTMLElement | null;
 		if (existingContent) {

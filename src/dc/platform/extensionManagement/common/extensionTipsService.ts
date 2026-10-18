@@ -23,7 +23,6 @@ import { ExtensionType } from '../../extensions/common/extensions.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 
-//#region Base Extension Tips Service
 
 export class ExtensionTipsService extends Disposable implements IExtensionTipsService {
 
@@ -73,15 +72,13 @@ export class ExtensionTipsService extends Disposable implements IExtensionTipsSe
 						});
 					}
 				}
-			} catch (error) { /* Ignore */ }
+			} catch (error) { }
 		}
 		return result;
 	}
 }
 
-//#endregion
 
-//#region Native Extension Tips Service (enables unit testing having it here in "common")
 
 type ExeExtensionRecommendationsClassification = {
 	owner: 'sandy081';
@@ -150,10 +147,6 @@ export abstract class AbstractNativeExtensionTipsService extends ExtensionTipsSe
 			});
 		}
 
-		/*
-			3s has come out to be the good number to fetch and prompt important exe based recommendations
-			Also fetch important exe based recommendations for reporting telemetry
-		*/
 		disposableTimeout(async () => {
 			await this.collectTips();
 			this.promptHighImportanceExeBasedTip();
@@ -186,7 +179,6 @@ export abstract class AbstractNativeExtensionTipsService extends ExtensionTipsSe
 
 		const { installed, uninstalled: recommendations } = this.groupByInstalled([...importantExeBasedRecommendations.keys()], local);
 
-		/* Log installed and uninstalled exe based recommendations */
 		for (const extensionId of installed) {
 			const tip = importantExeBasedRecommendations.get(extensionId);
 			if (tip) {
@@ -217,9 +209,6 @@ export abstract class AbstractNativeExtensionTipsService extends ExtensionTipsSe
 		return tipsByExe;
 	}
 
-	/**
-	 * High importance tips are prompted once per restart session
-	 */
 	private promptHighImportanceExeBasedTip(): void {
 		if (this.highImportanceTipsByExe.size === 0) {
 			return;
@@ -236,24 +225,19 @@ export abstract class AbstractNativeExtensionTipsService extends ExtensionTipsSe
 						this.highImportanceTipsByExe.delete(exeName);
 						break;
 					case RecommendationsNotificationResult.IncompatibleWindow: {
-						// Recommended in incompatible window. Schedule the prompt after active window change
 						const onActiveWindowChange = Event.once(Event.latch(Event.any(this.windowEvents.onDidOpenMainWindow, this.windowEvents.onDidFocusMainWindow)));
 						this._register(onActiveWindowChange(() => this.promptHighImportanceExeBasedTip()));
 						break;
 					}
 					case RecommendationsNotificationResult.TooMany: {
-						// Too many notifications. Schedule the prompt after one hour
 						const disposable = this._register(new MutableDisposable());
-						disposable.value = disposableTimeout(() => { disposable.dispose(); this.promptHighImportanceExeBasedTip(); }, 60 * 60 * 1000 /* 1 hour */);
+						disposable.value = disposableTimeout(() => { disposable.dispose(); this.promptHighImportanceExeBasedTip(); }, 60 * 60 * 1000 );
 						break;
 					}
 				}
 			});
 	}
 
-	/**
-	 * Medium importance tips are prompted once per 7 days
-	 */
 	private promptMediumImportanceExeBasedTip(): void {
 		if (this.mediumImportanceTipsByExe.size === 0) {
 			return;
@@ -261,9 +245,8 @@ export abstract class AbstractNativeExtensionTipsService extends ExtensionTipsSe
 
 		const lastPromptedMediumExeTime = this.getLastPromptedMediumExeTime();
 		const timeSinceLastPrompt = Date.now() - lastPromptedMediumExeTime;
-		const promptInterval = 7 * 24 * 60 * 60 * 1000; // 7 Days
+		const promptInterval = 7 * 24 * 60 * 60 * 1000;
 		if (timeSinceLastPrompt < promptInterval) {
-			// Wait until interval and prompt
 			const disposable = this._register(new MutableDisposable());
 			disposable.value = disposableTimeout(() => { disposable.dispose(); this.promptMediumImportanceExeBasedTip(); }, promptInterval - timeSinceLastPrompt);
 			return;
@@ -274,32 +257,27 @@ export abstract class AbstractNativeExtensionTipsService extends ExtensionTipsSe
 			.then(result => {
 				switch (result) {
 					case RecommendationsNotificationResult.Accepted: {
-						// Accepted: Update the last prompted time and caches.
 						this.updateLastPromptedMediumExeTime(Date.now());
 						this.mediumImportanceTipsByExe.delete(exeName);
 						this.addToRecommendedExecutables(tips[0].exeName, tips);
 
-						// Schedule the next recommendation for next internval
 						const disposable1 = this._register(new MutableDisposable());
 						disposable1.value = disposableTimeout(() => { disposable1.dispose(); this.promptMediumImportanceExeBasedTip(); }, promptInterval);
 						break;
 					}
 					case RecommendationsNotificationResult.Ignored:
-						// Ignored: Remove from the cache and prompt next recommendation
 						this.mediumImportanceTipsByExe.delete(exeName);
 						this.promptMediumImportanceExeBasedTip();
 						break;
 
 					case RecommendationsNotificationResult.IncompatibleWindow: {
-						// Recommended in incompatible window. Schedule the prompt after active window change
 						const onActiveWindowChange = Event.once(Event.latch(Event.any(this.windowEvents.onDidOpenMainWindow, this.windowEvents.onDidFocusMainWindow)));
 						this._register(onActiveWindowChange(() => this.promptMediumImportanceExeBasedTip()));
 						break;
 					}
 					case RecommendationsNotificationResult.TooMany: {
-						// Too many notifications. Schedule the prompt after one hour
 						const disposable2 = this._register(new MutableDisposable());
-						disposable2.value = disposableTimeout(() => { disposable2.dispose(); this.promptMediumImportanceExeBasedTip(); }, 60 * 60 * 1000 /* 1 hour */);
+						disposable2.value = disposableTimeout(() => { disposable2.dispose(); this.promptMediumImportanceExeBasedTip(); }, 60 * 60 * 1000 );
 						break;
 					}
 				}
@@ -401,4 +379,3 @@ export abstract class AbstractNativeExtensionTipsService extends ExtensionTipsSe
 	}
 }
 
-//#endregion

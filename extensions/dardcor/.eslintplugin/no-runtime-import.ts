@@ -40,7 +40,6 @@ export default new class implements eslint.Rule.RuleModule {
 
 		const matchingKey = Object.keys(ruleArgs).find(key => fileRelativePath.startsWith(key) || picomatch(key)(fileRelativePath));
 		if (!matchingKey) {
-			// nothing
 			return {};
 		}
 
@@ -52,7 +51,7 @@ export default new class implements eslint.Rule.RuleModule {
 
 			if (restrictedImports.includes(path) && !(
 				(node.parent?.type === TSESTree.AST_NODE_TYPES.ImportDeclaration && node.parent.importKind === 'type') ||
-				(node.parent && 'exportKind' in node.parent && node.parent.exportKind === 'type'))) { // the export could be multiple types
+				(node.parent && 'exportKind' in node.parent && node.parent.exportKind === 'type'))) {
 				context.report({
 					loc: node.parent!.loc,
 					messageId: 'layerbreaker',

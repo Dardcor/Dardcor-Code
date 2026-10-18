@@ -16,17 +16,11 @@ export class IMEImpl {
 		return this._enabled;
 	}
 
-	/**
-	 * Enable IME
-	 */
 	public enable(): void {
 		this._enabled = true;
 		this._onDidChange.fire();
 	}
 
-	/**
-	 * Disable IME
-	 */
 	public disable(): void {
 		this._enabled = false;
 		this._onDidChange.fire();

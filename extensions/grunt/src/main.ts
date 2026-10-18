@@ -152,17 +152,6 @@ class FolderDetector {
 			}
 			const result: vscode.Task[] = [];
 			if (stdout) {
-				// grunt lists tasks as follows (description is wrapped into a new line if too long):
-				// ...
-				// Available tasks
-				//         uglify  Minify files with UglifyJS. *
-				//         jshint  Validate files with JSHint. *
-				//           test  Alias for "jshint", "qunit" tasks.
-				//        default  Alias for "jshint", "qunit", "concat", "uglify" tasks.
-				//           long  Alias for "eslint", "qunit", "browserify", "sass",
-				//                 "autoprefixer", "uglify", tasks.
-				//
-				// Tasks run in the order specified
 
 				const lines = stdout.split(/\r{0,1}\n/);
 				let tasksStart = false;

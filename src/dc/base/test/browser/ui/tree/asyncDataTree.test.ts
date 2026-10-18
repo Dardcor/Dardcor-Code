@@ -49,7 +49,6 @@ class Renderer implements ICompressibleTreeRenderer<Element, void, HTMLElement> 
 		templateData.textContent = element.element.id + (element.element.suffix || '');
 	}
 	disposeTemplate(templateData: HTMLElement): void {
-		// noop
 	}
 	renderCompressedElements(node: ITreeNode<ICompressedTreeNode<Element>, void>, index: number, templateData: HTMLElement): void {
 		const result: string[] = [];
@@ -448,7 +447,7 @@ suite('AsyncDataTree', function () {
 		tree.layout(200);
 
 		const pSetInput = tree.setInput(model.root);
-		calls.pop()!(); // resolve getChildren(root)
+		calls.pop()!();
 		await pSetInput;
 
 		const pUpdateChildrenA = tree.updateChildren(model.get('a'));
@@ -492,7 +491,7 @@ suite('AsyncDataTree', function () {
 			tree.layout(200);
 
 			const pSetInput = tree.setInput(model.root);
-			calls.pop()!(); // resolve getChildren(root)
+			calls.pop()!();
 			await pSetInput;
 
 			const pExpandA = tree.expand(model.get('a'));
@@ -752,7 +751,6 @@ suite('AsyncDataTree', function () {
 		await tree.expand(model.get('ca'));
 		await tree.expand(model.get('cb'));
 
-		// Only the first 10 elements are rendered (total height is 200px, each element is 20px)
 		assert.deepStrictEqual(Array.from(container.querySelectorAll('.monaco-list-row')).map(e => e.textContent), ['a', 'aa', 'aa.txt', 'ab', 'ab.txt', 'b', 'ba', 'ba.txt', 'bb', 'bb.txt']);
 
 		assert.strictEqual(tree.navigate().first()?.id, 'a');
@@ -830,7 +828,6 @@ suite('AsyncDataTree', function () {
 		await tree.expand(model.get('ca'));
 		await tree.expand(model.get('cb'));
 
-		// Only the first 10 elements are rendered (total height is 200px, each element is 20px)
 		assert.deepStrictEqual(Array.from(container.querySelectorAll('.monaco-list-row')).map(e => e.textContent), ['a/aa', 'aa.txt', 'b/ba', 'ba.txt', 'c', 'ca', 'ca.txt', 'cb', 'cb.txt']);
 
 		assert.strictEqual(tree.navigate().first()?.id, 'aa');

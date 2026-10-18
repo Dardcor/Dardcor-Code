@@ -40,7 +40,6 @@ export function getRealAndSyntheticDocumentFormattersOrdered(
 	const result: DocumentFormattingEditProvider[] = [];
 	const seen = new ExtensionIdentifierSet();
 
-	// (1) add all document formatter
 	const docFormatter = documentFormattingEditProvider.ordered(model);
 	for (const formatter of docFormatter) {
 		result.push(formatter);
@@ -49,7 +48,6 @@ export function getRealAndSyntheticDocumentFormattersOrdered(
 		}
 	}
 
-	// (2) add all range formatter as document formatter (unless the same extension already did that)
 	const rangeFormatter = documentRangeFormattingEditProvider.ordered(model);
 	for (const formatter of rangeFormatter) {
 		if (formatter.extensionId) {
@@ -147,7 +145,6 @@ export async function formatDocumentRangesWithProvider(
 		cts = new TextModelCancellationTokenSource(editorOrModel, token);
 	}
 
-	// make sure that ranges don't overlap nor touch each other
 	const ranges: Range[] = [];
 	let len = 0;
 	for (const range of asArray(rangeOrRanges).sort(Range.compareRangesUsingStarts)) {
@@ -177,12 +174,10 @@ export async function formatDocumentRangesWithProvider(
 		if (!a.length || !b.length) {
 			return false;
 		}
-		// quick exit if the list of ranges are completely unrelated [O(n)]
 		const mergedA = a.reduce((acc, val) => { return Range.plusRange(acc, val.range); }, a[0].range);
 		if (!b.some(x => { return Range.intersectRanges(mergedA, x.range); })) {
 			return false;
 		}
-		// fallback to a complete check [O(n^2)]
 		for (const edit of a) {
 			for (const otherEdit of b) {
 				if (Range.intersectRanges(edit.range, otherEdit.range)) {
@@ -221,7 +216,6 @@ export async function formatDocumentRangesWithProvider(
 						return true;
 					}
 					if (hasIntersectingEdit(rawEditsList[i], rawEditsList[j])) {
-						// Merge ranges i and j into a single range, recompute the associated edits
 						const mergedRange = Range.plusRange(ranges[i], ranges[j]);
 						const edits = await computeEdits(mergedRange);
 						ranges.splice(j, 1);
@@ -230,7 +224,6 @@ export async function formatDocumentRangesWithProvider(
 						rawEditsList.splice(j, 1);
 						rawEditsList.splice(i, 1);
 						rawEditsList.push(edits);
-						// Restart scanning
 						i = 0;
 						j = 0;
 					}
@@ -260,12 +253,10 @@ export async function formatDocumentRangesWithProvider(
 	}
 
 	if (isCodeEditor(editorOrModel)) {
-		// use editor to apply edits
 		FormattingEdit.execute(editorOrModel, allEdits, true);
 		editorOrModel.revealPositionInCenterIfOutsideViewport(editorOrModel.getPosition(), ScrollType.Immediate);
 
 	} else {
-		// use model to apply edits
 		const [{ range }] = allEdits;
 		const initialSelection = new Selection(range.startLineNumber, range.startColumn, range.endLineNumber, range.endColumn);
 		model.pushEditOperations([initialSelection], allEdits.map(edit => {
@@ -351,7 +342,6 @@ export async function formatDocumentWithProvider(
 	}
 
 	if (isCodeEditor(editorOrModel)) {
-		// use editor to apply edits
 		FormattingEdit.execute(editorOrModel, edits, mode !== FormattingMode.Silent);
 
 		if (mode !== FormattingMode.Silent) {
@@ -359,7 +349,6 @@ export async function formatDocumentWithProvider(
 		}
 
 	} else {
-		// use model to apply edits
 		const [{ range }] = edits;
 		const initialSelection = new Selection(range.startLineNumber, range.startColumn, range.endLineNumber, range.endColumn);
 		model.pushEditOperations([initialSelection], edits.map(edit => {

@@ -67,12 +67,10 @@ pub struct ServeParams {
 	pub commit_id: Option<String>,
 	pub quality: Quality,
 	pub extensions: Vec<String>,
-	/// Optional preferred connection token.
 	#[serde(default)]
 	pub connection_token: Option<String>,
 	#[serde(default)]
 	pub use_local_download: bool,
-	/// If true, the client and server should gzip servermsg's sent in either direction.
 	#[serde(default)]
 	pub compress: bool,
 }
@@ -135,7 +133,6 @@ pub struct GetEnvResponse {
 	pub os_release: String,
 }
 
-/// Method: `kill`. Sends a generic, platform-specific kill command to the process.
 #[derive(Deserialize)]
 pub struct SysKillRequest {
 	pub pid: u32,
@@ -146,15 +143,6 @@ pub struct SysKillResponse {
 	pub success: bool,
 }
 
-/// Methods: `fs_read`/`fs_write`/`fs_rm`/`fs_mkdirp`/`fs_stat`
-///  - fs_read: reads into a stream returned from the method,
-///  - fs_write: writes from a stream passed to the method.
-///  - fs_rm: recursively removes the file
-///  - fs_mkdirp: recursively creates the directory
-///  - fs_readdir: reads directory contents
-///  - fs_stat: stats the given path
-///  - fs_connect: connect to the given unix or named pipe socket, streaming
-///    data in and out from the method's stream.
 #[derive(Deserialize)]
 pub struct FsSinglePathRequest {
 	pub path: String,
@@ -204,14 +192,12 @@ pub struct FsReadDirEntry {
 	pub kind: Option<FsFileKind>,
 }
 
-/// Method: `fs_reaname`. Renames a file.
 #[derive(Deserialize)]
 pub struct FsRenameRequest {
 	pub from_path: String,
 	pub to_path: String,
 }
 
-/// Method: `net_connect`. Connects to a port.
 #[derive(Deserialize)]
 pub struct NetConnectRequest {
 	pub port: u16,

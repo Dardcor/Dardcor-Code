@@ -95,7 +95,6 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('strips trailing prompt with various prompt styles', () => {
-		// bash user@host:path $
 		assert.strictEqual(
 			stripCommandEchoAndPrompt(
 				['user@host:~ $ echo hello', 'hello', 'user@host:~ $ '].join('\n'),
@@ -104,7 +103,6 @@ suite('stripCommandEchoAndPrompt', () => {
 			'hello',
 			'Failed for bash $ prompt'
 		);
-		// root user@host:path #
 		assert.strictEqual(
 			stripCommandEchoAndPrompt(
 				['root@server:/var/log# echo hello', 'hello', 'root@server:/var/log# '].join('\n'),
@@ -113,7 +111,6 @@ suite('stripCommandEchoAndPrompt', () => {
 			'hello',
 			'Failed for root # prompt'
 		);
-		// bracketed prompt ending with ] $
 		assert.strictEqual(
 			stripCommandEchoAndPrompt(
 				['s/workspace ] $ echo hello', 'hello', 's/workspace ] $ '].join('\n'),
@@ -122,7 +119,6 @@ suite('stripCommandEchoAndPrompt', () => {
 			'hello',
 			'Failed for bracketed ] $ prompt'
 		);
-		// PowerShell PS C:\>
 		assert.strictEqual(
 			stripCommandEchoAndPrompt(
 				['PS C:\\Users\\test> echo hello', 'hello', 'PS C:\\Users\\test>'].join('\n'),
@@ -134,7 +130,6 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('does not strip output lines ending with prompt-like characters', () => {
-		// Output ending with % (e.g. percentage)
 		assert.strictEqual(
 			stripCommandEchoAndPrompt(
 				['user@host:~ $ echo "100%"', '100%', 'user@host:~ $ '].join('\n'),
@@ -143,7 +138,6 @@ suite('stripCommandEchoAndPrompt', () => {
 			'100%',
 			'Should not strip line ending with %'
 		);
-		// Output ending with > (e.g. HTML or comparison)
 		assert.strictEqual(
 			stripCommandEchoAndPrompt(
 				['user@host:~ $ echo "<div>"', '<div>', 'user@host:~ $ '].join('\n'),
@@ -152,7 +146,6 @@ suite('stripCommandEchoAndPrompt', () => {
 			'<div>',
 			'Should not strip line ending with >'
 		);
-		// Output ending with # (e.g. comment marker)
 		assert.strictEqual(
 			stripCommandEchoAndPrompt(
 				['user@host:~ $ echo "item #"', 'item #', 'user@host:~ $ '].join('\n'),
@@ -170,7 +163,6 @@ suite('stripCommandEchoAndPrompt', () => {
 			'user@host:~ $ ',
 		].join('\n');
 
-		// The command has a leading space (from CommandLinePreventHistoryRewriter)
 		assert.strictEqual(
 			stripCommandEchoAndPrompt(output, ' echo hello'),
 			'hello'
@@ -259,8 +251,6 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('strips stale prompt fragments and ^C residue before command echo', () => {
-		// Simulates CI environment where previous ^C produces stale prompt
-		// fragments before the actual command echo line
 		const output = [
 			'ts/testWorkspace$ ^C',
 			'cloudtest@5ac6b023c000000:/mnt/vss/_work/vscode/vscode/extensions/vscode-api-tes',
@@ -358,7 +348,6 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('strips mid-word wrapped command continuation (PowerShell/Windows)', () => {
-		// PowerShell wraps "echo MARKER_123_ECHO" across lines at column boundary
 		const output = [
 			'PS D:\\a\\_work\\vscode\\testWorkspace> echo MARK',
 			'ER_123_ECHO',
@@ -372,7 +361,6 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('strips PowerShell prompt from getOutput() result', () => {
-		// When shell integration markers misfire, getOutput() includes the prompt + command
 		const output = 'PS D:\\a\\_work\\vscode\\testWorkspace> cmd /c exit 42';
 
 		assert.strictEqual(
@@ -382,8 +370,6 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('strips partial command echo (suffix from wrapped getOutput)', () => {
-		// When getOutput() doesn't include the prompt line, only the wrapped
-		// continuation of the command echo appears at the start of the output.
 		const output = [
 			'90741 ; echo M2_1774133190741 ; echo M3_1774133190741',
 			'M1_1774133190741',
@@ -398,7 +384,6 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('strips bracketed prompt without @ (hostname:path format)', () => {
-		// macOS CI prompt: [hostname:path] username$ (wrapped so username is truncated)
 		const output = [
 			'[W007DV9PF9-1:~/vss/_work/1/s/extensions/vscode-api-tests/testWorkspace] cloudte',
 			'st$',
@@ -411,7 +396,6 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('strips bracketed prompt without @ (single line, no trailing $)', () => {
-		// When the terminal captures just the prompt (no-output command)
 		const output = '[W007DV9PF9-1:~/vss/_work/1/s/extensions/vscode-api-tests/testWorkspace] cloudte';
 
 		assert.strictEqual(
@@ -458,8 +442,6 @@ suite('stripCommandEchoAndPrompt', () => {
 		);
 	});
 
-	// --- Adversarial tests: output that looks like prompts ---
-	// These verify that realistic output is NOT falsely stripped.
 
 	suite('adversarial: output resembling prompts', () => {
 
@@ -470,8 +452,6 @@ suite('stripCommandEchoAndPrompt', () => {
 				'user@host:~ $',
 			].join('\n');
 
-			// 'user@host:~ $' is a complete prompt → stripped and loop stops.
-			// 'test$' is preserved because nothing above a complete prompt is stripped.
 			assert.strictEqual(
 				stripCommandEchoAndPrompt(output, 'echo \'test$\''),
 				'test$'
@@ -531,8 +511,6 @@ suite('stripCommandEchoAndPrompt', () => {
 		});
 
 		test('multiple prompt-like output lines are all preserved', () => {
-			// Complete prompt at the bottom stops stripping immediately,
-			// so all prompt-like output lines above are preserved.
 			const output = [
 				'user@host:~ $ cat prompts.txt',
 				'admin@server:~/docs $',

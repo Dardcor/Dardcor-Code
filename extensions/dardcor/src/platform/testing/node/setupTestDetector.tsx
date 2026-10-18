@@ -29,15 +29,8 @@ interface IDocumentContext {
 export interface ISetupTestsDetector {
 	_serviceBrand: undefined;
 
-	/**
-	 * Gets whether dardcor should first offer to set up tests.
-	 * @returns The setup test action to take, if any
-	 */
 	shouldSuggestSetup(context: IDocumentContext, request: vscode.ChatRequest, output: vscode.ChatResponseStream): Promise<SetupTestAction | undefined>;
 
-	/**
-	 * Returns th chat response parts suggested by the setup test action.
-	 */
 	showSuggestion(action: SetupTestAction): vscode.ExtendedChatResponsePart[];
 }
 
@@ -50,11 +43,8 @@ export const enum SetupTestActionType {
 	InstallExtensionForFramework,
 	SearchForFramework,
 	SearchGeneric,
-	/** Show a reminder at the end of the /tests generation that they can use `/setupTests */
 	Remind,
-	/** A confirmed action was handled internally. */
 	WasHandled,
-	/** Command from the extension's contributed handler */
 	CustomExtensionCommand,
 }
 
@@ -106,7 +96,6 @@ export class SetupTestsDetector implements ISetupTestsDetector {
 		@IRunCommandExecutionService private readonly _commandService: IRunCommandExecutionService,
 	) { }
 
-	/** @inheritdoc */
 	public showSuggestion(action: SetupTestAction): vscode.ExtendedChatResponsePart[] {
 		this.setDidAlreadyPrompt();
 
@@ -165,7 +154,6 @@ export class SetupTestsDetector implements ISetupTestsDetector {
 				break;
 
 			case SetupTestActionType.Remind: {
-				// show the suggestion inline in a mardown parm without separate buttons:
 				const action2 = action.action;
 				switch (action2.type) {
 					case SetupTestActionType.InstallExtensionForFramework:
@@ -202,22 +190,15 @@ export class SetupTestsDetector implements ISetupTestsDetector {
 		return output;
 	}
 
-	/**
-	 * @inheritdoc
-	 *
-	 * See `src/platform/testing/node/setupTestDetector.png` for the flow followed here.
-	 */
 	public async shouldSuggestSetup({ document }: IDocumentContext, request: vscode.ChatRequest, output: vscode.ChatResponseStream): Promise<SetupTestAction | undefined> {
 		if (request.rejectedConfirmationData?.some(r => r.$isSetupSuggestion)) {
-			return undefined; // said "not now" to setup
+			return undefined;
 		}
 
 		const confirmed = request.acceptedConfirmationData?.find(r => r.$isSetupSuggestion);
 		if (confirmed) {
 			const exe = this._commandService.executeCommand(confirmed.command, ...confirmed.arguments);
 
-			// Most commands search, but if they're installing an extension, show
-			// nice progress and then generate the tests as requested.
 			if (confirmed.command === CommandIds.InstallExtension) {
 				output.progress(l10n.t(`Installing extension {0}...`, confirmed.arguments[0]));
 				await this.waitForExtensionInstall(exe, document, confirmed.arguments[0]);
@@ -276,7 +257,6 @@ export class SetupTestsDetector implements ISetupTestsDetector {
 				return { type: SetupTestActionType.CustomExtensionCommand, command: result.command, message: result.message };
 			}
 		} catch (e) {
-			// ignore
 		}
 	}
 

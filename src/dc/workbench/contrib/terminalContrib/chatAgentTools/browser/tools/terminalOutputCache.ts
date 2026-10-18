@@ -7,18 +7,6 @@ import { IToolResultCache, IToolResultCacheHit } from '../../../../chat/common/t
 import { TerminalToolId } from '../../../../chat/common/tools/terminalToolIds.js';
 import { parseCommand, segmentHead } from './terminalCommandParser.js';
 
-/**
- * Session-memory dedup cache for `run_in_terminal` output. Keyed on
- * `<cwd>::<command>` (cwd currently best-effort — pulled from the input's
- * `cwd` field when present, falling back to a single shared bucket).
- *
- * Read-only command classes ({@link CacheClass}) define TTLs; only
- * read-only commands are stored. Mutation commands trigger
- * {@link _invalidateSiblings} when observed so a later `git status` won't
- * return a stale entry from before a `git commit`.
- *
- * Designed to live as long as the chat session; entries also age out by TTL.
- */
 
 interface ITerminalInput {
 	command?: unknown;
@@ -26,11 +14,8 @@ interface ITerminalInput {
 }
 
 export const enum CacheClass {
-	/** `git status`, `ls`, `pwd` — likely to change quickly. */
 	Fast = 'fast',
-	/** test runners. */
 	Medium = 'medium',
-	/** `git log`, `find`, `tree`. */
 	Slow = 'slow',
 }
 
@@ -44,21 +29,15 @@ const MAX_ENTRIES = 256;
 
 interface IClassification {
 	readonly cls: CacheClass | undefined;
-	/** Programs whose cached entries should be invalidated when this command runs. */
 	readonly invalidates: readonly string[];
 }
 
-/** Classify a command's first segment. `cls === undefined` => do not cache. */
 function classifyCommand(command: string | undefined): IClassification {
 	const parsed = parseCommand(command);
 	if (!parsed || parsed.segments.length === 0) {
 		return { cls: undefined, invalidates: [] };
 	}
-	// For compound commands (e.g. `git status && git commit`), disable caching
-	// entirely — classifying only the first segment could miss mutations or
-	// return stale results.
 	if (parsed.segments.length > 1) {
-		// Still check all segments for invalidation targets.
 		const allInvalidates: string[] = [];
 		for (const seg of parsed.segments) {
 			const h = segmentHead(seg);
@@ -79,7 +58,6 @@ function classifyCommand(command: string | undefined): IClassification {
 function classifySingleHead(head: { head: string; sub: string | undefined }): IClassification {
 	switch (head.head) {
 		case 'git': {
-			// Mutations clear all cached `git ...` results in this cwd.
 			if (head.sub && /^(add|commit|push|pull|fetch|merge|rebase|reset|checkout|switch|restore|cherry-pick|revert|stash|tag|branch|am|apply|clean|rm|mv)$/.test(head.sub)) {
 				return { cls: undefined, invalidates: ['git'] };
 			}
@@ -219,7 +197,6 @@ export class TerminalOutputCache implements IToolResultCache {
 			return;
 		}
 		const key = this._key(parsed.cwd, parsed.command);
-		// LRU-ish: re-insert at the end to bump recency.
 		if (this._entries.has(key)) {
 			this._entries.delete(key);
 		}
@@ -239,7 +216,6 @@ export class TerminalOutputCache implements IToolResultCache {
 		}
 	}
 
-	/** External hook for editor file-write notifications etc. */
 	invalidateCwd(cwd: string): void {
 		for (const key of [...this._entries.keys()]) {
 			const e = this._entries.get(key)!;

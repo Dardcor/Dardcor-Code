@@ -9,7 +9,6 @@ function hexToBase64(audioHex) {
   return Buffer.from(clean, "hex").toString("base64");
 }
 
-// MiniMax T2A HTTP: returns hex-encoded audio in non-streaming mode.
 export default async function minimaxTts({ baseUrl, apiKey, text, modelId, voiceId }) {
   const res = await fetch(baseUrl, {
     method: "POST",

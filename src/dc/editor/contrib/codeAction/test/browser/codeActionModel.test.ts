@@ -25,7 +25,7 @@ const testProvider = {
 			actions: [
 				{ title: 'test', command: { id: 'test-command', title: 'test', arguments: [] } }
 			],
-			dispose() { /* noop*/ }
+			dispose() { }
 		};
 	}
 };
@@ -77,7 +77,6 @@ suite('CodeActionModel', () => {
 				}, done);
 			}));
 
-			// start here
 			markerService.changeOne('fake', uri, [{
 				startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 6,
 				message: 'error',
@@ -118,7 +117,6 @@ suite('CodeActionModel', () => {
 						resolve(undefined);
 					}, reject);
 				}));
-				// start here
 				editor.setPosition({ lineNumber: 1, column: 1 });
 			});
 		});
@@ -139,13 +137,12 @@ suite('CodeActionModel', () => {
 				assert.strictEqual(e.trigger.type, languages.CodeActionTriggerType.Auto);
 				++triggerCount;
 
-				// give time for second trigger before completing test
 				setTimeout(() => {
 					model.dispose();
 					assert.strictEqual(triggerCount, 1);
 					done();
 				}, 0);
-			}, 5 /*delay*/));
+			}, 5 ));
 
 			markerService.changeOne('fake', uri, [{
 				startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 6,

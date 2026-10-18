@@ -5,10 +5,6 @@
 /* eslint-disable local/code-no-unexternalized-strings */
 import { LanguageInput } from 'shiki/core';
 
-// This file has been converted from https://github.com/microsoft/TypeScript-TmLanguage/blob/master/TypeScriptReact.tmLanguage
-// If you want to provide a fix or improvement, please create a pull request against the original repository.
-// Once accepted there, we are happy to receive an update request.
-// version: 'https://github.com/microsoft/TypeScript-TmLanguage/commit/0d73d1117e0a9b1d6635ebbe9aa37d615171b02d',
 export const javascriptreact: LanguageInput = {
 	name: 'javascriptreact',
 	scopeName: 'source.js.jsx',

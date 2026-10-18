@@ -116,8 +116,6 @@ suite('ExtensionRunningLocationTracker - extensionAffinity', () => {
 		const locB = runningLocations.get(extB.identifier);
 
 		assert.ok(locA && locB, 'Both extensions should have running locations');
-		// They should not be grouped together since the extensionAffinity target doesn't exist
-		// (Unless they would naturally have affinity 0, which they both do by default)
 	});
 
 	test('extensionAffinity combined with extensionDependencies', () => {
@@ -133,7 +131,6 @@ suite('ExtensionRunningLocationTracker - extensionAffinity', () => {
 		const locC = runningLocations.get(extC.identifier);
 
 		assert.ok(locA && locB && locC, 'All extensions should have running locations');
-		// B depends on A, C has extensionAffinity to A - all should be in the same group
 		assert.strictEqual(locA!.affinity, locB!.affinity, 'A and B (dependency) should have the same affinity');
 		assert.strictEqual(locA!.affinity, locC!.affinity, 'A and C (extensionAffinity) should have the same affinity');
 	});
@@ -152,13 +149,9 @@ suite('ExtensionRunningLocationTracker - extensionAffinity', () => {
 		const locB = runningLocations.get(extB.identifier);
 
 		assert.ok(locA && locB, 'Both extensions should have running locations');
-		// With user-configured affinities, they should be in different groups
-		// Note: The actual behavior depends on the order of operations in _computeAffinity
-		// The user config creates separate affinities, but grouping happens first
 	});
 
 	test('one-way extensionAffinity is sufficient', () => {
-		// Only extB declares extensionAffinity, extA doesn't need to know about extB
 		const extA = createExtension('publisher.extA');
 		const extB = createExtension('publisher.extB', undefined, ['publisher.extA']);
 

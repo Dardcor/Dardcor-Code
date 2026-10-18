@@ -48,7 +48,6 @@ suite('AgentHostSkillCompletionProvider', () => {
 			uri: `file:///plugins/${name}`,
 			name,
 			...(enabled ? {} : {
-				// TODO: Step 2 selects the persisted enablement scope.
 				enablement: [{ kind: CustomizationEnablementKind.Global, enabled: false }],
 			}),
 			load: { kind: CustomizationLoadStatus.Loaded },
@@ -64,7 +63,6 @@ suite('AgentHostSkillCompletionProvider', () => {
 		};
 	}
 
-	/** A skill with an explicit URI, so the same logical skill can be modelled at two different locations. */
 	function skillAt(name: string, uri: string, description?: string, options?: SkillOptions): SkillCustomization {
 		return {
 			type: CustomizationType.Skill,
@@ -233,9 +231,6 @@ suite('AgentHostSkillCompletionProvider', () => {
 		assert.deepStrictEqual(result.map(item => item.insertText), ['/update-skills ', '/update-skills ']);
 	});
 
-	// Known limitation of the core fix: two distinct same-named skills that both omit a description
-	// produce the same identity key and collapse to one. There is no reachability loss (a bare `/X`
-	// resolves to exactly one skill at the CLI regardless); Option B disambiguates via a qualified insert.
 	test('collapses two same-named description-less skills (core-fix limitation, see Option B)', async () => {
 		const agent = new MockAgent('mock');
 		agent.getSessionCustomizations = async () => [

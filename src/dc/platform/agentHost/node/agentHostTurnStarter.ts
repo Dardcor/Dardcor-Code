@@ -19,12 +19,10 @@ import { getMessageOriginTelemetryKind, IAgentHostTelemetryReporter } from './ag
 import { getTurnTelemetryContext } from './agentHostTurnTelemetryContext.js';
 import { IAgentHostTurnTracker } from './agentHostTurnTracker.js';
 
-/** The resolved agent for a turn that has passed host admission. */
 export interface IStartedTurn {
 	readonly agent: IAgent;
 }
 
-/** The host state and client context needed to admit a turn before it is sent. */
 export interface ITurnStartRequest {
 	readonly session: ProtocolURI;
 	readonly chat: ProtocolURI;
@@ -37,22 +35,6 @@ export interface ITurnStartRequest {
 	readonly turnStopWatch: StopWatch;
 }
 
-/**
- * Admits a turn, records its telemetry, and resolves the provider that will send it.
- * Both the direct (`handleAction`) and queued (`QueueDrainContribution`) admission paths
- * run this, so the preamble has one copy.
- *
- * This is a plain function rather than a service because it holds no state: registering it
- * in DI bought nothing and cost a registration in every hand-built test service graph. Keep
- * it a function unless it acquires state.
- *
- * The gate runs before {@link IAgentHostTurnTracker.turnStarted}, so a refused request has
- * no turn to complete: it reports neither `userMessageSent` nor `turnCompleted`, and does
- * not call `_completeTurn` or clear the tool-call tracker. That is deliberate, not an
- * oversight — a rejection is observable through `onTurnEnd` with `kind === 'rejected'`, so
- * measure rejection volume from a contribution rather than by reviving the turn-completion
- * path.
- */
 export function startTurn(accessor: ServicesAccessor, request: ITurnStartRequest): IStartedTurn | undefined {
 	const chatContributions = accessor.get(IAgentHostChatContributions);
 	const stateManager = accessor.get(IAgentHostStateManager);

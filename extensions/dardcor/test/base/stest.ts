@@ -76,41 +76,18 @@ export class SimulationTestOptions {
 
 export interface ISimulationTestDescriptor {
 
-	/**
-	 * This is used to capture the test scenario description itself.
-	 */
 	readonly description: string;
 
-	/**
-	 * The programming language used for the test.
-	 *
-	 * If not set, may be inherited from the suite this test in if the suite descriptor specifies the language.
-	 */
 	readonly language?: string;
 
-	/**
-	 * The model used for the test.
-	 */
 	readonly model?: string;
 
-	/**
-	 * The embeddings model used for the test.
-	 */
 	readonly embeddingType?: EmbeddingType;
 
-	/**
-	 * Setting configurations defined for the test
-	 */
 	readonly configurations?: Configuration<any>[];
 
-	/**
-	 * Non-extension settings configurations defined for the test
-	 */
 	readonly nonExtensionConfigurations?: NonExtensionConfiguration[] | undefined;
 
-	/**
-	 * Arbitrary attributes that will be serialised to the metadata.json file.
-	 */
 	readonly attributes?: Record<string, string | number>;
 }
 
@@ -207,46 +184,22 @@ export class SimulationSuiteOptions {
 	) { }
 }
 
-export type ExtHostDescriptor = boolean; // todo: more things like extension config later
+export type ExtHostDescriptor = boolean;
 
 export interface ISimulationSuiteDescriptor {
 
-	/***
-	 * This is used to group tests together.
-	 * If using a slashCommand, use the command name else use "generic"
-	 */
 	readonly title: string;
 
 
-	/***
-	 * This is used to capture the test scenario scope.
-	 * Example: e2e, prompt, generate etc.
-	 */
 	readonly subtitle?: string;
 	readonly location: 'inline' | 'panel' | 'external' | 'context';
 
-	/**
-	 * The programming language this suite tests.
-	 *
-	 * The test within the suite will also have this language if they do not specify a language in their descriptor {@link ISimulationTestDescriptor}.
-	 */
 	readonly language?: string;
 
-	/**
-	 * Settings that override default settings in configuration service.
-	 *
-	 * These settings can further be overridden by the test itself.
-	 */
 	readonly configurations?: Configuration<any>[];
 
-	/**
-	 * Non-extension settings configurations defined for the test
-	 */
 	readonly nonExtensionConfigurations?: NonExtensionConfiguration[] | undefined;
 
-	/**
-	 * Set to true to run in a real VS Code extension host.
-	 */
 	readonly extHost?: ExtHostDescriptor;
 }
 
@@ -355,7 +308,6 @@ class SimulationTestsRegistryClass {
 			testDescriptor = { ...testDescriptor, language: this.currentSuite.language };
 		}
 
-		// inherit configurations from suite
 		if (this.currentSuite.configurations !== undefined) {
 			const updatedConfigurations =
 				testDescriptor.configurations === undefined
@@ -370,16 +322,13 @@ class SimulationTestsRegistryClass {
 			testDescriptor = { ...testDescriptor, nonExtensionConfigurations: updatedNonExtConfig };
 		}
 
-		// remove newlines, carriage returns, bad whitespace, etc
 		testDescriptor = { ...testDescriptor, description: testDescriptor.description.replace(/\s+/g, ' ') };
 
-		// force a length of 100 chars for a stest name
 		if (testDescriptor.description.length > 100) {
 			testDescriptor = { ...testDescriptor, description: testDescriptor.description.substring(0, 100) + '…' };
 		}
 
 		const test = new SimulationTest(testDescriptor, options, this.currentSuite, runner);
-		// change this validation up
 		if (this.testNames.has(test.fullName) && !this._allowTestReregistration) {
 			throw new Error(`Cannot have two tests with the same name: ${test.fullName}`);
 		}
@@ -404,7 +353,7 @@ class SimulationTestsRegistryClass {
 		function suiteId(s: SimulationSuite): string {
 			return s.options.location?.path + '###' + s.fullName;
 		}
-		this.suites = this.suites.filter(s => suiteId(s) !== suiteId(suite)); // When re-registering a suite, delete the old one
+		this.suites = this.suites.filter(s => suiteId(s) !== suiteId(suite));
 		this.suites.push(suite);
 		this.invokeSuiteFactory(suite, factory);
 	}
@@ -430,8 +379,6 @@ function captureLocation(fn: Function): ITestLocation | undefined {
 
 		const stack = (<string[]>e.stack.split('\n')).at(1);
 		if (!stack) {
-			// It looks like sometimes the stack is empty,
-			// so let's add a fallback case
 			return captureLocationUsingClassicalWay();
 		}
 		return extractPositionFromStackTraceLine(stack);
@@ -441,11 +388,6 @@ function captureLocation(fn: Function): ITestLocation | undefined {
 		try {
 			throw new Error();
 		} catch (e) {
-			// Error:
-			//     at captureLocationUsingClassicalWay (/Users/alex/src/vscode-dardcor/test/base/stest.ts:398:10)
-			//     at captureLocation (/Users/alex/src/vscode-dardcor/test/base/stest.ts:374:11)
-			//     at stest (/Users/alex/src/vscode-dardcor/test/base/stest.ts:467:84)
-			//     at /Users/alex/src/vscode-dardcor/test/codeMapper/codeMapper.stest.ts:22:2
 			const stack = (<string[]>e.stack.split('\n')).at(4);
 			if (!stack) {
 				console.log(`No stack in captureLocation`);
@@ -476,9 +418,6 @@ function captureLocation(fn: Function): ITestLocation | undefined {
 	}
 }
 
-/**
- * @remarks DO NOT FORGET to register the test file in `simulationTests.ts` for local test files
- */
 export function ssuite(descriptor: ISimulationSuiteDescriptor, factory: (inputPath?: string) => void) {
 	SimulationTestsRegistry.registerSuite(descriptor, { optional: false, location: captureLocation(ssuite) }, factory);
 }
@@ -489,15 +428,6 @@ ssuite.skip = function (descriptor: ISimulationSuiteDescriptor, factory: (inputP
 	SimulationTestsRegistry.registerSuite(descriptor, { optional: true, skip: (_: SimulationOptions) => true, location: captureLocation(ssuite.skip) }, factory);
 };
 
-/**
- * The test function will receive as first argument a context.
- *
- * On the context, you will find a good working ChatMLFetcher which uses caching
- * and a caching slot which matches the run number.
- *
- * You will also find `SimulationTestRuntime` on the context, which allows you
- * to use logging in your test or write files to the test outcome directory.
- */
 export function stest(testDescriptor: string | ISimulationTestDescriptor, runner: SimulationTestFunction, opts?: ISimulationTestOptions) {
 	testDescriptor = typeof testDescriptor === 'string' ? { description: testDescriptor } : testDescriptor;
 	SimulationTestsRegistry.registerTest(testDescriptor, { optional: false, location: captureLocation(stest), ...opts }, runner);
@@ -588,14 +518,10 @@ export class SimulationTestRuntime implements ISimulationTestRuntime {
 		return `${(this.runNumber).toString().padStart(2, '0')}-${filename}`;
 	}
 
-	/**
-	 * Generate a new filePath in case this filePath already exists.
-	 */
 	private _findUniqueFilename(initialFilePath: string): string {
 		for (let i = 0; i < 1000; i++) {
 			let filePath = initialFilePath;
 			if (i > 0) {
-				// This file was already written, we'll rename it to <basename>.X.<ext>
 				const ext = path.extname(initialFilePath);
 				const basename = initialFilePath.substring(0, initialFilePath.length - ext.length);
 				filePath = `${basename}.${i}${ext}`;
@@ -634,7 +560,7 @@ const FILENAME_LIMIT = 125;
 
 export function toDirname(testName: string): string {
 	const filename = testName.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
-	if (filename.length > FILENAME_LIMIT) { // windows file names can not exceed 255 chars and path length limits, so keep it short
+	if (filename.length > FILENAME_LIMIT) {
 		return `${filename.substring(0, FILENAME_LIMIT)}-${computeSHA256(filename).substring(0, 8)}`;
 	}
 	return filename;

@@ -3,13 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import '../../../../base/browser/ui/codicons/codiconStyles.js'; // The codicon symbol styles are defined here and must be loaded
+import '../../../../base/browser/ui/codicons/codiconStyles.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { ResolvedKeybinding } from '../../../../base/common/keybindings.js';
 import { CodeAction } from '../../../common/languages.js';
 import { CodeActionItem, CodeActionKind } from '../common/types.js';
-import '../../symbolIcons/browser/symbolIcons.js'; // The codicon symbol colors are defined here and must be loaded to get colors
+import '../../symbolIcons/browser/symbolIcons.js';
 import { localize } from '../../../../nls.js';
 import { ActionListItemKind, IActionListItem } from '../../../../platform/actionWidget/browser/actionList.js';
 import { HierarchicalKind } from '../../../../base/common/hierarchicalKind.js';
@@ -51,7 +51,6 @@ export function toMenuItems(
 		});
 	}
 
-	// Group code actions
 	const menuEntries = codeActionGroups.map(group => ({ group, actions: [] as CodeActionItem[] }));
 
 	for (const action of inputCodeActions) {

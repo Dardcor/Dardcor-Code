@@ -71,7 +71,6 @@ export class KeybindingsResource implements IProfileResource {
 			const content = await this.fileService.readFile(profile.keybindingsResource);
 			return content.value.toString();
 		} catch (error) {
-			// File not found
 			if (error instanceof FileOperationError && error.fileOperationResult === FileOperationResult.FILE_NOT_FOUND) {
 				return null;
 			} else {

@@ -1,15 +1,7 @@
-// Fetch and cache suggested models for providers that expose a public models API
-// Fetches via backend proxy to avoid CORS issues
 
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const cache = new Map(); // key: fetcher.url → { data, expiresAt }
+const CACHE_TTL_MS = 10 * 60 * 1000;
+const cache = new Map();
 
-/**
- * Fetch suggested models for a provider using its modelsFetcher config.
- * Results are cached in-memory for CACHE_TTL_MS.
- * @param {{ url: string, type: string }} fetcher
- * @returns {Promise<Array<{ id: string, name: string, contextLength?: number }>>}
- */
 export async function fetchSuggestedModels(fetcher) {
   if (!fetcher?.url || !fetcher?.type) return [];
 

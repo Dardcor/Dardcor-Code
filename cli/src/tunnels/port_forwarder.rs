@@ -22,9 +22,6 @@ pub enum PortForwardingRec {
 	Unforward(u16, oneshot::Sender<Result<(), AnyError>>),
 }
 
-/// Provides a port forwarding service for connected clients. Clients can make
-/// requests on it, which are (and *must be*) processed by calling the `.process()`
-/// method on the forwarder.
 pub struct PortForwardingProcessor {
 	tx: mpsc::Sender<PortForwardingRec>,
 	rx: mpsc::Receiver<PortForwardingRec>,
@@ -41,20 +38,16 @@ impl PortForwardingProcessor {
 		}
 	}
 
-	/// Gets a handle that can be passed off to consumers of port forwarding.
 	pub fn handle(&self) -> PortForwarding {
 		PortForwarding {
 			tx: self.tx.clone(),
 		}
 	}
 
-	/// Receives port forwarding requests. Consumers MUST call `process()`
-	/// with the received requests.
 	pub async fn recv(&mut self) -> Option<PortForwardingRec> {
 		self.rx.recv().await
 	}
 
-	/// Processes the incoming forwarding request.
 	pub async fn process(&mut self, req: PortForwardingRec, tunnel: &mut ActiveTunnel) {
 		match req {
 			PortForwardingRec::Forward(port, privacy, tx) => {

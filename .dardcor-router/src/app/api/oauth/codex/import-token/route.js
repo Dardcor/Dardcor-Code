@@ -2,13 +2,6 @@ import { NextResponse } from "next/server";
 import { createProviderConnection } from "@/models";
 import { extractCodexAccountInfo } from "@/lib/oauth/providers";
 
-/**
- * POST /api/oauth/codex/import-token
- * Import a ChatGPT access token (created from chatgpt.com settings)
- * as a provider connection, bypassing OAuth refresh flow.
- *
- * Body: { accessToken: string, name?: string }
- */
 export async function POST(request) {
   try {
     const { accessToken, name } = await request.json();
@@ -22,11 +15,9 @@ export async function POST(request) {
 
     const token = accessToken.trim();
 
-    // Extract account info from the JWT (email, workspace, plan)
     let email = null;
     let providerSpecificData = { authMethod: "access_token" };
 
-    // Try decoding as JWT to extract email + workspace
     try {
       const parts = token.split(".");
       if (parts.length === 3) {
@@ -35,7 +26,6 @@ export async function POST(request) {
         const padded = base64 + "=".repeat(missingPadding);
         const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
 
-        // Extract from OpenAI JWT structure
         const auth = payload["https://api.openai.com/auth"] || {};
         const profile = payload["https://api.openai.com/profile"] || {};
         email = profile.email || payload.email || payload.preferred_username || null;
@@ -47,17 +37,13 @@ export async function POST(request) {
           providerSpecificData.chatgptPlanType = auth.chatgpt_plan_type;
         }
 
-        // Store expiry info from JWT if available
         if (payload.exp) {
           providerSpecificData.jwtExp = payload.exp;
         }
       }
     } catch {
-      // Not a JWT or malformed — still allow import as raw token
     }
 
-    // Also try extractCodexAccountInfo via id_token-style extraction
-    // (the access token itself may contain the same claims)
     if (!email) {
       const info = extractCodexAccountInfo(token);
       if (info.email) email = info.email;
@@ -67,7 +53,6 @@ export async function POST(request) {
 
     const connectionName = name || email || "ChatGPT Access Token";
 
-    // Save to database as access_token authType (no refresh token)
     const connection = await createProviderConnection({
       provider: "codex",
       authType: "access_token",

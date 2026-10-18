@@ -99,7 +99,6 @@ export class UnifiedSubmenuActionView extends SubmenuEntryActionViewItem {
 
 				if (element && primaryAction.item.icon && ThemeIcon.isThemeIcon(primaryAction.item.icon)) {
 					const iconClasses = ThemeIcon.asClassNameArray(primaryAction.item.icon);
-					// remove all classes started with 'codicon-'
 					element.classList.forEach((cl) => {
 						if (cl.startsWith('codicon-')) {
 							element.classList.remove(cl);

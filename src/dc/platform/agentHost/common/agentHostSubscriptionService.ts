@@ -11,9 +11,6 @@ import { parseDefaultChatUri, parseSubagentSessionUri } from './state/sessionSta
 
 export const IAgentHostSubscriptionService = createDecorator<IAgentHostSubscriptionService>('agentHostSubscriptionService');
 
-/**
- * Authoritative registry of logical protocol clients observing Agent Host state.
- */
 export interface IAgentHostSubscriptionService {
 	readonly _serviceBrand: undefined;
 

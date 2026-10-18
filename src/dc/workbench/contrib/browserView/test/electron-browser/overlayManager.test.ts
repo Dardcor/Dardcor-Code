@@ -85,33 +85,24 @@ suite('BrowserOverlayManager', () => {
 		assert.deepStrictEqual(overlays.map(o => o.type), [BrowserOverlayType.Unknown]);
 	});
 
-	// Regression test for #321088: a context menu (e.g. the "Add Models"
-	// dropdown) renders a full-screen `.context-view-block` inside `.context-view`
-	// that stacks above an already-open modal. The block isn't a tracked overlay
-	// class, but it's a descendant of the tracked `.context-view`, so the browser
-	// must still be reported as obscured.
 	test('detects obscuring when a context-view block covers the browser on top of a modal', () => {
 		const browserContainer = addElement('browser-container', {
 			position: 'absolute', left: '0px', top: '0px', width: '300px', height: '300px'
 		});
 
-		// Modal sitting on top of (and fully covering) the browser.
 		addElement('monaco-modal-editor-block', {
 			position: 'fixed', left: '0px', top: '0px', width: '400px', height: '400px', zIndex: '2540'
 		});
 
-		// Context menu anchored outside the browser, so its own rect doesn't overlap.
 		const contextView = addElement('context-view', {
 			position: 'fixed', left: '320px', top: '320px', width: '60px', height: '60px', zIndex: '2575'
 		});
-		// Full-screen mouse-blocking child, stacked above the modal.
 		addElement('context-view-block', {
 			position: 'fixed', left: '0px', top: '0px', width: '400px', height: '400px', zIndex: '-1'
 		}, contextView);
 
 		const overlays = manager.getOverlappingOverlays(browserContainer);
 
-		// The transparent block is skipped, so the modal beneath it is topmost.
 		assert.deepStrictEqual(overlays.map(o => o.type), [BrowserOverlayType.Dialog]);
 	});
 
@@ -136,9 +127,6 @@ suite('BrowserOverlayManager', () => {
 		assert.deepStrictEqual(overlays.map(o => o.type), [BrowserOverlayType.Dialog]);
 	});
 
-	// A notification toast fully covered by a modal must be reported as the
-	// dialog, not the notification, so callers don't treat a hidden toast as
-	// the active obscuring overlay.
 	test('reports the dialog, not a notification covered by it', () => {
 		const browserContainer = addElement('browser-container', {
 			position: 'absolute', left: '0px', top: '0px', width: '300px', height: '300px'

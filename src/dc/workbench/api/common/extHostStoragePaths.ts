@@ -57,7 +57,6 @@ export class ExtensionStoragePaths implements IExtensionStoragePaths {
 			this._logService.trace('[ExtHostStorage] storage dir already exists', storageUri);
 			return storageUri;
 		} catch {
-			// doesn't exist, that's OK
 		}
 
 		try {

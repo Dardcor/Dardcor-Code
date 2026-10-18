@@ -11,9 +11,7 @@ const https = require('https');
 const url = require('url');
 const minimatch = require('minimatch');
 
-// list of languagesId not shipped with VSCode. The information is used to associate an icon with a language association
-// Please try and keep this list in alphabetical order! Thank you.
-const nonBuiltInLanguages = { // { fileNames, extensions  }
+const nonBuiltInLanguages = {
 	"argdown": { extensions: ['ad', 'adown', 'argdown', 'argdn'] },
 	"bicep": { extensions: ['bicep'] },
 	"elixir": { extensions: ['ex'] },
@@ -41,7 +39,6 @@ const nonBuiltInLanguages = { // { fileNames, extensions  }
 	"vue": { extensions: ['vue'] }
 };
 
-// list of languagesId that inherit the icon from another language
 const inheritIconFromLanguage = {
 	"jsonc": 'json',
 	"jsonl": 'json',
@@ -58,7 +55,7 @@ const ignoreExtAssociation = {
 	"properties": true
 };
 
-const FROM_DISK = true; // set to true to take content from a repo checked out next to the vscode repo
+const FROM_DISK = true;
 
 let font, fontMappingsFile, fileAssociationFile, colorsFile;
 if (!FROM_DISK) {
@@ -234,8 +231,6 @@ function getLanguageMappings() {
 						const existing = langMappings[languageId];
 
 						if (existing) {
-							// multiple contributions to the same language
-							// give preference to the contribution wth the configuration
 							if (languages[k].configuration) {
 								mergeMapping(mapping, existing, 'extensions');
 								mergeMapping(mapping, existing, 'fileNames');
@@ -322,7 +317,6 @@ exports.update = function () {
 				size: "150%"
 			}],
 			iconDefinitions: iconDefinitions,
-			//	folder: "_folder",
 			file: "_default",
 			fileExtensions: ext2Def,
 			fileNames: fileName2Def,
@@ -359,7 +353,7 @@ exports.update = function () {
 				const colorId = match[3];
 				let storedColorId = def2ColorId[def];
 				let i = 1;
-				while (storedColorId && colorId !== storedColorId) { // different colors for the same def?
+				while (storedColorId && colorId !== storedColorId) {
 					def = `_${match[2]}_${i}`;
 					storedColorId = def2ColorId[def];
 					i++;
@@ -370,7 +364,7 @@ exports.update = function () {
 				}
 
 				if (def === '_default') {
-					continue; // no need to assign default color.
+					continue;
 				}
 				if (pattern[0] === '.') {
 					ext2Def[pattern.substr(1).toLowerCase()] = def;
@@ -378,7 +372,6 @@ exports.update = function () {
 					fileName2Def[pattern.toLowerCase()] = def;
 				}
 			}
-			// replace extensions for languageId
 			const langMappings = getLanguageMappings();
 			for (let lang in langMappings) {
 				const mappings = langMappings[lang];
@@ -386,11 +379,9 @@ exports.update = function () {
 				const fileNames = mappings.fileNames || [];
 				const filenamePatterns = mappings.filenamePatterns || [];
 				let preferredDef = null;
-				// use the first file extension association for the preferred definition
 				for (let i1 = 0; i1 < exts.length && !preferredDef; i1++) {
 					preferredDef = ext2Def[exts[i1]];
 				}
-				// use the first file name association for the preferred definition, if not availbale
 				for (let i1 = 0; i1 < fileNames.length && !preferredDef; i1++) {
 					preferredDef = fileName2Def[fileNames[i1]];
 				}
@@ -407,20 +398,17 @@ exports.update = function () {
 					lang2Def[lang] = preferredDef;
 					if (!nonBuiltInLanguages[lang] && !inheritIconFromLanguage[lang]) {
 						for (let i2 = 0; i2 < exts.length; i2++) {
-							// remove the extension association, unless it is different from the preferred
 							if (ext2Def[exts[i2]] === preferredDef || ignoreExtAssociation[exts[i2]]) {
 								delete ext2Def[exts[i2]];
 							}
 						}
 						for (let i2 = 0; i2 < fileNames.length; i2++) {
-							// remove the fileName association, unless it is different from the preferred
 							if (fileName2Def[fileNames[i2]] === preferredDef) {
 								delete fileName2Def[fileNames[i2]];
 							}
 						}
 						for (let i2 = 0; i2 < filenamePatterns.length; i2++) {
 							let pattern = filenamePatterns[i2];
-							// remove the filenamePatterns association, unless it is different from the preferred
 							for (const name in fileName2Def) {
 								if (minimatch(name, pattern) && fileName2Def[name] === preferredDef) {
 									delete fileName2Def[name];

@@ -19,16 +19,11 @@ interface IChatHistoryEntry {
 	state?: IChatInputState;
 }
 
-/** The collected input state for chat history entries */
 interface IChatInputState {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	[key: string]: any;
 	chatContextAttachments?: ReadonlyArray<IChatRequestVariableEntry>;
 
-	/**
-	 * This should be a mode id (ChatMode | string).
-	 * { id: string } is the old IChatMode. This is deprecated but may still be in persisted data.
-	 */
 	chatMode?: ChatModeKind | string | { id: string };
 }
 
@@ -87,16 +82,13 @@ export class ChatWidgetHistoryService extends Disposable implements IChatWidgetH
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private migrateHistoryEntry(entry: any): IChatModelInputState {
-		// If it's already in the new format (has 'inputText' property), return as-is
 		if (entry.inputText !== undefined) {
 			return entry as IChatModelInputState;
 		}
 
-		// Otherwise, it's an old IChatHistoryEntry with 'text' and 'state' properties
 		const oldEntry = entry as IChatHistoryEntry;
 		const oldState = oldEntry.state ?? {};
 
-		// Migrate chatMode to the new mode structure
 		let modeId: string;
 		let modeKind: ChatModeKind | undefined;
 		if (oldState.chatMode) {
@@ -106,7 +98,6 @@ export class ChatWidgetHistoryService extends Disposable implements IChatWidgetH
 					? oldState.chatMode as ChatModeKind
 					: undefined;
 			} else if (typeof oldState.chatMode === 'object' && oldState.chatMode !== null) {
-				// Old format: { id: string }
 				const oldMode = oldState.chatMode as { id?: string };
 				modeId = oldMode.id ?? ChatModeKind.Ask;
 				modeKind = oldMode.id && Object.values(ChatModeKind).includes(oldMode.id as ChatModeKind)
@@ -135,7 +126,6 @@ export class ChatWidgetHistoryService extends Disposable implements IChatWidgetH
 	}
 
 	private getKey(location: ChatAgentLocation, historyKey?: string): string {
-		// Preserve history for panel by continuing to use the same old provider id. Use the location as a key for other chat locations.
 		const locationKey = location === ChatAgentLocation.Chat ? CHAT_PROVIDER_ID : location;
 		return historyKey === undefined ? locationKey : `${locationKey}:${historyKey}`;
 	}
@@ -177,9 +167,6 @@ export class ChatWidgetHistoryService extends Disposable implements IChatWidgetH
 }
 
 export class ChatHistoryNavigator extends Disposable {
-	/**
-	 * Index of our point in history. Goes 1 past the length of `_history`
-	 */
 	private _currentIndex: number;
 	private _history: readonly IChatModelInputState[];
 	private _overlay: (IChatModelInputState | undefined)[] = [];
@@ -206,8 +193,6 @@ export class ChatHistoryNavigator extends Disposable {
 				this._history = this.chatWidgetHistoryService.getHistory(this.location, this._historyKey);
 				const newLength = this._history.length;
 
-				// If this append operation adjusted all history entries back, move our index back too
-				// if we weren't pointing to the end of the history.
 				if (prevLength === newLength) {
 					this._overlay.shift();
 					if (this._currentIndex < this._history.length) {
@@ -250,11 +235,6 @@ export class ChatHistoryNavigator extends Disposable {
 		return this._currentIndex === 0;
 	}
 
-	/**
-	 * Replaces a history entry at the current index in this view of the history.
-	 * Allows editing of old history entries while preventing accidental navigation
-	 * from losing the edits.
-	 */
 	public overlay(entry: IChatModelInputState) {
 		this._overlay[this._currentIndex] = entry;
 	}
@@ -277,10 +257,6 @@ export class ChatHistoryNavigator extends Disposable {
 		return this._overlay[this._currentIndex] ?? this._history[this._currentIndex];
 	}
 
-	/**
-	 * Appends a new entry to the navigator. Resets the state back to the end
-	 * and clears any overlayed entries.
-	 */
 	public append(entry: IChatModelInputState) {
 		this._overlay = [];
 		this._currentIndex = this._history.length;

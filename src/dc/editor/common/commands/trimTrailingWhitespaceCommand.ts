@@ -42,11 +42,7 @@ export class TrimTrailingWhitespaceCommand implements ICommand {
 	}
 }
 
-/**
- * Generate commands for trimming trailing whitespace on a model and ignore lines on which cursors are sitting.
- */
 export function trimTrailingWhitespace(model: ITextModel, cursors: Position[], trimInRegexesAndStrings: boolean): ISingleEditOperation[] {
-	// Sort cursors ascending
 	cursors.sort((a, b) => {
 		if (a.lineNumber === b.lineNumber) {
 			return a.column - b.column;
@@ -54,10 +50,8 @@ export function trimTrailingWhitespace(model: ITextModel, cursors: Position[], t
 		return a.lineNumber - b.lineNumber;
 	});
 
-	// Reduce multiple cursors on the same line and only keep the last one on the line
 	for (let i = cursors.length - 2; i >= 0; i--) {
 		if (cursors[i].lineNumber === cursors[i + 1].lineNumber) {
-			// Remove cursor at `i`
 			cursors.splice(i, 1);
 		}
 	}
@@ -76,7 +70,6 @@ export function trimTrailingWhitespace(model: ITextModel, cursors: Position[], t
 			minEditColumn = cursors[cursorIndex].column;
 			cursorIndex++;
 			if (minEditColumn === maxLineColumn) {
-				// The cursor is at the end of the line => no edits for sure on this line
 				continue;
 			}
 		}
@@ -89,21 +82,15 @@ export function trimTrailingWhitespace(model: ITextModel, cursors: Position[], t
 
 		let fromColumn = 0;
 		if (lastNonWhitespaceIndex === -1) {
-			// Entire line is whitespace
 			fromColumn = 1;
 		} else if (lastNonWhitespaceIndex !== lineContent.length - 1) {
-			// There is trailing whitespace
 			fromColumn = lastNonWhitespaceIndex + 2;
 		} else {
-			// There is no trailing whitespace
 			continue;
 		}
 
 		if (!trimInRegexesAndStrings) {
 			if (!model.tokenization.hasAccurateTokensForLine(lineNumber)) {
-				// We don't want to force line tokenization, as that can be expensive, but we also don't want to trim
-				// trailing whitespace in lines that are not tokenized yet, as that can be wrong and trim whitespace from
-				// lines that the user requested we don't. So we bail out if the tokens are not accurate for this line.
 				continue;
 			}
 

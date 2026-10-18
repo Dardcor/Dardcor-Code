@@ -42,9 +42,6 @@ export interface IChatResultEditorOptions {
 	readonly fontLigatures: boolean | string | undefined;
 	readonly wordWrap: 'off' | 'on';
 
-	// Bring these back if we make the editors editable
-	// readonly cursorBlinking: string;
-	// readonly accessibilitySupport: string;
 }
 
 
@@ -100,7 +97,6 @@ export class ChatEditorOptions extends Disposable {
 	private update() {
 		const editorConfig = this.configurationService.getValue<IEditorOptions>('editor');
 
-		// TODO shouldn't the setting keys be more specific?
 		const chatEditorConfig = this.configurationService.getValue<IChatConfiguration>('chat')?.editor;
 		const accessibilitySupport = this.configurationService.getValue<'auto' | 'off' | 'on'>('editor.accessibilitySupport');
 		this._config = {

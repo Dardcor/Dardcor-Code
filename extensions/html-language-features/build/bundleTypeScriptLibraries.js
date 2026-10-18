@@ -95,14 +95,11 @@ function importLibs(startLib) {
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 ${generatedNote}`;
-	// Do a topological sort
 	while (result.length > 0) {
 		for (let i = result.length - 1; i >= 0; i--) {
 			if (result[i].deps.length === 0) {
-				// emit this node
 				strResult += `\nexport const ${result[i].name}: string = ${result[i].output};\n`;
 
-				// mark dep as resolved
 				for (let j = 0; j < result.length; j++) {
 					for (let k = 0; k < result[j].deps.length; k++) {
 						if (result[j].deps[k] === result[i].name) {
@@ -112,7 +109,6 @@ ${generatedNote}`;
 					}
 				}
 
-				// remove from result
 				result.splice(i, 1);
 				break;
 			}
@@ -123,11 +119,7 @@ ${generatedNote}`;
 	fs.writeFileSync(dstPath, strResult);
 }
 
-/**
- * Escape text such that it can be used in a javascript string enclosed by double quotes (")
- */
 function escapeText(text) {
-	// See http://www.javascriptkit.com/jsref/escapesequence.shtml
 	var _backspace = '\b'.charCodeAt(0);
 	var _formFeed = '\f'.charCodeAt(0);
 	var _newLine = '\n'.charCodeAt(0);

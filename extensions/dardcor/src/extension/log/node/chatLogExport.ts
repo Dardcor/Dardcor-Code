@@ -11,9 +11,6 @@ import { LoggedInfo, LoggedInfoKind } from '../../../platform/requestLogger/comm
  */
 type ExportedLogKind = 'element' | 'request' | 'toolCall' | 'error';
 
-/**
- * Metadata attached to request entries.
- */
 interface ExportedLogMetadata {
 	model?: string;
 	duration?: number;
@@ -26,45 +23,27 @@ interface ExportedLogMetadata {
 	};
 }
 
-/**
- * Exported log entry from a chat log export file.
- * This is the serialized form of LoggedInfo.
- */
 interface ExportedLogEntry {
 	id: string;
 	kind: ExportedLogKind;
-	/** Name of the element or request */
 	name?: string;
-	/** Tool name for tool call entries */
 	tool?: string;
-	/** Request type (e.g., 'ChatMLSuccess', 'ChatMLFailure', 'MarkdownContentRequest') */
 	type?: string;
-	/** Token count for element entries */
 	tokens?: number;
-	/** Max tokens for element entries */
 	maxTokens?: number;
-	/** Arguments for tool call entries */
 	args?: Record<string, unknown>;
-	/** Response from tool or model */
 	response?: object;
-	/** Markdown content for MarkdownContentRequest entries - displayed directly to user */
 	content?: string;
-	/** Metadata for request entries */
 	metadata?: ExportedLogMetadata;
-	/** Raw request messages */
 	requestMessages?: {
 		messages?: unknown[];
 	};
-	/** Timestamp */
 	time?: string;
-	/** Thinking content for reasoning models */
 	thinking?: {
 		id?: string;
 		text?: string;
 	};
-	/** Error message for error entries */
 	error?: string;
-	/** Timestamp for when the entry occurred */
 	timestamp?: string;
 }
 
@@ -73,44 +52,26 @@ interface ExportedLogEntry {
  * Each prompt represents a user query and its associated log entries.
  */
 export interface ExportedPrompt {
-	/** The user's prompt text */
 	prompt: string;
-	/** Unique identifier for the prompt */
 	promptId?: string;
-	/** Whether this is a continuation of a previous conversation */
 	hasSeen?: boolean;
-	/** Number of log entries in this prompt */
 	logCount: number;
-	/** The log entries for this prompt */
 	logs: ExportedLogEntry[];
 }
 
-/**
- * Root structure of a chat log export file.
- */
 export interface ChatLogExport {
-	/** ISO timestamp of when the export was created */
 	exportedAt: string;
-	/** Total number of prompts in the export */
 	totalPrompts: number;
-	/** Total number of log entries across all prompts */
 	totalLogEntries: number;
 	/** Array of exported prompts */
 	prompts: ExportedPrompt[];
-	/** MCP server definitions active during the session */
 	mcpServers?: object[];
 }
 
-/**
- * Converts a single log entry to its JSON representation.
- * Handles async toJSON methods for tool calls.
- */
 async function entryToJson(entry: LoggedInfo): Promise<object> {
 	if (entry.kind === LoggedInfoKind.ToolCall) {
-		// Tool calls have async toJSON
 		return await (entry as { toJSON(): Promise<object> }).toJSON();
 	} else {
-		// Elements and requests have sync toJSON
 		return (entry as { toJSON(): object }).toJSON();
 	}
 }
@@ -174,9 +135,6 @@ export function assembleChatLogExport(
 	};
 }
 
-/**
- * Serializes a chat log export to a JSON string.
- */
 export function serializeChatLogExport(exportData: ChatLogExport): string {
 	return JSON.stringify(exportData, null, 2);
 }

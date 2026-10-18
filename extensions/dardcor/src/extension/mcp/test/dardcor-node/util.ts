@@ -86,7 +86,6 @@ export class FixtureFetcherService implements IFetcherService {
 			const response = await this.fetch(url, options);
 
 			if (!response.ok) {
-				// Return what we've collected so far if request fails
 				return items;
 			}
 

@@ -57,7 +57,6 @@ export function defineStateOperationsTests(context: IAgentHostE2ETestContext): v
 		return result.snapshot!.state as TerminalState;
 	}
 
-	/** The terminal's visible text, flattening command parts and raw output alike. */
 	function terminalText(state: TerminalState): string {
 		return state.content
 			.map(part => part.type === 'command' ? part.output : part.value)
@@ -371,11 +370,6 @@ export function defineStateOperationsTests(context: IAgentHostE2ETestContext): v
 		const { chatUri } = await createSession('queue-promote');
 		context.client.clearReceived();
 
-		// Queueing exists to hold work while a turn is running. With nothing
-		// running there is nothing to wait for, so the host must start the
-		// message rather than park it — otherwise a queued message on an idle
-		// chat would never run at all. `/rename` keeps the promoted turn inside
-		// the host's local-command dispatcher, with no shell and no model.
 		await dispatchAndWait(chatUri, 1, {
 			type: ActionType.ChatPendingMessageSet,
 			kind: PendingMessageKind.Queued,
@@ -397,8 +391,6 @@ export function defineStateOperationsTests(context: IAgentHostE2ETestContext): v
 			60_000,
 		);
 
-		// Promotion has to be atomic with removal: a message left in the queue
-		// after being started would run a second time on the next idle event.
 		assert.deepStrictEqual((await chatState(chatUri)).queuedMessages ?? [], []);
 	});
 
@@ -626,14 +618,6 @@ export function defineStateOperationsTests(context: IAgentHostE2ETestContext): v
 
 			await dispatchAndWait(terminalUri, 2, { type: ActionType.TerminalCleared });
 
-			// The scrollback lives in host state, not just in the client's view,
-			// so clearing must drop it for every subscriber including one that
-			// subscribes later.
-			//
-			// Asserting the buffer is *empty* would be wrong: the shell is live
-			// and redraws its prompt as soon as the screen is cleared, so bytes
-			// legitimately arrive after the clear reduces. What has to be gone
-			// is the output the client had already accumulated.
 			const after = terminalText(await terminalState(terminalUri));
 			assert.deepStrictEqual({
 				markerBeforeClear: before.includes('CLEAR_MARKER'),
@@ -678,8 +662,6 @@ export function defineStateOperationsTests(context: IAgentHostE2ETestContext): v
 				30_000,
 			);
 
-			// The exit code itself is the shell's, not the host's, so only its
-			// presence and its arrival in state are contractual.
 			const action = getActionEnvelope(exited).action as { exitCode?: number };
 			const lifecycle = (await terminalState(terminalUri)).lifecycle;
 			assert.deepStrictEqual({
@@ -693,8 +675,6 @@ export function defineStateOperationsTests(context: IAgentHostE2ETestContext): v
 	});
 
 	conformanceTest(context, 'root state tracks terminals as they appear and disappear', async function () {
-		// The first terminal also establishes the connection; root can only be
-		// subscribed once the client has handshaked.
 		await withTerminal('terminal-root', async ({ clientId, workspace }) => {
 			await context.client.call<SubscribeResult>('subscribe', { channel: ROOT_STATE_URI });
 			context.client.clearReceived();
@@ -703,8 +683,6 @@ export function defineStateOperationsTests(context: IAgentHostE2ETestContext): v
 				return (getActionEnvelope(n).action as { terminals?: readonly { resource: string }[] }).terminals ?? [];
 			}
 
-			// Root is how a client discovers terminals it did not create itself, so
-			// it has to be told on both edges, not only on creation.
 			const observedUri = URI.from({ scheme: 'agenthost-terminal', authority: 'e2e', path: `/${generateUuid()}` }).toString();
 			let observedCreated = false;
 			try {

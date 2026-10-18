@@ -22,8 +22,8 @@ import { AgentService } from './agentService.js';
 import { AgentHostStateManager, IAgentHostStateManager } from './agentHostStateManager.js';
 import { IAgentConfigurationService } from './agentConfigurationService.js';
 import { IAgentHostCompletions } from './agentHostCompletions.js';
-import { CopilotAgent } from './copilot/copilotAgent.js';
 import { ClaudeAgent } from './claude/claudeAgent.js';
+
 import { ClaudeSdkPackage } from './claude/claudeAgentSdkService.js';
 import { CodexAgent, CodexSdkPackage } from './codex/codexAgent.js';
 import { createCodexProviderConfiguration } from './codex/codexProviderConfiguration.js';
@@ -60,10 +60,6 @@ import ErrorTelemetry from '../../telemetry/node/errorTelemetry.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { AgentHostLaunchKindEnvVar, readAgentHostLaunchKind, type AgentHostLaunchKind } from '../common/agentHostTelemetry.js';
 
-// Entry point for the agent host utility process.
-// Sets up IPC, logging, and registers agent providers (Copilot).
-// When VSCODE_AGENT_HOST_PORT or VSCODE_AGENT_HOST_SOCKET_PATH env vars
-// are set, also starts a WebSocket server for external clients.
 
 void startAgentHost().catch(err => {
 	console.error(err);
@@ -71,7 +67,6 @@ void startAgentHost().catch(err => {
 });
 
 async function startAgentHost(): Promise<void> {
-	// Setup RPC - supports both Electron utility process and Node child process
 	let server: ChildProcessServer<string> | UtilityProcessServer;
 	if (isUtilityProcess(process)) {
 		server = new UtilityProcessServer();
@@ -84,18 +79,11 @@ async function startAgentHost(): Promise<void> {
 	const protocolHandlers: ProtocolServerHandler[] = [];
 	const errorTelemetry = disposables.add(new MutableDisposable<ErrorTelemetry>());
 
-	// Services
 	const productService: IProductService = { _serviceBrand: undefined, ...product };
 	const environmentService = new NativeEnvironmentService(parseArgs(process.argv, OPTIONS), productService);
 	const loggerService = new LoggerService(getLogLevel(environmentService), environmentService.logsHome);
-	// Non-protocol management and logging IPC remain separate from the AHP data plane.
 	server.registerChannel(AgentHostIpcChannels.Logger, new LoggerChannel(loggerService, () => DefaultURITransformer));
 	const logger = loggerService.createLogger('agenthost', { name: localize('agentHost', "Agent Host") });
-	// OTLP log fan-out: any consumer that subscribes to the host's
-	// `ahp-otlp://logs/{level}` channel will receive every log record this
-	// `ILogService` produces, in addition to the regular file logger. The
-	// emitter is created here so it can be shared by every protocol
-	// handler instantiated below.
 	const otlpLogEmitter = disposables.add(new OtlpLogEmitter());
 	const otlpLogger = disposables.add(new OtlpEmitterLogger(otlpLogEmitter));
 	const logService = new LogService(logger, [otlpLogger]);
@@ -104,15 +92,12 @@ async function startAgentHost(): Promise<void> {
 	}
 	logService.info('Agent Host process started successfully');
 
-	// Create the real service implementation that lives in this process
 	let runtime!: IAgentHostRuntime;
 	let agentService: AgentService;
 	let instantiationService!: IInstantiationService;
 	let fileService!: IFileService;
 	let stateManager!: AgentHostStateManager;
 	let completionTriggerCharacters!: readonly string[];
-	// Hoisted out of the `try` below so the protocol handlers (constructed
-	// after the block) can forward agent-SDK download progress to clients.
 	let sdkDownloadProgress: Event<IAgentSdkDownloadProgress> | undefined;
 	let byokLmBridgeRegistry: ByokLmBridgeRegistry;
 	let proxyResolver!: IAgentHostProxyResolver;
@@ -151,26 +136,10 @@ async function startAgentHost(): Promise<void> {
 		const agentSdkDownloader = runtimeServices.agentSdkDownloader;
 		const providerService = runtimeServices.providerService;
 		sdkDownloadProgress = runtime.sdkDownloadProgress;
-		providerService.registerProvider(instantiationService.createInstance(CopilotAgent));
-		// Claude and Codex providers are gated on two things:
-		//  1. The user-facing enable toggle (`chat.agentHost.<x>Agent.enabled`,
-		//     forwarded as an env var by the starters). Claude defaults to on,
-		//     Codex defaults to off.
-		//  2. The SDK being reachable. Claude is a devDependency of this repo
-		//     so the bare-import path in `ClaudeAgentSdkService._loadSdk`
-		//     always succeeds in dev; in built products the SDK ships via
-		//     `product.agentSdks.claude` and the downloader handles it. Codex
-		//     is likewise a devDependency, so `CodexAgent._resolveSdkRoot`
-		//     resolves it from `node_modules` in dev; built products use the
-		//     env-var override or a `product.agentSdks.codex` entry.
-		// If either gate fails, the provider is not registered and never appears
-		// in the agent picker (matches the pre-CDN UX exactly).
+
 		if (isAgentEnabled(process.env[AgentHostClaudeAgentEnabledEnvVar], true) && (!environmentService.isBuilt || agentSdkDownloader.isAvailable(ClaudeSdkPackage))) {
 			providerService.registerProvider(instantiationService.createInstance(ClaudeAgent));
 		}
-		// Codex registration is one-way (register-on-enable): the env-var toggle
-		// or the renderer-forwarded `codexAgentEnabled` root config enables it.
-		// Disabling requires an agent host restart.
 		if (!environmentService.isBuilt || agentSdkDownloader.isAvailable(CodexSdkPackage)) {
 			let codexRegistered = false;
 			const registerCodexIfEnabled = () => {
@@ -193,21 +162,9 @@ async function startAgentHost(): Promise<void> {
 		throw err;
 	}
 
-	// Keep every provider's model catalog fresh. Provider-owned refresh
-	// triggers (authentication, transport flips, client restarts) are all
-	// edge-based, so this periodic tick is the only thing that notices a model
-	// added service-side while the host stays up. Owned here, at process
-	// lifetime, rather than inside `AgentHostService`: a service that arms a
-	// recurring timer in its constructor is one that no faked-timer unit test
-	// can ever drain.
 	disposables.add(instantiationService.createInstance(AgentModelRefreshScheduler, runtime.agents, runtime.onDidStartTurn, MODEL_REFRESH_INTERVAL_MS));
 
-	// Surface agent-SDK download progress to clients as generic `progress`
 	// notifications. The downloader fires process-global frames keyed by package
-	// id; the agent service surfaces frames requested by a waiting session or
-	// another user-initiated flow, routed through the state manager so both the
-	// local (IPC) and any external (WebSocket) renderer receive them via the same
-	// path as session updates.
 	if (sdkDownloadProgress) {
 		disposables.add(sdkDownloadProgress(p => agentService.emitDownloadProgress(
 			p.packageId,
@@ -219,24 +176,17 @@ async function startAgentHost(): Promise<void> {
 		)));
 	}
 
-	// Retain the imperative bridge only for the child-process server consumers.
-	// The utility-process MessagePort exposes Protocol and Management instead.
 	if (!(server instanceof UtilityProcessServer)) {
 		const agentChannel = ProxyChannel.fromService(agentService, disposables);
 		server.registerChannel(AgentHostIpcChannels.AgentHost, agentChannel);
 	}
 
-	// Single shared `vscode-agent-client` filesystem provider. Per-client
-	// authorities are added by protocol handlers or the non-protocol reverse
-	// bridges below.
 	const clientFileSystemProvider = disposables.add(new AgentHostClientFileSystemProvider());
 	disposables.add(fileService.registerProvider(AGENT_CLIENT_SCHEME, clientFileSystemProvider));
 
 	if (server instanceof UtilityProcessServer) {
 		const localDataPlaneDisposables = protocolIngressDisposables.add(new DisposableStore());
 		const messagePortProtocolServer = localDataPlaneDisposables.add(new MessagePortProtocolServer<string>());
-		// Shared config for the local data-plane protocol handlers (renderer
-		// MessagePort + the external endpoint, which each get their own handler).
 		const localProtocolHandlerConfig = {
 			hostLaunchKind,
 			defaultDirectory: URI.file(os.homedir()).toString(),
@@ -246,7 +196,6 @@ async function startAgentHost(): Promise<void> {
 			allowExtensionMethods: false,
 		};
 		try {
-			// Handler for the renderer's MessagePort data plane.
 			const messagePortProtocolHandler = localDataPlaneDisposables.add(instantiationService.createInstance(
 				ProtocolServerHandler,
 				agentService,
@@ -256,8 +205,6 @@ async function startAgentHost(): Promise<void> {
 				clientFileSystemProvider,
 			));
 			protocolHandlers.push(messagePortProtocolHandler);
-			// Non-protocol reverse bridges remain on their existing IPC channels.
-			// The renderer's MessagePortClient ctx is its clientId.
 			const authorityRegistrations = new Map<unknown, IDisposable>();
 			const registerConnection = (connection: (typeof server.connections)[number]) => {
 				if (authorityRegistrations.has(connection)) {
@@ -298,16 +245,8 @@ async function startAgentHost(): Promise<void> {
 				registerConnection(connection);
 			}
 
-			// Register the renderer's protocol channel BEFORE starting the external
-			// endpoint: the renderer connects over this channel, and the IPC
-			// ChannelServer drops calls to a not-yet-registered channel after its
-			// unknown-channel timeout (~1s), so the endpoint's socket startup must
-			// not sit on this path.
 			server.registerChannel(AgentHostIpcChannels.Protocol, messagePortProtocolServer);
 
-			// The external local endpoint (out-of-process local clients such as the
-			// CLI) is not on the renderer's path; start it after registration and
-			// give it its own handler.
 			const localEndpoint = await startLocalAgentHostEndpoint(
 				environmentService.userDataPath,
 				logService,
@@ -316,9 +255,6 @@ async function startAgentHost(): Promise<void> {
 			);
 			if (localEndpoint) {
 				const endpointMetadata = localEndpoint.metadata;
-				// Wire the endpoint's handler (subscribing to its connections) BEFORE
-				// publishing the metadata that advertises it, so a client can't connect
-				// in the gap and be missed.
 				localDataPlaneDisposables.add(localEndpoint.server);
 				const localEndpointProtocolHandler = localDataPlaneDisposables.add(instantiationService.createInstance(
 					ProtocolServerHandler,
@@ -346,8 +282,6 @@ async function startAgentHost(): Promise<void> {
 		}
 	}
 
-	// Expose dynamic bridge client count to the parent process via a non-protocol
-	// management IPC channel.
 	const connectionCountEmitter = disposables.add(new Emitter<number>());
 	let dynamicSocketInfo: IAgentHostSocketInfo | undefined;
 	const configuredWebSocketServer = new DeferredPromise<void>();
@@ -412,7 +346,6 @@ async function startAgentHost(): Promise<void> {
 			if (!url) {
 				return undefined;
 			}
-			// Inspector URL looks like: ws://host:port/uuid (host may be IPv6 in brackets)
 			try {
 				const parsedUrl = new URL(url);
 				if (parsedUrl.protocol !== 'ws:') {
@@ -458,8 +391,6 @@ async function startAgentHost(): Promise<void> {
 		server.registerChannel(AgentHostIpcChannels.ConnectionTracker, ProxyChannel.fromService(connectionTrackerService, disposables));
 	}
 
-	// The configured bridge listener remains separate: tunnel forwarding pipes
-	// raw WebSocket streams and cannot carry the local endpoint's bearer token.
 	const configuredWebSocketServerStart = startWebSocketServer(
 		agentService,
 		stateManager,
@@ -475,9 +406,6 @@ async function startAgentHost(): Promise<void> {
 		handler => protocolHandlers.push(handler),
 	);
 	configuredWebSocketServer.settleWith(configuredWebSocketServerStart);
-	// Startup is complete once the last ingress has settled — successfully or
-	// not, since a failed WebSocket server is non-fatal. Deferred maintenance
-	// then runs after a client has also been served its first session listing.
 	void configuredWebSocketServerStart.catch(err => {
 		logService.error('Failed to start WebSocket server', err);
 	}).finally(() => {
@@ -551,12 +479,6 @@ function cleanupLocalAgentHostEndpoint(
 	}
 }
 
-/**
- * When the parent process passes WebSocket configuration via environment
- * variables, start a protocol server that external clients can connect to.
- * This reuses the same {@link AgentService} and {@link AgentHostStateManager}
- * that the IPC channel uses, so both IPC and WebSocket clients share state.
- */
 async function startWebSocketServer(
 	agentService: AgentService,
 	stateManager: AgentHostStateManager,
@@ -622,13 +544,8 @@ async function startWebSocketServer(
 	onProtocolHandlerCreated(protocolHandler);
 	disposables.add(protocolHandler.onDidChangeConnectionCount(onConnectionCountChanged));
 
-	// Wait for the listener to actually bind before reporting readiness.
-	// When the caller requested `port: 0` (let the OS pick), the bound
-	// port is only known after this point — emitting the requested port
-	// would print `localhost:0` and break the CLI's readiness parser.
 	await wsServer.whenListening;
 	const listenTarget = socketPath ?? `${host}:${wsServer.boundPort ?? port}`;
 	logService.info(`[AgentHost] WebSocket server listening on ${listenTarget}`);
-	// Do not change this line. The CLI looks for this in the output.
 	console.log(`Agent host server listening on ${listenTarget}`);
 }

@@ -142,18 +142,15 @@ suite('Completions Prompt Factory', function () {
 		const workspace = new CompletionsMutableObservableWorkspace();
 		serviceCollectionClone.define(ICompletionsObservableWorkspace, workspace);
 
-		// TODO: figure out how to simulate real document update events
 		const rep = new MockRecentEditsProvider(undefined, workspace);
 		serviceCollectionClone.define(ICompletionsRecentEditsProviderService, rep);
 
 		const accessorClone = serviceCollectionClone.createTestingAccessor();
 		const promptFactory = accessorClone.get(IInstantiationService).createInstance(TestCompletionsPromptFactory, undefined, undefined);
 
-		// Ensure the document is open
 		const tdm = accessorClone.get(ICompletionsTextDocumentManagerService) as TestTextDocumentManager;
 		tdm.setTextDocument(defaultTextDocument.uri, defaultTextDocument.languageId, defaultTextDocument.getText());
 
-		// Update the distance setting to avoid having to create a huge document
 		rep.config.activeDocDistanceLimitFromCursor = 10;
 
 		rep.testUpdateRecentEdits(defaultTextDocument.uri, defaultTextDocument.getText());
@@ -191,7 +188,6 @@ suite('Completions Prompt Factory', function () {
 		const serviceCollectionClone = serviceCollection.clone();
 		const workspace = new CompletionsMutableObservableWorkspace();
 		serviceCollectionClone.define(ICompletionsObservableWorkspace, workspace);
-		// TODO: figure out how to simulate real document update events
 		const rep = new MockRecentEditsProvider(undefined, workspace);
 		serviceCollectionClone.define(ICompletionsRecentEditsProviderService, rep);
 
@@ -199,11 +195,9 @@ suite('Completions Prompt Factory', function () {
 		const promptFactory = accessorClone.get(IInstantiationService).createInstance(TestCompletionsPromptFactory, undefined, undefined);
 		const featuresService = accessorClone.get(ICompletionsFeaturesService);
 
-		// Ensure the document is open
 		const tdm = accessorClone.get(ICompletionsTextDocumentManagerService) as TestTextDocumentManager;
 		tdm.setTextDocument(defaultTextDocument.uri, defaultTextDocument.languageId, defaultTextDocument.getText());
 
-		// Update the distance setting to avoid having to create a huge document
 		rep.config.activeDocDistanceLimitFromCursor = 10;
 
 		rep.testUpdateRecentEdits(defaultTextDocument.uri, defaultTextDocument.getText());
@@ -247,7 +241,6 @@ suite('Completions Prompt Factory', function () {
 
 	test('suffix should be cached if similar enough', async function () {
 		telemetryData.filtersAndExp.exp.variables.dardcorsuffixmatchthreshold = 20;
-		// Call it once to cache
 		await invokePromptFactory();
 
 		const textDocument = createTextDocument(
@@ -427,12 +420,11 @@ suite('Completions Prompt Factory', function () {
 		assert.deepStrictEqual(tokenizer.tokenLength(defaultLimitsPrompt.prompt.prefix), 7007);
 		assert.deepStrictEqual(tokenizer.tokenLength(defaultLimitsPrompt.prompt.suffix), 6);
 
-		// 100 tokens are left for the prompt, 5 are used for the suffix token, so 95 are left
 		telemetryData.filtersAndExp.exp.variables.maxpromptcompletionTokens =
-			100 + // Prefix + suffix
-			5 + // Suffix encoding
+			100 +
+			5 +
 			DEFAULT_MAX_COMPLETION_LENGTH;
-		telemetryData.filtersAndExp.exp.variables.CopilotSuffixPercent = 2;
+		telemetryData.filtersAndExp.exp.variables.DardcorSuffixPercent = 2;
 
 		const expLimitsPrompt = await invokePromptFactory({ textDocument: longTextDocument });
 
@@ -591,7 +583,6 @@ suite('Completions Prompt Factory', function () {
 		contextProviderRegistry.registerContextProvider(diagnosticsProvider);
 		contextProviderRegistry.registerContextProvider(codeSnippetsProvider);
 
-		// Register the documents for content exclusion
 		const tdm = accessor.get(ICompletionsTextDocumentManagerService) as TestTextDocumentManager;
 		tdm.setTextDocument('file:///something.ts', 'typescript', 'does not matter');
 
@@ -633,7 +624,6 @@ suite('Completions Prompt Factory', function () {
 		contextProviderRegistry.registerContextProvider(errorProvider);
 		contextProviderRegistry.registerContextProvider(codeSnippetsProvider);
 
-		// Register the documents for content exclusion
 		const tdm = accessor.get(ICompletionsTextDocumentManagerService) as TestTextDocumentManager;
 		tdm.setTextDocument('file:///something.ts', 'typescript', 'does not matter');
 
@@ -828,7 +818,6 @@ suite('Completions Prompt Factory', function () {
 					]),
 			},
 		};
-		// Register the documents for content exclusion
 		const contextProviderRegistry = accessor.get(ICompletionsContextProviderRegistryService);
 		const tdm = accessor.get(ICompletionsTextDocumentManagerService) as TestTextDocumentManager;
 		tdm.setTextDocument('file:///something.ts', 'typescript', 'does not matter');
@@ -911,7 +900,6 @@ suite('Completions Prompt Factory', function () {
 			);
 		});
 
-		// the event should only contains sanctioned trait with expected property names.
 		assert.strictEqual(reporter.hasEvent, true);
 		assert.strictEqual(reporter.events.length, 1);
 
@@ -958,7 +946,6 @@ suite('getDefaultDiagnostics', function () {
 		const completionState = createCompletionState(document, position);
 		const settings: DefaultDiagnosticSettings = { warnings: 'yes', maxLineDistance: 10, maxDiagnostics: 5 };
 
-		// Set empty diagnostics
 		const languageDiagnosticsService = accessor.get(ILanguageDiagnosticsService);
 		(languageDiagnosticsService as any).setDiagnostics(Uri.parse(document.uri), []);
 
@@ -992,28 +979,28 @@ suite('getDefaultDiagnostics', function () {
 			line 4
 			line 5
 		`);
-		const position = Position.create(2, 0); // At line 2
+		const position = Position.create(2, 0);
 		const completionState = createCompletionState(document, position);
 		const settings: DefaultDiagnosticSettings = { warnings: 'yes', maxLineDistance: 1, maxDiagnostics: 5 };
 
 		const diagnostics: Diagnostic[] = [
 			{
-				range: new Range(0, 0, 0, 5), // Distance: 2, should be filtered out
+				range: new Range(0, 0, 0, 5),
 				message: 'Error at line 0',
 				severity: DiagnosticSeverity.Error
 			},
 			{
-				range: new Range(1, 0, 1, 5), // Distance: 1, should be included
+				range: new Range(1, 0, 1, 5),
 				message: 'Error at line 1',
 				severity: DiagnosticSeverity.Error
 			},
 			{
-				range: new Range(3, 0, 3, 5), // Distance: 1, should be included
+				range: new Range(3, 0, 3, 5),
 				message: 'Error at line 3',
 				severity: DiagnosticSeverity.Error
 			},
 			{
-				range: new Range(5, 0, 5, 5), // Distance: 3, should be filtered out
+				range: new Range(5, 0, 5, 5),
 				message: 'Error at line 5',
 				severity: DiagnosticSeverity.Error
 			}
@@ -1189,28 +1176,28 @@ suite('getDefaultDiagnostics', function () {
 			line 4
 			line 5
 		`);
-		const position = Position.create(2, 0); // At line 2
+		const position = Position.create(2, 0);
 		const completionState = createCompletionState(document, position);
 		const settings: DefaultDiagnosticSettings = { warnings: 'yes', maxLineDistance: 5, maxDiagnostics: 10 };
 
 		const diagnostics: Diagnostic[] = [
 			{
-				range: new Range(5, 0, 5, 5), // Distance: 3
+				range: new Range(5, 0, 5, 5),
 				message: 'Error at line 5',
 				severity: DiagnosticSeverity.Error
 			},
 			{
-				range: new Range(2, 0, 2, 5), // Distance: 0 (same line)
+				range: new Range(2, 0, 2, 5),
 				message: 'Error at line 2',
 				severity: DiagnosticSeverity.Error
 			},
 			{
-				range: new Range(0, 0, 0, 5), // Distance: 2
+				range: new Range(0, 0, 0, 5),
 				message: 'Error at line 0',
 				severity: DiagnosticSeverity.Error
 			},
 			{
-				range: new Range(3, 0, 3, 5), // Distance: 1
+				range: new Range(3, 0, 3, 5),
 				message: 'Error at line 3',
 				severity: DiagnosticSeverity.Error
 			}
@@ -1222,11 +1209,10 @@ suite('getDefaultDiagnostics', function () {
 		const result = promptFactory.addDefaultDiagnosticBag([], undefined, completionId, completionState, settings)![0];
 		assert.notStrictEqual(result, undefined);
 		assert.strictEqual(result!.values.length, 4);
-		// Should be sorted by distance: 0, 1, 2, 3
-		assert.strictEqual(result!.values[0].message, 'Error at line 2'); // Distance 0
-		assert.strictEqual(result!.values[1].message, 'Error at line 3'); // Distance 1
-		assert.strictEqual(result!.values[2].message, 'Error at line 0'); // Distance 2
-		assert.strictEqual(result!.values[3].message, 'Error at line 5'); // Distance 3
+		assert.strictEqual(result!.values[0].message, 'Error at line 2');
+		assert.strictEqual(result!.values[1].message, 'Error at line 3');
+		assert.strictEqual(result!.values[2].message, 'Error at line 0');
+		assert.strictEqual(result!.values[3].message, 'Error at line 5');
 	});
 
 	test('should return undefined when all diagnostics are filtered out', function () {
@@ -1276,7 +1262,7 @@ suite('getDefaultDiagnostics', function () {
 		assert.notStrictEqual(result, undefined);
 		assert.strictEqual(result!.type, 'DiagnosticBag');
 		assert.strictEqual(result!.uri.toString(), URI.parse(document.uri).toString());
-		assert.ok(result!.id); // Should have a generated id
+		assert.ok(result!.id);
 		assert.ok(typeof result!.id === 'string');
 	});
 });

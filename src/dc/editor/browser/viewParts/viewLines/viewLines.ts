@@ -90,14 +90,7 @@ class HorizontalRevealSelectionsRequest {
 
 type HorizontalRevealRequest = HorizontalRevealRangeRequest | HorizontalRevealSelectionsRequest;
 
-/**
- * The view lines part is responsible for rendering the actual content of a
- * file.
- */
 export class ViewLines extends ViewPart implements IViewLines {
-	/**
-	 * Adds this amount of pixels to the right of lines (no-one wants to type near the edge of the viewport)
-	 */
 	private static readonly HORIZONTAL_EXTRA_PX = 30;
 
 	private readonly _linesContent: FastDomNode<HTMLElement>;
@@ -105,7 +98,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 	private readonly _visibleLines: VisibleLinesCollection<ViewLine>;
 	private readonly domNode: FastDomNode<HTMLElement>;
 
-	// --- config
 	private _lineHeight: number;
 	private _typicalHalfwidthCharacterWidth: number;
 	private _isViewportWrapping: boolean;
@@ -115,7 +107,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 	private _canUseLayerHinting: boolean;
 	private _viewLineOptions: ViewLineOptions;
 
-	// --- width
 	private _maxLineWidth: number;
 	private readonly _asyncUpdateLineWidths: RunOnceScheduler;
 	private readonly _asyncCheckMonospaceFontAssumptions: RunOnceScheduler;
@@ -123,7 +114,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 	private _horizontalRevealRequest: HorizontalRevealRequest | null;
 	private readonly _lastRenderedData: LastRenderedData;
 
-	// Sticky Scroll
 	private _stickyScrollEnabled: boolean;
 	private _maxNumberStickyLines: number;
 
@@ -155,7 +145,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 		this.domNode.setClassName(`view-lines ${MOUSE_CURSOR_TEXT_CSS_CLASS_NAME}`);
 		applyFontInfo(this.domNode, fontInfo);
 
-		// --- width & height
 		this._maxLineWidth = 0;
 		this._asyncUpdateLineWidths = new RunOnceScheduler(() => {
 			this._updateLineWidthsSlow();
@@ -168,7 +157,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 
 		this._horizontalRevealRequest = null;
 
-		// sticky scroll widget
 		this._stickyScrollEnabled = options.get(EditorOption.stickyScroll).enabled;
 		this._maxNumberStickyLines = options.get(EditorOption.stickyScroll).maxLineCount;
 	}
@@ -183,7 +171,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 		return this.domNode;
 	}
 
-	// ---- begin view event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		this._visibleLines.onConfigurationChanged(e);
@@ -203,7 +190,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 		this._cursorSurroundingLinesStyle = options.get(EditorOption.cursorSurroundingLinesStyle);
 		this._canUseLayerHinting = !options.get(EditorOption.disableLayerHinting);
 
-		// sticky scroll
 		this._stickyScrollEnabled = options.get(EditorOption.stickyScroll).enabled;
 		this._maxNumberStickyLines = options.get(EditorOption.stickyScroll).maxLineCount;
 
@@ -267,27 +253,21 @@ export class ViewLines extends ViewPart implements IViewLines {
 		return this._visibleLines.onLinesInserted(e);
 	}
 	public override onRevealRangeRequest(e: viewEvents.ViewRevealRangeRequestEvent): boolean {
-		// Using the future viewport here in order to handle multiple
-		// incoming reveal range requests that might all desire to be animated
 		const desiredScrollTop = this._computeScrollTopToRevealRange(this._context.viewLayout.getFutureViewport(), e.source, e.minimalReveal, e.range, e.selections, e.verticalType);
 
 		if (desiredScrollTop === -1) {
-			// marker to abort the reveal range request
 			return false;
 		}
 
-		// validate the new desired scroll top
 		let newScrollPosition = this._context.viewLayout.validateScrollPosition({ scrollTop: desiredScrollTop });
 
 		if (e.revealHorizontal) {
 			if (e.range && e.range.startLineNumber !== e.range.endLineNumber) {
-				// Two or more lines? => scroll to base (That's how you see most of the two lines)
 				newScrollPosition = {
 					scrollTop: newScrollPosition.scrollTop,
 					scrollLeft: 0
 				};
 			} else if (e.range) {
-				// We don't necessarily know the horizontal offset of this range since the line might not be in the view...
 				this._horizontalRevealRequest = new HorizontalRevealRangeRequest(e.minimalReveal, e.range.startLineNumber, e.range.startColumn, e.range.endColumn, this._context.viewLayout.getCurrentScrollTop(), newScrollPosition.scrollTop, e.scrollType);
 			} else if (e.selections && e.selections.length > 0) {
 				this._horizontalRevealRequest = new HorizontalRevealSelectionsRequest(e.minimalReveal, e.selections, this._context.viewLayout.getCurrentScrollTop(), newScrollPosition.scrollTop, e.scrollType);
@@ -304,14 +284,12 @@ export class ViewLines extends ViewPart implements IViewLines {
 	}
 	public override onScrollChanged(e: viewEvents.ViewScrollChangedEvent): boolean {
 		if (this._horizontalRevealRequest && e.scrollLeftChanged) {
-			// cancel any outstanding horizontal reveal request if someone else scrolls horizontally.
 			this._horizontalRevealRequest = null;
 		}
 		if (this._horizontalRevealRequest && e.scrollTopChanged) {
 			const min = Math.min(this._horizontalRevealRequest.startScrollTop, this._horizontalRevealRequest.stopScrollTop);
 			const max = Math.max(this._horizontalRevealRequest.startScrollTop, this._horizontalRevealRequest.stopScrollTop);
 			if (e.scrollTop < min || e.scrollTop > max) {
-				// cancel any outstanding horizontal reveal request if someone else scrolls vertically.
 				this._horizontalRevealRequest = null;
 			}
 		}
@@ -330,37 +308,30 @@ export class ViewLines extends ViewPart implements IViewLines {
 		return this._onOptionsMaybeChanged();
 	}
 
-	// ---- end view event handlers
 
-	// ----------- HELPERS FOR OTHERS
 
 	public getPositionFromDOMInfo(spanNode: HTMLElement, offset: number): Position | null {
 		const viewLineDomNode = this._getViewLineDomNode(spanNode);
 		if (viewLineDomNode === null) {
-			// Couldn't find view line node
 			return null;
 		}
 		const lineNumber = this._getLineNumberFor(viewLineDomNode);
 
 		if (lineNumber === -1) {
-			// Couldn't find view line node
 			return null;
 		}
 
 		if (lineNumber < 1 || lineNumber > this._context.viewModel.getLineCount()) {
-			// lineNumber is outside range
 			return null;
 		}
 
 		if (this._context.viewModel.getLineMaxColumn(lineNumber) === 1) {
-			// Line is empty
 			return new Position(lineNumber, 1);
 		}
 
 		const rendStartLineNumber = this._visibleLines.getStartLineNumber();
 		const rendEndLineNumber = this._visibleLines.getEndLineNumber();
 		if (lineNumber < rendStartLineNumber || lineNumber > rendEndLineNumber) {
-			// Couldn't find line
 			return null;
 		}
 
@@ -382,9 +353,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 		return null;
 	}
 
-	/**
-	 * @returns the line number of this view line dom node.
-	 */
 	private _getLineNumberFor(domNode: HTMLElement): number {
 		const startLineNumber = this._visibleLines.getStartLineNumber();
 		const endLineNumber = this._visibleLines.getEndLineNumber();
@@ -401,7 +369,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 		const rendStartLineNumber = this._visibleLines.getStartLineNumber();
 		const rendEndLineNumber = this._visibleLines.getEndLineNumber();
 		if (lineNumber < rendStartLineNumber || lineNumber > rendEndLineNumber) {
-			// Couldn't find line
 			return -1;
 		}
 
@@ -507,17 +474,11 @@ export class ViewLines extends ViewPart implements IViewLines {
 		return new HorizontalPosition(visibleRanges.outsideRenderedLine, visibleRanges.ranges[0].left);
 	}
 
-	// --- implementation
 
 	public updateLineWidths(): void {
 		this._updateLineWidths(false);
 	}
 
-	/**
-	 * Updates the max line width if it is fast to compute.
-	 * Returns true if all lines were taken into account.
-	 * Returns false if some lines need to be reevaluated (in a slow fashion).
-	 */
 	private _updateLineWidthsFast(): boolean {
 		return this._updateLineWidths(true);
 	}
@@ -526,17 +487,11 @@ export class ViewLines extends ViewPart implements IViewLines {
 		this._updateLineWidths(false);
 	}
 
-	/**
-	 * Update the line widths using DOM layout information after someone else
-	 * has caused a synchronous layout.
-	 */
 	private _updateLineWidthsSlowIfDomDidLayout(domReadingContext: DomReadingContext): void {
 		if (!domReadingContext.didDomLayout) {
-			// only proceed if we just did a layout
 			return;
 		}
 		if (!this._asyncUpdateLineWidths.isScheduled()) {
-			// reading widths is not scheduled => widths are up-to-date
 			return;
 		}
 		this._asyncUpdateLineWidths.cancel();
@@ -553,7 +508,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 			const visibleLine = this._visibleLines.getVisibleLine(lineNumber);
 
 			if (fast && !visibleLine.getWidthIsFast()) {
-				// Cannot compute width in a fast way for this line
 				allWidthsComputed = false;
 				continue;
 			}
@@ -562,7 +516,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 		}
 
 		if (allWidthsComputed && rendStartLineNumber === 1 && rendEndLineNumber === this._context.viewModel.getLineCount()) {
-			// we know the max line width for all the lines
 			this._maxLineWidth = 0;
 		}
 
@@ -572,9 +525,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 	}
 
 	private _checkMonospaceFontAssumptions(): void {
-		// Problems with monospace assumptions are more apparent for longer lines,
-		// as small rounding errors start to sum up, so we will select the longest
-		// line for a closer inspection
 		let longestLineNumber = -1;
 		let longestWidth = -1;
 		const rendStartLineNumber = this._visibleLines.getStartLineNumber();
@@ -611,36 +561,27 @@ export class ViewLines extends ViewPart implements IViewLines {
 	}
 
 	public renderText(viewportData: ViewportData): void {
-		// (1) render lines - ensures lines are in the DOM
 		this._visibleLines.renderLines(viewportData);
 		this._lastRenderedData.setCurrentVisibleRange(viewportData.visibleRange);
 		this.domNode.setWidth(this._context.viewLayout.getScrollWidth());
 		this.domNode.setHeight(Math.min(this._context.viewLayout.getScrollHeight(), 1000000));
 
-		// (2) compute horizontal scroll position:
-		//  - this must happen after the lines are in the DOM since it might need a line that rendered just now
-		//  - it might change `scrollWidth` and `scrollLeft`
 		if (this._horizontalRevealRequest) {
 
 			const horizontalRevealRequest = this._horizontalRevealRequest;
 
-			// Check that we have the line that contains the horizontal range in the viewport
 			if (viewportData.startLineNumber <= horizontalRevealRequest.minLineNumber && horizontalRevealRequest.maxLineNumber <= viewportData.endLineNumber) {
 
 				this._horizontalRevealRequest = null;
 
-				// allow `visibleRangesForRange2` to work
 				this.onDidRender();
 
-				// compute new scroll position
 				const newScrollLeft = this._computeScrollLeftToReveal(horizontalRevealRequest);
 
 				if (newScrollLeft) {
 					if (!this._isViewportWrapping && !newScrollLeft.hasRTL) {
-						// ensure `scrollWidth` is large enough
 						this._ensureMaxLineWidth(newScrollLeft.maxHorizontalOffset);
 					}
-					// set `scrollLeft`
 					this._context.viewModel.viewLayout.setScrollPosition({
 						scrollLeft: newScrollLeft.scrollLeft
 					}, horizontalRevealRequest.scrollType);
@@ -648,9 +589,7 @@ export class ViewLines extends ViewPart implements IViewLines {
 			}
 		}
 
-		// Update max line width (not so important, it is just so the horizontal scrollbar doesn't get too small)
 		if (!this._updateLineWidthsFast()) {
-			// Computing the width of some lines would be slow => delay it
 			this._asyncUpdateLineWidths.schedule();
 		} else {
 			this._asyncUpdateLineWidths.cancel();
@@ -668,7 +607,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 			}
 		}
 
-		// (3) handle scrolling
 		this._linesContent.setLayerHinting(this._canUseLayerHinting);
 		this._linesContent.setContain('strict');
 		const adjustedScrollTop = this._context.viewLayout.getCurrentScrollTop() - viewportData.bigNumbersDelta;
@@ -676,10 +614,8 @@ export class ViewLines extends ViewPart implements IViewLines {
 		this._linesContent.setLeft(-this._context.viewLayout.getCurrentScrollLeft());
 	}
 
-	// --- width
 
 	private _ensureMaxLineWidth(lineWidth: number): void {
-		// When GPU rendering is enabled, ViewLinesGpu handles max line width tracking
 		if (this._viewLineOptions.useGpu) {
 			return;
 		}
@@ -730,13 +666,11 @@ export class ViewLines extends ViewPart implements IViewLines {
 			paddingBottom = Math.max(0, (context - 1)) * this._lineHeight;
 		} else {
 			if (!minimalReveal) {
-				// Reveal one more line above (this case is hit when dragging)
 				paddingTop = this._lineHeight;
 			}
 		}
 		if (!minimalReveal) {
 			if (verticalType === viewEvents.VerticalRevealType.Simple || verticalType === viewEvents.VerticalRevealType.Bottom) {
-				// Reveal one line more when the last line would be covered by the scrollbar - arrow down case or revealing a line explicitly at bottom
 				paddingBottom += this._lineHeight;
 			}
 		}
@@ -746,31 +680,23 @@ export class ViewLines extends ViewPart implements IViewLines {
 		let newScrollTop: number;
 
 		if (boxEndY - boxStartY > viewportHeight) {
-			// the box is larger than the viewport ... scroll to its top
 			if (!boxIsSingleRange) {
-				// do not reveal multiple cursors if there are more than fit the viewport
 				return -1;
 			}
 			newScrollTop = boxStartY;
 		} else if (verticalType === viewEvents.VerticalRevealType.NearTop || verticalType === viewEvents.VerticalRevealType.NearTopIfOutsideViewport) {
 			if (verticalType === viewEvents.VerticalRevealType.NearTopIfOutsideViewport && viewportStartY <= boxStartY && boxEndY <= viewportEndY) {
-				// Box is already in the viewport... do nothing
 				newScrollTop = viewportStartY;
 			} else {
-				// We want a gap that is 20% of the viewport, but with a minimum of 5 lines
 				const desiredGapAbove = Math.max(5 * this._lineHeight, viewportHeight * 0.2);
-				// Try to scroll just above the box with the desired gap
 				const desiredScrollTop = boxStartY - desiredGapAbove;
-				// But ensure that the box is not pushed out of viewport
 				const minScrollTop = boxEndY - viewportHeight;
 				newScrollTop = Math.max(minScrollTop, desiredScrollTop);
 			}
 		} else if (verticalType === viewEvents.VerticalRevealType.Center || verticalType === viewEvents.VerticalRevealType.CenterIfOutsideViewport) {
 			if (verticalType === viewEvents.VerticalRevealType.CenterIfOutsideViewport && viewportStartY <= boxStartY && boxEndY <= viewportEndY) {
-				// Box is already in the viewport... do nothing
 				newScrollTop = viewportStartY;
 			} else {
-				// Box is outside the viewport... center it
 				const boxMiddleY = (boxStartY + boxEndY) / 2;
 				newScrollTop = Math.max(0, boxMiddleY - viewportHeight / 2);
 			}
@@ -847,7 +773,6 @@ export class ViewLines extends ViewPart implements IViewLines {
 		const boxLength = boxEnd - boxStart;
 
 		if (boxLength < viewportLength) {
-			// The box would fit in the viewport
 
 			if (revealAtStart) {
 				return boxStart;
@@ -858,15 +783,11 @@ export class ViewLines extends ViewPart implements IViewLines {
 			}
 
 			if (boxStart < viewportStart) {
-				// The box is above the viewport
 				return boxStart;
 			} else if (boxEnd > viewportEnd) {
-				// The box is below the viewport
 				return Math.max(0, boxEnd - viewportLength);
 			}
 		} else {
-			// The box would not fit in the viewport
-			// Reveal the beginning of the box
 			return boxStart;
 		}
 

@@ -16,10 +16,8 @@ import { Extensions as JSONExtensions, IJSONContributionRegistry } from '../../j
 import * as platform from '../../registry/common/platform.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 
-//  ------ API types
 
 
-// icon registry
 export const Extensions = {
 	IconContribution: 'base.contributions.icons'
 };
@@ -27,7 +25,7 @@ export const Extensions = {
 export type IconDefaults = ThemeIcon | IconDefinition;
 
 export interface IconDefinition {
-	readonly font?: IconFontContribution; // undefined for the default font (codicon)
+	readonly font?: IconFontContribution;
 	readonly fontCharacter: string;
 }
 
@@ -95,58 +93,25 @@ export interface IIconRegistry {
 
 	readonly onDidChange: Event<void>;
 
-	/**
-	 * Register a icon to the registry.
-	 * @param id The icon id
-	 * @param defaults The default values
-	 * @param description The description
-	 */
 	registerIcon(id: IconIdentifier, defaults: IconDefaults, description?: string): ThemeIcon;
 
-	/**
-	 * Deregister a icon from the registry.
-	 */
 	deregisterIcon(id: IconIdentifier): void;
 
-	/**
-	 * Get all icon contributions
-	 */
 	getIcons(): IconContribution[];
 
-	/**
-	 * Get the icon for the given id
-	 */
 	getIcon(id: IconIdentifier): IconContribution | undefined;
 
-	/**
-	 * JSON schema for an object to assign icon values to one of the icon contributions.
-	 */
 	getIconSchema(): IJSONSchema;
 
-	/**
-	 * JSON schema to for a reference to a icon contribution.
-	 */
 	getIconReferenceSchema(): IJSONSchema;
 
-	/**
-	 * Register a icon font to the registry.
-	 * @param id The icon font id
-	 * @param definition The icon font definition
-	 */
 	registerIconFont(id: string, definition: IconFontDefinition): IconFontDefinition;
 
-	/**
-	 * Deregister an icon font to the registry.
-	 */
 	deregisterIconFont(id: string): void;
 
-	/**
-	 * Get the icon font for the given id
-	 */
 	getIconFont(id: string): IconFontDefinition | undefined;
 }
 
-// regexes for validation of font properties
 
 export const fontIdRegex = /^([\w_-]+)$/;
 export const fontStyleRegex = /^(normal|italic|(oblique[ \w\s-]+))$/;
@@ -331,10 +296,8 @@ iconRegistry.onDidChange(() => {
 	}
 });
 
-//setTimeout(_ => console.log(iconRegistry.toString()), 5000);
 
 
-// common icons
 
 export const widgetClose = registerIcon('widget-close', Codicon.close, localize('widgetClose', 'Icon for the close action in widgets.'));
 

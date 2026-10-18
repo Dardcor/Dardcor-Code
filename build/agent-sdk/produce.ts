@@ -3,38 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Per-(vscode-platform, arch) agent-SDK producer. Builds the tarballs needed
- * by ONE VS Code build, optionally uploads them to the CDN, and writes a
- * small JSON results file that the gulpfile-side `packageTask` reads to
- * stamp `product.json`'s `agentSdks` field.
- *
- * Run as a pipeline step BEFORE the gulp packaging step on the same agent
- * (via `build/azure-pipelines/common/agent-sdk-produce.yml`).
- *
- * Behavior split by VSCODE_PUBLISH:
- *
- *   - VSCODE_PUBLISH=true (real release builds): build → upload (HEAD-then-
- *     decide idempotent) → write results JSON → emit task.setvariable so
- *     the gulp step stamps product.agentSdks.
- *
- *   - VSCODE_PUBLISH unset / not 'true' (PR / CI / test runs): build only.
- *     Tarballs stay on disk at `.build/agent-sdk/tarballs/` so the pipeline
- *     can publish them as artifacts for inspection, but no CDN upload
- *     happens and no results file is written — so product.json ships
- *     without `agentSdks` and the runtime stays on the dev-override path,
- *     same as a local `npm run gulp` invocation.
- *
- * Each (sdk, sdkTarget) pair has exactly one producer per pipeline run —
- * `darwin-arm64` is only built by the macOS arm64 job, `linux-x64-musl`
- * only by the Alpine x64 job, etc. So there's no cross-host race over
- * the same blob, and the HEAD-then-fail in `upload.ts` is purely a
- * defense against re-runs with drifted bytes (toolchain change, etc.).
- *
- * For VS Code builds where no SDK applies (e.g. armhf), exits with an
- * empty result set. product.json ships without `agentSdks` regardless of
- * VSCODE_PUBLISH.
- */
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -72,12 +40,7 @@ function parseCliArgs(): ICliArgs {
 	if (!arch) {
 		throw new Error('--arch=<x64|arm64|armhf|...> is required');
 	}
-	// Upload only on real publish builds. VSCODE_PUBLISH is a pipeline
-	// variable set to 'True' on publish runs and 'False' otherwise; Azure
-	// Pipelines auto-injects it into every script step's env.
 	const upload = (process.env.VSCODE_PUBLISH ?? '').toLowerCase() === 'true';
-	// Stable, well-known paths so the pipeline can pick the tarballs up as
-	// an artifact and the gulp step can find the results JSON via env.
 	const tarballsDir = path.resolve(process.cwd(), '.build/agent-sdk/tarballs');
 	const resultsFile = process.env.AGENT_SDK_RESULTS_FILE
 		?? path.resolve(process.cwd(), `.build/agent-sdk/${vscodePlatform}-${arch}.json`);
@@ -102,9 +65,6 @@ async function main(): Promise<void> {
 		}
 	}
 
-	// Signal the pipeline that there's something in `tarballsDir` worth
-	// publishing as an artifact. (Skipped if no SDK applied to this build,
-	// e.g. armhf where every `produceOne` returns undefined.)
 	const tarballCount = fs.readdirSync(args.tarballsDir).filter(f => f.endsWith('.tgz')).length;
 	if (tarballCount > 0) {
 		console.log(`##vso[task.setvariable variable=AGENT_SDK_TARBALLS_PRODUCED]true`);
@@ -120,8 +80,6 @@ async function main(): Promise<void> {
 	const sdkCount = Object.keys(results).length;
 	console.log(`[${SCRIPT}] Wrote ${sdkCount} SDK entr${sdkCount === 1 ? 'y' : 'ies'} to ${args.resultsFile}`);
 
-	// Tell Azure Pipelines: subsequent steps in this job see
-	// AGENT_SDK_RESULTS_FILE in their env (auto-injected from the variable).
 	console.log(`##vso[task.setvariable variable=AGENT_SDK_RESULTS_FILE]${args.resultsFile}`);
 }
 
@@ -142,10 +100,6 @@ async function produceOne(
 	if (!upload) {
 		return undefined;
 	}
-	// Upload returns the per-target URL; we discard it and emit the
-	// `{sdkTarget}` template instead. Every platform job ends up with
-	// the same `urlTemplate` per SDK — only the version differs across
-	// SDK bumps. The runtime substitutes `{sdkTarget}` per launch.
 	await uploadOne({
 		sdk,
 		sdkVersion: built.sdkVersion,

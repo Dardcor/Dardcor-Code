@@ -51,9 +51,6 @@ export class AgentHostDebugLogsCollector extends Disposable {
 				if (!provider.collectDebugLogs) {
 					continue;
 				}
-				// An implemented provider contributor is part of this collection,
-				// so its failure must fail the export. Providers without additional
-				// diagnostics still get the Agent Host process log below.
 				providerLogsIncluded = await provider.collectDebugLogs(session, URI.file(staging), chat) || providerLogsIncluded;
 			}
 
@@ -88,11 +85,6 @@ export class AgentHostDebugLogsCollector extends Disposable {
 		}
 	}
 
-	/**
-	 * Read one bounded slice of an artifact this collector produced. The
-	 * resource must be a currently retained *file* artifact, so this cannot be
-	 * used as a general-purpose file read.
-	 */
 	async readArtifactChunk(resource: URI, position: number): Promise<IAgentHostDebugLogsChunk> {
 		if (resource.scheme !== Schemas.file) {
 			throw new Error(`Unsupported debug-log artifact scheme: ${resource.scheme}`);
@@ -174,11 +166,6 @@ export class AgentHostDebugLogsCollector extends Disposable {
 	}
 }
 
-/**
- * Normalizes a path for artifact bookkeeping. `URI.file(…).fsPath` lower-cases
- * Windows drive letters, so keys must be derived the same way on both the
- * writing and the lookup side or reads would never match on Windows.
- */
 function artifactKey(path: string): string {
 	return URI.file(path).fsPath;
 }

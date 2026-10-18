@@ -11,10 +11,6 @@ import { URI } from '../../../../base/common/uri.js';
 import type { IPtyHostProcessReplayEvent, ISerializedCommandDetectionCapability } from '../../../../platform/terminal/common/capabilities/capabilities.js';
 import { ProcessPropertyType, type IProcessDataEvent, type IProcessProperty, type IProcessPropertyMap, type IProcessReadyEvent, type ITerminalChildProcess } from '../../../../platform/terminal/common/terminal.js';
 
-/**
- * Responsible for establishing and maintaining a connection with an existing terminal process
- * created on the local pty host.
- */
 export abstract class BasePty extends Disposable implements Partial<ITerminalChildProcess> {
 	protected readonly _properties: IProcessPropertyMap = {
 		cwd: '',
@@ -93,7 +89,6 @@ export abstract class BasePty extends Disposable implements Partial<ITerminalChi
 			this._inReplay = true;
 			for (const innerEvent of e.events) {
 				if (innerEvent.cols !== 0 || innerEvent.rows !== 0) {
-					// never override with 0x0 as that is a marker for an unknown initial size
 					this._onDidChangeProperty.fire({ type: ProcessPropertyType.OverrideDimensions, value: { cols: innerEvent.cols, rows: innerEvent.rows, forceExactSize: true } });
 				}
 				const e: IProcessDataEvent = { data: innerEvent.data, trackCommit: true };
@@ -108,7 +103,6 @@ export abstract class BasePty extends Disposable implements Partial<ITerminalChi
 			this._onRestoreCommands.fire(e.commands);
 		}
 
-		// remove size override
 		this._onDidChangeProperty.fire({ type: ProcessPropertyType.OverrideDimensions, value: undefined });
 
 		mark(`code/terminal/didHandleReplay/${this.id}`);

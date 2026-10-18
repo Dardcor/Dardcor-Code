@@ -17,9 +17,9 @@ import { nulToken } from '../../utils/cancellation';
 
 
 const NoopTelemetryReporter = new class implements TelemetryReporter {
-	logTelemetry(): void { /* noop */ }
-	logTraceEvent(): void { /* noop */ }
-	dispose(): void { /* noop */ }
+	logTelemetry(): void { }
+	logTraceEvent(): void { }
+	dispose(): void { }
 };
 
 class FakeServerProcess implements TsServerProcess {
@@ -46,11 +46,11 @@ class FakeServerProcess implements TsServerProcess {
 		});
 	}
 
-	onData(_handler: any) { /* noop */ }
-	onError(_handler: any) { /* noop */ }
-	onExit(_handler: any) { /* noop */ }
+	onData(_handler: any) { }
+	onError(_handler: any) { }
+	onExit(_handler: any) { }
 
-	kill(): void { /* noop */ }
+	kill(): void { }
 
 	public onWrite(): Promise<any> {
 		return new Promise<string>((resolve) => {

@@ -23,12 +23,6 @@ export interface IGutterActionsGenerator {
 export class GutterActionsRegistryImpl {
 	private _registeredGutterActionsGenerators: Set<IGutterActionsGenerator> = new Set();
 
-	/**
-	 *
-	 * This exists solely to allow the debug and test contributions to add actions to the gutter context menu
-	 * which cannot be trivially expressed using when clauses and therefore cannot be statically registered.
-	 * If you want an action to show up in the gutter context menu, you should generally use MenuId.EditorLineNumberMenu instead.
-	 */
 	public registerGutterActionsGenerator(gutterActionsGenerator: IGutterActionsGenerator): IDisposable {
 		this._registeredGutterActionsGenerators.add(gutterActionsGenerator);
 		return {
@@ -69,7 +63,6 @@ export class EditorLineNumberContextMenu extends Disposable implements IEditorCo
 	private doShow(e: IEditorMouseEvent, force: boolean) {
 		const model = this.editor.getModel();
 
-		// on macOS ctrl+click is interpreted as right click
 		if (!e.event.rightButton && !(isMacintosh && e.event.leftButton && e.event.ctrlKey) && !force
 			|| e.target.type !== MouseTargetType.GUTTER_LINE_NUMBERS && e.target.type !== MouseTargetType.GUTTER_GLYPH_MARGIN
 			|| !e.target.position || !model
@@ -104,8 +97,6 @@ export class EditorLineNumberContextMenu extends Disposable implements IEditorCo
 			const menuActions = menu.getActions({ arg: { lineNumber, uri: model.uri }, shouldForwardArgs: true });
 			allActions.push(...menuActions);
 
-			// if the current editor selections do not contain the target line number,
-			// set the selection to the clicked line number
 			if (e.target.type === MouseTargetType.GUTTER_LINE_NUMBERS) {
 				const currentSelections = this.editor.getSelections();
 				const lineRange = {

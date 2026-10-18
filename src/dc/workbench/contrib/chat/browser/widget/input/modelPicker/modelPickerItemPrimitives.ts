@@ -172,11 +172,6 @@ export function createModelAction(
 	return { action, ariaDescription };
 }
 
-/**
- * Screen reader users never reach the rich hover, so its warning and info banners
- * are folded into the row's accessible description, stripped of markdown and
- * prefixed with their severity.
- */
 function getNoticeAriaLabels(model: ILanguageModelChatMetadataAndIdentifier): string[] {
 	if (isAutoModel(model)) {
 		return [];
@@ -225,9 +220,9 @@ export function createUnavailableModelItem(
 	if (reason === 'upgrade') {
 		hoverContent = new MarkdownString('', { isTrusted: true, supportThemeIcons: true });
 		if (chatEntitlementService.entitlement === ChatEntitlement.Pro) {
-			hoverContent.appendMarkdown(localize('chat.modelPicker.upgradeHoverProPlus', "[Upgrade to GitHub Copilot Pro+](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
+			hoverContent.appendMarkdown(localize('chat.modelPicker.upgradeHoverProPlus', "[Upgrade your Dardcor plan](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
 		} else {
-			hoverContent.appendMarkdown(localize('chat.modelPicker.upgradeHover', "[Upgrade to GitHub Copilot Pro](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
+			hoverContent.appendMarkdown(localize('chat.modelPicker.upgradeHover', "[Upgrade your Dardcor plan](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
 		}
 	} else if (reason === 'update') {
 		hoverContent = getUpdateHoverContent(updateStateType);

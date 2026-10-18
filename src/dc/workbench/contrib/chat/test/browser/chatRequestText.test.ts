@@ -36,7 +36,6 @@ suite('getChatRequestText', () => {
 		assert.deepStrictEqual([
 			getChatRequestText(request('Rename the widget')),
 			getChatRequestText(request(agentMergePrompt)),
-			// A request the transcript renders with its own notification label keeps its text.
 			getChatRequestText(request(agentMergePrompt, 'Terminal needs input')),
 		], [
 			'Rename the widget',

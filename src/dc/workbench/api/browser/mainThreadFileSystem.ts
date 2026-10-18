@@ -56,7 +56,6 @@ export class MainThreadFileSystem implements MainThreadFileSystemShape {
 	}
 
 
-	// --- consumer fs, vscode.workspace.fs
 
 	async $stat(uri: UriComponents): Promise<IStat> {
 		try {
@@ -224,7 +223,6 @@ class RemoteFileSystemProvider implements IFileSystemProviderWithFileReadWriteCa
 		return { resource: URI.revive(dto.resource), type: dto.type };
 	}
 
-	// --- forwarding calls
 
 	async stat(resource: URI): Promise<IStat> {
 		try {

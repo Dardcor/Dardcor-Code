@@ -65,8 +65,6 @@ suite('PriorityQueue', function () {
 		queue.insert('second', 5);
 		queue.insert('third', 1);
 
-		// The highest priority item could be either 'first' or 'second' depending on implementation
-		// but we can at least ensure it's one of them with priority 5
 		const result = queue.peek();
 		assert.equal(result?.priority, 5);
 		assert.ok(result?.item === 'first' || result?.item === 'second');
@@ -82,14 +80,14 @@ suite('PriorityQueue', function () {
 		assert.equal(queue.size, 3);
 		assert.equal(queue.peek()?.item, 'c');
 
-		queue.pop(); // removes 'c'
+		queue.pop();
 		assert.equal(queue.size, 2);
 		assert.equal(queue.peek()?.item, 'b');
 
 		queue.insert('d', 10);
 		assert.equal(queue.peek()?.item, 'd');
 
-		queue.pop(); // removes 'd'
+		queue.pop();
 		assert.equal(queue.peek()?.item, 'b');
 		queue.insert('e', 1);
 		assert.equal(queue.peek()?.item, 'b');

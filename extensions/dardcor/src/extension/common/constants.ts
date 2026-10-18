@@ -32,8 +32,8 @@ export const enum Intent {
 }
 
 export const GITHUB_PLATFORM_AGENT = 'github.dardcor-dynamic.platform';
+export const GHPR_EXTENSION_ID = 'GitHub.vscode-pull-request-github';
 
-// TODO@jrieken THIS IS WEIRD. We should read this from package.json
 export const agentsToCommands: Partial<Record<Intent, Record<string, Intent>>> = {
 	[Intent.Agent]: {
 		'explain': Intent.Explain,
@@ -64,7 +64,6 @@ export const agentsToCommands: Partial<Record<Intent, Record<string, Intent>>> =
 	}
 };
 
-// TODO@roblourens gotta tighten up the terminology of "commands", "intents", etc...
 export function getAgentForIntent(intentId: Intent, location: ChatLocation): { agent: string; command?: string } | undefined {
 	if (Object.keys(agentsToCommands).includes(intentId)) {
 		return { agent: intentId };

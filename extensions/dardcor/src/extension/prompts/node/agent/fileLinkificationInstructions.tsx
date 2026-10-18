@@ -50,10 +50,6 @@ export class FileLinkificationInstructions extends PromptElement<{}> {
 	}
 }
 
-/**
- * Condensed variant of FileLinkificationInstructions used by optimized Claude 4.6 prompt configurations.
- * Removes usage examples, section headers, and redundant path rules while preserving core formatting requirements.
- */
 export class FileLinkificationInstructionsOptimized extends PromptElement<{}> {
 	render() {
 		return <Tag name='fileLinkification'>

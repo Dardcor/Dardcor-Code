@@ -24,7 +24,6 @@ suite('Workbench - MCP - RegistryInputStorage', () => {
 		testSecretStorageService = new TestSecretStorageService();
 		testLogService = store.add(new NullLogService());
 
-		// Create the input storage with APPLICATION scope
 		mcpInputStorage = store.add(new McpRegistryInputStorage(
 			StorageScope.APPLICATION,
 			StorageTarget.MACHINE,
@@ -86,7 +85,6 @@ suite('Workbench - MCP - RegistryInputStorage', () => {
 			'secretKey2': { value: 'secretValue2' }
 		});
 
-		// Clear one plain and one secret value
 		await mcpInputStorage.clear('key1');
 		await mcpInputStorage.clear('secretKey1');
 
@@ -147,7 +145,6 @@ suite('Workbench - MCP - RegistryInputStorage', () => {
 	});
 
 	test('storage persists values across instances', async () => {
-		// Set values on first instance
 		await mcpInputStorage.setPlainText({
 			'key1': { value: 'value1' }
 		});
@@ -158,7 +155,6 @@ suite('Workbench - MCP - RegistryInputStorage', () => {
 
 		await testStorageService.flush();
 
-		// Create a second instance that should have access to the same storage
 		const secondInstance = store.add(new McpRegistryInputStorage(
 			StorageScope.APPLICATION,
 			StorageTarget.MACHINE,

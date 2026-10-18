@@ -25,7 +25,6 @@ import { IChatService } from '../../../common/chatService/chatService.js';
 import { IChatSideChatOrigin, IChatSideChatService } from '../../../common/chatSideChatService.js';
 import { IChatModel } from '../../../common/model/chatModel.js';
 
-/** Shows where a request or side chat originated and opens its source. */
 export class ChatRequestOriginPart extends Disposable {
 
 	readonly domNode: HTMLElement;

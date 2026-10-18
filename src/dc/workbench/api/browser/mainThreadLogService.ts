@@ -73,7 +73,6 @@ export class MainThreadLoggerService implements MainThreadLoggerShape {
 	}
 }
 
-// --- Internal commands to improve extension test runs
 
 CommandsRegistry.registerCommand('_extensionTests.setLogLevel', function (accessor: ServicesAccessor, level: string) {
 	const loggerService = accessor.get(ILoggerService);

@@ -205,7 +205,6 @@ export class CollapseAllAction extends Action2 {
 					group: 'navigation',
 					order: 100
 				},
-				// The compact window editor title has no overflow menu, so keep the primary toolbar icon there.
 				{
 					id: MenuId.CompactWindowEditorTitle,
 					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.not('multiDiffEditorAllCollapsed')),
@@ -247,7 +246,6 @@ export class ExpandAllAction extends Action2 {
 					group: 'navigation',
 					order: 100
 				},
-				// The compact window editor title has no overflow menu, so keep the primary toolbar icon there.
 				{
 					id: MenuId.CompactWindowEditorTitle,
 					when: ContextKeyExpr.and(ContextKeyExpr.equals('activeEditor', MultiDiffEditor.ID), ContextKeyExpr.has('multiDiffEditorAllCollapsed')),

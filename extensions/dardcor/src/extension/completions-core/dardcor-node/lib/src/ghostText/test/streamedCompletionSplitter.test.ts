@@ -5,7 +5,7 @@
 import assert from 'assert';
 import Sinon from 'sinon';
 import dedent from 'ts-dedent';
-import { CopilotNamedAnnotationList } from '../../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
+import { DardcorNamedAnnotationList } from '../../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
 import { Completion } from '../../../../../../../platform/nesFetch/common/completionsAPI';
 import { Completions, ICompletionsFetchService } from '../../../../../../../platform/nesFetch/common/completionsFetchService';
 import { ResponseStream } from '../../../../../../../platform/nesFetch/common/responseStream';
@@ -14,7 +14,7 @@ import { Result } from '../../../../../../../util/common/result';
 import { CancellationToken } from '../../../../../../../util/dardcor/base/common/cancellation';
 import { SyncDescriptor } from '../../../../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { IInstantiationService } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
-import { CompletionResults, CopilotUiKind, ICompletionsOpenAIFetcherService, LiveOpenAIFetcher } from '../../openai/fetch';
+import { CompletionResults, DardcorInlineUiKind, ICompletionsOpenAIFetcherService, LiveOpenAIFetcher } from '../../openai/fetch';
 import { APIChoice } from '../../openai/openai';
 import { TelemetryWithExp } from '../../telemetry';
 import { createLibTestingContext } from '../../test/context';
@@ -23,7 +23,7 @@ import { StreamedCompletionSplitter } from '../streamedCompletionSplitter';
 
 class FakeCompletionsFetchService implements ICompletionsFetchService {
 	declare _serviceBrand: undefined;
-	constructor(private readonly completionTexts: string[], private readonly annotations?: CopilotNamedAnnotationList) { }
+	constructor(private readonly completionTexts: string[], private readonly annotations?: DardcorNamedAnnotationList) { }
 	async fetch(
 		_url: string,
 		_secretKey: string,
@@ -64,7 +64,7 @@ class FakeCompletionsFetchService implements ICompletionsFetchService {
 }
 
 suite('StreamedCompletionSplitter', function () {
-	function setupSplitter(completions: string | string[], docPrefix = 'function example(arg) {\n', languageId = 'javascript', annotations?: CopilotNamedAnnotationList) {
+	function setupSplitter(completions: string | string[], docPrefix = 'function example(arg) {\n', languageId = 'javascript', annotations?: DardcorNamedAnnotationList) {
 		const completionArray = typeof completions === 'string' ? [completions] : completions;
 		const serviceCollection = createLibTestingContext();
 		serviceCollection.define(ICompletionsFetchService, new FakeCompletionsFetchService(completionArray, annotations));
@@ -85,7 +85,7 @@ suite('StreamedCompletionSplitter', function () {
 			ourRequestId: 'test-request-id',
 			engineModelId: 'test-model-id',
 			count: 1,
-			uiKind: CopilotUiKind.GhostText,
+			uiKind: DardcorInlineUiKind.GhostText,
 			extra: {},
 		};
 		const cacheFunction = Sinon.stub<[string, APIChoice], void>();

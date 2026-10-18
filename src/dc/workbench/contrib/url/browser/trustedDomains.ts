@@ -38,7 +38,6 @@ async function openInEditor(editorService: IEditorService, resource: URI): Promi
 		return;
 	}
 
-	// Find first token after [ to place cursor there
 	const scanner = createScanner(model.getValue(), true);
 	let offset: number | undefined;
 	for (let token = scanner.scan(); token !== SyntaxKind.EOF; token = scanner.scan()) {

@@ -57,7 +57,6 @@ export class TestFS implements vscode.FileSystemProvider {
 
 	readonly root = new Directory('');
 
-	// --- manage file metadata
 
 	stat(uri: vscode.Uri): vscode.FileStat {
 		return this._lookup(uri, false);
@@ -72,7 +71,6 @@ export class TestFS implements vscode.FileSystemProvider {
 		return result;
 	}
 
-	// --- manage file contents
 
 	readFile(uri: vscode.Uri): Uint8Array {
 		const data = this._lookupAsFile(uri, false).data;
@@ -107,7 +105,6 @@ export class TestFS implements vscode.FileSystemProvider {
 		this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
 	}
 
-	// --- manage files/folders
 
 	rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void {
 
@@ -156,7 +153,6 @@ export class TestFS implements vscode.FileSystemProvider {
 		this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { type: vscode.FileChangeType.Created, uri });
 	}
 
-	// --- lookup
 
 	private _lookup(uri: vscode.Uri, silent: false): Entry;
 	private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined;
@@ -214,7 +210,6 @@ export class TestFS implements vscode.FileSystemProvider {
 		return this._lookupAsDirectory(dirname, false);
 	}
 
-	// --- manage file events
 
 	private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
 	private _bufferedEvents: vscode.FileChangeEvent[] = [];
@@ -223,7 +218,6 @@ export class TestFS implements vscode.FileSystemProvider {
 	readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
 
 	watch(_resource: vscode.Uri, _options: { recursive: boolean; excludes: string[] }): vscode.Disposable {
-		// ignore, fires for all changes...
 		return new vscode.Disposable(() => { });
 	}
 

@@ -11,9 +11,6 @@ import { getCurrentExtensionTarget } from '../../lib/extensionTarget.ts';
 const productjson = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '../../../product.json'), 'utf8'));
 const shasum = crypto.createHash('sha256');
 
-// Only fold the build target into the key when at least one built-in extension is platform-specific.
-// Otherwise the cache stays shared across platforms (as before), so a single platform populates it
-// and the rest reuse it instead of each re-downloading.
 const hasPlatformSpecific = (productjson.builtInExtensions as { platformSpecific?: unknown }[]).some(ext => ext.platformSpecific);
 const target = hasPlatformSpecific ? getCurrentExtensionTarget() : undefined;
 if (target) {

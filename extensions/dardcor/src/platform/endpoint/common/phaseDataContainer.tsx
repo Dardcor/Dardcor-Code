@@ -14,10 +14,6 @@ export interface IPhaseDataContainerProps extends BasePromptElementProps {
 	phase: string;
 }
 
-/**
- * Helper element to embed phase data into assistant messages
- * as an opaque content part.
- */
 export class PhaseDataContainer extends PromptElement<IPhaseDataContainerProps> {
 	render() {
 		const { phase } = this.props;
@@ -26,9 +22,6 @@ export class PhaseDataContainer extends PromptElement<IPhaseDataContainerProps> 
 	}
 }
 
-/**
- * Attempts to parse a Raw opaque content part into a phase string, if the type matches.
- */
 export function rawPartAsPhaseData(part: Raw.ChatCompletionContentPartOpaque): string | undefined {
 	const value = part.value as unknown;
 	if (!value || typeof value !== 'object') {

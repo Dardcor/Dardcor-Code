@@ -41,15 +41,6 @@ function mapFromStorage(value: string): EnablementMap {
 	return new Map(Array.isArray(parsed) ? parsed : []);
 }
 
-/**
- * A reusable enablement model for string-keyed contributions. Uses
- * `observableMemento` to persist enable/disable state in both profile-scoped
- * and workspace-scoped storage.
- *
- * Resolution order: if a workspace-scoped entry exists for a key, it wins.
- * Otherwise, the profile-scoped entry is used. The default (absence of any
- * entry) is {@link ContributionEnablementState.EnabledProfile}.
- */
 export class EnablementModel extends Disposable implements IEnablementModel {
 	private readonly _profileState: ObservableMemento<EnablementMap>;
 	private readonly _workspaceState: ObservableMemento<EnablementMap>;
@@ -109,8 +100,6 @@ export class EnablementModel extends Disposable implements IEnablementModel {
 	setEnabledWithWorkspaceKey(profileKey: string, workspaceKey: string | undefined, state: ContributionEnablementState, tx?: ITransaction): void {
 		switch (state) {
 			case ContributionEnablementState.EnabledProfile: {
-				// Enabled-profile is the default: remove key from profile state,
-				// and also remove any workspace override.
 				this._deleteFromMap(this._profileState, profileKey, tx);
 				if (workspaceKey !== undefined) {
 					this._deleteFromMap(this._workspaceState, workspaceKey, tx);
@@ -118,7 +107,6 @@ export class EnablementModel extends Disposable implements IEnablementModel {
 				break;
 			}
 			case ContributionEnablementState.DisabledProfile: {
-				// Store disabled in profile, remove workspace override.
 				this._setInMap(this._profileState, profileKey, false, tx);
 				if (workspaceKey !== undefined) {
 					this._deleteFromMap(this._workspaceState, workspaceKey, tx);
@@ -126,7 +114,6 @@ export class EnablementModel extends Disposable implements IEnablementModel {
 				break;
 			}
 			case ContributionEnablementState.EnabledWorkspace: {
-				// Workspace override: always store explicitly.
 				if (workspaceKey === undefined) {
 					throw new Error('Cannot enable a contribution for a workspace without a workspace key.');
 				}
@@ -134,7 +121,6 @@ export class EnablementModel extends Disposable implements IEnablementModel {
 				break;
 			}
 			case ContributionEnablementState.DisabledWorkspace: {
-				// Workspace override: always store explicitly.
 				if (workspaceKey === undefined) {
 					throw new Error('Cannot disable a contribution for a workspace without a workspace key.');
 				}

@@ -25,7 +25,6 @@ export class ParserWithCaching implements IDisposable {
 		this._parser = null;
 	}
 
-	/** @remarks must not be called before `Parser.init()` */
 	private get parser() {
 		if (!this._parser) {
 			this._parser = new Parser();
@@ -33,9 +32,6 @@ export class ParserWithCaching implements IDisposable {
 		return this._parser;
 	}
 
-	/**
-	 * @remarks Do not `delete()` the returned parse tree manually.
-	 */
 	async parse(lang: WASMLanguage, source: string): Promise<ParseTreeReference> {
 
 		await Parser.init();
@@ -50,7 +46,6 @@ export class ParserWithCaching implements IDisposable {
 		const parserLang = await this.languageLoader.loadLanguage(lang);
 		this.parser.setLanguage(parserLang);
 
-		// check again the cache, maybe someone else has already parsed the source during the await
 		cacheEntry = cache.get(source);
 		if (cacheEntry) {
 			return cacheEntry.createReference();
@@ -83,11 +78,6 @@ export class ParserWithCaching implements IDisposable {
 	}
 }
 
-/**
- * A parse tree that can be cached (i.e. it can be referenced multiple
- * times and will be disppsed when it is evicted from cache and all
- * references to it are also disposed.
- */
 class CacheableParseTree implements IDisposable {
 
 	private readonly _tree: RefCountedParseTree;
@@ -105,10 +95,6 @@ class CacheableParseTree implements IDisposable {
 	}
 }
 
-/**
- * A reference to a parse tree.
- * You must call `dispose()` when you're done with it.
- */
 export class ParseTreeReference implements IDisposable {
 
 	public get tree() {
@@ -126,10 +112,6 @@ export class ParseTreeReference implements IDisposable {
 	}
 }
 
-/**
- * Will dispose the referenced parse tree when the ref count reaches 0.
- * The ref count is initialized to 1.
- */
 class RefCountedParseTree {
 
 	private _refCount = 1;
@@ -167,9 +149,6 @@ export function _dispose() {
 	ParserWithCaching.INSTANCE.dispose();
 }
 
-/**
- * Parses the given source code and returns the root node of the resulting syntax tree.
- */
 export function _parse(language: WASMLanguage, source: string): Promise<ParseTreeReference> {
 	return ParserWithCaching.INSTANCE.parse(language, source);
 }

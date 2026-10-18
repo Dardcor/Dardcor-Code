@@ -40,7 +40,7 @@
     "policies": [
         {
             "key": "chat.agentHost.otel.otlpProtocol",
-            "name": "CopilotOtelOtlpProtocol",
+            "name": "DardcorOtelOtlpProtocol",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -53,12 +53,12 @@
             "default": "",
             "included": false,
             "referencedSettings": [
-                "github.copilot.chat.otel.protocol"
+                "github.dardcor.chat.otel.protocol"
             ]
         },
         {
             "key": "chat.agentHost.otel.serviceName",
-            "name": "CopilotOtelServiceName",
+            "name": "DardcorOtelServiceName",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -71,12 +71,12 @@
             "default": "",
             "included": false,
             "referencedSettings": [
-                "github.copilot.chat.otel.serviceName"
+                "github.dardcor.chat.otel.serviceName"
             ]
         },
         {
             "key": "chat.agentHost.otel.resourceAttributes",
-            "name": "CopilotOtelResourceAttributes",
+            "name": "DardcorOtelResourceAttributes",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -89,12 +89,12 @@
             "default": {},
             "included": false,
             "referencedSettings": [
-                "github.copilot.chat.otel.resourceAttributes"
+                "github.dardcor.chat.otel.resourceAttributes"
             ]
         },
         {
             "key": "chat.agentHost.otel.headers",
-            "name": "CopilotOtelHeaders",
+            "name": "DardcorOtelHeaders",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -107,7 +107,7 @@
             "default": {},
             "included": false,
             "referencedSettings": [
-                "github.copilot.chat.otel.headers"
+                "github.dardcor.chat.otel.headers"
             ]
         },
         {
@@ -193,7 +193,7 @@
             "localization": {
                 "description": {
                     "key": "extensions.allowed.policy",
-                    "value": "Specify a list of extensions that are allowed to use. This helps maintain a secure and consistent development environment by restricting the use of unauthorized extensions. More information: https://aka.ms/vscode/enterprise/extensions/allowed"
+                    "value": "Specify a list of extensions that are allowed to use. This helps maintain a secure and consistent development environment by restricting the use of unauthorized extensions. More information: https://www.dardcor-code.web.id/docs/enterprise/extensions/allowlist"
                 }
             },
             "type": "object",
@@ -250,7 +250,7 @@
         },
         {
             "key": "chat.agentHost.otel.enabled",
-            "name": "CopilotOtelEnabled",
+            "name": "DardcorOtelEnabled",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -263,12 +263,12 @@
             "default": false,
             "included": true,
             "referencedSettings": [
-                "github.copilot.chat.otel.enabled"
+                "github.dardcor.chat.otel.enabled"
             ]
         },
         {
             "key": "chat.agentHost.otel.exporterType",
-            "name": "CopilotOtelProtocol",
+            "name": "DardcorOtelProtocol",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -305,12 +305,12 @@
             ],
             "included": true,
             "referencedSettings": [
-                "github.copilot.chat.otel.exporterType"
+                "github.dardcor.chat.otel.exporterType"
             ]
         },
         {
             "key": "chat.agentHost.otel.otlpEndpoint",
-            "name": "CopilotOtelEndpoint",
+            "name": "DardcorOtelEndpoint",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -323,12 +323,12 @@
             "default": "",
             "included": true,
             "referencedSettings": [
-                "github.copilot.chat.otel.otlpEndpoint"
+                "github.dardcor.chat.otel.otlpEndpoint"
             ]
         },
         {
             "key": "chat.agentHost.otel.captureContent",
-            "name": "CopilotOtelCaptureContent",
+            "name": "DardcorOtelCaptureContent",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -341,12 +341,12 @@
             "default": false,
             "included": true,
             "referencedSettings": [
-                "github.copilot.chat.otel.captureContent"
+                "github.dardcor.chat.otel.captureContent"
             ]
         },
         {
             "key": "chat.agentHost.otel.outfile",
-            "name": "CopilotOtelOutfile",
+            "name": "DardcorOtelOutfile",
             "category": "InteractiveSession",
             "minimumVersion": "1.127",
             "localization": {
@@ -359,7 +359,7 @@
             "default": "",
             "included": true,
             "referencedSettings": [
-                "github.copilot.chat.otel.outfile"
+                "github.dardcor.chat.otel.outfile"
             ]
         },
         {

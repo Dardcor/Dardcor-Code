@@ -94,7 +94,6 @@ export function computeState(options?: { ignoreNodeVersion?: boolean }): Postins
 		try {
 			fileHashes[key] = hashContent(normalizeFileContent(filePath));
 		} catch {
-			// file may not be readable
 		}
 	}
 	return { nodeVersion: options?.ignoreNodeVersion ? '' : process.versions.node, fileHashes };
@@ -106,7 +105,6 @@ export function computeContents(): Record<string, string> {
 		try {
 			fileContents[path.relative(root, filePath)] = normalizeFileContent(filePath);
 		} catch {
-			// file may not be readable
 		}
 	}
 	return fileContents;
@@ -139,7 +137,6 @@ export function readSavedContents(): Record<string, string> | undefined {
 	}
 }
 
-// When run directly, output state as JSON for tooling (e.g. the vscode-extras extension).
 if (import.meta.filename === process.argv[1]) {
 	const args = new Set(process.argv.slice(2));
 

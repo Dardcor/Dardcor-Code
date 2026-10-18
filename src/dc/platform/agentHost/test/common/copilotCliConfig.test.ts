@@ -44,18 +44,12 @@ suite('copilotCliConfig', () => {
 		const invalid: unknown[] = [];
 		assert.deepStrictEqual(
 			[
-				// specific wins over the wildcard
 				resolveModelCapabilityOverrideField(overrides, 'preview-model-x', 'family', isString),
-				// unset specific field falls back to the wildcard
 				resolveModelCapabilityOverrideField(overrides, 'preview-model-x', 'reasoningEffort', isString),
-				// prompt overrides use the same specific-then-wildcard field resolution
 				resolveModelCapabilityOverrideField(overrides, 'preview-model-x', 'promptOverrideString', isString),
 				resolveModelCapabilityOverrideField(overrides, 'preview-model-x', 'promptOverrideFile', isString),
-				// an invalid specific value falls through instead of masking the wildcard
 				resolveModelCapabilityOverrideField(overrides, 'bad-model', 'family', isString, value => invalid.push(value)),
-				// no model id (server-side "Auto"): only the wildcard can match
 				resolveModelCapabilityOverrideField(overrides, undefined, 'family', isString),
-				// no matching entry / no overrides / malformed entries
 				resolveModelCapabilityOverrideField({ 'preview-model-x': { family: 'claude-opus-4.8' } }, 'other-model', 'family', isString),
 				resolveModelCapabilityOverrideField(undefined, 'preview-model-x', 'family', isString),
 				resolveModelCapabilityOverrideField({ 'preview-model-x': 'oops' as never, '*': 42 as never }, 'preview-model-x', 'family', isString),

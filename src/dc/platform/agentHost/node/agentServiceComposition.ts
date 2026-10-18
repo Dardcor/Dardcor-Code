@@ -55,16 +55,6 @@ export interface IAgentServiceComposition {
 	setContributions(contributions: IDisposable): void;
 }
 
-/**
- * Constructs and registers the shared, synchronous session-orchestration graph.
- *
- * A service belongs here when every Agent Host entry point uses the same
- * implementation, its dependencies are already registered, and construction
- * does not start process-level behavior. Services requiring runtime options,
- * async initialization, or an entry-point-selected implementation belong in
- * `agentHostBootstrap.ts`; transports, providers, schedulers, and process
- * listeners belong in the activating entry point.
- */
 export function createAgentServiceComposition(
 	options: IAgentServiceOptions,
 	accessor: ServicesAccessor,
@@ -100,7 +90,6 @@ export function createAgentServiceComposition(
 			configurationService,
 			callbackBinder: callbackAdapter,
 		};
-		// Composition-owned collaborators are constructed before AgentService subscribes, so their constructors must not emit state-manager events.
 		const customizationEnablementService = accessor.get(IAgentHostCustomizationEnablementService);
 		const gitStateService = accessor.get(IAgentHostGitStateService);
 		const agentMergeController = owned.add(instantiationService.createInstance(AgentMergeController, {
@@ -108,12 +97,8 @@ export function createAgentServiceComposition(
 			cancelTurn: (session, turnId) => callbackAdapter.value.cancelAgentMergeTurn(session, turnId),
 			postNotice: (session, kind, content) => callbackAdapter.value.postAgentMergeNotice(session, kind, content),
 		}));
-		// Resolve this even before first use so its session-data deletion listener
-		// always removes checkpoint refs before the database disappears.
 		const checkpointService = accessor.get(IAgentHostCheckpointService);
 		const changesetOperationService = accessor.get(IAgentHostChangesetOperationService);
-		// Resolve this even before first use so its session-data deletion listener
-		// always removes reviewed refs before the database disappears.
 		const reviewService = accessor.get(IAgentHostReviewService);
 		const changesets = accessor.get(IAgentHostChangesetService);
 		const changesetCoordinator = owned.add(instantiationService.createInstance(AgentHostChangesetCoordinator));

@@ -9,7 +9,6 @@ import { IAgentHostGitStateService } from '../../../common/agentHostGitStateServ
 import { type IAgentHostChatContribution, type IAgentHostChatContributionContext, type ITurnEnd } from '../../../common/agentHostChatContributionsService.js';
 import { AgentHostStateManager, IAgentHostStateManager } from '../../agentHostStateManager.js';
 
-/** Reconciles the session's current pull request after a started turn ends. */
 export class GitHubReferencesContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'githubReferences';

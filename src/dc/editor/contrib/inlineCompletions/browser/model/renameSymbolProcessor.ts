@@ -91,7 +91,6 @@ export class RenameInferenceEngine {
 
 	public inferRename(textModel: ITextModel, editRange: Range, insertText: string, wordDefinition: RegExp): RenameEdits | undefined {
 
-		// Extend the edit range to full lines to capture prefix/suffix renames
 		const extendedRange = new Range(editRange.startLineNumber, 1, editRange.endLineNumber, textModel.getLineMaxColumn(editRange.endLineNumber));
 		const startDiff = editRange.startColumn - extendedRange.startColumn;
 		const endDiff = extendedRange.endColumn - editRange.endColumn;
@@ -102,7 +101,6 @@ export class RenameInferenceEngine {
 			insertText +
 			textModel.getValueInRange(new Range(extendedRange.endLineNumber, extendedRange.endColumn - endDiff, extendedRange.endLineNumber, extendedRange.endColumn));
 
-		// console.log(`Original: ${originalText} \nmodified: ${modifiedText}`);
 		const others: TextReplacement[] = [];
 		const renames: TextReplacement[] = [];
 		let oldName: string | undefined = undefined;
@@ -116,8 +114,6 @@ export class RenameInferenceEngine {
 			return undefined;
 		}
 
-		// Fold the changes to larger changes if the gap between two changes is a full word. This covers cases like renaming
-		// `foo` to `abcfoobar`
 		const changes: typeof originalChanges = [];
 		for (const change of originalChanges) {
 			if (changes.length === 0) {
@@ -164,8 +160,6 @@ export class RenameInferenceEngine {
 
 			const diff = insertedTextSegment.length - change.originalLength;
 
-			// If the original text segment contains a whitespace character we don't consider this a rename since
-			// identifiers in programming languages can't contain whitespace characters usually
 			if (/\s/.test(originalTextSegment)) {
 				others.push(new TextReplacement(range, insertedTextSegment));
 				tokenDiff += diff;
@@ -180,8 +174,6 @@ export class RenameInferenceEngine {
 					continue;
 				}
 			}
-			// If the inserted text contains a whitespace character we don't consider this a rename since identifiers in
-			// programming languages can't contain whitespace characters usually
 			if (/\s/.test(insertedTextSegment)) {
 				others.push(new TextReplacement(range, insertedTextSegment));
 				tokenDiff += diff;
@@ -198,9 +190,6 @@ export class RenameInferenceEngine {
 			}
 
 			const wordRange = textModel.getWordAtPosition(startPos);
-			// If we don't have a word range at the start position of the current document then we
-			// don't treat it as a rename assuming that the rename refactoring will fail as well since
-			// there can't be an identifier at that position.
 			if (wordRange === null) {
 				others.push(new TextReplacement(range, insertedTextSegment));
 				tokenDiff += diff;
@@ -209,8 +198,6 @@ export class RenameInferenceEngine {
 			const originalStartColumn = change.originalStart + 1;
 			const isInsertion = change.originalLength === 0 && change.modifiedLength > 0;
 			let tokenInfo: { type: StandardTokenType; range: Range };
-			// Word info is left aligned whereas token info is right aligned for insertions.
-			// We prefer a suffix insertion for renames so we take the word range for the token info.
 			if (isInsertion && originalStartColumn === wordRange.endColumn && wordRange.endColumn > wordRange.startColumn) {
 				tokenInfo = this.getTokenAtPosition(textModel, new Position(startPos.lineNumber, wordRange.startColumn));
 			} else {
@@ -237,7 +224,6 @@ export class RenameInferenceEngine {
 					continue;
 				}
 
-				// We assume that the new name starts at the same position as the old name from a token range perspective.
 				const tokenStartPos = textModel.getOffsetAt(tokenInfo.range.getStartPosition()) - nesOffset + tokenDiff;
 				const tokenEndPos = textModel.getOffsetAt(tokenInfo.range.getEndPosition()) - nesOffset + tokenDiff;
 				identifier = modifiedText.substring(tokenStartPos, tokenEndPos + diff);
@@ -470,7 +456,6 @@ export class RenameSymbolProcessor extends Disposable {
 		const edit = suggestItem.action.textReplacement;
 		const languageConfiguration = this._languageConfigurationService.getLanguageConfiguration(textModel.getLanguageId());
 
-		// Check synchronously if a rename is possible
 		const edits = this._renameInferenceEngine.inferRename(textModel, edit.range, edit.text, languageConfiguration.wordDefinition);
 		if (edits === undefined || edits.renames.edits.length === 0) {
 			return suggestItem;
@@ -484,7 +469,6 @@ export class RenameSymbolProcessor extends Disposable {
 			lastSymbolRename = trackedWord.currentRange;
 		}
 
-		// Check asynchronously if a rename is possible
 		let timedOut = false;
 		const check = await raceTimeout<PrepareNesRenameResult>(this.checkRenamePrecondition(suggestItem, textModel, position, oldName, newName, lastSymbolRename), 100, () => { timedOut = true; });
 		const renamePossible = this.isRenamePossible(suggestItem, check, state, textModel);
@@ -501,12 +485,10 @@ export class RenameSymbolProcessor extends Disposable {
 			return suggestItem;
 		}
 
-		// Prepare the rename edits
 		if (this._renameRunnable === undefined) {
 			this._renameRunnable = new RenameSymbolRunnable(this._languageFeaturesService, this._commandService, suggestItem.requestUuid, textModel, state, position, newName, lastSymbolRename, lastSymbolRename !== undefined ? oldName : undefined);
 		}
 
-		// Create alternative action
 		const source = EditSources.inlineCompletionAccept({
 			nes: suggestItem.isInlineEdit,
 			requestUuid: suggestItem.requestUuid,

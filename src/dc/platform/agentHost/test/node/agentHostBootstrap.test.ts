@@ -48,8 +48,6 @@ suite('agentHostBootstrap', () => {
 		});
 		testDisposables.add(runtime);
 
-		// Whole-graph dependency completeness is checked statically in
-		// agentHostServices.test.ts without forcing every descriptor to construct.
 		assert.ok(runtime.instantiationService.invokeFunction(accessor => accessor.get(IAgentSdkDownloader)));
 		assert.deepStrictEqual(runtime.instantiationService.invokeFunction(accessor => [
 			accessor.get(IAgentHostCheckpointService) !== undefined,

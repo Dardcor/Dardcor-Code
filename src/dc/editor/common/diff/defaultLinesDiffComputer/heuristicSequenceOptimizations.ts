@@ -12,25 +12,11 @@ import { LinesSliceCharSequence } from './linesSliceCharSequence.js';
 export function optimizeSequenceDiffs(sequence1: ISequence, sequence2: ISequence, sequenceDiffs: SequenceDiff[]): SequenceDiff[] {
 	let result = sequenceDiffs;
 	result = joinSequenceDiffsByShifting(sequence1, sequence2, result);
-	// Sometimes, calling this function twice improves the result.
-	// Uncomment the second invocation and run the tests to see the difference.
 	result = joinSequenceDiffsByShifting(sequence1, sequence2, result);
 	result = shiftSequenceDiffs(sequence1, sequence2, result);
 	return result;
 }
 
-/**
- * This function fixes issues like this:
- * ```
- * import { Baz, Bar } from "foo";
- * ```
- * <->
- * ```
- * import { Baz, Bar, Foo } from "foo";
- * ```
- * Computed diff: [ {Add "," after Bar}, {Add "Foo " after space} }
- * Improved diff: [{Add ", Foo" after Bar}]
- */
 function joinSequenceDiffsByShifting(sequence1: ISequence, sequence2: ISequence, sequenceDiffs: SequenceDiff[]): SequenceDiff[] {
 	if (sequenceDiffs.length === 0) {
 		return sequenceDiffs;
@@ -39,7 +25,6 @@ function joinSequenceDiffsByShifting(sequence1: ISequence, sequence2: ISequence,
 	const result: SequenceDiff[] = [];
 	result.push(sequenceDiffs[0]);
 
-	// First move them all to the left as much as possible and join them if possible
 	for (let i = 1; i < sequenceDiffs.length; i++) {
 		const prevResult = result[result.length - 1];
 		let cur = sequenceDiffs[i];
@@ -57,7 +42,6 @@ function joinSequenceDiffsByShifting(sequence1: ISequence, sequence2: ISequence,
 			d--;
 
 			if (d === length) {
-				// Merge previous and current diff
 				result[result.length - 1] = new SequenceDiff(
 					new OffsetRange(prevResult.seq1Range.start, cur.seq1Range.endExclusive - length),
 					new OffsetRange(prevResult.seq2Range.start, cur.seq2Range.endExclusive - length),
@@ -72,7 +56,6 @@ function joinSequenceDiffsByShifting(sequence1: ISequence, sequence2: ISequence,
 	}
 
 	const result2: SequenceDiff[] = [];
-	// Then move them all to the right and join them again if possible
 	for (let i = 0; i < result.length - 1; i++) {
 		const nextResult = result[i + 1];
 		let cur = result[i];
@@ -90,7 +73,6 @@ function joinSequenceDiffsByShifting(sequence1: ISequence, sequence2: ISequence,
 			}
 
 			if (d === length) {
-				// Merge previous and current diff, write to result!
 				result[i + 1] = new SequenceDiff(
 					new OffsetRange(cur.seq1Range.start + length, nextResult.seq1Range.endExclusive),
 					new OffsetRange(cur.seq2Range.start + length, nextResult.seq2Range.endExclusive),
@@ -113,21 +95,8 @@ function joinSequenceDiffsByShifting(sequence1: ISequence, sequence2: ISequence,
 	return result2;
 }
 
-// align character level diffs at whitespace characters
-// import { IBar } from "foo";
-// import { I[Arr, I]Bar } from "foo";
-// ->
-// import { [IArr, ]IBar } from "foo";
 
-// import { ITransaction, observableValue, transaction } from 'dc/base/common/observable';
-// import { ITransaction, observable[FromEvent, observable]Value, transaction } from 'dc/base/common/observable';
-// ->
-// import { ITransaction, [observableFromEvent, ]observableValue, transaction } from 'dc/base/common/observable';
 
-// collectBrackets(level + 1, levelPerBracketType);
-// collectBrackets(level + 1, levelPerBracket[ + 1, levelPerBracket]Type);
-// ->
-// collectBrackets(level + 1, [levelPerBracket + 1, ]levelPerBracketType);
 
 function shiftSequenceDiffs(sequence1: ISequence, sequence2: ISequence, sequenceDiffs: SequenceDiff[]): SequenceDiff[] {
 	if (!sequence1.getBoundaryScore || !sequence2.getBoundaryScore) {
@@ -153,9 +122,8 @@ function shiftSequenceDiffs(sequence1: ISequence, sequence2: ISequence, sequence
 }
 
 function shiftDiffToBetterPosition(diff: SequenceDiff, sequence1: ISequence, sequence2: ISequence, seq1ValidRange: OffsetRange, seq2ValidRange: OffsetRange,) {
-	const maxShiftLimit = 100; // To prevent performance issues
+	const maxShiftLimit = 100;
 
-	// don't touch previous or next!
 	let deltaBefore = 1;
 	while (
 		diff.seq1Range.start - deltaBefore >= seq1ValidRange.start &&
@@ -179,12 +147,9 @@ function shiftDiffToBetterPosition(diff: SequenceDiff, sequence1: ISequence, seq
 		return diff;
 	}
 
-	// Visualize `[sequence1.text, diff.seq1Range.start + deltaAfter]`
-	// and `[sequence2.text, diff.seq2Range.start + deltaAfter, diff.seq2Range.endExclusive + deltaAfter]`
 
 	let bestDelta = 0;
 	let bestScore = -1;
-	// find best scored delta
 	for (let delta = -deltaBefore; delta <= deltaAfter; delta++) {
 		const seq2OffsetStart = diff.seq2Range.start + delta;
 		const seq2OffsetEndExclusive = diff.seq2Range.endExclusive + delta;
@@ -248,8 +213,6 @@ export function extendDiffsToEntireWordIfAppropriate(
 		let equalChars1 = equalPart.seq1Range.length;
 		let equalChars2 = equalPart.seq2Range.length;
 
-		// The words do not touch previous equals mappings, as we would have processed them already.
-		// But they might touch the next ones.
 
 		while (equalMappings.length > 0) {
 			const next = equalMappings[0];
@@ -260,7 +223,6 @@ export function extendDiffsToEntireWordIfAppropriate(
 
 			const v1 = findParent(sequence1, next.seq1Range.start);
 			const v2 = findParent(sequence2, next.seq2Range.start);
-			// Because there is an intersection, we know that the words are not empty.
 			const v = new SequenceDiff(v1!, v2!);
 			const equalPart = v.intersect(next)!;
 
@@ -270,7 +232,6 @@ export function extendDiffsToEntireWordIfAppropriate(
 			w = w.join(v);
 
 			if (w.seq1Range.endExclusive >= next.seq1Range.endExclusive) {
-				// The word extends beyond the next equal mapping.
 				equalMappings.shift();
 			} else {
 				break;
@@ -290,7 +251,6 @@ export function extendDiffsToEntireWordIfAppropriate(
 			continue;
 		}
 		scanWord(next.getStarts(), next);
-		// The equal parts are not empty, so -1 gives us a character that is equal in both parts.
 		scanWord(next.getEndExclusives().delta(-1), next);
 	}
 
@@ -411,7 +371,6 @@ export function removeVeryShortMatchingTextBetweenLongDiffs(sequence1: LinesSlic
 				const afterLineCount2 = sequence2.countLinesIn(after.seq2Range);
 				const afterSeq2Length = after.seq2Range.length;
 
-				// TODO: Maybe a neural net can be used to derive the result from these numbers
 
 				const max = 2 * 40 + 50;
 				function cap(v: number): number {
@@ -439,7 +398,6 @@ export function removeVeryShortMatchingTextBetweenLongDiffs(sequence1: LinesSlic
 
 	const newDiffs: SequenceDiff[] = [];
 
-	// Remove short suffixes/prefixes
 	forEachWithNeighbors(diffs, (prev, cur, next) => {
 		let newDiff = cur;
 

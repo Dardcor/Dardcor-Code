@@ -252,12 +252,6 @@ suite('ChatMarkdownRenderer', () => {
 	});
 
 	test('fillInIncompleteTokens closes bare codespan when supportHtml is set', () => {
-		// Regression: the chat content renderer wraps `supportHtml` markdown
-		// in `<body>...</body>`, which produces a trailing html token. The
-		// paragraph/codespan fixup in `fillInIncompleteTokens` must still
-		// fire so streaming a partial backtick (e.g. the agent host
-		// "Created isolated worktree for branch `xyz" announcement) does
-		// not leave a bare ` in the DOM until the closing backtick arrives.
 		const md = new MarkdownString('Created isolated worktree for branch `xyz', { supportHtml: true });
 		const result = store.add(testRenderer.render(md, { fillInIncompleteTokens: true }));
 

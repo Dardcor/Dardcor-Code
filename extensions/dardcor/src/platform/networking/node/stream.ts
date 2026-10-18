@@ -9,11 +9,10 @@ import { ITelemetryService } from '../../telemetry/common/telemetry';
 import { TelemetryData } from '../../telemetry/common/telemetryData';
 import { RawThinkingDelta, ThinkingDelta } from '../../thinking/common/thinking';
 import { extractThinkingDeltaFromChoice, } from '../../thinking/common/thinkingUtils';
-import { FinishedCallback, getRequestId, ICodeVulnerabilityAnnotation, ICopilotBeginToolCall, ICopilotConfirmation, ICopilotError, ICopilotFunctionCall, ICopilotReference, ICopilotToolCall, ICopilotToolCallStreamUpdate, IIPCodeCitation, isCodeCitationAnnotation, isCopilotAnnotation, RequestId } from '../common/fetch';
+import { FinishedCallback, getRequestId, ICodeVulnerabilityAnnotation, ICopilotBeginToolCall, ICopilotConfirmation, ICopilotError, ICopilotFunctionCall, ICopilotReference, ICopilotToolCall, ICopilotToolCallStreamUpdate, IIPCodeCitation, isCodeCitationAnnotation, isDardcorAnnotation, RequestId } from '../common/fetch';
 import { DestroyableStream, Response } from '../common/fetcherService';
 import { APIErrorResponse, APIJsonData, APIUsage, ChoiceLogProbs, FilterReason, FinishedCompletionReason, isApiUsage, IToolCall } from '../common/openai';
 
-/** Gathers together many chunks of a single completion choice. */
 class APIJsonDataStreaming {
 
 	constructor(public readonly model: string) { }
@@ -135,53 +134,31 @@ class StreamingToolCalls {
 	}
 }
 
-// Given a string of lines separated by one or more newlines, returns complete
-// lines and any remaining partial line data. Exported for test only.
 export function splitChunk(chunk: string): [string[], string] {
 	const dataLines = chunk.split('\n');
-	const newExtra = dataLines.pop(); // will be empty string if chunk ends with "\n"
+	const newExtra = dataLines.pop();
 	return [dataLines.filter(line => line !== ''), newExtra!];
 }
 
-/**
- * A single finished completion returned from the model or proxy, along with
- * some metadata.
- */
 export interface FinishedCompletion {
 	solution: APIJsonDataStreaming;
-	/** An optional offset into `solution.text.join('')` where the completion finishes. */
 	finishOffset: number | undefined;
-	/** A dardcor-specific human-readable reason for the completion finishing. */
 	reason: FinishedCompletionReason;
-	/** A dardcor-specific reason for filtering the response. Only returns when reason === FinishedCompletionReason.ContentFilter */
 	filterReason?: FilterReason;
 	error?: APIErrorResponse;
-	/** The token usage reported from CAPI */
 	usage?: APIUsage;
 	requestId: RequestId;
 	index: number;
 }
 
-/** What comes back from the OpenAI API for a single choice in an SSE chunk. */
 interface ChoiceJSON {
 	index: number;
-	/**
-	 * The text attribute as defined in completions streaming.
-	 * See https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#event_stream_format
-	 */
 	text?: string;
-	/**
-	 * The delta attribute as defined in chat streaming.
-	 * See https://github.com/openai/openai-cookbook/blob/main/examples/How_to_stream_completions.ipynb
-	 */
 	delta?: { content: string | null };
 	finish_reason?: FinishedCompletionReason.Stop | FinishedCompletionReason.Length | FinishedCompletionReason.FunctionCall | FinishedCompletionReason.ContentFilter | FinishedCompletionReason.ServerError | FinishedCompletionReason.ToolCalls | null;
 	logprobs?: ChoiceLogProbs;
 }
 
-/**
- * Extensions to the OpenAI stream format
- */
 interface ExtendedChoiceJSON extends ChoiceJSON {
 	content_filter_results?: Record<Exclude<FilterReason, FilterReason.Copyright>, { filtered: boolean; severity: string }>;
 	message?: RawThinkingDelta;
@@ -206,21 +183,11 @@ interface ExtendedChoiceJSON extends ChoiceJSON {
 	} & RawThinkingDelta;
 }
 
-/**
- * Processes an HTTP request containing what is assumed to be an SSE stream of
- * OpenAI API data. Yields a stream of `FinishedCompletion` objects, each as
- * soon as it's finished.
- */
 export class SSEProcessor {
 	private requestId: RequestId = getRequestId(this.response.headers);
-	/**
-	 * A key & value being here means at least one chunk with that choice index
-	 * has been received. A null value means we've already finished the given
-	 * solution and should not process incoming tokens further.
-	 */
 	private readonly solutions: Record<number, APIJsonDataStreaming | null> = {};
 
-	private readonly completedFunctionCallIdxs: Map<number /* index */, 'function' | 'tool'> = new Map();
+	private readonly completedFunctionCallIdxs: Map<number , 'function' | 'tool'> = new Map();
 	private readonly functionCalls: Record<string, APIJsonDataStreaming | null> = {};
 	private readonly toolCalls = new StreamingToolCalls();
 	private functionCallName: string | undefined = undefined;
@@ -252,25 +219,9 @@ export class SSEProcessor {
 		);
 	}
 
-	/**
-	 * Yields finished completions as soon as they are available. The finishedCb
-	 * is used to determine when a completion is done and should be truncated.
-	 * It is called on the whole of the received solution text, once at the end
-	 * of the completion (if it stops by itself) and also on any chunk that has
-	 * a newline in it.
-	 *
-	 * Closes the server request stream when all choices are finished/truncated
-	 * (as long as fastCancellation is true).
-	 *
-	 * Note that for this to work, the caller must consume the entire stream.
-	 * This happens automatically when using a `for await` loop, but when
-	 * iterating manually this needs to be done by calling `.next()` until it
-	 * returns an item with done = true (or calling `.return()`).
-	 */
 	async *processSSE(finishedCb: FinishedCallback = async () => undefined): AsyncIterable<FinishedCompletion> {
 		try {
 			// If it's n > 1 we don't handle usage as the usage is global for the stream and all our code assumes per choice
-			// Therefore we will just skip over the usage and yield the completions
 			if (this.expectedNumChoices > 1) {
 				for await (const usageOrCompletions of this.processSSEInner(finishedCb)) {
 					if (!isApiUsage(usageOrCompletions)) {
@@ -281,7 +232,6 @@ export class SSEProcessor {
 				let completion: FinishedCompletion | undefined;
 				let usage: APIUsage | undefined;
 
-				// Process both the usage and the completions, then yield one combined completions
 				for await (const usageOrCompletions of this.processSSEInner(finishedCb)) {
 					if (isApiUsage(usageOrCompletions)) {
 						usage = usageOrCompletions;
@@ -308,31 +258,22 @@ export class SSEProcessor {
 	}
 
 	private async *processSSEInner(finishedCb: FinishedCallback): AsyncIterable<FinishedCompletion | APIUsage> {
-		// Collects pieces of the SSE stream that haven't been fully processed yet.
 		let extraData = '';
-		// This flag is set when at least for one solution we finished early (via `finishedCb`).
 		let hadEarlyFinishedSolution = false;
 
-		// The platform agent can return a 'function_call' finish_reason, which isn't a real function call
-		// but is echoing internal function call messages back to us. So don't treat them as real function calls
-		// if we received more data after that
 		let allowCompletingSolution = true;
 		let thinkingFound = false;
 
-		// Iterate over arbitrarily sized chunks coming in from the network.
 		for await (const chunk of this.body) {
 			if (await this.maybeCancel('after awaiting body chunk')) {
 				return;
 			}
 
-			// this.logService.debug(chunk.toString());
 			const [dataLines, remainder] = splitChunk(extraData + chunk.toString());
 			extraData = remainder;
 
-			// Each dataLine is complete since we've seen at least one \n after it
 
 			for (const dataLine of dataLines) {
-				// Lines which start with a `:` are SSE Comments per the spec and can be ignored
 				if (dataLine.startsWith(':')) {
 					continue;
 				}
@@ -342,7 +283,6 @@ export class SSEProcessor {
 					return;
 				}
 
-				// TODO @lramos15 - This should not be an ugly inlined type like this
 				let json: {
 					choices: ExtendedChoiceJSON[] | undefined | null;
 					model: string;
@@ -369,18 +309,15 @@ export class SSEProcessor {
 					yield json.usage;
 				}
 
-				// A message with a confirmation may or may not have 'choices'
 				if (json.dardcor_confirmation && isCopilotConfirmation(json.dardcor_confirmation)) {
 					await finishedCb('', 0, { text: '', dardcorConfirmation: json.dardcor_confirmation });
 				}
 
 				if (!json.choices) {
-					// Currently there are messages with a null 'choices' that include dardcor_references- ignore these
 					if (!json.dardcor_references && !json.dardcor_confirmation) {
 						if (json.error !== undefined) {
 							this.logService.error(`Error in response for request id ${this.requestId.headerRequestId}:${json.error.message}`);
 							sendCommunicationErrorTelemetry(this.telemetryService, `Error in response for request id ${this.requestId.headerRequestId}:`, json.error.message);
-							// Encountered an error mid stream we immediately yield as the response is not usable.
 							yield {
 								index: 0,
 								finishOffset: undefined,
@@ -395,7 +332,6 @@ export class SSEProcessor {
 						}
 					}
 
-					// There are also messages with a null 'choices' that include dardcor_errors- report these
 					if (json.dardcor_errors) {
 						await finishedCb('', 0, { text: '', dardcorErrors: json.dardcor_errors });
 					}
@@ -408,9 +344,8 @@ export class SSEProcessor {
 				}
 
 				if (this.requestId.created === 0) {
-					// Would only be 0 if we're the first actual response chunk
 					this.requestId = getRequestId(this.response.headers, json);
-					if (this.requestId.created === 0 && json.choices?.length) { // An initial chunk is sent with an empty choices array and no id, to hold `prompt_filter_results`
+					if (this.requestId.created === 0 && json.choices?.length) {
 						this.requestId.created = Math.floor(Date.now() / 1000);
 					}
 				}
@@ -423,7 +358,6 @@ export class SSEProcessor {
 
 					const thinkingDelta = extractThinkingDeltaFromChoice(choice);
 
-					// Once we observe any thinking text or an id in this batch, keep the flag true
 					thinkingFound ||= !!(thinkingDelta?.text || thinkingDelta?.id);
 
 					if (!(choice.index in this.solutions)) {
@@ -435,17 +369,16 @@ export class SSEProcessor {
 						if (thinkingDelta) {
 							await finishedCb('', choice.index, { text: '', thinking: thinkingDelta });
 						}
-						continue; // already finished
+						continue;
 					}
 
 					let finishOffset: number | undefined;
 
 					const emitSolution = async (delta?: { vulnAnnotations?: ICodeVulnerabilityAnnotation[]; ipCodeCitations?: IIPCodeCitation[]; references?: ICopilotReference[]; toolCalls?: ICopilotToolCall[]; toolCallStreamUpdates?: ICopilotToolCallStreamUpdate[]; functionCalls?: ICopilotFunctionCall[]; errors?: ICopilotError[]; beginToolCalls?: ICopilotBeginToolCall[]; thinking?: ThinkingDelta }) => {
-						if (delta?.vulnAnnotations && (!Array.isArray(delta.vulnAnnotations) || !delta.vulnAnnotations.every(a => isCopilotAnnotation(a)))) {
+						if (delta?.vulnAnnotations && (!Array.isArray(delta.vulnAnnotations) || !delta.vulnAnnotations.every(a => isDardcorAnnotation(a)))) {
 							delta.vulnAnnotations = undefined;
 						}
 
-						// Validate code citation annotations carefully, because the API is a work in progress
 						if (delta?.ipCodeCitations && (!Array.isArray(delta.ipCodeCitations) || !delta.ipCodeCitations.every(isCodeCitationAnnotation))) {
 							delta.ipCodeCitations = undefined;
 						}
@@ -477,7 +410,6 @@ export class SSEProcessor {
 							const firstToolName = firstToolCall?.function?.name;
 							if (firstToolName) {
 								if (solution.text.length) {
-									// Flush the linkifier stream. See #16465
 									solution.append({ index: 0, delta: { content: ' ' } });
 								}
 								if (await emitSolution({ beginToolCalls: [{ name: firstToolName, id: firstToolCall?.id }] })) {
@@ -522,7 +454,6 @@ export class SSEProcessor {
 						const functionCall = this.functionCalls[this.functionCallName];
 						functionCall!.append(choice);
 					} else if ((choice.finish_reason === FinishedCompletionReason.FunctionCall || choice.finish_reason === FinishedCompletionReason.Stop) && this.functionCallName) {
-						// We don't want to yield the function call until we have all the data
 						const functionCallStreamObj = this.functionCalls[this.functionCallName];
 						const functionCall = { name: this.functionCallName, arguments: functionCallStreamObj!.flush() };
 						this.completedFunctionCallIdxs.set(choice.index, 'function');
@@ -537,7 +468,6 @@ export class SSEProcessor {
 						this.functionCalls[this.functionCallName] = null;
 						this.functionCallName = undefined;
 						if (choice.finish_reason === FinishedCompletionReason.FunctionCall) {
-							// See note about the 'function_call' finish_reason below
 							continue;
 						}
 					} else {
@@ -561,7 +491,6 @@ export class SSEProcessor {
 					if (!handled) {
 						solution.append(choice);
 
-						// Call finishedCb to determine if the solution is now complete.
 						if (await emitSolution()) {
 							continue;
 						}
@@ -571,12 +500,6 @@ export class SSEProcessor {
 					if (!solutionDone) {
 						continue;
 					}
-					// NOTE: When there is a finish_reason the text of subsequent chunks is always '',
-					// (current chunk might still have useful text, that is why we add it above).
-					// So we know that we already got all the text to be displayed for the user.
-					// TODO: This might contain additional logprobs for excluded next tokens. We should
-					// filter out indices that correspond to excluded tokens. It will not affect the
-					// text though.
 					yield {
 						solution,
 						finishOffset,
@@ -597,12 +520,10 @@ export class SSEProcessor {
 			}
 		}
 
-		// Yield whatever solutions remain incomplete in case no [DONE] was received.
-		// This shouldn't happen in practice unless there was an error somewhere.
 		for (const [index, solution] of Object.entries(this.solutions)) {
-			const solutionIndex = Number(index); // Convert `index` from string to number
+			const solutionIndex = Number(index);
 			if (solution === null) {
-				continue; // already finished
+				continue;
 			}
 			yield {
 				solution,
@@ -617,13 +538,6 @@ export class SSEProcessor {
 			}
 		}
 
-		// Error message can be present in `extraData`
-		//
-		// When `finishedCb` decides to finish a solution early, it is possible that
-		// we will have unfinished or partial JSON data in `extraData` because we
-		// break out of the above for loop as soon as all solutions are finished.
-		//
-		// We don't want to alarm ourselves with such partial JSON data.
 		if (extraData.length > 0 && !hadEarlyFinishedSolution) {
 			try {
 				const extraDataJson = JSON.parse(extraData);
@@ -638,12 +552,11 @@ export class SSEProcessor {
 		}
 	}
 
-	/** Yields the solutions that weren't yet finished, with a 'DONE' reason. */
 	private async *finishSolutions(): AsyncIterable<FinishedCompletion> {
 		for (const [index, solution] of Object.entries(this.solutions)) {
-			const solutionIndex = Number(index); // Convert `index` from string to number
+			const solutionIndex = Number(index);
 			if (solution === null) {
-				continue; // already finished
+				continue;
 			}
 			if (this.completedFunctionCallIdxs.has(solutionIndex)) {
 				yield {
@@ -669,10 +582,6 @@ export class SSEProcessor {
 		}
 	}
 
-	/**
-	 * Returns whether the cancellation token was cancelled and closes the
-	 * stream if it was.
-	 */
 	private async maybeCancel(description: string) {
 		if (this.cancellationToken?.isCancellationRequested) {
 			this.logService.debug('Cancelled: ' + description);
@@ -695,14 +604,12 @@ export class SSEProcessor {
 	}
 }
 
-// data: {"choices":null,"dardcor_confirmation":{"type":"action","title":"Are you sure you want to proceed?","message":"This action is irreversible.","confirmation":{"id":"123"}},"id":null}
 function isCopilotConfirmation(obj: unknown): obj is ICopilotConfirmation {
 	return typeof (obj as ICopilotConfirmation).title === 'string' &&
 		typeof (obj as ICopilotConfirmation).message === 'string' &&
 		!!(obj as ICopilotConfirmation).confirmation;
 }
 
-// Function to convert from APIJsonDataStreaming to APIJsonData format
 export function convertToAPIJsonData(streamingData: APIJsonDataStreaming): APIJsonData {
 	const joinedText = streamingData.text.join('');
 	const out: APIJsonData = {
@@ -712,11 +619,6 @@ export function convertToAPIJsonData(streamingData: APIJsonDataStreaming): APIJs
 	return out;
 }
 
-/**
- * Given a choice from the API call, returns the reason for filtering out the choice, or undefined if the choice should not be filtered out.
- * @param choice The choice from the API call
- * @returns The reason for filtering out the choice, or undefined if the choice should not be filtered out.
- */
 function choiceToFilterReason(choice: ExtendedChoiceJSON): FilterReason | undefined {
 	if (choice.finish_reason !== FinishedCompletionReason.ContentFilter) {
 		return undefined;
@@ -767,7 +669,6 @@ export function sendCommunicationErrorTelemetry(telemetryService: ITelemetryServ
 		message: secureMessage,
 	});
 
-	// send full content to secure telemetry
 	telemetryService.sendEnhancedGHTelemetryErrorEvent('log', enhancedData.properties, enhancedData.measurements);
 
 	const data = TelemetryData.createAndMarkAsIssued({
@@ -776,7 +677,6 @@ export function sendCommunicationErrorTelemetry(telemetryService: ITelemetryServ
 		message: '[redacted]',
 	});
 
-	// send content that excludes customer data to standard telemetry
 	telemetryService.sendGHTelemetryErrorEvent(
 		'log',
 		data.properties,

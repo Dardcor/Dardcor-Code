@@ -39,10 +39,8 @@ export class NativeIssueService implements IWorkbenchIssueService {
 		const useWizard = this.configurationService.getValue<boolean>('issueReporter.wizard.enabled');
 
 		if (useWizard) {
-			// New wizard: show UI immediately, load data in background
 			return this.openWizardReporter(dataOverrides);
 		} else {
-			// Old reporter: collect all data first, then open
 			return this.openLegacyReporter(dataOverrides);
 		}
 	}
@@ -92,8 +90,6 @@ export class NativeIssueService implements IWorkbenchIssueService {
 				};
 			}));
 		} catch (e) {
-			// Surface the load failure in the issue body so triage doesn't mistake an
-			// empty list for "no extensions installed".
 			extensionData.push({
 				name: 'Extensions not loaded',
 				publisher: undefined,
@@ -116,14 +112,12 @@ export class NativeIssueService implements IWorkbenchIssueService {
 			const repoSession = githubSessions.find(session => session.scopes.includes('repo'));
 			githubAccessToken = repoSession?.accessToken ?? '';
 		} catch (e) {
-			// Ignore
 		}
 
 		let isInstallationPure = true;
 		try {
 			isInstallationPure = (await this.integrityService.isPure()).isPure;
 		} catch (e) {
-			// Ignore
 		}
 
 		const theme = this.themeService.getColorTheme();
@@ -140,7 +134,6 @@ export class NativeIssueService implements IWorkbenchIssueService {
 	}
 
 	private async populateReporterDataAsync(data: IssueReporterData, dataOverrides: Partial<IssueReporterData>, extensionsLoaded?: DeferredPromise<void>): Promise<void> {
-		// Extensions
 		try {
 			const extensions = await this.extensionManagementService.getInstalled();
 			const enabledExtensions = extensions.filter(extension => this.extensionEnablementService.isEnabled(extension) || (dataOverrides.extensionId && extension.identifier.id === dataOverrides.extensionId));
@@ -165,33 +158,26 @@ export class NativeIssueService implements IWorkbenchIssueService {
 				};
 			});
 		} catch (e) {
-			// Ignore — extensions will be empty
 		} finally {
 			extensionsLoaded?.complete();
 		}
 
-		// Experiments
 		try {
 			const experiments = await this.experimentService.getCurrentExperiments();
 			data.experiments = experiments?.join('\n');
 		} catch (e) {
-			// Ignore
 		}
 
-		// GitHub access token — only fetch existing sessions, never prompt
 		try {
 			const githubSessions = await this.authenticationService.getSessions('github');
 			const repoSession = githubSessions.find(session => session.scopes.includes('repo'));
 			data.githubAccessToken = repoSession?.accessToken ?? '';
 		} catch (e) {
-			// Ignore
 		}
 
-		// Integrity check
 		try {
 			data.isInstallationPure = (await this.integrityService.isPure()).isPure;
 		} catch (e) {
-			// Ignore
 		}
 	}
 

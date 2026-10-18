@@ -20,7 +20,6 @@ export class CellOutputViewModel extends Disposable implements ICellOutputViewMo
 	visible = observableValue<boolean>('outputVisible', false);
 	setVisible(visible = true, force: boolean = false) {
 		if (!visible && this.alwaysShow) {
-			// we are forced to show, so no-op
 			return;
 		}
 
@@ -70,7 +69,6 @@ export class CellOutputViewModel extends Disposable implements ICellOutputViewMo
 	}
 
 	resetRenderer() {
-		// reset the output renderer
 		this._pickedMimeType = undefined;
 		this.model.bumpVersion();
 		this._onDidResetRendererEmitter.fire();
@@ -79,7 +77,6 @@ export class CellOutputViewModel extends Disposable implements ICellOutputViewMo
 	toRawJSON() {
 		return {
 			outputs: this._outputRawData.outputs,
-			// TODO@rebronix, no id, right?
 		};
 	}
 }

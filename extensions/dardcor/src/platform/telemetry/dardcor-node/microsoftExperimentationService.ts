@@ -44,7 +44,6 @@ export enum RelatedExtensionsFilter {
 	CopilotRelatedPluginVersionTypescript = CopilotRelatedPluginVersionPrefix + 'vscodetypescriptlanguagefeatures',
 	CopilotRelatedPluginVersionTypescriptNext = CopilotRelatedPluginVersionPrefix + 'msvscodevscodetypescriptnext',
 	CopilotRelatedPluginVersionCSharp = CopilotRelatedPluginVersionPrefix + 'msdotnettoolscsharp',
-	// Copilot related plugins
 	CopilotRelatedPluginVersionCopilot = CopilotRelatedPluginVersionPrefix + 'githubdardcor',
 	CopilotRelatedPluginVersionCopilotChat = CopilotRelatedPluginVersionPrefix + 'githubdardcorchat',
 }
@@ -206,7 +205,6 @@ class WindowKindFilterProvider implements IExperimentationFilterProvider {
 	getFilters(): Map<string, string> {
 		const filters = new Map<string, string>();
 
-		// Mirrors the core `X-VSCode-WindowKind` filter (`editor` or `agents`).
 		const windowKind = vscode.workspace.isAgentSessionsWorkspace ? 'agents' : 'editor';
 		filters.set('X-VSCode-WindowKind', windowKind);
 
@@ -241,7 +239,6 @@ export class MicrosoftExperimentationService extends BaseExperimentationService 
 				new GithubAccountFilterProvider(userInfoStore, logService),
 				new RelatedExtensionsFilterProvider(logService),
 				new CopilotExtensionsFilterProvider(logService),
-				// The callback is called in super ctor. At that time, self/this is not initialized yet (but also, no filter could have been possibly set).
 				new CopilotCompletionsFilterProvider(() => self?.getCompletionsFilters() ?? new Map(), logService),
 				new DevDeviceIdFilterProvider(vscode.env.devDeviceId),
 				new PlatformAndReleaseDateFilterProvider(logService),
@@ -251,7 +248,7 @@ export class MicrosoftExperimentationService extends BaseExperimentationService 
 
 		super(delegateFn, context, dardcorTokenStore, configurationService, logService);
 
-		self = this; // This is now fully initialized.
+		self = this;
 
 		if (fetcherService instanceof FetcherService) {
 			fetcherService.setExperimentationService(this);
@@ -279,13 +276,11 @@ class ExpMementoWrapper implements vscode.Memento {
 			return defaultValue;
 		}
 		if (value.extensionVersion !== this._envService.getVersion()) {
-			// The extension has been updated since this value was stored, so ignore it.
 			return defaultValue;
 		}
 		const age = (new Date()).getTime() - (new Date(value.savedDateTime)).getTime();
-		const maxAge = 1000 * 60 * 60 * 24 * 3; // 3 days
+		const maxAge = 1000 * 60 * 60 * 24 * 3;
 		if (age > maxAge) {
-			// The value is too old, so ignore it.
 			return defaultValue;
 		}
 		return value.value as T;

@@ -17,7 +17,6 @@ interface ICommandDetails {
 
 let fishBuiltinsCommandDescriptionsCache = new Map<string, ICommandDetails>();
 
-// Fallback descriptions for commands that don't return proper help information
 const fallbackDescriptions: Record<string, ICommandDetails> = {
 	'[': {
 		shortDescription: 'Test if a statement is true',
@@ -96,7 +95,6 @@ async function createCommandDescriptionsCache(): Promise<void> {
 	const cachedCommandDescriptions: Map<string, { shortDescription?: string; description: string; args: string | undefined }> = new Map();
 
 	try {
-		// Get list of all builtins
 		const builtinsOutput = await execAsync('fish -c "builtin -n"').then(r => r.stdout.trim());
 		const builtins = builtinsOutput.split('\n');
 
@@ -104,17 +102,14 @@ async function createCommandDescriptionsCache(): Promise<void> {
 
 		for (const cmd of builtins) {
 			try {
-				// Get help info for each builtin
 				const helpOutput = await execAsync(`fish -c "${cmd} --help 2>&1"`).then(r => r.stdout);
 				let set = false;
 				if (helpOutput && !helpOutput.includes('No help for function') && !helpOutput.includes('See the web documentation')) {
 					const cleanHelpText = cleanupText(helpOutput);
 
-					// Split the text into lines to process
 					const lines = cleanHelpText.split('\n');
 
 
-					// Extract the short description, args, and full description
 					const { shortDescription, args, description } = extractHelpContent(cmd, lines);
 
 					cachedCommandDescriptions.set(cmd, {
@@ -125,7 +120,6 @@ async function createCommandDescriptionsCache(): Promise<void> {
 					set = description !== '';
 				}
 				if (!set) {
-					// Use fallback descriptions for commands that don't return proper help
 					if (fallbackDescriptions[cmd]) {
 						console.info(`Using fallback description for ${cmd}`);
 						cachedCommandDescriptions.set(cmd, fallbackDescriptions[cmd]);
@@ -134,7 +128,6 @@ async function createCommandDescriptionsCache(): Promise<void> {
 					}
 				}
 			} catch {
-				// Use fallback descriptions for commands that throw an error
 				if (fallbackDescriptions[cmd]) {
 					console.info('Using fallback description for', cmd);
 					cachedCommandDescriptions.set(cmd, fallbackDescriptions[cmd]);
@@ -151,50 +144,37 @@ async function createCommandDescriptionsCache(): Promise<void> {
 	fishBuiltinsCommandDescriptionsCache = cachedCommandDescriptions;
 }
 
-/**
- * Extracts short description, args, and full description from help text lines
- */
 function extractHelpContent(cmd: string, lines: string[]): { shortDescription: string; args: string | undefined; description: string } {
 	let shortDescription = '';
 	let args: string | undefined;
 	let description = '';
 
-	// Skip the first line (usually just command name and basic usage)
 	let i = 1;
 
-	// Skip any leading empty lines
 	while (i < lines.length && lines[i].trim().length === 0) {
 		i++;
 	}
 
-	// The next non-empty line after the command name is typically
-	// either the short description or additional usage info
 	const startLine = i;
 
-	// Find where the short description starts
 	if (i < lines.length) {
-		// First, check if the line has a command prefix and remove it
 		let firstContentLine = lines[i].trim();
 		const cmdPrefixRegex = new RegExp(`^${cmd}\\s*-\\s*`, 'i');
 		firstContentLine = firstContentLine.replace(cmdPrefixRegex, '');
 
-		// First non-empty line is the short description
 		shortDescription = firstContentLine;
 		i++;
 
-		// Next non-empty line (after short description) is typically args
 		while (i < lines.length && lines[i].trim().length === 0) {
 			i++;
 		}
 
 		if (i < lines.length) {
-			// Found a line after the short description - that's our args
 			args = lines[i].trim();
 			i++;
 		}
 	}
 
-	// Find the DESCRIPTION marker which marks the end of args section
 	let descriptionIndex = -1;
 	for (let j = i; j < lines.length; j++) {
 		if (lines[j].trim() === 'DESCRIPTION') {
@@ -203,30 +183,24 @@ function extractHelpContent(cmd: string, lines: string[]): { shortDescription: s
 		}
 	}
 
-	// If DESCRIPTION marker is found, consider everything between i and descriptionIndex as part of args
 	if (descriptionIndex > i) {
-		// Combine lines from i up to (but not including) descriptionIndex
 		const additionalArgs = lines.slice(i, descriptionIndex).join('\n').trim();
 		if (additionalArgs) {
 			args = args ? `${args}\n${additionalArgs}` : additionalArgs;
 		}
-		i = descriptionIndex + 1; // Move past the DESCRIPTION line
+		i = descriptionIndex + 1;
 	}
 
-	// The rest is the full description (skipping any empty lines after args)
 	while (i < lines.length && lines[i].trim().length === 0) {
 		i++;
 	}
 
-	// Combine the remaining lines into the full description
 	description = lines.slice(Math.max(i, startLine)).join('\n').trim();
 
-	// If description is empty, use the short description
 	if (!description && shortDescription) {
 		description = shortDescription;
 	}
 
-	// Extract just the first sentence for short description
 	const firstPeriodIndex = shortDescription.indexOf('.');
 	if (firstPeriodIndex > 0) {
 		shortDescription = shortDescription.substring(0, firstPeriodIndex + 1).trim();
@@ -246,7 +220,6 @@ const main = async () => {
 		await createCommandDescriptionsCache();
 		console.log('Created Fish command descriptions cache with', fishBuiltinsCommandDescriptionsCache.size, 'entries');
 
-		// Save the cache to a TypeScript file
 		const cacheFilePath = path.join(__dirname, '../src/shell/fishBuiltinsCache.ts');
 		const cacheObject = Object.fromEntries(fishBuiltinsCommandDescriptionsCache);
 		const tsContent = `${copyright}\n\nexport const fishBuiltinsCommandDescriptionsCache = ${JSON.stringify(cacheObject, null, 2)} as const;`;

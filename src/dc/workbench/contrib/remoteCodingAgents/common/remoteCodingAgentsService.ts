@@ -40,7 +40,6 @@ export class RemoteCodingAgentsService extends Disposable implements IRemoteCodi
 		super();
 		this._ctxHasRemoteCodingAgent = ChatContextKeys.hasRemoteCodingAgent.bindTo(this.contextKeyService);
 
-		// Listen for context changes and re-evaluate agent availability
 		this._register(Event.filter(contextKeyService.onDidChangeContext, e => e.affectsSome(this.contextKeys))(() => {
 			this.updateContextKeys();
 		}));
@@ -55,17 +54,13 @@ export class RemoteCodingAgentsService extends Disposable implements IRemoteCodi
 	}
 
 	registerAgent(agent: IRemoteCodingAgent): void {
-		// Check if agent already exists
 		const existingIndex = this.agents.findIndex(a => a.id === agent.id);
 		if (existingIndex >= 0) {
-			// Update existing agent
 			this.agents[existingIndex] = agent;
 		} else {
-			// Add new agent
 			this.agents.push(agent);
 		}
 
-		// Track context keys from the when condition
 		if (agent.when) {
 			const whenExpr = ContextKeyExpr.deserialize(agent.when);
 			if (whenExpr) {

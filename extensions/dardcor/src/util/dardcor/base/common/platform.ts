@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -29,13 +28,6 @@ export interface IProcessEnvironment {
 	[key: string]: string | undefined;
 }
 
-/**
- * This interface is intentionally not identical to node.js
- * process because it also works in sandboxed environments
- * where the process object is implemented differently. We
- * define the properties here that we need for `platform`
- * to work and nothing else.
- */
 export interface INodeProcess {
 	platform: string;
 	arch: string;
@@ -55,10 +47,8 @@ const $globalThis: any = globalThis;
 
 let nodeProcess: INodeProcess | undefined = undefined;
 if (typeof $globalThis.vscode !== 'undefined' && typeof $globalThis.vscode.process !== 'undefined') {
-	// Native environment (sandboxed)
 	nodeProcess = $globalThis.vscode.process;
 } else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string') {
-	// Native environment (non-sandboxed)
 	nodeProcess = process;
 }
 
@@ -72,7 +62,6 @@ interface INavigator {
 }
 declare const navigator: INavigator;
 
-// Native environment
 if (typeof nodeProcess === 'object') {
 	_isWindows = (nodeProcess.platform === 'win32');
 	_isMacintosh = (nodeProcess.platform === 'darwin');
@@ -96,7 +85,6 @@ if (typeof nodeProcess === 'object') {
 	_isNative = true;
 }
 
-// Web environment
 else if (typeof navigator === 'object' && !isElectronRenderer) {
 	_userAgent = navigator.userAgent;
 	_isWindows = _userAgent.indexOf('Windows') >= 0;
@@ -110,7 +98,6 @@ else if (typeof navigator === 'object' && !isElectronRenderer) {
 	_platformLocale = _locale;
 }
 
-// Unknown environment
 else {
 	console.error('Unable to resolve platform.');
 }
@@ -152,19 +139,10 @@ export const isWebWorker = (_isWeb && typeof $globalThis.importScripts === 'func
 export const webWorkerOrigin = isWebWorker ? $globalThis.origin : undefined;
 export const isIOS = _isIOS;
 export const isMobile = _isMobile;
-/**
- * Whether we run inside a CI environment, such as
- * GH actions or Azure Pipelines.
- */
 export const isCI = _isCI;
 export const platform = _platform;
 export const userAgent = _userAgent;
 
-/**
- * The language used for the user interface. The format of
- * the string is all lower case (e.g. zh-tw for Traditional
- * Chinese or de for German)
- */
 export const language = _language;
 
 export namespace Language {
@@ -188,35 +166,14 @@ export namespace Language {
 	}
 }
 
-/**
- * Desktop: The OS locale or the locale specified by --locale or `argv.json`.
- * Web: matches `platformLocale`.
- *
- * The UI is not necessarily shown in the provided locale.
- */
 export const locale = _locale;
 
-/**
- * This will always be set to the OS/browser's locale regardless of
- * what was specified otherwise. The format of the string is all
- * lower case (e.g. zh-tw for Traditional Chinese). The UI is not
- * necessarily shown in the provided locale.
- */
 export const platformLocale = _platformLocale;
 
-/**
- * The translations that are available through language packs.
- */
 export const translationsConfigFile = _translationsConfigFile;
 
 export const setTimeout0IsFaster = (typeof $globalThis.postMessage === 'function' && !$globalThis.importScripts);
 
-/**
- * See https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#:~:text=than%204%2C%20then-,set%20timeout%20to%204,-.
- *
- * Works similarly to `setTimeout(0)` but doesn't suffer from the 4ms artificial delay
- * that browsers set when the nesting level is > 5.
- */
 export const setTimeout0 = (() => {
 	if (setTimeout0IsFaster) {
 		interface IQueueElement {

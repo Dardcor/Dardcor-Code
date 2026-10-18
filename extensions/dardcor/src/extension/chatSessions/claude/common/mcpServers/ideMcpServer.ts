@@ -33,10 +33,6 @@ export interface DiagnosticEntry {
 	}[];
 }
 
-/**
- * Fetches diagnostics from the language diagnostics service and formats them
- * for the MCP tool response.
- */
 export function getDiagnosticsHandler(
 	diagnosticsService: ILanguageDiagnosticsService,
 	args: { uri?: string }

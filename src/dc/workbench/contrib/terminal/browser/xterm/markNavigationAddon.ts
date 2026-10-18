@@ -28,7 +28,6 @@ export const enum ScrollPosition {
 
 interface IScrollToMarkerOptions {
 	hideDecoration?: boolean;
-	/** Scroll even if the line is within the viewport */
 	forceScroll?: boolean;
 	bufferRange?: IBufferRange;
 }
@@ -65,9 +64,6 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 		let markers: IMarker[] = [];
 		if (commandCapability) {
 			markers = coalesce(commandCapability.commands.filter(e => skipEmptyCommands ? e.exitCode !== undefined : true).map(e => e.promptStartMarker ?? e.marker));
-			// Allow navigating to the current command iff it has been executed, this ignores the
-			// skipEmptyCommands flag intenionally as chances are it's not going to be empty if an
-			// executed marker exists when this is requested.
 			if (commandCapability.currentCommand?.promptStartMarker && commandCapability.currentCommand.commandExecutedMarker) {
 				markers.push(commandCapability.currentCommand?.promptStartMarker);
 			}
@@ -102,8 +98,6 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 	}
 
 	clear(): void {
-		// Clear the current marker so successive focus/selection actions are performed from the
-		// bottom of the buffer
 		this._currentMarker = Boundary.Bottom;
 		this._resetNavigationDecorations();
 		this._selectionStart = null;
@@ -142,10 +136,7 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 			: Math.min(getLine(this._terminal, this._currentMarker), this._terminal.buffer.active.baseY);
 		const viewportY = this._terminal.buffer.active.viewportY;
 		if (typeof this._currentMarker === 'object' ? !this._isMarkerInViewport(this._terminal, this._currentMarker) : currentLineY !== viewportY) {
-			// The user has scrolled, find the line based on the current scroll position. This only
-			// works when not retaining selection
 			const markersBelowViewport = this._getMarkers(skipEmptyCommands).filter(e => e.line >= viewportY).length;
-			// -1 will scroll to the top
 			markerIndex = this._getMarkers(skipEmptyCommands).length - markersBelowViewport - 1;
 		} else if (this._currentMarker === Boundary.Bottom) {
 			markerIndex = this._getMarkers(skipEmptyCommands).length - 1;
@@ -188,10 +179,7 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 			: Math.min(getLine(this._terminal, this._currentMarker), this._terminal.buffer.active.baseY);
 		const viewportY = this._terminal.buffer.active.viewportY;
 		if (typeof this._currentMarker === 'object' ? !this._isMarkerInViewport(this._terminal, this._currentMarker) : currentLineY !== viewportY) {
-			// The user has scrolled, find the line based on the current scroll position. This only
-			// works when not retaining selection
 			const markersAboveViewport = this._getMarkers(skipEmptyCommands).filter(e => e.line <= viewportY).length;
-			// markers.length will scroll to the bottom
 			markerIndex = markersAboveViewport;
 		} else if (this._currentMarker === Boundary.Bottom) {
 			markerIndex = this._getMarkers(skipEmptyCommands).length;
@@ -281,7 +269,6 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 			range.end.y - 1,
 			{
 				bufferRange: range,
-				// Ensure scroll shows the line when sticky scroll is enabled
 				forceScroll: !!this._configurationService.getValue(TerminalContribSettingId.StickyScrollEnabled)
 			}
 		);
@@ -302,14 +289,12 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 		if (command.marker) {
 			this._activeCommandGuide = command;
 
-			// Highlight output
 			const store = this._commandGuideDecorations.value = new DisposableStore();
 			if (!command.executedMarker || !command.endMarker) {
 				return;
 			}
 			const startLine = command.marker.line - (command.getPromptRowCount() - 1);
 			const decorationCount = toLineIndex(command.endMarker) - startLine;
-			// Abort if the command is excessively long to avoid performance on hover/leave
 			if (decorationCount > 200) {
 				return;
 			}
@@ -421,9 +406,7 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 						element.style.marginLeft = `-${getWindow(this._terminal.element).getComputedStyle(this._terminal.element).paddingLeft}`;
 					}
 				});
-				// TODO: This is not efficient for a large decorationCount
 				decoration.onDispose(() => { this._navigationDecorations = this._navigationDecorations?.filter(d => d !== decoration); });
-				// Number picked to align with symbol highlight in the editor
 				if (showOutline) {
 					timeout(350).then(() => {
 						if (renderedElement) {
@@ -440,8 +423,6 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 	}
 
 	getTargetScrollLine(line: number, position: ScrollPosition): number {
-		// Middle is treated as 1/4 of the viewport's size because context below is almost always
-		// more important than context above in the terminal.
 		if (this._terminal && position === ScrollPosition.Middle) {
 			return Math.max(line - Math.floor(this._terminal.rows / 4), 0);
 		}
@@ -621,7 +602,6 @@ export class MarkNavigationAddon extends Disposable implements IMarkTracker, ITe
 }
 
 export function getLine(xterm: Terminal, marker: IMarker | Boundary): number {
-	// Use the _second last_ row as the last row is likely the prompt
 	if (marker === Boundary.Bottom) {
 		return xterm.buffer.active.baseY + xterm.rows - 1;
 	}
@@ -647,8 +627,6 @@ export function selectLines(xterm: Terminal, start: IMarker | Boundary, end: IMa
 		endLine = temp;
 	}
 
-	// Subtract a line as the marker is on the line the command run, we do not want the next
-	// command in the selection for the current command
 	endLine -= 1;
 
 	xterm.selectLines(startLine, endLine);

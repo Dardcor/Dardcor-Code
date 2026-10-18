@@ -40,7 +40,7 @@ export class NativeURLService extends AbstractURLService {
 		let { authority, path, query, fragment } = options ? options : { authority: undefined, path: undefined, query: undefined, fragment: undefined };
 
 		if (authority && path && path.indexOf('/') !== 0) {
-			path = `/${path}`; // URI validation requires a path if there is an authority
+			path = `/${path}`;
 		}
 
 		return URI.from({ scheme: this.productService.urlProtocol, authority, path, query, fragment });

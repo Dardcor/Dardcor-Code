@@ -8,9 +8,6 @@ import { Disposable, toDisposable } from '../../../../../base/common/lifecycle.j
 import { OperatingSystem } from '../../../../../base/common/platform.js';
 import type { Terminal as XTermTerminal, IBuffer, ITerminalAddon } from '@xterm/xterm';
 
-/**
- * Provides extensions to the xterm object in a modular, testable way.
- */
 export class LineDataEventAddon extends Disposable implements ITerminalAddon {
 
 	private _xterm?: XTermTerminal;
@@ -26,13 +23,10 @@ export class LineDataEventAddon extends Disposable implements ITerminalAddon {
 	async activate(xterm: XTermTerminal) {
 		this._xterm = xterm;
 
-		// IMPORTANT: Instantiate the buffer namespace object here before it's disposed.
 		const buffer = xterm.buffer;
 
-		// If there is an initialization promise, wait for it before registering the event
 		await this._initializationPromise;
 
-		// Fire onLineData when a line feed occurs, taking into account wrapped lines
 		this._register(xterm.onLineFeed(() => {
 			const newLine = buffer.active.getLine(buffer.active.baseY + buffer.active.cursorY);
 			if (newLine && !newLine.isWrapped) {
@@ -40,7 +34,6 @@ export class LineDataEventAddon extends Disposable implements ITerminalAddon {
 			}
 		}));
 
-		// Fire onLineData when disposing object to flush last line
 		this._register(toDisposable(() => {
 			this._sendLineData(buffer.active, buffer.active.baseY + buffer.active.cursorY);
 		}));
@@ -52,9 +45,6 @@ export class LineDataEventAddon extends Disposable implements ITerminalAddon {
 		}
 		this._isOsSet = true;
 
-		// Force line data to be sent when the cursor is moved, the main purpose for
-		// this is because ConPTY will often not do a line feed but instead move the
-		// cursor, in which case we still want to send the current line's data to tasks.
 		if (os === OperatingSystem.Windows) {
 			const xterm = this._xterm;
 			this._register(xterm.parser.registerCsiHandler({ final: 'H' }, () => {

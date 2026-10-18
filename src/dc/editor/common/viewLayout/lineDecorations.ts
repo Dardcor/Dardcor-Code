@@ -73,12 +73,10 @@ export class LineDecoration {
 			const range = d.range;
 
 			if (range.endLineNumber < lineNumber || range.startLineNumber > lineNumber) {
-				// Ignore decorations that sit outside this line
 				continue;
 			}
 
 			if (range.isEmpty() && (d.type === InlineDecorationType.Regular || d.type === InlineDecorationType.RegularAffectingLetterSpacing)) {
-				// Ignore empty range decorations
 				continue;
 			}
 
@@ -158,16 +156,13 @@ class Stack {
 		while (this.count > 0 && this.stopOffsets[0] < maxStopOffset) {
 			let i = 0;
 
-			// Take all equal stopping offsets
 			while (i + 1 < this.count && this.stopOffsets[i] === this.stopOffsets[i + 1]) {
 				i++;
 			}
 
-			// Basically we are consuming the first i + 1 elements of the stack
 			result.push(new DecorationSegment(nextStartOffset, this.stopOffsets[i], this.classNames.join(' '), Stack._metadata(this.metadata)));
 			nextStartOffset = this.stopOffsets[i] + 1;
 
-			// Consume them
 			this.stopOffsets.splice(0, i + 1);
 			this.classNames.splice(0, i + 1);
 			this.metadata.splice(0, i + 1);
@@ -184,12 +179,10 @@ class Stack {
 
 	public insert(stopOffset: number, className: string, metadata: number): void {
 		if (this.count === 0 || this.stopOffsets[this.count - 1] <= stopOffset) {
-			// Insert at the end
 			this.stopOffsets.push(stopOffset);
 			this.classNames.push(className);
 			this.metadata.push(metadata);
 		} else {
-			// Find the insertion position for `stopOffset`
 			for (let i = 0; i < this.count; i++) {
 				if (this.stopOffsets[i] >= stopOffset) {
 					this.stopOffsets.splice(i, 0, stopOffset);
@@ -205,9 +198,6 @@ class Stack {
 }
 
 export class LineDecorationsNormalizer {
-	/**
-	 * Normalize line decorations. Overlapping decorations will generate multiple segments
-	 */
 	public static normalize(lineContent: string, lineDecorations: LineDecoration[]): DecorationSegment[] {
 		if (lineDecorations.length === 0) {
 			return [];
@@ -231,7 +221,6 @@ export class LineDecorationsNormalizer {
 						: 0
 			);
 
-			// If the position would end up in the middle of a high-low surrogate pair, we move it to before the pair
 			if (startColumn > 1) {
 				const charCodeBefore = lineContent.charCodeAt(startColumn - 2);
 				if (strings.isHighSurrogate(charCodeBefore)) {

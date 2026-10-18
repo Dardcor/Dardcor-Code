@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Find widget */
 .monaco-editor .find-widget {
 	position: absolute;
 	z-index: 35;
@@ -14,7 +13,7 @@
 	padding: 0 4px 0 9px;
 	margin-top: 4px;
 	box-sizing: border-box;
-	transform: translateY(calc(-100% - 10px)); /* shadow (10px) */
+	transform: translateY(calc(-100% - 10px));
 	box-shadow: var(--vscode-shadow-lg);
 	color: var(--vscode-editorWidget-foreground);
 	border: 1px solid var(--vscode-widget-border);
@@ -34,7 +33,6 @@
 	display: none;
 }
 
-/* Find widget when replace is toggled on */
 .monaco-editor .find-widget.replaceToggled > .replace-part {
 	display: flex;
 }
@@ -43,7 +41,6 @@
 	transform: translateY(0);
 }
 
-/* This outline-color rule is used to override the outline color for synthetic-focus find input. */
 .monaco-editor .find-widget .monaco-inputbox.synthetic-focus {
 	outline: 1px solid -webkit-focus-ring-color;
 	outline-offset: -1px;
@@ -103,12 +100,10 @@
 }
 
 .monaco-editor .find-widget .monaco-findInput .monaco-scrollable-element {
-	/* Make sure textarea inherits the width correctly */
 	width: 100%;
 }
 
 .monaco-editor .find-widget .monaco-findInput .monaco-scrollable-element .scrollbar.vertical {
-	/* Hide vertical scrollbar */
 	opacity: 0;
 }
 
@@ -140,7 +135,6 @@
 	justify-content: center;
 }
 
-/* find in selection button */
 .monaco-editor .find-widget .codicon-find-selection {
 	width: 22px;
 	height: 22px;
@@ -196,17 +190,14 @@
 	right: 2px;
 }
 
-/* REDUCED */
 .monaco-editor .find-widget.reduced-find-widget .matchesCount {
 	display: none;
 }
 
-/* NARROW (SMALLER THAN REDUCED) */
 .monaco-editor .find-widget.narrow-find-widget {
 	max-width: 257px !important;
 }
 
-/* COLLAPSED (SMALLER THAN NARROW) */
 .monaco-editor .find-widget.collapsed-find-widget {
 	max-width: 170px !important;
 }
@@ -251,7 +242,6 @@
 	left: 2px;
 }
 
-/* Action bars */
 .monaco-editor .find-widget .button:not(.disabled):hover,
 .monaco-editor .find-widget .codicon-find-selection:hover {
 	background-color: var(--vscode-toolbar-hoverBackground) !important;
@@ -273,7 +263,6 @@
 	background-color: var(--vscode-editorWidget-background);
 }
 
-/* Close button position. */
 .monaco-editor .find-widget > .button.codicon-widget-close {
 	position: absolute;
 	top: 5px;

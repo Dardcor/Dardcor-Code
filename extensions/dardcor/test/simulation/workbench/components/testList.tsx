@@ -39,8 +39,7 @@ export const TestList = mobxlite.observer(({ tests, runner, runnerOptions, nesEx
 		}
 		case 'suiteList': {
 
-			// establish {suiteName -> [tests]} map
-			const suites = new Map</* suite name */ string, ISimulationTest[]>();
+			const suites = new Map< string, ISimulationTest[]>();
 			for (const test of tests) {
 				const suiteName = test.suiteName;
 				const suiteTests = suites.get(suiteName) ?? [];

@@ -6,16 +6,12 @@
 import { ContextKeyExpression, ContextKeyExprType, IContext, IContextKeyService, implies } from '../../contextkey/common/contextkey.js';
 import { ResolvedKeybindingItem } from './resolvedKeybindingItem.js';
 
-//#region resolution-result
 
 export const enum ResultKind {
-	/** No keybinding found this sequence of chords */
 	NoMatchingKb,
 
-	/** There're several keybindings that have the given sequence of chords as a prefix */
 	MoreChordsNeeded,
 
-	/** A single keybinding found to be dispatched/invoked */
 	KbFound
 }
 
@@ -25,7 +21,6 @@ export type ResolutionResult =
 	| { kind: ResultKind.KbFound; commandId: string | null; commandArgs: any; isBubble: boolean };
 
 
-// util definitions to make working with the above types easier within this module:
 
 export const NoMatchingKb: ResolutionResult = { kind: ResultKind.NoMatchingKb };
 const MoreChordsNeeded: ResolutionResult = { kind: ResultKind.MoreChordsNeeded };
@@ -33,24 +28,17 @@ function KbFound(commandId: string | null, commandArgs: any, isBubble: boolean):
 	return { kind: ResultKind.KbFound, commandId, commandArgs, isBubble };
 }
 
-//#endregion
 
-/**
- * Stores mappings from keybindings to commands and from commands to keybindings.
- * Given a sequence of chords, `resolve`s which keybinding it matches
- */
 export class KeybindingResolver {
 	private readonly _log: (str: string) => void;
 	private readonly _defaultKeybindings: ResolvedKeybindingItem[];
 	private readonly _keybindings: ResolvedKeybindingItem[];
-	private readonly _defaultBoundCommands: Map</* commandId */ string, boolean>;
-	private readonly _map: Map</* 1st chord's keypress */ string, ResolvedKeybindingItem[]>;
-	private readonly _lookupMap: Map</* commandId */ string, ResolvedKeybindingItem[]>;
+	private readonly _defaultBoundCommands: Map< string, boolean>;
+	private readonly _map: Map< string, ResolvedKeybindingItem[]>;
+	private readonly _lookupMap: Map< string, ResolvedKeybindingItem[]>;
 
 	constructor(
-		/** built-in and extension-provided keybindings */
 		defaultKeybindings: ResolvedKeybindingItem[],
-		/** user's keybindings */
 		overrides: ResolvedKeybindingItem[],
 		log: (str: string) => void
 	) {
@@ -72,15 +60,12 @@ export class KeybindingResolver {
 		for (let i = 0, len = this._keybindings.length; i < len; i++) {
 			const k = this._keybindings[i];
 			if (k.chords.length === 0) {
-				// unbound
 				continue;
 			}
 
-			// substitute with constants that are registered after startup - https://github.com/microsoft/vscode/issues/174218#issuecomment-1437972127
 			const when = k.when?.substituteConstants();
 
 			if (when && when.type === ContextKeyExprType.False) {
-				// when condition is false
 				continue;
 			}
 
@@ -97,17 +82,11 @@ export class KeybindingResolver {
 			}
 		}
 
-		// `true` means always, as does `undefined`
-		// so we will treat `true` === `undefined`
 		if (when && when.type !== ContextKeyExprType.True) {
 			if (!defaultKb.when) {
 				return false;
 			}
 
-			// Use implication instead of strict equality so that a removal still matches
-			// when the default keybinding's when clause becomes more specific across
-			// updates (e.g. "inChatInput" → "inChatInput && !withinEditSessionDiff").
-			// See https://github.com/microsoft/vscode/issues/293802
 			const defaultWhen = defaultKb.when.substituteConstants();
 			const removalWhen = when.substituteConstants();
 			if (!KeybindingResolver.whenIsEntirelyIncluded(defaultWhen, removalWhen)) {
@@ -118,12 +97,8 @@ export class KeybindingResolver {
 
 	}
 
-	/**
-	 * Looks for rules containing "-commandId" and removes them.
-	 */
 	public static handleRemovals(rules: ResolvedKeybindingItem[]): ResolvedKeybindingItem[] {
-		// Do a first pass and construct a hash-map for removals
-		const removals = new Map</* commandId */ string, ResolvedKeybindingItem[]>();
+		const removals = new Map< string, ResolvedKeybindingItem[]>();
 		for (let i = 0, len = rules.length; i < len; i++) {
 			const rule = rules[i];
 			if (rule.command && rule.command.charAt(0) === '-') {
@@ -137,11 +112,9 @@ export class KeybindingResolver {
 		}
 
 		if (removals.size === 0) {
-			// There are no removals
 			return rules;
 		}
 
-		// Do a second pass and keep only non-removed keybindings
 		const result: ResolvedKeybindingItem[] = [];
 		for (let i = 0, len = rules.length; i < len; i++) {
 			const rule = rules[i];
@@ -179,7 +152,6 @@ export class KeybindingResolver {
 		const conflicts = this._map.get(keypress);
 
 		if (typeof conflicts === 'undefined') {
-			// There is no conflict so far
 			this._map.set(keypress, [item]);
 			this._addToLookupMap(item);
 			return;
@@ -192,12 +164,9 @@ export class KeybindingResolver {
 				continue;
 			}
 
-			// Test if the shorter keybinding is a prefix of the longer one.
-			// If the shorter keybinding is a prefix, it effectively will shadow the longer one and is considered a conflict.
 			let isShorterKbPrefix = true;
 			for (let i = 1; i < conflict.chords.length && i < item.chords.length; i++) {
 				if (conflict.chords[i] !== item.chords[i]) {
-					// The ith step does not conflict
 					isShorterKbPrefix = false;
 					break;
 				}
@@ -207,8 +176,6 @@ export class KeybindingResolver {
 			}
 
 			if (KeybindingResolver.whenIsEntirelyIncluded(conflict.when, item.when)) {
-				// `item` completely overwrites `conflict`
-				// Remove conflict from the lookupMap
 				this._removeFromLookupMap(conflict);
 			}
 		}
@@ -247,9 +214,6 @@ export class KeybindingResolver {
 		}
 	}
 
-	/**
-	 * Returns true if it is provable `a` implies `b`.
-	 */
 	public static whenIsEntirelyIncluded(a: ContextKeyExpression | null | undefined, b: ContextKeyExpression | null | undefined): boolean {
 		if (!b || b.type === ContextKeyExprType.True) {
 			return true;
@@ -279,7 +243,6 @@ export class KeybindingResolver {
 			return [];
 		}
 
-		// Reverse to get the most specific item first
 		const result: ResolvedKeybindingItem[] = [];
 		let resultLen = 0;
 		for (let i = items.length - 1; i >= 0; i--) {
@@ -311,12 +274,6 @@ export class KeybindingResolver {
 		return items[items.length - 1];
 	}
 
-	/**
-	 * Looks up a keybinding trigged as a result of pressing a sequence of chords - `[...currentChords, keypress]`
-	 *
-	 * Example: resolving 3 chords pressed sequentially - `cmd+k cmd+p cmd+i`:
-	 * 	`currentChords = [ 'cmd+k' , 'cmd+p' ]` and `keypress = `cmd+i` - last pressed chord
-	 */
 	public resolve(context: IContext, currentChords: string[], keypress: string): ResolutionResult {
 
 		const pressedChords = [...currentChords, keypress];
@@ -325,7 +282,6 @@ export class KeybindingResolver {
 
 		const kbCandidates = this._map.get(pressedChords[0]);
 		if (kbCandidates === undefined) {
-			// No bindings with such 0-th chord
 			this._log(`\\ No keybinding entries.`);
 			return NoMatchingKb;
 		}
@@ -335,13 +291,12 @@ export class KeybindingResolver {
 		if (pressedChords.length < 2) {
 			lookupMap = kbCandidates;
 		} else {
-			// Fetch all chord bindings for `currentChords`
 			lookupMap = [];
 			for (let i = 0, len = kbCandidates.length; i < len; i++) {
 
 				const candidate = kbCandidates[i];
 
-				if (pressedChords.length > candidate.chords.length) { // # of pressed chords can't be less than # of chords in a keybinding to invoke
+				if (pressedChords.length > candidate.chords.length) {
 					continue;
 				}
 
@@ -358,16 +313,13 @@ export class KeybindingResolver {
 			}
 		}
 
-		// check there's a keybinding with a matching when clause
 		const result = this._findCommand(context, lookupMap);
 		if (!result) {
 			this._log(`\\ From ${lookupMap.length} keybinding entries, no when clauses matched the context.`);
 			return NoMatchingKb;
 		}
 
-		// check we got all chords necessary to be sure a particular keybinding needs to be invoked
 		if (pressedChords.length < result.chords.length) {
-			// The chord sequence is not complete
 			this._log(`\\ From ${lookupMap.length} keybinding entries, awaiting ${result.chords.length - pressedChords.length} more chord(s), when: ${printWhenExplanation(result.when)}, source: ${printSourceExplanation(result)}.`);
 			return MoreChordsNeeded;
 		}

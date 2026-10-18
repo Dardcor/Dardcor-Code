@@ -42,7 +42,6 @@ class TypeScriptFoldingProvider implements vscode.FoldingRangeProvider {
 		const range = typeConverters.Range.fromTextSpan(span.textSpan);
 		const kind = TypeScriptFoldingProvider.getFoldingRangeKind(span);
 
-		// Workaround for #49904
 		if (span.kind === 'comment') {
 			const line = document.lineAt(range.start.line).text;
 			if (/\/\/\s*#endregion/gi.test(line)) {
@@ -58,7 +57,6 @@ class TypeScriptFoldingProvider implements vscode.FoldingRangeProvider {
 	private static readonly foldEndPairCharacters = ['}', ']', ')', '`', '>'];
 
 	private adjustFoldingEnd(range: vscode.Range, document: vscode.TextDocument) {
-		// workaround for #47240
 		if (range.end.character > 0) {
 			const foldEndCharacter = document.getText(new vscode.Range(range.end.translate(0, -1), range.end));
 			if (TypeScriptFoldingProvider.foldEndPairCharacters.includes(foldEndCharacter)) {

@@ -71,42 +71,24 @@ const severityToIcon: Record<ChatInputNotificationSeverity, ThemeIcon> = {
 
 const emptyModelState: IChatInputNotificationModelState = { currentModel: undefined, models: [] };
 
-/** Input-local model state and picker operations. */
 export interface IChatInputNotificationModelSelection {
 	readonly state: IObservable<IChatInputNotificationModelState>;
 	readonly openPicker: () => void;
 	readonly selectModel: (modelIdentifier: string) => boolean;
-	/** Applies model configuration such as a thinking level, scoped to this input. */
 	readonly applyModelConfiguration?: (modelIdentifier: string, values: IStringDictionary<unknown>) => Promise<void>;
 }
 
-/** Input-local capabilities used to filter and execute semantic notification actions. */
 export interface IChatInputNotificationDelegate {
 	readonly modelTargetChatSessionType?: IObservable<string | undefined>;
 	readonly sessionResource?: IObservable<URI | undefined>;
 	readonly deferredNotificationsEnabled?: IObservable<boolean>;
-	/** Whether this input is a transient surface (inline, terminal, quick chat, chat input window). */
 	readonly isTransientChat?: IObservable<boolean>;
-	/** Whether the session this input is bound to already has a request. */
 	readonly sessionStarted?: IObservable<boolean>;
 	readonly modelSelection?: IChatInputNotificationModelSelection;
-	/**
-	 * Reports whether a notification is rendered. `focusTarget` is the widget
-	 * itself, so a host can route notice-focus commands into it while it shows.
-	 */
 	readonly onDidChangeVisibility?: (visible: boolean, focusTarget: IChatInputNoticeFocusTarget) => void;
-	/**
-	 * Hands focus back to the input. Called when a notification that had keyboard
-	 * focus goes away, so focus is not stranded on `<body>`.
-	 */
 	readonly focusInput?: () => void;
 }
 
-/**
- * Widget that renders a single notification banner above the chat input area.
- * Subscribes to {@link IChatInputNotificationService} and shows the highest-severity
- * active notification with severity-colored borders, action buttons, and a dismiss button.
- */
 export class ChatInputNotificationWidget extends Disposable implements IChatInputNoticeFocusTarget {
 
 	private readonly _notice: ChatInputNoticeWidget;
@@ -138,8 +120,6 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 	) {
 		super();
 
-		// Built detached: the input part parents this widget itself, into the lane
-		// it lays out above the input.
 		this._notice = this._register(new ChatInputNoticeWidget({
 			variant: ChatInputNoticeVariant.Notification,
 			className: 'chat-input-notification-widget',
@@ -160,9 +140,6 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 	}
 
 	private _render(): void {
-		// Tearing the content down would strand keyboard focus on <body>, which also
-		// drops the context keys the chat keybindings depend on. Hand it back to the
-		// input instead, the same way an onboarding card does when it stands down.
 		const hadFocus = this.hasFocus();
 		this._contentDisposables.clear();
 		dom.clearNode(this.domNode);
@@ -197,7 +174,6 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 		this._renderNotification(notification, body);
 		this._logShownTelemetry(notification);
 		if (hadFocus) {
-			// The region is rebuilt on every render; keep focus inside it.
 			this.focus();
 		}
 	}
@@ -216,13 +192,6 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 		return this._notice.hasFocus();
 	}
 
-	/**
-	 * Add the notification to its slot and report what the slot is showing.
-	 *
-	 * The widget is built detached and renders in its constructor, so an already
-	 * active notification has no slot to report to at that point. Owners add it
-	 * through here so the slot cannot end up marked empty while it has content.
-	 */
 	attachTo(slot: HTMLElement): void {
 		this._slot = slot;
 		slot.appendChild(this.domNode);
@@ -256,14 +225,11 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 		const container = this.domNode;
 		container.classList.add(severityToClass[notification.severity]);
 
-		// Header row: icon + title + mute + dismiss
 		const headerRow = dom.append(container, $('.chat-input-notification-header'));
 
-		// Severity icon
 		const iconElement = dom.append(headerRow, $('.chat-input-notification-icon'));
 		iconElement.appendChild(dom.$(ThemeIcon.asCSSSelector(severityToIcon[notification.severity])));
 
-		// Title
 		const titleElement = dom.append(headerRow, $('.chat-input-notification-title'));
 		if (isMarkdownString(notification.message)) {
 			const rendered = this._contentDisposables.add(this._markdownRendererService.render(notification.message));
@@ -273,16 +239,11 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 			titleElement.textContent = notification.message;
 		}
 		const ariaTitle = isMarkdownString(notification.message) ? notification.message.value : notification.message;
-		// Names the focusable region: `aria-roledescription` alone would have focus
-		// land on something announced only as "notification".
 		this._notice.setAriaLabel(ariaTitle);
 
 		if (notification.mute) {
 			const mute = notification.mute;
 
-			// Defer to a microtask for the same reason as the dismiss button:
-			// the command synchronously tears down the notification, and the
-			// resulting re-render must happen after the click has propagated.
 			const muteButton = this._notice.addAction({
 				ariaLabel: mute.tooltip,
 				icon: Codicon.bellSlash,
@@ -299,13 +260,7 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 			this._contentDisposables.add(this._hoverService.setupManagedHover(getDefaultHoverDelegate('element'), muteButton, mute.tooltip));
 		}
 
-		// Dismiss button (in header row, pushed to the right)
 		if (notification.dismissible) {
-			// Defer the dismiss to a microtask so the synchronous re-render
-			// (which clears all children of the widget) happens after the
-			// browser has finished propagating the click event. Otherwise
-			// blur handlers fired by removing the button from focus can
-			// move/remove nodes that `clearNode` then trips over.
 			this._notice.addDismissAction({
 				className: 'chat-input-notification-dismiss',
 				ariaLabel: localize('dismissNotification', "Dismiss notification"),
@@ -318,7 +273,6 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 			});
 		}
 
-		// Body row: description + actions on the same line
 		const actions = body.actions.filter(action => this._supportsAction(action));
 		const hasBody = body.description || actions.length > 0;
 		if (hasBody) {
@@ -407,7 +361,6 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 
 	private _resolveModel(action: Extract<IChatInputNotificationAction, { kind: ChatInputNotificationActionKind.SwitchToModel }>): ILanguageModelChatMetadataAndIdentifier | undefined {
 		const matches = this._modelState.models.filter(model => this._matchesModel(action, model));
-		// A broad selector could otherwise switch the user to a model the notification did not mean.
 		return action.requireUniqueModel && matches.length !== 1 ? undefined : matches[0];
 	}
 
@@ -429,8 +382,6 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 			} catch (error) {
 				this._logError(error);
 			}
-			// Only configure a model the user actually ended up on, and never block the
-			// switch on the profile-wide write this kicks off.
 			if (switched) {
 				this._applyModelConfiguration(model, action.config).catch(error => this._logError(error));
 			}
@@ -440,7 +391,6 @@ export class ChatInputNotificationWidget extends Disposable implements IChatInpu
 		}
 	}
 
-	/** Key names are model-specific (`thinkingLevel`, `reasoningEffort`, ...), so a key meant for another model is logged rather than stored. */
 	private async _applyModelConfiguration(model: ILanguageModelChatMetadataAndIdentifier, config: IStringDictionary<unknown> | undefined): Promise<void> {
 		const modelSelection = this._delegate?.modelSelection;
 		if (!config || !modelSelection?.applyModelConfiguration) {

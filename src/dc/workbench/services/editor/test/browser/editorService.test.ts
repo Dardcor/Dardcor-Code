@@ -115,7 +115,6 @@ suite('EditorService', () => {
 			}
 		}));
 
-		// Open input
 		let editor = await editorService.openEditor(input, { pinned: true });
 
 		assert.strictEqual(editor?.getId(), TEST_EDITOR_ID);
@@ -143,7 +142,6 @@ suite('EditorService', () => {
 		assert.ok(editorPaneService.didInstantiateEditorPane(TEST_EDITOR_ID));
 		assert.strictEqual(willInstantiateEditorPaneListenerCounter, 1);
 
-		// Close input
 		await editor?.group.closeEditor(input);
 
 		assert.strictEqual(0, editorService.count);
@@ -154,11 +152,9 @@ suite('EditorService', () => {
 		assert.strictEqual(visibleEditorChangeEventCounter, 2);
 		assert.ok(input.gotDisposed);
 
-		// Open again 2 inputs (disposed editors are ignored!)
 		await editorService.openEditor(input, { pinned: true });
 		assert.strictEqual(0, editorService.count);
 
-		// Open again 2 inputs (recreate because disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-basics'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-basics'), TEST_EDITOR_INPUT_ID);
 
@@ -314,21 +310,18 @@ suite('EditorService', () => {
 		group2.lock(true);
 		part.activateGroup(group2.id);
 
-		// Will open in group 1 because group 2 is locked
 		await service.openEditor(input3, { pinned: true });
 
 		assert.strictEqual(group1.count, 2);
 		assert.strictEqual(group1.activeEditor?.resource?.toString(), input3.resource.toString());
 		assert.strictEqual(group2.count, 1);
 
-		// Will open in group 2 because group was provided
 		await service.openEditor(input3, { pinned: true }, group2.id);
 
 		assert.strictEqual(group1.count, 2);
 		assert.strictEqual(group2.count, 2);
 		assert.strictEqual(group2.activeEditor?.resource?.toString(), input3.resource.toString());
 
-		// Will reveal editor in group 2 because it is contained
 		await service.openEditor(input2, { pinned: true }, group2);
 		await service.openEditor(input2, { pinned: true }, ACTIVE_GROUP);
 
@@ -336,7 +329,6 @@ suite('EditorService', () => {
 		assert.strictEqual(group2.count, 2);
 		assert.strictEqual(group2.activeEditor?.resource?.toString(), input2.resource.toString());
 
-		// Will open a new group because side group is locked
 		part.activateGroup(group1.id);
 		const editor3 = await service.openEditor(input4, { pinned: true }, SIDE_GROUP);
 		assert.strictEqual(part.count, 3);
@@ -344,13 +336,11 @@ suite('EditorService', () => {
 		const group3 = editor3?.group;
 		assert.strictEqual(group3?.count, 1);
 
-		// Will reveal editor in group 2 because it is contained
 		await service.openEditor(input3, { pinned: true }, group2);
 		part.activateGroup(group1.id);
 		await service.openEditor(input3, { pinned: true }, SIDE_GROUP);
 		assert.strictEqual(part.count, 3);
 
-		// Will open a new group if all groups are locked
 		group1.lock(true);
 		group2.lock(true);
 		group3.lock(true);
@@ -362,7 +352,6 @@ suite('EditorService', () => {
 		assert.strictEqual(group4.activeEditor?.resource?.toString(), input5.resource.toString());
 		assert.strictEqual(part.count, 4);
 
-		// Will open editor in most recently non-locked group
 		group1.lock(false);
 		group2.lock(false);
 		group3.lock(false);
@@ -379,7 +368,6 @@ suite('EditorService', () => {
 		assert.strictEqual(part.activeGroup, group3);
 		assert.strictEqual(group3.activeEditor?.resource?.toString(), input6.resource.toString());
 
-		// Will find the right group where editor is already opened in when all groups are locked
 		group1.lock(true);
 		group2.lock(true);
 		group3.lock(true);
@@ -404,7 +392,6 @@ suite('EditorService', () => {
 		assert.strictEqual(part.activeGroup, group3);
 		assert.strictEqual(group3.activeEditor?.resource?.toString(), input6.resource.toString());
 
-		// Will reveal an opened editor in the active locked group
 		await service.openEditor(input7, { pinned: true }, group3);
 		await service.openEditor(input6, { pinned: true });
 
@@ -633,9 +620,6 @@ suite('EditorService', () => {
 
 		async function openEditor(editor: EditorInputWithOptions | IUntypedEditorInput, group?: PreferredGroup): Promise<IEditorPane | undefined> {
 			if (useOpenEditors) {
-				// The type safety isn't super good here, so we assist with runtime checks
-				// Open editors expects untyped or editor input with options, you cannot pass a typed editor input
-				// without options
 				if (!isEditorInputWithOptions(editor) && isEditorInput(editor)) {
 					editor = { editor: editor, options: {} };
 				}
@@ -650,9 +634,7 @@ suite('EditorService', () => {
 			return service.openEditor(editor, group);
 		}
 
-		// untyped
 		{
-			// untyped resource editor, no options, no group
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests') };
 				const pane = await openEditor(untypedEditor);
@@ -670,12 +652,9 @@ suite('EditorService', () => {
 				assert.ok(!lastUntitledEditorFactoryEditor);
 				assert.ok(!lastDiffEditorFactoryEditor);
 
-				// opening the same editor should not create
-				// a new editor input
 				await openEditor(untypedEditor);
 				assert.strictEqual(pane?.group.activeEditor, typedEditor);
 
-				// replaceEditors should work too
 				const untypedEditorReplacement: IResourceEditorInput = { resource: URI.file('file-replaced.editor-service-override-tests') };
 				await service.replaceEditors([{
 					editor: typedEditor,
@@ -698,7 +677,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped resource editor, options (override text), no group
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests'), options: { override: DEFAULT_EDITOR_ASSOCIATION.id } };
 				const pane = await openEditor(untypedEditor);
@@ -716,15 +694,12 @@ suite('EditorService', () => {
 				assert.ok(!lastUntitledEditorFactoryEditor);
 				assert.ok(!lastDiffEditorFactoryEditor);
 
-				// opening the same editor should not create
-				// a new editor input
 				await openEditor(untypedEditor);
 				assert.strictEqual(pane?.group.activeEditor, typedEditor);
 
 				await resetTestState();
 			}
 
-			// untyped resource editor, options (override text, sticky: true, preserveFocus: true), no group
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests'), options: { sticky: true, preserveFocus: true, override: DEFAULT_EDITOR_ASSOCIATION.id } };
 				const pane = await openEditor(untypedEditor);
@@ -746,7 +721,6 @@ suite('EditorService', () => {
 				await part.activeGroup.closeEditor(pane.input);
 			}
 
-			// untyped resource editor, options (override default), no group
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests'), options: { override: DEFAULT_EDITOR_ASSOCIATION.id } };
 				const pane = await openEditor(untypedEditor);
@@ -766,7 +740,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped resource editor, options (override: TEST_EDITOR_INPUT_ID), no group
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests'), options: { override: TEST_EDITOR_INPUT_ID } };
 				const pane = await openEditor(untypedEditor);
@@ -786,7 +759,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped resource editor, options (sticky: true, preserveFocus: true), no group
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests'), options: { sticky: true, preserveFocus: true } };
 				const pane = await openEditor(untypedEditor);
@@ -809,7 +781,6 @@ suite('EditorService', () => {
 				await part.activeGroup.closeEditor(pane.input);
 			}
 
-			// untyped resource editor, options (override: TEST_EDITOR_INPUT_ID, sticky: true, preserveFocus: true), no group
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests'), options: { sticky: true, preserveFocus: true, override: TEST_EDITOR_INPUT_ID } };
 				const pane = await openEditor(untypedEditor);
@@ -832,7 +803,6 @@ suite('EditorService', () => {
 				await part.activeGroup.closeEditor(pane.input);
 			}
 
-			// untyped resource editor, no options, SIDE_GROUP
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests') };
 				const pane = await openEditor(untypedEditor, SIDE_GROUP);
@@ -853,7 +823,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped resource editor, options (override text), SIDE_GROUP
 			{
 				const untypedEditor: IResourceEditorInput = { resource: URI.file('file.editor-service-override-tests'), options: { override: DEFAULT_EDITOR_ASSOCIATION.id } };
 				const pane = await openEditor(untypedEditor, SIDE_GROUP);
@@ -875,9 +844,7 @@ suite('EditorService', () => {
 			}
 		}
 
-		// Typed
 		{
-			// typed editor, no options, no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor });
@@ -887,7 +854,6 @@ suite('EditorService', () => {
 				assert.ok(typedInput instanceof TestFileEditorInput);
 				assert.strictEqual(typedInput.resource.toString(), typedEditor.resource.toString());
 
-				// It's a typed editor input so the resolver should not have been called
 				assert.strictEqual(editorFactoryCalled, 0);
 				assert.strictEqual(untitledEditorFactoryCalled, 0);
 				assert.strictEqual(diffEditorFactoryCalled, 0);
@@ -896,12 +862,9 @@ suite('EditorService', () => {
 				assert.ok(!lastUntitledEditorFactoryEditor);
 				assert.ok(!lastDiffEditorFactoryEditor);
 
-				// opening the same editor should not create
-				// a new editor input
 				await openEditor(typedEditor);
 				assert.strictEqual(pane?.group.activeEditor, typedInput);
 
-				// replaceEditors should work too
 				const typedEditorReplacement = createTestFileEditorInput(URI.file('file-replaced.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				await service.replaceEditors([{
 					editor: typedEditor,
@@ -923,7 +886,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// typed editor, no options, no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor });
@@ -941,15 +903,12 @@ suite('EditorService', () => {
 				assert.ok(!lastUntitledEditorFactoryEditor);
 				assert.ok(!lastDiffEditorFactoryEditor);
 
-				// opening the same editor should not create
-				// a new editor input
 				await openEditor(typedEditor);
 				assert.strictEqual(pane?.group.activeEditor, typedEditor);
 
 				await resetTestState();
 			}
 
-			// typed editor, options (no override, sticky: true, preserveFocus: true), no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor, options: { sticky: true, preserveFocus: true } });
@@ -971,13 +930,11 @@ suite('EditorService', () => {
 				await part.activeGroup.closeEditor(pane.input);
 			}
 
-			// typed editor, options (override default), no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor, options: { override: DEFAULT_EDITOR_ASSOCIATION.id } });
 
 				assert.strictEqual(pane?.group, rootGroup);
-				// We shouldn't have resolved because it is a typed editor, even though we have an override specified
 				assert.ok(pane.input instanceof TestFileEditorInput);
 				assert.strictEqual(pane.input.resource.toString(), typedEditor.resource.toString());
 
@@ -992,7 +949,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// typed editor, options (override: TEST_EDITOR_INPUT_ID), no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor, options: { override: TEST_EDITOR_INPUT_ID } });
@@ -1012,7 +968,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// typed editor, options (sticky: true, preserveFocus: true), no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor, options: { sticky: true, preserveFocus: true } });
@@ -1034,7 +989,6 @@ suite('EditorService', () => {
 				await part.activeGroup.closeEditor(pane.input);
 			}
 
-			// typed editor, options (override: TEST_EDITOR_INPUT_ID, sticky: true, preserveFocus: true), no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor, options: { sticky: true, preserveFocus: true, override: TEST_EDITOR_INPUT_ID } });
@@ -1056,7 +1010,6 @@ suite('EditorService', () => {
 				await part.activeGroup.closeEditor(pane.input);
 			}
 
-			// typed editor, no options, SIDE_GROUP
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor }, SIDE_GROUP);
@@ -1077,7 +1030,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// typed editor, options (no override), SIDE_GROUP
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.editor-service-override-tests'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor }, SIDE_GROUP);
@@ -1099,9 +1051,7 @@ suite('EditorService', () => {
 			}
 		}
 
-		// Untyped untitled
 		{
-			// untyped untitled editor, no options, no group
 			{
 				const untypedEditor: IUntitledTextResourceEditorInput = { resource: undefined, options: { override: TEST_EDITOR_INPUT_ID } };
 				const pane = await openEditor(untypedEditor);
@@ -1121,7 +1071,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped untitled editor, no options, SIDE_GROUP
 			{
 				const untypedEditor: IUntitledTextResourceEditorInput = { resource: undefined, options: { override: TEST_EDITOR_INPUT_ID } };
 				const pane = await openEditor(untypedEditor, SIDE_GROUP);
@@ -1142,7 +1091,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped untitled editor with associated resource, no options, no group
 			{
 				const untypedEditor: IUntitledTextResourceEditorInput = { resource: URI.file('file-original.editor-service-override-tests').with({ scheme: 'untitled' }) };
 				const pane = await openEditor(untypedEditor);
@@ -1160,15 +1108,12 @@ suite('EditorService', () => {
 				assert.strictEqual(lastUntitledEditorFactoryEditor, untypedEditor);
 				assert.ok(!lastDiffEditorFactoryEditor);
 
-				// opening the same editor should not create
-				// a new editor input
 				await openEditor(untypedEditor);
 				assert.strictEqual(pane?.group.activeEditor, typedEditor);
 
 				await resetTestState();
 			}
 
-			// untyped untitled editor, options (sticky: true, preserveFocus: true), no group
 			{
 				const untypedEditor: IUntitledTextResourceEditorInput = { resource: undefined, options: { sticky: true, preserveFocus: true, override: TEST_EDITOR_INPUT_ID } };
 				const pane = await openEditor(untypedEditor);
@@ -1192,9 +1137,7 @@ suite('EditorService', () => {
 			}
 		}
 
-		// Untyped diff
 		{
-			// untyped diff editor, no options, no group
 			{
 				const untypedEditor: IResourceDiffEditorInput = {
 					original: { resource: URI.file('file-original.editor-service-override-tests') },
@@ -1218,7 +1161,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped diff editor, no options, SIDE_GROUP
 			{
 				const untypedEditor: IResourceDiffEditorInput = {
 					original: { resource: URI.file('file-original.editor-service-override-tests') },
@@ -1242,7 +1184,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped diff editor, options (sticky: true, preserveFocus: true), no group
 			{
 				const untypedEditor: IResourceDiffEditorInput = {
 					original: { resource: URI.file('file-original.editor-service-override-tests') },
@@ -1270,10 +1211,8 @@ suite('EditorService', () => {
 			}
 		}
 
-		// typed editor, not registered
 		{
 
-			// no options, no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.something'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor });
@@ -1293,7 +1232,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// no options, SIDE_GROUP
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.something'), TEST_EDITOR_INPUT_ID);
 				const pane = await openEditor({ editor: typedEditor }, SIDE_GROUP);
@@ -1315,10 +1253,8 @@ suite('EditorService', () => {
 			}
 		}
 
-		// typed editor, not supporting `toUntyped`
 		{
 
-			// no options, no group
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.something'), TEST_EDITOR_INPUT_ID);
 				typedEditor.disableToUntyped = true;
@@ -1339,7 +1275,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// no options, SIDE_GROUP
 			{
 				const typedEditor = createTestFileEditorInput(URI.file('file.something'), TEST_EDITOR_INPUT_ID);
 				typedEditor.disableToUntyped = true;
@@ -1362,10 +1297,8 @@ suite('EditorService', () => {
 			}
 		}
 
-		// openEditors with >1 editor
 		if (useOpenEditors) {
 
-			// mix of untyped and typed editors
 			{
 				const untypedEditor1: IResourceEditorInput = { resource: URI.file('file1.editor-service-override-tests') };
 				const untypedEditor2: IResourceEditorInput = { resource: URI.file('file2.editor-service-override-tests') };
@@ -1377,7 +1310,6 @@ suite('EditorService', () => {
 				assert.strictEqual(pane?.group, rootGroup);
 				assert.strictEqual(pane?.group.count, 5);
 
-				// Only the untyped editors should have had factories called (3 untyped editors)
 				assert.strictEqual(editorFactoryCalled, 3);
 				assert.strictEqual(untitledEditorFactoryCalled, 0);
 				assert.strictEqual(diffEditorFactoryCalled, 0);
@@ -1390,9 +1322,7 @@ suite('EditorService', () => {
 			}
 		}
 
-		// untyped default editor
 		{
-			// untyped default editor, options: revealIfVisible
 			{
 				const untypedEditor1: IResourceEditorInput = { resource: URI.file('file-1'), options: { revealIfVisible: true, pinned: true } };
 				const untypedEditor2: IResourceEditorInput = { resource: URI.file('file-2'), options: { pinned: true } };
@@ -1413,7 +1343,6 @@ suite('EditorService', () => {
 				await resetTestState();
 			}
 
-			// untyped default editor, options: revealIfOpened
 			{
 				const untypedEditor1: IResourceEditorInput = { resource: URI.file('file-1'), options: { revealIfOpened: true, pinned: true } };
 				const untypedEditor2: IResourceEditorInput = { resource: URI.file('file-2'), options: { pinned: true } };
@@ -1452,7 +1381,6 @@ suite('EditorService', () => {
 			}
 		));
 
-		// Typed editor
 		let pane = await service.openEditor(createTestFileEditorInput(URI.parse('my://resource-openEditors'), TEST_EDITOR_INPUT_ID));
 		pane = await service.openEditor(createTestFileEditorInput(URI.parse('my://resource-openEditors'), TEST_EDITOR_INPUT_ID), { sticky: true, preserveFocus: true });
 
@@ -1461,7 +1389,6 @@ suite('EditorService', () => {
 
 		await pane.group.closeAllEditors();
 
-		// Untyped editor (without registered editor)
 		pane = await service.openEditor({ resource: URI.file('resource-openEditors') });
 		pane = await service.openEditor({ resource: URI.file('resource-openEditors'), options: { sticky: true, preserveFocus: true } });
 
@@ -1469,7 +1396,6 @@ suite('EditorService', () => {
 		assert.strictEqual(pane?.options?.sticky, true);
 		assert.strictEqual(pane?.options?.preserveFocus, true);
 
-		// Untyped editor (with registered editor)
 		pane = await service.openEditor({ resource: URI.file('file.editor-service-override-tests') });
 		pane = await service.openEditor({ resource: URI.file('file.editor-service-override-tests'), options: { sticky: true, preserveFocus: true } });
 
@@ -1523,11 +1449,9 @@ suite('EditorService', () => {
 		const otherInput = createTestFileEditorInput(URI.parse('my://resource2-openEditors'), TEST_EDITOR_INPUT_ID);
 		const replaceInput = createTestFileEditorInput(URI.parse('my://resource3-openEditors'), TEST_EDITOR_INPUT_ID);
 
-		// Open editors
 		await service.openEditors([{ editor: input }, { editor: otherInput }]);
 		assert.strictEqual(part.activeGroup.count, 2);
 
-		// Replace editors
 		await service.replaceEditors([{ editor: input, replacement: replaceInput }], part.activeGroup);
 		assert.strictEqual(part.activeGroup.count, 2);
 		assert.strictEqual(part.activeGroup.getIndexOfEditor(replaceInput), 0);
@@ -1547,7 +1471,6 @@ suite('EditorService', () => {
 
 		try {
 
-			// Trust: cancel
 			let trustEditorUris: URI[] = [];
 			accessor.workspaceTrustRequestService.requestOpenUrisHandler = async uris => {
 				trustEditorUris = uris;
@@ -1562,13 +1485,11 @@ suite('EditorService', () => {
 			assert.strictEqual(trustEditorUris.some(uri => uri.toString() === input3.resource.toString()), true);
 			assert.strictEqual(trustEditorUris.some(uri => uri.toString() === input4.resource.toString()), true);
 
-			// Trust: open in new window
 			accessor.workspaceTrustRequestService.requestOpenUrisHandler = async uris => WorkspaceTrustUriResponse.OpenInNewWindow;
 
 			await service.openEditors([{ editor: input1 }, { editor: input2 }, { editor: sideBySideInput }], undefined, { validateTrust: true });
 			assert.strictEqual(part.activeGroup.count, 0);
 
-			// Trust: allow
 			accessor.workspaceTrustRequestService.requestOpenUrisHandler = async uris => WorkspaceTrustUriResponse.Open;
 
 			await service.openEditors([{ editor: input1 }, { editor: input2 }, { editor: sideBySideInput }], undefined, { validateTrust: true });
@@ -1592,7 +1513,6 @@ suite('EditorService', () => {
 
 		try {
 
-			// Trust: cancel
 			accessor.workspaceTrustRequestService.requestOpenUrisHandler = async uris => WorkspaceTrustUriResponse.Cancel;
 
 			await service.openEditors([{ editor: input1 }, { editor: input2 }, { editor: sideBySideInput }]);
@@ -1638,7 +1558,6 @@ suite('EditorService', () => {
 		const rootGroup = part.activeGroup;
 		const rightGroup = part.addGroup(rootGroup, GroupDirection.RIGHT);
 
-		// Open input
 		await service.openEditor(input, { pinned: true });
 		await service.openEditor(input, { pinned: true }, rightGroup);
 
@@ -1647,7 +1566,6 @@ suite('EditorService', () => {
 		assert.strictEqual(editors[0], input);
 		assert.strictEqual(editors[1], input);
 
-		// Close input
 		await rootGroup.closeEditor(input);
 		assert.strictEqual(input.isDisposed(), false);
 
@@ -1673,7 +1591,6 @@ suite('EditorService', () => {
 		assert.strictEqual(service.isVisible(input1), true);
 		assert.strictEqual(service.isOpened(input1), true);
 
-		// Open to the side uses existing neighbour group if any
 		editor = await service.openEditor(input2, { pinned: true, preserveFocus: true }, SIDE_GROUP);
 		assert.strictEqual(part.activeGroup, rootGroup);
 		assert.strictEqual(part.count, 2);
@@ -1766,10 +1683,9 @@ suite('EditorService', () => {
 
 		async function closeEditorAndWaitForNextToOpen(group: IEditorGroup, input: EditorInput): Promise<void> {
 			await group.closeEditor(input);
-			await timeout(0); // closing an editor will not immediately open the next one, so we need to wait
+			await timeout(0);
 		}
 
-		// 1.) open, open same, open other, close
 		let editor = await service.openEditor(input, { pinned: true });
 		const group = editor?.group!;
 		assertActiveEditorChangedEvent(true);
@@ -1791,7 +1707,6 @@ suite('EditorService', () => {
 		assertActiveEditorChangedEvent(true);
 		assertVisibleEditorsChangedEvent(true);
 
-		// 2.) open, open same (forced open) (recreate inputs that got disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 		editor = await service.openEditor(input);
@@ -1804,7 +1719,6 @@ suite('EditorService', () => {
 
 		await closeEditorAndWaitForNextToOpen(group, input);
 
-		// 3.) open, open inactive, close (recreate inputs that got disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 		editor = await service.openEditor(input, { pinned: true });
@@ -1819,7 +1733,6 @@ suite('EditorService', () => {
 		assertActiveEditorChangedEvent(true);
 		assertVisibleEditorsChangedEvent(true);
 
-		// 4.) open, open inactive, close inactive (recreate inputs that got disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 		editor = await service.openEditor(input, { pinned: true });
@@ -1838,7 +1751,6 @@ suite('EditorService', () => {
 		assertActiveEditorChangedEvent(true);
 		assertVisibleEditorsChangedEvent(true);
 
-		// 5.) add group, remove group (recreate inputs that got disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 		editor = await service.openEditor(input, { pinned: true });
@@ -1861,7 +1773,6 @@ suite('EditorService', () => {
 		assertActiveEditorChangedEvent(true);
 		assertVisibleEditorsChangedEvent(true);
 
-		// 6.) open editor in inactive group (recreate inputs that got disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 		editor = await service.openEditor(input, { pinned: true });
@@ -1884,7 +1795,6 @@ suite('EditorService', () => {
 		assertActiveEditorChangedEvent(true);
 		assertVisibleEditorsChangedEvent(true);
 
-		// 7.) activate group (recreate inputs that got disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 		editor = await service.openEditor(input, { pinned: true });
@@ -1911,7 +1821,6 @@ suite('EditorService', () => {
 		assertActiveEditorChangedEvent(true);
 		assertVisibleEditorsChangedEvent(true);
 
-		// 8.) move editor (recreate inputs that got disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 		editor = await service.openEditor(input, { pinned: true });
@@ -1930,7 +1839,6 @@ suite('EditorService', () => {
 		assertActiveEditorChangedEvent(true);
 		assertVisibleEditorsChangedEvent(true);
 
-		// 9.) close editor in inactive group (recreate inputs that got disposed)
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 		editor = await service.openEditor(input, { pinned: true });
@@ -1949,7 +1857,6 @@ suite('EditorService', () => {
 		assertActiveEditorChangedEvent(false);
 		assertVisibleEditorsChangedEvent(true);
 
-		// cleanup
 		activeEditorChangeListener.dispose();
 		visibleEditorChangeListener.dispose();
 	});
@@ -1971,34 +1878,26 @@ suite('EditorService', () => {
 			assert.strictEqual(editorsChangeEventCounter, expected);
 		}
 
-		// open
 		await assertEditorsChangeEvent(() => service.openEditor(input, { pinned: true }), 1);
 
-		// open (other)
 		await assertEditorsChangeEvent(() => service.openEditor(otherInput, { pinned: true }), 2);
 
-		// close (inactive)
 		await assertEditorsChangeEvent(() => rootGroup.closeEditor(input), 3);
 
-		// close (active)
 		await assertEditorsChangeEvent(() => rootGroup.closeEditor(otherInput), 4);
 
 		input = createTestFileEditorInput(URI.parse('my://resource-active'), TEST_EDITOR_INPUT_ID);
 		otherInput = createTestFileEditorInput(URI.parse('my://resource2-active'), TEST_EDITOR_INPUT_ID);
 
-		// open editors
 		await assertEditorsChangeEvent(() => service.openEditors([{ editor: input, options: { pinned: true } }, { editor: otherInput, options: { pinned: true } }]), 5);
 
-		// active editor change
 		await assertEditorsChangeEvent(() => service.openEditor(otherInput), 6);
 
-		// move editor (in group)
 		await assertEditorsChangeEvent(() => service.openEditor(input, { pinned: true, index: 1 }), 7);
 
 		const rightGroup = part.addGroup(part.activeGroup, GroupDirection.RIGHT);
 		await assertEditorsChangeEvent(async () => rootGroup.moveEditor(input, rightGroup), 8);
 
-		// move group
 		await assertEditorsChangeEvent(async () => part.moveGroup(rightGroup, rootGroup, GroupDirection.LEFT), 9);
 	});
 
@@ -2022,23 +1921,14 @@ suite('EditorService', () => {
 
 		await service.openEditor(input, { pinned: true }, SIDE_GROUP);
 
-		// we expect 2 active editor change events: one for the fact that the
-		// active editor is now in the side group but also one for when the
-		// editor has finished loading. we used to ignore that second change
-		// event, however many listeners are interested on the active editor
-		// when it has fully loaded (e.g. a model is set). as such, we cannot
-		// simply ignore that second event from the editor service, even though
-		// the actual editor input is the same
 		assertActiveEditorChangedEvent(2);
 
-		// cleanup
 		activeEditorChangeListener.dispose();
 	});
 
 	test('activeTextEditorControl / activeTextEditorMode', async () => {
 		const [, service] = await createEditorService();
 
-		// Open untitled input
 		const editor = await service.openEditor({ resource: undefined });
 
 		assert.strictEqual(service.activeEditorPane, editor);
@@ -2159,7 +2049,6 @@ suite('EditorService', () => {
 		assert.strictEqual(input1.gotSavedAs, true);
 		assert.strictEqual(input2.gotSavedAs, true);
 
-		// services dedupes inputs automatically
 		assert.strictEqual(sameInput1.gotSaved, false);
 		assert.strictEqual(sameInput1.gotSavedAs, false);
 		assert.strictEqual(sameInput1.gotReverted, false);
@@ -2392,15 +2281,12 @@ suite('EditorService', () => {
 		const input1 = { resource: URI.parse('file://test/path/resource1.txt') };
 		const input2 = { resource: URI.parse('file://test/path/resource1.md') };
 
-		// Open editor input 1 and it shouln't trigger override as the glob doesn't match
 		await service.openEditor(input1);
 		assert.strictEqual(editorCount, 0);
 
-		// Open editor input 2 and it should trigger override as the glob doesn match
 		await service.openEditor(input2);
 		assert.strictEqual(editorCount, 1);
 
-		// Because we specify an override we shouldn't see it triggered even if it matches
 		await service.openEditor({ ...input2, options: { override: 'default' } });
 		assert.strictEqual(editorCount, 1);
 
@@ -2443,9 +2329,7 @@ suite('EditorService', () => {
 		assert.ok(input3);
 		assert.ok(input4);
 
-		// Open editor inputs
 		await service.openEditors([input1, input2, input3, input4]);
-		// Only two matched the factory glob
 		assert.strictEqual(editorCount, 2);
 
 		registrationDisposable.dispose();
@@ -2482,7 +2366,6 @@ suite('EditorService', () => {
 		const untypedInput1 = input1.toUntyped();
 		assert.ok(untypedInput1);
 
-		// Open editor input 1 and it shouldn't trigger because typed inputs aren't overriden
 		await service.openEditor(input1);
 		assert.strictEqual(editorCount, 0);
 
@@ -2501,11 +2384,9 @@ suite('EditorService', () => {
 		const input = createTestFileEditorInput(URI.parse('my://resource-openEditors'), TEST_EDITOR_INPUT_ID);
 		const otherInput = createTestFileEditorInput(URI.parse('my://resource2-openEditors'), TEST_EDITOR_INPUT_ID);
 
-		// Open editors
 		await service.openEditors([{ editor: input }, { editor: otherInput }]);
 		assert.strictEqual(part.activeGroup.count, 2);
 
-		// Close editor
 		await service.closeEditor({ editor: input, groupId: part.activeGroup.id });
 		assert.strictEqual(part.activeGroup.count, 1);
 
@@ -2525,11 +2406,9 @@ suite('EditorService', () => {
 		const input = createTestFileEditorInput(URI.parse('my://resource-openEditors'), TEST_EDITOR_INPUT_ID);
 		const otherInput = createTestFileEditorInput(URI.parse('my://resource2-openEditors'), TEST_EDITOR_INPUT_ID);
 
-		// Open editors
 		await service.openEditors([{ editor: input }, { editor: otherInput }]);
 		assert.strictEqual(part.activeGroup.count, 2);
 
-		// Close editors
 		await service.closeEditors([{ editor: input, groupId: part.activeGroup.id }, { editor: otherInput, groupId: part.activeGroup.id }]);
 		assert.strictEqual(part.activeGroup.count, 0);
 	});
@@ -2540,11 +2419,9 @@ suite('EditorService', () => {
 		const input = createTestFileEditorInput(URI.parse('my://resource-openEditors'), TEST_EDITOR_INPUT_ID);
 		const otherInput = createTestFileEditorInput(URI.parse('my://resource2-openEditors'), TEST_EDITOR_INPUT_ID);
 
-		// Open editors
 		await service.openEditors([{ editor: input }, { editor: otherInput }]);
 		assert.strictEqual(part.activeGroup.count, 2);
 
-		// Try using find editors for opened editors
 		{
 			const found1 = service.findEditors(input.resource, undefined, part.activeGroup);
 			assert.strictEqual(found1.length, 1);
@@ -2562,7 +2439,6 @@ suite('EditorService', () => {
 			assert.strictEqual(found2, otherInput);
 		}
 
-		// Make sure we don't find non-opened editors
 		{
 			const found1 = service.findEditors(URI.parse('my://no-such-resource'), undefined, part.activeGroup);
 			assert.strictEqual(found1.length, 0);
@@ -2571,7 +2447,6 @@ suite('EditorService', () => {
 			assert.strictEqual(found2, undefined);
 		}
 
-		// Make sure we don't find editors across groups
 		{
 			const newEditor = await service.openEditor(createTestFileEditorInput(URI.parse('my://other-group-resource'), TEST_EDITOR_INPUT_ID), { pinned: true, preserveFocus: true }, SIDE_GROUP);
 
@@ -2582,7 +2457,6 @@ suite('EditorService', () => {
 			assert.strictEqual(found2, undefined);
 		}
 
-		// Check we don't find editors after closing them
 		await part.activeGroup.closeAllEditors();
 		{
 			const found1 = service.findEditors(input.resource, undefined, part.activeGroup);
@@ -2601,11 +2475,9 @@ suite('EditorService', () => {
 		const input = createTestFileEditorInput(URI.parse('my://resource-openEditors'), TEST_EDITOR_INPUT_ID);
 		const otherInput = createTestFileEditorInput(URI.parse('my://resource2-openEditors'), TEST_EDITOR_INPUT_ID);
 
-		// Open editors
 		await service.openEditors([{ editor: input }, { editor: otherInput }]);
 		const sideEditor = await service.openEditor(input, { pinned: true }, SIDE_GROUP);
 
-		// Try using find editors for opened editors
 		{
 			const found1 = service.findEditors(input.resource);
 			assert.strictEqual(found1.length, 2);
@@ -2633,7 +2505,6 @@ suite('EditorService', () => {
 			assert.strictEqual(found2[0].groupId, rootGroup.id);
 		}
 
-		// Make sure we don't find non-opened editors
 		{
 			const found1 = service.findEditors(URI.parse('my://no-such-resource'));
 			assert.strictEqual(found1.length, 0);
@@ -2642,7 +2513,6 @@ suite('EditorService', () => {
 			assert.strictEqual(found2.length, 0);
 		}
 
-		// Check we don't find editors after closing them
 		await rootGroup.closeAllEditors();
 		await sideEditor?.group.closeAllEditors();
 		{

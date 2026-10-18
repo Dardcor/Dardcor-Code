@@ -43,7 +43,6 @@ export class RevertButtonsFeature extends Disposable {
 			const selectedDiffsSet = new Set(selectedDiffs.map(d => d.mapping));
 
 			if (selectedDiffs.length > 0) {
-				// The button to revert the selection
 				const selections = this._editors.modifiedSelections.read(reader);
 
 				const btn = store.add(new RevertButton(
@@ -79,10 +78,8 @@ export class RevertButtonsFeature extends Disposable {
 	}
 
 	private readonly _selectedDiffs = derived(this, (reader) => {
-		/** @description selectedDiffs */
 		const model = this._diffModel.read(reader);
 		const diff = model?.diff.read(reader);
-		// Return `emptyArr` because it is a constant. [] is always a new array and would trigger a change.
 		if (!diff) { return emptyArr; }
 
 		const selections = this._editors.modifiedSelections.read(reader);
@@ -131,7 +128,6 @@ export class RevertButton extends Disposable implements IGlyphMarginWidget {
 
 
 		this._register(addDisposableListener(this._domNode, EventType.MOUSE_DOWN, e => {
-			// don't prevent context menu from showing up
 			if (e.button !== 2) {
 				e.stopPropagation();
 				e.preventDefault();
@@ -154,16 +150,10 @@ export class RevertButton extends Disposable implements IGlyphMarginWidget {
 		}));
 	}
 
-	/**
-	 * Get the dom node of the glyph widget.
-	 */
 	getDomNode(): HTMLElement {
 		return this._domNode;
 	}
 
-	/**
-	 * Get the placement of the glyph widget.
-	 */
 	getPosition(): IGlyphMarginWidgetPosition {
 		return {
 			lane: GlyphMarginLane.Right,

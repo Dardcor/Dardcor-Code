@@ -27,9 +27,6 @@ export interface RepositoryProperties {
 	readonly hasGitOperationInProgress?: boolean;
 }
 
-/**
- * Serializable subset of ChatRequestModeInstructions (excludes toolReferences).
- */
 export interface StoredModeInstructions {
 	readonly uri?: string;
 	readonly name: string;
@@ -39,45 +36,20 @@ export interface StoredModeInstructions {
 }
 
 export interface RequestDetails {
-	/** VS Code request ID — always available, serves as primary key. */
 	readonly vscodeRequestId: string;
-	/** Copilot SDK request ID — may not be available until the request completes. */
 	dardcorRequestId?: string;
-	/**
-	 * Map of tool call id to VS Code edit id, used to correlate edits to the tool call that created them.
-	 */
 	toolIdEditMap: { [dardcorToolId: string]: string };
 
-	/**
-	 * @deprecated This field is deprecated in favor of modeInstructions.
-	 * Agent used for this request.
-	 * */
 	agentId?: string;
 
-	/** Mode instructions for this request (excluding toolReferences). */
 	modeInstructions?: StoredModeInstructions;
 
-	/**
-	 * The concrete model id that produced the response for this request, as reported by the
-	 * SDK's `assistant.usage` event. Captured so that on session reload we can render the
-	 * correct model details (e.g. for `auto`, where the resolved model is not otherwise
-	 * recoverable from the persisted SDK event log).
-	 */
 	responseModelId?: string;
-	/**
-	 * Whether the request was made with Auto model.
-	 */
 	isUsingAutoModel?: boolean;
-	/**
-	 * Total credits consumed for this request turn. Persisted so that rebuilt history
-	 * can display credit usage alongside the model name.
-	 */
 	creditsUsed?: number;
 
-	/** Checkpoint reference for this request (primary workspace). */
 	checkpointRef?: string;
 
-	/** Checkpoint references for additional workspaces, keyed by folder fsPath. */
 	additionalCheckpointRefs?: { [folderPath: string]: string };
 }
 
@@ -89,42 +61,17 @@ export interface ChatSessionMetadataFile {
 		worktreeProperties?: ChatSessionWorktreeProperties;
 		workspaceFolder?: WorkspaceFolderEntry;
 	}[];
-	/**
-	 * Whether the session metadata has been written to the Copilot CLI session state directory.
-	 */
 	writtenToDisc?: boolean;
-	/** The first user message sent in the session, used as the session label. */
 	firstUserMessage?: string;
-	/** Custom title set by the user or generated for the session. */
 	customTitle?: string;
-	/** The creator of this session. */
 	origin?: 'vscode' | 'other';
-	/**
-	 * The kind of session, which can be used to determine how the session was created and possibly how it should be displayed in the UI.
-	 */
 	kind?: 'forked' | 'sub-session';
-	/**
-	 * The ID of the parent session, if this session was forked from another
-	 * session or if the session is a child session created from the Agents app.
-	 */
 	parentSessionId?: string;
-	/**
-	 * Whether the session is currently archived. Tracked here so worktree-sharing
-	 * checks can ignore archived siblings (whose worktrees are reconstructed on
-	 * un-archive via {@link IChatSessionWorktreeService.recreateWorktreeOnUnarchive}).
-	 */
 	archived?: boolean;
-	/** Milliseconds since epoch when this metadata was first written. */
 	created?: number;
-	/** Milliseconds since epoch of the last write. Used for top-N trim sort and cross-process merge. */
 	modified?: number;
 }
 
-/**
- * One line in `~/.dardcor/vscode.session.worktree.jsonl`. Maps a session id
- * to the path of its worktree so folder → session lookups work even when the
- * session has been evicted from the bulk metadata cache.
- */
 export interface WorktreeSessionEntry {
 	readonly id: string;
 	readonly path: string;
@@ -153,40 +100,14 @@ export interface IChatSessionMetadataStore {
 	getRequestDetails(sessionId: string): Promise<RequestDetails[]>;
 	updateRequestDetails(sessionId: string, details: (Partial<RequestDetails> & { vscodeRequestId: string })[]): Promise<void>;
 	getSessionAgent(sessionId: string): Promise<string | undefined>;
-	/**
-	 * Copy all VS Code-specific metadata (workspace info, request details, etc.) from
-	 * an existing session to a newly forked session, overriding the custom title.
-	 */
 	storeForkedSessionMetadata(sourceSessionId: string, targetSessionId: string, customTitle: string): Promise<void>;
 	setSessionOrigin(sessionId: string): Promise<void>;
 	getSessionOrigin(sessionId: string): Promise<'vscode' | 'other'>;
 	setSessionParentId(sessionId: string, parentSessionId: string): Promise<void>;
-	/**
-	 * Returns the parent lineage info for a session, distinguishing forked sessions
-	 * (created via the fork action) from sub-sessions (spawned by a parent session
-	 * to do work on its behalf). Returns `undefined` for top-level sessions with no
-	 * stored parent.
-	 */
 	getSessionParentId(sessionId: string): Promise<{ parentSessionId: string; kind: 'forked' | 'sub-session' } | undefined>;
-	/**
-	 * Persist the archived state of a session. Called from the chat session item state
-	 * change handler so worktree-sharing checks can later ignore archived siblings.
-	 */
 	setSessionArchived(sessionId: string, archived: boolean): Promise<void>;
 	getSessionArchived(sessionId: string): Promise<boolean>;
-	/**
-	 * Re-read the shared bulk metadata file from disk and merge into the in-memory cache.
-	 * Wired to the chat-sessions UI refresh action so cross-process writes become visible
-	 * on demand. Concurrent calls collapse: at most one in-flight + one pending.
-	 */
 	refresh(): Promise<void>;
-	/**
-	 * Returns session IDs whose working directory (worktree path or workspace folder)
-	 * matches the given folder URI.
-	 */
 	getSessionIdsForFolder(folder: vscode.Uri): string[];
-	/**
-	 * Returns session IDs that have a worktree whose path matches the given folder URI.
-	 */
 	getWorktreeSessions(folder: vscode.Uri): string[];
 }

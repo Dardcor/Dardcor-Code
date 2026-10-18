@@ -48,7 +48,6 @@ export class WorkspaceIdentityService implements IWorkspaceIdentityService {
 			incomingIdentitiesToIncomingWorkspaceFolders[workspaceFolder.workspaceFolderIdentity] = workspaceFolder.resourceUri;
 		}
 
-		// Precompute the identities of the current workspace folders
 		const currentWorkspaceFoldersToIdentities = new Map<IWorkspaceFolder, string>();
 		for (const workspaceFolder of this.workspaceContextService.getWorkspace().folders) {
 			const workspaceFolderIdentity = await this.editSessionIdentityService.getEditSessionIdentifier(workspaceFolder, cancellationToken);
@@ -56,18 +55,14 @@ export class WorkspaceIdentityService implements IWorkspaceIdentityService {
 			currentWorkspaceFoldersToIdentities.set(workspaceFolder, workspaceFolderIdentity);
 		}
 
-		// Match the current workspace folders to the incoming workspace folders
 		for (const [currentWorkspaceFolder, currentWorkspaceFolderIdentity] of currentWorkspaceFoldersToIdentities.entries()) {
 
-			// Happy case: identities do not need further disambiguation
 			const incomingWorkspaceFolder = incomingIdentitiesToIncomingWorkspaceFolders[currentWorkspaceFolderIdentity];
 			if (incomingWorkspaceFolder) {
-				// There is an incoming workspace folder with the exact same identity as the current workspace folder
 				incomingToCurrentWorkspaceFolderUris[incomingWorkspaceFolder] = currentWorkspaceFolder.uri.toString();
 				continue;
 			}
 
-			// Unhappy case: compare the identity of the current workspace folder to all incoming workspace folder identities
 			let hasCompleteMatch = false;
 			for (const [incomingIdentity, incomingFolder] of Object.entries(incomingIdentitiesToIncomingWorkspaceFolders)) {
 				if (await this.editSessionIdentityService.provideEditSessionIdentityMatch(currentWorkspaceFolder, currentWorkspaceFolderIdentity, incomingIdentity, cancellationToken) === EditSessionIdentityMatch.Complete) {
@@ -85,28 +80,22 @@ export class WorkspaceIdentityService implements IWorkspaceIdentityService {
 		}
 
 		const convertUri = (uriToConvert: URI) => {
-			// Figure out which current folder the incoming URI is a child of
 			for (const incomingFolderUriKey of Object.keys(incomingToCurrentWorkspaceFolderUris)) {
 				const incomingFolderUri = URI.parse(incomingFolderUriKey);
 				if (isEqualOrParent(incomingFolderUri, uriToConvert)) {
 					const currentWorkspaceFolderUri = incomingToCurrentWorkspaceFolderUris[incomingFolderUriKey];
 
-					// Compute the relative file path section of the uri to convert relative to the folder it came from
 					const relativeFilePath = relativePath(incomingFolderUri, uriToConvert);
 
-					// Reparent the relative file path under the current workspace folder it belongs to
 					if (relativeFilePath) {
 						return joinPath(URI.parse(currentWorkspaceFolderUri), relativeFilePath);
 					}
 				}
 			}
 
-			// No conversion was possible; return the original URI
 			return uriToConvert;
 		};
 
-		// Recursively look for any URIs in the provided object and
-		// replace them with the URIs of the current workspace folders
 		const uriReplacer = (obj: unknown, depth = 0) => {
 			if (!obj || depth > 200) {
 				return obj;
@@ -125,7 +114,6 @@ export class WorkspaceIdentityService implements IWorkspaceIdentityService {
 					obj[i] = uriReplacer(obj[i], depth + 1);
 				}
 			} else {
-				// walk object
 				for (const key in obj) {
 					if (Object.hasOwnProperty.call(obj, key)) {
 						(obj as Record<string, unknown>)[key] = uriReplacer((obj as Record<string, unknown>)[key], depth + 1);

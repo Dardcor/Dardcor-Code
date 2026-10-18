@@ -33,7 +33,6 @@ const $ = dom.$;
 export interface IRenderValueOptions {
 	showChanged?: boolean;
 	maxValueLength?: number;
-	/** If set, a hover will be shown on the element. Requires a disposable store for usage. */
 	hover?: false | {
 		commands: { id: string; args: unknown[] }[];
 		commandService: ICommandService;
@@ -80,7 +79,6 @@ export interface IExpressionTemplateData {
 	currentElement: IExpression | undefined;
 }
 
-/** Splits highlights based on matching of the {@link expressionAndScopeLabelProvider} */
 export const splitExpressionOrScopeHighlights = (e: IExpression | IScope, highlights: IHighlight[]) => {
 	const nameEndsAt = e.name.length;
 	const labelBeginsAt = e.name.length + 2;
@@ -98,7 +96,6 @@ export const splitExpressionOrScopeHighlights = (e: IExpression | IScope, highli
 	return { name, value };
 };
 
-/** Keyboard label provider for expression and scope tree elements. */
 export const expressionAndScopeLabelProvider: IKeyboardNavigationLabelProvider<IExpression | IScope> = {
 	getKeyboardNavigationLabel(e) {
 		const stripAnsi = e.getSession()?.rememberedCapabilities?.supportsANSIStyling;
@@ -237,7 +234,6 @@ export abstract class AbstractExpressionsRenderer<T = IExpression> implements IT
 				done(true, true);
 			}),
 			dom.addDisposableListener(inputBox.inputElement, dom.EventType.CLICK, e => {
-				// Do not expand / collapse selected elements
 				e.preventDefault();
 				e.stopPropagation();
 			})

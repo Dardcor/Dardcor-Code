@@ -28,23 +28,15 @@ import { ChatInputOnboarding, IChatInputOnboardingBanner, IChatInputOnboardingHo
 import { ChatInputNoticeVariant, ChatInputNoticeWidget } from '../widget/input/chatInputNoticeWidget.js';
 import './media/dictationOnboarding.css';
 
-/**
- * Marks the introduction as seen. Dictation-scoped and deliberately separate
- * from the Voice Mode introduction, so neither feature's card suppresses the
- * other's.
- */
 const DICTATION_INTRO_SHOWN_KEY = 'chat.dictation.introShown';
 
 export const SHOW_DICTATION_ONBOARDING_COMMAND = 'workbench.action.chat.showSpeechToTextIntroduction';
 export const RESET_DICTATION_ONBOARDING_COMMAND = 'workbench.action.chat.resetSpeechToTextIntroduction';
 
-/** Opens the settings editor, filtered by the query below. */
 const OPEN_SETTINGS_COMMAND = 'workbench.action.openSettings';
 
-/** Narrows settings to dictation's own: enabled, model, showTranscript. */
 const DICTATION_SETTINGS_QUERY = 'dictation';
 
-/** The `deviceId` value that means "whatever the system is using". */
 const SYSTEM_DEFAULT_DEVICE_ID = '';
 
 type DictationMediaDevices = Pick<MediaDevices, 'addEventListener' | 'removeEventListener' | 'dispatchEvent' | 'enumerateDevices' | 'getUserMedia'>;
@@ -64,52 +56,24 @@ type DictationOnboardingActionEvent = {
 	source: 'automatic' | 'manual';
 };
 
-// --- Level meter ---------------------------------------------------------
 
-/**
- * Bar metrics. Voice Mode's waveform - both the toolbar pill and its own
- * introduction card - is a row of hairline strokes with a hairline of air
- * beside each, so this uses the same instrument at a larger size.
- */
 const BAR_WIDTH = 1;
 const BAR_GAP = 2;
 
-/** Amplitude with nothing being said: present, but clearly at rest. */
 const IDLE_GAIN = 0.55;
 
-/** Extra amplitude at peak loudness. */
 const SPEAKING_GAIN = 0.45;
 
-/** How quickly the row chases the microphone. Low and slow reads as smooth; a
- * row that tracks every frame exactly reads as flicker rather than as level. */
 const LEVEL_EASING = 0.12;
 
-/** Opacity of the row when nothing is being said. */
 const RESTING_OPACITY = 0.35;
 
-/** Extra opacity at peak loudness, so the row brightens as the user speaks. */
 const SPEAKING_OPACITY = 0.5;
 
-/**
- * Opacity when the microphone cannot be read at all. Dimmer than rest, because
- * a row at resting strength implies a working device that simply is not hearing
- * anything - which is the opposite of what is true.
- */
 const UNAVAILABLE_OPACITY = 0.2;
 
-/**
- * Shortest gap between repaints when reduced motion is on. The meter is
- * feedback, not decoration - switching it off would remove the only answer the
- * card has to "is my microphone working" - so it is slowed to a readable step
- * rather than stopped.
- */
 const REDUCED_MOTION_PAINT_INTERVAL_MS = 100;
 
-/**
- * One sine component of the waveform's texture. The trace is a handful of these
- * summed together, which is what gives it a recognisable ripple rather than a
- * single pulsing curve.
- */
 interface IWave {
 	readonly frequency: number;
 	readonly amplitude: number;
@@ -130,11 +94,6 @@ function readMicrophoneLevel(analyser: AnalyserNode | undefined, waveform: Uint8
 	return Math.min(1, Math.sqrt(sum / waveform.length) * 4);
 }
 
-/**
- * The waveform's texture. Mirrors the signatures Voice Mode's introduction uses,
- * so the two cards read as the same instrument rather than as two features that
- * happen to both draw bars.
- */
 const WAVES: readonly IWave[] = [
 	{ frequency: 1.0, amplitude: 0.42, speed: 0.42, phase: 0.0 },
 	{ frequency: 1.7, amplitude: 0.26, speed: -0.31, phase: 1.1 },
@@ -142,15 +101,6 @@ const WAVES: readonly IWave[] = [
 	{ frequency: 4.1, amplitude: 0.13, speed: -0.18, phase: 0.7 },
 ];
 
-/**
- * Half-height of the row at `position` (0..1 across the strip), as a fraction of
- * the available half-height.
- *
- * Each component contributes an already-positive, cusp-free curve. Summing raw
- * sines and taking their magnitude would put a sharp corner at every zero
- * crossing - that is what makes a waveform look like it is snapping up and down
- * rather than flowing.
- */
 function bandFraction(position: number, time: number): number {
 	let amplitude = 0;
 	let total = 0;
@@ -162,29 +112,16 @@ function bandFraction(position: number, time: number): number {
 	if (total === 0) {
 		return 0;
 	}
-	// Centre-peak silhouette: tallest in the middle and tapering to the ends, so
-	// the row reads as one instrument rather than a strip cut off at both edges.
 	const taper = Math.sin(Math.PI * Math.min(1, Math.max(0, position)));
 	return (amplitude / total) * (0.35 + 0.65 * taper);
 }
 
-/** Why the microphone preview is not showing a level. */
 const enum MicrophonePreviewError {
-	/** The user (or the OS) refused access to the microphone. */
 	Denied = 'denied',
-	/** There is no microphone to listen to. */
 	NoDevice = 'noDevice',
-	/** Anything else, including a browser without `getUserMedia`. */
 	Unavailable = 'unavailable',
 }
 
-/**
- * Listens to a microphone purely so its loudness can be shown. Owns the media
- * stream, the audio graph and nothing else; releasing it frees the microphone.
- *
- * This is deliberately independent of the dictation pipeline so the card can
- * remain informational while recording starts immediately.
- */
 class MicrophonePreview extends Disposable {
 
 	private readonly session = this._register(new MutableDisposable<DisposableStore>());
@@ -193,7 +130,6 @@ class MicrophonePreview extends Disposable {
 	private waveform: Uint8Array<ArrayBuffer> | undefined;
 
 	private readonly _onDidChangeError = this._register(new Emitter<MicrophonePreviewError | undefined>());
-	/** Fires with the reason no level is available, or `undefined` once one is. */
 	readonly onDidChangeError = this._onDidChangeError.event;
 
 	private _error: MicrophonePreviewError | undefined;
@@ -207,20 +143,10 @@ class MicrophonePreview extends Disposable {
 		super();
 	}
 
-	/**
-	 * Current loudness, `0..1`, or `0` when nothing is being heard. Read every
-	 * frame, so it stays allocation-free.
-	 */
 	getLevel(): number {
-		// RMS, scaled so ordinary speech fills most of the row rather than a
-		// sliver of it.
 		return readMicrophoneLevel(this.analyser, this.waveform);
 	}
 
-	/**
-	 * Listen to `deviceId` (empty means the system default). Replaces any stream
-	 * already running, so switching devices never leaves two microphones open.
-	 */
 	async listen(deviceId: string): Promise<void> {
 		if (this._store.isDisposed) {
 			return;
@@ -254,16 +180,11 @@ class MicrophonePreview extends Disposable {
 		let analyser: AnalyserNode;
 		try {
 			const context = new targetWindow.AudioContext();
-			store.add(toDisposable(() => void context.close().catch(() => { /* already closing */ })));
-			// Chromium starts an `AudioContext` suspended when the page has no
-			// sticky user activation, and a suspended graph reports silence - a
-			// dead meter that looks exactly like a dead microphone.
+			store.add(toDisposable(() => void context.close().catch(() => { })));
 			if (context.state === 'suspended') {
 				await context.resume();
 			}
 			analyser = context.createAnalyser();
-			// Time-domain only: the row's shape comes from the travelling wave,
-			// and all the analyser has to supply is how loud the room is.
 			analyser.fftSize = 256;
 			context.createMediaStreamSource(stream).connect(analyser);
 		} catch (error) {
@@ -273,9 +194,6 @@ class MicrophonePreview extends Disposable {
 			return;
 		}
 
-		// The card can be dismissed while `getUserMedia` is still resolving; the
-		// session is already cleared in that case, so assigning here would leak a
-		// live microphone.
 		if (this._store.isDisposed) {
 			store.dispose();
 			return;
@@ -287,11 +205,6 @@ class MicrophonePreview extends Disposable {
 		this.setError(undefined);
 	}
 
-	/**
-	 * Hand the microphone back. Called before dictation acquires its own stream:
-	 * two captures of one device is what makes the audio service drop the
-	 * capture, so the preview always lets go first.
-	 */
 	releaseMicrophone(): void {
 		this.analyser = undefined;
 		this.waveform = undefined;
@@ -307,7 +220,6 @@ class MicrophonePreview extends Disposable {
 	}
 }
 
-/** Map a `getUserMedia` rejection onto the reason shown in the card. */
 function toPreviewError(error: unknown): MicrophonePreviewError {
 	if (error instanceof DOMException) {
 		if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
@@ -320,25 +232,11 @@ function toPreviewError(error: unknown): MicrophonePreviewError {
 	return MicrophonePreviewError.Unavailable;
 }
 
-/** What the waveform needs each frame, supplied by the preview. */
 interface IWaveformSource {
-	/** Loudness of the room, `0` when nothing is being heard. */
 	getLevel(): number;
-	/** `false` when the microphone cannot be read at all. */
 	isAvailable(): boolean;
 }
 
-/**
- * The live waveform: a row of hairline strokes whose shape flows and whose
- * height follows the microphone. The card's whole job is to answer "is this
- * device hearing me", and a trace that swells when you speak answers it before
- * any words are read.
- *
- * Deliberately not a spectrum analyser. Per-band bars make neighbours jump
- * independently, which reads as a chart; the shape here is one continuous
- * travelling wave - the same instrument Voice Mode uses - so the row moves like
- * a voice.
- */
 class MicrophoneWaveform extends Disposable {
 
 	private bars: HTMLElement[] = [];
@@ -358,9 +256,6 @@ class MicrophoneWaveform extends Disposable {
 
 		container.setAttribute('aria-hidden', 'true');
 
-		// The bar count follows the measured width rather than being fixed: at a
-		// fixed count the gaps stretch or crowd as the panel resizes, and the
-		// 1px/2px rhythm the instrument is built on is the first thing lost.
 		const observer = new (observerCtor ?? dom.getWindow(container).ResizeObserver)(() => this.layout());
 		observer.observe(container);
 		this._register(toDisposable(() => observer.disconnect()));
@@ -369,7 +264,6 @@ class MicrophoneWaveform extends Disposable {
 		this._register(toDisposable(() => this.stop()));
 	}
 
-	/** Rebuild the row for the current width, if the count actually changed. */
 	private layout(): void {
 		const width = this.container.clientWidth;
 		if (!width) {
@@ -414,17 +308,10 @@ class MicrophoneWaveform extends Disposable {
 		}
 		this.lastPaint = timestamp;
 
-		// Ease towards the microphone rather than tracking it exactly: the level
-		// is what the row *means*, and a value that jumps every frame reads as
-		// flicker instead of as loudness.
 		this.level += (this.source.getLevel() - this.level) * LEVEL_EASING;
 		const gain = IDLE_GAIN + this.level * SPEAKING_GAIN;
 		const time = timestamp * 0.001;
 
-		// Brightness rides the same level as the height, so the row is quiet at
-		// rest and lifts as the user speaks - and drops below rest entirely when
-		// there is no microphone to hear. Set on the container: one style write
-		// per frame rather than one per stroke.
 		this.container.style.opacity = (this.source.isAvailable()
 			? RESTING_OPACITY + this.level * SPEAKING_OPACITY
 			: UNAVAILABLE_OPACITY).toFixed(3);
@@ -432,33 +319,18 @@ class MicrophoneWaveform extends Disposable {
 		const count = this.bars.length;
 		for (let i = 0; i < count; i++) {
 			const position = count > 1 ? i / (count - 1) : 0;
-			// Scaled rather than resized: transform stays off the layout path, so
-			// a row of hairlines at 60fps never reflows the chat input. The floor
-			// leaves a thin line rather than nothing, so a silent microphone
-			// still reads as present.
 			const amount = Math.max(0.08, Math.min(1, bandFraction(position, time) * gain));
 			this.bars[i].style.transform = `scaleY(${amount.toFixed(3)})`;
 		}
 	}
 }
 
-// --- Microphone options --------------------------------------------------
 
-/** One entry in the card's microphone picker. */
 export interface IMicrophoneOption {
 	readonly deviceId: string;
 	readonly label: string;
 }
 
-/**
- * The pickable microphones, with the physical system-default device identified
- * in its label instead of represented by a separate synthetic row.
- *
- * Drops the virtual `default`/`communications` entries (which duplicate a real
- * device under a synthetic id) and de-duplicates by `deviceId`, so one physical
- * microphone appears exactly once - the same normalization the "Select
- * Microphone" quick pick does, kept in one place so the two never disagree.
- */
 export function buildMicrophoneOptions(devices: readonly MediaDeviceInfo[]): IMicrophoneOption[] {
 	const seen = new Set<string>();
 	const microphones: MediaDeviceInfo[] = [];
@@ -506,43 +378,25 @@ export function buildMicrophoneOptions(devices: readonly MediaDeviceInfo[]): IMi
 		}
 		options.push({
 			deviceId: device.deviceId,
-			// Labels are empty until microphone permission has been granted at
-			// least once; a truncated id is still better than a blank row.
 			label: device.label || localize('dictation.onboarding.unknownDevice', "Unknown device ({0})", device.deviceId.slice(0, 8)),
 		});
 	}
 	return options;
 }
 
-/**
- * Index of the microphone currently in use. Falls back to the system default
- * when the remembered device has been unplugged, which is exactly what dictation
- * itself does when it acquires the stream.
- */
 export function indexOfMicrophone(options: readonly IMicrophoneOption[], deviceId: string): number {
 	const index = options.findIndex(option => option.deviceId === deviceId);
 	return index === -1 ? 0 : index;
 }
 
-// --- Banner --------------------------------------------------------------
 
 export interface IDictationOnboardingBannerOptions {
-	/** The element the card attaches itself to. */
 	readonly container: HTMLElement;
 	readonly onDismiss: () => void;
-	/** Whether this manually opened card should also acquire a microphone preview. */
 	readonly previewMicrophone: boolean;
 	readonly source: 'automatic' | 'manual';
 }
 
-/**
- * The first-run dictation card explains the feature and offers microphone
- * selection while recording starts. When reopened manually, it also previews
- * the selected microphone.
- *
- * The card runs alongside the first dictation, so it explains the feature
- * without delaying the action the user invoked.
- */
 export class DictationOnboardingBanner extends ChatInputNoticeWidget implements IChatInputOnboardingBanner {
 
 	private readonly preview: MicrophonePreview | undefined;
@@ -598,9 +452,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 
 		const waveformContainer = dom.append(device, dom.$('.dictation-onboarding-waveform'));
 		if (this.bannerOptions.previewMicrophone) {
-			// Automatic onboarding runs beside an already active dictation
-			// stream, so only the manually opened introduction owns this
-			// independent preview.
 			const preview = this.preview = this._register(instantiationService.createInstance(MicrophonePreview, this.domNode, this.mediaDevices));
 			this.waveform = this._register(instantiationService.createInstance(MicrophoneWaveform, waveformContainer, {
 				getLevel: () => preview.getLevel(),
@@ -624,11 +475,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 		this.logAction('shown');
 	}
 
-	/**
-	 * Stops the waveform and releases the microphone while the card is put away
-	 * for a notification, so an invisible introduction never holds the microphone
-	 * open or keeps painting.
-	 */
 	override setVisible(visible: boolean): void {
 		super.setVisible(visible);
 		if (visible) {
@@ -642,15 +488,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 		}
 	}
 
-	/**
-	 * What dictation is, and that none of it is fixed. The card is shown once, so
-	 * the two things a user might want to change afterwards - whether dictation
-	 * runs at all, and how it writes what they say - have to be reachable from
-	 * here rather than left to a command nobody knows to look for.
-	 *
-	 * `[[...]]` marks the clauses that become links, so translators can keep the
-	 * sentence natural instead of having fixed phrases concatenated on.
-	 */
 	private renderDescription(container: HTMLElement): void {
 		const description = dom.append(container, dom.$('.chat-input-notice-description.dictation-onboarding-description'));
 		const text = localize({
@@ -660,8 +497,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 
 		dom.append(description, renderFormattedText(text, {
 			actionHandler: {
-				// The handler is given the link's index, so the two are told apart
-				// by position - hence the ordering note to translators above.
 				callback: index => {
 					const [commandId, ...args] = index === '0'
 						? [OPEN_SETTINGS_COMMAND, { query: DICTATION_SETTINGS_QUERY }]
@@ -674,10 +509,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 			},
 		}, dom.$('span')));
 
-		// `renderFormattedText` gives each anchor a click listener and nothing
-		// else, so make them real controls: reachable by Tab and operable by
-		// Enter or Space like any other button. The renderer owns this DOM, so a
-		// selector is the only handle on it.
 		// eslint-disable-next-line no-restricted-syntax
 		for (const link of description.querySelectorAll('a')) {
 			link.tabIndex = 0;
@@ -692,13 +523,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 		}
 	}
 
-	/**
-	 * Bring the card to life. The device list and the microphone are started
-	 * together rather than in sequence: `getUserMedia` can take a second or more
-	 * to return, and waiting for it would leave the picker empty for that whole
-	 * time. Enumeration is repeated once the microphone is live, because device
-	 * labels stay blank until permission has been granted at least once.
-	 */
 	private async startPreview(): Promise<void> {
 		if (!this.preview) {
 			return;
@@ -741,7 +565,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 		}
 
 		const options = buildMicrophoneOptions(devices);
-		// Wait for a real microphone label before rendering a multi-microphone picker.
 		if (options.length > 1 && !devices.some(device => device.kind === 'audioinput' && device.label)) {
 			return;
 		}
@@ -750,7 +573,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 		this.renderPicker();
 	}
 
-	/** A picker with one entry is not a choice, so only show this row for multiple microphones. */
 	private renderPicker(): void {
 		if (!this.pickerContainer) {
 			return;
@@ -769,10 +591,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 		const selected = indexOfMicrophone(this.options, this.currentDeviceId());
 
 		const store = new DisposableStore();
-		// Custom-drawn rather than the platform control, and with the face colors
-		// blanked so the row inherits the card instead of carrying the platform's
-		// select chrome - that fill is exactly what this row should not have at
-		// rest. The dropdown keeps its own colors, so only the face changes.
 		const selectBox = store.add(new SelectBox(
 			this.options.map(option => ({ text: option.label })),
 			selected,
@@ -792,8 +610,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 		}
 		this.logAction('selectMicrophone');
 
-		// Shared with Voice Mode and with the "Select Microphone" quick pick, so
-		// the choice made here is the one dictation actually records from.
 		if (option.deviceId) {
 			this.storageService.store(AgentsVoiceStorageKeys.MicrophoneDevice, option.deviceId, StorageScope.APPLICATION, StorageTarget.MACHINE);
 		} else {
@@ -810,11 +626,6 @@ export class DictationOnboardingBanner extends ChatInputNoticeWidget implements 
 		}
 	}
 
-	/**
-	 * The hint only speaks when the microphone cannot be read. At rest the
-	 * moving waveform is the instruction - a line of text telling you to talk is
-	 * one the card can do without.
-	 */
 	private updateHint(): void {
 		if (!this.preview || !this.hint) {
 			return;
@@ -858,7 +669,6 @@ function hintForError(error: MicrophonePreviewError): string {
 	}
 }
 
-// --- Service -------------------------------------------------------------
 
 export const IDictationOnboardingService = createDecorator<IDictationOnboardingService>('dictationOnboardingService');
 
@@ -866,29 +676,14 @@ export interface IDictationOnboardingService {
 	readonly _serviceBrand: undefined;
 	readonly isVisible: boolean;
 
-	/**
-	 * Register a container that can host the card (a chat input). The most
-	 * recently focused host wins when the card is shown.
-	 */
 	registerHost(options: IChatInputOnboardingHostOptions): IDisposable;
 
-	/**
-	 * Show the card alongside the user's first dictation. Dictation starts
-	 * independently and is never gated on the card.
-	 */
 	showIfNeeded(): boolean;
 
-	/**
-	 * Show the card again regardless of whether it has been seen, for the "Show
-	 * Introduction" command. Returns `false` when there is no visible chat input
-	 * to dock it to, so the caller can explain why nothing happened.
-	 */
 	show(): boolean;
 
-	/** Refresh the visible card after dictation acquires microphone permission. */
 	refreshMicrophones(analyserNode?: AnalyserNode, switchMicrophone?: SwitchMicrophone): void;
 
-	/** Reset first-run state so the introduction is shown next time. */
 	reset(): void;
 }
 

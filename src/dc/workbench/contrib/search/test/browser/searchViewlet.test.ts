@@ -118,11 +118,8 @@ suite('Search - Viewlet', () => {
 		const fileMatch3 = aFileMatch('/with/path/bar.a');
 		const fileMatch4 = aFileMatch('/with/path/bar.b');
 
-		// By default, path < path2
 		assert(searchMatchComparer(fileMatch1, fileMatch2) < 0);
-		// By filenames, foo10 > foo1
 		assert(searchMatchComparer(fileMatch1, fileMatch2, SearchSortOrder.FileNames) > 0);
-		// By type, bar.a < bar.b
 		assert(searchMatchComparer(fileMatch3, fileMatch4, SearchSortOrder.Type) < 0);
 	});
 
@@ -144,23 +141,7 @@ suite('Search - Viewlet', () => {
 
 		const lineMatch5 = new MatchImpl(fileMatch3, ['foobar'], new OneLineRange(0, 1, 1), new OneLineRange(2, 1, 1), false);
 
-		/***
-		 * Structure would take the following form:
-		 *
-		 *	folderMatch1 (voo)
-		 *		> fileMatch1 (/foo.a)
-		 *			>> lineMatch1
-		 *			>> lineMatch2
-		 *	folderMatch2 (with)
-		 *		> fileMatch2 (/path.c)
-		 *			>> lineMatch4
-		 *			>> lineMatch5
-		 *		> fileMatch3 (/path/bar.b)
-		 *			>> lineMatch3
-		 *
-		 */
 
-		// for these, refer to diagram above
 		assert(searchComparer(fileMatch1, fileMatch3) < 0);
 		assert(searchComparer(fileMatch2, fileMatch3) < 0);
 		assert(searchComparer(folderMatch2, fileMatch2) < 0);
@@ -168,16 +149,11 @@ suite('Search - Viewlet', () => {
 		assert(searchComparer(lineMatch1, lineMatch3) < 0);
 		assert(searchComparer(lineMatch2, folderMatch2) < 0);
 
-		// travel up hierarchy and order of folders take precedence. "voo < with" in indices
 		assert(searchComparer(fileMatch1, fileMatch3, SearchSortOrder.FileNames) < 0);
-		// bar.b < path.c
 		assert(searchComparer(fileMatch3, fileMatch2, SearchSortOrder.FileNames) < 0);
-		// lineMatch4's parent is fileMatch2, "bar.b < path.c"
 		assert(searchComparer(fileMatch3, lineMatch4, SearchSortOrder.FileNames) < 0);
 
-		// bar.b < path.c
 		assert(searchComparer(fileMatch3, fileMatch2, SearchSortOrder.Type) < 0);
-		// lineMatch4's parent is fileMatch2, "bar.b < path.c"
 		assert(searchComparer(fileMatch3, lineMatch4, SearchSortOrder.Type) < 0);
 	});
 

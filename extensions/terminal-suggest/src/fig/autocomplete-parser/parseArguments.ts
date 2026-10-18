@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// import { filepaths, folders } from '@fig/autocomplete-generators';
 import * as Internal from '../shared/internal';
 import {
 	firstMatchingToken,
@@ -12,22 +11,10 @@ import {
 	SuggestionFlag,
 	SuggestionFlags,
 } from '../shared/utils';
-// import {
-// 	executeCommand,
-// 	executeLoginShell,
-// 	getSetting,
-// 	isInDevMode,
-// 	SETTINGS,
-// } from '../../api-bindings-wrappers/src';
 import {
 	Command,
 	substituteAlias,
 } from '../shell-parser';
-// import {
-// 	getSpecPath,
-// 	loadSubcommandCached,
-// 	serializeSpecLocation,
-// } from './loadSpec.js';
 import {
 	ParseArgumentsError,
 	ParsingHistoryError,
@@ -50,7 +37,6 @@ export enum TokenType {
 	OptionArg = 'option_arg',
 	SubcommandArg = 'subcommand_arg',
 
-	// Option chain or option passed with arg in a single token.
 	Composite = 'composite',
 }
 
@@ -59,8 +45,6 @@ export type BasicAnnotation =
 		text: string;
 		type: Exclude<TokenType, TokenType.Composite>;
 
-		// Same as text, unless in CompositeAnnotation, where, e.g. in ls -lah
-		// the "a" token has text: "a" but tokenName: -a
 		tokenName?: string;
 	}
 	| {
@@ -87,12 +71,10 @@ export type ArgumentParserState = {
 	passedOptions: Internal.Option[];
 
 	commandIndex: number;
-	// Used to exclude subcommand suggestions after user has entered a subcommand arg.
 	haveEnteredSubcommandArgs: boolean;
 	isEndOfOptions: boolean;
 };
 
-// Result with derived completionObj/currentArg from cached state.
 export type ArgumentParserResult = {
 	completionObj: Internal.Subcommand;
 	currentArg: Internal.Arg | null;
@@ -113,7 +95,6 @@ export const createArgState = (args?: Internal.Arg[]): ArgArrayState => {
 			const templateArray = makeArray(generator.template ?? []);
 
 			let updatedGenerator: Fig.Generator | undefined;
-			// TODO: Pass templates out as a result
 			if (templateArray.includes('filepaths') && templateArray.includes('folders')) {
 				updatedGenerator = { template: ['filepaths', 'folders'] };
 			} else if (templateArray.includes('filepaths')) {
@@ -168,7 +149,6 @@ export const countEqualOptions = (
 	);
 
 export const updateArgState = (argState: ArgArrayState): ArgArrayState => {
-	// Consume an argument and update the arg state accordingly.
 	const { args, index, variadicCount } = argState;
 
 	if (args && args[index] && args[index].isVariadic) {
@@ -218,9 +198,6 @@ const canConsumeOptions = (state: ArgumentParserState): boolean => {
 	const optionArg = getCurrentArg(optionArgState);
 
 	if (isMandatoryOrVariadic(getCurrentArg(optionArgState))) {
-		// If option arg is mandatory or variadic, we may still be able to consume
-		// an option if options can break and we have already passed at least one
-		// variadic option arg.
 		if (
 			optionArg?.isVariadic &&
 			optionArgState.variadicCount &&
@@ -236,8 +213,6 @@ const canConsumeOptions = (state: ArgumentParserState): boolean => {
 		subcommandArgState.variadicCount &&
 		subcommandArg?.optionsCanBreakVariadicArg === false
 	) {
-		// If we are in the middle of a variadic subcommand arg, we cannot consume the
-		// next token as an option if optionsCanBreakVariadicArg is false
 		return false;
 	}
 
@@ -291,8 +266,6 @@ const updateStateForSubcommand = (
 		return { ...state, annotations };
 	}
 
-	// Mutate for parser directives and persistent options: these are carried
-	// down deterministically.
 	if (!newCompletionObj.parserDirectives && completionObj.parserDirectives) {
 		newCompletionObj.parserDirectives = completionObj.parserDirectives;
 	}
@@ -305,7 +278,6 @@ const updateStateForSubcommand = (
 	return {
 		...state,
 		annotations,
-		// Inherit parserDirectives if not specified.
 		completionObj: newCompletionObj,
 		passedOptions: [],
 		optionArgState: createArgState(),
@@ -380,7 +352,6 @@ const updateStateForSubcommandArg = (
 	token: string,
 	isFinalToken = false,
 ): ArgumentParserState => {
-	// Consume token as subcommand arg if possible.
 	if (!getCurrentArg(state.subcommandArgState)) {
 		throw new UpdateStateError('Cannot consume subcommand arg.');
 	}
@@ -407,10 +378,6 @@ const updateStateForChainedOptionToken = (
 	token: string,
 	isFinalToken = false,
 ): ArgumentParserState => {
-	// Handle composite option tokens, accounting for different types of inputs.
-	// https://en.wikipedia.org/wiki/Command-line_interface#Option_conventions_in_Unix-like_systems
-	// See https://stackoverflow.com/a/10818697
-	// Handle -- as special option flag.
 	if (isFinalToken && ['-', '--'].includes(token)) {
 		throw new UpdateStateError('Final token, not consuming as option');
 	}
@@ -440,7 +407,6 @@ const updateStateForChainedOptionToken = (
 		const separatorMatches = firstMatchingToken(token, optionSeparators);
 
 		if (separatorMatches) {
-			// Handle long option with equals --num=10, -pnf=10, opt=10.
 			const matchedSeparator = separatorMatches[0];
 			const [flag, ...optionArgParts] = token.split(matchedSeparator);
 			const optionArg = optionArgParts.join(matchedSeparator);
@@ -478,7 +444,6 @@ const updateStateForChainedOptionToken = (
 			};
 		}
 
-		// Normal long option
 		const finalState = updateStateForOption(state, token, isFinalToken);
 		const option = findOption(state.completionObj, token);
 		return option.requiresEquals || option.requiresSeparator
@@ -546,7 +511,6 @@ const canConsumeSubcommands = (state: ArgumentParserState): boolean =>
 	!isMandatoryOrVariadic(getCurrentArg(state.optionArgState)) &&
 	!state.haveEnteredSubcommandArgs;
 
-// State machine for argument parser.
 function updateState(
 	state: ArgumentParserState,
 	token: string,
@@ -556,7 +520,6 @@ function updateState(
 		try {
 			return updateStateForSubcommand(state, token, isFinalToken);
 		} catch (_err) {
-			// Continue to other token types if we can't consume subcommand.
 		}
 	}
 
@@ -564,7 +527,6 @@ function updateState(
 		try {
 			return updateStateForChainedOptionToken(state, token, isFinalToken);
 		} catch (_err) {
-			// Continue to other token types if we can't consume option.
 		}
 	}
 
@@ -572,7 +534,6 @@ function updateState(
 		try {
 			return updateStateForOptionArg(state, token, isFinalToken);
 		} catch (_err) {
-			// Continue to other token types if we can't consume option arg.
 		}
 	}
 
@@ -616,99 +577,12 @@ function getExecuteShellCommandFunction(
 	return executeExternals.executeCommand;
 }
 
-// const getGenerateSpecCacheKey = (
-// 	completionObj: Internal.Subcommand,
-// 	tokenArray: string[],
-// ): string | undefined => {
-// 	let cacheKey: string | undefined;
 
-// 	const generateSpecCacheKey = completionObj?.generateSpecCacheKey;
-// 	if (generateSpecCacheKey) {
-// 		if (typeof generateSpecCacheKey === 'string') {
-// 			cacheKey = generateSpecCacheKey;
-// 		} else if (typeof generateSpecCacheKey === 'function') {
-// 			cacheKey = generateSpecCacheKey({
-// 				tokens: tokenArray,
-// 			});
-// 		} else {
-// 			console.error(
-// 				'generateSpecCacheKey must be a string or function',
-// 				generateSpecCacheKey,
-// 			);
-// 		}
-// 	}
 
-// 	// Return this late to ensure any generateSpecCacheKey side effects still happen
-// 	// if (isInDevMode()) {
-// 	// 	return undefined;
-// 	// }
-// 	if (typeof cacheKey === 'string') {
-// 		// Prepend the spec name to the cacheKey to avoid collisions between specs.
-// 		return `${tokenArray[0]}:${cacheKey}`;
-// 	}
-// 	return undefined;
-// };
 
-// const generateSpecForState = async (
-// 	state: ArgumentParserState,
-// 	tokenArray: string[],
-// 	isParsingHistory = false,
-// 	// localconsole: console.console = console,
-// ): Promise<ArgumentParserState> => {
-// 	console.debug('generateSpec', { state, tokenArray });
-// 	const { completionObj } = state;
-// 	const { generateSpec } = completionObj;
-// 	if (!generateSpec) {
-// 		return state;
-// 	}
 
-// 	try {
-// 		const cacheKey = getGenerateSpecCacheKey(completionObj, tokenArray);
-// 		let newSpec;
-// 		if (cacheKey && generateSpecCache.has(cacheKey)) {
-// 			newSpec = generateSpecCache.get(cacheKey)!;
-// 		} else {
-// 			const exec = getExecuteShellCommandFunction(isParsingHistory);
-// 			const spec = await generateSpec(tokenArray, exec);
-// 			if (!spec) {
-// 				throw new UpdateStateError('generateSpec must return a spec');
-// 			}
-// 			newSpec = convertSubcommand(
-// 				spec,
-// 				initializeDefault,
-// 			);
-// 			if (cacheKey) generateSpecCache.set(cacheKey, newSpec);
-// 		}
 
-// 		const keepArgs = completionObj.args.length > 0;
 
-// 		return {
-// 			...state,
-// 			completionObj: {
-// 				...completionObj,
-// 				subcommands: { ...completionObj.subcommands, ...newSpec.subcommands },
-// 				options: { ...completionObj.options, ...newSpec.options },
-// 				persistentOptions: {
-// 					...completionObj.persistentOptions,
-// 					...newSpec.persistentOptions,
-// 				},
-// 				args: keepArgs ? completionObj.args : newSpec.args,
-// 			},
-// 			subcommandArgState: keepArgs
-// 				? state.subcommandArgState
-// 				: createArgState(newSpec.args),
-// 		};
-// 	} catch (err) {
-// 		if (!(err instanceof ParsingHistoryError)) {
-// 			console.error(
-// 				`There was an error with spec (generator owner: ${completionObj.name
-// 				}, tokens: ${tokenArray.join(', ')}) generateSpec function`,
-// 				err,
-// 			);
-// 		}
-// 	}
-// 	return state;
-// };
 
 export const getResultFromState = (
 	state: ArgumentParserState,
@@ -735,10 +609,8 @@ export const getResultFromState = (
 
 	const currentArg = getCurrentArg(argState);
 
-	// Determine what to suggest from final state, always suggest args.
 	let suggestionFlags: SuggestionFlags = SuggestionFlag.Args;
 
-	// Selectively enable options or subcommand suggestions if it makes sense.
 	if (!onlySuggestArgs) {
 		if (canConsumeSubcommands(state)) {
 			suggestionFlags |= SuggestionFlag.Subcommands;
@@ -771,98 +643,27 @@ export const initialParserState = getResultFromState(
 	}),
 );
 
-// const parseArgumentsCache = createCache<ArgumentParserState>();
-// const parseArgumentsGenerateSpecCache = createCache<ArgumentParserState>();
-// const figCaches = new Set<string>();
-// export const clearFigCaches = () => {
-// 	for (const cache of figCaches) {
-// 		parseArgumentsGenerateSpecCache.delete(cache);
-// 	}
-// 	return { unsubscribe: false };
-// };
 
-// const getCacheKey = (
-// 	tokenArray: string[],
-// 	context: Fig.ShellContext,
-// 	specLocation: Internal.SpecLocation,
-// ): string =>
-// 	[
-// 		tokenArray.slice(0, -1).join(' '),
-// 		// serializeSpecLocation(specLocation),
-// 		context.currentWorkingDirectory,
-// 		context.currentProcess,
-// 	].join(',');
 
-// Parse all arguments in tokenArray.
 const parseArgumentsCached = async (
 	command: Command,
 	context: Fig.ShellContext,
 	spec: Fig.Spec,
 	executeExternals: IFigExecuteExternals,
-	// authClient: AuthClient,
 	isParsingHistory?: boolean,
 	startIndex = 0,
-	// localconsole: console.console = console,
 ): Promise<ArgumentParserState> => {
-	// Route to cp.exec instead, we don't need to deal with ipc
 	const exec = getExecuteShellCommandFunction(isParsingHistory, executeExternals);
 
 	let currentCommand = command;
 	let tokens = currentCommand.tokens.slice(startIndex);
-	// const tokenText = tokens.map((token) => token.text);
 
 	const specPath: Fig.SpecLocation = { type: 'global', name: 'fake' };
 
-	// tokenTest[0] is the command and the spec they need
-	// const locations = specLocations || [
-	// 	await getSpecPath(tokenText[0], context.currentWorkingDirectory),
-	// ];
-	// console.debug({ locations });
 
-	// let cacheKey = '';
-	// for (let i = 0; i < locations.length; i += 1) {
-	// 	cacheKey = getCacheKey(tokenText, context, locations[i]);
-	// 	if (
-	// 		// !isInDevMode() &&
-	// 		(parseArgumentsCache.has(cacheKey) ||
-	// 			parseArgumentsGenerateSpecCache.has(cacheKey))
-	// 	) {
-	// 		return (
-	// 			(parseArgumentsGenerateSpecCache.get(
-	// 				cacheKey,
-	// 			) as ArgumentParserState) ||
-	// 			(parseArgumentsCache.get(cacheKey) as ArgumentParserState)
-	// 		);
-	// 	}
-	// }
 
-	// let spec: Internal.Subcommand | undefined;
-	// let specPath: Internal.SpecLocation | undefined;
-	// for (let i = 0; i < locations.length; i += 1) {
-	// 	specPath = locations[i];
-	// 	if (isParsingHistory && specPath?.type === SpecLocationSource.LOCAL) {
-	// 		continue;
-	// 	}
 
-	// 	spec = await withTimeout(
-	// 		5000,
-	// 		loadSubcommandCached(specPath, context, console),
-	// 	);
-	// 	if (!specPath) {
-	// 		throw new Error('specPath is undefined');
-	// 	}
 
-	// 	if (!spec) {
-	// 		const path =
-	// 			specPath.type === SpecLocationSource.LOCAL ? specPath?.path : '';
-	// 		console.warn(
-	// 			`Failed to load spec ${specPath.name} from ${specPath.type} ${path}`,
-	// 		);
-	// 	} else {
-	// 		cacheKey = getCacheKey(tokenText, context, specPath);
-	// 		break;
-	// 	}
-	// }
 
 	if (!spec || !specPath) {
 		throw new UpdateStateError('Failed loading spec');
@@ -874,74 +675,18 @@ const parseArgumentsCached = async (
 		specPath,
 	);
 
-	// let generatedSpec = false;
 
 	const substitutedAliases = new Set<string>();
 	let aliasError: Error | undefined;
 
-	// Returns true if we should return state immediately after calling.
-	// const updateStateForLoadSpec = async (
-	// 	loadSpec: typeof state.completionObj.loadSpec,
-	// 	index: number,
-	// 	token?: string,
-	// ) => {
-	// 	const loadSpecResult =
-	// 		typeof loadSpec === 'function'
-	// 			? token !== undefined
-	// 				? await loadSpec(token, exec)
-	// 				: undefined
-	// 			: loadSpec;
 
-	// 	if (Array.isArray(loadSpecResult)) {
-	// 		state = await parseArgumentsCached(
-	// 			currentCommand,
-	// 			context,
-	// 			// authClient,
-	// 			loadSpecResult,
-	// 			isParsingHistory,
-	// 			startIndex + index,
-	// 		);
-	// 		state = { ...state, commandIndex: state.commandIndex + index };
-	// 		return true;
-	// 	}
 
-	// 	if (loadSpecResult) {
-	// 		state = {
-	// 			...state,
-	// 			completionObj: {
-	// 				...loadSpecResult,
-	// 				parserDirectives: {
-	// 					...state.completionObj.parserDirectives,
-	// 					...loadSpecResult.parserDirectives,
-	// 				},
-	// 			},
-	// 			optionArgState: createArgState(),
-	// 			passedOptions: [],
-	// 			subcommandArgState: createArgState(loadSpecResult.args),
-	// 			haveEnteredSubcommandArgs: false,
-	// 		};
-	// 	}
 
-	// 	return false;
-	// };
 
-	// if (await updateStateForLoadSpec(state.completionObj.loadSpec, 0)) {
-	// 	return state;
-	// }
 
 	for (let i = 1; i < tokens.length; i += 1) {
-		// TODO: Investigate generate spec
-		// if (state.completionObj.generateSpec) {
-		// 	state = await generateSpecForState(
-		// 		state,
-		// 		tokens.map((token) => token.text),
-		// 		isParsingHistory,
-		// 	);
-		// 	generatedSpec = true;
-		// }
 
 		if (i === tokens.length - 1) {
-			// Don't update state for last token.
 			break;
 		}
 
@@ -975,7 +720,6 @@ const parseArgumentsCached = async (
 					typeof alias === 'string' ? alias : await alias(token, exec);
 				try {
 					currentCommand = substituteAlias(command, tokens[i], aliasValue);
-					// tokens[...i] should be the same, but tokens[i+1...] may be different.
 					substitutedAliases.add(token);
 					tokens = currentCommand.tokens.slice(startIndex);
 					state = lastState;
@@ -993,45 +737,9 @@ const parseArgumentsCached = async (
 			}
 		}
 
-		// TODO: Investigate whether we want to support loadSpec, vs just importing them directly
-		// let loadSpec =
-		// 	lastType === TokenType.Subcommand
-		// 		? state.completionObj.loadSpec
-		// 		: undefined;
 
-		// Recurse for load spec or special arg
-		// if (lastType === lastArgType && lastArgObject) {
-		// 	const {
-		// 		isCommand,
-		// 		isModule,
-		// 		isScript,
-		// 		loadSpec: argLoadSpec,
-		// 	} = lastArgObject;
-		// 	if (argLoadSpec) {
-		// 		loadSpec = argLoadSpec;
-		// 	} else if (isCommand || isScript) {
-		// 		// const specLocation = await getSpecPath(
-		// 		// 	token,
-		// 		// 	context.currentWorkingDirectory,
-		// 		// 	Boolean(isScript),
-		// 		// );
-		// 		// loadSpec = [specLocation];
-		// 	} else if (isModule) {
-		// 		loadSpec = [
-		// 			{
-		// 				name: `${isModule}${token}`,
-		// 				type: SpecLocationSource.GLOBAL,
-		// 			},
-		// 		];
-		// 	}
-		// }
 
-		// if (await updateStateForLoadSpec(loadSpec, i, token)) {
-		// 	return state;
-		// }
 
-		// If error with alias and corresponding arg was not used in a loadSpec,
-		// throw the error.
 		if (aliasError) {
 			throw aliasError;
 		}
@@ -1039,12 +747,6 @@ const parseArgumentsCached = async (
 		substitutedAliases.clear();
 	}
 
-	// if (generatedSpec) {
-	// 	if (tokenText[0] === 'fig') figCaches.add(cacheKey);
-	// 	parseArgumentsGenerateSpecCache.set(cacheKey, state);
-	// } else {
-	// 	parseArgumentsCache.set(cacheKey, state);
-	// }
 
 	return state;
 };
@@ -1102,7 +804,7 @@ const firstTokenSpec: Internal.Subcommand = {
 					},
 					cache: {
 						strategy: 'stale-while-revalidate',
-						ttl: 10 * 1000, // 10s
+						ttl: 10 * 1000,
 					},
 				},
 			],
@@ -1134,9 +836,7 @@ export const parseArguments = async (
 	context: Fig.ShellContext,
 	spec: Fig.Spec,
 	executeExternals: IFigExecuteExternals,
-	// authClient: AuthClient,
 	isParsingHistory = false,
-	// localconsole: console.console = console,
 ): Promise<ArgumentParserResult> => {
 	const tokens = command?.tokens ?? [];
 	if (!command || tokens.length === 0) {
@@ -1150,14 +850,11 @@ export const parseArguments = async (
 			: { ...firstTokenSpec, args: [] };
 		let specPath = { name: 'firstTokenSpec', type: SpecLocationSource.GLOBAL };
 		if (tokens[0].text.includes('/')) {
-			// special-case: Symfony has "bin/console" which can be invoked directly
-			// and should not require a user to create script completions for it
 			if (tokens[0].text === 'bin/console') {
 				specPath = { name: 'php/bin-console', type: SpecLocationSource.GLOBAL };
 			} else {
 				specPath = { name: 'dotslash', type: SpecLocationSource.GLOBAL };
 			}
-			// spec = await loadSubcommandCached(specPath, context);
 		}
 		return getResultFromState(getInitialState(spec, tokens[0].text, specPath));
 	}
@@ -1165,7 +862,6 @@ export const parseArguments = async (
 	let state = await parseArgumentsCached(
 		command,
 		context,
-		// authClient,
 		spec,
 		executeExternals,
 		isParsingHistory,

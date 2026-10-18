@@ -8,7 +8,6 @@ import { BaseServiceConfigurationProvider } from './configuration';
 
 export class BrowserServiceConfigurationProvider extends BaseServiceConfigurationProvider {
 
-	// On browsers, we only support using the built-in TS version
 	protected readGlobalTsdk(_configuration: vscode.WorkspaceConfiguration): string | null {
 		return null;
 	}
@@ -17,7 +16,6 @@ export class BrowserServiceConfigurationProvider extends BaseServiceConfiguratio
 		return null;
 	}
 
-	// On browsers, we don't run TSServer on Node
 	protected readLocalNodePath(_configuration: vscode.WorkspaceConfiguration): string | null {
 		return null;
 	}

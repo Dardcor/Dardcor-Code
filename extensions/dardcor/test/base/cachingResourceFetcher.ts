@@ -38,9 +38,7 @@ export class CachingResourceFetcher implements ICachingResourceFetcher {
 
 	private cache: ICache<Request<any>, any> | undefined;
 
-	// needs to be static, otherwise concurrent writes will happen, since
-	// many instances of this will be created
-	private static Queues = new Map</* cache key */string, Promise<unknown>>();
+	private static Queues = new Map< string, Promise<unknown>>();
 
 	constructor(
 		currentTestRunInfo: CurrentTestRunInfo,
@@ -56,7 +54,6 @@ export class CachingResourceFetcher implements ICachingResourceFetcher {
 			return await fn(input);
 		}
 
-		// serialize accesses to the same cache key
 		const promise = Promise.resolve(CachingResourceFetcher.Queues.get(inputCacheKey)).then(async (): Promise<R> => {
 			const request = new Request(input, cacheScope, cacheSalt, inputCacheKey);
 			let result: R | undefined = await this.cache!.get(request);

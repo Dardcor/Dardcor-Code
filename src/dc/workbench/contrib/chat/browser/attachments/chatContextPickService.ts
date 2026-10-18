@@ -48,14 +48,8 @@ export type ChatContextPick = IChatContextPickerPickItem | IQuickPickSeparator;
 
 export interface IChatContextPicker {
 	readonly placeholder: string;
-	/**
-	 * Picks that should either be:
-	 * - A promise that resolves to the picked items
-	 * - A function that maps input query into items to display.
-	 */
 	readonly picks: Promise<ChatContextPick[]> | ((query: IObservable<string>, token: CancellationToken) => IObservable<{ busy: boolean; picks: ChatContextPick[] }>);
 
-	/** Return true to cancel the default behavior */
 	readonly goBack?: () => boolean;
 
 	readonly configure?: {
@@ -72,10 +66,6 @@ export interface IChatContextPickerItem extends IChatContextItem {
 	asPicker(widget: IChatWidget): IChatContextPicker;
 }
 
-/**
- * Helper for use in {@IChatContextPickerItem} that wraps a simple query->promise
- * function into the requisite observable.
- */
 export function picksWithPromiseFn(fn: (query: string, token: CancellationToken) => Promise<ChatContextPick[]>): (query: IObservable<string>, token: CancellationToken) => IObservable<{ busy: boolean; picks: ChatContextPick[] }> {
 	return (query, token) => {
 		const promise = derived(reader => {
@@ -97,11 +87,6 @@ export interface IChatContextPickService {
 
 	items: Iterable<IChatContextValueItem | IChatContextPickerItem>;
 
-	/**
-	 * Register a value or  picker to the "Add Context" flow. A value directly resolved to a
-	 * chat attachment and a picker first shows a list of items to pick from and then
-	 * resolves the selected item to a chat attachment.
-	 */
 	registerChatContextItem(item: IChatContextValueItem | IChatContextPickerItem): IDisposable;
 }
 

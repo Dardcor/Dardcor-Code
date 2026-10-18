@@ -22,7 +22,6 @@ suite('ChatModelFeedbackSurveyActions', () => {
 	}
 
 	test('focuses the feedback control rather than whichever action comes first', () => {
-		// The copy action sits before the survey control in the response footer.
 		const toolbar = createToolBar(['workbench.action.chat.copyItem', ChatModelFeedbackSurveyActionId, 'workbench.action.chat.reportIssueForBug']);
 
 		focusChatModelFeedbackSurveyAction(toolbar);

@@ -109,8 +109,7 @@ interface InlineProgressDelegate {
 
 export class InlineProgressManager extends Disposable {
 
-	/** Delay before showing the progress widget */
-	private readonly _showDelay = 500; // ms
+	private readonly _showDelay = 500;
 	private readonly _showPromise = this._register(new MutableDisposable());
 
 	private readonly _currentDecorations: IEditorDecorationsCollection;

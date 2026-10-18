@@ -39,7 +39,6 @@ export default {
       ],
     },
   },
-  // Multi-endpoint: pick the transport matching client sourceFormat to skip translation.
   transports: [
     {
       format: "openai",

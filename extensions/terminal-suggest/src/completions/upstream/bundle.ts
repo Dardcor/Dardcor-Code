@@ -15,7 +15,6 @@ const completionSpec: Fig.Spec = {
 	name: "bundle",
 	description: "Ruby Dependency Management",
 	subcommands: [
-		// Primary Commands
 		{
 			name: "install",
 			description: "Install the gems specified by the Gemfile or Gemfile.lock",
@@ -180,7 +179,6 @@ const completionSpec: Fig.Spec = {
 		{ name: "config", args: {} },
 		{ name: "help" },
 
-		// Utility Commands
 		{
 			name: "add",
 			description: "Add gem to the Gemfile and run bundle install",

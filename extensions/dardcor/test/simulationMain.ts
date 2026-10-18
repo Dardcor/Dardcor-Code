@@ -2,14 +2,11 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-// Load env
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-// Needed for better stack traces as captureLocation parses the stack trace to find stests
 import 'source-map-support/register';
 
-// Load other imports
 import { Raw } from '@vscode/prompt-tsx';
 import * as fs from 'fs';
 import minimist from 'minimist';
@@ -129,9 +126,8 @@ async function run(opts: SimulationOptions): Promise<RunResult> {
 				await runInputPipeline(opts);
 			}
 			return;
-		case opts.listSuites: // intentional fallthrough
+		case opts.listSuites:
 		case opts.listTests: {
-			// stest runner extension runs with both `list-tests` and `list-suites` flags, so they should not be mutually exclusive
 			const { allSuites } = await loadTests(opts);
 
 			if (opts.listSuites) {
@@ -152,13 +148,10 @@ async function run(opts: SimulationOptions): Promise<RunResult> {
 async function runInExtensionHost() {
 	const nodeOptions = process.env.NODE_OPTIONS;
 
-	// Hook for the js-debug bootloader, which is not automatically executed in the extension host
 	if (nodeOptions) {
-		// NODE_OPTIONS is a CLI argument fragment that we need to parse here
 		const regex = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\S+/g;
 		const parsed = minimist(Array.from(nodeOptions.matchAll(regex), match => {
 			let arg = match[0];
-			// Remove surrounding quotes and unescape internal quotes if necessary
 			if (arg[0] === arg.at(-1) && (arg[0] === '"' || arg[0] === '\'')) {
 				arg = arg.slice(1, -1).replaceAll(`\\${arg[0]}`, arg[0]);
 			}
@@ -229,9 +222,7 @@ async function prepareTestEnvironment(opts: SimulationOptions, jsonOutputPrinter
 		logger.setLogLevel(LogLevel.Trace);
 	}
 
-	// Configure caching
 	if (opts.parallelism > 1) {
-		// To get good cache behavior, we must increase the cache size considerably
 		ParserWithCaching.CACHE_SIZE_PER_LANGUAGE = Math.max(5, 2 * opts.parallelism);
 		structureComputer.setCacheSize(Math.max(5, 2 * opts.parallelism));
 	}
@@ -243,12 +234,11 @@ async function prepareTestEnvironment(opts: SimulationOptions, jsonOutputPrinter
 	if (outputPath === undefined) {
 		outputPath = path.join(dotSimulationPath, generateOutputFolderName());
 	} else {
-		// If it's not an absolute path, make it relative to the current working directory
 		if (!path.isAbsolute(outputPath)) {
 			outputPath = path.join(process.cwd(), outputPath);
 		}
 	}
-	if (!rpcInExtensionHost) { // don't clean if we're just one participant in a larger run
+	if (!rpcInExtensionHost) {
 		await clearOrCreateDir(outputPath);
 	}
 
@@ -273,7 +263,7 @@ async function prepareTestEnvironment(opts: SimulationOptions, jsonOutputPrinter
 
 	writeHeapSnapshot(opts.heapSnapshots, 'before');
 
-	const canUseBaseline = (opts.nRuns === BASELINE_RUN_COUNT); // only use baseline if running N times
+	const canUseBaseline = (opts.nRuns === BASELINE_RUN_COUNT);
 	const runningAllTests = (opts.grep === undefined && opts.omitGrep === undefined);
 
 	const baselinePath = opts.externalBaseline
@@ -285,7 +275,7 @@ async function prepareTestEnvironment(opts: SimulationOptions, jsonOutputPrinter
 
 	const baseline = await SimulationBaseline.readFromDisk(baselinePath, runningAllTests);
 
-	if (canUseBaseline) { // copy current baseline as the baseline before the run
+	if (canUseBaseline) {
 		await fs.promises.copyFile(baseline.baselinePath, path.join(outputPath, OLD_BASELINE_FILENAME));
 	}
 
@@ -346,9 +336,7 @@ async function runTests(opts: SimulationOptions, jsonOutputPrinter: IJSONOutputP
 		}
 	}
 
-	// this allows to quickly identify which new cache entries were created in this particular simulation run
 	if (opts.stageCacheEntries && !opts.externalScenarios) {
-		// TODO@joaomoreno
 		console.warn('!!! Determining new cache entries is not yet working in Redis, ask Joao to implement it');
 	}
 
@@ -391,7 +379,6 @@ async function runTests(opts: SimulationOptions, jsonOutputPrinter: IJSONOutputP
 		await fs.promises.writeFile(runMetadata, JSON.stringify({ label: opts.label }, null, '\t'));
 	}
 
-	// Enable if you want to see which cache entries were used in this simulation run
 	const writeUsedOtherCaches = false;
 	if (writeUsedOtherCaches) {
 		await fs.promises.writeFile('other-caches.json', JSON.stringify(
@@ -412,8 +399,6 @@ async function runTests(opts: SimulationOptions, jsonOutputPrinter: IJSONOutputP
 			const rateLimitedCount = simulationEndpointHealth.failures.filter(f => f.request.type === 'rateLimited').length;
 			const failedCount = simulationEndpointHealth.failures.filter(f => f.request.type === 'failed').length;
 
-			// If there were simulation endpoint failures and we are doing a
-			// CI baseline update, fail the CI so that we block PR merge
 			if (opts.ci && opts.isUpdateBaseline) {
 				errors.push(
 					red(`Encountered server failures while running simulation: ${rateLimitedCount} rate limited responses, ${failedCount} other failed responses. Please rerun the simulation!`),
@@ -447,14 +432,12 @@ async function loadTests(opts: SimulationOptions) {
 			console.error(`Missing --output flag`);
 		}
 
-		if (usageError) { // process.exit() if there's a usage error
+		if (usageError) {
 			console.error(`Usage: npm run simulate -- --external-scenarios=<path> --inline --output=<path>`);
 			console.error(`Usage: npm run simulate -- --external-scenarios=<path> --sidebar --output=<path>`);
 			await drainStdoutAndExit(1);
 		}
 
-		// Update paths to be absolute
-		// If it's not an absolute path, make it relative to the current working directory
 		if (!path.isAbsolute(externalScenariosPath)) {
 			externalScenariosPath = path.join(process.cwd(), externalScenariosPath);
 		}
@@ -465,10 +448,8 @@ async function loadTests(opts: SimulationOptions) {
 			const filter = createSimulationTestFilter(opts.grep, opts.omitGrep);
 			if (opts.nes) {
 				if (opts.nes === 'external') {
-					// run external stests
 					allSuites = [await discoverNesTests(externalScenariosPath, opts)];
 				} else {
-					// run coffe stests
 					allSuites = [await discoverCoffeTests(externalScenariosPath, opts)];
 				}
 			} else {
@@ -501,7 +482,6 @@ function listSuites(allSuites: readonly SimulationSuite[], opts: SimulationOptio
 }
 
 function listTests(allSuites: readonly SimulationSuite[], opts: SimulationOptions, jsonOutputPrinter: IJSONOutputPrinter) {
-	// we should just list all tests
 	const allTests = allSuites.flatMap(suite => suite.tests);
 	for (const test of allTests) {
 		jsonOutputPrinter.print({ type: OutputType.detectedTest, suiteName: test.suite.fullName, name: test.fullName, location: test.options.location });
@@ -517,25 +497,21 @@ async function listChatModels(skipCache: boolean = false) {
 	const chatEndpoints = await endpointProvider.getAllChatEndpoints();
 	console.log('Available Chat Models:\n');
 
-	// Group models by family
 	const modelsByFamily = new Map<string, string[]>();
 
 	for (const endpoint of chatEndpoints) {
-		const family = endpoint.family || 'Other'; // Default family name if not specified
+		const family = endpoint.family || 'Other';
 		if (!modelsByFamily.has(family)) {
 			modelsByFamily.set(family, []);
 		}
 		modelsByFamily.get(family)!.push(endpoint.model);
 	}
 
-	// Print each family with its models
 	const tableData: { Family: string; Models: string }[] = [];
 
-	// Convert to array and sort by family name for consistent display
 	const sortedFamilies = Array.from(modelsByFamily.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
 	for (const [family, models] of sortedFamilies) {
-		// Sort models within each family
 		models.sort();
 		tableData.push({
 			Family: family,
@@ -547,11 +523,6 @@ async function listChatModels(skipCache: boolean = false) {
 	return;
 }
 
-/**
- * Validates and normalizes a parsed adhoc request JSON object. Returns a focused
- * error message instead of letting `.trim()`/`toTextParts()` throw on malformed
- * input (missing/`null` fields, wrong types, etc.).
- */
 function validateAdhocRequest(raw: unknown): { ok: true; request: IAdhocRequest } | { ok: false; error: string } {
 	if (typeof raw !== 'object' || raw === null) {
 		return { ok: false, error: 'Invalid adhoc request: expected a JSON object.' };
@@ -576,11 +547,6 @@ function validateAdhocRequest(raw: unknown): { ok: true; request: IAdhocRequest 
 	};
 }
 
-/**
- * Sends a single adhoc chat request (used by the simulation workbench
- * "Adhoc request sender" mode) and streams the response back as JSONL on
- * stdout. The request is described by a JSON file at {@link requestFilePath}.
- */
 async function sendAdhocRequest(requestFilePath: string): Promise<void> {
 	const printAdhocOutput = (output: AdhocResponseOutput) => {
 		process.stdout.write(JSON.stringify(output) + '\n');
@@ -606,25 +572,18 @@ async function sendAdhocRequest(requestFilePath: string): Promise<void> {
 		const model = request.model.trim();
 
 		const testingServiceCollection = createExtensionUnitTestingServices(disposables);
-		// The unit-testing services bind a mock chat fetcher; override it with the
-		// real implementation so the request actually hits the model endpoint.
 		testingServiceCollection.define(IChatMLFetcher, new SyncDescriptor(ChatMLFetcherImpl));
 		const accessor = testingServiceCollection.createTestingAccessor();
 		const endpointProvider = accessor.get(IEndpointProvider);
 		const instantiationService = accessor.get(IInstantiationService);
 
-		// Prefer a registered chat endpoint (e.g. `gpt-4.1`, `claude-sonnet-4.5`).
 		let endpoint: IChatEndpoint | undefined;
 		try {
 			const allEndpoints = await endpointProvider.getAllChatEndpoints();
 			endpoint = allEndpoints.find(e => e.model === model) ?? allEndpoints.find(e => e.family === model);
 		} catch {
-			// Ignore and fall back to the proxy endpoint below.
 		}
 		if (!endpoint) {
-			// Otherwise send the model name directly against the proxy endpoint, the
-			// same way `xtabProvider` does. This allows targeting models that aren't
-			// registered chat endpoints (e.g. NES models like `dardcor-nes-oct`).
 			endpoint = createProxyXtabEndpoint(instantiationService, model);
 		}
 
@@ -731,7 +690,7 @@ function createSimulationTestContext(
 		simulationServicesOptions,
 		simulationOutcome,
 		simulationEndpointHealth,
-		tokenizerProvider: new TokenizerProvider(false, new NullTelemetryService()) // this is expensive so we share it across all stests
+		tokenizerProvider: new TokenizerProvider(false, new NullTelemetryService())
 	};
 	return { simulationTestContext, simulationEndpointHealth, simulationOutcome };
 }
@@ -746,8 +705,8 @@ function printOutcome(
 	testResults: ITestResult[],
 	totalTime: number
 ): void {
-	const shouldShowSummaries = (testsToRun.length >= 10); // only when running at least 10 tests
-	const shouldBeBrief = (testsToRun.length === 1); // when running a single test, be brief
+	const shouldShowSummaries = (testsToRun.length >= 10);
+	const shouldBeBrief = (testsToRun.length === 1);
 
 	if (shouldShowSummaries) {
 		const modelComparisonTable = [];
@@ -874,23 +833,18 @@ function buildScoreTable(groupedScores: GroupedScores): object[] {
 
 function validateChangeStats(changeStats: ICompleteBaselineComparison): { errorMessage: string } | undefined {
 	if (changeStats.nWorsened > 0) {
-		// if any worsened, fail
 		return { errorMessage: 'Some scenarios have worsened' };
 	}
 	if (changeStats.nImproved > 0) {
-		// if any improved, fail
 		return { errorMessage: 'Some scenarios have improved' };
 	}
 	if (changeStats.addedScenarios > 0) {
-		// if any added, fail
 		return { errorMessage: 'New scenarios detected' };
 	}
 	if (changeStats.removedScenarios > 0) {
-		// if any removed, fail
 		return { errorMessage: 'Some scenarios were removed' };
 	}
 	if (changeStats.mandatory.skippedScenarios > 0) {
-		// only fail if mandatory scenarios are skipped
 		return { errorMessage: 'Some mandatory scenarios were skipped' };
 	}
 	return undefined;
@@ -936,47 +890,6 @@ function parseModelConfigFile(modelConfigFilePath: string): IModelConfig[] {
 		throw new Error('Invalid configuration file ' + resolvedModelConfigFilePath);
 	}
 
-	/**
-	 * the modelConfigFile.json should contain objects of the form:
-	```
-		"<model id>": {
-			"name": "<model name>",
-			"version": "<model version>",
-			"type": "<model type>", // 'openai' or 'azureOpenai'
-			"useDeveloperRole": <boolean>, // optional, defaults to false
-			"url": "<endpoint URL>",
-			"capabilities"?: {
-				"supports"?: {
-					"parallel_tool_calls"?: <boolean>,
-					"streaming"?: <boolean>,
-					"tool_calls"?: <boolean>,
-					"vision"?: <boolean>,
-					"prediction"?: <boolean>
-				},
-				"limits"?: {
-					"max_prompt_tokens"?: <number>,
-					"max_output_tokens"?: <number>,
-					"max_context_window_tokens"?: <number>
-				}
-			},
-			"auth?": {
-				"useBearerHeader"?: <boolean>, // Use Bearer token for authentication. Defaults to false
-				"useApiKeyHeader"?: <boolean>, // Use API key for authentication. Defaults to false
-				"apiKeyEnvName": "<environment variable name for API key to be used for the above headers>"
-			},
-			"overrides"?: {
-				"requestHeaders"?: { "<header name>": "<header value>" }, // optional, custom request headers
-				"temperature"?: <number> | null, // optional, if null removes from request body
-				"top_p"?: <number> | null, // optional, if null removes from request body
-				"snippy"?: <boolean> | null, // optional, if null removes from request body
-				"max_tokens"?: <number> | null, // optional, if null removes from request body
-				"max_completion_tokens"?: <number> | null, // optional, if null removes from request body
-				"intent"?: <boolean> | null // optional, if null removes from request body
-			}
-		},
-		...
-	```
-	*/
 
 	const checkProperty = (obj: any, prop: string, type: 'string' | 'boolean' | 'number' | 'object', optional?: boolean, nullable?: boolean) => {
 		if (!(prop in obj)) {
@@ -1047,7 +960,6 @@ function parseModelConfigFile(modelConfigFilePath: string): IModelConfig[] {
 			checkProperty(overrides, 'max_completion_tokens', 'number', true, true);
 		}
 
-		// Validate supported_endpoints
 		if (model.supported_endpoints) {
 			if (!Array.isArray(model.supported_endpoints)) {
 				throw new Error(`Property 'supported_endpoints' in model configuration file ${resolvedModelConfigFilePath} must be an array`);

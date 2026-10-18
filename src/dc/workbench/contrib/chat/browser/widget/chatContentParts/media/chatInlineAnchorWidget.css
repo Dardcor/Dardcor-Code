@@ -63,7 +63,6 @@
 	flex-shrink: 0;
 }
 
-/* Link-style appearance - no box, no icon (controlled by parent container class) */
 .chat-inline-references-link-style .chat-inline-anchor-widget,
 .chat-inline-references-link-style .interactive-item-container .value .rendered-markdown .chat-inline-anchor-widget {
 	border: none;

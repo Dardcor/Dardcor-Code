@@ -5,9 +5,6 @@
 
 import type { ILogger } from '@xterm/headless';
 
-/**
- * A logger for xterm.js that suppresses noisy warnings during tests.
- */
 export const TestXtermLogger: ILogger = {
 	trace: () => { },
 	debug: () => { },

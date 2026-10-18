@@ -149,7 +149,6 @@ suite('UntitledFileWorkingCopy', () => {
 		await workingCopy.resolve();
 		assert.strictEqual(workingCopy.isResolved(), true);
 
-		// Dirty from: Model content change
 		workingCopy.model?.updateContents('hello dirty');
 		assert.strictEqual(contentChangeCounter, 1);
 
@@ -273,7 +272,7 @@ suite('UntitledFileWorkingCopy', () => {
 
 		workingCopy.model.updateContents('Changed contents');
 
-		await workingCopy.resolve(); // second resolve should be ignored
+		await workingCopy.resolve();
 		assert.strictEqual(workingCopy.model?.contents, 'Changed contents');
 	});
 

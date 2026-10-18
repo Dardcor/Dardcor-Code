@@ -14,13 +14,7 @@ export const IRerankerService = createServiceIdentifier<IRerankerService>('IRera
 
 export interface IRerankerService {
 	readonly _serviceBrand: undefined;
-	/**
-	 * Re-rank a list of file chunks for a natural language query.
-	 */
 	rerank(query: string, documents: readonly FileChunkAndScore[], token: CancellationToken): Promise<readonly FileChunkAndScore[]>;
-	/**
-	 * Whether the remote reranker endpoint is available
-	 */
 	readonly isAvailable: boolean;
 }
 
@@ -88,7 +82,6 @@ export class RerankerService implements IRerankerService {
 				throw new Error('Reranker returned no results');
 			}
 
-			// Sort descending by relevance (higher score = more relevant). If scores missing, treat as 0.
 			const sorted = [...results].sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0));
 			const used = new Set<number>();
 			const reordered: FileChunkAndScore[] = [];
@@ -98,7 +91,6 @@ export class RerankerService implements IRerankerService {
 					reordered.push(documents[entry.index]);
 				}
 			}
-			// Preserve any documents that were not returned by the reranker (defensive)
 			for (let i = 0; i < documents.length; i++) {
 				if (!used.has(i)) {
 					reordered.push(documents[i]);

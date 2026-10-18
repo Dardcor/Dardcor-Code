@@ -24,7 +24,6 @@
 	position: relative;
 }
 
-/* Prominent state (action required) — primary button style */
 .monaco-action-bar .update-indicator.prominent {
 	background-color: var(--vscode-button-background);
 	color: var(--vscode-button-foreground);
@@ -36,12 +35,10 @@
 	border-color: var(--vscode-button-hoverBackground);
 }
 
-/* Disabled state */
 .monaco-action-bar .update-indicator.update-disabled .indicator-label {
 	color: var(--vscode-disabledForeground);
 }
 
-/* Progress underline bar (shared base) */
 .monaco-action-bar .update-indicator.progress-indefinite .indicator-label::after,
 .monaco-action-bar .update-indicator.progress-percent .indicator-label::after {
 	content: '';
@@ -52,7 +49,6 @@
 	border-radius: 1px;
 }
 
-/* Progress: indefinite — animated shimmer underline */
 .monaco-action-bar .update-indicator.progress-indefinite .indicator-label::after {
 	width: 100%;
 	background: linear-gradient(
@@ -70,7 +66,6 @@
 	100% { background-position: -100% 0; }
 }
 
-/* Progress: percentage — left-to-right fill underline */
 .monaco-action-bar .update-indicator.progress-percent .indicator-label::after {
 	width: 100%;
 	background: linear-gradient(
@@ -81,7 +76,6 @@
 	transition: background 0.3s ease;
 }
 
-/* Reduced motion */
 .monaco-workbench.monaco-reduce-motion .update-indicator.progress-indefinite .indicator-label::after {
 	animation: none;
 }

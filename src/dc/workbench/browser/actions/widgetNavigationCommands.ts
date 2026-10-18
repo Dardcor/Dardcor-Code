@@ -13,21 +13,9 @@ import { WorkbenchPhase, registerWorkbenchContribution2 } from '../../common/con
 import { ILogService } from '../../../platform/log/common/log.js';
 import { IConfigurationService } from '../../../platform/configuration/common/configuration.js';
 
-/** INavigableContainer represents a logical container composed of widgets that can
-	be navigated back and forth with key shortcuts */
 interface INavigableContainer {
-	/**
-	 * The container may coomposed of multiple parts that share no DOM ancestor
-	 * (e.g., the main body and filter box of MarkersView may be separated).
-	 * To track the focus of container we must pass in focus/blur events of all parts
-	 * as `focusNotifiers`.
-	 *
-	 * Each element of `focusNotifiers` notifies the focus/blur event for a part of
-	 * the container. The container is considered focused if at least one part being
-	 * focused, and blurred if all parts being blurred.
-	 */
 	readonly focusNotifiers: readonly IFocusNotifier[];
-	readonly name?: string; // for debugging
+	readonly name?: string;
 	focusPreviousWidget(): void;
 	focusNextWidget(): void;
 }

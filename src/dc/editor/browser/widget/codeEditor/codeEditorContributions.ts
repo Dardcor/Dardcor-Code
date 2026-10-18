@@ -16,17 +16,8 @@ export class CodeEditorContributions extends Disposable {
 	private _editor: ICodeEditor | null = null;
 	private _instantiationService: IInstantiationService | null = null;
 
-	/**
-	 * Contains all instantiated contributions.
-	 */
 	private readonly _instances = this._register(new DisposableMap<string, IEditorContribution>());
-	/**
-	 * Contains contributions which are not yet instantiated.
-	 */
 	private readonly _pending = new Map<string, IEditorContributionDescription>();
-	/**
-	 * Tracks which instantiation kinds are still left in `_pending`.
-	 */
 	private readonly _finishedInstantiation: boolean[] = [];
 
 	constructor(
@@ -54,23 +45,14 @@ export class CodeEditorContributions extends Disposable {
 
 		this._instantiateSome(EditorContributionInstantiation.Eager);
 
-		// AfterFirstRender
-		// - these extensions will be instantiated at the latest 50ms after the first render.
-		// - but if there is idle time, we will instantiate them sooner.
 		this._register(runWhenWindowIdle(getWindow(this._editor.getDomNode()), () => {
 			this._instantiateSome(EditorContributionInstantiation.AfterFirstRender);
 		}));
 
-		// BeforeFirstInteraction
-		// - these extensions will be instantiated at the latest before a mouse or a keyboard event.
-		// - but if there is idle time, we will instantiate them sooner.
 		this._register(runWhenWindowIdle(getWindow(this._editor.getDomNode()), () => {
 			this._instantiateSome(EditorContributionInstantiation.BeforeFirstInteraction);
 		}));
 
-		// Eventually
-		// - these extensions will only be instantiated when there is idle time.
-		// - since there is no guarantee that there will ever be idle time, we set a timeout of 5s here.
 		this._register(runWhenWindowIdle(getWindow(this._editor.getDomNode()), () => {
 			this._instantiateSome(EditorContributionInstantiation.Eventually);
 		}, 5000));
@@ -99,15 +81,11 @@ export class CodeEditorContributions extends Disposable {
 		return this._instances.get(id) || null;
 	}
 
-	/**
-	 * used by tests
-	 */
 	public set(id: string, value: IEditorContribution) {
 		this._instances.set(id, value);
 	}
 
 	public onBeforeInteractionEvent(): void {
-		// this method is called very often by the editor!
 		this._instantiateSome(EditorContributionInstantiation.BeforeFirstInteraction);
 	}
 
@@ -119,7 +97,6 @@ export class CodeEditorContributions extends Disposable {
 
 	private _instantiateSome(instantiation: EditorContributionInstantiation): void {
 		if (this._finishedInstantiation[instantiation]) {
-			// already done with this instantiation!
 			return;
 		}
 		this._finishedInstantiation[instantiation] = true;

@@ -22,13 +22,13 @@ import { Agent, getProxyAgent } from './proxy.js';
 import { createGunzip } from 'zlib';
 
 const TRANSIENT_ERROR_CODES = new Set([
-	'EAI_AGAIN',     // DNS lookup timed out
-	'ECONNREFUSED',  // Connection refused by server
-	'EHOSTDOWN',     // Host is down
-	'EHOSTUNREACH',  // No route to host
-	'ENETDOWN',      // Network is down
-	'ENETUNREACH',   // Network is unreachable
-	'EPROTO'         // Protocol error (TLS/SSL handshake failure)
+	'EAI_AGAIN',
+	'ECONNREFUSED',
+	'EHOSTDOWN',
+	'EHOSTUNREACH',
+	'ENETDOWN',
+	'ENETUNREACH',
+	'EPROTO'
 ]);
 
 const IDEMPOTENT_HTTP_METHODS_REGEX = /^(GET|HEAD|OPTIONS)$/i;
@@ -52,10 +52,6 @@ export interface NodeRequestOptions extends IRequestOptions {
 	getRawRequest?(options: IRequestOptions): IRawRequestFunction;
 }
 
-/**
- * This service exposes the `request` API, while using the global
- * or configured proxy settings.
- */
 export class RequestService extends AbstractRequestService implements IRequestService {
 
 	declare readonly _serviceBrand: undefined;
@@ -119,11 +115,11 @@ export class RequestService extends AbstractRequestService implements IRequestSe
 	}
 
 	async resolveProxy(url: string): Promise<string | undefined> {
-		return undefined; // currently not implemented in node
+		return undefined;
 	}
 
 	async lookupAuthorization(authInfo: AuthInfo): Promise<Credentials | undefined> {
-		return undefined; // currently not implemented in node
+		return undefined;
 	}
 
 	async lookupKerberosAuthorization(urlStr: string): Promise<string | undefined> {
@@ -234,11 +230,6 @@ async function nodeRequestAttempt(options: NodeRequestOptions, token: Cancellati
 			} else {
 				let stream: streams.ReadableStreamEvents<Uint8Array> = res;
 
-				// Responses from Electron net module should be treated as response
-				// from browser, which will apply gzip filter and decompress the response
-				// using zlib before passing the result to us. Following step can be bypassed
-				// in this case and proceed further.
-				// Refs https://source.chromium.org/chromium/chromium/src/+/main:net/url_request/url_request_http_job.cc;l=1266-1318
 				if (!options.isChromiumNetwork && res.headers['content-encoding'] === 'gzip') {
 					stream = res.pipe(createGunzip());
 				}
@@ -249,17 +240,13 @@ async function nodeRequestAttempt(options: NodeRequestOptions, token: Cancellati
 
 		req.on('error', reject);
 
-		// Handle timeout
 		if (options.timeout) {
-			// Chromium network requests do not support the `timeout` option
 			if (options.isChromiumNetwork) {
-				// Use Node's setTimeout for Chromium network requests
 				const timeout = setTimeout(() => {
 					req.abort();
 					reject(new Error(`Request timeout after ${options.timeout}ms`));
 				}, options.timeout);
 
-				// Clear timeout when request completes
 				req.on('response', () => clearTimeout(timeout));
 				req.on('error', () => clearTimeout(timeout));
 				req.on('abort', () => clearTimeout(timeout));
@@ -268,9 +255,6 @@ async function nodeRequestAttempt(options: NodeRequestOptions, token: Cancellati
 			}
 		}
 
-		// Chromium will abort the request if forbidden headers are set.
-		// Ref https://source.chromium.org/chromium/chromium/src/+/main:services/network/public/cpp/header_util.cc;l=14-48;
-		// for additional context.
 		if (options.isChromiumNetwork) {
 			req.removeHeader('Content-Length');
 		}

@@ -185,7 +185,6 @@ export class LocalFileSearchWorker implements ILocalFileSearchWorker, IWebWorker
 			});
 
 		};
-		// For folders, only check if the folder is explicitly excluded so walking continues.
 		const isFolderExcluded = (path: string, basename: string, hasSibling: (query: string) => boolean) => {
 			path = path.slice(1);
 			if (evalFolderExcludes(path, basename, hasSibling)) { return true; }
@@ -193,7 +192,6 @@ export class LocalFileSearchWorker implements ILocalFileSearchWorker, IWebWorker
 			return false;
 		};
 
-		// For files ensure the full check takes place.
 		const isFileIncluded = (path: string, basename: string, hasSibling: (query: string) => boolean) => {
 			path = path.slice(1);
 			if (evalFolderExcludes(path, basename, hasSibling)) { return false; }
@@ -310,7 +308,6 @@ function createSearchRegExp(options: IPatternInfo): RegExp {
 }
 
 function reviveFolderQuery(folderQuery: IFolderQuery<UriComponents>): IFolderQuery<URI> {
-	// @todo: andrea - try to see why we can't just call 'revive' here
 	return revive({
 		...revive(folderQuery),
 		excludePattern: folderQuery.excludePattern?.map(ep => ({ folder: URI.revive(ep.folder), pattern: ep.pattern })),
@@ -346,7 +343,6 @@ function pathIncludedInQuery(queryProps: ICommonQueryProps<URI>, path: string, e
 			return true;
 		}
 
-		// If searchPaths are being used, the extra file must be in a subfolder and match the pattern, if present
 		if (queryProps.usingSearchPaths) {
 
 			return !!queryProps.folderQueries && queryProps.folderQueries.some(fq => {

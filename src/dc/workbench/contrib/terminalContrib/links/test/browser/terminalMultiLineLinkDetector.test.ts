@@ -26,16 +26,13 @@ import { isString } from '../../../../../../base/common/types.js';
 import { TestXtermLogger } from '../../../../../../platform/terminal/test/common/terminalTestHelpers.js';
 
 const unixLinks: (string | { link: string; resource: URI })[] = [
-	// Absolute
 	'/foo',
 	'/foo/bar',
 	'/foo/[bar]',
 	'/foo/[bar].baz',
 	'/foo/[bar]/baz',
 	'/foo/bar+more',
-	// User home
 	{ link: '~/foo', resource: URI.file('/home/foo') },
-	// Relative
 	{ link: './foo', resource: URI.file('/parent/cwd/foo') },
 	{ link: './$foo', resource: URI.file('/parent/cwd/$foo') },
 	{ link: '../foo', resource: URI.file('/parent/foo') },
@@ -44,7 +41,6 @@ const unixLinks: (string | { link: string; resource: URI })[] = [
 ];
 
 const windowsLinks: (string | { link: string; resource: URI })[] = [
-	// Absolute
 	'c:\\foo',
 	{ link: '\\\\?\\C:\\foo', resource: URI.file('C:\\foo') },
 	'c:/foo',
@@ -52,10 +48,8 @@ const windowsLinks: (string | { link: string; resource: URI })[] = [
 	'c:\\foo\\bar',
 	'c:\\foo\\bar+more',
 	'c:\\foo/bar\\baz',
-	// User home
 	{ link: '~\\foo', resource: URI.file('C:\\Home\\foo') },
 	{ link: '~/foo', resource: URI.file('C:\\Home\\foo') },
-	// Relative
 	{ link: '.\\foo', resource: URI.file('C:\\Parent\\Cwd\\foo') },
 	{ link: './foo', resource: URI.file('C:\\Parent\\Cwd\\foo') },
 	{ link: './$foo', resource: URI.file('C:\\Parent\\Cwd\\$foo') },
@@ -73,23 +67,13 @@ const windowsLinks: (string | { link: string; resource: URI })[] = [
 
 interface LinkFormatInfo {
 	urlFormat: string;
-	/**
-	 * The start offset to the buffer range that is not in the actual link (but is in the matched
-	 * area.
-	 */
 	linkCellStartOffset?: number;
-	/**
-	 * The end offset to the buffer range that is not in the actual link (but is in the matched
-	 * area.
-	 */
 	linkCellEndOffset?: number;
 	line?: string;
 	column?: string;
 }
 
 const supportedLinkFormats: LinkFormatInfo[] = [
-	// 5: file content...                         [#181837]
-	//   5:3  error                               [#181837]
 	{ urlFormat: '{0}\r\n{1}:foo', line: '5' },
 	{ urlFormat: '{0}\r\n{1}: foo', line: '5' },
 	{ urlFormat: '{0}\r\n5:another link\r\n{1}:{2} foo', line: '5', column: '3' },
@@ -97,7 +81,6 @@ const supportedLinkFormats: LinkFormatInfo[] = [
 	{ urlFormat: '{0}\r\n  5:6  error  another one\r\n  {1}:{2}  error', line: '5', column: '3' },
 	{ urlFormat: `{0}\r\n  5:6  error  ${'a'.repeat(80)}\r\n  {1}:{2}  error`, line: '5', column: '3' },
 
-	// @@ ... <to-file-range> @@ content...       [#182878]   (tests check the entire line, so they don't include the line content at the end of the last @@)
 	{ urlFormat: '+++ b/{0}\r\n@@ -7,6 +{1},7 @@', line: '5' },
 	{ urlFormat: '+++ b/{0}\r\n@@ -1,1 +1,1 @@\r\nfoo\r\nbar\r\n@@ -7,6 +{1},7 @@', line: '5' },
 ];
@@ -130,7 +113,6 @@ suite('Workbench - TerminalMultiLineLinkDetector', () => {
 		const uri = resource ?? URI.file(link);
 		const lines = link.split('\r\n');
 		const lastLine = lines.at(-1)!;
-		// Count lines, accounting for wrapping
 		let lineCount = 0;
 		for (const line of lines) {
 			lineCount += Math.max(Math.ceil(line.length / 80), 1);
@@ -185,8 +167,6 @@ suite('Workbench - TerminalMultiLineLinkDetector', () => {
 		}
 	});
 
-	// Only test these when on Windows because there is special behavior around replacing separators
-	// in URI that cannot be changed
 	if (isWindows) {
 		suite('Windows', () => {
 			setup(() => {

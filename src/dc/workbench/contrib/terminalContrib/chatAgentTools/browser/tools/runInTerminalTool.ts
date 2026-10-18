@@ -10,7 +10,7 @@ import { Codicon } from '../../../../../../base/common/codicons.js';
 import { CancellationError } from '../../../../../../base/common/errors.js';
 import { Event } from '../../../../../../base/common/event.js';
 import { appendEscapedMarkdownInlineCode, escapeMarkdownSyntaxTokens, MarkdownString, type IMarkdownString } from '../../../../../../base/common/htmlContent.js';
-import { Disposable, DisposableMap, DisposableStore, IDisposable, MutableDisposable, toDisposable } from '../../../../../../base/common/lifecycle.js';
+import { Disposable, DisposableMap, DisposableStore, IDisposable, toDisposable } from '../../../../../../base/common/lifecycle.js';
 import { ResourceMap } from '../../../../../../base/common/map.js';
 import { getMediaMime } from '../../../../../../base/common/mime.js';
 import { basename, posix, win32 } from '../../../../../../base/common/path.js';
@@ -80,7 +80,6 @@ import { TerminalChatCommandId } from '../../../chat/browser/terminalChat.js';
 import { clamp } from '../../../../../../base/common/numbers.js';
 import { IOutputAnalyzer } from './outputAnalyzer.js';
 import { SandboxOutputAnalyzer, outputLooksSandboxBlocked, outputLooksSandboxNetworkBlocked } from './sandboxOutputAnalyzer.js';
-import { IAgentSessionsService } from '../../../../chat/browser/agentSessions/agentSessionsService.js';
 import { ITerminalSandboxService, TerminalSandboxPrerequisiteCheck, TerminalSandboxPreCheckRemediation, type ITerminalSandboxPrecheckInputs, type ITerminalSandboxResolvedNetworkDomains } from '../../common/terminalSandboxService.js';
 import { LanguageModelPartAudience } from '../../../../chat/common/languageModels.js';
 import { isSessionAutoApproveLevel, isTerminalAutoApproveAllowed, isToolEligibleForTerminalAutoApproval } from './terminalToolAutoApprove.js';
@@ -89,9 +88,8 @@ import { ChatElicitationRequestPart } from '../../../../chat/common/model/chatPr
 import { getSandboxPrecheckInputsForToolInvocation } from '../../../../chat/browser/tools/toolHelpers.js';
 import { compact } from './consoleCompactor/consoleCompactor.js';
 
-// #region Tool data
 
-const TERMINAL_SANDBOX_DOCUMENTATION_URL = 'https://aka.ms/vscode-sandboxing';
+const TERMINAL_SANDBOX_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/permissions/sandboxing';
 const TOOL_REFERENCE_NAME = 'runInTerminal';
 const LEGACY_TOOL_REFERENCE_FULL_NAMES = ['runCommands/runInTerminal'];
 const INPUT_NEEDED_NOTIFICATION_THROTTLE_MS = 5000;
@@ -120,8 +118,6 @@ function createPowerShellModelDescription(shell: string, sandboxingOptions: ISan
 		`This tool allows you to execute ${isWinPwsh ? 'Windows PowerShell 5.1' : 'PowerShell'} commands in a persistent terminal session, preserving environment variables, working directory, and other context across multiple commands.`,
 		'',
 		'Command Execution:',
-		// IMPORTANT: PowerShell 5 does not support `&&` so always re-write them to `;`. Note that
-		// the behavior of `&&` differs a little from `;` but in general it's fine
 		isWinPwsh ? '- Use semicolons ; to chain commands on one line, NEVER use && even when asked explicitly' : '- Prefer ; when chaining commands on one line',
 		'- Prefer pipelines | for object-based data flow',
 		'- Never create a sub-shell (eg. powershell -c "command") unless explicitly asked',
@@ -376,18 +372,7 @@ export async function createRunInTerminalToolData(
 	const configurationService = accessor.get(IConfigurationService);
 	const allowToRunUnsandboxedCommands = configurationService.getValue<boolean>(AgentSandboxSettingId.AgentSandboxAllowUnsandboxedCommands) === true;
 	const retryWithAllowNetworkRequestsSetting = configurationService.getValue<boolean>(AgentSandboxSettingId.AgentSandboxRetryWithAllowNetworkRequests) === true;
-	// Only steer the model away from interactive privilege-escalation commands when the session is
-	// (or defaults to) an auto-approving mode. In interactive mode the user can focus the terminal and
-	// type a password/UAC prompt directly (bypassing the model), which is a supported flow; in
-	// auto-approve/Bypass Approvals/Autopilot mode such prompts are cancelled since no human is
-	// available to answer them.
-	//
-	// Note: the tool description is computed once at registration, so it cannot observe the live,
-	// per-session permission level (which can change mid-session via the picker). We therefore use the
 	// best available static signals: the terminal auto-approve setting, the global auto-approve
-	// setting, and the default permission level for new sessions. Sessions switched into Bypass
-	// Approvals/Autopilot mid-session from an otherwise-interactive default are not covered by this
-	// static description.
 	const defaultPermissionLevel = configurationService.getValue<ChatPermissionLevel | undefined>(ChatConfiguration.DefaultPermissionLevel);
 	const includeElevationGuidance =
 		configurationService.getValue(TerminalChatAgentToolsSettingId.EnableAutoApprove) === true ||
@@ -483,9 +468,7 @@ export async function createRunInTerminalToolData(
 	};
 }
 
-// #endregion
 
-// #region Tool implementation
 
 const enum TerminalToolStorageKeysInternal {
 	TerminalSession = 'chat.terminalSessions'
@@ -503,9 +486,6 @@ export interface IRunInTerminalInputParams {
 	explanation: string;
 	goal: string;
 	mode?: 'sync' | 'async';
-	/**
-	 * @deprecated Use `mode` instead.
-	 */
 	isBackground?: boolean;
 	timeout?: number;
 	requestUnsandboxedExecution?: boolean;
@@ -581,7 +561,6 @@ export function shouldAutomaticallyRetryUnsandboxed(options: IAutomaticUnsandbox
 		didTimeout: options.didTimeout,
 		exitCode: options.exitCode,
 		output: options.output,
-		// Network failures are handled by shouldAutomaticallyRetryAllowNetworkInSandboxed; do not automatically leave the sandbox for them.
 		outputLooksRetryable: output => outputLooksSandboxBlocked(output) && !outputLooksSandboxNetworkBlocked(output),
 	});
 }
@@ -606,53 +585,23 @@ export function outputLooksBubblewrapHostRestricted(output: string): boolean {
 	return /bwrap:\s*No permissions to create new namespace/i.test(output.replace(/\s+/g, ' '));
 }
 
-/**
- * Interface for accessing a running terminal execution.
- * Used by tools that need to await or interact with background terminal commands.
- */
 export interface IActiveTerminalExecution {
-	/**
-	 * Promise that resolves when the terminal command completes.
-	 */
 	readonly completionPromise: Promise<ITerminalExecuteStrategyResult>;
 
-	/**
-	 * The terminal instance associated with this execution.
-	 */
 	readonly instance: ITerminalInstance;
 
-	/**
-	 * Gets the current output from the terminal.
-	 */
 	getOutput(): string;
 
-	/**
-	 * Switches this execution to background mode, if supported.
-	 */
 	setBackground?(): void;
 }
 
-/**
- * A set of characters to ignore when reporting telemetry
- */
 const telemetryIgnoredSequences = [
-	'\x1b[I', // Focus in
-	'\x1b[O', // Focus out
+	'\x1b[I',
+	'\x1b[O',
 ];
 
 const altBufferMessage = '\n' + localize('runInTerminalTool.altBufferMessage', "The command opened the alternate buffer.");
 
-/**
- * Builds the short, single-line command string used in the SYSTEM NOTIFICATION
- * label for background terminal completion (#318601). Keeps only the first line
- * of the command (stripping common escape artifacts) and appends a horizontal
- * ellipsis (`…`) when content is dropped — either because the command spans
- * multiple lines or the first line itself is longer than 80 characters.
- *
- * Multi-line commands (with blank lines) used to break the surrounding inline
- * code span; callers must additionally wrap the result with
- * {@link appendEscapedMarkdownInlineCode} when interpolating into markdown.
- */
 export function buildCompletionNotificationCommand(command: string): string {
 	const firstNewline = command.search(/\r|\n/);
 	const hasMoreLines = firstNewline !== -1;
@@ -678,42 +627,19 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 	private readonly _commandLineAnalyzers: ICommandLineAnalyzer[];
 	private readonly _commandLinePresenters: ICommandLinePresenter[];
 	private readonly _outputAnalyzers: IOutputAnalyzer[];
-	private readonly _archivedSessionListener = this._register(new MutableDisposable());
 
 	protected readonly _sessionTerminalAssociations = new ResourceMap<IToolTerminal>();
 	protected readonly _sessionTerminalInstances = new ResourceMap<Set<ITerminalInstance>>();
 	private readonly _terminalsBeingDisposedBySessionCleanup = new Set<ITerminalInstance>();
 
-	/**
-	 * Tracks active background completion notifications per terminal instance ID.
-	 * When a new notification is registered for a terminal that already has one,
-	 * the previous notification (and its OutputMonitor) is disposed first to
-	 * prevent listener accumulation on the terminal's onDidInputData emitter.
-	 *
-	 * Keyed by `ITerminalInstance.instanceId` (stable per terminal) rather than
-	 * the per-invocation `termId` so that reusing the same foreground terminal
-	 * after an `inputNeeded` race disposes the prior OutputMonitor.
-	 */
 	private readonly _backgroundNotifications = this._register(new DisposableMap<number>());
 
-	/**
-	 * Set when VS Code is shutting down. Suppresses "terminal exited"
-	 * notifications that would otherwise be generated when background
-	 * terminals are disposed during shutdown and then persist as
-	 * undeliverable steering messages after restart.
-	 */
 	private _isShuttingDown = false;
 
-	// Immutable window state
 	protected readonly _osBackend: Promise<OperatingSystem>;
 
 	private static readonly _activeExecutions = new Map<string, IActiveTerminalExecution & { dispose(): void }>();
 
-	/**
-	 * Per-instance disposables that unregister `_activeExecutions` entries from the
-	 * `ITerminalChatService` execution-id map. Keyed by the same `termId` as `_activeExecutions`
-	 * so registrations and active executions share a lifecycle.
-	 */
 	private readonly _executionRegistrations = this._register(new DisposableMap<string, IDisposable>());
 
 	private _setActiveExecution(termId: string, execution: IActiveTerminalExecution & { dispose(): void }): void {
@@ -726,12 +652,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		return RunInTerminalTool._activeExecutions.delete(termId);
 	}
 
-	/**
-	 * Terminal IDs being programmatically disposed (by `kill_terminal` or
-	 * automatic background-terminal cleanup). Used to suppress the redundant
-	 * "terminal exited" steering message in `_registerCompletionNotification`'s
-	 * `onDisposed` handler.
-	 */
 	private static readonly _killedByTool = new Set<string>();
 	public static getBackgroundOutput(id: string): string {
 		const execution = RunInTerminalTool._activeExecutions.get(id);
@@ -741,18 +661,10 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		return execution.getOutput();
 	}
 
-	/**
-	 * Gets an active terminal execution by ID. Returns undefined if not found.
-	 * Can be used to await the completion of a background terminal command.
-	 */
 	public static getExecution(id: string): IActiveTerminalExecution | undefined {
 		return RunInTerminalTool._activeExecutions.get(id);
 	}
 
-	/**
-	 * Removes an active terminal execution by ID and disposes it.
-	 * @returns true if the execution was found and removed, false otherwise.
-	 */
 	public static removeExecution(id: string): boolean {
 		const execution = RunInTerminalTool._activeExecutions.get(id);
 		if (!execution) {
@@ -763,11 +675,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		return true;
 	}
 
-	/**
-	 * Marks a terminal ID as being killed by the `kill_terminal` tool so that
-	 * the `onDisposed` handler in `_registerCompletionNotification` skips the
-	 * redundant steering message.
-	 */
 	public static markKilledByTool(id: string): void {
 		RunInTerminalTool._killedByTool.add(id);
 	}
@@ -839,13 +746,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		);
 	}
 
-	/**
-	 * Controls whether this tool wires up sandbox-specific command-line
-	 * behavior, including both the {@link CommandLineSandboxRewriter} and the
-	 * {@link CommandLineSandboxAnalyzer}. This is separate from
-	 * ITerminalSandboxService.isEnabled(), which reports the current terminal
-	 * sandboxing enablement for the running window.
-	 */
 	protected get _enableCommandLineSandboxRewriting() {
 		return true;
 	}
@@ -865,7 +765,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		@ITerminalSandboxService private readonly _terminalSandboxService: ITerminalSandboxService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@IChatWidgetService private readonly _chatWidgetService: IChatWidgetService,
-		@IAgentSessionsService private readonly _agentSessionsService: IAgentSessionsService,
 		@ILifecycleService lifecycleService: ILifecycleService,
 	) {
 		super();
@@ -890,12 +789,7 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		if (this._enableCommandLineSandboxRewriting) {
 			this._commandLineRewriters.push(this._register(this._instantiationService.createInstance(CommandLineSandboxRewriter, this._treeSitterCommandParser)));
 		}
-		// BackgroundDetachRewriter must come after SandboxRewriter so that nohup/Start-Process
-		// wraps the entire sandbox runtime, keeping both the sandbox and the child process alive
-		// through VS Code shutdown.
 		this._commandLineRewriters.push(this._register(this._instantiationService.createInstance(CommandLineBackgroundDetachRewriter)));
-		// PreventHistoryRewriter must be last so the leading space is applied to the final
-		// command, including any sandbox wrapping.
 		this._commandLineRewriters.push(this._register(this._instantiationService.createInstance(CommandLinePreventHistoryRewriter)));
 		this._commandLineAnalyzers = [
 			this._register(this._instantiationService.createInstance(CommandLineFileWriteAnalyzer, this._treeSitterCommandParser, (message, args) => this._logService.info(`RunInTerminalTool#CommandLineFileWriteAnalyzer: ${message}`, args))),
@@ -914,7 +808,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			this._register(this._instantiationService.createInstance(SandboxOutputAnalyzer)),
 		];
 
-		// Clear out warning accepted state if the setting is disabled
 		this._register(Event.runAndSubscribe(this._configurationService.onDidChangeConfiguration, e => {
 			if (!e || e.affectsConfiguration(TerminalChatAgentToolsSettingId.EnableAutoApprove)) {
 				if (this._configurationService.getValue(TerminalChatAgentToolsSettingId.EnableAutoApprove) !== true) {
@@ -923,13 +816,11 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			}
 		}));
 
-		// Restore terminal associations from storage
 		this._restoreTerminalAssociations();
 		this._register(this._terminalService.onDidDisposeInstance(e => {
 			this._removeTerminalAssociations(e);
 		}));
 
-		// Listen for chat session disposal to clean up associated terminals and temp files
 		this._register(this._chatService.onDidDisposeSession(e => {
 			for (const resource of e.sessionResources) {
 				this._cleanupSessionTerminals(resource);
@@ -968,8 +859,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			(async () => {
 				let cwd = await instance?.getCwdResource();
 				if (!cwd) {
-					// Prefer the session's working directory (agents window) over the
-					// last active workspace root, which may point to a different session's folder.
 					const sessionModel = chatSessionResource ? this._chatService.getSession(chatSessionResource) : undefined;
 					if (sessionModel?.workingDirectory) {
 						cwd = sessionModel.workingDirectory;
@@ -1008,7 +897,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				: undefined;
 
 		const terminalToolSessionId = generateUuid();
-		// Generate a custom command ID to link the command between renderer and pty host
 		const terminalCommandId = `tool-${generateUuid()}`;
 
 		if (this._shouldRejectUnsandboxedExecutionRequest(isSandboxEnabled, allowUnsandboxedCommands, args)) {
@@ -1100,8 +988,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		};
 
 		let sandboxPrerequisiteConfirmation: IToolConfirmationMessages | undefined = undefined;
-		// If sandbox dependencies are missing, show a confirmation asking the user to install them.
-		// This is handled before the tool is invoked so the model never sees the dependency error.
 		if (missingDependencies && canInstallMissingDependencies) {
 			const depsList = missingDependencies.join(', ');
 			sandboxPrerequisiteConfirmation = {
@@ -1118,8 +1004,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			};
 		}
 
-		// HACK: Exit early if there's an alternative recommendation, this is a little hacky but
-		// it's the current mechanism for re-routing terminal tool calls to something else.
 		const alternativeRecommendation = getRecommendedToolsOverRunInTerminal(args.command, this._languageModelToolsService);
 		if (alternativeRecommendation) {
 			toolSpecificData.alternativeRecommendation = alternativeRecommendation;
@@ -1129,9 +1013,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				toolSpecificData,
 			};
 		}
-		// Determine auto approval, this happens even when auto approve is off to that reasoning
-		// can be reviewed in the terminal channel. It also allows gauging the effective set of
-		// commands that would be auto approved if it were enabled.
 		const commandLine = forDisplayCommand ?? rewrittenCommand ?? args.command;
 
 		const isEligibleForAutoApproval = () => isToolEligibleForTerminalAutoApproval(TOOL_REFERENCE_NAME, this._configurationService, LEGACY_TOOL_REFERENCE_FULL_NAMES);
@@ -1151,8 +1032,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			hasSessionAutoApproval: !!chatSessionResource && this._terminalChatService.hasChatSessionAutoApproval(chatSessionResource),
 		};
 
-		// In Autopilot/Bypass Approvals modes, do not interact with terminal auto-approve rules.
-		// Commands should flow through directly based on the chat permission level.
 		const isSessionAutoApproved = chatSessionResource && isSessionAutoApproveLevel(chatSessionResource, this._configurationService, this._chatWidgetService, this._chatService);
 		const commandLineAnalyzers = isSessionAutoApproved
 			? this._commandLineAnalyzers.filter(e => !(e instanceof CommandLineAutoApproveAnalyzer))
@@ -1178,41 +1057,27 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			shellType = 'pwsh';
 		}
 
-		// Check if the command would be auto-approved based on rules (ignoring warning state)
 		const wouldBeAutoApproved = (
-			// Does at least one analyzer auto approve
 			commandLineAnalyzerResults.some(e => e.isAutoApproved) &&
-			// No analyzer denies auto approval
 			commandLineAnalyzerResults.every(e => e.isAutoApproved !== false) &&
-			// All analyzers allow auto approval
 			analyzersIsAutoApproveAllowed
 		);
 
 		const isAutoApprovedByRules = (
-			// Is the setting enabled and the user has opted-in
 			isAutoApproveAllowed &&
-			// Would be auto-approved based on rules
 			wouldBeAutoApproved
 		);
 		const isSandboxAutoApproved = isSandboxEnabled && toolSpecificData.commandLine.isSandboxWrapped === true && !requiresAllowNetworkConfirmation && this._allowSandboxAutoApprove;
 		const isFinalAutoApproved = isSandboxAutoApproved || isAutoApprovedByRules || commandLineAnalyzerResults.some(e => e.forceAutoApproval);
 
-		// Pass auto approve info if the command:
-		// - Was auto approved
-		// - Would have be auto approved, but the opt-in warning was not accepted
-		// - Was denied explicitly by a rule
-		//
-		// This allows surfacing this information to the user.
 		if (isFinalAutoApproved || (isAutoApproveEnabled && commandLineAnalyzerResults.some(e => e.autoApproveInfo))) {
 			toolSpecificData.autoApproveInfo = commandLineAnalyzerResults.find(e => e.autoApproveInfo)?.autoApproveInfo;
 		}
 
-		// Extract cd prefix for display - show directory in title, command suffix in editor
 		const commandToDisplay = (toolSpecificData.commandLine.forDisplay ?? toolSpecificData.commandLine.userEdited ?? toolSpecificData.commandLine.toolEdited ?? toolSpecificData.commandLine.original).trimStart();
 		const extractedCd = extractCdPrefix(commandToDisplay, shell, os);
 		let confirmationTitle: string;
 		if (extractedCd && cwd) {
-			// Construct the full directory path using the cwd's scheme/authority
 			const isAbsolutePath = os === OperatingSystem.Windows
 				? win32.isAbsolute(extractedCd.directory)
 				: posix.isAbsolute(extractedCd.directory);
@@ -1236,8 +1101,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			confirmationTitle = localize('runInTerminal', "Run `{0}` command?", shellType);
 		}
 
-		// Check for presentation overrides (e.g., Python -c command extraction)
-		// Use the command after cd prefix extraction if available, since that's what's displayed in the editor
 		const commandForPresenter = extractedCd?.command ?? commandToDisplay;
 		let presenterInput = commandForPresenter;
 		for (const presenter of this._commandLinePresenters) {
@@ -1275,7 +1138,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			confirmationTitle = localize('runInTerminal.allowNetwork', "Allow {0} command to access the network?", shellType);
 		}
 
-		// If forceConfirmationReason is set, always show confirmation regardless of auto-approval
 		const shouldShowConfirmation = (!isFinalAutoApproved && (!isSessionAutoApproved || requiresAllowNetworkConfirmation)) || context.forceConfirmationReason !== undefined;
 		const explanation = args.explanation || localize('runInTerminal.defaultExplanation', "No explanation provided");
 		const goal = args.goal || localize('runInTerminal.defaultGoal', "No goal provided");
@@ -1434,7 +1296,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		if (!(chatModel instanceof ChatModel)) {
 			return false;
 		}
-		// In Autopilot/Bypass Approvals modes, follow the picker
 		if (sessionResource && isSessionAutoApproveLevel(sessionResource, this._configurationService, this._chatWidgetService, this._chatService)) {
 			return true;
 		}
@@ -1509,17 +1370,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			: new MarkdownString(localize('runInTerminal.unsandboxed.autoRetry', "Run `{0}` command outside the sandbox?", shellType));
 	}
 
-	/**
-	 * Surface a confirmation dialog when the terminal is detected to be waiting
-	 * for sensitive input (password, passphrase, OTP, …). Sensitive prompts must
-	 * never be routed through the model — the user types the secret directly
-	 * into the terminal. The "Focus terminal" action reveals and focuses the
-	 * terminal; the "Cancel" action cancels the running command.
-	 *
-	 * Returns a disposable that hides any pending elicitation. The handler
-	 * itself dedupes concurrent elicitations so repeated polling cycles don't
-	 * spam the chat session.
-	 */
 	private _registerSensitiveInputElicitation(
 		chatSessionResource: URI | undefined,
 		terminalInstance: ITerminalInstance,
@@ -1538,13 +1388,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			const isAutoApproved = chatSessionResource && isSessionAutoApproveLevel(chatSessionResource, this._configurationService, this._chatWidgetService, this._chatService);
 			const chatModel = chatSessionResource && this._chatService.getSession(chatSessionResource);
 			if (isAutoApproved) {
-				// Autopilot / auto-approve: no human is in the loop to type the
-				// secret, and the terminal can't reliably be focused after the
-				// tool returns. Cancel the command and let the caller emit a
-				// steering note that tells the agent the user is unavailable.
-				// We also surface a small dismiss-only chat part so the user
-				// can see what happened even if the agent doesn't follow up
-				// with a message of its own.
 				autoCancelled = true;
 				if (chatModel instanceof ChatModel) {
 					const request = chatModel.getRequests().at(-1);
@@ -1570,8 +1413,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				return;
 			}
 			if (!(chatModel instanceof ChatModel)) {
-				// No chat surface to attach to — fall back to focusing the
-				// terminal directly so the user is at least not left blocked.
 				this._terminalService.setActiveInstance(terminalInstance);
 				this._terminalService.revealTerminal(terminalInstance, true).catch(() => { });
 				terminalInstance.focus();
@@ -1614,10 +1455,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 
 			pending = part;
 			chatModel.acceptResponseProgress(request, part);
-			// Intentionally do NOT register a disposable that hides the part on store
-			// dispose: the elicitation must persist past the tool call returning so the
-			// user can still focus the terminal (and type their secret) after the
-			// agent has surrendered its turn. The part hides itself on accept/reject.
 		}));
 
 		return store;
@@ -1800,11 +1637,8 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			};
 		}
 
-		// Handle missing sandbox dependencies install flow.
-		// The user was shown a confirmation window in prepareToolInvocation.
 		if (toolSpecificData.missingSandboxDependencies?.length) {
 			if (invocation.selectedCustomButton === 'install') {
-				// Install dependencies, focus terminal for sudo password, wait for completion
 				const sessionResource = invocation.context.sessionResource;
 				const { exitCode } = await this._terminalSandboxService.installMissingSandboxDependencies(toolSpecificData.missingSandboxDependencies, sessionResource, token, sandboxPrerequisiteTerminalOptions);
 				if (exitCode !== undefined && exitCode !== 0) {
@@ -1854,7 +1688,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					}],
 				};
 			} else {
-				// User chose to cancel — do not run the command
 				this._logService.info('RunInTerminalTool: User cancelled sandbox dependency installation');
 				return {
 					content: [{
@@ -1893,17 +1726,10 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			};
 		}
 		if (executionOptions.mode === 'sync' && args.timeout === undefined) {
-			// Timeout is optional for mode=sync: when omitted, the tool waits for
-			// the command to complete with no hard cap. Models frequently pick
-			// timeouts that are too short for package installs, builds, and
-			// long-running scripts, which causes the command to be moved to the
-			// background unnecessarily.
 			args.timeout = 0;
 		}
 
 		const chatSessionResource = invocation.context.sessionResource;
-		// Subagent-initiated terminals cannot receive steering messages; the subagent
-		// runs in its own tool-calling loop and should poll with get_terminal_output.
 		const shouldSendNotifications = !invocation.subAgentInvocationId;
 		const command = toolSpecificData.commandLine.userEdited ?? toolSpecificData.commandLine.toolEdited ?? toolSpecificData.commandLine.original;
 		const didUserEditCommand = (
@@ -1914,9 +1740,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			!didUserEditCommand &&
 			toolSpecificData.commandLine.toolEdited !== undefined &&
 			toolSpecificData.commandLine.toolEdited !== toolSpecificData.commandLine.original &&
-			// Only consider it a meaningful edit if the display form also differs from the
-			// original. Cosmetic rewrites like prepending a space to prevent shell history
-			// should not trigger the "tool simplified the command" note.
 			normalizeTerminalCommandForDisplay(toolSpecificData.commandLine.toolEdited).trim() !== normalizeTerminalCommandForDisplay(toolSpecificData.commandLine.original).trim()
 		);
 
@@ -1959,7 +1782,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 
 		const store = new DisposableStore();
 
-		// Unified terminal initialization
 		this._logService.debug(`RunInTerminalTool: Creating ${executionOptions.persistentSession ? 'background' : 'foreground'} terminal. termId=${termId}, chatSessionResource=${chatSessionResource}`);
 		const toolTerminal = await this._initTerminal(chatSessionResource, termId, terminalToolSessionId, executionOptions.persistentSession, token);
 
@@ -1983,7 +1805,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			inputUserSigint ||= data === '\x03';
 		}));
 
-		// Unified execution: always use execute strategy for both background and foreground
 		let terminalResult = '';
 		let outputLineCount = -1;
 		let exitCode: number | undefined;
@@ -1992,8 +1813,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		let didIdleSilence = false;
 		let didInputNeeded = false;
 		let didSensitiveAutoCancelled = false;
-		// Covers both terminals that start as background (persistentSession) and
-		// foreground terminals that later move to background (timeout/continue-in-bg).
 		let isBackgroundExecution = executionOptions.persistentSession;
 		let timeoutPromise: CancelablePromise<void> | undefined;
 		let timeoutRacePromise: Promise<{ type: 'timeout' }> | undefined;
@@ -2001,7 +1820,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		let pollingResult: IPollingResult & { pollDurationMs: number } | undefined;
 		const executeCancellation = store.add(new CancellationTokenSource(token));
 
-		// Set up timeout for both sync (completion) and async (idle) wait strategies.
 		const timeoutValue = args.timeout !== undefined ? clamp(args.timeout, 0, Number.MAX_SAFE_INTEGER) : undefined;
 		if (timeoutValue !== undefined && timeoutValue > 0) {
 			const shouldEnforceTimeout = executionOptions.waitStrategy === 'idle' || this._configurationService.getValue(TerminalChatAgentToolsSettingId.EnforceTimeoutFromModel) === true;
@@ -2013,8 +1831,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			}
 		}
 
-		// Set up continue in background listener - uses a race promise instead of cancellation
-		// to allow the execution strategy to continue running and preserve its marker
 		let continueInBackgroundResolve: (() => void) | undefined;
 		const continueInBackgroundPromise = new Promise<void>(resolve => {
 			continueInBackgroundResolve = resolve;
@@ -2025,8 +1841,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					const execution = RunInTerminalTool._activeExecutions.get(termId);
 					execution?.setBackground?.();
 					isBackgroundExecution = true;
-					// Resolve the race promise instead of cancelling - this allows the execution
-					// to continue running so it can be awaited later
 					continueInBackgroundResolve?.();
 				}
 			}));
@@ -2034,7 +1848,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 
 		let executionPromise: Promise<ITerminalExecuteStrategyResult> | undefined;
 		try {
-			// Create unified ActiveTerminalExecution (creates and owns the strategy)
 			const execution = this._instantiationService.createInstance(
 				ActiveTerminalExecution,
 				chatSessionResource,
@@ -2047,7 +1860,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			store.add(execution);
 			this._setActiveExecution(termId, execution);
 
-			// Set up OutputMonitor when start marker is created
 			const startMarkerPromise = Event.toPromise(execution.strategy.onDidCreateStartMarker);
 			const outputMonitorPollFn = executionOptions.persistentSession
 				? async (executionForPoll: { getOutput: () => string }): Promise<IPollingResult | undefined> => ({
@@ -2072,7 +1884,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				}
 			}));
 
-			// Start execution (non-blocking - runs in background)
 			executionPromise = execution.start(command, executeCancellation.token, commandId, commandLineForMetadata);
 
 			if (executionOptions.waitStrategy === 'idle') {
@@ -2151,23 +1962,7 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					}],
 				};
 			} else {
-				// Foreground mode: race execution completion against continue in background.
-				// Also race on output monitor input-needed so that interactive prompts
-				// return output to the agent early instead of waiting for timeout.
 				const raceCleanup = new DisposableStore();
-				// Sensitive prompts (passwords, OTPs, …) must never reach the model.
-				// Show a confirmation dialog that focuses the terminal so the user
-				// types the secret directly. The race is *not* resolved by sensitive
-				// prompts — the running command keeps waiting for user input until
-				// either it completes (executionPromise wins) or the user cancels
-				// it from the dialog (which cancels execution and also makes
-				// executionPromise resolve). This means we never hand a secret
-				// prompt back to the model; the user is always in control.
-				//
-				// outputMonitor is created later inside `onDidCreateStartMarker`,
-				// so we must wait on `startMarkerPromise` before registering the
-				// listener — otherwise outputMonitor is still undefined here and
-				// the sensitive event never reaches us.
 				startMarkerPromise.then(() => {
 					if (outputMonitor && !raceCleanup.isDisposed) {
 						raceCleanup.add(this._registerSensitiveInputElicitation(
@@ -2193,10 +1988,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				if (timeoutRacePromise) {
 					raceCandidates.push(timeoutRacePromise);
 				}
-				// Idle-silence promotion: if no terminal output arrives for N ms,
-				// hand control back to the model with the terminal ID + output
-				// collected so far. The process keeps running — model can poll,
-				// send input, or kill it. Default 5 min; 0 disables.
 				const idleSilenceMs = this._configurationService.getValue<number>(TerminalChatAgentToolsSettingId.IdleSilenceTimeoutMs) ?? DEFAULT_IDLE_SILENCE_TIMEOUT_MS;
 				if (idleSilenceMs > 0) {
 					const idleSilenceDeferred = new DeferredPromise<{ type: 'idleSilence' }>();
@@ -2213,28 +2004,19 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				}
 
 				if (raceResult.type === 'inputNeeded') {
-					// Output monitor detected the terminal is waiting for input.
-					// Return output to the agent so it can provide input via
-					// send_to_terminal. The terminal stays foreground so it is
-					// reused by subsequent run_in_terminal calls in this session.
 					this._logService.debug(`RunInTerminalTool: Output monitor detected input needed in foreground terminal, returning output to agent`);
 					error = 'inputNeeded';
 					didInputNeeded = true;
-					// Read output directly from the execution rather than from pollingResult,
-					// because the output monitor may not have set pollingResult yet at this point
-					// (it is written in the finally block after onDidFinishCommand).
 					const idleOutput = execution.getOutput();
 					outputLineCount = idleOutput ? count(idleOutput.trim(), '\n') + 1 : 0;
 					terminalResult = idleOutput ?? '';
 				} else if (raceResult.type === 'background') {
-					// Moved to background - execution continues running, just return current output
 					this._logService.debug(`RunInTerminalTool: Continue in background triggered, returning output collected so far`);
 					error = 'continueInBackground';
 					const backgroundOutput = execution.getOutput();
 					outputLineCount = backgroundOutput ? count(backgroundOutput.trim(), '\n') + 1 : 0;
 					terminalResult = backgroundOutput;
 				} else if (raceResult.type === 'timeout') {
-					// Timeout reached - return partial output and keep terminal alive as background.
 					this._logService.debug(`RunInTerminalTool: Timeout reached, returning output collected so far`);
 					error = 'timeout';
 					didTimeout = true;
@@ -2247,7 +2029,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					outputLineCount = timeoutOutput ? count(timeoutOutput.trim(), '\n') + 1 : 0;
 					terminalResult = timeoutOutput ?? '';
 				} else if (raceResult.type === 'idleSilence') {
-					// No output for N ms - promote to background and hand back to model. Process keeps running.
 					this._logService.debug(`RunInTerminalTool: Idle silence reached (${idleSilenceMs}ms), promoting to background`);
 					error = 'idleSilence';
 					didIdleSilence = true;
@@ -2261,7 +2042,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					terminalResult = idleSilenceOutput ?? '';
 				} else {
 					const executeResult = raceResult.result;
-					// Reset user input state after command execution completes
 					toolTerminal.receivedUserInput = false;
 					if (token.isCancellationRequested) {
 						throw new CancellationError();
@@ -2319,7 +2099,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				}
 			}
 		} catch (e) {
-			// Handle timeout case - get output collected so far and return it
 			if (didTimeout && e instanceof CancellationError) {
 				this._logService.debug(`RunInTerminalTool: Timeout reached, returning output collected so far`);
 				error = 'timeout';
@@ -2332,11 +2111,8 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				terminalResult = timeoutOutput ?? '';
 			} else {
 				this._logService.debug(`RunInTerminalTool: Threw exception`);
-				// Capture output snapshot before disposing on cancellation
 				if (e instanceof CancellationError) {
 					await this._commandArtifactCollector.capture(toolSpecificData, toolTerminal.instance, commandId);
-					// Mark the command as cancelled if it hasn't finished yet
-					// This ensures the decoration shows a failure icon instead of running
 					const state = toolSpecificData.terminalCommandState ?? {};
 					if (state.exitCode === undefined) {
 						state.exitCode = -1;
@@ -2345,7 +2121,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					}
 					toolSpecificData.terminalCommandState = state;
 				}
-				// Clean up the execution on error
 				RunInTerminalTool._activeExecutions.get(termId)?.dispose();
 				this._deleteActiveExecution(termId);
 				toolTerminal.instance.dispose();
@@ -2355,28 +2130,18 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		} finally {
 			timeoutPromise?.cancel();
 			if ((isBackgroundExecution || didInputNeeded) && executionPromise) {
-				// Background terminal (started as bg or moved to bg) or foreground
-				// terminal waiting for input - attach error handler since we won't await it.
 				executionPromise.catch((e: unknown) => {
 					if (!(e instanceof CancellationError)) {
 						this._logService.error(`RunInTerminalTool: Background execution error`, e);
 					}
 				});
-				// Register a listener to notify the agent when commands complete in this
-				// background terminal, and continue the output monitor for prompt-for-input detection.
 				if (shouldSendNotifications) {
-					// If the foreground tool just returned via the inputNeeded race, the
-					// agent has already received `terminalResult` as the tool result. Seed
-					// the BG dedup so the OutputMonitor's immediate re-detection of the
-					// same prompt does not send a redundant steering message that would
-					// yield the agent's in-flight `send_to_terminal` response.
 					const alreadyNotifiedInputNeededOutput = didInputNeeded ? terminalResult : undefined;
 					this._registerCompletionNotification(toolTerminal.instance, termId, chatSessionResource, command, toolSpecificData, outputMonitor, alreadyNotifiedInputNeededOutput);
 				} else {
 					outputMonitor?.dispose();
 				}
 			} else {
-				// Foreground completed or error - clean up execution and output monitor
 				RunInTerminalTool._activeExecutions.get(termId)?.dispose();
 				this._deleteActiveExecution(termId);
 				outputMonitor?.dispose();
@@ -2465,12 +2230,10 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			}
 		}
 
-		// Re-check shell integration quality now that command execution has completed.
-		// Only set the banner if toolResultMessage hasn't already been set (e.g. by the alt-buffer path).
 		this._terminalToolCreator.refreshShellIntegrationQuality(toolTerminal);
 		this._logService.info(`RunInTerminalTool: shellIntegrationQuality=${toolTerminal.shellIntegrationQuality} at banner decision time`);
 		if (!toolResultMessage && toolTerminal.shellIntegrationQuality === ShellIntegrationQuality.None) {
-			toolResultMessage = '$(info) Enable [shell integration](https://code.visualstudio.com/docs/terminal/shell-integration) to improve command detection';
+			toolResultMessage = '$(info) Enable [shell integration](https://www.dardcor-code.web.id/docs/terminal/shell-integration) to improve command detection';
 		}
 
 		const resultText: string[] = [];
@@ -2478,9 +2241,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			if (didUserEditCommand) {
 				resultText.push(`Note: The user manually edited the command to \`${command}\` (terminal ID=${termId}), and this is the output of running that command instead:\n`);
 			} else if (didToolEditCommand) {
-				// If the tool wrapped the command with `nohup` (POSIX) or `Start-Process`
-				// (Windows) to detach a background process, stdin is no longer connected.
-				// Tell the model so it does not try to drive interactive programs through it.
 				const wasDetachedToBackground = /(^|\s)nohup\s|Start-Process\b/.test(command);
 				const stdinHint = wasDetachedToBackground
 					? ' Note that stdin is closed for detached background processes; do not try to send input via send_to_terminal — re-run with mode="sync" instead if interactive input is required.'
@@ -2523,7 +2283,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				this._telemetry.logCompactionFailed();
 			}
 		}
-		// Process large output: write to file if needed, then truncate with file path
 		const processedOutput = await this._largeOutputFileWriter.processOutput(outputForResult);
 		resultText.push(processedOutput);
 
@@ -2591,34 +2350,11 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		};
 	}
 
-	/**
-	 * Builds the steering text the model sees when the terminal tool suspects
-	 * the command may be waiting for input. The heuristic that triggers this
-	 * note can false-positive on long-running compute commands or shells sitting
-	 * on a secondary prompt (e.g. heredoc continuation `> `), so the text
-	 * explicitly:
-	 *   1. Tells the model this note is NOT a signal to end the turn.
-	 *   2. In auto-approve mode, leads with `send_to_terminal` for non-secret
-	 *      prompts to minimize round-trips, with a `get_terminal_output` fallback.
-	 *   3. In default mode, leads with `get_terminal_output` as the safe
-	 *      recovery action and offers `vscode_askQuestions` only for real
-	 *      non-secret prompts. Secret prompts (passwords, passphrases,
-	 *      tokens) must never be routed through `vscode_askQuestions`
-	 *      because answers to that tool are sent through the model — the
-	 *      user is told to type those values directly into the terminal.
-	 * `kill_terminal` is only advertised when the command may be hung
-	 * (`'timeout'` or `'idleSilence'`) — suggesting it in the general case
-	 * leads the model to terminate valid interactive sessions (e.g.
-	 * `npm init`) instead of driving them.
-	 */
 	private _buildInputNeededSteeringText(chatSessionResource: URI, termId: string, hungHint: 'none' | 'timeout' | 'idleSilence'): string {
 		const isAutoApproved = isSessionAutoApproveLevel(chatSessionResource, this._configurationService, this._chatWidgetService, this._chatService);
 		const lines: string[] = [];
 		lines.push(`This note is not a signal to end the turn — pick one of the actions below and continue.`);
 		if (isAutoApproved) {
-			// In auto-approve mode, prioritize direct action to minimize round-trips.
-			// askQuestions auto-responds in autopilot, so secret prompts should not be
-			// routed there — the model should skip secrets it cannot answer.
 			lines.push(`  1. If the output clearly ends with a non-secret input prompt (Continue? (y/n), Enter selection, etc. — a normal shell prompt like \`$\` or \`#\` does NOT count), determine the answer and immediately call ${TerminalToolId.SendToTerminal} with id="${termId}" (which returns the next few lines of output). Repeat one prompt at a time. Never guess passwords, passphrases, tokens, or other secrets — if the prompt requires a secret you do not have, inform the user and stop.`);
 			lines.push(`  2. If the command may still be producing output or the shell prompt has not returned, call ${TerminalToolId.GetTerminalOutput} with id="${termId}" to continue polling.`);
 		} else {
@@ -2646,15 +2382,7 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 
 	private static readonly _maxImageFileSize = 5 * 1024 * 1024;
 
-	/**
-	 * Scans terminal output for file paths that point to images and reads them.
-	 * Returns data content parts for any found images that exist on disk.
-	 */
 	private async _extractImagesFromOutput(output: string, cwd: URI | undefined): Promise<IToolResult['content']> {
-		// Match paths containing at least one / or \ and ending with an image
-		// extension. Each atom uses [^\s/\\]* so it cannot consume separators,
-		// which keeps the [/\\] tokens unambiguous and prevents catastrophic
-		// backtracking on long strings.
 		const pathPattern = /[^\s/\\]*(?:[/\\][^\s/\\]*)+\.(?:png|jpe?g|gif|webp|bmp)/gi;
 
 		const matches = new Set<string>();
@@ -2679,7 +2407,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					continue;
 				}
 
-				// Resolve the URI - check for absolute path (Unix / or Windows drive letter)
 				let fileUri: URI;
 				if (/^\/|^[A-Za-z]:[\\\/]/.test(filePath)) {
 					fileUri = URI.file(filePath);
@@ -2704,7 +2431,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					audience: [LanguageModelPartAudience.User],
 				});
 			} catch {
-				// Ignore files that can't be read
 			}
 		}
 
@@ -2713,30 +2439,17 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 
 	private _handleTerminalVisibility(toolTerminal: IToolTerminal, chatSessionResource: URI) {
 		const chatSessionOpenInWidget = !!this._chatWidgetService.getWidgetBySessionResource(chatSessionResource);
-		if (this._configurationService.getValue(TerminalChatAgentToolsSettingId.OutputLocation) === 'terminal' && chatSessionOpenInWidget) {
+		if (!toolTerminal.isBackground && this._configurationService.getValue(TerminalChatAgentToolsSettingId.OutputLocation) === 'terminal' && chatSessionOpenInWidget) {
 			this._terminalService.setActiveInstance(toolTerminal.instance);
 			this._terminalService.revealTerminal(toolTerminal.instance, true);
 		}
 	}
 
-	// #region Terminal init
 
-	/**
-	 * Initializes a terminal for command execution. For foreground mode, reuses existing cached
-	 * terminal from the session. For background mode, always creates a new terminal to allow
-	 * parallel execution.
-	 */
 	private async _initTerminal(chatSessionResource: URI, termId: string, terminalToolSessionId: string | undefined, isBackground: boolean, token: CancellationToken): Promise<IToolTerminal> {
-		// For foreground mode, try to reuse cached terminal (but not if it was a background terminal)
 		if (!isBackground) {
 			const cachedTerminal = this._sessionTerminalAssociations.get(chatSessionResource);
 			if (cachedTerminal && !cachedTerminal.isBackground && !cachedTerminal.instance.isDisposed) {
-				// When the shell process has already exited (e.g. `set -e` killed the
-				// login shell on a previous command failure), reusing the terminal would
-				// cause the execute strategy to hit its early-out check and return the
-				// stale exit code instead of running the new command. Discard the dead
-				// terminal and create a fresh one so the next command starts in a live
-				// shell.
 				if (cachedTerminal.instance.exitCode !== undefined) {
 					this._logService.info(`RunInTerminalTool: Cached terminal shell has exited (code=${cachedTerminal.instance.exitCode}), creating a new terminal`);
 					this._sessionTerminalAssociations.delete(chatSessionResource);
@@ -2744,9 +2457,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 					this._logService.debug(`RunInTerminalTool: Using cached terminal with session resource \`${chatSessionResource}\``);
 					this._terminalToolCreator.refreshShellIntegrationQuality(cachedTerminal);
 					this._terminalChatService.registerTerminalInstanceWithToolSession(terminalToolSessionId, cachedTerminal.instance);
-					// Dispose any previous background notification (e.g. from an earlier
-					// `inputNeeded` race that left an OutputMonitor attached) before reusing
-					// this terminal, so its listeners don't accumulate across invocations.
 					this._backgroundNotifications.deleteAndDispose(cachedTerminal.instance.instanceId);
 					return cachedTerminal;
 				}
@@ -2780,21 +2490,17 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 	}
 
 
-	// #endregion
 
-	// #region Session management
 
 	private _restoreTerminalAssociations(): void {
 		const storedAssociations = this._storageService.get(TerminalToolStorageKeysInternal.TerminalSession, StorageScope.WORKSPACE, '{}');
 		try {
 			const associations: Record<number, IStoredTerminalAssociation> = JSON.parse(storedAssociations);
 
-			// Find existing terminals and associate them with sessions
 			for (const instance of this._terminalService.instances) {
 				if (instance.processId) {
 					const association = associations[instance.processId];
 					if (association) {
-						// Convert stored string ID to URI for backward compatibility
 						const chatSessionResource = LocalChatSessionUri.forSession(association.sessionId);
 						this._logService.debug(`RunInTerminalTool: Restored terminal association for PID ${instance.processId}, session ${association.sessionId}`);
 						const toolTerminal: IToolTerminal = {
@@ -2808,7 +2514,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 							this._setActiveExecution(association.id, this._register(new RestoredTerminalExecution(instance)));
 						}
 
-						// Listen for terminal disposal to clean up storage
 						Event.once(instance.onDisposed)(() => {
 							this._removeProcessIdAssociation(instance.processId!);
 							this._removeExecutionAssociations(instance);
@@ -2832,7 +2537,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 
 	private async _associateProcessIdWithSession(terminal: ITerminalInstance, chatSessionResource: URI, id: string, shellIntegrationQuality: ShellIntegrationQuality, isBackground?: boolean): Promise<void> {
 		try {
-			// Wait for process ID with timeout
 			const pid = await Promise.race([
 				terminal.processReady.then(() => terminal.processId),
 				timeout(5000).then(() => { throw new Error('Timeout'); })
@@ -2842,7 +2546,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				const storedAssociations = this._storageService.get(TerminalToolStorageKeysInternal.TerminalSession, StorageScope.WORKSPACE, '{}');
 				const associations: Record<number, IStoredTerminalAssociation> = JSON.parse(storedAssociations);
 
-				// Convert URI to string ID for storage (backward compatibility)
 				const sessionId = chatSessionResourceToId(chatSessionResource);
 				const existingAssociation = associations[pid] || {};
 				associations[pid] = {
@@ -2891,26 +2594,17 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		this._sessionTerminalInstances.delete(chatSessionResource);
 
 		for (const terminal of terminalsToDispose) {
-			// Only dispose if the terminal is still hidden from the user. Once
-			// the user reveals it (via the terminal panel or the outputLocation
-			// setting), it joins foregroundInstances and should persist so they
-			// can inspect/interact with it. Also preserve terminals when the user
-			// explicitly configured outputLocation=terminal, since these are
-			// intended to remain available outside of chat session lifetime.
 			if (this._terminalService.foregroundInstances.includes(terminal) || shouldPreserveTerminalsForOutputLocation) {
 				this._logService.debug(`RunInTerminalTool: Skipping disposal of preserved terminal ${terminal.instanceId} for session ${chatSessionResource}`);
 				continue;
 			}
-			// Skip redundant map walks in onDidDispose since this session has already been removed.
 			this._terminalsBeingDisposedBySessionCleanup.add(terminal);
 			terminal.dispose();
 		}
 
-		// Clean up any active executions associated with this session
 		const terminalToRemove: string[] = [];
 		for (const [termId, execution] of RunInTerminalTool._activeExecutions.entries()) {
 			if (terminalsToDispose.has(execution.instance)) {
-				// Skip active executions for terminals that were preserved above.
 				if (this._terminalService.foregroundInstances.includes(execution.instance) || shouldPreserveTerminalsForOutputLocation) {
 					continue;
 				}
@@ -2924,7 +2618,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 	}
 
 	private _addSessionTerminalAssociation(chatSessionResource: URI, toolTerminal: IToolTerminal): void {
-		this._ensureArchivedSessionListener();
 
 		let sessionTerminals = this._sessionTerminalInstances.get(chatSessionResource);
 		if (!sessionTerminals) {
@@ -2936,20 +2629,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		if (!toolTerminal.isBackground) {
 			this._sessionTerminalAssociations.set(chatSessionResource, toolTerminal);
 		}
-	}
-
-	private _ensureArchivedSessionListener(): void {
-		if (this._archivedSessionListener.value) {
-			return;
-		}
-
-		// Archiving a session does not fire onDidDisposeSession, but we still need to dispose
-		// any terminals associated with the archived session to avoid process accumulation.
-		this._archivedSessionListener.value = this._agentSessionsService.onDidChangeSessionArchivedState(session => {
-			if (session.isArchived()) {
-				this._cleanupSessionTerminals(session.resource);
-			}
-		});
 	}
 
 	private _removeTerminalAssociations(terminal: ITerminalInstance): void {
@@ -2989,19 +2668,7 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		}
 	}
 
-	/**
-	 * Registers a listener for command completion on a background terminal.
-	 * When a command finishes, sends a steering message to the chat session
-	 * so the agent is notified on its next turn.
-	 *
-	 * If an output monitor is provided, it is continued in background mode
-	 * to detect prompts-for-input while the terminal runs in the background.
-	 * The output monitor is cancelled and disposed when a command finishes.
-	 */
 	private _registerCompletionNotification(terminalInstance: ITerminalInstance, termId: string, chatSessionResource: URI, commandName: string, toolSpecificData: IChatTerminalToolInvocationData, outputMonitor?: OutputMonitor, alreadyNotifiedInputNeededOutput?: string): void {
-		// Dispose any previous background notification for this terminal instance to prevent
-		// listener accumulation (e.g. multiple onDidInputData subscriptions) when the same
-		// foreground terminal is reused across run_in_terminal invocations.
 		const notificationKey = terminalInstance.instanceId;
 		this._backgroundNotifications.deleteAndDispose(notificationKey);
 
@@ -3011,13 +2678,8 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			return;
 		}
 
-		// Build a single-line, safely-fenced inline code representation of the
-		// command for use in the system notification label (#318601).
 		const commandDisplay = appendEscapedMarkdownInlineCode(buildCompletionNotificationCommand(commandName));
 
-		// Acquire a reference to the ChatModel so it stays alive while we wait
-		// for the background terminal to complete. Without this, the model can
-		// be disposed if the user navigates away, and sendRequest would throw.
 		const sessionRef = this._chatService.acquireExistingSession(chatSessionResource, 'RunInTerminalTool#completionNotification');
 		if (!sessionRef) {
 			this._logService.warn(`RunInTerminalTool: Cannot register completion notification for terminal ${termId} - session already disposed`);
@@ -3025,12 +2687,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			return;
 		}
 
-		// Capture agent/model/mode/tools so the notification resumes the same
-		// agent context that started the background terminal command. The
-		// notification message starts a full agent turn, so it must run on a
-		// real conversation model — a weaker utility model cannot reliably
-		// assess the command output or continue the agentic tool loop, which
-		// left the agent silent after a backgrounded command finished.
 		const lastRequest = sessionRef.object.lastRequest;
 		const sendOptions: { userSelectedModelId?: string; modeInfo?: IChatRequestModeInfo; userSelectedTools?: IObservable<UserSelectedTools>; agentIdSilent?: string } = {};
 		if (lastRequest) {
@@ -3042,20 +2698,12 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			}
 		}
 
-		// Continue the output monitor in background mode for prompt-for-input detection.
-		// The monitor wakes only on new terminal data (not on a fixed interval), so
-		// resource cost is proportional to actual terminal activity.
 		const store = new DisposableStore();
 
-		// Track whether the user has started replying to terminal prompts directly.
-		// Once set, all future input-needed notifications are suppressed so the agent
-		// stops asking questions and lets the user finish interacting with the terminal.
 		let userIsReplyingDirectly = false;
 
 		const disposeNotification = () => this._backgroundNotifications.deleteAndDispose(notificationKey);
 
-		// If the user manually stopped the agent, suppress background
-		// steering requests and tear down the notification listeners.
 		const handleSessionCancelled = (): boolean => {
 			if (sessionRef.object.lastRequest?.response?.isCanceled) {
 				disposeNotification();
@@ -3064,9 +2712,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			return false;
 		};
 
-		// Proactively detect session cancellation so that all background
-		// listeners are torn down immediately, rather than waiting for the
-		// next terminal event to fire and discover the cancelled state.
 		store.add(autorun(reader => {
 			const request = sessionRef.object.lastRequestObs.read(reader);
 			if (!request?.response) {
@@ -3080,31 +2725,16 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		}));
 
 		if (outputMonitor) {
-			// Seed dedup state so that if this BG monitor was started right after the
-			// foreground tool returned via the `inputNeeded` race, the immediate
-			// re-detection of the same prompt does not produce a redundant steering
-			// message. The agent has already received that output as the tool result
-			// and is in the middle of producing a `send_to_terminal` response —
-			// firing a steering message here would set `yieldRequested` and abort
-			// that in-flight response, leaving the terminal hung at the prompt.
-			// Subsequent firings require new terminal data and therefore a different
-			// `currentOutput`, so they will pass the dedup check normally.
 			let lastInputNeededOutput = alreadyNotifiedInputNeededOutput ?? '';
 			let lastInputNeededNotificationTime = alreadyNotifiedInputNeededOutput !== undefined ? Date.now() : 0;
 			const bgCts = new CancellationTokenSource();
 			store.add(toDisposable(() => {
-				// Cancel before dispose so that onCancellationRequested handlers fire
-				// and pending promises (e.g. _waitForNewData) resolve properly.
 				bgCts.cancel();
 				bgCts.dispose();
 			}));
 			store.add(outputMonitor);
 			outputMonitor.continueMonitoringAsync(bgCts.token);
 
-			// Sensitive prompts (passwords, OTPs, …) detected while the command runs
-			// in the background must not generate a steering message — the secret
-			// must never reach the model. Show a confirmation dialog that focuses
-			// the terminal so the user can type the secret directly.
 			store.add(this._registerSensitiveInputElicitation(
 				chatSessionResource,
 				terminalInstance,
@@ -3115,21 +2745,12 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				},
 			));
 
-			// When the output monitor detects the terminal is waiting for input,
-			// send a steering message so the agent handles it via send_to_terminal.
 			store.add(outputMonitor.onDidDetectInputNeeded(() => {
 				if (userIsReplyingDirectly) {
 					this._logService.debug(`RunInTerminalTool: Suppressing input-needed notification for terminal ${termId} because user is replying directly`);
 					return;
 				}
 
-				// If the terminal has been disposed (e.g. the user closed it), the
-				// buffered output may still match an input-required pattern (for
-				// example, a pager prompt left in the scrollback). Sending an
-				// input-needed steering message in that case produces a spurious
-				// chat/tool turn even though there's no live terminal to send
-				// input to — the agent will be notified separately via the
-				// `onDisposed` listener below.
 				if (terminalInstance.isDisposed) {
 					this._logService.debug(`RunInTerminalTool: Suppressing input-needed notification for terminal ${termId} because the terminal is disposed`);
 					return;
@@ -3169,10 +2790,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			}));
 		}
 
-		// When the user types directly in the terminal, dismiss any pending
-		// question carousel for this terminal so the tool invocation is
-		// unblocked and the carousel doesn't linger. Also suppress future
-		// input-needed notifications since the user is handling prompts.
 		store.add(terminalInstance.onDidInputData(() => {
 			if (userIsReplyingDirectly) {
 				return;
@@ -3194,18 +2811,11 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				return;
 			}
 
-			// Dispose after first notification to avoid chatty repeated messages
-			// if the user runs additional commands via send_to_terminal.
 			disposeNotification();
 
 			const exitCode = command.exitCode;
-			// A successful completion is already conveyed by "command completed";
-			// only surface an exit code in chat when it provides failure context.
 			const exitCodeText = exitCode !== undefined && exitCode !== 0 ? ` with exit code ${exitCode}` : '';
 			const currentOutput = execution.getOutput();
-			// Only dispose if the terminal is still hidden from the user. Once the
-			// user reveals it (via the "Show" link), it joins `foregroundInstances`
-			// and should persist so they can inspect/interact with it.
 			const isUserVisible = this._terminalService.foregroundInstances.includes(terminalInstance);
 			const message = isUserVisible
 				? `[Terminal ${termId} notification: command completed${exitCodeText}. Use send_to_terminal to send another command or kill_terminal to stop it.]\nTerminal output:\n${currentOutput}`
@@ -3223,23 +2833,12 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 				this._logService.warn(`RunInTerminalTool: Failed to send completion notification for terminal ${termId}`, e);
 			});
 
-			// Background terminals are not reused, so dispose them once their
-			// command completes to prevent terminal accumulation across turns.
-			// Only dispose if the user hasn't revealed the terminal — once revealed
-			// it joins `foregroundInstances` and they may want to inspect its
-			// output or interact with it.
-			// Capture the output snapshot first so the progress part can still
-			// display output after the terminal instance is gone.
-			// Re-check foregroundInstances inside the callback because the user
-			// may click the "Show" link while capture is in progress.
 			this._commandArtifactCollector.capture(toolSpecificData, terminalInstance, command.id).then(() => {
 				if (this._terminalService.foregroundInstances.includes(terminalInstance)) {
 					this._logService.debug(`RunInTerminalTool: Background terminal ${termId} was revealed by user, skipping disposal`);
 					return;
 				}
 				this._logService.debug(`RunInTerminalTool: Disposing finished background terminal ${termId}`);
-				// Mark as killed so the onDisposed handler below does not
-				// send a redundant "terminal exited" steering message.
 				RunInTerminalTool._killedByTool.add(termId);
 				execution.dispose();
 				this._deleteActiveExecution(termId);
@@ -3247,32 +2846,16 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			});
 		}));
 
-		// Clean up all background resources when the terminal is disposed
-		// (e.g. user closes the terminal). Send a completion notification so
-		// the agent isn't left waiting for an `onCommandFinished` event that
-		// will never fire — the pty exited before shell integration could
-		// emit the end marker. Output captured here is whatever was buffered
-		// up until disposal.
-		// Capture the execution reference now — by the time onDisposed fires,
-		// onDidDisposeInstance listeners may have already removed it from
-		// _activeExecutions.
 		const executionForDisposal = RunInTerminalTool._activeExecutions.get(termId);
 		store.add(terminalInstance.onDisposed(() => {
-			// If kill_terminal is disposing this terminal, the agent will
-			// receive the output through the normal tool-result flow —
-			// skip the redundant steering message.
 			if (RunInTerminalTool._killedByTool.has(termId)) {
 				disposeNotification();
 				return;
 			}
-			// During VS Code shutdown, terminals are disposed as part of
-			// normal cleanup. Suppress notifications so they don't persist
-			// as undeliverable steering messages after restart (#314791).
 			if (this._isShuttingDown) {
 				disposeNotification();
 				return;
 			}
-			// Skip steering message when user manually closed the terminal (#317059).
 			if (terminalInstance.exitReason === TerminalExitReason.User) {
 				this._logService.debug(`RunInTerminalTool: Background terminal ${termId} closed by user, suppressing steering message`);
 				disposeNotification();
@@ -3283,7 +2866,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			}
 			const currentOutput = executionForDisposal?.getOutput() ?? '';
 			const exitCode = terminalInstance.exitCode;
-			// Avoid reporting a successful exit code as diagnostic information in chat.
 			const exitCodeText = exitCode !== undefined && exitCode !== 0 ? ` with exit code ${exitCode}` : '';
 			disposeNotification();
 			const message = `[Terminal ${termId} notification: terminal exited${exitCodeText}. The terminal process ended before the command could complete normally; further commands cannot be sent to this terminal ID.]\nTerminal output:\n${currentOutput}`;
@@ -3299,9 +2881,6 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			});
 		}));
 
-		// When a checkpoint is restored, requests are removed from the model.
-		// Cancel the background notification and dispose the terminal so that
-		// background processes don't outlive the rolled-back session state.
 		store.add(sessionRef.object.onDidChange(e => {
 			if (e.kind === 'removeRequest') {
 				this._logService.debug(`RunInTerminalTool: Request removed from session, cleaning up background terminal ${termId}`);
@@ -3315,18 +2894,12 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 		this._backgroundNotifications.set(notificationKey, store);
 	}
 
-	/**
-	 * Find and dismiss any pending (not yet answered) question carousels that
-	 * are associated with the given terminal. This is called when the user
-	 * types directly into the terminal, bypassing the carousel UI.
-	 */
 	private _dismissPendingCarouselsForTerminal(chatSessionResource: URI, termId: string): void {
 		const model = this._chatService.getSession(chatSessionResource);
 		if (!model) {
 			return;
 		}
 
-		// Walk in reverse — there should be at most one pending carousel per terminal.
 		const requests = model.getRequests();
 		for (let i = requests.length - 1; i >= 0; i--) {
 			const response = requests[i].response;
@@ -3347,23 +2920,13 @@ export class RunInTerminalTool extends Disposable implements IToolImpl {
 			}
 		}
 	}
-	// #endregion
 }
 
-/**
- * Represents an active terminal command execution that can run in either foreground or background
- * mode. This unified class replaces the previous split between foreground strategy execution and
- * BackgroundTerminalExecution, allowing seamless switching between modes.
- */
 class ActiveTerminalExecution extends Disposable implements IActiveTerminalExecution {
 	private _startMarker: IXtermMarker | undefined;
 	private _isBackground: boolean;
 	private readonly _completionDeferred: DeferredPromise<ITerminalExecuteStrategyResult>;
 
-	/**
-	 * The promise that resolves when the execute strategy completes. Can be awaited to get the
-	 * full result with exit code.
-	 */
 	get completionPromise(): Promise<ITerminalExecuteStrategyResult> {
 		return this._completionDeferred.p;
 	}
@@ -3396,12 +2959,10 @@ class ActiveTerminalExecution extends Disposable implements IActiveTerminalExecu
 		this._isBackground = isBackground;
 		this._completionDeferred = new DeferredPromise<ITerminalExecuteStrategyResult>();
 
-		// Create and register the strategy for disposal to clean up its internal resources
 		this.strategy = this._register(this._createStrategy(commandDetection));
 
 		this._register(this.strategy.onDidCreateStartMarker(marker => {
 			if (marker) {
-				// Don't register marker - strategy already manages its lifecycle
 				this._startMarker = marker;
 			}
 		}));
@@ -3419,13 +2980,6 @@ class ActiveTerminalExecution extends Disposable implements IActiveTerminalExecu
 		}
 	}
 
-	/**
-	 * Starts the command execution using the execute strategy.
-	 * @param commandLine The command to execute
-	 * @param token Cancellation token
-	 * @param commandId Optional command ID for linking
-	 * @returns The execution result
-	 */
 	async start(commandLine: string, token: CancellationToken, commandId?: string, commandLineForMetadata?: string): Promise<ITerminalExecuteStrategyResult> {
 		try {
 			const result = await this.strategy.execute(commandLine, token, commandId, commandLineForMetadata);
@@ -3437,23 +2991,14 @@ class ActiveTerminalExecution extends Disposable implements IActiveTerminalExecu
 		}
 	}
 
-	/**
-	 * Switches this execution to foreground mode, meaning callers will await its completion.
-	 */
 	setForeground(): void {
 		this._isBackground = false;
 	}
 
-	/**
-	 * Switches this execution to background mode.
-	 */
 	setBackground(): void {
 		this._isBackground = true;
 	}
 
-	/**
-	 * Gets the current output from the terminal.
-	 */
 	getOutput(marker?: IXtermMarker): string {
 		return getOutput(this.instance, marker ?? this._startMarker);
 	}
@@ -3492,19 +3037,16 @@ export class TerminalProfileFetcher {
 	async getCopilotProfile(): Promise<ITerminalProfile> {
 		const os = await this.osBackend;
 
-		// Check for chat agent terminal profile first
 		const customChatAgentProfile = this._getChatTerminalProfile(os);
 		if (customChatAgentProfile) {
 			return customChatAgentProfile;
 		}
 
-		// When setting is null, use the previous behavior
 		const defaultProfile = await this._terminalProfileResolverService.getDefaultProfile({
 			os,
 			remoteAuthority: this._remoteAgentService.getConnection()?.remoteAuthority
 		});
 
-		// Force pwsh over cmd as cmd doesn't have shell integration
 		if (basename(defaultProfile.path) === 'cmd.exe') {
 			return {
 				...defaultProfile,
@@ -3513,7 +3055,6 @@ export class TerminalProfileFetcher {
 			};
 		}
 
-		// Force bash over sh as sh doesn't have shell integration
 		if (defaultProfile.path === '/bin/sh') {
 			return {
 				...defaultProfile,
@@ -3522,9 +3063,6 @@ export class TerminalProfileFetcher {
 			};
 		}
 
-		// Validate the resolved shell exists on disk; fall back to a known
-		// POSIX shell when it doesn't (e.g. profile resolves to zsh on a
-		// Linux system where zsh is not installed).
 		if (os !== OperatingSystem.Windows) {
 			const shellExists = await this._shellExists(defaultProfile.path);
 			if (!shellExists) {
@@ -3541,7 +3079,6 @@ export class TerminalProfileFetcher {
 			}
 		}
 
-		// Setting icon: undefined allows the system to use the default AI terminal icon (not overridden or removed)
 		return { ...defaultProfile, icon: undefined };
 	}
 
@@ -3604,4 +3141,3 @@ export class TerminalProfileFetcher {
 	}
 }
 
-// #endregion

@@ -89,9 +89,9 @@ export interface ICachingResourceFetcher {
 }
 
 export enum CacheMode {
-	Disable = 'disable', // never use the cache, don't update the cache
-	Require = 'require', // always use the cache, and fail if it's not available
-	Default = 'default', // use cache of available, but don't require it
+	Disable = 'disable',
+	Require = 'require',
+	Default = 'default',
 }
 
 export class NoFetchChatMLFetcher extends ChatMLFetcherImpl {
@@ -148,32 +148,15 @@ export interface SimulationServicesOptions {
 }
 
 export interface CurrentTestRunInfo {
-	/**
-	 * Current test being run.
-	 */
 	test: SimulationTest;
 
-	/**
-	 * Each test is run `n` times. This specifies which run this is [0..n-1]
-	 */
 	testRunNumber: number;
 
-	/**
-	 * For each test run, we capture fetch requests made.
-	 */
 	fetchRequestCollector: FetchRequestCollector;
 
-	/**
-	 * Whether we're working in a real workspace and extension host.
-	 */
 	isInRealExtensionHost: boolean;
 }
 
-/**
- * Creates an accessor suitable for running tests.
- * The `IChatMLFetcher` will use caching and the chat endpoint is configurable via the `chatModel` parameter.
- * The `IEmbeddingsComputer` will use caching and the embeddings endpoint is configurable via the `embeddingsModel` parameter.
- */
 export async function createSimulationAccessor(
 	modelConfig: ISimulationModelConfig,
 	opts: SimulationServicesOptions,
@@ -268,9 +251,9 @@ export async function createSimulationAccessor(
 		testingServiceCollection.define(IEmbeddingsComputer, new SyncDescriptor(RemoteEmbeddingsComputer));
 		testingServiceCollection.define(IDocsSearchClient, docsSearchClient);
 		testingServiceCollection.define(IChunkingEndpointClient, new SyncDescriptor(ChunkingEndpointClientImpl));
-		testingServiceCollection.define(ICombinedEmbeddingIndex, new SyncDescriptor(VSCodeCombinedIndexImpl, [/*useRemoteCache*/ true]));
-		testingServiceCollection.define(IApiEmbeddingsIndex, new SyncDescriptor(ApiEmbeddingsIndex, [/*useRemoteCache*/ true]));
-		testingServiceCollection.define(IProjectTemplatesIndex, new SyncDescriptor(ProjectTemplatesIndex, [/*useRemoteCache*/ true]));
+		testingServiceCollection.define(ICombinedEmbeddingIndex, new SyncDescriptor(VSCodeCombinedIndexImpl, [ true]));
+		testingServiceCollection.define(IApiEmbeddingsIndex, new SyncDescriptor(ApiEmbeddingsIndex, [ true]));
+		testingServiceCollection.define(IProjectTemplatesIndex, new SyncDescriptor(ProjectTemplatesIndex, [ true]));
 	} else {
 		const embeddingCache = new EmbeddingsSQLiteCache(TestingCacheSalts.embeddingsCacheSalt, currentTestRunInfo);
 		testingServiceCollection.define(IEmbeddingsComputer, new SyncDescriptor(CachingEmbeddingsComputer, [embeddingCache]));
@@ -278,9 +261,9 @@ export async function createSimulationAccessor(
 		const codeOrDocSearchCache = new CodeOrDocSearchSQLiteCache(TestingCacheSalts.codeSearchCacheSalt, currentTestRunInfo);
 		const chunksEndpointCache = new ChunkingEndpointClientSQLiteCache(TestingCacheSalts.chunksEndpointCacheSalt, currentTestRunInfo);
 		testingServiceCollection.define(IDocsSearchClient, new SyncDescriptor(CachingCodeOrDocSearchClient, [docsSearchClient, codeOrDocSearchCache]));
-		testingServiceCollection.define(ICombinedEmbeddingIndex, new SyncDescriptor(VSCodeCombinedIndexImpl, [/*useRemoteCache*/ false]));
-		testingServiceCollection.define(IApiEmbeddingsIndex, new SyncDescriptor(ApiEmbeddingsIndex, [/*useRemoteCache*/ false]));
-		testingServiceCollection.define(IProjectTemplatesIndex, new SyncDescriptor(ProjectTemplatesIndex, [/*useRemoteCache*/ false]));
+		testingServiceCollection.define(ICombinedEmbeddingIndex, new SyncDescriptor(VSCodeCombinedIndexImpl, [ false]));
+		testingServiceCollection.define(IApiEmbeddingsIndex, new SyncDescriptor(ApiEmbeddingsIndex, [ false]));
+		testingServiceCollection.define(IProjectTemplatesIndex, new SyncDescriptor(ProjectTemplatesIndex, [ false]));
 		testingServiceCollection.define(IChunkingEndpointClient, new SyncDescriptor(CachingChunkingEndpointClient, [chunksEndpointCache]));
 	}
 

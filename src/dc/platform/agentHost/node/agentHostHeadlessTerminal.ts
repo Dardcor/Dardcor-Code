@@ -20,14 +20,6 @@ export interface IAgentHostHeadlessTerminalOptions {
 	terminalFactory?: (options: IXtermTerminalOptions) => XtermTerminal;
 }
 
-/**
- * Mirrors an agent-host PTY into xterm's interpreted terminal model.
- *
- * The mirror is intentionally internal to the agent host. Protocol-visible
- * terminal data still flows through the existing OSC 633 parser and content
- * model; this class provides terminal responses for programs that query
- * terminal state.
- */
 export class AgentHostHeadlessTerminal extends Disposable {
 
 	private readonly _terminal: XtermTerminal;
@@ -119,8 +111,6 @@ export class AgentHostHeadlessTerminal extends Disposable {
 	}
 
 	clear(): void {
-		// xterm.clear() preserves the visible line content; emulate a terminal
-		// clear sequence so future terminal-state reads match a user-visible clear.
 		void this.writePtyData('\x1b[2J\x1b[3J\x1b[H');
 	}
 
@@ -130,9 +120,6 @@ export class AgentHostHeadlessTerminal extends Disposable {
 	}
 
 	private _isCursorPositionReportResponse(data: string): boolean {
-		// Only forward cursor position reports for now. xterm can also answer
-		// device attribute queries, but workbench only forwards those in narrow
-		// ConPTY-specific cases; keep Agent Host conservative until needed.
 		return /^(?:\x1b\[\??\d+;\d+R)+$/.test(data);
 	}
 }

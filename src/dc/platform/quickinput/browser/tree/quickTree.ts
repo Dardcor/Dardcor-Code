@@ -11,7 +11,6 @@ import { IQuickTree, IQuickTreeItem, IQuickTreeItemButtonEvent, QuickInputType, 
 import { QuickInput, QuickInputUI, Visibilities } from '../quickInput.js';
 import { getParentNodeState } from './quickInputTree.js';
 
-// Contains the API
 
 export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements IQuickTree<T> {
 	private static readonly DEFAULT_ARIA_LABEL = localize('quickInputBox.ariaLabel', "Type to narrow down results.");
@@ -45,7 +44,6 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 		this._registerAutoruns();
 		this._register(ui.tree.onDidChangeCheckedLeafItems(e => this._onDidChangeCheckedLeafItems.fire(e as T[])));
 		this._register(ui.tree.onDidChangeCheckboxState(e => this._onDidChangeCheckboxState.fire(e.item as T)));
-		// Sync active items with tree focus changes
 		this._register(ui.tree.tree.onDidChangeFocus(e => {
 			this._activeItems.set(ui.tree.getActiveItems() as T[], undefined);
 		}));
@@ -75,11 +73,9 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 	get itemTree(): ReadonlyArray<Readonly<T>> { return this._itemTree.get(); }
 
 	get onDidTriggerItemButton(): Event<IQuickTreeItemButtonEvent<T>> {
-		// Is there a cleaner way to avoid the `as` cast here?
 		return this.ui.tree.onDidTriggerButton as Event<IQuickTreeItemButtonEvent<T>>;
 	}
 
-	// TODO: Fix the any casting
 	// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
 	get checkedLeafItems(): readonly T[] { return this.ui.tree.getCheckedLeafItems() as any as readonly T[]; }
 
@@ -144,12 +140,8 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 				this.ui.count.setCount(e.length);
 			}));
 		}
-		super.show(); // TODO: Why have show() bubble up while update() trickles down?
+		super.show();
 
-		// Initial state
-		// TODO@TylerLeonhardt: Without this setTimeout, the screen reader will not read out
-		// the final count of checked items correctly. Investigate a better way
-		// to do this. ref https://github.com/microsoft/vscode/issues/258617
 		setTimeout0(() => this.ui.count.setCount(this.ui.tree.getCheckedLeafItems().length));
 		const checkAllState = getParentNodeState([...this.ui.tree.tree.getNode().children]);
 		if (this.ui.checkAll.checked !== checkAllState) {
@@ -183,7 +175,6 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 
 	}
 
-	// TODO: Move to using autoruns instead of update function
 	_registerAutoruns(): void {
 		this.registerVisibleAutorun(reader => {
 			const value = this._value.read(reader);
@@ -194,7 +185,6 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 			let ariaLabel = this._ariaLabel.read(reader);
 			if (!ariaLabel) {
 				ariaLabel = this.placeholder || QuickTree.DEFAULT_ARIA_LABEL;
-				// If we have a title, include it in the aria label.
 				if (this.title) {
 					ariaLabel += ` - ${this.title}`;
 				}
@@ -237,14 +227,9 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 
 	focus(focus: QuickPickFocus): void {
 		this.ui.tree.focus(focus);
-		// To allow things like space to check/uncheck items
 		this.ui.tree.tree.domFocus();
 	}
 
-	/**
-	 * Programmatically accepts an item. Used internally for keyboard navigation.
-	 * @param inBackground Whether you are accepting an item in the background and keeping the picker open.
-	 */
 	accept(_inBackground?: boolean): void {
 		this._onDidAcceptEmitter.fire();
 	}

@@ -59,13 +59,11 @@ class TodoListRenderer implements IListRenderer<IChatTodo, ITodoListTemplate> {
 	renderElement(todo: IChatTodo, index: number, templateData: ITodoListTemplate): void {
 		const { todoElement, statusIcon, iconLabel } = templateData;
 
-		// Update status icon
 		statusIcon.className = `todo-status-icon codicon ${this.getStatusIconClass(todo.status)}`;
 		statusIcon.style.color = this.getStatusIconColor(todo.status);
 
 		iconLabel.setLabel(todo.title);
 
-		// Update aria-label
 		const statusText = this.getStatusText(todo.status);
 		const ariaLabel = localize('chat.todoList.item', '{0}, {1}', todo.title, statusText);
 		todoElement.setAttribute('aria-label', ariaLabel);
@@ -104,7 +102,7 @@ class TodoListRenderer implements IListRenderer<IChatTodo, ITodoListTemplate> {
 			case 'completed':
 				return 'var(--vscode-charts-green)';
 			case 'in-progress':
-				return 'var(--vscode-charts-blue)';
+				return '#B388FF';
 			case 'not-started':
 			default:
 				return 'var(--vscode-foreground)';
@@ -141,12 +139,10 @@ export class ChatTodoListWidget extends Disposable {
 		this._inChatTodoListContextKey = ChatContextKeys.inChatTodoList.bindTo(contextKeyService);
 		this.domNode = this.createChatTodoWidget();
 
-		// Track focus state for context key
 		const focusTracker = this._register(trackFocus(this.domNode));
 		this._register(focusTracker.onDidFocus(() => this._inChatTodoListContextKey.set(true)));
 		this._register(focusTracker.onDidBlur(() => this._inChatTodoListContextKey.set(false)));
 
-		// Listen to context key changes to update clear button state when request state changes
 		this._register(this.contextKeyService.onDidChangeContext(e => {
 			if (e.affectsSome(new Set([ChatContextKeys.requestInProgress.key]))) {
 				this.updateClearButtonState();
@@ -162,14 +158,12 @@ export class ChatTodoListWidget extends Disposable {
 		this.setVisible(false);
 	}
 
-	/** Add the list to its slot in the chat input stack. */
 	attachTo(slot: HTMLElement): void {
 		this._slot = slot;
 		slot.appendChild(this.domNode);
 		setChatInputStackSlot(slot, this._visible ? ChatInputStackSlot.Docked : ChatInputStackSlot.Empty);
 	}
 
-	/** Show or hide the list, and report the same to the stack. */
 	private setVisible(visible: boolean): void {
 		this._visible = visible;
 		this.domNode.style.display = visible ? 'block' : 'none';
@@ -187,7 +181,6 @@ export class ChatTodoListWidget extends Disposable {
 		this.expandoButton.element.setAttribute('aria-expanded', String(this._isExpanded));
 		this.expandoButton.element.setAttribute('aria-controls', 'todo-list-container');
 
-		// Create title section to group icon and title
 		const titleSection = dom.$('.todo-list-title-section');
 
 		this.expandIcon = dom.$('.expand-icon.codicon');
@@ -198,7 +191,6 @@ export class ChatTodoListWidget extends Disposable {
 		this.titleElement.id = 'todo-list-title';
 		this.titleElement.textContent = localize('chat.todoList.title', 'Todos');
 
-		// Add clear button container to the expand element
 		this.clearButtonContainer = dom.$('.todo-clear-button-container');
 		this.createClearButton();
 
@@ -321,7 +313,6 @@ export class ChatTodoListWidget extends Disposable {
 			this._userManuallyExpanded = false;
 		}
 
-		// Create or update the WorkbenchList
 		if (!this._todoList) {
 			this._todoList = this._register(this.instantiationService.createInstance(
 				WorkbenchList<IChatTodo>,
@@ -342,7 +333,6 @@ export class ChatTodoListWidget extends Disposable {
 			));
 		}
 
-		// Update list contents
 		const maxItemsShown = 6;
 		const itemsShown = Math.min(todoList.length, maxItemsShown);
 		const height = itemsShown * 22;
@@ -353,10 +343,8 @@ export class ChatTodoListWidget extends Disposable {
 		const hasInProgressTask = todoList.some(todo => todo.status === 'in-progress');
 		const hasCompletedTask = todoList.some(todo => todo.status === 'completed');
 
-		// Update clear button state based on request progress
 		this.updateClearButtonState();
 
-		// Only auto-collapse if there are in-progress or completed tasks AND user hasn't manually expanded
 		if ((hasInProgressTask || hasCompletedTask) && this._isExpanded && !this._userManuallyExpanded) {
 			this._isExpanded = false;
 			this.expandoButton.element.setAttribute('aria-expanded', 'false');
@@ -414,7 +402,6 @@ export class ChatTodoListWidget extends Disposable {
 
 		this.clearButton.enabled = !shouldDisable;
 
-		// Update tooltip based on state
 		if (shouldDisable) {
 			this.clearButton.setTitle(localize('chat.todoList.clearButton.disabled', 'Cannot clear todos while a task is in progress'));
 		} else {
@@ -446,13 +433,12 @@ export class ChatTodoListWidget extends Disposable {
 				localize('chat.todoList.title', 'Todos');
 			titleElement.appendChild(titleText);
 		} else {
-			// Show first in-progress todo, or if none, the first not-started todo
 			const todoToShow = firstInProgressTodo || firstNotStartedTodo;
 			if (todoToShow) {
 				const icon = dom.$('.codicon');
 				if (todoToShow === firstInProgressTodo) {
 					icon.classList.add('codicon-record');
-					icon.style.color = 'var(--vscode-charts-blue)';
+					icon.style.color = '#B388FF';
 				} else {
 					icon.classList.add('codicon-circle-outline');
 					icon.style.color = 'var(--vscode-foreground)';
@@ -470,7 +456,6 @@ export class ChatTodoListWidget extends Disposable {
 				todoText.style.minWidth = '0';
 				titleElement.appendChild(todoText);
 			}
-			// Show "Done" when all tasks are completed
 			else if (completedCount > 0 && completedCount === totalCount) {
 				const doneText = dom.$('span');
 				doneText.textContent = localize('chat.todoList.titleWithCount', 'Todos ({0}/{1})', totalCount, totalCount);

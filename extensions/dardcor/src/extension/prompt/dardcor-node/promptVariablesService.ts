@@ -12,12 +12,6 @@ import { getToolName } from '../../tools/common/toolNames';
 import { IPromptVariablesService } from '../node/promptVariablesService';
 import type { LanguageModelToolInformation } from '../../../dardcorTypes';
 
-/**
- * Known template variables that can be resolved at runtime.
- * Each entry maps a placeholder name (without the `{{ }}` delimiters) to a
- * resolver that produces the replacement string, or `undefined` if the
- * variable cannot be resolved in the current context.
- */
 type VariableResolver = (sessionId: string | undefined, debugTargetSessionIds: readonly string[] | undefined) => string | undefined;
 
 export class PromptVariablesServiceImpl implements IPromptVariablesService {
@@ -66,12 +60,9 @@ export class PromptVariablesServiceImpl implements IPromptVariablesService {
 	}
 
 	async resolveToolReferencesInPrompt(message: string, toolReferences: ChatLanguageModelToolReference[]): Promise<string> {
-		// It's part of the extension API contract that these are in reverse order by range, but we sort it to be sure
 
 		let previousRange: [start: number, end: number] | undefined;
 		for (const toolReference of this._reverseSortRefsWithRange(toolReferences)) {
-			// Tool sets are passed as all the tools as references with the same ranges. For now, just ignore tool references that have the same range.
-			// The tools are sorted by range, so we only need to look at the previous one.
 			const range = toolReference.range;
 			if (previousRange && range[0] === previousRange[0] && range[1] === previousRange[1]) {
 				continue;
@@ -107,9 +98,6 @@ export class PromptVariablesServiceImpl implements IPromptVariablesService {
 	}
 }
 
-/**
- * Wording that is used in requests when a tool is referenced.
- */
 export function getToolReferencePromptContent(toolRef: ChatLanguageModelToolReference | LanguageModelToolInformation): string {
 	const toolName = getToolName(toolRef.name);
 	return `'${toolName}'`;

@@ -46,7 +46,6 @@ export function getSelectionSearchString(editor: ICodeEditor, seedSearchStringFr
 	}
 
 	const selection = editor.getSelection();
-	// if selection spans multiple lines, default search string to empty
 
 	if ((seedSearchStringFromSelection === 'single' && selection.startLineNumber === selection.endLineNumber)
 		|| seedSearchStringFromSelection === 'multiple') {
@@ -223,20 +222,11 @@ export class CommonFindController extends Disposable implements IEditorContribut
 		return !!CONTEXT_FIND_INPUT_FOCUSED.getValue(this._contextKeyService);
 	}
 
-	/**
-	 * Returns whether the Replace input was the last focused input in the find widget.
-	 * Returns false by default; overridden in FindController.
-	 */
 	public wasReplaceInputLastFocused(): boolean {
 		return false;
 	}
 
-	/**
-	 * Focuses the last focused element in the find widget.
-	 * Implemented by FindController; base implementation does nothing.
-	 */
 	public focusLastElement(): void {
-		// Base implementation - overridden in FindController
 	}
 
 	public getState(): FindReplaceState {
@@ -313,14 +303,12 @@ export class CommonFindController extends Disposable implements IEditorContribut
 	}
 
 	public highlightFindOptions(ignoreWhenVisible: boolean = false): void {
-		// overwritten in subclass
 	}
 
 	protected async _start(opts: IFindStartOptions, newState?: INewFindReplaceState): Promise<void> {
 		this.disposeModel();
 
 		if (!this._editor.hasModel()) {
-			// cannot do anything with an editor that doesn't have a model...
 			return;
 		}
 
@@ -349,7 +337,6 @@ export class CommonFindController extends Disposable implements IEditorContribut
 			const selectionSearchString = await this.getGlobalBufferTerm();
 
 			if (!this._editor.hasModel()) {
-				// the editor has lost its model in the meantime
 				return;
 			}
 
@@ -358,7 +345,6 @@ export class CommonFindController extends Disposable implements IEditorContribut
 			}
 		}
 
-		// Overwrite isReplaceRevealed
 		if (opts.forceRevealReplace || stateChanges.isReplaceRevealed) {
 			stateChanges.isReplaceRevealed = true;
 		} else if (!this._findWidgetVisible.get()) {
@@ -453,7 +439,6 @@ export class CommonFindController extends Disposable implements IEditorContribut
 			&& this._editor.hasModel()
 			&& !this._editor.getModel().isTooLargeForSyncing()
 		) {
-			// intentionally not awaited
 			this._clipboardService.writeFindText(text);
 		}
 	}
@@ -538,18 +523,10 @@ export class FindController extends CommonFindController implements IFindControl
 		this._findOptionsWidget = this._register(new FindOptionsWidget(this._editor, this._state, this._keybindingService));
 	}
 
-	/**
-	 * Returns whether the Replace input was the last focused input in the find widget.
-	 */
 	public override wasReplaceInputLastFocused(): boolean {
 		return this._widget?.lastFocusedInputWasReplace ?? false;
 	}
 
-	/**
-	 * Focuses the last focused element in the find widget.
-	 * This is more precise than just focusing the Find or Replace input,
-	 * as it can restore focus to checkboxes, buttons, etc.
-	 */
 	public override focusLastElement(): void {
 		this._widget?.focusLastElement();
 	}
@@ -639,13 +616,9 @@ export class StartFindWithArgsAction extends EditorAction {
 				replaceString: args.replaceString,
 				isReplaceRevealed: args.replaceString !== undefined,
 				isRegex: args.isRegex,
-				// isRegexOverride: args.regexOverride,
 				wholeWord: args.matchWholeWord,
-				// wholeWordOverride: args.wholeWordOverride,
 				matchCase: args.isCaseSensitive,
-				// matchCaseOverride: args.matchCaseOverride,
 				preserveCase: args.preserveCase,
-				// preserveCaseOverride: args.preserveCaseOverride,
 			} : {};
 
 			await controller.start({
@@ -765,7 +738,6 @@ async function matchFindAction(editor: ICodeEditor, next: boolean): Promise<void
 			loop: editor.getOption(EditorOption.find).loop
 		});
 		if (!runMatch()) {
-			// Re-announce "no results" for screen readers on explicit navigation (#301126)
 			const state = controller.getState();
 			if (wasFindWidgetVisible && state.matchesCount === 0 && state.searchString) {
 				alertFn(nls.localize('ariaSearchNoResult', "{0} found for '{1}'", NLS_NO_RESULTS, state.searchString));
@@ -855,7 +827,7 @@ export class MoveToMatchFindAction extends EditorAction {
 
 			const matchCount = controller.getState().matchesCount;
 			if (index > 0 && index <= matchCount) {
-				return index - 1; // zero based
+				return index - 1;
 			} else if (index < 0 && index >= -matchCount) {
 				return matchCount + index;
 			}
@@ -866,7 +838,6 @@ export class MoveToMatchFindAction extends EditorAction {
 		const updatePickerAndEditor = (value: string) => {
 			const index = toFindMatchIndex(value);
 			if (typeof index === 'number') {
-				// valid
 				inputBox.validationMessage = undefined;
 				controller.goToMatch(index);
 				const currentMatch = controller.getState().currentMatch;
@@ -1030,19 +1001,10 @@ StartFindReplaceAction.addImplementation(0, (accessor: ServicesAccessor, editor:
 
 	const currentSelection = editor.getSelection();
 	const findInputFocused = controller.isFindInputFocused();
-	// we only seed search string from selection when the current selection is single line and not empty,
-	// + the find input is not focused
 	const seedSearchStringFromSelection = !currentSelection.isEmpty()
 		&& currentSelection.startLineNumber === currentSelection.endLineNumber
 		&& (editor.getOption(EditorOption.find).seedSearchStringFromSelection !== 'never')
 		&& !findInputFocused;
-	/*
-	* if the existing search string in find widget is empty and we don't seed search string from selection, it means the Find Input is still empty, so we should focus the Find Input instead of Replace Input.
-
-	* findInputFocused true -> seedSearchStringFromSelection false, FocusReplaceInput
-	* findInputFocused false, seedSearchStringFromSelection true FocusReplaceInput
-	* findInputFocused false seedSearchStringFromSelection false FocusFindInput
-	*/
 	const shouldFocus = (findInputFocused || seedSearchStringFromSelection) ?
 		FindStartFocusAction.FocusReplaceInput : FindStartFocusAction.FocusFindInput;
 
@@ -1058,7 +1020,7 @@ StartFindReplaceAction.addImplementation(0, (accessor: ServicesAccessor, editor:
 	});
 });
 
-registerEditorContribution(CommonFindController.ID, FindController, EditorContributionInstantiation.Eager); // eager because it uses `saveViewState`/`restoreViewState`
+registerEditorContribution(CommonFindController.ID, FindController, EditorContributionInstantiation.Eager);
 
 registerEditorAction(StartFindWithArgsAction);
 registerEditorAction(StartFindWithSelectionAction);

@@ -14,10 +14,6 @@ interface ISize {
 	readonly height: number;
 }
 
-/**
- * Simple test harness that mimics the ModalEditorPartImpl resize behavior
- * without requiring the full editor part infrastructure.
- */
 class TestModalEditorResizeHost extends Disposable {
 
 	private readonly _onDidChangeMaximized = this._register(new Emitter<boolean>());
@@ -60,13 +56,13 @@ class TestModalEditorResizeHost extends Disposable {
 		if (this._maximized) {
 			this.savedSize = undefined;
 			this.savedPosition = undefined;
-			this.toggleMaximized(); // un-maximize to default
+			this.toggleMaximized();
 		} else if (this._size) {
 			this._size = undefined;
 			this._position = undefined;
 			this._onDidRequestLayout.fire();
 		} else {
-			this.toggleMaximized(); // maximize
+			this.toggleMaximized();
 		}
 	}
 
@@ -97,12 +93,12 @@ suite('Modal Editor Resize', () => {
 	test('double-click from maximized restores default', () => {
 		const host = disposables.add(new TestModalEditorResizeHost());
 
-		host.handleHeaderDoubleClick(); // maximize
+		host.handleHeaderDoubleClick();
 
 		const events: boolean[] = [];
 		disposables.add(host.onDidChangeMaximized(v => events.push(v)));
 
-		host.handleHeaderDoubleClick(); // restore
+		host.handleHeaderDoubleClick();
 
 		assert.deepStrictEqual(
 			{ maximized: host.maximized, size: host.size, events },
@@ -134,20 +130,16 @@ suite('Modal Editor Resize', () => {
 		const events: boolean[] = [];
 		disposables.add(host.onDidChangeMaximized(v => events.push(v)));
 
-		// Start with custom size
 		host.size = { width: 800, height: 600 };
 
-		// First double-click: custom → default (fires layout, not maximized)
 		host.handleHeaderDoubleClick();
 		assert.strictEqual(host.maximized, false);
 		assert.strictEqual(host.size, undefined);
 
-		// Second double-click: default → maximized
 		host.handleHeaderDoubleClick();
 		assert.strictEqual(host.maximized, true);
 		assert.strictEqual(host.size, undefined);
 
-		// Third double-click: maximized → default
 		host.handleHeaderDoubleClick();
 		assert.strictEqual(host.maximized, false);
 		assert.strictEqual(host.size, undefined);
@@ -174,12 +166,10 @@ suite('Modal Editor Resize', () => {
 	test('double-click from maximized clears saved custom state', () => {
 		const host = disposables.add(new TestModalEditorResizeHost());
 
-		// Set custom size then maximize via toggleMaximized (saves state)
 		host.size = { width: 800, height: 600 };
 		host.toggleMaximized();
 		assert.strictEqual(host.maximized, true);
 
-		// Double-click to un-maximize: should go to default, not restore custom
 		host.handleHeaderDoubleClick();
 		assert.deepStrictEqual(
 			{ maximized: host.maximized, size: host.size },
@@ -207,14 +197,12 @@ suite('Modal Editor Resize', () => {
 		host1.size = { width: 900, height: 700 };
 		host1.position = { left: 200, top: 100 };
 
-		// Simulate saving state on close
 		const savedState = {
 			size: host1.size,
 			position: host1.position,
 			maximized: host1.maximized,
 		};
 
-		// Simulate restoring state on new modal
 		const host2 = disposables.add(new TestModalEditorResizeHost());
 		host2.size = savedState.size;
 		host2.position = savedState.position;

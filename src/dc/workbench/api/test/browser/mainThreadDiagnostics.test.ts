@@ -110,8 +110,6 @@ suite('MainThreadDiagnostics', function () {
 			diag.$changeMany('foo', [[target, [{ ...markerDataStub, message: 'same_owner' }]]]);
 			markerService.changeOne('bar', target, [{ ...markerDataStub, message: 'forgein_owner' }]);
 
-			// added one marker via the API and one via the ext host. the latter must not
-			// trigger an event to the extension host
 
 			await timeout(0);
 			assert.strictEqual(markerService.read().length, 2);

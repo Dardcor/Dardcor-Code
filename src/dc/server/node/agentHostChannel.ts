@@ -3,14 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Server-side IPC channel that proxies the agent host protocol from a
-// renderer to the agent host process running on the server. For each
-// renderer client (identified by IPC context) the channel opens its own
-// AHP-over-WebSocket connection upstream and pipes raw JSON frames.
-//
-// The renderer-side counterpart is `AgentHostIpcChannelTransport` in
-// `src/vs/platform/agentHost/browser/`. Together they reuse the existing
-// `RemoteAgentHostProtocolClient` over IPC instead of a raw WebSocket.
 
 import { Emitter, Event } from '../../base/common/event.js';
 import { Disposable, IDisposable } from '../../base/common/lifecycle.js';
@@ -22,11 +14,6 @@ import type * as netTypes from 'net';
 
 const agentHostProxyUnavailableMessage = 'Agent host proxy is not available because no upstream agent host endpoint was configured.';
 
-/**
- * Endpoint description for the upstream agent host. One of `port` or
- * `socketPath` must be set, matching how `setWebSocketConfig` is called
- * for `NodeAgentHostStarter`.
- */
 export interface IAgentHostUpstreamEndpoint {
 	readonly host?: string;
 	readonly port?: string;
@@ -34,10 +21,6 @@ export interface IAgentHostUpstreamEndpoint {
 	readonly connectionToken?: string;
 }
 
-/**
- * Lazy-loaded `ws` module. Imported once on first connection so renderers
- * that never touch the agent host don't pay the cost.
- */
 let _wsModule: typeof wsTypes | undefined;
 async function loadWs(): Promise<typeof wsTypes> {
 	return _wsModule ??= await import('ws');
@@ -48,11 +31,6 @@ async function loadNet(): Promise<typeof netTypes> {
 	return _netModule ??= await import('net');
 }
 
-/**
- * One upstream connection to the agent host, owned by a single renderer
- * client. The default implementation wraps a `ws.WebSocket`; tests inject
- * a custom factory via {@link AgentHostChannel.upstreamFactory}.
- */
 export interface IUpstreamConnection extends IDisposable {
 	readonly onFrame: Event<string>;
 	readonly onClose: Event<void>;
@@ -62,11 +40,6 @@ export interface IUpstreamConnection extends IDisposable {
 
 export type UpstreamConnectionFactory = (endpoint: IAgentHostUpstreamEndpoint) => IUpstreamConnection;
 
-/**
- * IPC channel registered when the remote server has no agent host upstream.
- * Keeping the channel present lets renderers fail explicitly without making
- * the IPC layer report `Unknown channel: agentHostProxy`.
- */
 export class UnavailableAgentHostChannel<TContext> implements IServerChannel<TContext> {
 
 	listen<T>(_ctx: TContext, event: string): Event<T> {
@@ -90,9 +63,6 @@ export class UnavailableAgentHostChannel<TContext> implements IServerChannel<TCo
 	}
 }
 
-/**
- * Default upstream factory: opens an AHP WebSocket to the local agent host.
- */
 const defaultUpstreamFactory = (logService: ILogService): UpstreamConnectionFactory =>
 	(endpoint) => new WebSocketUpstreamConnection(endpoint, logService);
 
@@ -211,17 +181,11 @@ class WebSocketUpstreamConnection extends Disposable implements IUpstreamConnect
 		}
 		const net = await loadNet();
 		const socketPath = this._endpoint.socketPath;
-		// Note: `createConnection` shape required by `ws` differs slightly
-		// across versions; we cast through `unknown` to match the local typings.
 		const createConnection = (() => net.createConnection(socketPath)) as unknown as wsTypes.ClientOptions['createConnection'];
 		return { createConnection } satisfies wsTypes.ClientOptions;
 	}
 }
 
-/**
- * IPC channel that proxies the agent host protocol. One channel instance
- * serves all renderer clients; per-context state is tracked in `_perCtx`.
- */
 export class AgentHostChannel<TContext> extends Disposable implements IServerChannel<TContext> {
 
 	private readonly _perCtx = new Map<TContext, IUpstreamConnection>();
@@ -280,10 +244,6 @@ export class AgentHostChannel<TContext> extends Disposable implements IServerCha
 		if (!conn) {
 			conn = this._upstreamFactory(this._endpoint);
 			this._perCtx.set(ctx, conn);
-			// If the upstream closes on its own (e.g. agent host restart or
-			// connection drop), evict it from the cache so the next
-			// `connect()` call creates a fresh upstream rather than
-			// returning the stuck-closed one.
 			const sub = conn.onClose(() => {
 				sub.dispose();
 				if (this._perCtx.get(ctx) === conn) {

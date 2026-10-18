@@ -103,7 +103,6 @@ onceDocumentLoaded(() => {
 	}, 50);
 
 	iframe.addEventListener('load', () => {
-		// Noop
 	});
 
 	input.addEventListener('change', e => {
@@ -127,12 +126,7 @@ onceDocumentLoaded(() => {
 	});
 
 	reloadButton.addEventListener('click', () => {
-		// This does not seem to trigger what we want
-		// history.go(0);
 
-		// This incorrectly adds entries to the history but does reload
-		// It also always incorrectly always loads the value in the input bar,
-		// which may not match the current page if the user has navigated
 		navigateTo(input.value);
 	});
 
@@ -145,8 +139,6 @@ onceDocumentLoaded(() => {
 		try {
 			const url = new URL(rawUrl);
 
-			// Try to bust the cache for the iframe
-			// There does not appear to be any way to reliably do this except modifying the url
 			const existing = new URLSearchParams(location.search);
 			url.searchParams.append('id', existing.get('id')!);
 			url.searchParams.append('vscodeBrowserReqId', Date.now().toString());

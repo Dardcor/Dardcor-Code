@@ -53,7 +53,7 @@ export class InlineEditsView extends Disposable {
 	private readonly _renderSideBySide;
 	private readonly _tabAction = derived<InlineEditTabAction>(reader => this._model.read(reader)?.tabAction.read(reader) ?? InlineEditTabAction.Inactive);
 
-	private _previousView: { // TODO, move into identity
+	private _previousView: {
 		id: string;
 		view: ReturnType<typeof InlineEditsView.prototype._determineView>;
 		editorWidth: number;
@@ -235,7 +235,7 @@ export class InlineEditsView extends Disposable {
 
 			this._editor.changeViewZones(accessor => {
 				const scrollHeight = this._editor.getScrollHeight();
-				const viewZoneHeight = minScrollHeight - scrollHeight + 1 /* Add 1px so there is a small gap */;
+				const viewZoneHeight = minScrollHeight - scrollHeight + 1 ;
 
 				if (viewZoneHeight !== 0 && viewZoneId !== undefined) {
 					accessor.removeZone(viewZoneId);
@@ -254,7 +254,7 @@ export class InlineEditsView extends Disposable {
 			});
 		}));
 
-		this._constructorDone.set(true, undefined); // TODO: remove and use correct initialization order
+		this._constructorDone.set(true, undefined);
 	}
 
 	public readonly displayRange = derived<LineRange | undefined>(this, reader => {
@@ -439,7 +439,6 @@ export class InlineEditsView extends Disposable {
 	protected readonly _jumpToView;
 
 	public readonly gutterIndicatorOffset = derived<number>(this, reader => {
-		// TODO: have a better way to tell the gutter indicator view where the edit is inside a viewzone
 		if (this._uiState.read(reader)?.state?.kind === 'insertionMultiLine') {
 			return this._insertion.startLineOffset.read(reader);
 		}
@@ -451,7 +450,6 @@ export class InlineEditsView extends Disposable {
 	}
 
 	private _determineView(model: ModelPerInlineEdit, reader: IReader, diff: DetailedLineRangeMapping[], newText: AbstractText): InlineCompletionViewKind {
-		// Check if we can use the previous view if it is the same InlineCompletion as previously shown
 		const inlineEdit = model.inlineEdit;
 		const canUseCache = this._previousView?.id === this._getCacheId(model) && this._previousView?.uri.toString() === this._editorObs.model.get()!.uri.toString();
 		const reconsiderViewEditorWidthChange = this._previousView?.editorWidth !== this._editorObs.layoutInfoWidth.read(reader) &&
@@ -479,7 +477,6 @@ export class InlineEditsView extends Disposable {
 			return InlineCompletionViewKind.Custom;
 		}
 
-		// Determine the view based on the edit / diff
 
 		const numOriginalLines = inlineEdit.originalLineRange.length;
 		const numModifiedLines = inlineEdit.modifiedLineRange.length;
@@ -496,8 +493,6 @@ export class InlineEditsView extends Disposable {
 					return InlineCompletionViewKind.InsertionInline;
 				}
 
-				// If we have a single line insertion before the cursor position, we do not want to move the cursor by inserting
-				// the suggestion inline. Use a line replacement view instead. Do not use word replacement view.
 				return InlineCompletionViewKind.LineReplacement;
 			}
 
@@ -511,11 +506,9 @@ export class InlineEditsView extends Disposable {
 
 			const allInnerChangesNotTooLong = inner.every(m => TextLength.ofRange(m.originalRange).columnCount < InlineEditsWordReplacementView.MAX_LENGTH && TextLength.ofRange(m.modifiedRange).columnCount < InlineEditsWordReplacementView.MAX_LENGTH);
 			if (allInnerChangesNotTooLong && isSingleInnerEdit && numOriginalLines === 1 && numModifiedLines === 1) {
-				// Do not show indentation changes with word replacement view
 				const modifiedText = inner.map(m => newText.getValueOfRange(m.modifiedRange));
 				const originalText = inner.map(m => model.inlineEdit.originalText.getValueOfRange(m.originalRange));
 				if (!modifiedText.some(v => v.includes('\t')) && !originalText.some(v => v.includes('\t'))) {
-					// Make sure there is no insertion, even if we grow them
 					if (
 						!inner.some(m => m.originalRange.isEmpty()) ||
 						!growEditsUntilWhitespace(inner.map(m => new TextReplacement(m.originalRange, '')), inlineEdit.originalText).some(e => e.range.isEmpty() && TextLength.ofRange(e.range).columnCount < InlineEditsWordReplacementView.MAX_LENGTH)
@@ -527,7 +520,7 @@ export class InlineEditsView extends Disposable {
 		}
 
 		if (numOriginalLines > 0 && numModifiedLines > 0) {
-			if (numOriginalLines === 1 && numModifiedLines === 1 && model.editorType !== InlineCompletionEditorType.DiffEditor /* prefer side by side in diff editor */) {
+			if (numOriginalLines === 1 && numModifiedLines === 1 && model.editorType !== InlineCompletionEditorType.DiffEditor ) {
 				return InlineCompletionViewKind.LineReplacement;
 			}
 
@@ -785,7 +778,6 @@ function _growEdits(replacements: TextReplacement[], originalText: AbstractText,
 		const endLineContent = originalText.getLineAt(edit.range.endLineNumber);
 
 		if (isIncluded(startLineContent[startIndex])) {
-			// grow to the left
 			while (isIncluded(startLineContent[startIndex - 1])) {
 				prefix = startLineContent[startIndex - 1] + prefix;
 				startIndex--;
@@ -793,14 +785,12 @@ function _growEdits(replacements: TextReplacement[], originalText: AbstractText,
 		}
 
 		if (isIncluded(endLineContent[endIndex]) || endIndex < startIndex) {
-			// grow to the right
 			while (isIncluded(endLineContent[endIndex + 1])) {
 				suffix += endLineContent[endIndex + 1];
 				endIndex++;
 			}
 		}
 
-		// create new edit and merge together if they are touching
 		let newEdit = new TextReplacement(new Range(edit.range.startLineNumber, startIndex + 1, edit.range.endLineNumber, endIndex + 2), prefix + edit.text + suffix);
 		if (result.length > 0 && Range.areIntersectingOrTouching(result[result.length - 1].range, newEdit.range)) {
 			newEdit = TextReplacement.joinReplacements([result.pop()!, newEdit], originalText);

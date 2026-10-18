@@ -25,10 +25,8 @@ export class RemotePty extends BasePty implements ITerminalChildProcess {
 	}
 
 	async start(): Promise<ITerminalLaunchError | ITerminalLaunchResult | undefined> {
-		// Fetch the environment to check shell permissions
 		const env = await this._remoteAgentService.getEnvironment();
 		if (!env) {
-			// Extension host processes are only allowed in remote extension hosts currently
 			throw new Error('Could not fetch remote environment');
 		}
 
@@ -37,7 +35,6 @@ export class RemotePty extends BasePty implements ITerminalChildProcess {
 		const startResult = await this._remoteTerminalChannel.start(this.id);
 
 		if (startResult && hasKey(startResult, { message: true })) {
-			// An error occurred
 			return startResult;
 		}
 
@@ -103,7 +100,6 @@ export class RemotePty extends BasePty implements ITerminalChildProcess {
 	}
 
 	acknowledgeDataEvent(charCount: number): void {
-		// Support flow control for server spawned processes
 		if (this._inReplay) {
 			return;
 		}

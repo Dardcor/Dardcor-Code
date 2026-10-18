@@ -40,13 +40,9 @@ suite('SystemWideKeybindings selection', () => {
 		const acceleratorBinding = resolve(KeyMod.WinCtrl | KeyMod.CtrlCmd | KeyCode.KeyA);
 
 		const selection = selectSystemWideKeybindings([
-			// eligible: user, system-wide, single combo, with args + when
 			item(acceleratorBinding, 'workbench.action.focusNextPart', { commandArgs: { foo: 1 }, when: 'editorFocus', systemWide: true }),
-			// ignored: not system-wide
 			item(resolve(KeyMod.CtrlCmd | KeyCode.KeyB), 'noop.notSystemWide'),
-			// ignored: default keybinding even if flagged
 			item(resolve(KeyMod.CtrlCmd | KeyCode.KeyC), 'noop.default', { isDefault: true, systemWide: true }),
-			// ignored: removal / no command
 			item(resolve(KeyMod.CtrlCmd | KeyCode.KeyD), null, { systemWide: true }),
 		]);
 

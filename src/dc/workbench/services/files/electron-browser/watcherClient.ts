@@ -25,23 +25,12 @@ export class UniversalWatcherClient extends AbstractUniversalWatcherClient {
 	protected override createWatcher(disposables: DisposableStore): IRecursiveWatcher {
 		const watcher = ProxyChannel.toService<IRecursiveWatcher>(getDelayedChannel((async () => {
 
-			// Acquire universal watcher via utility process worker
-			//
-			// We explicitly do not add the worker as a disposable
-			// because we need to call `stop` on disposal to prevent
-			// a crash on shutdown (see below).
-			//
-			// The utility process worker services ensures to terminate
-			// the process automatically when the window closes or reloads.
 			const { client, onDidTerminate } = disposables.add(await this.utilityProcessWorkerWorkbenchService.createWorker({
 				moduleId: 'dc/platform/files/node/watcher/watcherMain',
 				type: 'fileWatcher',
 				name: 'file-watcher'
 			}));
 
-			// React on unexpected termination of the watcher process
-			// by listening to the `onDidTerminate` event. We do not
-			// consider an exit code of `0` as abnormal termination.
 
 			onDidTerminate.then(({ reason }) => {
 				if (reason?.code === 0) {

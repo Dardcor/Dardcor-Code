@@ -75,7 +75,7 @@ suite('AgentHostContributions', () => {
 			[IAgentConfigurationService, disposables.add(new AgentConfigurationService(stateManager, logService))],
 			[ILogService, logService],
 		);
-		const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+		const instantiationService = disposables.add(new InstantiationService(services, true));
 
 		assert.throws(
 			() => instantiationService.invokeFunction(accessor => activateAgentHostContributions(accessor, instantiationService)),

@@ -44,8 +44,6 @@ const REPAIR_INSTRUCTIONS = Object.freeze({
   short_final: "Retry the previous response because its final only announced a future action. Complete the check now and return the result or a concrete blocker."
 });
 const SHORT_FUTURE_ACTION = /^(?:(?:(?:現在|接著|接下來|下一步)[，,:：\s]*(?:我(?:只)?(?:會|要|將|再)?\s*)?|我只再)(?:補|查|確認|驗證|追(?:查|蹤)?|繼續|檢查|測試)|我(?:會|要|將)(?:再|重新)?(?:補(?:齊|查)?|抓取|查(?:詢)?|確認|驗證|追(?:查|蹤)?|繼續|檢查|測試)|(?:(?:next|now|then)\b[\s,:-]*)?(?:i(?:'ll| will| am going to| need to)|let me)\s+(?:verify|check|confirm|validate|investigate|trace|continue|follow up|test)\b)/iu;
-// Keep this tied to the observed whole-response signature. Broader Chinese
-// result/progress heuristics create false positives for completed findings.
 const OBSERVED_TRAILING_FUTURE_ACTION = /^目前證據顯示[\s\S]{1,700}[。.!?；;]\s*最後補查\s+504\s+access\s+log[，,]\s*確認\s+host[／/]路徑與是否為集中流量[。.!]?$/iu;
 const ENGLISH_FUTURE_ACTION = /^(?:(?:next|now|then)\b[\s,:-]*)?(?:i(?:'ll| will| am going to| need to)|let me)\s+(?:verify|check|confirm|validate|investigate|trace|continue|follow up|test)\b/iu;
 const ENGLISH_RESULT_CLAUSE = /(?:[:;\n]|[.!?]\s+\S|\b(?:status|checksum|response|deployment)\s+(?:is|are|was|were|matches?|equals?|returned)\b)/iu;
@@ -127,10 +125,6 @@ async function readResponsePrefix(response, signal, maxBytes, timeoutMs) {
   return decoder.decode(concatChunks(chunks, totalBytes));
 }
 
-// The instruction goes into the current user turn, never into a top-level
-// `systemPrompt`: kiro.dev answers any body carrying that field with
-// 400 REQUEST_BODY_INVALID, so writing it here turned every repair retry into
-// a hard failure.
 function appendRepairInstruction(body, kind) {
   const repaired = structuredClone(body || {});
   const instruction = REPAIR_INSTRUCTIONS[kind] || "Retry the previous incomplete Kiro response.";
@@ -150,10 +144,6 @@ function normalizeStopReason(value) {
   return reason || null;
 }
 
-// Of the reasons stopDisposition() folds into "terminal_incomplete", only these
-// mean "usable as far as it got, then the budget ran out" -- the case
-// finish_reason "length" exists for. cancelled / pause_turn are abandoned turns
-// whose partial content must stay private, so they are deliberately absent.
 const KIRO_TRUNCATION_STOP_REASONS = new Set(["model_context_window_exceeded", "max_tokens"]);
 
 function stopDisposition(stopReason, hasToolCalls) {
@@ -219,14 +209,10 @@ function inspectSSEChunk(chunk, state) {
         if (typeof delta.reasoning_content === "string") state.reasoning += delta.reasoning_content;
         if (delta.tool_calls?.length) state.hasToolCalls = true;
       }
-    } catch { /* a malformed SSE line is diagnosed by the transformer */ }
+    } catch { }
   }
 }
 
-/**
- * KiroExecutor - Executor for Kiro AI (AWS CodeWhisperer)
- * Uses AWS CodeWhisperer streaming API with AWS EventStream binary format
- */
 export class KiroExecutor extends BaseExecutor {
   constructor() {
     super("kiro", PROVIDERS.kiro);
@@ -244,12 +230,6 @@ export class KiroExecutor extends BaseExecutor {
       delete headers["X-Amz-Target"];
     }
 
-    // API-key auth: the key is stored as accessToken and sent as a bearer token
-    // exactly like an OAuth access token, but with an extra `tokentype: API_KEY`
-    // header so CodeWhisperer treats it as a long-lived API key rather than an
-    // OIDC/social access token. Mirrors the Kiro IDE headless-auth behavior.
-    // Enterprise / Microsoft Entra (external_idp) tokens are OAuth access tokens,
-    // but CodeWhisperer requires TokenType=EXTERNAL_IDP to bind them to profiles.
     const authMethod = credentials?.providerSpecificData?.authMethod;
     const isApiKey = authMethod === "api_key";
     const isExternalIdp = authMethod === "external_idp";
@@ -265,9 +245,6 @@ export class KiroExecutor extends BaseExecutor {
       }
     }
 
-    // CLIRO parity for the Amazon surfaces: the Kiro runtime accepts the
-    // SSO bearer header + agent-mode marker. Without these the deprecated
-    // path gateway answers REQUEST_BODY_INVALID for modern payloads.
     if (credentials?.accessToken) {
       headers["x-amz-sso-bearer"] = credentials.accessToken;
     }
@@ -281,36 +258,9 @@ export class KiroExecutor extends BaseExecutor {
     return headers;
   }
 
-  /**
-   * Auth-aware endpoint ordering.
-   *
-   * API-key Kiro connections use the Amazon Q surface. The legacy
-   * codewhisperer.* GenerateAssistantResponse endpoint can authenticate the key
-   * but rejects the same valid payload with REQUEST_BODY_INVALID. Since a 400
-   * is terminal in BaseExecutor, putting CodeWhisperer first prevents the working
-   * q.* endpoint from ever being tried. Keep q.* first only for api_key accounts.
-   *
-   * The Kiro IDE gateway (runtime.*.kiro.dev) expects Kiro OIDC/social tokens
-   * and rejects TokenType=API_KEY. External IdP enterprise tokens instead
-   * use the CodeWhisperer surface, with the `TokenType: EXTERNAL_IDP` header.
-   * Other OAuth methods keep the default order (kiro.dev first) since their
-   * tokens are what that gateway accepts.
-   */
   getOrderedBaseUrls(credentials) {
     const baseUrls = this.getBaseUrls();
     const authMethod = credentials?.providerSpecificData?.authMethod;
-    // IAM Identity Center (idc) tokens are AWS SSO access tokens — the same
-    // family as external_idp/api_key. The kiro.dev gateway rejects them with
-    // 403 "bearer token invalid", so they must hit the CodeWhisperer
-    // *.amazonaws.com surface, and in the region the token was minted in
-    // (the baseUrls are hardcoded us-east-1).
-    // Kiro deprecated the legacy path-style GenerateAssistantResponse on
-    // runtime.*.kiro.dev (IDE 1.0.228+ moved to POST / + x-amz-target). The
-    // path gateway now answers valid modern payloads with 400
-    // REQUEST_BODY_INVALID, and 400 is terminal in BaseExecutor, so kiro.dev
-    // must never be the first surface for any auth method. Amazon surfaces
-    // reject foreign tokens with 401/403, which DO fall through, so trying
-    // q/codewhisperer first is safe for every auth method (CLIRO parity).
 
     const region = (credentials?.providerSpecificData?.region || "us-east-1").trim();
     const regionalize = (u) =>
@@ -333,8 +283,6 @@ export class KiroExecutor extends BaseExecutor {
     return url;
   }
 
-  // Retry only endpoint/auth-surface failures. Payload-invalid HTTP 400 must be
-  // terminal: sending the same malformed body to every surface cannot repair it.
   shouldRetry(status, urlIndex) {
     const hasFallback = urlIndex + 1 < this.getFallbackCount();
     return super.shouldRetry(status, urlIndex)
@@ -345,22 +293,6 @@ export class KiroExecutor extends BaseExecutor {
     return body;
   }
 
-  /**
-   * Kiro execute — delegate to BaseExecutor for endpoint fallback + retry, then
-   * transform the binary AWS EventStream into OpenAI-shaped SSE on success.
-   *
-   * BaseExecutor.execute() walks config.baseUrls (runtime.us-east-1.kiro.dev →
-   * codewhisperer → q) advancing to the next host on 429 (shouldRetry) and on
-   * network/5xx errors, while tryRetry handles in-place retries per `retry: {429: 2}`.
-   * Note: api-key connections reorder these so the *.amazonaws.com hosts come
-   * first — see getOrderedBaseUrls/buildUrl above.
-   * Note: the baseUrls are alternate surfaces of one regional service, so rotation
-   * is edge-level failover — it does not grant fresh 429 quota. Per-account 429
-   * spreading is handled upstream by account rotation in sse/handlers/chat.js.
-   *
-   * Errors are returned untransformed so the upstream handler can read the body,
-   * classify the status, and trigger account fallback/cooldown.
-   */
   async execute(args) {
     const result = await super.execute(args);
     if (result?.response?.ok) this.attachIntegrityGate(result, args);
@@ -737,9 +669,6 @@ export class KiroExecutor extends BaseExecutor {
     };
     const emitTools = (controller) => {
       for (const tool of state.tools.values()) {
-        // Validate per tool, not per turn: one unusable fragment used to throw out
-        // of emitTools and take every other complete tool call in the same turn
-        // with it, which the client saw as a turn that answered nothing.
         let input;
         try {
           input = parsedToolInput(tool);
@@ -770,20 +699,11 @@ export class KiroExecutor extends BaseExecutor {
         emitDelta(controller, {
           tool_calls: [{ index, function: { arguments: serializedInput } }]
         });
-        // Tool arguments are billed output like any other completion bytes. They
-        // were never added to totalContentLength, so the /4 estimator in finish()
-        // reported OUT 0 -- or the Math.max floor of 1 -- for every turn whose
-        // entire answer was a tool call.
         state.totalContentLength += tool.name.length + serializedInput.length;
         state.hasToolCalls = true;
       }
       state.tools.clear();
       state.bufferedToolBytes = 0;
-      // A declared tool turn that emitted no usable call is only fatal when the
-      // turn produced nothing else. Throwing unconditionally here escaped
-      // emitTools() with provenance "invalid_tool_call", which the integrity gate
-      // re-derived into a repair retry -- discarding text the client had already
-      // been promised.
       if (state.stopReason === "tool_use" && !state.hasToolCalls &&
           !state.hasText && !state.hasReasoning && !state.hasCode) {
         throw new Error("Kiro tool_use stop reason did not include a complete tool call");
@@ -972,8 +892,6 @@ export class KiroExecutor extends BaseExecutor {
         } catch (error) {
           const bufferExceeded = error.code === "KIRO_BUFFER_EXCEEDED";
           if (!bufferExceeded) {
-            // Keep whatever is already buffered: the rejected fragment belongs to
-            // one tool, and clearing the map dropped the complete calls too.
             state.toolValidationError ||= error.message;
             console.error(`[Kiro] tool fragment rejected, keeping ${state.tools.size} buffered tool(s): ${error.message}`);
             continue;
@@ -1007,10 +925,6 @@ export class KiroExecutor extends BaseExecutor {
       }
       state.transportState = "clean_eof";
       const declaredDisposition = stopDisposition(state.stopReason, state.sawToolUse);
-      // model_context_window_exceeded / max_tokens map to terminal_incomplete. When
-      // they arrive after the model already streamed content, fail() threw away a
-      // complete-enough answer; a truncated turn is what finish_reason "length" is
-      // for. chunkIndex > 0 means at least one delta already reached the client.
       const declaredTruncatedAfterOutput = declaredDisposition === "terminal_incomplete" &&
         KIRO_TRUNCATION_STOP_REASONS.has(state.stopReason) && state.chunkIndex > 0;
       if (declaredTruncatedAfterOutput) {
@@ -1045,11 +959,6 @@ export class KiroExecutor extends BaseExecutor {
         );
         return;
       }
-      // Fail only when the turn has nothing usable left. emitTools() validates
-      // per tool and drops just the unusable ones, so this has to run AFTER it:
-      // before, the rejected tool was still buffered and tools.size was never 0.
-      // A turn that also produced text keeps that text -- the dropped call is
-      // logged, not fatal.
       if (state.toolValidationError && !state.hasToolCalls &&
           !state.hasText && !state.hasReasoning && !state.hasCode) {
         fail(
@@ -1075,7 +984,6 @@ export class KiroExecutor extends BaseExecutor {
       }
 
       const disposition = stopDisposition(state.stopReason, state.hasToolCalls);
-      // Same reasoning as declaredTruncatedAfterOutput above.
       const truncatedAfterOutput = disposition === "terminal_incomplete" &&
         KIRO_TRUNCATION_STOP_REASONS.has(state.stopReason) && state.chunkIndex > 0;
       if (truncatedAfterOutput) {
@@ -1124,10 +1032,6 @@ export class KiroExecutor extends BaseExecutor {
       options.onTerminalState?.(diagnostics({
         terminal_provenance: state.terminalProvenance || "clean_eventstream_eof",
         transport_state: state.transportState,
-        // Report what this exit actually did, not the raw disposition. The
-        // integrity gate re-derives its verdict from stop_disposition, so
-        // reporting "terminal_incomplete" for a turn we deliberately kept made
-        // it discard the very bytes we just released to the client.
         stop_disposition: truncatedAfterOutput ? "length" : disposition
       }));
     };
@@ -1193,7 +1097,6 @@ export class KiroExecutor extends BaseExecutor {
     if (!credentials.refreshToken) return null;
 
     try {
-      // Use centralized refreshKiroToken function (handles both AWS SSO OIDC and Social Auth)
       const result = await refreshKiroToken(
         credentials.refreshToken,
         credentials.providerSpecificData,
@@ -1209,9 +1112,6 @@ export class KiroExecutor extends BaseExecutor {
   }
 }
 
-/**
- * Parse AWS EventStream frame
- */
 
 function parseEventFrame(data) {
   if (!(data instanceof Uint8Array) || data.byteLength < 16) {

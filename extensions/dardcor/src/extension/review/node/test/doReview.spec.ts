@@ -6,8 +6,6 @@
 import assert from 'assert';
 import { afterEach, beforeEach, describe, suite, test } from 'vitest';
 import type { Selection, TextEditor } from 'vscode';
-import { IAuthenticationService } from '../../../../platform/authentication/common/authentication';
-import { CopilotToken, createTestExtendedTokenInfo } from '../../../../platform/authentication/common/dardcorToken';
 import { IGitExtensionService } from '../../../../platform/git/common/gitExtensionService';
 import { NullGitExtensionService } from '../../../../platform/git/common/nullGitExtensionService';
 import { ILogService } from '../../../../platform/log/common/logService';
@@ -35,7 +33,6 @@ interface MockDeps extends HandleResultDependencies {
 suite('doReview', () => {
 
 	describe('handleReviewResult', () => {
-		// Mock dependencies for handleReviewResult tests
 		function createMockDeps(): MockDeps {
 			const tracker = {
 				infoMessages: [] as Array<{ message: string; options?: unknown; items?: string[] }>,
@@ -314,7 +311,6 @@ suite('doReview', () => {
 
 			source1.cancel();
 			source2.cancel();
-			// The combined token should only fire once despite both being cancelled
 			assert.strictEqual(cancelCount, 1);
 		});
 	});
@@ -324,7 +320,6 @@ suite('doReview', () => {
 		let serviceCollection: TestingServiceCollection;
 		let instantiationService: IInstantiationService;
 
-		// Mock review service
 		class MockReviewService implements IReviewService {
 			_serviceBrand: undefined;
 			private comments: ReviewComment[] = [];
@@ -351,34 +346,10 @@ suite('doReview', () => {
 			findCommentThread() { return undefined; }
 		}
 
-		// Mock authentication service for testing different auth states
-		class MockAuthService {
-			_serviceBrand: undefined;
-			dardcorToken: CopilotToken | null = null;
-			tokenToReturn: CopilotToken | null = null;
-			errorToThrow: Error | null = null;
-
-			getCopilotToken(): Promise<CopilotToken> {
-				if (this.errorToThrow) {
-					return Promise.reject(this.errorToThrow);
-				}
-				if (this.tokenToReturn) {
-					return Promise.resolve(this.tokenToReturn);
-				}
-				return Promise.resolve(new CopilotToken(createTestExtendedTokenInfo({ token: 'test-token' })));
-			}
-		}
-
-		// Mock notification service to track calls
 		class MockNotificationService {
 			_serviceBrand: undefined;
-			quotaDialogShown = false;
 			infoMessages: string[] = [];
 			progressCallback: ((progress: Progress<{ message?: string; increment?: number }>, token: CancellationToken) => Promise<unknown>) | null = null;
-
-			async showQuotaExceededDialog(_options: { isNoAuthUser: boolean }): Promise<void> {
-				this.quotaDialogShown = true;
-			}
 
 			showInformationMessage(message: string, ...items: string[]): Promise<string | undefined>;
 			showInformationMessage<T extends string>(message: string, options: MessageOptions, ...items: T[]): Promise<T | undefined>;
@@ -392,7 +363,6 @@ suite('doReview', () => {
 				task: (progress: Progress<{ message?: string; increment?: number }>, token: CancellationToken) => Promise<T>
 			): Promise<T> {
 				this.progressCallback = task as (progress: Progress<{ message?: string; increment?: number }>, token: CancellationToken) => Promise<unknown>;
-				// Create a non-cancelled token for the progress callback
 				const tokenSource = new CancellationTokenSource();
 				try {
 					return await task({ report: () => { } }, tokenSource.token);
@@ -402,7 +372,6 @@ suite('doReview', () => {
 			}
 		}
 
-		// Mock scope selector
 		class MockScopeSelector implements IScopeSelector {
 			_serviceBrand: undefined;
 			selectionToReturn: Selection | undefined = undefined;
@@ -420,7 +389,6 @@ suite('doReview', () => {
 			}
 		}
 
-		// Mock tabs and editors service
 		class MockTabsAndEditorsService {
 			_serviceBrand: undefined;
 			activeTextEditor: TextEditor | undefined = undefined;
@@ -434,7 +402,6 @@ suite('doReview', () => {
 			store = new DisposableStore();
 			serviceCollection = store.add(createPlatformServices(store));
 
-			// Add required services not in createPlatformServices
 			serviceCollection.define(IReviewService, new SyncDescriptor(MockReviewService));
 			serviceCollection.define(IGitExtensionService, new SyncDescriptor(NullGitExtensionService));
 		});
@@ -443,38 +410,22 @@ suite('doReview', () => {
 			store.dispose();
 		});
 
-		test('returns undefined when user is not authenticated (isNoAuthUser)', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({
-				token: 'test',
-				// This makes isNoAuthUser return true
-			}));
-			// Simulate no-auth user by setting the token's isNoAuthUser property
-			Object.defineProperty(mockAuth.dardcorToken, 'isNoAuthUser', { value: true });
-
-			const mockNotification = new MockNotificationService();
-
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
-			serviceCollection.define(INotificationService, mockNotification as unknown as INotificationService);
-
+		test('reviews without an account authentication session', async () => {
+			serviceCollection.define(INotificationService, new MockNotificationService() as unknown as INotificationService);
 			const accessor = serviceCollection.createTestingAccessor();
 			instantiationService = accessor.get(IInstantiationService);
 
 			const session = instantiationService.createInstance(ReviewSession);
 			const result = await session.review('index', ProgressLocation.Notification);
 
-			assert.strictEqual(result, undefined);
-			assert.strictEqual(mockNotification.quotaDialogShown, true);
+			assert.ok(result);
+			assert.strictEqual(result.type, 'success');
 		});
 
 		test('returns undefined when selection group but no editor', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test' }));
-
 			const mockTabs = new MockTabsAndEditorsService();
 			mockTabs.activeTextEditor = undefined;
 
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
 			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
 
 			const accessor = serviceCollection.createTestingAccessor();
@@ -487,12 +438,9 @@ suite('doReview', () => {
 		});
 
 		test('returns undefined when selection group and scopeSelector returns undefined', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test' }));
-
 			const mockEditor = {
 				document: { uri: URI.file('/test/file.ts') },
-				selection: { isEmpty: true } // Empty selection triggers scope selector
+				selection: { isEmpty: true }
 			} as unknown as TextEditor;
 
 			const mockTabs = new MockTabsAndEditorsService();
@@ -501,7 +449,6 @@ suite('doReview', () => {
 			const mockScope = new MockScopeSelector();
 			mockScope.selectionToReturn = undefined;
 
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
 			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
 			serviceCollection.define(IScopeSelector, mockScope as unknown as IScopeSelector);
 
@@ -515,9 +462,6 @@ suite('doReview', () => {
 		});
 
 		test('returns undefined when scopeSelector throws CancellationError', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test' }));
-
 			const mockEditor = {
 				document: { uri: URI.file('/test/file.ts') },
 				selection: { isEmpty: true }
@@ -529,7 +473,6 @@ suite('doReview', () => {
 			const mockScope = new MockScopeSelector();
 			mockScope.shouldThrowCancellation = true;
 
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
 			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
 			serviceCollection.define(IScopeSelector, mockScope as unknown as IScopeSelector);
 
@@ -543,13 +486,6 @@ suite('doReview', () => {
 		});
 
 		test('proceeds with empty selection when scopeSelector throws non-cancellation error (fall-through behavior)', async () => {
-			// This test documents the preserved original behavior where non-cancellation errors
-			// are silently ignored and the review proceeds with whatever selection exists.
-			// See: https://github.com/microsoft/vscode/issues/276240
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test', code_review_enabled: true }));
-			mockAuth.tokenToReturn = mockAuth.dardcorToken;
-
 			const emptySelection = { isEmpty: true, start: { line: 0 }, end: { line: 0 } };
 			const mockEditor = {
 				document: { uri: URI.file('/test/file.ts'), getText: () => 'code' },
@@ -560,10 +496,8 @@ suite('doReview', () => {
 			mockTabs.activeTextEditor = mockEditor;
 
 			const mockScope = new MockScopeSelector();
-			// Throw a non-cancellation error (e.g., a symbol provider error)
 			mockScope.errorToThrow = new Error('Symbol provider failed');
 
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
 			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
 			serviceCollection.define(IScopeSelector, mockScope as unknown as IScopeSelector);
 
@@ -572,20 +506,12 @@ suite('doReview', () => {
 
 			const session = instantiationService.createInstance(ReviewSession);
 
-			// The review should proceed despite the error, using the empty selection
-			// This is the fall-through behavior from the original code
 			const result = await session.review('selection', ProgressLocation.Notification);
 
-			// Result should NOT be undefined - the error is silently ignored and review proceeds
 			assert.ok(result !== undefined, 'Review should proceed when scopeSelector throws non-cancellation error');
-			// The result type depends on what happens with the empty selection in the review
 		});
 
 		test('uses existing selection when not empty for selection group', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test', code_review_enabled: true }));
-			mockAuth.tokenToReturn = mockAuth.dardcorToken;
-
 			const mockSelection = { isEmpty: false, start: { line: 0 }, end: { line: 5 } };
 			const mockEditor = {
 				document: { uri: URI.file('/test/file.ts'), getText: () => 'code' },
@@ -596,9 +522,7 @@ suite('doReview', () => {
 			mockTabs.activeTextEditor = mockEditor;
 
 			const mockScope = new MockScopeSelector();
-			// Should NOT be called since selection is not empty
 
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
 			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
 			serviceCollection.define(IScopeSelector, mockScope as unknown as IScopeSelector);
 
@@ -606,50 +530,32 @@ suite('doReview', () => {
 			instantiationService = accessor.get(IInstantiationService);
 
 			const session = instantiationService.createInstance(ReviewSession);
-			// This will proceed to executeWithProgress which may fail due to missing git setup,
-			// but we've verified the selection path works
 			try {
 				await session.review('selection', ProgressLocation.Notification);
 			} catch {
-				// Expected - git extension not fully mocked
 			}
-			// If we got here without scopeSelector being called with an error, the test passes
 		});
 
 		test('proceeds to review for non-selection groups without editor', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test', code_review_enabled: true }));
-			mockAuth.tokenToReturn = mockAuth.dardcorToken;
-
 			const mockTabs = new MockTabsAndEditorsService();
 			mockTabs.activeTextEditor = undefined;
 
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
 			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
 
 			const accessor = serviceCollection.createTestingAccessor();
 			instantiationService = accessor.get(IInstantiationService);
 
 			const session = instantiationService.createInstance(ReviewSession);
-			// 'index' group doesn't require editor, should proceed
 			const result = await session.review('index', ProgressLocation.Notification);
 
-			// Should complete (git returns empty since NullGitExtensionService)
 			assert.ok(result);
 			assert.strictEqual(result.type, 'success');
 		});
 
-		test('returns error result when getCopilotToken throws', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test' }));
-			const testError = new Error('Token fetch failed');
-			(testError as Error & { severity?: string }).severity = 'error';
-			mockAuth.errorToThrow = testError;
-
+		test('uses the Router review path without account feature flags', async () => {
 			const mockTabs = new MockTabsAndEditorsService();
 			mockTabs.activeTextEditor = undefined;
 
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
 			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
 
 			const accessor = serviceCollection.createTestingAccessor();
@@ -659,62 +565,19 @@ suite('doReview', () => {
 			const result = await session.review('index', ProgressLocation.Notification);
 
 			assert.ok(result);
-			assert.strictEqual(result.type, 'error');
-			if (result.type === 'error') {
-				assert.strictEqual(result.reason, 'Token fetch failed');
-				assert.strictEqual(result.severity, 'error');
-			}
-		});
-
-		test('uses legacy review path when code_review_enabled is false', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test' }));
-			// Create a token with code_review_enabled explicitly false
-			mockAuth.tokenToReturn = new CopilotToken(createTestExtendedTokenInfo({
-				token: 'test',
-				code_review_enabled: false
-			}));
-
-			const mockTabs = new MockTabsAndEditorsService();
-			mockTabs.activeTextEditor = undefined;
-
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
-			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
-
-			const accessor = serviceCollection.createTestingAccessor();
-			instantiationService = accessor.get(IInstantiationService);
-
-			const session = instantiationService.createInstance(ReviewSession);
-			// This will use the legacy review path
-			// The path is triggered but may error due to incomplete mocking of FeedbackGenerator
-			const result = await session.review('index', ProgressLocation.Notification);
-
-			assert.ok(result);
-			// The legacy path is triggered (coverage achieved), result depends on FeedbackGenerator mocking
 			assert.ok(result.type === 'success' || result.type === 'error');
 		});
 
-		test('handles file group with legacy review path (extracts legacyGroup)', async () => {
-			const mockAuth = new MockAuthService();
-			mockAuth.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'test' }));
-			mockAuth.tokenToReturn = new CopilotToken(createTestExtendedTokenInfo({
-				token: 'test',
-				code_review_enabled: false
-			}));
-
+		test('handles a single-file review group', async () => {
 			const mockTabs = new MockTabsAndEditorsService();
 			mockTabs.activeTextEditor = undefined;
 
-			serviceCollection.define(IAuthenticationService, mockAuth as unknown as IAuthenticationService);
 			serviceCollection.define(ITabsAndEditorsService, mockTabs as unknown as ITabsAndEditorsService);
 
 			const accessor = serviceCollection.createTestingAccessor();
 			instantiationService = accessor.get(IInstantiationService);
 
 			const session = instantiationService.createInstance(ReviewSession);
-			// Test with a file group to cover the legacyGroup extraction logic
-			// The code `typeof group === 'object' && 'group' in group ? group.group : group`
-			// extracts 'index' from the file group
 			const fileGroup: ReviewGroup = {
 				group: 'index',
 				file: URI.file('/test/file.ts')
@@ -722,7 +585,6 @@ suite('doReview', () => {
 			const result = await session.review(fileGroup, ProgressLocation.Notification);
 
 			assert.ok(result);
-			// The legacy path is triggered with extracted group (coverage achieved)
 			assert.ok(result.type === 'success' || result.type === 'error');
 		});
 	});

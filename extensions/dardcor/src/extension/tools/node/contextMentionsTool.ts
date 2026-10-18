@@ -11,7 +11,7 @@ import { IFileSystemService } from '../../../platform/filesystem/common/fileSyst
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 const execAsync = promisify(exec);
 
@@ -19,7 +19,7 @@ export interface IContextMentionsParams {
 	mentionQuery: string;
 }
 
-export class ContextMentionsResolverTool implements ICopilotTool<IContextMentionsParams> {
+export class ContextMentionsResolverTool implements IAgentTool<IContextMentionsParams> {
 	public static readonly toolName = ToolName.ContextMentionsResolver;
 
 	constructor(
@@ -35,15 +35,10 @@ export class ContextMentionsResolverTool implements ICopilotTool<IContextMention
 	}
 }
 
-/**
- * Expands slash-based and @-based context mentions into rich prompt blocks.
- * Supports @problems, @terminal, @git-changes, @selection, @file:<path>, @folder:<path>, and / equivalent.
- */
 export async function resolveDardcorContextMentions(text: string): Promise<string> {
 	let result = text;
 	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 
-	// @selection / /selection
 	if (result.includes('@selection') || result.includes('/selection')) {
 		let selectionContent = 'No active text selection in editor.';
 		const editor = vscode.window.activeTextEditor;
@@ -58,7 +53,6 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 		result = result.replace(/[@\/]selection\b/g, selectionBlock);
 	}
 
-	// @problems / /problems
 	if (result.match(/[@\/]problems(?::errors)?\b/)) {
 		const errorsOnly = result.includes('@problems:errors') || result.includes('/problems:errors');
 		const diagnostics = vscode.languages.getDiagnostics();
@@ -90,7 +84,6 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 		result = result.replace(/[@\/]problems(?::errors)?\b/g, problemsOutput);
 	}
 
-	// @terminal / /terminal
 	if (result.match(/[@\/]terminal\b/)) {
 		let terminalOutput = 'No active terminal output available.';
 		const activeTerminals = vscode.window.terminals;
@@ -103,7 +96,6 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 		result = result.replace(/[@\/]terminal\b/g, terminalBlock);
 	}
 
-	// @git-changes / @git / /git-changes
 	if (result.match(/[@\/](?:git-changes|git)\b/)) {
 		let gitOutput = '';
 		try {
@@ -124,7 +116,6 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 		result = result.replace(/[@\/](?:git-changes|git)\b/g, gitBlock);
 	}
 
-	// @folder:<path> / /folder:<path>
 	const folderMentionRegex = /[@\/]folder:(?:"([^"]+)"|'([^']+)'|([^\s\n]+))/g;
 	let folderMatch: RegExpExecArray | null;
 	while ((folderMatch = folderMentionRegex.exec(result)) !== null) {
@@ -149,7 +140,6 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 		result = result.replace(folderMatch[0], folderBlock);
 	}
 
-	// @file:<path> / /file:<path>
 	const fileMentionRegex = /[@\/]file:(?:"([^"]+)"|'([^']+)'|([^\s\n]+))/g;
 	let fileMatch: RegExpExecArray | null;
 	while ((fileMatch = fileMentionRegex.exec(result)) !== null) {
@@ -193,7 +183,6 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 		result = result.replace(fileMatch[0], fileBlock);
 	}
 
-	// @url:<link> / /url:<link>
 	const urlMentionRegex = /[@\/]url:(https?:\/\/[^\s\n>]+)/g;
 	let urlMatch: RegExpExecArray | null;
 	while ((urlMatch = urlMentionRegex.exec(result)) !== null) {
@@ -213,7 +202,6 @@ export async function resolveDardcorContextMentions(text: string): Promise<strin
 		result = result.replace(urlMatch[0], urlBlock);
 	}
 
-	// Git commit hash mentions: /<hash> (7 to 40 hex chars)
 	const commitMentionRegex = /\/([a-f0-9]{7,40})\b/g;
 	result = result.replace(commitMentionRegex, (match, hash) => {
 		return `<context_mention type="/commit" hash="${hash}">(Git commit reference '${hash}')</context_mention>`;

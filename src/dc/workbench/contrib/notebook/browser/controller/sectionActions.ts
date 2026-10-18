@@ -71,7 +71,7 @@ export class NotebookRunCellsInSection extends Action2 {
 				mnemonicTitle: localize({ key: 'mirunCellsInSection', comment: ['&& denotes a mnemonic'] }, "&&Run Cells In Section"),
 			},
 			shortTitle: localize('runCellsInSection', "Run Cells In Section"),
-			icon: icons.executeIcon, // TODO @Yoyokrazy replace this with new icon later
+			icon: icons.executeIcon,
 			menu: [
 				{
 					id: MenuId.NotebookStickyScrollContext,
@@ -220,24 +220,10 @@ export class NotebookExpandSection extends Action2 {
 	}
 }
 
-/**
- * Take in context args and check if they exist. True if action is run from notebook sticky scroll context menu or
- * notebook outline context menu.
- *
- * @param context - Notebook Outline Context containing a notebook editor and outline entry
- * @returns true if context is valid, false otherwise
- */
 function checkOutlineEntryContext(context: any): context is NotebookOutlineEntryArgs {
 	return !!(context && context.notebookEditor && context.outlineEntry);
 }
 
-/**
- * Take in context args and check if they exist. True if action is run from a cell toolbar menu (potentially from the
- * notebook cell container or cell editor context menus, but not tested or implemented atm)
- *
- * @param context - Notebook Outline Context containing a notebook editor and outline entry
- * @returns true if context is valid, false otherwise
- */
 function checkNotebookCellContext(context: any): context is NotebookCellArgs {
 	return !!(context && context.notebookEditor && context.cell);
 }

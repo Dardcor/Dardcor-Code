@@ -39,7 +39,6 @@ export class SidebarPart extends AbstractPaneCompositePart {
 
 	static readonly activeViewletSettingsKey = 'workbench.sidebar.activeviewletid';
 
-	//#region IView
 
 	readonly minimumWidth: number = 170;
 	readonly maximumWidth: number = Number.POSITIVE_INFINITY;
@@ -67,7 +66,6 @@ export class SidebarPart extends AbstractPaneCompositePart {
 	private readonly activityBarPart = this._register(this.instantiationService.createInstance(ActivitybarPart, this.location, this));
 	private readonly visibleViewContainersTracker: VisibleViewContainersTracker;
 
-	//#endregion
 
 	constructor(
 		@INotificationService notificationService: INotificationService,
@@ -112,7 +110,6 @@ export class SidebarPart extends AbstractPaneCompositePart {
 			configurationService,
 		);
 
-		// Track visible view containers for auto-hide
 		this.visibleViewContainersTracker = this._register(instantiationService.createInstance(VisibleViewContainersTracker, ViewContainerLocation.Sidebar));
 		this._register(this.visibleViewContainersTracker.onDidChange((e) => this.onDidChangeAutoHideViewContainers(e)));
 
@@ -130,7 +127,6 @@ export class SidebarPart extends AbstractPaneCompositePart {
 	}
 
 	private onDidChangeAutoHideViewContainers(e: { before: number; after: number }): void {
-		// Only update if auto-hide is enabled and composite bar position is top/bottom
 		const activityBarPosition = this.configurationService.getValue<ActivityBarPosition>(LayoutSettings.ACTIVITY_BAR_LOCATION);
 		const autoHide = this.configurationService.getValue<boolean>(LayoutSettings.ACTIVITY_BAR_AUTO_HIDE);
 		if (autoHide && (activityBarPosition === ActivityBarPosition.TOP || activityBarPosition === ActivityBarPosition.BOTTOM)) {
@@ -238,12 +234,8 @@ export class SidebarPart extends AbstractPaneCompositePart {
 			return false;
 		}
 
-		// Check if auto-hide is enabled and there's only one visible view container
 		const autoHide = this.configurationService.getValue<boolean>(LayoutSettings.ACTIVITY_BAR_AUTO_HIDE);
 		if (autoHide) {
-			// Use visible composite count from the composite bar if available (considers pinned state),
-			// otherwise fall back to the tracker's count (based on active view descriptors).
-			// Note: We access paneCompositeBar directly to avoid circular calls with getVisiblePaneCompositeIds()
 			const visibleCount = this.visibleViewContainersTracker.visibleCount;
 			if (visibleCount <= 1) {
 				return false;
@@ -267,7 +259,7 @@ export class SidebarPart extends AbstractPaneCompositePart {
 			case ActivityBarPosition.TOP: return CompositeBarPosition.TOP;
 			case ActivityBarPosition.BOTTOM: return CompositeBarPosition.BOTTOM;
 			case ActivityBarPosition.HIDDEN:
-			case ActivityBarPosition.DEFAULT: // noop
+			case ActivityBarPosition.DEFAULT:
 			default: return CompositeBarPosition.TITLE;
 		}
 	}

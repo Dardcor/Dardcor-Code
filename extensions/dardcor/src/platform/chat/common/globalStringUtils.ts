@@ -6,10 +6,6 @@
 import { OpenAI, Raw } from '@vscode/prompt-tsx';
 import { assertNever } from '../../../util/dardcor/base/common/assert';
 
-/**
- * Gets the text content part out of the message.
- * In the event it is an `ChatCompletionContentPart`, it will extract out the `ChatCompletionContentPartText`.
- **/
 export function getTextPart(message: string | Raw.ChatCompletionContentPart[] | Raw.ChatCompletionContentPart | OpenAI.ChatCompletionContentPart[] | OpenAI.ChatCompletionContentPart): string {
 	if (!message) {
 		return '';

@@ -25,49 +25,23 @@ import {
 import { BrowserViewStorageScope, IBrowserViewPermissionRequestEvent, IBrowserViewStorageKeys } from '../common/browserView.js';
 import type { BrowserSession } from './browserSession.js';
 
-/** Time the main process waits for a prompt answer before a non-persisted deny. */
 const PROMPT_TIMEOUT_MS = 30_000;
 
-/**
- * Fired when a permission request for an undecided category needs UI. The view
- * that owns {@link webContents} should {@link claim} it and surface a prompt;
- * if no listener claims it, the request is left undecided (effective deny).
- */
 export interface IBrowserSessionPermissionRequest {
-	/** The top-level web contents the request originates from. */
 	readonly webContents: Electron.WebContents;
-	/** The origin + category being requested. */
 	readonly request: IBrowserViewPermissionRequestEvent;
-	/** Called by the owning view to take responsibility for prompting. */
 	claim(): void;
 }
 
-/**
- * Fired when a hardware-device chooser ({@link PermissionCategory.Devices}) needs
- * UI, and re-fired as the available device list changes. The owning view
- * {@link claim}s it and surfaces a picker; the user's pick is reported back via
- * {@link IBrowserSessionPermissions.resolveDevice}. If the originating
- * webContents is destroyed or the session is disposed, the page promise is
- * settled and the pending request is removed; a late
- * {@link IBrowserSessionPermissions.resolveDevice} call is then a no-op. Any
- * open picker on the workbench side is left open until the user dismisses it.
- */
 export interface IBrowserSessionDeviceRequest {
-	/** The top-level web contents the request originates from. */
 	readonly webContents: Electron.WebContents;
-	/** The origin requesting a device. */
 	readonly origin: string;
-	/** Stable id correlating the initial request with its updates. */
 	readonly requestId: string;
-	/** Which native chooser flow this is. */
 	readonly deviceType: BrowserDeviceType;
-	/** The devices currently available to choose from. */
 	readonly devices: IBrowserDeviceCandidate[];
-	/** Called by the owning view to take responsibility for the chooser UI. */
 	claim(): void;
 }
 
-/** Internal record of an in-flight device chooser awaiting the user's pick. */
 interface IPendingDeviceRequest {
 	readonly requestId: string;
 	readonly webContents: Electron.WebContents;
@@ -75,32 +49,20 @@ interface IPendingDeviceRequest {
 	readonly deviceType: BrowserDeviceType;
 	devices: IBrowserDeviceCandidate[];
 	settled: boolean;
-	/** Type-specific adapter that calls the native Electron callback. */
 	invoke: (deviceId: string | null) => void;
-	/** Resolve the chooser with a device id, or `null` to cancel. */
 	settle(deviceId: string | null): void;
 }
 
 
 export interface IBrowserSessionPermissions {
 	readonly storageKeys: IBrowserViewStorageKeys;
-	/**
-	 * Fires when an undecided permission needs UI. Each browser view listens and
-	 * claims the requests targeting its own web contents.
-	 */
 	readonly onDidRequestPermission: Event<IBrowserSessionPermissionRequest>;
-	/** Fires when a hardware-device chooser needs UI, and again as its device list changes. */
 	readonly onDidRequestDevice: Event<IBrowserSessionDeviceRequest>;
 	readonly onDidChange: Event<void>;
-	/** Current snapshot of all recorded decisions, mirrored to the workbench. */
 	serialize(): ISerializedBrowserPermissionsSnapshot;
-	/** Record permission decisions for an origin and persist immediately. */
 	set(origin: string, grants: readonly IPermissionCategoryState[]): void;
-	/** Clear all recorded permission state for this session. */
 	clear(): void;
-	/** Funnel a per-webContents Bluetooth chooser into the unified device flow. */
 	beginBluetoothRequest(webContents: Electron.WebContents, devices: Electron.BluetoothDevice[], callback: (deviceId: string) => void): void;
-	/** Answer a device chooser with the chosen id, or `null` to cancel. */
 	resolveDevice(requestId: string, deviceId: string | null): void;
 }
 
@@ -110,25 +72,15 @@ interface IPendingRequest {
 	readonly deferred: DeferredPromise<void>;
 }
 
-/**
- * Per-{@link BrowserSession} permission state. Owns the authoritative
- * {@link BrowserPermissionStore}, installs the Electron permission handlers that
- * consult it, and brokers prompts for categories that have no recorded decision.
- *
- * Every change to the store is flushed to application storage immediately so
- * decisions survive a crash right after they are made.
- */
 export class BrowserSessionPermissions extends Disposable implements IBrowserSessionPermissions {
 
 	private readonly _permissionStore = this._register(new BrowserPermissionStore());
 
-	/** Fires on any change to the store (set, clear, hydrate). */
 	readonly onDidChange: Event<void> = this._permissionStore.onDidChange;
 
 	private _storage: IApplicationStorageMainService | undefined;
 	private _persistable = false;
 
-	/** While set, store changes are coalesced into a single deferred flush. */
 	private _batching = false;
 	private _batchDirty = false;
 
@@ -152,8 +104,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 
 		this._register(this._permissionStore.onDidChange(() => {
 			this._resolvePending();
-			// During a batched `set()` defer the write so several category
-			// changes collapse into a single storage flush.
 			if (this._batching) {
 				this._batchDirty = true;
 				return;
@@ -168,18 +118,12 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 				pending.deferred.complete();
 			}
 			this._pending.clear();
-			// Cancel any in-flight device choosers so pages aren't left hanging.
 			for (const device of [...this._pendingDevices.values()]) {
 				device.settle(null);
 			}
 		}));
 	}
 
-	/**
-	 * Install the permission request / check / device handlers on the session.
-	 * Backed entirely by {@link BrowserPermissionStore}; unrecorded categories
-	 * are brokered to the owning browser view via {@link onDidRequestPermission}.
-	 */
 	configure(electronSession: Electron.Session): void {
 		electronSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
 			this._resolveRequest(webContents, permission, details).then(callback, () => callback(false));
@@ -188,27 +132,14 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 			if (isAlwaysAllowedPermission(permission)) {
 				return true;
 			}
-			// Prefer the full requesting URL so file: documents key off their
-			// path; `requestingUrl` is absent for cross-origin subframes, in
-			// which case Electron only gives us the bare origin.
 			const origin = toOriginKey(details.requestingUrl || requestingOrigin);
 			const categories = electronPermissionToCategories(permission, mediaKindsFromDetails(details));
 			if (categories.length === 0) {
 				return false;
 			}
-			// Synchronous gate used by Blink pre-checks and `permissions.query`.
-			// Categories with no recorded decision fall back to their
-			// `defaultState` (e.g. Location / Camera are deny-by-default until
-			// granted, while others may allow by default).
 			return categories.every(category => this._permissionStore.isAllowed(origin, category));
 		});
 
-		// Hardware-device choosers. USB / Serial / HID are gated by the handlers
-		// above (a `Devices` deny makes the check fail, so Chromium never fires
-		// these). We still re-check here, drive selection through the unified
-		// device-request flow, and listen for hot-plug add/remove events so an
-		// open picker stays in sync. Bluetooth is gated and funneled separately
-		// from the owning view (it is a per-webContents event).
 		electronSession.on('select-usb-device', (event, details, callback) => {
 			event.preventDefault();
 			const target = this._frameTarget(details.frame);
@@ -303,8 +234,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 			}
 		}
 
-		// Coalesce the per-category onDidChange flushes into a single write for
-		// the whole batch so persisting from the management UI isn't N writes.
 		this._batching = true;
 		this._batchDirty = false;
 		try {
@@ -332,7 +261,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 		this._permissionStore.clear();
 	}
 
-	// -- Device choosers -------------------------------------------------
 
 	beginBluetoothRequest(webContents: Electron.WebContents, devices: Electron.BluetoothDevice[], callback: (deviceId: string) => void): void {
 		const origin = toOriginKey(webContents.getURL());
@@ -341,9 +269,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 			return;
 		}
 		const candidates = devices.map(bluetoothCandidate);
-		// Electron re-fires `select-bluetooth-device` for the same chooser as
-		// devices are discovered, each time with a fresh callback. Fold those
-		// into the existing request: refresh its list and supersede the callback.
 		const existing = this._findActiveDevice(webContents, 'bluetooth');
 		if (existing) {
 			existing.devices = candidates;
@@ -364,7 +289,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 		this._pendingDevices.get(requestId)?.settle(deviceId);
 	}
 
-	/** Begin a device chooser: register it, emit it, and cancel if unclaimed. */
 	private _beginDeviceRequest(params: {
 		readonly webContents: Electron.WebContents;
 		readonly origin: string;
@@ -396,8 +320,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 		params.webContents.on('destroyed', cancel);
 		this._pendingDevices.set(requestId, pending);
 		if (!this._emitDeviceRequest(pending)) {
-			// No view claimed it (e.g. background or destroyed view): cancel so
-			// the page's requestDevice() promise rejects rather than hangs.
 			cancel();
 		}
 	}
@@ -446,7 +368,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 		return undefined;
 	}
 
-	/** Resolve the owning web contents and origin for a requesting frame. */
 	private _frameTarget(frame: Electron.WebFrameMain | null): { webContents: Electron.WebContents; origin: string } | undefined {
 		if (!frame) {
 			return undefined;
@@ -472,11 +393,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 			return false;
 		}
 
-		// Fast paths that need no prompt. A category whose effective decision is
-		// already 'allow' -- either an explicit user grant or an allow-by-default
-		// category -- is granted silently. This keeps the async request handler
-		// consistent with the synchronous check handler (both use `isAllowed`).
-		// An explicit 'deny' short-circuits without prompting.
 		if (categories.every(category => this._permissionStore.isAllowed(origin, category))) {
 			return true;
 		}
@@ -484,9 +400,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 			return false;
 		}
 
-		// At least one category is undecided: prompt for each undecided one. Do
-		// this sequentially so we never surface two modal prompts at once (e.g.
-		// a single `media` request maps to both Camera and Microphone).
 		for (const category of categories) {
 			if (!this._permissionStore.getDecision(origin, category)) {
 				await this._prompt(webContents, origin, category);
@@ -498,11 +411,8 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 
 	private _prompt(webContents: Electron.WebContents | null, origin: string, category: PermissionCategory): Promise<void> {
 		if (!webContents) {
-			// No view to ask -- leave undecided (effective deny by default state).
 			return Promise.resolve();
 		}
-		// Fire synchronously: the owning view claims the request before fire()
-		// returns, so we know whether any UI will surface a prompt.
 		let claimed = false;
 		this._onDidRequestPermission.fire({
 			webContents,
@@ -523,7 +433,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 		});
 	}
 
-	/** Resolve any pending request whose (origin, category) now has a decision. */
 	private _resolvePending(): void {
 		if (this._pending.size === 0) {
 			return;
@@ -542,7 +451,6 @@ export class BrowserSessionPermissions extends Disposable implements IBrowserSes
 			return;
 		}
 		const snapshot = parseSnapshot<ISerializedBrowserPermissionsSnapshot>(storage.get(key, StorageScope.APPLICATION));
-		// Hydration fires onDidChange; suppress flushes so we don't rewrite what we just read.
 		this._persistable = false;
 		try {
 			this._permissionStore.hydrate(snapshot);
@@ -581,23 +489,12 @@ function parseSnapshot<T>(raw: string | undefined): T | undefined {
 	}
 }
 
-/**
- * The Electron details union passed to `setPermissionRequestHandler`. All
- * variants extend `PermissionRequest` (so share `requestingUrl`); only
- * `MediaAccessPermissionRequest` adds `mediaTypes`.
- */
 type PermissionRequestDetails =
 	| Electron.PermissionRequest
 	| Electron.FilesystemPermissionRequest
 	| Electron.MediaAccessPermissionRequest
 	| Electron.OpenExternalPermissionRequest;
 
-/**
- * Normalize the media hint from either permission handler's Electron details
- * into a `('video' | 'audio')[]`. The request handler supplies `mediaTypes`
- * (an array); the check handler supplies a single `mediaType`. Returns
- * `undefined` when there is no usable hint, so the mapper can assume both.
- */
 function mediaKindsFromDetails(details: PermissionRequestDetails | Electron.PermissionCheckHandlerHandlerDetails | undefined): ('video' | 'audio')[] | undefined {
 	if (!details) {
 		return undefined;
@@ -616,7 +513,6 @@ function mediaKindsFromDetails(details: PermissionRequestDetails | Electron.Perm
 	return kinds.size ? [...kinds] : undefined;
 }
 
-/** Format a USB/HID vendor:product pair as a `vvvv:pppp` hex string. */
 function vendorProductHex(vendorId: number | undefined, productId: number | undefined): string {
 	const hex = (value: number | undefined) => (value ?? 0).toString(16).padStart(4, '0');
 	return `${hex(vendorId)}:${hex(productId)}`;

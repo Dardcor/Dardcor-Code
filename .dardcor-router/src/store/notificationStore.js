@@ -24,7 +24,6 @@ export const useNotificationStore = create((set, get) => ({
 
     set((s) => ({ notifications: [...s.notifications, entry] }));
 
-    // Auto-dismiss
     if (entry.duration > 0) {
       setTimeout(() => get().removeNotification(id), entry.duration);
     }

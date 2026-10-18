@@ -35,11 +35,9 @@ export class BareFontInfo {
 		if (lineHeight === 0) {
 			lineHeight = GOLDEN_LINE_HEIGHT_RATIO * fontSize;
 		} else if (lineHeight < MINIMUM_LINE_HEIGHT) {
-			// Values too small to be line heights in pixels are in ems.
 			lineHeight = lineHeight * fontSize;
 		}
 
-		// Enforce integer, minimum constraints
 		lineHeight = Math.round(lineHeight);
 		if (lineHeight < MINIMUM_LINE_HEIGHT) {
 			lineHeight = MINIMUM_LINE_HEIGHT;
@@ -124,18 +122,15 @@ export class BareFontInfo {
 
 	private static _wrapInQuotes(fontFamily: string): string {
 		if (/[,"']/.test(fontFamily)) {
-			// Looks like the font family might be already escaped
 			return fontFamily;
 		}
 		if (/[+ ]/.test(fontFamily)) {
-			// Wrap a font family using + or <space> with quotes
 			return `"${fontFamily}"`;
 		}
 		return fontFamily;
 	}
 }
 
-// change this whenever `FontInfo` members are changed
 export const SERIALIZED_FONT_INFO_VERSION = 2;
 
 export class FontInfo extends BareFontInfo {

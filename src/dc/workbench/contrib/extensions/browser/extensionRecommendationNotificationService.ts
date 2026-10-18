@@ -118,7 +118,6 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 
 	declare readonly _serviceBrand: undefined;
 
-	// Ignored Important Recommendations
 	get ignoredRecommendations(): string[] {
 		return distinct([...(<string[]>JSON.parse(this.storageService.get(ignoreImportantExtensionRecommendationStorageKey, StorageScope.PROFILE, '[]')))].map(i => i.toLowerCase()));
 	}
@@ -188,7 +187,7 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 		}
 
 		let installed = await this.extensionManagementService.getInstalled();
-		installed = installed.filter(l => this.extensionEnablementService.getEnablementState(l) !== EnablementState.DisabledByExtensionKind); // Filter extensions disabled by kind
+		installed = installed.filter(l => this.extensionEnablementService.getEnablementState(l) !== EnablementState.DisabledByExtensionKind);
 		recommendations = recommendations.filter(recommendation => installed.every(local =>
 			isString(recommendation) ? !areSameExtensions({ id: recommendation }, local.identifier) : !this.uriIdentityService.extUri.isEqual(recommendation, local.location)
 		));
@@ -214,21 +213,16 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 			return RecommendationsNotificationResult.Ignored;
 		}
 
-		// Do not show exe based recommendations in remote window
 		if (source === RecommendationSource.EXE && this.workbenchEnvironmentService.remoteAuthority) {
 			return RecommendationsNotificationResult.IncompatibleWindow;
 		}
 
-		// Ignore exe recommendation if the window
-		// 		=> has shown an exe based recommendation already
-		// 		=> or has shown any two recommendations already
 		if (source === RecommendationSource.EXE && (this.recommendationSources.includes(RecommendationSource.EXE) || this.recommendationSources.length >= 2)) {
 			return RecommendationsNotificationResult.TooMany;
 		}
 
 		this.recommendationSources.push(source);
 
-		// Ignore exe recommendation if recommendations are already shown
 		if (source === RecommendationSource.EXE && extensionIds.every(id => isString(id) && this.recommendedExtensions.includes(id))) {
 			return RecommendationsNotificationResult.Ignored;
 		}
@@ -352,15 +346,6 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 		});
 	}
 
-	/**
-	 * Show recommendations in Queue
-	 * At any time only one recommendation is shown
-	 * If a new recommendation comes in
-	 * 		=> If no recommendation is visible, show it immediately
-	 *		=> Otherwise, add to the pending queue
-	 * 			=> If it is not exe based and has higher or same priority as current, hide the current notification after showing it for 3s.
-	 * 			=> Otherwise wait until the current notification is hidden.
-	 */
 	private async doShowRecommendationsNotification(severity: Severity, message: string, choices: IPromptChoice[], source: RecommendationSource, token: CancellationToken): Promise<boolean> {
 		const disposables = new DisposableStore();
 		try {
@@ -388,7 +373,6 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 		const index = this.getNextPendingNotificationIndex();
 		const [nextNotificaiton] = index > -1 ? this.pendingNotificaitons.splice(index, 1) : [];
 
-		// Show the next notification after a delay of 500ms (after the current notification is dismissed)
 		timeout(nextNotificaiton ? 500 : 0)
 			.then(() => {
 				this.unsetVisibileNotification();
@@ -399,9 +383,6 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 			});
 	}
 
-	/**
-	 * Return the recent high priroity pending notification
-	 */
 	private getNextPendingNotificationIndex(): number {
 		let index = this.pendingNotificaitons.length - 1;
 		if (this.pendingNotificaitons.length) {

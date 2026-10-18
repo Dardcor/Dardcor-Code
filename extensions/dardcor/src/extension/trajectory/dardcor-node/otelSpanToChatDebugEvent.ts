@@ -5,29 +5,18 @@
 
 import * as vscode from 'vscode';
 import type { IDebugLogEntry } from '../../../platform/chat/common/chatDebugFileLoggerService';
-import { CopilotChatAttr, CopilotCliSdkAttr, GenAiAttr, GenAiOperationName } from '../../../platform/otel/common/index';
+import { DardcorChatAttr, DardcorSdkAttr, GenAiAttr, GenAiOperationName } from '../../../platform/otel/common/index';
 import { type ICompletedSpanData, type ISpanEventData, SpanStatusCode } from '../../../platform/otel/common/otelService';
 
-// ── Event ID conventions ──
-// {spanId} → direct span mapping (tool calls, model turns, subagent invocations)
-// user-msg-{spanId} → user message extracted from a chat span
-// agent-msg-{spanId} → agent response extracted from a chat span
 
 function userMsgId(spanId: string): string { return `user-msg-${spanId}`; }
 function agentMsgId(spanId: string): string { return `agent-msg-${spanId}`; }
 
-/**
- * Extract the session ID from a span's attributes.
- */
 export function extractSessionId(span: ICompletedSpanData): string | undefined {
-	return asString(span.attributes[CopilotChatAttr.SESSION_ID])
+	return asString(span.attributes[DardcorChatAttr.SESSION_ID])
 		?? asString(span.attributes[GenAiAttr.CONVERSATION_ID]);
 }
 
-/**
- * Convert a completed span into a debug panel event (tool call, model turn, or subagent invocation).
- * Returns undefined for spans that don't map to a specific event type (e.g., invoke_agent are containers).
- */
 export function completedSpanToDebugEvent(span: ICompletedSpanData): vscode.ChatDebugEvent | undefined {
 	const opName = asString(span.attributes[GenAiAttr.OPERATION_NAME]);
 
@@ -37,9 +26,6 @@ export function completedSpanToDebugEvent(span: ICompletedSpanData): vscode.Chat
 		case GenAiOperationName.CHAT:
 			return spanToModelTurnEvent(span);
 		case GenAiOperationName.INVOKE_AGENT:
-			// Subagent spans (those with a parent and an identifiable agent name) become subagent invocation events.
-			// Skip SDK wrapper invoke_agent spans that have no agent name — they're transparent containers
-			// whose children should appear under their grandparent.
 			if (span.parentSpanId) {
 				const hasAgentName = !!asString(span.attributes[GenAiAttr.AGENT_NAME])
 					|| span.name.replace(/^invoke_agent\s*/, '').trim().length > 0;
@@ -47,25 +33,20 @@ export function completedSpanToDebugEvent(span: ICompletedSpanData): vscode.Chat
 					return spanToSubagentEvent(span);
 				}
 			}
-			return undefined; // Top-level agent spans or unnamed wrappers are containers, not events
+			return undefined;
 		case GenAiOperationName.EXECUTE_HOOK:
 			return spanToHookExecutionEvent(span);
 		case GenAiOperationName.CONTENT_EVENT:
 		case 'core_event':
 			return spanToGenericEvent(span);
 		default:
-			// SDK native hook spans use 'github.dardcor.hook.type' instead of gen_ai.operation.name
-			if (span.name.startsWith('hook ') && asString(span.attributes[CopilotCliSdkAttr.HOOK_TYPE])) {
+			if (span.name.startsWith('hook ') && asString(span.attributes[DardcorSdkAttr.HOOK_TYPE])) {
 				return spanToSdkHookEvent(span);
 			}
 			return undefined;
 	}
 }
 
-/**
- * Extract agent response events from a set of chat spans.
- * User messages are handled separately via span events (onDidEmitSpanEvent).
- */
 export function extractConversationEvents(spans: readonly ICompletedSpanData[]): vscode.ChatDebugEvent[] {
 	const events: vscode.ChatDebugEvent[] = [];
 	for (const span of spans) {
@@ -74,7 +55,6 @@ export function extractConversationEvents(spans: readonly ICompletedSpanData[]):
 			continue;
 		}
 
-		// Extract agent response from output messages — only when there's actual text content
 		const outputMessages = asString(span.attributes[GenAiAttr.OUTPUT_MESSAGES]);
 		if (outputMessages) {
 			const hasTextContent = hasAgentTextResponse(outputMessages);
@@ -95,10 +75,6 @@ export function extractConversationEvents(spans: readonly ICompletedSpanData[]):
 	return events;
 }
 
-/**
- * Convert a user_message span event (from onDidEmitSpanEvent) into a ChatDebugUserMessageEvent
- * for real-time streaming to the debug panel before the span completes.
- */
 export function spanEventToUserMessage(event: ISpanEventData): vscode.ChatDebugUserMessageEvent | undefined {
 	if (event.eventName !== 'user_message') {
 		return undefined;
@@ -113,11 +89,7 @@ export function spanEventToUserMessage(event: ISpanEventData): vscode.ChatDebugU
 	return evt;
 }
 
-// ── Detail Resolution Functions ──
 
-/**
- * Resolve the full content of a tool call or model turn span for the detail view.
- */
 export function resolveSpanToContent(span: ICompletedSpanData): vscode.ChatDebugResolvedEventContent | undefined {
 	const opName = asString(span.attributes[GenAiAttr.OPERATION_NAME]);
 	if (opName === GenAiOperationName.EXECUTE_TOOL) {
@@ -132,31 +104,26 @@ export function resolveSpanToContent(span: ICompletedSpanData): vscode.ChatDebug
 	return undefined;
 }
 
-/**
- * Resolve a user message from a chat span's attributes into structured sections.
- */
 export function resolveUserMessageFromSpan(span: ICompletedSpanData): vscode.ChatDebugUserMessageEvent {
 	const sections: vscode.ChatDebugMessageSection[] = [];
 
-	// Build sections from dedicated attributes
 	const systemInstr = asString(span.attributes[GenAiAttr.SYSTEM_INSTRUCTIONS]);
 	if (systemInstr) {
 		sections.push(new vscode.ChatDebugMessageSection('System', systemInstr));
 	}
-	const promptContext = asString(span.attributes[CopilotChatAttr.PROMPT_CONTEXT]);
+	const promptContext = asString(span.attributes[DardcorChatAttr.PROMPT_CONTEXT]);
 	if (promptContext) {
 		sections.push(new vscode.ChatDebugMessageSection('Context', promptContext));
 	}
-	const promptInstructions = asString(span.attributes[CopilotChatAttr.PROMPT_INSTRUCTIONS]);
+	const promptInstructions = asString(span.attributes[DardcorChatAttr.PROMPT_INSTRUCTIONS]);
 	if (promptInstructions) {
 		sections.push(new vscode.ChatDebugMessageSection('Instructions', promptInstructions));
 	}
-	const userRequest = asString(span.attributes[CopilotChatAttr.USER_REQUEST]);
+	const userRequest = asString(span.attributes[DardcorChatAttr.USER_REQUEST]);
 	if (userRequest) {
 		sections.push(new vscode.ChatDebugMessageSection('User Request', userRequest));
 	}
 
-	// Fallback: if no dedicated attributes, parse from gen_ai.input.messages
 	if (sections.length === 0) {
 		const inputMessages = asString(span.attributes[GenAiAttr.INPUT_MESSAGES]);
 		if (inputMessages) {
@@ -175,11 +142,10 @@ export function resolveUserMessageFromSpan(span: ICompletedSpanData): vscode.Cha
 						));
 					}
 				}
-			} catch { /* invalid JSON, skip */ }
+			} catch { }
 		}
 	}
 
-	// If we still have no sections, use the raw user request or input messages as a single section
 	if (sections.length === 0) {
 		const inputMessages = asString(span.attributes[GenAiAttr.INPUT_MESSAGES]);
 		if (inputMessages) {
@@ -194,13 +160,9 @@ export function resolveUserMessageFromSpan(span: ICompletedSpanData): vscode.Cha
 	return evt;
 }
 
-/**
- * Resolve an agent response from a chat span's attributes into structured sections.
- */
 export function resolveAgentResponseFromSpan(span: ICompletedSpanData): vscode.ChatDebugAgentResponseEvent {
 	const sections: vscode.ChatDebugMessageSection[] = [];
 
-	// Response text from output messages
 	const outputMessages = asString(span.attributes[GenAiAttr.OUTPUT_MESSAGES]);
 	if (outputMessages) {
 		try {
@@ -222,11 +184,10 @@ export function resolveAgentResponseFromSpan(span: ICompletedSpanData): vscode.C
 					sections.push(new vscode.ChatDebugMessageSection('Tool Calls', toolSection));
 				}
 			}
-		} catch { /* invalid JSON, skip */ }
+		} catch { }
 	}
 
-	// Reasoning content
-	const reasoning = asString(span.attributes[CopilotChatAttr.REASONING_CONTENT]);
+	const reasoning = asString(span.attributes[DardcorChatAttr.REASONING_CONTENT]);
 	if (reasoning) {
 		sections.push(new vscode.ChatDebugMessageSection('Reasoning', reasoning));
 	}
@@ -240,12 +201,7 @@ export function resolveAgentResponseFromSpan(span: ICompletedSpanData): vscode.C
 	return evt;
 }
 
-// ── Grouping Functions ──
 
-/**
- * Group execute_tool spans by their parent span ID to reconstruct "tool call rounds".
- * Returns a map from parentSpanId → tool call spans in that round (ordered by startTime).
- */
 export function groupToolCallsByParent(spans: readonly ICompletedSpanData[]): Map<string, ICompletedSpanData[]> {
 	const groups = new Map<string, ICompletedSpanData[]>();
 	for (const span of spans) {
@@ -261,26 +217,19 @@ export function groupToolCallsByParent(spans: readonly ICompletedSpanData[]): Ma
 		}
 		group.push(span);
 	}
-	// Sort each group by start time
 	for (const group of groups.values()) {
 		group.sort((a, b) => a.startTime - b.startTime);
 	}
 	return groups;
 }
 
-/**
- * Detect parallel subagent invocations: execute_tool "runSubagent" spans
- * that share the same parentSpanId and have overlapping time ranges.
- */
 export function detectParallelSubagents(spans: readonly ICompletedSpanData[]): ParallelSubagentGroup[] {
-	// Find all runSubagent tool spans
 	const subagentToolSpans = spans.filter(s => {
 		const opName = asString(s.attributes[GenAiAttr.OPERATION_NAME]);
 		const toolName = asString(s.attributes[GenAiAttr.TOOL_NAME]);
 		return opName === GenAiOperationName.EXECUTE_TOOL && toolName === 'runSubagent';
 	});
 
-	// Group by parent
 	const byParent = new Map<string, ICompletedSpanData[]>();
 	for (const span of subagentToolSpans) {
 		const parent = span.parentSpanId;
@@ -296,7 +245,6 @@ export function detectParallelSubagents(spans: readonly ICompletedSpanData[]): P
 	const result: ParallelSubagentGroup[] = [];
 	for (const [parentId, group] of byParent) {
 		if (group.length < 2) { continue; }
-		// Check for time overlap — if any two spans overlap, they're parallel
 		group.sort((a, b) => a.startTime - b.startTime);
 		const hasOverlap = group.some((span, i) => {
 			if (i === 0) { return false; }
@@ -317,7 +265,6 @@ export interface ParallelSubagentGroup {
 	readonly spans: readonly ICompletedSpanData[];
 }
 
-// ── Private helpers ──
 
 function spanToToolCallEvent(span: ICompletedSpanData): vscode.ChatDebugToolCallEvent {
 	let toolName = asString(span.attributes[GenAiAttr.TOOL_NAME]) ?? 'unknown';
@@ -327,7 +274,6 @@ function spanToToolCallEvent(span: ICompletedSpanData): vscode.ChatDebugToolCall
 			toolName = `runSubagent (${agentName})`;
 		}
 	}
-	// Use span name (e.g., "execute_tool task") for display, matching Grafana
 	const displayName = span.name || `execute_tool ${toolName}`;
 	const evt = new vscode.ChatDebugToolCallEvent(displayName, new Date(span.startTime));
 	evt.id = span.spanId;
@@ -354,21 +300,19 @@ function spanToModelTurnEvent(span: ICompletedSpanData): vscode.ChatDebugModelTu
 	evt.cachedTokens = asNumber(span.attributes[GenAiAttr.USAGE_CACHE_READ_INPUT_TOKENS]);
 	evt.totalTokens = (evt.inputTokens ?? 0) + (evt.outputTokens ?? 0);
 	evt.durationInMillis = span.endTime - span.startTime;
-	evt.timeToFirstTokenInMillis = asNumber(span.attributes[CopilotChatAttr.TIME_TO_FIRST_TOKEN]);
-	evt.maxInputTokens = asNumber(span.attributes[CopilotChatAttr.MAX_PROMPT_TOKENS]);
+	evt.timeToFirstTokenInMillis = asNumber(span.attributes[DardcorChatAttr.TIME_TO_FIRST_TOKEN]);
+	evt.maxInputTokens = asNumber(span.attributes[DardcorChatAttr.MAX_PROMPT_TOKENS]);
 	evt.maxOutputTokens = asNumber(span.attributes[GenAiAttr.REQUEST_MAX_TOKENS]);
-	evt.requestName = asString(span.attributes[CopilotChatAttr.DEBUG_NAME])
+	evt.requestName = asString(span.attributes[DardcorChatAttr.DEBUG_NAME])
 		?? asString(span.attributes[GenAiAttr.AGENT_NAME]);
 	evt.status = spanStatusToString(span.status.code as SpanStatusCode);
-	evt.dardcorUsageNanoAiu = asNumber(span.attributes[CopilotChatAttr.COPILOT_USAGE_NANO_AIU]);
+	evt.dardcorUsageNanoAiu = asNumber(span.attributes[DardcorChatAttr.DARDCOR_USAGE_NANO_AIU]);
 	return evt;
 }
 
 function spanToSubagentEvent(span: ICompletedSpanData): vscode.ChatDebugSubagentInvocationEvent {
-	// Use agent name from attributes, falling back to parsing from span name (e.g., "invoke_agent task" → "task")
 	const agentName = asString(span.attributes[GenAiAttr.AGENT_NAME])
 		?? (span.name.replace(/^invoke_agent\s*/, '').trim() || 'agent');
-	// Use span name (e.g., "invoke_agent task") for display, matching Grafana
 	const displayName = span.name || `invoke_agent ${agentName}`;
 	const evt = new vscode.ChatDebugSubagentInvocationEvent(displayName, new Date(span.startTime));
 	evt.id = span.spanId;
@@ -381,16 +325,16 @@ function spanToSubagentEvent(span: ICompletedSpanData): vscode.ChatDebugSubagent
 		: span.status.code === SpanStatusCode.ERROR
 			? vscode.ChatDebugSubagentStatus.Failed
 			: vscode.ChatDebugSubagentStatus.Running;
-	const turnCount = asNumber(span.attributes[CopilotChatAttr.TURN_COUNT]);
+	const turnCount = asNumber(span.attributes[DardcorChatAttr.TURN_COUNT]);
 	evt.modelTurnCount = turnCount;
 	return evt;
 }
 
 function resolveHookExecutionContent(span: ICompletedSpanData): vscode.ChatDebugEventHookContent {
-	const hookType = asString(span.attributes[CopilotChatAttr.HOOK_TYPE]) ?? 'unknown';
+	const hookType = asString(span.attributes[DardcorChatAttr.HOOK_TYPE]) ?? 'unknown';
 	const content = new vscode.ChatDebugEventHookContent(hookType);
 	content.command = asString(span.attributes['dardcor_chat.hook_command']);
-	const resultKind = asString(span.attributes[CopilotChatAttr.HOOK_RESULT_KIND]);
+	const resultKind = asString(span.attributes[DardcorChatAttr.HOOK_RESULT_KIND]);
 	content.result = resultKind === 'success'
 		? vscode.ChatDebugHookResult.Success
 		: resultKind === 'error'
@@ -399,8 +343,8 @@ function resolveHookExecutionContent(span: ICompletedSpanData): vscode.ChatDebug
 				? vscode.ChatDebugHookResult.NonBlockingError
 				: undefined;
 	content.durationInMillis = span.endTime - span.startTime;
-	content.input = asString(span.attributes[CopilotChatAttr.HOOK_INPUT]);
-	content.output = asString(span.attributes[CopilotChatAttr.HOOK_OUTPUT]);
+	content.input = asString(span.attributes[DardcorChatAttr.HOOK_INPUT]);
+	content.output = asString(span.attributes[DardcorChatAttr.HOOK_OUTPUT]);
 	if (span.status.code === SpanStatusCode.ERROR && span.status.message) {
 		content.errorMessage = span.status.message;
 	}
@@ -409,9 +353,9 @@ function resolveHookExecutionContent(span: ICompletedSpanData): vscode.ChatDebug
 }
 
 function spanToHookExecutionEvent(span: ICompletedSpanData): vscode.ChatDebugGenericEvent {
-	const hookType = asString(span.attributes[CopilotChatAttr.HOOK_TYPE]) ?? 'unknown';
+	const hookType = asString(span.attributes[DardcorChatAttr.HOOK_TYPE]) ?? 'unknown';
 	const hookCommand = asString(span.attributes['dardcor_chat.hook_command']);
-	const resultKind = asString(span.attributes[CopilotChatAttr.HOOK_RESULT_KIND]);
+	const resultKind = asString(span.attributes[DardcorChatAttr.HOOK_RESULT_KIND]);
 	const durationMs = Math.round(span.endTime - span.startTime);
 
 	const name = `Hook: ${hookType}`;
@@ -429,12 +373,8 @@ function spanToHookExecutionEvent(span: ICompletedSpanData): vscode.ChatDebugGen
 	return evt;
 }
 
-/**
- * Convert an SDK native hook span (github.dardcor.hook.*) to a debug panel event.
- * SDK uses span name "hook {type}" and attributes in the github.dardcor.hook.* namespace.
- */
 function spanToSdkHookEvent(span: ICompletedSpanData): vscode.ChatDebugGenericEvent {
-	const hookType = asString(span.attributes[CopilotCliSdkAttr.HOOK_TYPE]) ?? 'unknown';
+	const hookType = asString(span.attributes[DardcorSdkAttr.HOOK_TYPE]) ?? 'unknown';
 	const durationMs = span.endTime - span.startTime;
 	const isError = span.status.code === SpanStatusCode.ERROR;
 	const level = isError ? vscode.ChatDebugLogLevel.Error : vscode.ChatDebugLogLevel.Info;
@@ -447,11 +387,11 @@ function spanToSdkHookEvent(span: ICompletedSpanData): vscode.ChatDebugGenericEv
 }
 
 function spanToGenericEvent(span: ICompletedSpanData): vscode.ChatDebugGenericEvent {
-	const name = asString(span.attributes[CopilotChatAttr.DEBUG_NAME]) ?? span.name;
+	const name = asString(span.attributes[DardcorChatAttr.DEBUG_NAME]) ?? span.name;
 	const evt = new vscode.ChatDebugGenericEvent(name, vscode.ChatDebugLogLevel.Info, new Date(span.startTime));
 	evt.id = span.spanId;
 	evt.parentEventId = span.parentSpanId;
-	evt.details = asString(span.attributes[CopilotChatAttr.MARKDOWN_CONTENT])
+	evt.details = asString(span.attributes[DardcorChatAttr.MARKDOWN_CONTENT])
 		?? asString(span.attributes['dardcor_chat.event_details']);
 	evt.category = asString(span.attributes['dardcor_chat.event_category']);
 	return evt;
@@ -472,24 +412,23 @@ function resolveToolCallContent(span: ICompletedSpanData): vscode.ChatDebugEvent
 }
 
 function resolveModelTurnContent(span: ICompletedSpanData): vscode.ChatDebugEventModelTurnContent {
-	const requestName = asString(span.attributes[CopilotChatAttr.DEBUG_NAME])
+	const requestName = asString(span.attributes[DardcorChatAttr.DEBUG_NAME])
 		?? asString(span.attributes[GenAiAttr.AGENT_NAME])
 		?? span.name;
 	const content = new vscode.ChatDebugEventModelTurnContent(requestName);
 	content.model = asString(span.attributes[GenAiAttr.REQUEST_MODEL]);
 	content.status = spanStatusToString(span.status.code as SpanStatusCode);
 	content.durationInMillis = span.endTime - span.startTime;
-	content.timeToFirstTokenInMillis = asNumber(span.attributes[CopilotChatAttr.TIME_TO_FIRST_TOKEN]);
+	content.timeToFirstTokenInMillis = asNumber(span.attributes[DardcorChatAttr.TIME_TO_FIRST_TOKEN]);
 	content.requestId = asString(span.attributes[GenAiAttr.RESPONSE_ID]);
-	content.requestOptions = asString(span.attributes[CopilotChatAttr.REQUEST_OPTIONS]);
-	content.maxInputTokens = asNumber(span.attributes[CopilotChatAttr.MAX_PROMPT_TOKENS]);
+	content.requestOptions = asString(span.attributes[DardcorChatAttr.REQUEST_OPTIONS]);
+	content.maxInputTokens = asNumber(span.attributes[DardcorChatAttr.MAX_PROMPT_TOKENS]);
 	content.maxOutputTokens = asNumber(span.attributes[GenAiAttr.REQUEST_MAX_TOKENS]);
 	content.inputTokens = asNumber(span.attributes[GenAiAttr.USAGE_INPUT_TOKENS]);
 	content.outputTokens = asNumber(span.attributes[GenAiAttr.USAGE_OUTPUT_TOKENS]);
 	content.cachedTokens = asNumber(span.attributes[GenAiAttr.USAGE_CACHE_READ_INPUT_TOKENS]);
 	content.totalTokens = (content.inputTokens ?? 0) + (content.outputTokens ?? 0);
 
-	// Build sections for the detail view
 	const sections: vscode.ChatDebugMessageSection[] = [];
 	const systemInstr = asString(span.attributes[GenAiAttr.SYSTEM_INSTRUCTIONS]);
 	if (systemInstr) {
@@ -499,7 +438,7 @@ function resolveModelTurnContent(span: ICompletedSpanData): vscode.ChatDebugEven
 	if (inputMessages) {
 		sections.push(new vscode.ChatDebugMessageSection('Input Messages', inputMessages));
 	}
-	const requestShape = asString(span.attributes[CopilotChatAttr.REQUEST_SHAPE]);
+	const requestShape = asString(span.attributes[DardcorChatAttr.REQUEST_SHAPE]);
 	if (requestShape) {
 		sections.push(new vscode.ChatDebugMessageSection('Request Shape', requestShape));
 	}
@@ -528,7 +467,6 @@ function extractAgentResponseSummary(outputMessagesJson: string, agentName?: str
 			if (!msg.parts) { continue; }
 			const text = msg.parts.find(p => p.type === 'text' && p.content)?.content;
 			if (text) {
-				// For very short responses, prefix with agent/model name for context
 				if (text.length <= 40 && agentName) {
 					return `${label}: ${text}`;
 				}
@@ -539,7 +477,7 @@ function extractAgentResponseSummary(outputMessagesJson: string, agentName?: str
 				return `Tool calls: ${toolCalls.map(tc => tc.name ?? 'unknown').join(', ')}`;
 			}
 		}
-	} catch { /* ignore */ }
+	} catch { }
 	return label;
 }
 
@@ -552,11 +490,10 @@ function hasAgentTextResponse(outputMessagesJson: string): boolean {
 				return true;
 			}
 		}
-	} catch { /* ignore */ }
+	} catch { }
 	return false;
 }
 
-// As per oTel spec, default is success.
 function spanStatusToString(code: SpanStatusCode): string {
 	switch (code) {
 		case 2: return 'error';
@@ -593,19 +530,7 @@ function capitalize(s: string): string {
 	return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// ── IDebugLogEntry → ChatDebugEvent converters ──
 
-/**
- * Convert a JSONL debug log entry into a VS Code debug panel event.
- * Returns undefined for entry types that are not displayed in the panel
- * (session_start, turn boundaries, errors) and for filtered child session
- * references (categorization, title). Non-filtered child_session_ref entries
- * are converted into generic events with category 'subagent'.
- *
- * @param skipCoreEvents When true, skip `discovery` and core-sourced `generic`
- *   entries because VS Code core is already displaying them for live sessions.
- *   Set to false for historical sessions where core won't fire those events.
- */
 export function debugLogEntryToDebugEvent(entry: IDebugLogEntry, skipCoreEvents = true): vscode.ChatDebugEvent | undefined {
 	switch (entry.type) {
 		case 'tool_call':
@@ -623,12 +548,8 @@ export function debugLogEntryToDebugEvent(entry: IDebugLogEntry, skipCoreEvents 
 		case 'child_session_ref':
 			return entryToChildSessionRefEvent(entry);
 		case 'discovery':
-			// Discovery events (Load Agents, Load Skills, etc.) are already displayed
-			// by VS Code core via onDidReceiveChatDebugEvent for live sessions.
 			return skipCoreEvents ? undefined : entryToGenericEvent(entry);
 		case 'generic':
-			// Generic events from core (e.g. Resolve Customizations) are also displayed
-			// by VS Code core directly for live sessions.
 			if (skipCoreEvents && entry.attrs.source === 'core') {
 				return undefined;
 			}
@@ -643,17 +564,12 @@ export function debugLogEntryToDebugEvent(entry: IDebugLogEntry, skipCoreEvents 
 	}
 }
 
-/**
- * Generate dedup key for an entry. Uses type + spanId + timestamp to handle
- * spanId collisions from OTel counter resets across VS Code restarts.
- */
 export function entryDedupKey(entry: IDebugLogEntry): string {
 	return `${entry.type}:${entry.spanId}:${entry.ts}`;
 }
 
 function entryToToolCallEvent(entry: IDebugLogEntry): vscode.ChatDebugToolCallEvent {
 	let displayName = entry.name;
-	// For runSubagent, extract the description from args for a more informative display
 	if (entry.name === 'runSubagent') {
 		const desc = extractJsonField(entry.attrs.args as string | undefined, 'description');
 		if (desc) {
@@ -747,7 +663,6 @@ function entryToHookEvent(entry: IDebugLogEntry): vscode.ChatDebugGenericEvent {
 
 function entryToChildSessionRefEvent(entry: IDebugLogEntry): vscode.ChatDebugGenericEvent | undefined {
 	const label = entry.attrs.label as string | undefined ?? entry.name;
-	// Filter out internal infrastructure entries
 	if (label === 'categorization' || label === 'title') {
 		return undefined;
 	}
@@ -770,13 +685,7 @@ function entryToGenericEvent(entry: IDebugLogEntry): vscode.ChatDebugGenericEven
 	return evt;
 }
 
-// ── IDebugLogEntry detail resolution ──
 
-/**
- * Resolve the full content of a debug log entry for the detail view.
- * For model turns, can optionally read companion files (system prompt, tools)
- * from the session directory.
- */
 export async function resolveDebugLogEntry(
 	entry: IDebugLogEntry,
 	readCompanionFile?: (fileName: string) => Promise<string | undefined>,
@@ -830,7 +739,6 @@ async function resolveModelTurnEntry(
 
 	const sections: vscode.ChatDebugMessageSection[] = [];
 
-	// Read system prompt from companion file
 	const systemPromptFile = entry.attrs.systemPromptFile as string | undefined;
 	if (systemPromptFile && readCompanionFile) {
 		const systemPrompt = await readCompanionFile(systemPromptFile);
@@ -848,7 +756,6 @@ async function resolveModelTurnEntry(
 		sections.push(new vscode.ChatDebugMessageSection('Request Shape', requestShape));
 	}
 
-	// Read tools from companion file
 	const toolsFile = entry.attrs.toolsFile as string | undefined;
 	if (toolsFile && readCompanionFile) {
 		const tools = await readCompanionFile(toolsFile);

@@ -53,13 +53,11 @@ function createMockContext(): IChatContentPartRenderContext {
 	} as IChatContentPartRenderContext;
 }
 
-/** Query all `.monaco-button` elements inside the footer `.chat-buttons` container. */
 function getFooterButtons(widget: ChatPlanReviewPart): HTMLElement[] {
 	const container = widget.domNode.querySelector('.chat-plan-review-footer .chat-buttons');
 	return container ? Array.from(container.querySelectorAll('.monaco-button')) : [];
 }
 
-/** Query all `.monaco-button` elements inside the inline-actions container (collapsed title bar). */
 function getInlineButtons(widget: ChatPlanReviewPart): HTMLElement[] {
 	const container = widget.domNode.querySelector('.chat-plan-review-inline-actions');
 	return container ? Array.from(container.querySelectorAll('.monaco-button')) : [];
@@ -381,11 +379,9 @@ suite('ChatPlanReviewPart', () => {
 			assert.strictEqual(editorInput.resource?.toString(), 'file:///plan.md');
 			assert.strictEqual(editorInput.options?.pinned, true);
 
-			// Feedback section should now be visible.
 			const feedbackSection = getFeedbackSection(widget);
 			assert.notStrictEqual(feedbackSection.style.display, 'none', 'feedback section should be visible');
 
-			// Footer should keep approval available when no feedback has been entered.
 			const buttons = getFooterButtons(widget);
 			assert.ok(buttons.some(b => b.textContent?.includes('Submit Feedback')), 'should have Submit Feedback button');
 			assert.ok(buttons.some(b => b.textContent?.includes('Reject')), 'should still have Reject button');
@@ -421,11 +417,9 @@ suite('ChatPlanReviewPart', () => {
 			reviewButton.click();
 			await tick();
 
-			// Feedback section should now be visible.
 			const feedbackSection = getFeedbackSection(widget);
 			assert.notStrictEqual(feedbackSection.style.display, 'none', 'feedback section should be visible');
 
-			// Footer should have Submit Feedback + Approve + Reject.
 			const buttons = getFooterButtons(widget);
 			assert.ok(buttons.some(b => b.textContent?.includes('Submit Feedback')), 'should have Submit Feedback button');
 			assert.ok(buttons.some(b => b.textContent?.includes('Reject')), 'should still have Reject button');
@@ -449,11 +443,9 @@ suite('ChatPlanReviewPart', () => {
 			reviewButton.click();
 			await tick();
 
-			// Feedback section should now be visible.
 			const feedbackSection = getFeedbackSection(widget);
 			assert.notStrictEqual(feedbackSection.style.display, 'none', 'feedback section should be visible');
 
-			// Footer should have Submit Feedback + Approve + Reject.
 			const buttons = getFooterButtons(widget);
 			assert.ok(buttons.some(b => b.textContent?.includes('Submit Feedback')), 'should have Submit Feedback button');
 			assert.ok(buttons.some(b => b.textContent?.includes('Reject')), 'should still have Reject button');
@@ -487,9 +479,6 @@ suite('ChatPlanReviewPart', () => {
 		});
 
 		test('approving with textarea content sends approval + feedback', () => {
-			// canProvideFeedback without planUri shows the textarea alongside
-			// the regular Approve/Reject buttons; typed feedback rides along
-			// with whichever action the user picks.
 			createWidget(createMockReview({ canProvideFeedback: true }));
 
 			const textarea = widget.domNode.querySelector('.chat-plan-review-feedback-textarea') as HTMLTextAreaElement;
@@ -604,7 +593,6 @@ suite('ChatPlanReviewPart', () => {
 			const review = createMockReviewWithPlan();
 			createWidget(review);
 
-			// Enter feedback mode so the feedback section is visible.
 			getReviewButton(widget)!.click();
 			await tick();
 
@@ -823,7 +811,6 @@ suite('ChatPlanReviewPart', () => {
 			const review = createMockReviewWithPlan();
 			createWidget(review);
 
-			// Section starts hidden when planUri is present.
 			assert.strictEqual(getFeedbackSection(widget).style.display, 'none');
 
 			const service = lastFeedbackService!;
@@ -849,7 +836,6 @@ suite('ChatPlanReviewPart', () => {
 			const removeButtons = widget.domNode.querySelectorAll('.chat-plan-review-comment-remove') as NodeListOf<HTMLElement>;
 			assert.strictEqual(removeButtons.length, 3, 'should render one remove button per row');
 
-			// Remove the middle one.
 			removeButtons[1].click();
 
 			const remaining = service.getFeedback(planUri);
@@ -954,19 +940,15 @@ suite('ChatPlanReviewPart', () => {
 		test('collapsing preserves feedback mode and inline buttons keep Submit Feedback', async () => {
 			createWidget(createMockReviewWithPlan());
 
-			// Enter feedback mode via the Review button.
 			getReviewButton(widget)!.click();
 			await tick();
 
-			// Now collapse.
 			const collapseButton = widget.domNode.querySelector('.chat-plan-review-title-icon-button:last-child') as HTMLElement;
 			collapseButton.click();
 
-			// Inline action should be Submit Feedback (preserves the mode).
 			const inlineButtons = getInlineButtons(widget);
 			assert.ok(inlineButtons.some(b => b.textContent?.includes('Submit Feedback')), 'inline action should be Submit Feedback when feedback mode is active');
 
-			// Expand again — still in feedback mode.
 			collapseButton.click();
 			const footerButtons = getFooterButtons(widget);
 			assert.ok(footerButtons.some(b => b.textContent?.includes('Submit Feedback')), 'submit feedback button should remain after expand');
@@ -1094,17 +1076,9 @@ suite('ChatPlanReviewPart', () => {
 			];
 			createWidget(createMockReview({ actions }));
 
-			// The dropdown wraps non-default actions in vscode Actions; rather
-			// than driving the dropdown UI, invoke the action directly the way
-			// the dropdown menu item would.
-			// Find the rendered dropdown button.
 			const dropdown = widget.domNode.querySelector('.monaco-button-dropdown');
 			assert.ok(dropdown);
 
-			// Reach into the widget via its public submit path: click the
-			// primary approve and verify the default emits its id, then check
-			// that submitting the bypass action produces its own id by
-			// re-creating with bypass as the default.
 			const approveButton = getFooterButtons(widget).find(b => b.textContent?.includes('Approve') && !b.textContent?.includes('Bypass'));
 			assert.ok(approveButton);
 			approveButton!.click();
@@ -1138,7 +1112,6 @@ suite('ChatPlanReviewPart', () => {
 
 	suite('Autopilot confirmation dialog', () => {
 		test('shows confirmation dialog for autopilot permission level and proceeds on confirm', async () => {
-			// Default TestDialogService runs the first button (Enable → true)
 			createWidget(createMockReview({
 				actions: [{ label: 'Autopilot', default: true, permissionLevel: 'autopilot' }]
 			}));
@@ -1146,7 +1119,6 @@ suite('ChatPlanReviewPart', () => {
 			const approveButton = getFooterButtons(widget).find(b => b.textContent?.includes('Autopilot'));
 			approveButton!.click();
 
-			// Wait for the async dialog to resolve
 			await new Promise(resolve => setTimeout(resolve, 0));
 
 			assert.deepStrictEqual(lastSubmitResult, { action: 'Autopilot', rejected: false });
@@ -1189,8 +1161,6 @@ suite('ChatPlanReviewPart', () => {
 		test('disables feedback textarea after submission', () => {
 			createWidget(createMockReview({ canProvideFeedback: true }));
 
-			// In the no-planUri textarea mode the textarea sits alongside the
-			// regular Approve/Reject buttons; submit by clicking Approve.
 			const textarea = widget.domNode.querySelector('.chat-plan-review-feedback-textarea') as HTMLTextAreaElement;
 			textarea.value = 'some feedback';
 			textarea.dispatchEvent(new Event('input'));

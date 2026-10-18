@@ -135,7 +135,6 @@ export class WorkspaceChunkSearchService extends Disposable implements IWorkspac
 		let outcome: TryInitOutcome = 'noEmbeddingType';
 		try {
 			const best = await this._availableEmbeddingTypes.getPreferredType(silent);
-			// Double check that we haven't initialized in the meantime
 			if (this._impl) {
 				outcome = 'alreadyInitialized';
 				return this._impl;
@@ -154,15 +153,6 @@ export class WorkspaceChunkSearchService extends Disposable implements IWorkspac
 			outcome = 'error';
 			return undefined;
 		} finally {
-			/* __GDPR__
-				"workspaceChunkSearch.tryInit" : {
-					"owner": "mjbvz",
-					"comment": "Tracks cold workspace chunk search initialization duration and outcome. Not fired for fast paths (no auth, already initialized).",
-					"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time in milliseconds for getPreferredType and initialization" },
-					"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The outcome: success, noEmbeddingType, alreadyInitialized, or error" },
-					"silent": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether this was a silent initialization attempt" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('workspaceChunkSearch.tryInit', {
 				outcome,
 				silent: String(silent),
@@ -274,13 +264,6 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 				250
 			)(() => this._onDidChangeIndexState.fire()));
 
-		/* __GDPR__
-			"workspaceChunkSearch.created" : {
-				"owner": "mjbvz",
-				"comment": "Metadata about workspace chunk search",
-				"embeddingType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Type of embeddings used" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('workspaceChunkSearch.created', {
 			embeddingType: this._embeddingType.id,
 		});
@@ -332,7 +315,6 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 		await raceCancellationError(this.promptForExternalIngestIfNeeded(token), token);
 
 		return logExecTime(this._logService, 'WorkspaceChunkSearch.searchFileChunks', async (): Promise<WorkspaceChunkSearchResult> => {
-			// Kick off (but do not wait on) query embedding resolve as soon as possible because almost all strategies will ultimately need it
 			const queryWithEmbeddings = this.toQueryWithEmbeddings(query, token);
 
 			const stratSizing: StrategySearchSizing = {
@@ -349,22 +331,8 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 				throw new CancellationError();
 			}
 
-			/* __GDPR__
-				"workspaceChunkSearchStrategy" : {
-					"owner": "mjbvz",
-					"comment": "Understanding which workspace chunk search strategy is used",
-					"strategy": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The chosen strategy" },
-					"errorDiagMessage": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The reason why the search failed" },
-					"embeddingType": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "The type of embeddings used" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"execTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total time in ms for workspace chunk search" },
-					"workspaceIndexFileCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of files in our workspace index" },
-					"wasFirstSearchInWorkspace": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Tracks if this was the first time we triggered a workspace search" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('workspaceChunkSearchStrategy', {
-				strategy: searchResult.isOk() ? 'codesearch' : 'none', // For backwards compatibility with existing telemetry only
+				strategy: searchResult.isOk() ? 'codesearch' : 'none',
 				errorDiagMessage: searchResult.isError() ? searchResult.err.errorDiagMessage : undefined,
 				embeddingType: this._embeddingType.id,
 				workspaceSearchSource: telemetryInfo.callTracker.toString(),
@@ -404,7 +372,6 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 				}
 			};
 
-			// If explicit rerank is enabled, use the remote reranker
 			if (options.enableRerank && this._rerankerService.isAvailable) {
 				try {
 					const reranked = await this._rerankerService.rerank(query.queryText, filteredResult.result.chunks, token);
@@ -419,17 +386,6 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 
 			return this.rerankResultIfNeeded(queryWithEmbeddings, filteredResult, this.getMaxChunks(sizing), telemetryInfo, progress, token);
 		}, (execTime, status) => {
-			/* __GDPR__
-				"workspaceChunkSearch.perf.searchFileChunks" : {
-					"owner": "mjbvz",
-					"comment": "Total time for searchFileChunks to complete",
-					"status": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "If the call succeeded or failed" },
-					"embeddingType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Type of embeddings used" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"execTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Time in milliseconds that the call took" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('workspaceChunkSearch.perf.searchFileChunks', {
 				status,
 				embeddingType: this._embeddingType.id,
@@ -532,7 +488,7 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 
 	private async filterIgnoredChunks(chunks: readonly FileChunkAndScore[]): Promise<FileChunkAndScore[]> {
 		return coalesce(await Promise.all(chunks.map(async (entry) => {
-			const isIgnored = await this._ignoreService.isCopilotIgnored(entry.chunk.file);
+			const isIgnored = await this._ignoreService.isIgnored(entry.chunk.file);
 			return isIgnored ? null : entry;
 		})));
 	}
@@ -556,14 +512,11 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 		try {
 			let sortedChunks: ScoredFileChunk<FileChunk>[];
 
-			// Handle special case where all chunks have the same embedding type even if this doesn't match the current embedding type.
-			// Since we don't care about raw scores, we'll sort them by the distance value instead of recomputing the embeddings.
 			const firstChunkEmbeddingType = inChunks.at(0)?.distance?.embeddingType;
 			if (firstChunkEmbeddingType && inChunks.every(x => typeof x.distance !== 'undefined' && x.distance.embeddingType.equals(firstChunkEmbeddingType))) {
 				sortedChunks = [...inChunks as Array<ScoredFileChunk<FileChunk>>]
 					.sort((a, b) => b.distance!.value - a.distance!.value);
 			} else {
-				// In this case, we are either missing a distance value or have a mix of embedding types
 				const chunksPlusIndexes = inChunks.map((x, i) => ({ ...x.chunk, distance: x.distance, index: i }));
 
 				const unscoredChunks = chunksPlusIndexes.filter(entry => typeof entry.distance === 'undefined' || !entry.distance.embeddingType.equals(this._embeddingType));
@@ -572,7 +525,6 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 				if (unscoredChunks.length) {
 					this._logService.debug(`WorkspaceChunkSearch.rerankChunks. Scoring ${unscoredChunks.length} new chunks`);
 
-					// Only show progress when we're doing a potentially long running operation
 					const scoreTask = this.scoreChunks(query, unscoredChunks, telemetryInfo, token);
 					progress?.report(new ChatResponseProgressPart2(l10n.t('Filtering to most relevant information'), async () => { await scoreTask; }));
 					newlyScoredChunks = await raceCancellationError(scoreTask, token);
@@ -607,7 +559,6 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 
 			sortedChunks = sortedChunks.slice(0, maxResults);
 
-			// Filter out low quality results based on the top result
 			const topScore = sortedChunks[0].distance.value;
 			const lowestAllowedScore = topScore * maxEmbeddingSpread;
 			const filteredChunks = sortedChunks.filter(x => x.distance.value >= lowestAllowedScore);
@@ -644,17 +595,6 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 				distance: distance(queryEmbeddings, embedding),
 			}));
 		}, (execTime, status) => {
-			/* __GDPR__
-				"workspaceChunkSearch.perf.adaRerank" : {
-					"owner": "mjbvz",
-					"comment": "Understanding how effective ADA re-ranking is",
-					"status": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "If the call succeeded or failed" },
-					"embeddingType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Type of embeddings used" },
-					"workspaceSearchSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Caller of the search" },
-					"workspaceSearchCorrelationId": { "classification": "SystemMetaData", "purpose": "FeatureInsight",  "comment": "Correlation id for the search" },
-					"execTime": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Time in milliseconds that the call took" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('workspaceChunkSearch.perf.adaRerank', {
 				status,
 				embeddingType: this._embeddingType.id,
@@ -668,11 +608,7 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 		return this._embeddingsComputer.computeEmbeddings(this._embeddingType, strings, { inputType }, new TelemetryCorrelationId('WorkspaceChunkSearchService::computeEmbeddings'), token);
 	}
 
-	/**
-	 * Get the string used to used to calculate embeddings for a chunk.
-	 */
 	private chunkToIndexString(chunk: FileChunk): string {
-		// TODO: could performance be improved here if we process chunks per file first?
 		const displayPath = getWorkspaceFileDisplayPath(this._workspaceService, chunk.file);
 		return this.toStringForEmbeddingsComputer(chunk, displayPath);
 	}
@@ -707,7 +643,6 @@ export class NullWorkspaceChunkSearchService implements IWorkspaceChunkSearchSer
 		yield 'Workspace chunk search service not available.';
 	}
 	dispose(): void {
-		// noop
 	}
 }
 

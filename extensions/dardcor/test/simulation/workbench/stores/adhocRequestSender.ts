@@ -18,20 +18,14 @@ export const enum AdhocRequestState {
 	Error,
 }
 
-/**
- * Sends an adhoc chat request by spawning the simulation CLI and streaming the
- * response back. Used by the "Adhoc request sender" mode in the workbench.
- */
 export class AdhocRequestSender {
 
 	@mobx.observable
 	public state: AdhocRequestState = AdhocRequestState.Idle;
 
-	/** The accumulated response text streamed from the model. */
 	@mobx.observable
 	public response: string = '';
 
-	/** The error message, set when {@link state} is {@link AdhocRequestState.Error}. */
 	@mobx.observable
 	public error: string | undefined = undefined;
 
@@ -79,19 +73,12 @@ export class AdhocRequestSender {
 				});
 			}
 		} finally {
-			fs.promises.unlink(requestFilePath).catch(() => { /* best effort cleanup */ });
-			// Always dispose this send's token source to avoid leaking its
-			// cancellation listeners across repeated Send/Stop cycles, regardless of
-			// whether this send is still the current one.
+			fs.promises.unlink(requestFilePath).catch(() => { });
 			cancellationTokenSource.dispose();
-			// Only finalize shared state if this send is still the current one. A
-			// superseded send (the user hit Stop then Send again) must not clobber the
-			// newer request's state or cancellation token source.
 			if (this.cancellationTokenSource === cancellationTokenSource) {
 				this.cancellationTokenSource = undefined;
 				mobx.runInAction(() => {
 					if (this.state === AdhocRequestState.Running) {
-						// Stream ended without an explicit done/error message.
 						this.state = this.error !== undefined ? AdhocRequestState.Error : AdhocRequestState.Done;
 					}
 				});

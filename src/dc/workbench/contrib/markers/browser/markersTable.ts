@@ -344,7 +344,6 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		// eslint-disable-next-line no-restricted-syntax
 		const list = this.table.domNode.querySelector('.monaco-list-rows')! as HTMLElement;
 
-		// mouseover/mouseleave event handlers
 		const onRowHover = Event.chain(this._register(new DomEmitter(list, 'mouseover')).event, $ =>
 			$.map(e => DOM.findParentWithClass(e.target as HTMLElement, 'monaco-list-row', 'monaco-list-rows'))
 				.filter<HTMLElement>(e => !!e)
@@ -435,18 +434,15 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 					continue;
 				}
 
-				// Exclude pattern
 				if (this.filterOptions.excludesMatcher.matches(marker.resource)) {
 					continue;
 				}
 
-				// Include pattern
 				if (this.filterOptions.includesMatcher.matches(marker.resource)) {
 					items.push(new MarkerTableItem(marker));
 					continue;
 				}
 
-				// Severity filter
 				const matchesSeverity = this.filterOptions.showErrors && MarkerSeverity.Error === marker.marker.severity ||
 					this.filterOptions.showWarnings && MarkerSeverity.Warning === marker.marker.severity ||
 					this.filterOptions.showInfos && MarkerSeverity.Info === marker.marker.severity;
@@ -455,12 +451,10 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 					continue;
 				}
 
-				// Source filters
 				if (!this.filterOptions.matchesSourceFilters(marker.marker.source)) {
 					continue;
 				}
 
-				// Text filter
 				if (this.filterOptions.textFilter.text) {
 					const sourceMatches = marker.marker.source ? FilterOptions._filter(this.filterOptions.textFilter.text, marker.marker.source) ?? undefined : undefined;
 					const codeMatches = marker.marker.code ? FilterOptions._filter(this.filterOptions.textFilter.text, typeof marker.marker.code === 'string' ? marker.marker.code : marker.marker.code.value) ?? undefined : undefined;

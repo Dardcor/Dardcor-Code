@@ -60,7 +60,7 @@ export function sliceRecording(
 		return {
 			id: id,
 			addSetContentEvent: (documentStateId: number) => {
-				if (!initialized) { return; } // Wait for first change event
+				if (!initialized) { return; }
 
 				const content = doc.getState(documentStateId).value;
 				events.push({ kind: 'setContent', id: id, time: currentOp.time, content, v: documentStateId });

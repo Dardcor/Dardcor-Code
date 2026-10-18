@@ -101,7 +101,6 @@ class RemoteTerminalBackend extends BaseTerminalBackend implements ITerminalBack
 
 		const allowedCommands = ['_remoteCLI.openExternal', '_remoteCLI.windowOpen', '_remoteCLI.getSystemStatus', '_remoteCLI.manageExtensions'];
 		this._register(this._remoteTerminalChannel.onExecuteCommand(async e => {
-			// Ensure this request for for this window
 			const pty = this._ptys.get(e.persistentProcessId);
 			if (!pty) {
 				return;
@@ -153,11 +152,11 @@ class RemoteTerminalBackend extends BaseTerminalBackend implements ITerminalBack
 
 	async createProcess(
 		shellLaunchConfig: IShellLaunchConfig,
-		cwd: string, // TODO: This is ignored
+		cwd: string,
 		cols: number,
 		rows: number,
 		unicodeVersion: '6' | '11',
-		env: IProcessEnvironment, // TODO: This is ignored
+		env: IProcessEnvironment,
 		options: ITerminalProcessOptions,
 		shouldPersist: boolean
 	): Promise<ITerminalChildProcess> {
@@ -165,10 +164,8 @@ class RemoteTerminalBackend extends BaseTerminalBackend implements ITerminalBack
 			throw new Error(`Cannot create remote terminal when there is no remote!`);
 		}
 
-		// Fetch the environment to check shell permissions
 		const remoteEnv = await this._remoteAgentService.getEnvironment();
 		if (!remoteEnv) {
-			// Extension host processes are only allowed in remote extension hosts currently
 			throw new Error('Could not fetch remote environment');
 		}
 
@@ -337,19 +334,15 @@ class RemoteTerminalBackend extends BaseTerminalBackend implements ITerminalBack
 
 		const workspaceId = this._getWorkspaceId();
 
-		// Revive processes if needed
 		const serializedState = this._storageService.get(TerminalStorageKeys.TerminalBufferState, StorageScope.WORKSPACE);
 		const reviveBufferState = this._deserializeTerminalState(serializedState);
 		if (reviveBufferState && reviveBufferState.length > 0) {
 			try {
-				// Note that remote terminals do not get their environment re-resolved unlike in local terminals
 
 				mark('code/terminal/willReviveTerminalProcessesRemote');
 				await this._remoteTerminalChannel.reviveTerminalProcesses(workspaceId, reviveBufferState, Intl.DateTimeFormat().resolvedOptions().locale);
 				mark('code/terminal/didReviveTerminalProcessesRemote');
 				this._storageService.remove(TerminalStorageKeys.TerminalBufferState, StorageScope.WORKSPACE);
-				// If reviving processes, send the terminal layout info back to the pty host as it
-				// will not have been persisted on application exit
 				const layoutInfo = this._storageService.get(TerminalStorageKeys.TerminalLayoutInfo, StorageScope.WORKSPACE);
 				if (layoutInfo) {
 					mark('code/terminal/willSetTerminalLayoutInfoRemote');

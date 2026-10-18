@@ -76,8 +76,6 @@ pub async fn wait_until_exe_deleted(current_exe: &Path, poll_ms: u64) {
 	}
 }
 
-/// Gets the canonical current exe location, referring to the "current" symlink
-/// if running inside snap.
 pub fn canonical_exe() -> std::io::Result<PathBuf> {
 	canonical_exe_inner(
 		std::env::current_exe(),

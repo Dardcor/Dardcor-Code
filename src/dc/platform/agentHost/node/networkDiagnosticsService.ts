@@ -18,36 +18,20 @@ import { IAgentHostProxyResolver } from './agentHostProxyResolver.js';
 
 export const INetworkDiagnosticsService = createDecorator<INetworkDiagnosticsService>('networkDiagnosticsService');
 
-/**
- * Owns agent-host network connectivity diagnostics: host-level network context
- * ({@link getInfo}) and the per-URL reachability probe ({@link fetch}). Split
- * out from {@link IAgentService} so the network stack dependencies
- * ({@link IRequestService}, {@link IAgentHostProxyResolver}) are injected here
- * rather than threaded through the session orchestrator.
- */
 export interface INetworkDiagnosticsService {
 	readonly _serviceBrand: undefined;
 
-	/** Host-level network context: version, OS/arch, account, proxy settings/env, and endpoints worth probing. */
 	getInfo(endpoints: readonly IAgentHostNetworkEndpoint[], account?: string): Promise<IAgentHostNetworkDiagnosticsInfo>;
 
-	/** Probe connectivity from the agent host process to a single `url`. */
 	fetch(url: string): Promise<IAgentHostNetworkFetchResult>;
 }
 
-/** Per-probe timeout: DNS lookup and the reachability request each get this long. */
 const PROBE_TIMEOUT_MS = 10_000;
 
-/** Cap on the response body returned to callers (for expected-content checks), to bound the IPC payload. */
 const MAX_BODY_CHARS = 64 * 1024;
 
-/**
- * Proxy-related environment variables surfaced in the diagnostics report so a
- * mismatch between the OS/config proxy and an explicit env override is visible.
- */
 const PROXY_ENV_KEYS = ['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy', 'COPILOT_PROXY_KERBEROS_SPN'] as const;
 
-/** Agent Host `http.*` proxy settings surfaced alongside the env vars. */
 const PROXY_CONFIG_KEYS = [AgentHostProxyConfigKey.Proxy, AgentHostProxyConfigKey.NoProxy, AgentHostProxyConfigKey.ProxyKerberosServicePrincipal] as const;
 
 export class NetworkDiagnosticsService implements INetworkDiagnosticsService {
@@ -91,25 +75,15 @@ export class NetworkDiagnosticsService implements INetworkDiagnosticsService {
 		};
 	}
 
-	/**
-	 * Probe connectivity from the agent host process to a single `url`. Resolves
-	 * the proxy (for reporting), performs an IPv4 DNS lookup, and then a
-	 * reachability request through {@link IRequestService} — so the probe
-	 * traverses the same proxy / TLS / certificate stack the rest of VS Code
-	 * uses. Each step is individually timed and never throws; failures are
-	 * captured on the result.
-	 */
 	async fetch(url: string): Promise<IAgentHostNetworkFetchResult> {
 		const target = new URL(url);
 		const host = target.hostname;
 
-		// DNS: resolve both address families so a host that only answers on one is visible.
 		const [dnsIpv4, dnsIpv6] = await Promise.all([
 			resolveDns(host, 4),
 			resolveDns(host, 6),
 		]);
 
-		// Proxy resolution (for reporting; IRequestService resolves its own proxy internally).
 		let proxyUrl: string | undefined;
 		try {
 			proxyUrl = await this._proxyResolver.resolveProxy(url);
@@ -123,8 +97,6 @@ export class NetworkDiagnosticsService implements INetworkDiagnosticsService {
 			dnsIpv4, dnsIpv6,
 		};
 
-		// Reachability: a GET through IRequestService, which applies VS Code's proxy,
-		// strictSSL, and certificate handling — the path the rest of VS Code uses.
 		const probeStart = Date.now();
 		try {
 			const context = await this._requestService.request({

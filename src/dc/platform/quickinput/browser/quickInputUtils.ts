@@ -64,7 +64,6 @@ class QuickInputToggleButtonAction implements IAction {
 
 	set checked(value: boolean) {
 		this._checked = value;
-		// Toggles behave like buttons. When clicked, they run... the only difference is that their checked state also changes.
 		this._run();
 	}
 

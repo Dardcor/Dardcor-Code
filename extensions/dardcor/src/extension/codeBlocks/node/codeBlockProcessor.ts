@@ -25,10 +25,6 @@ export function isCodeBlockWithResource(codeBlock: CodeBlock): codeBlock is Code
 	return codeBlock.resource !== undefined;
 }
 
-/**
- * Proxy of a {@linkcode ChatResponseStream} that processes all code blocks in the markdown.
- * Filepaths are removed from the Markdown, resolved and reported as codeblockUri
- */
 export class CodeBlockTrackingChatResponseStream implements ChatResponseStream {
 
 	private readonly _codeBlockProcessor;
@@ -109,12 +105,6 @@ export class CodeBlockTrackingChatResponseStream implements ChatResponseStream {
 		};
 	}
 
-	/**
-	 * If you are adding a new ChatResponseStream type, please make sure to either:
-	 * - Update the date on the vscode engine version in package.json to a date when the API will be available in VS Code (sufficient if it's a purely additive/backwards-compatible change)
-	 * - Or bump the proposed API version (required if the change is not backwards compatible (changes the shape of an existing API))
-	 * to ensure that this extension version only runs in versions of VS Code that contain the necessary API support.
-	 */
 
 	button = this.forward(this._wrapped.button.bind(this._wrapped));
 	filetree = this.forward(this._wrapped.filetree.bind(this._wrapped));
@@ -162,12 +152,6 @@ export interface LineProcessor {
 	process(line: MarkdownString, inCodeBlock: boolean): MarkdownString;
 }
 
-/**
- * The CodeBlockProcessor processes a sequence of markdown text parts and looks for code blocks that it contains.
- * - Code block filepaths are removed from the Markdown, and reported as codeblockUri
- * - All complete code blocks are also reported as {@linkcode CodeBlock} objects
- * - An optional line processor can be used to replace the content of a full line
- */
 export class CodeBlockProcessor {
 
 	private _lastIncompleteLine: MarkdownString | undefined;
@@ -248,24 +232,15 @@ export class CodeBlockProcessor {
 		}
 	}
 
-	/**
-	 * Called when there is already a known code block URI for the currently processed code block
-	 * @param uri
-	 */
 	processCodeblockUri(uri: Uri): void {
 		if (this._currentBlock && !this._currentBlock.info.resource) {
 			this._currentBlock.info.resource = uri;
 		}
 	}
 
-	/**
-	 * Processes a line of markdown.
-	 * @param line The line to process. The line includes the line delimiters, unless it is the last line of the document.
-	 * @param vulnerabilities Optional set of vulnerabilities to associate with the line.
-	 */
 	private _processLine(line: MarkdownString, vulnerabilities?: ChatVulnerability[]): void {
 		if (this._state === State.LineAfterFence) {
-			const codeBlock = this._currentBlock!; // must be set in that state
+			const codeBlock = this._currentBlock!;
 			const filePath = getFilePath(line.value, codeBlock.info.language);
 			if (filePath) {
 				if (!codeBlock.info.resource) {
@@ -277,19 +252,17 @@ export class CodeBlockProcessor {
 			} else {
 				this._state = State.InCodeBlock;
 				this._emitMarkdown(codeBlock.firstLine, codeBlock.info, codeBlock.vulnerabilities);
-				// this was a normal line, not a file path. Continue handling the line
 			}
 		} else if (this._state === State.LineAfterFilePath) {
 			this._state = State.InCodeBlock;
 			if (isFalsyOrWhitespace(line.value)) {
-				return; // filter the empty line after the file path
+				return;
 			}
 		}
 
 		const fenceLanguageIdMatch = line.value.match(fenceLanguageRegex);
 		if (fenceLanguageIdMatch) {
 			if (!this._currentBlock) {
-				// we are not in a code block. Open the block
 				this._nestingLevel = 1;
 				this._currentBlock = {
 					info: {
@@ -302,7 +275,6 @@ export class CodeBlockProcessor {
 					vulnerabilities,
 				};
 				this._state = State.LineAfterFence;
-				// wait emitting markdown before we have seen the next line
 				return;
 			}
 			if (fenceLanguageIdMatch[1] === this._currentBlock.fence) {
@@ -311,7 +283,6 @@ export class CodeBlockProcessor {
 				} else if (this._nestingLevel > 1) {
 					this._nestingLevel--;
 				} else {
-					// the fence matches the opening fence. It does not have a language id, and the nesting level is 1. -> Close the code block
 					this._emitMarkdown(line, this._currentBlock.info, vulnerabilities);
 					this._emitCodeblock({ code: this._code.join(''), resource: this._currentBlock.info.resource, language: this._currentBlock.info.language, markdownBeforeBlock: this._markdownBeforeBlock.join('') });
 					this._code.length = 0;
@@ -328,7 +299,6 @@ export class CodeBlockProcessor {
 			line = this._lineProcessor.process(line, this._state === State.InCodeBlock);
 		}
 
-		// the current line is not opening or closing a code block
 		if (this._currentBlock) {
 			this._code.push(line.value);
 			this._emitMarkdown(line, this._currentBlock.info, vulnerabilities);

@@ -25,7 +25,6 @@ import { TestChatRequest } from '../../../test/node/testHelpers';
 import { ToolName } from '../../../tools/common/toolNames';
 import { AgentIntent, AgentIntentInvocation, getAgentTools, isBackgroundTodoAgentEnabled, isTodoToolExplicitlyEnabled } from '../agentIntent';
 
-// ─── isTodoToolExplicitlyEnabled unit tests ──────────────────────
 
 describe('isTodoToolExplicitlyEnabled', () => {
 
@@ -60,23 +59,15 @@ describe('isTodoToolExplicitlyEnabled', () => {
 
 	test('does not treat default tool picker enabled state as explicit enablement', () => {
 		const request = new TestChatRequest('fix the bug');
-		// Simulate default tool picker state: tool appears as enabled in request.tools
 		request.tools = new Map([[{ name: 'manage_todo_list' } as any, true]]);
-		// But toolReferences is empty — no explicit #todo mention
 		expect(isTodoToolExplicitlyEnabled(request)).toBe(false);
 	});
 });
 
-// ─── isBackgroundTodoAgentEnabled unit tests ─────────────────────
 
-// The gate only opens for a signed-in, paid user whose request is routed
-// through CAPI. Each test flips exactly one of those factors away from an
-// otherwise-enabled baseline to confirm it is sufficient to close the gate.
 
 describe('isBackgroundTodoAgentEnabled', () => {
 
-	// CAPI endpoints carry a `RequestMetadata` object; BYOK/custom endpoints are
-	// fetched from a literal URL string.
 	const capiEndpoint = { urlOrRequestMetadata: { type: RequestType.ChatCompletions }, modelProvider: 'dardcor' } as unknown as IChatEndpoint;
 	const byokEndpoint = { urlOrRequestMetadata: 'https://api.example.com/v1/chat', modelProvider: 'custom' } as unknown as IChatEndpoint;
 
@@ -129,7 +120,6 @@ describe('isBackgroundTodoAgentEnabled', () => {
 	});
 });
 
-// ─── getAgentTools integration tests for background todo gate ────
 
 describe('getAgentTools background todo enablement', () => {
 	let accessor: ITestingServicesAccessor;
@@ -151,8 +141,6 @@ describe('getAgentTools background todo enablement', () => {
 		instantiationService = accessor.get(IInstantiationService);
 		configService = accessor.get(IConfigurationService);
 
-		// The background-todo gate only opens for a signed-in paid user whose
-		// request is routed through CAPI, so set up both for this harness.
 		const paidToken = new CopilotToken(createTestExtendedTokenInfo({ sku: 'dardcor_individual', dardcor_plan: 'individual' }));
 		setCopilotToken(accessor.get(IAuthenticationService), paidToken);
 
@@ -165,7 +153,6 @@ describe('getAgentTools background todo enablement', () => {
 	});
 
 	beforeEach(() => {
-		// Reset to experiment disabled
 		configService.setConfig(ConfigKey.Advanced.BackgroundTodoAgentEnabled, false);
 	});
 
@@ -183,7 +170,6 @@ describe('getAgentTools background todo enablement', () => {
 	test('todo tool is not in enabled tools when experiment is on even with tool picker default', async () => {
 		configService.setConfig(ConfigKey.Advanced.BackgroundTodoAgentEnabled, true);
 		const request = new TestChatRequest('fix the bug');
-		// Simulate default tool picker state: core tools appear as enabled
 		request.tools = new Map([[{ name: ToolName.CoreManageTodoList } as any, true]]);
 		const tools = await instantiationService.invokeFunction(getAgentTools, request, mockEndpoint);
 		expect(hasTodoTool(tools)).toBe(false);
@@ -198,13 +184,7 @@ describe('getAgentTools background todo enablement', () => {
 	});
 });
 
-// ─── _maybeStartBackgroundTodoAgentPass subagent guard ───────────
 
-// The method is private and lives on a heavyweight class that requires many
-// injected services to construct. To keep these tests focused on the guard's
-// behaviour, we invoke the prototype method directly against a minimal stub
-// that supplies only the fields the guard touches. TypeScript's `private`
-// modifier is compile-time only, so the method is reachable at runtime.
 
 describe('AgentIntentInvocation._maybeStartBackgroundTodoAgentPass subagent guard', () => {
 
@@ -212,9 +192,6 @@ describe('AgentIntentInvocation._maybeStartBackgroundTodoAgentPass subagent guar
 		return (AgentIntentInvocation.prototype as unknown as { _maybeStartBackgroundTodoAgentPass: (this: unknown, endpoint: unknown, promptContext: unknown, token: unknown) => void })._maybeStartBackgroundTodoAgentPass;
 	}
 
-	// The helper now evaluates background-todo eligibility first, so these tests
-	// provide a CAPI endpoint + paid auth + experiment enabled baseline and then
-	// vary only the subagent fields to validate the guard behavior.
 	const endpoint = { urlOrRequestMetadata: { type: RequestType.ChatCompletions }, modelProvider: '' } as unknown as IChatEndpoint;
 	const paidToken = new CopilotToken(createTestExtendedTokenInfo({ sku: 'dardcor_individual', dardcor_plan: 'individual' }));
 
@@ -277,11 +254,7 @@ describe('AgentIntentInvocation._maybeStartBackgroundTodoAgentPass subagent guar
 	});
 });
 
-// ─── AgentIntent._runFinalBackgroundTodoPass model-eligibility guard ───
 
-// The final review pass reuses a previously-created processor, so a mid-session
-// switch to a BYOK (non-CAPI) model must not fire it. Like the subagent-guard
-// tests above, we invoke the private method directly against a minimal stub.
 
 describe('AgentIntent._runFinalBackgroundTodoPass model-eligibility guard', () => {
 
@@ -339,7 +312,6 @@ describe('AgentIntent._runFinalBackgroundTodoPass model-eligibility guard', () =
 	test('does nothing when there is no processor for the session', async () => {
 		const request = new TestChatRequest('fix the bug');
 		await getMethod().call(makeStub(capiEndpoint, undefined), conversation, request);
-		// No throw and nothing to assert beyond reaching here.
 	});
 });
 

@@ -51,12 +51,10 @@ export default class DocumentMergeConflictTracker implements vscode.Disposable, 
 	constructor(private readonly telemetryReporter: TelemetryReporter) { }
 
 	getConflicts(document: vscode.TextDocument, origin: string): PromiseLike<interfaces.IDocumentMergeConflict[]> {
-		// Attempt from cache
 
 		const key = this.getCacheKey(document);
 
 		if (!key) {
-			// Document doesn't have a uri, can't cache it, so return
 			return Promise.resolve(this.getConflictsOrEmpty(document, [origin]));
 		}
 
@@ -124,18 +122,9 @@ export default class DocumentMergeConflictTracker implements vscode.Disposable, 
 		const conflicts = MergeConflictParser.scanDocument(document, this.telemetryReporter);
 
 		const key = document.uri.toString();
-		// Don't report telemetry for the same document twice. This is an approximation, but good enough.
-		// Otherwise redo/undo could trigger this event multiple times.
 		if (!this.seenDocumentsWithConflicts.has(key)) {
 			this.seenDocumentsWithConflicts.add(key);
 
-			/* __GDPR__
-				"mergeMarkers.documentWithConflictMarkersOpened" : {
-					"owner": "hediet",
-					"comment": "Used to determine how many documents with conflicts are opened.",
-					"conflictCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of conflict counts" }
-				}
-			*/
 			this.telemetryReporter.sendTelemetryEvent('mergeMarkers.documentWithConflictMarkersOpened', {}, {
 				conflictCount: conflicts.length,
 			});

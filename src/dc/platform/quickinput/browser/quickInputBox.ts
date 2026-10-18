@@ -38,8 +38,6 @@ export class QuickInputBox extends Disposable {
 				actionViewItemProvider: createToggleActionViewItemProvider(toggleStyles),
 				hideHoverOnValueChange: true
 			}));
-		// Don't set role="textbox" - the input element already has that implicit role
-		// Don't set aria-haspopup or aria-autocomplete by default - only add them when list is active
 	}
 
 	get onKeyDown() {
@@ -95,15 +93,7 @@ export class QuickInputBox extends Disposable {
 	}
 
 	set enabled(enabled: boolean) {
-		// We can't disable the input box because it is still used for
-		// navigating the list. Instead, we disable the list and the OK
-		// so that nothing can be selected.
-		// TODO: should this be what we do for all find inputs? Or maybe some _other_ API
-		// on findInput to change it to readonly?
 		this.findInput.inputBox.inputElement.toggleAttribute('readonly', !enabled);
-		// TODO: styles of the quick pick need to be moved to the CSS instead of being in line
-		// so things like this can be done in CSS
-		// this.findInput.inputBox.inputElement.classList.toggle('disabled', !enabled);
 	}
 
 	set toggles(toggles: Toggle[] | undefined) {
@@ -138,25 +128,16 @@ export class QuickInputBox extends Disposable {
 		this.findInput.inputBox.inputElement.removeAttribute(name);
 	}
 
-	/**
-	 * Controls the ARIA popup mode for screen readers.
-	 * When enabled (hasActiveDescendant=true), indicates a list popup is active.
-	 * When disabled, removes ARIA attributes to allow normal text input behavior.
-	 * Only updates attributes when the state actually changes to avoid
-	 * unnecessary screen reader re-announcements.
-	 */
 	setListFocusMode(hasActiveDescendant: boolean): void {
 		if (this._listFocusMode === hasActiveDescendant) {
-			return; // No change, avoid triggering screen reader re-announcements
+			return;
 		}
 		this._listFocusMode = hasActiveDescendant;
 		const input = this.findInput.inputBox.inputElement;
 		if (hasActiveDescendant) {
-			// List item is focused - indicate combobox behavior
 			input.setAttribute('aria-haspopup', 'listbox');
 			input.setAttribute('aria-autocomplete', 'list');
 		} else {
-			// No list item focused - remove combobox attributes for normal text input
 			input.removeAttribute('aria-haspopup');
 			input.removeAttribute('aria-autocomplete');
 		}

@@ -1,8 +1,6 @@
-// Helpers for OpenAI Responses API streaming termination + event framing
 import { FORMATS } from "../translator/formats.js";
 import { formatSSE } from "./streamHelpers.js";
 
-// Responses API events that signal the stream has reached a terminal state
 const OPENAI_RESPONSES_TERMINAL_EVENTS = new Set([
   "response.completed",
   "response.done",
@@ -25,12 +23,10 @@ export function isOpenAIResponsesTerminalEvent(eventName, chunk) {
 
 const sharedEncoder = new TextEncoder();
 
-// Encoded response.failed + [DONE] payload for aborted/stalled Responses passthrough streams
 export function buildAbortedResponsesTerminalBytes() {
   return sharedEncoder.encode(`${formatIncompleteOpenAIResponsesStreamFailure()}data: [DONE]\n\n`);
 }
 
-// Synthesize a response.failed event for streams that close without a terminal event
 export function formatIncompleteOpenAIResponsesStreamFailure() {
   return formatSSE({
     event: "response.failed",

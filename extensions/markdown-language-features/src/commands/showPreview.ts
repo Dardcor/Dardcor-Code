@@ -23,17 +23,14 @@ async function showPreview(
 	let resource = uri;
 	if (!(resource instanceof vscode.Uri)) {
 		if (vscode.window.activeTextEditor) {
-			// we are relaxed and don't check for markdown files
 			resource = vscode.window.activeTextEditor.document.uri;
 		}
 	}
 
 	if (!(resource instanceof vscode.Uri)) {
 		if (!vscode.window.activeTextEditor) {
-			// this is most likely toggling the preview
 			return vscode.commands.executeCommand('markdown.showSource');
 		}
-		// nothing found that could be shown or toggled
 		return;
 	}
 

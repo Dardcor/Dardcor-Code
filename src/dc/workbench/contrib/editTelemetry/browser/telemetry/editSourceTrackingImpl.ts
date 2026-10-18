@@ -102,7 +102,6 @@ class TrackedDocumentInfo extends Disposable {
 			const startFocusTime = this._userAttentionService.totalFocusTimeMs;
 			const startTime = Date.now();
 			reader.store.add(toDisposable(() => {
-				// send long term document telemetry
 				t.stopTracking();
 				this._sendTelemetryAndLog('longterm', longtermReason, t, this._userAttentionService.totalFocusTimeMs - startFocusTime, Date.now() - startTime);
 			}));
@@ -110,13 +109,11 @@ class TrackedDocumentInfo extends Disposable {
 		}).recomputeInitiallyAndOnChange(this._store);
 
 		this._store.add(new IntervalTimer()).cancelAndSet(() => {
-			// Reset after 10 hours
 			longtermReason = '10hours';
 			longtermResetSignal.trigger(undefined);
 			longtermReason = 'closed';
 		}, 10 * 60 * 60 * 1000);
 
-		// Reset on branch change or commit
 		this._store.add(autorun(reader => {
 			const repo = this._repo.read(reader);
 			if (repo) {
@@ -137,7 +134,6 @@ class TrackedDocumentInfo extends Disposable {
 		this._store.add(this._instantiationService.createInstance(EditTelemetryReportEditArcForChatOrInlineChatSender, _doc.documentWithAnnotations, this._repo));
 		this._store.add(this._instantiationService.createInstance(CreateSuggestionIdForChatOrInlineChatCaller, _doc.documentWithAnnotations));
 
-		// Focus time based 10-minute window tracker
 		const resetSignal = observableSignal('resetSignal');
 
 		this.windowedTracker = derived((reader) => {
@@ -148,7 +144,6 @@ class TrackedDocumentInfo extends Disposable {
 			}
 			resetSignal.read(reader);
 
-			// Reset after 10 minutes of accumulated focus time
 			reader.store.add(this._userAttentionService.fireAfterGivenFocusTimePassed(10 * 60 * 1000, () => {
 				resetSignal.trigger(undefined);
 			}));
@@ -157,7 +152,6 @@ class TrackedDocumentInfo extends Disposable {
 			const startFocusTime = this._userAttentionService.totalFocusTimeMs;
 			const startTime = Date.now();
 			reader.store.add(toDisposable(() => {
-				// send windowed document telemetry
 				t.stopTracking();
 				this._sendTelemetryAndLog('10minFocusWindow', 'time', t, this._userAttentionService.totalFocusTimeMs - startFocusTime, Date.now() - startTime);
 			}));
@@ -165,7 +159,6 @@ class TrackedDocumentInfo extends Disposable {
 			return t;
 		}).recomputeInitiallyAndOnChange(this._store);
 
-		// Focus time based 20-minute window tracker
 		const focusResetSignal = observableSignal('focusResetSignal');
 
 		this.windowedFocusTracker = derived((reader) => {
@@ -176,7 +169,6 @@ class TrackedDocumentInfo extends Disposable {
 			}
 			focusResetSignal.read(reader);
 
-			// Reset after 20 minutes of accumulated focus time
 			reader.store.add(this._userAttentionService.fireAfterGivenFocusTimePassed(20 * 60 * 1000, () => {
 				focusResetSignal.trigger(undefined);
 			}));
@@ -185,7 +177,6 @@ class TrackedDocumentInfo extends Disposable {
 			const startFocusTime = this._userAttentionService.totalFocusTimeMs;
 			const startTime = Date.now();
 			reader.store.add(toDisposable(() => {
-				// send focus-windowed document telemetry
 				t.stopTracking();
 				this._sendTelemetryAndLog('20minFocusWindow', 'time', t, this._userAttentionService.totalFocusTimeMs - startFocusTime, Date.now() - startTime);
 			}));

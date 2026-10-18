@@ -7,14 +7,13 @@ import {
 } from "../services/oauthCredentialManager.js";
 import { normalizeResponsesInput } from "../translator/formats/responsesApi.js";
 import { fetchImageAsBase64 } from "../translator/concerns/image.js";
-import { getModelUpstreamId } from "../config/providerModels.js";
+import { getModelUpstreamId, getProviderModels } from "../config/providerModels.js";
 import { getThinkingLevels } from "../providers/thinkingLevels.js";
 import { DEFAULT_RETRY_CONFIG, HTTP_STATUS, resolveRetryEntry } from "../config/runtimeConfig.js";
 import { dbg } from "../utils/debugLog.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { stripCodexUnsupportedPatterns } from "../utils/codexToolSchema.js";
 
-// SSE error patterns inside 200-OK bodies. Some retry same account first; capacity rotates accounts.
 const CODEX_SSE_RETRY_PATTERNS = ["server_is_overloaded", "service_unavailable_error"];
 const CODEX_SSE_ACCOUNT_FALLBACK_PATTERNS = ["selected model is at capacity", "model_at_capacity"];
 const CODEX_SSE_USER_OUTPUT_PATTERNS = [
@@ -25,28 +24,27 @@ const CODEX_SSE_USER_OUTPUT_PATTERNS = [
 ];
 const CODEX_SSE_PEEK_BYTES = 256 * 1024;
 const CODEX_MODEL_CAPACITY_MESSAGE = "Selected model is at capacity. Please try a different model.";
+function isCodexResponsesLiteModel(model) {
+  const baseId = String(model || "").replace(/\([^()]+\)\s*$/, "");
+  return getProviderModels("cx").some((entry) => entry.id === baseId && entry.responsesLite === true);
+}
 
-// Server-generated item id prefixes that Codex /responses cannot resolve when store=false
 const SERVER_ID_PATTERN = /^(rs|fc|resp|msg)_/;
 
-// Hosted tool types that Codex/OpenAI Responses executes server-side
 const CODEX_HOSTED_TOOL_TYPES = new Set([
   "image_generation", "web_search", "web_search_preview", "file_search",
   "computer", "computer_use_preview", "code_interpreter", "mcp", "local_shell",
   "tool_search"
 ]);
 
-// Responses-native freeform tools carry a name plus format payload and must pass through intact.
 const CODEX_PASSTHROUGH_TOOL_TYPES = new Set(["custom"]);
 
-// Allowlist of fields accepted by Codex Responses API — anything else is stripped
 const RESPONSES_API_ALLOWLIST = new Set([
   "model", "input", "instructions", "tools", "tool_choice", "stream", "store",
   "reasoning", "service_tier", "include", "prompt_cache_key", "client_metadata",
-  "text"
+  "text", "parallel_tool_calls"
 ]);
 
-// Convert role=system → role=developer in body.input (keeps content in cacheable prefix)
 function convertSystemToDeveloperRole(body) {
   if (!Array.isArray(body.input)) return;
   for (const item of body.input) {
@@ -56,25 +54,22 @@ function convertSystemToDeveloperRole(body) {
   }
 }
 
-// Strip server-generated item IDs (rs_/fc_/resp_/msg_) from input — avoids 404 with store=false
-function stripStoredItemReferences(body) {
+function stripStoredItemReferences(body, preserveLitePrefix = false) {
   if (!Array.isArray(body.input)) return;
   body.input = body.input.filter((item) => {
     if (typeof item === "string" && SERVER_ID_PATTERN.test(item)) return false;
     if (item && typeof item === "object" && !Array.isArray(item)) {
       if (item.type === "item_reference") return false;
-      if (typeof item.id === "string" && SERVER_ID_PATTERN.test(item.id)) delete item.id;
+      if (typeof item.id === "string" && SERVER_ID_PATTERN.test(item.id)
+        && !(preserveLitePrefix && item.role === "developer" && item.id.startsWith("msg_"))) delete item.id;
     }
     return true;
   });
 }
 
-// Flatten Chat-Completions tool shape into Responses flat format + filter unsupported tools
 function normalizeCodexTools(body) {
   if (!Array.isArray(body.tools)) return;
   const validNames = new Set();
-  // Codex's schema validator has no Unicode property escapes; a `pattern`
-  // carrying `\p{...}` 400s the whole request on every account (#3922).
   const patternStats = { removed: 0 };
   body.tools = body.tools.filter((tool) => {
     if (!tool || typeof tool !== "object" || Array.isArray(tool)) return false;
@@ -115,7 +110,6 @@ function normalizeCodexTools(body) {
   if (patternStats.removed > 0) {
     dbg("CODEX", `stripped ${patternStats.removed} unsupported tool schema pattern(s)`);
   }
-  // Drop tool_choice if it references an unknown function name
   if (body.tool_choice && typeof body.tool_choice === "object" && !Array.isArray(body.tool_choice)) {
     if (body.tool_choice.type === "function") {
       const n = typeof body.tool_choice.name === "string" ? body.tool_choice.name.trim() : "";
@@ -124,7 +118,6 @@ function normalizeCodexTools(body) {
   }
 }
 
-// Resolve prompt-cache session id: client session → assistant-text-hash → workspaceId → connection
 function resolveCacheSessionId(body, credentials) {
   return resolveSessionId({
     headers: credentials?.rawHeaders,
@@ -138,6 +131,7 @@ function resolveCacheSessionId(body, credentials) {
 function normalizeReasoningEffort(model, value) {
   const supportedLevels = getThinkingLevels("codex", model);
   if (supportedLevels?.includes(value)) return value;
+  if (isCodexResponsesLiteModel(model) && (value === "none" || value === "minimal")) return "low";
   if (value === "ultra" && supportedLevels?.includes("max")) return "max";
   if (value === "max" || value === "ultra") return "xhigh";
   return value;
@@ -175,7 +169,6 @@ function extractSseErrorMessage(text, fallback) {
       const message = findNestedMessage(JSON.parse(data));
       if (message) return message;
     } catch {
-      // Ignore non-JSON SSE data lines.
     }
   }
 
@@ -195,30 +188,19 @@ function codexSseErrorResponse(status, message) {
   });
 }
 
-/**
- * Codex Executor - handles OpenAI Codex API (Responses API format)
- * Automatically injects default instructions if missing
- */
 export class CodexExecutor extends BaseExecutor {
-  constructor(provider = "codex", config = PROVIDERS.codex) {
-    super(provider, config);
+  constructor() {
+    super("codex", PROVIDERS.codex);
     this._currentSessionId = null;
   }
 
-  /**
-   * Override headers to add codex-specific identity headers.
-   * transformRequest runs BEFORE buildHeaders, sets this._currentSessionId.
-   */
-  buildHeaders(credentials, stream = true) {
+  buildHeaders(credentials, stream = true, _url = null, model = null, body = null) {
     const headers = super.buildHeaders(credentials, stream);
+    if (isCodexResponsesLiteModel(model && getModelUpstreamId("cx", model)) && !body?.tools?.some?.(tool => tool?.type === "web_search")) {
+      headers["x-openai-internal-codex-responses-lite"] = "true";
+    }
     headers["session_id"] = this._currentSessionId || credentials?.connectionId || "default";
-    // Identify client type to Codex backend (matches official codex CLI)
     if (!headers["originator"]) headers["originator"] = "codex_cli_rs";
-    // Account/workspace binding header — required when multiple Codex accounts
-    // are configured. OAuth import stores ChatGPT account ID as chatgptAccountId;
-    // older/custom rows may use workspaceId/accountId. Prefer explicit workspaceId
-    // but fall back to chatgptAccountId so requests don't cross-bind to the wrong
-    // OpenAI account and surface as token_invalid after adding another account.
     const accountId =
       credentials?.providerSpecificData?.workspaceId ||
       credentials?.providerSpecificData?.chatgptAccountId ||
@@ -243,11 +225,6 @@ export class CodexExecutor extends BaseExecutor {
     return shouldRefreshCredentials("codex", credentials);
   }
 
-  /**
-   * Prefetch remote image URLs and inline them as base64 data URIs.
-   * Runs before execute() because Codex backend cannot fetch remote images.
-   * Mutates body.input in place.
-   */
   async prefetchImages(body) {
     if (!Array.isArray(body?.input)) return;
     for (const item of body.input) {
@@ -277,27 +254,13 @@ export class CodexExecutor extends BaseExecutor {
       await this.prefetchImages(args.body);
     }
 
-    // Retry loop for SSE-level overloaded errors (200 OK body contains event: error)
-    // Reuses 503 retry config — same semantic: upstream temporarily unavailable
     const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...this.config.retry };
     const { attempts, delayMs } = resolveRetryEntry(retryConfig[503]);
     let attempt = 0;
     while (true) {
       const result = await super.execute(args);
-      if (result.response?.status === 400 && args.body?.model !== "gpt-5.6-terra") {
-        try {
-          const cloned = result.response.clone();
-          const errText = await cloned.text();
-          if (errText.includes("not supported when using Codex with a ChatGPT account")) {
-            args.log?.warn?.("RETRY", `CODEX | Model ${args.body.model} not supported on ChatGPT account, retrying with gpt-5.6-terra`);
-            args.body.model = "gpt-5.6-terra";
-            continue;
-          }
-        } catch { /* ignore clone error */ }
-      }
       const peek = await this._peekSseTransientError(result.response);
       if (!peek.matched) {
-        // Replace body with re-assembled stream (prefix bytes already read + rest)
         if (peek.replacementBody) {
           result.response = new Response(peek.replacementBody, {
             status: result.response.status,
@@ -324,9 +287,6 @@ export class CodexExecutor extends BaseExecutor {
     }
   }
 
-  // Peek first N bytes of SSE body to detect upstream transient errors.
-  // Returns { matched: string|null, message: string|null, accountFallback: boolean, replacementBody: ReadableStream|null }.
-  // Caller must use replacementBody when no error matched (original body has been read).
   async _peekSseTransientError(response) {
     if (!response || !response.ok || !response.body) return { matched: null, message: null, accountFallback: false, replacementBody: null };
     const reader = response.body.getReader();
@@ -353,14 +313,13 @@ export class CodexExecutor extends BaseExecutor {
     }
 
     if (matched) {
-      try { await reader.cancel(); } catch { /* noop */ }
-      try { reader.releaseLock(); } catch { /* noop */ }
+      try { await reader.cancel(); } catch { }
+      try { reader.releaseLock(); } catch { }
       return { matched, message: extractSseErrorMessage(text, matched), accountFallback, replacementBody: null };
     }
 
     reader.releaseLock();
 
-    // Re-assemble stream: prefix chunks + remaining upstream body
     const upstream = response.body;
     let upstreamReader = null;
     const replacementBody = new ReadableStream({
@@ -376,13 +335,12 @@ export class CodexExecutor extends BaseExecutor {
         } catch (e) { controller.error(e); }
       },
       cancel(reason) {
-        try { upstreamReader?.cancel(reason); } catch { /* noop */ }
+        try { upstreamReader?.cancel(reason); } catch { }
       },
     });
     return { matched: null, message: null, accountFallback: false, replacementBody };
   }
 
-  // Parse Codex usage_limit_reached to extract precise resetsAtMs; fallback to default otherwise
   parseError(response, bodyText) {
     if (response.status === 429 && bodyText) {
       try {
@@ -402,97 +360,110 @@ export class CodexExecutor extends BaseExecutor {
             return { status: 429, message: err.message || bodyText, resetsAtMs };
           }
         }
-      } catch { /* fall through to default */ }
+      } catch { }
     }
     return super.parseError(response, bodyText);
   }
 
-  /**
-   * Transform request before sending - inject default instructions if missing.
-   * Image fetching is handled separately in prefetchImages() so this stays sync.
-   */
   transformRequest(model, body, stream, credentials) {
     this._isCompact = !!body._compact;
     delete body._compact;
-    // Resolve conversation-stable session_id (priority: body → assistant-text → workspace → machine)
     this._currentSessionId = resolveCacheSessionId(body, credentials);
-    // Convert string input to array format (Codex API requires input as array)
     const normalized = normalizeResponsesInput(body.input);
     if (normalized) body.input = normalized;
+    const upstreamModel = getModelUpstreamId("cx", body.model || model);
+    const autoWebSearch = body._autoCodexWebSearch === true;
+    delete body._autoCodexWebSearch;
+    if (autoWebSearch && !body.tools?.some?.(tool => tool?.type === "web_search")) {
+      body.tools = [...(Array.isArray(body.tools) ? body.tools : []), { type: "web_search" }];
+    }
+    let convertedLitePrefix = false;
+    if (isCodexResponsesLiteModel(upstreamModel) && Array.isArray(body.input)
+      && (body.tools?.some?.(tool => tool?.type === "web_search")
+        || body.input.some(item => item?.type === "additional_tools" && item.tools?.some?.(tool => tool?.type === "web_search")))) {
+      const tools = Array.isArray(body.tools) ? [...body.tools] : [];
+      const seen = new Set(tools.map(tool => `${tool?.type}:${tool?.name || tool?.function?.name || ""}`));
+      for (const item of body.input) {
+        if (item?.type !== "additional_tools" || !Array.isArray(item.tools)) continue;
+        for (const tool of item.tools) {
+          const name = `${tool?.type}:${tool?.name || tool?.function?.name || ""}`;
+          if (!seen.has(name)) { tools.push(tool); seen.add(name); }
+        }
+      }
+      body.tools = tools;
+      convertedLitePrefix = body.input.some(item => item?.type === "additional_tools");
+      body.input = body.input.filter(item => item?.type !== "additional_tools");
+    }
+    const responsesLite = isCodexResponsesLiteModel(upstreamModel)
+      && !body.tools?.some?.(tool => tool?.type === "web_search");
 
-    // Ensure input is present and non-empty (Codex API rejects empty input)
     if (!body.input || (Array.isArray(body.input) && body.input.length === 0)) {
       body.input = [{ type: "message", role: "user", content: [{ type: "input_text", text: "..." }] }];
     }
 
-    // Keep system prompts in body.input as role=developer so they stay in the cacheable prefix
     convertSystemToDeveloperRole(body);
-    // Strip server-generated item IDs (rs_/fc_/resp_/msg_) — Codex /responses can't resolve when store=false
-    stripStoredItemReferences(body);
-    // Flatten function tools + drop unsupported types
+    stripStoredItemReferences(body, responsesLite);
     normalizeCodexTools(body);
 
-    // Ensure streaming is enabled (Codex API requires it)
     body.stream = true;
 
-    // If no instructions provided, inject default Codex instructions
-    if (!body.instructions || body.instructions.trim() === "") {
+    if (!responsesLite && !convertedLitePrefix && (!body.instructions || body.instructions.trim() === "")) {
       body.instructions = CODEX_DEFAULT_INSTRUCTIONS;
     }
 
-    // Ensure store is false (Codex requirement)
     body.store = false;
 
-    // Inject prompt_cache_key for stable Codex prompt caching
     if (!body.prompt_cache_key && this._currentSessionId) {
       body.prompt_cache_key = this._currentSessionId;
     }
 
-    // Map virtual Codex review models to the upstream Codex model before suffix parsing.
-    body.model = getModelUpstreamId("cx", body.model || model);
+    body.model = upstreamModel;
 
-    // Map models unsupported on ChatGPT account OAuth connections to active models
-    const CHATGPT_ACCOUNT_FALLBACKS = {
-      "gpt-6-astra": "gpt-5.6-terra",
-      "gpt-5.6-sol": "gpt-5.6-terra",
-      "gpt-5.5": "gpt-5.6-luna",
-      "gpt-5.4": "gpt-5.6-terra",
-      "gpt-5.4-mini": "gpt-5.6-luna",
-      "gpt-5.3-codex-spark": "gpt-5.6-luna",
-    };
-    if (CHATGPT_ACCOUNT_FALLBACKS[body.model]) {
-      body.model = CHATGPT_ACCOUNT_FALLBACKS[body.model];
+    if (responsesLite) {
+      const input = Array.isArray(body.input) ? body.input : [body.input];
+      const hasLitePrefix = input.some((item) => item?.type === "additional_tools");
+      if (!hasLitePrefix) {
+        const instructions = typeof body.instructions === "string" && body.instructions.trim()
+          ? body.instructions : CODEX_DEFAULT_INSTRUCTIONS;
+        const prefix = [{ type: "additional_tools", role: "developer", tools: Array.isArray(body.tools) ? body.tools : [] }];
+        if (instructions) {
+          prefix.push({ type: "message", role: "developer", content: [{ type: "input_text", text: instructions }] });
+        }
+        input.unshift(...prefix);
+      }
+      body.input = input;
+      body.instructions = "";
+      body.tools = null;
+      body.tool_choice ||= "auto";
+      body.parallel_tool_calls = false;
+    } else {
+      delete body.parallel_tool_calls;
     }
 
-    // Extract thinking level from model name suffix
-    // e.g., gpt-5.3-codex-high → high, gpt-5.3-codex → medium (default)
     const effortLevels = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'];
     let modelEffort = null;
     for (const level of effortLevels) {
       if (body.model.endsWith(`-${level}`)) {
         modelEffort = level;
-        // Strip suffix from model name for actual API call
         body.model = body.model.replace(`-${level}`, '');
         break;
       }
     }
 
-    // Priority: explicit reasoning.effort > reasoning_effort param > model suffix > default (medium)
     if (!body.reasoning) {
-      const effort = normalizeReasoningEffort(body.model, body.reasoning_effort || modelEffort || 'low');
-      body.reasoning = { effort, summary: "auto" };
+      const effort = normalizeReasoningEffort(body.model, body.reasoning_effort || modelEffort || (responsesLite ? 'medium' : 'low'));
+      body.reasoning = responsesLite ? { effort } : { effort, summary: "auto" };
     } else {
       body.reasoning.effort = normalizeReasoningEffort(body.model, body.reasoning.effort);
-      if (!body.reasoning.summary) body.reasoning.summary = "auto";
+      if (!responsesLite && !body.reasoning.summary) body.reasoning.summary = "auto";
     }
+    if (responsesLite) body.reasoning.context = "all_turns";
     delete body.reasoning_effort;
 
-    // Include reasoning encrypted content (required by Codex backend for reasoning models)
     if (body.reasoning && body.reasoning.effort && body.reasoning.effort !== 'none') {
       body.include = ["reasoning.encrypted_content"];
     }
 
-    // Remove unsupported parameters for Codex API
     delete body.temperature;
     delete body.top_p;
     delete body.frequency_penalty;
@@ -503,18 +474,17 @@ export class CodexExecutor extends BaseExecutor {
     delete body.seed;
     delete body.max_tokens;
     delete body.max_completion_tokens;
-    delete body.max_output_tokens; // Responses API clients send this but Codex rejects it
-    delete body.user; // Cursor sends this but Codex doesn't support it
-    delete body.prompt_cache_retention; // Cursor sends this but Codex doesn't support it
-    delete body.metadata; // Cursor sends this but Codex doesn't support it
-    delete body.stream_options; // Cursor sends this but Codex doesn't support it
-    delete body.safety_identifier; // Droid CLI sends this but Codex doesn't support it
-    delete body.previous_response_id; // store=false → backend can't resolve previous resp; avoid 404
+    delete body.max_output_tokens;
+    delete body.user;
+    delete body.prompt_cache_retention;
+    delete body.metadata;
+    delete body.stream_options;
+    delete body.safety_identifier;
+    delete body.previous_response_id;
 
     if (body.service_tier === "fast") body.service_tier = "priority";
     if (body.service_tier && body.service_tier !== "priority") delete body.service_tier;
 
-    // Final allowlist filter — strip any unknown field that could trigger upstream "routing_unsupported"
     for (const k of Object.keys(body)) {
       if (!RESPONSES_API_ALLOWLIST.has(k)) delete body[k];
     }

@@ -7,9 +7,6 @@ import { Range } from '../core/range.js';
 import { TrackedRangeStickiness, TrackedRangeStickiness as ActualTrackedRangeStickiness } from '../model.js';
 import { ModelDecorationOptions } from './textModel.js';
 
-//
-// The red-black tree is based on the "Introduction to Algorithms" by Cormen, Leiserson and Rivest.
-//
 
 export const enum ClassName {
 	EditorHintDecoration = 'squiggly-hint',
@@ -55,26 +52,7 @@ const enum Constants {
 	AffectsFontMaskInverse = 0b01111111,
 	AffectsFontOffset = 7,
 
-	/**
-	 * Due to how deletion works (in order to avoid always walking the right subtree of the deleted node),
-	 * the deltas for nodes can grow and shrink dramatically. It has been observed, in practice, that unless
-	 * the deltas are corrected, integer overflow will occur.
-	 *
-	 * The integer overflow occurs when 53 bits are used in the numbers, but we will try to avoid it as
-	 * a node's delta gets below a negative 30 bits number.
-	 *
-	 * MIN SMI (SMall Integer) as defined in v8.
-	 * one bit is lost for boxing/unboxing flag.
-	 * one bit is lost for sign flag.
-	 * See https://thibaultlaurens.github.io/javascript/2013/04/29/how-the-v8-engine-works/#tagged-values
-	 */
 	MIN_SAFE_DELTA = -(1 << 30),
-	/**
-	 * MAX SMI (SMall Integer) as defined in v8.
-	 * one bit is lost for boxing/unboxing flag.
-	 * one bit is lost for sign flag.
-	 * See https://thibaultlaurens.github.io/javascript/2013/04/29/how-the-v8-engine-works/#tagged-values
-	 */
 	MAX_SAFE_DELTA = 1 << 30,
 }
 
@@ -140,9 +118,6 @@ export function setNodeStickiness(node: IntervalNode, stickiness: ActualTrackedR
 
 export class IntervalNode {
 
-	/**
-	 * contains binary encoded information for color, visited, isForValidation and stickiness.
-	 */
 	public metadata: number;
 
 	public parent: IntervalNode;
@@ -173,7 +148,6 @@ export class IntervalNode {
 
 		this.start = start;
 		this.end = end;
-		// FORCE_OVERFLOWING_TEST: this.delta = start;
 		this.delta = 0;
 		this.maxEnd = end;
 
@@ -264,16 +238,10 @@ export class IntervalTree {
 		return search(this, filterOwnerId, filterOutValidation, filterFontDecorations, cachedVersionId, onlyMarginDecorations);
 	}
 
-	/**
-	 * Will not set `cachedAbsoluteStart` nor `cachedAbsoluteEnd` on the returned nodes!
-	 */
 	public collectNodesFromOwner(ownerId: number): IntervalNode[] {
 		return collectNodesFromOwner(this, ownerId);
 	}
 
-	/**
-	 * Will not set `cachedAbsoluteStart` nor `cachedAbsoluteEnd` on the returned nodes!
-	 */
 	public collectNodesPostOrder(): IntervalNode[] {
 		return collectNodesPostOrder(this);
 	}
@@ -304,23 +272,18 @@ export class IntervalTree {
 	}
 
 	public acceptReplace(offset: number, length: number, textLength: number, forceMoveMarkers: boolean): void {
-		// Our strategy is to remove all directly impacted nodes, and then add them back to the tree.
 
-		// (1) collect all nodes that are intersecting this edit as nodes of interest
 		const nodesOfInterest = searchForEditing(this, offset, offset + length);
 
-		// (2) remove all nodes that are intersecting this edit
 		for (let i = 0, len = nodesOfInterest.length; i < len; i++) {
 			const node = nodesOfInterest[i];
 			rbTreeDelete(this, node);
 		}
 		this._normalizeDeltaIfNecessary();
 
-		// (3) edit all tree nodes except the nodes of interest
 		noOverlapReplace(this, offset, offset + length, textLength);
 		this._normalizeDeltaIfNecessary();
 
-		// (4) edit the nodes of interest and insert them back in the tree
 		for (let i = 0, len = nodesOfInterest.length; i < len; i++) {
 			const node = nodesOfInterest[i];
 			node.start = node.cachedAbsoluteStart;
@@ -345,26 +308,22 @@ export class IntervalTree {
 	}
 }
 
-//#region Delta Normalization
 function normalizeDelta(T: IntervalTree): void {
 	let node = T.root;
 	let delta = 0;
 	while (node !== SENTINEL) {
 
 		if (node.left !== SENTINEL && !getNodeIsVisited(node.left)) {
-			// go left
 			node = node.left;
 			continue;
 		}
 
 		if (node.right !== SENTINEL && !getNodeIsVisited(node.right)) {
-			// go right
 			delta += node.delta;
 			node = node.right;
 			continue;
 		}
 
-		// handle current node
 		node.start = delta + node.start;
 		node.end = delta + node.end;
 		node.delta = 0;
@@ -372,7 +331,6 @@ function normalizeDelta(T: IntervalTree): void {
 
 		setNodeIsVisited(node, true);
 
-		// going up from this node
 		setNodeIsVisited(node.left, false);
 		setNodeIsVisited(node.right, false);
 		if (node === node.parent.right) {
@@ -383,9 +341,7 @@ function normalizeDelta(T: IntervalTree): void {
 
 	setNodeIsVisited(T.root, false);
 }
-//#endregion
 
-//#region Editing
 
 const enum MarkerMoveSemantics {
 	MarkerDefined = 0,
@@ -409,10 +365,6 @@ function adjustMarkerBeforeColumn(markerOffset: number, markerStickToPreviousCha
 	return markerStickToPreviousCharacter;
 }
 
-/**
- * This is a lot more complicated than strictly necessary to maintain the same behaviour
- * as when decorations were implemented using two markers.
- */
 export function nodeAcceptEdit(node: IntervalNode, start: number, end: number, textLength: number, forceMoveMarkers: boolean): void {
 	const nodeStickiness = getNodeStickiness(node);
 	const startStickToPreviousCharacter = (
@@ -435,8 +387,6 @@ export function nodeAcceptEdit(node: IntervalNode, start: number, end: number, t
 	let endDone = false;
 
 	if (start <= nodeStart && nodeEnd <= end && getCollapseOnReplaceEdit(node)) {
-		// This edit encompasses the entire decoration range
-		// and the decoration has asked to become collapsed
 		node.start = start;
 		startDone = true;
 		node.end = start;
@@ -475,7 +425,6 @@ export function nodeAcceptEdit(node: IntervalNode, start: number, end: number, t
 		}
 	}
 
-	// Finish
 	const deltaColumn = (insertingCnt - deletingCnt);
 	if (!startDone) {
 		node.start = Math.max(0, nodeStart + deltaColumn);
@@ -490,12 +439,6 @@ export function nodeAcceptEdit(node: IntervalNode, start: number, end: number, t
 }
 
 function searchForEditing(T: IntervalTree, start: number, end: number): IntervalNode[] {
-	// https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree
-	// Now, it is known that two intervals A and B overlap only when both
-	// A.low <= B.high and A.high >= B.low. When searching the trees for
-	// nodes overlapping with a given interval, you can immediately skip:
-	//  a) all nodes to the right of nodes whose low value is past the end of the given interval.
-	//  b) all nodes that have their maximum 'high' value below the start of the given interval.
 	let node = T.root;
 	let delta = 0;
 	let nodeMaxEnd = 0;
@@ -505,7 +448,6 @@ function searchForEditing(T: IntervalTree, start: number, end: number): Interval
 	let resultLen = 0;
 	while (node !== SENTINEL) {
 		if (getNodeIsVisited(node)) {
-			// going up from this node
 			setNodeIsVisited(node.left, false);
 			setNodeIsVisited(node.right, false);
 			if (node === node.parent.right) {
@@ -516,27 +458,20 @@ function searchForEditing(T: IntervalTree, start: number, end: number): Interval
 		}
 
 		if (!getNodeIsVisited(node.left)) {
-			// first time seeing this node
 			nodeMaxEnd = delta + node.maxEnd;
 			if (nodeMaxEnd < start) {
-				// cover case b) from above
-				// there is no need to search this node or its children
 				setNodeIsVisited(node, true);
 				continue;
 			}
 
 			if (node.left !== SENTINEL) {
-				// go left
 				node = node.left;
 				continue;
 			}
 		}
 
-		// handle current node
 		nodeStart = delta + node.start;
 		if (nodeStart > end) {
-			// cover case a) from above
-			// there is no need to search this node or its right subtree
 			setNodeIsVisited(node, true);
 			continue;
 		}
@@ -549,7 +484,6 @@ function searchForEditing(T: IntervalTree, start: number, end: number): Interval
 		setNodeIsVisited(node, true);
 
 		if (node.right !== SENTINEL && !getNodeIsVisited(node.right)) {
-			// go right
 			delta += node.delta;
 			node = node.right;
 			continue;
@@ -562,12 +496,6 @@ function searchForEditing(T: IntervalTree, start: number, end: number): Interval
 }
 
 function noOverlapReplace(T: IntervalTree, start: number, end: number, textLength: number): void {
-	// https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree
-	// Now, it is known that two intervals A and B overlap only when both
-	// A.low <= B.high and A.high >= B.low. When searching the trees for
-	// nodes overlapping with a given interval, you can immediately skip:
-	//  a) all nodes to the right of nodes whose low value is past the end of the given interval.
-	//  b) all nodes that have their maximum 'high' value below the start of the given interval.
 	let node = T.root;
 	let delta = 0;
 	let nodeMaxEnd = 0;
@@ -575,7 +503,6 @@ function noOverlapReplace(T: IntervalTree, start: number, end: number, textLengt
 	const editDelta = (textLength - (end - start));
 	while (node !== SENTINEL) {
 		if (getNodeIsVisited(node)) {
-			// going up from this node
 			setNodeIsVisited(node.left, false);
 			setNodeIsVisited(node.right, false);
 			if (node === node.parent.right) {
@@ -587,23 +514,18 @@ function noOverlapReplace(T: IntervalTree, start: number, end: number, textLengt
 		}
 
 		if (!getNodeIsVisited(node.left)) {
-			// first time seeing this node
 			nodeMaxEnd = delta + node.maxEnd;
 			if (nodeMaxEnd < start) {
-				// cover case b) from above
-				// there is no need to search this node or its children
 				setNodeIsVisited(node, true);
 				continue;
 			}
 
 			if (node.left !== SENTINEL) {
-				// go left
 				node = node.left;
 				continue;
 			}
 		}
 
-		// handle current node
 		nodeStart = delta + node.start;
 		if (nodeStart > end) {
 			node.start += editDelta;
@@ -612,8 +534,6 @@ function noOverlapReplace(T: IntervalTree, start: number, end: number, textLengt
 			if (node.delta < Constants.MIN_SAFE_DELTA || node.delta > Constants.MAX_SAFE_DELTA) {
 				T.requestNormalizeDelta = true;
 			}
-			// cover case a) from above
-			// there is no need to search this node or its right subtree
 			setNodeIsVisited(node, true);
 			continue;
 		}
@@ -621,7 +541,6 @@ function noOverlapReplace(T: IntervalTree, start: number, end: number, textLengt
 		setNodeIsVisited(node, true);
 
 		if (node.right !== SENTINEL && !getNodeIsVisited(node.right)) {
-			// go right
 			delta += node.delta;
 			node = node.right;
 			continue;
@@ -631,9 +550,7 @@ function noOverlapReplace(T: IntervalTree, start: number, end: number, textLengt
 	setNodeIsVisited(T.root, false);
 }
 
-//#endregion
 
-//#region Searching
 
 function collectNodesFromOwner(T: IntervalTree, ownerId: number): IntervalNode[] {
 	let node = T.root;
@@ -641,7 +558,6 @@ function collectNodesFromOwner(T: IntervalTree, ownerId: number): IntervalNode[]
 	let resultLen = 0;
 	while (node !== SENTINEL) {
 		if (getNodeIsVisited(node)) {
-			// going up from this node
 			setNodeIsVisited(node.left, false);
 			setNodeIsVisited(node.right, false);
 			node = node.parent;
@@ -649,12 +565,10 @@ function collectNodesFromOwner(T: IntervalTree, ownerId: number): IntervalNode[]
 		}
 
 		if (node.left !== SENTINEL && !getNodeIsVisited(node.left)) {
-			// go left
 			node = node.left;
 			continue;
 		}
 
-		// handle current node
 		if (node.ownerId === ownerId) {
 			result[resultLen++] = node;
 		}
@@ -662,7 +576,6 @@ function collectNodesFromOwner(T: IntervalTree, ownerId: number): IntervalNode[]
 		setNodeIsVisited(node, true);
 
 		if (node.right !== SENTINEL && !getNodeIsVisited(node.right)) {
-			// go right
 			node = node.right;
 			continue;
 		}
@@ -679,7 +592,6 @@ function collectNodesPostOrder(T: IntervalTree): IntervalNode[] {
 	let resultLen = 0;
 	while (node !== SENTINEL) {
 		if (getNodeIsVisited(node)) {
-			// going up from this node
 			setNodeIsVisited(node.left, false);
 			setNodeIsVisited(node.right, false);
 			node = node.parent;
@@ -687,18 +599,15 @@ function collectNodesPostOrder(T: IntervalTree): IntervalNode[] {
 		}
 
 		if (node.left !== SENTINEL && !getNodeIsVisited(node.left)) {
-			// go left
 			node = node.left;
 			continue;
 		}
 
 		if (node.right !== SENTINEL && !getNodeIsVisited(node.right)) {
-			// go right
 			node = node.right;
 			continue;
 		}
 
-		// handle current node
 		result[resultLen++] = node;
 		setNodeIsVisited(node, true);
 	}
@@ -717,7 +626,6 @@ function search(T: IntervalTree, filterOwnerId: number, filterOutValidation: boo
 	let resultLen = 0;
 	while (node !== SENTINEL) {
 		if (getNodeIsVisited(node)) {
-			// going up from this node
 			setNodeIsVisited(node.left, false);
 			setNodeIsVisited(node.right, false);
 			if (node === node.parent.right) {
@@ -728,12 +636,10 @@ function search(T: IntervalTree, filterOwnerId: number, filterOutValidation: boo
 		}
 
 		if (node.left !== SENTINEL && !getNodeIsVisited(node.left)) {
-			// go left
 			node = node.left;
 			continue;
 		}
 
-		// handle current node
 		nodeStart = delta + node.start;
 		nodeEnd = delta + node.end;
 
@@ -760,7 +666,6 @@ function search(T: IntervalTree, filterOwnerId: number, filterOutValidation: boo
 		setNodeIsVisited(node, true);
 
 		if (node.right !== SENTINEL && !getNodeIsVisited(node.right)) {
-			// go right
 			delta += node.delta;
 			node = node.right;
 			continue;
@@ -773,12 +678,6 @@ function search(T: IntervalTree, filterOwnerId: number, filterOutValidation: boo
 }
 
 function intervalSearch(T: IntervalTree, intervalStart: number, intervalEnd: number, filterOwnerId: number, filterOutValidation: boolean, filterFontDecorations: boolean, cachedVersionId: number, onlyMarginDecorations: boolean): IntervalNode[] {
-	// https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree
-	// Now, it is known that two intervals A and B overlap only when both
-	// A.low <= B.high and A.high >= B.low. When searching the trees for
-	// nodes overlapping with a given interval, you can immediately skip:
-	//  a) all nodes to the right of nodes whose low value is past the end of the given interval.
-	//  b) all nodes that have their maximum 'high' value below the start of the given interval.
 
 	let node = T.root;
 	let delta = 0;
@@ -789,7 +688,6 @@ function intervalSearch(T: IntervalTree, intervalStart: number, intervalEnd: num
 	let resultLen = 0;
 	while (node !== SENTINEL) {
 		if (getNodeIsVisited(node)) {
-			// going up from this node
 			setNodeIsVisited(node.left, false);
 			setNodeIsVisited(node.right, false);
 			if (node === node.parent.right) {
@@ -800,27 +698,20 @@ function intervalSearch(T: IntervalTree, intervalStart: number, intervalEnd: num
 		}
 
 		if (!getNodeIsVisited(node.left)) {
-			// first time seeing this node
 			nodeMaxEnd = delta + node.maxEnd;
 			if (nodeMaxEnd < intervalStart) {
-				// cover case b) from above
-				// there is no need to search this node or its children
 				setNodeIsVisited(node, true);
 				continue;
 			}
 
 			if (node.left !== SENTINEL) {
-				// go left
 				node = node.left;
 				continue;
 			}
 		}
 
-		// handle current node
 		nodeStart = delta + node.start;
 		if (nodeStart > intervalEnd) {
-			// cover case a) from above
-			// there is no need to search this node or its right subtree
 			setNodeIsVisited(node, true);
 			continue;
 		}
@@ -828,7 +719,6 @@ function intervalSearch(T: IntervalTree, intervalStart: number, intervalEnd: num
 		nodeEnd = delta + node.end;
 
 		if (nodeEnd >= intervalStart) {
-			// There is overlap
 			node.setCachedOffsets(nodeStart, nodeEnd, cachedVersionId);
 
 			let include = true;
@@ -853,7 +743,6 @@ function intervalSearch(T: IntervalTree, intervalStart: number, intervalEnd: num
 		setNodeIsVisited(node, true);
 
 		if (node.right !== SENTINEL && !getNodeIsVisited(node.right)) {
-			// go right
 			delta += node.delta;
 			node = node.right;
 			continue;
@@ -865,9 +754,7 @@ function intervalSearch(T: IntervalTree, intervalStart: number, intervalEnd: num
 	return result;
 }
 
-//#endregion
 
-//#region Insertion
 function rbTreeInsert(T: IntervalTree, newNode: IntervalNode): IntervalNode {
 	if (T.root === SENTINEL) {
 		newNode.parent = SENTINEL;
@@ -882,7 +769,6 @@ function rbTreeInsert(T: IntervalTree, newNode: IntervalNode): IntervalNode {
 
 	recomputeMaxEndWalkToRoot(newNode.parent);
 
-	// repair tree
 	let x = newNode;
 	while (x !== T.root && getNodeColor(x.parent) === NodeColor.Red) {
 		if (x.parent === x.parent.parent.left) {
@@ -935,8 +821,6 @@ function treeInsert(T: IntervalTree, z: IntervalNode): void {
 	while (true) {
 		const cmp = intervalCompare(zAbsoluteStart, zAbsoluteEnd, x.start + delta, x.end + delta);
 		if (cmp < 0) {
-			// this node should be inserted to the left
-			// => it is not affected by the node's delta
 			if (x.left === SENTINEL) {
 				z.start -= delta;
 				z.end -= delta;
@@ -947,8 +831,6 @@ function treeInsert(T: IntervalTree, z: IntervalNode): void {
 				x = x.left;
 			}
 		} else {
-			// this node should be inserted to the right
-			// => it is not affected by the node's delta
 			if (x.right === SENTINEL) {
 				z.start -= (delta + x.delta);
 				z.end -= (delta + x.delta);
@@ -967,22 +849,17 @@ function treeInsert(T: IntervalTree, z: IntervalNode): void {
 	z.right = SENTINEL;
 	setNodeColor(z, NodeColor.Red);
 }
-//#endregion
 
-//#region Deletion
 function rbTreeDelete(T: IntervalTree, z: IntervalNode): void {
 
 	let x: IntervalNode;
 	let y: IntervalNode;
 
-	// RB-DELETE except we don't swap z and y in case c)
-	// i.e. we always delete what's pointed at by z.
 
 	if (z.left === SENTINEL) {
 		x = z.right;
 		y = z;
 
-		// x's delta is no longer influenced by z's delta
 		x.delta += z.delta;
 		if (x.delta < Constants.MIN_SAFE_DELTA || x.delta > Constants.MAX_SAFE_DELTA) {
 			T.requestNormalizeDelta = true;
@@ -998,9 +875,6 @@ function rbTreeDelete(T: IntervalTree, z: IntervalNode): void {
 		y = leftest(z.right);
 		x = y.right;
 
-		// y's delta is no longer influenced by z's delta,
-		// but we don't want to walk the entire right-hand-side subtree of x.
-		// we therefore maintain z's delta in y, and adjust only x
 		x.start += y.delta;
 		x.end += y.delta;
 		x.delta += y.delta;
@@ -1087,7 +961,6 @@ function rbTreeDelete(T: IntervalTree, z: IntervalNode): void {
 		recomputeMaxEndWalkToRoot(y.parent);
 	}
 
-	// RB-DELETE-FIXUP
 	let w: IntervalNode;
 	while (x !== T.root && getNodeColor(x) === NodeColor.Black) {
 
@@ -1163,28 +1036,26 @@ function leftest(node: IntervalNode): IntervalNode {
 
 function resetSentinel(): void {
 	SENTINEL.parent = SENTINEL;
-	SENTINEL.delta = 0; // optional
-	SENTINEL.start = 0; // optional
-	SENTINEL.end = 0; // optional
+	SENTINEL.delta = 0;
+	SENTINEL.start = 0;
+	SENTINEL.end = 0;
 }
-//#endregion
 
-//#region Rotations
 function leftRotate(T: IntervalTree, x: IntervalNode): void {
-	const y = x.right;				// set y.
+	const y = x.right;
 
-	y.delta += x.delta;				// y's delta is no longer influenced by x's delta
+	y.delta += x.delta;
 	if (y.delta < Constants.MIN_SAFE_DELTA || y.delta > Constants.MAX_SAFE_DELTA) {
 		T.requestNormalizeDelta = true;
 	}
 	y.start += x.delta;
 	y.end += x.delta;
 
-	x.right = y.left;				// turn y's left subtree into x's right subtree.
+	x.right = y.left;
 	if (y.left !== SENTINEL) {
 		y.left.parent = x;
 	}
-	y.parent = x.parent;			// link x's parent to y.
+	y.parent = x.parent;
 	if (x.parent === SENTINEL) {
 		T.root = y;
 	} else if (x === x.parent.left) {
@@ -1193,7 +1064,7 @@ function leftRotate(T: IntervalTree, x: IntervalNode): void {
 		x.parent.right = y;
 	}
 
-	y.left = x;						// put x on y's left.
+	y.left = x;
 	x.parent = y;
 
 	recomputeMaxEnd(x);
@@ -1229,9 +1100,7 @@ function rightRotate(T: IntervalTree, y: IntervalNode): void {
 	recomputeMaxEnd(y);
 	recomputeMaxEnd(x);
 }
-//#endregion
 
-//#region max end computation
 
 function computeMaxEnd(node: IntervalNode): number {
 	let maxEnd = node.end;
@@ -1260,7 +1129,6 @@ function recomputeMaxEndWalkToRoot(node: IntervalNode): void {
 		const maxEnd = computeMaxEnd(node);
 
 		if (node.maxEnd === maxEnd) {
-			// no need to go further
 			return;
 		}
 
@@ -1269,13 +1137,10 @@ function recomputeMaxEndWalkToRoot(node: IntervalNode): void {
 	}
 }
 
-//#endregion
 
-//#region utils
 export function intervalCompare(aStart: number, aEnd: number, bStart: number, bEnd: number): number {
 	if (aStart === bStart) {
 		return aEnd - bEnd;
 	}
 	return aStart - bStart;
 }
-//#endregion

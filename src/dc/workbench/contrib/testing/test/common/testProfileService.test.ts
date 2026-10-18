@@ -100,7 +100,6 @@ suite('Workbench - TestProfileService', () => {
 		});
 
 		test('does not mess up sync for multiple controllers', () => {
-			// ctrl a and b both of have their own labels. ctrl c does not and should be unaffected
 			const p1 = addProfile({ isDefault: false, controllerId: 'a', group: TestRunProfileBitset.Debug, label: 'a' });
 			const p2 = addProfile({ isDefault: false, controllerId: 'b', group: TestRunProfileBitset.Debug, label: 'b1' });
 			const p3 = addProfile({ isDefault: false, controllerId: 'b', group: TestRunProfileBitset.Debug, label: 'b2' });
@@ -111,22 +110,18 @@ suite('Workbench - TestProfileService', () => {
 			const p7 = addProfile({ isDefault: false, controllerId: 'b', group: TestRunProfileBitset.Run, label: 'b2' });
 			const p8 = addProfile({ isDefault: false, controllerId: 'b', group: TestRunProfileBitset.Run, label: 'b3' });
 
-			// same profile on both
 			t.setGroupDefaultProfiles(TestRunProfileBitset.Debug, [p3]);
 			assertGroupDefaults(TestRunProfileBitset.Run, [p7]);
 			assertGroupDefaults(TestRunProfileBitset.Debug, [p3]);
 
-			// different profile, other should be unaffected
 			t.setGroupDefaultProfiles(TestRunProfileBitset.Run, [p8]);
 			assertGroupDefaults(TestRunProfileBitset.Run, [p8]);
 			assertGroupDefaults(TestRunProfileBitset.Debug, [p5]);
 
-			// multiple changes in one go, with unmatched c
 			t.setGroupDefaultProfiles(TestRunProfileBitset.Debug, [p1, p2, p4]);
 			assertGroupDefaults(TestRunProfileBitset.Run, [p5, p6, p8]);
 			assertGroupDefaults(TestRunProfileBitset.Debug, [p1, p2, p4]);
 
-			// identity
 			t.setGroupDefaultProfiles(TestRunProfileBitset.Run, [p5, p6, p8]);
 			assertGroupDefaults(TestRunProfileBitset.Run, [p5, p6, p8]);
 			assertGroupDefaults(TestRunProfileBitset.Debug, [p1, p2, p4]);

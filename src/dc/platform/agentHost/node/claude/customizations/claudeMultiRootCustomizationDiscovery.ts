@@ -59,7 +59,6 @@ export async function discoverClaudeMultiRootCustomizations(
 		scanClaudeNativePluginsForRoots(roots, userHome, fileService, logService),
 	]);
 	const scopes = [...rootScopes, userScope];
-	// User-scope overrides are expected precedence; only warn on cross-workspace-folder collisions.
 	const userScopeItems = new Set<IParsedAgent | IParsedSkill>(userScope);
 	const logShadowedAcrossRoots = (kind: string) => (shadowed: IParsedAgent | IParsedSkill, winner: IParsedAgent | IParsedSkill): void => {
 		if (userScopeItems.has(shadowed)) {

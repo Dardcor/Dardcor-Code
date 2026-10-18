@@ -55,7 +55,7 @@ export class QuickFixesProvider implements vscode.CodeActionProvider {
 			return;
 		}
 
-		if (await this.ignoreService.isCopilotIgnored(doc.uri)) {
+		if (await this.ignoreService.isIgnored(doc.uri)) {
 			return;
 		}
 		if (cancellationToken.isCancellationRequested) {
@@ -210,7 +210,7 @@ export class RefactorsProvider implements vscode.CodeActionProvider {
 			return;
 		}
 
-		if (await this.ignoreService.isCopilotIgnored(doc.uri)) {
+		if (await this.ignoreService.isIgnored(doc.uri)) {
 			return;
 		}
 
@@ -221,11 +221,6 @@ export class RefactorsProvider implements vscode.CodeActionProvider {
 		return this.provideGenerateUsingCopilotCodeAction(doc, range);
 	}
 
-	/**
-	 * Provides code action `Generate using Dardcor AI` or `Modify using Dardcor AI`.
-	 * - `Generate using Dardcor AI` is shown when the selection is empty and the line of the selection contains only white-space characters or tabs.
-	 * - `Modify using Dardcor AI` is shown when the selection is not empty and the selection does not contain only white-space characters or tabs.
-	 */
 	private provideGenerateUsingCopilotCodeAction(doc: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] | undefined {
 
 		if (vscode.workspace.getConfiguration('inlineChat').get('affordance') !== 'off') {

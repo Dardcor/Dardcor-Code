@@ -195,7 +195,6 @@ export class AgentPluginEditor extends EditorPane {
 		template.name.textContent = item.name;
 		template.description.textContent = item.description;
 
-		// Set up marketplace link
 		const marketplaceLabel = item.marketplace ?? '';
 		const githubRepo = item.kind === AgentPluginItemKind.Marketplace
 			? item.marketplaceReference.githubRepo
@@ -214,12 +213,10 @@ export class AgentPluginEditor extends EditorPane {
 		}
 
 		const currentItem = derived(reader => {
-			// Read observables to subscribe to changes
 			const allPlugins = this.agentPluginService.plugins.read(reader);
 
 			let currentItem = item;
 
-			// If this was a marketplace item, check if it got installed
 			if (item.kind === AgentPluginItemKind.Marketplace) {
 				const expectedUri = this.pluginInstallService.getPluginInstallUri({
 					name: item.name,
@@ -236,10 +233,8 @@ export class AgentPluginEditor extends EditorPane {
 					currentItem = this.installedPluginToItem(installedPlugin);
 				}
 			} else {
-				// If this was an installed item, check if it got uninstalled
 				const stillInstalled = allPlugins.find(p => p.uri.toString() === item.plugin.uri.toString());
 				if (!stillInstalled) {
-					// Plugin was uninstalled — show as marketplace if we have the info
 					if (item.plugin.fromMarketplace) {
 						const mp = item.plugin.fromMarketplace;
 						currentItem = {
@@ -255,11 +250,9 @@ export class AgentPluginEditor extends EditorPane {
 							readmeUri: mp.readmeUri,
 						};
 					} else {
-						// Non-marketplace plugin was uninstalled — no actions to show
 						return;
 					}
 				} else {
-					// Read enablement state for reactivity
 					stillInstalled.enablement.read(reader);
 					currentItem = this.installedPluginToItem(stillInstalled);
 				}
@@ -278,7 +271,6 @@ export class AgentPluginEditor extends EditorPane {
 				?? item.plugin.fromMarketplace;
 		});
 
-		// Set up actions reactively
 		const actionDisposables = this.transientDisposables.add(new DisposableStore());
 		this.transientDisposables.add(autorun(reader => {
 			actionDisposables.clear();
@@ -299,7 +291,6 @@ export class AgentPluginEditor extends EditorPane {
 				actionDisposables.add(action);
 			}
 
-			// Update enablement status widget
 			if (current.kind === AgentPluginItemKind.Installed) {
 				actionDisposables.add(this.instantiationService.createInstance(
 					EnablementStatusWidget,
@@ -310,7 +301,6 @@ export class AgentPluginEditor extends EditorPane {
 			}
 		}));
 
-		// Open readme
 		this.activeElement = await this.openDetails(item, template, token);
 	}
 
@@ -375,7 +365,6 @@ export class AgentPluginEditor extends EditorPane {
 			}
 		}
 
-		// For https GitHub URLs, convert blob URL to raw URL
 		if (readmeUri.scheme === Schemas.https) {
 			let rawUrl = readmeUri.toString();
 			const githubBlobMatch = rawUrl.match(/^https:\/\/github\.com\/(?<owner>[^/]+)\/(?<repo>[^/]+)\/blob\/(?<rest>.+)$/);
@@ -599,4 +588,3 @@ class UpdatePluginEditorAction extends Action {
 	}
 }
 
-//#endregion

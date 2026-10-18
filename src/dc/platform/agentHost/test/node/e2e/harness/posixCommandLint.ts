@@ -3,29 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Guards recorded fixtures against POSIX-only shell commands.
- *
- * A capture is otherwise platform-neutral: it records what the *model* said,
- * and the agent host executes that live on whatever platform the test runs on.
- * The one thing that does not travel is a command string the model chose — if
- * it happens to pick `wc -l` or `printf`, that choice is frozen into the fixture
- * and the test can never replay on Windows.
- *
- * Nobody selects those strings deliberately. They are whatever the model
- * produced from a prompt that described the goal instead of specifying the
- * command, which makes this exactly the kind of regression that reappears the
- * next time somebody re-records. Checking at the moment the fixture is written
- * puts the failure on the author's own machine, while they still have the
- * context to fix it, instead of on a CI leg they may not run.
- *
- * Deliberately a blocklist of constructs known not to replay reliably in the
- * suite's Windows shells rather than an allowlist of portable ones: the goal is
- * to catch the commands models actually reach for, without failing a recording
- * for an unfamiliar-but-fine command.
- */
 
-/** A shell command found in a recorded fixture, with where it came from. */
 export interface IRecordedCommand {
 	readonly command: string;
 	readonly toolName: string;
@@ -37,7 +15,6 @@ export interface IPosixCommandFinding {
 	readonly reason: string;
 }
 
-/** Extracts the shell command field used by supported provider tool inputs. */
 export function getRecordedShellCommand(input: { readonly command?: unknown; readonly cmd?: unknown } | undefined): string | undefined {
 	if (typeof input?.command === 'string' && input.command) {
 		return input.command;
@@ -50,17 +27,6 @@ interface IPosixPattern {
 	readonly reason: string;
 }
 
-/**
- * `pwd` is deliberately absent: PowerShell defines it as an alias for
- * `Get-Location`, and the host-managed terminal uses PowerShell on Windows. The
- * lint target is fixture portability across the suite's effective Windows
- * shells, not `cmd` syntax specifically.
- *
- * Each pattern is anchored to a command position — the start of the string, or
- * after a `|`, `&&`, `||` or `;` — so that an argument or file name that merely
- * contains the word does not trip it (`node -e "readdirSync('.')"` must not
- * match `rm`).
- */
 const COMMAND_POSITION = String.raw`(?:^|[|;]|&&|\|\|)\s*`;
 
 const POSIX_PATTERNS: readonly IPosixPattern[] = [
@@ -86,14 +52,8 @@ const POSIX_PATTERNS: readonly IPosixPattern[] = [
 	},
 ];
 
-/**
- * Placeholders the recorder substitutes into captured paths. They look like
- * POSIX variable expansions but are rewritten before replay, so they must not
- * be reported.
- */
 const RECORDER_PLACEHOLDER_RE = /\$\{(?:workdir|homedir|workspace|temp|user|timestamp|shell|read_shell|write_shell|stop_shell|list_shell|shell_shutdown)\}/g;
 
-/** Reports every POSIX-only construct found in the given commands. */
 export function findPosixOnlyCommands(commands: readonly IRecordedCommand[]): IPosixCommandFinding[] {
 	const findings: IPosixCommandFinding[] = [];
 	for (const { command, toolName } of commands) {
@@ -108,7 +68,6 @@ export function findPosixOnlyCommands(commands: readonly IRecordedCommand[]): IP
 	return findings;
 }
 
-/** Formats findings as the error a recording fails with. */
 export function formatPosixCommandError(fixturePath: string, findings: readonly IPosixCommandFinding[]): string {
 	const lines = findings.map(finding => `  - \`${finding.command}\` (${finding.toolName}): ${finding.reason}`);
 	return [

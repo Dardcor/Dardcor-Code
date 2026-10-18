@@ -85,7 +85,6 @@ export class MainThreadTunnelService extends Disposable implements MainThreadTun
 			return [];
 		}
 
-		// Check all the selectors to make sure it's worth going to the extension host.
 		const appropriateHandles = Array.from(this.portsAttributesProviders.entries()).filter(entry => {
 			const selector = entry[1];
 			const portRange = (typeof selector.portRange === 'number') ? [selector.portRange, selector.portRange + 1] : selector.portRange;
@@ -201,7 +200,6 @@ export class MainThreadTunnelService extends Disposable implements MainThreadTun
 			this.tunnelService.setTunnelFeatures(features);
 		}
 		this.tunnelService.setTunnelProvider(tunnelProvider);
-		// At this point we clearly want the ports view/features since we have a tunnel factory
 		if (isResolver) {
 			this.contextKeyService.createKey(forwardedPortsFeaturesEnabled.key, true);
 		}
@@ -218,7 +216,6 @@ export class MainThreadTunnelService extends Disposable implements MainThreadTun
 	}
 
 	async $setCandidatePortSource(source: CandidatePortSource): Promise<void> {
-		// Must wait for the remote environment before trying to set settings there.
 		this.remoteAgentService.getEnvironment().then(() => {
 			switch (source) {
 				case CandidatePortSource.None: {
@@ -236,10 +233,9 @@ export class MainThreadTunnelService extends Disposable implements MainThreadTun
 						.registerDefaultConfigurations([{ overrides: { 'remote.autoForwardPortsSource': PORT_AUTO_SOURCE_SETTING_HYBRID } }]);
 					break;
 				}
-				default: // Do nothing, the defaults for these settings should be used.
+				default:
 			}
 		}).catch(() => {
-			// The remote failed to get setup. Errors from that area will already be surfaced to the user.
 		});
 	}
 }

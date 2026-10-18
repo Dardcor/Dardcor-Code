@@ -57,7 +57,6 @@ export function createStatsStream(group: string, log?: boolean): es.ThroughStrea
 			} else if (file.stat && typeof file.stat.size === 'number') {
 				entry.totalSize += file.stat.size;
 			} else {
-				// funky file...
 			}
 		}
 		this.emit('data', data);

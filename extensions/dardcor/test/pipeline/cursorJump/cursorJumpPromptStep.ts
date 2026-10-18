@@ -37,13 +37,6 @@ function extractTextContent(message: Raw.ChatMessage): string {
 	return textPart && 'text' in textPart ? textPart.text : '';
 }
 
-/**
- * A mock fetcher that returns an empty Success response on every call. The
- * empty xtab response yields `NoSuggestions`, which the production
- * `XtabProvider` then funnels into the cursor-jump path. The cursor-jump
- * fetch also returns empty — we don't care about the response, only the
- * prompt captured via the telemetry builder before the fetch fires.
- */
 class CursorJumpCapturingFetcher implements IChatMLFetcher {
 	_serviceBrand: undefined;
 	onDidMakeChatMLRequest = Event.None;
@@ -65,13 +58,6 @@ class CursorJumpCapturingFetcher implements IChatMLFetcher {
 	}
 }
 
-/**
- * Generate a cursor-prediction prompt by running the production NES pipeline
- * with cursor prediction forced on and the model call mocked. The cursor
- * predictor stores the built prompt + keptRange on `logContext` before the
- * fetch fires, so the captured prompt is byte-identical to what production
- * would send for the same recording.
- */
 export async function generateCursorPromptFromRecording(
 	accessor: ServicesAccessor,
 	recordingInfo: IRecordingInformation,
@@ -131,7 +117,6 @@ export async function generateCursorPromptFromRecording(
 			if (!logContext.cursorJumpRawMessages) {
 				throw err;
 			}
-			// expected: downstream errors after the cursor-jump prompt was already captured
 		} finally {
 			nextEditProvider.dispose();
 			telemetryBuilder.dispose();
@@ -161,12 +146,6 @@ export async function generateCursorPromptFromRecording(
 	}
 }
 
-/**
- * Install the capturing fetcher in a service collection. Call before
- * `createTestingAccessor()`. Exposed so the pipeline can wire it up
- * alongside the standard MockChatMLFetcher when `--sample-task` selects a
- * cursor task.
- */
 export function installCursorJumpCapturingFetcher(serviceCollection: { set(id: any, instance: any): void }): void {
 	serviceCollection.set(IChatMLFetcher, new CursorJumpCapturingFetcher());
 }

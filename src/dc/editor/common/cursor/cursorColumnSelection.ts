@@ -17,7 +17,6 @@ export class ColumnSelection {
 
 		const result: SingleCursorState[] = [];
 
-		// console.log(`fromVisibleColumn: ${fromVisibleColumn}, toVisibleColumn: ${toVisibleColumn}`);
 
 		for (let i = 0; i < lineCount; i++) {
 			const lineNumber = fromLineNumber + (reversed ? -i : i);
@@ -27,7 +26,6 @@ export class ColumnSelection {
 			const visibleStartColumn = config.visibleColumnFromColumn(model, new Position(lineNumber, startColumn));
 			const visibleEndColumn = config.visibleColumnFromColumn(model, new Position(lineNumber, endColumn));
 
-			// console.log(`lineNumber: ${lineNumber}: visibleStartColumn: ${visibleStartColumn}, visibleEndColumn: ${visibleEndColumn}`);
 
 			if (isLTR) {
 				if (visibleStartColumn > toVisibleColumn) {
@@ -54,7 +52,6 @@ export class ColumnSelection {
 		}
 
 		if (result.length === 0) {
-			// We are after all the lines, so add cursor at the end of each line
 			for (let i = 0; i < lineCount; i++) {
 				const lineNumber = fromLineNumber + (reversed ? -i : i);
 				const maxColumn = model.getLineMaxColumn(lineNumber);

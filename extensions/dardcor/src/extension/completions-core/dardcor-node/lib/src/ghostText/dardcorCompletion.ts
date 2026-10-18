@@ -2,7 +2,7 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
+import { DardcorNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
 import { generateUuid } from '../../../../../../util/dardcor/base/common/uuid';
 import { TelemetryWithExp } from '../telemetry';
 import { IPosition, IRange, LocationFactory, TextDocumentContents } from '../textDocument';
@@ -10,7 +10,7 @@ import { CompletionResult } from './ghostText';
 import { ITextEditorOptions, normalizeIndentCharacter } from './normalizeIndent';
 import { ResultType } from './resultType';
 
-export interface CopilotCompletion {
+export interface DardcorCompletion {
 	uuid: string;
 	insertText: string;
 	range: IRange;
@@ -21,7 +21,7 @@ export interface CopilotCompletion {
 	offset: number;
 	index: number;
 	resultType: ResultType;
-	dardcorAnnotations?: CopilotNamedAnnotationList;
+	dardcorAnnotations?: DardcorNamedAnnotationList;
 	clientCompletionId: string;
 }
 
@@ -32,7 +32,7 @@ export function completionsFromGhostTextResults(
 	position: IPosition,
 	textEditorOptions?: ITextEditorOptions,
 	lastShownCompletionIndex?: number
-): CopilotCompletion[] {
+): DardcorCompletion[] {
 	const currentLine = document.lineAt(position);
 	let completions = completionResults.map(result => {
 		const range = LocationFactory.range(
@@ -49,8 +49,7 @@ export function completionsFromGhostTextResults(
 		}
 		if (
 			currentLine.isEmptyOrWhitespace &&
-			(result.completion.displayNeedsWsOffset || // Deindenting case
-				// This enables stable behavior for deleting whitespace on blank lines
+			(result.completion.displayNeedsWsOffset ||
 				result.completion.completionText.startsWith(currentLine.text))
 		) {
 			insertText = result.completion.completionText;
@@ -59,7 +58,7 @@ export function completionsFromGhostTextResults(
 			insertText = document.getText(rangeFromStart) + result.completion.displayText;
 		}
 
-		const completion: CopilotCompletion = {
+		const completion: DardcorCompletion = {
 			uuid: generateUuid(),
 			insertText,
 			range,
@@ -75,7 +74,6 @@ export function completionsFromGhostTextResults(
 		};
 		return completion;
 	});
-	//If we are in typing as suggested flow, we want to put the last displayed completion at the top of the list to keep it selected
 	if (resultType === ResultType.TypingAsSuggested && lastShownCompletionIndex !== undefined) {
 		const lastShownCompletion = completions.find(predicate => predicate.index === lastShownCompletionIndex);
 		if (lastShownCompletion) {

@@ -81,7 +81,6 @@ class AnnounceCursorPosition extends Action2 {
 		if (!position || !model) {
 			return;
 		}
-		// Use visible column to match status bar display (accounts for tabs)
 		const tabSize = model.getOptions().tabSize;
 		const lineContent = model.getLineContent(position.lineNumber);
 		const visibleColumn = CursorColumns.visibleColumnFromColumn(lineContent, position.column, tabSize) + 1;

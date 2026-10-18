@@ -275,8 +275,6 @@ describe('ClaudeSessionStateService', () => {
 
 			service.dispose();
 
-			// After dispose, getting state should return defaults (though event subscriptions won't work)
-			// We can't really test this fully without internal access, but we can verify it doesn't throw
 			const newService = new ClaudeSessionStateService();
 			const modelId = newService.getModelIdForSession('session-1');
 			assert.strictEqual(modelId, undefined);

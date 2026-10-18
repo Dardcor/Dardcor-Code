@@ -200,7 +200,6 @@ export class ContentHoverWidget extends ResizableContentWidget {
 	}
 
 	private _isHoverTextOverflowing(): boolean {
-		// To find out if the text is overflowing, we will disable wrapping, check the widths, and then re-enable wrapping
 		this._hover.containerDomNode.style.setProperty('--vscode-hover-whiteSpace', 'nowrap');
 		this._hover.containerDomNode.style.setProperty('--vscode-hover-sourceWhiteSpace', 'nowrap');
 
@@ -266,8 +265,7 @@ export class ContentHoverWidget extends ResizableContentWidget {
 			widgetRect.width,
 			widgetRect.height
 		);
-		if (distance > this._renderedHover.closestMouseDistance + 4 /* tolerance of 4 pixels */) {
-			// The mouse is getting farther away
+		if (distance > this._renderedHover.closestMouseDistance + 4 ) {
 			return false;
 		}
 
@@ -316,8 +314,6 @@ export class ContentHoverWidget extends ResizableContentWidget {
 		this._updateFont();
 		this._updateContent(renderedHover.domNode);
 		this.handleContentsChanged();
-		// Simply force a synchronous render on the editor
-		// such that the widget does not really render with left = '0px'
 		this._editor.render();
 	}
 
@@ -342,14 +338,11 @@ export class ContentHoverWidget extends ResizableContentWidget {
 		const widgetPosition = renderedHover.showAtPosition;
 		this._positionPreference = this._findPositionPreference(widgetHeight, widgetPosition) ?? ContentWidgetPositionPreference.ABOVE;
 
-		// See https://github.com/microsoft/vscode/issues/140339
-		// TODO: Doing a second layout of the hover after force rendering the editor
 		this.handleContentsChanged();
 		if (renderedHover.shouldFocus) {
 			this._hover.containerDomNode.focus();
 		}
 		this._onDidResize.fire();
-		// The aria label overrides the label, so if we add to it, add the contents of the hover
 		const hoverFocused = this._hover.containerDomNode.ownerDocument.activeElement === this._hover.containerDomNode;
 		const accessibleViewHint = hoverFocused && getHoverAccessibleViewHint(
 			this._configurationService.getValue('accessibility.verbosity.hover') === true && this._accessibilityService.isScreenReaderOptimized(),
@@ -377,7 +370,6 @@ export class ContentHoverWidget extends ResizableContentWidget {
 	}
 
 	private _removeConstraintsRenderNormally(): void {
-		// Added because otherwise the initial size of the hover content is smaller than should be
 		const layoutInfo = this._editor.getLayoutInfo();
 		this._resizableNode.layout(layoutInfo.height, layoutInfo.width);
 		this._setHoverWidgetDimensions('auto', 'auto');
@@ -385,7 +377,6 @@ export class ContentHoverWidget extends ResizableContentWidget {
 	}
 
 	public setMinimumDimensions(dimensions: dom.Dimension): void {
-		// We combine the new minimum dimensions with the previous ones
 		this._minimumSize = new dom.Dimension(
 			Math.max(this._minimumSize.width, dimensions.width),
 			Math.max(this._minimumSize.height, dimensions.height)
@@ -399,7 +390,6 @@ export class ContentHoverWidget extends ResizableContentWidget {
 				? this._minimumSize.width
 				: Math.min(this._contentWidth, this._minimumSize.width)
 		);
-		// We want to avoid that the hover is artificially large, so we use the content width as minimum width
 		this._resizableNode.minSize = new dom.Dimension(width, this._minimumSize.height);
 	}
 
@@ -475,8 +465,8 @@ export class ContentHoverWidget extends ResizableContentWidget {
 }
 
 function computeDistanceFromPointToRectangle(pointX: number, pointY: number, left: number, top: number, width: number, height: number): number {
-	const x = (left + width / 2); // x center of rectangle
-	const y = (top + height / 2); // y center of rectangle
+	const x = (left + width / 2);
+	const y = (top + height / 2);
 	const dx = Math.max(Math.abs(pointX - x) - width / 2, 0);
 	const dy = Math.max(Math.abs(pointY - y) - height / 2, 0);
 	return Math.sqrt(dx * dx + dy * dy);

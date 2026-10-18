@@ -23,7 +23,6 @@ import { SurveyEditorInput } from './surveyEditorInput.js';
 import { SurveyEditorPane } from './surveyEditorPane.js';
 import { CopilotPMFSurvey } from './surveyQuestions.js';
 
-// Register editor pane
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
 		SurveyEditorPane,
@@ -33,7 +32,6 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 	[new SyncDescriptor(SurveyEditorInput)]
 );
 
-// Register test command (developer-only, visible in command palette)
 class OpenSurveyAction extends Action2 {
 	static readonly ID = 'workbench.action.openSurvey';
 
@@ -50,7 +48,7 @@ class OpenSurveyAction extends Action2 {
 	override async run(accessor: ServicesAccessor): Promise<void> {
 		const productService = accessor.get(IProductService);
 		if (productService.quality === 'stable') {
-			return; // Never open dev survey in stable builds
+			return;
 		}
 		return openSurveyEditor(accessor, 'dev-command');
 	}
@@ -58,7 +56,6 @@ class OpenSurveyAction extends Action2 {
 
 registerAction2(OpenSurveyAction);
 
-// Known survey source prefixes (validated for telemetry safety)
 const KNOWN_SOURCE_PREFIXES = [
 	'completions', 'panel.', 'inline.', 'terminal',
 	'agent.', 'agents', 'sessions', 'nps', 'churn', 'dev-command',
@@ -75,7 +72,6 @@ function sanitizeSurveySource(source: unknown): string {
 	return 'unknown';
 }
 
-// Programmatic command for extensions to trigger the survey (e.g. from Copilot survey service)
 CommandsRegistry.registerCommand('_workbench.action.openCopilotSurvey', (accessor: ServicesAccessor, source?: unknown) => {
 	return openSurveyEditor(accessor, sanitizeSurveySource(source));
 });
@@ -87,7 +83,6 @@ function openSurveyEditor(accessor: ServicesAccessor, source?: string): Promise<
 
 	const input = instantiationService.createInstance(SurveyEditorInput, CopilotPMFSurvey, surveySource);
 
-	// If the same survey is already open (singleton match), update its source
 	for (const editor of editorService.editors) {
 		if (editor instanceof SurveyEditorInput && editor.matches(input)) {
 			editor.updateSource(surveySource);
@@ -98,7 +93,6 @@ function openSurveyEditor(accessor: ServicesAccessor, source?: string): Promise<
 	return editorService.openEditor(input, { pinned: true }).then(() => undefined);
 }
 
-// Accessibility help for the survey pane
 class SurveyAccessibilityHelp implements IAccessibleViewImplementation {
 	readonly priority = 100;
 	readonly name = 'survey';

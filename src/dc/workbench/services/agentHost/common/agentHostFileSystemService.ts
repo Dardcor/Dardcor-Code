@@ -21,17 +21,8 @@ export const IAgentHostFileSystemService = createDecorator<IAgentHostFileSystemS
 export interface IAgentHostFileSystemService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Register a mapping from a URI authority to a connection so that
-	 * `vscode-agent-host://[authority]/…` URIs resolve through this connection.
-	 */
 	registerAuthority(authority: string, connection: IRemoteFilesystemConnection): IDisposable;
 
-	/**
-	 * Ensures the in-memory filesystem provider for synced customizations
-	 * (`vscode-synced-customization:` scheme) is registered. Called lazily
-	 * by {@link SyncedCustomizationBundler} — safe to call multiple times.
-	 */
 	ensureSyncedCustomizationProvider(): void;
 }
 
@@ -50,8 +41,6 @@ class AgentHostFileSystemService extends Disposable implements IAgentHostFileSys
 		this._fsProvider = this._register(new AgentHostFileSystemProvider());
 		this._register(_fileService.registerProvider(AGENT_HOST_SCHEME, this._fsProvider));
 
-		// Two formatters: the scheme-wide fallback for hosts whose operating
-		// system is unknown, and a more specific one for the in-process host.
 		this._register(labelService.registerFormatter(AGENT_HOST_LABEL_FORMATTER));
 		this._register(labelService.registerFormatter(agentHostLabelFormatter(LOCAL_AGENT_HOST_AUTHORITY, OS)));
 	}

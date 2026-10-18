@@ -28,7 +28,6 @@ export function generateFixContext(
 	rangeOfInterest: Range
 ): { contextInfo: IFixCodeContextInfo; tracker: CodeContextTracker } {
 
-	// Number of tokens the endpoint can handle, 4 chars per token, we consume one 3rd
 	const charLimit = (endpoint.modelMaxPromptTokens * 4) / 3;
 	const tracker = new CodeContextTracker(charLimit);
 	const document = documentContext.document;
@@ -63,13 +62,6 @@ export function generateFixContext(
 	return finish();
 }
 
-/**
- * Returns the range of the selection to use in the user context when running /fix
- * @param range the code context region to process, where to store the selection information
- * @param diagnosticsRange the range spanning the diagnostics
- * @diagnosticsRangeOfInterest range around this spanning range which is permitted for editing
- * @returns a boolean indicating whether to continue code execution
- */
 function processFixSelection(range: CodeContextRegion, diagnosticsRange: Range, diagnosticsRangeOfInterest: Range): boolean {
 	const diagnosticsRangeMidLine = Math.floor((diagnosticsRange.start.line + diagnosticsRange.end.line) / 2);
 	const maximumRadius = Math.max(diagnosticsRangeMidLine - diagnosticsRangeOfInterest.start.line, diagnosticsRangeOfInterest.end.line - diagnosticsRangeMidLine);
@@ -93,9 +85,6 @@ function processFixSelection(range: CodeContextRegion, diagnosticsRange: Range, 
 }
 
 
-/**
- * This function finds the diagnostics at the given selection and filtered by the actual prompt
- */
 export function findDiagnosticForSelectionAndPrompt(diagnosticService: ILanguageDiagnosticsService, resource: vscode.Uri, selection: vscode.Selection | vscode.Range, prompt: string | undefined): vscode.Diagnostic[] {
 	const diagnostics = diagnosticService.getDiagnostics(resource).filter(d => !!d.range.intersection(selection));
 	if (prompt) {
@@ -107,10 +96,6 @@ export function findDiagnosticForSelectionAndPrompt(diagnosticService: ILanguage
 	return diagnostics;
 }
 
-/**
- * This function finds the range of interest for the input range for the /fix command
- * @param maximumNumberOfLines the maximum number of lines in the range of interest
- */
 export async function findFixRangeOfInterest(treeSitterAST: TreeSitterAST, range: Range, maximumNumberOfLines: number): Promise<Range> {
 	const treeSitterRange = vscodeToTreeSitterRange(range);
 	const maxNumberOfAdditionalLinesInRangeOfInterest = Math.max(maximumNumberOfLines, range.end.line - range.start.line + maximumNumberOfLines);

@@ -85,7 +85,6 @@ export class GutterIndicatorMenuContent {
 		}
 
 		if (this._data.extensionCommandsOnly) {
-			// drop leading separator
 			return hoverContent(extensionCommandNodes.slice(1));
 		}
 
@@ -165,7 +164,7 @@ export class GutterIndicatorMenuContent {
 				class: undefined,
 				tooltip: action.tooltip ?? action.title
 			})),
-			{ hoverDelegate: nativeHoverDelegate /* unable to show hover inside another hover */ }
+			{ hoverDelegate: nativeHoverDelegate }
 		) : undefined;
 
 		return hoverContent([
@@ -190,7 +189,7 @@ export class GutterIndicatorMenuContent {
 		if (!commandId) {
 			return constObservable(undefined);
 		}
-		return observableFromEvent(this._contextKeyService.onDidChangeContext, () => this._keybindingService.lookupKeybinding(commandId)); // TODO: use contextkeyservice to use different renderings
+		return observableFromEvent(this._contextKeyService.onDidChangeContext, () => this._keybindingService.lookupKeybinding(commandId));
 	}
 }
 
@@ -237,7 +236,7 @@ function option(props: {
 		},
 		tabIndex: 0,
 		style: {
-			borderRadius: 3, // same as hover widget border radius
+			borderRadius: 3,
 		}
 	}, [
 		n.elem('span', {
@@ -267,7 +266,6 @@ function option(props: {
 	]));
 }
 
-// TODO: make this observable
 function actionBar(actions: IAction[], options: IActionBarOptions) {
 	return derived({ name: 'inlineEdits.actionBar' }, (_reader) => n.div({
 		class: ['action-widget-action-bar'],

@@ -1,4 +1,3 @@
-// Translator schema barrel — pure data enums (roles, blocks). No logic here.
 export { ROLE, GEMINI_ROLE } from "./roles.js";
 export {
   OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM,

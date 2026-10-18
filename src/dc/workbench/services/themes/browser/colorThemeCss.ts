@@ -8,15 +8,6 @@ import { asCssVariableName, getColorRegistry } from '../../../../platform/theme/
 import { asCssVariableName as asSizeCssVariableName, getSizeRegistry, sizeValueToCss } from '../../../../platform/theme/common/sizeRegistry.js';
 import { IEnvironmentService } from '../../../../platform/environment/common/environment.js';
 
-/**
- * Generates CSS content (variables + theming participant rules) for a color theme.
- * Pure function - no DOM side effects.
- *
- * @param theme The color theme to generate CSS for
- * @param scopeSelector CSS selector to scope the rules (e.g. '.monaco-workbench')
- * @param themingParticipants Functions that contribute additional CSS rules (optional)
- * @param environmentService Passed to theming participants (required if themingParticipants is non-empty)
- */
 export function generateColorThemeCSS(
 	theme: IColorTheme,
 	scopeSelector: string,
@@ -32,17 +23,14 @@ export function generateColorThemeCSS(
 		}
 	};
 
-	// Base rule
 	ruleCollector.addRule(`${scopeSelector} { forced-color-adjust: none; }`);
 
-	// Theming participant rules
 	if (themingParticipants && environmentService) {
 		for (const participant of themingParticipants) {
 			participant(theme, ruleCollector, environmentService);
 		}
 	}
 
-	// Color CSS variables
 	const variables: string[] = [];
 	for (const item of getColorRegistry().getColors()) {
 		const color = theme.getColor(item.id, true);
@@ -51,7 +39,6 @@ export function generateColorThemeCSS(
 		}
 	}
 
-	// Size CSS variables
 	for (const item of getSizeRegistry().getSizes()) {
 		const sizeValue = getSizeRegistry().resolveDefaultSize(item.id, theme);
 		if (sizeValue) {
@@ -64,9 +51,6 @@ export function generateColorThemeCSS(
 	return new CSSValue([...cssRules].join('\n'));
 }
 
-/**
- * A typed wrapper for CSS content
- */
 export class CSSValue {
 	constructor(readonly code: string) { }
 }

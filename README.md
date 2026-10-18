@@ -108,14 +108,14 @@ Automatic updates are managed via `updater.json` with SHA-256 hash verification 
    npm install
    ```
 
-3. **Compile the full application (client, copilot extension & local router):**
+3. **Compile the full application (client, Dardcor chat extension & local router):**
    ```bash
    npm run compile
    ```
    *To compile individual components:*
    ```bash
    npm run compile-client   # Compiles workbench and Monaco editor
-   npm run compile-copilot  # Compiles AI Copilot extension
+   npm run compile-dardcor-chat  # Compiles the Dardcor chat extension
    npm run compile-router   # Builds local AI Router standalone bundle
    ```
 

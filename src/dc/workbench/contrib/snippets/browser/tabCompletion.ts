@@ -80,7 +80,6 @@ export class TabCompletionController implements IEditorContribution {
 
 	private _updateSnippets(): void {
 
-		// reset first
 		this._activeSnippets = [];
 		this._completionProvider?.dispose();
 
@@ -88,7 +87,6 @@ export class TabCompletionController implements IEditorContribution {
 			return;
 		}
 
-		// lots of dance for getting the
 		const selection = this._editor.getSelection();
 		const model = this._editor.getModel();
 		model.tokenization.tokenizeIfCheap(selection.positionLineNumber);
@@ -96,13 +94,11 @@ export class TabCompletionController implements IEditorContribution {
 		const snippets = this._snippetService.getSnippetsSync(id, model.uri);
 
 		if (!snippets) {
-			// nothing for this language
 			this._hasSnippets.set(false);
 			return;
 		}
 
 		if (Range.isEmpty(selection)) {
-			// empty selection -> real text (no whitespace) left of cursor
 			const prefix = getNonWhitespacePrefix(model, selection.getPosition());
 			if (prefix) {
 				for (const snippet of snippets) {
@@ -113,7 +109,6 @@ export class TabCompletionController implements IEditorContribution {
 			}
 
 		} else if (!Range.spansMultipleLines(selection) && model.getValueLengthInRange(selection) <= 100) {
-			// actual selection -> snippet must be a full match
 			const selected = model.getValueInRange(selection);
 			if (selected) {
 				for (const snippet of snippets) {
@@ -160,12 +155,8 @@ export class TabCompletionController implements IEditorContribution {
 		}
 
 		if (this._activeSnippets.length === 1) {
-			// one -> just insert
 			const [snippet] = this._activeSnippets;
 
-			// async clipboard access might be required and in that case
-			// we need to check if the editor has changed in flight and then
-			// bail out (or be smarter than that)
 			let clipboardText: string | undefined;
 			if (snippet.needsClipboard) {
 				const state = new EditorState(this._editor, CodeEditorStateFlag.Value | CodeEditorStateFlag.Position);
@@ -180,7 +171,6 @@ export class TabCompletionController implements IEditorContribution {
 			});
 
 		} else if (this._activeSnippets.length > 1) {
-			// two or more -> show IntelliSense box
 			if (this._completionProvider) {
 				showSimpleSuggestions(this._editor, this._completionProvider);
 			}
@@ -188,7 +178,7 @@ export class TabCompletionController implements IEditorContribution {
 	}
 }
 
-registerEditorContribution(TabCompletionController.ID, TabCompletionController, EditorContributionInstantiation.Eager); // eager because it needs to define a context key
+registerEditorContribution(TabCompletionController.ID, TabCompletionController, EditorContributionInstantiation.Eager);
 
 const TabCompletionCommand = EditorCommand.bindToContribution<TabCompletionController>(TabCompletionController.get);
 

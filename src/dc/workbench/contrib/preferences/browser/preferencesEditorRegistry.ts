@@ -27,35 +27,16 @@ export interface IPreferencesEditorPane extends IDisposable {
 
 export interface IPreferencesEditorPaneDescriptor {
 
-	/**
-	 * The id of the view container
-	 */
 	readonly id: string;
 
-	/**
-	 * The title of the view container
-	 */
 	readonly title: string;
 
-	/**
-	 * Icon representation of the View container
-	 */
 	readonly icon?: ThemeIcon | URI;
 
-	/**
-	 * Order of the view container.
-	 */
 	readonly order: number;
 
-	/**
-	 * IViewPaneContainer Ctor to instantiate
-	 */
 	readonly ctorDescriptor: SyncDescriptor<IPreferencesEditorPane>;
 
-	/**
-	 * Storage id to use to store the view container state.
-	 * If not provided, it will be derived.
-	 */
 	readonly storageId?: string;
 }
 

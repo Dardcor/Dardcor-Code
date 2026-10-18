@@ -54,10 +54,6 @@ suite('SessionDatabase', () => {
 		}).timeout(10_000);
 	});
 
-	/**
-	 * Extends SessionDatabase to allow ejecting/injecting the raw sqlite3
-	 * Database instance, enabling reopen tests with :memory: databases.
-	 */
 	class TestableSessionDatabase extends SessionDatabase {
 		private nextMutationGate: { readonly started: DeferredPromise<void>; readonly release: DeferredPromise<void> } | undefined;
 		private nextMetadataAndTurnUsageMutationGate: { readonly started: DeferredPromise<void>; readonly release: DeferredPromise<void> } | undefined;
@@ -138,7 +134,6 @@ suite('SessionDatabase', () => {
 			} : operation);
 		}
 
-		/** Extract the raw db connection; this instance becomes inert. */
 		async ejectDb(): Promise<Database> {
 			const rawDb = await this._ensureDb();
 			this._dbPromise = undefined;
@@ -146,7 +141,6 @@ suite('SessionDatabase', () => {
 			return rawDb;
 		}
 
-		/** Create a TestableSessionDatabase wrapping an existing raw db. */
 		static async fromDb(
 			rawDb: Database,
 			migrations: readonly ISessionDatabaseMigration[] = sessionDatabaseMigrations,
@@ -158,7 +152,6 @@ suite('SessionDatabase', () => {
 		}
 	}
 
-	// ---- Migration system -----------------------------------------------
 
 	suite('migrations', () => {
 
@@ -182,7 +175,6 @@ suite('SessionDatabase', () => {
 			const db1 = await TestableSessionDatabase.open(':memory:', migrations);
 			const rawDb = await db1.ejectDb();
 
-			// Reopen — should not throw (table already exists, migration skipped)
 			db2 = disposables.add(await TestableSessionDatabase.fromDb(rawDb, migrations));
 			assert.deepStrictEqual(await db2.getAllTables(), ['t1']);
 		});
@@ -212,7 +204,6 @@ suite('SessionDatabase', () => {
 
 			await assert.rejects(() => SessionDatabase.open(':memory:', migrations));
 
-			// A fresh :memory: open with valid migrations succeeds
 			db = disposables.add(await SessionDatabase.open(':memory:', [
 				{ version: 1, sql: 'CREATE TABLE t1 (id INTEGER PRIMARY KEY)' },
 			]));
@@ -220,7 +211,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- File edits -----------------------------------------------------
 
 	suite('file edits', () => {
 
@@ -310,7 +300,6 @@ suite('SessionDatabase', () => {
 			const edits = await db.getFileEdits(['tc-1', 'tc-2']);
 			assert.strictEqual(edits.length, 2);
 
-			// Only tc-2
 			const edits2 = await db.getFileEdits(['tc-2']);
 			assert.strictEqual(edits2.length, 1);
 			assert.strictEqual(edits2[0].toolCallId, 'tc-2');
@@ -322,7 +311,7 @@ suite('SessionDatabase', () => {
 			assert.deepStrictEqual(edits, []);
 		});
 
-		test('returns empty array when given empty array' /* Regression test for https://github.com/microsoft/vscode/issues/306057 */, async () => {
+		test('returns empty array when given empty array' , async () => {
 			db = disposables.add(await SessionDatabase.open(':memory:'));
 			const edits = await db.getFileEdits([]);
 			assert.deepStrictEqual(edits, []);
@@ -413,7 +402,6 @@ suite('SessionDatabase', () => {
 		test('auto-creates turn if it does not exist', async () => {
 			db = disposables.add(await SessionDatabase.open(':memory:'));
 
-			// storeFileEdit should succeed even without a prior createTurn call
 			await db.storeFileEdit({
 				turnId: 'auto-turn',
 				toolCallId: 'tc-1',
@@ -431,14 +419,13 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- Turns ----------------------------------------------------------
 
 	suite('turns', () => {
 
 		test('createTurn is idempotent', async () => {
 			db = disposables.add(await SessionDatabase.open(':memory:'));
 			await db.createTurn('turn-1');
-			await db.createTurn('turn-1'); // should not throw
+			await db.createTurn('turn-1');
 		});
 
 		test('deleteTurn cascades to file edits', async () => {
@@ -456,10 +443,8 @@ suite('SessionDatabase', () => {
 				removedLines: undefined,
 			});
 
-			// Edits exist
 			assert.strictEqual((await db.getFileEdits(['tc-1'])).length, 1);
 
-			// Delete the turn — edits should be gone
 			await db.deleteTurn('turn-1');
 			assert.deepStrictEqual(await db.getFileEdits(['tc-1']), []);
 		});
@@ -498,11 +483,10 @@ suite('SessionDatabase', () => {
 
 		test('deleteTurn is a no-op for unknown turn', async () => {
 			db = disposables.add(await SessionDatabase.open(':memory:'));
-			await db.deleteTurn('nonexistent'); // should not throw
+			await db.deleteTurn('nonexistent');
 		});
 	});
 
-	// ---- Turn event ids -------------------------------------------------
 
 	suite('turn event ids', () => {
 
@@ -558,11 +542,6 @@ suite('SessionDatabase', () => {
 		});
 
 		test('getNextTurnEventId falls back to `event_id` when the key is the SDK event id', async () => {
-			// Sessions restored from disk surface SDK envelope ids as the
-			// protocol turn id (see mapSessionEvents.ts), but `turns.id`
-			// was populated live with the client-side `request_xxx` id.
-			// The fallback lets fork / truncate resolve the boundary
-			// without forcing every caller to translate.
 			db = disposables.add(await SessionDatabase.open(':memory:'));
 			await db.createTurn('request_aaa');
 			await db.createTurn('request_bbb');
@@ -590,7 +569,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- Turn usage ------------------------------------------------------
 
 	suite('turn usage', () => {
 
@@ -609,13 +587,6 @@ suite('SessionDatabase', () => {
 		});
 
 		test('records usage for a turn with no `turns` row, creating one so it can be pruned', async () => {
-			// A turn can report usage without otherwise touching the DB (e.g. a
-			// Claude turn that edits no files). The parent row is created so the
-			// usage is reachable by the cascade; without it the row would survive
-			// every prune path and the table would grow for the life of the
-			// session. Creating it cannot disturb the turn ordering that
-			// `getNextTurnEventId` / checkpoint resolution rely on, because a
-			// turn's usage is always reported before the next turn begins.
 			db = disposables.add(await SessionDatabase.open(':memory:'));
 			await db.createTurn('turn-1');
 			await db.setTurnEventId('turn-1', 'evt-1');
@@ -626,7 +597,6 @@ suite('SessionDatabase', () => {
 
 			assert.deepStrictEqual({
 				usage: (await db.getTurnUsages()).get('usage-only-turn'),
-				// Ordering is untouched: turn-1's successor is still turn-2.
 				next: await db.getNextTurnEventId('turn-1'),
 				first: await db.getFirstTurnEventId(),
 			}, {
@@ -637,8 +607,6 @@ suite('SessionDatabase', () => {
 		});
 
 		test('truncation prunes usage for turns that have no other DB rows', async () => {
-			// The unbounded-growth case: turns whose only DB footprint is their
-			// usage row. They must be pruned by a rewind like any other turn.
 			db = disposables.add(await SessionDatabase.open(':memory:'));
 			await db.createTurn('turn-1');
 			await db.setTurnUsage('turn-1', '{"inputTokens":1}');
@@ -661,9 +629,6 @@ suite('SessionDatabase', () => {
 		});
 
 		test('reads see a fire-and-forget write submitted before them', async () => {
-			// `setTurnUsage` is deliberately fire-and-forget and sqlite3 runs parallelized, so the
-			// restore read must queue behind prior writes. Without that ordering a reconnect can
-			// read first and permanently rebuild the turn without its cost.
 			db = disposables.add(await SessionDatabase.open(':memory:'));
 			await db.createTurn('turn-1');
 
@@ -687,10 +652,6 @@ suite('SessionDatabase', () => {
 		});
 
 		test('remapTurnIds carries usage and replaces event IDs on imported forks', async () => {
-			// Fork file-copies the source database then remaps turn ids. Without
-			// remapping `turn_usage` the forked session restores with no gauge
-			// and zero cost, and rows past the fork point leak permanently
-			// (every prune path joins through `turns`).
 			db = disposables.add(await SessionDatabase.open(':memory:'));
 			await db.createTurn('old-1');
 			await db.createTurn('old-2');
@@ -699,7 +660,6 @@ suite('SessionDatabase', () => {
 			await db.setTurnUsage('old-1', '{"inputTokens":1}');
 			await db.setTurnUsage('old-2', '{"inputTokens":2}');
 
-			// Fork keeping only `old-1`, remapped to a fresh id.
 			await db.remapTurnIds(
 				new Map([['old-1', 'new-1']]),
 				new Map([['new-1', 'new-event-1']]),
@@ -718,7 +678,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- Turn delegation -------------------------------------------------
 
 	suite('turn delegation', () => {
 
@@ -747,7 +706,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- Workspace transitions -----------------------------------------
 
 	suite('workspace transitions', () => {
 
@@ -950,7 +908,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- Turn checkpoint refs -------------------------------------------
 
 	suite('turn checkpoint refs', () => {
 
@@ -976,7 +933,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- Dispose --------------------------------------------------------
 
 	suite('dispose', () => {
 
@@ -993,18 +949,16 @@ suite('SessionDatabase', () => {
 		test('double dispose is safe', async () => {
 			db = await SessionDatabase.open(':memory:');
 			await db.close();
-			await db.close(); // should not throw
+			await db.close();
 		});
 	});
 
-	// ---- Lazy open ------------------------------------------------------
 
 	suite('lazy open', () => {
 
 		test('constructor does not open the database', () => {
 			db = new SessionDatabase(':memory:');
 			disposables.add(db);
-			// No error — the database is not opened until first use
 		});
 
 		test('first async call opens and migrates the database', async () => {
@@ -1016,7 +970,6 @@ suite('SessionDatabase', () => {
 
 		test('multiple concurrent calls share the same open promise', async () => {
 			db = disposables.add(new SessionDatabase(':memory:'));
-			// Fire multiple calls concurrently — all should succeed
 			await Promise.all([
 				db.createTurn('turn-1'),
 				db.createTurn('turn-2'),
@@ -1031,7 +984,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- Session metadata -----------------------------------------------
 
 	suite('session metadata', () => {
 
@@ -1231,7 +1183,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- reviewed files -------------------------------------------------
 
 	suite('reviewed files', () => {
 		const uriA = URI.parse('file:///workspace/a.ts');
@@ -1286,7 +1237,7 @@ suite('SessionDatabase', () => {
 
 			await db.markFileReviewed(uriA, 'n1');
 			await db.unmarkFileReviewed(uriA, 'n1');
-			await db.unmarkFileReviewed(uriA, 'n1'); // no-op, must not throw
+			await db.unmarkFileReviewed(uriA, 'n1');
 
 			assert.deepStrictEqual(
 				await Promise.all([db.isFileReviewed(uriA, 'n1'), db.getReviewedFiles()]),
@@ -1310,7 +1261,6 @@ suite('SessionDatabase', () => {
 		});
 	});
 
-	// ---- vacuumInto -----------------------------------------------------
 
 	suite('vacuumInto', () => {
 

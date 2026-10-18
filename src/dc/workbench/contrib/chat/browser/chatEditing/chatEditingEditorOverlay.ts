@@ -224,7 +224,6 @@ class ChatEditorOverlayWidget extends Disposable {
 									const n = activeIdx === -1 ? '1' : `${activeIdx + 1}`;
 									this.label.innerText = localize('nOfM', "{0} of {1}", n, changeCount);
 								} else {
-									// allow-any-unicode-next-line
 									this.label.innerText = localize('0Of0', "—");
 								}
 
@@ -291,7 +290,8 @@ class ChatEditingOverlayController {
 		this._domNode.classList.add('chat-editing-editor-overlay');
 		this._domNode.style.position = 'absolute';
 		this._domNode.style.bottom = `24px`;
-		this._domNode.style.right = `24px`;
+		this._domNode.style.left = `50%`;
+		this._domNode.style.transform = `translateX(-50%)`;
 		this._domNode.style.zIndex = `100`;
 
 		const widget = instaService.createInstance(ChatEditorOverlayWidget, group);
@@ -316,7 +316,7 @@ class ChatEditingOverlayController {
 
 		const activeUriObs = derivedOpts({ equalsFn: isEqual }, r => {
 
-			activeEditorSignal.read(r); // signal
+			activeEditorSignal.read(r);
 
 			const editor = group.activeEditorPane;
 
@@ -331,7 +331,7 @@ class ChatEditingOverlayController {
 
 		const sessionAndEntry = derived(r => {
 
-			activeEditorSignal.read(r); // signal to ensure activeEditor and activeEditorPane don't go out of sync
+			activeEditorSignal.read(r);
 
 			const uri = activeUriObs.read(r);
 			if (!uri) {
@@ -363,7 +363,6 @@ class ChatEditingOverlayController {
 			const { session, entry } = data;
 
 			if (entry?.state.read(r) === ModifiedFileEntryState.Modified) {
-				// any session with changes
 				const editorPane = group.activeEditorPane;
 				assertType(editorPane);
 
@@ -380,7 +379,6 @@ class ChatEditingOverlayController {
 				show();
 
 			} else {
-				// nothing
 				hide();
 			}
 		}));
@@ -419,11 +417,10 @@ export class ChatEditingEditorOverlay implements IWorkbenchContribution {
 			for (const group of groups) {
 
 				if (!(group instanceof EditorGroupView)) {
-					// TODO@jrieken better with https://github.com/microsoft/vscode/tree/ben/layout-group-container
 					continue;
 				}
 
-				toDelete.delete(group); // we keep the widget for this group!
+				toDelete.delete(group);
 
 				if (!overlayWidgets.has(group)) {
 

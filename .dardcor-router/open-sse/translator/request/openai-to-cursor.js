@@ -1,11 +1,3 @@
-/**
- * OpenAI to Cursor Request Translator
- * Converts OpenAI messages to Cursor ask/agent format.
- *
- * Important: Cursor can loop when tool outputs are sent via protobuf tool_results
- * with partial schema mismatches. For stability, tool outputs are represented as
- * structured text blocks in user messages.
- */
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
@@ -26,7 +18,6 @@ function extractContent(content) {
 }
 
 function sanitizeToolResultText(text) {
-  // Strip non-printable control chars that can produce backend request errors
   return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
 }
 
@@ -52,7 +43,6 @@ function normalizeToolCallId(id) {
 function convertMessages(messages) {
   const result = [];
   
-  // Build a map of tool_call_id -> tool name from assistant tool calls
   const toolCallMetaMap = new Map();
   const rememberToolMeta = (toolCallId, toolName) => {
     if (!toolCallId) return;
@@ -172,7 +162,6 @@ function convertMessages(messages) {
 export function openaiToCursorRequest(model, body, stream, credentials) {
   const messages = convertMessages(body.messages || []);
 
-  // Strip fields irrelevant to Cursor (OpenAI/Anthropic-specific)
   const { user, metadata, tool_choice, stream_options, system, ...rest } = body;
 
   return {

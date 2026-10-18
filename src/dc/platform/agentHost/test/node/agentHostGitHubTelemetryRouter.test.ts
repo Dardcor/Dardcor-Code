@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { GitHubTelemetryNotification } from '@github/copilot-sdk';
+import type { GitHubTelemetryNotification } from '../../node/agentHostGitHubTelemetryRouter.js';
 import assert from 'assert';
 import * as zlib from 'zlib';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
@@ -153,11 +153,8 @@ suite('AgentHostGitHubTelemetryRouter', () => {
 			zlib.gunzipSync(Buffer.from(chunks.join(''), 'base64')).toString('utf8');
 		assert.deepStrictEqual(telemetry.events.map(event => ({
 			destination: event.destination,
-			// The original column carries just the first uncompressed chunk.
 			original: event.properties?.messagesJson,
-			// No plain continuation family is produced.
 			plainContinuation: event.properties?.messagesJson_02,
-			// The full value round-trips from the compressed chunk family.
 			roundTrip: gunzip([event.properties?.messagesJSONChunk, event.properties?.messagesJSONChunk_2]),
 		})), [
 			{ destination: 'enhancedGH', original: original.slice(0, 8192), plainContinuation: undefined, roundTrip: original },

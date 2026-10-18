@@ -7,16 +7,6 @@ import * as http from 'http';
 import * as zlib from 'zlib';
 import { findFreePortFaster } from '../../../util/dardcor/base/node/ports';
 
-/**
- * A fake AIP telemetry server, that we can use to test the messages we send.
- * The idea is that we the client can be told to POST to http://localhost:{port}/{path}
- * via an override, e.g. TelemetryReporter.appInsightsClient.config.endpointUrl in
- * the JavaScript client.
- *
- * This server will stored the raw (gzipped) JSON messages sent to each path.
- * A subsequent GET request to http://localhost:{port}/{path} will return the stored
- * messages for that path, and also reset the stored messages for that path to empty.
- */
 class FakeTelemetryServer {
 	private readonly messages: { [key: string]: unknown[] } = {};
 	private readonly server: http.Server;
@@ -41,7 +31,6 @@ class FakeTelemetryServer {
 							this.messages[url].push(item);
 						}
 
-						// Only send a response once we've finished processing all the messages.
 						res.writeHead(204);
 						res.end();
 					});

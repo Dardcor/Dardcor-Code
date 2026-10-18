@@ -41,7 +41,7 @@ export class CurrentSelection extends PromptElement<CurrentSelectionProps, Curre
 		if (!this.props.document) {
 			return { isIgnored: false, exceedsTokenBudget: false };
 		}
-		const isIgnored = await this.ignoreService.isCopilotIgnored(this.props.document.uri);
+		const isIgnored = await this.ignoreService.isIgnored(this.props.document.uri);
 
 		let exceedsTokenBudget = false;
 		const selection = CurrentSelection.getCurrentSelection(this._tabsAndEditorsService);

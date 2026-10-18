@@ -2,7 +2,6 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-//
 import { Event } from '../../../base/common/event.js';
 import { IMeteredConnectionService } from '../../meteredConnection/common/meteredConnection.js';
 import { INativeHostService } from '../../native/common/native.js';

@@ -49,7 +49,7 @@ export const DiffEditor = (({ original, modified, languageId, diagnostics, selec
 			ignoreTrimWhitespace: false,
 			diffWordWrap: 'off',
 			scrollbar: {
-				alwaysConsumeMouseWheel: true, // setting to false allows scrolling in window when scroll reaches end of the editor
+				alwaysConsumeMouseWheel: true,
 			}
 		});
 		setDiffEditor(myEditor);
@@ -97,7 +97,6 @@ export const DiffEditor = (({ original, modified, languageId, diagnostics, selec
 				}
 			}
 
-			// Navigate to first diff
 			diffEditor.onDidUpdateDiff(() => {
 				if (diffEditor === null) { return; }
 

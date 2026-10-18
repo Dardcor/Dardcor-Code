@@ -18,24 +18,10 @@ import { IServerLifetimeService } from './serverLifetimeService.js';
 
 export const IServerAgentHostManager = createDecorator<IServerAgentHostManager>('serverAgentHostManager');
 
-/**
- * Server-specific agent host manager. Eagerly starts the agent host process,
- * handles crash recovery, and tracks active agent sessions plus incoming
- * WebSocket clients to the spawned standalone agent host via
- * {@link IServerLifetimeService}.
- *
- * Renderer-to-agent-host proxy connections handled by `AgentHostChannel`
- * deliberately do not participate here.
- */
 export interface IServerAgentHostManager {
 	readonly _serviceBrand: undefined;
 }
 
-/**
- * Proxy interface for the connection tracker IPC channel exposed by the agent
- * host process. This is NOT part of the agent host protocol -- it is a
- * server-only process-management concern.
- */
 interface IConnectionTrackerService {
 	readonly onDidChangeConnectionCount: Event<number>;
 }
@@ -49,7 +35,6 @@ export class ServerAgentHostManager extends Disposable implements IServerAgentHo
 
 	private _restartCount = 0;
 
-	/** Lifetime token held while sessions are active or standalone WebSocket clients are connected. */
 	private readonly _lifetimeToken = this._register(new MutableDisposable());
 
 	private _hasActiveSessions = false;
@@ -78,13 +63,11 @@ export class ServerAgentHostManager extends Disposable implements IServerAgentHo
 
 			this._logService.info('ServerAgentHostManager: agent host started');
 
-			// Connect logger channel so agent host logs appear in the output channel
 			connection.store.add(new RemoteLoggerChannelClient(this._loggerService, connection.client.getChannel(AgentHostIpcChannels.Logger)));
 
 			this._trackActiveSessions(connection);
 			this._trackClientConnections(connection);
 
-			// Handle unexpected exit
 			connection.store.add(connection.onDidProcessExit(e => {
 				if (!this._store.isDisposed) {
 					this._hasActiveSessions = false;

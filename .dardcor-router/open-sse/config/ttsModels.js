@@ -1,6 +1,5 @@
 import { GOOGLE_TTS_LANGUAGES } from "./googleTtsLanguages.js";
 
-// ── Voice definitions (DRY — reused across providers) ──────────────────────
 const VOICES = {
   alloy:   { id: "alloy",   name: "Alloy" },
   ash:     { id: "ash",     name: "Ash" },
@@ -19,12 +18,9 @@ const VOICES = {
 
 const v = (...keys) => keys.map((k) => ({ ...VOICES[k], type: "tts" }));
 
-// 9 voices for tts-1 / tts-1-hd
 const VOICES_STANDARD = v("alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer");
-// 13 voices for gpt-4o-mini-tts
 const VOICES_FULL = v("alloy", "ash", "ballad", "cedar", "coral", "echo", "fable", "marin", "nova", "onyx", "sage", "shimmer", "verse");
 
-// Gemini prebuilt voices (30 voices, multi-language auto-detect)
 const GEMINI_VOICES = [
   "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede",
   "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba",
@@ -33,9 +29,6 @@ const GEMINI_VOICES = [
   "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
 ].map((id) => ({ id, name: id, type: "tts" }));
 
-// Xiaomi MiMo preset voices (from https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/audio/speech-synthesis-v2.5).
-// Voice id is passed via `audio.voice`; `mimo_default` = default (冰糖 on CN cluster, Mia elsewhere).
-// Voices are language-independent — the spoken language is a separate hint, not bound to the voice.
 const MIMO_VOICES = [
   { id: "mimo_default", name: "mimo_default" },
   { id: "冰糖",           name: "冰糖" },
@@ -48,7 +41,6 @@ const MIMO_VOICES = [
   { id: "Dean",          name: "Dean" },
 ].map((v) => ({ type: "tts", ...v }));
 
-// ── TTS Config (config-driven, single source of truth) ─────────────────────
 export const TTS_MODELS_CONFIG = {
   openai: {
     models: [
@@ -61,7 +53,6 @@ export const TTS_MODELS_CONFIG = {
       "tts-1":           VOICES_STANDARD,
       "tts-1-hd":        VOICES_STANDARD,
     },
-    // Flat voice list (all unique voices) for backward compat
     allVoices: VOICES_FULL,
   },
   openrouter: {
@@ -84,7 +75,6 @@ export const TTS_MODELS_CONFIG = {
       { id: "eleven_multilingual_v2", name: "Multilingual v2 (Quality)",  type: "tts" },
       { id: "eleven_monolingual_v1",  name: "Monolingual v1 (English)",  type: "tts" },
     ],
-    // voices come from API, not hardcoded
   },
   "edge-tts": {
     defaults: [
@@ -132,14 +122,12 @@ export const TTS_MODELS_CONFIG = {
   },
 };
 
-// ── Helper: get voices for a specific model ────────────────────────────────
 export function getTtsVoicesForModel(provider, modelId) {
   const cfg = TTS_MODELS_CONFIG[provider];
   if (!cfg?.voices) return null;
   return cfg.voices[modelId] || cfg.allVoices || null;
 }
 
-// ── Build flat entries for PROVIDER_MODELS backward compat ─────────────────
 export function buildTtsProviderModels() {
   const entries = {};
   for (const [provider, cfg] of Object.entries(TTS_MODELS_CONFIG)) {
@@ -147,7 +135,6 @@ export function buildTtsProviderModels() {
     if (cfg.allVoices) entries[`${provider}-tts-voices`] = cfg.allVoices;
     if (cfg.defaults) entries[provider] = cfg.defaults;
   }
-  // Keep openai-tts-voices key pointing to full voice list for backward compat
   entries["openai-tts-voices"] = TTS_MODELS_CONFIG.openai.allVoices;
   entries["openrouter-tts-voices"] = TTS_MODELS_CONFIG.openrouter.allVoices;
   return entries;

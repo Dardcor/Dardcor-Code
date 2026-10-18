@@ -16,9 +16,6 @@ export function registerContextMenuListener(): void {
 			y: options ? options.y : undefined,
 			positioningItem: options ? options.positioningItem : undefined,
 			callback: () => {
-				// Workaround for https://github.com/microsoft/vscode/issues/72447
-				// It turns out that the menu gets GC'ed if not referenced anymore
-				// As such we drag it into this scope so that it is not being GC'ed
 				if (menu) {
 					event.sender.send(CONTEXT_MENU_CLOSE_CHANNEL, contextMenuId);
 				}
@@ -33,14 +30,12 @@ function createMenu(event: IpcMainEvent, onClickChannel: string, items: ISeriali
 	items.forEach(item => {
 		let menuitem: MenuItem;
 
-		// Separator
 		if (item.type === 'separator') {
 			menuitem = new MenuItem({
 				type: item.type,
 			});
 		}
 
-		// Sub Menu
 		else if (Array.isArray(item.submenu)) {
 			menuitem = new MenuItem({
 				submenu: createMenu(event, onClickChannel, item.submenu),
@@ -48,7 +43,6 @@ function createMenu(event: IpcMainEvent, onClickChannel: string, items: ISeriali
 			});
 		}
 
-		// Normal Menu Item
 		else {
 			menuitem = new MenuItem({
 				label: item.label,

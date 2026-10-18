@@ -97,7 +97,7 @@ suite('ModelSemanticColoring', () => {
 						assert.ok('called once');
 						inFirstCall.open();
 						await delayFirstResult.wait();
-						await timeout(0); // wait for the simple scheduler to fire to check that we do actually get rescheduled
+						await timeout(0);
 						return null;
 					}
 					if (callCount === 2) {
@@ -112,23 +112,16 @@ suite('ModelSemanticColoring', () => {
 			}));
 
 			const textModel = disposables.add(modelService.createModel('Hello world', languageService.createById('testMode')));
-			// pretend the text model is attached to an editor (so that semantic tokens are computed)
 			textModel.onBeforeAttached();
 
-			// wait for the provider to be called
 			await inFirstCall.wait();
 
-			// the provider is now in the provide call
-			// change the text buffer while the provider is running
 			textModel.applyEdits([{ range: new Range(1, 1, 1, 1), text: 'x' }]);
 
-			// let the provider finish its first result
 			delayFirstResult.open();
 
-			// we need to check that the provider is called again, even if it returns null
 			await secondResultProvided.wait();
 
-			// assert that it got called twice
 			assert.strictEqual(callCount, 2);
 		});
 	});
@@ -146,13 +139,11 @@ suite('ModelSemanticColoring', () => {
 				}
 				async provideDocumentSemanticTokens(model: ITextModel, lastResultId: string | null, token: CancellationToken): Promise<SemanticTokens | SemanticTokensEdits | null> {
 					if (!lastResultId) {
-						// this is the first call
 						lastResult = {
 							resultId: '1',
 							data: new Uint32Array([4294967293, 0, 7, 16, 0, 1, 4, 3, 11, 1])
 						};
 					} else {
-						// this is the second call
 						lastResult = {
 							resultId: '2',
 							edits: [{
@@ -169,17 +160,13 @@ suite('ModelSemanticColoring', () => {
 			}));
 
 			const textModel = disposables.add(modelService.createModel('', languageService.createById('testMode')));
-			// pretend the text model is attached to an editor (so that semantic tokens are computed)
 			textModel.onBeforeAttached();
 
-			// wait for the semantic tokens to be fetched
 			await Event.toPromise(textModel.onDidChangeTokens);
 			assert.strictEqual(lastResult!.resultId, '1');
 
-			// edit the text
 			textModel.applyEdits([{ range: new Range(1, 1, 1, 1), text: 'foo' }]);
 
-			// wait for the semantic tokens to be fetched again
 			await Event.toPromise(textModel.onDidChangeTokens);
 			assert.strictEqual(lastResult!.resultId, '2');
 		});
@@ -201,7 +188,6 @@ suite('ModelSemanticColoring', () => {
 					requestCount++;
 					if (requestCount === 1) {
 						await timeout(1000);
-						// send a change event
 						emitter.fire();
 						await timeout(1000);
 						return null;
@@ -213,7 +199,6 @@ suite('ModelSemanticColoring', () => {
 			}));
 
 			const textModel = disposables.add(modelService.createModel('', languageService.createById('testMode')));
-			// pretend the text model is attached to an editor (so that semantic tokens are computed)
 			textModel.onBeforeAttached();
 
 			await timeout(5000);
@@ -232,7 +217,6 @@ suite('ModelSemanticColoring', () => {
 				}
 				async provideDocumentSemanticTokens(model: ITextModel, lastResultId: string | null, token: CancellationToken): Promise<SemanticTokens | SemanticTokensEdits | null> {
 					callCount++;
-					// For a secondary request return a different value
 					if (lastResultId) {
 						return {
 							data: new Uint32Array([2, 1, 1, 1, 1, 0, 2, 1, 1, 1])
@@ -277,7 +261,6 @@ suite('ModelSemanticColoring', () => {
 				assert.deepStrictEqual(callCount, 2, `Called both token providers (1)`);
 				assert.deepStrictEqual(result.provider.getLegend(), { tokenTypes: ['class1'], tokenModifiers: [] }, `Legend matches the tokens (1)`);
 
-				// Make a second request. Make sure we get the secondary value
 				result = await getDocumentSemanticTokens(languageFeaturesService.documentSemanticTokensProvider, textModel, result.provider, result.tokens.resultId, CancellationToken.None);
 				assert.ok(result, `We should have tokens (2)`);
 				assert.ok(result.tokens, `Tokens are found from multiple providers (2)`);
@@ -289,10 +272,8 @@ suite('ModelSemanticColoring', () => {
 			} finally {
 				disposables.clear();
 
-				// Wait for scheduler to finish
 				await timeout(0);
 
-				// Now dispose the text model
 				textModel.dispose();
 			}
 		});

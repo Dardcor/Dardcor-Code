@@ -27,7 +27,6 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
 const root = path.dirname(path.dirname(import.meta.dirname));
-// const commit = getVersion(root);
 // const sourceMappingURLBase = `https://main.vscode-cdn.net/sourcemaps/${commit}`;
 
 function minifyExtensionResources(input: Stream): Stream {
@@ -39,7 +38,6 @@ function minifyExtensionResources(input: Stream): Stream {
 			const errors: jsoncParser.ParseError[] = [];
 			const value = jsoncParser.parse(f.contents!.toString('utf8'), errors, { allowTrailingComma: true });
 			if (errors.length === 0) {
-				// file parsed OK => just stringify to drop whitespace and comments
 				f.contents = Buffer.from(JSON.stringify(value));
 			}
 			return f;
@@ -68,7 +66,6 @@ function fromLocal(extensionPath: string, forWeb: boolean, _disableMangle: boole
 
 	let hasEsbuild = fs.existsSync(path.join(extensionPath, esbuildConfigFileName));
 
-	// Fallback: check for .esbuild.mts/.esbuild.ts (used by extensions with their own build system, e.g. copilot)
 	if (!hasEsbuild && !forWeb) {
 		for (const fallback of ['.esbuild.mts', '.esbuild.ts']) {
 			if (fs.existsSync(path.join(extensionPath, fallback))) {
@@ -87,10 +84,8 @@ function fromLocal(extensionPath: string, forWeb: boolean, _disableMangle: boole
 		input = isStandardEsbuild
 			? es.merge(
 				fromLocalEsbuild(extensionPath, esbuildConfigFileName),
-				// Standard esbuild extensions need a separate type check step
 				...getBuildRootsForExtension(extensionPath).map(root => typeCheckExtensionStream(root, forWeb)),
 			)
-			// Extensions with their own build system (e.g. .esbuild.mts) handle type checking internally
 			: fromLocalEsbuild(extensionPath, esbuildConfigFileName);
 		isBundled = true;
 	} else {
@@ -159,8 +154,6 @@ function fromLocalEsbuild(extensionPath: string, esbuildConfigFileName: string):
 	const result = es.through();
 	const extensionName = path.basename(extensionPath);
 
-	// Extensions built with esbuild can still externalize runtime dependencies.
-	// Ensure those externals are included in the packaged built-in extension.
 	const packagedDependenciesByExtension: Record<string, string[]> = {
 		'git': ['@vscode/fs-copyfile']
 	};
@@ -168,7 +161,6 @@ function fromLocalEsbuild(extensionPath: string, esbuildConfigFileName: string):
 
 	const esbuildScript = path.join(extensionPath, esbuildConfigFileName);
 
-	// Run esbuild, then collect the files
 	new Promise<void>((resolve, reject) => {
 		const proc = cp.execFile(process.argv[0], [esbuildScript], { cwd: extensionPath }, (error, _stdout, stderr) => {
 			if (error) {
@@ -187,7 +179,6 @@ function fromLocalEsbuild(extensionPath: string, esbuildConfigFileName: string):
 			fancyLog(`${ansiColors.green('esbuilding')}: ${data.toString('utf8')}`);
 		});
 	}).then(() => {
-		// After esbuild completes, collect all files using vsce
 		return vsce.listFiles({ cwd: extensionPath, packageManager: vsce.PackageManager.None });
 	}).then(fileNames => {
 		if (packagedDependencies.length > 0) {
@@ -195,8 +186,6 @@ function fromLocalEsbuild(extensionPath: string, esbuildConfigFileName: string):
 				glob.sync(path.join(extensionPath, 'node_modules', dependency, '**'), { nodir: true, dot: true })
 					.map(filePath => path.relative(extensionPath, filePath))
 					.filter(filePath => {
-						// Exclude non-.node files from build directories to avoid timestamp-sensitive
-						// artifacts (e.g. Makefile) that break macOS universal builds due to SHA mismatches.
 						const parts = filePath.split(path.sep);
 						const buildIndex = parts.indexOf('build');
 						if (buildIndex !== -1) {
@@ -300,8 +289,6 @@ export function fromGithub({ name, version, repo, sha256, metadata }: IExtension
 	return fetchGithub(new URL(repo).pathname, {
 		version,
 		name: asset ? asset.assetName : name => name.endsWith('.vsix'),
-		// The checksum is tied to a specific version; when resolving the latest release the
-		// downloaded asset differs, so it cannot be validated against the pinned checksum.
 		checksumSha256: latest ? undefined : (asset ? asset.sha256 : sha256),
 		latest
 	})
@@ -315,16 +302,11 @@ export function fromGithub({ name, version, repo, sha256, metadata }: IExtension
 		.pipe(packageJsonFilter.restore);
 }
 
-/**
- * All extensions that are known to have some native component and thus must be built on the
- * platform that is being built.
- */
 const nativeExtensions = [
 	'git',
 ];
 
 const excludedExtensions = [
-	'copilot',
 	'vscode-api-tests',
 	'vscode-colorize-tests',
 	'vscode-colorize-perf-tests',
@@ -354,9 +336,6 @@ interface IExtensionManifest {
 	extensionDependencies?: string[];
 	contributes?: { [id: string]: any };
 }
-/**
- * Loosely based on `getExtensionKind` from `src/dc/workbench/services/extensions/common/extensionManifestPropertiesService.ts`
- */
 export function isWebExtension(manifest: IExtensionManifest): boolean {
 	if (Boolean(manifest.browser)) {
 		return true;
@@ -364,7 +343,6 @@ export function isWebExtension(manifest: IExtensionManifest): boolean {
 	if (Boolean(manifest.main)) {
 		return false;
 	}
-	// neither browser nor main
 	if (typeof manifest.extensionKind !== 'undefined') {
 		const extensionKind = Array.isArray(manifest.extensionKind) ? manifest.extensionKind : [manifest.extensionKind];
 		if (extensionKind.indexOf('web') >= 0) {
@@ -381,35 +359,14 @@ export function isWebExtension(manifest: IExtensionManifest): boolean {
 	return true;
 }
 
-/**
- * Package local extensions that are known to not have native dependencies. Mutually exclusive to {@link packageNativeLocalExtensionsStream}.
- * @param forWeb build the extensions that have web targets
- * @param disableMangle disable the mangler
- * @returns a stream
- */
 export function packageNonNativeLocalExtensionsStream(forWeb: boolean, disableMangle: boolean): Stream {
 	return doPackageLocalExtensionsStream(forWeb, disableMangle, false);
 }
 
-/**
- * Package local extensions that are known to have native dependencies. Mutually exclusive to {@link packageNonNativeLocalExtensionsStream}.
- * @note it's possible that the extension does not have native dependencies for the current platform, especially if building for the web,
- * but we simplify the logic here by having a flat list of extensions (See {@link nativeExtensions}) that are known to have native
- * dependencies on some platform and thus should be packaged on the platform that they are building for.
- * @param forWeb build the extensions that have web targets
- * @param disableMangle disable the mangler
- * @returns a stream
- */
 export function packageNativeLocalExtensionsStream(forWeb: boolean, disableMangle: boolean): Stream {
 	return doPackageLocalExtensionsStream(forWeb, disableMangle, true);
 }
 
-/**
- * Package all the local extensions... both those that are known to have native dependencies and those that are not.
- * @param forWeb build the extensions that have web targets
- * @param disableMangle disable the mangler
- * @returns a stream
- */
 export function packageAllLocalExtensionsStream(forWeb: boolean, disableMangle: boolean): Stream {
 	return es.merge([
 		packageNonNativeLocalExtensionsStream(forWeb, disableMangle),
@@ -417,11 +374,6 @@ export function packageAllLocalExtensionsStream(forWeb: boolean, disableMangle: 
 	]);
 }
 
-/**
- * @param forWeb build the extensions that have web targets
- * @param disableMangle disable the mangler
- * @param native build the extensions that are marked as having native dependencies
- */
 function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean, native: boolean): Stream {
 	const nativeExtensionsSet = new Set(nativeExtensions);
 	const localExtensionsDescriptions = (
@@ -451,7 +403,6 @@ function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean,
 	if (forWeb) {
 		result = localExtensionsStream;
 	} else {
-		// also include shared production node modules
 		const productionDependencies = getProductionDependencies('extensions/');
 		const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat();
 
@@ -470,35 +421,6 @@ function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean,
 		result
 			.pipe(util2.setExecutableBit(['**/*.sh']))
 	);
-}
-
-/**
- * Package the built-in copilot extension specifically.
- * This is used by non-CI local builds where copilot is not downloaded as a VSIX
- * but must be compiled from source and included in the build.
- */
-export function packageCopilotExtensionStream(disableMangle: boolean): Stream {
-	const extensionPath = path.join(root, 'extensions', 'copilot');
-	if (!fs.existsSync(extensionPath) || !fs.existsSync(path.join(extensionPath, 'package.json'))) {
-		return es.readArray([]);
-	}
-
-	const localExtensionsStream = minifyExtensionResources(
-		fromLocal(extensionPath, false, disableMangle)
-			.pipe(rename(p => p.dirname = `extensions/copilot/${p.dirname}`))
-	);
-
-	const productionDependencies = getProductionDependencies('extensions/copilot');
-	const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat([
-		'!extensions/copilot/node_modules/@github/copilot/shims.txt',
-		'!extensions/copilot/node_modules/@opentelemetry/**'
-	]);
-	return es.merge(
-		localExtensionsStream,
-		gulp.src(dependenciesSrc, { base: '.' })
-			.pipe(util2.cleanNodeModules(path.join(root, 'build', '.moduleignore')))
-			.pipe(util2.cleanNodeModules(path.join(root, 'build', `.moduleignore.${process.platform}`)))
-	).pipe(util2.setExecutableBit(['**/*.sh']));
 }
 
 export function packageMarketplaceExtensionsStream(forWeb: boolean): Stream {
@@ -638,7 +560,6 @@ export async function esbuildExtensions(taskName: string, isWatch: boolean, scri
 }
 
 
-// Additional projects to run esbuild on. These typically build code for webviews
 const esbuildMediaScripts: { script: string; tsconfig: string }[] = [
 	{ script: 'ipynb/esbuild.notebook.mts', tsconfig: 'ipynb/notebook-src/tsconfig.json' },
 	{ script: 'markdown-language-features/esbuild.notebook.mts', tsconfig: 'markdown-language-features/notebook/tsconfig.json' },
@@ -681,9 +602,6 @@ function watchTypeCheckExtensionMedia(tsconfigPath: string, config: { taskName: 
 	const stream = watchInput
 		.pipe(util2.debounce(() => {
 			const tsgoStream = createTsgoStream(tsconfigPath, config);
-			// Always emit 'end' (even on tsgo error) so the debounce resets to idle
-			// and can process future file changes. Errors are already logged by
-			// spawnTsgo's runReporter, so swallowing the stream error is safe.
 			const result = es.through();
 			tsgoStream.on('end', () => result.emit('end'));
 			tsgoStream.on('error', () => result.emit('end'));
@@ -696,7 +614,6 @@ function watchTypeCheckExtensionMedia(tsconfigPath: string, config: { taskName: 
 }
 
 export function getBuildRootsForExtension(extensionPath: string): string[] {
-	// These extensions split their code between a client and server folder. We should treat each as build roots
 	if (extensionPath.endsWith('css-language-features') || extensionPath.endsWith('html-language-features') || extensionPath.endsWith('json-language-features')) {
 		return [
 			path.join(extensionPath, 'client'),

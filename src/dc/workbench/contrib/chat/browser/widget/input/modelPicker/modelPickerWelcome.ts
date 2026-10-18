@@ -11,10 +11,6 @@ import { defaultButtonStyles } from '../../../../../../../platform/theme/browser
 import { getProviderIconForIdentity } from './modelProviderIcons.js';
 import { IModelPickerDestination } from './modelPickerTabs.js';
 
-/**
- * The body shown when a destination has no models: each waiting provider's icon
- * and name, why it is empty, and the action that fills it, e.g. signing in.
- */
 export class ModelPickerWelcome extends DisposableStore {
 
 	readonly element = dom.$('.chat-model-picker-welcome');

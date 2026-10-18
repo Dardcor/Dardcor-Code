@@ -10,13 +10,10 @@ import { ExtensionLinter } from './extensionLinter';
 
 export function activate(context: vscode.ExtensionContext) {
 
-	//package.json suggestions
 	context.subscriptions.push(registerPackageDocumentCompletions());
 
-	//package.json code actions for lint warnings
 	context.subscriptions.push(registerCodeActionsProvider());
 
-	// package.json l10n support
 	context.subscriptions.push(new PackageDocumentL10nSupport());
 
 	context.subscriptions.push(new ExtensionLinter());

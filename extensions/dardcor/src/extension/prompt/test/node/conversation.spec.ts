@@ -107,12 +107,8 @@ describe('Turn', () => {
 		});
 
 		it('should restore summaries from pendingSummaries when resultMetadata is absent', () => {
-			// Simulates the mid-tool-call-loop case: setResponse hasn't been called yet,
-			// so resultMetadata is empty, but addPendingSummary stored the summary.
 			const turn1 = new Turn('1', { type: 'user', message: 'Hello' });
 			turn1.addPendingSummary('round1', 'pending summary text');
-			// No setResponse call — this is the key: resultMetadata doesn't exist
-			// Manually set rounds so normalizeSummariesOnRounds can find the target
 			const turn1Meta: Partial<IResultMetadata> = {
 				toolCallRounds: [
 					new ToolCallRound('Hello', [genericToolCall], undefined, 'round1'),
@@ -120,7 +116,6 @@ describe('Turn', () => {
 				]
 			};
 			turn1.setResponse(TurnStatus.Success, { type: 'model', message: 'Hi there!' }, undefined, { metadata: turn1Meta });
-			// Clear resultMetadata summaries to simulate mid-loop state
 			(turn1.responseChatResult!.metadata as Record<string, unknown>)['summaries'] = undefined;
 			(turn1.responseChatResult!.metadata as Record<string, unknown>)['summary'] = undefined;
 

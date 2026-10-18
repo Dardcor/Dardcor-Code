@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface ITimeTravelDebuggerParams {
 	action: 'inspect_session' | 'evaluate_expression' | 'set_probe' | 'clear_probes';
@@ -19,7 +19,7 @@ export interface ITimeTravelDebuggerParams {
 	description: string;
 }
 
-export class TimeTravelDebuggerTool implements ICopilotTool<ITimeTravelDebuggerParams> {
+export class TimeTravelDebuggerTool implements IAgentTool<ITimeTravelDebuggerParams> {
 	public static toolName = ToolName.TimeTravelDebugger;
 
 	private static activeProbes: vscode.Breakpoint[] = [];

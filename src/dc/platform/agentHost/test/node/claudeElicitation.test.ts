@@ -84,8 +84,6 @@ suite('claudeElicitation', () => {
 			requestedSchema: {
 				type: 'object',
 				properties: {
-					// `enum` must be a string array — a bare string is malformed and would
-					// otherwise reach `.map` and throw. It is dropped by validation.
 					broken: { type: 'string', title: 'Broken', enum: 'red' },
 					ok: { type: 'string', title: 'Ok' },
 				},
@@ -102,10 +100,6 @@ suite('claudeElicitation', () => {
 	});
 
 	test('buildElicitationRequest (form) projects the remaining field variants', () => {
-		// Complements the canonical fixture above: number (non-integer), titled
-		// multi-select (`items.anyOf` + min/maxItems), plain enum (no enumNames),
-		// rich text (format/maxLength/string default), an unknown `type`, and a
-		// missing `type` — the last two fall back to a plain text field.
 		const variants: ElicitationRequest = {
 			serverName: 'srv',
 			message: 'Variants',
@@ -139,13 +133,9 @@ suite('claudeElicitation', () => {
 
 	test('buildElicitationRequest degrades every empty/broken form to a message-only request', () => {
 		const cases = {
-			// `url` mode without a url field
 			urlNoUrl: buildElicitationRequest('a', { serverName: 'srv', message: 'NoUrl', mode: 'url' }),
-			// `form` mode with no requestedSchema at all
 			formNoSchema: buildElicitationRequest('b', { serverName: 'srv', message: 'NoSchema', mode: 'form' }),
-			// `form` mode with an empty properties object
 			formEmptyProps: buildElicitationRequest('c', { serverName: 'srv', message: 'Empty', mode: 'form', requestedSchema: { type: 'object', properties: {} } }),
-			// `form` mode where every field fails validation and is dropped
 			formAllInvalid: buildElicitationRequest('d', { serverName: 'srv', message: 'AllBad', mode: 'form', requestedSchema: { type: 'object', properties: { a: { type: 'string', enum: 123 }, b: { minimum: 'nope' } } } }),
 		};
 		assert.deepStrictEqual(cases, {
@@ -186,9 +176,7 @@ suite('claudeElicitation', () => {
 	test('elicitationResultFromAnswers accept edge cases: broken form omits content, empty answers yield empty content', () => {
 		const brokenForm: ElicitationRequest = { serverName: 'srv', message: 'x', mode: 'form', requestedSchema: { properties: 'nope' } };
 		assert.deepStrictEqual({
-			// Accepting a form whose schema can't be parsed → no content object.
 			brokenAccept: elicitationResultFromAnswers(brokenForm, ChatInputResponseKind.Accept, undefined),
-			// Accepting a valid form with no answers → an empty content object.
 			emptyAnswers: elicitationResultFromAnswers(formRequest, ChatInputResponseKind.Accept, undefined),
 		}, {
 			brokenAccept: { action: 'accept' },
@@ -197,9 +185,6 @@ suite('claudeElicitation', () => {
 	});
 
 	test('elicitationResultFromAnswers coerces text answers to the field schema type', () => {
-		// The workbench renders number/integer/boolean questions as text inputs
-		// and returns them as text answers, so `"3"` / `"0.5"` / `"false"` must be
-		// coerced back to the schema type; an uncoercible value is dropped.
 		const request: ElicitationRequest = {
 			serverName: 'srv', message: 'Coerce', mode: 'form',
 			requestedSchema: {
@@ -227,10 +212,6 @@ suite('claudeElicitation', () => {
 	});
 
 	test('elicitationResultFromAnswers is safe against prototype-polluting field names', () => {
-		// JSON.parse produces own `__proto__` / `constructor` keys (unlike an object
-		// literal). Reading answers by those names must use own-property lookup so an
-		// inherited member is never read (which would crash), and content must be
-		// built without prototype setters.
 		const properties = JSON.parse('{"__proto__":{"type":"string"},"constructor":{"type":"string"},"ok":{"type":"string"}}');
 		const request: ElicitationRequest = { serverName: 'srv', message: 'x', mode: 'form', requestedSchema: { type: 'object', properties } };
 		const answers: Record<string, ChatInputAnswer> = { ok: { state: ChatInputAnswerState.Submitted, value: { kind: ChatInputAnswerValueKind.Text, value: 'yes' } } };
@@ -245,9 +226,6 @@ suite('claudeElicitation', () => {
 	});
 
 	test('handleElicitation cancels when the session lookup misses', async () => {
-		// The SDK can fire an elicitation for a session that is already gone
-		// (teardown race). The bridge returns before touching any session, so
-		// this needs no session — just a lookup that misses.
 		const result = await handleElicitation(
 			{ getSession: () => undefined },
 			'missing-session',

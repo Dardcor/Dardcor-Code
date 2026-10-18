@@ -107,7 +107,6 @@ export class DragAndDropController extends Disposable implements IEditorContribu
 
 	private _onEditorMouseUp(mouseEvent: IEditorMouseEvent): void {
 		this._mouseDown = false;
-		// Whenever users release the mouse, the drag and drop operation should finish and the cursor should revert to text.
 		this._editor.updateOptions({
 			mouseStyle: 'text'
 		});
@@ -176,7 +175,6 @@ export class DragAndDropController extends Disposable implements IEditorContribu
 						}
 					});
 				}
-				// Use `mouse` as the source instead of `api` and setting the reason to explicit (to behave like any other mouse operation).
 				(<CodeEditorWidget>this._editor).setSelections(newSelections || [], 'mouse', CursorChangeReason.Explicit);
 			} else if (!this._dragSelection.containsPosition(newCursorPosition) ||
 				(
@@ -185,7 +183,7 @@ export class DragAndDropController extends Disposable implements IEditorContribu
 						this._modifierPressed
 					) && (
 						this._dragSelection.getEndPosition().equals(newCursorPosition) || this._dragSelection.getStartPosition().equals(newCursorPosition)
-					) // we allow users to paste content beside the selection
+					)
 				)) {
 				this._editor.pushUndoStop();
 				this._editor.executeCommand(DragAndDropController.ID, new DragAndDropCommand(this._dragSelection, newCursorPosition, hasTriggerModifier(mouseEvent.event) || this._modifierPressed));

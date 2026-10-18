@@ -43,7 +43,6 @@ export class TerminalProfileQuickpick {
 		}
 		if (type === 'setDefault') {
 			if (hasKey(result.profile, { id: true })) {
-				// extension contributed profile
 				await this._configurationService.updateValue(defaultProfileKey, result.profile.title, ConfigurationTarget.USER);
 				return {
 					config: {
@@ -59,7 +58,6 @@ export class TerminalProfileQuickpick {
 				};
 			}
 
-			// Add the profile to settings if necessary
 			if (hasKey(result.profile, { profileName: true })) {
 				const profilesConfig = await this._configurationService.getValue(profilesKey);
 				if (typeof profilesConfig === 'object') {
@@ -73,7 +71,6 @@ export class TerminalProfileQuickpick {
 					await this._configurationService.updateValue(profilesKey, profilesConfig, ConfigurationTarget.USER);
 				}
 			}
-			// Set the default profile
 			await this._configurationService.updateValue(defaultProfileKey, result.profileName, ConfigurationTarget.USER);
 		} else if (type === 'createInstance') {
 			if (hasKey(result.profile, { id: true })) {
@@ -106,7 +103,6 @@ export class TerminalProfileQuickpick {
 				return { config: result.profile, keyMods: result.keyMods };
 			}
 		}
-		// for tests
 		return hasKey(result.profile, { profileName: true }) ? result.profile.profileName : result.profile.title;
 	}
 
@@ -119,7 +115,6 @@ export class TerminalProfileQuickpick {
 		const options: IPickOptions<IProfileQuickPickItem> = {
 			placeHolder: type === 'createInstance' ? nls.localize('terminal.integrated.selectProfileToCreate', "Select the terminal profile to create") : nls.localize('terminal.integrated.chooseDefaultProfile', "Select your default terminal profile"),
 			onDidTriggerItemButton: async (context) => {
-				// Get the user's explicit permission to use a potentially unsafe path
 				if (!await this._isProfileSafe(context.item.profile)) {
 					return;
 				}
@@ -150,7 +145,6 @@ export class TerminalProfileQuickpick {
 			onKeyMods: mods => keyMods = mods
 		};
 
-		// Build quick pick items
 		const quickPickItems: (IProfileQuickPickItem | IQuickPickSeparator)[] = [];
 		const configProfiles = profiles.filter(e => !e.isAutoDetected);
 		const autoDetectedProfiles = profiles.filter(e => e.isAutoDetected);
@@ -240,7 +234,6 @@ export class TerminalProfileQuickpick {
 			return true;
 		}
 
-		// Get the user's explicit permission to use a potentially unsafe path
 		return await new Promise<boolean>(r => {
 			const unsafePaths = [];
 			if (isUnsafePath) {
@@ -249,8 +242,6 @@ export class TerminalProfileQuickpick {
 			if (requiresUnsafePath) {
 				unsafePaths.push(requiresUnsafePath);
 			}
-			// Notify about unsafe path(s). At the time of writing, multiple unsafe paths isn't
-			// possible so the message is optimized for a single path.
 			const handle = this._notificationService.prompt(
 				Severity.Warning,
 				nls.localize('unsafePathWarning', 'This terminal profile uses a potentially unsafe path that can be modified by another user: {0}. Are you sure you want to use it?', `"${unsafePaths.join(',')}"`),

@@ -21,7 +21,6 @@ suite('collectCompletionDiagnostics', function () {
 		const telemetry = TelemetryWithExp.createEmptyConfigForTesting();
 		telemetry.properties.headerRequestId = 'header-123';
 		telemetry.properties.choiceIndex = '0';
-		// A stale value that must be ignored: the opportunity ID comes from the item, not from telemetry.
 		telemetry.properties.opportunityId = 'stale-opportunity-id';
 		telemetry.properties.clientCompletionId = 'client-abc';
 		telemetry.properties.engineName = 'test-model';
@@ -30,7 +29,7 @@ suite('collectCompletionDiagnostics', function () {
 
 		assert.deepStrictEqual(report.sections, [
 			{
-				name: 'Copilot Extension',
+				name: 'Dardcor Code',
 				items: {
 					Version: BuildInfo.getVersion(),
 					Editor: 'lib-tests-editor 1',
@@ -50,7 +49,7 @@ suite('collectCompletionDiagnostics', function () {
 
 		assert.deepStrictEqual(report.sections, [
 			{
-				name: 'Copilot Extension',
+				name: 'Dardcor Code',
 				items: {
 					Version: BuildInfo.getVersion(),
 					Editor: 'lib-tests-editor 1',

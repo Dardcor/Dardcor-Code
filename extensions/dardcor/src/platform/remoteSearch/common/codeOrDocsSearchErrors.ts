@@ -20,41 +20,22 @@ export class CodeOrDocsSearchRepoError extends Error {
 	}
 }
 
-/**
- * This error is thrown when the repository is not accessible to the user. This might be because the user
- * does not have access to the repository or the token does not have the OAuth scope (repo) to access the repository.
- */
 export class InaccessibleRepoOrgError extends CodeOrDocsSearchRepoError {
 	override name = SearchRepoErrorType.missingInaccessibleRepoOrg;
 }
 
-/**
- * This error is thrown when the docs embeddings are not available for the given repository.
- * NOTE: For our usecases, this is basically the same thing as NotIndexedError.
- */
 export class EmbeddingsUnavailableError extends CodeOrDocsSearchRepoError {
 	override name = SearchRepoErrorType.docsEmbeddingsUnavailable;
 }
 
-/**
- * This error is thrown when the repository is not indexed entirely including when the embeddings are not available.
- * NOTE: For our usecases, this is basically the same thing as EmbeddingsUnavailableError.
- */
 export class NotIndexedError extends CodeOrDocsSearchRepoError {
 	override name = SearchRepoErrorType.notIndexed;
 }
 
-/**
- * This error is not thrown by the endpoint but is thrown by the client when the max retries are exceeded.
- */
 export class MaxRetriesExceededError extends Error {
 	override name = SearchErrorType.maxRetriesExceeded;
 }
 
-/**
- * This error is not thrown by the endpoint but is thrown by the client when the code or docs search endpoint is not accessible.
- * This is usually because of a feature flag that is not enabled for this user.
- */
 export class NoAccessToEndpointError extends Error {
 	override name = SearchErrorType.noAccessToEndpoint;
 }

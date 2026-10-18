@@ -23,7 +23,7 @@ export class StandaloneWebWorkerService extends WebWorkerService {
 	}
 
 	protected override _getWorkerLoadingFailedErrorMessage(descriptor: WebWorkerDescriptor): string | undefined {
-		const examplePath = '\'...?esm\''; // Broken up to avoid detection by bundler plugin
+		const examplePath = '\'...?esm\'';
 		return `Failed to load worker script for label: ${descriptor.label}.
 Ensure your bundler properly bundles modules referenced by "new URL(${examplePath}, import.meta.url)".`;
 	}

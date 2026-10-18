@@ -15,7 +15,6 @@ export function rubric(accessor: ITestingServicesAccessor, ...assertions: (() =>
 			passed++;
 		} catch (e) {
 			runtime.log(String(e));
-			// ignored
 		}
 	}
 

@@ -6,11 +6,9 @@
 import { URI } from '../../../base/common/uri.js';
 import { getSessionArtifactValue, isGitHubArtifactLink, SESSION_ARTIFACT_TYPES, SessionArtifactType, type ISessionArtifact } from './sessionArtifacts.js';
 
-/** The fields an agent supplies when adding an artifact or reference. */
 export interface ISessionArtifactInput {
 	readonly type: SessionArtifactType;
 	readonly label: string;
-	/** `true` for an artifact the session produced, `false` for a reference. */
 	readonly isArtifact: boolean;
 	readonly link?: string;
 	readonly uri?: string;
@@ -20,7 +18,6 @@ export interface ISessionArtifactInput {
 export interface IAddSessionArtifactResult {
 	readonly artifacts: readonly ISessionArtifact[];
 	readonly artifact: ISessionArtifact;
-	/** `false` when an entry with the same value already existed. */
 	readonly added: boolean;
 }
 
@@ -40,11 +37,6 @@ function requireString(value: unknown, field: string, toolName: string): string 
 	return value.trim();
 }
 
-/**
- * A link is opened externally on click, which hands it to the OS protocol
- * handler. Only web links may do that: a `file:` or custom-scheme link would
- * otherwise let an agent-labelled pill launch a local target.
- */
 function requireWebLink(value: unknown, field: string, toolName: string): string {
 	const link = requireString(value, field, toolName);
 	let scheme: string;
@@ -59,18 +51,11 @@ function requireWebLink(value: unknown, field: string, toolName: string): string
 	return link;
 }
 
-/**
- * The client opens a `uri` by parsing it strictly, so anything it cannot parse
- * would be recorded, reported as added, and then quietly appear in no pill at
- * all. Parsing it the same way here gives the agent an error it can act on
- * instead. A single-letter scheme is a Windows drive path (`C:\repo\plan.md`),
- * which parses into a nonsense URI rather than failing, so it is rejected too.
- */
 function requireUri(value: unknown, field: string, toolName: string): string {
 	const uri = requireString(value, field, toolName);
 	let scheme: string | undefined;
 	try {
-		scheme = URI.parse(uri, /*strict*/ true).scheme;
+		scheme = URI.parse(uri, true).scheme;
 	} catch {
 		scheme = undefined;
 	}
@@ -113,12 +98,10 @@ function parseSessionArtifactInputAt(rawArgs: unknown, toolName: string, fieldPr
 	return input;
 }
 
-/** Validates and normalizes one `add_artifact_or_reference` entry. */
 export function parseSessionArtifactInput(rawArgs: unknown, toolName: string): ISessionArtifactInput {
 	return parseSessionArtifactInputAt(rawArgs, toolName);
 }
 
-/** Validates a batch while accepting the legacy single-entry shape. */
 export function parseSessionArtifactInputs(rawArgs: unknown, toolName: string): readonly ISessionArtifactInput[] {
 	if (!rawArgs || typeof rawArgs !== 'object' || Array.isArray(rawArgs)) {
 		throw new Error(`Invalid ${toolName} input: expected an object.`);
@@ -133,11 +116,6 @@ export function parseSessionArtifactInputs(rawArgs: unknown, toolName: string): 
 	return items.map((item, index) => parseSessionArtifactInputAt(item, toolName, `items[${index}]`));
 }
 
-/**
- * The artifacts and references recorded on a session. Immutable: mutations
- * return the next list so callers stay in control of persisting and publishing
- * it.
- */
 export class SessionArtifactCollection {
 
 	constructor(private readonly _artifacts: readonly ISessionArtifact[] = []) { }
@@ -146,10 +124,6 @@ export class SessionArtifactCollection {
 		return this._artifacts;
 	}
 
-	/**
-	 * Adds an artifact or reference unless one with the same value already
-	 * exists, in which case the existing entry is returned unchanged.
-	 */
 	add(input: ISessionArtifactInput, createId: () => string): IAddSessionArtifactResult {
 		const artifact = this._create(input, createId);
 		const value = getSessionArtifactValue(artifact);

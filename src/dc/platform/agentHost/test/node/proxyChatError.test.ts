@@ -6,7 +6,7 @@
 import assert from 'assert';
 import type Anthropic from '@anthropic-ai/sdk';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { COPILOT_API_ERROR_STATUS_STREAMING, CopilotApiError } from '../../node/shared/copilotApiService.js';
+import { DARDCOR_ROUTER_ERROR_STATUS_STREAMING, DardcorRouterApiError } from '../../node/shared/dardcorRouterService.js';
 import {
 	buildForwardedChatError,
 	encodeForwardedChatError,
@@ -18,13 +18,13 @@ import {
 	tryParseForwardedChatError,
 } from '../../node/shared/proxyChatError.js';
 
-function makeApiError(status: number, type: string, message: string, requestId: string | null = 'req-1'): CopilotApiError {
+function makeApiError(status: number, type: string, message: string, requestId: string | null = 'req-1'): DardcorRouterApiError {
 	const envelope: Anthropic.ErrorResponse = {
 		type: 'error',
 		error: { type: type as Anthropic.ErrorResponse['error']['type'], message },
 		request_id: requestId,
 	};
-	return new CopilotApiError(status, envelope);
+	return new DardcorRouterApiError(status, envelope);
 }
 
 suite('proxyChatError', () => {
@@ -49,7 +49,7 @@ suite('proxyChatError', () => {
 		});
 
 		test('mid-stream streaming sentinel maps to failed', () => {
-			const forwarded = buildForwardedChatError(makeApiError(COPILOT_API_ERROR_STATUS_STREAMING, 'api_error', 'mid-stream boom'));
+			const forwarded = buildForwardedChatError(makeApiError(DARDCOR_ROUTER_ERROR_STATUS_STREAMING, 'api_error', 'mid-stream boom'));
 			assert.strictEqual(forwarded.fetchError.type, 'failed');
 		});
 
@@ -114,8 +114,6 @@ suite('proxyChatError', () => {
 		});
 
 		test('returns undefined for an oversized marker payload without decoding it', () => {
-			// A marker that rode along in model-influenced text could be arbitrarily
-			// large; the parser must reject it before allocating/decoding.
 			const huge = `${PROXY_ERROR_PREFIX}${'A'.repeat(9 * 1024)}`;
 			assert.strictEqual(tryParseForwardedChatError(huge), undefined);
 		});

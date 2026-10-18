@@ -124,7 +124,6 @@ suite('ChatModelFeedbackSurveyConfig', () => {
 		assert.deepStrictEqual(result.config?.prompt, {
 			cooldownDays: 7,
 			maxPerSession: 1,
-			// Zero probability means the survey never opens unasked, but the control still shows.
 			chance: { initial: 0, increment: 0, max: 1 },
 			triggers: { modelSwitchedAway: { enabled: false, bypassCooldown: false } },
 		});
@@ -139,7 +138,6 @@ suite('ChatModelFeedbackSurveyConfig', () => {
 		}
 
 		test('matches a short selector against identifiers from every harness', () => {
-			// Local model ids are `<vendor>/<id>` and agent host ids are `<sessionType>:<id>`.
 			assert.deepStrictEqual({
 				bare: match({ selectedModelId: 'auto', harness: undefined }),
 				vendorQualified: match({ selectedModelId: 'copilot/auto', harness: undefined }),

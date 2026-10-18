@@ -96,7 +96,6 @@ suite('ClaudeFileEditObserver', () => {
 			{ type: 'tool_use', id: 'tu-1', name: 'Write', input: { file_path: '/work/a.txt', content: 'after' } },
 		]), 'plan', clientContext);
 
-		// Tool runs (we simulate it here): file content changes.
 		await fileService.writeFile(URI.file('/work/a.txt'), VSBuffer.fromString('after'));
 
 		await observer.observeUser(userMessage([
@@ -120,11 +119,10 @@ suite('ClaudeFileEditObserver', () => {
 
 		observer.observeAssistant(assistantMessage([
 			{ type: 'tool_use', id: 'tu-bash', name: 'Bash', input: { command: 'ls' } },
-			{ type: 'tool_use', id: 'tu-bad', name: 'Write', input: {} }, // missing file_path
+			{ type: 'tool_use', id: 'tu-bad', name: 'Write', input: {} },
 			{ type: 'text', text: 'hi' },
 		]));
 
-		// No tool_result for either id should produce a cached edit.
 		assert.strictEqual(mapperState.takeFileEdit('tu-bash'), undefined);
 		assert.strictEqual(mapperState.takeFileEdit('tu-bad'), undefined);
 	});
@@ -145,7 +143,6 @@ suite('ClaudeFileEditObserver', () => {
 		observer.observeAssistant(assistantMessage('plain string body'));
 		await observer.observeUser(userMessage('plain string body'), 'turn-1', mapperState);
 
-		// No throws, no cached edits.
 		assert.strictEqual(mapperState.takeFileEdit('any'), undefined);
 	});
 });

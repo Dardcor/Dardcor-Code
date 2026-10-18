@@ -119,7 +119,6 @@ suite('NotificationsList AccessibilityProvider', () => {
 	});
 
 	teardown(() => {
-		// Close all created notifications to prevent disposable leaks
 		for (const notification of createdNotifications) {
 			notification.close();
 		}
@@ -174,7 +173,6 @@ suite('NotificationsList AccessibilityProvider', () => {
 	});
 
 	test('severity prefix consistency', () => {
-		// Test that the severity prefixes are consistent with the ARIA alerts
 		const errorNotification = NotificationViewItem.create({ severity: Severity.Error, message: 'Error message' }, noFilter)!;
 		const warningNotification = NotificationViewItem.create({ severity: Severity.Warning, message: 'Warning message' }, noFilter)!;
 		const infoNotification = NotificationViewItem.create({ severity: Severity.Info, message: 'Info message' }, noFilter)!;
@@ -185,7 +183,6 @@ suite('NotificationsList AccessibilityProvider', () => {
 		const warningLabel = accessibilityProvider.getAriaLabel(warningNotification);
 		const infoLabel = accessibilityProvider.getAriaLabel(infoNotification);
 
-		// Check that each severity type gets the correct prefix
 		assert.ok(errorLabel.includes('Error: Error message'), 'Error notifications should have Error prefix');
 		assert.ok(warningLabel.includes('Warning: Warning message'), 'Warning notifications should have Warning prefix');
 		assert.ok(infoLabel.includes('Info: Info message'), 'Info notifications should have Info prefix');

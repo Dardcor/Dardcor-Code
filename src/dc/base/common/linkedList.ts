@@ -61,14 +61,12 @@ export class LinkedList<E> {
 			this._last = newNode;
 
 		} else if (atTheEnd) {
-			// push
 			const oldLast = this._last;
 			this._last = newNode;
 			newNode.prev = oldLast;
 			oldLast.next = newNode;
 
 		} else {
-			// unshift
 			const oldFirst = this._first;
 			this._first = newNode;
 			newNode.next = oldFirst;
@@ -116,28 +114,23 @@ export class LinkedList<E> {
 
 	private _remove(node: Node<E> | typeof Node.Undefined): void {
 		if (node.prev !== Node.Undefined && node.next !== Node.Undefined) {
-			// middle
 			const anchor = node.prev;
 			anchor.next = node.next;
 			node.next.prev = anchor;
 
 		} else if (node.prev === Node.Undefined && node.next === Node.Undefined) {
-			// only node
 			this._first = Node.Undefined;
 			this._last = Node.Undefined;
 
 		} else if (node.next === Node.Undefined) {
-			// last
 			this._last = this._last.prev!;
 			this._last.next = Node.Undefined;
 
 		} else if (node.prev === Node.Undefined) {
-			// first
 			this._first = this._first.next!;
 			this._first.prev = Node.Undefined;
 		}
 
-		// done
 		this._size -= 1;
 	}
 

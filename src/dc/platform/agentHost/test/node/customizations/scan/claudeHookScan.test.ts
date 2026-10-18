@@ -79,7 +79,6 @@ suite('claudeHookScan', () => {
 		const user = await seed('/home/.claude/settings.json', JSON.stringify({
 			hooks: { SessionStart: [{ hooks: [{ type: 'command', command: 'echo start' }] }] },
 		}));
-		// A project hook that must NOT be surfaced when there is no workspace.
 		await seed('/workspace/.claude/settings.json', JSON.stringify({
 			hooks: { Stop: [{ hooks: [{ type: 'command', command: 'echo stop' }] }] },
 		}));
@@ -94,9 +93,6 @@ suite('claudeHookScan', () => {
 			hooks: { PostToolUse: [{ hooks: [{ type: 'command', command: 'echo hi' }] }] },
 		}));
 
-		// When the user opens their home directory as the workspace, the
-		// project and user scopes resolve to the same settings file — it must
-		// not surface twice.
 		const hooks = await scanClaudeHooks(userHome, userHome, fileService);
 
 		assert.strictEqual(hooks.length, 1);

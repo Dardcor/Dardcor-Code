@@ -70,16 +70,8 @@ export class CursorsController extends Disposable {
 
 	public onLineMappingChanged(eventsCollector: ViewModelEventsCollector): void {
 		if (this._knownModelVersionId !== this._model.getVersionId()) {
-			// There are model change events that I didn't yet receive.
-			//
-			// This can happen when editing the model, and the view model receives the change events first,
-			// and the view model emits line mapping changed events, all before the cursor gets a chance to
-			// recover from markers.
-			//
-			// The model change listener above will be called soon and we'll ensure a valid cursor state there.
 			return;
 		}
-		// Ensure valid state
 		this.setStates(eventsCollector, 'viewModel', CursorChangeReason.NotSet, this.getCursorStates());
 	}
 
@@ -101,7 +93,6 @@ export class CursorsController extends Disposable {
 		}
 	}
 
-	// ------ some getters/setters
 
 	public getPrimaryCursorState(): CursorState {
 		return this._cursors.getPrimaryCursor();
@@ -192,7 +183,6 @@ export class CursorsController extends Disposable {
 			let positionLineNumber = 1;
 			let positionColumn = 1;
 
-			// Avoid missing properties on the literal
 			if (state.position && state.position.lineNumber) {
 				positionLineNumber = state.position.lineNumber;
 			}
@@ -203,7 +193,6 @@ export class CursorsController extends Disposable {
 			let selectionStartLineNumber = positionLineNumber;
 			let selectionStartColumn = positionColumn;
 
-			// Avoid missing properties on the literal
 			if (state.selectionStart && state.selectionStart.lineNumber) {
 				selectionStartLineNumber = state.selectionStart.lineNumber;
 			}
@@ -225,15 +214,9 @@ export class CursorsController extends Disposable {
 
 	public onModelContentChanged(eventsCollector: ViewModelEventsCollector, event: InternalModelContentChangeEvent | ModelInjectedTextChangedEvent): void {
 		if (event instanceof ModelInjectedTextChangedEvent) {
-			// If injected texts change, the view positions of all cursors need to be updated.
 			if (this._isHandling) {
-				// The view positions will be updated when handling finishes
 				return;
 			}
-			// setStates might remove markers, which could trigger a decoration change.
-			// If there are injected text decorations for that line, `onModelContentChanged` is emitted again
-			// and an endless recursion happens.
-			// _isHandling prevents that.
 			this._isHandling = true;
 			try {
 				this.setStates(eventsCollector, 'modelChange', CursorChangeReason.NotSet, this.getCursorStates());
@@ -251,7 +234,6 @@ export class CursorsController extends Disposable {
 			this._prevEditOperationType = EditOperationType.Other;
 
 			if (hadFlushEvent) {
-				// a model.setValue() was called
 				this._cursors.dispose();
 				this._cursors = new CursorCollection(this.context);
 				this._validateAutoClosedActions();
@@ -318,7 +300,6 @@ export class CursorsController extends Disposable {
 		this._prevEditOperationType = type;
 	}
 
-	// ------ auxiliary handling logic
 
 	private _pushAutoClosedAction(autoClosedCharactersRanges: Range[], autoClosedEnclosingRanges: Range[]): void {
 		const autoClosedCharactersDeltaDecorations: IModelDeltaDecoration[] = [];
@@ -350,7 +331,6 @@ export class CursorsController extends Disposable {
 	private _executeEditOperation(opResult: EditOperationResult | null, editReason: TextModelEditSource): void {
 
 		if (!opResult) {
-			// Nothing to execute
 			return;
 		}
 
@@ -360,10 +340,8 @@ export class CursorsController extends Disposable {
 
 		const result = CommandExecutor.executeCommands(this._model, this._cursors.getSelections(), opResult.commands, editReason);
 		if (result) {
-			// The commands were applied correctly
 			this._interpretCommandResult(result);
 
-			// Check for auto-closing closed characters
 			const autoClosedCharactersRanges: Range[] = [];
 			const autoClosedEnclosingRanges: Range[] = [];
 
@@ -397,8 +375,6 @@ export class CursorsController extends Disposable {
 		this._cursors.normalize();
 	}
 
-	// -----------------------------------------------------------------------------------------------------------
-	// ----- emitting events
 
 	private _emitStateChangedIfNecessary(eventsCollector: ViewModelEventsCollector, source: string | null | undefined, reason: CursorChangeReason, oldState: CursorModelState | null, reachedMaxCursorCount: boolean): boolean {
 		const newState = CursorModelState.from(this._model, this);
@@ -409,10 +385,8 @@ export class CursorsController extends Disposable {
 		const selections = this._cursors.getSelections();
 		const viewSelections = this._cursors.getViewSelections();
 
-		// Let the view get the event first.
 		eventsCollector.emitViewEvent(new ViewCursorStateChangedEvent(viewSelections, selections, reason));
 
-		// Only after the view has been notified, let the rest of the world know...
 		if (!oldState
 			|| oldState.cursorState.length !== newState.cursorState.length
 			|| newState.cursorState.some((newCursorState, i) => !newCursorState.modelState.equals(oldState.cursorState[i].modelState))
@@ -425,8 +399,6 @@ export class CursorsController extends Disposable {
 		return true;
 	}
 
-	// -----------------------------------------------------------------------------------------------------------
-	// ----- handlers beyond this point
 
 	private _findAutoClosingPairs(edits: IIdentifiedSingleEditOperation[]): [number, number][] | null {
 		if (!edits.length) {
@@ -490,8 +462,6 @@ export class CursorsController extends Disposable {
 			}
 			const selections = cursorStateComputer(undoEdits);
 			if (selections) {
-				// Don't recover the selection from markers because
-				// we know what it should be.
 				this._isHandling = true;
 			}
 
@@ -508,7 +478,6 @@ export class CursorsController extends Disposable {
 
 	private _executeEdit(callback: () => void, eventsCollector: ViewModelEventsCollector, source: string | null | undefined, cursorChangeReason: CursorChangeReason = CursorChangeReason.NotSet): void {
 		if (this.context.cursorConfig.readOnly) {
-			// we cannot edit when read only...
 			return;
 		}
 
@@ -547,7 +516,6 @@ export class CursorsController extends Disposable {
 
 		this._executeEdit(() => {
 			if (source === 'keyboard') {
-				// composition finishes, let's check if we need to auto complete if necessary.
 				this._executeEditOperation(TypeOperations.compositionEndWithInterceptors(this._prevEditOperationType, this.context.cursorConfig, this._model, compositionOutcome, this.getSelections(), this.getAutoClosedCharacters()), reason);
 			}
 		}, eventsCollector, source);
@@ -558,7 +526,6 @@ export class CursorsController extends Disposable {
 
 		this._executeEdit(() => {
 			if (source === 'keyboard') {
-				// If this event is coming straight from the keyboard, look for electric characters and enter
 
 				const len = text.length;
 				let offset = 0;
@@ -566,7 +533,6 @@ export class CursorsController extends Disposable {
 					const charLength = strings.nextCharLength(text, offset);
 					const chr = text.substr(offset, charLength);
 
-					// Here we must interpret each typed character individually
 					this._executeEditOperation(TypeOperations.typeWithInterceptors(!!this._compositionState, this._prevEditOperationType, this.context.cursorConfig, this._model, this.getSelections(), this.getAutoClosedCharacters(), chr), reason);
 
 					offset += charLength;
@@ -582,9 +548,7 @@ export class CursorsController extends Disposable {
 		const reason = EditSources.cursor({ kind: 'compositionType', detailedSource: source });
 
 		if (text.length === 0 && replacePrevCharCnt === 0 && replaceNextCharCnt === 0) {
-			// this edit is a no-op
 			if (positionDelta !== 0) {
-				// but it still wants to move the cursor
 				const newSelections = this.getSelections().map(selection => {
 					const position = selection.getPosition();
 					return new Selection(position.lineNumber, position.column + positionDelta, position.lineNumber, position.column + positionDelta);
@@ -638,9 +602,6 @@ export class CursorsController extends Disposable {
 	}
 }
 
-/**
- * A snapshot of the cursor and the model state
- */
 class CursorModelState {
 	public static from(model: ITextModel, cursor: CursorsController): CursorModelState {
 		return new CursorModelState(model.getVersionId(), cursor.getCursorStates());
@@ -715,7 +676,6 @@ class AutoClosedAction {
 			if (decorationRange) {
 				enclosingRanges.push(decorationRange);
 				if (decorationRange.startLineNumber !== decorationRange.endLineNumber) {
-					// Stop tracking if the range becomes multiline...
 					return false;
 				}
 			}
@@ -789,12 +749,10 @@ export class CommandExecutor {
 
 		const loserCursorsMap = this._getLoserCursorMap(rawOperations);
 		if (loserCursorsMap.hasOwnProperty('0')) {
-			// These commands are very messed up
 			console.warn('Ignoring commands');
 			return null;
 		}
 
-		// Remove operations belonging to losing cursors
 		const filteredOperations: IIdentifiedSingleEditOperation[] = [];
 		for (let i = 0, len = rawOperations.length; i < len; i++) {
 			if (!loserCursorsMap.hasOwnProperty(rawOperations[i].identifier!.major.toString())) {
@@ -802,8 +760,6 @@ export class CommandExecutor {
 			}
 		}
 
-		// TODO@Alex: find a better way to do this.
-		// give the hint that edit operations are tracked to the model
 		if (commandsData.hadTrackedEditOperation && filteredOperations.length > 0) {
 			filteredOperations[0]._isTracked = true;
 		}
@@ -814,7 +770,6 @@ export class CommandExecutor {
 			}
 			for (const op of inverseEditOperations) {
 				if (!op.identifier) {
-					// perhaps auto whitespace trim edits
 					continue;
 				}
 				groupedInverseEditOperations[op.identifier.major].push(op);
@@ -850,7 +805,6 @@ export class CommandExecutor {
 			selectionsAfter = ctx.selectionsBefore;
 		}
 
-		// Extract losing cursors
 		const losingCursors: number[] = [];
 		for (const losingCursorIndex in loserCursorsMap) {
 			if (loserCursorsMap.hasOwnProperty(losingCursorIndex)) {
@@ -858,12 +812,10 @@ export class CommandExecutor {
 			}
 		}
 
-		// Sort losing cursors descending
 		losingCursors.sort((a: number, b: number): number => {
 			return b - a;
 		});
 
-		// Remove losing cursors
 		for (const losingCursor of losingCursors) {
 			selectionsAfter.splice(losingCursor, 1);
 		}
@@ -899,14 +851,11 @@ export class CommandExecutor {
 	}
 
 	private static _getEditOperationsFromCommand(ctx: IExecContext, majorIdentifier: number, command: editorCommon.ICommand): ICommandData {
-		// This method acts as a transaction, if the command fails
-		// everything it has done is ignored
 		const operations: IIdentifiedSingleEditOperation[] = [];
 		let operationMinor = 0;
 
 		const addEditOperation = (range: IRange, text: string | null, forceMoveMarkers: boolean = false) => {
 			if (Range.isEmpty(range) && text === '') {
-				// This command wants to add a no-op => no thank you
 				return;
 			}
 			operations.push({
@@ -938,7 +887,6 @@ export class CommandExecutor {
 						stickiness = TrackedRangeStickiness.GrowsOnlyWhenTypingAfter;
 					}
 				} else {
-					// Try to lock it with surrounding text
 					const maxLineColumn = ctx.model.getLineMaxColumn(selection.startLineNumber);
 					if (selection.startColumn === maxLineColumn) {
 						stickiness = TrackedRangeStickiness.GrowsOnlyWhenTypingBefore;
@@ -966,8 +914,6 @@ export class CommandExecutor {
 		try {
 			command.getEditOperations(ctx.model, editOperationBuilder);
 		} catch (e) {
-			// TODO@Alex use notification service if this should be user facing
-			// e.friendlyMessage = nls.localize('corrupt.commands', "Unexpected exception while executing command.");
 			onUnexpectedError(e);
 			return {
 				operations: [],
@@ -982,16 +928,12 @@ export class CommandExecutor {
 	}
 
 	private static _getLoserCursorMap(operations: IIdentifiedSingleEditOperation[]): { [index: string]: boolean } {
-		// This is destructive on the array
 		operations = operations.slice(0);
 
-		// Sort operations with last one first
 		operations.sort((a: IIdentifiedSingleEditOperation, b: IIdentifiedSingleEditOperation): number => {
-			// Note the minus!
 			return -(Range.compareRangesUsingEnds(a.range, b.range));
 		});
 
-		// Operations can not overlap!
 		const loserCursorsMap: { [index: string]: boolean } = {};
 
 		for (let i = 1; i < operations.length; i++) {
@@ -1003,7 +945,6 @@ export class CommandExecutor {
 				let loserMajor: number;
 
 				if (previousOp.identifier!.major > currentOp.identifier!.major) {
-					// previousOp loses the battle
 					loserMajor = previousOp.identifier!.major;
 				} else {
 					loserMajor = currentOp.identifier!.major;
@@ -1065,10 +1006,6 @@ class CompositionState {
 		this._original = CompositionState._capture(textModel, selections);
 	}
 
-	/**
-	 * Returns the inserted text during this composition.
-	 * If the composition resulted in existing text being changed (i.e. not a pure insertion) it returns null.
-	 */
 	deduceOutcome(textModel: ITextModel, selections: Selection[]): CompositionOutcome[] | null {
 		if (!this._original) {
 			return null;

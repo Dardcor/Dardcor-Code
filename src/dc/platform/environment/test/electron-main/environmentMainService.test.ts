@@ -20,7 +20,6 @@ suite('EnvironmentMainService', () => {
 		process.env['TEST_ARG3_VSCODE_SNAP_ORIG'] = '';
 		process.env['TEST_ARG3'] = 'test_arg3_non_empty';
 
-		// Unset snap env variables
 		service.unsetSnapExportedVariables();
 		if (isLinux) {
 			assert.strictEqual(process.env['TEST_ARG1'], 'original');
@@ -38,7 +37,6 @@ suite('EnvironmentMainService', () => {
 			assert.strictEqual(process.env['TEST_ARG3'], 'test_arg3_non_empty');
 		}
 
-		// Restore snap env variables
 		service.restoreSnapExportedVariables();
 		if (isLinux) {
 			assert.strictEqual(process.env['TEST_ARG1'], 'modified');
@@ -59,7 +57,6 @@ suite('EnvironmentMainService', () => {
 
 	test('can invoke unsetSnapExportedVariables and restoreSnapExportedVariables multiple times', () => {
 		const service = new EnvironmentMainService({ '_': [] }, { '_serviceBrand': undefined, ...product });
-		// Mock snap environment
 		process.env['SNAP'] = '1';
 		process.env['SNAP_REVISION'] = 'test_revision';
 
@@ -69,7 +66,6 @@ suite('EnvironmentMainService', () => {
 		process.env['TEST_ARG3_VSCODE_SNAP_ORIG'] = '';
 		process.env['TEST_ARG3'] = 'test_arg3_non_empty';
 
-		// Unset snap env variables
 		service.unsetSnapExportedVariables();
 		service.unsetSnapExportedVariables();
 		service.unsetSnapExportedVariables();
@@ -89,7 +85,6 @@ suite('EnvironmentMainService', () => {
 			assert.strictEqual(process.env['TEST_ARG3'], 'test_arg3_non_empty');
 		}
 
-		// Restore snap env variables
 		service.restoreSnapExportedVariables();
 		service.restoreSnapExportedVariables();
 		if (isLinux) {
@@ -108,7 +103,6 @@ suite('EnvironmentMainService', () => {
 			assert.strictEqual(process.env['TEST_ARG3'], 'test_arg3_non_empty');
 		}
 
-		// Unset snap env variables
 		service.unsetSnapExportedVariables();
 		if (isLinux) {
 			assert.strictEqual(process.env['TEST_ARG1'], 'original');

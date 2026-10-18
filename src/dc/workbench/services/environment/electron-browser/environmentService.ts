@@ -18,13 +18,8 @@ import { VSBuffer } from '../../../../base/common/buffer.js';
 
 export const INativeWorkbenchEnvironmentService = refineServiceDecorator<IEnvironmentService, INativeWorkbenchEnvironmentService>(IEnvironmentService);
 
-/**
- * A subclass of the `IWorkbenchEnvironmentService` to be used only in native
- * environments (Windows, Linux, macOS) but not e.g. web.
- */
 export interface INativeWorkbenchEnvironmentService extends IBrowserWorkbenchEnvironmentService, INativeEnvironmentService {
 
-	// --- Window
 	readonly window: {
 		id: number;
 		handle?: VSBuffer;
@@ -36,7 +31,6 @@ export interface INativeWorkbenchEnvironmentService extends IBrowserWorkbenchEnv
 		perfMarks: PerformanceMark[];
 	};
 
-	// --- Main
 	readonly mainPid: number;
 	readonly os: IOSConfiguration;
 	readonly machineId: string;
@@ -44,15 +38,12 @@ export interface INativeWorkbenchEnvironmentService extends IBrowserWorkbenchEnv
 	readonly devDeviceId: string;
 	readonly isPortable: boolean;
 
-	// --- Paths
 	readonly execPath: string;
 	readonly backupPath?: string;
 
-	// --- Development
 	readonly crashReporterDirectory?: string;
 	readonly crashReporterId?: string;
 
-	// --- Editors to --wait
 	readonly filesToWait?: IPathsToWaitFor;
 }
 

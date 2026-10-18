@@ -17,14 +17,12 @@ suite('Osc633Parser', () => {
 		parser = new Osc633Parser();
 	});
 
-	// -- Helper to build OSC 633 sequences --------------------------------
 
 	function osc633(payload: string, terminator: 'bel' | 'st' = 'bel'): string {
 		const term = terminator === 'bel' ? '\x07' : '\x1b\\';
 		return `\x1b]633;${payload}${term}`;
 	}
 
-	// -- Basic sequence extraction ----------------------------------------
 
 	test('no sequences returns data unchanged with no events', () => {
 		const result = parser.parse('hello world');
@@ -138,7 +136,6 @@ suite('Osc633Parser', () => {
 		});
 	});
 
-	// -- ST terminator ----------------------------------------------------
 
 	test('PromptStart (A) with ST terminator', () => {
 		const result = parser.parse(`before${osc633('A', 'st')}after`);
@@ -148,7 +145,6 @@ suite('Osc633Parser', () => {
 		});
 	});
 
-	// -- Multiple sequences in one chunk ----------------------------------
 
 	test('multiple sequences in one chunk', () => {
 		const data = `prompt${osc633('A')}$ ${osc633('B')}${osc633('E;ls;nonce1')}${osc633('C')}file1\nfile2\n${osc633('D;0')}`;
@@ -165,7 +161,6 @@ suite('Osc633Parser', () => {
 		});
 	});
 
-	// -- Non-633 OSC sequences are preserved ------------------------------
 
 	test('non-633 OSC sequences are preserved in output', () => {
 		const nonOsc = '\x1b]0;window title\x07';
@@ -185,7 +180,6 @@ suite('Osc633Parser', () => {
 		});
 	});
 
-	// -- Partial sequences across chunks ----------------------------------
 
 	test('sequence split across two chunks (split in payload)', () => {
 		const r1 = parser.parse('before\x1b]633;');
@@ -198,12 +192,10 @@ suite('Osc633Parser', () => {
 	});
 
 	test('sequence split across two chunks (split at ESC of ST terminator)', () => {
-		// First chunk ends with ESC (potential start of ST)
 		const r1 = parser.parse('data\x1b]633;D;42\x1b');
 		assert.strictEqual(r1.cleanedData, 'data');
 		assert.deepStrictEqual(r1.events, []);
 
-		// Second chunk starts with \ (completing ST)
 		const r2 = parser.parse('\\more');
 		assert.strictEqual(r2.cleanedData, 'more');
 		assert.deepStrictEqual(r2.events, [{ type: Osc633EventType.CommandFinished, exitCode: 42 }]);
@@ -233,28 +225,23 @@ suite('Osc633Parser', () => {
 		assert.deepStrictEqual(r3.events, [{ type: Osc633EventType.CommandExecuted }]);
 	});
 
-	// -- Full command lifecycle -------------------------------------------
 
 	test('full command lifecycle with interleaved data', () => {
 		const allEvents: typeof result.events = [];
 		let allCleaned = '';
 
-		// Prompt appears
 		let result = parser.parse(`${osc633('A')}user@host:~ $ ${osc633('B')}`);
 		allEvents.push(...result.events);
 		allCleaned += result.cleanedData;
 
-		// User types command, shell reports it and executes
 		result = parser.parse(`${osc633('E;echo\\x20hi;nonce1')}${osc633('C')}`);
 		allEvents.push(...result.events);
 		allCleaned += result.cleanedData;
 
-		// Command output
 		result = parser.parse('hi\r\n');
 		allEvents.push(...result.events);
 		allCleaned += result.cleanedData;
 
-		// Command finishes
 		result = parser.parse(`${osc633('D;0')}${osc633('A')}`);
 		allEvents.push(...result.events);
 		allCleaned += result.cleanedData;
@@ -270,7 +257,6 @@ suite('Osc633Parser', () => {
 		]);
 	});
 
-	// -- Edge cases -------------------------------------------------------
 
 	test('empty string', () => {
 		const result = parser.parse('');
@@ -284,7 +270,6 @@ suite('Osc633Parser', () => {
 	});
 
 	test('CommandLine (E) with semicolons in command', () => {
-		// Semicolons in the command line should be escaped as \x3b
 		const result = parser.parse(osc633('E;echo\\x3b\\x20hello;my-nonce'));
 		assert.deepStrictEqual(result, {
 			cleanedData: '',
@@ -296,12 +281,8 @@ suite('Osc633Parser', () => {
 		});
 	});
 
-	// -- Ordered segments -------------------------------------------------
 
 	test('parseSegments preserves the order of output before a CommandFinished marker', () => {
-		// Output that precedes the D marker in the same chunk must be emitted as
-		// a data segment BEFORE the CommandFinished event, so consumers can
-		// attribute it to the command before handling the finished event.
 		const segments = parser.parseSegments(`${osc633('C')}hi\r\n${osc633('D;0')}`);
 		assert.deepStrictEqual(segments, [
 			{ kind: 'event', event: { type: Osc633EventType.CommandExecuted } },

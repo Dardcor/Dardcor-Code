@@ -73,7 +73,7 @@ export class ChatViewsWelcomeHandler implements IWorkbenchContribution {
 						...providerDescriptor,
 						when,
 						icon: ThemeIcon.fromString(providerDescriptor.icon),
-						content: new MarkdownString(providerDescriptor.content, { isTrusted: true }), // private API with command links
+						content: new MarkdownString(providerDescriptor.content, { isTrusted: true }),
 					};
 					Registry.as<IChatViewsWelcomeContributionRegistry>(ChatViewsWelcomeExtensions.ChatViewsWelcomeRegistry).register(descriptor);
 				}

@@ -23,49 +23,49 @@
 				"name": "Claude3PIntegration"
 			}
 		},
-		"github.copilot.chat.otel.enabled": {
+		"github.dardcor.chat.otel.enabled": {
 			"policyReference": {
-				"name": "CopilotOtelEnabled"
+				"name": "DardcorOtelEnabled"
 			}
 		},
-		"github.copilot.chat.otel.exporterType": {
+		"github.dardcor.chat.otel.exporterType": {
 			"policyReference": {
-				"name": "CopilotOtelProtocol"
+				"name": "DardcorOtelProtocol"
 			}
 		},
-		"github.copilot.chat.otel.protocol": {
+		"github.dardcor.chat.otel.protocol": {
 			"policyReference": {
-				"name": "CopilotOtelOtlpProtocol"
+				"name": "DardcorOtelOtlpProtocol"
 			}
 		},
-		"github.copilot.chat.otel.otlpEndpoint": {
+		"github.dardcor.chat.otel.otlpEndpoint": {
 			"policyReference": {
-				"name": "CopilotOtelEndpoint"
+				"name": "DardcorOtelEndpoint"
 			}
 		},
-		"github.copilot.chat.otel.captureContent": {
+		"github.dardcor.chat.otel.captureContent": {
 			"policyReference": {
-				"name": "CopilotOtelCaptureContent"
+				"name": "DardcorOtelCaptureContent"
 			}
 		},
-		"github.copilot.chat.otel.serviceName": {
+		"github.dardcor.chat.otel.serviceName": {
 			"policyReference": {
-				"name": "CopilotOtelServiceName"
+				"name": "DardcorOtelServiceName"
 			}
 		},
-		"github.copilot.chat.otel.resourceAttributes": {
+		"github.dardcor.chat.otel.resourceAttributes": {
 			"policyReference": {
-				"name": "CopilotOtelResourceAttributes"
+				"name": "DardcorOtelResourceAttributes"
 			}
 		},
-		"github.copilot.chat.otel.headers": {
+		"github.dardcor.chat.otel.headers": {
 			"policyReference": {
-				"name": "CopilotOtelHeaders"
+				"name": "DardcorOtelHeaders"
 			}
 		},
-		"github.copilot.chat.otel.outfile": {
+		"github.dardcor.chat.otel.outfile": {
 			"policyReference": {
-				"name": "CopilotOtelOutfile"
+				"name": "DardcorOtelOutfile"
 			}
 		}
 	}

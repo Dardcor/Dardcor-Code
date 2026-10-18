@@ -34,18 +34,8 @@ export interface IChatToolOutputResourceToolbarContext {
 	parts: IChatCollapsibleIODataPart[];
 }
 
-/**
- * Delay in milliseconds before decoding base64 image data.
- * This avoids expensive decode operations during scrolling.
- */
 const IMAGE_DECODE_DELAY_MS = 100;
 
-/**
- * A reusable widget for rendering a group of resource data parts (files, images)
- * with attachment pills and a toolbar with save actions.
- *
- * Used by ChatToolOutputContentSubPart and ChatMcpAppSubPart (for download resources).
- */
 export class ChatResourceGroupWidget extends Disposable {
 	public readonly domNode: HTMLElement;
 	private readonly _onDidChangeHeight = this._register(new Emitter<void>());
@@ -70,7 +60,6 @@ export class ChatResourceGroupWidget extends Disposable {
 	}
 
 	private async _fillInResourceGroup(parts: IChatCollapsibleIODataPart[], itemsContainer: HTMLElement, actionsContainer: HTMLElement) {
-		// First pass: create entries immediately, using file placeholders for base64 images
 		const entries: IChatRequestVariableEntry[] = [];
 		const deferredImageParts: { index: number; part: IChatCollapsibleIODataPart; mimeType: string }[] = [];
 
@@ -79,7 +68,6 @@ export class ChatResourceGroupWidget extends Disposable {
 			const imageMimeType = getResourceImageMimeType(part);
 			if (imageMimeType) {
 				if (part.base64Value) {
-					// Defer base64 decode - use file placeholder for now
 					entries.push({ kind: 'file', id: generateUuid(), name: basename(part.uri), fullName: part.uri.path, value: part.uri });
 					deferredImageParts.push({ index: i, part, mimeType: imageMimeType });
 				} else if (part.value) {
@@ -101,7 +89,6 @@ export class ChatResourceGroupWidget extends Disposable {
 			return;
 		}
 
-		// Render attachments immediately with placeholders
 		const attachments = this._register(this._instantiationService.createInstance(
 			ChatAttachmentsContentPart,
 			{
@@ -139,7 +126,6 @@ export class ChatResourceGroupWidget extends Disposable {
 		}));
 		toolbar.context = { parts } satisfies IChatToolOutputResourceToolbarContext;
 
-		// Second pass: decode base64 images asynchronously and update in place
 		if (deferredImageParts.length > 0) {
 			this._register(disposableTimeout(() => {
 				for (const { index, part, mimeType } of deferredImageParts) {
@@ -147,11 +133,9 @@ export class ChatResourceGroupWidget extends Disposable {
 						const value = decodeBase64(part.base64Value!).buffer;
 						entries[index] = { kind: 'image', id: generateUuid(), name: basename(part.uri), value, mimeType, isURL: false, references: [{ kind: 'reference', reference: part.uri }] };
 					} catch {
-						// Keep the file placeholder on decode failure
 					}
 				}
 
-				// Update attachments in place
 				attachments.updateVariables(entries);
 				this._onDidChangeHeight.fire();
 			}, IMAGE_DECODE_DELAY_MS));
@@ -202,7 +186,6 @@ class SaveResourcesAction extends Action2 {
 				if (part.kind === 'data') {
 					await fileService.copy(part.uri, target, true);
 				} else {
-					// MCP doesn't support streaming data, so no sense trying
 					const contents = await fileService.readFile(part.uri);
 					await fileService.writeFile(target, contents.value);
 				}

@@ -56,10 +56,6 @@ class UpdatePastedLinksEditProvider implements vscode.DocumentPasteEditProvider 
 			return;
 		}
 
-		// TODO: Handle cases such as:
-		// - copy empty line
-		// - Copy with multiple cursors and paste into multiple locations
-		// - ...
 		const edits = await this.#client.getUpdatePastedLinksEdit(document.uri, ranges.map(x => new vscode.TextEdit(x, text)), metadata, token);
 		if (!edits?.length || token.isCancellationRequested) {
 			return;

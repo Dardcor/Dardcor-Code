@@ -78,9 +78,6 @@ export namespace Triggers {
 }
 
 export interface ITaskSummary {
-	/**
-	 * Exit code of the process.
-	 */
 	exitCode?: number;
 }
 

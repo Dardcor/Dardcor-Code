@@ -25,7 +25,7 @@ export class ViewModel extends Disposable implements IViewModel {
 	private readonly _onWillUpdateViews = this._register(new Emitter<void>());
 	private readonly _onDidChangeVisualization = this._register(new Emitter<{ original: IExpression; replacement: IExpression }>());
 	private readonly visualized = new WeakMap<IExpression, IExpression>();
-	private readonly preferredVisualizers = new Map</** cache key */ string, /* tree ID */ string>();
+	private readonly preferredVisualizers = new Map< string, string>();
 	private expressionSelectedContextKey!: IContextKey<boolean>;
 	private loadedScriptsSupportedContextKey!: IContextKey<boolean>;
 	private stepBackSupportedContextKey!: IContextKey<boolean>;
@@ -116,7 +116,6 @@ export class ViewModel extends Disposable implements IViewModel {
 			this._onDidFocusSession.fire(session);
 		}
 
-		// should not call onDidFocusThread if onDidFocusStackFrame is called.
 		if (shouldEmitForStackFrame) {
 			this._onDidFocusStackFrame.fire({ stackFrame, explicit, session });
 		} else if (shouldEmitForThread) {

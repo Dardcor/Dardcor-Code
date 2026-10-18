@@ -19,25 +19,10 @@ import { GeneralShellType, PosixShellType, TerminalShellType } from '../../../..
 import { IRemoteAgentService } from '../../../../services/remote/common/remoteAgentService.js';
 import { TerminalHistorySettingId } from './terminal.history.js';
 
-/**
- * Tracks a list of generic entries.
- */
 export interface ITerminalPersistedHistory<T> {
-	/**
-	 * The persisted entries.
-	 */
 	readonly entries: IterableIterator<[string, T]>;
-	/**
-	 * Adds an entry.
-	 */
 	add(key: string, value: T): void;
-	/**
-	 * Removes an entry.
-	 */
 	remove(key: string): void;
-	/**
-	 * Clears all entries.
-	 */
 	clear(): void;
 }
 
@@ -88,17 +73,14 @@ export class TerminalPersistedHistory<T> extends Disposable implements ITerminal
 	) {
 		super();
 
-		// Init cache
 		this._entries = new LRUCache<string, T>(this._getHistoryLimit());
 
-		// Listen for config changes to set history limit
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(TerminalHistorySettingId.ShellIntegrationCommandHistory)) {
 				this._entries.limit = this._getHistoryLimit();
 			}
 		}));
 
-		// Listen to cache changes from other windows
 		this._register(this._storageService.onDidChangeValue(StorageScope.APPLICATION, this._getTimestampStorageKey(), this._store)(() => {
 			if (!this._isStale) {
 				this._isStale = this._storageService.getNumber(this._getTimestampStorageKey(), StorageScope.APPLICATION, 0) !== this._timestamp;
@@ -125,16 +107,12 @@ export class TerminalPersistedHistory<T> extends Disposable implements ITerminal
 	}
 
 	private _ensureUpToDate() {
-		// Initial load
 		if (!this._isReady) {
 			this._loadState();
 			this._isReady = true;
 		}
 
-		// React to stale cache caused by another window
 		if (this._isStale) {
-			// Since state is saved whenever the entries change, it's a safe assumption that no
-			// merging of entries needs to happen, just loading the new state.
 			this._entries.clear();
 			this._loadState();
 			this._isStale = false;
@@ -162,7 +140,6 @@ export class TerminalPersistedHistory<T> extends Disposable implements ITerminal
 		try {
 			serialized = JSON.parse(raw);
 		} catch {
-			// Invalid data
 			return undefined;
 		}
 		return serialized;
@@ -190,7 +167,6 @@ export class TerminalPersistedHistory<T> extends Disposable implements ITerminal
 	}
 }
 
-// Shell file history loads once per shell per window
 interface IShellFileHistoryEntry {
 	sourceLabel: string;
 	sourceResource: URI;
@@ -248,8 +224,6 @@ export async function fetchBashHistory(accessor: ServicesAccessor): Promise<IShe
 	if (resolvedFile === undefined) {
 		return undefined;
 	}
-	// .bash_history does not differentiate wrapped commands from multiple commands. Parse
-	// the output to get the
 	const fileLines = resolvedFile.content.split('\n');
 	const result: Set<string> = new Set();
 	let currentLine: string;
@@ -332,7 +306,6 @@ export async function fetchPythonHistory(accessor: ServicesAccessor): Promise<IS
 		return undefined;
 	}
 
-	// Python history file is a simple text file with one command per line
 	const fileLines = resolvedFile.content.split('\n');
 	const result: Set<string> = new Set();
 
@@ -390,8 +363,6 @@ export async function fetchPwshHistory(accessor: ServicesAccessor): Promise<IShe
 			currentCommand = undefined;
 			continue;
 		}
-		// If the line ends with `, the line may be wrapped. Need to also test the case where ` is
-		// the last character in the line
 		for (let c = 0; c < currentLine.length; c++) {
 			if (wrapChar) {
 				if (currentLine[c] === wrapChar) {
@@ -403,8 +374,6 @@ export async function fetchPwshHistory(accessor: ServicesAccessor): Promise<IShe
 				}
 			}
 		}
-		// Having an even number of backticks means the line is terminated
-		// TODO: This doesn't cover more complicated cases where ` is within quotes
 		if (!wrapChar) {
 			const sanitized = currentCommand.trim();
 			if (sanitized.length > 0) {
@@ -412,7 +381,6 @@ export async function fetchPwshHistory(accessor: ServicesAccessor): Promise<IShe
 			}
 			currentCommand = undefined;
 		} else {
-			// Remove trailing backtick
 			currentCommand = currentCommand.replace(/`$/, '');
 			wrapChar = undefined;
 		}
@@ -433,18 +401,8 @@ export async function fetchFishHistory(accessor: ServicesAccessor): Promise<IShe
 		return undefined;
 	}
 
-	/**
-	 * From `fish` docs:
-	 * > The command history is stored in the file ~/.local/share/fish/fish_history
-	 *   (or $XDG_DATA_HOME/fish/fish_history if that variable is set) by default.
-	 *
-	 * (https://fishshell.com/docs/current/interactive.html#history-search)
-	 */
 	const overridenDataHome = env['XDG_DATA_HOME'];
 
-	// TODO: Unchecked fish behavior:
-	// What if XDG_DATA_HOME was defined but somehow $XDG_DATA_HOME/fish/fish_history
-	// was not exist. Does fish fall back to ~/.local/share/fish/fish_history?
 
 	let folderPrefix: string | undefined;
 	let filePath: string;
@@ -463,20 +421,6 @@ export async function fetchFishHistory(accessor: ServicesAccessor): Promise<IShe
 		return undefined;
 	}
 
-	/**
-	 * These apply to `fish` v3.5.1:
-	 * - It looks like YAML but it's not. It's, quoting, *"a broken psuedo-YAML"*.
-	 *   See these discussions for more details:
-	 *   - https://github.com/fish-shell/fish-shell/pull/6493
-	 *   - https://github.com/fish-shell/fish-shell/issues/3341
-	 * - Every record should exactly start with `- cmd:` (the whitespace between `-` and `cmd` cannot be replaced with tab)
-	 * - Both `- cmd: echo 1` and `- cmd:echo 1` are valid entries.
-	 * - Backslashes are esacped as `\\`.
-	 * - Multiline commands are joined with a `\n` sequence, hence they're read as single line commands.
-	 * - Property `when` is optional.
-	 * - History navigation respects the records order and ignore the actual `when` property values (chronological order).
-	 * - If `cmd` value is multiline , it just takes the first line. Also YAML operators like `>-` or `|-` are not supported.
-	 */
 	const result: Set<string> = new Set();
 	const cmds = resolvedFile.content.split('\n')
 		.filter(x => x.startsWith('- cmd:'))
@@ -495,18 +439,6 @@ export async function fetchFishHistory(accessor: ServicesAccessor): Promise<IShe
 }
 
 export function sanitizeFishHistoryCmd(cmd: string): string {
-	/**
-	 * NOTE
-	 * This repeatedReplace() call can be eliminated by using look-ahead
-	 * caluses in the original RegExp pattern:
-	 *
-	 * >>> ```ts
-	 * >>> cmds[i].replace(/(?<=^|[^\\])((?:\\\\)*)(\\n)/g, '$1\n')
-	 * >>> ```
-	 *
-	 * But since not all browsers support look aheads we opted to a simple
-	 * pattern and repeatedly calling replace method.
-	 */
 	return repeatedReplace(/(^|[^\\])((?:\\\\)*)(\\n)/g, cmd, '$1$2\n');
 }
 
@@ -543,7 +475,6 @@ async function fetchFileContents(
 	try {
 		content = await fileService.readFile(resource);
 	} catch (e: unknown) {
-		// Handle file not found only
 		if (e instanceof FileOperationError && e.fileOperationResult === FileOperationResult.FILE_NOT_FOUND) {
 			return undefined;
 		}

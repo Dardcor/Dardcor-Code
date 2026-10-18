@@ -73,18 +73,11 @@ export type AuthorizationHeader = string | undefined;
 
 export class TestPromiseQueue extends PromiseQueue {
 	async awaitPromises() {
-		// Distinct from flush() in that errors are thrown
 		await Promise.all(this.promises);
 	}
 }
 
-// export function isStandardTelemetryMessage(message: CapturedTelemetry<unknown>): boolean {
-//     return message.iKey === APP_INSIGHTS_KEY;
-// }
 
-// export function isEnhancedTelemetryMessage(message: CapturedTelemetry<unknown>): boolean {
-//     return message.iKey === APP_INSIGHTS_KEY_SECURE;
-// }
 
 export function isEvent(message: CapturedTelemetry): message is CapturedTelemetry<EventData> {
 	return message.data.baseType === 'EventData';

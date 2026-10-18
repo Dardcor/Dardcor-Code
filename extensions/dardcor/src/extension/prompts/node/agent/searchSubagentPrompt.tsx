@@ -6,12 +6,11 @@
 
 import { PromptElement, PromptSizing, SystemMessage, UserMessage } from '@vscode/prompt-tsx';
 import { GenericBasePromptElementProps } from '../../../context/node/resolvers/genericPanelIntentInvocation';
-import { CopilotToolMode } from '../../../tools/common/toolsRegistry';
+import { AgentToolMode } from '../../../tools/common/toolsRegistry';
 import { ChatToolCalls } from '../panel/toolCalling';
 
 export interface SearchSubagentPromptProps extends GenericBasePromptElementProps {
 	readonly maxSearchTurns: number;
-	/** Thoroughness level requested by the caller. Influences the speed vs. thoroughness guidance in the system prompt. */
 	readonly thoroughness?: 'normal' | 'deep';
 }
 
@@ -20,18 +19,12 @@ const THOROUGHNESS_GUIDANCE: Record<NonNullable<SearchSubagentPromptProps['thoro
 	deep: 'Go broad to narrow: start with semantic or glob search to discover relevant areas, then narrow with text search. Parallelize tool calls. Read files when you need full context.',
 };
 
-/**
- * Prompt for the search subagent that uses custom search instructions
- * instead of the default agent system prompt.
- */
 export class SearchSubagentPrompt extends PromptElement<SearchSubagentPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const { conversation, toolCallRounds, toolCallResults } = this.props.promptContext;
 
-		// Render the search instruction from the conversation
 		const searchInstruction = conversation?.turns[0]?.request.message;
 
-		// Check if we're at the last turn (to align with training where we coax final answer)
 		const currentTurn = toolCallRounds?.length ?? 0;
 		const isLastTurn = currentTurn >= this.props.maxSearchTurns - 1;
 
@@ -59,7 +52,7 @@ export class SearchSubagentPrompt extends PromptElement<SearchSubagentPromptProp
 					promptContext={this.props.promptContext}
 					toolCallRounds={toolCallRounds}
 					toolCallResults={toolCallResults}
-					toolCallMode={CopilotToolMode.FullContext}
+					toolCallMode={AgentToolMode.FullContext}
 				/>
 				{isLastTurn && (
 					<UserMessage priority={900}>

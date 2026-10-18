@@ -151,7 +151,6 @@ export class NpmScriptsTreeDataProvider implements TreeDataProvider<TreeItem> {
 	}
 
 	private async runScript(script: NpmScript) {
-		// Call detectPackageManager to trigger the multiple lock files warning.
 		await detectPackageManager(script.getFolder().uri, this.context, true);
 		tasks.executeTask(script.task);
 	}

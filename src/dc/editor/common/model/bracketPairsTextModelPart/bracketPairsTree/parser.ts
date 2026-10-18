@@ -11,33 +11,21 @@ import { concat23Trees, concat23TreesOfSameHeight } from './concat23Trees.js';
 import { NodeReader } from './nodeReader.js';
 import { OpeningBracketId, Tokenizer, TokenKind } from './tokenizer.js';
 
-/**
- * Non incrementally built ASTs are immutable.
-*/
 export function parseDocument(tokenizer: Tokenizer, edits: TextEditInfo[], oldNode: AstNode | undefined, createImmutableLists: boolean): AstNode {
 	const parser = new Parser(tokenizer, edits, oldNode, createImmutableLists);
 	return parser.parseDocument();
 }
 
-/**
- * Non incrementally built ASTs are immutable.
-*/
 class Parser {
 	private readonly oldNodeReader?: NodeReader;
 	private readonly positionMapper: BeforeEditPositionMapper;
 	private _itemsConstructed: number = 0;
 	private _itemsFromCache: number = 0;
 
-	/**
-	 * Reports how many nodes were constructed in the last parse operation.
-	*/
 	get nodesConstructed() {
 		return this._itemsConstructed;
 	}
 
-	/**
-	 * Reports how many nodes were reused in the last parse operation.
-	*/
 	get nodesReused() {
 		return this._itemsFromCache;
 	}
@@ -97,7 +85,6 @@ class Parser {
 			items.push(child);
 		}
 
-		// When there is no oldNodeReader, all items are created from scratch and must have the same height.
 		const result = this.oldNodeReader ? concat23Trees(items) : concat23TreesOfSameHeight(items, this.createImmutableLists);
 		return result;
 	}
@@ -107,11 +94,7 @@ class Parser {
 			const maxCacheableLength = this.positionMapper.getDistanceToNextChange(this.tokenizer.offset);
 			if (maxCacheableLength === null || !lengthIsZero(maxCacheableLength)) {
 				const cachedNode = this.oldNodeReader.readLongestNodeAt(this.positionMapper.getOffsetBeforeChange(this.tokenizer.offset), curNode => {
-					// The edit could extend the ending token, thus we cannot re-use nodes that touch the edit.
-					// If there is no edit anymore, we can re-use the node in any case.
 					if (maxCacheableLength !== null && !lengthLessThan(curNode.length, maxCacheableLength)) {
-						// Either the node contains edited text or touches edited text.
-						// In the latter case, brackets might have been extended (`end` -> `ending`), so even touching nodes cannot be reused.
 						return false;
 					}
 					const canBeReused = curNode.canBeReused(openedBracketIds);
@@ -145,7 +128,6 @@ class Parser {
 
 			case TokenKind.OpeningBracket: {
 				if (level > 300) {
-					// To prevent stack overflows
 					return new TextAstNode(token.length);
 				}
 

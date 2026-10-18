@@ -8,11 +8,6 @@ import { IDisposable } from '../../../base/common/lifecycle.js';
 import { autorunWithStore } from '../../../base/common/observable.js';
 import { BrandedService, GetLeadingNonServiceArgs, IInstantiationService } from '../../instantiation/common/instantiation.js';
 
-/**
- * Wrap a class in a reloadable wrapper.
- * When the wrapper is created, the original class is created.
- * When the original class changes, the instance is re-created.
-*/
 export function wrapInReloadableClass0<TArgs extends BrandedService[]>(getClass: () => Result<TArgs>): Result<TArgs> {
 	return !isHotReloadEnabled() ? getClass() : createWrapper(getClass, BaseClass0);
 }
@@ -49,11 +44,6 @@ class BaseClass0 extends BaseClass {
 	constructor(@IInstantiationService i: IInstantiationService) { super(i); this.init(); }
 }
 
-/**
- * Wrap a class in a reloadable wrapper.
- * When the wrapper is created, the original class is created.
- * When the original class changes, the instance is re-created.
-*/
 export function wrapInReloadableClass1<TArgs extends [any, ...BrandedService[]]>(getClass: () => Result<TArgs>): Result<GetLeadingNonServiceArgs<TArgs>> {
 	// eslint-disable-next-line local/code-no-any-casts
 	return !isHotReloadEnabled() ? getClass() as any : createWrapper(getClass, BaseClass1);

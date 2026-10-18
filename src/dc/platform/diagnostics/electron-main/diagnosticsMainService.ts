@@ -59,7 +59,6 @@ export class DiagnosticsMainService implements IDiagnosticsMainService {
 				window.sendWhenReady('vscode:getDiagnosticInfo', CancellationToken.None, { replyChannel, args });
 
 				validatedIpcMain.once(replyChannel, (_: IpcEvent, data: IRemoteDiagnosticInfo) => {
-					// No data is returned if getting the connection fails.
 					if (!data) {
 						resolve({ hostName: remoteAuthority, errorMessage: `Unable to resolve connection to '${remoteAuthority}'.` });
 					}
@@ -139,7 +138,7 @@ export class DiagnosticsMainService implements IDiagnosticsMainService {
 		if (isSingleFolderWorkspaceIdentifier(workspace)) {
 			folderURIs.push(workspace.uri);
 		} else if (isWorkspaceIdentifier(workspace)) {
-			const resolvedWorkspace = await this.workspacesManagementMainService.resolveLocalWorkspace(workspace.configPath); // workspace folders can only be shown for local (resolved) workspaces
+			const resolvedWorkspace = await this.workspacesManagementMainService.resolveLocalWorkspace(workspace.configPath);
 			if (resolvedWorkspace) {
 				const rootFolders = resolvedWorkspace.folders;
 				rootFolders.forEach(root => {

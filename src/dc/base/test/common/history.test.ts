@@ -75,7 +75,7 @@ suite('History Navigator', () => {
 		assert.strictEqual(testObject.isLast(), true);
 		assert.strictEqual(testObject.current(), '4');
 		assert.strictEqual(testObject.next(), null);
-		assert.strictEqual(testObject.isLast(), false); // Stepping past the last element, is no longer "last"
+		assert.strictEqual(testObject.isLast(), false);
 	});
 
 	test('previous on first element returns null and remains on first', () => {

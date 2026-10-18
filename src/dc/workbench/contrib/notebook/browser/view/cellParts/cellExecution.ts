@@ -31,13 +31,10 @@ export class CellExecutionPart extends CellContentPart {
 	) {
 		super();
 
-		// Add class to the outer container for styling
 		this._executionOrderLabel.classList.add('cell-execution-order');
 
-		// Create nested div for content
 		this._executionOrderContent = DOM.append(this._executionOrderLabel, DOM.$('div'));
 
-		// Add a method to watch for cell execution state changes
 		this._register(this._notebookExecutionStateService.onDidChangeExecution(e => {
 			if (this.currentCell && hasKey(e, { affectsCell: true }) && e.affectsCell(this.currentCell.uri)) {
 				this._updatePosition();
@@ -77,7 +74,6 @@ export class CellExecutionPart extends CellContentPart {
 
 	private updateExecutionOrder(internalMetadata: NotebookCellInternalMetadata, forceClear = false): void {
 		if (this._notebookEditor.activeKernel?.implementsExecutionOrder || (!this._notebookEditor.activeKernel && typeof internalMetadata.executionOrder === 'number')) {
-			// If the executionOrder was just cleared, and the cell is executing, wait just a bit before clearing the view to avoid flashing
 			if (typeof internalMetadata.executionOrder !== 'number' && !forceClear && !!this._notebookExecutionStateService.getCellExecution(this.currentCell!.uri)) {
 				const renderingCell = this.currentCell;
 				disposableTimeout(() => {
@@ -94,7 +90,6 @@ export class CellExecutionPart extends CellContentPart {
 				'[ ]';
 			this._executionOrderContent.innerText = executionOrderLabel;
 
-			// Call _updatePosition to refresh sticky status
 			this._updatePosition();
 		} else {
 			this._executionOrderContent.innerText = '';
@@ -115,17 +110,13 @@ export class CellExecutionPart extends CellContentPart {
 			return;
 		}
 
-		// Only show the execution order label when the cell is running
 		const cellIsRunning = !!this._notebookExecutionStateService.getCellExecution(this.currentCell.uri);
 
-		// Store sticky state before potentially removing the class
 		const wasSticky = this._executionOrderLabel.classList.contains('sticky');
 
 		if (!cellIsRunning) {
-			// Keep showing the execution order label but remove sticky class
 			this._executionOrderLabel.classList.remove('sticky');
 
-			// If we were sticky and cell stopped running, restore the proper content
 			if (wasSticky) {
 				const executionOrder = this.currentCell.internalMetadata.executionOrder;
 				const executionOrderLabel = typeof executionOrder === 'number' ?
@@ -146,32 +137,26 @@ export class CellExecutionPart extends CellContentPart {
 
 			const statusBarVisible = this.currentCell.layoutInfo.statusBarHeight > 0;
 
-			// Sticky mode: cell is running and editor is not fully visible
 			const offset = editorBottom - scrollBottom;
 			top -= offset;
 			top = clamp(
 				top,
-				lineHeight + 12, // line height + padding for single line
+				lineHeight + 12,
 				this.currentCell.layoutInfo.editorHeight - lineHeight + this.currentCell.layoutInfo.statusBarHeight
 			);
 
 			if (scrollBottom <= editorBottom && cellIsRunning) {
 				const isAlreadyIcon = this._executionOrderContent.classList.contains('sticky-spinner');
-				// Add a class when it's in sticky mode for special styling
 				if (!isAlreadyIcon) {
 					this._executionOrderLabel.classList.add('sticky-spinner');
-					// Only recreate the content if we're newly becoming sticky
 					DOM.clearNode(this._executionOrderContent);
 					const icon = ThemeIcon.modify(executingStateIcon, 'spin');
 					DOM.append(this._executionOrderContent, ...renderLabelWithIcons(`$(${icon.id})`));
 				}
-				// When already sticky, we don't need to recreate the content
 			} else if (!statusBarVisible && cellIsRunning) {
-				// Status bar is hidden but cell is running: show execution order label at the bottom of the editor area
 				const wasStickyHere = this._executionOrderLabel.classList.contains('sticky');
 				this._executionOrderLabel.classList.remove('sticky');
-				top = this.currentCell.layoutInfo.editorHeight - lineHeight; // Place at the bottom of the editor
-				// Only update content if we were previously sticky or content is not correct
+				top = this.currentCell.layoutInfo.editorHeight - lineHeight;
 				// eslint-disable-next-line no-restricted-syntax
 				const iconIsPresent = this._executionOrderContent.querySelector('.codicon') !== null;
 				if (wasStickyHere || iconIsPresent) {
@@ -182,11 +167,9 @@ export class CellExecutionPart extends CellContentPart {
 					this._executionOrderContent.innerText = executionOrderLabel;
 				}
 			} else {
-				// Only update if the current state is sticky
 				const currentlySticky = this._executionOrderLabel.classList.contains('sticky');
 				this._executionOrderLabel.classList.remove('sticky');
 
-				// When transitioning from sticky to non-sticky, restore the proper content
 				if (currentlySticky) {
 					const executionOrder = this.currentCell.internalMetadata.executionOrder;
 					const executionOrderLabel = typeof executionOrder === 'number' ?

@@ -87,7 +87,6 @@
 	margin-bottom: 0;
 }
 
-/* MarkupContent Layout */
 .monaco-hover ul {
 	padding-left: 20px;
 }
@@ -173,7 +172,6 @@
 
 .monaco-hover .hover-contents a.code-link > span {
 	text-decoration: underline;
-	/** Hack to force underline to show **/
 	border-bottom: 1px solid transparent;
 	text-underline-position: under;
 	color: var(--vscode-textLink-foreground);
@@ -183,10 +181,6 @@
 	color: var(--vscode-textLink-activeForeground);
 }
 
-/**
- * Add a slight margin to try vertically align codicons with any text
- * https://github.com/microsoft/vscode/issues/221359
- */
 .monaco-hover .markdown-hover .hover-contents:not(.code-hover-contents):not(.html-hover-contents) span.codicon {
 	margin-bottom: 2px;
 }
@@ -202,7 +196,6 @@
 	cursor: default;
 }
 
-/* Prevent text selection in all button-like elements within hovers */
 .monaco-hover .action-container,
 .monaco-hover .action,
 .monaco-hover button,

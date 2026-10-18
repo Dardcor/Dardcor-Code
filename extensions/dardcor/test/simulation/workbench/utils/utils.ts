@@ -12,7 +12,7 @@ export const REPO_ROOT: string = (globalThis as any).projectRoot;
 export const monacoModule: {
 	value: typeof import('monaco-editor');
 } = {
-	value: null! // @ulugbekna: this is initialized on workbench startup and must be non-null by the time it's used
+	value: null!
 };
 
 export function genericEquals(one: any, other: any): boolean {
@@ -70,12 +70,6 @@ export function genericEquals(one: any, other: any): boolean {
 
 let pendingRunInAction: (() => void)[] = [];
 
-/**
- * Schedules a function to be run inside a MobX action.
- * This will batch multiple callers in a single runInAction MobX call.
- *
- * @param fn - The function to be scheduled.
- */
 export function scheduleRunInAction(fn: () => void) {
 	pendingRunInAction.push(fn);
 	if (pendingRunInAction.length === 1) {

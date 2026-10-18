@@ -55,7 +55,6 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 
 		this.domNode = dom.$('.chat-mcp-servers-interaction');
 
-		// Listen to autostart state changes if available
 		if (data.state) {
 			this._register(autorun(reader => {
 				const state = data.state!.read(reader);
@@ -78,12 +77,10 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 		}
 
 		const requiringInteraction = state.serversRequiringInteraction.filter(s => {
-			// don't note interaction for a server we already started
 			if (this.data.didStartServerIds?.includes(s.id)) {
 				return false;
 			}
 
-			// don't note interaction for a server we previously noted interaction for
 			if (this.previousParts.value.some(p => p?.serversRequiringInteraction.some(s2 => s.id === s2.id))) {
 				return false;
 			}
@@ -123,7 +120,6 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 		if (state.starting.length === 0) {
 			content = new MarkdownString(undefined, { isTrusted: true }).appendText(localize('mcp.working.mcp', 'Activating MCP extensions...') + ' ').appendMarkdown(skipText);
 		} else {
-			// Update to show specific server names as command links
 			const serverLinks = this.createServerCommandLinks(state.starting);
 			content = new MarkdownString(undefined, { isTrusted: true }).appendMarkdown(localize('mcp.starting.servers', 'Starting MCP servers {0}...', serverLinks) + ' ').appendMarkdown(skipText);
 		}
@@ -136,11 +132,11 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 				{ kind: 'progressMessage', content },
 				this._markdownRendererService,
 				this.context,
-				true, // forceShowSpinner
-				true, // forceShowMessage
-				undefined, // icon
-				undefined, // toolInvocation
-				false, // no shimmer for now
+				true,
+				true,
+				undefined,
+				undefined,
+				false,
 			));
 			this.domNode.appendChild(this.workingProgressPart.domNode);
 		}
@@ -149,7 +145,6 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 	private renderInteractionRequired(serversRequiringInteraction: Array<{ id: string; label: string; errorMessage?: string }>): void {
 		this.interactionContainer = dom.$('.chat-mcp-servers-interaction-hint');
 
-		// Create subtle hint message
 		const messageContainer = dom.$('.chat-mcp-servers-message');
 		const icon = dom.$('.chat-mcp-servers-icon');
 		icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.mcp));
@@ -189,7 +184,6 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 		// eslint-disable-next-line no-restricted-syntax
 		const startLink = [...messageMd.element.querySelectorAll('a')].find(a => !a.getAttribute('data-href')?.startsWith('command:'));
 		if (!startLink) {
-			// Should not happen
 			return { messageMd, startLink: undefined };
 		}
 
@@ -200,7 +194,6 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 	}
 
 	private async _start(startLink: HTMLElement) {
-		// Update to starting state
 		startLink.style.pointerEvents = 'none';
 		startLink.style.opacity = '0.7';
 
@@ -212,7 +205,6 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 			const state = this.data.state.get();
 			const serversToStart = state.serversRequiringInteraction;
 
-			// Start servers in sequence with progress updates
 			for (let i = 0; i < serversToStart.length; i++) {
 				const serverInfo = serversToStart[i];
 				startLink.textContent = localize('mcp.starting', "Starting {0}...", serverInfo.label);
@@ -226,13 +218,11 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 				}
 			}
 
-			// Remove the interaction container after successful start
 			if (this.interactionContainer) {
 				this.interactionContainer.remove();
 				this.interactionContainer = undefined;
 			}
 		} catch (error) {
-			// Reset link on error
 			startLink.style.pointerEvents = '';
 			startLink.style.opacity = '';
 			startLink.textContent = 'Start now?';
@@ -240,7 +230,6 @@ export class ChatMcpServersInteractionContentPart extends Disposable implements 
 	}
 
 	hasSameContent(other: IChatRendererContent): boolean {
-		// Simple implementation that checks if it's the same type
 		return other.kind === 'mcpServersStarting';
 	}
 

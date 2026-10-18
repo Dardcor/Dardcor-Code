@@ -18,7 +18,6 @@ export class TsExpr {
 				}
 			}
 
-			// TODO remove indentation
 
 			return new TsExpr(parts);
 		}

@@ -175,8 +175,6 @@ where
 }
 
 async fn start_code(context: CommandContext, args: Vec<String>) -> Result<i32, AnyError> {
-	// todo: once the integrated CLI takes the place of the Node.js CLI, this should
-	// redirect to the current installation without using the CodeVersionManager.
 
 	let platform = PreReqChecker::new().verify().await?;
 	let version_manager =

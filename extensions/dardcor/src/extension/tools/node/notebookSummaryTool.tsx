@@ -18,7 +18,7 @@ import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { NotebookVariables } from '../../prompts/node/panel/notebookVariables';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { AlternativeNotebookDocument } from '../../../platform/notebook/common/alternativeNotebookDocument';
 import { INotebookService } from '../../../platform/notebook/common/notebookService';
 import { ILogService } from '../../../platform/log/common/logService';
@@ -28,7 +28,7 @@ export interface INotebookSummaryToolParams {
 	filePath: string;
 }
 
-export class NotebookSummaryTool implements ICopilotTool<INotebookSummaryToolParams> {
+export class NotebookSummaryTool implements IAgentTool<INotebookSummaryToolParams> {
 	public static toolName = ToolName.GetNotebookSummary;
 	private promptContext?: IBuildPromptContext;
 
@@ -48,8 +48,6 @@ export class NotebookSummaryTool implements ICopilotTool<INotebookSummaryToolPar
 		if (!uri) {
 			throw new Error(`Invalid file path`);
 		}
-		// Sometimes we get the notebook cell Uri in the resource.
-		// Resolve this to notebook.
 		let notebook = findNotebook(uri, this.workspaceService.notebookDocuments);
 		if (notebook) {
 			uri = notebook.uri;
@@ -77,8 +75,6 @@ export class NotebookSummaryTool implements ICopilotTool<INotebookSummaryToolPar
 					this.instantiationService,
 					NotebookSummary,
 					{ notebook, altDoc, includeCellLines: true },
-					// If we are not called with tokenization options, have _some_ fake tokenizer
-					// otherwise we end up returning the entire document
 					options.tokenizationOptions ?? {
 						tokenBudget: 1000,
 						countTokens: (t) => Promise.resolve(t.length * 3 / 4)
@@ -158,8 +154,6 @@ export class NotebookSummary extends PromptElement<NotebookStatePromptProps> {
 					const altCellStartLine = includeCellLines ? altDoc.fromCellPosition(cell, new Position(0, 0)).line + 1 : -1;
 					const altCellEndLine = includeCellLines ? altDoc.fromCellPosition(cell, new Position(cell.document.lineCount - 1, 0)).line + 1 : -1;
 					const cellLines = `From ${altCellStartLine} to ${altCellEndLine}`;
-					// If there's no timing, then means the notebook wasn't executed in current session.
-					// Timing information is generally not stored in notebooks.
 					if (executionOrder === undefined || !cell.executionSummary?.timing) {
 						executionSummary = `Execution = Cell not executed.`;
 					} else {

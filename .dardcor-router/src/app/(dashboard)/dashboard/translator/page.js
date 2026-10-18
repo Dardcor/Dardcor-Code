@@ -7,7 +7,6 @@ import dynamic from "next/dynamic";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
-// 7 steps matching requestLogger files exactly
 const STEPS = [
   { id: 1, label: "Client Request",         file: "1_req_client.json",  lang: "json", desc: "Raw request from client" },
   { id: 2, label: "Source Body",            file: "2_req_source.json",  lang: "json", desc: "After initial conversion" },
@@ -31,7 +30,6 @@ export default function TranslatorPage() {
   const [contents, setContents] = useState({});
   const [expanded, setExpanded] = useState({ 1: true });
   const [loading, setLoading] = useState({});
-  // Detected from step 1: { provider, model, sourceFormat, targetFormat }
   const [meta, setMeta] = useState(null);
 
   const setLoad = (key, val) => setLoading(prev => ({ ...prev, [key]: val }));
@@ -45,7 +43,6 @@ export default function TranslatorPage() {
     return next;
   });
 
-  // Load file from logs/translator/
   const handleLoad = async (stepId) => {
     const step = STEPS.find(s => s.id === stepId);
     setLoad(`load-${stepId}`, true);
@@ -64,7 +61,6 @@ export default function TranslatorPage() {
     setLoad(`load-${stepId}`, false);
   };
 
-  // Step 1: detect provider/format from model field
   const detectMeta = async (rawContent) => {
     try {
       const body = typeof rawContent === "string" ? JSON.parse(rawContent) : rawContent;
@@ -75,7 +71,7 @@ export default function TranslatorPage() {
       });
       const data = await res.json();
       if (data.success) setMeta(data.result);
-    } catch { /* ignore */ }
+    } catch { }
   };
 
   const save = (file, content) => fetch("/api/translator/save", {
@@ -84,13 +80,11 @@ export default function TranslatorPage() {
     body: JSON.stringify({ file, content })
   }).catch(() => {});
 
-  // Step 1 → Step 3: source → OpenAI intermediate
   const handleToOpenAI = async () => {
     setLoad("toOpenAI", true);
     try {
       const raw = contents[1];
       const body = JSON.parse(raw);
-      // Save input: 1_req_client.json + 2_req_source.json (body only)
       save("1_req_client.json", raw);
       save("2_req_source.json", JSON.stringify({ timestamp: new Date().toISOString(), headers: {}, body: body.body || body }, null, 2));
 
@@ -108,13 +102,11 @@ export default function TranslatorPage() {
     setLoad("toOpenAI", false);
   };
 
-  // Step 3 → Step 4: OpenAI → target + build URL/headers
   const handleToTarget = async () => {
     setLoad("toTarget", true);
     try {
       const raw = contents[3];
       const openaiBody = JSON.parse(raw);
-      // Save input: 3_req_openai.json
       save("3_req_openai.json", raw);
 
       const res = await fetch("/api/translator/translate", {
@@ -124,7 +116,6 @@ export default function TranslatorPage() {
       });
       const data = await res.json();
       if (!data.success) { alert(data.error); return; }
-      // Embed provider + model so Send works even without meta
       const step4Content = { ...data.result, provider: meta?.provider, model: meta?.model };
       setContent(4, JSON.stringify(step4Content, null, 2));
       openNext(4);
@@ -132,16 +123,13 @@ export default function TranslatorPage() {
     setLoad("toTarget", false);
   };
 
-  // Step 4 → Step 5: send to provider via executor
   const handleSend = async () => {
     setLoad("send", true);
     try {
       const raw = contents[4];
       const step4 = JSON.parse(raw);
-      // Save input: 4_req_target.json
       save("4_req_target.json", raw);
 
-      // Read provider/model from step4 content (embedded during build), fallback to meta
       const provider = step4.provider || meta?.provider;
       const model = step4.model || meta?.model;
 
@@ -162,7 +150,6 @@ export default function TranslatorPage() {
         return;
       }
 
-      // Accumulate streaming response
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let full = "";
@@ -175,7 +162,6 @@ export default function TranslatorPage() {
       setContent(5, full);
       openNext(5);
 
-      // Save to logs/translator/5_res_provider.txt
       await fetch("/api/translator/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -199,10 +185,9 @@ export default function TranslatorPage() {
     try {
       const obj = JSON.parse(contents[id]);
       setContent(id, JSON.stringify(obj, null, 2));
-    } catch { /* not JSON, skip */ }
+    } catch { }
   };
 
-  // Render action button per step
   const getAction = (stepId) => {
     if (stepId === 1) return <Button size="sm" icon="arrow_forward" loading={loading["toOpenAI"]} onClick={handleToOpenAI}>→ OpenAI</Button>;
     if (stepId === 3) return <Button size="sm" icon="arrow_forward" loading={loading["toTarget"]} onClick={handleToTarget}>→ Target</Button>;
@@ -212,7 +197,7 @@ export default function TranslatorPage() {
 
   return (
     <div className="space-y-4 min-w-0">
-      {/* Header */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-text-main">Translator Debug</h1>
@@ -237,7 +222,7 @@ export default function TranslatorPage() {
         return (
           <Card key={step.id}>
             <div className="p-3.5 sm:p-4 space-y-3">
-              {/* Step header */}
+              {}
               <div className="flex items-center justify-between gap-2">
                 <button onClick={() => toggle(step.id)} className="flex items-center gap-2 flex-1 text-left group min-w-0 flex-wrap sm:flex-nowrap">
                   <span className="material-symbols-outlined text-[20px] text-text-muted group-hover:text-primary transition-colors shrink-0">
@@ -256,7 +241,7 @@ export default function TranslatorPage() {
                 )}
               </div>
 
-              {/* Expanded content */}
+              {}
               {isExpanded && (
                 <>
                   <div className="border border-border rounded-lg overflow-hidden">

@@ -182,10 +182,8 @@ export class NotebookVariablesView extends ViewPane {
 
 	private handleExecutionStateChange(event: ICellExecutionStateChangedEvent | IExecutionStateChangedEvent) {
 		if (this.activeNotebook && event.affectsNotebook(this.activeNotebook.uri)) {
-			// new execution state means either new variables or the kernel is busy so we shouldn't ask
 			this.dataSource.cancel();
 
-			// changed === undefined -> excecution ended
 			if (event.changed === undefined) {
 				this.updateScheduler.schedule();
 			}
@@ -193,7 +191,6 @@ export class NotebookVariablesView extends ViewPane {
 				this.updateScheduler.cancel();
 			}
 		} else if (!this.getActiveNotebook()) {
-			// check if the updated variables are for a visible notebook
 			this.editorService.visibleEditorPanes.forEach(editor => {
 				const notebookDocument = getNotebookEditorFromEditorPane(editor)?.textModel;
 				if (notebookDocument && event.affectsNotebook(notebookDocument.uri)) {
@@ -207,7 +204,6 @@ export class NotebookVariablesView extends ViewPane {
 		if (this.activeNotebook && notebookUri.toString() === this.activeNotebook.uri.toString()) {
 			this.updateScheduler.schedule();
 		} else if (!this.getActiveNotebook()) {
-			// check if the updated variables are for a visible notebook
 			this.editorService.visibleEditorPanes.forEach(editor => {
 				const notebookDocument = getNotebookEditorFromEditorPane(editor)?.textModel;
 				if (notebookDocument && notebookDocument.uri.toString() === notebookUri.toString()) {

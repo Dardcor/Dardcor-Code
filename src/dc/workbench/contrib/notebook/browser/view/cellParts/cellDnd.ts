@@ -53,8 +53,6 @@ export class CellDragAndDropPart extends CellContentPart {
 }
 
 export class CellDragAndDropController extends Disposable {
-	// TODO@roblourens - should probably use dataTransfer here, but any dataTransfer set makes the editor think I am dropping a file, need
-	// to figure out how to prevent that
 	private currentDraggedCell: ICellViewModel | undefined;
 	private draggedCells: ICellViewModel[] = [];
 
@@ -235,7 +233,6 @@ export class CellDragAndDropController extends Disposable {
 		const insertionIndicatorTop = insertionIndicatorAbsolutePos - this.list.scrollTop + bottomToolbarGap / 2;
 		const editorHeight = this.notebookEditor.getDomNode().getBoundingClientRect().height;
 		if (insertionIndicatorTop < 0 || insertionIndicatorTop > editorHeight) {
-			// Ignore drop, insertion point is off-screen
 			return;
 		}
 
@@ -311,7 +308,6 @@ export class CellDragAndDropController extends Disposable {
 				return;
 			}
 
-			// Note, templateData may have a different element rendered into it by now
 			container.classList.remove(DRAGGING_CLASS);
 			this.dragCleanup();
 		};
@@ -335,7 +331,7 @@ export class CellDragAndDropController extends Disposable {
 			const dragImage = dragImageProvider();
 			cellRoot.parentElement!.appendChild(dragImage);
 			event.dataTransfer.setDragImage(dragImage, 0, 0);
-			setTimeout(() => dragImage.remove(), 0); // Comment this out to debug drag image layout
+			setTimeout(() => dragImage.remove(), 0);
 		};
 		for (const dragHandle of dragHandles) {
 			templateData.templateDisposables.add(DOM.addDisposableListener(dragHandle, DOM.EventType.DRAG_START, onDragStart));
@@ -366,7 +362,6 @@ export class CellDragAndDropController extends Disposable {
 			this.updateInsertIndicator(dropDirection, insertionIndicatorAbsolutePos);
 		}
 
-		// Try scrolling list if needed
 		if (this.currentDraggedCell !== cell) {
 			return;
 		}
@@ -374,7 +369,6 @@ export class CellDragAndDropController extends Disposable {
 		const notebookViewRect = this.notebookEditor.getDomNode().getBoundingClientRect();
 		const eventPositionInView = dragOffsetY - this.list.scrollTop;
 
-		// Percentage from the top/bottom of the screen where we start scrolling while dragging
 		const notebookViewScrollMargins = 0.2;
 
 		const maxScrollDeltaPerFrame = 20;
@@ -427,7 +421,6 @@ export function performCellDropEdits(editor: INotebookEditorDelegate, draggedCel
 		return;
 	}
 
-	// If dropped on a folded markdown range, insert after the folding range
 	if (dropDirection === 'below') {
 		const newIdx = editor.getNextVisibleCellIndex(originalToIdx) ?? originalToIdx;
 		originalToIdx = newIdx;
@@ -440,7 +433,6 @@ export function performCellDropEdits(editor: INotebookEditorDelegate, draggedCel
 
 	let originalFocusIdx = editor.getFocus().start;
 
-	// If the dragged cell is not focused/selected, ignore the current focus/selection and use the dragged idx
 	if (!selections.some(s => s.start <= draggedCellIndex && s.end > draggedCellIndex)) {
 		selections = [{ start: draggedCellIndex, end: draggedCellIndex + 1 }];
 		originalFocusIdx = draggedCellIndex;
@@ -456,14 +448,10 @@ export function performCellDropEdits(editor: INotebookEditorDelegate, draggedCel
 	let focusNewIdx = originalToIdx;
 	let newInsertionIdx = originalToIdx;
 
-	// Compute a set of edits which will be applied in reverse order by the notebook text model.
-	// `index`: the starting index of the range, after previous edits have been applied
-	// `newIdx`: the destination index, after this edit's range has been removed
 	selections.sort((a, b) => b.start - a.start);
 	const edits = selections.map(range => {
 		const length = range.end - range.start;
 
-		// If this range is before the insertion point, subtract the cells in this range from the "to" index
 		let toIndexDelta = 0;
 		if (range.end <= newInsertionIdx) {
 			toIndexDelta = -length;
@@ -471,13 +459,11 @@ export function performCellDropEdits(editor: INotebookEditorDelegate, draggedCel
 
 		const newIdx = newInsertionIdx + toIndexDelta;
 
-		// If this range contains the focused cell, set the new focus index to the new index of the cell
 		if (originalFocusIdx >= range.start && originalFocusIdx <= range.end) {
 			const offset = originalFocusIdx - range.start;
 			focusNewIdx = newIdx + offset;
 		}
 
-		// If below the insertion point, the original index will have been shifted down
 		const fromIndexDelta = range.start >= originalToIdx ? numCells : 0;
 
 		const edit: ICellMoveEdit = {
@@ -488,7 +474,6 @@ export function performCellDropEdits(editor: INotebookEditorDelegate, draggedCel
 		};
 		numCells += length;
 
-		// If a range was moved down, the insertion index needs to be adjusted
 		if (range.end < newInsertionIdx) {
 			newInsertionIdx -= length;
 		}

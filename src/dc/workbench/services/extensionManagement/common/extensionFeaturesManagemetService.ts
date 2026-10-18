@@ -217,7 +217,6 @@ class ExtensionFeaturesManagementService extends Disposable implements IExtensio
 		try {
 			data = JSON.parse(raw);
 		} catch (e) {
-			// ignore
 		}
 		const result = new Map<string, Map<string, IExtensionFeatureState>>();
 		for (const extensionId in data) {

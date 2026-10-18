@@ -7,7 +7,6 @@ import { encodeHex, VSBuffer } from '../dardcor/base/common/buffer';
 import * as strings from '../dardcor/base/common/strings';
 
 export async function createRequestHMAC(hmacSecret: string | undefined): Promise<string | undefined> {
-	// If we don't have the right env variables this could happen
 	if (!hmacSecret) {
 		return undefined;
 	}
@@ -62,7 +61,7 @@ function createSha256HashSyncInsecure(data: string): string {
 }
 
 const enum SHA256Constant {
-	BLOCK_SIZE = 64, // 512 / 8
+	BLOCK_SIZE = 64,
 	UNICODE_REPLACEMENT = 0xFFFD,
 }
 
@@ -80,10 +79,6 @@ function rightRotate(value: number, bits: number): number {
 	return ((value >>> bits) | (value << (32 - bits))) >>> 0;
 }
 
-/**
- * A simple, synchronous implementation of SHA-256 for strings.
- * Only to be used in non-security-critical paths where synchronous operation is required.
- */
 class StringSHA256Insecure {
 	private static _k = [
 		0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -96,7 +91,7 @@ class StringSHA256Insecure {
 		0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 	];
 
-	private static _bigBlock32 = new DataView(new ArrayBuffer(256)); // 64 * 4 = 256
+	private static _bigBlock32 = new DataView(new ArrayBuffer(256));
 
 	private _h0 = 0x6a09e667;
 	private _h1 = 0xbb67ae85;
@@ -115,7 +110,7 @@ class StringSHA256Insecure {
 	private _finished: boolean;
 
 	constructor() {
-		this._buff = new Uint8Array(SHA256Constant.BLOCK_SIZE + 3 /* to fit any utf-8 */);
+		this._buff = new Uint8Array(SHA256Constant.BLOCK_SIZE + 3 );
 		this._buffDV = new DataView(this._buff.buffer);
 		this._buffLen = 0;
 		this._totalLen = 0;
@@ -153,16 +148,13 @@ class StringSHA256Insecure {
 						offset++;
 						codePoint = strings.computeCodePoint(charCode, nextCharCode);
 					} else {
-						// illegal => unicode replacement character
 						codePoint = SHA256Constant.UNICODE_REPLACEMENT;
 					}
 				} else {
-					// last character is a surrogate pair
 					leftoverHighSurrogate = charCode;
 					break;
 				}
 			} else if (strings.isLowSurrogate(charCode)) {
-				// illegal => unicode replacement character
 				codePoint = SHA256Constant.UNICODE_REPLACEMENT;
 			}
 
@@ -200,7 +192,6 @@ class StringSHA256Insecure {
 			this._step();
 			buffLen -= SHA256Constant.BLOCK_SIZE;
 			this._totalLen += SHA256Constant.BLOCK_SIZE;
-			// take last 3 in case of UTF8 overflow
 			buff[0] = buff[SHA256Constant.BLOCK_SIZE + 0];
 			buff[1] = buff[SHA256Constant.BLOCK_SIZE + 1];
 			buff[2] = buff[SHA256Constant.BLOCK_SIZE + 2];
@@ -213,7 +204,6 @@ class StringSHA256Insecure {
 		if (!this._finished) {
 			this._finished = true;
 			if (this._leftoverHighSurrogate) {
-				// illegal => unicode replacement character
 				this._leftoverHighSurrogate = 0;
 				this._buffLen = this._push(this._buff, this._buffLen, SHA256Constant.UNICODE_REPLACEMENT);
 			}
@@ -233,7 +223,6 @@ class StringSHA256Insecure {
 			this._buff.fill(0);
 		}
 
-		// this will fit because the mantissa can cover up to 52 bits
 		const ml = 8 * this._totalLen;
 
 		this._buffDV.setUint32(56, Math.floor(ml / 4294967296), false);
@@ -247,12 +236,10 @@ class StringSHA256Insecure {
 		const data = this._buffDV;
 		const k = StringSHA256Insecure._k;
 
-		// Copy chunk into first 16 words of message schedule
-		for (let j = 0; j < 64 /* 16*4 */; j += 4) {
+		for (let j = 0; j < 64 ; j += 4) {
 			bigBlock32.setUint32(j, data.getUint32(j, false), false);
 		}
 
-		// Extend the first 16 words into the remaining 48 words of the message schedule
 		for (let j = 16; j < 64; j++) {
 			const offset = j * 4;
 			const w15 = bigBlock32.getUint32((j - 15) * 4, false);
@@ -264,7 +251,6 @@ class StringSHA256Insecure {
 			bigBlock32.setUint32(offset, (w16 + s0 + w7 + s1) >>> 0, false);
 		}
 
-		// Initialize working variables
 		let a = this._h0;
 		let b = this._h1;
 		let c = this._h2;
@@ -274,7 +260,6 @@ class StringSHA256Insecure {
 		let g = this._h6;
 		let h = this._h7;
 
-		// Compression function main loop
 		for (let j = 0; j < 64; j++) {
 			const S1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
 			const ch = (e & f) ^ ((~e) & g);
@@ -293,7 +278,6 @@ class StringSHA256Insecure {
 			a = (temp1 + temp2) >>> 0;
 		}
 
-		// Add the compressed chunk to the current hash value
 		this._h0 = (this._h0 + a) >>> 0;
 		this._h1 = (this._h1 + b) >>> 0;
 		this._h2 = (this._h2 + c) >>> 0;

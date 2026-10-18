@@ -86,7 +86,7 @@ export class CellEditorStatusBar extends CellContentPart {
 
 			get delay(): number {
 				return Date.now() - this._lastHoverHideTime < 200
-					? 0  // show instantly when a hover was recently shown
+					? 0
 					: configurationService.getValue<number>('workbench.hover.delay');
 			}
 
@@ -99,7 +99,6 @@ export class CellEditorStatusBar extends CellContentPart {
 
 		this._register(DOM.addDisposableListener(this.statusBarContainer, DOM.EventType.CLICK, e => {
 			if (e.target === leftItemsContainer || e.target === rightItemsContainer || e.target === this.statusBarContainer) {
-				// hit on empty space
 				this._onDidClick.fire({
 					type: ClickTargetType.Container,
 					event: e
@@ -121,7 +120,6 @@ export class CellEditorStatusBar extends CellContentPart {
 						event: e
 					});
 				} else {
-					// text
 					this._onDidClick.fire({
 						type: ClickTargetType.ContributedTextItem,
 						event: e
@@ -144,7 +142,6 @@ export class CellEditorStatusBar extends CellContentPart {
 		}
 
 		if (this._editor) {
-			// Focus Mode
 			const updateFocusModeForEditorEvent = () => {
 				if (this._editor && (this._editor.hasWidgetFocus() || (this.statusBarContainer.ownerDocument.activeElement && this.statusBarContainer.contains(this.statusBarContainer.ownerDocument.activeElement)))) {
 					element.focusMode = CellFocusMode.Editor;
@@ -164,9 +161,6 @@ export class CellEditorStatusBar extends CellContentPart {
 				updateFocusModeForEditorEvent();
 			}));
 			this.cellDisposables.add(this._editor.onDidBlurEditorWidget(() => {
-				// this is for a special case:
-				// users click the status bar empty space, which we will then focus the editor
-				// so we don't want to update the focus state too eagerly, it will be updated with onDidFocusEditorWidget
 				if (
 					this._notebookEditor.hasEditorFocus() &&
 					!(this.statusBarContainer.ownerDocument.activeElement && this.statusBarContainer.contains(this.statusBarContainer.ownerDocument.activeElement))) {
@@ -174,7 +168,6 @@ export class CellEditorStatusBar extends CellContentPart {
 				}
 			}));
 
-			// Mouse click handlers
 			this.cellDisposables.add(this.onDidClick(e => {
 				if (this.currentCell instanceof CodeCellViewModel && e.type !== ClickTargetType.ContributedCommandItem && this._editor) {
 					const target = this._editor.getTargetAtClientPoint(e.event.clientX, e.event.clientY - this._notebookEditor.notebookOptions.computeEditorStatusbarHeight(this.currentCell.internalMetadata, this.currentCell.uri));
@@ -188,7 +181,6 @@ export class CellEditorStatusBar extends CellContentPart {
 	}
 
 	override updateInternalLayoutNow(element: ICellViewModel): void {
-		// todo@rebornix layer breaker
 		this._cellContainer.classList.toggle('cell-statusbar-hidden', this._notebookEditor.notebookOptions.computeEditorStatusbarHeight(element.internalMetadata, element.uri) === 0);
 
 		const layoutInfo = element.layoutInfo;

@@ -15,7 +15,6 @@ import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { ToolEmbeddingLocalCache } from '../../../common/virtualTools/toolEmbeddingsLocalCache';
 
-// Enhanced MockFileSystemService that supports writeFile for testing
 class TestableFileSystemService extends MockFileSystemService {
 	private writtenFiles = new Map<string, Uint8Array>();
 
@@ -23,7 +22,6 @@ class TestableFileSystemService extends MockFileSystemService {
 		const uriString = uri.toString();
 		this.writtenFiles.set(uriString, content);
 
-		// Make the file available for reading
 		const contentString = Buffer.from(content).toString('base64');
 		this.mockFile(uri, contentString);
 	}
@@ -31,12 +29,10 @@ class TestableFileSystemService extends MockFileSystemService {
 	override async readFile(uri: URI): Promise<Uint8Array> {
 		const uriString = uri.toString();
 
-		// Check if file was written in this test session
 		if (this.writtenFiles.has(uriString)) {
 			return this.writtenFiles.get(uriString)!;
 		}
 
-		// Fall back to mocked files (return as base64 decoded)
 		try {
 			const base64Content = await super.readFile(uri);
 			return Buffer.from(new TextDecoder().decode(base64Content), 'base64');
@@ -58,7 +54,6 @@ describe('ToolEmbeddingLocalCache', () => {
 	let mockContext: IVSCodeExtensionContext;
 	let embeddingType: EmbeddingType;
 
-	// Sample test data
 	const createSampleTool = (name: string, description: string = `Description for ${name}`): LanguageModelToolInformation => ({
 		name,
 		description
@@ -69,18 +64,15 @@ describe('ToolEmbeddingLocalCache', () => {
 		value: values
 	});
 
-	// Helper to create embeddings with Float32 precision for accurate testing
 	const createFloat32Embedding = (type: EmbeddingType, values: number[]): Embedding => ({
 		type,
 		value: Array.from(Float32Array.from(values))
 	});
 
-	// Helper to compare embeddings with Float32 tolerance
 	const expectEmbeddingToEqual = (actual: Embedding | undefined, expected: Embedding) => {
 		expect(actual).toBeDefined();
 		expect(actual!.type).toEqual(expected.type);
 		expect(actual!.value.length).toBe(expected.value.length);
-		// Compare with Float32 precision
 		actual!.value.forEach((actualVal, i) => {
 			const expectedVal = expected.value[i];
 			expect(Math.abs(actualVal - expectedVal)).toBeLessThan(1e-5);
@@ -97,7 +89,6 @@ describe('ToolEmbeddingLocalCache', () => {
 		mockContext = accessor.get(IVSCodeExtensionContext);
 		embeddingType = EmbeddingType.text3small_512;
 
-		// Create cache instance
 		cache = disposables.add(new ToolEmbeddingLocalCache(
 			embeddingType,
 			mockFileSystem,
@@ -161,20 +152,16 @@ describe('ToolEmbeddingLocalCache', () => {
 			const embedding1 = createFloat32Embedding(embeddingType, [0.1, 0.2, 0.3, 0.4]);
 			const embedding2 = createFloat32Embedding(embeddingType, [0.5, 0.6, 0.7, 0.8]);
 
-			// Store embeddings
 			cache.set(tool1, embedding1);
 			cache.set(tool2, embedding2);
 
-			// Manually save
 			cache.save();
 
-			// Verify file was written
 			const cacheUri = URI.joinPath(mockContext.globalStorageUri, 'toolEmbeddingsCache.bin');
 			const writtenContent = mockFileSystem.getWrittenContent(cacheUri);
 			expect(writtenContent).toBeDefined();
 			expect(writtenContent!.length).toBeGreaterThan(0);
 
-			// Create new cache and load
 			const newCache = disposables.add(new ToolEmbeddingLocalCache(
 				embeddingType,
 				mockFileSystem,
@@ -183,7 +170,6 @@ describe('ToolEmbeddingLocalCache', () => {
 
 			await newCache.initialize();
 
-			// Verify loaded data with Float32 precision
 			expectEmbeddingToEqual(newCache.get(tool1), embedding1);
 			expectEmbeddingToEqual(newCache.get(tool2), embedding2);
 		});
@@ -192,11 +178,9 @@ describe('ToolEmbeddingLocalCache', () => {
 			const tool = createSampleTool('type-mismatch-tool');
 			const embedding = createSampleEmbedding(embeddingType);
 
-			// Store with current type
 			cache.set(tool, embedding);
 			cache.save();
 
-			// Create cache with different embedding type
 			const differentType = EmbeddingType.metis_1024_I16_Binary;
 			const newCache = disposables.add(new ToolEmbeddingLocalCache(
 				differentType,
@@ -206,18 +190,15 @@ describe('ToolEmbeddingLocalCache', () => {
 
 			await newCache.initialize();
 
-			// Should not find the embedding due to type mismatch
 			expect(newCache.get(tool)).toBeUndefined();
 		});
 
 		it('should handle corrupted cache file gracefully', async () => {
 			const cacheUri = URI.joinPath(mockContext.globalStorageUri, 'toolEmbeddingsCache.bin');
 
-			// Write corrupted data
 			const corruptedData = new Uint8Array([0xFF, 0xFF, 0xFF, 0xFF]);
 			await mockFileSystem.writeFile(cacheUri, corruptedData);
 
-			// Should not throw and should start with empty cache
 			await expect(cache.initialize()).resolves.not.toThrow();
 
 			const tool = createSampleTool('test-after-corruption');
@@ -228,18 +209,15 @@ describe('ToolEmbeddingLocalCache', () => {
 			const tool = createSampleTool('version-test-tool');
 			const embedding = createSampleEmbedding(embeddingType);
 
-			// Store with current implementation
 			cache.set(tool, embedding);
 			cache.save();
 
-			// Modify the saved file to have wrong version (overwrite first bytes)
 			const cacheUri = URI.joinPath(mockContext.globalStorageUri, 'toolEmbeddingsCache.bin');
 			const currentContent = mockFileSystem.getWrittenContent(cacheUri)!;
 			const modifiedContent = new Uint8Array(currentContent);
-			modifiedContent[0] = 99; // Invalid version
+			modifiedContent[0] = 99;
 			await mockFileSystem.writeFile(cacheUri, modifiedContent);
 
-			// Create new cache
 			const newCache = disposables.add(new ToolEmbeddingLocalCache(
 				embeddingType,
 				mockFileSystem,
@@ -248,7 +226,6 @@ describe('ToolEmbeddingLocalCache', () => {
 
 			await newCache.initialize();
 
-			// Should start with empty cache due to version mismatch
 			expect(newCache.get(tool)).toBeUndefined();
 		});
 	});
@@ -264,10 +241,8 @@ describe('ToolEmbeddingLocalCache', () => {
 			const cacheUri = URI.joinPath(mockContext.globalStorageUri, 'toolEmbeddingsCache.bin');
 			const content = mockFileSystem.getWrittenContent(cacheUri)!;
 
-			// Should be much smaller than JSON would be
-			// A JSON representation would be several KB, binary should be much less
-			expect(content.length).toBeLessThan(3000); // Reasonable upper bound
-			expect(content.length).toBeGreaterThan(100); // Has actual content
+			expect(content.length).toBeLessThan(3000);
+			expect(content.length).toBeGreaterThan(100);
 		});
 	});
 
@@ -276,7 +251,6 @@ describe('ToolEmbeddingLocalCache', () => {
 			const tools: LanguageModelToolInformation[] = [];
 			const embeddings: Embedding[] = [];
 
-			// Create 50 tools with different embeddings
 			for (let i = 0; i < 50; i++) {
 				const tool = createSampleTool(`bulk-tool-${i}`, `Description ${i}`);
 				const embedding = createSampleEmbedding(embeddingType, [i, i + 0.1, i + 0.2, i + 0.3]);
@@ -296,7 +270,6 @@ describe('ToolEmbeddingLocalCache', () => {
 
 			await newCache.initialize();
 
-			// Verify all can be retrieved
 			tools.forEach((tool, i) => {
 				expect(cache.get(tool)).toEqual(embeddings[i]);
 				expectEmbeddingToEqual(newCache.get(tool), embeddings[i]);

@@ -9,7 +9,6 @@ export async function GET(request) {
   const emitter = getConsoleEmitter();
   const state = { closed: false, send: null, sendLines: null, sendClear: null, keepalive: null };
 
-  // Idempotent: safe to call from request.signal abort, cancel(), or enqueue failure.
   const cleanup = () => {
     if (state.closed) return;
     state.closed = true;
@@ -19,19 +18,15 @@ export async function GET(request) {
     if (state.keepalive) clearInterval(state.keepalive);
   };
 
-  // request.signal fires reliably on client disconnect; ReadableStream.cancel()
-  // is not always invoked in Next.js, which caused listeners to accumulate.
   request.signal.addEventListener("abort", cleanup, { once: true });
 
   const stream = new ReadableStream({
     start(controller) {
-      // Send all buffered logs immediately on connect
       const buffered = getConsoleLogs();
       if (buffered.length > 0) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "init", logs: buffered })}\n\n`));
       }
 
-      // Push new lines as they arrive
       state.send = (line) => {
         if (state.closed) return;
         try {
@@ -50,7 +45,6 @@ export async function GET(request) {
         }
       };
 
-      // Notify client when cleared
       state.sendClear = () => {
         if (state.closed) return;
         try {
@@ -64,7 +58,6 @@ export async function GET(request) {
       emitter.on("lines", state.sendLines);
       emitter.on("clear", state.sendClear);
 
-      // Keepalive ping every 25s
       state.keepalive = setInterval(() => {
         if (state.closed) { clearInterval(state.keepalive); return; }
         try {

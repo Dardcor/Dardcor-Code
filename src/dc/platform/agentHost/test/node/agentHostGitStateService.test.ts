@@ -276,8 +276,6 @@ suite('AgentHostGitStateService', () => {
 			workingDirectories: options?.workingDirectory ? [options.workingDirectory] : undefined,
 			project: options?.project ? { uri: options.project, displayName: 'Project' } : undefined,
 		};
-		// `restoreSession` materializes the session in `ready` lifecycle so the
-		// persistence path (which skips `creating` sessions) actually runs.
 		stateManager.restoreSession(summary, []);
 		if (options?.isolation) {
 			stateManager.setSessionConfig(SESSION, {
@@ -755,8 +753,6 @@ suite('AgentHostGitStateService', () => {
 
 	test('falls back to the commit at HEAD when the branch name matches no pull request', async () => {
 		await runWithFakedTimers({ useFakeTimers: true }, async () => {
-			// A branch checked out from a pull request head: no upstream, and a
-			// name that does not exist on the remote.
 			const gitState: ISessionGitState = { branchName: 'local-only', baseBranchName: 'main' };
 			const h = createHarness();
 			seedSession(h.stateManager, {
@@ -989,9 +985,6 @@ suite('AgentHostGitStateService', () => {
 			seedSession(h.stateManager, { workingDirectory: WORKING_DIRECTORY });
 			h.setGitResult({ branchName: 'feature' });
 
-			// Three concurrent refreshes collapse via the throttler: the first
-			// runs immediately and the last queued one runs after it settles;
-			// the middle request is dropped.
 			await Promise.all([
 				h.service.refreshSessionGitState(SESSION, undefined),
 				h.service.refreshSessionGitState(SESSION, undefined),
@@ -1039,7 +1032,6 @@ suite('AgentHostGitStateService', () => {
 			h.stateManager.setSessionMeta(SESSION, withSessionGitState(h.stateManager.getSessionState(SESSION)?._meta, nextGitState));
 			h.setGitResult(nextGitState);
 
-			// No pull request exists for the new branch yet
 			await h.service.attachSessionGitHubPullRequest(SESSION, URI.parse(WORKING_DIRECTORY));
 			const githubBeforePullRequestExists = readSessionGitHubState(h.stateManager.getSessionState(SESSION)?._meta);
 
@@ -1149,7 +1141,6 @@ suite('AgentHostGitStateService', () => {
 			});
 			h.setGitResult(gitState);
 			h.setPullRequest('feature', { url: 'https://github.com/microsoft/vscode/pull/1', number: 1 });
-			// The working copy moves to another branch while the lookup is in flight.
 			h.setOnPullRequestLookup(async () => {
 				h.stateManager.setSessionMeta(SESSION, withSessionGitState(h.stateManager.getSessionState(SESSION)?._meta, { branchName: 'feature-2', baseBranchName: 'main' }));
 			});
@@ -1201,8 +1192,6 @@ suite('AgentHostGitStateService', () => {
 			h.setGitResult({ branchName: 'feature-2', baseBranchName: 'main', githubOwner: 'microsoft', githubRepo: 'vscode' });
 			h.setPullRequest('feature-2', { url: 'https://github.com/microsoft/vscode/pull/2', number: 2 });
 
-			// The GitHub state is captured when the refresh is reported so the
-			// event carries the pull request of the newly checked out branch.
 			let githubOnRefreshEvent: ISessionGitHubState | undefined;
 			disposables.add(h.service.onDidRefreshSessionGitState(() => {
 				githubOnRefreshEvent = readSessionGitHubState(h.stateManager.getSessionState(SESSION)?._meta);

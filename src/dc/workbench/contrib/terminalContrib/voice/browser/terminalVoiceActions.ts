@@ -26,7 +26,6 @@ export function registerTerminalVoiceActions() {
 		title: localize2('workbench.action.terminal.startDictation', "Start Dictation in Terminal"),
 		category: VOICE_CATEGORY,
 		precondition: ContextKeyExpr.and(
-			// Keep the toggle available for terminal dictation, but not unrelated speech-to-text sessions.
 			ContextKeyExpr.or(SpeechToTextInProgress.toNegated(), TerminalContextKeys.terminalDictationInProgress),
 			sharedWhenClause.terminalAvailable
 		),
@@ -34,8 +33,6 @@ export function registerTerminalVoiceActions() {
 		icon: Codicon.mic,
 		run: async (activeInstance, c, accessor) => {
 			const contextKeyService = accessor.get(IContextKeyService);
-			// Toggle: invoking the command again while dictation is in progress
-			// stops it and keeps the transcribed text, mirroring the chat input.
 			if (TerminalContextKeys.terminalDictationInProgress.getValue(contextKeyService)) {
 				TerminalVoiceSession.getInstance(accessor.get(IInstantiationService)).stop(true);
 				return;
@@ -45,8 +42,6 @@ export function registerTerminalVoiceActions() {
 			const workbenchExtensionEnablementService = accessor.get(IWorkbenchExtensionEnablementService);
 			const extensionManagementService = accessor.get(IExtensionManagementService);
 			const chatSpeechToTextService = accessor.get(IChatSpeechToTextService);
-			// Start dictation whenever an engine is available: the built-in
-			// on-device engine (preferred), or the speech extension's provider.
 			if (chatSpeechToTextService.isConfigured || HasSpeechProvider.getValue(contextKeyService)) {
 				const instantiationService = accessor.get(IInstantiationService);
 				TerminalVoiceSession.getInstance(instantiationService).start();

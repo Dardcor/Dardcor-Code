@@ -73,7 +73,7 @@ export class SearchResultImpl extends Disposable implements ISearchResult {
 	}
 
 	get hasChildren(): boolean {
-		return true; // should always have a Text Search Result for plain results.
+		return true;
 	}
 	get textSearchResults(): ITextSearchHeading[] {
 		return [this._plainTextSearchResult, this._aiTextSearchResult];
@@ -86,7 +86,6 @@ export class SearchResultImpl extends Disposable implements ISearchResult {
 				const parent = elem.parent();
 
 				if ((isSearchTreeFolderMatch(parent) || isSearchTreeFileMatch(parent)) && arrayContainsElementOrParent(parent, elementsToReplace)) {
-					// skip any children who have parents in the array
 					return;
 				}
 
@@ -104,7 +103,6 @@ export class SearchResultImpl extends Disposable implements ISearchResult {
 	}
 
 	batchRemove(elementsToRemove: RenderableMatch[]) {
-		// need to check that we aren't trying to remove elements twice
 		const removedElems: RenderableMatch[] = [];
 
 		try {
@@ -165,7 +163,6 @@ export class SearchResultImpl extends Disposable implements ISearchResult {
 			}
 		);
 
-		// listen to view model change as we are searching on both inputs and outputs
 		this._onDidChangeModelListener.value = widget.onDidAttachViewModel(
 			() => {
 				if (widget.hasModel()) {

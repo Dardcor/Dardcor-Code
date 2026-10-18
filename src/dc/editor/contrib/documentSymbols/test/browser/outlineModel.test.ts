@@ -53,11 +53,9 @@ suite('OutlineModel', function () {
 		await service.getOrCreate(model, CancellationToken.None);
 		assert.strictEqual(count, 1);
 
-		// cached
 		await service.getOrCreate(model, CancellationToken.None);
 		assert.strictEqual(count, 1);
 
-		// new version
 		model.applyEdits([{ text: 'XXX', range: new Range(1, 1, 1, 1) }]);
 		await service.getOrCreate(model, CancellationToken.None);
 		assert.strictEqual(count, 2);
@@ -136,10 +134,10 @@ suite('OutlineModel', function () {
 		group.children.set(e2.id, e2);
 
 		const data = [fakeMarker(new Range(6, 1, 6, 7)), fakeMarker(new Range(1, 1, 1, 4)), fakeMarker(new Range(10, 2, 14, 1))];
-		data.sort(Range.compareRangesUsingStarts); // model does this
+		data.sort(Range.compareRangesUsingStarts);
 
 		group.updateMarker(data);
-		assert.strictEqual(data.length, 0); // all 'stolen'
+		assert.strictEqual(data.length, 0);
 		assert.strictEqual(e0.marker!.count, 1);
 		assert.strictEqual(e1.marker, undefined);
 		assert.strictEqual(e2.marker!.count, 2);

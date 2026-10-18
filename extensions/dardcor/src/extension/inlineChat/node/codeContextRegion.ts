@@ -8,9 +8,6 @@ import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocum
 import { ILanguage } from '../../../util/common/languages';
 import { FilePathCodeMarker } from '../../context/node/resolvers/selectionContextHelpers';
 
-/**
- * A tracker for the number of characters in a sequence of lines.
- */
 export class CodeContextTracker {
 	private _totalChars = 0;
 
@@ -29,9 +26,6 @@ export class CodeContextTracker {
 	}
 }
 
-/**
- * Represents a sequence of lines in the document.
- */
 export class CodeContextRegion {
 	public readonly lines: string[] = [];
 	private firstLineIndex: number = this.document.lineCount;
@@ -61,8 +55,8 @@ export class CodeContextRegion {
 			return [];
 		}
 		const result: string[] = [];
-		result.push('```' + this.language.languageId); // TODO@ulugbekna: use languageIdToMDCodeBlockLang & createFencedCodeBlock
-		result.push(FilePathCodeMarker.forDocument(this.language, this.document));//
+		result.push('```' + this.language.languageId);
+		result.push(FilePathCodeMarker.forDocument(this.language, this.document));
 		result.push(...this.lines);
 		result.push('```');
 		return result;
@@ -96,22 +90,13 @@ export class CodeContextRegion {
 		return true;
 	}
 
-	/**
-	 * Trims the empty lines from the beginning and end of the code context region.
-	 * If a `rangeToNotModify` is provided, it will not trim away lines included in that range.
-	 * @param rangeToNotModify Optional range to not modify while trimming.
-	 */
 	public trim(rangeToNotModify?: vscode.Range): void {
-		// remove empty lines from the beginning
-		// but do not trim away lines included in `rangeToNotModify`
 		const maxFirstLineIndex = rangeToNotModify ? Math.min(this.lastLineIndex, rangeToNotModify.start.line) : this.lastLineIndex;
 		while (this.firstLineIndex < maxFirstLineIndex && this.lines.length > 0 && this.lines[0].trim().length === 0) {
 			this.firstLineIndex++;
 			this.lines.shift();
 		}
 
-		// remove empty lines from the end
-		// but do not trim away lines included in `rangeToNotModify`
 		const minLastLineIndex = rangeToNotModify ? Math.max(this.firstLineIndex, rangeToNotModify.end.line) : this.firstLineIndex;
 		while (minLastLineIndex < this.lastLineIndex &&
 			this.lines.length > 0 &&

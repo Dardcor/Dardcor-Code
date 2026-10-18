@@ -31,7 +31,6 @@ import { IChatModel, IChatRequestModel } from '../../../common/model/chatModel.j
 import { IChatViewModel } from '../../../common/model/chatViewModel.js';
 import { ChatRequestQueueKind } from '../../../common/chatService/chatService.js';
 
-// Register actions once so the keybindings appear in KeybindingsRegistry.
 registerChatQueueActions();
 
 suite('Queue/Steer keybinding resolution', () => {
@@ -53,7 +52,6 @@ suite('Queue/Steer keybinding resolution', () => {
 	function lookupForConfig(defaultAction: 'steer' | 'queue') {
 		const config = new TestConfigurationService({ [ChatConfiguration.RequestQueueingDefaultAction]: defaultAction });
 		const ctxService = new ContextKeyService(config);
-		// Simulate the chat input being focused with a request in progress, like the picker does.
 		const overlay = ctxService.createOverlay([
 			[ChatContextKeys.inputHasText.key, true],
 			[ChatContextKeys.inChatInput.key, true],

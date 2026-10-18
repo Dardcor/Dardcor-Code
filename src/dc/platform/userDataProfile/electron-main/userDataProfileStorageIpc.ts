@@ -27,9 +27,7 @@ export class ProfileStorageChangesListenerChannel extends Disposable implements 
 		const disposable = this._register(new MutableDisposable<IDisposable>());
 		this._onDidChange = this._register(new Emitter<IProfileStorageChanges>(
 			{
-				// Start listening to profile storage changes only when someone is listening
 				onWillAddFirstListener: () => disposable.value = this.registerStorageChangeListeners(),
-				// Stop listening to profile storage changes when no one is listening
 				onDidRemoveLastListener: () => disposable.value = undefined
 			}
 		));

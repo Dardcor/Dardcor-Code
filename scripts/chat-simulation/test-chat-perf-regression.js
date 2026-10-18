@@ -32,11 +32,9 @@ const {
 const { getUserTurns, getScenarioIds } = require('./common/mock-llm-server.ts');
 const { registerPerfScenarios, getScenarioDescription } = require('./common/perf-scenarios');
 
-// -- Config (edit config.jsonc to change defaults) ---------------------------
 
 const CONFIG = loadConfig('perfRegression');
 
-// -- CLI args ----------------------------------------------------------------
 
 function parseArgs() {
 	const args = process.argv.slice(2);
@@ -90,7 +88,6 @@ function parseArgs() {
 				if (eq === -1) { console.error(`${args[i - 1]} requires key=value, got: ${kv}`); process.exit(1); }
 				const key = kv.slice(0, eq);
 				const raw = kv.slice(eq + 1);
-				// Parse booleans and numbers, keep rest as strings
 				const val = raw === 'true' ? true : raw === 'false' ? false : /^-?\d+(\.\d+)?$/.test(raw) ? Number(raw) : raw;
 				const flag = args[i - 1];
 				if (flag === '--test-setting') { opts.testSettingsOverrides[key] = val; }
@@ -153,7 +150,6 @@ function parseArgs() {
 	return opts;
 }
 
-// -- Build mode detection ----------------------------------------------------
 
 /**
  * Classify an electron path into a build mode.
@@ -183,7 +179,6 @@ function buildModeLabel(mode) {
 	}
 }
 
-// -- Production build --------------------------------------------------------
 
 /**
  * Build a local production (bundled) VS Code package using `gulp vscode`.
@@ -207,12 +202,9 @@ function buildProductionBuild() {
 		execSync('npm run gulp -- vscode', {
 			cwd: ROOT,
 			stdio: 'inherit',
-			timeout: 10 * 60 * 1000, // 10 minute timeout
+			timeout: 10 * 60 * 1000,
 		});
 	} catch (e) {
-		// The copilot shim step may fail locally when the copilot SDK is not
-		// fully packaged (it is normally supplied via CI).  As long as the
-		// Electron executable was produced we can still benchmark.
 		console.warn('[chat-simulation] gulp vscode exited with errors (see above). Checking if executable was still produced...');
 	}
 
@@ -231,11 +223,6 @@ function buildProductionBuild() {
 		process.exit(1);
 	}
 
-	// Merge product.overrides.json into the packaged product.json.
-	// The overrides file contains extensionsGallery and other config that
-	// the OSS product.json lacks.  In dev builds these are loaded at
-	// runtime when VSCODE_DEV is set, but the production build doesn't
-	// set that flag so we bake them in.
 	const overridesPath = path.join(ROOT, 'product.overrides.json');
 	if (fs.existsSync(overridesPath)) {
 		/** @type {string} */
@@ -274,7 +261,6 @@ function parseMetricThreshold(raw) {
 	if (typeof raw === 'number') {
 		return { type: 'fraction', value: raw };
 	}
-	// Strip unit suffix (ms, MB, etc.) and parse the number
 	const num = parseFloat(raw);
 	if (isNaN(num)) {
 		throw new Error(`Invalid metric threshold: ${raw}`);
@@ -311,7 +297,6 @@ function exceedsThreshold(threshold, change, absoluteDelta) {
 	return change > threshold.value;
 }
 
-// -- Metrics -----------------------------------------------------------------
 
 /**
  * @typedef {{
@@ -353,7 +338,6 @@ function exceedsThreshold(threshold, change, absoluteDelta) {
  * }} RunMetrics
  */
 
-// -- Single run --------------------------------------------------------------
 
 /**
  * @param {string} electronPath
@@ -371,10 +355,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 	const takeHeapSnapshots = runOpts?.heapSnapshots ?? false;
 	const { userDataDir, extDir, logsDir } = prepareRunDir(runIndex, mockServer, settingsOverrides);
 	const isDevBuild = !electronPath.includes('.vscode-test') && !electronPath.includes('VSCode-');
-	// Extract a clean build label from the path.
-	// Dev:          .build/electron/Code - OSS.app/.../Code - OSS  → "dev"
-	// Stable:       .vscode-test/vscode-darwin-arm64-1.115.0/Visual Studio Code.app/.../Electron → "1.115.0"
-	// Production:   ../VSCode-darwin-arm64/Code - OSS.app/.../Code - OSS → "production"
 	let buildLabel = 'dev';
 	if (!isDevBuild) {
 		const vscodeTestMatch = electronPath.match(/vscode-test\/vscode-[^/]*?-(\d+\.\d+\.\d+)/);
@@ -387,8 +367,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		}
 	}
 
-	// For dev builds from a different repo, derive the repo root from the
-	// electron path so that the build loads its own out/ source code.
 	const appRoot = isDevBuild ? (getRepoRoot(electronPath) || ROOT) : ROOT;
 	if (isDevBuild && appRoot !== ROOT) {
 		if (verbose) {
@@ -396,7 +374,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		}
 	}
 
-	// Create a per-run diagnostics directory: <runDir>/<role>-<build>/<scenario>-<i>/
 	const runDiagDir = path.join(runDir, `${role}-${buildLabel}`, runIndex.replace(/^baseline-/, ''));
 	fs.mkdirSync(runDiagDir, { recursive: true });
 
@@ -411,14 +388,12 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 	activeVSCode = vscode;
 	const window = vscode.page;
 
-	// Declared outside try so the finally block can clean up
 	/** @type {{ send: (method: string, params?: any) => Promise<any>, on: (event: string, listener: (params: any) => void) => void, close: () => void } | null} */
 	let extHostInspector = null;
 	/** @type {{ usedSize: number, totalSize: number } | null} */
 	let extHostHeapBefore = null;
 	/** @type {Omit<RunMetrics, 'majorGCs' | 'minorGCs' | 'gcDurationMs' | 'longTaskCount' | 'longAnimationFrameCount' | 'longAnimationFrameTotalMs' | 'timeToUIUpdated' | 'timeToFirstToken' | 'timeToComplete' | 'timeToRenderComplete' | 'layoutDurationMs' | 'instructionCollectionTime' | 'agentInvokeTime' | 'hasInternalMarks' | 'internalFirstToken'> | null} */
 	let partialMetrics = null;
-	// Timing vars hoisted for access in post-close trace parsing
 	let submitTime = 0;
 	let firstResponseTime = 0;
 	let responseCompleteTime = 0;
@@ -433,7 +408,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 
 		const metricsBefore = await cdp.send('Performance.getMetrics');
 
-		// Open chat
 		const chatShortcut = process.platform === 'darwin' ? 'Control+Meta+KeyI' : 'Control+Alt+KeyI';
 		await window.keyboard.press(chatShortcut);
 
@@ -449,7 +423,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			chatEditorSel, { timeout: 15_000 },
 		);
 
-		// Dismiss dialogs
 		const dismissDialog = async () => {
 			for (const sel of ['.chat-setup-dialog', '.dialog-shadow', '.monaco-dialog-box']) {
 				const el = await window.$(sel);
@@ -458,14 +431,12 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		};
 		await dismissDialog();
 
-		// Wait for extension activation
 		const reqsBefore = mockServer.requestCount();
 		try { await mockServer.waitForRequests(reqsBefore + 4, 30_000); } catch { }
 		if (verbose) {
 			console.log(`  [debug] Extension active (${mockServer.requestCount() - reqsBefore} new requests)`);
 		}
 
-		// Connect to extension host inspector for profiling/heap data
 		try {
 			extHostInspector = await connectToExtHostInspector(extHostInspectPort, { verbose, timeoutMs: 15_000 });
 			await extHostInspector.send('HeapProfiler.enable');
@@ -481,11 +452,9 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			}
 		}
 
-		// Wait for model resolution
 		await new Promise(r => setTimeout(r, 3000));
 		await dismissDialog();
 
-		// Focus input
 		await window.click(chatEditorSel);
 		const focusStart = Date.now();
 		while (Date.now() - focusStart < 5_000) {
@@ -497,8 +466,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			await new Promise(r => setTimeout(r, 50));
 		}
 
-		// Type message — use the smoke-test driver's typeInEditor when available
-		// (dev builds), fall back to pressSequentially for stable/insiders builds.
 		const chatMessage = `[scenario:${scenario}] Explain how this code works`;
 		const actualInputSelector = await window.evaluate((editorSel) => {
 			const editor = document.querySelector(editorSel);
@@ -517,26 +484,21 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 				return globalThis.driver.typeInEditor(selector, text);
 			}, { selector: actualInputSelector, text: chatMessage });
 		} else {
-			// Fallback: click the input element and use pressSequentially
 			await window.click(actualInputSelector);
 			await new Promise(r => setTimeout(r, 200));
 			await window.locator(actualInputSelector).pressSequentially(chatMessage, { delay: 0 });
 		}
 
-		// Start CPU profiler to capture call stacks during the interaction
 		await cdp.send('Profiler.enable');
 		await cdp.send('Profiler.start');
 
-		// Submit
 		const completionsBefore = mockServer.completionCount();
 		submitTime = Date.now();
 		await window.keyboard.press('Enter');
 
-		// Wait for mock server to serve the response
 		try { await mockServer.waitForCompletion(completionsBefore + 1, 60_000); } catch { }
 		firstResponseTime = Date.now();
 
-		// Wait for DOM response to settle
 		await dismissDialog();
 		const responseSelector = `${CHAT_VIEW} .interactive-item-container.interactive-response`;
 		await window.waitForFunction(
@@ -549,9 +511,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		);
 		responseCompleteTime = Date.now();
 
-		// -- User turn injection loop -----------------------------------------
-		// For multi-turn scenarios with user follow-ups, type each follow-up
-		// message and wait for the model's response to settle.
 		const userTurns = getUserTurns(scenario);
 		for (let ut = 0; ut < userTurns.length; ut++) {
 			const userTurn = userTurns[ut];
@@ -559,10 +518,8 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 				console.log(`  [debug] User follow-up ${ut + 1}/${userTurns.length}: "${userTurn.message}"`);
 			}
 
-			// Brief pause to let the UI settle between turns
 			await new Promise(r => setTimeout(r, 500));
 
-			// Focus the chat input
 			await window.click(chatEditorSel);
 			const utFocusStart = Date.now();
 			while (Date.now() - utFocusStart < 3_000) {
@@ -574,7 +531,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 				await new Promise(r => setTimeout(r, 50));
 			}
 
-			// Type the follow-up message
 			if (hasDriver) {
 				await window.evaluate(({ selector, text }) => {
 					// @ts-ignore
@@ -586,18 +542,11 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 				await window.locator(actualInputSelector).pressSequentially(userTurn.message, { delay: 0 });
 			}
 
-			// Submit follow-up
 			const utCompBefore = mockServer.completionCount();
 			await window.keyboard.press('Enter');
 
-			// Wait for mock server to serve the response for this turn
 			try { await mockServer.waitForCompletion(utCompBefore + 1, 60_000); } catch { }
 
-			// Wait for the new response to finish rendering.
-			// The chat list is virtualized — old response elements are
-			// recycled out of the DOM as new ones appear, so we cannot
-			// rely on counting DOM elements. Instead, scroll to the
-			// bottom and wait for no response to be in loading state.
 			await dismissDialog();
 			await window.evaluate((chatViewSel) => {
 				const input = document.querySelector(chatViewSel + ' .interactive-input-part');
@@ -626,7 +575,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			}
 		}
 
-		// Stop CPU profiler and save the profile
 		const { profile } = /** @type {any} */ (await cdp.send('Profiler.stop'));
 		const profilePath = path.join(runDiagDir, 'profile.cpuprofile');
 		fs.writeFileSync(profilePath, JSON.stringify(profile));
@@ -647,32 +595,19 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			console.log(`  [debug] Client-side timing: firstResponse=${firstResponseTime - submitTime}ms, complete=${responseCompleteTime - submitTime}ms`);
 		}
 
-		// Wait for the typewriter animation to finish rendering.
-		// The chat UI animates streamed content word-by-word after the
-		// response stream completes. We need to wait until all content
-		// is rendered before capturing layout/style metrics, otherwise
-		// we miss the rendering phase where batching optimizations matter.
 		await window.waitForFunction(
 			(sel) => {
 				const responses = document.querySelectorAll(sel);
 				const last = responses[responses.length - 1];
 				if (!last) { return true; }
-				// The typewriter animation is done when there are no
-				// elements with the 'typewriter' or 'animating' class,
-				// and no pending cursor animations.
 				const hasAnimating = last.querySelector('.chat-animated-word, .chat-typewriter-cursor');
 				return !hasAnimating;
 			},
 			responseSelector,
 			{ timeout: 30_000 },
 		).catch(() => {
-			// Fallback: if the selector-based check doesn't work (e.g.
-			// the CSS classes differ across versions), wait for content
-			// to stabilize by polling textContent.
 		});
 
-		// Additional stabilization: poll until textContent stops changing.
-		// This catches any remaining animation regardless of CSS class names.
 		{
 			let prev = '';
 			let stableCount = 0;
@@ -700,7 +635,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		const heapAfter = /** @type {any} */ (await cdp.send('Runtime.getHeapUsage'));
 		const metricsAfter = await cdp.send('Performance.getMetrics');
 
-		// -- Extension host metrics (non-snapshot) ---------------------------
 		let extHostHeapUsedBefore = -1;
 		let extHostHeapUsedAfter = -1;
 		let extHostHeapDelta = -1;
@@ -711,7 +645,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			try {
 				extHostHeapUsedBefore = Math.round(extHostHeapBefore.usedSize / 1024 / 1024);
 
-				// Stop CPU profiler and save
 				const extProfile = await extHostInspector.send('Profiler.stop');
 				extHostProfilePath = path.join(runDiagDir, 'exthost-profile.cpuprofile');
 				fs.writeFileSync(extHostProfilePath, JSON.stringify(extProfile.profile));
@@ -719,12 +652,10 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 					console.log(`  [ext-host] CPU profile saved to ${extHostProfilePath}`);
 				}
 
-				// Heap usage after interaction
 				const extHostHeapAfter = await extHostInspector.send('Runtime.getHeapUsage');
 				extHostHeapUsedAfter = Math.round(extHostHeapAfter.usedSize / 1024 / 1024);
 				extHostHeapDelta = extHostHeapUsedAfter - extHostHeapUsedBefore;
 
-				// Force GC and measure retained heap
 				try {
 					await extHostInspector.send('Runtime.evaluate', { expression: 'gc()', awaitPromise: false, includeCommandLineAPI: true });
 					await new Promise(r => setTimeout(r, 200));
@@ -744,12 +675,10 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			}
 		}
 
-		// -- Heap snapshots (opt-in, parallelized) ---------------------------
 		let snapshotPath = '';
 		if (takeHeapSnapshots) {
 			const snapshotPromises = [];
 
-			// Renderer snapshot
 			snapshotPromises.push((async () => {
 				const p = path.join(runDiagDir, 'heap.heapsnapshot');
 				await cdp.send('HeapProfiler.enable');
@@ -762,7 +691,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 				return p;
 			})());
 
-			// Extension host snapshot (parallel with renderer)
 			if (extHostInspector && extHostHeapBefore) {
 				snapshotPromises.push((async () => {
 					const p = path.join(runDiagDir, 'exthost-heap.heapsnapshot');
@@ -790,12 +718,10 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			}
 		}
 
-		// Close ext host inspector now that snapshots (if any) are done
 		if (extHostInspector) {
 			extHostInspector.close();
 		}
 
-		// Store partial metrics here so we can combine with trace data after close.
 
 		/** @param {any} r @param {string} name */
 		function getMetric(r, name) {
@@ -808,16 +734,13 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 			heapUsedAfter: Math.round(heapAfter.usedSize / 1024 / 1024),
 			heapDelta: Math.round((heapAfter.usedSize - heapBefore.usedSize) / 1024 / 1024),
 			heapDeltaPostGC: await (async () => {
-				// Force a full GC then measure heap to get deterministic retained-memory delta.
-				// --js-flags=--expose-gc is not required: CDP's Runtime.evaluate can call gc()
-				// when includeCommandLineAPI is true.
 				try {
 					await cdp.send('Runtime.evaluate', { expression: 'gc()', awaitPromise: false, includeCommandLineAPI: true });
 					await new Promise(r => setTimeout(r, 200));
 					const heapPostGC = /** @type {any} */ (await cdp.send('Runtime.getHeapUsage'));
 					return Math.round((heapPostGC.usedSize - heapBefore.usedSize) / 1024 / 1024);
 				} catch {
-					return -1; // gc() not available in this build
+					return -1;
 				}
 			})(),
 			layoutCount: getMetric(metricsAfter, 'LayoutCount') - getMetric(metricsBefore, 'LayoutCount'),
@@ -845,18 +768,14 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		await vscode.close();
 	}
 
-	// Read the trace file written by VS Code on exit via --trace-startup-file
 	/** @type {Array<any>} */
 	let traceEvents = [];
 	try {
 		const traceData = JSON.parse(fs.readFileSync(tracePath, 'utf-8'));
 		traceEvents = traceData.traceEvents || [];
 	} catch {
-		// Trace file may not exist if VS Code crashed before shutdown
 	}
 
-	// Extract code/chat/* perf marks from blink.user_timing trace events.
-	// These appear as instant ('R' or 'I') events with timestamps in microseconds.
 	const chatMarks = traceEvents
 		.filter(e => e.cat === 'blink.user_timing' && e.name && e.name.startsWith('code/chat/'))
 		.map(e => ({ name: e.name, startTime: e.ts / 1000 }));
@@ -865,8 +784,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		console.log(`  [trace] chatMarks (${chatMarks.length}): ${chatMarks.map((/** @type {any} */ m) => m.name.split('/').slice(-1)[0]).join(', ')}`);
 	}
 
-	// Parse timing — prefer internal code/chat/* marks (precise, in-process)
-	// with client-side Date.now() as fallback for older builds without marks.
 	const timeToUIUpdated = markDuration(chatMarks, 'request/start', 'request/uiUpdated');
 	const internalFirstToken = markDuration(chatMarks, 'request/start', 'request/firstToken');
 	const timeToFirstToken = internalFirstToken >= 0 ? internalFirstToken : (firstResponseTime - submitTime);
@@ -875,9 +792,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 	const instructionCollectionTime = markDuration(chatMarks, 'request/willCollectInstructions', 'request/didCollectInstructions');
 	const agentInvokeTime = markDuration(chatMarks, 'agent/willInvoke', 'agent/didInvoke');
 
-	// Parse GC events from trace.
-	// Use the trace-event category and phase fields which are stable
-	// across V8 versions, rather than matching event name substrings.
 	let majorGCs = 0, minorGCs = 0, gcDurationMs = 0;
 	for (const event of traceEvents) {
 		const isGC = event.cat === 'v8.gc'
@@ -887,16 +801,13 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 				return t === 'v8.gc' || t === 'disabled-by-default-v8.gc' || t === 'disabled-by-default-v8.gc_stats';
 			}));
 		if (!isGC) { continue; }
-		// Only count complete ('X') or duration-begin ('B') events to
-		// avoid double-counting begin/end pairs.
 		if (event.ph && event.ph !== 'X' && event.ph !== 'B') { continue; }
 		const name = event.name || '';
 		if (/Major|MarkCompact|MSC|MC|IncrementalMarking|FinalizeMC/i.test(name)) { majorGCs++; }
 		else if (/Minor|Scaveng/i.test(name)) { minorGCs++; }
-		else { minorGCs++; } // default unknown GC events to minor
+		else { minorGCs++; }
 		if (event.dur) { gcDurationMs += event.dur / 1000; }
 	}
-	// Parse Layout duration from devtools.timeline trace events.
 	let layoutDurationMs = 0;
 	for (const event of traceEvents) {
 		if (event.name === 'Layout' && event.ph === 'X' && event.dur) {
@@ -909,9 +820,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 		if (event.name === 'RunTask' && event.dur && event.dur > 50_000) { longTaskCount++; }
 	}
 
-	// Parse Long Animation Frame (LoAF) events from devtools.timeline trace.
-	// AnimationFrame events use async flow pairs (ph:'s' start, ph:'f' finish)
-	// with matching ids. Compute duration from each s→f pair.
 	let longAnimationFrameCount = 0;
 	let longAnimationFrameTotalMs = 0;
 	{
@@ -947,7 +855,6 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 	};
 }
 
-// -- CI summary generation ---------------------------------------------------
 
 const GITHUB_REPO = 'https://github.com/microsoft/vscode';
 
@@ -1026,7 +933,6 @@ function generateCISummary(jsonReport, baseline, opts) {
 	const lines = [];
 	const scenarios = Object.keys(jsonReport.scenarios);
 
-	// -- Collect verdicts per scenario/metric --------------------------------
 	/** @type {Map<string, { metric: string, verdict: string, change: number, pValue: string, basStr: string, curStr: string }[]>} */
 	const scenarioVerdicts = new Map();
 	let totalRegressions = 0;
@@ -1081,7 +987,6 @@ function generateCISummary(jsonReport, baseline, opts) {
 		scenarioVerdicts.set(scenario, verdicts);
 	}
 
-	// -- Header with verdict up front ----------------------------------------
 	const hasRegressions = totalRegressions > 0;
 	const verdictIcon = hasRegressions ? '\u274C' : '\u2705';
 	const verdictText = hasRegressions
@@ -1127,7 +1032,6 @@ function generateCISummary(jsonReport, baseline, opts) {
 		lines.push('');
 	}
 
-	// -- At-a-glance overview table: one row per scenario --------------------
 	lines.push(`## Overview`);
 	lines.push('');
 	lines.push('| Scenario | Description | TTFT | Complete | Layouts | Styles | LoAF | Verdict |');
@@ -1164,7 +1068,6 @@ function generateCISummary(jsonReport, baseline, opts) {
 	}
 	lines.push('');
 
-	// -- Regressions & improvements detail section ---------------------------
 	const hasNotable = [...scenarioVerdicts.values()].some(vs => vs.some(v => v.verdict === 'REGRESSION' || v.verdict === 'improved'));
 	if (hasNotable) {
 		lines.push('## Regressions & Improvements');
@@ -1191,7 +1094,6 @@ function generateCISummary(jsonReport, baseline, opts) {
 		}
 	}
 
-	// -- Full metric tables in collapsible section ---------------------------
 	lines.push('<details><summary>Full metric details per scenario</summary>');
 	lines.push('');
 
@@ -1235,7 +1137,6 @@ function generateCISummary(jsonReport, baseline, opts) {
 	lines.push('</details>');
 	lines.push('');
 
-	// -- Raw run data in collapsible section ---------------------------------
 	lines.push('<details><summary>Raw run data</summary>');
 	lines.push('');
 	for (const scenario of scenarios) {
@@ -1275,7 +1176,6 @@ function generateCISummary(jsonReport, baseline, opts) {
 	return lines.join('\n');
 }
 
-// -- Cleanup on SIGINT/SIGTERM -----------------------------------------------
 
 /** @type {{ close: () => Promise<void> } | null} */
 let activeVSCode = null;
@@ -1293,7 +1193,6 @@ function installSignalHandlers() {
 	process.on('SIGTERM', cleanup);
 }
 
-// -- Diagnostic cleanup ------------------------------------------------------
 
 /**
  * Remove large diagnostic files (heap snapshots, CPU profiles, traces) from
@@ -1313,7 +1212,6 @@ function cleanupRunDiagnostics(metrics) {
 			try {
 				fs.rmSync(filePath, { force: true });
 			} catch {
-				// Ignore cleanup errors
 			}
 		}
 	}
@@ -1336,7 +1234,6 @@ function cleanupNonRegressedDiagnostics(allResults, regressedScenarios) {
 	}
 }
 
-// -- Main --------------------------------------------------------------------
 
 async function main() {
 	registerPerfScenarios();
@@ -1349,7 +1246,6 @@ async function main() {
 	activeMockServer = mockServer;
 	console.log(`[chat-simulation] Mock LLM server: ${mockServer.url}`);
 
-	// -- Resume mode --------------------------------------------------------
 	if (opts.resume) {
 		if (!fs.existsSync(opts.resume)) {
 			console.error(`[chat-simulation] Resume file not found: ${opts.resume}`);
@@ -1358,12 +1254,10 @@ async function main() {
 		const prevResults = JSON.parse(fs.readFileSync(opts.resume, 'utf-8'));
 		const prevDir = path.dirname(opts.resume);
 
-		// Find the associated baseline JSON in the same directory
 		const baselineFiles = fs.readdirSync(prevDir).filter((/** @type {string} */ f) => f.startsWith('baseline-') && f.endsWith('.json'));
 		const baselineFile = baselineFiles.length > 0 ? path.join(prevDir, baselineFiles[0]) : null;
 		const prevBaseline = baselineFile ? JSON.parse(fs.readFileSync(baselineFile, 'utf-8')) : null;
 
-		// Determine which scenarios to resume (default: all from previous run)
 		const resumeScenarios = opts.scenarios.length > 0
 			? opts.scenarios.filter(s => prevResults.scenarios?.[s])
 			: Object.keys(prevResults.scenarios || {});
@@ -1391,14 +1285,12 @@ async function main() {
 			const prevTestRuns = prevResults.scenarios[scenario]?.rawRuns || [];
 			const prevBaseRuns = prevBaseline?.scenarios?.[scenario]?.rawRuns || [];
 
-			// Run additional test iterations
 			console.log(`[chat-simulation]   Test build (${prevTestRuns.length} existing + ${runsToAdd} new)`);
 			for (let i = 0; i < runsToAdd; i++) {
 				const runIdx = `${scenario}-resume-${prevTestRuns.length + i}`;
 				console.log(`[chat-simulation]     Run ${i + 1}/${runsToAdd}...`);
 				try {
 					const m = await runOnce(testElectron, scenario, mockServer, opts.verbose, runIdx, prevDir, 'test', { ...opts.settingsOverrides, ...opts.testSettingsOverrides }, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
-					// Clean up previous run's diagnostics to bound disk usage; keep the latest
 					if (opts.cleanupDiagnostics && prevTestRuns.length > 0) { cleanupRunDiagnostics(prevTestRuns[prevTestRuns.length - 1]); }
 					prevTestRuns.push(m);
 					if (opts.verbose) {
@@ -1408,7 +1300,6 @@ async function main() {
 				} catch (err) { console.error(`      Run ${i + 1} failed: ${err}`); }
 			}
 
-			// Run additional baseline iterations
 			if (baselineElectron && prevBaseline?.scenarios?.[scenario]) {
 				console.log(`[chat-simulation]   Baseline build (${prevBaseRuns.length} existing + ${runsToAdd} new)`);
 				for (let i = 0; i < runsToAdd; i++) {
@@ -1416,14 +1307,12 @@ async function main() {
 					console.log(`[chat-simulation]     Run ${i + 1}/${runsToAdd}...`);
 					try {
 						const m = await runOnce(baselineElectron, scenario, mockServer, opts.verbose, runIdx, prevDir, 'baseline', { ...opts.settingsOverrides, ...opts.baselineSettingsOverrides }, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
-						// Clean up previous run's diagnostics to bound disk usage; keep the latest
 						if (opts.cleanupDiagnostics && prevBaseRuns.length > 0) { cleanupRunDiagnostics(prevBaseRuns[prevBaseRuns.length - 1]); }
 						prevBaseRuns.push(m);
 					} catch (err) { console.error(`      Run ${i + 1} failed: ${err}`); }
 				}
 			}
 
-			// Recompute stats with merged data
 			const sd = /** @type {any} */ ({ runs: prevTestRuns.length, timing: {}, memory: {}, rendering: {}, extHost: {}, rawRuns: prevTestRuns });
 			for (const [metric, group] of METRIC_DEFS) { sd[group][metric] = robustStats(prevTestRuns.map((/** @type {any} */ r) => r[metric])); }
 			prevResults.scenarios[scenario] = sd;
@@ -1437,7 +1326,6 @@ async function main() {
 			console.log('');
 		}
 
-		// Write updated files back
 		prevResults.runsPerScenario = Math.max(prevResults.runsPerScenario || 0, ...Object.values(prevResults.scenarios).map((/** @type {any} */ s) => s.runs));
 		prevResults.lastResumed = new Date().toISOString();
 		fs.writeFileSync(opts.resume, JSON.stringify(prevResults, null, 2));
@@ -1446,28 +1334,20 @@ async function main() {
 		if (prevBaseline && baselineFile) {
 			prevBaseline.lastResumed = new Date().toISOString();
 			fs.writeFileSync(baselineFile, JSON.stringify(prevBaseline, null, 2));
-			// Also update cached baseline
 			const cachedPath = path.join(DATA_DIR, path.basename(baselineFile));
 			fs.writeFileSync(cachedPath, JSON.stringify(prevBaseline, null, 2));
 			console.log(`[chat-simulation] Updated baseline: ${baselineFile}`);
 		}
 
-		// -- Re-run comparison with merged data --------------------------------
 		opts.baseline = baselineFile || undefined;
 		const jsonReport = prevResults;
 		jsonReport._resultsPath = opts.resume;
 
-		// Fall through to comparison logic below
 		await printComparison(jsonReport, opts);
 		await mockServer.close();
 		return;
 	}
 
-	// -- Normal (non-resume) flow -------------------------------------------
-	// --production-build: build a local bundled (non-dev) package from the
-	// current source tree using `gulp vscode`.  This produces the same
-	// packaging as a release build (bundled JS, no VSCODE_DEV) while still
-	// testing your local changes.
 	if (opts.productionBuild && !opts.build) {
 		const prodBuildPath = buildProductionBuild();
 		opts.build = prodBuildPath;
@@ -1482,11 +1362,8 @@ async function main() {
 		process.exit(1);
 	}
 
-	// Detect build modes for both test and baseline builds
 	const testBuildMode = detectBuildMode(electronPath);
 
-	// Resolve the baseline build path early so we can detect its mode.
-	// For version strings this downloads; for local paths it resolves directly.
 	const isBaselineVersionString = opts.baselineBuild && isVersionString(opts.baselineBuild);
 	const isBaselineLocalPath = opts.baselineBuild && !isBaselineVersionString;
 	/** @type {string | undefined} */
@@ -1504,37 +1381,29 @@ async function main() {
 
 	const isMismatchedBuildMode = baselineBuildMode !== undefined && testBuildMode !== baselineBuildMode;
 
-	// Create a timestamped run directory for all output
 	const runTimestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 	const runDir = path.join(DATA_DIR, runTimestamp);
 	fs.mkdirSync(runDir, { recursive: true });
 	console.log(`[chat-simulation] Output: ${runDir}`);
 
-	// Compute effective settings per role
 	const testSettings = { ...opts.settingsOverrides, ...opts.testSettingsOverrides };
 	const baselineSettings = { ...opts.settingsOverrides, ...opts.baselineSettingsOverrides };
 
-	// -- Baseline build --------------------------------------------------
 	if (opts.baselineBuild) {
-		// Use a sanitized label for file names — replace path separators for local paths
 		const baselineLabel = isBaselineLocalPath
 			? path.basename(path.resolve(opts.baselineBuild))
 			: opts.baselineBuild;
 		const baselineJsonPath = path.join(runDir, `baseline-${baselineLabel}.json`);
 
-		// Local paths: always run fresh (no caching — the build may have changed)
-		// Version strings: use caching as before
 		const cachedPath = isBaselineLocalPath ? null : path.join(DATA_DIR, `baseline-${baselineLabel}.json`);
 		const cachedBaseline = cachedPath && !opts.noCache && fs.existsSync(cachedPath)
 			? JSON.parse(fs.readFileSync(cachedPath, 'utf-8'))
 			: null;
 
 		if (cachedBaseline?.baselineBuildVersion === opts.baselineBuild) {
-			// Check if the cache covers all requested scenarios
 			const cachedScenarios = new Set(Object.keys(cachedBaseline.scenarios || {}));
 			const missingScenarios = opts.scenarios.filter((/** @type {string} */ s) => !cachedScenarios.has(s));
 
-			// Also check if cached scenarios have fewer runs than requested
 			const shortScenarios = opts.scenarios.filter((/** @type {string} */ s) => {
 				const cached = cachedBaseline.scenarios?.[s];
 				return cached && (cached.rawRuns?.length || 0) < opts.runs;
@@ -1562,7 +1431,6 @@ async function main() {
 					for (let i = 0; i < runsNeeded; i++) {
 						try {
 							const m = await runOnce(baselineExePath, scenario, mockServer, opts.verbose, `baseline-${scenario}-${existingRuns.length + i}`, runDir, 'baseline', baselineSettings, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
-							// Clean up previous run's diagnostics to bound disk usage; keep the latest
 							if (opts.cleanupDiagnostics && newResults.length > 0) { cleanupRunDiagnostics(newResults[newResults.length - 1]); }
 							newResults.push(m);
 						}
@@ -1593,7 +1461,6 @@ async function main() {
 				for (let i = 0; i < opts.runs; i++) {
 					try {
 						const m = await runOnce(baselineExePath, scenario, mockServer, opts.verbose, `baseline-${scenario}-${i}`, runDir, 'baseline', baselineSettings, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
-						// Clean up previous run's diagnostics to bound disk usage; keep the latest
 						if (opts.cleanupDiagnostics && results.length > 0) { cleanupRunDiagnostics(results[results.length - 1]); }
 						results.push(m);
 					}
@@ -1614,7 +1481,6 @@ async function main() {
 				baselineReport.scenarios[scenario] = sd;
 			}
 			fs.writeFileSync(baselineJsonPath, JSON.stringify(baselineReport, null, 2));
-			// Cache at the top level for reuse across runs (version strings only)
 			if (cachedPath) {
 				fs.writeFileSync(cachedPath, JSON.stringify(baselineReport, null, 2));
 			}
@@ -1623,7 +1489,6 @@ async function main() {
 		console.log('');
 	}
 
-	// -- Run benchmarks --------------------------------------------------
 	console.log(`[chat-simulation] Electron: ${electronPath}`);
 	console.log(`[chat-simulation] Build mode: ${buildModeLabel(testBuildMode)}`);
 	if (baselineBuildMode) {
@@ -1676,7 +1541,6 @@ async function main() {
 			console.log(`[chat-simulation]   Run ${i + 1}/${opts.runs}...`);
 			try {
 				const metrics = await runOnce(electronPath, scenario, mockServer, opts.verbose, `${scenario}-${i}`, runDir, 'test', testSettings, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
-				// Clean up previous run's diagnostics to bound disk usage; keep the latest
 				if (opts.cleanupDiagnostics && results.length > 0) { cleanupRunDiagnostics(results[results.length - 1]); }
 				results.push(metrics);
 				if (opts.verbose) {
@@ -1690,7 +1554,6 @@ async function main() {
 		console.log('');
 	}
 
-	// -- Summary ---------------------------------------------------------
 	console.log('[chat-simulation] ======================= Summary =======================');
 	for (const [scenario, results] of Object.entries(allResults)) {
 		console.log('');
@@ -1727,7 +1590,6 @@ async function main() {
 		}
 	}
 
-	// -- JSON output -----------------------------------------------------
 	const jsonPath = path.join(runDir, 'results.json');
 	const jsonReport = /** @type {{ timestamp: string, platform: NodeJS.Platform, runsPerScenario: number, buildMode: string, mismatchedBuildMode: boolean, scenarios: Record<string, any>, _resultsPath?: string }} */ ({
 		timestamp: new Date().toISOString(),
@@ -1747,17 +1609,14 @@ async function main() {
 	console.log('');
 	console.log(`[chat-simulation] Results written to ${jsonPath}`);
 
-	// -- Save baseline ---------------------------------------------------
 	if (opts.saveBaseline) {
 		if (!opts.baseline) { console.error('[chat-simulation] --save-baseline requires --baseline <path>'); process.exit(1); }
 		fs.writeFileSync(opts.baseline, JSON.stringify(jsonReport, null, 2));
 		console.log(`[chat-simulation] Baseline saved to ${opts.baseline}`);
 	}
 
-	// -- Baseline comparison ---------------------------------------------
 	const regressedScenarios = await printComparison(jsonReport, opts);
 
-	// Clean up diagnostics for scenarios that did not regress
 	if (opts.cleanupDiagnostics) {
 		cleanupNonRegressedDiagnostics(allResults, regressedScenarios);
 	}
@@ -1789,21 +1648,13 @@ async function printComparison(jsonReport, opts) {
 		}
 		console.log('');
 
-		// Metrics that trigger regression failure when they exceed the threshold
 		const regressionMetrics = [
-			// [metric, group, unit]
 			['timeToFirstToken', 'timing', 'ms'],
 			['timeToComplete', 'timing', 'ms'],
 			['layoutDurationMs', 'rendering', 'ms'],
 			['forcedReflowCount', 'rendering', ''],
 			['longTaskCount', 'rendering', ''],
 		];
-		// Informational metrics — shown in comparison but don't trigger failure.
-		// layoutCount / recalcStyleCount are informational on purpose: they are
-		// inflated by CSS animations (compositor-driven, cheap) and don't reflect
-		// real cost — the real layout cost is layoutDurationMs (gated above). A
-		// build can do more, cheaper layouts yet spend less layout time and finish
-		// faster (e.g. giant-codeblock: +28% layoutCount but -7% layoutDurationMs).
 		const infoMetrics = [
 			['layoutCount', 'rendering', ''],
 			['recalcStyleCount', 'rendering', ''],
@@ -1829,7 +1680,6 @@ async function printComparison(jsonReport, opts) {
 				const change = (cur.median - bas.median) / bas.median;
 				const pct = `${change > 0 ? '+' : ''}${(change * 100).toFixed(1)}%`;
 
-				// Statistical significance via Welch's t-test on raw run values
 				const curRaw = (current.rawRuns || []).map((/** @type {any} */ r) => r[metric]).filter((/** @type {any} */ v) => v >= 0);
 				const basRaw = (base.rawRuns || []).map((/** @type {any} */ r) => r[metric]).filter((/** @type {any} */ v) => v >= 0);
 				const ttest = welchTTest(basRaw, curRaw);
@@ -1873,13 +1723,9 @@ async function printComparison(jsonReport, opts) {
 			: `[chat-simulation] All metrics within ${(opts.threshold * 100).toFixed(0)}% of baseline (or not statistically significant)`);
 
 		if (inconclusiveFound && !regressionFound) {
-			// Find the results.json path to suggest in the hint
 			const resultsPath = Object.keys(jsonReport.scenarios).length > 0
 				? (jsonReport._resultsPath || opts.resume || 'path/to/results.json')
 				: 'path/to/results.json';
-			// Estimate required runs from the observed effect size and variance
-			// using power analysis for Welch's t-test (alpha=0.05, 80% power).
-			// n_per_group = 2 * ((z_alpha/2 + z_beta) / d)^2 where d = Cohen's d
 			let maxNeeded = 0;
 			for (const scenario of Object.keys(jsonReport.scenarios)) {
 				const current = jsonReport.scenarios[scenario];
@@ -1897,7 +1743,6 @@ async function printComparison(jsonReport, opts) {
 					if (pooledSD === 0) { continue; }
 					const d = Math.abs(meanB - meanA) / pooledSD;
 					if (d === 0) { continue; }
-					// z_0.025 = 1.96, z_0.2 = 0.842
 					const nPerGroup = Math.ceil(2 * ((1.96 + 0.842) / d) ** 2);
 					const currentN = Math.min(curRaw.length, basRaw.length);
 					maxNeeded = Math.max(maxNeeded, nPerGroup - currentN);
@@ -1911,7 +1756,6 @@ async function printComparison(jsonReport, opts) {
 		}
 	}
 
-	// -- CI summary ------------------------------------------------------
 	if (opts.ci) {
 		const ciBaseline = opts.baseline && fs.existsSync(opts.baseline)
 			? JSON.parse(fs.readFileSync(opts.baseline, 'utf-8'))
@@ -1924,12 +1768,10 @@ async function printComparison(jsonReport, opts) {
 			build: opts.build,
 		});
 
-		// Write to file for GitHub Actions $GITHUB_STEP_SUMMARY
 		const summaryPath = path.join(DATA_DIR, 'ci-summary.md');
 		fs.writeFileSync(summaryPath, summary);
 		console.log(`[chat-simulation] CI summary written to ${summaryPath}`);
 
-		// Also print the full summary table to stdout
 		console.log('');
 		console.log('==================================================================');
 		console.log('               CHAT PERF COMPARISON RESULTS                       ');

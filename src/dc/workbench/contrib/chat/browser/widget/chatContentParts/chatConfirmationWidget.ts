@@ -41,11 +41,6 @@ export interface IChatConfirmationButton<T> {
 
 export interface IChatConfirmationButtonClickEvent<T> {
 	readonly button: IChatConfirmationButton<T>;
-	/**
-	 * True when the click originated from a touch tap (vs. mouse/keyboard/programmatic).
-	 * Callers that restore focus after confirmation (e.g. to the chat input) should
-	 * skip that behavior when this is true to avoid popping the on-screen keyboard on mobile.
-	 */
 	readonly isTouchClick: boolean;
 }
 
@@ -82,7 +77,7 @@ export class ChatQueryTitlePart extends Disposable {
 		if (previousEl?.parentElement) {
 			previousEl.replaceWith(next.element);
 		} else {
-			this.element.appendChild(next.element); // unreachable?
+			this.element.appendChild(next.element);
 		}
 
 		this._renderedTitle.value = next;
@@ -206,7 +201,6 @@ abstract class BaseSimpleChatConfirmationWidget<T> extends Disposable {
 		this._register(messageResizeObserver.observe(this.messageElement));
 		this._register(messageResizeObserver.observe(this.messageScrollable.getDomNode()));
 
-		// Create buttons
 		buttons.forEach(buttonData => {
 			const buttonOptions: IButtonOptions = { ...defaultButtonStyles, small: true, secondary: buttonData.isSecondary, title: buttonData.tooltip, disabled: buttonData.disabled };
 
@@ -244,7 +238,6 @@ abstract class BaseSimpleChatConfirmationWidget<T> extends Disposable {
 			}
 		});
 
-		// Create toolbar if actions are provided
 		if (options?.toolbarData) {
 			const overlay = contextKeyService.createOverlay([
 				['chatConfirmationPartType', options.toolbarData.partType],
@@ -256,7 +249,6 @@ abstract class BaseSimpleChatConfirmationWidget<T> extends Disposable {
 				elements.toolbar,
 				MenuId.ChatConfirmationMenu,
 				{
-					// buttonConfigProvider: () => ({ showLabel: false, showIcon: true }),
 					menuOptions: {
 						arg: options.toolbarData.arg,
 						shouldForwardArgs: true,
@@ -276,7 +268,6 @@ abstract class BaseSimpleChatConfirmationWidget<T> extends Disposable {
 	}
 }
 
-/** @deprecated Use ChatConfirmationWidget instead */
 export class SimpleChatConfirmationWidget<T> extends BaseSimpleChatConfirmationWidget<T> {
 	private _renderedMessage: HTMLElement | undefined;
 
@@ -405,7 +396,6 @@ abstract class BaseChatConfirmationWidget<T> extends Disposable {
 
 		this.updateButtons(buttons);
 
-		// Create toolbar if actions are provided
 		if (options?.toolbarData) {
 			const overlay = contextKeyService.createOverlay([
 				['chatConfirmationPartType', options.toolbarData.partType],
@@ -417,7 +407,6 @@ abstract class BaseChatConfirmationWidget<T> extends Disposable {
 				elements.toolbar,
 				MenuId.ChatConfirmationMenu,
 				{
-					// buttonConfigProvider: () => ({ showLabel: false, showIcon: true }),
 					menuOptions: {
 						arg: options.toolbarData.arg,
 						shouldForwardArgs: true,

@@ -98,9 +98,6 @@ export class ModelService extends Disposable implements IModelService {
 
 	private _modelCreationOptionsByLanguageAndResource: { [languageAndResource: string]: ITextModelCreationOptions };
 
-	/**
-	 * All the models known in the system.
-	 */
 	private readonly _models: { [modelId: string]: ModelData };
 	private readonly _disposedModels: Map<string, DisposedModelInfo>;
 	private _disposedModelsHeapSize: number;
@@ -216,7 +213,6 @@ export class ModelService extends Disposable implements IModelService {
 		const oldOptionsByLanguageAndResource = this._modelCreationOptionsByLanguageAndResource;
 		this._modelCreationOptionsByLanguageAndResource = Object.create(null);
 
-		// Update options on all models
 		const keys = Object.keys(this._models);
 		for (let i = 0, len = keys.length; i < len; i++) {
 			const modelId = keys[i];
@@ -225,7 +221,7 @@ export class ModelService extends Disposable implements IModelService {
 			const uri = modelData.model.uri;
 
 			if (e && !e.affectsConfiguration('editor', { overrideIdentifier: language, resource: uri }) && !e.affectsConfiguration('files.eol', { overrideIdentifier: language, resource: uri })) {
-				continue; // perf: skip if this model is not affected by configuration change
+				continue;
 			}
 
 			const oldOptions = oldOptionsByLanguageAndResource[language + uri];
@@ -247,7 +243,6 @@ export class ModelService extends Disposable implements IModelService {
 			&& (currentOptions.trimAutoWhitespace === newOptions.trimAutoWhitespace)
 			&& equals(currentOptions.bracketPairColorizationOptions, newOptions.bracketPairColorizationOptions)
 		) {
-			// Same indent opts, no need to touch the model
 			return;
 		}
 
@@ -268,7 +263,6 @@ export class ModelService extends Disposable implements IModelService {
 		}
 	}
 
-	// --- begin IModelService
 
 	private _insertDisposedModel(disposedModelData: DisposedModelInfo): void {
 		this._disposedModels.set(MODEL_ID(disposedModelData.uri), disposedModelData);
@@ -286,7 +280,6 @@ export class ModelService extends Disposable implements IModelService {
 
 	private _ensureDisposedModelsHeapSize(maxModelsHeapSize: number): void {
 		if (this._disposedModelsHeapSize > maxModelsHeapSize) {
-			// we must remove some old undo stack elements to free up some memory
 			const disposedModels: DisposedModelInfo[] = [];
 			this._disposedModels.forEach(entry => {
 				if (!entry.sharesUndoRedoStack) {
@@ -305,7 +298,6 @@ export class ModelService extends Disposable implements IModelService {
 	}
 
 	private _createModelData(value: string | ITextBufferFactory, languageIdOrSelection: string | ILanguageSelection, resource: URI | undefined, isForSimpleWidget: boolean): ModelData {
-		// create & save the model
 		const options = this.getCreationOptions(languageIdOrSelection, resource, isForSimpleWidget);
 		const model: TextModel = this._instantiationService.createInstance(TextModel,
 			value,
@@ -348,7 +340,6 @@ export class ModelService extends Disposable implements IModelService {
 		const modelId = MODEL_ID(model.uri);
 
 		if (this._models[modelId]) {
-			// There already exists a model with this id => this is a programmer error
 			throw new Error('ModelService: Cannot add model because it already exists!');
 		}
 
@@ -366,13 +357,11 @@ export class ModelService extends Disposable implements IModelService {
 		const options = this.getCreationOptions(model.getLanguageId(), model.uri, model.isForSimpleWidget);
 		const { textBuffer, disposable } = createTextBuffer(value, options.defaultEOL);
 
-		// Return early if the text is already set in that form
 		if (model.equalsTextBuffer(textBuffer)) {
 			disposable.dispose();
 			return;
 		}
 
-		// Otherwise find a diff between the values and update model
 		model.pushStackElement();
 		model.pushEOL(textBuffer.getEOL() === '\r\n' ? EndOfLineSequence.CRLF : EndOfLineSequence.LF);
 		model.pushEditOperations(
@@ -406,16 +395,12 @@ export class ModelService extends Disposable implements IModelService {
 		return result;
 	}
 
-	/**
-	 * Compute edits to bring `model` to the state of `textSource`.
-	 */
 	public static _computeEdits(model: ITextModel, textBuffer: ITextBuffer): ISingleEditOperation[] {
 		const modelLineCount = model.getLineCount();
 		const textBufferLineCount = textBuffer.getLineCount();
 		const commonPrefix = this._commonPrefix(model, modelLineCount, 1, textBuffer, textBufferLineCount, 1);
 
 		if (modelLineCount === textBufferLineCount && commonPrefix === modelLineCount) {
-			// equality case
 			return [];
 		}
 
@@ -452,7 +437,6 @@ export class ModelService extends Disposable implements IModelService {
 	}
 
 	public destroyModel(resource: URI): void {
-		// We need to support that not all models get disposed through this service (i.e. model.dispose() should work!)
 		const modelData = this._models[MODEL_ID(resource)];
 		if (!modelData) {
 			return;
@@ -481,7 +465,6 @@ export class ModelService extends Disposable implements IModelService {
 		return modelData.model;
 	}
 
-	// --- end IModelService
 
 	protected _schemaShouldMaintainUndoRedoElements(resource: URI) {
 		return (
@@ -489,7 +472,7 @@ export class ModelService extends Disposable implements IModelService {
 			|| resource.scheme === Schemas.vscodeRemote
 			|| resource.scheme === Schemas.vscodeUserData
 			|| resource.scheme === Schemas.vscodeNotebookCell
-			|| resource.scheme === 'fake-fs' // for tests
+			|| resource.scheme === 'fake-fs'
 		);
 	}
 
@@ -507,14 +490,14 @@ export class ModelService extends Disposable implements IModelService {
 					if (isEditStackElement(element) && element.matchesResource(model.uri)) {
 						maintainUndoRedoStack = true;
 						heapSize += element.heapSize(model.uri);
-						element.setModel(model.uri); // remove reference from text buffer instance
+						element.setModel(model.uri);
 					}
 				}
 				for (const element of elements.future) {
 					if (isEditStackElement(element) && element.matchesResource(model.uri)) {
 						maintainUndoRedoStack = true;
 						heapSize += element.heapSize(model.uri);
-						element.setModel(model.uri); // remove reference from text buffer instance
+						element.setModel(model.uri);
 					}
 				}
 			}
@@ -530,14 +513,12 @@ export class ModelService extends Disposable implements IModelService {
 				}
 			}
 		} else if (!sharesUndoRedoStack && (heapSize > maxMemory || !sha1Computer.canComputeSHA1(model))) {
-			// the undo stack for this file would never fit in the configured memory or the file is very large, so don't bother with it.
 			const initialUndoRedoSnapshot = modelData.model.getInitialUndoRedoSnapshot();
 			if (initialUndoRedoSnapshot !== null) {
 				this._undoRedoService.restoreSnapshot(initialUndoRedoSnapshot);
 			}
 		} else {
 			this._ensureDisposedModelsHeapSize(maxMemory - heapSize);
-			// We only invalidate the elements, but they remain in the undo-redo service.
 			this._undoRedoService.setElementsValidFlag(model.uri, false, (element) => (isEditStackElement(element) && element.matchesResource(model.uri)));
 			this._insertDisposedModel(new DisposedModelInfo(model.uri, modelData.model.getInitialUndoRedoSnapshot(), Date.now(), sharesUndoRedoStack, heapSize, sha1Computer.computeSHA1(model), model.getVersionId(), model.getAlternativeVersionId()));
 		}
@@ -545,7 +526,6 @@ export class ModelService extends Disposable implements IModelService {
 		delete this._models[modelId];
 		modelData.dispose();
 
-		// clean up cache
 		delete this._modelCreationOptionsByLanguageAndResource[model.getLanguageId() + model.uri];
 
 		this._onModelRemoved.fire(model);
@@ -572,14 +552,13 @@ export interface ITextModelSHA1Computer {
 
 export class DefaultModelSHA1Computer implements ITextModelSHA1Computer {
 
-	public static MAX_MODEL_SIZE = 10 * 1024 * 1024; // takes 200ms to compute a sha1 on a 10MB model on a new machine
+	public static MAX_MODEL_SIZE = 10 * 1024 * 1024;
 
 	canComputeSHA1(model: ITextModel): boolean {
 		return (model.getValueLength() <= DefaultModelSHA1Computer.MAX_MODEL_SIZE);
 	}
 
 	computeSHA1(model: ITextModel): string {
-		// compute the sha1
 		const shaComputer = new StringSHA1();
 		const snapshot = model.createSnapshot();
 		let text: string | null;

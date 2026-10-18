@@ -16,15 +16,11 @@ import { ILabelService } from '../../../../../../platform/label/common/label.js'
 import { IPromptsService, PromptsStorage } from '../../../common/promptSyntax/service/promptsService.js';
 import { PromptsType } from '../../../common/promptSyntax/promptTypes.js';
 
-/**
- * Helper to extract the selected text from content using a selection range.
- */
 function getSelectedText(content: string, selection: ITextEditorSelection): string {
 	const lines = content.split('\n');
 	if (selection.startLineNumber === selection.endLineNumber) {
 		return lines[selection.startLineNumber - 1].substring(selection.startColumn - 1, selection.endColumn! - 1);
 	}
-	// Multi-line selection
 	const result: string[] = [];
 	result.push(lines[selection.startLineNumber - 1].substring(selection.startColumn - 1));
 	for (let i = selection.startLineNumber; i < selection.endLineNumber! - 1; i++) {
@@ -326,7 +322,6 @@ suite('hookUtils', () => {
 			});
 
 			test('handles multiline command value', () => {
-				// JSON strings can contain escaped newlines
 				const content = `{
 	"hooks": {
 		"sessionStart": [
@@ -638,7 +633,6 @@ suite('hookUtils', () => {
 			});
 
 			test('handles multiline command value', () => {
-				// JSON strings can contain escaped newlines
 				const content = `{
 	"hooks": {
 		"sessionStart": [
@@ -720,7 +714,6 @@ suite('hookUtils', () => {
 			assert.ok(result1);
 			assert.strictEqual(getSelectedText(content, result0), '');
 			assert.strictEqual(getSelectedText(content, result1), '');
-			// Second entry should be on a later line
 			assert.ok(result1.startLineNumber > result0.startLineNumber);
 		});
 

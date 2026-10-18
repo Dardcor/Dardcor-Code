@@ -34,28 +34,14 @@ interface IMultiDiffEntryDelegate {
 	collapse: (transaction: ITransaction | undefined) => void;
 }
 
-/**
- * Represents a file that has been deleted by the chat editing session.
- * Unlike ChatEditingModifiedDocumentEntry, this doesn't maintain a live model
- * since the file no longer exists on disk.
- */
 export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFileEntry implements IModifiedFileEntry {
 
 	readonly initialContent: string;
 
-	/**
-	 * The original content before deletion, stored for diff display and potential restoration.
-	 */
 	private readonly _originalContent: string;
 
-	/**
-	 * Lazily created model for the original content (for diff display).
-	 */
 	private _originalModel: ITextModel | undefined;
 
-	/**
-	 * Lazily created empty model representing the deleted state (for diff display).
-	 */
 	private _modifiedModel: ITextModel | undefined;
 
 	readonly originalURI: URI;
@@ -110,9 +96,6 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 		super.dispose();
 	}
 
-	/**
-	 * Gets or creates the original model for diff display.
-	 */
 	private _getOrCreateOriginalModel(): ITextModel {
 		if (!this._originalModel || this._originalModel.isDisposed()) {
 			this._originalModel = this._modelService.createModel(
@@ -125,12 +108,8 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 		return this._originalModel;
 	}
 
-	/**
-	 * Gets or creates an empty model representing the deleted state.
-	 */
 	private _getOrCreateModifiedModel(): ITextModel {
 		if (!this._modifiedModel || this._modifiedModel.isDisposed()) {
-			// Create empty model - file is deleted so content is empty
 			this._modifiedModel = this._modelService.createModel(
 				'',
 				this._languageService.createById(this._languageId),
@@ -142,9 +121,8 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 	}
 
 	private _diffInfo() {
-		// For deleted files, return a simple diff showing all content removed
 		const originalModel = this._getOrCreateOriginalModel();
-		this._getOrCreateModifiedModel(); // Ensure the modified model exists for the diff view
+		this._getOrCreateModifiedModel();
 		const originalLineCount = originalModel.getLineCount();
 
 		return {
@@ -178,7 +156,7 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 			languageId: this._languageId,
 			snapshotUri: this.originalURI,
 			original: this._originalContent,
-			current: '', // File is deleted, so current content is empty
+			current: '',
 			state: this.state.get(),
 			telemetryInfo: this._telemetryInfo,
 			isDeleted: true,
@@ -189,13 +167,11 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 		this._stateObs.set(snapshot.state, undefined);
 
 		if (restoreToDisk && snapshot.current !== '') {
-			// Restore file to disk with the snapshot content
 			await this._fileService.writeFile(this.modifiedURI, VSBuffer.fromString(snapshot.current));
 		}
 	}
 
 	async resetToInitialContent(): Promise<void> {
-		// Restore the file with original content
 		await this._fileService.writeFile(this.modifiedURI, VSBuffer.fromString(this._originalContent));
 	}
 
@@ -204,7 +180,6 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 	}
 
 	protected override async _areOriginalAndModifiedIdentical(): Promise<boolean> {
-		// A deleted file is never identical to its original (unless original was empty)
 		return this._originalContent === '';
 	}
 
@@ -215,18 +190,15 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 			label: 'Chat File Deletion',
 			code: 'chat.delete',
 			undo: async () => {
-				// Restore the file
 				await this._fileService.writeFile(this.modifiedURI, VSBuffer.fromString(this._originalContent));
 			},
 			redo: async () => {
-				// Delete the file again
 				await this._fileService.del(this.modifiedURI, { useTrash: false });
 			}
 		};
 	}
 
 	async acceptAgentEdits(_uri: URI, _edits: (TextEdit | ICellEditOperation)[], isLastEdits: boolean, _responseModel: IChatResponseModel | undefined): Promise<void> {
-		// For deleted files, there are no incremental edits - the file is just deleted
 		transaction((tx) => {
 			this._waitsForLastEdits.set(!isLastEdits, tx);
 			this._stateObs.set(ModifiedFileEntryState.Modified, tx);
@@ -239,18 +211,15 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 	}
 
 	protected override async _doAccept(): Promise<void> {
-		// File deletion is already done - just collapse the entry
 		this._multiDiffEntryDelegate.collapse(undefined);
 	}
 
 	protected override async _doReject(): Promise<void> {
-		// Restore the file from original content
 		await this._fileService.writeFile(this.modifiedURI, VSBuffer.fromString(this._originalContent));
 		this._multiDiffEntryDelegate.collapse(undefined);
 	}
 
 	protected _createEditorIntegration(_editor: IEditorPane): IModifiedFileEntryEditorIntegration {
-		// Deleted files don't need complex editor integration since there's nothing to navigate
 		return {
 			currentIndex: observableValue(this, 0),
 			reveal: () => { },
@@ -265,15 +234,12 @@ export class ChatEditingDeletedFileEntry extends AbstractChatEditingModifiedFile
 	}
 
 	async computeEditsFromSnapshots(_beforeSnapshot: string, _afterSnapshot: string): Promise<(TextEdit | ICellEditOperation)[]> {
-		// For deleted files, we don't compute incremental edits
 		return [];
 	}
 
 	async save(): Promise<void> {
-		// Nothing to save - file is deleted
 	}
 
 	async revertToDisk(): Promise<void> {
-		// Nothing to revert - file is deleted
 	}
 }

@@ -10,10 +10,8 @@ export interface TitleAndDescriptionProvider {
 }
 
 export interface ReviewerComments {
-	// To tell which files we should add a comment icon in the "Files Changed" view
 	files: Uri[];
 	succeeded: boolean;
-	// For removing comments
 	disposable?: Disposable;
 }
 
@@ -35,22 +33,9 @@ export interface RepositoryDescription {
 }
 
 export interface API {
-	/**
-	 * Register a PR title and description provider.
-	 */
 	registerTitleAndDescriptionProvider(title: string, provider: TitleAndDescriptionProvider): Disposable;
 
-	/**
-	 * Register a PR reviewer comments provider.
-	 */
 	registerReviewerCommentsProvider(title: string, provider: ReviewerCommentsProvider): Disposable;
 
-	/**
-	 * Get the repository description for a given URI.
-	 * This includes the owner, repository name, default branch, current branch (if applicable),
-	 * and pull request information (if applicable).
-	 *
-	 * @returns A promise that resolves to a `RepositoryDescription` object or `undefined` if no repository is found.
-	 */
 	getRepositoryDescription(uri: Uri): Promise<RepositoryDescription | undefined>;
 }

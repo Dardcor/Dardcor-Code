@@ -11,16 +11,11 @@
 	position: absolute;
 	z-index: 1000;
 
-	/* Default styles */
 	background-color: var(--vscode-list-activeSelectionBackground);
 	color: var(--vscode-list-activeSelectionForeground);
 	outline: 1px solid var(--vscode-list-focusOutline);
 	outline-offset: -1px;
 
-	/*
-	 * Browsers apply an effect to the drag image when the div becomes too
-	 * large which makes them unreadable. Use max width so it does not happen
-	 */
 	max-width: 120px;
 	overflow: hidden;
 	text-overflow: ellipsis;

@@ -7,7 +7,7 @@
 	<meta http-equiv="Content-Security-Policy"
 		content="default-src 'none'; script-src 'sha256-FFQoOVVa2tOE3uqUvirwaMNT20TZmrHcL2aaOjJ8BUo=' 'self'; frame-src 'self'; style-src 'unsafe-inline';">
 
-	<!-- Disable pinch zooming -->
+	
 	<meta name="viewport"
 		content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 </head>
@@ -205,7 +205,7 @@
 		 */
 		function getVsCodeApiScript(allowMultipleAPIAcquire, state) {
 			const encodedState = state ? encodeURIComponent(state) : undefined;
-			return /* js */`
+			return `
 					globalThis.acquireVsCodeApi = (function() {
 						const originalPostMessage = window.parent['${vscodePostMessageFuncName}'].bind(window.parent);
 						const doPostMessage = (channel, data, transfer) => {
@@ -256,19 +256,11 @@
 			navigator.serviceWorker.register(swPath, { type: 'module', updateViaCache: 'none' })
 				.then(async registration => {
 					if (navigator.serviceWorker.controller) {
-						// A previous SW is already controlling. Force an update
-						// check so we don't serve stale resources after a VS Code
-						// update. register() resolves before the update check
-						// completes, so we must call update() explicitly to wait
-						// for the download + byte-comparison to finish.
 						registration = await registration.update();
 					}
 
-					// If a new worker was found, wait for it to take control via skipWaiting() + clients.claim() in the SW.
 					if (
-						// New worker
 						registration.installing || registration.waiting
-						// First ever load
 						|| !navigator.serviceWorker.controller
 					) {
 						await new Promise(r => {
@@ -333,12 +325,9 @@
 				const hostname = location.hostname;
 
 				if (!crypto.subtle) {
-					// cannot validate, not running in a secure context
 					throw new Error(`'crypto.subtle' is not available so webviews will not work. This is likely because the editor is not running in a secure context (https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts).`);
 				}
 
-				// Here the `parentOriginHash()` function from `src/vs/workbench/common/webview.ts` is inlined
-				// compute a sha-256 composed of `parentOrigin` and `salt` converted to base 32
 				let parentOriginHash;
 				try {
 					const strData = JSON.stringify({ parentOrigin, salt: webviewOrigin });
@@ -347,14 +336,12 @@
 					const hash = await crypto.subtle.digest('sha-256', arrData);
 					const hashArray = Array.from(new Uint8Array(hash));
 					const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-					// sha256 has 256 bits, so we need at most ceil(lg(2^256-1)/lg(32)) = 52 chars to represent it in base 32
 					parentOriginHash = BigInt(`0x${hashHex}`).toString(32).padStart(52, '0');
 				} catch (err) {
 					throw err instanceof Error ? err : new Error(String(err));
 				}
 
 				if (hostname === parentOriginHash || hostname.startsWith(parentOriginHash + '.')) {
-					// validation succeeded!
 					return start(parentOrigin);
 				}
 
@@ -414,7 +401,6 @@
 			}
 		};
 
-		// state
 		let firstLoad = true;
 		/** @type {any} */
 		let loadTimeout;
@@ -490,7 +476,6 @@
 				if (initData.activeTheme) {
 					body.classList.add(initData.activeTheme);
 					if (initData.activeTheme === 'vscode-high-contrast-light') {
-						// backwards compatibility
 						body.classList.add('vscode-high-contrast');
 					}
 				}
@@ -512,17 +497,14 @@
 			if (initData.styles) {
 				const documentStyle = document.documentElement.style;
 
-				// Remove stale properties
 				for (let i = documentStyle.length - 1; i >= 0; i--) {
 					const property = documentStyle[i];
 
-					// Don't remove properties that the webview might have added separately
 					if (property && property.startsWith('--vscode-')) {
 						documentStyle.removeProperty(property);
 					}
 				}
 
-				// Re-add new properties
 				for (const [variable, value] of Object.entries(initData.styles)) {
 					documentStyle.setProperty(`--${variable}`, value);
 				}
@@ -567,7 +549,6 @@
 		 * @param {MouseEvent} event
 		 */
 		const handleAuxClick = (event) => {
-			// Prevent middle clicks opening a broken link in the browser
 			if (!event?.view?.document) {
 				return;
 			}
@@ -588,21 +569,15 @@
 		 * @param {KeyboardEvent} e
 		 */
 		const handleInnerKeydown = (e) => {
-			// If the keypress would trigger a browser event, such as copy or paste,
-			// make sure we block the browser from dispatching it. Instead VS Code
-			// handles these events and will dispatch a copy/paste back to the webview
-			// if needed
 			if (isUndoRedo(e) || isPrint(e) || isFindEvent(e) || isSaveEvent(e)) {
 				e.preventDefault();
 			} else if (isCopyPasteOrCut(e)) {
 				if (onElectron) {
 					e.preventDefault();
 				} else {
-					return; // let the browser handle this
+					return;
 				}
 			} else if (!onElectron && (isCloseTab(e) || isNewWindow(e) || isHelp(e) || isRefresh(e))) {
-				// Prevent Ctrl+W closing window / Ctrl+N opening new window in PWA.
-				// (No effect in a regular browser tab.)
 				e.preventDefault();
 			}
 
@@ -645,9 +620,7 @@
 		 */
 		function isCopyPasteOrCut(e) {
 			const hasMeta = e.ctrlKey || e.metaKey;
-			// 45: keyCode of "Insert"
 			const shiftInsert = e.shiftKey && e.keyCode === 45;
-			// 67, 86, 88: keyCode of "C", "V", "X"
 			return (hasMeta && [67, 86, 88].includes(e.keyCode)) || shiftInsert;
 		}
 
@@ -657,7 +630,6 @@
 		 */
 		function isUndoRedo(e) {
 			const hasMeta = e.ctrlKey || e.metaKey;
-			// 90, 89: keyCode of "Z", "Y"
 			return hasMeta && [90, 89].includes(e.keyCode);
 		}
 
@@ -667,7 +639,6 @@
 		 */
 		function isPrint(e) {
 			const hasMeta = e.ctrlKey || e.metaKey;
-			// 80: keyCode of "P"
 			return hasMeta && e.keyCode === 80;
 		}
 
@@ -677,7 +648,6 @@
 		 */
 		function isFindEvent(e) {
 			const hasMeta = e.ctrlKey || e.metaKey;
-			// 70: keyCode of "F"
 			return hasMeta && e.keyCode === 70;
 		}
 
@@ -687,7 +657,6 @@
 		 */
 		function isSaveEvent(e) {
 			const hasMeta = e.ctrlKey || e.metaKey;
-			// 83: keyCode of "S"
 			return hasMeta && e.keyCode === 83;
 		}
 
@@ -697,7 +666,6 @@
 		 */
 		function isCloseTab(e) {
 			const hasMeta = e.ctrlKey || e.metaKey;
-			// 87: keyCode of "W"
 			return hasMeta && e.keyCode === 87;
 		}
 
@@ -707,7 +675,6 @@
 		 */
 		function isNewWindow(e) {
 			const hasMeta = e.ctrlKey || e.metaKey;
-			// 78: keyCode of "N"
 			return hasMeta && e.keyCode === 78;
 		}
 
@@ -716,7 +683,6 @@
 		 * @return {boolean}
 		 */
 		function isHelp(e) {
-			// 112: keyCode of "F1"
 			return e.keyCode === 112;
 		}
 
@@ -725,7 +691,6 @@
 		 * @return {boolean}
 		 */
 		function isRefresh(e) {
-			// 116: keyCode of "F5"
 			return e.keyCode === 116;
 		}
 
@@ -773,7 +738,6 @@
 				try {
 					hostMessaging.postMessage('did-scroll', { scrollYPercentage: progress });
 				} catch (e) {
-					// noop
 				}
 				isHandlingScroll = false;
 			});
@@ -781,7 +745,6 @@
 
 		function handleInnerDragStartEvent(/** @type {DragEvent} */ e) {
 			if (e.defaultPrevented) {
-				// Extension code has already handled this event
 				return;
 			}
 
@@ -789,7 +752,6 @@
 				return;
 			}
 
-			// Only handle drags from outside editor for now
 			if (e.dataTransfer.items.length && Array.prototype.every.call(e.dataTransfer.items, item => item.kind === 'file')) {
 				hostMessaging.postMessage('drag-start', undefined);
 			}
@@ -808,7 +770,6 @@
 			}
 
 
-			// Only handle drags from outside editor for now
 			if (e.dataTransfer.items.length && Array.prototype.every.call(e.dataTransfer.items, item => item.kind === 'file')) {
 				hostMessaging.postMessage('drag', {
 					shiftKey: e.shiftKey
@@ -858,12 +819,10 @@
 				}
 			});
 
-			// Set default aria role
 			if (!newDocument.body.hasAttribute('role')) {
 				newDocument.body.setAttribute('role', 'document');
 			}
 
-			// Inject default script
 			if (options.allowScripts) {
 				const defaultScript = newDocument.createElement('script');
 				defaultScript.id = '_vscodeApiScript';
@@ -871,12 +830,10 @@
 				newDocument.head.prepend(defaultScript);
 			}
 
-			// Inject default styles
 			newDocument.head.prepend(defaultStyles.cloneNode(true));
 
 			applyStyles(newDocument, newDocument.body);
 
-			// Strip out unsupported http-equiv tags
 			for (const metaElement of Array.from(newDocument.querySelectorAll('meta'))) {
 				const httpEquiv = metaElement.getAttribute('http-equiv');
 				if (httpEquiv && !/^(content-security-policy|default-style|content-type)$/i.test(httpEquiv)) {
@@ -885,13 +842,11 @@
 				}
 			}
 
-			// Check for CSP
 			const csp = newDocument.querySelector('meta[http-equiv="Content-Security-Policy"]');
 			if (!csp) {
 				hostMessaging.postMessage('no-csp-found', undefined);
 			} else {
 				try {
-					// Attempt to rewrite CSPs that hardcode old-style resource endpoint
 					const cspContent = csp.getAttribute('content');
 					if (cspContent) {
 						const newCsp = cspContent.replace(/(vscode-webview-resource|vscode-resource):(?=(\s|;|$))/g, data.cspSource);
@@ -902,12 +857,9 @@
 				}
 			}
 
-			// set DOCTYPE for newDocument explicitly as DOMParser.parseFromString strips it off
-			// and DOCTYPE is needed in the iframe to ensure that the user agent stylesheet is correctly overridden
 			return '<!DOCTYPE html>\n' + newDocument.documentElement.outerHTML;
 		}
 
-		// Also forward events before the contents of the webview have loaded
 		window.addEventListener('keydown', handleInnerKeydown);
 		window.addEventListener('keyup', handleInnerKeyup);
 		window.addEventListener('dragenter', handleInnerDragStartEvent);
@@ -941,25 +893,20 @@
 				}
 			});
 
-			// propagate focus
 			hostMessaging.onMessage('focus', () => {
 				const activeFrame = getActiveFrame();
 				if (!activeFrame || !activeFrame.contentWindow) {
-					// Focus the top level webview instead
 					window.focus();
 					return;
 				}
 
 				if (document.activeElement === activeFrame) {
-					// We are already focused on the iframe (or one of its children) so no need
-					// to refocus.
 					return;
 				}
 
 				activeFrame.contentWindow.focus();
 			});
 
-			// update iframe-contents
 			let updateId = 0;
 			hostMessaging.onMessage('content', async (_event, /** @type {import('../webviewMessages').UpdateContentEvent} */ data) => {
 				perfMark('content/started');
@@ -985,7 +932,6 @@
 
 				const frame = getActiveFrame();
 				const wasFirstLoad = firstLoad;
-				// keep current scrollY around and use later
 				/** @type {(body: HTMLElement, window: Window) => void} */
 				let setInitialScrollPosition;
 				if (firstLoad) {
@@ -1006,7 +952,6 @@
 					};
 				}
 
-				// Clean up old pending frames and set current one as new one
 				const previousPendingFrame = getPendingFrame();
 				if (previousPendingFrame) {
 					previousPendingFrame.setAttribute('id', '');
@@ -1036,13 +981,9 @@
 					allowRules.push('clipboard-read;', 'clipboard-write;');
 				}
 				newFrame.setAttribute('allow', allowRules.join(' '));
-				// We should just be able to use srcdoc, but I wasn't
-				// seeing the service worker applying properly.
-				// Fake load an empty on the correct origin and then write real html
-				// into it to get around this.
 				const fakeUrlParams = new URLSearchParams({ id: ID });
 				if (globalThis.crossOriginIsolated) {
-					fakeUrlParams.set('vscode-coi', '3'); /*COOP+COEP*/
+					fakeUrlParams.set('vscode-coi', '3');
 				}
 				newFrame.src = `./fake.html?${fakeUrlParams.toString()}`;
 
@@ -1058,7 +999,6 @@
 				function onFrameLoaded(contentDocument) {
 					perfMark('content/innerFrameLoaded')
 
-					// Workaround for https://bugs.chromium.org/p/chromium/issues/detail?id=978325
 					setTimeout(() => {
 						contentDocument.open();
 						contentDocument.write(newDocument);
@@ -1073,10 +1013,7 @@
 				}
 
 				if (!options.allowScripts && isSafari) {
-					// On Safari for iframes with scripts disabled, the `DOMContentLoaded` never seems to be fired: https://bugs.webkit.org/show_bug.cgi?id=33604
-					// Use polling instead.
 					const interval = setInterval(() => {
-						// If the frame is no longer mounted, loading has stopped
 						if (!newFrame.parentElement) {
 							clearInterval(interval);
 							return;
@@ -1101,8 +1038,6 @@
 				 */
 				const onLoad = (contentDocument, contentWindow) => {
 					if (contentDocument && contentDocument.body) {
-						// Workaround for https://github.com/microsoft/vscode/issues/12865
-						// check new scrollY and reset if necessary
 						setInitialScrollPosition(contentDocument.body, contentWindow);
 					}
 
@@ -1111,7 +1046,6 @@
 						const wasFocused = document.hasFocus();
 						const oldActiveFrame = getActiveFrame();
 						oldActiveFrame?.remove();
-						// Styles may have changed since we created the element. Make sure we re-style
 						if (initialStyleVersion !== styleVersion) {
 							applyStyles(newFrame.contentDocument, newFrame.contentDocument.body);
 						}
@@ -1125,7 +1059,6 @@
 							contentWindow.focus();
 						}
 
-						// Get body size
 						const docEl = contentDocument.documentElement;
 						if (docEl) {
 							const postSize = () => {
@@ -1171,14 +1104,12 @@
 						}
 					});
 
-					// Bubble out various events
 					contentWindow.addEventListener('click', handleInnerClick);
 					contentWindow.addEventListener('auxclick', handleAuxClick);
 					contentWindow.addEventListener('keydown', handleInnerKeydown);
 					contentWindow.addEventListener('keyup', handleInnerKeyup);
 					contentWindow.addEventListener('contextmenu', e => {
 						if (e.defaultPrevented) {
-							// Extension code has already handled this event
 							return;
 						}
 
@@ -1194,7 +1125,6 @@
 								break;
 							}
 
-							// Search self/ancestors for the closest context data attribute
 							el = el.closest('[data-vscode-context]');
 							if (!el) {
 								break;
@@ -1226,7 +1156,6 @@
 
 			});
 
-			// propagate vscode-context-menu-visible class
 			hostMessaging.onMessage('set-context-menu-visible', (_event, data) => {
 				const target = getActiveFrame();
 				if (target && target.contentDocument) {
@@ -1241,7 +1170,6 @@
 				}
 			});
 
-			// Forward message to the embedded iframe
 			hostMessaging.onMessage('message', (_event, data) => {
 				const pending = getPendingFrame();
 				if (!pending) {
@@ -1276,7 +1204,6 @@
 				}
 
 				if (!data.previous && lastFindValue !== data.value && target.contentWindow) {
-					// Reset selection so we start search at the head of the last search
 					const selection = target.contentWindow.getSelection();
 					if (selection) {
 						selection.collapse(selection.anchorNode);
@@ -1286,11 +1213,11 @@
 
 				const didFind = (/** @type {any} */ (target.contentWindow)).find(
 					data.value,
-					/* caseSensitive*/ false,
-					/* backwards*/ data.previous,
-					/* wrapAround*/ true,
-					/* wholeWord */ false,
-					/* searchInFrames*/ false,
+					false,
+					data.previous,
+					true,
+					false,
+					false,
 					false);
 				hostMessaging.postMessage('did-find', didFind);
 			});

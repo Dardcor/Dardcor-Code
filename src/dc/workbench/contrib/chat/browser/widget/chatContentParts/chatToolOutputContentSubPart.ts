@@ -16,10 +16,6 @@ import { IChatContentPartRenderContext } from './chatContentParts.js';
 import { ChatCollapsibleIOPart, IChatCollapsibleIOCodePart, IChatCollapsibleIODataPart } from './chatToolInputOutputContentPart.js';
 import { ChatResourceGroupWidget } from './chatResourceGroupWidget.js';
 
-/**
- * A reusable component for rendering tool output consisting of code blocks and/or resources.
- * This is used by both ChatCollapsibleInputOutputContentPart and ChatToolPostExecuteConfirmationPart.
- */
 export class ChatToolOutputContentSubPart extends Disposable {
 	private readonly _editorReferences: IDisposableReference<CodeBlockPart>[] = [];
 	public readonly domNode: HTMLElement;
@@ -49,7 +45,6 @@ export class ChatToolOutputContentSubPart extends Disposable {
 		for (let i = 0; i < this.parts.length; i++) {
 			const part = this.parts[i];
 			if (part.kind === 'code') {
-				// Collect adjacent code parts and combine their contents
 				const codeParts = [part];
 				while (i + 1 < this.parts.length) {
 					const nextPart = this.parts[i + 1];
@@ -73,7 +68,7 @@ export class ChatToolOutputContentSubPart extends Disposable {
 			}
 
 			this.addResourceGroup(group, container);
-			i += group.length - 1; // Skip the parts we just added
+			i += group.length - 1;
 		}
 
 		return container;
@@ -93,7 +88,6 @@ export class ChatToolOutputContentSubPart extends Disposable {
 			container.appendChild(title);
 		}
 
-		// Combine text from all adjacent code parts
 		const combinedText = parts.map(p => p.data).join('\n');
 
 		const data: ICodeBlockData = {
@@ -111,7 +105,6 @@ export class ChatToolOutputContentSubPart extends Disposable {
 		container.appendChild(editorReference.object.element);
 		this._editorReferences.push(editorReference);
 
-		// Track the codeblock
 		this.codeblocks.push({
 			ownerMarkdownPartId: firstPart.ownerMarkdownPartId,
 			codeBlockIndex: firstPart.codeBlockIndex,

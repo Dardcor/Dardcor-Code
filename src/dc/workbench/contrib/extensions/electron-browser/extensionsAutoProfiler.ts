@@ -58,7 +58,7 @@ export class ExtensionsAutoProfiler implements IWorkbenchContribution {
 
 		timerService.perfBaseline.then(value => {
 			if (value < 0) {
-				return; // too slow for profiling
+				return;
 			}
 			this._perfBaseline = value;
 			this._unresponsiveListener = _extensionService.onDidChangeResponsiveChange(this._onDidChangeResponsiveChange, this);
@@ -82,13 +82,11 @@ export class ExtensionsAutoProfiler implements IWorkbenchContribution {
 		}
 
 		if (event.isResponsive && this._session) {
-			// stop profiling when responsive again
 			this._session.cancel();
 			this._logService.info('UNRESPONSIVE extension host: received responsive event and cancelling profiling session');
 
 
 		} else if (!event.isResponsive && !this._session) {
-			// start profiling if not yet profiling
 			const cts = new CancellationTokenSource();
 			this._session = cts;
 
@@ -99,24 +97,16 @@ export class ExtensionsAutoProfiler implements IWorkbenchContribution {
 
 			} catch (err) {
 				this._session = undefined;
-				// fail silent as this is often
-				// caused by another party being
-				// connected already
 				return;
 			}
 			this._logService.info('UNRESPONSIVE extension host: starting to profile NOW');
 
-			// wait 5 seconds or until responsive again
 			try {
 				await timeout(5e3, cts.token);
 			} catch {
-				// can throw cancellation error. that is
-				// OK, we stop profiling and analyse the
-				// profile anyways
 			}
 
 			try {
-				// stop profiling and analyse results
 				this._processCpuProfile(await session.stop());
 			} catch (err) {
 				onUnexpectedError(err);
@@ -128,10 +118,8 @@ export class ExtensionsAutoProfiler implements IWorkbenchContribution {
 
 	private async _processCpuProfile(profile: IExtensionHostProfile) {
 
-		// get all extensions
 		await this._extensionService.whenInstalledExtensionsRegistered();
 
-		// send heavy samples iff enabled
 		if (this._configService.getValue('application.experimental.rendererProfiling')) {
 
 			const searchTree = TernarySearchTree.forUris<IExtensionDescription>();
@@ -145,14 +133,12 @@ export class ExtensionsAutoProfiler implements IWorkbenchContribution {
 			);
 		}
 
-		// analyse profile by extension-category
 		const categories: [location: URI, id: string][] = this._extensionService.extensions
 			.filter(e => e.extensionLocation.scheme === Schemas.file)
 			.map(e => [e.extensionLocation, ExtensionIdentifier.toKey(e.identifier)]);
 
 		const data = await this._profileAnalysisService.analyseByLocation(profile.data, categories);
 
-		//
 		let overall: number = 0;
 		let top: string = '';
 		let topAggregated: number = -1;
@@ -165,17 +151,14 @@ export class ExtensionsAutoProfiler implements IWorkbenchContribution {
 		}
 		const topPercentage = topAggregated / (overall / 100);
 
-		// associate extensions to profile node
 		const extension = await this._extensionService.getExtension(top);
 		if (!extension) {
-			// not an extension => idle, gc, self?
 			return;
 		}
 
 
 		const profilingSessionId = generateUuid();
 
-		// print message to log
 		const path = joinPath(this._environmentServie.tmpDir, `exthost-${Math.random().toString(16).slice(2, 8)}.cpuprofile`);
 		await this._fileService.writeFile(path, VSBuffer.fromString(JSON.stringify(profile.data)));
 		this._logService.warn(`UNRESPONSIVE extension host: '${top}' took ${topPercentage}% of ${topAggregated / 1e3}ms, saved PROFILE here: '${path}'`);
@@ -202,10 +185,8 @@ export class ExtensionsAutoProfiler implements IWorkbenchContribution {
 		});
 
 
-		// add to running extensions view
 		this._extensionProfileService.setUnresponsiveProfile(extension.identifier, profile);
 
-		// prompt: when really slow/greedy
 		if (!(topPercentage >= 95 && topAggregated >= 5e6)) {
 			return;
 		}
@@ -213,17 +194,14 @@ export class ExtensionsAutoProfiler implements IWorkbenchContribution {
 		const action = await this._instantiationService.invokeFunction(createSlowExtensionAction, extension, profile);
 
 		if (!action) {
-			// cannot report issues against this extension...
 			return;
 		}
 
-		// only blame once per extension, don't blame too often
 		if (this._blame.has(extension.identifier) || this._blame.size >= 3) {
 			return;
 		}
 		this._blame.add(extension.identifier);
 
-		// user-facing message when very bad...
 		this._notificationService.prompt(
 			Severity.Warning,
 			localize(

@@ -82,9 +82,8 @@ const PART_WIDTH = 275;
 const FIND_INPUT_AREA_WIDTH = PART_WIDTH - 54;
 
 let MAX_MATCHES_COUNT_WIDTH = 69;
-// let FIND_ALL_CONTROLS_WIDTH = 17/** Find Input margin-left */ + (MAX_MATCHES_COUNT_WIDTH + 3 + 1) /** Match Results */ + 23 /** Button */ * 4 + 2/** sash */;
 
-const FIND_INPUT_AREA_HEIGHT = 33; // The height of Find Widget when Replace Input is not visible.
+const FIND_INPUT_AREA_HEIGHT = 33;
 
 const ctrlKeyMod = (platform.isMacintosh ? KeyMod.WinCtrl : KeyMod.CtrlCmd);
 export class FindWidgetViewZone implements IViewZone {
@@ -200,7 +199,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		this._register(this._codeEditor.onDidChangeConfiguration((e: ConfigurationChangedEvent) => {
 			if (e.hasChanged(EditorOption.readOnly)) {
 				if (this._codeEditor.getOption(EditorOption.readOnly)) {
-					// Hide replace part if editor becomes read only
 					this._state.change({ isReplaceRevealed: false }, false);
 				}
 				this._updateButtons();
@@ -263,7 +261,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			this._replaceInputFocused.set(false);
 		}));
 
-		// Track focus on the entire Find widget for accessibility help
 		this._findWidgetFocused = CONTEXT_FIND_WIDGET_FOCUSED.bindTo(contextKeyService);
 		this._widgetFocusTracker = this._register(dom.trackFocus(this._domNode));
 		this._register(this._widgetFocusTracker.onDidFocus(() => {
@@ -273,7 +270,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			this._findWidgetFocused.set(false);
 		}));
 
-		// Track which element was last focused within the widget using focusin (which bubbles)
 		this._register(dom.addDisposableListener(this._domNode, 'focusin', (e: FocusEvent) => {
 			if (dom.isHTMLElement(e.target)) {
 				this._lastFocusedElement = e.target;
@@ -282,7 +278,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 
 		this._codeEditor.addOverlayWidget(this);
 		if (this._codeEditor.getOption(EditorOption.find).addExtraSpaceOnTop) {
-			this._viewZone = new FindWidgetViewZone(0); // Put it before the first line then users can scroll beyond the first line.
+			this._viewZone = new FindWidgetViewZone(0);
 		}
 
 		this._register(this._codeEditor.onDidChangeModel(() => {
@@ -299,14 +295,12 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 				return;
 			}
 
-			// for other scroll changes, layout the viewzone in next tick to avoid ruining current rendering.
 			setTimeout(() => {
 				this._layoutViewZone();
 			}, 0);
 		}));
 	}
 
-	// ----- IOverlayWidget API
 
 	public getId(): string {
 		return FindWidget.ID;
@@ -316,28 +310,14 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		return this._domNode;
 	}
 
-	/**
-	 * Returns whether the Replace input was the last focused input in the find widget.
-	 * This persists even after focus leaves the widget, allowing external code to know
-	 * which input to restore focus to.
-	 */
 	public get lastFocusedInputWasReplace(): boolean {
 		return this._lastFocusedInputWasReplace;
 	}
 
-	/**
-	 * Returns the last focused element within the Find widget.
-	 * This is useful for restoring focus to the exact element after
-	 * accessibility help or other overlays are dismissed.
-	 */
 	public get lastFocusedElement(): HTMLElement | null {
 		return this._lastFocusedElement;
 	}
 
-	/**
-	 * Focuses the last focused element in the Find widget.
-	 * Falls back to the Find or Replace input based on lastFocusedInputWasReplace.
-	 */
 	public focusLastElement(): void {
 		if (!this._isVisible) {
 			return;
@@ -360,7 +340,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		return null;
 	}
 
-	// ----- React to state changes
 
 	private _onStateChanged(e: FindReplaceStateChangedEvent): void {
 		if (e.searchString) {
@@ -462,7 +441,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			this._matchesCount.title = '';
 		}
 
-		// remove previous content
 		this._matchesCount.firstChild?.remove();
 
 		let label: string;
@@ -486,7 +464,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		MAX_MATCHES_COUNT_WIDTH = Math.max(MAX_MATCHES_COUNT_WIDTH, this._matchesCount.clientWidth);
 	}
 
-	// ----- actions
 
 	private _getAriaLabel(label: string, currentMatch: Range | null, searchString: string): string {
 		let result: string;
@@ -510,10 +487,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		return result;
 	}
 
-	/**
-	 * If 'selection find' is ON we should not disable the button (its function is to cancel 'selection find').
-	 * If 'selection find' is OFF we enable the button only if there is a selection.
-	 */
 	private _updateToggleSelectionFindButton(): void {
 		const selection = this._codeEditor.getSelection();
 		const isSelection = selection ? (selection.startLineNumber !== selection.endLineNumber || selection.startColumn !== selection.endColumn) : false;
@@ -585,7 +558,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 				this._updateFindInputAriaLabel();
 			}, 0));
 
-			// validate query again as it's being dismissed when we hide the find widget.
 			this._revealTimeouts.push(setTimeout(() => {
 				this._findInput.validate();
 			}, 200));
@@ -665,7 +637,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		this._codeEditor.changeViewZones((accessor) => {
 			viewZone.heightInPx = this._getHeight();
 			this._viewZoneId = accessor.addZone(viewZone);
-			// scroll top adjust to make sure the editor doesn't scroll when adding viewzone at the beginning.
 			this._codeEditor.setScrollTop(targetScrollTop || this._codeEditor.getScrollTop() + viewZone.heightInPx);
 		});
 	}
@@ -689,7 +660,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 
 		this._codeEditor.changeViewZones((accessor) => {
 			if (this._viewZoneId !== undefined) {
-				// the view zone already exists, we need to update the height
 				const newHeight = this._getHeight();
 				if (newHeight === viewZone.heightInPx) {
 					return;
@@ -707,7 +677,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			} else {
 				let scrollAdjustment = this._getHeight();
 
-				// if the editor has top padding, factor that into the zone height
 				scrollAdjustment -= this._codeEditor.getOption(EditorOption.padding).top;
 				if (scrollAdjustment <= 0) {
 					return;
@@ -741,7 +710,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			return;
 		}
 		if (!this._domNode.isConnected) {
-			// the widget is not in the DOM
 			return;
 		}
 
@@ -749,7 +717,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		const editorContentWidth = layoutInfo.contentWidth;
 
 		if (editorContentWidth <= 0) {
-			// for example, diff view original editor
 			this._domNode.classList.add('hiddenEditor');
 			return;
 		} else if (this._domNode.classList.contains('hiddenEditor')) {
@@ -766,7 +733,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			const widgetWidth = dom.getTotalWidth(this._domNode);
 
 			if (widgetWidth > FIND_WIDGET_INITIAL_WIDTH) {
-				// as the widget is resized by users, we may need to change the max width of the widget as the editor width changes.
 				this._domNode.style.maxWidth = `${editorWidth - 28 - minimapWidth - 15}px`;
 				this._replaceInput.width = dom.getTotalWidth(this._findInput.domNode);
 				return;
@@ -787,7 +753,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		this._domNode.classList.toggle('reduced-find-widget', reducedFindWidget);
 
 		if (!narrowFindWidget && !collapsedFindWidget) {
-			// the minimal left offset of findwidget is 15px.
 			this._domNode.style.maxWidth = `${editorWidth - 28 - minimapWidth - 15}px`;
 		}
 
@@ -805,20 +770,16 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 	private _getHeight(): number {
 		let totalheight = 0;
 
-		// find input margin top
 		totalheight += 4;
 
-		// find input height
-		totalheight += this._findInput.inputBox.height + 2 /** input box border */;
+		totalheight += this._findInput.inputBox.height + 2 ;
 
 		if (this._isReplaceVisible) {
-			// replace input margin
 			totalheight += 4;
 
-			totalheight += this._replaceInput.inputBox.height + 2 /** input box border */;
+			totalheight += this._replaceInput.inputBox.height + 2 ;
 		}
 
-		// margin bottom
 		totalheight += 4;
 		return totalheight;
 	}
@@ -835,17 +796,14 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		return true;
 	}
 
-	// ----- Public
 
 	public focusFindInput(): void {
 		this._findInput.select();
-		// Edge browser requires focus() in addition to select()
 		this._findInput.focus();
 	}
 
 	public focusReplaceInput(): void {
 		this._replaceInput.select();
-		// Edge browser requires focus() in addition to select()
 		this._replaceInput.focus();
 	}
 
@@ -884,7 +842,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 	}
 
 	private _onFindInputMouseDown(e: IMouseEvent): void {
-		// on linux, middle key does pasting.
 		if (e.middleButton) {
 			e.stopPropagation();
 		}
@@ -971,11 +928,9 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		}
 	}
 
-	// ----- sash
 	public getVerticalSashLeft(_sash: Sash): number {
 		return 0;
 	}
-	// ----- initialization
 
 	private _keybindingLabelFor(actionId: string): string {
 		return this._keybindingService.appendKeybinding('', actionId);
@@ -984,7 +939,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 	private _buildDomNode(): void {
 		const flexibleHeight = true;
 		const flexibleWidth = true;
-		// Find input
 		const findSearchHistoryConfig = this._codeEditor.getOption(EditorOption.find).history;
 		const replaceHistoryConfig = this._codeEditor.getOption(EditorOption.find).replaceHistory;
 		this._findInput = this._register(new ContextScopedFindInput(null, this._contextViewProvider, {
@@ -999,7 +953,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 					return null;
 				}
 				try {
-					// use `g` and `u` which are also used by the TextModel search
 					new RegExp(value, 'gu');
 					return null;
 				} catch (e) {
@@ -1068,7 +1021,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 
 		const hoverLifecycleOptions: IHoverLifecycleOptions = { groupId: 'find-widget' };
 
-		// Previous button
 		this._prevBtn = this._register(new SimpleButton({
 			label: NLS_PREVIOUS_MATCH_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.PreviousMatchFindAction),
 			icon: findPreviousMatchIcon,
@@ -1078,7 +1030,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			}
 		}, this._hoverService));
 
-		// Next button
 		this._nextBtn = this._register(new SimpleButton({
 			label: NLS_NEXT_MATCH_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.NextMatchFindAction),
 			icon: findNextMatchIcon,
@@ -1098,7 +1049,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		actionsContainer.appendChild(this._prevBtn.domNode);
 		actionsContainer.appendChild(this._nextBtn.domNode);
 
-		// Toggle selection button
 		this._toggleSelectionFind = this._register(new Toggle({
 			icon: findSelectionIcon,
 			title: NLS_TOGGLE_SELECTION_FIND_TITLE + this._keybindingLabelFor(FIND_IDS.ToggleSearchScopeCommand),
@@ -1134,7 +1084,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 
 		actionsContainer.appendChild(this._toggleSelectionFind.domNode);
 
-		// Close button
 		this._closeBtn = this._register(new SimpleButton({
 			label: NLS_CLOSE_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.CloseFindWidgetCommand),
 			icon: widgetClose,
@@ -1156,7 +1105,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			}
 		}, this._hoverService));
 
-		// Replace input
 		this._replaceInput = this._register(new ContextScopedReplaceInput(null, undefined, {
 			label: NLS_REPLACE_INPUT_LABEL,
 			placeholder: NLS_REPLACE_INPUT_PLACEHOLDER,
@@ -1201,7 +1149,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			}
 		}));
 
-		// Replace one button
 		this._replaceBtn = this._register(new SimpleButton({
 			label: NLS_REPLACE_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.ReplaceOneAction),
 			icon: findReplaceIcon,
@@ -1217,7 +1164,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			}
 		}, this._hoverService));
 
-		// Replace all button
 		this._replaceAllBtn = this._register(new SimpleButton({
 			label: NLS_REPLACE_ALL_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.ReplaceAllAction),
 			icon: findReplaceAllIcon,
@@ -1238,7 +1184,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		replaceActionsContainer.appendChild(this._replaceBtn.domNode);
 		replaceActionsContainer.appendChild(this._replaceAllBtn.domNode);
 
-		// Toggle replace button
 		this._toggleReplaceBtn = this._register(new SimpleButton({
 			label: NLS_TOGGLE_REPLACE_MODE_BTN_LABEL,
 			className: 'codicon toggle left',
@@ -1253,14 +1198,12 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		}, this._hoverService));
 		this._toggleReplaceBtn.setExpanded(this._isReplaceVisible);
 
-		// Widget
 		this._domNode = document.createElement('div');
 		this._domNode.className = 'editor-widget find-widget';
 		this._domNode.setAttribute('aria-hidden', 'true');
 		this._domNode.ariaLabel = NLS_FIND_DIALOG_LABEL;
 		this._domNode.role = 'dialog';
 
-		// We need to set this explicitly, otherwise on IE11, the width inheritence of flex doesn't work.
 		this._domNode.style.width = `${FIND_WIDGET_INITIAL_WIDTH}px`;
 
 		this._domNode.appendChild(this._toggleReplaceBtn.domNode);
@@ -1281,7 +1224,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 			const width = originalWidth + evt.startX - evt.currentX;
 
 			if (width < FIND_WIDGET_INITIAL_WIDTH) {
-				// narrow down the find widget should be handled by CSS.
 				return;
 			}
 
@@ -1299,26 +1241,19 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		}));
 
 		this._register(this._resizeSash.onDidReset(() => {
-			// users double click on the sash
 			const currentWidth = dom.getTotalWidth(this._domNode);
 
 			if (currentWidth < FIND_WIDGET_INITIAL_WIDTH) {
-				// The editor is narrow and the width of the find widget is controlled fully by CSS.
 				return;
 			}
 
 			let width = FIND_WIDGET_INITIAL_WIDTH;
 
 			if (!this._resized || currentWidth === FIND_WIDGET_INITIAL_WIDTH) {
-				// 1. never resized before, double click should maximizes it
-				// 2. users resized it already but its width is the same as default
 				const layoutInfo = this._codeEditor.getLayoutInfo();
 				width = layoutInfo.width - 28 - layoutInfo.minimap.minimapWidth - 15;
 				this._resized = true;
 			} else {
-				/**
-				 * no op, the find widget should be shrinked to its default size.
-				 */
 			}
 
 
@@ -1348,7 +1283,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 				replaceLabel = nls.localize('replaceInputAriaLabelWithHint', "{0}, {1}", replaceLabel, hint);
 			}
 			this._accessibilityHelpHintAnnounced = true;
-			// Schedule reset to plain labels after initial announcement
 			this._labelResetTimeout?.dispose();
 			this._labelResetTimeout = disposableTimeout(() => {
 				if (this._isVisible) {
@@ -1379,7 +1313,6 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		}
 
 		if (state.widgetViewZoneVisible) {
-			// we should add the view zone
 			this._layoutViewZone(state.scrollTop);
 		}
 	}
@@ -1469,7 +1402,6 @@ export class SimpleButton extends Widget {
 	}
 }
 
-// theming
 
 registerThemingParticipant((theme, collector) => {
 	const findMatchHighlightBorder = theme.getColor(editorFindMatchHighlightBorder);

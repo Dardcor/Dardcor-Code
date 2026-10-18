@@ -88,7 +88,6 @@ suite('AbstractKeybindingService', () => {
 				altKey: keybinding.altKey,
 				metaKey: keybinding.metaKey,
 				altGraphKey: false,
-				// `StandardKeyboardEvent` normalizes composing keystrokes to KEY_IN_COMPOSITION.
 				keyCode: isComposing ? KeyCode.KEY_IN_COMPOSITION : keybinding.keyCode,
 				code: null!
 			};
@@ -298,7 +297,6 @@ suite('AbstractKeybindingService', () => {
 				kbItem(KeyMod.CtrlCmd | KeyCode.KeyK, ''),
 			]);
 
-			// send Ctrl/Cmd + K
 			currentContextValue = createContext({});
 			const shouldPreventDefault = kbService.testDispatch(KeyMod.CtrlCmd | KeyCode.KeyK);
 			assert.deepStrictEqual(shouldPreventDefault, false);
@@ -317,7 +315,6 @@ suite('AbstractKeybindingService', () => {
 				kbItem(KeyMod.CtrlCmd | KeyCode.KeyK, null),
 			]);
 
-			// send Ctrl/Cmd + K
 			currentContextValue = createContext({});
 			const shouldPreventDefault = kbService.testDispatch(KeyMod.CtrlCmd | KeyCode.KeyK);
 			assert.deepStrictEqual(shouldPreventDefault, false);
@@ -396,7 +393,6 @@ suite('AbstractKeybindingService', () => {
 			kbItem(KeyCode.Backspace, 'simpleCommand'),
 		]);
 
-		// send Ctrl/Cmd + K
 		let shouldPreventDefault = kbService.testDispatch(KeyMod.CtrlCmd | KeyCode.KeyK);
 		assert.strictEqual(shouldPreventDefault, true);
 		assert.deepStrictEqual(executeCommandCalls, []);
@@ -410,7 +406,6 @@ suite('AbstractKeybindingService', () => {
 		statusMessageCalls = [];
 		statusMessageCallsDisposed = [];
 
-		// send backspace
 		shouldPreventDefault = kbService.testDispatch(KeyCode.Backspace);
 		assert.strictEqual(shouldPreventDefault, true);
 		assert.deepStrictEqual(executeCommandCalls, []);
@@ -426,7 +421,6 @@ suite('AbstractKeybindingService', () => {
 		statusMessageCalls = [];
 		statusMessageCallsDisposed = [];
 
-		// send backspace
 		shouldPreventDefault = kbService.testDispatch(KeyCode.Backspace);
 		assert.strictEqual(shouldPreventDefault, true);
 		assert.deepStrictEqual(executeCommandCalls, [{
@@ -490,21 +484,17 @@ suite('AbstractKeybindingService', () => {
 			kbItem(KeyCode.Enter, 'enterCommand'),
 		]);
 
-		// Enter commits the IME composition and belongs to the input method, not to the workbench.
 		const shouldPreventDefaultWhileComposing = kbService.testDispatch(KeyCode.Enter, true);
 		assert.deepStrictEqual(
 			[shouldPreventDefaultWhileComposing, executeCommandCalls],
 			[false, []]
 		);
 
-		// `softDispatch` must agree, otherwise callers that ask "will the workbench claim this key?"
-		// prevent the default and then nobody handles the keystroke.
 		assert.strictEqual(
 			kbService.testSoftDispatch(KeyCode.Enter, true).kind,
 			ResultKind.NoMatchingKb
 		);
 
-		// Once the composition has committed, the very same key runs the command as usual.
 		const shouldPreventDefault = kbService.testDispatch(KeyCode.Enter, false);
 		assert.deepStrictEqual(
 			[shouldPreventDefault, executeCommandCalls],
@@ -526,7 +516,6 @@ suite('AbstractKeybindingService', () => {
 		]);
 
 
-		// send Ctrl/Cmd + K
 		currentContextValue = createContext({
 			key1: true
 		});
@@ -544,7 +533,6 @@ suite('AbstractKeybindingService', () => {
 		statusMessageCalls = [];
 		statusMessageCallsDisposed = [];
 
-		// send Ctrl/Cmd + K
 		currentContextValue = createContext({});
 		shouldPreventDefault = kbService.testDispatch(KeyMod.CtrlCmd | KeyCode.KeyK);
 		assert.strictEqual(shouldPreventDefault, true);
@@ -559,7 +547,6 @@ suite('AbstractKeybindingService', () => {
 		statusMessageCalls = [];
 		statusMessageCallsDisposed = [];
 
-		// send Ctrl/Cmd + X
 		currentContextValue = createContext({});
 		shouldPreventDefault = kbService.testDispatch(KeyMod.CtrlCmd | KeyCode.KeyX);
 		assert.strictEqual(shouldPreventDefault, true);
@@ -588,7 +575,6 @@ suite('AbstractKeybindingService', () => {
 		]);
 
 
-		// send Ctrl/Cmd + K
 		currentContextValue = createContext({});
 		let shouldPreventDefault = kbService.testDispatch(KeyMod.CtrlCmd | KeyCode.KeyK);
 		assert.strictEqual(shouldPreventDefault, true);
@@ -604,7 +590,6 @@ suite('AbstractKeybindingService', () => {
 		statusMessageCalls = [];
 		statusMessageCallsDisposed = [];
 
-		// send Ctrl/Cmd + K
 		currentContextValue = createContext({
 			key1: true
 		});
@@ -622,7 +607,6 @@ suite('AbstractKeybindingService', () => {
 		statusMessageCalls = [];
 		statusMessageCallsDisposed = [];
 
-		// send Ctrl/Cmd + X
 		currentContextValue = createContext({
 			key1: true
 		});
@@ -646,7 +630,6 @@ suite('AbstractKeybindingService', () => {
 			kbItem(KeyMod.CtrlCmd | KeyCode.KeyK, '^simpleCommand'),
 		]);
 
-		// send Ctrl/Cmd + K
 		currentContextValue = createContext({});
 		const shouldPreventDefault = kbService.testDispatch(KeyMod.CtrlCmd | KeyCode.KeyK);
 		assert.strictEqual(shouldPreventDefault, false);

@@ -48,9 +48,6 @@ export class PackageDocument {
 
 			let snippet = '"[${1:language}]": {\n\t"$0"\n}';
 
-			// Suggestion model word matching includes quotes,
-			// hence exclude the starting quote from the snippet and the range
-			// ending quote gets replaced
 			if (text && text.startsWith('"')) {
 				range = new vscode.Range(new vscode.Position(range.start.line, range.start.character + 1), range.end);
 				snippet = snippet.substring(1);
@@ -66,15 +63,11 @@ export class PackageDocument {
 
 		if (location.path.length === 3 && location.previousNode && typeof location.previousNode.value === 'string' && location.previousNode.value.startsWith('[')) {
 
-			// Suggestion model word matching includes starting quote and open sqaure bracket
-			// Hence exclude them from the proposal range
 			range = new vscode.Range(new vscode.Position(range.start.line, range.start.character + 2), range.end);
 
 			return vscode.languages.getLanguages().then(languages => {
 				return languages.map(l => {
 
-					// Suggestion model word matching includes closed sqaure bracket and ending quote
-					// Hence include them in the proposal to replace
 					return this.newSimpleCompletionItem(l, range, '', l + ']"');
 				});
 			});

@@ -70,15 +70,11 @@ const sessionToolNames = [
 
 export function defineServerToolsTests(context: IAgentHostE2ETestContext): void {
 	const { config, createdSessions, tempDirs } = context;
-	// Claude omits the prior server-tool input from detailed session context.
 	const supportsFullSessionContext = config.provider !== 'claude';
-	// Claude reports success but leaves the target listed.
 	const supportsCrossSessionDelete = config.provider !== 'claude';
-	// Claude starts another turn instead of rejecting a message to the current chat.
 	const supportsSelfSendRejection = config.provider !== 'claude';
 	const createSessionModelTarget = config.createSessionModelTarget;
 	const createSessionModelWireTarget = config.createSessionModelWireTarget ?? createSessionModelTarget;
-	// Claude's current-session creation turn does not complete after confirmation.
 	const supportsCurrentSessionCreation = config.provider !== 'claude';
 	let nextClientSequence = 10_000;
 
@@ -471,8 +467,6 @@ export function defineServerToolsTests(context: IAgentHostE2ETestContext): void 
 			comments: result.comments.map(comment => ({ id: comment.id, author: comment.author, replies: comment.replies })),
 			noteMentionsUnreviewed: result.note?.includes('1 code review comment') ?? false,
 		}, {
-			// The seeded entries carry no author, so the comment falls back to its
-			// `codeReview` origin and the reply to the user.
 			comments: [{ id: 'accepted-comment', author: 'agent', replies: [{ author: 'user', text: 'reply' }] }],
 			noteMentionsUnreviewed: true,
 		});

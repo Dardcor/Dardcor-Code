@@ -64,7 +64,6 @@ describe('SimpleExperimentationService', () => {
 		const service = new SimpleExperimentationService(false, new DefaultsOnlyConfigurationService());
 		const events: string[][] = [];
 
-		// Set initial value
 		const variables1: Record<string, boolean | number | string> = {
 			'feature-flag': true
 		};
@@ -74,7 +73,6 @@ describe('SimpleExperimentationService', () => {
 			events.push(event.affectedTreatmentVariables);
 		});
 
-		// Update with same value
 		const variables2: Record<string, boolean | number | string> = {
 			'feature-flag': true
 		};
@@ -88,7 +86,6 @@ describe('SimpleExperimentationService', () => {
 	it('should fire onDidTreatmentsChange event only for changed variables', () => {
 		const service = new SimpleExperimentationService(false, new DefaultsOnlyConfigurationService());
 
-		// Set initial values
 		const variables1: Record<string, boolean | number | string> = {
 			'feature-a': true,
 			'feature-b': 50
@@ -100,10 +97,9 @@ describe('SimpleExperimentationService', () => {
 			events.push(event.affectedTreatmentVariables);
 		});
 
-		// Update with one changed value and one unchanged
 		const variables2: Record<string, boolean | number | string> = {
-			'feature-a': true, // unchanged
-			'feature-b': 100 // changed
+			'feature-a': true,
+			'feature-b': 100
 		};
 		service.updateTreatmentVariables(variables2);
 
@@ -136,23 +132,19 @@ describe('SimpleExperimentationService', () => {
 	it('should wait for treatment variables when waitForTreatmentVariables = true', async () => {
 		const service = new SimpleExperimentationService(true, new DefaultsOnlyConfigurationService());
 
-		// hasTreatments() should not resolve until updateTreatmentVariables() is called
 		let hasTreatmentsResolved = false;
 		const hasTreatmentsPromise = service.hasTreatments().then(() => {
 			hasTreatmentsResolved = true;
 		});
 
-		// Give a bit of time to ensure promise doesn't resolve immediately
 		await new Promise(resolve => setTimeout(resolve, 10));
 		expect(hasTreatmentsResolved).toBe(false);
 
-		// Now update treatment variables
 		const variables: Record<string, boolean | number | string> = {
 			'test-feature': true
 		};
 		service.updateTreatmentVariables(variables);
 
-		// Wait for hasTreatments to resolve
 		await hasTreatmentsPromise;
 		expect(hasTreatmentsResolved).toBe(true);
 		expect(service.getTreatmentVariable<boolean>('test-feature')).toBe(true);
@@ -163,7 +155,6 @@ describe('SimpleExperimentationService', () => {
 	it('should remove treatment variable when omitted from update', () => {
 		const service = new SimpleExperimentationService(false, new DefaultsOnlyConfigurationService());
 
-		// Set initial variables
 		const variables1: Record<string, boolean | number | string> = {
 			'feature-a': true,
 			'feature-b': 50,
@@ -180,7 +171,6 @@ describe('SimpleExperimentationService', () => {
 			events.push(event.affectedTreatmentVariables);
 		});
 
-		// Remove feature-b by omitting it
 		const variables2: Record<string, boolean | number | string> = {
 			'feature-a': true,
 			'feature-c': 'test'

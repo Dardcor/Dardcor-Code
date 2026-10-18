@@ -18,7 +18,6 @@ import { IWorkspaceInfo } from '../../common/workspaceInfo';
 import { IPullRequestDetectionService } from '../pullRequestDetectionService';
 import { SessionCompletionInfo, SessionRequestLifecycle } from '../sessionRequestLifecycle';
 
-// ─── Test Helpers ────────────────────────────────────────────────
 
 class TestWorktreeService extends mock<IChatSessionWorktreeService>() {
 	declare readonly _serviceBrand: undefined;
@@ -123,7 +122,6 @@ function makeIsolatedWorkspace(): IWorkspaceInfo {
 	});
 }
 
-// ─── Tests ───────────────────────────────────────────────────────
 
 describe('SessionRequestLifecycle', () => {
 	let worktreeService: TestWorktreeService;
@@ -244,7 +242,7 @@ describe('SessionRequestLifecycle', () => {
 
 		it('stages workspace changes for non-isolated session with working directory', async () => {
 			const request = makeRequest();
-			const session = makeSession(); // non-isolated, has folder
+			const session = makeSession();
 
 			await handler.startRequest('session-1', request, false, makeWorkspace());
 			await handler.endRequest('session-1', request, session, makeToken());
@@ -294,7 +292,6 @@ describe('SessionRequestLifecycle', () => {
 
 			expect(worktreeService.handleRequestCompleted).not.toHaveBeenCalled();
 			expect(workspaceFolderService.handleRequestCompleted).not.toHaveBeenCalled();
-			// Checkpoint should still be created
 			expect(checkpointService.handleRequestCompleted).toHaveBeenCalled();
 		});
 
@@ -306,13 +303,11 @@ describe('SessionRequestLifecycle', () => {
 			await handler.startRequest('session-1', req1, false, makeWorkspace());
 			await handler.startRequest('session-1', req2, false, makeWorkspace());
 
-			// First request completes — should defer (2 pending)
 			await handler.endRequest('session-1', req1, session, makeToken());
 			expect(worktreeService.handleRequestCompleted).not.toHaveBeenCalled();
 			expect(workspaceFolderService.handleRequestCompleted).not.toHaveBeenCalled();
 			expect(checkpointService.handleRequestCompleted).not.toHaveBeenCalled();
 
-			// Second (last) request completes — should proceed
 			await handler.endRequest('session-1', req2, session, makeToken());
 			expect(workspaceFolderService.handleRequestCompleted).toHaveBeenCalledWith('session-1');
 			expect(checkpointService.handleRequestCompleted).toHaveBeenCalledWith('session-1', 'req-2');
@@ -337,7 +332,6 @@ describe('SessionRequestLifecycle', () => {
 			await handler.startRequest('session-1', request, false, makeWorkspace());
 			await handler.endRequest('session-1', request, session, makeToken());
 
-			// PR detection is fire-and-forget; wait for microtask
 			await new Promise(resolve => setTimeout(resolve, 10));
 			expect(prDetectionService.handlePullRequestCreated).toHaveBeenCalledWith('session-1', undefined);
 		});
@@ -350,7 +344,6 @@ describe('SessionRequestLifecycle', () => {
 			await handler.startRequest('session-1', request, false, makeWorkspace());
 			await expect(handler.endRequest('session-1', request, session, makeToken())).rejects.toThrow('commit failed');
 
-			// After the error, a new request for the same session should proceed normally
 			workspaceFolderService.handleRequestCompleted.mockResolvedValue();
 			const req2 = makeRequest('req-2');
 			await handler.startRequest('session-1', req2, false, makeWorkspace());
@@ -362,7 +355,6 @@ describe('SessionRequestLifecycle', () => {
 			const request = makeRequest();
 			const session = makeSession();
 
-			// Not tracked, but should still work (pendingRequests is undefined → size check skipped)
 			await handler.endRequest('session-1', request, session, makeToken());
 			expect(workspaceFolderService.handleRequestCompleted).toHaveBeenCalled();
 		});

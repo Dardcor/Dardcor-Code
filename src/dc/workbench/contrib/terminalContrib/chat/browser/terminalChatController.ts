@@ -22,22 +22,10 @@ export class TerminalChatController extends Disposable implements ITerminalContr
 	static get(instance: ITerminalInstance): TerminalChatController | null {
 		return instance.getContribution<TerminalChatController>(TerminalChatController.ID);
 	}
-	/**
-	 * The controller for the currently focused chat widget. This is used to track action context since 'active terminals'
-	 * are only tracked for non-detached terminal instanecs.
-	 */
 	static activeChatController?: TerminalChatController;
 
-	/**
-	 * The chat widget for the controller, this is lazy as we don't want to instantiate it until
-	 * both it's required and xterm is ready.
-	 */
 	private _terminalChatWidget: Lazy<TerminalChatWidget> | undefined;
 
-	/**
-	 * The terminal chat widget for the controller, this will be undefined if xterm is not ready yet (ie. the
-	 * terminal is still initializing). This wraps the inline chat widget.
-	 */
 	get terminalChatWidget(): TerminalChatWidget | undefined { return this._terminalChatWidget?.value; }
 
 	private _lastResponseContent: string | undefined;

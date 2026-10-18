@@ -33,7 +33,6 @@ export class DomainService extends Disposable implements IDomainService {
 	}
 
 	private _onDidConfigChangeHandler(event: ConfigurationChangeEvent) {
-		// Updated configs that have to do with GHE Domains
 		if (
 			event.affectsConfiguration(`${CopilotConfigPrefix}.advanced`) ||
 			event.affectsConfiguration(EnterpriseURLConfig)

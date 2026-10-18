@@ -14,7 +14,22 @@ export default {
   category: "apikey",
   authType: "apikey",
   serviceKinds: [
-    "tts"
+    "tts",
+    "stt"
+  ],
+  models: [
+    {
+      id: "scribe_v1",
+      name: "Scribe v1",
+      params: ["language", "response_format", "timestamps_granularity", "tag_audio_events", "diarize", "num_speakers"],
+      kind: "stt"
+    },
+    {
+      id: "scribe_v2",
+      name: "Scribe v2",
+      params: ["language", "response_format", "timestamps_granularity", "tag_audio_events", "diarize", "num_speakers"],
+      kind: "stt"
+    },
   ],
   ttsConfig: {
     baseUrl: "https://api.elevenlabs.io/v1/text-to-speech",
@@ -31,5 +46,12 @@ export default {
         name: "Eleven Turbo v2.5"
       }
     ]
+  },
+  sttConfig: {
+    baseUrl: "https://api.elevenlabs.io/v1/speech-to-text",
+    authType: "apikey",
+    authHeader: "xi-api-key",
+    format: "elevenlabs-stt",
+    responseFormats: { segments: "seg_json", subtitles: "srt", captions: "vtt" }
   }
-};
+}

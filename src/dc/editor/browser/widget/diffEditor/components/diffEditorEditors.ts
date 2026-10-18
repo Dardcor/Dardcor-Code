@@ -64,8 +64,8 @@ export class DiffEditorEditors extends Disposable {
 		this.original = this._register(this._createLeftHandSideEditor(this._options.editorOptions.get(), this._argCodeEditorWidgetOptions.originalEditor || {}));
 		this.modified = this._register(this._createRightHandSideEditor(this._options.editorOptions.get(), this._argCodeEditorWidgetOptions.modifiedEditor || {}));
 		this._onDidContentSizeChange = this._register(new Emitter<IContentSizeChangedEvent>());
-		this.modifiedScrollTop = observableFromEvent(this, this.modified.onDidScrollChange, () => /** @description modified.getScrollTop */ this.modified.getScrollTop());
-		this.modifiedScrollHeight = observableFromEvent(this, this.modified.onDidScrollChange, () => /** @description modified.getScrollHeight */ this.modified.getScrollHeight());
+		this.modifiedScrollTop = observableFromEvent(this, this.modified.onDidScrollChange, () => this.modified.getScrollTop());
+		this.modifiedScrollHeight = observableFromEvent(this, this.modified.onDidScrollChange, () => this.modified.getScrollHeight());
 		this.modifiedObs = observableCodeEditor(this.modified);
 		this.originalObs = observableCodeEditor(this.original);
 		this.modifiedModel = this.modifiedObs.model;
@@ -90,7 +90,6 @@ export class DiffEditorEditors extends Disposable {
 				}
 			}
 		}, (reader, changeSummary) => {
-			/** @description update editor options */
 			_options.editorOptions.read(reader);
 
 			this._options.renderSideBySide.read(reader);
@@ -141,12 +140,10 @@ export class DiffEditorEditors extends Disposable {
 	private _adjustOptionsForLeftHandSide(_reader: IReader | undefined, changedOptions: Readonly<IDiffEditorConstructionOptions>): IEditorConstructionOptions {
 		const result = this._adjustOptionsForSubEditor(changedOptions);
 		if (!this._options.renderSideBySide.get()) {
-			// never wrap hidden editor
 			result.wordWrapOverride1 = 'off';
 			result.wordWrapOverride2 = 'off';
 			result.stickyScroll = { enabled: false };
 
-			// Disable unicode highlighting for the original side in inline mode, as they are not shown anyway.
 			result.unicodeHighlight = { nonBasicASCII: false, ambiguousCharacters: false, invisibleCharacters: false };
 		} else {
 			result.unicodeHighlight = this._options.editorOptions.get().unicodeHighlight || {};
@@ -191,13 +188,11 @@ export class DiffEditorEditors extends Disposable {
 		clonedOptions.allowVariableFonts = false;
 		clonedOptions.allowVariableFontsInAccessibilityMode = false;
 
-		// Clone scrollbar options before changing them
 		clonedOptions.scrollbar = { ...(clonedOptions.scrollbar || {}) };
 		clonedOptions.folding = false;
 		clonedOptions.codeLens = this._options.diffCodeLens.get();
 		clonedOptions.fixedOverflowWidgets = true;
 
-		// Clone minimap options before changing them
 		clonedOptions.minimap = { ...(clonedOptions.minimap || {}) };
 		clonedOptions.minimap.enabled = false;
 

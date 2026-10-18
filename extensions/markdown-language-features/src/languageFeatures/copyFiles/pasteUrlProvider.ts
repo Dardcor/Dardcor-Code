@@ -10,11 +10,6 @@ import { UriList } from '../../util/uriList';
 import { createInsertUriListEdit, linkEditKind } from './shared';
 import { InsertMarkdownLink, findValidUriInText, shouldInsertMarkdownLinkByDefault } from './smartDropOrPaste';
 
-/**
- * Adds support for pasting text uris to create markdown links.
- *
- * This only applies to `text/plain`. Other mimes like `text/uri-list` are handled by ResourcePasteOrDropProvider.
- */
 class PasteUrlEditProvider implements vscode.DocumentPasteEditProvider {
 
 	public static readonly kind = linkEditKind;
@@ -48,8 +43,6 @@ class PasteUrlEditProvider implements vscode.DocumentPasteEditProvider {
 			return;
 		}
 
-		// TODO: If the user has explicitly requested to paste as a markdown link,
-		// try to paste even if we don't have a valid uri
 		const uriText = findValidUriInText(text);
 		if (!uriText) {
 			return;

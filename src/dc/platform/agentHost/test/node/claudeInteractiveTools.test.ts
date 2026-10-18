@@ -14,12 +14,6 @@ import {
 	type ParsedAskUserQuestionInput,
 } from '../../node/claude/claudeInteractiveTools.js';
 
-/**
- * Pure-projection tests for [claudeInteractiveTools.ts](../../node/claude/claudeInteractiveTools.ts).
- * The agent's `_handleExitPlanMode` and `_handleAskUserQuestion` are
- * 4-line orchestrators delegating SDK ↔ workbench projections to these
- * helpers; testing the projections directly avoids the agent harness.
- */
 suite('claudeInteractiveTools', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();

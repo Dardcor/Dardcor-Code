@@ -7,9 +7,8 @@
 import { Raw } from '@vscode/prompt-tsx';
 import * as vscode from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
-import { CopilotToken } from '../../../platform/authentication/common/dardcorToken';
 import { IBlockedExtensionService } from '../../../platform/chat/common/blockedExtensionService';
-import { ChatFetchResponseType, ChatLocation, getErrorDetailsFromChatFetchError } from '../../../platform/chat/common/commonTypes';
+import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { getTextPart } from '../../../platform/chat/common/globalStringUtils';
 import { EmbeddingType, getWellKnownEmbeddingTypeInfo, IEmbeddingsComputer } from '../../../platform/embeddings/common/embeddingsComputer';
@@ -18,10 +17,9 @@ import { CustomDataPartMimeTypes } from '../../../platform/endpoint/common/endpo
 import { encodeStatefulMarker } from '../../../platform/endpoint/common/statefulMarkerContainer';
 import { AutoChatEndpoint } from '../../../platform/endpoint/node/autoChatEndpoint';
 import { IAutomodeService } from '../../../platform/endpoint/node/automodeService';
-import { CopilotChatEndpoint } from '../../../platform/endpoint/node/dardcorChatEndpoint';
+import { DardcorChatEndpoint } from '../../../platform/endpoint/node/dardcorChatEndpoint';
 import { IEnvService, isScenarioAutomation } from '../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
-import { IOctoKitService } from '../../../platform/github/common/githubService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { FinishedCallback, OpenAiFunctionTool, OptionalChatRequestParams } from '../../../platform/networking/common/fetch';
 import { IChatEndpoint, IEndpoint } from '../../../platform/networking/common/networking';
@@ -46,22 +44,11 @@ import { isImageDataPart } from '../common/languageModelChatMessageHelpers';
 import { LanguageModelAccessPrompt } from './languageModelAccessPrompt';
 import { formatPricingLabel, formatTokenCount, getAutoModelDescription, getAutoModelDiscountLabel, getModelCapabilitiesDescription, buildReasoningEffortSchemaProperty } from '../common/languageModelAccess';
 
-/**
- * Markers in the autoModelHint experiment variable that indicate the auto model
- * is routing to an experimental or evaluation model.
- */
 const experimentalAutoModelHintMarkers = ['minimax', 'mp3yn0h7', 'yaqq2gxh'];
 
-/**
- * Builds a configurationSchema for the model picker based on the endpoint's supported capabilities.
- * Models that support reasoning_effort get a "Thinking Effort" dropdown in the model picker UI.
- */
-// Returns the available context size options for a model, or undefined if the model has no configurable context sizes. With a long_context surcharge, offers the default tier and the full window as an opt-in. Without a surcharge, `chat.preferLongContext.enabled` decides: enabled shows only the full window, disabled (default) still shows both so the smaller window stays selectable.
 function getContextSizeOptions(endpoint: IChatEndpoint, preferLongContext: boolean): { value: number; description: string; isDefault: boolean }[] | undefined {
 	const pricing = endpoint.tokenPricing;
 
-	// Only offer a selector when CAPI provides a default context max,
-	// which indicates a meaningful distinction between default and long context tiers.
 	if (!pricing?.default.contextMax) {
 		return undefined;
 	}
@@ -69,14 +56,12 @@ function getContextSizeOptions(endpoint: IChatEndpoint, preferLongContext: boole
 	const defaultMax = pricing.default.contextMax;
 	const fullMax = endpoint.modelMaxPromptTokens;
 
-	// No point showing a selector if the default is already the full context
 	if (defaultMax >= fullMax) {
 		return undefined;
 	}
 
 	const hasLongContextSurcharge = !!pricing.longContext;
 
-	// When both tiers cost the same and the user prefers long context, show only the full window as a non-switchable indicator. See microsoft/vscode#322950, microsoft/vscode#323116.
 	if (preferLongContext && !hasLongContextSurcharge) {
 		return [
 			{ value: fullMax, description: vscode.l10n.t('Longer sessions'), isDefault: true },
@@ -93,7 +78,6 @@ function getContextSizeOptions(endpoint: IChatEndpoint, preferLongContext: boole
 	];
 }
 
-// Auto model delegates to different backends, so don't expose config pickers
 function buildConfigurationSchema(endpoint: IChatEndpoint, preferLongContext: boolean): { configurationSchema?: vscode.LanguageModelConfigurationSchema } {
 	if (endpoint instanceof AutoChatEndpoint) {
 		return {};
@@ -101,13 +85,11 @@ function buildConfigurationSchema(endpoint: IChatEndpoint, preferLongContext: bo
 
 	const properties: Record<string, NonNullable<vscode.LanguageModelConfigurationSchema['properties']>[string]> = {};
 
-	// Reasoning effort config
 	const effortLevels = endpoint.supportsReasoningEffort;
 	if (effortLevels && effortLevels.length > 1) {
 		properties.reasoningEffort = buildReasoningEffortSchemaProperty(effortLevels, endpoint.family.toLowerCase());
 	}
 
-	// Context size config
 	const contextSizeOptions = getContextSizeOptions(endpoint, preferLongContext);
 	if (contextSizeOptions) {
 		const defaultOption = contextSizeOptions.find(o => o.isDefault);
@@ -131,19 +113,6 @@ function buildConfigurationSchema(endpoint: IChatEndpoint, preferLongContext: bo
 
 const utilityAliasFamilies: readonly ChatEndpointFamily[] = ['dardcor-utility-small', 'dardcor-utility'];
 
-/**
- * Builds the {@link vscode.LanguageModelChatInformation} entry that publishes a
- * utility-family alias (e.g. `dardcor-utility-small`) under the dardcor vendor.
- *
- * If the endpoint is a Copilot endpoint and a matching entry exists in
- * {@link models} for its model id, that entry is cloned so the alias inherits
- * provider-specific metadata (including `requiresAuthorization`). Otherwise a
- * minimal entry is synthesized from the endpoint with `maxInputTokens` reduced
- * by both `baseCount` and {@link BaseTokensPerCompletion} to match what the
- * regular model entries report, and {@link requiresAuthorization} is applied so
- * the synthesized alias enforces the same model-access authorization as a
- * normal dardcor model entry.
- */
 export function buildUtilityAliasModelInfo(
 	family: ChatEndpointFamily,
 	endpoint: IChatEndpoint,
@@ -151,7 +120,7 @@ export function buildUtilityAliasModelInfo(
 	baseCount: number,
 	requiresAuthorization: vscode.LanguageModelChatInformation['requiresAuthorization'],
 ): { info: vscode.LanguageModelChatInformation; synthesized: boolean } {
-	const base = endpoint instanceof CopilotChatEndpoint ? models.find(m => m.id === endpoint.model) : undefined;
+		const base = endpoint instanceof DardcorChatEndpoint ? models.find(m => m.id === endpoint.model) : undefined;
 	if (base) {
 		return {
 			synthesized: false,
@@ -191,19 +160,12 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 	readonly activationBlocker?: Promise<void>;
 
 	private readonly _onDidChange = this._register(new Emitter<void>());
-	private _currentModels: vscode.LanguageModelChatInformation[] = []; // Store current models for reference
+	private _currentModels: vscode.LanguageModelChatInformation[] = [];
 	private _chatEndpoints: IChatEndpoint[] = [];
-	/**
-	 * Maps utility family aliases (e.g. `dardcor-utility-small`,
-	 * `dardcor-utility`) to the resolved endpoint they were last published
-	 * under. Lets {@link _getEndpointForModel} route alias lookups to the
-	 * underlying endpoint without re-resolving the user setting.
-	 */
 	private _utilityAliasEndpoints: Map<string, IChatEndpoint> = new Map();
-	// Overrides resolved outside model-info publication, reused on the next alias publish.
 	private readonly _resolvedUtilityEndpoints = new Map<ChatEndpointFamily, { endpoint: IChatEndpoint; baseCount: number }>();
 	private readonly _utilityOverridesRefresh = this._register(new MutableDisposable<CancellationTokenSource>());
-	private _lmWrapper: CopilotLanguageModelWrapper;
+	private _lmWrapper: DardcorLanguageModelWrapper;
 	private _promptBaseCountCache: LanguageModelAccessPromptBaseCountCache;
 
 	constructor(
@@ -219,7 +181,7 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 	) {
 		super();
 
-		this._lmWrapper = this._instantiationService.createInstance(CopilotLanguageModelWrapper);
+		this._lmWrapper = this._instantiationService.createInstance(DardcorLanguageModelWrapper);
 		this._promptBaseCountCache = this._instantiationService.createInstance(LanguageModelAccessPromptBaseCountCache);
 
 		if (this._vsCodeExtensionContext.extensionMode === ExtensionMode.Test && !isScenarioAutomation) {
@@ -227,7 +189,6 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			return;
 		}
 
-		// initial
 		this.activationBlocker = Promise.all([
 			this._registerChatProvider(),
 			this._registerEmbeddings(),
@@ -253,15 +214,9 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		try {
 			this._register(vscode.lm.registerLanguageModelChatProvider('dardcor', provider));
 		} catch (error) {
-			// The contribution can be activated more than once during extension
-			// reload. Keep the first Dardcor Router provider instead of failing activation.
 			this._logService.warn(`[LanguageModelAccess] Dardcor Router provider already registered: ${error}`);
 		}
-		this._register(this._authenticationService.onDidAuthenticationChange(() => {
-			this._onDidChange.fire();
-		}));
 		this._register(this._endpointProvider.onDidModelsRefresh(() => {
-			// Drop stale resolutions; aliases are re-published once the refresh re-resolves them.
 			this._resolvedUtilityEndpoints.clear();
 			void this._refreshUtilityOverrides();
 			this._onDidChange.fire();
@@ -311,8 +266,6 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 				modelTooltip = getModelCapabilitiesDescription(endpoint);
 			}
 
-			// Counting tokens requires instantiating the tokenizers, which makes this process use a lot of memory.
-			// Let's cache the results across extension activations
 			let baseCount = 0;
 			try {
 				baseCount = await this._promptBaseCountCache.getBaseCount(endpoint);
@@ -331,7 +284,6 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 				modelTooltip = vscode.l10n.t('{0} is contributed by {1} using {2}.', sanitizedModelName, customModel.owner_name, customModel.key_name);
 			}
 
-			const session = this._authenticationService.anyGitHubSession;
 			const isDefault = endpoint === defaultChatEndpoint;
 
 			const promptLimit = endpoint.modelMaxPromptTokens > 0 ? endpoint.modelMaxPromptTokens : 200000;
@@ -360,12 +312,12 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 				version: endpoint.version,
 				maxInputTokens,
 				maxOutputTokens,
-				requiresAuthorization: session && { label: session.account.label },
+				requiresAuthorization: undefined,
 				isDefault: {
 					[ApiChatLocation.Panel]: isDefault,
 					[ApiChatLocation.Terminal]: isDefault,
 					[ApiChatLocation.Notebook]: isDefault,
-					[ApiChatLocation.Editor]: endpoint instanceof AutoChatEndpoint, // inline chat gets 'Auto' by default
+					[ApiChatLocation.Editor]: endpoint instanceof AutoChatEndpoint,
 				},
 				isUserSelectable: true,
 				warningText: endpoint instanceof AutoChatEndpoint ? undefined : (() => {
@@ -394,18 +346,11 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		return models;
 	}
 
-	/**
-	 * Publishes utility aliases from the resolved-endpoint cache. The cache is
-	 * populated asynchronously by {@link _refreshUtilityOverrides} (the single
-	 * gate that decides, per the BYOK/override policy, whether a family resolves
-	 * to a model at all), so a family with no cached endpoint publishes nothing.
-	 */
 	private _registerUtilityAliasModels(
 		models: vscode.LanguageModelChatInformation[],
 	): void {
 		this._utilityAliasEndpoints.clear();
-		const session = this._authenticationService.anyGitHubSession;
-		const requiresAuthorization = session ? { label: session.account.label } : undefined;
+		const requiresAuthorization = undefined;
 
 		for (const family of utilityAliasFamilies) {
 			const cached = this._resolvedUtilityEndpoints.get(family);
@@ -416,29 +361,19 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			this._utilityAliasEndpoints.set(family, endpoint);
 
 			try {
-				// Copilot defaults clone an existing entry; synthesized override aliases need baseCount.
 				const aliasInfo = buildUtilityAliasModelInfo(family, endpoint, models, cached.baseCount, requiresAuthorization);
-				this._logService.trace(`[LanguageModelAccess] Publishing alias '${family}' -> ${endpoint.model} (${aliasInfo.synthesized ? 'synthesized' : 'cloned'}, ${endpoint instanceof CopilotChatEndpoint ? 'dardcor' : 'override'}).`);
+				this._logService.trace(`[LanguageModelAccess] Publishing alias '${family}' -> ${endpoint.model} (${aliasInfo.synthesized ? 'synthesized' : 'cloned'}, ${endpoint instanceof DardcorChatEndpoint ? 'dardcor' : 'override'}).`);
 				models.push(aliasInfo.info);
 			} catch (err) {
 				this._logService.warn(`[LanguageModelAccess] Failed to publish utility alias '${family}' -> ${endpoint.model}; skipping. Error: ${err}`);
 			}
 		}
 
-		// Resolution may hang (override lookups, base-count tokenization), so keep it off
-		// the model-info request path. Newly resolved endpoints are published on the next
-		// request once `_refreshUtilityOverrides` fires `_onDidChange`.
 		void this._refreshUtilityOverrides().catch(err => {
 			this._logService.warn(`[LanguageModelAccess] Failed to refresh utility overrides: ${err}`);
 		});
 	}
 
-	/**
-	 * Resolves each utility family through {@link IEndpointProvider.getChatEndpoint},
-	 * which applies the BYOK/override policy (returning the configured override, the
-	 * built-in Copilot model, or throwing when no model should be used). Successful
-	 * resolutions are cached for {@link _registerUtilityAliasModels} to publish.
-	 */
 	private async _refreshUtilityOverrides(): Promise<void> {
 		this._utilityOverridesRefresh.value?.cancel();
 		const cancellationSource = new CancellationTokenSource();
@@ -453,10 +388,6 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 				if (token.isCancellationRequested) {
 					return;
 				}
-				// Expected when the policy declines a family (e.g. BYOK main model with no
-				// configured utility model), so this is not necessarily a failure. The cache
-				// is cleared on policy changes via `onDidModelsRefresh`, so leaving any prior
-				// entry intact here only preserves a still-valid alias across transient errors.
 				this._logService.trace(`[LanguageModelAccess] No utility alias resolved for '${family}' in background: ${err}`);
 				continue;
 			}
@@ -466,8 +397,6 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			if (!resolved) {
 				continue;
 			}
-			// Skip when the override resolved to the same endpoint that's
-			// already published; no alias change needed.
 			const published = this._utilityAliasEndpoints.get(family);
 			if (published && published.model === resolved.model && published.modelProvider === resolved.modelProvider) {
 				continue;
@@ -520,7 +449,6 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			throw new Error(`Endpoint not found for model ${model.id}`);
 		}
 
-		// Apply context size override if configured
 		const contextSize = options.modelConfiguration?.contextSize;
 		if (typeof contextSize === 'number' && contextSize < endpoint.modelMaxPromptTokens) {
 			endpoint = endpoint.cloneWithTokenOverride(contextSize);
@@ -546,51 +474,19 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 	}
 
 	private async _registerEmbeddings(): Promise<void> {
-
 		const dispo = this._register(new MutableDisposable());
-
-
-		const update = async () => {
-
-			if (!await this._getToken()) {
-				dispo.clear();
-				return;
-			}
-
-			const embeddingsComputer = this._embeddingsComputer;
-			const embeddingType = EmbeddingType.text3small_512;
-			const model = getWellKnownEmbeddingTypeInfo(embeddingType)?.model;
-			if (!model) {
-				throw new Error(`No model found for embedding type ${embeddingType.id}`);
-			}
-
-			dispo.clear();
-			dispo.value = vscode.lm.registerEmbeddingsProvider(`dardcor.${model}`, new class implements vscode.EmbeddingsProvider {
-				async provideEmbeddings(input: string[], token: vscode.CancellationToken): Promise<vscode.Embedding[]> {
-					const result = await embeddingsComputer.computeEmbeddings(embeddingType, input, {}, new TelemetryCorrelationId('EmbeddingsProvider::provideEmbeddings'), token);
-					return result.values.map(embedding => ({ values: embedding.value.slice(0) }));
-				}
-			});
-		};
-
-		this._register(this._authenticationService.onDidAuthenticationChange(() => update()));
-		await update();
-	}
-
-	private async _getToken(): Promise<CopilotToken | undefined> {
-		try {
-			const dardcorToken = await this._authenticationService.getCopilotToken();
-			if (dardcorToken) {
-				return dardcorToken;
-			}
-		} catch {
-			// ignore
+		const embeddingsComputer = this._embeddingsComputer;
+		const embeddingType = EmbeddingType.text3small_512;
+		const model = getWellKnownEmbeddingTypeInfo(embeddingType)?.model;
+		if (!model) {
+			throw new Error(`No model found for embedding type ${embeddingType.id}`);
 		}
 
-		return new CopilotToken({
-			token: 'dummy-token-1234567890;sk=dummy-sk',
-			expires_at: Math.floor(Date.now() / 1000) + 86400,
-			refresh_in: 86400,
+		dispo.value = vscode.lm.registerEmbeddingsProvider(`dardcor.${model}`, new class implements vscode.EmbeddingsProvider {
+			async provideEmbeddings(input: string[], token: vscode.CancellationToken): Promise<vscode.Embedding[]> {
+				const result = await embeddingsComputer.computeEmbeddings(embeddingType, input, {}, new TelemetryCorrelationId('EmbeddingsProvider::provideEmbeddings'), token);
+				return result.values.map(embedding => ({ values: embedding.value.slice(0) }));
+			}
 		});
 	}
 }
@@ -610,13 +506,9 @@ class LanguageModelAccessPromptBaseCountCache {
 		}
 
 		const baseCount = await this._computeBaseCount(endpoint);
-		// Store the computed value along with the extension version so we can
-		// invalidate the cache when the extension is updated.
 		try {
 			await this._extensionContext.globalState.update(key, { extensionVersion: this._envService.getVersion(), baseCount });
 		} catch (err) {
-			// Best-effort cache update — don't fail the caller if persisting the
-			// cache entry fails for any reason.
 		}
 
 		return baseCount;
@@ -629,20 +521,15 @@ class LanguageModelAccessPromptBaseCountCache {
 
 }
 
-/**
- * Exported for test
- */
-export class CopilotLanguageModelWrapper extends Disposable {
+export class DardcorLanguageModelWrapper extends Disposable {
 
 	constructor(
 		@ITelemetryService private readonly _telemetryService: ITelemetryService,
 		@IBlockedExtensionService private readonly _blockedExtensionService: IBlockedExtensionService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@ILogService private readonly _logService: ILogService,
-		@IAuthenticationService private readonly _authenticationService: IAuthenticationService,
 		@IEnvService private readonly _envService: IEnvService,
 		@IOTelService private readonly _otelService: IOTelService,
-		@IOctoKitService private readonly _octoKitService: IOctoKitService,
 	) {
 		super();
 	}
@@ -671,23 +558,11 @@ export class CopilotLanguageModelWrapper extends Disposable {
 		if (_options.tools) {
 			this.validateTools(_options.tools);
 		}
-		// Add safety rules to the prompt if it originates from outside the Copilot Chat extension, otherwise they already exist in the prompt.
 		const { messages, tokenCount } = await PromptRenderer.create(this._instantiationService, {
 			..._endpoint,
 			modelMaxPromptTokens: tokenLimit
 		}, LanguageModelAccessPrompt, { noSafety: extensionId === this._envService.extensionId, messages: _messages }).render();
 
-		/* __GDPR__
-			"languagemodelrequest" : {
-				"owner": "jrieken",
-				"comment": "Data about extensions using the language model",
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that is being used" },
-				"extensionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The extension identifier for which we make the request" },
-				"extensionVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The extension version for which we make the request" },
-				"tokenCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of tokens" },
-				"tokenLimit": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of tokens that can be used" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent(
 			'languagemodelrequest',
 			{
@@ -701,7 +576,6 @@ export class CopilotLanguageModelWrapper extends Disposable {
 			}
 		);
 
-		// If no messages they got rendered out due to token limit
 		if (messages.length === 0 || tokenCount > tokenLimit) {
 			throw new Error('Message exceeds token limit.');
 		}
@@ -753,14 +627,9 @@ export class CopilotLanguageModelWrapper extends Disposable {
 			{ type: 'function', function: { name: _options.tools[0].name } } :
 			undefined;
 
-		// Restore CapturingToken context if correlation ID was passed through modelOptions.
-		// This handles BYOK providers where the original AsyncLocalStorage context was lost
-		// when crossing the VS Code IPC boundary.
 		const correlationId = (_options as { modelOptions?: OTelModelOptions }).modelOptions?._capturingTokenCorrelationId;
 		const capturingToken = correlationId ? retrieveCapturingTokenByCorrelation(correlationId) : undefined;
 
-		// Restore OTel trace context if passed through modelOptions.
-		// This links the wrapper's chat span back to the original invoke_agent trace.
 		const parentTraceContext = (_options as { modelOptions?: OTelModelOptions }).modelOptions?._otelTraceContext ?? undefined;
 
 		const makeRequest = () => endpoint.makeChatRequest2({
@@ -777,7 +646,6 @@ export class CopilotLanguageModelWrapper extends Disposable {
 			},
 		}, token);
 
-		// Run request within the parent OTel context (no extra span) so chat spans in chatMLFetcher inherit the agent trace
 		const wrappedRequest = parentTraceContext
 			? () => this._otelService.runWithTraceContext(parentTraceContext, async () => {
 				return capturingToken
@@ -791,10 +659,6 @@ export class CopilotLanguageModelWrapper extends Disposable {
 		const result = await wrappedRequest();
 
 		if (result.type === ChatFetchResponseType.Length) {
-			// The model stopped generating because it hit the length/context-window limit
-			// (finish_reason "length"). The partial text has already been streamed to the
-			// consumer via the finished callback, so treat this as a successful (truncated)
-			// response instead of throwing "Response too long." and discarding the output.
 			this._logService.warn(`[LanguageModelAccess] Response from model '${_endpoint.model}' was truncated because it hit the length limit; returning the partial response.`);
 			return undefined;
 		}
@@ -807,9 +671,7 @@ export class CopilotLanguageModelWrapper extends Disposable {
 
 				throw vscode.LanguageModelError.Blocked(blockedExtensionMessage);
 			} else if (result.type === ChatFetchResponseType.QuotaExceeded) {
-				const outageStatus = await this._octoKitService.getGitHubOutageStatus();
-				const details = getErrorDetailsFromChatFetchError(result, this._authenticationService.dardcorToken?.dardcorPlan, outageStatus, this._authenticationService.dardcorToken?.tokenBasedBilling, this._authenticationService.dardcorToken?.quotaInfo.quota_reset_date);
-				const err = new vscode.LanguageModelError(details.message);
+				const err = new vscode.LanguageModelError(result.reason);
 				err.name = 'ChatQuotaExceeded';
 				throw err;
 			} else if (result.type === ChatFetchResponseType.RateLimited) {
@@ -865,15 +727,10 @@ export class CopilotLanguageModelWrapper extends Disposable {
 			}
 			if (delta.dardcorToolCalls) {
 				for (const call of delta.dardcorToolCalls) {
-					// Anthropic models send "" (empty string) for tools with no parameters.
 					let parameters: object;
 					try {
 						parameters = JSON.parse(call.arguments || '{}');
 					} catch (err) {
-						// The model can stream malformed JSON for tool arguments. Log it for
-						// diagnostics and fall back to empty parameters so the tool call is still
-						// surfaced to the extension (matching other tool-call consumers) instead of
-						// leaking an unhandled rejection out of this fire-and-forget callback.
 						this._logService.error(err, `Got invalid JSON for tool call: ${call.arguments}`);
 						parameters = {};
 					}
@@ -958,7 +815,6 @@ export class CopilotLanguageModelWrapper extends Disposable {
 
 		_messages.forEach((message, i) => {
 			if (message.role === vscode.LanguageModelChatMessageRole.Assistant) {
-				// Filter out DataPart since it does not share the same value type and does not have callId, function, etc.
 				const filteredContent = message.content.filter(part => part instanceof vscode.LanguageModelDataPart);
 				const toolCallIds = new Set(filteredContent
 					.filter(part => part instanceof vscode.LanguageModelToolCallPart)
@@ -1009,7 +865,6 @@ class LanguageModelOptions {
 			const isValid = this._description[key];
 			const value = options[key];
 			if (value !== null && value !== undefined && isValid(value)) {
-				// Type guards ensure we only add values of the correct type
 				if (isNumber(value) || isBoolean(value) || isString(value)) {
 					result[key] = value;
 				}

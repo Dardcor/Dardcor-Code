@@ -262,7 +262,7 @@ async function goToBottomOfCallStack(debugService: IDebugService) {
 		await debugService.getModel().fetchCallstack(thread);
 		const callStack = thread.getCallStack();
 		if (callStack.length > 0) {
-			const nextVisibleFrame = findNextVisibleFrame(false, callStack, 0); // must consider the next frame up first, which will be the last frame
+			const nextVisibleFrame = findNextVisibleFrame(false, callStack, 0);
 			if (nextVisibleFrame) {
 				debugService.focusStackFrame(nextVisibleFrame, undefined, undefined, { preserveFocus: false });
 			}
@@ -278,13 +278,6 @@ function goToTopOfCallStack(debugService: IDebugService) {
 	}
 }
 
-/**
- * Finds next frame that is not skipped by SkipFiles. Skips frame at index and starts searching at next.
- * Must satisfy `0 <= startIndex <= callStack - 1`
- * @param down specifies whether to search downwards if the current file is skipped.
- * @param callStack the call stack to search
- * @param startIndex the index to start the search at
- */
 function findNextVisibleFrame(down: boolean, callStack: readonly IStackFrame[], startIndex: number) {
 
 	if (startIndex >= callStack.length) {
@@ -315,15 +308,11 @@ function findNextVisibleFrame(down: boolean, callStack: readonly IStackFrame[], 
 		if (!isFrameDeemphasized(currFrame)) {
 			return currFrame;
 		}
-	} while (index !== startIndex); // end loop when we've just checked the start index, since that should be the last one checked
+	} while (index !== startIndex);
 
 	return undefined;
 }
 
-// These commands are used in call stack context menu, call stack inline actions, command palette, debug toolbar, mac native touch bar
-// When the command is exectued in the context of a thread(context menu on a thread, inline call stack action) we pass the thread id
-// Otherwise when it is executed "globaly"(using the touch bar, debug toolbar, command palette) we do not pass any id and just take whatever is the focussed thread
-// Same for stackFrame commands and session commands.
 CommandsRegistry.registerCommand({
 	id: COPY_STACK_TRACE_ID,
 	handler: async (accessor: ServicesAccessor, _: string, context: CallStackContext | unknown) => {
@@ -488,7 +477,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			await debugService.startDebugging(launch, name, { noDebug: false, startedByUser: true });
 		} else {
 			const showSubSessions = configurationService.getValue<IDebugConfiguration>('debug').showSubSessionsInToolBar;
-			// Stop should be sent to the root parent session
 			while (!showSubSessions && session.lifecycleManagedByParent && session.parentSession) {
 				session = session.parentSession;
 			}
@@ -513,14 +501,12 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	}
 });
 
-// Windows browsers use F11 for full screen, thus use alt+F11 as the default shortcut
 const STEP_INTO_KEYBINDING = (isWeb && isWindows) ? (KeyMod.Alt | KeyCode.F11) : KeyCode.F11;
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: STEP_INTO_ID,
-	weight: KeybindingWeight.WorkbenchContrib + 10, // Have a stronger weight to have priority over full screen when debugging
+	weight: KeybindingWeight.WorkbenchContrib + 10,
 	primary: STEP_INTO_KEYBINDING,
-	// Use a more flexible when clause to not allow full screen command to take over when F11 pressed a lot of times
 	when: CONTEXT_DEBUG_STATE.notEqualsTo('inactive'),
 	handler: async (accessor: ServicesAccessor, _: string, context: CallStackContext | unknown) => {
 		const contextKeyService = accessor.get(IContextKeyService);
@@ -549,7 +535,7 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: PAUSE_ID,
-	weight: KeybindingWeight.WorkbenchContrib + 2, // take priority over focus next part while we are debugging
+	weight: KeybindingWeight.WorkbenchContrib + 2,
 	primary: KeyCode.F6,
 	when: CONTEXT_DEBUG_STATE.isEqualTo('running'),
 	handler: async (accessor: ServicesAccessor, _: string, context: CallStackContext | unknown) => {
@@ -636,7 +622,6 @@ async function stopHandler(accessor: ServicesAccessor, _: unknown, context: Call
 
 	const configurationService = accessor.get(IConfigurationService);
 	const showSubSessions = configurationService.getValue<IDebugConfiguration>('debug').showSubSessionsInToolBar;
-	// Stop should be sent to the root parent session
 	while (!showSubSessions && session && session.lifecycleManagedByParent && session.parentSession) {
 		session = session.parentSession;
 	}
@@ -683,7 +668,7 @@ CommandsRegistry.registerCommand({
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: CONTINUE_ID,
-	weight: KeybindingWeight.WorkbenchContrib + 10, // Use a stronger weight to get priority over start debugging F5 shortcut
+	weight: KeybindingWeight.WorkbenchContrib + 10,
 	primary: KeyCode.F5,
 	when: CONTEXT_DEBUG_STATE.isEqualTo('stopped'),
 	handler: async (accessor: ServicesAccessor, _: string, context: CallStackContext | unknown) => {
@@ -1092,7 +1077,6 @@ registerAction2(class ToggleExceptionBreakpointsAction extends Action2 {
 		const debugService = accessor.get(IDebugService);
 		const quickInputService = accessor.get(IQuickInputService);
 
-		// Get the focused session or the first available session
 		const debugModel = debugService.getModel();
 		const session = debugService.getViewModel().focusedSession || debugModel.getSessions()[0];
 		const exceptionBreakpoints = session ? debugModel.getExceptionBreakpointsForSession(session.getId()) : debugModel.getExceptionBreakpoints();
@@ -1100,14 +1084,12 @@ registerAction2(class ToggleExceptionBreakpointsAction extends Action2 {
 			return;
 		}
 
-		// If only one exception breakpoint type, toggle it directly
 		if (exceptionBreakpoints.length === 1) {
 			const breakpoint = exceptionBreakpoints[0];
 			await debugService.enableOrDisableBreakpoints(!breakpoint.enabled, breakpoint);
 			return;
 		}
 
-		// Multiple exception breakpoint types - show quickpick for selection
 		interface IExceptionBreakpointItem extends IQuickPickItem {
 			breakpoint: IExceptionBreakpoint;
 		}
@@ -1119,7 +1101,6 @@ registerAction2(class ToggleExceptionBreakpointsAction extends Action2 {
 		quickPick.matchOnDescription = true;
 		quickPick.matchOnDetail = true;
 
-		// Create quickpick items from exception breakpoints
 		quickPick.items = exceptionBreakpoints.map(bp => ({
 			label: bp.label,
 			description: bp.description,
@@ -1134,7 +1115,6 @@ registerAction2(class ToggleExceptionBreakpointsAction extends Action2 {
 			const toEnable: IExceptionBreakpoint[] = [];
 			const toDisable: IExceptionBreakpoint[] = [];
 
-			// Determine which breakpoints need to be toggled
 			for (const bp of exceptionBreakpoints) {
 				const isSelected = selectedItems.some(item => item.breakpoint === bp);
 				if (isSelected && !bp.enabled) {
@@ -1144,7 +1124,6 @@ registerAction2(class ToggleExceptionBreakpointsAction extends Action2 {
 				}
 			}
 
-			// Toggle the breakpoints
 			const promises: Promise<void>[] = [];
 			for (const bp of toEnable) {
 				promises.push(debugService.enableOrDisableBreakpoints(true, bp));
@@ -1161,7 +1140,6 @@ registerAction2(class ToggleExceptionBreakpointsAction extends Action2 {
 	}
 });
 
-// When there are no debug extensions, open the debug viewlet when F5 is pressed so the user can read the limitations
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'debug.openView',
 	weight: KeybindingWeight.WorkbenchContrib,

@@ -55,6 +55,5 @@ class FromEventObservableSignal extends BaseObservable<void> {
 	}
 
 	public override get(): void {
-		// NO OP
 	}
 }

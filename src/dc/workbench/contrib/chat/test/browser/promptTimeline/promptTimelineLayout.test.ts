@@ -18,7 +18,6 @@ suite('spaceMarkCenters', () => {
 		return marks.map(m => Math.round(m.center * 10) / 10);
 	}
 
-	/** Adjacent centres are at least `gap` apart, ascending, and inside `[gap/2, height-gap/2]`. */
 	function assertValid(result: number[], height: number, gap = GAP, fullSpacing = true): void {
 		for (let i = 1; i < result.length; i++) {
 			assert.ok(result[i] >= result[i - 1] - 1e-6, `not ascending at ${i}: ${JSON.stringify(result)}`);
@@ -59,9 +58,9 @@ suite('spaceMarkCenters', () => {
 	});
 
 	test('distributes evenly when too many marks to fit at full spacing', () => {
-		const height = 200; // fits only ~8 marks at 24px
+		const height = 200;
 		const result = space(Array.from({ length: 20 }, (_, i) => i * 5), height);
-		assertValid(result, height, GAP, /*fullSpacing*/ false);
+		assertValid(result, height, GAP, false);
 		assert.strictEqual(result[0], 12);
 		assert.strictEqual(result[result.length - 1], height - 12);
 	});

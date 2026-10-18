@@ -52,7 +52,6 @@ suite('SessionServerTools', () => {
 	const workspace = URI.parse('file:///workspace/app');
 	const model: IAgentModelInfo = { provider: 'copilot', id: 'gpt-4o', name: 'GPT-4o', supportsVision: false };
 
-	/** Defaults to read; tests that care about unread clear the `IsRead` bit. */
 	function sessionMeta(id: string, status: SessionStatus, dir: URI): IAgentSessionMetadata {
 		return { session: URI.parse(`copilot:/${id}`), startTime: 0, modifiedTime: 0, status: status | SessionStatus.IsRead, workingDirectories: dir ? [dir] : undefined, summary: `title-${id}` };
 	}
@@ -514,8 +513,6 @@ suite('SessionServerTools', () => {
 			createdAt: new Date(0).toISOString(),
 			modifiedAt: new Date(0).toISOString(),
 		});
-		// A session materialized on an older build: create_session pinned to the old
-		// reply-and-stop description, plus the retired create_chat entry.
 		stateManager.dispatchServerAction(session, {
 			type: ActionType.SessionServerToolsChanged,
 			tools: [
@@ -624,8 +621,6 @@ suite('SessionServerTools', () => {
 	});
 
 	test('only sessions known to be unread report or filter as unread', () => {
-		// A cold session from an agent that projects no status (e.g. Claude) has
-		// no recorded read state and must not be reported as unread.
 		const unknown: IAgentSessionMetadata = { session: URI.parse('copilot:/unknown'), startTime: 0, modifiedTime: 0, workingDirectories: [workspace] };
 		const unread: IAgentSessionMetadata = { ...sessionMeta('unread', SessionStatus.Idle, workspace), status: SessionStatus.Idle };
 		const read: IAgentSessionMetadata = sessionMeta('read', SessionStatus.Idle, workspace);
@@ -713,8 +708,6 @@ suite('SessionServerTools', () => {
 	test('getCreateSessionArgs accepts an absolute filesystem path as workspace', () => {
 		const resolved = getCreateSessionArgs({ relationship: 'independent', workspace: '/Users/me/work/repo', prompt: 'hi', title: 'Task' }, [], []);
 		assert.strictEqual(resolved.relationship === 'independent' ? resolved.workspace.scheme : undefined, 'file');
-		// Compare `path` (always forward-slash) rather than `fsPath`, which is
-		// platform-specific (backslashes on Windows).
 		assert.strictEqual(resolved.relationship === 'independent' ? resolved.workspace.path : undefined, '/Users/me/work/repo');
 	});
 
@@ -848,17 +841,14 @@ suite('SessionServerTools', () => {
 		const independent = await group.execute(stateManager, executionContext('copilot:/caller'), SessionServerToolName.CreateSession, { relationship: 'independent', workspace: workspace.toString(), prompt: 'do it', title: 'New Task' });
 		const peer = await group.execute(stateManager, { sessionUri: 'copilot:/s1', chatUri: buildDefaultChatUri('copilot:/s1'), turnId: 'turn-1' }, SessionServerToolName.CreateSession, { relationship: 'currentSession', prompt: 'do it', title: 'Task A' });
 		const message = await applySendMessageTool(accessor, { session: 'copilot:/s2', message: 'hi' }, buildDefaultChatUri('copilot:/s1'), 'turn-1');
-		// Retired but still routable: the compatibility contract must not regain the wording either.
 		const legacyChat = formatCreateChatResult(await applyCreateChatTool(accessor, { session: 'copilot:/s1', prompt: 'do it', title: 'T' }, URI.parse(buildDefaultChatUri('copilot:/s1')), 'turn-1'));
 
-		// Results must read as neutral statements of fact, not as "reply once and stop" (issue #330138).
 		for (const result of [independent, peer, message, legacyChat]) {
 			assert.doesNotMatch(result, /Reply with one short sentence/, 'result no longer instructs the agent to stop and just confirm');
 			assert.doesNotMatch(result, /confirm/i, 'result carries no confirm-and-stop imperative');
 			assert.match(result, /^[^.]+\(agent-host-session:\/\/[^)]+\)\.$/, 'result is a single factual statement carrying the open link');
 		}
 
-		// The persistent tool contract stays purely functional (issue #330138): no reply-and-stop signal, no UI-presentation policy.
 		for (const name of [SessionServerToolName.CreateSession, SessionServerToolName.SendMessage]) {
 			const description = sessionServerToolDefinitions.find(definition => definition.name === name)?.description ?? '';
 			assert.doesNotMatch(description, /reply with a single short sentence/i, `${name} description no longer tells the agent to reply-and-stop`);
@@ -1134,7 +1124,6 @@ suite('SessionServerTools', () => {
 		assert.deepStrictEqual({
 			byUri: ids({ session: 'copilot:/s1' }),
 			byLink: ids({ session: 'agent-host-session://copilot/s1' }),
-			// A direct lookup returns an archived session even though archived are hidden by default.
 			archivedByUri: ids({ session: 'copilot:/archived' }),
 			unknown: ids({ session: 'copilot:/nope' }),
 		}, {
@@ -1152,11 +1141,9 @@ suite('SessionServerTools', () => {
 		const group = createSessionServerToolGroup(createAccessor({ depths }));
 		const args = { relationship: 'independent', workspace: workspace.toString(), prompt: 'go', title: 'Spawned Task' };
 
-		// From a top-level (depth 0) session, the created session is stamped depth 1.
 		await group.execute(stateManager, executionContext('copilot:/caller'), SessionServerToolName.CreateSession, args);
 		assert.strictEqual(depths.get('copilot:/new'), 1);
 
-		// A session already at the max spawn depth may not create further sessions.
 		depths.set('copilot:/deep', 3);
 		await assert.rejects(
 			async () => { await group.execute(stateManager, executionContext('copilot:/deep'), SessionServerToolName.CreateSession, args); },
@@ -1168,7 +1155,6 @@ suite('SessionServerTools', () => {
 	test('create_session enforces a process-wide breadth backstop', async () => {
 		const store = new DisposableStore();
 		const stateManager = store.add(new AgentHostStateManager(new NullLogService()));
-		// Each created session gets a unique URI so depth never blocks (all children of a depth-0 caller).
 		let n = 0;
 		const group = createSessionServerToolGroup(createAccessor({ createSession: async () => URI.parse(`copilot:/s${n++}`) }));
 		const args = { relationship: 'independent', workspace: workspace.toString(), prompt: 'go', title: 'Spawned Task' };
@@ -1535,7 +1521,6 @@ suite('SessionServerTools', () => {
 		});
 		const currentChannel = buildDefaultChatUri('copilot:/s1');
 
-		// Explicit session -> owning session's default chat.
 		const toSession = await applySendMessageTool(accessor, { session: 'copilot:/s2', message: 'hi' }, currentChannel, 'turn-1');
 		assert.strictEqual(prompts.at(-1)?.session.toString(), 'copilot:/s2');
 		assert.strictEqual(prompts.at(-1)?.chat.toString(), buildDefaultChatUri('copilot:/s2'));
@@ -1547,7 +1532,6 @@ suite('SessionServerTools', () => {
 		});
 		assert.ok(toSession.includes('agent-host-session://copilot/s2'));
 
-		// A create_chat open link -> that specific chat channel.
 		await applySendMessageTool(accessor, { session: 'agent-host-session://copilot/s2?chat=c9', message: 'yo' }, currentChannel);
 		assert.strictEqual(prompts.at(-1)?.chat.toString(), buildChatUri('copilot:/s2', 'c9'));
 
@@ -1558,9 +1542,7 @@ suite('SessionServerTools', () => {
 			sourceTurnId: 'turn-2',
 		});
 
-		// Refuses messaging the exact current chat channel (self-loop guard).
 		await assert.rejects(() => applySendMessageTool(accessor, { session: 'copilot:/s1', message: 'loop' }, currentChannel), /current chat/);
-		// Unknown session and missing session/message are rejected.
 		await assert.rejects(() => applySendMessageTool(accessor, { session: 'copilot:/nope', message: 'x' }, currentChannel), /known session/);
 		assert.throws(() => getSendMessageArgs({ message: 'x' }, []), /session/);
 		assert.throws(() => getSendMessageArgs({ session: 'copilot:/s2' }, []), /message/);
@@ -1775,7 +1757,6 @@ suite('SessionServerTools', () => {
 		const store = new DisposableStore();
 		const stateManager = store.add(new AgentHostStateManager(new NullLogService()));
 		const group = createSessionServerToolGroup(createAccessor({ listSessions: async () => [sessionMeta('s1', SessionStatus.Idle, workspace)] }));
-		// Tool call runs on the session's default chat channel; the tool resolves the owning session.
 		const chatChannel = buildDefaultChatUri('copilot:/s1');
 		const text = await group.execute(stateManager, { sessionUri: 'copilot:/s1', chatUri: chatChannel }, SessionServerToolName.GetCurrentSession, {});
 		const parsed = JSON.parse(text);
@@ -1808,7 +1789,6 @@ suite('SessionServerTools', () => {
 	test('getDeleteSessionArgs validates and refuses the current session', () => {
 		const sessions = [sessionMeta('s1', SessionStatus.Idle, workspace), sessionMeta('s2', SessionStatus.Idle, workspace)];
 		assert.strictEqual(getDeleteSessionArgs({ session: 'copilot:/s2' }, sessions).toString(), 'copilot:/s2');
-		// Accepts the agent-host-session:// open link form (as returned by create_session).
 		assert.strictEqual(getDeleteSessionArgs({ session: 'agent-host-session://copilot/s2' }, sessions).toString(), 'copilot:/s2');
 		assert.throws(() => getDeleteSessionArgs({ session: 'copilot:/unknown' }, sessions), /session/);
 		assert.throws(() => getDeleteSessionArgs({}, sessions), /session/);

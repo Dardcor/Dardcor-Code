@@ -42,13 +42,11 @@ export interface IJSONSchema {
 	enum?: any[];
 	format?: string;
 
-	// schema draft 06
 	const?: any;
 	contains?: IJSONSchema;
 	propertyNames?: IJSONSchema;
 	examples?: any[];
 
-	// schema draft 07
 	$comment?: string;
 	if?: IJSONSchema;
 	then?: IJSONSchema;
@@ -56,7 +54,6 @@ export interface IJSONSchema {
 	readOnly?: boolean;
 	writeOnly?: boolean;
 
-	// schema 2019-09
 	unevaluatedProperties?: boolean | IJSONSchema;
 	unevaluatedItems?: boolean | IJSONSchema;
 	minContains?: number;
@@ -70,12 +67,10 @@ export interface IJSONSchema {
 	$recursiveAnchor?: string;
 	$vocabulary?: any;
 
-	// schema 2020-12
 	prefixItems?: IJSONSchema[];
 	$dynamicRef?: string;
 	$dynamicAnchor?: string;
 
-	// VSCode extensions
 
 	defaultSnippets?: IJSONSchemaSnippet[];
 	errorMessage?: string;
@@ -99,56 +94,39 @@ export interface IJSONSchemaMap {
 export interface IJSONSchemaSnippet {
 	label?: string;
 	description?: string;
-	body?: any; // a object that will be JSON stringified
-	bodyText?: string; // an already stringified JSON object that can contain new lines (\n) and tabs (\t)
+	body?: any;
+	bodyText?: string;
 }
 
-/**
- * Converts a basic JSON schema to a TypeScript type.
- */
 export type TypeFromJsonSchema<T> =
-	// enum
 	T extends { enum: infer EnumValues }
 	? UnionOf<EnumValues>
 
-	// Object with list of required properties.
-	// Values are required or optional based on `required` list.
 	: T extends { type: 'object'; properties: infer P; required: infer RequiredList }
 	? {
 		[K in keyof P]: IsRequired<K, RequiredList> extends true ? TypeFromJsonSchema<P[K]> : TypeFromJsonSchema<P[K]> | undefined;
 	} & AdditionalPropertiesType<T>
 
-	// Object with no required properties.
-	// All values are optional
 	: T extends { type: 'object'; properties: infer P }
 	? { [K in keyof P]: TypeFromJsonSchema<P[K]> | undefined } & AdditionalPropertiesType<T>
 
-	// Array
 	: T extends { type: 'array'; items: infer Items }
 	? Items extends [...infer R]
-	// If items is an array, we treat it like a tuple
 	? { [K in keyof R]: TypeFromJsonSchema<Items[K]> }
 	: Array<TypeFromJsonSchema<Items>>
 
-	// oneOf / anyof
-	// These are handled the same way as they both represent a union type.
-	// However at the validation level, they have different semantics.
 	: T extends { oneOf: infer I }
 	? MapSchemaToType<I>
 	: T extends { anyOf: infer I }
 	? MapSchemaToType<I>
 
-	// Primitive types
 	: T extends { type: infer Type }
-	// Basic type
 	? Type extends 'string' | 'number' | 'integer' | 'boolean' | 'null'
 	? SchemaPrimitiveTypeNameToType<Type>
-	// Union of primitive types
 	: Type extends [...infer R]
 	? UnionOf<{ [K in keyof R]: SchemaPrimitiveTypeNameToType<R[K]> }>
 	: never
 
-	// Fallthrough
 	: never;
 
 type SchemaPrimitiveTypeNameToType<T> =
@@ -190,7 +168,6 @@ export function getCompressedContent(schema: IJSONSchema): string {
 	let hasDups = false;
 
 
-	// visit all schema nodes and collect the ones that are equal
 	const equalsByString = new Map<string, Equals>();
 	const nodeToEquals = new Map<IJSONSchema, Equals>();
 	const visitSchemas = (next: IJSONSchema) => {
@@ -199,7 +176,6 @@ export function getCompressedContent(schema: IJSONSchema): string {
 		}
 		const val = JSON.stringify(next);
 		if (val.length < 30) {
-			// the $ref takes around 25 chars, so we don't save anything
 			return true;
 		}
 		const eq = equalsByString.get(val);
@@ -226,7 +202,6 @@ export function getCompressedContent(schema: IJSONSchema): string {
 		defNodeName += '_';
 	}
 
-	// used to collect all schemas that are later put in `$defs`. The index in the array is the id of the schema.
 	const definitions: IJSONSchema[] = [];
 
 	function stringify(root: IJSONSchema): string {
@@ -245,11 +220,8 @@ export function getCompressedContent(schema: IJSONSchema): string {
 		});
 	}
 
-	// stringify the schema and replace duplicate subtrees with $ref
-	// this will add new items to the definitions array
 	const str = stringify(schema);
 
-	// now stringify the definitions. Each invication of stringify cann add new items to the definitions array, so the length can grow while we iterate
 	const defStrings: string[] = [];
 	for (let i = 0; i < definitions.length; i++) {
 		defStrings.push(`"_${i}":${stringify(definitions[i])}`);
@@ -266,9 +238,6 @@ function isObject(thing: unknown): thing is object {
 	return typeof thing === 'object' && thing !== null;
 }
 
-/*
- * Traverse a JSON schema and visit each schema node
-*/
 function traverseNodes(root: IJSONSchema, visit: (schema: IJSONSchema) => boolean) {
 	if (!root || typeof root !== 'object') {
 		return;

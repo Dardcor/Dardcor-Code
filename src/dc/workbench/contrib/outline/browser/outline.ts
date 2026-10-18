@@ -28,7 +28,6 @@ export interface IOutlinePane extends IView {
 	expandAll(): void;
 }
 
-// --- context keys
 
 export const ctxFollowsCursor = new RawContextKey<boolean>('outlineFollowsCursor', false);
 export const ctxFilterOnType = new RawContextKey<boolean>('outlineFiltersOnType', false);

@@ -34,27 +34,19 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 
 	private registerListeners(): void {
 
-		// Listen to `beforeUnload` to support to veto
 		this.beforeUnloadListener = addDisposableListener(mainWindow, EventType.BEFORE_UNLOAD, (e: BeforeUnloadEvent) => this.onBeforeUnload(e));
 
-		// Listen to `pagehide` to support orderly shutdown
-		// We explicitly do not listen to `unload` event
-		// which would disable certain browser caching.
-		// We currently do not handle the `persisted` property
-		// (https://github.com/microsoft/vscode/issues/136216)
 		this.unloadListener = addDisposableListener(mainWindow, EventType.PAGE_HIDE, () => this.onUnload());
 	}
 
 	private onBeforeUnload(event: BeforeUnloadEvent): void {
 
-		// Before unload ignored (once)
 		if (this.ignoreBeforeUnload) {
 			this.logService.info('[lifecycle] onBeforeUnload triggered but ignored once');
 
 			this.ignoreBeforeUnload = false;
 		}
 
-		// Before unload with veto support
 		else {
 			this.logService.info('[lifecycle] onBeforeUnload triggered and handled with veto support');
 
@@ -71,15 +63,12 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 	withExpectedShutdown(reason: { disableShutdownHandling: true }, callback: Function): void;
 	withExpectedShutdown(reason: ShutdownReason | { disableShutdownHandling: true }, callback?: Function): Promise<void> | void {
 
-		// Standard shutdown
 		if (typeof reason === 'number') {
 			this.shutdownReason = reason;
 
-			// Ensure UI state is persisted
 			return this.storageService.flush(WillSaveStateReason.SHUTDOWN);
 		}
 
-		// Before unload handling ignored for duration of callback
 		else {
 			this.ignoreBeforeUnload = true;
 			try {
@@ -93,39 +82,30 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 	async shutdown(): Promise<void> {
 		this.logService.info('[lifecycle] shutdown triggered');
 
-		// An explicit shutdown renders our unload
-		// event handlers disabled, so dispose them.
 		this.beforeUnloadListener?.dispose();
 		this.unloadListener?.dispose();
 
-		// Ensure UI state is persisted
 		await this.storageService.flush(WillSaveStateReason.SHUTDOWN);
 
-		// Handle shutdown without veto support
 		this.doShutdown();
 	}
 
 	private doShutdown(vetoShutdown?: () => void): void {
 		const logService = this.logService;
 
-		// Optimistically trigger a UI state flush
-		// without waiting for it. The browser does
-		// not guarantee that this is being executed
-		// but if a dialog opens, we have a chance
-		// to succeed.
 		this.storageService.flush(WillSaveStateReason.SHUTDOWN);
 
 		let veto = false;
 
 		function handleVeto(vetoResult: boolean | Promise<boolean>, id: string) {
 			if (typeof vetoShutdown !== 'function') {
-				return; // veto handling disabled
+				return;
 			}
 
 			if (vetoResult instanceof Promise) {
 				logService.error(`[lifecycle] Long running operations before shutdown are unsupported in the web (id: ${id})`);
 
-				veto = true; // implicitly vetos since we cannot handle promises in web
+				veto = true;
 			}
 
 			if (vetoResult === true) {
@@ -135,73 +115,57 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 			}
 		}
 
-		// Before Shutdown
 		this._onBeforeShutdown.fire({
 			reason: ShutdownReason.QUIT,
 			veto(value, id) {
 				handleVeto(value, id);
 			},
 			finalVeto(valueFn, id) {
-				handleVeto(valueFn(), id); // in browser, trigger instantly because we do not support async anyway
+				handleVeto(valueFn(), id);
 			}
 		});
 
-		// Veto: handle if provided
 		if (veto && typeof vetoShutdown === 'function') {
 			return vetoShutdown();
 		}
 
-		// No veto, continue to shutdown
 		return this.onUnload();
 	}
 
 	private onUnload(): void {
 		if (this.didUnload) {
-			return; // only once
+			return;
 		}
 
 		this.didUnload = true;
 		this._willShutdown = true;
 
-		// Register a late `pageshow` listener specifically on unload
 		this._register(addDisposableListener(mainWindow, EventType.PAGE_SHOW, (e: PageTransitionEvent) => this.onLoadAfterUnload(e)));
 
-		// First indicate will-shutdown
 		const logService = this.logService;
 		this._onWillShutdown.fire({
 			reason: ShutdownReason.QUIT,
-			joiners: () => [], 				// Unsupported in web
-			token: CancellationToken.None, 	// Unsupported in web
+			joiners: () => [],
+			token: CancellationToken.None,
 			join(promise, joiner) {
 				if (typeof promise === 'function') {
 					promise();
 				}
 				logService.error(`[lifecycle] Long running operations during shutdown are unsupported in the web (id: ${joiner.id})`);
 			},
-			force: () => { /* No-Op in web */ },
+			force: () => { },
 		});
 
-		// Finally end with did-shutdown
 		this._onDidShutdown.fire();
 	}
 
 	private onLoadAfterUnload(event: PageTransitionEvent): void {
 
-		// We only really care about page-show events
-		// where the browser indicates to us that the
-		// page was restored from cache and not freshly
-		// loaded.
 		const wasRestoredFromCache = event.persisted;
 		if (!wasRestoredFromCache) {
 			return;
 		}
 
-		// At this point, we know that the page was restored from
-		// cache even though it was unloaded before,
-		// so in order to get back to a functional workbench, we
-		// currently can only reload the window
-		// Docs: https://web.dev/bfcache/#optimize-your-pages-for-bfcache
-		// Refs: https://github.com/microsoft/vscode/issues/136035
 		this.withExpectedShutdown({ disableShutdownHandling: true }, () => mainWindow.location.reload());
 	}
 
@@ -210,7 +174,6 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 		if (typeof startupKind !== 'number') {
 			const timing = performance.getEntriesByType('navigation').at(0) as PerformanceNavigationTiming | undefined;
 			if (timing?.type === 'reload') {
-				// MDN: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming/type#value
 				startupKind = StartupKind.ReloadedWindow;
 			}
 		}

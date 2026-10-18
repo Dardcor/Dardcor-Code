@@ -18,8 +18,6 @@ import { ChatQuestionCarouselData } from '../../../../common/model/chatProgressT
 
 class TestableAskQuestionsTool extends AskQuestionsTool {
 	public testConvertCarouselAnswers(questions: IQuestion[], carouselAnswers: IChatQuestionAnswers | undefined): IAnswerResult {
-		// Create an identity map where each header is also the internal ID
-		// This simulates the simple case for testing the answer conversion logic
 		const idToHeaderMap = new Map<string, string>();
 		for (const q of questions) {
 			idToHeaderMap.set(q.header, q.header);

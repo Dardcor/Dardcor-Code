@@ -19,7 +19,7 @@ header="// Type definitions for Visual Studio Code ${1}
 
 /**
  * Type Definition for Visual Studio Code ${1} Extension API
- * See https://code.visualstudio.com/api for more information
+ * See https://www.dardcor-code.web.id/api for more information
  */"
 
 if [ -f ./src/dccode-dts/vscode.d.ts ]; then

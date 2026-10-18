@@ -32,9 +32,6 @@ export interface IParsedToolCall {
 export interface IToolCallExpectation {
 	allowParallelToolCalls?: boolean;
 
-	/**
-	 * Validate tool results with a callback.
-	 */
 	toolCallValidators?: Partial<Record<ToolName, (toolCall: IParsedToolCall[]) => void | Promise<void>>>;
 }
 
@@ -55,7 +52,6 @@ export function generateToolTestRunner(toolScenario: IConversationToolTestCase |
 			(accessor.get(IConfigurationService) as InMemoryConfigurationService).setNonExtensionConfig('chat.agent.maxRequests', 0);
 		};
 
-		// Apply default name
 		const scenario: Scenario = toolScenario.map(testCase => ({
 			...testCase,
 			name: testCase.name ?? testCase.question,
@@ -93,7 +89,6 @@ async function validateToolCallExpectation(accessor: ITestingServicesAccessor, t
 			}
 
 			if (!expectation?.allowParallelToolCalls) {
-				// Add a flag if we need to support multiple calls to the same tool
 				expectedAnyOfToolNames.delete(toolCall.name as ToolName);
 			}
 		}
@@ -140,9 +135,6 @@ async function validateToolCallExpectation(accessor: ITestingServicesAccessor, t
 	}
 }
 
-/**
- * JSON extensions for tool test cases.
- */
 export interface IConversationToolTestCase extends Omit<IConversationTestCase, 'name'> {
 	name?: string;
 	expectedToolCalls?: ToolName | { anyOf: ToolName[] };

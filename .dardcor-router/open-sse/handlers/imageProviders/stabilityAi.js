@@ -1,10 +1,8 @@
-// Stability AI v2 — sync, returns { image: "<b64>" }
 import { nowSec, sizeToAspectRatio } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 
 const BASE_URL = PROVIDER_MEDIA["stability-ai"]?.imageConfig?.baseUrl;
 
-// Map model id → endpoint segment
 function modelToEndpoint(model) {
   if (model.includes("ultra")) return "ultra";
   if (model.includes("sd3")) return "sd3";

@@ -3,9 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// !! Do not remove the following START and END markers, they are parsed by the smoketest build
 
-//*START
 export interface IElement {
 	readonly tagName: string;
 	readonly className: string;
@@ -46,4 +44,3 @@ export interface IWindowDriver {
 	getLogs(): Promise<ILogFile[]>;
 	whenWorkbenchRestored(): Promise<void>;
 }
-//*END

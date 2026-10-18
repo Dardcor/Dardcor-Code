@@ -55,7 +55,7 @@ export async function getModifiedRanges(accessor: ServicesAccessor, modified: IT
 
 	const original = await getOriginalResource(quickDiffService, modified.uri, modified.getLanguageId(), shouldSynchronizeModel(modified));
 	if (!original) {
-		return null; // let undefined signify no changes, null represents no source control (there's probably a better way, but I can't think of one rn)
+		return null;
 	}
 
 	const ranges: Range[] = [];
@@ -71,7 +71,7 @@ export async function getModifiedRanges(accessor: ServicesAccessor, modified: IT
 		for (const change of changes) {
 			ranges.push(modified.validateRange(new Range(
 				change.modifiedStartLineNumber, 1,
-				change.modifiedEndLineNumber || change.modifiedStartLineNumber /*endLineNumber is 0 when things got deleted*/, Number.MAX_SAFE_INTEGER)
+				change.modifiedEndLineNumber || change.modifiedStartLineNumber , Number.MAX_SAFE_INTEGER)
 			));
 		}
 	} finally {

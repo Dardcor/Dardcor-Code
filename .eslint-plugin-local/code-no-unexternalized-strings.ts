@@ -52,11 +52,8 @@ export default new class NoUnexternalizedStrings implements eslint.Rule.RuleModu
 
 		function visitLocalizeCall(node: TSESTree.CallExpression) {
 
-			// localize(key, message)
 			const [keyNode, messageNode] = node.arguments;
 
-			// (1)
-			// extract key so that it can be checked later
 			let key: string | undefined;
 			if (isStringLiteral(keyNode)) {
 				doubleQuotedStringLiterals.delete(keyNode);
@@ -90,9 +87,6 @@ export default new class NoUnexternalizedStrings implements eslint.Rule.RuleModu
 				array.push({ call: node, message: messageNode });
 			}
 
-			// (2)
-			// remove message-argument from doubleQuoted list and make
-			// sure it is a string-literal
 			doubleQuotedStringLiterals.delete(messageNode);
 			if (!isStringLiteral(messageNode)) {
 				context.report({
@@ -105,9 +99,7 @@ export default new class NoUnexternalizedStrings implements eslint.Rule.RuleModu
 
 		function visitL10NCall(node: TSESTree.CallExpression) {
 
-			// localize(key, message)
-			const [messageNode] = (node as TSESTree.CallExpression).arguments;			// remove message-argument from doubleQuoted list and make
-			// sure it is a string-literal
+			const [messageNode] = (node as TSESTree.CallExpression).arguments;
 			if (isStringLiteral(messageNode)) {
 				doubleQuotedStringLiterals.delete(messageNode);
 			} else if (messageNode.type === AST_NODE_TYPES.ObjectExpression) {
@@ -123,29 +115,24 @@ export default new class NoUnexternalizedStrings implements eslint.Rule.RuleModu
 		}
 
 		function reportBadStringsAndBadKeys() {
-			// (1)
-			// report all strings that are in double quotes
 			for (const node of doubleQuotedStringLiterals) {
 				context.report({
 					loc: node.loc,
 					messageId: 'doubleQuoted',
 					fix: enableDoubleToSingleQuoteFixes ? (fixer) => {
-						// Get the raw string content, unescaping any escaped quotes
 						const content = (node as ESTree.SimpleLiteral).raw!
 							.slice(1, -1)
 							.replace(/(?<!\\)\\'/g, `'`)
 							.replace(/(?<!\\)\\"/g, `"`);
 
-						// If the escaped content contains a single quote, use template string instead
 						if (content.includes(`'`)
-							&& !content.includes('${') // Unless the content has a template expressions
-							&& !content.includes('`') // Or backticks which would need escaping
+							&& !content.includes('${')
+							&& !content.includes('`')
 						) {
 							const templateStr = `\`${content}\``;
 							return fixer.replaceText(node, templateStr);
 						}
 
-						// Otherwise prefer using a single-quoted string
 						const singleStr = `'${content.replace(/'/g, `\\'`)}'`;
 						return fixer.replaceText(node, singleStr);
 					} : undefined
@@ -154,16 +141,12 @@ export default new class NoUnexternalizedStrings implements eslint.Rule.RuleModu
 
 			for (const [key, values] of externalizedStringLiterals) {
 
-				// (2)
-				// report all invalid NLS keys
 				if (!key.match(NoUnexternalizedStrings._rNlsKeys)) {
 					for (const value of values) {
 						context.report({ loc: value.call.loc, messageId: 'badKey', data: { key } });
 					}
 				}
 
-				// (2)
-				// report all invalid duplicates (same key, different message)
 				if (values.length > 1) {
 					for (let i = 1; i < values.length; i++) {
 						if (context.getSourceCode().getText(values[i - 1].message as ESTree.Node) !== context.getSourceCode().getText(values[i].message as ESTree.Node)) {
@@ -178,16 +161,12 @@ export default new class NoUnexternalizedStrings implements eslint.Rule.RuleModu
 			['Literal']: (node: ESTree.Literal) => collectDoubleQuotedStrings(node),
 			['ExpressionStatement[directive] Literal:exit']: (node: TSESTree.Literal) => doubleQuotedStringLiterals.delete(node),
 
-			// localize(...)
 			['CallExpression[callee.type="MemberExpression"][callee.object.name="nls"][callee.property.name="localize"]:exit']: (node: TSESTree.CallExpression) => visitLocalizeCall(node),
 
-			// localize2(...)
 			['CallExpression[callee.type="MemberExpression"][callee.object.name="nls"][callee.property.name="localize2"]:exit']: (node: TSESTree.CallExpression) => visitLocalizeCall(node),
 
-			// vscode.l10n.t(...)
 			['CallExpression[callee.type="MemberExpression"][callee.object.property.name="l10n"][callee.property.name="t"]:exit']: (node: TSESTree.CallExpression) => visitL10NCall(node),
 
-			// l10n.t(...)
 			['CallExpression[callee.object.name="l10n"][callee.property.name="t"]:exit']: (node: TSESTree.CallExpression) => visitL10NCall(node),
 
 			['CallExpression[callee.name="localize"][arguments.length>=2]:exit']: (node: TSESTree.CallExpression) => visitLocalizeCall(node),

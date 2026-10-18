@@ -145,8 +145,6 @@ export class ChatCopyActionRendering extends Disposable implements IWorkbenchCon
 }
 
 export function registerChatCopyActions() {
-	// A plain paste in the chat input may become Markdown or an attachment, so
-	// keep the usual "paste without formatting" chord for verbatim text.
 	KeybindingsRegistry.registerKeybindingRule({
 		id: 'editor.action.pasteAsText',
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -223,8 +221,6 @@ export function registerChatCopyActions() {
 				}
 			}
 
-			// If there is a text selection, and focus is inside the widget, copy the selected text.
-			// Otherwise, context menu with no selection -> copy the full item
 			const nativeSelection = dom.getActiveWindow().getSelection();
 			const selectedText = nativeSelection?.toString();
 			if (widget && selectedText && selectedText.length > 0 && dom.isAncestor(dom.getActiveElement(), widget.domNode)) {
@@ -308,29 +304,24 @@ export function registerChatCopyActions() {
 				}
 			}
 
-			// Try to find a KaTeX element from the selection or active element
 			let selectedElement: Node | null = null;
 
-			// If there is a selection, and focus is inside the widget, extract the inner KaTeX element.
 			const activeElement = dom.getActiveElement();
 			const nativeSelection = dom.getActiveWindow().getSelection();
 			if (widget && nativeSelection && nativeSelection.rangeCount > 0 && dom.isAncestor(activeElement, widget.domNode)) {
 				const range = nativeSelection.getRangeAt(0);
 				selectedElement = range.commonAncestorContainer;
 
-				// If it's a text node, get its parent element
 				if (selectedElement.nodeType === Node.TEXT_NODE) {
 					selectedElement = selectedElement.parentElement;
 				}
 			}
 
-			// Otherwise, fallback to querying from the active element
 			if (!selectedElement) {
 				// eslint-disable-next-line no-restricted-syntax
 				selectedElement = activeElement?.querySelector(`.${katexContainerClassName}`) ?? null;
 			}
 
-			// Extract the LaTeX source from the annotation element
 			const katexElement = dom.isHTMLElement(selectedElement) ? selectedElement.closest(`.${katexContainerClassName}`) : null;
 			const latexSource = katexElement?.getAttribute(katexContainerLatexAttributeName) || '';
 			if (latexSource) {

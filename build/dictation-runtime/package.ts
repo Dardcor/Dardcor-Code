@@ -3,29 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Builds one per-target tarball of the Foundry Local native runtime (the
- * prebuilt N-API addon + the Foundry Local Core / onnxruntime / onnxruntime-genai
- * shared libraries). Callable as both a Node library (`buildOne(...)`) and a thin
- * CLI (bottom of this file).
- *
- * The library form is what `produce.ts` calls during the per-platform
- * "Dictation runtime: build + upload" pipeline step; the CLI form is for local
- * one-off builds.
- *
- * The addon is copied from the pinned `foundry-local-sdk` package's `prebuilds/`
- * (which ships every target), and the core libraries are fetched from NuGet for
- * the requested target's RID via `fetchCoreLibraries` (NOT the SDK's host-locked
- * installer), so ANY build host can produce ANY target's tarball. This is what
- * lets VS Code's ARM64 desktop builds — which run on x64 pools — publish their
- * `linux-arm64`/`win32-arm64` runtimes.
- *
- * The produced tarball's internal layout mirrors the runtime cache layout so the
- * runtime extraction is a plain untar:
- *
- *   prebuilds/<target>/foundry_local_napi.node
- *   foundry-local-core/<target>/<core libraries>
- */
 
 import { createRequire } from 'module';
 import * as fs from 'fs';
@@ -37,7 +14,6 @@ import { fetchCoreLibraries } from './nuget.ts';
 
 const SCRIPT = 'package.ts';
 
-/** Resolve `foundry-local-sdk` subpaths from the repo-root `node_modules`. */
 const sdkRequire = createRequire(import.meta.url);
 
 export interface IBuildResult {
@@ -52,12 +28,6 @@ export interface IBuildArgs {
 	readonly outDir: string;
 }
 
-/**
- * Build one runtime tarball for `args.target`. Copies the prebuilt addon from
- * the installed SDK, fetches the matching core libraries via the SDK's NuGet
- * installer, and tars both into a single gzipped tarball. Returns the produced
- * `.tgz` path and its sha256.
- */
 export async function buildOne(args: IBuildArgs): Promise<IBuildResult> {
 	if (!SUPPORTED_TARGETS.has(args.target)) {
 		throw new Error(`[${SCRIPT}] Unknown target '${args.target}'. Supported: ${[...SUPPORTED_TARGETS].join(', ')}.`);
@@ -85,11 +55,6 @@ export async function buildOne(args: IBuildArgs): Promise<IBuildResult> {
 	}
 }
 
-/**
- * Copy the prebuilt N-API addon for `target` out of the installed
- * `foundry-local-sdk` package (`prebuilds/<target>/foundry_local_napi.node`)
- * into the staging tree.
- */
 async function stageAddon(stagingDir: string, target: string): Promise<void> {
 	const sdkRoot = path.dirname(sdkRequire.resolve(`${SDK_PACKAGE_NAME}/package.json`));
 	const addonSrc = path.join(sdkRoot, 'prebuilds', target, 'foundry_local_napi.node');
@@ -101,12 +66,6 @@ async function stageAddon(stagingDir: string, target: string): Promise<void> {
 	fs.copyFileSync(addonSrc, addonDest);
 }
 
-/**
- * Fetch the Foundry Local core libraries for `target` into the staging tree from
- * NuGet, for that target's explicit RID (see `fetchCoreLibraries`). Replicates
- * the standard variant's artifact selection, including the linux-x64 GPU ONNX
- * Runtime package. Host-independent — `target` need not match the build host.
- */
 async function stageCoreLibraries(stagingDir: string, target: string): Promise<void> {
 	const deps = sdkRequire(`${SDK_PACKAGE_NAME}/deps_versions.json`) as {
 		'foundry-local-core': { nuget: string };
@@ -114,9 +73,6 @@ async function stageCoreLibraries(stagingDir: string, target: string): Promise<v
 		'onnxruntime-genai': { version: string };
 	};
 
-	// Microsoft.ML.OnnxRuntime.Gpu.Linux only ships x86_64 native binaries, so
-	// linux-arm64 (and every non-linux-x64 target) uses the cross-platform
-	// Foundry ORT package. Mirrors `ensureCoreLibraries` in the runtime.
 	const ortPackageName = target === 'linux-x64' ? 'Microsoft.ML.OnnxRuntime.Gpu.Linux' : 'Microsoft.ML.OnnxRuntime.Foundry';
 
 	const artifacts = [
@@ -135,7 +91,6 @@ async function stageCoreLibraries(stagingDir: string, target: string): Promise<v
 	}
 }
 
-/** The core library filenames required for `target`. Mirrors the runtime gate. */
 function requiredCoreLibraryNames(target: string): string[] {
 	const isWin = target.startsWith('win32-');
 	const isMac = target.startsWith('darwin-');
@@ -148,11 +103,6 @@ function requiredCoreLibraryNames(target: string): string[] {
 	];
 }
 
-/**
- * Build the gzipped tar via node-tar so the output is consistent regardless of
- * which host's system tar would otherwise be used. `portable`/`mtime` strip
- * host-specific metadata for reproducible bytes across re-runs on the same host.
- */
 async function buildTarball(stagingDir: string, outTgz: string): Promise<void> {
 	await tar.c(
 		{
@@ -166,7 +116,6 @@ async function buildTarball(stagingDir: string, outTgz: string): Promise<void> {
 	);
 }
 
-// #region CLI entry point
 
 function isCliInvocation(): boolean {
 	return import.meta.filename === process.argv[1];
@@ -189,4 +138,3 @@ if (isCliInvocation()) {
 	});
 }
 
-// #endregion

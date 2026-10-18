@@ -121,7 +121,6 @@ export class BulkEditPane extends ViewPane {
 		contentContainer.className = 'content';
 		parent.appendChild(contentContainer);
 
-		// tree
 		const treeContainer = document.createElement('div');
 		contentContainer.appendChild(treeContainer);
 
@@ -148,7 +147,6 @@ export class BulkEditPane extends ViewPane {
 		this._disposables.add(this._tree.onContextMenu(this._onContextMenu, this));
 		this._disposables.add(this._tree.onDidOpen(e => this._openElementInMultiDiffEditor(e)));
 
-		// buttons
 		const buttonsContainer = document.createElement('div');
 		buttonsContainer.className = 'buttons';
 		contentContainer.appendChild(buttonsContainer);
@@ -163,13 +161,11 @@ export class BulkEditPane extends ViewPane {
 		btnCancel.label = localize('cancel', 'Discard');
 		btnCancel.onDidClick(() => this.discard(), this, this._disposables);
 
-		// message
 		this._message = document.createElement('span');
 		this._message.className = 'message';
 		this._message.innerText = localize('empty.msg', "Invoke a code action, like rename, to see a preview of its changes here.");
 		parent.appendChild(this._message);
 
-		//
 		this._setState(State.Message);
 	}
 
@@ -199,7 +195,6 @@ export class BulkEditPane extends ViewPane {
 		this._sessionDisposables.add(this._currentProvider);
 		this._sessionDisposables.add(input);
 
-		//
 		const hasCategories = input.categories.length > 1;
 		this._ctxHasCategories.set(hasCategories);
 		this._treeDataSource.groupByFile = !hasCategories || this._treeDataSource.groupByFile;
@@ -214,7 +209,6 @@ export class BulkEditPane extends ViewPane {
 			this._currentResolve = resolve;
 			this._setTreeInput(input);
 
-			// refresh when check state changes
 			this._sessionDisposables.add(input.checked.onDidChange(() => {
 				this._tree.updateChildren();
 				this._ctxHasCheckedChanges.set(input.checked.checkedCount > 0);
@@ -236,7 +230,6 @@ export class BulkEditPane extends ViewPane {
 			return;
 		}
 
-		// async expandAll (max=10) is the default when no view state is given
 		const expand = [...this._tree.getNode(input).children].slice(0, 10);
 		while (expand.length > 0) {
 			const { element } = expand.shift()!;
@@ -305,15 +298,12 @@ export class BulkEditPane extends ViewPane {
 		const input = this._tree.getInput();
 		if (input) {
 
-			// (1) capture view state
 			const oldViewState = this._tree.getViewState();
 			this._treeViewStates.set(this._treeDataSource.groupByFile, oldViewState);
 
-			// (2) toggle and update
 			this._treeDataSource.groupByFile = !this._treeDataSource.groupByFile;
 			this._setTreeInput(input);
 
-			// (3) remember preference
 			this._storageService.store(BulkEditPane._memGroupByFile, this._treeDataSource.groupByFile, StorageScope.PROFILE, StorageTarget.USER);
 			this._ctxGroupByFile.set(this._treeDataSource.groupByFile);
 		}
@@ -335,7 +325,6 @@ export class BulkEditPane extends ViewPane {
 			fileElement = e.element;
 			selection = e.element.edit.textEdits[0]?.textEdit.textEdit.range;
 		} else {
-			// invalid event
 			return;
 		}
 
@@ -369,7 +358,6 @@ export class BulkEditPane extends ViewPane {
 		const computeDiffEditorInput = new CachedFunction<BulkFileOperation, Promise<IMultiDiffEditorResource>>(async (fileOperation) => {
 			const fileOperationUri = fileOperation.uri;
 			const previewUri = this._currentProvider!.asPreviewUri(fileOperationUri);
-			// delete
 			if (fileOperation.type & BulkFileOperationType.Delete) {
 				return {
 					original: { resource: URI.revive(previewUri) },
@@ -378,7 +366,6 @@ export class BulkEditPane extends ViewPane {
 				} satisfies IMultiDiffEditorResource;
 
 			}
-			// rename, create, edits
 			else {
 				let leftResource: URI | undefined;
 				try {

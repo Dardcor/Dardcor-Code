@@ -7,7 +7,6 @@ import dedent from 'ts-dedent';
 import { blankNode, isLine, lineNode, parseTree, topNode, virtualNode, visitTree } from '../indentation';
 import { compareTreeWithSpec } from './testHelpers';
 
-/** Test some language specific parsing techniques */
 suite('Java', function () {
 	test('method detection in Java', function () {
 		const source = dedent`
@@ -26,7 +25,6 @@ suite('Java', function () {
 		}`;
 		const javaParsedTree = parseTree(source, 'java');
 
-		// we should have picked up the correct labels
 		const lineLabels: string[] = [];
 		visitTree(
 			javaParsedTree,
@@ -40,14 +38,11 @@ suite('Java', function () {
 		assert.deepStrictEqual(lineLabels, [
 			'comment_single',
 			'import',
-			// blank
 			'annotation',
 			'class',
 			'member',
-			// not labelled
 			'closer',
-			// blank
-			'member', // as per explicit comment, the annotations within a class are relabeled 'member,
+			'member',
 			'member',
 			'closer',
 		]);
@@ -109,7 +104,6 @@ public interface I { }
 	});
 
 	test('parse Java fields', function () {
-		//TODO: Add a field with annotation on separate line
 		const tree = parseTree(
 			dedent`
 class A {

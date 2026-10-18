@@ -34,16 +34,10 @@ export interface IExternalPathInfo {
 	isDirectory: boolean;
 }
 
-/**
- * Confirmation contribution for read_file and list_dir tools that allows users to approve
- * accessing paths outside the workspace, with an option to allow all access
- * from a containing folder for the current chat session.
- */
 export class ChatExternalPathConfirmationContribution implements ILanguageModelToolConfirmationContribution, IDisposable {
 	readonly canUseDefaultApprovals = false;
 
 	private readonly _sessionFolderAllowlist = new ResourceMap<ResourceSet>();
-	/** Cache of path URI -> resolved git root URI (or null if not in a repo) */
 	private readonly _gitRootCache = new ResourceMap<URI | null>();
 	private readonly _workspaceAllowlist?: ObservableMemento<readonly string[]>;
 
@@ -72,7 +66,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			try {
 				set.add(URI.parse(s));
 			} catch {
-				// ignore malformed URIs
 			}
 		}
 		return set;
@@ -95,7 +88,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			return undefined;
 		}
 
-		// Parse the file path to a URI
 		let pathUri: URI;
 		try {
 			pathUri = URI.file(pathInfo.path);
@@ -103,9 +95,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			return undefined;
 		}
 
-		// When a working directory is set (agents window), it is the source of truth
-		// for determining whether a path is workspace-internal. Only fall back to the
-		// workspace-level allowlist when no working directory is specified.
 		if (ref.workingDirectory) {
 			if (extUriBiasedIgnorePathCase.isEqualOrParent(pathUri, ref.workingDirectory)) {
 				return { type: ToolConfirmKind.UserAction };
@@ -119,7 +108,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			}
 		}
 
-		// Check session-level allowlist
 		if (ref.chatSessionResource) {
 			const sessionFolders = this._sessionFolderAllowlist.get(ref.chatSessionResource);
 			if (sessionFolders) {
@@ -140,7 +128,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			return [];
 		}
 
-		// Parse the path to a URI
 		let pathUri: URI;
 		try {
 			pathUri = URI.file(pathInfo.path);
@@ -148,7 +135,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			return [];
 		}
 
-		// For directories, use the path itself; for files, use the parent directory
 		const folderUri = pathInfo.isDirectory ? pathUri : dirname(pathUri);
 		const sessionResource = ref.chatSessionResource;
 
@@ -168,18 +154,14 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			}
 		];
 
-		// If a git root finder is available, offer to allow the entire repository
 		if (this._findGitRoot) {
 			const findGitRoot = this._findGitRoot;
 			const gitRootCache = this._gitRootCache;
 			const allowlist = this._sessionFolderAllowlist;
 
-			// Check if we already know the git root for this path (or that there is none)
 			const cached = gitRootCache.get(pathUri);
 			if (cached === null) {
-				// Previously resolved: not in a git repository, don't show the option
 			} else if (cached) {
-				// Previously resolved: show with the known repo path
 				actions.push({
 					label: localize('allowRepoSession', 'Allow all files in this repository for this session'),
 					detail: localize('allowRepoSessionDetail', 'Allow reading files from {0}', cached.fsPath),
@@ -194,7 +176,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 					}
 				});
 			} else {
-				// Not yet resolved: show the option and resolve on selection
 				actions.push({
 					label: localize('allowRepoSession', 'Allow all files in this repository for this session'),
 					detail: localize('allowRepoSessionDetailLookup', 'Looks up the containing git repository for this path'),
@@ -206,7 +187,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 							folders = new ResourceSet();
 							allowlist.set(sessionResource, folders);
 						}
-						// If we found the git root, allow the entire repo; otherwise fall back to just this folder
 						folders.add(gitRootUri ?? folderUri);
 						return true;
 					}
@@ -220,7 +200,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 	getManageActions(): ILanguageModelToolConfirmationContributionQuickTreeItem[] {
 		const items: ILanguageModelToolConfirmationContributionQuickTreeItem[] = [];
 
-		// Workspace-level entries (persisted)
 		const workspaceFolders = this._getWorkspaceFolders();
 		for (const folderUri of workspaceFolders) {
 			items.push({
@@ -239,7 +218,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			});
 		}
 
-		// Session-level entries (ephemeral)
 		const allSessionFolders = new ResourceSet();
 		for (const [, folders] of this._sessionFolderAllowlist) {
 			for (const folder of folders) {
@@ -266,7 +244,6 @@ export class ChatExternalPathConfirmationContribution implements ILanguageModelT
 			});
 		}
 
-		// "Add Path..." option to add a new workspace-level folder
 		if (this._pickFolder) {
 			const pickFolder = this._pickFolder;
 			items.push({

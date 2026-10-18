@@ -22,7 +22,7 @@ export class McpPickRef {
 
 			if (!this._inner && !this._isDisposed) {
 				this.getPick().show();
-				this.reset(); // mark as "thinking"
+				this.reset();
 			}
 		});
 	}

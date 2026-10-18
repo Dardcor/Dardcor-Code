@@ -29,9 +29,8 @@ export class BrowserWorkingCopyHistoryService extends WorkingCopyHistoryService 
 	}
 
 	protected getModelOptions(): IWorkingCopyHistoryModelOptions {
-		return { flushOnChange: true /* because browsers support no long running shutdown */ };
+		return { flushOnChange: true };
 	}
 }
 
-// Register Service
 registerSingleton(IWorkingCopyHistoryService, BrowserWorkingCopyHistoryService, InstantiationType.Delayed);

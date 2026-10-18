@@ -187,9 +187,6 @@ export function setup(context: TestContext) {
 	}
 }
 
-/**
- * UI Test subclass for WSL that validates files in WSL filesystem.
- */
 class WslUITest extends UITest {
 	constructor(
 		context: TestContext,

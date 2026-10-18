@@ -3,39 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Integration test for Phase 6 ClaudeAgent.
- *
- * Wires together:
- *  - Real {@link ClaudeProxyService} bound to a real loopback HTTP listener.
- *  - Stubbed {@link ICopilotApiService} that yields a canned Anthropic
- *    `MessageStreamEvent` sequence.
- *  - Real {@link ClaudeAgent} driving the materialize lifecycle.
- *  - Recording {@link IClaudeAgentSdkService} that, on `startup()`,
- *    performs a real HTTP round-trip against the proxy using the
- *    `Options.settings.env.ANTHROPIC_BASE_URL` /
- *    `Options.settings.env.ANTHROPIC_AUTH_TOKEN` it received — exactly
- *    what the real Claude SDK subprocess would do when forked.
- *
- * The test does NOT fork the bundled `@anthropic-ai/claude-agent-sdk`
- * subprocess. That fork is exercised live by the Phase 6 smoke run
- * (`smoke.md`). What this test guarantees in CI is the cross-component
- * wiring that connects the two:
- *  - The agent constructs `Bearer <nonce>.<sessionId>` in a format the
- *    real proxy's auth parser accepts.
- *  - The agent passes the proxy's actual `baseUrl` through
- *    `Options.settings.env`.
- *  - The proxy's SSE encoding round-trips the canned upstream stream.
- *  - The agent's strip-env contract on `Options.env`
- *    (`NODE_OPTIONS===undefined`, `ELECTRON_RUN_AS_NODE==='1'`) is
- *    captured by what the SDK service receives.
- *  - Disposing the agent disposes the proxy handle and the WarmQuery
- *    (no orphan resources).
- */
 
 import type Anthropic from '@anthropic-ai/sdk';
 import type { GetSessionMessagesOptions, Options, PermissionResult, Query, SDKControlInterruptResponse, SDKMessage, SDKResultSuccess, SDKSessionInfo, SDKSystemMessage, SDKUserMessage, SessionMessage, WarmQuery } from '@anthropic-ai/claude-agent-sdk';
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../common/dardcorRouterModel.js';
 import assert from 'assert';
 import type * as http from 'http';
 import { DeferredPromise } from '../../../../base/common/async.js';
@@ -72,7 +43,7 @@ import { IClaudeAgentSdkService } from '../../node/claude/claudeAgentSdkService.
 import { IAgentSdkDownloader } from '../../node/agentSdkDownloader.js';
 import { IAgentPluginManager } from '../../common/agentPluginManager.js';
 import { ClaudeProxyService, IClaudeProxyService } from '../../node/claude/claudeProxyService.js';
-import { ICopilotApiService, type ICopilotApiServiceRequestOptions } from '../../node/shared/copilotApiService.js';
+import { IDardcorRouterService, type IDardcorRouterRequestOptions } from '../../node/shared/dardcorRouterService.js';
 import { createNoopGitService, createSessionDataService } from '../common/sessionTestHelpers.js';
 import { RecordingAgentSdkDownloader } from './testAgentSdkDownloader.js';
 import {
@@ -100,15 +71,7 @@ const noopOTelService: IAgentHostOTelService = {
 	flush: async () => { },
 };
 
-// #region Test fixtures
 
-/**
- * The {@link IFileService} + {@link INativeEnvironmentService} pair the
- * Phase 16 customization disk scan / watcher needs at session construction
- * time. Nothing is seeded under `userHome`, so the scan is deterministically
- * empty — these only exist so `new ClaudeAgentSession` can read `userHome`
- * and start its watcher without throwing.
- */
 function claudeFileEnvServices(disposables: Pick<DisposableStore, 'add'>): [typeof IFileService | typeof INativeEnvironmentService, IFileService | INativeEnvironmentService][] {
 	const fileService = disposables.add(new FileService(new NullLogService()));
 	disposables.add(fileService.registerProvider(Schemas.file, disposables.add(new InMemoryFileSystemProvider())));
@@ -127,26 +90,21 @@ function createTestAuthenticationService(): IAgentHostAuthenticationService {
 	};
 }
 
-const ANTHROPIC_MODEL: CCAModel = {
+const ANTHROPIC_MODEL: IDardcorRouterModel = {
 	id: 'claude-opus-4.6',
 	name: 'Claude Opus 4.6',
 	vendor: 'Anthropic',
 	supported_endpoints: ['/v1/messages'],
 	object: 'model',
-	version: '4.6',
 	is_chat_default: false,
 	is_chat_fallback: false,
-	model_picker_category: '',
+	model_picker_price_category: '',
 	model_picker_enabled: true,
 	preview: false,
 	billing: { is_premium: false, multiplier: 1, restricted_to: [] },
 	capabilities: {
-		family: 'test',
 		limits: { max_context_window_tokens: 200_000, max_output_tokens: 8192, max_prompt_tokens: 200_000 },
-		object: 'model_capabilities',
-		supports: { parallel_tool_calls: true, streaming: true, tool_calls: true, vision: false },
-		tokenizer: 'o200k_base',
-		type: 'chat',
+		supports: { tool_calls: true, vision: false },
 	},
 	policy: { state: 'enabled', terms: '' },
 };
@@ -177,7 +135,6 @@ function makeMessage(model: string): Anthropic.Message {
 	};
 }
 
-/** Canned Anthropic `MessageStreamEvent` sequence for the `messages` stub. */
 function makeCannedStream(model: string): Anthropic.MessageStreamEvent[] {
 	const message = makeMessage(model);
 	const contentBlockStart: Anthropic.RawContentBlockStartEvent = {
@@ -261,35 +218,27 @@ function makeResultSuccess(sessionId: string): SDKResultSuccess {
 	};
 }
 
-// #endregion
 
-// #region Stubbed CAPI
 
-class StubCopilotApiService implements ICopilotApiService {
+class StubDardcorRouterService implements IDardcorRouterService {
 	declare readonly _serviceBrand: undefined;
 
 	streamEvents: Anthropic.MessageStreamEvent[] = [];
-	availableModels: CCAModel[] = [ANTHROPIC_MODEL];
+	availableModels: IDardcorRouterModel[] = [ANTHROPIC_MODEL];
 
 	readonly messagesCallCount = { count: 0 };
 
-	async resolveRestrictedTelemetryContext() { return { restrictedTelemetryEnabled: false, trackingId: undefined, telemetryEndpoint: undefined }; }
-	async resolveApiEndpoint() { return undefined; }
-
 	messages(
-		token: string,
 		request: Anthropic.MessageCreateParamsStreaming,
-		options?: ICopilotApiServiceRequestOptions,
+		options?: IDardcorRouterRequestOptions,
 	): AsyncGenerator<Anthropic.MessageStreamEvent>;
 	messages(
-		token: string,
 		request: Anthropic.MessageCreateParamsNonStreaming,
-		options?: ICopilotApiServiceRequestOptions,
+		options?: IDardcorRouterRequestOptions,
 	): Promise<Anthropic.Message>;
 	messages(
-		token: string,
 		request: Anthropic.MessageCreateParams,
-		options?: ICopilotApiServiceRequestOptions,
+		options?: IDardcorRouterRequestOptions,
 	): AsyncGenerator<Anthropic.MessageStreamEvent> | Promise<Anthropic.Message> {
 		this.messagesCallCount.count++;
 		if (request.stream) {
@@ -299,7 +248,7 @@ class StubCopilotApiService implements ICopilotApiService {
 	}
 
 	private async *_stream(
-		options: ICopilotApiServiceRequestOptions | undefined,
+		options: IDardcorRouterRequestOptions | undefined,
 	): AsyncGenerator<Anthropic.MessageStreamEvent> {
 		for (const ev of this.streamEvents) {
 			if (options?.signal?.aborted) {
@@ -315,7 +264,7 @@ class StubCopilotApiService implements ICopilotApiService {
 		throw new Error('countTokens not used in integration test');
 	}
 
-	async models(): Promise<CCAModel[]> {
+	async models(): Promise<IDardcorRouterModel[]> {
 		return this.availableModels;
 	}
 
@@ -328,9 +277,7 @@ class StubCopilotApiService implements ICopilotApiService {
 	}
 }
 
-// #endregion
 
-// #region Recording SDK service that round-trips through the real proxy
 
 interface IProxyRoundTripResult {
 	readonly status: number;
@@ -338,15 +285,6 @@ interface IProxyRoundTripResult {
 	readonly events: readonly { readonly type: string; readonly data: unknown }[];
 }
 
-/**
- * Marker entry the test can interleave inside
- * {@link ProxyRoundTripSdkService.queryMessages} between SDK messages.
- * When {@link RoundTripQuery.next} encounters a marker, it invokes the
- * captured {@link Options.canUseTool} closure and waits for it to
- * resolve before proceeding to the next entry, mirroring the real SDK
- * subprocess's behaviour around an assistant `tool_use` → synthetic
- * user `tool_result` round-trip.
- */
 interface CanUseToolMarker {
 	readonly kind: 'canUseTool';
 	readonly toolName: string;
@@ -369,31 +307,14 @@ function isElicitationMarker(item: QueryStreamItem): item is ElicitationMarker {
 	return (item as ElicitationMarker).kind === 'elicitation';
 }
 
-/**
- * Test double for {@link IClaudeAgentSdkService}. On `startup()`, performs
- * a real HTTP `POST /v1/messages` against the proxy URL the agent passed
- * via `Options.settings.env`, using the bearer the agent constructed.
- * This stands in for the SDK subprocess's first model call so we can
- * assert the agent → proxy → CAPI round-trip works without forking
- * `@anthropic-ai/claude-agent-sdk`'s bundled CLI.
- */
 class ProxyRoundTripSdkService implements IClaudeAgentSdkService {
 	declare readonly _serviceBrand: undefined;
 
 	readonly capturedStartupOptions: Options[] = [];
 	readonly proxyRoundTrips: IProxyRoundTripResult[] = [];
 
-	/**
-	 * Items the produced WarmQuery's Query will yield in order. SDK
-	 * messages flow through unchanged; {@link CanUseToolMarker} entries
-	 * pause the iterator and invoke the captured
-	 * `Options.canUseTool` closure (mirroring what the real SDK
-	 * subprocess does between assistant `tool_use` and the synthetic
-	 * `user` `tool_result` it follows up with).
-	 */
 	queryMessages: QueryStreamItem[] = [];
 
-	/** Records the {@link PermissionResult} returned by each `canUseTool` invocation in {@link queryMessages} order. */
 	readonly canUseToolResults: (PermissionResult | null)[] = [];
 	readonly elicitationResults: Awaited<ReturnType<NonNullable<Options['onElicitation']>>>[] = [];
 
@@ -429,7 +350,7 @@ class ProxyRoundTripSdkService implements IClaudeAgentSdkService {
 		return { sessionId: `forked-${sessionId}` };
 	}
 
-	async deleteSession(): Promise<void> { /* not exercised by the proxy round-trip */ }
+	async deleteSession(): Promise<void> { }
 
 	async createSdkMcpServer(): Promise<never> { throw new Error('not implemented in integration test fake'); }
 	async tool(): Promise<never> { throw new Error('not implemented in integration test fake'); }
@@ -487,8 +408,6 @@ class RoundTripQuery implements AsyncGenerator<SDKMessage, void> {
 	private readonly _drainer: Promise<void>;
 
 	constructor(prompt: AsyncIterable<SDKUserMessage>, private readonly _sdk: ProxyRoundTripSdkService) {
-		// Drain the prompt iterable in the background so the agent's
-		// `_pendingPromptDeferred.complete()` actually pumps the queue.
 		const it = prompt[Symbol.asyncIterator]();
 		this._drainer = (async () => {
 			while (true) {
@@ -571,13 +490,11 @@ class RoundTripQuery implements AsyncGenerator<SDKMessage, void> {
 	stopTask(): never { throw new Error('not modeled'); }
 	reloadSkills(): never { throw new Error('not modeled'); }
 	backgroundTasks(): never { throw new Error('not modeled'); }
-	close(): void { /* no-op */ }
+	close(): void { }
 	[Symbol.asyncDispose](): Promise<void> { return Promise.resolve(); }
 }
 
-// #endregion
 
-// #region HTTP helpers
 
 let _httpModule: typeof http | undefined;
 async function getHttp(): Promise<typeof http> {
@@ -651,18 +568,8 @@ function parseSseFrames(raw: string): { type: string; data: unknown }[] {
 	return out;
 }
 
-// #endregion
 
-// #region Session helpers
 
-/**
- * Provisions a session the way Agent Host does: the host mints both the session
- * URI and the chat URI it starts the session with, and creates them together
- * through the single `IAgentChats.createChat` seam with the session's create
- * config flattened onto the creation options. Returns the chat URI plus the SDK
- * conversation id the provider bound to it — independent of the AH session id —
- * which these tests need to stage the fake SDK transcript.
- */
 async function createSession(agent: ClaudeAgent, config: IAgentCreateSessionConfig): Promise<{ session: URI; chat: URI; sessionId: string }> {
 	const session = AgentSession.uri('claude', generateUuid());
 	const chat = URI.parse(buildDefaultChatUri(session));
@@ -681,34 +588,18 @@ async function createSession(agent: ClaudeAgent, config: IAgentCreateSessionConf
 	return { session, chat, sessionId: AgentSession.id(created.backingSession) };
 }
 
-/**
- * The host-owned {@link IAgentChatContext} Agent Host stamps on every addressed
- * chat operation. A session-backed default chat is scoped to the session
- * resource, mirroring the orchestrator's own context builder.
- */
 function chatContext(chat: URI, session: URI): IAgentChatContext {
 	return { configurationResource: session, resource: session };
 }
 
-// #endregion
 
-// #region Suite
 
 suite('ClaudeAgent integration (proxy-backed)', function () {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('agent → proxy → CAPI → SSE → agent: end-to-end pipeline with real proxy and stubbed CAPI', async () => {
-		// This is the Phase 6 §5.2 integration test: real ClaudeProxyService
-		// + real ClaudeAgent + stubbed ICopilotApiService + recording SDK
-		// service that performs a real HTTP round-trip on the proxy from
-		// inside `startup()`. Catches regressions in any of:
-		//   - Agent's `Options.settings.env` wiring (BASE_URL / AUTH_TOKEN).
-		//   - Proxy's `Bearer <nonce>.<sessionId>` parser.
-		//   - Proxy's model-id rewrite (SDK ↔ endpoint format).
-		//   - Proxy's SSE frame encoding.
-		//   - Agent's `Options.env` strip contract.
-		const capi = new StubCopilotApiService();
+		const capi = new StubDardcorRouterService();
 		capi.streamEvents = makeCannedStream('claude-opus-4.6');
 
 		const realProxy = disposables.add(new ClaudeProxyService(new NullLogService(), capi));
@@ -719,7 +610,7 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 
 		const services = new ServiceCollection(
 			[ILogService, logService],
-			[ICopilotApiService, capi],
+			[IDardcorRouterService, capi],
 			[IClaudeProxyService, realProxy],
 			[ISessionDataService, createSessionDataService()],
 			[IClaudeAgentSdkService, sdk],
@@ -743,24 +634,17 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 		const instantiationService = disposables.add(new InstantiationService(services));
 		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
 
-		// Authenticate — boots the proxy and snapshots the model list.
 		const accepted = await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'gh-int-test-token');
 		assert.strictEqual(accepted, true);
 
-		// Create a provisional session — no SDK contact yet.
 		const created = await createSession(agent, { workingDirectories: [URI.file('/integration-cwd')] });
 		assert.strictEqual(sdk.capturedStartupOptions.length, 0, 'createChat does not touch the SDK');
 
-		// Stage a transcript on the SDK so `sendMessage` resolves.
 		const sessionId = created.sessionId;
 		sdk.queryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
 
-		// First send materializes — drives `startup()`, which performs
-		// the real HTTP round-trip on the real proxy.
 		await agent.chats.sendMessage(created.chat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(created.chat, created.session));
 
-		// Snapshot what flowed through the integration in a single
-		// assertion so the failure surface is the whole pipeline.
 		const startup = sdk.capturedStartupOptions[0];
 		const round = sdk.proxyRoundTrips[0];
 		const startupSettings = startup.settings;
@@ -807,21 +691,12 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 			],
 		});
 
-		// Cleanup: tear the chat down and assert the WarmQuery was
-		// closed via Symbol.asyncDispose (no orphan subprocess). Trace-context
-		// release for the default chat now happens inside disposeChat itself —
-		// there is no separate finalize step.
 		await agent.chats.disposeChat(created.chat, chatContext(created.chat, created.session));
 		assert.strictEqual(sdk.warmQueries[0].asyncDisposeCount, 1, 'WarmQuery is asyncDisposed on chat dispose');
 	});
 
 	test('proxy rejects a request whose bearer carries a wrong nonce (auth contract)', async () => {
-		// Companion test that locks the proxy's auth contract from
-		// outside the agent. If the agent ever drifts away from
-		// `Bearer <nonce>.<sessionId>`, the round-trip in the test
-		// above fails — but this test guarantees the proxy itself
-		// rejects forged bearers regardless of the agent.
-		const capi = new StubCopilotApiService();
+		const capi = new StubDardcorRouterService();
 		const realProxy = disposables.add(new ClaudeProxyService(new NullLogService(), capi));
 		const handle = await realProxy.start('gh-int-test-token');
 		try {
@@ -838,18 +713,7 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 	});
 
 	test('Phase 7 §5.3 — canUseTool / onElicitation closures wired through to Options on materialize', async () => {
-		// Phase 7 §5.3. The Phase-6 round-trip above exercised the
-		// proxy / CAPI / settings-env wiring; this test pins the
-		// Phase-7 callback surface — `canUseTool` and `onElicitation`
-		// must both be present in the Options the SDK service receives
-		// from `_materializeProvisional` and behave per §3.4 / §3.7.
-		// We don't need a full SDK message stream with tool_use blocks
-		// to validate the wiring — the unit suites in
-		// `claudeAgent.test.ts` cover the in-process tool round-trip
-		// exhaustively. What this integration adds: the closures
-		// survive the materialize → SDK boundary intact when the real
-		// proxy is in the loop.
-		const capi = new StubCopilotApiService();
+		const capi = new StubDardcorRouterService();
 		capi.streamEvents = makeCannedStream('claude-opus-4.6');
 		const realProxy = disposables.add(new ClaudeProxyService(new NullLogService(), capi));
 		const sdk = new ProxyRoundTripSdkService();
@@ -859,7 +723,7 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 
 		const services = new ServiceCollection(
 			[ILogService, logService],
-			[ICopilotApiService, capi],
+			[IDardcorRouterService, capi],
 			[IClaudeProxyService, realProxy],
 			[ISessionDataService, createSessionDataService()],
 			[IClaudeAgentSdkService, sdk],
@@ -924,14 +788,7 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 	});
 
 	test('Phase 7 §5.3 — Read tool round-trip: SDK tool_use → pending_confirmation → respondToPermissionRequest(true) → tool_result → continuation', async () => {
-		// §5.3 of the Phase-7 plan: drive a one-tool round-trip end-to-end
-		// through a materialized agent backed by the real proxy. Unit
-		// tests in `claudeAgent.test.ts` already cover the in-process
-		// `_handleCanUseTool` mechanics; what this test pins is the
-		// agent → mapper → progress-event ordering when the SDK fixture
-		// invokes the captured `Options.canUseTool` mid-stream the same
-		// way the real subprocess would.
-		const capi = new StubCopilotApiService();
+		const capi = new StubDardcorRouterService();
 		capi.streamEvents = makeCannedStream('claude-opus-4.6');
 		const realProxy = disposables.add(new ClaudeProxyService(new NullLogService(), capi));
 		const sdk = new ProxyRoundTripSdkService();
@@ -941,7 +798,7 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 
 		const services = new ServiceCollection(
 			[ILogService, logService],
-			[ICopilotApiService, capi],
+			[IDardcorRouterService, capi],
 			[IClaudeProxyService, realProxy],
 			[ISessionDataService, createSessionDataService()],
 			[IClaudeAgentSdkService, sdk],
@@ -969,9 +826,6 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 		const created = await createSession(agent, { workingDirectories: [URI.file('/integration-cwd')] });
 		const sessionId = created.sessionId;
 
-		// Canned turn: assistant says "reading", calls `Read`, the SDK
-		// invokes `canUseTool`, then a synthetic user `tool_result`
-		// arrives followed by an assistant continuation and `result`.
 		const TOOL_USE_ID = 'tu_int_read_1';
 		sdk.queryMessages = [
 			makeSystemInitMessage(sessionId),
@@ -1003,8 +857,6 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 
 		await agent.chats.sendMessage(created.chat, 'please read /tmp/x', undefined, undefined, 'turn-1', undefined, undefined, chatContext(created.chat, created.session));
 
-		// Snapshot the agent-side emission stream as a single shape so
-		// the failure surface is the whole pipeline.
 		const summary = signals.map(s => {
 			if (s.kind === 'pending_confirmation') {
 				return {
@@ -1048,10 +900,6 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 				{ kind: 'action', type: ActionType.ChatDelta, content: 'reading' },
 				{ kind: 'action', type: ActionType.ChatToolCallStart, toolCallId: TOOL_USE_ID, toolName: 'Read' },
 				{ kind: 'action', type: ActionType.ChatToolCallDelta, toolCallId: TOOL_USE_ID, content: '{"file_path":"/tmp/x"}' },
-				// Phase 8.5 — mapper emits `ChatToolCallReady` at
-				// `content_block_stop` so auto-allowed tools transition out of
-				// `Streaming`; `sessionPermissions` then emits a second Ready
-				// for the pending_confirmation card below.
 				{ kind: 'action', type: ActionType.ChatToolCallReady },
 				{ kind: 'pending_confirmation', toolCallId: TOOL_USE_ID, toolName: 'Read', permissionKind: 'read', permissionPath: '/tmp/x' },
 				{ kind: 'action', type: ActionType.ChatToolCallComplete, toolCallId: TOOL_USE_ID, success: true, content: [{ type: ToolResultContentType.Text, text: 'file contents' }] },
@@ -1067,4 +915,3 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 	});
 });
 
-// #endregion

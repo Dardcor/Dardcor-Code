@@ -9,9 +9,6 @@ import { TimeoutTimer } from '../../../common/async.js';
 import { ThemeIcon } from '../../../common/themables.js';
 import * as dom from '../../dom.js';
 
-/**
- * The arrow image size.
- */
 export const ARROW_IMG_SIZE = 11;
 
 export interface ScrollbarArrowOptions {
@@ -103,7 +100,7 @@ export class ScrollbarArrow extends Widget {
 			e.target,
 			e.pointerId,
 			e.buttons,
-			(pointerMoveData) => { /* Intentional empty */ },
+			(pointerMoveData) => { },
 			() => {
 				this._pointerdownRepeatTimer.cancel();
 				this._pointerdownScheduleRepeatTimer.cancel();

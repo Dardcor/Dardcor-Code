@@ -64,7 +64,7 @@ export class NotebookAccessibilityProvider extends Disposable implements IListAc
 	}
 
 	private shouldReadCellOutputs(state: NotebookCellExecutionState | undefined): boolean {
-		return state === undefined // execution completed
+		return state === undefined
 			&& this.isReplHistory
 			&& this.accessibilityService.isScreenReaderOptimized()
 			&& this.configurationService.getValue<boolean>('accessibility.replEditor.readLastExecutionOutput');

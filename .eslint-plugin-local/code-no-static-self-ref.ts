@@ -7,9 +7,6 @@ import * as eslint from 'eslint';
 import type * as ESTree from 'estree';
 import { TSESTree } from '@typescript-eslint/utils';
 
-/**
- * WORKAROUND for https://github.com/evanw/esbuild/issues/3823
- */
 export default new class implements eslint.Rule.RuleModule {
 
 	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {

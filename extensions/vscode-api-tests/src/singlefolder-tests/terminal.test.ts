@@ -7,24 +7,17 @@ import { deepStrictEqual, doesNotThrow, equal, ok, strictEqual, throws } from 'a
 import { commands, ConfigurationTarget, Disposable, env, EnvironmentVariableMutator, EnvironmentVariableMutatorOptions, EnvironmentVariableMutatorType, EventEmitter, ExtensionContext, extensions, ExtensionTerminalOptions, Pseudoterminal, Terminal, TerminalDimensions, TerminalExitReason, TerminalOptions, TerminalState, UIKind, Uri, window, workspace } from 'vscode';
 import { assertNoRpc, poll } from '../utils';
 
-// Disable terminal tests:
-// - Web https://github.com/microsoft/vscode/issues/92826
 (env.uiKind === UIKind.Web ? suite.skip : suite)('vscode API - terminal', () => {
 	let extensionContext: ExtensionContext;
 
 	suiteSetup(async () => {
-		// Trigger extension activation and grab the context as some tests depend on it
 		await extensions.getExtension('vscode.vscode-api-tests')?.activate();
 		extensionContext = global.testExtensionContext;
 
 		const config = workspace.getConfiguration('terminal.integrated');
-		// Disable exit alerts as tests may trigger then and we're not testing the notifications
 		await config.update('showExitAlert', false, ConfigurationTarget.Global);
-		// Canvas may cause problems when running in a container
 		await config.update('gpuAcceleration', 'off', ConfigurationTarget.Global);
-		// Disable env var relaunch for tests to prevent terminals relaunching themselves
 		await config.update('environmentChangesRelaunch', false, ConfigurationTarget.Global);
-		// Disable local echo in case it causes any problems in remote tests
 		await config.update('localEchoEnabled', 'off', ConfigurationTarget.Global);
 		await config.update('shellIntegration.enabled', false);
 	});
@@ -68,7 +61,6 @@ import { assertNoRpc, poll } from '../utils';
 						r(terminal);
 					}
 				}));
-				// Use a single character to avoid conpty issues with injected sequences
 				const terminal = window.createTerminal({
 					env: { TEST: '`' }
 				});
@@ -85,7 +77,6 @@ import { assertNoRpc, poll } from '../utils';
 						}
 					}
 				}));
-				// Print an environment variable value so the echo statement doesn't get matched
 				if (process.platform === 'win32') {
 					terminal.sendText(`$env:TEST`);
 				} else {
@@ -275,75 +266,7 @@ import { assertNoRpc, poll } from '../utils';
 			});
 		});
 
-		// test('onDidChangeActiveTerminal should fire when new terminals are created', (done) => {
-		// 	const reg1 = window.onDidChangeActiveTerminal((active: Terminal | undefined) => {
-		// 		equal(active, terminal);
-		// 		equal(active, window.activeTerminal);
-		// 		reg1.dispose();
-		// 		const reg2 = window.onDidChangeActiveTerminal((active: Terminal | undefined) => {
-		// 			equal(active, undefined);
-		// 			equal(active, window.activeTerminal);
-		// 			reg2.dispose();
-		// 			done();
-		// 		});
-		// 		terminal.dispose();
-		// 	});
-		// 	const terminal = window.createTerminal();
-		// 	terminal.show();
-		// });
 
-		// test('onDidChangeTerminalDimensions should fire when new terminals are created', (done) => {
-		// 	const reg1 = window.onDidChangeTerminalDimensions(async (event: TerminalDimensionsChangeEvent) => {
-		// 		equal(event.terminal, terminal1);
-		// 		equal(typeof event.dimensions.columns, 'number');
-		// 		equal(typeof event.dimensions.rows, 'number');
-		// 		ok(event.dimensions.columns > 0);
-		// 		ok(event.dimensions.rows > 0);
-		// 		reg1.dispose();
-		// 		let terminal2: Terminal;
-		// 		const reg2 = window.onDidOpenTerminal((newTerminal) => {
-		// 			// This is guarantees to fire before dimensions change event
-		// 			if (newTerminal !== terminal1) {
-		// 				terminal2 = newTerminal;
-		// 				reg2.dispose();
-		// 			}
-		// 		});
-		// 		let firstCalled = false;
-		// 		let secondCalled = false;
-		// 		const reg3 = window.onDidChangeTerminalDimensions((event: TerminalDimensionsChangeEvent) => {
-		// 			if (event.terminal === terminal1) {
-		// 				// The original terminal should fire dimension change after a split
-		// 				firstCalled = true;
-		// 			} else if (event.terminal !== terminal1) {
-		// 				// The new split terminal should fire dimension change
-		// 				secondCalled = true;
-		// 			}
-		// 			if (firstCalled && secondCalled) {
-		// 				let firstDisposed = false;
-		// 				let secondDisposed = false;
-		// 				const reg4 = window.onDidCloseTerminal(term => {
-		// 					if (term === terminal1) {
-		// 						firstDisposed = true;
-		// 					}
-		// 					if (term === terminal2) {
-		// 						secondDisposed = true;
-		// 					}
-		// 					if (firstDisposed && secondDisposed) {
-		// 						reg4.dispose();
-		// 						done();
-		// 					}
-		// 				});
-		// 				terminal1.dispose();
-		// 				terminal2.dispose();
-		// 				reg3.dispose();
-		// 			}
-		// 		});
-		// 		await timeout(500);
-		// 		commands.executeCommand('workbench.action.terminal.split');
-		// 	});
-		// 	const terminal1 = window.createTerminal({ name: 'test' });
-		// 	terminal1.show();
-		// });
 
 		suite('hideFromUser', () => {
 			test('should be available to terminals API', async () => {
@@ -378,7 +301,6 @@ import { assertNoRpc, poll } from '../utils';
 			test('should be defined after selecting all content', async () => {
 				const terminal = window.createTerminal({ name: 'selection test' });
 				terminal.show();
-				// Wait for some terminal data
 				await new Promise<void>(r => {
 					const disposable = window.onDidWriteTerminalData(() => {
 						disposable.dispose();
@@ -392,7 +314,6 @@ import { assertNoRpc, poll } from '../utils';
 			test('should be undefined after clearing a selection', async () => {
 				const terminal = window.createTerminal({ name: 'selection test' });
 				terminal.show();
-				// Wait for some terminal data
 				await new Promise<void>(r => {
 					const disposable = window.onDidWriteTerminalData(() => {
 						disposable.dispose();
@@ -408,11 +329,7 @@ import { assertNoRpc, poll } from '../utils';
 		});
 
 		suite('window.onDidWriteTerminalData', () => {
-			// still flaky with retries, skipping https://github.com/microsoft/vscode/issues/193505
 			test.skip('should listen to all future terminal data events', function (done) {
-				// This test has been flaky in the past but it's not clear why, possibly because
-				// events from previous tests polluting the event recording in this test. Retries
-				// was added so we continue to have coverage of the onDidWriteTerminalData API.
 				this.retries(3);
 
 				const openEvents: string[] = [];
@@ -457,12 +374,10 @@ import { assertNoRpc, poll } from '../utils';
 						open: async () => {
 							term1Write.fire('write1');
 
-							// Wait until the data is written
 							await new Promise<void>(resolve => { resolveOnceDataWritten = resolve; });
 
 							term1Close.fire();
 
-							// Wait until the terminal is closed
 							await new Promise<void>(resolve => { resolveOnceClosed = resolve; });
 
 							const term2Write = new EventEmitter<string>();
@@ -474,12 +389,10 @@ import { assertNoRpc, poll } from '../utils';
 									open: async () => {
 										term2Write.fire('write2');
 
-										// Wait until the data is written
 										await new Promise<void>(resolve => { resolveOnceDataWritten = resolve; });
 
 										term2Close.fire();
 
-										// Wait until the terminal is closed
 										await new Promise<void>(resolve => { resolveOnceClosed = resolve; });
 
 										done();
@@ -516,53 +429,7 @@ import { assertNoRpc, poll } from '../utils';
 			});
 
 			// The below tests depend on global UI state and each other
-			// test('should not provide dimensions on start as the terminal has not been shown yet', (done) => {
-			// 	const reg1 = window.onDidOpenTerminal(term => {
-			// 		equal(terminal, term);
-			// 		reg1.dispose();
-			// 	});
-			// 	const pty: Pseudoterminal = {
-			// 		onDidWrite: new EventEmitter<string>().event,
-			// 		open: (dimensions) => {
-			// 			equal(dimensions, undefined);
-			// 			const reg3 = window.onDidCloseTerminal(() => {
-			// 				reg3.dispose();
-			// 				done();
-			// 			});
-			// 			// Show a terminal and wait a brief period before dispose, this will cause
-			// 			// the panel to init it's dimenisons and be provided to following terminals.
-			// 			// The following test depends on this.
-			// 			terminal.show();
-			// 			setTimeout(() => terminal.dispose(), 200);
-			// 		},
-			// 		close: () => {}
-			// 	};
-			// 	const terminal = window.createTerminal({ name: 'foo', pty });
-			// });
-			// test('should provide dimensions on start as the terminal has been shown', (done) => {
-			// 	const reg1 = window.onDidOpenTerminal(term => {
-			// 		equal(terminal, term);
-			// 		reg1.dispose();
-			// 	});
-			// 	const pty: Pseudoterminal = {
-			// 		onDidWrite: new EventEmitter<string>().event,
-			// 		open: (dimensions) => {
-			// 			// This test depends on Terminal.show being called some time before such
-			// 			// that the panel dimensions are initialized and cached.
-			// 			ok(dimensions!.columns > 0);
-			// 			ok(dimensions!.rows > 0);
-			// 			const reg3 = window.onDidCloseTerminal(() => {
-			// 				reg3.dispose();
-			// 				done();
-			// 			});
-			// 			terminal.dispose();
-			// 		},
-			// 		close: () => {}
-			// 	};
-			// 	const terminal = window.createTerminal({ name: 'foo', pty });
-			// });
 
-			// TODO: Fix test, flaky in CI (local and remote) https://github.com/microsoft/vscode/issues/137155
 			test.skip('should respect dimension overrides', async () => {
 				const writeEmitter = new EventEmitter<string>();
 				const overrideDimensionsEmitter = new EventEmitter<TerminalDimensions>();
@@ -580,19 +447,12 @@ import { assertNoRpc, poll } from '../utils';
 					}));
 					const created = window.createTerminal({ name: 'foo', pty });
 				});
-				// Exit the test early if dimensions already match which may happen if the exthost
-				// has high latency
 				if (terminal.dimensions?.columns === 10 && terminal.dimensions?.rows === 5) {
 					return;
 				}
-				// TODO: Remove logs when the test is verified as non-flaky
 				await new Promise<void>(r => {
-					// Does this never fire because it's already set to 10x5?
 					disposables.push(window.onDidChangeTerminalDimensions(e => {
 						console.log(`window.onDidChangeTerminalDimensions event, dimensions = ${e.dimensions?.columns}x${e.dimensions?.rows}`);
-						// The default pty dimensions have a chance to appear here since override
-						// dimensions happens after the terminal is created. If so just ignore and
-						// wait for the right dimensions
 						if (e.terminal === terminal && e.dimensions.columns === 10 && e.dimensions.rows === 5) {
 							disposables.push(window.onDidCloseTerminal(() => r()));
 							terminal.dispose();
@@ -688,9 +548,6 @@ import { assertNoRpc, poll } from '../utils';
 					onDidWrite: writeEmitter.event,
 					onDidClose: closeEmitter.event,
 					open: () => {
-						// Wait 500ms as any exits that occur within 500ms of terminal launch are
-						// are counted as "exiting during launch" which triggers a notification even
-						// when showExitAlerts is true
 						setTimeout(() => closeEmitter.fire(22), 500);
 					},
 					close: () => { }
@@ -738,7 +595,6 @@ import { assertNoRpc, poll } from '../utils';
 
 		(process.platform === 'win32' ? suite.skip : suite)('environmentVariableCollection', () => {
 			test('should have collection variables apply to terminals immediately after setting', async () => {
-				// Setup collection and create terminal
 				const collection = extensionContext.environmentVariableCollection;
 				disposables.push({ dispose: () => collection.clear() });
 				collection.replace('A', '~a2~');
@@ -752,7 +608,6 @@ import { assertNoRpc, poll } from '../utils';
 					}
 				});
 
-				// Listen for all data events
 				let data = '';
 				disposables.push(window.onDidWriteTerminalData(e => {
 					if (terminal !== e.terminal) {
@@ -761,11 +616,8 @@ import { assertNoRpc, poll } from '../utils';
 					data += sanitizeData(e.data);
 				}));
 
-				// Run sh commands, if this is ever enabled on Windows we would also want to run
-				// the pwsh equivalent
 				terminal.sendText('echo "$A $B $C"');
 
-				// Poll for the echo results to show up
 				try {
 					await poll<void>(() => Promise.resolve(), () => data.includes('~a2~'), '~a2~ should be printed');
 					await poll<void>(() => Promise.resolve(), () => data.includes('b1~b2~'), 'b1~b2~ should be printed');
@@ -775,7 +627,6 @@ import { assertNoRpc, poll } from '../utils';
 					throw err;
 				}
 
-				// Wait for terminal to be disposed
 				await new Promise<void>(r => {
 					disposables.push(window.onDidCloseTerminal(() => r()));
 					terminal.dispose();
@@ -783,7 +634,6 @@ import { assertNoRpc, poll } from '../utils';
 			});
 
 			test('should have collection variables apply to environment variables that don\'t exist', async () => {
-				// Setup collection and create terminal
 				const collection = extensionContext.environmentVariableCollection;
 				disposables.push({ dispose: () => collection.clear() });
 				collection.replace('A', '~a2~');
@@ -797,7 +647,6 @@ import { assertNoRpc, poll } from '../utils';
 					}
 				});
 
-				// Listen for all data events
 				let data = '';
 				disposables.push(window.onDidWriteTerminalData(e => {
 					if (terminal !== e.terminal) {
@@ -806,11 +655,8 @@ import { assertNoRpc, poll } from '../utils';
 					data += sanitizeData(e.data);
 				}));
 
-				// Run sh commands, if this is ever enabled on Windows we would also want to run
-				// the pwsh equivalent
 				terminal.sendText('echo "$A $B $C"');
 
-				// Poll for the echo results to show up
 				try {
 					await poll<void>(() => Promise.resolve(), () => data.includes('~a2~'), '~a2~ should be printed');
 					await poll<void>(() => Promise.resolve(), () => data.includes('~b2~'), '~b2~ should be printed');
@@ -820,7 +666,6 @@ import { assertNoRpc, poll } from '../utils';
 					throw err;
 				}
 
-				// Wait for terminal to be disposed
 				await new Promise<void>(r => {
 					disposables.push(window.onDidCloseTerminal(() => r()));
 					terminal.dispose();
@@ -828,7 +673,6 @@ import { assertNoRpc, poll } from '../utils';
 			});
 
 			test('should respect clearing entries', async () => {
-				// Setup collection and create terminal
 				const collection = extensionContext.environmentVariableCollection;
 				disposables.push({ dispose: () => collection.clear() });
 				collection.replace('A', '~a2~');
@@ -841,7 +685,6 @@ import { assertNoRpc, poll } from '../utils';
 					}
 				});
 
-				// Listen for all data events
 				let data = '';
 				disposables.push(window.onDidWriteTerminalData(e => {
 					if (terminal !== e.terminal) {
@@ -850,11 +693,8 @@ import { assertNoRpc, poll } from '../utils';
 					data += sanitizeData(e.data);
 				}));
 
-				// Run sh commands, if this is ever enabled on Windows we would also want to run
-				// the pwsh equivalent
 				terminal.sendText('echo "$A $B"');
 
-				// Poll for the echo results to show up
 				try {
 					await poll<void>(() => Promise.resolve(), () => data.includes('~a1~'), '~a1~ should be printed');
 					await poll<void>(() => Promise.resolve(), () => data.includes('~b1~'), '~b1~ should be printed');
@@ -863,7 +703,6 @@ import { assertNoRpc, poll } from '../utils';
 					throw err;
 				}
 
-				// Wait for terminal to be disposed
 				await new Promise<void>(r => {
 					disposables.push(window.onDidCloseTerminal(() => r()));
 					terminal.dispose();
@@ -871,7 +710,6 @@ import { assertNoRpc, poll } from '../utils';
 			});
 
 			test('should respect deleting entries', async () => {
-				// Setup collection and create terminal
 				const collection = extensionContext.environmentVariableCollection;
 				disposables.push({ dispose: () => collection.clear() });
 				collection.replace('A', '~a2~');
@@ -884,7 +722,6 @@ import { assertNoRpc, poll } from '../utils';
 					}
 				});
 
-				// Listen for all data events
 				let data = '';
 				disposables.push(window.onDidWriteTerminalData(e => {
 					if (terminal !== e.terminal) {
@@ -893,11 +730,8 @@ import { assertNoRpc, poll } from '../utils';
 					data += sanitizeData(e.data);
 				}));
 
-				// Run sh commands, if this is ever enabled on Windows we would also want to run
-				// the pwsh equivalent
 				terminal.sendText('echo "$A $B"');
 
-				// Poll for the echo results to show up
 				try {
 					await poll<void>(() => Promise.resolve(), () => data.includes('~a1~'), '~a1~ should be printed');
 					await poll<void>(() => Promise.resolve(), () => data.includes('~b2~'), '~b2~ should be printed');
@@ -906,7 +740,6 @@ import { assertNoRpc, poll } from '../utils';
 					throw err;
 				}
 
-				// Wait for terminal to be disposed
 				await new Promise<void>(r => {
 					disposables.push(window.onDidCloseTerminal(() => r()));
 					terminal.dispose();
@@ -919,7 +752,6 @@ import { assertNoRpc, poll } from '../utils';
 				collection.replace('A', '~a2~');
 				collection.append('B', '~b2~');
 				collection.prepend('C', '~c2~');
-				// Verify get
 				const defaultOptions: Required<EnvironmentVariableMutatorOptions> = {
 					applyAtProcessCreation: true,
 					applyAtShellIntegration: false
@@ -927,7 +759,6 @@ import { assertNoRpc, poll } from '../utils';
 				deepStrictEqual(collection.get('A'), { value: '~a2~', type: EnvironmentVariableMutatorType.Replace, options: defaultOptions, variable: 'A' });
 				deepStrictEqual(collection.get('B'), { value: '~b2~', type: EnvironmentVariableMutatorType.Append, options: defaultOptions, variable: 'B' });
 				deepStrictEqual(collection.get('C'), { value: '~c2~', type: EnvironmentVariableMutatorType.Prepend, options: defaultOptions, variable: 'C' });
-				// Verify forEach
 				const entries: [string, EnvironmentVariableMutator][] = [];
 				collection.forEach((v, m) => entries.push([v, m]));
 				deepStrictEqual(entries, [
@@ -948,7 +779,6 @@ import { assertNoRpc, poll } from '../utils';
 				collection.replace('A', '~a2~');
 				collection.append('B', '~b2~');
 				collection.prepend('C', '~c2~');
-				// Verify get for scope
 				const defaultOptions: Required<EnvironmentVariableMutatorOptions> = {
 					applyAtProcessCreation: true,
 					applyAtShellIntegration: false
@@ -958,7 +788,6 @@ import { assertNoRpc, poll } from '../utils';
 				deepStrictEqual(expectedScopedCollection.get('B'), { value: 'scoped~b2~', type: EnvironmentVariableMutatorType.Append, options: defaultOptions, variable: 'B' });
 				deepStrictEqual(expectedScopedCollection.get('C'), { value: 'scoped~c2~', type: EnvironmentVariableMutatorType.Prepend, options: defaultOptions, variable: 'C' });
 
-				// Verify forEach
 				const entries: [string, EnvironmentVariableMutator][] = [];
 				expectedScopedCollection.forEach((v, m) => entries.push([v, m]));
 				deepStrictEqual(entries.map(v => v[1]), [
@@ -973,11 +802,8 @@ import { assertNoRpc, poll } from '../utils';
 });
 
 function sanitizeData(data: string): string {
-	// Strip NL/CR so terminal dimensions don't impact tests
 	data = data.replace(/[\r\n]/g, '');
 
-	// Strip escape sequences so conpty doesn't cause flakiness, do for all platforms for
-	// consistency
 	const CSI_SEQUENCE = /(:?(:?\x1b\[|\x9B)[=?>!]?[\d;:]*["$#'* ]?[a-zA-Z@^`{}|~])|(:?\x1b\].*?\x07)/g;
 	data = data.replace(CSI_SEQUENCE, '');
 

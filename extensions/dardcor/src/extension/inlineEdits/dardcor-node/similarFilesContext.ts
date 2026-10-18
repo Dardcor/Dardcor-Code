@@ -11,7 +11,7 @@ import { ICompletionsTextDocumentManagerService } from '../../completions-core/d
 import { DocumentInfoWithOffset } from '../../completions-core/dardcor-node/prompt/src/prompt';
 import { getSimilarSnippets } from '../../completions-core/dardcor-node/prompt/src/snippetInclusion/similarFiles';
 import { SnippetWithProviderInfo } from '../../completions-core/dardcor-node/prompt/src/snippetInclusion/snippets';
-import { ICopilotInlineCompletionItemProviderService } from '../../completions/common/dardcorInlineCompletionItemProviderService';
+import { IDardcorInlineCompletionItemProviderService } from '../../completions/common/dardcorInlineCompletionItemProviderService';
 import { LineRange0Based } from '../../xtab/common/lineRange';
 import { INeighborFileSnippet, ISimilarFilesContextService } from '../../xtab/common/similarFilesContextService';
 
@@ -22,7 +22,7 @@ export class SimilarFilesContextService implements ISimilarFilesContextService {
 	readonly _serviceBrand: undefined;
 
 	constructor(
-		@ICopilotInlineCompletionItemProviderService private readonly _dardcorService: ICopilotInlineCompletionItemProviderService,
+		@IDardcorInlineCompletionItemProviderService private readonly _dardcorService: IDardcorInlineCompletionItemProviderService,
 	) { }
 
 	async compute(uri: string, languageId: string, source: string, cursorOffset: number, includeRelatedFiles: boolean): Promise<string | undefined> {

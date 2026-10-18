@@ -132,8 +132,6 @@ suite('ChatFindWidget DOM highlighting', () => {
 
 	test('finds matches split across nested inline elements (e.g. bold markdown)', () => {
 		const root = document.createElement('div');
-		// Simulates rendered markdown like "the **quick** brown fox", where a
-		// match's surrounding text lives in sibling/nested text nodes.
 		root.innerHTML = 'the <b>quick</b> brown <em>fox</em> jumps';
 
 		const ranges = findMatchRangesInDom(root, regex('quick'), 100);
@@ -153,7 +151,6 @@ suite('ChatFindWidget DOM highlighting', () => {
 
 	test('does not fuse text across block boundaries', () => {
 		const root = document.createElement('div');
-		// Two paragraphs whose seam would read as "needle" if blocks were concatenated.
 		root.innerHTML = '<p>nee</p><p>dle</p>';
 
 		assert.deepStrictEqual(findMatchRangesInDom(root, regex('needle'), 100), []);
@@ -196,8 +193,6 @@ suite('ChatFindWidget DOM highlighting', () => {
 	});
 
 	test('uses the root element\'s own document, not the global document', () => {
-		// Simulates a node owned by another window/document (e.g. an
-		// auxiliary window), which must not be scanned/ranged via globals.
 		const otherDocument = document.implementation.createHTMLDocument('');
 		const root = otherDocument.createElement('div');
 		root.textContent = 'needle';
@@ -241,16 +236,9 @@ suite('ChatFindWidget DOM highlighting', () => {
 	});
 });
 
-/**
- * Covers revealing a match in both directions. The chat list only picks up native scrolling as a
- * downward delta (see `scrollToActiveElement` in `listView.ts`), so scrolling up — including the
- * wrap from the last match back to the first — has to be driven through the list's own scroll
- * offset. These tests pin that arithmetic.
- */
 suite('ChatFindWidget match reveal', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// scrollTop 500, viewport 400 tall, padding 30.
 	const scrollTop = 500;
 	const renderHeight = 400;
 
@@ -259,7 +247,6 @@ suite('ChatFindWidget match reveal', () => {
 	});
 
 	test('scrolls up to a match above the viewport', () => {
-		// The wrap-around case: the match sits 60px above the top edge.
 		assert.strictEqual(computeRevealScrollTop(scrollTop, renderHeight, -60, -40), 500 - 60 - 30);
 	});
 
@@ -276,10 +263,6 @@ suite('ChatFindWidget match reveal', () => {
 	});
 });
 
-/**
- * Drives the reveal through the widget's private scroll helper with a fake host, so the
- * measure-and-scroll wiring is covered without the widget's service graph.
- */
 suite('ChatFindWidget scroll wiring', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
@@ -294,12 +277,10 @@ suite('ChatFindWidget scroll wiring', () => {
 		};
 	}
 
-	/** Scrolls to a match whose rect is given in client coordinates, and reports the writes. */
 	function reveal(rect: { top: number; bottom: number } | undefined, scrollTop = 500) {
 		const writes: number[] = [];
 		const harness: IScrollHarness = {
 			host: {
-				// The transcript viewport starts 100px down the client area.
 				transcriptDomNode: { getBoundingClientRect: () => ({ top: 100 }) },
 				getScrollTop: () => scrollTop,
 				setScrollTop: (value: number) => writes.push(value),
@@ -311,7 +292,6 @@ suite('ChatFindWidget scroll wiring', () => {
 	}
 
 	test('scrolls the list up when the match is above the viewport', () => {
-		// Client top 40 is 60px above the transcript's top edge.
 		assert.deepStrictEqual(reveal({ top: 40, bottom: 60 }), { writes: [500 - 60 - 30], scrolled: true });
 	});
 
@@ -324,11 +304,6 @@ suite('ChatFindWidget scroll wiring', () => {
 	});
 });
 
-/**
- * Exercises the walk that moves past matches the DOM cannot produce. Driving the private members
- * directly keeps the test free of the widget's service graph while still covering the real
- * direction, cap and termination behaviour.
- */
 suite('ChatFindWidget unlocatable match walk', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
@@ -342,7 +317,6 @@ suite('ChatFindWidget unlocatable match walk', () => {
 		_advanceActiveMatch(previous: boolean): void;
 	}
 
-	/** Walks `locatable` from `startIndex`, stepping past entries the DOM cannot produce. */
 	function runWalk(locatable: readonly boolean[], startIndex: number, previous: boolean) {
 		const directions: boolean[] = [];
 		let index = startIndex;
@@ -364,7 +338,6 @@ suite('ChatFindWidget unlocatable match walk', () => {
 	}
 
 	test('advances past unlocatable matches to the next locatable one', () => {
-		// index 0 active; 1 and 2 cannot be located, 3 can.
 		const result = runWalk([true, false, false, true], 0, false);
 
 		assert.strictEqual(result.index, 3);
@@ -385,10 +358,6 @@ suite('ChatFindWidget unlocatable match walk', () => {
 	});
 });
 
-/**
- * Covers holding the result count until the search and its match location have settled, so the
- * label shows the final number instead of counting up and down while the user types.
- */
 suite('ChatFindWidget settled result count', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
@@ -440,7 +409,6 @@ suite('ChatFindWidget settled result count', () => {
 		let settled = false;
 		const waiting = whenSettled.call(harness).then(() => { settled = true; });
 
-		// Typing again while the first search was pending.
 		harness._pendingSearch = second.p;
 		await first.complete();
 		await Promise.resolve();

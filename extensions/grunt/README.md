@@ -4,7 +4,7 @@
 
 ## Features
 
-This extension supports running [Grunt](https://gruntjs.com/) tasks defined in a `gruntfile.js` file as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks). Grunt tasks with the name 'build', 'compile', or 'watch' are treated as build tasks.
+This extension supports running [Grunt](https://gruntjs.com/) tasks defined in a `gruntfile.js` file as [VS Code tasks](https://www.dardcor-code.web.id/docs/editor/tasks). Grunt tasks with the name 'build', 'compile', or 'watch' are treated as build tasks.
 
 To run Grunt tasks, use the **Tasks** menu.
 

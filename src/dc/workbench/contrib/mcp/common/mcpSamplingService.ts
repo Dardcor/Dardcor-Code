@@ -83,8 +83,6 @@ export class McpSamplingService extends Disposable implements IMcpSamplingServic
 
 		let responseText = '';
 
-		// MCP doesn't have a notion of a multi-part sampling response, so we only preserve text
-		// Ref https://github.com/modelcontextprotocol/modelcontextprotocol/issues/91
 		const streaming = (async () => {
 			for await (const part of response.stream) {
 				if (Array.isArray(part)) {
@@ -106,7 +104,7 @@ export class McpSamplingService extends Disposable implements IMcpSamplingServic
 				sample: {
 					model,
 					content: { type: 'text', text: responseText },
-					role: 'assistant', // it came from the model!
+					role: 'assistant',
 				},
 			};
 		} catch (err) {
@@ -127,7 +125,6 @@ export class McpSamplingService extends Disposable implements IMcpSamplingServic
 		const globalAutoApprove = this._configurationService.getValue<boolean>(ChatConfiguration.GlobalAutoApprove);
 
 		if (model === ModelMatch.UnsureAllowedDuringChat) {
-			// In YOLO mode, auto-approve MCP sampling requests without prompting
 			if (globalAutoApprove) {
 				this._sessionSets.allowedDuringChat.set(opts.server.definition.id, true);
 				return this._getMatchingModel(opts);
@@ -143,7 +140,6 @@ export class McpSamplingService extends Disposable implements IMcpSamplingServic
 			}
 			throw McpError.notAllowed();
 		} else if (model === ModelMatch.UnsureAllowedOutsideChat) {
-			// In YOLO mode, auto-approve MCP sampling requests without prompting
 			if (globalAutoApprove) {
 				this._sessionSets.allowedOutsideChat.set(opts.server.definition.id, true);
 				return this._getMatchingModel(opts);
@@ -228,26 +224,19 @@ export class McpSamplingService extends Disposable implements IMcpSamplingServic
 		});
 	}
 
-	/**
-	 * Gets the matching model for the MCP server in this context, or
-	 * a reason why no model could be selected.
-	 */
 	private async _getMatchingModelInner(server: IMcpServer, isDuringToolCall: boolean, preferences: MCP.ModelPreferences | undefined): Promise<ModelMatch | string> {
 		const config = this.getConfig(server);
-		// 1. Ensure the server is allowed to sample in this context
 		if (isDuringToolCall && !config.allowedDuringChat && !this._sessionSets.allowedDuringChat.has(server.definition.id)) {
 			return config.allowedDuringChat === undefined ? ModelMatch.UnsureAllowedDuringChat : ModelMatch.NotAllowed;
 		} else if (!isDuringToolCall && !config.allowedOutsideChat && !this._sessionSets.allowedOutsideChat.has(server.definition.id)) {
 			return config.allowedOutsideChat === undefined ? ModelMatch.UnsureAllowedOutsideChat : ModelMatch.NotAllowed;
 		}
 
-		// 2. Get the configured models, or the default free model(s)
 		const foundModelIds = config.allowedModels?.filter(m => !!this._languageModelsService.lookupLanguageModel(m)) || this._getDefaultModels();
 		if (!foundModelIds.length) {
 			return ModelMatch.NoMatchingModel;
 		}
 
-		// 3. If preferences are provided, try to match them from the allowed models
 		if (preferences?.hints) {
 			const found = mapFindFirst(preferences.hints, hint => foundModelIds.find(model => model.toLowerCase().includes(hint.name!.toLowerCase())));
 			if (found) {
@@ -255,7 +244,7 @@ export class McpSamplingService extends Disposable implements IMcpSamplingServic
 			}
 		}
 
-		return foundModelIds[0]; // Return the first matching model
+		return foundModelIds[0];
 	}
 
 	private _getDefaultModels() {
@@ -280,16 +269,6 @@ export class McpSamplingService extends Disposable implements IMcpSamplingServic
 		return this._getConfig(server).value || {};
 	}
 
-	/**
-	 * _getConfig reads the sampling config reads the `{ server: data }` mapping
-	 * from the appropriate config. We read from the most specific possible
-	 * config up to the default configuration location that the MCP server itself
-	 * is defined in. We don't go further because then workspace-specific servers
-	 * would get in the user settings which is not meaningful and could lead
-	 * to confusion.
-	 *
-	 * todo@connor4312: generalize this for other esttings when we have them
-	 */
 	private _getConfig(server: IMcpServer) {
 		const def = server.readDefinitions().get();
 		const mostSpecificConfig = ConfigurationTarget.MEMORY;

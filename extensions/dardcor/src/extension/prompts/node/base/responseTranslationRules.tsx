@@ -36,11 +36,11 @@ export class ResponseTranslationRules extends PromptElement {
 	}
 
 	render() {
-		const languageOverride = this.configurationService.getConfig<string>(ConfigKey.LocaleOverride); // Locale overrides must be for one of our supported languages
+		const languageOverride = this.configurationService.getConfig<string>(ConfigKey.LocaleOverride);
 		if (!validLocales.find((locale) => languageOverride === locale)) {
 			return undefined;
 		}
-		const languageConfiguration = languageOverride !== 'auto' ? languageOverride : this.envService.language; // No need to further validate VS Code's configured locale
+		const languageConfiguration = languageOverride !== 'auto' ? languageOverride : this.envService.language;
 		if (languageConfiguration === 'en') {
 			return undefined;
 		}

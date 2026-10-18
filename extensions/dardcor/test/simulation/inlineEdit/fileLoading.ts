@@ -7,24 +7,16 @@ import { readFileSync } from 'fs';
 import { join } from 'path/posix';
 import { getFixturesDir } from '../stestUtil';
 
-/**
- * Rewrites fileName.[ext].txt to fileName.[ext] if no virtualFileName is given!
- *
- * This function allows [tools](https://github.com/microsoft/vscode-ts-file-path-support/tree/main) to inline/extract the file content.
- */
 
-type FileInfo = { filePath: string | { fullPath: string; pathWithinFixturesDir?: string } } | {/** Relative */ fileName: string; fileContents: string };
+type FileInfo = { filePath: string | { fullPath: string; pathWithinFixturesDir?: string } } | { fileName: string; fileContents: string };
 
 export interface ILoadedFile {
 	fileContents: string;
-	fileName?: string; // relative
-	filePath?: string; // absolute
-	pathWithinFixturesDir?: string; // relative
+	fileName?: string;
+	filePath?: string;
+	pathWithinFixturesDir?: string;
 }
 
-/**
- * This function allows [tools](https://github.com/microsoft/vscode-ts-file-path-support/tree/main) to inline/extract the file content.
- */
 export function loadFile(data: FileInfo): ILoadedFile {
 	let fileName: string | undefined = undefined;
 	let filePath: string | undefined = undefined;
@@ -57,10 +49,8 @@ export function inlineEditsFixture(pathWithinFixturesDir: RelativeFilePath<'$dir
 	};
 }
 
-/** See https://github.com/microsoft/vscode-ts-file-path-support */
 type RelativeFilePath<T extends string> = string & { baseDir?: T }; export interface IInlineEditBaseFile {
 	fileContents: string;
 
-	/** Relative or absolute */
 	virtualFileName: string;
 }

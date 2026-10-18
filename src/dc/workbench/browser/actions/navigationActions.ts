@@ -144,14 +144,10 @@ abstract class BaseNavigationAction extends Action2 {
 
 		const oppositeDirection = this.toOppositeDirection(direction);
 
-		// Check to see if there is a group in between the last
-		// active group and the direction of movement
 
 		const groupInBetween = editorGroupService.findGroup({ direction: oppositeDirection }, editorGroupService.activeGroup);
 		if (!groupInBetween) {
 
-			// No group in between means we can return
-			// focus to the last active editor group
 
 			editorGroupService.activeGroup.focus();
 			return true;

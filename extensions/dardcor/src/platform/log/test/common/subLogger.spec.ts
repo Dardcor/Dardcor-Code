@@ -89,8 +89,6 @@ describe('SubLogger', () => {
 			const subLogger = logService.createSubLogger('Test');
 			const error = new Error('test error');
 			subLogger.error(error, 'error context');
-			// The error method formats as: collectErrorMessages(error) + ': ' + prefixedMessage
-			// The 's' flag makes '.' match newlines
 			expect(logTarget.hasMessageMatching(LogLevel.Error, /test error.*\[Test\] error context/s)).toBe(true);
 		});
 
@@ -98,14 +96,12 @@ describe('SubLogger', () => {
 			const subLogger = logService.createSubLogger('Test');
 			const error = new Error('test error');
 			subLogger.error(error);
-			// The error method formats as: collectErrorMessages(error) + ': ' + prefix
 			expect(logTarget.hasMessageMatching(LogLevel.Error, /test error.*\[Test\]/s)).toBe(true);
 		});
 
 		test('error method with string error and message', () => {
 			const subLogger = logService.createSubLogger('Test');
 			subLogger.error('string error', 'error context');
-			// The error method formats as: error + ': ' + prefixedMessage
 			expect(logTarget.hasMessageMatching(LogLevel.Error, /string error.*\[Test\] error context/s)).toBe(true);
 		});
 	});
@@ -167,9 +163,7 @@ describe('SubLogger', () => {
 
 			logger.info('test message');
 
-			// Primary target receives prefixed message
 			logTarget.assertHasMessage(LogLevel.Info, '[Feature] test message');
-			// Extra target also receives prefixed message
 			extraTarget.assertHasMessage(LogLevel.Info, '[Feature] test message');
 		});
 
@@ -181,7 +175,6 @@ describe('SubLogger', () => {
 			original.info('original only');
 			withExtra.info('with extra');
 
-			// Extra target only receives from withExtra logger
 			expect(extraTarget.hasMessage(LogLevel.Info, '[Feature] original only')).toBe(false);
 			extraTarget.assertHasMessage(LogLevel.Info, '[Feature] with extra');
 		});
@@ -220,10 +213,8 @@ describe('SubLogger', () => {
 				.createSubLogger('Feature')
 				.withExtraTarget(throwingTarget);
 
-			// Should not throw
 			logger.info('test message');
 
-			// Primary target still receives the message
 			logTarget.assertHasMessage(LogLevel.Info, '[Feature] test message');
 		});
 

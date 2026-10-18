@@ -5,17 +5,15 @@
 import { FileChunk, FileChunkAndScore } from '../../../platform/chunking/common/chunk';
 import { IRankResult } from './semanticSearchTextSearchProvider';
 
-// Normalize scores to a range of 0 to 1
 const normalizeScores = (scores: number[]) => {
 	const maxScore = Math.max(...scores);
 	const minScore = Math.min(...scores);
 	if (maxScore === minScore) {
-		return scores.map(() => 1); // If all scores are the same, return 1 for all
+		return scores.map(() => 1);
 	}
 	return scores.map((score: number) => (score - minScore) / (maxScore - minScore));
 };
 
-// Combine scores using a weighted average
 const combineScores = (chunkScores: number[], llmScores: number[], chunkWeight = 0.5, llmWeight = 0.5) => {
 	return chunkScores.map((score, index) => {
 		const llmScore = llmScores[index] !== undefined ? llmScores[index] : 0;
@@ -32,7 +30,6 @@ export const combinedRanking = (
 	const chunkScores = chunks.map(chunk => chunk.distance?.value || 0);
 	const usedChunks: FileChunk[] = [];
 	const llmScores = chunks.map((chunk) => {
-		// Check if the lines in this chunk are already contained in another chosen chunk
 		const chunkExists = usedChunks.some(usedChunk =>
 			usedChunk.file.path === chunk.chunk.file.path && (usedChunk.range.startLineNumber <= chunk.chunk.range.startLineNumber && usedChunk.range.endLineNumber >= chunk.chunk.range.endLineNumber)
 		);
@@ -60,7 +57,6 @@ export const combinedRanking = (
 		llmSelected: llmScores[index] === 1,
 	})).sort((a, b) => b.combinedScore - a.combinedScore);
 
-	// return chunks below topFiles and only 3 chunks per file
 	const filePaths: { [key: string]: number } = {};
 	const filteredResults = sortedResults.filter((result) => {
 		const filePath = result.chunk.file.path;
@@ -83,7 +79,6 @@ export function combineRankingInsights(
 	chunks: FileChunkAndScore<FileChunk>[],
 	llmResponse: IRankResult[]
 ): { llmBestRank: number; llmWorstRank: number } {
-	// Identify which chunks were selected by LLM
 	const selectedChunkIndices: number[] = [];
 	chunks.forEach((chunk, index) => {
 		const isPickedByLLM = llmResponse.some(response =>
@@ -95,7 +90,6 @@ export function combineRankingInsights(
 		}
 	});
 
-	// Compute best rank and worst rank
 	const llmBestRank = selectedChunkIndices.length ? Math.min(...selectedChunkIndices) : -1;
 	const llmWorstRank = selectedChunkIndices.length ? Math.max(...selectedChunkIndices) : -1;
 

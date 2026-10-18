@@ -19,9 +19,6 @@ export function tryFinalizeResponseStream(stream: ChatResponseStream | Finalizab
 		return (stream as FinalizableChatResponseStream).finalize();
 	}
 }
-/**
- * A `ChatResponseStream` that forwards all calls to a single callback.
- */
 export class ChatResponseStreamImpl implements FinalizableChatResponseStream {
 
 	public static spy(stream: ChatResponseStream, callback: (part: ExtendedChatResponsePart) => void, finalize?: () => void): ChatResponseStreamImpl {
@@ -204,7 +201,7 @@ export class ChatResponseStreamImpl implements FinalizableChatResponseStream {
 	codeblockUri(value: Uri, isEdit?: boolean): void {
 		try {
 			this._push(new ChatResponseCodeblockUriPart(value, isEdit));
-		} catch { } // TODO@joyceerhl remove try/catch
+		} catch { }
 	}
 
 	confirmation(title: string, message: string, data: any, buttons?: string[]): void {
@@ -245,6 +242,5 @@ export class ChatResponseStreamImpl implements FinalizableChatResponseStream {
 	}
 
 	voiceProgress(_id: any, _value: string): void {
-		// no-op
 	}
 }

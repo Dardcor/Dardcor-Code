@@ -14,12 +14,6 @@ const SEARCH_BOX_TEXTAREA = '.settings-editor .suggest-input-container .monaco-e
 export class SettingsEditor {
 	constructor(private code: Code, private editors: Editors, private editor: Editor, private quickaccess: QuickAccess) { }
 
-	/**
-	 * Write a single setting key value pair.
-	 *
-	 * Warning: You may need to set `editor.wordWrap` to `"on"` if this is called with a really long
-	 * setting.
-	 */
 	async addUserSetting(setting: string, value: string): Promise<void> {
 		await this.openUserSettingsFile();
 
@@ -30,12 +24,6 @@ export class SettingsEditor {
 		await this.editors.saveOpenedFile();
 	}
 
-	/**
-	 * Write several settings faster than multiple calls to {@link addUserSetting}.
-	 *
-	 * Warning: You will likely also need to set `editor.wordWrap` to `"on"` if `addUserSetting` is
-	 * called after this in the test.
-	 */
 	async addUserSettings(settings: [key: string, value: string][]): Promise<void> {
 		await this.openUserSettingsFile();
 
@@ -52,7 +40,7 @@ export class SettingsEditor {
 		await this.code.dispatchKeybinding('Delete', async () => {
 			await this.editor.waitForEditorContents('settings.json', contents => contents === '');
 		});
-		await this.editor.waitForTypeInEditor('settings.json', `{`); // will auto close }
+		await this.editor.waitForTypeInEditor('settings.json', `{`);
 		await this.editors.saveOpenedFile();
 		await this.quickaccess.runCommand('workbench.action.closeActiveEditor');
 	}

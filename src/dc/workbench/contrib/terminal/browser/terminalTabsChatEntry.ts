@@ -45,7 +45,6 @@ export class TerminalTabsChatEntry extends Disposable {
 		icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.commentDiscussionSparkle));
 		this._label = dom.append(entry, $('.terminal-tabs-chat-entry-label'));
 
-		// Add delete button (right-aligned via CSS margin-left: auto)
 		this._deleteButton = dom.append(entry, $('.terminal-tabs-chat-entry-delete'));
 		this._deleteButton.classList.add(...ThemeIcon.asClassNameArray(Codicon.trashcan));
 		this._deleteButton.tabIndex = 0;
@@ -57,7 +56,6 @@ export class TerminalTabsChatEntry extends Disposable {
 			void this._commandService.executeCommand('workbench.action.terminal.chat.viewHiddenChatTerminals');
 		};
 		this._register(dom.addDisposableListener(this._entry, dom.EventType.CLICK, e => {
-			// Don't trigger if clicking on the delete button
 			if (e.target === this._deleteButton || this._deleteButton.contains(e.target as Node)) {
 				return;
 			}
@@ -71,14 +69,12 @@ export class TerminalTabsChatEntry extends Disposable {
 			}
 		}));
 
-		// Delete button click handler
 		this._register(dom.addDisposableListener(this._deleteButton, dom.EventType.CLICK, async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			await this._deleteAllHiddenTerminals();
 		}));
 
-		// Delete button keyboard handler
 		this._register(dom.addDisposableListener(this._deleteButton, dom.EventType.KEY_DOWN, async (e) => {
 			if (e.key === 'Enter' || e.key === ' ') {
 				e.preventDefault();

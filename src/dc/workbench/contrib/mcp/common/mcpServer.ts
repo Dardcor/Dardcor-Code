@@ -121,11 +121,8 @@ interface IToolCacheEntry {
 	readonly trustedAtNonce: string | undefined;
 
 	readonly nonce: string | undefined;
-	/** Cached tools so we can show what's available before it's started */
 	readonly tools: readonly ValidatedMcpTool[];
-	/** Cached prompts */
 	readonly prompts: readonly StoredMcpPrompt[] | undefined;
-	/** Cached capabilities */
 	readonly capabilities: McpCapability | undefined;
 }
 
@@ -149,7 +146,7 @@ const toolInvalidCharRe = /[^a-z0-9_-]/gi;
 export class McpServerMetadataCache extends Disposable {
 	private didChange = false;
 	private readonly cache = new LRUCache<string, IToolCacheEntry>(128);
-	private readonly extensionServers = new Map</* collection ID */string, IServerCacheEntry>();
+	private readonly extensionServers = new Map< string, IServerCacheEntry>();
 
 	constructor(
 		scope: StorageScope,
@@ -178,35 +175,29 @@ export class McpServerMetadataCache extends Disposable {
 			this.extensionServers = new Map(cached?.extensionServers ?? []);
 			cached?.serverTools?.forEach(([k, v]) => this.cache.set(k, v));
 		} catch {
-			// ignored
 		}
 	}
 
-	/** Resets the cache for primitives and extension servers */
 	reset() {
 		this.cache.clear();
 		this.extensionServers.clear();
 		this.didChange = true;
 	}
 
-	/** Gets cached primitives for a server (used before a server is running) */
 	get(definitionId: string) {
 		return this.cache.get(definitionId);
 	}
 
-	/** Sets cached primitives for a server */
 	store(definitionId: string, entry: Partial<IToolCacheEntry>): void {
 		const prev = this.get(definitionId) || emptyToolEntry;
 		this.cache.set(definitionId, { ...prev, ...entry });
 		this.didChange = true;
 	}
 
-	/** Gets cached servers for a collection (used for extensions, before the extension activates) */
 	getServers(collectionId: string) {
 		return this.extensionServers.get(collectionId);
 	}
 
-	/** Sets cached servers for a collection */
 	storeServers(collectionId: string, entry: IServerCacheEntry | undefined): void {
 		if (entry) {
 			this.extensionServers.set(collectionId, entry);
@@ -217,15 +208,6 @@ export class McpServerMetadataCache extends Disposable {
 	}
 }
 
-/**
- * Shared across all {@link McpServer}s. Each server `take`s the name it wants
- * to base its tool prefix on (announced `serverInfo.title`/`name` when known,
- * otherwise the mcp.json key) and gets back a stable, collision-resolved prefix
- * observable. When a server's preferred name changes (e.g. after the live
- * `serverInfo` arrives), it simply takes again and disposes the previous
- * reference; other servers that share the name keep the suffix they were
- * already assigned. See #299749.
- */
 export class McpPrefixGenerator {
 	private readonly _buckets = new Map<string, { usedIndexes: Set<number>; size: number }>();
 
@@ -244,9 +226,6 @@ export class McpPrefixGenerator {
 		bucket.usedIndexes.add(index);
 		bucket.size++;
 
-		// Trim safeName for this output if a multi-digit suffix would push us past
-		// MaxPrefixLen. The bucket is keyed on the un-trimmed safeName so collisions
-		// are still detected consistently across indexes.
 		const suffix = (index === 1 ? '' : String(index)) + '_';
 		const maxNameLen = McpToolName.MaxPrefixLen - McpToolName.Prefix.length - suffix.length;
 		const prefix = McpToolName.Prefix + safeName.slice(0, maxNameLen) + suffix;
@@ -267,23 +246,10 @@ export class McpPrefixGenerator {
 type ValidatedMcpTool = MCP.Tool & {
 	_icons: StoredMcpIcons;
 
-	/**
-	 * Tool name as published by the MCP server. This may
-	 * be different than the one in {@link definition} due to name normalization
-	 * in {@link McpServer._getValidatedTools}.
-	 */
 	serverToolName: string;
 
-	/**
-	 * Visibility of the tool, parsed from `_meta.ui.visibility`.
-	 * Defaults to Model | App if not specified.
-	 */
 	visibility: McpToolVisibility;
 
-	/**
-	 * UI resource URI if this tool has an associated MCP App UI.
-	 * Parsed from `_meta.ui.resourceUri`.
-	 */
 	uiResourceUri?: string;
 };
 
@@ -300,16 +266,6 @@ interface ServerMetadata {
 }
 
 class CachedPrimitive<T, C> {
-	/**
-	 * @param _definitionId Server definition ID
-	 * @param _cache Metadata cache instance
-	 * @param _fromStaticDefinition Static definition that came with the server.
-	 * This should ONLY have a value if it should be used instead of whatever
-	 * is currently in the cache.
-	 * @param _fromCache Pull the value from the cache entry.
-	 * @param _toT Transform the value to the observable type.
-	 * @param defaultValue Default value if no cache entry.
-	 */
 	constructor(
 		private readonly _definitionId: string,
 		private readonly _cache: McpServerMetadataCache,
@@ -343,15 +299,10 @@ class CachedPrimitive<T, C> {
 }
 
 export class McpServer extends Disposable implements IMcpServer {
-	/** Shared task manager that survives reconnections */
 	private readonly _taskManager = this._register(new McpTaskManager());
 
-	/**
-	 * Helper function to call the function on the handler once it's online. The
-	 * connection started if it is not already.
-	 */
 	public static async callOn<R>(server: IMcpServer, fn: (handler: McpServerRequestHandler, connection: IMcpServerConnection) => Promise<R>, token: CancellationToken = CancellationToken.None): Promise<R> {
-		await server.start({ promptType: 'all-untrusted' }); // idempotent
+		await server.start({ promptType: 'all-untrusted' });
 
 		let ranOnce = false;
 		let d: IDisposable;
@@ -365,8 +316,6 @@ export class McpServer extends Disposable implements IMcpServer {
 
 				const connection = server.connection.read(reader);
 				if (!connection) {
-					// No live connection: the server may be blocked by policy (its connection is torn
-					// down while blocked) or stopped. Surface the terminal state instead of waiting forever.
 					const state = server.connectionState.read(reader);
 					if (state.state === McpConnectionState.Kind.Error) {
 						reject(new McpConnectionFailedError(`MCP server could not be started: ${state.message}`));
@@ -386,13 +335,12 @@ export class McpServer extends Disposable implements IMcpServer {
 						reject(new McpConnectionFailedError('MCP server has stopped'));
 						return;
 					} else {
-						// keep waiting for handler
 						return;
 					}
 				}
 
 				resolve(fn(handler, connection));
-				ranOnce = true; // aggressive prevent multiple racey calls, don't dispose because autorun is sync
+				ranOnce = true;
 			});
 		});
 
@@ -405,18 +353,6 @@ export class McpServer extends Disposable implements IMcpServer {
 
 	public readonly connection = this._connection;
 
-	/**
-	 * Reactively evaluates the `chat.mcp.allowedServers` / `chat.mcp.deniedServers` policy against
-	 * this server's identity. Holds an error state while blocked, `undefined` while allowed.
-	 *
-	 * Being a derived, it recomputes whenever the policy changes (via {@link _policyEpoch}), the
-	 * server definition changes, or a connection resolves — so it always evaluates the *resolved*
-	 * launch of a live connection and falls back to the definition otherwise. This also means a
-	 * blocked server surfaces the block at rest (before any start), which hides its cached tools
-	 * and prompts and lets the UI show the reason.
-	 *
-	 * Initialized in the constructor because it depends on the injected allowed-servers service.
-	 */
 	private readonly _policyEpoch: IObservable<void>;
 	private readonly _policyBlock: IObservable<McpConnectionState.Error | undefined>;
 	public readonly connectionState: IObservable<McpConnectionState> = derived(reader => this._policyBlock.read(reader) ?? this._connection.read(reader)?.state.read(reader) ?? { state: McpConnectionState.Kind.Stopped });
@@ -428,14 +364,12 @@ export class McpServer extends Disposable implements IMcpServer {
 	}
 
 	private readonly _tools: CachedPrimitive<readonly IMcpTool[], readonly ValidatedMcpTool[]>;
-	/** Cached tools are suppressed while the server is blocked by policy so they cannot be listed, referenced, or executed. */
 	private readonly _gatedTools: IObservable<readonly IMcpTool[]> = derived(reader => this._policyBlock.read(reader) ? [] : this._tools.value.read(reader));
 	public get tools() {
 		return this._gatedTools;
 	}
 
 	private readonly _prompts: CachedPrimitive<readonly IMcpPrompt[], readonly StoredMcpPrompt[]>;
-	/** Cached prompts are suppressed while the server is blocked by policy. */
 	private readonly _gatedPrompts: IObservable<readonly IMcpPrompt[]> = derived(reader => this._policyBlock.read(reader) ? [] : this._prompts.value.read(reader));
 	public get prompts() {
 		return this._gatedPrompts;
@@ -503,7 +437,6 @@ export class McpServer extends Disposable implements IMcpServer {
 	private _isSandboxSuggestionDialogVisible = false;
 	private _potentialSandboxBlocks: IMcpPotentialSandboxBlock[] = [];
 	private _potentialSandboxBlockListener = this._register(new MutableDisposable<IDisposable>());
-	/** Count of running tool calls, used to detect if sampling is during an LM call */
 	public runningToolCalls = new Set<IMcpToolCallContext>();
 
 	public readonly enablement: IObservable<ContributionEnablementState>;
@@ -544,16 +477,8 @@ export class McpServer extends Disposable implements IMcpServer {
 			this._policyEpoch.read(reader);
 			const connection = this._connection.read(reader);
 			if (connection) {
-				// Authoritative: the connection carries the fully resolved launch.
 				return this._evaluatePolicy(this._identityFromLaunch(connection.launchDefinition));
 			}
-			// At rest, only decide when we have a concrete, fully-resolved launch. If the definition
-			// has not been provided yet (e.g. a lazy/extension server before activation) or the launch
-			// still contains unresolved `${...}` variables (inputs, workspace or env vars), a
-			// URL/command allow/deny rule cannot be matched reliably, so defer the decision to start()
-			// — which re-checks the fully resolved launch — to avoid over-eagerly blocking (and hiding
-			// the cached tools of) a server that will actually be allowed once resolved. `chat.mcp.access`
-			// and deny-by-name are still enforced at start(), and access also by the enablement layer.
 			const launch = this._fullDefinitions.read(reader).server?.launch;
 			if (!launch) {
 				return undefined;
@@ -565,12 +490,9 @@ export class McpServer extends Disposable implements IMcpServer {
 			return this._evaluatePolicy(identity);
 		});
 
-		// Stop a live connection when the policy blocks it (e.g. the policy was tightened while the
-		// server was running). The block itself is evaluated reactively by `_policyBlock`, which also
-		// hides cached tools/prompts and surfaces the reason in the UI.
 		this._register(autorun(reader => {
 			if (this._policyBlock.read(reader) && this._connection.read(undefined)) {
-				this._connection.set(undefined, undefined); // disposes and stops the connection
+				this._connection.set(undefined, undefined);
 			}
 		}));
 
@@ -580,11 +502,8 @@ export class McpServer extends Disposable implements IMcpServer {
 		const that = this;
 		this._register(this._instantiationService.createInstance(McpDevModeServerAttache, this, { get lastModeDebugged() { return that._lastModeDebugged; } }));
 
-		// If the logger is disposed but not deregistered, then the disposed instance
-		// is reused and no-ops. todo@sandy081 this seems like a bug.
 		this._register(toDisposable(() => _loggerService.deregisterLogger(this._loggerId)));
 
-		// 1. Reflect workspaces into the MCP roots
 		const workspaces = explicitRoots
 			? observableValue(this, explicitRoots.map(uri => ({ uri, name: basename(uri) })))
 			: observableFromEvent(
@@ -605,7 +524,7 @@ export class McpServer extends Disposable implements IMcpServer {
 				.filter(w => w.uri.authority === (initialCollection.remoteAuthority || ''))
 				.map(w => {
 					let uri = URI.from(uriTransformer?.transformIncoming(w.uri) ?? w.uri);
-					if (uri.scheme === Schemas.file) { // #271812
+					if (uri.scheme === Schemas.file) {
 						uri = URI.file(normalizeDriveLetter(uri.fsPath, true));
 					}
 
@@ -613,7 +532,6 @@ export class McpServer extends Disposable implements IMcpServer {
 				});
 		}));
 
-		// 2. Populate this.tools when we connect to a server.
 		this._register(autorun(reader => {
 			const cnx = this._connection.read(reader);
 			const handler = cnx?.handler.read(reader);
@@ -643,14 +561,10 @@ export class McpServer extends Disposable implements IMcpServer {
 			undefined,
 		);
 
-		// Form the tool prefix from the server-announced name when known so that
-		// registry-style mcp.json keys like `io.github.upstash/context7` don't end
-		// up in `mcp_io_github_ups_*` truncated names. See #299749.
 		const preferredName = derived(reader => this._serverMetadata.value.read(reader)?.serverName || this.definition.label);
 		const prefixRef = derivedDisposable(reader => prefixGenerator.take(preferredName.read(reader)));
 		const toolPrefix = prefixRef.map(ref => ref.object);
 
-		// 3. Publish tools
 		this._tools = new CachedPrimitive<readonly IMcpTool[], readonly ValidatedMcpTool[]>(
 			this.definition.id,
 			this._primitiveCache,
@@ -665,7 +579,6 @@ export class McpServer extends Disposable implements IMcpServer {
 			[],
 		);
 
-		// 4. Publish prompts
 		this._prompts = new CachedPrimitive<readonly IMcpPrompt[], readonly StoredMcpPrompt[]>(
 			this.definition.id,
 			this._primitiveCache,
@@ -684,8 +597,6 @@ export class McpServer extends Disposable implements IMcpServer {
 			undefined,
 		);
 
-		// Hold the prefix for the lifetime of the server so its tool name stays
-		// stable even when no one is currently observing the tools list.
 		prefixRef.recomputeInitiallyAndOnChange(this._store);
 	}
 
@@ -724,15 +635,6 @@ export class McpServer extends Disposable implements IMcpServer {
 			return { name: this.definition.label, url: launch.uri.toString(true) };
 		}
 		if (launch?.type === McpServerTransportType.Stdio) {
-			// `launch.command`/`launch.args` are typed as non-nullable but can be `undefined` at
-			// runtime when they originate from user/discovery configuration that omitted the field.
-			// When `command` is present, build the full command line (defaulting `args` to an empty
-			// array and dropping any non-string entries); the produced `IMcpServerIdentity.command`
-			// then never contains a non-string entry, which would otherwise break policy matching and
-			// the unresolved-variable check. Use a string check so a valid-but-empty command string is
-			// preserved while malformed non-string command values are dropped. When `command` is absent
-			// the full command line is unknown, so omit the field entirely rather than matching on args
-			// alone (which could collide with unrelated servers).
 			return typeof launch.command === 'string'
 				? { name: this.definition.label, command: [launch.command, ...(launch.args ?? []).filter(arg => typeof arg === 'string')] }
 				: { name: this.definition.label };
@@ -745,12 +647,6 @@ export class McpServer extends Disposable implements IMcpServer {
 		return allowed === true ? undefined : { state: McpConnectionState.Kind.Error, message: allowed.value };
 	}
 
-	/**
-	 * Whether the URL/command fields matched by the policy still contain unresolved `${...}`
-	 * configuration variables. When they do, matching against allow/deny URL or command rules is
-	 * unreliable, so the block is deferred until the launch is resolved. The server name is used
-	 * verbatim and is not considered here.
-	 */
 	private static _hasUnresolvedVariables(identity: IMcpServerIdentity): boolean {
 		const variableMarker = ConfigurationResolverExpression.VARIABLE_LHS;
 		return !!identity.url?.includes(variableMarker) || !!identity.command?.some(arg => arg.includes(variableMarker));
@@ -760,8 +656,6 @@ export class McpServer extends Disposable implements IMcpServer {
 		interaction?.participants.set(this.definition.id, { s: 'unknown' });
 
 		return this._connectionSequencer.queue<McpConnectionState>(async () => {
-			// Evaluated against the definition here (no connection yet). `_policyBlock` re-evaluates
-			// against the resolved launch once the connection exists (checked again below).
 			const preStartBlock = this._policyBlock.get();
 			if (preStartBlock) {
 				return preStartBlock;
@@ -772,8 +666,6 @@ export class McpServer extends Disposable implements IMcpServer {
 				await this._extensionService.activateByEvent(activationEvent);
 				await Promise.all(this._mcpRegistry.delegates.get()
 					.map(r => r.waitForInitialProviderPromises()));
-				// This can happen if the server was created from a cached MCP server seen
-				// from an extension, but then it wasn't registered when the extension activated.
 				if (this._store.isDisposed) {
 					return { state: McpConnectionState.Kind.Stopped };
 				}
@@ -821,13 +713,9 @@ export class McpServer extends Disposable implements IMcpServer {
 				}
 			}
 
-			// Re-evaluate the policy against the *resolved* launch definition. Extension activation and
-			// variable/input substitution during resolution can change the URL or command, so the
-			// identity that actually launches may differ from the one checked before resolution.
-			// `_policyBlock` now sees the live connection and uses its resolved launch.
 			const resolvedBlock = this._policyBlock.get();
 			if (resolvedBlock) {
-				this._connection.set(undefined, undefined); // dispose the just-resolved connection
+				this._connection.set(undefined, undefined);
 				return resolvedBlock;
 			}
 
@@ -860,9 +748,6 @@ export class McpServer extends Disposable implements IMcpServer {
 				time: Date.now() - start,
 			});
 
-			// MCP servers that need auth can 'start' but will stop with an interaction-needed
-			// error they first make a request. In this case, wait until the handler fully
-			// initializes before resolving (throwing if it ends up needing auth)
 			if (errorOnUserInteraction && state.state === McpConnectionState.Kind.Running) {
 				let disposable: IDisposable;
 				state = await new Promise<McpConnectionState>((resolve, reject) => {
@@ -918,16 +803,16 @@ export class McpServer extends Disposable implements IMcpServer {
 			let docsLink: string | undefined;
 			switch (cnx.launchDefinition.command) {
 				case 'uvx':
-					docsLink = `https://aka.ms/vscode-mcp-install/uvx`;
+					docsLink = `https://www.dardcor-code.web.id/docs/agent-customization/mcp-servers/install/uvx`;
 					break;
 				case 'npx':
-					docsLink = `https://aka.ms/vscode-mcp-install/npx`;
+					docsLink = `https://www.dardcor-code.web.id/docs/agent-customization/mcp-servers/install/npx`;
 					break;
 				case 'dnx':
-					docsLink = `https://aka.ms/vscode-mcp-install/dnx`;
+					docsLink = `https://www.dardcor-code.web.id/docs/agent-customization/mcp-servers/install/dnx`;
 					break;
 				case 'dotnet':
-					docsLink = `https://aka.ms/vscode-mcp-install/dotnet`;
+					docsLink = `https://www.dardcor-code.web.id/docs/agent-customization/mcp-servers/install/dotnet`;
 					break;
 			}
 
@@ -939,7 +824,7 @@ export class McpServer extends Disposable implements IMcpServer {
 			if (cnx.definition.devMode?.debug?.type === 'debugpy' && debug) {
 				this._notificationService.prompt(Severity.Error, localize('mcpDebugPyHelp', 'The command "{0}" was not found. You can specify the path to debugpy in the `dev.debug.debugpyPath` option.', cnx.launchDefinition.command, cnx.definition.label), [...options, {
 					label: localize('mcpViewDocs', 'View Docs'),
-					run: () => this._openerService.open(URI.parse('https://aka.ms/vscode-mcp-install/debugpy')),
+					run: () => this._openerService.open(URI.parse('https://www.dardcor-code.web.id/docs/agent-customization/mcp-servers/install/debugpy')),
 				}]);
 				return;
 			}
@@ -968,7 +853,6 @@ export class McpServer extends Disposable implements IMcpServer {
 		const existingSandboxConfig = this._fullDefinitions.get().collection?.sandbox;
 		const suggestion = this._mcpSandboxService.getSandboxConfigSuggestionMessage(cnx.definition.label, potentialBlocks, existingSandboxConfig);
 		if (!suggestion) {
-			// clear potential blocks as there are no suggestions for them.
 			this._removePotentialSandboxBlocks(potentialBlocks);
 			return false;
 		}
@@ -1037,7 +921,6 @@ export class McpServer extends Disposable implements IMcpServer {
 		return this._connection.get()?.stop() || Promise.resolve();
 	}
 
-	/** Waits for any ongoing tools to be refreshed before resolving. */
 	public awaitToolRefresh() {
 		return new Promise<void>(resolve => {
 			autorunSelfDisposable(reader => {
@@ -1058,10 +941,8 @@ export class McpServer extends Disposable implements IMcpServer {
 	}
 
 	private async _normalizeTool(originalTool: MCP.Tool): Promise<ValidatedMcpTool | { error: string[] }> {
-		// Parse MCP Apps UI metadata from _meta.ui
 		const uiMeta = originalTool._meta?.ui as McpApps.McpUiToolMeta | undefined;
 
-		// Compute visibility from _meta.ui.visibility, defaulting to Model | App
 		let visibility: McpToolVisibility = McpToolVisibility.Model | McpToolVisibility.App;
 		if (uiMeta?.visibility && Array.isArray(uiMeta.visibility)) {
 			visibility &= 0;
@@ -1082,7 +963,6 @@ export class McpServer extends Disposable implements IMcpServer {
 			uiResourceUri: uiMeta?.resourceUri,
 		};
 		if (!tool.description) {
-			// Ensure a description is provided for each tool, #243919
 			this._logger.warn(`Tool ${tool.name} does not have a description. Tools must be accurately described to be called`);
 			tool.description = '<empty>';
 		}
@@ -1092,9 +972,6 @@ export class McpServer extends Disposable implements IMcpServer {
 			tool.name = tool.name.replace(toolInvalidCharRe, '_');
 		}
 
-		// Per MCP spec, properties is optional. But JSON Schema Draft 7 requires
-		// it for object types. Normalize the schema to include an empty properties
-		// object if not present. https://github.com/microsoft/vscode/issues/251723
 		if (tool.inputSchema && !tool.inputSchema.properties) {
 			tool.inputSchema = { ...tool.inputSchema, properties: {} };
 		}
@@ -1107,14 +984,12 @@ export class McpServer extends Disposable implements IMcpServer {
 			const schemaUri = URI.parse('https://json-schema.org/draft-07/schema');
 			diagnostics = await this._commandService.executeCommand<JsonDiagnostic[]>('json.validate', schemaUri, toolJson) || [];
 		} catch (e) {
-			// ignored (error in json extension?);
 		}
 
 		if (!diagnostics.length) {
 			return tool;
 		}
 
-		// because it's all one line from JSON.stringify, we can treat characters as offsets.
 		const tree = json.parseTree(toolJson);
 		const messages = diagnostics.map(d => {
 			const node = json.findNodeAtOffset(tree, d.range[0].character);
@@ -1150,12 +1025,6 @@ export class McpServer extends Disposable implements IMcpServer {
 		return validated;
 	}
 
-	/**
-	 * Parses incoming MCP icons and returns the resulting 'stored' record. Note
-	 * that this requires an active MCP server connection since we validate
-	 * against some of that connection's data. The icons may however be stored
-	 * and rehydrated later.
-	 */
 	private _parseIcons(icons: MCP.Icons) {
 		const cnx = this._connection.get();
 		if (!cnx) {
@@ -1358,7 +1227,6 @@ export class McpTool implements IMcpTool {
 	}
 
 	_callWithProgress(params: Record<string, unknown>, progress: ToolProgress | undefined, context?: IMcpToolCallContext, token = CancellationToken.None, allowRetry = true): Promise<MCP.CallToolResult> {
-		// serverToolName is always set now, but older cache entries (from 1.99-Insiders) may not have it.
 		const name = this._definition.serverToolName ?? this._definition.name;
 		const progressToken = progress ? generateUuid() : undefined;
 		const store = new DisposableStore();
@@ -1382,8 +1250,6 @@ export class McpTool implements IMcpTool {
 			if (context?.chatRequestId) {
 				meta['vscode.requestId'] = context.chatRequestId;
 			}
-			// Propagate W3C trace context to the MCP server (MCP SEP-414) so server-side
-			// spans can be correlated with the client trace.
 			if (context?.traceparent) {
 				meta['traceparent'] = context.traceparent;
 				if (context.tracestate) {
@@ -1403,12 +1269,10 @@ export class McpTool implements IMcpTool {
 					_meta: meta,
 				}, token, progress ? (message) => progress.report({ message }) : undefined);
 
-				// Wait for tools to refresh for dynamic servers (#261611)
 				await this._server.awaitToolRefresh();
 
 				return result;
 			} catch (err) {
-				// Handle URL elicitation required error
 				if (err instanceof MpcResponseError && err.code === MCP.URL_ELICITATION_REQUIRED && allowRetry) {
 					await this._handleElicitationErr(err, context, token);
 					return this._callWithProgress(params, progress, context, token, false);

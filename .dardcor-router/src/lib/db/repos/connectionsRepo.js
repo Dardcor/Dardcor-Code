@@ -79,13 +79,6 @@ function upsert(db, c) {
 }
 
 function deriveConnectionName(data, fallbackName) {
-  if (data.provider === "github") {
-    return data.providerSpecificData?.githubLogin
-      || data.providerSpecificData?.githubEmail
-      || data.email
-      || data.providerSpecificData?.githubName
-      || fallbackName;
-  }
   return fallbackName;
 }
 
@@ -109,7 +102,6 @@ export async function getProviderConnectionById(id) {
   return rowToConn(row);
 }
 
-// Internal sync reorder — must be called INSIDE a transaction
 function reorderInTx(db, providerId) {
   const list = db.all(`SELECT * FROM providerConnections WHERE provider = ?`, [providerId]).map(rowToConn);
   list.sort((a, b) => {
@@ -137,26 +129,15 @@ export async function createProviderConnection(data) {
       existing = all.find(c => {
         if (c.authType !== "oauth" || c.email !== data.email) return false;
 
-        // Codex/OpenAI can issue multiple OAuth grants for the same email.
-        // Refresh tokens are rotated single-use; collapsing a new login onto an
-        // existing bare-email row overwrites the first account's token pair and
-        // makes it look "invalid" after adding a second account. Only update an
-        // existing Codex row when both rows expose the same ChatGPT account ID.
         if (data.provider === "codex") {
           const existingWs = c.providerSpecificData?.chatgptAccountId;
           return !!incomingWs && !!existingWs && incomingWs === existingWs;
         }
 
-        // Workspace providers use workspace ID when both sides have it
         const existingWs = c.providerSpecificData?.chatgptAccountId;
         if (incomingWs && existingWs) return incomingWs === existingWs;
         if (incomingWs && !existingWs) return false;
         if (!incomingWs && existingWs) return false;
-        // Non-workspace providers: match on (email + username) so cross-IdP
-        // accounts don't overwrite each other. Require username on both sides
-        // — if only one side has it, treat as a distinct identity rather than
-        // collapsing onto the bare-email fallback (which would re-introduce
-        // the cross-IdP overwrite).
         const existingUsername = c.providerSpecificData?.username;
         if (incomingUsername && existingUsername) {
           return incomingUsername === existingUsername;
@@ -217,7 +198,6 @@ export async function createProviderConnection(data) {
   return result;
 }
 
-// Critical: OAuth refresh token race — atomic merge inside transaction
 export async function updateProviderConnection(id, data) {
   const db = await getAdapter();
   let result;

@@ -13,45 +13,22 @@ import type { AhpServerNotification, JsonRpcNotification, JsonRpcRequest, JsonRp
 import type { IProtocolTransport } from './state/sessionTransport.js';
 import { MALFORMED_FRAMES_FORCE_CLOSE_THRESHOLD, MALFORMED_FRAMES_LOG_CAP } from './transportConstants.js';
 
-/**
- * A message relayed from a remote agent host through a tunnel managed
- * by the shared process. The shared process acts as a WebSocket proxy,
- * forwarding JSON messages bidirectionally via IPC.
- */
 export interface IRelayMessage {
 	readonly connectionId: string;
 	readonly data: string;
 }
 
-/**
- * Minimal IPC surface needed by {@link RelayTransport} to pump frames
- * between the renderer and a shared-process-owned tunnel. Structural —
- * any main-service interface exposing these members satisfies it.
- */
 export interface IRelayChannel {
 	readonly onDidRelayMessage: Event<IRelayMessage>;
-	readonly onDidRelayClose: Event<string /* connectionId */>;
+	readonly onDidRelayClose: Event<string >;
 	relaySend(connectionId: string, message: string): Promise<void>;
 }
 
-/**
- * Handle for a relay channel established by a {@link ReconnectingRelayTransport}.
- */
 export interface IRelayConnectionHandle {
-	/** Identifier of the freshly established relay channel. */
 	readonly connectionId: string;
-	/** Tear down this relay channel. Invoked when the transport is disposed. */
 	close?(): Promise<void>;
 }
 
-/**
- * A protocol transport that relays messages through a shared-process
- * tunnel via IPC, instead of using a direct WebSocket connection.
- *
- * The shared process manages the actual underlying transport (WebSocket
- * over SSH, WSL stdio, etc.) and forwards messages bidirectionally
- * through this IPC channel.
- */
 export class RelayTransport extends Disposable implements IProtocolTransport {
 
 	private readonly _onMessage = this._register(new Emitter<ProtocolMessage>());
@@ -112,8 +89,6 @@ export class RelayTransport extends Disposable implements IProtocolTransport {
 	send(message: ProtocolMessage | AhpServerNotification | JsonRpcNotification | JsonRpcResponse | JsonRpcRequest): void {
 		const connectionId = this._connectionId;
 		if (connectionId === undefined) {
-			// No channel adopted yet (or already released). Dropping silently
-			// would strand the sender, so make it visible in the log.
 			this._logService.warn(`${this._logPrefix} send before the relay channel was established; dropping message`);
 			return;
 		}
@@ -133,9 +108,6 @@ export class RelayTransport extends Disposable implements IProtocolTransport {
 	}
 }
 
-/**
- * A relay transport that establishes and owns its shared-process relay channel on connect.
- */
 export class ReconnectingRelayTransport extends ReconnectingTransport {
 
 	constructor(
@@ -149,9 +121,6 @@ export class ReconnectingRelayTransport extends ReconnectingTransport {
 		super(
 			async (): Promise<IEstablishedTransport> => {
 				const connectionHandle = await establish();
-				// Create the logger here rather than up front: the inner transport
-				// is what owns and disposes it, so a logger built before `establish`
-				// resolves would be leaked on every failed attempt.
 				return {
 					transport: new RelayTransport(connectionHandle.connectionId, channel, createAhpLogger(), logService, logPrefix, clientConnectionKind),
 					close: connectionHandle.close,

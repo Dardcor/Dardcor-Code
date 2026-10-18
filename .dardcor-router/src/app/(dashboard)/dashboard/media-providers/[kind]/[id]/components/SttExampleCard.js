@@ -109,7 +109,7 @@ export function SttExampleCard({ providerId }) {
     <Card>
       <h2 className="text-lg font-semibold mb-4">Example</h2>
       <div className="flex flex-col gap-2.5">
-        {/* Model */}
+        {}
         {sttModels.length > 0 ? (
           <Row label="Model">
             <select
@@ -133,7 +133,7 @@ export function SttExampleCard({ providerId }) {
           </Row>
         )}
 
-        {/* Endpoint */}
+        {}
         <Row label="Endpoint">
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <span className="w-full min-w-0 flex-1 px-3 py-1.5 text-sm font-mono text-text-main bg-sidebar rounded-lg truncate">
@@ -154,14 +154,14 @@ export function SttExampleCard({ providerId }) {
           </div>
         </Row>
 
-        {/* API Key */}
+        {}
         <Row label="API Key">
           <span className="px-3 py-1.5 text-sm font-mono text-text-main bg-sidebar rounded-lg truncate block">
             {apiKey ? `${apiKey.slice(0, 8)}${"\u2022".repeat(Math.min(20, Math.max(0, apiKey.length - 8)))}` : <span className="text-text-muted italic">No key configured</span>}
           </span>
         </Row>
 
-        {/* Audio file */}
+        {}
         <Row label="Audio File">
           <div className="flex flex-col gap-2">
             <input
@@ -178,7 +178,7 @@ export function SttExampleCard({ providerId }) {
           </div>
         </Row>
 
-        {/* Language (if model supports) */}
+        {}
         {allowedParams.includes("language") && (
           <Row label="Language">
             <input
@@ -190,7 +190,7 @@ export function SttExampleCard({ providerId }) {
           </Row>
         )}
 
-        {/* Prompt (if model supports) */}
+        {}
         {allowedParams.includes("prompt") && (
           <Row label="Prompt">
             <input
@@ -202,7 +202,7 @@ export function SttExampleCard({ providerId }) {
           </Row>
         )}
 
-        {/* Temperature (if model supports) */}
+        {}
         {allowedParams.includes("temperature") && (
           <Row label="Temperature">
             <input
@@ -218,7 +218,7 @@ export function SttExampleCard({ providerId }) {
           </Row>
         )}
 
-        {/* Response format (if model supports) */}
+        {}
         {allowedParams.includes("response_format") && (
           <Row label="Response Format">
             <select
@@ -235,7 +235,7 @@ export function SttExampleCard({ providerId }) {
           </Row>
         )}
 
-        {/* Curl + Run */}
+        {}
         <div className="mt-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1.5">
             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Request</span>
@@ -264,7 +264,7 @@ export function SttExampleCard({ providerId }) {
 
         {error && <p className="text-xs text-red-500 break-words">{error}</p>}
 
-        {/* Response */}
+        {}
         <div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1.5">
             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">

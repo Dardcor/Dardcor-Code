@@ -59,6 +59,5 @@ export class StaticLanguageServiceHost implements ts.LanguageServiceHost {
 	fileExists = ts.sys.fileExists;
 	readFile = ts.sys.readFile;
 	readDirectory = ts.sys.readDirectory;
-	// this is necessary to make source references work.
 	realpath = ts.sys.realpath;
 }

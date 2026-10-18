@@ -3,17 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Virtual Key Codes, the value does not hold any inherent meaning.
- * Inspired somewhat from https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
- * But these are "more general", as they should work across browsers & OS`s.
- */
 export const enum KeyCode {
 	DependsOnKbLayout = -1,
 
-	/**
-	 * Placed first to cover the 0 value of the enum.
-	 */
 	Unknown = 0,
 
 	Backspace,
@@ -106,95 +98,42 @@ export const enum KeyCode {
 	NumLock,
 	ScrollLock,
 
-	/**
-	 * Used for miscellaneous characters; it can vary by keyboard.
-	 * For the US standard keyboard, the ';:' key
-	 */
 	Semicolon,
-	/**
-	 * For any country/region, the '+' key
-	 * For the US standard keyboard, the '=+' key
-	 */
 	Equal,
-	/**
-	 * For any country/region, the ',' key
-	 * For the US standard keyboard, the ',<' key
-	 */
 	Comma,
-	/**
-	 * For any country/region, the '-' key
-	 * For the US standard keyboard, the '-_' key
-	 */
 	Minus,
-	/**
-	 * For any country/region, the '.' key
-	 * For the US standard keyboard, the '.>' key
-	 */
 	Period,
-	/**
-	 * Used for miscellaneous characters; it can vary by keyboard.
-	 * For the US standard keyboard, the '/?' key
-	 */
 	Slash,
-	/**
-	 * Used for miscellaneous characters; it can vary by keyboard.
-	 * For the US standard keyboard, the '`~' key
-	 */
 	Backquote,
-	/**
-	 * Used for miscellaneous characters; it can vary by keyboard.
-	 * For the US standard keyboard, the '[{' key
-	 */
 	BracketLeft,
-	/**
-	 * Used for miscellaneous characters; it can vary by keyboard.
-	 * For the US standard keyboard, the '\|' key
-	 */
 	Backslash,
-	/**
-	 * Used for miscellaneous characters; it can vary by keyboard.
-	 * For the US standard keyboard, the ']}' key
-	 */
 	BracketRight,
-	/**
-	 * Used for miscellaneous characters; it can vary by keyboard.
-	 * For the US standard keyboard, the ''"' key
-	 */
 	Quote,
-	/**
-	 * Used for miscellaneous characters; it can vary by keyboard.
-	 */
 	OEM_8,
-	/**
-	 * Either the angle bracket key or the backslash key on the RT 102-key keyboard.
-	 */
 	IntlBackslash,
 
-	Numpad0, // VK_NUMPAD0, 0x60, Numeric keypad 0 key
-	Numpad1, // VK_NUMPAD1, 0x61, Numeric keypad 1 key
-	Numpad2, // VK_NUMPAD2, 0x62, Numeric keypad 2 key
-	Numpad3, // VK_NUMPAD3, 0x63, Numeric keypad 3 key
-	Numpad4, // VK_NUMPAD4, 0x64, Numeric keypad 4 key
-	Numpad5, // VK_NUMPAD5, 0x65, Numeric keypad 5 key
-	Numpad6, // VK_NUMPAD6, 0x66, Numeric keypad 6 key
-	Numpad7, // VK_NUMPAD7, 0x67, Numeric keypad 7 key
-	Numpad8, // VK_NUMPAD8, 0x68, Numeric keypad 8 key
-	Numpad9, // VK_NUMPAD9, 0x69, Numeric keypad 9 key
+	Numpad0,
+	Numpad1,
+	Numpad2,
+	Numpad3,
+	Numpad4,
+	Numpad5,
+	Numpad6,
+	Numpad7,
+	Numpad8,
+	Numpad9,
 
-	NumpadMultiply,	// VK_MULTIPLY, 0x6A, Multiply key
-	NumpadAdd,		// VK_ADD, 0x6B, Add key
-	NUMPAD_SEPARATOR,	// VK_SEPARATOR, 0x6C, Separator key
-	NumpadSubtract,	// VK_SUBTRACT, 0x6D, Subtract key
-	NumpadDecimal,	// VK_DECIMAL, 0x6E, Decimal key
-	NumpadDivide,	// VK_DIVIDE, 0x6F,
+	NumpadMultiply,
+	NumpadAdd,
+	NUMPAD_SEPARATOR,
+	NumpadSubtract,
+	NumpadDecimal,
+	NumpadDivide,
 
-	/**
-	 * Cover all key codes when IME is processing input.
-	 */
 	KEY_IN_COMPOSITION,
 
-	ABNT_C1, // Brazilian (ABNT) Keyboard
-	ABNT_C2, // Brazilian (ABNT) Keyboard
+	ABNT_C1,
+	ABNT_C2,
 
 	AudioVolumeMute,
 	AudioVolumeUp,
@@ -213,21 +152,11 @@ export const enum KeyCode {
 	LaunchMail,
 	LaunchApp2,
 
-	/**
-	 * VK_CLEAR, 0x0C, CLEAR key
-	 */
 	Clear,
 
-	/**
-	 * Placed last to cover the length of the enum.
-	 * Please do not depend on this value!
-	 */
 	MAX_VALUE
 }
 
-/**
- * keyboardEvent.code
- */
 export const enum ScanCode {
 	DependsOnKbLayout = -1,
 	None,
@@ -467,14 +396,8 @@ export const ScanCodeUtils = {
 	toString: (scanCode: ScanCode) => scanCodeIntToStr[scanCode] || 'None'
 };
 
-/**
- * -1 if a ScanCode => KeyCode mapping depends on kb layout.
- */
 export const IMMUTABLE_CODE_TO_KEY_CODE: KeyCode[] = [];
 
-/**
- * -1 if a KeyCode => ScanCode mapping depends on kb layout.
- */
 export const IMMUTABLE_KEY_CODE_TO_CODE: ScanCode[] = [];
 
 for (let i = 0; i <= ScanCode.MAX_VALUE; i++) {
@@ -487,13 +410,10 @@ for (let i = 0; i <= KeyCode.MAX_VALUE; i++) {
 
 (function () {
 
-	// See https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
-	// See https://github.com/microsoft/node-native-keymap/blob/88c0b0e5/deps/chromium/keyboard_codes_win.h
 
 	const empty = '';
 	type IMappingEntry = [0 | 1, ScanCode, string, KeyCode, string, number, string, string, string];
 	const mappings: IMappingEntry[] = [
-		// immutable, scanCode, scanCodeStr, keyCode, keyCodeStr, eventKeyCode, vkey, usUserSettingsLabel, generalUserSettingsLabel
 		[1, ScanCode.None, 'None', KeyCode.Unknown, 'unknown', 0, 'VK_UNKNOWN', empty, empty],
 		[1, ScanCode.Hyper, 'Hyper', KeyCode.Unknown, empty, 0, empty, empty, empty],
 		[1, ScanCode.Super, 'Super', KeyCode.Unknown, empty, 0, empty, empty, empty],
@@ -550,7 +470,7 @@ for (let i = 0; i <= KeyCode.MAX_VALUE; i++) {
 		[0, ScanCode.BracketLeft, 'BracketLeft', KeyCode.BracketLeft, '[', 219, 'VK_OEM_4', '[', 'OEM_4'],
 		[0, ScanCode.BracketRight, 'BracketRight', KeyCode.BracketRight, ']', 221, 'VK_OEM_6', ']', 'OEM_6'],
 		[0, ScanCode.Backslash, 'Backslash', KeyCode.Backslash, '\\', 220, 'VK_OEM_5', '\\', 'OEM_5'],
-		[0, ScanCode.IntlHash, 'IntlHash', KeyCode.Unknown, empty, 0, empty, empty, empty], // has been dropped from the w3c spec
+		[0, ScanCode.IntlHash, 'IntlHash', KeyCode.Unknown, empty, 0, empty, empty, empty],
 		[0, ScanCode.Semicolon, 'Semicolon', KeyCode.Semicolon, ';', 186, 'VK_OEM_1', ';', 'OEM_1'],
 		[0, ScanCode.Quote, 'Quote', KeyCode.Quote, '\'', 222, 'VK_OEM_7', '\'', 'OEM_7'],
 		[0, ScanCode.Backquote, 'Backquote', KeyCode.Backquote, '`', 192, 'VK_OEM_3', '`', 'OEM_3'],
@@ -692,8 +612,6 @@ for (let i = 0; i <= KeyCode.MAX_VALUE; i++) {
 		[1, ScanCode.MailForward, 'MailForward', KeyCode.Unknown, empty, 0, empty, empty, empty],
 		[1, ScanCode.MailSend, 'MailSend', KeyCode.Unknown, empty, 0, empty, empty, empty],
 
-		// See https://lists.w3.org/Archives/Public/www-dom/2010JulSep/att-0182/keyCode-spec.html
-		// If an Input Method Editor is processing key input and the event is keydown, return 229.
 		[1, ScanCode.None, empty, KeyCode.KEY_IN_COMPOSITION, 'KeyInComposition', 229, empty, empty, empty],
 		[1, ScanCode.None, empty, KeyCode.ABNT_C2, 'ABNT_C2', 194, 'VK_ABNT_C2', empty, empty],
 		[1, ScanCode.None, empty, KeyCode.OEM_8, 'OEM_8', 223, 'VK_OEM_8', empty, empty],
@@ -763,7 +681,6 @@ for (let i = 0; i <= KeyCode.MAX_VALUE; i++) {
 			NATIVE_WINDOWS_KEY_CODE_TO_KEY_CODE[vkey] = keyCode;
 		}
 	}
-	// Manually added due to the exclusion above (due to duplication with NumpadEnter)
 	IMMUTABLE_KEY_CODE_TO_CODE[KeyCode.Enter] = ScanCode.Enter;
 
 })();
@@ -788,14 +705,6 @@ export namespace KeyCodeUtils {
 
 	export function toElectronAccelerator(keyCode: KeyCode): string | null {
 		if (keyCode >= KeyCode.Numpad0 && keyCode <= KeyCode.NumpadDivide) {
-			// [Electron Accelerators] Electron is able to parse numpad keys, but unfortunately it
-			// renders them just as regular keys in menus. For example, num0 is rendered as "0",
-			// numdiv is rendered as "/", numsub is rendered as "-".
-			//
-			// This can lead to incredible confusion, as it makes numpad based keybindings indistinguishable
-			// from keybindings based on regular keys.
-			//
-			// We therefore need to fall back to custom rendering for numpad keys.
 			return null;
 		}
 

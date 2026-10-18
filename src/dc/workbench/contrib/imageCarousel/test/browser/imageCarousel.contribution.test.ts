@@ -19,7 +19,6 @@ import { TestConfigurationService } from '../../../../../platform/configuration/
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 
-// Importing the contribution registers the actions
 import '../../browser/imageCarousel.contribution.js';
 
 function createExplorerItem(
@@ -139,11 +138,9 @@ suite('OpenImagesInCarouselFromExplorerAction', () => {
 
 		const images = input.collection.sections[0].images;
 		assert.strictEqual(images.length, 2, 'Should include 2 image siblings (png + jpg), not txt');
-		// Images are sorted by basename: other.jpg before photo.png
 		assert.strictEqual(images[0].name, 'other.jpg');
 		assert.strictEqual(images[1].name, 'photo.png');
 
-		// Start index should be the selected image (photo.png = index 1 after sorting)
 		assert.strictEqual(input.startIndex, 1);
 	});
 
@@ -242,7 +239,6 @@ suite('OpenImagesInCarouselFromExplorerAction', () => {
 		const command = CommandsRegistry.getCommand('workbench.action.openImagesInCarousel');
 		assert.ok(command);
 
-		// Pass the folder URI as the resource argument (as explorer does for empty-space click)
 		await instantiationService.invokeFunction(command.handler, folderUri);
 
 		assert.strictEqual(openedInputs.length, 1, 'Should open carousel using resource argument fallback');
@@ -253,8 +249,6 @@ suite('OpenImagesInCarouselFromExplorerAction', () => {
 	test('empty selection without resource falls back to first workspace folder', async () => {
 		const pngData = VSBuffer.fromString('fake-png');
 
-		// Derive the workspace root from IWorkspaceContextService so the test
-		// works on all platforms (the path differs on Windows vs Unix).
 		const contextService = instantiationService.get(IWorkspaceContextService);
 		const wsRoot = contextService.getWorkspace().folders[0].uri;
 		const logoUri = URI.joinPath(wsRoot, 'logo.png');
@@ -279,7 +273,6 @@ suite('OpenImagesInCarouselFromExplorerAction', () => {
 		const command = CommandsRegistry.getCommand('workbench.action.openImagesInCarousel');
 		assert.ok(command);
 
-		// No resource argument — should fall back to workspace root
 		await instantiationService.invokeFunction(command.handler);
 
 		assert.strictEqual(openedInputs.length, 1, 'Should open carousel using workspace root fallback');
@@ -343,7 +336,6 @@ suite('OpenImagesInCarouselFromExplorerAction', () => {
 		const fileService = instantiationService.get(IFileService);
 		const folderItem = createExplorerItem('/workspace/restricted', true, fileService, configService);
 
-		// resolve throws to simulate a permission error
 		const resolveMap = new Map<string, IFileStat>();
 		stubFileService(resolveMap, new Map());
 		stubExplorerService([folderItem]);
@@ -372,7 +364,6 @@ suite('OpenImagesInCarouselFromExplorerAction', () => {
 		]
 		));
 
-		// No file contents — with lazy loading, no readFile should be called at action time
 		let readFileCallCount = 0;
 		stubFileService(resolveMap, new Map());
 		instantiationService.stub(IFileService, 'readFile', async () => {

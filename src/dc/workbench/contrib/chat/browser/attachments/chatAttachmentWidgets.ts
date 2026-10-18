@@ -137,9 +137,8 @@ abstract class AbstractChatAttachmentWidget extends Disposable {
 		this.element.tabIndex = 0;
 		this.element.role = 'button';
 
-		// Add middle-click support for removal
 		this._register(dom.addDisposableListener(this.element, dom.EventType.AUXCLICK, (e: MouseEvent) => {
-			if (e.button === 1 /* Middle Button */ && this.options.supportsDeletion && !this.attachment.range) {
+			if (e.button === 1 && this.options.supportsDeletion && !this.attachment.range) {
 				e.preventDefault();
 				e.stopPropagation();
 				this._onDidDelete.fire(e);
@@ -162,11 +161,7 @@ abstract class AbstractChatAttachmentWidget extends Disposable {
 
 	protected attachClearButton() {
 
-		// Pasted text artifacts keep their clear button: the pill is the primary
-		// handle on content that only exists in the attachment.
 		if ((this.attachment.range && !isPastedTextArtifact(this.attachment)) || !this.options.supportsDeletion) {
-			// no clear button for attachments with ranges because range means
-			// referenced from prompt
 			return;
 		}
 
@@ -208,7 +203,6 @@ abstract class AbstractChatAttachmentWidget extends Disposable {
 	protected async openResource(resource: URI, options: Partial<IOpenEditorOptions>, isDirectory: false, range: IRange | undefined): Promise<void>;
 	protected async openResource(resource: URI, openOptions: Partial<IOpenEditorOptions>, isDirectory?: boolean, range?: IRange): Promise<void> {
 		if (isDirectory) {
-			// Reveal Directory in explorer
 			this.commandService.executeCommand(revealInSideBarCommand.id, resource);
 			return;
 		}
@@ -218,7 +212,6 @@ abstract class AbstractChatAttachmentWidget extends Disposable {
 			return;
 		}
 
-		// Open file in editor
 		const openTextEditorOptions: ITextEditorOptions | undefined = range ? { selection: range } : undefined;
 		const options: OpenInternalOptions = {
 			fromUserGesture: true,
@@ -299,7 +292,6 @@ export class FileAttachmentWidget extends AbstractChatAttachmentWidget {
 				icon: !this.themeService.getFileIconTheme().hasFolderIcons ? FolderThemeIcon : undefined
 			});
 
-			// If this is a folder whose contents would exceed the model's per-request image limit, surface a warning.
 			if (attachment.kind === 'directory' && typeof attachment.imageCount === 'number') {
 				const maxImagesPerRequest = getImageAttachmentLimit(currentLanguageModel?.metadata);
 				if (maxImagesPerRequest !== undefined && attachment.imageCount > maxImagesPerRequest) {
@@ -557,18 +549,15 @@ export class ImageAttachmentWidget extends AbstractChatAttachmentWidget {
 		const imageElements = this._register(new MutableDisposable<IDisposable>());
 		const renderImageElements = (buffer: Uint8Array) => {
 			imageElements.value = createImageElements(resource, attachment.name, fullName, this.element, buffer, attachment.id, this.hoverService, ariaLabel, currentLanguageModelName, clickHandler, this.currentLanguageModel, omittedState, options.isCurrentInput === true, options.showImageInHover ?? true);
-			// createImageElements resets the label; restore the deletion hint after each render.
 			this.element.ariaLabel = this.appendDeletionHint(ariaLabel);
 		};
 		renderImageElements(imageData ?? new Uint8Array());
 
-		// Hydrated attachments need disk bytes so the preview does not fall back to a generic file icon.
 		if (!imageData && resource && omittedState !== OmittedState.Full && omittedState !== OmittedState.ImageLimitExceeded) {
 			void this.loadImageBytes(resource, renderImageElements);
 		}
 		this.attachSaveButton(resource, imageData, attachment.name, options.supportsDeletion);
 
-		// Wire up click + keyboard (Enter/Space) open handlers
 		const canOpenCarousel = !!imageData && configurationService.getValue<boolean>(ChatConfiguration.ImageCarouselEnabled);
 		if (canOpenCarousel || resource) {
 			this.element.style.cursor = 'pointer';
@@ -589,7 +578,6 @@ export class ImageAttachmentWidget extends AbstractChatAttachmentWidget {
 		try {
 			content = (await this.fileService.readFile(resource)).value;
 		} catch {
-			// The file may no longer exist; keep the icon fallback that is already rendered.
 			return;
 		}
 		if (this._store.isDisposed) {
@@ -731,7 +719,6 @@ function createImageElements(resource: URI | undefined, name: string, fullName: 
 	element.appendChild(pillIcon);
 	element.appendChild(textLabel);
 
-	// Tracks the currently rendered pill so it can be swapped without querying the DOM.
 	let currentPill: HTMLElement = pillIcon;
 	const replacePill = (pill: HTMLElement) => {
 		currentPill.replaceWith(pill);
@@ -742,7 +729,6 @@ function createImageElements(resource: URI | undefined, name: string, fullName: 
 	hoverElement.setAttribute('aria-label', ariaLabel);
 
 	const onImageFailed = () => {
-		// reset to original icon on error or invalid image
 		const pillIcon = createPillIcon(Codicon.fileMediaCompact);
 		replacePill(pillIcon);
 	};
@@ -785,7 +771,6 @@ function createImageElements(resource: URI | undefined, name: string, fullName: 
 		}
 	}
 
-	// Remove old DOM so the widget can safely re-render after hydrated bytes load.
 	disposable.add(toDisposable(() => {
 		currentPill.remove();
 		textLabel.remove();
@@ -794,14 +779,6 @@ function createImageElements(resource: URI | undefined, name: string, fullName: 
 	return disposable;
 }
 
-/**
- * Opens a pasted-text attachment so its full contents can be reviewed; the
- * attachment pill is otherwise the only handle on that text. The contents are
- * derived from the attachment on demand — so nothing is held for an artifact
- * that is never opened — and backed by a read-only resource keyed on the
- * attachment, which keeps one editor per artifact and prevents edits that would
- * not reach the attachment. The association is dropped once the editor closes.
- */
 export async function openPastedTextArtifact(accessor: ServicesAccessor, attachment: IChatRequestPasteVariableEntry): Promise<void> {
 	const editorService = accessor.get(IEditorService);
 	const owned = accessor.get(IChatResponseResourceFileSystemProvider)
@@ -814,8 +791,6 @@ export async function openPastedTextArtifact(accessor: ServicesAccessor, attachm
 		throw error;
 	}
 
-	// Watched only once the editor is open, so an editor this open replaces cannot
-	// be mistaken for the artifact's own editor closing.
 	const listener = editorService.onDidCloseEditor(() => {
 		if (!editorService.editors.some(editor => isEqual(editor.resource, owned.resource))) {
 			owned.dispose();
@@ -907,12 +882,10 @@ export class DefaultChatAttachmentWidget extends AbstractChatAttachmentWidget {
 		const attachmentLabel = attachment.fullName ?? attachment.name;
 		const description = correspondingContentReference?.options?.status?.description;
 
-		// Provider-supplied icon path (ThemeIcon | Uri | { light, dark }) for context items
 		const iconPath = (isStringVariableEntry(attachment) || attachment.kind === 'generic') ? attachment.iconPath : undefined;
 
 		this._applyLabel(attachment, attachmentLabel, description, iconPath);
 
-		// A light/dark icon must be reapplied when the color theme changes so the correct uri is used
 		if (iconPath && !ThemeIcon.isThemeIcon(iconPath) && !URI.isUri(iconPath)) {
 			this._register(this.themeService.onDidColorThemeChange(() => this._applyLabel(attachment, attachmentLabel, description, iconPath)));
 		}
@@ -935,7 +908,6 @@ export class DefaultChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			this._register(this.instantiationService.invokeFunction(hookUpSymbolAttachmentDragAndContextMenu, this.element, this.contextKeyService, { ...attachment, kind: attachment.symbolKind }, MenuId.ChatInputSymbolAttachmentContext));
 		}
 
-		// Handle click for string context attachments with context commands
 		if (isStringVariableEntry(attachment) && attachment.commandId) {
 			this.element.style.cursor = 'pointer';
 			const contextItemHandle = attachment.handle;
@@ -945,7 +917,6 @@ export class DefaultChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			}));
 		}
 
-		// Handle click for debug events attachments
 		if (attachment.kind === 'debugEvents') {
 			this.element.style.cursor = 'pointer';
 			this._register(dom.addDisposableListener(this.element, dom.EventType.CLICK, () => {
@@ -955,7 +926,6 @@ export class DefaultChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			}));
 		}
 
-		// Setup tooltip hover for string context attachments
 		if ((isStringVariableEntry(attachment) || attachment.kind === 'generic') && attachment.tooltip) {
 			this._setupTooltipHover(attachment.tooltip);
 		}
@@ -967,7 +937,6 @@ export class DefaultChatAttachmentWidget extends AbstractChatAttachmentWidget {
 
 	private _applyLabel(attachment: IChatRequestVariableEntry, attachmentLabel: string, description: string | undefined, iconPath: ChatContextIconPath | undefined): void {
 		if (isStringVariableEntry(attachment) && iconPath && ThemeIcon.isThemeIcon(iconPath) && (ThemeIcon.isFile(iconPath) || ThemeIcon.isFolder(iconPath)) && attachment.resourceUri) {
-			// Derive icon classes from resourceUri for file/folder theme icons
 			const fileKind = ThemeIcon.isFolder(iconPath) ? FileKind.FOLDER : FileKind.FILE;
 			const iconClasses = getIconClasses(this.modelService, this.languageService, attachment.resourceUri, fileKind);
 			this.label.setLabel(attachmentLabel, description, { extraClasses: iconClasses });
@@ -1032,24 +1001,10 @@ export class PromptFileAttachmentWidget extends AbstractChatAttachmentWidget {
 
 		const title = this.labelService.getUriLabel(resource) + (attachment.originLabel ? `\n${attachment.originLabel}` : '');
 
-		//const { topError } = this.promptFile;
 		this.element.classList.remove('warning', 'error');
 
-		// if there are some errors/warning during the process of resolving
-		// attachment references (including all the nested child references),
-		// add the issue details in the hover title for the attachment, one
-		// error/warning at a time because there is a limited space available
-		// if (topError) {
-		// 	const { errorSubject: subject } = topError;
-		// 	const isError = (subject === 'root');
-		// 	this.element.classList.add((isError) ? 'error' : 'warning');
 
-		// 	const severity = (isError)
-		// 		? localize('error', "Error")
-		// 		: localize('warning', "Warning");
 
-		// 	title += `\n[${severity}]: ${topError.localizedMessage}`;
-		// }
 
 		const fileWithoutExtension = getCleanPromptName(resource);
 		this.label.setFile(URI.file(fileWithoutExtension), {
@@ -1161,14 +1116,6 @@ export class ToolSetOrToolItemAttachmentWidget extends AbstractChatAttachmentWid
 	}
 }
 
-/**
- * Renders an agent-host {@link IChatRequestChatReferenceVariableEntry chat-reference}
- * attachment (`#chat:<title>`) as a clickable chip. Clicking (or pressing
- * Enter/Space) opens the referenced chat in the current Workbench by handing an
- * `agent-host-session://` link to the {@link IOpenerService}. When the link
- * cannot be built or the opener declines it (e.g. the chat was deleted or lives
- * in another window) the chip degrades gracefully and still renders its label.
- */
 export class ChatReferenceAttachmentWidget extends AbstractChatAttachmentWidget {
 	constructor(
 		attachment: IChatRequestChatReferenceVariableEntry,
@@ -1216,9 +1163,6 @@ export class ChatReferenceAttachmentWidget extends AbstractChatAttachmentWidget 
 		if (!link) {
 			return;
 		}
-		// The opener returns false when the link cannot be resolved (e.g. the
-		// referenced chat was deleted or belongs to a different window). Degrade
-		// gracefully in that case — the chip stays but no error dialog is shown.
 		await this.openerService.open(link);
 	}
 }
@@ -1308,7 +1252,6 @@ export class NotebookCellOutputChatAttachmentWidget extends AbstractChatAttachme
 				title = `${error.name}: ${error.message}`;
 			}
 		} catch {
-			//
 		}
 		this.label.setLabel(withIcon, undefined, { title });
 		this.element.ariaLabel = this.appendDeletionHint(this.getAriaLabel(attachment));
@@ -1395,7 +1338,6 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 
 		const hoverElement = dom.$('div.chat-attached-context-hover.chat-element-hover');
 
-		// Wrap all sections in a scrollable container for VS Code styled scrollbar
 		const scrollableContent = dom.$('div.chat-element-hover-content');
 		const innerScrollables: DomScrollableElement[] = [];
 
@@ -1403,14 +1345,12 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			this.appendImagePreview(attachment, scrollableContent, () => scrollableElement.scanDomNode());
 		}
 
-		// ELEMENT section: show the selected element tag with all attributes
 		{
 			const section = dom.$('div.chat-element-hover-section');
 			const header = dom.$('div.chat-element-hover-header', {}, localize('chat.elementHover.element', "ELEMENT"));
 			section.appendChild(header);
 			const elementPre = dom.$('pre.chat-element-hover-code');
 			const elementCode = dom.$('code');
-			// Build the element tag from the outerHTML (just the opening tag)
 			const tagDisplay = this.formatElementTag(attachment);
 			elementCode.textContent = tagDisplay;
 			elementPre.appendChild(elementCode);
@@ -1423,7 +1363,6 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			scrollableContent.appendChild(section);
 		}
 
-		// KEY COMPUTED STYLES section
 		const computedStyleEntries = this.getComputedStyleEntriesForHover(attachment.computedStyles);
 		if (computedStyleEntries.length > 0) {
 			const section = dom.$('div.chat-element-hover-section');
@@ -1434,7 +1373,6 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 				const row = dom.$('div.chat-element-hover-row');
 				row.appendChild(dom.$('span.chat-element-hover-label', {}, `${name}:`));
 				const valueContainer = dom.$('span.chat-element-hover-value');
-				// Show color swatch for color properties
 				if ((name === 'color' || name === 'background-color') && value) {
 					const swatch = dom.$('span.chat-element-hover-color-swatch');
 					swatch.style.backgroundColor = value;
@@ -1454,7 +1392,6 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			scrollableContent.appendChild(section);
 		}
 
-		// HTML PATH section: render ancestor chain as indented HTML tree
 		if (attachment.ancestors && attachment.ancestors.length > 1) {
 			const section = dom.$('div.chat-element-hover-section');
 			const header = dom.$('div.chat-element-hover-header', {}, localize('chat.elementHover.htmlPath', "HTML PATH"));
@@ -1479,7 +1416,6 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			scrollableContent.appendChild(section);
 		}
 
-		// ATTRIBUTES section
 		if (attachment.attributes && Object.keys(attachment.attributes).length > 0) {
 			const section = dom.$('div.chat-element-hover-section');
 			const header = dom.$('div.chat-element-hover-header', {}, localize('chat.elementHover.attributes', "ATTRIBUTES"));
@@ -1495,7 +1431,6 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			scrollableContent.appendChild(section);
 		}
 
-		// POSITION & SIZE section
 		if (attachment.dimensions) {
 			const section = dom.$('div.chat-element-hover-section');
 			const header = dom.$('div.chat-element-hover-header', {}, localize('chat.elementHover.positionSize', "POSITION & SIZE"));
@@ -1517,7 +1452,6 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			scrollableContent.appendChild(section);
 		}
 
-		// INNER TEXT section
 		if (attachment.innerText) {
 			const section = dom.$('div.chat-element-hover-section');
 			const header = dom.$('div.chat-element-hover-header', {}, localize('chat.elementHover.innerText', "INNER TEXT"));
@@ -1676,7 +1610,6 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 			}
 		}
 
-		// Fallback for older payloads that might not include the key properties.
 		if (keyEntries.length > 0) {
 			return keyEntries;
 		}
@@ -1709,14 +1642,11 @@ export class ElementChatAttachmentWidget extends AbstractChatAttachmentWidget {
 	}
 
 	private formatElementTag(attachment: IElementVariableEntry): string {
-		// Extract the opening tag from the outerHTML within the value string
-		// Value format: "Attached HTML and CSS Context\n\n<tag ...>...</tag>\n\n..."
 		const content = attachment.value?.toString() ?? '';
 		const htmlMatch = content.match(/\n\n(<[^>]+>)/);
 		if (htmlMatch) {
 			return htmlMatch[1];
 		}
-		// Fallback: try first tag in content
 		const fallback = content.match(/<([^>]+)>/);
 		if (fallback) {
 			return `<${fallback[1]}>`;
@@ -1917,9 +1847,6 @@ export class BrowserViewAttachmentWidget extends AbstractChatAttachmentWidget {
 		this.addResourceOpenHandlers(_attachment.value, undefined);
 	}
 
-	/**
-	 * Look up the current BrowserEditorInput for this attachment's browser ID, bind listeners, and refresh the UI.
-	 */
 	private _resolveInput(): void {
 		const input = this._browserViewService.getKnownBrowserViews().get(this._attachment.browserId);
 		if (this._input === input) {
@@ -1936,7 +1863,6 @@ export class BrowserViewAttachmentWidget extends AbstractChatAttachmentWidget {
 				this._updateLabel();
 			}));
 
-			// Live name updates while the attachment is still in the input area
 			if (this._options.supportsDeletion) {
 				this._inputListeners.add(input.onDidChangeLabel(() => this._updateLabel()));
 			}
@@ -1991,18 +1917,15 @@ export function hookUpResourceAttachmentDragAndContextMenu(accessor: ServicesAcc
 
 	const store = new DisposableStore();
 
-	// Context
 	const scopedContextKeyService = store.add(contextKeyService.createScoped(widget));
 	setResourceContext(accessor, scopedContextKeyService, resource);
 
-	// Drag and drop
 	widget.draggable = true;
 	store.add(dom.addDisposableListener(widget, 'dragstart', e => {
 		instantiationService.invokeFunction(accessor => fillEditorsDragData(accessor, [resource], e));
 		e.dataTransfer?.setDragImage(widget, 0, 0);
 	}));
 
-	// Context menu
 	store.add(addBasicContextMenu(accessor, widget, scopedContextKeyService, MenuId.ChatInputResourceAttachmentContext, resource));
 
 	return store;
@@ -2017,7 +1940,6 @@ export function hookUpSymbolAttachmentDragAndContextMenu(accessor: ServicesAcces
 
 	const store = new DisposableStore();
 
-	// Drag and drop
 	widget.draggable = true;
 	store.add(dom.addDisposableListener(widget, 'dragstart', e => {
 		instantiationService.invokeFunction(accessor => fillEditorsDragData(accessor, [{ resource: attachment.value.uri, selection: attachment.value.range }], e));
@@ -2032,7 +1954,6 @@ export function hookUpSymbolAttachmentDragAndContextMenu(accessor: ServicesAcces
 		e.dataTransfer?.setDragImage(widget, 0, 0);
 	}));
 
-	// Context menu (context key service and resource contexts are initialized lazily on first context menu open)
 	let scopedContextKeyService: IScopedContextKeyService | undefined;
 	let providerContexts: ReadonlyArray<[IContextKey<boolean>, LanguageFeatureRegistry<unknown>]> | undefined;
 

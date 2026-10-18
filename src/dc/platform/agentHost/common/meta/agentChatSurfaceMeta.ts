@@ -3,31 +3,26 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/** The metadata key for VS Code-owned chat-surface information. */
 export const VSCODE_CHAT_SURFACE_META_KEY = 'vscode.chat.surface';
 
 interface IHasChatSurfaceMeta {
 	readonly _meta?: Record<string, unknown>;
 }
 
-/** Typed metadata for a terminal-backed chat session. */
 export interface ITerminalChatSurfaceMeta {
 	readonly surface: 'terminal';
 	readonly shellType?: string;
 	readonly osName: string;
 }
 
-/** Metadata describing an editor inline-chat surface. */
 export interface IEditorInlineChatSurfaceMeta {
 	readonly surface: 'editorInline';
 	readonly languageId?: string;
 	readonly targetUri?: string;
 }
 
-/** VS Code-owned metadata describing the chat surface that created a session. */
 export type IChatSurfaceMeta = ITerminalChatSurfaceMeta | IEditorInlineChatSurfaceMeta;
 
-/** Reads recognized chat-surface metadata, dropping malformed values. */
 export function readChatSurfaceMeta(source: IHasChatSurfaceMeta): IChatSurfaceMeta | undefined {
 	const value = source._meta?.[VSCODE_CHAT_SURFACE_META_KEY];
 	if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -62,7 +57,6 @@ export function readChatSurfaceMeta(source: IHasChatSurfaceMeta): IChatSurfaceMe
 	}
 }
 
-/** Adds VS Code's typed chat-surface metadata to an open request metadata bag. */
 export function withChatSurfaceMeta(meta: Record<string, unknown> | undefined, surface: IChatSurfaceMeta | undefined): Record<string, unknown> | undefined {
 	if (!surface) {
 		return meta;
@@ -90,16 +84,6 @@ function isPowerShell(shellType: string): boolean {
 	return shellType === 'ps1' || shellType === 'pwsh' || shellType === 'powershell';
 }
 
-/**
- * Builds the per-turn host instruction for a terminal chat surface.
- *
- * Lives next to {@link ITerminalChatSurfaceMeta} because it is a pure function
- * of that shape, so the prompt and the metadata it consumes cannot drift.
- *
- * This is additive context layered on top of the harness's own system prompt —
- * it biases toward terse, shell-appropriate command answers but does not by
- * itself prevent an agentic harness from exploring with tools first.
- */
 export function createTerminalChatInstruction(surface: ITerminalChatSurfaceMeta): string {
 	const shellType = surface.shellType;
 	return [
@@ -122,9 +106,6 @@ export function createTerminalChatInstruction(surface: ITerminalChatSurfaceMeta)
 	].join('\n');
 }
 
-/**
- * Builds the per-turn host instruction for an editor inline-chat surface.
- */
 export function createEditorInlineChatInstruction(surface: IEditorInlineChatSurfaceMeta): string {
 	return [
 		'<editor_inline_chat>',

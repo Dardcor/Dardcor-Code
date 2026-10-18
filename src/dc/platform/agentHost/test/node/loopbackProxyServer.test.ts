@@ -15,7 +15,6 @@ import {
 	readProxyRequestBody,
 } from '../../node/shared/loopbackProxyServer.js';
 
-// #region Test subclass
 
 interface ITestState {
 	value: string;
@@ -27,12 +26,6 @@ type RequestHandler = (
 	runtime: ILoopbackProxyRuntime<ITestState>,
 ) => Promise<void>;
 
-/**
- * Minimal concrete proxy used to drive the shared {@link LoopbackProxyServer}
- * lifecycle in isolation. The request handler and internal-error writer are
- * swappable per test; `createState` is counted so we can assert one state per
- * bind.
- */
 class TestProxyServer extends LoopbackProxyServer<ITestState> {
 
 	createStateCalls = 0;
@@ -69,7 +62,6 @@ class TestProxyServer extends LoopbackProxyServer<ITestState> {
 		super.writeInternalError(res);
 	}
 
-	/** Test-only public wrapper around the protected {@link acquire}. */
 	async startHandle(value?: string): Promise<ITestHandle> {
 		const { runtime, release } = await this.acquire();
 		if (value !== undefined) {
@@ -91,12 +83,6 @@ interface ITestHandle {
 	dispose(): void;
 }
 
-/**
- * Concrete proxy whose per-bind state is seeded at `acquire()` time, used to
- * exercise the seed → {@link LoopbackProxyServer.createState} flow. Every seed
- * threaded into `createState` is recorded so tests can assert when — and with
- * which value — the state was built.
- */
 class SeededTestProxyServer extends LoopbackProxyServer<ITestState, string> {
 
 	readonly seeds: string[] = [];
@@ -123,7 +109,6 @@ class SeededTestProxyServer extends LoopbackProxyServer<ITestState, string> {
 		return this.requestHandler(req, res, runtime);
 	}
 
-	/** Test-only public wrapper around the protected {@link acquire}. */
 	async startHandle(seed: string): Promise<ITestHandle> {
 		const { runtime, release } = await this.acquire(seed);
 		return {
@@ -135,9 +120,7 @@ class SeededTestProxyServer extends LoopbackProxyServer<ITestState, string> {
 	}
 }
 
-// #endregion
 
-// #region HTTP helpers
 
 let _httpModule: typeof http | undefined;
 async function getHttp(): Promise<typeof http> {
@@ -187,7 +170,6 @@ function fetchHttp(
 	}));
 }
 
-/** Resolves `true` if the connection was refused (server torn down). */
 async function isConnectionRefused(url: string): Promise<boolean> {
 	try {
 		await fetchHttp(url);
@@ -198,13 +180,11 @@ async function isConnectionRefused(url: string): Promise<boolean> {
 	}
 }
 
-// #endregion
 
 suite('LoopbackProxyServer', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// #region Lifecycle & binding
 
 	suite('Lifecycle & binding', () => {
 
@@ -225,8 +205,6 @@ suite('LoopbackProxyServer', () => {
 			const handle = await service.startHandle();
 			try {
 				assert.match(handle.baseUrl, /^http:\/\/127\.0\.0\.1:\d+$/);
-				// Binding to 127.0.0.1 must NOT also listen on the IPv6
-				// loopback (::1); a connection there should be refused.
 				const port = Number(new URL(handle.baseUrl).port);
 				const refusedOnIpv6 = await new Promise<boolean>(resolve => {
 					const socket = net.connect({ host: '::1', port });
@@ -279,16 +257,12 @@ suite('LoopbackProxyServer', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Refcounting
 
 	suite('Refcounting', () => {
 
 		test('concurrent acquires share a single bind and one state object', async () => {
 			const service = new TestProxyServer();
-			// Issue both before the first bind resolves; they must share
-			// the runtime rather than each binding a server.
 			const [h1, h2] = await Promise.all([
 				service.startHandle('a'),
 				service.startHandle('b'),
@@ -323,7 +297,6 @@ suite('LoopbackProxyServer', () => {
 			const service = new TestProxyServer();
 			const handle = await service.startHandle();
 			const baseUrl = handle.baseUrl;
-			// Reachable while held.
 			assert.strictEqual((await fetchHttp(`${baseUrl}/`)).status, 200);
 			handle.dispose();
 			assert.strictEqual(await isConnectionRefused(`${baseUrl}/`), true);
@@ -348,16 +321,12 @@ suite('LoopbackProxyServer', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Seeding
 
 	suite('Seeding', () => {
 
 		test('acquire seeds createState so the state is born valid with no placeholder window', async () => {
 			const service = new SeededTestProxyServer();
-			// Capture the state the very first dispatched request observes to
-			// prove no empty/placeholder value is ever visible on the wire.
 			let firstRequestValue: string | undefined;
 			service.requestHandler = async (_req, res, runtime) => {
 				firstRequestValue = runtime.state.value;
@@ -379,9 +348,6 @@ suite('LoopbackProxyServer', () => {
 
 		test('concurrent acquires build state once from the seed that wins the bind', async () => {
 			const service = new SeededTestProxyServer();
-			// Both are issued before the first bind resolves; the first caller
-			// wins the bind race so createState runs once with its seed, while
-			// the second just joins the shared runtime.
 			const [h1, h2] = await Promise.all([
 				service.startHandle('token-1'),
 				service.startHandle('token-2'),
@@ -416,9 +382,7 @@ suite('LoopbackProxyServer', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Dispose semantics
 
 	suite('Dispose semantics', () => {
 
@@ -427,9 +391,7 @@ suite('LoopbackProxyServer', () => {
 			const handle = await service.startHandle();
 			const baseUrl = handle.baseUrl;
 			service.dispose();
-			// Handle is still "held" by the caller, but the service is gone.
 			assert.strictEqual(await isConnectionRefused(`${baseUrl}/`), true);
-			// Releasing the now-stale handle must be a safe no-op.
 			handle.dispose();
 		});
 
@@ -452,7 +414,6 @@ suite('LoopbackProxyServer', () => {
 			handle.dispose();
 			service.dispose();
 			service.dispose();
-			// Re-disposing the released handle is also a no-op.
 			handle.dispose();
 		});
 
@@ -463,9 +424,7 @@ suite('LoopbackProxyServer', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Unhandled errors
 
 	suite('Unhandled errors', () => {
 
@@ -524,9 +483,7 @@ suite('LoopbackProxyServer', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region In-flight abort
 
 	suite('In-flight abort', () => {
 
@@ -545,7 +502,6 @@ suite('LoopbackProxyServer', () => {
 					await new Promise<void>(resolve => {
 						entry.ac.signal.addEventListener('abort', () => {
 							aborted = true;
-							// Service-driven abort: socket still open → destroy.
 							if (!entry.clientGone && !res.writableEnded) {
 								res.destroy();
 							}
@@ -570,9 +526,7 @@ suite('LoopbackProxyServer', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region readProxyRequestBody
 
 	suite('readProxyRequestBody', () => {
 
@@ -614,5 +568,4 @@ suite('LoopbackProxyServer', () => {
 		});
 	});
 
-	// #endregion
 });

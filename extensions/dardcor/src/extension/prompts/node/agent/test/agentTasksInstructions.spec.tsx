@@ -55,7 +55,7 @@ class TestIgnoreService extends NullIgnoreService {
 		super();
 	}
 
-	override async isCopilotIgnored(file: URI): Promise<boolean> {
+	override async isIgnored(file: URI): Promise<boolean> {
 		return this.ignoredResources.has(file.toString());
 	}
 }

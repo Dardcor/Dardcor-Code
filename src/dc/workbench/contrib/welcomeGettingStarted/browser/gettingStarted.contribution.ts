@@ -73,7 +73,6 @@ registerAction2(class extends Action2 {
 				selectedStep = undefined;
 			}
 
-			// If the walkthrough is already open just reveal the step
 			if (selectedStep && activeEditor instanceof GettingStartedInput && activeEditor.selectedCategory === selectedCategory) {
 				activeEditor.showWelcome = false;
 				commandService.executeCommand('walkthroughs.selectStep', selectedStep);
@@ -82,10 +81,8 @@ registerAction2(class extends Action2 {
 
 			let options: GettingStartedEditorOptions;
 			if (selectedCategory) {
-				// Otherwise open the walkthrough editor with the selected category and step
 				options = { selectedCategory, selectedStep, showWelcome: false, preserveFocus: toSide ?? false, inactive };
 			} else {
-				// Open Welcome page
 				options = { selectedCategory, selectedStep, showWelcome: true, preserveFocus: toSide ?? false, inactive };
 			}
 			editorService.openEditor({

@@ -12,7 +12,6 @@ import { IManagedSettingsPolicyDefinitions, PolicyName } from '../../../base/com
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 
 export type PolicyValue = string | number | boolean;
-/** The source family that produced an effective policy value. */
 export const enum PolicyValueSource {
 	Device = 'device',
 	NativeMdm = 'nativeMdm',
@@ -24,22 +23,15 @@ export const enum PolicyValueSource {
 }
 export type PolicyDefinition = {
 	type: 'string' | 'number' | 'boolean';
-	/** Must be pure and deterministic because source attribution can evaluate it more than once. */
 	value?: (policyData: IPolicyData) => string | number | boolean | undefined;
 	managedSettings?: IManagedSettingsPolicyDefinitions;
 	restrictedValue?: PolicyValue;
 };
 
-/** Returns a structured-clone-safe copy of `definition`, dropping the non-cloneable `value` callback. */
 export function toSerializablePolicyDefinition(definition: PolicyDefinition): PolicyDefinition {
 	return { type: definition.type, managedSettings: definition.managedSettings, restrictedValue: definition.restrictedValue };
 }
 
-/**
- * Returns the value to apply for `definition` when the account-policy gate is active
- * but not satisfied. Uses `definition.restrictedValue` when specified, otherwise falls
- * back to a type-driven safe default.
- */
 export function getRestrictedPolicyValue(definition: PolicyDefinition): PolicyValue {
 	if (definition.restrictedValue !== undefined) {
 		return definition.restrictedValue;
@@ -59,7 +51,6 @@ export interface IPolicyService {
 	readonly onDidChange: Event<readonly PolicyName[]>;
 	updatePolicyDefinitions(policyDefinitions: IStringDictionary<PolicyDefinition>): Promise<IStringDictionary<PolicyValue>>;
 	getPolicyValue(name: PolicyName): PolicyValue | undefined;
-	/** Returns the source of the effective value, or `undefined` when no value is set. */
 	getPolicyValueSource(name: PolicyName): PolicyValueSource | undefined;
 	serialize(): IStringDictionary<{ definition: PolicyDefinition; value: PolicyValue }> | undefined;
 	readonly policyDefinitions: IStringDictionary<PolicyDefinition>;
@@ -76,7 +67,6 @@ export abstract class AbstractPolicyService extends Disposable implements IPolic
 	readonly onDidChange = this._onDidChange.event;
 
 	async updatePolicyDefinitions(policyDefinitions: IStringDictionary<PolicyDefinition>): Promise<IStringDictionary<PolicyValue>> {
-		// Replace existing definitions; identity comparison avoids redundant watcher churn.
 		let changed = false;
 		for (const name of Object.keys(policyDefinitions)) {
 			if (this.policyDefinitions[name] !== policyDefinitions[name]) {

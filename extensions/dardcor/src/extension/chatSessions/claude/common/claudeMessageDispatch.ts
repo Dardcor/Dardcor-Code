@@ -11,7 +11,7 @@ import type * as vscode from 'vscode';
 import type { ChatFetchError } from '../../../../platform/chat/common/commonTypes';
 import { vBoolean, vLiteral, vObj, vString, type ValidatorType } from '../../../../platform/configuration/common/validator';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { CopilotChatAttr, GenAiAttr, GenAiOperationName, GitHubCopilotAttr, IOTelService, SpanKind, SpanStatusCode, truncateForOTel, type ISpanHandle, type TraceContext } from '../../../../platform/otel/common/index';
+import { DardcorChatAttr, GenAiAttr, GenAiOperationName, DardcorAttr, IOTelService, SpanKind, SpanStatusCode, truncateForOTel, type ISpanHandle, type TraceContext } from '../../../../platform/otel/common/index';
 import { CapturingToken } from '../../../../platform/requestLogger/common/capturingToken';
 import { IRequestLogger } from '../../../../platform/requestLogger/common/requestLogger';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
@@ -26,9 +26,7 @@ import { IClaudePlanFileTracker } from './claudePlanFileTracker';
 import { IClaudeSessionStateService } from './claudeSessionStateService';
 import { completeToolInvocation, createFormattedToolInvocation } from './toolInvocationFormatter';
 
-// #region Types
 
-/** Per-request state passed to each handler */
 export interface MessageHandlerRequestContext {
 	readonly stream: vscode.ChatResponseStream;
 	readonly toolInvocationToken: vscode.ChatParticipantToolToken;
@@ -36,7 +34,6 @@ export interface MessageHandlerRequestContext {
 	readonly editTracker?: ExternalEditTracker;
 }
 
-/** Mutable state shared across handlers within a single _processMessages loop */
 export interface MessageHandlerState {
 	readonly unprocessedToolCalls: Map<string, Anthropic.Beta.Messages.BetaToolUseBlock>;
 	readonly toolStartTimes: Map<string, number>;
@@ -44,29 +41,16 @@ export interface MessageHandlerState {
 	readonly otelHookSpans: Map<string, ISpanHandle>;
 	readonly hookStartTimes: Map<string, number>;
 	readonly parentTraceContext?: TraceContext;
-	/** Trace contexts for subagent tool spans, keyed by tool_use_id. Used to parent
-	 *  child spans (chat, tool) from subagent messages under the Agent tool span. */
 	readonly subagentTraceContexts: Map<string, TraceContext>;
-	/** Injected by the node-layer caller. Produces structured
-	 *  `github.dardcor.tool.parameters.*` attributes (hashed/safe in `attrs`,
-	 *  content-sensitive in `gatedAttrs`). Common code cannot import from node
-	 *  directly, so the function is threaded through state. */
 	readonly extractToolParameters: (toolName: string, input: unknown) => { attrs: Record<string, string>; gatedAttrs: Record<string, string> };
 }
 
 export interface MessageHandlerResult {
-	/** When true, the current request is complete and should be dequeued */
 	readonly requestComplete: boolean;
 }
 
-// #endregion
 
-// #region Message key
 
-/**
- * Computes a stable lookup key for an SDK message.
- * Non-system messages use `type`; system messages use `type:subtype`.
- */
 export function messageKey(message: SDKMessage): string {
 	if (message.type === 'system') {
 		return `system:${message.subtype}`;
@@ -74,78 +58,41 @@ export function messageKey(message: SDKMessage): string {
 	return message.type;
 }
 
-// #endregion
 
-// #region Known message keys
 
-/**
- * Every message key the Claude Agent SDK can produce.
- * When the SDK adds new types, an unknown key will surface as a warning in logs.
- *
- * Keep this in sync with the SDKMessage union in @anthropic-ai/claude-agent-sdk.
- */
 export const ALL_KNOWN_MESSAGE_KEYS = new Set([
 	'assistant',
 	'user',
 	'result',
 	'stream_event',
-	// TODO: Show `tool_progress` — has `tool_name` and `elapsed_time_seconds` for live tool status
-	// low pri, where would we show this?
 	'tool_progress',
-	// TODO: Show `tool_use_summary` — has `summary` text describing tool execution results
-	// low pri, where would we show this?
 	'tool_use_summary',
-	// TODO: Show `auth_status` — has `output` lines and `error` for auth failures
 	'auth_status',
-	// TODO: Show `rate_limit_event` — has `rate_limit_info.status` (allowed_warning | rejected) and reset time
 	'rate_limit_event',
-	// TODO: Show `prompt_suggestion` — has `suggestion` text for follow-up prompts
-	// low pri, follow ups are dead
 	'prompt_suggestion',
 	'system:init',
 	'system:compact_boundary',
 	'system:status',
-	// TODO: Show `system:api_retry` — has `error`, `attempt`, `max_retries` for retry visibility
 	'system:api_retry',
-	// TODO: Show `system:local_command_output` — has `content` text from local slash commands
 	'system:local_command_output',
 	'system:hook_started',
 	'system:hook_progress',
 	'system:hook_response',
-	// TODO: Show `system:task_notification` — has `summary` and `status` for subagent completion
 	'system:task_notification',
-	// TODO: Show `system:task_started` — has `description` and `prompt` for subagent launch
 	'system:task_started',
-	// TODO: Show `system:task_progress` — has `description` and `summary` for subagent progress
 	'system:task_progress',
 	'system:files_persisted',
 	'system:elicitation_complete',
 ]);
 
-// #endregion
 
-// #region Individual handlers
 
 export const DENY_TOOL_MESSAGE = 'The user declined to run the tool';
 
-/**
- * Prefix embedded by the proxy in HTTP error messages so the dispatch layer
- * can identify proxy-classified errors in SDK result text without depending
- * on the SDK's own error classification.
- *
- * Format: `VSCODE_PROXY_ERROR:<base64>` where the base64 payload decodes to
- * a JSON-serialized ChatFetchError. Base64 avoids double-encoding issues
- * when the SDK nests our message inside its own JSON error response.
- */
 export const PROXY_ERROR_PREFIX = 'VSCODE_PROXY_ERROR:';
 
 export class KnownClaudeError extends Error { }
 
-/**
- * Thrown when the SDK result text contains a proxy-classified error.
- * Carries the original ChatFetchError so callers can use
- * `getErrorDetailsFromChatFetchError` for consistent error messages.
- */
 export class ClaudeProxyError extends KnownClaudeError {
 	constructor(public readonly fetchError: ChatFetchError) {
 		super(fetchError.reason);
@@ -162,10 +109,6 @@ interface IManageTodoListToolInputParams {
 	}[];
 }
 
-/**
- * Model ID used by the SDK for synthetic messages (e.g., "No response requested." from abort).
- * These should be filtered out from display and processing.
- */
 export const SYNTHETIC_MODEL_ID = '<synthetic>';
 
 export function handleAssistantMessage(
@@ -185,9 +128,6 @@ export function handleAssistantMessage(
 	const { stream } = request;
 	const { otelToolSpans, unprocessedToolCalls } = state;
 
-	// Resolve the OTel parent context for spans in this message.
-	// If the message is from a subagent (parent_tool_use_id is set), parent spans
-	// under the Agent tool's execute_tool span. Otherwise, use the root invoke_agent context.
 	const spanParentContext = (message.parent_tool_use_id
 		? state.subagentTraceContexts.get(message.parent_tool_use_id)
 		: undefined) ?? state.parentTraceContext;
@@ -208,8 +148,8 @@ export function handleAssistantMessage(
 					[GenAiAttr.CONVERSATION_ID]: sessionId,
 					[GenAiAttr.TOOL_NAME]: item.name,
 					[GenAiAttr.TOOL_CALL_ID]: item.id,
-					[CopilotChatAttr.SESSION_ID]: sessionId,
-					[CopilotChatAttr.CHAT_SESSION_ID]: sessionId,
+					[DardcorChatAttr.SESSION_ID]: sessionId,
+					[DardcorChatAttr.CHAT_SESSION_ID]: sessionId,
 				},
 				parentTraceContext: spanParentContext,
 			});
@@ -224,8 +164,6 @@ export function handleAssistantMessage(
 				}
 			}
 
-			// Structured `github.dardcor.tool.parameters.*`. Hashes and edit_type emit
-			// unconditionally; raw paths, commands, and MCP names are gated.
 			try {
 				const { attrs: paramAttrs, gatedAttrs: gatedParamAttrs } = state.extractToolParameters(item.name, item.input);
 				for (const [k, v] of Object.entries(paramAttrs)) {
@@ -236,11 +174,9 @@ export function handleAssistantMessage(
 						toolSpan.setAttribute(k, v);
 					}
 				}
-			} catch { /* swallow extraction errors */ }
+			} catch { }
 			otelToolSpans.set(item.id, toolSpan);
 
-			// For Agent/Task (subagent) tool calls, store the span's trace context so that
-			// child messages (with parent_tool_use_id = this tool's id) are parented here.
 			if (item.name === ClaudeToolNames.Task || item.name === 'Agent') {
 				const toolSpanCtx = toolSpan.getSpanContext();
 				if (toolSpanCtx) {
@@ -263,14 +199,6 @@ export function handleAssistantMessage(
 					}
 				}
 
-				// Record any plan-directory writes/edits so the
-				// ExitPlanMode permission handler can surface the plan
-				// file in the review widget. Hooked at the dispatch
-				// level (rather than inside the EditToolHandler) so we
-				// observe the call regardless of permission mode —
-				// `bypassPermissions` short-circuits `canUseTool`, and
-				// the SDK may write the plan file via internal paths
-				// that skip `canUseTool` entirely.
 				const planFileTracker = accessor.get(IClaudePlanFileTracker);
 				for (const uri of uris) {
 					planFileTracker.recordIfPlanFile(sessionId, uri.fsPath);
@@ -321,7 +249,6 @@ function logToolResult(
 ): void {
 	sendToolInvokedTelemetry(toolUseId, toolUse, toolResult, sessionId, telemetryService, toolStartTimes);
 
-	// OTel span
 	const toolSpan = otelToolSpans.get(toolUseId);
 	if (toolSpan) {
 		if (toolResult.is_error) {
@@ -343,7 +270,6 @@ function logToolResult(
 		otelToolSpans.delete(toolUseId);
 	}
 
-	// Request logger
 	try {
 		const resultContent = typeof toolResult.content === 'string'
 			? toolResult.content
@@ -399,7 +325,6 @@ function processToolResult(
 		otelService.config.maxAttributeSizeChars,
 	);
 
-	// Tool-specific handling
 	if (toolUse.name === ClaudeToolNames.TodoWrite) {
 		processTodoWriteTool(toolUse, accessor, request);
 	} else if (toolUse.name === ClaudeToolNames.EnterPlanMode) {
@@ -410,7 +335,6 @@ function processToolResult(
 		request.editTracker?.completeEdit(toolUseId);
 	}
 
-	// Create and push a formatted tool invocation to the stream
 	const invocation = createFormattedToolInvocation(toolUse, true);
 	if (invocation) {
 		invocation.enablePartialUpdate = true;
@@ -435,25 +359,12 @@ function sendToolInvokedTelemetry(
 	const startTime = toolStartTimes.get(toolUseId);
 	toolStartTimes.delete(toolUseId);
 	if (toolUse.name === ClaudeToolNames.TodoWrite) {
-		// Don't send telemetry for TodoWrite since it is passed into the workbench toolcall service and will be logged there.
 		return;
 	}
 	const invocationTimeMs = startTime !== undefined ? Date.now() - startTime : undefined;
 	const result = toolResult.content === DENY_TOOL_MESSAGE ? 'userCancelled' : toolResult.is_error ? 'error' : 'success';
 	const toolSourceKind = toolUse.name.startsWith('mcp__') ? 'mcp' : 'claudeCode';
 
-	/* __GDPR__
-		"languageModelToolInvoked" : {
-			"owner": "roblourens",
-			"comment": "Provides insight into the usage of language model tools invoked by agent SDKs.",
-			"result": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "success | error | userCancelled" },
-			"chatSessionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The chat session resource id." },
-			"toolId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The tool name reported by the agent SDK." },
-			"toolExtensionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Always undefined for agent SDK tools." },
-			"toolSourceKind": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the tool invocation." },
-			"invocationTimeMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "The duration of the tool invocation in milliseconds." }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('languageModelToolInvoked', {
 		result,
 		chatSessionId: ClaudeSessionUri.forSessionId(sessionId).toString(),
@@ -507,11 +418,11 @@ export function handleHookStarted(
 		attributes: {
 			[GenAiAttr.OPERATION_NAME]: GenAiOperationName.EXECUTE_HOOK,
 			[GenAiAttr.CONVERSATION_ID]: sessionId,
-			[CopilotChatAttr.SESSION_ID]: sessionId,
-			[CopilotChatAttr.HOOK_TYPE]: message.hook_event,
+			[DardcorChatAttr.SESSION_ID]: sessionId,
+			[DardcorChatAttr.HOOK_TYPE]: message.hook_event,
 			'dardcor_chat.hook_command': message.hook_name,
 			'dardcor_chat.hook_id': message.hook_id,
-			[CopilotChatAttr.CHAT_SESSION_ID]: sessionId,
+			[DardcorChatAttr.CHAT_SESSION_ID]: sessionId,
 		},
 		parentTraceContext: state.parentTraceContext,
 	});
@@ -519,20 +430,7 @@ export function handleHookStarted(
 	state.hookStartTimes.set(message.hook_id, Date.now());
 }
 
-// #region Hook JSON output validator
 
-/**
- * Validator for structured JSON output from hooks (exit code 0 only).
- *
- * Hooks can return JSON with these fields:
- * - `continue`: if false, stops processing entirely
- * - `stopReason`: message shown to user when `continue` is false
- * - `systemMessage`: warning shown to user
- * - `decision`: "block" to prevent the operation
- * - `reason`: explanation when `decision` is "block"
- *
- * @see https://code.claude.com/docs/en/hooks.md
- */
 const vHookJsonOutput = vObj({
 	continue: vBoolean(),
 	stopReason: vString(),
@@ -543,11 +441,6 @@ const vHookJsonOutput = vObj({
 
 export type HookJsonOutput = ValidatorType<typeof vHookJsonOutput>;
 
-/**
- * Parses JSON output from a hook's stdout.
- * Returns the validated fields, or undefined if parsing/validation fails.
- * Fields that are missing from the JSON are simply absent from the result.
- */
 export function parseHookJsonOutput(stdout: string): Partial<HookJsonOutput> | undefined {
 	let raw: unknown;
 	try {
@@ -560,12 +453,8 @@ export function parseHookJsonOutput(stdout: string): Partial<HookJsonOutput> | u
 		return undefined;
 	}
 
-	// Use the validator to extract known fields with type safety.
-	// vObj skips missing optional fields, so partial results are expected.
 	const result = vHookJsonOutput.validate(raw);
 	if (result.error) {
-		// Validation error means some present field had the wrong type —
-		// extract what we can by validating each field individually.
 		const obj = raw as Record<string, unknown>;
 		const partial: Partial<HookJsonOutput> = {};
 
@@ -596,14 +485,7 @@ export function parseHookJsonOutput(stdout: string): Partial<HookJsonOutput> | u
 	return result.content;
 }
 
-// #endregion
 
-/**
- * Formats a localized error message for a failed hook.
- * @param errorMessage The error message from the hook
- * @returns A localized error message string
- * @todo use a common function with: https://github.com/microsoft/vscode-dardcor-chat/blob/9a9461734da42f28e4e2d0b975ebeae6162e9b4c/src/extension/intents/node/hookResultProcessor.ts#L142
- */
 function formatHookErrorMessage(errorMessage: string): string {
 	if (errorMessage) {
 		return l10n.t('A hook prevented chat from continuing. Please check the Dardcor AI Chat Hooks output channel for more details. \nError message: {0}', errorMessage);
@@ -618,7 +500,6 @@ export function handleHookProgress(
 	request: MessageHandlerRequestContext,
 ): void {
 	const logService = accessor.get(ILogService);
-	// TODO: can we map these types better
 	const hookType = message.hook_event as ChatHookType;
 	const progressText = message.stdout || message.stderr;
 
@@ -637,15 +518,13 @@ export function handleHookResponse(
 ): void {
 	const logService = accessor.get(ILogService);
 	const otelService = accessor.get(IOTelService);
-	// TODO: can we map these types better
 	const hookType = message.hook_event as ChatHookType;
 
-	// #region OTel span
 	const span = state.otelHookSpans.get(message.hook_id);
 	if (span) {
 		const startTime = state.hookStartTimes.get(message.hook_id);
 		if (startTime !== undefined) {
-			span.setAttribute(GitHubCopilotAttr.HOOK_DURATION_SECONDS, (Date.now() - startTime) / 1000);
+			span.setAttribute(DardcorAttr.HOOK_DURATION_SECONDS, (Date.now() - startTime) / 1000);
 			state.hookStartTimes.delete(message.hook_id);
 		}
 		const hookDecision = message.outcome === 'success'
@@ -653,7 +532,7 @@ export function handleHookResponse(
 			: message.exit_code === 2
 				? 'block'
 				: 'non_blocking_error';
-		span.setAttribute(GitHubCopilotAttr.HOOK_DECISION, hookDecision);
+		span.setAttribute(DardcorAttr.HOOK_DECISION, hookDecision);
 		if (message.outcome === 'error') {
 			span.setStatus(SpanStatusCode.ERROR, message.stderr || message.output);
 		} else if (message.outcome === 'cancelled') {
@@ -670,15 +549,12 @@ export function handleHookResponse(
 		span.end();
 		state.otelHookSpans.delete(message.hook_id);
 	}
-	// #endregion
 
-	// Cancelled — log only, no user-facing output
 	if (message.outcome === 'cancelled') {
 		logService.trace(`[ClaudeMessageDispatch] Hook "${message.hook_name}" (${message.hook_event}) was cancelled`);
 		return;
 	}
 
-	// Exit code 2 — blocking error (stderr is the message, JSON ignored)
 	if (message.exit_code === 2) {
 		const errorMessage = message.stderr || message.output;
 		logService.warn(`[ClaudeMessageDispatch] Hook "${message.hook_name}" (${message.hook_event}) blocking error: ${errorMessage}`);
@@ -686,7 +562,6 @@ export function handleHookResponse(
 		return;
 	}
 
-	// Other non-zero exit codes — non-blocking warning
 	if (message.exit_code !== undefined && message.exit_code !== 0) {
 		const warningMessage = message.stderr || message.output;
 		const loggedMessage = warningMessage || l10n.t('Exit Code: {0}', message.exit_code);
@@ -697,7 +572,6 @@ export function handleHookResponse(
 		return;
 	}
 
-	// Outcome 'error' without a specific exit code — treat as blocking error
 	if (message.outcome === 'error') {
 		const errorMessage = message.stderr || message.output;
 		logService.warn(`[ClaudeMessageDispatch] Hook "${message.hook_name}" (${message.hook_event}) failed: ${errorMessage}`);
@@ -705,7 +579,6 @@ export function handleHookResponse(
 		return;
 	}
 
-	// Exit code 0 (or undefined with success outcome) — parse JSON from stdout
 	if (!message.stdout) {
 		return;
 	}
@@ -716,29 +589,21 @@ export function handleHookResponse(
 		return;
 	}
 
-	// Handle `decision: "block"` with `reason`
 	if (parsed.decision === 'block') {
 		request.stream.hookProgress(hookType, formatHookErrorMessage(parsed.reason ?? ''));
 		return;
 	}
 
-	// Handle `continue: false` with optional `stopReason`
 	if (parsed.continue === false) {
 		request.stream.hookProgress(hookType, formatHookErrorMessage(parsed.stopReason ?? ''));
 		return;
 	}
 
-	// Handle `systemMessage` — shown as a warning
 	if (parsed.systemMessage) {
 		request.stream.hookProgress(hookType, undefined, parsed.systemMessage);
 	}
 }
 
-/**
- * Extracts the error text from an SDK result message, if any.
- * - `success` with `is_error`: error text is in `result`
- * - `error_during_execution`: error text is in `errors`
- */
 function getResultErrorText(message: SDKResultMessage): string | undefined {
 	if (message.subtype === 'success' && message.is_error) {
 		return message.result;
@@ -749,11 +614,6 @@ function getResultErrorText(message: SDKResultMessage): string | undefined {
 	return undefined;
 }
 
-/**
- * Attempts to parse a proxy-classified error from the SDK result text.
- * Returns the parsed ChatFetchError if the text contains the proxy error prefix,
- * or undefined if no proxy error is embedded.
- */
 function tryParseProxyError(errorText: string | undefined): ChatFetchError | undefined {
 	if (!errorText) {
 		return undefined;
@@ -763,7 +623,6 @@ function tryParseProxyError(errorText: string | undefined): ChatFetchError | und
 		return undefined;
 	}
 
-	// Extract the base64 payload after the prefix, stopping at whitespace or quotes.
 	const start = idx + PROXY_ERROR_PREFIX.length;
 	const end = errorText.slice(start).search(/[\s"']/);
 	const b64 = end === -1 ? errorText.slice(start) : errorText.slice(start, start + end);
@@ -786,9 +645,6 @@ export function handleResultMessage(
 	if (message.subtype === 'error_max_turns') {
 		request.stream.progress(l10n.t('Maximum turns reached ({0})', message.num_turns));
 	} else if (isExecutionError) {
-		// Check the result/error text for proxy-classified errors.
-		// The proxy embeds VSCODE_PROXY_ERROR:<json> in the HTTP error message,
-		// which the SDK forwards through to the result text.
 		const errorText = getResultErrorText(message);
 		const fetchError = tryParseProxyError(errorText);
 		if (fetchError) {
@@ -799,21 +655,8 @@ export function handleResultMessage(
 	return { requestComplete: true };
 }
 
-// #endregion
 
-// #region Dispatch
 
-/**
- * Routes an SDK message to the appropriate handler.
- *
- * Designed as an `invokeFunction` target — services are resolved from the DI
- * accessor, extra arguments are passed through.
- *
- * Uses TypeScript discriminated union narrowing — no type assertions needed.
- * Handlers that don't exist for a given key are logged:
- * - Known keys without a handler → trace-logged.
- * - Unknown keys → warn-logged.
- */
 export function dispatchMessage(
 	accessor: ServicesAccessor,
 	message: SDKMessage,
@@ -852,7 +695,6 @@ export function dispatchMessage(
 			break;
 	}
 
-	// Not handled — log based on whether the key is expected
 	const key = messageKey(message);
 	if (ALL_KNOWN_MESSAGE_KEYS.has(key)) {
 		logService.trace(`[ClaudeMessageDispatch] Unhandled known message type: ${key}`);
@@ -862,4 +704,3 @@ export function dispatchMessage(
 	return undefined;
 }
 
-// #endregion

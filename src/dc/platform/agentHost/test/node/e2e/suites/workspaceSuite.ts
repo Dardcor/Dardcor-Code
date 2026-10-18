@@ -29,14 +29,6 @@ import { getActionEnvelope, isActionNotification } from '../../serverIntegration
 import type { IAgentHostE2ETestContext } from './e2eTestContext.js';
 
 export function defineWorkspaceTests(context: IAgentHostE2ETestContext): void {
-	/**
-	 * Prints the shell's working directory.
-	 *
-	 * Pinned like every other shell command in the suite. `node` is guaranteed
-	 * present since the suite runs under it, and `console.log` writes the raw
-	 * path — PowerShell's `pwd` returns a `PathInfo` the console renders as a
-	 * formatted table, which can wrap a long temp path.
-	 */
 	const PRINT_CWD_COMMAND = `node -e "console.log(process.cwd())"`;
 	const { config, createdSessions, tempDirs, portableShellToolReplayEnabled, isWindows } = context;
 	test('session is created with the correct working directory', async function () {
@@ -111,15 +103,6 @@ export function defineWorkspaceTests(context: IAgentHostE2ETestContext): void {
 		});
 	});
 
-	// Skipped on Windows. The command and the tool name are portable now, but the
-	// host terminal assertion is not, for a reason CI surfaced that is specific
-	// to this test rather than to command portability:
-	//
-	//  - The host terminal tool surfaces no `chat/toolCallContentChanged` on
-	//    Windows, so the terminal resource this test subscribes to never appears,
-	//    even though the tool call itself completes.
-	//
-	// Re-enabling on Windows needs the missing terminal resource understood.
 	(config.supportsWorktreeIsolation && !isWindows && portableShellToolReplayEnabled && !config.shellToolResultTextUnreliable ? test : test.skip)('worktree session uses the resolved worktree as working directory', async function () {
 		this.timeout(120_000);
 
@@ -134,14 +117,6 @@ export function defineWorkspaceTests(context: IAgentHostE2ETestContext): void {
 		await context.client.call('initialize', { channel: ROOT_STATE_URI, protocolVersions: [PROTOCOL_VERSION], clientId: `real-sdk-worktree-${config.provider}` });
 		await context.client.call('authenticate', { channel: ROOT_STATE_URI, resource: 'https://api.github.com', token: resolveGitHubToken() });
 
-		// The host's custom terminal tool is opt-in (default off) and only
-		// Copilot routes shell commands through it. When the provider
-		// supports it, this test additionally asserts on the host-managed
-		// terminal's cwd / `pwd` output, so enable it before the session
-		// materializes on the first turn dispatch. Codex / Claude run shell
-		// commands inside their own SDK subprocess and never surface a host
-		// terminal resource, so they verify isolation via the resolved
-		// working directory alone.
 		if (config.supportsHostTerminalTool) {
 			context.client.dispatch({
 				channel: ROOT_STATE_URI,
@@ -162,9 +137,6 @@ export function defineWorkspaceTests(context: IAgentHostE2ETestContext): void {
 		createdSessions.push(sessionUri);
 
 		await context.client.call<SubscribeResult>('subscribe', { channel: sessionUri });
-		// Conversation contents (turns, tool calls, …) live on the
-		// session's default chat channel in the multi-chat protocol;
-		// subscribe to it so `chat/*` action notifications are delivered.
 		await context.client.call<SubscribeResult>('subscribe', { channel: buildDefaultChatUri(sessionUri) });
 
 		context.client.dispatch({
@@ -214,20 +186,7 @@ export function defineWorkspaceTests(context: IAgentHostE2ETestContext): void {
 		const responseParts = context.client.receivedNotifications(n => isActionNotification(n, 'chat/responsePart'));
 		assert.ok(responseParts.length > 0, 'should have received at least one response part after session refresh');
 
-		// Verify the agent's shell subprocess actually runs in the resolved
-		// worktree by asking it to run `pwd`. Copilot routes shell commands
-		// through the host-managed terminal tool, which exposes a
-		// subscribable terminal resource we can assert `cwd` / output on.
-		// Codex / Claude run shell commands inside their own SDK subprocess
-		// and surface the output as plain text in the tool result instead,
-		// so we assert the worktree path appears in that text.
 		if (!config.supportsHostTerminalTool) {
-			// The shell command may either require a host confirmation
-			// (`toolCallReady` with `confirmed=undefined`) or be
-			// auto-approved at the SDK layer (Claude's default permission
-			// mode). A background approval loop handles the former without
-			// blocking on it, so the wait below only has to observe the
-			// tool's text output — which carries the `pwd` result.
 			const approvalLoop = startBackgroundApprovalLoop(context.client, {
 				approvalSeqStart: 100,
 				allow: [{ toolName: config.shellToolName }],
@@ -236,10 +195,6 @@ export function defineWorkspaceTests(context: IAgentHostE2ETestContext): void {
 				context.client.clearReceived();
 				dispatchTurn(context.client, addedSummary.resource, 'turn-wt-terminal', `Run exactly this shell command, with no modifications, in the session current working directory: \`${PRINT_CWD_COMMAND}\`. Do not specify a working-directory override.`, 3);
 
-				// The `pwd` output can arrive as streaming partial content
-				// (`toolCallContentChanged`) or in the final tool result
-				// (`toolCallComplete`), depending on the provider. Accept
-				// either as long as the text carries the worktree path.
 				const pwdNotif = await context.client.waitForNotification(n => {
 					if (isActionNotification(n, 'chat/toolCallContentChanged')) {
 						const action = getActionEnvelope(n).action as { content: readonly ToolResultContent[] };

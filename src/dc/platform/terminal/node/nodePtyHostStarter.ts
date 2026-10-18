@@ -26,7 +26,7 @@ export class NodePtyHostStarter extends Disposable implements IPtyHostStarter {
 			env: {
 				VSCODE_ESM_ENTRYPOINT: 'dc/platform/terminal/node/ptyHostMain',
 				VSCODE_PIPE_LOGGING: 'true',
-				VSCODE_VERBOSE_LOGGING: 'true', // transmit console logs from server to client,
+				VSCODE_VERBOSE_LOGGING: 'true',
 				VSCODE_RECONNECT_GRACE_TIME: this._reconnectConstants.graceTime,
 				VSCODE_RECONNECT_SHORT_GRACE_TIME: this._reconnectConstants.shortGraceTime,
 				VSCODE_RECONNECT_SCROLLBACK: this._reconnectConstants.scrollback

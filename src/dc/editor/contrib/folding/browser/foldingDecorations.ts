@@ -139,7 +139,7 @@ export class FoldingDecorationProvider implements IDecorationProvider {
 	}
 
 	getDecorationOption(isCollapsed: boolean, isHidden: boolean, isManual: boolean): IModelDecorationOptions {
-		if (isHidden) { // is inside another collapsed region
+		if (isHidden) {
 			return FoldingDecorationProvider.HIDDEN_RANGE_DECORATION;
 		}
 		if (this.showFoldingControls === 'never') {

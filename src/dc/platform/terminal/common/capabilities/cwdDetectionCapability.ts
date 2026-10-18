@@ -11,11 +11,8 @@ export class CwdDetectionCapability extends Disposable implements ICwdDetectionC
 	readonly type = TerminalCapability.CwdDetection;
 	private _cwd = '';
 	private _isTrusted = true;
-	private _cwds = new Map</*cwd*/string, /*frequency*/number>();
+	private _cwds = new Map< string, number>();
 
-	/**
-	 * Gets the list of cwds seen in this session in order of last accessed.
-	 */
 	get cwds(): string[] {
 		return Array.from(this._cwds.keys());
 	}
@@ -36,7 +33,7 @@ export class CwdDetectionCapability extends Disposable implements ICwdDetectionC
 		this._cwd = cwd;
 		this._isTrusted = isTrusted;
 		const count = this._cwds.get(this._cwd) || 0;
-		this._cwds.delete(this._cwd); // Delete to put it at the bottom of the iterable
+		this._cwds.delete(this._cwd);
 		this._cwds.set(this._cwd, count + 1);
 		if (didChange) {
 			this._onDidChangeCwd.fire(cwd);

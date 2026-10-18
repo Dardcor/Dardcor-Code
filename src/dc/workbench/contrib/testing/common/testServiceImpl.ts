@@ -48,40 +48,18 @@ export class TestService extends Disposable implements ITestService {
 	private readonly isRefreshingTests: IContextKey<boolean>;
 	private readonly activeEditorHasTests: IContextKey<boolean>;
 
-	/**
-	 * Cancellation for runs requested by the user being managed by the UI.
-	 * Test runs initiated by extensions are not included here.
-	 */
-	private readonly uiRunningTests = new Map<string /* run ID */, CancellationTokenSource>();
+	private readonly uiRunningTests = new Map<string , CancellationTokenSource>();
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly onWillProcessDiff = this.willProcessDiffEmitter.event;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly onDidProcessDiff = this.didProcessDiffEmitter.event;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly onDidCancelTestRun = this.cancelExtensionTestRunEmitter.event;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly collection: MainThreadTestCollection;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly excluded: TestExclusions;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly showInlineOutput: MutableObservableValue<boolean>;
 
 	constructor(
@@ -126,16 +104,10 @@ export class TestService extends Disposable implements ITestService {
 		this._register(editorService.onDidActiveEditorChange(() => this.updateEditorContextKeys()));
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async expandTest(id: string, levels: number) {
 		await this.testControllers.get().get(TestId.fromString(id).controllerId)?.expandTest(id, levels);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public cancelTestRun(runId?: string, taskId?: string) {
 		this.cancelExtensionTestRunEmitter.fire({ runId, taskId });
 
@@ -148,12 +120,7 @@ export class TestService extends Disposable implements ITestService {
 		}
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async runTests(req: AmbiguousRunTestsRequest, token = CancellationToken.None): Promise<ITestResult> {
-		// We try to ensure that all tests in the request will be run, preferring
-		// to use default profiles for each controller when possible.
 		const byProfile: { profile: ITestRunProfile; tests: InternalTestItem[] }[] = [];
 		for (const test of req.tests) {
 			const existing = byProfile.find(p => canUseProfileWithTest(p.profile, test));
@@ -182,10 +149,6 @@ export class TestService extends Disposable implements ITestService {
 			preserveFocus: req.preserveFocus,
 		};
 
-		// If no tests are covered by the defaults, just use whatever the defaults
-		// for their controller are. This can happen if the user chose specific
-		// profiles for the run button, but then asked to run a single test from the
-		// explorer or decoration. We shouldn't no-op.
 		if (resolved.targets.length === 0) {
 			for (const byController of groupBy(req.tests, (a, b) => a.controllerId === b.controllerId ? 0 : 1)) {
 				const profiles = this.testProfiles.getControllerProfiles(byController[0].controllerId);
@@ -210,7 +173,6 @@ export class TestService extends Disposable implements ITestService {
 		return this.runResolvedTests(resolved, token);
 	}
 
-	/** @inheritdoc */
 	public async startContinuousRun(req: ResolvedTestRunRequest, token: CancellationToken) {
 		if (!req.exclude) {
 			req.exclude = [...this.excluded.all];
@@ -245,9 +207,6 @@ export class TestService extends Disposable implements ITestService {
 		await Promise.all(requests);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async runResolvedTests(req: ResolvedTestRunRequest, token = CancellationToken.None) {
 		if (!req.exclude) {
 			req.exclude = [...this.excluded.all];
@@ -294,9 +253,6 @@ export class TestService extends Disposable implements ITestService {
 		}
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async provideTestFollowups(req: TestMessageFollowupRequest, token: CancellationToken): Promise<ITestFollowups> {
 		const reqs = await Promise.all([...this.testExtHosts].map(async ctrl =>
 			({ ctrl, followups: await ctrl.provideTestFollowups(req, token) })));
@@ -320,9 +276,6 @@ export class TestService extends Disposable implements ITestService {
 		return followups;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public publishDiff(_controllerId: string, diff: TestsDiff) {
 		this.willProcessDiffEmitter.fire(diff);
 		this.collection.apply(diff);
@@ -330,16 +283,10 @@ export class TestService extends Disposable implements ITestService {
 		this.didProcessDiffEmitter.fire(diff);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getTestController(id: string) {
 		return this.testControllers.get().get(id);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async syncTests(): Promise<void> {
 		const cts = new CancellationTokenSource();
 		try {
@@ -349,9 +296,6 @@ export class TestService extends Disposable implements ITestService {
 		}
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async refreshTests(controllerId?: string): Promise<void> {
 		const cts = new CancellationTokenSource();
 		this.testRefreshCancellations.add(cts);
@@ -370,9 +314,6 @@ export class TestService extends Disposable implements ITestService {
 		}
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public cancelRefreshTests(): void {
 		for (const cts of this.testRefreshCancellations) {
 			cts.cancel();
@@ -381,26 +322,16 @@ export class TestService extends Disposable implements ITestService {
 		this.isRefreshingTests.set(false);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public registerExtHost(controller: IMainThreadTestHostProxy): IDisposable {
 		this.testExtHosts.add(controller);
 		return toDisposable(() => this.testExtHosts.delete(controller));
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async getTestsRelatedToCode(uri: URI, position: Position, token: CancellationToken = CancellationToken.None): Promise<InternalTestItem[]> {
 		const testIds = await Promise.all([...this.testExtHosts.values()].map(v => v.getTestsRelatedToCode(uri, position, token)));
-		// ext host will flush diffs before returning, so we should have everything here:
 		return testIds.flatMap(ids => ids.map(id => this.collection.getNodeById(id))).filter(isDefined);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public registerTestController(id: string, controller: IMainThreadTestController): IDisposable {
 		this.testControllers.set(new Map(this.testControllers.get()).set(id, controller), undefined);
 
@@ -420,9 +351,6 @@ export class TestService extends Disposable implements ITestService {
 		});
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async getCodeRelatedToTest(test: InternalTestItem, token: CancellationToken = CancellationToken.None): Promise<Location[]> {
 		return (await this.testControllers.get().get(test.controllerId)?.getRelatedCode(test.item.extId, token)) || [];
 	}

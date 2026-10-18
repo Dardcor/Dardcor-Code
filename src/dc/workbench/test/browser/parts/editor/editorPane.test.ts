@@ -206,7 +206,6 @@ suite('EditorPane', () => {
 		factory = editorInputRegistry.getEditorSerializer(testInput);
 		assert(factory);
 
-		// throws when registering serializer for same type
 		assert.throws(() => editorInputRegistry.registerEditorSerializer(testInput.typeId, TestInputSerializer));
 	});
 
@@ -243,7 +242,6 @@ suite('EditorPane', () => {
 		assert.ok(res);
 		assert.strictEqual(res.line, 5);
 
-		// Ensure capped at 3 elements
 		memento.saveEditorState(testGroup0, URI.file('/B'), { line: 1 });
 		memento.saveEditorState(testGroup0, URI.file('/C'), { line: 1 });
 		memento.saveEditorState(testGroup0, URI.file('/D'), { line: 1 });
@@ -255,11 +253,10 @@ suite('EditorPane', () => {
 		assert.ok(memento.loadEditorState(testGroup0, URI.file('/D')));
 		assert.ok(memento.loadEditorState(testGroup0, URI.file('/E')));
 
-		// Save at an unknown group
 		memento.saveEditorState(testGroup4, URI.file('/E'), { line: 1 });
-		assert.ok(memento.loadEditorState(testGroup4, URI.file('/E'))); // only gets removed when memento is saved
+		assert.ok(memento.loadEditorState(testGroup4, URI.file('/E')));
 		memento.saveEditorState(testGroup4, URI.file('/C'), { line: 1 });
-		assert.ok(memento.loadEditorState(testGroup4, URI.file('/C'))); // only gets removed when memento is saved
+		assert.ok(memento.loadEditorState(testGroup4, URI.file('/C')));
 
 		memento.saveState();
 
@@ -268,7 +265,6 @@ suite('EditorPane', () => {
 		assert.ok(memento.loadEditorState(testGroup0, URI.file('/D')));
 		assert.ok(memento.loadEditorState(testGroup0, URI.file('/E')));
 
-		// Check on entries no longer there from invalid groups
 		assert.ok(!memento.loadEditorState(testGroup4, URI.file('/E')));
 		assert.ok(!memento.loadEditorState(testGroup4, URI.file('/C')));
 
@@ -344,7 +340,6 @@ suite('EditorPane', () => {
 		assert.ok(res);
 		assert.strictEqual(res.line, 3);
 
-		// State removed when input gets disposed
 		testInputA.dispose();
 		res = memento.loadEditorState(testGroup0, testInputA);
 		assert.ok(!res);
@@ -382,8 +377,6 @@ suite('EditorPane', () => {
 		assert.ok(res);
 		assert.strictEqual(res.line, 3);
 
-		// State not yet removed when input gets disposed
-		// because we used resource
 		testInputA.dispose();
 		res = memento.loadEditorState(testGroup0, testInputA);
 		assert.ok(res);
@@ -400,7 +393,6 @@ suite('EditorPane', () => {
 
 		memento.clearEditorStateOnDispose(testInputB.resource, testInputB);
 
-		// State removed when input gets disposed
 		testInputB.dispose();
 		res = memento.loadEditorState(testGroup0, testInputB);
 		assert.ok(!res);

@@ -6,9 +6,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-/**
- * Recursively find all package-lock.json files in a directory
- */
 async function* getPackageLockFiles(dir: string): AsyncGenerator<string> {
 	const files = await fs.readdir(dir);
 
@@ -24,18 +21,12 @@ async function* getPackageLockFiles(dir: string): AsyncGenerator<string> {
 	}
 }
 
-/**
- * Replace the registry URL in a package-lock.json file
- */
 async function setup(url: string, file: string): Promise<void> {
 	let contents = await fs.readFile(file, 'utf8');
 	contents = contents.replace(/https:\/\/registry\.[^.]+\.org\//g, url);
 	await fs.writeFile(file, contents);
 }
 
-/**
- * Main function to set up custom NPM registry
- */
 async function main(url: string, dir?: string): Promise<void> {
 	if (!url) {
 		throw new Error('Usage: node setup-npm-registry.ts <registry-url> [dir]. A registry URL is required.');

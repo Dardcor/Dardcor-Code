@@ -15,14 +15,12 @@ import { createFileSystemProviderError, FileChangeType, IFileDeleteOptions, IFil
 import { IndexedDB } from '../../../base/browser/indexedDB.js';
 import { BroadcastDataChannel } from '../../../base/browser/broadcast.js';
 
-// Standard FS Errors (expected to be thrown in production when invalid FS operations are requested)
 const ERR_FILE_NOT_FOUND = createFileSystemProviderError(localize('fileNotExists', "File does not exist"), FileSystemProviderErrorCode.FileNotFound);
 const ERR_FILE_IS_DIR = createFileSystemProviderError(localize('fileIsDirectory', "File is Directory"), FileSystemProviderErrorCode.FileIsADirectory);
 const ERR_FILE_NOT_DIR = createFileSystemProviderError(localize('fileNotDirectory', "File is not a directory"), FileSystemProviderErrorCode.FileNotADirectory);
 const ERR_DIR_NOT_EMPTY = createFileSystemProviderError(localize('dirIsNotEmpty', "Directory is not empty"), FileSystemProviderErrorCode.Unknown);
 const ERR_FILE_EXCEEDS_STORAGE_QUOTA = createFileSystemProviderError(localize('fileExceedsStorageQuota', "File exceeds available storage quota"), FileSystemProviderErrorCode.FileExceedsStorageQuota);
 
-// Arbitrary Internal Errors
 const ERR_UNKNOWN_INTERNAL = (message: string) => createFileSystemProviderError(localize('internal', "Internal error occurred in IndexedDB File System Provider. ({0})", message), FileSystemProviderErrorCode.Unknown);
 
 type DirEntry = [string, FileType];
@@ -160,7 +158,7 @@ export class IndexedDBFileSystemProvider extends Disposable implements IFileSyst
 		| FileSystemProviderCapabilities.PathCaseSensitive;
 	readonly onDidChangeCapabilities: Event<void> = Event.None;
 
-	private readonly extUri = new ExtUri(() => false) /* Case Sensitive */;
+	private readonly extUri = new ExtUri(() => false) ;
 
 	private readonly changesBroadcastChannel: BroadcastDataChannel<UriDto<IFileChange>[]> | undefined;
 	private readonly _onDidChangeFile = this._register(new Emitter<readonly IFileChange[]>());
@@ -193,7 +191,7 @@ export class IndexedDBFileSystemProvider extends Disposable implements IFileSyst
 			if (resourceStat.type === FileType.File) {
 				throw ERR_FILE_NOT_DIR;
 			}
-		} catch (error) { /* Ignore */ }
+		} catch (error) { }
 		(await this.getFiletree()).add(resource.path, { type: 'dir' });
 	}
 
@@ -224,11 +222,6 @@ export class IndexedDBFileSystemProvider extends Disposable implements IFileSyst
 	async readdir(resource: URI): Promise<DirEntry[]> {
 		const entry = (await this.getFiletree()).read(resource.path);
 		if (!entry) {
-			// Dirs aren't saved to disk, so empty dirs will be lost on reload.
-			// Thus we have two options for what happens when you try to read a dir and nothing is found:
-			// - Throw FileSystemProviderErrorCode.FileNotFound
-			// - Return []
-			// We choose to return [] as creating a dir then reading it (even after reload) should not throw an error.
 			return [];
 		}
 		if (entry.type !== FileType.Directory) {
@@ -249,7 +242,6 @@ export class IndexedDBFileSystemProvider extends Disposable implements IFileSyst
 			throw ERR_UNKNOWN_INTERNAL(`IndexedDB entry at "${resource.path}" in unexpected format`);
 		}
 
-		// update cache
 		const fileTree = await this.getFiletree();
 		fileTree.add(resource.path, { type: 'file', size: buffer.byteLength });
 
@@ -264,7 +256,6 @@ export class IndexedDBFileSystemProvider extends Disposable implements IFileSyst
 
 		let finalContent = content;
 		if (opts.append && existing) {
-			// Read existing content and append new content to it
 			const existingContent = await this.readFile(resource);
 			const combined = new Uint8Array(existingContent.byteLength + content.byteLength);
 			combined.set(existingContent, 0);
@@ -290,7 +281,6 @@ export class IndexedDBFileSystemProvider extends Disposable implements IFileSyst
 			if (toEntry.type !== fromEntry.type) {
 				throw createFileSystemProviderError('Cannot rename files with different types', FileSystemProviderErrorCode.Unknown);
 			}
-			// delete the target file if exists
 			await this.delete(to, { recursive: true, useTrash: false, atomic: false });
 		}
 
@@ -302,7 +292,6 @@ export class IndexedDBFileSystemProvider extends Disposable implements IFileSyst
 			if (sourceEntry[1] === FileType.File) {
 				sourceFiles.push(sourceEntry);
 			} else if (sourceEntry[1] === FileType.Directory) {
-				// add directories to the tree
 				fileTree.add(toTargetResource(sourceEntry[0]).path, { type: 'dir' });
 			}
 		}

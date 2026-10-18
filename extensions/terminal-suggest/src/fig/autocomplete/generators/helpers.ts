@@ -32,9 +32,9 @@ export async function runCachedGenerator<T>(
 	generator: Fig.Generator,
 	context: GeneratorContext,
 	initialRun: () => Promise<T>,
-	cacheKey?: string /* This is generator.script or generator.script(...) */,
+	cacheKey?: string ,
 ): Promise<T> {
-	const cacheDefault = false; // getSetting<boolean>(SETTINGS.CACHE_ALL_GENERATORS) ?? false;
+	const cacheDefault = false;
 	let { cache } = generator;
 	if (!cache && cacheDefault) {
 		cache = { strategy: 'stale-while-revalidate', ttl: 1_000 };
@@ -48,7 +48,6 @@ export async function runCachedGenerator<T>(
 		? getCWDForFilesAndFolders(currentWorkingDirectory, searchTerm)
 		: currentWorkingDirectory;
 
-	// we cache generator results by script, if no script was provided we use the tokens instead
 	const key = [
 		cache.cacheByDirectory ? directory : undefined,
 		cacheKey || tokenArray.join(' '),

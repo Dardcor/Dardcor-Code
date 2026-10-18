@@ -18,7 +18,7 @@ import {
 	packageJson,
 	userScopeOnlyKeys
 } from '../../lib/src/config';
-import { CopilotConfigPrefix } from '../../lib/src/constants';
+import { DardcorConfigPrefix } from '../../lib/src/constants';
 import { Logger } from '../../lib/src/logger';
 import { transformEvent } from '../../lib/src/util/event';
 import { Schemas } from '../../../../../util/dardcor/base/common/network';
@@ -31,12 +31,12 @@ export class VSCodeConfigProvider extends ConfigProvider implements IDisposable 
 
 	constructor() {
 		super();
-		this.config = vscode.workspace.getConfiguration(CopilotConfigPrefix);
+		this.config = vscode.workspace.getConfiguration(DardcorConfigPrefix);
 
-		// Reload cached config if a workspace config change effects Copilot namespace
+		// Reload cached config when a workspace change affects the completion settings namespace.
 		this._disposables.add(vscode.workspace.onDidChangeConfiguration(changeEvent => {
-			if (changeEvent.affectsConfiguration(CopilotConfigPrefix)) {
-				this.config = vscode.workspace.getConfiguration(CopilotConfigPrefix);
+			if (changeEvent.affectsConfiguration(DardcorConfigPrefix)) {
+				this.config = vscode.workspace.getConfiguration(DardcorConfigPrefix);
 			}
 		}));
 	}
@@ -83,7 +83,7 @@ export class VSCodeConfigProvider extends ConfigProvider implements IDisposable 
 		return {};
 	}
 
-	override onDidChangeCopilotSettings: ConfigProvider['onDidChangeCopilotSettings'] = transformEvent(
+	override onDidChangeSettings: ConfigProvider['onDidChangeSettings'] = transformEvent(
 		vscode.workspace.onDidChangeConfiguration,
 		event => {
 			if (event.affectsConfiguration('github.dardcor')) {
@@ -169,7 +169,7 @@ function getEnabledConfig(accessor: ServicesAccessor, languageId: string): boole
 }
 
 /**
- * Checks if automatic completions are enabled for the current document by all Copilot completion settings.
+ * Checks whether automatic completions are enabled for the current document by all completion settings.
  * Excludes the `editor.inlineSuggest.enabled` setting.
  * Return undefined if there is no current document.
  */
@@ -183,7 +183,7 @@ export function isCompletionEnabled(accessor: ServicesAccessor): boolean | undef
 
 export function isCompletionEnabledForDocument(accessor: ServicesAccessor, document: vscode.TextDocument): boolean {
 	if (document.uri.scheme === Schemas.vscodeChatInput) {
-		return vscode.workspace.getConfiguration(CopilotConfigPrefix).get<boolean>('completions.chat.enabled', false);
+		return vscode.workspace.getConfiguration(DardcorConfigPrefix).get<boolean>('completions.chat.enabled', false);
 	}
 	return getEnabledConfig(accessor, document.languageId);
 }
@@ -203,7 +203,7 @@ const inspectKinds: [keyof ConfigurationInspect, vscode.ConfigurationTarget, boo
 ];
 
 function getConfigurationTargetForEnabledConfig(): vscode.ConfigurationTarget {
-	const inspect = vscode.workspace.getConfiguration(CopilotConfigPrefix).inspect(ConfigKey.Enable);
+	const inspect = vscode.workspace.getConfiguration(DardcorConfigPrefix).inspect(ConfigKey.Enable);
 	if (inspect?.workspaceFolderValue !== undefined) {
 		return vscode.ConfigurationTarget.WorkspaceFolder;
 	} else if (inspect?.workspaceValue !== undefined) {
@@ -239,7 +239,7 @@ export async function enableCompletions(accessor: ServicesAccessor) {
 	// The rest of this function is the inverse of disableCompletions(), updating the github.dardcor.enable setting.
 	const languageId = vscode.window.activeTextEditor?.document.languageId;
 	if (!languageId) { return; }
-	const config = vscode.workspace.getConfiguration(CopilotConfigPrefix);
+	const config = vscode.workspace.getConfiguration(DardcorConfigPrefix);
 	const enabledConfig = { ...instantiationService.invokeFunction(getEnabledConfigObject) };
 	if (!(languageId in enabledConfig)) {
 		enabledConfig['*'] = true;
@@ -248,7 +248,7 @@ export async function enableCompletions(accessor: ServicesAccessor) {
 	}
 	await config.update(ConfigKey.Enable, enabledConfig, getConfigurationTargetForEnabledConfig());
 	if (!instantiationService.invokeFunction(isCompletionEnabled)) {
-		const inspect = vscode.workspace.getConfiguration(CopilotConfigPrefix).inspect(ConfigKey.Enable);
+		const inspect = vscode.workspace.getConfiguration(DardcorConfigPrefix).inspect(ConfigKey.Enable);
 		const error = new Error(`Failed to enable completions for ${languageId}: ${JSON.stringify(inspect)}`);
 		instantiationService.invokeFunction(acc => logger.exception(acc, error, '.enable'));
 	}
@@ -261,7 +261,7 @@ export async function disableCompletions(accessor: ServicesAccessor) {
 	const instantiationService = accessor.get(IInstantiationService);
 	const languageId = vscode.window.activeTextEditor?.document.languageId;
 	if (!languageId) { return; }
-	const config = vscode.workspace.getConfiguration(CopilotConfigPrefix);
+	const config = vscode.workspace.getConfiguration(DardcorConfigPrefix);
 	const enabledConfig = { ...instantiationService.invokeFunction(getEnabledConfigObject) };
 	if (!(languageId in enabledConfig)) {
 		enabledConfig['*'] = false;
@@ -270,7 +270,7 @@ export async function disableCompletions(accessor: ServicesAccessor) {
 	}
 	await config.update(ConfigKey.Enable, enabledConfig, getConfigurationTargetForEnabledConfig());
 	if (instantiationService.invokeFunction(isCompletionEnabled)) {
-		const inspect = vscode.workspace.getConfiguration(CopilotConfigPrefix).inspect(ConfigKey.Enable);
+		const inspect = vscode.workspace.getConfiguration(DardcorConfigPrefix).inspect(ConfigKey.Enable);
 		const error = new Error(`Failed to disable completions for ${languageId}: ${JSON.stringify(inspect)}`);
 		instantiationService.invokeFunction(acc => logger.exception(acc, error, '.disable'));
 	}

@@ -148,11 +148,7 @@ export class ExtHostTreeViews extends Disposable implements ExtHostTreeViewsShap
 				return treeView.reveal(element, options);
 			},
 			dispose: async () => {
-				// Wait for the registration promise to finish before doing the dispose.
 				await registerPromise;
-				// Only notify the main thread if this view was not replaced by a new registration.
-				// When an extension disposes a view and immediately re-registers it, the new
-				// registration may have already updated _treeViews before this async dispose runs.
 				if (this._treeViews.get(viewId) === treeView) {
 					this._treeViews.delete(viewId);
 					this._proxy.$disposeTree(viewId);
@@ -173,7 +169,6 @@ export class ExtHostTreeViews extends Disposable implements ExtHostTreeViewsShap
 			const children = await treeView.getChildren();
 			return children ? [[0, ...children]] : undefined;
 		}
-		// Keep order of treeItemHandles in case extension trees already depend on this
 		const result = [];
 		for (let i = 0; i < treeItemHandles.length; i++) {
 			const treeItemHandle = treeItemHandles[i];
@@ -327,12 +322,7 @@ class ExtHostTreeView<T> extends Disposable {
 	private _roots: TreeNode[] | undefined = undefined;
 	private _elements: Map<TreeItemHandle, T> = new Map<TreeItemHandle, T>();
 	private _nodes: Map<T, TreeNode> = new Map<T, TreeNode>();
-	// Track the latest child-fetch per element so that refresh-triggered cache clears ignore stale results.
-	// Without these tokens, an earlier getChildren promise resolving after refresh would re-register handles and hit the duplicate-id guard.
 	private readonly _childrenFetchTokens = new Map<T | typeof ExtHostTreeView.ROOT_FETCH_KEY, number>();
-	// Global counter for fetch tokens. Using a monotonically increasing counter ensures that even after
-	// _childrenFetchTokens.clear() during a root refresh, old in-flight fetches will have requestIds that
-	// can never match new fetches (e.g., old fetch has id=5, after clear new fetches get 6, 7, 8...).
 	private _globalFetchTokenCounter = 0;
 
 	private _visible: boolean = false;
@@ -405,7 +395,6 @@ class ExtHostTreeView<T> extends Disposable {
 			}
 			if (current.element !== false) {
 				if (!refreshingPromise) {
-					// New refresh has started
 					refreshingPromise = new Promise(c => promiseCallback = c);
 					this._refreshPromise = this._refreshPromise.then(() => refreshingPromise!);
 				}
@@ -495,7 +484,7 @@ class ExtHostTreeView<T> extends Disposable {
 			return Promise.resolve([]);
 		}
 
-		let childrenNodes: TreeNode[] | undefined = this._getChildrenNodes(parentHandle); // Get it from cache
+		let childrenNodes: TreeNode[] | undefined = this._getChildrenNodes(parentHandle);
 
 		if (!childrenNodes) {
 			childrenNodes = await this._fetchChildrenNodes(parentElement);
@@ -672,7 +661,6 @@ class ExtHostTreeView<T> extends Disposable {
 			if (node) {
 				const resolve = await this._dataProvider.resolveTreeItem(node.extensionItem, element, token) ?? node.extensionItem;
 				this._validateTreeItem(resolve);
-				// Resolvable elements. Currently only tooltip and command.
 				node.item.tooltip = this._getTooltip(resolve.tooltip);
 				node.item.command = this._getCommand(node.disposableStore, resolve.command);
 				return node.item;
@@ -743,7 +731,6 @@ class ExtHostTreeView<T> extends Disposable {
 	}
 
 	private async _fetchChildrenNodes(parentElement?: T): Promise<TreeNode[] | undefined> {
-		// clear children cache
 		this._addChildrenToClear(parentElement);
 		const fetchKey = this._getFetchKey(parentElement);
 		const requestId = ++this._globalFetchTokenCounter;
@@ -773,7 +760,6 @@ class ExtHostTreeView<T> extends Disposable {
 				return undefined;
 			}
 
-			// createAndRegisterTreeNodes adds the nodes to a cache. This must be done sync so that they get added in the correct order.
 			const items = treeItems.map((item, index) => item ? this._createAndRegisterTreeNode(coalescedElements[index], item, parentNode) : null);
 			if (this._childrenFetchTokens.get(fetchKey) !== requestId) {
 				return undefined;
@@ -790,7 +776,6 @@ class ExtHostTreeView<T> extends Disposable {
 	private _refresh(elements: (T | Root)[]): Promise<void> {
 		const hasRoot = elements.some(element => !element);
 		if (hasRoot) {
-			// Cancel any pending children fetches
 			this._refreshCancellationSource.dispose(true);
 			this._refreshCancellationSource = new CancellationTokenSource();
 
@@ -810,7 +795,6 @@ class ExtHostTreeView<T> extends Disposable {
 		const elementNodes = elements.map(element => this._nodes.get(element));
 		for (const elementNode of elementNodes) {
 			if (elementNode && !elementsToUpdate.has(elementNode.item.handle)) {
-				// check if an ancestor of extElement is already in the elements list
 				let currentNode: TreeNode | undefined = elementNode;
 				while (currentNode && currentNode.parent && elementNodes.findIndex(node => currentNode && currentNode.parent && node && node.item.handle === currentNode.parent.item.handle) === -1) {
 					const parentElement: T | undefined = this._elements.get(currentNode.parent.item.handle);
@@ -823,7 +807,6 @@ class ExtHostTreeView<T> extends Disposable {
 		}
 
 		const handlesToUpdate: TreeItemHandle[] = [];
-		// Take only top level elements
 		elementsToUpdate.forEach((handle) => {
 			const element = this._elements.get(handle);
 			if (element) {
@@ -854,7 +837,7 @@ class ExtHostTreeView<T> extends Disposable {
 		if (extElement) {
 			const existing = this._nodes.get(extElement);
 			if (existing) {
-				this._addChildrenToClear(extElement); // clear children cache
+				this._addChildrenToClear(extElement);
 				return asPromise(() => this._dataProvider.getTreeItem(extElement))
 					.then(extTreeItem => {
 						if (extTreeItem) {
@@ -877,10 +860,6 @@ class ExtHostTreeView<T> extends Disposable {
 			if (existingElement) {
 				const existingNode = this._nodes.get(existingElement);
 				if (existingElement !== element) {
-					// A different element object was registered with the same ID.
-					// This can happen during concurrent tree operations (e.g., tree
-					// being switched to while data is updated). Clean up the stale
-					// element reference before re-registering with the new one.
 					this._nodes.delete(existingElement);
 				}
 				if (existingNode) {
@@ -992,9 +971,6 @@ class ExtHostTreeView<T> extends Disposable {
 		do {
 			handle = `${prefix}/${counter}:${elementId}`;
 			if (returnFirst || !this._elements.has(handle) || existingHandle === handle) {
-				// Return first if asked for or
-				// Return if handle does not exist or
-				// Return if handle is being reused
 				break;
 			}
 			counter++;
@@ -1034,17 +1010,14 @@ class ExtHostTreeView<T> extends Disposable {
 	}
 
 	private _updateNodeCache(element: T, newNode: TreeNode, existing: TreeNode, parentNode: TreeNode | Root): void {
-		// Remove from the cache
 		this._elements.delete(newNode.item.handle);
 		this._nodes.delete(element);
 		if (newNode.item.handle !== existing.item.handle) {
 			this._elements.delete(existing.item.handle);
 		}
 
-		// Add the new node to the cache
 		this._addNodeToCache(element, newNode);
 
-		// Replace the node in parent's children nodes
 		const childrenNodes = (this._getChildrenNodes(parentNode) || []);
 		const childNode = childrenNodes.filter(c => c.item.handle === existing.item.handle)[0];
 		if (childNode) {

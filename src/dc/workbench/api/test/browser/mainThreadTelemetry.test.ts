@@ -14,16 +14,15 @@ suite('MainThreadTelemetry - CAPI assignment context', () => {
 	test('accepts well-formed assignment contexts', () => {
 		assert.strictEqual(isValidCapiAssignmentContext('e4hcf520:1109203'), true);
 		assert.strictEqual(isValidCapiAssignmentContext('e4hcf520:1109203;61623843:1255491'), true);
-		// a single trailing separator is tolerated (CAPI emits `a:b;c:d;`)
 		assert.strictEqual(isValidCapiAssignmentContext('e4hcf520:1109203;61623843:1255491;'), true);
 	});
 
 	test('rejects malformed, empty or oversized input', () => {
 		assert.strictEqual(isValidCapiAssignmentContext(''), false);
 		assert.strictEqual(isValidCapiAssignmentContext('noColonHere'), false);
-		assert.strictEqual(isValidCapiAssignmentContext('a:b;;c:d'), false); // empty inner entry
-		assert.strictEqual(isValidCapiAssignmentContext('a b:c'), false); // whitespace
-		assert.strictEqual(isValidCapiAssignmentContext('a:b\nc:d'), false); // control character
-		assert.strictEqual(isValidCapiAssignmentContext(`a:${'b'.repeat(9 * 1024)}`), false); // over 8KB
+		assert.strictEqual(isValidCapiAssignmentContext('a:b;;c:d'), false);
+		assert.strictEqual(isValidCapiAssignmentContext('a b:c'), false);
+		assert.strictEqual(isValidCapiAssignmentContext('a:b\nc:d'), false);
+		assert.strictEqual(isValidCapiAssignmentContext(`a:${'b'.repeat(9 * 1024)}`), false);
 	});
 });

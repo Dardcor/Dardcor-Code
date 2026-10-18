@@ -19,7 +19,7 @@ suite('combineUriFlags', () => {
 				'--file-uri', 'vscode-remote://ssh-remote+host/file.txt',
 				'--new-window',
 				'--folder-uri=vscode-remote://already-joined/workspace',
-				'--folder-uri', // trailing flag with no value
+				'--folder-uri',
 			]),
 			[
 				'--wait',

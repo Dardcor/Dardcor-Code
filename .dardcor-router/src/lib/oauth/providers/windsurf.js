@@ -1,9 +1,6 @@
 import { WINDSURF_CONFIG } from "../constants/oauth.js";
 import { extractJsonPath } from "./_shared.js";
 
-// ───────────────────────────────────────────────────────────────────────────
-// Windsurf OAuth helpers
-// ───────────────────────────────────────────────────────────────────────────
 
 async function windsurfSeatRequest(baseUrl, path, body) {
   const url = `${baseUrl.replace(/\/$/, "")}${path}`;
@@ -21,7 +18,6 @@ async function windsurfSeatRequest(baseUrl, path, body) {
   try { return JSON.parse(text); } catch { throw new Error(`Windsurf ${path} invalid JSON`); }
 }
 
-// Parse Windsurf callback (query string or full URL): ?access_token=...&state=...
 function parseWindsurfCallback(raw, expectedState) {
   const text = String(raw || "").trim();
   let queryStr = text;
@@ -46,7 +42,6 @@ function parseWindsurfCallback(raw, expectedState) {
   return { firebaseIdToken: accessToken };
 }
 
-// POST RegisterUser {firebase_id_token} → {apiKey, apiServerUrl, name}
 async function fetchWindsurfRegisterUser(firebaseIdToken) {
   const data = await windsurfSeatRequest(WINDSURF_CONFIG.registerApiBaseUrl, WINDSURF_CONFIG.registerPath, {
     firebase_id_token: firebaseIdToken,
@@ -58,7 +53,6 @@ async function fetchWindsurfRegisterUser(firebaseIdToken) {
   return { apiKey, apiServerUrl, name };
 }
 
-// Best-effort: GetOneTimeAuthToken → GetCurrentUser → email/name.
 async function fetchWindsurfUserInfo(apiServerUrl, firebaseIdToken) {
   try {
     const authRes = await windsurfSeatRequest(apiServerUrl, WINDSURF_CONFIG.oneTimeAuthPath, { firebaseIdToken });
@@ -76,8 +70,6 @@ async function fetchWindsurfUserInfo(apiServerUrl, firebaseIdToken) {
   } catch { return { email: null, name: null }; }
 }
 
-// Windsurf — browser OAuth: windsurf.com/signin →
-// local callback (firebase JWT) → RegisterUser → apiKey (used as credential).
 const windsurf = {
   config: WINDSURF_CONFIG,
   flowType: "authorization_code",
@@ -98,7 +90,6 @@ const windsurf = {
     const trimmed = String(code || "").trim();
     const looksCallback = trimmed.includes("?") || trimmed.includes("access_token=");
     if (!looksCallback) {
-      // Paste-token mode: sk-ws-... apiKey OR firebase JWT (eyJ...). Strip "Bearer " if pasted.
       const clean = trimmed.replace(/^Bearer\s+/i, "");
       if (clean.startsWith("sk-ws-")) {
         return { accessToken: clean, refreshToken: null, expiresIn: null, apiServerUrl: config.defaultApiServerUrl, firebaseIdToken: null, _authMethod: "imported" };

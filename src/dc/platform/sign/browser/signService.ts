@@ -26,7 +26,6 @@ declare namespace vsdaWeb {
 	export function init(module_or_path?: InitInput | Promise<InitInput>): Promise<unknown>;
 }
 
-// Initialized if/when vsda is loaded
 declare const vsda_web: {
 	default: typeof vsdaWeb.init;
 	sign: typeof vsdaWeb.sign;
@@ -64,8 +63,6 @@ export class SignService extends AbstractSignService implements ISignService {
 			new Promise<void>((resolve, reject) => {
 				importAMDNodeModule('vsda', 'rust/web/vsda.js').then(() => resolve(), reject);
 
-				// todo@connor4312: there seems to be a bug(?) in vscode-loader with
-				// require() not resolving in web once the script loads, so check manually
 				checkInterval.cancelAndSet(() => {
 					if (typeof vsda_web !== 'undefined') {
 						resolve();

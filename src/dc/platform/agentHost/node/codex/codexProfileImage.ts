@@ -41,11 +41,6 @@ export interface ICodexProfileImage {
 	readonly bytes: Uint8Array;
 }
 
-/**
- * Owns the one process-local resource that backs the current account image.
- * Root state carries only the returned reference; clients read the bytes once
- * through the Agent Host resource protocol.
- */
 export class CodexProfileImageStore extends Disposable {
 
 	private readonly _provider = this._register(new InMemoryFileSystemProvider());
@@ -109,10 +104,6 @@ export class CodexProfileImageStore extends Disposable {
 	}
 }
 
-/**
- * Fetches the current ChatGPT account image. Failures intentionally resolve to
- * `undefined` so UI callers can retain their normal account-icon fallback.
- */
 export async function fetchCodexProfileImage(accessToken: string, fetchFn: FetchFunction): Promise<ICodexProfileImage | undefined> {
 	const accountId = getChatGPTAccountId(accessToken);
 	const headers = { ...getAuthenticatedHeaders(accessToken, accountId), Accept: 'application/json' };
@@ -291,7 +282,6 @@ async function cancelResponseBody(response: Response): Promise<void> {
 	try {
 		await response.body?.cancel();
 	} catch {
-		// Best effort: the stream may already be closed or errored.
 	}
 }
 

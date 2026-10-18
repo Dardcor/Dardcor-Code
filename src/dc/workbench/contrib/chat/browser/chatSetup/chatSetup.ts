@@ -60,7 +60,7 @@ export enum ChatSetupStrategy {
 	SetupWithMicrosoftProvider = 6
 }
 
-export type ChatSetupResultValue = boolean /* success */ | undefined /* canceled */;
+export type ChatSetupResultValue = boolean | undefined ;
 
 export interface IChatSetupResult {
 	readonly success: ChatSetupResultValue;
@@ -102,20 +102,9 @@ export interface IChatSetupCommandOptions extends IChatSetupRunOptions {
 }
 
 export function refreshTokens(commandService: ICommandService): void {
-	// ugly, but we need to signal to the extension that entitlements changed
-	commandService.executeCommand(defaultChat.chatRefreshTokenCommand).catch(() => { /* command may not be registered */ });
+	commandService.executeCommand(defaultChat.chatRefreshTokenCommand).catch(() => { });
 }
 
-/**
- * Builds a redirect URL that GitHub will use to return the user to VS Code
- * after completing a plan upgrade. The redirect goes through `vscode.dev/redirect`
- * which triggers the native protocol handler back into the desktop app.
- *
- * @param baseUpgradeUrl The direct GitHub upgrade URL (from `resolveGitHubUrl`).
- * @param urlProtocol The VS Code URL protocol scheme (e.g. `vscode`, `vscode-insiders`, `code-oss`).
- * @param quality The product quality (`stable`, `insider`, or `undefined` for OSS).
- * @returns The upgrade URL with a `return_to` query parameter appended.
- */
 export function buildUpgradeUrlWithRedirect(baseUpgradeUrl: string, urlProtocol: string, quality: string | undefined): string {
 	const vscodeUri = `${urlProtocol}://${defaultChat.chatExtensionId}/upgrade-success`;
 	const redirectHost = quality === 'stable' ? 'vscode.dev' : 'insiders.vscode.dev';
@@ -125,13 +114,6 @@ export function buildUpgradeUrlWithRedirect(baseUpgradeUrl: string, urlProtocol:
 	return `${baseUpgradeUrl}${separator}return_to=${encodeURIComponent(returnTo)}`;
 }
 
-/**
- * Ensures the authentication provider extension is enabled.
- * If the extension is found locally but disabled, it will be
- * re-enabled and running extensions will be updated.
- *
- * @returns `true` if the extension was re-enabled, `false` otherwise.
- */
 export async function maybeEnableAuthExtension(
 	extensionsWorkbenchService: IExtensionsWorkbenchService,
 	logService: ILogService

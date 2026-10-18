@@ -48,9 +48,6 @@ export function formatRequestAndUserQuery({ workspaceService, chatVariables, use
 	return requestAndUserQuery;
 }
 
-/**
- * @return undefined if no workspace contains given path
- */
 export function relativeToWorkspace(workspaceService: IWorkspaceService, absPath: string): string | null {
 
 	const workspaceOfTestFile = workspaceService.getWorkspaceFolders().find(folder => absPath.startsWith(folder.path));
@@ -61,7 +58,6 @@ export function relativeToWorkspace(workspaceService: IWorkspaceService, absPath
 
 	const relPath = path.relative(workspaceOfTestFile.path, absPath);
 
-	// Convert the path separator to be platform-independent
 	const relPathPosix = relPath.split(path.sep).join('/');
 
 	return relPathPosix;

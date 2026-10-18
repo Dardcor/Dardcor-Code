@@ -31,20 +31,15 @@ function mapModifiedLineNumberToOriginalLineNumber(lineNumber: number, changes: 
 	}
 
 	for (const change of changes) {
-		// Do not process changes after the line number
 		if (lineNumber < change.modified.startLineNumber) {
 			break;
 		}
 
-		// Map line number to the original line number
 		if (change.kind === TextEditorChangeKind.Addition) {
-			// Addition
 			lineNumber = lineNumber - lineRangeLength(change.modified.startLineNumber, change.modified.endLineNumberExclusive);
 		} else if (change.kind === TextEditorChangeKind.Deletion) {
-			// Deletion
 			lineNumber = lineNumber + lineRangeLength(change.original.startLineNumber, change.original.endLineNumberExclusive);
 		} else if (change.kind === TextEditorChangeKind.Modification) {
-			// Modification
 			const originalRangeLength = lineRangeLength(change.original.startLineNumber, change.original.endLineNumberExclusive);
 			const modifiedRangeLength = lineRangeLength(change.modified.startLineNumber, change.modified.endLineNumberExclusive);
 
@@ -215,14 +210,12 @@ export class GitBlameController {
 		const repository = this._model.getRepository(documentUri);
 		if (repository) {
 			try {
-				// Commit details
 				commitInformation = this._commitInformationCache.get(blameInformation.hash);
 				if (!commitInformation) {
 					commitInformation = await repository.getCommit(blameInformation.hash);
 					this._commitInformationCache.set(blameInformation.hash, commitInformation);
 				}
 
-				// Avatar
 				const avatarQuery = {
 					commits: [{
 						hash: blameInformation.hash,
@@ -236,13 +229,11 @@ export class GitBlameController {
 				commitAvatar = avatarResult?.get(blameInformation.hash);
 			} catch { }
 
-			// Remote hover commands
 			const unpublishedCommits = await repository.getUnpublishedCommits();
 			if (!unpublishedCommits.has(blameInformation.hash)) {
 				remoteHoverCommands.push(...await provideSourceControlHistoryItemHoverCommands(this._model, repository) ?? []);
 			}
 
-			// Message links
 			commitMessageWithLinks = await provideSourceControlHistoryItemMessageLinks(
 				this._model, repository, commitInformation?.message ?? blameInformation.subject ?? '');
 		}
@@ -253,7 +244,6 @@ export class GitBlameController {
 		const authorDate = commitInformation?.authorDate ?? blameInformation.authorDate;
 		const message = commitMessageWithLinks ?? commitInformation?.message ?? blameInformation.subject ?? '';
 
-		// Commands
 		const commands: Command[][] = [
 			getHoverCommitHashCommands(documentUri, hash),
 			processHoverRemoteCommands(remoteHoverCommands, hash)
@@ -277,7 +267,6 @@ export class GitBlameController {
 			return;
 		}
 
-		// Clear cache when ignoreWhitespace setting changes
 		if (e && e.affectsConfiguration('git.blame.ignoreWhitespace')) {
 			this._repositoryBlameCache.clear();
 			this._updateTextEditorBlameInformation(window.activeTextEditor);
@@ -288,7 +277,6 @@ export class GitBlameController {
 		const editorDecorationEnabled = config.get<boolean>('blame.editorDecoration.enabled') === true;
 		const statusBarItemEnabled = config.get<boolean>('blame.statusBarItem.enabled') === true;
 
-		// Editor decoration
 		if (editorDecorationEnabled) {
 			if (!this._editorDecoration) {
 				this._editorDecoration = new GitBlameEditorDecoration(this);
@@ -298,7 +286,6 @@ export class GitBlameController {
 			this._editorDecoration = undefined;
 		}
 
-		// StatusBar item
 		if (statusBarItemEnabled) {
 			if (!this._statusBarItem) {
 				this._statusBarItem = new GitBlameStatusBarItem(this);
@@ -308,7 +295,6 @@ export class GitBlameController {
 			this._statusBarItem = undefined;
 		}
 
-		// Listeners
 		if (editorDecorationEnabled || statusBarItemEnabled) {
 			if (this._enablementDisposables.length === 0) {
 				this._model.onDidOpenRepository(this._onDidOpenRepository, this, this._enablementDisposables);
@@ -365,11 +351,8 @@ export class GitBlameController {
 			return resourceBlameInformation;
 		}
 
-		// Ensure that the emojis are loaded as we will need
-		// access to them when formatting the blame information.
 		await ensureEmojis();
 
-		// Get blame information for the resource and cache it
 		const blameInformation = await repository.blame2(resource.fsPath, commit) ?? [];
 		this._repositoryBlameCache.set(repository, resource, commit, blameInformation);
 
@@ -392,15 +375,11 @@ export class GitBlameController {
 			return;
 		}
 
-		// Only support resources with `file` and `git` schemes
 		if (!isResourceSchemeSupported(textEditor.document.uri)) {
 			this.textEditorBlameInformation = undefined;
 			return;
 		}
 
-		// Do not show blame information when there is a single selection and it is at the beginning
-		// of the file [0, 0, 0, 0] unless the user explicitly navigates the cursor there. We do this
-		// to avoid showing blame information when the editor is not focused.
 		if (reason !== 'selection' && textEditor.selections.length === 1 &&
 			textEditor.selections[0].start.line === 0 && textEditor.selections[0].start.character === 0 &&
 			textEditor.selections[0].end.line === 0 && textEditor.selections[0].end.character === 0) {
@@ -415,20 +394,12 @@ export class GitBlameController {
 		if (isGitUri(textEditor.document.uri)) {
 			const { ref } = fromGitUri(textEditor.document.uri);
 
-			// For the following scenarios we can discard the diff information
-			// 1) Commit - Resource in the multi-file diff editor when viewing the details of a commit.
-			// 2) HEAD   - Resource on the left-hand side of the diff editor when viewing a resource from the index.
-			// 3) ~      - Resource on the left-hand side of the diff editor when viewing a resource from the working tree.
 			if (/^[0-9a-f]{40}$/i.test(ref) || ref === 'HEAD' || ref === '~') {
 				workingTreeChanges = allChanges = [];
 				workingTreeAndIndexChanges = undefined;
 			} else if (ref === '') {
-				// Resource on the right-hand side of the diff editor when viewing a resource from the index.
 				const diffInformationWorkingTreeAndIndex = getWorkingTreeAndIndexDiffInformation(textEditor);
 
-				// Working tree + index diff information is present and it is stale. Diff information
-				// may be stale when the selection changes because of a content change and the diff
-				// information is not yet updated.
 				if (diffInformationWorkingTreeAndIndex && diffInformationWorkingTreeAndIndex.isStale) {
 					this.textEditorBlameInformation = undefined;
 					return;
@@ -440,23 +411,15 @@ export class GitBlameController {
 				throw new Error(`Unexpected ref: ${ref}`);
 			}
 		} else {
-			// Working tree diff information. Diff Editor (Working Tree) -> Text Editor
 			const diffInformationWorkingTree = getWorkingTreeDiffInformation(textEditor);
 
-			// Working tree diff information is not present or it is stale. Diff information
-			// may be stale when the selection changes because of a content change and the diff
-			// information is not yet updated.
 			if (!diffInformationWorkingTree || diffInformationWorkingTree.isStale) {
 				this.textEditorBlameInformation = undefined;
 				return;
 			}
 
-			// Working tree + index diff information
 			const diffInformationWorkingTreeAndIndex = getWorkingTreeAndIndexDiffInformation(textEditor);
 
-			// Working tree + index diff information is present and it is stale. Diff information
-			// may be stale when the selection changes because of a content change and the diff
-			// information is not yet updated.
 			if (diffInformationWorkingTreeAndIndex && diffInformationWorkingTreeAndIndex.isStale) {
 				this.textEditorBlameInformation = undefined;
 				return;
@@ -465,23 +428,17 @@ export class GitBlameController {
 			workingTreeChanges = diffInformationWorkingTree.changes;
 			workingTreeAndIndexChanges = diffInformationWorkingTreeAndIndex?.changes;
 
-			// For staged resources, we provide an additional "original resource" so that the editor
-			// diff information contains both the changes that are in the working tree and the changes
-			// that are in the working tree + index.
 			allChanges = workingTreeAndIndexChanges ?? workingTreeChanges;
 		}
 
 		let commit: string;
 		if (!isGitUri(textEditor.document.uri)) {
-			// Resource with the `file` scheme
 			commit = repository.HEAD.commit;
 		} else {
-			// Resource with the `git` scheme
 			const { ref } = fromGitUri(textEditor.document.uri);
 			commit = /^[0-9a-f]{40}$/i.test(ref) ? ref : repository.HEAD.commit;
 		}
 
-		// Git blame information
 		const resourceBlameInformation = await this._getBlameInformation(textEditor.document.uri, commit);
 		if (!resourceBlameInformation) {
 			return;
@@ -489,22 +446,18 @@ export class GitBlameController {
 
 		const lineBlameInformation: LineBlameInformation[] = [];
 		for (const lineNumber of new Set(textEditor.selections.map(s => s.active.line))) {
-			// Check if the line is contained in the working tree diff information
 			if (lineRangesContainLine(workingTreeChanges, lineNumber + 1)) {
 				if (reason === 'selection') {
-					// Only show the `Not Committed Yet` message upon selection change due to navigation
 					lineBlameInformation.push({ lineNumber, blameInformation: l10n.t('Not Committed Yet') });
 				}
 				continue;
 			}
 
-			// Check if the line is contained in the working tree + index diff information
 			if (lineRangesContainLine(workingTreeAndIndexChanges ?? [], lineNumber + 1)) {
 				lineBlameInformation.push({ lineNumber, blameInformation: l10n.t('Not Committed Yet (Staged)') });
 				continue;
 			}
 
-			// Map the line number to the git blame ranges using the diff information
 			const lineNumberWithDiff = mapModifiedLineNumberToOriginalLineNumber(lineNumber + 1, allChanges);
 			const blameInformation = resourceBlameInformation.find(blameInformation => {
 				return blameInformation.ranges.find(range => {
@@ -565,12 +518,10 @@ class GitBlameEditorDecoration implements HoverProvider {
 			return undefined;
 		}
 
-		// Position must be at the end of the line
 		if (position.character !== document.lineAt(position.line).range.end.character) {
 			return undefined;
 		}
 
-		// Get blame information
 		const blameInformation = this._controller.textEditorBlameInformation?.blameInformation;
 		const lineBlameInformation = blameInformation?.find(blame => blame.lineNumber === position.line);
 
@@ -595,7 +546,6 @@ class GitBlameEditorDecoration implements HoverProvider {
 			return;
 		}
 
-		// Cache the decoration template
 		const config = workspace.getConfiguration('git');
 		this._template = config.get<string>('blame.editorDecoration.template', '${subject}, ${authorName} (${authorDateAgo})');
 
@@ -604,14 +554,12 @@ class GitBlameEditorDecoration implements HoverProvider {
 	}
 
 	private _onDidChangeActiveTextEditor(): void {
-		// Clear decorations
 		for (const editor of window.visibleTextEditors) {
 			if (editor !== window.activeTextEditor) {
 				editor.setDecorations(this._decoration, []);
 			}
 		}
 
-		// Register hover provider
 		this._registerHoverProvider();
 	}
 
@@ -621,14 +569,12 @@ class GitBlameEditorDecoration implements HoverProvider {
 			return;
 		}
 
-		// Get blame information
 		const blameInformation = this._controller.textEditorBlameInformation?.blameInformation;
 		if (!blameInformation || blameInformation.length === 0) {
 			textEditor.setDecorations(this._decoration, []);
 			return;
 		}
 
-		// Set decorations for the editor
 		const decorations = blameInformation.map(blame => {
 			const contentText = typeof blame.blameInformation !== 'string'
 				? this._controller.formatBlameInformationMessage(textEditor.document.uri, this._template, blame.blameInformation)
@@ -695,7 +641,6 @@ class GitBlameStatusBarItem {
 			return;
 		}
 
-		// Cache the decoration template
 		const config = workspace.getConfiguration('git');
 		this._template = config.get<string>('blame.statusBarItem.template', '${authorName} (${authorDateAgo})');
 

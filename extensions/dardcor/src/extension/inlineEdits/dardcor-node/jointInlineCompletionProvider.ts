@@ -6,7 +6,6 @@
 import { join } from 'path';
 import * as vscode from 'vscode';
 import { InlineCompletionModelInfo, InlineCompletionProviderOption } from 'vscode';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IEnvService } from '../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
@@ -24,7 +23,7 @@ import { assertNever, softAssert } from '../../../util/dardcor/base/common/asser
 import { raceCancellation, raceTimeout } from '../../../util/dardcor/base/common/async';
 import { CancellationToken, CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
-import { autorun, derived, derivedDisposable, observableFromEvent } from '../../../util/dardcor/base/common/observable';
+import { autorun, derived, derivedDisposable } from '../../../util/dardcor/base/common/observable';
 import { StopWatch } from '../../../util/dardcor/base/common/stopwatch';
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
@@ -34,8 +33,8 @@ import { IInstantiationService } from '../../../util/dardcor/platform/instantiat
 import { IExtensionContribution } from '../../common/contributions';
 import { registerUnificationCommands } from '../../completions-core/dardcor-node/completionsServiceBridges';
 import { GhostTextCompletionItem, GhostTextCompletionList } from '../../completions-core/dardcor-node/extension/src/ghostText/ghostTextProvider';
-import { CopilotInlineCompletionItemProvider } from '../../completions-core/dardcor-node/extension/src/dardcorInlineCompletionItemProvider';
-import { ICopilotInlineCompletionItemProviderService } from '../../completions/common/dardcorInlineCompletionItemProviderService';
+import { DardcorInlineCompletionItemProvider } from '../../completions-core/dardcor-node/extension/src/dardcorInlineCompletionItemProvider';
+import { IDardcorInlineCompletionItemProviderService } from '../../completions/common/dardcorInlineCompletionItemProviderService';
 import { CompletionsCoreContribution } from '../../completions/dardcor-node/completionsCoreContribution';
 import { unificationStateObservable } from '../../completions/dardcor-node/completionsUnificationContribution';
 import { NesChangeHint } from '../common/nesTriggerHint';
@@ -59,27 +58,11 @@ export class JointCompletionsProviderContribution extends Disposable implements 
 
 	private readonly _inlineEditsProviderId = makeSettable(this._configurationService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsProviderId, this._expService));
 
-	private readonly _hideInternalInterface = this._configurationService.getConfigObservable(ConfigKey.TeamInternal.InlineEditsHideInternalInterface);
 	private readonly _enableDiagnosticsProvider = this._configurationService.getExperimentBasedConfigObservable(ConfigKey.InlineEditsEnableDiagnosticsProvider, this._expService);
-	// FIXME@ulugbekna: re-enable when yieldTo is supported
-	// private readonly _yieldToCopilot = this._configurationService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsYieldToCopilot, this._expService);
 	private readonly _excludedProviders = this._configurationService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsExcludedProviders, this._expService).map(v => v ? v.split(',').map(v => v.trim()).filter(v => v !== '') : []);
-	private readonly _dardcorToken = observableFromEvent(this, this._authenticationService.onDidCopilotTokenChange, () => this._authenticationService.dardcorToken);
+	public readonly inlineEditsEnabled = derived(this, () => false);
 
-	public readonly inlineEditsEnabled = derived(this, (reader) => {
-		const dardcorToken = this._dardcorToken.read(reader);
-		if (dardcorToken === undefined) {
-			return false;
-		}
-		if (dardcorToken.isCompletionsQuotaExceeded) {
-			return false;
-		}
-		return true;
-	});
-
-	private readonly _internalActionsEnabled = derived(this, (reader) => {
-		return !!this._dardcorToken.read(reader)?.isInternal && !this._hideInternalInterface.read(reader);
-	});
+	private readonly _internalActionsEnabled = derived(this, () => false);
 
 	public readonly isInlineEditsLogFileEnabledObservable = this._configurationService.getConfigObservable(ConfigKey.TeamInternal.InlineEditsLogContextRecorderEnabled);
 
@@ -91,17 +74,16 @@ export class JointCompletionsProviderContribution extends Disposable implements 
 	constructor(
 		@IVSCodeExtensionContext private readonly _vscodeExtensionContext: IVSCodeExtensionContext,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
-		@ICopilotInlineCompletionItemProviderService private readonly _dardcorInlineCompletionItemProviderService: ICopilotInlineCompletionItemProviderService,
+		@IDardcorInlineCompletionItemProviderService private readonly _dardcorInlineCompletionItemProviderService: IDardcorInlineCompletionItemProviderService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IExperimentationService private readonly _expService: IExperimentationService,
-		@IAuthenticationService private readonly _authenticationService: IAuthenticationService,
 		@IEnvService private readonly _envService: IEnvService,
 	) {
 		super();
 
 		const useJointCompletionsProviderObs = _configurationService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsJointCompletionsProviderEnabled, _expService);
 
-		this._register(autorun((reader) => { // FX
+		this._register(autorun((reader) => {
 			const useJointCompletionsProvider = useJointCompletionsProviderObs.read(reader);
 			if (!useJointCompletionsProvider) {
 				reader.store.add(_instantiationService.createInstance(InlineEditProviderFeatureContribution));
@@ -151,7 +133,6 @@ export class JointCompletionsProviderContribution extends Disposable implements 
 
 					const telemetrySender = reader.store.add(this._instantiationService.createInstance(TelemetrySender, workspace));
 
-					// Create the expected edit capture controller
 					const expectedEditCaptureController = reader.store.add(this._instantiationService.createInstance(
 						ExpectedEditCaptureController,
 						model.debugRecorder
@@ -184,7 +165,6 @@ export class JointCompletionsProviderContribution extends Disposable implements 
 						void vscode.commands.executeCommand(reportFeedbackCommandId, { logContext });
 					}));
 
-					// Register expected edit capture commands
 					reader.store.add(vscode.commands.registerCommand(captureExpectedStartCommandId, () => {
 						void expectedEditCaptureController.startCapture('manual');
 					}));
@@ -202,21 +182,15 @@ export class JointCompletionsProviderContribution extends Disposable implements 
 					}));
 				}
 
-				let completionsProvider: CopilotInlineCompletionItemProvider | undefined;
+				let completionsProvider: DardcorInlineCompletionItemProvider | undefined;
 				{
-					const configEnabled = this._configurationService.getExperimentBasedConfigObservable<boolean>(ConfigKey.TeamInternal.InlineEditsEnableGhCompletionsProvider, this._expService).read(reader);
 					const extensionUnification = unificationStateValue?.extensionUnification ?? false;
 
-					// respect excludes if NES is enabled
 					const isExcluded = excludes.includes(JointCompletionsProviderContribution.COMPLETIONS_GROUP_ID) && this.inlineEditsEnabled.read(reader);
 
-					// @ulugbekna: note that we don't want it if modelUnification is on
 					const modelUnification = unificationStateValue?.modelUnification ?? false;
-					if (
-						(!modelUnification || unificationStateValue?.codeUnification || extensionUnification || configEnabled || this._dardcorToken.read(reader)?.isNoAuthUser) &&
-						!isExcluded
-					) {
-						completionsProvider = this._dardcorInlineCompletionItemProviderService.getOrCreateProvider() as CopilotInlineCompletionItemProvider;
+					if (!isExcluded) {
+						completionsProvider = this._dardcorInlineCompletionItemProviderService.getOrCreateProvider() as DardcorInlineCompletionItemProvider;
 					}
 
 					void vscode.commands.executeCommand('setContext', 'github.dardcor.extensionUnification.activated', extensionUnification);
@@ -240,7 +214,7 @@ export class JointCompletionsProviderContribution extends Disposable implements 
 					singularProvider,
 					{
 						displayName: inlineEditProvider?.displayName,
-						debounceDelayMs: 0, // set 0 debounce to ensure consistent delays/timings
+						debounceDelayMs: 0,
 						groupId: 'nes',
 						excludes,
 					})
@@ -294,24 +268,20 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 
 	private _logger: ILogger;
 
-	//#region Model picker
 	public readonly onDidChangeModelInfo = this._inlineEditProvider?.onDidChangeModelInfo;
 	public readonly setCurrentModelId = this._inlineEditProvider?.setCurrentModelId?.bind(this._inlineEditProvider);
 	public get modelInfo(): InlineCompletionModelInfo | undefined {
 		return this._inlineEditProvider?.modelInfo;
 	}
-	//#endregion
 
-	//#region Provider options
 	public readonly onDidChangeProviderOptions = this._inlineEditProvider?.onDidChangeProviderOptions;
 	public readonly setProviderOptionValue = this._inlineEditProvider?.setProviderOptionValue?.bind(this._inlineEditProvider);
 	public get providerOptions(): readonly InlineCompletionProviderOption[] | undefined {
 		return this._inlineEditProvider?.providerOptions;
 	}
-	//#endregion
 
 	constructor(
-		private readonly _completionsProvider: CopilotInlineCompletionItemProvider | undefined,
+		private readonly _completionsProvider: DardcorInlineCompletionItemProvider | undefined,
 		private readonly _inlineEditProvider: InlineCompletionProviderImpl | undefined,
 		@IConfigurationService private readonly _configService: IConfigurationService,
 		@IExperimentationService private readonly _expService: IExperimentationService,
@@ -321,7 +291,6 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 
 		this._logger = logService.createSubLogger(['NES', 'JointCompletionsProvider']);
 
-		// Only set up the onDidChange emitter if the inlineEditProvider has one to channel
 		if (this._inlineEditProvider?.onDidChange) {
 			this._onDidChangeEmitter = this._register(new vscode.EventEmitter<NesChangeHint>());
 			this.onDidChange = this._onDidChangeEmitter.event;
@@ -478,7 +447,6 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 			}
 			disp1.dispose();
 
-			// Only save the last NES suggestion if this is the latest invocation
 			if (invocationId === this.provideInlineCompletionItemsInvocationCount) {
 				this.lastNesSuggestion = saveLastNesSuggestion;
 				if (this.lastNesSuggestion) {
@@ -513,11 +481,9 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 
 		logger.trace('requesting completions and/or NES');
 
-		// we don't want to trigger completions on selection change events
 		const isTriggeredDueToSelectionChange = context && (context as NESInlineCompletionContext).changeHint !== undefined;
 
 		if (!lastNesSuggestion || !lastNesSuggestion.completionItem.wasShown) {
-			// prefer completions unless there are none
 			logger.trace(`defaulting to yielding to completions; last NES suggestion is ${lastNesSuggestion ? 'not shown' : 'not available'}`);
 			const completionsP = isTriggeredDueToSelectionChange ? undefined : this._invokeCompletionsProvider(logger, document, position, context, tokens.completionsCts.token, sw);
 			const nesP = this._invokeNESProvider(logger, document, position, true, context, tokens.nesCts.token, sw);
@@ -535,7 +501,6 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 		}
 
 		const NES_CACHE_WAIT_MS = 10;
-		// scoping the variables
 		{
 			logger.trace(`giving the NES provider ${NES_CACHE_WAIT_MS}ms to return what it has in its cache`);
 			const fastNesResult = await raceCancellation(
@@ -546,7 +511,6 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 				tokens.coreToken
 			);
 
-			// got nes quickly
 			if (fastNesResult && this.doesNesSuggestionAgree(docSnapshot, lastNesSuggestion.docWithNesEditApplied, (fastNesResult.items as NesCompletionItem[]).at(0))) {
 				logger.trace('last NES suggestion agrees with the current suggestion, using NES');
 				const list: SingularCompletionList = toInlineEditsList(fastNesResult);
@@ -575,7 +539,6 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 			tokens.coreToken
 		);
 
-		// got cancelled
 		if (suggestionsList === undefined) {
 			logger.trace(`suggestions request was cancelled`);
 			void setEndOfLifeReason(this._completionsProvider, completionsP, { kind: vscode.InlineCompletionsDisposeReasonKind.TokenCancellation });
@@ -585,7 +548,6 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 			return undefined;
 		}
 
-		// got NES first
 		if (suggestionsList.type === 'nes' && suggestionsList.res && this.doesNesSuggestionAgree(docSnapshot, lastNesSuggestion.docWithNesEditApplied, (suggestionsList.res.items as NesCompletionItem[]).at(0))) {
 			logger.trace('last NES suggestion agrees with the current suggestion, using NES');
 			return this._returnNES(suggestionsList.res, { kind: vscode.InlineCompletionsDisposeReasonKind.NotTaken }, completionsP, sw, logger, tokens);
@@ -623,7 +585,7 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 				this._completionsRequestsInFlight.delete(ct);
 				disp.dispose();
 			};
-			try { // in case the provider throws synchronously
+			try {
 				logger.trace(`- requesting completions provideInlineCompletionItems`);
 				completionsP = this._completionsProvider.provideInlineCompletionItems(document, position, context, ct);
 				completionsP.then((completionsR) => {
@@ -681,7 +643,6 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 			}
 		}
 
-		// return empty completions
 		return this._returnCompletions(completionsR, { kind: vscode.InlineCompletionsDisposeReasonKind.NotTaken }, nesP, sw, logger, tokens);
 	}
 
@@ -694,7 +655,7 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 		tokens: { coreToken: CancellationToken; completionsCts: CancellationTokenSource; nesCts: CancellationTokenSource },
 	): SingularCompletionList | undefined {
 		void setEndOfLifeReason(this._inlineEditProvider, nesP, nesDisposeReason);
-		tokens.nesCts.cancel(); // cancel NES request if still pending
+		tokens.nesCts.cancel();
 		if (completionsR === undefined) {
 			logger.trace(`Return: no completions to return in ${sw.elapsed()}ms`);
 			return undefined;
@@ -713,7 +674,7 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 		tokens: { coreToken: CancellationToken; completionsCts: CancellationTokenSource; nesCts: CancellationTokenSource },
 	): SingularCompletionList {
 		void setEndOfLifeReason(this._completionsProvider, completionsP, completionsDisposeReason);
-		tokens.completionsCts.cancel(); // cancel completions request if still pending
+		tokens.completionsCts.cancel();
 		const list: SingularCompletionList = toInlineEditsList(nesR);
 		logger.trace(`Return: returning NES result in ${sw.elapsed()}ms`);
 		return list;
@@ -728,10 +689,9 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 	}
 
 	private static retainOnlyMeaningfulEdits<T extends vscode.InlineCompletionList>(docSnapshot: StringText, list: T): T {
-		// meaningful = not noop
 		function isMeaningfulEdit(item: T['items'][number]): boolean {
-			if (item.range === undefined || // must be a completion with a side-effect, eg a command invocation or something
-				typeof item.insertText !== 'string' // shouldn't happen
+			if (item.range === undefined ||
+				typeof item.insertText !== 'string'
 			) {
 				return true;
 			}
@@ -802,7 +762,6 @@ class JointCompletionsProvider extends Disposable implements vscode.InlineComple
 		}
 	}
 
-	// neither provider implements this deprecated method
 	public handleDidRejectCompletionItem = undefined;
 }
 

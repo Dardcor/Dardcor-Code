@@ -8,34 +8,17 @@ import { IMarkdownString } from '../../../../../../base/common/htmlContent.js';
 import { IChatQuestion, IChatQuestionAnswers, IChatQuestionCarousel } from '../../chatService/chatService.js';
 import { ToolDataSource } from '../../tools/languageModelToolsService.js';
 
-/**
- * Runtime representation of a question carousel with a {@link DeferredPromise}
- * that is resolved when the user submits answers. {@link toJSON} strips the
- * completion so only serialisable data is persisted.
- */
 export class ChatQuestionCarouselData implements IChatQuestionCarousel {
 	public readonly kind = 'questionCarousel' as const;
 	public readonly completion = new DeferredPromise<{ answers: IChatQuestionAnswers | undefined }>();
 	public draftAnswers: IChatQuestionAnswers | undefined;
 	public draftCurrentIndex: number | undefined;
 	public draftCollapsed: boolean | undefined;
-	/**
-	 * Set to `true` when the carousel was dismissed because the user typed
-	 * directly in the associated terminal instead of using the carousel UI.
-	 */
 	public dismissedByTerminalInput?: boolean;
 
-	/**
-	 * True when the input was accepted/answered outside the carousel UI, such
-	 * as by voice or automatic reply.
-	 */
 	public answeredExternally?: boolean;
 	public autoReply?: boolean;
 
-	/**
-	 * Marks the carousel as dismissed with the given answers and clears draft
-	 * state. Safe to call multiple times — subsequent calls are no-ops.
-	 */
 	dismiss(answers: IChatQuestionAnswers | undefined): void {
 		if (this.isUsed) {
 			return;

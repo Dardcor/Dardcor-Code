@@ -128,13 +128,9 @@ export const enum TerminalSettingId {
 	EnableWin32InputMode = 'terminal.integrated.enableWin32InputMode',
 	AllowInUntrustedWorkspace = 'terminal.integrated.allowInUntrustedWorkspace',
 
-	// Developer/debug settings
 
-	/** Simulated latency applied to all calls made to the pty host */
 	DeveloperPtyHostLatency = 'terminal.integrated.developer.ptyHost.latency',
-	/** Simulated startup delay of the pty host process */
 	DeveloperPtyHostStartupDelay = 'terminal.integrated.developer.ptyHost.startupDelay',
-	/** Shows the textarea element */
 	DevMode = 'terminal.integrated.developer.devMode'
 }
 
@@ -218,13 +214,9 @@ export interface IReconnectionProperties {
 export type TerminalType = 'Task' | 'Local' | undefined;
 
 export enum TitleEventSource {
-	/** From the API or the rename command that overrides any other type */
 	Api,
-	/** From the process name property*/
 	Process,
-	/** From the VT sequence */
 	Sequence,
-	/** Config changed */
 	Config
 }
 
@@ -232,25 +224,10 @@ export type ITerminalsLayoutInfo = IRawTerminalsLayoutInfo<IPtyHostAttachTarget 
 export type ITerminalsLayoutInfoById = IRawTerminalsLayoutInfo<number>;
 
 export enum TerminalIpcChannels {
-	/**
-	 * Communicates between the renderer process and shared process.
-	 */
 	LocalPty = 'localPty',
-	/**
-	 * Communicates between the shared process and the pty host process.
-	 */
 	PtyHost = 'ptyHost',
-	/**
-	 * Communicates between the renderer process and the pty host process.
-	 */
 	PtyHostWindow = 'ptyHostWindow',
-	/**
-	 * Deals with logging from the pty host process.
-	 */
 	Logger = 'logger',
-	/**
-	 * Enables the detection of unresponsive pty hosts.
-	 */
 	Heartbeat = 'heartbeat'
 }
 
@@ -288,14 +265,8 @@ export interface IProcessPropertyMap {
 }
 
 export interface IFixedTerminalDimensions {
-	/**
-	 * The fixed columns of the terminal.
-	 */
 	cols?: number;
 
-	/**
-	 * The fixed rows of the terminal.
-	 */
 	rows?: number;
 }
 
@@ -303,9 +274,6 @@ export interface ITerminalLaunchResult {
 	injectedArgs: string[];
 }
 
-/**
- * A service that communicates with a pty host.
-*/
 export interface IPtyService {
 	readonly _serviceBrand: undefined;
 
@@ -334,14 +302,8 @@ export interface IPtyService {
 	detachFromProcess(id: number, forcePersist?: boolean): Promise<void>;
 	shutdownAll(): Promise<void>;
 
-	/**
-	 * Lists all orphaned processes, ie. those without a connected frontend.
-	 */
 	listProcesses(): Promise<IProcessDetails[]>;
 	getPerformanceMarks(): Promise<performance.PerformanceMark[]>;
-	/**
-	 * Measures and returns the latency of the current and all other processes to the pty host.
-	 */
 	getLatency(): Promise<IPtyHostLatencyMeasurement[]>;
 
 	start(id: number): Promise<ITerminalLaunchError | ITerminalLaunchResult | undefined>;
@@ -356,7 +318,6 @@ export interface IPtyService {
 	setNextCommandId(id: number, commandLine: string, commandId: string): Promise<void>;
 	setUnicodeVersion(id: number, version: '6' | '11'): Promise<void>;
 	processBinary(id: number, data: string): Promise<void>;
-	/** Confirm the process is _not_ an orphan. */
 	orphanQuestionReply(id: number): Promise<void>;
 	updateTitle(id: number, title: string, titleSource: TitleEventSource): Promise<void>;
 	updateIcon(id: number, userInitiated: boolean, icon: TerminalIcon, color?: string): Promise<void>;
@@ -371,28 +332,17 @@ export interface IPtyService {
 	requestDetachInstance(workspaceId: string, instanceId: number): Promise<IProcessDetails | undefined>;
 	acceptDetachInstanceReply(requestId: number, persistentProcessId?: number): Promise<void>;
 	freePortKillProcess(port: string): Promise<{ port: string; processId: string }>;
-	/**
-	 * Serializes and returns terminal state.
-	 * @param ids The persistent terminal IDs to serialize.
-	 */
 	serializeTerminalState(ids: number[]): Promise<string>;
-	/**
-	 * Revives a workspaces terminal processes, these can then be reconnected to using the normal
-	 * flow for restoring terminals after reloading.
-	 */
 	reviveTerminalProcesses(workspaceId: string, state: ISerializedTerminalState[], dateTimeFormatLocate: string): Promise<void>;
 	refreshProperty<T extends ProcessPropertyType>(id: number, property: T): Promise<IProcessPropertyMap[T]>;
 	updateProperty<T extends ProcessPropertyType>(id: number, property: T, value: IProcessPropertyMap[T]): Promise<void>;
 
-	// TODO: Make mandatory and remove impl from pty host service
 	refreshIgnoreProcessNames?(names: string[]): Promise<void>;
 
-	// #region Pty service contribution RPC calls
 
 	installAutoReply(match: string, reply: string): Promise<void>;
 	uninstallAllAutoReplies(): Promise<void>;
 
-	// #endregion
 }
 export const IPtyService = createDecorator<IPtyService>('ptyService');
 
@@ -415,10 +365,6 @@ export interface IPtyHostController {
 	getProfiles(workspaceId: string, profiles: unknown, defaultProfile: unknown, includeDetectedProfiles?: boolean): Promise<ITerminalProfile[]>;
 }
 
-/**
- * A service that communicates with a pty host controller (eg. main or server
- * process) and is able to launch and forward requests to the pty host.
-*/
 export interface IPtyHostService extends IPtyService, IPtyHostController {
 }
 
@@ -427,10 +373,6 @@ export interface IPtyHostLatencyMeasurement {
 	latency: number;
 }
 
-/**
- * Serialized terminal state matching the interface that can be used across versions, the version
- * should be verified before using the state payload.
- */
 export interface ICrossVersionSerializedTerminalState {
 	version: number;
 	state: unknown;
@@ -459,32 +401,10 @@ export interface IRequestResolveVariablesEvent {
 }
 
 export enum HeartbeatConstants {
-	/**
-	 * The duration between heartbeats
-	 */
 	BeatInterval = 5000,
-	/**
-	 * The duration of the first heartbeat while the pty host is starting up. This is much larger
-	 * than the regular BeatInterval to accommodate slow machines, we still want to warn about the
-	 * pty host's unresponsiveness eventually though.
-	 */
 	ConnectingBeatInterval = 20000,
-	/**
-	 * Defines a multiplier for BeatInterval for how long to wait before starting the second wait
-	 * timer.
-	 */
 	FirstWaitMultiplier = 1.2,
-	/**
-	 * Defines a multiplier for BeatInterval for how long to wait before telling the user about
-	 * non-responsiveness. The second timer is to avoid informing the user incorrectly when waking
-	 * the computer up from sleep
-	 */
 	SecondWaitMultiplier = 1,
-	/**
-	 * How long to wait before telling the user about non-responsiveness when they try to create a
-	 * process. This short circuits the standard wait timeouts to tell the user sooner and only
-	 * create process is handled to avoid additional perf overhead.
-	 */
 	CreateProcessTimeout = 5000
 }
 
@@ -495,75 +415,30 @@ export interface IHeartbeatService {
 export const remoteResolverTerminal = Symbol('remoteResolverTerminal');
 
 export interface IShellLaunchConfig {
-	/**
-	 * The name of the terminal, if this is not set the name of the process will be used.
-	 */
 	name?: string;
 
-	/**
-	 * A string to follow the name of the terminal with, indicating the type of terminal
-	 */
 	type?: 'Task' | 'Local';
 
-	/**
-	 * The shell executable (bash, cmd, etc.).
-	 */
 	executable?: string;
 
-	/**
-	 * The CLI arguments to use with executable, a string[] is in argv format and will be escaped,
-	 * a string is in "CommandLine" pre-escaped format and will be used as is. The string option is
-	 * only supported on Windows and will throw an exception if used on macOS or Linux.
-	 */
 	args?: string[] | string;
 
-	/**
-	 * The current working directory of the terminal, this overrides the `terminal.integrated.cwd`
-	 * settings key.
-	 */
 	cwd?: string | URI;
 
-	/**
-	 * A custom environment for the terminal, if this is not set the environment will be inherited
-	 * from the VS Code process.
-	 */
 	env?: ITerminalEnvironment;
 
-	/**
-	 * Whether to ignore a custom cwd from the `terminal.integrated.cwd` settings key (e.g. if the
-	 * shell is being launched by an extension).
-	 */
 	ignoreConfigurationCwd?: boolean;
 
-	/**
-	 * The reconnection properties for this terminal
-	 */
 	reconnectionProperties?: IReconnectionProperties;
 
-	/** Whether to wait for a key press before closing the terminal. */
 	waitOnExit?: WaitOnExitValue;
 
-	/**
-	 * A string including ANSI escape sequences that will be written to the terminal emulator
-	 * _before_ the terminal process has launched, when a string is specified, a trailing \n is
-	 * added at the end. This allows for example the terminal instance to display a styled message
-	 * as the first line of the terminal. Use \x1b over \033 or \e for the escape control character.
-	 */
 	initialText?: string | { text: string; trailingNewLine: boolean };
 
-	/**
-	 * Custom PTY/pseudoterminal process to use.
-	 */
 	customPtyImplementation?: (terminalId: number, cols: number, rows: number) => ITerminalChildProcess;
 
-	/**
-	 * A UUID generated by the extension host process for terminals created on the extension host process.
-	 */
 	extHostTerminalId?: string;
 
-	/**
-	 * This is a terminal that attaches to an already running terminal.
-	 */
 	attachPersistentProcess?: {
 		id: number;
 		findRevivedId?: boolean;
@@ -585,111 +460,39 @@ export interface IShellLaunchConfig {
 		tabActions?: ITerminalTabAction[];
 	};
 
-	/**
-	 * Whether the terminal process environment should be exactly as provided in
-	 * `TerminalOptions.env`. When this is false (default), the environment will be based on the
-	 * window's environment and also apply configured platform settings like
-	 * `terminal.integrated.env.windows` on top. When this is true, the complete environment must be
-	 * provided as nothing will be inherited from the process or any configuration.
-	 */
 	strictEnv?: boolean;
 
-	/**
-	 * Whether the terminal process environment will inherit VS Code's "shell environment" that may
-	 * get sourced from running a login shell depnding on how the application was launched.
-	 * Consumers that rely on development tools being present in the $PATH should set this to true.
-	 * This will overwrite the value of the inheritEnv setting.
-	 */
 	useShellEnvironment?: boolean;
 
-	/**
-	 * When enabled the terminal will run the process as normal but not be surfaced to the user
-	 * until `Terminal.show` is called. The typical usage for this is when you need to run
-	 * something that may need interactivity but only want to tell the user about it when
-	 * interaction is needed. Note that the terminals will still be exposed to all extensions
-	 * as normal. The hidden terminals will not be restored when the workspace is next opened.
-	 */
 	hideFromUser?: boolean;
 
-	/**
-	 * Whether to force the terminal to persist across sessions regardless of the other
-	 * launch config, like `hideFromUser`.
-	 */
 	forcePersist?: boolean;
 
-	/**
-	 * Whether this terminal is not a terminal that the user directly created and uses, but rather
-	 * a terminal used to drive some VS Code feature.
-	 */
 	isFeatureTerminal?: boolean;
 
-	/**
-	 * Whether this terminal was created by an extension.
-	 */
 	isExtensionOwnedTerminal?: boolean;
 
-	/** Whether this terminal is used to bootstrap a remote authority resolver. */
 	[remoteResolverTerminal]?: true;
 
-	/**
-	 * The icon for the terminal, used primarily in the terminal tab.
-	 */
 	icon?: TerminalIcon;
 
-	/**
-	 * The color ID to use for this terminal. If not specified it will use the default fallback
-	 */
 	color?: string;
 
-	/**
-	 * When a parent terminal is provided via API, the group needs
-	 * to find the index in order to place the child
-	 * directly to the right of its parent.
-	 */
 	parentTerminalId?: number;
 
-	/**
-	 * The dimensions for the instance as set by the user
-	 * or via Size to Content Width
-	 */
 	fixedDimensions?: IFixedTerminalDimensions;
 
-	/**
-	 * Opt-out of the default terminal persistence on restart and reload
-	 */
 	isTransient?: boolean;
 
-	/**
-	 * Attempt to force shell integration to be enabled by bypassing the {@link isFeatureTerminal}
-	 * equals false requirement.
-	 */
 	forceShellIntegration?: boolean;
 
-	/**
-	 * Create a terminal without shell integration even when it's enabled
-	 */
 	ignoreShellIntegration?: boolean;
 
-	/**
-	 * Actions to include inline on hover of the terminal tab. E.g. the "Rerun task" action
-	 */
 	tabActions?: ITerminalTabAction[];
-	/**
-	 * Report terminal's shell environment variables to VS Code and extensions
-	 */
 	shellIntegrationEnvironmentReporting?: boolean;
 
-	/**
-	 * A custom nonce to use for shell integration when provided by an extension.
-	 * This allows extensions to control shell integration for terminals they create.
-	 */
 	shellIntegrationNonce?: string;
 
-	/**
-	 * A title template string that supports the same variables as the
-	 * `terminal.integrated.tabs.title` setting. When set, this overrides the config-based
-	 * title template for this terminal instance.
-	 */
 	titleTemplate?: string;
 }
 
@@ -738,10 +541,6 @@ export interface IShellLaunchConfigDto {
 	titleTemplate?: string;
 }
 
-/**
- * A set of options for the terminal process. These differ from the shell launch config in that they
- * are set internally to the terminal component, not from the outside.
- */
 export interface ITerminalProcessOptions {
 	shellIntegration: {
 		enabled: boolean;
@@ -770,31 +569,13 @@ export interface IProcessReadyEvent {
 }
 
 export interface IProcessReadyWindowsPty {
-	/**
-	 * What pty emulation backend is being used.
-	 */
 	backend: 'conpty';
-	/**
-	 * The Windows build version (eg. 19045)
-	 */
 	buildNumber: number;
 }
 
-/**
- * An interface representing a raw terminal child process, this contains a subset of the
- * child_process.ChildProcess node.js interface.
- */
 export interface ITerminalChildProcess {
-	/**
-	 * A unique identifier for the terminal process. Note that the uniqueness only applies to a
-	 * given pty service connection, IDs will be duplicated for remote and local terminals for
-	 * example. The ID will be 0 if it does not support reconnection.
-	 */
 	id: number;
 
-	/**
-	 * Whether the process should be persisted across reloads.
-	 */
 	shouldPersist: boolean;
 
 	readonly onProcessData: Event<IProcessDataEvent | string>;
@@ -804,31 +585,12 @@ export interface ITerminalChildProcess {
 	readonly onProcessExit: Event<number | undefined>;
 	readonly onRestoreCommands?: Event<ISerializedCommandDetectionCapability>;
 
-	/**
-	 * Starts the process.
-	 *
-	 * @returns undefined when the process was successfully started, otherwise an object containing
-	 * information on what went wrong.
-	 */
 	start(): Promise<ITerminalLaunchError | ITerminalLaunchResult | undefined>;
 
-	/**
-	 * Detach the process from the UI and await reconnect.
-	 * @param forcePersist Whether to force the process to persist if it supports persistence.
-	 */
 	detach?(forcePersist?: boolean): Promise<void>;
 
-	/**
-	 * Frees the port and kills the process
-	 */
 	freePortKillProcess?(port: string): Promise<{ port: string; processId: string }>;
 
-	/**
-	 * Shutdown the terminal process.
-	 *
-	 * @param immediate When true the process will be killed immediately, otherwise the process will
-	 * be given some time to make sure no additional data comes through.
-	 */
 	shutdown(immediate: boolean): void;
 	input(data: string): void;
 	sendSignal(signal: string): void;
@@ -836,18 +598,8 @@ export interface ITerminalChildProcess {
 	resize(cols: number, rows: number, pixelWidth?: number, pixelHeight?: number): void;
 	clearBuffer(): void | Promise<void>;
 
-	/**
-	 * Acknowledge a data event has been parsed by the terminal, this is used to implement flow
-	 * control to ensure remote processes to not get too far ahead of the client and flood the
-	 * connection.
-	 * @param charCount The number of characters being acknowledged.
-	 */
 	acknowledgeDataEvent(charCount: number): void;
 
-	/**
-	 * Sets the unicode version for the process, this drives the size of some characters in the
-	 * xterm-headless instance.
-	 */
 	setUnicodeVersion(version: '6' | '11'): Promise<void>;
 
 	getInitialCwd(): Promise<string>;
@@ -863,57 +615,25 @@ export interface IReconnectConstants {
 }
 
 export const enum LocalReconnectConstants {
-	/**
-	 * If there is no reconnection within this time-frame, consider the connection permanently closed...
-	*/
-	GraceTime = 60000, // 60 seconds
-	/**
-	 * Maximal grace time between the first and the last reconnection...
-	*/
-	ShortGraceTime = 6000, // 6 seconds
+	GraceTime = 60000,
+	ShortGraceTime = 6000,
 }
 
 export const enum FlowControlConstants {
-	/**
-	 * The number of _unacknowledged_ chars to have been sent before the pty is paused in order for
-	 * the client to catch up.
-	 */
 	HighWatermarkChars = 100000,
-	/**
-	 * After flow control pauses the pty for the client the catch up, this is the number of
-	 * _unacknowledged_ chars to have been caught up to on the client before resuming the pty again.
-	 * This is used to attempt to prevent pauses in the flowing data; ideally while the pty is
-	 * paused the number of unacknowledged chars would always be greater than 0 or the client will
-	 * appear to stutter. In reality this balance is hard to accomplish though so heavy commands
-	 * will likely pause as latency grows, not flooding the connection is the important thing as
-	 * it's shared with other core functionality.
-	 */
 	LowWatermarkChars = 5000,
-	/**
-	 * The number characters that are accumulated on the client side before sending an ack event.
-	 * This must be less than or equal to LowWatermarkChars or the terminal max never unpause.
-	 */
 	CharCountAckSize = 5000
 }
 
 export interface IProcessDataEvent {
 	data: string;
 	trackCommit: boolean;
-	/**
-	 * When trackCommit is set, this will be set to a promise that resolves when the data is parsed.
-	 */
 	writePromise?: Promise<void>;
 }
 
 export interface ITerminalDimensions {
-	/**
-	 * The columns of the terminal.
-	 */
 	cols: number;
 
-	/**
-	 * The rows of the terminal.
-	 */
 	rows: number;
 }
 
@@ -921,22 +641,9 @@ export interface ITerminalProfile {
 	profileName: string;
 	path: string;
 	isDefault: boolean;
-	/**
-	 * Whether the terminal profile contains a potentially unsafe {@link path}. For example, the path
-	 * `C:\Cygwin` is the default install for Cygwin on Windows, but it could be created by any
-	 * user in a multi-user environment. As such, we don't want to blindly present it as a profile
-	 * without a warning.
-	 */
 	isUnsafePath?: boolean;
-	/**
-	 * An additional unsafe path that must exist, for example a script that appears in {@link args}.
-	 */
 	requiresUnsafePath?: string;
 	isAutoDetected?: boolean;
-	/**
-	 * Whether the profile path was found on the `$PATH` environment variable, if so it will be
-	 * cleaner to display this profile in the UI using only `basename(path)`.
-	 */
 	isFromPath?: boolean;
 	args?: SingleOrMany<string> | undefined;
 	env?: ITerminalEnvironment;
@@ -946,9 +653,6 @@ export interface ITerminalProfile {
 }
 
 export interface ITerminalDimensionsOverride extends Readonly<ITerminalDimensions> {
-	/**
-	 * indicate that xterm must receive these exact dimensions, even if they overflow the ui!
-	 */
 	forceExactSize?: boolean;
 }
 
@@ -1021,56 +725,24 @@ export interface ITerminalContributions {
 }
 
 export const enum ShellIntegrationStatus {
-	/** No shell integration sequences have been encountered. */
 	Off,
-	/** Final term shell integration sequences have been encountered. */
 	FinalTerm,
-	/** VS Code shell integration sequences have been encountered. Supercedes FinalTerm. */
 	VSCode
 }
 
 
 export const enum ShellIntegrationInjectionFailureReason {
-	/**
-	 * The setting is disabled.
-	 */
 	InjectionSettingDisabled = 'injectionSettingDisabled',
-	/**
-	 * There is no executable (so there's no way to determine how to inject).
-	 */
 	NoExecutable = 'noExecutable',
-	/**
-	 * It's a feature terminal (tasks, debug), unless it's explicitly being forced.
-	 */
 	FeatureTerminal = 'featureTerminal',
-	/**
-	 * The ignoreShellIntegration flag is passed (eg. relaunching without shell integration).
-	 */
 	IgnoreShellIntegrationFlag = 'ignoreShellIntegrationFlag',
-	/**
-	 * Shell integration doesn't work on older Windows builds that don't support ConPTY.
-	 */
 	UnsupportedWindowsBuild = 'unsupportedWindowsBuild',
-	/**
-	 * We're conservative whether we inject when we don't recognize the arguments used for the
-	 * shell as we would prefer launching one without shell integration than breaking their profile.
-	 */
 	UnsupportedArgs = 'unsupportedArgs',
-	/**
-	 * The shell doesn't have built-in shell integration. Note that this doesn't mean the shell
-	 * won't have shell integration in the end.
-	 */
 	UnsupportedShell = 'unsupportedShell',
 
 
-	/**
-	 * For zsh, we failed to set the sticky bit on the shell integration script folder.
-	 */
 	FailedToSetStickyBit = 'failedToSetStickyBit',
 
-	/**
-	 * For zsh, we failed to create a temp directory for the shell integration script.
-	 */
 	FailedToCreateTmpDir = 'failedToCreateTmpDir',
 }
 
@@ -1091,33 +763,12 @@ export interface ITerminalOutputMatch {
 	outputLines: string[];
 }
 
-/**
- * A matcher that runs on a sub-section of a terminal command's output
- */
 export interface ITerminalOutputMatcher {
-	/**
-	 * A string or regex to match against the unwrapped line. If this is a regex with the multiline
-	 * flag, it will scan an amount of lines equal to `\n` instances in the regex + 1.
-	 */
 	lineMatcher: string | RegExp;
-	/**
-	 * Which side of the output to anchor the {@link offset} and {@link length} against.
-	 */
 	anchor: 'top' | 'bottom';
-	/**
-	 * The number of rows above or below the {@link anchor} to start matching against.
-	 */
 	offset: number;
-	/**
-	 * The number of rows to match against, this should be as small as possible for performance
-	 * reasons. This is capped at 40.
-	 */
 	length: number;
 
-	/**
-	 * If multiple matches are expected - this will result in {@link outputLines} being returned
-	 * when there's a {@link regexMatch} from {@link offset} to {@link length}
-	 */
 	multipleMatches?: boolean;
 }
 
@@ -1135,31 +786,12 @@ export interface ITerminalBackend extends ITerminalBackendPtyServiceContribution
 
 	readonly isResponsive: boolean;
 
-	/**
-	 * A promise that resolves when the backend is ready to be used, ie. after terminal persistence
-	 * has been actioned.
-	 */
 	readonly whenReady: Promise<void>;
 
-	/**
-	 * Signal to the backend that persistence has been actioned and is ready for use.
-	 */
 	setReady(): void;
 
-	/**
-	 * Fired when the ptyHost process becomes non-responsive, this should disable stdin for all
-	 * terminals using this pty host connection and mark them as disconnected.
-	 */
 	readonly onPtyHostUnresponsive: Event<void>;
-	/**
-	 * Fired when the ptyHost process becomes responsive after being non-responsive. Allowing
-	 * previously disconnected terminals to reconnect.
-	 */
 	readonly onPtyHostResponsive: Event<void>;
-	/**
-	 * Fired when the ptyHost has been restarted, this is used as a signal for listening terminals
-	 * that its pty has been lost and will remain disconnected.
-	 */
 	readonly onPtyHostRestart: Event<void>;
 
 	readonly onDidRequestDetach: Event<{ requestId: number; workspaceId: string; instanceId: number }>;
@@ -1208,19 +840,10 @@ export const TerminalExtensions = {
 };
 
 export interface ITerminalBackendRegistry {
-	/**
-	 * Gets all backends in the registry.
-	 */
 	backends: ReadonlyMap<string, ITerminalBackend>;
 
-	/**
-	 * Registers a terminal backend for a remote authority.
-	 */
 	registerTerminalBackend(backend: ITerminalBackend): void;
 
-	/**
-	 * Returns the registered terminal backend for a remote authority.
-	 */
 	getTerminalBackend(remoteAuthority?: string): ITerminalBackend | undefined;
 }
 
@@ -1242,7 +865,6 @@ class TerminalBackendRegistry implements ITerminalBackendRegistry {
 	}
 
 	private _sanitizeRemoteAuthority(remoteAuthority: string | undefined) {
-		// Normalize the key to lowercase as the authority is case-insensitive
 		return remoteAuthority?.toLowerCase() ?? '';
 	}
 }
@@ -1250,19 +872,9 @@ Registry.add(TerminalExtensions.Backend, new TerminalBackendRegistry());
 
 export const ILocalPtyService = createDecorator<ILocalPtyService>('localPtyService');
 
-/**
- * A service responsible for communicating with the pty host process on Electron.
- *
- * **This service should only be used within the terminal component.**
- */
 export interface ILocalPtyService extends IPtyHostService { }
 
 export const ITerminalLogService = createDecorator<ITerminalLogService>('terminalLogService');
 export interface ITerminalLogService extends ILogService {
-	/**
-	 * Similar to _serviceBrand but used to differentiate this service at compile time from
-	 * ILogService; ITerminalLogService is an ILogService, but ILogService is not an
-	 * ITerminalLogService.
-	 */
 	readonly _logBrand: undefined;
 }

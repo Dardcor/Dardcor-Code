@@ -102,20 +102,11 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 
 		const { title, message, disclaimer, terminalCustomActions } = state.confirmationMessages;
 
-		// Use pre-computed confirmation data from runInTerminalTool (cd prefix extraction happens there for localization)
-		// Use presentationOverrides for display if available (e.g., extracted Python code)
 		const initialContent = terminalData.presentationOverrides?.commandLine ?? terminalData.confirmation?.commandLine ?? (terminalData.commandLine.toolEdited ?? terminalData.commandLine.original).trimStart();
 		const cdPrefix = terminalData.confirmation?.cdPrefix ?? '';
-		// When presentationOverrides is set, the editor should be read-only since the displayed content
-		// differs from the actual command (e.g., extracted Python code vs full python -c command).
-		// A producer that cannot apply an edited command opts out the same way.
 		const isReadOnly = !!terminalData.presentationOverrides || terminalData.editable === false;
 
 		const autoApproveEnabled = this.configurationService.getValue(TerminalContribSettingId.EnableAutoApprove) === true;
-		// Custom actions typically come pre-computed from the run in terminal tool, but they can
-		// also be generated asynchronously for confirmations that arrive without them (eg. agent
-		// host sessions), so track them in a mutable local shared by the builder below and the
-		// button click handler.
 		let customActions = terminalCustomActions;
 		const buildMoreActions = (): (IChatConfirmationButton<TerminalNewAutoApproveButtonData> | Separator)[] | undefined => {
 			if (!autoApproveEnabled) {
@@ -180,8 +171,6 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 		if (!isReadOnly) {
 			this._register(model.onDidChangeContent(() => {
 				const currentValue = model.getValue();
-				// Only set userEdited if the content actually differs from the initial value
-				// Prepend cd prefix back if it was extracted for display
 				if (currentValue !== initialContent) {
 					terminalData.commandLine.userEdited = cdPrefix + currentValue;
 				} else {
@@ -222,7 +211,6 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 			},
 		));
 
-		// Agent Host Copilot confirmations need client-generated persistent rule actions.
 		if (autoApproveEnabled && !customActions && terminalData.autoApproveRuleResolvable && getChatSessionType(this.context.element.sessionResource) === SessionType.AgentHostCopilot) {
 			const commandForAnalysis = terminalData.commandLine.toolEdited ?? terminalData.commandLine.original;
 			const analysisLanguage = terminalData.language === 'powershell' ? 'powershell' : 'shellscript';
@@ -238,10 +226,6 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 			}, onUnexpectedError);
 		}
 
-		// Build the unsandboxed-execution reason and disclaimer markdown. When
-		// the risk badge is shown, surface them via its details hover (with
-		// labelled prefixes) instead of the dedicated disclaimer row to keep
-		// the confirmation compact.
 		interface IDetailPart {
 			readonly inline: IMarkdownString;
 			readonly hoverLabel: string;
@@ -277,9 +261,6 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 		}
 		if (disclaimer) {
 			const inline = typeof disclaimer === 'string' ? new MarkdownString(disclaimer) : disclaimer;
-			// For the hover, drop the leading `$(info) ` icon prefix that the
-			// disclaimer carries for inline rendering — the labelled prefix
-			// already conveys the same role.
 			const hoverBody = inline.value.replace(/^\s*\$\([^)]+\)\s*/, '');
 			detailParts.push({
 				inline,
@@ -336,8 +317,6 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 			if (typeof data === 'boolean') {
 				if (data) {
 					toolConfirmKind = ToolConfirmKind.UserAction;
-					// Clear out any auto approve info since this was an explicit user action. This
-					// can happen when the auto approve feature is off.
 					if (terminalData.autoApproveInfo) {
 						terminalData.autoApproveInfo = undefined;
 					}
@@ -348,12 +327,9 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 						const optedIn = await this._showAutoApproveWarning();
 						if (optedIn) {
 							this.storageService.store(TerminalToolConfirmationStorageKeys.TerminalAutoApproveWarningAccepted, true, StorageScope.APPLICATION, StorageTarget.USER);
-							// If this command would have been auto-approved, approve immediately
 							if (terminalData.autoApproveInfo) {
 								toolConfirmKind = ToolConfirmKind.UserAction;
 							}
-							// If this would not have been auto approved, enable the options and
-							// do not complete
 							else {
 								if (customActions) {
 									for (const action of customActions) {
@@ -378,18 +354,15 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 					case 'newRule': {
 						const newRules = asArray(data.rule);
 
-						// Group rules by scope
 						const sessionRules = newRules.filter(r => r.scope === 'session');
 						const workspaceRules = newRules.filter(r => r.scope === 'workspace');
 						const userRules = newRules.filter(r => r.scope === 'user');
 
-						// Handle session-scoped rules (temporary, in-memory only)
 						const chatSessionResource = this.context.element.sessionResource;
 						for (const rule of sessionRules) {
 							this.terminalChatService.addSessionAutoApproveRule(chatSessionResource, rule.key, rule.value);
 						}
 
-						// Handle workspace-scoped rules
 						if (workspaceRules.length > 0) {
 							const inspect = this.configurationService.inspect(TerminalContribSettingId.AutoApprove);
 							const oldValue = (inspect.workspaceValue as Record<string, unknown> | undefined) ?? {};
@@ -409,7 +382,6 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 							}
 						}
 
-						// Handle user-scoped rules
 						if (userRules.length > 0) {
 							const inspect = this.configurationService.inspect(TerminalContribSettingId.AutoApprove);
 							const oldValue = (inspect.userValue as Record<string, unknown> | undefined) ?? {};
@@ -535,7 +507,7 @@ export class ChatTerminalToolConfirmationSubPart extends BaseChatToolInvocationS
 				markdownDetails: [{
 					markdown: new MarkdownString(localize('autoApprove.markdown', 'This will enable a configurable subset of commands to run in the terminal autonomously. It provides *best effort protections* and assumes the agent is not acting maliciously.')),
 				}, {
-					markdown: new MarkdownString(`[${localize('autoApprove.markdown2', 'Learn more about the potential risks and how to avoid them.')}](https://code.visualstudio.com/docs/agents/run/security?referrer=in-product#_security-risks-to-be-aware-of)`)
+					markdown: new MarkdownString(`[${localize('autoApprove.markdown2', 'Learn more about the potential risks and how to avoid them.')}](https://www.dardcor-code.web.id/docs/agents/run/security?referrer=in-product#_security-risks-to-be-aware-of)`)
 				}],
 			}
 		});

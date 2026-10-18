@@ -174,7 +174,7 @@ suite('computeEditKind', () => {
 		test('insert relative to cursor - at cursor', () => {
 			const model = createTextModel('hello world');
 			const edit = StringEdit.insert(5, 'text');
-			const cursor = new Position(1, 6); // column is 1-based
+			const cursor = new Position(1, 6);
 			const result = computeEditKind(edit, model, cursor);
 
 			assert.ok(result);
@@ -233,7 +233,7 @@ suite('computeEditKind', () => {
 
 		test('insert relative to cursor - lines below', () => {
 			const model = createTextModel('line1\nline2\nline3');
-			const edit = StringEdit.insert(12, 'text'); // after 'line2\n'
+			const edit = StringEdit.insert(12, 'text');
 			const cursor = new Position(1, 1);
 			const result = computeEditKind(edit, model, cursor);
 
@@ -265,7 +265,7 @@ suite('computeEditKind', () => {
 	suite('Delete operations', () => {
 		test('single character delete - identifier', () => {
 			const model = createTextModel('hello world');
-			const edit = StringEdit.delete(new OffsetRange(4, 5)); // delete 'o'
+			const edit = StringEdit.delete(new OffsetRange(4, 5));
 			const result = computeEditKind(edit, model);
 
 			assert.ok(result);
@@ -281,7 +281,7 @@ suite('computeEditKind', () => {
 
 		test('single character delete - syntactical', () => {
 			const model = createTextModel('hello;world');
-			const edit = StringEdit.delete(new OffsetRange(5, 6)); // delete ';'
+			const edit = StringEdit.delete(new OffsetRange(5, 6));
 			const result = computeEditKind(edit, model);
 
 			assert.ok(result);
@@ -297,7 +297,7 @@ suite('computeEditKind', () => {
 
 		test('word delete', () => {
 			const model = createTextModel('hello world');
-			const edit = StringEdit.delete(new OffsetRange(0, 5)); // delete 'hello'
+			const edit = StringEdit.delete(new OffsetRange(0, 5));
 			const result = computeEditKind(edit, model);
 
 			assert.ok(result);
@@ -316,7 +316,7 @@ suite('computeEditKind', () => {
 
 		test('multi-line delete', () => {
 			const model = createTextModel('line1\nline2\nline3');
-			const edit = StringEdit.delete(new OffsetRange(0, 12)); // delete 'line1\nline2\n'
+			const edit = StringEdit.delete(new OffsetRange(0, 12));
 			const result = computeEditKind(edit, model);
 
 			assert.ok(result);

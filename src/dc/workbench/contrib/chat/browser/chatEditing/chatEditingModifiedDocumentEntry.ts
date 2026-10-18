@@ -230,7 +230,6 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 			});
 		}));
 
-		// Create a reference to this model to avoid it being disposed from under our nose
 		(async () => {
 			const reference = await textModelService.createModelReference(docSnapshot.uri);
 			if (this._store.isDisposed) {
@@ -361,8 +360,6 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 
 		const config = this._fileConfigService.getAutoSaveConfiguration(this.modifiedURI);
 		if (!config.autoSave || !this._textFileService.isDirty(this.modifiedURI)) {
-			// SAVE after accept for manual-savers, for auto-savers
-			// trigger explict save to get save participants going
 			try {
 				await this._textFileService.save(this.modifiedURI, {
 					reason: SaveReason.EXPLICIT,
@@ -370,7 +367,6 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 					ignoreErrorHandler: true
 				});
 			} catch {
-				// ignored
 			}
 		}
 	}
@@ -380,15 +376,12 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 			if (isTextFileEditorModel(this._docFileEditorModel)) {
 				await this._docFileEditorModel.revert({ soft: true });
 				await this._fileService.del(this.modifiedURI).catch(err => {
-					// don't block if file is already deleted
 				});
 			}
 			this._onDidDelete.fire();
 		} else {
 			this._textModelChangeService.undo();
 			if (this._textModelChangeService.allEditsAreFromUs && isTextFileEditorModel(this._docFileEditorModel) && this._shouldAutoSave()) {
-				// save the file after discarding so that the dirty indicator goes away
-				// and so that an intermediate saved state gets reverted
 				await this._docFileEditorModel.save({ reason: SaveReason.EXPLICIT, skipSaveParticipants: true });
 			}
 			this._multiDiffEntryDelegate.collapse(undefined);
@@ -425,7 +418,6 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 			return;
 		}
 
-		// Save the current model state to disk if dirty
 		if (this._textFileService.isDirty(this.modifiedModel.uri)) {
 			await this._textFileService.save(this.modifiedModel.uri, {
 				reason: SaveReason.EXPLICIT,
@@ -452,7 +444,6 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 						this.modifiedModel.setValue(diskStr);
 					}
 				} catch {
-					// file may have been deleted or inaccessible
 				}
 			}
 		} finally {

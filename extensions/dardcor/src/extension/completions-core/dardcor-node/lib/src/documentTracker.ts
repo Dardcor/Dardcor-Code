@@ -7,15 +7,8 @@ import { LRUCacheMap } from './helpers/cache';
 import { TextDocumentIdentifier } from './textDocument';
 import { ICompletionsTextDocumentManagerService } from './textDocumentManager';
 
-/**
- * A map from the string representation of a document URI to its last access time in ms since the
- * epoch.
- */
 export const accessTimes = new LRUCacheMap<string, number>();
 
-/**
- * Returns a copy of `docs` sorted by access time, from most to least recent.
- */
 export function sortByAccessTimes<T extends TextDocumentIdentifier>(docs: readonly T[]): T[] {
 	return [...docs].sort((a, b) => {
 		const aAccessTime = accessTimes.get(a.uri) ?? 0;
@@ -24,10 +17,6 @@ export function sortByAccessTimes<T extends TextDocumentIdentifier>(docs: readon
 	});
 }
 
-/**
- * Registers a listener on the `window.onDidChangeActiveTextEditor` event that records/updates the
- * access time of the document.
- */
 export const registerDocumentTracker = (accessor: ServicesAccessor) =>
 	accessor.get(ICompletionsTextDocumentManagerService).onDidFocusTextDocument(e => {
 		if (e.document) {

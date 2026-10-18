@@ -33,12 +33,10 @@ export function isAgentHostAutomationMigrationCompletion(value: unknown): value 
 	return resources.every(resource => typeof resource === 'string') && new Set(resources).size === resources.length;
 }
 
-/** Whether the provider used the legacy flattened Automation mode and permission fields. */
 export function supportsLegacyAutomationSessionConfig(provider: string | undefined): boolean {
 	return provider === undefined || provider === LEGACY_AUTOPILOT_PROVIDER;
 }
 
-/** Migrates the legacy combined Autopilot value into the Copilot Automation's current two-axis configuration. */
 export function migrateLegacyAutomationSessionConfig(provider: string | undefined, config: undefined): undefined;
 export function migrateLegacyAutomationSessionConfig(provider: string | undefined, config: Record<string, unknown>): Record<string, unknown>;
 export function migrateLegacyAutomationSessionConfig(provider: string | undefined, config: Record<string, unknown> | undefined): Record<string, unknown> | undefined;
@@ -63,7 +61,6 @@ function migrateCombinedAutopilotConfig(config: Record<string, unknown>): Record
 	return migrated;
 }
 
-/** Applies the legacy flattened Automation values to provider configuration. */
 export function applyLegacyAutomationSessionConfig(provider: string | undefined, config: Readonly<Record<string, unknown>> | undefined, mode: string | undefined, permissionLevel: string | undefined): Record<string, unknown> {
 	const result = { ...config };
 	if (!supportsLegacyAutomationSessionConfig(provider)) {

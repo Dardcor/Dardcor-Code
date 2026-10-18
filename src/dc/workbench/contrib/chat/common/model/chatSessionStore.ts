@@ -79,7 +79,6 @@ export class ChatSessionStore extends Disposable {
 
 		this.transferredSessionStorageRoot = joinPath(this.userDataProfilesService.defaultProfile.globalStorageHome, 'transferredChatSessions');
 
-		// Listen to workspace transitions to migrate chat sessions
 		this._register(this.workspaceEditingService.onDidEnterWorkspace(event => {
 			const transitionPromise = this.storeQueue.queue(() => this.handleWorkspaceTransition(event.oldWorkspace, event.newWorkspace));
 			event.join(transitionPromise);
@@ -106,39 +105,32 @@ export class ChatSessionStore extends Disposable {
 
 		this.logService.info(`ChatSessionStore: Workspace transition from ${oldWorkspaceId} to ${newWorkspaceId}`);
 
-		// Determine the old storage location based on the old workspace
 		const oldStorageRoot = wasEmptyWindow ?
 			joinPath(this.userDataProfilesService.defaultProfile.globalStorageHome, 'emptyWindowChatSessions') :
 			joinPath(this.environmentService.workspaceStorageHome, oldWorkspaceId, 'chatSessions');
 
-		// Determine the new storage location based on the new workspace
 		const newStorageRoot = isNewWorkspaceEmpty ?
 			joinPath(this.userDataProfilesService.defaultProfile.globalStorageHome, 'emptyWindowChatSessions') :
 			joinPath(this.environmentService.workspaceStorageHome, newWorkspaceId, 'chatSessions');
 
-		// If the storage roots are identical, there is nothing to migrate
 		if (isEqual(oldStorageRoot, newStorageRoot)) {
 			this.storageRoot = newStorageRoot;
 			return;
 		}
 
-		// Update storage root for the new workspace
 		this.storageRoot = newStorageRoot;
 
-		// Migrate session files from old to new location
 		await this.migrateSessionsToNewWorkspace(oldStorageRoot, wasEmptyWindow, isNewWorkspaceEmpty);
 	}
 
 	private async migrateSessionsToNewWorkspace(oldStorageRoot: URI, wasEmptyWindow: boolean, isNewWorkspaceEmpty: boolean): Promise<void> {
 		try {
-			// Check if old storage location exists
 			const oldStorageExists = await this.fileService.exists(oldStorageRoot);
 			if (!oldStorageExists) {
 				this.logService.info(`ChatSessionStore: Old storage location does not exist, skipping migration`);
 				return;
 			}
 
-			// Read all session files from old location
 			const oldDirectory = await this.fileService.resolve(oldStorageRoot);
 			if (!oldDirectory.children) {
 				this.logService.info(`ChatSessionStore: No children in old storage location, skipping migration`);
@@ -147,7 +139,6 @@ export class ChatSessionStore extends Disposable {
 
 			this.logService.info(`ChatSessionStore: Found ${oldDirectory.children.length} files in old storage location`);
 
-			// Copy each file to the new location
 			let migratedCount = 0;
 			for (const child of oldDirectory.children) {
 				if (!child.isDirectory && (child.name.endsWith('.json') || child.name.endsWith('.jsonl'))) {
@@ -159,7 +150,6 @@ export class ChatSessionStore extends Disposable {
 						migratedCount++;
 					} catch (e) {
 						if (toFileOperationResult(e) === FileOperationResult.FILE_MOVE_CONFLICT) {
-							// File already exists at target - skip as a no-op
 							this.logService.trace(`ChatSessionStore: Session file ${child.name} already exists at target, skipping`);
 						} else {
 							this.reportError('sessionMigration', `Error migrating chat session file ${child.name}`, e);
@@ -170,7 +160,6 @@ export class ChatSessionStore extends Disposable {
 
 			this.logService.info(`ChatSessionStore: Copied ${migratedCount} chat session files from ${wasEmptyWindow ? 'empty window' : oldStorageRoot.toString()} to ${isNewWorkspaceEmpty ? 'empty window' : this.storageRoot.toString()} (originals preserved at old location)`);
 
-			// Clear the index cache and flush it to the new storage scope
 			this.indexCache = undefined;
 			try {
 				await this.flushIndex();
@@ -185,7 +174,6 @@ export class ChatSessionStore extends Disposable {
 
 	async storeSessions(sessions: ChatModel[]): Promise<void> {
 		if (this.shuttingDown) {
-			// Don't start this task if we missed the chance to block shutdown
 			return;
 		}
 
@@ -207,7 +195,6 @@ export class ChatSessionStore extends Disposable {
 
 	async storeSessionsMetadataOnly(sessions: ChatModel[]): Promise<void> {
 		if (this.shuttingDown) {
-			// Don't start this task if we missed the chance to block shutdown
 			return;
 		}
 
@@ -230,7 +217,6 @@ export class ChatSessionStore extends Disposable {
 		const index = this.getTransferredSessionIndex();
 		const workspaceKey = transferData.toWorkspace.toString();
 
-		// Clean up any preexisting transferred session for this workspace
 		const existingTransfer = index[workspaceKey];
 		if (existingTransfer) {
 			try {
@@ -280,7 +266,6 @@ export class ChatSessionStore extends Disposable {
 			const index = this.getTransferredSessionIndex();
 			const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
 			if (workspaceFolders.length !== 1) {
-				// Can only transfer sessions to single-folder workspaces
 				return undefined;
 			}
 
@@ -290,7 +275,6 @@ export class ChatSessionStore extends Disposable {
 				return undefined;
 			}
 
-			// Check if the transfer has expired
 			const revivedTransferData = revive(transferredSessionForWorkspace);
 			if (Date.now() - transferredSessionForWorkspace.timestampInMilliseconds > ChatSessionStore.TRANSFER_EXPIRATION_MS) {
 				this.logService.info('ChatSessionStore: Transferred session has expired');
@@ -314,7 +298,6 @@ export class ChatSessionStore extends Disposable {
 
 			const sessionData = await this.readSessionFromLocation(storageLocation, undefined, sessionId);
 
-			// Clean up the transferred session after reading
 			await this.cleanupTransferredSession(sessionResource);
 
 			return sessionData;
@@ -326,7 +309,6 @@ export class ChatSessionStore extends Disposable {
 
 	private async cleanupTransferredSession(sessionResource: URI): Promise<void> {
 		try {
-			// Remove from index
 			const index = this.getTransferredSessionIndex();
 			const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
 			if (workspaceFolders.length === 1) {
@@ -335,7 +317,6 @@ export class ChatSessionStore extends Disposable {
 				this.storageService.store(ChatTransferIndexStorageKey, index, StorageScope.PROFILE, StorageTarget.MACHINE);
 			}
 
-			// Delete the transferred session file
 			const storageLocation = this.getTransferredSessionStorageLocation(sessionResource);
 			await this.fileService.del(storageLocation);
 		} catch (e) {
@@ -421,7 +402,6 @@ export class ChatSessionStore extends Disposable {
 		try {
 			this.storageService.store(ChatIndexStorageKey, index, this.getIndexStorageScope(), StorageTarget.MACHINE);
 		} catch (e) {
-			// Only if JSON.stringify fails, AFAIK
 			this.reportError('indexWrite', 'Error writing index', e);
 		}
 	}
@@ -517,23 +497,19 @@ export class ChatSessionStore extends Disposable {
 		const fileOperationReason = error && toFileOperationResult(error);
 
 		if (fileOperationReason === FileOperationResult.FILE_NOT_FOUND) {
-			// Expected case (e.g. reading a non-existent session); keep noise low
 			this.logService.trace(`ChatSessionStore: ` + message, toErrorMessage(error));
 		} else {
-			// Unexpected or serious error; surface at error level
 			this.logService.error(`ChatSessionStore: ` + message, toErrorMessage(error));
 		}
 		type ChatSessionStoreErrorData = {
 			reason: string;
 			fileOperationReason: number;
-			// error: Error;
 		};
 		type ChatSessionStoreErrorClassification = {
 			owner: 'roblourens';
 			comment: 'Detect issues related to managing chat sessions';
 			reason: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'Info about the error that occurred' };
 			fileOperationReason: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'An error code from the file service' };
-			// error: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'Info about the error that occurred' };
 		};
 		this.telemetryService.publicLog2<ChatSessionStoreErrorData, ChatSessionStoreErrorClassification>('chatSessionStoreError', {
 			reason: reasonForTelemetry,
@@ -556,7 +532,6 @@ export class ChatSessionStore extends Disposable {
 		try {
 			const index = JSON.parse(data) as unknown;
 			if (isChatSessionIndex(index)) {
-				// Success
 				this.indexCache = index;
 			} else {
 				this.reportError('invalidIndexFormat', `Invalid index format: ${data}`);
@@ -564,12 +539,10 @@ export class ChatSessionStore extends Disposable {
 			}
 
 		} catch (e) {
-			// Only if JSON.parse fails
 			this.reportError('invalidIndexJSON', `Index corrupt: ${data}`, e);
 			this.indexCache = { version: 1, entries: {} };
 		}
 
-		// Convert from pre-1.109 format which lacks timing
 		for (const entry of Object.values(this.indexCache.entries)) {
 			entry.timing ??= {
 				created: entry.lastMessageDate,
@@ -577,7 +550,6 @@ export class ChatSessionStore extends Disposable {
 				lastRequestEnded: entry.lastMessageDate,
 			};
 
-			// TODO@connor4312: the check for Pending/NeedsInput guards old sessions from Insiders pre PR #288161 and it can be safely removed after a transition period, to only backfill the "complete" state when missing.
 			entry.lastResponseState ??= entry.lastResponseState === ResponseModelState.Pending || entry.lastResponseState === ResponseModelState.NeedsInput ? ResponseModelState.Complete : entry.lastResponseState || ResponseModelState.Complete;
 		}
 
@@ -820,34 +792,14 @@ export interface IChatSessionEntryMetadata {
 	stats?: IChatSessionStats;
 	lastResponseState: ResponseModelState;
 
-	/**
-	 * The working directory URI string associated with this session.
-	 * Persisted so it survives window reload in the agents/sessions window.
-	 */
 	workingDirectory?: string;
 
-	/**
-	 * This only exists because the migrated data from the storage service had empty sessions persisted, and it's impossible to know which ones are
-	 * currently in use. Now, `clearSession` deletes empty sessions, so old ones shouldn't take up space in the store anymore, but we still need to
-	 * filter the old ones out of history.
-	 */
 	isEmpty?: boolean;
 
-	/**
-	 * Whether this session was loaded from an external provider (eg background/cloud sessions).
-	 */
 	isExternal?: boolean;
 
-	/**
-	 * The permission level for tool auto-approval, if not default.
-	 */
 	permissionLevel?: ChatPermissionLevel;
 
-	/**
-	 * Serialized draft input state (text, attachments, mode, selected model, ...) for
-	 * external sessions, so that unsent input is preserved when switching away and
-	 * back. Local sessions instead persist their full state via storeSessions.
-	 */
 	inputState?: ISerializableChatModelInputState;
 }
 
@@ -868,8 +820,6 @@ interface IChatSessionIndexData {
 	entries: IChatSessionIndex;
 }
 
-// TODO if we update the index version:
-// Don't throw away index when moving backwards in VS Code version. Try to recover it. But this scenario is hard.
 function isChatSessionIndex(data: unknown): data is IChatSessionIndexData {
 	if (typeof data !== 'object' || data === null) {
 		return false;
@@ -960,7 +910,4 @@ export interface IChatTransfer2 extends IChatTransfer {
 
 type IChatTransferDto = Dto<IChatTransfer>;
 
-/**
- * Map of destination workspace URI to chat transfer data
- */
 type IChatTransferIndex = Record<string, IChatTransferDto>;

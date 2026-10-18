@@ -96,7 +96,6 @@ suite('claudeMultiRootCustomizationDiscovery', () => {
 		const agentB = await seed('/b/.claude/agents/reviewer.md', '---\nname: reviewer\ndescription: from b\n---');
 		const skillA = await seed('/a/.claude/skills/deploy/SKILL.md', '---\nname: deploy\ndescription: from a\n---');
 		const skillB = await seed('/b/.claude/skills/deploy/SKILL.md', '---\nname: deploy\ndescription: from b\n---');
-		// A same-named user-scope skill is an expected override, not a cross-folder collision.
 		await seed('/home/.claude/skills/deploy/SKILL.md', '---\nname: deploy\ndescription: from user\n---');
 		const logService = new CapturingLogService();
 

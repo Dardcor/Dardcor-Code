@@ -25,24 +25,14 @@ import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js'
 export const USER_TASKS_GROUP_KEY = 'settings';
 
 export const TASK_RUNNING_STATE = new RawContextKey<boolean>('taskRunning', false, nls.localize('tasks.taskRunningContext', "Whether a task is currently running."));
-/** Whether the active terminal is a task terminal. */
 export const TASK_TERMINAL_ACTIVE = new RawContextKey<boolean>('taskTerminalActive', false, nls.localize('taskTerminalActive', "Whether the active terminal is a task terminal."));
 export const TASKS_CATEGORY = nls.localize2('tasksCategory', "Tasks");
 
 export enum ShellQuoting {
-	/**
-	 * Use character escaping.
-	 */
 	Escape = 1,
 
-	/**
-	 * Use strong quoting
-	 */
 	Strong = 2,
 
-	/**
-	 * Use weak quoting.
-	 */
 	Weak = 3,
 }
 
@@ -67,59 +57,30 @@ export namespace ShellQuoting {
 }
 
 export interface IShellQuotingOptions {
-	/**
-	 * The character used to do character escaping.
-	 */
 	escape?: string | {
 		escapeChar: string;
 		charsToEscape: string;
 	};
 
-	/**
-	 * The character used for string quoting.
-	 */
 	strong?: string;
 
-	/**
-	 * The character used for weak quoting.
-	 */
 	weak?: string;
 }
 
 export interface IShellConfiguration {
-	/**
-	 * The shell executable.
-	 */
 	executable?: string;
 
-	/**
-	 * The arguments to be passed to the shell executable.
-	 */
 	args?: string[];
 
-	/**
-	 * Which kind of quotes the shell supports.
-	 */
 	quoting?: IShellQuotingOptions;
 }
 
 export interface CommandOptions {
 
-	/**
-	 * The shell to use if the task is a shell command.
-	 */
 	shell?: IShellConfiguration;
 
-	/**
-	 * The current working directory of the executed program or shell.
-	 * If omitted VSCode's current workspace root is used.
-	 */
 	cwd?: string;
 
-	/**
-	 * The environment of the executed program or shell. If omitted
-	 * the parent process' environment is used.
-	 */
 	env?: { [key: string]: string };
 }
 
@@ -128,22 +89,10 @@ export namespace CommandOptions {
 }
 
 export enum RevealKind {
-	/**
-	 * Always brings the terminal to front if the task is executed.
-	 */
 	Always = 1,
 
-	/**
-	 * Only brings the terminal to front if a problem is detected executing the task
-	 * e.g. the task couldn't be started,
-	 * the task ended with an exit code other than zero,
-	 * or the problem matcher found an error.
-	 */
 	Silent = 2,
 
-	/**
-	 * The terminal never comes to front when the task is executed.
-	 */
 	Never = 3
 }
 
@@ -163,20 +112,11 @@ export namespace RevealKind {
 }
 
 export enum RevealProblemKind {
-	/**
-	 * Never reveals the problems panel when this task is executed.
-	 */
 	Never = 1,
 
 
-	/**
-	 * Only reveals the problems panel if a problem is found.
-	 */
 	OnProblem = 2,
 
-	/**
-	 * Never reveals the problems panel when this task is executed.
-	 */
 	Always = 3
 }
 
@@ -197,20 +137,10 @@ export namespace RevealProblemKind {
 
 export enum PanelKind {
 
-	/**
-	 * Shares a panel with other tasks. This is the default.
-	 */
 	Shared = 1,
 
-	/**
-	 * Uses a dedicated panel for this tasks. The panel is not
-	 * shared with other tasks.
-	 */
 	Dedicated = 2,
 
-	/**
-	 * Creates a new panel whenever this task is executed.
-	 */
 	New = 3
 }
 
@@ -230,59 +160,24 @@ export namespace PanelKind {
 }
 
 export interface IPresentationOptions {
-	/**
-	 * Controls whether the task output is reveal in the user interface.
-	 * Defaults to `RevealKind.Always`.
-	 */
 	reveal: RevealKind;
 
-	/**
-	 * Controls whether the problems pane is revealed when running this task or not.
-	 * Defaults to `RevealProblemKind.Never`.
-	 */
 	revealProblems: RevealProblemKind;
 
-	/**
-	 * Controls whether the command associated with the task is echoed
-	 * in the user interface.
-	 */
 	echo: boolean;
 
-	/**
-	 * Controls whether the panel showing the task output is taking focus.
-	 */
 	focus: boolean;
 
-	/**
-	 * Controls if the task panel is used for this task only (dedicated),
-	 * shared between tasks (shared) or if a new panel is created on
-	 * every task execution (new). Defaults to `TaskInstanceKind.Shared`
-	 */
 	panel: PanelKind;
 
-	/**
-	 * Controls whether to show the "Terminal will be reused by tasks, press any key to close it" message.
-	 */
 	showReuseMessage: boolean;
 
-	/**
-	 * Controls whether to clear the terminal before executing the task.
-	 */
 	clear: boolean;
 
-	/**
-	 * Controls whether the task is executed in a specific terminal group using split panes.
-	 */
 	group?: string;
 
-	/**
-	 * Controls whether the terminal that the task runs in is closed when the task completes.
-	 */
 	close?: boolean;
 
-	/**
-	 * Controls whether to preserve the task name in the terminal after task completion.
-	 */
 	preserveTerminalName?: boolean;
 }
 
@@ -340,29 +235,14 @@ export namespace CommandString {
 
 export interface ICommandConfiguration {
 
-	/**
-	 * The task type
-	 */
 	runtime?: RuntimeType;
 
-	/**
-	 * The command to execute
-	 */
 	name?: CommandString;
 
-	/**
-	 * Additional command options.
-	 */
 	options?: CommandOptions;
 
-	/**
-	 * Command arguments.
-	 */
 	args?: CommandString[];
 
-	/**
-	 * The task selector if needed.
-	 */
 	taskSelector?: string;
 
 	/**
@@ -371,9 +251,6 @@ export interface ICommandConfiguration {
 	 */
 	suppressTaskName?: boolean;
 
-	/**
-	 * Describes how the task is presented in the UI.
-	 */
 	presentation?: IPresentationOptions;
 }
 
@@ -513,74 +390,32 @@ export const enum DependsOrder {
 
 export interface IConfigurationProperties {
 
-	/**
-	 * The task's name
-	 */
 	name?: string;
 
-	/**
-	 * The task's name
-	 */
 	identifier?: string;
 
-	/**
-	 * The task's group;
-	 */
 	group?: string | TaskGroup;
 
-	/**
-	 * The presentation options
-	 */
 	presentation?: IPresentationOptions;
 
-	/**
-	 * The command options;
-	 */
 	options?: CommandOptions;
 
-	/**
-	 * Whether the task is a background task or not.
-	 */
 	isBackground?: boolean;
 
-	/**
-	 * Whether the task should prompt on close for confirmation if running.
-	 */
 	promptOnClose?: boolean;
 
-	/**
-	 * The other tasks this task depends on.
-	 */
 	dependsOn?: ITaskDependency[];
 
-	/**
-	 * The order the dependsOn tasks should be executed in.
-	 */
 	dependsOrder?: DependsOrder;
 
-	/**
-	 * A description of the task.
-	 */
 	detail?: string;
 
-	/**
-	 * The problem watchers to use for this task
-	 */
 	problemMatchers?: Array<string | ProblemMatcher>;
 
-	/**
-	 * The icon for this task in the terminal tabs list
-	 */
 	icon?: { id?: string; color?: string };
 
-	/**
-	 * Do not show this task in the run task quickpick
-	 */
 	hide?: boolean;
 
-	/**
-	 * Show this task in the Agents run action dropdown
-	 */
 	inAgents?: boolean;
 }
 
@@ -611,14 +446,8 @@ export namespace RunOptions {
 
 export abstract class CommonTask {
 
-	/**
-	 * The task's internal id
-	 */
 	readonly _id: string;
 
-	/**
-	 * The cached label.
-	 */
 	_label: string = '';
 
 	type?: string;
@@ -729,28 +558,16 @@ export abstract class CommonTask {
 	}
 }
 
-/**
- * For tasks of type shell or process, this is created upon parse
- * of the tasks.json or workspace file.
- * For ContributedTasks of all other types, this is the result of
- * resolving a ConfiguringTask.
- */
 export class CustomTask extends CommonTask {
 
-	declare type: '$customized'; // CUSTOMIZED_TASK_TYPE
+	declare type: '$customized';
 
 	instance: number | undefined;
 
-	/**
-	 * Indicated the source of the task (e.g. tasks.json or extension)
-	 */
 	override _source: FileBasedTaskSource;
 
 	hasDefinedMatchers: boolean;
 
-	/**
-	 * The command configuration
-	 */
 	command: ICommandConfiguration = {};
 
 	public constructor(id: string, source: FileBasedTaskSource, label: string, type: string, command: ICommandConfiguration | undefined,
@@ -827,9 +644,6 @@ export class CustomTask extends CommonTask {
 		return this._source.customizes ? super.getCommonTaskId() : (this.getKey() ?? super.getCommonTaskId());
 	}
 
-	/**
-	 * @returns A key representing the task
-	 */
 	public override getKey(): string | undefined {
 		interface ICustomKey {
 			type: string;
@@ -870,16 +684,8 @@ export class CustomTask extends CommonTask {
 	}
 }
 
-/**
- * After a contributed task has been parsed, but before
- * the task has been resolved via the extension, its properties
- * are stored in this
- */
 export class ConfiguringTask extends CommonTask {
 
-	/**
-	 * Indicated the source of the task (e.g. tasks.json or extension)
-	 */
 	override _source: FileBasedTaskSource;
 
 	configures: KeyedTaskIdentifier;
@@ -934,15 +740,8 @@ export class ConfiguringTask extends CommonTask {
 	}
 }
 
-/**
- * A task from an extension created via resolveTask or provideTask
- */
 export class ContributedTask extends CommonTask {
 
-	/**
-	 * Indicated the source of the task (e.g. tasks.json or extension)
-	 * Set in the super constructor
-	 */
 	declare _source: IExtensionTaskSource;
 
 	instance: number | undefined;
@@ -951,19 +750,10 @@ export class ContributedTask extends CommonTask {
 
 	hasDefinedMatchers: boolean;
 
-	/**
-	 * The command configuration
-	 */
 	command: ICommandConfiguration;
 
-	/**
-	 * The icon for the task
-	 */
 	icon: { id?: string; color?: string } | undefined;
 
-	/**
-	 * Don't show the task in the run task quickpick
-	 */
 	hide?: boolean;
 
 	public constructor(id: string, source: IExtensionTaskSource, label: string, type: string | undefined, defines: KeyedTaskIdentifier,
@@ -1031,9 +821,6 @@ export class ContributedTask extends CommonTask {
 }
 
 export class InMemoryTask extends CommonTask {
-	/**
-	 * Indicated the source of the task (e.g. tasks.json or extension)
-	 */
 	override _source: IInMemoryTaskSource;
 
 	instance: number | undefined;
@@ -1153,43 +940,30 @@ export interface ITaskChangedEvent {
 
 
 export enum TaskEventKind {
-	/** Indicates that a task's properties or configuration have changed */
 	Changed = 'changed',
 
-	/** Indicates that a task has begun executing */
 	ProcessStarted = 'processStarted',
 
-	/** Indicates that a task process has completed */
 	ProcessEnded = 'processEnded',
 
-	/** Indicates that a task was terminated, either by user action or by the system */
 	Terminated = 'terminated',
 
-	/** Indicates that a task has started running */
 	Start = 'start',
 
-	/** Indicates that a task has acquired all needed input/variables to execute */
 	AcquiredInput = 'acquiredInput',
 
-	/** Indicates that a dependent task has started */
 	DependsOnStarted = 'dependsOnStarted',
 
-	/** Indicates that a task is actively running/processing */
 	Active = 'active',
 
-	/** Indicates that a task is paused/waiting but not complete */
 	Inactive = 'inactive',
 
-	/** Indicates that a task has completed fully */
 	End = 'end',
 
-	/** Indicates that a task's problem matcher has started */
 	ProblemMatcherStarted = 'problemMatcherStarted',
 
-	/** Indicates that a task's problem matcher has ended */
 	ProblemMatcherEnded = 'problemMatcherEnded',
 
-	/** Indicates that a task's problem matcher has found errors */
 	ProblemMatcherFoundErrors = 'problemMatcherFoundErrors'
 }
 
@@ -1391,7 +1165,6 @@ export namespace TaskDefinition {
 	export function createTaskIdentifier(external: ITaskIdentifier, reporter: { error(message: string): void }): KeyedTaskIdentifier | undefined {
 		const definition = TaskDefinitionRegistry.get(external.type);
 		if (definition === undefined) {
-			// We have no task definition so we can't sanitize the literal. Take it as is
 			const copy = Objects.deepClone(external);
 			delete copy._key;
 			return KeyedTaskIdentifier.create(copy);

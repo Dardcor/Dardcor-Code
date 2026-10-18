@@ -10,21 +10,11 @@ import { InstantiationType, registerSingleton } from '../../instantiation/common
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { IOpenerService } from '../../opener/common/opener.js';
 
-/**
- * Renders markdown to HTML.
- *
- * This interface allows a upper level component to pass a custom markdown renderer to sub-components.
- *
- * If you want to render markdown content in a standard way, prefer using the {@linkcode IMarkdownRendererService}.
- */
 export interface IMarkdownRenderer {
 	render(markdown: IMarkdownString, options?: MarkdownRenderOptions, outElement?: HTMLElement): IRenderedMarkdown;
 }
 
 export interface IMarkdownRendererExtraOptions {
-	/**
-	 * The context in which the markdown is being rendered.
-	 */
 	readonly context?: unknown;
 }
 
@@ -35,14 +25,6 @@ export interface IMarkdownCodeBlockRenderer {
 
 export const IMarkdownRendererService = createDecorator<IMarkdownRendererService>('markdownRendererService');
 
-/**
- * Service that renders markdown content in a standard manner.
- *
- * Unlike the lower-level {@linkcode renderMarkdown} function, this includes built-in support for features such as syntax
- * highlighting of code blocks and link handling.
- *
- * This service should be preferred for rendering markdown in most cases.
- */
 export interface IMarkdownRendererService extends IMarkdownRenderer {
 	readonly _serviceBrand: undefined;
 
@@ -102,14 +84,14 @@ export async function openLinkFromMarkdown(openerService: IOpenerService, link: 
 
 function toAllowCommandsOption(isTrusted: boolean | MarkdownStringTrustedOptions | undefined): boolean | readonly string[] {
 	if (isTrusted === true) {
-		return true; // Allow all commands
+		return true;
 	}
 
 	if (isTrusted && Array.isArray(isTrusted.enabledCommands)) {
-		return isTrusted.enabledCommands; // Allow subset of commands
+		return isTrusted.enabledCommands;
 	}
 
-	return false; // Block commands
+	return false;
 }
 
 registerSingleton(IMarkdownRendererService, MarkdownRendererService, InstantiationType.Delayed);

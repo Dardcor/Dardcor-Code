@@ -69,7 +69,6 @@ export class ViewOverlays extends ViewPart {
 		this._dynamicOverlays.push(overlay);
 	}
 
-	// ----- event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		this._visibleLines.onConfigurationChanged(e);
@@ -106,7 +105,6 @@ export class ViewOverlays extends ViewPart {
 		return this._visibleLines.onZonesChanged(e);
 	}
 
-	// ----- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
 		const toRender = this._dynamicOverlays.filter(overlay => overlay.shouldRender());
@@ -119,7 +117,6 @@ export class ViewOverlays extends ViewPart {
 	}
 
 	public render(ctx: RestrictedRenderingContext): void {
-		// Overwriting to bypass `shouldRender` flag
 		this._viewOverlaysRender(ctx);
 
 		this.domNode.toggleClassName('focused', this._isFocused);
@@ -154,10 +151,8 @@ export class ViewOverlayLine implements IVisibleLine {
 	}
 
 	public onContentChanged(): void {
-		// Nothing
 	}
 	public onTokensChanged(): void {
-		// Nothing
 	}
 
 	public renderLine(lineNumber: number, deltaTop: number, lineHeight: number, viewportData: ViewportData, sb: StringBuilder): boolean {
@@ -168,7 +163,6 @@ export class ViewOverlayLine implements IVisibleLine {
 		}
 
 		if (this._renderedContent === result) {
-			// No rendering needed
 			return false;
 		}
 
@@ -209,7 +203,6 @@ export class ContentViewOverlays extends ViewOverlays {
 		this.domNode.setHeight(0);
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -221,7 +214,6 @@ export class ContentViewOverlays extends ViewOverlays {
 		return super.onScrollChanged(e) || e.scrollWidthChanged;
 	}
 
-	// --- end event handlers
 
 	override _viewOverlaysRender(ctx: RestrictedRenderingContext): void {
 		super._viewOverlaysRender(ctx);

@@ -26,7 +26,6 @@ suite('AgentHostFileSystemProvider - URI helpers', () => {
 		const uri = agentHostUri('localhost', '/home/user/project');
 		assert.strictEqual(uri.scheme, AGENT_HOST_SCHEME);
 		assert.strictEqual(uri.authority, 'localhost');
-		// path encodes file scheme: /file//home/user/project
 		assert.ok(uri.path.includes('/home/user/project'));
 	});
 
@@ -219,14 +218,12 @@ suite('toAgentHostUri / fromAgentHostUri', () => {
 		const uri = agentHostUri(authority, '/');
 		assert.strictEqual(uri.scheme, AGENT_HOST_SCHEME);
 		assert.strictEqual(uri.authority, authority);
-		// The decoded path should be root
 		assert.strictEqual(fromAgentHostUri(uri).path, '/');
 	});
 
 	test('fromAgentHostUri falls back to a file URI when metadata is missing', () => {
 		const uri = URI.from({ scheme: AGENT_HOST_SCHEME, authority: 'host', path: '/file' });
 		const result = fromAgentHostUri(uri);
-		// Should not throw - falls back to a file URI using the path verbatim
 		assert.strictEqual(result.scheme, 'file');
 		assert.strictEqual(result.path, '/file');
 	});
@@ -329,15 +326,11 @@ suite('AgentHostFileSystemProvider - authority registrations', () => {
 		const first = new NamedConnection('first');
 		const second = new NamedConnection('second');
 
-		// Register, then dispose — we're now inside the grace window.
 		const firstRegistration = provider.registerAuthority('client', first);
 		firstRegistration.dispose();
 
-		// Issue an operation while no connection is bound. It should
-		// queue, waiting for a re-registration.
 		const pending = provider.readdir(agentHostUri('client', '/workspace'));
 
-		// Reconnect within the grace window.
 		disposables.add(provider.registerAuthority('client', second));
 
 		const entries = await pending;
@@ -385,10 +378,6 @@ suite('AgentHostFileSystemProvider - synthetic content schemes', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
-	/**
-	 * Stub connection that records the URIs it's asked about and returns
-	 * canned data, so we can assert on the URIs the provider passes through.
-	 */
 	class StubConnection implements IRemoteFilesystemConnection {
 		readonly readCalls: URI[] = [];
 		readonly readEncodings: (ContentEncoding | undefined)[] = [];
@@ -424,12 +413,6 @@ suite('AgentHostFileSystemProvider - synthetic content schemes', () => {
 		return { provider, connection };
 	}
 
-	// Regression: AHPFileSystemProvider.stat() used to fall through to
-	// _listDirectory(parent) for any URI whose decoded scheme wasn't
-	// session-db, which fails with "Directory not found" for synthetic
-	// content URIs that have no real parent directory. The diff editor
-	// stats every URI before reading it, so this broke "open diff of a
-	// modified file" entirely. The fix is the scheme allowlist in stat().
 
 	test('stat returns File for git-blob: URIs without listing the parent', async () => {
 		const { provider, connection } = setup();
@@ -454,9 +437,6 @@ suite('AgentHostFileSystemProvider - synthetic content schemes', () => {
 	});
 
 	test('stat uses resourceResolve for ordinary file: URIs', async () => {
-		// Use a non-local authority so the URI actually goes through the
-		// agent-host wrapping (toAgentHostUri short-circuits 'local'
-		// + file:// to return the URI unchanged).
 		const provider = disposables.add(new AgentHostFileSystemProvider());
 		const connection = new StubConnection();
 		disposables.add(provider.registerAuthority('remote', connection));
@@ -467,8 +447,6 @@ suite('AgentHostFileSystemProvider - synthetic content schemes', () => {
 		assert.strictEqual(connection.listCalls.length, 0);
 	});
 
-	// Regression: the diff editor stats before reading, and a content ref is not
-	// a filesystem entry, so the stat failed and the read never ran.
 	test('stat treats a marked content ref as a read-only file whatever its scheme', async () => {
 		const provider = disposables.add(new AgentHostFileSystemProvider());
 		const connection = new StubConnection();
@@ -506,8 +484,6 @@ suite('AgentHostFileSystemProvider - synthetic content schemes', () => {
 		});
 	});
 
-	// A content ref whose original URI carries no path wraps to `/`, which is
-	// also how the provider addresses its own synthetic root.
 	test('stat reports a pathless content ref as a file, not the provider root', async () => {
 		const provider = disposables.add(new AgentHostFileSystemProvider());
 		const connection = new StubConnection();
@@ -567,10 +543,6 @@ suite('AgentHostFileSystemProvider - synthetic content schemes', () => {
 	});
 
 	test('full stat-then-read round-trip mirrors the diff editor flow', async () => {
-		// This is the exact sequence the workbench's TextFileEditorModel
-		// goes through when DiffEditorInput.createModel resolves: stat
-		// the URI, then read the file. Pre-fix this combo failed at the
-		// stat step before readFile was even called.
 		const { provider } = setup();
 		const inner = URI.from({ scheme: 'git-blob', authority: 'sess1', path: '/sha/encoded/file.ts' });
 		const wrapped = toAgentHostUri(inner, 'local');
@@ -586,11 +558,6 @@ suite('AgentHostFileSystemProvider - permission errors and requestResourceAccess
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
-	/**
-	 * Stub connection whose individual operations can be configured to throw.
-	 * Records every `resourceRequest` call so tests can assert URI translation
-	 * and the read/write flags forwarded to the receiver.
-	 */
 	class ConfigurableConnection implements IRemoteFilesystemConnection {
 		readError: unknown | undefined;
 		writeError: unknown | undefined;
@@ -637,8 +604,6 @@ suite('AgentHostFileSystemProvider - permission errors and requestResourceAccess
 			if (this.mkdirError) { throw this.mkdirError; }
 			return {};
 		}
-		// Defined as a property so we can `delete` it to simulate a connection
-		// without resourceRequest support (e.g. older protocol clients).
 		resourceRequest? = async (params: ResourceRequestParams): Promise<ResourceRequestResult> => {
 			this.requestCalls.push(params);
 			if (this.requestError) { throw this.requestError; }
@@ -653,9 +618,6 @@ suite('AgentHostFileSystemProvider - permission errors and requestResourceAccess
 			connection.hasResourceRequest = false;
 			delete connection.resourceRequest;
 		}
-		// Use a non-`local` authority so file URIs actually go through the
-		// AHP wrapping; toAgentHostUri short-circuits 'local'+file:// to
-		// return the URI unchanged, which would bypass the provider entirely.
 		disposables.add(provider.registerAuthority('remote', connection));
 		return { provider, connection };
 	}
@@ -842,8 +804,6 @@ suite('AgentHostFileSystemProvider - resolve / mkdir / copy / watch', () => {
 
 	test('realpath re-encodes the connection canonical URI back into provider space', async () => {
 		const { provider, connection } = setup();
-		// Simulate a symlink: the resolve reports a canonical target that
-		// differs from the requested path.
 		connection.resourceResolve = async (params: ResourceResolveParams): Promise<ResourceResolveResult> => {
 			connection.resolveCalls.push(params);
 			return { uri: 'file:///real/target.ts', type: ResourceType.File };
@@ -894,16 +854,12 @@ suite('AgentHostFileSystemProvider - resolve / mkdir / copy / watch', () => {
 
 		const watchDisposable = provider.watch(wrapped, { recursive: true, excludes: ['**/node_modules/**'] });
 
-		// Wait one microtask tick so the async watchResource resolves.
 		await new Promise<void>(resolve => queueMicrotask(resolve));
 
 		assert.strictEqual(connection.watchCalls.length, 1);
 		assert.strictEqual(connection.watchCalls[0].recursive, true);
 		assert.deepStrictEqual(connection.watchCalls[0].excludes, { items: ['**/node_modules/**'] });
 
-		// When watchResource reports changes from the underlying filesystem,
-		// they come back with file:// URIs. The provider re-encodes them with
-		// the agent host authority.
 		const incomingChange: IFileChange = { resource: URI.parse('file:///watched/a.txt'), type: FileChangeType.UPDATED };
 		const expectedChange: IFileChange = { resource: toAgentHostUri(URI.parse('file:///watched/a.txt'), 'remote'), type: FileChangeType.UPDATED };
 		onDidChange.fire([incomingChange]);
@@ -945,8 +901,6 @@ suite('AgentHostFileSystemProvider - resolve / mkdir / copy / watch', () => {
 		const sub = provider.onDidWatchError(message => errors.push(message));
 
 		const watchDisposable = provider.watch(wrapped, { recursive: false, excludes: [] });
-		// Yield until the watch's async chain (acquire connection →
-		// watchResource → error propagation) settles.
 		await timeout(0);
 
 		assert.deepStrictEqual(errors, ['watch setup failed']);
@@ -964,8 +918,6 @@ suite('AgentHostFileSystemProvider - resolve / mkdir / copy / watch', () => {
 			onDidChange: onDidChange.event,
 			dispose: () => { handleDisposed = true; onDidChange.dispose(); },
 		};
-		// Defer the watchResource resolution so we can dispose between
-		// `watch()` returning and the handle being assigned.
 		const originalWatchResource = connection.watchResource.bind(connection);
 		connection.watchResource = async params => {
 			handleCreated = true;
@@ -975,8 +927,6 @@ suite('AgentHostFileSystemProvider - resolve / mkdir / copy / watch', () => {
 		const wrapped = agentHostUri('remote', '/watched');
 
 		const watchDisposable = provider.watch(wrapped, { recursive: false, excludes: [] });
-		// Yield until watchResource has begun (so a handle is in flight),
-		// then dispose before it resolves.
 		await timeout(0);
 		assert.strictEqual(handleCreated, true);
 		watchDisposable.dispose();
@@ -1006,9 +956,6 @@ suite('AgentHostFileSystemProvider - resolve / mkdir / copy / watch', () => {
 		await timeout(0);
 		firstChanges.fire([{ resource: URI.file('/watched/a.txt'), type: FileChangeType.UPDATED }]);
 
-		// Disconnect: a re-registration arrives within the grace window.
-		// The watcher must dispose the old handle and attach to the new
-		// connection without the caller doing anything.
 		firstReg.dispose();
 		const second = new FullConnection();
 		const secondChanges = new Emitter<readonly IFileChange[]>();
@@ -1049,8 +996,6 @@ suite('AgentHostFileSystemProvider - resolve / mkdir / copy / watch', () => {
 		disposables.add(provider.onDidChangeFile(c => received.push([...c])));
 		disposables.add(provider.watch(wrapped, { recursive: false, excludes: [] }));
 
-		// No authority registered yet — nothing to attach to. Wait long
-		// enough that the grace timer (if any were running) would expire.
 		await new Promise(r => setTimeout(r, 40));
 
 		const connection = new FullConnection();

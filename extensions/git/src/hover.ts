@@ -16,15 +16,12 @@ export function getCommitHover(authorAvatar: string | undefined, authorName: str
 		enabledCommands: commands?.flat().map(c => c.command) ?? []
 	};
 
-	// Author, Subject | Message (escape image syntax)
 	appendContent(markdownString, authorAvatar, authorName, authorEmail, authorDate, message, coAuthors);
 
-	// Short stats
 	if (shortStats) {
 		appendShortStats(markdownString, shortStats);
 	}
 
-	// Commands
 	if (commands && commands.length > 0) {
 		appendCommands(markdownString, commands);
 	}
@@ -35,12 +32,10 @@ export function getCommitHover(authorAvatar: string | undefined, authorName: str
 export function getHistoryItemHover(authorAvatar: string | undefined, authorName: string | undefined, authorEmail: string | undefined, authorDate: Date | number | undefined, message: string, shortStats: CommitShortStat | undefined, commands: Command[][] | undefined, coAuthors?: CoAuthor[]): MarkdownString[] {
 	const hoverContent: MarkdownString[] = [];
 
-	// Author, Subject | Message (escape image syntax)
 	const authorMarkdownString = new MarkdownString('', true);
 	appendContent(authorMarkdownString, authorAvatar, authorName, authorEmail, authorDate, message, coAuthors);
 	hoverContent.push(authorMarkdownString);
 
-	// Short stats
 	if (shortStats) {
 		const shortStatsMarkdownString = new MarkdownString('', true);
 		shortStatsMarkdownString.supportHtml = true;
@@ -48,7 +43,6 @@ export function getHistoryItemHover(authorAvatar: string | undefined, authorName
 		hoverContent.push(shortStatsMarkdownString);
 	}
 
-	// Commands
 	if (commands && commands.length > 0) {
 		const commandsMarkdownString = new MarkdownString('', true);
 		commandsMarkdownString.isTrusted = {
@@ -62,9 +56,7 @@ export function getHistoryItemHover(authorAvatar: string | undefined, authorName
 }
 
 function appendContent(markdownString: MarkdownString, authorAvatar: string | undefined, authorName: string | undefined, authorEmail: string | undefined, authorDate: Date | number | undefined, message: string, coAuthors?: CoAuthor[]): void {
-	// Author
 	if (authorName) {
-		// Avatar
 		if (authorAvatar) {
 			markdownString.appendMarkdown('![');
 			markdownString.appendText(authorName);
@@ -75,7 +67,6 @@ function appendContent(markdownString: MarkdownString, authorAvatar: string | un
 			markdownString.appendMarkdown('$(account)');
 		}
 
-		// Email
 		if (authorEmail) {
 			markdownString.appendMarkdown(' [**');
 			markdownString.appendText(authorName);
@@ -88,7 +79,6 @@ function appendContent(markdownString: MarkdownString, authorAvatar: string | un
 			markdownString.appendMarkdown('**');
 		}
 
-		// Date
 		if (authorDate && !isNaN(new Date(authorDate).getTime())) {
 			const dateString = new Date(authorDate).toLocaleString(undefined, {
 				year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric'
@@ -101,7 +91,6 @@ function appendContent(markdownString: MarkdownString, authorAvatar: string | un
 		markdownString.appendMarkdown('\n\n');
 	}
 
-	// Co-authors
 	if (coAuthors && coAuthors.length > 0) {
 		for (const coAuthor of coAuthors) {
 			markdownString.appendMarkdown('$(account) ');
@@ -121,13 +110,11 @@ function appendContent(markdownString: MarkdownString, authorAvatar: string | un
 		}
 	}
 
-	// Subject | Message (escape image syntax)
 	markdownString.appendMarkdown(`${emojify(message.replace(/!\[/g, '&#33;&#91;').replace(/\r\n|\r|\n/g, '\n\n'))}`);
 	markdownString.appendMarkdown(`\n\n---\n\n`);
 }
 
 function appendShortStats(markdownString: MarkdownString, shortStats: { files: number; insertions: number; deletions: number }): void {
-	// Short stats
 	markdownString.appendMarkdown(`<span>${shortStats.files === 1 ?
 		l10n.t('{0} file changed', shortStats.files) :
 		l10n.t('{0} files changed', shortStats.files)}</span>`);

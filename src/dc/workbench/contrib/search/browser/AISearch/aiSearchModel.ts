@@ -102,9 +102,9 @@ export class AIFolderMatchWorkspaceRootImpl extends Disposable implements ISearc
 	readonly onDispose: Event<void> = this._onDispose.event;
 	private readonly _id: string;
 	private _name: Lazy<string>;
-	protected _unDisposedFileMatches: Map<string, ISearchTreeFileMatch>; // id to fileMatch
+	protected _unDisposedFileMatches: Map<string, ISearchTreeFileMatch>;
 
-	protected _fileMatches: Map<string, ISearchTreeFileMatch>; // id to fileMatch
+	protected _fileMatches: Map<string, ISearchTreeFileMatch>;
 
 	constructor(private _resource: URI,
 		_id: string,
@@ -205,7 +205,6 @@ export class AIFolderMatchWorkspaceRootImpl extends Disposable implements ISearc
 		this.doRemoveFile(allMatches);
 	}
 	addFileMatch(raw: IFileMatch[], silent: boolean, searchInstanceID: string): void {
-		// when adding a fileMatch that has intermediate directories
 		const added: ISearchTreeFileMatch[] = [];
 		const updated: ISearchTreeFileMatch[] = [];
 
@@ -289,13 +288,10 @@ export class AIFolderMatchWorkspaceRootImpl extends Disposable implements ISearc
 	replacingAll: boolean = false;
 
 	bindModel(model: ITextModel): void {
-		// no op
 	}
 	unbindNotebookEditorWidget(editor: NotebookEditorWidget, resource: URI): void {
-		//no op
 	}
 	bindNotebookEditorWidget(editor: NotebookEditorWidget, resource: URI): Promise<void> {
-		//no op
 		return Promise.resolve();
 	}
 

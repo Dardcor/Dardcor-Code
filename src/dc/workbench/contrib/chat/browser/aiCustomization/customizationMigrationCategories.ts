@@ -42,26 +42,16 @@ export interface ICustomizationMigrationConfirmation {
 	readonly deleteOriginalsLabel?: string;
 }
 
-/**
- * Prominent explanation shown above the migration list.
- */
 export interface ICustomizationMigrationBanner {
 	readonly message: string | IMarkdownString;
 	readonly consequence?: string;
 }
 
-/**
- * A self-contained migration flow. Each category owns its candidates, grouping,
- * and user-visible copy so migrations stay focused and independently readable.
- */
 export interface ICustomizationMigrationCategory {
 	readonly id: CustomizationMigrationCategoryId;
 	readonly migrationType: CustomizationMigrationType;
-	/** Prompt types scanned when collecting candidates for this category. */
 	readonly sourceTypes?: readonly PromptsType[];
-	/** Experimental setting gating this migration. Each category is enabled independently. */
 	readonly enablementSetting: ChatConfiguration;
-	/** Settings that must differ from their defaults for this migration to apply. */
 	readonly configurationSettingIds?: readonly string[];
 	readonly shortcutLabel: string;
 	readonly shortcutTooltip: string;
@@ -81,7 +71,6 @@ export interface ICustomizationMigrationCategory {
 	getShortcutAriaLabel(count: number): string;
 	getCardDescription(customizations: readonly CustomizationMigrationCandidate[], harnessLabel: string): string;
 	getPageDescription(customizations: readonly CustomizationMigrationCandidate[], harnessLabel: string): string;
-	/** When present, replaces the page description with a prominent banner. */
 	getModifiedSettingIds?(configurationService: IConfigurationService): readonly string[];
 	getBanner?(customizations: readonly CustomizationMigrationCandidate[], harnessLabel: string, destinationLabel: string | undefined, modifiedSettingIds: readonly string[]): ICustomizationMigrationBanner;
 	getConfirmation(customizations: readonly CustomizationMigrationCandidate[], harnessLabel: string, destinationLabel?: string): ICustomizationMigrationConfirmation;
@@ -91,9 +80,9 @@ export interface ICustomizationMigrationCategory {
 	getMcpServerFailureMessage?(failures: readonly IMcpServerCustomizationMigrationFailure[]): string;
 }
 
-const SKILLS_DOCUMENTATION_URL = 'https://code.visualstudio.com/docs/agent-customization/agent-skills?referrer=in-product';
-const CUSTOMIZATION_DOCUMENTATION_URL = 'https://code.visualstudio.com/docs/agent-customization/overview?referrer=in-product';
-const MCP_DOCUMENTATION_URL = 'https://code.visualstudio.com/docs/agent-customization/mcp-servers?referrer=in-product';
+const SKILLS_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/agent-customization/agent-skills';
+const CUSTOMIZATION_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/agent-customization/overview';
+const MCP_DOCUMENTATION_URL = 'https://www.dardcor-code.web.id/docs/agent-customization/mcp-servers';
 const CONFIGURED_LOCATION_SETTING_IDS = [
 	PromptsConfig.AGENTS_LOCATION_KEY,
 	PromptsConfig.MODE_LOCATION_KEY,
@@ -101,10 +90,6 @@ const CONFIGURED_LOCATION_SETTING_IDS = [
 	PromptsConfig.INSTRUCTIONS_LOCATION_KEY,
 ] as const;
 
-/**
- * Converts `*.prompt.md` files into skills. Agent-host harnesses ignore prompt
- * files entirely, so both workspace and user prompts are offered here.
- */
 const promptFilesMigrationCategory: ICustomizationMigrationCategory = {
 	id: CustomizationMigrationCategoryId.PromptFiles,
 	migrationType: CustomizationMigrationType.PromptFiles,
@@ -238,12 +223,6 @@ const promptFilesMigrationCategory: ICustomizationMigrationCategory = {
 	},
 };
 
-/**
- * Relocates agents and instructions kept in the profile's User Data prompts folder
- * to the active harness roots. These files keep their type and content; only their
- * location changes. User Data prompt files are intentionally left to
- * {@link promptFilesMigrationCategory} so every prompt file is converted in one place.
- */
 const userDataMigrationCategory: ICustomizationMigrationCategory = {
 	id: CustomizationMigrationCategoryId.UserData,
 	migrationType: CustomizationMigrationType.UserData,
@@ -685,9 +664,6 @@ export function getCustomizationMigrationCategory(id: CustomizationMigrationCate
 	return category;
 }
 
-/**
- * All prompt types the given categories can discover, so candidates can be collected with one pass per type.
- */
 export function getCustomizationMigrationSourceTypes(categories: readonly ICustomizationMigrationCategory[]): readonly PromptsType[] {
 	return Array.from(new Set(categories.flatMap(category => category.sourceTypes ?? [])));
 }

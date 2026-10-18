@@ -6,7 +6,6 @@
 import { Codicon } from '../../../../../../../base/common/codicons.js';
 import { localize } from '../../../../../../../nls.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js';
-import { IAgentHostCustomizationService } from '../../../../browser/agentSessions/agentHost/agentHostCustomizationService.js';
 import { IChatToolInvocation } from '../../../../common/chatService/chatService.js';
 import { IChatWidgetService } from '../../../chat.js';
 import { ChatCustomConfirmationWidget } from '../chatConfirmationWidget.js';
@@ -21,7 +20,6 @@ export class ChatToolAuthenticationSubPart extends BaseChatToolInvocationSubPart
 		toolInvocation: IChatToolInvocation,
 		context: IChatContentPartRenderContext,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@IAgentHostCustomizationService customizationService: IAgentHostCustomizationService,
 		@IChatWidgetService chatWidgetService: IChatWidgetService,
 	) {
 		super(toolInvocation);
@@ -41,7 +39,6 @@ export class ChatToolAuthenticationSubPart extends BaseChatToolInvocationSubPart
 					{
 						label: localize('chat.toolAuthentication.authenticate', "Authenticate"),
 						data: async () => {
-							await customizationService.authenticateMcpServer(context.element.sessionResource, state.server.id);
 						},
 					},
 					{

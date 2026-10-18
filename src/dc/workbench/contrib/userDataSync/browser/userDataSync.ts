@@ -171,7 +171,6 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 			return;
 		}
 		if (conflicts.length) {
-			// Clear and dispose conflicts those were cleared
 			for (const [key, disposable] of this.conflictsDisposables.entries()) {
 				if (!conflicts.some(conflict => this.toKey(conflict) === key)) {
 					disposable.dispose();
@@ -181,7 +180,6 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 
 			for (const conflict of this.userDataSyncService.conflicts) {
 				const key = this.toKey(conflict);
-				// Show conflicts notification if not shown before
 				if (!this.conflictsDisposables.has(key)) {
 					const conflictsArea = getSyncAreaLabel(conflict.syncResource);
 					const handle = this.notificationService.prompt(Severity.Warning, localize('conflicts detected', "Unable to sync due to conflicts in {0}. Please resolve them to continue.", conflictsArea.toLowerCase()),
@@ -211,7 +209,6 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 						}
 					);
 					this.conflictsDisposables.set(key, toDisposable(() => {
-						// close the conflicts warning notification
 						handle.close();
 						this.conflictsDisposables.delete(key);
 					}));
@@ -344,15 +341,13 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 				return;
 
 			case UserDataSyncErrorCode.DefaultServiceChanged:
-				// Settings sync is using separate service
 				if (this.userDataSyncEnablementService.isEnabled()) {
 					this.notificationService.notify({
 						severity: Severity.Info,
-						message: localize('using separate service', "Settings sync now uses a separate service, more information is available in the [Settings Sync Documentation](https://aka.ms/vscode-settings-sync-help#_syncing-stable-versus-insiders)."),
+						message: localize('using separate service', "Settings sync now uses a separate service, more information is available in the [Settings Sync Documentation](https://www.dardcor-code.web.id/docs/user-data/settings-sync#_syncing-stable-versus-insiders)."),
 					});
 				}
 
-				// If settings sync got turned off then ask user to turn on sync again.
 				else {
 					this.notificationService.notify({
 						severity: Severity.Info,
@@ -428,7 +423,6 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 				: this.userDataProfileService.currentProfile.tasksResource;
 		const editorUri = EditorResourceAccessor.getCanonicalUri(this.editorService.activeEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
 		if (isEqual(resource, editorUri)) {
-			// Do not show notification if the file in error is active
 			return;
 		}
 		const errorArea = getSyncAreaLabel(source);
@@ -444,7 +438,6 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 			}
 		});
 		this.invalidContentErrorDisposables.set(key, toDisposable(() => {
-			// close the error warning notification
 			handle.close();
 			this.invalidContentErrorDisposables.delete(key);
 		}));
@@ -740,7 +733,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		}
 		this.registerTurningOnSyncAction();
 		this.registerCancelTurnOnSyncAction();
-		this.registerSignInAction(); // When Sync is turned on from CLI
+		this.registerSignInAction();
 		this.registerShowConflictsAction();
 
 		this.registerEnableSyncViewsAction();
@@ -1128,7 +1121,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 					}],
 				});
 			}
-			run(): unknown { return that.openerService.open(URI.parse('https://aka.ms/vscode-settings-sync-help')); }
+			run(): unknown { return that.openerService.open(URI.parse('https://www.dardcor-code.web.id/docs/user-data/settings-sync')); }
 		}));
 		MenuRegistry.appendMenuItem(MenuId.ViewContainerTitle, {
 			command: {

@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface IReverseDependencyXRayParams {
 	packageName: string;
@@ -18,7 +18,7 @@ export interface IReverseDependencyXRayParams {
 	description: string;
 }
 
-export class ReverseDependencyXRayTool implements ICopilotTool<IReverseDependencyXRayParams> {
+export class ReverseDependencyXRayTool implements IAgentTool<IReverseDependencyXRayParams> {
 	public static toolName = ToolName.ReverseDependencyXRay;
 
 	constructor(
@@ -28,7 +28,6 @@ export class ReverseDependencyXRayTool implements ICopilotTool<IReverseDependenc
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<IReverseDependencyXRayParams>, token: vscode.CancellationToken) {
 		const { packageName, errorTraceSnippet, relativeVendorFilePath } = options.input;
 
-		// Resolve node_modules path from active workspace
 		const workspaceFolders = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath);
 		let targetPkgDir = '';
 
@@ -48,7 +47,6 @@ export class ReverseDependencyXRayTool implements ICopilotTool<IReverseDependenc
 			]);
 		}
 
-		// Read package.json metadata
 		let pkgJsonInfo: Record<string, unknown> = {};
 		const pkgJsonPath = path.join(targetPkgDir, 'package.json');
 		if (fs.existsSync(pkgJsonPath)) {
@@ -63,11 +61,9 @@ export class ReverseDependencyXRayTool implements ICopilotTool<IReverseDependenc
 		if (relativeVendorFilePath) {
 			targetFileToRead = path.join(targetPkgDir, relativeVendorFilePath);
 		} else if (errorTraceSnippet) {
-			// Extract file path from stack trace e.g. "node_modules/pkg/dist/index.js:142:15"
 			const match = errorTraceSnippet.match(/node_modules[\\/]([^:]+):(\d+)/);
 			if (match) {
 				const fullRel = match[1];
-				// Remove package name prefix if present
 				const subPath = fullRel.startsWith(packageName) ? fullRel.substring(packageName.length + 1) : fullRel;
 				targetFileToRead = path.join(targetPkgDir, subPath);
 			}

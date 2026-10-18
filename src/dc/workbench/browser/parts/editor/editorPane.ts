@@ -25,37 +25,14 @@ import { ITextResourceConfigurationChangeEvent, ITextResourceConfigurationServic
 import { IBoundarySashes } from '../../../../base/browser/ui/sash/sash.js';
 import { getWindowById } from '../../../../base/browser/dom.js';
 
-/**
- * The base class of editors in the workbench. Editors register themselves for specific editor inputs.
- * Editors are layed out in the editor part of the workbench in editor groups. Multiple editors can be
- * open at the same time. Each editor has a minimized representation that is good enough to provide some
- * information about the state of the editor data.
- *
- * The workbench will keep an editor alive after it has been created and show/hide it based on
- * user interaction. The lifecycle of a editor goes in the order:
- *
- * - `createEditor()`
- * - `setEditorVisible()`
- * - `layout()`
- * - `setInput()`
- * - `focus()`
- * - `dispose()`: when the editor group the editor is in closes
- *
- * During use of the workbench, a editor will often receive a `clearInput()`, `setEditorVisible()`, `layout()` and
- * `focus()` calls, but only one `create()` and `dispose()` call.
- *
- * This class is only intended to be subclassed and not instantiated.
- */
 export abstract class EditorPane<MementoType extends object = object> extends Composite<MementoType> implements IEditorPane {
 
-	//#region Events
 
 	readonly onDidChangeSizeConstraints = Event.None;
 
 	protected readonly _onDidChangeControl = this._register(new Emitter<void>());
 	readonly onDidChangeControl = this._onDidChangeControl.event;
 
-	//#endregion
 
 	private static readonly EDITOR_MEMENTOS = new Map<string, EditorMemento<unknown>>();
 
@@ -72,9 +49,6 @@ export abstract class EditorPane<MementoType extends object = object> extends Co
 
 	get window() { return getWindowById(this.group.windowId, true).window; }
 
-	/**
-	 * Should be overridden by editors that have their own ScopedContextKeyService
-	 */
 	get scopedContextKeyService(): IContextKeyService | undefined { return undefined; }
 
 	constructor(
@@ -90,57 +64,21 @@ export abstract class EditorPane<MementoType extends object = object> extends Co
 	override create(parent: HTMLElement): void {
 		super.create(parent);
 
-		// Create Editor
 		this.createEditor(parent);
 	}
 
-	/**
-	 * Called to create the editor in the parent HTMLElement. Subclasses implement
-	 * this method to construct the editor widget.
-	 */
 	protected abstract createEditor(parent: HTMLElement): void;
 
-	/**
-	 * Note: Clients should not call this method, the workbench calls this
-	 * method. Calling it otherwise may result in unexpected behavior.
-	 *
-	 * Sets the given input with the options to the editor. The input is guaranteed
-	 * to be different from the previous input that was set using the `input.matches()`
-	 * method.
-	 *
-	 * The provided context gives more information around how the editor was opened.
-	 *
-	 * The provided cancellation token should be used to test if the operation
-	 * was cancelled.
-	 */
 	async setInput(input: EditorInput, options: IEditorOptions | undefined, context: IEditorOpenContext, token: CancellationToken): Promise<void> {
 		this._input = input;
 		this._options = options;
 	}
 
-	/**
-	 * Called to indicate to the editor that the input should be cleared and
-	 * resources associated with the input should be freed.
-	 *
-	 * This method can be called based on different contexts, e.g. when opening
-	 * a different input or different editor control or when closing all editors
-	 * in a group.
-	 *
-	 * To monitor the lifecycle of editor inputs, you should not rely on this
-	 * method, rather refer to the listeners on `IEditorGroup` via `IEditorGroupsService`.
-	 */
 	clearInput(): void {
 		this._input = undefined;
 		this._options = undefined;
 	}
 
-	/**
-	 * Note: Clients should not call this method, the workbench calls this
-	 * method. Calling it otherwise may result in unexpected behavior.
-	 *
-	 * Sets the given options to the editor. Clients should apply the options
-	 * to the current input.
-	 */
 	setOptions(options: IEditorOptions | undefined): void {
 		this._options = options;
 	}
@@ -148,21 +86,13 @@ export abstract class EditorPane<MementoType extends object = object> extends Co
 	override setVisible(visible: boolean): void {
 		super.setVisible(visible);
 
-		// Propagate to Editor
 		this.setEditorVisible(visible);
 	}
 
-	/**
-	 * Indicates that the editor control got visible or hidden.
-	 *
-	 * @param visible the state of visibility of this editor
-	 */
 	protected setEditorVisible(visible: boolean): void {
-		// Subclasses can implement
 	}
 
 	setBoundarySashes(_sashes: IBoundarySashes) {
-		// Subclasses can implement
 	}
 
 	protected getEditorMemento<T>(editorGroupService: IEditorGroupsService, configurationService: ITextResourceConfigurationService, key: string, limit: number = 10): IEditorMemento<T> {
@@ -179,13 +109,11 @@ export abstract class EditorPane<MementoType extends object = object> extends Co
 
 	getViewState(): object | undefined {
 
-		// Subclasses to override
 		return undefined;
 	}
 
 	protected override saveState(): void {
 
-		// Save all editor memento for this editor type
 		for (const [, editorMemento] of EditorPane.EDITOR_MEMENTOS) {
 			if (editorMemento.id === this.getId()) {
 				editorMemento.saveState();
@@ -209,7 +137,7 @@ interface MapGroupToMemento<T> {
 
 export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 
-	private static readonly SHARED_EDITOR_STATE = -1; // pick a number < 0 to be outside group id range
+	private static readonly SHARED_EDITOR_STATE = -1;
 
 	private cache: LRUCache<string, MapGroupToMemento<T>> | undefined;
 	private cleanedUp = false;
@@ -245,27 +173,23 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 	saveEditorState(group: IEditorGroup, resourceOrEditor: URI | EditorInput, state: T): void {
 		const resource = this.doGetResource(resourceOrEditor);
 		if (!resource || !group) {
-			return; // we are not in a good state to save any state for a resource
+			return;
 		}
 
 		const cache = this.doLoad();
 
-		// Ensure mementos for resource map
 		let mementosForResource = cache.get(resource.toString());
 		if (!mementosForResource) {
 			mementosForResource = Object.create(null) as MapGroupToMemento<T>;
 			cache.set(resource.toString(), mementosForResource);
 		}
 
-		// Store state for group
 		mementosForResource[group.id] = state;
 
-		// Store state as most recent one based on settings
 		if (this.shareEditorState) {
 			mementosForResource[EditorMemento.SHARED_EDITOR_STATE] = state;
 		}
 
-		// Automatically clear when editor input gets disposed if any
 		if (isEditorInput(resourceOrEditor)) {
 			this.clearEditorStateOnDispose(resource, resourceOrEditor);
 		}
@@ -276,7 +200,7 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 	loadEditorState(group: IEditorGroup, resourceOrEditor: URI | EditorInput): T | undefined {
 		const resource = this.doGetResource(resourceOrEditor);
 		if (!resource || !group) {
-			return; // we are not in a good state to load any state for a resource
+			return;
 		}
 
 		const cache = this.doLoad();
@@ -285,12 +209,10 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 		if (mementosForResource) {
 			const mementoForResourceAndGroup = mementosForResource[group.id];
 
-			// Return state for group if present
 			if (mementoForResourceAndGroup) {
 				return mementoForResourceAndGroup;
 			}
 
-			// Return most recent state based on settings otherwise
 			if (this.shareEditorState) {
 				return mementosForResource[EditorMemento.SHARED_EDITOR_STATE];
 			}
@@ -310,7 +232,6 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 		if (resource) {
 			const cache = this.doLoad();
 
-			// Clear state for group
 			if (group) {
 				const mementosForResource = cache.get(resource.toString());
 				if (mementosForResource) {
@@ -322,7 +243,6 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 				}
 			}
 
-			// Clear state across all groups for resource
 			else {
 				cache.delete(resource.toString());
 			}
@@ -345,26 +265,22 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 	moveEditorState(source: URI, target: URI, comparer: IExtUri): void {
 		const cache = this.doLoad();
 
-		// We need a copy of the keys to not iterate over
-		// newly inserted elements.
 		const cacheKeys = [...cache.keys()];
 		for (const cacheKey of cacheKeys) {
 			const resource = URI.parse(cacheKey);
 
 			if (!comparer.isEqualOrParent(resource, source)) {
-				continue; // not matching our resource
+				continue;
 			}
 
-			// Determine new resulting target resource
 			let targetResource: URI;
 			if (isEqual(source, resource)) {
-				targetResource = target; // file got moved
+				targetResource = target;
 			} else {
 				const index = indexOfPath(resource.path, source.path);
-				targetResource = joinPath(target, resource.path.substr(index + source.path.length + 1)); // parent folder got moved
+				targetResource = joinPath(target, resource.path.substr(index + source.path.length + 1));
 			}
 
-			// Don't modify LRU state
 			const value = cache.get(cacheKey, Touch.None);
 			if (value) {
 				cache.delete(cacheKey);
@@ -385,7 +301,6 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 		if (!this.cache) {
 			this.cache = new LRUCache<string, MapGroupToMemento<T>>(this.limit);
 
-			// Restore from serialized map state
 			const rawEditorMemento = this.memento[this.key as keyof T];
 			if (Array.isArray(rawEditorMemento)) {
 				this.cache.fromJSON(rawEditorMemento);
@@ -398,7 +313,6 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 	saveState(): void {
 		const cache = this.doLoad();
 
-		// Cleanup once during session
 		if (!this.cleanedUp) {
 			this.cleanUp();
 			this.cleanedUp = true;
@@ -410,14 +324,12 @@ export class EditorMemento<T> extends Disposable implements IEditorMemento<T> {
 	private cleanUp(): void {
 		const cache = this.doLoad();
 
-		// Remove groups from states that no longer exist. Since we modify the
-		// cache and its is a LRU cache make a copy to ensure iteration succeeds
 		const entries = [...cache.entries()];
 		for (const [resource, mapGroupToMementos] of entries) {
 			for (const group of Object.keys(mapGroupToMementos)) {
 				const groupId: GroupIdentifier = Number(group);
 				if (groupId === EditorMemento.SHARED_EDITOR_STATE && this.shareEditorState) {
-					continue; // skip over shared entries if sharing is enabled
+					continue;
 				}
 
 				if (!this.editorGroupService.getGroup(groupId)) {

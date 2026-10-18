@@ -17,7 +17,7 @@ import { InlineEditsView } from './inlineEditsView.js';
 import { InlineEditTabAction } from './inlineEditsViewInterface.js';
 import { InlineSuggestionGutterMenuData, SimpleInlineSuggestModel } from './components/gutterIndicatorView.js';
 
-export class InlineEditsViewAndDiffProducer extends Disposable { // TODO: This class is no longer a diff producer. Rename it or get rid of it
+export class InlineEditsViewAndDiffProducer extends Disposable {
 	private readonly _editorObs: ObservableCodeEditor;
 
 	private readonly _inlineEdit = derived<InlineEditWithChanges | undefined>(this, (reader) => {
@@ -65,7 +65,6 @@ export class InlineEditsViewAndDiffProducer extends Disposable { // TODO: This c
 		if (!edit) { return undefined; }
 
 		const tabAction = derived<InlineEditTabAction>(this, reader => {
-			/** @description tabAction */
 			if (this._editorObs.isFocused.read(reader)) {
 				if (model.tabShouldJumpToInlineEdit.read(reader)) { return InlineEditTabAction.Jump; }
 				if (model.tabShouldAcceptInlineEdit.read(reader)) { return InlineEditTabAction.Accept; }

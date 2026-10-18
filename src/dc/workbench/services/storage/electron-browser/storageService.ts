@@ -39,9 +39,6 @@ export class NativeWorkbenchStorageService extends RemoteStorageService {
 		await super.doInitialize();
 		const applicationSharedStorage = this.getStorage(StorageScope.APPLICATION_SHARED);
 		if (applicationSharedStorage instanceof MigratingStorage) {
-			// Fall back to APPLICATION storage for transparent
-			// migration of keys moved to APPLICATION_SHARED scope. On hit, values
-			// are automatically written through to the shared storage.
 			const applicationSharedFallbackStorage = this.getStorage(StorageScope.APPLICATION);
 			if (applicationSharedFallbackStorage) {
 				applicationSharedStorage.setFallbackStorage(applicationSharedFallbackStorage, false);

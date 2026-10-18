@@ -44,8 +44,6 @@ export class StaticGitHubAuthenticationService extends BaseAuthenticationService
 	}
 
 	override get hasCopilotTokenSource(): boolean {
-		// Static auth always represents a non-OAuth token pathway (proxy/HMAC, eval harness, ...),
-		// so a Copilot token is obtainable even when no GitHub session is cached.
 		return true;
 	}
 

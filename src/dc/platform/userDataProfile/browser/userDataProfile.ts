@@ -45,7 +45,7 @@ export class BrowserUserDataProfilesService extends UserDataProfilesService impl
 					updated,
 					all: this.profiles
 				});
-			} catch (error) {/* ignore */ }
+			} catch (error) { }
 		}));
 	}
 
@@ -72,7 +72,6 @@ export class BrowserUserDataProfilesService extends UserDataProfilesService impl
 				return revive(JSON.parse(value));
 			}
 		} catch (error) {
-			/* ignore */
 			this.logService.error(error);
 		}
 		return [];
@@ -94,7 +93,6 @@ export class BrowserUserDataProfilesService extends UserDataProfilesService impl
 				return JSON.parse(value);
 			}
 		} catch (error) {
-			/* ignore */
 			this.logService.error(error);
 		}
 		return {};

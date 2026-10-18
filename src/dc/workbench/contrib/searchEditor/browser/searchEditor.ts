@@ -162,10 +162,8 @@ export class SearchEditor extends AbstractTextCodeEditor<SearchEditorViewState> 
 		}
 		this._register(this.queryEditorWidget.onDidToggleContext(() => this.triggerSearch({ resetCursor: false })));
 
-		// Includes/Excludes Dropdown
 		this.includesExcludesContainer = DOM.append(container, DOM.$('.includes-excludes'));
 
-		// Toggle query details button
 		const toggleQueryDetailsLabel = localize('moreSearch', "Toggle Search Details");
 		this.toggleQueryDetailsButton = DOM.append(this.includesExcludesContainer, DOM.$('.expand' + ThemeIcon.asCSSSelector(searchDetailsIcon), { tabindex: 0, role: 'button', 'aria-label': toggleQueryDetailsLabel }));
 		this._register(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), this.toggleQueryDetailsButton, toggleQueryDetailsLabel));
@@ -193,7 +191,6 @@ export class SearchEditor extends AbstractTextCodeEditor<SearchEditorViewState> 
 			}
 		}));
 
-		// Includes
 		const folderIncludesList = DOM.append(this.includesExcludesContainer, DOM.$('.file-types.includes'));
 		const filesToIncludeTitle = localize('searchScope.includes', "files to include");
 		DOM.append(folderIncludesList, DOM.$('h4', undefined, filesToIncludeTitle));
@@ -204,7 +201,6 @@ export class SearchEditor extends AbstractTextCodeEditor<SearchEditorViewState> 
 		this._register(this.inputPatternIncludes.onSubmit(triggeredOnType => this.triggerSearch({ resetCursor: false, delay: triggeredOnType ? this.searchConfig.searchOnTypeDebouncePeriod : 0 })));
 		this._register(this.inputPatternIncludes.onChangeSearchInEditorsBox(() => this.triggerSearch()));
 
-		// Excludes
 		const excludesList = DOM.append(this.includesExcludesContainer, DOM.$('.file-types.excludes'));
 		const excludesTitle = localize('searchScope.excludes', "files to exclude");
 		DOM.append(excludesList, DOM.$('h4', undefined, excludesTitle));
@@ -215,7 +211,6 @@ export class SearchEditor extends AbstractTextCodeEditor<SearchEditorViewState> 
 		this._register(this.inputPatternExcludes.onSubmit(triggeredOnType => this.triggerSearch({ resetCursor: false, delay: triggeredOnType ? this.searchConfig.searchOnTypeDebouncePeriod : 0 })));
 		this._register(this.inputPatternExcludes.onChangeIgnoreBox(() => this.triggerSearch()));
 
-		// Messages
 		this.messageBox = DOM.append(container, DOM.$('.messages.text-search-provider-messages'));
 
 		[this.queryEditorWidget.searchInputFocusTracker, this.queryEditorWidget.replaceInputFocusTracker, this.inputPatternExcludes.inputFocusTracker, this.inputPatternIncludes.inputFocusTracker]
@@ -329,19 +324,17 @@ export class SearchEditor extends AbstractTextCodeEditor<SearchEditorViewState> 
 		} else if (this.inputPatternExcludes.inputHasFocus()) {
 			this.searchResultEditor.focus();
 		} else if (this.searchResultEditor.hasWidgetFocus()) {
-			// pass
 		}
 	}
 
 	focusPrevInput() {
 		if (this.queryEditorWidget.searchInputHasFocus()) {
-			this.searchResultEditor.focus(); // wrap
+			this.searchResultEditor.focus();
 		} else if (this.inputPatternIncludes.inputHasFocus()) {
 			this.queryEditorWidget.searchInput?.focus();
 		} else if (this.inputPatternExcludes.inputHasFocus()) {
 			this.inputPatternIncludes.focus();
 		} else if (this.searchResultEditor.hasWidgetFocus()) {
-			// unreachable.
 		}
 	}
 
@@ -488,7 +481,6 @@ export class SearchEditor extends AbstractTextCodeEditor<SearchEditorViewState> 
 	async triggerSearch(_options?: { resetCursor?: boolean; delay?: number; focusResults?: boolean }) {
 		const focusResults = this.searchConfig.searchEditor.focusResultsOnSearch;
 
-		// If _options don't define focusResult field, then use the setting
 		if (_options === undefined) {
 			_options = { focusResults: focusResults };
 		} else if (_options.focusResults === undefined) {
@@ -677,10 +669,10 @@ export class SearchEditor extends AbstractTextCodeEditor<SearchEditorViewState> 
 
 	private reLayout() {
 		if (this.dimension) {
-			this.queryEditorWidget.setWidth(this.dimension.width - 28 /* container margin */);
+			this.queryEditorWidget.setWidth(this.dimension.width - 28 );
 			this.searchResultEditor.layout({ height: this.dimension.height - DOM.getTotalHeight(this.queryEditorContainer), width: this.dimension.width });
-			this.inputPatternExcludes.setWidth(this.dimension.width - 28 /* container margin */);
-			this.inputPatternIncludes.setWidth(this.dimension.width - 28 /* container margin */);
+			this.inputPatternExcludes.setWidth(this.dimension.width - 28 );
+			this.inputPatternIncludes.setWidth(this.dimension.width - 28 );
 		}
 	}
 

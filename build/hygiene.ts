@@ -27,29 +27,6 @@ interface VinylFileWithLines extends VinylFile {
 	__lines: string[];
 }
 
-/**
- * Checks that engines.vscode in extensions/copilot/package.json matches ^{version} from the root package.json.
- * Returns an error message if mismatched, or undefined if OK.
- */
-export function checkCopilotEnginesVersion(repoRoot: string): string | undefined {
-	const rootPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-	const copilotPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'extensions/copilot/package.json'), 'utf8'));
-	const expected = `^${rootPkg.version}`;
-	const actual = copilotPkg?.engines?.vscode;
-	if (actual !== expected) {
-		return `engines.vscode in 'extensions/copilot/package.json' must be "${expected}" (the version from the root package.json), but found "${actual ?? '<missing>'}"`;
-	}
-	return undefined;
-}
-
-/**
- * Checks that every tracked .js/.cjs/.mjs file in the repo is listed in
- * `.eslint-allowed-javascript-files`. This complements the
- * `local/code-no-new-javascript-files` ESLint rule by also covering files
- * that are excluded via `.eslint-ignore`.
- *
- * Returns an error message if there are unknown JS files, or undefined if OK.
- */
 export function checkNoNewJavaScriptFiles(repoRoot: string): string | undefined {
 	const allowlistPath = path.join(repoRoot, '.eslint-allowed-javascript-files');
 	const allowed = new Set(
@@ -59,7 +36,6 @@ export function checkNoNewJavaScriptFiles(repoRoot: string): string | undefined 
 			.filter(line => line && !line.startsWith('#'))
 	);
 
-	// `git ls-files` lists tracked files relative to repo root using forward slashes.
 	const out = cp.execSync('git ls-files "*.js" "*.cjs" "*.mjs"', {
 		cwd: repoRoot,
 		encoding: 'utf8',
@@ -79,9 +55,6 @@ export function checkNoNewJavaScriptFiles(repoRoot: string): string | undefined 
 	return undefined;
 }
 
-/**
- * Main hygiene function that runs checks on files
- */
 export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined, runEslint = true): NodeJS.ReadWriteStream {
 	console.log('Starting hygiene...');
 	let errorCount = 0;
@@ -111,16 +84,14 @@ export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined, run
 				skipNext = false;
 				return;
 			}
-			// If unicode is allowed in comments, trim the comment from the line
 			if (allowInComments) {
-				if (line.match(/\s+(\*)/)) { // Naive multi-line comment check
+				if (line.match(/\s+(\*)/)) {
 					line = '';
 				} else {
 					const index = line.indexOf('//');
 					line = index === -1 ? line : line.substring(0, index);
 				}
 			}
-			// Please do not add symbols that resemble ASCII letters!
 			// eslint-disable-next-line no-misleading-character-class
 			const m = /([^\t\n\r\x20-\x7E⊃⊇✔︎✓🎯🧪✍️⚠️🛑🔴🚗🚙🚕🎉✨❗⇧⌥⌘×÷¦⋯…↑↓￫→←↔⟷—·•●◆▼⟪⟫┌└├⏎↩√φ]+)/g.exec(line);
 			if (m) {
@@ -140,11 +111,8 @@ export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined, run
 
 		lines.forEach((line, i) => {
 			if (/^\s*$/.test(line)) {
-				// empty or whitespace lines are OK
 			} else if (/^[\t]*[^\s]/.test(line)) {
-				// good indent
 			} else if (/^[\t]* \*/.test(line)) {
-				// block comment using an extra space
 			} else {
 				console.error(
 					file.relative + '(' + (i + 1) + ',1): Bad whitespace indentation'
@@ -190,7 +158,7 @@ export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined, run
 	if (Array.isArray(some) || typeof some === 'string' || !some) {
 		const options = { base: '.', follow: true, allowEmpty: true };
 		if (some) {
-			input = vfs.src(some, options).pipe(filter(Array.from(all))); // split this up to not unnecessarily filter all a second time
+			input = vfs.src(some, options).pipe(filter(Array.from(all)));
 		} else {
 			input = vfs.src(Array.from(all), options);
 		}
@@ -282,7 +250,6 @@ function createGitIndexVinyls(paths: string[]): Promise<VinylFile[]> {
 
 			fs.stat(fullPath, (err, stat) => {
 				if (err && err.code === 'ENOENT') {
-					// ignore deletions
 					return c(null);
 				} else if (err) {
 					return e(err);
@@ -311,7 +278,6 @@ function createGitIndexVinyls(paths: string[]): Promise<VinylFile[]> {
 	return pall(fns, { concurrency: 4 }).then((r) => r.filter((p): p is VinylFile => !!p));
 }
 
-// this allows us to run hygiene as a git pre-commit hook
 if (import.meta.main) {
 	process.on('unhandledRejection', (reason: unknown, p: Promise<any>) => {
 		console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
@@ -338,16 +304,6 @@ if (import.meta.main) {
 				const some = out.split(/\r?\n/).filter((l) => !!l);
 
 				if (some.length > 0) {
-					// Check copilot engines.vscode version if relevant files are staged
-					if (some.some(f => f === 'package.json' || f.startsWith('extensions/copilot/'))) {
-						const copilotError = checkCopilotEnginesVersion(process.cwd());
-						if (copilotError) {
-							console.error(copilotError);
-							process.exit(1);
-						}
-					}
-
-					// Check that no new .js/.cjs/.mjs files are being added outside of the allowlist
 					if (some.some(f => /\.(js|cjs|mjs)$/.test(f) || f === '.eslint-allowed-javascript-files')) {
 						const jsAllowlistError = checkNoNewJavaScriptFiles(process.cwd());
 						if (jsAllowlistError) {

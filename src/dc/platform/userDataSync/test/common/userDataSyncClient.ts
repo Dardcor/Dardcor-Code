@@ -145,7 +145,6 @@ export class UserDataSyncClient extends Disposable {
 		}
 		await configurationService.reloadConfiguration();
 
-		// `prompts` resource is disabled by default, so enable it for tests
 		this.instantiationService
 			.get(IUserDataSyncEnablementService)
 			.setResourceEnablement(SyncResource.Prompts, true);
@@ -241,7 +240,6 @@ export class UserDataSyncTestServer implements IRequestService {
 		if (options.type === 'POST' && segments.length === 2 && segments[0] === 'resource') {
 			return this.writeData(undefined, segments[1], options.data, options.headers);
 		}
-		// resources in collection
 		if (options.type === 'GET' && segments.length === 5 && segments[0] === 'collection' && segments[2] === 'resource') {
 			return this.getResourceData(segments[1], segments[3], segments[4] === 'latest' ? undefined : segments[4], options.headers);
 		}

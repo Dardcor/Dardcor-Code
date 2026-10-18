@@ -43,9 +43,9 @@ export class NoEditorTabsControl extends EditorTabsControl {
 
 	private activeEditorChanged(): boolean {
 		if (
-			!this.activeEditor && this.tabsModel.activeEditor || 				// active editor changed from null => editor
-			this.activeEditor && !this.tabsModel.activeEditor || 				// active editor changed from editor => null
-			(!this.activeEditor || !this.tabsModel.isActive(this.activeEditor))	// active editor changed from editorA => editorB
+			!this.activeEditor && this.tabsModel.activeEditor ||
+			this.activeEditor && !this.tabsModel.activeEditor ||
+			(!this.activeEditor || !this.tabsModel.isActive(this.activeEditor))
 		) {
 			return true;
 		}

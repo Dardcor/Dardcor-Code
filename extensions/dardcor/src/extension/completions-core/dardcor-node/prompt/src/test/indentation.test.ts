@@ -135,7 +135,6 @@ f2:
 	test('Test compareTreeWithSpec with good input', function () {
 		doParseTest(SOURCE.source, expected);
 	});
-	// Loop over all bad inputs where we expect a failure from compareTreeWithSpec
 	for (const badInput of [
 		SOURCE_MISSING_CHILD,
 		SOURCE_EXTRA_CHILD,
@@ -153,7 +152,6 @@ f2:
 		});
 	}
 
-	// Do we want extra blank lines to be children?
 	test('Test compareTreeWithSpec with extra blank line input', function () {
 		assert.throws(
 			() => doParseTest(SOURCE_EXTRA_MIDDLE_BLANK_LINE.source, expected),
@@ -202,7 +200,6 @@ suite('Tree core functions: label manipulation', function () {
 		assert.deepStrictEqual([...setOfLabels(tree)], ['bar', 'foo'], 'Did not prepare tree as expected');
 		clearLabelsIf<'foo', 'bar'>(
 			tree as IndentationTree<'foo' | 'bar'>,
-			// type predicate of form arg is 'bar':
 			(arg: 'foo' | 'bar'): arg is 'bar' => arg === 'bar'
 		);
 		assert.deepStrictEqual([...setOfLabels(tree)], ['undefined', 'foo'], 'Did not remove bar labels');
@@ -323,12 +320,10 @@ suite('Tree core functions: line numbers', function () {
 suite('Test core functions: other', function () {
 	const tree = parseTree(SOURCE.source, 'python');
 	test('deparseTree should give same output as source input', function () {
-		// Assert that the tree is the same as the source, ignoring trailing newlines
 		assert.strictEqual(deparseTree(tree).replace(/\n*$/, ''), SOURCE.source.replace(/\n*$/, ''));
 	});
 	test('deparseTree should give same output as source input with an extra blank line', function () {
 		const treeLonger = parseTree(`${SOURCE.source}\n`, 'python');
-		// Assert that the tree is the same as the source, ignoring trailing newlines
 		assert.strictEqual(deparseTree(treeLonger).replace(/\n*$/, ''), SOURCE.source.replace(/\n*$/, ''));
 	});
 	test('deparseAndCutTree cuts at labels', function () {
@@ -346,42 +341,11 @@ suite('Test core functions: other', function () {
 		tree.subs[0].subs[1].label = 'cut';
 		tree.subs[1].subs[0].label = 'cut';
 		const cuts = deparseAndCutTree(tree, ['cut']);
-		// since there were two cuts, it's cut in 5 bits:
 		assert.strictEqual(cuts.length, 5);
-		// it's cut at the lines labeled 'cut'
 		assert.strictEqual(cuts[1].source, deparseLine(tree.subs[0].subs[1] as LineNode<string>));
 		assert.strictEqual(cuts[3].source, deparseLine(tree.subs[1].subs[0] as LineNode<string>));
-		// all together give the original source (ignoring trailing newlines -- _all_ cuts are newline ended)
 		assert.strictEqual(cuts.map(x => x.source).join(''), source + '\n');
 	});
-	/* test('encodeTree should give an expression coding the tree', function () {
-		const source = dedent`
-		1
-			2
-			3
-
-		4 (
-			5
-			6
-		)
-
-
-		7
-			8
-			9
-		)`;
-		const tree = groupBlocks(parseTree(source));
-		// to eval, need to make several imports explicit
-		const functions = [topNode, virtualNode, lineNode, blankNode];
-		assert.notStrictEqual(functions, []); // make functions used
-		const treeAfterRoundTrip = <IndentationTree<string>>eval(`
-			const topNode = functions[0];
-			const virtualNode = functions[1];
-			const lineNode = functions[2];
-			const blankNode = functions[3];
-			${encodeTree(tree)}`);
-		compareTreeWithSpec(treeAfterRoundTrip, tree);
-	}); */
 	test('Cutting tree correctly', function () {
 		const cutTree = parseTree(SOURCE.source, 'python');
 		cutTreeAfterLine(cutTree, 2);

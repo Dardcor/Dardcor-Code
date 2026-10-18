@@ -15,16 +15,6 @@ interface IActionModel {
 	renderLabel: boolean;
 }
 
-/**
- * Calculate the visible actions in the toolbar.
- * @param action The action to measure.
- * @param container The container the action will be placed in.
- * @returns The primary and secondary actions to be rendered
- *
- * NOTE: every action requires space for ACTION_PADDING +8 to the right.
- *
- * ex: action with size 50 requires 58px of space
- */
 suite('Workbench Toolbar calculateActions (strategy always + never)', () => {
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
@@ -274,13 +264,13 @@ suite('Workbench Toolbar Dynamic calculateActions (strategy dynamic)', () => {
 	test('should not render separator if preceeded by size 0 action(s), but keep size 0 action in primary.', () => {
 		const containerSize = 116;
 		const input: IActionModel[] = [
-			{ action: actionTemplate[0], size: 0, visible: true, renderLabel: true }, 	// hidden
-			{ action: new Separator(), size: 1, visible: true, renderLabel: true },		// sep
-			{ action: actionTemplate[1], size: 50, visible: true, renderLabel: true },	// visible
+			{ action: actionTemplate[0], size: 0, visible: true, renderLabel: true },
+			{ action: new Separator(), size: 1, visible: true, renderLabel: true },
+			{ action: actionTemplate[1], size: 50, visible: true, renderLabel: true },
 		];
 		const expected: IActionModel[] = [
-			{ action: actionTemplate[0], size: 0, visible: true, renderLabel: true }, 	// hidden
-			{ action: actionTemplate[1], size: 50, visible: true, renderLabel: true } 	// visible
+			{ action: actionTemplate[0], size: 0, visible: true, renderLabel: true },
+			{ action: actionTemplate[1], size: 50, visible: true, renderLabel: true }
 		];
 		const result = workbenchDynamicCalculateActions(input, defaultSecondaryActions, containerSize);
 		assert.deepEqual(result.primaryActions, expected);
@@ -302,7 +292,6 @@ suite('Workbench Toolbar Dynamic calculateActions (strategy dynamic)', () => {
 			{ action: new Separator(), size: 1, visible: true, renderLabel: true },
 			{ action: actionTemplate[1], size: 0, visible: true, renderLabel: true },
 			{ action: actionTemplate[2], size: 0, visible: true, renderLabel: true },
-			// remove separator here
 			{ action: actionTemplate[3], size: 50, visible: true, renderLabel: true },
 		];
 		const result = workbenchDynamicCalculateActions(input, defaultSecondaryActions, containerSize);

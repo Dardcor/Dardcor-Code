@@ -8,9 +8,6 @@ import { IPreparedToolInvocation, IToolData, IToolImpl, IToolInvocation, IToolIn
 
 export const TaskCompleteToolId = 'task_complete';
 
-/**
- * Message sent to the agent when the session goes idle without task completion.
- */
 export const AUTOPILOT_CONTINUATION_MESSAGE =
 	'You have not yet marked the task as complete using the task_complete tool. ' +
 	'You MUST call task_complete when done — whether the task involved code changes, answering a question, or any other interaction.\n\n' +

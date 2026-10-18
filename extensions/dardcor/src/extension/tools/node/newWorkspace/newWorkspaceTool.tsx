@@ -19,13 +19,13 @@ import { saveNewWorkspaceContext } from '../../../getting-started/common/newWork
 import { renderPromptElementJSON } from '../../../prompts/node/base/promptRenderer';
 import { UnsafeCodeBlock } from '../../../prompts/node/panel/unsafeElements';
 import { ToolName } from '../../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../../common/toolsRegistry';
 
 export interface INewWorkspaceToolParams {
 	query: string;
 }
 
-export class GetNewWorkspaceTool implements ICopilotTool<INewWorkspaceToolParams> {
+export class GetNewWorkspaceTool implements IAgentTool<INewWorkspaceToolParams> {
 	public static readonly toolName = ToolName.CreateNewWorkspace;
 
 	private _shouldPromptWorkspaceOpen: boolean = false;
@@ -39,13 +39,6 @@ export class GetNewWorkspaceTool implements ICopilotTool<INewWorkspaceToolParams
 		@IRunCommandExecutionService private readonly commandService: IRunCommandExecutionService,
 	) { }
 
-	/**
-	 * Used as a softer "empty" check for the case where the user re-selects the
-	 * already-open workspace folder. Treats a folder as empty if every top-level
-	 * entry name starts with `.` (e.g. `.git`, `.gitignore`, `.vscode`,
-	 * `.editorconfig`), so that newly cloned/initialized repos and folders that
-	 * only contain dotfile config can be used in place without reopening.
-	 */
 	private async _isEffectivelyEmpty(folder: Uri): Promise<boolean> {
 		const entries = await this.fileSystemService.readDirectory(folder);
 		return entries.every(([name]) => name.startsWith('.'));
@@ -64,7 +57,7 @@ export class GetNewWorkspaceTool implements ICopilotTool<INewWorkspaceToolParams
 		if (this._shouldPromptWorkspaceOpen) {
 			const confirmationMessages = {
 				title: l10n.t`Open an empty folder to continue`,
-				message: l10n.t`Copilot requires an empty folder as a workspace to continue workspace creation.`
+				message: l10n.t`Dardcor AI requires an empty folder as a workspace to continue workspace creation.`
 			};
 
 			return {
@@ -95,8 +88,6 @@ export class GetNewWorkspaceTool implements ICopilotTool<INewWorkspaceToolParams
 			}
 
 			if (workspaceUri && extUri.isEqual(newWorkspaceUri, workspaceUri)) {
-				// User re-selected the already-open folder: if it only contains
-				// dotfile entries, use it in place without reopening the window.
 				if (!await this._isEffectivelyEmpty(newWorkspaceUri)) {
 					return new LanguageModelToolResult([
 						new LanguageModelTextPart('The user has not opened a valid workspace folder in VS Code. Ask them to open an empty folder before continuing.')
@@ -112,7 +103,7 @@ export class GetNewWorkspaceTool implements ICopilotTool<INewWorkspaceToolParams
 				saveNewWorkspaceContext({
 					workspaceURI: newWorkspaceUri.toString(),
 					userPrompt: options.input.query,
-					initialized: false, /*not already opened */
+					initialized: false,
 				}, this._extensionContext);
 
 				workspaceUri = newWorkspaceUri;
@@ -158,7 +149,6 @@ export class NewWorkspaceCreationResult extends PromptElement<NewWorkspaceElemen
 			</TextChunk>;
 		}
 
-		// For https://github.com/microsoft/vscode/issues/258252
 		this.commandService.executeCommand('workbench.action.terminal.focus');
 
 		return <>
@@ -167,7 +157,7 @@ export class NewWorkspaceCreationResult extends PromptElement<NewWorkspaceElemen
 				<br />
 			</TextChunk>
 			<UnsafeCodeBlock code={`
-<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/dardcor/dardcor-customization#_use-a-githubdardcorinstructionsmd-file -->
+<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://www.dardcor-code.web.id/docs/dardcor/dardcor-customization#_use-a-githubdardcorinstructionsmd-file -->
 - [ ] Verify that the dardcor-instructions.md file in the .github directory is created.
 
 - [ ] Clarify Project Requirements
@@ -205,7 +195,7 @@ export class NewWorkspaceCreationResult extends PromptElement<NewWorkspaceElemen
 - [ ] Create and Run Task
 	<!--
 	Verify that all previous steps have been completed.
-	Check https://code.visualstudio.com/docs/debugtest/tasks to determine if the project needs a task. If so, use the ${ToolName.CoreCreateAndRunTask} to create and launch a task based on package.json, README.md, and project structure.
+	Check https://www.dardcor-code.web.id/docs/debugtest/tasks to determine if the project needs a task. If so, use the ${ToolName.CoreCreateAndRunTask} to create and launch a task based on package.json, README.md, and project structure.
 	Skip this step otherwise.
 	 -->
 

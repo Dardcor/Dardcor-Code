@@ -8,8 +8,6 @@ import { isMacintosh, isWindows } from '../../../base/common/platform.js';
 import { KnownStorageProvider, IEncryptionMainService, PasswordStoreCLIOption } from '../common/encryptionService.js';
 import { ILogService } from '../../log/common/log.js';
 
-// These APIs are currently only supported in our custom build of electron so
-// we need to guard against them not being available.
 interface ISafeStorageAdditionalAPIs {
 	setUsePlainTextEncryption(usePlainText: boolean): void;
 	getSelectedStorageBackend(): string;
@@ -23,7 +21,6 @@ export class EncryptionMainService implements IEncryptionMainService {
 	constructor(
 		@ILogService private readonly logService: ILogService
 	) {
-		// if this commandLine switch is set, the user has opted in to using basic text encryption
 		if (app.commandLine.getSwitchValue('password-store') === PasswordStoreCLIOption.basic) {
 			this.logService.trace('[EncryptionMainService] setting usePlainTextEncryption to true...');
 			safeStorage.setUsePlainTextEncryption?.(true);

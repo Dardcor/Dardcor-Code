@@ -69,8 +69,6 @@ src/vs/workbench/api/common/extHostQuickOpen.ts @TylerLeonhardt
 src/vs/workbench/api/browser/mainThreadSecretState.ts @TylerLeonhardt
 
 # Extensions
-extensions/copilot/src/extension/chatSessions/claude/** @TylerLeonhardt
-extensions/copilot/src/extension/chatSessions/vscode-node/claudeChatSession* @TylerLeonhardt
 extensions/microsoft-authentication/** @TylerLeonhardt
 extensions/github-authentication/** @TylerLeonhardt
 extensions/git/** @lszomoru

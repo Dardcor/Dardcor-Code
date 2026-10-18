@@ -57,7 +57,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 		}
 
 		const selectedEndpoint = await this.endpointProvider.getChatEndpoint(chatRequest);
-		// Disable intent detection if the user is requesting their request be completed with o1 since o1 has such a low RPS the cost of an incorrect intent is high
 		if (selectedEndpoint.family.startsWith('o1')) {
 			return;
 		}
@@ -111,7 +110,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 					};
 				}
 			} else if (thirdPartyParticipants.length && options.location === ChatLocation.Panel) {
-				// If the detected intent is `unknown` and we have 3P participants, try picking from them instead
 				const detectedIntent = await this.detectIntent(
 					options.location,
 					undefined,
@@ -131,7 +129,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 			}
 		} finally {
 			if (detectedIntentId) {
-				// Collect telemetry based on the full unfiltered history, rather than when the request handler is invoked (at which point the conversation history is already scoped)
 				const doc = this.tabsAndEditorsService.activeTextEditor?.document;
 				const docSnapshot = doc ? TextDocumentSnapshot.create(doc) : undefined;
 				this.collectIntentDetectionContextInternal(
@@ -155,7 +152,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 				preferredIntent = Intent.Edit;
 			}
 		}
-		// /fixTestFailure was removed, delegate to /fix if there are historical usages of it.
 		if (messageText?.trimStart().startsWith('/fixTestFailure')) {
 			preferredIntent = Intent.Fix;
 		}
@@ -163,11 +159,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 		return preferredIntent;
 	}
 
-	/**
-	 * @param preferredIntent tells the model that this intent is the most likely the developer wants.
-	 * @param currentFilePath file path relative to the workspace root and will be mentioned in the prompt if present
-	 * @param isRerunWithoutIntentDetection for telemetry purposes -- if `undefined`, then intent detection is invoked either from inline chat of an older vscode or from panel chat
-	 */
 	async detectIntent(
 		location: ChatLocation,
 		documentContext: IDocumentContext | undefined,
@@ -318,7 +309,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 			cleanedIntentResponses = [preferredIntent];
 		}
 
-		// Dynamic chat participants
 		if ((cleanedIntentResponses[0] === 'github_questions') && participants?.find(p => p.participant === GITHUB_PLATFORM_AGENT)) {
 			return { participant: GITHUB_PLATFORM_AGENT };
 		}
@@ -338,14 +328,12 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 
 		this.logService.debug(`picked intent "${chosenIntent}" from ${JSON.stringify(fetchResult.value, null, '\t')}`);
 
-		// override /edit in inline chat based on the document context
 		if (location === ChatLocation.Editor
 			&& chosenIntent === Intent.Edit
 			&& documentContext
 			&& documentContext.selection.isEmpty
 			&& documentContext.document.lineAt(documentContext.selection.start.line).text.trim() === ''
 		) {
-			// the selection is empty and sits on a whitespace only line, we will always detect generate instead of edit
 			const editIntent = this.intentService.getIntent(Intent.Generate, ChatLocation.Editor);
 			if (editIntent) {
 				intent = editIntent;
@@ -382,17 +370,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 		isRerunWithoutIntentDetection: boolean | undefined,
 		location: ChatLocation
 	) {
-		/* __GDPR__
-			"intentDetection" : {
-				"owner": "ulugbekna",
-				"comment": "Intent detection telemetry.",
-				"chatLocation": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Which chat (panel or inline) intent detection is used for." },
-				"preferredIntent": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Which intent was initially provided as preferred." },
-				"detectedIntent": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Intent that was detected by Copilot" },
-				"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Language ID of the document for which intent detection happened." },
-				"isRerunWithoutIntentDetection": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the user disliked the detected intent and tried to rerun without it." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'intentDetection',
 			{
@@ -407,8 +384,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 
 	private prepareInternalTelemetryContext(fileExcerpt: string | undefined, historyMessages: Raw.ChatMessage[], attachedContext?: ChatVariablesCollection) {
 
-		// Single internal telemetry size must be less than 8KB
-		// Be conservative and set the budget to 5KB to account for other properties
 		let telemetryBudget = 5000;
 
 		const names: string[] = [];
@@ -525,7 +500,7 @@ class IntentDetectionPrompt extends PromptElement<IntentDetectionPromptProps> {
 		let currentFileContext: string | undefined;
 		let fileExcerptCodeBlock: CodeBlock | undefined;
 		try {
-			if (documentContext !== undefined && !(await this._ignoreService.isCopilotIgnored(documentContext.document.uri))) {
+			if (documentContext !== undefined && !(await this._ignoreService.isIgnored(documentContext.document.uri))) {
 
 				const { document, selection } = documentContext;
 
@@ -564,7 +539,7 @@ class IntentDetectionPrompt extends PromptElement<IntentDetectionPromptProps> {
 			<>
 				<meta value={fileMetadata} />
 				<SystemMessage>
-					When asked for your name, you must respond with "GitHub Copilot".<br />
+					When asked for your name, respond with "Dardcor Code".<br />
 					Follow the user's requirements carefully & to the letter.<br />
 				</SystemMessage>
 				<UserMessage>

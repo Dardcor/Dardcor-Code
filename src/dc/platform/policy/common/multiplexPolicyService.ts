@@ -48,7 +48,6 @@ export class MultiplexPolicyService extends AbstractPolicyService implements IPo
 			}
 		}
 
-		// Check that no results have overlapping keys
 		const changed = new Set<string>();
 		for (const key of updated) {
 			if (changed.has(key)) {

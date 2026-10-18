@@ -1,15 +1,11 @@
-/* source() sets scan base to src/ for both webpack + Turbopack; auto-detection still skips binaries + gitignore */
 @import "tailwindcss" source("../../");
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Hide icon ligature text until font is ready */
 .material-symbols-outlined { opacity: 0; }
 .fonts-loaded .material-symbols-outlined { opacity: 1; transition: opacity .12s ease-out; }
 
-/* Dardcor Code palette: pure black background (#09090B), dark purple surfaces & borders (#121118, #262335), purple brand (#A855F7 / #9333EA) */
 :root {
-  /* Brand scale - centered on #A855F7 */
   --color-brand-50: #FAF5FF;
   --color-brand-100: #F3E8FF;
   --color-brand-200: #E9D5FF;
@@ -21,11 +17,9 @@
   --color-brand-800: #6B21A8;
   --color-brand-900: #581C87;
 
-  /* Primary */
   --color-primary: var(--color-brand-500);
   --color-primary-hover: var(--color-brand-600);
 
-  /* Surfaces & backgrounds (Pure Deep Black + Dark purple surfaces) */
   --color-bg: #09090B;
   --color-bg-alt: #000000;
   --color-bg-subtle: #121118;
@@ -35,28 +29,23 @@
   --color-surface-3: #201D2E;
   --color-sidebar: #09090B;
 
-  /* Borders & lines (Dark purple) */
   --color-border: #262335;
   --color-border-subtle: #1C1A27;
 
-  /* Text */
   --color-text: #E6EAF0;
   --color-text-main: #E6EAF0;
   --color-text-muted: #9AA4B1;
   --color-text-subtle: #6B7583;
 
-  /* Status */
   --color-danger: #EF4444;
   --color-error: #EF4444;
   --color-success: #22C55E;
   --color-warning: #FBBF24;
   --color-info: #60A5FA;
 
-  /* Radius */
   --radius-brand: 8px;
   --radius-brand-lg: 12px;
 
-  /* Shadows */
   --shadow-soft: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
   --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.25);
   --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.55);
@@ -137,9 +126,6 @@
   color-scheme: dark;
 }
 
-/* ============================================================
-   Fix native select dropdowns in dark mode
-   ============================================================ */
 select {
   color-scheme: light;
 }
@@ -154,7 +140,6 @@ select {
 }
 
 @theme inline {
-  /* Brand scale */
   --color-brand-50: var(--color-brand-50);
   --color-brand-100: var(--color-brand-100);
   --color-brand-200: var(--color-brand-200);
@@ -166,11 +151,9 @@ select {
   --color-brand-800: var(--color-brand-800);
   --color-brand-900: var(--color-brand-900);
 
-  /* Primary aliases */
   --color-primary: var(--color-primary);
   --color-primary-hover: var(--color-primary-hover);
 
-  /* Semantic */
   --color-bg: var(--color-bg);
   --color-bg-alt: var(--color-bg-alt);
   --color-surface: var(--color-surface);
@@ -189,7 +172,6 @@ select {
   --color-warning: var(--color-warning);
   --color-info: var(--color-info);
 
-  /* Static fallbacks */
   --color-bg-light: #09090B;
   --color-bg-dark: #09090B;
   --color-surface-light: #121118;
@@ -203,22 +185,18 @@ select {
   --color-text-muted-light: #9AA4B1;
   --color-text-muted-dark: #9AA4B1;
 
-  /* Radius */
   --radius-brand: var(--radius-brand);
   --radius-brand-lg: var(--radius-brand-lg);
 
-  /* Shadows */
   --shadow-soft: var(--shadow-soft);
   --shadow-warm: var(--shadow-warm);
   --shadow-elevated: var(--shadow-elevated);
   --shadow-elev: var(--shadow-elev);
   --shadow-focus: var(--shadow-focus);
 
-  /* Font - Inter primary, Apple system fallback */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
 }
 
-/* Base */
 html {
   height: 100%;
   width: 100%;
@@ -243,7 +221,6 @@ body {
   min-height: calc(100dvh / 0.8);
 }
 
-/* Selection - signal-tinted */
 ::selection {
   background-color: rgba(168, 85, 247, 0.22);
   color: var(--color-primary);
@@ -253,12 +230,10 @@ body {
   color: var(--color-brand-200);
 }
 
-/* iOS keyboard accent */
 input, textarea {
   accent-color: var(--color-primary);
 }
 
-/* Scrollbar (custom-scrollbar utility kept for compat) */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -273,7 +248,6 @@ input, textarea {
   background-color: var(--color-primary);
 }
 
-/* Thin horizontal scrollbar - signal colored */
 .scroll-thin-x {
   scrollbar-width: thin;
   scrollbar-color: rgba(168, 85, 247, 0.55) transparent;
@@ -291,7 +265,6 @@ input, textarea {
   background: rgba(168, 85, 247, 0.55);
 }
 
-/* Global thin mac-like scrollbars (overrides clunky Windows/Linux default) */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(120, 120, 120, 0.35) transparent;
@@ -322,7 +295,6 @@ input, textarea {
   background-color: rgba(180, 180, 180, 0.5);
 }
 
-/* Reusable elevated card */
 .card-soft {
   background-color: var(--color-surface);
   box-shadow: var(--shadow-soft);
@@ -334,12 +306,10 @@ input, textarea {
   border-radius: var(--radius-brand-lg);
 }
 
-/* Hero gradient (compat) */
 .bg-hero-gradient {
   background: linear-gradient(180deg, var(--color-bg-alt) 0%, var(--color-bg) 100%);
 }
 
-/* macOS Vibrancy */
 .bg-vibrancy {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -349,7 +319,6 @@ input, textarea {
   background: rgba(12, 12, 18, 0.85);
 }
 
-/* macOS Traffic Lights */
 .traffic-lights {
   display: flex;
   gap: 8px;
@@ -363,7 +332,6 @@ input, textarea {
 .traffic-light.yellow { background: #FFBD2E; }
 .traffic-light.green { background: #27C93F; }
 
-/* Material Symbols */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined', sans-serif;
   font-weight: normal;
@@ -385,13 +353,11 @@ input, textarea {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-/* Disable text selection on buttons */
 button {
   -webkit-user-select: none;
   user-select: none;
 }
 
-/* Tailwind v4 dropped default button cursor — restore globally */
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),
 label[for],
@@ -405,9 +371,6 @@ button:disabled,
   cursor: not-allowed;
 }
 
-/* ============================================================
-   Animations
-   ============================================================ */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -454,7 +417,6 @@ button:disabled,
 }
 .animate-pulse-glow { animation: pulseGlow 3s ease-in-out infinite; }
 
-/* CTA shimmer + glow pulse */
 @keyframes ctaShimmer {
   0% { transform: translateX(-120%) skewX(-20deg); }
   100% { transform: translateX(220%) skewX(-20deg); }
@@ -483,7 +445,6 @@ button:disabled,
 }
 .btn-cta > * { position: relative; z-index: 2; }
 
-/* Dot Grid Background Pattern */
 .dot-grid-bg {
   background-color: var(--color-bg);
   background-image:
@@ -496,7 +457,6 @@ button:disabled,
     radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.10) 0%, transparent 40%);
 }
 
-/* Landing-style faint grid overlay (use absolute pos inside relative parent) */
 .landing-grid {
   background-image:
     linear-gradient(to right, var(--color-accent) 1px, transparent 1px),
@@ -508,7 +468,6 @@ button:disabled,
   opacity: 0.04;
 }
 
-/* Topology: router card pulse (no flying rings) + electric edge beam */
 @keyframes topology-router-pulse {
   0%, 100% {
     transform: scale(1);
@@ -570,7 +529,6 @@ button:disabled,
   animation: topology-edge-dash 0.18s linear infinite, topology-edge-flicker 0.22s steps(3) infinite;
 }
 
-/* React Flow controls: match app theme */
 .react-flow-controls-custom {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -594,7 +552,6 @@ button:disabled,
   background: var(--color-bg-alt);
 }
 
-/* Changelog markdown body */
 .changelog-body h1 {
   font-size: 1.4rem;
   font-weight: 700;

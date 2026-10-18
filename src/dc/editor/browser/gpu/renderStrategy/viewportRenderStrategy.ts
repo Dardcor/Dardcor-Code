@@ -28,7 +28,7 @@ import { fullFileRenderStrategyWgsl } from './fullFileRenderStrategy.wgsl.js';
 const enum Constants {
 	IndicesPerCell = 6,
 	CellBindBufferCapacityIncrement = 32,
-	CellBindBufferInitialCapacity = 63, // Will be rounded up to nearest increment
+	CellBindBufferInitialCapacity = 63,
 }
 
 const enum CellBufferInfo {
@@ -42,13 +42,7 @@ const enum CellBufferInfo {
 	TextureIndex = 5,
 }
 
-/**
- * A render strategy that uploads the content of the entire viewport every frame.
- */
 export class ViewportRenderStrategy extends BaseRenderStrategy {
-	/**
-	 * The hard cap for line columns that can be rendered by the GPU renderer.
-	 */
 	static readonly maxSupportedColumns = 2000;
 
 	readonly type = 'viewport';
@@ -57,10 +51,6 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 	private _cellBindBufferLineCapacity = Constants.CellBindBufferInitialCapacity;
 	private _cellBindBuffer!: GPUBuffer;
 
-	/**
-	 * The cell value buffers, these hold the cells and their glyphs. It's double buffers such that
-	 * the thread doesn't block when one is being uploaded to the GPU.
-	 */
 	private _cellValueBuffers!: [ArrayBuffer, ArrayBuffer];
 	private _activeDoubleBufferIndex: 0 | 1 = 0;
 
@@ -103,7 +93,6 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 	private _rebuildCellBuffer(lineCount: number) {
 		this._cellBindBuffer?.destroy();
 
-		// Increase in chunks so resizing a window by hand doesn't keep allocating and throwing away
 		const lineCountWithIncrement = (Math.floor(lineCount / Constants.CellBindBufferCapacityIncrement) + 1) * Constants.CellBindBufferCapacityIncrement;
 
 		const bufferSize = lineCountWithIncrement * ViewportRenderStrategy.maxSupportedColumns * Constants.IndicesPerCell * Float32Array.BYTES_PER_ELEMENT;
@@ -122,15 +111,7 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 		this._onDidChangeBindGroupEntries.fire();
 	}
 
-	// #region Event handlers
 
-	// The primary job of these handlers is to:
-	// 1. Invalidate the up to date line cache, which will cause the line to be re-rendered when
-	//    it's _within the viewport_.
-	// 2. Pass relevant events on to the render function so it can force certain line ranges to be
-	//    re-rendered even if they're not in the viewport. For example when a view zone is added,
-	//    there are lines that used to be visible but are no longer, so those ranges must be
-	//    cleared and uploaded to the GPU.
 
 	public override onConfigurationChanged(e: ViewConfigurationChangedEvent): boolean {
 		return true;
@@ -179,11 +160,9 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 		return true;
 	}
 
-	// #endregion
 
 	reset() {
 		for (const bufferIndex of [0, 1]) {
-			// Zero out buffer and upload to GPU to prevent stale rows from rendering
 			const buffer = new Float32Array(this._cellValueBuffers[bufferIndex]);
 			buffer.fill(0, 0, buffer.length);
 			this._device.queue.writeBuffer(this._cellBindBuffer, 0, buffer.buffer, 0, buffer.byteLength);
@@ -192,10 +171,6 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 	}
 
 	update(viewportData: ViewportData, viewLineOptions: ViewLineOptions): number {
-		// IMPORTANT: This is a hot function. Variables are pre-allocated and shared within the
-		// loop. This is done so we don't need to trust the JIT compiler to do this optimization to
-		// avoid potential additional blocking time in garbage collector which is a common cause of
-		// dropped frames.
 
 		let chars = '';
 		let segment: string | undefined;
@@ -234,7 +209,6 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 			this._scrollInitialized = true;
 		}
 
-		// Zero out cell buffer or rebuild if needed
 		if (this._cellBindBufferLineCapacity < viewportData.endLineNumber - viewportData.startLineNumber + 1) {
 			this._rebuildCellBuffer(viewportData.endLineNumber - viewportData.startLineNumber + 1);
 		}
@@ -245,7 +219,6 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 
 		for (y = viewportData.startLineNumber; y <= viewportData.endLineNumber; y++) {
 
-			// Only attempt to render lines that the GPU renderer can handle
 			if (!this._viewGpuContext.canRender(viewLineOptions, viewportData, y)) {
 				continue;
 			}
@@ -263,14 +236,12 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 			for (let tokenIndex = 0, tokensLen = tokens.getCount(); tokenIndex < tokensLen; tokenIndex++) {
 				tokenEndIndex = tokens.getEndOffset(tokenIndex);
 				if (tokenEndIndex <= tokenStartIndex) {
-					// The faux indent part of the line should have no token type
 					continue;
 				}
 
 				tokenMetadata = tokens.getMetadata(tokenIndex);
 
 				for (x = tokenStartIndex; x < tokenEndIndex; x++) {
-					// Only render lines that do not exceed maximum columns
 					if (x > ViewportRenderStrategy.maxSupportedColumns) {
 						break;
 					}
@@ -291,10 +262,7 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 					decorationStyleSetStrikethroughThickness = undefined;
 					decorationStyleSetStrikethroughColor = undefined;
 
-					// Apply supported inline decoration styles to the cell metadata
 					for (decoration of lineData.inlineDecorations) {
-						// This is Range.strictContainsPosition except it works at the cell level,
-						// it's also inlined to avoid overhead.
 						if (
 							(y < decoration.range.startLineNumber || y > decoration.range.endLineNumber) ||
 							(y === decoration.range.startLineNumber && x < decoration.range.startColumn - 1) ||
@@ -309,8 +277,6 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 								const value = rule.styleMap.get(r)?.toString() ?? '';
 								switch (r) {
 									case 'color': {
-										// TODO: This parsing and error handling should move into canRender so fallback
-										//       to DOM works
 										const parsedColor = Color.Format.CSS.parse(value);
 										if (!parsedColor) {
 											throw new BugIndicatingError('Invalid color format ' + value);
@@ -322,10 +288,8 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 										const parsedValue = parseCssFontWeight(value);
 										if (parsedValue >= 400) {
 											decorationStyleSetBold = true;
-											// TODO: Set bold (https://github.com/microsoft/vscode/issues/237584)
 										} else {
 											decorationStyleSetBold = false;
-											// TODO: Set normal (https://github.com/microsoft/vscode/issues/237584)
 										}
 										break;
 									}
@@ -361,7 +325,6 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 										break;
 									}
 									case 'text-decoration-style': {
-										// These are validated in canRender and use default behavior
 										break;
 									}
 									default: throw new BugIndicatingError('Unexpected inline decoration style');
@@ -371,16 +334,12 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 					}
 
 					if (chars === ' ' || chars === '\t') {
-						// Zero out glyph to ensure it doesn't get rendered
 						cellIndex = ((y - 1) * ViewportRenderStrategy.maxSupportedColumns + x) * Constants.IndicesPerCell;
 						cellBuffer.fill(0, cellIndex, cellIndex + CellBufferInfo.FloatsPerEntry);
-						// Adjust xOffset for tab stops
 						if (chars === '\t') {
-							// Find the pixel offset between the current position and the next tab stop
 							const offsetBefore = x + tabXOffset;
 							tabXOffset = CursorColumns.nextRenderTabStop(x + tabXOffset, lineData.tabSize);
 							absoluteOffsetX += charWidth * (tabXOffset - offsetBefore);
-							// Convert back to offset excluding x and the current character
 							tabXOffset -= x + 1;
 						} else {
 							absoluteOffsetX += charWidth;
@@ -392,15 +351,10 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 					glyph = this._viewGpuContext.atlas.getGlyph(this.glyphRasterizer, chars, tokenMetadata, decorationStyleSetId, absoluteOffsetX);
 
 					absoluteOffsetY = Math.round(
-						// Top of layout box (includes line height)
 						viewportData.relativeVerticalOffset[y - viewportData.startLineNumber] * dpr +
 
-						// Delta from top of layout box (includes line height) to top of the inline box (no line height)
 						Math.floor((viewportData.lineHeight * dpr - (glyph.fontBoundingBoxAscent + glyph.fontBoundingBoxDescent)) / 2) +
 
-						// Delta from top of inline box (no line height) to top of glyph origin. If the glyph was drawn
-						// with a top baseline for example, this ends up drawing the glyph correctly using the alphabetical
-						// baseline.
 						glyph.fontBoundingBoxAscent
 					);
 
@@ -410,14 +364,12 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 					cellBuffer[cellIndex + CellBufferInfo.GlyphIndex] = glyph.glyphIndex;
 					cellBuffer[cellIndex + CellBufferInfo.TextureIndex] = glyph.pageIndex;
 
-					// Adjust the x pixel offset for the next character
 					absoluteOffsetX += charWidth;
 				}
 
 				tokenStartIndex = tokenEndIndex;
 			}
 
-			// Clear to end of line
 			fillStartIndex = ((y - viewportData.startLineNumber) * ViewportRenderStrategy.maxSupportedColumns + tokenEndIndex) * Constants.IndicesPerCell;
 			fillEndIndex = ((y - viewportData.startLineNumber) * ViewportRenderStrategy.maxSupportedColumns) * Constants.IndicesPerCell;
 			cellBuffer.fill(0, fillStartIndex, fillEndIndex);
@@ -426,7 +378,6 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 		const visibleObjectCount = (viewportData.endLineNumber - viewportData.startLineNumber + 1) * lineIndexCount;
 		const viewportLineCount = viewportData.endLineNumber - viewportData.startLineNumber + 1;
 
-		// This render strategy always uploads the whole viewport
 		this._device.queue.writeBuffer(
 			this._cellBindBuffer,
 			0,
@@ -435,12 +386,10 @@ export class ViewportRenderStrategy extends BaseRenderStrategy {
 			visibleObjectCount * Float32Array.BYTES_PER_ELEMENT
 		);
 
-		// Clear stale lines in GPU buffer if viewport shrunk
 		if (viewportLineCount < this._lastViewportLineCount) {
 			const staleLineCount = this._lastViewportLineCount - viewportLineCount;
 			const staleStartOffset = visibleObjectCount * Float32Array.BYTES_PER_ELEMENT;
 			const staleByteCount = staleLineCount * lineIndexCount * Float32Array.BYTES_PER_ELEMENT;
-			// Write zeros from the zeroed cellBuffer for the stale region
 			this._device.queue.writeBuffer(
 				this._cellBindBuffer,
 				staleStartOffset,

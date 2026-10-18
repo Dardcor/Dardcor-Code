@@ -12,22 +12,15 @@ import type { IProductConfiguration } from './dc/base/common/product.js';
 const require = createRequire(import.meta.url);
 const isWindows = process.platform === 'win32';
 
-// Avoid 64 KiB pooled backing stores crossing Mojo's shared-memory threshold.
 if (process.platform === 'linux') {
 	Buffer.poolSize = 8 * 1024;
 }
 
-// increase number of stack frames(from 10, https://github.com/v8/v8/wiki/Stack-Trace-API)
 Error.stackTraceLimit = 100;
 
 if (!process.env['DCCODE_HANDLES_SIGPIPE'] && !process.env['VSCODE_HANDLES_SIGPIPE']) {
-	// Workaround for Electron not installing a handler to ignore SIGPIPE
-	// (https://github.com/electron/electron/issues/13254)
 	let didLogAboutSIGPIPE = false;
 	process.on('SIGPIPE', () => {
-		// See https://github.com/microsoft/vscode-remote-release/issues/6543
-		// In certain situations, the console itself can be in a broken pipe state
-		// so logging SIGPIPE to the console will cause an infinite async loop
 		if (!didLogAboutSIGPIPE) {
 			didLogAboutSIGPIPE = true;
 			console.error(new Error(`Unexpected SIGPIPE`));
@@ -35,16 +28,9 @@ if (!process.env['DCCODE_HANDLES_SIGPIPE'] && !process.env['VSCODE_HANDLES_SIGPI
 	});
 }
 
-// Setup current working directory in all our node & electron processes
-// - Windows: call `process.chdir()` to always set application folder as cwd
-// -  all OS: store the `process.cwd()` inside `VSCODE_CWD` for consistent lookups
 function setupCurrentWorkingDirectory(): void {
 	try {
 
-		// Store the `process.cwd()` inside `VSCODE_CWD`
-		// for consistent lookups, but make sure to only
-		// do this once unless defined already from e.g.
-		// a parent process.
 		if (typeof process.env['DCCODE_CWD'] !== 'string') {
 			process.env['DCCODE_CWD'] = process.cwd();
 		}
@@ -52,7 +38,6 @@ function setupCurrentWorkingDirectory(): void {
 			process.env['VSCODE_CWD'] = process.env['DCCODE_CWD'];
 		}
 
-		// Windows: always set application folder as current working dir
 		if (process.platform === 'win32') {
 			process.chdir(path.dirname(process.execPath));
 		}
@@ -63,38 +48,17 @@ function setupCurrentWorkingDirectory(): void {
 
 setupCurrentWorkingDirectory();
 
-/**
- * Add ASAR support to Node's CommonJS module resolution.
- *
- * Production builds bundle our `node_modules` into a `node_modules.asar`
- * archive that sits next to the (now mostly empty) `node_modules` folder.
- * Node does not look into `.asar` archives on its own, so we splice the
- * archive into the lookup paths right before the real `node_modules` folder.
- *
- * The archive keeps the same top-level layout as `node_modules`
- * (`node_modules.asar/<module>`), so bare `require('<module>')` calls resolve
- * exactly like they did before ASAR was introduced. This keeps extensions and
- * tooling that reach into `${appRoot}/node_modules.asar/<module>` working.
- *
- * Note: only applies to the packaged app running on Electron (incl.
- * `ELECTRON_RUN_AS_NODE` forks), never when running out of sources.
- */
 function enableASARSupport(): void {
 	if (!process.env['ELECTRON_RUN_AS_NODE'] && !process.versions['electron']) {
-		return; // only on Electron / Electron-as-node
+		return;
 	}
 
 	if (process.env['DCCODE_DEV'] || process.env['VSCODE_DEV']) {
-		return; // no ASAR when running out of sources
+		return;
 	}
 
-	// Normalize the drive letter to lower-case for comparison. On Windows the
-	// path derived from `import.meta.dirname` (a file URL) can use a different
-	// drive-letter case than the paths Node computes for a `require` parent, so
-	// an exact string comparison would miss the insertion point (breaking e.g.
-	// `require('mkdirp')` from a module inside the archive).
 	const normalizeDriveLetter = (p: string): string => {
-		if (isWindows && p.length >= 2 && p.charCodeAt(1) === 58 /* : */) {
+		if (isWindows && p.length >= 2 && p.charCodeAt(1) === 58 ) {
 			const code = p.charCodeAt(0);
 			if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
 				return p[0].toLowerCase() + p.slice(1);
@@ -115,8 +79,6 @@ function enableASARSupport(): void {
 		if (Array.isArray(paths)) {
 			for (let i = 0, len = paths.length; i < len; i++) {
 				if (normalizeDriveLetter(paths[i]) === NODE_MODULES_PATH) {
-					// Derive the archive path from the matched entry so drive-letter
-					// case and path separators are preserved exactly.
 					paths.splice(i, 0, `${paths[i]}.asar`);
 					break;
 				}
@@ -129,21 +91,15 @@ function enableASARSupport(): void {
 
 enableASARSupport();
 
-/**
- * Add support for redirecting the loading of node modules
- *
- * Note: only applies when running out of sources.
- */
 export function devInjectNodeModuleLookupPath(injectPath: string): void {
 	if (!process.env['DCCODE_DEV'] && !process.env['VSCODE_DEV']) {
-		return; // only applies running out of sources
+		return;
 	}
 
 	if (!injectPath) {
 		throw new Error('Missing injectPath');
 	}
 
-	// register a loader hook
 	const Module = require('node:module');
 	Module.register('./bootstrap-import.js', { parentURL: import.meta.url, data: injectPath });
 }
@@ -179,8 +135,6 @@ export function removeGlobalNodeJsModuleLookupPaths(): void {
 			return paths;
 		}
 
-		// On Windows, remove drive(s) and users' home directory from search paths,
-		// UNLESS 'from' is explicitly set to one of those.
 		const isDrive = (p: string) => p.length >= 3 && p.endsWith(':\\');
 
 		if (!isDrive(from)) {
@@ -192,7 +146,6 @@ export function removeGlobalNodeJsModuleLookupPaths(): void {
 
 			const isUsersDir = (p: string) => path.relative(p, userDir).length === 0;
 
-			// Check if 'from' is the same as 'userDir'
 			if (!isUsersDir(from)) {
 				paths = paths.filter(p => !isUsersDir(path.dirname(p)));
 			}
@@ -202,9 +155,6 @@ export function removeGlobalNodeJsModuleLookupPaths(): void {
 	};
 }
 
-/**
- * Helper to enable portable mode.
- */
 export function configurePortable(product: Partial<IProductConfiguration>): { portableDataPath: string; isPortable: boolean } {
 	const appRoot = path.dirname(import.meta.dirname);
 
@@ -217,7 +167,6 @@ export function configurePortable(product: Partial<IProductConfiguration>): { po
 			return path.dirname(path.dirname(path.dirname(appRoot)));
 		}
 
-		// appRoot = ..\Microsoft VS Code Insiders\<version>\resources\app
 		if (process.platform === 'win32' && product.win32VersionedUpdate) {
 			return path.dirname(path.dirname(path.dirname(appRoot)));
 		}

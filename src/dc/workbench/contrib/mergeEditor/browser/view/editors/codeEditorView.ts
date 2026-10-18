@@ -57,7 +57,7 @@ export abstract class CodeEditorView extends Disposable {
 		private readonly configurationService: IConfigurationService,
 	) {
 		super();
-		this.model = this.viewModel.map(m => /** @description model */ m?.model);
+		this.model = this.viewModel.map(m => m?.model);
 		this.htmlElements = h('div.code-view', [
 			h('div.header@header', [
 				h('span.title@title'),
@@ -85,10 +85,6 @@ export abstract class CodeEditorView extends Disposable {
 					height: height - this.htmlElements.header.clientHeight,
 				});
 			}
-			// preferredWidth?: number | undefined;
-			// preferredHeight?: number | undefined;
-			// priority?: LayoutPriority | undefined;
-			// snap?: boolean | undefined;
 		};
 		this.checkboxesVisible = observableConfigValue<boolean>('mergeEditor.showCheckboxes', false, this.configurationService);
 		this.showDeletionMarkers = observableConfigValue<boolean>('mergeEditor.showDeletionMarkers', true, this.configurationService);
@@ -103,17 +99,17 @@ export abstract class CodeEditorView extends Disposable {
 		);
 		this.isFocused = observableFromEvent(this,
 			Event.any(this.editor.onDidBlurEditorWidget, this.editor.onDidFocusEditorWidget),
-			() => /** @description editor.hasWidgetFocus */ this.editor.hasWidgetFocus()
+			() => this.editor.hasWidgetFocus()
 		);
 		this.cursorPosition = observableFromEvent(this,
 			this.editor.onDidChangeCursorPosition,
-			() => /** @description editor.getPosition */ this.editor.getPosition()
+			() => this.editor.getPosition()
 		);
 		this.selection = observableFromEvent(this,
 			this.editor.onDidChangeCursorSelection,
-			() => /** @description editor.getSelections */ this.editor.getSelections()
+			() => this.editor.getSelections()
 		);
-		this.cursorLineNumber = this.cursorPosition.map(p => /** @description cursorPosition.lineNumber */ p?.lineNumber);
+		this.cursorLineNumber = this.cursorPosition.map(p => p?.lineNumber);
 
 	}
 
@@ -127,7 +123,6 @@ export function createSelectionsAutorun(
 	translateRange: (baseRange: Range, viewModel: MergeEditorViewModel) => Range
 ): IDisposable {
 	const selections = derived(reader => {
-		/** @description selections */
 		const viewModel = codeEditorView.viewModel.read(reader);
 		if (!viewModel) {
 			return [];
@@ -140,7 +135,6 @@ export function createSelectionsAutorun(
 	});
 
 	return autorun(reader => {
-		/** @description set selections */
 		const ranges = selections.read(reader);
 		if (ranges.length === 0) {
 			return;

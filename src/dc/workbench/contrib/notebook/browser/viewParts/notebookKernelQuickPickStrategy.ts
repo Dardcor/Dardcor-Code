@@ -158,7 +158,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 			quickPick.busy = this._notebookKernelService.getKernelDetectionTasks(notebook).length > 0;
 		});
 
-		// run extension recommendataion task if quickPickItems is empty
 		const extensionRecommendataionPromise = quickPickItems.length === 0
 			? createCancelablePromise(token => this._showInstallKernelExtensionRecommendation(notebook, quickPick, this._extensionWorkbenchService, token))
 			: undefined;
@@ -173,7 +172,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 			(last, _current) => last,
 			KERNEL_PICKER_UPDATE_DEBOUNCE
 		)(async () => {
-			// reset quick pick progress
 			quickPick.busy = false;
 			extensionRecommendataionPromise?.cancel();
 
@@ -182,7 +180,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 			const quickPickItems = this._getKernelPickerQuickPickItems(notebook, matchResult, this._notebookKernelService, scopedContextKeyService);
 			quickPick.keepScrollPosition = true;
 
-			// recalcuate active items
 			const activeItems: KernelQuickPickItem[] = [];
 			for (const item of currentActiveItems) {
 				if (isKernelPick(item)) {
@@ -251,7 +248,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 			return true;
 		}
 
-		// actions
 		if (isSearchMarketplacePick(pick)) {
 			await this._showKernelExtension(
 				this._extensionWorkbenchService,
@@ -260,7 +256,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 				editor.textModel.viewType,
 				[]
 			);
-			// suggestedExtension must be defined for this option to be shown, but still check to make TS happy
 		} else if (isInstallExtensionPick(pick)) {
 			await this._showKernelExtension(
 				this._extensionWorkbenchService,
@@ -271,7 +266,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 				this._productService.quality !== 'stable'
 			);
 		} else if (isSourcePick(pick)) {
-			// selected explicilty, it should trigger the execution?
 			pick.action.runAction();
 		}
 
@@ -290,7 +284,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 		extIds: string[],
 		isInsiders?: boolean
 	) {
-		// If extension id is provided attempt to install the extension as the user has requested the suggested ones be installed
 		const extensionsToInstall: IExtension[] = [];
 		const extensionsToInstallOnRemote: IExtension[] = [];
 		const extensionsToEnable: IExtension[] = [];
@@ -300,18 +293,14 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 			if (extension.enablementState === EnablementState.DisabledGlobally || extension.enablementState === EnablementState.DisabledWorkspace || extension.enablementState === EnablementState.DisabledByEnvironment) {
 				extensionsToEnable.push(extension);
 			} else if (!extensionWorkbenchService.installed.some(e => areSameExtensions(e.identifier, extension.identifier))) {
-				// Install this extension only if it hasn't already been installed.
 				const canInstall = await extensionWorkbenchService.canInstall(extension);
 				if (canInstall === true) {
 					extensionsToInstall.push(extension);
 				}
 			} else if (extensionManagementServerService.remoteExtensionManagementServer) {
-				// already installed, check if it should be installed on remote since we are not getting any kernels or kernel providers.
 				if (extensionWorkbenchService.installed.some(e => areSameExtensions(e.identifier, extension.identifier) && e.server === extensionManagementServerService.remoteExtensionManagementServer)) {
-					// extension exists on remote server. should not happen
 					continue;
 				} else {
-					// extension doesn't exist on remote server
 					const canInstall = await extensionWorkbenchService.canInstall(extension);
 					if (canInstall) {
 						extensionsToInstallOnRemote.push(extension);
@@ -393,11 +382,9 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 			);
 
 			if (extensions.length === suggestedExtension.extensionIds.length) {
-				// it's installed but might be detecting kernels
 				return undefined;
 			}
 
-			// We have a suggested kernel, show an option to install it
 			quickPickItems.push({
 				id: 'installSuggested',
 				description: suggestedExtension.displayName ?? suggestedExtension.extensionIds.join(', '),
@@ -405,7 +392,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 				extensionIds: suggestedExtension.extensionIds
 			} satisfies InstallExtensionPick);
 		}
-		// there is no kernel, show the install from marketplace
 		quickPickItems.push({
 			id: 'install',
 			label: localize('searchForKernels', "Browse marketplace for kernel extensions"),
@@ -414,19 +400,12 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 		return quickPickItems;
 	}
 
-	/**
-	 * Examine the most common language in the notebook
-	 * @param notebookTextModel The notebook text model
-	 * @returns What the suggested language is for the notebook. Used for kernal installing
-	 */
 	private getSuggestedLanguage(notebookTextModel: NotebookTextModel): string | undefined {
 		const metaData = notebookTextModel.metadata;
 		const language_info = (metaData?.metadata as Record<string, unknown>)?.language_info as Record<string, string> | undefined;
 		let suggestedKernelLanguage: string | undefined = language_info?.name;
-		// TODO how do we suggest multi language notebooks?
 		if (!suggestedKernelLanguage) {
 			const cellLanguages = notebookTextModel.cells.map(cell => cell.language).filter(language => language !== 'markdown');
-			// Check if cell languages is all the same
 			if (cellLanguages.length > 1) {
 				const firstLanguage = cellLanguages[0];
 				if (cellLanguages.every(language => language === firstLanguage)) {
@@ -437,11 +416,6 @@ abstract class KernelPickerStrategyBase implements IKernelPickerStrategy {
 		return suggestedKernelLanguage;
 	}
 
-	/**
-	 * Given a language and notebook view type suggest a kernel for installation
-	 * @param language The language to find a suggested kernel extension for
-	 * @returns A recommednation object for the recommended extension, else undefined
-	 */
 	private getSuggestedKernelFromLanguage(viewType: string, language: string): INotebookExtensionRecommendation | undefined {
 		const recommendation = KERNEL_RECOMMENDATIONS.get(viewType)?.get(language);
 		return recommendation;
@@ -497,7 +471,6 @@ export class KernelPickerMRUStrategy extends KernelPickerStrategyBase {
 			});
 		}
 
-		// select another kernel quick pick
 		quickPickItems.push({
 			id: 'selectAnother',
 			label: localize('selectAnotherKernel.more', "Select Another Kernel..."),
@@ -510,7 +483,6 @@ export class KernelPickerMRUStrategy extends KernelPickerStrategyBase {
 	protected override _selecteKernel(notebook: NotebookTextModel, kernel: INotebookKernel): void {
 		const currentInfo = this._notebookKernelService.getMatchingKernel(notebook);
 		if (currentInfo.selected) {
-			// there is already a selected kernel
 			this._notebookKernelHistoryService.addMostRecentKernel(currentInfo.selected);
 		}
 		super._selecteKernel(notebook, kernel);
@@ -541,7 +513,6 @@ export class KernelPickerMRUStrategy extends KernelPickerStrategyBase {
 		const disposables = new DisposableStore();
 		const quickPick = disposables.add(this._quickInputService.createQuickPick<KernelQuickPickItem>({ useSeparators: true }));
 		const quickPickItem = await new Promise<KernelQuickPickItem | IQuickInputButton | undefined>(resolve => {
-			// select from kernel sources
 			quickPick.title = kernelListEmpty ? localize('select', "Select Kernel") : localize('selectAnotherKernel', "Select Another Kernel");
 			quickPick.placeholder = localize('selectKernel.placeholder', "Type to choose a kernel source");
 			quickPick.busy = true;
@@ -624,7 +595,6 @@ export class KernelPickerMRUStrategy extends KernelPickerStrategyBase {
 				await this._selectOneKernel(notebook, selectedKernelPickItem.label, selectedKernelPickItem.kernels);
 				return true;
 			} else if (isSourcePick(selectedKernelPickItem)) {
-				// selected explicilty, it should trigger the execution?
 				try {
 					await selectedKernelPickItem.action.runAction();
 					return true;
@@ -670,7 +640,6 @@ export class KernelPickerMRUStrategy extends KernelPickerStrategyBase {
 		const others = matchResult.all.filter(item => item.extension.value !== JUPYTER_EXTENSION_ID);
 		const quickPickItems: QuickPickInput<KernelQuickPickItem>[] = [];
 
-		// group controllers by extension
 		for (const group of groupBy(others, (a, b) => a.extension.value === b.extension.value ? 0 : 1)) {
 			const extension = this._extensionService.extensions.find(extension => extension.identifier.value === group[0].extension.value);
 			const source = extension?.displayName ?? extension?.description ?? group[0].extension.value;
@@ -790,7 +759,7 @@ export class KernelPickerMRUStrategy extends KernelPickerStrategyBase {
 		};
 
 		if (runningActions.length) {
-			return updateActionFromSourceAction(runningActions[0] /** TODO handle multiple actions state */, true);
+			return updateActionFromSourceAction(runningActions[0] , true);
 		}
 
 		const { selected } = notebookKernelHistoryService.getKernels(notebook);

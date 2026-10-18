@@ -21,14 +21,14 @@ export interface IMenubarMenu {
 export interface IMenubarKeybinding {
 	label: string;
 	userSettingsLabel?: string;
-	isNative?: boolean; // Assumed true if missing
+	isNative?: boolean;
 }
 
 export interface IMenubarMenuItemAction {
 	id: string;
 	label: string;
-	checked?: boolean; // Assumed false if missing
-	enabled?: boolean; // Assumed true if missing
+	checked?: boolean;
+	enabled?: boolean;
 }
 
 export interface IMenubarMenuRecentItemAction {

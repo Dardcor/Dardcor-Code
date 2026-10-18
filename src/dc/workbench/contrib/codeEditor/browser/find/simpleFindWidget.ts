@@ -72,11 +72,6 @@ export abstract class SimpleFindWidget extends Widget implements IVerticalSashLa
 	private _foundMatch: boolean = false;
 	private _width: number = 0;
 
-	/**
-	 * Tracks whether the accessibility help hint has been announced in the ARIA label.
-	 * Reset to false when the widget is hidden, allowing the hint to be announced again
-	 * on the next reveal.
-	 */
 	private _accessibilityHelpHintAnnounced: boolean = false;
 	private _labelResetTimeout: IDisposable | undefined;
 
@@ -120,7 +115,6 @@ export abstract class SimpleFindWidget extends Widget implements IVerticalSashLa
 			inputBoxStyles: defaultInputBoxStyles,
 			toggleStyles: defaultToggleStyles
 		}, contextKeyService));
-		// Find History with update delayer
 		this._updateHistoryDelayer = this._register(new Delayer<void>(500));
 
 		this._register(this._findInput.onInput(async (e) => {
@@ -190,7 +184,6 @@ export abstract class SimpleFindWidget extends Widget implements IVerticalSashLa
 		this._innerDomNode.appendChild(this.nextBtn.domNode);
 		this._innerDomNode.appendChild(closeBtn.domNode);
 
-		// _domNode wraps _innerDomNode, ensuring that
 		this._domNode = document.createElement('div');
 		this._domNode.classList.add('simple-find-part-wrapper');
 		this._domNode.appendChild(this._innerDomNode);
@@ -241,7 +234,6 @@ export abstract class SimpleFindWidget extends Widget implements IVerticalSashLa
 			const _initialMinWidth = initialMinWidth ?? SIMPLE_FIND_WIDGET_INITIAL_WIDTH;
 			let originalWidth = _initialMinWidth;
 
-			// sash
 			const resizeSash = this._register(new Sash(this._innerDomNode, this, { orientation: Orientation.VERTICAL, size: 1 }));
 			this._register(resizeSash.onDidStart(() => {
 				originalWidth = parseFloat(dom.getComputedStyle(this._domNode).width);
@@ -355,12 +347,10 @@ export abstract class SimpleFindWidget extends Widget implements IVerticalSashLa
 
 	public hide(animated = true): void {
 		if (this._isVisible) {
-			// Reset the accessibility help hint flag so it can be announced again on next reveal
 			this._accessibilityHelpHintAnnounced = false;
 			this._innerDomNode.classList.toggle('suppress-transition', !animated);
 			this._innerDomNode.classList.remove('visible-transition');
 			this._innerDomNode.setAttribute('aria-hidden', 'true');
-			// Need to delay toggling visibility until after Transition, then visibility hidden - removes from tabIndex list
 			setTimeout(() => {
 				this._isVisible = false;
 				this.updateButtons(this._foundMatch);
@@ -412,8 +402,6 @@ export abstract class SimpleFindWidget extends Widget implements IVerticalSashLa
 	}
 
 	protected focusFindBox() {
-		// Focus back onto the find box, which
-		// requires focusing onto the next button first
 		this.nextBtn.focus();
 		this._findInput.inputBox.focus();
 	}
@@ -452,24 +440,15 @@ export abstract class SimpleFindWidget extends Widget implements IVerticalSashLa
 		this.state.change(state, false);
 	}
 
-	/**
-	 * Updates the ARIA label of the find input box.
-	 * When a screen reader is active and the accessibility verbosity setting is enabled,
-	 * includes a hint about pressing Alt+F1 for accessibility help on first reveal.
-	 * The hint is only announced once per show/hide cycle to prevent double-speak.
-	 */
 	private _updateFindInputAriaLabel(): void {
 		let findLabel = NLS_FIND_INPUT_LABEL;
 
-		// Include accessibility help hint on first reveal when screen reader is active
-		// Note: Using raw string for setting ID - this setting may not be registered yet
 		if (!this._accessibilityHelpHintAnnounced && this._configurationService.getValue('accessibility.verbosity.find') && this._accessibilityService.isScreenReaderOptimized()) {
 			const keybinding = this._keybindingService.lookupKeybinding('editor.action.accessibilityHelp')?.getAriaLabel();
 			if (keybinding) {
 				findLabel += ', ' + nls.localize('accessibilityHelpHintInLabel', "Press {0} for accessibility help", keybinding);
 				this._accessibilityHelpHintAnnounced = true;
 
-				// Reset to plain label after delay to avoid repeated announcement on focus changes
 				this._labelResetTimeout?.dispose();
 				this._labelResetTimeout = disposableTimeout(() => {
 					if (this._isVisible) {

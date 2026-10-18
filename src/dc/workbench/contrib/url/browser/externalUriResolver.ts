@@ -24,7 +24,6 @@ export class ExternalUriResolverContribution extends Disposable implements IWork
 					return {
 						resolved: await _workbenchEnvironmentService.options!.resolveExternalUri!(resource),
 						dispose: () => {
-							// TODO@mjbvz - do we need to do anything here?
 						}
 					};
 				}

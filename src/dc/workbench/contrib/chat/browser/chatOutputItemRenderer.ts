@@ -88,9 +88,9 @@ export class ChatOutputRendererService extends Disposable implements IChatOutput
 
 	private readonly _originStore: ExtensionKeyedWebviewOriginStore;
 
-	private readonly _contributions = new Map</*viewType*/ string, ContributionEntry>();
+	private readonly _contributions = new Map< string, ContributionEntry>();
 
-	private readonly _renderers = new Map</*viewType*/ string, RendererEntry>();
+	private readonly _renderers = new Map< string, RendererEntry>();
 
 	constructor(
 		@IContextKeyService private readonly _contextKeyService: IContextKeyService,

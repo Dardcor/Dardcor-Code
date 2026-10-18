@@ -10,16 +10,9 @@ const stateCloseTag = '</agent_merge_state>';
 const actionsPrefix = 'Authorized actions this run: ';
 const feedbackSeparator = '---';
 
-/**
- * Marker prefixed to every line of GitHub-controlled text. The prompt is a
- * line-delimited format, so an unescaped body could otherwise close the state
- * block, restate a field, or open a thread. Quoting is applied per line and
- * removed on parse, so arbitrary review markdown round-trips unchanged.
- */
 const quoteMarker = '> ';
 const emptyQuotedLine = '>';
 
-/** Wraps GitHub-controlled text so none of its lines can be read as structure. */
 function quote(value: string): string {
 	return value.split('\n').map(line => line ? `${quoteMarker}${line}` : emptyQuotedLine).join('\n');
 }
@@ -39,22 +32,12 @@ function isQuoted(value: string): boolean {
 	return value.split('\n').some(line => line.startsWith(quoteMarker) || line === emptyQuotedLine);
 }
 
-/**
- * Model-facing labels for the repair actions. Kept next to the parser so the
- * rendered summary can map the prompt back onto the actions that produced it.
- */
 const repairActionLabels: Readonly<Record<AgentMergeRepairAction, string>> = {
 	addressReviews: 'address review feedback',
 	fixCI: 'fix failed required CI checks',
 	resolveConflicts: 'resolve conflicts or update the behind branch',
 };
 
-/**
- * Line prefixes of the state block, in the order `buildAgentMergePrompt` emits
- * them. The parser relies on that order to bound sections. Trailing separators
- * are excluded so a section reads the same whether its value sits on the field
- * line (as older prompts wrote scalars and lists) or on the lines below it.
- */
 const promptFields = [
 	'Pull request:',
 	'Title:',
@@ -70,14 +53,12 @@ const promptFields = [
 
 type PromptField = typeof promptFields[number];
 
-/** GitHub logins, including the `[bot]` suffix bot accounts carry. */
 const authorPattern = /^(?<author>[A-Za-z0-9-_.]+(?:\[bot\])?): (?<body>[\s\S]*)$/;
 
 const headPattern = /^(?<ref>.*?) \((?<sha>[^()]*)\)$/;
 
 const filePattern = /^(?<path>.*?)(?::(?<line>\d+))?$/;
 
-/** Structured view of a prompt produced by {@link buildAgentMergePrompt}. */
 export interface IAgentMergePromptSummary {
 	readonly actions: readonly AgentMergeRepairAction[];
 	readonly pullRequestUrl: string;
@@ -91,7 +72,6 @@ export interface IAgentMergePromptSummary {
 	readonly failedChecks: readonly string[];
 	readonly behind: boolean;
 	readonly conflicting: boolean;
-	/** The instructions that follow the state block, addressed to the agent. */
 	readonly agentMessage: string;
 }
 
@@ -99,8 +79,6 @@ export function buildAgentMergePrompt(actions: readonly AgentMergeRepairAction[]
 	const actionLabels = actions.map(action => repairActionLabels[action] ?? repairActionLabels.addressReviews);
 	const details = [
 		`Pull request: ${context.pullRequestUrl}`,
-		// A pull request title is single-line by GitHub's contract; folding any
-		// newline keeps that true so the value cannot spill into a later field.
 		`Title: ${context.title.replace(/\r?\n/g, ' ')}`,
 		`Head: ${context.headRef} (${context.headSha})`,
 		`Base: ${context.baseRef}`,
@@ -128,14 +106,7 @@ export function buildAgentMergePrompt(actions: readonly AgentMergeRepairAction[]
 	].join('\n');
 }
 
-/**
- * Recovers the structured state from an Agent Merge prompt so it can be shown
- * as a summary widget instead of the raw machine-facing text. Returns
- * `undefined` for any message that is not such a prompt.
- */
 export function parseAgentMergePrompt(text: string): IAgentMergePromptSummary | undefined {
-	// Cheap reject first: this runs for every request whose label or find text
-	// is computed, and splitting a long user message would dominate that cost.
 	if (!text.includes(stateOpenTag)) {
 		return undefined;
 	}
@@ -174,12 +145,6 @@ export function parseAgentMergePrompt(text: string): IAgentMergePromptSummary | 
 	};
 }
 
-/**
- * Splits the state block into its fields. Sections are located from the end of
- * the block backwards so that quoted feedback, which is emitted before the
- * trailing fields, cannot shift a later section's boundary even in prompts
- * written before quoting was introduced.
- */
 function readSections(stateLines: readonly string[]): Map<PromptField, string> {
 	const starts = new Map<PromptField, number>();
 	let upperBound = stateLines.length;
@@ -218,11 +183,8 @@ function parseFailedChecks(value: string | undefined): readonly string[] {
 		return [];
 	}
 	if (isQuoted(trimmed)) {
-		// One quoted check per line, so a name containing a comma stays whole.
 		return trimmed.split('\n').map(unquoteLine).map(check => check.trim()).filter(Boolean);
 	}
-	// Older prompts joined names with commas, which is ambiguous but all that
-	// those persisted turns carry.
 	return trimmed.split(',').map(check => check.trim()).filter(Boolean);
 }
 
@@ -258,9 +220,6 @@ function parseReviewThread(block: string): AgentMergeReviewThreadContext | undef
 		index++;
 	}
 
-	// A thread's comments are newline-joined, so only the leading author is
-	// read: in prompts written before quoting, a body line could otherwise pose
-	// as the next comment's author.
 	const feedback = lines.slice(index).join('\n').trim();
 	return {
 		id,
@@ -291,11 +250,6 @@ function parseFeedbackComment(block: string): AgentMergeFeedbackComment {
 	return { author: match.groups.author, body: match.groups.body.trim() };
 }
 
-/**
- * Splits on the `---` separator the prompt writes between feedback entries,
- * rejoining blocks that fail `isBlockStart` so a horizontal rule inside an
- * untrusted body does not split that body into two entries.
- */
 function splitOnSeparator(value: string, isBlockStart: (block: string) => boolean): string[] {
 	const blocks: string[] = [];
 	for (const candidate of value.split(`\n${feedbackSeparator}\n`)) {
@@ -312,8 +266,6 @@ function formatFailedChecks(checks: readonly string[]): string {
 	if (checks.length === 0) {
 		return 'none';
 	}
-	// One check per line: names are opaque GitHub strings that may contain the
-	// comma older prompts joined on.
 	return checks.map(quote).join('\n');
 }
 

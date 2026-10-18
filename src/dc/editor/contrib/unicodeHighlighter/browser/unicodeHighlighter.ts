@@ -90,7 +90,6 @@ export class UnicodeHighlighter extends Disposable implements IEditorContributio
 				return;
 			}
 
-			// This document contains many non-basic ASCII characters.
 			const max = Math.max(state.ambiguousCharacterCount, state.nonBasicAsciiCharacterCount, state.invisibleCharacterCount);
 
 			let data;
@@ -151,7 +150,6 @@ export class UnicodeHighlighter extends Disposable implements IEditorContributio
 				options.invisibleCharacters,
 			].every((option) => option === false)
 		) {
-			// Don't do anything if the feature is fully disabled
 			return;
 		}
 
@@ -258,15 +256,12 @@ class DocumentUnicodeHighlighter extends Disposable {
 					return;
 				}
 				if (this._model.getVersionId() !== modelVersionId) {
-					// model changed in the meantime
 					return;
 				}
 				this._updateState(info);
 
 				const decorations: IModelDeltaDecoration[] = [];
 				if (!info.hasMore) {
-					// Don't show decoration if there are too many.
-					// In this case, a banner is shown.
 					for (const range of info.ranges) {
 						decorations.push({
 							range: range,
@@ -366,8 +361,6 @@ class ViewportUnicodeHighlighter extends Disposable {
 		}
 
 		if (!totalResult.hasMore) {
-			// Don't show decorations if there are too many.
-			// A banner will be shown instead.
 			for (const range of totalResult.ranges) {
 				decorations.push({ range, options: Decorations.instance.getDecorationFromOptions(this._options) });
 			}
@@ -443,7 +436,6 @@ export class UnicodeHighlighterHoverParticipant implements IEditorHoverParticipa
 				continue;
 			}
 			const char = model.getValueInRange(d.range);
-			// text refers to a single character.
 			const codePoint = char.codePointAt(0)!;
 
 			const codePointStr = formatCodePointMarkdown(codePoint);
@@ -525,7 +517,6 @@ function codePointToHex(codePoint: number): string {
 function formatCodePointMarkdown(codePoint: number) {
 	let value = `\`${codePointToHex(codePoint)}\``;
 	if (!InvisibleCharacters.isInvisibleCharacter(codePoint)) {
-		// Don't render any control characters or any invisible characters, as they cannot be seen anyways.
 		value += ` "${`${renderCodePointAsInlineCode(codePoint)}`}"`;
 	}
 	return value;
@@ -809,7 +800,6 @@ async function excludeLocaleFromBeingHighlighted(configurationService: IConfigur
 
 	let value: Record<string, boolean>;
 	if ((typeof existingValue === 'object') && existingValue) {
-		// Copy value, as the existing value is read only
 		// eslint-disable-next-line local/code-no-any-casts
 		value = Object.assign({}, existingValue as any);
 	} else {

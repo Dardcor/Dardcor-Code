@@ -49,7 +49,7 @@ namespace ParameterHintState {
 
 export class ParameterHintsModel extends Disposable {
 
-	private static readonly DEFAULT_DELAY = 120; // ms
+	private static readonly DEFAULT_DELAY = 120;
 
 	private readonly _onChangedHints = this._register(new Emitter<languages.SignatureHelp | undefined>());
 	public readonly onChangedHints = this._onChangedHints.event;
@@ -136,7 +136,6 @@ export class ParameterHintsModel extends Disposable {
 		const last = (activeSignature % length) === (length - 1);
 		const cycle = this.editor.getOption(EditorOption.parameterHints).cycle;
 
-		// If there is only one signature, or we're on last signature of list
 		if ((length < 2 || last) && !cycle) {
 			this.cancel();
 			return;
@@ -155,7 +154,6 @@ export class ParameterHintsModel extends Disposable {
 		const first = activeSignature === 0;
 		const cycle = this.editor.getOption(EditorOption.parameterHints).cycle;
 
-		// If there is only one signature, or we're on first signature of list
 		if ((length < 2 || first) && !cycle) {
 			this.cancel();
 			return;
@@ -206,7 +204,6 @@ export class ParameterHintsModel extends Disposable {
 		try {
 			const result = await this.state.request;
 
-			// Check that we are still resolving the correct signature help
 			if (triggerId !== this.triggerId) {
 				result?.dispose();
 
@@ -264,7 +261,6 @@ export class ParameterHintsModel extends Disposable {
 					const charCode = ch.charCodeAt(0);
 					this.triggerChars.add(charCode);
 
-					// All trigger characters are also considered retrigger characters
 					this.retriggerChars.add(charCode);
 				}
 			}
@@ -324,11 +320,9 @@ export class ParameterHintsModel extends Disposable {
 function mergeTriggerContexts(previous: TriggerContext, current: TriggerContext) {
 	switch (current.triggerKind) {
 		case languages.SignatureHelpTriggerKind.Invoke:
-			// Invoke overrides previous triggers.
 			return current;
 
 		case languages.SignatureHelpTriggerKind.ContentChange:
-			// Ignore content changes triggers
 			return previous;
 
 		case languages.SignatureHelpTriggerKind.TriggerCharacter:

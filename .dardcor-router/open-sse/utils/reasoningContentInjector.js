@@ -1,14 +1,9 @@
-// Some thinking-mode providers (DeepSeek, Kimi, MiniMax, ...) require reasoning_content
-// to be echoed back on assistant messages. Clients in OpenAI format don't send it,
-// so we inject a non-empty placeholder to satisfy upstream validation.
 import { PROVIDERS } from "../config/providers.js";
 
 const PLACEHOLDER = " ";
 
-// Provider-level rules derive from registry transport.reasoningInject (single source)
 const providerRuleFor = (provider) => PROVIDERS[provider]?.reasoningInject;
 
-// Model-level rules: matched by predicate against model id
 const MODEL_RULES = [
   { match: m => /^kimi-/i.test(m || ""), scope: "toolCalls" },
   { match: m => /deepseek/i.test(m || ""), scope: "all" }

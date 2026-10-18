@@ -19,10 +19,6 @@
 	transform: translateZ(0);
 }
 
-/* Pause all dot animations while the spinner is scrolled out of view. The
- * `monaco-pixel-spinner-paused` class is toggled from JS by a per-window
- * IntersectionObserver. Continuous CSS animations otherwise force the
- * compositor to do work every vsync even for spinners that are offscreen. */
 .monaco-pixel-spinner.monaco-pixel-spinner-paused .monaco-pixel-spinner-dot {
 	animation-play-state: paused;
 }
@@ -109,14 +105,6 @@
 	}
 }
 
-/* Ring variant: same 2×3 grid layout as the cascading variant, but the
- * highlight travels clockwise around the perimeter of the 6 dots:
- *   [1][2]      1 → 2
- *   [3][4]      ↑   ↓
- *   [5][6]      3   4
- *               ↑   ↓
- *               5 ← 6
- */
 
 .monaco-pixel-spinner.monaco-pixel-spinner-ring .monaco-pixel-spinner-dot {
 	animation: monaco-pixel-spinner-ring-pulse 1200ms linear infinite;

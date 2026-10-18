@@ -43,7 +43,6 @@ import { Codicon } from '../../../../../base/common/codicons.js';
 
 registerSingleton(ITerminalCompletionService, TerminalCompletionService, InstantiationType.Delayed);
 
-// #region Terminal Contributions
 
 class TerminalSuggestContribution extends DisposableStore implements ITerminalContribution {
 	static readonly ID = 'terminal.suggest';
@@ -90,16 +89,12 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 			}
 		}));
 
-		// Initialize the dynamic providers configuration manager
 		TerminalSuggestProvidersConfigurationManager.initialize(this._instantiationService);
 
-		// Listen for terminal location changes to update the suggest widget container
 		this.add(this._ctx.instance.onDidChangeTarget((target) => {
 			this._updateContainerForTarget(target);
 		}));
 
-		// The terminal view can be reparented (for example when moved into a new view). Ensure the
-		// suggest widget follows the terminal's DOM when focus returns to the instance.
 		this.add(this._ctx.instance.onDidFocus(() => {
 			const xtermRaw = this._ctx.instance.xterm?.raw;
 			if (xtermRaw) {
@@ -123,7 +118,6 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 
 	private async _loadLspCompletionAddon(xterm: RawXtermTerminal): Promise<void> {
 		let lspTerminalObj = undefined;
-		// TODO: Change to always load after settings update for terminal suggest provider
 		if (!this._ctx.instance.shellType || !(lspTerminalObj = getTerminalLspSupportedLanguageObj(this._ctx.instance.shellType))) {
 			this._lspAddons.clearAndDisposeAll();
 			return;
@@ -131,7 +125,6 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 
 		const virtualTerminalDocumentUri = createTerminalLanguageVirtualUri(this._ctx.instance.instanceId, lspTerminalObj.extension);
 
-		// Load and register the LSP completion providers (one per language server)
 		this._lspModelProvider.value = this._instantiationService.createInstance(LspTerminalModelContentProvider, this._ctx.instance.capabilities, this._ctx.instance.instanceId, virtualTerminalDocumentUri, this._ctx.instance.shellType);
 		this.add(this._lspModelProvider.value);
 
@@ -141,7 +134,6 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 		const virtualProviders = this._languageFeaturesService.completionProvider.all(textVirtualModel.object.textEditorModel);
 		const filteredProviders = virtualProviders.filter(p => p._debugDisplayName !== 'wordbasedCompletions');
 
-		// Iterate through all available providers
 		for (const provider of filteredProviders) {
 			const lspCompletionProviderAddon = this._instantiationService.createInstance(LspCompletionProviderAddon, provider, textVirtualModel, this._lspModelProvider.value);
 			this._lspAddons.set(provider._debugDisplayName, lspCompletionProviderAddon);
@@ -156,7 +148,6 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 	}
 
 	private _loadAddons(xterm: RawXtermTerminal): void {
-		// Don't re-create the addon
 		if (this._addon.value) {
 			return;
 		}
@@ -170,7 +161,6 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 		this.add(dom.addDisposableListener(this._ctx.instance.domElement, dom.EventType.FOCUS_OUT, (e) => {
 			const focusedElement = e.relatedTarget as HTMLElement;
 			if (focusedElement?.classList.contains(SuggestDetailsClassName)) {
-				// Don't hide the suggest widget if the focus is moving to the details
 				return;
 			}
 			addon.hideSuggestWidget(true);
@@ -183,7 +173,6 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 		const clipboardContrib = TerminalClipboardContribution.get(this._ctx.instance)!;
 		this.add(clipboardContrib.onWillPaste(() => addon.isPasting = true));
 		this.add(clipboardContrib.onDidPaste(() => {
-			// Delay this slightly as synchronizing the prompt input is debounced
 			setTimeout(() => addon.isPasting = false, 100);
 		}));
 		if (!isWindows) {
@@ -204,7 +193,6 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 		if (!this._ctx.instance.xterm?.raw) {
 			return;
 		}
-		// Relies on shell type being set
 		this._loadLspCompletionAddon(this._ctx.instance.xterm.raw);
 	}
 
@@ -266,9 +254,7 @@ class TerminalSuggestContribution extends DisposableStore implements ITerminalCo
 
 registerTerminalContribution(TerminalSuggestContribution.ID, TerminalSuggestContribution);
 
-// #endregion
 
-// #region Actions
 
 registerTerminalAction({
 	id: TerminalSuggestCommandId.ChangeSelectionModeNever,
@@ -409,7 +395,7 @@ registerTerminalAction({
 		order: 2
 	},
 	run: (c, accessor) => {
-		(accessor.get(IOpenerService)).open('https://aka.ms/vscode-terminal-intellisense');
+		(accessor.get(IOpenerService)).open('https://www.dardcor-code.web.id/docs/terminal/suggestions');
 	}
 });
 
@@ -452,7 +438,6 @@ registerActiveInstanceAction({
 	f1: false,
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.focus, TerminalContextKeys.isOpen, TerminalContextKeys.suggestWidgetVisible),
 	keybinding: {
-		// Up is bound to other workbench keybindings that this needs to beat
 		primary: KeyCode.UpArrow,
 		weight: KeybindingWeight.WorkbenchContrib + 1,
 		when: ContextKeyExpr.or(SimpleSuggestContext.HasNavigated, ContextKeyExpr.equals(`config.${TerminalSuggestSettingId.UpArrowNavigatesHistory}`, false))
@@ -466,7 +451,6 @@ registerActiveInstanceAction({
 	f1: false,
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.focus, TerminalContextKeys.isOpen, TerminalContextKeys.suggestWidgetVisible),
 	keybinding: {
-		// Up is bound to other workbench keybindings that this needs to beat
 		primary: KeyCode.PageUp,
 		weight: KeybindingWeight.WorkbenchContrib + 1
 	},
@@ -479,7 +463,6 @@ registerActiveInstanceAction({
 	f1: false,
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.focus, TerminalContextKeys.isOpen, TerminalContextKeys.suggestWidgetVisible),
 	keybinding: {
-		// Down is bound to other workbench keybindings that this needs to beat
 		primary: KeyCode.DownArrow,
 		weight: KeybindingWeight.WorkbenchContrib + 1
 	},
@@ -492,7 +475,6 @@ registerActiveInstanceAction({
 	f1: false,
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.focus, TerminalContextKeys.isOpen, TerminalContextKeys.suggestWidgetVisible),
 	keybinding: {
-		// Down is bound to other workbench keybindings that this needs to beat
 		weight: KeybindingWeight.WorkbenchContrib + 1,
 		primary: KeyMod.CtrlCmd | KeyCode.Slash,
 	},
@@ -503,7 +485,6 @@ registerActiveInstanceAction({
 	id: TerminalSuggestCommandId.ToggleDetailsFocus,
 	title: localize2('workbench.action.terminal.suggestToggleDetailsFocus', 'Suggest Toggle Suggestion Focus'),
 	f1: false,
-	// HACK: This does not work with a precondition of `TerminalContextKeys.suggestWidgetVisible`, so make sure to not override the editor's keybinding
 	precondition: EditorContextKeys.textInputFocus.negate(),
 	keybinding: {
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -519,7 +500,6 @@ registerActiveInstanceAction({
 	f1: false,
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.isOpen, TerminalContextKeys.focus, TerminalContextKeys.suggestWidgetVisible, SimpleSuggestContext.HasFocusedSuggestion),
 	keybinding: {
-		// HACK: Force weight to be higher than that to start terminal chat
 		weight: KeybindingWeight.ExternalExtension + 2,
 		primary: KeyMod.CtrlCmd | KeyCode.Space,
 		secondary: [KeyMod.CtrlCmd | KeyCode.KeyI],
@@ -534,7 +514,6 @@ registerActiveInstanceAction({
 	f1: false,
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.focus, TerminalContextKeys.isOpen, TerminalContextKeys.suggestWidgetVisible),
 	keybinding: {
-		// Down is bound to other workbench keybindings that this needs to beat
 		primary: KeyCode.PageDown,
 		weight: KeybindingWeight.WorkbenchContrib + 1
 	},
@@ -548,13 +527,11 @@ registerActiveInstanceAction({
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.focus, TerminalContextKeys.isOpen, TerminalContextKeys.suggestWidgetVisible),
 	keybinding: [{
 		primary: KeyCode.Tab,
-		// Tab is bound to other workbench keybindings that this needs to beat
 		weight: KeybindingWeight.WorkbenchContrib + 2,
 		when: ContextKeyExpr.and(SimpleSuggestContext.HasFocusedSuggestion)
 	},
 	{
 		primary: KeyCode.Enter,
-		// Enter accepts when: explicitly invoked (ctrl+space), OR not in partial mode, OR not first suggestion, OR user has navigated
 		when: ContextKeyExpr.and(SimpleSuggestContext.HasFocusedSuggestion, ContextKeyExpr.or(SimpleSuggestContext.ExplicitlyInvoked, ContextKeyExpr.notEquals(`config.${TerminalSuggestSettingId.SelectionMode}`, 'partial'), SimpleSuggestContext.FirstSuggestionFocused.toNegated(), SimpleSuggestContext.HasNavigated)),
 		weight: KeybindingWeight.WorkbenchContrib + 1
 	}],
@@ -568,7 +545,6 @@ registerActiveInstanceAction({
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.focus, TerminalContextKeys.isOpen, TerminalContextKeys.suggestWidgetVisible),
 	keybinding: {
 		primary: KeyCode.Enter,
-		// Enter is bound to other workbench keybindings that this needs to beat
 		weight: KeybindingWeight.WorkbenchContrib + 1,
 		when: ContextKeyExpr.notEquals(`config.${TerminalSuggestSettingId.RunOnEnter}`, 'never'),
 	},
@@ -582,7 +558,6 @@ registerActiveInstanceAction({
 	precondition: ContextKeyExpr.and(ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated), TerminalContextKeys.focus, TerminalContextKeys.isOpen, TerminalContextKeys.suggestWidgetVisible),
 	keybinding: {
 		primary: KeyCode.Escape,
-		// Escape is bound to other workbench keybindings that this needs to beat
 		weight: KeybindingWeight.WorkbenchContrib + 1
 	},
 	run: (activeInstance) => TerminalSuggestContribution.get(activeInstance)?.addon?.hideSuggestWidget(true)
@@ -601,13 +576,11 @@ registerActiveInstanceAction({
 	},
 	run: (activeInstance) => {
 		TerminalSuggestContribution.get(activeInstance)?.addon?.hideSuggestWidget(true);
-		activeInstance.sendText('\u001b[A', false); // Up arrow
+		activeInstance.sendText('\u001b[A', false);
 	}
 });
 
-// #endregion
 
-// #region Dynamic Providers Configuration
 
 class TerminalSuggestProvidersConfigurationManager extends Disposable {
 	private static _instance: TerminalSuggestProvidersConfigurationManager | undefined;
@@ -629,16 +602,13 @@ class TerminalSuggestProvidersConfigurationManager extends Disposable {
 		this._register(this._terminalContributionService.onDidChangeTerminalCompletionProviders(() => {
 			this._updateConfiguration();
 		}));
-		// Initial configuration
 		this._updateConfiguration();
 	}
 
 	private _updateConfiguration(): void {
-		// Add statically declared providers from package.json contributions
 		const providers = new Map<string, ITerminalSuggestProviderInfo>();
 		this._terminalContributionService.terminalCompletionProviders.forEach(o => providers.set(o.extensionIdentifier, { ...o, id: o.extensionIdentifier }));
 
-		// Add dynamically registered providers (that aren't already declared statically)
 		for (const { id } of this._terminalCompletionService.providers) {
 			if (id && !providers.has(id)) {
 				providers.set(id, { id });
@@ -649,4 +619,3 @@ class TerminalSuggestProvidersConfigurationManager extends Disposable {
 	}
 }
 
-// #endregion

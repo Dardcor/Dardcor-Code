@@ -55,8 +55,6 @@ describe('detectSameFileJump', () => {
 	});
 
 	it('ignores selection-only events; uses the first edit as ground truth', () => {
-		// Cursor wanders far via navigation (selectionChanged) but no edit
-		// happens there; the actual edit is local — within threshold.
 		const r = detectSameFileJump(
 			[selChanged(ACTIVE, 9999), changed(ACTIVE, 100, 100, 'x')],
 			baseOpts(off => off === 100 ? 10 : 999),
@@ -134,9 +132,6 @@ describe('detectCrossFileJump', () => {
 	});
 
 	it('applies prior multi-replacement changed events in offset-descending order', () => {
-		// base "0123456789"; prior edit on OTHER inserts AAAA + a newline. The
-		// later changed event at offset 7 then sees the newline at index 8,
-		// so line 0.
 		const r = detectCrossFileJump(
 			[changedMulti(OTHER, [[1, 2, 'AAAA'], [5, 6, '\n']]), changed(OTHER, 7, 7, 'x')],
 			{
@@ -162,7 +157,7 @@ describe('detectCrossFileJump', () => {
 		);
 		expect(r.isOk()).toBe(true);
 		if (r.isOk()) {
-			expect(r.val.toLine).toBe(1); // offset 6 on '012\n456\n89' = line 1
+			expect(r.val.toLine).toBe(1);
 		}
 	});
 

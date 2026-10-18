@@ -85,7 +85,7 @@ function getAllTopLevelDeclarations(ts: typeof import('typescript'), sourceFile:
 				all.push(node);
 			}
 		}
-		return false /*continue*/;
+		return false ;
 	});
 	return all;
 }
@@ -97,16 +97,15 @@ function getTopLevelDeclaration(ts: typeof import('typescript'), sourceFile: ts.
 		if (isDeclaration(ts, node) && node.name) {
 			if (node.name.text === typeName) {
 				result = node;
-				return true /*stop*/;
+				return true ;
 			}
-			return false /*continue*/;
+			return false ;
 		}
-		// node is ts.VariableStatement
 		if (getNodeText(sourceFile, node).indexOf(typeName) >= 0) {
 			result = node;
-			return true /*stop*/;
+			return true ;
 		}
-		return false /*continue*/;
+		return false ;
 	});
 	return result;
 }
@@ -179,7 +178,6 @@ function getMassagedTopLevelDeclarationText(ts: typeof import('typescript'), sou
 					}
 				}
 			} catch (err) {
-				// life..
 			}
 		});
 	}
@@ -189,7 +187,6 @@ function getMassagedTopLevelDeclarationText(ts: typeof import('typescript'), sou
 	const lines = result.split(/\r\n|\r|\n/);
 	for (let i = 0; i < lines.length; i++) {
 		if (/\s*\*/.test(lines[i])) {
-			// very likely a comment
 			continue;
 		}
 		lines[i] = lines[i].replace(/"/g, '\'');
@@ -222,13 +219,10 @@ function format(ts: Typescript, text: string, endl: string): string {
 		return text;
 	}
 
-	// Parse the source text
-	const sourceFile = ts.createSourceFile('file.ts', text, ts.ScriptTarget.Latest, /*setParentPointers*/ true);
+	const sourceFile = ts.createSourceFile('file.ts', text, ts.ScriptTarget.Latest, true);
 
-	// Get the formatting edits on the input sources
 	const edits = ts.formatting.formatDocument(sourceFile, getRuleProvider(tsfmt), tsfmt);
 
-	// Apply the edits on the input code
 	return applyEdits(text, edits);
 
 	function countParensCurly(text: string): number {
@@ -330,14 +324,11 @@ function format(ts: Typescript, text: string, endl: string): string {
 	}
 
 	function getRuleProvider(options: ts.FormatCodeSettings) {
-		// Share this between multiple formatters using the same options.
-		// This represents the bulk of the space the formatter uses.
 
 		return ts.formatting.getFormatContext(options);
 	}
 
 	function applyEdits(text: string, edits: ts.TextChange[]): string {
-		// Apply edits in reverse on the existing text
 		let result = text;
 		for (let i = edits.length - 1; i >= 0; i--) {
 			const change = edits[i];
@@ -490,7 +481,6 @@ function generateDeclarationFile(ts: Typescript, recipe: string, sourceFileGette
 						return;
 					}
 				} else {
-					// node is ts.VariableStatement
 					const nodeText = getNodeText(sourceFile, declaration);
 					for (let i = 0; i < typesToExcludeArr.length; i++) {
 						if (nodeText.indexOf(typesToExcludeArr[i]) >= 0) {
@@ -632,7 +622,6 @@ export class DeclarationResolver {
 
 	public getDeclarationSourceFile(moduleId: string): ts.SourceFile | null {
 		if (this._sourceFileCache[moduleId]) {
-			// Since we cannot trust file watching to invalidate the cache, check also the mtime
 			const fileName = this._getFileName(moduleId);
 			const mtime = this._fsProvider.statSync(fileName).mtime.getTime();
 			if (this._sourceFileCache[moduleId]!.mtime !== mtime) {
@@ -662,7 +651,6 @@ export class DeclarationResolver {
 		}
 		const mtime = this._fsProvider.statSync(fileName).mtime.getTime();
 		if (/\.d\.ts$/.test(moduleId)) {
-			// const mtime = this._fsProvider.statFileSync()
 			const fileContents = this._fsProvider.readFileSync(moduleId, fileName).toString();
 			return new CacheEntry(
 				this.ts.createSourceFile(fileName, fileContents, this.ts.ScriptTarget.ES5),

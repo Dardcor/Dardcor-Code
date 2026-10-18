@@ -3,12 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-//! `code agent endpoints`: a machine-readable dump of every live
-//! schema-v2 agent-host registry endpoint, intended to be consumed by
-//! other tooling (e.g. an SSH-based remote bridge) rather than read by a
-//! human. Exactly one JSON document is written to stdout; anything else
-//! this command has to say (there normally is nothing) goes to
-//! stderr/logging, never interleaved with the JSON.
 
 use serde::Serialize;
 
@@ -20,30 +14,13 @@ use super::agent_discovery;
 use super::args::AgentEndpointsArgs;
 use super::CommandContext;
 
-/// The single JSON document `code agent endpoints` writes to stdout.
-///
-/// `endpoints` intentionally reuses [`AgentHostEndpointMetadata`]
-/// verbatim (rather than a slimmed-down projection like `agent ps`'s
-/// `HostJson`): this command's whole purpose is to hand every field —
-/// including `connectionToken` — to a trusted, already-authenticated
-/// caller (e.g. something bridging in over SSH) that needs the full
-/// credentials to dial the endpoint itself.
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 struct EndpointsDocument {
-	/// The resolved user data path this registry was read from, so
-	/// callers that also need to act on that directory (e.g. spawn
-	/// `code agent host --user-data-dir <this>`) don't need to
-	/// re-implement the resolution rules themselves.
 	user_data_path: String,
 	endpoints: Vec<AgentHostEndpointMetadata>,
 }
 
-/// Prints every live agent-host endpoint (both `editor` and
-/// `standalone`, both socket/pipe and TCP) as a single JSON document.
-/// Never errors just because no endpoint is live: an empty `endpoints`
-/// array is a valid, meaningful answer ("nothing is running right now"),
-/// distinct from failing to resolve/read the registry itself.
 pub async fn agent_endpoints(
 	mut ctx: CommandContext,
 	args: AgentEndpointsArgs,
@@ -60,10 +37,6 @@ pub async fn agent_endpoints(
 	let json =
 		serde_json::to_string(&doc).map_err(|e| wrap(e, "failed to serialize agent endpoints"))?;
 
-	// Deliberately not `output::print_paged`: this output is
-	// machine-readable and must always be exactly one JSON document
-	// written verbatim to stdout, regardless of terminal height or
-	// `$PAGER`.
 	println!("{json}");
 
 	Ok(0)
@@ -98,8 +71,6 @@ mod tests {
 			"{json}"
 		);
 		assert!(json.contains(r#""instanceId":"instance-a""#), "{json}");
-		// The whole point of this command is to include the connection
-		// token, unlike `agent ps`'s deliberately slimmer JSON shape.
 		assert!(
 			json.contains(r#""connectionToken":"super-secret-token""#),
 			"{json}"

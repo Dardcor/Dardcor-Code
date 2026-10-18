@@ -54,9 +54,6 @@ export class AMLRun {
 	}
 }
 
-/**
- * Detects possible AML runs
- */
 export class AMLProvider extends Disposable {
 
 	private readonly _updateSoon = this._register(new RunOnceScheduler(() => this._update(), 50));
@@ -114,7 +111,6 @@ export class AMLProvider extends Disposable {
 						return undefined;
 					}
 				} catch (err) {
-					// stdout does not exist
 					return undefined;
 				}
 				const kind = await AMLProvider.determineKind(entryPath);
@@ -129,18 +125,12 @@ export class AMLProvider extends Disposable {
 		mobx.runInAction(() => {
 			this.runs = entries;
 
-			// if no run is selected, pre-select first output folder
 			if (this.runs.length > 0 && !this.selected) {
 				this.selectedName.value = this.runs[0].name;
 			}
 		});
 	}
 
-	/**
-	 * Determines the kind (fix/doc/workspace-e2e/etc) of an AML run based on job_parameters.json.
-	 * @param amlRunPath - The path to the AML run directory.
-	 * @returns The kind of AML run.
-	 */
 	private static async determineKind(amlRunPath: string): Promise<AMLRunKind> {
 
 		const defaultKind = AMLRunKind.Unknown;

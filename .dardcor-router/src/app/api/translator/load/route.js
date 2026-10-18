@@ -11,7 +11,6 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: "File parameter required" }, { status: 400 });
     }
 
-    // Security: only allow specific filenames
     const allowedFiles = [
       "1_req_client.json",
       "2_req_source.json",
@@ -30,7 +29,6 @@ export async function GET(request) {
     const logsDir = path.join(process.cwd(), "logs", "translator");
     const filePath = path.join(logsDir, file);
 
-    // Check if file exists
     if (!fs.existsSync(filePath)) {
       return NextResponse.json({ success: false, error: "File not found" }, { status: 404 });
     }

@@ -77,7 +77,6 @@ export class QuickInputService extends Themable implements IQuickInputService {
 			backKeybindingLabel: () => undefined,
 			setContextKey: (id?: string) => this.setContextKey(id),
 			linkOpenerDelegate: (content) => {
-				// HACK: https://github.com/microsoft/vscode/issues/173691
 				this.instantiationService.invokeFunction(accessor => {
 					const openerService = accessor.get(IOpenerService);
 					openerService.open(content, { allowCommands: true, fromUserGesture: true });
@@ -98,7 +97,6 @@ export class QuickInputService extends Themable implements IQuickInputService {
 
 		controller.layout(host.activeContainerDimension, host.activeContainerOffset.quickPickTop);
 
-		// Layout changes
 		this._register(host.onDidLayoutActiveContainer(dimension => {
 			if (getWindow(host.activeContainer) === getWindow(controller.container)) {
 				controller.layout(dimension, host.activeContainerOffset.quickPickTop);
@@ -112,7 +110,6 @@ export class QuickInputService extends Themable implements IQuickInputService {
 			controller.layout(host.activeContainerDimension, host.activeContainerOffset.quickPickTop);
 		}));
 
-		// Context keys
 		this._register(controller.onShow(() => {
 			this.resetContextKeys();
 			this._onShow.fire();
@@ -122,7 +119,6 @@ export class QuickInputService extends Themable implements IQuickInputService {
 			this._onHide.fire();
 		}));
 
-		// Mirror alignment from controller
 		this._register(autorun(reader => {
 			this._alignment.set(controller.alignment.read(reader), undefined);
 		}));
@@ -142,7 +138,7 @@ export class QuickInputService extends Themable implements IQuickInputService {
 		}
 
 		if (key && key.get()) {
-			return; // already active context
+			return;
 		}
 
 		this.resetContextKeys();
@@ -243,7 +239,6 @@ export class QuickInputService extends Themable implements IQuickInputService {
 				listBackground: quickInputBackground,
 				listFocusBackground: quickInputListFocusBackground,
 				listFocusForeground: quickInputListFocusForeground,
-				// Look like focused when inactive.
 				listInactiveFocusForeground: quickInputListFocusForeground,
 				listInactiveSelectionIconForeground: quickInputListFocusIconForeground,
 				listInactiveFocusBackground: quickInputListFocusBackground,

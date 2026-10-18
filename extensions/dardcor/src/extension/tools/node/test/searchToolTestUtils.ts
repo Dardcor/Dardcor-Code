@@ -10,9 +10,6 @@ import { IChatEndpoint, IEmbeddingsEndpoint } from '../../../../platform/network
 import { ITokenizer as IUtilTokenizer, TokenizerType } from '../../../../util/common/tokenizer';
 import { Event } from '../../../../util/dardcor/base/common/event';
 
-/**
- * Creates a mock tokenizer for testing
- */
 function createMockTokenizer(): IUtilTokenizer {
 	const mockTokenizer: IUtilTokenizer = {
 		mode: OutputMode.Raw,
@@ -24,9 +21,6 @@ function createMockTokenizer(): IUtilTokenizer {
 	return mockTokenizer;
 }
 
-/**
- * Creates a mock endpoint provider for search tool tests
- */
 export function createMockEndpointProvider(modelFamily: string): IEndpointProvider {
 	return {
 		_serviceBrand: undefined,
@@ -59,9 +53,6 @@ export function createMockEndpointProvider(modelFamily: string): IEndpointProvid
 	} as IEndpointProvider;
 }
 
-/**
- * Mock language model chat for testing search tools with model-specific behavior
- */
 export const mockLanguageModelChat: vscode.LanguageModelChat = {
 	name: 'test-model',
 	id: 'test-id',

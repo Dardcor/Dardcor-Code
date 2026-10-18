@@ -50,8 +50,6 @@ class NotebookViewportContribution extends Disposable implements INotebookEditor
 				const cell = this._notebookEditor.cellAt(i);
 
 				if (cell?.cellKind === CellKind.Markup && cell?.getEditState() === CellEditState.Preview && !cell.isInputCollapsed) {
-					// TODO@rebornix currently we disable markdown cell rendering in webview for accessibility
-					// this._notebookEditor.createMarkupPreview(cell);
 				} else if (cell?.cellKind === CellKind.Code) {
 					this._warmupCodeCell((cell as CodeCellViewModel));
 				}

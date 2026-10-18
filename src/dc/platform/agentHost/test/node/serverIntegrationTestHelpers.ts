@@ -69,18 +69,12 @@ import { createIsolatedProviderEnvironment } from './providerTestEnvironment.js'
 
 const AGENT_HOST_E2E_COVERAGE = process.env['AGENT_HOST_E2E_COVERAGE'] === '1';
 
-// ---- JSON-RPC test client ---------------------------------------------------
 
 interface IPendingCall {
 	resolve: (result: unknown) => void;
 	reject: (err: Error) => void;
 }
 
-/**
- * Default bound for one protocol request or notification wait. Short locally
- * so a wedged host fails fast; longer on CI, where the E2E entrypoints run in
- * parallel on a shared agent and contention alone can push a call past 5s.
- */
 function getProtocolOperationTimeout(): number {
 	if (AGENT_HOST_E2E_COVERAGE) {
 		return 30_000;
@@ -129,10 +123,8 @@ type ReverseRequestResultByMethod = {
 	resourceCopy: ResourceCopyResult;
 };
 
-/** A reverse request the host sent to the client, as observed on the wire. */
 export interface IServedReverseRequest {
 	readonly method: ReverseRequestMethod;
-	/** The resource the request targets, or `undefined` if it carries none. */
 	readonly uri: string | undefined;
 }
 
@@ -145,13 +137,6 @@ export class TestProtocolClient {
 	private readonly _notifWaiters: { predicate: (n: AhpNotification) => boolean; resolve: (n: AhpNotification) => void; reject: (err: Error) => void; dispose: () => void }[] = [];
 	private _nextWatchId = 1;
 	private _closed = false;
-	/**
-	 * Reverse requests this client has served, in arrival order. Lets a test
-	 * assert that the host actually reached back to the client for filesystem
-	 * access rather than resolving a path locally. `uri` is absent when the
-	 * request carries no resource (rather than being recorded as an empty
-	 * string, which would be indistinguishable from a real one).
-	 */
 	private readonly _servedReverseRequests: IServedReverseRequest[] = [];
 
 	constructor(
@@ -459,7 +444,6 @@ export class TestProtocolClient {
 		return { channel: `ahp-resource-watch:/mock-${this._nextWatchId++}` };
 	}
 
-	/** Send a JSON-RPC notification (fire-and-forget). */
 	notify(method: string, params?: unknown): void {
 		recordAhpSurface('command', method);
 		if (method === 'dispatchAction') {
@@ -471,20 +455,10 @@ export class TestProtocolClient {
 		this._ws.send(JSON.stringify(message));
 	}
 
-	/**
-	 * Dispatch a strongly-typed protocol action (fire-and-forget write-ahead).
-	 *
-	 * Prefer this over the raw {@link notify} escape hatch: the action payload
-	 * is checked against the {@link StateAction} union at compile time, so a
-	 * malformed or incomplete action (e.g. an approval missing its required
-	 * `confirmed` field) is caught by the type-checker rather than silently
-	 * shipped over the wire and reduced into `undefined`.
-	 */
 	dispatch(params: DispatchActionParams): void {
 		this.notify('dispatchAction', params);
 	}
 
-	/** Send a JSON-RPC request and await the response. */
 	call<T>(method: string, params?: unknown, timeoutMs = getProtocolOperationTimeout()): Promise<T> {
 		recordAhpSurface('command', method);
 		const id = this._nextId++;
@@ -510,7 +484,6 @@ export class TestProtocolClient {
 		});
 	}
 
-	/** Wait for a server notification matching a predicate. */
 	waitForNotification(predicate: (n: AhpNotification) => boolean, timeoutMs = getProtocolOperationTimeout()): Promise<AhpNotification> {
 		const existing = this._notifications.find(predicate);
 		if (existing) {
@@ -556,17 +529,14 @@ export class TestProtocolClient {
 		}
 	}
 
-	/** Return all received notifications matching a predicate. */
 	receivedNotifications(predicate?: (n: AhpNotification) => boolean): AhpNotification[] {
 		return predicate ? this._notifications.filter(predicate) : [...this._notifications];
 	}
 
-	/** Send a raw string over the WebSocket without JSON serialization. */
 	sendRaw(data: string): void {
 		this._ws.send(data);
 	}
 
-	/** Wait for the next raw message from the server. */
 	waitForRawMessage(timeoutMs = getProtocolOperationTimeout()): Promise<unknown> {
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
@@ -607,11 +577,6 @@ export class TestProtocolClient {
 		this._notifications.length = 0;
 	}
 
-	/**
-	 * Reverse requests the host has sent to this client, in arrival order.
-	 * Separate from {@link clearReceived} so resetting notifications does not
-	 * silently discard this history.
-	 */
 	get servedReverseRequests(): readonly IServedReverseRequest[] {
 		return this._servedReverseRequests;
 	}
@@ -645,24 +610,16 @@ export class TestProtocolClient {
 	}
 }
 
-// ---- Server process lifecycle -----------------------------------------------
 
 export interface IServerHandle {
 	process: ChildProcess;
 	port: number;
-	/** Present when the server was started with a mock LLM; exposes request count for assertions. */
 	mockLlm?: IMockLlmServerHandleWithLog;
-	/**
-	 * Present when the server was started with `capiReplay`. Stop it (ideally in
-	 * `suiteTeardown`, before killing the process) to flush recorded exchanges to
-	 * the fixture and surface strict-mode cache misses.
-	 */
 	capiReplay?: CapiReplayProxy;
 }
 
 const SERVER_SHUTDOWN_TIMEOUT_MS = isCI || isWindows || AGENT_HOST_E2E_COVERAGE ? 30_000 : 5_000;
 
-/** Gracefully stop an Agent Host test server, killing it if shutdown stalls. */
 export async function stopServer(server: IServerHandle | undefined): Promise<void> {
 	const serverProcess = server?.process;
 	if (!serverProcess || serverProcess.exitCode !== null || serverProcess.signalCode !== null) {
@@ -696,7 +653,6 @@ export async function stopServer(server: IServerHandle | undefined): Promise<voi
 	}
 }
 
-/** Forcefully kill an Agent Host test server and its child processes without graceful shutdown. */
 export async function killServer(server: IServerHandle | undefined): Promise<void> {
 	const serverProcess = server?.process;
 	if (!serverProcess || serverProcess.exitCode !== null || serverProcess.signalCode !== null) {
@@ -741,7 +697,6 @@ interface IMockLlmServerModule {
 	registerScenario(id: string, definition: unknown): void;
 }
 
-/** A mock-LLM scenario to register before recording (see `mock-llm-server.ts`). */
 export interface IMockScenario {
 	readonly id: string;
 	readonly definition: unknown;
@@ -823,7 +778,6 @@ export async function startServer(options?: { readonly quiet?: boolean; readonly
 		});
 
 		child.stderr!.on('data', () => {
-			// Intentionally swallowed - the test runner fails if console.error is used.
 		});
 
 		child.on('error', err => {
@@ -838,14 +792,7 @@ export async function startServer(options?: { readonly quiet?: boolean; readonly
 	});
 }
 
-/**
- * Start the agent host server with the Copilot SDK agent with either a real or mocked LLM.
- * The server is started with logging enabled so the CopilotAgent is registered.
- */
 export async function startRealServer(options: { readonly homeDir: string; readonly claudeSdkRoot?: string; readonly codexSdkRoot?: string; readonly codexHomeDir?: string; readonly codexAgentEnabled?: boolean; readonly mockLlm?: boolean; readonly userDataDir?: string; readonly logLevel?: string; readonly env?: NodeJS.ProcessEnv; readonly capiReplay?: { readonly fixturePath: string; readonly mode?: CapiReplayMode; readonly workDir?: string; readonly real?: boolean; readonly allowPosixCommands?: boolean; readonly allowStaleRecordedRequest?: boolean; readonly recordingModelResponse?: ICapiReplayResponse }; readonly existingCapiReplay?: CapiReplayProxy; readonly mockScenarios?: readonly IMockScenario[] }): Promise<IServerHandle> {
-	// `capiReplay` records/replays in front of the mock LLM server, so it implies
-	// a mock upstream even when `mockLlm` was not explicitly requested — unless
-	// `real` is set, in which case the proxy forwards to real CAPI/GitHub.
 	const realCapture = options.capiReplay?.real === true;
 	const mockLlmServer = (options.mockLlm || (options.capiReplay && !realCapture)) ? await startMockLlmServer(options.mockScenarios) : undefined;
 	let capiReplayProxy = options.existingCapiReplay;
@@ -862,7 +809,6 @@ export async function startRealServer(options: { readonly homeDir: string; reado
 			recordingModelResponse: options.capiReplay.recordingModelResponse,
 			homeDir: options.homeDir,
 			userName: userInfo().username,
-			// Real hosts (consumer defaults); override for Enterprise/Business accounts.
 			githubUpstreamUrl: process.env['AGENT_HOST_RECORD_GITHUB_URL'] || 'https://api.github.com',
 			capiUpstreamUrl: process.env['AGENT_HOST_RECORD_CAPI_URL'] || 'https://api.githubcopilot.com',
 		} : {
@@ -877,7 +823,6 @@ export async function startRealServer(options: { readonly homeDir: string; reado
 		});
 		await capiReplayProxy.start();
 	}
-	// The agent host talks to the proxy (when replaying) or directly to the mock.
 	const capiUrl = capiReplayProxy?.url ?? mockLlmServer?.url;
 	return new Promise((resolve, reject) => {
 		const serverPath = fileURLToPath(new URL('../../node/agentHostServerMain.js', import.meta.url));
@@ -897,35 +842,19 @@ export async function startRealServer(options: { readonly homeDir: string; reado
 		const childEnv = withAgentHostCoverage({
 			...createIsolatedProviderEnvironment(options.homeDir, { ...process.env, ...(options.env ?? {}) }),
 			...(options.codexHomeDir ? { [AgentHostCodexAgentCodexHomeEnvVar]: options.codexHomeDir } : {}),
-			// Codex defaults to disabled; opt it in for the agent host E2E suite when a
-			// codex SDK root is supplied so the provider actually registers.
 			...(options.codexSdkRoot ? { [AgentHostCodexAgentEnabledEnvVar]: String(options.codexAgentEnabled ?? true) } : {}),
-			// Fixtures use Codex's unified exec tool, so keep record and replay on the same shell protocol.
 			...(options.codexSdkRoot && options.capiReplay ? { [AgentHostCodexAgentBinaryArgsEnvVar]: JSON.stringify(['-c', 'features.unified_exec=true']) } : {}),
 			...(realCapture ? {
-				// Real-CAPI capture/replay: route all CAPI + GitHub-API traffic through
-				// the proxy. The real GitHub token flows via the `authenticate`
-				// protocol call (record) or a placeholder (replay), not via env.
 				COPILOT_API_URL: capiUrl,
 				COPILOT_DEBUG_GITHUB_API_URL: capiUrl,
 				VSCODE_AGENT_HOST_CAPI_URL_OVERRIDE: capiUrl,
 			} : mockLlmServer ? {
 				GITHUB_PAT: 'smoketest-fake-pat',
 				IS_SCENARIO_AUTOMATION: '1',
-				// Agent host e2e Copilot tests run against responses-capable models
-				// (e.g. gpt-5.3-codex) that are "pro"-gated in the mock /models
-				// fixture, so mint a pro-plan token for this harness.
 				VSCODE_COPILOT_CHAT_TOKEN: buildCopilotChatToken(capiUrl!, 'pro'),
-				// Route the Copilot SDK's GitHub API calls (token refresh, model
-				// discovery, etc.) at the mock/proxy instead of api.github.com,
-				// which would 401 with the fake token.
 				COPILOT_DEBUG_GITHUB_API_URL: capiUrl,
 				COPILOT_API_URL: capiUrl,
 				GITHUB_COPILOT_API_TOKEN: 'smoketest-fake-agent-host-token',
-				// Route the agent host's shared CAPI client (used by the Codex /
-				// agent-host harnesses for model discovery + requests) at the
-				// mock/proxy instead of api.github.com, which would 401 with the
-				// fake token.
 				VSCODE_AGENT_HOST_CAPI_URL_OVERRIDE: capiUrl,
 			} : {}),
 		});
@@ -946,14 +875,10 @@ export async function startRealServer(options: { readonly homeDir: string; reado
 				return;
 			}
 			mockClosed = true;
-			// Flush any recording before closing the upstream. Swallow strict
-			// cache-miss errors here — tests that want them call `capiReplay.stop()`
-			// explicitly in teardown.
 			await capiReplayProxy?.stop().catch(() => undefined);
 			try {
 				await mockLlmServer.close();
 			} catch {
-				// best effort
 			}
 		};
 		child.on('exit', () => {
@@ -976,10 +901,6 @@ export async function startRealServer(options: { readonly homeDir: string; reado
 		});
 
 		child.stderr!.on('data', () => {
-			// Intentionally swallowed - the test runner fails if console.error is used.
-			// Server logs go to the agent host's logger (under
-			// `<userDataPath>/logs/<timestamp>/agenthost-server.log`); check
-			// there when investigating agent host e2e test failures.
 		});
 
 		child.on('error', err => {
@@ -996,7 +917,6 @@ export async function startRealServer(options: { readonly homeDir: string; reado
 	});
 }
 
-// ---- Helpers ----------------------------------------------------------------
 
 let sessionCounter = 0;
 
@@ -1020,7 +940,6 @@ export function getActionEnvelope(n: AhpNotification): ActionEnvelope {
 	return n.params as unknown as ActionEnvelope;
 }
 
-/** Perform handshake, create a session, subscribe, and return its URI. */
 export async function createAndSubscribeSession(c: TestProtocolClient, clientId: string, workingDirectory?: string): Promise<string> {
 	await c.call('initialize', { channel: 'ahp-root://', protocolVersions: [PROTOCOL_VERSION], clientId });
 
@@ -1032,10 +951,6 @@ export async function createAndSubscribeSession(c: TestProtocolClient, clientId:
 	const realSessionUri = (notif.params as SessionAddedParams).summary.resource;
 
 	await c.call<SubscribeResult>('subscribe', { channel: realSessionUri });
-	// Turns and other conversation contents live on the session's default
-	// chat channel in the multi-chat protocol; subscribe to it as well so
-	// `chat/*` action notifications (responsePart, turnComplete, …) are
-	// delivered to this client.
 	await c.call<SubscribeResult>('subscribe', { channel: buildDefaultChatUri(realSessionUri) });
 	c.clearReceived();
 
@@ -1049,22 +964,12 @@ export function dispatchTurnStarted(c: TestProtocolClient, session: string, turn
 		action: {
 			type: ActionType.ChatTurnStarted,
 			turnId,
-			// A real timestamp, because the chat reducer derives `modifiedAt`
-			// from the turn: a fixed past `startedAt` would make a completed
-			// turn look older than the session it belongs to.
 			startedAt: new Date().toISOString(),
 			message: { text, origin: { kind: MessageKind.User } },
 		},
 	});
 }
 
-/**
- * Subscribes to a session channel and its default chat channel and returns the
- * merged {@link ISessionWithDefaultChat} view. In the multi-chat protocol the
- * conversation contents (turns, activeTurn, queued/steering messages, input
- * requests) live on the session's default chat channel, so reading them
- * requires merging the session snapshot with its default chat snapshot.
- */
 export async function fetchSessionWithChat(c: TestProtocolClient, sessionUri: string, timeoutMs?: number): Promise<ISessionWithDefaultChat> {
 	const owningSession = parseDefaultChatUri(sessionUri) ?? sessionUri;
 	const chatUri = parseDefaultChatUri(sessionUri) ? sessionUri : buildDefaultChatUri(sessionUri);

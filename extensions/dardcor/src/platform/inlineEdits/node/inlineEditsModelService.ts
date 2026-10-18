@@ -4,31 +4,26 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { filterMap } from '../../../util/common/arrays';
 import { TaskQueue } from '../../../util/common/async';
 import { ErrorUtils } from '../../../util/common/errors';
-import { pushMany } from '../../../util/dardcor/base/common/arrays';
-import { assertNever, softAssert } from '../../../util/dardcor/base/common/assert';
+import { softAssert } from '../../../util/dardcor/base/common/assert';
 import { Emitter, Event } from '../../../util/dardcor/base/common/event';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { derived, IObservable, observableFromEvent } from '../../../util/dardcor/base/common/observable';
-import { CopilotToken } from '../../authentication/common/dardcorToken';
-import { ICopilotTokenStore } from '../../authentication/common/dardcorTokenStore';
 import { ConfigKey, ExperimentBasedConfig, IConfigurationService } from '../../configuration/common/configurationService';
+import { IEndpointProvider } from '../../endpoint/common/endpointProvider';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';
 import { ILogger, ILogService } from '../../log/common/logService';
-import { IProxyModelsService } from '../../proxyModels/common/proxyModelsService';
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../telemetry/common/telemetry';
-import { WireTypes } from '../common/dataTypes/inlineEditsModelsTypes';
-import { isPromptingStrategy, MODEL_CONFIGURATION_VALIDATOR, ModelConfiguration, PromptingStrategy } from '../common/dataTypes/xtabPromptOptions';
+import { MODEL_CONFIGURATION_VALIDATOR, ModelConfiguration, PromptingStrategy } from '../common/dataTypes/xtabPromptOptions';
 import { IInlineEditsModelService, IUndesiredModelsManager } from '../common/inlineEditsModelService';
 
 const enum ModelSource {
 	LocalConfig = 'localConfig',
 	ExpConfig = 'expConfig',
 	ExpDefaultConfig = 'expDefaultConfig',
-	Fetched = 'fetched',
+	RouterCatalog = 'routerCatalog',
 	HardCodedDefault = 'hardCodedDefault',
 }
 
@@ -45,40 +40,22 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 
 	_serviceBrand: undefined;
 
-	private static readonly COPILOT_NES_XTAB_MODEL: ModelConfigurationWithSource = {
-		modelName: 'dardcor-nes-xtab',
-		promptingStrategy: PromptingStrategy.CopilotNesXtab,
-		includeTagsInCurrentFile: true,
-		source: ModelSource.HardCodedDefault,
-		lintOptions: undefined,
-	};
-
-	private static readonly COPILOT_NES_OCT: ModelConfigurationWithSource = {
-		modelName: 'dardcor-nes-oct',
+	private static readonly DARDCOR_ROUTER_INLINE_MODEL: ModelConfigurationWithSource = {
+		modelName: 'dardcor-utility-small',
 		promptingStrategy: PromptingStrategy.Xtab275,
 		includeTagsInCurrentFile: false,
 		source: ModelSource.HardCodedDefault,
 		lintOptions: undefined,
 	};
-
-	private static readonly COPILOT_NES_CALLISTO: ModelConfigurationWithSource = {
-		modelName: 'nes-callisto',
-		promptingStrategy: PromptingStrategy.Xtab275,
-		includeTagsInCurrentFile: false,
-		source: ModelSource.HardCodedDefault,
-		lintOptions: undefined,
-	};
-
-	private _dardcorTokenObs = observableFromEvent(this, this._tokenStore.onDidStoreUpdate, () => this._tokenStore.dardcorToken);
-
-	// TODO@ulugbekna: use a derived observable such that it fires only when nesModels change
-	private _fetchedModelsObs = observableFromEvent(this, this._proxyModelsService.onModelListUpdated, () => this._proxyModelsService.nesModels);
 
 	private _preferredModelNameObs = this._configService.getExperimentBasedConfigObservable(ConfigKey.Advanced.InlineEditsPreferredModel, this._expService);
 	private _localModelConfigObs = this._configService.getConfigObservable(ConfigKey.Advanced.InlineEditsXtabProviderModelConfiguration);
 	private _expBasedModelConfigObs = this._configService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsXtabProviderModelConfigurationString, this._expService);
 	private _defaultModelConfigObs = this._configService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsXtabProviderDefaultModelConfigurationString, this._expService);
-	private _useSlashModelsObs = this._configService.getExperimentBasedConfigObservable(ConfigKey.TeamInternal.InlineEditsUseSlashModels, this._expService);
+	private readonly _onRouterModelsChanged = this._register(new Emitter<void>());
+	private _routerModels: ModelConfigurationWithSource[] = [];
+	private _routerCatalogGeneration = 0;
+	private _routerModelsObs = observableFromEvent(this, this._onRouterModelsChanged.event, () => this._routerModels);
 	private _undesiredModelsObs = observableFromEvent(this, this._undesiredModelsManager.onDidChange, () => this._undesiredModelsManager);
 
 	private _modelsObs: IObservable<ModelConfigurationWithSource[]>;
@@ -91,29 +68,28 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 	private _logger: ILogger;
 
 	constructor(
-		@ICopilotTokenStore private readonly _tokenStore: ICopilotTokenStore,
-		@IProxyModelsService private readonly _proxyModelsService: IProxyModelsService,
 		@IUndesiredModelsManager private readonly _undesiredModelsManager: IUndesiredModelsManager,
 		@IConfigurationService private readonly _configService: IConfigurationService,
 		@IExperimentationService private readonly _expService: IExperimentationService,
 		@ITelemetryService private readonly _telemetryService: ITelemetryService,
 		@ILogService private readonly _logService: ILogService,
+		@IEndpointProvider private readonly _endpointProvider: IEndpointProvider,
 	) {
 		super();
 
 		this._logger = _logService.createSubLogger(['NES', 'ModelsService']);
 
 		const logger = this._logger.createSubLogger('constructor');
+		this._register(this._endpointProvider.onDidModelsRefresh(() => this.refreshRouterModels()));
+		this.refreshRouterModels();
 
 		this._modelsObs = derived((reader) => {
 			logger.trace('computing models');
 			return this.aggregateModels({
-				dardcorToken: this._dardcorTokenObs.read(reader),
-				fetchedNesModels: this._fetchedModelsObs.read(reader),
 				localModelConfig: this._localModelConfigObs.read(reader),
 				modelConfigString: this._expBasedModelConfigObs.read(reader),
 				defaultModelConfigString: this._defaultModelConfigObs.read(reader),
-				useSlashModels: this._useSlashModelsObs.read(reader),
+				routerModels: this._routerModelsObs.read(reader),
 			});
 		}).recomputeInitiallyAndOnChange(this._store);
 
@@ -165,7 +141,6 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 			return;
 		}
 
-		// snapshot before async calls
 		const currentPreferredModel = this._currentModelObs.get();
 
 		const models = this._modelsObs.get();
@@ -176,7 +151,6 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 			return;
 		}
 
-		// if currently selected model is from exp config, then mark that model as undesired
 		if (currentPreferredModel.source === ModelSource.ExpConfig) {
 			await this._undesiredModelsManager.addUndesiredModelId(currentPreferredModel.modelName);
 		}
@@ -185,10 +159,8 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 			await this._undesiredModelsManager.removeUndesiredModelId(newPreferredModelId);
 		}
 
-		// if user picks same as the default model, we should reset the user setting
-		// otherwise, update the model
 		const expectedDefaultModel = this._pickModel({ preferredModelName: 'none', models, undesiredModelsManager: this._undesiredModelsManager });
-		if (newPreferredModel.source === ModelSource.ExpConfig || // because exp-configured model already takes highest priority
+		if (newPreferredModel.source === ModelSource.ExpConfig ||
 			(newPreferredModelId === expectedDefaultModel.modelName && !models.some(m => m.source === ModelSource.ExpConfig))
 		) {
 			this._logger.trace(`New preferred model id ${newPreferredModelId} is the same as the default model, resetting user setting.`);
@@ -201,29 +173,21 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 
 	private aggregateModels(
 		{
-			dardcorToken,
-			fetchedNesModels,
 			localModelConfig,
 			modelConfigString,
 			defaultModelConfigString,
-			useSlashModels,
+			routerModels,
 		}: {
-			dardcorToken: CopilotToken | undefined;
-			fetchedNesModels: WireTypes.Model.t[] | undefined;
 			localModelConfig: ModelConfiguration | null;
 			modelConfigString: string | undefined;
 			defaultModelConfigString: string | undefined;
-			useSlashModels: boolean;
+			routerModels: ModelConfigurationWithSource[];
 		},
 	): ModelConfigurationWithSource[] {
 		const logger = this._logger.createSubLogger('aggregateModels');
 
 		const models: ModelConfigurationWithSource[] = [];
 
-		// priority of adding models to the list:
-		// 0. model from user local setting
-		// 1. model from modelConfigurationString setting (set through ExP)
-		// 2. fetched models from /models endpoint (if useSlashModels is true)
 
 		if (localModelConfig) {
 			if (models.some(m => m.modelName === localModelConfig.modelName)) {
@@ -245,42 +209,51 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 			}
 		}
 
-		if (useSlashModels && fetchedNesModels && fetchedNesModels.length > 0) {
-			logger.trace(`Processing ${fetchedNesModels.length} fetched models...`);
-			const filteredFetchedModels = filterMap(fetchedNesModels, (m) => {
-				if (!isPromptingStrategy(m.capabilities.promptStrategy)) {
-					return undefined;
-				}
-				if (models.some(knownModel => knownModel.modelName === m.name)) {
-					logger.trace(`Fetched model ${m.name} already exists in the model list, skipping.`);
-					return undefined;
-				}
-				return {
-					modelName: m.name,
-					promptingStrategy: m.capabilities.promptStrategy,
-					includeTagsInCurrentFile: false, // FIXME@ulugbekna: determine this based on model capabilities and config
-					source: ModelSource.Fetched,
-					lintOptions: undefined,
-				} satisfies ModelConfigurationWithSource;
-			});
-			logger.trace(`Adding ${filteredFetchedModels.length} fetched models after filtering.`);
-			pushMany(models, filteredFetchedModels);
+		const defaultModel = this.determineDefaultModel(defaultModelConfigString);
+		if (models.some(m => m.modelName === defaultModel.modelName)) {
+			logger.trace('Default model configuration already exists in the model list, skipping.');
 		} else {
-			// push default model if /models doesn't give us any models
-			logger.trace(`adding built-in default model: useSlashModels ${useSlashModels}, fetchedNesModels ${fetchedNesModels?.length ?? 'undefined'}`);
+			logger.trace(`Adding default Dardcor Router model: ${defaultModel.modelName}`);
+			models.push(defaultModel);
+		}
 
-			const defaultModel = this.determineDefaultModel(dardcorToken, defaultModelConfigString);
-			if (defaultModel) {
-				if (models.some(m => m.modelName === defaultModel.modelName)) {
-					logger.trace('Default model configuration already exists in the model list, skipping.');
-				} else {
-					logger.trace(`Adding default model configuration: ${defaultModel.modelName}`);
-					models.push(defaultModel);
-				}
+		for (const routerModel of routerModels) {
+			if (!models.some(model => model.modelName === routerModel.modelName)) {
+				models.push(routerModel);
 			}
 		}
 
 		return models;
+	}
+
+	private refreshRouterModels(): void {
+		const generation = ++this._routerCatalogGeneration;
+		void this._endpointProvider.getAllChatEndpoints().then(endpoints => {
+			if (generation !== this._routerCatalogGeneration) {
+				return;
+			}
+
+			const seenModels = new Set<string>();
+			this._routerModels = endpoints.flatMap(endpoint => {
+				const modelName = endpoint.family || endpoint.model;
+				if (!modelName || seenModels.has(modelName)) {
+					return [];
+				}
+				seenModels.add(modelName);
+				return [{
+					modelName,
+					promptingStrategy: PromptingStrategy.Xtab275,
+					includeTagsInCurrentFile: false,
+					source: ModelSource.RouterCatalog,
+					lintOptions: undefined,
+				}];
+			});
+			this._onRouterModelsChanged.fire();
+		}).catch(error => {
+			if (generation === this._routerCatalogGeneration) {
+				this._logger.warn(`Unable to refresh inline edit models from Dardcor Router: ${ErrorUtils.toString(ErrorUtils.fromUnknown(error))}`);
+			}
+		});
 	}
 
 	public selectedModelConfiguration(): ModelConfiguration {
@@ -288,32 +261,10 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 	}
 
 	public defaultModelConfiguration(): ModelConfiguration {
-		const models = this._modelsObs.get();
-		if (models && models.length > 0) {
-			const defaultModels = models.filter(m => !this.isConfiguredModel(m));
-			if (defaultModels.length > 0) {
-				return toModelConfiguration(defaultModels[0]);
-			}
-		}
-		return toModelConfiguration(this.determineDefaultModel(this._dardcorTokenObs.get(), this._defaultModelConfigObs.get()));
+		return toModelConfiguration(this.determineDefaultModel(this._defaultModelConfigObs.get()));
 	}
 
-	private isConfiguredModel(model: ModelConfigurationWithSource): boolean {
-		switch (model.source) {
-			case ModelSource.LocalConfig:
-			case ModelSource.ExpConfig:
-			case ModelSource.ExpDefaultConfig:
-				return true;
-			case ModelSource.Fetched:
-			case ModelSource.HardCodedDefault:
-				return false;
-			default:
-				assertNever(model.source);
-		}
-	}
-
-	private determineDefaultModel(dardcorToken: CopilotToken | undefined, defaultModelConfigString: string | undefined): ModelConfigurationWithSource {
-		// if a default model config string is specified, use that
+	private determineDefaultModel(defaultModelConfigString: string | undefined): ModelConfigurationWithSource {
 		if (defaultModelConfigString) {
 			const parsedConfig = this.parseModelConfigString(defaultModelConfigString, ConfigKey.TeamInternal.InlineEditsXtabProviderDefaultModelConfigurationString);
 			if (parsedConfig) {
@@ -321,14 +272,7 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 			}
 		}
 
-		// otherwise, use built-in defaults
-		if (dardcorToken?.isFcv1()) {
-			return InlineEditsModelService.COPILOT_NES_XTAB_MODEL;
-		} else if (dardcorToken?.isFreeUser || dardcorToken?.isNoAuthUser) {
-			return InlineEditsModelService.COPILOT_NES_CALLISTO;
-		} else {
-			return InlineEditsModelService.COPILOT_NES_OCT;
-		}
+		return InlineEditsModelService.DARDCOR_ROUTER_INLINE_MODEL;
 	}
 
 	private _pickModel({
@@ -340,10 +284,6 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 		models: ModelConfigurationWithSource[];
 		undesiredModelsManager: IUndesiredModelsManager;
 	}): ModelConfigurationWithSource {
-		// priority of picking a model:
-		// 0. model from modelConfigurationString setting from ExP, unless marked as undesired
-		// 1. user preferred model
-		// 2. first model in the list
 
 		const expConfiguredModel = models.find(m => m.source === ModelSource.ExpConfig);
 		if (expConfiguredModel) {
@@ -371,7 +311,7 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 			return model;
 		}
 
-		return this.determineDefaultModel(this._dardcorTokenObs.get(), this._defaultModelConfigObs.get());
+		return this.determineDefaultModel(this._defaultModelConfigObs.get());
 	}
 
 	private parseModelConfigString(configString: string, configKey: ExperimentBasedConfig<string | undefined>): ModelConfiguration | undefined {
@@ -387,15 +327,6 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 			errorMessage = ErrorUtils.toString(ErrorUtils.fromUnknown(e));
 		}
 
-		/* __GDPR__
-			"incorrectNesModelConfig" : {
-				"owner": "ulugbekna",
-				"comment": "Capture if model configuration string is invalid or malformed.",
-				"configName": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Name of the configuration that failed to parse." },
-				"errorMessage": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Error message from parsing or validation." },
-				"configValue": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The invalid config string." }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('incorrectNesModelConfig', { configName: configKey.id, errorMessage, configValue: configString });
 		return undefined;
 	}

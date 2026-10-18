@@ -164,7 +164,7 @@ suite('Debug - Debugger', () => {
 
 	test('merge platform specific attributes', function () {
 		if (!process.versions.electron) {
-			this.skip(); //TODO@debug this test fails when run in node.js environments
+			this.skip();
 		}
 		const ae = ExecutableDebugAdapter.platformAdapterExecutable([extensionDescriptor1, extensionDescriptor2], 'mock')!;
 		assert.strictEqual(ae.command, platform.isLinux ? 'linuxRuntime' : (platform.isMacintosh ? 'osxRuntime' : 'winRuntime'));

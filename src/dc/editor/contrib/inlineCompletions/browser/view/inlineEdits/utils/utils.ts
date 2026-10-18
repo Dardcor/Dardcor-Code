@@ -30,9 +30,6 @@ import { CharCode } from '../../../../../../../base/common/charCode.js';
 import { BugIndicatingError } from '../../../../../../../base/common/errors.js';
 import { Size2D } from '../../../../../../common/core/2d/size.js';
 
-/**
- * Warning: might return 0.
-*/
 export function maxContentWidthInRange(editor: ObservableCodeEditor, range: LineRange, reader: IReader | undefined): number {
 	const model = editor.model.read(reader);
 	if (!model) { return 0; }
@@ -61,7 +58,6 @@ export function getContentSizeOfLines(editor: ObservableCodeEditor, range: LineR
 	for (let i = range.startLineNumber; i < range.endLineNumberExclusive; i++) {
 		let lineContentWidth = editor.getWidthOfLine(i, reader);
 		if (lineContentWidth === -1) {
-			// approximation
 			const column = model.getLineMaxColumn(i);
 			const typicalHalfwidthCharacterWidth = editor.editor.getOption(EditorOption.fontInfo).typicalHalfwidthCharacterWidth;
 			const approximation = column * typicalHalfwidthCharacterWidth;
@@ -102,15 +98,11 @@ export function getPrefixTrim(diffRanges: Range[], originalLinesRange: LineRange
 	let prefixLeftOffset;
 	const startLineIndent = textModel.getLineIndentColumn(originalLinesRange.startLineNumber);
 	if (startLineIndent >= prefixTrim + 1) {
-		// We can use the editor to get the offset
-		// TODO go through other usages of getOffsetForColumn and come up with a robust reactive solution to read it
-		observableCodeEditor(editor).scrollTop.read(reader); // getOffsetForColumn requires the line number to be visible. This might change on scroll top.
+		observableCodeEditor(editor).scrollTop.read(reader);
 		prefixLeftOffset = editor.getOffsetForColumn(originalLinesRange.startLineNumber, prefixTrim + 1);
 	} else if (modifiedLines.length > 0) {
-		// Content is not in the editor, we can use the content width to calculate the offset
 		prefixLeftOffset = getContentRenderWidth(modifiedLines[0].slice(0, prefixTrim), editor, textModel);
 	} else {
-		// unable to approximate the offset
 		return { prefixTrim: 0, prefixLeftOffset: 0 };
 	}
 
@@ -167,7 +159,6 @@ export class StatusBarViewItem extends MenuEntryActionViewItem {
 	}
 
 	protected override updateTooltip(): void {
-		// NOOP, disable tooltip
 	}
 }
 
@@ -205,10 +196,6 @@ function offsetRangeToRange(columnOffsetRange: OffsetRange, startPos: Position):
 	);
 }
 
-/**
- * Calculates the indentation size (in spaces) of a given line,
- * interpreting tabs as the specified tab size.
- */
 function getIndentationSize(line: string, tabSize: number): number {
 	let currentSize = 0;
 	loop: for (let i = 0, len = line.length; i < len; i++) {
@@ -218,15 +205,9 @@ function getIndentationSize(line: string, tabSize: number): number {
 			default: break loop;
 		}
 	}
-	// if currentSize % tabSize !== 0,
-	// then there are spaces which are not part of the indentation
 	return currentSize - (currentSize % tabSize);
 }
 
-/**
- * Calculates the number of characters at the start of a line that correspond to a given indentation size,
- * taking into account both tabs and spaces.
- */
 function indentSizeToIndentLength(line: string, indentSize: number, tabSize: number): number {
 	let remainingSize = indentSize - (indentSize % tabSize);
 	let i = 0;
@@ -282,7 +263,6 @@ export class PathBuilder {
 	}
 }
 
-// Arguments are a bit messy currently, could be improved
 export function createRectangle(
 	layout: { topLeft: Point; width: number; height: number },
 	padding: number | { top: number; right: number; bottom: number; left: number },
@@ -295,12 +275,10 @@ export function createRectangle(
 	const bottomLeftInner = topLeftInner.deltaY(layout.height);
 	const bottomRightInner = bottomLeftInner.deltaX(layout.width);
 
-	// padding
 	const { top: paddingTop, bottom: paddingBottom, left: paddingLeft, right: paddingRight } = typeof padding === 'number' ?
 		{ top: padding, bottom: padding, left: padding, right: padding }
 		: padding;
 
-	// corner radius
 	const { topLeft: radiusTL, topRight: radiusTR, bottomLeft: radiusBL, bottomRight: radiusBR } = typeof borderRadius === 'number' ?
 		{ topLeft: borderRadius, topRight: borderRadius, bottomLeft: borderRadius, bottomRight: borderRadius } :
 		borderRadius;
@@ -308,9 +286,6 @@ export function createRectangle(
 	const totalHeight = layout.height + paddingTop + paddingBottom;
 	const totalWidth = layout.width + paddingLeft + paddingRight;
 
-	// The path is drawn from bottom left at the end of the rounded corner in a clockwise direction
-	// Before: before the rounded corner
-	// After: after the rounded corner
 	const topLeft = topLeftInner.deltaX(-paddingLeft).deltaY(-paddingTop);
 	const topRight = topRightInner.deltaX(paddingRight).deltaY(-paddingTop);
 	const topLeftBefore = topLeft.deltaY(Math.min(radiusTL, totalHeight / 2));
@@ -414,10 +389,9 @@ export function observeElementPosition(element: HTMLElement, store: DisposableSt
 
 export function rectToProps(fn: (reader: IReader) => Rect | undefined, debugLocation: DebugLocation = DebugLocation.ofCaller()) {
 	return {
-		left: derived({ name: 'editor.validOverlay.left' }, reader => /** @description left */ fn(reader)?.left, debugLocation),
-		top: derived({ name: 'editor.validOverlay.top' }, reader => /** @description top */ fn(reader)?.top, debugLocation),
+		left: derived({ name: 'editor.validOverlay.left' }, reader => fn(reader)?.left, debugLocation),
+		top: derived({ name: 'editor.validOverlay.top' }, reader => fn(reader)?.top, debugLocation),
 		width: derived({ name: 'editor.validOverlay.width' }, reader => {
-			/** @description width */
 			const val = fn(reader);
 			if (!val) {
 				return undefined;
@@ -425,7 +399,6 @@ export function rectToProps(fn: (reader: IReader) => Rect | undefined, debugLoca
 			return val.width;
 		}, debugLocation),
 		height: derived({ name: 'editor.validOverlay.height' }, reader => {
-			/** @description height */
 			const val = fn(reader);
 			if (!val) {
 				return undefined;

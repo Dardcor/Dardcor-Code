@@ -139,7 +139,6 @@ const config = defineConfig(extensions.map(extension => {
 			VSCODE_SKIP_PRELAUNCH: '1',
 		};
 	} else {
-		// web configs not supported, yet
 	}
 
 	return config;

@@ -34,7 +34,6 @@ export default function PricingSettingsPage() {
     loadPricing();
   };
 
-  // Count total models with pricing
   const getModelCount = () => {
     if (!currentPricing) return 0;
     let count = 0;
@@ -44,7 +43,6 @@ export default function PricingSettingsPage() {
     return count;
   };
 
-  // Get providers list
   const getProviders = () => {
     if (!currentPricing) return [];
     return Object.keys(currentPricing).sort();
@@ -52,7 +50,7 @@ export default function PricingSettingsPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Pricing Settings</h1>
@@ -68,7 +66,7 @@ export default function PricingSettingsPage() {
         </button>
       </div>
 
-      {/* Quick Stats */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <div className="text-text-muted text-sm uppercase font-semibold">
@@ -96,7 +94,7 @@ export default function PricingSettingsPage() {
         </Card>
       </div>
 
-      {/* Info Section */}
+      {}
       <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4">How Pricing Works</h2>
         <div className="space-y-3 text-sm text-text-muted">
@@ -125,7 +123,7 @@ export default function PricingSettingsPage() {
         </div>
       </Card>
 
-      {/* Current Pricing Preview */}
+      {}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Current Pricing Overview</h2>
@@ -160,7 +158,7 @@ export default function PricingSettingsPage() {
         )}
       </Card>
 
-      {/* Pricing Modal */}
+      {}
       {showModal && (
         <PricingModal
           isOpen={showModal}

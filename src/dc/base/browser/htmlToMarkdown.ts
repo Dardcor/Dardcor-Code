@@ -3,14 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * DOM-based HTML-to-Markdown converter.
- *
- * Handles common inline and block elements so that content pasted from
- * web pages keeps its basic structure (headings, links, bold, italic,
- * code, lists) when inserted into a Markdown-aware surface such as the
- * chat input.
- */
 
 import { appendEscapedMarkdownInlineCode, isPortableMarkdownTarget } from '../common/htmlContent.js';
 import { createTrustedTypesPolicy } from './trustedTypes.js';
@@ -20,7 +12,6 @@ const maxInputLength = 200_000;
 const ttPolicy = createTrustedTypesPolicy('htmlToMarkdown', { createHTML: value => value });
 
 export function convertHtmlToMarkdown(html: string): string {
-	// Bail out on very large inputs to limit DOM parsing cost
 	if (html.length > maxInputLength) {
 		return html.replace(/<[^>]+>/g, '');
 	}
@@ -29,10 +20,8 @@ export function convertHtmlToMarkdown(html: string): string {
 	const doc = new DOMParser().parseFromString(trustedHtml as string, 'text/html');
 	let result = convertChildren(doc.body);
 
-	// Convert non-breaking spaces to regular spaces
 	result = result.replace(/\u00A0/g, ' ');
 
-	// Collapse runs of 3+ newlines into 2
 	result = result.replace(/\n{3,}/g, '\n\n');
 
 	return result.trim();
@@ -150,11 +139,6 @@ function convertChildren(node: Node): string {
 	return result;
 }
 
-/**
- * Reads the target of an anchor. Rendered VS Code links route clicks through `data-href`, so
- * that attribute is consulted when `href` cannot be shared — but never ahead of a usable
- * `href`, since arbitrary pages use the same attribute name and could redirect a link.
- */
 function linkTargetOf(el: HTMLElement): string {
 	const href = (el.getAttribute('href') ?? '').trim();
 	if (href && isPortableMarkdownTarget(href)) {
@@ -163,20 +147,14 @@ function linkTargetOf(el: HTMLElement): string {
 	return (el.getAttribute('data-href') ?? '').trim() || href;
 }
 
-/**
- * Renders an anchor as markdown, keeping only targets that still mean something wherever the
- * markdown is pasted. Everything else falls back to the text the reader actually saw.
- */
 function sanitizeLink(href: string, text: string, plainText: string): string {
 	const target = href.trim();
 
-	// An executable target carries no label worth marking up as code.
 	if (/^(javascript|vbscript|data):/i.test(target)) {
 		return text;
 	}
 
 	if (!target || !isPortableMarkdownTarget(target)) {
-		// Emphasis markers around the label would be read literally inside a code span.
 		return plainText ? appendEscapedMarkdownInlineCode(plainText) : '';
 	}
 

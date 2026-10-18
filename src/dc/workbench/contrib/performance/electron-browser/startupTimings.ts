@@ -27,8 +27,8 @@ interface ITracingData {
 		readonly usedHeapSizeAfter?: number;
 		readonly usedHeapSizeBefore?: number;
 	};
-	readonly dur: number; 	// in microseconds
-	readonly name: string;	// e.g. MinorGC or MajorGC
+	readonly dur: number;
+	readonly name: string;
 	readonly pid: number;
 }
 
@@ -70,14 +70,13 @@ export class NativeStartupTimings extends StartupTimings implements IWorkbenchCo
 		const durationMarkers = this._environmentService.args['prof-duration-markers'];
 		const durationMarkersFile = this._environmentService.args['prof-duration-markers-file'];
 		if (!appendTo && !durationMarkers) {
-			// nothing to do
 			return;
 		}
 
 		try {
 			await Promise.all([
 				this._timerService.whenReady(),
-				timeout(15000), // wait: cached data creation, telemetry sending
+				timeout(15000),
 			]);
 
 			const perfBaseline = await this._timerService.perfBaseline;
@@ -156,11 +155,11 @@ export class NativeStartupTimings extends StartupTimings implements IWorkbenchCo
 			this._environmentService.args['trace-startup-format'] !== 'json' ||
 			!this._environmentService.args['trace-startup-duration']
 		) {
-			return undefined; // unexpected arguments for startup heap statistics
+			return undefined;
 		}
 
 		const windowProcessId = await this._nativeHostService.getProcessId();
-		const used = (performance as unknown as { memory?: { usedJSHeapSize?: number } }).memory?.usedJSHeapSize ?? 0; // https://developer.mozilla.org/en-US/docs/Web/API/Performance/memory
+		const used = (performance as unknown as { memory?: { usedJSHeapSize?: number } }).memory?.usedJSHeapSize ?? 0;
 
 		let minorGCs = 0;
 		let majorGCs = 0;
@@ -176,7 +175,6 @@ export class NativeStartupTimings extends StartupTimings implements IWorkbenchCo
 
 				switch (event.name) {
 
-					// Major/Minor GC Events
 					case 'MinorGC':
 						minorGCs++;
 						break;
@@ -184,8 +182,6 @@ export class NativeStartupTimings extends StartupTimings implements IWorkbenchCo
 						majorGCs++;
 						break;
 
-					// GC Events that block the main thread
-					// Refs: https://v8.dev/blog/trash-talk
 					case 'V8.GCFinalizeMC':
 					case 'V8.GCScavenger':
 						duration += event.dur;

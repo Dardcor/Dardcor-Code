@@ -35,7 +35,6 @@ class ShortIdent {
 		const candidate = this.prefix + ShortIdent.convert(this._value);
 		this._value++;
 		if (ShortIdent._keywords.has(candidate) || /^[_0-9]/.test(candidate) || isNameTaken?.(candidate)) {
-			// try again
 			return this.next(isNameTaken);
 		}
 		return candidate;
@@ -78,29 +77,22 @@ class ClassData {
 	) {
 		this.fileName = fileName;
 		this.node = node;
-		// analyse all fields (properties and methods). Find usages of all protected and
-		// private ones and keep track of all public ones (to prevent naming collisions)
 
 		const candidates: (ts.NamedDeclaration)[] = [];
 		for (const member of node.members) {
 			if (ts.isMethodDeclaration(member)) {
-				// method `foo() {}`
 				candidates.push(member);
 
 			} else if (ts.isPropertyDeclaration(member)) {
-				// property `foo = 234`
 				candidates.push(member);
 
 			} else if (ts.isGetAccessor(member)) {
-				// getter: `get foo() { ... }`
 				candidates.push(member);
 
 			} else if (ts.isSetAccessor(member)) {
-				// setter: `set foo() { ... }`
 				candidates.push(member);
 
 			} else if (ts.isConstructorDeclaration(member)) {
-				// constructor-prop:`constructor(private foo) {}`
 				for (const param of member.parameters) {
 					if (hasModifier(param, ts.SyntaxKind.PrivateKeyword)
 						|| hasModifier(param, ts.SyntaxKind.ProtectedKeyword)
@@ -130,10 +122,8 @@ class ClassData {
 		let ident = name.getText();
 		if (name.kind === ts.SyntaxKind.ComputedPropertyName) {
 			if (name.expression.kind !== ts.SyntaxKind.StringLiteral) {
-				// unsupported: [Symbol.foo] or [abc + 'field']
 				return;
 			}
-			// ['foo']
 			ident = name.expression.getText().slice(1, -1);
 		}
 
@@ -157,9 +147,6 @@ class ClassData {
 	}
 
 	static makeImplicitPublicActuallyPublic(data: ClassData, reportViolation: (name: string, what: string, why: string) => void): void {
-		// TS-HACK
-		// A subtype can make an inherited protected field public. To prevent accidential
-		// mangling of public fields we mark the original (protected) fields as public...
 		for (const [name, info] of data.fields) {
 			if (info.type !== FieldType.Public) {
 				continue;
@@ -181,11 +168,9 @@ class ClassData {
 	static fillInReplacement(data: ClassData) {
 
 		if (data.replacements) {
-			// already done
 			return;
 		}
 
-		// fill in parents first
 		if (data.parent) {
 			ClassData.fillInReplacement(data.parent);
 		}
@@ -193,12 +178,10 @@ class ClassData {
 		data.replacements = new Map();
 
 		const isNameTaken = (name: string) => {
-			// locally taken
 			if (data._isNameTaken(name)) {
 				return true;
 			}
 
-			// parents
 			let parent: ClassData | undefined = data.parent;
 			while (parent) {
 				if (parent._isNameTaken(name)) {
@@ -207,7 +190,6 @@ class ClassData {
 				parent = parent.parent;
 			}
 
-			// children
 			if (data.children) {
 				const stack = [...data.children];
 				while (stack.length) {
@@ -233,17 +215,13 @@ class ClassData {
 		}
 	}
 
-	// a name is taken when a field that doesn't get mangled exists or
-	// when the name is already in use for replacement
 	private _isNameTaken(name: string) {
 		if (this.fields.has(name) && !ClassData._shouldMangle(this.fields.get(name)!.type)) {
-			// public field
 			return true;
 		}
 		if (this.replacements) {
 			for (const shortName of this.replacements.values()) {
 				if (shortName === name) {
-					// replaced already (happens wih super types)
 					return true;
 				}
 			}
@@ -268,7 +246,6 @@ class ClassData {
 		return value;
 	}
 
-	// --- parent chaining
 
 	addChild(child: ClassData) {
 		this.children ??= [];
@@ -295,7 +272,6 @@ function isNameTakenInFile(node: ts.Node, name: string): boolean {
 
 const skippedExportMangledFiles = [
 
-	// Monaco
 	'editorCommon',
 	'editorOptions',
 	'editorZoom',
@@ -303,13 +279,10 @@ const skippedExportMangledFiles = [
 	'standaloneEnums',
 	'standaloneLanguages',
 
-	// Generated
 	'extensionsApiProposals',
 
-	// Module passed around as type
 	'pfs',
 
-	// entry points
 	...[
 		buildfile.workerEditor,
 		buildfile.workerExtensionHost,
@@ -327,16 +300,13 @@ const skippedExportMangledFiles = [
 ];
 
 const skippedExportMangledProjects = [
-	// Test projects
 	'vscode-api-tests',
 
-	// These projects use webpack to dynamically rewrite imports, which messes up our mangling
 	'configuration-editing',
 	'html-language-features/server',
 ];
 
 const skippedExportMangledSymbols = [
-	// Don't mangle extension entry points
 	'activate',
 	'deactivate',
 ];
@@ -354,13 +324,11 @@ class DeclarationData {
 	) {
 		this.fileName = fileName;
 		this.node = node;
-		// Todo: generate replacement names based on usage count, with more used names getting shorter identifiers
 		this.replacementName = fileIdents.next();
 	}
 
 	getLocations(service: ts.LanguageService): Iterable<{ fileName: string; offset: number }> {
 		if (ts.isVariableDeclaration(this.node)) {
-			// If the const aliases any types, we need to rename those too
 			const definitionResult = service.getDefinitionAndBoundSpan(this.fileName, this.node.name.getStart());
 			if (definitionResult?.definitions && definitionResult.definitions.length > 1) {
 				return definitionResult.definitions.map(x => ({ fileName: x.fileName, offset: x.textSpan.start }));
@@ -379,12 +347,10 @@ class DeclarationData {
 			return false;
 		}
 
-		// New name is longer the existing one :'(
 		if (newName.length >= currentName.length) {
 			return false;
 		}
 
-		// Don't mangle functions we've explicitly opted out
 		if (this.node.getFullText().includes('@skipMangle')) {
 			return false;
 		}
@@ -398,15 +364,6 @@ export interface MangleOutput {
 	sourceMap?: string;
 }
 
-/**
- * TypeScript2TypeScript transformer that mangles all private and protected fields
- *
- * 1. Collect all class fields (properties, methods)
- * 2. Collect all sub and super-type relations between classes
- * 3. Compute replacement names for each field
- * 4. Lookup rename locations for these fields
- * 5. Prepare and apply edits
- */
 export class Mangler {
 
 	private readonly allClassDataByKey = new Map<string, ClassData>();
@@ -437,8 +394,6 @@ export class Mangler {
 
 		const service = ts.createLanguageService(new StaticLanguageServiceHost(this.projectPath));
 
-		// STEP:
-		// - Find all classes and their field info.
 		// - Find exported symbols.
 
 		const fileIdents = new ShortIdent('$');
@@ -459,33 +414,20 @@ export class Mangler {
 				// Find exported classes, functions, and vars
 				if (
 					(
-						// Exported class
 						ts.isClassDeclaration(node)
 						&& hasModifier(node, ts.SyntaxKind.ExportKeyword)
 						&& node.name
 					) || (
-						// Exported function
 						ts.isFunctionDeclaration(node)
 						&& ts.isSourceFile(node.parent)
 						&& hasModifier(node, ts.SyntaxKind.ExportKeyword)
-						&& node.name && node.body // On named function and not on the overload
+						&& node.name && node.body
 					) || (
-						// Exported variable
 						ts.isVariableDeclaration(node)
-						&& hasModifier(node.parent.parent, ts.SyntaxKind.ExportKeyword) // Variable statement is exported
+						&& hasModifier(node.parent.parent, ts.SyntaxKind.ExportKeyword)
 						&& ts.isSourceFile(node.parent.parent.parent)
 					)
 
-					// Disabled for now because we need to figure out how to handle
-					// enums that are used in monaco or extHost interfaces.
-					/* || (
-						// Exported enum
-						ts.isEnumDeclaration(node)
-						&& ts.isSourceFile(node.parent)
-						&& hasModifier(node, ts.SyntaxKind.ExportKeyword)
-						&& !hasModifier(node, ts.SyntaxKind.ConstKeyword) // Don't bother mangling const enums because these are inlined
-						&& node.name
-					*/
 				) {
 					if (isInAmbientContext(node)) {
 						return;
@@ -506,23 +448,19 @@ export class Mangler {
 		this.log(`Done collecting. Classes: ${this.allClassDataByKey.size}. Exported symbols: ${this.allExportedSymbols.size}`);
 
 
-		//  STEP: connect sub and super-types
 
 		const setupParents = (data: ClassData) => {
 			const extendsClause = data.node.heritageClauses?.find(h => h.token === ts.SyntaxKind.ExtendsKeyword);
 			if (!extendsClause) {
-				// no EXTENDS-clause
 				return;
 			}
 
 			const info = service.getDefinitionAtPosition(data.fileName, extendsClause.types[0].expression.getEnd());
 			if (!info || info.length === 0) {
-				// throw new Error('SUPER type not found');
 				return;
 			}
 
 			if (info.length !== 1) {
-				// inherits from declared/library type
 				return;
 			}
 
@@ -530,7 +468,6 @@ export class Mangler {
 			const key = `${definition.fileName}|${definition.textSpan.start}`;
 			const parent = this.allClassDataByKey.get(key);
 			if (!parent) {
-				// throw new Error(`SUPER type not found: ${key}`);
 				return;
 			}
 			parent.addChild(data);
@@ -539,7 +476,6 @@ export class Mangler {
 			setupParents(data);
 		}
 
-		//  STEP: make implicit public (actually protected) field really public
 		const violations = new Map<string, string[]>();
 		let violationsCauseFailure = false;
 		for (const data of this.allClassDataByKey.values()) {
@@ -565,13 +501,11 @@ export class Mangler {
 			throw new Error(message);
 		}
 
-		// STEP: compute replacement names for each class
 		for (const data of this.allClassDataByKey.values()) {
 			ClassData.fillInReplacement(data);
 		}
 		this.log(`Done creating class replacements`);
 
-		// STEP: prepare rename edits
 		this.log(`Starting prepare rename edits`);
 
 		type Edit = { newText: string; offset: number; length: number };
@@ -612,8 +546,6 @@ export class Mangler {
 					continue fields;
 				}
 
-				// TS-HACK: protected became public via 'some' child
-				// and because of that we might need to ignore this now
 				let parent = data.parent;
 				while (parent) {
 					if (parent.fields.get(name)?.type === FieldType.Public) {
@@ -657,7 +589,6 @@ export class Mangler {
 
 		this.log(`Done preparing edits: ${editsByFile.size} files`);
 
-		// STEP: apply all rename edits (per file)
 		const result = new Map<string, MangleOutput>();
 		let savedBytes = 0;
 
@@ -667,21 +598,17 @@ export class Mangler {
 			const projectDir = path.dirname(this.projectPath);
 			const sourceMapRoot = mapRoot ?? pathToFileURL(sourceRoot ?? projectDir).toString();
 
-			// source maps
 			let generator: SourceMapGenerator | undefined;
 
 			let newFullText: string;
 			const edits = editsByFile.get(item.fileName);
 			if (!edits) {
-				// just copy
 				newFullText = item.getFullText();
 
 			} else {
-				// source map generator
 				const relativeFileName = normalize(path.relative(projectDir, item.fileName));
 				const mappingsByLine = new Map<number, Mapping[]>();
 
-				// apply renames
 				edits.sort((a, b) => b.offset - a.offset);
 				const characters = item.getFullText().split('');
 
@@ -689,7 +616,6 @@ export class Mangler {
 
 				for (const edit of edits) {
 					if (lastEdit && lastEdit.offset === edit.offset) {
-						//
 						if (lastEdit.length !== edit.length || lastEdit.newText !== edit.newText) {
 							this.log('ERROR: Overlapping edit', item.fileName, edit.offset, edits);
 							throw new Error('OVERLAPPING edit');
@@ -701,7 +627,6 @@ export class Mangler {
 					const mangledName = characters.splice(edit.offset, edit.length, edit.newText).join('');
 					savedBytes += mangledName.length - edit.newText.length;
 
-					// source maps
 					const pos = item.getLineAndCharacterOfPosition(edit.offset);
 
 
@@ -722,7 +647,6 @@ export class Mangler {
 					});
 				}
 
-				// source map generation, make sure to get mappings per line correct
 				generator = new SourceMapGenerator({ file: path.basename(item.fileName), sourceRoot: sourceMapRoot });
 				generator.setSourceContent(relativeFileName, item.getFullText());
 				for (const [, mappings] of mappingsByLine) {
@@ -749,7 +673,6 @@ export class Mangler {
 	}
 }
 
-// --- ast utils
 
 function hasModifier(node: ts.Node, kind: ts.SyntaxKind) {
 	const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;

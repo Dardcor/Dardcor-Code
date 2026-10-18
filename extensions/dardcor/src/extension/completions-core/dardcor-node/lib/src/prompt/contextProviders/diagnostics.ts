@@ -19,13 +19,10 @@ export async function getDiagnosticsFromContextItems(
 ): Promise<DiagnosticBagWithId[]> {
 	const diagnosticBags = filterContextItemsByType(resolvedContextItems, 'DiagnosticBag');
 
-	// Set expectations for the diagnostics provided.
 	for (const item of diagnosticBags) {
 		setupExpectationsForDiagnosticBags(accessor, completionId, item.data, item.providerId);
 	}
 
-	// Flatten and sort the traits by importance.
-	// TODO: once we deprecate the old API, importance should also dictate elision.
 	const allUris: Set<string> = new Set();
 	const diagnosticBagsWithProviderId: { providerId: string; bag: DiagnosticBagWithId }[] = [];
 	for (const item of diagnosticBags) {
@@ -54,7 +51,6 @@ export async function getDiagnosticsFromContextItems(
 		.filter(item => {
 			const isValid = validationMap.get(item.bag.uri.toString())?.status === 'valid';
 
-			// Set expectations regardless of validity
 			if (isValid) {
 				statistics.addExpectations(item.providerId, [[item.bag, 'included']]);
 			} else {

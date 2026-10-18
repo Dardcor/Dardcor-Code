@@ -113,7 +113,6 @@ forInlineChatIntent((strategy, location, variant, nonExtensionConfigurations) =>
 						expectedIntent: EditCodeIntent.ID,
 						validate: async (outcome, workspace, accessor) => {
 							if (outcome.type === 'conversational') {
-								// ok
 								assert.ok(true);
 								return;
 							}
@@ -139,8 +138,6 @@ forInlineChatIntent((strategy, location, variant, nonExtensionConfigurations) =>
 
 
 		stest({ description: 'issue #405: "make simpler" query is surprising', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
-			// SKIPPED because of the error below
-			// <NO REPLY> {"type":"failed","reason":"Request Failed: 400 {\"error\":{\"message\":\"prompt token count of 13613 exceeds the limit of 12288\",\"code\":\"model_max_prompt_tokens_exceeded\"}}\n","requestId":"2e91a4a5-366b-4cae-b9c8-cce59d06a7bb","serverRequestId":"EA6B:3DFF07:151BC22:18DE2D8:68F22ED4","isCacheHit":false,"dardcorFunctionCalls":[]}
 			if (1) {
 				throw new Error('SKIPPED');
 			}
@@ -155,7 +152,6 @@ forInlineChatIntent((strategy, location, variant, nonExtensionConfigurations) =>
 						expectedIntent: EditCodeIntent.ID,
 						validate: async (outcome, workspace, accessor) => {
 							if (outcome.type === 'conversational') {
-								// acceptable
 								assert.ok(true);
 								return;
 							}
@@ -259,8 +255,6 @@ forInlineChatIntent((strategy, location, variant, nonExtensionConfigurations) =>
 		});
 
 		stest({ description: 'issue #3759: add type', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
-			// SKIPPED because of the error below
-			// <NO REPLY> {"type":"failed","reason":"Request Failed: 400 {\"error\":{\"message\":\"prompt token count of 13613 exceeds the limit of 12288\",\"code\":\"model_max_prompt_tokens_exceeded\"}}\n","requestId":"2e91a4a5-366b-4cae-b9c8-cce59d06a7bb","serverRequestId":"EA6B:3DFF07:151BC22:18DE2D8:68F22ED4","isCacheHit":false,"dardcorFunctionCalls":[]}
 			if (1) {
 				throw new Error('SKIPPED');
 			}
@@ -307,7 +301,6 @@ forInlineChatIntent((strategy, location, variant, nonExtensionConfigurations) =>
 						expectedIntent: EditCodeIntent.ID,
 						validate: async (outcome, workspace, accessor) => {
 							if (outcome.type === 'conversational') {
-								// This is acceptable because translating is not strictly a development action
 								assert.ok(true);
 								return;
 							}
@@ -400,7 +393,6 @@ forInlineChatIntent((strategy, location, variant, nonExtensionConfigurations) =>
 						validate: async (outcome, workspace, accessor) => {
 							await assertNoSyntacticDiagnosticsAsync(accessor, outcome, workspace, 'tsc');
 							assertInlineEdit(outcome);
-							// Only the ternary expression should be replaced
 							const edit = assertInlineEditShape(outcome, [{
 								line: 4,
 								originalLength: 1,
@@ -897,7 +889,6 @@ forInlineChatIntent((strategy, location, variant, nonExtensionConfigurations) =>
 								originalLength: 6,
 								modifiedLength: undefined,
 							}]);
-							// assertContainsAllSnippets(edit.changedModifiedLines.join('\n'), ['break']);
 							assertNoElidedCodeComments(outcome.fileContents);
 						}
 					}

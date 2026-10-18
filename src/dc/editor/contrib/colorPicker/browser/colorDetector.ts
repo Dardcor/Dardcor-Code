@@ -30,7 +30,7 @@ export class ColorDetector extends Disposable implements IEditorContribution {
 
 	public static readonly ID: string = 'editor.contrib.colorDetector';
 
-	static readonly RECOMPUTE_TIME = 1000; // ms
+	static readonly RECOMPUTE_TIME = 1000;
 
 	private readonly _localToDispose = this._register(new DisposableStore());
 	private _computePromise: CancelablePromise<IColorData[]> | null;
@@ -94,11 +94,10 @@ export class ColorDetector extends Disposable implements IEditorContribution {
 			return false;
 		}
 		const languageId = model.getLanguageId();
-		// handle deprecated settings. [languageId].colorDecorators.enable
 		const deprecatedConfig = this._configurationService.getValue(languageId);
 		if (deprecatedConfig && typeof deprecatedConfig === 'object') {
 			// eslint-disable-next-line local/code-no-any-casts
-			const colorDecorators = (deprecatedConfig as any)['colorDecorators']; // deprecatedConfig.valueOf('.colorDecorators.enable');
+			const colorDecorators = (deprecatedConfig as any)['colorDecorators'];
 			if (colorDecorators && colorDecorators['enable'] !== undefined && !colorDecorators['enable']) {
 				return colorDecorators['enable'];
 			}

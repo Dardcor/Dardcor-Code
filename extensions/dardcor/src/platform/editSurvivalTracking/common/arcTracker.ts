@@ -6,10 +6,6 @@
 import { AnnotatedStringEdit, BaseStringEdit, IEditData } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
 import { sum } from '../../inlineEdits/common/workspaceEditTracker/nesHistoryContextProvider';
 
-/**
- * The ARC (accepted and retained characters) counts how many characters inserted by the initial suggestion (trackedEdit)
- * stay unmodified after a certain amount of time after acceptance.
-*/
 export class ArcTracker {
 	private _updatedTrackedEdit: AnnotatedStringEdit<IsTrackedEditData>;
 

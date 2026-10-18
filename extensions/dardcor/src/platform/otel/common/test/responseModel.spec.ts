@@ -19,15 +19,12 @@ describe('normalizeResponseModel', () => {
 	});
 
 	it('echoes the request model when the response strips a request-only suffix (e.g. reasoning effort)', () => {
-		// Server strips the `-high` reasoning-effort qualifier and uses `-` punctuation.
 		expect(normalizeResponseModel('claude-opus-4.7-high', 'claude-opus-4-7')).toBe('claude-opus-4.7-high');
 		expect(normalizeResponseModel('claude-opus-4.6-medium', 'claude-opus-4-6')).toBe('claude-opus-4.6-medium');
-		// Server strips variant qualifiers like `-1m-internal`.
 		expect(normalizeResponseModel('claude-opus-4.7-1m-internal', 'claude-opus-4-7')).toBe('claude-opus-4.7-1m-internal');
 	});
 
 	it('does not treat unrelated models that share a numeric-looking prefix as the same', () => {
-		// `gpt-4` is not a prefix of `gpt-40` because we require a `-` boundary.
 		expect(normalizeResponseModel('gpt-4', 'gpt-40')).toBe('gpt-40');
 	});
 

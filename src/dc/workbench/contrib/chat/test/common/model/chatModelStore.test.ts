@@ -69,20 +69,16 @@ suite('ChatModelStore', () => {
 		const model1 = ref1.object;
 		ref1.dispose();
 
-		// Model is pending disposal
 		assert.strictEqual(willDisposePromises.length, 1);
 		assert.strictEqual(testObject.get(uri), model1);
 
-		// Acquire again - should be resurrected
 		const ref2 = testObject.acquireOrCreate(props);
 		assert.strictEqual(ref2.object, model1);
 		assert.strictEqual(createdModels.length, 1);
 
-		// Finish disposal of the first ref
 		willDisposePromises[0].complete();
 		await testObject.waitForModelDisposals();
 
-		// Model should still exist because ref2 holds it
 		assert.strictEqual(testObject.get(uri), model1);
 
 		ref2.dispose();
@@ -255,10 +251,8 @@ suite('ChatModelStore', () => {
 		const ref1 = testObject.acquireOrCreate(props, 'OriginalCreator');
 		ref1.dispose();
 
-		// Model is pending disposal — re-acquire before disposal completes
 		const ref2 = testObject.acquireOrCreate(props, 'Rescuer');
 
-		// Complete the old disposal — should NOT wipe the model or tracking
 		willDisposePromises[0].complete();
 		await testObject.waitForModelDisposals();
 

@@ -29,7 +29,6 @@ const type = async (document: vscode.TextDocument, text: string): Promise<vscode
 
 suite.skip('OnEnter', () => {
 	setup(async () => {
-		// the tests make the assumption that language rules are registered
 		await vscode.extensions.getExtension('vscode.typescript-language-features')!.activate();
 	});
 

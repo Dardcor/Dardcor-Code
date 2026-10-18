@@ -3,32 +3,25 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
-import { CopilotAnnotations, StreamCopilotAnnotations } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
-import { IEnvService } from '../../../../../../platform/env/common/envService';
+import { DardcorAnnotations, StreamDardcorAnnotations } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
 import { Completion } from '../../../../../../platform/nesFetch/common/completionsAPI';
 import { Completions, ICompletionsFetchService } from '../../../../../../platform/nesFetch/common/completionsFetchService';
 import { ResponseStream } from '../../../../../../platform/nesFetch/common/responseStream';
 import { RequestId, getRequestId } from '../../../../../../platform/networking/common/fetch';
 import { IHeaders } from '../../../../../../platform/networking/common/fetcherService';
-import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
 import { assertNever } from '../../../../../../util/dardcor/base/common/assert';
 import { CancellationToken } from '../../../../../../util/dardcor/base/common/cancellation';
 import { StopWatch } from '../../../../../../util/dardcor/base/common/stopwatch';
 import { generateUuid } from '../../../../../../util/dardcor/base/common/uuid';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CancellationToken as ICancellationToken } from '../../../types/src';
-import { CopilotToken, ICompletionsCopilotTokenManager } from '../auth/dardcorTokenManager';
-import { onCopilotToken } from '../auth/dardcorTokenNotifier';
-import { apiVersion, editorVersionHeaders } from '../config';
 import { asyncIterableFilter } from '../helpers/iterableHelpers';
 import { ICompletionsLogTargetService, Logger } from '../logger';
-import { getEndpointUrl } from '../networkConfiguration';
 import { isAbortError, isInterruptedNetworkError } from '../networking';
 import { ICompletionsStatusReporter } from '../progress';
 import { Prompt } from '../prompt/prompt';
-import { MaybeRepoInfo, tryGetGitHubNWO } from '../prompt/repository';
+import { MaybeRepoInfo } from '../prompt/repository';
 import {
 	TelemetryData,
 	TelemetryWithExp,
@@ -39,6 +32,7 @@ import {
 import { delay } from '../util/async';
 import { ICompletionsRuntimeModeService } from '../util/runtimeMode';
 import { getKey } from '../util/unknown';
+import { getDardcorRouterApiKey, getDardcorRouterBaseUrl } from '../../../../../../platform/endpoint/node/dardcorRouter';
 import {
 	APIChoice,
 	APIJsonData,
@@ -50,101 +44,47 @@ import {
 
 const logger = new Logger('fetchCompletions');
 
-export enum CopilotUiKind {
+export enum DardcorInlineUiKind {
 	GhostText = 'ghostText',
-	Panel = 'synthesize', // legacy value from the synthesize codelens
+	Panel = 'panel',
 }
 
 type BaseFetchRequest = {
-	/**
-	 * The prompt prefix to send to the model.  Called `prompt` here for compatibility
-	 * with the OpenAI API.
-	 */
 	prompt: string;
 };
 
-/**
- * Request parameters other than the prompt, which will be included in the OAI
- * API request.
- */
 type CompletionFetchRequestFields = {
-	/** The prompt suffix to send to the model. */
+	model: string;
 	suffix: string;
-	/** Whether to stream back a response in SSE format. Always true: non streaming requests are not supported by this proxy */
 	stream: true;
-	/** Maximum number of tokens the model should generate. */
 	max_tokens: number;
-	/** How many parallel completions the model should generate (default 1). */
 	n: number;
-	/** Non-negative temperature sampling parameter (default 1). */
 	temperature: number;
-	/** Non-negative nucleus sampling parameter (defaults 1). */
 	top_p: number;
-	/** Strings that will cause the model to stop generating text. */
 	stop: string[];
-	/** Number of alternative tokens to include logprob data for. */
 	logprobs?: number;
-	/** Likelihood of specified tokens appearing in the completion. */
 	logit_bias?: { [key: string]: number };
 
-	/** Copilot-only: NWO of repository, if any */
-	nwo?: string;
-	/**
-	 * Controls whether code citation annotations are included in the response
-	 * stream for non-blocking requests.
-	 */
-	code_annotations?: boolean;
 };
 
-/** OAI API completion request, along with additional fields specific to Copilot. */
 export type CompletionRequest = BaseFetchRequest &
 	CompletionFetchRequestFields & {
-		/** Copilot-only: extra arguments for completion processing. */
 		extra: Partial<CompletionRequestExtra>;
 	};
 
-/**
- * Completion request arguments that are Copilot-specific and don't exist in
- * the OAI API.
- */
 export declare interface CompletionRequestExtra {
-	/** The VSCode language ID for the file. */
 	language: string;
-	/**
-	 * If true, the proxy will trim completions to the current block/line based
-	 * on the force_indent and/or next_indent values.
-	 */
 	trim_by_indentation?: boolean;
-	/**
-	 * If set, will let the completion go on until a (non-continuation) line
-	 * comes through with the given indentation level.
-	 */
 	force_indent?: number;
-	/** Number of leading space or tab characters in the next non-empty line. */
 	next_indent?: number;
-	/**
-	 * For testing only: A list of completions to be used instead of calling the
-	 * model. The server will act as if the model returned these completions and
-	 * postprocess them as it normally postprocesses model responses (i.e.
-	 * filtering, trimming, etc.).
-	 */
 	test_completions?: string[];
-	/**
-	 The number of tokens (prefix)
-	 */
 	prompt_tokens: number;
-	/**
-	 The number of tokens (suffix)
-	 */
 	suffix_tokens: number;
-	/** Additional context to send to the model.
-	 * If this field is populated, then `prefix` will only contain the document prefix before the cursor.*/
 	context?: string[];
 }
 
 export type PostOptions = Partial<CompletionFetchRequestFields>;
 
-// Request helpers
 
 function getProcessingTime(responseHeaders: IHeaders): number {
 	const reqIdStr = responseHeaders.get('openai-processing-ms');
@@ -154,45 +94,12 @@ function getProcessingTime(responseHeaders: IHeaders): number {
 	return 0;
 }
 
-function uiKindToIntent(uiKind: CopilotUiKind): string | undefined {
-	switch (uiKind) {
-		case CopilotUiKind.GhostText:
-			return 'dardcor-ghost';
-		case CopilotUiKind.Panel:
-			return 'dardcor-panel';
-	}
-}
-
-// Request methods
-
-export interface CopilotError {
-	type: string;
-	code: string;
-	message: string;
-	identifier: string;
-}
-
-export interface CopilotConfirmation {
-	type: string;
-	title: string;
-	message: string;
-	confirmation: Record<string, unknown>;
-}
-
-export interface CopilotReference {
-	type: string;
-	id: string;
-	data: Record<string, unknown>;
-}
 
 export interface RequestDelta {
 	text: string;
 	index?: number;
 	requestId?: RequestId;
-	annotations?: CopilotAnnotations;
-	dardcorErrors?: CopilotError[];
-	dardcorConfirmation?: CopilotConfirmation;
-	dardcorReferences?: CopilotReference[];
+	annotations?: DardcorAnnotations;
 	getAPIJsonData?: () => APIJsonData;
 	finished?: boolean;
 	telemetryData?: TelemetryWithExp;
@@ -210,10 +117,6 @@ type FinishedCallbackResult =
 	| number
 	| undefined;
 
-/**
- * Takes a (part of a) completion resolves to the offset of the end of the
- * block, or undefined if the block is not yet finished.
- */
 export interface FinishedCallback {
 	(text: string, delta: RequestDelta): FinishedCallbackResult;
 }
@@ -221,14 +124,11 @@ export interface FinishedCallback {
 interface InternalFetchParams {
 	prompt: Prompt;
 	engineModelId: string;
-	uiKind: CopilotUiKind;
+	uiKind: DardcorInlineUiKind;
 	ourRequestId: string;
 	headers?: CompletionHeaders;
 }
 
-/**
- * Interface for the parameters passed to `fetchAndStreamCompletions`.
- */
 export interface CompletionParams extends InternalFetchParams {
 	repoInfo: MaybeRepoInfo;
 	languageId: string;
@@ -238,9 +138,6 @@ export interface CompletionParams extends InternalFetchParams {
 	extra: Partial<CompletionRequestExtra>;
 }
 
-/**
- * Interface for the parameters passed to speculation fetch requests.
- */
 export interface SpeculationFetchParams extends InternalFetchParams {
 	speculation: string;
 	stops: string[] | null;
@@ -257,16 +154,8 @@ export interface ICompletionsOpenAIFetcherService {
 	): Promise<CompletionResults | CompletionError>;
 }
 
-/** An interface to abstract away the network request to OpenAI, allowing for
- * fake or mock implementations. It's deliberately injected relatively high
- * in the call stack to avoid having to reconstruct some of the lower-level details
- * of the OpenAI API.
- */
 export abstract class OpenAIFetcher implements ICompletionsOpenAIFetcherService {
 	declare _serviceBrand: undefined;
-	/**
-	 * Sends a request to the code completion endpoint.
-	 */
 	abstract fetchAndStreamCompletions(
 		params: CompletionParams,
 		baseTelemetryData: TelemetryWithExp,
@@ -284,22 +173,15 @@ export interface CompletionResults {
 export type CompletionError = { type: 'failed'; reason: string } | { type: 'canceled'; reason: string };
 
 export type CompletionHeaders = {
-	/** For speculation only**/
 	Host?: string;
 	Connection?: string;
-	'X-Copilot-Async'?: string;
-	'X-Copilot-Speculative'?: string;
 };
-
-function getProxyEngineUrl(accessor: ServicesAccessor, token: CopilotToken, modelId: string, endpoint: string): string {
-	return getEndpointUrl(accessor, token, 'proxy', 'v1/engines', modelId, endpoint);
-}
 
 export function sanitizeRequestOptionTelemetry(
 	request: Partial<CompletionRequest>,
 	telemetryData: TelemetryWithExp,
-	topLevelKeys: string[], // top-level properties to exclude from standard telemetry
-	extraKeys?: (keyof CompletionRequestExtra)[] // keys under the `extra` property to exclude from standard telemetry
+	topLevelKeys: string[],
+	extraKeys?: (keyof CompletionRequestExtra)[]
 ): void {
 	for (const [key, value] of Object.entries(request)) {
 		if (topLevelKeys.includes(key)) {
@@ -324,8 +206,6 @@ export function postProcessChoices(choices: AsyncIterable<APIChoice>) {
 	return asyncIterableFilter(choices, choice => choice.completionText.trim().length > 0);
 }
 
-export const CMDQuotaExceeded = 'github.dardcor.completions.quotaExceeded';
-
 export class LiveOpenAIFetcher extends OpenAIFetcher {
 	#disabledReason: string | undefined;
 
@@ -333,12 +213,8 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ICompletionsRuntimeModeService private readonly runtimeModeService: ICompletionsRuntimeModeService,
 		@ICompletionsLogTargetService private readonly logTargetService: ICompletionsLogTargetService,
-		@ICompletionsCopilotTokenManager private readonly dardcorTokenManager: ICompletionsCopilotTokenManager,
 		@ICompletionsStatusReporter private readonly statusReporter: ICompletionsStatusReporter,
-		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
 		@ICompletionsFetchService private readonly fetchService: ICompletionsFetchService,
-		// @ICompletionsLogTargetService private readonly logTarget: ICompletionsLogTargetService,
-		@IEnvService private readonly envService: IEnvService,
 	) {
 		super();
 	}
@@ -352,8 +228,11 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 		if (this.#disabledReason) {
 			return { type: 'canceled', reason: this.#disabledReason };
 		}
-		const endpoint = 'completions';
-		const dardcorToken = this.dardcorTokenManager.token ?? await this.dardcorTokenManager.getToken();
+		const endpoint = 'chat/completions';
+		const modelId = params.engineModelId;
+		if (!modelId) {
+			return { type: 'failed', reason: 'Dardcor Router returned no completion-capable models.' };
+		}
 
 		const request: CompletionRequest = {
 			prompt: params.prompt.prefix,
@@ -363,19 +242,15 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 			top_p: getTopP(),
 			n: params.count,
 			stop: getStops(params.languageId),
-			stream: true, // Always true: non streaming requests are not supported by this proxy
+			stream: true,
+			model: modelId,
 			extra: params.extra,
 		} satisfies CompletionRequest;
 
 		{
 
 			if (params.requestLogProbs) {
-				request.logprobs = 2; // Request that logprobs of 2 tokens (i.e. including the best alternative) be returned
-			}
-
-			const githubNWO = tryGetGitHubNWO(params.repoInfo);
-			if (githubNWO !== undefined) {
-				request.nwo = githubNWO;
+				request.logprobs = 2;
 			}
 
 			if (params.postOptions) {
@@ -386,8 +261,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 				request.extra.context = params.prompt.context;
 			}
 
-			// Give a final opportunity to cancel the request before we send the request
-			// This await line is necessary to allow the tests in extension/src/openai.test.ts to pass
 			await delay(0);
 			if (cancel?.isCancellationRequested) {
 				return { type: 'canceled', reason: 'before fetch request' };
@@ -401,7 +274,7 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 			const telemetryExp = baseTelemetryData;
 			const uiKind = params.uiKind;
 			const headers = params.headers;
-			const uri = this.instantiationService.invokeFunction(getProxyEngineUrl, dardcorToken, engineModelId, endpoint);
+			const uri = `${getDardcorRouterBaseUrl()}/v1/chat/completions`;
 
 			const telemetryData = telemetryExp.extendedBy(
 				{
@@ -412,54 +285,33 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 				telemetrizePromptLength(prompt)
 			);
 
-			// Skip prompt info (PII)
 			sanitizeRequestOptionTelemetry(request, telemetryData, ['prompt', 'suffix'], ['context']);
 
-			// The request ID we are passed in is sent in the request to the proxy, and included in our pre-request telemetry.
-			// We hope (but do not rely on) that the model will use the same ID in the response, allowing us to correlate
-			// the request and response.
 			telemetryData.properties['headerRequestId'] = ourRequestId;
 
 			this.instantiationService.invokeFunction(telemetry, 'request.sent', telemetryData);
 
-			const intent = uiKindToIntent(uiKind);
-
-			let fullHeaders: Record<string, string>;
-
-			{
-				fullHeaders = {
-					...headers,
-					...this.instantiationService.invokeFunction(editorVersionHeaders),
-				};
-
-				fullHeaders['Openai-Organization'] = 'github-dardcor';
-				fullHeaders['X-Request-Id'] = ourRequestId;
-				fullHeaders['VScode-SessionId'] = this.envService.sessionId;
-				fullHeaders['VScode-MachineId'] = this.envService.machineId;
-				fullHeaders['X-GitHub-Api-Version'] = apiVersion;
-
-				if (intent) {
-					fullHeaders['OpenAI-Intent'] = intent;
-				}
-			}
+			const fullHeaders: Record<string, string> = {
+				...headers,
+				'X-Request-Id': ourRequestId,
+			};
 
 			const requestSw = new StopWatch();
 			const cancelToken = cancel ?? CancellationToken.None;
 			const res = await this.fetchService.fetch(
 				uri,
-				dardcorToken.token,
+				getDardcorRouterApiKey(),
 				request,
 				ourRequestId,
 				cancelToken,
 				fullHeaders,
 			).then(response => {
 				if (response.isError() && response.err instanceof Completions.Unexpected && isInterruptedNetworkError(response.err.error)) {
-					// disconnect and retry the request once if the connection was reset
 					this.instantiationService.invokeFunction(telemetry, 'networking.disconnectAll');
 					return this.fetchService.disconnectAll().then(() => {
 						return this.fetchService.fetch(
 							uri,
-							dardcorToken.token,
+							getDardcorRouterApiKey(),
 							request,
 							ourRequestId,
 							cancelToken,
@@ -478,7 +330,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 					const err = res.err;
 
 					if (err instanceof Completions.RequestCancelled) {
-						// abort the request when the token is canceled
 						this.instantiationService.invokeFunction(telemetry,
 							'networking.cancelRequest',
 							TelemetryData.createAndMarkAsIssued({ headerRequestId: ourRequestId })
@@ -488,9 +339,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 					} else if (err instanceof Completions.UnsuccessfulResponse) {
 						const modelRequestId = getRequestId(err.headers);
 						telemetryData.extendWithRequestId(modelRequestId);
-						if (modelRequestId.serverExperiments) {
-							this.instantiationService.invokeFunction(accessor => accessor.get(ITelemetryService).setSharedProperty('capi.assignmentcontext', modelRequestId.serverExperiments));
-						}
 						const totalTimeMs = requestSw.elapsed();
 						telemetryData.measurements.totalTimeMs = totalTimeMs;
 						telemetryData.properties.status = String(err.status);
@@ -507,13 +355,12 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 							status: err.status,
 							text: err.text,
 							headers: err.headers,
-						}, dardcorToken);
+						});
 					} else if (err instanceof Completions.Unexpected) {
 
 						const error = err.error;
 
 						if (isAbortError(error)) {
-							// If we cancelled a network request, we want to log a `request.cancel` instead of `request.error`
 							this.instantiationService.invokeFunction(telemetry, 'request.cancel', telemetryData);
 							throw error;
 						}
@@ -547,19 +394,13 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 				const responseStream = res.val;
 
 				{
-					// This ID is hopefully the one the same as ourRequestId, but it is not guaranteed.
-					// If they are different then we will override the original one we set in telemetryData above.
 					const modelRequestId = responseStream.requestId;
 					telemetryData.extendWithRequestId(modelRequestId);
-					if (modelRequestId.serverExperiments) {
-						this.instantiationService.invokeFunction(accessor => accessor.get(ITelemetryService).setSharedProperty('capi.assignmentcontext', modelRequestId.serverExperiments));
-					}
 
-					// TODO: Add response length (requires parsing)
 					const totalTimeMs = requestSw.elapsed();
 					telemetryData.measurements.totalTimeMs = totalTimeMs;
 
-					const responseStatus = 200; // because otherwise it wouldn't be here
+					const responseStatus = 200;
 					logger.info(
 						this.logTargetService,
 						`Request ${ourRequestId} at <${uri}> finished with ${responseStatus} status after ${totalTimeMs}ms`
@@ -576,8 +417,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 
 				if (cancel?.isCancellationRequested) {
 					try {
-						// Destroy the stream so that the server is hopefully notified we don't want any more data
-						// and can cancel/forget about the request itself.
 						await responseStream.destroy();
 					} catch (e) {
 						this.instantiationService.invokeFunction(acc => logger.exception(acc, e, `Error destroying stream`));
@@ -599,9 +438,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 		}
 	}
 
-	/**
-	 * @remarks exposed only for testing.
-	 */
 	public static async *convertStreamToApiChoices(resp: ResponseStream, finishedCb: FinishedCallback, baseTelemetryData: TelemetryWithExp, cancel?: CancellationToken): AsyncIterable<APIChoice> {
 
 		const createAPIChoice = (
@@ -640,23 +476,18 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 						completion = { accumulator: new CompletionAccumulator(), isFinished: false, yielded: false };
 						completions[chunkIdx] = completion;
 					} else if (completion.isFinished) {
-						// already finished, skip
 						continue;
 					}
 					const choice = chunk.choices[i];
 					completion.accumulator.append(choice);
 
-					// finish_reason determines whether the completion is finished by the LLM
 					const hasFinishReason = !!(chunk.choices[i].finish_reason);
 
-					// Only call finishedCb when there's a newline or finish_reason, matching SSEProcessor behavior.
-					// This optimization avoids calling finishedCb on every chunk which can be expensive.
 					const chunkText = choice.text ?? '';
 					const hasNewLine = chunkText.indexOf('\n') > -1;
 
 					let solutionDecision: SolutionDecision | number | undefined;
 					if (hasFinishReason || hasNewLine) {
-						// call finishedCb to determine whether the completion is finished by the client
 						solutionDecision = await finishedCb(completion.accumulator.responseSoFar, {
 							index: chunkIdx,
 							text: completion.accumulator.responseSoFar,
@@ -667,7 +498,7 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 							getAPIJsonData: () => ({
 								text: completion.accumulator.responseSoFar,
 								tokens: completion.accumulator.chunks,
-								finish_reason: completion.accumulator.finishReason ?? 'stop', // @ulugbekna: logic to determine if last completion was accepted uses finish reason, so changing this `?? 'stop'` will change behavior of multiline completions
+								finish_reason: completion.accumulator.finishReason ?? 'stop',
 								dardcor_annotations: completion.accumulator.annotations.current,
 							} satisfies APIJsonData),
 						} satisfies RequestDelta);
@@ -677,8 +508,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 						}
 					}
 
-					// Determine whether to yield based on finish_reason or callback decision.
-					// When finish_reason is present, force yield & stop streaming (matching SSEProcessor).
 					if (hasFinishReason) {
 						if (solutionDecision === undefined || typeof solutionDecision !== 'object') {
 							solutionDecision = { yieldSolution: true, continueStreaming: false };
@@ -691,7 +520,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 					if (solutionDecision !== undefined &&
 						(typeof solutionDecision === 'number' || solutionDecision.yieldSolution)
 					) {
-						// mark as finished
 						const isFinished = hasFinishReason || typeof solutionDecision === 'number' || (solutionDecision !== undefined && !solutionDecision.continueStreaming);
 						completion.isFinished = isFinished;
 
@@ -709,12 +537,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 							? completion.accumulator.responseSoFar
 							: completion.accumulator.responseSoFar.slice(0, finishOffset);
 
-						// Guard against double-yielding the same choice, matching
-						// SSEProcessor's `solution.yielded` flag. Without this,
-						// StreamedCompletionSplitter can yield the first segment
-						// (via yieldSolution+continueStreaming), and then
-						// finish_reason forces a second yield of the full text,
-						// which ends up cached as a spurious ghost text suggestion.
 						if (!completion.yielded) {
 							completion.yielded = true;
 							const apiChoice = createAPIChoice(
@@ -734,10 +556,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 				}
 			}
 
-			// When the stream ends, call finishedCb with finished=true for any
-			// completions that weren't individually finished. This matches
-			// SSEProcessor.finishSolutions which gives the callback a final
-			// chance to process / trim the complete text (e.g. StreamedCompletionSplitter.trimAll).
 			for (const [chunkIdx, completion] of completions.entries()) {
 				if (!completion.isFinished) {
 					await finishedCb(completion.accumulator.responseSoFar, {
@@ -759,7 +577,6 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 						return;
 					}
 
-					// Skip if already yielded (matches SSEProcessor.finishSolutions)
 					if (completion.yielded) {
 						continue;
 					}
@@ -768,7 +585,7 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 					const apiChoice = createAPIChoice(
 						chunkIdx,
 						completion.accumulator.responseSoFar,
-						completion.accumulator.finishReason ?? 'stop', // Matches original SSEProcessor behavior: convertToAPIJsonData defaults to 'stop'
+						completion.accumulator.finishReason ?? 'stop',
 						completion.accumulator,
 						false
 					);
@@ -780,12 +597,9 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 				}
 			}
 		} finally {
-			// Destroy the network stream so the server is notified to stop sending data,
-			// matching SSEProcessor's finally block behavior in processSSE.
 			try {
 				await resp.destroy();
 			} catch {
-				// ignore destroy errors
 			}
 		}
 	}
@@ -794,51 +608,27 @@ export class LiveOpenAIFetcher extends OpenAIFetcher {
 		statusReporter: ICompletionsStatusReporter,
 		telemetryData: TelemetryData,
 		response: { status: number; text(): Promise<string>; headers: IHeaders },
-		dardcorToken: CopilotToken
 	): Promise<CompletionError> {
 		const text = await response.text();
 		if (response.status === 402) {
-			this.#disabledReason = 'monthly free code completions exhausted';
-			const message = 'Completions limit reached';
-			statusReporter.setError(message, {
-				command: CMDQuotaExceeded,
-				title: 'Learn More',
-			});
-			const event = onCopilotToken(this.authenticationService, t => {
-				this.#disabledReason = undefined;
-				if (!t.isCompletionsQuotaExceeded) {
-					statusReporter.forceNormal();
-					event.dispose();
-				}
-			});
-			return { type: 'failed', reason: this.#disabledReason };
+			const message = text || 'Dardcor Router rejected the inline-completion request (HTTP 402).';
+			statusReporter.setWarning(message);
+			logger.warn(this.logTargetService, message);
+			return { type: 'failed', reason: message };
 		}
-		if (response.status === 466) {
-			statusReporter.setError(text);
-			logger.info(this.logTargetService, text);
-			return { type: 'failed', reason: `client not supported: ${text}` };
-		}
-		if (isClientError(response) && !response.headers.get('x-github-request-id')) {
-			const message = `Last response was a ${response.status} error and does not appear to originate from GitHub. Is a proxy or firewall intercepting this request? https://gh.io/dardcor-firewall`;
+		if (isClientError(response)) {
+			const message = `Dardcor Router returned an HTTP ${response.status} error${text ? `: ${text}` : '.'}`;
 			logger.error(this.logTargetService, message);
 			statusReporter.setWarning(message);
-			telemetryData.properties.error = `Response status was ${response.status} with no x-github-request-id header`;
-		} else if (isClientError(response)) {
-			logger.warn(this.logTargetService, `Response status was ${response.status}:`, text);
-			statusReporter.setWarning(`Last response was a ${response.status} error: ${text}`);
-			telemetryData.properties.error = `Response status was ${response.status}: ${text}`;
+			telemetryData.properties.error = message;
 		} else {
 			statusReporter.setWarning(`Last response was a ${response.status} error`);
 			telemetryData.properties.error = `Response status was ${response.status}`;
 		}
 		telemetryData.properties.status = String(response.status);
 		this.instantiationService.invokeFunction(telemetry, 'request.shownWarning', telemetryData);
-		// check for 4xx responses which will point to a forbidden
 		if (response.status === 401 || response.status === 403) {
-			// Token has expired or invalid, fetch a new one on next request
-			// TODO(drifkin): these actions should probably happen in vsc specific code
-			this.dardcorTokenManager.resetToken(response.status);
-			return { type: 'failed', reason: `token expired or invalid: ${response.status}` };
+			return { type: 'failed', reason: `Dardcor Router rejected the configured API key (HTTP ${response.status}).` };
 		}
 		if (response.status === 429) {
 			const rateLimitSeconds = 10;
@@ -865,12 +655,11 @@ function isClientError(response: { status: number }): boolean {
 class CompletionAccumulator {
 
 	private _chunks: string[] = [];
-	/** concatenated version of {_chunks} */
 	private _responseSoFar: string = '';
 
 	private _finishReason: string | null = null;
 
-	public readonly annotations: CopilotAnnotations = new StreamCopilotAnnotations();
+	public readonly annotations: DardcorAnnotations = new StreamDardcorAnnotations();
 
 	public get responseSoFar(): string {
 		return this._responseSoFar;

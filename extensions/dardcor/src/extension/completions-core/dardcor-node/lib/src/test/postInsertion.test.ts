@@ -6,7 +6,7 @@
 import Sinon from 'sinon';
 import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsCitationManager, IPDocumentCitation } from '../citationManager';
-import { CopilotCompletion } from '../ghostText/dardcorCompletion';
+import { DardcorCompletion } from '../ghostText/dardcorCompletion';
 import { ResultType } from '../ghostText/resultType';
 import { postInsertionTasks } from '../postInsertion';
 import { TelemetryWithExp } from '../telemetry';
@@ -25,7 +25,7 @@ suite('postInsertionTasks', function () {
 	const uri = 'file:///hello.js';
 	const pos: IPosition = { line: 1, character: 0 };
 	const completionText = 'console.log("Hello, world!")';
-	let completion: CopilotCompletion;
+	let completion: DardcorCompletion;
 
 	setup(function () {
 		accessor = createLibTestingContext().createTestingAccessor();
@@ -112,7 +112,7 @@ suite('postInsertionTasks', function () {
 	});
 
 	test('does not invoke CitationManager when partially accepted completion excludes matched code', async function () {
-		completion.dardcorAnnotations = fakeCodeReference(12, 14); // "Hello, world!"
+		completion.dardcorAnnotations = fakeCodeReference(12, 14);
 		const partial = completionText.slice(0, 11);
 
 		docMgr.updateTextDocument(doc.uri, `function main() {\n${partial}\n\n}`);
@@ -138,9 +138,6 @@ suite('postInsertionTasks', function () {
 			completion.dardcorAnnotations.ip_code_citations[0].details as { citations: { license: string; url: string }[] }
 		).citations;
 
-		// when we'd like the editor to notify us of acceptance:
-		// docMgr.updateTextDocument(doc.uri, `function main() {\n${completionText}\n\n}`);
-		// when it might:
 		docMgr.updateTextDocument(doc.uri, `function main() {\n    ${completionText};\n\n}`);
 		postInsertionTasks(
 			accessor,

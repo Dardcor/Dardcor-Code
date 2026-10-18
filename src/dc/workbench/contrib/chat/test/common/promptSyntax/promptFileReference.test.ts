@@ -25,14 +25,7 @@ import { PromptsType } from '../../../common/promptSyntax/promptTypes.js';
 import { IMockFolder, MockFilesystem } from './testUtils/mockFilesystem.js';
 import { IBodyFileReference, PromptFileParser } from '../../../common/promptSyntax/promptFileParser.js';
 
-/**
- * Represents a file reference with an expected
- * error condition value for testing purposes.
- */
 class ExpectedReference {
-	/**
-	 * URI component of the expected reference.
-	 */
 	public readonly uri: URI;
 
 	constructor(
@@ -44,16 +37,10 @@ class ExpectedReference {
 			: URI.joinPath(dirname, ref.content);
 	}
 
-	/**
-	 * Range of the underlying file reference token.
-	 */
 	public get range(): Range {
 		return this.ref.range;
 	}
 
-	/**
-	 * String representation of the expected reference.
-	 */
 	public toString(): string {
 		return `file-prompt:${this.uri.path}`;
 	}
@@ -63,9 +50,6 @@ function toUri(filePath: string): URI {
 	return URI.parse('testFs://' + filePath);
 }
 
-/**
- * A reusable test utility to test the `PromptFileReference` class.
- */
 class TestPromptFileReference extends Disposable {
 	constructor(
 		private readonly fileStructure: IMockFolder[],
@@ -76,16 +60,11 @@ class TestPromptFileReference extends Disposable {
 	) {
 		super();
 
-		// create in-memory file system
 		const fileSystemProvider = this._register(new InMemoryFileSystemProvider());
 		this._register(this.fileService.registerProvider('testFs', fileSystemProvider));
 	}
 
-	/**
-	 * Run the test.
-	 */
 	public async run(): Promise<any> {
-		// create the files structure on the disk
 		const mockFs = this.instantiationService.createInstance(MockFilesystem, this.fileStructure);
 		await mockFs.mock(toUri('/'));
 
@@ -94,7 +73,6 @@ class TestPromptFileReference extends Disposable {
 		const ast = new PromptFileParser().parse(this.rootFileUri, content.value.toString());
 		assert(ast.body, 'Prompt file must have a body');
 
-		// resolve the root file reference including all nested references
 		const resolvedReferences = ast.body.fileReferences ?? [];
 
 		for (let i = 0; i < this.expectedReferences.length; i++) {
@@ -132,15 +110,6 @@ class TestPromptFileReference extends Disposable {
 	}
 }
 
-/**
- * Create expected file reference for testing purposes.
- *
- * Note! This utility also use for `markdown links` at the moment.
- *
- * @param filePath The expected path of the file reference (without the `#file:` prefix).
- * @param lineNumber The expected line number of the file reference.
- * @param startColumnNumber The expected start column number of the file reference.
- */
 function createFileReference(filePath: string, lineNumber: number, startColumnNumber: number): IBodyFileReference {
 	const range = new Range(
 		lineNumber,
@@ -204,9 +173,6 @@ suite('PromptFileReference', function () {
 		const rootUri = toUri(rootFolder);
 
 		const test = testDisposables.add(instantiationService.createInstance(TestPromptFileReference,
-			/**
-			 * The file structure to be created on the disk for the test.
-			 */
 			[{
 				name: rootFolderName,
 				children: [
@@ -255,13 +221,7 @@ suite('PromptFileReference', function () {
 					},
 				],
 			}],
-			/**
-			 * The root file path to start the resolve process from.
-			 */
 			toUri(`/${rootFolderName}/file2.prompt.md`),
-			/**
-			 * The expected references to be resolved.
-			 */
 			[
 				new ExpectedReference(
 					rootUri,
@@ -288,9 +248,6 @@ suite('PromptFileReference', function () {
 			const rootUri = toUri(rootFolder);
 
 			const test = testDisposables.add(instantiationService.createInstance(TestPromptFileReference,
-				/**
-				 * The file structure to be created on the disk for the test.
-				 */
 				[{
 					name: rootFolderName,
 					children: [
@@ -378,13 +335,7 @@ suite('PromptFileReference', function () {
 						},
 					],
 				}],
-				/**
-				 * The root file path to start the resolve process from.
-				 */
 				toUri(`/${rootFolderName}/file2.prompt.md`),
-				/**
-				 * The expected references to be resolved.
-				 */
 				[
 					new ExpectedReference(
 						rootUri,
@@ -422,9 +373,6 @@ suite('PromptFileReference', function () {
 				const rootUri = toUri(rootFolder);
 
 				const test = testDisposables.add(instantiationService.createInstance(TestPromptFileReference,
-					/**
-					 * The file structure to be created on the disk for the test.
-					 */
 					[{
 						name: rootFolderName,
 						children: [
@@ -484,13 +432,7 @@ suite('PromptFileReference', function () {
 							},
 						],
 					}],
-					/**
-					 * The root file path to start the resolve process from.
-					 */
 					toUri(`/${rootFolderName}/file2.prompt.md`),
-					/**
-					 * The expected references to be resolved.
-					 */
 					[
 						new ExpectedReference(
 							rootUri,
@@ -528,9 +470,6 @@ suite('PromptFileReference', function () {
 				const rootUri = toUri(rootFolder);
 
 				const test = testDisposables.add(instantiationService.createInstance(TestPromptFileReference,
-					/**
-					 * The file structure to be created on the disk for the test.
-					 */
 					[{
 						name: rootFolderName,
 						children: [
@@ -590,13 +529,7 @@ suite('PromptFileReference', function () {
 							},
 						],
 					}],
-					/**
-					 * The root file path to start the resolve process from.
-					 */
 					toUri(`/${rootFolderName}/file2.instructions.md`),
-					/**
-					 * The expected references to be resolved.
-					 */
 					[
 						new ExpectedReference(
 							rootUri,
@@ -634,9 +567,6 @@ suite('PromptFileReference', function () {
 				const rootUri = toUri(rootFolder);
 
 				const test = testDisposables.add(instantiationService.createInstance(TestPromptFileReference,
-					/**
-					 * The file structure to be created on the disk for the test.
-					 */
 					[{
 						name: rootFolderName,
 						children: [
@@ -696,13 +626,7 @@ suite('PromptFileReference', function () {
 							},
 						],
 					}],
-					/**
-					 * The root file path to start the resolve process from.
-					 */
 					toUri(`/${rootFolderName}/file2.prompt.md`),
-					/**
-					 * The expected references to be resolved.
-					 */
 					[
 						new ExpectedReference(
 							rootUri,
@@ -737,9 +661,6 @@ suite('PromptFileReference', function () {
 				const rootUri = toUri(rootFolder);
 
 				const test = testDisposables.add(instantiationService.createInstance(TestPromptFileReference,
-					/**
-					 * The file structure to be created on the disk for the test.
-					 */
 					[{
 						name: rootFolderName,
 						children: [
@@ -798,13 +719,7 @@ suite('PromptFileReference', function () {
 							},
 						],
 					}],
-					/**
-					 * The root file path to start the resolve process from.
-					 */
 					toUri(`/${rootFolderName}/file2.prompt.md`),
-					/**
-					 * The expected references to be resolved.
-					 */
 					[
 						new ExpectedReference(
 							rootUri,
@@ -840,9 +755,6 @@ suite('PromptFileReference', function () {
 				const rootUri = toUri(rootFolder);
 
 				const test = testDisposables.add(instantiationService.createInstance(TestPromptFileReference,
-					/**
-					 * The file structure to be created on the disk for the test.
-					 */
 					[{
 						name: rootFolderName,
 						children: [
@@ -901,13 +813,7 @@ suite('PromptFileReference', function () {
 							},
 						],
 					}],
-					/**
-					 * The root file path to start the resolve process from.
-					 */
 					toUri(`/${rootFolderName}/file2.prompt.md`),
-					/**
-					 * The expected references to be resolved.
-					 */
 					[
 						new ExpectedReference(
 							rootUri,
@@ -943,9 +849,6 @@ suite('PromptFileReference', function () {
 				const rootUri = toUri(rootFolder);
 
 				const test = testDisposables.add(instantiationService.createInstance(TestPromptFileReference,
-					/**
-					 * The file structure to be created on the disk for the test.
-					 */
 					[{
 						name: rootFolderName,
 						children: [
@@ -1004,13 +907,7 @@ suite('PromptFileReference', function () {
 							},
 						],
 					}],
-					/**
-					 * The root file path to start the resolve process from.
-					 */
 					toUri(`/${rootFolderName}/file2.prompt.md`),
-					/**
-					 * The expected references to be resolved.
-					 */
 					[
 						new ExpectedReference(
 							rootUri,

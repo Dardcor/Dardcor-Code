@@ -22,7 +22,6 @@ import { createExtensionUnitTestingServices } from '../../../test/node/services'
 import { GetErrorsTool } from '../getErrorsTool';
 import { toolResultToString } from './toolTestUtils';
 
-// Test the GetErrorsTool functionality
 suite('GetErrorsTool - Tool Invocation', () => {
 	let accessor: ITestingServicesAccessor;
 	let collection: TestingServiceCollection;
@@ -42,32 +41,26 @@ suite('GetErrorsTool - Tool Invocation', () => {
 	beforeEach(() => {
 		collection = createExtensionUnitTestingServices();
 
-		// Set up test documents
 		const tsDoc1 = createTextDocumentData(tsFile1, 'function test() {\n  const x = 1;\n  return x;\n}', 'ts').document;
 		const tsDoc2 = createTextDocumentData(tsFile2, 'interface User {\n  name: string;\n  age: number;\n}', 'ts').document;
 		const jsDoc = createTextDocumentData(jsFile, 'function legacy() {\n  var y = 2;\n  return y;\n}', 'js').document;
 		const noErrorDoc = createTextDocumentData(noErrorFile, '', 'ts').document;
 		const eslintErrorDoc = createTextDocumentData(eslintErrorFile, 'if (true) {\n  console.log("This is a constant condition");\n}', 'ts').document;
-		// File with a trailing empty line where the error is reported
 		const emptyLineErrorDoc = createTextDocumentData(emptyLineErrorFile, 'codeunit 50100 MyCU {\n  procedure Foo() {\n\n', 'ts').document;
 
 		collection.define(IWorkspaceService, new SyncDescriptor(TestWorkspaceService, [[workspaceFolder], [tsDoc1, tsDoc2, jsDoc, noErrorDoc, eslintErrorDoc, emptyLineErrorDoc]]));
 
-		// Set up diagnostics service
 		diagnosticsService = new TestLanguageDiagnosticsService();
 		collection.define(ILanguageDiagnosticsService, diagnosticsService);
 
-		// Set up file system service to mock directories
 		fileSystemService = new MockFileSystemService();
 		fileSystemService.mockDirectory(srcFolder, []);
 		collection.define(IFileSystemService, fileSystemService);
 
 		accessor = collection.createTestingAccessor();
 
-		// Create the tool instance
 		tool = accessor.get(IInstantiationService).createInstance(GetErrorsTool);
 
-		// Add test diagnostics
 		diagnosticsService.setDiagnostics(tsFile1, [
 			{
 				message: 'Variable is declared but never used',
@@ -85,7 +78,7 @@ suite('GetErrorsTool - Tool Invocation', () => {
 			{
 				message: 'Interface should be exported',
 				range: new Range(0, 0, 0, 9),
-				severity: DiagnosticSeverity.Information // Should be filtered out
+				severity: DiagnosticSeverity.Information
 			},
 			{
 				message: 'Property age should be optional',
@@ -124,26 +117,22 @@ suite('GetErrorsTool - Tool Invocation', () => {
 	});
 
 	test('getDiagnostics - returns empty when no paths provided', () => {
-		// Test getting all diagnostics
 		const allDiagnostics = tool.getDiagnostics([]);
 		expect(allDiagnostics).toEqual([]);
 	});
 
 	test('getDiagnostics - filters by file path', () => {
-		// Test with specific file path
 		const results = tool.getDiagnostics([{ uri: tsFile1, range: undefined }]);
 
 		expect(results).toEqual([
-			{ uri: tsFile1, diagnostics: diagnosticsService.getDiagnostics(tsFile1).filter(d => d.severity <= DiagnosticSeverity.Warning) } // Should only include Warning and Error
+			{ uri: tsFile1, diagnostics: diagnosticsService.getDiagnostics(tsFile1).filter(d => d.severity <= DiagnosticSeverity.Warning) }
 		]);
 	});
 
 	test('getDiagnostics - filters by folder path', () => {
-		// Test with folder path
 		const srcFolder = URI.file('/test/workspace/src');
 		const results = tool.getDiagnostics([{ uri: srcFolder, range: undefined }]);
 
-		// Should find diagnostics for files in the src folder
 		expect(results).toEqual([
 			{ uri: tsFile1, diagnostics: diagnosticsService.getDiagnostics(tsFile1).filter(d => d.severity <= DiagnosticSeverity.Warning), inputUri: srcFolder },
 			{ uri: tsFile2, diagnostics: diagnosticsService.getDiagnostics(tsFile2).filter(d => d.severity <= DiagnosticSeverity.Warning), inputUri: srcFolder }
@@ -151,7 +140,6 @@ suite('GetErrorsTool - Tool Invocation', () => {
 	});
 
 	test('getDiagnostics - filters by range', () => {
-		// Test with specific range that only covers line 1
 		const range = new Range(1, 0, 1, 10);
 		const results = tool.getDiagnostics([{ uri: tsFile1, range }]);
 
@@ -170,7 +158,6 @@ suite('GetErrorsTool - Tool Invocation', () => {
 	});
 
 	test('getDiagnostics - folder path excludes files with only Info and Hint diagnostics', () => {
-		// Create a file with only Info and Hint diagnostics
 		const infoHintOnlyFile = URI.file('/test/workspace/src/infoHintOnly.ts');
 		diagnosticsService.setDiagnostics(infoHintOnlyFile, [
 			{
@@ -185,18 +172,15 @@ suite('GetErrorsTool - Tool Invocation', () => {
 			}
 		]);
 
-		// Request diagnostics for the src folder
 		const srcFolder = URI.file('/test/workspace/src');
 		const results = tool.getDiagnostics([{ uri: srcFolder, range: undefined }]);
 
-		// Should only include tsFile1 and tsFile2, not infoHintOnlyFile (which has no Warning/Error)
 		expect(results).toEqual([
 			{ uri: tsFile1, diagnostics: diagnosticsService.getDiagnostics(tsFile1).filter(d => d.severity <= DiagnosticSeverity.Warning), inputUri: srcFolder },
 			{ uri: tsFile2, diagnostics: diagnosticsService.getDiagnostics(tsFile2).filter(d => d.severity <= DiagnosticSeverity.Warning), inputUri: srcFolder }
 		]);
 	});
 
-	// Tool invocation tests
 	test('Tool invocation - with no filePaths aggregates all diagnostics and formats workspace message', async () => {
 		const result = await tool.invoke({ input: {}, toolInvocationToken: null! }, CancellationToken.None);
 		const msg = await toolResultToString(accessor, result);
@@ -223,7 +207,6 @@ suite('GetErrorsTool - Tool Invocation', () => {
 	test('Tool invocation - with filePath and range filters diagnostics to that range', async () => {
 		const pathRep = accessor.get(IPromptPathRepresentationService);
 		const filePath = pathRep.getFilePath(tsFile1);
-		// Range only covering the second line (line index 1) -> should include the warning at line 1 but not the error at line 0 if it doesn't intersect
 		const range = new Range(1, 0, 1, 50);
 		const result = await tool.invoke({
 			input: {

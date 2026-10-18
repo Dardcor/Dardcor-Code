@@ -28,9 +28,6 @@ import { DecorationStyleCache } from './css/decorationStyleCache.js';
 import { InlineDecorationType } from '../../common/viewModel/inlineDecorations.js';
 
 export class ViewGpuContext extends Disposable {
-	/**
-	 * The hard cap for line columns rendered by the GPU renderer.
-	 */
 	readonly maxGpuCols = 2000;
 
 	readonly canvas: FastDomNode<HTMLCanvasElement>;
@@ -53,23 +50,12 @@ export class ViewGpuContext extends Disposable {
 
 	private static _atlas: TextureAtlas | undefined;
 
-	/**
-	 * The shared texture atlas to use across all views.
-	 *
-	 * @throws if called before the GPU device is resolved
-	 */
 	static get atlas(): TextureAtlas {
 		if (!ViewGpuContext._atlas) {
 			throw new BugIndicatingError('Cannot call ViewGpuContext.textureAtlas before device is resolved');
 		}
 		return ViewGpuContext._atlas;
 	}
-	/**
-	 * The shared texture atlas to use across all views. This is a convenience alias for
-	 * {@link ViewGpuContext.atlas}.
-	 *
-	 * @throws if called before the GPU device is resolved
-	 */
 	get atlas(): TextureAtlas {
 		return ViewGpuContext.atlas;
 	}
@@ -90,7 +76,6 @@ export class ViewGpuContext extends Disposable {
 		this.canvas = createFastDomNode(document.createElement('canvas'));
 		this.canvas.setClassName('editorCanvas');
 
-		// Adjust the canvas size to avoid drawing under the scroll bar
 		this._register(Event.runAndSubscribe(configurationService.onDidChangeConfiguration, e => {
 			if (!e || e.affectsConfiguration('editor.scrollbar.verticalScrollbarSize')) {
 				const verticalScrollbarSize = configurationService.getValue<IEditorOptions>('editor').scrollbar?.verticalScrollbarSize ?? 14;
@@ -101,8 +86,6 @@ export class ViewGpuContext extends Disposable {
 
 		this.ctx = ensureNonNullable(this.canvas.domNode.getContext('webgpu'));
 
-		// Request the GPU device, we only want to do this a single time per window as it's async
-		// and can delay the initial render.
 		if (!ViewGpuContext.device) {
 			ViewGpuContext.device = GPULifecycle.requestDevice((message) => {
 				const choices: IPromptChoice[] = [{
@@ -126,7 +109,6 @@ export class ViewGpuContext extends Disposable {
 		this.devicePixelRatio = dprObs;
 		this._register(runOnChange(this.devicePixelRatio, () => ViewGpuContext.atlas?.clear()));
 
-		// Clear decoration CSS caches when theme changes as CSS variables may have different values
 		this._register(this._themeService.onDidColorThemeChange(() => {
 			ViewGpuContext.decorationCssRuleExtractor.clear();
 			ViewGpuContext.atlas?.clear();
@@ -153,15 +135,9 @@ export class ViewGpuContext extends Disposable {
 		this.rectangleRenderer = this._register(this._instantiationService.createInstance(RectangleRenderer, context, this.contentLeft, this.devicePixelRatio, this.canvas.domNode, this.ctx, ViewGpuContext.device));
 	}
 
-	/**
-	 * This method determines which lines can be and are allowed to be rendered using the GPU
-	 * renderer. Eventually this should trend all lines, except maybe exceptional cases like
-	 * decorations that use class names.
-	 */
 	public canRender(options: ViewLineOptions, viewportData: ViewportData, lineNumber: number): boolean {
 		const data = viewportData.getViewLineRenderingData(lineNumber);
 
-		// Check if the line has simple attributes that aren't supported
 		if (
 			data.containsRTL ||
 			data.maxColumn > this.maxGpuCols
@@ -169,7 +145,6 @@ export class ViewGpuContext extends Disposable {
 			return false;
 		}
 
-		// Check if all inline decorations are supported
 		if (data.inlineDecorations.length > 0) {
 			let supported = true;
 			for (const decoration of data.inlineDecorations) {
@@ -179,7 +154,6 @@ export class ViewGpuContext extends Disposable {
 				}
 				const styleRules = ViewGpuContext._decorationCssRuleExtractor.getStyleRules(this.canvas.domNode, decoration.inlineClassName);
 				supported &&= styleRules.every(rule => {
-					// Pseudo classes aren't supported currently
 					if (rule.selectorText.includes(':')) {
 						return false;
 					}
@@ -200,9 +174,6 @@ export class ViewGpuContext extends Disposable {
 		return true;
 	}
 
-	/**
-	 * Like {@link canRender} but returns detailed information about why the line cannot be rendered.
-	 */
 	public canRenderDetailed(options: ViewLineOptions, viewportData: ViewportData, lineNumber: number): string[] {
 		const data = viewportData.getViewLineRenderingData(lineNumber);
 		const reasons: string[] = [];
@@ -225,7 +196,6 @@ export class ViewGpuContext extends Disposable {
 				}
 				const styleRules = ViewGpuContext._decorationCssRuleExtractor.getStyleRules(this.canvas.domNode, decoration.inlineClassName);
 				supported &&= styleRules.every(rule => {
-					// Pseudo classes aren't supported currently
 					if (rule.selectorText.includes(':')) {
 						problemSelectors.push(rule.selectorText);
 						return false;
@@ -257,9 +227,6 @@ export class ViewGpuContext extends Disposable {
 	}
 }
 
-/**
- * A list of supported decoration CSS rules that can be used in the GPU renderer.
- */
 const gpuSupportedDecorationCssRules = [
 	'color',
 	'font-weight',
@@ -275,31 +242,25 @@ function supportsCssRule(rule: string, style: CSSStyleDeclaration) {
 	if (!gpuSupportedDecorationCssRules.includes(rule)) {
 		return false;
 	}
-	// Check for values that aren't supported
 	switch (rule) {
 		case 'text-decoration':
 		case 'text-decoration-line': {
 			const value = style.getPropertyValue(rule);
-			// Only line-through is supported currently
 			return value === 'line-through';
 		}
 		case 'text-decoration-color': {
 			const value = style.getPropertyValue(rule);
-			// Support var(--something, initial/inherit) which falls back to currentcolor
 			if (/^var\(--[^,]+,\s*(?:initial|inherit)\)$/.test(value)) {
 				return true;
 			}
-			// Support parsed color values
 			return Color.Format.CSS.parse(value) !== null;
 		}
 		case 'text-decoration-style': {
 			const value = style.getPropertyValue(rule);
-			// Only 'initial' (solid) is supported
 			return value === 'initial';
 		}
 		case 'text-decoration-thickness': {
 			const value = style.getPropertyValue(rule);
-			// Only pixel values and 'initial' are supported
 			return value === 'initial' || /^\d+(\.\d+)?px$/.test(value);
 		}
 		default: return true;

@@ -3,17 +3,11 @@ import { CLAUDE_CONFIG } from "../constants/oauth.js";
 import { getServerCredentials } from "../config/index.js";
 import { spinner as createSpinner } from "../utils/ui.js";
 
-/**
- * Claude OAuth Service
- */
 export class ClaudeService extends OAuthService {
   constructor() {
     super(CLAUDE_CONFIG);
   }
 
-  /**
-   * Build Claude authorization URL
-   */
   buildClaudeAuthUrl(redirectUri, state, codeChallenge) {
     const scopeStr = CLAUDE_CONFIG.scopes.join(" ");
     const params = new URLSearchParams({
@@ -30,11 +24,7 @@ export class ClaudeService extends OAuthService {
     return `${CLAUDE_CONFIG.authorizeUrl}?${params.toString()}`;
   }
 
-  /**
-   * Exchange Claude authorization code (with special handling)
-   */
   async exchangeClaudeCode(code, redirectUri, codeVerifier, state) {
-    // Parse code - may contain state after #
     let authCode = code;
     let codeState = "";
     if (authCode.includes("#")) {
@@ -43,7 +33,6 @@ export class ClaudeService extends OAuthService {
       codeState = parts[1] || "";
     }
 
-    // Claude uses JSON format (not form-urlencoded)
     const tokenPayload = {
       code: authCode,
       state: codeState || state,
@@ -70,13 +59,9 @@ export class ClaudeService extends OAuthService {
     return await response.json();
   }
 
-  /**
-   * Save Claude tokens to server
-   */
   async saveTokens(tokens) {
     const { server, token, userId } = getServerCredentials();
 
-    // Server will auto-generate displayName based on existing account count
     const response = await fetch(`${server}/api/cli/providers/claude`, {
       method: "POST",
       headers: {
@@ -100,16 +85,12 @@ export class ClaudeService extends OAuthService {
     return await response.json();
   }
 
-  /**
-   * Complete Claude OAuth flow
-   */
   async connect() {
     const spinner = createSpinner("Starting Claude OAuth...").start();
 
     try {
       spinner.text = "Starting local server...";
 
-      // Authenticate and get authorization code
       const { code, state, codeVerifier, redirectUri } = await this.authenticate(
         "Claude",
         this.buildClaudeAuthUrl.bind(this)
@@ -117,12 +98,10 @@ export class ClaudeService extends OAuthService {
 
       spinner.start("Exchanging code for tokens...");
 
-      // Exchange code for tokens
       const tokens = await this.exchangeClaudeCode(code, redirectUri, codeVerifier, state);
 
       spinner.text = "Saving tokens to server...";
 
-      // Save tokens to server
       await this.saveTokens(tokens);
 
       spinner.succeed("Claude connected successfully!");

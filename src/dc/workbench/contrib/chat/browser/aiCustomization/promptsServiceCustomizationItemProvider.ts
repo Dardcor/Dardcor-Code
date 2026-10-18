@@ -22,10 +22,6 @@ import { BUILTIN_STORAGE } from './aiCustomizationManagement.js';
 import { getFriendlyName, isChatExtensionItem } from './aiCustomizationItemSource.js';
 import { getChatSessionType } from '../../common/model/chatUri.js';
 
-/**
- * Adapts the rich promptsService model to the same provider-shaped items
- * contributed by external customization providers.
- */
 export class PromptsServiceCustomizationItemProvider implements ICustomizationItemProvider {
 
 	readonly onDidChange: Event<void>;
@@ -65,10 +61,6 @@ export class PromptsServiceCustomizationItemProvider implements ICustomizationIt
 		const folders = await this.promptsService.getSourceFolders(type);
 		return folders.map(folder => ({
 			uri: folder.uri,
-			// Prefer the source-specific description (e.g. "Global (only used by
-			// Copilot agents)") over the generic "User Data" label so personal
-			// folders like ~/.copilot/skills read naturally. Only folders that
-			// carry a source (currently skills) use this; others fall back.
 			label: (folder.source !== undefined ? getSourceDescription(folder.source) : undefined) ?? this.promptsService.getPromptLocationLabel(folder),
 			source: folder.storage,
 			destinationGroupId: dirname(folder.uri).toString(),
@@ -182,10 +174,6 @@ export class PromptsServiceCustomizationItemProvider implements ICustomizationIt
 	private async fetchPromptServiceHooks(items: ICustomizationItem[], disabledUris: ResourceSet, promptType: PromptsType): Promise<void> {
 		const hookFiles = await this.promptsService.listPromptFiles(PromptsType.hook, CancellationToken.None);
 
-		// Non-plugin hooks: return raw file items — expansion into individual
-		// hook entries is handled by ItemProviderItemSource.fetchItems().
-		// Plugin hooks: add directly as-is since they're pre-expanded by
-		// plugin manifests and must NOT be re-parsed by expandHookFileItems.
 		for (const f of hookFiles) {
 			items.push({
 				uri: f.uri,
@@ -199,7 +187,6 @@ export class PromptsServiceCustomizationItemProvider implements ICustomizationIt
 			});
 		}
 
-		// Agent-embedded hooks.
 		const agents = await this.promptsService.getCustomAgents(CancellationToken.None);
 		for (const agent of agents) {
 			if (!agent.hooks || !agent.enabled) {

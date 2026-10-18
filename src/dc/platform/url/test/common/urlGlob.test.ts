@@ -59,7 +59,6 @@ suite('urlGlob', () => {
 		});
 
 		test('subdomain wildcard must match on dot boundary', () => {
-			// Should NOT match: no dot boundary before the domain
 			assert.strictEqual(testUrlMatchesGlob('https://notexample.com', 'https://*.example.com'), false);
 			assert.strictEqual(testUrlMatchesGlob('https://evil-microsoft.com', 'https://*.microsoft.com'), false);
 			assert.strictEqual(testUrlMatchesGlob('https://evilmicrosoft.com', 'https://*.microsoft.com'), false);
@@ -67,7 +66,6 @@ suite('urlGlob', () => {
 			assert.strictEqual(testUrlMatchesGlob('https://myexample.com', 'https://*.example.com'), false);
 			assert.strictEqual(testUrlMatchesGlob('https://notexample.com/path', 'https://*.example.com/path'), false);
 
-			// Should match: proper subdomain with dot boundary
 			assert.strictEqual(testUrlMatchesGlob('https://sub.microsoft.com', 'https://*.microsoft.com'), true);
 			assert.strictEqual(testUrlMatchesGlob('https://a.b.c.microsoft.com', 'https://*.microsoft.com'), true);
 			assert.strictEqual(testUrlMatchesGlob('https://microsoft.com', 'https://*.microsoft.com'), true);
@@ -119,7 +117,6 @@ suite('urlGlob', () => {
 		});
 
 		test('edge cases', () => {
-			// Wildcard after authority doesn't match without additional path
 			assert.strictEqual(testUrlMatchesGlob('https://example.com', 'https://example.com*'), false);
 			assert.strictEqual(testUrlMatchesGlob('https://example.com.extra', 'https://example.com*'), true);
 			assert.strictEqual(testUrlMatchesGlob('https://example.com', '*'), true);

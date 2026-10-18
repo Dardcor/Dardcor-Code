@@ -17,15 +17,9 @@ import { IDocumentContext } from './documentContext';
 import { TestFileFinder, isTestFile } from './testFiles';
 
 type Props = PromptElementProps<{
-	/**
-	 * Document here is expected to be a test file.
-	 */
 	documentContext: IDocumentContext;
 }>;
 
-/**
- * @remark Respects dardcor-ignore.
- */
 export class Test2Impl extends PromptElement<Props> {
 
 	constructor(
@@ -43,11 +37,10 @@ export class Test2Impl extends PromptElement<Props> {
 
 		assert(isTestFile(documentContext.document), 'Test2Impl must be invoked on a test file.');
 
-		// @ulugbekna: find file that this test file corresponds to
 		const finder = this.instaService.createInstance(TestFileFinder);
 		const candidateFile = await finder.findFileForTestFile(documentContext.document, CancellationToken.None);
 
-		if (candidateFile === undefined || await this.ignoreService.isCopilotIgnored(candidateFile)) {
+		if (candidateFile === undefined || await this.ignoreService.isIgnored(candidateFile)) {
 			return undefined;
 		}
 

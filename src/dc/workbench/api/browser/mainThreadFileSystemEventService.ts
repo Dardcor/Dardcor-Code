@@ -73,11 +73,9 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 					cancellable: true,
 					delay: Math.min(timeout / 2, 3000)
 				}, () => {
-					// race extension host event delivery against timeout AND user-cancel
 					const onWillEvent = that._proxy.$onWillRunFileOperation(operation, files, timeout, cts.token);
 					return raceCancellation(onWillEvent, cts.token);
 				}, () => {
-					// user-cancel
 					cts.cancel();
 
 				}).finally(() => {
@@ -86,7 +84,6 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 				});
 
 				if (!data || data.edit.edits.length === 0) {
-					// cancelled, no reply, or no edits
 					return;
 				}
 
@@ -94,12 +91,10 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 				let showPreview = storageService.getBoolean(MainThreadFileSystemEventService.MementoKeyAdditionalEdits, StorageScope.PROFILE);
 
 				if (envService.extensionTestsLocationURI) {
-					// don't show dialog in tests
 					showPreview = false;
 				}
 
 				if (showPreview === undefined) {
-					// show a user facing message
 
 					let message: string;
 					if (data.extensionNames.length === 1) {
@@ -109,7 +104,7 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 							message = localize('ask.1.copy', "Extension '{0}' wants to make refactoring changes with this file copy", data.extensionNames[0]);
 						} else if (operation === FileOperation.MOVE) {
 							message = localize('ask.1.move', "Extension '{0}' wants to make refactoring changes with this file move", data.extensionNames[0]);
-						} else /* if (operation === FileOperation.DELETE) */ {
+						} else {
 							message = localize('ask.1.delete', "Extension '{0}' wants to make refactoring changes with this file deletion", data.extensionNames[0]);
 						}
 					} else {
@@ -119,13 +114,12 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 							message = localize({ key: 'ask.N.copy', comment: ['{0} is a number, e.g "3 extensions want..."'] }, "{0} extensions want to make refactoring changes with this file copy", data.extensionNames.length);
 						} else if (operation === FileOperation.MOVE) {
 							message = localize({ key: 'ask.N.move', comment: ['{0} is a number, e.g "3 extensions want..."'] }, "{0} extensions want to make refactoring changes with this file move", data.extensionNames.length);
-						} else /* if (operation === FileOperation.DELETE) */ {
+						} else {
 							message = localize({ key: 'ask.N.delete', comment: ['{0} is a number, e.g "3 extensions want..."'] }, "{0} extensions want to make refactoring changes with this file deletion", data.extensionNames.length);
 						}
 					}
 
 					if (needsConfirmation) {
-						// edit which needs confirmation -> always show dialog
 						const { confirmed } = await dialogService.confirm({
 							type: Severity.Info,
 							message,
@@ -134,11 +128,9 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 						});
 						showPreview = true;
 						if (!confirmed) {
-							// no changes wanted
 							return;
 						}
 					} else {
-						// choice
 						enum Choice {
 							OK = 0,
 							Preview = 1,
@@ -164,7 +156,6 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 							checkbox: { label: localize('again', "Do not ask me again") }
 						});
 						if (result === Choice.Cancel) {
-							// no changes wanted, don't persist cancel option
 							return;
 						}
 						showPreview = result === Choice.Preview;
@@ -198,10 +189,8 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 			}
 		};
 
-		// BEFORE file operation
 		this._listener.add(workingCopyFileService.addFileOperationParticipant(fileOperationParticipant));
 
-		// AFTER file operation
 		this._listener.add(workingCopyFileService.onDidRunWorkingCopyFileOperation(e => this._proxy.$onDidRunFileOperation(e.operation, e.files)));
 	}
 
@@ -217,10 +206,6 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 			...unvalidatedOpts
 		};
 
-		// Convert a recursive watcher to a flat watcher if the path
-		// turns out to not be a folder. Recursive watching is only
-		// possible on folders, so we help all file watchers by checking
-		// early.
 		if (opts.recursive) {
 			try {
 				const stat = await this._fileService.stat(uri);
@@ -228,12 +213,9 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 					opts.recursive = false;
 				}
 			} catch (error) {
-				// ignore
 			}
 		}
 
-		// Correlated file watching: use an exclusive `createWatcher()`
-		// Note: currently not enabled for extensions (but leaving in in case of future usage)
 		if (correlate && !opts.recursive) {
 			this._logService.trace(`MainThreadFileSystemEventService#$watch(): request to start watching correlated (extension: ${extensionId}, path: ${uri.toString(true)}, recursive: ${opts.recursive}, session: ${session}, excludes: ${JSON.stringify(opts.excludes)}, includes: ${JSON.stringify(opts.includes)})`);
 
@@ -251,7 +233,6 @@ export class MainThreadFileSystemEventService implements MainThreadFileSystemEve
 			this._watches.set(session, watcherDisposables);
 		}
 
-		// Uncorrelated file watching: via shared `watch()`
 		else {
 			this._logService.trace(`MainThreadFileSystemEventService#$watch(): request to start watching uncorrelated (extension: ${extensionId}, path: ${uri.toString(true)}, recursive: ${opts.recursive}, session: ${session}, excludes: ${JSON.stringify(opts.excludes)}, includes: ${JSON.stringify(opts.includes)})`);
 

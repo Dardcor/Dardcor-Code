@@ -108,17 +108,14 @@ export class UserDataProfilesManifestSynchroniser extends AbstractSynchroniser i
 	}
 
 	protected async getAcceptResult(resourcePreview: IUserDataProfilesManifestResourcePreview, resource: URI, content: string | null | undefined, token: CancellationToken): Promise<IAcceptResult> {
-		/* Accept local resource */
 		if (this.extUri.isEqual(resource, this.localResource)) {
 			return this.acceptLocal(resourcePreview);
 		}
 
-		/* Accept remote resource */
 		if (this.extUri.isEqual(resource, this.remoteResource)) {
 			return this.acceptRemote(resourcePreview);
 		}
 
-		/* Accept preview resource */
 		if (this.extUri.isEqual(resource, this.previewResource)) {
 			return resourcePreview.previewResult;
 		}
@@ -249,7 +246,6 @@ export class UserDataProfilesManifestSynchroniser extends AbstractSynchroniser i
 		}
 
 		if (lastSyncUserData?.ref !== remoteUserData.ref) {
-			// update last sync
 			this.logService.trace(`${this.syncResourceLogLabel}: Updating last synchronized profiles...`);
 			await this.updateLastSyncUserData(remoteUserData);
 			this.logService.info(`${this.syncResourceLogLabel}: Updated last synchronized profiles.`);

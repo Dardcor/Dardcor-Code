@@ -4,4 +4,4 @@
 
 ## Features
 
-See [Merge Conflicts in VS Code](https://code.visualstudio.com/docs/editor/versioncontrol#_merge-conflicts) to learn about features of this extension.
+See [Merge Conflicts in VS Code](https://www.dardcor-code.web.id/docs/editor/versioncontrol#_merge-conflicts) to learn about features of this extension.

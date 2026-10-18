@@ -102,13 +102,11 @@ suite('MarkdownString', () => {
 		}
 
 		test('common cases', () => {
-			// no backticks
 			assertCodeBlock('ts', 'const a = 1;', `\n${[
 				'```ts',
 				'const a = 1;',
 				'```'
 			].join('\n')}\n`);
-			// backticks
 			assertCodeBlock('ts', 'const a = `1`;', `\n${[
 				'```ts',
 				'const a = `1`;',
@@ -116,21 +114,17 @@ suite('MarkdownString', () => {
 			].join('\n')}\n`);
 		});
 
-		// @see https://github.com/microsoft/vscode/issues/193746
 		test('escape fence', () => {
-			// fence in the first line
 			assertCodeBlock('md', '```\n```', `\n${[
 				'````md',
 				'```\n```',
 				'````'
 			].join('\n')}\n`);
-			// fence in the middle of code
 			assertCodeBlock('md', '\n\n```\n```', `\n${[
 				'````md',
 				'\n\n```\n```',
 				'````'
 			].join('\n')}\n`);
-			// longer fence at the end of code
 			assertCodeBlock('md', '```\n```\n````\n````', `\n${[
 				'`````md',
 				'```\n```\n````\n````',

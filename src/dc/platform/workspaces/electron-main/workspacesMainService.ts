@@ -14,7 +14,7 @@ import { IWorkspacesManagementMainService } from './workspacesManagementMainServ
 import { IWorkspaceBackupInfo, IFolderBackupInfo } from '../../backup/common/backup.js';
 import { Event } from '../../../base/common/event.js';
 
-export class WorkspacesMainService implements AddFirstParameterToFunctions<IWorkspacesService, Promise<unknown> /* only methods, not events */, number /* window ID */> {
+export class WorkspacesMainService implements AddFirstParameterToFunctions<IWorkspacesService, Promise<unknown> , number > {
 
 	declare readonly _serviceBrand: undefined;
 
@@ -27,7 +27,6 @@ export class WorkspacesMainService implements AddFirstParameterToFunctions<IWork
 		this.onDidChangeRecentlyOpened = this.workspacesHistoryMainService.onDidChangeRecentlyOpened;
 	}
 
-	//#region Workspace Management
 
 	async enterWorkspace(windowId: number, path: URI): Promise<IEnterWorkspaceResult | undefined> {
 		const window = this.windowsMainService.getWindowById(windowId);
@@ -50,9 +49,7 @@ export class WorkspacesMainService implements AddFirstParameterToFunctions<IWork
 		return this.workspacesManagementMainService.getWorkspaceIdentifier(workspacePath);
 	}
 
-	//#endregion
 
-	//#region Workspaces History
 
 	readonly onDidChangeRecentlyOpened: Event<void>;
 
@@ -72,14 +69,11 @@ export class WorkspacesMainService implements AddFirstParameterToFunctions<IWork
 		return this.workspacesHistoryMainService.clearRecentlyOpened();
 	}
 
-	//#endregion
 
 
-	//#region Dirty Workspaces
 
 	async getDirtyWorkspaces(): Promise<Array<IWorkspaceBackupInfo | IFolderBackupInfo>> {
 		return this.backupMainService.getDirtyWorkspaces();
 	}
 
-	//#endregion
 }

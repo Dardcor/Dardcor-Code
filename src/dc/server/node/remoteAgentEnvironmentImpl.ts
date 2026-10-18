@@ -65,7 +65,6 @@ export class RemoteAgentEnvironmentChannel implements IServerChannel {
 				let workspaceMetadataPromises: Promise<void>[] = [];
 				const workspaceMetadata: { [key: string]: any } = {};
 				if (options.folders) {
-					// only incoming paths are transformed, so remote authority is unneeded.
 					const uriTransformer = createURITransformer('');
 					const folderPaths = options.folders
 						.map(folder => URI.revive(uriTransformer.transformIncoming(folder)))

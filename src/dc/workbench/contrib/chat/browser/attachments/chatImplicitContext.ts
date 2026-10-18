@@ -153,9 +153,6 @@ export class ChatImplicitContextContribution extends Disposable implements IWork
 				continue;
 			}
 
-			// Chat's own resources are already part of the conversation, so an
-			// editor such as an opened pasted-text artifact is passed over rather
-			// than suggested back as an attachment.
 			const model = codeEditor.getModel();
 			if (model && model.uri.scheme !== Schemas.vscodeChatResponseResource) {
 				return codeEditor;
@@ -206,8 +203,6 @@ export class ChatImplicitContextContribution extends Disposable implements IWork
 				} else {
 					const visibleRanges = codeEditor?.getVisibleRanges();
 					if (visibleRanges && visibleRanges.length > 0) {
-						// Merge visible ranges. Maybe the reference value could actually be an array of Locations?
-						// Something like a Location with an array of Ranges?
 						let range = visibleRanges[0];
 						visibleRanges.slice(1).forEach(r => {
 							range = range.plusRange(r);
@@ -218,13 +213,11 @@ export class ChatImplicitContextContribution extends Disposable implements IWork
 					}
 				}
 			}
-			// Also check if a chat context provider can provide additional context for this text editor resource
 			providerContext = await this.chatContextService.contextForResource(model.uri, languageId);
 		}
 
 		const notebookEditor = this.findActiveNotebookEditor();
 		if (notebookEditor?.isReplHistory) {
-			// The chat APIs don't work well with Interactive Windows
 			newValue = undefined;
 		} else if (notebookEditor) {
 			const activeCell = notebookEditor.getActiveCell();
@@ -239,10 +232,7 @@ export class ChatImplicitContextContribution extends Disposable implements IWork
 						newValue = { uri: activeCell.uri, range: selection } satisfies Location;
 						isSelection = true;
 					} else if (visibleRanges.length > 0) {
-						// If the entire cell is visible, just use the cell URI, no need to specify range.
 						if (!isEntireCellVisible(cellModel, visibleRanges)) {
-							// Merge visible ranges. Maybe the reference value could actually be an array of Locations?
-							// Something like a Location with an array of Ranges?
 							let range = visibleRanges[0];
 							visibleRanges.slice(1).forEach(r => {
 								range = range.plusRange(r);
@@ -289,9 +279,6 @@ export class ChatImplicitContextContribution extends Disposable implements IWork
 			const setting = this._implicitContextEnablement[widget.location];
 			const isFirstInteraction = widget.viewModel?.getItems().length === 0;
 			if ((setting === 'always' || setting === 'first' && isFirstInteraction)) {
-				// When there's a non-code active editor (e.g. Settings is open), preserve
-				// existing values so the attachment bar stays visible.
-				// But when there's no active editor at all, clear the values.
 				const hasActiveEditor = !!this.editorService.activeEditor;
 				if (newValue !== undefined || !widget.input.implicitContext.hasValue || !hasActiveEditor || browser) {
 					widget.input.implicitContext.setValues([{ value: newValue, isSelection }, { value: providerContext, isSelection: false }]);

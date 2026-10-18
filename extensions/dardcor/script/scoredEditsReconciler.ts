@@ -54,17 +54,15 @@ Options:
 		`.trim());
 }
 
-async function scoredEditsWithMergeConflicts(): Promise<string[]> /* paths */ {
+async function scoredEditsWithMergeConflicts(): Promise<string[]> {
 	const files = await findFilesWithMergeConflicts();
 	return files.filter(file => file.endsWith('scoredEdits.w.json'));
 }
 
 async function findFilesWithMergeConflicts() {
 	try {
-		// Get files with merge conflicts using git command
 		const gitOutput = execSync('git diff --name-only --diff-filter=U').toString();
 
-		// Split output into array of file paths
 		const conflictFiles = gitOutput.split('\n').filter(file => file.trim().length > 0);
 
 		return conflictFiles.map(file => path.resolve(file));

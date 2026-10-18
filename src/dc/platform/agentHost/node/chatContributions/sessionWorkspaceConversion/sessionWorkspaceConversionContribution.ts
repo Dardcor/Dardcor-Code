@@ -11,7 +11,6 @@ import { toAgentWorkspaceContinuationMessageMeta } from '../../../common/meta/ag
 import { ResponsePartKind, withMessageRequestHiddenFromTranscript, type Turn } from '../../../common/state/sessionState.js';
 import { ISessionWorkspaceConversionService } from './sessionWorkspaceConversionService.js';
 
-/** Finalizes requested workspace conversions after a turn and blocks new turns while conversion is pending. */
 export class SessionWorkspaceConversionContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'sessionWorkspaceConversion';

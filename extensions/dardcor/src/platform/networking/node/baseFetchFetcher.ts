@@ -81,7 +81,6 @@ export abstract class BaseFetchFetcher implements IFetcher {
 			const response = await this.fetch(url, options);
 
 			if (!response.ok) {
-				// Return what we've collected so far if request fails
 				return items;
 			}
 
@@ -155,20 +154,15 @@ export abstract class BaseFetchFetcher implements IFetcher {
 		if (stamped === 'hit' || stamped === 'stale-hit' || stamped === 'revalidated' || stamped === 'miss') {
 			return stamped;
 		}
-		// Caller opted in but the response carried no marker — either the
-		// fetcher does not implement caching or the cache interceptor skipped
-		// this request.
 		return 'bypass';
 	}
 
 	async disconnectAll(): Promise<void> {
-		// Nothing to do
 	}
 	makeAbortController(): IAbortController {
 		return new AbortController();
 	}
 	isAbortError(e: any): boolean {
-		// see https://github.com/nodejs/node/issues/38361#issuecomment-1683839467
 		return e && e.name === 'AbortError';
 	}
 	abstract isInternetDisconnectedError(e: any): boolean;

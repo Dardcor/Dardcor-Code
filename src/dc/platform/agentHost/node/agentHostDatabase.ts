@@ -9,13 +9,6 @@ import { dirname } from '../../../base/common/path.js';
 import { IDisposable } from '../../../base/common/lifecycle.js';
 import { AgentProvider } from '../common/agent.js';
 
-/**
- * Durable origin used to resolve competing registrations for the same session.
- * In particular, discovery may upgrade a restored session to external, but must
- * never override an explicitly created Agent Host session. Removing legacy
- * migration alone does not make this redundant; it can only be removed if
- * registration APIs encode these conflict rules without relying on stored origin.
- */
 export type AgentSessionRegistrationSource = 'explicit' | 'restore' | 'discovery';
 
 export interface IAgentHostDatabaseSession {
@@ -30,7 +23,6 @@ export interface IAgentHostDatabaseSession {
 export interface IAgentHostDatabaseSessionOptions {
 	readonly provider: AgentProvider;
 	readonly startTime: number;
-	/** Last observed provider modification time; defaults to {@link startTime}. */
 	readonly modifiedTime?: number;
 	readonly source: AgentSessionRegistrationSource;
 }
@@ -50,47 +42,23 @@ export interface IAgentHostDatabaseModifiedTimeUpdate {
 }
 
 export interface IAgentHostDatabase extends IDisposable {
-	/**
-	 * Records a session with source-aware provenance. When requested, the
-	 * tombstone check and registration are atomic.
-	 */
 	registerSession(session: string, sessionOptions: IAgentHostDatabaseSessionOptions, registerOptions: IAgentHostDatabaseRegisterOptions): Promise<boolean>;
 	unregisterSession(session: string): Promise<void>;
-	/** Atomically tombstones and removes a session so concurrent backfill cannot re-register it. */
 	tombstoneAndUnregisterSession(session: string): Promise<void>;
 	updateSessionExternal(updates: readonly IAgentHostDatabaseExternalUpdate[]): Promise<void>;
-	/** Advances the durable last-observed modification time. */
 	updateSessionModifiedTime(session: string, modifiedTime: number): Promise<boolean>;
-	/** Advances the durable last-observed modification time for many sessions in one transaction. */
 	updateSessionModifiedTimes(updates: readonly IAgentHostDatabaseModifiedTimeUpdate[]): Promise<void>;
 	getSession(session: string): Promise<IAgentHostDatabaseSession | undefined>;
 	listSessions(): Promise<readonly IAgentHostDatabaseSession[]>;
 	isSessionRegistryEmpty(): Promise<boolean>;
-	/**
-	 * @deprecated superseded by per-provider {@link isProviderBackfilled}.
-	 * Retained only for reading databases written by pre-per-provider code.
-	 * Neither this marker nor per-provider markers gate native discovery.
-	 */
 	isSessionRegistryBackfilled(): Promise<boolean>;
-	/** @deprecated see {@link isSessionRegistryBackfilled}. */
 	markSessionRegistryBackfilled(): Promise<void>;
-	/** Whether `provider` has completed native discovery at least once (for compatibility/diagnostics). */
 	isProviderBackfilled(provider: AgentProvider): Promise<boolean>;
-	/** Durably records a completed provider-native discovery pass. */
 	markProviderBackfilled(provider: AgentProvider): Promise<void>;
-	/** Whether `session` was explicitly deleted and must not be resurrected by backfill. */
 	isSessionTombstoned(session: string): Promise<boolean>;
-	/** Durably records that `session` was explicitly deleted. */
 	markSessionTombstoned(session: string): Promise<void>;
-	/** Clears a session's deletion tombstone (used on explicit create/restore). */
 	clearSessionTombstone(session: string): Promise<void>;
-	/**
-	 * Records whether Agent Merge is enabled for `session`. This host-owned index
-	 * lets startup find the few monitored sessions without opening every session
-	 * database.
-	 */
 	setSessionAgentMergeEnabled(session: string, enabled: boolean): Promise<void>;
-	/** Session URIs currently marked Agent-Merge-enabled. */
 	listAgentMergeEnabledSessions(): Promise<readonly string[]>;
 	close(): Promise<void>;
 }
@@ -150,7 +118,6 @@ function run(database: Database, sql: string, parameters: readonly unknown[]): P
 	});
 }
 
-/** Like {@link run}, but resolves with the number of rows the statement actually affected. */
 function runReturningChanges(database: Database, sql: string, parameters: readonly unknown[]): Promise<number> {
 	return new Promise((resolve, reject) => {
 		database.run(sql, parameters, function (this: RunResult, error: Error | null) {
@@ -171,19 +138,16 @@ function all(database: Database, sql: string, parameters: readonly unknown[]): P
 	});
 }
 
-/** Metadata key for the durable per-provider backfill-completion marker. */
 function providerBackfillKey(provider: AgentProvider): string {
 	return `sessionRegistryBackfilled:${provider}`;
 }
 
-/** Metadata key for a session's durable "explicitly deleted" tombstone. */
 function tombstoneKey(session: string): string {
 	return `sessionTombstone:${session}`;
 }
 
 const agentMergeEnabledKeyPrefix = 'agentMergeEnabled:';
 
-/** Metadata key marking a session as Agent-Merge-enabled. */
 function agentMergeEnabledKey(session: string): string {
 	return `${agentMergeEnabledKeyPrefix}${session}`;
 }
@@ -310,10 +274,6 @@ export class AgentHostDatabase implements IAgentHostDatabase {
 	}
 
 	async updateSessionModifiedTimes(updates: readonly IAgentHostDatabaseModifiedTimeUpdate[]): Promise<void> {
-		// Advancing durable recency for a large catalogue one statement at a time
-		// dominates discovery, so the whole batch is flushed in a single
-		// transaction. The `modified_time < ?` guard keeps each advance monotonic
-		// even if a concurrent write moved a row forward since the snapshot.
 		const statements = updates
 			.filter(({ modifiedTime }) => Number.isFinite(modifiedTime))
 			.map(({ session, modifiedTime }) => `UPDATE sessions SET modified_time = ${modifiedTime} WHERE session_uri = ${quoteSqlString(session)} AND modified_time < ${modifiedTime}`);

@@ -50,11 +50,6 @@ export abstract class AbstractLanguageDiagnosticsService implements ILanguageDia
 	}
 }
 
-/**
-* Smallest range covering all of the diagnostics
-* @param diagnostics diagnostics to cover
-* @returns minimal covering range
-*/
 export function rangeSpanningDiagnostics(diagnostics: vscode.Diagnostic[]): vscode.Range {
 	return diagnostics.map(d => d.range).reduce((a, b) => a.union(b));
 }

@@ -15,7 +15,7 @@ import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { LanguageModelTextPart } from '../../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { ToolName } from '../../../../tools/common/toolNames';
-import { ICopilotTool } from '../../../../tools/common/toolsRegistry';
+import { IAgentTool } from '../../../../tools/common/toolsRegistry';
 import { IOnWillInvokeToolEvent, IToolsService, IToolValidationResult } from '../../../../tools/common/toolsService';
 import { ClaudePlanFileTracker, IClaudePlanFileTracker } from '../../common/claudePlanFileTracker';
 import { ClaudeToolPermissionContext, ClaudeToolPermissionResult, IClaudeToolConfirmationParams, IClaudeToolPermissionHandler } from '../../common/claudeToolPermission';
@@ -23,12 +23,8 @@ import { registerToolPermissionHandler } from '../../common/claudeToolPermission
 import { ClaudeToolPermissionService } from '../../common/claudeToolPermissionService';
 import { ClaudeToolNames } from '../../common/claudeTools';
 
-// Import existing handlers to ensure they're registered
 import '../toolPermissionHandlers/index';
 
-/**
- * Mock tools service that can be configured for different test scenarios
- */
 class MockToolsService implements IToolsService {
 	readonly _serviceBrand: undefined;
 
@@ -36,7 +32,7 @@ class MockToolsService implements IToolsService {
 	readonly onWillInvokeTool = this._onWillInvokeTool.event;
 
 	readonly tools: ReadonlyArray<vscode.LanguageModelToolInformation> = [];
-	readonly dardcorTools = new Map<ToolName, ICopilotTool<unknown>>();
+	readonly dardcorTools = new Map<ToolName, IAgentTool<unknown>>();
 
 	private _confirmationResult: 'yes' | 'no' = 'yes';
 	private _optionsConfirmationResult: string | undefined;
@@ -67,7 +63,7 @@ class MockToolsService implements IToolsService {
 		return this.invokeTool(name, options);
 	}
 
-	modelSpecificTools: IObservable<{ definition: vscode.LanguageModelToolDefinition; tool: ICopilotTool<unknown> }[]> = constObservable([]);
+	modelSpecificTools: IObservable<{ definition: vscode.LanguageModelToolDefinition; tool: IAgentTool<unknown> }[]> = constObservable([]);
 
 	async invokeTool(
 		name: string,
@@ -100,7 +96,7 @@ class MockToolsService implements IToolsService {
 		return { content: [] };
 	}
 
-	getCopilotTool(): ICopilotTool<unknown> | undefined {
+	getAgentTool(): IAgentTool<unknown> | undefined {
 		return undefined;
 	}
 
@@ -125,9 +121,6 @@ class MockToolsService implements IToolsService {
 	}
 }
 
-/**
- * Creates a mock tool permission context
- */
 function createMockContext(overrides?: Partial<ClaudeToolPermissionContext>): ClaudeToolPermissionContext {
 	return {
 		toolInvocationToken: {} as vscode.ChatParticipantToolToken,
@@ -202,7 +195,6 @@ describe('ClaudeToolPermissionService', () => {
 				const input = { some: 'data' };
 				const context = createMockContext();
 
-				// Use a tool that likely has no custom handler
 				await service.canUseTool('UnknownTool', input, context);
 
 				expect(mockToolsService.invokeToolCalls.length).toBe(1);
@@ -219,7 +211,6 @@ describe('ClaudeToolPermissionService', () => {
 				await service.canUseTool(ClaudeToolNames.Bash, input, context);
 
 				expect(mockToolsService.invokeToolCalls.length).toBe(1);
-				// Bash handler uses CoreTerminalConfirmationTool directly via its handle method
 				expect(mockToolsService.invokeToolCalls[0].name).toBe(ToolName.CoreTerminalConfirmationTool);
 				const terminalInput = mockToolsService.invokeToolCalls[0].input as { message: string; command: string; isBackground: boolean };
 				expect(terminalInput.command).toBe('npm test');
@@ -227,7 +218,6 @@ describe('ClaudeToolPermissionService', () => {
 			});
 
 			it('bypasses confirmation when canAutoApprove returns true', async () => {
-				// Register a handler that auto-approves
 				class AutoApproveHandler implements IClaudeToolPermissionHandler<ClaudeToolNames.NotebookEdit> {
 					readonly toolNames = [ClaudeToolNames.NotebookEdit] as const;
 
@@ -237,7 +227,6 @@ describe('ClaudeToolPermissionService', () => {
 				}
 				registerToolPermissionHandler([ClaudeToolNames.NotebookEdit], AutoApproveHandler);
 
-				// Create a new service to pick up the handler
 				const newService = instantiationService.createInstance(ClaudeToolPermissionService);
 				const input = { notebook_path: '/test.ipynb' };
 				const context = createMockContext();
@@ -254,7 +243,6 @@ describe('ClaudeToolPermissionService', () => {
 					updatedInput: { modified: true }
 				};
 
-				// Register a handler with full handle implementation
 				class FullHandler implements IClaudeToolPermissionHandler<ClaudeToolNames.KillBash> {
 					readonly toolNames = [ClaudeToolNames.KillBash] as const;
 
@@ -264,7 +252,6 @@ describe('ClaudeToolPermissionService', () => {
 				}
 				registerToolPermissionHandler([ClaudeToolNames.KillBash], FullHandler);
 
-				// Create a new service to pick up the handler
 				const newService = instantiationService.createInstance(ClaudeToolPermissionService);
 				const input = { pid: 123 };
 				const context = createMockContext();
@@ -280,14 +267,11 @@ describe('ClaudeToolPermissionService', () => {
 			it('caches handler instances for repeated calls', async () => {
 				const context = createMockContext();
 
-				// Call twice with the same tool
 				await service.canUseTool(ClaudeToolNames.Bash, { command: 'ls' }, context);
 				mockToolsService.clearCalls();
 				await service.canUseTool(ClaudeToolNames.Bash, { command: 'pwd' }, context);
 
-				// Both calls should succeed
 				expect(mockToolsService.invokeToolCalls.length).toBe(1);
-				// Bash handler uses CoreTerminalConfirmationTool directly via its handle method
 				expect(mockToolsService.invokeToolCalls[0].name).toBe(ToolName.CoreTerminalConfirmationTool);
 				const terminalInput = mockToolsService.invokeToolCalls[0].input as { message: string; command: string; isBackground: boolean };
 				expect(terminalInput.command).toBe('pwd');
@@ -313,8 +297,6 @@ describe('ClaudeToolPermissionService', () => {
 				expect(input.content).toContain('Step 1: Do something');
 				expect(input.canProvideFeedback).toBe(true);
 				expect(input.actions.map(a => a.id)).toEqual(['approve', 'approveAcceptEdits', 'approveBypass']);
-				// Claude does not surface the workbench autopilot confirmation —
-				// none of the actions carry the danger-confirmation flag.
 				expect(input.actions.every(a => a.permissionLevel === undefined)).toBe(true);
 			});
 
@@ -459,7 +441,6 @@ describe('ClaudeToolPermissionService', () => {
 
 			describe('plan URI resolution', () => {
 				const planContent = 'Step 1: Do something\nStep 2: Do another thing';
-				// Matches NullNativeEnvService.userHome.
 				const planDir = URI.file('/home/testuser/.claude/plans');
 				const sessionId = 'session-under-test';
 
@@ -553,7 +534,6 @@ describe('ClaudeToolPermissionService', () => {
 
 		describe('error handling', () => {
 			it('denies when confirmation tool throws', async () => {
-				// Create a mock that throws
 				const failingService = new class extends MockToolsService {
 					override async invokeTool(): Promise<vscode.LanguageModelToolResult2> {
 						throw new Error('Confirmation failed');

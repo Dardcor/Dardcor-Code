@@ -3,37 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * CSS cascade-order dependency bisection driver.
- *
- * Localizes which two bundled CSS source files form a cascade-order dependency
- * in a component fixture, by binary-searching over stylesheet-document reversal
- * windows. It drives `@vscode/component-explorer`'s `render` command against an
- * already-running `serve` (see `component-explorer-attach.json`) and uses the
- * rendered image hash as an oracle: reversing the document order of the bundled
- * CSS flips cascade ties that are decided purely by source order, so a hash
- * change under reversal means the fixture's appearance depends on CSS order.
- *
- * It performs two independent ~log2(N) searches, reusing the running serve for
- * every probe (no rebuilds):
- *   - `a` = the largest `fromIndex` for which reversing `[fromIndex, N)` still
- *     changes the image — the later document of the conflicting pair.
- *   - `b` = the smallest `toIndex` (minus one) for which reversing `[0, toIndex)`
- *     changes the image — the earlier document of the conflicting pair.
- *
- * The driver itself has no knowledge of the bundle format: the fixture runtime
- * reports both the document count and the index→source-file mapping in the
- * render manifest's `output` (requested via `--input '{"outputStylesheetFiles":true}'`),
- * so this script only ever deals in document indices and image hashes.
- *
- * Prerequisites: start the serve, e.g. `npm run serve-out-rspack`, then run:
- *   node test/componentFixtures/cssOrderBisect.mts \
- *     --fixture-id-regex "aiCustomizationManagementEditor/LocalHarness/Dark"
- *
- * Notes:
- *   - The search assumes a single dominant conflicting pair; with several, it
- *     localizes the outermost/innermost conflicting documents.
- */
 
 import { mkdir, rm } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -76,8 +45,6 @@ async function main(): Promise<void> {
 	await mkdir(probeRoot, { recursive: true });
 	const renderer = new Renderer(args.config, probeRoot);
 
-	// The unreversed render also serves as the baseline image and reports the
-	// document list, so the driver never has to parse the bundle itself.
 	const baselineEntries = (await renderer.render(args.fixtureRegex, { outputStylesheetFiles: true })).entries;
 	if (baselineEntries.length === 0) {
 		throw new Error(`No fixtures matched ${args.fixtureRegex}`);
@@ -94,8 +61,6 @@ async function main(): Promise<void> {
 	}
 	process.stdout.write(`Bundle:  ${n} documents (reported by the fixture runtime)\n\n`);
 
-	// Each probe spawns a fresh `render` (browser navigation), so they are slow
-	// and otherwise silent; log every probe as it completes to show progress.
 	const reversed = await renderer.hash(args.fixtureRegex, { fromIndex: 0, toIndex: n });
 	process.stdout.write(`baseline (no reversal): ${baseline.slice(0, 12)}\n`);
 	process.stdout.write(`full reversal:          ${reversed.slice(0, 12)}\n\n`);

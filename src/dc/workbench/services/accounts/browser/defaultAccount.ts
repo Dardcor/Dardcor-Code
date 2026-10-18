@@ -66,7 +66,7 @@ export const enum DefaultAccountStatus {
 
 export const CONTEXT_DEFAULT_ACCOUNT_STATE = new RawContextKey<string>('defaultAccountStatus', DefaultAccountStatus.Uninitialized);
 const CACHED_POLICY_DATA_KEY = 'defaultAccount.cachedPolicyData';
-const ACCOUNT_DATA_POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const ACCOUNT_DATA_POLL_INTERVAL_MS = 60 * 60 * 1000;
 const MANAGED_SETTINGS_REQUEST_TIMEOUT_MS = 5000;
 
 interface ITokenEntitlementsResponse {
@@ -330,12 +330,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 			try {
 				const parsed = JSON.parse(cached);
 
-				// TODO: Remove old format migration after August 2026.
-				// Previously, the cache stored a flat IAccountPolicyData shape
-				// (e.g. { accountId, policyData, ... }). We now wrap it inside
-				// ICachedAccountData ({ accountPolicyData, copilotTokenInfo }).
-				// This branch migrates the old flat format to the new shape and
-				// re-stores it so subsequent reads use the new format directly.
 				const { accountId, policyData, tokenEntitlementsFetchedAt, mcpRegistryDataFetchedAt, copilotTokenInfo } = parsed;
 				if (accountId && policyData) {
 					this.logService.debug('[DefaultAccount] Initializing with cached policy data (migrating old format)');
@@ -344,7 +338,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 					return result;
 				}
 
-				// New format
 				const { accountPolicyData, copilotTokenInfo: wrappedCopilotTokenInfo } = parsed;
 				if (accountPolicyData?.accountId && accountPolicyData?.policyData) {
 					this.logService.debug('[DefaultAccount] Initializing with cached policy data');
@@ -358,16 +351,11 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 	}
 
 	private async init(): Promise<void> {
-		// Skip initialization for classic web-no-remote (vscode.dev editor).
 		if (isWeb && !this.environmentService.remoteAuthority) {
 			this.logService.debug('[DefaultAccount] Running in web without remote, skipping initialization');
 			return;
 		}
 
-		// Wait until the default account authentication provider is available instead of
-		// waiting for all installed extensions to be registered. In desktop remote
-		// connections extensions are only registered after the connection is established,
-		// so waiting for `whenInstalledExtensionsRegistered` can deadlock initialization.
 		await this.whenDefaultAccountAuthenticationProviderAvailable();
 
 		this.logService.debug('[DefaultAccount] Starting initialization');
@@ -432,16 +420,12 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 		const disposables = new DisposableStore();
 		try {
 			await new Promise<void>(resolve => {
-				// Check if the provider is available.
-				// If available, resolve immediately. Otherwise, wait for it to be declared or registered.
 				if (this.isAccountProviderAvailable(provider)) {
 					this.logService.debug('[DefaultAccount] Default account authentication provider is now available.');
 					resolve();
 					return;
 				}
 
-				// Resolve as soon as the default account authentication provider is declared or
-				// registered, but wait no longer than installed extensions being registered.
 				disposables.add(Event.any(this.authenticationService.onDidChangeDeclaredProviders, this.authenticationService.onDidRegisterAuthenticationProvider)(() => {
 					if (this.isAccountProviderAvailable(provider)) {
 						this.logService.debug('[DefaultAccount] Default account authentication provider is now available.');
@@ -449,10 +433,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 					}
 				}));
 
-				// Explicitly activate the provider's extension so that the authentication
-				// provider gets registered. In desktop remote connections extensions are only
-				// registered after the connection is established, so without this the provider
-				// would never become available.
 				if (this.environmentService.remoteAuthority) {
 					void this.authenticationService.getSessions(provider.id, undefined, {}, true);
 				}
@@ -768,10 +748,8 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 				const tokenMap = this.extractFromToken(chatData.token);
 				return {
 					policyData: {
-						// Editor preview features are disabled if the flag is present and set to 0
 						chat_preview_features_enabled: tokenMap.get('editor_preview_features') !== '0',
 						chat_agent_enabled: tokenMap.get('agent_mode') !== '0',
-						// MCP is only enabled if the flag is explicitly present and set to 1
 						mcp: tokenMap.get('mcp') === '1',
 					},
 					copilotTokenInfo: {
@@ -811,8 +789,8 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 		if (response.res.statusCode && response.res.statusCode !== 200) {
 			this.logService.trace(`[DefaultAccount] unexpected status code ${response.res.statusCode} while fetching entitlements`);
 			const data = (
-				response.res.statusCode === 401 || 	// oauth token being unavailable (expired/revoked)
-				response.res.statusCode === 404		// missing scopes/permissions, service pretends the endpoint doesn't exist
+				response.res.statusCode === 401 ||
+				response.res.statusCode === 404
 			) ? null : undefined;
 			return { data, fetchedAt: Date.now() };
 		}
@@ -899,9 +877,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 
 		if (!options?.forceRefresh && cachedManagedSettings && !forceRemoteSettingsRefresh) {
 			this.logService.debug('[DefaultAccount] Using last fetched managed settings data');
-			// Seed status so Policy Diagnostics reflects "applied" rather than
-			// "not yet fetched" after a process restart that warm-starts from
-			// the cached policy payload.
 			this._managedSettingsFetchStatus = 'ok';
 			return cachedManagedSettings;
 		}
@@ -930,8 +905,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 			return undefined;
 		}
 
-		// Any non-2xx response means "fall back to local settings only and continue
-		// operating normally" — silent fallback, no policy.
 		if (!isSuccess(response)) {
 			const status = response.res.statusCode ?? 0;
 			this.logService.warn(`[DefaultAccount] Managed settings fetch returned non-success status ${status}; falling back to local-only policy`);
@@ -944,7 +917,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 			this.logService.trace('[DefaultAccount] Managed settings raw response:', JSON.stringify(data ?? null));
 			this._managedSettingsRawResponse = data ?? null;
 			const adapted = adaptManagedSettings(data ?? {}, msg => this.logService.warn(msg));
-			// An empty response (`{}`) is a successful "no policy file present" signal.
 			const managedSettingsCount = adapted.managedSettings ? Object.keys(adapted.managedSettings).length : 0;
 			if (managedSettingsCount === 0) {
 				this.logService.debug('[DefaultAccount] Managed settings fetched (empty response — no enterprise policy file present)');
@@ -969,15 +941,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 		});
 	}
 
-	/**
-	 * Detects a rate-limited GitHub response. Mirrors the public-API check in
-	 * `githubRepoFetcher.ts`:
-	 * - Canonical `429 Too Many Requests`.
-	 * - Primary quota exhaustion: `403` with `X-RateLimit-Remaining: 0`.
-	 * - Secondary throttling: GitHub omits `X-RateLimit-Remaining` but sets
-	 *   `Retry-After` (on a non-2xx response). We treat any non-success status
-	 *   that carries `Retry-After` as a back-off signal.
-	 */
 	private isRateLimited(response: IRequestContext): boolean {
 		const status = response.res.statusCode;
 		if (status === 429) {
@@ -986,8 +949,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 		if (status === 403 && readHeader(response.res.headers, 'x-ratelimit-remaining') === '0') {
 			return true;
 		}
-		// Secondary rate limit: the server explicitly asks the client to wait,
-		// regardless of which non-2xx code it returned with.
 		if (!isSuccess(response) && readHeader(response.res.headers, 'retry-after') !== undefined) {
 			return true;
 		}
@@ -999,13 +960,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 	private async request(url: string, type: 'GET', body: undefined, sessions: AuthenticationSession[], token: CancellationToken, callSite: string, requestTimeoutMs?: number): Promise<IRequestContext | undefined>;
 	private async request(url: string, type: 'POST', body: object, sessions: AuthenticationSession[], token: CancellationToken, callSite: string, requestTimeoutMs?: number): Promise<IRequestContext | undefined>;
 	private async request(url: string, type: 'GET' | 'POST', body: object | undefined, sessions: AuthenticationSession[], token: CancellationToken, callSite: string, requestTimeoutMs?: number): Promise<IRequestContext | undefined> {
-		// Rate-limit backoff: when any prior `/copilot_internal/*` request was
-		// throttled (429 or 403 + `X-RateLimit-Remaining: 0`), every subsequent
-		// request is short-circuited until the parsed `Retry-After` elapses.
-		// All endpoints called from here share the same host and bearer token,
-		// so backing off the bucket as a whole avoids piling on a server that
-		// has already asked us to slow down. See `githubRepoFetcher.ts` for the
-		// public-API analogue.
 		if (Date.now() < this._rateLimitBackoffUntil) {
 			const remainingSec = Math.ceil((this._rateLimitBackoffUntil - Date.now()) / 1000);
 			this.logService.debug(`[DefaultAccount] Skipping request to ${url} — rate-limit backoff active for ${remainingSec}s more`);
@@ -1042,7 +996,7 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 				if (status === 401 || status === 404) {
 					this.logService.debug(`[DefaultAccount] Received ${status} for URL ${url} with session ${session.id}, likely due to expired/revoked token or insufficient permissions.`, 'Trying next session if available.');
 					lastResponse = response;
-					continue; // try next session
+					continue;
 				}
 
 				return response;
@@ -1150,7 +1104,6 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 					return `${enterpriseUrl.protocol}//${enterpriseUrl.host}/${path}`;
 				}
 			} catch {
-				// fall through to default
 			}
 		}
 

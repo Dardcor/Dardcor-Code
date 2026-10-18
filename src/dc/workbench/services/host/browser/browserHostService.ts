@@ -48,19 +48,10 @@ import { showBrowserToast } from './toasts.js';
 
 enum HostShutdownReason {
 
-	/**
-	 * An unknown shutdown reason.
-	 */
 	Unknown = 1,
 
-	/**
-	 * A shutdown that was potentially triggered by keyboard use.
-	 */
 	Keyboard = 2,
 
-	/**
-	 * An explicit shutdown via code.
-	 */
 	Api = 3
 }
 
@@ -103,13 +94,10 @@ export class BrowserHostService extends Disposable implements IHostService {
 
 	private registerListeners(): void {
 
-		// Veto shutdown depending on `window.confirmBeforeClose` setting
 		this._register(this.lifecycleService.onBeforeShutdown(e => this.onBeforeShutdown(e)));
 
-		// Track modifier keys to detect keybinding usage
 		this._register(ModifierKeyEmitter.getInstance().event(() => this.updateShutdownReasonFromEvent()));
 
-		// Make sure to hide all toasts when the window gains focus
 		this._register(this.onDidChangeFocus(focus => {
 			if (focus) {
 				this.clearToasts();
@@ -121,7 +109,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 
 		switch (this.shutdownReason) {
 
-			// Unknown / Keyboard shows veto depending on setting
 			case HostShutdownReason.Unknown:
 			case HostShutdownReason.Keyboard: {
 				const confirmBeforeClose = this.configurationService.getValue('window.confirmBeforeClose');
@@ -130,18 +117,16 @@ export class BrowserHostService extends Disposable implements IHostService {
 				}
 				break;
 			}
-			// Api never shows veto
 			case HostShutdownReason.Api:
 				break;
 		}
 
-		// Unset for next shutdown
 		this.shutdownReason = HostShutdownReason.Unknown;
 	}
 
 	private updateShutdownReasonFromEvent(): void {
 		if (this.shutdownReason === HostShutdownReason.Api) {
-			return; // do not overwrite any explicitly set shutdown reason
+			return;
 		}
 
 		if (ModifierKeyEmitter.getInstance().isModifierPressed) {
@@ -151,7 +136,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 		}
 	}
 
-	//#region Focus
 
 	@memoize
 	get onDidChangeFocus(): Event<boolean> {
@@ -184,10 +168,8 @@ export class BrowserHostService extends Disposable implements IHostService {
 		targetWindow.focus();
 	}
 
-	//#endregion
 
 
-	//#region Window
 
 	@memoize
 	get onDidChangeActiveWindow(): Event<number> {
@@ -196,13 +178,9 @@ export class BrowserHostService extends Disposable implements IHostService {
 		this._register(Event.runAndSubscribe(onDidRegisterWindow, ({ window, disposables }) => {
 			const windowId = getWindowId(window);
 
-			// Emit via focus tracking
 			const focusTracker = disposables.add(trackFocus(window));
 			disposables.add(focusTracker.onDidFocus(() => emitter.fire(windowId)));
 
-			// Emit via interval: immediately when opening an auxiliary window,
-			// it is possible that document focus has not yet changed, so we
-			// poll for a while to ensure we catch the event.
 			if (isAuxiliaryWindow(window)) {
 				disposables.add(disposableWindowInterval(window, () => {
 					const hasFocus = window.document.hasFocus();
@@ -224,15 +202,13 @@ export class BrowserHostService extends Disposable implements IHostService {
 
 		this._register(Event.runAndSubscribe(onDidRegisterWindow, ({ window, disposables }) => {
 			const windowId = getWindowId(window);
-			const viewport = isIOS && window.visualViewport ? window.visualViewport /** Visual viewport */ : window /** Layout viewport */;
+			const viewport = isIOS && window.visualViewport ? window.visualViewport : window ;
 
-			// Fullscreen (Browser)
 			for (const event of [EventType.FULLSCREEN_CHANGE, EventType.WK_FULLSCREEN_CHANGE]) {
 				disposables.add(addDisposableListener(window.document, event, () => emitter.fire({ windowId, fullscreen: !!detectFullscreen(window) })));
 			}
 
-			// Fullscreen (Native)
-			disposables.add(addDisposableThrottledListener(viewport, EventType.RESIZE, () => emitter.fire({ windowId, fullscreen: !!detectFullscreen(window) }), undefined, isMacintosh ? 2000 /* adjust for macOS animation */ : 800 /* can be throttled */));
+			disposables.add(addDisposableThrottledListener(viewport, EventType.RESIZE, () => emitter.fire({ windowId, fullscreen: !!detectFullscreen(window) }), undefined, isMacintosh ? 2000 : 800 ));
 		}, { window: mainWindow, disposables: this._store }));
 
 		return emitter.event;
@@ -249,7 +225,7 @@ export class BrowserHostService extends Disposable implements IHostService {
 	}
 
 	private async doOpenWindow(toOpen: IWindowOpenable[], options?: IOpenWindowOptions): Promise<void> {
-		const payload = this.preservePayload(false /* not an empty window */, options);
+		const payload = this.preservePayload(false , options);
 		const fileOpenables: IFileToOpen[] = [];
 
 		const foldersToAdd: IWorkspaceFolderCreationData[] = [];
@@ -258,29 +234,25 @@ export class BrowserHostService extends Disposable implements IHostService {
 		for (const openable of toOpen) {
 			openable.label = openable.label || this.getRecentLabel(openable);
 
-			// Folder
 			if (isFolderToOpen(openable)) {
 				if (options?.addMode) {
 					foldersToAdd.push({ uri: openable.folderUri });
 				} else if (options?.removeMode) {
 					foldersToRemove.push(openable.folderUri);
 				} else {
-					this.doOpen({ folderUri: openable.folderUri }, { reuse: this.shouldReuse(options, false /* no file */), payload });
+					this.doOpen({ folderUri: openable.folderUri }, { reuse: this.shouldReuse(options, false ), payload });
 				}
 			}
 
-			// Workspace
 			else if (isWorkspaceToOpen(openable)) {
-				this.doOpen({ workspaceUri: openable.workspaceUri }, { reuse: this.shouldReuse(options, false /* no file */), payload });
+				this.doOpen({ workspaceUri: openable.workspaceUri }, { reuse: this.shouldReuse(options, false ), payload });
 			}
 
-			// File (handled later in bulk)
 			else if (isFileToOpen(openable)) {
 				fileOpenables.push(openable);
 			}
 		}
 
-		// Handle Folders to add or remove
 		if (foldersToAdd.length > 0 || foldersToRemove.length > 0) {
 			this.withServices(async accessor => {
 				const workspaceEditingService: IWorkspaceEditingService = accessor.get(IWorkspaceEditingService);
@@ -294,20 +266,17 @@ export class BrowserHostService extends Disposable implements IHostService {
 			});
 		}
 
-		// Handle Files
 		if (fileOpenables.length > 0) {
 			this.withServices(async accessor => {
 				const editorService = accessor.get(IEditorService);
 
-				// Support mergeMode
 				if (options?.mergeMode && fileOpenables.length === 4) {
 					const editors = coalesce(await pathsToEditors(fileOpenables, this.fileService, this.logService));
 					if (editors.length !== 4 || !isResourceEditorInput(editors[0]) || !isResourceEditorInput(editors[1]) || !isResourceEditorInput(editors[2]) || !isResourceEditorInput(editors[3])) {
-						return; // invalid resources
+						return;
 					}
 
-					// Same Window: open via editor service in current window
-					if (this.shouldReuse(options, true /* file */)) {
+					if (this.shouldReuse(options, true )) {
 						editorService.openEditor({
 							input1: { resource: editors[0].resource },
 							input2: { resource: editors[1].resource },
@@ -317,7 +286,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 						});
 					}
 
-					// New Window: open into empty window
 					else {
 						const environment = new Map<string, string>();
 						environment.set('mergeFile1', editors[0].resource.toString());
@@ -329,15 +297,13 @@ export class BrowserHostService extends Disposable implements IHostService {
 					}
 				}
 
-				// Support diffMode
 				else if (options?.diffMode && fileOpenables.length === 2) {
 					const editors = coalesce(await pathsToEditors(fileOpenables, this.fileService, this.logService));
 					if (editors.length !== 2 || !isResourceEditorInput(editors[0]) || !isResourceEditorInput(editors[1])) {
-						return; // invalid resources
+						return;
 					}
 
-					// Same Window: open via editor service in current window
-					if (this.shouldReuse(options, true /* file */)) {
+					if (this.shouldReuse(options, true )) {
 						editorService.openEditor({
 							original: { resource: editors[0].resource },
 							modified: { resource: editors[1].resource },
@@ -345,7 +311,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 						});
 					}
 
-					// New Window: open into empty window
 					else {
 						const environment = new Map<string, string>();
 						environment.set('diffFileSecondary', editors[0].resource.toString());
@@ -355,15 +320,12 @@ export class BrowserHostService extends Disposable implements IHostService {
 					}
 				}
 
-				// Just open normally
 				else {
 					for (const openable of fileOpenables) {
 
-						// Same Window: open via editor service in current window
-						if (this.shouldReuse(options, true /* file */)) {
+						if (this.shouldReuse(options, true )) {
 							let openables: IPathData<ITextEditorOptions>[] = [];
 
-							// Support: --goto parameter to open on line/col
 							if (options?.gotoLineMode) {
 								const pathColumnAware = parseLineAndColumnAware(openable.fileUri.path);
 								openables = [{
@@ -379,7 +341,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 							editorService.openEditors(coalesce(await pathsToEditors(openables, this.fileService, this.logService)), undefined, { validateTrust: true });
 						}
 
-						// New Window: open into empty window
 						else {
 							const environment = new Map<string, string>();
 							environment.set('openFile', openable.fileUri.toString());
@@ -393,21 +354,18 @@ export class BrowserHostService extends Disposable implements IHostService {
 					}
 				}
 
-				// Support wait mode
 				const waitMarkerFileURI = options?.waitMarkerFileURI;
 				if (waitMarkerFileURI) {
 					(async () => {
 
-						// Wait for the resources to be closed in the text editor...
 						const filesToWaitFor: URI[] = [];
 						if (options.mergeMode) {
-							filesToWaitFor.push(fileOpenables[3].fileUri /* [3] is the resulting merge file */);
+							filesToWaitFor.push(fileOpenables[3].fileUri );
 						} else {
 							filesToWaitFor.push(...fileOpenables.map(fileOpenable => fileOpenable.fileUri));
 						}
 						await this.instantiationService.invokeFunction(accessor => whenEditorClosed(accessor, filesToWaitFor));
 
-						// ...before deleting the wait marker file
 						await this.fileService.del(waitMarkerFileURI);
 					})();
 				}
@@ -416,15 +374,11 @@ export class BrowserHostService extends Disposable implements IHostService {
 	}
 
 	private withServices(fn: (accessor: ServicesAccessor) => unknown): void {
-		// Host service is used in a lot of contexts and some services
-		// need to be resolved dynamically to avoid cyclic dependencies
-		// (https://github.com/microsoft/vscode/issues/108522)
 		this.instantiationService.invokeFunction(accessor => fn(accessor));
 	}
 
 	private preservePayload(isEmptyWindow: boolean, options?: IOpenWindowOptions): Array<unknown> | undefined {
 
-		// Selectively copy payload: for now only extension debugging properties are considered
 		const newPayload: Array<unknown> = [];
 		if (!isEmptyWindow && this.environmentService.extensionDevelopmentLocationURI) {
 			newPayload.push(['extensionDevelopmentPath', this.environmentService.extensionDevelopmentLocationURI.toString()]);
@@ -462,11 +416,11 @@ export class BrowserHostService extends Disposable implements IHostService {
 
 	private shouldReuse(options: IOpenWindowOptions = Object.create(null), isFile: boolean): boolean {
 		if (options.waitMarkerFileURI) {
-			return true; // always handle --wait in same window
+			return true;
 		}
 
 		const windowConfig = this.configurationService.getValue<IWindowSettings | undefined>('window');
-		const openInNewWindowConfig = isFile ? (windowConfig?.openFilesInNewWindow || 'off' /* default */) : (windowConfig?.openFoldersInNewWindow || 'default' /* default */);
+		const openInNewWindowConfig = isFile ? (windowConfig?.openFilesInNewWindow || 'off' ) : (windowConfig?.openFoldersInNewWindow || 'default' );
 
 		let openInNewWindow = (options.preferNewWindow || !!options.forceNewWindow) && !options.forceReuseWindow;
 		if (!options.forceNewWindow && !options.forceReuseWindow && (openInNewWindowConfig === 'on' || openInNewWindowConfig === 'off')) {
@@ -479,16 +433,12 @@ export class BrowserHostService extends Disposable implements IHostService {
 	private async doOpenEmptyWindow(options?: IOpenEmptyWindowOptions): Promise<void> {
 		return this.doOpen(undefined, {
 			reuse: options?.forceReuseWindow,
-			payload: this.preservePayload(true /* empty window */, options)
+			payload: this.preservePayload(true , options)
 		});
 	}
 
 	private async doOpen(workspace: IWorkspace, options?: { reuse?: boolean; payload?: object }): Promise<void> {
 
-		// When we are in a temporary workspace and are asked to open a local folder
-		// we swap that folder into the workspace to avoid a window reload. Access
-		// to local resources is only possible without a window reload because it
-		// needs user activation.
 		if (workspace && isFolderToOpen(workspace) && workspace.folderUri.scheme === Schemas.file && isTemporaryWorkspace(this.contextService.getWorkspace())) {
 			this.withServices(async accessor => {
 				const workspaceEditingService: IWorkspaceEditingService = accessor.get(IWorkspaceEditingService);
@@ -499,8 +449,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 			return;
 		}
 
-		// We know that `workspaceProvider.open` will trigger a shutdown
-		// with `options.reuse` so we handle this expected shutdown
 		if (options?.reuse) {
 			await this.handleExpectedShutdown(ShutdownReason.LOAD);
 		}
@@ -513,7 +461,7 @@ export class BrowserHostService extends Disposable implements IHostService {
 					localize('unableToOpenExternalWorkspace', "The browser blocked opening a new tab or window for '{0}'. Press 'Retry' to try again.", this.getRecentLabel(workspace)) :
 					localize('unableToOpenExternal', "The browser blocked opening a new tab or window. Press 'Retry' to try again."),
 				custom: {
-					markdownDetails: [{ markdown: new MarkdownString(localize('unableToOpenWindowDetail', "Please allow pop-ups for this website in your [browser settings]({0}).", 'https://aka.ms/allow-vscode-popup'), true) }]
+					markdownDetails: [{ markdown: new MarkdownString(localize('unableToOpenWindowDetail', "Please allow pop-ups for this website in your [browser settings]({0}).", 'https://www.dardcor-code.web.id/docs/troubleshooting/browser-popups'), true) }]
 				},
 				buttons: [
 					{
@@ -529,13 +477,12 @@ export class BrowserHostService extends Disposable implements IHostService {
 	async toggleFullScreen(targetWindow: Window): Promise<void> {
 		const target = this.layoutService.getContainer(targetWindow);
 
-		// Chromium
 		if (targetWindow.document.fullscreen !== undefined) {
 			if (!targetWindow.document.fullscreen) {
 				try {
 					return await target.requestFullscreen();
 				} catch (error) {
-					this.logService.warn('toggleFullScreen(): requestFullscreen failed'); // https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen
+					this.logService.warn('toggleFullScreen(): requestFullscreen failed');
 				}
 			} else {
 				try {
@@ -546,7 +493,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 			}
 		}
 
-		// Safari and Edge 14 are all using webkit prefix
 
 		interface WebkitDocument extends Document {
 			webkitFullscreenElement: Element | null;
@@ -563,9 +509,9 @@ export class BrowserHostService extends Disposable implements IHostService {
 		if (webkitDocument.webkitIsFullScreen !== undefined) {
 			try {
 				if (!webkitDocument.webkitIsFullScreen) {
-					webkitElement.webkitRequestFullscreen(); // it's async, but doesn't return a real promise
+					webkitElement.webkitRequestFullscreen();
 				} else {
-					webkitDocument.webkitExitFullscreen(); // it's async, but doesn't return a real promise
+					webkitDocument.webkitExitFullscreen();
 				}
 			} catch {
 				this.logService.warn('toggleFullScreen(): requestFullscreen/exitFullscreen failed');
@@ -574,11 +520,9 @@ export class BrowserHostService extends Disposable implements IHostService {
 	}
 
 	async moveTop(targetWindow: Window): Promise<void> {
-		// There seems to be no API to bring a window to front in browsers
 	}
 
 	async setWindowDimmed(_targetWindow: Window, _dimmed: boolean): Promise<void> {
-		// not supported in browser
 	}
 
 	async getCursorScreenPoint(): Promise<undefined> {
@@ -591,7 +535,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 		const activeWindow = getActiveWindow();
 		const activeWindowId = getWindowId(activeWindow);
 
-		// Main window
 		const result: Array<IOpenedMainWindow | IOpenedAuxiliaryWindow> = [{
 			id: activeWindowId,
 			title: activeWindow.document.title,
@@ -599,7 +542,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 			dirty: false
 		}];
 
-		// Auxiliary windows
 		if (options.includeAuxiliaryWindows) {
 			for (const { window } of getDOMWindows()) {
 				const windowId = getWindowId(window);
@@ -616,9 +558,7 @@ export class BrowserHostService extends Disposable implements IHostService {
 		return result;
 	}
 
-	//#endregion
 
-	//#region Lifecycle
 
 	async restart(): Promise<void> {
 		this.reload();
@@ -652,42 +592,28 @@ export class BrowserHostService extends Disposable implements IHostService {
 
 	private async handleExpectedShutdown(reason: ShutdownReason): Promise<void> {
 
-		// Update shutdown reason in a way that we do
-		// not show a dialog because this is a expected
-		// shutdown.
 		this.shutdownReason = HostShutdownReason.Api;
 
-		// Signal shutdown reason to lifecycle
 		return this.lifecycleService.withExpectedShutdown(reason);
 	}
 
-	//#endregion
 
-	//#region Screenshots
 
 	async getScreenshot(): Promise<VSBuffer | undefined> {
-		// Gets a screenshot from the browser. This gets the screenshot via the browser's display
-		// media API which will typically offer a picker of all available screens and windows for
-		// the user to select. Using the video stream provided by the display media API, this will
-		// capture a single frame of the video and convert it to a JPEG image.
 		const store = new DisposableStore();
 
-		// Create a video element to play the captured screen source
 		const video = document.createElement('video');
 		store.add(toDisposable(() => video.remove()));
 		let stream: MediaStream | undefined;
 		try {
-			// Create a stream from the screen source (capture screen without audio)
 			stream = await navigator.mediaDevices.getDisplayMedia({
 				audio: false,
 				video: true
 			});
 
-			// Set the stream as the source of the video element
 			video.srcObject = stream;
 			video.play();
 
-			// Wait for the video to load properly before capturing the screenshot
 			await Promise.all([
 				new Promise<void>(r => store.add(addDisposableListener(video, 'loadedmetadata', () => r()))),
 				new Promise<void>(r => store.add(addDisposableListener(video, 'canplaythrough', () => r())))
@@ -702,10 +628,8 @@ export class BrowserHostService extends Disposable implements IHostService {
 				return undefined;
 			}
 
-			// Draw the portion of the video (x, y) with the specified width and height
 			ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-			// Convert the canvas to a Blob (JPEG format), use .95 for quality
 			const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.95));
 			if (!blob) {
 				throw new Error('Failed to create blob from canvas');
@@ -731,17 +655,13 @@ export class BrowserHostService extends Disposable implements IHostService {
 		return undefined;
 	}
 
-	//#endregion
 
-	//#region Native Handle
 
 	async getNativeWindowHandle(_windowId: number) {
 		return undefined;
 	}
 
-	//#endregion
 
-	//#region Toast Notifications
 
 	private readonly activeToasts = this._register(new DisposableSet());
 
@@ -756,7 +676,6 @@ export class BrowserHostService extends Disposable implements IHostService {
 		this.activeToasts.clearAndDisposeAll();
 	}
 
-	//#endregion
 }
 
 registerSingleton(IHostService, BrowserHostService, InstantiationType.Delayed);

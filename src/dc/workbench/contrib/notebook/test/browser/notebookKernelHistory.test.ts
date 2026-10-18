@@ -107,12 +107,10 @@ suite('NotebookKernelHistoryService', () => {
 		assert.equal(info.all.length, 0);
 		assert.ok(!info.selected);
 
-		// update priorities for u1 notebook
 		kernelService.updateKernelNotebookAffinity(k2, u1, 2);
 
 		info = kernelHistoryService.getKernels({ uri: u1, notebookType: 'foo' });
 		assert.equal(info.all.length, 0);
-		// MRU only auto selects kernel if there is only one
 		assert.deepStrictEqual(info.selected, undefined);
 	});
 

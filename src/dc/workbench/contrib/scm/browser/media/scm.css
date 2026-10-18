@@ -77,10 +77,6 @@
 	justify-content: end;
 }
 
-/**
- * The following rules are very specific because of inline drop down menus
- * https://github.com/microsoft/vscode/issues/101410
- */
 .scm-view .scm-provider > .actions > .monaco-toolbar > .monaco-action-bar > .actions-container > .action-item {
 	padding-left: 4px;
 	display: flex;
@@ -529,7 +525,6 @@
 	color: var(--vscode-input-placeholderForeground);
 }
 
-/* Repositories */
 
 .scm-repositories-view .monaco-list .monaco-list-row .scm-artifact-group > .actions,
 .scm-repositories-view .monaco-list .monaco-list-row .scm-artifact > .actions {
@@ -603,7 +598,6 @@
 	}
 }
 
-/* History item hover */
 
 .monaco-hover.history-item-hover .history-item-hover-container > .rendered-markdown:first-child > p {
 	margin-top: 4px;
@@ -652,7 +646,6 @@
 	margin-bottom: 1px !important;
 }
 
-/* Graph */
 
 .pane-header .scm-graph-view-badge-container {
 	display: flex;

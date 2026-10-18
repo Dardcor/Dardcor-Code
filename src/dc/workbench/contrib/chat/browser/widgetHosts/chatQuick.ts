@@ -39,7 +39,6 @@ export class QuickChatService extends Disposable implements IQuickChatService {
 	get onDidClose() { return this._onDidClose.event; }
 
 	private _input: IQuickWidget | undefined;
-	// TODO@TylerLeonhardt: support multiple chat providers eventually
 	private _currentChat: QuickChat | undefined;
 	private _container: HTMLElement | undefined;
 
@@ -68,14 +67,10 @@ export class QuickChatService extends Disposable implements IQuickChatService {
 	}
 
 	toggle(options?: IQuickChatOpenOptions): void {
-		// If the input is already shown, hide it. This provides a toggle behavior of the quick
-		// pick. This should not happen when there is a query.
 		if (this.focused && !options?.query) {
 			this.close();
 		} else {
 			this.open(options);
-			// If this is a partial query, the value should be cleared when closed as otherwise it
-			// would remain for the next time the quick chat is opened in any context.
 			if (options?.isPartialQuery) {
 				const disposable = this._store.add(Event.once(this.onDidClose)(() => {
 					this._currentChat?.clearValue();
@@ -112,7 +107,6 @@ export class QuickChatService extends Disposable implements IQuickChatService {
 		if (!this._currentChat) {
 			this._currentChat = this.instantiationService.createInstance(QuickChat);
 
-			// show needs to come after the quickpick is shown
 			this._currentChat.render(this._container);
 		} else {
 			this._currentChat.show();
@@ -148,7 +142,6 @@ export class QuickChatService extends Disposable implements IQuickChatService {
 }
 
 class QuickChat extends Disposable {
-	// TODO@TylerLeonhardt: be responsive to window size
 	static DEFAULT_MIN_HEIGHT = 200;
 	private static readonly DEFAULT_HEIGHT_OFFSET = 100;
 
@@ -199,19 +192,13 @@ class QuickChat extends Disposable {
 
 	hide(): void {
 		this.widget.setVisible(false);
-		// Maintain scroll position for a short time so that if the user re-shows the chat
-		// the same scroll position will be used.
 		this.maintainScrollTimer.value = disposableTimeout(() => {
-			// At this point, clear this mutable disposable which will be our signal that
-			// the timer has expired and we should stop maintaining scroll position
 			this.maintainScrollTimer.clear();
-		}, 30 * 1000); // 30 seconds
+		}, 30 * 1000);
 	}
 
 	show(): void {
 		this.widget.setVisible(true);
-		// If the mutable disposable is set, then we are keeping the existing scroll position
-		// so we should not update the layout.
 		if (this._deferUpdatingDynamicLayout) {
 			this._deferUpdatingDynamicLayout = false;
 			this.widget.updateDynamicChatTreeItemLayout(2, this.maxHeight);
@@ -223,7 +210,6 @@ class QuickChat extends Disposable {
 
 	render(parent: HTMLElement): void {
 		if (this.widget) {
-			// NOTE: if this changes, we need to make sure disposables in this function are tracked differently.
 			throw new Error('Cannot render quick chat twice');
 		}
 		const scopedInstantiationService = this._register(this.instantiationService.createChild(
@@ -293,9 +279,6 @@ class QuickChat extends Disposable {
 			if (this.widget.visible) {
 				this.widget.updateDynamicChatTreeItemLayout(2, this.maxHeight);
 			} else {
-				// If the chat is not visible, then we should defer updating the layout
-				// because it relies on offsetHeight which only works correctly
-				// when the chat is visible.
 				this._deferUpdatingDynamicLayout = true;
 			}
 		}));

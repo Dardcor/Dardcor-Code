@@ -3,13 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*
- * Issue Reporter - Wizard UI (editor tab mode).
- * The wizard renders inside an editor pane container.
- * A floating capture bar appears on step 3.
- */
 
-/* Wizard Panel - renders inside the editor tab */
 .issue-reporter-wizard {
 	position: relative;
 	display: flex;
@@ -40,7 +34,6 @@
 	overflow: auto;
 }
 
-/* VS Code styled scrollbars for any scrollable region in the wizard */
 .issue-reporter-wizard *::-webkit-scrollbar,
 .issue-reporter-wizard ::-webkit-scrollbar {
 	width: 10px;
@@ -84,7 +77,6 @@
 	outline: none !important;
 }
 
-/* Floating Capture Bar (debug toolbar style) */
 .issue-reporter-floating-bar {
 	position: fixed;
 	top: 35px;
@@ -103,9 +95,6 @@
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, sans-serif;
 	font-size: 13px;
 	color: var(--vscode-foreground);
-	/* Lock against compression — the bar's width is determined by its content
-	and stays constant as the window resizes. Position-clamping (in JS)
-	handles keeping it inside the viewport. */
 	flex-shrink: 0;
 	white-space: nowrap;
 	width: max-content;
@@ -170,7 +159,6 @@
 	outline: none;
 }
 
-/* Segmented screenshot button */
 .issue-reporter-floating-bar .wizard-segmented-btn {
 	display: flex;
 	align-items: stretch;
@@ -208,7 +196,6 @@
 	position: relative;
 }
 
-/* Thin white divider between the two segments */
 .issue-reporter-floating-bar .monaco-button.wizard-segmented-main::after {
 	content: '';
 	position: absolute;
@@ -270,10 +257,7 @@
 	align-items: center;
 }
 
-/* Dim screenshot button in floating bar during recording (keep drag handle interactive) */
-/* Only dimmed via JS disabled class at N-1 attachments */
 
-/* Disabled state for segmented buttons when max attachments reached */
 .issue-reporter-floating-bar .wizard-segmented-main.disabled,
 .issue-reporter-floating-bar .wizard-segmented-dropdown.disabled,
 .issue-reporter-floating-bar .monaco-button.wizard-segmented-main.disabled,
@@ -282,14 +266,12 @@
 	cursor: default;
 }
 
-/* Recording state in floating bar */
 .issue-reporter-floating-bar .wizard-nav-btn.recording,
 .issue-reporter-floating-bar .monaco-button.recording {
 	color: var(--vscode-testing-iconErrored, #f14c4c);
 	animation: issue-reporter-recording-pulse 1.5s ease-in-out infinite;
 }
 
-/* Toolbar */
 .issue-reporter-wizard .wizard-toolbar {
 	display: flex;
 	flex-direction: column;
@@ -301,7 +283,6 @@
 	flex-shrink: 0;
 }
 
-/* Progress area */
 .issue-reporter-wizard .wizard-progress-area {
 	display: flex;
 	align-items: center;
@@ -361,7 +342,6 @@
 	color: var(--vscode-titleBar-activeForeground, #ccc);
 }
 
-/* Step Container */
 .issue-reporter-wizard .wizard-step-container {
 	flex: 1;
 	position: relative;
@@ -369,7 +349,6 @@
 	min-height: 150px;
 }
 
-/* Individual Steps */
 .issue-reporter-wizard .wizard-step {
 	display: flex;
 	flex-direction: column;
@@ -380,7 +359,6 @@
 	inset: 0;
 }
 
-/* Wizard Typography */
 .issue-reporter-wizard .wizard-heading {
 	margin: 0;
 	font-size: 22px;
@@ -409,7 +387,6 @@
 	vertical-align: middle;
 }
 
-/* Wizard Inputs */
 .issue-reporter-wizard .wizard-textarea {
 	width: 100%;
 	min-height: 120px;
@@ -440,7 +417,6 @@
 	background: var(--vscode-inputValidation-errorBackground, rgba(190, 17, 0, 0.1));
 }
 
-/* Category Buttons (Step 1) */
 .issue-reporter-wizard .wizard-type-buttons {
 	display: flex;
 	gap: 10px;
@@ -448,8 +424,6 @@
 	margin-top: 8px;
 }
 
-/* Inside a flex-column .wizard-field the parent already supplies the
-label/control gap, so the buttons must not add their own margin. */
 .issue-reporter-wizard .wizard-field > .wizard-type-buttons {
 	margin-top: 0;
 }
@@ -478,7 +452,6 @@ label/control gap, so the buttons must not add their own margin. */
 	margin-right: 0;
 }
 
-/* Radio circle before each category button */
 .issue-reporter-wizard .monaco-button.wizard-type-btn::before {
 	content: '';
 	display: inline-block;
@@ -519,7 +492,6 @@ label/control gap, so the buttons must not add their own margin. */
 	display: none;
 }
 
-/* Shortcut badge - shared style for keyboard shortcut indicators */
 .issue-reporter-wizard .wizard-shortcut-badge {
 	display: inline-flex;
 	align-items: center;
@@ -608,7 +580,6 @@ label/control gap, so the buttons must not add their own margin. */
 	font-size: 16px;
 }
 
-/* Screenshot Cards (Step 3) */
 .issue-reporter-wizard .wizard-screenshots {
 	display: flex;
 	gap: 10px;
@@ -708,7 +679,6 @@ label/control gap, so the buttons must not add their own margin. */
 	color: var(--vscode-descriptionForeground, #888);
 }
 
-/* Screenshot Controls */
 
 .issue-reporter-wizard .wizard-screenshot-actions {
 	display: flex;
@@ -753,7 +723,6 @@ label/control gap, so the buttons must not add their own margin. */
 	font-size: 14px;
 }
 
-/* Review Step (Step 4) */
 .issue-reporter-wizard .wizard-field {
 	display: flex;
 	flex-direction: column;
@@ -812,10 +781,6 @@ label/control gap, so the buttons must not add their own margin. */
 	transform: translateY(-22px);
 }
 
-/* Status messages are absolutely positioned in the same slot as the field
-error (the 1.4em reserved line directly below the input/buttons). The error
-takes precedence when shown; otherwise the status text fills that slot.
-This keeps the row height constant regardless of which is visible. */
 .issue-reporter-wizard .wizard-source-field,
 .issue-reporter-wizard .wizard-extension-field {
 	position: relative;
@@ -833,15 +798,11 @@ This keeps the row height constant regardless of which is visible. */
 	pointer-events: none;
 }
 
-/* Hide the status while its sibling field-error is visible to avoid overlap. */
 .issue-reporter-wizard .wizard-source-field:has(> .wizard-field-error:not(.hidden)) .wizard-target-status,
 .issue-reporter-wizard .wizard-extension-field:has(> .wizard-field-error:not(.hidden)) .wizard-extension-status {
 	display: none;
 }
 
-/* Target row: source field + extension dropdown sit side-by-side.
-Wraps to a new line on narrow widths; collapses naturally when the
-extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .wizard-target-row {
 	display: flex;
 	flex-wrap: wrap;
@@ -863,7 +824,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	display: none;
 }
 
-/* Title label row: label + AI generate button */
 .issue-reporter-wizard .wizard-title-label-row {
 	display: flex;
 	align-items: center;
@@ -896,7 +856,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	cursor: default;
 }
 
-/* Description guidance text */
 .issue-reporter-wizard .wizard-description-guidance {
 	margin-top: 0;
 	margin-bottom: 4px;
@@ -910,7 +869,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	margin-bottom: 4px;
 }
 
-/* Review: description rendered content */
 .issue-reporter-wizard .review-value.review-description {
 	white-space: normal;
 	max-height: none;
@@ -950,12 +908,10 @@ extension field is hidden (no fixed-width placeholder needed). */
 	flex-wrap: wrap;
 }
 
-/* Review attachment cards - same size as step 3 cards */
 .issue-reporter-wizard .review-attachment-card {
 	cursor: pointer;
 }
 
-/* Upload Progress Overlay */
 .issue-reporter-wizard .review-progress-overlay {
 	position: absolute;
 	inset: 0;
@@ -973,7 +929,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	display: flex;
 }
 
-/* Spinning ring */
 .issue-reporter-wizard .review-progress-ring {
 	width: 28px;
 	height: 28px;
@@ -990,7 +945,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	border-top-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Checkmark */
 .issue-reporter-wizard .review-progress-check {
 	display: flex;
 	align-items: center;
@@ -1003,7 +957,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	font-size: 16px;
 }
 
-/* Button spinner */
 .issue-reporter-wizard .wizard-nav-btn.uploading,
 .issue-reporter-wizard .monaco-button.uploading {
 	pointer-events: none;
@@ -1102,7 +1055,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	font-size: 12px;
 }
 
-/* Diagnostic data sections (System Info, Extensions, Experiments) */
 .issue-reporter-wizard .review-diagnostics {
 	margin-top: 12px;
 	display: flex;
@@ -1326,7 +1278,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	padding: 4px 0;
 }
 
-/* Navigation buttons row, placed under the step indicator in the toolbar. */
 .issue-reporter-wizard .wizard-nav {
 	display: flex;
 	align-items: center;
@@ -1334,7 +1285,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	flex-shrink: 0;
 }
 
-/* Button widget overrides for wizard nav */
 .issue-reporter-wizard .wizard-nav .monaco-button {
 	padding: 6px 16px;
 	white-space: nowrap;
@@ -1342,7 +1292,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	flex: none;
 }
 
-/* Navigation buttons */
 .issue-reporter-wizard .wizard-nav-btn {
 	display: flex;
 	align-items: center;
@@ -1385,7 +1334,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	filter: brightness(1.1);
 }
 
-/* Annotation Editor Buttons */
 .issue-reporter-annotation-overlay .monaco-button {
 	border-radius: 4px;
 	height: 28px;
@@ -1395,7 +1343,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	cursor: pointer;
 }
 
-/* Annotation Editor */
 .issue-reporter-annotation-overlay {
 	position: absolute;
 	inset: 0;
@@ -1669,7 +1616,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	line-height: 1;
 }
 
-/* Recording UI */
 
 .issue-reporter-floating-bar .wizard-record-btn,
 .issue-reporter-floating-bar .monaco-button.wizard-record-btn {
@@ -1729,7 +1675,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	}
 }
 
-/* -- Recording card -- */
 .issue-reporter-wizard .wizard-recording-card {
 	background: var(--vscode-editor-background, #1a1a1a);
 	display: flex;
@@ -1850,7 +1795,6 @@ extension field is hidden (no fixed-width placeholder needed). */
 	flex-shrink: 0;
 }
 
-/* Keep the floating capture bar above workbench overlays such as modal dialogs. */
 .issue-reporter-floating-bar {
 	z-index: 5000;
 }

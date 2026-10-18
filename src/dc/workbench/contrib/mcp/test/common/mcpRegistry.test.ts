@@ -48,11 +48,9 @@ class TestConfigurationResolverService {
 
 	private interactiveCounter = 0;
 
-	// Used to simulate stored/resolved variables
 	private readonly resolvedVariables = new Map<string, string>();
 
 	constructor() {
-		// Add some test variables
 		this.resolvedVariables.set('workspaceFolder', '/test/workspace');
 		this.resolvedVariables.set('fileBasename', 'test.txt');
 	}
@@ -71,12 +69,10 @@ class TestConfigurationResolverService {
 
 	resolveWithInteraction(folder: IWorkspaceFolderData | undefined, config: unknown, section?: string, variables?: Record<string, string>, target?: ConfigurationTarget): Promise<Map<string, string> | undefined> {
 		const parsed = ConfigurationResolverExpression.parse(config);
-		// For testing, we simulate interaction by returning a map with some variables
 		const result = new Map<string, string>();
 		result.set('input:testInteractive', `interactiveValue${this.interactiveCounter++}`);
 		result.set('command:testCommand', `commandOutput${this.interactiveCounter++}}`);
 
-		// If variables are provided, include those too
 		for (const [k, v] of result.entries()) {
 			const replacement: Replacement = {
 				id: '${' + k + '}',
@@ -221,7 +217,6 @@ suite('Workbench - MCP - Registry', () => {
 		const instaService = store.add(new TestInstantiationService(services));
 		registry = store.add(instaService.createInstance(TestMcpRegistry));
 
-		// Create test collection that can be reused
 		testCollection = {
 			id: 'test-collection',
 			label: 'Test Collection',
@@ -233,7 +228,6 @@ suite('Workbench - MCP - Registry', () => {
 			order: 0,
 		};
 
-		// Create base definition that can be reused
 		baseDefinition = {
 			id: 'test-server',
 			label: 'Test Server',
@@ -404,7 +398,6 @@ suite('Workbench - MCP - Registry', () => {
 	});
 
 	test('resolveConnection uses user-provided launch configuration', async () => {
-		// Create a collection with custom launch resolver
 		const customCollection: McpCollectionDefinition = {
 			...testCollection,
 			resolveServerLanch: async (def) => {
@@ -415,7 +408,6 @@ suite('Workbench - MCP - Registry', () => {
 			}
 		};
 
-		// Create a definition with variable replacement
 		const definition: McpServerDefinition = {
 			...baseDefinition,
 			variableReplacement: {
@@ -429,7 +421,6 @@ suite('Workbench - MCP - Registry', () => {
 		testCollection.serverDefinitions.set([definition], undefined);
 		store.add(registry.registerCollection(customCollection));
 
-		// Resolve connection should use the custom launch configuration
 		const connection = await registry.resolveConnection({
 			collectionRef: customCollection,
 			definitionRef: definition,
@@ -440,7 +431,6 @@ suite('Workbench - MCP - Registry', () => {
 
 		assert.ok(connection);
 
-		// Verify the launch configuration passed to _replaceVariablesInLaunch was the custom one
 		assert.deepStrictEqual((connection.launchDefinition as McpServerTransportStdio).env, { CUSTOM_ENV: 'value' });
 
 		connection.dispose();
@@ -561,7 +551,6 @@ suite('Workbench - MCP - Registry', () => {
 
 			await loadingPromise;
 
-			// The collection wasn't replaced, so it should be removed
 			assert.strictEqual(registry.collections.get().length, 1);
 			assert.strictEqual(registry.lazyCollectionState.get().state, LazyCollectionState.AllKnown);
 			assert.strictEqual(removedCalled, false);
@@ -602,7 +591,6 @@ suite('Workbench - MCP - Registry', () => {
 
 			assert.strictEqual(registry.lazyCollectionState.get().state, LazyCollectionState.AllKnown);
 
-			// Adding an uncached lazy collection changes the state
 			const uncachedLazy = {
 				...lazyCollection,
 				id: 'uncached-lazy',
@@ -633,7 +621,6 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(collection1));
 			const disposable2 = registry.registerCollection(collection2);
 
-			// Second registration should return Disposable.None and not add duplicate
 			assert.strictEqual(disposable2, Disposable.None);
 			assert.strictEqual(registry.collections.get().length, 1);
 			assert.strictEqual(registry.collections.get()[0], collection1);
@@ -659,7 +646,6 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(lazyCollection));
 			const disposable2 = store.add(registry.registerCollection(nonLazyCollection));
 
-			// Should replace lazy with non-lazy
 			assert.notStrictEqual(disposable2, Disposable.None);
 			assert.strictEqual(registry.collections.get().length, 1);
 			assert.strictEqual(registry.collections.get()[0], nonLazyCollection);
@@ -686,7 +672,6 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(nonLazyCollection));
 			const disposable2 = registry.registerCollection(lazyCollection);
 
-			// Lazy collection should not replace or duplicate non-lazy
 			assert.strictEqual(disposable2, Disposable.None);
 			assert.strictEqual(registry.collections.get().length, 1);
 			assert.strictEqual(registry.collections.get()[0], nonLazyCollection);
@@ -708,7 +693,6 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(collection1));
 			store.add(registry.registerCollection(collection2));
 
-			// Both should be registered since they have different IDs
 			assert.strictEqual(registry.collections.get().length, 2);
 			assert.ok(registry.collections.get().some(c => c.id === 'collection-1'));
 			assert.ok(registry.collections.get().some(c => c.id === 'collection-2'));
@@ -731,21 +715,16 @@ suite('Workbench - MCP - Registry', () => {
 
 			assert.strictEqual(disposable2, Disposable.None);
 
-			// Disposing the Disposable.None should do nothing
 			disposable2.dispose();
 			assert.strictEqual(registry.collections.get().length, 1);
 			assert.strictEqual(registry.collections.get()[0], collection1);
 
-			// Disposing the original should remove it
 			disposable1.dispose();
 			assert.strictEqual(registry.collections.get().length, 0);
 		});
 
 		test('simulates extension host restart scenario with when clause', async () => {
-			// Simulates the bug: ExtensionMcpDiscovery registers lazy collection,
-			// then MainThreadMcp tries to register non-lazy version on ext host restart
 
-			// Step 1: ExtensionMcpDiscovery registers cached lazy collection
 			const lazyCollection = {
 				...testCollection,
 				id: 'ext-restart-test',
@@ -758,8 +737,6 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(lazyCollection));
 			assert.strictEqual(registry.collections.get().length, 1);
 
-			// Step 2: Extension activates, MainThreadMcp.$upsertMcpCollection called
-			// This replaces lazy with non-lazy (normal flow)
 			const nonLazyFromExtension = {
 				...testCollection,
 				id: 'ext-restart-test',
@@ -769,9 +746,6 @@ suite('Workbench - MCP - Registry', () => {
 			assert.strictEqual(registry.collections.get().length, 1);
 			assert.strictEqual(registry.collections.get()[0].lazy, undefined);
 
-			// Step 3: Extension host restarts, MainThreadMcp disposed
-			// ExtensionMcpDiscovery's context listener fires again and tries to re-register
-			// This should NOT create a duplicate
 			const duplicateAttempt = {
 				...testCollection,
 				id: 'ext-restart-test',
@@ -867,10 +841,8 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(col2));
 			setupModel();
 
-			// Enable the lower-priority server explicitly
 			enablementModel.setEnabled('col-2.srv-a', ContributionEnablementState.EnabledWorkspace);
 
-			// col-2 is now enabled, col-1 should be disabled (set to DisabledWorkspace)
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-2.srv-a')));
 			assert.ok(!isContributionEnabled(enablementModel.readEnabled('col-1.srv-a')));
 			assert.strictEqual(enablementModel.readEnabled('col-1.srv-a'), ContributionEnablementState.DisabledWorkspace);
@@ -888,7 +860,6 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(col2));
 			setupModel();
 
-			// Both should be enabled when collision behavior is "suffix"
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-1.srv-a')));
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-2.srv-a')));
 		});
@@ -900,10 +871,8 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(col2));
 			setupModel();
 
-			// Explicitly disable the winner
 			enablementModel.setEnabled('col-1.srv-a', ContributionEnablementState.DisabledProfile);
 
-			// col-1 is disabled, col-2 becomes the first enabled server in the group
 			assert.ok(!isContributionEnabled(enablementModel.readEnabled('col-1.srv-a')));
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-2.srv-a')));
 		});
@@ -917,10 +886,8 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(col2));
 			setupModel();
 
-			// Initially no collision — both enabled
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-1.srv-a')));
 
-			// Add a conflicting server to col2
 			col2.serverDefinitions.set([{ ...baseDefinition, id: 'col-2.srv-a', label: 'Server A' }], undefined);
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-1.srv-a')));
 			assert.ok(!isContributionEnabled(enablementModel.readEnabled('col-2.srv-a')));
@@ -965,7 +932,6 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(col3));
 			setupModel();
 
-			// Disable the winner — col-2 (next priority) becomes the active one
 			enablementModel.setEnabled('col-1.srv', ContributionEnablementState.DisabledProfile);
 
 			assert.ok(!isContributionEnabled(enablementModel.readEnabled('col-1.srv')));
@@ -992,11 +958,9 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(col2));
 			setupModel();
 
-			// Manually set both to EnabledWorkspace in the base model
 			baseEnablement.setEnabled('col-1.srv', ContributionEnablementState.EnabledWorkspace);
 			baseEnablement.setEnabled('col-2.srv', ContributionEnablementState.EnabledWorkspace);
 
-			// Even though both are explicitly enabled, only the higher-priority one wins
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-1.srv')));
 			assert.ok(!isContributionEnabled(enablementModel.readEnabled('col-2.srv')));
 		});
@@ -1008,11 +972,9 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(col2));
 			setupModel();
 
-			// Enable col-2, which disables col-1 via DisabledWorkspace
 			enablementModel.setEnabled('col-2.srv', ContributionEnablementState.EnabledWorkspace);
 			assert.ok(!isContributionEnabled(enablementModel.readEnabled('col-1.srv')));
 
-			// Remove both overrides — restores default collision behavior
 			enablementModel.remove('col-1.srv');
 			enablementModel.remove('col-2.srv');
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-1.srv')));
@@ -1032,10 +994,8 @@ suite('Workbench - MCP - Registry', () => {
 			store.add(registry.registerCollection(col2));
 			setupModel();
 
-			// Colliding servers: only col-1's wins
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-1.srv-a')));
 			assert.ok(!isContributionEnabled(enablementModel.readEnabled('col-2.srv-a')));
-			// Non-colliding servers: both enabled
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-1.srv-b')));
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-2.srv-c')));
 		});
@@ -1049,16 +1009,12 @@ suite('Workbench - MCP - Registry', () => {
 
 			enablementModel.setEnabled('col-2.srv-b', ContributionEnablementState.EnabledWorkspace);
 
-			// No collision group — col-1 should be unaffected
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-1.srv-a')));
 			assert.ok(isContributionEnabled(enablementModel.readEnabled('col-2.srv-b')));
 		});
 	});
 
 	suite('Trust Flow', () => {
-		/**
-		 * Helper to create a test MCP collection with a specific trust behavior
-		 */
 		function createTestCollection(trustBehavior: McpServerTrust.Kind.Trusted | McpServerTrust.Kind.TrustedOnNonce, id = 'test-collection'): McpCollectionDefinition & { serverDefinitions: ISettableObservable<McpServerDefinition[]> } {
 			return {
 				id,
@@ -1072,9 +1028,6 @@ suite('Workbench - MCP - Registry', () => {
 			};
 		}
 
-		/**
-		 * Helper to create a test server definition with a specific cache nonce
-		 */
 		function createTestDefinition(id = 'test-server', cacheNonce = 'nonce-a'): McpServerDefinition {
 			return {
 				id,
@@ -1092,9 +1045,6 @@ suite('Workbench - MCP - Registry', () => {
 			};
 		}
 
-		/**
-		 * Helper to set up a basic registry with delegate and collection
-		 */
 		function setupRegistry(trustBehavior: McpServerTrust.Kind.Trusted | McpServerTrust.Kind.TrustedOnNonce = McpServerTrust.Kind.TrustedOnNonce, cacheNonce = 'nonce-a') {
 			const delegate = new TestMcpHostDelegate();
 			store.add(registry.registerDelegate(delegate));
@@ -1142,8 +1092,8 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('nonce-based trust prompts when nonce changes', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = 'nonce-a'; // Different nonce
-			registry.nextDefinitionIdsToTrust = [definition.id]; // User trusts the server
+			trustNonceBearer.trustedAtNonce = 'nonce-a';
+			registry.nextDefinitionIdsToTrust = [definition.id];
 
 			const connection = await registry.resolveConnection({
 				collectionRef: collection,
@@ -1159,8 +1109,8 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('nonce-based trust denies connection when user rejects', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = 'nonce-a'; // Different nonce
-			registry.nextDefinitionIdsToTrust = []; // User does not trust the server
+			trustNonceBearer.trustedAtNonce = 'nonce-a';
+			registry.nextDefinitionIdsToTrust = [];
 
 			const connection = await registry.resolveConnection({
 				collectionRef: collection,
@@ -1175,7 +1125,7 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('autoTrustChanges bypasses prompt when nonce changes', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = 'nonce-a'; // Different nonce
+			trustNonceBearer.trustedAtNonce = 'nonce-a';
 
 			const connection = await registry.resolveConnection({
 				collectionRef: collection,
@@ -1194,7 +1144,7 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('promptType "never" skips prompt and fails silently', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = 'nonce-a'; // Different nonce
+			trustNonceBearer.trustedAtNonce = 'nonce-a';
 
 			const connection = await registry.resolveConnection({
 				collectionRef: collection,
@@ -1211,7 +1161,7 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('promptType "only-new" skips previously untrusted servers', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = '__vscode_not_trusted'; // Previously explicitly denied
+			trustNonceBearer.trustedAtNonce = '__vscode_not_trusted';
 
 			const connection = await registry.resolveConnection({
 				collectionRef: collection,
@@ -1228,8 +1178,8 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('promptType "all-untrusted" prompts for previously untrusted servers', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = '__vscode_not_trusted'; // Previously explicitly denied
-			registry.nextDefinitionIdsToTrust = [definition.id]; // User now trusts the server
+			trustNonceBearer.trustedAtNonce = '__vscode_not_trusted';
+			registry.nextDefinitionIdsToTrust = [definition.id];
 
 			const connection = await registry.resolveConnection({
 				collectionRef: collection,
@@ -1247,25 +1197,20 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('concurrent resolveConnection calls with same interaction are grouped', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = 'nonce-a'; // Different nonce
+			trustNonceBearer.trustedAtNonce = 'nonce-a';
 
-			// Create a second definition that also needs trust
 			const definition2 = createTestDefinition('test-server-2', 'nonce-c');
 			collection.serverDefinitions.set([definition, definition2], undefined);
 
-			// Create shared interaction
 			const interaction = new McpStartServerInteraction();
 
-			// Manually set participants as mentioned in the requirements
 			interaction.participants.set(definition.id, { s: 'unknown' });
 			interaction.participants.set(definition2.id, { s: 'unknown' });
 
-			const trustNonceBearer2 = { trustedAtNonce: 'nonce-b' }; // Different nonce for second server
+			const trustNonceBearer2 = { trustedAtNonce: 'nonce-b' };
 
-			// Trust both servers
 			registry.nextDefinitionIdsToTrust = [definition.id, definition2.id];
 
-			// Start both connections concurrently with the same interaction
 			const [connection1, connection2] = await Promise.all([
 				registry.resolveConnection({
 					collectionRef: collection,
@@ -1296,25 +1241,20 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('user cancelling trust dialog returns undefined for all pending connections', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = 'nonce-a'; // Different nonce
+			trustNonceBearer.trustedAtNonce = 'nonce-a';
 
-			// Create a second definition that also needs trust
 			const definition2 = createTestDefinition('test-server-2', 'nonce-c');
 			collection.serverDefinitions.set([definition, definition2], undefined);
 
-			// Create shared interaction
 			const interaction = new McpStartServerInteraction();
 
-			// Manually set participants as mentioned in the requirements
 			interaction.participants.set(definition.id, { s: 'unknown' });
 			interaction.participants.set(definition2.id, { s: 'unknown' });
 
-			const trustNonceBearer2 = { trustedAtNonce: 'nonce-b' }; // Different nonce for second server
+			const trustNonceBearer2 = { trustedAtNonce: 'nonce-b' };
 
-			// User cancels the dialog
 			registry.nextDefinitionIdsToTrust = undefined;
 
-			// Start both connections concurrently with the same interaction
 			const [connection1, connection2] = await Promise.all([
 				registry.resolveConnection({
 					collectionRef: collection,
@@ -1340,25 +1280,20 @@ suite('Workbench - MCP - Registry', () => {
 
 		test('partial trust selection in grouped interaction', async () => {
 			const { collection, definition } = setupRegistry(McpServerTrust.Kind.TrustedOnNonce, 'nonce-b');
-			trustNonceBearer.trustedAtNonce = 'nonce-a'; // Different nonce
+			trustNonceBearer.trustedAtNonce = 'nonce-a';
 
-			// Create a second definition that also needs trust
 			const definition2 = createTestDefinition('test-server-2', 'nonce-c');
 			collection.serverDefinitions.set([definition, definition2], undefined);
 
-			// Create shared interaction
 			const interaction = new McpStartServerInteraction();
 
-			// Manually set participants as mentioned in the requirements
 			interaction.participants.set(definition.id, { s: 'unknown' });
 			interaction.participants.set(definition2.id, { s: 'unknown' });
 
-			const trustNonceBearer2 = { trustedAtNonce: 'nonce-b' }; // Different nonce for second server
+			const trustNonceBearer2 = { trustedAtNonce: 'nonce-b' };
 
-			// User trusts only the first server
 			registry.nextDefinitionIdsToTrust = [definition.id];
 
-			// Start both connections concurrently with the same interaction
 			const [connection1, connection2] = await Promise.all([
 				registry.resolveConnection({
 					collectionRef: collection,

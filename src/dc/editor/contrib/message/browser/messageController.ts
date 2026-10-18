@@ -79,14 +79,13 @@ export class MessageController implements IEditorContribution {
 			this._messageWidget.value = new MessageWidget(this._editor, position, message);
 		}
 
-		// close on blur (debounced to allow to tab into the message), cursor, model change, dispose
 		this._messageListeners.add(Event.debounce(this._editor.onDidBlurEditorText, (last, event) => event, 0)(() => {
 			if (this._mouseOverMessage) {
-				return; // override when mouse over message
+				return;
 			}
 
 			if (this._messageWidget.value && dom.isAncestor(dom.getActiveElement(), this._messageWidget.value.getDomNode())) {
-				return; // override when focus is inside the message
+				return;
 			}
 
 			this.closeMessage();
@@ -98,19 +97,15 @@ export class MessageController implements IEditorContribution {
 		this._messageListeners.add(dom.addDisposableListener(this._messageWidget.value.getDomNode(), dom.EventType.MOUSE_ENTER, () => this._mouseOverMessage = true, true));
 		this._messageListeners.add(dom.addDisposableListener(this._messageWidget.value.getDomNode(), dom.EventType.MOUSE_LEAVE, () => this._mouseOverMessage = false, true));
 
-		// close on mouse move
 		let bounds: Range;
 		this._messageListeners.add(this._editor.onMouseMove(e => {
-			// outside the text area
 			if (!e.target.position) {
 				return;
 			}
 
 			if (!bounds) {
-				// define bounding box around position and first mouse occurance
 				bounds = new Range(position.lineNumber - 3, 1, e.target.position.lineNumber + 3, 1);
 			} else if (!bounds.containsPosition(e.target.position)) {
-				// check if position is still in bounds
 				this.closeMessage();
 			}
 		}));
@@ -140,7 +135,6 @@ registerEditorCommand(new MessageCommand({
 
 class MessageWidget implements IContentWidget {
 
-	// Editor.IContentWidget.allowEditorOverflow
 	readonly allowEditorOverflow = true;
 	readonly suppressMouseDown = false;
 

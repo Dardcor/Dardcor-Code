@@ -5,11 +5,9 @@
 import { beforeAll, suite, test } from 'vitest';
 import { z } from 'zod';
 
-// This is OK since we are running in a Node / CommonJS environment.
 import * as fs from 'fs';
 import ts from 'typescript';
 
-// These must be type imports since the module is loaded dynamically in the beforeAll hook.
 import assert from 'assert';
 import path from 'path';
 import type * as protocol from '../../common/protocol';
@@ -21,7 +19,6 @@ let nesRename: typeof testing.nesRename;
 let RenameKind: typeof protocol.RenameKind;
 let toNormalizedPath: typeof ts.server.toNormalizedPath;
 
-// This is OK since we run tests in node loading a TS version installed in the workspace.
 const root = path.join(__dirname, '../../../fixtures/nes');
 
 const TestAnnotationSchema = z.object({
@@ -110,7 +107,6 @@ function computeNesRenameTestCases(filePath: string): NesRenameTestCase[] {
 				character: character + (testCase.delta ?? 0),
 			});
 		} catch {
-			// Ignore
 		}
 	}
 	return result;
@@ -144,7 +140,6 @@ function computePostRenameTestCases(filePath: string): PostRenameTestCase[] {
 				});
 			}
 		} catch {
-			// Ignore
 		}
 	}
 
@@ -179,7 +174,7 @@ function computePostRenameTestCases(filePath: string): PostRenameTestCase[] {
 				character: start.character + delta,
 			};
 			result.push({ trackedRename, testCase });
-			i++; // Skip the next annotation since it's part of this pair
+			i++;
 		}
 	}
 
@@ -243,7 +238,6 @@ suite('NES Post Rename Test Suite', function () {
 				start: { line: start.line, character: start.character },
 				end: { line: end.line, character: end.character },
 			};
-			// First, perform the tracked rename.
 			const trackedRenameKind = prepareNesRename(
 				session,
 				normalizedFilePath,

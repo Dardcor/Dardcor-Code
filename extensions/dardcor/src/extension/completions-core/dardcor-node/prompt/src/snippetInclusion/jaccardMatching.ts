@@ -41,10 +41,6 @@ export class FixedWindowSizeJaccardMatcher extends WindowedMatcher {
 	}
 }
 
-/**
- * Compute the Jaccard metric of number of elements in the intersection
- * divided by number of elements in the union
- */
 export function computeScore(a: Set<string>, b: Set<string>) {
 	const intersection = new Set();
 	a.forEach(x => {

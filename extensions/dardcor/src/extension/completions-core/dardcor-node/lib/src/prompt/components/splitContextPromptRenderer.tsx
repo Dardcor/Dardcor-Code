@@ -41,7 +41,6 @@ export class SplitContextPromptRenderer extends CompletionsPromptRenderer {
 		const suffixBlocks: WeightedBlock[] = [];
 		const componentStatistics: ComponentStatistics[] = [];
 
-		// Store the status of the required prefix node
 		let foundPrefix = false;
 
 		resetContextIndex();
@@ -58,20 +57,17 @@ export class SplitContextPromptRenderer extends CompletionsPromptRenderer {
 				});
 			}
 
-			// Check for the presence of required prefix node
 			if (node.name === BeforeCursor.name) {
 				foundPrefix = true;
 			}
 
 			if (node.value === undefined || node.value === '') {
-				// No need to process this node as it only adds whitespace
 				return true;
 			}
 
 			const chunks = context.chunks as Set<string> | undefined;
 			const type = context.type as string | undefined;
 			if (type === 'suffix') {
-				// Suffix handling: Mark the child node with content as suffix
 				suffixBlocks.push({
 					value: normalizeLineEndings(node.value),
 					type: 'suffix',
@@ -84,7 +80,6 @@ export class SplitContextPromptRenderer extends CompletionsPromptRenderer {
 			} else {
 				const isPrefix = type === 'prefix';
 
-				// Add delimiter to non-prefix nodes
 				const nodeValueWithDelimiter =
 					isPrefix || node.value.endsWith(delimiter) ? node.value : node.value + delimiter;
 				prefixBlocks.push({
@@ -95,7 +90,7 @@ export class SplitContextPromptRenderer extends CompletionsPromptRenderer {
 					nodeStatistics: node.statistics,
 					chunks,
 					source: context.source,
-					index: isPrefix ? undefined : (context.index as number), // index only set for context nodes
+					index: isPrefix ? undefined : (context.index as number),
 				});
 			}
 			return true;

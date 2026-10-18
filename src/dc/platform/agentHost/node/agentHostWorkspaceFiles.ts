@@ -13,13 +13,10 @@ import { URI } from '../../../base/common/uri.js';
 import { ILogService } from '../../log/common/log.js';
 import { rgDiskPath } from '../../../base/node/ripgrep.js';
 
-/** Maximum number of files cached per working directory. */
 const MAX_FILES = 50_000;
 
-/** TTL for a cached file list before we re-enumerate. */
 const CACHE_TTL_MS = 30_000;
 
-/** Maximum number of concurrent ripgrep enumerations across all callers. */
 const MAX_CONCURRENT_ENUMERATIONS = 4;
 
 const enumerationLimiter = new Limiter<IAgentHostWorkspaceFilesResult>(MAX_CONCURRENT_ENUMERATIONS);
@@ -34,23 +31,9 @@ export interface IAgentHostWorkspaceFilesResult {
 	readonly isTruncated: boolean;
 }
 
-/**
- * Enumerates files under a working directory using ripgrep, with results
- * cached per working directory for a short TTL.
- *
- * Mirrors the workbench's file-search invocation pattern (see
- * `ripgrepFileSearch.ts` in `vs/workbench/services/search/node/`) but does
- * not depend on the workbench layer — the agent host runs in a separate
- * node process that may not import from `vs/workbench/`.
- *
- * Files are returned as absolute {@link URI}s relative to the working
- * directory. `.gitignore` and other `.ignore` files are honoured by
- * ripgrep. Symlinks are followed.
- */
 export class AgentHostWorkspaceFiles extends Disposable {
 
 	private readonly _cache = new Map<string, ICacheEntry>();
-	/** Active ripgrep child processes, killed on dispose. */
 	private readonly _activeChildren = new Set<cp.ChildProcessWithoutNullStreams>();
 	private _isDisposed = false;
 
@@ -66,7 +49,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 			try {
 				child.kill();
 			} catch {
-				// ignore
 			}
 		}
 		this._activeChildren.clear();
@@ -74,12 +56,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 		super.dispose();
 	}
 
-	/**
-	 * Return the list of files under `workingDirectory`. Concurrent calls
-	 * with the same working directory share an in-flight enumeration.
-	 *
-	 * Only `file://` URIs are supported. Other schemes return an empty list.
-	 */
 	async getFiles(workingDirectory: URI, token: CancellationToken): Promise<IAgentHostWorkspaceFilesResult> {
 		if (workingDirectory.scheme !== Schemas.file) {
 			return { files: [], isTruncated: false };
@@ -106,10 +82,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 			});
 		}
 
-		// Race the shared enumeration against the caller's cancellation
-		// token. Only the caller's promise rejects on cancellation; the
-		// shared enumeration runs to completion so concurrent callers (and
-		// future cache hits within the TTL) still see the result.
 		if (token.isCancellationRequested) {
 			throw new CancellationError();
 		}
@@ -135,9 +107,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 		const resolvedRgDiskPath = await rgDiskPath();
 		return new Promise<IAgentHostWorkspaceFilesResult>((resolve, reject) => {
 			const cwd = workingDirectory.fsPath;
-			// Mirror the workbench's `ripgrepFileSearch.ts` invocation: pass
-			// `--no-config` so a user's global `~/.ripgreprc` cannot change
-			// enumeration results (or enable preprocessors etc.).
 			const args = ['--files', '--hidden', '--no-require-git', '--follow', '--no-config', '--glob', '!.git'];
 
 			let child: cp.ChildProcessWithoutNullStreams;
@@ -188,7 +157,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 						try {
 							child.kill();
 						} catch {
-							// ignore
 						}
 						break;
 					}
@@ -215,7 +183,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 					finish([]);
 					return;
 				}
-				// Flush any trailing line still in the buffer.
 				if (!limitHit && buffer.length > 0) {
 					const line = buffer.replace(/\r$/, '');
 					if (line) {

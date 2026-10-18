@@ -8,7 +8,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs/promises';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 
 export interface IActiveFileContextParams {
@@ -115,7 +115,7 @@ export class DardcorFileContextTracker {
 	}
 }
 
-export class ActiveFileContextTrackerTool implements ICopilotTool<IActiveFileContextParams> {
+export class ActiveFileContextTrackerTool implements IAgentTool<IActiveFileContextParams> {
 	public static readonly toolName = ToolName.ActiveFileContextTracker;
 
 	constructor(

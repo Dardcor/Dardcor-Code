@@ -12,7 +12,7 @@ import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { Disposable, DisposableMap, DisposableStore } from '../../../../base/common/lifecycle.js';
 import * as strings from '../../../../base/common/strings.js';
 import { localize, localize2 } from '../../../../nls.js';
-import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
+import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { ExtensionIdentifier, IExtensionManifest } from '../../../../platform/extensions/common/extensions.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
@@ -33,7 +33,6 @@ import { ChatAgentLocation, ChatModeKind } from '../common/constants.js';
 import { ChatViewId, ChatViewContainerId } from './chat.js';
 import { ChatViewPane } from './widgetHosts/viewPane/chatViewPane.js';
 
-// --- Chat Container &  View Registration
 
 const chatViewIcon = registerIcon('chat-view-icon', Codicon.chatSparkle, localize('chatViewIcon', 'View icon of the chat view.'));
 
@@ -68,17 +67,7 @@ const chatViewDescriptor: IViewDescriptor = {
 		order: 1
 	},
 	ctorDescriptor: new SyncDescriptor(ChatViewPane),
-	when: ContextKeyExpr.and(
-		ChatContextKeys.accountPolicyGateActive.negate(),
-		ContextKeyExpr.or(
-			ContextKeyExpr.and(
-				ChatContextKeys.Setup.hidden.negate(),
-				ChatContextKeys.Setup.disabledInWorkspace.negate(),
-			),
-			ChatContextKeys.panelParticipantRegistered,
-			ChatContextKeys.extensionInvalid
-		)
-	)
+	when: undefined
 };
 Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([chatViewDescriptor], chatViewContainer);
 
@@ -238,7 +227,6 @@ export class ChatExtensionPointHandler implements IWorkbenchContribution {
 						continue;
 					}
 
-					// Spaces are allowed but considered "invisible"
 					if (providerDescriptor.fullName && strings.InvisibleCharacters.containsInvisibleCharacter(providerDescriptor.fullName.replace(/ /g, ''))) {
 						extension.collector.error(`Extension '${extension.description.identifier.value}' CANNOT register participant with fullName that contains invisible characters: ${providerDescriptor.fullName}.`);
 						continue;
@@ -278,7 +266,7 @@ export class ChatExtensionPointHandler implements IWorkbenchContribution {
 							{
 								extensionId: extension.description.identifier,
 								extensionVersion: extension.description.version,
-								publisherDisplayName: extension.description.publisherDisplayName ?? extension.description.publisher, // May not be present in OSS
+								publisherDisplayName: extension.description.publisherDisplayName ?? extension.description.publisher,
 								extensionPublisherId: extension.description.publisher,
 								extensionDisplayName: extension.description.displayName ?? extension.description.name,
 								id: providerDescriptor.id,
@@ -334,8 +322,6 @@ export class ChatCompatibilityNotifier extends Disposable implements IWorkbenchC
 	) {
 		super();
 
-		// It may be better to have some generic UI for this, for any extension that is incompatible,
-		// but this is only enabled for Chat now and it needs to be obvious.
 		const isInvalid = ChatContextKeys.extensionInvalid.bindTo(contextKeyService);
 		this._register(Event.runAndSubscribe(
 			extensionsWorkbenchService.onDidChangeExtensionsNotification,
@@ -361,7 +347,7 @@ export class ChatCompatibilityNotifier extends Disposable implements IWorkbenchC
 		const showExtensionLabel = localize('showExtension', "Show Extension");
 		const mainMessage = localize('chatFailErrorMessage', "Chat failed to load because the installed version of the Dardcor AI Chat extension is not compatible with this version of {0}. Please ensure that the Dardcor AI Chat extension is up to date.", this.productService.nameLong);
 		const commandButton = `[${showExtensionLabel}](${createCommandUri(showExtensionsWithIdsCommandId, [this.productService.defaultChatAgent?.chatExtensionId])})`;
-		const versionMessage = `Copilot Chat version: ${chatExtension.version}`;
+		const versionMessage = `Dardcor AI Chat version: ${chatExtension.version}`;
 		const viewsRegistry = Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry);
 		this._register(viewsRegistry.registerViewWelcomeContent(ChatViewId, {
 			content: [mainMessage, commandButton, versionMessage].join('\n\n'),

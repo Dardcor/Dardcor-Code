@@ -1,9 +1,7 @@
-// Shared TTS helpers
 import { Buffer } from "node:buffer";
 
 export const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
 
-// Convert upstream Response (binary audio) to { base64, format }
 export async function responseToBase64(res, defaultFormat = "mp3") {
   const buf = await res.arrayBuffer();
   if (buf.byteLength < 100) throw new Error("Upstream returned empty audio");
@@ -25,7 +23,6 @@ export async function throwUpstreamError(res) {
   throw new Error(msg);
 }
 
-// Parse `model` string as "modelId/voiceId" — match against known model list (longest prefix wins)
 export function parseModelVoice(model, defaultModel = "", defaultVoice = "", knownModels = []) {
   if (!model) return { modelId: defaultModel, voiceId: defaultVoice };
   const known = knownModels.map((m) => m.id || m).filter(Boolean).sort((a, b) => b.length - a.length);

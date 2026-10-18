@@ -49,7 +49,6 @@ import { IChatModel, IChatRequestModel } from '../../common/model/chatModel.js';
 import { ChatToolInvocation } from '../../common/model/chatProgressTypes/chatToolInvocation.js';
 import { chatSessionResourceToId, getChatSessionType } from '../../common/model/chatUri.js';
 import { HookType } from '../../common/promptSyntax/hookTypes.js';
-import { CopilotChatSettingId, CopilotToolId } from '../../common/tools/copilotToolIds.js';
 import { ILanguageModelToolsConfirmationService } from '../../common/tools/languageModelToolsConfirmationService.js';
 import { TerminalToolId } from '../../common/tools/terminalToolIds.js';
 import { CountTokensCallback, createToolSchemaUri, IBeginToolCallOptions, IExternalPreToolUseHookResult, ILanguageModelToolsService, IPreparedToolInvocation, isToolSet, IToolData, IToolImpl, IToolInvocation, IToolInvokedEvent, IToolResult, IToolResultInputOutputDetails, IToolSet, SpecedToolAliases, stringifyPromptTsxPart, ToolAndToolSetEnablementMap, ToolDataSource, ToolInvocationPresentation, toolMatchesModel, ToolSet, ToolSetForModel, VSCodeToolReference } from '../../common/tools/languageModelToolsService.js';
@@ -75,24 +74,13 @@ export const enum AutoApproveStorageKeys {
 
 const SkipAutoApproveConfirmationKey = 'vscode.chat.tools.global.autoApprove.testMode';
 
-/**
- * Marks a {@link ToolConfirmKind.ConfirmationNotNeeded} decision that came from the session
- * auto-approving everything, rather than a per-tool setting or an explicit user action. Shared so
- * `shouldAutoConfirm`, the Autopilot risk gate, and approval telemetry use the same string.
- */
 const autoApproveAllReason = 'auto-approve-all';
 
-// This tool will always require user confirmation even in auto approval mode.
-// Users cannot auto approve this tool via settings either, as this is a tool used before the agentic loop.
 const toolIdsThatCannotBeAutoApproved = new Set([
 	'vscode_get_confirmation_with_options',
 	'vscode_get_modified_files_confirmation',
 ]);
 
-// Fetch uses two tools: the model-facing 'copilot_fetchWebPage' and the internal
-// 'vscode_fetchWebPage_internal' it delegates to. Both auto-approve themselves, so the Autopilot
-// risk gate classifies them to catch dangerous fetches (leaking secrets to an attacker URL,
-// hitting internal hosts).
 const fetchWebPageToolIds = new Set([
 	'copilot_fetchWebPage',
 	'vscode_fetchWebPage_internal',
@@ -104,12 +92,12 @@ export const globalAutoApproveDescription = localize2(
 		comment: [
 			'{Locked=\'](https://github.com/features/codespaces)\'}',
 			'{Locked=\'](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)\'}',
-			'{Locked=\'](https://code.visualstudio.com/docs/agents/run/security)\'}',
+			'{Locked=\'](https://www.dardcor-code.web.id/docs/agents/run/security)\'}',
 			'{Locked=\'**\'}',
 			'{Locked=\'[`chat.autoReply`](command:workbench.action.openSettings?%5B%22chat.autoReply%22%5D)\'}',
 		]
 	},
-	'Global auto approve also known as "YOLO mode" disables manual approval completely for _all tools in all workspaces_, allowing the agent to act fully autonomously. This is extremely dangerous and is *never* recommended, even containerized environments like [Codespaces](https://github.com/features/codespaces) and [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) have user keys forwarded into the container that could be compromised.\n\n**This feature disables [critical security protections](https://code.visualstudio.com/docs/agents/run/security) and makes it much easier for an attacker to compromise the machine.**\n\nNote: This setting only controls tool approval and does not prevent the agent from asking questions. To automatically answer agent questions, use the [`chat.autoReply`](command:workbench.action.openSettings?%5B%22chat.autoReply%22%5D) setting.'
+	'Global auto approve also known as "YOLO mode" disables manual approval completely for _all tools in all workspaces_, allowing the agent to act fully autonomously. This is extremely dangerous and is *never* recommended, even containerized environments like [Codespaces](https://github.com/features/codespaces) and [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) have user keys forwarded into the container that could be compromised.\n\n**This feature disables [critical security protections](https://www.dardcor-code.web.id/docs/agents/run/security) and makes it much easier for an attacker to compromise the machine.**\n\nNote: This setting only controls tool approval and does not prevent the agent from asking questions. To automatically answer agent questions, use the [`chat.autoReply`](command:workbench.action.openSettings?%5B%22chat.autoReply%22%5D) setting.'
 );
 
 export class LanguageModelToolsService extends Disposable implements ILanguageModelToolsService {
@@ -126,7 +114,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 	private readonly _onDidInvokeTool = this._register(new Emitter<IToolInvokedEvent>());
 	readonly onDidInvokeTool = this._onDidInvokeTool.event;
 
-	/** Throttle tools updates because it sends all tools and runs on context key updates */
 	private readonly _onDidChangeToolsScheduler = this._register(new RunOnceScheduler(() => this._onDidChangeTools.fire(), 750));
 	private readonly _tools = new Map<string, IToolEntry>();
 	private readonly _toolContextKeys = new Set<string>();
@@ -134,10 +121,8 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 	private readonly _callsByRequestId = new Map<string, ITrackedCall[]>();
 
-	/** Pending tool calls in the streaming phase, keyed by toolCallId */
 	private readonly _pendingToolCalls = new Map<string, ChatToolInvocation>();
 
-	/** Deduplicates _checkGlobalAutoApprove calls within this window */
 	private _pendingGlobalAutoApproveCheck: Promise<boolean> | undefined;
 
 	private readonly _isAgentModeEnabled: IObservable<boolean>;
@@ -166,18 +151,16 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 		this._register(this._contextKeyService.onDidChangeContext(e => {
 			if (e.affectsSome(this._toolContextKeys)) {
-				// Not worth it to compute a delta here unless we have many tools changing often
 				this._onDidChangeToolsScheduler.schedule();
 			}
 		}));
 
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration(ChatConfiguration.ExtensionToolsEnabled) || e.affectsConfiguration(ChatConfiguration.AgentEnabled) || e.affectsConfiguration(CopilotChatSettingId.Gpt55ReadFileToolEnabled)) {
+			if (e.affectsConfiguration(ChatConfiguration.ExtensionToolsEnabled) || e.affectsConfiguration(ChatConfiguration.AgentEnabled)) {
 				this._onDidChangeToolsScheduler.schedule();
 			}
 		}));
 
-		// Clear out warning accepted state if the setting is disabled
 		this._register(Event.runAndSubscribe(this._configurationService.onDidChangeConfiguration, e => {
 			if (!e || e.affectsConfiguration(ChatConfiguration.GlobalAutoApprove)) {
 				if (this._configurationService.getValue(ChatConfiguration.GlobalAutoApprove) !== true) {
@@ -193,14 +176,13 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			'vscode',
 			'vscode',
 			{
-				icon: ThemeIcon.fromId(Codicon.vscode.id),
+				icon: ThemeIcon.fromId(Codicon.dardcorCode.id),
 				description: localize('copilot.toolSet.vscode.description', 'Use Dardcor Code features'),
 				legacyFullNames: ['vscode'],
 				deprecated: true,
 			}
 		));
 
-		// Create the internal Execute tool set
 		this.executeToolSet = this._register(this.createToolSet(
 			ToolDataSource.Internal,
 			'execute',
@@ -212,7 +194,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		));
 
-		// Create the internal Read tool set
 		this.readToolSet = this._register(this.createToolSet(
 			ToolDataSource.Internal,
 			'read',
@@ -224,7 +205,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		));
 
-		// Create the internal Agent tool set
 		this.agentToolSet = this._register(this.createToolSet(
 			ToolDataSource.Internal,
 			'agent',
@@ -242,26 +222,15 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			return false;
 		}
 
-		if (toolData.id === CopilotToolId.ReadFile && model?.family.startsWith('gpt-5.5') && this._configurationService.getValue<boolean>(CopilotChatSettingId.Gpt55ReadFileToolEnabled) === false) {
-			return false;
-		}
-
 		return true;
 	}
 
-	/**
-	 * Returns if the given tool or toolset is permitted in the current context.
-	 * When agent mode is enabled, all tools are permitted (no restriction)
-	 * When agent mode is disabled only a subset of read-only tools are permitted in agentic-loop contexts.
-	 */
 	private isPermitted(toolOrToolSet: IToolData | ToolSet, reader?: IReader): boolean {
 		const agentModeEnabled = this._isAgentModeEnabled.read(reader);
 		if (agentModeEnabled !== false) {
 			return true;
 		}
 
-		// Internal tools that explicitly cannot be referenced in prompts are always permitted
-		// since they are infrastructure tools (e.g. inline_chat_exit), not user-facing agent tools
 		if (!isToolSet(toolOrToolSet) && toolOrToolSet.canBeReferencedInPrompt === false && toolOrToolSet.source.type === 'internal') {
 			return true;
 		}
@@ -283,8 +252,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		}
 
-		// Special case for 'vscode_fetchWebPage_internal', which is allowed if we allow 'web' tools
-		// Fetch is implemented with two tools, this one and 'copilot_fetchWebPage'
 		if (toolOrToolSet.id === 'vscode_fetchWebPage_internal' && permittedInternalToolSetIds.includes(SpecedToolAliases.web)) {
 			this._logService.trace(`LanguageModelToolsService#isPermitted: Tool ${toolOrToolSet.id} (${toolOrToolSet.toolReferenceName}) permitted=true (special case)`);
 			return true;
@@ -454,11 +421,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		};
 	}
 
-	/**
-	 * Validate updatedInput from a preToolUse hook against the tool's input schema
-	 * using the json.validate command from the JSON extension.
-	 * @returns An error message string if validation fails, or undefined if valid.
-	 */
 	private async _validateUpdatedInput(toolId: string, toolData: IToolData | undefined, updatedInput: object): Promise<string | undefined> {
 		if (!toolData?.inputSchema) {
 			return undefined;
@@ -479,7 +441,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 				return diagnostics.map(d => d.message).join('; ');
 			}
 		} catch (e) {
-			// json extension may not be available; skip validation
 			this._logService.debug(`[LanguageModelToolsService#_validateUpdatedInput] json.validate command failed, skipping validation: ${toErrorMessage(e)}`);
 		}
 
@@ -500,13 +461,11 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 				throw new CancellationError();
 			}
 
-			// Enrich context with working directory from the model if available
 			if (model?.workingDirectory && !dto.context.workingDirectory) {
 				dto = { ...dto, context: { ...dto.context, workingDirectory: model.workingDirectory } };
 			}
 		}
 
-		// Check if there's an existing pending tool call from streaming phase BEFORE hook check
 		let pendingToolCallKey: string | undefined;
 		let toolInvocation: ChatToolInvocation | undefined;
 		if (this._pendingToolCalls.has(dto.callId)) {
@@ -542,7 +501,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			token = source.token;
 		}
 
-		// Handle preToolUse hook denial
 		const preToolUseHookResult = dto.preToolUseResult;
 		if (preToolUseHookResult?.permissionDecision === 'deny') {
 			const denialResult = this._handlePreToolUseDenial(dto, preToolUseHookResult, toolData, toolInvocation, request);
@@ -552,7 +510,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			return denialResult;
 		}
 
-		// Apply updatedInput from preToolUse hook if provided, after validating against the tool's input schema
 		if (preToolUseHookResult?.updatedInput) {
 			const validationError = await this._validateUpdatedInput(dto.toolId, toolData, preToolUseHookResult.updatedInput);
 			if (validationError) {
@@ -563,7 +520,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		}
 
-		// Fire the event to notify listeners that a tool is being invoked
 		this._onDidInvokeTool.fire({
 			toolId: dto.toolId,
 			sessionResource: dto.context?.sessionResource,
@@ -571,7 +527,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			subagentInvocationId: dto.subAgentInvocationId,
 		});
 
-		// When invoking a tool, don't validate the "when" clause. An extension may have invoked a tool just as it was becoming disabled, and just let it go through rather than throw and break the chat.
 		let tool = this._tools.get(dto.toolId);
 		if (!tool) {
 			throw new Error(`Tool ${dto.toolId} was not contributed`);
@@ -580,17 +535,14 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		if (!tool.impl) {
 			await this._extensionService.activateByEvent(`onLanguageModelTool:${dto.toolId}`);
 
-			// Extension should activate and register the tool implementation
 			tool = this._tools.get(dto.toolId);
 			if (!tool?.impl) {
 				throw new Error(`Tool ${dto.toolId} does not have an implementation registered.`);
 			}
 		}
 
-		// Note: pending invocation lookup was already done above for the hook check
 		const hadPendingInvocation = !!toolInvocation;
 		if (hadPendingInvocation && pendingToolCallKey) {
-			// Remove from pending since we're now invoking it
 			this._pendingToolCalls.delete(pendingToolCallKey);
 		}
 
@@ -618,22 +570,11 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 				const { autoConfirmed: resolvedAutoConfirmed, preparedInvocation: updatedPreparedInvocation } = await this.resolveAutoConfirmFromHook(preToolUseHookResult, tool, dto, preparedInvocation, dto.context?.sessionResource);
 				preparedInvocation = updatedPreparedInvocation;
 
-				// A caller (e.g. the agent host) may have resolved auto-approval
-				// out-of-band. Treat it like a local auto-confirmation so the
-				// invocation never briefly enters `WaitingForConfirmation`. A
-				// preToolUse hook that returned `ask` explicitly forces a
-				// confirmation, so never let `preApproved` override it.
 				const preResolvedAutoConfirmed = resolvedAutoConfirmed
 					?? (preToolUseHookResult?.permissionDecision === 'ask' ? undefined : dto.preApproved);
 
-				// In Autopilot, run the risk classifier on an auto-approved call that would
-				// otherwise show a confirmation. A "red" rating skips the call; anything else
-				// (including a classifier failure) keeps the original auto-confirmation.
 				const { autoConfirmed, skipExplanation: riskSkipExplanation } = await this._maybeApplyAutopilotRiskGate(tool, dto, preparedInvocation, preResolvedAutoConfirmed, token);
 
-				// Important: a tool invocation that will be autoconfirmed should never
-				// be in the chat response in the `NeedsConfirmation` state, even briefly,
-				// as that triggers notifications and causes issues in eval.
 				if (hadPendingInvocation && toolInvocation) {
 					if (toolInvocation.state.get().type === IChatToolInvocation.StateKind.Streaming) {
 						toolInvocation.transitionFromStreaming(preparedInvocation, dto.parameters, autoConfirmed);
@@ -641,7 +582,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 						toolInvocation.updatePreparedInvocation(preparedInvocation, dto.parameters);
 					}
 				} else {
-					// Create a new tool invocation (no streaming phase)
 					toolInvocation = new ChatToolInvocation(preparedInvocation, tool.data, dto.chatStreamToolCallId ?? dto.callId, dto.subAgentInvocationId, dto.parameters);
 					if (autoConfirmed) {
 						IChatToolInvocation.confirmWith(toolInvocation, autoConfirmed);
@@ -652,13 +592,8 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 				dto.toolSpecificData = toolInvocation?.toolSpecificData;
 
-				// Enforce a risk skip here, before the confirmation flow below: run_in_terminal
-				// suppresses its own confirmation under Autopilot and never reaches it. The tool
-				// is not run, and an info note explains why.
 				if (riskSkipExplanation) {
 					this._logToolApprovalTelemetry(tool, dto, { type: ToolConfirmKind.Skipped });
-					// Terminal and edit tools hide their invocation part once complete, so show the
-					// reason as a separate info note.
 					this._chatService.appendProgress(request, {
 						kind: 'info',
 						content: new MarkdownString(localize('autopilotRiskSkipped', "Autopilot skipped \"{0}\" because it was assessed as high-risk: {1}", tool.data.displayName, riskSkipExplanation)),
@@ -737,9 +672,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 				}
 			}, token);
 			invocationTimeWatch.stop();
-			// Apply post-processing compression (e.g. for run_in_terminal output)
-			// before the result reaches the model. Returns undefined when no
-			// compression applied.
 			const compressed = this._toolResultCompressor.maybeCompress(activeTool.data.id, dto.parameters, toolResult);
 			if (compressed) {
 				toolResult = compressed;
@@ -853,15 +785,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			});
 	}
 
-	/**
-	 * Determines the auto-confirm decision based on a preToolUse hook result.
-	 * If the hook returned 'allow', auto-approves. If 'ask', forces confirmation
-	 * and ensures confirmation messages exist on `preparedInvocation`. Otherwise
-	 * falls back to normal auto-confirm logic.
-	 *
-	 * Returns the possibly-updated preparedInvocation along with the auto-confirm decision,
-	 * since when the hook returns 'ask' and preparedInvocation was undefined, we create one.
-	 */
 	private async resolveAutoConfirmFromHook(
 		hookResult: IExternalPreToolUseHookResult | undefined,
 		tool: IToolEntry,
@@ -876,7 +799,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 		if (hookResult?.permissionDecision === 'ask') {
 			this._logService.debug(`[LanguageModelToolsService#invokeTool] Tool ${dto.toolId} requires confirmation (preToolUse hook returned 'ask')`);
-			// Ensure confirmation messages exist when hook requires confirmation
 			if (!preparedInvocation?.confirmationMessages?.title) {
 				if (!preparedInvocation) {
 					preparedInvocation = {};
@@ -897,7 +819,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 					rawInput: dto.parameters,
 				};
 			} else {
-				// Tool already has its own confirmation - prepend hook note
 				const hookReason = hookResult.permissionDecisionReason;
 				const hookNote = hookReason
 					? localize('hookRequiresConfirmation.note', "{0} hook required confirmation: {1}", HookType.PreToolUse, hookReason)
@@ -905,7 +826,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 				const existing = preparedInvocation.confirmationMessages!;
 				if (preparedInvocation.toolSpecificData?.kind === 'terminal') {
-					// Terminal tools render message as hover only; use disclaimer for visible text
 					const existingDisclaimerText = existing.disclaimer
 						? (typeof existing.disclaimer === 'string' ? existing.disclaimer : existing.disclaimer.value)
 						: undefined;
@@ -918,7 +838,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 						allowAutoConfirm: false,
 					};
 				} else {
-					// Edit/other tools: prepend hook note to the message body
 					const msgText = typeof existing.message === 'string' ? existing.message : existing.message?.value ?? '';
 					preparedInvocation.confirmationMessages = {
 						...existing,
@@ -930,7 +849,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			return { autoConfirmed: undefined, preparedInvocation };
 		}
 
-		// No hook decision - use normal auto-confirm logic
 		const approveCombination = preparedInvocation?.confirmationMessages?.approveCombination;
 		let combination: { label: string; key: string } | undefined;
 		if (approveCombination) {
@@ -943,25 +861,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		return { autoConfirmed, preparedInvocation };
 	}
 
-	/**
-	 * In Autopilot, runs the risk classifier on an auto-approved call and skips it when the rating
-	 * is {@link ToolRiskLevel.Red}. Any other result returns the original auto-confirmation
-	 * unchanged.
-	 *
-	 * To keep the classifier off the hot path, it only runs when all of these hold:
-	 * - the call was auto-approved by the session approving everything, or is a `run_in_terminal` /
-	 *   fetch call that self-approved (these can run risky commands or prompt-injected URLs without
-	 *   ever showing a confirmation);
-	 * - it would otherwise show a confirmation (the self-approving tools above are the exception);
-	 * - the session is a local panel session at the Autopilot level with Advanced Autopilot on.
-	 *
-	 * This is independent of `chat.tools.riskAssessment.enabled`, which only controls the
-	 * confirmation risk badge. CLI and agent-host sessions handle their own confirmations and are
-	 * excluded.
-	 *
-	 * Fails open: a cancelled, unavailable, or failed assessment keeps the original
-	 * auto-confirmation so Autopilot keeps moving.
-	 */
 	private async _maybeApplyAutopilotRiskGate(
 		tool: IToolEntry,
 		dto: IToolInvocation,
@@ -973,14 +872,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		const isFetchTool = fetchWebPageToolIds.has(tool.data.id);
 		const isAlwaysClassifyTool = isTerminalTool || isFetchTool;
 
-		// Normally only gate calls the session auto-approved wholesale (the `autoApproveAllReason`
-		// sentinel). A per-tool setting, user action, or hook carries a concrete reason and is
-		// respected as-is.
-		//
-		// Exception: run_in_terminal and fetch self-approve without a confirmation, so a risky command
-		// or a prompt-injected URL would run unclassified. Gate them when they arrive self-approved
-		// (no reason and no confirmation of their own); an explicit allow carries a concrete reason
-		// instead of `undefined`, so it stays respected.
 		const isBlanketSessionApprove = autoConfirmed?.type === ToolConfirmKind.ConfirmationNotNeeded
 			&& autoConfirmed.reason === autoApproveAllReason;
 		const isSelfApprovedAlwaysClassify = isAlwaysClassifyTool
@@ -990,20 +881,14 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			return { autoConfirmed };
 		}
 
-		// Only gate calls that would otherwise show a confirmation, plus the self-approving tools above.
 		if (!isAlwaysClassifyTool && !preparedInvocation?.confirmationMessages?.title) {
 			return { autoConfirmed };
 		}
 
-		// Check the Advanced Autopilot flag first: it is default-off, so the common case bails before
-		// the session lookups below. This does not consult `chat.tools.riskAssessment.enabled`, which
-		// only controls the confirmation risk badge.
 		if (this._configurationService.getValue<boolean>(ChatConfiguration.AutopilotAdvancedEnabled) !== true) {
 			return { autoConfirmed };
 		}
 
-		// Scope to local panel sessions at the Autopilot level. CLI and agent-host sessions handle
-		// their own confirmations.
 		const sessionResource = dto.context?.sessionResource;
 		if (!sessionResource || getChatSessionType(sessionResource) !== localChatSessionType) {
 			return { autoConfirmed };
@@ -1013,7 +898,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		}
 
 		try {
-			// ignoreEnablement: assess even when the risk-badge setting is off.
 			const assessment = await this._riskAssessmentService.assess(tool.data, dto.parameters, token, undefined, { ignoreEnablement: true });
 			if (token.isCancellationRequested) {
 				return { autoConfirmed };
@@ -1028,7 +912,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			this._logService.warn(`[LanguageModelToolsService#invokeTool] Autopilot risk assessment failed for tool ${tool.data.id}, allowing: ${toErrorMessage(err)}`);
 		}
 
-		// Green/orange, no assessment, or a failure: keep the original auto-confirmation (fail open).
 		return { autoConfirmed };
 	}
 
@@ -1062,14 +945,12 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 		const isEligibleForAutoApproval = this.isToolEligibleForAutoApproval(tool.data);
 
-		// Default confirmation messages if tool is not eligible for auto-approval
 		if (!isEligibleForAutoApproval && !prepared?.confirmationMessages?.title) {
 			if (!prepared) {
 				prepared = {};
 			}
 			const fullReferenceName = getToolFullReferenceName(tool.data);
 
-			// TODO: This should be more detailed per tool.
 			prepared.confirmationMessages = {
 				...prepared.confirmationMessages,
 				title: localize('defaultToolConfirmation.title', 'Confirm tool execution'),
@@ -1080,7 +961,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		}
 
 		if (!isEligibleForAutoApproval && prepared?.confirmationMessages?.title) {
-			// Always overwrite the disclaimer if not eligible for auto-approval
 			prepared.confirmationMessages.disclaimer = toolIdsThatCannotBeAutoApproved.has(tool.data.id) ? undefined : new MarkdownString(localize('defaultToolConfirmation.disclaimer', 'Auto approval for \'{0}\' is restricted via {1}.', getToolFullReferenceName(tool.data), createMarkdownCommandLink({ text: '`' + ChatConfiguration.EligibleForAutoApproval + '`', id: 'workbench.action.openSettings', arguments: [ChatConfiguration.EligibleForAutoApproval], tooltip: localize('openSettings.autoApproval.tooltip', 'Open settings to configure auto-approval') }, false)), { isTrusted: true });
 		}
 
@@ -1103,21 +983,15 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 	}
 
 	beginToolCall(options: IBeginToolCallOptions): IChatToolInvocation | undefined {
-		// First try to look up by tool ID (the package.json "name" field),
-		// then fall back to looking up by toolReferenceName
 		const toolEntry = this._tools.get(options.toolId);
 		if (!toolEntry) {
 			return undefined;
 		}
 
-		// Don't create a streaming invocation for tools that don't implement handleToolStream.
-		// These tools will have their invocation created directly in invokeToolInternal.
-		// Callers that need a handle regardless (e.g. to observe confirmation state) can pass `force`.
 		if (!options.force && !toolEntry.impl?.handleToolStream) {
 			return undefined;
 		}
 
-		// Create the invocation in streaming state
 		const invocation = ChatToolInvocation.createStreaming({
 			toolCallId: options.toolCallId,
 			toolId: options.toolId,
@@ -1126,14 +1000,11 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			chatRequestId: options.chatRequestId,
 		});
 
-		// Track the pending tool call
 		this._pendingToolCalls.set(options.toolCallId, invocation);
 
-		// If we have a session, append the invocation to the chat as progress
 		if (options.sessionResource) {
 			const model = this._chatService.getSession(options.sessionResource);
 			if (model) {
-				// Find the request by chatRequestId if available, otherwise use the last request
 				const request = (options.chatRequestId
 					? model.getRequests().find(r => r.id === options.chatRequestId)
 					: undefined) ?? model.getRequests().at(-1);
@@ -1143,7 +1014,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		}
 
-		// Call handleToolStream to get initial streaming message
 		this._callHandleToolStream(toolEntry, invocation, options.toolCallId, undefined, CancellationToken.None);
 
 		return invocation;
@@ -1174,10 +1044,8 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			return;
 		}
 
-		// Update the partial input on the invocation
 		invocation.updatePartialInput(partialInput);
 
-		// Call handleToolStream if the tool implements it
 		const toolEntry = this._tools.get(invocation.toolId);
 		if (toolEntry) {
 			await this._callHandleToolStream(toolEntry, invocation, toolCallId, partialInput, token);
@@ -1190,7 +1058,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			return;
 		}
 
-		// Autopilot/auto-approve permission levels auto-approve all tools, skip signal
 		if (chatSessionResource) {
 			const model = this._chatService.getSession(chatSessionResource);
 			const request = model?.getRequests().at(-1);
@@ -1199,10 +1066,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		}
 
-		// Filter out any tool invocations that have already been confirmed/denied.
-		// This is a defensive check - normally the call site should prevent this,
-		// but tools may be auto-approved through various mechanisms (per-session rules,
-		// per-workspace rules, etc.) that could cause a race condition.
 		const pendingInvocations = toolInvocations.filter(inv => !IChatToolInvocation.executionConfirmedOrDenied(inv));
 		if (pendingInvocations.length === 0) {
 			return;
@@ -1232,21 +1095,12 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		return toolResult.content.some(part => part.kind === 'data' && part.value.mimeType?.startsWith('image/'));
 	}
 
-	/**
-	 * Returns true if the tool result message (or falling back to the tool invocation's
-	 * pastTenseMessage from streaming) contains empty markdown links pointing to image
-	 * files (the `[](imageUri)` pattern) that will be rendered as file pills by renderFileWidgets.
-	 */
 	private toolResultMessageHasImageFileWidgets(toolResult: IToolResult, toolInvocation: ChatToolInvocation | undefined): boolean {
-		// Check toolResult.toolResultMessage first — this is what didExecuteTool will
-		// copy into pastTenseMessage, and it's already available at this point.
-		// Fall back to pastTenseMessage which may have been set during the streaming phase.
 		const message = toolResult.toolResultMessage ?? toolInvocation?.pastTenseMessage;
 		if (!message) {
 			return false;
 		}
 		const value = typeof message === 'string' ? message : message.value;
-		// Match empty-text markdown links: [](uri) or [ ](uri), capturing the uri
 		const linkPattern = /\[\s*\]\((?<uri>[^)]+)\)/g;
 		let match: RegExpExecArray | null;
 		while ((match = linkPattern.exec(value)) !== null) {
@@ -1257,7 +1111,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 					return true;
 				}
 			} catch {
-				// Invalid URI, skip
 			}
 		}
 		return false;
@@ -1290,21 +1143,12 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		return inspected.policyValue === false;
 	}
 
-	/**
-	 * Returns true if the session's current (live) permission picker level is auto-approve.
-	 * This checks the widget's current state, not what was stamped on the request,
-	 * so switching to Autopilot mid-session takes effect immediately.
-	 */
 	private _isSessionLiveAutoApproveLevel(chatSessionResource: URI): boolean {
 		const widget = this._chatWidgetService.getWidgetBySessionResource(chatSessionResource)
 			?? this._chatWidgetService.lastFocusedWidget;
 		return !!widget && isAutoApproveLevel(widget.input.currentModeInfo.permissionLevel);
 	}
 
-	/**
-	 * True if the session is in an auto-approve level (Auto-Approve / Autopilot),
-	 * via either the last request's stamped level or the live picker level.
-	 */
 	private _isSessionInAutoApproveLevel(chatSessionResource: URI | undefined): boolean {
 		if (!chatSessionResource) {
 			return false;
@@ -1314,20 +1158,12 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		return isAutoApproveLevel(request?.modeInfo?.permissionLevel) || this._isSessionLiveAutoApproveLevel(chatSessionResource);
 	}
 
-	/**
-	 * True if the session's live permission picker level is Autopilot. Like
-	 * {@link _isSessionLiveAutoApproveLevel}, but excludes plain Auto-Approve.
-	 */
 	private _isSessionLiveAutopilotLevel(chatSessionResource: URI): boolean {
 		const widget = this._chatWidgetService.getWidgetBySessionResource(chatSessionResource)
 			?? this._chatWidgetService.lastFocusedWidget;
 		return !!widget && isAutopilotLevel(widget.input.currentModeInfo.permissionLevel);
 	}
 
-	/**
-	 * True if the session is at the Autopilot level (not plain Auto-Approve), via either the last
-	 * request's stamped level or the live picker level.
-	 */
 	private _isSessionInAutopilotLevel(chatSessionResource: URI | undefined): boolean {
 		if (!chatSessionResource) {
 			return false;
@@ -1347,28 +1183,21 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 	private isToolEligibleForAutoApproval(toolData: IToolData): boolean {
 		const fullReferenceName = this.getEligibleForAutoApprovalSpecialCase(toolData) ?? getToolFullReferenceName(toolData);
 		if (toolData.id === 'copilot_fetchWebPage') {
-			// Special case, this fetch will call an internal tool 'vscode_fetchWebPage_internal'
 			return true;
 		}
 		if (toolIdsThatCannotBeAutoApproved.has(toolData.id)) {
-			// Special case, this tool will always require user confirmation as there are multiple options,
-			// These aren't LM generated instead are generated by extension before agentic loop starts.
 			return false;
 		}
 		const eligibilityConfig = this._configurationService.getValue<Record<string, boolean>>(ChatConfiguration.EligibleForAutoApproval);
 		if (eligibilityConfig && typeof eligibilityConfig === 'object' && fullReferenceName) {
-			// Direct match
 			if (Object.prototype.hasOwnProperty.call(eligibilityConfig, fullReferenceName)) {
 				return eligibilityConfig[fullReferenceName];
 			}
-			// Back compat with legacy names
 			if (toolData.legacyToolReferenceFullNames) {
 				for (const legacyName of toolData.legacyToolReferenceFullNames) {
-					// Check if the full legacy name is in the config
 					if (Object.prototype.hasOwnProperty.call(eligibilityConfig, legacyName)) {
 						return eligibilityConfig[legacyName];
 					}
-					// Some tools may be both renamed and namespaced from a toolset, eg: xxx/yyy -> yyy
 					if (legacyName.includes('/')) {
 						const trimmedLegacyName = legacyName.split('/').pop();
 						if (trimmedLegacyName && Object.prototype.hasOwnProperty.call(eligibilityConfig, trimmedLegacyName)) {
@@ -1387,10 +1216,8 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			return undefined;
 		}
 
-		// Bypass confirmation under Auto-Approve / Autopilot, unless enterprise
 		// policy disables global auto-approve.
 		if (chatSessionResource && !this._isAutoApprovePolicyRestricted() && this._isSessionInAutoApproveLevel(chatSessionResource)) {
-			// CLI sessions still need their multi-option dialogs (e.g. uncommitted changes).
 			if (!(toolIdsThatCannotBeAutoApproved.has(tool.data.id) && getChatSessionType(chatSessionResource) !== localChatSessionType)) {
 				return { type: ToolConfirmKind.ConfirmationNotNeeded, reason: autoApproveAllReason };
 			}
@@ -1408,7 +1235,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		const config = this._configurationService.inspect<boolean | Record<string, boolean>>(ChatConfiguration.GlobalAutoApprove);
 
 		// If we know the tool runs at a global level, only consider the global config.
-		// If we know the tool runs at a workspace level, use those specific settings when appropriate.
 		let value = config.value ?? config.defaultValue;
 		if (typeof runsInWorkspace === 'boolean') {
 			value = config.userLocalValue ?? config.applicationValue;
@@ -1428,7 +1254,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 	}
 
 	private async shouldAutoConfirmPostExecution(toolId: string, runsInWorkspace: boolean | undefined, source: ToolDataSource, parameters: unknown, chatSessionResource: URI | undefined, chatRequestId: string | undefined, workingDirectory?: URI): Promise<ConfirmedReason | undefined> {
-		// Bypass post-execution confirmation under Auto-Approve / Autopilot,
 		// unless enterprise policy disables global auto-approve.
 		const sessionAutoApprove = chatSessionResource && !this._isAutoApprovePolicyRestricted() && this._isSessionInAutoApproveLevel(chatSessionResource);
 		if (sessionAutoApprove) {
@@ -1437,8 +1262,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		}
 
-		// Don't show the YOLO opt-in dialog under autopilot: this runs after the
-		// tool result is already back in the agent loop, so it can't block anything.
 		if (this._configurationService.getValue<boolean>(ChatConfiguration.GlobalAutoApprove) && !sessionAutoApprove && await this._checkGlobalAutoApprove()) {
 			return { type: ToolConfirmKind.Setting, id: ChatConfiguration.GlobalAutoApprove };
 		}
@@ -1471,8 +1294,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 	private async _doCheckGlobalAutoApprove(): Promise<boolean> {
 		const store = new DisposableStore();
 		try {
-			// Dismiss the dialog automatically if another window stores the
-			// opt-in flag, avoiding duplicate approval prompts.
 			const cts = new CancellationTokenSource();
 			store.add(cts);
 			store.add(this._storageService.onDidChangeValue(StorageScope.APPLICATION, AutoApproveStorageKeys.GlobalAutoApproveOptIn, store)(() => {
@@ -1503,7 +1324,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 				token: cts.token,
 			});
 
-			// If cancelled by cross-window approval, treat as approved
 			if (cts.token.isCancellationRequested) {
 				return true;
 			}
@@ -1544,7 +1364,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			this._callsByRequestId.delete(requestId);
 		}
 
-		// Clean up any pending tool calls that belong to this request
 		for (const [toolCallId, invocation] of this._pendingToolCalls) {
 			if (invocation.chatRequestId === requestId) {
 				this._pendingToolCalls.delete(toolCallId);
@@ -1557,7 +1376,7 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 	private *getToolSetAliases(toolSet: ToolSet, fullReferenceName: string): Iterable<string> {
 		if (fullReferenceName !== toolSet.referenceName) {
-			yield toolSet.referenceName; // tool set name without '/*'
+			yield toolSet.referenceName;
 		}
 		if (toolSet.legacyFullNames) {
 			yield* toolSet.legacyFullNames;
@@ -1573,12 +1392,12 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 					yield alias + '/*';
 				}
 				break;
-			case SpecedToolAliases.execute: // 'execute'
-				yield 'shell'; // legacy alias
+			case SpecedToolAliases.execute:
+				yield 'shell';
 				break;
-			case SpecedToolAliases.agent: // 'agent'
-				yield VSCodeToolReference.runSubagent; // prefer the tool set over th old tool name
-				yield 'custom-agent'; // legacy alias
+			case SpecedToolAliases.agent:
+				yield VSCodeToolReference.runSubagent;
+				yield 'custom-agent';
 				break;
 		}
 	}
@@ -1586,14 +1405,14 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 	private * getToolAliases(toolSet: IToolData, fullReferenceName: string): Iterable<string> {
 		const referenceName = toolSet.toolReferenceName ?? toolSet.displayName;
 		if (fullReferenceName !== referenceName && referenceName !== VSCodeToolReference.runSubagent) {
-			yield referenceName; // simple name, without toolset name
+			yield referenceName;
 		}
 		if (toolSet.legacyToolReferenceFullNames) {
 			for (const legacyName of toolSet.legacyToolReferenceFullNames) {
 				yield legacyName;
 				const lastSlashIndex = legacyName.lastIndexOf('/');
 				if (lastSlashIndex !== -1) {
-					yield legacyName.substring(lastSlashIndex + 1); // it was also known under the simple name
+					yield legacyName.substring(lastSlashIndex + 1);
 				}
 			}
 		}
@@ -1614,11 +1433,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		}
 	}
 
-	/**
-	 * Create a map that contains all tools and toolsets with their enablement state.
-	 * @param fullReferenceNames A list of tool or toolset by their full reference names that are enabled.
-	 * @returns A map of tool or toolset instances to their enablement state.
-	 */
 	toToolAndToolSetEnablementMap(fullReferenceNames: readonly string[], model: ILanguageModelChatMetadata | undefined): ToolAndToolSetEnablementMap {
 		const toolOrToolSetNames = new Set(fullReferenceNames);
 		const result = new Map<IToolSet | IToolData, boolean>();
@@ -1637,11 +1451,10 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 					continue;
 				}
 
-				if (!result.has(tool)) { // already set via an enabled toolset
+				if (!result.has(tool)) {
 					const enabled = toolOrToolSetNames.has(fullReferenceName)
 						|| Iterable.some(this.getToolAliases(tool, fullReferenceName), name => toolOrToolSetNames.has(name))
 						|| !!tool.legacyToolReferenceFullNames?.some(toolFullName => {
-							// enable tool if just the legacy tool set name is present
 							const index = toolFullName.lastIndexOf('/');
 							return index !== -1 && toolOrToolSetNames.has(toolFullName.substring(0, index));
 						});
@@ -1650,7 +1463,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		}
 
-		// also add all user tool sets (not part of the prompt referencable tools)
 		for (const toolSet of this._toolSets) {
 			if (toolSet.source.type === 'user') {
 				const enabled = Iterable.every(toolSet.getTools(), t => result.get(t) === true);
@@ -1664,7 +1476,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 		const result: string[] = [];
 		const toolsCoveredByEnabledToolSet = new Set<IToolData>();
 
-		// compare by id as toolset instances may be different (e.g. ToolSetForModel)
 		const enabledToolSetIds = new Set<string>();
 		const enabledToolIds = new Set<string>();
 		for (const [tool, enabled] of map) {
@@ -1796,8 +1607,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 			}
 		}
 		for (const tool of this.allToolsIncludingDisableObs.read(reader)) {
-			// todo@connor4312/aeschil: this effectively hides model-specific tools
-			// for prompt referencing. Should we eventually enable this? (If so how?)
 			if (tool.when && !this._contextKeyService.contextMatchesRules(tool.when)) {
 				continue;
 			}
@@ -1848,8 +1657,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 					add(alias, fullReferenceName);
 				}
 				if (tool.legacyToolReferenceFullNames) {
-					// If the tool is in a toolset (fullReferenceName has a '/'), also add the
-					// namespaced form of legacy names (e.g. 'vscode/oldName' → 'vscode/newName')
 					const slashIndex = fullReferenceName.lastIndexOf('/');
 					const toolSetPrefix = slashIndex !== -1 ? fullReferenceName.substring(0, slashIndex + 1) : undefined;
 
@@ -1857,9 +1664,6 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 						if (toolSetPrefix && !legacyName.includes('/')) {
 							add(toolSetPrefix + legacyName, fullReferenceName);
 						}
-						// for any 'orphaned' toolsets (toolsets that no longer exist and
-						// do not have an explicit legacy mapping), we should
-						// just point them to the list of tools directly
 						if (legacyName.includes('/')) {
 							const toolSetFullName = legacyName.substring(0, legacyName.lastIndexOf('/'));
 							if (!knownToolSetNames.has(toolSetFullName)) {

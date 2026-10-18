@@ -13,25 +13,12 @@ import { Disposable, DisposableStore } from '../../../base/common/lifecycle.js';
 import { Lazy } from '../../../base/common/lazy.js';
 import { isWindows } from '../../../base/common/platform.js';
 
-/**
- * The storage key prefix used for all secrets.
- */
 export const SECRET_STORAGE_PREFIX = 'secret://';
 
-/**
- * Builds the full storage key for a secret.
- */
 export function secretStorageKey(key: string): string {
 	return `${SECRET_STORAGE_PREFIX}${key}`;
 }
 
-/**
- * Reads an encrypted secret from storage and decrypts it.
- * @param key The secret key (without the `secret://` prefix).
- * @param storageGet A function that reads the encrypted value from storage given a full storage key.
- * @param decrypt A function that decrypts the encrypted value.
- * @param logService Optional logger for trace output.
- */
 export async function readEncryptedSecret(
 	key: string,
 	storageGet: (fullKey: string) => string | undefined,
@@ -51,14 +38,6 @@ export async function readEncryptedSecret(
 	return result;
 }
 
-/**
- * Encrypts a secret value and writes it to storage.
- * @param key The secret key (without the `secret://` prefix).
- * @param value The plaintext secret value.
- * @param storageSet A function that writes the encrypted value to storage given a full storage key.
- * @param encrypt A function that encrypts the plaintext value.
- * @param logService Optional logger for trace output.
- */
 export async function writeEncryptedSecret(
 	key: string,
 	value: string,
@@ -74,11 +53,6 @@ export async function writeEncryptedSecret(
 	logService?.trace('[secrets] stored encrypted secret for key:', fullKey);
 }
 
-/**
- * Secret keys that should be shared between the VS Code app and the agents app.
- * When the agents app starts and doesn't have these secrets, it requests them
- * from VS Code via crossAppIPC.
- */
 export const CROSS_APP_SHARED_SECRET_KEYS: readonly string[] = [
 	'{"extensionId":"vscode.github-authentication","key":"github.auth"}',
 ];
@@ -123,10 +97,6 @@ export class BaseSecretStorageService extends Disposable implements ISecretStora
 		return isWindows && CROSS_APP_SHARED_SECRET_KEYS.includes(key);
 	}
 
-	/**
-	 * @Note initialize must be called first so that this can be resolved properly
-	 * otherwise it will return 'unknown'.
-	 */
 	get type() {
 		return this._type;
 	}
@@ -144,7 +114,6 @@ export class BaseSecretStorageService extends Disposable implements ISecretStora
 				return await readEncryptedSecret(
 					key,
 					(fullKey) => this.getValueFromStorage(key, fullKey, storageService),
-					// If the storage service is in-memory, we don't need to decrypt
 					this._type === 'in-memory' ? (v) => Promise.resolve(v) : (v) => this._encryptionService.decrypt(v),
 					this._logService,
 				);
@@ -168,7 +137,6 @@ export class BaseSecretStorageService extends Disposable implements ISecretStora
 					key,
 					value,
 					(fullKey, encrypted) => this.setValueInStorage(key, fullKey, encrypted, storageService),
-					// If the storage service is in-memory, we don't need to encrypt
 					this._type === 'in-memory' ? (v) => Promise.resolve(v) : (v) => this._encryptionService.encrypt(v),
 					this._logService,
 				);
@@ -229,7 +197,6 @@ export class BaseSecretStorageService extends Disposable implements ISecretStora
 			this._type = 'persisted';
 			storageService = this._storageService;
 		} else {
-			// If we already have an in-memory storage service, we don't need to recreate it
 			if (this._type === 'in-memory') {
 				return this._storageService;
 			}

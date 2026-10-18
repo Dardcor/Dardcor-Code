@@ -37,13 +37,6 @@ import { ServiceCollection } from '../../../../platform/instantiation/common/ser
 import { EditorAreaFocusContext, EditorPartMaximizedEditorGroupContext, EditorPartMultipleEditorGroupsContext, EditorTabsVisibleContext, IsTopRightEditorGroupContext } from '../../../common/contextkeys.js';
 import { mainWindow } from '../../../../base/browser/window.js';
 
-/**
- * The width (in pixels) of the editor card border drawn on every side when the
- * Modern UI Update experiment is enabled (`styleOverrides/media/editorBorder.css`).
- * The editor reserves this thickness when laying out its contents so they sit
- * inside the frame instead of overflowing (and being clipped by) the border.
- * Keep in sync with the `--vscode-strokeThickness` (1px) token used there.
- */
 const EDITOR_FRAME_BORDER_WIDTH = 1;
 
 export interface IEditorPartUIState {
@@ -102,7 +95,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 	private static readonly EDITOR_PART_UI_STATE_STORAGE_KEY = 'editorpart.state';
 	private static readonly EDITOR_PART_CENTERED_VIEW_STORAGE_KEY = 'editorpart.centeredview';
 
-	//#region Events
 
 	private readonly _onDidFocus = this._register(new Emitter<void>());
 	readonly onDidFocus = this._onDidFocus.event;
@@ -151,7 +143,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 	private readonly _onWillDispose = this._register(new Emitter<void>());
 	readonly onWillDispose = this._onWillDispose.event;
 
-	//#endregion
 
 	private readonly workspaceMemento = this.getMemento(StorageScope.WORKSPACE, StorageTarget.USER);
 	private readonly profileMemento = this.getMemento(StorageScope.PROFILE, StorageTarget.MACHINE);
@@ -212,7 +203,7 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		const newPartOptions = getEditorPartOptions(this.configurationService, this.themeService);
 
 		for (const enforcedPartOptions of this.enforcedPartOptions) {
-			Object.assign(newPartOptions, enforcedPartOptions); // check for overrides
+			Object.assign(newPartOptions, enforcedPartOptions);
 		}
 
 		this._partOptions = newPartOptions;
@@ -242,14 +233,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	private _contentRightInset = 0;
 
-	/**
-	 * Reserves an inset (px) on the right of the editor content of the group(s) at the
-	 * right edge of the editor part, while the title stays full width, so a docked panel
-	 * can sit beside the editor content under one full-width tab bar. Only the right-edge
-	 * groups (no neighbor to the right) are inset; interior groups in a split layout keep
-	 * full-width content. Recomputed when the group topology changes. `0` (default)
-	 * restores full-width content for all groups.
-	 */
 	setContentRightInset(inset: number): void {
 		this._contentRightInset = Math.max(0, Math.round(inset));
 		this.applyContentRightInset();
@@ -265,8 +248,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 				continue;
 			}
 
-			// Only groups at the right edge of the editor part (no neighbor to the right)
-			// sit under the docked panel overlay; interior groups keep full-width content.
 			const atRightEdge = this._contentRightInset > 0 && this.gridWidget.getNeighborViews(group, Direction.Right).length === 0;
 			group.setContentRightInset(atRightEdge ? this._contentRightInset : 0);
 		}
@@ -326,8 +307,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			case GroupsOrder.MOST_RECENTLY_ACTIVE: {
 				const mostRecentActive = coalesce(this.mostRecentActiveGroups.map(groupId => this.getGroup(groupId)));
 
-				// there can be groups that got never active, even though they exist. in this case
-				// make sure to just append them at the end so that all groups are returned properly
 				return distinct([...mostRecentActive, ...this.groups]);
 			}
 			case GroupsOrder.GRID_APPEARANCE: {
@@ -359,12 +338,10 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	findGroup(scope: IFindGroupScope, source: IEditorGroupView | GroupIdentifier = this.activeGroup, wrap?: boolean): IEditorGroupView | undefined {
 
-		// by direction
 		if (typeof scope.direction === 'number') {
 			return this.doFindGroupByDirection(scope.direction, source, wrap);
 		}
 
-		// by location
 		if (typeof scope.location === 'number') {
 			return this.doFindGroupByLocation(scope.location, source, wrap);
 		}
@@ -375,7 +352,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 	private doFindGroupByDirection(direction: GroupDirection, source: IEditorGroupView | GroupIdentifier, wrap?: boolean): IEditorGroupView | undefined {
 		const sourceGroupView = this.assertGroupView(source);
 
-		// Find neighbours and sort by our MRU list
 		const neighbours = this.gridWidget.getNeighborViews(sourceGroupView, this.toGridViewDirection(direction), wrap);
 		neighbours.sort(((n1, n2) => this.mostRecentActiveGroups.indexOf(n1.id) - this.mostRecentActiveGroups.indexOf(n2.id)));
 
@@ -415,7 +391,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		const groupView = this.assertGroupView(group);
 		this.doSetGroupActive(groupView, reason);
 
-		// Ensure window on top unless disabled
 		if (!preserveWindowOrder) {
 			this.hostService.moveTop(getWindow(this.element));
 		}
@@ -444,11 +419,11 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	arrangeGroups(arrangement: GroupsArrangement, target: IEditorGroupView | GroupIdentifier = this.activeGroup): void {
 		if (this.count < 2) {
-			return; // require at least 2 groups to show
+			return;
 		}
 
 		if (!this.gridWidget) {
-			return; // we have not been created yet
+			return;
 		}
 
 		const groupView = this.assertGroupView(target);
@@ -459,7 +434,7 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 				break;
 			case GroupsArrangement.MAXIMIZE:
 				if (this.groups.length < 2) {
-					return; // need at least 2 groups to be maximized
+					return;
 				}
 				this.gridWidget.maximizeView(groupView);
 				groupView.focus();
@@ -488,7 +463,7 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	private unmaximizeGroup(): void {
 		this.gridWidget.exitMaximizedView();
-		this._activeGroup.focus(); // When making views visible the focus can be affected, so restore it
+		this._activeGroup.focus();
 	}
 
 	hasMaximizedGroup(): boolean {
@@ -505,7 +480,7 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	setGroupOrientation(orientation: GroupOrientation): void {
 		if (!this.gridWidget) {
-			return; // we have not been created yet
+			return;
 		}
 
 		const newOrientation = (orientation === GroupOrientation.HORIZONTAL) ? Orientation.HORIZONTAL : Orientation.VERTICAL;
@@ -517,7 +492,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 	applyLayout(layout: EditorGroupLayout): void {
 		const restoreFocus = this.shouldRestoreFocus(this.container);
 
-		// Determine how many groups we need overall
 		let layoutGroupsCount = 0;
 		function countGroups(groups: GroupLayoutArgument[]): void {
 			for (const group of groups) {
@@ -530,7 +504,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		}
 		countGroups(layout.groups);
 
-		// If we currently have too many groups, merge them into the last one
 		let currentGroupViews = this.getGroups(GroupsOrder.GRID_APPEARANCE);
 		if (layoutGroupsCount < currentGroupViews.length) {
 			const lastGroupInLayout = currentGroupViews[layoutGroupsCount - 1];
@@ -545,21 +518,18 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 		const activeGroup = this.activeGroup;
 
-		// Prepare grid descriptor to create new grid from
 		const gridDescriptor = createSerializedGrid({
 			orientation: this.toGridViewOrientation(
 				layout.orientation,
 				this.isTwoDimensionalGrid() ?
-					this.gridWidget.orientation :			// preserve original orientation for 2-dimensional grids
-					orthogonal(this.gridWidget.orientation) // otherwise flip (fix https://github.com/microsoft/vscode/issues/52975)
+					this.gridWidget.orientation :
+					orthogonal(this.gridWidget.orientation)
 			),
 			groups: layout.groups
 		});
 
-		// Recreate gridwidget with descriptor
 		this.doApplyGridState(gridDescriptor, activeGroup.id, currentGroupViews);
 
-		// Restore focus as needed
 		if (restoreFocus) {
 			this._activeGroup.focus();
 		}
@@ -567,8 +537,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	getLayout(): EditorGroupLayout {
 
-		// Example return value:
-		// { orientation: 0, groups: [ { groups: [ { size: 0.4 }, { size: 0.6 } ], size: 0.5 }, { groups: [ {}, {} ], size: 0.5 } ] }
 
 		const serializedGrid = this.gridWidget.serialize();
 		const orientation = serializedGrid.orientation === Orientation.HORIZONTAL ? GroupOrientation.HORIZONTAL : GroupOrientation.VERTICAL;
@@ -598,18 +566,15 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 		const activeElement = getActiveElement();
 		if (activeElement === target.ownerDocument.body) {
-			return true; // always restore focus if nothing is focused currently
+			return true;
 		}
 
-		// otherwise check for the active element being an ancestor of the target
 		return isAncestorOfActiveElement(target);
 	}
 
 	private isTwoDimensionalGrid(): boolean {
 		const views = this.gridWidget.getViews();
 		if (isGridBranchNode(views)) {
-			// the grid is 2-dimensional if any children
-			// of the grid is a branch node
 			return views.children.some(child => isGridBranchNode(child));
 		}
 
@@ -621,14 +586,12 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 		let newGroupView: IEditorGroupView;
 
-		// Same groups view: add to grid widget directly
 		if (locationView.groupsView === this) {
 			const restoreFocus = this.shouldRestoreFocus(locationView.element);
 
 			const shouldExpand = this.groupViews.size > 1 && this.isGroupExpanded(locationView);
 			newGroupView = this.doCreateGroupView(groupToCopy);
 
-			// Add to grid widget
 			this.gridWidget.addView(
 				newGroupView,
 				this.getSplitSizingStyle(),
@@ -636,29 +599,21 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 				this.toGridViewDirection(direction),
 			);
 
-			// Update container
 			this.updateContainer();
 
-			// Event
 			this._onDidAddGroup.fire(newGroupView);
 
-			// Notify group index change given a new group was added
 			this.notifyGroupIndexChange();
 
-			// Expand new group, if the reference view was previously expanded
 			if (shouldExpand) {
 				this.arrangeGroups(GroupsArrangement.EXPAND, newGroupView);
 			}
 
-			// Restore focus if we had it previously after completing the grid
-			// operation. That operation might cause reparenting of grid views
-			// which moves focus to the <body> element otherwise.
 			if (restoreFocus) {
 				locationView.focus();
 			}
 		}
 
-		// Different group view: add to grid widget of that group
 		else {
 			newGroupView = locationView.groupsView.addGroup(locationView, direction, groupToCopy);
 		}
@@ -677,10 +632,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		}
 	}
 
-	/**
-	 * Base {@link IEditorGroupViewOptions} applied to every group this part creates.
-	 * Subclasses override to configure part-wide group behavior (e.g. header menus).
-	 */
 	protected getGroupViewOptions(): IEditorGroupViewOptions | undefined {
 		return undefined;
 	}
@@ -689,7 +640,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 		const resolvedOptions: IEditorGroupViewOptions | undefined = { ...this.getGroupViewOptions(), ...options };
 
-		// Create group view
 		let groupView: IEditorGroupView;
 		if (from instanceof EditorGroupView) {
 			groupView = EditorGroupView.createCopy(from, this.editorPartsView, this, this.groupsLabel, this.count, this.scopedInstantiationService, resolvedOptions);
@@ -699,10 +649,8 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			groupView = EditorGroupView.createNew(this.editorPartsView, this, this.groupsLabel, this.count, this.scopedInstantiationService, resolvedOptions);
 		}
 
-		// Keep in map
 		this.groupViews.set(groupView.id, groupView);
 
-		// Track focus
 		const groupDisposables = new DisposableStore();
 		groupDisposables.add(groupView.onDidFocus(() => {
 			this.doSetGroupActive(groupView);
@@ -710,7 +658,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			this._onDidFocus.fire();
 		}));
 
-		// Track group changes
 		groupDisposables.add(groupView.onDidModelChange(e => {
 			switch (e.kind) {
 				case GroupModelChangeKind.GROUP_LOCKED:
@@ -725,12 +672,10 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			}
 		}));
 
-		// Track active editor change after it occurred
 		groupDisposables.add(groupView.onDidActiveEditorChange(() => {
 			this.updateContainer();
 		}));
 
-		// Track dispose
 		Event.once(groupView.onWillDispose)(() => {
 			dispose(groupDisposables);
 			this.groupViews.delete(groupView.id);
@@ -745,33 +690,25 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			const previousActiveGroup = this._activeGroup;
 			this._activeGroup = group;
 
-			// Update list of most recently active groups
 			this.doUpdateMostRecentActive(group, true);
 
-			// Mark previous one as inactive
 			if (previousActiveGroup && !previousActiveGroup.disposed) {
 				previousActiveGroup.setActive(false);
 			}
 
-			// Mark group as new active
 			group.setActive(true);
 
-			// Expand the group if it is currently minimized
 			this.doRestoreGroup(group);
 
-			// Event
 			this._onDidChangeActiveGroup.fire(group);
 		}
 
-		// Always fire the event that a group has been activated
-		// even if its the same group that is already active to
-		// signal the intent even when nothing has changed.
 		this._onDidActivateGroup.fire({ group, reason });
 	}
 
 	private doRestoreGroup(group: IEditorGroupView): void {
 		if (!this.gridWidget) {
-			return; // method is called as part of state restore very early
+			return;
 		}
 
 		try {
@@ -784,19 +721,16 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 				this.arrangeGroups(GroupsArrangement.EXPAND, group);
 			}
 		} catch (error) {
-			// ignore: method might be called too early before view is known to grid
 		}
 	}
 
 	private doUpdateMostRecentActive(group: IEditorGroupView, makeMostRecentlyActive?: boolean): void {
 		const index = this.mostRecentActiveGroups.indexOf(group.id);
 
-		// Remove from MRU list
 		if (index !== -1) {
 			this.mostRecentActiveGroups.splice(index, 1);
 		}
 
-		// Add to front as needed
 		if (makeMostRecentlyActive) {
 			this.mostRecentActiveGroups.unshift(group.id);
 		}
@@ -822,15 +756,13 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 	removeGroup(group: IEditorGroupView | GroupIdentifier, preserveFocus?: boolean): void {
 		const groupView = this.assertGroupView(group);
 		if (this.count === 1) {
-			return; // Cannot remove the last root group
+			return;
 		}
 
-		// Remove empty group
 		if (groupView.isEmpty) {
 			this.doRemoveEmptyGroup(groupView, preserveFocus);
 		}
 
-		// Remove group with editors
 		else {
 			this.doRemoveGroupWithEditors(groupView);
 		}
@@ -846,39 +778,29 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			lastActiveGroup = mostRecentlyActiveGroups[0];
 		}
 
-		// Removing a group with editors should merge these editors into the
-		// last active group and then remove this group.
 		this.mergeGroup(groupView, lastActiveGroup);
 	}
 
 	private doRemoveEmptyGroup(groupView: IEditorGroupView, preserveFocus?: boolean): void {
 		const restoreFocus = !preserveFocus && this.shouldRestoreFocus(this.container);
 
-		// Activate next group if the removed one was active
 		if (this._activeGroup === groupView) {
 			const mostRecentlyActiveGroups = this.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE);
-			const nextActiveGroup = mostRecentlyActiveGroups[1]; // [0] will be the current group we are about to dispose
+			const nextActiveGroup = mostRecentlyActiveGroups[1];
 			this.doSetGroupActive(nextActiveGroup);
 		}
 
-		// Remove from grid widget & dispose
 		this.gridWidget.removeView(groupView, this.getSplitSizingStyle());
 		groupView.dispose();
 
-		// Restore focus if we had it previously after completing the grid
-		// operation. That operation might cause reparenting of grid views
-		// which moves focus to the <body> element otherwise.
 		if (restoreFocus) {
 			this._activeGroup.focus();
 		}
 
-		// Notify group index change given a group was removed
 		this.notifyGroupIndexChange();
 
-		// Update container
 		this.updateContainer();
 
-		// Event
 		this._onDidRemoveGroup.fire(groupView);
 	}
 
@@ -893,30 +815,23 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		const restoreFocus = this.shouldRestoreFocus(sourceView.element);
 		let movedView: IEditorGroupView;
 
-		// Same groups view: move via grid widget API
 		if (sourceView.groupsView === targetView.groupsView) {
 			this.gridWidget.moveView(sourceView, this.getSplitSizingStyle(), targetView, this.toGridViewDirection(direction));
 			movedView = sourceView;
 		}
 
-		// Different groups view: move via groups view API
 		else {
 			movedView = targetView.groupsView.addGroup(targetView, direction, sourceView);
 			sourceView.closeAllEditors({ force: true });
 			this.removeGroup(sourceView, restoreFocus);
 		}
 
-		// Restore focus if we had it previously after completing the grid
-		// operation. That operation might cause reparenting of grid views
-		// which moves focus to the <body> element otherwise.
 		if (restoreFocus) {
 			movedView.focus();
 		}
 
-		// Event
 		this._onDidMoveGroup.fire(movedView);
 
-		// Notify group index change given a group was moved
 		this.notifyGroupIndexChange();
 
 		return movedView;
@@ -928,10 +843,8 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 		const restoreFocus = this.shouldRestoreFocus(groupView.element);
 
-		// Copy the group view
 		const copiedGroupView = this.addGroup(locationView, direction, groupView);
 
-		// Restore focus if we had it
 		if (restoreFocus) {
 			copiedGroupView.focus();
 		}
@@ -943,7 +856,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		const sourceView = this.assertGroupView(group);
 		const targetView = this.assertGroupView(target);
 
-		// Collect editors to move/copy
 		const editors: EditorInputWithOptions[] = [];
 		let index = (options && typeof options.index === 'number') ? options.index : targetView.count;
 		for (const editor of sourceView.editors) {
@@ -952,16 +864,10 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			let actualIndex: number | undefined;
 			if (targetView.contains(editor) &&
 				(
-					// Do not configure an `index` for editors that are sticky in
-					// the target, otherwise there is a chance of losing that state
-					// when the editor is moved.
-					// See https://github.com/microsoft/vscode/issues/239549
 					targetView.isSticky(editor) ||
-					// Do not configure an `index` when we are explicitly instructed
 					options?.preserveExistingIndex
 				)
 			) {
-				// leave `index` as `undefined`
 			} else {
 				actualIndex = index;
 				index++;
@@ -977,7 +883,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			});
 		}
 
-		// Move/Copy editors over into target
 		let result = true;
 		if (options?.mode === MergeGroupMode.COPY_EDITORS) {
 			sourceView.copyEditors(editors, targetView);
@@ -985,8 +890,7 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			result = sourceView.moveEditors(editors, targetView);
 		}
 
-		// Remove source if the view is now empty and not already removed
-		if (sourceView.isEmpty && !sourceView.disposed /* could have been disposed already via workbench.editor.closeEmptyGroups setting */) {
+		if (sourceView.isEmpty && !sourceView.disposed ) {
 			this.removeGroup(sourceView, true);
 		}
 
@@ -999,7 +903,7 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		let result = true;
 		for (const group of this.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE)) {
 			if (group === targetView) {
-				continue; // keep target
+				continue;
 			}
 
 			const merged = this.mergeGroup(group, targetView, options);
@@ -1032,9 +936,7 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		return this.scopedInstantiationService.createInstance(EditorDropTarget, this, container, delegate);
 	}
 
-	//#region Part
 
-	// TODO @sbatten @joao find something better to prevent editor taking over #79897
 	get minimumWidth(): number { return Math.min(this.centeredLayoutWidget.minimumWidth, this.layoutService.getMaximumEditorDimensions(this.layoutService.getContainer(getWindow(this.container))).width); }
 	get maximumWidth(): number { return this.centeredLayoutWidget.maximumWidth; }
 	get minimumHeight(): number { return Math.min(this.centeredLayoutWidget.minimumHeight, this.layoutService.getMaximumEditorDimensions(this.layoutService.getContainer(getWindow(this.container))).height); }
@@ -1059,32 +961,25 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	protected override createContentArea(parent: HTMLElement, options?: IEditorPartCreationOptions): HTMLElement {
 
-		// Container
 		this.element = parent;
 		if (this.windowId !== mainWindow.vscodeWindowId) {
 			this.container.classList.add('auxiliary');
 		}
 		parent.appendChild(this.container);
 
-		// Grid control
 		this._willRestoreState = !options || options.restorePreviousState;
 		this.doCreateGridControl();
 
-		// Centered layout widget
 		this.centeredLayoutWidget = this._register(new CenteredViewLayout(this.container, this.gridWidgetView, this.profileMemento[EditorPart.EDITOR_PART_CENTERED_VIEW_STORAGE_KEY], this._partOptions.centeredLayoutFixedWidth));
 		this._register(this.onDidChangeEditorPartOptions(e => this.centeredLayoutWidget.setFixedWidth(e.newPartOptions.centeredLayoutFixedWidth ?? false)));
 
-		// Drag & Drop support
 		this.setupDragAndDropSupport(parent, this.container);
 
-		// Context keys
 		this.handleContextKeys();
 
-		// Signal ready
 		this.whenReadyPromise.complete();
 		this._isReady = true;
 
-		// Signal restored
 		Promises.settled(this.groups.map(group => group.whenRestored)).finally(() => {
 			this.whenRestoredPromise.complete();
 		});
@@ -1093,10 +988,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 	}
 
 	protected handleContextKeys(): void {
-		// Bind `editorAreaFocus` to the editor part's scoped context key service so
-		// it evaluates to `true` only when keyboard focus is within the editor area.
-		// Applies to all editor parts (main, modal, auxiliary) so callers can gate
-		// shortcuts on focus being in any editor area regardless of which part.
 		EditorAreaFocusContext.bindTo(this.scopedContextKeyService).set(true);
 
 		const multipleEditorGroupsContext = EditorPartMultipleEditorGroupsContext.bindTo(this.scopedContextKeyService);
@@ -1172,14 +1063,11 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	private setupDragAndDropSupport(parent: HTMLElement, container: HTMLElement): void {
 
-		// Editor drop target
 		this._register(this.createEditorDropTarget(container, Object.create(null)));
 
-		// No drop in the editor
 		const overlay = $('.drop-block-overlay');
 		parent.appendChild(overlay);
 
-		// Hide the block if a mouse down event occurs #99065
 		this._register(addDisposableGenericMouseDownListener(overlay, () => overlay.classList.remove('visible')));
 
 		this._register(CompositeDragAndDropObserver.INSTANCE.registerTarget(this.element, {
@@ -1264,7 +1152,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			onDrop: () => clearAllTimeouts()
 		}));
 
-		// Make sure pending opener timeouts are cleared when the part is disposed
 		this._register(toDisposable(() => clearAllTimeouts()));
 	}
 
@@ -1282,25 +1169,20 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	private doCreateGridControl(): void {
 
-		// Grid Widget (with previous UI state)
 		let restoreError = false;
 		if (this._willRestoreState) {
 			restoreError = !this.doCreateGridControlWithPreviousState();
 		}
 
-		// Grid Widget (no previous UI state or failed to restore)
 		if (!this.gridWidget || restoreError) {
 			const initialGroup = this.doCreateGroupView();
 			this.doSetGridWidget(new SerializableGrid(initialGroup));
 
-			// Ensure a group is active
 			this.doSetGroupActive(initialGroup);
 		}
 
-		// Update container
 		this.updateContainer();
 
-		// Notify group index change we created the entire grid
 		this.notifyGroupIndexChange();
 	}
 
@@ -1309,37 +1191,31 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		if (state?.serializedGrid) {
 			try {
 
-				// MRU
 				this.mostRecentActiveGroups = state.mostRecentActiveGroups;
 
-				// Grid Widget
 				this.doCreateGridControlWithState(state.serializedGrid, state.activeGroup);
 			} catch (error) {
 
-				// Log error
 				onUnexpectedError(new Error(`Error restoring editor grid widget: ${error} (with state: ${JSON.stringify(state)})`));
 
-				// Clear any state we have from the failing restore
 				this.disposeGroups();
 
-				return false; // failure
+				return false;
 			}
 		}
 
-		return true; // success
+		return true;
 	}
 
 	private doCreateGridControlWithState(serializedGrid: ISerializedGrid, activeGroupId: GroupIdentifier, editorGroupViewsToReuse?: IEditorGroupView[], options?: IEditorGroupViewOptions): void {
 
-		// Determine group views to reuse if any
 		let reuseGroupViews: IEditorGroupView[];
 		if (editorGroupViewsToReuse) {
-			reuseGroupViews = editorGroupViewsToReuse.slice(0); // do not modify original array
+			reuseGroupViews = editorGroupViewsToReuse.slice(0);
 		} else {
 			reuseGroupViews = [];
 		}
 
-		// Create new
 		const groupViews: IEditorGroupView[] = [];
 		const gridWidget = SerializableGrid.deserialize(serializedGrid, {
 			fromJSON: (serializedEditorGroup: ISerializedEditorGroupModel | null) => {
@@ -1360,19 +1236,14 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			}
 		}, { styles: { separatorBorder: this.gridSeparatorBorder } });
 
-		// If the active group was not found when restoring the grid
-		// make sure to make at least one group active. We always need
-		// an active group.
 		if (!this._activeGroup) {
 			this.doSetGroupActive(groupViews[0]);
 		}
 
-		// Validate MRU group views matches grid widget state
 		if (this.mostRecentActiveGroups.some(groupId => !this.getGroup(groupId))) {
 			this.mostRecentActiveGroups = groupViews.map(group => group.id);
 		}
 
-		// Set it
 		this.doSetGridWidget(gridWidget);
 	}
 
@@ -1423,15 +1294,8 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 		this.top = top;
 		this.left = left;
 
-		// When the floating panels experiment is enabled, reserve a margin around the
-		// main editor so it floats like the side bar and panel cards. Scope to the main
-		// window (auxiliary editor windows do not apply the matching CSS).
 		if (this.windowId === mainWindow.vscodeWindowId && this.layoutService.isFloatingPanelsEnabled()) {
 
-			// When the editor becomes the outermost card on a side (no floating part
-			// sits between it and the window edge) it adopts the same doubled gutter the
-			// side/aux bars use, so its contents do not hug the window edge. The matching
-			// margins are applied in CSS via the toggled classes below.
 			const owners = getFloatingOuterEdgeOwners(this.layoutService);
 			const outerLeft = owners.left === Parts.EDITOR_PART;
 			const outerRight = owners.right === Parts.EDITOR_PART;
@@ -1443,7 +1307,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			const { top, bottom } = getFloatingEditorVerticalMargins(this.layoutService, mainWindow);
 			height = Math.max(0, height - top - bottom);
 
-			// Reserve space for the Modern UI editor border (styleOverrides/media/editorBorder.css) so content doesn't get clipped.
 			if (!this.element.classList.contains('modal-editor-part')) {
 				width = Math.max(0, width - EDITOR_FRAME_BORDER_WIDTH * 2);
 				height = Math.max(0, height - EDITOR_FRAME_BORDER_WIDTH * 2);
@@ -1455,26 +1318,21 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			this.element.classList.remove('floating-editor-outer-left', 'floating-editor-outer-right');
 		}
 
-		// Layout contents
 		const contentAreaSize = super.layoutContents(width, height).contentSize;
 
-		// Layout editor container
 		this.doLayout(Dimension.lift(contentAreaSize), top, left);
 	}
 
 	private doLayout(dimension: Dimension, top = this.top, left = this.left): void {
 		this._contentDimension = dimension;
 
-		// Layout Grid
 		this.centeredLayoutWidget.layout(this._contentDimension.width, this._contentDimension.height, top, left);
 
-		// Event
 		this._onDidLayout.fire(dimension);
 	}
 
 	protected override saveState(): void {
 
-		// Persist grid UI state
 		if (this.gridWidget) {
 			if (this.isEmpty) {
 				delete this.workspaceMemento[EditorPart.EDITOR_PART_UI_STATE_STORAGE_KEY];
@@ -1483,7 +1341,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 			}
 		}
 
-		// Persist centered view state
 		if (this.centeredLayoutWidget) {
 			const centeredLayoutState = this.centeredLayoutWidget.state;
 			if (this.centeredLayoutWidget.isDefault(centeredLayoutState)) {
@@ -1519,33 +1376,21 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 	private async doApplyState(state: IEditorPartUIState, options?: IEditorGroupViewOptions): Promise<void> {
 		const groups = await this.doPrepareApplyState();
 
-		// Pause add/remove events for groups during the duration of applying the state
-		// This ensures that we can do this transition atomically with the new state
-		// being ready when the events are fired. This is important because usually there
-		// is never the state where no groups are present, but for this transition we
-		// need to temporarily dispose all groups to restore the new set.
 
 		this._onDidAddGroup.pause();
 		this._onDidRemoveGroup.pause();
 
 		this.disposeGroups();
 
-		// MRU
 		this.mostRecentActiveGroups = state.mostRecentActiveGroups;
 
-		// Grid Widget
 		try {
 			this.doApplyGridState(state.serializedGrid, state.activeGroup, undefined, options);
 		} finally {
-			// It is very important to keep this order: first resume the events for
-			// removed groups and then for added groups. Many listeners may store
-			// groups in sets by their identifier and groups can have the same
-			// identifier before and after.
 			this._onDidRemoveGroup.resume();
 			this._onDidAddGroup.resume();
 		}
 
-		// Restore editors that were not closed before and are now opened now
 		await this.activeGroup.openEditors(
 			groups
 				.flatMap(group => group.editors)
@@ -1564,10 +1409,6 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	private async doPrepareApplyState(): Promise<IEditorGroupView[]> {
 
-		// Before disposing groups, try to close as many editors as
-		// possible, but skip over those that would trigger a dialog
-		// (for example when being dirty). This is to be able to later
-		// restore these editors after state has been applied.
 
 		const groups = this.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE);
 		for (const group of groups) {
@@ -1579,31 +1420,20 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	private doApplyGridState(gridState: ISerializedGrid, activeGroupId: GroupIdentifier, editorGroupViewsToReuse?: IEditorGroupView[], options?: IEditorGroupViewOptions): void {
 
-		// Recreate grid widget from state
 		this.doCreateGridControlWithState(gridState, activeGroupId, editorGroupViewsToReuse, options);
 
-		// Layout, but only if the part has already been laid out at least once.
-		// When restoring a working set into an editor part that has never been
-		// shown (e.g. on reload with the editor area hidden), `_contentDimension`
-		// is still undefined; laying out here would throw and abort before the
-		// `onDidAddGroup` events below are fired (leaving the restored groups
-		// unregistered with the editor service). The grid is laid out later when
-		// the part is first shown.
 		if (this._contentDimension) {
 			this.doLayout(this._contentDimension);
 		}
 
-		// Update container
 		this.updateContainer();
 
-		// Events for groups that got added
 		for (const groupView of this.getGroups(GroupsOrder.GRID_APPEARANCE)) {
 			if (!editorGroupViewsToReuse?.includes(groupView)) {
 				this._onDidAddGroup.fire(groupView);
 			}
 		}
 
-		// Notify group index change given layout has changed
 		this.notifyGroupIndexChange();
 	}
 
@@ -1637,19 +1467,15 @@ export class EditorPart extends Part<IEditorPartMemento> implements IEditorPart,
 
 	override dispose(): void {
 
-		// Event
 		this._onWillDispose.fire();
 
-		// Forward to all groups
 		this.disposeGroups();
 
-		// Grid widget
 		this.gridWidget?.dispose();
 
 		super.dispose();
 	}
 
-	//#endregion
 }
 
 export class MainEditorPart extends EditorPart {

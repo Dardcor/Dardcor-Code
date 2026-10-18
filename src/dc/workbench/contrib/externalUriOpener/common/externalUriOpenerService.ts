@@ -39,15 +39,8 @@ export interface IExternalUriOpener {
 export interface IExternalUriOpenerService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Registers a provider for external resources openers.
-	 */
 	registerExternalOpenerProvider(provider: IExternalOpenerProvider): IDisposable;
 
-	/**
-	 * Get the configured IExternalUriOpener for the uri.
-	 * If there is no opener configured, then returns the first opener that can handle the uri.
-	 */
 	getOpener(uri: URI, ctx: { sourceUri: URI; preferredOpenerId?: string }, token: CancellationToken): Promise<IExternalUriOpener | undefined>;
 }
 
@@ -80,7 +73,6 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 			return [];
 		}
 
-		// First see if we have a preferredOpener
 		if (ctx.preferredOpenerId) {
 			if (ctx.preferredOpenerId === defaultExternalUriOpenerId) {
 				return [];
@@ -88,19 +80,15 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 
 			const preferredOpener = allOpeners.get(ctx.preferredOpenerId);
 			if (preferredOpener) {
-				// Skip the `canOpen` check here since the opener was specifically requested.
 				return [preferredOpener];
 			}
 		}
 
-		// Check to see if we have a configured opener
 		const configuredOpener = this.getConfiguredOpenerForUri(allOpeners, targetUri);
 		if (configuredOpener) {
-			// Skip the `canOpen` check here since the opener was specifically requested.
 			return configuredOpener === defaultExternalUriOpenerId ? [] : [configuredOpener];
 		}
 
-		// Then check to see if there is a valid opener
 		const validOpeners: Array<{ opener: IExternalUriOpener; priority: languages.ExternalUriOpenerPriority }> = [];
 		await Promise.all(Array.from(allOpeners.values()).map(async opener => {
 			let priority: languages.ExternalUriOpenerPriority;
@@ -124,13 +112,11 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 			return [];
 		}
 
-		// See if we have a preferred opener first
 		const preferred = validOpeners.filter(x => x.priority === languages.ExternalUriOpenerPriority.Preferred).at(0);
 		if (preferred) {
 			return [preferred.opener];
 		}
 
-		// See if we only have optional openers, use the default opener
 		if (!allowOptional && validOpeners.every(x => x.priority === languages.ExternalUriOpenerPriority.Option)) {
 			return [];
 		}
@@ -149,7 +135,6 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 			return allOpeners[0].openExternalUri(targetUri, ctx, token);
 		}
 
-		// Otherwise prompt
 		return this.showOpenerPrompt(allOpeners, targetUri, ctx, token);
 	}
 
@@ -220,12 +205,11 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 		});
 
 		if (!picked) {
-			// Still cancel the default opener here since we prompted the user
 			return true;
 		}
 
 		if (typeof picked.opener === 'undefined') {
-			return false; // Fallback to default opener
+			return false;
 		} else if (picked.opener === 'configureDefault') {
 			await this.preferencesService.openUserSettings({
 				jsonEditor: true,

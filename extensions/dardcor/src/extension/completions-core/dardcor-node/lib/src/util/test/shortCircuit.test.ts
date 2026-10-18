@@ -35,12 +35,12 @@ suite('Test shortCircuit', function () {
 			return `Result: ${n}`;
 		}
 		const shortCircuitedFn = shortCircuit(fn, shortCircuitMs, shortCircuitReturn);
-		const promisedResult = shortCircuitedFn(42); // start the function, but don't await it because time is stopped
-		await clock.tickAsync(shortCircuitMs); // advance the clock by the short circuit time
+		const promisedResult = shortCircuitedFn(42);
+		await clock.tickAsync(shortCircuitMs);
 		const result = await promisedResult;
 		assert.strictEqual(result, 'Short circuited');
 		assert.ok(!touched, 'at this point the function should still be processing and touched is not yet true');
-		await clock.tickAsync(shortCircuitMs); // advance the clock to the function duration
+		await clock.tickAsync(shortCircuitMs);
 		assert.ok(touched, 'at this point the function should have completed and touched should be true');
 	});
 });

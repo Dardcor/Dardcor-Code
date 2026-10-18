@@ -161,7 +161,6 @@ suite('notebookCellDiagnostics', () => {
 			await new Promise<void>(resolve => Event.once(markerService.onMarkersUpdated)(resolve));
 
 			const clearMarkers = new Promise<void>(resolve => Event.once(markerService.onMarkersUpdated)(resolve));
-			// on NotebookCellExecution value will make it look like its currently running
 			testExecutionService.fireExecutionChanged(editor.textModel.uri, cell.handle, {} as INotebookCellExecution);
 
 			await clearMarkers;

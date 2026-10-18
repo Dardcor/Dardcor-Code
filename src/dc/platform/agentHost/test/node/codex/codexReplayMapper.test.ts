@@ -547,9 +547,6 @@ suite('codexReplayMapper', () => {
 				error: null, startedAt: null, completedAt: null, durationMs: null,
 			}],
 		} as never);
-		// History replay emits one markdownContent per Markdown part; the chat
-		// model coalesces adjacent ones by plain concatenation, so the joined
-		// text must keep `## Conclusion` at the start of a line.
 		const joined = turns[0].responseParts
 			.map(part => part.kind === ResponsePartKind.Markdown ? (part as { content: string }).content : '')
 			.join('');
@@ -696,14 +693,12 @@ suite('codexReplayMapper', () => {
 				id: 'turn_a',
 				items: [
 					{ type: 'userMessage', id: 'u', content: [{ type: 'text', text: 'curl it', text_elements: [] }] },
-					// Pre-flight: same command, no output, success → deferred.
 					{
 						type: 'commandExecution', id: 'pre',
 						command: 'curl -s https://example.com', cwd: '/tmp', processId: null,
 						source: 'agent', status: 'completed',
 						commandActions: [], aggregatedOutput: '', exitCode: 0, durationMs: 3,
 					},
-					// Escalated re-run: same command, real output.
 					{
 						type: 'commandExecution', id: 'esc',
 						command: 'curl -s https://example.com', cwd: '/tmp', processId: null,
@@ -717,7 +712,6 @@ suite('codexReplayMapper', () => {
 			}],
 		} as never);
 		assert.strictEqual(turns.length, 1);
-		// Exactly one box — the pre-flight is coalesced away.
 		assert.strictEqual(turns[0].responseParts.length, 1);
 		const part = turns[0].responseParts[0] as { toolCall: { content?: { text: string }[] } };
 		assert.strictEqual(part.toolCall.content?.[0].text, 'Example Domain');

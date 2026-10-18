@@ -125,12 +125,11 @@ export class SettingsChangeRelauncher extends Disposable implements IWorkbenchCo
 			return;
 		}
 
-		// Skip if turning on sync is in progress
 		if (this.isTurningOnSyncInProgress()) {
 			return;
 		}
 
-		this.update(e.source !== ConfigurationTarget.DEFAULT /* do not ask to relaunch if defaults changed */);
+		this.update(e.source !== ConfigurationTarget.DEFAULT );
 	}
 
 	private isTurningOnSyncInProgress(): boolean {
@@ -147,25 +146,18 @@ export class SettingsChangeRelauncher extends Disposable implements IWorkbenchCo
 		const config = this.configurationService.getValue<IConfiguration>();
 		if (isNative) {
 
-			// Titlebar style
 			processChanged((config.window.titleBarStyle === TitlebarStyle.NATIVE || config.window.titleBarStyle === TitlebarStyle.CUSTOM) && this.titleBarStyle.handleChange(config.window?.titleBarStyle));
 
-			// Windows/Linux: Menu style
 			processChanged(!isMacintosh && this.menuStyle.handleChange(config.window?.menuStyle));
 
-			// macOS: Native tabs
 			processChanged(isMacintosh && this.nativeTabs.handleChange(config.window?.nativeTabs));
 
-			// macOS: Native fullscreen
 			processChanged(isMacintosh && this.nativeFullScreen.handleChange(config.window?.nativeFullScreen));
 
-			// macOS: Click through (accept first mouse)
 			processChanged(isMacintosh && this.clickThroughInactive.handleChange(config.window?.clickThroughInactive));
 
-			// Windows/Linux: Window controls style
 			processChanged(!isMacintosh && this.controlsStyle.handleChange(config.window?.controlsStyle));
 
-			// On linux turning on accessibility support will also pass this flag to the chrome renderer, thus a restart is required
 			if (isLinux && typeof config.editor?.accessibilitySupport === 'string' && config.editor.accessibilitySupport !== this.accessibilitySupport) {
 				this.accessibilitySupport = config.editor.accessibilitySupport;
 				if (this.accessibilitySupport === 'on') {
@@ -173,39 +165,26 @@ export class SettingsChangeRelauncher extends Disposable implements IWorkbenchCo
 				}
 			}
 
-			// Workspace trust
 			processChanged(this.workspaceTrustEnabled.handleChange(config?.security?.workspace?.trust?.enabled));
 
-			// UNC host access restrictions
 			processChanged(this.restrictUNCAccess.handleChange(config?.security?.restrictUNCAccess));
 
-			// Debug accessibility verbosity
 			processChanged(this.accessibilityVerbosityDebug.handleChange(config?.accessibility?.verbosity?.debug));
 		}
 
-		// Experiments
 		processChanged(this.experimentsEnabled.handleChange(config.workbench?.enableExperiments));
 
-		// Profiles
 		processChanged(this.productService.quality !== 'stable' && this.enablePPEExtensionsGallery.handleChange(config._extensionsGallery?.enablePPE));
 
-		// Enable Feedback
 		processChanged(this.telemetryFeedbackEnabled.handleChange(config.telemetry?.feedback?.enabled));
 
-		// Extension Unification (only when turning on)
 		processChanged(this.extensionUnificationEnabled.handleChange(config.chat?.extensionUnification?.enabled) && config.chat?.extensionUnification?.enabled === true);
 
-		// Agent Host
 		processChanged(this.agentHostByokModelsEnabled.handleChange(config.chat?.agentHost?.byokModels?.enabled));
 
-		// Agent provider registration and implementation preferences are read at spawn.
 		processChanged(this.agentHostClaudeAgentEnabled.handleChange(config.chat?.agentHost?.claudeAgent?.enabled));
 		processChanged(this.editorCodexPreferAgentHost.handleChange(config.chat?.editor?.codex?.preferAgentHost));
 
-		// Agent Host OTel: settings are forwarded as env vars when the agent host
-		// child process is spawned (see `electronAgentHostStarter.ts`). The child
-		// is owned by the main process and is not respawned on window reload, so
-		// changes only take effect after a full app restart.
 		processChanged(this.agentHostOTelEnabled.handleChange(config.chat?.agentHost?.otel?.enabled));
 		processChanged(this.agentHostOTelExporterType.handleChange(config.chat?.agentHost?.otel?.exporterType));
 		processChanged(this.agentHostOTelOtlpEndpoint.handleChange(config.chat?.agentHost?.otel?.otlpEndpoint));
@@ -252,9 +231,6 @@ class ChangeObserver<T> {
 
 	private lastValue: T | undefined = undefined;
 
-	/**
-	 * Returns if there was a change compared to the last value
-	 */
 	handleChange(value: T | undefined): boolean {
 		if (typeof value === this.typeName && value !== this.lastValue) {
 			this.lastValue = value;
@@ -282,11 +258,11 @@ export class WorkspaceChangeExtHostRelauncher extends Disposable implements IWor
 
 		this.extensionHostRestarter = this._register(new RunOnceScheduler(async () => {
 			if (!!environmentService.extensionTestsLocationURI) {
-				return; // no restart when in tests: see https://github.com/microsoft/vscode/issues/66936
+				return;
 			}
 
 			if (environmentService.remoteAuthority) {
-				hostService.reload(); // TODO@aeschli, workaround
+				hostService.reload();
 			} else if (isNative) {
 				const stopped = await extensionService.stopExtensionHosts(localize('restartExtensionHost.reason', "Changing workspace folders"));
 				if (stopped) {
@@ -309,20 +285,16 @@ export class WorkspaceChangeExtHostRelauncher extends Disposable implements IWor
 
 	private handleWorkbenchState(): void {
 
-		// React to folder changes when we are in workspace state
 		if (this.contextService.getWorkbenchState() === WorkbenchState.WORKSPACE) {
 
-			// Update our known first folder path if we entered workspace
 			const workspace = this.contextService.getWorkspace();
 			this.firstFolderResource = workspace.folders.length > 0 ? workspace.folders[0].uri : undefined;
 
-			// Install workspace folder listener
 			if (!this.onDidChangeWorkspaceFoldersUnbind) {
 				this.onDidChangeWorkspaceFoldersUnbind = this.contextService.onDidChangeWorkspaceFolders(() => this.onDidChangeWorkspaceFolders());
 			}
 		}
 
-		// Ignore the workspace folder changes in EMPTY or FOLDER state
 		else {
 			dispose(this.onDidChangeWorkspaceFoldersUnbind);
 			this.onDidChangeWorkspaceFoldersUnbind = undefined;
@@ -332,12 +304,11 @@ export class WorkspaceChangeExtHostRelauncher extends Disposable implements IWor
 	private onDidChangeWorkspaceFolders(): void {
 		const workspace = this.contextService.getWorkspace();
 
-		// Restart extension host if first root folder changed (impact on deprecated workspace.rootPath API)
 		const newFirstFolderResource = workspace.folders.length > 0 ? workspace.folders[0].uri : undefined;
 		if (!isEqual(this.firstFolderResource, newFirstFolderResource)) {
 			this.firstFolderResource = newFirstFolderResource;
 
-			this.extensionHostRestarter.schedule(); // buffer calls to extension host restart
+			this.extensionHostRestarter.schedule();
 		}
 	}
 }

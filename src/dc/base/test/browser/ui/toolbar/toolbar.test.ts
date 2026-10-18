@@ -231,8 +231,6 @@ suite('ToolBar', () => {
 			return action ? (widths.get(action.id) ?? originalGetWidth(index)) : originalGetWidth(index);
 		};
 
-		// Force the element's bounding rect to a value that would otherwise hide everything
-		// to prove the toolbar uses the override callback instead.
 		const originalGetBoundingClientRect = toolbar.getElement().getBoundingClientRect.bind(toolbar.getElement());
 		(toolbar.getElement() as HTMLElement & { getBoundingClientRect(): DOMRect }).getBoundingClientRect = () => ({
 			...originalGetBoundingClientRect(),
@@ -257,14 +255,12 @@ suite('ToolBar', () => {
 
 		toolbar.setActions(actions);
 
-		// availableWidth = 200 is plenty for all 3 actions; the element's 0 width is ignored
 		assert.strictEqual(toolbar.getItemsLength(), 3);
 		assert.strictEqual(toolbar.getElement().querySelector('.monaco-action-bar')?.classList.contains('has-overflow'), false);
 
 		availableWidth = 60;
 		toolbar.relayout();
 
-		// availableWidth shrank — actions overflow into the toggle menu
 		assert.strictEqual(toolbar.getItemAction(toolbar.getItemsLength() - 1)?.id, ToggleMenuAction.ID);
 		assert.strictEqual(toolbar.getElement().querySelector('.monaco-action-bar')?.classList.contains('has-overflow'), true);
 	});

@@ -34,9 +34,6 @@ export class GitCheckpointEngine {
 		return GitCheckpointEngine.instance;
 	}
 
-	/**
-	 * Capture snapshot before an AI operation begins using git plumbing commands.
-	 */
 	public async capture(description: string): Promise<ICheckpoint> {
 		const cwd = this.workspaceRoot;
 		const id = `cp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -53,7 +50,6 @@ export class GitCheckpointEngine {
 					untrackedStash = stashStdout.trim();
 				}
 			} catch {
-				// No untracked files or clean worktree
 			}
 
 			const checkpoint: ICheckpoint = {
@@ -72,7 +68,6 @@ export class GitCheckpointEngine {
 
 			return checkpoint;
 		} catch (error: any) {
-			// If not a git repository, fallback gracefully
 			const fallbackCheckpoint: ICheckpoint = {
 				id,
 				timestamp: Date.now(),
@@ -85,9 +80,6 @@ export class GitCheckpointEngine {
 		}
 	}
 
-	/**
-	 * Restores files to the exact state captured in the checkpoint.
-	 */
 	public async restore(checkpointId: string): Promise<{ success: boolean; message: string }> {
 		const checkpoint = this.checkpoints.find((cp) => cp.id === checkpointId || cp.treeHash === checkpointId);
 		if (!checkpoint) {
@@ -103,7 +95,6 @@ export class GitCheckpointEngine {
 				try {
 					await execAsync(`git stash apply ${checkpoint.untrackedStash}`, { cwd });
 				} catch {
-					// Stash apply may conflict if untracked files changed
 				}
 			}
 

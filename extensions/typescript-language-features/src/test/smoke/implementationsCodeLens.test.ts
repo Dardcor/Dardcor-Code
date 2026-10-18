@@ -30,17 +30,14 @@ suite('TypeScript Implementations CodeLens', () => {
 	let oldConfig: { [key: string]: any } = {};
 
 	setup(async () => {
-		// the tests assume that typescript features are registered
 		await vscode.extensions.getExtension('vscode.typescript-language-features')!.activate();
 
-		// Save off config and apply defaults
 		oldConfig = await updateConfig(configDefaults);
 	});
 
 	teardown(async () => {
 		disposeAll(_disposables);
 
-		// Restore config
 		await updateConfig(oldConfig);
 
 		return vscode.commands.executeCommand('workbench.action.closeAllEditors');

@@ -217,7 +217,6 @@ export class PostEditWidgetManager<T extends DocumentPasteEdit | DocumentDropEdi
 
 		const combinedWorkspaceEdit = createCombinedWorkspaceEdit(model.uri, ranges, resolvedEdit);
 
-		// Use a decoration to track edits around the trigger range
 		const primaryRange = ranges[0];
 		const editTrackingDecoration = model.deltaDecorations([], [{
 			range: primaryRange,

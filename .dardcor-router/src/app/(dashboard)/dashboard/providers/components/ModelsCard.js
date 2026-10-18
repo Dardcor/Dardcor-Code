@@ -7,7 +7,6 @@ import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { getProviderAlias } from "@/shared/constants/providers";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 
-// ── ModelRow ───────────────────────────────────────────────────
 export function ModelRow({ model, fullModel, copied, onCopy, testStatus, isCustom, isFree, onDeleteAlias, onTest, isTesting }) {
   const borderColor = testStatus === "ok" ? "border-green-500/40" : testStatus === "error" ? "border-red-500/40" : "border-border";
   const iconColor = testStatus === "ok" ? "#22c55e" : testStatus === "error" ? "#ef4444" : undefined;
@@ -66,7 +65,6 @@ ModelRow.propTypes = {
   isTesting: PropTypes.bool,
 };
 
-// ── AddCustomModelModal ────────────────────────────────────────
 function AddCustomModelModal({ isOpen, onSave, onClose }) {
   const [modelId, setModelId] = useState("");
 
@@ -105,9 +103,6 @@ AddCustomModelModal.propTypes = {
   onClose: PropTypes.func.isRequired,
 };
 
-// ── ModelsCard ─────────────────────────────────────────────────
-// Self-contained card: shows models for a provider, filtered by optional `kindFilter`.
-// kindFilter: if provided, only shows models with matching type/kinds field.
 export default function ModelsCard({ providerId, kindFilter, providerAliasOverride }) {
   const { copied, copy } = useCopyToClipboard();
   const [modelAliases, setModelAliases] = useState({});
@@ -197,7 +192,6 @@ export default function ModelsCard({ providerId, kindFilter, providerAliasOverri
     } finally { setTestingModelId(null); }
   };
 
-  // Built-in models — filter by kindFilter if provided
   const allBuiltIn = getModelsByProviderId(providerId);
   const builtInModels = kindFilter
     ? allBuiltIn.filter((m) => {
@@ -206,7 +200,6 @@ export default function ModelsCard({ providerId, kindFilter, providerAliasOverri
       })
     : allBuiltIn;
 
-  // Custom models for this provider + kind, dedupe vs built-in
   const myCustomModels = customModels.filter(
     (m) => m.providerAlias === providerAlias
       && getModelKind(m, "llm") === effectiveType
@@ -285,6 +278,6 @@ export default function ModelsCard({ providerId, kindFilter, providerAliasOverri
 
 ModelsCard.propTypes = {
   providerId: PropTypes.string.isRequired,
-  kindFilter: PropTypes.string, // e.g. "tts", "embedding" — filters models shown
-  providerAliasOverride: PropTypes.string, // override alias (e.g. for custom-embedding nodes using prefix)
+  kindFilter: PropTypes.string,
+  providerAliasOverride: PropTypes.string,
 };

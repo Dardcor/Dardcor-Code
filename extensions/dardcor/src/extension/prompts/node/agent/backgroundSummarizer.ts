@@ -5,24 +5,11 @@
 
 import { CancellationToken, CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
 
-/**
- * State machine for background conversation summarization.
- *
- * Lifecycle:
- *   Idle → InProgress → Completed / Failed
- *                              ↓          ↓
- *                        (consumeAndReset → Idle)
- *                                    Failed → InProgress (retry)
- */
 
 export const enum BackgroundSummarizationState {
-	/** No summarization running. */
 	Idle = 'Idle',
-	/** An LLM summarization request is in flight. */
 	InProgress = 'InProgress',
-	/** Summarization finished successfully — summary text is available. */
 	Completed = 'Completed',
-	/** Summarization failed. */
 	Failed = 'Failed',
 }
 
@@ -39,49 +26,13 @@ export interface IBackgroundSummarizationResult {
 	readonly numRoundsSinceLastSummarization?: number;
 }
 
-/**
- * Thresholds used by {@link shouldKickOffBackgroundSummarization}. Exported so
- * tests can reference the same numbers without repeating them.
- */
 export const BackgroundSummarizationThresholds = {
-	/** Minimum of the jittered warm-cache range. */
 	warmJitterMin: 0.78,
-	/** Width of the jittered warm-cache range; together with `warmJitterMin` yields [0.78, 0.82). */
 	warmJitterSpan: 0.04,
-	/**
-	 * Cold-cache emergency ratio. Above this we kick off even without a warmed
-	 * cache to avoid forcing a foreground sync compaction on the next render.
-	 * Tuned low enough that long-running sessions stay ahead of the budget
-	 * without relying on foreground compaction.
-	 */
 	emergency: 0.90,
-	/**
-	 * Minimum context ratio for applying a previously-completed background
-	 * summary on the next render. Below this we discard the stale summary —
-	 * typically because the user switched to a model with a larger context
-	 * window (or increased the configured context size), and applying it would
-	 * surface a surprising "Compacted conversation" notice with plenty of
-	 * headroom remaining.
-	 */
 	applyMinRatio: 0.65,
 } as const;
 
-/**
- * Decide whether to kick off post-render background compaction.
- *
- * Prompt-cache parity matters, so we:
- *   - require a completed tool call in this turn ("warm" cache) before
- *     firing at the normal, jittered ~0.80 threshold;
- *   - allow an emergency kick-off at >= 0.90 even with a cold cache to
- *     avoid forcing a foreground sync compaction on the next render.
- *
- * The jitter range straddles the historical 0.80 threshold (not "lower the
- * bar") — the goal is to avoid always firing at the exact same boundary,
- * not to kick off systematically earlier.
- *
- * `rng` is only consumed on the warm-cache branch, which keeps deterministic
- * tests straightforward.
- */
 export function shouldKickOffBackgroundSummarization(
 	postRenderRatio: number,
 	cacheWarm: boolean,
@@ -95,12 +46,10 @@ export function shouldKickOffBackgroundSummarization(
 	return postRenderRatio >= jittered;
 }
 
-/** Minimal shape of a tool-call round needed to anchor a summary. */
 export interface ISummaryAnchorRound {
 	readonly id: string;
 }
 
-/** Minimal shape of a history turn needed to anchor a summary. */
 export interface ISummaryAnchorTurn {
 	readonly rounds: readonly ISummaryAnchorRound[];
 }
@@ -123,14 +72,6 @@ export function resolveSummaryAnchorRoundId(
 	return undefined;
 }
 
-/**
- * Tracks a single background summarization pass for one chat session.
- *
- * The singleton `AgentIntent` owns one instance per session (keyed by
- * `sessionId`). `AgentIntentInvocation.buildPrompt` queries the state
- * on every tool-call iteration to decide whether to start, wait for, or
- * apply a background summary.
- */
 export class BackgroundSummarizer {
 
 	private _state: BackgroundSummarizationState = BackgroundSummarizationState.Idle;
@@ -141,13 +82,6 @@ export class BackgroundSummarizer {
 
 	readonly modelMaxPromptTokens: number;
 
-	/**
-	 * Identity of the endpoint this summarizer was created for (provider +
-	 * model + apiType, composed by the caller). Used by
-	 * {@link AgentIntent.getOrCreateBackgroundSummarizer} to detect a
-	 * mid-session endpoint switch — a summary computed against one endpoint's
-	 * prefix is cancelled rather than applied to a different endpoint.
-	 */
 	readonly endpointId: string | undefined;
 
 	get state(): BackgroundSummarizationState { return this._state; }
@@ -162,7 +96,7 @@ export class BackgroundSummarizer {
 
 	start(work: (token: CancellationToken) => Promise<IBackgroundSummarizationResult>, parentToken?: CancellationToken): void {
 		if (this._state !== BackgroundSummarizationState.Idle && this._state !== BackgroundSummarizationState.Failed) {
-			return; // already running or completed
+			return;
 		}
 
 		this._state = BackgroundSummarizationState.InProgress;
@@ -172,14 +106,14 @@ export class BackgroundSummarizer {
 		this._promise = work(token).then(
 			result => {
 				if (this._state !== BackgroundSummarizationState.InProgress) {
-					return; // cancelled while in flight
+					return;
 				}
 				this._result = result;
 				this._state = BackgroundSummarizationState.Completed;
 			},
 			err => {
 				if (this._state !== BackgroundSummarizationState.InProgress) {
-					return; // cancelled while in flight
+					return;
 				}
 				this._error = err;
 				this._state = BackgroundSummarizationState.Failed;

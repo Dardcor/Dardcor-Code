@@ -17,7 +17,7 @@ import { IconDefinition, getIconRegistry, IconContribution, IconFontDefinition, 
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { IExtensionResourceLoaderService } from '../../../../platform/extensionResourceLoader/common/extensionResourceLoader.js';
 
-export const DEFAULT_PRODUCT_ICON_THEME_ID = ''; // TODO
+export const DEFAULT_PRODUCT_ICON_THEME_ID = '';
 
 export class ProductIconThemeData implements IWorkbenchProductIconTheme {
 
@@ -124,7 +124,6 @@ export class ProductIconThemeData implements IWorkbenchProductIconTheme {
 						(theme as any)[key] = data[key];
 						break;
 					case 'location':
-						// ignore, no longer restore
 						break;
 					case 'extensionData':
 						theme.extensionData = ExtensionData.fromJSONObject(data.extensionData);
@@ -270,7 +269,6 @@ function _resolveIconDefinition(iconContribution: IconContribution, iconThemeDoc
 	let definition: IconDefinition | undefined = iconDefinitions.get(iconContribution.id);
 	let defaults = iconContribution.defaults;
 	while (!definition && ThemeIcon.isThemeIcon(defaults)) {
-		// look if an inherited icon has a definition
 		const ic = iconRegistry.getIcon(defaults.id);
 		if (ic) {
 			definition = iconDefinitions.get(ic.id);

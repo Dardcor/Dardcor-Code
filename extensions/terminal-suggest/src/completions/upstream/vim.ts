@@ -3,7 +3,6 @@ const completionSpec: Fig.Spec = {
 	description: "Vi IMproved, a programmer's text editor",
 	args: {
 		template: "filepaths",
-		// suggestCurrentToken: true,
 	},
 	options: [
 		{

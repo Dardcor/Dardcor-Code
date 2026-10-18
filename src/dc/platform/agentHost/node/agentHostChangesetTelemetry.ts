@@ -9,17 +9,8 @@ import { AgentSession } from '../common/agent.js';
 import type { IAgentHostClientTelemetryContext } from '../common/agentHostTelemetry.js';
 import { toInitiatorTelemetry, type IAgentHostEventClassification, type IAgentHostEventTelemetry } from './agentHostTelemetryReporter.js';
 
-/** The static changeset slot a compute was for. */
 export type StaticChangesetTelemetryKind = 'branch' | 'session' | 'uncommitted';
 
-/**
- * The result of a static changeset compute.
- * - `computed`: diffs were published.
- * - `preserved`: git was unavailable and the cached branch changeset was kept.
- * - `gitUnavailable`: git produced no diff and there is no fallback (uncommitted).
- * - `dbOpenFailed`: the session database could not be opened.
- * - `error`: the compute threw.
- */
 export type StaticChangesetOutcome = 'computed' | 'preserved' | 'gitUnavailable' | 'dbOpenFailed' | 'error';
 
 export interface IStaticChangesetTelemetryData {
@@ -27,22 +18,12 @@ export interface IStaticChangesetTelemetryData {
 	readonly outcome: StaticChangesetOutcome;
 	readonly durationMs: number;
 	readonly isMultiRoot: boolean;
-	/** Total effective working directories for the session. */
 	readonly folderCount: number;
-	/** The changed-file count; only meaningful (and only set) when `outcome === 'computed'`. */
 	readonly fileCount?: number;
-	/** Whether the incremental session-diff path was taken; `session` kind only. */
 	readonly incrementalUsed?: boolean;
-	/** Whether the SDK edit-tracker fallback produced the diffs; `session` kind only. */
 	readonly usedEditTrackerFallback?: boolean;
 }
 
-/**
- * Emits `agentHost.changesetComputed` for a static (branch/session/uncommitted)
- * changeset. `turnId` is included when the recompute was driven by a specific
- * turn. Conditional fields are omitted when not applicable rather than sent as
- * fabricated defaults.
- */
 export function reportAgentHostStaticChangesetComputed(telemetryService: ITelemetryService, session: string, turnId: string | undefined, data: IStaticChangesetTelemetryData, clientContext?: IAgentHostClientTelemetryContext): void {
 	reportChangesetComputed(telemetryService, session, turnId, {
 		kind: data.kind,
@@ -56,22 +37,11 @@ export function reportAgentHostStaticChangesetComputed(telemetryService: ITeleme
 	}, clientContext);
 }
 
-/**
- * The result of a per-turn changeset compute.
- * - `computed`: diffs were published.
- * - `dbOpenFailed`: the session database could not be opened.
- * - `resolveFailed`: the multi-root repository split could not be resolved.
- * - `error`: the compute threw.
- */
 export type TurnChangesetOutcome = 'computed' | 'dbOpenFailed' | 'resolveFailed' | 'error';
 
-/** Multi-root fan-out metrics for a per-turn diff; absent for single-root turns. */
 export interface IMultiRootTurnDiffMetrics {
-	/** Unique git repositories resolved from the session's working directories; every one is diffed. */
 	readonly uniqueGitFolderCount: number;
-	/** Non-git working directories whose diff came from tracked edits. */
 	readonly nonGitFolderCount: number;
-	/** Git repositories whose git diff was unavailable and fell back to tracked edits. */
 	readonly trackedEditFallbackFolderCount: number;
 }
 
@@ -79,19 +49,11 @@ export interface ITurnChangesetTelemetryData {
 	readonly outcome: TurnChangesetOutcome;
 	readonly durationMs: number;
 	readonly isMultiRoot: boolean;
-	/** Total effective working directories for the session. */
 	readonly folderCount: number;
-	/** The changed-file count; only set when `outcome === 'computed'`. */
 	readonly fileCount?: number;
-	/** Multi-root fan-out metrics; present only for multi-root turns. */
 	readonly multiRoot?: IMultiRootTurnDiffMetrics;
 }
 
-/**
- * Emits `agentHost.changesetComputed` for a per-turn changeset (`kind: 'turn'`).
- * The multi-root fan-out fields are only sent for multi-root turns; `fileCount`
- * only when computed.
- */
 export function reportAgentHostTurnChangesetComputed(telemetryService: ITelemetryService, session: string, turnId: string, data: ITurnChangesetTelemetryData, clientContext?: IAgentHostClientTelemetryContext): void {
 	reportChangesetComputed(telemetryService, session, turnId, {
 		kind: 'turn',
@@ -108,10 +70,8 @@ export function reportAgentHostTurnChangesetComputed(telemetryService: ITelemetr
 	}, clientContext);
 }
 
-/** The changeset kind a compute was for: a static slot, or a per-turn diff. */
 export type ChangesetComputedKind = StaticChangesetTelemetryKind | 'turn';
 
-/** The union of static and per-turn compute outcomes. */
 export type ChangesetComputedOutcome = StaticChangesetOutcome | TurnChangesetOutcome;
 
 type ChangesetComputedEvent = IAgentHostEventTelemetry & {
@@ -150,10 +110,6 @@ type ChangesetComputedClassification = IAgentHostEventClassification & {
 	comment: 'Tracks how long the agent host takes to compute a changeset (branch/session/uncommitted static slots or a per-turn diff) and its outcome, to monitor multi-root changeset performance and health.';
 };
 
-/**
- * Shared emitter for `agentHost.changesetComputed`. Correlation (`provider`,
- * `agentSessionId`) is derived from `session`; `turnId` is included when set.
- */
 function reportChangesetComputed(telemetryService: ITelemetryService, session: string, turnId: string | undefined, fields: Omit<ChangesetComputedEvent, 'provider' | 'agentSessionId' | 'turnId' | keyof IAgentHostEventTelemetry>, clientContext?: IAgentHostClientTelemetryContext): void {
 	telemetryService.publicLog2<ChangesetComputedEvent, ChangesetComputedClassification>('agentHost.changesetComputed', {
 		...toInitiatorTelemetry(clientContext),

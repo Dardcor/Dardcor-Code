@@ -3,21 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * The filesystem half of the Agent Host Protocol, in both directions.
- *
- * **Client to server** — the `resource*` command surface, executed by the host
- * against the filesystem it runs on.
- *
- * **Server to client** — the same surface travelling the other way. The host
- * addresses client-side files through the `vscode-agent-client` scheme and
- * serves them by sending reverse requests back down the connection, so a file
- * that exists only on the client is still reachable. Nothing else in the E2E
- * suite puts the host in that configuration.
- *
- * Both are host-owned and provider-invariant, so they live in the conformance
- * tier and never cross the model boundary.
- */
 
 import assert from 'assert';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'fs';
@@ -52,16 +37,10 @@ export function defineClientFilesystemTests(context: IAgentHostE2ETestContext): 
 		return workspace;
 	}
 
-	/** A `file:` URI string under `root`, as the protocol carries them. */
 	function fileUri(root: string, ...segments: string[]): string {
 		return URI.file(join(root, ...segments)).toString();
 	}
 
-	/**
-	 * Completes the handshake. Resource commands are only routed once the
-	 * connection has a registered client; before that the server answers
-	 * `Method not found`.
-	 */
 	async function initializeClient(purpose: string): Promise<void> {
 		await context.client.call('initialize', {
 			channel: ROOT_STATE_URI,
@@ -91,13 +70,10 @@ export function defineClientFilesystemTests(context: IAgentHostE2ETestContext): 
 		const directory = fileUri(root, 'nested', 'inner');
 		const file = fileUri(root, 'nested', 'inner', 'note.txt');
 
-		// Negotiating access is the documented preamble to using the resource
-		// commands, so the round-trip starts where a real caller would.
 		await context.client.call('resourceRequest', {
 			channel: ROOT_STATE_URI, uri: URI.file(root).toString(), read: true, write: true,
 		});
 
-		// `mkdir -p` semantics, and idempotent for a directory that exists.
 		await context.client.call('resourceMkdir', { channel: ROOT_STATE_URI, uri: directory });
 		await context.client.call('resourceMkdir', { channel: ROOT_STATE_URI, uri: directory });
 		await context.client.call('resourceWrite', {
@@ -303,7 +279,6 @@ export function defineClientFilesystemTests(context: IAgentHostE2ETestContext): 
 			}, 30_000);
 
 			let changedNotification: AhpNotification | undefined;
-			// The OS watcher attaches asynchronously, so keep producing change edges until it is ready.
 			for (let attempt = 1; attempt <= 30 && !changedNotification; attempt++) {
 				await context.client.call('resourceWrite', {
 					channel: ROOT_STATE_URI, uri: watchedFile, data: `WATCHED-${attempt}`, encoding: ContentEncoding.Utf8,
@@ -933,7 +908,6 @@ export function defineClientFilesystemTests(context: IAgentHostE2ETestContext): 
 		assert.strictEqual(readFileSync(join(root, 'created.txt'), 'utf8'), 'created');
 	});
 
-	// The host currently ignores the requested encoding; see KNOWN_ISSUES.md.
 	conformanceTest(context, 'resourceRead returns requested base64 content without byte loss', async function () {
 		await initializeClient('resource-read-base64');
 		const root = createWorkspace('ahp-resource-read-base64-');
@@ -1330,11 +1304,6 @@ export function defineClientFilesystemTests(context: IAgentHostE2ETestContext): 
 	});
 
 	conformanceTest(context, 'host reads a client-hosted plugin through reverse resource requests', async function () {
-		// The plugin is published as belonging to this client, so the host
-		// addresses it through the `vscode-agent-client` scheme and fetches it
-		// over the connection. Both processes share a filesystem here, so it is
-		// the assertion on `servedReverseRequests` — not where the directory
-		// sits — that proves the reverse path was actually used.
 		const pluginRoot = createWorkspace('ahp-client-plugin-');
 		writeFileSync(join(pluginRoot, 'plugin.json'), JSON.stringify({ name: 'e2e-client-plugin', version: '1.0.0' }));
 
@@ -1361,9 +1330,6 @@ export function defineClientFilesystemTests(context: IAgentHostE2ETestContext): 
 			},
 		});
 
-		// `session/customizationUpdated` is emitted on both the success and the
-		// failure path with the same `uri`, so the load state is what separates
-		// "materialized from the client" from "tried and failed".
 		const updated = await context.client.waitForNotification(n => {
 			if (!isActionNotification(n, 'session/customizationUpdated')) {
 				return false;
@@ -1373,12 +1339,6 @@ export function defineClientFilesystemTests(context: IAgentHostE2ETestContext): 
 		}, 60_000);
 
 		const loadKind = (getActionEnvelope(updated).action as { customization?: { load?: { kind?: string } } }).customization?.load?.kind;
-		// Compare both sides through `URI`, never a raw filesystem path: `fsPath`
-		// lower-cases the Windows drive letter, so a served
-		// `file:///c%3A/...` and a `pluginRoot` of `C:\...` describe the same
-		// directory but do not match as strings. `tmpdir()` and its canonical
-		// form also differ on macOS (`/var` vs `/private/var`), so both
-		// spellings of the root are accepted.
 		const pluginRootPaths = [pluginRoot, realpathSync(pluginRoot)].map(path => URI.file(path).fsPath);
 		const servedForPlugin = context.client.servedReverseRequests.filter(request => {
 			const uri = request.uri;

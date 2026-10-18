@@ -138,7 +138,6 @@ export class ChatElicitationContentPart extends Disposable implements IChatConte
 	}
 
 	hasSameContent(other: IChatProgressRenderableResponseContent): boolean {
-		// No other change allowed for this content type
 		return other === this.elicitation;
 	}
 

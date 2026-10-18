@@ -7,11 +7,6 @@ import { Event } from '../../../../base/common/event.js';
 import { deriveGitHubEndpoints, gitHubCopilotResource, gitHubRepoResource } from '../../common/githubEndpoints.js';
 import { IAgentHostGitHubEndpointService } from '../../node/agentHostGitHubEndpointService.js';
 
-/**
- * A static {@link IAgentHostGitHubEndpointService} for tests. Resolves the same
- * endpoints as production for a given (optional) enterprise URI; `onDidChange`
- * never fires.
- */
 export function createTestGitHubEndpointService(enterpriseUri?: string): IAgentHostGitHubEndpointService {
 	const endpoints = deriveGitHubEndpoints(enterpriseUri);
 	return {

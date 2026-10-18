@@ -1,16 +1,3 @@
-/**
- * Native qodercli does NOT stuff image/PDF bytes into agent_chat_generation.
- * It PUTs them to /algo/api/v2/image/upload (COSY-signed multipart) and then
- * sends the returned OSS URL. Agents like Claude Code send OpenAI/Claude
- * data-URIs instead, which dardcor-code previously forwarded verbatim — 10MB
- * images become 30MB+ JSON and upstream 413s even though the model window
- * is ~200k tokens.
- *
- * This module:
- *   1. Uploads inlined images to Qoder's file API (cached by sha256).
- *   2. Replaces huge non-image file blocks with a short stub.
- *   3. Caps leftover data-URIs so the chat JSON stays small.
- */
 
 import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
@@ -77,7 +64,7 @@ function extractUrlFromUploadResponse(json) {
     if (typeof v === "string" && v) return v;
   }
   if (typeof json.body === "string") {
-    try { return extractUrlFromUploadResponse(JSON.parse(json.body)); } catch { /* ignore */ }
+    try { return extractUrlFromUploadResponse(JSON.parse(json.body)); } catch { }
   }
   return null;
 }
@@ -280,10 +267,6 @@ function stripRemainingDataUris(messages) {
   }
 }
 
-/**
- * Rewrite OpenAI-shaped messages in place: upload images, stub huge files.
- * @returns {Promise<{imageUrls: string[], uploaded: number, stubbed: number}>}
- */
 export async function rewriteQoderMessageAttachments(messages, {
   credentials,
   log,
@@ -299,7 +282,6 @@ export async function rewriteQoderMessageAttachments(messages, {
   for (const msg of messages) {
     if (!msg || typeof msg !== "object") continue;
     if (Array.isArray(msg.images)) {
-      // Ollama-style sidecar; fold into content so normalizeMessages can see them.
       const extras = msg.images.map((url) => imageUrlBlock(String(url)));
       msg.content = Array.isArray(msg.content)
         ? [...msg.content, ...extras]
@@ -309,7 +291,6 @@ export async function rewriteQoderMessageAttachments(messages, {
     msg.content = await rewriteContent(msg.content, ctx);
   }
 
-  // Collect surviving http(s) image URLs for callers that want image_urls.
   for (const msg of messages) {
     if (!Array.isArray(msg?.content)) continue;
     for (const block of msg.content) {
@@ -330,7 +311,6 @@ export async function rewriteQoderMessageAttachments(messages, {
   return stats;
 }
 
-/** Test helper kept for callers; upload memo is now per-request. */
 export function clearQoderUploadCache() {}
 
 export const __test__ = {

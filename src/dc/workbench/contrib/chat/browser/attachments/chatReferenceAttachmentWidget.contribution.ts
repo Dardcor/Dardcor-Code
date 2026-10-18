@@ -11,13 +11,6 @@ import { isChatReferenceVariableEntry } from '../../common/attachments/chatVaria
 import { ChatReferenceAttachmentWidget } from './chatAttachmentWidgets.js';
 import { IChatAttachmentWidgetRegistry } from './chatAttachmentWidgetRegistry.js';
 
-/**
- * Registers the {@link ChatReferenceAttachmentWidget} with the shared
- * {@link IChatAttachmentWidgetRegistry} so agent-host chat-reference
- * (`#chat:<title>`) attachments render as clickable chips in both the chat
- * input pill area and rendered past-request tiles. The widget is matched by the
- * first-class `chatReference` attachment `kind`.
- */
 export class ChatReferenceAttachmentWidgetContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.chatReferenceAttachmentWidgetFactory';
@@ -28,9 +21,6 @@ export class ChatReferenceAttachmentWidgetContribution extends Disposable implem
 	) {
 		super();
 
-		// One shared label pool serves every chat-reference chip; each widget
-		// creates and disposes its own label from it, while the pool lives for
-		// the lifetime of this contribution.
 		const labels = this._register(instantiationService.createInstance(ResourceLabels, DEFAULT_LABELS_CONTAINER));
 
 		this._register(registry.registerFactory(

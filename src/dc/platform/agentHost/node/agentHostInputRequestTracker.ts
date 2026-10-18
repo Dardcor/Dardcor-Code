@@ -18,9 +18,6 @@ interface IInputRequestTiming {
 	request: ChatInputRequest;
 }
 
-/**
- * Tracks live ask-user requests through completion and emits legacy-compatible telemetry.
- */
 export class AgentHostInputRequestTracker {
 
 	private readonly _pending = new Map<string, IInputRequestTiming>();

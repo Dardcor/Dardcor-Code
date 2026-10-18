@@ -39,13 +39,11 @@ const geminiCli = {
     return await response.json();
   },
   postExchange: async (tokens) => {
-    // Fetch user info
     const userInfoRes = await fetch(`${GEMINI_CONFIG.userInfoUrl}?alt=json`, {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
     const userInfo = userInfoRes.ok ? await userInfoRes.json() : {};
 
-    // Fetch project ID
     let projectId = "";
     try {
       const projectRes = await fetch(

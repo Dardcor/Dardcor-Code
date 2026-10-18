@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Arrows */
 .monaco-scrollable-element > .scrollbar > .scra {
 	cursor: pointer;
 	font-size: 11px !important;
@@ -12,11 +11,9 @@
 .monaco-scrollable-element > .visible {
 	opacity: 1;
 
-	/* Background rule added for IE9 - to allow clicks on dom node */
 	background:rgba(0,0,0,0);
 
 	transition: opacity 100ms linear;
-	/* In front of peek view */
 	z-index: 11;
 }
 .monaco-scrollable-element > .invisible {
@@ -32,7 +29,6 @@
 	transition: none;
 }
 
-/* Scrollable Content Inset Shadow */
 .monaco-scrollable-element > .shadow {
 	position: absolute;
 	display: none;

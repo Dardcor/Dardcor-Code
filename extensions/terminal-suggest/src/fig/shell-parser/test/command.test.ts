@@ -26,13 +26,9 @@ suite('fig/shell-parser/ getCommand', () => {
 	});
 
 	test('works with regular aliases', () => {
-		// Don't change a single token.
 		deepStrictEqual(getTokenText(getCommand('woman', aliases)), ['woman']);
-		// Change first token if length > 1.
 		deepStrictEqual(getTokenText(getCommand('woman ', aliases)), ['man', '']);
-		// Don't change later tokens.
 		deepStrictEqual(getTokenText(getCommand('man woman ', aliases)), ['man', 'woman', '']);
-		// Handle quotes
 		deepStrictEqual(getTokenText(getCommand('quote ', aliases)), ['q', '']);
 	});
 });

@@ -30,68 +30,32 @@ import { IOpenerService } from '../../../../../platform/opener/common/opener.js'
 import { IPromptsService } from '../../common/promptSyntax/service/promptsService.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 
-/**
- * Condition for the `Run Current Prompt` action.
- */
 const EDITOR_ACTIONS_CONDITION = ContextKeyExpr.and(
 	ChatContextKeys.enabled,
 	ResourceContextKey.HasResource,
 	ResourceContextKey.LangId.isEqualTo(PROMPT_LANGUAGE_ID),
 );
 
-/**
- * Keybinding of the action.
- */
 const COMMAND_KEY_BINDING = KeyMod.WinCtrl | KeyCode.Slash | KeyMod.Alt;
 
-/**
- * Action ID for the `Run Current Prompt` action.
- */
 const RUN_CURRENT_PROMPT_ACTION_ID = 'workbench.action.chat.run.prompt.current';
 
-/**
- * Action ID for the `Run Prompt...` action.
- */
 const RUN_SELECTED_PROMPT_ACTION_ID = 'workbench.action.chat.run.prompt';
 
-/**
- * Action ID for the `Configure Prompt Files...` action.
- */
 export const CONFIGURE_PROMPTS_ACTION_ID = 'workbench.action.chat.configure.prompts';
 
-/**
- * Constructor options for the `Run Prompt` base action.
- */
 interface IRunPromptBaseActionConstructorOptions {
-	/**
-	 * ID of the action to be registered.
-	 */
 	id: string;
 
-	/**
-	 * Title of the action.
-	 */
 	title: ILocalizedString;
 
-	/**
-	 * Icon of the action.
-	 */
 	icon: ThemeIcon;
 
-	/**
-	 * Keybinding of the action.
-	 */
 	keybinding: number;
 
-	/**
-	 * Alt action of the UI menu item.
-	 */
 	alt?: ICommandAction;
 }
 
-/**
- * Base class of the `Run Prompt` action.
- */
 abstract class RunPromptBaseAction extends Action2 {
 	constructor(
 		options: IRunPromptBaseActionConstructorOptions,
@@ -123,9 +87,6 @@ abstract class RunPromptBaseAction extends Action2 {
 		});
 	}
 
-	/**
-	 * Executes the run prompt action with provided options.
-	 */
 	public async execute(
 		resource: URI | undefined,
 		inNewChat: boolean,
@@ -148,7 +109,6 @@ abstract class RunPromptBaseAction extends Action2 {
 		const widget = await widgetService.revealWidget();
 		if (widget) {
 			widget.setInput(`/${await promptsService.getPromptSlashCommandName(resource, CancellationToken.None)}`);
-			// submit the prompt immediately
 			await widget.acceptInput();
 		}
 		return widget;
@@ -161,9 +121,6 @@ const RUN_CURRENT_PROMPT_ACTION_TITLE = localize2(
 );
 const RUN_CURRENT_PROMPT_ACTION_ICON = Codicon.playCircle;
 
-/**
- * The default `Run Current Prompt` action.
- */
 class RunCurrentPromptAction extends RunPromptBaseAction {
 	constructor() {
 		super({
@@ -234,7 +191,6 @@ class RunSelectedPromptAction extends Action2 {
 		const widget = await widgetService.revealWidget();
 		if (widget) {
 			widget.setInput(`/${await promptsService.getPromptSlashCommandName(promptFile, CancellationToken.None)}`);
-			// submit the prompt immediately
 			await widget.acceptInput();
 			widget.focusInput();
 		}
@@ -275,9 +231,6 @@ class ManagePromptFilesAction extends Action2 {
 }
 
 
-/**
- * Gets `URI` of a prompt file open in an active editor instance, if any.
- */
 function getActivePromptFileUri(accessor: ServicesAccessor): URI | undefined {
 	const codeEditorService = accessor.get(ICodeEditorService);
 	const model = codeEditorService.getActiveCodeEditor()?.getModel();
@@ -288,9 +241,6 @@ function getActivePromptFileUri(accessor: ServicesAccessor): URI | undefined {
 }
 
 
-/**
- * Action ID for the `Run Current Prompt In New Chat` action.
- */
 const RUN_CURRENT_PROMPT_IN_NEW_CHAT_ACTION_ID = 'workbench.action.chat.run-in-new-chat.prompt.current';
 
 const RUN_IN_NEW_CHAT_ACTION_TITLE = localize2(
@@ -298,14 +248,8 @@ const RUN_IN_NEW_CHAT_ACTION_TITLE = localize2(
 	"Run Prompt In New Chat",
 );
 
-/**
- * Icon for the `Run Current Prompt In New Chat` action.
- */
 const RUN_IN_NEW_CHAT_ACTION_ICON = Codicon.play;
 
-/**
- * `Run Current Prompt In New Chat` action.
- */
 class RunCurrentPromptInNewChatAction extends RunPromptBaseAction {
 	constructor() {
 		super({
@@ -333,9 +277,6 @@ class RunCurrentPromptInNewChatAction extends RunPromptBaseAction {
 	}
 }
 
-/**
- * Helper to register all the `Run Current Prompt` actions.
- */
 export function registerRunPromptActions(): void {
 	registerAction2(RunCurrentPromptInNewChatAction);
 	registerAction2(RunCurrentPromptAction);

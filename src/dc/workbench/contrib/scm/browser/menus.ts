@@ -81,10 +81,10 @@ class SCMMenusItem implements IDisposable {
 	}
 
 	private genericResourceGroupMenu: IMenu | undefined;
-	private contextualResourceGroupMenus: Map<string /* contextValue */, IContextualMenuItem> | undefined;
+	private contextualResourceGroupMenus: Map<string , IContextualMenuItem> | undefined;
 
 	private genericResourceMenu: IMenu | undefined;
-	private contextualResourceMenus: Map<string /* contextValue */, IContextualMenuItem> | undefined;
+	private contextualResourceMenus: Map<string , IContextualMenuItem> | undefined;
 
 	constructor(
 		private readonly contextKeyService: IContextKeyService,
@@ -179,13 +179,13 @@ export class SCMRepositoryMenus implements ISCMRepositoryMenus, IDisposable {
 	readonly titleMenu: SCMTitleMenu;
 
 	private genericRepositoryMenu: IMenu | undefined;
-	private contextualRepositoryMenus: Map<string /* contextValue */, IContextualMenuItem> | undefined;
+	private contextualRepositoryMenus: Map<string , IContextualMenuItem> | undefined;
 
 	private genericRepositoryContextMenu: IMenu | undefined;
-	private contextualRepositoryContextMenus: Map<string /* contextValue */, IContextualMenuItem> | undefined;
+	private contextualRepositoryContextMenus: Map<string , IContextualMenuItem> | undefined;
 
-	private artifactGroupMenus = new Map<string /* artifactGroupId */, IContextualMenuItem>();
-	private artifactMenus = new Map<string /* artifactGroupId */, IContextualMenuItem>();
+	private artifactGroupMenus = new Map<string , IContextualMenuItem>();
+	private artifactMenus = new Map<string , IContextualMenuItem>();
 
 	private readonly resourceGroupMenusItems = new Map<ISCMResourceGroup, SCMMenusItem>();
 

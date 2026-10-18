@@ -16,20 +16,13 @@ export interface BinaryFileData {
 }
 
 export interface HexdumpIfBinaryOptions {
-	/** If provided, files already open as text documents are assumed to be text and skipped. */
 	readonly openTextDocuments?: readonly { readonly uri: Uri }[];
 }
 
-// Known binary extensions that don't trip the usual nul-byte detection
 const knownBinaryFileExtensions = new Set([
 	'.pdf',
 ]);
 
-/**
- * Reads a file and returns its raw bytes if the content is binary.
- * Returns `undefined` for text files, notebook cell URIs, or files already open
- * as text documents, so callers can fall through to normal text handling.
- */
 export async function hexdumpIfBinary(fileService: IFileSystemService, uri: Uri, options?: HexdumpIfBinaryOptions): Promise<BinaryFileData | undefined> {
 	if (uri.scheme === Schemas.vscodeNotebookCell || uri.scheme === Schemas.vscodeNotebookCellOutput) {
 		return undefined;
@@ -48,7 +41,6 @@ export async function hexdumpIfBinary(fileService: IFileSystemService, uri: Uri,
 			return { data };
 		}
 	} catch {
-		// fall through
 	}
 	return undefined;
 }

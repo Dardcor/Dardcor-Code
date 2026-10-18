@@ -17,35 +17,21 @@ import { IAstVisualization, subtractRange, toAstNode } from '../visualization';
 import { ConcatenatedStringFragment, LiteralStringFragment, OriginalStringFragment, pushFragment, StringFragment } from './fragments';
 import { ProjectedText } from './projectedText';
 
-// Please avoid using vscode API types in this file!
-// This makes testing and reusing much easier (e.g. for inline edits, where the original document is before the edits, which means vscode.TextDocument is not sufficient).
 
 export interface IDocumentToSummarize<TDocument extends AbstractDocument> {
 	document: TDocument;
-	selection: Range | undefined; // TODO set this through a scoring function
+	selection: Range | undefined;
 	overlayNodeRoot: OverlayNode;
 }
 
 export interface ISummarizedDocumentSettings<TDocument extends AbstractDocument> {
 
-	/**
-	 * Custom cost function. Return `false` to make sure a node is removed
-	 */
 	costFnOverride?: ((node: RemovableNode, currentCost: number, document: TDocument) => number | false) | ICostFnFactory<TDocument>;
 
-	/**
-	 * If set to true, summarization tries to preserve type checking, e.g. by not removing important imports or removing used method signatures.
-	 */
 	tryPreserveTypeChecking?: boolean;
 
-	/**
-	 * If set to true, summarization always uses ellipsis for elisions, like in between sibling AST nodes.
-	 */
 	alwaysUseEllipsisForElisions?: boolean;
 
-	/**
-	 * The style for line numbers in the summarized document.
-	 */
 	lineNumberStyle?: SummarizedDocumentLineNumberStyle;
 }
 
@@ -109,7 +95,6 @@ export function summarizeDocumentsSyncImpl<TDocument extends AbstractDocument>(
 		const rootMarkedNode = SurvivingTextNode.fromNode(rootTextNode, !!settings.tryPreserveTypeChecking, !!settings.alwaysUseEllipsisForElisions, settings.lineNumberStyle ?? SummarizedDocumentLineNumberStyle.None);
 
 		if (offsetSelection) {
-			// mark all leaf nodes that intersect userSelection
 			rootMarkedNode.visitAll(node => {
 				if (!node.node.range.intersectsOrTouches(offsetSelection)) {
 					return false;
@@ -129,14 +114,11 @@ export function summarizeDocumentsSyncImpl<TDocument extends AbstractDocument>(
 				return 0;
 			}
 			if (node.range.endExclusive < offsetSelection.start) {
-				// this node is above
 				return offsetSelection.start - node.range.endExclusive;
 			}
 			if (node.range.start > offsetSelection.endExclusive) {
-				// this node is below
-				return 3 * (node.range.start - offsetSelection.endExclusive); // we will punish code that is below
+				return 3 * (node.range.start - offsetSelection.endExclusive);
 			}
-			// this node is intersecting
 			return 0;
 		};
 
@@ -210,12 +192,11 @@ export function summarizeDocumentsSyncImpl<TDocument extends AbstractDocument>(
 	for (const { node, docIdx } of allNodesWithScores) {
 		node.markAsSurviving();
 
-		// total length of all nodes
 		let totalLength = sumBy(rootMarkedNodes, c => c.getTextFragment().length);
 		if (settings.lineNumberStyle === SummarizedDocumentLineNumberStyle.Full) {
 			const textLen = TextLength.sum(rootMarkedNodes, c => c.getTextFragment().textLength);
 			const maxLineNumber = docs[docIdx].document.getLineCount();
-			const totalLineNumberChars = textLen.lineCount * getLineNumberText(maxLineNumber).length; // This is an upper bound approximation.
+			const totalLineNumberChars = textLen.lineCount * getLineNumberText(maxLineNumber).length;
 			totalLength += totalLineNumberChars;
 		}
 		if (totalLength > charLimit) {
@@ -287,12 +268,6 @@ function createRemovableNodeFromOverlayNode(node: OverlayNode, document: Abstrac
 	return result;
 }
 
-/**
- * A dense representation of the text in a document.
- * Based on overlay nodes.
- *
- * **Dense**: every character is contained by some leaf node.
-*/
 class TextNode {
 	public static fromRootNode(node: RemovableNode, document: AbstractDocument): TextNode {
 		const fullRange = new OffsetRange(0, document.length);
@@ -300,8 +275,6 @@ class TextNode {
 			return TextNode.fromNode(node, document);
 		}
 
-		// The root node does not cover the entire document!
-		// So we have to create a virtual root that actually does cover the entire document.
 
 		const startGap = new OffsetRange(0, node.range.start);
 		const endGap = new OffsetRange(node.range.endExclusive, document.length);
@@ -469,14 +442,12 @@ class SurvivingTextNode {
 		};
 
 		for (let i = 0; i < groups.length; i++) {
-			// in one group, all elements either are all empty or non-empty. Also, no group is empty.
 			const g = groups[i];
 			const isEmpty = g[0].fragment.length === 0;
 
 			if (isEmpty && i > 0 && i < groups.length - 1) {
-				// All our fragments are empty.
-				const prev = groups[i - 1].at(-1)!; // Non-empty before us
-				const next = groups[i + 1].at(0)!; // Non-empty after us
+				const prev = groups[i - 1].at(-1)!;
+				const next = groups[i + 1].at(0)!;
 
 				const fullRange = g.at(0)!.node.node.range.join(g.at(-1)!.node.node.range);
 

@@ -117,12 +117,10 @@ registerAction2(class FocusAuxiliaryBarAction extends Action2 {
 		const paneCompositeService = accessor.get(IPaneCompositePartService);
 		const layoutService = accessor.get(IWorkbenchLayoutService);
 
-		// Show auxiliary bar
 		if (!layoutService.isVisible(Parts.AUXILIARYBAR_PART)) {
 			layoutService.setPartHidden(false, Parts.AUXILIARYBAR_PART);
 		}
 
-		// Focus into active composite
 		const composite = paneCompositeService.getActivePaneComposite(ViewContainerLocation.AuxiliaryBar);
 		composite?.focus();
 	}
@@ -203,7 +201,6 @@ registerAction2(class extends SwitchCompositeViewAction {
 	}
 });
 
-// --- Maximized Mode
 
 class MaximizeAuxiliaryBar extends Action2 {
 

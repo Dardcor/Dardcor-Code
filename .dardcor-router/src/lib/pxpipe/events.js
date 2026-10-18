@@ -11,16 +11,15 @@ function ensureDir() {
   if (!fs.existsSync(PXPIPE_DIR)) fs.mkdirSync(PXPIPE_DIR, { recursive: true });
 }
 
-// Fire-and-forget: stats must never break the request path.
 export function appendPxpipeEvent(event) {
   try {
     ensureDir();
     try {
       const stat = fs.statSync(EVENTS_FILE);
       if (stat.size > MAX_FILE_BYTES) fs.renameSync(EVENTS_FILE, ROTATED_FILE);
-    } catch { /* no file yet */ }
+    } catch { }
     fs.appendFile(EVENTS_FILE, JSON.stringify({ ts: Date.now(), ...event }) + "\n", () => {});
-  } catch { /* ignore */ }
+  } catch { }
 }
 
 export function readPxpipeEvents({ sinceMs = null, limit = null } = {}) {
@@ -34,9 +33,9 @@ export function readPxpipeEvents({ sinceMs = null, limit = null } = {}) {
           const ev = JSON.parse(line);
           if (sinceMs && ev.ts < sinceMs) continue;
           events.push(ev);
-        } catch { /* skip corrupt line */ }
+        } catch { }
       }
-    } catch { /* ignore */ }
+    } catch { }
   }
   events.sort((a, b) => a.ts - b.ts);
   return limit ? events.slice(-limit) : events;
@@ -76,8 +75,6 @@ function finalize(totals) {
   return totals;
 }
 
-// Aggregated stats for the dashboard: all-time + windowed totals, a daily
-// tokens-saved timeline (last `timelineDays`), and the most recent events.
 export function getPxpipeStats({ timelineDays = 30, recentLimit = 100 } = {}) {
   const events = readPxpipeEvents();
   const now = Date.now();

@@ -121,7 +121,6 @@ describe('OTelSqliteStore', () => {
 
 		const spans = store.getSpansByTraceId('trace-1');
 		expect(spans).toHaveLength(3);
-		// Ordered by start_time_ms
 		expect(spans[0].span_id).toBe('parent');
 		expect(spans[1].span_id).toBe('child-chat');
 		expect(spans[2].span_id).toBe('child-tool');
@@ -158,7 +157,7 @@ describe('OTelSqliteStore', () => {
 	});
 
 	it('cleans up old spans', () => {
-		const oldTime = Date.now() - 10 * 24 * 60 * 60 * 1000; // 10 days ago
+		const oldTime = Date.now() - 10 * 24 * 60 * 60 * 1000;
 		store.insertSpan(makeSpan({
 			spanId: 'old-span',
 			traceId: 'trace-old',

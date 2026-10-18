@@ -19,11 +19,6 @@ export class ClaudeSessionStateService extends Disposable implements IClaudeSess
 	private readonly _onDidChangeSessionState = this._register(new Emitter<SessionStateChangeEvent>());
 	readonly onDidChangeSessionState = this._onDidChangeSessionState.event;
 
-	// State for sessions (model and permission mode selections)
-	// TODO: What about expiration of state for old sessions?
-	// TODO: Refactor setters to use a single `updateSession(id, patch)` method or spread
-	// pattern (`{ ...existing, field: value }`) so that adding a new field to SessionState
-	// doesn't require touching every existing setter.
 	private readonly _sessionState = new Map<string, SessionState>();
 
 	constructor() {

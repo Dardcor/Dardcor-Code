@@ -33,8 +33,6 @@ suite('AgentHost label formatter', () => {
 		const labelService = createLabelService();
 		disposables.add(labelService.registerFormatter(agentHostLabelFormatter(LOCAL_AGENT_HOST_AUTHORITY, OperatingSystem.Windows)));
 
-		// Agent host URIs carry a lower-cased drive letter because they
-		// round-trip through `URI.toString()` on the way to the client
 		const wrapped = toAgentHostUri(URI.from({ scheme: 'session-db', path: '/c:/Code/repo/src/app.ts' }), LOCAL_AGENT_HOST_AUTHORITY);
 
 		assert.strictEqual(labelService.getUriLabel(wrapped), 'C:\\Code\\repo\\src\\app.ts');
@@ -52,8 +50,6 @@ suite('AgentHost label formatter', () => {
 	test('a host of unknown operating system renders the path losslessly', () => {
 		const labelService = createLabelService();
 
-		// `/c:/…` is a valid POSIX path too, so without knowing the host's
-		// operating system neither form may be rewritten
 		const windowsUri = toAgentHostUri(URI.from({ scheme: 'session-db', path: '/c:/Code/repo/src/app.ts' }), 'remotehost');
 		const posixUri = toAgentHostUri(URI.from({ scheme: 'session-db', path: '/home/user/repo/src/app.ts' }), 'remotehost');
 

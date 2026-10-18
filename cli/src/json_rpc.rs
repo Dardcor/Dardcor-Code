@@ -36,7 +36,6 @@ impl Serialization for JsonRpcSerializer {
 	}
 }
 
-/// Creates a new RPC Builder that serializes to JSON.
 #[allow(dead_code)]
 pub fn new_json_rpc() -> rpc::RpcBuilder<JsonRpcSerializer> {
 	rpc::RpcBuilder::new(JsonRpcSerializer {})

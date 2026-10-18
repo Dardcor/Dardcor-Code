@@ -9,7 +9,6 @@ import { cleanJSONSchemaForAntigravity, normalizeGeminiContents } from "../trans
 import { DEFAULT_THINKING_AG_SIGNATURE } from "../config/defaultThinkingSignature.js";
 import { getGeminiThoughtSignatureSync } from "../services/thoughtSignatureStore.js";
 
-// Sanitize function name: Gemini requires [a-zA-Z_][a-zA-Z0-9_.:\-]{0,63}
 function sanitizeFunctionName(name) {
   if (!name) return "_unknown";
   let s = name.replace(/[^a-zA-Z0-9_.:\-]/g, "_");
@@ -39,7 +38,6 @@ const ANTIGRAVITY_TRANSIENT_STATUSES = new Set([
   HTTP_STATUS.GATEWAY_TIMEOUT,
 ]);
 
-// Fields Google generateContent rejects (Claude/OpenAI/Qwen thinking fields set at body root by thinkingUnified.js)
 const ANTIGRAVITY_REQUEST_BLACKLIST = [
   "output_config",
   "thinking",
@@ -50,27 +48,21 @@ const ANTIGRAVITY_REQUEST_BLACKLIST = [
   "thinkingConfig",
 ];
 
-// Strip blacklisted fields from an object (used for both body.request and top-level body)
 const stripBlacklisted = obj => {
   for (const key of ANTIGRAVITY_REQUEST_BLACKLIST) delete obj[key];
 };
 
-// Image generation model name patterns
 const IMAGE_MODEL_PATTERNS = [
   /image/i,
   /imagen/i,
   /image-generation/i,
 ];
 
-// Detect if a model is an image generation model
 function isImageModel(model) {
   if (!model) return false;
   return IMAGE_MODEL_PATTERNS.some(p => p.test(model));
 }
 
-// Parse aspect ratio / resolution from model name suffixes
-// e.g. "gemini-3.1-flash-image-16x9" -> { aspectRatio: "16:9" }
-// e.g. "gemini-3.1-flash-image-1024x768" -> { aspectRatio: "4:3" }
 function parseImageConfig(model) {
   const config = { aspectRatio: "1:1" };
   const resMatch = model.match(/(\d+)x(\d+)$/);
@@ -80,7 +72,6 @@ function parseImageConfig(model) {
     if (w <= 16 && h <= 16) {
       config.aspectRatio = `${w}:${h}`;
     } else {
-      // Resolution like 1024x768 — derive aspect ratio
       const gcd = (a, b) => b ? gcd(b, a % b) : a;
       const d = gcd(w, h);
       config.aspectRatio = `${w/d}:${h/d}`;
@@ -118,14 +109,11 @@ export class AntigravityExecutor extends BaseExecutor {
   buildUrl(model, stream, urlIndex = 0) {
     const baseUrls = this.getBaseUrls();
     const baseUrl = baseUrls[urlIndex] || baseUrls[0];
-    // Image generation MUST use non-streaming generateContent
     const forceNonStream = isImageModel(model);
     const action = (stream && !forceNonStream) ? "streamGenerateContent?alt=sse" : "generateContent";
     return `${baseUrl}/v1internal:${action}`;
   }
 
-  // sessionId comes from transformRequest output; base.execute runs transformRequest before
-  // buildHeaders, so we read it from instance state cached there (fallback: explicit arg).
   buildHeaders(credentials, stream = true, sessionId = null) {
     return {
       "Content-Type": "application/json",
@@ -137,17 +125,12 @@ export class AntigravityExecutor extends BaseExecutor {
   transformRequest(model, body, stream, credentials) {
     const projectId = credentials?.projectId || this.generateProjectId();
 
-    // OpenAI clients may include stream_options even for non-streaming calls.
-    // Google generateContent rejects that combination before processing the request.
     if (stream !== true) delete body.stream_options;
 
-    // ─── Image generation: completely different request structure ───
     if (isImageModel(model)) {
       const imageConfig = parseImageConfig(model);
-      // Strip model name suffixes for the actual API model name
       const cleanModel = model.replace(/-(\d+)x(\d+)$/, "");
 
-      // Build simplified contents — text-only, merge all user messages
       const contents = [];
       const srcContents = body.request?.contents || body.contents || [];
       for (const c of srcContents) {
@@ -175,7 +158,6 @@ export class AntigravityExecutor extends BaseExecutor {
           imageConfig,
         },
         sessionId,
-        // No tools, no systemInstruction, no safetySettings for image gen
       };
 
       return {
@@ -191,23 +173,16 @@ export class AntigravityExecutor extends BaseExecutor {
     const rawSessionId = body.request?.sessionId || resolveSessionId({ headers: credentials?.rawHeaders, body, connectionId: credentials?.email || credentials?.connectionId, scope: "antigravity" });
     const sessionId = toNumericSessionId(rawSessionId) || rawSessionId;
 
-    // ─── Standard (non-image) request ───
-    // Fix contents for Claude models via Antigravity
     const rawContents = (body.request?.contents || []).map(c => {
       let role = c.role;
-      // functionResponse must be role "user" for Claude models
       if (c.parts?.some(p => p.functionResponse)) {
         role = "user";
       }
-      // Strip thought-only parts, keep thoughtSignature on functionCall parts (Gemini 3+ requires it)
       const parts = c.parts?.filter(p => {
         if (p.thought && !p.functionCall) return false;
         if (p.thoughtSignature && !p.functionCall && !p.text) return false;
         return true;
       });
-      // Gemini 3+ rejects functionCall parts without thoughtSignature. Clients (Claude Code, IDE)
-      // don't persist thoughtSignature in their history, so backfill from cache or default signature.
-      // In parallel function calls, only the first call needs a signature; siblings stay unsigned.
       let firstFunctionCallSeen = false;
       const modifiedParts = parts?.map(p => {
         if (!p.functionCall) return p;
@@ -219,7 +194,6 @@ export class AntigravityExecutor extends BaseExecutor {
           return { ...p, thoughtSignature: callSig };
         }
         if (p.thoughtSignature && !cachedSig) {
-          // Unsigned sibling call
           const { thoughtSignature: _, ...rest } = p;
           return rest;
         }
@@ -234,11 +208,9 @@ export class AntigravityExecutor extends BaseExecutor {
     });
     const contents = normalizeGeminiContents(rawContents);
 
-    // Sanitize tool schemas and function names before sending to Antigravity.
     let tools = body.request?.tools;
 
     if (tools && tools.length > 0) {
-      // Merge all groups into a single functionDeclarations group (Gemini expects 1 group)
       const seenToolNames = new Set();
       const allDeclarations = [];
       for (const group of tools) {
@@ -258,12 +230,9 @@ export class AntigravityExecutor extends BaseExecutor {
       tools = allDeclarations.length > 0 ? [{ functionDeclarations: allDeclarations }] : [];
     }
 
-    // Strip tools/toolConfig (handled separately) and blacklisted fields that Google rejects
     const { tools: _originalTools, toolConfig: _originalToolConfig, ...requestWithoutTools } = body.request || {};
     stripBlacklisted(requestWithoutTools);
     
-    // Rewrite competing-client branding in system prompts (e.g. Zed's Claude prompt,
-    // OpenCode naming) so Antigravity doesn't flag the request with a 429 Quota Exhausted.
     if (requestWithoutTools.systemInstruction?.parts) {
       for (const part of requestWithoutTools.systemInstruction.parts) {
         if (typeof part.text !== "string") continue;
@@ -288,10 +257,9 @@ export class AntigravityExecutor extends BaseExecutor {
       ...(tools?.length > 0 && { toolConfig: { functionCallingConfig: { mode: "VALIDATED" } } })
     };
 
-    // Strip blacklisted thinking fields from top-level body (set by thinkingUnified.js at root, not body.request)
     stripBlacklisted(body);
 
-    this._lastSessionId = transformedRequest.sessionId; // cached for buildHeaders (base.execute order)
+    this._lastSessionId = transformedRequest.sessionId;
 
     return {
       ...body,
@@ -377,8 +345,6 @@ export class AntigravityExecutor extends BaseExecutor {
     return null;
   }
 
-  // Parse retry time from Antigravity error message body
-  // Format: "Your quota will reset after 2h7m23s" or "1h30m" or "45m" or "30s"
   parseRetryFromErrorMessage(errorMessage) {
     if (!errorMessage || typeof errorMessage !== "string") return null;
 
@@ -386,9 +352,9 @@ export class AntigravityExecutor extends BaseExecutor {
     if (!match) return null;
 
     let totalMs = 0;
-    if (match[1]) totalMs += parseInt(match[1]) * 3600 * 1000; // hours
-    if (match[2]) totalMs += parseInt(match[2]) * 60 * 1000; // minutes
-    if (match[3]) totalMs += parseInt(match[3]) * 1000; // seconds
+    if (match[1]) totalMs += parseInt(match[1]) * 3600 * 1000;
+    if (match[2]) totalMs += parseInt(match[2]) * 60 * 1000;
+    if (match[3]) totalMs += parseInt(match[3]) * 1000;
 
     return totalMs > 0 ? totalMs : null;
   }
@@ -408,9 +374,6 @@ export class AntigravityExecutor extends BaseExecutor {
     return ANTIGRAVITY_TRANSIENT_ERROR_PATTERNS.some(pattern => pattern.test(message || ""));
   }
 
-  // Hook called by BaseExecutor.tryRetry: derive delay from Retry-After (header → body),
-  // cap at MAX_RETRY_AFTER_MS, else retry transient Antigravity failures with backoff.
-  // Return false to veto (fallback URL / final error).
   async computeRetryDelay(response, attempt) {
     let bodyText = "";
     let errorJson = null;
@@ -420,7 +383,6 @@ export class AntigravityExecutor extends BaseExecutor {
       bodyText = await response.clone().text();
       errorJson = bodyText ? JSON.parse(bodyText) : null;
     } catch {
-      // ignore parse errors → fall through to status/message based retry
     }
 
     const errorMessage = this.extractErrorMessage(errorJson, bodyText);
@@ -435,43 +397,22 @@ export class AntigravityExecutor extends BaseExecutor {
     const cap = response.status === HTTP_STATUS.RATE_LIMITED
       ? MAX_RETRY_AFTER_MS
       : ANTIGRAVITY_TRANSIENT_RETRY_MAX_MS;
-    return Math.min(1000 * (2 ** attempt), cap); // exponential backoff
+    return Math.min(1000 * (2 ** attempt), cap);
   }
 
-  /**
-   * Cloak tools before sending to Antigravity provider (anti-ban):
-   * - Rename client tools with _ide suffix
-   * - Inject AG default decoy tools after client tools
-   * Returns { cloakedBody, toolNameMap } where toolNameMap maps suffixed → original
-   */
-  static cloakTools(body, clientTool = null) {
+  static cloakTools(body) {
     const tools = body.request?.tools;
     if (!tools || tools.length === 0) {
       return { cloakedBody: body, toolNameMap: null };
     }
 
-    const isCopilot = clientTool === "github-copilot";
     const toolNameMap = new Map();
     const clientDeclarations = [];
-    const decoyNames = new Set(AG_DECOY_TOOLS.map(tool => tool.name));
 
-    // First: collect renamed client tools
     for (const toolGroup of tools) {
       if (!toolGroup.functionDeclarations) continue;
 
       for (const func of toolGroup.functionDeclarations) {
-        // For GitHub Copilot, avoid emitting duplicate native Antigravity tool names.
-        // Keep the decoys only once in the final declaration list.
-        if (isCopilot && AG_DEFAULT_TOOLS.has(func.name)) {
-          continue;
-        }
-
-        // Skip if already covered by decoys for Copilot
-        if (isCopilot && decoyNames.has(func.name)) {
-          continue;
-        }
-
-        // Preserve native AG names for non-Copilot clients
         if (AG_DEFAULT_TOOLS.has(func.name)) {
           clientDeclarations.push(func);
           continue;
@@ -483,7 +424,6 @@ export class AntigravityExecutor extends BaseExecutor {
       }
     }
 
-    // Client tools first, then AG decoy tools
     const allDeclarations = [];
     const seenNames = new Set();
     for (const decl of [...clientDeclarations, ...AG_DECOY_TOOLS]) {
@@ -492,12 +432,10 @@ export class AntigravityExecutor extends BaseExecutor {
       allDeclarations.push(decl);
     }
 
-    // Rename tool names in conversation history (contents)
     const cloakedContents = body.request?.contents?.map(msg => {
       if (!msg.parts) return msg;
       
       const cloakedParts = msg.parts.map(part => {
-        // Rename functionCall.name
         if (part.functionCall && !AG_DEFAULT_TOOLS.has(part.functionCall.name)) {
           return {
             ...part,
@@ -508,7 +446,6 @@ export class AntigravityExecutor extends BaseExecutor {
           };
         }
         
-        // Rename functionResponse.name
         if (part.functionResponse && !AG_DEFAULT_TOOLS.has(part.functionResponse.name)) {
           return {
             ...part,
@@ -525,7 +462,6 @@ export class AntigravityExecutor extends BaseExecutor {
       return { ...msg, parts: cloakedParts };
     });
 
-    // Single functionDeclarations group: client tools first, then decoys
     return {
       cloakedBody: {
         ...body,
@@ -540,7 +476,6 @@ export class AntigravityExecutor extends BaseExecutor {
   }
 }
 
-// AG decoy tools — same names as AG native defaults, redirect to _ide suffixed tools
 const AG_DECOY_TOOLS = [
   {
     name: "browser_subagent",

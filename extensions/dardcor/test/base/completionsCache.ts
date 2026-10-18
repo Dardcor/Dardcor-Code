@@ -43,11 +43,9 @@ export namespace ICacheableCompletionsResponse {
 	}
 
 	export function toFetchResponse(v: ICacheableCompletionsResponse): FetchResponse {
-		// @ulugbekna: currently, if we don't chunk up, the streaming logic errors out if the stream eventually errored (eg "response too long"),
-		// 	but we want to be able to capture edits proposed before the error
-		const bodyStream = stringToChunkedStream(v.body, 512 /* arbitrary chunk size to hit fast/correct balance */);
+		const bodyStream = stringToChunkedStream(v.body, 512 );
 
-		const headers = new Headers(); // @ulugbekna: we don't use headers, so this should be ok for now
+		const headers = new Headers();
 
 		const response = emptyFetcherResponse(headers);
 

@@ -7,7 +7,6 @@ import fs from 'fs';
 import path from 'path';
 import * as ts from 'typescript';
 
-// --- Graph (extracted from build/lib/tsb/utils.ts) ---
 
 export class Node {
 	readonly incoming = new Map<string, Node>();
@@ -80,7 +79,6 @@ export class Graph {
 	}
 }
 
-// --- Dependency scanning & cycle detection ---
 
 export function normalize(p: string): string {
 	return p.replace(/\\/g, '/');
@@ -105,7 +103,7 @@ export function processFile(filename: string, graph: Graph): void {
 
 	for (const ref of info.importedFiles) {
 		if (!ref.fileName.startsWith('.')) {
-			continue; // skip node_modules
+			continue;
 		}
 		if (ref.fileName.endsWith('.css')) {
 			continue;

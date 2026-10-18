@@ -39,13 +39,7 @@ export interface IMirrorModel extends IMirrorTextModel {
 }
 
 export interface IWorkerContext<H = {}> {
-	/**
-	 * A proxy to the main thread host object.
-	 */
 	host: H;
-	/**
-	 * Get all available mirror models in this worker.
-	 */
 	getMirrorModels(): IMirrorModel[];
 }
 
@@ -54,13 +48,7 @@ export interface IWorkerContext<H = {}> {
  * @internal
  */
 export interface IWordRange {
-	/**
-	 * The index where the word starts.
-	 */
 	readonly start: number;
-	/**
-	 * The index where the word ends.
-	 */
 	readonly end: number;
 }
 
@@ -119,7 +107,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return findSectionHeaders(model, options);
 	}
 
-	// ---- BEGIN diff --------------------------------------------------------------------------
 
 	public async $computeDiff(originalUrl: string, modifiedUrl: string, options: IDocumentDiffProviderOptions, algorithm: DiffAlgorithmName): Promise<IDiffComputationResult | null> {
 		const original = this._getModel(originalUrl);
@@ -208,10 +195,8 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return (await computeStringDiff(original, modified, options, algorithm)).toJson();
 	}
 
-	// ---- END diff --------------------------------------------------------------------------
 
 
-	// ---- BEGIN minimal edits ---------------------------------------------------------------
 
 	private static readonly _diffLimit = 100000;
 
@@ -228,13 +213,11 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 			if (a.range && b.range) {
 				return Range.compareRangesUsingStarts(a.range, b.range);
 			}
-			// eol only changes should go to the end
 			const aRng = a.range ? 0 : 1;
 			const bRng = b.range ? 0 : 1;
 			return aRng - bRng;
 		});
 
-		// merge adjacent edits
 		let writeIndex = 0;
 		for (let readIndex = 1; readIndex < edits.length; readIndex++) {
 			if (Range.getEndPosition(edits[writeIndex].range).equals(Range.getStartPosition(edits[readIndex].range))) {
@@ -254,7 +237,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 			}
 
 			if (Range.isEmpty(range) && !text) {
-				// empty change
 				continue;
 			}
 
@@ -262,17 +244,14 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 			text = text.replace(/\r\n|\n|\r/g, model.eol);
 
 			if (original === text) {
-				// noop
 				continue;
 			}
 
-			// make sure diff won't take too long
 			if (Math.max(text.length, original.length) > EditorWorker._diffLimit) {
 				result.push({ range, text });
 				continue;
 			}
 
-			// compute diff between original and edit.text
 			const changes = stringDiff(original, text, pretty);
 			const editOffset = model.offsetAt(Range.lift(range).getStartPosition());
 
@@ -310,7 +289,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 			if (a.range && b.range) {
 				return Range.compareRangesUsingStarts(a.range, b.range);
 			}
-			// eol only changes should go to the end
 			const aRng = a.range ? 0 : 1;
 			const bRng = b.range ? 0 : 1;
 			return aRng - bRng;
@@ -323,7 +301,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 			}
 
 			if (Range.isEmpty(range) && !text) {
-				// empty change
 				continue;
 			}
 
@@ -331,17 +308,14 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 			text = text.replace(/\r\n|\n|\r/g, model.eol);
 
 			if (original === text) {
-				// noop
 				continue;
 			}
 
-			// make sure diff won't take too long
 			if (Math.max(text.length, original.length) > EditorWorker._diffLimit) {
 				result.push({ range, text });
 				continue;
 			}
 
-			// compute diff between original and edit.text
 
 			const originalLines = original.split(/\r\n|\n|\r/);
 			const modifiedLines = text.split(/\r\n|\n|\r/);
@@ -395,7 +369,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return result;
 	}
 
-	// ---- END minimal edits ---------------------------------------------------------------
 
 	public async $computeLinks(modelUrl: string): Promise<ILink[] | null> {
 		const model = this._getModel(modelUrl);
@@ -406,7 +379,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return computeLinks(model);
 	}
 
-	// --- BEGIN default document colors -----------------------------------------------------------
 
 	public async $computeDefaultDocumentColors(modelUrl: string): Promise<IColorInformation[] | null> {
 		const model = this._getModel(modelUrl);
@@ -416,7 +388,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return computeDefaultDocumentColors(model);
 	}
 
-	// ---- BEGIN suggest --------------------------------------------------------------------------
 
 	private static readonly _suggestionsLimit = 10000;
 
@@ -447,9 +418,7 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 	}
 
 
-	// ---- END suggest --------------------------------------------------------------------------
 
-	//#region -- word ranges --
 
 	public async $computeWordRanges(modelUrl: string, range: IRange, wordDef: string, wordDefFlags: string): Promise<{ [word: string]: IRange[] }> {
 		const model = this._getModel(modelUrl);
@@ -480,7 +449,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return result;
 	}
 
-	//#endregion
 
 	public async $navigateValueSet(modelUrl: string, range: IRange, up: boolean, wordDef: string, wordDefFlags: string): Promise<IInplaceReplaceSupportResult | null> {
 		const model = this._getModel(modelUrl);
@@ -510,9 +478,7 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return result;
 	}
 
-	// ---- BEGIN foreign module support --------------------------------------------------------------------------
 
-	// foreign method request
 	public $fmr(method: string, args: unknown[]): Promise<unknown> {
 		if (!this._foreignModule || typeof (this._foreignModule as Record<string, unknown>)[method] !== 'function') {
 			return Promise.reject(new Error('Missing requestHandler or method: ' + method));
@@ -525,14 +491,11 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		}
 	}
 
-	// ---- END foreign module support --------------------------------------------------------------------------
 }
 
-// This is only available in a Web Worker
 declare function importScripts(...urls: string[]): void;
 
 if (typeof importScripts === 'function') {
-	// Running in a web worker
 	globalThis.monaco = createMonacoBaseAPI();
 }
 

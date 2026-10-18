@@ -49,12 +49,10 @@ export class WorkspaceWatcher extends Disposable {
 
 	private onDidChangeWorkspaceFolders(e: IWorkspaceFoldersChangeEvent): void {
 
-		// Removed workspace: Unwatch
 		for (const removed of e.removed) {
 			this.unwatchWorkspace(removed);
 		}
 
-		// Added workspace: Watch
 		for (const added of e.added) {
 			this.watchWorkspace(added);
 		}
@@ -74,7 +72,6 @@ export class WorkspaceWatcher extends Disposable {
 		const msg = error.toString();
 		let reason: 'ENOSPC' | 'EUNKNOWN' | 'ETERM' | undefined = undefined;
 
-		// Detect if we run into ENOSPC issues
 		if (msg.indexOf('ENOSPC') >= 0) {
 			reason = 'ENOSPC';
 
@@ -92,7 +89,6 @@ export class WorkspaceWatcher extends Disposable {
 			);
 		}
 
-		// Detect when the watcher throws an error unexpectedly
 		else if (msg.indexOf('EUNKNOWN') >= 0) {
 			reason = 'EUNKNOWN';
 
@@ -105,18 +101,15 @@ export class WorkspaceWatcher extends Disposable {
 				}],
 				{
 					sticky: true,
-					priority: NotificationPriority.SILENT // reduce potential spam since we don't really know how often this fires
+					priority: NotificationPriority.SILENT
 				}
 			);
 		}
 
-		// Detect unexpected termination
 		else if (msg.indexOf('ETERM') >= 0) {
 			reason = 'ETERM';
 		}
 
-		// Log telemetry if we gathered a reason (logging it from the renderer
-		// allows us to investigate this situation in context of experiments)
 		if (reason) {
 			type WatchErrorClassification = {
 				owner: 'bpasero';
@@ -132,7 +125,6 @@ export class WorkspaceWatcher extends Disposable {
 
 	private watchWorkspace(workspace: IWorkspaceFolder): void {
 
-		// Compute the watcher exclude rules from configuration
 		const excludes: string[] = [];
 		const config = this.configurationService.getValue<IFilesConfiguration>({ resource: workspace.uri });
 		if (config.files?.watcherExclude) {
@@ -145,17 +137,14 @@ export class WorkspaceWatcher extends Disposable {
 
 		const pathsToWatch = new ResourceMap<URI>(uri => this.uriIdentityService.extUri.getComparisonKey(uri));
 
-		// Add the workspace as path to watch
 		pathsToWatch.set(workspace.uri, workspace.uri);
 
-		// Compute additional includes from configuration
 		if (config.files?.watcherInclude) {
 			for (const includePath of config.files.watcherInclude) {
 				if (!includePath) {
 					continue;
 				}
 
-				// Absolute: verify a child of the workspace
 				if (isAbsolute(includePath)) {
 					const candidate = URI.file(includePath).with({ scheme: workspace.uri.scheme });
 					if (this.uriIdentityService.extUri.isEqualOrParent(candidate, workspace.uri)) {
@@ -163,7 +152,6 @@ export class WorkspaceWatcher extends Disposable {
 					}
 				}
 
-				// Relative: join against workspace folder
 				else {
 					const candidate = workspace.toResource(includePath);
 					pathsToWatch.set(candidate, candidate);
@@ -171,7 +159,6 @@ export class WorkspaceWatcher extends Disposable {
 			}
 		}
 
-		// Watch all paths as instructed
 		const disposables = new DisposableStore();
 		for (const [, pathToWatch] of pathsToWatch) {
 			disposables.add(this.fileService.watch(pathToWatch, { recursive: true, excludes }));
@@ -188,10 +175,8 @@ export class WorkspaceWatcher extends Disposable {
 
 	private refresh(): void {
 
-		// Unwatch all first
 		this.unwatchWorkspaces();
 
-		// Watch each workspace folder
 		for (const folder of this.contextService.getWorkspace().folders) {
 			this.watchWorkspace(folder);
 		}

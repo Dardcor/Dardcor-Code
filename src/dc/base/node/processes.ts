@@ -29,29 +29,23 @@ export interface IQueuedSender {
 	send: (msg: any) => void;
 }
 
-// Wrapper around process.send() that will queue any messages if the internal node.js
-// queue is filled with messages and only continue sending messages when the internal
-// queue is free again to consume messages.
-// On Windows we always wait for the send() method to return before sending the next message
-// to workaround https://github.com/nodejs/node/issues/7657 (IPC can freeze process)
 export function createQueuedSender(childProcess: cp.ChildProcess): IQueuedSender {
 	let msgQueue: string[] = [];
 	let useQueue = false;
 
 	const send = function (msg: any): void {
 		if (useQueue) {
-			msgQueue.push(msg); // add to the queue if the process cannot handle more messages
+			msgQueue.push(msg);
 			return;
 		}
 
 		const result = childProcess.send(msg, (error: Error | null) => {
 			if (error) {
-				console.error(error); // unlikely to happen, best we can do is log this error
+				console.error(error);
 			}
 
-			useQueue = false; // we are good again to send directly without queue
+			useQueue = false;
 
-			// now send all the messages that we have in our queue and did not send yet
 			if (msgQueue.length > 0) {
 				const msgQueueCopy = msgQueue.slice(0);
 				msgQueue = [];
@@ -59,7 +53,7 @@ export function createQueuedSender(childProcess: cp.ChildProcess): IQueuedSender
 			}
 		});
 
-		if (!result || Platform.isWindows /* workaround https://github.com/nodejs/node/issues/7657 */) {
+		if (!result || Platform.isWindows ) {
 			useQueue = true;
 		}
 	};
@@ -74,7 +68,6 @@ async function fileExistsDefault(path: string): Promise<boolean> {
 			statValue = await promises.stat(path);
 		} catch (e) {
 			if (e.message.startsWith('EACCES')) {
-				// it might be symlink
 				statValue = await promises.lstat(path);
 			}
 		}
@@ -84,7 +77,6 @@ async function fileExistsDefault(path: string): Promise<boolean> {
 }
 
 export async function findExecutable(command: string, cwd?: string, paths?: string[], env: Platform.IProcessEnvironment = processCommon.env, fileExists: (path: string) => Promise<boolean> = fileExistsDefault): Promise<string | undefined> {
-	// If we have an absolute path then we take it.
 	if (path.isAbsolute(command)) {
 		return await fileExists(command) ? command : undefined;
 	}
@@ -93,8 +85,6 @@ export async function findExecutable(command: string, cwd?: string, paths?: stri
 	}
 	const dir = path.dirname(command);
 	if (dir !== '.') {
-		// We have a directory and the directory is relative (see above). Make the path absolute
-		// to the current working directory.
 		const fullPath = path.join(cwd, command);
 		return await fileExists(fullPath) ? fullPath : undefined;
 	}
@@ -102,16 +92,12 @@ export async function findExecutable(command: string, cwd?: string, paths?: stri
 	if (paths === undefined && Types.isString(envPath)) {
 		paths = envPath.split(path.delimiter);
 	}
-	// No PATH environment. Make path absolute to the cwd.
 	if (paths === undefined || paths.length === 0) {
 		const fullPath = path.join(cwd, command);
 		return await fileExists(fullPath) ? fullPath : undefined;
 	}
 
-	// We have a simple file name. We get the path variable from the env
-	// and try to find the executable on the path.
 	for (const pathEntry of paths) {
-		// The path entry is absolute.
 		let fullPath: string;
 		if (path.isAbsolute(pathEntry)) {
 			fullPath = path.join(pathEntry, command);
@@ -140,13 +126,6 @@ export async function findExecutable(command: string, cwd?: string, paths?: stri
 	return await fileExists(fullPath) ? fullPath : undefined;
 }
 
-/**
- * Kills a process and all its children.
- * @param pid the process id to kill
- * @param forceful whether to forcefully kill the process (default: false). Note
- * that on Windows, terminal processes can _only_ be killed forcefully and this
- * will throw when not forceful.
- */
 export async function killTree(pid: number, forceful = false) {
 	let child: cp.ChildProcessByStdio<null, Stream.Readable, Stream.Readable>;
 	if (Platform.isWindows) {

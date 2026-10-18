@@ -5,18 +5,11 @@ import { getServerCredentials } from "../config/index.js";
 import { startLocalServer } from "../utils/server.js";
 import { spinner as createSpinner } from "../utils/ui.js";
 
-/**
- * Antigravity OAuth Service
- * Uses standard OAuth2 Authorization Code flow (similar to Gemini)
- */
 export class AntigravityService {
   constructor() {
     this.config = ANTIGRAVITY_CONFIG;
   }
 
-  /**
-   * Build Antigravity authorization URL
-   */
   buildAuthUrl(redirectUri, state) {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
@@ -31,9 +24,6 @@ export class AntigravityService {
     return `${this.config.authorizeUrl}?${params.toString()}`;
   }
 
-  /**
-   * Exchange authorization code for tokens
-   */
   async exchangeCode(code, redirectUri) {
     const response = await fetch(this.config.tokenUrl, {
       method: "POST",
@@ -58,9 +48,6 @@ export class AntigravityService {
     return await response.json();
   }
 
-  /**
-   * Get user info from Google
-   */
   async getUserInfo(accessToken) {
     const response = await fetch(`${this.config.userInfoUrl}?alt=json`, {
       headers: {
@@ -77,9 +64,6 @@ export class AntigravityService {
     return await response.json();
   }
 
-  /**
-   * Get common headers for Antigravity API calls
-   */
   getApiHeaders(accessToken) {
     return {
       "Authorization": `Bearer ${accessToken}`,
@@ -88,17 +72,10 @@ export class AntigravityService {
     };
   }
 
-  /**
-   * Get metadata object for loadCodeAssist / onboardUser API calls.
-   * Uses numeric enum values matching Antigravity binary ClientMetadata.
-   */
   getMetadata() {
     return getOAuthClientMetadata();
   }
 
-  /**
-   * Fetch Project ID and Tier from loadCodeAssist API
-   */
   async loadCodeAssist(accessToken) {
     const response = await fetch(this.config.loadCodeAssistEndpoint, {
       method: "POST",
@@ -113,13 +90,11 @@ export class AntigravityService {
 
     const data = await response.json();
 
-    // Extract project ID
     let projectId = data.cloudaicompanionProject;
     if (typeof projectId === 'object' && projectId !== null && projectId.id) {
       projectId = projectId.id;
     }
 
-    // Extract tier ID (default to legacy-tier)
     let tierId = "legacy-tier";
     if (Array.isArray(data.allowedTiers)) {
       for (const tier of data.allowedTiers) {
@@ -133,9 +108,6 @@ export class AntigravityService {
     return { projectId, tierId, raw: data };
   }
 
-  /**
-   * Onboard user to enable Gemini Code Assist for the project
-   */
   async onboardUser(accessToken, projectId, tierId) {
     const response = await fetch(this.config.onboardUserEndpoint, {
       method: "POST",
@@ -151,15 +123,11 @@ export class AntigravityService {
     return await response.json();
   }
 
-  /**
-   * Complete onboarding flow with retry
-   */
   async completeOnboarding(accessToken, projectId, tierId, maxRetries = 10) {
     for (let i = 0; i < maxRetries; i++) {
       const result = await this.onboardUser(accessToken, projectId, tierId);
 
       if (result.done === true) {
-        // Extract final project ID from response
         let finalProjectId = projectId;
         if (result.response?.cloudaicompanionProject) {
           const respProject = result.response.cloudaicompanionProject;
@@ -172,16 +140,12 @@ export class AntigravityService {
         return { success: true, projectId: finalProjectId };
       }
 
-      // Wait 5 seconds before retry
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
 
     throw new Error("Onboarding timeout - please try again");
   }
 
-  /**
-   * Fetch Project ID from loadCodeAssist API (legacy method for compatibility)
-   */
   async fetchProjectId(accessToken) {
     const { projectId } = await this.loadCodeAssist(accessToken);
     if (!projectId) {
@@ -190,9 +154,6 @@ export class AntigravityService {
     return projectId;
   }
 
-  /**
-   * Save Antigravity tokens to server
-   */
   async saveTokens(tokens, userInfo, projectId) {
     const { server, token, userId } = getServerCredentials();
 
@@ -209,7 +170,7 @@ export class AntigravityService {
         expiresIn: tokens.expires_in,
         scope: tokens.scope,
         email: userInfo.email,
-        projectId: projectId, // Send projectId to server
+        projectId: projectId,
       }),
     });
 
@@ -221,16 +182,12 @@ export class AntigravityService {
     return await response.json();
   }
 
-  /**
-   * Complete Antigravity OAuth flow
-   */
   async connect() {
     const spinner = createSpinner("Starting Antigravity OAuth...").start();
 
     try {
       spinner.text = "Starting local server...";
 
-      // Start local server for callback
       let callbackParams = null;
       const { port, close } = await startLocalServer((params) => {
         callbackParams = params;
@@ -239,19 +196,15 @@ export class AntigravityService {
       const redirectUri = `http://localhost:${port}/callback`;
       spinner.succeed(`Local server started on port ${port}`);
 
-      // Generate state
       const state = crypto.randomBytes(32).toString("base64url");
 
-      // Build authorization URL
       const authUrl = this.buildAuthUrl(redirectUri, state);
 
       console.log("\nOpening browser for Antigravity authentication...");
       console.log(`If browser doesn't open, visit:\n${authUrl}\n`);
 
-      // Open browser
       await open(authUrl);
 
-      // Wait for callback
       spinner.start("Waiting for Antigravity authorization...");
 
       await new Promise((resolve, reject) => {
@@ -280,17 +233,14 @@ export class AntigravityService {
 
       spinner.start("Exchanging code for tokens...");
 
-      // Exchange code for tokens
       const tokens = await this.exchangeCode(callbackParams.code, redirectUri);
 
       spinner.text = "Fetching user info...";
 
-      // Get user info
       const userInfo = await this.getUserInfo(tokens.access_token);
 
       spinner.text = "Loading Code Assist configuration...";
 
-      // Load Code Assist to get project ID and tier
       const { projectId, tierId } = await this.loadCodeAssist(tokens.access_token);
 
       if (!projectId) {
@@ -299,13 +249,11 @@ export class AntigravityService {
 
       spinner.text = "Onboarding to Gemini Code Assist...";
 
-      // Complete onboarding to enable Gemini Code Assist
       const onboardResult = await this.completeOnboarding(tokens.access_token, projectId, tierId);
       const finalProjectId = onboardResult.projectId || projectId;
 
       spinner.text = "Saving tokens to server...";
 
-      // Save tokens to server
       await this.saveTokens(tokens, userInfo, finalProjectId);
 
       spinner.succeed(`Antigravity connected successfully! (${userInfo.email}, Project: ${finalProjectId})`);

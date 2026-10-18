@@ -5,9 +5,6 @@
 
 import * as ts from 'typescript';
 
-// ============================================================================
-// Types
-// ============================================================================
 
 export interface ISpan {
 	start: ts.LineAndCharacter;
@@ -21,9 +18,6 @@ export interface ILocalizeCall {
 	value: string;
 }
 
-// ============================================================================
-// AST Collection
-// ============================================================================
 
 export const CollectStepResult = Object.freeze({
 	Yes: 'Yes',
@@ -65,9 +59,6 @@ export function isCallExpressionWithinTextSpanCollectStep(textSpan: ts.TextSpan,
 	return node.kind === ts.SyntaxKind.CallExpression ? CollectStepResult.YesAndRecurse : CollectStepResult.NoAndRecurse;
 }
 
-// ============================================================================
-// Language Service Host
-// ============================================================================
 
 export class SingleFileServiceHost implements ts.LanguageServiceHost {
 	private file: ts.IScriptSnapshot;
@@ -101,13 +92,7 @@ export class SingleFileServiceHost implements ts.LanguageServiceHost {
 	}
 }
 
-// ============================================================================
-// Analysis
-// ============================================================================
 
-/**
- * Analyzes TypeScript source code to find localize() or localize2() calls.
- */
 export function analyzeLocalizeCalls(
 	contents: string,
 	functionName: 'localize' | 'localize2'
@@ -118,10 +103,8 @@ export function analyzeLocalizeCalls(
 	const service = ts.createLanguageService(serviceHost);
 	const sourceFile = ts.createSourceFile(filename, contents, ts.ScriptTarget.ES5, true);
 
-	// Find all imports
 	const imports = collect(sourceFile, n => isImportNode(n) ? CollectStepResult.YesAndRecurse : CollectStepResult.NoAndRecurse);
 
-	// import nls = require('dc/nls');
 	const importEqualsDeclarations = imports
 		.filter(n => n.kind === ts.SyntaxKind.ImportEqualsDeclaration)
 		.map(n => n as ts.ImportEqualsDeclaration)
@@ -131,7 +114,6 @@ export function analyzeLocalizeCalls(
 			return text.endsWith(`/nls'`) || text.endsWith(`/nls"`) || text.endsWith(`/nls.js'`) || text.endsWith(`/nls.js"`);
 		});
 
-	// import ... from 'dc/nls';
 	const importDeclarations = imports
 		.filter(n => n.kind === ts.SyntaxKind.ImportDeclaration)
 		.map(n => n as ts.ImportDeclaration)
@@ -142,7 +124,6 @@ export function analyzeLocalizeCalls(
 		})
 		.filter(d => !!d.importClause && !!d.importClause.namedBindings);
 
-	// `nls.localize(...)` calls via namespace import
 	const nlsLocalizeCallExpressions: ts.CallExpression[] = [];
 
 	const namespaceImports = importDeclarations
@@ -167,14 +148,12 @@ export function analyzeLocalizeCalls(
 		}
 	}
 
-	// `localize` named imports
 	const namedImports = importDeclarations
 		.filter(d => d.importClause?.namedBindings?.kind === ts.SyntaxKind.NamedImports)
 		.flatMap(d => Array.from((d.importClause!.namedBindings! as ts.NamedImports).elements));
 
 	const localizeCallExpressions: ts.CallExpression[] = [];
 
-	// Direct named import: import { localize } from 'dc/nls'
 	for (const namedImport of namedImports) {
 		const isTarget = namedImport.name.getText() === functionName ||
 			(namedImport.propertyName && namedImport.propertyName.getText() === functionName);
@@ -198,7 +177,6 @@ export function analyzeLocalizeCalls(
 		}
 	}
 
-	// Combine and deduplicate
 	const allCalls = [...nlsLocalizeCallExpressions, ...localizeCallExpressions];
 	const seen = new Set<number>();
 	const uniqueCalls = allCalls.filter(call => {
@@ -210,7 +188,6 @@ export function analyzeLocalizeCalls(
 		return true;
 	});
 
-	// Convert to ILocalizeCall
 	return uniqueCalls
 		.filter(e => e.arguments.length > 1)
 		.sort((a, b) => a.arguments[0].getStart() - b.arguments[0].getStart())
@@ -231,9 +208,6 @@ export function analyzeLocalizeCalls(
 		});
 }
 
-// ============================================================================
-// Text Model for patching
-// ============================================================================
 
 export class TextModel {
 	private lines: string[];
@@ -271,11 +245,6 @@ export class TextModel {
 		return this.lines.length;
 	}
 
-	/**
-	 * Applies patch(es) to the model.
-	 * Multiple patches must be ordered.
-	 * Does not support patches spanning multiple lines.
-	 */
 	apply(span: ISpan, content: string): void {
 		const startLineNumber = span.start.line;
 		const endLineNumber = span.end.line;
@@ -303,14 +272,7 @@ export class TextModel {
 	}
 }
 
-// ============================================================================
-// Utilities
-// ============================================================================
 
-/**
- * Parses a localize key or value expression.
- * sourceExpression can be "foo", 'foo', `foo` or { key: 'foo', comment: [...] }
- */
 export function parseLocalizeKeyOrValue(sourceExpression: string): string | { key: string; comment?: string[] } {
 	// eslint-disable-next-line no-eval
 	return eval(`(${sourceExpression})`);

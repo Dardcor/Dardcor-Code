@@ -14,7 +14,6 @@ export type INativeInteractiveWindow = { notebookUri: vscode.Uri; inputUri: vsco
 async function createInteractiveWindow(kernel: Kernel) {
 	const { notebookEditor, inputUri } = (await vscode.commands.executeCommand(
 		'interactive.open',
-		// Keep focus on the owning file if there is one
 		{ viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
 		undefined,
 		`vscode.vscode-api-tests/${kernel.controller.id}`,
@@ -93,14 +92,11 @@ async function addCellAndRun(code: string, notebook: vscode.NotebookDocument) {
 		assert.ok(vscode.workspace.workspaceFolders);
 		const { notebookEditor } = await createInteractiveWindow(defaultKernel);
 
-		// Run and add a bunch of cells
 		for (let i = 0; i < 10; i++) {
 			await addCellAndRun(`print ${i}`, notebookEditor.notebook);
 		}
 
-		// Verify visible range has the last cell
 		if (!lastCellIsVisible(notebookEditor)) {
-			// scroll happens async, so give it some time to scroll
 			await new Promise<void>((resolve) => setTimeout(() => {
 				assert.ok(lastCellIsVisible(notebookEditor), `Last cell is not visible`);
 				resolve();
@@ -108,20 +104,16 @@ async function addCellAndRun(code: string, notebook: vscode.NotebookDocument) {
 		}
 	});
 
-	// https://github.com/microsoft/vscode/issues/266229
 	test.skip('Interactive window has the correct kernel', async function () {
-		// Extend timeout a bit as kernel association can be async & occasionally slow on CI
 		this.timeout(20000);
 		assert.ok(vscode.workspace.workspaceFolders);
 		await createInteractiveWindow(defaultKernel);
 
 		await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 
-		// Create a new interactive window with a different kernel
 		const { notebookEditor } = await createInteractiveWindow(secondKernel);
 		assert.ok(notebookEditor);
 
-		// Run a cell to ensure the kernel is actually exercised
 		await addCellAndRun(`print`, notebookEditor.notebook);
 
 		await poll(

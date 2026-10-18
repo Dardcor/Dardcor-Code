@@ -9,9 +9,9 @@ import type { Remote, RepositoryAccessDetails } from './api/git';
 import { isDescendant } from './util';
 
 export interface RepositoryCacheInfo {
-	repositoryPath: string; // path of the local repository clone
-	workspacePath: string; // path of the workspace folder or workspace file
-	lastTouchedTime?: number; // timestamp when the repository was last touched
+	repositoryPath: string;
+	workspacePath: string;
+	lastTouchedTime?: number;
 }
 
 function isRepositoryCacheInfo(obj: unknown): obj is RepositoryCacheInfo {
@@ -26,8 +26,8 @@ function isRepositoryCacheInfo(obj: unknown): obj is RepositoryCacheInfo {
 export class RepositoryCache {
 
 	private static readonly STORAGE_KEY = 'git.repositoryCache';
-	private static readonly MAX_REPO_ENTRIES = 30; // Max repositories tracked
-	private static readonly MAX_FOLDER_ENTRIES = 10; // Max folders per repository
+	private static readonly MAX_REPO_ENTRIES = 30;
+	private static readonly MAX_FOLDER_ENTRIES = 10;
 
 	private normalizeRepoUrl(url: string): string {
 		try {
@@ -38,7 +38,6 @@ export class RepositoryCache {
 		}
 	}
 
-	// Outer LRU: repoUrl -> inner LRU (folderPathOrWorkspaceFile -> RepositoryCacheInfo).
 	private readonly lru = new LRUCache<string, LRUCache<string, RepositoryCacheInfo>>(RepositoryCache.MAX_REPO_ENTRIES);
 
 	private _recentRepositories: Map<string, number> | undefined;
@@ -53,7 +52,6 @@ export class RepositoryCache {
 						continue;
 					}
 
-					// Check whether the repository exists with a more recent access time
 					const repositoryLastAccessTime = this._recentRepositories.get(repositoryDetails.repositoryPath);
 					if (repositoryLastAccessTime && repositoryDetails.lastTouchedTime <= repositoryLastAccessTime) {
 						continue;
@@ -72,22 +70,14 @@ export class RepositoryCache {
 		this.load();
 	}
 
-	// Exposed for testing
 	protected get _workspaceFile() {
 		return workspace.workspaceFile;
 	}
 
-	// Exposed for testing
 	protected get _workspaceFolders() {
 		return workspace.workspaceFolders;
 	}
 
-	/**
-	 * Associate a repository remote URL with a local workspace folder or workspace file.
-	 * Re-associating bumps recency and persists the updated LRU state.
-	 * @param repoUrl Remote repository URL (e.g. https://github.com/owner/repo.git)
-	 * @param rootPath Root path of the local repo clone.
-	 */
 	set(repoUrl: string, rootPath: string): void {
 		const key = this.normalizeRepoUrl(repoUrl);
 		let foldersLru = this.lru.get(key);
@@ -103,13 +93,12 @@ export class RepositoryCache {
 			repositoryPath: rootPath,
 			workspacePath: folderPathOrWorkspaceFile,
 			lastTouchedTime: Date.now()
-		}); // touch entry
+		});
 		this.lru.set(key, foldersLru);
 		this.save();
 	}
 
 	private _findWorkspaceForRepo(rootPath: string): string | undefined {
-		// If the current workspace is a workspace file, use that. Otherwise, find the workspace folder that contains the rootUri
 		let folderPathOrWorkspaceFile: string | undefined;
 		try {
 			if (this._workspaceFile && this._workspaceFile.scheme === 'file') {
@@ -151,9 +140,6 @@ export class RepositoryCache {
 		}
 	}
 
-	/**
-	 * We should possibly support converting between ssh remotes and http remotes.
-	 */
 	get(repoUrl: string): RepositoryCacheInfo[] | undefined {
 		const key = this.normalizeRepoUrl(repoUrl);
 		const inner = this.lru.get(key);
@@ -172,7 +158,6 @@ export class RepositoryCache {
 		if (inner.size === 0) {
 			this.lru.remove(key);
 		} else {
-			// Re-set to bump outer LRU recency after modification
 			this.lru.set(key, inner);
 		}
 		this.save();
@@ -210,7 +195,6 @@ export class RepositoryCache {
 	}
 
 	private save(): void {
-		// Serialize as [repoUrl, [folderPathOrWorkspaceFile, RepositoryCacheInfo][]] preserving outer LRU order.
 		const serialized: [string, [string, RepositoryCacheInfo][]][] = [];
 		for (const [repo, inner] of this.lru) {
 			const folders: [string, RepositoryCacheInfo][] = [];
@@ -221,7 +205,6 @@ export class RepositoryCache {
 		}
 		void this._globalState.update(RepositoryCache.STORAGE_KEY, serialized);
 
-		// Invalidate recent repositories map
 		this._recentRepositories?.clear();
 		this._recentRepositories = undefined;
 	}

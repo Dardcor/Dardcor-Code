@@ -55,17 +55,14 @@ const enum EditorAssociationType {
 export class EditorResolverService extends Disposable implements IEditorResolverService {
 	readonly _serviceBrand: undefined;
 
-	// Events
 	private readonly _onDidChangeEditorRegistrations = this._register(new PauseableEmitter<void>());
 	readonly onDidChangeEditorRegistrations = this._onDidChangeEditorRegistrations.event;
 
-	// Constants
 	private static readonly configureDefaultID = 'promptOpenWith.configureDefault';
 	private static readonly configureDefaultDiffID = 'promptOpenWith.configureDefaultDiff';
 	private static readonly cacheStorageID = 'editorOverrideService.cache';
 	private static readonly conflictingDefaultsStorageID = 'editorOverrideService.conflictingDefaults';
 
-	// Data Stores
 	private _editors: Map<string | glob.IRelativePattern, Map<string, RegisteredEditors>> = new Map<string | glob.IRelativePattern, Map<string, RegisteredEditors>>();
 	private _flattenedEditors: Map<string | glob.IRelativePattern, RegisteredEditors> = new Map();
 	private _shouldReFlattenEditors = true;
@@ -82,16 +79,13 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		@ILogService private readonly logService: ILogService
 	) {
 		super();
-		// Read in the cache on statup
 		this.cache = new Set<string>(JSON.parse(this.storageService.get(EditorResolverService.cacheStorageID, StorageScope.PROFILE, JSON.stringify([]))));
 		this.storageService.remove(EditorResolverService.cacheStorageID, StorageScope.PROFILE);
 
 		this._register(this.storageService.onWillSaveState(() => {
-			// We want to store the glob patterns we would activate on, this allows us to know if we need to await the ext host on startup for opening a resource
 			this.cacheEditors();
 		}));
 
-		// When extensions have registered we no longer need the cache
 		this._register(this.extensionService.onDidRegisterExtensions(() => {
 			this.cache = undefined;
 		}));
@@ -100,7 +94,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 	private resolveUntypedInputAndGroup(editor: IUntypedEditorInput, preferredGroup: PreferredGroup | undefined): Promise<[IUntypedEditorInput, IEditorGroup, EditorActivation | undefined] | undefined> | [IUntypedEditorInput, IEditorGroup, EditorActivation | undefined] | undefined {
 		const untypedEditor = editor;
 
-		// Use the untyped editor to find a group
 		const findGroupResult = this.instantiationService.invokeFunction(findGroup, untypedEditor, preferredGroup);
 		if (findGroupResult instanceof Promise) {
 			return findGroupResult.then(([group, activation]) => [untypedEditor, group, activation]);
@@ -111,12 +104,8 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 	}
 
 	async resolveEditor(editor: IUntypedEditorInput, preferredGroup: PreferredGroup | undefined): Promise<ResolvedEditor> {
-		// Update the flattened editors
 		this._flattenedEditors = this._flattenEditorsMap();
 
-		// Special case: side by side editors requires us to
-		// independently resolve both sides and then build
-		// a side by side editor with the result
 		if (isResourceSideBySideEditorInput(editor)) {
 			return this.doResolveSideBySideEditor(editor, preferredGroup);
 		}
@@ -132,7 +121,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		if (!resolvedUntypedAndGroup) {
 			return ResolvedStatus.NONE;
 		}
-		// Get the resolved untyped editor, group, and activation
 		const [untypedEditor, group, activation] = resolvedUntypedAndGroup;
 		if (activation) {
 			untypedEditor.options = { ...untypedEditor.options, activation };
@@ -140,13 +128,11 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 
 		let resource = EditorResourceAccessor.getCanonicalUri(untypedEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
 
-		// If it was resolved before we await for the extensions to activate and then proceed with resolution or else the backing extensions won't be registered
 		const editorAssociationType = isResourceDiffEditorInput(untypedEditor) ? EditorAssociationType.DiffEditor : isResourceMergeEditorInput(untypedEditor) ? EditorAssociationType.MergeEditor : EditorAssociationType.Editor;
 		if (this.cache && resource && (this.resourceMatchesCache(resource) || this.resourceMatchesUserAssociation(resource, editorAssociationType))) {
 			await this.extensionService.whenInstalledExtensionsRegistered();
 		}
 
-		// Undefined resource -> untilted. Other malformed URI's are unresolvable
 		if (resource === undefined) {
 			resource = URI.from({ scheme: Schemas.untitled });
 		} else if (resource.scheme === undefined || resource === null) {
@@ -155,21 +141,16 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 
 		if (untypedEditor.options?.override === EditorResolution.PICK) {
 			const picked = await this.doPickEditor(untypedEditor);
-			// If the picker was cancelled we will stop resolving the editor
 			if (!picked) {
 				return ResolvedStatus.ABORT;
 			}
-			// Populate the options with the new ones
 			untypedEditor.options = picked;
 		}
 
-		// Resolved the editor ID as much as possible, now find a given editor (cast here is ok because we resolve down to a string above)
 		let { editor: selectedEditor, conflictingDefault } = this.getEditor(resource, untypedEditor.options?.override as (string | EditorResolution.EXCLUSIVE_ONLY | undefined), editorAssociationType);
-		// If no editor was found and this was a typed editor or an editor with an explicit override we could not resolve it
 		if (!selectedEditor && (untypedEditor.options?.override || isEditorInputWithOptions(editor))) {
 			return ResolvedStatus.NONE;
 		} else if (!selectedEditor) {
-			// Simple untyped editors that we could not resolve will be resolved to the default editor
 			const resolvedEditor = this.getEditor(resource, DEFAULT_EDITOR_ASSOCIATION.id, editorAssociationType);
 			selectedEditor = resolvedEditor?.editor;
 			conflictingDefault = resolvedEditor?.conflictingDefault;
@@ -178,7 +159,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			}
 		}
 
-		// In the special case of diff editors we do some more work to determine the correct editor for both sides
 		if (isResourceDiffEditorInput(untypedEditor) && untypedEditor.options?.override === undefined) {
 			let resource2 = EditorResourceAccessor.getCanonicalUri(untypedEditor, { supportSideBySide: SideBySideEditor.SECONDARY });
 			if (!resource2) {
@@ -195,17 +175,14 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			}
 		}
 
-		// If no override we take the selected editor id so that matches works with the isActive check
 		untypedEditor.options = { override: selectedEditor.editorInfo.id, ...untypedEditor.options };
 
-		// Check if diff can be created based on prescene of factory function
 		if (selectedEditor.editorFactoryObject.createDiffEditorInput === undefined && isResourceDiffEditorInput(untypedEditor)) {
 			return ResolvedStatus.NONE;
 		}
 
 		const input = await this.doResolveEditor(untypedEditor, group, selectedEditor);
 		if (conflictingDefault && input) {
-			// Show the conflicting default dialog
 			await this.doHandleConflictingDefaults(resource, selectedEditor.editorInfo.label, untypedEditor, input.editor, group);
 		}
 
@@ -302,10 +279,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			.filter(association => !this.isExplicitForAssociationType(association.viewType, associationType));
 	}
 
-	/**
-	 * Whether the editor requires an association for the given input kind instead of inheriting one
-	 * from another input kind.
-	 */
 	private isExplicitForAssociationType(viewType: string, associationType: EditorAssociationType): boolean {
 		const editor = this._registeredEditors.filter(editor => editor.editorInfo.id === viewType).at(0);
 		return !!editor && this.getEffectivePriority(editor.editorInfo, associationType) === RegisteredEditorPriority.explicit;
@@ -314,7 +287,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 	private getAssociationsForResourceFromSetting(resource: URI, settingId: string): EditorAssociations {
 		const matchingAssociations = this.getRawAssociationsForResourceFromSetting(resource, settingId);
 		const allEditors: RegisteredEditors = this._registeredEditors;
-		// Ensure that the settings are valid editors
 		return matchingAssociations.filter(association => allEditors.find(c => c.editorInfo.id === association.viewType));
 	}
 
@@ -330,7 +302,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 	private getRawAssociationsForResourceFromSetting(resource: URI, settingId: string): EditorAssociations {
 		const associations = this.getAllUserAssociationsForSetting(settingId);
 		const matchingAssociations = associations.filter(association => association.filenamePattern && globMatchesResource(association.filenamePattern, resource));
-		// Sort matching associations based on glob length as a longer glob will be more specific
 		return matchingAssociations.sort((a, b) => (b.filenamePattern?.length ?? 0) - (a.filenamePattern?.length ?? 0));
 	}
 
@@ -344,7 +315,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		const workspaceAssociations = inspectedEditorAssociations.workspaceValue ?? {};
 		const userAssociations = inspectedEditorAssociations.userValue ?? {};
 		const rawAssociations: { [fileNamePattern: string]: string } = { ...workspaceAssociations };
-		// We want to apply the default associations and user associations on top of the workspace associations but ignore duplicate keys.
 		for (const [key, value] of Object.entries({ ...defaultAssociations, ...userAssociations })) {
 			if (rawAssociations[key] === undefined) {
 				rawAssociations[key] = value;
@@ -361,12 +331,7 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		return associations;
 	}
 
-	/**
-	 * Given the nested nature of the editors map, we merge factories of the same glob and id to make it flat
-	 * and easier to work with
-	 */
 	private _flattenEditorsMap() {
-		// If we shouldn't be re-flattening (due to lack of update) then return early
 		if (!this._shouldReFlattenEditors) {
 			return this._flattenedEditors;
 		}
@@ -376,7 +341,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			const registeredEditors: RegisteredEditors = [];
 			for (const editors of value.values()) {
 				let registeredEditor: RegisteredEditor | undefined = undefined;
-				// Merge all editors with the same id and glob pattern together
 				for (const editor of editors) {
 					if (!registeredEditor) {
 						registeredEditor = {
@@ -386,7 +350,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 							editorFactoryObject: {}
 						};
 					}
-					// Merge options and factories
 					registeredEditor.options = { ...registeredEditor.options, ...editor.options };
 					registeredEditor.editorFactoryObject = { ...registeredEditor.editorFactoryObject, ...editor.editorFactoryObject };
 				}
@@ -399,9 +362,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		return editors;
 	}
 
-	/**
-	 * Returns all editors as an array. Possible to contain duplicates
-	 */
 	private get _registeredEditors(): RegisteredEditors {
 		return Array.from(this._flattenedEditors.values()).flat();
 	}
@@ -418,7 +378,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		const newAssociation: EditorAssociation = { viewType: editorID, filenamePattern: globPattern };
 		const currentAssociations = this.getAllUserAssociationsForSetting(settingId);
 		const newSettingObject = Object.create(null);
-		// Form the new setting object including the newest associations
 		for (const association of [...currentAssociations, newAssociation]) {
 			if (association.filenamePattern) {
 				newSettingObject[association.filenamePattern] = association.viewType;
@@ -442,10 +401,8 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 	}
 
 	private findMatchingEditors(resource: URI, associationType: EditorAssociationType = EditorAssociationType.Editor): RegisteredEditor[] {
-		// The user setting should be respected even if the editor doesn't specify that resource in package.json
 		const userSettings = this.getAssociationsForResourceByType(resource, associationType);
 		const matchingEditors: RegisteredEditor[] = [];
-		// Then all glob patterns
 		for (const [key, editors] of this._flattenedEditors) {
 			for (const editor of editors) {
 				if (associationType === EditorAssociationType.DiffEditor && !editor.editorFactoryObject.createDiffEditorInput) {
@@ -461,11 +418,9 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 				}
 			}
 		}
-		// Return the editors sorted by their priority
 		return matchingEditors.sort((a, b) => {
 			const aPriority = this.getEffectivePriority(a.editorInfo, associationType);
 			const bPriority = this.getEffectivePriority(b.editorInfo, associationType);
-			// Very crude if priorities match longer glob wins as longer globs are normally more specific
 			if (priorityToRank(bPriority) === priorityToRank(aPriority) && typeof b.globPattern === 'string' && typeof a.globPattern === 'string') {
 				return b.globPattern.length - a.globPattern.length;
 			}
@@ -476,7 +431,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 	public getEditors(resource?: URI): RegisteredEditorInfo[] {
 		this._flattenedEditors = this._flattenEditorsMap();
 
-		// By resource
 		if (URI.isUri(resource)) {
 			const editors = this.findMatchingEditors(resource);
 			if (editors.find(e => e.editorInfo.priority.editor === RegisteredEditorPriority.exclusive)) {
@@ -485,28 +439,17 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			return editors.map(editor => editor.editorInfo);
 		}
 
-		// All
 		return distinct(this._registeredEditors.map(editor => editor.editorInfo), editor => editor.id);
 	}
 
 	getBinaryDiffFallbackEditor(resource: URI): string | undefined {
 		this._flattenedEditors = this._flattenEditorsMap();
 
-		// `findMatchingEditors(..., DiffEditor)` only keeps editors that provide a diff editor factory
-		// and sorts them by their diff priority. It still includes `explicit` editors (they match by glob),
-		// which is exactly what we want here: an `explicit` editor opts out of diffs for text files, but is
-		// the better choice than the generic binary fallback when the text diff editor cannot render the
-		// content. We exclude the built-in default text editor since that is the editor that already
-		// failed to render the binary content.
 		const editors = this.findMatchingEditors(resource, EditorAssociationType.DiffEditor)
 			.filter(editor => editor.editorInfo.id !== DEFAULT_EDITOR_ASSOCIATION.id);
 		return editors[0]?.editorInfo.id;
 	}
 
-	/**
-	 * Given a resource and an editorId selects the best possible editor
-	 * @returns The editor and whether there was another default which conflicted with it
-	 */
 	private getEditor(resource: URI, editorId: string | EditorResolution.EXCLUSIVE_ONLY | undefined, associationType: EditorAssociationType): { editor: RegisteredEditor | undefined; conflictingDefault: boolean } {
 
 		const findMatchingEditor = (editors: RegisteredEditors, viewType: string) => {
@@ -526,7 +469,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		};
 
 		if (editorId && editorId !== EditorResolution.EXCLUSIVE_ONLY) {
-			// Specific id passed in doesn't have to match the resource, it can be anything
 			const registeredEditors = this._registeredEditors;
 			return {
 				editor: findMatchingEditor(registeredEditors, editorId),
@@ -537,7 +479,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		const editors = this.findMatchingEditors(resource, associationType);
 
 		const associationsFromSetting = this.getAssociationsForResourceByType(resource, associationType);
-		// We only want minPriority+ if no user defined setting is found, else we won't resolve an editor
 		const minPriority = editorId === EditorResolution.EXCLUSIVE_ONLY ? RegisteredEditorPriority.exclusive : RegisteredEditorPriority.builtin;
 		let possibleEditors = editors.filter(editor => priorityToRank(this.getEffectivePriority(editor.editorInfo, associationType)) >= priorityToRank(minPriority) && editor.editorInfo.id !== DEFAULT_EDITOR_ASSOCIATION.id);
 		if (possibleEditors.length === 0) {
@@ -546,7 +487,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 				conflictingDefault: false
 			};
 		}
-		// If the editor is exclusive we use that, else use the user setting, else we check canSupportResource, else take the viewtype of first possible editor
 		const selectedViewType = this.getEffectivePriority(possibleEditors[0].editorInfo, associationType) === RegisteredEditorPriority.exclusive ?
 			possibleEditors[0].editorInfo.id :
 			associationsFromSetting[0]?.viewType ||
@@ -555,8 +495,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 
 		let conflictingDefault = false;
 
-		// Filter out exclusive before we check for conflicts as exclusive editors cannot be manually chosen
-		// similar to above, need to check canSupportResource if nothing is exclusive
 		possibleEditors = possibleEditors
 			.filter(editor => this.getEffectivePriority(editor.editorInfo, associationType) !== RegisteredEditorPriority.exclusive)
 			.filter(editor => !editor.options?.canSupportResource || editor.options.canSupportResource(resource));
@@ -584,12 +522,10 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 	private async doResolveEditor(editor: IUntypedEditorInput, group: IEditorGroup, selectedEditor: RegisteredEditor): Promise<EditorInputWithOptions | undefined> {
 		let options = editor.options;
 		const resource = EditorResourceAccessor.getCanonicalUri(editor, { supportSideBySide: SideBySideEditor.PRIMARY });
-		// If no activation option is provided, populate it.
 		if (options && typeof options.activation === 'undefined') {
 			options = { ...options, activation: options.preserveFocus ? EditorActivation.RESTORE : undefined };
 		}
 
-		// If it's a merge editor we trigger the create merge editor input
 		if (isResourceMergeEditorInput(editor)) {
 			if (!selectedEditor.editorFactoryObject.createMergeEditorInput) {
 				return;
@@ -598,7 +534,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			return { editor: inputWithOptions.editor, options: inputWithOptions.options ?? options };
 		}
 
-		// If it's a diff editor we trigger the create diff editor input
 		if (isResourceDiffEditorInput(editor)) {
 			if (!selectedEditor.editorFactoryObject.createDiffEditorInput) {
 				return;
@@ -607,7 +542,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			return { editor: inputWithOptions.editor, options: inputWithOptions.options ?? options };
 		}
 
-		// If it's a diff list editor we trigger the create diff list editor input
 		if (isResourceMultiDiffEditorInput(editor)) {
 			if (!selectedEditor.editorFactoryObject.createMultiDiffEditorInput) {
 				return;
@@ -628,12 +562,10 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			return { editor: inputWithOptions.editor, options: inputWithOptions.options ?? options };
 		}
 
-		// Should no longer have an undefined resource so lets throw an error if that's somehow the case
 		if (resource === undefined) {
 			throw new Error(`Undefined resource on non untitled editor input.`);
 		}
 
-		// If the editor states it can only be opened once per resource we must close all existing ones except one and move the new one into the group
 		const singleEditorPerResource = typeof selectedEditor.options?.singlePerResource === 'function' ? selectedEditor.options.singlePerResource() : selectedEditor.options?.singlePerResource;
 		if (singleEditorPerResource) {
 			const existingEditors = this.findExistingEditorsForResource(resource, selectedEditor.editorInfo.id);
@@ -642,17 +574,15 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 				if (editor) {
 					return { editor, options };
 				} else {
-					return; // failed to move
+					return;
 				}
 			}
 		}
 
-		// If no factory is above, return flow back to caller letting them know we could not resolve it
 		if (!selectedEditor.editorFactoryObject.createEditorInput) {
 			return;
 		}
 
-		// Respect options passed back
 		const inputWithOptions = await selectedEditor.editorFactoryObject.createEditorInput(editor, group);
 		options = inputWithOptions.options ?? options;
 		const input = inputWithOptions.editor;
@@ -660,21 +590,12 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		return { editor: input, options };
 	}
 
-	/**
-	 * Moves the first existing editor for a resource to the target group unless already opened there.
-	 * Additionally will close any other editors that are open for that resource and viewtype besides the first one found
-	 * @param resource The resource of the editor
-	 * @param viewType the viewtype of the editor
-	 * @param targetGroup The group to move it to
-	 * @returns The moved editor input or `undefined` if the editor could not be moved
-	 */
 	private async moveExistingEditorForResource(
 		existingEditorsForResource: Array<{ editor: EditorInput; group: IEditorGroup }>,
 		targetGroup: IEditorGroup,
 	): Promise<EditorInput | undefined> {
 		const editorToUse = existingEditorsForResource[0];
 
-		// We should only have one editor but if there are multiple we close the others
 		for (const { editor, group } of existingEditorsForResource) {
 			if (editor !== editorToUse.editor) {
 				const closed = await group.closeEditor(editor);
@@ -684,7 +605,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			}
 		}
 
-		// Move the editor already opened to the target group
 		if (targetGroup.id !== editorToUse.group.id) {
 			const moved = editorToUse.group.moveEditor(editorToUse.editor, targetGroup);
 			if (!moved) {
@@ -695,12 +615,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		return editorToUse.editor;
 	}
 
-	/**
-	 * Given a resource and an editorId, returns all editors open for that resource and editorId.
-	 * @param resource The resource specified
-	 * @param editorId The editorID
-	 * @returns A list of editors
-	 */
 	private findExistingEditorsForResource(
 		resource: URI,
 		editorId: string,
@@ -728,14 +642,12 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		const editors = this.findMatchingEditors(resource, associationType);
 		const storedChoices: StoredChoice = JSON.parse(this.storageService.get(EditorResolverService.conflictingDefaultsStorageID, StorageScope.PROFILE, '{}'));
 		const globForResource = `*${extname(resource)}`;
-		// Writes to the storage service that a choice has been made for the currently installed editors
 		const writeCurrentEditorsToStorage = () => {
 			storedChoices[globForResource] = [];
 			editors.forEach(editor => storedChoices[globForResource].push(editor.editorInfo.id));
 			this.storageService.store(EditorResolverService.conflictingDefaultsStorageID, JSON.stringify(storedChoices), StorageScope.PROFILE, StorageTarget.MACHINE);
 		};
 
-		// If the user has already made a choice for this editor we don't want to ask them again
 		if (storedChoices[globForResource]?.find(editorID => editorID === currentEditor.editorId)) {
 			return;
 		}
@@ -745,7 +657,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			[{
 				label: localize('editorResolver.configureDefault', 'Configure Default'),
 				run: async () => {
-					// Show the picker and tell it to update the setting to whatever the user selected
 					const picked = await this.doPickEditor(untypedInput, true);
 					if (!picked) {
 						return;
@@ -755,7 +666,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 					if (replacementEditor === ResolvedStatus.ABORT || replacementEditor === ResolvedStatus.NONE) {
 						return;
 					}
-					// Replace the current editor with the picked one
 					group.replaceEditors([
 						{
 							editor: currentEditor,
@@ -770,7 +680,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 				run: writeCurrentEditorsToStorage
 			}
 			]);
-		// If the user pressed X we assume they want to keep the current editor as default
 		const onCloseListener = handle.onDidClose(() => {
 			writeCurrentEditorsToStorage();
 			onCloseListener.dispose();
@@ -779,15 +688,12 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 
 	private mapEditorsToQuickPickEntry(resource: URI, showDefaultPicker: boolean | undefined, associationType: EditorAssociationType) {
 		const currentEditor = this.editorGroupService.activeGroup.findEditors(resource).at(0);
-		// If untitled, we want all registered editors
 		let registeredEditors = resource.scheme === Schemas.untitled ? this._registeredEditors.filter(e => e.editorInfo.priority.editor !== RegisteredEditorPriority.exclusive) : this.findMatchingEditors(resource, associationType);
 		if (associationType === EditorAssociationType.DiffEditor) {
 			registeredEditors = registeredEditors.filter(editor => !!editor.editorFactoryObject.createDiffEditorInput);
 		}
-		// We don't want duplicate Id entries
 		registeredEditors = distinct(registeredEditors, c => c.editorInfo.id);
 		const defaultSetting = this.getAssociationsForResourceByType(resource, associationType)[0]?.viewType;
-		// Not the most efficient way to do this, but we want to ensure the text editor is at the top of the quickpick
 		registeredEditors = registeredEditors.sort((a, b) => {
 			if (a.editorInfo.id === DEFAULT_EDITOR_ASSOCIATION.id) {
 				return -1;
@@ -801,7 +707,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		const currentlyActiveLabel = localize('promptOpenWith.currentlyActive', "Active");
 		const currentDefaultLabel = localize('promptOpenWith.currentDefault', "Default");
 		const currentDefaultAndActiveLabel = localize('promptOpenWith.currentDefaultAndActive', "Active and Default");
-		// Default order = setting -> highest priority -> text
 		let defaultViewType = defaultSetting;
 		if (!defaultViewType && registeredEditors.length > 2 && this.getEffectivePriority(registeredEditors[1].editorInfo, associationType) !== RegisteredEditorPriority.option) {
 			defaultViewType = registeredEditors[1]?.editorInfo.id;
@@ -809,7 +714,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		if (!defaultViewType) {
 			defaultViewType = DEFAULT_EDITOR_ASSOCIATION.id;
 		}
-		// Map the editors to quickpick entries
 		registeredEditors.forEach(editor => {
 			const currentViewType = currentEditor?.editorId ?? DEFAULT_EDITOR_ASSOCIATION.id;
 			const isActive = currentEditor ? editor.editorInfo.id === currentViewType : false;
@@ -830,8 +734,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 				label: localize('promptOpenWith.configureDefault', "Configure default editor for '{0}'...", `*${extname(resource)}`),
 			};
 			quickPickEntries.push(configureDefaultEntry);
-			// For diffs, additionally offer to configure a diff-only default so the choice does not
-			// affect how the resource opens as a normal editor (writes to `diffEditorAssociations`).
 			if (associationType === EditorAssociationType.DiffEditor) {
 				const configureDefaultDiffEntry = {
 					id: EditorResolverService.configureDefaultDiffID,
@@ -857,14 +759,8 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			resource = URI.from({ scheme: Schemas.untitled });
 		}
 		const associationType = isResourceDiffEditorInput(editor) ? EditorAssociationType.DiffEditor : EditorAssociationType.Editor;
-		// Which setting the default picker should write to. Defaults to the resource's association type
-		// so that the per-item gear button keeps writing to the matching setting, but the "Configure
-		// default editor" entries can target a specific setting (general vs. diff-only).
 		const updateSettingType = updateAssociationType ?? associationType;
 
-		// Persists the picked editor as the default for this resource's glob. When the user configures
-		// the general default from a diff context, any diff-only override for the same glob is cleared
-		// so that the general default also takes effect for diffs.
 		const persistDefaultAssociation = (editorID: string) => {
 			const globPattern = `*${extname(resource)}`;
 			this.updateUserAssociationsForType(updateSettingType, globPattern, editorID);
@@ -873,10 +769,8 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			}
 		};
 
-		// Get all the editors for the resource as quickpick entries
 		const editorPicks = this.mapEditorsToQuickPickEntry(resource, showDefaultPicker, associationType);
 
-		// Create the editor picker
 		const disposables = new DisposableStore();
 		const editorPicker = disposables.add(this.quickInputService.createQuickPick<IQuickPickItem>({ useSeparators: true }));
 		const placeHolderMessage = showDefaultPicker ?
@@ -892,7 +786,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			editorPicker.selectedItems = [firstItem];
 		}
 
-		// Prompt the user to select an editor
 		const picked: EditorPick | undefined = await new Promise<EditorPick | undefined>(resolve => {
 			disposables.add(editorPicker.onDidAccept(e => {
 				let result: EditorPick | undefined = undefined;
@@ -905,7 +798,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 					};
 				}
 
-				// If asked to always update the setting then update it even if the gear isn't clicked
 				if (resource && showDefaultPicker && result?.item.id) {
 					persistDefaultAssociation(result.item.id);
 				}
@@ -920,10 +812,8 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 
 			disposables.add(editorPicker.onDidTriggerItemButton(e => {
 
-				// Trigger opening and close picker
 				resolve({ item: e.item, openInBackground: false });
 
-				// Persist setting
 				if (resource && e.item?.id) {
 					persistDefaultAssociation(e.item.id);
 				}
@@ -932,25 +822,17 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			editorPicker.show();
 		});
 
-		// Close picker
 		editorPicker.dispose();
 
-		// If the user picked an editor, look at how the picker was
-		// used (e.g. modifier keys, open in background) and create the
-		// options and group to use accordingly
 		if (picked) {
 
-			// If the user selected to configure default we trigger this picker again and tell it to show the default picker
 			if (picked.item.id === EditorResolverService.configureDefaultID) {
 				return this.doPickEditor(editor, true, EditorAssociationType.Editor);
 			}
-			// The diff-only variant writes to `diffEditorAssociations` so it does not change how the
-			// resource opens as a normal editor.
 			if (picked.item.id === EditorResolverService.configureDefaultDiffID) {
 				return this.doPickEditor(editor, true, EditorAssociationType.DiffEditor);
 			}
 
-			// Figure out options
 			const targetOptions: IEditorOptions = {
 				...editor.options,
 				override: picked.item.id,
@@ -964,13 +846,10 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 	}
 
 	private cacheEditors() {
-		// Create a set to store glob patterns
 		const cacheStorage: Set<string> = new Set<string>();
 
-		// Store just the relative pattern pieces without any path info
 		for (const [globPattern, contribPoint] of this._flattenedEditors) {
 			const nonOptional = !!contribPoint.find(c => c.editorInfo.priority.editor !== RegisteredEditorPriority.option && c.editorInfo.id !== DEFAULT_EDITOR_ASSOCIATION.id);
-			// Don't keep a cache of the optional ones as those wouldn't be opened on start anyways
 			if (!nonOptional) {
 				continue;
 			}
@@ -981,7 +860,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 			}
 		}
 
-		// Also store the users settings as those would have to activate on startup as well
 		const userAssociations = [
 			...this.getAllUserAssociations(),
 			...this.getAllUserAssociationsForSetting(diffEditorsAssociationsSettingId)
@@ -994,12 +872,6 @@ export class EditorResolverService extends Disposable implements IEditorResolver
 		this.storageService.store(EditorResolverService.cacheStorageID, JSON.stringify(Array.from(cacheStorage)), StorageScope.PROFILE, StorageTarget.MACHINE);
 	}
 
-	/**
-	 * Checks if a resource matches any user-configured editor association that
-	 * points to a non-default editor. This ensures that on first startup (when
-	 * the cache is empty), we still wait for extensions to register before
-	 * resolving the editor, so that user-configured custom editors are available.
-	 */
 	private resourceMatchesUserAssociation(resource: URI, associationType: EditorAssociationType): boolean {
 		const userAssociations = this.getRawAssociationsForResourceByType(resource, associationType);
 		for (const association of userAssociations) {

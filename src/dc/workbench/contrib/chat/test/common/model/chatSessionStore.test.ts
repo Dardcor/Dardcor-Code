@@ -39,7 +39,6 @@ function createMockChatModel(sessionResource: URI, options?: { customTitle?: str
 	if (options?.customTitle) {
 		model.customTitle = options.customTitle;
 	}
-	// Cast to ChatModel - the mock implements enough of the interface for testing
 	return model as unknown as ChatModel;
 }
 
@@ -140,7 +139,6 @@ suite('ChatSessionStore', () => {
 	test('deleteSession handles non-existent session gracefully', async () => {
 		const store = createChatSessionStore();
 
-		// Should not throw
 		await store.deleteSession('non-existent-session');
 
 		assert.strictEqual(store.hasSessions(), false);
@@ -277,7 +275,6 @@ suite('ChatSessionStore', () => {
 	test('setSessionTitle does nothing for non-existent session', async () => {
 		const store = createChatSessionStore();
 
-		// Should not throw
 		await store.setSessionTitle('non-existent', 'Title');
 
 		const index = await store.getIndex();
@@ -314,7 +311,7 @@ suite('ChatSessionStore', () => {
 		}
 
 		test('getTransferredSessionData returns undefined for empty window', () => {
-			const store = createChatSessionStore(true); // empty window
+			const store = createChatSessionStore(true);
 
 			const result = store.getTransferredSessionData();
 
@@ -367,10 +364,8 @@ suite('ChatSessionStore', () => {
 			const transferData = createTransferData(folderUri, sessionResource);
 			await store.storeTransferSession(transferData, model);
 
-			// Read the session
 			await store.readTransferredSession(sessionResource);
 
-			// Transfer should be cleaned up
 			const result = store.getTransferredSessionData();
 			assert.strictEqual(result, undefined);
 		});
@@ -381,7 +376,6 @@ suite('ChatSessionStore', () => {
 			const sessionResource = LocalChatSessionUri.forSession('transfer-session');
 			const model = testDisposables.add(createMockChatModel(sessionResource));
 
-			// Create transfer with timestamp 10 minutes in the past (expired)
 			const expiredTimestamp = Date.now() - (10 * 60 * 1000);
 			const transferData = createTransferData(folderUri, sessionResource, expiredTimestamp);
 			await store.storeTransferSession(transferData, model);
@@ -396,12 +390,10 @@ suite('ChatSessionStore', () => {
 			const sessionResource = LocalChatSessionUri.forSession('transfer-session');
 			const model = testDisposables.add(createMockChatModel(sessionResource));
 
-			// Create transfer with timestamp 100 minutes in the past (expired)
 			const expiredTimestamp = Date.now() - (100 * 60 * 1000);
 			const transferData = createTransferData(folderUri, sessionResource, expiredTimestamp);
 			await store.storeTransferSession(transferData, model);
 
-			// Assert cleaned up
 			const data = store.getTransferredSessionData();
 			assert.strictEqual(data, undefined);
 		});
@@ -410,7 +402,6 @@ suite('ChatSessionStore', () => {
 			const folderUri = URI.file('/test/workspace');
 			const store = createChatSessionStoreWithSingleFolder(folderUri);
 
-			// Use a non-local session URI
 			const invalidResource = URI.parse('file:///invalid/session');
 
 			const result = await store.readTransferredSession(invalidResource);
@@ -422,13 +413,11 @@ suite('ChatSessionStore', () => {
 			const store = createChatSessionStoreWithSingleFolder(folderUri);
 			const fileService = instantiationService.get(IFileService);
 
-			// Store first session
 			const session1Resource = LocalChatSessionUri.forSession('transfer-session-1');
 			const model1 = testDisposables.add(createMockChatModel(session1Resource));
 			const transferData1 = createTransferData(folderUri, session1Resource);
 			await store.storeTransferSession(transferData1, model1);
 
-			// Verify first session file exists
 			const userDataProfile = instantiationService.get(IUserDataProfilesService).defaultProfile;
 			const storageLocation1 = URI.joinPath(
 				userDataProfile.globalStorageHome,
@@ -438,17 +427,14 @@ suite('ChatSessionStore', () => {
 			const exists1 = await fileService.exists(storageLocation1);
 			assert.strictEqual(exists1, true, 'First session file should exist');
 
-			// Store second session for the same workspace
 			const session2Resource = LocalChatSessionUri.forSession('transfer-session-2');
 			const model2 = testDisposables.add(createMockChatModel(session2Resource));
 			const transferData2 = createTransferData(folderUri, session2Resource);
 			await store.storeTransferSession(transferData2, model2);
 
-			// Verify first session file is deleted
 			const exists1After = await fileService.exists(storageLocation1);
 			assert.strictEqual(exists1After, false, 'First session file should be deleted');
 
-			// Verify second session file exists
 			const storageLocation2 = URI.joinPath(
 				userDataProfile.globalStorageHome,
 				'transferredChatSessions',
@@ -457,7 +443,6 @@ suite('ChatSessionStore', () => {
 			const exists2 = await fileService.exists(storageLocation2);
 			assert.strictEqual(exists2, true, 'Second session file should exist');
 
-			// Verify only the second session is retrievable
 			const result = store.getTransferredSessionData();
 			assert.ok(result);
 			assert.strictEqual(result.toString(), session2Resource.toString());
@@ -468,28 +453,22 @@ suite('ChatSessionStore', () => {
 		test('migration is triggered when onDidEnterWorkspace fires', async () => {
 			const fileService = instantiationService.get(IFileService) as InMemoryTestFileService;
 
-			// Create store with empty window
 			const store = createChatSessionStore(true);
 			const model = testDisposables.add(createMockChatModel(LocalChatSessionUri.forSession('session-1')));
 
-			// Store a session in empty window
 			await store.storeSessions([model]);
 			assert.strictEqual(store.hasSessions(), true);
 
-			// Get the file path for the session in empty window storage
 			const emptyWindowStorageRoot = store.getChatStorageFolder();
 			const sessionFile = URI.joinPath(emptyWindowStorageRoot, 'session-1.json');
 			const fileExists = await fileService.exists(sessionFile);
 			assert.strictEqual(fileExists, true, 'Session file should exist in empty window storage');
 
-			// Simulate workspace transition via the onDidEnterWorkspace event
 			const oldWorkspace: IAnyWorkspaceIdentifier = { id: 'empty-window-id' };
 			const newWorkspace: IAnyWorkspaceIdentifier = { id: TestWorkspace.id, uri: URI.file('/test/folder') };
 
-			// Fire the workspace transition event - migration happens synchronously via join()
 			await mockWorkspaceEditingService.fireWorkspaceTransition(oldWorkspace, newWorkspace);
 
-			// Verify file was copied to new location
 			const newStorageRoot = store.getChatStorageFolder();
 			const migratedSessionFile = URI.joinPath(newStorageRoot, 'session-1.json');
 			const migratedFileExists = await fileService.exists(migratedSessionFile);
@@ -497,29 +476,22 @@ suite('ChatSessionStore', () => {
 		});
 
 		test('migration handles non-existent old storage location gracefully', async () => {
-			// Create store with a workspace
 			const store = createChatSessionStore(false);
 
-			// Simulate workspace transition from a non-existent workspace
 			const oldWorkspace: IAnyWorkspaceIdentifier = { id: 'non-existent-workspace-id' };
 			const newWorkspace: IAnyWorkspaceIdentifier = { id: 'new-workspace-id' };
 
-			// Fire the workspace transition event - should not crash
 			await mockWorkspaceEditingService.fireWorkspaceTransition(oldWorkspace, newWorkspace);
 
-			// Store should work normally
 			assert.strictEqual(store.hasSessions(), false);
 		});
 
 		test('storage root is updated after workspace transition', async () => {
-			// Create store with empty window
 			const store = createChatSessionStore(true);
 
 			const initialStorageRoot = store.getChatStorageFolder();
 			assert.ok(initialStorageRoot.path.includes('emptyWindowChatSessions'), 'Initial storage should be empty window location');
 
-			// Simulate workspace transition - use proper identifier types
-			// Empty workspace only has 'id', single folder has 'uri' property too
 			const oldWorkspace: IAnyWorkspaceIdentifier = { id: 'empty-window-id' };
 			const newWorkspace: IAnyWorkspaceIdentifier = { id: 'new-workspace-id', uri: URI.file('/test/folder') };
 

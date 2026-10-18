@@ -12,9 +12,6 @@ const options: import('mocha').MochaOptions = {
 	timeout: 60000
 };
 
-// These integration tests is being run in multiple environments (electron, web, remote)
-// so we need to set the suite name based on the environment as the suite name is used
-// for the test results file name
 let suite = '';
 if (process.env.VSCODE_BROWSER) {
 	suite = `${process.env.VSCODE_BROWSER} Browser Integration .ipynb Tests`;

@@ -117,22 +117,17 @@ export class InsertSnippetAction extends SnippetEditorAction {
 				editor.getModel().tokenization.tokenizeIfCheap(lineNumber);
 				languageId = editor.getModel().getLanguageIdAtPosition(lineNumber, column);
 
-				// validate the `languageId` to ensure this is a user
-				// facing language with a name and the chance to have
-				// snippets, else fall back to the outer language
 				if (!languageService.getLanguageName(languageId)) {
 					languageId = editor.getModel().getLanguageId();
 				}
 			}
 
 			if (name) {
-				// take selected snippet
 				snippetService.getSnippets(languageId, undefined, { includeNoPrefixSnippets: true })
 					.then(snippets => snippets.find(snippet => snippet.name === name))
 					.then(resolve, reject);
 
 			} else {
-				// let user pick a snippet
 				resolve(instaService.invokeFunction(pickSnippet, languageId, editor.getModel().uri));
 			}
 		});

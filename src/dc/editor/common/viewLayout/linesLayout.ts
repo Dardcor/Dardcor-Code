@@ -74,12 +74,6 @@ export class EditorWhitespace implements IEditorWhitespace {
 	}
 }
 
-/**
- * Layouting of objects that take vertical space (by having a height) and push down other objects.
- *
- * These objects are basically either text (lines) or spaces between those lines (whitespaces).
- * This provides commodity operations for working with lines that contain whitespace that pushes lines lower (vertically).
- */
 export class LinesLayout {
 
 	private static INSTANCE_COUNT = 0;
@@ -101,17 +95,13 @@ export class LinesLayout {
 		this._lastWhitespaceId = 0;
 		this._arr = [];
 		this._prefixSumValidIndex = -1;
-		this._minWidth = -1; /* marker for not being computed */
+		this._minWidth = -1;
 		this._lineCount = lineCount;
 		this._paddingTop = paddingTop;
 		this._paddingBottom = paddingBottom;
 		this._lineHeightsManager = new LineHeightsManager(defaultLineHeight, customLineHeightData);
 	}
 
-	/**
-	 * Find the insertion index for a new value inside a sorted array of values.
-	 * If the value is already present in the sorted array, the insertion index will be after the already existing value.
-	 */
 	public static findInsertionIndex(arr: EditorWhitespace[], afterLineNumber: number, ordinal: number): number {
 		let low = 0;
 		let high = arr.length;
@@ -135,26 +125,15 @@ export class LinesLayout {
 		return low;
 	}
 
-	/**
-	 * Change the height of a line in pixels.
-	 */
 	public setDefaultLineHeight(lineHeight: number): void {
 		this._lineHeightsManager.defaultLineHeight = lineHeight;
 	}
 
-	/**
-	 * Changes the padding used to calculate vertical offsets.
-	 */
 	public setPadding(paddingTop: number, paddingBottom: number): void {
 		this._paddingTop = paddingTop;
 		this._paddingBottom = paddingBottom;
 	}
 
-	/**
-	 * Set the number of lines.
-	 *
-	 * @param lineCount New number of lines.
-	 */
 	public onFlushed(lineCount: number, customLineHeightData: CustomLineHeightData[]): void {
 		this._lineCount = lineCount;
 		this._lineHeightsManager = new LineHeightsManager(this._lineHeightsManager.defaultLineHeight, customLineHeightData);
@@ -210,11 +189,10 @@ export class LinesLayout {
 
 	public _commitPendingChanges(inserts: EditorWhitespace[], changes: IPendingChange[], removes: IPendingRemove[]): void {
 		if (inserts.length > 0 || removes.length > 0) {
-			this._minWidth = -1; /* marker for not being computed */
+			this._minWidth = -1;
 		}
 
 		if (inserts.length + changes.length + removes.length <= 1) {
-			// when only one thing happened, handle it "delicately"
 			for (const insert of inserts) {
 				this._insertWhitespace(insert);
 			}
@@ -231,7 +209,6 @@ export class LinesLayout {
 			return;
 		}
 
-		// simply rebuild the entire datastructure
 
 		const toRemove = new Set<string>();
 		for (const remove of removes) {
@@ -297,17 +274,13 @@ export class LinesLayout {
 			this._prefixSumValidIndex = Math.min(this._prefixSumValidIndex, index - 1);
 		}
 		if (this._arr[index].afterLineNumber !== newAfterLineNumber) {
-			// `afterLineNumber` changed for this whitespace
 
-			// Record old whitespace
 			const whitespace = this._arr[index];
 
-			// Since changing `afterLineNumber` can trigger a reordering, we're gonna remove this whitespace
 			this._removeWhitespace(index);
 
 			whitespace.afterLineNumber = newAfterLineNumber;
 
-			// And add it again
 			this._insertWhitespace(whitespace);
 		}
 	}
@@ -317,12 +290,6 @@ export class LinesLayout {
 		this._prefixSumValidIndex = Math.min(this._prefixSumValidIndex, removeIndex - 1);
 	}
 
-	/**
-	 * Notify the layouter that lines have been deleted (a continuous zone of lines).
-	 *
-	 * @param fromLineNumber The line number at which the deletion started, inclusive
-	 * @param toLineNumber The line number at which the deletion ended, inclusive
-	 */
 	public onLinesDeleted(fromLineNumber: number, toLineNumber: number): void {
 		fromLineNumber = fromLineNumber | 0;
 		toLineNumber = toLineNumber | 0;
@@ -332,24 +299,14 @@ export class LinesLayout {
 			const afterLineNumber = this._arr[i].afterLineNumber;
 
 			if (fromLineNumber <= afterLineNumber && afterLineNumber <= toLineNumber) {
-				// The line this whitespace was after has been deleted
-				//  => move whitespace to before first deleted line
 				this._arr[i].afterLineNumber = fromLineNumber - 1;
 			} else if (afterLineNumber > toLineNumber) {
-				// The line this whitespace was after has been moved up
-				//  => move whitespace up
 				this._arr[i].afterLineNumber -= (toLineNumber - fromLineNumber + 1);
 			}
 		}
 		this._lineHeightsManager.onLinesDeleted(fromLineNumber, toLineNumber);
 	}
 
-	/**
-	 * Notify the layouter that lines have been inserted (a continuous zone of lines).
-	 *
-	 * @param fromLineNumber The line number at which the insertion started, inclusive
-	 * @param toLineNumber The line number at which the insertion ended, inclusive.
-	 */
 	public onLinesInserted(fromLineNumber: number, toLineNumber: number): void {
 		fromLineNumber = fromLineNumber | 0;
 		toLineNumber = toLineNumber | 0;
@@ -365,9 +322,6 @@ export class LinesLayout {
 		this._lineHeightsManager.onLinesInserted(fromLineNumber, toLineNumber);
 	}
 
-	/**
-	 * Get the sum of all the whitespaces.
-	 */
 	public getWhitespacesTotalHeight(): number {
 		if (this._arr.length === 0) {
 			return 0;
@@ -375,13 +329,6 @@ export class LinesLayout {
 		return this.getWhitespacesAccumulatedHeight(this._arr.length - 1);
 	}
 
-	/**
-	 * Return the sum of the heights of the whitespaces at [0..index].
-	 * This includes the whitespace at `index`.
-	 *
-	 * @param index The index of the whitespace.
-	 * @return The sum of the heights of all whitespaces before the one at `index`, including the one at `index`.
-	 */
 	public getWhitespacesAccumulatedHeight(index: number): number {
 		index = index | 0;
 
@@ -398,11 +345,6 @@ export class LinesLayout {
 		return this._arr[index].prefixSum;
 	}
 
-	/**
-	 * Get the sum of heights for all objects.
-	 *
-	 * @return The sum of heights for all objects.
-	 */
 	public getLinesTotalHeight(): number {
 		const linesHeight = this._lineHeightsManager.getAccumulatedLineHeightsIncludingLineNumber(this._lineCount);
 		const whitespacesHeight = this.getWhitespacesTotalHeight();
@@ -410,11 +352,6 @@ export class LinesLayout {
 		return linesHeight + whitespacesHeight + this._paddingTop + this._paddingBottom;
 	}
 
-	/**
-	 * Returns the accumulated height of whitespaces before the given line number.
-	 *
-	 * @param lineNumber The line number
-	 */
 	public getWhitespaceAccumulatedHeightBeforeLineNumber(lineNumber: number): number {
 		lineNumber = lineNumber | 0;
 
@@ -430,7 +367,6 @@ export class LinesLayout {
 	private _findLastWhitespaceBeforeLineNumber(lineNumber: number): number {
 		lineNumber = lineNumber | 0;
 
-		// Find the whitespace before line number
 		const arr = this._arr;
 		let low = 0;
 		let high = arr.length - 1;
@@ -467,22 +403,12 @@ export class LinesLayout {
 		return -1;
 	}
 
-	/**
-	 * Find the index of the first whitespace which has `afterLineNumber` >= `lineNumber`.
-	 * @return The index of the first whitespace with `afterLineNumber` >= `lineNumber` or -1 if no whitespace is found.
-	 */
 	public getFirstWhitespaceIndexAfterLineNumber(lineNumber: number): number {
 		lineNumber = lineNumber | 0;
 
 		return this._findFirstWhitespaceAfterLineNumber(lineNumber);
 	}
 
-	/**
-	 * Get the vertical offset (the sum of heights for all objects above) a certain line number.
-	 *
-	 * @param lineNumber The line number
-	 * @return The sum of heights for all objects above `lineNumber`.
-	 */
 	public getVerticalOffsetForLineNumber(lineNumber: number, includeViewZones = false): number {
 		lineNumber = lineNumber | 0;
 
@@ -502,12 +428,6 @@ export class LinesLayout {
 		return this._lineHeightsManager.heightForLineNumber(lineNumber);
 	}
 
-	/**
-	 * Get the vertical offset (the sum of heights for all objects above) a certain line number and also the line height of the line.
-	 *
-	 * @param lineNumber The line number
-	 * @return The sum of heights for all objects above `lineNumber`.
-	 */
 	public getVerticalOffsetAfterLineNumber(lineNumber: number, includeViewZones = false): number {
 		lineNumber = lineNumber | 0;
 		const previousLinesHeight = this._lineHeightsManager.getAccumulatedLineHeightsIncludingLineNumber(lineNumber);
@@ -515,16 +435,10 @@ export class LinesLayout {
 		return previousLinesHeight + previousWhitespacesHeight + this._paddingTop;
 	}
 
-	/**
-	 * Returns if there is any whitespace in the document.
-	 */
 	public hasWhitespace(): boolean {
 		return this.getWhitespacesCount() > 0;
 	}
 
-	/**
-	 * The maximum min width for all whitespaces.
-	 */
 	public getWhitespaceMinWidth(): number {
 		if (this._minWidth === -1) {
 			let minWidth = 0;
@@ -536,9 +450,6 @@ export class LinesLayout {
 		return this._minWidth;
 	}
 
-	/**
-	 * Check if `verticalOffset` is below all lines.
-	 */
 	public isAfterLines(verticalOffset: number): boolean {
 		const totalHeight = this.getLinesTotalHeight();
 		return verticalOffset > totalHeight;
@@ -559,14 +470,6 @@ export class LinesLayout {
 		return (verticalOffset >= totalHeight - this._paddingBottom);
 	}
 
-	/**
-	 * Find the first line number that is at or after vertical offset `verticalOffset`.
-	 * i.e. if getVerticalOffsetForLine(line) is x and getVerticalOffsetForLine(line + 1) is y, then
-	 * getLineNumberAtOrAfterVerticalOffset(i) = line, x <= i < y.
-	 *
-	 * @param verticalOffset The vertical offset to search at.
-	 * @return The line number at or after vertical offset `verticalOffset`.
-	 */
 	public getLineNumberAtOrAfterVerticalOffset(verticalOffset: number): number {
 		verticalOffset = verticalOffset | 0;
 
@@ -585,13 +488,10 @@ export class LinesLayout {
 			const midLineNumberVerticalOffset = this.getVerticalOffsetForLineNumber(midLineNumber) | 0;
 
 			if (verticalOffset >= midLineNumberVerticalOffset + lineHeight) {
-				// vertical offset is after mid line number
 				minLineNumber = midLineNumber + 1;
 			} else if (verticalOffset >= midLineNumberVerticalOffset) {
-				// Hit
 				return midLineNumber;
 			} else {
-				// vertical offset is before mid line number, but mid line number could still be what we're searching for
 				maxLineNumber = midLineNumber;
 			}
 		}
@@ -603,25 +503,15 @@ export class LinesLayout {
 		return minLineNumber;
 	}
 
-	/**
-	 * Get all the lines and their relative vertical offsets that are positioned between `verticalOffset1` and `verticalOffset2`.
-	 *
-	 * @param verticalOffset1 The beginning of the viewport.
-	 * @param verticalOffset2 The end of the viewport.
-	 * @return A structure describing the lines positioned between `verticalOffset1` and `verticalOffset2`.
-	 */
 	public getLinesViewportData(verticalOffset1: number, verticalOffset2: number): IPartialViewLinesViewportData {
 		verticalOffset1 = verticalOffset1 | 0;
 		verticalOffset2 = verticalOffset2 | 0;
 
-		// Find first line number
-		// We don't live in a perfect world, so the line number might start before or after verticalOffset1
 		const startLineNumber = this.getLineNumberAtOrAfterVerticalOffset(verticalOffset1) | 0;
 		const startLineNumberVerticalOffset = this.getVerticalOffsetForLineNumber(startLineNumber) | 0;
 
 		let endLineNumber = this._lineCount | 0;
 
-		// Also keep track of what whitespace we've got
 		let whitespaceIndex = this.getFirstWhitespaceIndexAfterLineNumber(startLineNumber) | 0;
 		const whitespaceCount = this.getWhitespacesCount() | 0;
 		let currentWhitespaceHeight: number;
@@ -639,11 +529,9 @@ export class LinesLayout {
 		let currentVerticalOffset = startLineNumberVerticalOffset;
 		let currentLineRelativeOffset = currentVerticalOffset;
 
-		// IE (all versions) cannot handle units above about 1,533,908 px, so every 500k pixels bring numbers down
 		const STEP_SIZE = 500000;
 		let bigNumbersDelta = 0;
 		if (startLineNumberVerticalOffset >= STEP_SIZE) {
-			// Compute a delta that guarantees that lines are positioned at `lineHeight` increments
 			bigNumbersDelta = Math.floor(startLineNumberVerticalOffset / STEP_SIZE) * STEP_SIZE;
 			bigNumbersDelta = Math.floor(bigNumbersDelta / this._lineHeightsManager.defaultLineHeight) * this._lineHeightsManager.defaultLineHeight;
 
@@ -655,7 +543,6 @@ export class LinesLayout {
 		const verticalCenter = verticalOffset1 + (verticalOffset2 - verticalOffset1) / 2;
 		let centeredLineNumber = -1;
 
-		// Figure out how far the lines go
 		for (let lineNumber = startLineNumber; lineNumber <= endLineNumber; lineNumber++) {
 			const lineHeight = this.getLineHeightForLineNumber(lineNumber);
 			if (centeredLineNumber === -1) {
@@ -666,17 +553,13 @@ export class LinesLayout {
 				}
 			}
 
-			// Count current line height in the vertical offsets
 			currentVerticalOffset += lineHeight;
 			linesOffsets[lineNumber - startLineNumber] = currentLineRelativeOffset;
 
-			// Next line starts immediately after this one
 			currentLineRelativeOffset += lineHeight;
 			while (currentWhitespaceAfterLineNumber === lineNumber) {
-				// Push down next line with the height of the current whitespace
 				currentLineRelativeOffset += currentWhitespaceHeight;
 
-				// Count current whitespace in the vertical offsets
 				currentVerticalOffset += currentWhitespaceHeight;
 				whitespaceIndex++;
 
@@ -689,7 +572,6 @@ export class LinesLayout {
 			}
 
 			if (currentVerticalOffset >= verticalOffset2) {
-				// We have covered the entire viewport area, time to stop
 				endLineNumber = lineNumber;
 				break;
 			}
@@ -759,7 +641,6 @@ export class LinesLayout {
 			return -1;
 		}
 
-		// Special case: nothing to be found
 		const maxWhitespaceVerticalOffset = this.getVerticalOffsetForWhitespaceIndex(maxWhitespaceIndex);
 		const maxWhitespaceHeight = this.getHeightForWhitespaceIndex(maxWhitespaceIndex);
 		if (verticalOffset >= maxWhitespaceVerticalOffset + maxWhitespaceHeight) {
@@ -773,25 +654,16 @@ export class LinesLayout {
 			const midWhitespaceHeight = this.getHeightForWhitespaceIndex(midWhitespaceIndex);
 
 			if (verticalOffset >= midWhitespaceVerticalOffset + midWhitespaceHeight) {
-				// vertical offset is after whitespace
 				minWhitespaceIndex = midWhitespaceIndex + 1;
 			} else if (verticalOffset >= midWhitespaceVerticalOffset) {
-				// Hit
 				return midWhitespaceIndex;
 			} else {
-				// vertical offset is before whitespace, but midWhitespaceIndex might still be what we're searching for
 				maxWhitespaceIndex = midWhitespaceIndex;
 			}
 		}
 		return minWhitespaceIndex;
 	}
 
-	/**
-	 * Get exactly the whitespace that is layouted at `verticalOffset`.
-	 *
-	 * @param verticalOffset The vertical offset.
-	 * @return Precisely the whitespace that is layouted at `verticaloffset` or null.
-	 */
 	public getWhitespaceAtVerticalOffset(verticalOffset: number): IViewWhitespaceViewportData | null {
 		verticalOffset = verticalOffset | 0;
 
@@ -823,13 +695,6 @@ export class LinesLayout {
 		};
 	}
 
-	/**
-	 * Get a list of whitespaces that are positioned between `verticalOffset1` and `verticalOffset2`.
-	 *
-	 * @param verticalOffset1 The beginning of the viewport.
-	 * @param verticalOffset2 The end of the viewport.
-	 * @return An array with all the whitespaces in the viewport. If no whitespace is in viewport, the array is empty.
-	 */
 	public getWhitespaceViewportData(verticalOffset1: number, verticalOffset2: number): IViewWhitespaceViewportData[] {
 		verticalOffset1 = verticalOffset1 | 0;
 		verticalOffset2 = verticalOffset2 | 0;
@@ -860,50 +725,26 @@ export class LinesLayout {
 		return result;
 	}
 
-	/**
-	 * Get all whitespaces.
-	 */
 	public getWhitespaces(): IEditorWhitespace[] {
 		return this._arr.slice(0);
 	}
 
-	/**
-	 * The number of whitespaces.
-	 */
 	public getWhitespacesCount(): number {
 		return this._arr.length;
 	}
 
-	/**
-	 * Get the `id` for whitespace at index `index`.
-	 *
-	 * @param index The index of the whitespace.
-	 * @return `id` of whitespace at `index`.
-	 */
 	public getIdForWhitespaceIndex(index: number): string {
 		index = index | 0;
 
 		return this._arr[index].id;
 	}
 
-	/**
-	 * Get the `afterLineNumber` for whitespace at index `index`.
-	 *
-	 * @param index The index of the whitespace.
-	 * @return `afterLineNumber` of whitespace at `index`.
-	 */
 	public getAfterLineNumberForWhitespaceIndex(index: number): number {
 		index = index | 0;
 
 		return this._arr[index].afterLineNumber;
 	}
 
-	/**
-	 * Get the `height` for whitespace at index `index`.
-	 *
-	 * @param index The index of the whitespace.
-	 * @return `height` of whitespace at `index`.
-	 */
 	public getHeightForWhitespaceIndex(index: number): number {
 		index = index | 0;
 

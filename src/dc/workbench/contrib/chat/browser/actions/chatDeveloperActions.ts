@@ -12,7 +12,6 @@ import { Categories } from '../../../../../platform/action/common/actionCommonCa
 import { Action2, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
-import { IAgentSessionsService } from '../agentSessions/agentSessionsService.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { IChatService } from '../../common/chatService/chatService.js';
 import { ILanguageModelsService } from '../../common/languageModels.js';
@@ -31,7 +30,6 @@ function uriReplacer(_key: string, value: unknown): unknown {
 	}
 
 	if (isUriComponents(value)) {
-		// This shouldn't be necessary but it seems that some URIs in ChatModels aren't properly revived
 		return URI.from(value).toString();
 	}
 
@@ -51,7 +49,6 @@ export function registerChatDeveloperActions() {
 
 function formatChatModelReferenceInspection(accessor: ServicesAccessor): string {
 	const chatService = accessor.get(IChatService);
-	const agentSessionsService = accessor.get(IAgentSessionsService);
 	const debugInfo = chatService.getChatModelReferenceDebugInfo();
 	const referencedModels = debugInfo.models.filter(model => model.referenceCount > 0);
 	const pendingEditModels = debugInfo.models.filter(model => model.hasPendingEdits);
@@ -72,14 +69,11 @@ function formatChatModelReferenceInspection(accessor: ServicesAccessor): string 
 
 	for (const model of debugInfo.models) {
 		const liveModel = chatService.getSession(model.sessionResource);
-		const agentSession = agentSessionsService.getSession(model.sessionResource);
-		const archived = agentSession ? agentSession.isArchived() : 'unknown';
 		const age = liveModel ? fromNow(liveModel.timing.created, true, true, true) : 'unknown';
 
 		output += `## ${model.title || '(untitled)'}\n\n`;
 		output += `- Session: ${model.sessionResource.toString()}\n`;
 		output += `- Created by: ${model.createdBy}\n`;
-		output += `- Archived: ${archived}\n`;
 		output += `- Age: ${age}\n`;
 		output += `- Initial location: ${model.initialLocation}\n`;
 		output += `- Imported: ${model.isImported}\n`;
@@ -169,10 +163,8 @@ class InspectChatModelAction extends Action2 {
 		const model = widget.viewModel.model;
 		const modelData = model.toJSON();
 
-		// Build markdown output with latest response at the top
 		let output = '# Chat Model Inspection\n\n';
 
-		// Show latest response first if it exists
 		const requests = modelData.requests;
 		if (requests && requests.length > 0) {
 			const latestRequest = requests[requests.length - 1];
@@ -182,7 +174,6 @@ class InspectChatModelAction extends Action2 {
 			}
 		}
 
-		// Show full model data
 		output += '## Full Chat Model\n\n';
 		output += '```json\n' + JSON.stringify(modelData, uriReplacer, 2) + '\n```\n';
 
@@ -236,7 +227,6 @@ function subscriptionKindLabel(kind: StateComponents): string {
 	}
 }
 
-/** Escape a value so it is safe to embed in a markdown table cell. */
 function escapeMarkdownTableCell(value: string): string {
 	return value.replace(/\r?\n/g, '<br>').replace(/\|/g, '\\|');
 }

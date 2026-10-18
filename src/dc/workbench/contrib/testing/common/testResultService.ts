@@ -26,44 +26,20 @@ export type ResultChangeEvent =
 
 export interface ITestResultService {
 	readonly _serviceBrand: undefined;
-	/**
-	 * Fired after any results are added, removed, or completed.
-	 */
 	readonly onResultsChanged: Event<ResultChangeEvent>;
 
-	/**
-	 * Fired when a test changed it state, or its computed state is updated.
-	 */
 	readonly onTestChanged: Event<TestResultItemChange>;
 
-	/**
-	 * List of known test results.
-	 */
 	readonly results: ReadonlyArray<ITestResult>;
 
-	/**
-	 * Discards all completed test results.
-	 */
 	clear(): void;
 
-	/**
-	 * Creates a new, live test result.
-	 */
 	createLiveResult(req: ResolvedTestRunRequest | ExtensionRunTestsRequest): LiveTestResult;
 
-	/**
-	 * Adds a new test result to the collection.
-	 */
 	push<T extends ITestResult>(result: T): T;
 
-	/**
-	 * Looks up a set of test results by ID.
-	 */
 	getResult(resultId: string): ITestResult | undefined;
 
-	/**
-	 * Looks up a test's most recent state, by its extension-assigned ID.
-	 */
 	getStateById(extId: string): [results: ITestResult, item: TestResultItem] | undefined;
 }
 
@@ -80,22 +56,13 @@ export class TestResultService extends Disposable implements ITestResultService 
 	private testChangeEmitter = this._register(new Emitter<TestResultItemChange>());
 	private insertOrderCounter = 0;
 
-	/**
-	 * @inheritdoc
-	 */
 	public get results() {
 		this.loadResults();
 		return this._results;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly onResultsChanged = this.changeResultEmitter.event;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly onTestChanged = this.testChangeEmitter.event;
 
 	private readonly isRunning: IContextKey<boolean>;
@@ -120,9 +87,6 @@ export class TestResultService extends Disposable implements ITestResultService 
 		this.hasAnyResults = TestingContextKeys.hasAnyResults.bindTo(contextKeyService);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getStateById(extId: string): [results: ITestResult, item: TestResultItem] | undefined {
 		for (const result of this.results) {
 			const lookup = result.getStateById(extId);
@@ -134,9 +98,6 @@ export class TestResultService extends Disposable implements ITestResultService 
 		return undefined;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public createLiveResult(req: ResolvedTestRunRequest | ExtensionRunTestsRequest) {
 		if ('targets' in req) {
 			const id = generateUuid();
@@ -168,9 +129,6 @@ export class TestResultService extends Disposable implements ITestResultService 
 		return this.push(new LiveTestResult(req.id, req.persist, resolved, this.insertOrderCounter++, this.telemetryService));
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public push<T extends ITestResult>(result: T): T {
 		if (result.completedAt === undefined) {
 			this.results.unshift(result);
@@ -197,9 +155,6 @@ export class TestResultService extends Disposable implements ITestResultService 
 			this.changeResultEmitter.fire({ started: result });
 		} else {
 			this.changeResultEmitter.fire({ inserted: result });
-			// If this is not a new result, go through each of its tests. For each
-			// test for which the new result is the most recently inserted, fir
-			// a change event so that UI updates.
 			for (const item of result.tests) {
 				for (const otherResult of this.results) {
 					if (otherResult === result) {
@@ -215,16 +170,10 @@ export class TestResultService extends Disposable implements ITestResultService 
 		return result;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getResult(id: string) {
 		return this.results.find(r => r.id === id);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public clear() {
 		const keep: ITestResult[] = [];
 		const removed: ITestResult[] = [];
@@ -253,12 +202,10 @@ export class TestResultService extends Disposable implements ITestResultService 
 
 	private resort() {
 		this.results.sort((a, b) => {
-			// Running tests should always be sorted higher:
 			if (!!a.completedAt !== !!b.completedAt) {
 				return a.completedAt === undefined ? -1 : 1;
 			}
 
-			// Otherwise sort by insertion order, hydrated tests are always last:
 			const aComp = a instanceof LiveTestResult ? a.insertOrder : -1;
 			const bComp = b instanceof LiveTestResult ? b.insertOrder : -1;
 			return bComp - aComp;
@@ -270,8 +217,6 @@ export class TestResultService extends Disposable implements ITestResultService 
 	}
 
 	protected async persistImmediately() {
-		// ensure results are loaded before persisting to avoid deleting once
-		// that we don't have yet.
 		await this.loadResults();
 		this.storage.persist(this.results);
 	}

@@ -77,7 +77,7 @@ function createMockNotificationService(disposables: Pick<DisposableStore, 'add'>
 				if (dismissed.has(notification.id) || (filter && !filter(notification))) {
 					continue;
 				}
-				active = notification; // Map preserves insertion order: last match wins.
+				active = notification;
 			}
 			return active;
 		},
@@ -89,15 +89,12 @@ function createMockNotificationService(disposables: Pick<DisposableStore, 'add'>
 	return {
 		service,
 		onDidDismiss,
-		/** The active notification, ignoring session scoping. */
 		getNotification(): IChatInputNotification | undefined {
 			return service.getActiveNotification();
 		},
-		/** The active notification a chat input of the given session type would render. */
 		getNotificationForSession(sessionType: string | undefined): IChatInputNotification | undefined {
 			return service.getActiveNotification(n => isChatInputNotificationApplicableToSessionType(n, sessionType));
 		},
-		/** All notifications that are currently set and not dismissed. */
 		getAllNotifications(): IChatInputNotification[] {
 			return [...notifications.values()].filter(n => !dismissed.has(n.id));
 		},
@@ -250,7 +247,6 @@ suite('ChatPromoNotificationContribution', () => {
 			storageService,
 		));
 
-		// The opt-out promo is skipped even though its discount would otherwise win the harness.
 		assert.strictEqual(notifService.getNotification()?.message, 'Featured model');
 	});
 
@@ -284,8 +280,7 @@ suite('ChatPromoNotificationContribution', () => {
 			metadata: { name: 'GPT-5.5', id: 'gpt-5.5', promo: { id: 'promo-1', discountPercent: 20, endsAt: '2026-07-20T23:59:59Z', message: 'Get 20% off' } },
 		}], disposables);
 		const storageService = disposables.add(new InMemoryStorageService());
-		// Pre-seed dismissed promo
-		storageService.store('chat.dismissedPromoIds', JSON.stringify(['promo-1']), StorageScope.APPLICATION, 0 /* StorageTarget.USER */);
+		storageService.store('chat.dismissedPromoIds', JSON.stringify(['promo-1']), StorageScope.APPLICATION, 0 );
 
 		const contribution = disposables.add(new ChatPromoNotificationContribution(
 			lmService,
@@ -314,10 +309,8 @@ suite('ChatPromoNotificationContribution', () => {
 		assert.ok(contribution);
 		assert.ok(notifService.getNotification(), 'Notification should be shown initially');
 
-		// Simulate user dismissing the notification
 		notifService.dismiss();
 
-		// Verify persisted
 		const stored = storageService.get('chat.dismissedPromoIds', StorageScope.APPLICATION);
 		assert.ok(stored);
 		const parsed = JSON.parse(stored);
@@ -350,7 +343,6 @@ suite('ChatPromoNotificationContribution', () => {
 			metadata: { name: 'GPT-5.5', id: 'gpt-5.5', promo: { id: 'promo-3', discountPercent: 10, endsAt: '2026-07-20T23:59:59Z', message: 'Promo' } },
 		}], disposables);
 		const storageService = disposables.add(new InMemoryStorageService());
-		// Store malformed JSON
 		storageService.store('chat.dismissedPromoIds', '{not valid json', StorageScope.APPLICATION, 0);
 
 		const contribution = disposables.add(new ChatPromoNotificationContribution(
@@ -360,7 +352,6 @@ suite('ChatPromoNotificationContribution', () => {
 		));
 		assert.ok(contribution);
 
-		// Should still show the notification (malformed data ignored)
 		assert.ok(notifService.getNotification());
 	});
 
@@ -381,7 +372,6 @@ suite('ChatPromoNotificationContribution', () => {
 		assert.ok(contribution);
 		assert.ok(notifService.getNotification());
 
-		// Remove the promo model
 		models.length = 0;
 		onDidChangeLanguageModels.fire(undefined);
 
@@ -405,7 +395,6 @@ suite('ChatPromoNotificationContribution', () => {
 
 		const notification = notifService.getNotification();
 		assert.ok(notification);
-		// Should show the first promo, not the second
 		assert.ok(notification.message.toString().includes('First promo'));
 	});
 
@@ -425,10 +414,8 @@ suite('ChatPromoNotificationContribution', () => {
 		));
 		assert.ok(contribution);
 
-		// One notification per harness.
 		assert.strictEqual(notifService.getAllNotifications().length, 3);
 
-		// Each session only sees the promo for the model that belongs to it.
 		const local = notifService.getNotificationForSession('local');
 		assert.ok(local, 'Expected a local promo');
 		assert.ok(local.message.toString().includes('Local promo'));
@@ -481,12 +468,10 @@ suite('ChatPromoNotificationContribution', () => {
 		assert.ok(contribution);
 		assert.strictEqual(notifService.getAllNotifications().length, 2);
 
-		// Dismiss the Copilot notification.
 		const copilot = notifService.getNotificationForSession('copilotcli');
 		assert.ok(copilot);
 		notifService.dismiss(copilot.id);
 
-		// Both notifications carry the same promo id, so dismissing one removes both.
 		assert.strictEqual(notifService.getAllNotifications().length, 0);
 		const stored = JSON.parse(storageService.get('chat.dismissedPromoIds', StorageScope.APPLICATION) ?? '[]');
 		assert.deepStrictEqual(stored, ['promo-shared']);
@@ -495,7 +480,6 @@ suite('ChatPromoNotificationContribution', () => {
 	test('dismissing a promo in one window hides it in other windows', () => {
 		const promo = { id: 'promo-1', discountPercent: 20, endsAt: '2026-07-20T23:59:59Z', message: 'Get 20% off' };
 		const models = [{ identifier: 'copilot:gpt-5.5', metadata: { name: 'GPT-5.5', id: 'gpt-5.5', promo } }];
-		// Both windows of the same app share application-scoped storage.
 		const storageService = disposables.add(new InMemoryStorageService());
 
 		const windowA = createMockNotificationService(disposables);

@@ -17,11 +17,9 @@ import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { ChatSessionWorktreeFile } from '../common/chatSessionWorktreeService';
 import { IClaudeWorkspaceFolderService } from '../common/claudeWorkspaceFolderService';
 
-// #region Constants
 
 const EMPTY_TREE_OBJECT = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 
-// #endregion
 
 export class ClaudeWorkspaceFolderService extends Disposable implements IClaudeWorkspaceFolderService {
 	declare _serviceBrand: undefined;
@@ -125,18 +123,15 @@ export class ClaudeWorkspaceFolderService extends Disposable implements IClaudeW
 			}
 		}
 
-		// Check for untracked changes, only if the session branch matches the current branch
 		const hasUntrackedChanges = branchName === repository.headBranchName
 			? [
 				...repository.changes?.workingTree ?? [],
 				...repository.changes?.untrackedChanges ?? [],
-			].some(change => change.status === 7 /* UNTRACKED */)
+			].some(change => change.status === 7 )
 			: false;
 
 		const diffChanges: DiffChange[] = [];
 
-		// If the repository is using a virtual file system, we need to
-		// disable rename detection to avoid expensive git operations
 		const noRenamesArg = repository.isUsingVirtualFileSystem
 			? ['--no-renames']
 			: [];
@@ -146,7 +141,6 @@ export class ClaudeWorkspaceFolderService extends Disposable implements IClaudeW
 			: ['HEAD'];
 
 		if (hasUntrackedChanges) {
-			// Tracked + untracked changes
 			const tmpDirName = `vscode-sessions-${generateUuid()}`;
 			const diffIndexFile = path.join(this._extensionContext.globalStorageUri.fsPath, tmpDirName, 'diff.index');
 			const pathspecFile = path.join(this._extensionContext.globalStorageUri.fsPath, tmpDirName, `pathspec.txt`);
@@ -154,23 +148,18 @@ export class ClaudeWorkspaceFolderService extends Disposable implements IClaudeW
 			const env = buildTempIndexEnv(repository, diffIndexFile);
 
 			try {
-				// Create temp index file directory
 				await this._fileSystemService.createDirectory(vscode.Uri.file(path.dirname(diffIndexFile)));
 
 				try {
-					// Populate temp index from HEAD, fall back to empty tree if no commits exist
 					await this._gitService.exec(repository.rootUri, ['read-tree', 'HEAD'], env);
 				} catch {
-					// Fall back to empty tree for repositories with no commits
 					await this._gitService.exec(repository.rootUri, ['read-tree', EMPTY_TREE_OBJECT], env);
 				}
 
-				// Stage entire working directory into temp index
 				const uncommittedFilePaths = getUncommittedFilePaths(repository);
 				await this._fileSystemService.writeFile(vscode.Uri.file(pathspecFile), new TextEncoder().encode(uncommittedFilePaths.join('\n')));
 				await this._gitService.exec(repository.rootUri, ['add', '-A', `--pathspec-from-file=${pathspecFile}`], env);
 
-				// Diff the temp index with the base branch
 				const result = await this._gitService.exec(repository.rootUri, ['diff', '--cached', '--raw', '--numstat', '--diff-filter=ADMR', ...noRenamesArg, '-z', ...mergeBaseArg, '--'], env);
 				diffChanges.push(...parseGitChangesRaw(repository.rootUri.fsPath, result));
 			} catch (error) {
@@ -184,7 +173,6 @@ export class ClaudeWorkspaceFolderService extends Disposable implements IClaudeW
 				}
 			}
 		} else {
-			// Tracked changes
 			try {
 				const result = await this._gitService.exec(repository.rootUri, ['diff', '--raw', '--numstat', '--diff-filter=ADMR', ...noRenamesArg, '-z', ...mergeBaseArg, '--']);
 				diffChanges.push(...parseGitChangesRaw(repository.rootUri.fsPath, result));
@@ -194,9 +182,6 @@ export class ClaudeWorkspaceFolderService extends Disposable implements IClaudeW
 			}
 		}
 
-		// Since the diff may be computed using the merge base commit of the current
-		// branch and the base branch, we need to compute it as well so that we can use
-		// it as the originalRef (left-hand side) of the diff editor
 		let mergeBaseCommit: string | undefined;
 		try {
 			if (branchName && resolvedBaseBranchName) {
@@ -208,10 +193,10 @@ export class ClaudeWorkspaceFolderService extends Disposable implements IClaudeW
 
 		const changes = diffChanges.map(change => ({
 			filePath: change.uri.fsPath,
-			originalFilePath: change.status !== 1 /* INDEX_ADDED */
+			originalFilePath: change.status !== 1
 				? change.originalUri?.fsPath
 				: undefined,
-			modifiedFilePath: change.status !== 6 /* DELETED */
+			modifiedFilePath: change.status !== 6
 				? change.uri.fsPath
 				: undefined,
 			statistics: {

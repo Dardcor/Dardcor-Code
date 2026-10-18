@@ -20,7 +20,7 @@ const terminalCommands: { commands: RegExp[]; tags: string[] }[] = [
 			new RegExp(/^python3? -m jupyter(\b)/),
 			new RegExp(/^python3? -m pip install\b.*jupyter\b.*/),
 			new RegExp(/^pip3? install\b.*jupyter\b.*/),
-			new RegExp(/^jupyter(\b)/), // jupyter lab, jupyer notebook, jupyter nbconvert, etc.
+			new RegExp(/^jupyter(\b)/),
 		],
 		tags: ['python environment', 'jupyter environment'],
 	}

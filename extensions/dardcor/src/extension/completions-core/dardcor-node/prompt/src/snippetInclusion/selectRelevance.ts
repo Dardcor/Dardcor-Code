@@ -14,27 +14,10 @@ export interface ScoredSnippetMarker {
 	endLine: number;
 }
 
-/**
- * A snippet of code together with a relevance score.
- *
- * The scoring system assumes that a snippet with a **bigger** score is **more** relevant.
- */
 export interface ScoredSnippet extends ScoredSnippetMarker {
 	snippet: string;
 	relativePath?: string;
-	/**
-	 * The URI of the source document the snippet came from, when known. Unlike
-	 * {@link relativePath} this is unambiguous, so consumers should prefer it to
-	 * identify a snippet's provenance (e.g. in multi-root workspaces where two
-	 * documents can share a relative path).
-	 */
 	uri?: string;
-	/**
-	 * Whether the snippet's source document is a language-service "related" file
-	 * rather than an open tab. Optional here because snippets produced by the matcher
-	 * don't yet carry provenance; `getSimilarSnippets` normalizes it and guarantees it
-	 * on its return type.
-	 */
 	isFromRelatedFile?: boolean;
 }
 
@@ -54,53 +37,23 @@ class Tokenizer {
 	}
 }
 
-/**
- * For a number of documents (the similar files),
- * associate to each document and its kind of window computation (as key)
- * the sequence b_1, ..., b_n, where
- * b_i is the set of tokens in the ith window --
- * e.g. for window length 10,
- * WINDOWED_TOKEN_SET_CACHE(doc)[0]
- * holds the tokens in the first 10 lines of the document.
- */
 const WINDOWED_TOKEN_SET_CACHE = new LRUCache<Set<string>[]>(20);
 
-/**
- * For a given document, extracts the best matching snippets from other documents
- * by comparing all of a set of windows in the object doc.
- */
 export abstract class WindowedMatcher {
 	protected referenceDoc: DocumentInfoWithOffset;
 	protected tokenizer: Tokenizer;
 
 	protected abstract id(): string;
 	protected abstract similarityScore(a: Set<string>, b: Set<string>): number;
-	/**
-	 * Given an array of lines, returns an array of pairs <startLine, endLine> of indices,
-	 * such that each pair is a window of lines to consider adding.
-	 * startLine is inclusive, endLine is exclusive.
-	 * @param lines Lines of a source text, in order
-	 */
 	protected abstract getWindowsDelineations(lines: string[]): [number, number][];
 
-	/**
-	 * Subclasses should implement this method to return the desired context info for tokenization
-	 * from the reference document. Will only be called after constructor is finished.
-	 * The tokenizer used in WindowedMatcher is a simple tokenizer for Jaccard similarity, NOT an
-	 * OpenAI model tokenizer.
-	 */
 	protected abstract _getCursorContextInfo(referenceDoc: DocumentInfoWithOffset): CursorContextInfo;
 
 	protected constructor(referenceDoc: DocumentInfoWithOffset) {
 		this.referenceDoc = referenceDoc;
-		this.tokenizer = new Tokenizer(referenceDoc); // Just uses language info from referenceDoc
+		this.tokenizer = new Tokenizer(referenceDoc);
 	}
 
-	/**
-	 * Lazy getter for referenceTokens since it relies on properties
-	 * that are not initialized in the constructor of WindowedMatcher
-	 * but in the constructor of its subclasses.
-	 */
 	protected referenceTokensCache: Set<string> | undefined;
 	get referenceTokens(): Promise<Set<string>> {
 		return Promise.resolve(this.createReferenceTokens());
@@ -112,11 +65,6 @@ export abstract class WindowedMatcher {
 		));
 	}
 
-	/**
-	 * Returns a sorted array of snippets with their scores according to the sort option.
-	 * @param snippets ScoredSnippet[]
-	 *
-	 */
 	sortScoredSnippets(snippets: ScoredSnippetMarker[], sortOption = SortOptions.Descending): ScoredSnippetMarker[] {
 		return sortOption === SortOptions.Ascending
 			? snippets.sort((snippetA, snippetB) => (snippetA.score > snippetB.score ? 1 : -1))
@@ -124,11 +72,6 @@ export abstract class WindowedMatcher {
 				? snippets.sort((snippetA, snippetB) => (snippetA.score > snippetB.score ? -1 : 1))
 				: snippets;
 	}
-	/**
-	 * Returns all snippet markers with their scores.
-	 * @param objectDoc
-	 *
-	 */
 	async retrieveAllSnippets(
 		objectDoc: SimilarFileInfo,
 		sortOption = SortOptions.Descending
@@ -142,11 +85,9 @@ export abstract class WindowedMatcher {
 		const lines = objectDoc.source.split('\n');
 		const key = this.id() + ':' + objectDoc.source;
 		const tokensInWindows = WINDOWED_TOKEN_SET_CACHE.get(key) ?? [];
-		// if the tokens are not cached, we need to compute them
 		const needToComputeTokens = tokensInWindows.length === 0;
 		const tokenizedLines = needToComputeTokens ? lines.map(l => this.tokenizer.tokenize(l), this.tokenizer) : [];
 
-		// Compute the windows with the score
 		for (const [index, [startLine, endLine]] of this.getWindowsDelineations(lines).entries()) {
 			if (needToComputeTokens) {
 				const tokensInWindow = new Set<string>();
@@ -155,12 +96,9 @@ export abstract class WindowedMatcher {
 					.forEach(x => x.forEach(s => tokensInWindow.add(s), tokensInWindow));
 				tokensInWindows.push(tokensInWindow);
 			}
-			// Now tokensInWindows[index] contains the tokens in the window, whether we just computed them or not
 			const tokensInWindow = tokensInWindows[index];
 			const score = this.similarityScore(tokensInWindow, await this.referenceTokens);
 
-			// If snippets overlap, keep the one with highest score.
-			// Note: Assuming the getWindowsDelineations function returns windows in sorted ascending line ranges.
 			if (snippets.length && startLine > 0 && snippets[snippets.length - 1].endLine > startLine) {
 				if (snippets[snippets.length - 1].score < score) {
 					snippets[snippets.length - 1].score = score;
@@ -177,7 +115,6 @@ export abstract class WindowedMatcher {
 			});
 		}
 
-		// If we didn't get the token sets from the cache, time to put them there!
 		if (needToComputeTokens) {
 			WINDOWED_TOKEN_SET_CACHE.put(key, tokensInWindows);
 		}
@@ -190,13 +127,6 @@ export abstract class WindowedMatcher {
 		return snippet;
 	}
 
-	/**
-	 * Returns the snippet from the object document
-	 * that is most similar to the reference Document
-	 * together with its Jaccard score
-	 *
-	 * @param objectDoc
-	 */
 	async findBestMatch(objectDoc: SimilarFileInfo, maxSnippetsPerFile: number): Promise<SnippetWithProviderInfo[]> {
 		if (objectDoc.source.length === 0 || (await this.referenceTokens).size === 0) {
 			return [];
@@ -204,7 +134,6 @@ export abstract class WindowedMatcher {
 		const lines = objectDoc.source.split('\n');
 		const snippets = await this.retrieveAllSnippets(objectDoc, SortOptions.Descending);
 
-		// safe guard against empty lists
 		if (snippets.length === 0) {
 			return [];
 		}
@@ -212,9 +141,7 @@ export abstract class WindowedMatcher {
 		const bestSnippets: SnippetWithProviderInfo[] = [];
 
 		for (let i = 0; i < snippets.length && i < maxSnippetsPerFile; i++) {
-			// Skip null scored snippets.
 			if (snippets[i].score !== 0) {
-				// Get the snippet's text.
 				const snippetCode = lines.slice(snippets[i].startLine, snippets[i].endLine).join('\n');
 				bestSnippets.push({
 					snippet: snippetCode,
@@ -229,15 +156,11 @@ export abstract class WindowedMatcher {
 	}
 }
 
-/**
- * Split by non-alphanumeric characters
- */
 export function splitIntoWords(a: string): string[] {
 	return a.split(/[^a-zA-Z0-9]/).filter(x => x.length > 0);
 }
 
 const ENGLISH_STOPS = new Set([
-	// - pronouns
 	'we',
 	'our',
 	'you',
@@ -250,7 +173,6 @@ const ENGLISH_STOPS = new Set([
 	'that',
 	'these',
 	'those',
-	// - verbs
 	'is',
 	'are',
 	'was',
@@ -273,7 +195,6 @@ const ENGLISH_STOPS = new Set([
 	'will',
 	'would',
 	'should',
-	// - wh-words
 	'what',
 	'which',
 	'who',
@@ -281,11 +202,9 @@ const ENGLISH_STOPS = new Set([
 	'where',
 	'why',
 	'how',
-	// - articles
 	'a',
 	'an',
 	'the',
-	// - prepositions
 	'and',
 	'or',
 	'not',
@@ -343,11 +262,7 @@ const ENGLISH_STOPS = new Set([
 	'now',
 ]);
 
-/**
- * A generic set of stops for any programming language
- */
 const GENERIC_STOPS = new Set([
-	// words that are common in programming languages
 	'if',
 	'then',
 	'else',
@@ -379,14 +294,8 @@ const GENERIC_STOPS = new Set([
 	'super',
 	'this',
 	'var',
-	// words that are common in English comments:
 	...ENGLISH_STOPS,
 ]);
 
-/**
- * Specific stops for certain languages
- * Note that ENGLISH_STOPS need to be added to this set if they are to be included
- */
 const SPECIFIC_STOPS: Map<string, Set<string>> = new Map([
-	// none yet
 ]);

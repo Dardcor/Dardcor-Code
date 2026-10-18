@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Menubar styles */
 
 .menubar {
 	display: flex;
@@ -42,7 +41,7 @@
 
 .menubar.compact {
 	flex-shrink: 0;
-	overflow: visible; /* to avoid the compact menu to be repositioned when clicking */
+	overflow: visible;
 }
 
 .menubar.compact > .menubar-menu-button {
@@ -103,7 +102,6 @@
 	font-family: var(--vscode-icon-menu-font-family) !important;
 }
 
-/* Match behavior of outline for activity bar icons */
 .menubar.compact > .menubar-menu-button.open .menubar-menu-title,
 .menubar.compact > .menubar-menu-button:focus .menubar-menu-title,
 .menubar.compact > .menubar-menu-button:hover .menubar-menu-title{

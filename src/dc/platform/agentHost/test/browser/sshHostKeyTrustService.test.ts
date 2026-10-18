@@ -28,8 +28,6 @@ suite('SSHHostKeyTrustService', () => {
 		service.trustHostKey('example.com', 22, { keyType: 'ssh-ed25519', fingerprint: 'SHA256:aaa', addedAt: 1 });
 
 		const afterTrust = service.getTrustedKeys('example.com', 22);
-		// Host keys belong to a machine, so lookup must be case-insensitive in
-		// the same way hostnames are.
 		const mixedCase = service.getTrustedKeys('ExAmPlE.CoM', 22);
 		service.forgetHost('example.com', 22);
 
@@ -70,8 +68,6 @@ suite('SSHHostKeyTrustService', () => {
 		service.trustHostKey('example.com', 22, { keyType: 'ssh-rsa', fingerprint: 'SHA256:rsa', addedAt: 1 });
 		service.trustHostKey('example.com', 22, { keyType: 'ssh-ed25519', fingerprint: 'SHA256:new', addedAt: 2 });
 
-		// The superseded ed25519 key must not remain trusted, or a rotation
-		// would leave the old key valid forever.
 		assert.deepStrictEqual(
 			service.getTrustedKeys('example.com', 22).map(k => `${k.keyType} ${k.fingerprint}`).sort(),
 			['ssh-ed25519 SHA256:new', 'ssh-rsa SHA256:rsa']);
@@ -104,7 +100,6 @@ suite('SSHHostKeyTrustService', () => {
 
 		service.trustHostKey('example.com', 22, { keyType: 'ssh-ed25519', fingerprint: 'SHA256:aaa', addedAt: 1 });
 		service.forgetHost('example.com', 22);
-		// Forgetting an unknown host is a no-op and must not fire.
 		service.forgetHost('other.com', 22);
 
 		assert.deepStrictEqual(fired, ['example.com:22', 'example.com:22']);
@@ -116,9 +111,6 @@ suite('SSHHostKeyTrustService', () => {
 				'good.com:22': [{ keyType: 'ssh-ed25519', fingerprint: 'SHA256:aaa', addedAt: 1 }],
 				'partial.com:22': [
 					{ keyType: 'ssh-ed25519', fingerprint: 'SHA256:bbb', addedAt: 2 },
-					// Each of these is missing or has the wrong type for a
-					// required field. Trust must never be reconstructed from a
-					// partial record.
 					{ keyType: 'ssh-rsa', fingerprint: 'SHA256:ccc' },
 					{ keyType: '', fingerprint: 'SHA256:ddd', addedAt: 3 },
 					{ keyType: 'ssh-rsa', addedAt: 4 },

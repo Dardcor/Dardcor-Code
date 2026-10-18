@@ -60,7 +60,6 @@ class ErrorLog {
 			const logFileName = 'log' + (this.id ? `_${this.id}` : '');
 			fs.writeFileSync(path.join(buildLogFolder, logFileName), JSON.stringify(messages));
 		} catch (err) {
-			//noop
 		}
 	}
 
@@ -81,7 +80,6 @@ const buildLogFolder = path.join(path.dirname(path.dirname(import.meta.dirname))
 try {
 	fs.mkdirSync(buildLogFolder);
 } catch (err) {
-	// ignore
 }
 
 export interface IReporter {

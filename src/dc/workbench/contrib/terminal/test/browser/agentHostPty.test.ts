@@ -28,7 +28,6 @@ import { StateComponents } from '../../../../../platform/agentHost/common/state/
 import { terminalReducer } from '../../../../../platform/agentHost/common/state/protocol/reducers.js';
 import type { IRemoteWatchHandle } from '../../../../../platform/agentHost/common/agentHostFileSystemProvider.js';
 import { identityAgentHostResourceUriMapper } from '../../../../../platform/agentHost/common/agentHostUri.js';
-// ---- Mock IAgentConnection --------------------------------------------------
 
 class MockAgentConnection implements IAgentConnection {
 
@@ -75,12 +74,10 @@ class MockAgentConnection implements IAgentConnection {
 	async invokeChangesetOperation(): Promise<{}> { return {}; }
 	async handleMcpRequest(): Promise<unknown> { throw new Error('Not implemented'); }
 
-	/** Simulate the server sending an action to the client */
 	fireAction(channel: URI, action: StateAction, serverSeq = 1): void {
 		this._onDidAction.fire({ channel: channel.toString(), action, serverSeq, origin: { clientId: 'server', clientSeq: 0 } });
 	}
 
-	// ---- Unused IAgentService methods (stubs) -----
 	async authenticate(_params: AuthenticateParams): Promise<AuthenticateResult> { return { authenticated: true }; }
 	async getNetworkDiagnosticsInfo(): Promise<IAgentHostNetworkDiagnosticsInfo> { return { version: 'test', os: 'test', arch: 'test', proxySettings: {}, proxyEnv: {}, endpoints: [] }; }
 	async getManagedSettingsDiagnostics(): Promise<readonly IAgentHostManagedSettingsDiagnostics[]> { return []; }
@@ -112,7 +109,6 @@ class MockAgentConnection implements IAgentConnection {
 	async createResourceWatch(_params: CreateResourceWatchParams): Promise<CreateResourceWatchResult> { throw new Error('Not implemented'); }
 	async watchResource(_params: CreateResourceWatchParams): Promise<IRemoteWatchHandle> { throw new Error('Not implemented'); }
 
-	// ---- IAgentConnection new API (stubs for tests) -----
 	readonly rootState: IAgentSubscription<RootState> = {
 		value: undefined, verifiedValue: undefined, onDidChange: Event.None, onWillApplyAction: Event.None, onDidApplyAction: Event.None,
 	};
@@ -126,7 +122,6 @@ class MockAgentConnection implements IAgentConnection {
 			get verifiedValue() { return connection._terminalState; },
 			onDidChange: onDidChange.event, onWillApplyAction: onWillApplyAction.event, onDidApplyAction: onDidApplyAction.event,
 		};
-		// Wire onDidAction to the subscription's events
 		const listener = this._onDidAction.event(envelope => {
 			if (envelope.channel === _resource.toString()) {
 				onWillApplyAction.fire(envelope);
@@ -177,7 +172,6 @@ function createLogService(): ITerminalLogService {
 	return new class extends NullLogService { readonly _logBrand = undefined; };
 }
 
-// ---- Tests ------------------------------------------------------------------
 
 suite('AgentHostPty', () => {
 
@@ -258,7 +252,6 @@ suite('AgentHostPty', () => {
 		await pty.start();
 		pty.input('hello');
 
-		// Wait for the async barrier
 		await new Promise(resolve => setTimeout(resolve, 10));
 
 		const inputActions = conn.dispatchedActions.filter(a => a.action.type === ActionType.TerminalInput);
@@ -289,7 +282,7 @@ suite('AgentHostPty', () => {
 
 		await pty.start();
 		pty.resize(80, 24);
-		pty.resize(80, 24); // duplicate
+		pty.resize(80, 24);
 
 		await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -310,8 +303,7 @@ suite('AgentHostPty', () => {
 		await pty.start();
 		conn.fireAction(terminalUri, { type: ActionType.TerminalData, data: 'hello world\r\n' });
 
-		assert.deepStrictEqual(dataReceived, ['existing output\n' /* skip replay since content is '' */, 'hello world\r\n'].filter(x => x !== 'existing output\n'));
-		// Since initial content is empty, only the streamed data should be received
+		assert.deepStrictEqual(dataReceived, ['existing output\n' , 'hello world\r\n'].filter(x => x !== 'existing output\n'));
 		assert.deepStrictEqual(dataReceived, ['hello world\r\n']);
 	});
 
@@ -618,7 +610,6 @@ suite('AgentHostPty', () => {
 
 		await pty.start();
 
-		// Create a new connection with different content (simulating server-side changes during disconnect)
 		const conn2 = new MockAgentConnection({
 			content: [{ type: 'unclassified', value: 'old output\nnew output after reconnect\n' }], cwd: '/home/reconnected', title: 'Reconnected Terminal',
 		});
@@ -632,7 +623,6 @@ suite('AgentHostPty', () => {
 		const result = await pty.reconnect(conn2);
 
 		assert.strictEqual(result, true, 'reconnect() should succeed');
-		// Should have clear sequence + replayed content
 		assert.ok(dataReceived.some(d => d.includes('\x1b[2J')), 'should clear buffer before replay');
 		assert.ok(dataReceived.some(d => d.includes('new output after reconnect')), 'should replay new content');
 
@@ -655,14 +645,12 @@ suite('AgentHostPty', () => {
 		}));
 
 		await pty.reconnect(conn2);
-		dataReceived.length = 0; // clear replay data
+		dataReceived.length = 0;
 
-		// New actions from conn2 should be received
 		conn2.fireAction(terminalUri, { type: ActionType.TerminalData, data: 'post-reconnect data' });
 
 		assert.deepStrictEqual(dataReceived, ['post-reconnect data']);
 
-		// Old connection actions should NOT be received
 		conn1.fireAction(terminalUri, { type: ActionType.TerminalData, data: 'stale data' });
 		assert.deepStrictEqual(dataReceived, ['post-reconnect data']);
 	});
@@ -726,7 +714,7 @@ suite('AgentHostPty', () => {
 		const conn2 = new MockAgentConnection({ content: [{ type: 'unclassified', value: 'recovered output\n' }] });
 		disposables.add(conn2);
 		const reconnected = await pty.reconnect(conn2);
-		dataReceived.length = 0; // drop the reconnect replay
+		dataReceived.length = 0;
 
 		await creationBarrier.complete();
 		const startResult = await start;
@@ -858,10 +846,8 @@ suite('AgentHostPty', () => {
 		hydration.state = { title: 'Reconnected', content: [], claim: { kind: TerminalClaimKind.Client, clientId: 'test-client' }, lifecycle: { status: TerminalLifecycleStatus.Running } };
 		onDidChange.fire(hydration.state);
 		assert.strictEqual(await reconnect, true);
-		dataReceived.length = 0; // drop the replayed clear sequence
+		dataReceived.length = 0;
 
-		// Advance virtual time past the hydration deadline — the stale timeout
-		// must not finalize, warn on, or deafen the live PTY.
 		await timeout(11_000);
 		onDidApplyAction.fire({ channel: terminalUri.toString(), action: { type: ActionType.TerminalData, data: 'post-timeout data' }, serverSeq: 1, origin: undefined });
 
@@ -932,17 +918,15 @@ suite('AgentHostPty', () => {
 		disposables.add(pty.onProcessExit!(exitCode => exitCodes.push(exitCode)));
 		await pty.start();
 
-		// Create a connection whose subscription never fires onDidChange
 		const conn2 = new MockAgentConnection();
 		disposables.add(conn2);
-		// Override getSubscription to return a subscription that never hydrates
 		conn2.getSubscription = <T>(_kind: StateComponents, _resource: URI): IReference<IAgentSubscription<T>> => {
 			const onDidChange = new Emitter<TerminalState>();
 			const onDidApplyAction = new Emitter<ActionEnvelope>();
 			disposables.add(onDidChange);
 			disposables.add(onDidApplyAction);
 			const sub: IAgentSubscription<TerminalState> = {
-				value: undefined, // never hydrated
+				value: undefined,
 				verifiedValue: undefined, onDidChange: onDidChange.event, onWillApplyAction: Event.None, onDidApplyAction: onDidApplyAction.event,
 			};
 			return {
@@ -953,8 +937,6 @@ suite('AgentHostPty', () => {
 		const result = await pty.reconnect(conn2);
 		await Promise.resolve();
 
-		// The PTY was ready before the reconnect attempt — a failed reconnect
-		// must leave the live terminal and its host terminal untouched.
 		assert.deepStrictEqual({
 			result,
 			exitCodes,
@@ -985,7 +967,6 @@ suite('AgentHostPty', () => {
 		assert.strictEqual(inputActions.length, 1);
 		assert.strictEqual((inputActions[0].action as { data: string }).data, 'after reconnect');
 
-		// conn1 should not have received the input
 		const oldInputActions = conn1.dispatchedActions.filter(a => a.action.type === ActionType.TerminalInput);
 		assert.strictEqual(oldInputActions.length, 0);
 	});

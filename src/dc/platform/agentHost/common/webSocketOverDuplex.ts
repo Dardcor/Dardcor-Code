@@ -15,21 +15,14 @@ const headerTerminator = VSBuffer.fromString('\r\n\r\n').buffer;
 const defaultMaxFramePayloadLength = 0x100000;
 const defaultMaxMessagePayloadLength = 0x800000;
 const defaultCloseTimeoutMs = 5000;
-/** Options used to establish a WebSocket connection over an existing tunnel stream. */
 export interface IWebSocketOverDuplexOptions {
-	/** Request path, e.g. '/agent-host/select' or '/?tkn=abc'. */
 	readonly path: string;
-	/** Host header value; the tunnel stream is already pointed at the right port. */
 	readonly host?: string;
-	/** Maximum accepted frame payload length. */
 	readonly maxFramePayloadLength?: number;
-	/** Maximum accepted assembled message payload length. */
 	readonly maxMessagePayloadLength?: number;
-	/** Time to wait for the peer to complete a close handshake. */
 	readonly closeTimeoutMs?: number;
 }
 
-/** Opens a framed WebSocket connection over an already-connected tunnel stream. */
 export async function connectWebSocketOverDuplex(
 	stream: ITunnelDuplexStream,
 	options: IWebSocketOverDuplexOptions,
@@ -96,13 +89,11 @@ function createUpgradeRequest(path: string, host: string, key: string): string {
 	].join('\r\n');
 }
 
-/** Computes the RFC 6455 `Sec-WebSocket-Accept` value for a client key. */
 export async function createWebSocketAccept(key: string): Promise<string> {
 	const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(key + websocketAcceptGuid));
 	return encodeBase64(VSBuffer.wrap(new Uint8Array(digest)));
 }
 
-/** A parsed HTTP WebSocket upgrade response. */
 interface IUpgradeResponse {
 	readonly status: number;
 	readonly headers: Map<string, string>;
@@ -129,7 +120,6 @@ function parseUpgradeResponse(headerBytes: Uint8Array): IUpgradeResponse {
 	return { status: Number(statusMatch[1]), headers };
 }
 
-/** Buffers an HTTP upgrade response while preserving original frame chunks. */
 class UpgradeResponseReader {
 	private _bytes = new Uint8Array(0);
 	private readonly _chunks: Uint8Array[] = [];
@@ -230,7 +220,6 @@ function findSequence(bytes: Uint8Array, sequence: Uint8Array): number {
 	return -1;
 }
 
-/** Adapts shared RFC 6455 framing to the tunnel socket contract. */
 class TunnelMessageSocket extends Disposable implements ITunnelMessageSocket {
 	private readonly _onDidReceiveMessage = this._register(new Emitter<string>({
 		onDidAddFirstListener: () => this.flushPendingMessages(),

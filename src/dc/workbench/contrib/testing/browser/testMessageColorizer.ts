@@ -28,17 +28,6 @@ export const renderTestMessageAsText = (tm: string | IMarkdownString) =>
 	typeof tm === 'string' ? removeAnsiEscapeCodes(tm) : renderAsPlaintext(tm);
 
 
-/**
- * Applies decorations based on ANSI styles from the test message in the editor.
- * ANSI sequences are stripped from the text displayed in editor, and this
- * re-applies their colorization.
- *
- * This uses decorations rather than language features because the string
- * rendered in the editor lacks the ANSI codes needed to actually apply the
- * colorization.
- *
- * Note: does not support TrueColor.
- */
 export const colorizeTestMessageInEditor = (message: string, editor: CodeEditorWidget): IDisposable => {
 	const decos: string[] = [];
 

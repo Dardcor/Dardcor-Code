@@ -39,9 +39,6 @@ export interface IListService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Returns the currently focused list widget if any.
-	 */
 	readonly lastFocusedList: WorkbenchListWidget | undefined;
 }
 
@@ -79,11 +76,9 @@ export class ListService implements IListService {
 			throw new Error('Cannot register the same widget multiple times');
 		}
 
-		// Keep in our lists list
 		const registeredList: IRegisteredList = { widget, extraContextKeys };
 		this.lists.push(registeredList);
 
-		// Check for currently being focused
 		if (isActiveElement(widget.getHTMLElement())) {
 			this.setLastFocusedList(widget);
 		}
@@ -129,9 +124,6 @@ export const WorkbenchTreeElementHasChild = new RawContextKey<boolean>('treeElem
 export const WorkbenchTreeFindOpen = new RawContextKey<boolean>('treeFindOpen', false);
 const WorkbenchListTypeNavigationModeKey = 'listTypeNavigationMode';
 
-/**
- * @deprecated in favor of WorkbenchListTypeNavigationModeKey
- */
 const WorkbenchListAutomaticKeyboardNavigationLegacyKey = 'listAutomaticKeyboardNavigation';
 
 function createScopedContextKeyService(contextKeyService: IContextKeyService, widget: ListWidget): IScopedContextKeyService {
@@ -140,9 +132,6 @@ function createScopedContextKeyService(contextKeyService: IContextKeyService, wi
 	return result;
 }
 
-// Note: We must declare IScrollObservarable as the arithmetic of concrete classes,
-// instead of object type like { onDidScroll: Event<any>; ... }. The latter will not mark
-// those properties as referenced during tree-shaking, causing them to be shaked away.
 type IScrollObservarable = Exclude<WorkbenchListWidget, WorkbenchPagedList<any>> | List<any>;
 
 function createScrollObserver(contextKeyService: IContextKeyService, widget: IScrollObservarable): IDisposable {
@@ -150,8 +139,6 @@ function createScrollObserver(contextKeyService: IContextKeyService, widget: ISc
 	const update = () => {
 		const atTop = widget.scrollTop === 0;
 
-		// We need a threshold `1` since scrollHeight is rounded.
-		// https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollHeight#determine_if_an_element_has_been_totally_scrolled
 		const atBottom = widget.scrollHeight - widget.renderHeight - widget.scrollTop < 1;
 		if (atTop && atBottom) {
 			listScrollAt.set('both');
@@ -172,7 +159,6 @@ const openModeSettingKey = 'workbench.list.openMode';
 const horizontalScrollingKey = 'workbench.list.horizontalScrolling';
 const defaultFindModeSettingKey = 'workbench.list.defaultFindMode';
 const typeNavigationModeSettingKey = 'workbench.list.typeNavigationMode';
-/** @deprecated in favor of `workbench.list.defaultFindMode` and `workbench.list.typeNavigationMode` */
 const keyboardNavigationSettingKey = 'workbench.list.keyboardNavigation';
 const scrollByPageKey = 'workbench.list.scrollByPage';
 const defaultFindMatchTypeSettingKey = 'workbench.list.defaultFindMatchType';
@@ -739,7 +725,6 @@ abstract class ResourceNavigator<T> extends Disposable {
 			return;
 		}
 
-		// copied from AbstractTree
 		const target = browserEvent.target as HTMLElement;
 		const onTwistie = target.classList.contains('monaco-tl-twistie')
 			|| (target.classList.contains('monaco-icon-label') && target.classList.contains('folder-icon') && browserEvent.offsetX < 16);
@@ -1117,7 +1102,6 @@ function workbenchTreeDataPreamble<T, TFilterData, TOptions extends IAbstractTre
 	const instantiationService = accessor.get(IInstantiationService);
 
 	const getTypeNavigationMode = () => {
-		// give priority to the context key value to specify a value
 		const modeString = contextKeyService.getContextKeyValue<'automatic' | 'trigger'>(WorkbenchListTypeNavigationModeKey);
 
 		if (modeString === 'automatic') {
@@ -1126,14 +1110,12 @@ function workbenchTreeDataPreamble<T, TFilterData, TOptions extends IAbstractTre
 			return TypeNavigationMode.Trigger;
 		}
 
-		// also check the deprecated context key to set the mode to 'trigger'
 		const modeBoolean = contextKeyService.getContextKeyValue<boolean>(WorkbenchListAutomaticKeyboardNavigationLegacyKey);
 
 		if (modeBoolean === false) {
 			return TypeNavigationMode.Trigger;
 		}
 
-		// finally, check the setting
 		const configString = configurationService.getValue<'automatic' | 'trigger'>(typeNavigationModeSettingKey);
 
 		if (configString === 'automatic') {
@@ -1155,7 +1137,6 @@ function workbenchTreeDataPreamble<T, TFilterData, TOptions extends IAbstractTre
 		disposable,
 		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		options: {
-			// ...options, // TODO@Joao why is this not splatted here?
 			keyboardSupport: false,
 			...workbenchListOptions,
 			indent: typeof configurationService.getValue(treeIndentKey) === 'number' ? configurationService.getValue(treeIndentKey) : undefined,

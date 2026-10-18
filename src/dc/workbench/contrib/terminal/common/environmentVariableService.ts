@@ -20,9 +20,6 @@ interface ISerializableExtensionEnvironmentVariableCollection {
 	description?: ISerializableEnvironmentDescriptionMap;
 }
 
-/**
- * Tracks and persists environment variable collections as defined by extensions.
- */
 export class EnvironmentVariableService extends Disposable implements IEnvironmentVariableService {
 	declare readonly _serviceBrand: undefined;
 
@@ -48,14 +45,10 @@ export class EnvironmentVariableService extends Disposable implements IEnvironme
 				descriptionMap: deserializeEnvironmentDescriptionMap(c.description)
 			}));
 
-			// Asynchronously invalidate collections where extensions have been uninstalled, this is
-			// async to avoid making all functions on the service synchronous and because extensions
-			// being uninstalled is rare.
 			this._invalidateExtensionCollections();
 		}
 		this.mergedCollection = this._resolveMergedCollection();
 
-		// Listen for uninstalled/disabled extensions
 		this._register(this._extensionService.onDidChangeExtensions(() => this._invalidateExtensionCollections()));
 	}
 

@@ -9,7 +9,7 @@ import { Emitter } from '../../../util/dardcor/base/common/event';
 import { Disposable, IDisposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IPowerService } from '../common/powerService';
 
-const RELEASE_DELAY_MS = 2 * 60 * 1000; // 2 minutes
+const RELEASE_DELAY_MS = 2 * 60 * 1000;
 
 export class PowerService extends Disposable implements IPowerService {
 	declare readonly _serviceBrand: undefined;
@@ -39,13 +39,11 @@ export class PowerService extends Disposable implements IPowerService {
 		this._activeCount++;
 		this._logService.debug(`[PowerService] Acquired power save blocker, active count: ${this._activeCount}`);
 
-		// Clear any pending release timer
 		if (this._releaseTimer !== undefined) {
 			clearTimeout(this._releaseTimer);
 			this._releaseTimer = undefined;
 		}
 
-		// Start the blocker if this is the first acquisition
 		if (this._activeCount === 1) {
 			this._startBlocker();
 		}
@@ -66,7 +64,6 @@ export class PowerService extends Disposable implements IPowerService {
 		}
 
 		try {
-			// Check if the API is available (proposed API, desktop only)
 			if (typeof vscode.env.power?.startPowerSaveBlocker !== 'function') {
 				this._logService.debug('[PowerService] Power save blocker API not available');
 				return;
@@ -91,7 +88,7 @@ export class PowerService extends Disposable implements IPowerService {
 
 	private _scheduleStopBlocker(): void {
 		if (this._releaseTimer !== undefined) {
-			return; // Already scheduled
+			return;
 		}
 
 		this._logService.debug(`[PowerService] Scheduling power save blocker release in ${RELEASE_DELAY_MS}ms`);
@@ -106,7 +103,6 @@ export class PowerService extends Disposable implements IPowerService {
 			return;
 		}
 
-		// Don't stop if new acquisitions came in
 		if (this._activeCount > 0) {
 			return;
 		}

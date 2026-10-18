@@ -10,27 +10,19 @@ import { IElectronConfiguration, resolveElectronConfiguration } from './electron
 import { measureAndLog } from './logger';
 import { ChildProcess } from 'child_process';
 
-/**
- * Upper bound for how long we wait for the Electron process to launch and for
- * its first window to appear. This is deliberately much smaller than Mocha's
- * `before all` hook timeout (120s) so that a crashed or hung launch fails fast
- * with an actionable error instead of bubbling up as an opaque hook timeout.
- */
 const LAUNCH_TIMEOUT = 60_000;
 
 export async function launch(options: LaunchOptions): Promise<{ electronProcess: ChildProcess; driver: PlaywrightDriver }> {
 
-	// Resolve electron config and update
 	const { electronPath, args, env } = await resolveElectronConfiguration(options);
 	args.push('--enable-smoke-test-driver');
 
-	// Launch electron via playwright
 	const { electron, context, page } = await launchElectron({ electronPath, args, env }, options);
 	const electronProcess = electron.process();
 
 	return {
 		electronProcess,
-		driver: new PlaywrightDriver(electron, context, page, undefined /* no server process */, Promise.resolve() /* Window is open already */, options)
+		driver: new PlaywrightDriver(electron, context, page, undefined , Promise.resolve() , options)
 	};
 }
 
@@ -70,7 +62,7 @@ async function launchElectron(configuration: IElectronConfiguration, options: La
 		try {
 			await measureAndLog(() => context.tracing.start({ screenshots: true, snapshots }), 'context.tracing.start()', logger);
 		} catch (error) {
-			logger.log(`Playwright (Electron): Failed to start playwright tracing (${error})`); // do not fail the build when this fails
+			logger.log(`Playwright (Electron): Failed to start playwright tracing (${error})`);
 		}
 	}
 
@@ -102,11 +94,6 @@ async function launchElectron(configuration: IElectronConfiguration, options: La
 	return { electron, context, page: window };
 }
 
-/**
- * Turns a low-level Playwright launch failure (e.g. a launch timeout caused by
- * the Electron process crashing during startup) into an actionable error that
- * points at the crash dumps and traces collected for this run.
- */
 function enrichLaunchError(error: unknown, options: LaunchOptions): Error {
 	const original = error instanceof Error ? error.message : String(error);
 	const enriched = new Error(

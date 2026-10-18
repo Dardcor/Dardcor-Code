@@ -3,13 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { LanguageModelChatInformation, LanguageModelChatProvider, lm } from 'vscode';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
+import { RunOnceScheduler } from '../../../util/dardcor/base/common/async';
 import { Disposable, DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
-import { BYOKKnownModels, isClientBYOKAllowed } from '../../byok/common/byokProvider';
+import { BYOKKnownModels, BYOKModelCapabilities } from '../../byok/common/byokProvider';
 import { IExtensionContribution } from '../../common/contributions';
 import { AbstractLanguageModelChatProvider } from './abstractLanguageModelChatProvider';
 import { AnthropicLMProvider } from './anthropicProvider';
@@ -29,20 +29,22 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 	private readonly _providers: Map<string, LanguageModelChatProvider<LanguageModelChatInformation>> = new Map();
 	private readonly _providerRegistrations = this._register(new DisposableStore());
 	private _providersRegistered = false;
-	private _knownModelsRefreshed = false;
+	private _knownModelsRefreshDelayMs = 5_000;
 	private _knownModelsRefreshTargets: ReadonlyArray<readonly [string, AbstractLanguageModelChatProvider]> = [];
+	private readonly _knownModelsRefreshScheduler = this._register(new RunOnceScheduler(() => {
+		void this._refreshKnownModelsWithRetry();
+	}, 0));
 
 	constructor(
 		@IFetcherService private readonly _fetcherService: IFetcherService,
 		@ILogService private readonly _logService: ILogService,
 		@IVSCodeExtensionContext extensionContext: IVSCodeExtensionContext,
-		@IAuthenticationService private readonly _authService: IAuthenticationService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 	) {
 		super();
 		this._byokStorageService = new BYOKStorageService(extensionContext);
-		this._applyPolicy();
-		this._register(this._authService.onDidAuthenticationChange(() => this._applyPolicy()));
+		this._registerProviders();
+		this._knownModelsRefreshScheduler.schedule();
 	}
 
 	private _buildProviders(): void {
@@ -71,9 +73,8 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 		];
 	}
 
-	private _applyPolicy(): void {
-		const allowed = isClientBYOKAllowed(!!this._authService.anyGitHubSession, this._authService.dardcorToken);
-		if (allowed && !this._providersRegistered) {
+	private _registerProviders(): void {
+		if (!this._providersRegistered) {
 			if (this._providers.size === 0) {
 				this._buildProviders();
 			}
@@ -82,17 +83,26 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 			}
 			this._providersRegistered = true;
 			this._logService.info(`BYOK: registered ${this._providers.size} provider(s): ${Array.from(this._providers.keys()).join(', ')}`);
-			if (!this._knownModelsRefreshed) {
-				this._knownModelsRefreshed = true;
-				void this._refreshKnownModels().catch(err => {
-					this._knownModelsRefreshed = false;
-					this._logService.warn(`BYOK: failed to refresh known models, will retry on next allowed transition: ${err instanceof Error ? err.message : String(err)}`);
-				});
+		}
+	}
+
+	private async _refreshKnownModelsWithRetry(): Promise<void> {
+		if (this._store.isDisposed) {
+			return;
+		}
+
+		try {
+			await this._refreshKnownModels();
+			this._knownModelsRefreshDelayMs = 5_000;
+		} catch (err) {
+			if (this._store.isDisposed) {
+				return;
 			}
-		} else if (!allowed && this._providersRegistered) {
-			this._providerRegistrations.clear();
-			this._providersRegistered = false;
-			this._logService.info('BYOK: unregistered providers due to enterprise policy.');
+
+			const retryDelayMs = this._knownModelsRefreshDelayMs;
+			this._logService.warn(`BYOK: failed to refresh the Dardcor model catalog; retrying in ${Math.round(retryDelayMs / 1000)} seconds: ${err instanceof Error ? err.message : String(err)}`);
+			this._knownModelsRefreshScheduler.schedule(retryDelayMs);
+			this._knownModelsRefreshDelayMs = Math.min(retryDelayMs * 2, 5 * 60 * 1000);
 		}
 	}
 
@@ -108,14 +118,38 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 
 	private async _fetchKnownModelList(fetcherService: IFetcherService): Promise<Record<string, BYOKKnownModels>> {
 		this._logService.info('BYOK: fetching known models list');
-		const data = await (await fetcherService.fetch('https://main.vscode-cdn.net/extensions/dardcorChat.json', { method: 'GET', callSite: 'byok-known-models' })).json();
-		// Use this for testing with changes from a local file. Don't check in
-		// const data = JSON.parse((await this._fileSystemService.readFile(URI.file('/Users/roblou/code/vscode-engineering/chat/dardcorChat.json'))).toString());
-		if (data.version !== 1) {
-			this._logService.warn('BYOK: Copilot Chat known models list is not in the expected format. Defaulting to empty list.');
-			return {};
+		const response = await fetcherService.fetch('https://main.vscode-cdn.net/extensions/dardcorChat.json', { method: 'GET', callSite: 'byok-known-models' });
+		if (!response.ok) {
+			throw new Error(`The Dardcor model catalog request failed with HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}.`);
 		}
-		this._logService.info('BYOK: Copilot Chat known models list fetched successfully.');
-		return data.modelInfo;
+		const data: unknown = await response.json();
+		if (!isRecord(data) || data.version !== 1 || !isRecord(data.modelInfo)) {
+			throw new Error('The Dardcor model catalog has an unsupported or malformed format.');
+		}
+		for (const [providerName, providerModels] of Object.entries(data.modelInfo)) {
+			if (!isRecord(providerModels) || !Object.values(providerModels).every(isBYOKModelCapabilities)) {
+				throw new Error(`The Dardcor model catalog contains invalid entries for provider '${providerName}'.`);
+			}
+		}
+		this._logService.info('BYOK: Dardcor model catalog fetched successfully.');
+		return data.modelInfo as Record<string, BYOKKnownModels>;
 	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isBYOKModelCapabilities(value: unknown): value is BYOKModelCapabilities {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return typeof value.name === 'string'
+		&& typeof value.maxOutputTokens === 'number'
+		&& Number.isFinite(value.maxOutputTokens)
+		&& value.maxOutputTokens > 0
+		&& (value.maxInputTokens === undefined || (typeof value.maxInputTokens === 'number' && Number.isFinite(value.maxInputTokens) && value.maxInputTokens >= 0))
+		&& (value.contextWindow === undefined || (typeof value.contextWindow === 'number' && Number.isFinite(value.contextWindow) && value.contextWindow > 0))
+		&& typeof value.toolCalling === 'boolean'
+		&& typeof value.vision === 'boolean';
 }

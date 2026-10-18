@@ -11,13 +11,7 @@ export const IOnboardingService = createDecorator<IOnboardingService>('onboardin
 export interface IOnboardingService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Fires when the onboarding modal is dismissed.
-	 */
 	readonly onDidDismiss: Event<void>;
 
-	/**
-	 * Show the onboarding modal.
-	 */
 	show(): void;
 }

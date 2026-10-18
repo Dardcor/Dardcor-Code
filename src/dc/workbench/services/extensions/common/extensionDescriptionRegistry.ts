@@ -30,12 +30,10 @@ export class ExtensionDescriptionRegistry extends Disposable implements IReadOnl
 
 	public static isHostExtension(extensionId: ExtensionIdentifier | string, myRegistry: ExtensionDescriptionRegistry, globalRegistry: ExtensionDescriptionRegistry): boolean {
 		if (myRegistry.getExtensionDescription(extensionId)) {
-			// I have this extension
 			return false;
 		}
 		const extensionDescription = globalRegistry.getExtensionDescription(extensionId);
 		if (!extensionDescription) {
-			// unknown extension
 			return false;
 		}
 		if ((extensionDescription.main || extensionDescription.browser) && extensionDescription.api === 'none') {
@@ -63,7 +61,6 @@ export class ExtensionDescriptionRegistry extends Disposable implements IReadOnl
 	}
 
 	private _initialize(): void {
-		// Ensure extensions are stored in the order: builtin, user, under development
 		this._extensionDescriptions.sort(extensionCmp);
 
 		this._extensionsMap = new ExtensionIdentifierMap<IExtensionDescription>();
@@ -72,7 +69,6 @@ export class ExtensionDescriptionRegistry extends Disposable implements IReadOnl
 
 		for (const extensionDescription of this._extensionDescriptions) {
 			if (this._extensionsMap.has(extensionDescription.identifier)) {
-				// No overwriting allowed!
 				console.error('Extension `' + extensionDescription.identifier.value + '` is already registered');
 				continue;
 			}
@@ -101,14 +97,10 @@ export class ExtensionDescriptionRegistry extends Disposable implements IReadOnl
 	}
 
 	public deltaExtensions(toAdd: IExtensionDescription[], toRemove: ExtensionIdentifier[]): DeltaExtensionsResult {
-		// It is possible that an extension is removed, only to be added again at a different version
-		// so we will first handle removals
 		this._extensionDescriptions = removeExtensions(this._extensionDescriptions, toRemove);
 
-		// Then, handle the extensions to add
 		this._extensionDescriptions = this._extensionDescriptions.concat(toAdd);
 
-		// Immediately remove looping extensions!
 		const looping = ExtensionDescriptionRegistry._findLoopingExtensions(this._extensionDescriptions);
 		this._extensionDescriptions = removeExtensions(this._extensionDescriptions, looping.map(ext => ext.identifier));
 
@@ -174,18 +166,15 @@ export class ExtensionDescriptionRegistry extends Disposable implements IReadOnl
 			}
 		}
 
-		// initialize with all extensions with no dependencies.
 		const good = new Set<string>();
 		G.getNodes().filter(id => G.getArcs(id).length === 0).forEach(id => good.add(id));
 
-		// all other extensions will be processed below.
 		const nodes = G.getNodes().filter(id => !good.has(id));
 
 		let madeProgress: boolean;
 		do {
 			madeProgress = false;
 
-			// find one extension which has only good deps
 			for (let i = 0; i < nodes.length; i++) {
 				const id = nodes[i];
 
@@ -198,7 +187,6 @@ export class ExtensionDescriptionRegistry extends Disposable implements IReadOnl
 			}
 		} while (madeProgress);
 
-		// The remaining nodes are bad and have loops
 		return nodes.map(id => descs.get(id)!);
 	}
 
@@ -353,11 +341,9 @@ class Lock {
 
 	private _advance(): void {
 		if (this._isLocked) {
-			// cannot advance yet
 			return;
 		}
 		if (this._pendingCustomers.length === 0) {
-			// no more waiting customers
 			return;
 		}
 
@@ -370,7 +356,7 @@ class Lock {
 			if (customerHoldsLock) {
 				console.warn(`The customer named ${customer.name} has been holding on to the lock for 30s. This might be a problem.`);
 			}
-		}, 30 * 1000 /* 30 seconds */);
+		}, 30 * 1000 );
 
 		const releaseLock = () => {
 			if (!customerHoldsLock) {
@@ -392,14 +378,6 @@ const enum SortBucket {
 	Dev = 2
 }
 
-/**
- * Ensure that:
- * - first are builtin extensions
- * - second are user extensions
- * - third are extensions under development
- *
- * In each bucket, extensions must be sorted alphabetically by their folder name.
- */
 function extensionCmp(a: IExtensionDescription, b: IExtensionDescription): number {
 	const aSortBucket = (a.isBuiltin ? SortBucket.Builtin : a.isUnderDevelopment ? SortBucket.Dev : SortBucket.User);
 	const bSortBucket = (b.isBuiltin ? SortBucket.Builtin : b.isUnderDevelopment ? SortBucket.Dev : SortBucket.User);

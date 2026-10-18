@@ -26,13 +26,13 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 				]
 			),
 			[
-				'0  1  2  3  x  y  7  8  9  ', // The line
+				'0  1  2  3  x  y  7  8  9  ',
 
-				'0  0  0  0  0  0  0  0  0  0  ', // the old line numbers
-				'0  1  2  3  4  5  7  8  9  10 ', // the old columns
+				'0  0  0  0  0  0  0  0  0  0  ',
+				'0  1  2  3  4  5  7  8  9  10 ',
 
-				'0  0  0  0  0  0  ∞  ∞  ∞  ∞  ', // line count until next change
-				'4  3  2  1  0  0  ∞  ∞  ∞  ∞  ', // column count until next change
+				'0  0  0  0  0  0  ∞  ∞  ∞  ∞  ',
+				'4  3  2  1  0  0  ∞  ∞  ∞  ∞  ',
 			]
 		);
 	});
@@ -81,7 +81,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ',
 				'3  2  1  0  0  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ',
-				// ------------------
 				'⁰  ¹  ²  ³  ⁴  ⁵  ⁶  ⁷  ⁸  ⁹  ',
 
 				'2  2  2  2  2  2  2  2  2  2  2  ',
@@ -115,7 +114,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  0  0  0  0  0  0  ∞  ∞  ∞  ',
 				'3  2  1  0  0  5  4  3  2  1  0  ∞  ∞  ∞  ',
-				// ------------------
 				'⁰  ¹  ²  ³  ⁴  ⁵  ⁶  ⁷  ⁸  ⁹  ',
 
 				'2  2  2  2  2  2  2  2  2  2  2  ',
@@ -173,7 +171,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  ',
 				'3  2  1  0  0  ',
-				// ------------------
 				'b  5  6  7  8  ',
 
 				'1  0  0  0  0  0  ',
@@ -205,7 +202,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  ',
 				'3  2  1  0  0  ',
-				// ------------------
 				'b  5  6  x  ',
 
 				'1  0  0  0  0  ',
@@ -213,7 +209,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  ',
 				'0  2  1  0  0  ',
-				// ------------------
 				'y  8  ',
 
 				'1  0  0  ',
@@ -245,7 +240,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  0  0  ',
 				'3  2  1  0  0  0  0  ',
-				// ------------------
 				'b  b  b  1  2  3  4  5  6  7  8  ',
 
 				'1  1  1  1  1  1  1  1  1  1  1  1  ',
@@ -253,7 +247,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ',
 				'0  0  0  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ∞  ',
-				// ------------------
 				'⁰  ¹  ²  ³  ⁴  ⁵  ⁶  ⁷  ⁸  ⁹  ',
 
 				'2  2  2  2  2  2  2  2  2  2  2  ',
@@ -288,7 +281,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  0  0  ',
 				'3  2  1  0  0  0  0  ',
-				// ------------------
 				'b  b  b  1  2  3  4  x  ',
 
 				'1  1  1  1  1  1  1  1  1  ',
@@ -296,7 +288,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  0  0  0  0  ',
 				'0  0  0  4  3  2  1  0  0  ',
-				// ------------------
 				'y  5  6  k  ',
 
 				'2  1  1  1  1  ',
@@ -304,7 +295,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 
 				'0  0  0  0  0  ',
 				'0  2  1  0  0  ',
-				// ------------------
 				'l  ⁴  ⁵  ⁶  ⁷  ⁸  ⁹  ',
 
 				'2  2  2  2  2  2  2  2  ',
@@ -317,7 +307,6 @@ suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 	});
 });
 
-/** @pure */
 function compute(inputArr: string[], edits: TextEdit[]): string[] {
 	const newLines = splitLines(applyLineColumnEdits(inputArr.join('\n'), edits.map(e => ({
 		text: e.newText,

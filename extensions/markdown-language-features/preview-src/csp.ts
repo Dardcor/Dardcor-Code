@@ -7,9 +7,6 @@ import { MessagePoster } from './messaging';
 import { SettingsManager } from './settings';
 import { getStrings } from './strings';
 
-/**
- * Shows an alert when there is a content security policy violation.
- */
 export class CspAlerter {
 	#didShow = false;
 	#didHaveCspWarning = false;

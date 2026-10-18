@@ -201,7 +201,6 @@ export function registerChatTitleActions() {
 
 			let item = args[0];
 			if (isChatEditingActionContext(item)) {
-				// Resolve chat editing action context to the last response VM
 				item = chatWidgetService.getWidgetBySessionResource(item.sessionResource)?.viewModel?.getItems().at(-1);
 			}
 			if (!isResponseVM(item)) {
@@ -222,7 +221,6 @@ export function registerChatTitleActions() {
 					return;
 				}
 
-				// Prompt if the last request modified the working set and the user hasn't already disabled the dialog
 				const entriesModifiedInLastRequest = currentEditingSession.entries.get().filter((entry) => entry.lastModifyingRequestId === item.requestId);
 				const shouldPrompt = entriesModifiedInLastRequest.length > 0 && configurationService.getValue('chat.editing.confirmEditRequestRetry') === true;
 				const confirmation = shouldPrompt
@@ -245,7 +243,6 @@ export function registerChatTitleActions() {
 					await configurationService.updateValue('chat.editing.confirmEditRequestRetry', false);
 				}
 
-				// Reset the snapshot to the first stop (undefined undo index)
 				const snapshotRequest = chatRequests[itemIndex];
 				if (snapshotRequest) {
 					await currentEditingSession.restoreSnapshot(snapshotRequest.id, undefined);

@@ -390,7 +390,6 @@ suite('ChatWidget - acceptAndAwaitSentRequest', () => {
 		let accepted = 0;
 
 		const pending = acceptAndAwaitSentRequest({ kind: 'queued', requestId: 'test-id-1', deferred: deferred.p }, () => accepted++);
-		// The queued request has not run yet, so `pending` is still unresolved here.
 		const acceptedWhileQueued = accepted === 1;
 
 		const result = sentResult();

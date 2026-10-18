@@ -112,7 +112,6 @@ class MarkerStats implements MarkerStatistics {
 	private _resourceStats(resource: URI): MarkerStatistics {
 		const result: MarkerStatistics = { errors: 0, warnings: 0, infos: 0, unknowns: 0 };
 
-		// TODO this is a hack
 		if (unsupportedSchemas.has(resource.scheme)) {
 			return result;
 		}
@@ -179,14 +178,12 @@ export class MarkerService implements IMarkerService {
 	changeOne(owner: string, resource: URI, markerData: IMarkerData[]): void {
 
 		if (isFalsyOrEmpty(markerData)) {
-			// remove marker for this (owner,resource)-tuple
 			const removed = this._data.delete(resource, owner);
 			if (removed) {
 				this._onMarkerChanged.fire([resource]);
 			}
 
 		} else {
-			// insert marker for this (owner,resource)-tuple
 			const markers: IMarker[] = [];
 			for (const data of markerData) {
 				const marker = MarkerService._toMarker(owner, resource, data);
@@ -239,7 +236,6 @@ export class MarkerService implements IMarkerService {
 			return undefined;
 		}
 
-		// santize data
 		startLineNumber = startLineNumber > 0 ? startLineNumber : 1;
 		startColumn = startColumn > 0 ? startColumn : 1;
 		endLineNumber = endLineNumber >= startLineNumber ? endLineNumber : startLineNumber;
@@ -266,7 +262,6 @@ export class MarkerService implements IMarkerService {
 	changeAll(owner: string, data: IResourceMarker[]): void {
 		const changes: URI[] = [];
 
-		// remove old marker
 		const existing = this._data.values(owner);
 		if (existing) {
 			for (const data of existing) {
@@ -278,15 +273,12 @@ export class MarkerService implements IMarkerService {
 			}
 		}
 
-		// add new markers
 		if (isNonEmptyArray(data)) {
 
-			// group by resource
 			const groups = new ResourceMap<IMarker[]>();
 			for (const { resource, marker: markerData } of data) {
 				const marker = MarkerService._toMarker(owner, resource, markerData);
 				if (!marker) {
-					// filter bad markers
 					continue;
 				}
 				const array = groups.get(resource);
@@ -298,7 +290,6 @@ export class MarkerService implements IMarkerService {
 				}
 			}
 
-			// insert all
 			for (const [resource, value] of groups) {
 				this._data.set(resource, owner, value);
 			}
@@ -309,9 +300,6 @@ export class MarkerService implements IMarkerService {
 		}
 	}
 
-	/**
-	 * Creates an information marker for filtered resources
-	 */
 	private _createFilteredMarker(resource: URI, reasons: string[]): IMarker {
 		const message = reasons.length === 1
 			? localize('filtered', "Problems are paused because: \"{0}\"", reasons[0])
@@ -338,7 +326,6 @@ export class MarkerService implements IMarkerService {
 		}
 
 		if (owner && resource) {
-			// exactly one owner AND resource
 			const reasons = !filter.ignoreResourceFilters ? this._filteredResources.get(resource) : undefined;
 			if (reasons?.length) {
 				const infoMarker = this._createFilteredMarker(resource, reasons);
@@ -366,7 +353,6 @@ export class MarkerService implements IMarkerService {
 			return result;
 
 		} else {
-			// of one resource OR owner
 			const iterable = !owner && !resource
 				? this._data.values()
 				: this._data.values(resource ?? owner!);
@@ -400,7 +386,6 @@ export class MarkerService implements IMarkerService {
 		return severities === undefined || (severities & marker.severity) === marker.severity;
 	}
 
-	// --- event debounce logic
 
 	private static _merge(all: (readonly URI[])[]): URI[] {
 		const set = new ResourceMap<boolean>();

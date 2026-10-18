@@ -9,11 +9,6 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 import { INativeHostService } from '../../../../platform/native/common/native.js';
 import { IGitHubUploadResult, IGitHubUploadService } from '../browser/githubUploadService.js';
 
-/**
- * GitHub upload service using the Mobile Upload API.
- *
- * Uploads files via the main process (Electron net.fetch) to bypass CORS.
- */
 export class NativeGitHubUploadService extends Disposable implements IGitHubUploadService {
 
 	readonly _serviceBrand: undefined;

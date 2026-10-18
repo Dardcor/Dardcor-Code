@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -69,7 +68,6 @@ class Deps {
 	}
 }
 
-/** This is to break circular module dependencies. */
 export function _setPositionOffsetTransformerDependencies(deps: IDeps): void {
 	Deps._deps = deps;
 }

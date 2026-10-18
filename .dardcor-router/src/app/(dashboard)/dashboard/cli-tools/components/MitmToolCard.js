@@ -5,12 +5,6 @@ import { Card, Button, Badge, Input, ModelSelectModal } from "@/shared/component
 import { TOOL_HOSTS } from "@/shared/constants/mitmToolHosts";
 import Image from "next/image";
 
-/**
- * Per-tool MITM card — shows DNS status + model mappings.
- * - Auto-saves model mapping on blur or modal select
- * - Skips sudo modal if password is already cached
- * - Model mappings can only be edited when DNS is active
- */
 export default function MitmToolCard({
   tool,
   isExpanded,
@@ -51,7 +45,7 @@ export default function MitmToolCard({
         const data = await res.json();
         if (Object.keys(data.aliases || {}).length > 0) setModelMappings(data.aliases);
       }
-    } catch { /* ignore */ }
+    } catch { }
   };
 
   const saveMappings = useCallback(async (mappings) => {
@@ -61,7 +55,7 @@ export default function MitmToolCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tool: tool.id, mappings }),
       });
-    } catch { /* ignore */ }
+    } catch { }
   }, [tool.id]);
 
   const handleMappingBlur = (alias, value) => {
@@ -115,7 +109,7 @@ export default function MitmToolCard({
       setShowPasswordModal(false);
       setSudoPassword("");
       onDnsChange?.(data);
-    } catch { /* ignore */ } finally {
+    } catch { } finally {
       setLoading(false);
       setPendingDnsAction(null);
     }
@@ -168,7 +162,7 @@ export default function MitmToolCard({
 
         {isExpanded && (
           <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
-            {/* Hosts */}
+            {}
             {mitmHosts.length > 0 && (
               <div className="mt-2 rounded-md border border-border bg-surface/50 px-2 py-1.5">
                 <p className="text-[10px] font-medium tracking-wide text-text-main/80 mb-1">
@@ -181,7 +175,7 @@ export default function MitmToolCard({
                 </ul>
               </div>
             )}
-            {/* Info */}
+            {}
             <div className="flex flex-col gap-0.5 text-[11px] text-text-muted px-1">
               <p>Toggle DNS to redirect {tool.name} traffic through Dardcor Router via MITM.</p>
               {!dnsActive && (
@@ -191,7 +185,7 @@ export default function MitmToolCard({
               )}
             </div>
 
-            {/* Model Mappings */}
+            {}
             {tool.defaultModels?.length > 0 && (
               <div className="flex flex-col gap-2">
                 {tool.defaultModels.map((model) => (
@@ -237,7 +231,7 @@ export default function MitmToolCard({
               <p className="text-xs text-text-muted px-1">Model mappings will be available soon.</p>
             )}
 
-            {/* Start / Stop DNS button */}
+            {}
             <div className="flex flex-col gap-2 sm:items-start">
               {dnsActive ? (
                 <button
@@ -259,7 +253,7 @@ export default function MitmToolCard({
                 </button>
               )}
 
-              {/* Warning below button */}
+              {}
               {warning && (
                 <div className="flex items-center gap-2 px-2 py-1.5 rounded text-xs text-amber-500">
                   <span className="material-symbols-outlined text-[14px]">warning</span>
@@ -271,7 +265,7 @@ export default function MitmToolCard({
         )}
       </Card>
 
-      {/* Password Modal */}
+      {}
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="mx-4 flex w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-surface p-5 shadow-xl sm:p-6">
@@ -305,7 +299,7 @@ export default function MitmToolCard({
         </div>
       )}
 
-      {/* Model Select Modal */}
+      {}
       {modalOpen && (
         <ModelSelectModal
           isOpen={modalOpen}

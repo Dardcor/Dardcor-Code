@@ -15,7 +15,6 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { createStyleSheet } from '../../../../base/browser/domStylesheets.js';
 
 
-// colors for theming
 
 export const STATUS_BAR_DEBUGGING_BACKGROUND = registerColor('statusBar.debuggingBackground', {
 	dark: '#CC6633',

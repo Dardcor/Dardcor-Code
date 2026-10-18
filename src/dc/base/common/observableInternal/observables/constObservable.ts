@@ -6,9 +6,6 @@
 import { IObservable, IObserver, IObservableWithChange } from '../base.js';
 import { ConvenientObservable } from './baseObservable.js';
 
-/**
- * Represents an efficient observable whose value never changes.
- */
 
 export function constObservable<T>(value: T): IObservable<T> {
 	return new ConstObservable(value);
@@ -26,10 +23,8 @@ class ConstObservable<T> extends ConvenientObservable<T, void> {
 		return this.value;
 	}
 	public addObserver(observer: IObserver): void {
-		// NO OP
 	}
 	public removeObserver(observer: IObserver): void {
-		// NO OP
 	}
 
 	override log(): IObservableWithChange<T, void> {

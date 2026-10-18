@@ -36,7 +36,7 @@ import { Tag } from '../../prompts/node/base/tag';
 import { EXISTING_CODE_MARKER } from '../../prompts/node/panel/codeBlockFormattingRules';
 import { CodeBlock } from '../../prompts/node/panel/safeElements';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { createEditConfirmation } from './editFileToolUtils';
 import { resolveToolInputPath } from './toolUtils';
@@ -59,7 +59,7 @@ class ErrorWithTelemetrySafeReason extends Error {
 		super(message);
 	}
 }
-export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
+export class EditNotebookTool implements IAgentTool<IEditNotebookToolParams> {
 	public static toolName = ToolName.EditNotebook;
 	private promptContext?: IBuildPromptContext;
 
@@ -80,11 +80,8 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 			sendEditNotebookToolOutcomeTelemetry(this.telemetryService, this.endpointProvider, options, 'invalid_file_path');
 			throw new ErrorWithTelemetrySafeReason(`Invalid file path`, 'invalid_file_path');
 		}
-		// Sometimes we get the notebook cell Uri in the resource.
-		// Resolve this to notebook.
 		uri = findNotebook(uri, this.workspaceService.notebookDocuments)?.uri || uri;
 
-		// Validate parameters
 		const stream = this.promptContext?.stream;
 		if (!stream) {
 			sendEditNotebookToolOutcomeTelemetry(this.telemetryService, this.endpointProvider, options, 'invalid_input_no_stream');
@@ -98,8 +95,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 			if (await this.fileSystemService.stat(uri).catch(() => false)) {
 				throw error;
 			} else {
-				// Possible the notebook does not exist and model is trying to create a new notebook.
-				// Edit tool doesn't support creating a new notebook.
 				const editFileToolExists = this.promptContext?.tools?.availableTools?.some(t => t.name === ToolName.EditFile);
 				const toolToCreateFile = editFileToolExists ? ToolName.EditFile : ToolName.CreateFile;
 				const message = error.message || error.toString();
@@ -119,9 +114,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 		const expectedCellEdits: ChangedCell[] = [];
 		const expectedCellTextEdits: [vscode.Uri, TextEdit][] = [];
 
-		// We must wait for all of the cell edits to get applied.
-		// This way we can return the final state of the notebook.
-		// We do the same in edit file too as well. Not doing this could result in inconsistencies as model will have an invalid state of the notebook document.
 		const done = new EventEmitter<void>();
 		const disposables = new DisposableStore();
 		disposables.add(toDisposable(() => { done.fire(); done.dispose(); }));
@@ -133,22 +125,19 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 		let failureData: string | undefined = undefined;
 		let editOperation: 'insert' | 'edit' | 'delete' | undefined = undefined;
 		try {
-			// First validate all of the args begore applying any changes.
 			const { editType, language, newCode, cellId } = this.fixInput(options.input, notebook, provider);
 			editOperation = editType;
 			this.validateInput({ editType, cellId, newCode }, notebook);
 			stream.notebookEdit(notebookUri, []);
 			const cellMap = getCellIdMap(notebook);
 			if (editType === 'insert') {
-				let notebookCellIndex = -1; // Index in notebook where we are to insert this new cell.
-				let cellsCellIndex = -1; // Index in cells array.
-				let originalIndex = -1; // Original intended Notebook Cell Index.
+				let notebookCellIndex = -1;
+				let cellsCellIndex = -1;
+				let originalIndex = -1;
 
 				if (cellId === 'top') {
 					originalIndex = 0;
 
-					// Possible we have already inserted a cell at the top.
-					// We need to find the last cell that was inserted at the top.
 					const entry = findLast(cells, item => item.type === 'insert' && item.originalIndex === 0);
 					if (entry) {
 						cellsCellIndex = cells.indexOf(entry) + 1;
@@ -158,8 +147,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 						notebookCellIndex = 0;
 					}
 				} else if (cellId === 'bottom') {
-					// Possible we have already inserted a cell at the bottom.
-					// We need to find the last cell that was inserted at the bottom.
 					cellsCellIndex = cells.length;
 					notebookCellIndex = cells.filter(item => item.type !== 'delete').length;
 				} else {
@@ -171,8 +158,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 					cellsCellIndex = cells.indexOf(entry) + 1;
 					originalIndex = notebookCellIndex = entry.index + 1;
 
-					// Possible we have already inserted a cell at the top.
-					// We need to find the last cell that was inserted at the top.
 					const inserted = findLast(cells, item => item.type === 'insert' && item.originalIndex === originalIndex);
 					if (inserted) {
 						cellsCellIndex = cells.indexOf(inserted) + 1;
@@ -185,7 +170,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 				const cell = new NotebookCellData(cellKind, newCode || '', language);
 				expectedCellEdits.push({ type: 'insert', index: notebookCellIndex, cell, originalIndex });
 
-				// Shift other indexes by 1.
 				cells.filter(({ type }) => type !== 'delete').filter(({ index }) => index >= notebookCellIndex).forEach(item => item.index = item.index + 1);
 				cells.splice(cellsCellIndex, 0, { cell, index: notebookCellIndex, type: 'insert', originalIndex });
 				stream.notebookEdit(notebookUri, NotebookEdit.insertCells(notebookCellIndex, [cell]));
@@ -202,7 +186,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 				if (editType === 'delete') {
 					const cellRange = new NotebookRange(cellIndex, cellIndex + 1);
 
-					// Shift other indexes by 1.
 					const cell = cells.find(({ index, type }) => index === cellIndex && type === 'existing')!;
 					expectedCellEdits.push({ type: 'delete', cell: cell.cell as vscode.NotebookCell, index: cellIndex });
 					cell.type = 'delete';
@@ -231,9 +214,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 
 			done.fire();
 
-			// Possible this logic for waiting for edits is wrong.
-			// Wait for a max of 10s, if not done, then log an error and return.
-			// Worse case scenario, we report incorrect content in the response.
 			const timeoutPromise = new StatefulPromise(new Promise<void>((resolve) => {
 				const timeout = setTimeout(() => {
 					if (expectedCellEdits.length) {
@@ -254,7 +234,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 				return;
 			}
 
-			// If we timedout waiting for edit operations to complete, we don't want to return the result.
 			if (timeoutPromise.isResolved) {
 				return new LanguageModelToolResult([
 					new LanguageModelTextPart(
@@ -269,8 +248,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 						this.instantiationService,
 						EditFileResult,
 						{ document: notebook, changes: cells, languageModel: this.promptContext?.request?.model },
-						// If we are not called with tokenization options, have _some_ fake tokenizer
-						// otherwise we end up returning the entire document
 						options.tokenizationOptions ?? {
 							tokenBudget: 1000,
 							countTokens: (t) => Promise.resolve(t.length * 3 / 4)
@@ -335,7 +312,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 	}
 
 	private validateInput({ editType, cellId, newCode }: { editType: 'edit' | 'insert' | 'delete'; cellId: string; newCode: string | undefined }, notebook: vscode.NotebookDocument) {
-		// Possible we'll get cellId as a number such as -1 when inserting a cell at the top.
 		const id = cellId;
 		const cellMap = getCellIdMap(notebook);
 		const cell = (id && id !== 'top' && id !== 'bottom') ? cellMap.get(id) : undefined;
@@ -349,8 +325,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 				}
 				if (newCode.length && isJupyterNotebook(notebook)) {
 					if (newCode.startsWith('{') && newCode.includes('"cell_type') && newCode.includes('"source') && newCode.endsWith('}')) {
-						// Possible the entire notebook JSON was provided as newCode.
-						// This is not supported.
 						throw new ErrorWithTelemetrySafeReason('When inserting cell(s) do NOT provide the entire notebook JSON as newCode. Provide the code (as plain text) for the cell instead.', 'gotEntireNotebookJson');
 					}
 				}
@@ -375,7 +349,7 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 	}
 
 	private fixInput(input: IEditNotebookToolParams, notebook: vscode.NotebookDocument, provider: BaseAlternativeNotebookContentProvider) {
-		const language = input.language || getDefaultLanguage(notebook) || 'python'; // Default to Python if no language
+		const language = input.language || getDefaultLanguage(notebook) || 'python';
 		let cellId = (input.cellId || '').toString().trim();
 		if (cellId.toLowerCase() === 'top') {
 			cellId = 'top';
@@ -383,7 +357,6 @@ export class EditNotebookTool implements ICopilotTool<IEditNotebookToolParams> {
 		if (cellId.toLowerCase() === 'bottom') {
 			cellId = 'bottom';
 		}
-		// If the insertion has no cell id, then treat it as bottom.
 		if (input.editType === 'insert' && !cellId) {
 			cellId = 'bottom';
 		}
@@ -588,12 +561,6 @@ export class EditFileResult extends PromptElement<IEditFileResultProps> {
 		super(props);
 	}
 
-	/**
-	 * When cells are inserted, the model doesn't have the details of the ids of the new cells.
-	 * All it has is the cell ids of the cells after which the cells were inserted.
-	 * Its been observed that the model uses the ids of the cells that were used as args in editTool as identifiers of the new cells.
-	 * To try and avoid this hallucination, we need to show the cells that were inserted along with their ids.
-	 */
 	override async render(state: void, sizing: PromptSizing) {
 		const document = this.props.document;
 		const cellsToInlucdeInSummary: vscode.NotebookCell[] = [];
@@ -609,7 +576,6 @@ export class EditFileResult extends PromptElement<IEditFileResultProps> {
 				previousCell = cell;
 				return;
 			}
-			// This is a new cell, we need to include it in the summary.
 			if (previousCell && !cellsToInlucdeInSummary.includes(cell)) {
 				cellsToInlucdeInSummary.push(previousCell);
 			}
@@ -631,17 +597,6 @@ export async function sendEditNotebookTelemetry(telemetryService: ITelemetryServ
 	const resourceHash = await createSha256Hash(resource.fsPath);
 	const model = typeof chatModel === 'string' ? chatModel : (endpoint?.model ?? (chatModel && endpointProvider && (await endpointProvider.getChatEndpoint(chatModel)).model));
 
-	/* __GDPR__
-		"editNotebook.toolUsed" : {
-			"owner": "donjayamanne",
-			"comment": "Tracks the tool used to edit Notebook documents",
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-			"resourceHash": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The hash of the resource of the current request turn. (Notebook Uri)" },
-			"editTool": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Tool used to edit the notebook, one of 'notebookEdit' | 'applyPatch' | 'stringReplace' | 'newNotebookIntent' | 'editCodeIntent' | 'insertEdit' | 'createFile'" },
-			"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook (this measure is used to identify notebook related telemetry)." },
-			"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the request." }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('editNotebook.toolUsed',
 		{ requestId, editTool: toolUsedToEditNotebook, resourceHash, model }, { isNotebook: 1 }
 	);
@@ -650,17 +605,6 @@ export async function sendEditNotebookTelemetry(telemetryService: ITelemetryServ
 async function sendEditNotebookToolOutcomeTelemetry(telemetryService: ITelemetryService, endpointProvider: IEndpointProvider | undefined, options: vscode.LanguageModelToolInvocationOptions<IEditNotebookToolParams>, outcome: string, failureData?: string) {
 	const model = (options.model && endpointProvider && (await endpointProvider.getChatEndpoint(options.model)).model);
 
-	/* __GDPR__
-		"editNotebook.toolOutcome" : {
-			"owner": "donjayamanne",
-			"comment": "Tracks the tool used to edit Notebook documents",
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-			"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook (this measure is used to identify notebook related telemetry)." },
-			"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Outcome of the edit operation" },
-			"failureData": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Additional data about the failure, if any" },
-			"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the request." }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('editNotebook.toolOutcome',
 		{ requestId: options.chatRequestId, outcome, model, failureData }, { isNotebook: 1 }
 	);
@@ -668,18 +612,6 @@ async function sendEditNotebookToolOutcomeTelemetry(telemetryService: ITelemetry
 
 async function sendEditNotebookCellOperationsTelemetry(telemetryService: ITelemetryService, endpointProvider: IEndpointProvider | undefined, options: vscode.LanguageModelToolInvocationOptions<IEditNotebookToolParams>, editOperation: 'insert' | 'edit' | 'delete' | undefined) {
 	const model = (options.model && endpointProvider && (await endpointProvider.getChatEndpoint(options.model)).model);
-	/* __GDPR__
-		"editNotebook.cellEditOps" : {
-			"owner": "donjayamanne",
-			"comment": "Tracks the tool used to edit Notebook documents",
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-			"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook (this measure is used to identify notebook related telemetry)." },
-			"insert": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of cell inserts" },
-			"delete": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of cell deletes" },
-			"edit": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of cell edits" },
-			"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the request." }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('editNotebook.cellEditOps',
 		{ requestId: options.chatRequestId, model },
 		{
@@ -695,57 +627,8 @@ async function sendEditNotebookCellTelemetry(telemetryService: ITelemetryService
 	const resourceHash = await createSha256Hash(resource.fsPath);
 	const model = options.model && (await endpointProvider.getChatEndpoint(options.model)).model;
 
-	/* __GDPR__
-		"editNotebook.editCellWithCodeMarker" : {
-			"owner": "donjayamanne",
-			"comment": "Tracks the presence of code markers in code when editing Notebook cells",
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-			"resourceHash": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The hash of the resource of the current request turn. (Notebook Uri)" },
-			"hasCodeMarker": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether there any code markers are present", "isMeasurement": true },
-			"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook (this measure is used to identify notebook related telemetry)." },
-			"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the request." }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('editNotebook.editCellWithCodeMarker',
 		{ requestId: options.chatRequestId, resourceHash, model }, { hasCodeMarker: hasCodeMarker ? 1 : 0, isNotebook: 1 }
 	);
 }
 
-// This is what we get, when using indexes, Model generates multiple tool call,
-// Unfortunately this causes issues.
-// Basically we can get multiple tool calls one after the other.
-// However the tool has no idea whether the cell indexes relate to a previous state or latest state of notebook.
-// E.g. if we have 10 cells (a,b,c,d,e,f,g,h,i,j,k), and we apply the edits based on the following individual tool calls.
-// We want to delete indexes 2,3,4,6, hence expect cells c,d,e,g to be deleted.
-// However after each tool call, the notebook gets updated hence indexes shift.
-// As a result we end up deleting cells c,e,g,j.
-// Given indexes are not stable, we need to use cell ids.
-// This way if a cell is deleted and the id is incorrect, we can throw an error and model will request the latest state of the notebook.
-// Where as using indexes we could end up deleting/updating the wrong cells.
-/**
-## Response
-### Assistant
-````md
-
-🛠️ edit_notebook_file (call_j3TEKk5R0KHfMYhJo1x88QeS) {
-	"filePath": "/Users/donjayamanne/demo/chat/sample.ipynb",
-	"cellIndex": 2,
-	"editType": "delete"
-}
-🛠️ edit_notebook_file (call_Gv6WxrMzSIDMPE0lqqM3GbWo) {
-	"filePath": "/Users/donjayamanne/demo/chat/sample.ipynb",
-	"cellIndex": 3,
-	"editType": "delete"
-}
-🛠️ edit_notebook_file (call_iPokgpiaeYDV7JwnbAFgdgZD) {
-	"filePath": "/Users/donjayamanne/demo/chat/sample.ipynb",
-	"cellIndex": 4,
-	"editType": "delete"
-}
-🛠️ edit_notebook_file (call_8t3Ls4C3QLVDAeFXwU1dE7Hh) {
-	"filePath": "/Users/donjayamanne/demo/chat/sample.ipynb",
-	"cellIndex": 6,
-	"editType": "delete"
-}
-````
- */

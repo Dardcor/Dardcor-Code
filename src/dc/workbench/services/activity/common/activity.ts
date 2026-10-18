@@ -28,24 +28,12 @@ export interface IActivityService {
 	 */
 	readonly onDidChangeActivity: Event<string | ViewContainer>;
 
-	/**
-	 * Show activity for the given view container
-	 */
 	showViewContainerActivity(viewContainerId: string, badge: IActivity): IDisposable;
 
-	/**
-	 * Returns the activity for the given view container
-	 */
 	getViewContainerActivities(viewContainerId: string): IActivity[];
 
-	/**
-	 * Show activity for the given view
-	 */
 	showViewActivity(viewId: string, badge: IActivity): IDisposable;
 
-	/**
-	 * Show accounts activity
-	 */
 	showAccountsActivity(activity: IActivity): IDisposable;
 
 	/**
@@ -53,9 +41,6 @@ export interface IActivityService {
 	 */
 	showGlobalActivity(activity: IActivity): IDisposable;
 
-	/**
-	 * Return the activity for the given action
-	 */
 	getActivity(id: string): IActivity[];
 }
 

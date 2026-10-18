@@ -55,11 +55,6 @@ namespace LinkifierState {
 	export type State = typeof Default | CodeOrMathBlock | Accumulating;
 }
 
-/**
- * Stateful linkifier that incrementally linkifies appended text.
- *
- * Make sure to create a new linkifier for each response.
- */
 export class Linkifier implements ILinkifier {
 
 	private _state: LinkifierState.State = LinkifierState.Default;
@@ -78,8 +73,6 @@ export class Linkifier implements ILinkifier {
 	}
 
 	async append(newText: string, token: CancellationToken): Promise<LinkifiedText> {
-		// Linkification needs to run on whole sequences of characters. However the incoming stream may be broken up.
-		// To handle this, accumulate text until we have whole tokens.
 
 		const out: LinkifiedPart[] = [];
 
@@ -93,31 +86,22 @@ export class Linkifier implements ILinkifier {
 					if (/^\s+$/.test(part)) {
 						out.push(this.doAppend(part));
 					} else {
-						// Start accumulating
 
-						// `text...
 						if (/^[^\[`]*`[^`]*$/.test(part)) {
 							this._state = new LinkifierState.Accumulating(part, LinkifierState.AccumulationType.InlineCodeOrMath, '`');
 						}
-						// `text`
 						else if (/^`[^`]+`$/.test(part)) {
-							// No linkifying inside inline code
 							out.push(...(await this.doLinkifyAndAppend(part, { skipUnlikify: true }, token)).parts);
 						}
-						// $text...
 						else if (/^[^\[`]*\$[^\$]*$/.test(part)) {
 							this._state = new LinkifierState.Accumulating(part, LinkifierState.AccumulationType.InlineCodeOrMath, '$');
 						}
-						// $text$
 						else if (/^[^\[`]*\$[^\$]*\$$/.test(part)) {
-							// No linkifying inside math code
 							out.push(this.doAppend(part));
 						}
-						// [text...
 						else if (/^\s*\[[^\]]*$/.test(part)) {
 							this._state = new LinkifierState.Accumulating(part, LinkifierState.AccumulationType.PotentialLink);
 						}
-						// Plain old word
 						else {
 							this._state = new LinkifierState.Accumulating(part);
 						}
@@ -129,8 +113,6 @@ export class Linkifier implements ILinkifier {
 						new RegExp('(^|\\n)' + escapeRegExpCharacters(this._state.fence) + '($|\\n)').test(part)
 						|| (this._state.contents.length > 2 && new RegExp('(^|\\n)\\s*' + escapeRegExpCharacters(this._state.fence) + '($|\\n\\s*$)').test(this._appliedText + part))
 					) {
-						// To end the code block, the previous text needs to be empty up the start of the last line and
-						// at lower indentation than the opening code block.
 						const indent = this._appliedText.match(/(\n|^)([ \t]*)[`~]*$/);
 						if (indent && indent[2].length <= this._state.indent.length) {
 							this._state = LinkifierState.Default;
@@ -141,7 +123,6 @@ export class Linkifier implements ILinkifier {
 
 					this._state = this._state.appendContents(part);
 
-					// No linkifying inside code blocks
 					out.push(this.doAppend(part));
 					break;
 				}
@@ -170,13 +151,10 @@ export class Linkifier implements ILinkifier {
 							if (terminator === '`') {
 								await completeWord(this._state, part, true);
 							} else {
-								// Math shouldn't run linkifies
 
 								const pre = part.slice(0, terminalIndex + terminator.length);
-								// No linkifying inside inline math
 								out.push(this.doAppend(this._state.pendingText + pre));
 
-								// But we can linkify after
 								const rest = part.slice(terminalIndex + terminator.length);
 								this._state = LinkifierState.Default;
 								if (rest.length) {
@@ -189,7 +167,6 @@ export class Linkifier implements ILinkifier {
 						const toAppend = this._state.pendingText + part;
 						this._state = LinkifierState.Default;
 
-						// Check if we've found special tokens
 						const fence = toAppend.match(/(^|\n)\s*(`{3,}|~{3,}|\$\$)/);
 						if (fence) {
 							const indent = this._appliedText.match(/(\n|^)([ \t]*)$/);
@@ -204,7 +181,6 @@ export class Linkifier implements ILinkifier {
 						break;
 					}
 
-					// Keep accumulating
 					this._state = this._state.append(part);
 					break;
 				}
@@ -244,7 +220,6 @@ export class Linkifier implements ILinkifier {
 
 		this.doAppend(newText);
 
-		// Run contributed linkifiers
 		let parts: LinkifiedPart[] = [newText];
 		for (const linkifier of this.linkifiers) {
 			parts = coalesceParts(await this.runLinkifier(parts, linkifier, token));
@@ -253,13 +228,10 @@ export class Linkifier implements ILinkifier {
 			}
 		}
 
-		// Do a final pass that un-linkifies any file links that don't have a scheme.
-		// This prevents links like: [some text](index.html) from sneaking through as these can never be opened properly.
 		if (!options.skipUnlikify) {
 			parts = parts.map(part => {
 				if (typeof part === 'string') {
 					return part.replaceAll(/\[([^\[\]]+)\]\(([^\s\)]+)\)/g, (matched, text, path) => {
-						// Always preserve product URI scheme links
 						if (path.startsWith(this.productUriScheme + ':')) {
 							return matched;
 						}

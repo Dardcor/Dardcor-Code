@@ -469,9 +469,6 @@ export async function getExtensions(extensions: string[], extensionsWorkbenchSer
 	return result;
 }
 
-/**
- * Builds modal navigation options for navigating items in a paged list model.
- */
 export function buildModalNavigationForPagedList<T>(
 	openedItem: T,
 	getModel: () => IPagedModel<T> | undefined,
@@ -490,7 +487,6 @@ export function buildModalNavigationForPagedList<T>(
 		return undefined;
 	}
 
-	// Find the index of the opened item in the list
 	let current = -1;
 	for (let i = 0; i < total; i++) {
 		if (model.isResolved(i) && isSame(model.get(i), openedItem)) {
@@ -519,12 +515,10 @@ export function buildModalNavigationForPagedList<T>(
 			return;
 		}
 
-		// Fast path: item already resolved
 		if (currentModel.isResolved(index)) {
 			openAtIndex(index, currentModel.get(index));
 		}
 
-		// Slow path: resolve the item first
 		else {
 			currentModel.resolve(index, token).then(item => {
 				if (token.isCancellationRequested) {

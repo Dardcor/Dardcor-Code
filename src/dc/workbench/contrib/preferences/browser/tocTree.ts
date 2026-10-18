@@ -89,7 +89,6 @@ export class TOCTreeModel {
 				return false;
 			}
 
-			// Check everything that the SettingsFilter checks except whether it's filtered by a category
 			const isRemote = !!this.environmentService.remoteAuthority;
 			return child.matchesScope(this._viewState.settingsTarget, isRemote) &&
 				child.matchesAllTags(this._viewState.tagFilters) &&
@@ -214,7 +213,6 @@ export class TOCTree extends WorkbenchObjectTree<SettingsTreeGroupElement> {
 		@IHoverService hoverService: IHoverService,
 		@IInstantiationService instantiationService: IInstantiationService,
 	) {
-		// test open mode
 
 		const filter = instantiationService.createInstance(SettingsTreeFilter, viewState, false);
 		const options: IWorkbenchObjectTreeOptions<SettingsTreeGroupElement, void> = {

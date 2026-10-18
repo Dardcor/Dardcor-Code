@@ -117,23 +117,6 @@ export function getLocalExtensionTelemetryData(extension: ILocalExtension) {
 }
 
 
-/* __GDPR__FRAGMENT__
-	"GalleryExtensionTelemetryData" : {
-		"id" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"name": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"extensionVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"galleryId": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"publisherId": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"publisherName": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"publisherDisplayName": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"isPreReleaseVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"dependencies": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-		"isSigned": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-		"${include}": [
-			"${GalleryExtensionTelemetryData2}"
-		]
-	}
-*/
 export function getGalleryExtensionTelemetryData(extension: IGalleryExtension) {
 	return {
 		id: new TelemetryTrustedValue(extension.identifier.id),
@@ -184,7 +167,6 @@ async function isAlpineLinux(fileService: IFileService, logService: ILogService)
 			const fileContent = await fileService.readFile(URI.file('/usr/lib/os-release'));
 			content = fileContent.value.toString();
 		} catch (error) {
-			/* Ignore */
 			logService.debug(`Error while getting the os-release file.`, getErrorMessage(error));
 		}
 	}

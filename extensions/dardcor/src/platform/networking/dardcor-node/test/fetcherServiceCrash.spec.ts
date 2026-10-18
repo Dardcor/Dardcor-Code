@@ -26,8 +26,6 @@ describe('FetcherService network process crash handling', () => {
 	});
 
 	function createFetcherService(fetchers: IFetcher[]): FetcherService {
-		// Use the constructor with a single fetcher, then override _availableFetchers
-		// to inject multiple fetchers for testing.
 		const service = new FetcherService(
 			undefined,
 			logService,
@@ -36,7 +34,6 @@ describe('FetcherService network process crash handling', () => {
 			{ globalStorageUri: undefined } as any,
 		);
 		service.setExperimentationService(experimentationService);
-		// Inject the fetchers directly
 		(service as any)._availableFetchers = fetchers;
 		return service;
 	}
@@ -90,7 +87,7 @@ describe('FetcherService network process crash handling', () => {
 		it('retries once and demotes only if the retry also crashes', async () => {
 			const crashError = createCrashError();
 			const electronFetcher = createMockFetcher('electron-fetch', {
-				responses: [crashError, crashError], // initial + retry both crash
+				responses: [crashError, crashError],
 				isNetworkProcessCrashedError: (e) => e === crashError,
 				isFetcherError: (e) => e?.message?.startsWith('net::'),
 			});
@@ -100,17 +97,15 @@ describe('FetcherService network process crash handling', () => {
 
 			const service = createFetcherService([electronFetcher, nodeFetcher]);
 
-			// First request: crashes, retries once, retry also crashes => demotes
 			await expect(service.fetch('https://example.com', { callSite: 'test' })).rejects.toThrow('net::ERR_FAILED');
 
-			// After both attempts fail, node-fetch should be the primary fetcher
 			expect(service.getUserAgentLibrary()).toBe('node-fetch');
 		});
 
 		it('succeeds on retry without demoting', async () => {
 			const crashError = createCrashError();
 			const electronFetcher = createMockFetcher('electron-fetch', {
-				responses: [crashError, createOkResponse()], // initial crashes, retry succeeds
+				responses: [crashError, createOkResponse()],
 				isNetworkProcessCrashedError: (e) => e === crashError,
 				isFetcherError: (e) => e?.message?.startsWith('net::'),
 			});
@@ -120,18 +115,16 @@ describe('FetcherService network process crash handling', () => {
 
 			const service = createFetcherService([electronFetcher, nodeFetcher]);
 
-			// Request crashes, but retry succeeds
 			const response = await service.fetch('https://example.com', { callSite: 'test' });
 			expect(response.status).toBe(200);
 
-			// electron-fetch should still be the primary fetcher (not demoted)
 			expect(service.getUserAgentLibrary()).toBe('electron-fetch');
 		});
 
 		it('subsequent requests go through the new primary fetcher', async () => {
 			const crashError = createCrashError();
 			const electronFetcher = createMockFetcher('electron-fetch', {
-				responses: [crashError, crashError], // initial + retry both crash
+				responses: [crashError, crashError],
 				isNetworkProcessCrashedError: (e) => e === crashError,
 				isFetcherError: (e) => e?.message?.startsWith('net::'),
 			});
@@ -141,10 +134,8 @@ describe('FetcherService network process crash handling', () => {
 
 			const service = createFetcherService([electronFetcher, nodeFetcher]);
 
-			// First request: crashes, retry also crashes, demotes electron-fetch
 			await expect(service.fetch('https://example.com', { callSite: 'test' })).rejects.toThrow('net::ERR_FAILED');
 
-			// Second request: should succeed via node-fetch
 			const response = await service.fetch('https://example.com', { callSite: 'test' });
 			expect(response.status).toBe(200);
 		});
@@ -152,7 +143,7 @@ describe('FetcherService network process crash handling', () => {
 		it('error classification still works after demotion', async () => {
 			const crashError = createCrashError();
 			const electronFetcher = createMockFetcher('electron-fetch', {
-				responses: [crashError, crashError], // initial + retry both crash
+				responses: [crashError, crashError],
 				isNetworkProcessCrashedError: (e) => e === crashError,
 				isFetcherError: (e) => e?.message?.startsWith('net::'),
 			});
@@ -162,11 +153,8 @@ describe('FetcherService network process crash handling', () => {
 
 			const service = createFetcherService([electronFetcher, nodeFetcher]);
 
-			// Trigger crash + retry failure to demote electron-fetch
 			await expect(service.fetch('https://example.com', { callSite: 'test' })).rejects.toThrow();
 
-			// After demotion, the service should still classify the crash error correctly
-			// even though node-fetch is now the primary fetcher
 			expect(service.isFetcherError(crashError)).toBe(true);
 			expect(service.isNetworkProcessCrashedError(crashError)).toBe(true);
 		});
@@ -180,7 +168,7 @@ describe('FetcherService network process crash handling', () => {
 		it('does NOT demote the crashed fetcher', async () => {
 			const crashError = createCrashError();
 			const electronFetcher = createMockFetcher('electron-fetch', {
-				responses: [crashError, crashError], // initial + retry triggered by fetchWithFallbacks crash-retry logic (network process crash)
+				responses: [crashError, crashError],
 				isNetworkProcessCrashedError: (e) => e === crashError,
 				isFetcherError: (e) => e?.message?.startsWith('net::'),
 			});
@@ -190,10 +178,8 @@ describe('FetcherService network process crash handling', () => {
 
 			const service = createFetcherService([electronFetcher, nodeFetcher]);
 
-			// Request crashes, retry also crashes, but flag is disabled so no demotion
 			await expect(service.fetch('https://example.com', { callSite: 'test' })).rejects.toThrow('net::ERR_FAILED');
 
-			// electron-fetch should still be the primary fetcher (not demoted)
 			expect(service.getUserAgentLibrary()).toBe('electron-fetch');
 		});
 	});
@@ -202,7 +188,7 @@ describe('FetcherService network process crash handling', () => {
 		it('does NOT demote the crashed fetcher', async () => {
 			const crashError = createCrashError();
 			const electronFetcher = createMockFetcher('electron-fetch', {
-				responses: [crashError, crashError], // initial + retry
+				responses: [crashError, crashError],
 				isNetworkProcessCrashedError: (e) => e === crashError,
 				isFetcherError: (e) => e?.message?.startsWith('net::'),
 			});
@@ -210,7 +196,6 @@ describe('FetcherService network process crash handling', () => {
 				responses: [createOkResponse()],
 			});
 
-			// Create service WITHOUT setting experimentation service
 			const service = new FetcherService(
 				undefined,
 				logService,
@@ -219,11 +204,9 @@ describe('FetcherService network process crash handling', () => {
 				{ globalStorageUri: undefined } as any,
 			);
 			(service as any)._availableFetchers = [electronFetcher, nodeFetcher];
-			// Explicitly do NOT call service.setExperimentationService()
 
 			await expect(service.fetch('https://example.com', { callSite: 'test' })).rejects.toThrow('net::ERR_FAILED');
 
-			// Should not demote without experimentation service
 			expect(service.getUserAgentLibrary()).toBe('electron-fetch');
 		});
 	});

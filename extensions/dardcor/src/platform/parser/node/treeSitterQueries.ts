@@ -6,24 +6,10 @@
 import type { SyntaxNode } from 'web-tree-sitter';
 import { WASMLanguage } from './treeSitterLanguages';
 
-/**
- * IF YOU WANT LINTING FOR YOUR TREE-SITTER QUERIES:
- *
- * Annotating a query template string with `treeSitterQuery.<WASMLanguage>` (see example below)
- * will allow the vscode-tree-sitter-query extension to provide linting (diagnostics) for this query.
- *
- * @example
- * ```ts
- * 	treeSitterQuery.typescript`(function_declaration) @function`
- * ```
- *
- * @remark don't forget to install the `vscode-tree-sitter-query` extension (and activate it, e.g., by opening a .scm file)
- */
 const treeSitterQuery =
 	(() => {
-		/** default template string behavior */
 		function defaultBehavior(query: TemplateStringsArray, ...values: any[]) {
-			return query.length === 1 // no interpolations
+			return query.length === 1
 				? query[0]
 				: query.reduce((result, string, i) => `${result}${string}${values[i] || ''}`, '');
 		}
@@ -59,9 +45,6 @@ export const allKnownQueries: LanguageQueryMap = {
 	[WASMLanguage.Cpp]: [],
 	[WASMLanguage.Rust]: [],
 };
-/**
- * register queries
- */
 function q<T extends Partial<LanguageQueryMap>>(queryMap: T): T {
 	for (const key in queryMap) {
 		const queries = queryMap[key as WASMLanguage]!;
@@ -114,18 +97,6 @@ export const callExpressionQuery: LanguageQueryMap = q({
 		] @call_expression`
 	],
 	[WASMLanguage.Ruby]: [
-		/**
-		 * TODO@joyceerhl figure out how to support matching
-		 * direct method calls i.e.
-		 * ```
-		 * def say_hello
-		 *	puts "Hello, world!"
-		 *	end
-		 * say_hello
-		 * ```
-		 * which is matchable only by the `identifier` syntax node
-		 * and could have performance implications
-		 */
 		`[
 			(call (identifier) @identifier
 				(#not-match? @identifier "new|send|public_send|method"))
@@ -194,7 +165,6 @@ export const classDeclarationQuery: LanguageQueryMap = q({
 });
 
 export const typeDeclarationQuery: { [language: string]: string[] } = q({
-	// No types in JavaScript
 	[WASMLanguage.TypeScript]: [
 		`[
 			(interface_declaration)
@@ -234,7 +204,6 @@ export const typeDeclarationQuery: { [language: string]: string[] } = q({
 });
 
 export const typeReferenceQuery: { [language: string]: string[] } = q({
-	// No types in JavaScript
 	[WASMLanguage.TypeScript]: [
 		`(type_identifier) @type_identifier`
 	],
@@ -312,10 +281,6 @@ export const classReferenceQuery: LanguageQueryMap = q({
 
 export const functionQuery: LanguageQueryMap = q({
 	python: [
-		// `(function_definition)` is defined in python grammar:
-		// https://github.com/tree-sitter/tree-sitter-python/blob/c4282ba411d990d313c5f8e7850bcaaf46fbf7da/grammar.js#L325-L338
-		// docstring is represented in grammar as an optional `(initial expression_statement (string))`
-		// at the start of the body block
 		`[
 			(function_definition
 				name: (identifier) @identifier
@@ -326,13 +291,9 @@ export const functionQuery: LanguageQueryMap = q({
 				right: (lambda) @body)
 		] @function`,
 
-		// handle malformed defs - no trailing semicolon or no body
 		`(ERROR ("def" (identifier) (parameters))) @function`,
 	],
 	...forLanguages([WASMLanguage.JavaScript, WASMLanguage.TypeScript, WASMLanguage.TypeScriptTsx], [
-		// function patterns defined in javascript grammar which is shared by ts
-		// https://github.com/tree-sitter/tree-sitter-javascript/blob/3d9fe9786ee74fa5067577f138e1a7129f80fb41/grammar.js#L595-L629
-		// include `arrow_function` as well
 		`[
 			(function_expression
 				name: (identifier)? @identifier
@@ -354,8 +315,6 @@ export const functionQuery: LanguageQueryMap = q({
 		] @function`,
 	]),
 	go: [
-		// function patterns defined in go grammar:
-		// https://github.com/tree-sitter/tree-sitter-go/blob/b0c78230146705e867034e49a5ece20245b33490/grammar.js#L194-L209
 		`[
 			(function_declaration
 				name: (identifier) @identifier
@@ -366,10 +325,6 @@ export const functionQuery: LanguageQueryMap = q({
 		] @function`,
 	],
 	ruby: [
-		// function patterns defined in ruby grammar:
-		// https://github.com/tree-sitter/tree-sitter-ruby/blob/master/grammar.js
-		// NOTE: Use a @params label for optional parameters to avoid capturing as
-		// 	part of @body if parameters are present.
 		`[
 			(method
 				name: (_) @identifier
@@ -382,8 +337,6 @@ export const functionQuery: LanguageQueryMap = q({
 		] @function`,
 	],
 	csharp: [
-		// function patterns defined in csharp grammar:
-		// https://github.com/tree-sitter/tree-sitter-c-sharp/blob/master/grammar.js
 		`[
 			(constructor_declaration
 				(identifier) @identifier
@@ -402,8 +355,6 @@ export const functionQuery: LanguageQueryMap = q({
 		] @function`,
 	],
 	cpp: [
-		// function patterns defined in cpp grammar:
-		// https://github.com/tree-sitter/tree-sitter-cpp/blob/master/grammar.js
 		`[
 			(function_definition
 				(_
@@ -463,7 +414,6 @@ export const docCommentQueries: LanguageQueryMap = q({
 		treeSitterQuery.rust`((line_comment) @comment
 			(#match? @comment "^\/\/\/|^\/\/!"))+ @docComment`
 	],
-	// note: golang & ruby have same prefix for a doc comment and line comment
 	[WASMLanguage.Go]: [
 		treeSitterQuery.go`((comment)+) @docComment`
 	],
@@ -471,9 +421,7 @@ export const docCommentQueries: LanguageQueryMap = q({
 		treeSitterQuery.ruby`((comment)+) @docComment`
 	],
 
-	// NOT yet supported:
 
-	// we don't support python with this yet because of its placement of a docstring (under signature)
 	[WASMLanguage.Python]: [
 		`(expression_statement
 			(string) @docComment)`
@@ -876,46 +824,14 @@ export const syntacticallyValidAtoms: LanguageQueryMap = q({
 		`
 	],
 	[WASMLanguage.Rust]: [
-		// treeSitterQuery.rust`
-		// [
-		// 	(line_comment) @line_comment
 
-		// 	(let_declaration) @let_declaration
-		// 	(extern_crate_declaration) @extern_crate_declaration
-		// 	(use_declaration) @use_declaration
 
-		// 	(attribute_item) @attribute_item
-		// 	(const_item) @const_item
-		// 	(enum_item) @enum_item
-		// 	(foreign_mod_item) @foreign_mod_item
-		// 	(function_item) @function_item
-		// 	(function_signature_item) @function_signature_item
-		// 	(impl_item) @impl_item
-		// 	(inner_attribute_item) @inner_attribute_item
-		// 	(mod_item) @mod_item
-		// 	(static_item) @static_item
-		// 	(struct_item) @struct_item
-		// 	(trait_item) @trait_item
-		// 	(type_item) @type_item
-		// 	(union_item) @union_item
 
-		// 	(macro_definition) @macro_definition
 
-		// 	(empty_statement) @empty_statement
 
-		// 	(compound_assignment_expr) @compound_assignment_expr
-		// 	(generic_function) @generic_function
-		// 	(metavariable) @metavariable
 
-		// 	(match_arm) @match_arm
 
-		// 	(async_block) @async_block
-		// 	(const_block) @const_block
-		// 	(unsafe_block) @unsafe_block
 
-		// 	(block) @block.exclude_captures
-		// ]
-		// `
 	]
 });
 
@@ -1255,7 +1171,6 @@ export const testInSuiteQueries: { [wasmLanguage in WASMLanguage]: string[] } = 
 		]`
 	]),
 	[WASMLanguage.JavaScript]: [
-		// same as typescript, but we want different tree-sitter query linting to prevent breakages in future
 		treeSitterQuery.javascript`[
 			(call_expression
 				function: (identifier) @fn

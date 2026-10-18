@@ -19,7 +19,6 @@ export class ExtHostChatDebug extends Disposable implements ExtHostChatDebugShap
 	private readonly _proxy: MainThreadChatDebugShape;
 	private _provider: vscode.ChatDebugLogProvider | undefined;
 	private _nextHandle: number = 0;
-	/** Progress pipelines keyed by `${handle}:${sessionResource}` so multiple sessions can stream concurrently. */
 	private readonly _activeProgress = new Map<string, DisposableStore>();
 
 	private readonly _onDidAddCoreEvent = this._register(new Emitter<vscode.ChatDebugEvent>({
@@ -57,7 +56,6 @@ export class ExtHostChatDebug extends Disposable implements ExtHostChatDebugShap
 
 		return toDisposable(() => {
 			this._provider = undefined;
-			// Clean up all progress pipelines for this handle
 			for (const [key, store] of this._activeProgress) {
 				if (key.startsWith(`${handle}:`)) {
 					store.dispose();
@@ -73,7 +71,6 @@ export class ExtHostChatDebug extends Disposable implements ExtHostChatDebugShap
 			return undefined;
 		}
 
-		// Clean up any previous progress pipeline for this handle+session pair
 		const key = this._progressKey(handle, sessionResource);
 		this._cleanupProgress(key);
 
@@ -82,7 +79,6 @@ export class ExtHostChatDebug extends Disposable implements ExtHostChatDebugShap
 
 		const emitter = store.add(new Emitter<vscode.ChatDebugEvent>());
 
-		// Forward progress events to the main thread
 		store.add(emitter.event(event => {
 			const dto = this._serializeEvent(event);
 			if (!dto.sessionResource) {
@@ -91,7 +87,6 @@ export class ExtHostChatDebug extends Disposable implements ExtHostChatDebugShap
 			this._proxy.$acceptChatDebugEvent(handle, dto);
 		}));
 
-		// Clean up when the token is cancelled
 		store.add(token.onCancellationRequested(() => {
 			this._cleanupProgress(key);
 		}));
@@ -112,10 +107,6 @@ export class ExtHostChatDebug extends Disposable implements ExtHostChatDebugShap
 			this._cleanupProgress(key);
 			throw err;
 		}
-		// Note: do NOT dispose progress pipeline here - keep it alive for
-		// streaming events via progress.report() after the initial return.
-		// It will be cleaned up when a new session is requested, the token
-		// is cancelled, or the provider is unregistered.
 	}
 
 	private _serializeEvent(event: vscode.ChatDebugEvent): IChatDebugEventDto {
@@ -126,9 +117,6 @@ export class ExtHostChatDebug extends Disposable implements ExtHostChatDebugShap
 			parentEventId: event.parentEventId,
 		};
 
-		// Use the _kind discriminant set by all event class constructors.
-		// This works both for direct instances and when extensions bundle
-		// their own copy of the API types (where instanceof would fail).
 		const kind = (event as { _kind?: string })._kind;
 		switch (kind) {
 			case 'toolCall': {
@@ -231,7 +219,6 @@ export class ExtHostChatDebug extends Disposable implements ExtHostChatDebugShap
 			return undefined;
 		}
 
-		// Use the _kind discriminant set by all content class constructors.
 		const kind = (result as { _kind?: string })._kind;
 		switch (kind) {
 			case 'text':

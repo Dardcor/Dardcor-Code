@@ -5,7 +5,6 @@ import { getStatusVariant as getConnectionStatusVariant } from "@/shared/utils/c
 import PropTypes from "prop-types";
 import { Card, Badge, Button, Modal, Select, Toggle, EditConnectionModal, ConfirmModal } from "@/shared/components";
 
-// ── CooldownTimer ──────────────────────────────────────────────
 function CooldownTimer({ until }) {
   const [remaining, setRemaining] = useState("");
 
@@ -29,7 +28,6 @@ function CooldownTimer({ until }) {
 
 CooldownTimer.propTypes = { until: PropTypes.string.isRequired };
 
-// ── ConnectionRow ──────────────────────────────────────────────
 function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMoveUp, onMoveDown, onToggleActive, onUpdateProxy, onEdit, onDelete }) {
   const [showProxyDropdown, setShowProxyDropdown] = useState(false);
   const [updatingProxy, setUpdatingProxy] = useState(false);
@@ -193,7 +191,6 @@ ConnectionRow.propTypes = {
   onDelete: PropTypes.func.isRequired,
 };
 
-// ── AddApiKeyModal ─────────────────────────────────────────────
 function AddApiKeyModal({ isOpen, provider, providerName, proxyPools, onSave, onClose }) {
   const NONE = "__none__";
   const [formData, setFormData] = useState({ name: "", apiKey: "", priority: 1, proxyPoolId: NONE });
@@ -293,8 +290,6 @@ AddApiKeyModal.propTypes = {
   onClose: PropTypes.func.isRequired,
 };
 
-// ── ConnectionsCard ────────────────────────────────────────────
-// Self-contained card: fetches, displays and manages all connections for a provider.
 export default function ConnectionsCard({ providerId, isOAuth }) {
   const [connections, setConnections] = useState([]);
   const [proxyPools, setProxyPools] = useState([]);
@@ -474,7 +469,7 @@ export default function ConnectionsCard({ providerId, isOAuth }) {
         onClose={() => setShowEditModal(false)}
       />
 
-      {/* Confirm Modal */}
+      {}
       <ConfirmModal
         isOpen={!!confirmState}
         onClose={() => setConfirmState(null)}

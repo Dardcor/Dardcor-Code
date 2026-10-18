@@ -104,13 +104,12 @@ suite('Hover Copy Button', () => {
 		const buttonElement = container.querySelector('.hover-copy-button') as HTMLElement;
 		assert.ok(buttonElement);
 
-		// Simulate Enter key press - need to override keyCode for StandardKeyboardEvent
 		const keyEvent = new KeyboardEvent('keydown', {
 			key: 'Enter',
 			code: 'Enter',
 			bubbles: true
 		});
-		Object.defineProperty(keyEvent, 'keyCode', { get: () => 13 }); // Enter keyCode
+		Object.defineProperty(keyEvent, 'keyCode', { get: () => 13 });
 		buttonElement.dispatchEvent(keyEvent);
 
 		const copiedText = await clipboardService.readText();
@@ -129,13 +128,12 @@ suite('Hover Copy Button', () => {
 		const buttonElement = container.querySelector('.hover-copy-button') as HTMLElement;
 		assert.ok(buttonElement);
 
-		// Simulate Space key press - need to override keyCode for StandardKeyboardEvent
 		const keyEvent = new KeyboardEvent('keydown', {
 			key: ' ',
 			code: 'Space',
 			bubbles: true
 		});
-		Object.defineProperty(keyEvent, 'keyCode', { get: () => 32 }); // Space keyCode
+		Object.defineProperty(keyEvent, 'keyCode', { get: () => 32 });
 		buttonElement.dispatchEvent(keyEvent);
 
 		const copiedText = await clipboardService.readText();

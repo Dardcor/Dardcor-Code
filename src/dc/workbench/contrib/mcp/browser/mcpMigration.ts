@@ -90,7 +90,6 @@ export class McpConfigMigrationContribution extends Disposable implements IWorkb
 				this.showMcpConfigErrorNotification(isRemote);
 			}
 		} catch (error) {
-			// Ignore parsing errors - file might not exist or be malformed
 		}
 	}
 

@@ -13,28 +13,22 @@ import { ICompletionsTextDocumentManagerService } from '../../textDocumentManage
 import { OpenTabFiles } from './openTabFiles';
 import { getRelatedFilesAndTraits, relatedFilesLogger, RelatedFileTrait } from './relatedFiles';
 
-// There is a limitation of the number of the neighbor files. So I use the next strategies to pick the most relevant cursor focused files.
 export enum NeighboringFileType {
-	None = 'none', // Do not add neighbor files.
-	OpenTabs = 'opentabs', // Add open files.
-	CursorMostRecent = 'cursormostrecent', // Add the most recent cursor focused files.
-	CursorMostCount = 'cursormostcount', // Add the most cursor focused files.
-	WorkspaceSharingSameFolder = 'workspacesharingsamefolder', // Add the workspace files sharing the same folder with the target file.
-	WorkspaceSmallestPathDist = 'workspacesmallestpathdist', // Add the workspace files according to their path distance toward the target file
-	OpenTabsAndCocommitted = 'opentabsandcocommitted', // Add open files and the co-committed files.
-	RelatedCSharp = 'related/csharp', // The Semantic Code Context says this file is related.
-	RelatedCSharpRoslyn = 'related/csharproslyn', // The C# language service says this file is related.
-	RelatedCpp = 'related/cpp', // The C++ language service says this file is related.
-	RelatedTypeScript = 'related/typescript', // The Typescript language service says this file is related.
-	RelatedCppSemanticCodeContext = 'related/cppsemanticcodecontext', // The Semantic Code Context says this file is related.
-	RelatedOther = 'related/other', // An unknown language service says this file is related.
+	None = 'none',
+	OpenTabs = 'opentabs',
+	CursorMostRecent = 'cursormostrecent',
+	CursorMostCount = 'cursormostcount',
+	WorkspaceSharingSameFolder = 'workspacesharingsamefolder',
+	WorkspaceSmallestPathDist = 'workspacesmallestpathdist',
+	OpenTabsAndCocommitted = 'opentabsandcocommitted',
+	RelatedCSharp = 'related/csharp',
+	RelatedCSharpRoslyn = 'related/csharproslyn',
+	RelatedCpp = 'related/cpp',
+	RelatedTypeScript = 'related/typescript',
+	RelatedCppSemanticCodeContext = 'related/cppsemanticcodecontext',
+	RelatedOther = 'related/other',
 }
 
-/**
- * Whether the given neighboring-file type denotes a language-service "related"
- * file (suggested by a language service / semantic code context) rather than an
- * open tab or cursor/workspace heuristic.
- */
 export function isRelatedNeighboringFileType(type: NeighboringFileType): boolean {
 	switch (type) {
 		case NeighboringFileType.RelatedCSharp:
@@ -49,18 +43,6 @@ export function isRelatedNeighboringFileType(type: NeighboringFileType): boolean
 	}
 }
 
-/**
- * We found out that considering
- * all **open** neighbor files (independent of the language) was not helpful. However, some
- * specific languages (e.g. frontend frameworks) benefit from this approach. Leaving this
- * function here for future reference, in case we want to experiment this approach again for
- * specific languages that always use cross-language files.
- *
- * @param languageId Language ID of the current file
- * @param neighborLanguageId Language ID of the neighbor file
- * @returns Boolean value indicating whether the neighbor file should be considered
- *          (currently matching the current file's language with neighbors')
- */
 export function considerNeighborFile(languageId: string, neighborLanguageId: string): boolean {
 	return normalizeLanguageId(languageId) === normalizeLanguageId(neighborLanguageId);
 }
@@ -76,7 +58,6 @@ export interface INeighborSource {
 }
 
 export class NeighborSource {
-	// Limit the amount of neighbor data to pass to promptlib.
 	static MAX_NEIGHBOR_AGGREGATE_LENGTH = 200000;
 	static MAX_NEIGHBOR_FILES = 20;
 
@@ -92,7 +73,6 @@ export class NeighborSource {
 
 	private static instance: INeighborSource | undefined;
 
-	/** Reset the singleton instance for unit test only */
 	static reset(): void {
 		NeighborSource.instance = undefined;
 	}
@@ -157,7 +137,6 @@ export class NeighborSource {
 				'neighborFiles.getNeighborFilesAndTraits',
 				`0 related files found for ${uri}`
 			);
-			// make sure we include traits if there's any
 			result.traits.push(...relatedFiles.traits);
 			return result;
 		}
@@ -167,7 +146,6 @@ export class NeighborSource {
 			uriToContentMap.forEach((source, uri) => {
 				const relativePath = NeighborSource.getRelativePath(uri, wksFolder.uri);
 				if (!relativePath) { return; }
-				// Check that results.docs does not already contain an entry for the given uri.
 				if (result.docs.has(uri)) { return; }
 				const relatedFileDocInfo: SimilarFileInfo = { relativePath, uri, source, isFromRelatedFile: isRelatedNeighboringFileType(type) };
 				addedDocs.unshift(relatedFileDocInfo);
@@ -190,10 +168,6 @@ export class NeighborSource {
 		return decodeURIComponent(uri.replace(/[#?].*$/, '').replace(/^.*[/:]/, ''));
 	}
 
-	/**
-	 * Get the fileUri relative to the provided basePath
-	 * or its basename if basePath is not its ancestor.
-	 */
 	static getRelativePath(fileUri: string, baseUri: string): string | undefined {
 		const parentURI = baseUri
 			.toString()

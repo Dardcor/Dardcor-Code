@@ -1,9 +1,3 @@
-// Token Plan — credit subscription keys on token-plan.<region>.maas.aliyuncs.com.
-// Fourth Alibaba key type: Coding Plan (alicode/alicode-intl) and Model Studio
-// (alims-intl) both reject these keys, and they reject Model Studio keys back.
-// Singapore is the only region that serves the plan; eu-central-1 answers
-// IllegalEndpoint. The Anthropic surface (/apps/anthropic/v1/messages) is not
-// authorized for this plan, so OpenAI-compatible mode is the only transport.
 export default {
   id: "alitp-intl",
   priority: 11,

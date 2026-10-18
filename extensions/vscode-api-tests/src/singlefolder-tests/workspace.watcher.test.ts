@@ -50,7 +50,6 @@ suite('vscode API - workspace-watcher', () => {
 
 	test('createFileSystemWatcher', async function () {
 
-		// Non-recursive
 		let watchUri = vscode.Uri.from({ scheme: 'watcherTest', path: '/somePath/folder' });
 		const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(watchUri, '*.txt'));
 		let request = await onDidWatchPromise();
@@ -60,7 +59,6 @@ suite('vscode API - workspace-watcher', () => {
 
 		watcher.dispose();
 
-		// Recursive
 		watchUri = vscode.Uri.from({ scheme: 'watcherTest', path: '/somePath/folder' });
 		vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(watchUri, '**/*.txt'));
 		request = await onDidWatchPromise();

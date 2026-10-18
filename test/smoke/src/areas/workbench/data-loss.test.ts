@@ -10,12 +10,10 @@ import { createApp, timeout, installDiagnosticsHandler, installAppAfterHandler, 
 export function setup(ensureStableCode: () => { stableCodePath: string | undefined; stableCodeVersion: { major: number; minor: number; patch: number } | undefined }, logger: Logger) {
 	describe('Data Loss (insiders -> insiders)', function () {
 
-		// Double the timeout since these tests involve 2 startups
 		this.timeout(4 * 60 * 1000);
 
 		let app: Application | undefined = undefined;
 
-		// Shared before/after handling
 		installDiagnosticsHandler(logger, () => app);
 		installAppAfterHandler(() => app);
 
@@ -28,7 +26,6 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 			await app.start();
 
 
-			// Open 3 editors
 			await app.workbench.quickaccess.openFile(join(app.workspacePathOrFolder, 'bin', 'www'));
 			await app.workbench.quickaccess.runCommand('View: Keep Editor');
 			await app.workbench.quickaccess.openFile(join(app.workspacePathOrFolder, 'app.js'));
@@ -37,7 +34,6 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 
 			await app.restart();
 
-			// Verify 3 editors are open
 			await app.workbench.editors.selectTab('Untitled-1');
 			await app.workbench.editors.selectTab('app.js');
 			await app.workbench.editors.selectTab('www');
@@ -56,19 +52,15 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 
 			const textToType = 'Hello, Code';
 
-			// open editor and type
 			await app.workbench.quickaccess.openFile(join(app.workspacePathOrFolder, 'app.js'));
 			await app.workbench.editor.waitForTypeInEditor('app.js', textToType);
 			await app.workbench.editors.waitForTab('app.js', true);
 
-			// save
 			await app.workbench.editors.saveOpenedFile();
 			await app.workbench.editors.waitForTab('app.js', false);
 
-			// restart
 			await app.restart();
 
-			// verify contents
 			await app.workbench.editor.waitForEditorContents('app.js', contents => contents.indexOf(textToType) > -1);
 
 			await app.stop();
@@ -111,10 +103,6 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 			await app.workbench.editors.waitForTab('readme.md', !autoSave);
 
 			if (typeof restartDelay === 'number') {
-				// this is an OK use of a timeout in a smoke test:
-				// we want to simulate a user having typed into
-				// the editor and pausing for a moment before
-				// terminating
 				await timeout(restartDelay);
 			}
 
@@ -136,13 +124,11 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 
 	describe('Data Loss (stable -> insiders)', function () {
 
-		// Double the timeout since these tests involve 2 startups
 		this.timeout(4 * 60 * 1000);
 
 		let insidersApp: Application | undefined = undefined;
 		let stableApp: Application | undefined = undefined;
 
-		// Shared before/after handling
 		installDiagnosticsHandler(logger, () => insidersApp ?? stableApp);
 		installAppAfterHandler(() => insidersApp ?? stableApp, async () => stableApp?.stop());
 
@@ -152,11 +138,6 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 				this.skip();
 			}
 
-			// macOS: the first launch of stable Code will trigger
-			// additional checks in the OS (notarization validation)
-			// so it can take a very long time. as such we install
-			// a retry handler to make sure we do not fail as a
-			// consequence.
 			if (process.platform === 'darwin') {
 				this.retries(2);
 			}
@@ -176,7 +157,6 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 			stableApp = new Application(stableOptions);
 			await stableApp.start();
 
-			// Open 3 editors
 			await stableApp.workbench.quickaccess.openFile(join(stableApp.workspacePathOrFolder, 'bin', 'www'));
 			await stableApp.workbench.quickaccess.runCommand('View: Keep Editor');
 			await stableApp.workbench.quickaccess.openFile(join(stableApp.workspacePathOrFolder, 'app.js'));
@@ -194,7 +174,6 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 			insidersApp = new Application(insiderOptions);
 			await insidersApp.start();
 
-			// Verify 3 editors are open
 			await insidersApp.workbench.editors.selectTab('Untitled-1');
 			await insidersApp.workbench.editors.selectTab('app.js');
 			await insidersApp.workbench.editors.selectTab('www');
@@ -244,10 +223,6 @@ export function setup(ensureStableCode: () => { stableCodePath: string | undefin
 			await stableApp.workbench.editors.waitForTab('readme.md', true);
 
 			if (typeof restartDelay === 'number') {
-				// this is an OK use of a timeout in a smoke test
-				// we want to simulate a user having typed into
-				// the editor and pausing for a moment before
-				// terminating
 				await timeout(restartDelay);
 			}
 

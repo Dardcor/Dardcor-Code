@@ -30,8 +30,6 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 
 	private static readonly AUTO_LOCK_EXTRA_EDITORS: RegisteredEditorInfo[] = [
 
-		// List some editor input identifiers that are not
-		// registered yet via the editor resolver infrastructure
 
 		{
 			id: 'workbench.input.interactive',
@@ -57,8 +55,6 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 
 	private static readonly AUTO_LOCK_REMOVE_EDITORS = new Set<string>([
 
-		// List some editor types that the above `AUTO_LOCK_EXTRA_EDITORS`
-		// already covers to avoid duplicates.
 
 		'vscode-interactive-input',
 		'interactive',
@@ -80,10 +76,6 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 	) {
 		super();
 
-		// Editor configurations are getting updated very aggressively
-		// (atleast 20 times) while the extensions are getting registered.
-		// As such push out the dynamic configuration until after extensions
-		// are registered.
 		(async () => {
 			await extensionService.whenInstalledExtensionsRegistered();
 
@@ -94,7 +86,6 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 
 	private registerListeners(): void {
 
-		// Registered editors (debounced to reduce perf overhead)
 		this._register(Event.debounce(this.editorResolverService.onDidChangeEditorRegistrations, (_, e) => e)(() => this.updateDynamicEditorConfigurations()));
 	}
 
@@ -102,7 +93,6 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 		const lockableEditors = [...this.editorResolverService.getEditors(), ...DynamicEditorConfigurations.AUTO_LOCK_EXTRA_EDITORS].filter(e => !DynamicEditorConfigurations.AUTO_LOCK_REMOVE_EDITORS.has(e.id));
 		const binaryEditorCandidates = this.editorResolverService.getEditors().filter(e => e.priority.editor !== RegisteredEditorPriority.exclusive).map(e => e.id);
 
-		// Build config from registered editors
 		const autoLockGroupConfiguration: IJSONSchemaMap = Object.create(null);
 		for (const editor of lockableEditors) {
 			autoLockGroupConfiguration[editor.id] = {
@@ -112,13 +102,11 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 			};
 		}
 
-		// Build default config too
 		const defaultAutoLockGroupConfiguration = Object.create(null);
 		for (const editor of lockableEditors) {
 			defaultAutoLockGroupConfiguration[editor.id] = DynamicEditorConfigurations.AUTO_LOCK_DEFAULT_ENABLED.has(editor.id);
 		}
 
-		// Register setting for auto locking groups
 		const oldAutoLockConfigurationNode = this.autoLockConfigurationNode;
 		this.autoLockConfigurationNode = {
 			...workbenchConfigurationNodeBase,
@@ -133,7 +121,6 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 			}
 		};
 
-		// Registers setting for default binary editors
 		const oldDefaultBinaryEditorConfigurationNode = this.defaultBinaryEditorConfigurationNode;
 		this.defaultBinaryEditorConfigurationNode = {
 			...workbenchConfigurationNodeBase,
@@ -141,21 +128,19 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 				'workbench.editor.defaultBinaryEditor': {
 					type: 'string',
 					default: '',
-					// This allows for intellisense autocompletion
 					enum: [...binaryEditorCandidates, ''],
 					description: localize('workbench.editor.defaultBinaryEditor', "The default editor for files detected as binary. If undefined, the user will be presented with a picker."),
 				}
 			}
 		};
 
-		// Registers setting for editorAssociations
 		const oldEditorAssociationsConfigurationNode = this.editorAssociationsConfigurationNode;
 		this.editorAssociationsConfigurationNode = {
 			...workbenchConfigurationNodeBase,
 			properties: {
 				[editorsAssociationsSettingId]: {
 					type: 'object',
-					markdownDescription: localize('editor.editorAssociations', "Configure [glob patterns](https://aka.ms/vscode-glob-patterns) to editors (for example `\"*.hex\": \"hexEditor.hexedit\"`). These have precedence over the default behavior."),
+					markdownDescription: localize('editor.editorAssociations', "Configure [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) to editors (for example `\"*.hex\": \"hexEditor.hexedit\"`). These have precedence over the default behavior."),
 					patternProperties: {
 						'.*': {
 							type: 'string',
@@ -166,14 +151,13 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 			}
 		};
 
-		// Registers setting for diffEditorAssociations
 		const oldDiffEditorAssociationsConfigurationNode = this.diffEditorAssociationsConfigurationNode;
 		this.diffEditorAssociationsConfigurationNode = {
 			...workbenchConfigurationNodeBase,
 			properties: {
 				[diffEditorsAssociationsSettingId]: {
 					type: 'object',
-					markdownDescription: localize('editor.diffEditorAssociations', "Configure [glob patterns](https://aka.ms/vscode-glob-patterns) to editors for diff views (for example `\"*.md\": \"vscode.markdown.preview.editor\"`). These override `workbench.editorAssociations` for diffs."),
+					markdownDescription: localize('editor.diffEditorAssociations', "Configure [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) to editors for diff views (for example `\"*.md\": \"vscode.markdown.preview.editor\"`). These override `workbench.editorAssociations` for diffs."),
 					patternProperties: {
 						'.*': {
 							type: 'string',
@@ -184,7 +168,6 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 			}
 		};
 
-		// Registers setting for large file confirmation based on environment
 		const oldEditorLargeFileConfirmationConfigurationNode = this.editorLargeFileConfirmationConfigurationNode;
 		this.editorLargeFileConfirmationConfigurationNode = {
 			...workbenchConfigurationNodeBase,

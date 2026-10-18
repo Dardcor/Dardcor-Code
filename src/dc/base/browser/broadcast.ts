@@ -18,7 +18,6 @@ export class BroadcastDataChannel<T> extends Disposable {
 	constructor(private readonly channelName: string) {
 		super();
 
-		// Use BroadcastChannel
 		if ('BroadcastChannel' in mainWindow) {
 			try {
 				this.broadcastChannel = new BroadcastChannel(channelName);
@@ -37,7 +36,6 @@ export class BroadcastDataChannel<T> extends Disposable {
 			}
 		}
 
-		// BroadcastChannel is not supported. Use storage.
 		if (!this.broadcastChannel) {
 			this.channelName = `BroadcastDataChannel.${channelName}`;
 			this.createBroadcastChannel();
@@ -54,15 +52,10 @@ export class BroadcastDataChannel<T> extends Disposable {
 		this._register(toDisposable(() => mainWindow.removeEventListener('storage', listener)));
 	}
 
-	/**
-	 * Sends the data to other BroadcastChannel objects set up for this channel. Data can be structured objects, e.g. nested objects and arrays.
-	 * @param data data to broadcast
-	 */
 	postData(data: T): void {
 		if (this.broadcastChannel) {
 			this.broadcastChannel.postMessage(data);
 		} else {
-			// remove previous changes so that event is triggered even if new changes are same as old changes
 			localStorage.removeItem(this.channelName);
 			localStorage.setItem(this.channelName, JSON.stringify(data));
 		}

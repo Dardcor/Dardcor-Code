@@ -8,7 +8,6 @@ const typeScriptServerPluginBuildOptions: esbuild.BuildOptions = {
 	tsconfig: './tsconfig.json',
 	bundle: true,
 	format: 'cjs',
-	// keepNames: true,
 	logLevel: 'info',
 	minify: false,
 	outdir: './dist',

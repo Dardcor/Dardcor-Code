@@ -4,7 +4,6 @@ import { CAPACITY_META } from "@/shared/constants/models";
 
 export const dynamic = "force-dynamic";
 
-// Whitelist capability keys to boolean values — ignore anything else
 function sanitizeCaps(caps) {
   if (!caps || typeof caps !== "object") return null;
   const clean = {};
@@ -14,7 +13,6 @@ function sanitizeCaps(caps) {
   return Object.keys(clean).length ? clean : null;
 }
 
-// GET /api/models/custom - List all custom models
 export async function GET() {
   try {
     const models = await getCustomModels();
@@ -25,7 +23,6 @@ export async function GET() {
   }
 }
 
-// POST /api/models/custom - Add custom model
 export async function POST(request) {
   try {
     const { providerAlias, id, type, name, caps } = await request.json();
@@ -41,7 +38,6 @@ export async function POST(request) {
   }
 }
 
-// DELETE /api/models/custom?providerAlias=xxx&id=yyy&type=zzz
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);

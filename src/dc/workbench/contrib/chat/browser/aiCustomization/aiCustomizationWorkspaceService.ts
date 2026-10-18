@@ -72,11 +72,9 @@ class AICustomizationWorkspaceService implements IAICustomizationWorkspaceServic
 	clearOverrideProjectRoot(): void { }
 
 	async commitFiles(_projectRoot: URI, _fileUris: URI[]): Promise<void> {
-		// No-op in core VS Code.
 	}
 
 	async deleteFiles(_projectRoot: URI, _fileUris: URI[]): Promise<void> {
-		// No-op in core VS Code.
 	}
 
 	async generateCustomization(type: PromptsType): Promise<void> {

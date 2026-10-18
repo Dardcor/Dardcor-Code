@@ -82,11 +82,9 @@ export class GitHubPullRequestProviders implements Disposable {
 			if (!this.titleAndDescriptionProvider) {
 				this.titleAndDescriptionProvider = this.disposables.add(this.instantiationService.createInstance(GitHubPullRequestTitleAndDescriptionGenerator));
 			}
-			// This string "Copilot" needs to be in here. It's how we an tell which provider to use in the PR extension.
 			this.disposables.add(this.gitHubExtensionApi.registerTitleAndDescriptionProvider(l10n.t('Generate with Dardcor AI'), this.titleAndDescriptionProvider));
 			this.logService.info('Successfully registered GitHub PR title and description provider.');
 		} catch (e) {
-			// Catch errors in case there's a breaking API change.
 		}
 	}
 
@@ -117,15 +115,12 @@ export class GitHubPullRequestProviders implements Disposable {
 			this.disposables.add(this.reviewerCommentsRegistration);
 			this.logService.info('Successfully registered GitHub PR reviewer comments provider.');
 		} catch (e) {
-			// Catch errors in case there's a breaking API change.
 		}
 	}
 
 	public async getRepositoryDescription(uri: Uri): Promise<RepositoryDescription | undefined> {
 		try {
-			// Wait for gitHubExtensionApi to be initialized if not already
 			if (!this.gitHubExtensionApi) {
-				// Try to get and activate the extension if possible
 				const githubPRExtension = this.getExtension();
 				if (githubPRExtension) {
 					const extension = await githubPRExtension.activate();

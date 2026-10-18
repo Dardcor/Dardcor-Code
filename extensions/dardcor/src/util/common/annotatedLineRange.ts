@@ -25,9 +25,6 @@ export class AnnotatedLineRange<T> extends LineRange {
 
 export class AnnotatedLineRanges<T> {
 	constructor(
-		/**
-		 * Have to be sorted and disjoined.
-		*/
 		public readonly ranges: readonly AnnotatedLineRange<T>[],
 	) {
 	}

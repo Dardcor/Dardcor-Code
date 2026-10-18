@@ -284,7 +284,7 @@ export class MarkerNavigationWidget extends PeekViewWidget {
 			headerBackgroundColor: headerBg,
 			primaryHeadingColor: theme.getColor(peekViewTitleForeground),
 			secondaryHeadingColor: theme.getColor(peekViewTitleInfoForeground)
-		}); // style() will trigger _applyStyles
+		});
 	}
 
 	protected override _applyStyles(): void {
@@ -336,17 +336,12 @@ export class MarkerNavigationWidget extends PeekViewWidget {
 	}
 
 	showAtMarker(marker: IMarker, markerIdx: number, markerCount: number): void {
-		// update:
-		// * title
-		// * message
 		this._container.classList.remove('stale');
 		this._message.update(marker);
 
-		// update frame color (only applied on 'show')
 		this._severity = marker.severity;
 		this._applyTheme(this._themeService.getColorTheme());
 
-		// show
 		const range = Range.lift(marker);
 		const editorPosition = this.editor.getPosition();
 		const position = editorPosition && range.containsPosition(editorPosition) ? editorPosition : range.getStartPosition();
@@ -395,7 +390,6 @@ export class MarkerNavigationWidget extends PeekViewWidget {
 	}
 }
 
-// theming
 
 const errorDefault = oneOf(editorErrorForeground, editorErrorBorder);
 const warningDefault = oneOf(editorWarningForeground, editorWarningBorder);

@@ -81,8 +81,6 @@ suite('Agent Host Lockfile (local)', () => {
 		});
 
 		test('returns false for a clearly nonexistent PID', () => {
-			// 2^31 - 1 is a valid signed 32-bit int but vanishingly unlikely
-			// to be a live PID on any real machine.
 			assert.strictEqual(isPidAlive(2147483646), false);
 		});
 	});
@@ -159,10 +157,6 @@ suite('Agent Host Lockfile (local)', () => {
 		});
 
 		test('treats newer protocol version as compatible', async () => {
-			// The agent host server is downloaded on demand and may speak a
-			// newer protocol than this consumer was built with. Reuse is
-			// the right default; the renderer↔AH handshake surfaces any
-			// genuine incompatibility.
 			writeState(process.pid, 8080, 'tok', { protocolVersion: '99.0.0' });
 			const result = await readActiveAgentHostFromLockfile(lockfilePath, logService);
 			assert.deepStrictEqual(result, {

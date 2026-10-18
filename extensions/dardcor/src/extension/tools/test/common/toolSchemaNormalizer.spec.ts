@@ -339,7 +339,6 @@ describe('ToolSchemaNormalizer', () => {
 			}
 		}));
 
-		// For non-Gemini models, the type array should remain unchanged
 		expect((schema![0].function.parameters as any).properties.nullableString.type).toEqual(['string', 'null']);
 		expect((schema![0].function.parameters as any).properties.nullableString.nullable).toBeUndefined();
 	});
@@ -352,8 +351,6 @@ describe('ToolSchemaNormalizer', () => {
 			}
 		}));
 
-		// When there are multiple non-null types, we can't use nullable keyword
-		// so we just remove null from the union
 		expect((schema![0].function.parameters as any).properties.multiType.type).toEqual(['string', 'number']);
 		expect((schema![0].function.parameters as any).properties.multiType.nullable).toBeUndefined();
 	});

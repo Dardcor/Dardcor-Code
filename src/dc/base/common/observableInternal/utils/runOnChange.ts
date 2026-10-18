@@ -32,7 +32,6 @@ export function runOnChange<T, TChange>(observable: IObservableWithChange<T, TCh
 		const previousValue = _previousValue;
 		if (changeSummary.didChange) {
 			_previousValue = value;
-			// didChange can never be true on the first autorun, so we know previousValue is defined
 			cb(value, previousValue!, changeSummary.deltas);
 		}
 		if (_firstRun) {

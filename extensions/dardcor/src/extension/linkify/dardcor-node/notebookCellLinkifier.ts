@@ -12,10 +12,6 @@ import { LinkifiedPart, LinkifiedText, LinkifyLocationAnchor } from '../common/l
 import { IContributedLinkifier, LinkifierContext } from '../common/linkifyService';
 import { Disposable, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 
-/**
- * Linkifies notebook cell IDs in chat responses.
- * The linkified text will show as "<Cell ID> (Cell <number>)" where number is the cell's index + 1.
- */
 export class NotebookCellLinkifier extends Disposable implements IDisposable, IContributedLinkifier {
 	private cells = new Map<string, WeakRef<NotebookCell>>();
 	private notebookCellIds = new WeakMap<NotebookDocument, Set<string>>();
@@ -30,12 +26,10 @@ export class NotebookCellLinkifier extends Disposable implements IDisposable, IC
 	async linkify(text: string, context: LinkifierContext, token: CancellationToken): Promise<LinkifiedText> {
 		const parts: LinkifiedPart[] = [];
 
-		// Safety check
 		if (!text || !this.workspaceService?.notebookDocuments) {
 			return { parts: [text] };
 		}
 
-		// Early bail if no notebook documents are open
 		const notebookDocuments = this.workspaceService.notebookDocuments;
 		if (!notebookDocuments || notebookDocuments.length === 0) {
 			return { parts: [text] };
@@ -47,12 +41,10 @@ export class NotebookCellLinkifier extends Disposable implements IDisposable, IC
 			const cellId = match[2];
 			const index = match.index!;
 
-			// Add text before the match
 			if (index > lastIndex) {
 				parts.push(text.slice(lastIndex, index));
 			}
 
-			// Try to resolve the cell ID to a linkable cell
 			const resolved = this.resolveCellId(cellId);
 			if (resolved) {
 				parts.push(fullMatch.slice(0, fullMatch.indexOf(cellId) + cellId.length));
@@ -65,7 +57,6 @@ export class NotebookCellLinkifier extends Disposable implements IDisposable, IC
 			lastIndex = index + fullMatch.length;
 		}
 
-		// Add remaining text after the last match
 		if (lastIndex < text.length) {
 			parts.push(text.slice(lastIndex));
 		}

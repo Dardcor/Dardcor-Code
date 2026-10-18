@@ -37,16 +37,7 @@ export interface IMultiFileEditTelemetry {
 export const IMultiFileEditInternalTelemetryService = createServiceIdentifier<IMultiFileEditInternalTelemetryService>('IMultiFileEditInternalTelemetryService');
 export interface IMultiFileEditInternalTelemetryService {
 	_serviceBrand: undefined;
-	/**
-	 * Store telemetry info for a multi-file edit
-	 */
 	storeEditPrompt(edit: IMultiFileEdit, telemetryOptions: IMultiFileEditTelemetry): void;
-	/**
-	 * Send a telemetry event with the outcome of a multi-file edit
-	 * @param chatRequestId The chat request id of the multi-file edit
-	 * @param uri The uri of the file that was accepted
-	 * Note: we do NOT track partial accepts and rejects
-	 */
 	sendEditPromptAndResult(telemetry: IMultiFileEditRequestInfo, uri: Uri, outcome: 'accept' | 'reject'): Promise<void>;
 }
 
@@ -54,9 +45,7 @@ export class MultiFileEditInternalTelemetryService extends Disposable implements
 
 	declare _serviceBrand: undefined;
 
-	// URI -> chatResponseId -> edits
 	private readonly editedFiles = new ResourceMap<Map<string, (IMultiFileEdit & IMultiFileEditTelemetry)[]>>();
-	// sessionId -> (URI -> TextDocument | NotebookDocument)
 	private readonly editedDocuments = new Map<string, ResourceMap<TextDocument | NotebookDocument>>();
 
 	constructor(
@@ -98,10 +87,6 @@ export class MultiFileEditInternalTelemetryService extends Disposable implements
 			return;
 		}
 		if (editsForUri.size > 1) {
-			// Multiple edit turns have affected this file
-			// i.e. edit -> edit -> accept/reject
-			// Skip sending telemetry for files which originated from multiple SD prompts
-			// and reset our tracking
 			this.logService.debug(`Skipping telemetry for ${uri.toString()} with request ID ${telemetry.chatRequestId} due to multiple edit turns`);
 			this.editedFiles.delete(uri);
 			return;
@@ -113,11 +98,6 @@ export class MultiFileEditInternalTelemetryService extends Disposable implements
 		}
 
 		if (editsForUriInChatRequest.length > 1) {
-			// This file has been edited twice in one edit turn,
-			// which can happen if the LLM iterates on a file in agentic edit mode
-			// and can also happen when the LLM ignores instructions in non-agentic edits.
-			// Again, skip sending telemetry for files which originated from multiple SD prompts
-			// and reset our tracking
 			this.logService.debug(`Skipping telemetry for ${uri.toString()} with request ID ${telemetry.chatRequestId} due to multiple edits in one turn`);
 			this.editedFiles.delete(uri);
 			return;
@@ -126,8 +106,6 @@ export class MultiFileEditInternalTelemetryService extends Disposable implements
 		try {
 			const edit = editsForUriInChatRequest[0];
 
-			// NOTE: this may not be what's on disk, but should reflect the outcome of accepting/rejecting
-			// regardless of whether the user is an autosave user / has saved the edits by now
 			let languageId: string | undefined = undefined;
 			let documentText: string | undefined = undefined;
 			if (edit.chatSessionId) {
@@ -154,12 +132,11 @@ export class MultiFileEditInternalTelemetryService extends Disposable implements
 				{
 					requestId: telemetry.chatRequestId,
 					speculationRequestId: edit.speculationRequestId,
-					// NOTE: for now this will always be false because in agent mode the edits are invoked via the MappedEditsProvider, so we lose the turn ID
 					isAgent: String(edit.isAgent),
 					outcome,
 					prompt: edit.prompt,
 					languageId,
-					file: documentText, // Note that this is not necessarily the same as the model output because the user may have made manual edits
+					file: documentText,
 					mapper: edit.mapper
 				},
 				{
@@ -174,14 +151,14 @@ export class MultiFileEditInternalTelemetryService extends Disposable implements
 				languageId: languageId,
 				messageText: edit.prompt,
 				suggestion: outcome,
-				completionTextJson: documentText, // Note that this is not necessarily the same as the model output because the user may have made manual edits
+				completionTextJson: documentText,
 				conversationId: edit.chatSessionId,
 				messageId: edit.chatRequestId,
 				headBranchName: workspace.headBranchName,
 				headCommitHash: workspace.headCommitHash,
 				remoteUrl: workspace.remoteUrl,
 				fileRelativePath: workspace.fileRelativePath,
-			}).then(gitHubEnhancedTelemetryProperties => this.telemetryService.sendEnhancedGHTelemetryEvent('fastApply/editOutcome', gitHubEnhancedTelemetryProperties)).catch(() => { /* best-effort telemetry */ });
+			}).then(gitHubEnhancedTelemetryProperties => this.telemetryService.sendEnhancedGHTelemetryEvent('fastApply/editOutcome', gitHubEnhancedTelemetryProperties)).catch(() => { });
 			this.logService.debug(`Sent telemetry for ${uri.toString()} with request ID ${edit.chatRequestId}, SD request ID ${edit.speculationRequestId}, and outcome ${outcome}`);
 		} catch (e) {
 			this.logService.error('Error sending multi-file edit telemetry', JSON.stringify(e));

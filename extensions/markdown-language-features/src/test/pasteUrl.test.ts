@@ -22,7 +22,6 @@ suite('createEditAddingLinksForUriList', () => {
 	test('Markdown Link Pasting should occur for a valid link (end to end)', async () => {
 		const result = createInsertUriListEdit(
 			new InMemoryDocument(vscode.Uri.file('test.md'), 'hello world!'), [new vscode.Range(0, 0, 0, 12)], UriList.from('https://www.microsoft.com/'));
-		// need to check the actual result -> snippet value
 		assert.strictEqual(result?.label, 'Insert Markdown Link');
 	});
 

@@ -6,19 +6,12 @@ import { startLocalServer } from "../utils/server.js";
 import { generatePKCE } from "../utils/pkce.js";
 import { spinner as createSpinner } from "../utils/ui.js";
 
-/**
- * Codex (OpenAI) OAuth Service
- */
 export class CodexService extends OAuthService {
   constructor() {
     super(CODEX_CONFIG);
   }
 
-  /**
-   * Build Codex authorization URL
-   */
   buildCodexAuthUrl(redirectUri, state, codeChallenge) {
-    // Build URL manually to ensure space encoding as %20 instead of +
     const params = {
       response_type: "code",
       client_id: CODEX_CONFIG.clientId,
@@ -37,9 +30,6 @@ export class CodexService extends OAuthService {
     return `${CODEX_CONFIG.authorizeUrl}?${queryString}`;
   }
 
-  /**
-   * Save Codex tokens to server
-   */
   async saveTokens(tokens) {
     const { server, token, userId } = getServerCredentials();
 
@@ -66,16 +56,12 @@ export class CodexService extends OAuthService {
     return await response.json();
   }
 
-  /**
-   * Complete Codex OAuth flow
-   */
   async connect() {
     const spinner = createSpinner("Starting Codex OAuth...").start();
 
     try {
       spinner.text = "Starting local server...";
 
-      // Start local server for callback (use fixed port 1455 like real Codex CLI)
       const fixedPort = CODEX_CONFIG.fixedPort;
       let callbackParams = null;
       const { port, close } = await startLocalServer((params) => {
@@ -85,19 +71,15 @@ export class CodexService extends OAuthService {
       const redirectUri = `http://localhost:${port}/auth/callback`;
       spinner.succeed(`Local server started on port ${port}`);
 
-      // Generate PKCE
       const { codeVerifier, codeChallenge, state } = generatePKCE();
 
-      // Build authorization URL
       const authUrl = this.buildCodexAuthUrl(redirectUri, state, codeChallenge);
 
       console.log("\nOpening browser for OpenAI authentication...");
       console.log(`If browser doesn't open, visit:\n${authUrl}\n`);
 
-      // Open browser
       await open(authUrl);
 
-      // Wait for callback
       spinner.start("Waiting for OpenAI authorization...");
 
       await new Promise((resolve, reject) => {
@@ -126,12 +108,10 @@ export class CodexService extends OAuthService {
 
       spinner.start("Exchanging code for tokens...");
 
-      // Exchange code for tokens (Codex uses form-urlencoded)
       const tokens = await this.exchangeCode(callbackParams.code, redirectUri, codeVerifier, "application/x-www-form-urlencoded");
 
       spinner.text = "Saving tokens to server...";
 
-      // Save tokens to server
       await this.saveTokens(tokens);
 
       spinner.succeed("Codex connected successfully!");

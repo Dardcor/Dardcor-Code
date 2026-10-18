@@ -66,7 +66,6 @@ describe('ClaudeRuntimeDataService', () => {
 		await service.update(query as unknown as Query);
 
 		expect(fired).toBe(true);
-		// Previous cache should be preserved (empty in this case)
 		expect(service.getAgents()).toEqual([]);
 	});
 

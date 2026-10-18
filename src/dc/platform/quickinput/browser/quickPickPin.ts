@@ -13,12 +13,6 @@ import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js'
 const pinButtonClass = ThemeIcon.asClassName(Codicon.pin);
 const pinnedButtonClass = ThemeIcon.asClassName(Codicon.pinned);
 const buttonClasses = [pinButtonClass, pinnedButtonClass];
-/**
- * Initially, adds pin buttons to all @param quickPick items.
- * When pinned, a copy of the item will be moved to the end of the pinned list and any duplicate within the pinned list will
- * be removed if @param filterDupliates has been provided. Pin and pinned button events trigger updates to the underlying storage.
- * Shows the quickpick once formatted.
- */
 export function showWithPinnedItems(storageService: IStorageService, storageKey: string, quickPick: IQuickPick<IQuickPickItem, { useSeparators: true }>, filterDuplicates?: boolean): IDisposable {
 	const itemsWithoutPinned = quickPick.items;
 	let itemsWithPinned = _formatPinnedItems(storageKey, quickPick, storageService, undefined, filterDuplicates);
@@ -85,7 +79,6 @@ function updateButtons(item: QuickPickItem, removePin: boolean): void {
 		return;
 	}
 
-	// remove button classes before adding the new one
 	const newButtons = item.buttons?.filter(button => button.iconClass && !buttonClasses.includes(button.iconClass)) ?? [];
 	newButtons.unshift({
 		iconClass: removePin ? pinButtonClass : pinnedButtonClass,

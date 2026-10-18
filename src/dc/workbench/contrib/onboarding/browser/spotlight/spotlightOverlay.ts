@@ -18,54 +18,34 @@ import { SpotlightPlacement } from './spotlightTypes.js';
 import { OnboardingDismissReason } from '../../common/onboardingScenario.js';
 import '../media/spotlight.css';
 
-/** How the user advanced to the next step. */
 export type SpotlightAdvanceSource = 'button' | 'target';
 
-/** Why a step ended in a skip: the Skip button or the Escape key. */
 export type SpotlightSkipReason = OnboardingDismissReason.SkipButton | OnboardingDismissReason.EscapeKey;
 
-/** Default padding (px) added around the target when cutting the highlight hole. */
 const DEFAULT_HOLE_PADDING = 6;
 const POINTER_SIZE = 10;
 const POINTER_GAP = POINTER_SIZE;
 const POINTER_EDGE_MARGIN = 16;
 type PointerSide = 'top' | 'right' | 'bottom' | 'left';
 
-/** Content rendered inside the spotlight callout for a single step. */
 export interface ISpotlightContent {
 	readonly title: string;
 	readonly description: string | IMarkdownString;
-	/** Zero-based index of the current step. */
 	readonly stepIndex: number;
-	/** Total number of steps in the tour. */
 	readonly stepCount: number;
-	/** Whether a "Back" action should be offered. */
 	readonly canGoBack: boolean;
-	/** Whether this is the final step (the primary button becomes "Done"). */
 	readonly isLastStep: boolean;
 }
 
-/** Options controlling how a step is shown. */
 export interface ISpotlightShowOptions {
 	readonly placement?: SpotlightPlacement;
 	readonly allowTargetInteraction?: boolean;
 	readonly padding?: number;
 	readonly hideNext?: boolean;
 	readonly targetOverlayVisible?: boolean;
-	/**
-	 * When set, the step advances (fires `onDidClickNext`) when the user clicks
-	 * the spotlighted target itself. The "Next" button is hidden and the target
-	 * is kept interactive so the user can press it to continue.
-	 */
 	readonly advanceOnTargetClick?: boolean;
 }
 
-/**
- * A pure-DOM spotlight overlay: dims the window, cuts a highlight hole around a
- * target element and shows an anchored callout. It owns no VS Code services so
- * it can be unit-tested and reused. Scheduling and content come from the
- * spotlight presentation.
- */
 export class SpotlightOverlay extends Disposable {
 
 	private readonly _root: HTMLElement;
@@ -83,7 +63,6 @@ export class SpotlightOverlay extends Disposable {
 	private readonly _nextButton: Button;
 	private readonly _skipButton: Button;
 
-	/** Listeners scoped to the currently shown step (re-layout sources). */
 	private readonly _stepListeners = this._register(new DisposableStore());
 
 	private readonly _onDidClickNext = this._register(new Emitter<SpotlightAdvanceSource>());
@@ -152,18 +131,15 @@ export class SpotlightOverlay extends Disposable {
 		this._nextButton.label = localize('spotlight.next', "Next");
 		this._register(this._nextButton.onDidClick(() => this._onDidClickNext.fire('button')));
 
-		// Buttons swallow Escape internally, so route their escape events to end the tour too.
 		for (const button of [this._skipButton, this._backButton, this._nextButton]) {
 			this._register(button.onDidEscape(() => this._onDidSkip.fire(OnboardingDismissReason.EscapeKey)));
 		}
 
-		// Keyboard handling on the callout: Esc ends the tour, focus is trapped within.
 		this._register(addDisposableListener(this._callout, EventType.KEY_DOWN, e => this._onKeyDown(e)));
 
 		this._register({ dispose: () => this._restoreFocus() });
 	}
 
-	/** Show `content` spotlighting `target`. */
 	show(target: HTMLElement, content: ISpotlightContent, options: ISpotlightShowOptions = {}): void {
 		if (!this._hasShown) {
 			this._hasShown = true;
@@ -179,7 +155,6 @@ export class SpotlightOverlay extends Disposable {
 
 		this._root.style.display = '';
 
-		// Rebuild the per-step re-layout listeners.
 		this._stepListeners.clear();
 		const targetWindow = getWindow(this._container);
 
@@ -191,19 +166,11 @@ export class SpotlightOverlay extends Disposable {
 		this._stepListeners.add(addDisposableListener(targetWindow, EventType.RESIZE, () => this.scheduleLayout()));
 		this._stepListeners.add(addDisposableListener(targetWindow, EventType.SCROLL, () => this.scheduleLayout(), true));
 
-		// Cancel any pending scheduled frame when the step changes. Registered
-		// once here (not per schedule) so high-frequency scroll/resize events
-		// don't accumulate no-op disposables in `_stepListeners`.
 		this._stepListeners.add(toDisposable(() => {
 			this._scheduledLayout?.dispose();
 			this._scheduledLayout = undefined;
 		}));
 
-		// When the step advances by pressing the target, hide the Next button and
-		// advance on a click of the (interactive) target instead. The target is
-		// kept keyboard-reachable: it joins the focus trap (see `_collectFocusable`)
-		// and we route Tab/Esc from it through the same handler, so keyboard-only
-		// users can focus the spotlighted control and activate it to advance.
 		const advanceOnTargetClick = !!options.advanceOnTargetClick;
 		const hideNext = advanceOnTargetClick || !!options.hideNext;
 		this._nextButton.element.style.display = hideNext ? 'none' : '';
@@ -216,12 +183,9 @@ export class SpotlightOverlay extends Disposable {
 
 		this.layout();
 
-		// Move focus to the spotlighted control (so keyboard users can activate it
-		// to advance) or, otherwise, into the callout's primary action.
 		(hideNext ? target : this._nextButton.element).focus();
 	}
 
-	/** Hide the current step while another target is being resolved. */
 	hide(): void {
 		this._stepListeners.clear();
 		this._root.style.display = 'none';
@@ -230,7 +194,6 @@ export class SpotlightOverlay extends Disposable {
 		this._options = {};
 	}
 
-	/** Recompute the hole and callout positions for the current target. */
 	layout(): void {
 		const target = this._target;
 		if (!target || this._root.style.display === 'none') {
@@ -253,9 +216,6 @@ export class SpotlightOverlay extends Disposable {
 		this._hole.style.width = `${holeWidth}px`;
 		this._hole.style.height = `${holeHeight}px`;
 
-		// When the target is interactive (explicitly, or because the step advances
-		// on a target click), arrange the click blockers around the hole so events
-		// inside it reach the underlying element.
 		if (this._options.allowTargetInteraction || this._options.advanceOnTargetClick) {
 			const right = holeLeft + holeWidth;
 			const bottom = holeTop + holeHeight;
@@ -410,9 +370,6 @@ export class SpotlightOverlay extends Disposable {
 		const active = getActiveElement();
 		const currentIndex = focusable.findIndex(element => element === active);
 
-		// When focus isn't currently on a tracked element (e.g. it landed on the
-		// callout container itself), start from the appropriate end so Tab goes to
-		// the first element and Shift+Tab to the last.
 		let nextIndex: number;
 		if (currentIndex === -1) {
 			nextIndex = event.shiftKey ? focusable.length - 1 : 0;
@@ -426,14 +383,6 @@ export class SpotlightOverlay extends Disposable {
 		focusable[nextIndex].focus();
 	}
 
-	/**
-	 * The focusable elements participating in the focus trap, in DOM order: the
-	 * spotlighted target (when it is interactive or the Next button is hidden), then any
-	 * interactive content in the (possibly markdown) description, then the visible
-	 * action buttons. Including the target keeps the spotlighted control
-	 * keyboard-reachable, and querying the description keeps markdown links
-	 * reachable despite `aria-modal`.
-	 */
 	private _collectFocusable(): HTMLElement[] {
 		const targetFocusables = (this._options.allowTargetInteraction || this._options.advanceOnTargetClick || this._options.hideNext) && this._target
 			// eslint-disable-next-line no-restricted-syntax -- querying the spotlight target subtree for focusable controls

@@ -58,13 +58,8 @@ import { IAgentPluginRepositoryService } from './agentPluginRepositoryService.js
 import { AgentPluginDiscoveryPriority, agentPluginDiscoveryRegistry, IAgentPlugin, IAgentPluginDiscovery, IAgentPluginHook, IAgentPluginInstruction, IAgentPluginService } from './agentPluginService.js';
 import { IMarketplacePlugin, IPluginMarketplaceService } from './pluginMarketplaceService.js';
 
-// Re-export shared helpers so existing consumers (including tests) continue to work.
 export { shellQuotePluginRootInCommand, resolveMcpServersMap, convertBareEnvVarsToVsCodeSyntax } from '../../../../../platform/agentPlugins/common/pluginParsers.js';
 
-/**
- * Converts platform-layer parsed hook groups to the workbench's {@link IAgentPluginHook} type.
- * The canonical type strings from the platform layer map directly to {@link HookType} enum values.
- */
 function toAgentPluginHooks(groups: readonly IParsedHookGroup[]): IAgentPluginHook[] {
 	return groups
 		.filter(g => Object.values(HookType).includes(g.type as HookType))
@@ -76,13 +71,8 @@ function toAgentPluginHooks(groups: readonly IParsedHookGroup[]): IAgentPluginHo
 		}));
 }
 
-/** File suffixes accepted for rule/instruction files (longest first for correct name stripping). */
 const RULE_FILE_SUFFIXES = ['.instructions.md', '.mdc', '.md'];
 
-/**
- * Resolves the workspace folder that contains the plugin URI for cwd resolution,
- * falling back to the first workspace folder for plugins outside the workspace.
- */
 function resolveWorkspaceRoot(pluginUri: URI, workspaceContextService: IWorkspaceContextService): URI | undefined {
 	const defaultFolder = workspaceContextService.getWorkspace().folders[0];
 	const folder = workspaceContextService.getWorkspaceFolder(pluginUri) ?? defaultFolder;
@@ -115,9 +105,6 @@ export class AgentPluginService extends Disposable implements IAgentPluginServic
 			discoveries.push({ discovery, priority: registration.priority, order: registration.order });
 		}
 
-		// Policy-driven enforcement, applied after discovery so that enterprise
-		// policy is honored regardless of which discovery source surfaces a
-		// plugin (local paths, marketplace, CLI install dir).
 		const enabledPluginsPolicy = observableFromEvent(this,
 			Event.filter(configurationService.onDidChangeConfiguration, e => e.affectsConfiguration(ChatConfiguration.EnabledPlugins)),
 			() => configurationService.inspect<Record<string, boolean>>(ChatConfiguration.EnabledPlugins).policyValue,
@@ -152,9 +139,6 @@ export class AgentPluginService extends Disposable implements IAgentPluginServic
 			return getSortedAgentPlugins(discoveredPlugins);
 		});
 
-		// Mark policy-blocked plugins rather than hiding them: a blocked plugin
-		// stays visible (shown as disabled) but its `enablement` is forced to
-		// disabled (see `_toPlugin`), so it is inactive and cannot be re-enabled.
 		this._register(autorun(reader => {
 			const plugins = this.plugins.read(reader);
 			const policy = enabledPluginsPolicy.read(reader);
@@ -188,20 +172,10 @@ function readDiscoveredAgentPlugins(discoveries: readonly IAgentPluginDiscoveryW
 	return result;
 }
 
-/**
- * A discovered plugin. Extends the public {@link IAgentPlugin} with a settable
- * `policyBlocked` observable that the service writes to when enterprise policy
- * blocks the plugin.
- */
 interface PluginEntry extends IAgentPlugin {
 	readonly policyBlocked: ISettableObservable<boolean>;
 }
 
-/**
- * Marks a plugin as blocked (or unblocked) by enterprise policy. Safe to call
- * for any {@link IAgentPlugin}; entries without a settable observable (e.g. test
- * doubles) are ignored.
- */
 function setPolicyBlocked(plugin: IAgentPlugin, blocked: boolean, tx: ITransaction): boolean {
 	const obs = plugin.policyBlocked as ISettableObservable<boolean> | undefined;
 	if (obs && typeof obs.set === 'function') {
@@ -214,40 +188,18 @@ function setPolicyBlocked(plugin: IAgentPlugin, blocked: boolean, tx: ITransacti
 	return false;
 }
 
-/**
- * Minimal shape of a parsed plugin manifest. Known fields are typed; unknown
- * keys (e.g. `commands`, `skills`, `hooks`, `mcpServers`) remain `unknown` and
- * are parsed by the component readers.
- *
- * NOTE: `name` is typed as `string | undefined` to express intent, but
- * consumers must still runtime-validate it (manifests are untrusted JSON).
- */
 interface IPluginManifest {
 	readonly name?: string;
 	readonly [key: string]: unknown;
 }
 
-/**
- * Describes a single discovered plugin source, before the shared
- * infrastructure builds the full {@link IAgentPlugin} from it.
- */
 interface IPluginSource {
 	readonly uri: URI;
 	readonly fromMarketplace: IMarketplacePlugin | undefined;
-	/** Repository root that serves as the boundary for component path resolution. */
 	readonly repositoryUri?: URI;
-	/** Called when remove is invoked on the plugin; absent for policy-managed plugins */
 	remove?(): void;
 }
 
-/**
- * Shared base class for plugin discovery implementations. Contains the common
- * logic for reading plugin contents (commands, skills, agents, hooks, MCP server
- * definitions) from the filesystem and watching for live updates.
- *
- * Subclasses implement {@link _discoverPluginSources} to determine *which*
- * plugins exist, while this class handles the rest.
- */
 export abstract class AbstractAgentPluginDiscovery extends Disposable implements IAgentPluginDiscovery {
 
 	private readonly _pluginEntries = new Map<string, { plugin: PluginEntry; store: DisposableStore; format: IPluginFormatConfig }>();
@@ -279,7 +231,6 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 		this._plugins.set(plugins, undefined);
 	}
 
-	/** Subclasses return plugin sources to discover. */
 	protected abstract _discoverPluginSources(): Promise<readonly IPluginSource[]>;
 
 	private async _discoverAndBuildPlugins(version: number): Promise<readonly IAgentPlugin[]> {
@@ -348,17 +299,11 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 		}
 
 		const store = new DisposableStore();
-		// Set by the service when enterprise policy blocks this plugin; when set,
-		// the plugin is forced disabled regardless of the user's enablement choice.
 		const policyBlocked = observableValue<boolean>('policyBlocked', false);
 		const enablement = derived(r => policyBlocked.read(r)
 			? ContributionEnablementState.DisabledProfile
 			: this._enablementModel.readEnabled(key, r));
 
-		// Read the manifest up front so its `name` field can be used in the
-		// plugin label (for direct installs that have no marketplace metadata).
-		// Component directories are tracked via observers downstream and
-		// re-read whenever the manifest changes on disk.
 		const initialManifest = await readPluginManifest(uri, format, this._fileService);
 		const manifest = observableValue<IPluginManifest | undefined>('agentPluginManifest', initialManifest);
 
@@ -398,7 +343,7 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 				if (w.kind === 'const') {
 					return w.data.promiseResult;
 				} else {
-					changeTrigger.read(reader); // re-run when a relevant file change occurs
+					changeTrigger.read(reader);
 					const promise = new ObservablePromise(doRead(w.dirs));
 					return promise.promiseResult;
 				}
@@ -432,8 +377,6 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 			'.mcp.json',
 		);
 
-		// Re-read the manifest whenever it changes on disk. The initial value
-		// was already populated above before constructing the observable.
 		const readManifest = async () => {
 			try {
 				const latestFormat = await detectPluginFormat(uri, this._fileService);
@@ -496,11 +439,6 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 		return plugin;
 	}
 
-	/**
-	 * Reads hook definitions from a list of resolved paths (JSON files).
-	 * Each path is tried in order; the first one that contains valid hook
-	 * JSON is used.
-	 */
 	private async _readHooksFromPaths(pluginUri: URI, paths: readonly URI[], format: IPluginFormatConfig): Promise<readonly IAgentPluginHook[]> {
 		const userHome = await this._pathService.userHome();
 		const workspaceRoot = resolveWorkspaceRoot(pluginUri, this._workspaceContextService);
@@ -526,11 +464,6 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 		}
 	}
 
-	/**
-	 * Scans directories for rule/instruction files (`.mdc`, `.md`,
-	 * `.instructions.md`), returning `{ uri, name }` entries where name is
-	 * derived from the filename minus the matched suffix.
-	 */
 	private async _readRules(dirs: readonly URI[]): Promise<readonly IAgentPluginInstruction[]> {
 		const seen = new Set<string>();
 		const items: IAgentPluginInstruction[] = [];
@@ -612,10 +545,6 @@ export class ConfiguredAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 	) {
 		super(fileService, pathService, logService, workspaceContextService);
 		this._pluginLocationsConfig = observableConfigValue<Record<string, boolean>>(ChatConfiguration.PluginLocations, {}, _configurationService);
-		// Enterprise-managed plugin-ID entries (delivered via the `ChatEnabledPlugins` policy).
-		// These are plugin IDs in `<plugin>@<marketplace>` form, distinct from filesystem paths.
-		// Read via `inspect()` so user-set entries survive when the policy is also set —
-		// `getValue()` alone would surface only the policy value.
 		this._enterpriseEnabledPluginsConfig = observableFromEvent(this,
 			Event.filter(this._configurationService.onDidChangeConfiguration, e => e.affectsConfiguration(ChatConfiguration.EnabledPlugins)),
 			() => {
@@ -640,9 +569,6 @@ export class ConfiguredAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 		const sources: IPluginSource[] = [];
 		const userHome = await this._getUserHome();
 
-		// User-configured filesystem paths in `chat.pluginLocations` — removable
-		// by re-writing the user setting. Filesystem-only; an entry that happens
-		// to look like `name@marketplace` is treated as a relative path, not an ID.
 		for (const [key, enabled] of Object.entries(this._pluginLocationsConfig.get())) {
 			const trimmed = key.trim();
 			if (!trimmed || enabled === false) {
@@ -653,10 +579,6 @@ export class ConfiguredAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 			}
 		}
 
-		// Enterprise-managed plugin IDs in `chat.plugins.enabledPlugins` (delivered
-		// via the `ChatEnabledPlugins` policy) — IDs of the form
-		// `<plugin>@<marketplace>`, resolved to the Copilot CLI install convention.
-		// Non-removable from the UI (enterprise-managed).
 		for (const [key, enabled] of Object.entries(this._enterpriseEnabledPluginsConfig.get())) {
 			const trimmed = key.trim();
 			if (!trimmed || enabled === false) {
@@ -699,11 +621,6 @@ export class ConfiguredAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 		return userHome.scheme === 'file' ? userHome.fsPath : userHome.path;
 	}
 
-	/**
-	 * Resolves a user-configured plugin path to one or more resource URIs.
-	 * Supports absolute paths, tilde paths (expanded to user home), and
-	 * workspace-relative paths.
-	 */
 	private _resolvePluginPath(path: string, userHome: string): URI[] {
 		if (path.startsWith('~')) {
 			path = untildify(path, userHome);
@@ -718,11 +635,6 @@ export class ConfiguredAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 		);
 	}
 
-	/**
-	 * Resolves an enterprise plugin ID of the form `<plugin>@<marketplace>` to
-	 * the Copilot CLI install convention `~/.copilot/installed-plugins/<marketplace>/<plugin>/`.
-	 * Returns `undefined` for anything that doesn't match the ID shape.
-	 */
 	private _resolveEnterprisePluginId(id: string, userHome: string): URI | undefined {
 		const idMatch = id.match(/^([^@/\\~]+)@([^@/\\~]+)$/);
 		if (!idMatch) {
@@ -732,10 +644,6 @@ export class ConfiguredAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 		return URI.file(`${userHome}/.copilot/installed-plugins/${marketplace}/${plugin}`);
 	}
 
-	/**
-	 * Removes a plugin path from `chat.pluginLocations` in the most specific
-	 * config target where the key is defined.
-	 */
 	private _removePluginPath(configKey: string): void {
 		const inspected = this._configurationService.inspect<Record<string, boolean>>(ChatConfiguration.PluginLocations);
 
@@ -815,8 +723,6 @@ export class MarketplaceAgentPluginDiscovery extends AbstractAgentPluginDiscover
 					this._enablementModel.remove(stat.resource.toString());
 					this._pluginMarketplaceService.removeInstalledPlugin(entry.pluginUri);
 
-					// Pass remaining installed descriptors so the repository service
-					// can skip deletion when other plugins share the same cache dir.
 					const remaining = this._pluginMarketplaceService.installedPlugins.get();
 					this._pluginRepositoryService.cleanupPluginSource(
 						entry.plugin,
@@ -832,25 +738,9 @@ export class MarketplaceAgentPluginDiscovery extends AbstractAgentPluginDiscover
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Copilot CLI plugin discovery
-// ---------------------------------------------------------------------------
 
-/**
- * Directory under the Copilot CLI home where installed plugins are cached.
- * Layout is two levels deep: `<marketplace>/<plugin>/`. Direct (non-marketplace)
- * installs use the reserved marketplace segment `_direct`.
- *
- * See `src/plugins/manager.ts` in the copilot-agent-runtime repo.
- */
 const COPILOT_CLI_INSTALLED_PLUGINS_DIR = '.copilot/installed-plugins';
 
-/**
- * Discovers plugins installed by the Copilot CLI under
- * `~/.copilot/installed-plugins/<marketplace>/<plugin>/`. Each leaf directory
- * is treated as a plugin root, allowing CLI-installed plugins (both
- * marketplace and direct) to surface in VS Code without a separate install.
- */
 export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery {
 
 	constructor(
@@ -876,10 +766,6 @@ export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 
 			const root = await this._getInstalledPluginsDir();
 
-			// Walk up to the deepest existing ancestor and watch each directory
-			// from there down. Non-recursive watchers fail if the target doesn't
-			// exist, so we need to watch an existing parent (e.g. ~/.copilot or
-			// userHome) to detect the first-ever plugin install.
 			const dirsToWatch: URI[] = [];
 			let candidate: URI | undefined = root;
 			while (candidate) {
@@ -903,13 +789,10 @@ export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 				watcherStore.add(watcher);
 				watcherStore.add(watcher.onDidChange(() => {
 					scheduler.schedule();
-					// Re-attach watchers in case directories appeared/disappeared.
-					setupWatchers().catch(() => { /* watchers are best-effort */ });
+					setupWatchers().catch(() => { });
 				}));
 			}
 
-			// Watch each marketplace bucket non-recursively for plugin
-			// install/uninstall events.
 			let rootStat;
 			try {
 				rootStat = await this._fileService.resolve(root);
@@ -929,7 +812,7 @@ export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 			}
 		};
 
-		setupWatchers().catch(() => { /* watchers are best-effort */ });
+		setupWatchers().catch(() => { });
 		scheduler.schedule();
 	}
 
@@ -945,7 +828,6 @@ export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 		try {
 			rootStat = await this._fileService.resolve(root);
 		} catch {
-			// Directory doesn't exist — Copilot CLI hasn't installed any plugins.
 			return [];
 		}
 
@@ -954,8 +836,6 @@ export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 		}
 
 		const sources: IPluginSource[] = [];
-		// Each immediate child is a marketplace bucket (e.g. `_direct`,
-		// `<marketplace-name>`); each grandchild is a plugin root.
 		for (const marketplaceDir of rootStat.children) {
 			if (!marketplaceDir.isDirectory) {
 				continue;
@@ -1006,9 +886,6 @@ export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Extension-contributed plugin discovery
-// ---------------------------------------------------------------------------
 
 interface IRawChatPluginContribution {
 	readonly path: string;

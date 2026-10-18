@@ -173,7 +173,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 		this._editor.addContentWidget(this);
 
 		this._register(this._editor.onDidChangeModelContent(_ => {
-			// cancel when the line in question has been removed
 			const editorModel = this._editor.getModel();
 			const state = this._state.get();
 			if (state.type !== LightBulbState.Type.Showing || !editorModel || state.editorPosition.lineNumber >= editorModel.getLineCount()) {
@@ -192,12 +191,9 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 				return;
 			}
 
-			// Make sure that focus / cursor location is not lost when clicking widget icon
 			this._editor.focus();
 			e.preventDefault();
 
-			// a bit of extra work to make sure the menu
-			// doesn't cover the line-text
 			const { top, height } = dom.getDomNodePagePosition(this._domNode);
 			const lineHeight = this._editor.getOption(EditorOption.lineHeight);
 
@@ -218,8 +214,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 			if ((e.buttons & 1) !== 1) {
 				return;
 			}
-			// mouse enters lightbulb while the primary/left button
-			// is being pressed -> hide the lightbulb
 			this.hide();
 		}));
 
@@ -229,7 +223,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 			this._quickFixKbLabel.set(this._keybindingService.lookupKeybinding(quickFixCommandId)?.getLabel() ?? undefined, undefined);
 		}));
 
-		// Autorun to update the DOM based on state changes
 		this._register(autorun(reader => {
 			const info = this._combinedInfo.read(reader);
 			this._updateLightBulbTitleAndIcon(info);
@@ -247,11 +240,8 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 				return;
 			}
 
-			// Make sure that focus / cursor location is not lost when clicking widget icon
 			this._editor.focus();
 
-			// a bit of extra work to make sure the menu
-			// doesn't cover the line-text
 			const { top, height } = dom.getDomNodePagePosition(e.target.element);
 			const lineHeight = this._editor.getOption(EditorOption.lineHeight);
 
@@ -331,7 +321,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 			return lineNumber > 2 && this._editor.getTopForLineNumber(lineNumber) === this._editor.getTopForLineNumber(lineNumber - 1);
 		};
 
-		// Check for glyph margin decorations of any kind
 		const currLineDecorations = this._editor.getLineDecorations(lineNumber);
 		let hasDecoration = false;
 		if (currLineDecorations) {
@@ -348,7 +337,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 		let effectiveLineNumber = lineNumber;
 		let effectiveColumnNumber = 1;
 		if (!lineHasSpace) {
-			// Checks if line is empty or starts with any amount of whitespace
 			const isLineEmptyOrIndented = (lineNumber: number): boolean => {
 				const lineContent = model.getLineContent(lineNumber);
 				return /^\s*$|^\s+/.test(lineContent) || lineContent.length <= effectiveColumnNumber;
@@ -362,7 +350,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 				const currLineEmptyOrIndented = isLineEmptyOrIndented(lineNumber);
 				const notEmpty = !nextLineEmptyOrIndented && !prevLineEmptyOrIndented;
 
-				// check above and below. if both are blocked, display lightbulb in the gutter.
 				if (!nextLineEmptyOrIndented && !prevLineEmptyOrIndented && !hasDecoration) {
 					this._gutterState.set(new LightBulbState.Showing(actions, trigger, atPosition, {
 						position: { lineNumber: effectiveLineNumber, column: effectiveColumnNumber },
@@ -376,7 +363,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 					effectiveLineNumber += 1;
 				}
 			} else if (lineNumber === 1 && (lineNumber === model.getLineCount() || !isLineEmptyOrIndented(lineNumber + 1) && !isLineEmptyOrIndented(lineNumber))) {
-				// special checks for first line blocked vs. not blocked.
 				this._gutterState.set(new LightBulbState.Showing(actions, trigger, atPosition, {
 					position: { lineNumber: effectiveLineNumber, column: effectiveColumnNumber },
 					preference: LightBulbWidget._posPref
@@ -391,8 +377,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 			} else if ((lineNumber < model.getLineCount()) && !isFolded(lineNumber + 1)) {
 				effectiveLineNumber += 1;
 			} else if (column * fontInfo.spaceWidth < 22) {
-				// cannot show lightbulb above/below and showing
-				// it inline would overlay the cursor...
 				return this.hide();
 			}
 			effectiveColumnNumber = /^\S\s*$/.test(model.getLineContent(effectiveLineNumber)) ? 2 : 1;
@@ -463,7 +447,6 @@ export class LightBulbWidget extends Disposable implements IContentWidget {
 		});
 	}
 
-	/* Gutter Helper Functions */
 	private renderGutterLightbub(): void {
 		const selection = this._editor.getSelection();
 		if (!selection) {

@@ -64,10 +64,8 @@ pub struct IntegratedCli {
 	pub core: CliCore,
 }
 
-/// Common CLI shared between integrated and standalone interfaces.
 #[derive(Args, Debug, Default, Clone)]
 pub struct CliCore {
-	/// One or more files, folders, or URIs to open.
 	#[clap(name = "paths")]
 	pub open_paths: Vec<String>,
 
@@ -150,13 +148,11 @@ impl<'a> From<&'a CliCore> for CodeServerArgs {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum StandaloneCommands {
-	/// Updates the CLI.
 	Update(StandaloneUpdateArgs),
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct StandaloneUpdateArgs {
-	/// Only check for updates, without actually updating the CLI.
 	#[clap(long)]
 	pub check: bool,
 }
@@ -164,120 +160,80 @@ pub struct StandaloneUpdateArgs {
 #[derive(Subcommand, Debug, Clone)]
 
 pub enum Commands {
-	/// Create a tunnel that's accessible on vscode.dev from anywhere.
-	/// Run `code tunnel --help` for more usage info.
 	Tunnel(TunnelArgs),
 
-	/// Manage editor extensions.
 	#[clap(name = "ext")]
 	Extension(ExtensionArgs),
 
-	/// Print process usage and diagnostics information.
 	Status,
 
-	/// Changes the version of the editor you're using.
 	Version(VersionArgs),
 
-	/// Runs a local web version of VS Code.
 	#[clap(about = concatcp!("Runs a local web version of ", constants::PRODUCT_NAME_LONG))]
 	ServeWeb(ServeWebArgs),
 
-	/// Runs the control server on process stdin/stdout
 	#[clap(hide = true)]
 	CommandShell(CommandShellArgs),
 
-	/// Manage agent host sessions.
 	#[clap(name = "agent")]
 	Agent(AgentArgs),
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct ServeWebArgs {
-	/// Host to listen on, defaults to 'localhost'
 	#[clap(long)]
 	pub host: Option<String>,
-	// The path to a socket file for the server to listen to.
 	#[clap(long)]
 	pub socket_path: Option<String>,
-	/// Port to listen on. If 0 is passed a random free port is picked.
 	#[clap(long, default_value_t = 8000)]
 	pub port: u16,
-	/// A secret that must be included with all requests.
 	#[clap(long)]
 	pub connection_token: Option<String>,
-	/// A file containing a secret that must be included with all requests.
 	#[clap(long)]
 	pub connection_token_file: Option<String>,
-	/// Run without a connection token. Only use this if the connection is secured by other means.
 	#[clap(long)]
 	pub without_connection_token: bool,
-	/// If set, the user accepts the server license terms and the server will be started without a user prompt.
 	#[clap(long)]
 	pub accept_server_license_terms: bool,
-	/// Specifies the path under which the web UI and the code server is provided.
 	#[clap(long)]
 	pub server_base_path: Option<String>,
-	/// Specifies the directory that server data is kept in.
 	#[clap(long)]
 	pub server_data_dir: Option<String>,
-	/// The workspace folder to open when no input is specified in the browser URL.
 	#[clap(long)]
 	pub default_folder: Option<String>,
-	/// The workspace to open when no input is specified in the browser URL.
 	#[clap(long)]
 	pub default_workspace: Option<String>,
-	/// Disables telemetry.
 	#[clap(long)]
 	pub disable_telemetry: bool,
-	/// Use a specific commit SHA for the client.
 	#[clap(long)]
 	pub commit_id: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct AgentHostArgs {
-	/// Host the agent host should bind on. Defaults to 'localhost'. Pass
-	/// `0.0.0.0` to expose the agent host on all interfaces (paired with
-	/// a connection token unless `--without-connection-token` is set).
 	#[clap(long)]
 	pub host: Option<String>,
-	/// Port the agent host should bind on. If 0 (the default) the OS
-	/// picks a free ephemeral port; the chosen port is recorded in the
-	/// agent host lockfile.
 	#[clap(long, default_value_t = 0)]
 	pub port: u16,
-	/// A secret that must be included with all requests.
 	#[clap(long)]
 	pub connection_token: Option<String>,
-	/// A file containing a secret that must be included with all requests.
 	#[clap(long)]
 	pub connection_token_file: Option<String>,
-	/// Run without a connection token. Only use this if the connection is secured by other means.
 	#[clap(long)]
 	pub without_connection_token: bool,
-	/// Specifies the directory that server data is kept in.
 	#[clap(long)]
 	pub server_data_dir: Option<String>,
 
-	/// Stop any agent host already running on this machine and start a
-	/// fresh one. Without this flag, the command reuses an existing live
-	/// supervisor when its configuration is compatible, and errors out
-	/// when the requested `--host` / `--port` / `--connection-token`
-	/// differ from what's already running.
 	#[clap(long)]
 	pub replace: bool,
 
-	/// Expose the agent host over a dev tunnel.
 	#[clap(long)]
 	pub tunnel: bool,
-	/// Sets the machine name for the tunnel.
 	#[clap(long)]
 	pub name: Option<String>,
-	/// Randomly name the machine for the tunnel.
 	#[clap(long)]
 	pub random_name: bool,
 
-	/// Optional details to connect to an existing tunnel.
 	#[clap(flatten, next_help_heading = Some("ADVANCED TUNNEL OPTIONS"))]
 	pub existing_tunnel: ExistingTunnelArgs,
 }
@@ -287,75 +243,56 @@ pub struct AgentArgs {
 	#[clap(subcommand)]
 	pub subcommand: Option<AgentSubcommand>,
 
-	/// Agent host arguments used when no subcommand is given.
 	#[clap(flatten)]
 	pub host_args: AgentHostArgs,
 }
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum AgentSubcommand {
-	/// Start a local agent host server.
 	Host(AgentHostArgs),
 
-	/// List active sessions on a running agent host.
 	Ps(AgentPsArgs),
 
-	/// Cancel the active turn of a session.
 	Stop(AgentStopArgs),
 
-	/// Forcefully kill the running agent host process tree.
 	Kill,
 
-	/// Stream live session events.
 	Logs(AgentLogsArgs),
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct AgentPsArgs {
-	/// WebSocket address of a running agent host (e.g. ws://127.0.0.1:1234?tkn=secret).
-	/// If omitted, the CLI discovers a locally running agent host automatically.
 	#[clap(long)]
 	pub address: Option<String>,
 
-	/// Connect via a named dev tunnel instead of the local address.
 	#[clap(long)]
 	pub tunnel: Option<String>,
 
-	/// Output results as JSON instead of a human-readable table.
 	#[clap(long)]
 	pub json: bool,
 
-	/// Show all sessions, including idle and archived ones.
 	#[clap(long, short)]
 	pub all: bool,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct AgentStopArgs {
-	/// Session URI to cancel the active turn of (e.g. copilot:/<uuid>).
 	pub session: String,
 
-	/// WebSocket address of a running agent host.
-	/// If omitted, the CLI discovers a locally running agent host automatically.
 	#[clap(long)]
 	pub address: Option<String>,
 
-	/// Connect via a named dev tunnel instead of the local address.
 	#[clap(long)]
 	pub tunnel: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct AgentLogsArgs {
-	/// Session URI to stream events for (e.g. copilot:/<uuid>).
 	pub session: String,
 
-	/// WebSocket address of a running agent host.
-	/// If omitted, the CLI discovers a locally running agent host automatically.
 	#[clap(long)]
 	pub address: Option<String>,
 
-	/// Connect via a named dev tunnel instead of the local address.
 	#[clap(long)]
 	pub tunnel: Option<String>,
 }
@@ -365,19 +302,14 @@ pub struct CommandShellArgs {
 	#[clap(flatten)]
 	pub server_args: BaseServerArgs,
 
-	/// Listen on a socket instead of stdin/stdout.
 	#[clap(long)]
 	pub on_socket: bool,
-	/// Listen on a host/port instead of stdin/stdout.
 	#[clap(long, num_args = 0..=2, default_missing_value = "0")]
 	pub on_port: Vec<u16>,
-	/// Listen on a host/port instead of stdin/stdout.
 	#[clap[long]]
 	pub on_host: Option<String>,
-	/// Require the given token string to be given in the handshake.
 	#[clap(long, env = "VSCODE_CLI_REQUIRE_TOKEN")]
 	pub require_token: Option<String>,
-	/// Optional parent process id. If provided, the server will be stopped when the process of the given pid no longer exists
 	#[clap(long, hide = true)]
 	pub parent_process_id: Option<String>,
 }
@@ -400,13 +332,9 @@ impl ExtensionArgs {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum ExtensionSubcommand {
-	/// List installed extensions.
 	List(ListExtensionArgs),
-	/// Install an extension.
 	Install(InstallExtensionArgs),
-	/// Uninstall an extension.
 	Uninstall(UninstallExtensionArgs),
-	/// Update the installed extensions.
 	Update,
 }
 
@@ -450,42 +378,30 @@ impl ExtensionSubcommand {
 
 #[derive(Args, Debug, Clone)]
 pub struct ListExtensionArgs {
-	/// Filters installed extensions by provided category, when using --list-extensions.
 	#[clap(long, value_name = "category")]
 	pub category: Option<String>,
 
-	/// Show versions of installed extensions, when using --list-extensions.
 	#[clap(long)]
 	pub show_versions: bool,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct InstallExtensionArgs {
-	/// Either an extension id or a path to a VSIX. The identifier of an
-	/// extension is '${publisher}.${name}'. Use '--force' argument to update
-	/// to latest version. To install a specific version provide '@${version}'.
-	/// For example: 'vscode.csharp@1.2.3'.
 	#[clap(name = "ext-id | id")]
 	pub id_or_path: Vec<String>,
 
-	/// Installs the pre-release version of the extension
 	#[clap(long)]
 	pub pre_release: bool,
 
-	/// Don't include installing pack and dependencies of the extension
 	#[clap(long)]
 	pub donot_include_pack_and_dependencies: bool,
 
-	/// Update to the latest version of the extension if it's already installed.
 	#[clap(long)]
 	pub force: bool,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct UninstallExtensionArgs {
-	/// One or more extension identifiers to uninstall. The identifier of an
-	/// extension is '${publisher}.${name}'. Use '--force' argument to update
-	/// to latest version.
 	#[clap(name = "ext-id")]
 	pub id: Vec<String>,
 }
@@ -498,57 +414,43 @@ pub struct VersionArgs {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum VersionSubcommand {
-	/// Switches the version of the editor in use.
 	Use(UseVersionArgs),
 
-	/// Shows the currently configured editor version.
 	Show,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct UseVersionArgs {
-	/// The version of the editor you want to use. Can be "stable", "insiders",
-	/// or an absolute path to an existing install.
 	#[clap(value_name = "stable | insiders | x.y.z | path")]
 	pub name: String,
 
-	/// The directory where the version can be found.
 	#[clap(long, value_name = "path")]
 	pub install_dir: Option<String>,
 }
 
 #[derive(Args, Debug, Default, Clone)]
 pub struct EditorOptions {
-	/// Compare two files with each other.
 	#[clap(short, long, value_names = &["file", "file"])]
 	pub diff: Vec<String>,
 
-	/// Add folder(s) to the last active window.
 	#[clap(short, long, value_name = "folder")]
 	pub add: Option<String>,
 
-	/// Open a file at the path on the specified line and character position.
 	#[clap(short, long, value_name = "file:line[:character]")]
 	pub goto: Option<String>,
 
-	/// Force to open a new window.
 	#[clap(short, long)]
 	pub new_window: bool,
 
-	/// Force to open a file or folder in an
 	#[clap(short, long)]
 	pub reuse_window: bool,
 
-	/// Wait for the files to be closed before returning.
 	#[clap(short, long)]
 	pub wait: bool,
 
-	/// The locale to use (e.g. en-US or zh-TW).
 	#[clap(long, value_name = "locale")]
 	pub locale: Option<String>,
 
-	/// Enables proposed API features for extensions. Can receive one or
-	/// more extension IDs to enable individually.
 	#[clap(long, value_name = "ext-id")]
 	pub enable_proposed_api: Vec<String>,
 
@@ -593,29 +495,20 @@ impl EditorOptions {
 	}
 }
 
-/// Arguments applicable whenever the desktop editor is launched
 #[derive(Args, Debug, Default, Clone)]
 pub struct DesktopCodeOptions {
-	/// Set the root path for extensions.
 	#[clap(long, value_name = "dir")]
 	pub extensions_dir: Option<String>,
 
-	/// Specifies the directory that user data is kept in. Can be used to
-	/// open multiple distinct instances of the editor.
 	#[clap(long, value_name = "dir")]
 	pub user_data_dir: Option<String>,
 
-	/// Sets the editor version to use for this command. The preferred version
-	/// can be persisted with `code version use <version>`. Can be "stable",
-	/// "insiders", a version number, or an absolute path to an existing install.
 	#[clap(long, value_name = "stable | insiders | x.y.z | path")]
 	pub use_version: Option<String>,
 }
 
-/// Argument specifying the output format.
 #[derive(Args, Debug, Clone)]
 pub struct OutputFormatOptions {
-	/// Set the data output formats.
 	#[clap(value_enum, long, value_name = "format", default_value_t = OutputFormat::Text)]
 	pub format: OutputFormat,
 }
@@ -633,28 +526,21 @@ impl DesktopCodeOptions {
 
 #[derive(Args, Debug, Default, Clone)]
 pub struct GlobalOptions {
-	/// Directory where CLI metadata should be stored.
 	#[clap(long, env = "VSCODE_CLI_DATA_DIR", global = true)]
 	pub cli_data_dir: Option<String>,
 
-	/// Print verbose output (implies --wait).
 	#[clap(long, global = true)]
 	pub verbose: bool,
 
-	/// Log to a file in addition to stdout. Used when running as a service.
 	#[clap(long, global = true, hide = true)]
 	pub log_to_file: Option<PathBuf>,
 
-	/// Log level to use.
 	#[clap(long, value_enum, value_name = "level", global = true)]
 	pub log: Option<log::Level>,
 
-	/// Disable telemetry for the current command, even if it was previously
-	/// accepted as part of the license prompt or specified in '--telemetry-level'
 	#[clap(long, global = true, hide = true)]
 	pub disable_telemetry: bool,
 
-	/// Sets the initial telemetry level
 	#[clap(value_enum, long, global = true, hide = true)]
 	pub telemetry_level: Option<options::TelemetryLevel>,
 }
@@ -678,36 +564,27 @@ impl GlobalOptions {
 
 #[derive(Args, Debug, Default, Clone)]
 pub struct EditorTroubleshooting {
-	/// Run CPU profiler during startup.
 	#[clap(long)]
 	pub prof_startup: bool,
 
-	/// Disable all installed extensions.
 	#[clap(long)]
 	pub disable_extensions: bool,
 
-	/// Disable an extension.
 	#[clap(long, value_name = "ext-id")]
 	pub disable_extension: Vec<String>,
 
-	/// Turn sync on or off.
 	#[clap(value_enum, long, value_name = "on | off")]
 	pub sync: Option<SyncState>,
 
-	/// Allow debugging and profiling of extensions. Check the developer tools for the connection URI.
 	#[clap(long, value_name = "port")]
 	pub inspect_extensions: Option<u16>,
 
-	/// Allow debugging and profiling of extensions with the extension host
-	/// being paused after start. Check the developer tools for the connection URI.
 	#[clap(long, value_name = "port")]
 	pub inspect_brk_extensions: Option<u16>,
 
-	/// Disable GPU hardware acceleration.
 	#[clap(long)]
 	pub disable_gpu: bool,
 
-	/// Shows all telemetry events which the editor collects.
 	#[clap(long)]
 	pub telemetry: bool,
 }
@@ -764,20 +641,15 @@ pub enum OutputFormat {
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct ExistingTunnelArgs {
-	/// Name you'd like to assign preexisting tunnel to use to connect the tunnel
-	/// Old option, new code should just use `--name`.
 	#[clap(long, hide = true)]
 	pub tunnel_name: Option<String>,
 
-	/// Token to authenticate and use preexisting tunnel
 	#[clap(long, hide = true)]
 	pub host_token: Option<String>,
 
-	/// ID of preexisting tunnel to use to connect the tunnel
 	#[clap(long, hide = true)]
 	pub tunnel_id: Option<String>,
 
-	/// Cluster of preexisting tunnel to use to connect the tunnel
 	#[clap(long, hide = true)]
 	pub cluster: Option<String>,
 }
@@ -787,46 +659,36 @@ pub struct TunnelServeArgs {
 	#[clap(flatten)]
 	pub server_args: BaseServerArgs,
 
-	/// Optional details to connect to an existing tunnel
 	#[clap(flatten, next_help_heading = Some("ADVANCED OPTIONS"))]
 	pub tunnel: ExistingTunnelArgs,
 
-	/// Randomly name machine for port forwarding service
 	#[clap(long)]
 	pub random_name: bool,
 
-	/// Prevents the machine going to sleep while this command runs.
 	#[clap(long)]
 	pub no_sleep: bool,
 
-	/// Sets the machine name for port forwarding service
 	#[clap(long)]
 	pub name: Option<String>,
 
-	/// Optional parent process id. If provided, the server will be stopped when the process of the given pid no longer exists
 	#[clap(long, hide = true)]
 	pub parent_process_id: Option<String>,
 
-	/// If set, the user accepts the server license terms and the server will be started without a user prompt.
 	#[clap(long)]
 	pub accept_server_license_terms: bool,
 }
 
 #[derive(Args, Debug, Clone, Default)]
 pub struct BaseServerArgs {
-	/// Requests that extensions be preloaded and installed on connecting servers.
 	#[clap(long)]
 	pub install_extension: Vec<String>,
 
-	/// Specifies the directory that server data is kept in.
 	#[clap(long)]
 	pub server_data_dir: Option<String>,
 
-	/// Set the root path for extensions.
 	#[clap(long)]
 	pub extensions_dir: Option<String>,
 
-	/// Reconnection grace time in seconds. Defaults to 10800 (3 hours).
 	#[clap(long)]
 	pub reconnection_grace_time: Option<u32>,
 }
@@ -861,102 +723,79 @@ pub struct TunnelArgs {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum TunnelSubcommand {
-	/// Delete all servers which are currently not running.
 	Prune,
 
-	/// Stops any running tunnel on the system.
 	Kill,
 
-	/// Restarts any running tunnel on the system.
 	Restart,
 
-	/// Gets whether there is a tunnel running on the current machine.
 	Status,
 
-	/// Rename the name of this machine associated with port forwarding service.
 	Rename(TunnelRenameArgs),
 
-	/// Remove this machine's association with the port forwarding service.
 	Unregister,
 
 	#[clap(subcommand)]
 	User(TunnelUserSubCommands),
 
-	/// (Preview) Manages the tunnel when installed as a system service,
 	#[clap(subcommand)]
 	Service(TunnelServiceSubCommands),
 
-	/// (Preview) Forwards local port using the dev tunnel
 	#[clap(hide = true)]
 	ForwardInternal(TunnelForwardArgs),
 }
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum TunnelServiceSubCommands {
-	/// Installs or re-installs the tunnel service on the machine.
 	Install(TunnelServiceInstallArgs),
 
-	/// Uninstalls and stops the tunnel service.
 	Uninstall,
 
-	/// Shows logs for the running service.
 	Log,
 
-	/// Internal command for running the service
 	#[clap(hide = true)]
 	InternalRun,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct TunnelServiceInstallArgs {
-	/// If set, the user accepts the server license terms and the server will be started without a user prompt.
 	#[clap(long)]
 	pub accept_server_license_terms: bool,
 
-	/// Sets the machine name for port forwarding service
 	#[clap(long)]
 	pub name: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct TunnelRenameArgs {
-	/// The name you'd like to rename your machine to.
 	pub name: String,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct TunnelForwardArgs {
-	/// One or more ports to forward.
 	pub ports: Vec<u16>,
 
-	/// Login args -- used for convenience so the forwarding call is a single action.
 	#[clap(flatten)]
 	pub login: LoginArgs,
 }
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum TunnelUserSubCommands {
-	/// Log in to port forwarding service
 	Login(LoginArgs),
 
-	/// Log out of port forwarding service
 	Logout,
 
-	/// Show the account that's logged into port forwarding service
 	Show,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct LoginArgs {
-	/// An access token to store for authentication.
 	#[clap(long, requires = "provider", env = "VSCODE_CLI_ACCESS_TOKEN")]
 	pub access_token: Option<String>,
 
-	/// An access token to store for authentication.
 	#[clap(long, requires = "access_token", env = "VSCODE_CLI_REFRESH_TOKEN")]
 	pub refresh_token: Option<String>,
 
-	/// The auth provider to use. If not provided, a prompt will be shown.
 	#[clap(value_enum, long)]
 	pub provider: Option<AuthProvider>,
 }

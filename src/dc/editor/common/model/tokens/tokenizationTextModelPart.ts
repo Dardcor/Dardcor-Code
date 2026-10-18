@@ -98,8 +98,6 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 		let hadTokens = false;
 		this.tokens.recomputeInitiallyAndOnChange(this._store, value => {
 			if (hadTokens) {
-				// We need to reset the tokenization, as the new token provider otherwise won't have a chance to provide tokens until some action happens in the editor.
-				// TODO@hediet: Look into why this is needed.
 				value.todo_resetTokenization();
 			}
 			hadTokens = true;
@@ -117,8 +115,6 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 	}
 
 	_hasListeners(): boolean {
-		// Note: _onDidChangeFontTokens is intentionally excluded because it's an internal event
-		// that TokenizationFontDecorationProvider subscribes to during TextModel construction
 		return (this._onDidChangeLanguage.hasListeners()
 			|| this._onDidChangeLanguageConfiguration.hasListeners()
 			|| this._onDidChangeTokens.hasListeners());
@@ -133,7 +129,7 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 	public handleDidChangeContent(e: IModelContentChangedEvent): void {
 		if (e.isFlush) {
 			this._semanticTokens.flush();
-		} else if (!e.isEolChange) { // We don't have to do anything on an EOL change
+		} else if (!e.isEolChange) {
 			for (const c of e.changes) {
 				const [eolCount, firstLineLength, lastLineLength] = countEOL(c.text);
 
@@ -154,9 +150,6 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 		this.tokens.get().handleDidChangeAttached();
 	}
 
-	/**
-	 * Includes grammar and semantic tokens.
-	 */
 	public getLineTokens(lineNumber: number): LineTokens {
 		this.validateLineNumber(lineNumber);
 		const syntacticTokens = this.tokens.get().getLineTokens(lineNumber);
@@ -170,7 +163,6 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 		}
 	}
 
-	// #region Grammar Tokens
 
 	private validateLineNumber(lineNumber: number): void {
 		if (lineNumber < 1 || lineNumber > this._textModel.getLineCount()) {
@@ -218,9 +210,7 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 		return this.tokens.get().tokenizeLinesAt(lineNumber, lines);
 	}
 
-	// #endregion
 
-	// #region Semantic Tokens
 
 	public setSemanticTokens(tokens: SparseMultilineTokens[] | null, isComplete: boolean): void {
 		this._semanticTokens.set(tokens, isComplete, this._textModel);
@@ -258,9 +248,7 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 		});
 	}
 
-	// #endregion
 
-	// #region Utility Methods
 
 	public getWordAtPosition(_position: IPosition): IWordAtPosition | null {
 		this.assertNotDisposed();
@@ -270,7 +258,6 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 		const lineTokens = this.getLineTokens(position.lineNumber);
 		const tokenIndex = lineTokens.findTokenIndexAtOffset(position.column - 1);
 
-		// (1). First try checking right biased word
 		const [rbStartOffset, rbEndOffset] = TokenizationTextModelPart._findLanguageBoundaries(lineTokens, tokenIndex);
 		const rightBiasedWord = getWordAtText(
 			position.column,
@@ -278,7 +265,6 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 			lineContent.substring(rbStartOffset, rbEndOffset),
 			rbStartOffset
 		);
-		// Make sure the result touches the original passed in position
 		if (
 			rightBiasedWord &&
 			rightBiasedWord.startColumn <= _position.column &&
@@ -287,9 +273,7 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 			return rightBiasedWord;
 		}
 
-		// (2). Else, if we were at a language boundary, check the left biased word
 		if (tokenIndex > 0 && rbStartOffset === position.column - 1) {
-			// edge case, where `position` sits between two tokens belonging to two different languages
 			const [lbStartOffset, lbEndOffset] = TokenizationTextModelPart._findLanguageBoundaries(
 				lineTokens,
 				tokenIndex - 1
@@ -300,7 +284,6 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 				lineContent.substring(lbStartOffset, lbEndOffset),
 				lbStartOffset
 			);
-			// Make sure the result touches the original passed in position
 			if (
 				leftBiasedWord &&
 				leftBiasedWord.startColumn <= _position.column &&
@@ -320,13 +303,11 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 	private static _findLanguageBoundaries(lineTokens: LineTokens, tokenIndex: number): [number, number] {
 		const languageId = lineTokens.getLanguageId(tokenIndex);
 
-		// go left until a different language is hit
 		let startOffset = 0;
 		for (let i = tokenIndex; i >= 0 && lineTokens.getLanguageId(i) === languageId; i--) {
 			startOffset = lineTokens.getStartOffset(i);
 		}
 
-		// go right until a different language is hit
 		let endOffset = lineTokens.getLineContent().length;
 		for (
 			let i = tokenIndex, tokenCount = lineTokens.getCount();
@@ -351,9 +332,7 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 		};
 	}
 
-	// #endregion
 
-	// #region Language Id handling
 
 	public getLanguageId(): string {
 		return this._languageId;
@@ -367,7 +346,6 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 
 	public setLanguageId(languageId: string, source: string = 'api'): void {
 		if (this._languageId === languageId) {
-			// There's nothing to do
 			return;
 		}
 
@@ -385,5 +363,4 @@ export class TokenizationTextModelPart extends TextModelPart implements ITokeniz
 		this._onDidChangeLanguageConfiguration.fire({});
 	}
 
-	// #endregion
 }

@@ -44,19 +44,7 @@ export type StreamedEdit = {
 	readonly edit: LineReplacement;
 	readonly isFromCursorJump: boolean;
 	readonly window?: OffsetRange;
-	/**
-	 * For cursor jump edits, this is the edit window around the original cursor position
-	 * (before the jump). This allows the cached edit to be served when the cursor is
-	 * in either the original location or the jump target location.
-	 */
 	readonly originalWindow?: OffsetRange;
-	/**
-	 * Zero-based index of the model-emitted patch this edit originated from, for the
-	 * diff-patch response format. A single model patch can expand into several edits
-	 * (per-patch diff splitting or progressive ghost-text reveal); all edits produced
-	 * from the same patch share the same `patchIndex`. `undefined` for response formats
-	 * that have no explicit patch structure (e.g. edit-window, INSERT).
-	 */
 	readonly patchIndex?: number;
 };
 
@@ -90,15 +78,10 @@ export class StatelessNextEditRequest<TFirstEdit = any> {
 	public readonly seqid = String(++StatelessNextEditRequest.ID);
 
 	public readonly cancellationTokenSource = new CancellationTokenSource();
-	public liveDependentants = 0; // number of invocations which haven't been canceled and depend on this request
+	public liveDependentants = 0;
 	public fetchIssued = false;
 	public intermediateUserEdit: StringEdit | undefined = StringEdit.empty;
 
-	/**
-	 * Set by the stateless provider early in its execution (before any async work).
-	 * Used to check whether a new cursor position falls within the edit window when
-	 * deciding whether to reuse an in-flight request.
-	 */
 	public requestEditWindow: RequestEditWindow | RequestEditWindowWithCursorJump | undefined;
 
 	private readonly _result: DeferredPromise<StatelessNextEditResult> = new DeferredPromise<StatelessNextEditResult>();
@@ -109,7 +92,6 @@ export class StatelessNextEditRequest<TFirstEdit = any> {
 	constructor(
 		public readonly headerRequestId: string,
 		public readonly opportunityId: string,
-		/** this's the active document current contents (not sure "before" which edits this's named after -- maybe NES edits) */
 		public readonly documentBeforeEdits: StringText,
 		public readonly documents: readonly StatelessNextEditDocument[],
 		public readonly activeDocumentIdx: number,
@@ -172,10 +154,6 @@ export class StatelessNextEditDocument {
 	public readonly documentAfterEdits = new StringText(this.recentEdits.apply(this.documentBeforeEdits.value));
 	public readonly documentAfterEditsLines: string[] = this.documentAfterEdits.getLines();
 
-	/**
-	 * NOTE: if you add new public fields to this class, please also update {@link ISerializedNextEditDocument} and {@link serialize()} methods,
-	 * which are used to send this to http-server-powered NES provider.
-	 */
 	constructor(
 		public readonly id: DocumentId,
 		public readonly workspaceRoot: URI | undefined,
@@ -351,9 +329,7 @@ export class StatelessNextEditResult {
 }
 
 export interface IStatelessNextEditModelTelemetry {
-	/** Name of the model that handled the request. */
 	readonly modelName: string | undefined;
-	/** JSON-encoded model configuration from the model service. */
 	readonly modelConfig: string | undefined;
 }
 
@@ -361,89 +337,67 @@ export interface IStatelessNextEditTelemetry extends IStatelessNextEditModelTele
 
 	readonly hadStatelessNextEditProviderCall: boolean;
 
-	/* general info */
 	readonly statelessNextEditProviderDuration: number;
 	readonly isCursorAtEndOfLine: boolean | undefined;
 	readonly isInlineSuggestion: boolean | undefined;
 	readonly nLinesOfCurrentFileInPrompt: number | undefined;
 
-	/* options info */
 	readonly logProbThreshold: number | undefined;
 
-	/* prompt info */
 
 	readonly prompt: string | undefined;
 	readonly promptLineCount: number | undefined;
 	readonly promptCharCount: number | undefined;
 	readonly mergeConflictExpanded: 'normal' | 'only' | undefined;
 
-	/* fetch request info */
 
 	readonly debounceTime: number | undefined;
-	/** This's only used to compute time from inline edit provider call to fetch init. Not included in telemetry. */
 	readonly fetchStartedAt: number | undefined;
 
-	/* response info */
 
-	/** Artificial delay (aka backoff) on the response based on previous user acceptance/rejection in milliseconds */
 	readonly artificialDelay: number | undefined;
 
 	readonly hadLowLogProbSuggestion: boolean | undefined;
 	readonly response: undefined | Promise<FetchResultWithStats>;
 
-	/* suggestions info */
 
 	readonly nEditsSuggested: number | undefined;
 	readonly lineDistanceToMostRecentEdit: number | undefined;
 
-	/* result info */
 	readonly nextEditLogprob: number | undefined;
 	readonly noNextEditReasonKind: string | undefined;
 	readonly noNextEditReasonMessage: string | undefined;
 
-	/* next cursor line info */
 	readonly nextCursorPrediction: {
 		nextCursorLineError: string | undefined;
-		/** nextCursorLineNumber - currentCursorLineNumber */
 		nextCursorLineDistance: number | undefined;
 		isCrossFile: boolean | undefined;
 	};
 
-	/* xtab aggressiveness telemetry (only set when promptingStrategy is aggressiveness-based) */
 	readonly xtabAggressivenessLevel: string | undefined;
 	readonly xtabUserHappinessScore: number | undefined;
 
-	/** The raw user-facing aggressiveness setting value (only set when user changed from default) */
 	readonly userAggressivenessSetting: string | undefined;
 
-	/* edit intent telemetry (only set when promptingStrategy is Xtab275EditIntent or Xtab275EditIntentShort) */
 	readonly editIntent: string | undefined;
 	readonly editIntentParseError: string | undefined;
 
-	/* cursor jump info */
 	readonly cursorJumpModelName: string | undefined;
 	readonly cursorJumpPrompt: string | undefined;
 	readonly cursorJumpResponse: string | undefined;
 
-	/* diff history info */
 	readonly nDiffsInPrompt: number | undefined;
 
-	/* prompt section token counts (approximate char/4 counts; see PromptSectionTokenCounts) */
 	readonly promptSectionTokens: PromptSectionTokenCounts | undefined;
 
-	/* neighbor (similar files) snippets info */
 	readonly nNeighborSnippetsComputed: number | undefined;
 	readonly nNeighborSnippetsInPrompt: number | undefined;
-	/** JSON-encoded array of original input indices of snippets included in the prompt. */
 	readonly neighborSnippetIndicesInPrompt: string | undefined;
 
-	/* lint errors info */
 	readonly lintErrors: string | undefined;
 
-	/* terminal output info */
 	readonly terminalOutput: string | undefined;
 
-	/* similar files context for telemetry (GhostText-style neighbor code snippets) */
 	readonly similarFilesContext: Promise<string | undefined> | undefined;
 
 }
@@ -460,9 +414,6 @@ export class StatelessNextEditTelemetryBuilder {
 	public readonly startTime: number;
 	public readonly requestUuid: string;
 
-	/**
-	 * It takes a request to automatically capture some properties from the request.
-	 */
 	constructor(headerRequestId: string) {
 		this.startTime = Date.now();
 		this.requestUuid = headerRequestId;
@@ -482,7 +433,6 @@ export class StatelessNextEditTelemetryBuilder {
 		let noNextEditReasonMessage: string | undefined;
 		if (result.isError()) {
 			if (result.err instanceof NoNextEditReason.ActiveDocumentHasNoEdits || result.err instanceof NoNextEditReason.NoSuggestions) {
-				// ignore
 			} else if (result.err instanceof NoNextEditReason.GotCancelled || result.err instanceof NoNextEditReason.FilteredOut || result.err instanceof NoNextEditReason.PromptTooLarge) {
 				noNextEditReasonMessage = result.err.message;
 			} else if (result.err instanceof NoNextEditReason.FetchFailure || result.err instanceof NoNextEditReason.Uncategorized || result.err instanceof NoNextEditReason.Unexpected) {
@@ -672,9 +622,6 @@ export class StatelessNextEditTelemetryBuilder {
 		return this;
 	}
 
-	/**
-	 * nextCursorLineNumber - currentCursorLineNumber
-	 */
 	public setNextCursorLineDistance(distance: number): this {
 		this._nextCursorPrediction.nextCursorLineDistance = distance;
 		return this;

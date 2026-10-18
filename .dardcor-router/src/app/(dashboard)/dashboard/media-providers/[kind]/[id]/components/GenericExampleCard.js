@@ -36,9 +36,7 @@ export function GenericExampleCard({ providerId, kind }) {
   const exConfig = KIND_EXAMPLE_CONFIG[kind];
   const safeExConfig = exConfig || {};
 
-  // Get models for this kind (e.g., type="image")
   const kindModels = getModelsByProviderId(providerId).filter((m) => getModelKind(m) === kind);
-  // Kinds that need a model identifier in the request (image/video/music)
   const KIND_NEEDS_MODEL = new Set(["image", "video", "music", "imageToText"]);
   const needsModel = KIND_NEEDS_MODEL.has(kind);
   const allowManualModel = needsModel && kindModels.length === 0;
@@ -58,9 +56,9 @@ export function GenericExampleCard({ providerId, kind }) {
   const [localEndpoint, setLocalEndpoint] = useState("");
   const [tunnelEndpoint, setTunnelEndpoint] = useState("");
   const [result, setResult] = useState(null);
-  const [progress, setProgress] = useState(null); // { stage, bytesReceived }
+  const [progress, setProgress] = useState(null);
   const [partialImage, setPartialImage] = useState(null);
-  const [imageOutputFormat, setImageOutputFormat] = useState("json"); // json | binary
+  const [imageOutputFormat, setImageOutputFormat] = useState("json");
   const [binaryImageUrl, setBinaryImageUrl] = useState("");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
@@ -79,7 +77,6 @@ export function GenericExampleCard({ providerId, kind }) {
       .then((r) => r.json())
       .then((d) => { if (d.publicUrl) setTunnelEndpoint(d.publicUrl); })
       .catch(() => {});
-    // Load active connections of this provider for pinning
     fetch("/api/providers/client")
       .then((r) => r.json())
       .then((d) => {
@@ -89,12 +86,10 @@ export function GenericExampleCard({ providerId, kind }) {
       .catch(() => {});
   }, [providerId]);
 
-  // Safe to early-return now that all hooks are declared
   if (!kindConfig || !exConfig) return null;
 
   const endpoint = useTunnel ? tunnelEndpoint : localEndpoint;
   const apiPath = kindConfig.endpoint.path;
-  // webSearch/webFetch: use safeProviderAlias only. Other kinds: append model when present.
   const modelFull = !needsModel
     ? safeProviderAlias
     : (selectedModel ? `${safeProviderAlias}/${selectedModel}` : (allowManualModel ? "" : safeProviderAlias));
@@ -104,7 +99,6 @@ export function GenericExampleCard({ providerId, kind }) {
   const refImagePreviewSrc = toImagePreviewSrc(effectiveRefImage);
   const maskImagePreviewSrc = toImagePreviewSrc(effectiveMaskImage);
 
-  // Build request body with optional extra fields (only non-empty values)
   const extraBodyFromFields = Object.entries(extraValues).reduce((acc, [k, v]) => {
     if (v === "" || v === null || v === undefined) return acc;
     if (typeof v === "number" && Number.isNaN(v)) return acc;
@@ -120,7 +114,6 @@ export function GenericExampleCard({ providerId, kind }) {
     ...(supportsMask && effectiveMaskImage ? { mask_image: effectiveMaskImage } : {}),
   };
 
-  // Streaming supported for codex image (Plus/Pro accounts) — disabled when binary output requested
   const wantBinary = kind === "image" && imageOutputFormat === "binary";
   const useStreaming = kind === "image" && providerId === "codex" && !wantBinary;
   const apiPathWithQuery = `${apiPath}${wantBinary ? "?response_format=binary" : ""}`;
@@ -155,7 +148,6 @@ export function GenericExampleCard({ providerId, kind }) {
         return;
       }
       const ctype = res.headers.get("content-type") || "";
-      // Binary image response — convert to blob URL
       if (ctype.startsWith("image/")) {
         const blob = await res.blob();
         const objUrl = URL.createObjectURL(blob);
@@ -165,7 +157,6 @@ export function GenericExampleCard({ providerId, kind }) {
       }
       const isSse = ctype.includes("text/event-stream");
       if (isSse && res.body) {
-        // Parse SSE: progress / partial_image / done / error
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buf = "";
@@ -209,7 +200,6 @@ export function GenericExampleCard({ providerId, kind }) {
     }
   };
 
-  // Mask large b64_json strings in JSON view to keep it readable
   const maskB64 = (obj) => {
     if (!obj || typeof obj !== "object") return obj;
     if (Array.isArray(obj)) return obj.map(maskB64);
@@ -227,7 +217,7 @@ export function GenericExampleCard({ providerId, kind }) {
     <Card>
       <h2 className="text-lg font-semibold mb-4">Example</h2>
       <div className="flex flex-col gap-2.5">
-        {/* Model selector — dropdown if presets exist, else manual input for media kinds */}
+        {}
         {kindModels.length > 0 ? (
           <Row label="Model">
             <select
@@ -251,7 +241,7 @@ export function GenericExampleCard({ providerId, kind }) {
           </Row>
         ) : null}
 
-        {/* Endpoint */}
+        {}
         <Row label="Endpoint">
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <span className="w-full min-w-0 flex-1 px-3 py-1.5 text-sm font-mono text-text-main bg-sidebar rounded-lg truncate">
@@ -272,14 +262,14 @@ export function GenericExampleCard({ providerId, kind }) {
           </div>
         </Row>
 
-        {/* API Key */}
+        {}
         <Row label="API Key">
           <span className="px-3 py-1.5 text-sm font-mono text-text-main bg-sidebar rounded-lg truncate block">
             {apiKey ? `${apiKey.slice(0, 8)}${"\u2022".repeat(Math.min(20, Math.max(0, apiKey.length - 8)))}` : <span className="text-text-muted italic">No key configured</span>}
           </span>
         </Row>
 
-        {/* Connection picker - only show when 2+ connections (or any with email) */}
+        {}
         {connections.length > 0 && (
           <Row label="Connection">
             <select
@@ -301,7 +291,7 @@ export function GenericExampleCard({ providerId, kind }) {
           </Row>
         )}
 
-        {/* Input */}
+        {}
         <Row label={exConfig.inputLabel}>
           <div className="relative">
             <input
@@ -322,7 +312,7 @@ export function GenericExampleCard({ providerId, kind }) {
           </div>
         </Row>
 
-        {/* Reference image (only for edit-capable image models) */}
+        {}
         {supportsEdit && (
           <Row label="Ref Image (URL)">
             <div className="flex flex-col gap-2">
@@ -393,7 +383,7 @@ export function GenericExampleCard({ providerId, kind }) {
           </Row>
         )}
 
-        {/* Extra fields — for kinds without model concept (webSearch/webFetch), show all; otherwise filter by model.params */}
+        {}
         {(exConfig.extraFields || [])
           .filter((f) => kindModels.length === 0 || (Array.isArray(selectedModelObj?.params) && selectedModelObj.params.includes(f.key)))
           .map((f) => (
@@ -429,7 +419,7 @@ export function GenericExampleCard({ providerId, kind }) {
           </Row>
         ))}
 
-        {/* Output Format toggle (image only) — last */}
+        {}
         {kind === "image" && (
           <Row label="Output Format">
             <select
@@ -443,7 +433,7 @@ export function GenericExampleCard({ providerId, kind }) {
           </Row>
         )}
 
-        {/* Curl + Run */}
+        {}
         <div className="mt-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1.5">
             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Request</span>
@@ -470,7 +460,7 @@ export function GenericExampleCard({ providerId, kind }) {
           <pre className="bg-sidebar rounded-lg px-3 py-2.5 text-xs font-mono text-text-main overflow-x-auto whitespace-pre-wrap break-all">{curlSnippet}</pre>
         </div>
 
-        {/* Streaming progress */}
+        {}
         {(running || progress) && useStreaming && (
           <div className="flex flex-col gap-2 px-3 py-2 rounded-lg bg-sidebar border border-border sm:flex-row sm:items-center sm:gap-3">
             <span className="material-symbols-outlined text-[16px] text-primary" style={running ? { animation: "spin 1s linear infinite" } : undefined}>
@@ -483,7 +473,7 @@ export function GenericExampleCard({ providerId, kind }) {
           </div>
         )}
 
-        {/* Partial image preview (codex stream) */}
+        {}
         {partialImage?.b64_json && !result && (
           <div>
             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Partial preview</span>
@@ -497,10 +487,10 @@ export function GenericExampleCard({ providerId, kind }) {
           </div>
         )}
 
-        {/* Error */}
+        {}
         {error && <p className="text-xs text-red-500 break-words">{error}</p>}
 
-        {/* Response */}
+        {}
         <div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1.5">
             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">

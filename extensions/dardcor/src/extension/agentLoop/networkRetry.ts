@@ -51,7 +51,6 @@ export async function withRetry<T>(fn: () => Promise<T>, options?: RetryOptions)
 			if (attempt > maxRetries || !shouldRetry(error)) {
 				throw error;
 			}
-			// Exponential backoff with jitter to prevent herd thundering on local router and upstream
 			const jitter = 0.8 + Math.random() * 0.4;
 			const delay = Math.min(baseDelayMs * Math.pow(2, attempt - 1) * jitter, maxDelayMs);
 			if (options?.onRetry) {

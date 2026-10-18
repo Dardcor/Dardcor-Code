@@ -18,26 +18,21 @@ import { byokKnownModelToAPIInfoWithEffort } from './byokModelInfo';
 import { IBYOKStorageService } from './byokStorageService';
 
 export function resolveCustomOAIUrl(modelId: string, url: string): string {
-	// The fully resolved url was already passed in
 	if (hasExplicitApiPath(url)) {
 		return url;
 	}
 
-	// Remove the trailing slash
 	if (url.endsWith('/')) {
 		url = url.slice(0, -1);
 	}
 
-	// Default to chat completions for base URLs
 	const defaultApiPath = '/chat/completions';
 
-	// Check if URL already contains any version pattern like /v1, /v2, etc
 	const versionPattern = /\/v\d+$/;
 	if (versionPattern.test(url)) {
 		return `${url}${defaultApiPath}`;
 	}
 
-	// For standard OpenAI-compatible endpoints, just append the standard path
 	return `${url}/v1${defaultApiPath}`;
 }
 
@@ -53,10 +48,8 @@ export interface CustomOAIModelProviderConfig extends LanguageModelChatConfigura
 interface _CustomOAIModelConfig {
 	name: string;
 	url: string;
-	/** Optional when {@link contextWindow} is set; then derived as `contextWindow - maxOutputTokens`. */
 	maxInputTokens?: number;
 	maxOutputTokens: number;
-	/** The model's full context window (input + output) in tokens, e.g. 1000000 for a 1M model. */
 	contextWindow?: number;
 	toolCalling: boolean;
 	vision: boolean;
@@ -90,7 +83,6 @@ export abstract class AbstractCustomOAIBYOKModelProvider extends AbstractOpenAIC
 	}
 
 	protected async migrateConfig(configKey: Config<IStringDictionary<_CustomOAIModelConfig>>, providerName: string, providerGroupName: string): Promise<void> {
-		// Check if migration has already been completed
 		const migrationKey = `dardcor-byok-migration-${providerName}-${configKey}`;
 		const migrationCompleted = this._extensionContext.globalState.get<boolean>(migrationKey, false);
 		if (migrationCompleted) {
@@ -109,13 +101,11 @@ export abstract class AbstractCustomOAIBYOKModelProvider extends AbstractOpenAIC
 			for (const [apiKey, customOAIModelConfigs] of customOAIModelConfigsByApiKey.entries()) {
 				await this.configureDefaultGroupIfExists(providerGroupName, { models: customOAIModelConfigs, apiKey: apiKey || undefined });
 			}
-			// Mark migration as completed instead of deleting the config
 			await this._extensionContext.globalState.update(migrationKey, true);
 		}
 	}
 
 	protected override async configureDefaultGroupWithApiKeyOnly(): Promise<string | undefined> {
-		// No-op: Custom OAI models are configured separately via migration
 		return;
 	}
 
@@ -188,7 +178,6 @@ export class CustomOAIBYOKModelProvider extends AbstractCustomOAIBYOKModelProvid
 		this.migrateExistingConfigs();
 	}
 
-	// TODO: Remove this after 6 months
 	private async migrateExistingConfigs(): Promise<void> {
 		await this.migrateConfig(ConfigKey.Deprecated.CustomOAIModels, CustomOAIBYOKModelProvider.providerName, CustomOAIBYOKModelProvider.providerName);
 	}

@@ -24,60 +24,24 @@ export const ITestingContinuousRunService = createDecorator<ITestingContinuousRu
 export interface ITestingContinuousRunService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Gets a list of the last test profiles that were continuously run in the workspace.
-	 */
 	readonly lastRunProfileIds: ReadonlySet<number>;
 
-	/**
-	 * Fired when a test is added or removed from continuous run, or when
-	 * enablement is changed globally.
-	 */
 	readonly onDidChange: Event<string | undefined>;
 
-	/**
-	 * Gets whether continuous run is specifically enabled for the given test ID.
-	 */
 	isSpecificallyEnabledFor(testId: string): boolean;
 
-	/**
-	 * Gets whether continuous run is specifically enabled for
-	 * the given test ID, or any of its parents.
-	 */
 	isEnabledForAParentOf(testId: string): boolean;
 
-	/**
-	 * Gets whether continuous run is specifically enabled for
-	 * the given test ID, or any of its parents.
-	 */
 	isEnabledForAChildOf(testId: string): boolean;
 
-	/**
-	 * Gets whether continuous run is turned on for the given profile.
-	 */
 	isEnabledForProfile(profile: ITestRunProfile): boolean;
 
-	/**
-	 * Gets whether it's enabled at all.
-	 */
 	isEnabled(): boolean;
 
-	/**
-	 * Starts a continuous auto run with a specific set of profiles, or all
-	 * default profiles in a group. Globally if no test is given,
-	 * for a specific test otherwise.
-	 */
 	start(profile: ITestRunProfile[] | TestRunProfileBitset, testId?: string): void;
 
-	/**
-	 * Stops a continuous run for the given test profile.
-	 */
 	stopProfile(profile: ITestRunProfile): void;
 
-	/**
-	 * Stops any continuous run
-	 * Globally if no test is given, for a specific test otherwise.
-	 */
 	stop(testId?: string): void;
 }
 
@@ -124,17 +88,14 @@ export class TestingContinuousRunService extends Disposable implements ITestingC
 		}));
 	}
 
-	/** @inheritdoc */
 	public isSpecificallyEnabledFor(testId: string): boolean {
 		return this.running.size > 0 && this.running.hasKey(TestId.fromString(testId).path);
 	}
 
-	/** @inheritdoc */
 	public isEnabledForAParentOf(testId: string): boolean {
 		return !!this.running.root.value || (this.running.size > 0 && this.running.hasKeyOrParent(TestId.fromString(testId).path));
 	}
 
-	/** @inheritdoc */
 	public isEnabledForProfile({ profileId, controllerId }: ITestRunProfile): boolean {
 		for (const node of this.running.values()) {
 			if (node.profiles.get().some(p => p.profileId === profileId && p.controllerId === controllerId)) {
@@ -145,17 +106,14 @@ export class TestingContinuousRunService extends Disposable implements ITestingC
 		return false;
 	}
 
-	/** @inheritdoc */
 	public isEnabledForAChildOf(testId: string): boolean {
 		return !!this.running.root.value || (this.running.size > 0 && this.running.hasKeyOrChildren(TestId.fromString(testId).path));
 	}
 
-	/** @inheritdoc */
 	public isEnabled(): boolean {
 		return !!this.running.root.value || this.running.size > 0;
 	}
 
-	/** @inheritdoc */
 	public start(profiles: ITestRunProfile[] | TestRunProfileBitset, testId?: string): void {
 		const store = new DisposableStore();
 
@@ -163,8 +121,6 @@ export class TestingContinuousRunService extends Disposable implements ITestingC
 		if (profiles instanceof Array) {
 			actualProfiles = observableValue('crProfiles', profiles);
 		} else {
-			// restart the continuous run when default profiles change, if we were
-			// asked to run for a group
 			const getRelevant = () => this.testProfileService.getGroupDefaultProfiles(profiles)
 				.filter(p => p.supportsContinuousRun && (!testId || TestId.root(testId) === p.controllerId));
 			actualProfiles = observableValue('crProfiles', getRelevant());
@@ -181,8 +137,6 @@ export class TestingContinuousRunService extends Disposable implements ITestingC
 		const path = testId ? TestId.fromString(testId).path : [];
 		const ref: RunningRef = { profiles: actualProfiles, handle: store, path, autoSetDefault: typeof profiles === 'number' };
 
-		// If we're already running this specific test, then add the profile and turn
-		// off the auto-addition of bitset-based profiles.
 		const existing = this.running.find(path);
 		if (existing) {
 			store.dispose();
@@ -227,7 +181,6 @@ export class TestingContinuousRunService extends Disposable implements ITestingC
 		this.changeEmitter.fire(testId);
 	}
 
-	/** Stops a continuous run for the profile across all test items that are running it. */
 	stopProfile({ profileId, controllerId }: ITestRunProfile): void {
 		const toDelete: RunningRef[] = [];
 		for (const node of this.running.values()) {
@@ -250,10 +203,8 @@ export class TestingContinuousRunService extends Disposable implements ITestingC
 		this.changeEmitter.fire(undefined);
 	}
 
-	/** @inheritdoc */
 	public stop(testId?: string): void {
 		const cancellations = [...this.running.deleteRecursive(testId ? TestId.fromString(testId).path : [])];
-		// deleteRecursive returns a BFS order, reverse it so children are cancelled before parents
 		for (let i = cancellations.length - 1; i >= 0; i--) {
 			cancellations[i].handle.dispose();
 		}

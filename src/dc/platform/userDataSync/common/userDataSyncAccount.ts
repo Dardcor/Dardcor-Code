@@ -17,7 +17,7 @@ export const IUserDataSyncAccountService = createDecorator<IUserDataSyncAccountS
 export interface IUserDataSyncAccountService {
 	readonly _serviceBrand: undefined;
 
-	readonly onTokenFailed: Event<boolean/*bail out*/>;
+	readonly onTokenFailed: Event<boolean >;
 	readonly account: IUserDataSyncAccount | undefined;
 	readonly onDidChangeAccount: Event<IUserDataSyncAccount | undefined>;
 	updateAccount(account: IUserDataSyncAccount | undefined): Promise<void>;
@@ -47,9 +47,9 @@ export class UserDataSyncAccountService extends Disposable implements IUserDataS
 			this.logService.info('Settings Sync auth token failed', this.account?.authenticationProviderId, this.wasTokenFailed, code);
 			this.updateAccount(undefined);
 			if (code === UserDataSyncErrorCode.Forbidden) {
-				this._onTokenFailed.fire(true /*bail out immediately*/);
+				this._onTokenFailed.fire(true );
 			} else {
-				this._onTokenFailed.fire(this.wasTokenFailed /* bail out if token failed before */);
+				this._onTokenFailed.fire(this.wasTokenFailed );
 			}
 			this.wasTokenFailed = true;
 		}));

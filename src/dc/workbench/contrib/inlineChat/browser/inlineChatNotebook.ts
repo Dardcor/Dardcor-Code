@@ -34,8 +34,6 @@ export class InlineChatNotebookContribution {
 						found = codeEditor === newSessionEditor || found;
 					}
 					if (found) {
-						// found the this editor in the outer notebook editor -> make sure to
-						// cancel all sibling sessions
 						for (const editor of editors) {
 							if (editor !== newSessionEditor) {
 								InlineChatController.get(editor)?.acceptSession();

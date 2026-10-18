@@ -138,7 +138,7 @@ export class AiStatsFeature extends Disposable {
 	private _getDataAndSession(): { data: IData; currentSession: ISession } {
 		const state = this._data.getValue() ?? { sessions: [] };
 
-		const sessionLengthMs = 5 * 60 * 1000; // 5 minutes
+		const sessionLengthMs = 5 * 60 * 1000;
 
 		let lastSession = state.sessions.at(-1);
 		const nowTime = Date.now();
@@ -152,8 +152,7 @@ export class AiStatsFeature extends Disposable {
 			});
 			lastSession = state.sessions.at(-1)!;
 
-			const dayMs = 24 * 60 * 60 * 1000; // 24h
-			// Clean up old sessions, keep only the last 24h worth of sessions
+			const dayMs = 24 * 60 * 60 * 1000;
 			while (state.sessions.length > dayMs / sessionLengthMs) {
 				state.sessions.shift();
 			}
@@ -166,7 +165,6 @@ interface IData {
 	sessions: ISession[];
 }
 
-// 5 min window
 interface ISession {
 	startTime: number;
 	typedCharacters: number;

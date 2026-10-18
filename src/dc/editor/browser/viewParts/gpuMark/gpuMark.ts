@@ -11,9 +11,6 @@ import { RenderingContext } from '../../view/renderingContext.js';
 import { ViewLineOptions } from '../viewLines/viewLineOptions.js';
 import './gpuMark.css';
 
-/**
- * A mark on lines to make identification of GPU-rendered lines vs DOM easier.
- */
 export class GpuMarkOverlay extends DynamicViewOverlay {
 
 	public static readonly CLASS_NAME = 'gpu-mark';
@@ -35,7 +32,6 @@ export class GpuMarkOverlay extends DynamicViewOverlay {
 		super.dispose();
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		return true;
@@ -65,7 +61,6 @@ export class GpuMarkOverlay extends DynamicViewOverlay {
 		return true;
 	}
 
-	// --- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
 		const visibleStartLineNumber = ctx.visibleRange.startLineNumber;

@@ -100,12 +100,10 @@ export class KeymapInfo {
 		let score = 0;
 		for (const key in other) {
 			if (isWindows && (key === 'Backslash' || key === 'KeyQ')) {
-				// keymap from Chromium is probably wrong.
 				continue;
 			}
 
 			if (isLinux && (key === 'Backspace' || key === 'Escape')) {
-				// native keymap doesn't align with keyboard event
 				continue;
 			}
 
@@ -140,7 +138,6 @@ export class KeymapInfo {
 	fuzzyEqual(other: IRawMixedKeyboardMapping): boolean {
 		for (const key in other) {
 			if (isWindows && (key === 'Backslash' || key === 'KeyQ')) {
-				// keymap from Chromium is probably wrong.
 				continue;
 			}
 			if (this.mapping[key] === undefined) {

@@ -5,10 +5,6 @@
 
 import { IndentationSubTree, IndentationTree, TopNode, isTop, isVirtual, topNode } from './classes';
 
-/**
- * Clear all labels (and their types) from the tree.
- * This will modify the tree in place, or return a retyped tree.
- */
 export function clearLabels<L>(tree: IndentationTree<L>): IndentationTree<never> {
 	visitTree(
 		tree,
@@ -20,7 +16,6 @@ export function clearLabels<L>(tree: IndentationTree<L>): IndentationTree<never>
 	return tree as IndentationTree<never>;
 }
 
-/** clear labels if condition is true */
 export function clearLabelsIf<L, S>(
 	tree: IndentationTree<L | S>,
 	condition: (arg: L | S) => arg is S
@@ -41,12 +36,6 @@ export function mapLabels<L1, L2>(
 ): IndentationSubTree<L2>;
 export function mapLabels<L1, L2>(tree: TopNode<L1>, map: (arg: L1) => L2 | undefined): TopNode<L2>;
 export function mapLabels<L1, L2>(tree: IndentationTree<L1>, map: (arg: L1) => L2 | undefined): IndentationTree<L2>;
-/**
- * Apply a type changing function to all labels.
- * This will return a new, retyped tree.
- * (For applying a type keeping function to a tree
- * that modifies it in place, use `visitTree`.)
- */
 export function mapLabels<L1, L2>(tree: IndentationTree<L1>, map: (arg: L1) => L2 | undefined): IndentationTree<L2> {
 	switch (tree.type) {
 		case 'line':
@@ -65,9 +54,6 @@ export function mapLabels<L1, L2>(tree: IndentationTree<L1>, map: (arg: L1) => L
 	}
 }
 
-/**
- * Renumber the line numbers of the tree contiguously from 0 and up.
- */
 export function resetLineNumbers<L>(tree: IndentationTree<L>): void {
 	let lineNumber = 0;
 	function visitor(tree: IndentationTree<L>) {
@@ -79,13 +65,6 @@ export function resetLineNumbers<L>(tree: IndentationTree<L>): void {
 	visitTree(tree, visitor, 'topDown');
 }
 
-/**
- * Visit the tree with a function that is called on each node.
- *
- * If direction is topDown, then parents are visited before their children.
- * If direction is bottomUp, children are visited in order before their parents,
- * so that leaf nodes are visited first.
- */
 export function visitTree<L>(
 	tree: IndentationTree<L>,
 	visitor: (tree: IndentationTree<L>) => void,
@@ -105,21 +84,11 @@ export function visitTree<L>(
 	_visit(tree);
 }
 
-/**
- * Visit the tree with a function that is called on each node --
- * if it returns false, children are not visited (in case of topDown),
- * or the parent is not visited anymore (in case of bottomUp).
- *
- * If direction is topDown, then parents are visited before their children.
- * If direction is bottomUp, children are visited in order before their parents,
- * so that leaf nodes are visited first.
- */
 export function visitTreeConditionally<L>(
 	tree: IndentationTree<L>,
 	visitor: (tree: IndentationTree<L>) => boolean,
 	direction: 'topDown' | 'bottomUp'
 ): void {
-	// IDEA: rewrite visitTree to reuse this code
 	function _visit(tree: IndentationTree<L>): boolean {
 		if (direction === 'topDown') {
 			if (!visitor(tree)) {
@@ -138,13 +107,6 @@ export function visitTreeConditionally<L>(
 	_visit(tree);
 }
 
-/**
- * Fold an accumulator function over the tree.
- *
- * If direction is topDown, then parents are visited before their children.
- * If direction is bottomUp, children are visited in order before their parents,
- * so that leaf nodes are visited first.
- */
 export function foldTree<T, L>(
 	tree: IndentationTree<L>,
 	init: T,
@@ -160,13 +122,6 @@ export function foldTree<T, L>(
 }
 
 export type Rebuilder<L> = (tree: IndentationTree<L>) => IndentationTree<L> | undefined;
-/**
- * Rebuild the tree from the bottom up by applying a function to each node.
- * The visitor function takes a node whose children have already been rebuilt,
- * and returns a new node to replace it (or undefined if it should be deleted).
- * Optionally, a function can be provided to skip nodes that should just be kept
- * without visiting them or their sub-nodes.
- */
 export function rebuildTree<L>(
 	tree: IndentationTree<L>,
 	visitor: Rebuilder<L>,

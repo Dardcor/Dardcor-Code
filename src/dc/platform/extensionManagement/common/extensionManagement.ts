@@ -130,32 +130,26 @@ export function getTargetPlatform(platform: Platform | 'alpine', arch: string | 
 }
 
 export function isNotWebExtensionInWebTargetPlatform(allTargetPlatforms: TargetPlatform[], productTargetPlatform: TargetPlatform): boolean {
-	// Not a web extension in web target platform
 	return productTargetPlatform === TargetPlatform.WEB && !allTargetPlatforms.includes(TargetPlatform.WEB);
 }
 
 export function isTargetPlatformCompatible(extensionTargetPlatform: TargetPlatform, allTargetPlatforms: TargetPlatform[], productTargetPlatform: TargetPlatform): boolean {
-	// Not compatible when extension is not a web extension in web target platform
 	if (isNotWebExtensionInWebTargetPlatform(allTargetPlatforms, productTargetPlatform)) {
 		return false;
 	}
 
-	// Compatible when extension target platform is not defined
 	if (extensionTargetPlatform === TargetPlatform.UNDEFINED) {
 		return true;
 	}
 
-	// Compatible when extension target platform is universal
 	if (extensionTargetPlatform === TargetPlatform.UNIVERSAL) {
 		return true;
 	}
 
-	// Not compatible when extension target platform is unknown
 	if (extensionTargetPlatform === TargetPlatform.UNKNOWN) {
 		return false;
 	}
 
-	// Compatible when extension and product target platforms matches
 	if (extensionTargetPlatform === productTargetPlatform) {
 		return true;
 	}
@@ -404,10 +398,6 @@ export interface IExtensionGalleryCapabilities {
 
 export const IExtensionGalleryService = createDecorator<IExtensionGalleryService>('extensionGalleryService');
 
-/**
- * Service to interact with the Extensions Marketplace to get extensions.
- * @throws Error if the Marketplace is not enabled or not reachable.
- */
 export interface IExtensionGalleryService {
 	readonly _serviceBrand: undefined;
 	isEnabled(): boolean;
@@ -525,31 +515,31 @@ export const enum ExtensionManagementErrorCode {
 export enum ExtensionSignatureVerificationCode {
 	'NotSigned' = 'NotSigned',
 	'Success' = 'Success',
-	'RequiredArgumentMissing' = 'RequiredArgumentMissing', // A required argument is missing.
-	'InvalidArgument' = 'InvalidArgument', // An argument is invalid.
-	'PackageIsUnreadable' = 'PackageIsUnreadable', // The extension package is unreadable.
-	'UnhandledException' = 'UnhandledException', // An unhandled exception occurred.
-	'SignatureManifestIsMissing' = 'SignatureManifestIsMissing', // The extension is missing a signature manifest file (.signature.manifest).
-	'SignatureManifestIsUnreadable' = 'SignatureManifestIsUnreadable', // The signature manifest is unreadable.
-	'SignatureIsMissing' = 'SignatureIsMissing', // The extension is missing a signature file (.signature.p7s).
-	'SignatureIsUnreadable' = 'SignatureIsUnreadable', // The signature is unreadable.
-	'CertificateIsUnreadable' = 'CertificateIsUnreadable', // The certificate is unreadable.
+	'RequiredArgumentMissing' = 'RequiredArgumentMissing',
+	'InvalidArgument' = 'InvalidArgument',
+	'PackageIsUnreadable' = 'PackageIsUnreadable',
+	'UnhandledException' = 'UnhandledException',
+	'SignatureManifestIsMissing' = 'SignatureManifestIsMissing',
+	'SignatureManifestIsUnreadable' = 'SignatureManifestIsUnreadable',
+	'SignatureIsMissing' = 'SignatureIsMissing',
+	'SignatureIsUnreadable' = 'SignatureIsUnreadable',
+	'CertificateIsUnreadable' = 'CertificateIsUnreadable',
 	'SignatureArchiveIsUnreadable' = 'SignatureArchiveIsUnreadable',
-	'FileAlreadyExists' = 'FileAlreadyExists', // The output file already exists.
+	'FileAlreadyExists' = 'FileAlreadyExists',
 	'SignatureArchiveIsInvalidZip' = 'SignatureArchiveIsInvalidZip',
-	'SignatureArchiveHasSameSignatureFile' = 'SignatureArchiveHasSameSignatureFile', // The signature archive has the same signature file.
-	'PackageIntegrityCheckFailed' = 'PackageIntegrityCheckFailed', // The package integrity check failed.
-	'SignatureIsInvalid' = 'SignatureIsInvalid', // The extension has an invalid signature file (.signature.p7s).
-	'SignatureManifestIsInvalid' = 'SignatureManifestIsInvalid', // The extension has an invalid signature manifest file (.signature.manifest).
-	'SignatureIntegrityCheckFailed' = 'SignatureIntegrityCheckFailed', // The extension's signature integrity check failed.  Extension integrity is suspect.
-	'EntryIsMissing' = 'EntryIsMissing', // An entry referenced in the signature manifest was not found in the extension.
-	'EntryIsTampered' = 'EntryIsTampered', // The integrity check for an entry referenced in the signature manifest failed.
-	'Untrusted' = 'Untrusted', // An X.509 certificate in the extension signature is untrusted.
-	'CertificateRevoked' = 'CertificateRevoked', // An X.509 certificate in the extension signature has been revoked.
-	'SignatureIsNotValid' = 'SignatureIsNotValid', // The extension signature is invalid.
-	'UnknownError' = 'UnknownError', // An unknown error occurred.
-	'PackageIsInvalidZip' = 'PackageIsInvalidZip', // The extension package is not valid ZIP format.
-	'SignatureArchiveHasTooManyEntries' = 'SignatureArchiveHasTooManyEntries', // The signature archive has too many entries.
+	'SignatureArchiveHasSameSignatureFile' = 'SignatureArchiveHasSameSignatureFile',
+	'PackageIntegrityCheckFailed' = 'PackageIntegrityCheckFailed',
+	'SignatureIsInvalid' = 'SignatureIsInvalid',
+	'SignatureManifestIsInvalid' = 'SignatureManifestIsInvalid',
+	'SignatureIntegrityCheckFailed' = 'SignatureIntegrityCheckFailed',
+	'EntryIsMissing' = 'EntryIsMissing',
+	'EntryIsTampered' = 'EntryIsTampered',
+	'Untrusted' = 'Untrusted',
+	'CertificateRevoked' = 'CertificateRevoked',
+	'SignatureIsNotValid' = 'SignatureIsNotValid',
+	'UnknownError' = 'UnknownError',
+	'PackageIsInvalidZip' = 'PackageIsInvalidZip',
+	'SignatureArchiveHasTooManyEntries' = 'SignatureArchiveHasTooManyEntries',
 }
 
 export class ExtensionManagementError extends Error {
@@ -582,9 +572,6 @@ export type InstallOptions = {
 	productVersion?: IProductVersion;
 	keepExisting?: boolean;
 	downloadExtensionsLocally?: boolean;
-	/**
-	 * Context passed through to InstallExtensionResult
-	 */
 	context?: IStringDictionary<unknown>;
 };
 
@@ -727,9 +714,8 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration)
 		type: 'object',
 		properties: {
 			[AllowedExtensionsConfigKey]: {
-				// Note: Type is set only to object because to support policies generation during build time, where single type is expected.
 				type: 'object',
-				markdownDescription: localize('extensions.allowed', "Specify a list of extensions that are allowed to use. This helps maintain a secure and consistent development environment by restricting the use of unauthorized extensions. For more information on how to configure this setting, please visit the [Configure Allowed Extensions](https://aka.ms/vscode/enterprise/extensions/allowed) section."),
+				markdownDescription: localize('extensions.allowed', "Specify a list of extensions that are allowed to use. This helps maintain a secure and consistent development environment by restricting the use of unauthorized extensions. For more information on how to configure this setting, please visit the [Configure Allowed Extensions](https://www.dardcor-code.web.id/docs/enterprise/extensions/allowlist) section."),
 				default: '*',
 				defaultSnippets: [{
 					body: {},
@@ -748,7 +734,7 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration)
 					localization: {
 						description: {
 							key: 'extensions.allowed.policy',
-							value: localize('extensions.allowed.policy', "Specify a list of extensions that are allowed to use. This helps maintain a secure and consistent development environment by restricting the use of unauthorized extensions. More information: https://aka.ms/vscode/enterprise/extensions/allowed"),
+							value: localize('extensions.allowed.policy', "Specify a list of extensions that are allowed to use. This helps maintain a secure and consistent development environment by restricting the use of unauthorized extensions. More information: https://www.dardcor-code.web.id/docs/enterprise/extensions/allowlist"),
 						}
 					}
 				},

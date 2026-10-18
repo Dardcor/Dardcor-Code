@@ -11,10 +11,6 @@ import { detectAvailableProfiles, IFsProvider } from '../../../../../platform/te
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
-/**
- * Assets that two profiles objects are equal, this will treat explicit undefined and unset
- * properties the same. Order of the profiles is ignored.
- */
 function profilesEqual(actualProfiles: ITerminalProfile[], expectedProfiles: ITerminalProfile[]) {
 	strictEqual(actualProfiles.length, expectedProfiles.length, `Actual: ${actualProfiles.map(e => e.profileName).join(',')}\nExpected: ${expectedProfiles.map(e => e.profileName).join(',')}`);
 	for (const expected of expectedProfiles) {
@@ -209,7 +205,6 @@ suite('Workbench - TerminalProfiles', () => {
 				profilesEqual(profiles, expected);
 			});
 			test('should validate auto detected shells from /etc/shells exist', async () => {
-				// fakeshell3 exists in /etc/shells but not on FS
 				const fsProvider = createFsProvider([
 					'/bin/fakeshell1'
 				], '/bin/fakeshell1\n/bin/fakeshell3');

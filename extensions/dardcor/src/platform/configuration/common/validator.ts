@@ -10,10 +10,6 @@ export interface IValidator<T> {
 
 	toSchema(): JsonSchema;
 
-	/**
-	 * Returns true if this validator represents a required field.
-	 * Used by vObj to determine which fields are required.
-	 */
 	isRequired?(): boolean;
 }
 
@@ -132,13 +128,11 @@ export function vObj<T extends Record<string, IValidator<any>>>(properties: T): 
 				const validator = properties[key];
 				const fieldValue = (content as any)[key];
 
-				// Check if field is required and missing
 				const isRequired = validator.isRequired?.() ?? false;
 				if (isRequired && fieldValue === undefined) {
 					return { content: undefined, error: { message: `Required field '${key}' is missing` } };
 				}
 
-				// If field is not required and is missing, skip validation
 				if (!isRequired && fieldValue === undefined) {
 					continue;
 				}

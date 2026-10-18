@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 export const enum Constants {
-	START_CH_CODE = 32, // Space
-	END_CH_CODE = 126, // Tilde (~)
-	UNKNOWN_CODE = 65533, // UTF placeholder code
+	START_CH_CODE = 32,
+	END_CH_CODE = 126,
+	UNKNOWN_CODE = 65533,
 	CHAR_COUNT = END_CH_CODE - START_CH_CODE + 2,
 
 	SAMPLED_CHAR_HEIGHT = 16,
@@ -33,10 +33,9 @@ export const getCharIndex = (chCode: number, fontScale: number) => {
 	chCode -= Constants.START_CH_CODE;
 	if (chCode < 0 || chCode > Constants.CHAR_COUNT) {
 		if (fontScale <= 2) {
-			// for smaller scales, we can get away with using any ASCII character...
 			return (chCode + Constants.CHAR_COUNT) % Constants.CHAR_COUNT;
 		}
-		return Constants.CHAR_COUNT - 1; // unknown symbol
+		return Constants.CHAR_COUNT - 1;
 	}
 
 	return chCode;

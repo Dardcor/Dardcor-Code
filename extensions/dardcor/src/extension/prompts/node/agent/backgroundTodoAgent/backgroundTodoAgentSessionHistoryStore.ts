@@ -28,15 +28,10 @@ export class BackgroundTodoAgentSessionHistoryStore extends Disposable {
 	private readonly turnHistories = new Map<string, TurnHistory>();
 	private readonly turnUserRequest = new Map<string, string>();
 
-	// An index for tool calls that is sequentially incremented
-	// The assumption is that all tool calls are seen and iterated in order.
 	private index = 0;
 
 	constructor() {
 		super();
-		// The per-turn maps can retain a turn's worth of tool-call history for the
-		// life of the session; drop them eagerly when the store is disposed so the
-		// memory is released as soon as the owning processor goes away.
 		this._register(toDisposable(() => {
 			this.trackedToolCallRoundIds.clear();
 			this.turnHistories.clear();
@@ -59,11 +54,8 @@ export class BackgroundTodoAgentSessionHistoryStore extends Disposable {
 		}
 		const processedToolCalls: BGToolCallRound[] = [];
 		toolCallRounds.forEach((tcr => {
-			// Only process previously unseen tool calls
 			if (!this.trackedToolCallRoundIds.has(tcr.id)) {
 				const { toolCallRound, substantiveToolCallCount } = processToolCallRound(this.index++, tcr);
-				// Count the round once if it has any substantive tool call; multiple
-				// calls can occur per round but should advance readiness by one round.
 				if (substantiveToolCallCount > 0) {
 					turnHistory.unprocessedSubstantiveRoundCount++;
 				}
@@ -89,7 +81,6 @@ export class BackgroundTodoAgentSessionHistoryStore extends Disposable {
 	markToolCallsAsProcessed(turnId: string, toolCallRoundIds: ReadonlyArray<Readonly<BGToolCallRound>>) {
 		const turnHistory = this.turnHistories.get(turnId);
 		if (turnHistory === undefined) {
-			//TODO throw new error
 			return;
 		}
 
@@ -98,8 +89,6 @@ export class BackgroundTodoAgentSessionHistoryStore extends Disposable {
 		for (const toolCallRound of turnHistory.new) {
 			if (toolCallIdSet.has(toolCallRound.id)) {
 				turnHistory.old.push(toolCallRound);
-				// Stored rounds only retain substantive tool calls, so a non-empty
-				// list means this round counted toward the substantive round total.
 				if (toolCallRound.toolCalls.length > 0) {
 					turnHistory.unprocessedSubstantiveRoundCount--;
 				}
@@ -139,21 +128,7 @@ function processThinkingData(thinkingData: ThinkingData | undefined) {
 	return thinkingText.join('\n').trim().slice(0, 400);
 }
 
-/**
- * Non-exhaustive list of tools that are NOT substantive progress signals.
- *
- * A tool call is treated as "substantive" only when it mutates the workspace or
- * produces a deliverable: file edits/creation, running tasks/tests, or
- * work-performing subagents. Everything else is excluded so it does not advance
- * the background pass readiness counter, namely:
- * - meta/infrastructure (orchestration, prompts, confirmations, bookkeeping),
- * - read-only exploration, search, and diagnostics (gathering context),
- * - read-only subagents (findings are context, not completion evidence),
- * - the terminal family (command execution here is too noisy to count),
- * - browser/web interaction (UI navigation and validation, not deliverables).
- */
 const EXCLUDED_TOOLS: ReadonlySet<string> = new Set([
-	// Meta / infrastructure: orchestration, prompts, and bookkeeping.
 	ToolName.CoreManageTodoList,
 	ToolName.ToolSearch,
 	ToolName.CoreAskQuestions,
@@ -168,7 +143,6 @@ const EXCLUDED_TOOLS: ReadonlySet<string> = new Set([
 	ToolName.SessionStoreSql,
 	ToolName.EditFilesPlaceholder,
 
-	// Read-only exploration, search, and diagnostics: gathering context is not progress.
 	ToolName.Codebase,
 	ToolName.FindFiles,
 	ToolName.FindTextInFiles,
@@ -186,7 +160,6 @@ const EXCLUDED_TOOLS: ReadonlySet<string> = new Set([
 	ToolName.ReadCellOutput,
 	ToolName.CoreTestFailure,
 
-	// Terminal family: command execution here is too noisy to treat as a progress signal.
 	ToolName.CoreRunInTerminal,
 	ToolName.CoreSendToTerminal,
 	ToolName.CoreGetTerminalOutput,
@@ -195,7 +168,6 @@ const EXCLUDED_TOOLS: ReadonlySet<string> = new Set([
 	ToolName.CoreTerminalLastCommand,
 	ToolName.CoreGetTaskOutput,
 
-	// Browser / web interaction: UI navigation and validation, not deliverables.
 	ToolName.CoreOpenBrowserPage,
 	ToolName.CoreScreenshotPage,
 	ToolName.CoreNavigatePage,
@@ -203,7 +175,6 @@ const EXCLUDED_TOOLS: ReadonlySet<string> = new Set([
 	ToolName.CoreRunPlaywrightCode,
 ]);
 
-/** A tool call is substantive when it is not in the excluded set. */
 function isSubstantiveTool(toolCall: IToolCall): boolean {
 	return !EXCLUDED_TOOLS.has(toolCall.name);
 }

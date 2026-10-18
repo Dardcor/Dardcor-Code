@@ -47,26 +47,14 @@ export interface ICommandLineAnalyzerOptions {
 	chatSessionResource: URI | undefined;
 	requiresUnsandboxConfirmation?: boolean;
 	requiresAllowNetworkConfirmation?: boolean;
-	// User has opted into "Allow All Commands in this Session"
 	hasSessionAutoApproval?: boolean;
 }
 
 export interface ICommandLineAnalyzerResult {
-	/**
-	 * Whether auto approval is allowed based on the analysis, when false this
-	 * will block auto approval.
-	*/
 	readonly isAutoApproveAllowed: boolean;
-	/**
-	 * Whether the command line was explicitly auto approved by this analyzer.
-	 * - `true`: This analyzer explicitly approves auto-execution
-	 * - `false`: This analyzer explicitly denies auto-execution
-	 * - `undefined`: This analyzer does not make an approval/denial decision
-	 */
 	readonly isAutoApproved?: boolean;
 	readonly disclaimers?: readonly (string | IMarkdownString)[];
 	readonly autoApproveInfo?: IMarkdownString;
 	readonly customActions?: ToolConfirmationAction[];
-	// Indicates that auto approval should be forced (e.g. sandboxed commands).
 	readonly forceAutoApproval?: boolean;
 }

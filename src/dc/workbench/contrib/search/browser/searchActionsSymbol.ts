@@ -11,7 +11,6 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
 
-//#region Actions
 registerAction2(class ShowAllSymbolsAction extends Action2 {
 
 	static readonly ID = 'workbench.action.showAllSymbols';
@@ -44,4 +43,3 @@ registerAction2(class ShowAllSymbolsAction extends Action2 {
 	}
 });
 
-//#endregion

@@ -33,10 +33,6 @@ export class InsertFinalNewLineCommand implements ICommand {
 	}
 }
 
-/**
- * Generate edit operations for inserting a final new line if needed.
- * Returns undefined if no edit is needed.
- */
 export function insertFinalNewLine(model: ITextModel): ISingleEditOperation | undefined {
 	const lineCount = model.getLineCount();
 	return EditOperation.insert(

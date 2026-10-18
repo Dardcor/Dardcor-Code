@@ -16,7 +16,6 @@ import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse, ReconnectRe
 import { readSessionFolderPickerDecision, withSessionFolderPickerDecision } from '../../../../platform/agentHost/common/state/sessionState.js';
 import type { IClientTransport } from '../../../../platform/agentHost/common/state/sessionTransport.js';
 
-/** Maps working-directory identities at the editor's remote connection, leaving opaque protocol content untouched. */
 export class EditorRemoteAgentHostTransport extends Disposable implements IClientTransport {
 
 	private readonly _requests = new Map<number, string>();
@@ -26,13 +25,10 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 	readonly onMessage = this._onMessage.event;
 	readonly onClose: Event<void>;
 
-	/** Preserves the underlying connection's client-route classification. */
 	get clientConnectionKind() { return this._transport.clientConnectionKind; }
 
-	/** Reports the physical transport wrapped by this URI-mapping adapter. */
 	get transportKind() { return this._transport.transportKind; }
 
-	/** Owns the underlying transport and translates incoming messages before exposing them to the protocol client. */
 	constructor(
 		private readonly _transport: IClientTransport,
 		private readonly _remoteAuthority: string,
@@ -45,15 +41,10 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 		this._register(this.onClose(() => this._requests.clear()));
 	}
 
-	/** Opens the underlying connection; this adapter does not establish a separate connection. */
 	connect(): Promise<void> {
 		return this._transport.connect();
 	}
 
-	/**
-	 * Maps outgoing working directories to host-local URIs before forwarding the message.
-	 * Records request methods when their responses may contain directories that need reverse mapping.
-	 */
 	send(message: ProtocolMessage): void {
 		if (isJsonRpcRequest(message)) {
 			switch (message.method) {
@@ -91,7 +82,6 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 		this._transport.send(message);
 	}
 
-	/** Converts a directory on the connected remote authority to a file URI, leaving other resources unchanged. */
 	private _toHostDirectory(value: string): string {
 		const uri = URI.parse(value);
 		return uri.scheme === Schemas.vscodeRemote && isEqualAuthority(uri.authority, this._remoteAuthority)
@@ -99,7 +89,6 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 			: value;
 	}
 
-	/** Converts a host-local file URI to the workbench's remote URI so it matches the corresponding workspace folder. */
 	private _fromHostDirectory(value: string): string {
 		const uri = URI.parse(value);
 		return uri.scheme === Schemas.file
@@ -107,7 +96,6 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 			: value;
 	}
 
-	/** Copies a payload with mapped working directories and folder-picker primary, preserving unrelated fields and metadata. */
 	private _mapDirectories<T extends { workingDirectories?: string[]; _meta?: Record<string, unknown> }>(value: T, map: (uri: string) => string): T {
 		const decision = readSessionFolderPickerDecision(value._meta);
 		return {
@@ -117,7 +105,6 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 		};
 	}
 
-	/** Maps directory-bearing action fields in either direction, leaving other action types untouched. */
 	private _mapAction(action: StateAction, map: (uri: string) => string): StateAction {
 		switch (action.type) {
 			case ActionType.SessionWorkingDirectorySet:
@@ -138,7 +125,6 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 		}
 	}
 
-	/** Restores workbench directory identities in session and chat snapshots, including nested chat summaries. */
 	private _mapSnapshot(snapshot: Snapshot): Snapshot {
 		const map = (value: string) => this._fromHostDirectory(value);
 		const state = snapshot.state;
@@ -151,10 +137,6 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 		return snapshot;
 	}
 
-	/**
-	 * Maps directories in host notifications and response payloads back to workbench URIs.
-	 * Correlates responses with recorded request methods because JSON-RPC responses contain only the request ID.
-	 */
 	private _fromHost(message: ProtocolMessage): ProtocolMessage {
 		const map = (value: string) => this._fromHostDirectory(value);
 		if (isJsonRpcNotification(message)) {
@@ -195,7 +177,6 @@ export class EditorRemoteAgentHostTransport extends Disposable implements IClien
 		return message;
 	}
 
-	/** Clears response-correlation state and disposes the owned transport and event listeners. */
 	override dispose(): void {
 		this._requests.clear();
 		super.dispose();

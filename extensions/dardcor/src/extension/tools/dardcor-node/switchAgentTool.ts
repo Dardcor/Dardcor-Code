@@ -10,13 +10,13 @@ import { CancellationToken } from '../../../util/dardcor/base/common/cancellatio
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { PlanAgentProvider } from '../../agents/dardcor-node/planAgentProvider';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 interface ISwitchAgentParams {
 	agentName: string;
 }
 
-export class SwitchAgentTool implements ICopilotTool<ISwitchAgentParams> {
+export class SwitchAgentTool implements IAgentTool<ISwitchAgentParams> {
 	public static readonly toolName = ToolName.SwitchAgent;
 	public static readonly nonDeferred = true;
 
@@ -28,7 +28,6 @@ export class SwitchAgentTool implements ICopilotTool<ISwitchAgentParams> {
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<ISwitchAgentParams>, token: CancellationToken): Promise<vscode.LanguageModelToolResult> {
 		const { agentName } = options.input;
 
-		// Only 'Plan' is supported
 		if (agentName !== 'Plan') {
 			throw new Error(vscode.l10n.t('Only "Plan" agent is supported'));
 		}
@@ -37,7 +36,6 @@ export class SwitchAgentTool implements ICopilotTool<ISwitchAgentParams> {
 		const searchSubagentEnabled = this.configurationService.getExperimentBasedConfig(ConfigKey.Advanced.SearchSubagentToolEnabled, this.experimentationService);
 		const planAgentBody = PlanAgentProvider.buildAgentBody(exploreEnabled, searchSubagentEnabled);
 
-		// Execute command to switch agent
 		await vscode.commands.executeCommand('workbench.action.chat.toggleAgentMode', {
 			modeId: agentName,
 			sessionResource: options.chatSessionResource

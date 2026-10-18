@@ -59,7 +59,6 @@ export function createExtHostQuickOpen(mainContext: IMainContext, workspace: IEx
 		showQuickPick(extension: IExtensionDescription, itemsOrItemsPromise: string[] | Promise<string[]>, options?: QuickPickOptions, token?: CancellationToken): Promise<string | undefined>;
 		showQuickPick(extension: IExtensionDescription, itemsOrItemsPromise: QuickPickItem[] | Promise<QuickPickItem[]>, options?: QuickPickOptions, token?: CancellationToken): Promise<QuickPickItem | undefined>;
 		showQuickPick(extension: IExtensionDescription, itemsOrItemsPromise: Item[] | Promise<Item[]>, options?: QuickPickOptions, token: CancellationToken = CancellationToken.None): Promise<Item | Item[] | undefined> {
-			// clear state from last invocation
 			this._onDidSelectItem = undefined;
 
 			const itemsPromise = Promise.resolve(itemsOrItemsPromise);
@@ -112,14 +111,12 @@ export function createExtHostQuickOpen(mainContext: IMainContext, workspace: IEx
 						}
 					}
 
-					// handle selection changes
 					if (options && typeof options.onDidSelectItem === 'function') {
 						this._onDidSelectItem = (handle) => {
 							options.onDidSelectItem!(items[handle]);
 						};
 					}
 
-					// show items
 					proxy.$setItems(instance, pickItems);
 
 					return quickPickWidget.then(handle => {
@@ -146,7 +143,6 @@ export function createExtHostQuickOpen(mainContext: IMainContext, workspace: IEx
 			this._onDidSelectItem?.(handle);
 		}
 
-		// ---- input
 
 		showInput(options?: InputBoxOptions, token: CancellationToken = CancellationToken.None): Promise<string | undefined> {
 
@@ -195,7 +191,6 @@ export function createExtHostQuickOpen(mainContext: IMainContext, workspace: IEx
 			};
 		}
 
-		// ---- workspace folder picker
 
 		async showWorkspaceFolderPick(options?: WorkspaceFolderPickOptions, token = CancellationToken.None): Promise<WorkspaceFolder | undefined> {
 			const selectedFolder = await this._commands.executeCommand<WorkspaceFolder>('_workbench.pickWorkspaceFolder', [options]);
@@ -209,7 +204,6 @@ export function createExtHostQuickOpen(mainContext: IMainContext, workspace: IEx
 			return workspaceFolders.find(folder => folder.uri.toString() === selectedFolder.uri.toString());
 		}
 
-		// ---- QuickInput
 
 		createQuickPick<T extends QuickPickItem>(extension: IExtensionDescription): QuickPick<T> {
 			const session: ExtHostQuickPick<T> = new ExtHostQuickPick(extension, () => this._sessions.delete(session._id));
@@ -446,14 +440,6 @@ export function createExtHostQuickOpen(mainContext: IMainContext, workspace: IEx
 
 		_fireDidHide() {
 			if (this._expectingHide) {
-				// if this._visible is true, it means that .show() was called between
-				// .hide() and .onDidHide. To ensure the correct number of onDidHide events
-				// are emitted, we set this._expectingHide to this value so that
-				// the next time .hide() is called, we can emit the event again.
-				// Example:
-				// .show() -> .hide() -> .show() -> .hide() should emit 2 onDidHide events.
-				// .show() -> .hide() -> .hide() should emit 1 onDidHide event.
-				// Fixes #135747
 				this._expectingHide = this._visible;
 				this._onDidHideEmitter.fire();
 			}
@@ -490,7 +476,6 @@ export function createExtHostQuickOpen(mainContext: IMainContext, workspace: IEx
 				}
 				this.dispatchUpdate();
 			} else if (this._visible && !this._updateTimeout) {
-				// Defer the update so that multiple changes to setters don't cause a redraw each
 				this._updateTimeout = setTimeout(() => {
 					this._updateTimeout = undefined;
 					this.dispatchUpdate();

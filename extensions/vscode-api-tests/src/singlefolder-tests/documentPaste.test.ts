@@ -9,7 +9,6 @@ import { closeAllEditors, createRandomFile, disposeAll } from '../utils';
 
 const textPlain = 'text/plain';
 
-// Skipped due to flakiness on Linux Desktop and errors on web
 suite.skip('vscode API - Copy Paste', function () {
 
 	this.retries(3);
@@ -55,8 +54,6 @@ suite.skip('vscode API - Copy Paste', function () {
 				const existing = dataTransfer.get(textPlain);
 				if (existing) {
 					const str = await existing.asString();
-					// text/plain includes the trailing new line in this case
-					// On windows, this will always be `\r\n` even if the document uses `\n`
 					const eol = str.match(/\r?\n$/)?.[0] ?? '\n';
 					const reversed = reverseString(str.slice(0, -eol.length));
 					dataTransfer.set(textPlain, new vscode.DataTransferItem(reversed + '\n'));
@@ -120,14 +117,10 @@ suite.skip('vscode API - Copy Paste', function () {
 			}
 		}, { providedPasteEditKinds: [vscode.DocumentDropOrPasteEditKind.Empty.append('test')], copyMimeTypes: [textPlain] }));
 
-		// Later registered providers will be called first
 		testDisposables.push(vscode.languages.registerDocumentPasteEditProvider({ language: 'plaintext' }, new class implements vscode.DocumentPasteEditProvider {
 			async prepareDocumentPaste(_document: vscode.TextDocument, _ranges: readonly vscode.Range[], dataTransfer: vscode.DataTransfer, _token: vscode.CancellationToken): Promise<void> {
 				callOrder.push(b_id);
 
-				// Wait for the first provider to finish even though we were called first.
-				// This tests that resulting order does not depend on the order the providers
-				// return in.
 				await providerAFinished;
 
 				dataTransfer.set(textPlain, new vscode.DataTransferItem('b'));
@@ -139,7 +132,6 @@ suite.skip('vscode API - Copy Paste', function () {
 		await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
 		assert.strictEqual(await newDocContent, 'b\ndef');
 
-		// Confirm provider call order is what we expected
 		assert.deepStrictEqual(callOrder, [b_id, a_id]);
 	});
 
@@ -164,10 +156,8 @@ suite.skip('vscode API - Copy Paste', function () {
 		testDisposables.push(vscode.languages.registerDocumentPasteEditProvider({ language: 'plaintext' }, new class implements vscode.DocumentPasteEditProvider {
 			async prepareDocumentPaste(_document: vscode.TextDocument, _ranges: readonly vscode.Range[], dataTransfer: vscode.DataTransfer, _token: vscode.CancellationToken): Promise<void> {
 
-				// Wait for the first provider to finish
 				await providerAFinished;
 
-				// We we access the data transfer here, we should not see changes made by the first provider
 				const entry = dataTransfer.get(textPlain);
 				const str = await entry!.asString();
 				dataTransfer.set(textPlain, new vscode.DataTransferItem(reverseString(str)));

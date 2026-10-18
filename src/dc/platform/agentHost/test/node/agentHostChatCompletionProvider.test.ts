@@ -36,21 +36,12 @@ function makeChatSummary(resource: string, title: string, opts?: { modifiedAt?: 
 	};
 }
 
-/**
- * A fixture chat: its catalog summary plus the completed/active turns of its
- * {@link ChatState}.
- */
 interface IFixtureChat {
 	readonly summary: ChatSummary;
 	readonly turns?: readonly Turn[];
 	readonly activeTurn?: ActiveTurn;
 }
 
-/**
- * A minimal {@link AgentHostStateManager} that serves controlled fixtures for
- * the three read methods the provider uses. Every chat state (default and peer)
- * is keyed by its resource in one map, so `getChatState` resolves them all.
- */
 class FakeStateManager extends AgentHostStateManager {
 	private readonly _session: ISessionWithDefaultChat;
 	private readonly _fixtureChatStates = new Map<string, ChatState>();
@@ -101,15 +92,15 @@ suite('AgentHostChatCompletionProvider', () => {
 		test('extracts the title filter and range across the prefix lifecycle', () => {
 			assert.deepStrictEqual(
 				[
-					extractChatToken('hello world', 5),          // no '#'
-					extractChatToken('ping #file', 10),          // '#file' is not a chat token
-					extractChatToken('ping #', 6),               // bare '#': still could become #chat:
-					extractChatToken('ping #ch', 8),             // typing the 'chat:' prefix
-					extractChatToken('ping #chat:', 11),         // prefix complete, empty filter
-					extractChatToken('ping #chat:Pla', 14),      // filter typed
-					extractChatToken('#CHAT:Pla', 9),            // case-insensitive prefix
-					extractChatToken('a#chat:x', 8),             // '#' not preceded by whitespace
-					extractChatToken('#chat:a b', 9),            // whitespace terminates the token
+					extractChatToken('hello world', 5),
+					extractChatToken('ping #file', 10),
+					extractChatToken('ping #', 6),
+					extractChatToken('ping #ch', 8),
+					extractChatToken('ping #chat:', 11),
+					extractChatToken('ping #chat:Pla', 14),
+					extractChatToken('#CHAT:Pla', 9),
+					extractChatToken('a#chat:x', 8),
+					extractChatToken('#chat:a b', 9),
 				],
 				[
 					undefined,
@@ -147,15 +138,10 @@ suite('AgentHostChatCompletionProvider', () => {
 		test('excludes current chat, subagent chats, hidden chats, and chats without a completed turn', async () => {
 			const planningUri = buildChatUri(SESSION_URI, 'planning');
 			const stateManager = disposables.add(new FakeStateManager([
-				// current chat (the default chat) — must never be listed
 				{ summary: makeChatSummary(DEFAULT_CHAT_URI, 'Default', { origin: { kind: ChatOriginKind.User } }), turns: [makeTurn('d1')] },
-				// a normal peer chat with two completed turns → endTurn is the last one
 				{ summary: makeChatSummary(planningUri, 'Planning notes'), turns: [makeTurn('p1'), makeTurn('p2')] },
-				// subagent chat spawned by a tool → excluded
 				{ summary: makeChatSummary(buildChatUri(SESSION_URI, 'sub'), 'Worker', { origin: { kind: ChatOriginKind.Tool, chat: DEFAULT_CHAT_URI, toolCallId: 'tc1' } }), turns: [makeTurn('s1')] },
-				// hidden worker chat → excluded
 				{ summary: makeChatSummary(buildChatUri(SESSION_URI, 'hidden'), 'Hidden', { interactivity: ChatInteractivity.Hidden }), turns: [makeTurn('h1')] },
-				// only an active turn, no completed turn → skipped
 				{ summary: makeChatSummary(buildChatUri(SESSION_URI, 'active'), 'Active', { interactivity: ChatInteractivity.Full }), activeTurn: makeActiveTurn('a1') },
 			]));
 

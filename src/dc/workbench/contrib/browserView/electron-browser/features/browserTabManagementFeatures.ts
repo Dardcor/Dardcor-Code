@@ -67,10 +67,6 @@ const closeAllButtonItem: IQuickInputButton = {
 };
 
 
-/**
- * Manages a quick pick that lists all open browser tabs grouped by editor group,
- * with close buttons, live updates, and an always-visible "New Integrated Browser Tab" entry.
- */
 class BrowserTabQuickPick extends Disposable {
 
 	private readonly _quickPick: IQuickPick<IBrowserQuickPickItem, { useSeparators: true }>;
@@ -131,7 +127,6 @@ class BrowserTabQuickPick extends Disposable {
 	show(): void {
 		this._buildItems();
 
-		// Pre-select the currently active browser editor
 		const activeEditor = this._editorService.activeEditor;
 		if (activeEditor instanceof BrowserEditorInput) {
 			const activePick = (this._quickPick.items as readonly (IBrowserQuickPickItem | IQuickPickSeparator)[])
@@ -147,7 +142,6 @@ class BrowserTabQuickPick extends Disposable {
 	private _buildItems(): void {
 		this._itemListeners.clear();
 
-		// Remember which editor was active so we can restore selection
 		const activeEditor = this._quickPick.activeItems[0]?.editor;
 
 		const picks: (IBrowserQuickPickItem | IQuickPickSeparator)[] = [];
@@ -157,7 +151,6 @@ class BrowserTabQuickPick extends Disposable {
 			.map(group => ({ group, browserEditors: group.editors.filter((e): e is BrowserEditorInput => e instanceof BrowserEditorInput) }))
 			.filter(({ browserEditors }) => browserEditors.length > 0);
 
-		// Track which view IDs appear in at least one editor group
 		const viewsInGroups = new Set<string>();
 		for (const { browserEditors } of groupsWithBrowserEditors) {
 			for (const editor of browserEditors) {
@@ -165,11 +158,9 @@ class BrowserTabQuickPick extends Disposable {
 			}
 		}
 
-		// Background views: known but not open in any editor group
 		const backgroundEditors = [...this._browserViewService.getContextualBrowserViews().values()].filter(e => !viewsInGroups.has(e.id));
 		const backgroundLabel = localize('browser.backgroundGroup', "Background");
 
-		// Build sections: each editor group + optional background
 		type Section = { label: string; ariaLabel: string; groupId: number; editors: BrowserEditorInput[]; isPinned?: (e: BrowserEditorInput) => boolean };
 		const sections: Section[] = groupsWithBrowserEditors.map(({ group, browserEditors }) => ({
 			label: group.label,
@@ -244,8 +235,6 @@ class QuickOpenBrowserAction extends Action2 {
 			f1: true,
 			keybinding: {
 				weight: KeybindingWeight.WorkbenchContrib,
-				// Note: on Linux this conflicts with the "toggle block comment" keybinding.
-				//       it's not as problem at the moment becase oh the `when`, but worth noting for the future.
 				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyA,
 				when: BROWSER_EDITOR_ACTIVE
 			},
@@ -264,11 +253,6 @@ interface IOpenBrowserOptions {
 	openToLeft?: boolean;
 	lockGroup?: boolean;
 
-	/**
-	 * If set, the first existing tab with a URL matching this glob pattern will be reused / focused instead of opening a new tab.
-	 *
-	 * This is used by Live Preview extension to reuse tabs, especially after reload / restart.
-	 */
 	reuseUrlFilter?: string;
 }
 
@@ -288,7 +272,6 @@ class OpenIntegratedBrowserAction extends Action2 {
 		const telemetryService = accessor.get(ITelemetryService);
 		const browserViewService = accessor.get(IBrowserViewWorkbenchService);
 
-		// Parse arguments
 		const options = typeof urlOrOptions === 'string' ? { url: urlOrOptions } : (urlOrOptions ?? {});
 		const resource = BrowserViewUri.forId(generateUuid());
 
@@ -298,7 +281,6 @@ class OpenIntegratedBrowserAction extends Action2 {
 			const filterUri = URI.parse(options.reuseUrlFilter);
 			const matchingEditor = [...browserViewService.getContextualBrowserViews().values()].find((e) => {
 				const editorUri = URI.parse(e.url || '');
-				// URIs default to putting "file" scheme. Check that the scheme is really in the filter.
 				if (filterUri.scheme && options.reuseUrlFilter!.startsWith(`${filterUri.scheme}:`) && filterUri.scheme !== editorUri.scheme) {
 					return false;
 				}
@@ -322,9 +304,6 @@ class OpenIntegratedBrowserAction extends Action2 {
 				if (options.url) {
 					matchingEditor.navigate(options.url);
 				}
-				// Reveal the existing browser tab where it already lives rather than
-				// relocating it into the docked group (which would move a tab out of a
-				// modal group when `workbench.editor.useModal: 'all'`).
 				await editorService.openEditor(matchingEditor);
 				return;
 			}
@@ -334,7 +313,6 @@ class OpenIntegratedBrowserAction extends Action2 {
 
 		const editorPane = await editorService.openEditor({ resource, options: { viewState: { url: options.url } } }, group);
 
-		// Only lock the group if explicitly requested or when opening to side by default
 		const shouldLock = options.lockGroup !== undefined ? options.lockGroup : !!options.openToSide;
 		if (shouldLock && editorPane?.group) {
 			editorPane.group.lock(true);
@@ -383,7 +361,6 @@ class OpenFileInIntegratedBrowserAction extends Action2 {
 		const telemetryService = accessor.get(ITelemetryService);
 		const browserViewService = accessor.get(IBrowserViewWorkbenchService);
 
-		// Resolve the file URI from the context or the active editor
 		const fileUri = resource ?? EditorResourceAccessor.getOriginalUri(editorService.activeEditor, { filterByScheme: [Schemas.file], supportSideBySide: SideBySideEditor.PRIMARY });
 		if (!fileUri) {
 			return;
@@ -411,9 +388,8 @@ class NewTabAction extends Action2 {
 				order: 1,
 				isHiddenByDefault: true,
 			},
-			// When already in a browser, Ctrl/Cmd + T opens a new tab
 			keybinding: {
-				weight: KeybindingWeight.WorkbenchContrib + 50, // Priority over search actions
+				weight: KeybindingWeight.WorkbenchContrib + 50,
 				primary: KeyMod.CtrlCmd | KeyCode.KeyT,
 			}
 		});
@@ -497,7 +473,6 @@ class OpenOrListBrowsersAction extends Action2 {
 					ContextKeyExpr.equals('config.workbench.browser.showInTitleBar', false).negate(),
 					ContextKeyExpr.or(
 						CONTEXT_BROWSER_EDITOR_OPEN,
-						// This is a hack to work around `true` just testing for truthiness of the key. It works since `1 == true` in JS.
 						ContextKeyExpr.equals('config.workbench.browser.showInTitleBar', 1)
 					)
 				),
@@ -520,7 +495,6 @@ class OpenOrListBrowsersAction extends Action2 {
 	}
 }
 
-// Register in View menu
 MenuRegistry.appendMenuItem(MenuId.MenubarViewMenu, {
 	group: '4_auxbar',
 	command: {
@@ -530,7 +504,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarViewMenu, {
 	order: 2
 });
 
-// Register as "Close All Browser Tabs" action in editor title menu to align with the regular "Close All" action
 MenuRegistry.appendMenuItem(MenuId.EditorTitleContext, { command: { id: BrowserViewCommandId.CloseAllInGroup, title: localize('browser.closeAllInGroupShort', "Close All Browser Tabs") }, group: '1_close', order: 55, when: BROWSER_EDITOR_ACTIVE });
 
 registerAction2(QuickOpenBrowserAction);
@@ -547,10 +520,6 @@ registerAction2(class ToggleBrowserTitleBarButton extends ToggleTitleBarConfigAc
 	}
 });
 
-/**
- * Tracks whether any browser editor is open across all editor groups and
- * keeps the `browserEditorOpen` context key in sync.
- */
 class BrowserEditorOpenContextKeyContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.browserEditorOpenContextKey';
 
@@ -570,9 +539,6 @@ class BrowserEditorOpenContextKeyContribution extends Disposable implements IWor
 
 registerWorkbenchContribution2(BrowserEditorOpenContextKeyContribution.ID, BrowserEditorOpenContextKeyContribution, WorkbenchPhase.AfterRestored);
 
-/**
- * Opens localhost URLs and all-interfaces URLs in the Integrated Browser when the setting is enabled.
- */
 class LocalhostLinkOpenerContribution extends Disposable implements IWorkbenchContribution, IExternalOpener {
 	static readonly ID = 'workbench.contrib.localhostLinkOpener';
 
@@ -593,7 +559,6 @@ class LocalhostLinkOpenerContribution extends Disposable implements IWorkbenchCo
 			return false;
 		}
 
-		// If we are in a remote session, always use the original source URI (and not the href which may be the forwarded address)
 		if (this.browserViewWorkbenchService.willUseRemoteProxy() && ctx.sourceUri) {
 			href = ctx.sourceUri.toString();
 		}
@@ -612,8 +577,6 @@ class LocalhostLinkOpenerContribution extends Disposable implements IWorkbenchCo
 
 		logBrowserOpen(this.telemetryService, 'localhostLinkOpener');
 
-		// Check whether the setting was explicitly set by the user or is still at its default value.
-		// When it is a default, tag the viewState so that the hint pill can be shown.
 		const isDefaultLinkOpen = !isConfigured(this.configurationService.inspect('workbench.browser.openLocalhostLinks'));
 
 		const browserUri = BrowserViewUri.forId(generateUuid());
@@ -624,15 +587,9 @@ class LocalhostLinkOpenerContribution extends Disposable implements IWorkbenchCo
 
 registerWorkbenchContribution2(LocalhostLinkOpenerContribution.ID, LocalhostLinkOpenerContribution, WorkbenchPhase.BlockStartup);
 
-// ---- Link opened hint pill (URL bar widget) --------------------------------
 
 const LOCALHOST_HINT_DISMISSED_KEY = 'workbench.browser.linkOpenedHintDismissed';
 
-/**
- * A small pill shown in the URL bar that informs the user their link was opened
- * in the Integrated Browser by default. Clicking it shows a tooltip
- * with an explanation and options to open settings or dismiss permanently.
- */
 class LinkOpenedHintPill extends BrowserEditorContribution {
 
 	private readonly _pill: HTMLElement;
@@ -722,7 +679,6 @@ class LinkOpenedHintPill extends BrowserEditorContribution {
 	private _callAttention(): void {
 		this._attentionTimeout.clear();
 		this._pill.classList.remove('attention');
-		// Start collapsed (icon only), expand after 300ms, then collapse back after another 2s
 		this._attentionTimeout.value = disposableTimeout(() => {
 			this._pill.classList.add('attention');
 			this._attentionTimeout.value = disposableTimeout(() => {
@@ -739,12 +695,6 @@ class LinkOpenedHintPill extends BrowserEditorContribution {
 
 BrowserEditor.registerContribution(LinkOpenedHintPill);
 
-/**
- * Contributes URL-bar suggestions for the user's other open browser tabs.
- * Picking one swaps the navbar's editor input for the tab's input (moving
- * the target into our slot, then closing the previously-active input) so
- * picking from the URL bar feels like "replace this tab with that one".
- */
 class BrowserTabUrlSuggestions extends BrowserEditorContribution {
 
 	private readonly _onDidChange = this._register(new Emitter<void>());
@@ -761,9 +711,6 @@ class BrowserTabUrlSuggestions extends BrowserEditorContribution {
 	) {
 		super(editor);
 
-		// Re-fire onDidChange whenever the set of tabs, the group structure, or
-		// any tab's label changes so the URL picker's open-tabs list stays live
-		// (additions/removals) and ordered by current group visibility.
 		for (const group of this._editorGroupsService.getGroups(GroupsOrder.GRID_APPEARANCE)) {
 			this._trackGroup(group);
 		}
@@ -791,7 +738,6 @@ class BrowserTabUrlSuggestions extends BrowserEditorContribution {
 			actions: [],
 			onDidChange: this._onDidChange.event,
 			getSuggestions: async ({ input }) => {
-				// Only surface tab suggestions on a new / empty tab.
 				if (input.url) {
 					return [];
 				}
@@ -822,11 +768,6 @@ class BrowserTabUrlSuggestions extends BrowserEditorContribution {
 		}
 	}
 
-	/**
-	 * Return tabs in editor-group visibility order (grid appearance, then
-	 * within-group editor order), with background tabs (known but not open
-	 * in any group) appended at the end. Excludes the editor's own input.
-	 */
 	private _collectSuggestions(input: BrowserEditorInput): IBrowserUrlSuggestion[] {
 		const ordered: BrowserEditorInput[] = [];
 		const seen = new Set<string>();
@@ -863,15 +804,6 @@ class BrowserTabUrlSuggestions extends BrowserEditorContribution {
 		return suggestions;
 	}
 
-	/**
-	 * Close {@link source} and focus {@link target} where it already lives.
-	 *
-	 * The navbar's picker-hide handler synchronously calls
-	 * `ensureBrowserFocus()` on the source editor before any of our awaits
-	 * resolve, so we have to explicitly refocus the target group after the
-	 * editor service operations complete — otherwise focus snaps back to
-	 * the (about-to-close) source's window.
-	 */
 	private async _switchToTab(source: BrowserEditorInput, target: BrowserEditorInput): Promise<void> {
 		if (source === target) {
 			await this._editorService.openEditor(target);

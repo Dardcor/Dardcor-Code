@@ -32,7 +32,6 @@ suite('vscode API - workspace-fs', () => {
 		const entries = await vscode.workspace.fs.readDirectory(root);
 		assert.ok(entries.length > 0);
 
-		// find far.js
 		const tuple = entries.find(tuple => tuple[0] === 'far.js')!;
 		assert.ok(tuple);
 		assert.strictEqual(tuple[0], 'far.js');
@@ -89,7 +88,6 @@ suite('vscode API - workspace-fs', () => {
 		await vscode.workspace.fs.stat(folder);
 		await vscode.workspace.fs.stat(file);
 
-		// ensure non empty folder cannot be deleted
 		try {
 			await vscode.workspace.fs.delete(folder, { recursive: false, useTrash: false });
 			assert.ok(false);
@@ -98,19 +96,16 @@ suite('vscode API - workspace-fs', () => {
 			await vscode.workspace.fs.stat(file);
 		}
 
-		// ensure non empty folder cannot be deleted is DEFAULT
 		try {
-			await vscode.workspace.fs.delete(folder); // recursive: false as default
+			await vscode.workspace.fs.delete(folder);
 			assert.ok(false);
 		} catch {
 			await vscode.workspace.fs.stat(folder);
 			await vscode.workspace.fs.stat(file);
 		}
 
-		// delete non empty folder with recursive-flag
 		await vscode.workspace.fs.delete(folder, { recursive: true, useTrash: false });
 
-		// esnure folder/file are gone
 		try {
 			await vscode.workspace.fs.stat(folder);
 			assert.ok(false);
@@ -192,7 +187,6 @@ suite('vscode API - workspace-fs', () => {
 		const source = vscode.Uri.joinPath(uri, `./${Math.random().toString(16).slice(2, 8)}`);
 		const target = vscode.Uri.joinPath(uri, `../${Math.random().toString(16).slice(2, 8)}`);
 
-		// make sure that target and source don't accidentially exists
 		try {
 			await vscode.workspace.fs.stat(target);
 			this.skip();
@@ -227,21 +221,21 @@ suite('vscode API - workspace-fs', () => {
 
 		await vscode.workspace.fs.delete(folder, { recursive: true, useTrash: false });
 
-		await vscode.workspace.fs.createDirectory(folder); // calling on existing folder is also ok!
+		await vscode.workspace.fs.createDirectory(folder);
 
 		const file = root.with({ path: posix.join(folder.path, 'file.txt') });
 		await vscode.workspace.fs.writeFile(file, Buffer.from('Hello World'));
 		const folder2 = root.with({ path: posix.join(file.path, 'invalid') });
 		let e;
 		try {
-			await vscode.workspace.fs.createDirectory(folder2); // cannot create folder on file path
+			await vscode.workspace.fs.createDirectory(folder2);
 		} catch (error) {
 			e = error;
 		}
 		assert.ok(e);
 
 		const folder3 = root.with({ path: posix.join(root.path, 'DEEPLY', 'NESTED', 'FOLDER') });
-		await vscode.workspace.fs.createDirectory(folder3); // calling on different cased folder is ok!
+		await vscode.workspace.fs.createDirectory(folder3);
 		stat = await vscode.workspace.fs.stat(folder3);
 		assert.strictEqual(stat.type, vscode.FileType.Directory);
 

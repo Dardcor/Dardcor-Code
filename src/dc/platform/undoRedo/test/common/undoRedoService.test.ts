@@ -144,7 +144,7 @@ suite('UndoRedoService', () => {
 			}
 			override async confirm() {
 				return {
-					confirmed: true // confirm!
+					confirmed: true
 				};
 			}
 		});
@@ -231,7 +231,6 @@ suite('UndoRedoService', () => {
 		const resource = URI.file('test.txt');
 		const service = createUndoRedoService();
 
-		// Push three elements
 		const element1: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
 			resource: resource,
@@ -260,10 +259,8 @@ suite('UndoRedoService', () => {
 		service.pushElement(element2);
 		service.pushElement(element3);
 
-		// Create snapshot after 3 elements: [element1, element2, element3]
 		const snapshot = service.createSnapshot(resource);
 
-		// Push more elements after the snapshot
 		const element4: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
 			resource: resource,
@@ -283,15 +280,12 @@ suite('UndoRedoService', () => {
 		service.pushElement(element4);
 		service.pushElement(element5);
 
-		// Verify we have 5 elements now
 		let elements = service.getElements(resource);
 		assert.strictEqual(elements.past.length, 5);
 		assert.strictEqual(elements.future.length, 0);
 
-		// Restore snapshot - should remove element4 and element5, but keep element1, element2, element3
 		service.restoreSnapshot(snapshot);
 
-		// Verify that elements matching the snapshot are preserved
 		elements = service.getElements(resource);
 		assert.strictEqual(elements.past.length, 3, 'Should have 3 past elements after restore');
 		assert.strictEqual(elements.future.length, 0, 'Should have 0 future elements after restore');

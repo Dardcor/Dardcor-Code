@@ -18,22 +18,12 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { ICodexAccountService } from './codexAccountService.js';
 
-/** The Copilot sign-in flow, shared with `AgentHostSignedOutModelsNotification`. */
 const CHAT_SETUP_COMMAND_ID = 'workbench.action.chat.triggerSetup';
 
 export const IAgentSdkSetupService = createDecorator<IAgentSdkSetupService>('agentSdkSetupService');
 
-/**
- * Where the user stands with one agent's setup: the download is on offer, the
- * SDK is on disk and found no account, or the agent has models. Every other
- * case — the feature not applying, a fetch in flight — is `undefined`.
- */
 export type AgentSdkSetupState = 'downloadOffered' | 'noAccount' | 'resolved';
 
-/**
- * One step of the setup funnel: `downloadOffered` → a download → `noAccount` →
- * a route out of it → `resolved`. The banner reports states; this service reports routes.
- */
 type AgentSdkSetupFunnelStep =
 	| AgentSdkSetupState
 	| 'downloadClicked'
@@ -57,39 +47,21 @@ type AgentSdkSetupFunnelClassification = {
 export interface IAgentSdkSetupService {
 	readonly _serviceBrand: undefined;
 
-	/** Every agent that has published a setup status, newest state. */
 	readonly setups: readonly IAgentSdkSetupInfo[];
 	readonly onDidChangeSetups: Event<readonly IAgentSdkSetupInfo[]>;
 
-	/** Ask `agent` to fetch its SDK and remember that choice on the Agent Host. */
 	requestDownload(agent: string): void;
 
-	/** Open the setup instructions `agent` published, if it published any. */
 	openSetupDocs(agent: string): void;
 
-	/**
-	 * Ask `agent` to look again at a setup the user completed outside the app —
-	 * the only signal there is that a `claude login` in a terminal finished.
-	 */
 	requestReload(agent: string): void;
 
-	/** Start GitHub sign-in, which reaches every agent's models through our proxy. */
 	signInToGitHub(agent: string): void;
 
-	/** Start `agent`'s own sign-in flow, if it declared one. */
 	signIn(agent: string): void;
 
-	/**
-	 * Whether `agent` has been asked to fetch its SDK and the host has not
-	 * answered yet — already downloading, as far as this window can tell.
-	 */
 	isDownloadPending(agent: string): boolean;
 
-	/**
-	 * Record that the user reached `state`. Public because the banner is
-	 * where these three are computed and this service cannot see them; every other
-	 * step is reported by the method that takes it.
-	 */
 	reportSetupState(agent: string, state: AgentSdkSetupState): void;
 }
 
@@ -101,11 +73,6 @@ class AgentSdkSetupService extends Disposable implements IAgentSdkSetupService {
 
 	private _setups: readonly IAgentSdkSetupInfo[] = [];
 
-	/**
-	 * Agents we have asked to fetch and the host has not answered yet. Cleared on
-	 * that answer rather than on success, so a failed download — which republishes
-	 * `notDownloaded` after the `downloading` we cleared on — re-offers the button.
-	 */
 	private readonly _pendingRequests = new Set<string>();
 
 	get setups(): readonly IAgentSdkSetupInfo[] {
@@ -121,15 +88,10 @@ class AgentSdkSetupService extends Disposable implements IAgentSdkSetupService {
 		@ICodexAccountService private readonly _codexAccountService: ICodexAccountService,
 	) {
 		super();
-		// `rootState` is a getter over a protocol client the host replaces on every
-		// restart and reconnect, so one subscription taken here would go quietly
-		// stale — re-bind, as the banner and the Copilot notification both do.
 		const rootStateListeners = this._register(new DisposableStore());
 		const bindRootState = () => {
 			rootStateListeners.clear();
 			rootStateListeners.add(this._agentHostService.rootState.onDidChange(state => this._updateSetups(readAgentSdkSetupInfos(state))));
-			// A request the previous host never answered never will be; dropping it
-			// re-offers the button rather than suppressing the offer for good.
 			this._pendingRequests.clear();
 			const state = this._agentHostService.rootState.value;
 			this._updateSetups(readAgentSdkSetupInfos(state instanceof Error ? undefined : state));
@@ -149,29 +111,20 @@ class AgentSdkSetupService extends Disposable implements IAgentSdkSetupService {
 			return;
 		}
 		this._reportStep(agent, 'docsClicked');
-		// The URL is declared by the agent, so it is validated like any other
-		// externally-supplied link rather than trusted.
 		void this._openerService.open(url, { openExternal: true });
 	}
 
 	requestReload(agent: string): void {
 		this._reportStep(agent, 'reloadClicked');
-		// Deliberately not a pending request: that set gates the download offer, and
-		// a reload happens in a state where there is nothing to offer.
 		this._dispatchRequest(AGENT_SDK_SETUP_RELOAD_REQUEST_KEY, agent);
 	}
 
 	signInToGitHub(agent: string): void {
-		// A thin wrapper over the ordinary Copilot sign-in, taking the agent id only
-		// to attribute the click — which is the funnel's most telling drop.
 		this._reportStep(agent, 'gitHubSignInClicked');
 		void this._commandService.executeCommand(CHAT_SETUP_COMMAND_ID);
 	}
 
 	signIn(agent: string): void {
-		// Codex is the only agent with an in-app sign-in today, and comparing against
-		// the service's own `agent` rather than a literal keeps `'codex'` out of the
-		// workbench. A second such agent turns this comparison into a lookup.
 		if (agent !== this._codexAccountService.agent) {
 			return;
 		}
@@ -189,8 +142,6 @@ class AgentSdkSetupService extends Disposable implements IAgentSdkSetupService {
 
 	private _reportStep(agent: string, step: AgentSdkSetupFunnelStep): void {
 		this._telemetryService.publicLog2<IAgentSdkSetupFunnelEvent, AgentSdkSetupFunnelClassification>('agentHost.agentSdkSetup', { agent, step });
-		// This feature is diagnosed from a user's attached log far more often than
-		// from a dashboard; the event says how many, this line says why this person.
 		this._logService.trace(`[AgentSdkSetup] ${agent}: ${step}`);
 	}
 
@@ -201,15 +152,10 @@ class AgentSdkSetupService extends Disposable implements IAgentSdkSetupService {
 	private _dispatchDownloadRequest(agent: string): void {
 		this._pendingRequests.add(agent);
 		this._dispatchRequest(AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY, agent);
-		// The statuses are unchanged but {@link isDownloadPending} is not, and
-		// without this the offer stays up until the host answers — the flicker the
-		// pending set exists to prevent.
 		this._onDidChangeSetups.fire(this._setups);
 	}
 
 	private _dispatchRequest(key: string, agent: string): void {
-		// A fresh nonce every time so pressing the same thing twice is two
-		// requests; the agent clears the key as it consumes it.
 		this._agentHostService.dispatch(ROOT_STATE_URI, {
 			type: ActionType.RootConfigChanged,
 			config: { [key]: { agent, request: generateUuid() } },
@@ -219,7 +165,6 @@ class AgentSdkSetupService extends Disposable implements IAgentSdkSetupService {
 	private _updateSetups(setups: readonly IAgentSdkSetupInfo[]): void {
 		this._setups = setups;
 		for (const setup of setups) {
-			// Any status but `notDownloaded` is the host answering our request.
 			if (setup.download !== 'notDownloaded') {
 				this._pendingRequests.delete(setup.agent);
 			}

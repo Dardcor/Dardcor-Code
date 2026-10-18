@@ -24,7 +24,6 @@ const liftLSIFLocations = (locations: undefined | LSIF.types.Location | LSIF.typ
 
 type IGraph = Pick<LSIF.JsonStore, 'declarations' | 'definitions' | 'references'>;
 
-/** Gets whether the SCIP occurence happens at the given posiiton */
 const occursAt = (o: scip.Occurrence, position: LSIF.types.Position) => {
 	const range = occurenceToPosition(o);
 	if (position.line < range.start.line || (position.line === range.start.line && position.character < range.start.character)) {
@@ -38,7 +37,6 @@ const occursAt = (o: scip.Occurrence, position: LSIF.types.Position) => {
 	return true;
 };
 
-/** Converts an SCIP occurence to an LSIF range */
 const occurenceToPosition = (o: scip.Occurrence): LSIF.types.Range => {
 	const [startLine, startChar] = o.range;
 	let endLine: number;
@@ -66,12 +64,11 @@ class SCIPGraph implements IGraph {
 	}
 
 	declarations(uri: string, position: LSIF.types.Position): LSIF.types.Location | LSIF.types.Location[] | undefined {
-		// https://github.com/sourcegraph/scip/blob/0504a347d36dbff48b21f53ccfedb46f3803855e/scip.proto#L501
 		return this.findOccurencesOfSymbolAt(uri, position, o => !!(o.symbolRoles & 0x1));
 	}
 
 	definitions(uri: string, position: LSIF.types.Position): LSIF.types.Location | LSIF.types.Location[] | undefined {
-		return this.declarations(uri, position); //  SCIP doesn't really differentiate I think...
+		return this.declarations(uri, position);
 	}
 
 	references(uri: string, position: LSIF.types.Position, context: LSIF.types.ReferenceContext): LSIF.types.Location[] | undefined {
@@ -83,7 +80,7 @@ class SCIPGraph implements IGraph {
 		const locations: LSIF.types.Location[] = [];
 		for (const doc of this.index.documents) {
 			for (const occurence of doc.occurrences) {
-				if (occurence.symbolRoles & 0x1 && toFind.has(occurence.symbol)) {// definition
+				if (occurence.symbolRoles & 0x1 && toFind.has(occurence.symbol)) {
 					toFind.delete(occurence.symbol);
 					locations.push({
 						uri: URI.joinPath(this.workspaceUriOriginal, doc.relativePath.replaceAll('\\', '/')).toString(true),
@@ -146,25 +143,11 @@ const makeTranslator = (workspace: SimulationWorkspace, indexRoot: string) => {
 	};
 };
 
-/**
- * A language features service powered by an LSIF index. To use this, you need
- * to have generated an LSIF index for your workspace. This can be done in
- * several ways:
- *
- * - Rust: ensure rust-analyzer is installed (rustup component add rust-analyzer)
- *   and run `rust-analyzer lsif ./ > lsif.json` in the workspace root.
- *
- * If you index a new language, please add instructions above.
- */
 export class LSIFLanguageFeaturesService implements ILanguageFeaturesService {
 	_serviceBrand: undefined;
 
 	private _graph: Promise<IGraph> | undefined;
 
-	/**
-	 * @param workspace The simulation workspace
-	 * @param indexFilePath Path to an LSIF index file
-	 */
 	constructor(
 		private readonly workspace: SimulationWorkspace,
 		private readonly indexFilePath: string,
@@ -213,11 +196,10 @@ export class LSIFLanguageFeaturesService implements ILanguageFeaturesService {
 	}
 
 	getDiagnostics(_uri: vscode.Uri): vscode.Diagnostic[] {
-		return []; // not part of LSIF
+		return [];
 	}
 
 	async getWorkspaceSymbols(query: string): Promise<vscode.SymbolInformation[]> {
 		throw new Error('Unimplemented: excercise for the reader');
-		// would have to iterate through all documents, get all symbols that match
 	}
 }

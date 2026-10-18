@@ -128,7 +128,6 @@ suite('Local Agent Host Endpoint Metadata', () => {
 			filesWithBoth,
 			filesAfterFirstRemoved,
 			filesAfterBothRemoved: await readEntryFileNames(),
-			// The shared entries directory is left in place to avoid racing a concurrent publisher.
 			entriesDirectoryRetained: fs.existsSync(entriesDirectory),
 		}, {
 			filesWithBoth: [entryFileName(identity(first)), entryFileName(identity(second))].sort(),

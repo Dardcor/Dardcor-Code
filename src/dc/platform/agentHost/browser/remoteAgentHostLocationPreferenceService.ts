@@ -8,14 +8,8 @@ import { Disposable } from '../../../base/common/lifecycle.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
 import { IRemoteAgentHostLocationPreferenceService, isRemoteAgentHostLocationPreference, RemoteAgentHostLocationPreference } from '../common/remoteAgentHostLocationPreference.js';
 
-/** Storage key for the JSON map of per-host remote agent run location preferences. */
 export const REMOTE_AGENT_HOST_LOCATION_PREFERENCE_STORAGE_KEY = 'remoteAgentHost.locationPreferences';
 
-/**
- * Parse the persisted preference map. Any entry with a non-string key or an
- * unrecognized preference value is dropped rather than discarding the whole
- * map, so one bad entry never destroys the rest of the user's preferences.
- */
 export function parseRemoteAgentHostLocationPreferences(raw: string | undefined): Map<string, RemoteAgentHostLocationPreference> {
 	const preferences = new Map<string, RemoteAgentHostLocationPreference>();
 	if (!raw) {

@@ -37,7 +37,6 @@ export class PendingNotificationToasts<T> implements IDisposable {
 		const pendingToast: IPendingNotificationToast<T> = { item, disposables, cleanupScheduled: false };
 		this.pendingToasts.add(pendingToast);
 		disposables.add(toDisposable(() => this.pendingToasts.delete(pendingToast)));
-		// Defer toast creation to avoid animation work while the renderer is busy (#107935).
 		disposables.add(this.scheduler(() => {
 			const pendingItem = pendingToast.item;
 			if (!this.isCurrent(pendingItem)) {
@@ -54,7 +53,6 @@ export class PendingNotificationToasts<T> implements IDisposable {
 		for (const pendingToast of this.pendingToasts) {
 			if (pendingToast.item === item && !pendingToast.cleanupScheduled) {
 				pendingToast.cleanupScheduled = true;
-				// Allow a synchronous duplicate ADD to retarget the pending toast before cleanup.
 				queueMicrotask(() => {
 					pendingToast.cleanupScheduled = false;
 					if (this.pendingToasts.has(pendingToast) && !this.isCurrent(pendingToast.item)) {

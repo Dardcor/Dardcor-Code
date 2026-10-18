@@ -81,7 +81,7 @@ export class McpSandboxService extends Disposable implements IMcpSandboxService 
 
 	private _sandboxSettingsId: string | undefined;
 	private _remoteEnvDetailsPromise: Promise<IRemoteAgentEnvironment | null>;
-	private readonly _defaultAllowedDomains: readonly string[] = ['registry.npmjs.org']; // Default allowed domains that are commonly needed for MCP servers, even if the user doesn't specify them in their sandbox config
+	private readonly _defaultAllowedDomains: readonly string[] = ['registry.npmjs.org'];
 	private _defaultAllowWritePaths: string[] = ['~/.npm'];
 	private _sandboxConfigPerConfigurationTarget: Map<string, string> = new Map();
 
@@ -294,8 +294,6 @@ export class McpSandboxService extends Disposable implements IMcpSandboxService 
 		const execPath = await this._getExecPath(os, appRoot, remoteAuthority);
 		const tempDir = await this._getTempDir(remoteAuthority);
 		const srtPath = this._pathJoin(os, appRoot, 'node_modules', '@vscode', 'sandbox-runtime', 'dist', 'cli.js');
-		// @vscode/ripgrep-universal ships per-platform-arch binaries under bin/{platform}-{arch}/{rg|rg.exe}
-		// Windows is handled by the early return above, so os is narrowed to Mac/Linux here.
 		const rgPlatform = os === OperatingSystem.Macintosh ? 'darwin' : 'linux';
 		const rgPath = this._pathJoin(os, appRoot, 'node_modules', '@vscode', 'ripgrep-universal', 'bin', `${rgPlatform}-${arch}`, 'rg');
 		const sandboxConfigPath = tempDir ? await this._updateSandboxConfig(tempDir, configTarget, sandboxConfig, launchCwd) : undefined;
@@ -307,7 +305,7 @@ export class McpSandboxService extends Disposable implements IMcpSandboxService 
 		if (remoteAuthority) {
 			return this._pathJoin(os, appRoot, 'node');
 		}
-		return undefined; // Use Electron executable as the default exec path for local development, which will run the sandbox runtime wrapper with Electron in node mode. For remote, we need to specify the node executable to ensure it runs with Node.js.
+		return undefined;
 	}
 
 	private async _getSandboxEnvVariables(baseEnv: McpServerTransportStdio['env'], tempDir: URI | undefined, rgPath: string | undefined, remoteAuthority?: string): Promise<McpServerTransportStdio['env']> {
@@ -319,10 +317,8 @@ export class McpSandboxService extends Disposable implements IMcpSandboxService 
 			env = { ...env, PATH: env['PATH'] ? `${env['PATH']}${await this._getPathDelimiter(remoteAuthority)}${dirname(rgPath)}` : dirname(rgPath) };
 		}
 		if (!remoteAuthority) {
-			// Add any remote-specific environment variables here
 			env = { ...env, ELECTRON_RUN_AS_NODE: '1' };
 		}
-		// Ensure VSCODE_INSPECTOR_OPTIONS is not inherited by the sandboxed process, as it can cause issues with sandboxing.
 		env['VSCODE_INSPECTOR_OPTIONS'] = null;
 		return env;
 	}
@@ -396,8 +392,6 @@ export class McpSandboxService extends Disposable implements IMcpSandboxService 
 		return configFileUri.path;
 	}
 
-	// this method merges the default allowWrite paths and allowedDomains with the ones provided in the sandbox config, to ensure that the default necessary paths and domains are always included in the sandbox config used for launching,
-	//  even if they are not explicitly specified in the config provided by the user or the MCP server config.
 	private _withDefaultSandboxConfig(sandboxConfig?: IMcpSandboxConfiguration, launchCwd?: string): IMcpSandboxConfiguration {
 		const mergedAllowWrite = new Set(sandboxConfig?.filesystem?.allowWrite ?? []);
 		for (const defaultAllowWrite of this._getDefaultAllowWrite(launchCwd ? [launchCwd] : undefined)) {

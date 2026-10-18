@@ -9,7 +9,6 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { IEditSessionEntryDiff } from '../common/editing/chatEditingService.js';
 import { AbstractChatResponseFileChangesService, IChatResponseFileChangesOpenContext } from './chatResponseFileChangesService.js';
 
-/** Maps a chat-produced file change to the editor resources that represent its actual before/after states. */
 export function toChatFileChangeEditorResource(diff: IEditSessionEntryDiff) {
 	return {
 		original: { resource: diff.isCreated ? undefined : diff.originalURI },
@@ -18,7 +17,6 @@ export function toChatFileChangeEditorResource(diff: IEditSessionEntryDiff) {
 	};
 }
 
-/** Opens chat-produced file changes in the standard multi-diff editor. */
 export function openChatFileChanges(editorService: IEditorService, label: string, diffs: readonly IEditSessionEntryDiff[]): void {
 	const source = URI.parse(`multi-diff-editor:${Date.now().toString()}-${Math.random().toString(36).slice(2)}`);
 	void editorService.openEditor({

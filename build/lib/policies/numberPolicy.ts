@@ -41,7 +41,6 @@ export class NumberPolicy extends BasePolicy {
 	protected renderADMXElements(): string[] {
 		return [
 			`<decimal id="${this.name}" valueName="${this.name}" />`
-			// `<decimal id="Quarantine_PurgeItemsAfterDelay" valueName="PurgeItemsAfterDelay" minValue="0" maxValue="10000000" />`
 		];
 	}
 

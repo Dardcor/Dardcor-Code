@@ -237,7 +237,6 @@ const completionSpec: Fig.Spec = {
 		},
 		{
 			name: "-i",
-			// below you will find a valiant attempt to codify the following description into generators
 			description:
 				"Selects files by [46][protocol][@hostname|hostaddr][:service|port]",
 			args: {

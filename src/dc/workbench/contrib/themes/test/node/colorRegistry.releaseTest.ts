@@ -32,7 +32,7 @@ interface DescriptionDiff {
 	specDescription: string;
 }
 
-export const experimental: string[] = []; // 'settings.modifiedItemForeground', 'editorUnnecessary.foreground' ];
+export const experimental: string[] = [];
 
 
 const knwonVariablesFileName = 'vscode-known-variables.json';
@@ -116,7 +116,6 @@ suite('Color Registry', function () {
 	});
 
 	test('all colors listed in theme-color.md', async function () {
-		// avoid importing the TestEnvironmentService as it brings in a duplicate registration of the file editor input factory.
 		const environmentService = new class extends mock<INativeEnvironmentService>() { override args = { _: [] }; };
 
 		const docUrl = 'https://raw.githubusercontent.com/microsoft/vscode-docs/vnext/api/references/theme-color.md';
@@ -215,7 +214,6 @@ async function getColorsFromExtension(): Promise<{ [id: string]: string }> {
 				}
 			}
 		} catch (e) {
-			// ignore
 		}
 
 	}

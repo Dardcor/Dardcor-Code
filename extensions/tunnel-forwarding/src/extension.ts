@@ -14,11 +14,6 @@ export const enum TunnelPrivacyId {
 	Public = 'public',
 }
 
-/**
- * Timeout after the last port forwarding is disposed before we'll tear down
- * the CLI. This is primarily used since privacy changes to port will appear
- * as a dispose+re-create call, and we don't want to have to restart the CLI.
- */
 const CLEANUP_TIMEOUT = 10_000;
 
 const versionFolder = vscode.env.appCommit?.substring(0, 10);
@@ -76,7 +71,7 @@ type StateT =
 
 export async function activate(context: vscode.ExtensionContext) {
 	if (vscode.env.remoteAuthority) {
-		return; // forwarding is local-only at the moment
+		return;
 	}
 
 	const logger = new Logger(vscode.l10n.t('Port Forwarding'));
@@ -154,7 +149,6 @@ class TunnelProvider implements vscode.TunnelProvider {
 
 	constructor(private readonly logger: Logger, private readonly context: vscode.ExtensionContext) { }
 
-	/** @inheritdoc */
 	public async provideTunnel(tunnelOptions: vscode.TunnelOptions): Promise<vscode.Tunnel | undefined> {
 		if (tunnelOptions.privacy === TunnelPrivacyId.Public) {
 			if (!(await this.consentPublicPort(tunnelOptions.remoteAddress.port))) {
@@ -178,7 +172,6 @@ class TunnelProvider implements vscode.TunnelProvider {
 			case State.Error:
 			case State.Inactive:
 				await this.setupPortForwardingProcess();
-			// fall through since state is now starting
 			case State.Starting:
 				this.updateActivePortsIfRunning();
 				return new Promise<Tunnel>((resolve, reject) => {
@@ -200,10 +193,9 @@ class TunnelProvider implements vscode.TunnelProvider {
 		}
 	}
 
-	/** Re/starts the port forwarding system. */
 	public async restart() {
 		this.killRunningProcess();
-		await this.setupPortForwardingProcess(); // will show progress
+		await this.setupPortForwardingProcess();
 		this.updateActivePortsIfRunning();
 	}
 
@@ -222,7 +214,6 @@ class TunnelProvider implements vscode.TunnelProvider {
 			dontShowAgain,
 		);
 		if (r === continueOpt) {
-			// continue
 		} else if (r === dontShowAgain) {
 			await this.context.globalState.update(didWarnPublicKey, true);
 		} else {
@@ -297,7 +288,7 @@ class TunnelProvider implements vscode.TunnelProvider {
 		child.on('exit', status => {
 			const msg = `[forwarding] exited with code ${status}`;
 			this.logger.log('info', msg);
-			progressP.complete(); // make sure to clear progress on unexpected exit
+			progressP.complete();
 			if (this.isInStateWithProcess(child)) {
 				this.state = { state: State.Error, error: msg };
 			}
@@ -305,7 +296,7 @@ class TunnelProvider implements vscode.TunnelProvider {
 
 		child.on('error', err => {
 			this.logger.log('error', `[forwarding] ${err}`);
-			progressP.complete(); // make sure to clear progress on unexpected exit
+			progressP.complete();
 			if (this.isInStateWithProcess(child)) {
 				this.state = { state: State.Error, error: String(err) };
 			}

@@ -16,14 +16,8 @@ export class CursorCollection {
 
 	private context: CursorContext;
 
-	/**
-	 * `cursors[0]` is the primary cursor, thus `cursors.length >= 1` is always true.
-	 * `cursors.slice(1)` are secondary cursors.
-	*/
 	private cursors: Cursor[];
 
-	// An index which identifies the last cursor that was added / moved (think Ctrl+drag)
-	// This index refers to `cursors.slice(1)`, i.e. after removing the primary cursor.
 	private lastAddedCursorIndex: number;
 
 	constructor(context: CursorContext) {
@@ -110,9 +104,6 @@ export class CursorCollection {
 		this._setSecondaryStates(states.slice(1));
 	}
 
-	/**
-	 * Creates or disposes secondary cursors as necessary to match the number of `secondarySelections`.
-	 */
 	private _setSecondaryStates(secondaryStates: PartialCursorState[]): void {
 		const secondaryCursorsLength = this.cursors.length - 1;
 		const secondaryStatesLength = secondaryStates.length;
@@ -191,10 +182,8 @@ export class CursorCollection {
 
 			let shouldMergeCursors: boolean;
 			if (nextSelection.isEmpty() || currentSelection.isEmpty()) {
-				// Merge touching cursors if one of them is collapsed
 				shouldMergeCursors = nextSelection.getStartPosition().isBeforeOrEqual(currentSelection.getEndPosition());
 			} else {
-				// Merge only overlapping cursors (i.e. allow touching ranges)
 				shouldMergeCursors = nextSelection.getStartPosition().isBefore(currentSelection.getEndPosition());
 			}
 
@@ -213,13 +202,11 @@ export class CursorCollection {
 					const looserSelectionIsLTR = (looserSelection.selectionStartLineNumber === looserSelection.startLineNumber && looserSelection.selectionStartColumn === looserSelection.startColumn);
 					const winnerSelectionIsLTR = (winnerSelection.selectionStartLineNumber === winnerSelection.startLineNumber && winnerSelection.selectionStartColumn === winnerSelection.startColumn);
 
-					// Give more importance to the last added cursor (think Ctrl-dragging + hitting another cursor)
 					let resultingSelectionIsLTR: boolean;
 					if (looserIndex === this.lastAddedCursorIndex) {
 						resultingSelectionIsLTR = looserSelectionIsLTR;
 						this.lastAddedCursorIndex = winnerIndex;
 					} else {
-						// Winner takes it all
 						resultingSelectionIsLTR = winnerSelectionIsLTR;
 					}
 

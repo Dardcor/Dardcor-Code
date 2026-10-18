@@ -6,18 +6,6 @@ import { startLocalServer } from "../utils/server.js";
 import { generateCodeVerifier, generateCodeChallenge, generateState } from "../utils/pkce.js";
 import { spinner as createSpinner } from "../utils/ui.js";
 
-/**
- * xAI (Grok) OAuth Service
- *
- * Source of truth: router-for-me/CLIProxyAPI internal/auth/xai/xai.go
- *
- * Flow:
- *  1. Discover endpoints from `${XAI_ISSUER}/.well-known/openid-configuration`
- *  2. Bind loopback server on 127.0.0.1:56121, path /callback
- *  3. PKCE S256 with 96-byte verifier
- *  4. Exchange code with form-urlencoded body
- *  5. id_token email decode (no signature verify, mirrors Go)
- */
 
 const BASE64_BLOCK_SIZE = 4;
 
@@ -46,9 +34,6 @@ export function validateOAuthEndpoint(rawUrl, field) {
   return value;
 }
 
-/**
- * Discover authorization + token endpoints. Cached process-wide.
- */
 export async function discoverEndpoints() {
   if (cachedDiscovery) return cachedDiscovery;
 
@@ -65,7 +50,6 @@ export async function discoverEndpoints() {
       return cachedDiscovery;
     }
   } catch {
-    // fall through to static fallback
   }
 
   cachedDiscovery = {
@@ -75,10 +59,6 @@ export async function discoverEndpoints() {
   return cachedDiscovery;
 }
 
-/**
- * Decode the `email` claim from an id_token JWT. No signature verification —
- * mirrors CLIProxyAPI Go behavior. Returns undefined if not parseable.
- */
 export function decodeIdTokenEmail(idToken) {
   if (!idToken || typeof idToken !== "string") return undefined;
   const parts = idToken.split(".");
@@ -99,9 +79,6 @@ export class XaiService extends OAuthService {
     super(XAI_CONFIG);
   }
 
-  /**
-   * Build xAI authorization URL. Spaces in scope are encoded as %20.
-   */
   buildXaiAuthUrl(redirectUri, state, codeChallenge, authorizeUrl) {
     const nonce = crypto.randomBytes(16).toString("hex");
     const params = {
@@ -122,10 +99,6 @@ export class XaiService extends OAuthService {
     return `${authorizeUrl}?${qs}`;
   }
 
-  /**
-   * Exchange authorization code for tokens.
-   * xAI is a public PKCE client — no client_secret.
-   */
   async exchangeXaiCode({ tokenUrl, code, redirectUri, codeVerifier }) {
     const res = await fetch(tokenUrl, {
       method: "POST",
@@ -149,9 +122,6 @@ export class XaiService extends OAuthService {
     return await res.json();
   }
 
-  /**
-   * Refresh an access token using a refresh_token.
-   */
   async refreshAccessToken(refreshToken) {
     const { tokenUrl } = await discoverEndpoints();
     const res = await fetch(tokenUrl, {
@@ -173,10 +143,6 @@ export class XaiService extends OAuthService {
     return await res.json();
   }
 
-  /**
-   * Complete xAI OAuth flow end-to-end (CLI entrypoint).
-   * Returns the raw token response plus extracted email.
-   */
   async connect() {
     const spinner = createSpinner("Starting xAI OAuth...").start();
     try {

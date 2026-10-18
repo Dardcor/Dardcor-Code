@@ -23,10 +23,6 @@ let textDecoder: { decode: (input: Uint8Array) => string } | null;
 
 export class VSBuffer {
 
-	/**
-	 * When running in a nodejs context, the backing store for the returned `VSBuffer` instance
-	 * might use a nodejs Buffer allocated from node's Buffer pool, which is not transferrable.
-	 */
 	static alloc(byteLength: number): VSBuffer {
 		if (hasBuffer) {
 			return new VSBuffer(Buffer.allocUnsafe(byteLength));
@@ -35,24 +31,13 @@ export class VSBuffer {
 		}
 	}
 
-	/**
-	 * When running in a nodejs context, if `actual` is not a nodejs Buffer, the backing store for
-	 * the returned `VSBuffer` instance might use a nodejs Buffer allocated from node's Buffer pool,
-	 * which is not transferrable.
-	 */
 	static wrap(actual: Uint8Array): VSBuffer {
 		if (hasBuffer && !(Buffer.isBuffer(actual))) {
-			// https://nodejs.org/dist/latest-v10.x/docs/api/buffer.html#buffer_class_method_buffer_from_arraybuffer_byteoffset_length
-			// Create a zero-copy Buffer wrapper around the ArrayBuffer pointed to by the Uint8Array
 			actual = Buffer.from(actual.buffer, actual.byteOffset, actual.byteLength);
 		}
 		return new VSBuffer(actual);
 	}
 
-	/**
-	 * When running in a nodejs context, the backing store for the returned `VSBuffer` instance
-	 * might use a nodejs Buffer allocated from node's Buffer pool, which is not transferrable.
-	 */
 	static fromString(source: string, options?: { dontUseNodeBuffer?: boolean }): VSBuffer {
 		const dontUseNodeBuffer = options?.dontUseNodeBuffer || false;
 		if (!dontUseNodeBuffer && hasBuffer) {
@@ -65,10 +50,6 @@ export class VSBuffer {
 		}
 	}
 
-	/**
-	 * When running in a nodejs context, the backing store for the returned `VSBuffer` instance
-	 * might use a nodejs Buffer allocated from node's Buffer pool, which is not transferrable.
-	 */
 	static fromByteArray(source: number[]): VSBuffer {
 		const result = VSBuffer.alloc(source.length);
 		for (let i = 0, len = source.length; i < len; i++) {
@@ -77,10 +58,6 @@ export class VSBuffer {
 		return result;
 	}
 
-	/**
-	 * When running in a nodejs context, the backing store for the returned `VSBuffer` instance
-	 * might use a nodejs Buffer allocated from node's Buffer pool, which is not transferrable.
-	 */
 	static concat(buffers: VSBuffer[], totalLength?: number): VSBuffer {
 		if (typeof totalLength === 'undefined') {
 			totalLength = 0;
@@ -112,10 +89,6 @@ export class VSBuffer {
 		this.byteLength = this.buffer.byteLength;
 	}
 
-	/**
-	 * When running in a nodejs context, the backing store for the returned `VSBuffer` instance
-	 * might use a nodejs Buffer allocated from node's Buffer pool, which is not transferrable.
-	 */
 	clone(): VSBuffer {
 		const result = VSBuffer.alloc(this.byteLength);
 		result.set(this);
@@ -134,9 +107,6 @@ export class VSBuffer {
 	}
 
 	slice(start?: number, end?: number): VSBuffer {
-		// IMPORTANT: use subarray instead of slice because TypedArray#slice
-		// creates shallow copy and NodeBuffer#slice doesn't. The use of subarray
-		// ensures the same, performance, behaviour.
 		return new VSBuffer(this.buffer.subarray(start, end));
 	}
 
@@ -200,10 +170,6 @@ export class VSBuffer {
 	}
 }
 
-/**
- * Like String.indexOf, but works on Uint8Arrays.
- * Uses the boyer-moore-horspool algorithm to be reasonably speedy.
- */
 export function binaryIndexOf(haystack: Uint8Array, needle: Uint8Array, offset = 0): number {
 	const needleLen = needle.byteLength;
 	const haystackLen = haystack.byteLength;
@@ -220,7 +186,6 @@ export function binaryIndexOf(haystack: Uint8Array, needle: Uint8Array, offset =
 		return -1;
 	}
 
-	// find index of the subarray using boyer-moore-horspool algorithm
 	const table = indexOfTable.value;
 	table.fill(needle.length);
 	for (let i = 0; i < needle.length; i++) {
@@ -334,10 +299,8 @@ export async function bufferedStreamToBuffer(bufferedStream: streams.ReadableBuf
 
 	return VSBuffer.concat([
 
-		// Include already read chunks...
 		...bufferedStream.buffer,
 
-		// ...and all additional chunks
 		await streamToBuffer(bufferedStream.stream)
 	]);
 }
@@ -362,14 +325,11 @@ export function prefixedBufferStream(prefix: VSBuffer, stream: VSBufferReadableS
 	return streams.prefixedStream(prefix, stream, chunks => VSBuffer.concat(chunks));
 }
 
-/** Decodes base64 to a uint8 array. URL-encoded and unpadded base64 is allowed. */
 export function decodeBase64(encoded: string) {
 	let building = 0;
 	let remainder = 0;
 	let bufi = 0;
 
-	// The simpler way to do this is `Uint8Array.from(atob(str), c => c.charCodeAt(0))`,
-	// but that's about 10-20x slower than this function in current Chromium versions.
 
 	const buffer = new Uint8Array(Math.floor(encoded.length / 4 * 3));
 	const append = (value: number) => {
@@ -396,20 +356,18 @@ export function decodeBase64(encoded: string) {
 
 	for (let i = 0; i < encoded.length; i++) {
 		const code = encoded.charCodeAt(i);
-		// See https://datatracker.ietf.org/doc/html/rfc4648#section-4
-		// This branchy code is about 3x faster than an indexOf on a base64 char string.
 		if (code >= 65 && code <= 90) {
-			append(code - 65); // A-Z starts ranges from char code 65 to 90
+			append(code - 65);
 		} else if (code >= 97 && code <= 122) {
-			append(code - 97 + 26); // a-z starts ranges from char code 97 to 122, starting at byte 26
+			append(code - 97 + 26);
 		} else if (code >= 48 && code <= 57) {
-			append(code - 48 + 52); // 0-9 starts ranges from char code 48 to 58, starting at byte 52
+			append(code - 48 + 52);
 		} else if (code === 43 || code === 45) {
-			append(62); // "+" or "-" for URLS
+			append(62);
 		} else if (code === 47 || code === 95) {
-			append(63); // "/" or "_" for URLS
+			append(63);
 		} else if (code === 61) {
-			break; // "="
+			break;
 		} else {
 			throw new SyntaxError(`Unexpected base64 character ${encoded[i]}`);
 		}
@@ -420,14 +378,12 @@ export function decodeBase64(encoded: string) {
 		append(0);
 	}
 
-	// slice is needed to account for overestimation due to padding
 	return VSBuffer.wrap(buffer).slice(0, unpadded);
 }
 
 const base64Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const base64UrlSafeAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
-/** Encodes a buffer to a base64 string. */
 export function encodeBase64({ buffer }: VSBuffer, padded = true, urlSafe = false) {
 	const dictionary = urlSafe ? base64UrlSafeAlphabet : base64Alphabet;
 	let output = '';
@@ -487,11 +443,11 @@ export function decodeHex(hex: string): VSBuffer {
 
 function decodeHexChar(str: string, position: number) {
 	const s = str.charCodeAt(position);
-	if (s >= 48 && s <= 57) { // '0'-'9'
+	if (s >= 48 && s <= 57) {
 		return s - 48;
-	} else if (s >= 97 && s <= 102) { // 'a'-'f'
+	} else if (s >= 97 && s <= 102) {
 		return s - 87;
-	} else if (s >= 65 && s <= 70) { // 'A'-'F'
+	} else if (s >= 65 && s <= 70) {
 		return s - 55;
 	} else {
 		throw new SyntaxError(`Invalid hex character at position ${position}`);

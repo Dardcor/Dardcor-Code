@@ -11,9 +11,6 @@ import {
 import { isUserRequest } from '../claudeSessionSchema';
 
 describe('claudeSessionParser', () => {
-	// ========================================================================
-	// parseSessionFileContent (Layer 2)
-	// ========================================================================
 
 	describe('parseSessionFileContent', () => {
 		it('should parse empty content', () => {
@@ -139,7 +136,6 @@ describe('claudeSessionParser', () => {
 			expect(result.errors.length).toBe(0);
 			const node = result.nodes.get('compact-uuid');
 			expect(node).toBeDefined();
-			// logicalParentUuid takes precedence over parentUuid
 			expect(node?.parentUuid).toBe('pre-compact-uuid');
 		});
 
@@ -174,7 +170,6 @@ describe('claudeSessionParser', () => {
 
 			const result = parseSessionFileContent(lines.join('\n'));
 
-			// All 3 entries are chain nodes (isCompactSummary is just a flag for layer 3)
 			expect(result.nodes.size).toBe(3);
 			expect(result.nodes.has('uuid-summary')).toBe(true);
 		});
@@ -263,7 +258,7 @@ describe('claudeSessionParser', () => {
 			const result = parseSessionFileContent(content);
 
 			expect(result.summaries.size).toBe(0);
-			expect(result.stats.summaries).toBe(1); // Still counted
+			expect(result.stats.summaries).toBe(1);
 		});
 
 		it('should handle multiple lines', () => {
@@ -328,9 +323,6 @@ describe('claudeSessionParser', () => {
 		});
 	});
 
-	// ========================================================================
-	// isUserRequest
-	// ========================================================================
 
 	describe('isUserRequest', () => {
 		it('should return true for string content', () => {
@@ -360,7 +352,6 @@ describe('claudeSessionParser', () => {
 		});
 	});
 
-	// #region buildSubagentSession
 
 	describe('buildSubagentSession', () => {
 		it('should build subagent session from parsed content', () => {
@@ -453,7 +444,6 @@ describe('claudeSessionParser', () => {
 					sessionId: 'session-1',
 					timestamp: '2026-01-31T00:36:00.000Z',
 				}),
-				// Orphaned branch
 				JSON.stringify({
 					parentUuid: 'uuid-1',
 					type: 'user',
@@ -473,6 +463,5 @@ describe('claudeSessionParser', () => {
 		});
 	});
 
-	// #endregion
 });
 

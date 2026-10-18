@@ -9,7 +9,6 @@ import open from 'open';
 const REQUEST1_URL = 'https://github.com/login/device/code';
 const REQUEST2_URL = 'https://github.com/login/oauth/access_token';
 
-// this is the VS Code OAuth app that the GitHub Authentication extension also uses
 const CLIENT_ID = '01ab8ac9400c4e429b23';
 
 const keypress = async () => {
@@ -37,7 +36,6 @@ async function main(): Promise<void> {
 		method: 'POST',
 		body: JSON.stringify({
 			client_id: CLIENT_ID,
-			// Needed for codesearch to access any private repos
 			scope: 'repo',
 		}),
 		headers: {
@@ -87,7 +85,7 @@ async function main(): Promise<void> {
 		const result = raw.split('\n')
 			.filter(line => !line.startsWith('GITHUB_OAUTH_TOKEN='))
 			.concat([`GITHUB_OAUTH_TOKEN=${accessToken}`])
-			.filter(line => line.trim() !== '') // Remove empty lines
+			.filter(line => line.trim() !== '')
 			.join('\n');
 
 		fs.writeFileSync('.env', result);

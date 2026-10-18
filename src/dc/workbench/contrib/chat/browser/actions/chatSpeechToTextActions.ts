@@ -30,38 +30,20 @@ import { ChatSpeechToTextState, DictationSettingId, IChatSpeechToTextService } f
 import { buildMicrophoneOptions, IDictationOnboardingService, RESET_DICTATION_ONBOARDING_COMMAND, SHOW_DICTATION_ONBOARDING_COMMAND } from '../speechToText/dictationOnboarding.js';
 import { cancelDictation, isDictating, startDictation, stopDictation } from '../speechToText/dictationSession.js';
 
-// Gate on `ChatContextKeys.enabled` so the dictation UI and its commands are
-// hidden (not just disabled) when the user has turned AI features off; without
-// it the F1 "Select Microphone" command stays discoverable.
 export const ChatSpeechToTextConfigured = ContextKeyExpr.and(ChatContextKeys.enabled, ContextKeyExpr.has(ChatContextKeys.speechToTextConfigured.key));
-/** True while the selected dictation backend is preparing. */
 export const ChatSpeechToTextPreparing = ContextKeyExpr.has(ChatContextKeys.speechToTextPreparing.key);
 const ChatSpeechToTextMaiBackend = ContextKeyExpr.equals('config.dictation.model', 'mai');
-/**
- * True unless the user has hidden the chat-input dictation microphone button via
- * {@link DictationSettingId.ShowButton}. Gates only the toolbar button; the
- * Cmd/Ctrl+I dictation shortcut stays available so dictation can still be
- * launched when the button is hidden.
- */
 const ChatSpeechToTextButtonShown = ContextKeyExpr.notEquals(`config.${DictationSettingId.ShowButton}`, false);
 
-/** Releases shorter than this are treated as an accidental tap and discarded. */
 const HOLD_TO_TALK_THRESHOLD_MS = 500;
 
-/** Services required to run the dictation shortcut, see {@link runDictationShortcut}. */
 export interface IDictationShortcutContext {
 	readonly speechService: IChatSpeechToTextService;
 	readonly keybindingService: IKeybindingService;
 	readonly logService: ILogService;
-	/**
-	 * Supplied by chat inputs only. The first dictation started from one shows
-	 * its introduction alongside recording; editor and terminal dictation have
-	 * nowhere to dock the card.
-	 */
 	readonly onboardingService?: IDictationOnboardingService;
 }
 
-/** Resolves a toggle invocation against the current dictation lifecycle. */
 export function getDictationShortcutOperation(dictating: boolean, state: ChatSpeechToTextState, preparingModel: boolean): 'start' | 'stop' | 'cancel' | undefined {
 	if (dictating) {
 		return preparingModel ? 'cancel' : 'stop';
@@ -69,16 +51,6 @@ export function getDictationShortcutOperation(dictating: boolean, state: ChatSpe
 	return state === ChatSpeechToTextState.Idle ? 'start' : undefined;
 }
 
-/**
- * Run the dictation shortcut for `editor`. Shared by the main chat input toggle
- * action and the Agents composer's Cmd/Ctrl+I command so both behave
- * identically: tapping toggles, holding is push-to-talk (release stops).
- *
- * `commandId` is the keybinding command being run; it is used to detect a held
- * shortcut via {@link IKeybindingService.enableKeybindingHoldMode}, which
- * returns `undefined` when not invoked through a held key (e.g. the toolbar mic
- * or the command palette), collapsing the behavior to a plain toggle.
- */
 export async function runDictationShortcut(
 	context: IDictationShortcutContext,
 	commandId: string,
@@ -100,12 +72,8 @@ export async function runDictationShortcut(
 
 	const window = getWindow(editor.getDomNode()) ?? getActiveWindow();
 
-	// The first-run card is informational and must not delay recording.
 	context.onboardingService?.showIfNeeded();
 
-	// Attempt to detect a held keybinding. Returns `undefined` when not invoked
-	// through a held key (e.g. the toolbar mic or the command palette), which
-	// collapses the behavior to a plain toggle.
 	const holdMode = keybindingService.enableKeybindingHoldMode(commandId);
 	await startDictationFn(speechService, editor, window, logService);
 	if (speechService.state === ChatSpeechToTextState.Recording) {
@@ -118,15 +86,11 @@ export async function runDictationShortcut(
 		return;
 	}
 
-	// The shortcut is being held: wait for release and decide between the tap
-	// (toggle) and hold (push-to-talk) intents based on how long it was held.
 	const heldFrom = Date.now();
 	await holdMode;
 	const heldMs = Date.now() - heldFrom;
 
 	if (heldMs < HOLD_TO_TALK_THRESHOLD_MS) {
-		// A quick tap means "toggle on": leave dictation running so the user can
-		// tap again to stop.
 		return;
 	}
 
@@ -155,12 +119,7 @@ export class ToggleChatSpeechToTextAction extends Action2 {
 				group: 'navigation',
 			}],
 			keybinding: {
-				// Outrank the legacy "Start Voice Chat" action, which binds the
-				// same Cmd+I in the chat input at WorkbenchContrib weight. When
-				// dictation is configured it should win the chord.
 				weight: KeybindingWeight.WorkbenchContrib + 1,
-				// Dedicated chord scoped to the chat input. Kept distinct from
-				// Voice Mode's Cmd+Shift+Space so the two never contend.
 				when: ContextKeyExpr.and(
 					ChatSpeechToTextConfigured,
 					ChatContextKeys.inChatInput,
@@ -190,9 +149,6 @@ export class ToggleChatSpeechToTextAction extends Action2 {
 	}
 }
 
-/**
- * Shown in place of the mic button while the on-device model downloads or loads.
- */
 export class ChatSpeechToTextPreparingAction extends Action2 {
 	static readonly ID = 'workbench.action.chat.speechToTextPreparing';
 
@@ -220,7 +176,6 @@ export class ChatSpeechToTextPreparingAction extends Action2 {
 	}
 }
 
-/** Shown in place of the mic button while cloud dictation connects. */
 export class ChatSpeechToTextConnectingAction extends Action2 {
 	static readonly ID = 'workbench.action.chat.speechToTextConnecting';
 
@@ -271,7 +226,6 @@ class HoldToSpeechToTextAction extends Action2 {
 			return;
 		}
 
-		// Resolves when the triggering key is released.
 		const holdMode = keybindingService.enableKeybindingHoldMode(HoldToSpeechToTextAction.ID);
 		if (!holdMode) {
 			return;
@@ -283,7 +237,6 @@ class HoldToSpeechToTextAction extends Action2 {
 
 		await holdMode;
 
-		// Treat a quick tap as accidental: discard instead of transcribing.
 		if (Date.now() - heldFrom < HOLD_TO_TALK_THRESHOLD_MS) {
 			cancelDictation();
 			return;
@@ -302,8 +255,6 @@ class SelectSpeechToTextMicrophoneAction extends Action2 {
 			title: localize2('chat.speechToText.selectMicrophone', "Select Microphone"),
 			category: CHAT_CATEGORY,
 			f1: true,
-			// Shared by dictation and Voice Mode (both persist to the same
-			// device), so stay available whenever either feature is enabled.
 			precondition: ContextKeyExpr.or(ChatSpeechToTextConfigured, AGENTS_VOICE_ENABLED),
 		});
 	}
@@ -319,7 +270,6 @@ class SelectSpeechToTextMicrophoneAction extends Action2 {
 			return;
 		}
 
-		// Shares the Voice Mode microphone selection so both features use the same device.
 		const currentDeviceId = storageService.get(AgentsVoiceStorageKeys.MicrophoneDevice, StorageScope.APPLICATION, '');
 
 		type DevicePickItem = { label: string; description?: string; deviceId: string };
@@ -363,8 +313,6 @@ class ShowChatSpeechToTextIntroductionAction extends Action2 {
 			return;
 		}
 
-		// The card docks to a chat input, so there is nothing to show it in when
-		// no chat is open. Say so rather than appearing to do nothing.
 		accessor.get(INotificationService).info(localize('chatStt.introductionNeedsChat', "Open a chat to see the dictation introduction."));
 	}
 }
@@ -395,9 +343,6 @@ class CancelChatSpeechToTextAction extends Action2 {
 			category: CHAT_CATEGORY,
 			f1: false,
 			keybinding: {
-				// Escape aborts an in-progress dictation, discarding what was
-				// recorded. Scoped to the chat input while recording and ranked
-				// above the input's other Escape handlers so it wins the chord.
 				weight: KeybindingWeight.WorkbenchContrib + 1,
 				when: ContextKeyExpr.and(
 					ChatContextKeys.speechToTextRecording,

@@ -26,10 +26,6 @@ import {
 	WorkspaceIndexState,
 } from './workspaceChunkSearchService';
 
-/**
- * The Blackbird local server endpoint for embeddings code search.
- * In scenario automation (msbench), Blackbird always runs at this address.
- */
 const BLACKBIRD_EMBEDDINGS_URL = 'http://localhost:4443/api/embeddings/code/search';
 
 interface BlackbirdSearchResponse {
@@ -49,15 +45,6 @@ interface BlackbirdSearchResponse {
 	}>;
 }
 
-/**
- * Scenario automation implementation of {@link IWorkspaceChunkSearchService}.
- *
- * This is a minimal implementation that directly calls the Blackbird local
- * embeddings endpoint without depending on the production
- * {@link WorkspaceChunkSearchService} or any of its strategies.
- * All methods except {@link searchFileChunks} and {@link getIndexState}
- * are no-ops.
- */
 export class ScenarioAutomationWorkspaceChunkSearchService implements IWorkspaceChunkSearchService {
 	declare readonly _serviceBrand: undefined;
 
@@ -202,7 +189,6 @@ export class ScenarioAutomationWorkspaceChunkSearchService implements IWorkspace
 	}
 
 	async deleteExternalIngestWorkspaceIndex(): Promise<void> {
-		// noop
 	}
 
 	async *getDiagnosticsDump(): AsyncIterable<string> {
@@ -210,6 +196,5 @@ export class ScenarioAutomationWorkspaceChunkSearchService implements IWorkspace
 	}
 
 	dispose(): void {
-		// noop
 	}
 }

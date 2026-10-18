@@ -14,11 +14,6 @@ import { derivePendingId, getVoiceToolApprovalCommand, isPendingIdResolved, mark
 suite('derivePendingId', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// This id is the only thing routing a spoken answer back to the form that
-	// asked. The controller mints it when it describes a pending request and the
-	// dispatch service looks it up again to find that request, so these
-	// properties are what stop an answer from landing on the wrong part -- or,
-	// if the two ever disagreed, from landing anywhere at all.
 
 	const part = (kind: string): object => ({ kind });
 
@@ -40,10 +35,6 @@ suite('derivePendingId', () => {
 	});
 
 	test('does not reuse an id when a part is replaced at the same position', () => {
-		// `Response.clearToPreviousToolInvocation` splices the part list, so a
-		// retry can seat a new part where an already-published one used to be.
-		// Under the previous index-based scheme both got `req#5`, which let a
-		// draft written for the first form be submitted against the second.
 		const parts = [part('markdown'), part('questionCarousel')];
 		const first = derivePendingId('req-1', parts[1]);
 		parts.splice(1, 1, part('questionCarousel'));
@@ -70,7 +61,6 @@ suite('derivePendingId', () => {
 		const tool = { kind: 'toolInvocation', toolCallId: 'tool-call', state } as unknown as IChatToolInvocation;
 		const first = derivePendingId('req-1', tool);
 
-		// Callback churn while the command stays pending is presentation noise.
 		state.set({
 			type: IChatToolInvocation.StateKind.WaitingForConfirmation,
 			parameters: { command: 'npm config get registry' },
@@ -79,8 +69,6 @@ suite('derivePendingId', () => {
 		}, undefined);
 		const presentationUpdate = derivePendingId('req-1', tool);
 
-		// Agent Host can refresh the actionable command without leaving the
-		// pending status. That is a new occurrence even if the callback is kept.
 		state.set({
 			type: IChatToolInvocation.StateKind.WaitingForConfirmation,
 			parameters: { command: 'npm install --registry=https://registry.npmjs.org' },
@@ -267,8 +255,6 @@ suite('derivePendingId', () => {
 		assert.strictEqual(peekPendingId('req-retire', rehydrated.part), undefined);
 		assert.strictEqual(derivePendingId('req-retire', rehydrated.part), pendingId);
 
-		// A new invocation published after the interaction is a new occurrence,
-		// even when the provider reuses the tool-call id and command.
 		const rearmed = tool();
 		const rearmedId = derivePendingId('req-retire', rearmed.part);
 		assert.notStrictEqual(rearmedId, pendingId);

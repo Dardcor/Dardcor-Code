@@ -48,16 +48,7 @@ import { ExtensionIconWidget } from './extensionsWidgets.js';
 import './media/runtimeExtensionsEditor.css';
 
 interface IExtensionProfileInformation {
-	/**
-	 * segment when the extension was running.
-	 * 2*i = segment start time
-	 * 2*i+1 = segment end time
-	 */
 	segments: number[];
-	/**
-	 * total time when the extension was running.
-	 * (sum of all segment lengths).
-	 */
 	totalTime: number;
 }
 
@@ -113,7 +104,6 @@ export abstract class AbstractRuntimeExtensionsEditor extends EditorPane {
 	}
 
 	private async _resolveExtensions(): Promise<IRuntimeExtension[]> {
-		// We only deal with extensions with source code!
 		await this._extensionService.whenInstalledExtensionsRegistered();
 		const extensionsDescriptions = this._extensionService.extensions.filter((extension) => {
 			return Boolean(extension.main) || Boolean(extension.browser);
@@ -126,7 +116,6 @@ export abstract class AbstractRuntimeExtensionsEditor extends EditorPane {
 
 		const statusMap = this._extensionService.getExtensionsStatus();
 
-		// group profile segments by extension
 		const segments = new ExtensionIdentifierMap<number[]>();
 
 		const profileInfo = this._getProfileInfo();
@@ -179,7 +168,6 @@ export abstract class AbstractRuntimeExtensionsEditor extends EditorPane {
 
 		result = result.filter(element => element.status.activationStarted);
 
-		// bubble up extensions that have caused slowness
 
 		const isUnresponsive = (extension: IRuntimeExtension): boolean =>
 			extension.unresponsiveProfile === profileInfo;

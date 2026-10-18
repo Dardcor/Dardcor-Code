@@ -71,17 +71,14 @@ const viewDescriptor: IViewDescriptor = {
 		mnemonicTitle: nls.localize({ key: 'miViewSearch', comment: ['&& denotes a mnemonic'] }, "&&Search"),
 		keybindings: {
 			primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyF,
-			// Yes, this is weird. See #116188, #115556, #115511, and now #124146, for examples of what can go wrong here.
 			when: ContextKeyExpr.regex('neverMatch', /doesNotMatch/)
 		},
 		order: 1
 	}
 };
 
-// Register search default location to sidebar
 Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([viewDescriptor], viewContainer);
 
-// Register Quick Access Handler
 const quickAccessRegistry = Registry.as<IQuickAccessRegistry>(QuickAccessExtensions.Quickaccess);
 
 quickAccessRegistry.registerQuickAccessProvider({
@@ -98,14 +95,13 @@ quickAccessRegistry.registerQuickAccessProvider({
 	]
 });
 
-// Configuration
 const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 configurationRegistry.registerConfiguration({
 	...searchConfigurationNode,
 	properties: {
 		[SEARCH_EXCLUDE_CONFIG]: {
 			type: 'object',
-			markdownDescription: nls.localize('exclude', "Configure [glob patterns](https://code.visualstudio.com/docs/editor/codebasics#_advanced-search-options) for excluding files and folders in fulltext searches and file search in quick open. To exclude files from the recently opened list in quick open, patterns must be absolute (for example `**/node_modules/**`). Inherits all glob patterns from the `#files.exclude#` setting."),
+			markdownDescription: nls.localize('exclude', "Configure [glob patterns](https://www.dardcor-code.web.id/docs/editor/codebasics#_advanced-search-options) for excluding files and folders in fulltext searches and file search in quick open. To exclude files from the recently opened list in quick open, patterns must be absolute (for example `**/node_modules/**`). Inherits all glob patterns from the `#files.exclude#` setting."),
 			default: { '**/node_modules': true, '**/bower_components': true, '**/*.code-search': true },
 			additionalProperties: {
 				anyOf: [
@@ -117,7 +113,7 @@ configurationRegistry.registerConfiguration({
 						type: 'object',
 						properties: {
 							when: {
-								type: 'string', // expression ({ "**/*.js": { "when": "$(basename).js" } })
+								type: 'string',
 								pattern: '\\w*\\$\\(basename\\)\\w*',
 								default: '$(basename).ext',
 								markdownDescription: nls.localize({ key: 'exclude.when', comment: ['\\$(basename) should not be translated'] }, 'Additional check on the siblings of a matching file. Use \\$(basename) as variable for the matching file name.')
@@ -322,7 +318,6 @@ CommandsRegistry.registerCommand('_executeWorkspaceSymbolProvider', async functi
 	return result.map(item => item.symbol);
 });
 
-// todo: @andreamah get rid of this after a few iterations
 Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration)
 	.registerConfigurationMigrations([{
 		key: 'search.experimental.quickAccess.preserveInput',

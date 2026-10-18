@@ -32,13 +32,6 @@ export abstract class StartupTimings {
 	}
 
 	protected async _isStandardStartup(): Promise<string | undefined> {
-		// check for standard startup:
-		// * new window (no reload)
-		// * workspace is trusted
-		// * just one window
-		// * explorer viewlet visible
-		// * one text editor (not multiple, not webview, welcome etc...)
-		// * cached data present (not rejected, not created)
 		if (this._lifecycleService.startupKind !== StartupKind.NewWindow) {
 			return StartupKindToString(this._lifecycleService.startupKind);
 		}
@@ -133,7 +126,6 @@ export class BrowserResourcePerformanceMarks {
 					duration: item.duration
 				});
 			} catch {
-				// ignore
 			}
 		}
 	}

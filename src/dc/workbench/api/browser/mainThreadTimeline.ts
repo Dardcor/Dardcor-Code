@@ -64,6 +64,5 @@ export class MainThreadTimeline implements MainThreadTimelineShape {
 	}
 
 	dispose(): void {
-		// noop
 	}
 }

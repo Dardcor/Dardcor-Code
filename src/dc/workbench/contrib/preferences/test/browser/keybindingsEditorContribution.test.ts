@@ -34,7 +34,6 @@ suite('KeybindingsEditorContribution', () => {
 
 		assertDifferent('ctrl+[KeyA]', 'ctrl+a');
 
-		// issue #23335
 		assertEqual('cmd+shift+p', 'shift+cmd+p');
 		assertEqual('cmd+shift+p', 'shift-cmd-p');
 	});

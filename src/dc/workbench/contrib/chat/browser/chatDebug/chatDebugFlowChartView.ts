@@ -51,7 +51,6 @@ export class ChatDebugFlowChartView extends Disposable {
 	private readonly headerContainer: HTMLElement;
 	private readonly loadDisposables = this._register(new DisposableStore());
 
-	// Pan/zoom state
 	private scale = 1;
 	private translateX = 0;
 	private translateY = 0;
@@ -59,11 +58,9 @@ export class ChatDebugFlowChartView extends Disposable {
 	private startX = 0;
 	private startY = 0;
 
-	// Click detection (distinguish click from drag)
 	private mouseDownX = 0;
 	private mouseDownY = 0;
 
-	// Direct element references (avoid querySelector)
 	private svgWrapper: HTMLElement | undefined;
 	private svgElement: SVGElement | undefined;
 	private renderResult: FlowChartRenderResult | undefined;
@@ -72,19 +69,14 @@ export class ChatDebugFlowChartView extends Disposable {
 	private lastEventCount: number = 0;
 	private hasUserPanned: boolean = false;
 
-	// Focus state — preserved across re-renders
 	private focusedElementId: string | undefined;
 
-	// Collapse state — persists across refreshes, resets on session change
 	private readonly collapsedNodeIds = new Set<string>();
 
-	// Expanded merged-discovery nodes — persists across refreshes, resets on session change
 	private readonly expandedMergedIds = new Set<string>();
 
-	// Pagination state
 	private visibleLimit: number = PAGE_SIZE;
 
-	// Detail panel
 	private readonly detailPanel: ChatDebugDetailPanel;
 	private eventById = new Map<string, IChatDebugEvent>();
 	private readonly refreshScheduler: RunOnceScheduler;
@@ -101,7 +93,6 @@ export class ChatDebugFlowChartView extends Disposable {
 		this.container = DOM.append(parent, $('.chat-debug-flowchart'));
 		DOM.hide(this.container);
 
-		// Breadcrumb
 		const breadcrumbContainer = DOM.append(this.container, $('.chat-debug-breadcrumb'));
 		this.breadcrumbWidget = this._register(new BreadcrumbsWidget(breadcrumbContainer, 3, undefined, Codicon.chevronRight, defaultBreadcrumbsWidgetStyles));
 		this._register(setupBreadcrumbKeyboardNavigation(breadcrumbContainer, this.breadcrumbWidget));
@@ -118,7 +109,6 @@ export class ChatDebugFlowChartView extends Disposable {
 			}
 		}));
 
-		// Header with FilterWidget
 		this.headerContainer = DOM.append(this.container, $('.chat-debug-editor-header'));
 		const headerContainer = this.headerContainer;
 		const scopedContextKeyService = this._register(this.contextKeyService.createScoped(headerContainer));
@@ -139,25 +129,20 @@ export class ChatDebugFlowChartView extends Disposable {
 			this.filterState.setTextFilter(text);
 		}));
 
-		// React to shared filter state changes
 		this._register(this.filterState.onDidChange(() => {
 			syncContextKeys();
 			this.filterWidget.checkMoreFilters(!this.filterState.isAllFiltersDefault());
 			this.visibleLimit = PAGE_SIZE;
-			// Reset pan/zoom so filtered content is visible
 			this.hasUserPanned = false;
 			this.lastEventCount = 0;
 			this.load();
 		}));
 
-		// Content wrapper (flex row: chart canvas + detail panel)
 		const contentWrapper = DOM.append(this.container, $('.chat-debug-flowchart-content-wrapper'));
 		this.content = DOM.append(contentWrapper, $('.chat-debug-flowchart-content'));
 
-		// Detail panel (sibling of chart canvas)
 		this.detailPanel = this._register(this.instantiationService.createInstance(ChatDebugDetailPanel, contentWrapper));
 
-		// Set up pan/zoom event listeners and keyboard handling
 		this.setupPanZoom();
 		this.setupKeyboard();
 
@@ -166,7 +151,6 @@ export class ChatDebugFlowChartView extends Disposable {
 
 	setSession(sessionResource: URI): void {
 		if (!this.currentSessionResource || this.currentSessionResource.toString() !== sessionResource.toString()) {
-			// Reset pan/zoom, focus, collapse, and pagination state on session change
 			this.scale = 1;
 			this.translateX = 0;
 			this.translateY = 0;
@@ -212,8 +196,6 @@ export class ChatDebugFlowChartView extends Disposable {
 	}
 
 	private load(): void {
-		// Check whether the chart content currently has focus before clearing it,
-		// so we only restore focus if it was taken away by the re-render.
 		const hadFocus = DOM.isAncestorOfActiveElement(this.content);
 
 		DOM.clearNode(this.content);
@@ -224,7 +206,6 @@ export class ChatDebugFlowChartView extends Disposable {
 		const isFirstLoad = this.lastEventCount === 0;
 		this.lastEventCount = events.length;
 
-		// Build event ID → event map for detail panel lookups
 		this.eventById.clear();
 		for (const e of events) {
 			if (e.id) {
@@ -238,7 +219,6 @@ export class ChatDebugFlowChartView extends Disposable {
 			return;
 		}
 
-		// Build, filter, slice, and render the flow chart
 		const flowNodes = buildFlowGraph(events);
 		const filtered = filterFlowNodes(flowNodes, {
 			isKindVisible: (kind, category) => this.filterState.isKindVisible(kind, category),
@@ -260,7 +240,6 @@ export class ChatDebugFlowChartView extends Disposable {
 		this.svgWrapper.appendChild(this.renderResult.svg);
 		this.svgElement = this.renderResult.svg;
 
-		// Show "Show More" button below the chart when there are more nodes
 		if (slice.shownCount < slice.totalCount) {
 			const remaining = slice.totalCount - slice.shownCount;
 			const showMoreContainer = DOM.append(this.svgWrapper, $('.chat-debug-flowchart-show-more'));
@@ -272,20 +251,14 @@ export class ChatDebugFlowChartView extends Disposable {
 			}));
 		}
 
-		// Only center on first load when user hasn't panned yet
 		if (isFirstLoad && !this.hasUserPanned) {
 			DOM.getWindow(this.content).requestAnimationFrame(() => {
 				this.centerContent();
 			});
 		} else {
-			// Apply existing transform to preserve position
 			this.applyTransform();
 		}
 
-		// Restore focus after re-render only when the chart itself had focus
-		// before clearNode removed it (e.g. after collapse toggle). Skip when
-		// focus was elsewhere (detail panel, filter, or outside the chart)
-		// so that new events arriving don't steal focus.
 		if (this.focusedElementId && hadFocus && !DOM.isAncestorOfActiveElement(this.headerContainer)) {
 			this.restoreFocus(this.focusedElementId);
 		}
@@ -300,13 +273,11 @@ export class ChatDebugFlowChartView extends Disposable {
 	}
 
 	private setupKeyboard(): void {
-		// Track which node/header gets focus
 		this._register(DOM.addDisposableListener(this.content, DOM.EventType.FOCUS_IN, (e: FocusEvent) => {
 			const el = e.target as Element | null;
 			if (!el) {
 				return;
 			}
-			// Check for subgraph header or node
 			const subgraphId = el.getAttribute?.('data-subgraph-id');
 			if (subgraphId) {
 				this.focusedElementId = `sg:${subgraphId}`;
@@ -318,7 +289,6 @@ export class ChatDebugFlowChartView extends Disposable {
 			}
 		}));
 
-		// Handle keyboard actions
 		this._register(DOM.addDisposableListener(this.content, DOM.EventType.KEY_DOWN, (e: KeyboardEvent) => {
 			const target = e.target as Element | null;
 			if (!target) {
@@ -328,18 +298,11 @@ export class ChatDebugFlowChartView extends Disposable {
 
 			switch (e.key) {
 				case 'Tab': {
-					// Navigate between flow chart nodes. When at the boundary,
-					// explicitly move focus to the detail panel (forward) or
-					// let it leave the chart (backward). We cannot rely on
-					// natural tab-out because DOM order of SVG elements does
-					// not match the visual sorted order, which would cause
-					// focus to jump to a random chart node instead of leaving.
 					if (this.focusedElementId) {
 						const moved = this.focusAdjacentElement(this.focusedElementId, e.shiftKey ? -1 : 1);
 						if (moved) {
 							e.preventDefault();
 						} else if (!e.shiftKey && this.detailPanel.isVisible) {
-							// Forward Tab at end of chart: move to the detail panel
 							e.preventDefault();
 							this.detailPanel.focus();
 						}
@@ -383,8 +346,6 @@ export class ChatDebugFlowChartView extends Disposable {
 				case 'ArrowRight':
 					e.preventDefault();
 					if (this.focusedElementId) {
-						// Expand collapsed subgraph or merged discovery node,
-						// then jump focus to the first revealed child.
 						if (subgraphId && this.collapsedNodeIds.has(subgraphId)) {
 							this.detailPanel.hide();
 							this.collapsedNodeIds.delete(subgraphId);
@@ -393,7 +354,6 @@ export class ChatDebugFlowChartView extends Disposable {
 							this.focusFirstChildOf(`sg:${subgraphId}`);
 						} else if (target.getAttribute?.('data-is-toggle')) {
 							if (!this.expandedMergedIds.has(this.focusedElementId)) {
-								// Expand and jump to the first child
 								this.detailPanel.hide();
 								const mergedId = this.focusedElementId;
 								this.expandedMergedIds.add(mergedId);
@@ -401,7 +361,6 @@ export class ChatDebugFlowChartView extends Disposable {
 								this.load();
 								this.focusFirstChildOf(mergedId);
 							} else {
-								// Already expanded: jump to the first child
 								this.focusFirstChildOf(this.focusedElementId);
 							}
 						}
@@ -420,7 +379,6 @@ export class ChatDebugFlowChartView extends Disposable {
 				case 'ArrowLeft':
 					e.preventDefault();
 					if (this.focusedElementId) {
-						// Collapse expanded subgraph or merged discovery node
 						if (subgraphId && !this.collapsedNodeIds.has(subgraphId)) {
 							this.detailPanel.hide();
 							this.toggleSubgraph(subgraphId);
@@ -428,7 +386,6 @@ export class ChatDebugFlowChartView extends Disposable {
 							this.detailPanel.hide();
 							this.toggleMergedDiscovery(this.focusedElementId);
 						} else {
-							// Navigate back to parent (follow edge backward)
 							this.focusEdgeNeighbor(this.focusedElementId, 'prev');
 						}
 					}
@@ -528,7 +485,6 @@ export class ChatDebugFlowChartView extends Disposable {
 		if (!neighbors || neighbors.length === 0) {
 			return false;
 		}
-		// Focus the first neighbor that has a focusable element
 		for (const id of neighbors) {
 			const el = this.renderResult.focusableElements.get(id);
 			if (el) {
@@ -547,8 +503,6 @@ export class ChatDebugFlowChartView extends Disposable {
 		if (!entry?.next || entry.next.length === 0) {
 			return;
 		}
-		// Prefer a neighbor positioned to the right of the parent
-		// (expanded child) over one below (next in main flow).
 		const parentPos = this.renderResult.positions.get(parentId);
 		let bestId: string | undefined;
 		for (const id of entry.next) {
@@ -627,7 +581,6 @@ export class ChatDebugFlowChartView extends Disposable {
 			this.isPanning = false;
 			this.content.style.cursor = 'grab';
 
-			// Detect click (not a drag) — distance < 5px
 			const dx = e.clientX - this.mouseDownX;
 			const dy = e.clientY - this.mouseDownY;
 			if (dx * dx + dy * dy < CLICK_THRESHOLD_SQ) {
@@ -637,10 +590,8 @@ export class ChatDebugFlowChartView extends Disposable {
 	}
 
 	private handleClick(e: MouseEvent): void {
-		// Walk up from the click target to find a focusable element
 		let target = e.target as Element | null;
 		while (target && target !== this.content) {
-			// Merged-discovery expand toggle
 			const mergedId = target.getAttribute?.('data-merged-id');
 			if (mergedId) {
 				this.detailPanel.hide();
@@ -710,10 +661,6 @@ export class ChatDebugFlowChartView extends Disposable {
 		}
 
 		const PADDING = 20;
-		// Pin the top of the diagram near the top of the viewport so the start
-		// of the flow is immediately visible. Center horizontally when the
-		// diagram fits; otherwise align to the left edge with padding so
-		// nothing is clipped behind overflow:hidden.
 		this.translateX = Math.max(PADDING, (containerRect.width - svgWidth) / 2);
 		this.translateY = PADDING;
 		this.applyTransform();

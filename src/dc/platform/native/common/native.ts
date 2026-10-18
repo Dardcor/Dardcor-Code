@@ -35,22 +35,14 @@ export interface IToastResult {
 	readonly actionIndex?: number;
 }
 
-/**
- * A ZIP entry whose contents are inline or streamed from a local file,
- * or a source archive (zip) to be merged into the output zip.
- */
 export type INativeZipFile =
 	| { readonly path: string; readonly contents: string }
 	| { readonly path: string; readonly source: URI; readonly size: number }
 	| { readonly sourceArchive: URI };
 
-/** Application-level badge shown on the app icon in the dock / taskbar. */
 export interface IApplicationBadge {
-	/** Badge count shown as a number on the icon. */
 	readonly count: number;
-	/** Accessible description of the badge. */
 	readonly description: string;
-	/** Optional icon data URL (Windows taskbar overlay). */
 	readonly iconDataURL?: string;
 }
 
@@ -125,42 +117,20 @@ export interface INativeHostOptions {
 
 export interface IStartTracingOptions {
 
-	/**
-	 * Whether to enable heap profiling for MemoryInfra traces. Only takes effect
-	 * if the `disabled-by-default-memory-infra` category is included in the trace
-	 * and requires the recording to also collect periodic memory dumps.
-	 */
 	readonly enableHeapProfiling?: boolean;
 }
 
 export const enum FocusMode {
 
-	/**
-	 * (Default) Transfer focus to the target window
-	 * when the editor is focused.
-	 */
 	Transfer,
 
-	/**
-	 * Transfer focus to the target window when the
-	 * editor is focused, otherwise notify the user that
-	 * the app has activity (macOS/Windows only).
-	 */
 	Notify,
 
-	/**
-	 * Force the window to be focused, even if the editor
-	 * is not currently focused.
-	 */
 	Force,
 }
 
 export interface INativeSystemWideKeybinding {
 
-	/**
-	 * The keybinding in Electron accelerator format (e.g. `Control+Cmd+A`).
-	 * See https://www.electronjs.org/docs/latest/api/accelerator.
-	 */
 	readonly accelerator: string;
 
 	/**
@@ -168,23 +138,13 @@ export interface INativeSystemWideKeybinding {
 	 */
 	readonly commandId: string;
 
-	/**
-	 * Optional command arguments as configured in `keybindings.json`. Must be JSON-serializable.
-	 */
 	readonly args?: unknown;
 
-	/**
-	 * The user settings label (e.g. `ctrl+cmd+a`) for diagnostics/notifications.
-	 */
 	readonly userSettingsLabel?: string;
 }
 
 export interface INativeSystemWideKeybindingResult {
 
-	/**
-	 * The user settings labels (or accelerators) that could not be registered, e.g. because the
-	 * accelerator is already taken by the OS or another application.
-	 */
 	readonly failed: string[];
 }
 
@@ -192,10 +152,8 @@ export interface ICommonNativeHostService {
 
 	readonly _serviceBrand: undefined;
 
-	// Properties
 	readonly windowId: number;
 
-	// Events
 	readonly onDidOpenMainWindow: Event<number>;
 
 	readonly onDidMaximizeWindow: Event<number>;
@@ -228,7 +186,6 @@ export interface ICommonNativeHostService {
 
 	readonly onDidTriggerWindowSystemContextMenu: Event<{ readonly windowId: number; readonly x: number; readonly y: number }>;
 
-	// Window
 	getWindows(options: { includeAuxiliaryWindows: true }): Promise<Array<IOpenedMainWindow | IOpenedAuxiliaryWindow>>;
 	getWindows(options: { includeAuxiliaryWindows: false }): Promise<Array<IOpenedMainWindow>>;
 	getWindowCount(): Promise<number>;
@@ -240,11 +197,6 @@ export interface ICommonNativeHostService {
 	openWindow(toOpen: IWindowOpenable[], options?: IOpenWindowOptions): Promise<void>;
 
 
-	/**
-	 * Registers this window's set of system-wide (OS global) keybindings with the main process,
-	 * replacing any previously registered by this window. The shortcuts fire even when the
-	 * application is not focused. Returns the set that could not be registered.
-	 */
 	syncSystemWideKeybindings(keybindings: INativeSystemWideKeybinding[]): Promise<INativeSystemWideKeybindingResult>;
 
 	isFullScreen(options?: INativeHostOptions): Promise<boolean>;
@@ -273,14 +225,8 @@ export interface ICommonNativeHostService {
 
 	setBackgroundThrottling(allowed: boolean): Promise<void>;
 
-	/**
-	 * Make the window focused.
-	 * @param options specify the specific window to focus and the focus mode.
-	 * Defaults to {@link FocusMode.Transfer}.
-	 */
 	focusWindow(options?: INativeHostOptions & { mode?: FocusMode }): Promise<void>;
 
-	// Dialogs
 	showMessageBox(options: MessageBoxOptions & INativeHostOptions): Promise<MessageBoxReturnValue>;
 	showSaveDialog(options: SaveDialogOptions & INativeHostOptions): Promise<SaveDialogReturnValue>;
 	showOpenDialog(options: OpenDialogOptions & INativeHostOptions): Promise<OpenDialogReturnValue>;
@@ -290,7 +236,6 @@ export interface ICommonNativeHostService {
 	pickFolderAndOpen(options: INativeOpenDialogOptions): Promise<void>;
 	pickWorkspaceAndOpen(options: INativeOpenDialogOptions): Promise<void>;
 
-	// OS
 	showItemInFolder(path: string): Promise<void>;
 	setRepresentedFilename(path: string, options?: INativeHostOptions): Promise<void>;
 	setDocumentEdited(edited: boolean, options?: INativeHostOptions): Promise<void>;
@@ -311,17 +256,13 @@ export interface ICommonNativeHostService {
 
 	hasWSLFeatureInstalled(): Promise<boolean>;
 
-	// Screenshots
 	getScreenshot(rect?: IRectangle): Promise<VSBuffer | undefined>;
 
-	// GitHub mobile upload API (runs in main process to avoid CORS)
 	uploadFileViaMobileApi(token: string, repoId: string, fileName: string, fileBytes: VSBuffer, contentType: string): Promise<{ fileName: string; assetUrl: string; contentType: string }>;
 
-	// Process
 	getProcessId(): Promise<number | undefined>;
 	killProcess(pid: number, code: string): Promise<void>;
 
-	// Clipboard
 	triggerPaste(options?: INativeHostOptions): Promise<void>;
 	readClipboardText(type?: 'selection' | 'clipboard'): Promise<string>;
 	writeClipboardText(text: string, type?: 'selection' | 'clipboard'): Promise<void>;
@@ -332,7 +273,6 @@ export interface ICommonNativeHostService {
 	hasClipboard(format: string, type?: 'selection' | 'clipboard'): Promise<boolean>;
 	readImage(): Promise<Uint8Array>;
 
-	// macOS Touchbar
 	newWindowTab(): Promise<void>;
 	showPreviousWindowTab(): Promise<void>;
 	showNextWindowTab(): Promise<void>;
@@ -341,11 +281,9 @@ export interface ICommonNativeHostService {
 	toggleWindowTabsBar(): Promise<void>;
 	updateTouchBar(items: ISerializableCommandAction[][]): Promise<void>;
 
-	// macOS Shell command
 	installShellCommand(): Promise<void>;
 	uninstallShellCommand(): Promise<void>;
 
-	// Lifecycle
 	notifyReady(): Promise<void>;
 	relaunch(options?: { addArgs?: string[]; removeArgs?: string[] }): Promise<void>;
 	reload(options?: { disableExtensions?: boolean }): Promise<void>;
@@ -353,7 +291,6 @@ export interface ICommonNativeHostService {
 	quit(): Promise<void>;
 	exit(code: number): Promise<void>;
 
-	// Development
 	openDevTools(options?: Partial<OpenDevToolsOptions> & INativeHostOptions): Promise<void>;
 	toggleDevTools(options?: INativeHostOptions): Promise<void>;
 	openGPUInfoWindow(): Promise<void>;
@@ -361,11 +298,9 @@ export interface ICommonNativeHostService {
 	openContentTracingWindow(): Promise<void>;
 	stopTracing(): Promise<void>;
 
-	// Perf Introspection
 	profileRenderer(session: string, duration: number): Promise<IV8Profile>;
 	startTracing(categories: string, options?: IStartTracingOptions): Promise<void>;
 
-	// Connectivity
 	resolveProxy(url: string): Promise<string | undefined>;
 	resolveProxyWithPackage(url: string): Promise<IOSProxy[]>;
 	readProxyConfigWithPackage(): Promise<IOSProxyConfig>;
@@ -375,27 +310,14 @@ export interface ICommonNativeHostService {
 	isPortFree(port: number): Promise<boolean>;
 	findFreePort(startPort: number, giveUpAfter: number, timeout: number, stride?: number): Promise<number>;
 
-	// Registry (Windows only)
 	windowsGetStringRegKey(hive: 'HKEY_CURRENT_USER' | 'HKEY_LOCAL_MACHINE' | 'HKEY_CLASSES_ROOT' | 'HKEY_USERS' | 'HKEY_CURRENT_CONFIG', path: string, name: string): Promise<string | undefined>;
 
-	// Toast Notifications
 	showToast(options: IToastOptions): Promise<IToastResult>;
 	clearToast(id: string): Promise<void>;
 	clearToasts(): Promise<void>;
 
-	// Zip
-	/**
-	 * Creates a zip file at the specified path containing the provided files.
-	 *
-	 * @param zipPath The URI where the zip file should be created.
-	 * @param files An array of file entries to include in the zip. Each entry has
-	 * a relative path and is either given inline string `contents`, or a local
-	 * file `source` URI together with the number of leading bytes (`size`) to
-	 * stream from it.
-	 */
 	createZipFile(zipPath: URI, files: INativeZipFile[], options?: { maxEntries?: number }): Promise<void>;
 
-	// Power
 	getSystemIdleState(idleThreshold: number): Promise<SystemIdleState>;
 	getSystemIdleTime(): Promise<number>;
 	getCurrentThermalState(): Promise<ThermalState>;
@@ -404,32 +326,15 @@ export interface ICommonNativeHostService {
 	stopPowerSaveBlocker(id: number): Promise<boolean>;
 	isPowerSaveBlockerStarted(id: number): Promise<boolean>;
 
-	// Application Badge (dock / taskbar)
 	setApplicationBadge(badge: IApplicationBadge | undefined): Promise<void>;
 }
 
-/**
- * Represents the system's idle state.
- */
 export type SystemIdleState = 'active' | 'idle' | 'locked' | 'unknown';
 
-/**
- * Represents the system's thermal state.
- */
 export type ThermalState = 'unknown' | 'nominal' | 'fair' | 'serious' | 'critical';
 
-/**
- * The type of power save blocker.
- */
 export type PowerSaveBlockerType = 'prevent-app-suspension' | 'prevent-display-sleep';
 
 export const INativeHostService = createDecorator<INativeHostService>('nativeHostService');
 
-/**
- * A set of methods specific to a native host, i.e. unsupported in web
- * environments.
- *
- * @see {@link IHostService} for methods that can be used in native and web
- * hosts.
- */
 export interface INativeHostService extends ICommonNativeHostService { }

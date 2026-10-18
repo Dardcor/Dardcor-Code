@@ -8,7 +8,6 @@ import { IRunCommandExecutionService } from '../common/runCommandExecutionServic
 export class MockRunCommandExecutionService implements IRunCommandExecutionService {
 	declare readonly _serviceBrand: undefined;
 	async executeCommand(command: string, ...args: any[]): Promise<any> {
-		// ignore call
 	}
 	updateContextValues(): void {
 	}

@@ -31,7 +31,6 @@ abstract class RepoInfo {
 
 		let result: RepoInfo | undefined;
 
-		// scheme:auth/OWNER/REPO/issues/
 		if (desc.bugs && typeof desc.bugs.url === 'string') {
 			const base = URI.parse(desc.bugs.url);
 			const match = /\/([^/]+)\/([^/]+)\/issues\/?$/.exec(desc.bugs.url);
@@ -43,7 +42,6 @@ abstract class RepoInfo {
 				};
 			}
 		}
-		// scheme:auth/OWNER/REPO.git
 		if (!result && desc.repository && typeof desc.repository.url === 'string') {
 			const base = URI.parse(desc.repository.url);
 			const match = /\/([^/]+)\/([^/]+)(\.git)?$/.exec(desc.repository.url);
@@ -56,7 +54,6 @@ abstract class RepoInfo {
 			}
 		}
 
-		// for now only GH is supported
 		if (result && result.base.indexOf('github') === -1) {
 			result = undefined;
 		}
@@ -137,12 +134,10 @@ class ReportExtensionSlowAction extends Action {
 
 	override async run(): Promise<void> {
 
-		// rewrite pii (paths) and store on disk
 		const data = Utils.rewriteAbsolutePaths(this.profile.data, 'pii_removed');
 		const path = joinPath(this._environmentService.tmpDir, `${this.extension.identifier.value}-unresponsive.cpuprofile.txt`);
 		await this._fileService.writeFile(path, VSBuffer.fromString(JSON.stringify(data, undefined, 4)));
 
-		// build issue
 		const os = await this._nativeHostService.getOSProperties();
 		const title = encodeURIComponent('Extension causes high cpu load');
 		const osVersion = `${os.type} ${os.arch} ${os.release}`;
@@ -180,12 +175,10 @@ class ShowExtensionSlowAction extends Action {
 
 	override async run(): Promise<void> {
 
-		// rewrite pii (paths) and store on disk
 		const data = Utils.rewriteAbsolutePaths(this.profile.data, 'pii_removed');
 		const path = joinPath(this._environmentService.tmpDir, `${this.extension.identifier.value}-unresponsive.cpuprofile.txt`);
 		await this._fileService.writeFile(path, VSBuffer.fromString(JSON.stringify(data, undefined, 4)));
 
-		// show issues
 		const url = `${this.repoInfo.base}/${this.repoInfo.owner}/${this.repoInfo.repo}/issues?utf8=✓&q=is%3Aissue+state%3Aopen+%22Extension+causes+high+cpu+load%22`;
 		this._openerService.open(URI.parse(url));
 

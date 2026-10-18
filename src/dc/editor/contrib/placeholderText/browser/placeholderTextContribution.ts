@@ -12,9 +12,6 @@ import { observableCodeEditor } from '../../../browser/observableCodeEditor.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
 import { IEditorContribution } from '../../../common/editorCommon.js';
 
-/**
- * Use the editor option to set the placeholder text.
-*/
 export class PlaceholderTextContribution extends Disposable implements IEditorContribution {
 	public static get(editor: ICodeEditor): PlaceholderTextContribution {
 		return editor.getContribution<PlaceholderTextContribution>(PlaceholderTextContribution.ID)!;

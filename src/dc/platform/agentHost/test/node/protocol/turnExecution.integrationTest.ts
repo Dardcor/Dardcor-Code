@@ -218,23 +218,18 @@ suite('Protocol WebSocket — Turn Execution', function () {
 		const sessionUri = await createAndSubscribeSession(client, 'test-subagent');
 		dispatchTurnStarted(client, sessionUri, 'turn-sa', 'subagent', 1);
 
-		// Wait for the parent turn to complete.
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete'));
 
-		// Subscribe to the child subagent session — its URI is derived from
-		// the parent session URI + parent toolCallId.
 		const childUri = buildSubagentChatUri(sessionUri, 'tc-task-1');
 
 		const parentState = await fetchSessionWithChat(client, sessionUri);
 		const childState = await fetchSessionWithChat(client, childUri);
 
-		// Parent turn should contain the `task` tool call but NOT the inner one.
 		const parentTurn = parentState.turns[parentState.turns.length - 1];
 		const parentToolCalls = parentTurn.responseParts.filter(p => p.kind === ResponsePartKind.ToolCall);
 		const parentToolNames = parentToolCalls.map(p => p.toolCall.toolName);
 		assert.deepStrictEqual(parentToolNames, ['task'], 'parent turn should only contain the `task` tool call (inner tool must route to subagent)');
 
-		// Child session should have one turn with the inner `echo_tool` call.
 		assert.ok(childState.turns.length >= 1, 'child subagent session should have at least one turn');
 		const childTurn = childState.turns[childState.turns.length - 1];
 		const childToolCalls = childTurn.responseParts.filter(p => p.kind === ResponsePartKind.ToolCall);
@@ -248,11 +243,8 @@ suite('Protocol WebSocket — Turn Execution', function () {
 		const sessionUri = await createAndSubscribeSession(client, 'test-subagent-list');
 		dispatchTurnStarted(client, sessionUri, 'turn-sa-list', 'subagent', 1);
 
-		// Wait for the parent turn to complete so the subagent child session
-		// has been created in the state manager.
 		await client.waitForNotification(n => isActionNotification(n, 'chat/turnComplete'));
 
-		// Sanity: the subagent child session is live (subscribing succeeds).
 		const childUri = buildSubagentChatUri(sessionUri, 'tc-task-1');
 		const childSnapshot = await client.call<SubscribeResult>('subscribe', { channel: childUri });
 		assert.ok(childSnapshot.snapshot, 'subagent child session should be live');

@@ -10,11 +10,6 @@ import { localize } from '../../../../../nls.js';
 import { IPromptReviewFileEvent } from './promptTimelineRail.js';
 import { PromptFileDiff, PromptTick } from './promptTimelineModel.js';
 
-/**
- * The interactive preview shown when a prompt mark is hovered or focused, shared
- * by every rail style. Renders the prompt text, its diff summary (a shortcut to
- * review the whole prompt) and per-file rows, and stays open while hovered.
- */
 export class PromptTimelineCard extends Disposable {
 
 	private readonly _element: HTMLElement;
@@ -41,7 +36,6 @@ export class PromptTimelineCard extends Disposable {
 		this._filesProvider = provider;
 	}
 
-	/** Builds the card for a tick and positions it centered on `anchorCenterY` (relative to the container). */
 	show(tick: PromptTick, anchorCenterY: number): void {
 		if (this._hideTimer !== undefined) {
 			clearTimeout(this._hideTimer);
@@ -52,8 +46,6 @@ export class PromptTimelineCard extends Disposable {
 
 		const head = append(this._element, $('.prompt-timeline-card-head'));
 		append(head, $('.prompt-timeline-card-text')).textContent = tick.text;
-		// Grouped ticks show how many prompts they cover. No absolute time: agent-host
-		// sessions don't record per-turn timestamps, so it would be misleading.
 		if (tick.count > 1) {
 			append(head, $('.prompt-timeline-card-meta')).textContent = localize('promptTimeline.groupedCount', "{0} prompts", tick.count);
 		}
@@ -104,7 +96,6 @@ export class PromptTimelineCard extends Disposable {
 		append(container, $('span.removed')).textContent = `\u2212${removed}`;
 	}
 
-	/** Hides the card shortly, unless it (or a mark) is re-hovered first. */
 	scheduleHide(): void {
 		if (this._hideTimer !== undefined) {
 			clearTimeout(this._hideTimer);

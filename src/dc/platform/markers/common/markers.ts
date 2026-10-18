@@ -36,9 +36,6 @@ export interface IMarkerService {
 	readonly onMarkerChanged: Event<readonly URI[]>;
 }
 
-/**
- *
- */
 export interface IRelatedInformation {
 	resource: URI;
 	message: string;
@@ -103,9 +100,6 @@ export namespace MarkerSeverity {
 	}
 }
 
-/**
- * A structure defining a problem/warning/etc.
- */
 export interface IMarkerData {
 	code?: string | { value: string; target: URI };
 	severity: MarkerSeverity;
@@ -178,8 +172,6 @@ export namespace IMarkerData {
 			result.push(emptyString);
 		}
 
-		// Modifed to not include the message as part of the marker key to work around
-		// https://github.com/microsoft/vscode/issues/77475
 		if (markerData.message && useMessage) {
 			result.push(markerData.message.replace('¦', '\\¦'));
 		} else {

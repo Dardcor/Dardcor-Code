@@ -181,7 +181,6 @@ suite('XtermTerminal', () => {
 			disposedMarker.dispose();
 
 			const result = xterm.getContentsAsText(disposedMarker);
-			// Should return content from line 0 (including line 1) instead of throwing
 			ok(result.startsWith('line 1\nline 2\nline 3\nline 4\nline 5'), `Unexpected result: ${result}`);
 		});
 
@@ -229,7 +228,6 @@ suite('XtermTerminal', () => {
 			strictEqual(text, result, 'Should equal original text');
 		});
 		test('should get text properly when exceed scrollback limit', async () => {
-			// max buffer lines(40) = rows(30) + scrollback(10)
 			const text = 'line 1\r\nline 2\r\nline 3\r\nline 4\r\nline 5\r\n'.repeat(8).trim();
 			await write(text);
 			await write('\r\nline more');

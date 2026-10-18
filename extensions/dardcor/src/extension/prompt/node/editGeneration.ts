@@ -57,24 +57,9 @@ export function isLines(lines: any): lines is Lines {
 }
 
 export const enum EditStrategy {
-	/**
-	 * In case we have no hints (no code markers and no diffing heuristics)
-	 * about the edits to generate, we can use a default strategy.
-	 */
 	FallbackToInsertAboveRange = 1,
-	/**
-	 * In case we have no hints (no code markers and no diffing heuristics)
-	 * about the edits to generate, we can use a default strategy.
-	 */
 	FallbackToReplaceRange = 2,
-	/**
-	 * In case we have no hints (no code markers and no diffing heuristics)
-	 * about the edits to generate, we can use a default strategy.
-	 */
 	FallbackToInsertBelowRange = 3,
-	/**
-	 * Code Generation: always insert at the cursor location.
-	 */
 	ForceInsertion = 4
 }
 

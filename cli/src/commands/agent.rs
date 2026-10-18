@@ -25,14 +25,6 @@ use crate::util::machine::process_exists;
 use super::CommandContext;
 use crate::tunnels::agent_host_metadata::AgentHostMetadata;
 
-/// Connects to an agent host, initializes the AHP session, and returns
-/// the ready-to-use client. If an explicit `address` is given it is used
-/// directly; if `tunnel_name` is given, the tunnel is looked up via the
-/// dev tunnels API; otherwise the lockfile written by `code agent host`
-/// is read to discover the local instance.
-///
-/// The returned client has been initialized but **not** authenticated.
-/// Use [`request_with_auth`] to issue commands that may require auth.
 pub async fn connect(
 	ctx: &CommandContext,
 	address: Option<&str>,
@@ -55,7 +47,6 @@ pub async fn connect(
 	Ok(client)
 }
 
-/// Opens a WebSocket connection and creates an AHP client.
 async fn connect_ws(address: &str) -> Result<Client, AnyError> {
 	let (ws_stream, _) = connect_async(address)
 		.await
@@ -68,12 +59,6 @@ async fn connect_ws(address: &str) -> Result<Client, AnyError> {
 		.map_err(|e| wrap(e, "Failed to establish AHP session").into())
 }
 
-/// A [`Transport`] backed by a `tokio-tungstenite` WebSocket stream.
-///
-/// `_guard` keeps an auxiliary resource alive for the lifetime of the
-/// transport; the tunnel connection uses it to retain the relay handle so
-/// the underlying SSH session isn't dropped. Use `()` when no such
-/// resource is needed.
 struct WsTransport<S, G = ()> {
 	inner: WebSocketStream<S>,
 	_guard: G,
@@ -131,9 +116,6 @@ where
 	}
 }
 
-/// Connects to an agent host over a dev tunnel relay. Looks up the tunnel
-/// by name, opens a direct-tcpip channel to the agent host port, performs
-/// a WebSocket handshake over the raw stream, then creates an AHP client.
 async fn connect_via_tunnel(ctx: &CommandContext, name: &str) -> Result<Client, AnyError> {
 	let auth = Auth::new(&ctx.paths, ctx.log.clone());
 	let mut dt = DevTunnels::new_remote_tunnel(&ctx.log, auth, &ctx.paths);
@@ -145,7 +127,6 @@ async fn connect_via_tunnel(ctx: &CommandContext, name: &str) -> Result<Client, 
 		.await
 		.map_err(|e| wrap(e, "WebSocket handshake over tunnel failed"))?;
 
-	// Keep the relay handle alive so the SSH session isn't dropped.
 	let transport = WsTransport::new(ws_stream, relay_handle);
 
 	Client::connect(transport, ahp::ClientConfig::default())
@@ -153,8 +134,6 @@ async fn connect_via_tunnel(ctx: &CommandContext, name: &str) -> Result<Client, 
 		.map_err(|e| wrap(e, "Failed to establish AHP session over tunnel").into())
 }
 
-/// Issues a JSON-RPC request, automatically handling `-32007` auth errors
-/// by running the device-flow login and retrying once.
 pub async fn request_with_auth<P, R>(
 	ctx: &CommandContext,
 	client: &Client,
@@ -235,8 +214,6 @@ async fn authenticate_from_error(
 		let provider = provider_for_resource(resource);
 		let scopes = resource.scopes_supported.as_ref().map(|s| s.join("+"));
 
-		// Reuse a stored credential from the namespace if one exists; only
-		// start a device-flow login when there is nothing cached.
 		let credential = match auth.get_current_credential() {
 			Ok(Some(existing)) => existing,
 			_ => match provider {

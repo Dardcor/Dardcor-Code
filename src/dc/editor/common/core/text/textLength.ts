@@ -7,9 +7,6 @@ import { Position } from '../position.js';
 import { Range } from '../range.js';
 import { OffsetRange } from '../ranges/offsetRange.js';
 
-/**
- * Represents a non-negative length of text in terms of line and column count.
-*/
 export class TextLength {
 	public static zero = new TextLength(0, 0);
 

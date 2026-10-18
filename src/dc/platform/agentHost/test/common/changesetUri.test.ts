@@ -137,7 +137,6 @@ suite('changesetUri', () => {
 		assert.strictEqual(resolveChangesetUriTemplate(sessionUri, 'changeset/branch'), `${sessionUri}/changeset/branch`);
 		assert.strictEqual(resolveChangesetUriTemplate(sessionUri, 'changeset/session'), buildSessionChangesetUri(sessionUri));
 		assert.strictEqual(resolveChangesetUriTemplate(sessionUri, 'changeset/uncommitted'), buildUncommittedChangesetUri(sessionUri));
-		// The variable survives resolution.
 		assert.strictEqual(resolveChangesetUriTemplate(sessionUri, 'changeset/turn/{turnId}'), buildTurnChangesetUriTemplate(sessionUri));
 	});
 

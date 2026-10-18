@@ -10,7 +10,6 @@ import { IEnvService } from '../../env/common/envService';
 import { IGHTelemetryService } from '../common/telemetry';
 import { AzureInsightReporter } from './azureInsightsReporter';
 
-// the application insights key (also known as instrumentation key)
 export const APP_INSIGHTS_KEY_STANDARD = '7d7048df-6dd0-4048-bb23-b716c1461f8f';
 export const APP_INSIGHTS_KEY_ENHANCED = '3fdd7f28-937a-48c8-9a21-ba337db23bd1';
 

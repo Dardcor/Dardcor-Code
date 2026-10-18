@@ -14,47 +14,33 @@ export async function shouldPasteTerminalText(accessor: ServicesAccessor, text: 
 	const configurationService = accessor.get(IConfigurationService);
 	const dialogService = accessor.get(IDialogService);
 
-	// If the clipboard has only one line, a warning should never show
 	const textForLines = text.split(/\r?\n/);
 	if (textForLines.length === 1) {
 		return true;
 	}
 
-	// Get config value
 	function parseConfigValue(value: unknown): 'auto' | 'always' | 'never' {
-		// Valid value
 		if (isString(value)) {
 			if (value === 'auto' || value === 'always' || value === 'never') {
 				return value;
 			}
 		}
-		// Legacy backwards compatibility
 		if (typeof value === 'boolean') {
 			return value ? 'auto' : 'never';
 		}
-		// Invalid value fallback
 		return 'auto';
 	}
 	const configValue = parseConfigValue(configurationService.getValue(TerminalSettingId.EnableMultiLinePasteWarning));
 
-	// Never show it
 	if (configValue === 'never') {
 		return true;
 	}
 
-	// Special edge cases to not show for auto
 	if (configValue === 'auto') {
-		// Ignore check if the shell is in bracketed paste mode (ie. the shell can handle multi-line
-		// text).
 		if (bracketedPasteMode) {
 			return true;
 		}
 
-		// When a command is copied with a trailing new line, strip the trailing newline so the
-		// command is not automatically executed on paste. This mitigates a clipboard hijacking
-		// scenario where a malicious page replaces clipboard contents with a command followed by
-		// a newline; pasting (especially via right click) would otherwise immediately execute it.
-		// The user can still review the pasted text and press Enter to run it.
 		if (textForLines.length === 2 && textForLines[1].trim().length === 0) {
 			return { modifiedText: textForLines[0] };
 		}

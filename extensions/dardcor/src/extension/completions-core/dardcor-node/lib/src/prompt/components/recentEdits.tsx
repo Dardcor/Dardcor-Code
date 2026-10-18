@@ -37,8 +37,6 @@ export function editIsTooCloseToCursor(
 		(Math.abs(startLineNumber - cursorLine!) <= activeDocDistanceLimitFromCursor! ||
 			Math.abs(endLineNumber - cursorLine!) <= activeDocDistanceLimitFromCursor!)
 	) {
-		// skip over a diff that's too close to the cursor
-		// this isn't cached since the cursor moves
 		return true;
 	}
 	return false;
@@ -49,12 +47,6 @@ type RecentEditsProps = {
 	recentEditsProvider: ICompletionsRecentEditsProviderService;
 } & PromptElementProps;
 
-/**
- * Render the most recent edits in the prompt.
- * @param props
- * @param context
- * @returns a <Text> element containing recent edit summaries, or undefined if there are no recent edits
- */
 export const RecentEdits = (props: RecentEditsProps, context: ComponentContext) => {
 	const [prompt, setPrompt] = context.useState<string | undefined>();
 
@@ -76,17 +68,13 @@ export const RecentEdits = (props: RecentEditsProps, context: ComponentContext) 
 		const tdm = props.tdms;
 		const editSummaries: string[] = [];
 
-		// Walk backwards through the recent edits (most recent first) until we hit the max files or max edits, whichever comes first
 		for (let i = recentEdits.length - 1; i >= 0; i--) {
-			// if we've hit the max edits, stop
 			if (editSummaries.length >= recentEditsConfig.maxEdits) { break; }
 
 			const edit = recentEdits[i];
 
-			// If the file is excluded, skip it
 			if (!(await tdm.getTextDocument({ uri: edit.file }))) { continue; }
 
-			// If adding an edit from this file would exceed the max files, skip it
 			const isNewFile = !filesIncluded.has(edit.file);
 			const projectedFileCount = filesIncluded.size + (isNewFile ? 1 : 0);
 			if (projectedFileCount > recentEditsConfig.maxFiles) { break; }
@@ -94,7 +82,6 @@ export const RecentEdits = (props: RecentEditsProps, context: ComponentContext) 
 			const filterByCursorLine = edit.file === request.document?.uri;
 			const activeDocCursorLine = filterByCursorLine ? request.position.line : undefined;
 
-			// Check if the edit is too close to the cursor line, if applicable, in which case we skip it
 			const editTooClose = editIsTooCloseToCursor(
 				edit,
 				filterByCursorLine,

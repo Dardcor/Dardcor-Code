@@ -16,16 +16,9 @@ export interface IChangeContext {
 	readonly changedObservable: IObservableWithChange<any, any>;
 	readonly change: unknown;
 
-	/**
-	 * Returns if the given observable caused the change.
-	 */
 	didChange<T, TChange>(observable: IObservableWithChange<T, TChange>): this is { change: TChange };
 }
 
-/**
- * Subscribes to and records changes and the last value of the given observables.
- * Don't use the key "changes", as it is reserved for the changes array!
-*/
 export function recordChanges<TObs extends Record<any, IObservableWithChange<any, any>>>(obs: TObs):
 	IChangeTracker<{ [TKey in keyof TObs]: ReturnType<TObs[TKey]['get']> }
 		& { changes: readonly ({ [TKey in keyof TObs]: { key: TKey; change: TObs[TKey]['TChange'] } }[keyof TObs])[] }> {
@@ -56,10 +49,6 @@ export function recordChanges<TObs extends Record<any, IObservableWithChange<any
 	};
 }
 
-/**
- * Subscribes to and records changes and the last value of the given observables.
- * Don't use the key "changes", as it is reserved for the changes array!
-*/
 export function recordChangesLazy<TObs extends Record<any, IObservableWithChange<any, any>>>(getObs: () => TObs):
 	IChangeTracker<{ [TKey in keyof TObs]: ReturnType<TObs[TKey]['get']> }
 		& { changes: readonly ({ [TKey in keyof TObs]: { key: TKey; change: TObs[TKey]['TChange'] } }[keyof TObs])[] }> {

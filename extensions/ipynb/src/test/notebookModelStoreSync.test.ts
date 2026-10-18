@@ -469,7 +469,6 @@ suite(`Notebook Model Store Sync`, () => {
 		assert.strictEqual(editsApplied.length, 1);
 		assert.strictEqual(cellMetadataUpdates.length, 1);
 
-		// Try to save.
 		let saveCompleted = false;
 		const saved = onWillSaveNotebookDocument.fireAsync({
 			notebook,
@@ -478,13 +477,11 @@ suite(`Notebook Model Store Sync`, () => {
 		saved.finally(() => saveCompleted = true);
 		await new Promise((resolve) => setTimeout(resolve, 10));
 
-		// Verify we have not yet completed saving.
 		assert.strictEqual(saveCompleted, false);
 
 		resolveApplyEditPromise!(true);
 		await new Promise((resolve) => setTimeout(resolve, 1));
 
-		// Should have completed saving.
 		saved.finally(() => saveCompleted = true);
 	});
 
@@ -507,7 +504,6 @@ suite(`Notebook Model Store Sync`, () => {
 				this.listeners.push(listener.bind(thisArgs));
 				return {
 					dispose: () => {
-						//
 					}
 				};
 			};

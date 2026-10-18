@@ -60,7 +60,6 @@ export const modifiedChangedTextOverlayColor = registerColor(
 	true
 );
 
-// ------- GUTTER INDICATOR -------
 
 export const inlineEditIndicatorPrimaryForeground = registerColor(
 	'inlineEdit.gutterIndicator.primaryForeground',
@@ -126,7 +125,6 @@ export const inlineEditIndicatorBackground = registerColor(
 	localize('inlineEdit.gutterIndicator.background', 'Background color for the inline edit gutter indicator.')
 );
 
-// ------- BORDER COLORS -------
 
 const originalBorder = registerColor(
 	'inlineEdit.originalBorder',
@@ -190,7 +188,7 @@ export function getEditorBlendedColor(colorIdentifier: ColorIdentifier | IObserv
 
 	const backgroundColor = observeColor(editorBackground, themeService);
 
-	return color.map((c, reader) => /** @description makeOpaque */ c.makeOpaque(backgroundColor.read(reader)));
+	return color.map((c, reader) => c.makeOpaque(backgroundColor.read(reader)));
 }
 
 export function getEditorBackgroundColor(editorType: InlineCompletionEditorType): string {
@@ -227,5 +225,4 @@ export function observeColor(colorIdentifier: ColorIdentifier, themeService: ITh
 	);
 }
 
-// Styles
-export const INLINE_EDITS_BORDER_RADIUS = 3; // also used in CSS file
+export const INLINE_EDITS_BORDER_RADIUS = 3;

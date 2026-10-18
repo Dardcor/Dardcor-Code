@@ -14,18 +14,8 @@ import { type DebianArchString, isDebianArchString } from './debian/types.ts';
 import { isRpmArchString, type RpmArchString } from './rpm/types.ts';
 import product from '../../product.json' with { type: 'json' };
 
-// A flag that can easily be toggled.
-// Make sure to compile the build directory after toggling the value.
-// If false, we warn about new dependencies if they show up
-// while running the prepare package tasks for a release.
-// If true, we fail the build if there are new dependencies found during that task.
-// The reference dependencies, which one has to update when the new dependencies
-// are valid, are in dep-lists.ts
 const FAIL_BUILD_FOR_NEW_DEPENDENCIES: boolean = false;
 
-// Based on https://source.chromium.org/chromium/chromium/src/+/refs/tags/148.0.7778.280:chrome/installer/linux/BUILD.gn;l=64-80
-// and the Linux Archive build
-// Shared library dependencies that we already bundle.
 const bundledDeps = [
 	'libEGL.so',
 	'libGLESv2.so',
@@ -48,8 +38,6 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 		debianGeneratedDeps[arch as DebianArchString] :
 		rpmGeneratedDeps[arch as RpmArchString];
 
-	// Get the files for which we want to find dependencies.
-	// Native modules are unpacked next to the ASAR archive in `node_modules.asar.unpacked`.
 	const nativeModulesPath = path.join(buildDir, 'resources', 'app', 'node_modules.asar.unpacked');
 	let rawFiles: string[] = [];
 	if (fs.existsSync(nativeModulesPath)) {
@@ -59,7 +47,6 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 		}
 	}
 
-	// Filter out native modules that clearly belong to other architectures or platforms
 	const files = rawFiles.filter(filePath => {
 		const norm = filePath.toLowerCase().replace(/\\/g, '/');
 		if (arch === 'amd64' || arch === 'x64' || arch === 'x86_64') {
@@ -96,7 +83,6 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 		return referenceGeneratedDeps;
 	}
 
-	// Generate the dependencies.
 	let dependencies: Set<string>[];
 	if (packageType === 'deb') {
 		const chromiumSysroot = await getChromiumSysroot(arch as DebianArchString);
@@ -106,10 +92,8 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 		dependencies = generatePackageDepsRpm(files);
 	}
 
-	// Merge all the dependencies.
 	const mergedDependencies = mergePackageDeps(dependencies);
 
-	// Exclude bundled dependencies and sort
 	const sortedDependencies: string[] = Array.from(mergedDependencies).filter(dependency => {
 		return !bundledDeps.some(bundledDep => dependency.startsWith(bundledDep));
 	}).sort();
@@ -133,7 +117,6 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 }
 
 
-// Based on https://source.chromium.org/chromium/chromium/src/+/main:chrome/installer/linux/rpm/merge_package_deps.py.
 function mergePackageDeps(inputDeps: Set<string>[]): Set<string> {
 	const requires = new Set<string>();
 	for (const depSet of inputDeps) {

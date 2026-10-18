@@ -17,18 +17,14 @@ export function testApplyEditsWithSyncedModels(original: string[], edits: ISingl
 	const expectedStr = expected.join('\n');
 
 	assertSyncedModels(originalStr, (model, assertMirrorModels) => {
-		// Apply edits & collect inverse edits
 		const inverseEdits = model.applyEdits(edits, true);
 
-		// Assert edits produced expected result
 		assert.deepStrictEqual(model.getValue(EndOfLinePreference.LF), expectedStr);
 
 		assertMirrorModels();
 
-		// Apply the inverse edits
 		const inverseInverseEdits = model.applyEdits(inverseEdits, true);
 
-		// Assert the inverse edits brought back model to original state
 		assert.deepStrictEqual(model.getValue(EndOfLinePreference.LF), originalStr);
 
 		if (!inputEditsAreInvalid) {
@@ -39,7 +35,6 @@ export function testApplyEditsWithSyncedModels(original: string[], edits: ISingl
 					forceMoveMarkers: edit.forceMoveMarkers || false
 				};
 			};
-			// Assert the inverse of the inverse edits are the original edits
 			assert.deepStrictEqual(inverseInverseEdits.map(simplifyEdit), edits.map(simplifyEdit));
 		}
 
@@ -57,14 +52,12 @@ function assertOneDirectionLineMapping(model: TextModel, direction: AssertDocume
 
 	let line = 1, column = 1, previousIsCarriageReturn = false;
 	for (let offset = 0; offset <= allText.length; offset++) {
-		// The position coordinate system cannot express the position between \r and \n
 		const position: Position = new Position(line, column + (previousIsCarriageReturn ? -1 : 0));
 
 		if (direction === AssertDocumentLineMappingDirection.OffsetToPosition) {
 			const actualPosition = model.getPositionAt(offset);
 			assert.strictEqual(actualPosition.toString(), position.toString(), msg + ' - getPositionAt mismatch for offset ' + offset);
 		} else {
-			// The position coordinate system cannot express the position between \r and \n
 			const expectedOffset: number = offset + (previousIsCarriageReturn ? -1 : 0);
 			const actualOffset = model.getOffsetAt(position);
 			assert.strictEqual(actualOffset, expectedOffset, msg + ' - getOffsetAt mismatch for position ' + position.toString());

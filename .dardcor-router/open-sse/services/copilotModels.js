@@ -1,10 +1,3 @@
-/**
- * GitHub Copilot model catalog fetcher.
- *
- * Calls Copilot's `GET /models` endpoint to get the live catalog for an
- * authenticated account, so `/v1/models` reflects what the account can
- * actually use instead of the static registry.
- */
 
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { GITHUB_COPILOT } from "../config/appConstants.js";
@@ -14,7 +7,6 @@ const MODELS_URL = "https://api.githubcopilot.com/models";
 const FETCH_TIMEOUT_MS = 10_000;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-/** @type {Map<string, { expiresAt: number, models: any[] }>} */
 const catalogCache = new Map();
 
 function cacheKey(credentials) {

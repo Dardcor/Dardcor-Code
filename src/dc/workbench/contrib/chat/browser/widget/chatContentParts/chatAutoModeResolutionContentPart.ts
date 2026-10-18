@@ -13,10 +13,6 @@ import { ChatTreeItem } from '../../chat.js';
 import { IChatContentPartRenderContext } from './chatContentParts.js';
 import { ChatThinkingStyleContentPart } from './chatThinkingStyleContentPart.js';
 
-/**
- * Explains Auto's routing decision on one line, so the chosen model is
- * readable without a click.
- */
 export class ChatAutoModeResolutionContentPart extends ChatThinkingStyleContentPart {
 
 	private readonly isRouting: boolean;
@@ -36,7 +32,6 @@ export class ChatAutoModeResolutionContentPart extends ChatThinkingStyleContentP
 
 		this.isRouting = !content.resolved;
 		this.setThinkingActive(this.isRouting);
-		// The title says everything, so this is a status line, not a disclosure.
 		this.setExpandable(false);
 		if (this.isRouting) {
 			this.setShimmerTitle(autoModeRoutingTitle(content));
@@ -48,7 +43,6 @@ export class ChatAutoModeResolutionContentPart extends ChatThinkingStyleContentP
 	}
 
 	protected override initContent(): HTMLElement {
-		// Never reached: the row does not expand, so its body is never built.
 		return this.createThinkingBody();
 	}
 
@@ -56,8 +50,6 @@ export class ChatAutoModeResolutionContentPart extends ChatThinkingStyleContentP
 		if (other.kind !== 'autoModeResolution') {
 			return false;
 		}
-		// Once the response ends, a row still routing is re-rendered so the
-		// renderer can drop it rather than leave it shimmering forever.
 		if (this.isRouting && element.isComplete) {
 			return false;
 		}

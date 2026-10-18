@@ -140,7 +140,7 @@ export class ExtensionManagementCLI {
 
 		const installedExtensionsQuery: IExtensionInfo[] = [];
 		for (const extension of installedExtensions) {
-			if (!!extension.identifier.uuid) { // No need to check new version for an unpublished extension
+			if (!!extension.identifier.uuid) {
 				installedExtensionsQuery.push({ ...extension.identifier, preRelease: extension.preRelease });
 			}
 		}

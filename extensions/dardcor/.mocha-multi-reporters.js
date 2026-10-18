@@ -4,9 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 const path = require('path');
 
-// In CI, the name of the NPM command that was run is used to generate a unique
-// filename for the JUnit report. The name we give it is then used as the test
-// bundle name in DataDog.
 const commandToBundleName = {
 	isolatedProxyTests: 'IsolatedProxy',
 	reverseProxyTests: 'ReverseProxy',

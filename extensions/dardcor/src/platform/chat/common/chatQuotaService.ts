@@ -7,10 +7,6 @@ import { createServiceIdentifier } from '../../../util/common/services';
 import { Event } from '../../../util/dardcor/base/common/event';
 import { IHeaders } from '../../networking/common/fetcherService';
 
-/**
- * This is the quota info we get from the `dardcor_internal/user` endpoint.
- * It is accessed via the dardcor token object
- */
 export interface CopilotUserQuotaInfo {
 	quota_reset_date?: string;
 	quota_snapshots?: {
@@ -58,17 +54,11 @@ export interface IChatQuota {
 }
 
 export interface QuotaSnapshot {
-	/** String representation of the entitlement count, "-1" for unlimited. */
 	readonly entitlement: string;
-	/** Percentage of quota remaining (0–100), rounded up to 1 decimal. */
 	readonly percent_remaining: number;
-	/** Whether additional usage (usage beyond included credits) is permitted. */
 	readonly overage_permitted: boolean;
-	/** Number of additional usage units consumed, rounded up to 1 decimal. */
 	readonly overage_count: number;
-	/** Whether the user has active quota for this category. */
 	readonly has_quota?: boolean;
-	/** ISO 8601 date when the quota resets, if applicable. */
 	readonly reset_date?: string;
 }
 
@@ -81,19 +71,12 @@ export interface IChatQuotaService {
 	readonly rateLimitInfo: { readonly session: IChatQuota | undefined; readonly weekly: IChatQuota | undefined };
 	quotaExhausted: boolean;
 	additionalUsageEnabled: boolean;
-	/** AIC credits accumulated for the given turn, from dardcor_usage.total_nano_aiu. */
 	getCreditsForTurn(turnId: string): number | undefined;
 	processQuotaHeaders(headers: IHeaders): void;
 	processQuotaSnapshots(snapshots: QuotaSnapshots): void;
-	/** Accumulate per-request cost from dardcor_usage.total_nano_aiu (in nano-AIUs), scoped to a turn. */
-	setLastCopilotUsage(totalNanoAiu: number, turnId: string): void;
-	/** Reset accumulated credits for the given turn. */
+	setLastDardcorUsage(totalNanoAiu: number, turnId: string): void;
 	resetTurnCredits(turnId: string): void;
 	clearQuota(): void;
-	/**
-	 * Fetches up-to-date quota data from the `dardcor_internal/user` endpoint.
-	 * Errors are caught and logged.
-	 */
 	refreshQuota(): Promise<void>;
 }
 

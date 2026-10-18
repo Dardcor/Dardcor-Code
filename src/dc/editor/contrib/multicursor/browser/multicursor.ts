@@ -280,17 +280,10 @@ export class MultiCursorSession {
 		}
 		const findState = findController.getState();
 
-		// Find widget owns entirely what we search for if:
-		//  - focus is not in the editor (i.e. it is in the find widget)
-		//  - and the search widget is visible
-		//  - and the search string is non-empty
 		if (!editor.hasTextFocus() && findState.isRevealed && findState.searchString.length > 0) {
-			// Find widget owns what is searched for
 			return new MultiCursorSession(editor, findController, false, findState.searchString, findState.wholeWord, findState.matchCase, null);
 		}
 
-		// Otherwise, the selection gives the search text, and the find widget gives the search settings
-		// The exception is the find state disassociation case: when beginning with a single, collapsed selection
 		let isDisconnectedFromFindController = false;
 		let wholeWord: boolean;
 		let matchCase: boolean;
@@ -304,14 +297,12 @@ export class MultiCursorSession {
 			matchCase = findState.matchCase;
 		}
 
-		// Selection owns what is searched for
 		const s = editor.getSelection();
 
 		let searchText: string;
 		let currentMatch: Selection | null = null;
 
 		if (s.isEmpty()) {
-			// selection is empty => expand to current word
 			const word = editor.getConfiguredWordAtPosition(s.getStartPosition());
 			if (!word) {
 				return null;
@@ -479,7 +470,6 @@ export class MultiCursorSelectionController extends Disposable implements IEdito
 
 	private _beginSessionIfNeeded(findController: CommonFindController): void {
 		if (!this._session) {
-			// Create a new session
 			const session = MultiCursorSession.create(this._editor, findController);
 			if (!session) {
 				return;
@@ -561,7 +551,6 @@ export class MultiCursorSelectionController extends Disposable implements IEdito
 			return;
 		}
 		if (!this._session) {
-			// If there are multiple cursors, handle the case where they do not all select the same text.
 			const allSelections = this._editor.getSelections();
 			if (allSelections.length > 1) {
 				const findState = findController.getState();
@@ -614,11 +603,6 @@ export class MultiCursorSelectionController extends Disposable implements IEdito
 
 		const findState = findController.getState();
 
-		// Special case: find widget owns entirely what we search for if:
-		// - focus is not in the editor (i.e. it is in the find widget)
-		// - and the search widget is visible
-		// - and the search string is non-empty
-		// - and we're searching for a regex
 		if (findState.isRevealed && findState.searchString.length > 0 && findState.isRegex) {
 			const editorModel = this._editor.getModel();
 			if (findState.searchScope) {
@@ -638,12 +622,10 @@ export class MultiCursorSelectionController extends Disposable implements IEdito
 
 		if (matches.length > 0) {
 			const editorSelection = this._editor.getSelection();
-			// Have the primary cursor remain the one where the action was invoked
 			for (let i = 0, len = matches.length; i < len; i++) {
 				const match = matches[i];
 				const intersection = match.range.intersectRanges(editorSelection);
 				if (intersection) {
-					// bingo!
 					matches[i] = matches[0];
 					matches[0] = match;
 					break;
@@ -871,15 +853,12 @@ export class SelectionHighlighter extends Disposable implements IEditorContribut
 		this._register(editor.onDidChangeCursorSelection((e: ICursorSelectionChangedEvent) => {
 
 			if (!this._isEnabled) {
-				// Early exit if nothing needs to be done!
-				// Leave some form of early exit check here if you wish to continue being a cursor position change listener ;)
 				return;
 			}
 
 			if (e.selection.isEmpty()) {
 				if (e.reason === CursorChangeReason.Explicit) {
 					if (this.state) {
-						// no longer valid
 						this._setState(null);
 					}
 					this.updateSoon.schedule();
@@ -921,7 +900,6 @@ export class SelectionHighlighter extends Disposable implements IEditorContribut
 		if (!isEnabledMultiline) {
 			const s = editor.getSelection();
 			if (s.startLineNumber !== s.endLineNumber) {
-				// multiline forbidden for perf reasons
 				return null;
 			}
 		}
@@ -952,24 +930,18 @@ export class SelectionHighlighter extends Disposable implements IEditorContribut
 		}
 
 		if (r.currentMatch) {
-			// This is an empty selection
-			// Do not interfere with semantic word highlighting in the no selection case
 			return null;
 		}
 		if (/^[ \t]+$/.test(r.searchText)) {
-			// whitespace only selection
 			return null;
 		}
 		if (maxLength > 0 && r.searchText.length > maxLength) {
-			// very long selection
 			return null;
 		}
 
-		// TODO: better handling of this case
 		const findState = findController.getState();
 		const caseSensitive = findState.matchCase;
 
-		// Return early if the find widget shows the exact same matches
 		if (findState.isRevealed) {
 			let findStateSearchString = findState.searchString;
 			if (!caseSensitive) {
@@ -1003,7 +975,6 @@ export class SelectionHighlighter extends Disposable implements IEditorContribut
 
 		const model = this.editor.getModel();
 		if (model.isTooLargeForTokenization()) {
-			// the file is too large, so searching word under cursor in the whole document would be blocking the UI.
 			return;
 		}
 
@@ -1012,28 +983,23 @@ export class SelectionHighlighter extends Disposable implements IEditorContribut
 		const selections = this.editor.getSelections();
 		selections.sort(Range.compareRangesUsingStarts);
 
-		// do not overlap with selection (issue #64 and #512)
 		const matches: Range[] = [];
 		for (let i = 0, j = 0, len = allMatches.length, lenJ = selections.length; i < len;) {
 			const match = allMatches[i];
 
 			if (j >= lenJ) {
-				// finished all editor selections
 				matches.push(match);
 				i++;
 			} else {
 				const cmp = Range.compareRangesUsingStarts(match, selections[j]);
 				if (cmp < 0) {
-					// match is before sel
 					if (selections[j].isEmpty() || !Range.areIntersecting(match, selections[j])) {
 						matches.push(match);
 					}
 					i++;
 				} else if (cmp > 0) {
-					// sel is before match
 					j++;
 				} else {
-					// sel is equal to match
 					i++;
 					j++;
 				}

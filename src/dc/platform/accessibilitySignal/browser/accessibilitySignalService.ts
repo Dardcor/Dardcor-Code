@@ -27,21 +27,13 @@ export interface IAccessibilitySignalService {
 
 	getEnabledState(signal: AccessibilitySignal, userGesture: boolean, modality?: AccessibilityModality | undefined): IValueWithChangeEvent<boolean>;
 	getDelayMs(signal: AccessibilitySignal, modality: AccessibilityModality, mode: 'line' | 'positional'): number;
-	/**
-	 * Avoid this method and prefer `.playSignal`!
-	 * Only use it when you want to play the sound regardless of enablement, e.g. in the settings quick pick.
-	 */
 	playSound(signal: Sound, allowManyInParallel: boolean, token: typeof AcknowledgeDocCommentsToken): Promise<void>;
 
-	/** @deprecated Use getEnabledState(...).onChange */
 	isSoundEnabled(signal: AccessibilitySignal): boolean;
-	/** @deprecated Use getEnabledState(...).value */
 	isAnnouncementEnabled(signal: AccessibilitySignal): boolean;
-	/** @deprecated Use getEnabledState(...).onChange */
 	onSoundEnabledChanged(signal: AccessibilitySignal): Event<void>;
 }
 
-/** Make sure you understand the doc comments of the method you want to call when using this token! */
 export const AcknowledgeDocCommentsToken = Symbol('AcknowledgeDocCommentsToken');
 
 export type AccessibilityModality = 'sound' | 'announcement';
@@ -51,22 +43,10 @@ export interface IAccessbilitySignalOptions {
 
 	modality?: AccessibilityModality;
 
-	/**
-	 * The source that triggered the signal (e.g. "diffEditor.cursorPositionChanged").
-	 */
 	source?: string;
 
-	/**
-	 * For actions like save or format, depending on the
-	 * configured value, we will only
-	 * play the sound if the user triggered the action.
-	 */
 	userGesture?: boolean;
 
-	/**
-	 * The custom message to alert with.
-	 * This will override the default announcement message.
-	 */
 	customAlertMessage?: string;
 }
 
@@ -85,7 +65,7 @@ export class AccessibilitySignalService extends Disposable implements IAccessibi
 		this.sounds = new Map();
 		this.screenReaderAttached = observableFromEvent(this,
 			this.accessibilityService.onDidChangeScreenReaderOptimized,
-			() => /** @description accessibilityService.onDidChangeScreenReaderOptimized */ this.accessibilityService.isScreenReaderOptimized()
+			() => this.accessibilityService.isScreenReaderOptimized()
 		);
 		this.sentTelemetry = new Set<string>();
 		this.playingSounds = new Set<Sound>();
@@ -97,7 +77,6 @@ export class AccessibilitySignalService extends Disposable implements IAccessibi
 			{ getCacheKey: getStructuralKey },
 			(arg: { signal: AccessibilitySignal; userGesture: boolean; modality?: AccessibilityModality | undefined }) => {
 				return derived(reader => {
-					/** @description sound enabled */
 					const setting = this._signalConfigValue.get(arg.signal).read(reader);
 
 					if (arg.modality === 'sound' || arg.modality === undefined) {
@@ -144,7 +123,6 @@ export class AccessibilitySignalService extends Disposable implements IAccessibi
 			this.accessibilityService.status(announcements.join(', '));
 		}
 
-		// Some sounds are reused. Don't play the same sound twice.
 		const sounds = new Set(signalArray.filter(signal => this.isSoundEnabled(signal)).map(signal => signal.sound.getSound()));
 		await Promise.all(Array.from(sounds).map(sound => this.playSound(sound, true)));
 
@@ -154,7 +132,6 @@ export class AccessibilitySignalService extends Disposable implements IAccessibi
 	private sendSignalTelemetry(signal: AccessibilitySignal, source: string | undefined): void {
 		const isScreenReaderOptimized = this.accessibilityService.isScreenReaderOptimized();
 		const key = signal.name + (source ? `::${source}` : '') + (isScreenReaderOptimized ? '{screenReaderOptimized}' : '');
-		// Only send once per user session
 		if (this.sentTelemetry.has(key) || this.getVolumeInPercent() === 0) {
 			return;
 		}
@@ -209,7 +186,6 @@ export class AccessibilitySignalService extends Disposable implements IAccessibi
 			}
 		} catch (e) {
 			if (!e.message.includes('play() can only be initiated by a user gesture')) {
-				// tracking this issue in #178642, no need to spam the console
 				console.error('Error while playing sound', e);
 			}
 		} finally {
@@ -274,10 +250,6 @@ function checkEnabledState(state: EnabledState, getScreenReaderAttached: () => b
 	return state === 'on' || state === 'always' || (state === 'auto' && getScreenReaderAttached()) || state === 'userGesture' && isTriggeredByUserGesture;
 }
 
-/**
- * Play the given audio url.
- * @volume value between 0 and 1
- */
 async function playAudio(url: string, volume: number): Promise<HTMLAudioElement> {
 	const disposables = new DisposableStore();
 	try {
@@ -295,19 +267,14 @@ function doPlayAudio(url: string, volume: number, disposables: DisposableStore):
 			resolve(audio);
 		}));
 		disposables.add(addDisposableListener(audio, 'error', (e) => {
-			// When the error event fires, ended might not be called
 			reject(e.error);
 		}));
 		audio.play().catch(e => {
-			// When play fails, the error event is not fired.
 			reject(e);
 		});
 	});
 }
 
-/**
- * Corresponds to the audio files in ./media.
-*/
 export class Sound {
 	private static register(options: { fileName: string }): Sound {
 		const sound = new Sound(options.fileName);
@@ -379,10 +346,6 @@ export class AccessibilitySignal {
 	private static register(options: {
 		name: string;
 		sound: Sound | {
-			/**
-			 * Gaming and other apps often play a sound variant when the same event happens again
-			 * for an improved experience. This option enables playing a random sound.
-			 */
 			randomOneOf: Sound[];
 		};
 		legacySoundSettingsKey?: string;

@@ -116,7 +116,6 @@ class LanguagePacksCache extends Disposable {
 	}
 
 	getLanguagePacks(): Promise<{ [language: string]: ILanguagePack }> {
-		// if queue is not empty, fetch from disk
 		if (this.languagePacksFileLimiter.size || !this.initializedCache) {
 			return this.withLanguagePacks()
 				.then(() => this.languagePacks);

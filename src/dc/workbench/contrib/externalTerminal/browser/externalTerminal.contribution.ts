@@ -48,13 +48,11 @@ function registerOpenTerminalCommand(id: string, explorerKind: 'integrated' | 'e
 
 			const resources = getMultiSelectedResources(resource, accessor.get(IListService), accessor.get(IEditorService), accessor.get(IEditorGroupsService), accessor.get(IExplorerService));
 			return fileService.resolveAll(resources.map(r => ({ resource: r }))).then(async stats => {
-				// Always use integrated terminal when using a remote
 				const config = configurationService.getValue<IExternalTerminalConfiguration>();
 
 				const useIntegratedTerminal = remoteAgentService.getConnection() || explorerKind === 'integrated';
 				const targets = distinct(stats.filter(data => data.success));
 				if (useIntegratedTerminal) {
-					// TODO: Use uri for cwd in createterminal
 					const opened: { [path: string]: boolean } = {};
 					const cwds = targets.map(({ stat }) => {
 						const resource = stat!.resource;

@@ -16,54 +16,23 @@ import { IAgentHostGitService, parseUpstreamBranchName } from '../common/agentHo
 import { type IChangesetOperationHandler } from '../common/agentHostChangesetOperationService.js';
 import { type AutoMergeMethod, type CreatedPullRequest, IAgentHostOctoKitService } from './shared/agentHostOctoKitService.js';
 import type { InvokeChangesetOperationParams, InvokeChangesetOperationResult } from '../common/state/protocol/channels-changeset/commands.js';
-import { ICopilotApiService, type ICopilotUtilityChatMessage } from './shared/copilotApiService.js';
+import { IDardcorRouterService, type IDardcorUtilityChatMessage } from './shared/dardcorRouterService.js';
 import { buildConversationContext } from '../common/agentHostConversationContext.js';
 import { IAgentBranchNameGenerator } from './shared/agentBranchNameGenerator.js';
 import { SessionConfigKey } from '../common/sessionConfigKeys.js';
 import { readAgentMergeSessionState } from '../common/agentMerge.js';
 import { IAgentConfigurationService } from './agentConfigurationService.js';
 
-/**
- * Soft upper bound, in characters, for the conversation context fed to the
- * utility model when generating a PR title and description. Sized to stay
- * within the small model's context window while leaving room for the changed
- * file summary and prompt scaffolding.
- */
 const MAX_PR_CONVERSATION_CONTEXT_CHARS = 12_000;
 
-/**
- * Soft upper bound, in characters, for the changed-file summary fed to the
- * utility model when generating a PR title and description.
- */
 const MAX_PR_CHANGE_SUMMARY_CHARS = 4_000;
 
 export interface PullRequestCreatedEvent {
 	readonly sessionKey: string;
 	readonly pullRequestUrl: string;
-	/** The head branch the pull request was created (or found) for. */
 	readonly branchName: string;
 }
 
-/**
- * Server-side handler for pull request creation changeset operations advertised
- * on git-backed sessions whose working directory has a GitHub remote.
- * Operation availability is recomputed by
- * `AgentHostChangesetOperationService.updateOperations`.
- *
- * The flow mirrors the Copilot CLI extension's `createPullRequest` helper
- * (`extensions/copilot/src/extension/chatSessions/vscode-node/copilotCLIChatSessionsContribution.ts`):
- *
- * 1. Resolve session → working directory + current/base branch from
- *    {@link ISessionGitState}.
- * 2. If the current branch is the base branch, create a generated session branch.
- * 3. Commit any uncommitted working-tree changes.
- * 4. Push the current branch to its GitHub upstream remote (with `--set-upstream` when missing).
- * 5. Resolve `owner` / `repo` from {@link ISessionGitState.githubOwner}
- *    / {@link ISessionGitState.githubRepo} (populated by the git probe).
- * 6. Reuse an existing PR for the branch, or POST `/repos/{owner}/{repo}/pulls`
- *    via {@link IAgentHostOctoKitService}.
- * 7. Return the PR URL as an {@link InvokeChangesetOperationResult.followUp}.
- */
 export class AgentHostPullRequestOperationHandler implements IChangesetOperationHandler {
 
 	public static readonly OPERATION_CREATE_PR = 'create-pr';
@@ -85,7 +54,7 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 		@IAgentHostGitService private readonly _gitService: IAgentHostGitService,
 		@IAgentHostOctoKitService private readonly _octoKitService: IAgentHostOctoKitService,
 		@IAgentHostGitHubEndpointService private readonly _gitHubEndpointService: IAgentHostGitHubEndpointService,
-		@ICopilotApiService private readonly _copilotApiService: ICopilotApiService,
+		@IDardcorRouterService private readonly _dardcorRouterService: IDardcorRouterService,
 		@IAgentBranchNameGenerator private readonly _branchNameGenerator: IAgentBranchNameGenerator,
 		@IAgentConfigurationService private readonly _configurationService: IAgentConfigurationService,
 		@ILogService private readonly _logService: ILogService,
@@ -161,8 +130,6 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 
 		const hasUncommitted = await this._gitService.hasUncommittedChanges(workingDirectory);
 
-		// Create a new branch if the current branch is the same
-		// as the base branch and there are uncommitted changes
 		if (hasUncommitted && branchName === baseBranchName) {
 			const branchPrefix = sessionState.config?.values[SessionConfigKey.WorktreeBranchPrefix];
 
@@ -170,7 +137,6 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 				const generatedBranchName = await this._branchNameGenerator.generateBranchName({
 					sessionId: URI.parse(sessionUri).path.split('/').filter(Boolean).pop() ?? sessionUri,
 					message: sessionState.turns.find(turn => turn.message.text.trim())?.message.text,
-					githubToken: authToken,
 					signal,
 					branchPrefix: typeof branchPrefix === 'string' ? branchPrefix : undefined,
 					branchNameCollides: candidate => this._gitService.branchExists(workingDirectory, candidate).catch(() => true),
@@ -274,11 +240,6 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 		return await this._finalize(created, false, sessionUri, gitHubState.owner, gitHubState.repo, branchName, authToken, signal, token);
 	}
 
-	/**
-	 * Notifies listeners that the pull request now exists, optionally enables
-	 * auto-merge or Agent Merge, and builds the result message describing what
-	 * happened. A failure to enable auto-merge does not fail the operation.
-	 */
 	private async _finalize(
 		pr: CreatedPullRequest,
 		isExisting: boolean,
@@ -291,7 +252,6 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 		token: CancellationToken,
 	): Promise<InvokeChangesetOperationResult> {
 		if (!this._autoMergeMethod) {
-			// No auto-merge configured
 			this._completePullRequestOperation(sessionUri, pr.url, branchName);
 			return this._createResult(pr, this._buildMessage(pr, isExisting, 'none', undefined));
 		}
@@ -386,7 +346,6 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 	}
 
 	private _formatTitle(branchName: string): string {
-		// Beautify a branch name like `feat/foo-bar` into `feat: foo bar`.
 		const idx = branchName.indexOf('/');
 		if (idx > 0 && idx < branchName.length - 1) {
 			const prefix = branchName.substring(0, idx);
@@ -404,16 +363,6 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 		return localize('agentHost.changeset.pr.body', "Created from `{0}` targeting `{1}`.", branchName, baseBranchName);
 	}
 
-	/**
-	 * Best-effort generation of a PR title and description using the utility
-	 * model. The model is given the main session conversation (only the
-	 * markdown text of user requests and agent responses — tool calls,
-	 * subagents, and reasoning are excluded and the text is character-bounded)
-	 * along with a summary of the changed files. Returns `undefined` when no
-	 * Copilot OAuth credential is available or generation fails, so the caller can fall
-	 * back to the branch-name based title/description. PR creation must never
-	 * fail just because the model is unavailable.
-	 */
 	private async _generateTitleAndDescription(
 		sessionState: ISessionWithDefaultChat,
 		branchName: string,
@@ -422,15 +371,6 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 		signal: AbortSignal,
 		token: CancellationToken,
 	): Promise<{ title: string; description: string } | undefined> {
-		const copilotResource = this._gitHubEndpointService.getCopilotResource();
-		const authToken = this._authenticationService.getAuthToken({
-			resource: copilotResource.resource,
-			scopes: copilotResource.scopes_supported,
-		});
-		if (!authToken) {
-			return undefined;
-		}
-
 		const conversation = buildConversationContext(sessionState.turns, { maxChars: MAX_PR_CONVERSATION_CONTEXT_CHARS });
 		const changeSummary = this._summarizeDiffsForPrompt(branchChanges);
 		if (!conversation && !changeSummary) {
@@ -438,7 +378,7 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 		}
 
 		try {
-			const raw = await this._copilotApiService.utilityChatCompletion(authToken, {
+			const raw = await this._dardcorRouterService.utilityChatCompletion({
 				messages: this._buildTitleAndDescriptionPrompt(branchName, base, conversation, changeSummary),
 			}, { signal });
 			this._throwIfCancelled(token);
@@ -452,7 +392,7 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 		}
 	}
 
-	private _buildTitleAndDescriptionPrompt(branchName: string, base: string, conversation: string | undefined, changeSummary: string): ICopilotUtilityChatMessage[] {
+	private _buildTitleAndDescriptionPrompt(branchName: string, base: string, conversation: string | undefined, changeSummary: string): IDardcorUtilityChatMessage[] {
 		const userSections: string[] = [
 			`Branch: ${branchName}`,
 			`Base branch: ${base}`,
@@ -498,7 +438,6 @@ export class AgentHostPullRequestOperationHandler implements IChangesetOperation
 			}
 			const line = `- ${kind}: ${this._displayUri(path)} (+${diff.diff?.added ?? 0} -${diff.diff?.removed ?? 0})`;
 			lines.push(line);
-			// `+ 1` accounts for the newline that joins this line to the previous one.
 			length += line.length + (lines.length > 1 ? 1 : 0);
 			if (length > MAX_PR_CHANGE_SUMMARY_CHARS) {
 				lines.push('[file list truncated]');

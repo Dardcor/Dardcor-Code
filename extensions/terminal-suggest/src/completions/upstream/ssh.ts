@@ -1,4 +1,4 @@
-const knownHostRegex = /(?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9]+/; // will match numerical IPs as well as domains/subdomains
+const knownHostRegex = /(?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9]+/;
 
 const resolveAbsolutePath = (
 	path: string,
@@ -37,19 +37,16 @@ const getConfigLines = async (
 	});
 	const configLines = stdout.split("\n").map((line) => line.trim());
 
-	// Get list of includes in the config file
 	const includes = configLines
 		.filter((line) => line.toLowerCase().startsWith("include "))
 		.map((line) => line.split(" ")[1]);
 
-	// Get the lines of every include file
 	const includeLines: string[][] = await Promise.all(
 		includes.map((file) =>
 			getConfigLines(file, executeShellCommand, home, basePath)
 		)
 	);
 
-	// Combine config lines with includes config lines
 	return [...configLines, ...includeLines.flat()];
 };
 
@@ -71,7 +68,7 @@ export const knownHosts: Fig.Generator = {
 			})
 			.filter((value, index, self) => value && self.indexOf(value) === index)
 			.map((knownHost) => ({
-				name: (tokens[1].endsWith("@") ? tokens[1] : "") + knownHost, // also suggest when user@ is provided
+				name: (tokens[1].endsWith("@") ? tokens[1] : "") + knownHost,
 				description: "SSH host",
 			}));
 	},

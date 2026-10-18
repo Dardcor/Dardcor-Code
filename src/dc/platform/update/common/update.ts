@@ -8,34 +8,13 @@ import { upcast } from '../../../base/common/types.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 
 export interface IUpdate {
-	version: string; // Build commit ID
-	productVersion?: string; // Product version like 1.2.3
+	version: string;
+	productVersion?: string;
 	timestamp?: number;
 	url?: string;
 	sha256hash?: string;
 }
 
-/**
- * Updates are run as a state machine:
- *
- *      Uninitialized
- *           ↓
- *          Idle
- *          ↓  ↑
- *   Checking for Updates  →  Available for Download
- *         ↓                    ↓
- *                     ←   Overwriting
- *     Downloading              ↑
- *                     →      Ready
- *         ↓                    ↑
- *     Downloaded      →     Updating
- *
- * Available: There is an update available for download (linux, darwin on metered connection).
- * Ready: Code will be updated as soon as it restarts (win32, darwin).
- * Downloaded: There is an update ready to be installed in the background (win32).
- * Overwriting: A newer update is being downloaded to replace the pending update (darwin).
- * Cancelling: Updates are being disabled at runtime; in-flight/pending work is being torn down before Disabled.
- */
 
 export const enum StateType {
 	Uninitialized = 'uninitialized',
@@ -118,9 +97,6 @@ export interface IUpdateService {
 	applyUpdate(): Promise<void>;
 	quitAndInstall(): Promise<void>;
 
-	/**
-	 * @deprecated This method should not be used any more. It will be removed in a future release.
-	*/
 	isLatestVersion(): Promise<boolean | undefined>;
 	_applySpecificUpdate(packagePath: string): Promise<void>;
 	setInternalOrg(internalOrg: string | undefined): Promise<void>;

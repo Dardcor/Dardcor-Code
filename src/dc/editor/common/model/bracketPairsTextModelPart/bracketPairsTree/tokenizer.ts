@@ -34,17 +34,7 @@ export class Token {
 	constructor(
 		readonly length: Length,
 		readonly kind: TokenKind,
-		/**
-		 * If this token is an opening bracket, this is the id of the opening bracket.
-		 * If this token is a closing bracket, this is the id of the first opening bracket that is closed by this bracket.
-		 * Otherwise, it is -1.
-		 */
 		readonly bracketId: OpeningBracketId,
-		/**
-		 * If this token is an opening bracket, this just contains `bracketId`.
-		 * If this token is a closing bracket, this lists all opening bracket ids, that it closes.
-		 * Otherwise, it is empty.
-		 */
 		readonly bracketIds: SmallImmutableSet<OpeningBracketId>,
 		readonly astNode: BracketAstNode | TextAstNode | undefined,
 	) { }
@@ -125,9 +115,6 @@ export class TextBufferTokenizer implements Tokenizer {
 	}
 }
 
-/**
- * Does not support peek.
-*/
 class NonPeekableTextBufferTokenizer {
 	private readonly textBufferLineCount: number;
 	private readonly textBufferLastLineLength: number;
@@ -144,7 +131,6 @@ class NonPeekableTextBufferTokenizer {
 	private lineTokenOffset = 0;
 
 	public setPosition(lineIdx: number, column: number): void {
-		// We must not jump into a token!
 		if (lineIdx === this.lineIdx) {
 			this.lineCharOffset = column;
 			if (this.line !== null) {
@@ -158,7 +144,6 @@ class NonPeekableTextBufferTokenizer {
 		this.peekedToken = null;
 	}
 
-	/** Must be a zero line token. The end of the document cannot be peeked. */
 	private peekedToken: Token | null = null;
 
 	public read(): Token | null {
@@ -170,7 +155,6 @@ class NonPeekableTextBufferTokenizer {
 		}
 
 		if (this.lineIdx > this.textBufferLineCount - 1 || (this.lineIdx === this.textBufferLineCount - 1 && this.lineCharOffset >= this.textBufferLastLineLength)) {
-			// We are after the end
 			return null;
 		}
 
@@ -183,8 +167,6 @@ class NonPeekableTextBufferTokenizer {
 		const startLineIdx = this.lineIdx;
 		const startLineCharOffset = this.lineCharOffset;
 
-		// limits the length of text tokens.
-		// If text tokens get too long, incremental updates will be slow
 		let lengthHeuristic = 0;
 		while (true) {
 			const lineTokens = this.lineTokens!;
@@ -195,8 +177,6 @@ class NonPeekableTextBufferTokenizer {
 			if (this.lineTokenOffset < tokenCount) {
 				const tokenMetadata = lineTokens.getMetadata(this.lineTokenOffset);
 				while (this.lineTokenOffset + 1 < tokenCount && tokenMetadata === lineTokens.getMetadata(this.lineTokenOffset + 1)) {
-					// Skip tokens that are identical.
-					// Sometimes, (bracket) identifiers are split up into multiple tokens.
 					this.lineTokenOffset++;
 				}
 
@@ -204,7 +184,6 @@ class NonPeekableTextBufferTokenizer {
 				const containsBracketType = TokenMetadata.containsBalancedBrackets(tokenMetadata);
 
 				const endOffset = lineTokens.getEndOffset(this.lineTokenOffset);
-				// Is there a bracket token next? Only consume text.
 				if (containsBracketType && isOther && this.lineCharOffset < endOffset) {
 					const languageId = lineTokens.getLanguageId(this.lineTokenOffset);
 					const text = this.line.substring(this.lineCharOffset, endOffset);
@@ -217,7 +196,6 @@ class NonPeekableTextBufferTokenizer {
 						if (match) {
 							peekedBracketToken = brackets.getToken(match[0])!;
 							if (peekedBracketToken) {
-								// Consume leading text of the token
 								this.lineCharOffset += match.index;
 							}
 						}
@@ -227,19 +205,15 @@ class NonPeekableTextBufferTokenizer {
 				lengthHeuristic += endOffset - this.lineCharOffset;
 
 				if (peekedBracketToken) {
-					// Don't skip the entire token, as a single token could contain multiple brackets.
 
 					if (startLineIdx !== this.lineIdx || startLineCharOffset !== this.lineCharOffset) {
-						// There is text before the bracket
 						this.peekedToken = peekedBracketToken;
 						break;
 					} else {
-						// Consume the peeked token
 						this.lineCharOffset += lengthGetColumnCountIfZeroLineCount(peekedBracketToken.length);
 						return peekedBracketToken;
 					}
 				} else {
-					// Skip the entire token, as the token contains no brackets at all.
 					this.lineTokenOffset++;
 					this.lineCharOffset = endOffset;
 				}
@@ -253,27 +227,18 @@ class NonPeekableTextBufferTokenizer {
 				this.line = this.lineTokens.getLineContent();
 				this.lineCharOffset = 0;
 
-				lengthHeuristic += 33; // max 1000/33 = 30 lines
-				// This limits the amount of work to recompute min-indentation
+				lengthHeuristic += 33;
 
 				if (lengthHeuristic > 1000) {
-					// only break (automatically) at the end of line.
 					break;
 				}
 			}
 
 			if (lengthHeuristic > 1500) {
-				// Eventually break regardless of the line length so that
-				// very long lines do not cause bad performance.
-				// This effective limits max indentation to 500, as
-				// indentation is not computed across multiple text nodes.
 				break;
 			}
 		}
 
-		// If a token contains some proper indentation, it also contains \n{INDENTATION+}(?!{INDENTATION}),
-		// unless the line is too long.
-		// Thus, the min indentation of the document is the minimum min indentation of every text node.
 		const length = lengthDiff(startLineIdx, startLineCharOffset, this.lineIdx, this.lineCharOffset);
 		return new Token(length, TokenKind.Text, -1, SmallImmutableSet.getEmpty(), new TextAstNode(length));
 	}
@@ -319,7 +284,6 @@ export class FastTokenizer implements Tokenizer {
 
 		if (regexp) {
 			regexp.lastIndex = 0;
-			// If a token contains indentation, it also contains \n{INDENTATION+}(?!{INDENTATION})
 			while ((match = regexp.exec(text)) !== null) {
 				const curOffset = match.index;
 				const value = match[0];
@@ -350,7 +314,6 @@ export class FastTokenizer implements Tokenizer {
 						tokens.push(token);
 					}
 
-					// value is matched by regexp, so the token must exist
 					tokens.push(brackets.getToken(value)!);
 
 					lastTokenEndOffset = curOffset + value.length;

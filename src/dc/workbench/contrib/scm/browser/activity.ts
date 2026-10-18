@@ -122,7 +122,7 @@ export class SCMActiveRepositoryController extends Disposable implements IWorkbe
 	}
 
 	private _getRepositoryResourceCount(repository: ISCMRepository): IObservable<number> {
-		return observableFromEvent(this, repository.provider.onDidChangeResources, () => /** @description repositoryResourceCount */ getRepositoryResourceCount(repository.provider));
+		return observableFromEvent(this, repository.provider.onDidChangeResources, () => getRepositoryResourceCount(repository.provider));
 	}
 
 	private _updateActivityCountBadge(count: number, store: DisposableStore): void {
@@ -162,7 +162,6 @@ export class SCMActiveRepositoryController extends Disposable implements IWorkbe
 			);
 		}
 
-		// Source control provider status bar entry
 		if (this.scmViewService.repositories.length > 1) {
 			const icon = getSCMRepositoryIcon(activeRepository, activeRepository.repository);
 			const repositoryStatusbarEntry: IStatusbarEntry = {
@@ -210,7 +209,6 @@ export class SCMActiveResourceContextKeyController extends Disposable implements
 			}
 		}));
 
-		// Create context key providers which will update the context keys based on each groups active editor
 		const hasChangesContextKeyProvider: IEditorGroupContextKeyProvider<boolean> = {
 			contextKey: activeResourceHasChangesContextKey,
 			getGroupContextKeyValue: (group) => this._getEditorHasChanges(group.activeEditor),

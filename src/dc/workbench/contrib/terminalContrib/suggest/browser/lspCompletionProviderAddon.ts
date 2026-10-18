@@ -37,19 +37,16 @@ export class LspCompletionProviderAddon extends Disposable implements ITerminalA
 	}
 
 	activate(terminal: Terminal): void {
-		// console.log('activate');
 	}
 
 	async provideCompletions(value: string, cursorPosition: number, token: CancellationToken): Promise<ITerminalCompletion[] | TerminalCompletionList<ITerminalCompletion> | undefined> {
 
-		// Apply edit for non-executed current commandline --> Pretend we are typing in the real-document.
 		this._lspTerminalModelContentProvider.trackPromptInputToVirtualFile(value);
 
 		const textBeforeCursor = value.substring(0, cursorPosition);
 		const lines = textBeforeCursor.split('\n');
 		const column = lines[lines.length - 1].length + 1;
 
-		// Get line from virtualDocument, not from terminal
 		const lineNum = this._textVirtualModel.object.textEditorModel.getLineCount();
 		const positionVirtualDocument = new Position(lineNum, column);
 
@@ -58,7 +55,6 @@ export class LspCompletionProviderAddon extends Disposable implements ITerminalA
 
 			const result = await this._provider.provideCompletionItems(this._textVirtualModel.object.textEditorModel, positionVirtualDocument, { triggerKind: CompletionTriggerKind.TriggerCharacter }, token);
 			for (const item of (result?.suggestions || [])) {
-				// TODO: Support more terminalCompletionItemKind for [different LSP providers](https://github.com/microsoft/vscode/issues/249479)
 				const convertedKind = item.kind ? mapLspKindToTerminalKind(item.kind) : TerminalCompletionItemKind.Method;
 				const completionItemTemp = createCompletionItemPython(cursorPosition, textBeforeCursor, convertedKind, 'lspCompletionItem', undefined);
 				const terminalCompletion: ITerminalCompletion = {
@@ -70,7 +66,6 @@ export class LspCompletionProviderAddon extends Disposable implements ITerminalA
 					replacementRange: completionItemTemp.replacementRange,
 				};
 
-				// Store unresolved item and provider for lazy resolution if needed
 				if (this._provider.resolveCompletionItem && (!item.detail || !item.documentation)) {
 					terminalCompletion._unresolvedItem = item;
 					terminalCompletion._resolveProvider = this._provider;
@@ -114,41 +109,23 @@ function getLastWord(prefix: string): string {
 	const lastDotIndex = prefix.lastIndexOf('.');
 	const lastParenIndex = prefix.lastIndexOf('(');
 
-	// Get the maximum index (most recent delimiter)
 	const lastDelimiterIndex = Math.max(lastSpaceIndex, lastDotIndex, lastParenIndex);
 
-	// If no delimiter found, return the entire prefix
 	if (lastDelimiterIndex === -1) {
 		return prefix;
 	}
 
-	// Return the substring after the last delimiter
 	return prefix.substring(lastDelimiterIndex + 1);
 }
 
 export interface TerminalCompletionItem {
-	/**
-	 * The label of the completion.
-	 */
 	label: string | CompletionItemLabel;
 
-	/**
-	 * Selection range (inclusive start, exclusive end) to replace when this completion is applied.
-	 */
 	replacementRange: readonly [number, number] | undefined;
 
-	/**
-	 * The completion's detail which appears on the right of the list.
-	 */
 	detail?: string;
 
-	/**
-	 * A human-readable string that represents a doc-comment.
-	 */
 	documentation?: string | MarkdownString;
 
-	/**
-	 * The completion's kind. Note that this will map to an icon.
-	 */
 	kind?: TerminalCompletionItemKind;
 }

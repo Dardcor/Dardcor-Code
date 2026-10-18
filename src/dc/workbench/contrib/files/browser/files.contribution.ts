@@ -57,7 +57,6 @@ class FileUriLabelContribution implements IWorkbenchContribution {
 
 registerSingleton(IExplorerService, ExplorerService, InstantiationType.Delayed);
 
-// Register file editors
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
@@ -81,7 +80,6 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 	]
 );
 
-// Register default file input factory
 Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerFileEditorFactory({
 
 	typeId: FILE_EDITOR_INPUT_ID,
@@ -95,29 +93,21 @@ Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerFile
 	}
 });
 
-// Register Editor Input Serializer & Handler
 Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerEditorSerializer(FILE_EDITOR_INPUT_ID, FileEditorInputSerializer);
 registerWorkbenchContribution2(FileEditorWorkingCopyEditorHandler.ID, FileEditorWorkingCopyEditorHandler, WorkbenchPhase.BlockRestore);
 
-// Register Explorer views
 registerWorkbenchContribution2(ExplorerViewletViewsContribution.ID, ExplorerViewletViewsContribution, WorkbenchPhase.BlockStartup);
 
-// Register Text File Editor Tracker
 registerWorkbenchContribution2(TextFileEditorTracker.ID, TextFileEditorTracker, WorkbenchPhase.BlockStartup);
 
-// Register Text File Save Error Handler
 registerWorkbenchContribution2(TextFileSaveErrorHandler.ID, TextFileSaveErrorHandler, WorkbenchPhase.BlockStartup);
 
-// Register uri display for file uris
 registerWorkbenchContribution2(FileUriLabelContribution.ID, FileUriLabelContribution, WorkbenchPhase.BlockStartup);
 
-// Register Workspace Watcher
 registerWorkbenchContribution2(WorkspaceWatcher.ID, WorkspaceWatcher, WorkbenchPhase.AfterRestored);
 
-// Register Dirty Files Indicator
 registerWorkbenchContribution2(DirtyFilesIndicator.ID, DirtyFilesIndicator, WorkbenchPhase.BlockStartup);
 
-// Configuration
 const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 
 const hotExitConfiguration: IConfigurationPropertySchema = isNative ?
@@ -131,7 +121,7 @@ const hotExitConfiguration: IConfigurationPropertySchema = isNative ?
 			nls.localize('hotExit.onExit', 'Hot exit will be triggered when the last window is closed on Windows/Linux or when the `workbench.action.quit` command is triggered (command palette, keybinding, menu). All windows without folders opened will be restored upon next launch. A list of previously opened windows with unsaved files can be accessed via `File > Open Recent > More...`'),
 			nls.localize('hotExit.onExitAndWindowClose', 'Hot exit will be triggered when the last window is closed on Windows/Linux or when the `workbench.action.quit` command is triggered (command palette, keybinding, menu), and also for any window with a folder opened regardless of whether it\'s the last window. All windows without folders opened will be restored upon next launch. A list of previously opened windows with unsaved files can be accessed via `File > Open Recent > More...`')
 		],
-		'markdownDescription': nls.localize('hotExit', "[Hot Exit](https://aka.ms/vscode-hot-exit) controls whether unsaved files are remembered between sessions, allowing the save prompt when exiting the editor to be skipped.", HotExitConfiguration.ON_EXIT, HotExitConfiguration.ON_EXIT_AND_WINDOW_CLOSE)
+		'markdownDescription': nls.localize('hotExit', "[Hot Exit](https://www.dardcor-code.web.id/docs/editor/hot-exit) controls whether unsaved files are remembered between sessions, allowing the save prompt when exiting the editor to be skipped.", HotExitConfiguration.ON_EXIT, HotExitConfiguration.ON_EXIT_AND_WINDOW_CLOSE)
 	} : {
 		'type': 'string',
 		'scope': ConfigurationScope.APPLICATION,
@@ -141,7 +131,7 @@ const hotExitConfiguration: IConfigurationPropertySchema = isNative ?
 			nls.localize('hotExit.off', 'Disable hot exit. A prompt will show when attempting to close a window with editors that have unsaved changes.'),
 			nls.localize('hotExit.onExitAndWindowCloseBrowser', 'Hot exit will be triggered when the browser quits or the window or tab is closed.')
 		],
-		'markdownDescription': nls.localize('hotExit', "[Hot Exit](https://aka.ms/vscode-hot-exit) controls whether unsaved files are remembered between sessions, allowing the save prompt when exiting the editor to be skipped.", HotExitConfiguration.ON_EXIT, HotExitConfiguration.ON_EXIT_AND_WINDOW_CLOSE)
+		'markdownDescription': nls.localize('hotExit', "[Hot Exit](https://www.dardcor-code.web.id/docs/editor/hot-exit) controls whether unsaved files are remembered between sessions, allowing the save prompt when exiting the editor to be skipped.", HotExitConfiguration.ON_EXIT, HotExitConfiguration.ON_EXIT_AND_WINDOW_CLOSE)
 	};
 
 configurationRegistry.registerConfiguration({
@@ -152,10 +142,10 @@ configurationRegistry.registerConfiguration({
 	'properties': {
 		[FILES_EXCLUDE_CONFIG]: {
 			'type': 'object',
-			'markdownDescription': nls.localize('exclude', "Configure [glob patterns](https://aka.ms/vscode-glob-patterns) for excluding files and folders. For example, the File Explorer decides which files and folders to show or hide based on this setting. Refer to the `#search.exclude#` setting to define search-specific excludes. Refer to the `#explorer.excludeGitIgnore#` setting for ignoring files based on your `.gitignore`."),
+			'markdownDescription': nls.localize('exclude', "Configure [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) for excluding files and folders. For example, the File Explorer decides which files and folders to show or hide based on this setting. Refer to the `#search.exclude#` setting to define search-specific excludes. Refer to the `#explorer.excludeGitIgnore#` setting for ignoring files based on your `.gitignore`."),
 			'default': {
 				...{ '**/.git': true, '**/.svn': true, '**/.hg': true, '**/.DS_Store': true, '**/Thumbs.db': true },
-				...(isWeb ? { '**/*.crswap': true /* filter out swap files used for local file access */ } : undefined)
+				...(isWeb ? { '**/*.crswap': true } : undefined)
 			},
 			'scope': ConfigurationScope.RESOURCE,
 			'additionalProperties': {
@@ -170,7 +160,7 @@ configurationRegistry.registerConfiguration({
 						'type': 'object',
 						'properties': {
 							'when': {
-								'type': 'string', // expression ({ "**/*.js": { "when": "$(basename).js" } })
+								'type': 'string',
 								'pattern': '\\w*\\$\\(basename\\)\\w*',
 								'default': '$(basename).ext',
 								'markdownDescription': nls.localize({ key: 'files.exclude.when', comment: ['\\$(basename) should not be translated'] }, "Additional check on the siblings of a matching file. Use \\$(basename) as variable for the matching file name.")
@@ -182,7 +172,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[FILES_ASSOCIATIONS_CONFIG]: {
 			'type': 'object',
-			'markdownDescription': nls.localize('associations', "Configure [glob patterns](https://aka.ms/vscode-glob-patterns) of file associations to languages (for example `\"*.extension\": \"html\"`). Patterns will match on the absolute path of a file if they contain a path separator and will match on the name of the file otherwise. These have precedence over the default associations of the languages installed."),
+			'markdownDescription': nls.localize('associations', "Configure [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) of file associations to languages (for example `\"*.extension\": \"html\"`). Patterns will match on the absolute path of a file if they contain a path separator and will match on the name of the file otherwise. These have precedence over the default associations of the languages installed."),
 			'additionalProperties': {
 				'type': 'string'
 			}
@@ -268,7 +258,7 @@ configurationRegistry.registerConfiguration({
 				nls.localize({ comment: ['This is the description for a setting. Values surrounded by single quotes are not to be translated.'], key: 'files.autoSave.onWindowChange' }, "An editor with changes is automatically saved when the window loses focus.")
 			],
 			'default': isWeb ? AutoSaveConfiguration.AFTER_DELAY : AutoSaveConfiguration.OFF,
-			'markdownDescription': nls.localize({ comment: ['This is the description for a setting. Values surrounded by single quotes are not to be translated.'], key: 'autoSave' }, "Controls [auto save](https://code.visualstudio.com/docs/editor/codebasics#_save-auto-save) of editors that have unsaved changes.", AutoSaveConfiguration.OFF, AutoSaveConfiguration.AFTER_DELAY, AutoSaveConfiguration.ON_FOCUS_CHANGE, AutoSaveConfiguration.ON_WINDOW_CHANGE, AutoSaveConfiguration.AFTER_DELAY),
+			'markdownDescription': nls.localize({ comment: ['This is the description for a setting. Values surrounded by single quotes are not to be translated.'], key: 'autoSave' }, "Controls [auto save](https://www.dardcor-code.web.id/docs/editor/codebasics#_save-auto-save) of editors that have unsaved changes.", AutoSaveConfiguration.OFF, AutoSaveConfiguration.AFTER_DELAY, AutoSaveConfiguration.ON_FOCUS_CHANGE, AutoSaveConfiguration.ON_WINDOW_CHANGE, AutoSaveConfiguration.AFTER_DELAY),
 			scope: ConfigurationScope.LANGUAGE_OVERRIDABLE,
 		},
 		'files.autoSaveDelay': {
@@ -281,13 +271,13 @@ configurationRegistry.registerConfiguration({
 		'files.autoSaveWorkspaceFilesOnly': {
 			'type': 'boolean',
 			'default': false,
-			'markdownDescription': nls.localize('autoSaveWorkspaceFilesOnly', "When enabled, will limit [auto save](https://code.visualstudio.com/docs/editor/codebasics#_save-auto-save) of editors to files that are inside the opened workspace. Only applies when {0} is enabled.", '`#files.autoSave#`'),
+			'markdownDescription': nls.localize('autoSaveWorkspaceFilesOnly', "When enabled, will limit [auto save](https://www.dardcor-code.web.id/docs/editor/codebasics#_save-auto-save) of editors to files that are inside the opened workspace. Only applies when {0} is enabled.", '`#files.autoSave#`'),
 			scope: ConfigurationScope.LANGUAGE_OVERRIDABLE
 		},
 		'files.autoSaveWhenNoErrors': {
 			'type': 'boolean',
 			'default': false,
-			'markdownDescription': nls.localize('autoSaveWhenNoErrors', "When enabled, will limit [auto save](https://code.visualstudio.com/docs/editor/codebasics#_save-auto-save) of editors to files that have no errors reported in them at the time the auto save is triggered. Only applies when {0} is enabled.", '`#files.autoSave#`'),
+			'markdownDescription': nls.localize('autoSaveWhenNoErrors', "When enabled, will limit [auto save](https://www.dardcor-code.web.id/docs/editor/codebasics#_save-auto-save) of editors to files that have no errors reported in them at the time the auto save is triggered. Only applies when {0} is enabled.", '`#files.autoSave#`'),
 			scope: ConfigurationScope.LANGUAGE_OVERRIDABLE
 		},
 		'files.watcherExclude': {
@@ -296,8 +286,6 @@ configurationRegistry.registerConfiguration({
 				'.*': { 'type': 'boolean' }
 			},
 			'default': {
-				// Avoiding a '**' pattern here which results in a very complex
-				// RegExp that can slow things down significantly in large workspaces
 				'.git/objects/**': true,
 				'.git/subtree-cache/**': true,
 				'.hg/store/**': true,
@@ -305,7 +293,7 @@ configurationRegistry.registerConfiguration({
 				'*/.git/subtree-cache/**': true,
 				'*/.hg/store/**': true
 			},
-			'markdownDescription': nls.localize('watcherExclude', "Configure paths or [glob patterns](https://aka.ms/vscode-glob-patterns) to exclude from file watching. Paths can either be relative to the watched folder or absolute. Glob patterns are matched relative from the watched folder. When you experience the file watcher process consuming a lot of CPU, make sure to exclude large folders that are of less interest (such as build output folders)."),
+			'markdownDescription': nls.localize('watcherExclude', "Configure paths or [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) to exclude from file watching. Paths can either be relative to the watched folder or absolute. Glob patterns are matched relative from the watched folder. When you experience the file watcher process consuming a lot of CPU, make sure to exclude large folders that are of less interest (such as build output folders)."),
 			'scope': ConfigurationScope.RESOURCE
 		},
 		'files.watcherInclude': {
@@ -328,7 +316,7 @@ configurationRegistry.registerConfiguration({
 				'.*': { 'type': 'boolean' }
 			},
 			'default': {},
-			'markdownDescription': nls.localize('filesReadonlyInclude', "Configure paths or [glob patterns](https://aka.ms/vscode-glob-patterns) to mark as read-only. Glob patterns are always evaluated relative to the path of the workspace folder unless they are absolute paths. You can exclude matching paths via the `#files.readonlyExclude#` setting. Files from readonly file system providers will always be read-only independent of this setting."),
+			'markdownDescription': nls.localize('filesReadonlyInclude', "Configure paths or [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) to mark as read-only. Glob patterns are always evaluated relative to the path of the workspace folder unless they are absolute paths. You can exclude matching paths via the `#files.readonlyExclude#` setting. Files from readonly file system providers will always be read-only independent of this setting."),
 			'scope': ConfigurationScope.RESOURCE
 		},
 		[FILES_READONLY_EXCLUDE_CONFIG]: {
@@ -337,7 +325,7 @@ configurationRegistry.registerConfiguration({
 				'.*': { 'type': 'boolean' }
 			},
 			'default': {},
-			'markdownDescription': nls.localize('filesReadonlyExclude', "Configure paths or [glob patterns](https://aka.ms/vscode-glob-patterns) to exclude from being marked as read-only if they match as a result of the `#files.readonlyInclude#` setting. Glob patterns are always evaluated relative to the path of the workspace folder unless they are absolute paths. Files from readonly file system providers will always be read-only independent of this setting."),
+			'markdownDescription': nls.localize('filesReadonlyExclude', "Configure paths or [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) to exclude from being marked as read-only if they match as a result of the `#files.readonlyInclude#` setting. Glob patterns are always evaluated relative to the path of the workspace folder unless they are absolute paths. Files from readonly file system providers will always be read-only independent of this setting."),
 			'scope': ConfigurationScope.RESOURCE
 		},
 		[FILES_READONLY_FROM_PERMISSIONS_CONFIG]: {
@@ -366,7 +354,7 @@ configurationRegistry.registerConfiguration({
 		},
 		'files.dialog.defaultPath': {
 			'type': 'string',
-			'pattern': '^((\\/|\\\\\\\\|[a-zA-Z]:\\\\).*)?$', // slash OR UNC-root OR drive-root OR undefined
+			'pattern': '^((\\/|\\\\\\\\|[a-zA-Z]:\\\\).*)?$',
 			'patternErrorMessage': nls.localize('defaultPathErrorMessage', "Default path for file dialogs must be an absolute path (e.g. C:\\\\myFolder or /myFolder)."),
 			'description': nls.localize('fileDialogDefaultPath', "Default path for file dialogs, overriding user's home path. Only used in the absence of a context-specific path, such as most recently opened file or folder."),
 			'scope': ConfigurationScope.MACHINE
@@ -453,7 +441,7 @@ configurationRegistry.registerConfiguration({
 		},
 		'explorer.autoRevealExclude': {
 			'type': 'object',
-			'markdownDescription': nls.localize('autoRevealExclude', "Configure paths or [glob patterns](https://aka.ms/vscode-glob-patterns) for excluding files and folders from being revealed and selected in the Explorer when they are opened. Glob patterns are always evaluated relative to the path of the workspace folder unless they are absolute paths."),
+			'markdownDescription': nls.localize('autoRevealExclude', "Configure paths or [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) for excluding files and folders from being revealed and selected in the Explorer when they are opened. Glob patterns are always evaluated relative to the path of the workspace folder unless they are absolute paths."),
 			'default': { '**/node_modules': true, '**/bower_components': true },
 			'additionalProperties': {
 				'anyOf': [
@@ -465,7 +453,7 @@ configurationRegistry.registerConfiguration({
 						type: 'object',
 						properties: {
 							when: {
-								type: 'string', // expression ({ "**/*.js": { "when": "$(basename).js" } })
+								type: 'string',
 								pattern: '\\w*\\$\\(basename\\)\\w*',
 								default: '$(basename).ext',
 								description: nls.localize('explorer.autoRevealExclude.when', 'Additional check on the siblings of a matching file. Use {0} as variable for the matching file name.', '$(basename)')

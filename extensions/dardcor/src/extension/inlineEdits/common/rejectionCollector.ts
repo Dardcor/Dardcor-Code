@@ -85,13 +85,12 @@ class DocumentRejectionTracker {
 
 	public handleEdit(edit: StringEdit, currentContent: StringText): void {
 		for (const r of [...this._rejectedEdits]) {
-			r.handleEdit(edit, currentContent); // this can remove the rejected edit from the set
+			r.handleEdit(edit, currentContent);
 		}
 	}
 
 	public reject(edit: StringReplacement): void {
 		if (this.isRejected(edit)) {
-			// already tracked
 			return;
 		}
 		const r = new RejectedEdit(edit.toEdit(), () => {

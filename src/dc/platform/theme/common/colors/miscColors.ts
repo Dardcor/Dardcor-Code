@@ -5,25 +5,21 @@
 
 import * as nls from '../../../../nls.js';
 
-// Import the effects we need
 import { Color } from '../../../../base/common/color.js';
 import { registerColor, transparent } from '../colorUtils.js';
 
-// Import the colors we need
 import { contrastBorder, focusBorder } from './baseColors.js';
 
 
-// ----- sash
 
 export const sashHoverBorder = registerColor('sash.hoverBorder',
 	focusBorder,
 	nls.localize('sashActiveBorder', "Border color of active sashes."));
 
 
-// ----- badge
 
 export const badgeBackground = registerColor('badge.background',
-	{ dark: '#7C4DFF', light: '#7C4DFF', hcDark: Color.black, hcLight: '#0F4A85' },
+	{ dark: '#4D4D4D', light: '#C4C4C4', hcDark: Color.black, hcLight: '#0F4A85' },
 	nls.localize('badgeBackground', "Badge background color. Badges are small information labels, e.g. for search results count."));
 
 export const badgeForeground = registerColor('badge.foreground',
@@ -47,22 +43,21 @@ export const activityErrorBadgeBackground = registerColor('activityErrorBadge.ba
 	nls.localize('activityErrorBadge.background', 'Background color of the error activity badge'));
 
 
-// ----- scrollbar
 
 export const scrollbarShadow = registerColor('scrollbar.shadow',
 	{ dark: '#000000', light: '#DDDDDD', hcDark: null, hcLight: null },
 	nls.localize('scrollbarShadow', "Scrollbar shadow to indicate that the view is scrolled."));
 
 export const scrollbarSliderBackground = registerColor('scrollbarSlider.background',
-	{ dark: Color.fromHex('#A0A0A0').transparent(0.5), light: Color.fromHex('#646464').transparent(0.4), hcDark: transparent(contrastBorder, 0.6), hcLight: transparent(contrastBorder, 0.4) },
+	{ dark: Color.fromHex('#797979').transparent(0.4), light: Color.fromHex('#646464').transparent(0.4), hcDark: transparent(contrastBorder, 0.6), hcLight: transparent(contrastBorder, 0.4) },
 	nls.localize('scrollbarSliderBackground', "Scrollbar slider background color."));
 
 export const scrollbarSliderHoverBackground = registerColor('scrollbarSlider.hoverBackground',
-	{ dark: Color.fromHex('#BFBFBF').transparent(0.6), light: Color.fromHex('#646464').transparent(0.7), hcDark: transparent(contrastBorder, 0.8), hcLight: transparent(contrastBorder, 0.8) },
+	{ dark: Color.fromHex('#646464').transparent(0.7), light: Color.fromHex('#646464').transparent(0.7), hcDark: transparent(contrastBorder, 0.8), hcLight: transparent(contrastBorder, 0.8) },
 	nls.localize('scrollbarSliderHoverBackground', "Scrollbar slider background color when hovering."));
 
 export const scrollbarSliderActiveBackground = registerColor('scrollbarSlider.activeBackground',
-	{ dark: Color.fromHex('#FFFFFF').transparent(0.7), light: Color.fromHex('#000000').transparent(0.6), hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: Color.fromHex('#BFBFBF').transparent(0.4), light: Color.fromHex('#000000').transparent(0.6), hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('scrollbarSliderActiveBackground', "Scrollbar slider background color when clicked on."));
 
 export const scrollbarBackground = registerColor('scrollbar.background',
@@ -70,13 +65,11 @@ export const scrollbarBackground = registerColor('scrollbar.background',
 	nls.localize('scrollbarBackground', "Scrollbar track background color."));
 
 
-// ----- progress bar
 
 export const progressBarBackground = registerColor('progressBar.background',
-	{ dark: Color.fromHex('#7C4DFF'), light: Color.fromHex('#7C4DFF'), hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: Color.fromHex('#0E70C0'), light: Color.fromHex('#0E70C0'), hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('progressBarBackground', "Background color of the progress bar that can show for long running operations."));
 
-// ----- chart
 
 export const chartLine = registerColor('chart.line',
 	{ dark: '#236B8E', light: '#236B8E', hcDark: '#236B8E', hcLight: '#236B8E' },

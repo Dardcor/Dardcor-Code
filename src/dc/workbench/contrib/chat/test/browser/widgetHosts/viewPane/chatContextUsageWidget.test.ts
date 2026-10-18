@@ -29,7 +29,6 @@ const schemaWithContextSize: ILanguageModelConfigurationSchema = {
 	}
 };
 
-// A model that exposes no context-size picker (e.g. no tiered pricing).
 const schemaWithoutContextSize: ILanguageModelConfigurationSchema = {
 	properties: {
 		thinkingEffort: { enum: ['low', 'medium', 'high'], default: 'medium' },
@@ -47,9 +46,6 @@ suite('resolveContextWindowInputTokens', () => {
 	});
 
 	test('falls back to the schema default tier when contextSize is absent (regression for #320393)', () => {
-		// The exact bug: a resolved configuration missing `contextSize` must NOT
-		// make the gauge jump to the model's full native window. It must match the
-		// default tier the request uses.
 		assert.strictEqual(
 			resolveContextWindowInputTokens({ thinkingEffort: 'high' }, schemaWithContextSize, FULL_WINDOW),
 			DEFAULT_TIER,
@@ -68,8 +64,6 @@ suite('resolveContextWindowInputTokens', () => {
 	});
 
 	test('falls through to the full window when the schema has no contextSize default', () => {
-		// Models without a context-size picker have no schema default, so default
-		// and max are the same value and the full window is correct.
 		assert.strictEqual(
 			resolveContextWindowInputTokens({ thinkingEffort: 'high' }, schemaWithoutContextSize, FULL_WINDOW),
 			FULL_WINDOW,
@@ -121,9 +115,6 @@ suite('ChatContextUsageWidget', () => {
 	const AUTO_MODEL = 'vendor:auto';
 	const CONCRETE_MODEL = 'vendor:gpt';
 
-	// Mirrors the Agent Host scenario where the synthetic "auto" model advertises
-	// a zero-sized context window (it routes to a concrete model) while the
-	// concrete model exposes a real window. See issue #321781.
 	const models: Record<string, Partial<ILanguageModelChatMetadata>> = {
 		[AUTO_MODEL]: { maxInputTokens: 0, maxOutputTokens: 0 },
 		[CONCRETE_MODEL]: { maxInputTokens: 100_000, maxOutputTokens: 8_000 },
@@ -180,14 +171,10 @@ suite('ChatContextUsageWidget', () => {
 
 	test('falls back to the actual model window when "auto" is selected (regression for #321781)', () => {
 		const widget = createWidget();
-		// User has "auto" selected; "auto" has no window of its own but the
-		// response reports the concrete model that actually served the request.
 		widget.setSelectedModel(AUTO_MODEL);
 		widget.update(createRequest(AUTO_MODEL, usage(CONCRETE_MODEL)));
 
 		assert.strictEqual(widget.isVisible.get(), true);
-		// 54,000 used / (100,000 + 8,000) window === 50%, proving the concrete
-		// model's window was used as the denominator rather than "auto"'s zero.
 		assert.strictEqual(widget.domNode.querySelector('.percentage-label')?.textContent, '50%');
 	});
 

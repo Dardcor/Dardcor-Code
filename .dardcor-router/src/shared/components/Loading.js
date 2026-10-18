@@ -2,7 +2,6 @@
 
 import { cn } from "@/shared/utils/cn";
 
-// Spinner loading
 export function Spinner({ size = "md", className }) {
   const sizes = {
     sm: "size-4",
@@ -24,7 +23,6 @@ export function Spinner({ size = "md", className }) {
   );
 }
 
-// Full page loading
 export function PageLoading({ message = "Loading..." }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg">
@@ -34,7 +32,6 @@ export function PageLoading({ message = "Loading..." }) {
   );
 }
 
-// Skeleton loading
 export function Skeleton({ className, ...props }) {
   return (
     <div
@@ -47,7 +44,6 @@ export function Skeleton({ className, ...props }) {
   );
 }
 
-// Card skeleton
 export function CardSkeleton() {
   return (
     <div className="p-6 rounded-[14px] border border-border-subtle bg-surface shadow-[var(--shadow-soft)]">

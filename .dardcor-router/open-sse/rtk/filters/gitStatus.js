@@ -1,13 +1,3 @@
-// Port of git::format_status_output (rtk/src/cmds/git/git.rs:619-730)
-// Output format:
-//   * <branch>
-//   + Staged: N files
-//      path1
-//      ... +K more
-//   ~ Modified: N files
-//   ? Untracked: N files
-//   conflicts: N files
-//   clean — nothing to commit
 import { STATUS_MAX_FILES, STATUS_MAX_UNTRACKED } from "../constants.js";
 
 export function gitStatus(input) {
@@ -28,14 +18,11 @@ export function gitStatus(input) {
   for (const raw of lines) {
     if (!raw.trim()) continue;
 
-    // Long-form branch detection (LLM usually sends this, not porcelain)
     const longBranch = raw.match(/^On branch (\S+)/);
     if (longBranch) { branch = longBranch[1]; continue; }
 
-    // Porcelain branch header: "## main...origin/main"
     if (raw.startsWith("##")) { branch = raw.replace(/^##\s*/, ""); continue; }
 
-    // Porcelain status (2 chars + space + path)
     if (raw.length >= 3 && /^[ MADRCU?!][ MADRCU?!] /.test(raw)) {
       const x = raw[0];
       const y = raw[1];
@@ -61,7 +48,6 @@ export function gitStatus(input) {
       continue;
     }
 
-    // Long form fallback ("modified:   path", "new file:   path", ...)
     const longMatch = raw.match(/^\s*(modified|new file|deleted|renamed|both modified):\s+(.+)$/);
     if (longMatch) {
       const kind = longMatch[1];
@@ -72,8 +58,6 @@ export function gitStatus(input) {
       continue;
     }
 
-    // "Untracked files:" section — gather bare paths after this marker
-    // Handled implicitly: plain paths without markers are skipped (safer).
   }
 
   let out = "";

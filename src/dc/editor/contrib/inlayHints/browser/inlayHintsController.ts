@@ -38,7 +38,6 @@ import * as colors from '../../../../platform/theme/common/colorRegistry.js';
 import { themeColorFromId } from '../../../../platform/theme/common/themeService.js';
 import { Position } from '../../../common/core/position.js';
 
-// --- hint caching service (per session)
 
 class InlayHintsCache {
 
@@ -65,7 +64,6 @@ interface IInlayHintsCache extends InlayHintsCache { }
 const IInlayHintsCache = createDecorator<IInlayHintsCache>('IInlayHintsCache');
 registerSingleton(IInlayHintsCache, InlayHintsCache, InstantiationType.Delayed);
 
-// --- rendered label
 
 export class RenderedInlayHintLabelPart {
 	constructor(readonly item: InlayHintItem, readonly index: number) { }
@@ -97,9 +95,6 @@ const enum RenderMode {
 
 
 
-/**
- *  Mix of CancellationTokenSource, DisposableStore and MutableDisposable
- */
 class CancellationStore implements IDisposable {
 
 	private readonly _store = new MutableDisposable<DisposableStore>();
@@ -123,7 +118,6 @@ class CancellationStore implements IDisposable {
 }
 
 
-// --- controller
 
 
 export class InlayHintsController implements IEditorContribution {
@@ -191,10 +185,8 @@ export class InlayHintsController implements IEditorContribution {
 		}
 
 		if (options.enabled === 'on') {
-			// different "on" modes: always
 			this._activeRenderMode = RenderMode.Normal;
 		} else {
-			// different "on" modes: offUnlessPressed, or onUnlessPressed
 			let defaultMode: RenderMode;
 			let altMode: RenderMode;
 			if (options.enabled === 'onUnlessPressed') {
@@ -221,13 +213,11 @@ export class InlayHintsController implements IEditorContribution {
 			}));
 		}
 
-		// iff possible, quickly update from cache
 		const cached = this._inlayHintsCache.get(model);
 		if (cached) {
 			this._updateHintsDecorators([model.getFullModelRange()], cached);
 		}
 		this._sessionDisposables.add(toDisposable(() => {
-			// cache items when switching files etc
 			if (!model.isDisposed()) {
 				this._cacheHintsForFastRestore(model);
 			}
@@ -253,12 +243,11 @@ export class InlayHintsController implements IEditorContribution {
 					return;
 				}
 
-				// listen to provider changes
 				for (const provider of inlayHints.provider) {
 					if (typeof provider.onDidChangeInlayHints === 'function' && !watchedProviders.has(provider)) {
 						watchedProviders.add(provider);
 						store.add(provider.onDidChangeInlayHints(() => {
-							if (!scheduler.isScheduled()) { // ignore event when request is already scheduled
+							if (!scheduler.isScheduled()) {
 								scheduler.schedule();
 							}
 						}));
@@ -279,9 +268,6 @@ export class InlayHintsController implements IEditorContribution {
 		scheduler.schedule(0);
 
 		this._sessionDisposables.add(this._editor.onDidScrollChange((e) => {
-			// update when scroll position changes
-			// uses scrollTopChanged has weak heuristic to differenatiate between scrolling due to
-			// typing or due to "actual" scrolling
 			if (e.scrollTopChanged || !scheduler.isScheduled()) {
 				scheduler.schedule();
 			}
@@ -291,7 +277,6 @@ export class InlayHintsController implements IEditorContribution {
 		this._sessionDisposables.add(this._editor.onDidChangeModelContent((e) => {
 			cts?.cancel();
 
-			// mark current cursor position and time after which the whole can be updated/redrawn
 			const delay = Math.max(scheduler.delay, 800);
 			this._cursorInfo = { position: this._editor.getPosition()!, notEarlierThan: Date.now() + delay };
 			cursor.value = disposableTimeout(() => scheduler.schedule(0), delay);
@@ -305,7 +290,6 @@ export class InlayHintsController implements IEditorContribution {
 			}
 		}));
 
-		// mouse gestures
 		this._sessionDisposables.add(this._installDblClickGesture(() => scheduler.schedule(0)));
 		this._sessionDisposables.add(this._installLinkGesture());
 		this._sessionDisposables.add(this._installContextMenu());
@@ -316,7 +300,6 @@ export class InlayHintsController implements IEditorContribution {
 		const store = new DisposableStore();
 		const gesture = store.add(new ClickLinkGesture(this._editor));
 
-		// let removeHighlight = () => { };
 
 		const sessionStore = new DisposableStore();
 		store.add(sessionStore);
@@ -331,12 +314,10 @@ export class InlayHintsController implements IEditorContribution {
 				return;
 			}
 
-			// resolve the item
 			const cts = new CancellationTokenSource();
 			sessionStore.add(toDisposable(() => cts.dispose(true)));
 			labelPart.item.resolve(cts.token);
 
-			// render link => when the modifier is pressed and when there is a command or location
 			this._activeInlayHintPart = labelPart.part.command || labelPart.part.location
 				? new ActiveInlayHintInfo(labelPart, mouseEvent.hasTriggerModifier)
 				: undefined;
@@ -356,10 +337,8 @@ export class InlayHintsController implements IEditorContribution {
 			if (label) {
 				const part = label.part;
 				if (part.location) {
-					// location -> execute go to def
 					this._instaService.invokeFunction(goToDefinitionWithLocation, e, this._editor as IActiveCodeEditor, part.location);
 				} else if (languages.Command.is(part.command)) {
-					// command -> execute it
 					await this._invokeCommand(part.command, label.item);
 				}
 			}
@@ -436,19 +415,14 @@ export class InlayHintsController implements IEditorContribution {
 		this._inlayHintsCache.set(model, hints);
 	}
 
-	// return inlay hints but with an anchor that reflects "updates"
-	// that happened after receiving them, e.g adding new lines before a hint
 	private _copyInlayHintsWithCurrentAnchor(model: ITextModel): InlayHintItem[] {
 		const items = new Map<InlayHintItem, InlayHintItem>();
 		for (const [id, obj] of this._decorationsMetadata) {
 			if (items.has(obj.item)) {
-				// an inlay item can be rendered as multiple decorations
-				// but they will all uses the same range
 				continue;
 			}
 			const range = model.getDecorationRange(id);
 			if (range) {
-				// update range with whatever the editor has tweaked it to
 				const anchor = new InlayHintAnchor(range, obj.item.anchor.direction);
 				const copy = obj.item.with({ anchor });
 				items.set(obj.item, copy);
@@ -481,8 +455,6 @@ export class InlayHintsController implements IEditorContribution {
 			&& this._cursorInfo.notEarlierThan > Date.now()
 			&& ranges.some(range => range.containsPosition(this._cursorInfo!.position))
 		) {
-			// collect inlay hints that are on the same line and before the cursor. Those "old" hints
-			// define fixed lengths so that the cursor does not jump back and worth while typing.
 			const { position } = this._cursorInfo;
 			this._cursorInfo = undefined;
 
@@ -502,18 +474,16 @@ export class InlayHintsController implements IEditorContribution {
 			}
 
 
-			// on the cursor line and before the cursor-column
 			const newItemsWithFixedLength = items.filter(item => item.anchor.range.startLineNumber === position.lineNumber && item.anchor.range.endColumn <= position.column);
 			const fixedLengths = Array.from(lengths.values());
 
-			// match up fixed lengths with items and distribute the remaining lengths to the last item
 			let lastItem: InlayHintItem | undefined;
 			while (true) {
 				const targetItem = newItemsWithFixedLength.shift();
 				const fixedLength = fixedLengths.shift();
 
 				if (!fixedLength && !targetItem) {
-					break; // DONE
+					break;
 				}
 
 				if (targetItem) {
@@ -521,17 +491,15 @@ export class InlayHintsController implements IEditorContribution {
 					lastItem = targetItem;
 
 				} else if (lastItem && fixedLength) {
-					// still lengths but no more item. give it all to the last
 					let len = itemFixedLengths.get(lastItem)!;
 					len += fixedLength;
 					len += fixedLengths.reduce((p, c) => p + c, 0);
 					fixedLengths.length = 0;
-					break; // DONE
+					break;
 				}
 			}
 		}
 
-		// utils to collect/create injected text decorations
 		const newDecorationsData: InlayHintDecorationRenderInfo[] = [];
 		const addInjectedText = (item: InlayHintItem, ref: ClassNameReference, content: string, cursorStops: InjectedTextCursorStops, attachedData?: RenderedInlayHintLabelPart | object): void => {
 			const opts: InjectedTextOptions = {
@@ -547,9 +515,8 @@ export class InlayHintsController implements IEditorContribution {
 				decoration: {
 					range: item.anchor.range,
 					options: {
-						// className: "rangeHighlight", // DEBUG highlight to see to what range a hint is attached
 						description: 'InlayHint',
-						showIfCollapsed: item.anchor.range.isEmpty(), // "original" range is empty
+						showIfCollapsed: item.anchor.range.isEmpty(),
 						collapseOnReplaceEdit: !item.anchor.range.isEmpty(),
 						stickiness: TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges,
 						[item.anchor.direction]: this._activeRenderMode === RenderMode.Normal ? opts : undefined
@@ -567,7 +534,6 @@ export class InlayHintsController implements IEditorContribution {
 		};
 
 
-		//
 		const { fontSize, fontFamily, padding, isUniform } = this._getLayoutInfo();
 		const maxLength = this._editor.getOption(EditorOption.inlayHints).maximumLength;
 		const fontFamilyVar = '--code-editorInlayHintsFontFamily';
@@ -588,12 +554,10 @@ export class InlayHintsController implements IEditorContribution {
 				continue;
 			}
 
-			// whitespace leading the actual label
 			if (item.hint.paddingLeft) {
 				addInjectedWhitespace(item, false);
 			}
 
-			// the label with its parts
 			const parts: languages.InlayHintLabelPart[] = typeof item.hint.label === 'string'
 				? [{ label: item.hint.label }]
 				: item.hint.label;
@@ -621,7 +585,6 @@ export class InlayHintsController implements IEditorContribution {
 				this._fillInColors(cssProperties, item.hint);
 
 				if ((part.command || part.location) && this._activeInlayHintPart?.part.item === item && this._activeInlayHintPart.part.index === i) {
-					// active link!
 					cssProperties.textDecoration = 'underline';
 					if (this._activeInlayHintPart.hasTriggerModifier) {
 						cssProperties.color = themeColorFromId(colors.editorActiveLinkForeground);
@@ -643,7 +606,6 @@ export class InlayHintsController implements IEditorContribution {
 				if (itemFixedLength !== undefined) {
 					const overFixedLength = itemActualLength - itemFixedLength;
 					if (overFixedLength >= 0) {
-						// longer than fixed length, trim
 						itemActualLength -= overFixedLength;
 						textlabel = textlabel.slice(0, -(1 + overFixedLength)) + '…';
 						tooLong = true;
@@ -652,15 +614,12 @@ export class InlayHintsController implements IEditorContribution {
 
 				if (padding) {
 					if (isFirst && (isLast || tooLong)) {
-						// only element
 						cssProperties.padding = `1px ${Math.max(1, fontSize / 4) | 0}px`;
 						cssProperties.borderRadius = `${(fontSize / 4) | 0}px`;
 					} else if (isFirst) {
-						// first element
 						cssProperties.padding = `1px 0 1px ${Math.max(1, fontSize / 4) | 0}px`;
 						cssProperties.borderRadius = `${(fontSize / 4) | 0}px 0 0 ${(fontSize / 4) | 0}px`;
 					} else if ((isLast || tooLong)) {
-						// last element
 						cssProperties.padding = `1px ${Math.max(1, fontSize / 4) | 0}px 1px 0`;
 						cssProperties.borderRadius = `0 ${(fontSize / 4) | 0}px ${(fontSize / 4) | 0}px 0`;
 					} else {
@@ -682,7 +641,6 @@ export class InlayHintsController implements IEditorContribution {
 			}
 
 			if (itemFixedLength !== undefined && itemActualLength < itemFixedLength) {
-				// shorter than fixed length, pad
 				const pad = (itemFixedLength - itemActualLength);
 				addInjectedText(
 					item,
@@ -692,7 +650,6 @@ export class InlayHintsController implements IEditorContribution {
 				);
 			}
 
-			// whitespace trailing the actual label
 			if (item.hint.paddingRight) {
 				addInjectedWhitespace(item, true);
 			}
@@ -702,8 +659,6 @@ export class InlayHintsController implements IEditorContribution {
 			}
 		}
 
-		// collect all decoration ids that are affected by the ranges
-		// and only update those decorations
 		const decorationIdsToReplace: string[] = [];
 		for (const [id, metadata] of this._decorationsMetadata) {
 			const range = this._editor.getModel()?.getDecorationRange(id);
@@ -770,7 +725,6 @@ export class InlayHintsController implements IEditorContribution {
 	}
 
 
-	// --- accessibility
 
 	getInlayHintsForLine(line: number): InlayHintItem[] {
 		if (!this._editor.hasModel()) {
@@ -790,7 +744,6 @@ export class InlayHintsController implements IEditorContribution {
 }
 
 
-// Prevents the view from potentially visible whitespace
 function fixSpace(str: string): string {
 	const noBreakWhitespace = '\xa0';
 	return str.replace(/[ \t]/g, noBreakWhitespace);
@@ -807,7 +760,7 @@ CommandsRegistry.registerCommand('_executeInlayHintProvider', async (accessor, .
 	try {
 		const model = await InlayHintsFragments.create(inlayHintsProvider, ref.object.textEditorModel, [Range.lift(range)], CancellationToken.None);
 		const result = model.items.map(i => i.hint);
-		setTimeout(() => model.dispose(), 0); // dispose after sending to ext host
+		setTimeout(() => model.dispose(), 0);
 		return result;
 	} finally {
 		ref.dispose();

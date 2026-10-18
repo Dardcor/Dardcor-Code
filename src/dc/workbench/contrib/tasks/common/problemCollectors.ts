@@ -49,13 +49,9 @@ export abstract class AbstractProblemCollector extends Disposable implements IDi
 	protected readonly modelListeners = new DisposableStore();
 	private tail: Promise<void> | undefined;
 
-	// [owner] -> ApplyToKind
 	protected applyToByOwner: Map<string, ApplyToKind>;
-	// [owner] -> [resource] -> URI
 	private resourcesToClean: Map<string, Map<string, URI>>;
-	// [owner] -> [resource] -> [markerkey] -> markerData
 	private markers: Map<string, Map<string, Map<string, IMarkerData>>>;
-	// [owner] -> [resource] -> number;
 	private deliveredMarkers: Map<string, Map<string, number>>;
 
 	protected _onDidStateChange: Emitter<IProblemCollectorEvent>;
@@ -295,8 +291,6 @@ export abstract class AbstractProblemCollector extends Disposable implements IDi
 		if (!markersPerResource.has(key)) {
 			markersPerResource.set(key, marker);
 		} else if (((existingMarker = markersPerResource.get(key)) !== undefined) && (existingMarker.message.length < marker.message.length) && isWindows) {
-			// Most likely https://github.com/microsoft/vscode/issues/77475
-			// Heuristic dictates that when the key is the same and message is smaller, we have hit this limitation.
 			markersPerResource.set(key, marker);
 		}
 	}
@@ -415,10 +409,8 @@ export class WatchingProblemCollector extends AbstractProblemCollector implement
 
 	private backgroundPatterns: IBackgroundPatterns[];
 
-	// workaround for https://github.com/microsoft/vscode/issues/44018
 	private _activeBackgroundMatchers: Set<string>;
 
-	// Current State
 	private currentOwner: string | undefined;
 	private currentResource: string | undefined;
 
@@ -463,8 +455,6 @@ export class WatchingProblemCollector extends AbstractProblemCollector implement
 				}
 			});
 
-			// Dispose the debounced listener after timeout - no need to register it since
-			// it's only used temporarily and will be disposed below
 			setTimeout(() => {
 				if (markerChanged) {
 					const _markerChanged = markerChanged;

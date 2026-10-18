@@ -42,7 +42,6 @@ suite('trustedDomains', () => {
 
 		test('path matching', () => {
 			assert.strictEqual(isURLDomainTrusted(URI.parse('https://example.com/api/v1'), ['https://example.com/api/*']), true);
-			// Path without trailing content doesn't match a wildcard pattern requiring more path segments
 			assert.strictEqual(isURLDomainTrusted(URI.parse('https://example.com/api'), ['https://example.com/api/*']), false);
 		});
 

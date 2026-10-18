@@ -41,17 +41,11 @@
 	}
 }
 
-/* Live (in-progress) dictation transcript. Match the chat input and editor
- * dictation surfaces: render in the input placeholder color so it reads as
- * provisional text rather than the static italic ghost-text style, keeping all
- * three speech surfaces consistent while words stream in. */
 .terminal-voice-progress-text {
 	color: var(--vscode-input-placeholderForeground);
 	z-index: 1000;
 }
 
-/* First-use "Preparing…/Downloading… X%" hint shown while the on-device model
- * loads. Italic so it reads as a status message rather than dictated speech. */
 .terminal-voice-preparing-text {
 	font-style: italic;
 	color: var(--vscode-input-placeholderForeground);

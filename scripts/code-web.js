@@ -61,7 +61,6 @@ async function main() {
 		serverArgs.push('--port', PORT);
 	}
 
-	// only use `./scripts/code-web.sh --playground` to add vscode-web-playground extension by default.
 	if (args['playground'] === true) {
 		serverArgs.push('--extensionPath', WEB_DEV_EXTENSIONS_ROOT);
 		serverArgs.push('--folder-uri', 'memfs:///sample-folder');
@@ -95,11 +94,11 @@ function startServer(runnerArguments) {
 	process.on('exit', () => proc.kill());
 	process.on('SIGINT', () => {
 		proc.kill();
-		process.exit(128 + 2); // https://nodejs.org/docs/v14.16.0/api/process.html#process_signal_events
+		process.exit(128 + 2);
 	});
 	process.on('SIGTERM', () => {
 		proc.kill();
-		process.exit(128 + 15); // https://nodejs.org/docs/v14.16.0/api/process.html#process_signal_events
+		process.exit(128 + 15);
 	});
 }
 
@@ -130,7 +129,6 @@ async function downloadPlaygroundFile(fileName, httpsLocation, destinationRoot) 
 
 async function ensureWebDevExtensions(verbose) {
 
-	// Playground (https://github.com/microsoft/vscode-web-playground)
 	const webDevPlaygroundRoot = path.join(WEB_DEV_EXTENSIONS_ROOT, 'vscode-web-playground');
 	const webDevPlaygroundExists = await directoryExists(webDevPlaygroundRoot);
 

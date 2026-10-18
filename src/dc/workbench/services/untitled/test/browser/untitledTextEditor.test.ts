@@ -77,20 +77,16 @@ suite('Untitled text editors', () => {
 		const input2 = instantiationService.createInstance(TestUntitledTextEditorInput, service.create());
 		assert.strictEqual(service.get(input2.resource), input2.getModel());
 
-		// toUntyped()
 		const untypedInput = input1.toUntyped({ preserveViewState: 0 });
 		assert.strictEqual(untypedInput.forceUntitled, true);
 
-		// get()
 		assert.strictEqual(service.get(input1.resource), input1.getModel());
 		assert.strictEqual(service.get(input2.resource), input2.getModel());
 
-		// revert()
 		await input1.revert(0);
 		assert.ok(input1.isDisposed());
 		assert.ok(!service.get(input1.resource));
 
-		// dirty
 		const model = await input2.resolve();
 		assert.strictEqual(await service.resolve({ untitledResource: input2.resource }), model);
 		assert.ok(service.get(model.resource));
@@ -179,7 +175,6 @@ suite('Untitled text editors', () => {
 		const workingCopyService = accessor.workingCopyService;
 		const input = disposables.add(instantiationService.createInstance(UntitledTextEditorInput, service.create()));
 
-		// dirty
 		const model = disposables.add(await input.resolve());
 		model.textEditorModel?.setValue('foo bar');
 		assert.ok(model.isDirty());
@@ -224,7 +219,6 @@ suite('Untitled text editors', () => {
 		const file = URI.file(join('C:\\', '/foo/file.txt'));
 		const input = disposables.add(instantiationService.createInstance(UntitledTextEditorInput, service.create({ associatedResource: file })));
 
-		// dirty
 		const model = disposables.add(await input.resolve());
 		model.textEditorModel?.setValue('foo bar');
 		assert.ok(model.isDirty());
@@ -250,7 +244,6 @@ suite('Untitled text editors', () => {
 			assert.fail('Missing untitled backup');
 		}
 
-		// dirty
 		const model = disposables.add(await untitled.resolve());
 		assert.ok(model.isDirty());
 		assert.strictEqual(workingCopyService.dirtyCount, 1);
@@ -336,7 +329,6 @@ suite('Untitled text editors', () => {
 		assert.strictEqual(input.getLanguageId(), PLAINTEXT_LANGUAGE_ID);
 	});
 
-	// Issue #159202
 	test('remembers that language was set explicitly if set by another source (i.e. ModelService)', async () => {
 		const language = 'untitled-input-test';
 
@@ -371,7 +363,6 @@ suite('Untitled text editors', () => {
 		assert.ok(!input.hasLanguageSetExplicitly);
 		model.textEditorModel!.setLanguage(
 			accessor.languageService.createById(language),
-			// This is really what this is testing
 			LanguageDetectionLanguageEventSource);
 		assert.ok(!input.hasLanguageSetExplicitly);
 
@@ -389,7 +380,6 @@ suite('Untitled text editors', () => {
 			assert.strictEqual(model.resource.toString(), input.resource.toString());
 		}));
 
-		// encoding
 		const model = disposables.add(await input.resolve());
 		await model.setEncoding('utf16');
 		assert.strictEqual(counter, 1);
@@ -406,7 +396,6 @@ suite('Untitled text editors', () => {
 			assert.strictEqual(model.resource.toString(), input.resource.toString());
 		}));
 
-		// label
 		const model = disposables.add(await input.resolve());
 		model.textEditorModel?.setValue('Foo Bar');
 		assert.strictEqual(counter, 1);
@@ -439,7 +428,6 @@ suite('Untitled text editors', () => {
 		assert.strictEqual(service.getValue(model1.resource), 'foo bar');
 		model1.dispose();
 
-		// When a model doesn't exist, it should return undefined
 		assert.strictEqual(service.getValue(URI.parse('https://www.microsoft.com')), undefined);
 	});
 
@@ -510,23 +498,23 @@ suite('Untitled text editors', () => {
 		assert.strictEqual(input.getName(), 'Untitled-1');
 		assert.strictEqual(model.name, 'Untitled-1');
 
-		model.textEditorModel?.setValue('([]}'); // require actual words
+		model.textEditorModel?.setValue('([]}');
 		assert.strictEqual(input.getName(), 'Untitled-1');
 		assert.strictEqual(model.name, 'Untitled-1');
 
-		model.textEditorModel?.setValue('([]}hello   '); // require actual words
+		model.textEditorModel?.setValue('([]}hello   ');
 		assert.strictEqual(input.getName(), '([]}hello');
 		assert.strictEqual(model.name, '([]}hello');
 
-		model.textEditorModel?.setValue('12345678901234567890123456789012345678901234567890'); // trimmed at 40chars max
+		model.textEditorModel?.setValue('12345678901234567890123456789012345678901234567890');
 		assert.strictEqual(input.getName(), '1234567890123456789012345678901234567890');
 		assert.strictEqual(model.name, '1234567890123456789012345678901234567890');
 
-		model.textEditorModel?.setValue('123456789012345678901234567890123456789🌞'); // do not break grapehems (#111235)
+		model.textEditorModel?.setValue('123456789012345678901234567890123456789🌞');
 		assert.strictEqual(input.getName(), '123456789012345678901234567890123456789');
 		assert.strictEqual(model.name, '123456789012345678901234567890123456789');
 
-		model.textEditorModel?.setValue('hello\u202Eworld'); // do not allow RTL in names (#190133)
+		model.textEditorModel?.setValue('hello\u202Eworld');
 		assert.strictEqual(input.getName(), 'helloworld');
 		assert.strictEqual(model.name, 'helloworld');
 
@@ -551,7 +539,7 @@ suite('Untitled text editors', () => {
 		}
 
 		model.textEditorModel?.applyEdits([createSingleEditOp('hello', 2, 2)]);
-		assert.strictEqual(counter, 8); // change was not on first line
+		assert.strictEqual(counter, 8);
 
 		input.dispose();
 		model.dispose();
@@ -663,9 +651,6 @@ suite('UntitledTextEditorWorkingCopyEditorHandler', () => {
 		const untitledResource = URI.from({ scheme: Schemas.untitled, path: 'Untitled-1' });
 		const workingCopy = { resource: untitledResource, typeId: NO_TYPE_ID };
 
-		// A custom editor (or any other editor type) sharing the same untitled resource
-		// should be recognized as representing this working copy to prevent duplicate
-		// tabs on backup restoration.
 		const customEditorInput = disposables.add(new TestEditorInput(untitledResource, 'customEditorType'));
 		assert.strictEqual(handler.isOpen(workingCopy, customEditorInput), true);
 	});

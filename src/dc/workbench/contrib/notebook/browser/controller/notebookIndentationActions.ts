@@ -105,14 +105,12 @@ function changeNotebookIndentation(accessor: ServicesAccessor, insertSpaces: boo
 	const notebookEditorService = accessor.get(INotebookEditorService);
 	const quickInputService = accessor.get(IQuickInputService);
 
-	// keep this check here to pop on non-notebook actions
 	const activeInput = editorService.activeEditorPane?.input;
 	const isNotebook = isNotebookEditorInput(activeInput);
 	if (!isNotebook) {
 		return;
 	}
 
-	// get notebook editor to access all codeEditors
 	const notebookEditor = notebookEditorService.retrieveExistingWidgetFromURI(activeInput.resource)?.value;
 	if (!notebookEditor) {
 		return;
@@ -123,10 +121,8 @@ function changeNotebookIndentation(accessor: ServicesAccessor, insertSpaces: boo
 		label: n.toString(),
 	}));
 
-	// store the initial values of the configuration
 	const initialConfig = configurationService.getValue(NotebookSetting.cellEditorOptionsCustomizations) as Record<string, unknown>;
 	const initialInsertSpaces = initialConfig['editor.insertSpaces'];
-	// remove the initial values from the configuration
 	delete initialConfig['editor.indentSize'];
 	delete initialConfig['editor.tabSize'];
 	delete initialConfig['editor.insertSpaces'];
@@ -153,7 +149,7 @@ function changeNotebookIndentation(accessor: ServicesAccessor, insertSpaces: boo
 
 			}
 		});
-	}, 50/* quick input is sensitive to being opened so soon after another */);
+	}, 50);
 }
 
 function convertNotebookIndentation(accessor: ServicesAccessor, tabsToSpaces: boolean): void {
@@ -164,14 +160,12 @@ function convertNotebookIndentation(accessor: ServicesAccessor, tabsToSpaces: bo
 	const notebookEditorService = accessor.get(INotebookEditorService);
 	const bulkEditService = accessor.get(IBulkEditService);
 
-	// keep this check here to pop on non-notebook
 	const activeInput = editorService.activeEditorPane?.input;
 	const isNotebook = isNotebookEditorInput(activeInput);
 	if (!isNotebook) {
 		return;
 	}
 
-	// get notebook editor to access all codeEditors
 	const notebookTextModel = notebookEditorService.retrieveExistingWidgetFromURI(activeInput.resource)?.value?.textModel;
 	if (!notebookTextModel) {
 		return;
@@ -194,11 +188,9 @@ function convertNotebookIndentation(accessor: ServicesAccessor, tabsToSpaces: bo
 			bulkEditService.apply(edits, { label: nls.localize('convertIndentation', "Convert Indentation"), code: 'undoredo.convertIndentation', });
 
 		})).then(() => {
-			// store the initial values of the configuration
 			const initialConfig = configurationService.getValue(NotebookSetting.cellEditorOptionsCustomizations) as Record<string, unknown>;
 			const initialIndentSize = initialConfig['editor.indentSize'];
 			const initialTabSize = initialConfig['editor.tabSize'];
-			// remove the initial values from the configuration
 			delete initialConfig['editor.indentSize'];
 			delete initialConfig['editor.tabSize'];
 			delete initialConfig['editor.insertSpaces'];
@@ -218,7 +210,6 @@ function convertNotebookIndentation(accessor: ServicesAccessor, tabsToSpaces: bo
 
 function getIndentationEditOperations(model: ITextModel, tabSize: number, tabsToSpaces: boolean): ResourceTextEdit[] {
 	if (model.getLineCount() === 1 && model.getLineMaxColumn(1) === 1) {
-		// Model is empty
 		return [];
 	}
 

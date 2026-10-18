@@ -20,7 +20,6 @@ export function merge(localStorage: IStringDictionary<IStorageValue>, remoteStor
 
 	const localToRemote = compare(localStorage, remoteStorage);
 	if (localToRemote.added.size === 0 && localToRemote.removed.size === 0 && localToRemote.updated.size === 0) {
-		// No changes found between local and remote.
 		return { remote: { added: [], removed: [], updated: [], all: null }, local: { added: {}, removed: [], updated: {} } };
 	}
 
@@ -32,10 +31,7 @@ export function merge(localStorage: IStringDictionary<IStorageValue>, remoteStor
 
 	const isFirstTimeSync = !baseStorage;
 
-	// Added in local
 	for (const key of baseToLocal.added.values()) {
-		// If syncing for first time remote value gets precedence always,
-		// except for sync service type key - local value takes precedence for this key
 		if (key !== SYNC_SERVICE_URL_TYPE && isFirstTimeSync && baseToRemote.added.has(key)) {
 			continue;
 		}
@@ -43,28 +39,23 @@ export function merge(localStorage: IStringDictionary<IStorageValue>, remoteStor
 		remote[key] = localStorage[key];
 	}
 
-	// Updated in local
 	for (const key of baseToLocal.updated.values()) {
 		remote[key] = localStorage[key];
 	}
 
-	// Removed in local
 	for (const key of baseToLocal.removed.values()) {
-		// Do not remove from remote if key is not registered.
 		if (storageKeys.unregistered.includes(key)) {
 			continue;
 		}
 		delete remote[key];
 	}
 
-	// Added in remote
 	for (const key of baseToRemote.added.values()) {
 		const remoteValue = remoteStorage[key];
 		if (storageKeys.machine.includes(key)) {
 			logService.info(`GlobalState: Skipped adding ${key} in local storage because it is declared as machine scoped.`);
 			continue;
 		}
-		// Skip if the value is also added in local from the time it is last synced
 		if (baseStorage && baseToLocal.added.has(key)) {
 			continue;
 		}
@@ -73,7 +64,6 @@ export function merge(localStorage: IStringDictionary<IStorageValue>, remoteStor
 			continue;
 		}
 
-		// Local sync service type value takes precedence if syncing for first time
 		if (key === SYNC_SERVICE_URL_TYPE && isFirstTimeSync && baseToLocal.added.has(key)) {
 			continue;
 		}
@@ -85,14 +75,12 @@ export function merge(localStorage: IStringDictionary<IStorageValue>, remoteStor
 		}
 	}
 
-	// Updated in Remote
 	for (const key of baseToRemote.updated.values()) {
 		const remoteValue = remoteStorage[key];
 		if (storageKeys.machine.includes(key)) {
 			logService.info(`GlobalState: Skipped updating ${key} in local storage because it is declared as machine scoped.`);
 			continue;
 		}
-		// Skip if the value is also updated or removed in local
 		if (baseToLocal.updated.has(key) || baseToLocal.removed.has(key)) {
 			continue;
 		}
@@ -103,13 +91,11 @@ export function merge(localStorage: IStringDictionary<IStorageValue>, remoteStor
 		local.updated[key] = remoteValue;
 	}
 
-	// Removed in remote
 	for (const key of baseToRemote.removed.values()) {
 		if (storageKeys.machine.includes(key)) {
 			logService.trace(`GlobalState: Skipped removing ${key} in local storage because it is declared as machine scoped.`);
 			continue;
 		}
-		// Skip if the value is also updated or removed in local
 		if (baseToLocal.updated.has(key) || baseToLocal.removed.has(key)) {
 			continue;
 		}

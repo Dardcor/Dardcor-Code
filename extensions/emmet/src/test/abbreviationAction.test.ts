@@ -402,13 +402,6 @@ suite('Tests for Expand Abbreviations (HTML)', () => {
 		await workspace.getConfiguration('emmet').update('includeLanguages', oldConfig, ConfigurationTarget.Global);
 	});
 
-	// test('No expanding when html is excluded in the settings', () => {
-	// 	return workspace.getConfiguration('emmet').update('excludeLanguages', ['html'], ConfigurationTarget.Global).then(() => {
-	// 		return testExpandAbbreviation('html', new Selection(9, 6, 9, 6), '', '', true).then(() => {
-	// 			return workspace.getConfiguration('emmet').update('excludeLanguages', oldValueForExcludeLanguages ? oldValueForExcludeLanguages.globalValue : undefined, ConfigurationTarget.Global);
-	// 		});
-	// 	});
-	// });
 
 	test('No expanding when html is excluded in the settings in completion list', async () => {
 		const oldConfig = workspace.getConfiguration('emmet').inspect('excludeLanguages')?.globalValue;
@@ -417,13 +410,6 @@ suite('Tests for Expand Abbreviations (HTML)', () => {
 		await workspace.getConfiguration('emmet').update('excludeLanguages', oldConfig, ConfigurationTarget.Global);
 	});
 
-	// test('No expanding when php (mapped syntax) is excluded in the settings', () => {
-	// 	return workspace.getConfiguration('emmet').update('excludeLanguages', ['php'], ConfigurationTarget.Global).then(() => {
-	// 		return testExpandAbbreviation('php', new Selection(9, 6, 9, 6), '', '', true).then(() => {
-	// 			return workspace.getConfiguration('emmet').update('excludeLanguages', oldValueForExcludeLanguages ? oldValueForExcludeLanguages.globalValue : undefined, ConfigurationTarget.Global);
-	// 		});
-	// 	});
-	// });
 
 
 });

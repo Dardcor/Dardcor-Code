@@ -10,7 +10,6 @@ describe('errorMessage', () => {
 	describe('toErrorMessage', () => {
 		it('returns default message for null', () => {
 			const result = toErrorMessage(null);
-			// In test environment, l10n.t returns the message itself
 			expect(result).toBe('An unknown error occurred. Please consult the log for more details.');
 		});
 
@@ -33,7 +32,6 @@ describe('errorMessage', () => {
 		it('handles array of errors and returns first error message', () => {
 			const errors = [new Error('First error'), new Error('Second error')];
 			const result = toErrorMessage(errors);
-			// In test environment, l10n.t returns the formatted message
 			expect(result).toBe('First error (2 errors in total)');
 		});
 
@@ -67,7 +65,6 @@ describe('errorMessage', () => {
 			const error = new Error('Error with stack');
 			error.stack = 'Error: Error with stack\n  at someFunction (file.ts:10:5)';
 			const result = toErrorMessage(error, true);
-			// Now using template string format
 			expect(result).toBe('Error with stack: Error: Error with stack\n  at someFunction (file.ts:10:5)');
 		});
 
@@ -96,8 +93,6 @@ describe('errorMessage', () => {
 				message: 'File not found'
 			};
 			const result = toErrorMessage(systemError);
-			// System error detection returns l10n.t result, which in tests returns the key
-			// However, since the error has a .message, toErrorMessage returns that directly (line 86)
 			expect(result).toBe('File not found');
 		});
 
@@ -105,11 +100,9 @@ describe('errorMessage', () => {
 			const uncError: any = {
 				code: 'ERR_UNC_HOST_NOT_ALLOWED',
 				message: 'UNC host not allowed',
-				// Need to add stack for the error to go through exceptionToErrorMessage
 				stack: 'Error: UNC host not allowed\n  at someFunction'
 			};
 			const result = toErrorMessage(uncError);
-			// With a stack, it goes through exceptionToErrorMessage -> detectSystemErrorMessage
 			expect(result).toContain('UNC host not allowed');
 			expect(result).toContain('security.allowedUNCHosts');
 		});

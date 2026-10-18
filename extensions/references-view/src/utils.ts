@@ -72,30 +72,25 @@ export class WordAnchor {
 	}
 
 	guessedTrackedPosition(): vscode.Position | undefined {
-		// funky entry
 		if (!this._word) {
 			return this._position;
 		}
 
-		// no changes
 		if (this._version === this._doc.version) {
 			return this._position;
 		}
 
-		// no changes here...
 		const wordNow = this._getAnchorWord(this._doc, this._position);
 		if (this._word === wordNow) {
 			return this._position;
 		}
 
-		// changes: search _word downwards and upwards
 		const startLine = this._position.line;
 		let i = 0;
 		let line: number;
 		let checked: boolean;
 		do {
 			checked = false;
-			// nth line down
 			line = startLine + i;
 			if (line < this._doc.lineCount) {
 				checked = true;
@@ -105,7 +100,6 @@ export class WordAnchor {
 				}
 			}
 			i += 1;
-			// nth line up
 			line = startLine - i;
 			if (line >= 0) {
 				checked = true;
@@ -116,12 +110,10 @@ export class WordAnchor {
 			}
 		} while (i < 100 && checked);
 
-		// fallback
 		return this._position;
 	}
 }
 
-// vscode.SymbolKind.File === 0, Module === 1, etc...
 const _themeIconIds = [
 	'symbol-file', 'symbol-module', 'symbol-namespace', 'symbol-package', 'symbol-class', 'symbol-method',
 	'symbol-property', 'symbol-field', 'symbol-constructor', 'symbol-enum', 'symbol-interface',

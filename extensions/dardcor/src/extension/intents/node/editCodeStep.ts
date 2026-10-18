@@ -119,7 +119,6 @@ export class PreviousEditCodeStep {
 			return WorkingSetEntryState.Rejected;
 		}
 
-		// TODO: reflect partial accepts/rejects within a file when we add support for that
 		return WorkingSetEntryState.Undecided;
 	}
 
@@ -160,28 +159,16 @@ export class EditCodeStep {
 		return factory.createNextStep(history, chatVariables, endpoint);
 	}
 
-	/**
-	 * The user message that was sent with this step
-	 */
 	private _userMessage: string = '';
 	public get userMessage(): string {
 		return this._userMessage;
 	}
 
-	/**
-	 * The assistant reply that came back with this step
-	 */
 	private _assistantReply: string = '';
 	public get assistantReply(): string {
 		return this._assistantReply;
 	}
 
-	/**
-	 * The working set (it is initially the list of files sent by the user).
-	 * If the assistant replies with a code suggestion for a file contained here, it's status will be changed to undecided.
-	 * If the assistant replies with a code suggestion for a file not contained here, the working set will not reflect this in any way.
-	 * If the user makes a decision in the ui, the working set entry will update to reflect this.
-	 */
 	private readonly _workingSet: readonly IMutableWorkingSetEntry[];
 	public get workingSet(): IWorkingSet {
 		return this._workingSet;
@@ -248,10 +235,6 @@ class EditCodeStepFactory {
 		@IAlternativeNotebookContentService private readonly alternativeNotebookContentService: IAlternativeNotebookContentService
 	) { }
 
-	/**
-	 * Update the working set taking into account the passed in chat variables.
-	 * Returns the filtered chat variables that should be used for rendering
-	 */
 	public async createNextStep(history: readonly Turn[], chatVariables: ChatVariablesCollection, endpoint: IChatEndpoint): Promise<EditCodeStepChatVariablesPair> {
 
 		const findPreviousStepEntry = () => {
@@ -327,18 +310,15 @@ class EditCodeStepFactory {
 		};
 
 
-		// here we reverse to account for the UI passing the elements in reversed order
 		chatVariables = chatVariables.reverse();
 
 		const promptInstructions: TextDocumentSnapshot[] = [];
 
-		// We extract all files or selections from the chat variables
 		const otherChatVariables: ChatPromptReference[] = [];
 		for (const chatVariable of chatVariables) {
 			const reference = chatVariable.reference;
 			if (isInstructionFile(reference) || isCustomizationsIndex(reference)) {
 				otherChatVariables.push(reference);
-				// take a snapshot of the prompt instruction file so we know if it changed
 				if (isUri(chatVariable.value)) {
 					const textDocument = await this._workspaceService.openTextDocument(chatVariable.value);
 					promptInstructions.push(TextDocumentSnapshot.create(textDocument));
@@ -348,7 +328,6 @@ class EditCodeStepFactory {
 				if (!notebook) {
 					continue;
 				}
-				// No need to explicitly add the notebook to the working set, let the user do this.
 				if (chatVariable.value.scheme !== Schemas.vscodeNotebookCellOutput) {
 					await addWorkingSetEntry(notebook.uri, false);
 				}

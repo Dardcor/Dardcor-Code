@@ -51,7 +51,6 @@ export class ParameterHintsWidget extends Disposable implements IContentWidget {
 	private visible: boolean = false;
 	private announcedLabel: string | null = null;
 
-	// Editor.IContentWidget.allowEditorOverflow
 	allowEditorOverflow = true;
 
 	constructor(
@@ -223,7 +222,6 @@ export class ParameterHintsWidget extends Disposable implements IContentWidget {
 		}
 
 		if (signature.documentation === undefined) {
-			/** no op */
 		} else if (typeof signature.documentation === 'string') {
 			dom.append(this.domNodes.docs, $('p', {}, signature.documentation));
 		} else {
@@ -254,8 +252,6 @@ export class ParameterHintsWidget extends Disposable implements IContentWidget {
 				labelToAnnounce += typeof signature.documentation === 'string' ? `, ${signature.documentation}` : `, ${signature.documentation.value}`;
 			}
 
-			// Select method gets called on every user type while parameter hints are visible.
-			// We do not want to spam the user with same announcements, so we only announce if the current parameter changed.
 
 			if (this.announcedLabel !== labelToAnnounce) {
 				aria.alert(nls.localize('hint', "{0}, hint", labelToAnnounce));

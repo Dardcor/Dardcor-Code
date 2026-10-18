@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -13,30 +12,14 @@ import * as paths from './path';
 
 export namespace Schemas {
 
-	/**
-	 * A schema that is used for models that exist in memory
-	 * only and that have no correspondence on a server or such.
-	 */
 	export const inMemory = 'inmemory';
 
-	/**
-	 * A schema that is used for setting files
-	 */
 	export const vscode = 'vscode';
 
-	/**
-	 * A schema that is used for internal private files
-	 */
 	export const internal = 'private';
 
-	/**
-	 * A walk-through document.
-	 */
 	export const walkThrough = 'walkThrough';
 
-	/**
-	 * An embedded code snippet.
-	 */
 	export const walkThroughSnippet = 'walkThroughSnippet';
 
 	export const http = 'http';
@@ -77,94 +60,45 @@ export namespace Schemas {
 
 	export const vscodeTerminal = 'vscode-terminal';
 
-	/** Scheme used for the image carousel editor. */
 	export const vscodeImageCarousel = 'vscode-image-carousel';
 
-	/** Scheme used for code blocks in chat. */
 	export const vscodeChatCodeBlock = 'vscode-chat-code-block';
 
-	/** Scheme used for LHS of code compare (aka diff) blocks in chat. */
 	export const vscodeChatCodeCompareBlock = 'vscode-chat-code-compare-block';
 
-	/** Scheme used for the chat input editor. */
 	export const vscodeChatEditor = 'vscode-chat-editor';
 
-	/** Scheme used for the chat input part */
 	export const vscodeChatInput = 'chatSessionInput';
 
-	/** Scheme used for local chat session content */
 	export const vscodeLocalChatSession = 'vscode-chat-session';
 
-	/**
-	 * Scheme used internally for webviews that aren't linked to a resource (i.e. not custom editors)
-	 */
 	export const webviewPanel = 'webview-panel';
 
-	/**
-	 * Scheme used for loading the wrapper html and script in webviews.
-	 */
 	export const vscodeWebview = 'vscode-webview';
 
-	/**
-	 * Scheme used for integrated browser tabs using WebContentsView.
-	 */
 	export const vscodeBrowser = 'vscode-browser';
 
-	/**
-	 * Scheme used for extension pages
-	 */
 	export const extension = 'extension';
 
-	/**
-	 * Scheme used as a replacement of `file` scheme to load
-	 * files with our custom protocol handler (desktop only).
-	 */
 	export const vscodeFileResource = 'vscode-file';
 
-	/**
-	 * Scheme used for temporary resources
-	 */
 	export const tmp = 'tmp';
 
-	/**
-	 * Scheme used vs live share
-	 */
 	export const vsls = 'vsls';
 
-	/**
-	 * Scheme used for the Source Control commit input's text document
-	 */
 	export const vscodeSourceControl = 'vscode-scm';
 
-	/**
-	 * Scheme used for input box for creating comments.
-	 */
 	export const commentsInput = 'comment';
 
-	/**
-	 * Scheme used for special rendering of settings in the release notes
-	 */
 	export const codeSetting = 'code-setting';
 
-	/**
-	 * Scheme used for output panel resources
-	 */
 	export const outputChannel = 'output';
 
-	/**
-	 * Scheme used for the accessible view
-	 */
 	export const accessibleView = 'accessible-view';
 
-	/**
-	 * Used for snapshots of chat edits
-	 */
 	export const chatEditingSnapshotScheme = 'chat-editing-snapshot-text-model';
 	export const chatEditingModel = 'chat-editing-text-model';
 
-	/**
-	 * Used for rendering multidiffs in dardcor agent sessions
-	 */
 	export const dardcorPr = 'dardcor-pr';
 }
 
@@ -259,9 +193,6 @@ export function getServerProductSegment(product: { quality?: string; commit?: st
 	return `${product.quality ?? 'oss'}-${product.commit ?? 'dev'}`;
 }
 
-/**
- * A string pointing to a path inside the app. It should not begin with ./ or ../
- */
 export type AppResourcePath = (
 	`a${string}` | `b${string}` | `c${string}` | `d${string}` | `e${string}` | `f${string}`
 	| `g${string}` | `h${string}` | `i${string}` | `j${string}` | `k${string}` | `l${string}`
@@ -281,46 +212,25 @@ class FileAccessImpl {
 
 	private static readonly FALLBACK_AUTHORITY = VSCODE_AUTHORITY;
 
-	/**
-	 * Returns a URI to use in contexts where the browser is responsible
-	 * for loading (e.g. fetch()) or when used within the DOM.
-	 *
-	 * **Note:** use `dom.ts#asCSSUrl` whenever the URL is to be used in CSS context.
-	 */
 	asBrowserUri(resourcePath: AppResourcePath | ''): URI {
 		const uri = this.toUri(resourcePath);
 		return this.uriToBrowserUri(uri);
 	}
 
-	/**
-	 * Returns a URI to use in contexts where the browser is responsible
-	 * for loading (e.g. fetch()) or when used within the DOM.
-	 *
-	 * **Note:** use `dom.ts#asCSSUrl` whenever the URL is to be used in CSS context.
-	 */
 	uriToBrowserUri(uri: URI): URI {
-		// Handle remote URIs via `RemoteAuthorities`
 		if (uri.scheme === Schemas.vscodeRemote) {
 			return RemoteAuthorities.rewrite(uri);
 		}
 
-		// Convert to `vscode-file` resource..
 		if (
-			// ...only ever for `file` resources
 			uri.scheme === Schemas.file &&
 			(
-				// ...and we run in native environments
 				platform.isNative ||
-				// ...or web worker extensions on desktop
 				(platform.webWorkerOrigin === `${Schemas.vscodeFileResource}://${FileAccessImpl.FALLBACK_AUTHORITY}`)
 			)
 		) {
 			return uri.with({
 				scheme: Schemas.vscodeFileResource,
-				// We need to provide an authority here so that it can serve
-				// as origin for network and loading matters in chromium.
-				// If the URI is not coming with an authority already, we
-				// add our own
 				authority: uri.authority || FileAccessImpl.FALLBACK_AUTHORITY,
 				query: null,
 				fragment: null
@@ -330,27 +240,15 @@ class FileAccessImpl {
 		return uri;
 	}
 
-	/**
-	 * Returns the `file` URI to use in contexts where node.js
-	 * is responsible for loading.
-	 */
 	asFileUri(resourcePath: AppResourcePath | ''): URI {
 		const uri = this.toUri(resourcePath);
 		return this.uriToFileUri(uri);
 	}
 
-	/**
-	 * Returns the `file` URI to use in contexts where node.js
-	 * is responsible for loading.
-	 */
 	uriToFileUri(uri: URI): URI {
-		// Only convert the URI if it is `vscode-file:` scheme
 		if (uri.scheme === Schemas.vscodeFileResource) {
 			return uri.with({
 				scheme: Schemas.file,
-				// Only preserve the `authority` if it is different from
-				// our fallback authority. This ensures we properly preserve
-				// Windows UNC paths that come with their own authority.
 				authority: uri.authority !== FileAccessImpl.FALLBACK_AUTHORITY ? uri.authority : null,
 				query: null,
 				fragment: null
@@ -368,12 +266,10 @@ class FileAccessImpl {
 		if (globalThis._VSCODE_FILE_ROOT) {
 			const rootUriOrPath = globalThis._VSCODE_FILE_ROOT;
 
-			// File URL (with scheme)
 			if (/^\w[\w\d+.-]*:\/\//.test(rootUriOrPath)) {
 				return URI.joinPath(URI.parse(rootUriOrPath, true), uriOrModule);
 			}
 
-			// File Path (no scheme)
 			const modulePath = paths.join(rootUriOrPath, uriOrModule);
 			return URI.file(modulePath);
 		}
@@ -404,9 +300,6 @@ export namespace COI {
 
 	const coiSearchParamName = 'vscode-coi';
 
-	/**
-	 * Extract desired headers from `vscode-coi` invocation
-	 */
 	export function getHeadersFromQuery(url: string | URI | URL): Record<string, string> | undefined {
 		let params: URLSearchParams | undefined;
 		if (typeof url === 'string') {
@@ -423,13 +316,8 @@ export namespace COI {
 		return coiHeaders.get(value);
 	}
 
-	/**
-	 * Add the `vscode-coi` query attribute based on wanting `COOP` and `COEP`. Will be a noop when `crossOriginIsolated`
-	 * isn't enabled the current context
-	 */
 	export function addSearchParam(urlOrSearch: URLSearchParams | Record<string, string>, coop: boolean, coep: boolean): void {
 		if (!(globalThis as typeof globalThis & { crossOriginIsolated?: boolean }).crossOriginIsolated) {
-			// depends on the current context being COI
 			return;
 		}
 		const value = coop && coep ? '3' : coep ? '2' : '1';

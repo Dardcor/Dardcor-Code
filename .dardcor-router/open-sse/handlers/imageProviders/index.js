@@ -1,4 +1,3 @@
-// Image provider adapter registry
 import createOpenAIAdapter from "./openai.js";
 import gemini from "./gemini.js";
 import codex from "./codex.js";

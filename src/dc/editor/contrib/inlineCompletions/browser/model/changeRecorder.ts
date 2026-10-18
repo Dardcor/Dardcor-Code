@@ -68,8 +68,6 @@ export class TextModelChangeRecorder extends Disposable {
 					modelVersion: tm.getVersionId(),
 				};
 				setTimeout(() => {
-					// To ensure that this reaches the extension host after the content change event.
-					// (Without the setTimeout, I observed this command being called before the content change event arrived)
 					this._structuredLogger.log(data);
 				}, 0);
 			}));

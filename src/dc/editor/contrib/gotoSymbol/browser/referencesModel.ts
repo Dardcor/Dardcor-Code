@@ -159,19 +159,16 @@ export class ReferencesModel implements IDisposable {
 		this._links = links;
 		this._title = title;
 
-		// grouping and sorting
 		const [providersFirst] = links;
 		links.sort(ReferencesModel._compareReferences);
 
 		let current: FileReferences | undefined;
 		for (const link of links) {
 			if (!current || !extUri.isEqual(current.uri, link.uri, true)) {
-				// new group
 				current = new FileReferences(this, link.uri);
 				this.groups.push(current);
 			}
 
-			// append, check for equality first!
 			if (current.children.length === 0 || ReferencesModel._compareReferences(link, current.children[current.children.length - 1]) !== 0) {
 
 				const oneRef = new OneReference(
@@ -225,7 +222,6 @@ export class ReferencesModel implements IDisposable {
 		const groupCount = parent.parent.groups.length;
 
 		if (groupCount === 1 || next && idx + 1 < childCount || !next && idx > 0) {
-			// cycling within one file
 			if (next) {
 				idx = (idx + 1) % childCount;
 			} else {

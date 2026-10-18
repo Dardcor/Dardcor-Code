@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* AI Customization Management Editor */
 .ai-customization-management-editor {
 	display: flex;
 	flex-direction: column;
@@ -24,14 +23,12 @@
 	box-sizing: border-box;
 }
 
-/* Inset button focus rings so they aren't clipped by a widget's overflow:hidden edge. !important overrides button.css. */
 .ai-customization-management-editor .monaco-button:focus,
 .ai-customization-list-widget .monaco-button:focus,
 .mcp-list-widget .monaco-button:focus {
 	outline-offset: -1px !important;
 }
 
-/* Sidebar */
 .ai-customization-management-editor .management-sidebar {
 	height: 100%;
 	overflow: hidden;
@@ -169,7 +166,6 @@
 	text-align: right;
 }
 
-/* Section list items */
 .ai-customization-management-editor .section-list-item {
 	display: flex;
 	align-items: center;
@@ -184,7 +180,6 @@
 	background-color: var(--vscode-list-hoverBackground);
 }
 
-/* Selected section - using list selection */
 .ai-customization-management-editor .monaco-list .monaco-list-row.section-list-item.selected .section-icon {
 	color: inherit;
 	opacity: 1;
@@ -224,7 +219,6 @@
 	line-height: 16px;
 }
 
-/* Content area */
 .ai-customization-management-editor .management-content {
 	background-color: var(--vscode-editor-background);
 	height: 100%;
@@ -313,7 +307,6 @@
 	margin-bottom: 8px;
 }
 
-/* List Widget */
 .ai-customization-list-widget {
 	display: flex;
 	flex-direction: column;
@@ -321,7 +314,6 @@
 	overflow: hidden;
 }
 
-/* Harness dropdown in sidebar */
 .ai-customization-management-editor .sidebar-harness-dropdown {
 	flex: 1;
 	min-width: 0;
@@ -370,7 +362,6 @@
 	opacity: 0.7;
 }
 
-/* Search and button container - consistent with Models view */
 .ai-customization-list-widget .list-search-and-button-container,
 .mcp-list-widget .list-search-and-button-container {
 	display: flex;
@@ -458,7 +449,6 @@
 	font-style: italic;
 }
 
-/* Empty state - engaging design */
 .ai-customization-list-widget .list-empty-state,
 .ai-customization-management-editor .tools-list-widget .list-empty-state {
 	display: flex;
@@ -490,7 +480,6 @@
 	margin-top: 16px;
 }
 
-/* Sessions empty state */
 .agent-sessions-workbench .ai-customization-list-widget .list-empty-state .empty-state-header {
 	display: flex;
 	flex-direction: row;
@@ -504,7 +493,6 @@
 	flex-shrink: 0;
 }
 
-/* Group header styling */
 .ai-customization-group-header {
 	display: flex;
 	align-items: center;
@@ -516,10 +504,6 @@
 	border-radius: 4px;
 }
 
-/* Spacing above non-first group headers */
-/* .ai-customization-group-header.has-previous-group {
-	margin-top: 8px;
-} */
 
 .ai-customization-group-header:hover {
 	background-color: var(--vscode-list-hoverBackground);
@@ -550,8 +534,6 @@
 	min-width: 0;
 }
 
-/* No text-transform: these labels are localized strings that are already cased correctly, and
-per-word capitalization does not survive translation. */
 .ai-customization-group-header .group-label {
 	font-weight: var(--vscode-fontWeight-semiBold);
 	color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-foreground));
@@ -590,7 +572,6 @@ per-word capitalization does not survive translation. */
 	opacity: 1;
 }
 
-/* List item styling */
 .ai-customization-list-item {
 	display: flex;
 	align-items: center;
@@ -650,7 +631,6 @@ per-word capitalization does not survive translation. */
 	opacity: 0.6;
 }
 
-/* Shared inline badge style — used by MCP "Bridged" badge and item badges */
 .inline-badge {
 	flex-shrink: 0;
 	font-size: var(--vscode-fontSize-label3);
@@ -662,7 +642,6 @@ per-word capitalization does not survive translation. */
 	line-height: 16px;
 }
 
-/* Status icon for remote customization items (loading/loaded/degraded/error) */
 .ai-customization-list-item .item-status-icon {
 	flex-shrink: 0;
 	width: 16px;
@@ -673,7 +652,6 @@ per-word capitalization does not survive translation. */
 	font-size: 14px;
 }
 
-/* Sync checkbox for local items in remote agent harness view */
 .ai-customization-list-item .item-sync-checkbox {
 	flex-shrink: 0;
 	display: flex;
@@ -681,7 +659,6 @@ per-word capitalization does not survive translation. */
 	margin-right: 4px;
 }
 
-/* MCP bridged badge — shown inline next to the server name */
 .mcp-server-item .mcp-server-name-row {
 	display: flex;
 	align-items: center;
@@ -746,13 +723,11 @@ per-word capitalization does not survive translation. */
 	opacity: 1;
 }
 
-/* Highlighted matches */
 .ai-customization-list-item .highlight {
 	font-weight: bold;
 	color: var(--vscode-list-highlightForeground);
 }
 
-/* Section title header at top of list widget (shared by all list widgets) */
 .ai-customization-list-widget .section-title-header,
 .mcp-list-widget .section-title-header,
 .ai-customization-management-editor .tools-list-widget .section-title-header {
@@ -804,8 +779,6 @@ per-word capitalization does not survive translation. */
 .mcp-list-widget .section-title-header .section-title-link,
 .ai-customization-management-editor .tools-list-widget .section-title-header .section-title-link {
 	font-size: var(--vscode-fontSize-body1);
-	/* Match the description's line-height so the link's inline-flex line-box */
-	/* does not change the total header height between sections. */
 	line-height: 1.45;
 	color: var(--vscode-textLink-foreground);
 	text-decoration: none;
@@ -823,7 +796,6 @@ per-word capitalization does not survive translation. */
 	text-decoration: underline;
 }
 
-/* Inset the focus ring so it isn't clipped by the widget's overflow:hidden at the header's edge. */
 .ai-customization-list-widget .section-title-header .section-title-link:focus-visible,
 .ai-customization-management-editor .prompt-migration-content-container > .section-title-link:focus-visible,
 .ai-customization-management-editor .customization-migration-banner .section-title-link:focus-visible,
@@ -832,7 +804,6 @@ per-word capitalization does not survive translation. */
 	outline-offset: -1px;
 }
 
-/* Section footer at bottom of list widget */
 .ai-customization-list-widget .section-footer {
 	flex-shrink: 0;
 	padding: 12px 4px 6px 4px;
@@ -860,7 +831,6 @@ per-word capitalization does not survive translation. */
 	color: var(--vscode-textLink-activeForeground);
 }
 
-/* Overview View (compact snapshot) */
 .ai-customization-overview {
 	display: flex;
 	flex-direction: column;
@@ -934,7 +904,6 @@ per-word capitalization does not survive translation. */
 	text-align: center;
 }
 
-/* Content container visibility */
 .ai-customization-management-editor .prompts-content-container,
 .ai-customization-management-editor .prompt-migration-content-container,
 .ai-customization-management-editor .mcp-content-container,
@@ -1046,13 +1015,11 @@ per-word capitalization does not survive translation. */
 	width: auto;
 }
 
-/* Migration copy is dynamic; don't reserve the two-line section-header height. */
 .ai-customization-management-editor .prompt-migration-content-container .section-title-description {
 	min-height: 0;
 	margin-bottom: 0;
 }
 
-/* Migration banner — an Inner-tier callout for customizations needing attention. */
 .ai-customization-management-editor .customization-migration-banner {
 	flex-shrink: 0;
 	margin-block: var(--vscode-spacing-size120);
@@ -1317,7 +1284,6 @@ per-word capitalization does not survive translation. */
 	min-width: 96px;
 }
 
-/* Tools section list widget */
 .ai-customization-management-editor .tools-list-widget {
 	height: 100%;
 	display: flex;
@@ -1349,7 +1315,6 @@ per-word capitalization does not survive translation. */
 	white-space: nowrap;
 }
 
-/* Marketplace browse (gallery) list */
 .ai-customization-management-editor .tools-gallery-container {
 	display: flex;
 	flex-direction: column;
@@ -1362,7 +1327,6 @@ per-word capitalization does not survive translation. */
 	min-height: 0;
 }
 
-/* Shared gallery row used by the tools, MCP server and plugin marketplace lists. See galleryItemRenderer.ts */
 .ai-customization-management-editor .gallery-item {
 	display: flex;
 	align-items: center;
@@ -1418,7 +1382,6 @@ per-word capitalization does not survive translation. */
 	outline-offset: -1px;
 }
 
-/* DomScrollableElement wrapper around the tool tree; takes remaining height for the overlay scrollbar. */
 .ai-customization-management-editor .tools-list-tree-scrollable {
 	position: relative;
 	flex: 1;
@@ -1428,7 +1391,6 @@ per-word capitalization does not survive translation. */
 	margin: 0 auto;
 }
 
-/* The scrolled element: bound it to the wrapper so clientHeight < scrollHeight when content overflows. */
 .ai-customization-management-editor .tools-list-tree {
 	position: absolute;
 	inset: 0;
@@ -1538,7 +1500,6 @@ per-word capitalization does not survive translation. */
 	margin-bottom: var(--vscode-spacing-size120);
 }
 
-/* Top-level tool-set row */
 .ai-customization-management-editor .tools-list-setrow {
 	display: flex;
 	align-items: center;
@@ -1553,7 +1514,6 @@ per-word capitalization does not survive translation. */
 	background: var(--vscode-list-hoverBackground);
 }
 
-/* A row-to-row divider between every adjacent row (set-to-set, set-to-tool, tool-to-tool, tool-to-set). */
 .ai-customization-management-editor .tools-inventory-list .monaco-list-row:not(:first-child) {
 	box-shadow: inset 0 var(--vscode-strokeThickness) var(--vscode-widget-border);
 }
@@ -1572,7 +1532,6 @@ per-word capitalization does not survive translation. */
 	margin-left: auto;
 }
 
-/* Tool row: visually indented under its tool set via its own `padding-inline-start` (no DOM nesting). */
 .ai-customization-management-editor .tools-list-toolrow {
 	display: flex;
 	align-items: center;
@@ -1646,7 +1605,6 @@ per-word capitalization does not survive translation. */
 	font-weight: var(--vscode-fontWeight-semiBold);
 }
 
-/* Search match highlighting in tool set / tool names */
 .ai-customization-management-editor .tools-list-row-label .highlight {
 	font-weight: var(--vscode-fontWeight-semiBold);
 	color: var(--vscode-list-highlightForeground);
@@ -1661,7 +1619,6 @@ per-word capitalization does not survive translation. */
 	white-space: nowrap;
 }
 
-/* Enabled/total tool count shown at the right of a tool-set row */
 .ai-customization-management-editor .tools-list-row-count {
 	flex: none;
 	font-size: var(--vscode-fontSize-body2);
@@ -1671,7 +1628,6 @@ per-word capitalization does not survive translation. */
 	cursor: pointer;
 }
 
-/* Embedded MCP server detail view */
 .ai-customization-management-editor .mcp-detail-container {
 	position: relative;
 	height: 100%;
@@ -1688,7 +1644,6 @@ per-word capitalization does not survive translation. */
 	min-height: 0;
 }
 
-/* Embedded plugin detail view */
 .ai-customization-management-editor .plugin-detail-container,
 .ai-customization-management-editor .tools-detail-container {
 	position: relative;
@@ -1704,7 +1659,6 @@ per-word capitalization does not survive translation. */
 	box-sizing: border-box;
 }
 
-/* Inline back button with the embedded detail header */
 .ai-customization-management-editor .mcp-detail-container .ai-customization-embedded-detail,
 .ai-customization-management-editor .plugin-detail-container .ai-customization-embedded-detail,
 .ai-customization-management-editor .tools-detail-container .ai-customization-embedded-detail {
@@ -1734,7 +1688,6 @@ per-word capitalization does not survive translation. */
 	justify-content: center;
 }
 
-/* Shared embedded detail component foundation */
 .ai-customization-management-editor .ai-customization-embedded-detail {
 	display: flex;
 	flex-direction: column;
@@ -1792,7 +1745,6 @@ per-word capitalization does not survive translation. */
 	margin-inline-start: calc(var(--vscode-spacing-size160) + var(--vscode-spacing-size280) + var(--vscode-spacing-size80) - var(--vscode-spacing-size40));
 }
 
-/* The tools detail lists many short tool descriptions, so let it use the full editor width. */
 .ai-customization-management-editor .ai-customization-embedded-detail.embedded-tool-detail {
 	max-width: none;
 }
@@ -2205,7 +2157,6 @@ per-word capitalization does not survive translation. */
 	padding-block: var(--vscode-spacing-size80);
 }
 
-/* Included tools list (tool extension detail) */
 .ai-customization-management-editor .ai-customization-embedded-detail .embedded-detail-tools {
 	display: flex;
 	flex-direction: column;
@@ -2252,7 +2203,6 @@ per-word capitalization does not survive translation. */
 	color: var(--vscode-descriptionForeground);
 	line-height: 1.4;
 	word-break: break-word;
-	/* Keep descriptions short and scannable; the full text is available once installed. */
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
@@ -2260,7 +2210,6 @@ per-word capitalization does not survive translation. */
 	overflow: hidden;
 }
 
-/* Models section footer */
 .ai-customization-management-editor .models-content-container .section-footer {
 	flex-shrink: 0;
 	padding: 12px 4px 6px 4px;
@@ -2289,14 +2238,12 @@ per-word capitalization does not survive translation. */
 	color: var(--vscode-textLink-activeForeground);
 }
 
-/* Override models widget padding when embedded in management editor */
 .ai-customization-management-editor .models-content-container .models-widget {
 	padding-right: 0;
 	flex: 1;
 	overflow: hidden;
 }
 
-/* MCP List Widget */
 .mcp-list-widget {
 	display: flex;
 	flex-direction: column;
@@ -2311,7 +2258,6 @@ per-word capitalization does not survive translation. */
 	overflow: hidden;
 }
 
-/* MCP Empty State */
 .mcp-list-widget .mcp-empty-state {
 	display: flex;
 	flex-direction: column;
@@ -2340,7 +2286,6 @@ per-word capitalization does not survive translation. */
 	margin-top: 16px;
 }
 
-/* Sessions empty state */
 .agent-sessions-workbench .mcp-empty-state .empty-state-header {
 	display: flex;
 	flex-direction: row;
@@ -2354,7 +2299,6 @@ per-word capitalization does not survive translation. */
 	flex-shrink: 0;
 }
 
-/* MCP Disabled (access blocked) state */
 .mcp-list-widget .mcp-disabled-state {
 	display: none;
 	flex-direction: column;
@@ -2421,7 +2365,6 @@ per-word capitalization does not survive translation. */
 	display: flex;
 }
 
-/* MCP Server Item */
 .mcp-server-item {
 	display: flex;
 	align-items: center;
@@ -2562,7 +2505,6 @@ per-word capitalization does not survive translation. */
 	color: var(--vscode-foreground);
 }
 
-/* Plugin list item */
 .plugin-list-widget .plugin-list-item {
 	display: flex;
 	align-items: center;
@@ -2822,7 +2764,6 @@ per-word capitalization does not survive translation. */
 	background: color-mix(in srgb, var(--vscode-list-hoverBackground) 65%, transparent);
 }
 
-/* The enablement switch is the shared `Switch` widget; its styling lives in base. */
 
 .plugin-list-widget .plugin-list-item-install-button {
 	font-size: var(--vscode-agents-fontSize-body2);
@@ -3210,14 +3151,12 @@ per-word capitalization does not survive translation. */
 	border-color: var(--vscode-contrastBorder);
 }
 
-/* Button group for Add Server + Browse Marketplace */
 .mcp-list-widget .list-button-group {
 	display: flex;
 	gap: 4px;
 	flex-shrink: 0;
 }
 
-/* Embedded Editor View */
 .ai-customization-management-editor .editor-content-container {
 	height: 100%;
 	display: flex;
@@ -3647,8 +3586,6 @@ per-word capitalization does not survive translation. */
 	border-radius: 4px;
 }
 
-/* Initial open transition: a subtle fade + lift plays once when the editor
-pane is first mounted. View switches inside the modal are not animated. */
 .ai-customization-management-editor {
 	animation: ai-customization-view-enter 160ms ease-out;
 }
@@ -3670,4 +3607,3 @@ pane is first mounted. View switches inside the modal are not animated. */
 	}
 }
 
-/* Welcome page styles live in the welcome page variant stylesheets. */

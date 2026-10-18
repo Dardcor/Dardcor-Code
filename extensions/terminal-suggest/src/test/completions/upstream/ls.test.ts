@@ -57,24 +57,18 @@ export const lsTestSuiteSpec: ISuiteSpec = {
 	completionSpecs: lsSpec,
 	availableCommands: 'ls',
 	testSpecs: [
-		// Empty input
 		{ input: '|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Typing the command
 		{ input: 'l|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'ls|', expectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Basic options
-		// TODO: The spec wants file paths and folders (which seems like it should only be folders),
 		{ input: 'ls |', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'ls -|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
 		{ input: 'ls -a|', expectedCompletions: allOptions },
 
-		// Duplicate option
 		{ input: 'ls -a -|', expectedCompletions: allOptions.filter(o => o !== '-a'), expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Relative paths
 		{ input: 'ls c|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'ls child|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'ls .|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
@@ -82,9 +76,7 @@ export const lsTestSuiteSpec: ISuiteSpec = {
 		{ input: 'ls ./child|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'ls ..|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Relative directories (changes cwd due to /)
 		{ input: 'ls child/|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwdChild } },
-		// Paths with .. are handled by the completion service to avoid double-navigation (no cwd resolution)
 		{ input: 'ls ../|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both' } },
 		{ input: 'ls ../sibling|', expectedCompletions: allOptions, expectedResourceRequests: { type: 'both' } },
 	]

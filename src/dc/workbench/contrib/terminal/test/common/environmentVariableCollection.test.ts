@@ -235,7 +235,7 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 			await merged.applyToProcessEnvironment(env, scope1);
 			deepStrictEqual(env, {
 				A: 'a',
-				B: 'bar', // This is not changed because the scope does not match
+				B: 'bar',
 				C: 'cbaz'
 			});
 		});
@@ -390,7 +390,6 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 						['A-key', { value: 'a1', type: EnvironmentVariableMutatorType.Prepend, variable: 'A' }]
 					])
 				}],
-				// This entry should get removed
 				['ext2', {
 					map: deserializeEnvironmentVariableCollection([
 						['A-key', { value: 'a2', type: EnvironmentVariableMutatorType.Append, variable: 'A' }]
@@ -417,7 +416,6 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 						['A-key', { value: 'a1', type: EnvironmentVariableMutatorType.Replace, variable: 'A' }]
 					])
 				}],
-				// This entry should get removed as it comes after a replace
 				['ext2', {
 					map: deserializeEnvironmentVariableCollection([
 						['A-key', { value: 'a2', type: EnvironmentVariableMutatorType.Append, variable: 'A' }]

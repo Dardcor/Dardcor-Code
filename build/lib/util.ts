@@ -133,7 +133,7 @@ export function setExecutableBit(pattern?: string | string[]): NodeJS.ReadWriteS
 			const stat: Pick<fs.Stats, 'isFile' | 'mode'> = { isFile() { return true; }, mode: 0 };
 			f.stat = stat as fs.Stats;
 		}
-		f.stat!.mode = /* 100755 */ 33261;
+		f.stat!.mode = 33261;
 		return f;
 	});
 
@@ -252,7 +252,6 @@ export function stripSourceMappingURL(): NodeJS.ReadWriteStream {
 	return es.duplex(input, output);
 }
 
-/** Splits items in the stream based on the predicate, sending them to onTrue if true, or onFalse otherwise */
 export function $if(test: boolean | ((f: VinylFile) => boolean), onTrue: NodeJS.ReadWriteStream, onFalse: NodeJS.ReadWriteStream = es.through()) {
 	if (typeof test === 'boolean') {
 		return test ? onTrue : onFalse;
@@ -261,7 +260,6 @@ export function $if(test: boolean | ((f: VinylFile) => boolean), onTrue: NodeJS.
 	return ternaryStream(test, onTrue, onFalse);
 }
 
-/** Operator that appends the js files' original path a sourceURL, so debug locations map */
 export function appendOwnPathSourceURL(): NodeJS.ReadWriteStream {
 	const input = es.through();
 
@@ -374,10 +372,26 @@ export function streamToPromise(stream: NodeJS.ReadWriteStream): Promise<void> {
 }
 
 export function getElectronVersion(): Record<string, string> {
-	const npmrc = fs.readFileSync(path.join(root, '.npmrc'), 'utf8');
-	const electronVersion = /^(?:npm_config_)?target="(.*)"$/m.exec(npmrc)![1];
-	const msBuildId = /^(?:npm_config_)?ms_build_id="(.*)"$/m.exec(npmrc)![1];
+	const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+	const legacyNpmrc = fs.existsSync(path.join(root, '.npmrc')) ? fs.readFileSync(path.join(root, '.npmrc'), 'utf8') : '';
+	const electronVersion = /^(?:npm_config_)?target="(.*)"$/m.exec(legacyNpmrc)?.[1] ?? packageJson.devDependencies?.electron;
+	const msBuildId = /^(?:npm_config_)?ms_build_id="(.*)"$/m.exec(legacyNpmrc)?.[1] ?? packageJson.dardcorBuild?.electronMsBuildId ?? '';
+	if (typeof electronVersion !== 'string' || !electronVersion.trim()) {
+		throw new Error('Could not resolve the Electron version from package.json devDependencies.');
+	}
 	return { electronVersion, msBuildId };
+}
+
+export function getRemoteNodeVersion(): Record<string, string> {
+	const remotePackage = JSON.parse(fs.readFileSync(path.join(root, 'remote', 'package.json'), 'utf8'));
+	const remoteNpmrcPath = path.join(root, 'remote', '.npmrc');
+	const legacyNpmrc = fs.existsSync(remoteNpmrcPath) ? fs.readFileSync(remoteNpmrcPath, 'utf8') : '';
+	const nodeVersion = /^(?:npm_config_)?target="(.*)"$/m.exec(legacyNpmrc)?.[1] ?? remotePackage.dardcorBuild?.nodeGyp?.target ?? remotePackage.config?.node_gyp_target ?? remotePackage.config?.target;
+	const internalNodeVersion = /^(?:npm_config_)?ms_build_id="(.*)"$/m.exec(legacyNpmrc)?.[1] ?? remotePackage.dardcorBuild?.nodeBuildId ?? '';
+	if (typeof nodeVersion !== 'string' || !nodeVersion.trim()) {
+		throw new Error('Could not resolve the remote Node.js version from remote/package.json.');
+	}
+	return { nodeVersion, internalNodeVersion };
 }
 
 export function getVersionedResourcesFolder(platform: string, commit: string): string {

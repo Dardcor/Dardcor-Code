@@ -17,9 +17,6 @@ import { IMirrorModel, IWordRange } from '../editorWebWorker.js';
 import { IModelService } from '../model.js';
 import { IRawModelData, IWorkerTextModelSyncChannelServer } from './textModelSync.protocol.js';
 
-/**
- * Stop syncing a model to the worker if it was not needed for 1 min.
- */
 export const STOP_SYNC_MODEL_DELTA_TIME_MS = 60 * 1000;
 
 export const WORKER_TEXT_MODEL_SYNC_CHANNEL = 'workerTextModelSync';
@@ -295,11 +292,10 @@ export class MirrorModel extends BaseMirrorModel implements ICommonModel {
 		const result: IWordRange[] = [];
 		let match: RegExpExecArray | null;
 
-		wordDefinition.lastIndex = 0; // reset lastIndex just to be sure
+		wordDefinition.lastIndex = 0;
 
 		while (match = wordDefinition.exec(content)) {
 			if (match[0].length === 0) {
-				// it did match the empty string
 				break;
 			}
 			result.push({ start: match.index, end: match.index + match[0].length });
@@ -342,7 +338,6 @@ export class MirrorModel extends BaseMirrorModel implements ICommonModel {
 		const out = this._lineStarts!.getIndexOf(offset);
 		const lineLength = this._lines[out.index].length;
 
-		// Ensure we return a valid position
 		return {
 			lineNumber: 1 + out.index,
 			column: 1 + Math.min(out.remainder, lineLength)

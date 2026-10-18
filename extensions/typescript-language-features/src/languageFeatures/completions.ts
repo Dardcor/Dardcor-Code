@@ -65,15 +65,12 @@ class MyCompletionItem extends vscode.CompletionItem {
 		super(label, MyCompletionItem.convertKind(tsEntry.kind));
 
 		if (tsEntry.source && tsEntry.hasAction && client.apiVersion.lt(API.v490)) {
-			// De-prioritze auto-imports
-			// https://github.com/microsoft/vscode/issues/40311
 			this.sortText = '\uffff' + tsEntry.sortText;
 		} else {
 			this.sortText = tsEntry.sortText;
 		}
 
 		if (tsEntry.source && tsEntry.hasAction) {
-			// Render "fancy" when source is a workspace path
 			const qualifierCandidate = vscode.workspace.asRelativePath(tsEntry.source);
 			if (qualifierCandidate !== tsEntry.source) {
 				this.label = { label, description: qualifierCandidate };
@@ -157,7 +154,6 @@ class MyCompletionItem extends vscode.CompletionItem {
 	): Promise<ResolvedCompletionItem | undefined> {
 		token.onCancellationRequested(() => {
 			if (this._resolvedPromise && --this._resolvedPromise.waiting <= 0) {
-				// Give a little extra time for another caller to come in
 				setTimeout(() => {
 					if (this._resolvedPromise && this._resolvedPromise.waiting <= 0) {
 						this._resolvedPromise.requestToken.cancel();
@@ -220,8 +216,6 @@ class MyCompletionItem extends vscode.CompletionItem {
 					const { snippet, parameterCount } = snippetForFunctionCall({ ...this, label: this.textLabel }, detail.displayParts);
 					this.insertText = snippet;
 					if (parameterCount > 0) {
-						//Fix for https://github.com/microsoft/vscode/issues/104059
-						//Don't show parameter hints if "editor.parameterHints.enabled": false
 						if (vscode.workspace.getConfiguration('editor.parameterHints').get('enabled')) {
 							commands.push({ title: 'triggerParameterHints', command: 'editor.action.triggerParameterHints' });
 						}
@@ -248,7 +242,6 @@ class MyCompletionItem extends vscode.CompletionItem {
 		const parts: string[] = [];
 
 		if (detail.kind === PConst.Kind.script) {
-			// details were already added
 			return undefined;
 		}
 
@@ -278,8 +271,6 @@ class MyCompletionItem extends vscode.CompletionItem {
 		document: vscode.TextDocument,
 		token: vscode.CancellationToken
 	): Promise<boolean> {
-		// Workaround for https://github.com/microsoft/TypeScript/issues/12677
-		// Don't complete function calls inside of destructive assignments or imports
 		try {
 			const args: Proto.FileLocationRequestArgs = typeConverters.Position.toFileLocationRequestArgs(filepath, position);
 			const response = await client.execute('quickinfo', args, token);
@@ -293,19 +284,15 @@ class MyCompletionItem extends vscode.CompletionItem {
 				}
 			}
 		} catch {
-			// Noop
 		}
 
 		const line = document.lineAt(position.line);
-		// Don't complete function call if there is already something that looks like a function call
-		// https://github.com/microsoft/vscode/issues/18131
 
 		const after = line.text.slice(position.character);
 		if (after.match(/^[a-z_$0-9]*\s*\(/gi)) {
 			return false;
 		}
 
-		// Don't complete function call if it looks like a jsx tag.
 		const before = line.text.slice(0, position.character);
 		if (before.match(/<\s*[\w]*$/gi)) {
 			return false;
@@ -322,9 +309,6 @@ class MyCompletionItem extends vscode.CompletionItem {
 			return {};
 		}
 
-		// Try to extract out the additionalTextEdits for the current file.
-		// Also check if we still have to apply other workspace edits and commands
-		// using a vscode command
 		const additionalTextEdits: vscode.TextEdit[] = [];
 		let hasRemainingCommandsOrEdits = false;
 		for (const tsAction of detail.codeActions) {
@@ -332,7 +316,6 @@ class MyCompletionItem extends vscode.CompletionItem {
 				hasRemainingCommandsOrEdits = true;
 			}
 
-			// Apply all edits in the current file using `additionalTextEdits`
 			if (tsAction.changes) {
 				for (const change of tsAction.changes) {
 					if (change.fileName === filepath) {
@@ -346,7 +329,6 @@ class MyCompletionItem extends vscode.CompletionItem {
 
 		let command: vscode.Command | undefined = undefined;
 		if (hasRemainingCommandsOrEdits) {
-			// Create command that applies all edits not in the current file.
 			command = {
 				title: '',
 				command: ApplyCompletionCodeActionCommand.ID,
@@ -376,9 +358,7 @@ class MyCompletionItem extends vscode.CompletionItem {
 			return undefined;
 		}
 
-		// If TS returns an explicit replacement range on this item, we should use it for both types of completion
 
-		// Make sure we only replace a single line at most
 		let replaceRange = typeConverters.Range.fromTextSpan(tsEntry.replacementSpan);
 		if (!replaceRange.isSingleLine) {
 			replaceRange = new vscode.Range(replaceRange.start.line, replaceRange.start.character, replaceRange.start.line, completionContext.line.length);
@@ -390,7 +370,6 @@ class MyCompletionItem extends vscode.CompletionItem {
 	}
 
 	private getFilterText(line: string, insertText: string | undefined): string | undefined {
-		// Handle private field completions
 		if (this.tsEntry.name.startsWith('#')) {
 			const wordRange = this.completionContext.wordRange;
 			const wordStart = wordRange ? line.charAt(wordRange.start.character) : undefined;
@@ -405,23 +384,14 @@ class MyCompletionItem extends vscode.CompletionItem {
 			}
 		}
 
-		// For `this.` completions, generally don't set the filter text since we don't want them to be overly prioritized. #74164
 		if (insertText?.startsWith('this.')) {
 			return undefined;
 		}
 
-		// Handle the case:
-		// ```
-		// const xyz = { 'ab c': 1 };
-		// xyz.ab|
-		// ```
-		// In which case we want to insert a bracket accessor but should use `.abc` as the filter text instead of
-		// the bracketed insert text.
 		else if (insertText?.startsWith('[')) {
 			return insertText.replace(/^\[['"](.+)[['"]\]$/, '.$1');
 		}
 
-		// In all other cases, fallback to using the insertText
 		return insertText;
 	}
 
@@ -518,7 +488,7 @@ class MyCompletionItem extends vscode.CompletionItem {
 			return commitCharacters;
 		}
 
-		if (entry.kind === PConst.Kind.warning || entry.kind === PConst.Kind.string) { // Ambient JS word based suggestion, strings
+		if (entry.kind === PConst.Kind.warning || entry.kind === PConst.Kind.string) {
 			return undefined;
 		}
 
@@ -566,16 +536,6 @@ class CompletionAcceptedCommand implements Command {
 	public execute(item: vscode.CompletionItem) {
 		this.onCompletionAccepted(item);
 		if (item instanceof MyCompletionItem) {
-			/* __GDPR__
-				"completions.accept" : {
-					"owner": "mjbvz",
-					"isPackageJsonImport" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-					"isImportStatementCompletion" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-					"${include}": [
-						"${TypeScriptCommonProperties}"
-					]
-				}
-			*/
 			this.telemetryReporter.logTelemetry('completions.accept', {
 				isPackageJsonImport: item.tsEntry.isPackageJsonImport ? 'true' : undefined,
 				isImportStatementCompletion: item.tsEntry.isImportStatementCompletion ? 'true' : undefined,
@@ -584,9 +544,6 @@ class CompletionAcceptedCommand implements Command {
 	}
 }
 
-/**
- * Command fired when an completion item needs to be applied
- */
 class ApplyCompletionCommand implements Command {
 	public static readonly ID = '_typescript.applyCompletionCommand';
 	public readonly id = ApplyCompletionCommand.ID;
@@ -832,22 +789,6 @@ class TypeScriptCompletionItemProvider implements vscode.CompletionItemProvider<
 		includesPackageJsonImport?: boolean,
 		includesImportStatementCompletion?: boolean,
 	) {
-		/* __GDPR__
-			"completions.execute" : {
-				"owner": "mjbvz",
-				"duration" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"type" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"count" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"flags": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"updateGraphDurationMs" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"createAutoImportProviderProgramDurationMs" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"includesPackageJsonImport" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"includesImportStatementCompletion" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"${include}": [
-					"${TypeScriptCommonProperties}"
-				]
-			}
-		*/
 		this.telemetryReporter.logTelemetry('completions.execute', {
 			duration: String(duration),
 			type: response?.type ?? 'unknown',

@@ -48,7 +48,7 @@ export class DevToolsLogger implements IObservableLogger {
 	private _declarationId = 0;
 	private _instanceId = 0;
 
-	private readonly _declarations = new Map</* declarationId + type */string, IObsDeclaration>();
+	private readonly _declarations = new Map< string, IObsDeclaration>();
 	private readonly _instanceInfos = new WeakMap<object, IObservableInfo | IAutorunInfo>();
 	private readonly _aliveInstances = new Map<ObsInstanceId, IObservable<any> | AutorunObserver>();
 	private readonly _activeTransactions = new Set<TransactionImpl>();

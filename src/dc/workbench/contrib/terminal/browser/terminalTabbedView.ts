@@ -219,15 +219,12 @@ export class TerminalTabbedView extends Disposable {
 		const storedValue = this._storageService.get(widthKey, StorageScope.PROFILE);
 
 		if (!storedValue || !parseInt(storedValue)) {
-			// we want to use the min width by default for the vertical orientation bc
-			// there is such a limited width for the terminal panel to begin w there.
 			return this._panelOrientation === Orientation.VERTICAL ? TerminalTabsListSizes.NarrowViewWidth : TerminalTabsListSizes.DefaultWidth;
 		}
 		return parseInt(storedValue);
 	}
 
 	private _handleOnDidSashReset(): void {
-		// Calculate ideal size of list to display all text based on its contents
 		let idealWidth = TerminalTabsListSizes.WideViewMinimumWidth;
 		const offscreenCanvas = document.createElement('canvas');
 		offscreenCanvas.width = 1;
@@ -241,7 +238,6 @@ export class TerminalTabbedView extends Disposable {
 			}, 0);
 			idealWidth = Math.ceil(Math.max(maxInstanceWidth, TerminalTabsListSizes.WideViewMinimumWidth));
 		}
-		// If the size is already ideal, toggle to collapsed
 		const currentWidth = Math.ceil(this._splitView.getViewSize(this._tabTreeIndex));
 		if (currentWidth === idealWidth) {
 			idealWidth = TerminalTabsListSizes.NarrowViewWidth;
@@ -251,7 +247,6 @@ export class TerminalTabbedView extends Disposable {
 	}
 
 	private _getAdditionalWidth(instance: ITerminalInstance): number {
-		// Size to include padding, icon, status icon (if any), split annotation (if any), + a little more
 		const additionalWidth = 40;
 		const statusIconWidth = instance.statusList.statuses.length > 0 ? WidthConstants.StatusIcon : 0;
 		const splitAnnotationWidth = (this._terminalGroupService.getGroupForInstance(instance)?.terminalInstances.length || 0) > 1 ? WidthConstants.SplitAnnotation : 0;
@@ -440,7 +435,6 @@ export class TerminalTabbedView extends Disposable {
 					this._terminalGroupService.lastAccessedMenu = 'tab-list';
 				}
 
-				// Put the focused item first as it's used as the first positional argument
 				const selectedInstances = this._tabList.getSelectedElements();
 				const focusedInstance = this._tabList.getFocusedElements()?.[0];
 				if (focusedInstance) {
@@ -462,7 +456,6 @@ export class TerminalTabbedView extends Disposable {
 		}));
 		this._register(dom.addDisposableListener(parentDomElement, 'keyup', (event: KeyboardEvent) => {
 			if (event.keyCode === 27) {
-				// Keep terminal open on escape
 				event.stopPropagation();
 			}
 		}));
@@ -588,12 +581,9 @@ export class TerminalTabbedView extends Disposable {
 			return;
 		}
 
-		// If the terminal is waiting to reconnect to remote terminals, then there is no TerminalInstance yet that can
-		// be focused. So wait for connection to finish, then focus.
 		const previousActiveElement = this._tabListElement.ownerDocument.activeElement;
 		if (previousActiveElement) {
 			const listener = this._register(Event.once(this._terminalService.onDidChangeConnectionState)(() => {
-				// Only focus the terminal if the activeElement has not changed since focus() was called
 				if (dom.isActiveElement(previousActiveElement)) {
 					this._focus();
 				}

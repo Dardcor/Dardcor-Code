@@ -16,12 +16,10 @@ import { ILanguageFeaturesService } from '../../../common/services/languageFeatu
 import { ReferencesModel } from './referencesModel.js';
 
 function shouldIncludeLocationLink(sourceModel: ITextModel, loc: LocationLink): boolean {
-	// Always allow the location if the request comes from a document with the same scheme.
 	if (loc.uri.scheme === sourceModel.uri.scheme) {
 		return true;
 	}
 
-	// Otherwise filter out locations from internal schemes
 	if (matchesSomeScheme(loc.uri, Schemas.walkThroughSnippet, Schemas.vscodeChatCodeBlock, Schemas.vscodeChatCodeCompareBlock)) {
 		return false;
 	}
@@ -38,7 +36,6 @@ async function getLocationLinks<T>(
 ): Promise<LocationLink[]> {
 	const provider = registry.ordered(model, recursive);
 
-	// get results
 	const promises = provider.map((provider): Promise<LocationLink | LocationLink[] | undefined> => {
 		return Promise.resolve(provide(provider, model, position)).then(undefined, err => {
 			onUnexpectedExternalError(err);
@@ -88,7 +85,6 @@ export function getReferencesAtPosition(registry: LanguageFeatureRegistry<Refere
 	});
 }
 
-// -- API commands ----
 
 async function _sortedAndDeduped(callback: () => Promise<LocationLink[]>): Promise<LocationLink[]> {
 	const rawLinks = await callback();

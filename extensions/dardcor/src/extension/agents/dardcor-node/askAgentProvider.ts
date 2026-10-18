@@ -12,11 +12,6 @@ import { ILogService } from '../../../platform/log/common/logService';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { AgentConfig, buildAgentMarkdown, DEFAULT_READ_TOOLS } from './agentTypes';
 
-/**
- * Base Ask agent configuration.
- * The Ask agent is read-only: it answers questions, explains code, and
- * provides information without modifying the workspace.
- */
 const BASE_ASK_AGENT_CONFIG: AgentConfig = {
 	name: 'Ask',
 	description: 'Answers questions without making changes',
@@ -28,17 +23,9 @@ const BASE_ASK_AGENT_CONFIG: AgentConfig = {
 		...DEFAULT_READ_TOOLS,
 		'vscode.mermaid-markdown-features/renderMermaidDiagram',
 	],
-	body: '' // Generated dynamically in buildCustomizedConfig
+	body: ''
 };
 
-/**
- * Provides the Ask agent dynamically with settings-based customization.
- *
- * The Ask agent is a read-only conversational mode for answering questions,
- * explaining code, and researching topics without making any edits to the
- * workspace. It uses an embedded configuration and generates .agent.md content
- * with settings-based customization (additional tools and model override).
- */
 export class AskAgentProvider extends Disposable implements vscode.ChatCustomAgentProvider {
 	readonly label = vscode.l10n.t('Ask Agent');
 
@@ -130,13 +117,10 @@ You can help with:
 		const additionalTools = this._configurationService.getConfig(ConfigKey.AskAgentAdditionalTools);
 		const modelOverride = this._configurationService.getConfig(ConfigKey.AskAgentModel);
 
-		// Collect tools to add
 		const toolsToAdd: string[] = [...additionalTools];
 
-		// Always include askQuestions tool (now provided by core)
 		toolsToAdd.push('vscode/askQuestions');
 
-		// Merge additional tools (deduplicated)
 		const tools = toolsToAdd.length > 0
 			? [...new Set([...BASE_ASK_AGENT_CONFIG.tools, ...toolsToAdd])]
 			: [...BASE_ASK_AGENT_CONFIG.tools];

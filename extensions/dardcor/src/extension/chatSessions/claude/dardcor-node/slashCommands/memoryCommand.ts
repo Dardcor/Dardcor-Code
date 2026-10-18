@@ -12,51 +12,17 @@ import { CancellationToken } from '../../../../../util/dardcor/base/common/cance
 import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { IClaudeSlashCommandHandler, registerClaudeSlashCommand } from './claudeSlashCommandRegistry';
 
-/**
- * MEMORY FILE LOCATIONS
- * =====================
- *
- * Claude memory files (CLAUDE.md) store persistent instructions that are included
- * in every conversation. There are three types:
- *
- * 1. User memory (~/.claude/CLAUDE.md)
- *    - Personal instructions that apply to all projects
- *    - Good for coding style preferences, frequently used patterns, etc.
- *
- * 2. Project memory (.claude/CLAUDE.md)
- *    - Project-specific instructions checked into version control
- *    - Shared with team members who clone the repository
- *
- * 3. Project memory - local (.claude/CLAUDE.local.md)
- *    - Project-specific instructions NOT checked into version control
- *    - For personal notes, local environment details, etc.
- */
 
-/**
- * Memory file location type
- */
 type MemoryLocationType = 'user' | 'project' | 'local';
 
-/**
- * A resolved memory file location
- */
 interface MemoryLocation {
-	/** The type of memory location */
 	type: MemoryLocationType;
-	/** Display label */
 	label: string;
-	/** Description showing file path */
 	description: string;
-	/** Full URI to the memory file */
 	path: URI;
-	/** For project locations, the workspace folder URI */
 	workspaceFolder?: URI;
 }
 
-/**
- * Slash command handler for opening Claude memory files (CLAUDE.md).
- * Shows a QuickPick to select which memory file to edit.
- */
 export class MemorySlashCommand implements IClaudeSlashCommandHandler {
 	readonly commandName = 'memory';
 	readonly description = 'Open memory files (CLAUDE.md) for editing';
@@ -76,7 +42,6 @@ export class MemorySlashCommand implements IClaudeSlashCommandHandler {
 	): Promise<vscode.ChatResult> {
 		stream?.markdown(vscode.l10n.t('Opening memory file picker...'));
 
-		// Fire and forget - picker runs in background
 		this._runPicker().catch(error => {
 			this.logService.error('[MemorySlashCommand] Error running memory picker:', error);
 			vscode.window.showErrorMessage(
@@ -88,13 +53,10 @@ export class MemorySlashCommand implements IClaudeSlashCommandHandler {
 	}
 
 	private async _runPicker(): Promise<void> {
-		// Build list of memory locations
 		const locations = this._getMemoryLocations();
 
-		// Build QuickPick items with existence status
 		const items = await this._buildQuickPickItems(locations);
 
-		// Show QuickPick
 		const selected = await vscode.window.showQuickPick(items, {
 			placeHolder: vscode.l10n.t('Select memory file to edit'),
 			ignoreFocusOut: true,
@@ -109,7 +71,6 @@ export class MemorySlashCommand implements IClaudeSlashCommandHandler {
 		const locations: MemoryLocation[] = [];
 		const homeDir = this.envService.userHome.fsPath;
 
-		// User memory (always available)
 		const userPath = URI.joinPath(this.envService.userHome, '.claude', 'CLAUDE.md');
 		let userDisplayPath = userPath.fsPath;
 		if (homeDir && userDisplayPath.startsWith(homeDir)) {
@@ -122,13 +83,11 @@ export class MemorySlashCommand implements IClaudeSlashCommandHandler {
 			path: userPath,
 		});
 
-		// Project memories (per workspace folder)
 		const workspaceFolders = this.workspaceService.getWorkspaceFolders();
 		for (const folder of workspaceFolders) {
 			const folderName = this.workspaceService.getWorkspaceFolderName(folder);
 			const isMultiRoot = workspaceFolders.length > 1;
 
-			// Project memory (shared, checked in)
 			locations.push({
 				type: 'project',
 				label: isMultiRoot
@@ -139,7 +98,6 @@ export class MemorySlashCommand implements IClaudeSlashCommandHandler {
 				workspaceFolder: folder,
 			});
 
-			// Project memory (local, git-ignored)
 			locations.push({
 				type: 'local',
 				label: isMultiRoot
@@ -183,16 +141,13 @@ export class MemorySlashCommand implements IClaudeSlashCommandHandler {
 		const exists = await this._fileExists(location.path);
 
 		if (!exists) {
-			// Create directory if needed
 			const dir = URI.joinPath(location.path, '..');
 			await createDirectoryIfNotExists(this.fileSystemService, dir);
 
-			// Create with template
 			const template = this._getTemplate(location.type);
 			await this.fileSystemService.writeFile(location.path, new TextEncoder().encode(template));
 		}
 
-		// Open in editor
 		const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(location.path.fsPath));
 		await vscode.window.showTextDocument(doc);
 	}
@@ -227,5 +182,4 @@ Instructions here apply to this project but should not be checked into version c
 	}
 }
 
-// Self-register the memory command
 registerClaudeSlashCommand(MemorySlashCommand);

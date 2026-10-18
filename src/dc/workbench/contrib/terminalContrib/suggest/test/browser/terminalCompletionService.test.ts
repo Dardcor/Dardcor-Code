@@ -36,9 +36,6 @@ interface IAssertionCommandLineConfig {
 	replacementRange: [number, number];
 }
 
-/**
- * Assert the set of completions exist exactly, including their order.
- */
 function assertCompletions(actual: ITerminalCompletion[] | undefined, expected: IAssertionTerminalCompletion[], expectedConfig: IAssertionCommandLineConfig, pathSep?: string) {
 	const sep = pathSep ?? pathSeparator;
 	assert.deepStrictEqual(
@@ -56,9 +53,6 @@ function assertCompletions(actual: ITerminalCompletion[] | undefined, expected: 
 	);
 }
 
-/**
- * Assert a set of completions exist within the actual set.
- */
 function assertPartialCompletionsExist(actual: ITerminalCompletion[] | undefined, expectedPartial: IAssertionTerminalCompletion[], expectedConfig: IAssertionCommandLineConfig) {
 	if (!actual) {
 		fail();
@@ -199,8 +193,6 @@ suite('TerminalCompletionService', () => {
 		});
 
 		test('../| should return parent folder completions', async () => {
-			// Scenario: cwd is /parent/folder1, sibling is /parent/folder2
-			// When typing ../, should see contents of /parent/ (folder1 and folder2)
 			validResources = [
 				URI.parse('file:///parent/folder1'),
 				URI.parse('file:///parent'),
@@ -317,7 +309,7 @@ suite('TerminalCompletionService', () => {
 			capabilities.add(TerminalCapability.ShellEnvDetection, shellEnvDetection);
 
 			resourceOptions = {
-				cwd: URI.parse('file:///test/folder1'),// Updated to reflect home directory
+				cwd: URI.parse('file:///test/folder1'),
 				showFiles: true,
 				showDirectories: true,
 				pathSeparator
@@ -397,7 +389,6 @@ suite('TerminalCompletionService', () => {
 				const result = await terminalCompletionService.resolveResources(resourceOptions, 'c:/foo/', 7, provider, capabilities);
 
 				assertCompletions(result, [
-					// Note that the detail is normalizes drive letters to capital case intentionally
 					{ label: 'c:/foo/', detail: 'C:/foo/' },
 					{ label: 'c:/foo/Bar/', detail: 'C:/foo/Bar/' },
 				], { replacementRange: [0, 7] });
@@ -505,7 +496,6 @@ suite('TerminalCompletionService', () => {
 			];
 			const result = await terminalCompletionService.resolveResources(resourceOptions, 'FOO=./', 2, provider, capabilities);
 
-			// Must not include FOO= prefix in completions
 			assertCompletions(result, [
 				{ label: '.', detail: '/test/' },
 				{ label: './folder1/', detail: '/test/folder1/' },
@@ -545,7 +535,6 @@ suite('TerminalCompletionService', () => {
 			const result = await terminalCompletionService.resolveResources(resourceOptions, './', 2, provider, capabilities);
 
 			assert(result);
-			// includes the 1000 folders + ./ and ./../
 			assert.strictEqual(result?.length, 1002);
 			assert.strictEqual(result[0].label, `.${pathSeparator}`);
 			assert.strictEqual(result.at(-1)?.label, `.${pathSeparator}..${pathSeparator}`);
@@ -590,7 +579,6 @@ suite('TerminalCompletionService', () => {
 			assertCompletions(result, [
 				{ label: './test/', detail: '/test/test/' },
 				{ label: './test/inner/', detail: '/test/test/inner/' },
-				// ../` from the viewed folder (/test/test/) goes to /test/, not /
 				{ label: './test/../', detail: '/test/' }
 			], { replacementRange: [0, 5] });
 		});
@@ -810,7 +798,6 @@ suite('TerminalCompletionService', () => {
 
 				validResources = [URI.parse('file:///test')];
 
-				// Create mock children including a symbolic link
 				childResources = [
 					{ resource: URI.parse('file:///test/regular-file.txt'), isFile: true },
 					{ resource: URI.parse('file:///test/symlink-file'), isFile: true, isSymbolicLink: true },
@@ -820,7 +807,6 @@ suite('TerminalCompletionService', () => {
 
 				const result = await terminalCompletionService.resolveResources(resourceOptions, 'ls ', 3, provider, capabilities);
 
-				// Find the symlink completion
 				const symlinkFileCompletion = result?.find(c => c.label === './symlink-file');
 				const symlinkFolderCompletion = result?.find(c => c.label === './symlink-folder/');
 				assert.strictEqual(symlinkFileCompletion?.detail, '/test/symlink-file -> /target/actual-file.txt', 'Symlink file detail should match target');
@@ -852,9 +838,7 @@ suite('TerminalCompletionService', () => {
 				];
 				const result = await terminalCompletionService.resolveResources(resourceOptions, '/home/', 6, provider, capabilities);
 
-				// Check that results exist and have the correct scheme/authority
 				assert.ok(result && result.length > 0, 'Should return completions for remote absolute path');
-				// Verify completions contain paths resolved via the remote file service (not local file://)
 				const absoluteCompletion = result?.find(c => c.label === '/home/');
 				assert.ok(absoluteCompletion, 'Should have absolute path completion');
 				assert.ok(absoluteCompletion.detail?.includes('/home/'), 'Detail should show remote path');
@@ -877,9 +861,7 @@ suite('TerminalCompletionService', () => {
 				];
 				const result = await terminalCompletionService.resolveResources(resourceOptions, '~/', 2, provider, capabilities);
 
-				// Check that results exist for remote tilde path
 				assert.ok(result && result.length > 0, 'Should return completions for remote tilde path');
-				// Verify the tilde path was resolved using the remote home directory
 				const documentsCompletion = result?.find(c => c.detail?.includes('Documents'));
 				assert.ok(documentsCompletion, 'Should find Documents folder from remote home');
 			});
@@ -900,9 +882,7 @@ suite('TerminalCompletionService', () => {
 				];
 				const result = await terminalCompletionService.resolveResources(resourceOptions, './', 2, provider, capabilities);
 
-				// Check that results exist for remote relative path
 				assert.ok(result && result.length > 0, 'Should return completions for remote relative path');
-				// Verify completions are from the remote filesystem
 				const srcCompletion = result?.find(c => c.detail?.includes('/home/remoteuser/project/src'));
 				assert.ok(srcCompletion, 'Should find src folder completion with remote path in detail');
 			});
@@ -940,7 +920,6 @@ suite('TerminalCompletionService', () => {
 	});
 
 	suite('Provider Configuration', () => {
-		// Test class that extends TerminalCompletionService to access protected methods
 		class TestTerminalCompletionService extends TerminalCompletionService {
 			public getEnabledProviders(providers: ITerminalCompletionProvider[]): ITerminalCompletionProvider[] {
 				return super._getEnabledProviders(providers);
@@ -953,7 +932,6 @@ suite('TerminalCompletionService', () => {
 			testTerminalCompletionService = store.add(instantiationService.createInstance(TestTerminalCompletionService));
 		});
 
-		// Mock provider for testing
 		function createMockProvider(id: string): ITerminalCompletionProvider {
 			return {
 				id,
@@ -971,12 +949,10 @@ suite('TerminalCompletionService', () => {
 			const newProvider = createMockProvider('new-extension-provider');
 			const providers = [defaultProvider, newProvider];
 
-			// Set empty configuration (no provider keys)
 			configurationService.setUserConfiguration(TerminalSuggestSettingId.Providers, {});
 
 			const result = testTerminalCompletionService.getEnabledProviders(providers);
 
-			// Both providers should be enabled since they're not explicitly disabled
 			assert.strictEqual(result.length, 2, 'Should enable both providers by default');
 			assert.ok(result.includes(defaultProvider), 'Should include default provider');
 			assert.ok(result.includes(newProvider), 'Should include new provider');
@@ -987,14 +963,12 @@ suite('TerminalCompletionService', () => {
 			const provider2 = createMockProvider('provider2');
 			const providers = [provider1, provider2];
 
-			// Disable provider1, leave provider2 unconfigured
 			configurationService.setUserConfiguration(TerminalSuggestSettingId.Providers, {
 				'provider1': false
 			});
 
 			const result = testTerminalCompletionService.getEnabledProviders(providers);
 
-			// Only provider2 should be enabled
 			assert.strictEqual(result.length, 1, 'Should enable only one provider');
 			assert.ok(result.includes(provider2), 'Should include unconfigured provider');
 			assert.ok(!result.includes(provider1), 'Should not include disabled provider');
@@ -1005,14 +979,12 @@ suite('TerminalCompletionService', () => {
 			const provider2 = createMockProvider('provider2');
 			const providers = [provider1, provider2];
 
-			// Explicitly enable provider1, leave provider2 unconfigured
 			configurationService.setUserConfiguration(TerminalSuggestSettingId.Providers, {
 				'provider1': true
 			});
 
 			const result = testTerminalCompletionService.getEnabledProviders(providers);
 
-			// Both providers should be enabled
 			assert.strictEqual(result.length, 2, 'Should enable both providers');
 			assert.ok(result.includes(provider1), 'Should include explicitly enabled provider');
 			assert.ok(result.includes(provider2), 'Should include unconfigured provider');
@@ -1024,7 +996,6 @@ suite('TerminalCompletionService', () => {
 			const provider3 = createMockProvider('provider3');
 			const providers = [provider1, provider2, provider3];
 
-			// Mixed configuration: enable provider1, disable provider2, leave provider3 unconfigured
 			configurationService.setUserConfiguration(TerminalSuggestSettingId.Providers, {
 				'provider1': true,
 				'provider2': false
@@ -1032,7 +1003,6 @@ suite('TerminalCompletionService', () => {
 
 			const result = testTerminalCompletionService.getEnabledProviders(providers);
 
-			// provider1 and provider3 should be enabled, provider2 should be disabled
 			assert.strictEqual(result.length, 2, 'Should enable two providers');
 			assert.ok(result.includes(provider1), 'Should include explicitly enabled provider');
 			assert.ok(result.includes(provider3), 'Should include unconfigured provider');

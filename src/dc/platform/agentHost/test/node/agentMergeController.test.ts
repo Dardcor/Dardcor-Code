@@ -42,11 +42,6 @@ function createProviderService(getAutonomousSessionConfig: NonNullable<IAgent['g
 	}();
 }
 
-/**
- * The controller only reads git to resolve the worktree commit that backs the
- * "merge only while unchanged" baseline. These tests never exercise that path,
- * so the worktree simply reports as unreadable.
- */
 const noopGitService = new class extends mock<IAgentHostGitService>() {
 	override async getRepositoryRoot(): Promise<URI | undefined> { return undefined; }
 }();
@@ -200,7 +195,6 @@ suite('AgentMergeController', () => {
 		stateManager.dispatchServerAction(session, { type: ActionType.SessionReady });
 		const elevated = configurationService.getSessionConfigValues(session)?.[SessionConfigKey.AutoApprove];
 
-		// Policy revokes the elevated level while the session stays enabled.
 		configurationService.updateRootConfig({ [AgentHostAutoApprovePolicyRestrictedConfigKey]: true });
 
 		const values = configurationService.getSessionConfigValues(session);
@@ -263,8 +257,6 @@ suite('AgentMergeController', () => {
 				refreshCount++;
 				stateManager.setSessionMeta(sessionKey, withSessionGitState(stateManager.getSessionState(sessionKey)?._meta, { branchName: 'feature', baseBranchName: 'main' }));
 			}
-			// The follow-up evaluation triggered by capturing the target reaches
-			// this; it finds no pull request and idles on the backstop.
 			override async attachSessionGitHubPullRequest(): Promise<void> { }
 		}();
 		const endpointService = disposables.add(new AgentHostGitHubEndpointService(configurationService, logService));
@@ -288,8 +280,6 @@ suite('AgentMergeController', () => {
 			schema: platformSessionSchema.toProtocol(),
 			values: {},
 		});
-		// A failed git probe leaves the branch behind but keeps the base branch,
-		// which is exactly the state that used to stall Agent Merge forever.
 		stateManager.setSessionMeta(session, withSessionGitState(undefined, { baseBranchName: 'main' }));
 		configurationService.updateSessionConfig(session, {
 			[SessionConfigKey.AgentMerge]: { enabled: true },
@@ -380,8 +370,6 @@ suite('AgentMergeController', () => {
 		const gitStateService = new class extends mock<IAgentHostGitStateService>() {
 			override readonly onDidRefreshSessionGitState = onDidRefreshSessionGitState.event;
 			override readonly onDidChangeSessionGitHubState = Event.None;
-			// Stands in for a checkout that cannot report a branch however often
-			// it is probed, which is what makes an unbounded retry expensive.
 			override async refreshSessionGitState(sessionKey: string): Promise<void> {
 				refreshCounts.set(sessionKey, (refreshCounts.get(sessionKey) ?? 0) + 1);
 			}
@@ -419,8 +407,6 @@ suite('AgentMergeController', () => {
 			stateManager.dispatchServerAction(session, { type: ActionType.SessionReady });
 		}
 
-		// Drive several evaluation cycles; without a guard each one would spawn
-		// another git call for both sessions.
 		for (let cycle = 0; cycle < 3; cycle++) {
 			onDidRefreshSessionGitState.fire(detached);
 			onDidRefreshSessionGitState.fire(stranded);
@@ -535,8 +521,6 @@ suite('AgentMergeController', () => {
 		await captured;
 		const afterEnable = [...notices];
 
-		// The checkout moves to an unrelated branch, which is what silently
-		// stopped Agent Merge before it explained itself.
 		stateManager.setSessionMeta(session, withSessionGitState(undefined, { branchName: 'main', baseBranchName: 'main' }));
 		await timeout(0);
 		await timeout(0);
@@ -679,8 +663,6 @@ suite('AgentMergeController', () => {
 		const { stateManager, configurationService, session, notices } = createControllerHarness(disposables);
 		configurationService.updateSessionConfig(session, { [SessionConfigKey.AgentMerge]: { enabled: true } });
 		stateManager.dispatchServerAction(session, { type: ActionType.SessionReady });
-		// Archiving disables from inside the controller; the re-entrant sync its
-		// own config write triggers must not add a second, reasonless notice.
 		stateManager.dispatchServerAction(session, { type: ActionType.SessionIsArchivedChanged, isArchived: true });
 		const afterSelfDisable = [...notices];
 
@@ -735,8 +717,6 @@ suite('AgentMergeController', () => {
 		assert.deepStrictEqual({
 			dotCom: parsePullRequestUrl('https://github.com/octo/repo/pull/1')?.apiHost,
 			www: parsePullRequestUrl('https://www.github.com/octo/repo/pull/1')?.apiHost,
-			// GitHub Enterprise Cloud serves its API from an `api.` subdomain, which is
-			// the host the credential reports; comparing the web host rejects every PR.
 			enterpriseCloud: parsePullRequestUrl('https://tenant.ghe.com/octo/repo/pull/1')?.apiHost,
 			enterpriseServer: parsePullRequestUrl('https://ghe.corp.example/octo/repo/pull/1')?.apiHost,
 			parsed: parsePullRequestUrl('https://tenant.ghe.com/octo/repo/pull/42'),
@@ -759,11 +739,8 @@ suite('AgentMergeController', () => {
 		const snapshot = (overrides: object) => ({ core: ready, topLevelComments: ready, submittedReviews: ready, reviewThreads: ready, checks: ready, mergeability: ready, ...overrides }) as unknown as PullRequestSnapshot;
 
 		assert.deepStrictEqual({
-			// Only the first refresh of a subscription throws; every later failure is
-			// recorded here, which is the state the SAML scenario actually reaches.
 			refused: firstCredentialFailure(snapshot({ checks: { status: 'error', complete: false, error: { kind: 'authorization', statusCode: 200, message: saml } } })),
 			signedOut: firstCredentialFailure(snapshot({ core: { status: 'error', complete: false, error: { kind: 'authentication', message: 'Bad credentials' } } }))?.id,
-			// A failure the user cannot fix by authorizing must not prompt.
 			serverError: firstCredentialFailure(snapshot({ checks: { status: 'error', complete: false, error: { kind: 'server', message: 'boom' } } })),
 			stillLoading: firstCredentialFailure(snapshot({ mergeability: { status: 'loading', complete: false } })),
 			healthy: firstCredentialFailure(snapshot({})),

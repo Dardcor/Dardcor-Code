@@ -39,11 +39,6 @@ import { ChatOutline, IChatWidget, IChatWidgetService } from '../../../chat/brow
 import { ISymbolVariableEntry } from '../../../chat/common/attachments/chatVariableEntries.js';
 import { isRequestVM } from '../../../chat/common/model/chatViewModel.js';
 
-/**
- * A single navigable entry backing the "no text editor" symbol picks (chat
- * outline or editor-pane outline). Provides the label to render and how to
- * reveal/preview the underlying element.
- */
 interface INavigablePickEntry {
 	readonly label: string;
 	readonly description?: string;
@@ -71,7 +66,6 @@ export class GotoSymbolQuickAccessProvider extends AbstractGotoSymbolQuickAccess
 		this.onDidActiveTextEditorControlChange = this.editorService.onDidActiveEditorChange;
 	}
 
-	//#region DocumentSymbols (text editor required)
 
 	private get configuration() {
 		const editorConfig = this.configurationService.getValue<IWorkbenchEditorConfiguration>().workbench?.editor;
@@ -84,10 +78,6 @@ export class GotoSymbolQuickAccessProvider extends AbstractGotoSymbolQuickAccess
 
 	protected get activeTextEditorControl() {
 
-		// TODO: this distinction should go away by adopting `IOutlineService`
-		// for all editors (either text based ones or not). Currently text based
-		// editors are not yet using the new outline service infrastructure but the
-		// "classical" document symbols approach.
 		if (isCompositeEditor(this.editorService.activeEditorPane?.getControl())) {
 			return undefined;
 		}
@@ -97,9 +87,8 @@ export class GotoSymbolQuickAccessProvider extends AbstractGotoSymbolQuickAccess
 
 	protected override gotoLocation(context: IQuickAccessTextEditorContext, options: { range: IRange; keyMods: IKeyMods; forceSideBySide?: boolean; preserveFocus?: boolean }): void {
 
-		// Check for sideBySide use
 		if ((options.keyMods.alt || (this.configuration.openEditorPinned && options.keyMods.ctrlCmd) || options.forceSideBySide) && this.editorService.activeEditor) {
-			context.restoreViewState?.(); // since we open to the side, restore view state in this editor
+			context.restoreViewState?.();
 
 			const editorOptions: ITextEditorOptions = {
 				selection: options.range,
@@ -110,24 +99,17 @@ export class GotoSymbolQuickAccessProvider extends AbstractGotoSymbolQuickAccess
 			this.editorService.openEditor(this.editorService.activeEditor, editorOptions, SIDE_GROUP);
 		}
 
-		// Otherwise let parent handle it
 		else {
 			super.gotoLocation(context, options);
 		}
 	}
 
-	//#endregion
 
-	//#region public methods to use this picker from other pickers
 
 	private static readonly SYMBOL_PICKS_TIMEOUT = 8000;
 
 	async getSymbolPicks(model: ITextModel, filter: string, options: { extraContainerLabel?: string }, disposables: DisposableStore, token: CancellationToken): Promise<Array<IGotoSymbolQuickPickItem | IQuickPickSeparator>> {
 
-		// If the registry does not know the model, we wait for as long as
-		// the registry knows it. This helps in cases where a language
-		// registry was not activated yet for providing any symbols.
-		// To not wait forever, we eventually timeout though.
 		const result = await Promise.race([
 			this.waitForLanguageSymbolRegistry(model, disposables),
 			timeout(GotoSymbolQuickAccessProvider.SYMBOL_PICKS_TIMEOUT)
@@ -165,13 +147,8 @@ export class GotoSymbolQuickAccessProvider extends AbstractGotoSymbolQuickAccess
 		return picks;
 	}
 
-	//#endregion
 
 	override provide(picker: IQuickPick<IQuickPickItem, { useSeparators: true }>, token: CancellationToken, runOptions?: IQuickAccessProviderRunOptions): IDisposable {
-		// A focused chat is the navigable resource, even when a regular file
-		// editor is also open side by side. The base `provide()` would otherwise
-		// route to the active text editor's symbols whenever one exists, so the
-		// chat case must be handled here before that decision is made.
 		const chatWidget = this.getActiveChatWidget();
 		if (chatWidget) {
 			picker.canAcceptInBackground = !!this.options?.canAcceptInBackground;
@@ -195,11 +172,6 @@ export class GotoSymbolQuickAccessProvider extends AbstractGotoSymbolQuickAccess
 	}
 
 	private getActiveChatWidget(): IChatWidget | undefined {
-		// Treat the chat as the navigable resource only when it actually has DOM
-		// focus. This is checked before the quick input steals focus (the picker
-		// is shown after `provide()` runs), works across windows via the focused
-		// document, and avoids hijacking Go to Symbol when a non-chat surface is
-		// focused. Only offer the chat when it has requests to navigate to.
 		const widget = this.chatWidgetService.lastFocusedWidget;
 		if (!widget || !isAncestorOfActiveElement(widget.domNode)) {
 			return undefined;
@@ -292,7 +264,6 @@ export class GotoSymbolQuickAccessProvider extends AbstractGotoSymbolQuickAccess
 		const updatePickerItems = () => {
 			const filteredItems = items.filter(item => {
 				if (picker.value === '@') {
-					// default, no filtering, scoring...
 					item.score = 0;
 					item.highlights = undefined;
 					return true;

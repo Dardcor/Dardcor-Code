@@ -11,7 +11,6 @@ import { URI } from '../../../util/dardcor/base/common/uri';
 import { BrandedService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export function constructGlobalStateMemento(globalStatePath: string): Memento {
-	// Check if the JSON file at globalStatePath exists, if not create it
 	if (!existsSync(globalStatePath)) {
 		mkdirSync(dirname(globalStatePath), { recursive: true });
 		writeFileSync(globalStatePath, '{}', 'utf8');
@@ -55,7 +54,6 @@ function createInMemoryMemento(): Memento {
 function constructGlobalStoragePath(globalStoragePath: string): URI {
 
 	if (!existsSync(globalStoragePath)) {
-		// Create the folder if it doesn't exist
 		mkdirSync(globalStoragePath, { recursive: true });
 	}
 	return URI.file(globalStoragePath);

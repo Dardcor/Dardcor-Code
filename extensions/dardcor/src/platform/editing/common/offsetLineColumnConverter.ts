@@ -9,7 +9,6 @@ import { Position } from '../../../util/dardcor/editor/common/core/position';
 export class OffsetLineColumnConverter {
 	private readonly _lineStartOffsets: number[];
 
-	/** 1-based number of lines in the source text. */
 	public get lines() {
 		return this._lineStartOffsets.length;
 	}
@@ -19,7 +18,7 @@ export class OffsetLineColumnConverter {
 		let index = 0;
 		while (index < text.length) {
 			const ch = text.charCodeAt(index);
-			index++; // go to next index
+			index++;
 			if (ch === CharCode.CarriageReturn || ch === CharCode.LineFeed) {
 				if (ch === CharCode.CarriageReturn && index < text.length && text.charCodeAt(index) === CharCode.LineFeed) {
 					index++;

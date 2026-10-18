@@ -12,10 +12,6 @@ import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IGitService, RepoContext } from '../../../git/common/gitService';
 import { Branch, Change, Commit, CommitOptions, CommitShortStat, DiffChange, LogOptions, Ref, RefQuery, Repository, RepositoryAccessDetails } from '../../../git/dardcor/git';
 
-/**
- * A configurable mock implementation of IGitService for testing.
- * Tracks call counts and allows setting return values for methods.
- */
 export class MockGitService implements IGitService {
 	declare readonly _serviceBrand: undefined;
 
@@ -31,9 +27,6 @@ export class MockGitService implements IGitService {
 	public repositories: RepoContext[] = [];
 	public isInitialized = true;
 
-	/**
-	 * Sets the return value for getRepositoryFetchUrls.
-	 */
 	setRepositoryFetchUrls(value: Pick<RepoContext, 'rootUri' | 'remoteFetchUrls'> | undefined): void {
 		this._repositoryFetchUrls = value;
 	}
@@ -51,9 +44,6 @@ export class MockGitService implements IGitService {
 		return Promise.resolve(this._repositoryFetchUrls);
 	});
 
-	/**
-	 * Fires the onDidCloseRepository event with the given repository context.
-	 */
 	fireDidCloseRepository(repo: RepoContext): void {
 		this._onDidCloseRepository.fire(repo);
 	}

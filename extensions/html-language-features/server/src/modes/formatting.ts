@@ -14,7 +14,6 @@ export async function format(languageModes: LanguageModes, document: TextDocumen
 	let endOffset = document.offsetAt(endPos);
 	const content = document.getText();
 	if (endPos.character === 0 && endPos.line > 0 && endOffset !== content.length) {
-		// if selection ends after a new line, exclude that new line
 		const prevLineStart = document.offsetAt(Position.create(endPos.line - 1, 0));
 		while (isEOL(content, endOffset - 1) && endOffset > prevLineStart) {
 			endOffset--;
@@ -23,14 +22,7 @@ export async function format(languageModes: LanguageModes, document: TextDocumen
 	}
 
 
-	// run the html formatter on the full range and pass the result content to the embedded formatters.
-	// from the final content create a single edit
-	// advantages of this approach are
-	//  - correct indents in the html document
-	//  - correct initial indent for embedded formatters
-	//  - no worrying of overlapping edits
 
-	// make sure we start in html
 	const allRanges = languageModes.getModesInRange(document, formatRange);
 	let i = 0;
 	let startPos = formatRange.start;
@@ -48,10 +40,8 @@ export async function format(languageModes: LanguageModes, document: TextDocumen
 	if (i === allRanges.length) {
 		return result;
 	}
-	// modify the range
 	formatRange = Range.create(startPos, formatRange.end);
 
-	// perform a html format and apply changes to a new document
 	const htmlMode = languageModes.getMode('html')!;
 	const htmlEdits = await htmlMode.format!(document, formatRange, formattingOptions, settings);
 	let htmlFormattedContent = TextDocument.applyEdits(document, htmlEdits);
@@ -61,8 +51,7 @@ export async function format(languageModes: LanguageModes, document: TextDocumen
 	}
 	const newDocument = TextDocument.create(document.uri + '.tmp', document.languageId, document.version, htmlFormattedContent);
 	try {
-		// run embedded formatters on html formatted content: - formatters see correct initial indent
-		const afterFormatRangeLength = document.getText().length - document.offsetAt(formatRange.end); // length of unchanged content after replace range
+		const afterFormatRangeLength = document.getText().length - document.offsetAt(formatRange.end);
 		const newFormatRange = Range.create(formatRange.start, newDocument.positionAt(htmlFormattedContent.length - afterFormatRangeLength));
 		const embeddedRanges = languageModes.getModesInRange(newDocument, newFormatRange);
 
@@ -83,7 +72,6 @@ export async function format(languageModes: LanguageModes, document: TextDocumen
 			return result;
 		}
 
-		// apply all embedded format edits and create a single edit for all changes
 		const resultContent = TextDocument.applyEdits(newDocument, embeddedEdits);
 		const resultReplaceText = resultContent.substring(document.offsetAt(formatRange.start), resultContent.length - afterFormatRangeLength);
 

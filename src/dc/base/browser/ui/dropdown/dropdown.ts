@@ -57,7 +57,7 @@ export class BaseDropdown extends ActionRunner {
 		}
 
 		for (const event of [EventType.CLICK, EventType.MOUSE_DOWN, GestureEventType.Tap]) {
-			this._register(addDisposableListener(this.element, event, e => EventHelper.stop(e, true))); // prevent default click behaviour to trigger
+			this._register(addDisposableListener(this.element, event, e => EventHelper.stop(e, true)));
 		}
 
 		for (const event of [EventType.MOUSE_DOWN, GestureEventType.Tap]) {
@@ -67,7 +67,6 @@ export class BaseDropdown extends ActionRunner {
 				}
 
 				if (isMouseEvent(e) && e.button !== 0) {
-					// prevent right click trigger to allow separate context menu (https://github.com/microsoft/vscode/issues/151064)
 					return;
 				}
 
@@ -82,7 +81,7 @@ export class BaseDropdown extends ActionRunner {
 		this._register(addDisposableListener(this._label, EventType.KEY_DOWN, e => {
 			const event = new StandardKeyboardEvent(e);
 			if (event.equals(KeyCode.Enter) || event.equals(KeyCode.Space)) {
-				EventHelper.stop(e, true); // https://github.com/microsoft/vscode/issues/57997
+				EventHelper.stop(e, true);
 
 				if (baseOptions.isEnabled?.() === false) {
 					return;
@@ -182,7 +181,7 @@ export interface IDropdownMenuOptions extends IBaseDropdownOptions {
 	menuClassName?: string;
 	closeAnimation?: IContextViewCloseAnimation;
 	getAnchor?: () => HTMLElement;
-	menuAsChild?: boolean; // scope down for #99448
+	menuAsChild?: boolean;
 	readonly skipTelemetry?: boolean;
 }
 

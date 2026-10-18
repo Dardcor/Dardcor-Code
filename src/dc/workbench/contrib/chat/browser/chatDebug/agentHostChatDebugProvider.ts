@@ -22,86 +22,42 @@ import { IWorkbenchContribution } from '../../../../common/contributions.js';
 import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
 import { IPathService } from '../../../../services/path/common/pathService.js';
 import { ChatDebugHookResult, ChatDebugLogLevel, IChatDebugCustomizationLogEntry, IChatDebugEvent, IChatDebugFileEntry, IChatDebugLogProvider, IChatDebugMessageSection, IChatDebugModelTurnEvent, IChatDebugResolvedEventContent, IChatDebugService } from '../../common/chatDebugService.js';
-import { IAgentHostCustomizationService } from '../agentSessions/agentHost/agentHostCustomizationService.js';
+
 import { AgentHostAgentDebugLogEnabledSettingId, AgentHostAgentDebugLogMaxEventsSettingId } from '../../common/promptSyntax/promptTypes.js';
 import { buildLocalSessionStateUri, COPILOT_CLI_EH_SCHEME, COPILOT_CLI_LOCAL_AH_SCHEME, getCopilotCliSessionRawId, resolveEventsUri } from '../copilotCliEventsUri.js';
 import { AgentHostCustomizationRecorder, AgentHostUsageRecorder, buildAgentHostCustomizationsUri, buildAgentHostUsageUri, readAgentHostCustomizationsSnapshot, readAgentHostUsageRecords, type IAgentHostUsageRecord } from './agentHostUsageSidecar.js';
 
-/**
- * One record in an Agent Host Copilot CLI `events.jsonl` stream. The CLI
- * writes a line-delimited JSON log of the session under
- * `<COPILOT_HOME>/session-state/<id>/events.jsonl`. Every record shares the same
- * envelope. Note that `parentId` is **not** a logical parent: the SDK defines
- * it as the chronologically preceding event in the session (a flat linked chain
- * over every event), not the user → model-turn → tool-call hierarchy. The
- * panel's trajectory tree is instead reconstructed from each record's logical
- * context (turn / tool-call / agent ids); see
- * {@link convertAgentHostEventsToDebugEvents}.
- */
 interface IAgentHostEventRecord {
 	readonly type: string;
 	readonly id: string;
 	readonly parentId: string | null;
-	/** Sub-agent instance id; absent for the main agent and session-level events. */
 	readonly agentId?: string;
 	readonly timestamp: string;
 	readonly data: Record<string, unknown>;
 }
 
-/** Maximum number of session-state folders scanned for the session list. */
 const MAX_DISCOVERED_SESSIONS = 30;
-/** Bytes read from the head of each `events.jsonl` to derive a session title. */
 const TITLE_READ_BYTES = 64 * 1024;
-/** Cap on cached resolved-event details to bound memory. */
 const MAX_RESOLVED_DETAILS = 50_000;
-/** Fallback in-memory record cap when the configured value is missing/invalid. */
 const DEFAULT_MAX_EVENTS_IN_MEMORY = 10_000;
-/** Cap on a tool argument/result string stored on the (list-level) event. */
 const MAX_EVENT_PAYLOAD = 4_000;
-/** Cap on a tool argument/result string stored for the detail (expanded) view. */
 const MAX_DETAIL_PAYLOAD = 100_000;
 
-/**
- * Feeds Agent Host (Copilot CLI) sessions into the Agent Debug Logs panel by
- * reading each session's on-disk `events.jsonl` and converting the records
- * into {@link IChatDebugEvent}s. Registers a core-side
- * {@link IChatDebugLogProvider} (the service supports multiple providers
- * alongside the extension's), and adds discovered local sessions to the
- * available-sessions list so they appear in the home view.
- */
 export class AgentHostChatDebugContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.agentHostChatDebug';
 
-	/** Resolved (expanded) detail for each emitted event id. */
 	private readonly _resolved = new Map<string, IChatDebugResolvedEventContent>();
 
-	/** Guards against concurrent/overlapping session discovery scans. */
 	private _discovering = false;
 
-	/** True once the lazy fetcher has run at least once (i.e. the panel has been opened). */
 	private _hasFetchedOnce = false;
 
-	/** Watches the currently-viewed session's events.jsonl for live refresh. */
 	private readonly _liveRefresh = this._register(new MutableDisposable<DisposableStore>());
 	private _watchedSessionKey: string | undefined;
 
-	/**
-	 * Incremental-read cache for the actively-viewed session's `events.jsonl`.
-	 * The CLI appends to the file, so each live refresh reads only the bytes
-	 * added since the last read and parses just the new lines, avoiding an
-	 * O(N) whole-file re-read + re-parse on every change. Bounded to a single
-	 * session (the one being viewed) and released when that session ends.
-	 */
 	private _liveRead: { key: string; consumedBytes: number; pendingBytes: VSBuffer; records: IAgentHostEventRecord[] } | undefined;
 
-	/**
-	 * Size-gated cache for the actively-viewed session's usage sidecar. The
-	 * sidecar is read on every live tick, but is append-only, so we re-read and
-	 * re-parse it only when its byte size changed since the last read (most
-	 * ticks — tool progress, etc. — add no usage records). Bounded to a single
-	 * session and released when that session ends.
-	 */
 	private _usageRead: { key: string; size: number; records: readonly IAgentHostUsageRecord[] } | undefined;
 
 	constructor(
@@ -113,7 +69,7 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@ILogService private readonly _logService: ILogService,
 		@IWorkbenchEnvironmentService private readonly _environmentService: IWorkbenchEnvironmentService,
-		@IAgentHostCustomizationService private readonly _customizationService: IAgentHostCustomizationService,
+		
 	) {
 		super();
 
@@ -123,10 +79,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		};
 		this._register(this._chatDebugService.registerProvider(provider));
 
-		// Capture live token-usage actions to a stable client-local sidecar so
-		// per-turn/per-round metrics survive a VS Code restart and feed the Cache
-		// Explorer accurately (works for local and remote hosts alike). Gated on
-		// the same agent-host setting that gates the panel for CLI sessions.
 		this._register(new AgentHostUsageRecorder(
 			this._environmentService.userRoamingDataHome,
 			() => this._configurationService.getValue<boolean>(AgentHostAgentDebugLogEnabledSettingId),
@@ -136,10 +88,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 			this._remoteAgentHostService,
 		));
 
-		// Capture each session's loaded customizations (skills/hooks/agents/MCP)
-		// to a client-local snapshot so historical/closed sessions still surface
-		// them: the live customization service only knows sessions with an active
-		// state subscription, and the SDK's `session.*_loaded` events are ephemeral.
 		this._register(new AgentHostCustomizationRecorder(
 			this._environmentService.userRoamingDataHome,
 			() => this._configurationService.getValue<boolean>(AgentHostAgentDebugLogEnabledSettingId),
@@ -149,25 +97,15 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 			this._remoteAgentHostService,
 		));
 
-		// Stop the live file watcher when the session it follows is closed
-		// (e.g. navigating Home or closing the debug editor), so we don't keep
-		// re-reading and re-invoking providers for a session no longer shown.
 		this._register(this._chatDebugService.onDidEndSession(sessionResource => {
 			if (sessionResource.toString() === this._watchedSessionKey) {
 				this._liveRefresh.clear();
 				this._watchedSessionKey = undefined;
-				this._liveRead = undefined; // release the per-session parse cache
-				this._usageRead = undefined; // release the per-session usage cache
+				this._liveRead = undefined;
+				this._usageRead = undefined;
 			}
 		}));
 
-		// Discover historical local sessions so they appear in the home list —
-		// but only when the debug panel actually needs them. Registering a lazy
-		// fetcher (invoked on the first `getAvailableSessionResources()`, i.e.
-		// when the home view first renders) keeps the startup/idle footprint at
-		// zero when the panel is never opened. When file logging is toggled on
-		// after the panel has already loaded once, re-scan directly so sessions
-		// surface without a window reload.
 		this._register(this._chatDebugService.registerAvailableSessionsFetcher(token => this._fetchLocalSessions(token)));
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(AgentHostAgentDebugLogEnabledSettingId) && this._hasFetchedOnce) {
@@ -176,12 +114,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		}));
 	}
 
-	/**
-	 * Lazy fetcher registered with {@link IChatDebugService}. Invoked (at most
-	 * once) when the home view first requests the available session list, so no
-	 * disk scan happens until the panel is opened. Returns nothing when file
-	 * logging is disabled.
-	 */
 	private async _fetchLocalSessions(token: CancellationToken): Promise<{ uri: URI; title?: string }[]> {
 		this._hasFetchedOnce = true;
 		if (!this._configurationService.getValue<boolean>(AgentHostAgentDebugLogEnabledSettingId)) {
@@ -195,14 +127,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		}
 	}
 
-	/**
-	 * Runs {@link _discoverLocalSessions} when file logging is enabled and adds
-	 * the results to the available-sessions list, guarding against overlapping
-	 * scans. Used for the re-scan when logging is enabled after the panel has
-	 * already loaded once (the initial load goes through {@link _fetchLocalSessions}).
-	 * Safe to call repeatedly: {@link IChatDebugService.addAvailableSessionResources}
-	 * dedupes by URI.
-	 */
 	private async _maybeDiscoverLocalSessions(): Promise<void> {
 		if (this._discovering || !this._configurationService.getValue<boolean>(AgentHostAgentDebugLogEnabledSettingId)) {
 			return;
@@ -230,16 +154,10 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		return result.kind === 'ok' ? result.resource : undefined;
 	}
 
-	/**
-	 * Watches the given session's events.jsonl and re-invokes providers when it
-	 * changes, so the panel updates as new turns/requests stream in. Only one
-	 * session (the one currently shown) is watched at a time. Remote
-	 * (non-`file`) sessions are not watched; they still load on open.
-	 */
 	private _ensureLiveRefresh(sessionResource: URI, eventsUri: URI): void {
 		const key = sessionResource.toString();
 		if (this._watchedSessionKey === key) {
-			return; // already watching this session
+			return;
 		}
 		if (eventsUri.scheme !== Schemas.file) {
 			this._liveRefresh.clear();
@@ -249,16 +167,9 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 
 		this._watchedSessionKey = key;
 		const store = new DisposableStore();
-		// Debounce: the CLI appends many records per turn; coalesce into one re-read.
 		const scheduler = store.add(new RunOnceScheduler(() => {
 			this._chatDebugService.invokeProviders(sessionResource);
 		}, 400));
-		// Watch the session-state directory (scoped to this file) rather than
-		// the single `events.jsonl`: the external Copilot CLI process writes
-		// that file from another process and a single-file watcher can miss
-		// those changes (e.g. atomic rename/replace), leaving the panel stale
-		// until the user re-navigates. A directory watch reliably surfaces
-		// appends to the file so the Logs view updates live.
 		const watcher = store.add(this._fileService.createWatcher(dirname(eventsUri), { recursive: false, excludes: [] }));
 		store.add(watcher.onDidChange(e => {
 			const affects = e.affects(eventsUri);
@@ -267,47 +178,29 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 			}
 		}));
 
-		// Also refresh when the live AHP chat state changes: input/cache/AIU
-		// usage is on the chat channel (not in events.jsonl until
-		// session.shutdown), so a usage update mid-turn must re-render the tiles.
 		const liveSub = this._sessionChatSubscription(sessionResource);
 		if (liveSub) {
 			store.add(liveSub.onDidChange(() => scheduler.schedule()));
 		}
 
-		// The set of loaded customizations (skills/hooks/agents/MCP) is sourced
-		// from live session state, not events.jsonl, so re-read when it changes.
-		store.add(this._customizationService.onDidChangeCustomizations(() => scheduler.schedule()));
+		
 
-		this._liveRefresh.value = store; // disposes any previously-watched session
+		this._liveRefresh.value = store;
 	}
 
-	/**
-	 * Returns the live AHP chat-state subscription for a local Agent Host
-	 * session, if one is currently active (i.e. the session is open/subscribed).
-	 * Turns (and their usage) live on the session's default chat channel, so we
-	 * subscribe to that channel rather than the session. Read-only: never
-	 * creates a subscription.
-	 */
 	private _sessionChatSubscription(sessionResource: URI) {
 		if (sessionResource.scheme !== COPILOT_CLI_LOCAL_AH_SCHEME) {
-			return undefined; // live usage only for local Agent Host sessions
+			return undefined;
 		}
 		const rawId = getCopilotCliSessionRawId(sessionResource);
 		if (!rawId) {
 			return undefined;
 		}
 		const backendSession = URI.from({ scheme: COPILOT_CLI_EH_SCHEME, path: `/${rawId}` });
-		// Turns/usage moved off the session onto its default chat channel.
 		const chatUri = URI.parse(buildDefaultChatUri(backendSession.toString()));
 		return this._agentHostService.getSubscriptionUnmanaged(StateComponents.Chat, chatUri);
 	}
 
-	/**
-	 * Reads live Copilot AIU from the AHP session state as a fallback usage
-	 * source for in-progress sessions (no `session.shutdown` summary yet).
-	 * Only AIU is reliable live; input/cache need the shutdown summary (F1).
-	 */
 	private _getLiveUsageTotals(sessionResource: URI): ISessionUsageTotals | undefined {
 		const chat = this._sessionChatSubscription(sessionResource)?.value;
 		if (!chat || chat instanceof Error) {
@@ -316,12 +209,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		return sumChatStateUsage(chat);
 	}
 
-	/**
-	 * Reads the client-local usage sidecar for a session (exact per-request
-	 * token metrics captured live). Returns `undefined` when the session has no
-	 * sidecar (e.g. it ran before capture shipped), so the converter falls back
-	 * to the session.shutdown summary / live totals.
-	 */
 	private async _readUsageRecords(sessionResource: URI): Promise<readonly IAgentHostUsageRecord[] | undefined> {
 		const rawId = getCopilotCliSessionRawId(sessionResource);
 		if (!rawId) {
@@ -336,10 +223,9 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 			size = stat.size ?? 0;
 		} catch {
 			this._usageRead = undefined;
-			return undefined; // no sidecar for this session
+			return undefined;
 		}
 
-		// Append-only sidecar: reuse the parsed records when the size is unchanged.
 		if (this._usageRead?.key === key && this._usageRead.size === size) {
 			return this._usageRead.records.length > 0 ? this._usageRead.records : undefined;
 		}
@@ -349,13 +235,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		return records.length > 0 ? records : undefined;
 	}
 
-	/**
-	 * Reads the client-local customization snapshot for a session (the last
-	 * loaded skills/hooks/agents/MCP captured live). Used as a fallback for
-	 * historical/closed sessions, where the live customization service has no
-	 * active state subscription and returns nothing. Returns `undefined` when no
-	 * snapshot exists (e.g. the session ran before capture shipped).
-	 */
 	private async _readCustomizationsSnapshot(sessionResource: URI): Promise<readonly Customization[] | undefined> {
 		const rawId = getCopilotCliSessionRawId(sessionResource);
 		if (!rawId) {
@@ -368,62 +247,37 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 
 	private async _provideChatDebugLog(sessionResource: URI, token: CancellationToken): Promise<IChatDebugEvent[] | undefined> {
 		if (!this._configurationService.getValue<boolean>(AgentHostAgentDebugLogEnabledSettingId)) {
-			return undefined; // agent-host debug logging disabled
+			return undefined;
 		}
 		const eventsUri = this._resolveEventsUri(sessionResource);
 		if (!eventsUri) {
-			return undefined; // not an Agent Host Copilot CLI session
+			return undefined;
 		}
 
-		// Keep the panel live: watch this session's events.jsonl and re-invoke
-		// providers on change. A full re-read handles new turns, tool
-		// start→complete transitions, and the session.shutdown usage summary.
-		// This must run BEFORE the read below: a brand-new session has no
-		// events.jsonl yet, and if we returned early on the failed read without
-		// arming the watcher, live updates would never surface until the panel
-		// is re-opened. The watcher targets the (already-existing) session-state
-		// directory, so it fires when the CLI first creates the file.
 		this._ensureLiveRefresh(sessionResource, eventsUri);
 
 		const records = await this._readEventRecords(eventsUri, token);
 		if (records === undefined) {
-			return undefined; // session has no events.jsonl yet, or read failed
+			return undefined;
 		}
 		if (token.isCancellationRequested) {
 			return undefined;
 		}
 
-		// For in-progress sessions (no session.shutdown yet), fall back to live
-		// Copilot AIU from the AHP session state so the usage tile isn't blank.
-		// (Input/cache stay blank until the session ends — see F1.)
 		const liveUsageTotals = this._getLiveUsageTotals(sessionResource);
 
-		// Prefer the client-local usage sidecar: it records exact per-request
-		// input/cache/AIU (captured live from ChatUsage actions) so metrics are
-		// correct per round and survive a restart. Falls back to the
-		// session.shutdown even-split / live totals when no sidecar exists.
 		const usageRecords = await this._readUsageRecords(sessionResource);
 		if (token.isCancellationRequested) {
 			return undefined;
 		}
 
-		// Loaded customizations (skills/hooks/agents/MCP) come from live session
-		// state — the SDK's `session.*_loaded` events are ephemeral and never
-		// written to events.jsonl — so surface them as discovery events, mirroring
-		// the local `PromptsDebugContribution`. Live state is empty for
-		// historical/closed sessions, so fall back to the client-local snapshot
-		// captured by `AgentHostCustomizationRecorder`.
-		let customizations = this._customizationService.getCustomizations(sessionResource);
-		if (customizations.length === 0) {
-			customizations = await this._readCustomizationsSnapshot(sessionResource) ?? customizations;
-			if (token.isCancellationRequested) {
-				return undefined;
-			}
+		let customizations: readonly Customization[] | undefined = await this._readCustomizationsSnapshot(sessionResource);
+		if (token.isCancellationRequested) {
+			return undefined;
 		}
 
 		const { events, resolved } = convertAgentHostEventsToDebugEvents(records, sessionResource, liveUsageTotals, usageRecords, customizations);
 
-		// Merge the resolved-detail map, evicting oldest entries past the cap.
 		for (const [id, detail] of resolved) {
 			this._resolved.set(id, detail);
 			if (this._resolved.size > MAX_RESOLVED_DETAILS) {
@@ -437,31 +291,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		return events;
 	}
 
-	/**
-	 * Reads the session's `events.jsonl` into parsed records, reading only the
-	 * bytes appended since the last read for the actively-viewed session.
-	 *
-	 * The Copilot CLI appends to `events.jsonl` line-by-line from a separate
-	 * process, so a live session is an append-only stream. Rather than
-	 * re-reading and re-`JSON.parse`-ing the whole (potentially multi-MB) file
-	 * on every change — which is O(N) per tick and O(N^2) over a long session —
-	 * we cache the parsed records plus the byte offset consumed so far and read
-	 * only the new tail. A full read is used on first view, a cache miss, or
-	 * when the file shrank (rotation/truncation).
-	 *
-	 * Byte offsets are only ever advanced to a newline boundary (`\n` is a
-	 * single byte that never appears inside a multi-byte UTF-8 sequence), so a
-	 * tail read never starts mid-codepoint; any trailing partial line is kept
-	 * as `pendingBytes` and prepended to the next read.
-	 *
-	 * Returns `undefined` when the file does not exist yet or cannot be read.
-	 */
-	/**
-	 * The configured in-memory event cap for agent host sessions (see
-	 * {@link AgentHostAgentDebugLogMaxEventsSettingId}). The raw record cache is
-	 * trimmed to this many entries so a long-running session does not retain an
-	 * unbounded array, matching the capped public event buffer.
-	 */
 	private _maxRecordsInMemory(): number {
 		const configured = this._configurationService.getValue<number>(AgentHostAgentDebugLogMaxEventsSettingId);
 		if (typeof configured === 'number' && Number.isFinite(configured) && configured >= 1) {
@@ -470,7 +299,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		return DEFAULT_MAX_EVENTS_IN_MEMORY;
 	}
 
-	/** Trims `records` in place to the most recent {@link _maxRecordsInMemory} entries. */
 	private _capRecordsInMemory(records: IAgentHostEventRecord[]): void {
 		const max = this._maxRecordsInMemory();
 		if (records.length > max) {
@@ -486,7 +314,7 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 			size = stat.size ?? 0;
 		} catch {
 			this._liveRead = undefined;
-			return undefined; // session has no events.jsonl yet
+			return undefined;
 		}
 		if (token.isCancellationRequested) {
 			return undefined;
@@ -494,10 +322,9 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 
 		const cache = this._liveRead?.key === key ? this._liveRead : undefined;
 
-		// Incremental tail read: same session, file grew (or is unchanged).
 		if (cache && size >= cache.consumedBytes) {
 			if (size === cache.consumedBytes) {
-				return cache.records; // no new bytes (e.g. an unrelated dir change)
+				return cache.records;
 			}
 			try {
 				const content = await this._fileService.readFile(eventsUri, { position: cache.consumedBytes, length: size - cache.consumedBytes });
@@ -516,11 +343,9 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 				this._capRecordsInMemory(cache.records);
 				return cache.records;
 			} catch {
-				// Fall through to a full read (e.g. transient error / offset moved).
 			}
 		}
 
-		// Full (re)read: first view, different session, file shrank, or tail read failed.
 		let buffer: VSBuffer;
 		try {
 			const content = await this._fileService.readFile(eventsUri);
@@ -555,7 +380,7 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 		try {
 			stat = await this._fileService.resolve(sessionStateDir, { resolveMetadata: true });
 		} catch {
-			return []; // no local Copilot CLI sessions on disk
+			return [];
 		}
 		if (token.isCancellationRequested) {
 			return [];
@@ -573,7 +398,7 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 				const head = await this._fileService.readFile(eventsUri, { length: TITLE_READ_BYTES });
 				title = extractSessionTitle(head.value.toString()) ?? fallbackSessionTitle(folder.name);
 			} catch {
-				return undefined; // folder without a readable events.jsonl
+				return undefined;
 			}
 			return { uri: URI.from({ scheme: COPILOT_CLI_LOCAL_AH_SCHEME, path: `/${folder.name}` }), title };
 		}));
@@ -585,26 +410,6 @@ export class AgentHostChatDebugContribution extends Disposable implements IWorkb
 	}
 }
 
-/**
- * Converts a parsed `events.jsonl` record stream into debug-panel events plus
- * their expanded detail. Pure (no services) so it can be unit-tested directly.
- *
- * The record `parentId` is **not** a logical parent: the Copilot SDK documents
- * it as "the chronologically preceding event in the session, forming a linked
- * chain" — a flat back-pointer over every event, not the user → model-turn →
- * tool-call hierarchy the panel's flow chart needs. So we reconstruct that
- * hierarchy from each record's logical context as we iterate chronologically:
- *   - `session.start` is the tree root.
- *   - a `user.message` hangs off the session root.
- *   - an `assistant.message` hangs off the current user message (tracked per
- *     agent), unless it carries a `parentToolCallId` (a sub-agent turn), in
- *     which case it hangs off that spawning tool call.
- *   - a `tool.execution_start` hangs off the current assistant message (tracked
- *     per agent), unless it carries a `parentToolCallId` (a nested / sub-agent
- *     tool), in which case it hangs off that parent tool call.
- * `tool.execution_start` and `tool.execution_complete` records share a
- * `toolCallId` and are merged into a single tool-call event.
- */
 export function convertAgentHostEventsToDebugEvents(
 	records: readonly IAgentHostEventRecord[],
 	sessionResource: URI,
@@ -612,12 +417,6 @@ export function convertAgentHostEventsToDebugEvents(
 	usageRecords?: readonly IAgentHostUsageRecord[],
 	customizations?: readonly Customization[],
 ): { readonly events: IChatDebugEvent[]; readonly resolved: Map<string, IChatDebugResolvedEventContent> } {
-	// Pre-pass: index `tool.execution_complete` records by `toolCallId` (so a
-	// start can be merged with its completion) and `assistant.turn_start` records
-	// by `turnId` (so a turn's wall-clock duration can be measured). Also index
-	// `hook.end`, `permission.completed`, and `subagent.completed` so each can be
-	// folded onto its opening record (`hook.start` / `permission.requested` /
-	// `subagent.started`).
 	const completeByToolCallId = new Map<string, IAgentHostEventRecord>();
 	const turnStartByTurnId = new Map<string, IAgentHostEventRecord>();
 	const hookEndByInvocationId = new Map<string, IAgentHostEventRecord>();
@@ -654,40 +453,20 @@ export function convertAgentHostEventsToDebugEvents(
 
 	const events: IChatDebugEvent[] = [];
 	const resolved = new Map<string, IChatDebugResolvedEventContent>();
-	// Positions of emitted model-turn events, so per-round usage from the sidecar
-	// (preferred) or session-cumulative usage from `session.shutdown` can be
-	// back-filled onto them (see below).
 	const modelTurnRefs: IModelTurnRef[] = [];
 
-	// Logical-tree context. The "current message" pointers are tracked per agent
-	// (keyed by `agentId`, `''` for the main agent) so a sub-agent turn never
-	// re-parents a main-agent tool call, and vice versa.
 	let rootEventId: string | undefined;
 	let rootCreated: Date | undefined;
 	const currentUserMessageByAgent = new Map<string, string>();
 	const currentAssistantMessageByAgent = new Map<string, string>();
-	// Maps a `toolCallId` to the id of its emitted tool-call event, so a nested
-	// tool's `parentToolCallId` can be resolved to a surfaced parent.
 	const toolEventByToolCallId = new Map<string, string>();
 
-	// Whether the session has at least one enabled hook customization. The CLI
-	// emits `preToolUse` / `postToolUse` lifecycle `hook.start` records on *every*
-	// tool call regardless of user configuration (VS Code itself uses the
-	// `preToolUse` dispatch for tool-permission gating), and a routine successful
-	// run is byte-identical to the internal dispatch. We therefore only surface
-	// tool hooks when the user actually configured one — so the debug view can
-	// confirm it ran, whether it succeeded or failed — and suppress the pure
-	// internal-dispatch noise otherwise. `HookCustomization` does not expose which
-	// lifecycle events it registers, so this gate is session-level.
 	const hasConfiguredHooks = !!customizations
 		&& flattenCustomizations(customizations).some(c => c.type === CustomizationType.Hook && c.enabled);
 
 	for (const record of records) {
 		const created = new Date(record.timestamp);
 		const agentKey = record.agentId ?? '';
-		// Parent for events that annotate the turn in progress (errors, warnings,
-		// permissions, hooks, …): the current assistant message, else the current
-		// user message, else the session root.
 		const turnParent = currentAssistantMessageByAgent.get(agentKey) ?? currentUserMessageByAgent.get(agentKey) ?? rootEventId;
 
 		switch (record.type) {
@@ -732,7 +511,7 @@ export function convertAgentHostEventsToDebugEvents(
 				}
 				const message = summarize(content);
 				currentUserMessageByAgent.set(agentKey, record.id);
-				currentAssistantMessageByAgent.delete(agentKey); // a new user turn starts fresh
+				currentAssistantMessageByAgent.delete(agentKey);
 				events.push({ kind: 'userMessage', id: record.id, sessionResource, created, parentEventId: rootEventId, message, sections });
 				resolved.set(record.id, { kind: 'message', type: 'user', message, sections });
 				break;
@@ -742,12 +521,9 @@ export function convertAgentHostEventsToDebugEvents(
 				const outputTokens = asNumber(record.data.outputTokens);
 				const content = asString(record.data.content) ?? '';
 				const reasoning = asString(record.data.reasoningText);
-				// A sub-agent turn nests under its spawning tool call; a normal turn
-				// nests under the user message it answers.
 				const parentToolCallId = asString(record.data.parentToolCallId);
 				const spawningTool = parentToolCallId ? toolEventByToolCallId.get(parentToolCallId) : undefined;
 				const parentEventId = spawningTool ?? currentUserMessageByAgent.get(agentKey) ?? rootEventId;
-				// The turn's wall-clock duration is the gap from its `assistant.turn_start`.
 				const turnId = asString(record.data.turnId);
 				const turnStart = turnId ? turnStartByTurnId.get(turnId) : undefined;
 				const durationInMillis = turnStart ? diffMillis(turnStart.timestamp, record.timestamp) : undefined;
@@ -778,8 +554,6 @@ export function convertAgentHostEventsToDebugEvents(
 				const durationInMillis = complete ? diffMillis(record.timestamp, complete.timestamp) : undefined;
 				const fullInput = stringifyPayload(record.data.arguments);
 				const fullOutput = complete ? stringifyPayload(complete.data.result) : undefined;
-				// A nested / sub-agent tool nests under its parent tool call; a
-				// top-level tool nests under the assistant message that requested it.
 				const parentToolCallId = asString(record.data.parentToolCallId);
 				const parentTool = parentToolCallId ? toolEventByToolCallId.get(parentToolCallId) : undefined;
 				const parentEventId = parentTool ?? currentAssistantMessageByAgent.get(agentKey) ?? currentUserMessageByAgent.get(agentKey) ?? rootEventId;
@@ -800,7 +574,6 @@ export function convertAgentHostEventsToDebugEvents(
 				});
 				break;
 			}
-			// `tool.execution_complete` is folded into its start record above.
 			case 'session.error': {
 				const message = asString(record.data.message) ?? localize('agentHost.debug.unknownError', "Unknown error");
 				const errorType = asString(record.data.errorType);
@@ -856,26 +629,12 @@ export function convertAgentHostEventsToDebugEvents(
 				const end = invocationId ? hookEndByInvocationId.get(invocationId) : undefined;
 				const success = end ? asBoolean(end.data.success) : undefined;
 				const isError = hookType === 'errorOccurred';
-				// The CLI emits `preToolUse` / `postToolUse` lifecycle hooks on every
-				// tool call regardless of user configuration. Only surface them when the
-				// user actually configured a hook (so the view can confirm it ran); hide
-				// the pure internal-dispatch noise otherwise.
 				if ((hookType === 'preToolUse' || hookType === 'postToolUse') && !hasConfiguredHooks) {
 					break;
 				}
-				// A `preToolUse` hook fires *before* the `assistant.message` of the
-				// turn whose tool it precedes is finalized, so `turnParent` still
-				// points at the PREVIOUS model turn. Nesting it there is misleading —
-				// it belongs to the upcoming turn — so surface it at the
-				// turn-container (user message) level, as a sibling of the model
-				// turns rather than a child of the prior one.
 				const hookParent = hookType === 'preToolUse'
 					? (currentUserMessageByAgent.get(agentKey) ?? rootEventId)
 					: turnParent;
-				// Error notifications (`errorOccurred`) and failed hooks are surfaced
-				// prominently below. Routine lifecycle hooks (sessionStart / sessionEnd
-				// / userPromptSubmitted / …) are surfaced as low-key informational
-				// customization events so users can still see which hooks fired.
 				if (!isError && success !== false) {
 					events.push({
 						kind: 'generic', id: record.id, sessionResource, created, parentEventId: hookParent,
@@ -911,11 +670,6 @@ export function convertAgentHostEventsToDebugEvents(
 					category: 'hook',
 				});
 				const inputText = stringifyPayload(record.data.input);
-				// On failure the `hook.end` record carries the only distinguishing trace
-				// of the user's hook: `output` (per-tool denial messages) and `error`
-				// ({ message, source }, where `source` is the hook config file). The CLI
-				// never records the hook command text or its stdout, so this is the most
-				// we can surface about which hook acted and why.
 				const endError = asRecord(end?.data.error);
 				const errorParts = endError
 					? [asString(endError.message), asString(endError.source)].filter((s): s is string => !!s)
@@ -930,7 +684,6 @@ export function convertAgentHostEventsToDebugEvents(
 				});
 				break;
 			}
-			// `hook.end` is folded into its `hook.start` above.
 			case 'permission.requested': {
 				const requestId = asString(record.data.requestId);
 				const permissionRequest = asRecord(record.data.permissionRequest);
@@ -939,9 +692,6 @@ export function convertAgentHostEventsToDebugEvents(
 				const toolCallId = asString(permissionRequest?.toolCallId);
 				const completed = requestId ? permissionCompleteByRequestId.get(requestId) : undefined;
 				const resultKind = completed ? asString(asRecord(completed.data.result)?.kind) : undefined;
-				// A routine approval is happy-path noise (the tool call is already
-				// shown); only surface denials and still-pending requests, which
-				// explain why a tool was blocked or a session appears stalled.
 				if (resultKind === 'approved') {
 					break;
 				}
@@ -964,7 +714,6 @@ export function convertAgentHostEventsToDebugEvents(
 				resolved.set(record.id, { kind: 'text', value: lines.join('\n') });
 				break;
 			}
-			// `permission.completed` is folded into its `permission.requested` above.
 			case 'subagent.started': {
 				const toolCallId = asString(record.data.toolCallId);
 				const agentName = asString(record.data.agentDisplayName) ?? asString(record.data.agentName) ?? 'subagent';
@@ -974,7 +723,6 @@ export function convertAgentHostEventsToDebugEvents(
 				const toolCallCount = complete ? asNumber(complete.data.totalToolCalls) : undefined;
 				const totalTokens = complete ? asNumber(complete.data.totalTokens) : undefined;
 				const durationInMillis = complete ? asNumber(complete.data.durationMs) : undefined;
-				// The sub-agent nests under the tool call that spawned it.
 				const parentEventId = (toolCallId ? toolEventByToolCallId.get(toolCallId) : undefined) ?? turnParent;
 				events.push({
 					kind: 'subagentInvocation', id: record.id, sessionResource, created, parentEventId,
@@ -990,7 +738,6 @@ export function convertAgentHostEventsToDebugEvents(
 				resolved.set(record.id, { kind: 'text', value: lines.join('\n') });
 				break;
 			}
-			// `subagent.completed` is folded into its `subagent.started` above.
 			case 'session.compaction_start': {
 				const systemTokens = asNumber(record.data.systemTokens) ?? 0;
 				const conversationTokens = asNumber(record.data.conversationTokens) ?? 0;
@@ -1004,8 +751,6 @@ export function convertAgentHostEventsToDebugEvents(
 				break;
 			}
 			case 'session.compaction_complete': {
-				// A successful compaction is implied by its start row; only the
-				// failure case is diagnostically interesting.
 				if (asBoolean(record.data.success) !== false) {
 					break;
 				}
@@ -1046,24 +791,10 @@ export function convertAgentHostEventsToDebugEvents(
 				}
 				break;
 			}
-			// `assistant.turn_start` seeds turn durations (pre-pass); its
-			// `assistant.turn_end` and `system.message` siblings are not surfaced
-			// in this slice.
 		}
 	}
 
-	// Usage back-fill. `events.jsonl` records only `outputTokens` per turn;
-	// input/cache-read tokens and Copilot AIU come from elsewhere:
-	//   1. The client-local usage sidecar (preferred): exact per-request tokens
-	//      captured live from ChatUsage actions, mapped per round — restart-safe
-	//      and accurate for the Cache Explorer.
-	//   2. Else the `session.shutdown` summary (exact totals, spread evenly).
-	//   3. Else the live AHP state (AIU only) for in-progress sessions.
-	// The per-turn split in (2) is an even approximation but the column sums are
-	// exact; totals that aren't known (e.g. input/cache on a live session) are
-	// left blank.
 
-	// Distributes cumulative `totals` evenly across the given turns.
 	const fillTurnsWithTotals = (targets: readonly IModelTurnRef[], totals: ISessionUsageTotals) => {
 		const n = targets.length;
 		if (n === 0) {
@@ -1089,11 +820,6 @@ export function convertAgentHostEventsToDebugEvents(
 
 	if (usageRecords && usageRecords.length > 0 && modelTurnRefs.length > 0) {
 		const coverage = applyPerTurnUsage(events, resolved, modelTurnRefs, usageRecords);
-		// The sidecar may only cover a prefix of the session's turns (logging
-		// enabled mid-session, or a dropped append). Reconcile the remaining
-		// turns from the authoritative shutdown/live totals so the Overview
-		// aggregates aren't undercounted, keeping the exact per-round values we
-		// did capture.
 		const uncovered = modelTurnRefs.filter((_ref, i) => !coverage.covered.has(i));
 		if (uncovered.length > 0) {
 			const totals = extractSessionUsageTotals(records) ?? fallbackUsageTotals;
@@ -1112,10 +838,6 @@ export function convertAgentHostEventsToDebugEvents(
 		}
 	}
 
-	// Surface the session's loaded customizations (skills / hooks / agents / MCP
-	// servers / rules) as discovery events plus a summary, mirroring the local
-	// `PromptsDebugContribution`. Sourced from live session state (the SDK's
-	// `session.*_loaded` events are ephemeral and absent from events.jsonl).
 	if (customizations && customizations.length > 0) {
 		const created = rootCreated ?? (records.length > 0 ? new Date(records[0].timestamp) : new Date());
 		const { events: customEvents, resolved: customResolved } = buildCustomizationDebugEvents(customizations, sessionResource, rootEventId, created);
@@ -1128,13 +850,11 @@ export function convertAgentHostEventsToDebugEvents(
 	return { events, resolved };
 }
 
-/** Order in which loaded customization types are surfaced as discovery events. */
 const CUSTOMIZATION_TYPE_ORDER: readonly CustomizationType[] = [
 	CustomizationType.Skill, CustomizationType.Hook, CustomizationType.Agent,
 	CustomizationType.McpServer, CustomizationType.Rule, CustomizationType.Prompt,
 ];
 
-/** A leaf customization flattened out of its container, with its context. */
 interface IFlatCustomization {
 	readonly type: CustomizationType;
 	readonly name: string;
@@ -1143,12 +863,6 @@ interface IFlatCustomization {
 	readonly description?: string;
 }
 
-/**
- * Flattens the session's customization tree into its leaf children (skills,
- * hooks, agents, MCP servers, rules, prompts). Container entries
- * ({@link CustomizationType.Plugin} / {@link CustomizationType.Directory}) are
- * descended into; a top-level {@link CustomizationType.McpServer} is kept as-is.
- */
 function flattenCustomizations(customizations: readonly Customization[]): IFlatCustomization[] {
 	const out: IFlatCustomization[] = [];
 	const visit = (c: Customization | ChildCustomization): void => {
@@ -1172,7 +886,6 @@ function flattenCustomizations(customizations: readonly Customization[]): IFlatC
 	return out;
 }
 
-/** Human-readable name for a per-type customization discovery event. */
 function customizationDiscoveryName(type: CustomizationType): string {
 	switch (type) {
 		case CustomizationType.Skill: return localize('agentHost.debug.skillDiscovery', "Skill Discovery");
@@ -1185,7 +898,6 @@ function customizationDiscoveryName(type: CustomizationType): string {
 	}
 }
 
-/** Maps a flattened customization to a summary-log category, if it has one. */
 function customizationSummaryCategory(c: IFlatCustomization): IChatDebugCustomizationLogEntry['category'] | undefined {
 	if (!c.enabled) {
 		return 'skipped';
@@ -1195,15 +907,10 @@ function customizationSummaryCategory(c: IFlatCustomization): IChatDebugCustomiz
 		case CustomizationType.Agent: return 'custom-agent';
 		case CustomizationType.Hook: return 'hook';
 		case CustomizationType.Rule: return 'applying';
-		default: return undefined; // Prompt / MCP have no summary category
+		default: return undefined;
 	}
 }
 
-/**
- * Builds the customization discovery + summary debug events for a session from
- * its loaded {@link Customization}s. Ids are deterministic (per session + type)
- * so repeated live refreshes replace rather than duplicate them.
- */
 export function buildCustomizationDebugEvents(
 	customizations: readonly Customization[],
 	sessionResource: URI,
@@ -1229,7 +936,6 @@ export function buildCustomizationDebugEvents(
 
 	const key = sessionResource.toString();
 
-	// Per-type discovery events, each expandable to its file list.
 	for (const type of CUSTOMIZATION_TYPE_ORDER) {
 		const list = byType.get(type);
 		if (!list || list.length === 0) {
@@ -1255,7 +961,6 @@ export function buildCustomizationDebugEvents(
 		resolved.set(id, { kind: 'fileList', discoveryType: type, durationInMillis: 0, files });
 	}
 
-	// Summary event mirroring the local "Resolve Customizations".
 	const logs: IChatDebugCustomizationLogEntry[] = [];
 	for (const c of flat) {
 		const category = customizationSummaryCategory(c);
@@ -1285,7 +990,6 @@ export function buildCustomizationDebugEvents(
 	return { events, resolved };
 }
 
-/** A model-turn debug event plus the context needed to back-fill its usage. */
 interface IModelTurnRef {
 	readonly index: number;
 	readonly id: string;
@@ -1293,15 +997,10 @@ interface IModelTurnRef {
 	readonly outputTokens?: number;
 }
 
-/** What {@link applyPerTurnUsage} assigned, so callers can reconcile the rest. */
 interface IPerTurnUsageCoverage {
-	/** Positions in `modelTurnRefs` that received a sidecar usage record. */
 	readonly covered: ReadonlySet<number>;
-	/** Sum of input tokens assigned from the sidecar. */
 	readonly assignedInput: number;
-	/** Sum of cache-read tokens assigned from the sidecar. */
 	readonly assignedCache: number;
-	/** Sum of Copilot AIU (nano) assigned from the sidecar. */
 	readonly assignedAiu: number;
 }
 
@@ -1321,21 +1020,7 @@ function applyPerTurnUsage(
 		}
 	};
 
-	// The sidecar and events.jsonl use DIFFERENT turn-id namespaces — the
-	// sidecar keys on the backend request id (one id per user turn, shared by
-	// its rounds) while events.jsonl keys on a per-turn round index that resets
-	// each user turn — so they can't be correlated by id. Both streams are
-	// chronological with one entry per model round, though, so correlate them
-	// positionally, using the `outputTokens` both report as an alignment guard:
-	// a ref whose output doesn't match the next record has no captured usage
-	// (e.g. a sub-agent round, whose usage folds into the parent aggregate and
-	// isn't recorded separately), so it's left blank and the record is kept for
-	// the next ref.
 
-	// Copilot AIU is cumulative per user turn (it resets each turn), so
-	// attribute each turn's max only to its LAST captured round — the summed
-	// per-turn total then stays exact. Turn boundaries are the runs of records
-	// sharing a `turnId`.
 	const aiuByRecordIndex = new Array<number | undefined>(usageRecords.length).fill(undefined);
 	for (let start = 0; start < usageRecords.length;) {
 		let end = start;
@@ -1364,7 +1049,7 @@ function applyPerTurnUsage(
 		const ref = modelTurnRefs[refIdx];
 		const record = usageRecords[recordIndex];
 		if (ref.outputTokens !== undefined && record.outputTokens !== undefined && ref.outputTokens !== record.outputTokens) {
-			continue; // this ref has no captured usage record — leave it blank
+			continue;
 		}
 		const aiu = aiuByRecordIndex[recordIndex];
 		assign(ref, record.inputTokens, record.cacheReadTokens, aiu);
@@ -1377,29 +1062,17 @@ function applyPerTurnUsage(
 	return { covered, assignedInput, assignedCache, assignedAiu };
 }
 
-/** Session usage totals distributed across model turns. */
 interface ISessionUsageTotals {
-	/** Cumulative input tokens — only set when known from an exact source (`session.shutdown`). */
 	readonly inputTokens?: number;
-	/** Cumulative cache-read tokens — only set when known from an exact source. */
 	readonly cacheReadTokens?: number;
-	/** Cumulative Copilot AIU (nano). */
 	readonly totalNanoAiu: number;
 }
 
-/**
- * Extracts session-cumulative usage from the last `session.shutdown` record.
- * Token totals are summed across `modelMetrics[*].usage`; AIU prefers the
- * top-level `totalNanoAiu`, falling back to the per-model sum. Returns
- * `undefined` only when there is no `session.shutdown` record (e.g. an active
- * session) — once a shutdown summary exists it is authoritative even when its
- * totals are zero, so the caller must not fall back to live usage.
- */
 function extractSessionUsageTotals(records: readonly IAgentHostEventRecord[]): ISessionUsageTotals | undefined {
 	let shutdown: IAgentHostEventRecord | undefined;
 	for (const record of records) {
 		if (record.type === 'session.shutdown') {
-			shutdown = record; // keep the last one
+			shutdown = record;
 		}
 	}
 	if (!shutdown) {
@@ -1421,13 +1094,9 @@ function extractSessionUsageTotals(records: readonly IAgentHostEventRecord[]): I
 	}
 	const totalNanoAiu = asNumber(shutdown.data.totalNanoAiu) ?? perModelNanoAiu;
 
-	// A shutdown summary is authoritative even when its totals are zero: input /
-	// cache are then known to be zero (not unknown), so returning the totals here
-	// keeps the caller from falling back to live AIU for a finished session.
 	return { inputTokens, cacheReadTokens, totalNanoAiu };
 }
 
-/** Splits `total` into `n` integer parts that sum exactly to `total`. */
 function distributeEvenly(total: number, n: number): number[] {
 	if (n <= 0) {
 		return [];
@@ -1441,17 +1110,6 @@ function distributeEvenly(total: number, n: number): number[] {
 	return parts;
 }
 
-/**
- * Sums Copilot AIU across a live chat's turns (for in-progress sessions).
- *
- * Deliberately sums AIU only. The producer emits per-request input/cache and
- * the reducer overwrites each turn's `usage` with the latest request —
- * only AIU is accumulated per turn (`_turnCopilotUsageTotalNanoAiu`). So the
- * chat state holds just each turn's *last* request's input/cache; summing
- * those would under-report multi-request (tool-loop) turns. Input/cache are
- * therefore left to the exact `session.shutdown` summary, and live sessions
- * show AIU + output only until they end.
- */
 function sumChatStateUsage(chat: ChatState): ISessionUsageTotals | undefined {
 	let totalNanoAiu = 0;
 	let hasUsage = false;
@@ -1469,22 +1127,16 @@ function sumChatStateUsage(chat: ChatState): ISessionUsageTotals | undefined {
 	return hasUsage ? { totalNanoAiu } : undefined;
 }
 
-/** Reads `_meta.copilotUsage.totalNanoAiu` (per-turn cumulative AIU) from a usage report. */
 function readCopilotNanoAiu(usage: UsageInfo): number {
 	return readUsageInfoMeta(usage).copilotUsage?.totalNanoAiu ?? 0;
 }
 
-/** Parses a line-delimited JSON stream, skipping blank or malformed lines. */
 export function parseJsonl(text: string): IAgentHostEventRecord[] {
 	const records: IAgentHostEventRecord[] = [];
 	appendJsonlRecords(text, records);
 	return records;
 }
 
-/**
- * Parses each complete JSONL line in `text` and appends the well-formed
- * records to `records` (used for both full and incremental tail reads).
- */
 function appendJsonlRecords(text: string, records: IAgentHostEventRecord[]): void {
 	for (const line of text.split('\n')) {
 		const trimmed = line.trim();
@@ -1493,12 +1145,6 @@ function appendJsonlRecords(text: string, records: IAgentHostEventRecord[]): voi
 		}
 		try {
 			const parsed = JSON.parse(trimmed);
-			// Require the full envelope so the converter can read `record.*` and
-			// `record.data.*` without guarding every access — including a string
-			// `timestamp` (else `new Date(...)` yields `Invalid Date`), a
-			// `string | null` `parentId`, and a non-array `data` object. A line
-			// missing any of these is treated as malformed and skipped rather than
-			// throwing downstream (which would drop the whole session's debug log).
 			if (parsed && typeof parsed.type === 'string' && typeof parsed.id === 'string'
 				&& typeof parsed.timestamp === 'string'
 				&& (parsed.parentId === null || typeof parsed.parentId === 'string')
@@ -1506,33 +1152,24 @@ function appendJsonlRecords(text: string, records: IAgentHostEventRecord[]): voi
 				records.push(parsed as IAgentHostEventRecord);
 			}
 		} catch {
-			// Ignore partial trailing lines (common when reading a bounded head).
 		}
 	}
 }
 
-/** Byte index of the last `\n` in `buffer`, or -1 if none (safe UTF-8 split point). */
 function lastIndexOfNewline(buffer: VSBuffer): number {
 	const bytes = buffer.buffer;
 	for (let i = bytes.length - 1; i >= 0; i--) {
-		if (bytes[i] === 0x0A /* \n */) {
+		if (bytes[i] === 0x0A ) {
 			return i;
 		}
 	}
 	return -1;
 }
 
-/**
- * Deterministic localized fallback title for a discovered session that has no
- * `user.message` in the scanned head, so the home list shows something
- * meaningful instead of the generic "New Chat" fallback. Uses a short prefix of
- * the session id.
- */
 function fallbackSessionTitle(sessionId: string): string {
 	return localize('agentHost.debug.untitledSession', "Dardcor AI CLI Session {0}", sessionId.slice(0, 8));
 }
 
-/** Derives a session title from the first user message in an events stream. */
 function extractSessionTitle(text: string): string | undefined {
 	for (const record of parseJsonl(text)) {
 		if (record.type === 'user.message') {
@@ -1588,7 +1225,6 @@ function truncate(value: string | undefined, max: number): string | undefined {
 	return value.length > max ? value.slice(0, max) + '…' : value;
 }
 
-/** First non-empty line of a message, trimmed to a short single-line summary. */
 function summarize(content: string): string {
 	const firstLine = content.split('\n').map(l => l.trim()).find(l => l.length > 0) ?? '';
 	return firstLine.length > 100 ? firstLine.slice(0, 100) + '…' : firstLine;

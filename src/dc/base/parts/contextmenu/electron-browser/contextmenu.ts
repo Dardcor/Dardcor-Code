@@ -48,7 +48,6 @@ function createItem(item: IContextMenuItem, processedItems: IContextMenuItem[]):
 
 	processedItems.push(item);
 
-	// Submenu
 	if (Array.isArray(item.submenu)) {
 		serializableItem.submenu = item.submenu.map(submenuItem => createItem(submenuItem, processedItems));
 	}

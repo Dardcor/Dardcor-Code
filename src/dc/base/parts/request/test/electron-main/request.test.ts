@@ -23,7 +23,7 @@ suite('Request', () => {
 		port = await new Promise<number>((resolvePort, rejectPort) => {
 			server = http.createServer((req, res) => {
 				if (req.url === '/noreply') {
-					return; // never respond
+					return;
 				}
 				res.setHeader('Content-Type', 'application/json');
 				if (req.headers['echo-header']) {

@@ -18,7 +18,6 @@ import { ClaudeLanguageModelServer } from '../../../node/claudeLanguageModelServ
 import { IClaudeSessionStateService } from '../../../common/claudeSessionStateService';
 import { TerminalSlashCommand } from '../terminalCommand';
 
-// Mock child_process.execFile
 vi.mock('child_process', () => ({
 	execFile: vi.fn(),
 }));
@@ -66,10 +65,8 @@ describe('TerminalSlashCommand', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	beforeEach(() => {
-		// Mock generateUuid to return a deterministic value
 		vi.spyOn(uuid, 'generateUuid').mockReturnValue(TEST_SESSION_ID);
 
-		// Setup execFile mock - default to claude being available
 		execFileMock = vi.fn((cmd: string, args: string[], callback: (error: Error | null) => void) => {
 			if (args[0] === 'claude') {
 				callback(null);
@@ -79,10 +76,8 @@ describe('TerminalSlashCommand', () => {
 		});
 		vi.mocked(childProcess.execFile).mockImplementation(execFileMock);
 
-		// Create test terminal service
 		testTerminalService = store.add(new TestTerminalService());
 
-		// Create mock language model server
 		mockLanguageModelServer = {
 			start: vi.fn().mockResolvedValue(undefined),
 			getConfig: vi.fn().mockReturnValue({
@@ -91,7 +86,6 @@ describe('TerminalSlashCommand', () => {
 			}),
 		};
 
-		// Create testing services
 		const serviceCollection = store.add(createExtensionUnitTestingServices(store));
 		serviceCollection.set(ITerminalService, testTerminalService);
 
@@ -100,7 +94,6 @@ describe('TerminalSlashCommand', () => {
 		mockSessionStateService = accessor.get(IClaudeSessionStateService);
 
 		terminalCommand = accessor.get(IInstantiationService).createInstance(TerminalSlashCommand);
-		// Set the mock language model server directly using defineProperty to bypass type checking
 		Object.defineProperty(terminalCommand, '_langModelServer', {
 			value: mockLanguageModelServer,
 			writable: true,
@@ -166,7 +159,6 @@ describe('TerminalSlashCommand', () => {
 		});
 
 		it('sends agency claude command when only agency is available', async () => {
-			// Mock: claude not available, agency available
 			execFileMock.mockImplementation((cmd: string, args: string[], callback: (error: Error | null) => void) => {
 				if (args[0] === 'agency') {
 					callback(null);
@@ -183,7 +175,6 @@ describe('TerminalSlashCommand', () => {
 		});
 
 		it('shows download button when neither CLI is available', async () => {
-			// Mock: neither claude nor agency available
 			execFileMock.mockImplementation((cmd: string, args: string[], callback: (error: Error | null) => void) => {
 				callback(new Error('not found'));
 			});
@@ -211,7 +202,6 @@ describe('TerminalSlashCommand', () => {
 		});
 
 		it('handles errors gracefully with stream', async () => {
-			// Make createTerminal throw an error
 			testTerminalService.createTerminalSpy.mockImplementation(() => {
 				throw new Error('Failed to create terminal');
 			});
@@ -248,7 +238,6 @@ describe('TerminalSlashCommand', () => {
 		});
 
 		it('logs errors when terminal creation fails', async () => {
-			// Make createTerminal throw an error
 			testTerminalService.createTerminalSpy.mockImplementation(() => {
 				throw new Error('Failed to create terminal');
 			});

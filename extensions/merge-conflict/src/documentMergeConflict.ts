@@ -35,13 +35,6 @@ export class DocumentMergeConflict implements interfaces.IDocumentMergeConflict 
 			}
 		}
 
-		/* __GDPR__
-			"mergeMarkers.accept" : {
-				"owner": "hediet",
-				"comment": "Used to understand how the inline merge editor experience is used.",
-				"resolution": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Indicates how the merge conflict was resolved by the user" }
-			}
-		*/
 		this.telemetryReporter.sendTelemetryEvent('mergeMarkers.accept', { resolution: commitTypeToString(type) });
 
 		if (edit) {
@@ -59,17 +52,7 @@ export class DocumentMergeConflict implements interfaces.IDocumentMergeConflict 
 		}
 		this.applied = true;
 
-		// Each conflict is a set of ranges as follows, note placements or newlines
-		// which may not in spans
-		// [ Conflict Range             -- (Entire content below)
-		//   [ Current Header ]\n       -- >>>>> Header
-		//   [ Current Content ]        -- (content)
-		//   [ Splitter ]\n             -- =====
-		//   [ Incoming Content ]       -- (content)
-		//   [ Incoming Header ]\n      -- <<<<< Incoming
-		// ]
 		if (type === interfaces.CommitType.Current) {
-			// Replace [ Conflict Range ] with [ Current Content ]
 			const content = document.getText(this.current.content);
 			this.replaceRangeWithContent(content, edit);
 		}
@@ -78,7 +61,6 @@ export class DocumentMergeConflict implements interfaces.IDocumentMergeConflict 
 			this.replaceRangeWithContent(content, edit);
 		}
 		else if (type === interfaces.CommitType.Both) {
-			// Replace [ Conflict Range ] with [ Current Content ] + \n + [ Incoming Content ]
 
 			const currentContent = document.getText(this.current.content);
 			const incomingContent = document.getText(this.incoming.content);
@@ -93,7 +75,6 @@ export class DocumentMergeConflict implements interfaces.IDocumentMergeConflict 
 			return;
 		}
 
-		// Replace [ Conflict Range ] with [ Current Content ]
 		edit.replace(this.range, content);
 	}
 

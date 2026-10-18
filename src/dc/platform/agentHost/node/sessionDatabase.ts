@@ -11,22 +11,11 @@ import { dirname } from '../../../base/common/path.js';
 import { URI } from '../../../base/common/uri.js';
 import { AH_META_HAS_WORKSPACE_TRANSITIONS_DB_KEY, type Message } from '../common/state/sessionState.js';
 
-/**
- * A single numbered migration. Migrations are applied in order of
- * {@link version} and tracked via `PRAGMA user_version`.
- */
 export interface ISessionDatabaseMigration {
-	/** Monotonically-increasing version number (1-based). */
 	readonly version: number;
-	/** SQL to execute for this migration. */
 	readonly sql: string;
 }
 
-/**
- * The set of migrations that define the current session database schema.
- * New migrations should be **appended** to this array with the next version
- * number. Never reorder or mutate existing entries.
- */
 export const sessionDatabaseMigrations: readonly ISessionDatabaseMigration[] = [
 	{
 		version: 1,
@@ -56,8 +45,6 @@ export const sessionDatabaseMigrations: readonly ISessionDatabaseMigration[] = [
 	{
 		version: 3,
 		sql: [
-			// Recreate file_edits with new columns: edit_type, original_path,
-			// and nullable before_content/after_content.
 			`CREATE TABLE file_edits_v3 (
 				turn_id        TEXT    NOT NULL REFERENCES turns(id) ON DELETE CASCADE,
 				tool_call_id   TEXT    NOT NULL,
@@ -114,22 +101,6 @@ export const sessionDatabaseMigrations: readonly ISessionDatabaseMigration[] = [
 	},
 	{
 		version: 9,
-		// `turn_usage` is a child of `turns` so every prune path (`deleteTurn`,
-		// `truncateFromTurn`, `deleteTurnsAfter`, `deleteAllTurns`, and the fork
-		// remap) reaches it by cascade and the table cannot grow unbounded.
-		//
-		// The foreign key forces `setTurnUsage` to `INSERT OR IGNORE` a parent row,
-		// and rows created that way carry `event_id IS NULL`. That is safe here:
-		// `getFirstTurnEventId` / `getNextTurnEventId` scan by rowid and are read
-		// only by the Copilot agent (Claude resolves fork/truncate boundaries from
-		// its own persisted mapping), and in a Copilot database `setTurnEventId`
-		// runs on `user.message` — before any usage is reported — so the parent row
-		// already exists and the insert is a no-op. Were usage ever to land first,
-		// `setTurnEventId` fills the existing row in (`UPDATE … WHERE event_id IS
-		// NULL`) and the position is still correct, since a turn's usage precedes
-		// the next turn. Each peer chat gets its own database (see
-		// `SessionDataService`), so a peer turn cannot interleave with another
-		// chat's turns either.
 		sql: `CREATE TABLE IF NOT EXISTS turn_usage (
 			turn_id TEXT PRIMARY KEY NOT NULL REFERENCES turns(id) ON DELETE CASCADE,
 			usage   TEXT NOT NULL
@@ -144,9 +115,6 @@ export const sessionDatabaseMigrations: readonly ISessionDatabaseMigration[] = [
 	},
 	{
 		version: 11,
-		// Workspace-transition boundaries are host-owned turn data. Keeping
-		// them as children of `turns` makes every truncate/delete path bound
-		// their lifetime to the provider history they enrich.
 		sql: `CREATE TABLE IF NOT EXISTS turn_workspace_transition (
 			turn_id    TEXT PRIMARY KEY NOT NULL REFERENCES turns(id) ON DELETE CASCADE,
 			transition TEXT NOT NULL
@@ -160,7 +128,6 @@ export const sessionDatabaseMigrations: readonly ISessionDatabaseMigration[] = [
 	},
 ];
 
-// ---- Promise wrappers around callback-based @vscode/sqlite3 API -----------
 
 function dbExec(db: Database, sql: string): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -220,15 +187,7 @@ function dbOpen(path: string): Promise<Database> {
 	});
 }
 
-/**
- * Applies any pending {@link ISessionDatabaseMigration migrations} to a
- * database. Migrations whose version is greater than the current
- * `PRAGMA user_version` are run inside a serialized transaction. After all
- * migrations complete the pragma is updated to the highest applied version.
- */
 export async function runMigrations(db: Database, migrations: readonly ISessionDatabaseMigration[]): Promise<void> {
-	// Enable foreign key enforcement — must be set outside a transaction
-	// and every time a connection is opened.
 	await dbExec(db, 'PRAGMA foreign_keys = ON');
 
 	const row = await dbGet(db, 'PRAGMA user_version', []);
@@ -246,7 +205,6 @@ export async function runMigrations(db: Database, migrations: readonly ISessionD
 	try {
 		for (const migration of pending) {
 			await dbExec(db, migration.sql);
-			// PRAGMA cannot be parameterized; the version is a trusted literal.
 			await dbExec(db, `PRAGMA user_version = ${migration.version}`);
 		}
 		await dbExec(db, 'COMMIT');
@@ -256,16 +214,6 @@ export async function runMigrations(db: Database, migrations: readonly ISessionD
 	}
 }
 
-/**
- * A wrapper around a `@vscode/sqlite3` {@link Database} instance with
- * lazy initialisation.
- *
- * The underlying connection is opened on the first async method call
- * (not at construction time), allowing the object to be created
- * synchronously and shared via a {@link ReferenceCollection}.
- *
- * Calling {@link dispose} closes the connection.
- */
 export class SessionDatabase implements ISessionDatabase {
 
 	protected _dbPromise: Promise<Database> | undefined;
@@ -275,25 +223,12 @@ export class SessionDatabase implements ISessionDatabase {
 	private readonly _metadataSequencer = new Sequencer();
 	private readonly _mutationSequencer = new Sequencer();
 
-	/**
-	 * Serializes turn-child writes, prunes, fork remaps, and restore reads.
-	 * `@vscode/sqlite3` runs in parallelized mode (see {@link _metadataSequencer}), so a
-	 * fire-and-forget child write submitted before a truncation can otherwise complete *after*
-	 * it and resurrect a row the truncation was meant to remove, and a read can otherwise overtake
-	 * a write it was submitted after. Mutations must go through {@link _mutateTurnUsage} rather
-	 * than queueing on this directly, so they are tracked for {@link whenIdle}.
-	 */
 	private readonly _turnUsageSequencer = new Sequencer();
 
 	private _queueOperation<T>(operation: (db: Database) => Promise<T>): Promise<T> {
 		return this._mutationSequencer.queue(async () => operation(await this._ensureDb()));
 	}
 
-	/**
-	 * Queues a mutation on the shared connection. Transaction bodies call
-	 * their statements directly after acquiring this sequencer to avoid
-	 * reentrant acquisition.
-	 */
 	protected _queueMutation<T>(operation: (db: Database) => Promise<T>): Promise<T> {
 		return this._queueOperation(operation);
 	}
@@ -316,18 +251,10 @@ export class SessionDatabase implements ISessionDatabase {
 		});
 	}
 
-	/**
-	 * Runs a mutation that touches sequenced turn data, tracked for
-	 * {@link whenIdle} and serialized against every other such mutation.
-	 */
 	private _mutateTurnUsage(operation: (db: Database) => Promise<void>): Promise<void> {
 		return this._track(() => this._turnUsageSequencer.queue(() => this._queueMutation(operation)));
 	}
 
-	/**
-	 * Runs an atomic mutation touching metadata and sequenced turn data.
-	 * Always acquire sequencers in metadata, turn-data, mutation order.
-	 */
 	protected _mutateMetadataAndTurnUsage(operation: (db: Database) => Promise<void>): Promise<void> {
 		return this._track(() => this._metadataSequencer.queue(() =>
 			this._turnUsageSequencer.queue(() =>
@@ -346,15 +273,6 @@ export class SessionDatabase implements ISessionDatabase {
 		);
 	}
 
-	/**
-	 * In-flight write operations. Tracked so {@link whenIdle} can await them
-	 * before the process exits — without this, a `SIGTERM` arriving between
-	 * a fire-and-forget mutating call (e.g. `setMetadata`) being invoked and
-	 * its underlying SQLite query completing would silently drop the write.
-	 * Every public mutating method routes its returned promise through
-	 * {@link _track}; reads (`getMetadata`, `getFileEdits`, ...) skip
-	 * tracking since shutdown does not need to wait for them.
-	 */
 	private readonly _pendingWrites = new Set<Promise<unknown>>();
 
 	constructor(
@@ -362,11 +280,6 @@ export class SessionDatabase implements ISessionDatabase {
 		private readonly _migrations: readonly ISessionDatabaseMigration[] = sessionDatabaseMigrations,
 	) { }
 
-	/**
-	 * Opens (or creates) a SQLite database at {@link path} and applies
-	 * any pending migrations. Only used in tests where synchronous
-	 * construction + immediate readiness is desired.
-	 */
 	static async open(path: string, migrations: readonly ISessionDatabaseMigration[] = sessionDatabaseMigrations): Promise<SessionDatabase> {
 		const inst = new SessionDatabase(path, migrations);
 		await inst._ensureDb();
@@ -379,8 +292,6 @@ export class SessionDatabase implements ISessionDatabase {
 		}
 		if (!this._dbPromise) {
 			this._dbPromise = (async () => {
-				// Ensure the parent directory exists before SQLite tries to
-				// create the database file.
 				await fs.promises.mkdir(dirname(this._path), { recursive: true });
 				const db = await dbOpen(this._path);
 				try {
@@ -390,7 +301,6 @@ export class SessionDatabase implements ISessionDatabase {
 					this._dbPromise = undefined;
 					throw err;
 				}
-				// If dispose() was called while we were opening, close immediately.
 				if (this._closed) {
 					await dbClose(db);
 					throw new Error('SessionDatabase has been disposed');
@@ -404,17 +314,12 @@ export class SessionDatabase implements ISessionDatabase {
 		return this._dbPromise;
 	}
 
-	/**
-	 * Returns the names of all user-created tables in the database.
-	 * Useful for testing migration behavior.
-	 */
 	async getAllTables(): Promise<string[]> {
 		const db = await this._ensureDb();
 		const rows = await dbAll(db, `SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`, []);
 		return rows.map(r => r.name as string);
 	}
 
-	// ---- Turns ----------------------------------------------------------
 
 	createTurn(turnId: string): Promise<void> {
 		return this._mutate(async db => {
@@ -424,7 +329,6 @@ export class SessionDatabase implements ISessionDatabase {
 
 	deleteTurn(turnId: string): Promise<void> {
 		return this._mutateMetadataAndTurnUsage(async db => {
-			// Turn-owned file edits, usage, and workspace transitions cascade-delete.
 			await dbRun(db, 'DELETE FROM turns WHERE id = ?', [turnId]);
 			await this._deleteWorkspaceTransitionMarkerIfEmpty(db);
 		});
@@ -433,9 +337,6 @@ export class SessionDatabase implements ISessionDatabase {
 	setTurnEventId(turnId: string, eventId: string): Promise<void> {
 		return this._mutate(async db => {
 			await dbRun(db, 'INSERT OR IGNORE INTO turns (id) VALUES (?)', [turnId]);
-			// Only set the event ID if not already set — steering messages
-			// trigger additional user.message events within the same turn,
-			// and we must preserve the first (boundary) event ID.
 			await dbRun(db, 'UPDATE turns SET event_id = ? WHERE id = ? AND event_id IS NULL', [eventId, turnId]);
 		});
 	}
@@ -449,12 +350,6 @@ export class SessionDatabase implements ISessionDatabase {
 
 	getNextTurnEventId(turnId: string): Promise<string | undefined> {
 		return this._queueOperation(async db => {
-			// `turns.id` is the canonical turn key — either a live `request_xxx`
-			// dispatched by the client or, for sessions restored from disk, the
-			// SDK envelope id surfaced by `mapSessionEvents`. The `event_id`
-			// fallback covers the case where the caller asks about a turn that
-			// was set up live (id=`request_xxx`) but is now being referenced
-			// via the SDK event id, or vice versa.
 			const row = await dbGet(
 				db,
 				`SELECT event_id FROM turns
@@ -477,24 +372,14 @@ export class SessionDatabase implements ISessionDatabase {
 
 	setTurnUsage(turnId: string, usage: string): Promise<void> {
 		return this._mutateTurnUsage(async db => {
-			// Ensure the turn exists — lazily insert since the turn record may not
-			// have been created by an explicit createTurn() call. This is what makes
-			// the row reachable by the cascade on every prune path; see migration 9
-			// for why creating it cannot perturb turn ordering.
 			await dbRun(db, 'INSERT OR IGNORE INTO turns (id) VALUES (?)', [turnId]);
 			await dbRun(db, 'INSERT OR REPLACE INTO turn_usage (turn_id, usage) VALUES (?, ?)', [turnId, usage]);
 		});
 	}
 
 	async getTurnUsages(): Promise<Map<string, string>> {
-		// Queued on the same sequencer as the writes, not run directly: `setTurnUsage` is
-		// fire-and-forget and `@vscode/sqlite3` is parallelized, so a restore that reads straight
-		// through can miss a write submitted before it and permanently rebuild that turn without
-		// its cost. Read-after-write ordering is what makes the overlay deterministic.
 		return this._turnUsageSequencer.queue(async () => {
 			const db = await this._ensureDb();
-			// Left-join `turns` so a usage row recorded against a live request id is
-			// also reachable by the SDK event id a restored turn is keyed by.
 			const rows = await dbAll(
 				db,
 				`SELECT u.turn_id AS turn_id, t.event_id AS event_id, u.usage AS usage
@@ -618,8 +503,6 @@ export class SessionDatabase implements ISessionDatabase {
 
 	truncateFromTurn(turnId: string): Promise<void> {
 		return this._mutateMetadataAndTurnUsage(async db => {
-			// Delete the target turn and all turns inserted after it (by rowid order).
-			// Turn-owned child records cascade-delete via their foreign keys.
 			await dbRun(db,
 				`DELETE FROM turns WHERE rowid >= (SELECT rowid FROM turns WHERE id = ?)`,
 				[turnId],
@@ -630,8 +513,6 @@ export class SessionDatabase implements ISessionDatabase {
 
 	deleteTurnsAfter(turnId: string): Promise<void> {
 		return this._mutateMetadataAndTurnUsage(async db => {
-			// Delete all turns inserted after the given turn (by rowid order),
-			// keeping the given turn itself. Turn-owned child records cascade-delete.
 			await dbRun(db,
 				`DELETE FROM turns WHERE rowid > (SELECT rowid FROM turns WHERE id = ?)`,
 				[turnId],
@@ -642,13 +523,11 @@ export class SessionDatabase implements ISessionDatabase {
 
 	deleteAllTurns(): Promise<void> {
 		return this._mutateMetadataAndTurnUsage(async db => {
-			// Turn-owned child records cascade-delete via their foreign keys.
 			await dbExec(db, 'DELETE FROM turns');
 			await this._deleteWorkspaceTransitionMarkerIfEmpty(db);
 		});
 	}
 
-	// ---- Local (host-injected) turns ------------------------------------
 
 	insertLocalTurn(record: ILocalTurnRecord): Promise<void> {
 		return this._mutate(async db => {
@@ -683,12 +562,9 @@ export class SessionDatabase implements ISessionDatabase {
 		});
 	}
 
-	// ---- File edits -----------------------------------------------------
 
 	storeFileEdit(edit: IFileEditRecord & IFileEditContent): Promise<void> {
 		return this._track(() => this._fileEditSequencer.queue(edit.filePath, () => this._queueMutation(async db => {
-			// Ensure the turn exists — lazily insert since the turn record
-			// may not have been created by an explicit createTurn() call.
 			await dbRun(db, 'INSERT OR IGNORE INTO turns (id) VALUES (?)', [edit.turnId]);
 			await dbRun(
 				db,
@@ -796,7 +672,6 @@ export class SessionDatabase implements ISessionDatabase {
 		});
 	}
 
-	// ---- Session metadata -----------------------------------------------
 
 	async getMetadata(key: string): Promise<string | undefined> {
 		const db = await this._ensureDb();
@@ -893,7 +768,6 @@ export class SessionDatabase implements ISessionDatabase {
 		}
 	}
 
-	// ---- Reviewed files -------------------------------------------------
 
 	markFileReviewed(uri: URI, nonce: string): Promise<void> {
 		return this._mutate(async db => {
@@ -926,16 +800,8 @@ export class SessionDatabase implements ISessionDatabase {
 	}
 
 	remapTurnIds(mapping: ReadonlyMap<string, string>, eventIds?: ReadonlyMap<string, string>): Promise<void> {
-		// Mutates turn-owned child data, so it must serialize with every other
-		// such mutation or a write racing the fork transaction could land
-		// against either the old or the new turn id unpredictably.
 		return this._mutateMetadataAndTurnUsage(async db => {
-			// Defer FK checks to commit time so we can update turns.id and
-			// file_edits.turn_id in any order without mid-statement violations.
-			// This pragma auto-resets after the transaction ends.
 			await dbExec(db, 'PRAGMA defer_foreign_keys = ON');
-			// Delete turns not present in the mapping (e.g. turns beyond
-			// the fork point). File edits cascade-delete via FK.
 			const oldIds = [...mapping.keys()];
 			if (oldIds.length > 0) {
 				const placeholders = oldIds.map(() => '?').join(',');
@@ -945,7 +811,6 @@ export class SessionDatabase implements ISessionDatabase {
 				);
 			}
 
-			// Remap the remaining turn IDs to their new values
 			for (const [oldId, newId] of mapping) {
 				await dbRun(db, 'UPDATE turns SET id = ? WHERE id = ?', [newId, oldId]);
 				await dbRun(db, 'UPDATE file_edits SET turn_id = ? WHERE turn_id = ?', [newId, oldId]);
@@ -966,10 +831,6 @@ export class SessionDatabase implements ISessionDatabase {
 				await dbRun(db, 'UPDATE local_turns SET anchor_turn_id = ? WHERE anchor_turn_id = ?', [newId, oldId]);
 			}
 
-			// Rows past the fork point were already removed by the `turns`
-			// delete above, via the same cascade as file edits. The surviving
-			// ids still need remapping (the FK cascades deletes, not updates),
-			// or the forked session would restore with no gauge and zero cost.
 			for (const [oldId, newId] of mapping) {
 				await dbRun(db, 'UPDATE turn_usage SET turn_id = ? WHERE turn_id = ?', [newId, oldId]);
 				await dbRun(db, 'UPDATE turn_delegation SET turn_id = ? WHERE turn_id = ?', [newId, oldId]);
@@ -979,13 +840,6 @@ export class SessionDatabase implements ISessionDatabase {
 		});
 	}
 
-	/**
-	 * Resolves once all currently in-flight write operations have settled.
-	 * Used by graceful shutdown to flush pending fire-and-forget writes
-	 * before the process exits. Should be called from a path where no
-	 * further writes are expected; loops until idle to also drain any
-	 * writes that get queued while we're awaiting.
-	 */
 	async whenIdle(): Promise<void> {
 		while (this._pendingWrites.size > 0) {
 			await Promise.allSettled([...this._pendingWrites]);
@@ -998,13 +852,6 @@ export class SessionDatabase implements ISessionDatabase {
 		});
 	}
 
-	/**
-	 * Wrap a mutating operation's promise so {@link whenIdle} can await it.
-	 * Invoke at the **outermost** layer of every public mutating method so
-	 * that any internal awaits (notably `_ensureDb()`) are covered too —
-	 * tracking only the leaf `dbRun`/`dbExec` would miss the window
-	 * between the method being called and the query actually being queued.
-	 */
 	private _track<T>(fn: () => Promise<T>): Promise<T> {
 		const p = fn();
 		this._pendingWrites.add(p);

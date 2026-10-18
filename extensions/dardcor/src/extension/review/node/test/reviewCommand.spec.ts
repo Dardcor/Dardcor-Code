@@ -19,7 +19,7 @@ function createMockDocument(uri = URI.file('/test.ts'), content = 'test content'
 function createTestComment(overrides: Partial<ReviewComment> = {}): ReviewComment {
 	return {
 		request: {
-			source: 'githubReviewAgent',
+			source: 'dardcorRouter',
 			promptCount: -1,
 			messageId: 'test-id',
 			inputType: 'change',

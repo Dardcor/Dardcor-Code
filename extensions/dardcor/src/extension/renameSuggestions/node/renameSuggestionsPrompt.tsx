@@ -18,10 +18,8 @@ import { DefinitionAtPosition, State as DefinitionAtPositionState } from '../../
 
 type Props = PromptElementProps<{
 
-	/** Document rename happening in */
 	document: TextDocumentSnapshot;
 
-	/** Range corresponding to the symbol that's being renamed */
 	range: vscode.Range;
 }>;
 
@@ -108,12 +106,6 @@ export class RenameSuggestionsPrompt extends PromptElement<Props, State> {
 	}
 }
 
-/**
- * Extracts the prefix of an identifier. The prefix is defined as the leading sequence of dots, dollar signs, and underscores.
- *
- * @param identifier - The identifier to extract the prefix from.
- * @returns The prefix of the identifier, or undefined if no prefix is found.
- */
 function extractIdentifierPrefix(identifier: string): string | undefined {
 	const prefix = identifier.match(/^([\\.\\$\\_]+)/)?.[0];
 	return prefix;

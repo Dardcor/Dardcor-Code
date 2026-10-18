@@ -73,7 +73,7 @@ suite('claudeSdkOptions / buildSubprocessEnv', () => {
 			vscodePid: undefined,
 			vscodeNls: undefined,
 			electronOther: undefined,
-			path: undefined, // not explicitly forwarded; PATH is composed in settingsEnv, not subprocessEnv
+			path: undefined,
 			home: '/Users/test',
 			userProfile: 'C:\\Users\\test',
 			aiAgent: 'github_copilot_vscode_agent',
@@ -155,17 +155,14 @@ suite('claudeSdkOptions / buildSubprocessEnv', () => {
 		const env = buildSubprocessEnv(false);
 
 		assert.deepStrictEqual({
-			// Inherited so the user's own credentials reach the `claude` subprocess.
 			anthropicKey: env.ANTHROPIC_API_KEY,
 			oauthToken: env.CLAUDE_CODE_OAUTH_TOKEN,
 			path: env.PATH,
 			home: env.HOME,
-			// Still stripped — these break the Electron-node subprocess.
 			vscodePid: env.VSCODE_PID,
 			electronOther: env.ELECTRON_NO_ATTACH_CONSOLE,
 			nodeOptions: env.NODE_OPTIONS,
 			runAsNode: env.ELECTRON_RUN_AS_NODE,
-			// Announces the originating VS Code surface to `gh`.
 			aiAgent: env.AI_AGENT,
 		}, {
 			anthropicKey: 'sk-user-key',
@@ -348,8 +345,6 @@ suite('claudeSdkOptions / buildOptions plugins projection', () => {
 			baseUrl: env.ANTHROPIC_BASE_URL,
 			authToken: env.ANTHROPIC_AUTH_TOKEN,
 			nonessential: env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
-			// Projected into `settings.env`; the CLI still re-stamps `AI_AGENT`
-			// for its own Bash tool.
 			aiAgent: env.AI_AGENT,
 		}, {
 			baseUrl: 'http://127.0.0.1:0',

@@ -114,7 +114,6 @@ export interface IWalkthroughsService {
 	markWalkthroughOpened(id: string): void;
 }
 
-// Show walkthrough as "new" for 7 days after first install
 const DAYS = 24 * 60 * 60 * 1000;
 const NEW_WALKTHROUGH_TIME = 7 * DAYS;
 
@@ -246,8 +245,6 @@ export class WalkthroughsService extends Disposable implements IWalkthroughsServ
 
 			for (const e of result) {
 				const skipWalkthrough = e?.context?.[EXTENSION_INSTALL_SKIP_WALKTHROUGH_CONTEXT] || e?.context?.[EXTENSION_INSTALL_DEP_PACK_CONTEXT];
-				// If the window had last focus and the install didn't specify to skip the walkthrough
-				// Then add it to the sessionInstallExtensions to be opened
 				if (!skipWalkthrough) {
 					this.sessionInstalledExtensions.add(e.identifier.id.toLowerCase());
 				}
@@ -317,7 +314,7 @@ export class WalkthroughsService extends Disposable implements IWalkthroughsServ
 		}
 
 		let sectionToOpen: string | undefined;
-		let sectionToOpenIndex = Math.min(); // '+Infinity';
+		let sectionToOpenIndex = Math.min();
 		await Promise.all(extension.contributes?.walkthroughs?.map(async (walkthrough, index) => {
 			const categoryID = extension.identifier.value + '#' + walkthrough.id;
 
@@ -384,7 +381,6 @@ export class WalkthroughsService extends Disposable implements IWalkthroughsServ
 					};
 				}
 
-				// Throw error for unknown walkthrough format
 				else {
 					throw new Error('Unknown walkthrough format detected for ' + fullyQualifiedID);
 				}
@@ -457,7 +453,7 @@ export class WalkthroughsService extends Disposable implements IWalkthroughsServ
 				this.commandService.executeCommand('workbench.action.keepEditor');
 			}
 			this.commandService.executeCommand('workbench.action.openWalkthrough', sectionToOpen, {
-				inactive: this.layoutService.hasFocus(Parts.EDITOR_PART) // do not steal the active editor away
+				inactive: this.layoutService.hasFocus(Parts.EDITOR_PART)
 			});
 		}
 	}
@@ -607,7 +603,7 @@ export class WalkthroughsService extends Disposable implements IWalkthroughsServ
 		if (!step.completionEvents.length) {
 			step.completionEvents = coalesce(
 				step.description
-					.filter(linkedText => linkedText.nodes.length === 1) // only buttons
+					.filter(linkedText => linkedText.nodes.length === 1)
 					.flatMap(linkedText =>
 						linkedText.nodes
 							.filter(((node): node is ILink => typeof node !== 'string'))

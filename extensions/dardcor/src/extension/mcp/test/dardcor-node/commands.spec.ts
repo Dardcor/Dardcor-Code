@@ -94,7 +94,7 @@ describe('get MCP server info', { timeout: 30_000 }, () => {
 		expect(result.state).toBe('ok');
 		if (result.state === 'ok') {
 			expect(result.name).toBe('mcp/node-code-sandbox');
-			expect(result.version).toBeUndefined(); // currently not populated
+			expect(result.version).toBeUndefined();
 			expect(result.publisher).toBe('mcp');
 		} else {
 			expect.fail();

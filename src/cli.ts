@@ -9,18 +9,13 @@ import { bootstrapESM } from './bootstrap-esm.js';
 import { resolveNLSConfiguration } from './dc/base/node/nls.js';
 import { product } from './bootstrap-meta.js';
 
-// NLS
 const nlsConfiguration = await resolveNLSConfiguration({ userLocale: 'en', osLocale: 'en', commit: product.commit, userDataPath: '', nlsMetadataPath: import.meta.dirname });
-process.env['VSCODE_NLS_CONFIG'] = JSON.stringify(nlsConfiguration); // required for `bootstrap-esm` to pick up NLS messages
+process.env['VSCODE_NLS_CONFIG'] = JSON.stringify(nlsConfiguration);
 
-// Enable portable support
 configurePortable(product);
 
-// Signal processes that we got launched as CLI
 process.env['VSCODE_CLI'] = '1';
 
-// Bootstrap ESM
 await bootstrapESM();
 
-// Load Server
 await import('./dc/code/node/cli.js');

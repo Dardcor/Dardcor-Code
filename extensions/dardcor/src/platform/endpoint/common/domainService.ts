@@ -13,10 +13,6 @@ export interface IDomainChangeEvent {
 	proxyUrlChanged: boolean;
 }
 
-/**
- * Very simple service used for dynamically setting the domains we use for API calls
- * This allows better testing, SKU isolation, and Proxima
- */
 export interface IDomainService {
 	readonly _serviceBrand: undefined;
 	readonly onDidChangeDomains: Event<IDomainChangeEvent>;

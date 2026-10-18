@@ -96,7 +96,6 @@ suite('TreeSitterCommandParser', () => {
 				test('multi-line', () => t('echo a\necho b', ['echo a', 'echo b']));
 			});
 
-			// TODO: These should be common but the pwsh grammar doesn't handle && yet https://github.com/microsoft/vscode/issues/272704
 			suite('real-world scenarios', () => {
 				test('complex Docker commands', () => t('docker run -it --rm -v $(pwd):/app ubuntu:latest bash -c "cd /app && npm install && npm test"', ['docker run -it --rm -v $(pwd):/app ubuntu:latest bash -c "cd /app && npm install && npm test"', 'pwd']));
 				test('Git workflow commands', () => t('git add . && git commit -m "Update feature" && git push origin main', [
@@ -183,11 +182,6 @@ suite('TreeSitterCommandParser', () => {
 				test('parallel processing', () => t('1..10 | ForEach-Object -Parallel { Start-Sleep 1; Write-Host $_ } ; Get-Date', ['1..10 ', 'ForEach-Object -Parallel { Start-Sleep 1; Write-Host $_ }', 'Start-Sleep 1', 'Write-Host $_', 'Get-Date']));
 			});
 
-			// https://github.com/microsoft/vscode/issues/294010
-			// The upstream tree-sitter-powershell grammar parses POSIX-style
-			// `--flag=value` arguments as assignment expressions and truncates
-			// the surrounding command. The parser masks the `=` before parsing
-			// so these arguments are preserved as part of the sub-command.
 			suite('POSIX-style `--flag=value` arguments', () => {
 				test('double-dash flag with quoted value', () => t('git log --format="abc"', ['git log --format="abc"']));
 				test('double-dash flag with value containing pipe', () => t('git log --format="a|b"', ['git log --format="a|b"']));

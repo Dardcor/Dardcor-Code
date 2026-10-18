@@ -5,10 +5,6 @@
 
 import { ILanguageModelServerConfig, LanguageModelServer } from '../langModelServer';
 
-/**
- * Mock implementation of LanguageModelServer for unit tests. It avoids binding
- * sockets and returns a deterministic configuration.
- */
 export class MockLanguageModelServer extends LanguageModelServer {
 	private _cfg: ILanguageModelServerConfig = { port: 12345, nonce: 'test-nonce' };
 

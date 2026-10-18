@@ -24,7 +24,6 @@ export class ChatElicitationRequestPart implements IChatElicitationRequest {
 		public readonly subtitle: string | IMarkdownString,
 		public readonly acceptButtonLabel: string,
 		public readonly rejectButtonLabel: string | undefined,
-		// True when the primary action is accepted, otherwise the action that was selected
 		private readonly _accept: (value: IAction | true) => Promise<ElicitationState>,
 		reject?: () => Promise<ElicitationState>,
 		public readonly source?: ToolDataSource,

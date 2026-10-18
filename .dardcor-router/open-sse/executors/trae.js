@@ -2,17 +2,6 @@ import { BaseExecutor } from "./base.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { PROVIDERS } from "../config/providers.js";
 
-// Trae executor — SOLO remote agent API.
-//
-// Flow:
-//   1. POST {base}/chat_sessions          → { code:0, data:{ chat_session_id, message_id } }
-//   2. GET  {base}/chat_sessions/{id}/events?reply_to_message_id={message_id}
-//        → text/event-stream. Assistant text streams in `plan_item` events under
-//          the `thought` field (cumulative per plan-item id). `token_usage` carries
-//          usage; `done` ends the turn; `error` carries upstream errors.
-//
-// Auth: header `Authorization: Cloud-IDE-JWT <jwt>` (RS256, ~14-day lifetime).
-// Identity fields for common_params live in credentials.providerSpecificData.
 
 const STREAM_TIMEOUT_MS = parseInt(process.env.TRAE_STREAM_TIMEOUT_MS || "300000", 10);
 const TRAE_UA =
@@ -37,7 +26,6 @@ function flattenQuery(messages) {
     else if (m.role === "assistant") parts.push(`[Assistant]\n${content}`);
     else parts.push(content);
   }
-  // Trae expects query as a JSON-encoded string of typed content blocks.
   return JSON.stringify([{ type: "text", data: { content: parts.join("\n\n") } }]);
 }
 
@@ -65,7 +53,6 @@ export default class TraeExecutor extends BaseExecutor {
     };
   }
 
-  // SOLO session modes: "code" (model picker) vs "work" (fast auto lane).
   resolveMode(model) {
     const m = (model || "").trim().toLowerCase();
     if (m === "work" || m === "auto-work" || m === "solo-work") {
@@ -75,7 +62,6 @@ export default class TraeExecutor extends BaseExecutor {
     return { mode: "code", strategy: auto ? "auto" : "manual", modelName: auto ? "" : model };
   }
 
-  // common_params is a JSON-encoded string embedded inside initial_message.
   commonParams(psd, mode, sessionId) {
     const cp = {
       language: "en-us",
@@ -99,7 +85,6 @@ export default class TraeExecutor extends BaseExecutor {
     return JSON.stringify(cp);
   }
 
-  // POST /chat_sessions — creates a session and submits the first turn.
   async createSession(headers, query, model, psd, signal) {
     const { mode, strategy, modelName } = this.resolveMode(model);
     const body = {
@@ -131,8 +116,6 @@ export default class TraeExecutor extends BaseExecutor {
     return { sessionId: json.data.chat_session_id, messageId: json.data.message_id };
   }
 
-  // GET /events SSE → invoke onEvent(eventType, dataObj) per frame.
-  // Resolves when `done`/`error` arrives, the stream ends, or timeout fires.
   async streamEvents(headers, sessionId, replyTo, onEvent, signal) {
     const url = `${this.base()}/chat_sessions/${sessionId}/events?reply_to_message_id=${encodeURIComponent(replyTo)}`;
     const ctrl = new AbortController();
@@ -192,7 +175,6 @@ export default class TraeExecutor extends BaseExecutor {
       return { response: errResponse(502, err?.message ? String(err.message) : String(err)), url: this.base(), headers, transformedBody: body };
     }
 
-    // Shared per-turn state: plan_item thoughts (cumulative, longest wins).
     const order = [];
     const thoughts = {};
     let sent = 0;
@@ -294,7 +276,6 @@ export default class TraeExecutor extends BaseExecutor {
       };
     }
 
-    // Non-streaming: drive to completion, return chat.completion JSON.
     try {
       await this.streamEvents(headers, session.sessionId, session.messageId, (ev, data) => {
         if (ev === "error") { errorEvent = data; return true; }
@@ -331,8 +312,6 @@ export default class TraeExecutor extends BaseExecutor {
     };
   }
 
-  // Refresh hook placeholder — Cloud-IDE-JWT is long-lived (~14d); refresh via
-  // ExchangeToken (refresh→access) is wired in services/tokenRefresh/providers.js.
   async refreshCredentials() {
     return null;
   }

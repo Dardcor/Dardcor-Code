@@ -16,7 +16,6 @@ type ModelNoticeSource = {
 	readonly warningMessages?: readonly ModelMessage[];
 };
 
-/** Converts SDK model messages to model-picker metadata. */
 export function createAgentModelNoticesMeta(source: ModelNoticeSource): Record<string, unknown> | undefined {
 	const warningText: Record<string, string> = {};
 	const infoText: Record<string, string> = {};
@@ -44,7 +43,6 @@ export function createAgentModelNoticesMeta(source: ModelNoticeSource): Record<s
 	return Object.keys(result).length > 0 ? result : undefined;
 }
 
-/** Reads model-picker messages from Agent Host metadata. */
 export function readAgentModelNoticesMeta(model: IAgentModelInfo | SessionModelInfo) {
 	const meta = model._meta;
 	return {

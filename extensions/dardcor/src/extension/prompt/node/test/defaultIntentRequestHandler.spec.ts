@@ -187,7 +187,6 @@ suite('defaultIntentRequestHandler', () => {
 
 		const result = await handler.getResult();
 		expect(result).toMatchSnapshot();
-		// Wait for event loop to finish as we often fire off telemetry without properly awaiting it as it doesn't matter when it is sent
 		await new Promise(setImmediate);
 		expect(getDerandomizedTelemetry()).toMatchSnapshot();
 	});
@@ -285,7 +284,6 @@ suite('defaultIntentRequestHandler', () => {
 
 		const result = await handler.getResult();
 		expect(result).toMatchSnapshot();
-		// Wait for event loop to finish as we often fire off telemetry without properly awaiting it as it doesn't matter when it is sent
 		await new Promise(setImmediate);
 		expect(getDerandomizedTelemetry()).toMatchSnapshot();
 
@@ -326,7 +324,6 @@ suite('defaultIntentRequestHandler', () => {
 	}
 
 	function setupMultiturnToolCalls(turns: number, roundsPerTurn: number) {
-		// Matches the counter in ToolCallingLoop
 		let toolCallCounter = 0;
 		promptResult = [];
 		const setupOneRound = (startIdx: number) => {
@@ -344,10 +341,8 @@ suite('defaultIntentRequestHandler', () => {
 						}],
 				}];
 
-				// ToolResultMetadata is reported by the prompt for all tool calls, in history or called this round
 				const promptMetadata: ToolResultMetadata[] = [];
 				for (let toolResultIdx = 0; toolResultIdx <= toolCallCounter; toolResultIdx++) {
-					// For each request in a round, all the previous and current ToolResultMetadata are reported
 					const toolResult = new LanguageModelToolResult([new LanguageModelTextPart(`tool-result-${toolResultIdx}`)]);
 					promptMetadata.push(new ToolResultMetadata(`tool_call_id_${toolResultIdx}__vscode-${toolResultIdx}`, toolResult));
 				}
@@ -379,7 +374,6 @@ suite('defaultIntentRequestHandler', () => {
 		expect(await handler2.getResult()).toMatchSnapshot();
 
 		expect(response).toMatchSnapshot();
-		// Wait for event loop to finish as we often fire off telemetry without properly awaiting it as it doesn't matter when it is sent
 		await new Promise(setImmediate);
 		expect(getDerandomizedTelemetry()).toMatchSnapshot();
 	});

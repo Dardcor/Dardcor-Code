@@ -7,7 +7,6 @@ import * as vscode from 'vscode';
 import { l10n } from 'vscode';
 import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
 import { URI } from '../../../util/dardcor/base/common/uri';
-import { IAuthenticationService } from '../../authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';
 import { IGitExtensionService } from '../../git/common/gitExtensionService';
@@ -35,7 +34,6 @@ export class ReviewServiceImpl implements IReviewService {
 
 	constructor(
 		@IConfigurationService private _configurationService: IConfigurationService,
-		@IAuthenticationService private _authenticationService: IAuthenticationService,
 		@IVSCodeExtensionContext private _contextService: IVSCodeExtensionContext,
 		@IGitExtensionService private _gitExtensionService: IGitExtensionService,
 	) {
@@ -46,9 +44,6 @@ export class ReviewServiceImpl implements IReviewService {
 			if (e.affectsConfiguration('github.dardcor.advanced') || e.affectsConfiguration('github.dardcor.advanced.review.intent')) {
 				vscode.commands.executeCommand('setContext', ConfigKey.Advanced.ReviewIntent.fullyQualifiedId, this.isIntentEnabled());
 			}
-		}));
-		this._disposables.add(this._authenticationService.onDidAuthenticationChange(() => {
-			vscode.commands.executeCommand('setContext', reviewDiffContextKey, this.isReviewDiffEnabled());
 		}));
 		this._disposables.add(this._repositoryDisposables);
 		this._disposables.add(this._gitExtensionService.onDidChange(() => {
@@ -106,7 +101,7 @@ export class ReviewServiceImpl implements IReviewService {
 	}
 
 	isReviewDiffEnabled() {
-		return this._configurationService.getConfig(ConfigKey.ReviewAgent) && this._authenticationService.dardcorToken?.isCopilotCodeReviewEnabled || false;
+		return this._configurationService.getConfig(ConfigKey.ReviewAgent);
 	}
 
 	isIntentEnabled(): boolean {
@@ -135,7 +130,7 @@ export class ReviewServiceImpl implements IReviewService {
 				vscode.commands.executeCommand('github.dardcor.chat.review.next');
 				this._monitorActiveThread = setInterval(() => {
 					const raw = this._commentController.activeCommentThread;
-					const active = raw && this._comments.find(c => c.thread.label === raw.label)?.thread; // https://github.com/microsoft/vscode/issues/223025
+					const active = raw && this._comments.find(c => c.thread.label === raw.label)?.thread;
 					if (active !== this._activeThread) {
 						this._activeThread = active;
 						if (active) {
@@ -157,7 +152,7 @@ export class ReviewServiceImpl implements IReviewService {
 	}
 
 	private createUIComments(comment: ReviewComment) {
-		const appendText = ''; // `\n\n(Type ${comment.kind}, severity ${comment.severity}.)`;
+		const appendText = '';
 		const change = comment.suggestion
 			? 'edits' in comment.suggestion
 				? comment.suggestion.edits.length

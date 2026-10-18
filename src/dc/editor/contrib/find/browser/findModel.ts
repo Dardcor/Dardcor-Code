@@ -27,13 +27,8 @@ import { IKeybindings } from '../../../../platform/keybinding/common/keybindings
 
 export const CONTEXT_FIND_WIDGET_VISIBLE = new RawContextKey<boolean>('findWidgetVisible', false);
 export const CONTEXT_FIND_WIDGET_NOT_VISIBLE = CONTEXT_FIND_WIDGET_VISIBLE.toNegated();
-// Keep ContextKey use of 'Focussed' to not break when clauses
 export const CONTEXT_FIND_INPUT_FOCUSED = new RawContextKey<boolean>('findInputFocussed', false);
 export const CONTEXT_REPLACE_INPUT_FOCUSED = new RawContextKey<boolean>('replaceInputFocussed', false);
-/**
- * Context key that is true when any element within the Find widget has focus.
- * This includes the Find input, Replace input, checkboxes, buttons, etc.
- */
 export const CONTEXT_FIND_WIDGET_FOCUSED = new RawContextKey<boolean>('findWidgetFocused', false);
 
 export const ToggleCaseSensitiveKeybinding: IKeybindings = {
@@ -126,7 +121,6 @@ export class FindModelBoundToEditorModel {
 				return;
 			}
 			if (e.isFlush) {
-				// a model.setValue() was called
 				this._decorations.reset();
 			}
 			this._decorations.setStartPosition(this._editor.getPosition());
@@ -146,11 +140,9 @@ export class FindModelBoundToEditorModel {
 
 	private _onStateChanged(e: FindReplaceStateChangedEvent): void {
 		if (this._isDisposed) {
-			// The find model is disposed during a find state changed event
 			return;
 		}
 		if (!this._editor.hasModel()) {
-			// The find model will be disposed momentarily
 			return;
 		}
 		if (e.searchString || e.isReplaceRevealed || e.isRegex || e.wholeWord || e.matchCase || e.searchScope) {
@@ -177,7 +169,6 @@ export class FindModelBoundToEditorModel {
 	}
 
 	private static _getSearchRange(model: ITextModel, findScope: Range | null): Range {
-		// If we have set now or before a find scope, use it for computing the search range
 		if (findScope) {
 			return findScope;
 		}
@@ -219,10 +210,8 @@ export class FindModelBoundToEditorModel {
 		const editorSelection = this._editor.getSelection();
 		let currentMatchesPosition = this._decorations.getCurrentMatchesPosition(editorSelection);
 		if (currentMatchesPosition === 0 && findMatches.length > 0) {
-			// current selection is not on top of a match
-			// try to find its nearest result from the top of the document
 			const matchAfterSelection = findFirstIdxMonotonousOrArrLen(findMatches.map(match => match.range), range => Range.compareRangesUsingStarts(range, editorSelection) >= 0);
-			currentMatchesPosition = matchAfterSelection > 0 ? matchAfterSelection - 1 + 1 /** match position is one based */ : currentMatchesPosition;
+			currentMatchesPosition = matchAfterSelection > 0 ? matchAfterSelection - 1 + 1 : currentMatchesPosition;
 		}
 
 		this._state.changeMatchInfo(
@@ -244,7 +233,6 @@ export class FindModelBoundToEditorModel {
 		if (!this._hasMatches()) {
 			const findScope = this._decorations.getFindScope();
 			if (findScope) {
-				// Reveal the selection so user is reminded that 'selection find' is on.
 				this._editor.revealRangeInCenterIfOutsideViewport(findScope, ScrollType.Smooth);
 			}
 			return true;
@@ -288,8 +276,6 @@ export class FindModelBoundToEditorModel {
 
 	private _moveToPrevMatch(before: Position, isRecursed: boolean = false): void {
 		if (!this._state.canNavigateBack()) {
-			// we are beyond the first matched find result
-			// instead of doing nothing, we should refocus the first item
 			const nextMatchRange = this._decorations.matchAfterPosition(before);
 
 			if (nextMatchRange) {
@@ -319,12 +305,10 @@ export class FindModelBoundToEditorModel {
 		const findScope = this._decorations.getFindScope();
 		const searchRange = FindModelBoundToEditorModel._getSearchRange(this._editor.getModel(), findScope);
 
-		// ...(----)...|...
 		if (searchRange.getEndPosition().isBefore(before)) {
 			before = searchRange.getEndPosition();
 		}
 
-		// ...|...(----)...
 		if (before.isBefore(searchRange.getStartPosition())) {
 			before = searchRange.getEndPosition();
 		}
@@ -337,13 +321,11 @@ export class FindModelBoundToEditorModel {
 		let prevMatch = model.findPreviousMatch(this._state.searchString, position, this._state.isRegex, this._state.matchCase, this._state.wholeWord ? this._editor.getOption(EditorOption.wordSeparators) : null, false);
 
 		if (prevMatch && prevMatch.range.isEmpty() && prevMatch.range.getStartPosition().equals(position)) {
-			// Looks like we're stuck at this position, unacceptable!
 			position = this._prevSearchPosition(position);
 			prevMatch = model.findPreviousMatch(this._state.searchString, position, this._state.isRegex, this._state.matchCase, this._state.wholeWord ? this._editor.getOption(EditorOption.wordSeparators) : null, false);
 		}
 
 		if (!prevMatch) {
-			// there is precisely one match and selection is on top of it
 			return;
 		}
 
@@ -383,8 +365,6 @@ export class FindModelBoundToEditorModel {
 
 	private _moveToNextMatch(after: Position): void {
 		if (!this._state.canNavigateForward()) {
-			// we are beyond the last matched find result
-			// instead of doing nothing, we should refocus the last item
 			const prevMatchRange = this._decorations.matchBeforePosition(after);
 
 			if (prevMatchRange) {
@@ -396,7 +376,6 @@ export class FindModelBoundToEditorModel {
 			let nextMatchRange = this._decorations.matchAfterPosition(after);
 
 			if (nextMatchRange && nextMatchRange.isEmpty() && nextMatchRange.getStartPosition().equals(after)) {
-				// Looks like we're stuck at this position, unacceptable!
 				after = this._nextSearchPosition(after);
 				nextMatchRange = this._decorations.matchAfterPosition(after);
 			}
@@ -421,12 +400,10 @@ export class FindModelBoundToEditorModel {
 		const findScope = this._decorations.getFindScope();
 		const searchRange = FindModelBoundToEditorModel._getSearchRange(this._editor.getModel(), findScope);
 
-		// ...(----)...|...
 		if (searchRange.getEndPosition().isBefore(after)) {
 			after = searchRange.getStartPosition();
 		}
 
-		// ...|...(----)...
 		if (after.isBefore(searchRange.getStartPosition())) {
 			after = searchRange.getStartPosition();
 		}
@@ -439,13 +416,11 @@ export class FindModelBoundToEditorModel {
 		let nextMatch = model.findNextMatch(this._state.searchString, position, this._state.isRegex, this._state.matchCase, this._state.wholeWord ? this._editor.getOption(EditorOption.wordSeparators) : null, captureMatches);
 
 		if (forceMove && nextMatch && nextMatch.range.isEmpty() && nextMatch.range.getStartPosition().equals(position)) {
-			// Looks like we're stuck at this position, unacceptable!
 			position = this._nextSearchPosition(position);
 			nextMatch = model.findNextMatch(this._state.searchString, position, this._state.isRegex, this._state.matchCase, this._state.wholeWord ? this._editor.getOption(EditorOption.wordSeparators) : null, captureMatches);
 		}
 
 		if (!nextMatch) {
-			// there is precisely one match and selection is on top of it
 			return null;
 		}
 
@@ -488,7 +463,6 @@ export class FindModelBoundToEditorModel {
 		const nextMatch = this._getNextMatch(selection.getStartPosition(), true, false);
 		if (nextMatch) {
 			if (selection.equalsRange(nextMatch.range)) {
-				// selection sits on a find match => replace it!
 				const replaceString = replacePattern.buildReplaceString(nextMatch.matches, this._state.preserveCase);
 
 				const command = new ReplaceCommand(selection, replaceString);
@@ -520,7 +494,6 @@ export class FindModelBoundToEditorModel {
 		const findScopes = this._decorations.getFindScopes();
 
 		if (findScopes === null && this._state.matchesCount >= MATCHES_LIMIT) {
-			// Doing a replace on the entire file that is over ${MATCHES_LIMIT} matches
 			this._largeReplaceAll();
 		} else {
 			this._regularReplaceAll(findScopes);
@@ -571,7 +544,6 @@ export class FindModelBoundToEditorModel {
 
 	private _regularReplaceAll(findScopes: Range[] | null): void {
 		const replacePattern = this._getReplacePattern();
-		// Get all the ranges (even more than the highlighted ones)
 		const matches = this._findMatches(findScopes, replacePattern.hasReplacementPatterns || this._state.preserveCase, Constants.MAX_SAFE_SMALL_INTEGER);
 
 		const replaceStrings: string[] = [];
@@ -590,11 +562,9 @@ export class FindModelBoundToEditorModel {
 
 		const findScopes = this._decorations.getFindScopes();
 
-		// Get all the ranges (even more than the highlighted ones)
 		const matches = this._findMatches(findScopes, false, Constants.MAX_SAFE_SMALL_INTEGER);
 		let selections = matches.map(m => new Selection(m.range.startLineNumber, m.range.startColumn, m.range.endLineNumber, m.range.endColumn));
 
-		// If one of the ranges is the editor selection, then maintain it as primary
 		const editorSelection = this._editor.getSelection();
 		for (let i = 0, len = selections.length; i < len; i++) {
 			const sel = selections[i];

@@ -34,7 +34,6 @@ export function upgradeToISocket(req: http.IncomingMessage, socket: Socket, {
 		return;
 	}
 
-	// https://tools.ietf.org/html/rfc6455#section-4
 	const requestNonce = req.headers['sec-websocket-key'];
 	const hash = createHash('sha1');// CodeQL [SM04514] SHA1 must be used here to respect the WebSocket protocol specification
 	hash.update(requestNonce + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11');
@@ -47,13 +46,11 @@ export function upgradeToISocket(req: http.IncomingMessage, socket: Socket, {
 		`Sec-WebSocket-Accept: ${responseNonce}`
 	];
 
-	// See https://tools.ietf.org/html/rfc7692#page-12
 	let permessageDeflate = false;
 	if (!skipWebSocketFrames && !disableWebSocketCompression && req.headers['sec-websocket-extensions']) {
 		const websocketExtensionOptions = Array.isArray(req.headers['sec-websocket-extensions']) ? req.headers['sec-websocket-extensions'] : [req.headers['sec-websocket-extensions']];
 		for (const websocketExtensionOption of websocketExtensionOptions) {
 			if (/\b((server_max_window_bits)|(server_no_context_takeover)|(client_no_context_takeover))\b/.test(websocketExtensionOption)) {
-				// sorry, the server does not support zlib parameter tweaks
 				continue;
 			}
 			if (/\b(permessage-deflate)\b/.test(websocketExtensionOption)) {
@@ -71,11 +68,8 @@ export function upgradeToISocket(req: http.IncomingMessage, socket: Socket, {
 
 	socket.write(responseHeaders.join('\r\n') + '\r\n\r\n');
 
-	// Never timeout this socket due to inactivity!
 	socket.setTimeout(0);
-	// Disable Nagle's algorithm
 	socket.setNoDelay(true);
-	// Finally!
 
 	if (skipWebSocketFrames) {
 		return new NodeSocket(socket, debugLabel);
@@ -84,13 +78,6 @@ export function upgradeToISocket(req: http.IncomingMessage, socket: Socket, {
 	}
 }
 
-/**
- * Maximum time to wait for a 'close' event to fire after the socket stream
- * ends. For unix domain sockets, the close event may not fire consistently
- * due to what appears to be a Node.js bug.
- *
- * @see https://github.com/microsoft/vscode/issues/211462#issuecomment-2155471996
- */
 const socketEndTimeoutMs = 30_000;
 
 export class NodeSocket implements ISocket {
@@ -115,12 +102,6 @@ export class NodeSocket implements ISocket {
 			this.traceSocketEvent(SocketDiagnosticsEventType.Error, { code: err?.code, message: err?.message });
 			if (err) {
 				if (err.code === 'EPIPE') {
-					// An EPIPE exception at the wrong time can lead to a renderer process crash
-					// so ignore the error since the socket will fire the close event soon anyways:
-					// > https://nodejs.org/api/errors.html#errors_common_system_errors
-					// > EPIPE (Broken pipe): A write on a pipe, socket, or FIFO for which there is no
-					// > process to read the data. Commonly encountered at the net and http layers,
-					// > indicative that the remote side of the stream being written to has been closed.
 					return;
 				}
 				onUnexpectedError(err);
@@ -194,27 +175,15 @@ export class NodeSocket implements ISocket {
 	}
 
 	public write(buffer: VSBuffer): void {
-		// return early if socket has been destroyed in the meantime
 		if (this.socket.destroyed || !this._canWrite) {
 			return;
 		}
 
-		// we ignore the returned value from `write` because we would have to cached the data
-		// anyways and nodejs is already doing that for us:
-		// > https://nodejs.org/api/stream.html#stream_writable_write_chunk_encoding_callback
-		// > However, the false return value is only advisory and the writable stream will unconditionally
-		// > accept and buffer chunk even if it has not been allowed to drain.
 		try {
 			this.traceSocketEvent(SocketDiagnosticsEventType.Write, buffer);
 			this.socket.write(buffer.buffer, (err: NodeJS.ErrnoException | null | undefined) => {
 				if (err) {
 					if (err.code === 'EPIPE') {
-						// An EPIPE exception at the wrong time can lead to a renderer process crash
-						// so ignore the error since the socket will fire the close event soon anyways:
-						// > https://nodejs.org/api/errors.html#errors_common_system_errors
-						// > EPIPE (Broken pipe): A write on a pipe, socket, or FIFO for which there is no
-						// > process to read the data. Commonly encountered at the net and http layers,
-						// > indicative that the remote side of the stream being written to has been closed.
 						return;
 					}
 					onUnexpectedError(err);
@@ -222,12 +191,6 @@ export class NodeSocket implements ISocket {
 			});
 		} catch (err) {
 			if (err.code === 'EPIPE') {
-				// An EPIPE exception at the wrong time can lead to a renderer process crash
-				// so ignore the error since the socket will fire the close event soon anyways:
-				// > https://nodejs.org/api/errors.html#errors_common_system_errors
-				// > EPIPE (Broken pipe): A write on a pipe, socket, or FIFO for which there is no
-				// > process to read the data. Commonly encountered at the net and http layers,
-				// > indicative that the remote side of the stream being written to has been closed.
 				return;
 			}
 			onUnexpectedError(err);
@@ -267,14 +230,7 @@ export class NodeSocket implements ISocket {
 
 const enum Constants {
 	MinHeaderByteSize = 2,
-	/**
-	 * If we need to write a large buffer, we will split it into 256KB chunks and
-	 * send each chunk as a websocket message. This is to prevent that the sending
-	 * side is stuck waiting for the entire buffer to be compressed before writing
-	 * to the underlying socket or that the receiving side is stuck waiting for the
-	 * entire message to be received before processing the bytes.
-	 */
-	MaxWebSocketMessageLength = 256 * 1024 // 256 KB
+	MaxWebSocketMessageLength = 256 * 1024
 }
 
 const enum ReadState {
@@ -293,9 +249,6 @@ interface FrameOptions {
 	opcode: number;
 }
 
-/**
- * See https://tools.ietf.org/html/rfc6455#section-5.2
- */
 export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketTracer {
 
 	public readonly socket: NodeSocket;
@@ -332,18 +285,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 		this.socket.traceSocketEvent(type, data);
 	}
 
-	/**
-	 * Create a socket which can communicate using WebSocket frames.
-	 *
-	 * **NOTE**: When using the permessage-deflate WebSocket extension, if parts of inflating was done
-	 *  in a different zlib instance, we need to pass all those bytes into zlib, otherwise the inflate
-	 *  might hit an inflated portion referencing a distance too far back.
-	 *
-	 * @param socket The underlying socket
-	 * @param permessageDeflate Use the permessage-deflate WebSocket extension
-	 * @param inflateBytes "Seed" zlib inflate with these bytes.
-	 * @param recordInflateBytes Record all bytes sent to inflate
-	 */
 	constructor(socket: NodeSocket, permessageDeflate: boolean, inflateBytes: VSBuffer | null, recordInflateBytes: boolean, enableMessageSplitting = true) {
 		super();
 		this.socket = socket;
@@ -358,7 +299,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 			(data, options) => this._write(data, options)
 		));
 		this._register(this._flowManager.onError((err) => {
-			// zlib errors are fatal, since we have no idea how to recover
 			console.error(err);
 			onUnexpectedError(err);
 			this._onClose.fire({
@@ -370,8 +310,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 		this._incomingData = new ChunkStream();
 		this._register(this.socket.onData(data => this._acceptChunk(data)));
 		this._register(this.socket.onClose(async (e) => {
-			// Delay surfacing the close event until the async inflating is done
-			// and all data has been emitted
 			if (this._flowManager.isProcessingReadQueue()) {
 				await Event.toPromise(this._flowManager.onDidFinishProcessingReadQueue);
 			}
@@ -381,7 +319,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 
 	public override dispose(): void {
 		if (this._flowManager.isProcessingWriteQueue()) {
-			// Wait for any outstanding writes to finish before disposing
 			this._register(this._flowManager.onDidFinishProcessingWriteQueue(() => {
 				this.dispose();
 			}));
@@ -404,28 +341,16 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 	}
 
 	public write(buffer: VSBuffer): void {
-		// If we write many logical messages (let's say 1000 messages of 100KB) during a single process tick, we do
-		// this thing where we install a process.nextTick timer and group all of them together and we then issue a
-		// single WebSocketNodeSocket.write with a 100MB buffer.
-		//
-		// The first problem is that the actual writing to the underlying node socket will only happen after all of
-		// the 100MB have been deflated (due to waiting on zlib flush). The second problem is on the reading side,
-		// where we will get a single WebSocketNodeSocket.onData event fired when all the 100MB have arrived,
-		// delaying processing the 1000 received messages until all have arrived, instead of processing them as each
-		// one arrives.
-		//
-		// We therefore split the buffer into chunks, and issue a write for each chunk.
 
 		let start = 0;
 		while (start < buffer.byteLength) {
-			this._flowManager.writeMessage(buffer.slice(start, Math.min(start + this._maxSocketMessageLength, buffer.byteLength)), { compressed: true, opcode: 0x02 /* Binary frame */ });
+			this._flowManager.writeMessage(buffer.slice(start, Math.min(start + this._maxSocketMessageLength, buffer.byteLength)), { compressed: true, opcode: 0x02 });
 			start += this._maxSocketMessageLength;
 		}
 	}
 
 	private _write(buffer: VSBuffer, { compressed, opcode }: FrameOptions): void {
 		if (this._isEnded) {
-			// Avoid ERR_STREAM_WRITE_AFTER_END
 			return;
 		}
 
@@ -440,7 +365,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 		}
 		const header = VSBuffer.alloc(headerLen);
 
-		// The RSV1 bit indicates a compressed frame
 		const compressedFlag = compressed ? 0b01000000 : 0;
 		const opcodeFlag = opcode & 0b00001111;
 		header.writeUInt8(0b10000000 | compressedFlag | opcodeFlag, 0);
@@ -482,7 +406,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 		while (this._incomingData.byteLength >= this._state.readLen) {
 
 			if (this._state.state === ReadState.PeekHeader) {
-				// peek to see if we can read the entire header
 				const peekHeader = this._incomingData.peek(this._state.readLen);
 				const firstByte = peekHeader.readUInt8(0);
 				const finBit = (firstByte & 0b10000000) >>> 7;
@@ -497,7 +420,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 				this._state.readLen = Constants.MinHeaderByteSize + (hasMask ? 4 : 0) + (len === 126 ? 2 : 0) + (len === 127 ? 8 : 0);
 				this._state.fin = finBit;
 				if (this._state.firstFrameOfMessage) {
-					// if the frame is compressed, the RSV1 bit is set only for the first frame of the message
 					this._state.compressed = Boolean(rsv1Bit);
 				}
 				this._state.firstFrameOfMessage = Boolean(finBit);
@@ -507,7 +429,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 				this.traceSocketEvent(SocketDiagnosticsEventType.WebSocketNodeSocketPeekedHeader, { headerSize: this._state.readLen, compressed: this._state.compressed, fin: this._state.fin, opcode: this._state.opcode });
 
 			} else if (this._state.state === ReadState.ReadHeader) {
-				// read entire header
 				const header = this._incomingData.read(this._state.readLen);
 				const secondByte = header.readUInt8(1);
 				const hasMask = (secondByte & 0b10000000) >>> 7;
@@ -549,7 +470,6 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 				this.traceSocketEvent(SocketDiagnosticsEventType.WebSocketNodeSocketPeekedHeader, { bodySize: this._state.readLen, compressed: this._state.compressed, fin: this._state.fin, mask: this._state.mask, opcode: this._state.opcode });
 
 			} else if (this._state.state === ReadState.ReadBody) {
-				// read body
 
 				const body = this._incomingData.read(this._state.readLen);
 				this.traceSocketEvent(SocketDiagnosticsEventType.WebSocketNodeSocketReadData, body);
@@ -561,11 +481,10 @@ export class WebSocketNodeSocket extends Disposable implements ISocket, ISocketT
 				this._state.readLen = Constants.MinHeaderByteSize;
 				this._state.mask = 0;
 
-				if (this._state.opcode <= 0x02 /* Continuation frame or Text frame or binary frame */) {
+				if (this._state.opcode <= 0x02 ) {
 					this._flowManager.acceptFrame(body, this._state.compressed, !!this._state.fin);
-				} else if (this._state.opcode === 0x09 /* Ping frame */) {
-					// Ping frames could be send by some browsers e.g. Firefox
-					this._flowManager.writeMessage(body, { compressed: false, opcode: 0x0A /* Pong frame */ });
+				} else if (this._state.opcode === 0x09 ) {
+					this._flowManager.writeMessage(body, { compressed: false, opcode: 0x0A });
 				}
 			}
 		}
@@ -622,9 +541,6 @@ class WebSocketFlowManager extends Disposable {
 	) {
 		super();
 		if (permessageDeflate) {
-			// See https://tools.ietf.org/html/rfc7692#page-16
-			// To simplify our logic, we don't negotiate the window size
-			// and simply dedicate (2^15) / 32kb per web socket
 			this._zlibInflateStream = this._register(new ZlibInflateStream(this._tracer, recordInflateBytes, inflateBytes, { windowBits: 15 }));
 			this._zlibDeflateStream = this._register(new ZlibDeflateStream(this._tracer, { windowBits: 15 }));
 			this._register(this._zlibInflateStream.onError((err) => this._onError.fire(err)));
@@ -663,9 +579,6 @@ class WebSocketFlowManager extends Disposable {
 		return (this._isProcessingWriteQueue);
 	}
 
-	/**
-	 * Subsequent calls should wait for the previous `_deflateBuffer` call to complete.
-	 */
 	private _deflateMessage(zlibDeflateStream: ZlibDeflateStream, buffer: VSBuffer): Promise<VSBuffer> {
 		return new Promise<VSBuffer>((resolve, reject) => {
 			zlibDeflateStream.write(buffer);
@@ -687,10 +600,6 @@ class WebSocketFlowManager extends Disposable {
 		while (this._readQueue.length > 0) {
 			const frameInfo = this._readQueue.shift()!;
 			if (this._zlibInflateStream && frameInfo.isCompressed) {
-				// See https://datatracker.ietf.org/doc/html/rfc7692#section-9.2
-				// Even if permessageDeflate is negotiated, it is possible
-				// that the other side might decide to send uncompressed messages
-				// So only decompress messages that have the RSV 1 bit set
 				const data = await this._inflateFrame(this._zlibInflateStream, frameInfo.data, frameInfo.isLastFrameOfMessage);
 				this._onData.fire(data);
 			} else {
@@ -705,12 +614,8 @@ class WebSocketFlowManager extends Disposable {
 		return (this._isProcessingReadQueue);
 	}
 
-	/**
-	 * Subsequent calls should wait for the previous `transformRead` call to complete.
-	 */
 	private _inflateFrame(zlibInflateStream: ZlibInflateStream, buffer: VSBuffer, isLastFrameOfMessage: boolean): Promise<VSBuffer> {
 		return new Promise<VSBuffer>((resolve, reject) => {
-			// See https://tools.ietf.org/html/rfc7692#section-7.2.2
 			zlibInflateStream.write(buffer);
 			if (isLastFrameOfMessage) {
 				zlibInflateStream.write(VSBuffer.fromByteArray([0x00, 0x00, 0xff, 0xff]));
@@ -794,7 +699,6 @@ class ZlibInflateStream extends Disposable {
 		try {
 			this._zlibInflate.close();
 		} catch {
-			// ignore errors while disposing
 		}
 		super.dispose();
 	}
@@ -833,14 +737,12 @@ class ZlibDeflateStream extends Disposable {
 	}
 
 	public flush(callback: (data: VSBuffer) => void): void {
-		// See https://zlib.net/manual.html#Constants
-		this._zlibDeflate.flush(/*Z_SYNC_FLUSH*/2, () => {
+		this._zlibDeflate.flush(2, () => {
 			this._tracer.traceSocketEvent(SocketDiagnosticsEventType.zlibDeflateFlushFired);
 
 			let data = VSBuffer.concat(this._pendingDeflateData);
 			this._pendingDeflateData.length = 0;
 
-			// See https://tools.ietf.org/html/rfc7692#section-7.2.1
 			data = data.slice(0, data.byteLength - 4);
 
 			callback(data);
@@ -852,7 +754,6 @@ class ZlibDeflateStream extends Disposable {
 		try {
 			this._zlibDeflate.close();
 		} catch {
-			// ignore errors while disposing
 		}
 		super.dispose();
 	}
@@ -883,8 +784,6 @@ function unmask(buffer: VSBuffer, mask: number): void {
 	}
 }
 
-// Read this before there's any chance it is overwritten
-// Related to https://github.com/microsoft/vscode/issues/30624
 export const XDG_RUNTIME_DIR = process.env['XDG_RUNTIME_DIR'];
 
 const safeIpcPathLengths: { [platform: number]: number } = {
@@ -895,20 +794,12 @@ const safeIpcPathLengths: { [platform: number]: number } = {
 export function createRandomIPCHandle(): string {
 	const randomSuffix = generateUuid();
 
-	// Windows: use named pipe
 	if (process.platform === 'win32') {
 		return `\\\\.\\pipe\\vscode-ipc-${randomSuffix}-sock`;
 	}
 
-	// Mac & Unix: Use socket file
-	// Unix: Prefer XDG_RUNTIME_DIR over user data path
 	const basePath = process.platform !== 'darwin' && XDG_RUNTIME_DIR ? XDG_RUNTIME_DIR : tmpdir();
 
-	// As of Node.js 24, socket paths that exceed the
-	// platform limit cause an `EINVAL` error at bind time instead of being silently
-	// truncated. The suffix only needs to be unique, so trim it (while keeping enough
-	// entropy) to make the path fit within the limit.
-	// See https://github.com/nodejs/node/commit/75884678d7e7ef228c8f8f82b4c085258c70a823
 	const limit = safeIpcPathLengths[platform];
 	let suffix = randomSuffix;
 	if (typeof limit === 'number') {
@@ -925,15 +816,10 @@ export function createStaticIPCHandle(directoryPath: string, type: string, versi
 	const scope = createHash('sha256').update(directoryPath).digest('hex');
 	const scopeForSocket = scope.substr(0, 8);
 
-	// Windows: use named pipe
 	if (process.platform === 'win32') {
 		return `\\\\.\\pipe\\${scopeForSocket}-${version}-${type}-sock`;
 	}
 
-	// Mac & Unix: Use socket file
-	// Unix: Prefer XDG_RUNTIME_DIR over user data path, unless portable
-	// Trim the version and type values for the socket to prevent too large
-	// file names causing issues: https://unix.stackexchange.com/q/367008
 
 	const versionForSocket = version.substr(0, 4);
 	const typeForSocket = type.substr(0, 6);
@@ -945,10 +831,6 @@ export function createStaticIPCHandle(directoryPath: string, type: string, versi
 		result = join(directoryPath, `${versionForSocket}-${typeForSocket}.sock`);
 	}
 
-	// Validate length. Unlike `createRandomIPCHandle`, the path here must be derived
-	// deterministically from `directoryPath` so that the server and its clients agree
-	// on the same socket. There is no random component to trim, so an over-long
-	// `--user-data-dir` can still produce a path that exceeds the platform limit.
 	validateIPCHandleLength(result);
 
 	return result;
@@ -957,7 +839,6 @@ export function createStaticIPCHandle(directoryPath: string, type: string, versi
 function validateIPCHandleLength(handle: string): void {
 	const limit = safeIpcPathLengths[platform];
 	if (typeof limit === 'number' && handle.length >= limit) {
-		// https://nodejs.org/api/net.html#net_identifying_paths_for_ipc_connections
 		console.warn(`WARNING: IPC handle "${handle}" is longer than ${limit} chars, try a shorter --user-data-dir`);
 	}
 }

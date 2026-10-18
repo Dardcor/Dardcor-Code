@@ -283,7 +283,6 @@ suite('ChatInputNotificationWidget', () => {
 		showNotification(notificationService, { id: 'quota', message: 'Credits at 88%', actions: [], when: showForNonByokModels });
 
 		const rendered = () => widget.domNode.querySelector('.chat-input-notification-header')?.textContent;
-		// An unresolved selection must not withhold the notification.
 		const unresolved = rendered();
 		modelState.set({ currentModel: makeModel('copilot', false), models: [] }, undefined);
 		const copilot = rendered();
@@ -430,12 +429,6 @@ suite('ChatInputNotificationWidget', () => {
 		});
 	});
 
-	/**
-	 * A notification service mock that records the notifications forwarded to
-	 * {@link IChatInputNotificationService.announceRendered} and applies the
-	 * `getActiveNotification` filter, so tests can observe exactly what a chat
-	 * input would render and announce for its session.
-	 */
 	function createRecordingNotificationService() {
 		const notifications = new Map<string, IChatInputNotification>();
 		const announced: { notification: IChatInputNotification | undefined; body: IChatInputNotificationBody | undefined }[] = [];
@@ -629,7 +622,6 @@ suite('ChatInputNotificationWidget', () => {
 		});
 	});
 
-	/** Clicks a switch-to-model action against one model and reports what the input did. */
 	async function runSwitchAction(options: {
 		readonly schema: ILanguageModelConfigurationSchema;
 		readonly config: IStringDictionary<unknown>;
@@ -978,8 +970,6 @@ suite('ChatInputNotificationWidget', () => {
 		store.add(instantiationService.createInstance(ChatInputNotificationWidget, { modelTargetChatSessionType: currentSessionType }));
 		const lastAnnounced = () => notificationService.announced[notificationService.announced.length - 1];
 
-		// A promo scoped to the Copilot harness must not be announced while the
-		// input is in the local session.
 		notificationService.set({
 			id: 'copilot-promo',
 			severity: ChatInputNotificationSeverity.Info,

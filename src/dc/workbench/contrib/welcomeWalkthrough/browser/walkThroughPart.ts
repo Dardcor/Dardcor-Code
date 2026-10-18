@@ -142,7 +142,6 @@ export class WalkThroughPart extends EditorPane {
 			this.editorFocus.reset();
 		}));
 		this.disposables.add(this.addEventListener(this.content, 'focusin', (e: FocusEvent) => {
-			// Work around scrolling as side-effect of setting focus on the offscreen zone widget (#18929)
 			if (isHTMLElement(e.target) && e.target.classList.contains('zone-widget-container')) {
 				const scrollPosition = this.scrollbar.getScrollPosition();
 				this.content.scrollTop = scrollPosition.scrollTop;
@@ -303,7 +302,7 @@ export class WalkThroughPart extends EditorPane {
 				}
 
 				const innerContent = document.createElement('div');
-				innerContent.classList.add('walkThroughContent'); // only for markdown files
+				innerContent.classList.add('walkThroughContent');
 				const markdown = this.expandMacros(content);
 				this.safeSetInnerHtml(innerContent, markdown);
 				this.content.appendChild(innerContent);

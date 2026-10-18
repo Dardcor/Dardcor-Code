@@ -36,9 +36,6 @@ const ARTIFACT_TYPE_ICONS: Record<string, ThemeIcon> = {
 	plan: Codicon.book,
 };
 
-/**
- * A group node in the artifact tree. Groups artifacts by `groupName`.
- */
 interface IArtifactGroupNode {
 	readonly kind: 'group';
 	readonly groupName: string;
@@ -47,10 +44,6 @@ interface IArtifactGroupNode {
 	readonly onClear?: () => void;
 }
 
-/**
- * A leaf artifact node, optionally annotated with subtext (e.g. source/group name
- * when the artifact is the sole item of its group, shown at top level).
- */
 interface IArtifactLeafNode {
 	readonly kind: 'leaf';
 	readonly artifact: IChatArtifact;
@@ -211,14 +204,12 @@ export class ChatArtifactsWidget extends Disposable {
 		this._sessionResource.set(sessionResource, undefined);
 	}
 
-	/** Add the list to its slot in the chat input stack. */
 	attachTo(slot: HTMLElement): void {
 		this._slot = slot;
 		slot.appendChild(this.domNode);
 		setChatInputStackSlot(slot, this._visible ? ChatInputStackSlot.Docked : ChatInputStackSlot.Empty);
 	}
 
-	/** Show or hide the list, and report the same to the stack. */
 	private _setVisible(visible: boolean): void {
 		this._visible = visible;
 		this.domNode.style.display = visible ? '' : 'none';
@@ -226,8 +217,6 @@ export class ChatArtifactsWidget extends Disposable {
 	}
 
 	private async _openGroupInCarousel(group: IArtifactGroupNode): Promise<void> {
-		// Open the first artifact in the group — the carousel service will collect
-		// all images from the chat widget session automatically.
 		const first = group.artifacts[0];
 		if (first?.uri) {
 			await this._chatImageCarouselService.openCarouselAtResource(URI.parse(first.uri));
@@ -260,7 +249,7 @@ export class ChatArtifactsWidget extends Disposable {
 	private async _openMemoryFileArtifact(uri: URI): Promise<void> {
 		const { memoryPath, sessionResource } = ChatMemoryFileResource.parse(uri);
 		const resolvedUriStr: string | undefined = await this._commandService.executeCommand(
-			'github.copilot.chat.tools.memory.resolveMemoryFileUri',
+			'github.dardcor.chat.tools.memory.resolveMemoryFileUri',
 			memoryPath,
 			sessionResource,
 		);
@@ -307,7 +296,6 @@ export class ChatArtifactsWidget extends Disposable {
 	}
 }
 
-// --- Tree infrastructure ---
 
 function sourceDisplayName(source: ArtifactSource): string {
 	switch (source.kind) {
@@ -343,7 +331,6 @@ function buildTreeElementsFromGroups(sourceGroups: readonly IArtifactSourceGroup
 		for (const [, group] of groups) {
 			const displayName = prefix ? `${prefix}: ${group.config.groupName}` : group.config.groupName;
 
-			// Single-artifact group: promote to top-level leaf with description
 			if (group.artifacts.length === 1 && !group.config.onlyShowGroup) {
 				elements.push({ element: { kind: 'leaf', artifact: group.artifacts[0], description: displayName, onClear } });
 				continue;
@@ -370,7 +357,6 @@ function buildTreeElementsFromGroups(sourceGroups: readonly IArtifactSourceGroup
 		}
 
 		if (ungrouped.length > 0 && prefix) {
-			// Single ungrouped artifact from a source: show as leaf with source name
 			if (ungrouped.length === 1) {
 				elements.push({ element: { kind: 'leaf', artifact: ungrouped[0], description: prefix, onClear } });
 			} else {
@@ -401,7 +387,7 @@ function buildTreeElementsFromGroups(sourceGroups: readonly IArtifactSourceGroup
 function countVisibleRows(elements: IObjectTreeElement<ArtifactTreeElement>[]): number {
 	let count = 0;
 	for (const el of elements) {
-		count++; // The element itself
+		count++;
 		if (el.children && !el.collapsed) {
 			count += countVisibleRows([...el.children]);
 		}
@@ -432,7 +418,6 @@ class ChatArtifactsAccessibilityProvider implements IListAccessibilityProvider<A
 	}
 }
 
-// --- Group renderer ---
 
 interface IArtifactGroupTemplate {
 	readonly container: HTMLElement;
@@ -492,7 +477,6 @@ class ChatArtifactGroupRenderer implements ITreeRenderer<ArtifactTreeElement, vo
 	}
 }
 
-// --- Leaf artifact renderer ---
 
 interface IArtifactLeafTemplate {
 	readonly container: HTMLElement;

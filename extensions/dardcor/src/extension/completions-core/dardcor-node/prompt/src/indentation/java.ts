@@ -14,21 +14,6 @@ import {
 	labelVirtualInherited,
 } from './parsing';
 
-/**
- * Java labels.
- *
- *  * package: A package declaration;
- *  * import: An import stament
- *  * comment_single: Single-line comments starting with //
- *  * comment_multi: Multi-line comments starting with /*, or a vnode of
- *    multiple single-line comments.
- *  * annotation: A line starting with "@". Note that fields are habitually
- *    declared on one line, even if they have an annotation. In this case, the
- *    field will have the label "annotation" rather than "member".
- *  * closeBrace: A closing brace alone on a line.
- *  * member: Anything inside a class or interface that does not have a more
- *    specific label.
- */
 const _javaLabelRules = {
 	package: /^package /,
 	import: /^import /,
@@ -43,18 +28,12 @@ const _javaLabelRules = {
 } as const;
 const javaLabelRules: LabelRule<string>[] = buildLabelRules(_javaLabelRules);
 
-/**
- * processJava(parseRaw(text)) is supposed to serve as superior alternative to alternative parseTree(text, "generic")
- */
 export function processJava<L>(originalTree: IndentationTree<L>): IndentationTree<L | string> {
 	let tree = originalTree as IndentationTree<L | string>;
 	labelLines(tree, javaLabelRules);
 	tree = combineClosersAndOpeners(tree);
 	tree = flattenVirtual(tree);
 	labelVirtualInherited(tree);
-	// Label all non-labelled subs of class and interface as member.
-	// We also relabel annotations that are direct subs of class or interface as
-	// member.
 	visitTree(
 		tree,
 		(tree: IndentationTree<L | string>) => {

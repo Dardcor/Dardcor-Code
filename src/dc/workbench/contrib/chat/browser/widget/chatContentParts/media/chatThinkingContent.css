@@ -134,7 +134,6 @@
 		}
 	}
 
-	/* shimmer animation stuffs */
 	.chat-thinking-spinner-item .chat-thinking-spinner-label {
 		background: linear-gradient(90deg,
 				var(--vscode-descriptionForeground) 0%,
@@ -155,7 +154,6 @@
 		max-height: none;
 	}
 
-	/* Curved connector from the header to the first thinking item */
 	&:not(.chat-used-context-collapsed) > .chat-used-context-label::after {
 		content: '';
 		position: absolute;
@@ -221,7 +219,6 @@
 				max-width: calc(100% - 6px);
 			}
 
-			/* todo: ideally not !important, but the competing css has 14 specificity */
 			.codicon.codicon-check-compact,
 			.codicon.codicon-loading-compact {
 				display: none !important;
@@ -285,12 +282,6 @@
 			}
 		}
 
-		/*
-		 * External-edit pills (agent host) sit directly inside
-		 * `.chat-thinking-tool-wrapper` rather than nested inside a markdown
-		 * code block, so they need the same left padding to clear the
-		 * absolutely-positioned thinking icon.
-		 */
 		.chat-thinking-tool-wrapper > .chat-codeblock-pill-container {
 			padding: 5px 12px 4px 24px;
 
@@ -311,7 +302,6 @@
 			padding: 0;
 		}
 
-		/* chain of thought lines */
 		.chat-thinking-tool-wrapper,
 		.chat-thinking-item.markdown-content,
 		.chat-thinking-spinner-item {
@@ -354,7 +344,6 @@
 				color: var(--vscode-descriptionForeground);
 			}
 
-			/* the default book icon has a pixel of space at the bottom */
 			> .chat-thinking-icon .codicon.codicon-book {
 				top: 10px;
 			}
@@ -428,7 +417,6 @@
 .interactive-session .interactive-response .value .chat-thinking-fixed-mode {
 	outline: none;
 
-	/* Hide the header/collapse button while streaming — it reappears when chat-thinking-streaming is removed */
 	&:has(.chat-thinking-streaming) > .chat-used-context-label {
 		display: none;
 	}
@@ -437,7 +425,6 @@
 		display: none;
 	}
 
-	/* Directional fade indicators via mask-image on the scrollable viewport */
 	&.chat-thinking-fade-top > .monaco-scrollable-element {
 		mask-image: linear-gradient(to bottom, transparent 0px, black 20px);
 		-webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 20px);
@@ -510,7 +497,6 @@
 			padding-left: 19px;
 		}
 
-		/* chain of thought lines */
 		.chat-thinking-tool-wrapper,
 		.chat-thinking-item.markdown-content,
 		.chat-thinking-spinner-item {
@@ -564,4 +550,11 @@
 	display: inline;
 	line-height: inherit;
 	padding: 1px 3px;
+	color: #B388FF !important;
 }
+
+.interactive-session .interactive-response .value .chat-used-context.chat-terminal-thinking-collapsible code,
+.chat-terminal-thinking-content code {
+	color: #B388FF !important;
+}
+

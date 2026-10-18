@@ -56,13 +56,11 @@
 }
 
 .mac:not(.fullscreen) .process-explorer .monaco-list:focus::before {
-	/* Rounded corners to make focus outline appear properly (unless fullscreen) */
 	border-bottom-right-radius: 10px;
 	border-bottom-left-radius: 10px;
 }
 
 .mac.macos-tahoe:not(.fullscreen) .process-explorer .monaco-list:focus::before {
-	/* macOS Tahoe increased rounded corners size */
 	border-bottom-right-radius: 16px;
 	border-bottom-left-radius: 16px;
 }

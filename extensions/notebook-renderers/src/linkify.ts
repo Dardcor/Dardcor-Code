@@ -33,7 +33,6 @@ export type LinkOptions = {
 
 export class LinkDetector {
 
-	// used by unit tests
 	static injectedHtmlCreator: (value: string) => string;
 
 	private shouldGenerateHtml(trustHtml: boolean) {
@@ -49,13 +48,6 @@ export class LinkDetector {
 		}
 	}
 
-	/**
-	 * Matches and handles web urls, absolute and relative file links in the string provided.
-	 * Returns <span/> element that wraps the processed string, where matched links are replaced by <a/>.
-	 * 'onclick' event is attached to all anchored links that opens them in the editor.
-	 * When splitLines is true, each line of the text, even if it contains no links, is wrapped in a <span>
-	 * and added as a child of the returned <span>.
-	 */
 	linkify(text: string, options: LinkOptions, splitLines?: boolean): HTMLElement {
 		if (splitLines) {
 			const lines = text.split('\n');
@@ -63,12 +55,10 @@ export class LinkDetector {
 				lines[i] = lines[i] + '\n';
 			}
 			if (!lines[lines.length - 1]) {
-				// Remove the last element ('') that split added.
 				lines.pop();
 			}
 			const elements = lines.map(line => this.linkify(line, options, false));
 			if (elements.length === 1) {
-				// Do not wrap single line with extra span.
 				return elements[0];
 			}
 			const container = document.createElement('span');
@@ -107,43 +97,9 @@ export class LinkDetector {
 		return link;
 	}
 
-	// private createPathLink(text: string, path: string, lineNumber: number, columnNumber: number, workspaceFolder: string | undefined): Node {
-	// 	if (path[0] === '/' && path[1] === '/') {
-	// 		// Most likely a url part which did not match, for example ftp://path.
-	// 		return document.createTextNode(text);
-	// 	}
 
-	// 	const options = { selection: { startLineNumber: lineNumber, startColumn: columnNumber } };
-	// 	if (path[0] === '.') {
-	// 		if (!workspaceFolder) {
-	// 			return document.createTextNode(text);
-	// 		}
-	// 		const uri = workspaceFolder.toResource(path);
-	// 		const link = this.createLink(text);
-	// 		this.decorateLink(link, uri, (preserveFocus: boolean) => this.editorService.openEditor({ resource: uri, options: { ...options, preserveFocus } }));
-	// 		return link;
-	// 	}
 
-	// 	if (path[0] === '~') {
-	// 		const userHome = this.pathService.resolvedUserHome;
-	// 		if (userHome) {
-	// 			path = osPath.join(userHome.fsPath, path.substring(1));
-	// 		}
-	// 	}
 
-	// 	const link = this.createLink(text);
-	// 	link.tabIndex = 0;
-	// 	const uri = URI.file(osPath.normalize(path));
-	// 	this.fileService.resolve(uri).then(stat => {
-	// 		if (stat.isDirectory) {
-	// 			return;
-	// 		}
-	// 		this.decorateLink(link, uri, (preserveFocus: boolean) => this.editorService.openEditor({ resource: uri, options: { ...options, preserveFocus } }));
-	// 	}).catch(() => {
-	// 		// If the uri can not be resolved we should not spam the console with error, remain quite #86587
-	// 	});
-	// 	return link;
-	// }
 
 	private createLink(text: string): HTMLAnchorElement {
 		const link = document.createElement('a');

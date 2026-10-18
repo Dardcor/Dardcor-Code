@@ -26,28 +26,12 @@ import { isString } from '../../../../../base/common/types.js';
 
 export const ITerminalCompletionService = createDecorator<ITerminalCompletionService>('terminalCompletionService');
 
-/**
- * Represents a collection of {@link CompletionItem completion items} to be presented
- * in the terminal.
- */
 export class TerminalCompletionList<ITerminalCompletion> {
 
-	/**
-	 * Resources should be shown in the completions list
-	 */
 	resourceOptions?: TerminalCompletionResourceOptions;
 
-	/**
-	 * The completion items.
-	 */
 	items?: ITerminalCompletion[];
 
-	/**
-	 * Creates a new completion list.
-	 *
-	 * @param items The completion items.
-	 * @param isIncomplete The list is not complete.
-	 */
 	constructor(items?: ITerminalCompletion[], resourceOptions?: TerminalCompletionResourceOptions) {
 		this.items = items;
 		this.resourceOptions = resourceOptions;
@@ -81,7 +65,7 @@ export interface ITerminalCompletionService {
 
 export class TerminalCompletionService extends Disposable implements ITerminalCompletionService {
 	declare _serviceBrand: undefined;
-	private readonly _providers: Map</*ext id*/string, Map</*provider id*/string, ITerminalCompletionProvider>> = new Map();
+	private readonly _providers: Map< string, Map< string, ITerminalCompletionProvider>> = new Map();
 
 	private readonly _onDidChangeProviders = this._register(new Emitter<void>());
 	readonly onDidChangeProviders = this._onDidChangeProviders.event;
@@ -98,7 +82,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 		}
 	}
 
-	/** Overrides the environment for testing purposes. */
 	set processEnv(env: IProcessEnvironment) { this._processEnv = env; }
 	private _processEnv = processEnv;
 
@@ -217,7 +200,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 				}
 			}
 			if (provider.isBuiltin) {
-				//TODO: why is this needed?
 				for (const item of completionItems) {
 					item.provider ??= provider.id;
 				}
@@ -231,7 +213,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 				if (resourceCompletions) {
 					const labels = new Set(completionItems.map(c => c.label));
 					for (const item of resourceCompletions) {
-						// Ensure no duplicates such as .
 						if (!labels.has(item.label)) {
 							completionItems.push(item);
 						}
@@ -252,12 +233,9 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 
 		const useWindowsStylePath = resourceOptions.pathSeparator === '\\';
 		if (useWindowsStylePath) {
-			// for tests, make sure the right path separator is used
 			promptValue = promptValue.replaceAll(/[\\/]/g, resourceOptions.pathSeparator);
 		}
 
-		// Files requested implies folders requested since the file could be in any folder. We could
-		// provide diagnostics when a folder is provided where a file is expected.
 		const showDirectories = (resourceOptions.showDirectories || resourceOptions.showFiles) ?? false;
 		const showFiles = resourceOptions.showFiles ?? false;
 		const globPattern = resourceOptions.globPattern ?? undefined;
@@ -269,27 +247,18 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 		const resourceCompletions: ITerminalCompletion[] = [];
 		const cursorPrefix = promptValue.substring(0, cursorPosition);
 
-		// Determine if we're completing the command (first word) vs an argument
-		// We're in command position if there are no unescaped spaces before cursor
 		const wordsBeforeCursor = cursorPrefix.split(/(?<!\\) /);
 		const isCommandPosition = wordsBeforeCursor.length <= 1 && !cursorPrefix.endsWith(' ');
 
-		// TODO: Leverage Fig's tokens array here?
-		// The last word (or argument). When the cursor is following a space it will be the empty
-		// string
 		let lastWord = cursorPrefix.endsWith(' ') ? '' : cursorPrefix.split(/(?<!\\) /).at(-1) ?? '';
 
-		// Ignore prefixes in the word that look like setting an environment variable
 		const matchEnvVarPrefix = lastWord.match(/^[a-zA-Z_]+=(?<rhs>.+)$/);
 		if (matchEnvVarPrefix?.groups?.rhs) {
 			lastWord = matchEnvVarPrefix.groups.rhs;
 		}
 
-		// Get the nearest folder path from the prefix. This ignores everything after the `/` as
-		// they are what triggers changes in the directory.
 		let lastSlashIndex: number;
 		if (useWindowsStylePath) {
-			// TODO: Flesh out escaped path logic, it currently only partially works
 			let lastBackslashIndex = -1;
 			for (let i = lastWord.length - 1; i >= 0; i--) {
 				if (lastWord[i] === '\\') {
@@ -304,16 +273,12 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 			lastSlashIndex = lastWord.lastIndexOf(resourceOptions.pathSeparator);
 		}
 
-		// The _complete_ folder of the last word. For example if the last word is `./src/file`,
-		// this will be `./src/`. This also always ends in the path separator if it is not the empty
-		// string and path separators are normalized on Windows.
 		let lastWordFolder = lastSlashIndex === -1 ? '' : lastWord.slice(0, lastSlashIndex + 1);
 		if (useWindowsStylePath) {
 			lastWordFolder = lastWordFolder.replaceAll('/', '\\');
 		}
 
 
-		// Determine the current folder being shown
 		const lastWordFolderHasDotPrefix = !!lastWordFolder.match(/^\.\.?[\\\/]/);
 		const lastWordFolderHasTildePrefix = !!lastWordFolder.match(/^~[\\\/]?/);
 		const isAbsolutePath = getIsAbsolutePath(shellType, resourceOptions.pathSeparator, lastWordFolder, useWindowsStylePath);
@@ -321,8 +286,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 		const cwd = URI.revive(resourceOptions.cwd);
 		let lastWordFolderResource: URI | string | undefined;
 		if (type === 'relative' && lastWordFolder.length > 0) {
-			// If the typed folder matches the tail of cwd (common when the extension already
-			// resolved the path, such as `./src/vs/`), reuse cwd to avoid duplicating segments.
 			const normalizedFolder = (useWindowsStylePath ? lastWordFolder.replaceAll('\\', '/') : lastWordFolder).replaceAll('\\ ', ' ');
 			const hasDotPrefix = normalizedFolder.startsWith('./');
 			if (hasDotPrefix) {
@@ -340,8 +303,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 						}
 					}
 				} else {
-					// `./` by itself means the current directory, use cwd directly to avoid
-					// trailing slash issues with URI.joinPath on some remote file systems.
 					try {
 						await this._fileService.stat(cwd);
 						lastWordFolderResource = cwd;
@@ -351,7 +312,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 				}
 			}
 
-			// Otherwise resolve the folder relative to cwd.
 			if (!lastWordFolderResource) {
 				const folderToResolve = URI.joinPath(cwd, normalizedFolder);
 				try {
@@ -380,8 +340,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 					lastWordFolderResource = URI.joinPath(createUriFromLocalPath(cwd, home), lastWordFolder.slice(1).replaceAll('\\ ', ' '));
 				}
 				if (!lastWordFolderResource) {
-					// Use less strong wording here as it's not as strong of a concept on Windows
-					// and could be misleading
 					if (lastWord.match(/^~[\\\/]$/)) {
 						lastWordFolderResource = useWindowsStylePath ? 'Home directory' : '$HOME';
 					}
@@ -402,13 +360,10 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 			}
 		}
 
-		// Assemble completions based on the resource of lastWordFolder. Note that on Windows the
-		// path separators are normalized to `\`.
 		if (!lastWordFolderResource) {
 			return undefined;
 		}
 
-		// Early exit with basic completion if we don't know the resource
 		if (isString(lastWordFolderResource)) {
 			resourceCompletions.push({
 				label: lastWordFolder,
@@ -428,18 +383,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 			return;
 		}
 
-		// Add current directory. This should be shown at the top because it will be an exact
-		// match and therefore highlight the detail, plus it improves the experience when
-		// runOnEnter is used.
-		//
-		// - (relative) `|`       -> `.`
-		//   this does not have the trailing `/` intentionally as it's common to complete the
-		//   current working directory and we do not want to complete `./` when `runOnEnter` is
-		//   used.
-		// - (relative) `./src/|` -> `./src/`
-		// - (absolute) `/src/|`  -> `/src/`
-		// - (tilde)    `~/|`     -> `~/`
-		// - (tilde)    `~/src/|` -> `~/src/`
 		this._logService.trace(`TerminalCompletionService#resolveResources cwd`);
 		if (showDirectories) {
 			let label: string;
@@ -469,11 +412,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 			});
 		}
 
-		// Add all direct children files or folders
-		//
-		// - (relative) `cd ./src/`  -> `cd ./src/folder1/`, ...
-		// - (absolute) `cd c:/src/` -> `cd c:/src/folder1/`, ...
-		// - (tilde)    `cd ~/src/`  -> `cd ~/src/folder1/`, ...
 		this._logService.trace(`TerminalCompletionService#resolveResources direct children`);
 		await Promise.all(stat.children.map(child => (async () => {
 			let kind: TerminalCompletionItemKind | undefined;
@@ -485,7 +423,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 					kind = TerminalCompletionItemKind.Folder;
 				}
 			} else if (showFiles && child.isFile) {
-				// When completing the command (first word) on Unix, only show executable files
 				if (isCommandPosition && !useWindowsStylePath) {
 					if (!child.executable) {
 						return;
@@ -524,7 +461,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 				}
 			}
 
-			// Try to resolve symlink target for symbolic links
 			if (child.isSymbolicLink) {
 				try {
 					const realpath = await this._fileService.realpath(child.resource);
@@ -532,7 +468,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 						detail = `${getFriendlyPath(this._labelService, child.resource, resourceOptions.pathSeparator, kind, shellType)} -> ${getFriendlyPath(this._labelService, realpath, resourceOptions.pathSeparator, kind, shellType)}`;
 					}
 				} catch (error) {
-					// Ignore errors resolving symlink targets - they may be dangling links
 				}
 			}
 
@@ -545,9 +480,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 			});
 		})()));
 
-		// Support $CDPATH specially for the `cd` command only
-		//
-		// - (relative) `|` -> `/foo/vscode` (CDPATH has /foo which contains vscode folder)
 		this._logService.trace(`TerminalCompletionService#resolveResources CDPATH`);
 		if (type === 'relative' && showDirectories) {
 			if (promptValue.startsWith('cd ')) {
@@ -583,17 +515,13 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 										});
 									}
 								}
-							} catch { /* ignore */ }
+							} catch { }
 						}
 					}
 				}
 			}
 		}
 
-		// Add parent directory to the bottom of the list because it's not as useful as other suggestions
-		//
-		// - (relative) `|` -> `../`
-		// - (relative) `./src/|` -> `./src/../`
 		this._logService.trace(`TerminalCompletionService#resolveResources parent dir`);
 		if (type === 'relative' && showDirectories) {
 			let label = `..${resourceOptions.pathSeparator}`;
@@ -610,10 +538,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 			});
 		}
 
-		// Add tilde for home directory for relative paths when there is no path separator in the
-		// input.
-		//
-		// - (relative) `|` -> `~`
 		this._logService.trace(`TerminalCompletionService#resolveResources tilde`);
 		if (type === 'relative' && !lastWordFolder.match(/[\\\/]/)) {
 			let homeResource: URI | string | undefined;
@@ -622,8 +546,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 				homeResource = createUriFromLocalPath(cwd, home);
 			}
 			if (!homeResource) {
-				// Use less strong wording here as it's not as strong of a concept on Windows
-				// and could be misleading
 				homeResource = useWindowsStylePath ? 'Home directory' : '$HOME';
 			}
 			resourceCompletions.push({
@@ -654,7 +576,6 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 
 function getFriendlyPath(labelService: ILabelService, uri: URI, pathSeparator: string, kind: TerminalCompletionItemKind, shellType?: TerminalShellType): string {
 	let path = labelService.getUriLabel(uri, { noPrefix: true });
-	// Normalize line endings for folders
 	const sep = shellType === WindowsShellType.GitBash ? '\\' : pathSeparator;
 	if (kind === TerminalCompletionItemKind.Folder && !path.endsWith(sep)) {
 		path += sep;
@@ -662,10 +583,6 @@ function getFriendlyPath(labelService: ILabelService, uri: URI, pathSeparator: s
 	return path;
 }
 
-/**
- * Normalize suggestion to add a ./ prefix to the start of the path if there isn't one already. We
- * may want to change this behavior in the future to go with whatever format the user has.
- */
 function addPathRelativePrefix(text: string, resourceOptions: Pick<TerminalCompletionResourceOptions, 'pathSeparator'>, lastWordFolderHasDotPrefix: boolean): string {
 	if (!lastWordFolderHasDotPrefix) {
 		if (text.startsWith(resourceOptions.pathSeparator)) {
@@ -676,12 +593,7 @@ function addPathRelativePrefix(text: string, resourceOptions: Pick<TerminalCompl
 	return text;
 }
 
-/**
- * Escapes special characters in a file/folder label for shell completion.
- * This ensures that characters like [, ], etc. are properly escaped.
- */
 export function escapeTerminalCompletionLabel(label: string, shellType: TerminalShellType | undefined, pathSeparator: string): string {
-	// Only escape for bash/zsh/fish; PowerShell and cmd have different rules
 	if (shellType === undefined || shellType === GeneralShellType.PowerShell || shellType === WindowsShellType.CommandPrompt) {
 		return label;
 	}
@@ -695,11 +607,6 @@ function getIsAbsolutePath(shellType: TerminalShellType | undefined, pathSeparat
 	return useWindowsStylePath ? /^[a-zA-Z]:[\\\/]/.test(lastWord) : lastWord.startsWith(pathSeparator);
 }
 
-/**
- * Creates a URI from an absolute path, preserving the scheme and authority from the cwd.
- * For local file:// URIs, uses URI.file() which handles Windows path normalization.
- * For remote URIs (e.g., vscode-remote://wsl+Ubuntu), preserves the remote context.
- */
 function createUriFromLocalPath(cwd: URI, absolutePath: string): URI {
 	if (cwd.scheme === 'file') {
 		return URI.file(absolutePath);

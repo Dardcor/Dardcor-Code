@@ -14,41 +14,13 @@ import { ILinesDiffComputerOptions } from '../../../util/dardcor/editor/common/d
 
 const TROUBLESHOOT_EDIT_CONSISTENCY = false;
 
-export const maxAgreementOffset = 10; // If the user's typing is more than this into the suggestion we consider it a miss.
-export const maxImperfectAgreementLength = 5; // If the user's typing is longer than this and the suggestion is not a perfect match we consider it a miss.
+export const maxAgreementOffset = 10;
+export const maxImperfectAgreementLength = 5;
 
 export interface NesRebaseConfigs {
-	/**
-	 * When enabled, if the user's typed text is an editor auto-close pair
-	 * (e.g. `()`, `[]`, `{}`, `<>`, `""`, `''`, ` `` `) and both characters
-	 * appear in order in the suggestion's insert text, the rebase absorbs
-	 * the typed pair instead of failing.
-	 */
 	readonly absorbSubsequenceTyping?: boolean;
-	/**
-	 * When enabled, allows rebase to succeed when the user typed more text
-	 * than the model predicted at the same position (reverse agreement).
-	 * Model edits consumed by the user's typing are absorbed, and any
-	 * unconsumed portion of subsequent model edits is offered as the
-	 * rebased suggestion.
-	 */
 	readonly reverseAgreement?: boolean;
-	/**
-	 * Maximum length (in characters) of an imperfect agreement that is still
-	 * accepted during a strict rebase. When the base new-text is longer than
-	 * this value and it does not start at the exact predicted offset, the
-	 * rebase is considered a miss. Helper functions such as {@link tryRebase}
-	 * use {@link maxImperfectAgreementLength} when `nesConfigs` is omitted,
-	 * but explicit {@link NesRebaseConfigs} objects must provide this value.
-	 */
 	readonly maxImperfectAgreementLength: number;
-	/**
-	 * When enabled, the cache serving layer salvages a cached suggestion whose
-	 * strict rebase failed *only* because the user re-typed a line's leading
-	 * indentation differently than the model predicted, re-anchoring the model's
-	 * still-valid content as a clean at-cursor insertion. This is consumed by the
-	 * NES cache (see `tryRebaseCacheEntry`), not by {@link tryRebase} itself.
-	 */
 	readonly reanchorContentOnIndentationMismatch?: boolean;
 }
 
@@ -167,30 +139,23 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 	let offset = 0;
 
 	while (ourIdx < ours.replacements.length || baseIdx < base.replacements.length) {
-		// take the edit that starts first
 		const baseEdit = base.replacements[baseIdx];
 		const ourEdit = ours.replacements[ourIdx];
 
 		if (!ourEdit) {
 			if (resolution === 'strict') {
-				// baseEdit does not match but interleaves
 				return undefined;
 			}
-			// We processed all our edits
 			break;
 		} else if (!baseEdit) {
-			// no more edits from base
 			newEdits.push(ourEdit.delta(offset));
 			ourIdx++;
 		} else {
 			let ourE = ourEdit;
 			if (!ourE.replaceRange.containsRange(baseEdit.replaceRange)) {
-				// Try to shift our edit to include the base edit.
 				if (ourE.replaceRange.start > baseEdit.replaceRange.start) {
-					// Expand our edit to the left to include the base edit.
 					const added = content.substring(baseEdit.replaceRange.start, ourE.replaceRange.start);
 					const updated = added + ourE.newText;
-					// Remove the same text from the right.
 					if (updated.endsWith(added)) {
 						ourE = new AnnotatedStringReplacement(
 							OffsetRange.fromTo(baseEdit.replaceRange.start, ourE.replaceRange.endExclusive - added.length),
@@ -199,12 +164,9 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 						);
 					}
 				}
-				// Skipping the case where there is another edit for now because we might have to merge with it first.
 				else if (ourIdx === ours.replacements.length - 1 && ourE.replaceRange.endExclusive < baseEdit.replaceRange.endExclusive) {
-					// Expand our edit to the right to include the base edit.
 					const added = content.substring(ourE.replaceRange.endExclusive, baseEdit.replaceRange.endExclusive);
 					const updated = ourE.newText + added;
-					// Remove the same text from the left.
 					if (updated.startsWith(added)) {
 						ourE = new AnnotatedStringReplacement(
 							OffsetRange.fromTo(ourE.replaceRange.start + added.length, baseEdit.replaceRange.endExclusive),
@@ -223,7 +185,6 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 					while (baseE && ourE.replaceRange.containsRange(baseE.replaceRange)) {
 						ourNewTextOffset = agreementIndexOf(content, ourE, baseE, previousBaseE, ourNewTextOffset, resolution, nesConfigs);
 						if (ourNewTextOffset === -1) {
-							// Conflicting
 							return undefined;
 						}
 						delta += baseE.newText.length - baseE.replaceRange.length;
@@ -238,22 +199,16 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 					ourIdx++;
 					offset += delta;
 				} else if (nesConfigs.reverseAgreement && ourEdit.replaceRange.equals(baseEdit.replaceRange)) {
-					// Reverse agreement: user's edit (base) covers model's edit (ours)
-					// at the same range. The user typed more than the model predicted.
-					// Use ourEdit (pre-shift) to avoid false matches from shift alignment.
-					// Iterate over consecutive our-edits consumed by this base edit.
 					let baseNewTextOffset = 0;
 					let previousOurE: AnnotatedStringReplacement<T> | undefined;
 
 					while (ourIdx < ours.replacements.length && baseEdit.replaceRange.containsRange(ours.replacements[ourIdx].replaceRange)) {
 						const curOurE = ours.replacements[ourIdx];
 
-						// Account for gap content between previous our-edit end and current our-edit start
 						const gapStart = previousOurE ? previousOurE.replaceRange.endExclusive : baseEdit.replaceRange.start;
 						const gapText = gapStart < curOurE.replaceRange.start ? content.substring(gapStart, curOurE.replaceRange.start) : '';
 						const effectiveText = gapText + curOurE.newText;
 
-						// Try full consumption: model text found entirely within user text
 						const j = baseEdit.newText.indexOf(effectiveText, baseNewTextOffset);
 						const strictRejected = j !== -1 && resolution === 'strict' && (
 							j - baseNewTextOffset > maxAgreementOffset ||
@@ -261,14 +216,12 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 						);
 
 						if (j !== -1 && !strictRejected) {
-							// Full consumption — model edit absorbed by user typing
 							baseNewTextOffset = j + effectiveText.length;
 							previousOurE = curOurE;
 							ourIdx++;
 							continue;
 						}
 
-						// Try partial consumption: remaining user text is a prefix of model text
 						const remainingBase = baseEdit.newText.substring(baseNewTextOffset);
 						if (remainingBase.length > 0 && effectiveText.startsWith(remainingBase)) {
 							const consumedFromNewText = Math.max(0, remainingBase.length - gapText.length);
@@ -286,13 +239,9 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 							break;
 						}
 
-						// Conflicting
 						return undefined;
 					}
 
-					// Verify trailing gap in strict mode: any original content between the
-					// last consumed our-edit and the end of the base range must be preserved.
-					// Remaining user text beyond the gap is the user's own typing and is fine.
 					if (baseNewTextOffset < baseEdit.newText.length && resolution === 'strict') {
 						const lastOurEnd = previousOurE ? previousOurE.replaceRange.endExclusive : baseEdit.replaceRange.start;
 						const trailingGap = content.substring(lastOurEnd, baseEdit.replaceRange.endExclusive);
@@ -307,11 +256,9 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 					baseIdx++;
 					offset += baseEdit.newText.length - baseEdit.replaceRange.length;
 				} else {
-					// Conflicting
 					return undefined;
 				}
 			} else if (ourEdit.replaceRange.start < baseEdit.replaceRange.start) {
-				// Our edit starts first
 				newEdits.push(new AnnotatedStringReplacement(
 					ourEdit.replaceRange.delta(offset),
 					ourEdit.newText,
@@ -320,7 +267,6 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 				ourIdx++;
 			} else {
 				if (resolution === 'strict') {
-					// baseEdit does not match but interleaves
 					return undefined;
 				}
 				baseIdx++;
@@ -332,7 +278,6 @@ function tryRebaseEdits<T extends IEditData<T>>(content: string, ours: Annotated
 	return AnnotatedStringEdit.create(newEdits);
 }
 
-/** Returns true if every character of `typed` appears in `suggestion` in order (subsequence match). */
 function isSubsequenceOf(typed: string, suggestion: string): boolean {
 	let si = 0;
 	for (let ti = 0; ti < typed.length; ti++) {
@@ -347,7 +292,6 @@ function isSubsequenceOf(typed: string, suggestion: string): boolean {
 
 const autoClosePairs = new Set(['()', '[]', '{}', '<>', '""', `''`, '``']);
 
-/** Returns true if `text` is an editor auto-close pair such as `()`, `[]`, `{}`, etc. */
 function isAutoClosePair(text: string): boolean {
 	return autoClosePairs.has(text);
 }
@@ -369,9 +313,6 @@ function agreementIndexOf<T extends IEditData<T>>(content: string, ourE: Annotat
 	if (j !== -1 && !strictRejected) {
 		return j + baseE.newText.length;
 	}
-	// User typed text not found in suggestion (or rejected by strict limits) — absorb if it aligns as a subsequence.
-	// Guard: restrict to known editor auto-close pairs via isAutoClosePair(...) (effectively 2-character pairs)
-	// to avoid expensive matching on long pastes and to stay consistent with the existing strict safeguards.
 	if (nesConfigs.absorbSubsequenceTyping && isAutoClosePair(originalBaseNewText) && isSubsequenceOf(originalBaseNewText, ourE.newText.substring(ourNewTextOffset))) {
 		return ourNewTextOffset;
 	}

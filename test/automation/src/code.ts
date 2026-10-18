@@ -15,7 +15,6 @@ import { teardown } from './processes';
 import { Quality } from './application';
 
 export interface LaunchOptions {
-	// Allows you to override the Playwright instance
 	playwright?: typeof playwright;
 	codePath?: string;
 	readonly workspacePath?: string;
@@ -38,12 +37,6 @@ export interface LaunchOptions {
 	version: { major: number; minor: number; patch: number };
 	readonly extensionDevelopmentPath?: string;
 
-	/**
-	 * Extra environment variables merged on top of the inherited `process.env`
-	 * when launching the Electron child process. Set a value to `undefined`
-	 * to unset the variable. Used by tests that need to inject env-based
-	 * mocks (e.g. `VSCODE_COPILOT_CHAT_TOKEN`).
-	 */
 	readonly extraEnv?: Readonly<Record<string, string | undefined>>;
 }
 
@@ -61,7 +54,7 @@ function registerInstance(process: cp.ChildProcess, logger: Logger, type: 'elect
 		process.stdout?.on('data', data => {
 			const output = data.toString();
 			if (output.indexOf('calling app.quit()') >= 0 && type === 'electron') {
-				setTimeout(() => resolve(), 500 /* give Electron some time to actually terminate fully */);
+				setTimeout(() => resolve(), 500 );
 			}
 			logger.log(`[${type}] stdout: ${output}`);
 		});
@@ -91,15 +84,14 @@ async function teardownAll(signal?: number) {
 
 let stopped = false;
 process.on('exit', () => teardownAll());
-process.on('SIGINT', () => teardownAll(128 + 2)); 	 // https://nodejs.org/docs/v14.16.0/api/process.html#process_signal_events
-process.on('SIGTERM', () => teardownAll(128 + 15)); // same as above
+process.on('SIGINT', () => teardownAll(128 + 2));
+process.on('SIGTERM', () => teardownAll(128 + 15));
 
 export async function launch(options: LaunchOptions): Promise<Code> {
 	if (stopped) {
 		throw new Error('Smoke test process has terminated, refusing to spawn Code');
 	}
 
-	// Browser smoke tests
 	if (options.web) {
 		const { serverProcess, driver } = await measureAndLog(() => launchPlaywrightBrowser(options), 'launch playwright (browser)', options.logger);
 		registerInstance(serverProcess, options.logger, 'server');
@@ -107,7 +99,6 @@ export async function launch(options: LaunchOptions): Promise<Code> {
 		return new Code(driver, options.logger, serverProcess, undefined, options.quality, options.version);
 	}
 
-	// Electron smoke tests (playwright)
 	else {
 		const { electronProcess, driver } = await measureAndLog(() => launchPlaywrightElectron(options), 'launch playwright (electron)', options.logger);
 		const { safeToKill } = registerInstance(electronProcess, options.logger, 'electron');
@@ -160,19 +151,6 @@ export class Code {
 		return await this.driver.stopTracing(name, persist);
 	}
 
-	/**
-	 * Dispatch a keybinding to the application.
-	 * @param keybinding The keybinding to dispatch, e.g. 'ctrl+shift+p'.
-	 * @param accept The acceptance function to await before returning. Wherever
-	 * possible this should verify that the keybinding did what was expected,
-	 * otherwise it will likely be a cause of difficult to investigate race
-	 * conditions. This is particularly insidious when used in the automation
-	 * library as it can surface across many test suites.
-	 *
-	 * This requires an async function even when there's no implementation to
-	 * force the author to think about the accept callback and prevent mistakes
-	 * like not making it async.
-	 */
 	async dispatchKeybinding(keybinding: string, accept: () => Promise<void>): Promise<void> {
 		await this.driver.sendKeybinding(keybinding, accept);
 	}
@@ -187,7 +165,6 @@ export class Code {
 
 			let done = false;
 
-			// Start the exit flow via driver
 			this.driver.close();
 
 			let safeToKill = false;
@@ -196,7 +173,6 @@ export class Code {
 				safeToKill = true;
 			});
 
-			// Await the exit of the application
 			(async () => {
 				let retries = 0;
 				while (!done) {
@@ -209,14 +185,12 @@ export class Code {
 
 					switch (retries) {
 
-						// after 10 seconds: forcefully kill
 						case 20: {
 							this.logger.log('Smoke test exit(): call did not terminate process after 10s, forcefully exiting the application...');
 							this.kill(pid);
 							break;
 						}
 
-						// after 20 seconds: give up
 						case 40: {
 							this.logger.log('Smoke test exit(): call did not terminate process after 20s, giving up');
 							this.kill(pid);
@@ -227,7 +201,7 @@ export class Code {
 					}
 
 					try {
-						process.kill(pid, 0); // throws an exception if the process doesn't exist anymore.
+						process.kill(pid, 0);
 						await this.wait(500);
 					} catch (error) {
 						this.logger.log('Smoke test exit(): call terminated process successfully');
@@ -242,7 +216,7 @@ export class Code {
 
 	private kill(pid: number): void {
 		try {
-			process.kill(pid, 0); // throws an exception if the process doesn't exist anymore.
+			process.kill(pid, 0);
 		} catch (e) {
 			this.logger.log('Smoke test kill(): returning early because process does not exist anymore');
 			return;
@@ -279,16 +253,6 @@ export class Code {
 		await this.poll(() => this.driver.click(selector, xoffset, yoffset), () => true, `click '${selector}'`, retryCount);
 	}
 
-	/**
-	 * Clicks an element using Playwright's actionability-checked `page.click` (which
-	 * re-verifies `elementFromPoint` right before dispatching, so the element can't
-	 * shift under the click), with a stable-coordinates fallback when actionability
-	 * checks fail due to an overlay intercepting pointer events. Unlike
-	 * {@link waitAndClick} this does not poll/retry the click — it waits for the
-	 * element to exist first, then attempts a single click. Use for elements that
-	 * may shift due to siblings being inserted asynchronously (e.g. status bar items
-	 * in the editor area when extensions register a language status item).
-	 */
 	async robustClick(selector: string): Promise<void> {
 		await this.waitForElement(selector);
 		await this.driver.robustClick(selector);
@@ -355,7 +319,7 @@ export class Code {
 		acceptFn: (result: T) => boolean,
 		timeoutMessage: string,
 		retryCount = 200,
-		retryInterval = 100 // millis
+		retryInterval = 100
 	): Promise<T> {
 		let trial = 1;
 		let lastError: string = '';

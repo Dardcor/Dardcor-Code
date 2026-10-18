@@ -7,9 +7,6 @@ import type { ConfigurationScope } from 'vscode';
 import { IExperimentationService } from '../../../telemetry/common/nullExperimentationService';
 import { AbstractConfigurationService, BaseConfig, Config, ConfigTarget, ExperimentBasedConfig, ExperimentBasedConfigType, IConfigurationService, InspectConfigResult } from '../../common/configurationService';
 
-/**
- * A IConfigurationService that allows overriding of config values.
- */
 export class InMemoryConfigurationService extends AbstractConfigurationService {
 	constructor(
 		private readonly baseConfigurationService: IConfigurationService,

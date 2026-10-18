@@ -134,8 +134,6 @@ suite.skipIf(process.platform === 'win32')('TestFileFinder', function () {
 	test('returns a test for C#', async function () {
 		const sourceFile = 'src/project/Foo.cs';
 		await assertTestFileFoundAsync(sourceFile, '/src/tests/project/FooTest.cs');
-		// assertTestFileFound(sourceFile, '/unit-tests/project/FooTest.cs');
-		// assertTestFileFound(sourceFile, '/unittests/project/FooTest.cs');
 	});
 
 	test('returns a test for Ruby', async function () {
@@ -203,7 +201,6 @@ suite.skipIf(process.platform === 'win32')('TestFileFinder', function () {
 		{ filename: 'test_foo.xx', isTestFile: true },
 		{ filename: 'foo.Tests.ps1', isTestFile: true },
 	];
-	// test for each sample
 	for (const sample of testSamples) {
 		test(`is ${sample.filename} a test file?`, () => {
 			const isTest = isTestFile(URI.file(sample.filename));

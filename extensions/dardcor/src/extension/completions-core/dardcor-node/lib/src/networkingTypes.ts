@@ -4,11 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 export { FetchOptions, Response } from '../../../../../platform/networking/common/fetcherService';
 
-/**
- * NETWORKING TYPES, INTERFACES AND ERROR CLASSES
- *
- * This module contains all networking-related types, interfaces, error classes and utilities.
- */
 
 class HttpTimeoutError extends Error {
 	constructor(message: string, cause?: unknown) {
@@ -19,14 +14,11 @@ class HttpTimeoutError extends Error {
 
 export function isAbortError(e: unknown): boolean {
 	if (!e || typeof e !== 'object') {
-		// Reject invalid errors
 		return false;
 	}
 	return (
 		e instanceof HttpTimeoutError ||
-		// internal Node.js AbortError, emitted by helix-fetch and electron net
 		('name' in e && e.name === 'AbortError') ||
-		// that same internal Node.js AbortError, but wrapped in a Helix FetchError
 		('code' in e && e.code === 'ABORT_ERR')
 	);
 }

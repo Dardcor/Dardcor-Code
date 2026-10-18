@@ -58,9 +58,6 @@ New-Item -ItemType File -Name foo
 find . -type f -name 'pre*'
 \`\`\``,
 
-	/**
-	 * Example answers that are the relevant across all shells.
-	 */
 	Generic = `User: How do I revert a specific commit?
 Assistant:
 \`\`\`sh
@@ -148,11 +145,9 @@ function getShellExamples(shellType: string) {
 	const examples: string[] = [
 		ShellExamples.Generic
 	];
-	// Generic
 	if (!isPowerShell(shellType)) {
 		examples.push(ShellExamples.GenericNonPwsh);
 	}
-	// Shell-specific
 	switch (shellType) {
 		case 'ps1':
 		case 'pwsh':

@@ -139,7 +139,6 @@ suite('RPCProtocol', () => {
 	});
 
 	test('cancelling a call via CancellationToken quickly', function (done) {
-		// this is an implementation which, when cancellation is triggered, will return 7
 		delegate = (a1: number, token: CancellationToken) => {
 			return new Promise((resolve, reject) => {
 				const disposable = token.onCancellationRequested((e) => {

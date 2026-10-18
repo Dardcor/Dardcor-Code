@@ -87,8 +87,6 @@ export class ExtHostEditors extends Disposable implements ExtHostEditorsShape {
 		if (editor) {
 			return editor.value;
 		}
-		// we have no editor... having an id means that we had an editor
-		// on the main side and that it isn't the current editor anymore...
 		if (editorId) {
 			throw new Error(`Could NOT open editor for "${document.uri.toString()}" because another editor opened in the meantime.`);
 		} else {
@@ -100,7 +98,6 @@ export class ExtHostEditors extends Disposable implements ExtHostEditorsShape {
 		return new TextEditorDecorationType(this._proxy, extension, options).value;
 	}
 
-	// --- called from main thread
 
 	$acceptEditorPropertiesChanged(id: string, data: IEditorPropertiesChangeData): void {
 		const textEditor = this._extHostDocumentsAndEditors.getEditor(id);
@@ -108,7 +105,6 @@ export class ExtHostEditors extends Disposable implements ExtHostEditorsShape {
 			throw new Error('unknown text editor');
 		}
 
-		// (1) set all properties
 		if (data.options) {
 			textEditor._acceptOptions(data.options);
 		}
@@ -121,7 +117,6 @@ export class ExtHostEditors extends Disposable implements ExtHostEditorsShape {
 			textEditor._acceptVisibleRanges(visibleRanges);
 		}
 
-		// (2) fire change events
 		if (data.options) {
 			this._onDidChangeTextEditorOptions.fire({
 				textEditor: textEditor.value,

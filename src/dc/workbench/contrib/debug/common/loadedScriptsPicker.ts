@@ -21,10 +21,6 @@ export interface IPickerDebugItem extends IQuickPickItem {
 	accept(): void;
 }
 
-/**
- * This function takes a regular quickpick and makes one for loaded scripts that has persistent headers
- * e.g. when some picks are filtered out, the ones that are visible still have its header.
- */
 export async function showLoadedScriptMenu(accessor: ServicesAccessor) {
 	const quickInputService = accessor.get(IQuickInputService);
 	const debugService = accessor.get(IDebugService);
@@ -88,7 +84,6 @@ function _createPick(source: Source, filter: string, editorService: IEditorServi
 	const label = labelService.getUriBasenameLabel(source.uri);
 	const desc = labelService.getUriLabel(dirname(source.uri));
 
-	// manually filter so that headers don't get filtered out
 	const labelHighlights = matchesFuzzy(filter, label, true);
 	const descHighlights = matchesFuzzy(filter, desc, true);
 	if (labelHighlights || descHighlights) {

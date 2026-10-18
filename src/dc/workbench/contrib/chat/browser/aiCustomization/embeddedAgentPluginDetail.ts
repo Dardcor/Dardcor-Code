@@ -118,11 +118,6 @@ export async function waitForInstalledPlugin(
 	}
 }
 
-/**
- * Compact detail view for an agent plugin inside the AI Customizations management editor's
- * split-pane host. Renders identity, provenance, contribution summary, and description while
- * keeping management actions in the list/context-menu surfaces.
- */
 export class EmbeddedAgentPluginDetail extends Disposable {
 
 	private readonly _onDidRequestOpenSkill = this._register(new Emitter<URI>());
@@ -195,8 +190,6 @@ export class EmbeddedAgentPluginDetail extends Disposable {
 		this._register(resizeObserver.observe(this.root));
 
 		this.headerEl = DOM.append(this.root, $('.embedded-detail-header'));
-		// Slot at the start of the header for callers to append leading chrome
-		// (e.g. a back button) without reaching into private DOM structure.
 		this.leadingSlotEl = DOM.append(this.headerEl, $('.embedded-detail-leading-slot'));
 		const headerText = DOM.append(this.headerEl, $('.embedded-detail-header-text'));
 		this.nameRowEl = DOM.append(headerText, $('.embedded-detail-name-row'));
@@ -243,10 +236,6 @@ export class EmbeddedAgentPluginDetail extends Disposable {
 		return this.headerEl;
 	}
 
-	/**
-	 * Header slot reserved for leading chrome (e.g. a back button).
-	 * Prefer this over reaching into the header element directly.
-	 */
 	get leadingSlot(): HTMLElement {
 		return this.leadingSlotEl;
 	}

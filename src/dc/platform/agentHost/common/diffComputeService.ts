@@ -27,27 +27,12 @@ export interface IDetailedDiffResult {
 
 export const IDiffComputeService = createDecorator<IDiffComputeService>('diffComputeService');
 
-/** Default timeout for diff computation in milliseconds. */
 export const DEFAULT_DIFF_TIMEOUT_MS = 5000;
 
-/**
- * Service that computes line diff counts (added/removed) between two
- * text strings. Implementations may offload computation to a worker
- * thread to avoid blocking the main thread.
- */
 export interface IDiffComputeService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Computes line-level diff counts and character edits between two text strings.
-	 * @param original - The original text.
-	 * @param modified - The modified text to compare against the original.
-	 * @param timeoutMs - Maximum time in milliseconds before aborting. Defaults to {@link DEFAULT_DIFF_TIMEOUT_MS}.
-	 */
 	computeDiffCounts(original: string, modified: string, timeoutMs?: number): Promise<IDiffCountResult>;
 
-	/**
-	 * Computes whitespace-sensitive offset replacements between two text strings.
-	 */
 	computeDetailedDiff(original: string, modified: string, timeoutMs?: number): Promise<IDetailedDiffResult>;
 }

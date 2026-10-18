@@ -51,7 +51,6 @@ export class AsyncDiagnosticCompletionProvider implements IDiagnosticCompletionP
 			return null;
 		}
 
-		// fetch code actions for missing async
 		const availableCodeActions = await workspaceDocument.getCodeActions(missingAsyncDiagnostic.range, 3, token);
 		if (availableCodeActions === undefined) {
 			log(`Fetching code actions likely timed out for \`${missingAsyncDiagnostic.message}\``, logContext, this._logger);

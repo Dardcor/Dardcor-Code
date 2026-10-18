@@ -14,11 +14,6 @@ function cmd(command: string, cwd?: Uri): ChatHookCommand {
 	return { command, cwd } as ChatHookCommand;
 }
 
-/**
- * A testable version of ChatHookService.executeHook logic,
- * reimplemented here to stay within the layering constraints.
- * This mirrors the real implementation's result conversion and iteration logic.
- */
 class TestableExecuteHookService {
 	public executorCalls: Array<{ hookCommand: ChatHookCommand; input: unknown }> = [];
 	public executorHandler: (hookCommand: ChatHookCommand, input: unknown) => IHookCommandResult = () => ({ kind: HookCommandResultKind.Success, result: '' });
@@ -101,13 +96,11 @@ class TestableExecuteHookService {
 					effectiveStopReason = '';
 				}
 
-				// Check hookEventName at top level — if present and mismatched, skip this result
 				const topLevelHookEventName = resultObj['hookEventName'];
 				if (typeof topLevelHookEventName === 'string' && !isCompatibleHookEventName(topLevelHookEventName, hookType)) {
 					return { resultKind: 'success', output: undefined };
 				}
 
-				// Check hookEventName inside hookSpecificOutput — if mismatched, strip hookSpecificOutput but keep the rest
 				let stripHookSpecificOutput = false;
 				const hookSpecificOutput = resultObj['hookSpecificOutput'];
 				if (typeof hookSpecificOutput === 'object' && hookSpecificOutput !== null) {
@@ -391,7 +384,6 @@ describe('ChatHookService.executeHook', () => {
 
 		expect(results).toHaveLength(1);
 		expect(results[0].resultKind).toBe('success');
-		// hookSpecificOutput should be stripped because SubagentStop -> Stop is not compatible
 		expect(results[0].output).toBeUndefined();
 	});
 
@@ -416,7 +408,6 @@ describe('ChatHookService.executeHook', () => {
 
 		expect(results).toHaveLength(1);
 		expect(results[0].resultKind).toBe('success');
-		// hookSpecificOutput should be stripped because SubagentStart -> SessionStart is not compatible
 		expect(results[0].output).toBeUndefined();
 	});
 
@@ -445,13 +436,6 @@ describe('ChatHookService.executeHook', () => {
 	});
 });
 
-/**
- * Minimal mock of ChatHookService that exposes executePreToolUseHook
- * without requiring the real vscode API.
- *
- * We replicate the collapsing logic from ChatHookService.executePreToolUseHook
- * by subclassing and overriding executeHook to return configurable results.
- */
 
 interface IPreToolUseHookSpecificOutput {
 	hookEventName?: string;
@@ -463,11 +447,6 @@ interface IPreToolUseHookSpecificOutput {
 
 const permissionPriority: Record<string, number> = { 'deny': 2, 'ask': 1, 'allow': 0 };
 
-/**
- * A testable version of the executePreToolUseHook collapsing logic,
- * decoupled from the vscode API. Takes raw ChatHookResult[] and returns
- * the collapsed IPreToolUseHookResult.
- */
 function collapsePreToolUseHookResults(results: ChatHookResult[]): IPreToolUseHookResult | undefined {
 	if (results.length === 0) {
 		return undefined;
@@ -481,7 +460,6 @@ function collapsePreToolUseHookResults(results: ChatHookResult[]): IPreToolUseHo
 	const allAdditionalContext: string[] = [];
 
 	for (const result of results) {
-		// Exit code 2 (error) means deny the tool
 		if (result.resultKind === 'error') {
 			const reason = typeof result.output === 'string' ? result.output : undefined;
 			if (reason) {
@@ -560,10 +538,6 @@ function hookResult(output: unknown, kind: ChatHookResultKind = 'success'): Chat
 	return { resultKind: kind, output } as ChatHookResult;
 }
 
-/**
- * A testable ChatHookService that stubs executeHook to return configurable results,
- * so we can test executePreToolUseHook's collapsing logic without the real vscode API.
- */
 class TestableChatHookService {
 	public hookResults: ChatHookResult[] = [];
 	public validateToolInputFn: ((name: string, input: string) => IToolValidationResult) | undefined;
@@ -583,7 +557,6 @@ class TestableChatHookService {
 		const results = await this.executeHook();
 		const collapsed = collapsePreToolUseHookResults(results);
 
-		// Render a visible block in chat for any deny — mirrors ChatHookService.executePreToolUseHook.
 		if (collapsed?.permissionDecision === 'deny') {
 			const reasonLines = collapsed.permissionDecisionReason
 				? collapsed.permissionDecisionReason.split('\n')
@@ -604,7 +577,6 @@ class TestableChatHookService {
 			return undefined;
 		}
 
-		// Validate updatedInput against the tool's input schema, mirroring the real ChatHookService
 		if (collapsed.updatedInput && this.validateToolInputFn) {
 			const validationResult = this.validateToolInputFn(toolName, JSON.stringify(collapsed.updatedInput));
 			if ('error' in validationResult) {
@@ -1047,7 +1019,6 @@ function collapsePostToolUseHookResults(results: ChatHookResult[]): IPostToolUse
 	const allAdditionalContext: string[] = [];
 
 	for (const result of results) {
-		// Exit code 2 (error) means block the tool result
 		if (result.resultKind === 'error') {
 			const reason = typeof result.output === 'string' ? result.output : undefined;
 			if (!hasBlock) {

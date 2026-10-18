@@ -3,10 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*
-	Keeping name short for faster parsing.
-	cmdr = core margin decorations rendering (div)
-*/
 .monaco-editor .margin-view-overlays .cmdr {
 	position: absolute;
 	left: 0;

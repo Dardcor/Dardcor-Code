@@ -18,7 +18,6 @@ export function generatePackageDeps(files: string[], arch: DebianArchString, chr
 	return dependencies;
 }
 
-// Based on https://source.chromium.org/chromium/chromium/src/+/main:chrome/installer/linux/debian/calculate_package_deps.py.
 function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromiumSysroot: string, vscodeSysroot: string): Set<string> {
 	try {
 		const st = statSync(binaryPath);
@@ -31,7 +30,6 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
 		return new Set();
 	}
 
-	// Get the Chromium dpkg-shlibdeps file.
 	const chromiumManifest = manifests.registrations.filter(registration => {
 		return registration.component.type === 'git' && registration.component.git!.name === 'chromium';
 	});
@@ -81,18 +79,6 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
 			depsStr = line.substring(shlibsDependsPrefix.length);
 		}
 	}
-	// Refs https://chromium-review.googlesource.com/c/chromium/src/+/3572926
-	// Chromium depends on libgcc_s, is from the package libgcc1.  However, in
-	// Bullseye, the package was renamed to libgcc-s1.  To avoid adding a dep
-	// on the newer package, this hack skips the dep.  This is safe because
-	// libgcc-s1 is a dependency of libc6.  This hack can be removed once
-	// support for Debian Buster and Ubuntu Bionic are dropped.
-	//
-	// Remove kerberos native module related dependencies as the versions
-	// computed from sysroot will not satisfy the minimum supported distros
-	// Refs https://github.com/microsoft/vscode/issues/188881.
-	// TODO(deepak1556): remove this workaround in favor of computing the
-	// versions from build container for native modules.
 	const filteredDeps = depsStr.split(', ').filter(dependency => {
 		return !dependency.startsWith('libgcc-s1');
 	}).sort();

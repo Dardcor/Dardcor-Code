@@ -1,7 +1,6 @@
 import { GROK_CLI_CONFIG } from "../constants/oauth.js";
 import { decodeXaiIdTokenEmail, extractEmailFromAccessToken } from "../providerHelpers.js";
 
-// Grok CLI / Grok Build — device code flow to auth.x.ai, inference on cli-chat-proxy.grok.com
 const grokCli = {
   config: GROK_CLI_CONFIG,
   flowType: "device_code",
@@ -10,7 +9,6 @@ const grokCli = {
       client_id: config.clientId,
       scope: config.scope,
     });
-    // Official CLI sends referrer=grok-build
     if (config.referrer) body.set("referrer", config.referrer);
 
     const response = await fetch(config.deviceCodeUrl, {
@@ -53,7 +51,6 @@ const grokCli = {
       data = { error: "invalid_response", error_description: text };
     }
 
-    // Device flow: 400 + authorization_pending is expected while user authorizes
     const pending =
       data?.error === "authorization_pending" ||
       data?.error === "slow_down";
@@ -63,7 +60,6 @@ const grokCli = {
     };
   },
   postExchange: async (tokens) => {
-    // Best-effort user profile from cli-chat-proxy (non-fatal)
     try {
       const res = await fetch("https://cli-chat-proxy.grok.com/v1/user", {
         headers: {
@@ -76,7 +72,6 @@ const grokCli = {
       });
       if (res.ok) return { user: await res.json() };
     } catch {
-      /* ignore */
     }
     return { user: null };
   },
@@ -103,18 +98,10 @@ const grokCli = {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token || null,
       expiresIn: tokens.expires_in,
-      // Surface an absolute expiry so the proactive refresh path
-      // (shouldRefreshCredentials / checkAndRefreshToken) can refresh the
-      // xAI token before it silently expires ~40-45 min after login.
-      // Without this, only the reactive 401 path in chatCore would refresh,
-      // causing intermittent "token expired" failures for Grok CLI.
       expiresAt,
       scope: tokens.scope,
-      // Top-level for dashboard connection cards
       email: email || undefined,
       displayName: displayName || undefined,
-      // Mirror identity into providerSpecificData so GrokCliExecutor can set
-      // x-email / x-userid without depending on top-level credential shape.
       providerSpecificData: {
         authMethod: "device_code",
         idToken: tokens.id_token || null,

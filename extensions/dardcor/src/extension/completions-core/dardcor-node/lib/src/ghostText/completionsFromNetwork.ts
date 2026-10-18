@@ -16,7 +16,7 @@ import { ICompletionsUserErrorNotifierService } from '../error/userErrorNotifier
 import { ICompletionsFeaturesService } from '../experiments/featuresService';
 import { ICompletionsLogTargetService, Logger } from '../logger';
 import { isAbortError } from '../networkingTypes';
-import { CompletionRequestExtra, CopilotUiKind, FinishedCallback, ICompletionsOpenAIFetcherService, PostOptions } from '../openai/fetch';
+import { CompletionRequestExtra, DardcorInlineUiKind, FinishedCallback, ICompletionsOpenAIFetcherService, PostOptions } from '../openai/fetch';
 import { APIChoice, getTemperatureForSamples } from '../openai/openai';
 import { telemetry, TelemetryWithExp } from '../telemetry';
 import { ICompletionsRuntimeModeService } from '../util/runtimeMode';
@@ -45,10 +45,6 @@ export class CompletionsFromNetwork {
 		@ICompletionsUserErrorNotifierService private readonly userErrorNotifier: ICompletionsUserErrorNotifierService,
 	) { }
 
-	/** Requests new completion from OpenAI, should be called if and only if the completions for given prompt were not cached before.
-	 *  It returns only first completion, additional completions are added to the caches in the background.
-	 *  Copies from the base telemetry data are used as the basis for each choice's telemetry.
-	 */
 	public async getCompletionsFromNetwork(
 		requestContext: RequestContext,
 		baseTelemetryData: TelemetryWithExp,
@@ -88,7 +84,6 @@ export class CompletionsFromNetwork {
 				const firstChoice: APIChoice = firstRes.value;
 
 				if (firstChoice === undefined) {
-					// This is probably unreachable given the firstRes.done check above
 					logger.debug(this.logTarget, 'Got undefined choice from redactedChoices iterator');
 					return {
 						type: 'empty',
@@ -100,7 +95,6 @@ export class CompletionsFromNetwork {
 				this.instantiationService.invokeFunction(telemetryPerformance, 'performance', firstChoice, requestStart, processingTime);
 
 				logger.debug(this.logTarget, `Awaited first result, id:  ${firstChoice.choiceIndex}`);
-				// Adds first result to cache
 				const processedFirstChoice = postProcessChoices(firstChoice);
 				if (processedFirstChoice) {
 					appendToCache(this.completionsCacheService, requestContext, processedFirstChoice);
@@ -108,7 +102,6 @@ export class CompletionsFromNetwork {
 						`GhostText first completion (index ${processedFirstChoice?.choiceIndex}): ${JSON.stringify(processedFirstChoice?.completionText)}`
 					);
 				}
-				//Create promise for each result, don't `await` it (unless in test mode) but handle asynchronously with `.then()`
 				const cacheDone = (async () => {
 					const apiChoices: APIChoice[] = processedFirstChoice !== undefined ? [processedFirstChoice] : [];
 					for await (const choice of choicesStream) {
@@ -126,7 +119,6 @@ export class CompletionsFromNetwork {
 					await cacheDone;
 				}
 				if (processedFirstChoice) {
-					// Because we ask the server to stop at \n above, we don't need to force single line here
 					return {
 						type: 'success',
 						value: [makeGhostAPIChoice(processedFirstChoice, { forceSingleLine: false }), cacheDone],
@@ -145,10 +137,6 @@ export class CompletionsFromNetwork {
 		);
 	}
 
-	/** Requests new completion from OpenAI, should be called if and only if we are in the servers-side termination mode, and it's follow-up cycling request
-	 *  It returns all requested completions
-	 *  Copies from the base telemetry data are used as the basis for each choice's telemetry.
-	 */
 	public async getAllCompletionsFromNetwork(
 		requestContext: RequestContext,
 		baseTelemetryData: TelemetryWithExp,
@@ -178,7 +166,6 @@ export class CompletionsFromNetwork {
 					if (!processedChoice) { continue; }
 					apiChoices.push(processedChoice);
 				}
-				//Append results to current completions cache, and network cache
 				if (apiChoices.length > 0) {
 					for (const choice of apiChoices) {
 						appendToCache(this.completionsCacheService, requestContext, choice);
@@ -229,7 +216,7 @@ export class CompletionsFromNetwork {
 				editResult = Result.error(new NoNextEditReason.GotCancelled(result.reason));
 				break;
 			case 'empty':
-				editResult = Result.error(new NoNextEditReason.NoSuggestions(new StringText('') /* unused by completions anyway */, undefined));
+				editResult = Result.error(new NoNextEditReason.NoSuggestions(new StringText('') , undefined));
 				break;
 			case 'failed':
 				editResult = Result.error(new NoNextEditReason.Uncategorized(ErrorUtils.fromUnknown(result.reason)));
@@ -260,12 +247,10 @@ export class CompletionsFromNetwork {
 	): Promise<GhostTextResultWithTelemetry<T>> {
 		logger.debug(this.logTarget, `Getting ${what} from network`);
 
-		// copy the base telemetry data
 		baseTelemetryData = baseTelemetryData.extendedBy();
 
 		telemetryBuilder.setModelName(requestContext.engineModelId);
 
-		// Request one choice for automatic requests, three for invoked (cycling) requests.
 		const n = requestContext.isCycling ? 3 : 1;
 		const temperature = getTemperatureForSamples(this.runtimeMode, n);
 		const extra: CompletionRequestExtra = {
@@ -281,11 +266,6 @@ export class CompletionsFromNetwork {
 			BlockTrimmer.isSupported(requestContext.languageId) &&
 			!modelTerminatesSingleline;
 		if (!requestContext.multiline && !simulateSingleline) {
-			// If we are not in multiline mode, we get the server to truncate the results. This does mean that we
-			// also cache a single line result which will be reused even if we are later in multiline mode. This is
-			// an acceptable trade-off as the transition should be relatively rare and truncating on the server is
-			// more efficient.
-			// Note that this also means we don't need to truncate when creating the GhostAPIChoice object below.
 			postOptions['stop'] = ['\n'];
 		} else if (requestContext.stop) {
 			postOptions['stop'] = requestContext.stop;
@@ -296,10 +276,9 @@ export class CompletionsFromNetwork {
 
 		const requestStart = Date.now();
 
-		// extend telemetry data
 		const newProperties: { [key: string]: string } = {
 			endpoint: 'completions',
-			uiKind: CopilotUiKind.GhostText,
+			uiKind: DardcorInlineUiKind.GhostText,
 			temperature: JSON.stringify(temperature),
 			n: JSON.stringify(n),
 			stop: JSON.stringify(postOptions['stop']) ?? 'unset',
@@ -316,7 +295,7 @@ export class CompletionsFromNetwork {
 				ourRequestId: requestContext.ourRequestId,
 				engineModelId: requestContext.engineModelId,
 				count: n,
-				uiKind: CopilotUiKind.GhostText,
+				uiKind: DardcorInlineUiKind.GhostText,
 				postOptions,
 				headers: requestContext.headers,
 				extra,
@@ -341,7 +320,6 @@ export class CompletionsFromNetwork {
 
 			return processChoices(requestStart, res.getProcessingTime(), res.choices);
 		} catch (err) {
-			// If we cancelled a network request, we don't want to log an error
 			if (isAbortError(err)) {
 				return {
 					type: 'canceled',
@@ -356,7 +334,6 @@ export class CompletionsFromNetwork {
 				if (this.runtimeMode.shouldFailForDebugPurposes()) {
 					throw err;
 				}
-				// not including err in this result because it'll end up in standard telemetry
 				return {
 					type: 'failed',
 					reason: 'non-abort error on ghost text request',
@@ -367,9 +344,6 @@ export class CompletionsFromNetwork {
 	}
 }
 
-/**
- * Post-proceses a completion choice based on the current request context and existing choices.
- */
 export function postProcessChoices(
 	newChoice: APIChoice,
 	currentChoices?: APIChoice[]
@@ -377,7 +351,6 @@ export function postProcessChoices(
 	if (!currentChoices) { currentChoices = []; }
 	newChoice.completionText = newChoice.completionText.trimEnd();
 	if (!newChoice.completionText) { return undefined; }
-	// Collect only unique displayTexts
 	if (currentChoices.findIndex(v => v.completionText.trim() === newChoice.completionText.trim()) !== -1) {
 		return undefined;
 	}
@@ -388,7 +361,6 @@ export function makeGhostAPIChoice(choice: APIChoice, options: { forceSingleLine
 	const ghostChoice = { ...choice } as APIChoice;
 	if (options.forceSingleLine) {
 		const { completionText } = ghostChoice;
-		// Special case for when completion starts with a newline, don't count that as its own line
 		const initialLineBreak = completionText.match(/^\r?\n/);
 		if (initialLineBreak) {
 			ghostChoice.completionText = initialLineBreak[0] + completionText.split('\n')[1];
@@ -416,7 +388,6 @@ export function telemetryPerformance(
 			requestTimeMs: requestTimeMs,
 			processingTimeMs: processingTimeMs,
 			deltaMs: deltaMs,
-			// Choice properties
 			meanLogProb: choice.meanLogProb || NaN,
 			meanAlternativeLogProb: choice.meanAlternativeLogProb || NaN,
 		}

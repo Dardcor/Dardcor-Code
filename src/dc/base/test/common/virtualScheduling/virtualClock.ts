@@ -10,28 +10,15 @@ import { Trace } from './trace.js';
 
 export type VirtualTime = number;
 
-/** Debug source description for an event. */
 export interface EventSource {
 	toString(): string;
 	readonly stackTrace?: string;
 }
 
-/**
- * A unit of work scheduled at a point in virtual time.
- *
- * Timer callbacks are events. External completions (e.g. fake fs reads) can
- * also be modelled as events whose virtual completion time is chosen by a
- * scheduling policy — to the {@link VirtualClock} they are indistinguishable.
- */
 export interface VirtualEvent {
 	readonly time: VirtualTime;
 	readonly source: EventSource;
 	readonly trace?: Trace;
-	/**
-	 * Hint for the {@link Embedding}: this event prefers to run on a real
-	 * animation frame (e.g. so DOM measurements after it observe a real
-	 * reflow). Pure-time tests can ignore the hint.
-	 */
 	readonly preferRealAnimationFrame?: boolean;
 	run(): void;
 }
@@ -43,15 +30,6 @@ const eventComparator = tieBreakComparators<QueuedEvent>(
 	compareBy(e => e.id, numberComparator),
 );
 
-/**
- * A pure data structure: a virtual clock + a priority queue of events.
- *
- * The clock has no concept of "real time". It is advanced exclusively by
- * {@link runNext}, which sets `now` to the next event's `time` before running
- * it. The {@link VirtualTimeProcessor} is the only intended driver, but the
- * clock is useful in isolation (e.g. for unit-testing a scheduler or for
- * stepping a scenario manually).
- */
 export class VirtualClock {
 	private _now: VirtualTime;
 	private _idCounter = 0;

@@ -73,8 +73,6 @@ function renderCarousel(context: ComponentFixtureContext, carousel: IChatQuestio
 	container.style.padding = '8px';
 	container.classList.add('interactive-session');
 
-	// The CSS uses `.interactive-session .interactive-input-part > .chat-question-carousel-widget-container`
-	// for most layout rules, so we need those wrapper elements.
 	const inputPart = dom.$('.interactive-input-part');
 	const widgetContainer = dom.$('.chat-question-carousel-widget-container');
 	inputPart.appendChild(widgetContainer);
@@ -83,9 +81,6 @@ function renderCarousel(context: ComponentFixtureContext, carousel: IChatQuestio
 	widgetContainer.appendChild(part.domNode);
 }
 
-// ============================================================================
-// Sample questions
-// ============================================================================
 
 const textQuestion: IChatQuestion = {
 	id: 'project-name',
@@ -123,9 +118,6 @@ const multiSelectQuestion: IChatQuestion = {
 	defaultValue: ['lint', 'fmt'],
 };
 
-// ============================================================================
-// Fixtures
-// ============================================================================
 
 export default defineThemedFixtureGroup({ path: 'chat/' }, {
 	SingleTextQuestion: defineComponentFixture({

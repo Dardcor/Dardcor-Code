@@ -29,7 +29,6 @@ suite('ChatResponseResourceFileSystemProvider', () => {
 		provider = testDisposables.add(new ChatResponseResourceFileSystemProvider(chatService, new class extends mock<IFileService>() { }));
 	});
 
-	/** Reads the associated data, or `undefined` once it has been released. */
 	async function read(resource: URI): Promise<string | undefined> {
 		try {
 			return new TextDecoder().decode(await provider.readFile(resource));
@@ -43,7 +42,7 @@ suite('ChatResponseResourceFileSystemProvider', () => {
 		const second = provider.associate(VSBuffer.fromString('artifact').buffer, { id: 'paste-1' });
 
 		first.dispose();
-		first.dispose(); // a repeated dispose must not release the reference held by `second`
+		first.dispose();
 		const afterFirstDisposed = await read(second.resource);
 
 		second.dispose();
@@ -66,7 +65,7 @@ suite('ChatResponseResourceFileSystemProvider', () => {
 		onDidDisposeSession.fire({ sessionResources: [sessionResource], reason: 'cleared' });
 		const afterSessionDisposed = await read(association.resource);
 
-		association.dispose(); // disposing an already released association must be a no-op
+		association.dispose();
 		const afterAssociationDisposed = await read(association.resource);
 
 		assert.deepStrictEqual({ afterSessionDisposed, afterAssociationDisposed }, { afterSessionDisposed: undefined, afterAssociationDisposed: undefined });

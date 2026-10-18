@@ -12,30 +12,14 @@ import { FileChangesEvent, FileChangeType, IFileService } from '../../../../plat
 import { ISaveOptions, IRevertOptions } from '../../../common/editor.js';
 import { IWorkingCopy, IWorkingCopyBackup, IWorkingCopySaveEvent, WorkingCopyCapabilities } from './workingCopy.js';
 
-/**
- * A resource based `IWorkingCopy` is backed by a `URI` from a
- * known file system provider.
- */
 export interface IResourceWorkingCopy extends IWorkingCopy, IDisposable {
 
-	/**
-	 * An event for when the orphaned state of the resource working copy changes.
-	 */
 	readonly onDidChangeOrphaned: Event<void>;
 
-	/**
-	 * Whether the resource working copy is orphaned or not.
-	 */
 	isOrphaned(): boolean;
 
-	/**
-	 * An event for when the file working copy has been disposed.
-	 */
 	readonly onWillDispose: Event<void>;
 
-	/**
-	 * Whether the file working copy has been disposed or not.
-	 */
 	isDisposed(): boolean;
 }
 
@@ -50,7 +34,6 @@ export abstract class ResourceWorkingCopy extends Disposable implements IResourc
 		this._register(this.fileService.onDidFilesChange(e => this.onDidFilesChange(e)));
 	}
 
-	//#region Orphaned Tracking
 
 	private readonly _onDidChangeOrphaned = this._register(new Emitter<void>());
 	readonly onDidChangeOrphaned = this._onDidChangeOrphaned.event;
@@ -65,7 +48,6 @@ export abstract class ResourceWorkingCopy extends Disposable implements IResourc
 		let fileEventImpactsUs = false;
 		let newInOrphanModeGuess: boolean | undefined;
 
-		// If we are currently orphaned, we check if the file was added back
 		if (this.orphaned) {
 			const fileWorkingCopyResourceAdded = e.contains(this.resource, FileChangeType.ADDED);
 			if (fileWorkingCopyResourceAdded) {
@@ -74,7 +56,6 @@ export abstract class ResourceWorkingCopy extends Disposable implements IResourc
 			}
 		}
 
-		// Otherwise we check if the file was deleted
 		else {
 			const fileWorkingCopyResourceDeleted = e.contains(this.resource, FileChangeType.DELETED);
 			if (fileWorkingCopyResourceDeleted) {
@@ -87,10 +68,6 @@ export abstract class ResourceWorkingCopy extends Disposable implements IResourc
 			let newInOrphanModeValidated = false;
 			if (newInOrphanModeGuess) {
 
-				// We have received reports of users seeing delete events even though the file still
-				// exists (network shares issue: https://github.com/microsoft/vscode/issues/13665).
-				// Since we do not want to mark the working copy as orphaned, we have to check if the
-				// file is really gone and not just a faulty file event.
 				await timeout(100, CancellationToken.None);
 
 				if (this.isDisposed()) {
@@ -115,10 +92,8 @@ export abstract class ResourceWorkingCopy extends Disposable implements IResourc
 		}
 	}
 
-	//#endregion
 
 
-	//#region Dispose
 
 	private readonly _onWillDispose = this._register(new Emitter<void>());
 	readonly onWillDispose = this._onWillDispose.event;
@@ -129,26 +104,20 @@ export abstract class ResourceWorkingCopy extends Disposable implements IResourc
 
 	override dispose(): void {
 
-		// State
 		this.orphaned = false;
 
-		// Event
 		this._onWillDispose.fire();
 
 		super.dispose();
 	}
 
-	//#endregion
 
-	//#region Modified Tracking
 
 	isModified(): boolean {
 		return this.isDirty();
 	}
 
-	//#endregion
 
-	//#region Abstract
 
 	abstract typeId: string;
 	abstract name: string;
@@ -164,5 +133,4 @@ export abstract class ResourceWorkingCopy extends Disposable implements IResourc
 	abstract save(options?: ISaveOptions): Promise<boolean>;
 	abstract revert(options?: IRevertOptions): Promise<void>;
 
-	//#endregion
 }

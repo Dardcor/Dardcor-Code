@@ -321,19 +321,16 @@ registerAction2(class extends Action2 {
 		let title: string | undefined, historyItemId: string | undefined, historyItemParentId: string | undefined;
 
 		if (historyItemRemoteRef && (historyItem.id === SCMIncomingHistoryItemId || historyItem.id === SCMOutgoingHistoryItemId)) {
-			// Incoming/Outgoing changes history item
 			const mergeBase = await historyProvider.resolveHistoryItemRefsCommonAncestor([
 				historyItemRef.name,
 				historyItemRemoteRef.name
 			]);
 
 			if (mergeBase && historyItem.id === SCMIncomingHistoryItemId) {
-				// Incoming changes history item
 				title = `${historyItem.subject} - ${historyItemRef.name} \u2194 ${historyItemRemoteRef.name}`;
 				historyItemId = historyItemRemoteRef.id;
 				historyItemParentId = mergeBase;
 			} else if (mergeBase && historyItem.id === SCMOutgoingHistoryItemId) {
-				// Outgoing changes history item
 				title = `${historyItem.subject} - ${historyItemRemoteRef.name} \u2194 ${historyItemRef.name}`;
 				historyItemId = historyItemRef.id;
 				historyItemParentId = mergeBase;
@@ -343,7 +340,6 @@ registerAction2(class extends Action2 {
 			historyItemId = historyItem.id;
 
 			if (historyItem.parentIds.length > 0) {
-				// History item right above the incoming changes history item
 				if (historyItem.parentIds[0] === SCMIncomingHistoryItemId && historyItemRemoteRef) {
 					historyItemParentId = await historyProvider.resolveHistoryItemRefsCommonAncestor([
 						historyItemRef.name,
@@ -518,21 +514,15 @@ class HistoryItemRenderer implements ICompressibleTreeRenderer<SCMHistoryItemVie
 			const references = historyItem.references ?
 				historyItem.references.slice(0) : [];
 
-			// If the first reference is colored, we render it
-			// separately since we have to show the description
-			// for the first colored reference.
 			if (references.length > 0 && references[0].color) {
 				this._renderBadge([references[0]], true, templateData);
 
-				// Remove the rendered reference from the collection
 				references.splice(0, 1);
 			}
 
-			// Group history item references by color
 			const historyItemRefsByColor = groupBy2(references, ref => ref.color ? ref.color : '');
 
 			for (const [key, historyItemRefs] of Object.entries(historyItemRefsByColor)) {
-				// If needed skip badges without a color
 				if (key === '' && labelConfig !== 'all') {
 					continue;
 				}
@@ -541,10 +531,8 @@ class HistoryItemRenderer implements ICompressibleTreeRenderer<SCMHistoryItemVie
 					continue;
 				}
 
-				// Group history item references by icon
 				const historyItemRefByIconId = groupBy2(historyItemRefs, ref => ThemeIcon.isThemeIcon(ref.icon) ? ref.icon.id : '');
 				for (const [key, historyItemRefs] of Object.entries(historyItemRefByIconId)) {
-					// Skip badges without an icon
 					if (key === '' || !historyItemRefs) {
 						continue;
 					}
@@ -590,7 +578,6 @@ class HistoryItemRenderer implements ICompressibleTreeRenderer<SCMHistoryItemVie
 		hoverOptions: Partial<IDelayedHoverOptions>;
 		hoverLifecycleOptions: IHoverLifecycleOptions | undefined;
 	} {
-		// Source Control Graph view in the panel
 		if (this._viewContainerLocation === ViewContainerLocation.Panel) {
 			return {
 				hoverOptions: {
@@ -735,7 +722,7 @@ class HistoryItemChangeRenderer implements ICompressibleTreeRenderer<SCMHistoryI
 
 	private _renderGraphPlaceholder(templateData: HistoryItemChangeTemplate, historyItemViewModel: ISCMHistoryItemViewModel, graphColumns: ISCMHistoryItemGraphNode[]): void {
 		const graphPlaceholderSvgWidth = SWIMLANE_WIDTH * (graphColumns.length + 1);
-		const marginLeft = graphPlaceholderSvgWidth - 16 /* .monaco-tl-indent left */;
+		const marginLeft = graphPlaceholderSvgWidth - 16 ;
 		templateData.rowElement.style.marginLeft = `${marginLeft}px`;
 
 		templateData.graphPlaceholder.textContent = '';
@@ -874,12 +861,8 @@ class SCMHistoryTreeKeyboardNavigationLabelProvider implements ICompressibleKeyb
 		if (isSCMRepository(element)) {
 			return undefined;
 		} else if (isSCMHistoryItemViewModelTreeElement(element)) {
-			// For a history item we want to match both the message and
-			// the author. A match in the message takes precedence over
-			// a match in the author.
 			return [element.historyItemViewModel.historyItem.message, element.historyItemViewModel.historyItem.author];
 		} else if (isSCMHistoryItemLoadMoreTreeElement(element)) {
-			// We don't want to match the load more element
 			return '';
 		} else {
 			throw new Error('Invalid tree element');
@@ -912,11 +895,9 @@ class SCMHistoryTreeDataSource extends Disposable implements IAsyncDataSource<SC
 		const children: TreeElement[] = [];
 
 		if (inputOrElement instanceof SCMHistoryViewModel) {
-			// History items
 			const historyItems = await inputOrElement.getHistoryItems();
 			children.push(...historyItems);
 
-			// Load More element
 			const repository = inputOrElement.repository.get();
 			const lastHistoryItem = historyItems.at(-1);
 			if (repository && lastHistoryItem && lastHistoryItem.historyItemViewModel.outputSwimlanes.length > 0) {
@@ -927,7 +908,6 @@ class SCMHistoryTreeDataSource extends Disposable implements IAsyncDataSource<SC
 				} satisfies SCMHistoryItemLoadMoreTreeElement);
 			}
 		} else if (isSCMHistoryItemViewModelTreeElement(inputOrElement)) {
-			// History item changes
 			const historyProvider = inputOrElement.repository.provider.historyProvider.get();
 			const historyItemViewModel = inputOrElement.historyItemViewModel;
 			const historyItem = historyItemViewModel.historyItem;
@@ -938,7 +918,6 @@ class SCMHistoryTreeDataSource extends Disposable implements IAsyncDataSource<SC
 				historyItemViewModel.kind === 'incoming-changes' ||
 				historyItemViewModel.kind === 'outgoing-changes'
 			) {
-				// Incoming/Outgoing changes history item
 				const historyItemRef = historyProvider?.historyItemRef.get();
 				const historyItemRemoteRef = historyProvider?.historyItemRemoteRef.get();
 
@@ -954,11 +933,9 @@ class SCMHistoryTreeDataSource extends Disposable implements IAsyncDataSource<SC
 					historyItemRef.name,
 					historyItemRemoteRef.name]);
 			} else {
-				// History item
 				historyItemId = historyItem.id;
 
 				if (historyItem.parentIds.length > 0) {
-					// History item right above the incoming changes history item
 					if (historyItem.parentIds[0] === SCMIncomingHistoryItemId) {
 						const historyItemRef = historyProvider?.historyItemRef.get();
 						const historyItemRemoteRef = historyProvider?.historyItemRemoteRef.get();
@@ -979,7 +956,6 @@ class SCMHistoryTreeDataSource extends Disposable implements IAsyncDataSource<SC
 			const historyItemChanges = await historyProvider?.provideHistoryItemChanges(historyItemId, historyItemParentId) ?? [];
 
 			if (this.viewMode() === ViewMode.List) {
-				// List
 				children.push(...historyItemChanges.map(change => ({
 					repository: inputOrElement.repository,
 					historyItemViewModel: inputOrElement.historyItemViewModel,
@@ -988,7 +964,6 @@ class SCMHistoryTreeDataSource extends Disposable implements IAsyncDataSource<SC
 					type: 'historyItemChangeViewModel'
 				} satisfies SCMHistoryItemChangeViewModelTreeElement)));
 			} else if (this.viewMode() === ViewMode.Tree) {
-				// Tree
 				const rootUri = inputOrElement.repository.provider.rootUri ?? URI.file('/');
 				const historyItemChangesTree = new ResourceTree<SCMHistoryItemChangeViewModelTreeElement, SCMHistoryItemViewModelTreeElement>(inputOrElement, rootUri);
 				for (const change of historyItemChanges) {
@@ -1005,7 +980,6 @@ class SCMHistoryTreeDataSource extends Disposable implements IAsyncDataSource<SC
 				}
 			}
 		} else if (ResourceTree.isResourceNode(inputOrElement) && isSCMHistoryItemChangeNode(inputOrElement)) {
-			// Tree
 			for (const node of inputOrElement.children) {
 				children.push(node.element && node.childrenCount === 0 ? node.element : node);
 			}
@@ -1113,10 +1087,6 @@ type RepositoryState = {
 class SCMHistoryViewModel extends Disposable {
 	readonly viewMode: ISettableObservable<ViewMode>;
 
-	/**
-	 * The active | selected repository takes precedence over the first repository when the observable
-	 * values are updated in the same transaction (or during the initial read of the observable value).
-	 */
 	readonly repository: IObservable<ISCMRepository | undefined>;
 	private readonly _selectedRepository = observableValue<'auto' | ISCMRepository>(this, 'auto');
 
@@ -1170,7 +1140,6 @@ class SCMHistoryViewModel extends Disposable {
 			this._scmService.onDidRemoveRepository,
 			repository => repository);
 
-		// Closed repository cleanup
 		this._register(autorun(reader => {
 			const repository = closedRepository.read(reader);
 			if (!repository) {
@@ -1269,27 +1238,22 @@ class SCMHistoryViewModel extends Disposable {
 			const historyItemRefIds = historyItemRefs.map(ref => ref.revision ?? ref.id);
 
 			do {
-				// Fetch the next page of history items
 				historyItems.push(...(await historyProvider.provideHistoryItems({
 					historyItemRefs: historyItemRefIds, limit, skip: historyItems.length
 				}) ?? []));
 			} while (typeof state?.loadMore === 'string' && !historyItems.find(item => item.id === state?.loadMore));
 
-			// Compute the merge base
 			const mergeBase = historyItemRef && historyItemRemoteRef && state?.mergeBase === undefined
 				? await historyProvider.resolveHistoryItemRefsCommonAncestor([
 					historyItemRef.name,
 					historyItemRemoteRef.name])
 				: state?.mergeBase;
 
-			// Create the color map
 			const colorMap = this._getGraphColorMap(historyItemRefs);
 
-			// Only show incoming changes node if the remote history item reference is part of the graph
 			const addIncomingChangesNode = this._scmViewService.graphShowIncomingChangesConfig.get()
 				&& historyItemRefs.some(ref => ref.id === historyItemRemoteRef?.id);
 
-			// Only show outgoing changes node if the history item reference is part of the graph
 			const addOutgoingChangesNode = this._scmViewService.graphShowOutgoingChangesConfig.get()
 				&& historyItemRefs.some(ref => ref.id === historyItemRef?.id);
 
@@ -1378,10 +1342,6 @@ class SCMHistoryViewModel extends Disposable {
 			}
 		}
 
-		// Add the remaining history item references to the color map
-		// if not already present. These history item references will
-		// be colored using the color of the history item to which they
-		// point to.
 		for (const ref of historyItemRefs) {
 			if (!colorMap.has(ref.id)) {
 				colorMap.set(ref.id, undefined);
@@ -1407,12 +1367,10 @@ class SCMHistoryViewModel extends Disposable {
 				].filter(ref => !!ref));
 				break;
 			default: {
-				// Get the latest revisions for the history items references in the filer
 				const refs = (await historyProvider.provideHistoryItemRefs(historyItemsFilter) ?? [])
 					.filter(ref => historyItemsFilter.some(filter => filter === ref.id));
 
 				if (refs.length === 0) {
-					// Reset the filter
 					historyItemRefs.push(...[
 						historyProvider.historyItemRef.get(),
 						historyProvider.historyItemRemoteRef.get(),
@@ -1420,7 +1378,6 @@ class SCMHistoryViewModel extends Disposable {
 					].filter(ref => !!ref));
 					this._repositoryFilterState.delete(getProviderKey(repository.provider));
 				} else {
-					// Update filter
 					historyItemRefs.push(...refs);
 					this._repositoryFilterState.set(getProviderKey(repository.provider), refs.map(ref => ref.id));
 				}
@@ -1527,7 +1484,6 @@ class HistoryItemRefPicker extends Disposable {
 
 		const items = await this._createQuickPickItems();
 
-		// Set initial selection
 		let selectedItems: HistoryItemRefQuickPickItem[] = [];
 		if (this._historyItemsFilter === 'all') {
 			selectedItems.push(this._allQuickPickItem);
@@ -1549,7 +1505,6 @@ class HistoryItemRefPicker extends Disposable {
 				}
 			}
 
-			// Insert the selected items after `All` and `Auto`
 			items.splice(2, 0, { type: 'separator' }, ...selectedItems);
 		}
 
@@ -1564,7 +1519,6 @@ class HistoryItemRefPicker extends Disposable {
 					if (added[0].historyItemRef === 'all' || added[0].historyItemRef === 'auto') {
 						quickPick.selectedItems = [added[0]];
 					} else {
-						// Remove 'all' and 'auto' items if present
 						quickPick.selectedItems = [...quickPick.selectedItems
 							.filter(i => i.historyItemRef !== 'all' && i.historyItemRef !== 'auto')];
 					}
@@ -1729,11 +1683,9 @@ export class SCMHistoryViewPane extends ViewPane {
 				return;
 			}
 
-			// Create view model
 			this._treeViewModel = this.instantiationService.createInstance(SCMHistoryViewModel);
 			this._visibilityDisposables.add(this._treeViewModel);
 
-			// Wait for first repository to be initialized
 			const firstRepositoryInitialized = derived(this, reader => {
 				const repository = this._treeViewModel.repository.read(reader);
 				const historyProvider = repository?.provider.historyProvider.read(reader);
@@ -1743,7 +1695,6 @@ export class SCMHistoryViewPane extends ViewPane {
 			});
 			await waitForState(firstRepositoryInitialized);
 
-			// Initial rendering
 			await this._progressService.withProgress({ location: this.id }, async () => {
 				await this._treeOperationSequencer.queue(async () => {
 					await this._tree.setInput(this._treeViewModel);
@@ -1756,7 +1707,6 @@ export class SCMHistoryViewPane extends ViewPane {
 				this._onDidChangeViewWelcomeState.fire();
 			}));
 
-			// Settings change
 			this._visibilityDisposables.add(runOnChange(this._scmViewService.graphShowIncomingChangesConfig, async () => {
 				await this.refresh();
 			}));
@@ -1764,7 +1714,6 @@ export class SCMHistoryViewPane extends ViewPane {
 				await this.refresh();
 			}));
 
-			// Repository change
 			let isFirstRun = true;
 			this._visibilityDisposables.add(autorun(reader => {
 				const repository = this._treeViewModel.repository.read(reader);
@@ -1773,29 +1722,22 @@ export class SCMHistoryViewPane extends ViewPane {
 					return;
 				}
 
-				// HistoryItemId changed (checkout)
 				const historyItemRefId = derived(reader => {
 					return historyProvider.historyItemRef.read(reader)?.id;
 				});
 				reader.store.add(runOnChange(historyItemRefId, async historyItemRefIdValue => {
 					await this.refresh();
 
-					// Update context key (needs to be done after the refresh call)
 					this._scmCurrentHistoryItemRefInFilter.set(this._isCurrentHistoryItemInFilter(historyItemRefIdValue));
 				}));
 
-				// HistoryItemRefs changed
 				reader.store.add(runOnChange(historyProvider.historyItemRefChanges, changes => {
 					if (changes.silent) {
-						// The history item reference changes occurred in the background (ex: Auto Fetch)
-						// If tree is scrolled to the top, we can safely refresh the tree, otherwise we
-						// will show a visual cue that the view is outdated.
 						if (this._tree.scrollTop === 0) {
 							this.refresh();
 							return;
 						}
 
-						// Show the "Outdated" badge on the view
 						this._repositoryOutdated.set(true, undefined);
 						return;
 					}
@@ -1803,43 +1745,33 @@ export class SCMHistoryViewPane extends ViewPane {
 					this.refresh();
 				}));
 
-				// HistoryItemRefs filter changed
 				reader.store.add(runOnChange(this._treeViewModel.onDidChangeHistoryItemsFilter, async () => {
 					await this.refresh();
 
-					// Update context key (needs to be done after the refresh call)
 					this._scmCurrentHistoryItemRefInFilter.set(this._isCurrentHistoryItemInFilter(historyItemRefId.read(undefined)));
 				}));
 
-				// HistoryItemRemoteRef changed
 				reader.store.add(autorun(reader => {
 					this._scmCurrentHistoryItemRefHasRemote.set(!!historyProvider.historyItemRemoteRef.read(reader));
 				}));
 
-				// HistoryItemBaseRef changed
 				reader.store.add(autorun(reader => {
 					this._scmCurrentHistoryItemRefHasBase.set(!!historyProvider.historyItemBaseRef.read(reader));
 				}));
 
-				// ViewMode changed
 				reader.store.add(runOnChange(this._treeViewModel.viewMode, async () => {
 					await this._updateChildren();
 				}));
 
-				// Update context
 				this._scmProviderCtx.set(repository.provider.providerId);
 				this._scmCurrentHistoryItemRefInFilter.set(this._isCurrentHistoryItemInFilter(historyItemRefId.read(undefined)));
 
-				// We skip refreshing the graph on the first execution of the autorun
-				// since the graph for the first repository is rendered when the tree
-				// input is set.
 				if (!isFirstRun) {
 					this.refresh();
 				}
 				isFirstRun = false;
 			}));
 
-			// FileIconTheme & viewMode change
 			const fileIconThemeObs = observableFromEvent(
 				this.themeService.onDidFileIconThemeChange,
 				() => this.themeService.getFileIconTheme());
@@ -1972,10 +1904,8 @@ export class SCMHistoryViewPane extends ViewPane {
 			return;
 		}
 
-		// Fetch current history item
 		await this._loadMore(historyItemRef.revision);
 
-		// Reveal node
 		revealTreeNode();
 	}
 
@@ -2059,7 +1989,6 @@ export class SCMHistoryViewPane extends ViewPane {
 				: historyItemParentId;
 
 			if (historyItemChange.originalUri && historyItemChange.modifiedUri) {
-				// Diff Editor
 				const originalUriTitle = `${basename(historyItemChange.originalUri.fsPath)} (${historyItemParentDisplayId})`;
 				const modifiedUriTitle = `${basename(historyItemChange.modifiedUri.fsPath)} (${historyItemDisplayId})`;
 
@@ -2077,7 +2006,6 @@ export class SCMHistoryViewPane extends ViewPane {
 					options: e.editorOptions
 				});
 			} else if (historyItemChange.originalUri) {
-				// Editor (Deleted)
 				await this._editorService.openEditor({
 					label: `${basename(historyItemChange.originalUri.fsPath)} (${historyItemParentDisplayId})`,
 					resource: historyItemChange.originalUri,
@@ -2097,9 +2025,7 @@ export class SCMHistoryViewPane extends ViewPane {
 		const element = e.element;
 
 		if (isSCMHistoryItemViewModelTreeElement(element)) {
-			// HistoryItem
 			if (element.historyItemViewModel.kind === 'incoming-changes' || element.historyItemViewModel.kind === 'outgoing-changes') {
-				// Incoming/Outgoing changes node does not support any context menu actions
 				return;
 			}
 
@@ -2111,8 +2037,6 @@ export class SCMHistoryViewPane extends ViewPane {
 
 			const historyItemRefMenuItems = MenuRegistry.getMenuItems(MenuId.SCMHistoryItemRefContext).filter(item => isIMenuItem(item));
 
-			// If there are any history item references we have to add a submenu item for each orignal action,
-			// and a menu item for each history item ref that matches the `when` clause of the original action.
 			if (historyItemRefMenuItems.length > 0 && element.historyItemViewModel.historyItem.references?.length) {
 				const historyItemRefActions = new Map<string, ISCMHistoryItemRef[]>();
 
@@ -2133,7 +2057,6 @@ export class SCMHistoryViewPane extends ViewPane {
 					}
 				}
 
-				// Register submenu, menu items
 				for (const historyItemRefMenuItem of historyItemRefMenuItems) {
 					const actionId = historyItemRefMenuItem.command.id;
 
@@ -2141,7 +2064,6 @@ export class SCMHistoryViewPane extends ViewPane {
 						continue;
 					}
 
-					// Register the submenu for the original action
 					this._contextMenuDisposables.value.add(MenuRegistry.appendMenuItem(MenuId.SCMHistoryItemContext, {
 						title: historyItemRefMenuItem.command.title,
 						submenu: MenuId.for(actionId),
@@ -2149,7 +2071,6 @@ export class SCMHistoryViewPane extends ViewPane {
 						order: historyItemRefMenuItem?.order
 					}));
 
-					// Register the action for the history item ref
 					for (const historyItemRef of historyItemRefActions.get(actionId) ?? []) {
 						this._contextMenuDisposables.value.add(registerAction2(class extends Action2 {
 							constructor() {
@@ -2189,7 +2110,6 @@ export class SCMHistoryViewPane extends ViewPane {
 				getActionsContext: () => element.historyItemViewModel.historyItem
 			});
 		} else if (isSCMHistoryItemChangeViewModelTreeElement(element)) {
-			// HistoryItemChange
 			const menuActions = this._menuService.getMenuActions(
 				MenuId.SCMHistoryItemChangeContext,
 				this.scopedContextKeyService, {
@@ -2227,7 +2147,6 @@ export class SCMHistoryViewPane extends ViewPane {
 					await this._progressService.withProgress({ location: this.id, delay: 100 },
 						async () => {
 							await this._tree.updateChildren(undefined, undefined, undefined, {
-								// diffIdentityProvider: this._treeIdentityProvider
 							});
 						});
 				}));

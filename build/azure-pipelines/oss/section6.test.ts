@@ -3,17 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------------------------
- *  Focused unit checks for Section 6 (os-gated whole-package enumeration) of scan-licenses.ts.
- *
- *  Run:  npx tsx section6.test.ts
- *
- *  Covers (no network required):
- *    1. osAllows - npm `os` constraint semantics (positive, negation, mixed, empty).
- *    2. isOsGatedShippedElsewhere - the predicate that decides whether a package
- *       is invisible on the build host yet ships on a platform we target (the
- *       @vscode/windows-ca-certs case), keyed on the host platform.
- *--------------------------------------------------------------------------------------------*/
 
 import { osAllows, isOsGatedShippedElsewhere, NPM_SHIPPED_OS } from './scan-licenses.js';
 
@@ -30,7 +19,6 @@ function check(name: string, cond: boolean): void {
 	}
 }
 
-// -- 1. osAllows --------------------------------------------------------------
 console.log('osAllows - positive lists:');
 check('["win32"] allows win32', osAllows(['win32'], 'win32') === true);
 check('["win32"] denies linux', osAllows(['win32'], 'linux') === false);
@@ -48,9 +36,7 @@ check('[] allows anything (no constraint)', osAllows([], 'linux') === true);
 check('negation wins over positive', osAllows(['linux', '!linux'], 'linux') === false);
 check('ignores empty/non-string entries', osAllows(['', 'win32'], 'win32') === true);
 
-// -- 2. isOsGatedShippedElsewhere (host = linux, the NOTICE agent) ------------
 console.log('isOsGatedShippedElsewhere - host = linux (the NOTICE agent):');
-// The motivating case: @vscode/windows-ca-certs is os:["win32"].
 check('os:["win32"] on linux -> TRUE (ships win32, absent on linux)',
 	isOsGatedShippedElsewhere(['win32'], 'linux') === true);
 check('os:["darwin"] on linux -> TRUE (ships darwin, absent on linux)',
@@ -82,7 +68,6 @@ console.log('NPM_SHIPPED_OS sanity:');
 check('contains darwin/linux/win32', NPM_SHIPPED_OS.has('darwin') && NPM_SHIPPED_OS.has('linux') && NPM_SHIPPED_OS.has('win32'));
 check('does not contain android', NPM_SHIPPED_OS.has('android') === false);
 
-// -- summary ------------------------------------------------------------------
 console.log('');
 console.log(`Section 6 unit checks: ${passed} passed, ${failed} failed`);
 if (failed > 0) {

@@ -19,7 +19,6 @@ export abstract class AbstractEditContext extends ViewPart {
 	abstract getLastRenderData(): Position | null;
 	abstract writeScreenReaderContent(reason: string): void;
 
-	// Clipboard events - emitted before the default clipboard handling
 	protected readonly _onWillCopy = this._register(new Emitter<IClipboardCopyEvent>());
 	public readonly onWillCopy: Event<IClipboardCopyEvent> = this._onWillCopy.event;
 

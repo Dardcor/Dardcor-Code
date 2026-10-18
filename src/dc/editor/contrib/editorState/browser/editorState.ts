@@ -84,11 +84,6 @@ export class EditorState {
 	}
 }
 
-/**
- * A cancellation token source that cancels when the editor changes as expressed
- * by the provided flags
- * @param range If provided, changes in position and selection within this range will not trigger cancellation
- */
 export class EditorStateCancellationTokenSource extends EditorKeybindingCancellationTokenSource implements IDisposable {
 
 	private readonly _listener = new DisposableStore();
@@ -125,9 +120,6 @@ export class EditorStateCancellationTokenSource extends EditorKeybindingCancella
 	}
 }
 
-/**
- * A cancellation token source that cancels when the provided model changes
- */
 export class TextModelCancellationTokenSource extends CancellationTokenSource implements IDisposable {
 
 	private _listener: IDisposable;

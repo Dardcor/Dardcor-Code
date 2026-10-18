@@ -28,9 +28,6 @@ export class DirectedGraph<T> {
 		return graph;
 	}
 
-	/**
-	 * After this, the graph is guaranteed to have no cycles.
-	 */
 	removeCycles(): { foundCycles: T[] } {
 		const foundCycles: T[] = [];
 		const visited = new Set<T>();
@@ -47,7 +44,6 @@ export class DirectedGraph<T> {
 					if (!visited.has(neighbor)) {
 						dfs(neighbor);
 					} else if (recursionStack.has(neighbor)) {
-						// Found a cycle
 						foundCycles.push(neighbor);
 						toRemove.push({ from: node, to: neighbor });
 					}
@@ -57,14 +53,12 @@ export class DirectedGraph<T> {
 			recursionStack.delete(node);
 		};
 
-		// Run DFS from all unvisited nodes
 		for (const node of this._nodes) {
 			if (!visited.has(node)) {
 				dfs(node);
 			}
 		}
 
-		// Remove edges that cause cycles
 		for (const { from, to } of toRemove) {
 			const outgoingSet = this._outgoingEdges.get(from);
 			if (outgoingSet) {

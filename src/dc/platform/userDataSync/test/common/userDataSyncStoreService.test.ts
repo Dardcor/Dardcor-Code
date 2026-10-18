@@ -23,7 +23,6 @@ suite('UserDataSyncStoreService', () => {
 	const disposableStore = ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('test read manifest for the first time', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -40,7 +39,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test read manifest for the second time when session is not yet created', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -58,7 +56,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test session id header is not set in the first manifest request after session is created', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -77,7 +74,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test session id header is set from the second manifest request after session is created', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -97,7 +93,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test headers are send for write request', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -118,7 +113,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test headers are send for read request', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -139,7 +133,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test headers are reset after session is cleared ', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -162,7 +155,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test old headers are sent after session is changed on server ', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -177,7 +169,6 @@ suite('UserDataSyncStoreService', () => {
 		const userSessionId = target.requestsWithAllHeaders[0].headers!['X-User-Session-Id'];
 		await target.clear();
 
-		// client 2
 		const client2 = disposableStore.add(new UserDataSyncClient(target));
 		await client2.setUp();
 		const testObject2 = client2.instantiationService.get(IUserDataSyncStoreService);
@@ -194,7 +185,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test old headers are reset from second request after session is changed on server ', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -209,7 +199,6 @@ suite('UserDataSyncStoreService', () => {
 		const userSessionId = target.requestsWithAllHeaders[0].headers!['X-User-Session-Id'];
 		await target.clear();
 
-		// client 2
 		const client2 = disposableStore.add(new UserDataSyncClient(target));
 		await client2.setUp();
 		const testObject2 = client2.instantiationService.get(IUserDataSyncStoreService);
@@ -227,7 +216,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test old headers are sent after session is cleared from another server ', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -241,7 +229,6 @@ suite('UserDataSyncStoreService', () => {
 		const machineSessionId = target.requestsWithAllHeaders[0].headers!['X-Machine-Session-Id'];
 		const userSessionId = target.requestsWithAllHeaders[0].headers!['X-User-Session-Id'];
 
-		// client 2
 		const client2 = disposableStore.add(new UserDataSyncClient(target));
 		await client2.setUp();
 		const testObject2 = client2.instantiationService.get(IUserDataSyncStoreService);
@@ -258,7 +245,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test headers are reset after session is cleared from another server ', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -271,7 +257,6 @@ suite('UserDataSyncStoreService', () => {
 		await testObject.manifest(null);
 		const machineSessionId = target.requestsWithAllHeaders[0].headers!['X-Machine-Session-Id'];
 
-		// client 2
 		const client2 = disposableStore.add(new UserDataSyncClient(target));
 		await client2.setUp();
 		const testObject2 = client2.instantiationService.get(IUserDataSyncStoreService);
@@ -288,7 +273,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test headers are reset after session is cleared from another server - started syncing again', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();
@@ -302,7 +286,6 @@ suite('UserDataSyncStoreService', () => {
 		const machineSessionId = target.requestsWithAllHeaders[0].headers!['X-Machine-Session-Id'];
 		const userSessionId = target.requestsWithAllHeaders[0].headers!['X-User-Session-Id'];
 
-		// client 2
 		const client2 = disposableStore.add(new UserDataSyncClient(target));
 		await client2.setUp();
 		const testObject2 = client2.instantiationService.get(IUserDataSyncStoreService);
@@ -393,7 +376,6 @@ suite('UserDataSyncStoreService', () => {
 	});
 
 	test('test read resource request handles 304', async () => {
-		// Setup the client
 		const target = new UserDataSyncTestServer();
 		const client = disposableStore.add(new UserDataSyncClient(target));
 		await client.setUp();

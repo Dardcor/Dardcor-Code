@@ -32,11 +32,6 @@ export interface ICodexAccountViewInfo extends ICodexAccountInfo {
 
 export interface ICodexAccountService {
 	readonly _serviceBrand: undefined;
-	/**
-	 * The agent whose account this service manages, so callers that dispatch by
-	 * agent id — the SDK setup banner's Sign In button — can check they are
-	 * talking to the right service without carrying a literal `'codex'`.
-	 */
 	readonly agent: string;
 	readonly account: ICodexAccountViewInfo;
 	readonly onDidChangeAccount: Event<ICodexAccountViewInfo>;

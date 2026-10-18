@@ -90,8 +90,6 @@ export class TaskStatusBarContributions extends Disposable implements IWorkbench
 						}
 						break;
 					case TaskEventKind.Inactive:
-						// Since the exiting of the sub process is communicated async we can't order inactive and terminate events.
-						// So try to treat them accordingly.
 						if (this._activeTasksCount > 0) {
 							this._activeTasksCount--;
 							if (this._activeTasksCount === 0) {
@@ -182,7 +180,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarTerminalMenu, {
 	when: TaskExecutionSupportedContext
 });
 
-// Manage Tasks
 MenuRegistry.appendMenuItem(MenuId.MenubarTerminalMenu, {
 	group: TerminalMenuBarGroup.Manage,
 	command: {
@@ -216,7 +213,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarTerminalMenu, {
 	when: TaskExecutionSupportedContext
 });
 
-// Configure Tasks
 MenuRegistry.appendMenuItem(MenuId.MenubarTerminalMenu, {
 	group: TerminalMenuBarGroup.Configure,
 	command: {
@@ -382,8 +378,6 @@ class UserTasksGlobalActionContribution extends Disposable implements IWorkbench
 }
 workbenchRegistry.registerWorkbenchContribution(UserTasksGlobalActionContribution, LifecyclePhase.Restored);
 
-// MenuRegistry.addCommand( { id: 'workbench.action.tasks.rebuild', title: nls.localize('RebuildAction.label', 'Run Rebuild Task'), category: tasksCategory });
-// MenuRegistry.addCommand( { id: 'workbench.action.tasks.clean', title: nls.localize('CleanAction.label', 'Run Clean Task'), category: tasksCategory });
 
 KeybindingsRegistry.registerKeybindingRule({
 	id: 'workbench.action.tasks.build',
@@ -392,12 +386,10 @@ KeybindingsRegistry.registerKeybindingRule({
 	primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyB
 });
 
-// Tasks Output channel. Register it before using it in Task Service.
 const outputChannelRegistry = Registry.as<IOutputChannelRegistry>(OutputExt.OutputChannels);
 outputChannelRegistry.registerChannel({ id: AbstractTaskService.OutputChannelId, label: AbstractTaskService.OutputChannelLabel, log: false });
 
 
-// Register Quick Access
 const quickAccessRegistry = (Registry.as<IQuickAccessRegistry>(QuickAccessExtensions.Quickaccess));
 const tasksPickerContextKey = 'inTasksPicker';
 
@@ -409,7 +401,6 @@ quickAccessRegistry.registerQuickAccessProvider({
 	helpEntries: [{ description: nls.localize('tasksQuickAccessHelp', "Run Task"), commandCenterOrder: 60 }]
 });
 
-// tasks.json validation
 const schema: IJSONSchema = {
 	id: tasksSchemaId,
 	description: 'Task definition file',

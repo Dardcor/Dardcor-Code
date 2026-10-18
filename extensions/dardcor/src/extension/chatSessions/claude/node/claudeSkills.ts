@@ -17,22 +17,12 @@ import { dirname } from '../../../../util/dardcor/base/common/resources';
 import { URI } from '../../../../util/dardcor/base/common/uri';
 import { resolveSkillConfigLocations } from '../../common/skillConfigLocations';
 
-/** The Claude SDK loads `.claude` directories automatically — skip them to avoid duplicates. */
 function isClaudeDirectory(uri: URI): boolean {
 	return uri.path.split('/').includes('.claude');
 }
 
 export interface IClaudePluginService {
 	readonly _serviceBrand: undefined;
-	/**
-	 * Returns plugin root directories suitable for the Claude SDK's `plugins` option.
-	 *
-	 * Combines two sources:
-	 * 1. **Skills** — discovered as directories containing `SKILL.md` files, but the Claude SDK
-	 *    plugin loader expects the *parent* of the `skills/` directory (the plugin root),
-	 *    so we walk one level up from each skill location.
-	 * 2. **Plugins** — returned directly by the prompts service as actual plugin root directories.
-	 */
 	getPluginLocations(token: CancellationToken): Promise<Uri[]>;
 }
 
@@ -53,10 +43,6 @@ export class ClaudePluginService extends Disposable implements IClaudePluginServ
 	async getPluginLocations(token: CancellationToken): Promise<Uri[]> {
 		const pluginRoots = new ResourceSet();
 
-		// #region Skills as plugin roots
-		// Skill locations point to directories containing skill subdirectories (e.g. .../skills/).
-		// The Claude SDK plugin loader expects the parent of the skills/ directory, so we
-		// walk one level up from each location.
 		for (const uri of resolveSkillConfigLocations(this.configurationService, this.envService, this.workspaceService)) {
 			pluginRoots.add(dirname(uri));
 		}
@@ -67,15 +53,12 @@ export class ClaudePluginService extends Disposable implements IClaudePluginServ
 			.map(uri => dirname(dirname(dirname(uri))))
 			.filter(uri => !isClaudeDirectory(uri))
 			.forEach(uri => pluginRoots.add(uri));
-		// #endregion
 
-		// #region Plugin roots from prompts service
 		(await this.promptsService.getPlugins(token))
 			.filter(p => p.uri.scheme === Schemas.file)
 			.filter(p => !isClaudeDirectory(p.uri))
 			.map(p => p.uri)
 			.forEach(uri => pluginRoots.add(uri));
-		// #endregion
 
 		return Array.from(pluginRoots);
 	}

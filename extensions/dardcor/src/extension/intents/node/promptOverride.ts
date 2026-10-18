@@ -22,7 +22,6 @@ interface PromptOverrideResult {
 
 const INLINE_PROMPT_OVERRIDE_SOURCE = 'inlinePromptOverrideString';
 
-/** Tracks which override sources have already had a warning logged, to avoid spamming. */
 const warnedSources = new Set<string>();
 
 export async function applyConfiguredPromptOverrides(
@@ -51,11 +50,6 @@ export async function applyConfiguredPromptOverrides(
 	return clonePromptOverrideResult(messages, tools);
 }
 
-/**
- * Applies debug prompt overrides from a YAML file.
- * Reads the file via IFileSystemService, parses it, and applies system prompt and/or tool description overrides.
- * Warnings for unreadable/unparseable files are logged once per file path.
- */
 export async function applyPromptOverrides(
 	fileUri: Uri,
 	messages: readonly Raw.ChatMessage[],
@@ -110,7 +104,6 @@ function parsePromptOverrideConfig(
 		return undefined;
 	}
 
-	// On successful parsing, clear any previous warning so a new error is re-surfaced as warn.
 	warnedSources.delete(sourceKey);
 
 	if (!config || typeof config !== 'object') {
@@ -158,10 +151,6 @@ function logPromptOverrideFailure(logService: ILogService, sourceKey: string, me
 	}
 }
 
-/**
- * Resets the internal warning deduplication state.
- * Exported for testing only.
- */
 export function resetPromptOverrideWarnings(): void {
 	warnedSources.clear();
 }

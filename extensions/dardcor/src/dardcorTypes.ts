@@ -115,10 +115,6 @@ export import McpStdioServerDefinition = vscode.McpStdioServerDefinition;
 export import ThemeIcon = vscode.ThemeIcon;
 
 export const l10n = {
-	/**
-	 * @deprecated Only use this import in tests. For the actual extension,
-	 * use `import { l10n } from 'vscode'` or `import * as l10n from '@vscode/l10n'`.
-	 */
 	t: vscode.l10n.t
 };
 

@@ -89,13 +89,11 @@ export class ContributedExternalUriOpenersStore extends Disposable {
 			const extension = registeredExtensions.find(r => r.identifier.value === entry.extensionId);
 			if (extension) {
 				if (!this._extensionService.canRemoveExtension(extension)) {
-					// The extension is running. We should have registered openers at this point
 					if (!entry.isCurrentlyRegistered) {
 						this.delete(id);
 					}
 				}
 			} else {
-				// The opener came from an extension that is no longer enabled/installed
 				this.delete(id);
 			}
 		}

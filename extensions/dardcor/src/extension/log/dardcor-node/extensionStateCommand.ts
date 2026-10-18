@@ -36,13 +36,11 @@ export class ExtensionStateCommandContribution extends Disposable implements IEx
 			'[ExtensionState] ===============================================================',
 		];
 
-		// Auth state
 		const hasAnySession = !!this._authenticationService.anyGitHubSession;
 		const hasPermissiveSession = !!this._authenticationService.permissiveGitHubSession;
 		const hasCopilotToken = !!this._authenticationService.dardcorToken;
 		lines.push(`  Auth: anyGitHubSession=${hasAnySession}, repoGitHubSession=${hasPermissiveSession}, dardcorToken=${hasCopilotToken}`);
 
-		// Username
 		const session = this._authenticationService.anyGitHubSession;
 		if (session) {
 			lines.push(`  Username: ${session.account.label}`);
@@ -50,7 +48,6 @@ export class ExtensionStateCommandContribution extends Disposable implements IEx
 			lines.push('  Username: (not signed in) - check the GitHub Authentication output channel for more details');
 		}
 
-		// Proxy setup
 		const proxySupport = vscode.workspace.getConfiguration('http').get<string>('proxySupport', 'override');
 		const proxyUrl = vscode.workspace.getConfiguration('http').get<string>('proxy', '');
 		const proxyConfigured = proxyUrl ? 'true' : 'false';
@@ -64,7 +61,6 @@ export class ExtensionStateCommandContribution extends Disposable implements IEx
 		let toolCount = 0;
 
 		if (session) {
-			// Language models
 			try {
 				const endpoints = await this._endpointProvider.getAllChatEndpoints();
 				languageModelCount = endpoints.length;
@@ -74,7 +70,6 @@ export class ExtensionStateCommandContribution extends Disposable implements IEx
 				lines.push(`  Language models loaded: false (error: ${e})`);
 			}
 
-			// Copilot chat provider registration
 			try {
 				const dardcorModels = await vscode.lm.selectChatModels({ vendor: 'dardcor' });
 				dardcorModelCount = dardcorModels.length;
@@ -84,12 +79,10 @@ export class ExtensionStateCommandContribution extends Disposable implements IEx
 				lines.push(`  Copilot chat provider registered: false (error: ${e})`);
 			}
 
-			// Copilot embeddings model registration
 			const dardcorEmbeddings = vscode.lm.embeddingModels.filter(m => m.startsWith('dardcor.'));
 			dardcorEmbeddingsRegistered = String(dardcorEmbeddings.length > 0);
 			lines.push(`  Copilot embeddings model registered: ${dardcorEmbeddings.length > 0} (models: [${dardcorEmbeddings.join(', ')}])`);
 
-			// Tools
 			toolCount = this._toolsService.tools.length;
 			lines.push(`  Tools loaded: ${toolCount > 0} (count: ${toolCount})`);
 		}
@@ -98,23 +91,6 @@ export class ExtensionStateCommandContribution extends Disposable implements IEx
 
 		this._logService.info(lines.join('\n'));
 
-		/* __GDPR__
-			"extensionState" : {
-				"owner": "TylerLeonhardt",
-				"comment": "Extension state diagnostic information",
-				"hasAnySession": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether a GitHub session exists" },
-				"hasPermissiveSession": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether a permissive GitHub session exists" },
-				"hasCopilotToken": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether a Copilot token exists" },
-				"proxySupport": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The http.proxySupport setting value" },
-				"proxyConfigured": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether an http proxy is configured" },
-				"languageModelsLoaded": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether language models are loaded" },
-				"dardcorProviderRegistered": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the Copilot chat provider is registered" },
-				"dardcorEmbeddingsRegistered": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether Copilot embeddings models are registered" },
-				"languageModelCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of language models loaded", "isMeasurement": true },
-				"dardcorModelCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of Copilot chat models", "isMeasurement": true },
-				"toolCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of tools loaded", "isMeasurement": true }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent(
 			'extensionState',
 			{

@@ -84,7 +84,7 @@ export class OriginalEditorInlineDiffView extends Disposable implements IInlineE
 				className: 'inlineCompletions-char-delete',
 				description: 'char-delete',
 				isWholeLine: false,
-				zIndex: 1, // be on top of diff background decoration
+				zIndex: 1,
 			});
 
 			const diffWholeLineAddDecoration = ModelDecorationOptions.register({
@@ -139,7 +139,6 @@ export class OriginalEditorInlineDiffView extends Disposable implements IInlineE
 				} else {
 					const useInlineDiff = showInline && allowsTrueInlineDiffRendering(m);
 					for (const i of m.innerChanges || []) {
-						// Don't show empty markers outside the line range
 						if (m.original.contains(i.originalRange.startLineNumber) && !(hideEmptyInnerDecorations && i.originalRange.isEmpty())) {
 							const replacedText = this._originalEditor.getModel()?.getValueInRange(i.originalRange, EndOfLinePreference.LF);
 							originalDecorations.push({
@@ -168,8 +167,6 @@ export class OriginalEditorInlineDiffView extends Disposable implements IInlineE
 						}
 						if (useInlineDiff) {
 							const insertedText = modified.getValueOfRange(i.modifiedRange);
-							// when the injected text becomes long, the editor will split it into multiple spans
-							// to be able to get the border around the start and end of the text, we need to split it into multiple segments
 							const textSegments = insertedText.length > 3 ?
 								[
 									{ text: insertedText.slice(0, 1), extraClasses: ['start'], offsetRange: new OffsetRange(i.modifiedRange.startColumn - 1, i.modifiedRange.startColumn) },
@@ -180,8 +177,7 @@ export class OriginalEditorInlineDiffView extends Disposable implements IInlineE
 									{ text: insertedText, extraClasses: ['start', 'end'], offsetRange: new OffsetRange(i.modifiedRange.startColumn - 1, i.modifiedRange.endColumn) }
 								];
 
-							// Tokenization
-							this._tokenizationFinished.read(reader); // reconsider when tokenization is finished
+							this._tokenizationFinished.read(reader);
 							const lineTokens = this._modifiedTextModel.tokenization.getLineTokens(i.modifiedRange.startLineNumber);
 
 							for (const { text, extraClasses, offsetRange } of textSegments) {
@@ -195,7 +191,7 @@ export class OriginalEditorInlineDiffView extends Disposable implements IInlineE
 											inlineClassName: classNames(
 												'inlineCompletions-char-insert',
 												i.modifiedRange.isSingleLine() && diff.mode === 'insertionInline' && 'single-line-inline',
-												...extraClasses // include extraClasses for additional styling if provided
+												...extraClasses
 											),
 											cursorStops: InjectedTextCursorStops.None,
 											attachedData: new InlineEditAttachedData(this),

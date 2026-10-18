@@ -28,14 +28,11 @@ class PieceTreeTextBufferFactory implements ITextBufferFactory {
 		const totalEOLCount = this._cr + this._lf + this._crlf;
 		const totalCRCount = this._cr + this._crlf;
 		if (totalEOLCount === 0) {
-			// This is an empty file or a file with precisely one line
 			return (defaultEOL === DefaultEndOfLine.LF ? '\n' : '\r\n');
 		}
 		if (totalCRCount > totalEOLCount / 2) {
-			// More than half of the file contains \r\n ending lines
 			return '\r\n';
 		}
-		// At least one line more ends in \n
 		return '\n';
 	}
 
@@ -47,7 +44,6 @@ class PieceTreeTextBufferFactory implements ITextBufferFactory {
 			((eol === '\r\n' && (this._cr > 0 || this._lf > 0))
 				|| (eol === '\n' && (this._cr > 0 || this._crlf > 0)))
 		) {
-			// Normalize pieces
 			for (let i = 0, len = chunks.length; i < len; i++) {
 				const str = chunks[i].buffer.replace(/\r\n|\r|\n/g, eol);
 				const newLineStart = createLineStartsFast(str);
@@ -109,7 +105,6 @@ export class PieceTreeTextBufferBuilder implements ITextBufferBuilder {
 
 		const lastChar = chunk.charCodeAt(chunk.length - 1);
 		if (lastChar === CharCode.CarriageReturn || (lastChar >= 0xD800 && lastChar <= 0xDBFF)) {
-			// last character is \r or a high surrogate => keep it back
 			this._acceptChunk1(chunk.substr(0, chunk.length - 1), false);
 			this._hasPreviousChar = true;
 			this._previousChar = lastChar;
@@ -122,7 +117,6 @@ export class PieceTreeTextBufferBuilder implements ITextBufferBuilder {
 
 	private _acceptChunk1(chunk: string, allowEmptyStrings: boolean): void {
 		if (!allowEmptyStrings && chunk.length === 0) {
-			// Nothing to do
 			return;
 		}
 
@@ -142,7 +136,6 @@ export class PieceTreeTextBufferBuilder implements ITextBufferBuilder {
 		this.crlf += lineStarts.crlf;
 
 		if (!lineStarts.isBasicASCII) {
-			// this chunk contains non basic ASCII characters
 			this.isBasicASCII = false;
 			if (!this.containsRTL) {
 				this.containsRTL = strings.containsRTL(chunk);
@@ -175,7 +168,6 @@ export class PieceTreeTextBufferBuilder implements ITextBufferBuilder {
 
 		if (this._hasPreviousChar) {
 			this._hasPreviousChar = false;
-			// recreate last chunk
 			const lastChunk = this.chunks[this.chunks.length - 1];
 			lastChunk.buffer += String.fromCharCode(this._previousChar);
 			const newLineStarts = createLineStartsFast(lastChunk.buffer);

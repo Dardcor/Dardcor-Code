@@ -59,7 +59,6 @@ function checkFunctionForObservableGetCalls(
 		visited.add(node);
 
 		if (node.type === 'CallExpression' && isObservableGetCall(node)) {
-			// Flag .get() calls since we're always in a reactive context here
 			context.report({
 				node: node,
 				message: `Observable '.get()' should not be used in reactive context. Use '.read(${readerName})' instead to properly track dependencies or '.read(undefined)' to be explicit about an untracked read.`,
@@ -79,13 +78,11 @@ function checkFunctionForObservableGetCalls(
 }
 
 function isObservableGetCall(node: TSESTree.CallExpression): boolean {
-	// Look for pattern: something.get()
 	if (node.callee.type === 'MemberExpression' &&
 		node.callee.property.type === 'Identifier' &&
 		node.callee.property.name === 'get' &&
 		node.arguments.length === 0) {
 
-		// This is a .get() call with no arguments, which is likely an observable
 		return true;
 	}
 	return false;
@@ -114,8 +111,6 @@ function getReaderParameterName(fn: TSESTree.ArrowFunctionExpression | TSESTree.
 	}
 	const firstParam = fn.params[0];
 	if (firstParam.type === 'Identifier') {
-		// Accept any parameter name as a potential reader parameter
-		// since reactive functions should always have the reader as the first parameter
 		return firstParam.name;
 	}
 	return null;

@@ -25,7 +25,6 @@ suite('guessNamingConvention', () => {
 		});
 	});
 
-	// Additional tests for edge cases
 	const edgeCases = [
 		{ input: 'foo', expected: NamingConvention.LowerCase },
 		{ input: 'FOO', expected: NamingConvention.Uppercase },
@@ -80,7 +79,7 @@ suite('enforceNamingConvention', () => {
 		{ givenIdent: 'kebab-case-example', targetConvention: NamingConvention.Uppercase, expected: 'KEBAB-CASE-EXAMPLE' },
 		{ givenIdent: 'Uppercase', targetConvention: NamingConvention.LowerCase, expected: 'uppercase' },
 		{ givenIdent: 'lowercase', targetConvention: NamingConvention.Unknown, expected: 'lowercase' },
-		{ givenIdent: 'Unknown_Example', targetConvention: NamingConvention.CamelCase, expected: 'unknown_example' /* TODO@ulugbekna: improve unknown convention handling */ },
+		{ givenIdent: 'Unknown_Example', targetConvention: NamingConvention.CamelCase, expected: 'unknown_example' },
 	];
 
 	testCases.forEach(({ givenIdent, targetConvention, expected }) => {

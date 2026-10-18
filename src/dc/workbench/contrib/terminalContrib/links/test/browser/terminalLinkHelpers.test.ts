@@ -175,7 +175,6 @@ suite('Workbench - Terminal Link Helpers', () => {
 				{ text: '://t.com/f/', width: 11 }
 			]);
 			const bufferRange = convertLinkRangeToBuffer(lines, 11, { startColumn: 15, startLineNumber: 1, endColumn: 30, endLineNumber: 1 }, 0);
-			// This test ensures that the start offset is applied to the end before it's counted
 			assert.deepStrictEqual(bufferRange, {
 				start: { x: 3 + 4, y: 2 },
 				end: { x: 6 + 4, y: 3 }
@@ -189,7 +188,6 @@ suite('Workbench - Terminal Link Helpers', () => {
 				{ text: '文/', width: 3 }
 			]);
 			const bufferRange = convertLinkRangeToBuffer(lines, 11, { startColumn: 14, startLineNumber: 1, endColumn: 31, endLineNumber: 1 }, 0);
-			// This test ensures that the start offset is applies to the end before it's counted
 			assert.deepStrictEqual(bufferRange, {
 				start: { x: 5, y: 2 },
 				end: { x: 1, y: 4 }
@@ -222,19 +220,16 @@ class TestBufferLine implements IBufferLine {
 
 	}
 	getCell(x: number): IBufferCell | undefined {
-		// Create a fake line of cells and use that to resolve the width
 		const cells: string[] = [];
-		let wideNullCellOffset = 0; // There is no null 0 width char after a wide char
-		const emojiOffset = 0; // Skip chars as emoji are multiple characters
+		let wideNullCellOffset = 0;
+		const emojiOffset = 0;
 		for (let i = 0; i <= x - wideNullCellOffset + emojiOffset; i++) {
 			let char = this._text.charAt(i);
 			if (char === '\ud83d') {
-				// Make "🙂"
 				char += '\ude42';
 			}
 			cells.push(char);
 			if (this._text.charAt(i) === TEST_WIDE_CHAR || char.charCodeAt(0) > 255) {
-				// Skip the next character as it's width is 0
 				cells.push(TEST_NULL_CHAR);
 				wideNullCellOffset++;
 			}
@@ -249,7 +244,6 @@ class TestBufferLine implements IBufferLine {
 					case TEST_WIDE_CHAR: return 2;
 					case TEST_NULL_CHAR: return 0;
 					default: {
-						// Naive measurement, assume anything our of ascii in tests are wide
 						if (cells[x].charCodeAt(0) > 255) {
 							return 2;
 						}

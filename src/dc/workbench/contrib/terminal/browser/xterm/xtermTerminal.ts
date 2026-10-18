@@ -55,9 +55,7 @@ const enum RenderConstants {
 }
 
 const enum TerminalScrollbarWidth {
-	/** Default xterm.js vertical scrollbar width. */
 	Default = 14,
-	/** Narrower scrollbar used when the Modern UI Update experiment is enabled. */
 	ModernUI = 10
 }
 
@@ -83,21 +81,13 @@ function getFullBufferLineAsString(lineIndex: number, buffer: IBuffer): { lineDa
 }
 
 export interface IXtermTerminalOptions {
-	/** The columns to initialize the terminal with. */
 	cols: number;
-	/** The rows to initialize the terminal with. */
 	rows: number;
-	/** The color provider for the terminal. */
 	xtermColorProvider: IXtermColorProvider;
-	/** The capabilities of the terminal. */
 	capabilities: ITerminalCapabilityStore;
-	/** The shell integration nonce to verify data coming from SI is trustworthy. */
 	shellIntegrationNonce?: string;
-	/** Whether to disable shell integration telemetry reporting. */
 	disableShellIntegrationReporting?: boolean;
-	/** The object that imports xterm addons, set this to inject an importer in tests. */
 	xtermAddonImporter?: XtermAddonImporter;
-	/** Whether to disable the overview ruler. */
 	disableOverviewRuler?: boolean;
 	/**
 	 * When true, skips registering listeners on global singleton services
@@ -109,12 +99,7 @@ export interface IXtermTerminalOptions {
 	detached?: boolean;
 }
 
-/**
- * Wraps the xterm object with additional functionality. Interaction with the backing process is out
- * of the scope of this class.
- */
 export class XtermTerminal extends Disposable implements IXtermTerminal, IDetachedXtermTerminal, IInternalXtermTerminal {
-	/** The raw xterm.js instance */
 	readonly raw: RawXtermTerminal;
 	private _core: IXtermCore;
 	private readonly _xtermAddonLoader: XtermAddonImporter;
@@ -132,15 +117,12 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 	get buffer() { return this.raw.buffer; }
 	get cols() { return this.raw.cols; }
 
-	// Always on addons
 	private _markNavigationAddon: MarkNavigationAddon;
 	private _shellIntegrationAddon: ShellIntegrationAddon;
 	private _decorationAddon: DecorationAddon;
 
-	// Always on dynamicly imported addons
 	private _clipboardAddon?: ClipboardAddonType;
 
-	// Optional addons
 	private _searchAddon?: SearchAddonType;
 	private _unicode11Addon?: Unicode11AddonType;
 	private _webglAddon?: WebglAddonType;
@@ -201,10 +183,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		return dom.isAncestorOfActiveElement(this.raw.element);
 	}
 
-	/**
-	 * @param xtermCtor The xterm.js constructor, this is passed in so it can be fetched lazily
-	 * outside of this class such that {@link raw} is not nullable.
-	 */
 	constructor(
 		resource: URI | undefined,
 		xtermCtor: typeof RawXtermTerminal,
@@ -285,7 +263,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		this._core = (this.raw as ITerminalWithCore)._core as IXtermCore;
 
 		// Skip global service listeners for detached terminals to avoid
-		// accumulating listeners when many detached instances exist concurrently.
 		if (!options.detached) {
 			this._register(this._configurationService.onDidChangeConfiguration(async e => {
 				if (e.affectsConfiguration(TerminalSettingId.GpuAcceleration)) {
@@ -306,7 +283,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 			this._register(this._logService.onDidChangeLogLevel(e => this.raw.options.logLevel = vscodeToXtermLogLevel(e)));
 		}
 
-		// Refire events
 		this._register(this.raw.onSelectionChange(() => {
 			this._onDidChangeSelection.fire();
 			if (this.isFocused) {
@@ -315,7 +291,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		}));
 		this._register(this.raw.onData(e => this._lastInputEvent = e));
 
-		// Load addons
 		this._updateUnicodeVersion();
 		this._markNavigationAddon = this._instantiationService.createInstance(MarkNavigationAddon, options.capabilities);
 		this.raw.loadAddon(this._markNavigationAddon);
@@ -387,9 +362,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		if (endMarker?.line === -1) {
 			throw new Error('Cannot get contents of a disposed endMarker');
 		}
-		// When the start marker is disposed (scrolled out of the buffer due to
-		// scrollback limits), fall back to line 0 to return whatever remains in
-		// the buffer rather than losing all output.
 		const startLine = (startMarker === undefined || startMarker.line === -1) ? 0 : startMarker.line;
 		const endLine = endMarker?.line ?? buffer.length - 1;
 		for (let y = startLine; y <= endLine; y++) {
@@ -428,7 +400,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		if (endLine < startLine) {
 			return { text: '', truncated: false };
 		}
-		// Trim empty lines from the end
 		let emptyLinesFromEnd = 0;
 		for (let i = endLine; i >= startLine; i--) {
 			const line = this.raw.buffer.active.getLine(i);
@@ -440,7 +411,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		}
 		endLine = endLine - emptyLinesFromEnd;
 
-		// Trim empty lines from the start
 		let emptyLinesFromStart = 0;
 		for (let i = startLine; i <= endLine; i++) {
 			const line = this.raw.buffer.active.getLine(i);
@@ -497,7 +467,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 			this.raw.open(container);
 		}
 
-		// TODO: Move before open so the DOM renderer doesn't initialize
 		if (options.enableGpu) {
 			if (this._shouldLoadWebgl()) {
 				this._enableWebglRenderer();
@@ -514,8 +483,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		ad.add(dom.addDisposableListener(this.raw.textarea, 'blur', () => this._setFocused(false)));
 		ad.add(dom.addDisposableListener(this.raw.textarea, 'focusout', () => this._setFocused(false)));
 
-		// Track wheel events in mouse wheel classifier and update smoothScrolling when it changes
-		// as it must be disabled when a trackpad is used
 		ad.add(dom.addDisposableListener(this.raw.element, dom.EventType.MOUSE_WHEEL, (e: IMouseWheelEvent) => {
 			const classifier = MouseWheelClassifier.INSTANCE;
 			classifier.acceptStandardWheelEvent(new StandardWheelEvent(e));
@@ -529,7 +496,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		this._refreshLigaturesAddon();
 
 		this._attached = { container, options };
-		// Screen must be created at this point as xterm.open is called
 		// eslint-disable-next-line no-restricted-syntax
 		return this._attached?.container.querySelector('.xterm-screen')!;
 	}
@@ -553,20 +519,12 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		this.raw.options.logLevel = vscodeToXtermLogLevel(this._logService.getLevel());
 	}
 
-	/**
-	 * The width, in pixels, of the vertical scrollbar. Narrower under the Modern
-	 * UI Update experiment so it matches the modernized workbench scrollbars.
-	 */
 	get scrollbarWidth(): number {
 		return this._configurationService.getValue<boolean>(LayoutSettings.MODERN_UI) === true
 			? TerminalScrollbarWidth.ModernUI
 			: TerminalScrollbarWidth.Default;
 	}
 
-	/**
-	 * Builds the xterm.js `scrollbar` option using {@link scrollbarWidth}. Returns
-	 * `undefined` when the overview ruler is disabled (e.g. detached terminals).
-	 */
 	private _getScrollbarOptions(): { width: number; overviewRuler: { showTopBorder: boolean } } | undefined {
 		if (this._disableOverviewRuler) {
 			return undefined;
@@ -653,10 +611,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 
 	private _updateFindColors(searchOptions: ISearchOptions): void {
 		const theme = this._themeService.getColorTheme();
-		// Theme color names align with monaco/vscode whereas xterm.js has some different naming.
-		// The mapping is as follows:
-		// - findMatch -> activeMatch
-		// - findMatchHighlight -> match
 		const terminalBackground = theme.getColor(TERMINAL_BACKGROUND_COLOR) || theme.getColor(PANEL_BACKGROUND);
 		const findMatchBackground = theme.getColor(TERMINAL_FIND_MATCH_BACKGROUND_COLOR);
 		const findMatchBorder = theme.getColor(TERMINAL_FIND_MATCH_BORDER_COLOR);
@@ -668,7 +622,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 			activeMatchBackground: findMatchBackground?.toString(),
 			activeMatchBorder: findMatchBorder?.toString() || 'transparent',
 			activeMatchColorOverviewRuler: findMatchOverviewRuler?.toString() || 'transparent',
-			// decoration bgs don't support the alpha channel so blend it with the regular bg
 			matchBackground: terminalBackground ? findMatchHighlightBackground?.blend(terminalBackground).toString() : undefined,
 			matchBorder: findMatchHighlightBorder?.toString() || 'transparent',
 			matchOverviewRuler: findMatchHighlightOverviewRuler?.toString() || 'transparent'
@@ -729,7 +682,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		}
 		let currentIndex = index;
 		let endSpaces = 0;
-		// line.length may exceed cols as it doesn't necessarily trim the backing array on resize
 		for (let i = Math.min(line.length, this.raw.cols) - 1; i >= 0; i--) {
 			if (!line?.getCell(i)?.getChars()) {
 				endSpaces++;
@@ -774,8 +726,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 
 	clearBuffer(): void {
 		this.raw.clear();
-		// xterm.js does not clear the first prompt, so trigger these to simulate
-		// the prompt being written
 		this._capabilities.get(TerminalCapability.CommandDetection)?.handlePromptStart();
 		this._capabilities.get(TerminalCapability.CommandDetection)?.handleCommandStart();
 		this._accessibilitySignalService.playSignal(AccessibilitySignal.clear);
@@ -881,12 +831,10 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 	}
 
 	private async _enableWebglRenderer(): Promise<void> {
-		// Currently webgl options can only be specified on addon creation
 		if (!this.raw.element || this._webglAddon && this._webglAddonCustomGlyphs === this._terminalConfigurationService.config.customGlyphs) {
 			return;
 		}
 
-		// Dispose of existing addon before creating a new one to avoid leaking WebGL contexts
 		this._disposeOfWebglRenderer();
 
 		this._webglAddonCustomGlyphs = this._terminalConfigurationService.config.customGlyphs;
@@ -903,15 +851,7 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 				this._disposeOfWebglRenderer();
 			}));
 			this._refreshImageAddon();
-			// WebGL renderer cell dimensions differ from the DOM renderer, make sure the terminal
-			// gets resized after the webgl addon is loaded
 			this._onDidRequestRefreshDimensions.fire();
-			// Uncomment to add the texture atlas to the DOM
-			// setTimeout(() => {
-			// 	if (this._webglAddon?.textureAtlas) {
-			// 		document.body.appendChild(this._webglAddon?.textureAtlas);
-			// 	}
-			// }, 5000);
 		} catch (e) {
 			this._logService.warn(`Webgl could not be loaded. Falling back to the DOM renderer`, e);
 			XtermTerminal._suggestedRendererType = 'dom';
@@ -955,8 +895,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		}
 
 		if (shouldRecreateWebglRenderer && this._webglAddon) {
-			// Re-create the webgl addon when ligatures state changes to so the texture atlas picks up
-			// styles from the DOM.
 			this._disposeOfWebglRenderer();
 			await this._enableWebglRenderer();
 		}
@@ -964,7 +902,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 
 	@debounce(100)
 	private async _refreshImageAddon(): Promise<void> {
-		// Only allow the image addon when webgl is being used to avoid possible GPU issues
 		if (this._terminalConfigurationService.config.enableImages && this._webglAddon) {
 			if (!this._imageAddon) {
 				const AddonCtor = await this._xtermAddonLoader.importAddon('image');
@@ -987,7 +924,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 			try {
 				this._imageAddon?.dispose();
 			} catch {
-				// ignore
 			}
 			this._imageAddon = undefined;
 		}
@@ -1000,13 +936,10 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 		try {
 			this._webglAddon?.dispose();
 		} catch {
-			// ignore
 		}
 		this._webglAddon = undefined;
 		this._webglAddonCustomGlyphs = undefined;
 		this._refreshImageAddon();
-		// WebGL renderer cell dimensions differ from the DOM renderer, make sure the terminal
-		// gets resized after the webgl addon is disposed
 		this._onDidRequestRefreshDimensions.fire();
 	}
 
@@ -1132,10 +1065,6 @@ export function getXtermScaledDimensions(w: Window, font: ITerminalFont, width: 
 		return null;
 	}
 
-	// Because xterm.js converts from CSS pixels to actual pixels through
-	// the use of canvas, window.devicePixelRatio needs to be used here in
-	// order to be precise. font.charWidth/charHeight alone as insufficient
-	// when window.devicePixelRatio changes.
 	const scaledWidthAvailable = width * w.devicePixelRatio;
 
 	const scaledCharWidth = font.charWidth * w.devicePixelRatio + font.letterSpacing;
@@ -1165,7 +1094,6 @@ interface ICursorStyleVscodeToXtermMap {
 	'cursorStyleInactive': NonNullable<ITerminalOptions['cursorInactiveStyle']>;
 }
 function vscodeToXtermCursorStyle<T extends 'cursorStyle' | 'cursorStyleInactive'>(style: ITerminalConfiguration[T]): ICursorStyleVscodeToXtermMap[T] {
-	// 'line' is used instead of bar in VS Code to be consistent with editor.cursorStyle
 	if (style === 'line') {
 		return 'bar';
 	}

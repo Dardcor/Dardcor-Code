@@ -9,7 +9,6 @@ import { SafetyRules } from '../base/safetyRules';
 import { CurrentEditor } from './currentEditor';
 import { WorkspaceStructure } from './workspace/workspaceStructure';
 
-// Re-export types for consumers
 export type { PromptClassification, PromptIntent, PromptDomain, PromptScope } from '../../../prompt/common/promptCategorizationTaxonomy';
 
 export interface PromptCategorizationProps extends BasePromptElementProps {

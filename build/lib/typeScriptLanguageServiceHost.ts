@@ -7,15 +7,12 @@ import ts from 'typescript';
 import fs from 'node:fs';
 import { normalize } from 'node:path';
 
-export type IFileMap = Map</*fileName*/ string, string>;
+export type IFileMap = Map< string, string>;
 
 function normalizePath(filePath: string): string {
 	return normalize(filePath);
 }
 
-/**
- * A TypeScript language service host
- */
 export class TypeScriptLanguageServiceHost implements ts.LanguageServiceHost {
 
 	private readonly ts: typeof import('typescript');
@@ -32,7 +29,6 @@ export class TypeScriptLanguageServiceHost implements ts.LanguageServiceHost {
 		this.compilerOptions = compilerOptions;
 	}
 
-	// --- language service host ---------------
 	getCompilationSettings(): ts.CompilerOptions {
 		return this.compilerOptions;
 	}

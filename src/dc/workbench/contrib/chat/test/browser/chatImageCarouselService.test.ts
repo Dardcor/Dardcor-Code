@@ -85,7 +85,6 @@ suite('ChatImageCarouselService helpers', () => {
 		test('finds image by URI string match in second section', () => {
 			const sections = makeSections(2, 3);
 			const targetUri = URI.parse(sections[1].images[2].id);
-			// globalOffset = 2 (first section) + 2 (third in second section) = 4
 			assert.strictEqual(findClickedImageIndex(sections, targetUri), 4);
 		});
 
@@ -426,8 +425,6 @@ suite('ChatImageCarouselService helpers', () => {
 
 			assert.strictEqual(result.length, 1);
 			const data = result[0].images[0].data;
-			// data must be a Uint8Array (not VSBuffer or ArrayBuffer) so that
-			// new Blob([data]) in the carousel editor works correctly.
 			assert.ok(data instanceof Uint8Array, 'image data should be Uint8Array');
 			assert.deepStrictEqual([...data], [1, 2, 3]);
 		});

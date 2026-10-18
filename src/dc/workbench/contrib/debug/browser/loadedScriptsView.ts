@@ -45,7 +45,6 @@ import { renderViewTree } from './baseDebugView.js';
 
 const NEW_STYLE_COMPRESS = true;
 
-// RFC 2396, Appendix A: https://www.ietf.org/rfc/rfc2396.txt
 const URI_SCHEMA_PATTERN = /^[a-zA-Z][a-zA-Z0-9\+\-\.]+:/;
 
 type LoadedScriptsItem = BaseTreeItem;
@@ -120,7 +119,6 @@ class BaseTreeItem {
 		return 'id';
 	}
 
-	// a dynamic ID based on the parent chain; required for reparenting (see #55448)
 	getId(): string {
 		const parent = this.getParent();
 		return parent ? `${parent.getId()}/${this.getInternalId()}` : this.getInternalId();
@@ -130,7 +128,6 @@ class BaseTreeItem {
 		return this._label;
 	}
 
-	// skips intermediate single-child nodes
 	getParent(): BaseTreeItem | undefined {
 		if (this._parent) {
 			if (this._parent.isSkipped()) {
@@ -144,14 +141,13 @@ class BaseTreeItem {
 	isSkipped(): boolean {
 		if (this._parent) {
 			if (this._parent.oneChild()) {
-				return true;	// skipped if I'm the only child of my parents
+				return true;
 			}
 			return false;
 		}
-		return true;	// roots are never skipped
+		return true;
 	}
 
-	// skips intermediate single-child nodes
 	hasChildren(): boolean {
 		const child = this.oneChild();
 		if (child) {
@@ -160,7 +156,6 @@ class BaseTreeItem {
 		return this._children.size > 0;
 	}
 
-	// skips intermediate single-child nodes
 	getChildren(): BaseTreeItem[] {
 		const child = this.oneChild();
 		if (child) {
@@ -173,7 +168,6 @@ class BaseTreeItem {
 		return array.sort((a, b) => this.compare(a, b));
 	}
 
-	// skips intermediate single-child nodes
 	getLabel(separateRootFolder = true): string {
 		const child = this.oneChild();
 		if (child) {
@@ -183,7 +177,6 @@ class BaseTreeItem {
 		return this._label;
 	}
 
-	// skips intermediate single-child nodes
 	getHoverLabel(): string | undefined {
 		if (this._source && this._parent && this._parent._source) {
 			return this._source.raw.path || this._source.raw.name;
@@ -199,7 +192,6 @@ class BaseTreeItem {
 		return label;
 	}
 
-	// skips intermediate single-child nodes
 	getSource(): Source | undefined {
 		const child = this.oneChild();
 		if (child) {
@@ -220,7 +212,6 @@ class BaseTreeItem {
 			if (this._children.size === 1) {
 				return this._children.values().next().value;
 			}
-			// if a node had more than one child once, it will never be skipped again
 			if (this._children.size > 1) {
 				this._showedMoreThanOne = true;
 			}
@@ -230,7 +221,6 @@ class BaseTreeItem {
 
 	private skipOneChild(): boolean {
 		if (NEW_STYLE_COMPRESS) {
-			// if the root node has only one Session, don't show the session
 			return this instanceof RootTreeItem;
 		} else {
 			return !(this instanceof RootFolderTreeItem) && !(this instanceof SessionTreeItem);
@@ -301,18 +291,15 @@ class SessionTreeItem extends BaseTreeItem {
 
 	private category(item: BaseTreeItem): number {
 
-		// workspace scripts come at the beginning in "folder" order
 		if (item instanceof RootFolderTreeItem) {
 			return item.folder.index;
 		}
 
-		// <...> come at the very end
 		const l = item.getLabel();
 		if (l && /^<.+>$/.test(l)) {
 			return 1000;
 		}
 
-		// everything else in between
 		return 999;
 	}
 
@@ -338,20 +325,16 @@ class SessionTreeItem extends BaseTreeItem {
 			if (isAbsolute(path)) {
 				const resource = URI.file(path);
 
-				// return early if we can resolve a relative path label from the root folder
 				folder = this.rootProvider ? this.rootProvider.getWorkspaceFolder(resource) : null;
 				if (folder) {
-					// strip off the root folder path
 					path = normalize(ltrim(resource.path.substring(folder.uri.path.length), posix.sep));
 					const hasMultipleRoots = this.rootProvider.getWorkspace().folders.length > 1;
 					if (hasMultipleRoots) {
 						path = posix.sep + path;
 					} else {
-						// don't show root folder
 						folder = null;
 					}
 				} else {
-					// on unix try to tildify absolute paths
 					path = normalize(path);
 					if (isWindows) {
 						path = normalizeDriveLetter(path);
@@ -396,9 +379,6 @@ interface IViewState {
 	readonly expanded: Set<string>;
 }
 
-/**
- * This maps a model item into a view model item.
- */
 function asTreeElement(item: BaseTreeItem, viewState?: IViewState): ITreeElement<LoadedScriptsItem> {
 	const children = item.getChildren();
 	const collapsed = viewState ? !viewState.expanded.has(item.getId()) : !(item instanceof SessionTreeItem);
@@ -541,7 +521,6 @@ export class LoadedScriptsView extends ViewPane {
 			}
 		};
 
-		// Track listeners per session to avoid leaking disposables
 		const sessionListeners = this._register(new DisposableMap<string, DisposableStore>());
 
 		const registerSessionListeners = (session: IDebugSession) => {
@@ -598,7 +577,6 @@ export class LoadedScriptsView extends ViewPane {
 			}
 		}));
 
-		// feature: expand all nodes when filtering (not when finding)
 		let viewState: IViewState | undefined;
 		this._register(this.tree.onDidChangeFindPattern(pattern => {
 			if (this.tree.findMode === TreeFindMode.Highlight) {
@@ -627,7 +605,6 @@ export class LoadedScriptsView extends ViewPane {
 			}
 		}));
 
-		// populate tree model with source paths from all debug sessions
 		this.debugService.getModel().getSessions().forEach(session => addSourcePathsToSession(session));
 	}
 

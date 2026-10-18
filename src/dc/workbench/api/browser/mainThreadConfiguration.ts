@@ -34,7 +34,6 @@ export class MainThreadConfiguration implements MainThreadConfigurationShape {
 
 	private _getConfigurationData(): IConfigurationInitData {
 		const configurationData: IConfigurationInitData = { ...(this.configurationService.getConfigurationData()!), configurationScopes: [] };
-		// Send configurations scopes only in development mode.
 		if (!this._environmentService.isBuilt || this._environmentService.isExtensionDevelopment) {
 			configurationData.configurationScopes = getScopes();
 		}

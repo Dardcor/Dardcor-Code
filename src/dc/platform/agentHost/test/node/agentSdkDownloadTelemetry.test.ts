@@ -7,8 +7,6 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { classifyAgentSdkDownloadFailure, type AgentSdkDownloadFailureReason } from '../../node/agentSdkDownloadTelemetry.js';
 
-// Reporting itself is exercised end-to-end against the real downloader in
-// `agentSdkDownloader.test.ts`; only the classifier is worth a table here.
 suite('Agent SDK download telemetry', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 

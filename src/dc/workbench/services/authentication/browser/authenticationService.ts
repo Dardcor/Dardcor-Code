@@ -26,7 +26,6 @@ import { CancellationTokenSource } from '../../../../base/common/cancellation.js
 
 export function getAuthenticationProviderActivationEvent(id: string): string { return `onAuthenticationRequest:${id}`; }
 
-// TODO: pull this out into its own service
 export type AuthenticationSessionInfo = { readonly id: string; readonly accessToken: string; readonly providerId: string; readonly canSignOut?: boolean };
 export async function getCurrentAuthenticationSessionInfo(
 	secretStorageService: ISecretStorageService,
@@ -44,7 +43,6 @@ export async function getCurrentAuthenticationSessionInfo(
 				return authenticationSessionInfo;
 			}
 		} catch (e) {
-			// This is a best effort operation.
 			console.error(`Failed parsing current auth session value: ${e}`);
 		}
 	}
@@ -122,8 +120,6 @@ export class AuthenticationService extends Disposable implements IAuthentication
 		super();
 		this._register(toDisposable(() => this._disposedSource.dispose(true)));
 		this._register(authenticationAccessService.onDidChangeExtensionSessionAccess(e => {
-			// The access has changed, not the actual session itself but extensions depend on this event firing
-			// when they have gained access to an account so this fires that event.
 			this._onDidChangeSessions.fire({
 				providerId: e.providerId,
 				label: e.accountName,
@@ -138,7 +134,6 @@ export class AuthenticationService extends Disposable implements IAuthentication
 		this._registerEnvContributedAuthenticationProviders();
 		this._registerAuthenticationExtensionPointHandler();
 
-		// Dardcor Code: Inject dummy GitHub authentication provider to bypass Copilot login
 		this.registerAuthenticationProvider('github', {
 			id: 'github',
 			label: 'GitHub (Dardcor)',
@@ -278,7 +273,6 @@ export class AuthenticationService extends Disposable implements IAuthentication
 		const provider = this._authenticationProviders.get(id);
 		if (provider) {
 			this._authenticationProviders.delete(id);
-			// If this is a dynamic provider, remove it from the set of dynamic providers
 			this._dynamicAuthenticationProviderIds.delete(id);
 			this._onDidUnregisterAuthenticationProvider.fire({ id, label: provider.label });
 		}
@@ -301,7 +295,6 @@ export class AuthenticationService extends Disposable implements IAuthentication
 	}
 
 	async getAccounts(id: string): Promise<ReadonlyArray<AuthenticationSessionAccount>> {
-		// TODO: Cache this
 		const sessions = await this.getSessions(id);
 		const accounts = new Array<AuthenticationSessionAccount>();
 		const seenAccounts = new Set<string>();
@@ -321,11 +314,8 @@ export class AuthenticationService extends Disposable implements IAuthentication
 
 		const authProvider = this._authenticationProviders.get(id) || await this.tryActivateProvider(id, activateImmediate);
 		if (authProvider) {
-			// Check if the authorization server is in the list of supported authorization servers
 			const server = options?.authorizationServer;
 			if (server) {
-				// Skip the resource server check since the auth provider id contains a specific resource server
-				// TODO@TylerLeonhardt: this can change when we have providers that support multiple resource servers
 				if (!this.matchesProvider(authProvider, server)) {
 					throw new Error(`The authentication provider '${id}' does not support the authorization server '${server.toString(true)}'.`);
 				}
@@ -389,14 +379,11 @@ export class AuthenticationService extends Disposable implements IAuthentication
 
 		const authServerStr = authorizationServer.toString(true);
 		const providers = this._declaredProviders
-			// Only consider providers that are not already registered since we already checked them
 			.filter(p => !this._authenticationProviders.has(p.id))
 			.filter(p => !!p.authorizationServerGlobs?.some(i => match(i, authServerStr, { ignoreCase: true })));
 
-		// TODO:@TylerLeonhardt fan out?
 		for (const provider of providers) {
 			const activeProvider = await this.tryActivateProvider(provider.id, true);
-			// Check the resolved authorization servers
 			if (this.matchesProvider(activeProvider, authorizationServer, resourceServer)) {
 				return activeProvider.id;
 			}
@@ -455,7 +442,6 @@ export class AuthenticationService extends Disposable implements IAuthentication
 	}
 
 	private matchesProvider(provider: IAuthenticationProvider, authorizationServer: URI, resourceServer?: URI): boolean {
-		// If a resourceServer is provided and the provider has a resourceServer defined, they must match
 		if (resourceServer && provider.resourceServer) {
 			const resourceServerStr = resourceServer.toString(true);
 			const providerResourceServerStr = provider.resourceServer.toString(true);
@@ -479,10 +465,6 @@ export class AuthenticationService extends Disposable implements IAuthentication
 	private async tryActivateProvider(providerId: string, activateImmediate: boolean): Promise<IAuthenticationProvider> {
 		const store = new DisposableStore();
 		try {
-			// Don't await activateByEvent exclusively — one or more extension
-			// hosts may be blocked (e.g. webworker waiting on remote authority),
-			// causing a deadlock. Instead, race with the provider being
-			// registered so we can proceed as soon as any host delivers it. (#315841)
 			const activationPromise = this._extensionService.activateByEvent(
 				getAuthenticationProviderActivationEvent(providerId),
 				activateImmediate ? ActivationKind.Immediate : ActivationKind.Normal
@@ -508,7 +490,6 @@ export class AuthenticationService extends Disposable implements IAuthentication
 				this._disposedSource.token
 			);
 
-			// Wait for either activation to complete or the provider to register.
 			await Promise.race([activationPromise, providerRegistered]);
 
 			provider = this._authenticationProviders.get(providerId);
@@ -516,8 +497,6 @@ export class AuthenticationService extends Disposable implements IAuthentication
 				return provider;
 			}
 
-			// TODO: Remove this timeout and figure out a better way to ensure auth providers
-			// are registered _during_ extension activation.
 			const result = await raceTimeout(providerRegistered, 5000);
 			provider = this._authenticationProviders.get(providerId);
 			if (provider) {

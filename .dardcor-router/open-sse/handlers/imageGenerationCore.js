@@ -11,21 +11,6 @@ function serializeRequestBody(requestBody) {
   return JSON.stringify(requestBody);
 }
 
-/**
- * Core image generation handler — orchestrator only.
- * Provider-specific URL/headers/body/parse/normalize live in `./imageProviders/{id}.js`.
- *
- * @param {object} options
- * @param {object} options.body - Request body { model, prompt, n, size, ... }
- * @param {object} options.modelInfo - { provider, model }
- * @param {object} options.credentials - Provider credentials
- * @param {object} [options.log] - Logger
- * @param {boolean} [options.streamToClient] - Pipe SSE to client (codex)
- * @param {boolean} [options.binaryOutput] - Return raw image bytes
- * @param {function} [options.onCredentialsRefreshed]
- * @param {function} [options.onRequestSuccess]
- * @returns {Promise<{ success: boolean, response: Response, status?: number, error?: string }>}
- */
 export async function handleImageGenerationCore({
   body,
   modelInfo,
@@ -50,7 +35,6 @@ export async function handleImageGenerationCore({
     );
   }
 
-  // Executor-delegating adapters: skip manual URL/headers/body, use the proven executor flow
   if (adapter.useExecutor && adapter.executeViaExecutor) {
     try {
       log?.debug?.("IMAGE", `${provider.toUpperCase()} | ${model} | prompt="${body.prompt.slice(0, 50)}..." (executor)`);
@@ -118,7 +102,6 @@ export async function handleImageGenerationCore({
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, errMsg);
   }
 
-  // Handle 401/403 — try token refresh (skipped for noAuth providers)
   const executor = getExecutor(provider);
   if (
     !executor?.noAuth &&
@@ -161,7 +144,6 @@ export async function handleImageGenerationCore({
     return createErrorResult(statusCode, errMsg);
   }
 
-  // Parse provider response — adapter may override (codex SSE / async polling / binary)
   let parsed;
   try {
     if (adapter.parseResponse) {
@@ -175,7 +157,6 @@ export async function handleImageGenerationCore({
         model,
         body,
       });
-      // Codex streaming case: returns an SSE Response directly
       if (parsed?.sseResponse) {
         return { success: true, response: parsed.sseResponse };
       }
@@ -188,13 +169,10 @@ export async function handleImageGenerationCore({
 
   if (onRequestSuccess) await onRequestSuccess();
 
-  // Normalize → OpenAI-compatible shape
   const normalized = adapter.normalize(parsed, body.prompt);
 
-  // Already in OpenAI shape? skip re-normalize
   const finalBody = (normalized.created && Array.isArray(normalized.data)) ? normalized : parsed;
 
-  // Binary output: decode first b64_json (or fetch url) into raw bytes
   if (binaryOutput) {
     const first = finalBody.data?.[0];
     let b64 = first?.b64_json;

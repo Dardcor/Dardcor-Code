@@ -52,7 +52,6 @@ suite('Bracket Pair Colorizer - mergeItems', () => {
 
 	function testMerge(lists: AstNode[]) {
 		const node = (concat23Trees(lists.map(l => l.deepClone())) || ListAstNode.create([])).flattenLists();
-		// This trivial merge does not maintain the (2,3) tree invariant.
 		const referenceNode = ListAstNode.create(lists).flattenLists();
 
 		assert.ok(equals(node, referenceNode), 'merge23Trees failed');

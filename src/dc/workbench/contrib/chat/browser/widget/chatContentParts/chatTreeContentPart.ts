@@ -70,7 +70,6 @@ export class ChatTreeContentPart extends Disposable implements IChatContentPart 
 	}
 
 	hasSameContent(other: IChatProgressRenderableResponseContent): boolean {
-		// No other change allowed for this content type
 		return other.kind === 'treeData';
 	}
 

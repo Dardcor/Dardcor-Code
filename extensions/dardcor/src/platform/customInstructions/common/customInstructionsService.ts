@@ -83,14 +83,7 @@ export interface ICustomInstructionsService {
 	isSkillMdFile(uri: URI): boolean;
 	getSkillInfo(uri: URI): ISkillInfo | undefined;
 
-	/**
-	 * Refreshes the cached extension prompt files by querying VS Code's extension prompt file provider.
-	 * The cache is normally initialized lazily on first use in {@link isExternalInstructionsFile}, so
-	 * callers only need to invoke this explicitly when they require the latest extension state before
-	 * that first lookup or want to force a manual refresh of the cached prompt file list.
-	 */
 	refreshExtensionPromptFiles(): Promise<void>;
-	/** Gets skill info for extension-contributed skill files */
 	getExtensionSkillInfo(uri: URI): (ISkillInfo & { extensionId?: string }) | undefined;
 }
 
@@ -228,13 +221,11 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 					const workspaceSkillFolderUris = this.workspaceService.getWorkspaceFolders().flatMap(workspaceFolder =>
 						WORKSPACE_SKILL_FOLDERS.map(folder => extUriBiasedIgnorePathCase.joinPath(workspaceFolder, folder))
 					);
-					// Tagged list preserving the storage provenance for each folder
 					const taggedSkillFolderUris: { uri: URI; storage: SkillStorage }[] = [
 						...personalSkillFolderUris.map(uri => ({ uri, storage: SkillStorage.Personal as const })),
 						...workspaceSkillFolderUris.map(uri => ({ uri, storage: SkillStorage.Workspace as const })),
 					];
 
-					// Get additional skill locations from config
 					const configSkillLocationUris: URI[] = [];
 					const locations = this.configurationService.getNonExtensionConfig<Record<string, boolean>>(SKILLS_LOCATION_KEY);
 					const userHome = this.envService.userHome;
@@ -246,13 +237,11 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 							if (value !== true) {
 								continue;
 							}
-							// Expand ~/ to user home directory
 							if (location.startsWith('~/')) {
 								configSkillLocationUris.push(Uri.joinPath(userHome, location.substring(2)));
 							} else if (isAbsolute(location)) {
 								configSkillLocationUris.push(URI.file(location));
 							} else {
-								// Relative path - join to each workspace folder
 								for (const workspaceFolder of workspaceFolders) {
 									configSkillLocationUris.push(Uri.joinPath(workspaceFolder, location));
 								}
@@ -261,13 +250,10 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 					}
 
 					return ((uri: URI) => {
-						// Check workspace and personal skill folders
 						for (const { uri: topLevelSkillFolderUri, storage } of taggedSkillFolderUris) {
 							if (extUriBiasedIgnorePathCase.isEqualOrParent(uri, topLevelSkillFolderUri)) {
-								// Get the path segments relative to the skill folder
 								const relativePath = extUriBiasedIgnorePathCase.relativePath(topLevelSkillFolderUri, uri);
 								if (relativePath) {
-									// The skill directory is the first path segment under the skill folder
 									const skillName = relativePath.split('/')[0];
 									const skillFolderUri = extUriBiasedIgnorePathCase.joinPath(topLevelSkillFolderUri, skillName);
 									return { skillName, skillFolderUri, storage };
@@ -275,14 +261,11 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 							}
 						}
 
-						// Check config-based skill locations
 						if (configSkillLocationUris.length > 0) {
 							for (const locationUri of configSkillLocationUris) {
 								if (extUriBiasedIgnorePathCase.isEqualOrParent(uri, locationUri)) {
-									// Get the path segments relative to the skill folder
 									const relativePath = extUriBiasedIgnorePathCase.relativePath(locationUri, uri);
 									if (relativePath) {
-										// The skill directory is the first path segment under the skill folder
 										const skillName = relativePath.split('/')[0];
 										const skillFolderUri = extUriBiasedIgnorePathCase.joinPath(locationUri, skillName);
 										return { skillName, skillFolderUri, storage: SkillStorage.Workspace };
@@ -291,7 +274,6 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 							}
 						}
 
-						// Check extension-contributed skills
 						return this.getExtensionSkillInfo(uri);
 					});
 				}
@@ -314,7 +296,6 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 						result.push(uri);
 					}
 				} catch (e) {
-					// ignore non-existing instruction files
 				}
 			}
 			try {
@@ -323,7 +304,6 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 					result.push(uri);
 				}
 			} catch (e) {
-				// ignore non-existing instruction files
 			}
 		}
 		return result;
@@ -418,7 +398,6 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 		}
 		return this._extensionPromptFilesCache.some(file => {
 			if (file.type === 'skill') {
-				// For skills, the URI points to SKILL.md - allow everything under the parent folder
 				const skillFolderUri = extUriBiasedIgnorePathCase.dirname(file.uri);
 				return extUriBiasedIgnorePathCase.isEqualOrParent(uri, skillFolderUri);
 			}
@@ -456,9 +435,7 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 			return true;
 		}
 
-		// Check cached extension-contributed prompt files
 		if (this._extensionPromptFilesCache === undefined) {
-			// Cache not initialized yet, fetch it now
 			await this.refreshExtensionPromptFiles();
 		}
 		return this.isExtensionPromptFile(uri);
@@ -510,9 +487,6 @@ class InstructionIndexFile implements IInstructionIndexFile {
 		@IPromptPathRepresentationService private readonly promptPathRepresentationService: IPromptPathRepresentationService) {
 	}
 
-	/**
-	 * Finds file paths or names in the index file. The index file has XML format: <listElementName><elementName><propertyName>value</propertyName></elementName></listElementName>
-	 */
 	private getValuesInIndexFile(listElementName: string, elementName: string, propertyName: string): string[] {
 		const result: string[] = [];
 		const lists = xmlContents(this.content, listElementName);

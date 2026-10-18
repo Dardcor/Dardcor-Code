@@ -32,7 +32,6 @@ export const SET_ROOT_FOLDER_COMMAND_ID = 'setRootFolder';
 
 export const PICK_WORKSPACE_FOLDER_COMMAND_ID = '_workbench.pickWorkspaceFolder';
 
-// Command registration
 
 CommandsRegistry.registerCommand({
 	id: 'workbench.action.files.openFileFolderInNewWindow',
@@ -122,7 +121,7 @@ CommandsRegistry.registerCommand(PICK_WORKSPACE_FOLDER_COMMAND_ID, async functio
 
 		return {
 			label,
-			description: description !== label ? description : undefined, // https://github.com/microsoft/vscode/issues/183418
+			description: description !== label ? description : undefined,
 			folder,
 			iconClasses: getIconClasses(modelService, languageService, folder.uri, FileKind.ROOT_FOLDER)
 		};
@@ -151,7 +150,6 @@ CommandsRegistry.registerCommand(PICK_WORKSPACE_FOLDER_COMMAND_ID, async functio
 	return;
 });
 
-// API Command registration
 
 interface IOpenFolderAPICommandOptions {
 	forceNewWindow?: boolean;
@@ -168,12 +166,10 @@ CommandsRegistry.registerCommand({
 	handler: (accessor: ServicesAccessor, uriComponents?: UriComponents, arg?: boolean | IOpenFolderAPICommandOptions) => {
 		const commandService = accessor.get(ICommandService);
 
-		// Be compatible to previous args by converting to options
 		if (typeof arg === 'boolean') {
 			arg = { forceNewWindow: arg };
 		}
 
-		// Without URI, ask to pick a folder or workspace to open
 		if (!uriComponents) {
 			const options: IPickAndOpenOptions = {
 				forceNewWindow: arg?.forceNewWindow
@@ -228,10 +224,6 @@ CommandsRegistry.registerCommand({
 
 interface INewWindowAPICommandOptions {
 	reuseWindow?: boolean;
-	/**
-	 * If set, defines the remoteAuthority of the new window. `null` will open a local window.
-	 * If not set, defaults to remoteAuthority of the current window.
-	 */
 	remoteAuthority?: string | null;
 }
 
@@ -260,7 +252,6 @@ CommandsRegistry.registerCommand({
 	}
 });
 
-// recent history commands
 
 CommandsRegistry.registerCommand('_workbench.removeFromRecentlyOpened', function (accessor: ServicesAccessor, uri: URI) {
 	const workspacesService = accessor.get(IWorkspacesService);
@@ -275,7 +266,7 @@ CommandsRegistry.registerCommand({
 		if (typeof path === 'string') {
 			path = path.match(/^[^:/?#]+:\/\//) ? URI.parse(path) : URI.file(path);
 		} else {
-			path = URI.revive(path); // called from extension host
+			path = URI.revive(path);
 		}
 
 		return workspacesService.removeRecentlyOpened([path]);

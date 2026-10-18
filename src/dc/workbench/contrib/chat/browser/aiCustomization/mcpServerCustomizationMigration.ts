@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { VSBuffer } from '../../../../../base/common/buffer.js';
-import { Iterable } from '../../../../../base/common/iterator.js';
 import { parse, ParseError } from '../../../../../base/common/json.js';
 import { applyEdits, setProperty } from '../../../../../base/common/jsonEdit.js';
 import { FormattingOptions } from '../../../../../base/common/jsonFormatter.js';
@@ -16,9 +15,7 @@ import { normalizeMcpServerConfiguration } from '../../../../../platform/agentPl
 import { FileOperationError, FileOperationResult, IFileService, IFileStatWithMetadata, toFileOperationResult } from '../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IMcpServerConfiguration, McpServerType } from '../../../../../platform/mcp/common/mcpPlatformTypes.js';
-import { ConfigurationResolverExpression } from '../../../../services/configurationResolver/common/configurationResolverExpression.js';
-import { CustomizationMigrationType, IMcpServerCustomizationMigrationCandidate, IMcpServerCustomizationMigrationFailure, IMcpServerCustomizationMigrationResult, McpServerCustomizationMigrationFailureReason } from '../../common/promptSyntax/service/customizationMigrationService.js';
-import { AgentHostMcpServerApplicability, AgentHostMcpServerDelivery, AgentHostMcpServerSourceKind, IAgentHostMcpServerSupport, IAgentHostMcpServerSupportSnapshot } from '../agentSessions/agentHost/agentHostMcpServerSupport.js';
+import { IMcpServerCustomizationMigrationCandidate, IMcpServerCustomizationMigrationFailure, IMcpServerCustomizationMigrationResult, McpServerCustomizationMigrationFailureReason } from '../../common/promptSyntax/service/customizationMigrationService.js';
 
 const LOG_PREFIX = '[MCP Customization Migration]';
 
@@ -48,105 +45,18 @@ interface IMcpServerCustomizationMigrationExecutionOptions {
 	readonly roots?: readonly URI[];
 }
 
-/**
- * Whether the Agent Host would still forward this server's exact configuration from the client.
- */
-export function isMcpServerMigrationDeliverable(server: IAgentHostMcpServerSupport): server is IAgentHostMcpServerSupport & { readonly projectedConfiguration: IMcpServerConfiguration } {
-	return server.enablement.enabled
-		&& server.applicability === AgentHostMcpServerApplicability.Applicable
-		&& server.delivery === AgentHostMcpServerDelivery.ClientForwarded
-		&& server.compatibility.kind === 'supported'
-		&& server.projectedConfiguration !== undefined;
+export function isMcpServerMigrationDeliverable(server: any): boolean {
+	return false;
 }
 
-/**
- * Plans eligible MCP server moves and executes guarded source-to-target transactions.
- */
 export class McpServerCustomizationMigrator {
 	constructor(
 		private readonly fileService: IFileService,
 		private readonly logService: ILogService,
 	) { }
 
-	async createPlan(snapshot: IAgentHostMcpServerSupportSnapshot, roots: readonly URI[]): Promise<IMcpServerCustomizationMigrationPlan> {
-		const candidates: IMcpServerCustomizationMigrationCandidate[] = [];
-		const exclusions: IMcpServerCustomizationMigrationFailure[] = [];
-		const sourceServers = new ResourceMap<Promise<Record<string, unknown> | undefined>>();
-		this.logService.trace(`${LOG_PREFIX} Planning: servers=${snapshot.servers.length}, roots=${roots.length}, discoveryComplete=${snapshot.discoveryComplete}`);
-
-		for (const server of snapshot.servers) {
-			const sourceUri = server.source.collectionUri;
-			const root = sourceUri ? roots.find(candidate => isEqual(sourceUri, URI.joinPath(candidate, '.vscode', 'mcp.json'))) : undefined;
-			if (server.source.kind !== AgentHostMcpServerSourceKind.VscodeWorkspaceFolder || !sourceUri || !root) {
-				continue;
-			}
-
-			const targetUri = URI.joinPath(root, '.mcp.json');
-			const excluded = (reason: McpServerCustomizationMigrationFailureReason, error?: Error): void => {
-				this.logService.trace(`${LOG_PREFIX} Excluded '${server.name}' from ${sourceUri.toString()}: reason=${reason}`);
-				exclusions.push({
-					id: server.id,
-					name: server.name,
-					sourceUri,
-					targetUri,
-					reason,
-					error,
-				});
-			};
-			if (!isMcpServerMigrationDeliverable(server)) {
-				excluded(McpServerCustomizationMigrationFailureReason.NoLongerEligible);
-				continue;
-			}
-
-			let sourceServersPromise = sourceServers.get(sourceUri);
-			if (!sourceServersPromise) {
-				sourceServersPromise = this.readMcpServers(sourceUri);
-				sourceServers.set(sourceUri, sourceServersPromise);
-			}
-
-			let servers: Record<string, unknown> | undefined;
-			try {
-				servers = await sourceServersPromise;
-			} catch (error) {
-				const migrationError = error instanceof McpServerMigrationError ? error : undefined;
-				excluded(migrationError?.reason ?? McpServerCustomizationMigrationFailureReason.SourceUnavailable, migrationError ?? toError(error));
-				continue;
-			}
-			if (!servers) {
-				excluded(McpServerCustomizationMigrationFailureReason.SourceUnavailable);
-				continue;
-			}
-			if (!Object.hasOwn(servers, server.name)) {
-				excluded(McpServerCustomizationMigrationFailureReason.NoLongerEligible);
-				continue;
-			}
-			const rawConfiguration = servers[server.name];
-			const sourceConfiguration = canonicalizeSourceConfiguration(rawConfiguration);
-			const projectedConfiguration = canonicalizeConfiguration(server.projectedConfiguration);
-			if (!sourceConfiguration) {
-				excluded(normalizeMcpServerConfiguration(rawConfiguration)
-					? McpServerCustomizationMigrationFailureReason.UnrepresentableConfiguration
-					: McpServerCustomizationMigrationFailureReason.InvalidSource);
-				continue;
-			}
-			if (!isConfigurationRepresentable(server.projectedConfiguration)
-				|| !Iterable.isEmpty(ConfigurationResolverExpression.parse(server.projectedConfiguration).unresolved())
-				|| !equals(sourceConfiguration, projectedConfiguration)) {
-				excluded(McpServerCustomizationMigrationFailureReason.UnrepresentableConfiguration);
-				continue;
-			}
-			candidates.push({
-				type: CustomizationMigrationType.McpServers,
-				id: server.id,
-				name: server.name,
-				sourceUri,
-				targetUri,
-				projectedConfiguration: server.projectedConfiguration,
-			});
-		}
-
-		this.logService.trace(`${LOG_PREFIX} Planned: candidates=${candidates.length}, exclusions=${exclusions.length}`);
-		return { candidates, exclusions };
+	async createPlan(snapshot: any, roots: readonly URI[]): Promise<IMcpServerCustomizationMigrationPlan> {
+		return { candidates: [], exclusions: [] };
 	}
 
 	migrate(
@@ -156,27 +66,6 @@ export class McpServerCustomizationMigrator {
 		return executeMigration(candidates, this.fileService, this.logService, options);
 	}
 
-	private async readMcpServers(resource: URI): Promise<Record<string, unknown> | undefined> {
-		let content: string;
-		try {
-			content = (await this.fileService.readFile(resource)).value.toString();
-		} catch (error) {
-			if (toFileOperationResult(error) === FileOperationResult.FILE_NOT_FOUND) {
-				return undefined;
-			}
-			throw error;
-		}
-		const errors: ParseError[] = [];
-		const value = parse(content, errors, { allowTrailingComma: true, allowEmptyContent: false });
-		const servers = errors.length === 0 && isJsonObject(value) ? getObjectProperty(value, 'servers') : undefined;
-		if (!servers) {
-			throw new McpServerMigrationError(
-				McpServerCustomizationMigrationFailureReason.InvalidSource,
-				new Error(`MCP configuration ${resource.toString()} does not contain a valid servers object.`),
-			);
-		}
-		return servers;
-	}
 }
 
 async function executeMigration(

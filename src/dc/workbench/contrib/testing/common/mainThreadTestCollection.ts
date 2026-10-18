@@ -21,23 +21,14 @@ export class MainThreadTestCollection extends AbstractIncrementalTestCollection<
 		prom: Promise<void>;
 	}>();
 
-	/**
-	 * @inheritdoc
-	 */
 	public get busyProviders() {
 		return this.busyControllerCount;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public get rootItems() {
 		return this.roots;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public get all() {
 		return this.getIterator();
 	}
@@ -52,16 +43,12 @@ export class MainThreadTestCollection extends AbstractIncrementalTestCollection<
 		super(uriIdentityService);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public expand(testId: string, levels: number): Promise<void> {
 		const test = this.items.get(testId);
 		if (!test) {
 			return Promise.resolve();
 		}
 
-		// simple cache to avoid duplicate/unnecessary expansion calls
 		const existing = this.expandPromises.get(test);
 		if (existing && existing.pendingLvl >= levels) {
 			return existing.prom;
@@ -76,23 +63,14 @@ export class MainThreadTestCollection extends AbstractIncrementalTestCollection<
 		});
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getNodeById(id: string) {
 		return this.items.get(id);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getNodeByUrl(uri: URI): Iterable<IncrementalTestCollectionItem> {
 		return this.testsByUrl.get(uri) || Iterable.empty();
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getReviverDiff() {
 		const ops: TestsDiff = [{ op: TestDiffOpType.IncrementPendingExtHosts, amount: this.pendingRootCount }];
 
@@ -115,9 +93,6 @@ export class MainThreadTestCollection extends AbstractIncrementalTestCollection<
 		return ops;
 	}
 
-	/**
-	 * Applies the diff to the collection.
-	 */
 	public override apply(diff: TestsDiff) {
 		const prevBusy = this.busyControllerCount;
 		super.apply(diff);
@@ -127,10 +102,6 @@ export class MainThreadTestCollection extends AbstractIncrementalTestCollection<
 		}
 	}
 
-	/**
-	 * Clears everything from the collection, and returns a diff that applies
-	 * that action.
-	 */
 	public clear() {
 		const ops: TestsDiff = [];
 		for (const root of this.roots) {
@@ -143,9 +114,6 @@ export class MainThreadTestCollection extends AbstractIncrementalTestCollection<
 		return ops;
 	}
 
-	/**
-	 * @override
-	 */
 	protected createItem(internal: InternalTestItem): IncrementalTestCollectionItem {
 		return { ...internal, children: new Set() };
 	}

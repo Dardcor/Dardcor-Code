@@ -8,9 +8,6 @@ import { CancellationToken, CancellationTokenSource } from './cancellation.js';
 import { CancellationError } from './errors.js';
 import { Event, Emitter } from './event.js';
 
-/**
- * A Pager is a stateless abstraction over a paged collection.
- */
 export interface IPager<T> {
 	firstPage: T[];
 	total: number;
@@ -53,9 +50,6 @@ function createPage<T>(elements?: T[]): IPage<T> {
 	};
 }
 
-/**
- * A PagedModel is a stateful model over an abstracted paged collection.
- */
 export interface IPagedModel<T> {
 	readonly length: number;
 	readonly onDidIncrementLength: Event<number>;
@@ -196,11 +190,6 @@ export class DelayedPagedModel<T> implements IPagedModel<T> {
 	}
 }
 
-/**
- * A PageIteratorPager wraps an IPageIterator to provide IPager functionality.
- * It caches pages as they are accessed and supports random page access by
- * sequentially loading pages until the requested page is reached.
- */
 export class PageIteratorPager<T> implements IPager<T> {
 	private cachedPages: T[][] = [];
 	private currentIterator: IPageIterator<T>;
@@ -214,7 +203,7 @@ export class PageIteratorPager<T> implements IPager<T> {
 	constructor(initialIterator: IPageIterator<T>) {
 		this.currentIterator = initialIterator;
 		this.firstPage = [...initialIterator.elements];
-		this.pageSize = initialIterator.elements.length || 1; // Use first page size as page size
+		this.pageSize = initialIterator.elements.length || 1;
 		this.cachedPages[0] = this.firstPage;
 		this.isComplete = !initialIterator.hasNextPage;
 		this.total = initialIterator.total;
@@ -225,19 +214,15 @@ export class PageIteratorPager<T> implements IPager<T> {
 			throw new CancellationError();
 		}
 
-		// If we already have this page cached, return it
 		if (pageIndex < this.cachedPages.length) {
 			return this.cachedPages[pageIndex];
 		}
 
-		// If we're complete and don't have this page, it doesn't exist
 		if (this.isComplete) {
 			throw new Error(`Page ${pageIndex} is out of bounds. Total pages: ${this.cachedPages.length}`);
 		}
 
 
-		// Check if there's already a pending request that will load this index
-		// (any pending request for an index >= our requested index)
 		let promise: Promise<void> | undefined;
 		for (const [pendingPageIndex, pendingPromise] of this.pendingRequests) {
 			if (pendingPageIndex >= pageIndex) {
@@ -296,19 +281,13 @@ export class IterativePagedModel<T> implements IPagedModel<T> {
 		return this._onDidIncrementLength.event;
 	}
 
-	/**
-	 * Returns actual length + 1 if there are more pages (sentinel approach)
-	 */
 	get length(): number {
 		return this.items.length + (this._hasNextPage ? 1 : 0);
 	}
 
-	/**
-	 * Sentinel item is never resolved - it triggers loading
-	 */
 	isResolved(index: number): boolean {
 		if (index === this.items.length && this._hasNextPage) {
-			return false; // This will trigger resolve() call
+			return false;
 		}
 		return index < this.items.length;
 	}
@@ -320,20 +299,15 @@ export class IterativePagedModel<T> implements IPagedModel<T> {
 		throw new Error('Item not resolved yet');
 	}
 
-	/**
-	 * When sentinel item is accessed, load next page
-	 */
 	async resolve(index: number, cancellationToken: CancellationToken): Promise<T> {
 		if (cancellationToken.isCancellationRequested) {
 			return Promise.reject(new CancellationError());
 		}
 
-		// If trying to resolve the sentinel item, load next page
 		if (index === this.items.length && this._hasNextPage) {
 			await this.loadNextPage(cancellationToken);
 		}
 
-		// After loading, the requested index should now be valid
 		if (index < this.items.length) {
 			return this.items[index];
 		}
@@ -346,7 +320,6 @@ export class IterativePagedModel<T> implements IPagedModel<T> {
 			return;
 		}
 
-		// If already loading, return the cached promise
 		if (this.loadingPromise) {
 			await this.loadingPromise;
 			return;
@@ -359,11 +332,8 @@ export class IterativePagedModel<T> implements IPagedModel<T> {
 				this.items.push(...page.items);
 				this._hasNextPage = page.hasMore;
 
-				// Clear the loading promise before firing the event
-				// so that event handlers can trigger loading the next page if needed
 				this.loadingPromise = null;
 
-				// Fire length update event
 				this._onDidIncrementLength.fire(this.length);
 			}, err => {
 				this.loadingPromise = null;
@@ -378,10 +348,6 @@ export class IterativePagedModel<T> implements IPagedModel<T> {
 	}
 }
 
-/**
- * Similar to array.map, `mapPager` lets you map the elements of an
- * abstract paged collection to another type.
- */
 export function mapPager<T, R>(pager: IPager<T>, fn: (t: T) => R): IPager<R> {
 	return {
 		firstPage: pager.firstPage.map(fn),

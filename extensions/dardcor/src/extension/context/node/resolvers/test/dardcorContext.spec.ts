@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest';
 import { IWorkbenchService } from '../../../../../platform/workbench/common/workbenchService';
 import { parseSettingsAndCommands } from '../dardcorContext';
 
-// Mock implementation of IWorkbenchService for testing
 class MockWorkbenchService implements IWorkbenchService {
 	declare readonly _serviceBrand: undefined;
 
@@ -105,7 +104,6 @@ describe('parseSettingsAndCommands', () => {
 	it('filters out unknown settings', async () => {
 		const mockService = new MockWorkbenchService({
 			'editor.fontSize': { value: 14 }
-			// 'unknown.setting' is intentionally not included
 		});
 		const codeBlock = `\`\`\`json
 [
@@ -315,7 +313,6 @@ describe('parseSettingsAndCommands', () => {
 		const result = await parseSettingsAndCommands(mockService, codeBlock);
 
 		expect(result).toHaveLength(1);
-		// Should filter out non-string values
 		expect(result[0].commandToRun?.arguments).toEqual(['python']);
 	});
 

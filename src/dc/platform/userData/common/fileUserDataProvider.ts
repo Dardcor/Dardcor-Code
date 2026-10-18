@@ -14,11 +14,6 @@ import { IUserDataProfilesService } from '../../userDataProfile/common/userDataP
 import { ResourceSet } from '../../../base/common/map.js';
 import { IUriIdentityService } from '../../uriIdentity/common/uriIdentity.js';
 
-/**
- * This is a wrapper on top of the local filesystem provider which will
- * 	- Convert the user data resources to file system scheme and vice-versa
- *  - Enforces atomic reads for user data
- */
 export class FileUserDataProvider extends Disposable implements
 	IFileSystemProviderWithFileReadWriteCapability,
 	IFileSystemProviderWithOpenReadWriteCloseCapability,
@@ -51,7 +46,7 @@ export class FileUserDataProvider extends Disposable implements
 		this.onDidChangeCapabilities = this.fileSystemProvider.onDidChangeCapabilities;
 		this._onDidChangeFile = this._register(new Emitter());
 		this.onDidChangeFile = this._onDidChangeFile.event;
-		this.watchResources = TernarySearchTree.forUris(() => !(this.capabilities & 1024 /* FileSystemProviderCapabilities.PathCaseSensitive */));
+		this.watchResources = TernarySearchTree.forUris(() => !(this.capabilities & 1024 ));
 		this.atomicReadWriteResources = new ResourceSet((uri) => this.uriIdentityService.extUri.getComparisonKey(this.toFileSystemResource(uri)));
 		this.updateAtomicReadWritesResources();
 		this._register(userDataProfilesService.onDidChangeProfiles(() => this.updateAtomicReadWritesResources()));
@@ -155,7 +150,7 @@ export class FileUserDataProvider extends Disposable implements
 		const userDataChanges: IFileChange[] = [];
 		for (const change of changes) {
 			if (change.resource.scheme !== this.fileSystemScheme) {
-				continue; // only interested in file schemes
+				continue;
 			}
 
 			const userDataResource = this.toUserDataResource(change.resource);

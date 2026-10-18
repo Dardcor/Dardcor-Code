@@ -24,10 +24,6 @@ import { HoverStartSource } from '../../../hover/browser/hoverOperation.js';
 
 export class ColorHover implements IHoverPart, BaseColor {
 
-	/**
-	 * Force the hover to always be rendered at this specific range,
-	 * even in the case of multiple hover parts.
-	 */
 	public readonly forceShowAtRange: boolean = true;
 
 	constructor(

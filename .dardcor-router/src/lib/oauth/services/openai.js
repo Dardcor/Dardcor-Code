@@ -3,18 +3,11 @@ import { OPENAI_CONFIG } from "../constants/oauth.js";
 import { getServerCredentials } from "../config/index.js";
 import { spinner as createSpinner } from "../utils/ui.js";
 
-/**
- * OpenAI OAuth Service (Native)
- * Uses Authorization Code Flow with PKCE (similar to Codex)
- */
 export class OpenAIService extends OAuthService {
   constructor() {
     super(OPENAI_CONFIG);
   }
 
-  /**
-   * Build OpenAI authorization URL
-   */
   buildOpenAIAuthUrl(redirectUri, state, codeChallenge) {
     const params = new URLSearchParams({
       client_id: OPENAI_CONFIG.clientId,
@@ -30,9 +23,6 @@ export class OpenAIService extends OAuthService {
     return `${OPENAI_CONFIG.authorizeUrl}?${params.toString()}`;
   }
 
-  /**
-   * Exchange OpenAI authorization code for tokens
-   */
   async exchangeOpenAICode(code, redirectUri, codeVerifier) {
     const response = await fetch(OPENAI_CONFIG.tokenUrl, {
       method: "POST",
@@ -57,9 +47,6 @@ export class OpenAIService extends OAuthService {
     return await response.json();
   }
 
-  /**
-   * Save OpenAI tokens to server
-   */
   async saveTokens(tokens) {
     const { server, token, userId } = getServerCredentials();
 
@@ -87,16 +74,12 @@ export class OpenAIService extends OAuthService {
     return await response.json();
   }
 
-  /**
-   * Complete OpenAI OAuth flow
-   */
   async connect() {
     const spinner = createSpinner("Starting OpenAI OAuth...").start();
 
     try {
       spinner.text = "Starting local server...";
 
-      // Authenticate and get authorization code
       const { code, codeVerifier, redirectUri } = await this.authenticate(
         "OpenAI",
         this.buildOpenAIAuthUrl.bind(this)
@@ -104,12 +87,10 @@ export class OpenAIService extends OAuthService {
 
       spinner.start("Exchanging code for tokens...");
 
-      // Exchange code for tokens
       const tokens = await this.exchangeOpenAICode(code, redirectUri, codeVerifier);
 
       spinner.text = "Saving tokens to server...";
 
-      // Save tokens to server
       await this.saveTokens(tokens);
 
       spinner.succeed("OpenAI connected successfully!");

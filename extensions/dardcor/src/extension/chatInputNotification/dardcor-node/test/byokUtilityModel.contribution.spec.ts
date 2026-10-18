@@ -9,7 +9,6 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { ILogService } from '../../../../platform/log/common/logService';
 import { Emitter } from '../../../../util/dardcor/base/common/event';
 
-// ---- vscode mock -----------------------------------------------------------
 
 const mockNotification = {
 	severity: 0,
@@ -42,7 +41,6 @@ vi.mock('vscode', () => ({
 
 import { ByokUtilityModelNotificationContribution } from '../byokUtilityModel.contribution';
 
-// ---- helpers ---------------------------------------------------------------
 
 function createAuthService(opts?: { anyGitHubSession?: unknown }) {
 	const emitter = new Emitter<void>();
@@ -81,13 +79,11 @@ const noopLog = {
 } as unknown as ILogService;
 
 async function flushAsync() {
-	// Drain microtasks so async _update() observers complete.
 	await Promise.resolve();
 	await Promise.resolve();
 	await Promise.resolve();
 }
 
-// ---- tests -----------------------------------------------------------------
 
 describe('ByokUtilityModelNotificationContribution', () => {
 	let contribution: ByokUtilityModelNotificationContribution | undefined;
@@ -215,7 +211,7 @@ describe('ByokUtilityModelNotificationContribution', () => {
 
 		set('chat.utilityModel', 'ollama/llama3');
 		await flushAsync();
-		expect(mockNotification.hide).not.toHaveBeenCalled(); // small model still unset → still showing
+		expect(mockNotification.hide).not.toHaveBeenCalled();
 
 		set('chat.utilitySmallModel', 'ollama/llama3');
 		await flushAsync();

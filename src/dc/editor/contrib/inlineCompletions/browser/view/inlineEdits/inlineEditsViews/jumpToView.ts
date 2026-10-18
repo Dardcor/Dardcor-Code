@@ -54,7 +54,6 @@ export class JumpToView extends Disposable {
 			if (!data) {
 				return [];
 			}
-			// use injected text at position
 			return [{
 				range: Range.fromPositions(data.jumpToPosition, data.jumpToPosition),
 				options: {
@@ -86,7 +85,6 @@ export class JumpToView extends Disposable {
 			return constObservable(undefined);
 		}
 		return observableFromEvent(this, this._contextKeyService.onDidChangeContext, () => this._keybindingService.lookupKeybinding(commandId), debugLocation);
-		// TODO: use contextkeyservice to use different renderings
 	}
 
 	private readonly _keybinding;
@@ -143,7 +141,6 @@ export class JumpToView extends Disposable {
 				return [];
 			}
 
-			// Main content container with rounded border
 			return n.div({
 				style: {
 					display: 'flex',

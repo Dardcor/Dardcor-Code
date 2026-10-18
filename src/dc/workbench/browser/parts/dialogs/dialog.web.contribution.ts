@@ -74,5 +74,5 @@ export class DialogHandlerContribution extends Disposable implements IWorkbenchC
 registerWorkbenchContribution2(
 	DialogHandlerContribution.ID,
 	DialogHandlerContribution,
-	WorkbenchPhase.BlockStartup // Block to allow for dialogs to show before restore finished
+	WorkbenchPhase.BlockStartup
 );

@@ -33,7 +33,6 @@ export class DataTree<TInput, T, TFilterData = void> extends AbstractTree<T | nu
 		this.identityProvider = options.identityProvider;
 	}
 
-	// Model
 
 	getInput(): TInput | undefined {
 		return this.input;
@@ -113,7 +112,6 @@ export class DataTree<TInput, T, TFilterData = void> extends AbstractTree<T | nu
 		this.model.resort((element === this.input ? null : element) as T, recursive);
 	}
 
-	// View
 
 	refresh(element?: T): void {
 		if (element === undefined) {
@@ -124,7 +122,6 @@ export class DataTree<TInput, T, TFilterData = void> extends AbstractTree<T | nu
 		this.model.rerender(element);
 	}
 
-	// Implementation
 
 	private _refresh(element: TInput | T, isCollapsed?: (el: T) => boolean | undefined, onDidCreateNode?: (node: ITreeNode<T, TFilterData>) => void): void {
 		let onDidDeleteNode: ((node: ITreeNode<T, TFilterData>) => void) | undefined;

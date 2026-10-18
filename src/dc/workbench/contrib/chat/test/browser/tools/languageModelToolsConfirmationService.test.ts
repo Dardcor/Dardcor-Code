@@ -262,19 +262,16 @@ suite('LanguageModelToolsConfirmationService', () => {
 	test('tool-level confirmation takes precedence over server-level confirmation', async () => {
 		const ref = createMcpToolRef('mcpTool', 'serverId', 'Test Server');
 
-		// Set server-level confirmation
 		const serverActions = service.getPreConfirmActions(ref);
 		const serverAction = serverActions.find(a => a.label.includes('Test Server') && a.label.includes('Session'));
 		assert.ok(serverAction);
 		await serverAction.select();
 
-		// Set tool-level confirmation to a different scope
 		const toolActions = service.getPreConfirmActions(ref);
 		const toolAction = toolActions.find(a => !a.label.includes('Test Server') && a.label.includes('Workspace'));
 		assert.ok(toolAction);
 		await toolAction.select();
 
-		// Tool-level should take precedence
 		const result = service.getPreConfirmAction(ref);
 		assert.deepStrictEqual(result, { type: ToolConfirmKind.LmServicePerTool, scope: 'workspace' });
 	});
@@ -332,7 +329,6 @@ suite('LanguageModelToolsConfirmationService', () => {
 		const ref = createToolRef('customTool');
 		const actions = service.getPreConfirmActions(ref);
 
-		// Should include both custom actions and default actions
 		assert.ok(actions.some(a => a.label === 'Custom Action 1'));
 		assert.ok(actions.some(a => a.label === 'Custom Action 2'));
 		assert.ok(actions.some(a => a.label.includes('Session')));
@@ -369,7 +365,6 @@ suite('LanguageModelToolsConfirmationService', () => {
 
 		store.add(service.registerConfirmationContribution('customTool', contribution));
 
-		// Contribution should take precedence even without setting default
 		const ref = createToolRef('customTool');
 		const result = service.getPreConfirmAction(ref);
 		assert.ok(result);
@@ -467,7 +462,6 @@ suite('LanguageModelToolsConfirmationService', () => {
 		const ref = createToolRef('customTool');
 		const actions = service.getPreConfirmActions(ref);
 
-		// Should have no actions since canUseDefaultApprovals is false
 		assert.strictEqual(actions.length, 0);
 	});
 
@@ -475,7 +469,6 @@ suite('LanguageModelToolsConfirmationService', () => {
 		const ref1 = createToolRef('tool1');
 		const ref2 = createMcpToolRef('mcpTool', 'serverId', 'Test Server');
 
-		// Set some confirmations
 		const actions1 = service.getPreConfirmActions(ref1);
 		const sessionAction1 = actions1.find(a => a.label.includes('Session') && !a.label.includes('Server'));
 		assert.ok(sessionAction1);
@@ -486,14 +479,11 @@ suite('LanguageModelToolsConfirmationService', () => {
 		assert.ok(serverAction);
 		await serverAction.select();
 
-		// Verify they're set
 		assert.ok(service.getPreConfirmAction(ref1));
 		assert.ok(service.getPreConfirmAction(ref2));
 
-		// Reset
 		service.resetToolAutoConfirmation();
 
-		// Verify they're cleared
 		assert.strictEqual(service.getPreConfirmAction(ref1), undefined);
 		assert.strictEqual(service.getPreConfirmAction(ref2), undefined);
 	});
@@ -537,19 +527,16 @@ suite('LanguageModelToolsConfirmationService', () => {
 		const ref1 = createToolRef('tool1');
 		const ref2 = createToolRef('tool2');
 
-		// Set session for tool1
 		const actions1 = service.getPreConfirmActions(ref1);
 		const sessionAction = actions1.find(a => a.label.includes('Session') && !a.label.includes('Server'));
 		assert.ok(sessionAction);
 		await sessionAction.select();
 
-		// Set workspace for tool2
 		const actions2 = service.getPreConfirmActions(ref2);
 		const workspaceAction = actions2.find(a => a.label.includes('Workspace') && !a.label.includes('Server'));
 		assert.ok(workspaceAction);
 		await workspaceAction.select();
 
-		// Verify they're independent
 		const result1 = service.getPreConfirmAction(ref1);
 		const result2 = service.getPreConfirmAction(ref2);
 
@@ -560,19 +547,16 @@ suite('LanguageModelToolsConfirmationService', () => {
 	test('pre and post execution confirmations are independent', async () => {
 		const ref = createToolRef('testTool');
 
-		// Set pre-execution to session
 		const preActions = service.getPreConfirmActions(ref);
 		const preSessionAction = preActions.find(a => a.label.includes('Session') && !a.label.includes('Server'));
 		assert.ok(preSessionAction);
 		await preSessionAction.select();
 
-		// Set post-execution to workspace
 		const postActions = service.getPostConfirmActions(ref);
 		const postWorkspaceAction = postActions.find(a => a.label.includes('Workspace') && !a.label.includes('Server'));
 		assert.ok(postWorkspaceAction);
 		await postWorkspaceAction.select();
 
-		// Verify they're independent
 		const preResult = service.getPreConfirmAction(ref);
 		const postResult = service.getPostConfirmAction(ref);
 
@@ -584,19 +568,16 @@ suite('LanguageModelToolsConfirmationService', () => {
 		const ref1 = createMcpToolRef('tool1', 'server1', 'Server 1');
 		const ref2 = createMcpToolRef('tool2', 'server2', 'Server 2');
 
-		// Set server1 to session
 		const actions1 = service.getPreConfirmActions(ref1);
 		const serverAction1 = actions1.find(a => a.label.includes('Server 1') && a.label.includes('Session'));
 		assert.ok(serverAction1);
 		await serverAction1.select();
 
-		// Set server2 to workspace
 		const actions2 = service.getPreConfirmActions(ref2);
 		const serverAction2 = actions2.find(a => a.label.includes('Server 2') && a.label.includes('Workspace'));
 		assert.ok(serverAction2);
 		await serverAction2.select();
 
-		// Verify they're independent
 		const result1 = service.getPreConfirmAction(ref1);
 		const result2 = service.getPreConfirmAction(ref2);
 
@@ -622,14 +603,11 @@ suite('LanguageModelToolsConfirmationService', () => {
 		assert.ok(sessionAction);
 		await sessionAction.select();
 
-		// Verify it's set
 		const result = service.getPreConfirmAction(ref);
 		assert.deepStrictEqual(result, { type: ToolConfirmKind.LmServicePerTool, scope: 'session' });
 
-		// Create new service instance (simulating restart)
 		const newService = store.add(instantiationService.createInstance(LanguageModelToolsConfirmationService));
 
-		// Session confirmation should not persist
 		const newResult = newService.getPreConfirmAction(ref);
 		assert.strictEqual(newResult, undefined);
 	});
@@ -732,11 +710,9 @@ suite('LanguageModelToolsConfirmationService', () => {
 	});
 
 	test('legacy string[] storage format is read correctly', () => {
-		// Pre-seed storage with the legacy string[] format
 		const storageService = instantiationService.get(IStorageService);
 		storageService.store('chat/autoconfirm', JSON.stringify(['tool1', 'tool2']), StorageScope.WORKSPACE, StorageTarget.MACHINE);
 
-		// Create a new service instance that reads the legacy data
 		const newService = store.add(instantiationService.createInstance(LanguageModelToolsConfirmationService));
 
 		const ref1 = createToolRef('tool1');
@@ -749,7 +725,6 @@ suite('LanguageModelToolsConfirmationService', () => {
 	});
 
 	test('new Record storage format preserves labels', () => {
-		// Pre-seed storage with the new Record<string, string | boolean> format
 		const storageService = instantiationService.get(IStorageService);
 		const data: Record<string, string | boolean> = {
 			'tool1:combination:12345': 'Allow reading foo.txt',
@@ -759,13 +734,11 @@ suite('LanguageModelToolsConfirmationService', () => {
 
 		const newService = store.add(instantiationService.createInstance(LanguageModelToolsConfirmationService));
 
-		// tool2 should be auto-confirmed (boolean true, no label)
 		const ref2 = createToolRef('tool2');
 		assert.deepStrictEqual(newService.getPreConfirmAction(ref2), { type: ToolConfirmKind.LmServicePerTool, scope: 'workspace' });
 	});
 
 	test('object storage format with arguments round-trips across restart', () => {
-		// Pre-seed storage with the new object format containing arguments
 		const storageService = instantiationService.get(IStorageService);
 		const data: Record<string, string | boolean | { label?: string; arguments?: string }> = {
 			'tool1:combination:12345': { label: 'Allow reading foo.txt', arguments: '["foo.txt"]' },
@@ -775,7 +748,6 @@ suite('LanguageModelToolsConfirmationService', () => {
 
 		const newService = store.add(instantiationService.createInstance(LanguageModelToolsConfirmationService));
 
-		// Both combination keys should be auto-confirmed
 		const ref1: ILanguageModelToolConfirmationRef = {
 			...createToolRef('tool1'),
 			combination: { label: 'Allow reading foo.txt', key: 'tool1:combination:12345', arguments: '["foo.txt"]' },

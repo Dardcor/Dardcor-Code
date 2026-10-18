@@ -15,7 +15,6 @@ import { IToolData } from '../tools/languageModelToolsService.js';
 import { IChatRequestToolEntry, IChatRequestToolSetEntry, IChatRequestVariableEntry, IDiagnosticVariableEntryFilterData, chatReferenceVariableEntryFromDynamicValue, isChatReferenceDynamicVariableValue } from '../attachments/chatVariableEntries.js';
 import { arrayEquals } from '../../../../../base/common/equals.js';
 
-// These are in a separate file to avoid circular dependencies with the dependencies of the parser
 
 export interface IParsedChatRequest {
 	readonly parts: ReadonlyArray<IParsedChatRequestPart>;
@@ -34,11 +33,10 @@ export namespace IParsedChatRequest {
 }
 
 export interface IParsedChatRequestPart {
-	readonly kind: string; // for serialization
+	readonly kind: string;
 	readonly range: IOffsetRange;
 	readonly editorRange: IRange;
 	readonly text: string;
-	/** How this part is represented in the prompt going to the agent */
 	readonly promptText: string;
 }
 
@@ -59,15 +57,10 @@ export class ChatRequestTextPart implements IParsedChatRequestPart {
 	}
 }
 
-// warning, these also show up in a regex in the parser
 export const chatVariableLeader = '#';
 export const chatAgentLeader = '@';
 export const chatSubcommandLeader = '/';
 
-/**
- * An invocation of a static variable that can be resolved by the variable service
- * @deprecated, but kept for backwards compatibility with old persisted chat requests
- */
 class ChatRequestVariablePart implements IParsedChatRequestPart {
 	static readonly Kind = 'var';
 	readonly kind = ChatRequestVariablePart.Kind;
@@ -83,9 +76,6 @@ class ChatRequestVariablePart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of a tool
- */
 export class ChatRequestToolPart implements IParsedChatRequestPart {
 	static readonly Kind = 'tool';
 	readonly kind = ChatRequestToolPart.Kind;
@@ -104,9 +94,6 @@ export class ChatRequestToolPart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of a tool
- */
 export class ChatRequestToolSetPart implements IParsedChatRequestPart {
 	static readonly Kind = 'toolset';
 	readonly kind = ChatRequestToolSetPart.Kind;
@@ -125,9 +112,6 @@ export class ChatRequestToolSetPart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of an agent that can be resolved by the agent service
- */
 export class ChatRequestAgentPart implements IParsedChatRequestPart {
 	static readonly Kind = 'agent';
 	readonly kind = ChatRequestAgentPart.Kind;
@@ -143,9 +127,6 @@ export class ChatRequestAgentPart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of an agent's subcommand
- */
 export class ChatRequestAgentSubcommandPart implements IParsedChatRequestPart {
 	static readonly Kind = 'subcommand';
 	readonly kind = ChatRequestAgentSubcommandPart.Kind;
@@ -160,9 +141,6 @@ export class ChatRequestAgentSubcommandPart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of a standalone slash command
- */
 export class ChatRequestSlashCommandPart implements IParsedChatRequestPart {
 	static readonly Kind = 'slash';
 	readonly kind = ChatRequestSlashCommandPart.Kind;
@@ -177,17 +155,11 @@ export class ChatRequestSlashCommandPart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of a standalone slash command
- */
 export class ChatRequestSlashPromptPart implements IParsedChatRequestPart {
 	static readonly Kind = 'prompt';
 	readonly kind = ChatRequestSlashPromptPart.Kind;
 	readonly displayText?: string;
 	constructor(readonly range: OffsetRange, readonly editorRange: IRange, readonly name: string, displayText?: string) {
-		// Only set the own property when provided so the canonical
-		// form (no `displayText` field) stays compatible with snapshots
-		// and existing serialization.
 		if (displayText !== undefined) {
 			this.displayText = displayText;
 		}
@@ -202,9 +174,6 @@ export class ChatRequestSlashPromptPart implements IParsedChatRequestPart {
 	}
 }
 
-/**
- * An invocation of a dynamic reference like '#file:'
- */
 export class ChatRequestDynamicVariablePart implements IParsedChatRequestPart {
 	static readonly Kind = 'dynamic';
 	readonly kind = ChatRequestDynamicVariablePart.Kind;
@@ -331,7 +300,6 @@ export function formatChatQuestion(chatAgentService: IChatAgentService, location
 	if (participant && participant !== chatAgentService.getDefaultAgent(location)?.id) {
 		const agent = chatAgentService.getAgent(participant);
 		if (!agent) {
-			// Refers to agent that doesn't exist
 			return undefined;
 		}
 

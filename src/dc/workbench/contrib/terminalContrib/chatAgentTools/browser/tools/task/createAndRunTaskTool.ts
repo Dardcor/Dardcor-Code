@@ -22,6 +22,8 @@ import { IInstantiationService } from '../../../../../../../platform/instantiati
 import { DisposableStore } from '../../../../../../../base/common/lifecycle.js';
 import { TaskToolEvent, TaskToolClassification } from './taskToolsTelemetry.js';
 import { TerminalToolId } from '../toolIds.js';
+import { FOLDER_CONFIG_FOLDER_NAME } from '../../../../../../services/configuration/common/configuration.js';
+import { isWindows } from '../../../../../../../base/common/platform.js';
 
 interface ICreateAndRunTaskToolInput {
 	workspaceFolder: string;
@@ -54,17 +56,33 @@ export class CreateAndRunTaskTool implements IToolImpl {
 			return { content: [{ kind: 'text', value: `No invocation context` }], toolResultMessage: `No invocation context` };
 		}
 
-		const tasksJsonUri = URI.file(args.workspaceFolder).with({ path: `${args.workspaceFolder}/.vscode/tasks.json` });
+		const tasksJsonUri = URI.file(args.workspaceFolder).with({ path: `${args.workspaceFolder}/${FOLDER_CONFIG_FOLDER_NAME}/tasks.json` });
 		const exists = await this._fileService.exists(tasksJsonUri);
+
+		let normalizedCommand = args.task.command;
+		if (isWindows && typeof normalizedCommand === 'string') {
+			normalizedCommand = normalizedCommand
+				.replace(/\bcd\s+\/d\s+("[^"]+"|\S+)\s*(?:&&|;)\s*/gi, 'Set-Location $1; ')
+				.replace(/\bcd\s+\/d\s+("[^"]+"|\S+)/gi, 'Set-Location $1')
+				.replace(/\s*&&\s*/g, ' ; ');
+		}
 
 		const newTask: IConfiguredTask = {
 			label: args.task.label,
 			type: args.task.type,
-			command: args.task.command,
+			command: normalizedCommand,
 			args: args.task.args,
 			isBackground: args.task.isBackground,
 			problemMatcher: args.task.problemMatcher,
-			group: args.task.group
+			group: args.task.group,
+			presentation: {
+				reveal: 'never',
+				revealProblems: 'never',
+				focus: false,
+				panel: 'dedicated',
+				showReuseMessage: false,
+				clear: false
+			}
 		};
 
 		const tasksJsonContent = JSON.stringify({
@@ -75,7 +93,6 @@ export class CreateAndRunTaskTool implements IToolImpl {
 			await this._fileService.createFile(tasksJsonUri, VSBuffer.fromString(tasksJsonContent), { overwrite: true });
 			_progress.report({ message: 'Created tasks.json file' });
 		} else {
-			// add to the existing tasks.json file
 			const content = await this._fileService.readFile(tasksJsonUri);
 			const tasksJson = JSON.parse(content.value.toString());
 			tasksJson.tasks.push(newTask);

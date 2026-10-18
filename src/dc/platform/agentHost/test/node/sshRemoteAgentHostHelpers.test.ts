@@ -48,9 +48,6 @@ suite('SSH Remote Agent Host Helpers', () => {
 			protocolVersion: '1.0.0',
 			connectionToken: 'tok',
 			endpoint: { type: 'tcp', host: '127.0.0.1', port: 8080 },
-			// The shared schema-v2 parser always spreads `quality`/`tunnelName`
-			// explicitly (even when absent from the input), so default them here
-			// too to keep deepStrictEqual comparisons against parser output exact.
 			quality: undefined,
 			tunnelName: undefined,
 			...overrides,
@@ -128,9 +125,6 @@ suite('SSH Remote Agent Host Helpers', () => {
 		});
 
 		test('falls back to code-insiders for unknown qualities', () => {
-			// Dev builds with no `quality` end up here via the
-			// `_quality` getter's `'insider'` default, so the fallback
-			// shouldn't differ from insider.
 			assert.strictEqual(getRemoteCLIArchiveName('weirdbuild'), 'code-insiders');
 		});
 
@@ -360,10 +354,8 @@ suite('SSH Remote Agent Host Helpers', () => {
 	suite('buildCleanupOldCLIsCommand', () => {
 		test('produces a snippet that keeps the 5 most recent commit-keyed CLIs for insider', () => {
 			const cmd = buildCleanupOldCLIsCommand('.vscode-server-insiders', 'insider');
-			// Target the commit-keyed pattern (with 40 chars), under the shared install root.
 			assert.ok(cmd.includes('~/.vscode-server-insiders/code-insiders-'), `cmd missing install path: ${cmd}`);
 			assert.ok(/(\[0-9a-f\]){40}/.test(cmd), 'cmd should match exactly 40 hex chars');
-			// Retention via sort + awk drop-first-N + xargs rm.
 			assert.ok(/ls -1t/.test(cmd), `cmd should sort by mtime: ${cmd}`);
 			assert.ok(/awk\s+'NR>5'/.test(cmd), `cmd should keep 5: ${cmd}`);
 			assert.ok(/xargs\s+-I\{\}\s+rm\s+-f\s+--/.test(cmd), `cmd should rm safely: ${cmd}`);
@@ -384,11 +376,9 @@ suite('SSH Remote Agent Host Helpers', () => {
 	suite('buildFindFallbackCLICommand', () => {
 		test('lists commit-keyed candidates then legacy paths for insider', () => {
 			const cmd = buildFindFallbackCLICommand('.vscode-server-insiders', 'insider');
-			// New commit-keyed candidates in shared install root, sorted newest-first.
 			assert.ok(cmd.includes('.vscode-server-insiders/code-insiders-'), `cmd missing new path: ${cmd}`);
 			assert.ok(/ls -1t/.test(cmd), 'should sort commit-keyed candidates by mtime');
 			assert.ok(cmd.includes(`sed 's#^#~/#'`), `cmd should normalize candidates to validated paths: ${cmd}`);
-			// Legacy single-binary path (insider has the `-insider` dir suffix).
 			assert.ok(cmd.includes(`printf '%s\\n' '~/.vscode-cli-insider/code-insiders'`), `cmd missing legacy path: ${cmd}`);
 		});
 

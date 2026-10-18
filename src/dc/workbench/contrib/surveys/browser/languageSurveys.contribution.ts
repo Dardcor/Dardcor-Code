@@ -52,7 +52,6 @@ class LanguageSurvey extends Disposable {
 
 		if (storageService.getNumber(EDITED_LANGUAGE_COUNT_KEY, StorageScope.APPLICATION, 0) < data.editCount) {
 
-			// Process model-save event every 250ms to reduce load
 			const onModelsSavedWorker = this._register(new RunOnceWorker<ITextFileEditorModel>(models => {
 				models.forEach(m => {
 					if (m.getLanguageId() === data.languageId && date !== storageService.get(EDITED_LANGUAGE_DATE_KEY, StorageScope.APPLICATION)) {
@@ -144,12 +143,8 @@ class LanguageSurveysContribution implements IWorkbenchContribution {
 			return;
 		}
 
-		// Make sure to wait for installed extensions
-		// being registered to show notifications
-		// properly (https://github.com/microsoft/vscode/issues/121216)
 		await this.extensionService.whenInstalledExtensionsRegistered();
 
-		// Handle surveys
 		this.productService.surveys
 			.filter(surveyData => surveyData.surveyId && surveyData.editCount && surveyData.languageId && surveyData.surveyUrl && surveyData.userProbability)
 			.map(surveyData => new LanguageSurvey(surveyData, this.storageService, this.notificationService, this.telemetryService, this.languageService, this.textFileService, this.openerService, this.productService));

@@ -11,31 +11,13 @@ import { SSE_DONE, SSE_HEADERS, SSE_HEADERS_NO_BUFFER } from "./sseConstants.js"
 export { COLORS, formatSSE };
 export { SSE_DONE, SSE_HEADERS, SSE_HEADERS_NO_BUFFER };
 
-// sharedEncoder is stateless — safe to share across streams
 const sharedEncoder = new TextEncoder();
 
-/**
- * Stream modes
- */
 const STREAM_MODE = {
-  TRANSLATE: "translate",    // Full translation between formats
-  PASSTHROUGH: "passthrough" // No translation, normalize output, extract usage
+  TRANSLATE: "translate",
+  PASSTHROUGH: "passthrough"
 };
 
-/**
- * Create unified SSE transform stream
- * @param {object} options
- * @param {string} options.mode - Stream mode: translate, passthrough
- * @param {string} options.targetFormat - Provider format (for translate mode)
- * @param {string} options.sourceFormat - Client format (for translate mode)
- * @param {string} options.provider - Provider name
- * @param {object} options.reqLogger - Request logger instance
- * @param {string} options.model - Model name
- * @param {string} options.connectionId - Connection ID for usage tracking
- * @param {object} options.body - Request body (for input token estimation)
- * @param {function} options.onStreamComplete - Callback when stream completes (content, usage)
- * @param {string} options.apiKey - API key for usage tracking
- */
 export function createSSEStream(options = {}) {
   const {
     mode = STREAM_MODE.TRANSLATE,
@@ -56,7 +38,6 @@ export function createSSEStream(options = {}) {
   let buffer = "";
   let usage = null;
 
-  // Per-stream decoder with stream:true to correctly handle multi-byte chars split across chunks
   const decoder = new TextDecoder("utf-8", { fatal: false });
 
   const state = mode === STREAM_MODE.TRANSLATE
@@ -71,15 +52,12 @@ export function createSSEStream(options = {}) {
   let sseEmittedCount = 0;
   const eventTypeCounts = {};
 
-  // Track Responses API event framing for same-format passthrough (codex)
   let currentOpenAIResponsesEvent = null;
   let openAIResponsesTerminalSeen = false;
   let openAIResponsesDoneSent = false;
-  let streamDoneSent = false;  // track duplicate [DONE] across transform + flush
+  let streamDoneSent = false;
   let finalized = false;
 
-  // Usage/logging tail, callable from transform() as well as flush(): a client that
-  // closes right after the terminal event cancels the reader, and flush() never runs.
   const finalizeStream = () => {
     if (finalized) return;
     finalized = true;
@@ -126,12 +104,10 @@ export function createSSEStream(options = {}) {
           }
         }
 
-        // Capture Responses API event name to preserve framing in same-format passthrough
         if (mode === STREAM_MODE.TRANSLATE && targetFormat === FORMATS.OPENAI_RESPONSES && trimmed.startsWith("event:")) {
           currentOpenAIResponsesEvent = trimmed.slice(6).trim();
         }
 
-        // Passthrough mode: normalize and forward
         if (mode === STREAM_MODE.PASSTHROUGH) {
           let output;
           let injectedUsage = false;
@@ -143,14 +119,12 @@ export function createSSEStream(options = {}) {
 
               const idFixed = fixInvalidId(parsed);
 
-              // Ensure OpenAI-required fields are present on streaming chunks (Letta compat)
               let fieldsInjected = false;
               if (parsed.choices !== undefined) {
                 if (!parsed.object) { parsed.object = "chat.completion.chunk"; fieldsInjected = true; }
                 if (!parsed.created) { parsed.created = Math.floor(Date.now() / 1000); fieldsInjected = true; }
               }
 
-              // Strip Azure-specific non-standard fields from streaming chunks
               if (parsed.prompt_filter_results !== undefined) {
                 delete parsed.prompt_filter_results;
                 fieldsInjected = true;
@@ -164,11 +138,6 @@ export function createSSEStream(options = {}) {
                 }
               }
 
-              // Strip empty tool_calls arrays that break AI SDK reasoning tracking.
-              // Some providers (e.g. CodeBuddy CN) include `"tool_calls": []` in
-              // every streaming delta. @ai-sdk/openai-compatible checks
-              // `delta.tool_calls != null` — an empty array passes this check,
-              // causing premature `reasoning-end` on every chunk.
               if (parsed?.choices) {
                 for (const choice of parsed.choices) {
                   if (choice.delta?.tool_calls && Array.isArray(choice.delta.tool_calls) && choice.delta.tool_calls.length === 0) {
@@ -218,9 +187,6 @@ export function createSSEStream(options = {}) {
                 injectedUsage = true;
               }
             } catch {
-              // Skip non-JSON data lines silently — don't forward garbage to clients.
-              // Upstream providers sometimes return plain-text errors (HTML, rate-limit
-              // messages) in the SSE stream that would break downstream JSON decoders.
               continue;
             }
           }
@@ -235,18 +201,15 @@ export function createSSEStream(options = {}) {
 
           reqLogger?.appendConvertedChunk?.(output);
           controller.enqueue(sharedEncoder.encode(output));
-          // Responses clients (codex CLI) close on response.completed instead of [DONE]
           if (responsesTerminal) finalizeStream();
           continue;
         }
 
-        // Translate mode
         if (!trimmed) continue;
 
         const parsed = parseSSELine(trimmed, targetFormat);
         if (!parsed) continue;
 
-        // Responses API same-format passthrough: preserve event framing + track terminal state
         const isOpenAIResponsesStream = targetFormat === FORMATS.OPENAI_RESPONSES;
         const keepsOpenAIResponsesFormat = isOpenAIResponsesStream && sourceFormat === FORMATS.OPENAI_RESPONSES;
         const openAIResponsesEventName = isOpenAIResponsesStream
@@ -257,10 +220,7 @@ export function createSSEStream(options = {}) {
           openAIResponsesTerminalSeen = true;
         }
 
-        // For Ollama: done=true is the final chunk with finish_reason/usage, must translate
-        // For other formats: done=true is the [DONE] sentinel, skip
         if (parsed && parsed.done && targetFormat !== FORMATS.OLLAMA) {
-          // Synthesize response.failed if the Responses stream never sent a terminal event
           if (keepsOpenAIResponsesFormat && !openAIResponsesTerminalSeen) {
             const failedOutput = formatIncompleteOpenAIResponsesStreamFailure();
             reqLogger?.appendConvertedChunk?.(failedOutput);
@@ -279,34 +239,28 @@ export function createSSEStream(options = {}) {
           continue;
         }
 
-        // Claude format - content
         if (parsed.delta?.text) {
           totalContentLength += parsed.delta.text.length;
           accumulatedContent += parsed.delta.text;
         }
-        // Claude format - thinking
         if (parsed.delta?.thinking) {
           totalContentLength += parsed.delta.thinking.length;
           accumulatedThinking += parsed.delta.thinking;
         }
         
-        // OpenAI format - content
         if (parsed.choices?.[0]?.delta?.content) {
           totalContentLength += parsed.choices[0].delta.content.length;
           accumulatedContent += parsed.choices[0].delta.content;
         }
-        // OpenAI format - reasoning
         if (parsed.choices?.[0]?.delta?.reasoning_content) {
           totalContentLength += parsed.choices[0].delta.reasoning_content.length;
           accumulatedThinking += parsed.choices[0].delta.reasoning_content;
         }
         
-        // Gemini format
         if (parsed.candidates?.[0]?.content?.parts) {
           for (const part of parsed.candidates[0].content.parts) {
             if (part.text && typeof part.text === "string") {
               totalContentLength += part.text.length;
-              // Check if this is thinking content
               if (part.thought === true) {
                 accumulatedThinking += part.text;
               } else {
@@ -316,28 +270,23 @@ export function createSSEStream(options = {}) {
           }
         }
 
-        // Extract usage
         const extracted = extractUsage(parsed);
-        if (extracted) state.usage = mergeUsage(state.usage, extracted); // Keep original usage for logging
+        if (extracted) state.usage = mergeUsage(state.usage, extracted);
 
-        // Responses same-format passthrough: re-emit with original event framing
         if (keepsOpenAIResponsesFormat && openAIResponsesEventName) {
           const output = formatSSE({ event: openAIResponsesEventName, data: parsed }, sourceFormat);
           reqLogger?.appendConvertedChunk?.(output);
           controller.enqueue(sharedEncoder.encode(output));
           currentOpenAIResponsesEvent = null;
           sseEmittedCount++;
-          // Responses clients (codex) close on response.completed instead of [DONE]
           if (openAIResponsesTerminalSeen) finalizeStream();
           continue;
         }
 
         currentOpenAIResponsesEvent = null;
 
-        // Translate: targetFormat -> openai -> sourceFormat
         const translated = translateResponse(targetFormat, sourceFormat, parsed, state);
 
-        // Log OpenAI intermediate chunks (if available)
         if (translated?._openaiIntermediate) {
           for (const item of translated._openaiIntermediate) {
             const openaiOutput = formatSSE(item, FORMATS.OPENAI);
@@ -348,19 +297,16 @@ export function createSSEStream(options = {}) {
         if (translated?.length > 0) {
           for (const item of translated) {
             if (item === null || item === undefined) continue;
-            // Filter empty chunks
             if (!hasValuableContent(item, sourceFormat)) {
-              continue; // Skip this empty chunk
+              continue;
             }
 
-            // Inject estimated usage if finish chunk has no valid usage
             const isFinishChunk = item.type === "message_delta" || item.choices?.[0]?.finish_reason;
             if (state.finishReason && isFinishChunk && !hasValidUsage(item.usage) && totalContentLength > 0) {
               const estimated = estimateUsage(body, totalContentLength, sourceFormat);
-              item.usage = filterUsageForFormat(estimated, sourceFormat); // Filter + already has buffer
+              item.usage = filterUsageForFormat(estimated, sourceFormat);
               state.usage = estimated;
             } else if (state.finishReason && isFinishChunk && state.usage) {
-              // Add buffer and filter usage for client (but keep original in state.usage for logging)
               const buffered = addBufferToUsage(state.usage);
               item.usage = filterUsageForFormat(buffered, sourceFormat);
             }
@@ -392,11 +338,6 @@ export function createSSEStream(options = {}) {
             controller.enqueue(sharedEncoder.encode(output));
           }
 
-          // IMPORTANT: In passthrough mode we still must terminate the SSE stream.
-          // Some clients (e.g. OpenClaw) expect the OpenAI-style sentinel:
-          //   data: [DONE]\n\n
-          // Without it they can hang until timeout and trigger failover.
-          // Gemini-family clients (Antigravity, Vertex, Gemini) reject this sentinel with 400 syntax errors.
           const isGeminiFamily = provider === "antigravity" || provider === "gemini" || provider === "vertex";
           if (!streamDoneSent && !isGeminiFamily) {
             const doneOutput = "data: [DONE]\n\n";
@@ -409,18 +350,9 @@ export function createSSEStream(options = {}) {
         }
 
         if (buffer.trim()) {
-          // Same parse as the transform loop: without targetFormat this only
-          // accepts "data: " lines, so an NDJSON provider (Ollama) lost whatever
-          // arrived without its closing newline.
           const parsed = parseSSELine(buffer.trim(), targetFormat);
-          // parseSSELine turns the SSE sentinel "data: [DONE]" into { done: true },
-          // which must not be translated. An Ollama chunk also carries done:true,
-          // but it is the real final chunk — it holds finish_reason and the token
-          // counts — so it has to go through.
           const isDoneSentinel = parsed?.done && targetFormat !== FORMATS.OLLAMA;
           if (parsed && !isDoneSentinel) {
-            // Same accumulation the transform loop does, so finalizeStream() can
-            // log a tail chunk's tokens instead of falling back to null.
             const extracted = extractUsage(parsed);
             if (extracted) state.usage = mergeUsage(state.usage, extracted);
 
@@ -462,7 +394,6 @@ export function createSSEStream(options = {}) {
           }
         }
 
-        // Synthesize response.failed if a Responses passthrough stream never reached a terminal event
         const keepsOpenAIResponsesFormat = targetFormat === FORMATS.OPENAI_RESPONSES && sourceFormat === FORMATS.OPENAI_RESPONSES;
         if (keepsOpenAIResponsesFormat && !openAIResponsesTerminalSeen) {
           const failedOutput = formatIncompleteOpenAIResponsesStreamFailure();

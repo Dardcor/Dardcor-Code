@@ -22,24 +22,16 @@ import { COPY_EVALUATE_PATH_ID, COPY_VALUE_ID } from './debugCommands.js';
 import { DebugLinkHoverBehavior, DebugLinkHoverBehaviorTypeData, ILinkDetector, LinkDetector } from './linkDetector.js';
 
 export interface IValueHoverOptions {
-	/** Commands to show in the hover footer. */
 	commands?: { id: string; args: unknown[] }[];
 }
 
 export interface IRenderValueOptions {
 	showChanged?: boolean;
 	maxValueLength?: number;
-	/** If not false, a rich hover will be shown on the element. */
 	hover?: false | IValueHoverOptions;
 	colorize?: boolean;
 	highlights?: IHighlight[];
 
-	/**
-	 * Indicates areas where VS Code implicitly always supported ANSI escape
-	 * sequences. These should be rendered as ANSI when the DA does not specify
-	 * any value of `supportsANSIStyling`.
-	 * @deprecated
-	 */
 	wasANSI?: boolean;
 	session?: IDebugSession;
 	locationReference?: number;
@@ -132,17 +124,14 @@ export class DebugExpressionRenderer {
 
 	renderValue(container: HTMLElement, expressionOrValue: IExpressionValue | string, options: IRenderValueOptions = {}): IDisposable {
 		const store = new DisposableStore();
-		// Use remembered capabilities so REPL elements can render even once a session ends
 		const supportsANSI: boolean = options.session?.rememberedCapabilities?.supportsANSIStyling ?? options.wasANSI ?? false;
 
 		let value = typeof expressionOrValue === 'string' ? expressionOrValue : expressionOrValue.value;
 
-		// remove stale classes
 		for (const cls of allClasses) {
 			container.classList.remove(cls);
 		}
 		container.classList.add(Cls.Value);
-		// when resolving expressions we represent errors from the server as a variable with name === null.
 		if (value === null || ((expressionOrValue instanceof Expression || expressionOrValue instanceof Variable || expressionOrValue instanceof ReplEvaluationResult) && !expressionOrValue.available)) {
 			container.classList.add(Cls.Unavailable);
 			if (value !== Expression.DEFAULT_VALUE) {
@@ -150,7 +139,6 @@ export class DebugExpressionRenderer {
 			}
 		} else {
 			if (typeof expressionOrValue !== 'string' && options.showChanged && expressionOrValue.valueChanged && value !== Expression.DEFAULT_VALUE) {
-				// value changed color has priority over other colors.
 				container.classList.add(Cls.Changed);
 				expressionOrValue.valueChanged = false;
 			}
@@ -176,7 +164,6 @@ export class DebugExpressionRenderer {
 		}
 
 		const session = options.session ?? ((expressionOrValue instanceof ExpressionContainer) ? expressionOrValue.getSession() : undefined);
-		// Only use hovers for links if thre's not going to be a hover for the value.
 		const hoverBehavior: DebugLinkHoverBehaviorTypeData = options.hover === false ? { type: DebugLinkHoverBehavior.Rich, store } : { type: DebugLinkHoverBehavior.None, store };
 		dom.clearNode(container);
 		const locationReference = options.locationReference ?? (expressionOrValue instanceof ExpressionContainer && expressionOrValue.valueLocationReference);
@@ -200,8 +187,6 @@ export class DebugExpressionRenderer {
 				const hoverContentsElement = dom.append(markdownHoverElement, dom.$('div.hover-contents'));
 				const hoverContentsPre = dom.append(hoverContentsElement, dom.$('pre.debug-var-hover-pre'));
 				if (supportsANSI) {
-					// note: intentionally using `this.linkDetector` so we don't blindly linkify the
-					// entire contents and instead only link file paths that it contains.
 					hoverContentsPre.appendChild(handleANSIOutput(value, this.linkDetector, session ? session.root : undefined, options.highlights, hoverBehavior));
 				} else {
 					hoverContentsPre.textContent = value;

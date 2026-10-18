@@ -78,7 +78,6 @@ export class FilterOptions {
 		for (const { expression } of filesExcludeByRoot) {
 			for (const pattern of Object.keys(expression)) {
 				if (!pattern.endsWith('/**')) {
-					// Append `/**` to pattern to match a parent folder #103631
 					expression[`${strings.rtrim(pattern, '/')}/**`] = expression[pattern];
 				}
 			}
@@ -90,7 +89,6 @@ export class FilterOptions {
 		while ((sourceMatch = SOURCE_FILTER_REGEX.exec(filter)) !== null) {
 			const negate = !!sourceMatch[1];
 			let source = sourceMatch[2];
-			// Remove quotes if present
 			if (source.startsWith('"') && source.endsWith('"')) {
 				source = source.slice(1, -1);
 			}
@@ -99,7 +97,6 @@ export class FilterOptions {
 			} else {
 				includeSourceFilters.push(source.toLowerCase());
 			}
-			// Remove the entire match (including trailing whitespace)
 			filter = (filter.substring(0, sourceMatch.index) + filter.substring(sourceMatch.index + sourceMatch[0].length)).trim();
 		}
 		this.includeSourceFilters = includeSourceFilters;
@@ -134,12 +131,10 @@ export class FilterOptions {
 
 		const source = markerSource?.toLowerCase();
 
-		// Check negative filters first - if any match, exclude
 		if (source && this.excludeSourceFilters.includes(source)) {
 			return false;
 		}
 
-		// If there are positive filters, check if any match
 		if (this.includeSourceFilters.length > 0) {
 			return source ? this.includeSourceFilters.includes(source) : false;
 		}
@@ -149,7 +144,7 @@ export class FilterOptions {
 
 	private setPattern(expression: IExpression, pattern: string) {
 		if (pattern[0] === '.') {
-			pattern = '*' + pattern; // convert ".js" to "*.js"
+			pattern = '*' + pattern;
 		}
 		expression[`**/${pattern}/**`] = true;
 		expression[`**/${pattern}`] = true;

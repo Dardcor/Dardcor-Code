@@ -15,7 +15,6 @@ export class FetchFileSystemProvider implements IFileSystemProviderWithFileReadW
 	readonly onDidChangeCapabilities = Event.None;
 	readonly onDidChangeFile = Event.None;
 
-	// working implementations
 	async readFile(resource: URI): Promise<Uint8Array> {
 		try {
 			const res = await fetch(resource.toString(true));
@@ -28,7 +27,6 @@ export class FetchFileSystemProvider implements IFileSystemProviderWithFileReadW
 		}
 	}
 
-	// fake implementations
 	async stat(_resource: URI): Promise<IStat> {
 		return {
 			type: FileType.File,
@@ -42,7 +40,6 @@ export class FetchFileSystemProvider implements IFileSystemProviderWithFileReadW
 		return Disposable.None;
 	}
 
-	// error implementations
 	writeFile(_resource: URI, _content: Uint8Array, _opts: IFileWriteOptions): Promise<void> {
 		throw new NotSupportedError();
 	}

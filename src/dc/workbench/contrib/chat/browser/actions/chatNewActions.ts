@@ -24,27 +24,16 @@ import { ChatViewId, IChatWidgetService } from '../chat.js';
 import { IVoiceSessionController } from '../voiceClient/voiceSessionController.js';
 import { ChatViewPane } from '../widgetHosts/viewPane/chatViewPane.js';
 import { EditingSessionAction, EditingSessionActionContext, getEditingSessionContext } from '../chatEditing/chatEditingActions.js';
-import { ACTION_ID_NEW_CHAT, ACTION_ID_NEW_EDIT_SESSION, CHAT_CATEGORY, clearChatSessionPreservingType, handleCurrentEditingSession } from './chatActions.js';
+import { ACTION_ID_NEW_CHAT, ACTION_ID_NEW_EDIT_SESSION, CHAT_CATEGORY, CHAT_HISTORY_ACTION_ID, clearChatSessionPreservingType, handleCurrentEditingSession } from './chatActions.js';
 import { clearChatEditor } from './chatClear.js';
-import { AgentSessionProviders, AgentSessionsViewerOrientation } from '../agentSessions/agentSessions.js';
+import { localChatSessionType } from '../../common/chatSessionsService.js';
 
 export interface INewEditSessionActionContext {
 
-	/**
-	 * An initial prompt to write to the chat.
-	 */
 	inputValue?: string;
 
-	/**
-	 * Selects opening in agent mode or not. If not set, the current mode is used.
-	 * This is ignored when coming from a chat view title context.
-	 */
 	agentMode?: boolean;
 
-	/**
-	 * Whether the inputValue is partial and should wait for further user input.
-	 * If false or not set, the prompt is sent immediately.
-	 */
 	isPartialQuery?: boolean;
 }
 
@@ -84,7 +73,7 @@ export class NewChatAction extends Action2 {
 					group: '1_open',
 					order: 1,
 					when: ContextKeyExpr.and(
-						ChatContextKeys.newChatButtonExperimentIcon.notEqualsTo('copilot'),
+						ChatContextKeys.newChatButtonExperimentIcon.notEqualsTo('dardcor'),
 						ChatContextKeys.newChatButtonExperimentIcon.notEqualsTo('new-session'),
 						ChatContextKeys.newChatButtonExperimentIcon.notEqualsTo('comment')
 					)
@@ -106,7 +95,6 @@ export class NewChatAction extends Action2 {
 	async run(accessor: ServicesAccessor, ...args: unknown[]) {
 		const executeCommandContext = isNewEditSessionActionContext(args[0]) ? args[0] : undefined;
 
-		// Context from toolbar or lastFocusedWidget
 		const context = getEditingSessionContext(accessor, args);
 		await runNewChatAction(accessor, context, executeCommandContext);
 	}
@@ -114,7 +102,6 @@ export class NewChatAction extends Action2 {
 
 export function registerNewChatActions() {
 
-	// Add "New Chat" submenu to Chat view menu
 	MenuRegistry.appendMenuItem(MenuId.ViewTitle, {
 		submenu: MenuId.ChatNewMenu,
 		title: localize2('chat.newEdits.label', "New Chat"),
@@ -143,7 +130,7 @@ export function registerNewChatActions() {
 	registerAction2(NewChatAction);
 
 	const iconVariants = [
-		{ idSuffix: '.copilotIcon', iconValue: 'copilot', icon: Codicon.copilot },
+		{ idSuffix: '.dardcorIcon', iconValue: 'dardcor', icon: Codicon.sparkle },
 		{ idSuffix: '.newSessionIcon', iconValue: 'new-session', icon: Codicon.newSession },
 		{ idSuffix: '.commentIcon', iconValue: 'comment', icon: Codicon.comment },
 	] as const;
@@ -192,14 +179,8 @@ export function registerNewChatActions() {
 		async run(accessor: ServicesAccessor, ...args: unknown[]) {
 			const executeCommandContext = isNewEditSessionActionContext(args[0]) ? args[0] : undefined;
 
-			// Context from toolbar or lastFocusedWidget
 			const context = getEditingSessionContext(accessor, args);
 
-			// When no chat widget is open yet, opening the view resolves the
-			// computed default provider (a non-local harness when the agent host
-			// is enabled). Open the view, then explicitly start a local session:
-			// `startNewLocalSession` cancels that in-flight default resolution so
-			// the local request is honored without waiting for the agent host.
 			if (!context?.chatWidget) {
 				const view = await accessor.get(IViewsService).openView(ChatViewId, true) as ChatViewPane | null;
 				await view?.startNewLocalSession();
@@ -207,17 +188,16 @@ export function registerNewChatActions() {
 				return;
 			}
 
-			await runNewChatAction(accessor, context, executeCommandContext, AgentSessionProviders.Local);
+			await runNewChatAction(accessor, context, executeCommandContext, localChatSessionType);
 		}
 	});
 
 	MenuRegistry.appendMenuItem(MenuId.ChatViewSessionTitleNavigationToolbar, {
 		command: {
-			id: ACTION_ID_NEW_CHAT,
-			title: localize2('chat.goBack', "Go Back"),
+			id: CHAT_HISTORY_ACTION_ID,
+			title: localize2('chat.history.label', "Chat History"),
 			icon: Codicon.arrowLeft,
 		},
-		when: ChatContextKeys.agentSessionsViewerOrientation.notEqualsTo(AgentSessionsViewerOrientation.SideBySide), // when sessions show side by side, no need for a back button
 		group: 'navigation',
 		order: 1
 	});
@@ -312,7 +292,6 @@ export function registerNewChatActions() {
 			const currentWidget = widget.getWidgetBySessionResource(editingSession.chatSessionResource);
 			const requestText = currentWidget?.viewModel?.model.checkpoint?.message.text;
 
-			// if the input has the same text that we just restored, clear it.
 			if (currentWidget?.inputEditor.getValue() === requestText) {
 				currentWidget?.input.setValue('', false);
 			}
@@ -327,7 +306,7 @@ async function runNewChatAction(
 	accessor: ServicesAccessor,
 	context: EditingSessionActionContext | undefined,
 	executeCommandContext?: INewEditSessionActionContext,
-	sessionType?: AgentSessionProviders
+	sessionType?: string
 ) {
 	const accessibilityService = accessor.get(IAccessibilityService);
 	const instantiationService = accessor.get(IInstantiationService);
@@ -349,7 +328,6 @@ async function runNewChatAction(
 
 	await editingSession?.stop();
 
-	// Create a new session, preserving the session type (or using the specified one)
 	await instantiationService.invokeFunction(clearChatSessionPreservingType, widget, sessionType);
 
 	const newSession = widget.viewModel?.sessionResource;

@@ -391,22 +391,14 @@ suite('Base IPC', function () {
 
 			writer.dispose();
 
-			// After dispose the writer no longer retains the serialized buffers, so
-			// `buffer` is empty. This guards against a thrown error's captured stack
-			// pinning large intermediate buffers (see ChannelClient/ChannelServer.send).
 			assert.strictEqual(writer.buffer.byteLength, 0);
 		});
 
 		test('request rejects (and cleans up) when serialization throws on the deferred path', async function () {
-			// Reproduces the leak where a synchronous serialization failure left a
-			// dangling entry in `ChannelClient.handlers` (and, on the uninitialized
-			// path, a permanently pending promise). We make a call *before* the
-			// client is initialized so the request is deferred until init; when it
-			// finally serializes, a circular argument makes `JSON.stringify` throw.
 			const clientIncoming = store.add(new Emitter<VSBuffer>());
 			const clientProtocol: IMessagePassingProtocol = {
 				onMessage: clientIncoming.event,
-				send: () => { /* client outbound is irrelevant to this test */ }
+				send: () => { }
 			};
 			const serverOutbox: VSBuffer[] = [];
 			const serverProtocol: IMessagePassingProtocol = {
@@ -415,16 +407,12 @@ suite('Base IPC', function () {
 			};
 
 			const channelClient = store.add(new ChannelClient(clientProtocol));
-			// Constructing the server emits an Initialize message into its outbox.
 			store.add(new ChannelServer(serverProtocol, 'ctx'));
 
-			// Issue the call while the client is still uninitialized: it is queued
-			// behind `whenInitialized()` rather than serialized immediately.
 			const circular: Record<string, unknown> = {};
 			circular.self = circular;
 			const resultPromise = channelClient.getChannel('testchannel').call('cmd', circular);
 
-			// Deliver the server's Initialize so the deferred request runs and throws.
 			assert.strictEqual(serverOutbox.length, 1);
 			clientIncoming.fire(serverOutbox[0]);
 

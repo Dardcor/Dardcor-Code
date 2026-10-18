@@ -5,9 +5,6 @@
 import path from 'path';
 import fs from 'fs';
 
-/**
- * Returns the sha1 commit version of a repository or undefined in case of failure.
- */
 export function getVersion(repo: string): string | undefined {
 	const git = path.join(repo, '.git');
 	const headPath = path.join(git, 'HEAD');
@@ -35,7 +32,6 @@ export function getVersion(repo: string): string | undefined {
 	try {
 		return fs.readFileSync(refPath, 'utf8').trim();
 	} catch (e) {
-		// noop
 	}
 
 	const packedRefsPath = path.join(git, 'packed-refs');

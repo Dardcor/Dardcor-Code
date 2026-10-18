@@ -17,9 +17,6 @@ import { ViewController } from '../view/viewController.js';
 import { ViewContext } from '../../common/viewModel/viewContext.js';
 import { TextAreaSyntethicEvents } from './editContext/textArea/textAreaEditContextInput.js';
 
-/**
- * Currently only tested on iOS 13/ iPadOS.
- */
 export class PointerEventHandler extends MouseHandler {
 	private _lastPointerType: string;
 	constructor(context: ViewContext, viewController: ViewController, viewHelper: IPointerHandlerHelper) {
@@ -44,7 +41,6 @@ export class PointerEventHandler extends MouseHandler {
 			}
 		}));
 
-		// PonterEvents
 		const pointerEvents = new EditorPointerEventFactory(this.viewHelper.viewDomNode);
 
 		this._register(pointerEvents.onPointerMove(this.viewHelper.viewDomNode, (e) => this._onMouseMove(e)));
@@ -60,7 +56,7 @@ export class PointerEventHandler extends MouseHandler {
 
 		event.preventDefault();
 		this.viewHelper.focusTextArea();
-		this._dispatchGesture(event, /*inSelectionMode*/false);
+		this._dispatchGesture(event, false);
 	}
 
 	private onChange(event: GestureEvent): void {
@@ -68,7 +64,7 @@ export class PointerEventHandler extends MouseHandler {
 			this._context.viewModel.viewLayout.deltaScrollNow(-event.translationX, -event.translationY);
 		}
 		if (this._lastPointerType === 'pen') {
-			this._dispatchGesture(event, /*inSelectionMode*/true);
+			this._dispatchGesture(event, true);
 		}
 	}
 
@@ -122,7 +118,6 @@ class TouchHandler extends MouseHandler {
 		const target = this._createMouseTarget(new EditorMouseEvent(event, false, this.viewHelper.viewDomNode), false);
 
 		if (target.position) {
-			// Send the tap event also to the <textarea> (for input purposes)
 			const event = document.createEvent('CustomEvent');
 			event.initEvent(TextAreaSyntethicEvents.Tap, false, true);
 			this.viewHelper.dispatchTextAreaEvent(event);

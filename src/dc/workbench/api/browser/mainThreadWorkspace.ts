@@ -60,8 +60,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		this._queryBuilder = this._instantiationService.createInstance(QueryBuilder);
 		this._proxy = extHostContext.getProxy(ExtHostContext.ExtHostWorkspace);
 		const workspace = this._contextService.getWorkspace();
-		// The workspace file is provided be a unknown file system provider. It might come
-		// from the extension host. So initialize now knowing that `rootPath` is undefined.
 		if (workspace.configuration && !isNative && !fileService.hasProvider(workspace.configuration)) {
 			this._proxy.$initializeWorkspace(this.getWorkspaceData(workspace), this.isWorkspaceTrusted());
 		} else {
@@ -82,13 +80,11 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		}
 	}
 
-	// --- workspace ---
 
 	$updateWorkspaceFolders(extensionName: string, index: number, deleteCount: number, foldersToAdd: { uri: UriComponents; name?: string }[]): Promise<void> {
 		const workspaceFoldersToAdd = foldersToAdd.map(f => ({ uri: URI.revive(f.uri), name: f.name }));
 
-		// Indicate in status message
-		this._notificationService.status(this.getStatusMessage(extensionName, workspaceFoldersToAdd.length, deleteCount), { hideAfter: 10 * 1000 /* 10s */ });
+		this._notificationService.status(this.getStatusMessage(extensionName, workspaceFoldersToAdd.length, deleteCount), { hideAfter: 10 * 1000 });
 
 		return this._workspaceEditingService.updateFolders(index, deleteCount, workspaceFoldersToAdd, true);
 	}
@@ -99,7 +95,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		const wantsToAdd = addCount > 0;
 		const wantsToDelete = removeCount > 0;
 
-		// Add Folders
 		if (wantsToAdd && !wantsToDelete) {
 			if (addCount === 1) {
 				message = localize('folderStatusMessageAddSingleFolder', "Extension '{0}' added 1 folder to the workspace", extensionName);
@@ -108,7 +103,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 			}
 		}
 
-		// Delete Folders
 		else if (wantsToDelete && !wantsToAdd) {
 			if (removeCount === 1) {
 				message = localize('folderStatusMessageRemoveSingleFolder', "Extension '{0}' removed 1 folder from the workspace", extensionName);
@@ -117,7 +111,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 			}
 		}
 
-		// Change Folders
 		else {
 			message = localize('folderStatusChangeFolder', "Extension '{0}' changed folders of the workspace", extensionName);
 		}
@@ -143,7 +136,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		};
 	}
 
-	// --- search ---
 
 	$startFileSearch(_includeFolder: UriComponents | null, options: IFileQueryBuilderOptions<UriComponents>, token: CancellationToken): Promise<UriComponents[] | null> {
 		const includeFolder = URI.revive(_includeFolder);
@@ -197,7 +189,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		return this._instantiationService.invokeFunction((accessor) => checkGlobFileExists(accessor, folders, includes, token));
 	}
 
-	// --- save & edit resources ---
 
 	async $save(uriComponents: UriComponents, options: { saveAs: boolean }): Promise<UriComponents | undefined> {
 		const uri = URI.revive(uriComponents);
@@ -240,7 +231,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		return this._requestService.loadCertificates();
 	}
 
-	// --- trust ---
 
 	$requestResourceTrust(optionsDto: ResourceTrustRequestOptionsDto): Promise<boolean | undefined> {
 		const options = { ...optionsDto, uri: URI.revive(optionsDto.uri) } satisfies ResourceTrustRequestOptions;
@@ -269,7 +259,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		this._proxy.$onDidChangeWorkspaceTrustedFolders();
 	}
 
-	// --- edit sessions ---
 	private registeredEditSessionProviders = this._register(new DisposableMap<number, IDisposable>());
 
 	$registerEditSessionIdentityProvider(handle: number, scheme: string) {
@@ -290,7 +279,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		this.registeredEditSessionProviders.deleteAndDispose(handle);
 	}
 
-	// --- canonical uri identities ---
 	private registeredCanonicalUriProviders = this._register(new DisposableMap<number, IDisposable>());
 
 	$registerCanonicalUriProvider(handle: number, scheme: string) {
@@ -312,7 +300,6 @@ export class MainThreadWorkspace extends Disposable implements MainThreadWorkspa
 		this.registeredCanonicalUriProviders.deleteAndDispose(handle);
 	}
 
-	// --- encodings
 
 	$resolveDecoding(resource: UriComponents | undefined, options?: { encoding: string }): Promise<{ preferredEncoding: string; guessEncoding: boolean; candidateGuessEncodings: string[] }> {
 		return this._textFileService.resolveDecoding(URI.revive(resource), options);

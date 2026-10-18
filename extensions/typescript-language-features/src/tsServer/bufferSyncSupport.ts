@@ -59,11 +59,6 @@ class ChangeOperation {
 
 type BufferOperation = CloseOperation | OpenOperation | ChangeOperation;
 
-/**
- * Manages synchronization of buffers with the TS server.
- *
- * If supported, batches together file changes. This allows the TS server to more efficiently process changes.
- */
 class BufferSynchronizer {
 
 	private readonly _pending: ResourceMap<BufferOperation>;
@@ -82,9 +77,6 @@ class BufferSynchronizer {
 		this.updatePending(resource, new OpenOperation(args, args.scriptKindName));
 	}
 
-	/**
-	 * @return Was the buffer open?
-	 */
 	public close(resource: vscode.Uri, filepath: string, scriptKind: ScriptKind | undefined): boolean {
 		return this.updatePending(resource, new CloseOperation(filepath, scriptKind));
 	}
@@ -100,7 +92,7 @@ class BufferSynchronizer {
 				newText: change.text,
 				start: typeConverters.Position.toLocation(change.range.start),
 				end: typeConverters.Position.toLocation(change.range.end),
-			})).reverse(), // Send the edits end-of-document to start-of-document order
+			})).reverse(),
 		}));
 	}
 
@@ -141,7 +133,7 @@ class BufferSynchronizer {
 					case BufferOperationType.Open:
 						if (existing.scriptKind === op.scriptKind) {
 							this._pending.delete(resource);
-							return false; // Open then close. No need to do anything
+							return false;
 						}
 				}
 				break;
@@ -149,7 +141,6 @@ class BufferSynchronizer {
 		}
 
 		if (this._pending.has(resource)) {
-			// we saw this file before, make sure we flush before working with it again
 			this.flush();
 		}
 		this._pending.set(resource, op);
@@ -194,9 +185,6 @@ class SyncedBuffer {
 	private getProjectRootPath(resource: vscode.Uri): string | undefined {
 		let workspaceRoot = this.client.getWorkspaceRootForResource(resource);
 
-		// If we didn't find a real workspace, we still want to try sending along a workspace folder
-		// to prevent TS from loading projects from outside of any workspace.
-		// Just pick the highest level one on the same FS even though the file is outside of it
 		if (!workspaceRoot && vscode.workspace.workspaceFolders) {
 			for (const root of Array.from(vscode.workspace.workspaceFolders).sort((a, b) => a.uri.path.length - b.uri.path.length)) {
 				if (root.uri.scheme === resource.scheme && root.uri.authority === resource.authority) {
@@ -226,9 +214,6 @@ class SyncedBuffer {
 		return this.document.languageId;
 	}
 
-	/**
-	 * @return Was the buffer open?
-	 */
 	public close(): boolean {
 		if (this.state !== BufferState.Open) {
 			this.state = BufferState.Closed;
@@ -307,8 +292,6 @@ class GetErrRequest {
 		} else {
 			let request;
 			if (this.areProjectDiagnosticsEnabled()) {
-				// Note that geterrForProject is almost certainly not the api we want here as it ends up computing far
-				// too many diagnostics
 				request = client.executeAsync('geterrForProject', { delay: 0, file: allFiles[0] }, this._token.token);
 			}
 			else {
@@ -345,7 +328,6 @@ class GetErrRequest {
 		if (this.client.apiVersion.gte(API.v440)) {
 			return true;
 		} else {
-			// Older TS versions only support `getErr` on semantic server
 			return this.client.capabilities.has(ClientCapability.Semantic);
 		}
 	}
@@ -630,7 +612,7 @@ export default class BufferSyncSupport extends Disposable {
 
 	public interruptGetErr<R>(f: () => R): R {
 		if (!this.pendingGetErr
-			|| this.client.configuration.enableProjectDiagnostics // `geterr` happens on separate server so no need to cancel it.
+			|| this.client.configuration.enableProjectDiagnostics
 		) {
 			return f();
 		}
@@ -666,7 +648,6 @@ export default class BufferSyncSupport extends Disposable {
 		const didTrigger = this.requestDiagnostic(syncedBuffer);
 
 		if (!didTrigger && this.pendingGetErr) {
-			// In this case we always want to re-trigger all diagnostics
 			this.pendingGetErr.cancel();
 			this.pendingGetErr = undefined;
 			this.triggerDiagnostics();
@@ -732,7 +713,6 @@ export default class BufferSyncSupport extends Disposable {
 			this.pendingGetErr = undefined;
 		}
 
-		// Add all open TS buffers to the geterr request. They might be visible
 		for (const buffer of this.syncedBuffers.values()) {
 			const editors = vscode.window.visibleTextEditors.filter(editor => editor.document.uri.toString() === buffer.resource.toString());
 			const visibleRanges = editors.flatMap(editor => editor.visibleRanges);
@@ -762,7 +742,7 @@ export default class BufferSyncSupport extends Disposable {
 			return false;
 		}
 
-		if (!this.client.configuration.enableProjectDiagnostics && !this._tabResources.has(buffer.resource)) { // Only validate resources that are showing to the user
+		if (!this.client.configuration.enableProjectDiagnostics && !this._tabResources.has(buffer.resource)) {
 			return false;
 		}
 

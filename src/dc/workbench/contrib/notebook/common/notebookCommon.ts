@@ -74,12 +74,6 @@ export const ACCESSIBLE_NOTEBOOK_DISPLAY_ORDER: readonly string[] = [
 	Mimes.text,
 ];
 
-/**
- * A mapping of extension IDs who contain renderers, to notebook ids who they
- * should be treated as the same in the renderer selection logic. This is used
- * to prefer the 1st party Jupyter renderers even though they're in a separate
- * extension, for instance. See #136247.
- */
 export const RENDERER_EQUIVALENT_EXTENSIONS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
 	['ms-toolsai.jupyter', new Set(['jupyter-notebook', 'interactive'])],
 	['ms-toolsai.jupyter-renderers', new Set(['jupyter-notebook', 'interactive'])],
@@ -114,18 +108,10 @@ export interface INotebookCellPreviousExecutionResult {
 }
 
 export interface NotebookCellMetadata {
-	/**
-	 * custom metadata
-	 */
 	[key: string]: unknown;
 }
 
 export interface NotebookCellInternalMetadata {
-	/**
-	 * Used only for diffing of Notebooks.
-	 * This is not persisted and generally useful only when diffing two notebooks.
-	 * Useful only after we've manually matched a few cells together so we know which cells are matching.
-	 */
 	internalId?: string;
 	executionId?: string;
 	executionOrder?: number;
@@ -160,24 +146,13 @@ export interface TransientOptions {
 	readonly cellContentMetadata: CellContentMetadata;
 }
 
-/** Note: enum values are used for sorting */
 export const enum NotebookRendererMatch {
-	/** Renderer has a hard dependency on an available kernel */
 	WithHardKernelDependency = 0,
-	/** Renderer works better with an available kernel */
 	WithOptionalKernelDependency = 1,
-	/** Renderer is kernel-agnostic */
 	Pure = 2,
-	/** Renderer is for a different mimeType or has a hard dependency which is unsatisfied */
 	Never = 3,
 }
 
-/**
- * Renderer messaging requirement. While this allows for 'optional' messaging,
- * VS Code effectively treats it the same as true right now. "Partial
- * activation" of extensions is a very tricky problem, which could allow
- * solving this. But for now, optional is mostly only honored for aznb.
- */
 export const enum RendererMessagingSpec {
 	Always = 'always',
 	Never = 'never',
@@ -231,9 +206,6 @@ export interface ICellOutput {
 	outputs: IOutputItemDto[];
 	metadata?: Record<string, any>;
 	outputId: string;
-	/**
-	 * Alternative output id that's reused when the output is updated.
-	 */
 	alternativeOutputId: string;
 	readonly onDidChangeData: Event<void>;
 	replaceData(items: IOutputDto): void;
@@ -249,19 +221,10 @@ export interface CellInternalMetadataChangedEvent {
 }
 
 export interface INotebookDocumentMetadataTextModel {
-	/**
-	 * Notebook Metadata Uri.
-	 */
 	readonly uri: URI;
-	/**
-	 * Triggered when the Notebook Metadata changes.
-	 */
 	readonly onDidChange: Event<void>;
 	readonly metadata: Readonly<NotebookDocumentMetadata>;
 	readonly textBuffer: IReadonlyTextBuffer;
-	/**
-	 * Text representation of the Notebook Metadata
-	 */
 	getValue(): string;
 	getHash(): string;
 }
@@ -316,8 +279,8 @@ export type NotebookCellTextModelSplice<T> = [
 ];
 
 export type NotebookCellOutputsSplice = {
-	start: number /* start */;
-	deleteCount: number /* delete count */;
+	start: number ;
+	deleteCount: number ;
 	newOutputs: ICellOutput[];
 };
 
@@ -516,7 +479,6 @@ export interface ICellMetadataEdit {
 	metadata: NotebookCellMetadata;
 }
 
-// These types are nullable because we need to use 'null' on the EH side so it is JSON-stringified
 export type NullablePartialNotebookCellMetadata = {
 	[Key in keyof Partial<NotebookCellMetadata>]: NotebookCellMetadata[Key] | null
 };
@@ -618,10 +580,6 @@ export namespace CellUri {
 		return parseUri(cell);
 	}
 
-	/**
-	 * Generates a URI for a cell output in a notebook using the output ID.
-	 * Used when URI should be opened as text in the editor.
-	 */
 	export function generateCellOutputUriWithId(notebook: URI, outputId?: string) {
 		return notebook.with({
 			scheme: Schemas.vscodeNotebookCellOutput,
@@ -632,10 +590,6 @@ export namespace CellUri {
 			}).toString()
 		});
 	}
-	/**
-	 * Generates a URI for a cell output in a notebook using the output index.
-	 * Used when URI should be opened in notebook editor.
-	 */
 	export function generateCellOutputUriWithIndex(notebook: URI, cellUri: URI, outputIndex: number): URI {
 		return notebook.with({
 			scheme: Schemas.vscodeNotebookCellOutput,
@@ -697,9 +651,6 @@ export class MimeTypeDisplayOrder {
 		}));
 	}
 
-	/**
-	 * Returns a sorted array of the input mimeTypes.
-	 */
 	public sort(mimeTypes: Iterable<string>): string[] {
 		const remaining = new Map(Iterable.map(mimeTypes, m => [m, normalizeSlashes(m)]));
 		let sorted: string[] = [];
@@ -723,20 +674,13 @@ export class MimeTypeDisplayOrder {
 		return sorted;
 	}
 
-	/**
-	 * Records that the user selected the given mimetype over the other
-	 * possible mimeTypes, prioritizing it for future reference.
-	 */
 	public prioritize(chosenMimetype: string, otherMimeTypes: readonly string[]) {
 		const chosenIndex = this.findIndex(chosenMimetype);
 		if (chosenIndex === -1) {
-			// always first, nothing more to do
 			this.order.unshift({ pattern: chosenMimetype, matches: glob.parse(normalizeSlashes(chosenMimetype), { ignoreCase: true }) });
 			return;
 		}
 
-		// Get the other mimeTypes that are before the chosenMimetype. Then, move
-		// them after it, retaining order.
 		const uniqueIndices = new Set(otherMimeTypes.map(m => this.findIndex(m, chosenIndex)));
 		uniqueIndices.delete(-1);
 		const otherIndices = Array.from(uniqueIndices).sort((a, b) => a - b);
@@ -747,9 +691,6 @@ export class MimeTypeDisplayOrder {
 		}
 	}
 
-	/**
-	 * Gets an array of in-order mimetype preferences.
-	 */
 	public toArray() {
 		return this.order.map(o => o.pattern);
 	}
@@ -807,18 +748,15 @@ export function diff<T>(before: T[], after: T[], contains: (a: T) => boolean, eq
 		const afterElement = after[afterIdx];
 
 		if (equal(beforeElement, afterElement)) {
-			// equal
 			beforeIdx += 1;
 			afterIdx += 1;
 			continue;
 		}
 
 		if (contains(afterElement)) {
-			// `afterElement` exists before, which means some elements before `afterElement` are deleted
 			pushSplice(beforeIdx, 1, []);
 			beforeIdx += 1;
 		} else {
-			// `afterElement` added
 			pushSplice(beforeIdx, 0, [afterElement]);
 			afterIdx += 1;
 		}
@@ -836,14 +774,7 @@ export const NOTEBOOK_EDITOR_CURSOR_BOUNDARY = new RawContextKey<'none' | 'top' 
 export const NOTEBOOK_EDITOR_CURSOR_LINE_BOUNDARY = new RawContextKey<'none' | 'start' | 'end' | 'both'>('notebookEditorCursorAtLineBoundary', 'none');
 
 export interface INotebookLoadOptions {
-	/**
-	 * Go to disk bypassing any cache of the model if any.
-	 */
 	forceReadFromFile?: boolean;
-	/**
-	 * If provided, the size of the file will be checked against the limits
-	 * and an error will be thrown if any limit is exceeded.
-	 */
 	readonly limits?: IFileReadLimits;
 }
 
@@ -929,7 +860,6 @@ export interface INotebookDocumentFilter {
 	filenamePattern?: string | glob.IRelativePattern | INotebookExclusiveDocumentFilter;
 }
 
-//TODO@rebornix test
 
 export function isDocumentExcludePattern(filenamePattern: string | glob.IRelativePattern | INotebookExclusiveDocumentFilter): filenamePattern is { include: string | glob.IRelativePattern; exclude: string | glob.IRelativePattern } {
 	const arg = filenamePattern as INotebookExclusiveDocumentFilter;
@@ -957,7 +887,6 @@ export function notebookDocumentFilterMatch(filter: INotebookDocumentFilter, vie
 		if (glob.match(filenamePattern, basename(resource.fsPath), { ignoreCase: true })) {
 			if (excludeFilenamePattern) {
 				if (glob.match(excludeFilenamePattern, basename(resource.fsPath), { ignoreCase: true })) {
-					// should exclude
 					return false;
 				}
 			}
@@ -1090,17 +1019,10 @@ export interface NotebookExtensionDescription {
 
 const textDecoder = new TextDecoder();
 
-/**
- * Given a stream of individual stdout outputs, this function will return the compressed lines, escaping some of the common terminal escape codes.
- * E.g. some terminal escape codes would result in the previous line getting cleared, such if we had 3 lines and
- * last line contained such a code, then the result string would be just the first two lines.
- * @returns a single VSBuffer with the concatenated and compressed data, and whether any compression was done.
- */
 export function compressOutputItemStreams(outputs: Uint8Array[]) {
 	const buffers: Uint8Array[] = [];
 	let startAppending = false;
 
-	// Pick the first set of outputs with the same mime type.
 	for (const output of outputs) {
 		if ((buffers.length === 0 || startAppending)) {
 			buffers.push(output);
@@ -1127,7 +1049,6 @@ function compressStreamBuffer(streams: Uint8Array[]) {
 
 		const previousStream = streams[index - 1];
 
-		// Remove the previous line if required.
 		const command = stream.subarray(0, MOVE_CURSOR_1_LINE_COMMAND.length);
 		if (command[0] === MOVE_CURSOR_1_LINE_COMMAND_BYTES[0] && command[1] === MOVE_CURSOR_1_LINE_COMMAND_BYTES[1] && command[2] === MOVE_CURSOR_1_LINE_COMMAND_BYTES[2]) {
 			const lastIndexOfLineFeed = previousStream.lastIndexOf(LINE_FEED);
@@ -1145,27 +1066,17 @@ function compressStreamBuffer(streams: Uint8Array[]) {
 
 
 
-/**
- * Took this from jupyter/notebook
- * https://github.com/jupyter/notebook/blob/b8b66332e2023e83d2ee04f83d8814f567e01a4e/notebook/static/base/js/utils.js
- * Remove characters that are overridden by backspace characters
- */
 function fixBackspace(txt: string) {
 	let tmp = txt;
 	do {
 		txt = tmp;
-		// Cancel out anything-but-newline followed by backspace
 		tmp = txt.replace(/[^\n]\x08/gm, '');
 	} while (tmp.length < txt.length);
 	return txt;
 }
 
-/**
- * Remove chunks that should be overridden by the effect of carriage return characters
- * From https://github.com/jupyter/notebook/blob/master/notebook/static/base/js/utils.js
- */
 function fixCarriageReturn(txt: string) {
-	txt = txt.replace(/\r+\n/gm, '\n'); // \r followed by \n --> newline
+	txt = txt.replace(/\r+\n/gm, '\n');
 	while (txt.search(/\r[^$]/g) > -1) {
 		const base = txt.match(/^(.*)\r+/m)![1];
 		let insert = txt.match(/\r+(.*)$/m)![1];
@@ -1178,12 +1089,9 @@ function fixCarriageReturn(txt: string) {
 const BACKSPACE_CHARACTER = '\b'.charCodeAt(0);
 const CARRIAGE_RETURN_CHARACTER = '\r'.charCodeAt(0);
 function formatStreamText(buffer: VSBuffer): VSBuffer {
-	// We have special handling for backspace and carriage return characters.
-	// Don't unnecessary decode the bytes if we don't need to perform any processing.
 	if (!buffer.buffer.includes(BACKSPACE_CHARACTER) && !buffer.buffer.includes(CARRIAGE_RETURN_CHARACTER)) {
 		return buffer;
 	}
-	// Do the same thing jupyter is doing
 	return VSBuffer.fromString(fixCarriageReturn(fixBackspace(textDecoder.decode(buffer.buffer))));
 }
 

@@ -3,16 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Observer interface for the Subject.
- */
 export interface Observer<T> {
 	next: (value: T) => void;
 	complete?: () => void;
 	error?: (err: unknown) => void;
 }
 
-/** A simple implementation of an observable Subject.  */
 export class Subject<T> {
 	private observers = new Set<Observer<T>>();
 
@@ -42,7 +38,6 @@ export class Subject<T> {
 	}
 }
 
-/** A variant of Subject that replays the last value to new subscribers. */
 export class ReplaySubject<T> extends Subject<T> {
 	private _value: T | undefined;
 

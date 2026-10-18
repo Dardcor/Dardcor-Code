@@ -196,7 +196,6 @@ export class MarkersModel {
 			let resourceMarkers = this.resourcesByUri.get(key);
 
 			if (isNonEmptyArray(rawMarkers)) {
-				// update, add
 				if (!resourceMarkers) {
 					const resourceMarkersId = this.id(resource.toString());
 					resourceMarkers = new ResourceMarkers(resourceMarkersId, resource.with({ fragment: null }));
@@ -205,9 +204,6 @@ export class MarkersModel {
 				} else {
 					change.updated.add(resourceMarkers);
 				}
-				// Deduplicate markers with identical source, code, severity, message
-				// and range so that a diagnostic reported by both a task problem
-				// matcher and a language extension is only shown once (#244424).
 				const processedMarkerKeys = new Set<string>();
 				const markers: Marker[] = [];
 				for (const rawMarker of rawMarkers) {
@@ -232,7 +228,6 @@ export class MarkersModel {
 				this._total += resourceMarkers.total;
 
 			} else if (resourceMarkers) {
-				// clear
 				this._total -= resourceMarkers.total;
 				resourceMarkers.delete(resource);
 				this._total += resourceMarkers.total;

@@ -130,7 +130,7 @@ function parseFormattedText(content: string, parseCodeSegments: boolean): IForma
 
 		const isEscapedFormatType = (next === '\\' && formatTagType(stream.peek(), parseCodeSegments) !== FormatType.Invalid);
 		if (isEscapedFormatType) {
-			next = stream.next(); // unread the backslash if it escapes a format tag type
+			next = stream.next();
 		}
 
 		if (!isEscapedFormatType && isFormatTag(next, parseCodeSegments) && next === stream.peek()) {
@@ -188,7 +188,6 @@ function parseFormattedText(content: string, parseCodeSegments: boolean): IForma
 	}
 
 	if (stack.length) {
-		// incorrectly formatted string literal
 	}
 
 	return root;

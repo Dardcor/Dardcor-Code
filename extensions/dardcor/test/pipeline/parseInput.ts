@@ -8,9 +8,6 @@ import { ErrorUtils } from '../../src/util/common/errors';
 import { streamJsonRecords } from './streamJsonRecords';
 import type { WithRowIndex } from './withRowIndex';
 
-/**
- * A single row from the JSON input.
- */
 export interface IInputRow {
 	readonly originalRowIndex: number;
 	readonly suggestionStatus: string;
@@ -33,9 +30,6 @@ const requiredKeys = [
 	'language',
 ] as const;
 
-/**
- * Parse a single JSON input record into a structured row.
- */
 function parseInputRecord(record: Record<string, string>, rowIndex: number): IInputRow {
 	for (const key of requiredKeys) {
 		if (!(key in record)) {
@@ -71,15 +65,6 @@ function parseInputRecord(record: Record<string, string>, rowIndex: number): IIn
 	};
 }
 
-/**
- * Stream-parse the input file (JSON array or JSON Lines) and validate each
- * record into an `IInputRow`. Records that fail validation are reported in
- * `errors` (with their row index) rather than aborting the load.
- *
- * Note: this still accumulates the fully parsed rows into memory. For very
- * large inputs (multi-GB), use `runInputPipelineParallel` so each worker only
- * loads its assigned slice — the parent process never holds the whole dataset.
- */
 export async function loadAndParseInput(inputPath: string, verbose = false): Promise<{
 	rows: IInputRow[];
 	errors: WithRowIndex<Error>[];

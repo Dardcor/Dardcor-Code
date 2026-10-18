@@ -138,16 +138,11 @@ export class CustomEditorInfoCollection {
 
 	public get length(): number { return this.allEditors.length; }
 
-	/**
-	 * Find the single default editor to use (if any) by looking at the editor's priority and the
-	 * other contributed editors.
-	 */
 	public get defaultEditor(): CustomEditorInfo | undefined {
 		return this.allEditors.find(editor => {
 			switch (editor.priority.editor) {
 				case RegisteredEditorPriority.default:
 				case RegisteredEditorPriority.builtin:
-					// A default editor must have higher priority than all other contributed editors.
 					return this.allEditors.every(otherEditor =>
 						otherEditor === editor || isLowerPriority(otherEditor, editor));
 
@@ -157,12 +152,6 @@ export class CustomEditorInfoCollection {
 		});
 	}
 
-	/**
-	 * Find the best available editor to use.
-	 *
-	 * Unlike the `defaultEditor`, a bestAvailableEditor can exist even if there are other editors with
-	 * the same priority.
-	 */
 	public get bestAvailableEditor(): CustomEditorInfo | undefined {
 		const editors = Array.from(this.allEditors).sort((a, b) => {
 			return priorityToRank(a.priority.editor) - priorityToRank(b.priority.editor);

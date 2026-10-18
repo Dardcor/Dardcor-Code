@@ -88,7 +88,6 @@ ssuite({ title: 'Debug config to command', location: 'context' }, () => {
 		const { accessor, r } = await score(testingServiceCollection, path.join(WORKSPACE_FOLDER.fsPath), ['cargo', 'run']);
 
 		rubric(accessor,
-			// test env service always advertises linux:
 			() => assert.strictEqual(r?.type, 'lldb'),
 			() => assert.ok(r?.program.includes('target/debug')),
 		);

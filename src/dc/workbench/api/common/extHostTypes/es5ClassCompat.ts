@@ -3,12 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * @deprecated
- *
- * This utility ensures that old JS code that uses functions for classes still works. Existing usages cannot be removed
- * but new ones must not be added
- */
 export function es5ClassCompat(target: Function): any {
 	const interceptFunctions = {
 		apply: function (...args: any[]): any {

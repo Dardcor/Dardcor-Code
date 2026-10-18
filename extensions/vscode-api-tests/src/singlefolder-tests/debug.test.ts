@@ -63,14 +63,13 @@ suite('vscode API - debug', function () {
 		assert.strictEqual(functionBreakpoint.functionName, 'func');
 	});
 
-	test.skip('start debugging', async function () { // Flaky: https://github.com/microsoft/vscode/issues/242033
+	test.skip('start debugging', async function () {
 		let stoppedEvents = 0;
 		let variablesReceived: () => void;
 		let initializedReceived: () => void;
 		let configurationDoneReceived: () => void;
 		const toDispose: Disposable[] = [];
 		if (debug.activeDebugSession) {
-			// We are re-running due to flakyness, make sure to clear out state
 			let sessionTerminatedRetry: () => void;
 			toDispose.push(debug.onDidTerminateDebugSession(() => {
 				sessionTerminatedRetry();

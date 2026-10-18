@@ -31,12 +31,10 @@ import { isAutoModel } from './modelPickerPresentation.js';
 import { buildModelPickerDestinations, buildModelPickerSections, getModelProviderLabel, hasPromotedModels, IModelPickerDestination, IModelPickerProviderPlaceholder, IModelPickerSections, IModelPickerUnavailableEntry, MODEL_PICKER_BUILT_IN_DESTINATION } from './modelPickerTabs.js';
 import { ModelPickerWelcome } from './modelPickerWelcome.js';
 
-/** The collapsible section holding models that are neither pinned, recommended nor recent. */
 const OTHER_MODELS_SECTION = 'other';
 const PICKER_WIDTH = 320;
 const PRICING_EXPANDED_STORAGE_KEY = 'chat.modelPicker.pricingExpanded';
 
-/** Everything the picker needs for one showing, gathered by the owning widget. */
 export interface ITabbedModelPickerContext {
 	readonly models: readonly ILanguageModelChatMetadataAndIdentifier[];
 	readonly selectedModelId: string | undefined;
@@ -44,36 +42,23 @@ export interface ITabbedModelPickerContext {
 	readonly pinnedModelIds: readonly string[];
 	readonly controlModels: IStringDictionary<IModelControlEntry>;
 	readonly configurationAccess: IModelConfigurationAccess;
-	/** Whether the account is billed by credits, which is when cost numbers are shown. */
 	readonly isUBB: boolean;
 	readonly showManageModels: boolean;
-	/**
-	 * What it takes to unlock a curated model the user cannot select yet, used to
-	 * offer the upgrade, admin or update path instead of simply omitting the model.
-	 */
 	readonly unavailableContext: {
 		readonly show: boolean;
 		readonly currentVSCodeVersion: string;
 		readonly manageSettingsUrl: string | undefined;
 		readonly updateStateType: StateType;
 	};
-	/** Reports a click on an upgrade or contact-admin link in an unavailable model row. */
 	readonly onUnavailableLinkClick: (uri: URI) => void;
-	/** Providers the user can add models from but has none from yet, e.g. one that needs signing in. */
 	readonly providerPlaceholders: readonly IModelPickerProviderPlaceholder[];
 	readonly onSelect: (model: ILanguageModelChatMetadataAndIdentifier) => void;
 	readonly onTogglePin: ((modelIdentifier: string, pinned: boolean) => void) | undefined;
 	readonly onManageModels: () => void;
-	/** Reports a configuration change made from a model's detail card. */
 	readonly onConfigurationChanged: (model: ILanguageModelChatMetadataAndIdentifier, group: string, key: string, fromValue: unknown, toValue: unknown) => void;
-	/** Warning banner shown when switching options mid-session would reset the prompt cache. */
 	readonly cacheBreakHint: { readonly text: string; readonly link: IActionListHeaderLink | undefined; readonly dismiss: () => void } | undefined;
 }
 
-/**
- * A provider-tabbed model picker with a detail card beside the hovered model and an
- * Auto row pinned below. With only the built-in provider there is no tab bar.
- */
 export class TabbedModelPicker extends Disposable {
 
 	private readonly _onDidHide = this._register(new Emitter<void>());
@@ -83,7 +68,6 @@ export class TabbedModelPicker extends Disposable {
 	private readonly _cards = this._register(new DisposableStore());
 	private readonly _autoRow = this._register(new MutableDisposable<ModelPickerAutoRow>());
 	private readonly _onDidChangePricingDisclosure = this._register(new Emitter<void>());
-	/** Shared by every card, and remembered, so the breakdown is opened once rather than per model. */
 	private readonly _pricingDisclosure: IPricingDisclosure = {
 		isExpanded: () => this._storageService.getBoolean(PRICING_EXPANDED_STORAGE_KEY, StorageScope.APPLICATION, false),
 		setExpanded: expanded => {
@@ -98,7 +82,6 @@ export class TabbedModelPicker extends Disposable {
 	private _activeDestination: string | undefined;
 	private _searchVisible = false;
 	private _speedVariants: ReadonlyMap<string, IModelSpeedVariants> = new Map();
-	/** The model to fall back to when Auto is switched off. */
 	private _lastExplicitModelId: string | undefined;
 
 	get isVisible(): boolean {
@@ -116,8 +99,6 @@ export class TabbedModelPicker extends Disposable {
 		this._widget = this._register(instantiationService.createInstance(TabbedActionListWidget));
 		this._register(this._widget.onDidChangeTab(id => { this._activeDestination = id; }));
 		this._register(this._widget.onDidHide(() => {
-			// Search is a transient view. Left on, it would also size the next popup from
-			// its flattened cross-provider list.
 			this._searchVisible = false;
 			this._onDidHide.fire();
 		}));
@@ -163,12 +144,10 @@ export class TabbedModelPicker extends Disposable {
 			anchor,
 			tabs: destinations.map((destination): ITabDescriptor => ({ id: destination.id, label: destination.label, icon: destination.icon, tooltip: destination.label })),
 			initialTab: this._activeDestination,
-			// The built-in provider fixes the popup's height.
 			sizingTab: MODEL_PICKER_BUILT_IN_DESTINATION,
 			showCheckedItemHover: !this._isAutoSelected(context),
 			tabBarActions: this._buildTabBarActions(context),
 			tabBarClassName: 'chat-model-picker-tabbar',
-			// Recomputed on every render so a tab switch reflects the current Auto state.
 			widgetClassNames: () => [
 				'chat-model-picker-widget',
 				...(this._isAutoSelected(this._context ?? context) ? ['auto-enabled'] : []),
@@ -182,7 +161,6 @@ export class TabbedModelPicker extends Disposable {
 				const current = this._context ?? context;
 				const destination = destinations.find(candidate => candidate.id === activeTab) ?? destinations[0];
 				const sections = this._buildSections(destination, current);
-				// Search spans every destination at once, so each model names its provider.
 				const items = this._searchVisible
 					? destinations.flatMap(candidate => this._buildSearchItems(candidate, current))
 					: this._buildItems(destination, sections, current);
@@ -204,7 +182,6 @@ export class TabbedModelPicker extends Disposable {
 						headerIcon: current.cacheBreakHint ? Codicon.info : undefined,
 						headerLink: current.cacheBreakHint?.link,
 						headerDismiss: current.cacheBreakHint?.dismiss,
-						// A tab with nothing promoted would open on an empty list, so leave it expanded.
 						collapsedByDefault: hasPromotedModels(sections) ? new Set([OTHER_MODELS_SECTION]) : undefined,
 						linkHandler: uri => current.onUnavailableLinkClick(uri),
 						maxWidth: pickerWidth,
@@ -251,10 +228,7 @@ export class TabbedModelPicker extends Disposable {
 			recentModelIds: context.recentModelIds,
 			pinnedModelIds: context.pinnedModelIds,
 			controlModels: context.controlModels,
-			// Only the built-in provider curates a shortlist. A provider the user added
-			// gets a tab of its own, which is already the whole of what it offers.
 			showSuggested: isBuiltIn,
-			// Only the built-in provider has a curated catalogue to compare against.
 			showUnavailable: isBuiltIn && context.unavailableContext.show,
 			currentVSCodeVersion: context.unavailableContext.currentVSCodeVersion,
 		});
@@ -262,7 +236,6 @@ export class TabbedModelPicker extends Disposable {
 
 	private _buildTabBarActions(context: ITabbedModelPickerContext): ITabBarAction[] {
 		const actions: ITabBarAction[] = [];
-		// Hidden while searching, when the filter takes the tab strip's place.
 		if (context.showManageModels && !this._searchVisible) {
 			actions.push({
 				id: 'addProvider',
@@ -289,8 +262,6 @@ export class TabbedModelPicker extends Disposable {
 	}
 
 	private _buildItems(destination: IModelPickerDestination, sections: IModelPickerSections, context: ITabbedModelPickerContext): IActionListItem<IActionWidgetDropdownAction>[] {
-		// A plan that grants only Auto still lists the models it could unlock, so the
-		// welcome body is reserved for having genuinely nothing to say.
 		if (!destination.models.length && !sections.unavailable.length) {
 			return [];
 		}
@@ -303,14 +274,12 @@ export class TabbedModelPicker extends Disposable {
 			if (!models.length && !unavailable.length) {
 				return;
 			}
-			// An unlabelled run still needs a rule when something precedes it.
 			if (label || items.length) {
 				items.push({ kind: ActionListItemKind.Separator, label });
 			}
 			for (const model of models) {
 				items.push(this._createModelItem(model, context, undefined));
 			}
-			// Listed after the models that can be picked, so the section leads with what works.
 			for (const { id, entry, needsUpdate } of unavailable) {
 				const { unavailableContext } = context;
 				const reason = needsUpdate ? 'update' : getUnavailableReason(entry, this._entitlementService, unavailableContext.currentVSCodeVersion);
@@ -326,7 +295,6 @@ export class TabbedModelPicker extends Disposable {
 		};
 
 		appendSection(localize('chat.modelPicker.pinned', "Pinned"), sections.pinned);
-		// The shortlist is the default state, so it goes unlabelled.
 		appendSection(undefined, sections.suggested, sections.unavailable);
 
 		if (sections.other.length) {
@@ -355,10 +323,6 @@ export class TabbedModelPicker extends Disposable {
 		return items;
 	}
 
-	/**
-	 * Every model in one destination as flat rows, for searching. Sections would only
-	 * get in the way of a result list, but each row still names its provider.
-	 */
 	private _buildSearchItems(destination: IModelPickerDestination, context: ITabbedModelPickerContext): IActionListItem<IActionWidgetDropdownAction>[] {
 		return destination.models
 			.slice()
@@ -374,10 +338,7 @@ export class TabbedModelPicker extends Disposable {
 	): IActionListItem<IActionWidgetDropdownAction> {
 		const { action, ariaDescription } = createModelAction(model, context.selectedModelId, context.onSelect, section, true);
 		const badge = getModelBadge(model, { configurationAccess: context.configurationAccess, providerLabel });
-		// While Auto is choosing, a model's settings do not apply, so the card that edits
-		// them stays shut. The row is still selectable, which is what turns Auto off.
 		const autoEnabled = this._isAutoSelected(context);
-		// Build each card lazily and reuse it while browsing this list.
 		let card: ModelCard | undefined;
 		const createCard = () => (card ??= this._cards.add(new ModelCard({
 			model,
@@ -394,16 +355,11 @@ export class TabbedModelPicker extends Disposable {
 			onTogglePin: context.onTogglePin
 				? pinned => {
 					context.onTogglePin?.(model.identifier, pinned);
-					// Closes like every other action in the card, so the card is not left
-					// open over a list that has since reordered itself.
 					this._widget.hide();
 				}
 				: undefined,
 			onDidChangeConfiguration: (group, key, fromValue, toValue) => {
 				context.onConfigurationChanged(model, group, key, fromValue, toValue);
-				// Configuring a model is a choice of it: the settings only take effect on the
-				// model they belong to, so tuning one and leaving another selected would
-				// discard the change the user just made.
 				if (model.identifier !== context.selectedModelId) {
 					context.onSelect(model);
 				}
@@ -445,19 +401,15 @@ export class TabbedModelPicker extends Disposable {
 		}
 		const next = enabled ? autoModel : this._fallbackModel(context);
 		if (!next) {
-			// Auto is the only model, so there is nothing to switch back to.
 			this._autoRow.value?.render();
 			return;
 		}
 		context.onSelect(next);
 		this._context = { ...context, selectedModelId: next.identifier };
-		// Updated in place rather than re-shown: rebuilding the popup would move focus
-		// off the switch the user just clicked, and can dismiss it outright.
 		this._widget.refreshActiveList();
 		this._autoRow.value?.render();
 	}
 
-	/** The model to select when Auto is switched off: the last explicit pick, else the most recent one. */
 	private _fallbackModel(context: ITabbedModelPickerContext): ILanguageModelChatMetadataAndIdentifier | undefined {
 		const candidates = [this._lastExplicitModelId, ...context.recentModelIds, ...context.pinnedModelIds];
 		for (const id of candidates) {

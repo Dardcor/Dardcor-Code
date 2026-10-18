@@ -15,19 +15,16 @@ export function getInProgressSessionDescription(chatModel: IChatModel): string |
 		return undefined;
 	}
 
-	// Get the last request to check its response status
 	const lastRequest = requests.at(-1);
 	const response = lastRequest?.response;
 	if (!response) {
 		return undefined;
 	}
 
-	// If the response is complete, show Finished
 	if (response.isComplete) {
 		return undefined;
 	}
 
-	// Get the response parts to find tool invocations and progress messages
 	const responseParts = response.response.value;
 	let description: string | IMarkdownString | undefined = '';
 
@@ -41,9 +38,6 @@ export function getInProgressSessionDescription(chatModel: IChatModel): string |
 			description = part.message;
 		} else if (part.kind === 'toolInvocation') {
 			const toolInvocation = part as IChatToolInvocation;
-			// Skip hidden tool invocations — they are not shown in the chat
-			// view, so they shouldn't surface a description in the sidebar
-			// either (e.g. a no-op `manage_todo_list` write).
 			if (IChatToolInvocation.isEffectivelyHidden(toolInvocation)) {
 				continue;
 			}

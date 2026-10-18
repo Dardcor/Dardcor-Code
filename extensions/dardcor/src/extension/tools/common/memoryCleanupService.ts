@@ -12,33 +12,20 @@ import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { ResourceMap } from '../../../util/dardcor/base/common/map';
 import { URI } from '../../../util/dardcor/base/common/uri';
 
-/**
- * Service that manages cleanup of stale memory files.
- * Tracks access times and periodically removes files older than the retention period.
- */
 export interface IMemoryCleanupService {
 	readonly _serviceBrand: undefined;
 
-	/** Marks a memory resource as recently accessed. */
 	markAccessed(uri: URI): void;
 
-	/** Starts the cleanup scheduler if not already running. */
 	start(): void;
 
-	/** Checks if a URI is within the memory storage directory. */
 	isMemoryUri(uri: URI): boolean;
 }
 
 export const IMemoryCleanupService = createServiceIdentifier<IMemoryCleanupService>('IMemoryCleanupService');
 
-/**
- * Retention period in milliseconds (14 days).
- */
 const RETENTION_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
 
-/**
- * Base directory for memory storage.
- */
 const MEMORY_BASE_DIR = 'memory-tool/memories';
 
 export class MemoryCleanupService extends Disposable implements IMemoryCleanupService {
@@ -97,7 +84,6 @@ export class MemoryCleanupService extends Disposable implements IMemoryCleanupSe
 		}
 		this.started = true;
 
-		// Run cleanup on startup (in background)
 		this.cleanupStaleResources().catch(err => {
 			this.logService.warn(`[MemoryCleanupService] Cleanup error: ${err}`);
 		});
@@ -109,21 +95,18 @@ export class MemoryCleanupService extends Disposable implements IMemoryCleanupSe
 		}
 
 		try {
-			// Check if base directory exists
 			try {
 				const stat = await this.fileSystem.stat(this.baseStorageUri);
 				if (stat.type !== FileType.Directory) {
 					return;
 				}
 			} catch {
-				// Directory doesn't exist, nothing to clean up
 				return;
 			}
 
 			const now = Date.now();
 			const cutoffTime = now - RETENTION_PERIOD_MS;
 
-			// Read all session directories (exclude 'repo' which is managed separately)
 			const entries = await this.fileSystem.readDirectory(this.baseStorageUri);
 			const sessionDirs = entries.filter(([name, type]) => type === FileType.Directory && name !== 'repo');
 
@@ -132,7 +115,6 @@ export class MemoryCleanupService extends Disposable implements IMemoryCleanupSe
 				await this.cleanupSessionDirectory(sessionUri, cutoffTime);
 			}
 
-			// Clean up empty session directories
 			for (const [sessionName] of sessionDirs) {
 				const sessionUri = URI.joinPath(this.baseStorageUri, sessionName);
 				try {
@@ -142,7 +124,6 @@ export class MemoryCleanupService extends Disposable implements IMemoryCleanupSe
 						this.logService.debug(`[MemoryCleanupService] Deleted empty session directory: ${sessionUri.fsPath}`);
 					}
 				} catch {
-					// Ignore errors when checking/deleting empty directories
 				}
 			}
 		} catch (error) {
@@ -157,24 +138,20 @@ export class MemoryCleanupService extends Disposable implements IMemoryCleanupSe
 			for (const [name, type] of entries) {
 				const entryUri = URI.joinPath(sessionUri, name);
 
-				// Check in-memory timestamp first
 				const accessTime = this.accessTimestamps.get(entryUri);
 				if (accessTime && accessTime >= cutoffTime) {
-					continue; // Still fresh
+					continue;
 				}
 
-				// Fall back to file system mtime
 				try {
 					const stat = await this.fileSystem.stat(entryUri);
 					if (stat.mtime >= cutoffTime) {
 						this.accessTimestamps.set(entryUri, stat.mtime);
-						continue; // Still fresh
+						continue;
 					}
 				} catch {
-					// If we can't stat, assume it's stale
 				}
 
-				// Delete stale entry
 				try {
 					await this.fileSystem.delete(entryUri, { recursive: type === FileType.Directory });
 					this.accessTimestamps.delete(entryUri);

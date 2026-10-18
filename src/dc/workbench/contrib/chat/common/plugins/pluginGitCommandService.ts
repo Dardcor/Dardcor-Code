@@ -9,12 +9,6 @@ import { createDecorator } from '../../../../../platform/instantiation/common/in
 
 export const IPluginGitService = createDecorator<IPluginGitService>('pluginGitService');
 
-/**
- * Abstracts git operations used by the agent plugin system.
- *
- * Concrete behavior depends on the platform-specific implementation that is
- * registered for this service.
- */
 export interface IPluginGitService {
 	readonly _serviceBrand: undefined;
 

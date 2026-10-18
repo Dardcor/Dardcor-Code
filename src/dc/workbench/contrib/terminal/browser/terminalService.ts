@@ -97,7 +97,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	get instances(): ITerminalInstance[] {
 		return this._terminalGroupService.instances.concat(this._terminalEditorService.instances).concat(this._backgroundedTerminalInstances.map(bg => bg.instance));
 	}
-	/** Gets all non-background terminals. */
 	get foregroundInstances(): ITerminalInstance[] {
 		return this._terminalGroupService.instances.concat(this._terminalEditorService.instances);
 	}
@@ -114,15 +113,11 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 	private _activeInstance: ITerminalInstance | undefined;
 	get activeInstance(): ITerminalInstance | undefined {
-		// Check if either an editor or panel terminal has focus and return that, regardless of the
-		// value of _activeInstance. This avoids terminals created in the panel for example stealing
-		// the active status even when it's not focused.
 		for (const activeHostTerminal of this._hostActiveTerminals.values()) {
 			if (activeHostTerminal?.hasFocus) {
 				return activeHostTerminal;
 			}
 		}
-		// Fallback to the last recorded active terminal if neither have focus
 		return this._activeInstance;
 	}
 
@@ -137,7 +132,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	private readonly _onDidRequestStartExtensionTerminal = this._register(new Emitter<IStartExtensionTerminalRequest>());
 	get onDidRequestStartExtensionTerminal(): Event<IStartExtensionTerminalRequest> { return this._onDidRequestStartExtensionTerminal.event; }
 
-	// ITerminalInstanceHost events
 	private readonly _onDidDisposeInstance = this._register(new Emitter<ITerminalInstance>());
 	get onDidDisposeInstance(): Event<ITerminalInstance> { return this._onDidDisposeInstance.event; }
 	private readonly _onDidFocusInstance = this._register(new Emitter<ITerminalInstance>());
@@ -149,12 +143,9 @@ export class TerminalService extends Disposable implements ITerminalService {
 	private readonly _onDidChangeInstanceCapability = this._register(new Emitter<ITerminalInstance>());
 	get onDidChangeInstanceCapability(): Event<ITerminalInstance> { return this._onDidChangeInstanceCapability.event; }
 
-	// Terminal view events
 	private readonly _onDidChangeActiveGroup = this._register(new Emitter<ITerminalGroup | undefined>());
 	get onDidChangeActiveGroup(): Event<ITerminalGroup | undefined> { return this._onDidChangeActiveGroup.event; }
 
-	// Lazily initialized events that fire when the specified event fires on _any_ terminal
-	// TODO: Batch events
 	@memoize get onAnyInstanceData() { return this._register(this.createOnInstanceEvent(instance => Event.map(instance.onData, data => ({ instance, data })))).event; }
 	@memoize get onAnyInstanceDataInput() { return this._register(this.createOnInstanceEvent(e => Event.map(e.onDidInputData, () => e, e.store))).event; }
 	@memoize get onAnyInstanceIconChange() { return this._register(this.createOnInstanceEvent(e => e.onIconChanged)).event; }
@@ -191,9 +182,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	) {
 		super();
 
-		// the below avoids having to poll routinely.
-		// we update detected profiles when an instance is created so that,
-		// for example, we detect if you've installed a pwsh
 		this._register(this.onDidCreateInstance(() => this._terminalProfileService.refreshAvailableProfiles()));
 		this._forwardInstanceHostEvents(this._terminalGroupService);
 		this._forwardInstanceHostEvents(this._terminalEditorService);
@@ -203,9 +191,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 			this._onDidCreateInstance.fire(instance);
 		}));
 
-		// Hide the panel if there are no more instances, provided that VS Code is not shutting
-		// down. When shutting down the panel is locked in place so that it is restored upon next
-		// launch.
 		this._register(this._terminalGroupService.onDidChangeActiveInstance(instance => {
 			if (!instance && !this._isShuttingDown && this._terminalConfigurationService.config.hideOnLastClosed) {
 				this._terminalGroupService.hidePanel();
@@ -229,7 +214,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 		this._initializePrimaryBackend();
 
-		// Create async as the class depends on `this`
 		timeout(0).then(() => this._register(this._instantiationService.createInstance(TerminalEditorStyle, mainWindow.document.head)));
 	}
 
@@ -258,7 +242,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 				return;
 			} else if (result.config && hasKey(result.config, { profileName: true })) {
 				if (keyMods?.alt && activeInstance) {
-					// create split, only valid if there's an active instance
 					instance = await this.createTerminal({ location: { parentTerminal: activeInstance }, config: result.config, cwd });
 				} else {
 					instance = await this.createTerminal({ location: defaultLocation, config: result.config, cwd });
@@ -280,8 +263,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 		mark('code/terminal/didGetTerminalBackend');
 		const enableTerminalReconnection = this._terminalConfigurationService.config.enablePersistentSessions;
 
-		// Connect to the extension host if it's there, set the connection state to connected when
-		// it's done. This should happen even when there is no extension host.
 		this._connectionState = TerminalConnectionState.Connecting;
 
 		const isPersistentRemote = !!this._environmentService.remoteAuthority && enableTerminalReconnection;
@@ -304,7 +285,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 						await instanceToDetach.detachProcessAndDispose(TerminalExitReason.User);
 						await this._primaryBackend?.acceptDetachInstanceReply(e.requestId, persistentProcessId);
 					} else {
-						// will get rejected without a persistentProcessId to attach to
 						await this._primaryBackend?.acceptDetachInstanceReply(e.requestId, undefined);
 					}
 				}
@@ -363,10 +343,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	private _evaluateActiveInstance(host: ITerminalInstanceHost, instance: ITerminalInstance | undefined) {
-		// Track the latest active terminal for each host so that when one becomes undefined, the
-		// TerminalService's active terminal is set to the last active terminal from the other host.
-		// This means if the last terminal editor is closed such that it becomes undefined, the last
-		// active group's terminal will be used as the active terminal if available.
 		this._hostActiveTerminals.set(host, instance);
 		if (instance === undefined) {
 			for (const active of this._hostActiveTerminals.values()) {
@@ -380,12 +356,9 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	setActiveInstance(value: ITerminalInstance | undefined) {
-		// TODO@meganrogge: Is this the right logic for when instance is undefined?
 		if (!value) {
 			return;
 		}
-		// If this was a hideFromUser terminal created by the API this was triggered by show,
-		// in which case we need to create the terminal group
 		if (value.shellLaunchConfig.hideFromUser) {
 			this.showBackgroundTerminal(value);
 		}
@@ -432,7 +405,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	async safeDisposeTerminal(instance: ITerminalInstance): Promise<void> {
-		// Confirm on kill in the editor is handled by the editor input
 		if (instance.target !== TerminalLocation.Editor &&
 			instance.hasChildProcesses &&
 			(this._terminalConfigurationService.config.confirmOnKill === 'panel' || this._terminalConfigurationService.config.confirmOnKill === 'always')) {
@@ -469,8 +441,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 		mark('code/terminal/willRecreateTerminalGroups');
 		await this._recreateTerminalGroups(layoutInfo);
 		mark('code/terminal/didRecreateTerminalGroups');
-		// now that terminals have been restored,
-		// attach listeners to update remote when terminals are changed
 		this._attachProcessLayoutListeners();
 
 		this._logService.trace('Reconnected to remote terminals');
@@ -491,8 +461,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 			this._backgroundedTerminalInstances = revivedInstances.map(instance => ({ instance }));
 			mark('code/terminal/didRecreateTerminalGroups');
 		}
-		// now that terminals have been restored,
-		// attach listeners to update local state when terminals are changed
 		this._attachProcessLayoutListeners();
 
 		this._logService.trace('Reconnected to local terminals');
@@ -563,8 +531,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 		this._register(this.onDidChangeActiveGroup(() => this._saveState()));
 		this._register(this.onDidChangeActiveInstance(() => this._saveState()));
 		this._register(this.onDidChangeInstances(() => this._saveState()));
-		// The state must be updated when the terminal is relaunched, otherwise the persistent
-		// terminal ID will be stale and the process will be leaked.
 		this._register(this.onAnyInstanceProcessIdReady(() => this._saveState()));
 		this._register(this.onAnyInstanceTitleChange(instance => this._updateTitle(instance)));
 		this._register(this.onAnyInstanceIconChange(e => this._updateIcon(e.instance, e.userInitiated)));
@@ -581,15 +547,12 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 	async getActiveOrCreateInstance(options?: { acceptsInput?: boolean }): Promise<ITerminalInstance> {
 		const activeInstance = this.activeInstance;
-		// No instance, create
 		if (!activeInstance) {
 			return this.createTerminal();
 		}
-		// Active instance, ensure accepts input
 		if (!options?.acceptsInput || activeInstance.xterm?.isStdinDisabled !== true) {
 			return activeInstance;
 		}
-		// Active instance doesn't accept input, create and focus
 		const instance = await this.createTerminal();
 		this.setActiveInstance(instance);
 		await this.revealActiveTerminal();
@@ -615,15 +578,12 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 
 	requestStartExtensionTerminal(proxy: ITerminalProcessExtHostProxy, cols: number, rows: number): Promise<ITerminalLaunchError | undefined> {
-		// The initial request came from the extension host, no need to wait for it
 		return new Promise<ITerminalLaunchError | undefined>(callback => {
 			this._onDidRequestStartExtensionTerminal.fire({ proxy, cols, rows, callback });
 		});
 	}
 
 	private _onBeforeShutdown(reason: ShutdownReason): MaybePromise<boolean> {
-		// Never veto on web as this would block all windows from being closed. This disables
-		// process revive as we can't handle it on shutdown.
 		if (isWeb) {
 			this._isShuttingDown = true;
 			return false;
@@ -633,28 +593,19 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 	private async _onBeforeShutdownAsync(reason: ShutdownReason): Promise<boolean> {
 		if (this.instances.length === 0) {
-			// No terminal instances, don't veto
 			return false;
 		}
 
-		// Persist terminal _buffer state_, note that even if this happens the dirty terminal prompt
-		// still shows as that cannot be revived
 		try {
 			this._shutdownWindowCount = await this._nativeDelegate?.getWindowCount();
 			const shouldReviveProcesses = this._shouldReviveProcesses(reason);
 			if (shouldReviveProcesses) {
-				// Attempt to persist the terminal state but only allow 2000ms as we can't block
-				// shutdown. This can happen when in a remote workspace but the other side has been
-				// suspended and is in the process of reconnecting, the message will be put in a
-				// queue in this case for when the connection is back up and running. Aborting the
-				// process is preferable in this case.
 				await Promise.race([
 					this._primaryBackend?.persistTerminalState(),
 					timeout(2000)
 				]);
 			}
 
-			// Persist terminal _processes_
 			const shouldPersistProcesses = this._terminalConfigurationService.config.enablePersistentSessions && reason === ShutdownReason.RELOAD;
 			if (!shouldPersistProcesses) {
 				const hasDirtyInstances = (
@@ -666,7 +617,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 				}
 			}
 		} catch (err: unknown) {
-			// Swallow as exceptions should not cause a veto to prevent shutdown
 			this._logService.warn('Exception occurred during terminal shutdown', err);
 		}
 
@@ -685,7 +635,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 		}
 		switch (this._terminalConfigurationService.config.persistentSessionReviveProcess) {
 			case 'onExit': {
-				// Allow on close if it's the last window on Windows or Linux
 				if (reason === ShutdownReason.CLOSE && (this._shutdownWindowCount === 1 && !isMacintosh)) {
 					return true;
 				}
@@ -697,7 +646,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	private async _onBeforeShutdownConfirmation(reason: ShutdownReason): Promise<boolean> {
-		// veto if configured to show confirmation and the user chose not to exit
 		const veto = await this._showTerminalCloseConfirmation();
 		if (!veto) {
 			this._isShuttingDown = true;
@@ -707,7 +655,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	private _onWillShutdown(e: WillShutdownEvent): void {
-		// Don't touch processes if the shutdown was a result of reload as they will be reattached
 		const shouldPersistTerminals = this._terminalConfigurationService.config.enablePersistentSessions && e.reason === ShutdownReason.RELOAD;
 
 		for (const instance of [...this._terminalGroupService.instances, ...this._backgroundedTerminalInstances.map(bg => bg.instance)]) {
@@ -718,7 +665,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 			}
 		}
 
-		// Clear terminal layout info only when not persisting
 		if (!shouldPersistTerminals && !this._shouldReviveProcesses(e.reason)) {
 			this._primaryBackend?.setTerminalLayoutInfo(undefined);
 		}
@@ -726,7 +672,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 	@debounce(500)
 	private _saveState(): void {
-		// Avoid saving state when shutting down as that would override process state to be revived
 		if (this._isShuttingDown) {
 			return;
 		}
@@ -853,7 +798,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 			group.moveInstance(source, index, side);
 		}
 
-		// Fire events
 		this._onDidChangeInstances.fire();
 		this._onDidChangeActiveGroup.fire(this._terminalGroupService.activeGroup);
 	}
@@ -888,7 +832,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 		let sourceInstance: ITerminalInstance | undefined = this.getInstanceFromResource(e.uri);
 
-		// Terminal from a different window
 		if (!sourceInstance) {
 			const attachPersistentProcess = await this._primaryBackend?.requestDetachInstance(terminalIdentifier.workspaceId, terminalIdentifier.instanceId);
 			if (attachPersistentProcess && !attachPersistentProcess.hideFromUser && !attachPersistentProcess.isFeatureTerminal) {
@@ -898,14 +841,12 @@ export class TerminalService extends Disposable implements ITerminalService {
 			}
 		}
 
-		// View terminals
 		sourceInstance = this._terminalGroupService.getInstanceFromResource(e.uri);
 		if (sourceInstance) {
 			this._terminalGroupService.moveInstance(sourceInstance, instance, e.side);
 			return;
 		}
 
-		// Terminal editors
 		sourceInstance = this._terminalEditorService.getInstanceFromResource(e.uri);
 		if (sourceInstance) {
 			this.moveToTerminalView(sourceInstance, instance, e.side);
@@ -922,7 +863,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 		this._onDidRegisterProcessSupport.fire();
 	}
 
-	// TODO: Remove this, it should live in group/editor servioce
 	private _getIndexFromId(terminalId: number): number {
 		let terminalIndex = -1;
 		this.instances.forEach((terminalInstance, i) => {
@@ -977,9 +917,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	async createTerminal(options?: ICreateTerminalOptions): Promise<ITerminalInstance> {
-		// Await the initialization of available profiles as long as this is not a pty terminal or a
-		// local terminal in a remote workspace as profile won't be used in those cases and these
-		// terminals need to be launched before remote connections are established.
 		const isLocalInRemoteTerminal = this._remoteAgentService.getConnection() && URI.isUri(options?.cwd) && options?.cwd.scheme === Schemas.file;
 		if (this._terminalProfileService.availableProfiles.length === 0) {
 			const isPtyTerminal = options?.config && hasKey(options.config, { customPtyImplementation: true });
@@ -1008,7 +945,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 		}
 		const shellLaunchConfig = config && hasKey(config, { extensionIdentifier: true }) ? {} : this._terminalInstanceService.convertProfileToShellLaunchConfig(config || {});
 
-		// Get the contributed profile if it was provided
 		const contributedProfile = options?.skipContributedProfileCheck ? undefined : await this._getContributedProfile(shellLaunchConfig, options);
 
 		const splitActiveTerminal = typeof options?.location === 'object' && hasKey(options.location, { splitActiveTerminal: true })
@@ -1017,9 +953,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 		await this._resolveCwd(shellLaunchConfig, splitActiveTerminal, options);
 
-		// Launch the contributed profile
-		// If it's a custom pty implementation, we did not await the profiles ready, so
-		// we cannot launch the contributed profile and doing so would cause an error
 		if (!shellLaunchConfig.customPtyImplementation && contributedProfile) {
 			const resolvedLocation = await this.resolveLocation(options?.location);
 			let location: TerminalLocation | { viewColumn: number; preserveState?: boolean } | { splitActiveTerminal: boolean } | undefined;
@@ -1036,8 +969,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 				titleTemplate: contributedProfile.titleTemplate,
 			});
 			const instanceHost = resolvedLocation === TerminalLocation.Editor ? this._terminalEditorService : this._terminalGroupService;
-			// TODO@meganrogge: This returns undefined in the remote & web smoke tests but the function
-			// does not return undefined. This should be handled correctly.
 			const instance = instanceHost.instances[instanceHost.instances.length - 1];
 			await instance?.focusWhenReady();
 			this._terminalHasBeenCreated.set(true);
@@ -1133,7 +1064,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 		const instance = new DetachedTerminal(xterm, { ...options, capabilities }, this._instantiationService);
 		this._detachedXterms.add(instance);
-		// Ensure centralized theme/config listeners update this detached terminal
 		this._ensureDetachedTerminalListeners();
 		const l = xterm.onDidDispose(() => {
 			this._detachedXterms.delete(instance);
@@ -1199,7 +1129,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 	private async _splitTerminal(shellLaunchConfig: IShellLaunchConfig, location: TerminalLocation, parent: ITerminalInstance): Promise<ITerminalInstance> {
 		let instance;
-		// Use the URI from the base instance if it exists, this will correctly split local terminals
 		if (typeof shellLaunchConfig.cwd !== 'object' && typeof parent.shellLaunchConfig.cwd === 'object') {
 			let path = shellLaunchConfig.cwd || parent.shellLaunchConfig.cwd.path;
 			if (parent.shellLaunchConfig.cwd.authority && path && path[0] !== '/') {
@@ -1233,7 +1162,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 				this._terminalEditorService.openEditor(instance, editorOptions);
 			}
 		} else {
-			// TODO: pass resource?
 			const group = this._terminalGroupService.createGroup(shellLaunchConfig);
 			instance = group.terminalInstances[0];
 		}
@@ -1243,13 +1171,11 @@ export class TerminalService extends Disposable implements ITerminalService {
 	async resolveLocation(location?: ITerminalLocationOptions): Promise<TerminalLocation | undefined> {
 		if (location && typeof location === 'object') {
 			if (hasKey(location, { parentTerminal: true })) {
-				// since we don't set the target unless it's an editor terminal, this is necessary
 				const parentTerminal = await location.parentTerminal;
 				return !parentTerminal.target ? TerminalLocation.Panel : parentTerminal.target;
 			} else if (hasKey(location, { viewColumn: true })) {
 				return TerminalLocation.Editor;
 			} else if (hasKey(location, { splitActiveTerminal: true })) {
-				// since we don't set the target unless it's an editor terminal, this is necessary
 				return !this._activeInstance?.target ? TerminalLocation.Panel : this._activeInstance?.target;
 			}
 		}
@@ -1267,8 +1193,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 	private _getEditorOptions(location?: ITerminalLocationOptions): TerminalEditorLocation | undefined {
 		if (location && typeof location === 'object' && hasKey(location, { viewColumn: true })) {
-			// Terminal-specific workaround to resolve the active group in auxiliary windows to
-			// override the locked editor behavior.
 			if (location.viewColumn === ACTIVE_GROUP && isAuxiliaryWindow(getActiveWindow())) {
 				location.viewColumn = this._editorGroupsService.activeGroup.id;
 				return location;
@@ -1280,8 +1204,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	private _evaluateLocalCwd(shellLaunchConfig: IShellLaunchConfig) {
-		// Add welcome message and title annotation for local terminals launched within remote or
-		// virtual workspaces
 		if (!isString(shellLaunchConfig.cwd) && shellLaunchConfig.cwd?.scheme === Schemas.file) {
 			if (VirtualWorkspaceContext.getValue(this._contextKeyService)) {
 				shellLaunchConfig.initialText = formatMessageForTerminal(nls.localize('localTerminalVirtualWorkspace', "This shell is open to a {0}local{1} folder, NOT to the virtual folder", '\x1b[3m', '\x1b[23m'), { excludeLeadingNewLine: true, loudFormatting: true });
@@ -1294,12 +1216,10 @@ export class TerminalService extends Disposable implements ITerminalService {
 	}
 
 	moveToBackground(instance: ITerminalInstance): void {
-		// Already backgrounded
 		if (this._backgroundedTerminalInstances.some(bg => bg.instance === instance)) {
 			return;
 		}
 
-		// Remove from its current location (panel group or editor)
 		if (instance.target === TerminalLocation.Editor) {
 			this._terminalEditorService.detachInstance(instance);
 		} else {
@@ -1312,7 +1232,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 		instance.detachFromElement();
 
-		// Track in background
 		this._backgroundedTerminalInstances.push({ instance, terminalLocationOptions: instance.target === TerminalLocation.Editor ? { viewColumn: ACTIVE_GROUP } : undefined });
 		this._backgroundedTerminalDisposables.set(instance.instanceId, instance.onDisposed(instance => this._onBackgroundTerminalDisposed(instance)));
 
@@ -1339,7 +1258,6 @@ export class TerminalService extends Disposable implements ITerminalService {
 		if (instance.target === TerminalLocation.Panel) {
 			this._terminalGroupService.createGroup(instance);
 
-			// Make active automatically if it's the first instance
 			if (this.instances.length === 1 && !suppressSetActive) {
 				this._terminalGroupService.setActiveInstanceByIndex(0);
 			}
@@ -1404,12 +1322,10 @@ class TerminalEditorStyle extends Themable {
 		super.updateStyles();
 		const colorTheme = this._themeService.getColorTheme();
 
-		// TODO: add a rule collector to avoid duplication
 		let css = '';
 
 		const productIconTheme = this._themeService.getProductIconTheme();
 
-		// Add icons
 		for (const instance of this._terminalService.instances) {
 			const icon = instance.icon;
 			if (!icon) {
@@ -1441,7 +1357,6 @@ class TerminalEditorStyle extends Themable {
 			}
 		}
 
-		// Add colors
 		const iconForegroundColor = colorTheme.getColor(iconForeground);
 		if (iconForegroundColor) {
 			css += cssValue.inline`.monaco-workbench .show-file-icons .file-icon.terminal-tab::before { color: ${iconForegroundColor}; }`;

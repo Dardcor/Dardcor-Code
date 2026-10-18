@@ -8,23 +8,10 @@ import { AgentNetworkDomainSettingId } from '../../networkFilter/common/settings
 import { AgentSandboxEnabledValue, AgentSandboxSettingId } from '../../sandbox/common/settings.js';
 import { createSchema, schemaProperty } from './agentHostSchema.js';
 
-/**
- * Top-level keys the agent host's root config bag exposes for sandboxing.
- * All sandbox-related values live nested under {@link AgentHostSandboxConfigKey.Sandbox}
- * — the persisted JSON has a single `"sandbox": { ... }` object rather than a
- * dozen flat keys.
- */
 export const enum AgentHostSandboxConfigKey {
 	Sandbox = 'sandbox',
 }
 
-/**
- * Well-known sub-keys inside the agent host's `sandbox` object. These are
- * intentionally a flat, prefix-free namespace owned by the agent host —
- * distinct from the workbench's `chat.agent.sandbox.*` setting IDs. Hosts
- * (today: the workbench client) translate from their setting IDs to these
- * keys when forwarding values via a `RootConfigChanged` action.
- */
 export const enum AgentHostSandboxKey {
 	Enabled = 'enabled',
 	WindowsEnabled = 'enabled.windows',
@@ -38,7 +25,6 @@ export const enum AgentHostSandboxKey {
 	DeniedNetworkDomains = 'deniedNetworkDomains',
 }
 
-/** Shape of the persisted/forwarded `sandbox` object. */
 export type ISandboxConfigValue = Partial<{
 	[AgentHostSandboxKey.Enabled]: AgentSandboxEnabledValue;
 	[AgentHostSandboxKey.WindowsEnabled]: AgentSandboxEnabledValue;
@@ -52,22 +38,6 @@ export type ISandboxConfigValue = Partial<{
 	[AgentHostSandboxKey.DeniedNetworkDomains]: string[];
 }>;
 
-/**
- * Schema for the subset of workbench sandbox settings that hosts (today: the
- * workbench client) may forward into the agent host's root config bag.
- *
- * The agent host's terminal sandbox engine reads these values through
- * {@link IAgentConfigurationService.getRootValue}. Only the modern,
- * normalized form of each setting is declared here — the workbench is
- * expected to:
- *
- *  - map legacy boolean sandbox enabled values to the `'on' | 'off'`
- *    agent-host enum, and
- *  - migrate values from any deprecated setting IDs to their modern key
- *
- * before pushing a `RootConfigChanged` action. That keeps the agent-host
- * schema (and validation) free of backward-compat baggage.
- */
 export const sandboxConfigSchema = createSchema({
 	[AgentHostSandboxConfigKey.Sandbox]: schemaProperty<ISandboxConfigValue>({
 		type: 'object',
@@ -121,14 +91,6 @@ export const sandboxConfigSchema = createSchema({
 	}),
 });
 
-/**
- * Maps modern workbench sandbox setting IDs (the ones the engine asks about)
- * to the sub-keys inside the agent host's `sandbox` config object.
- *
- * Deprecated setting IDs are intentionally absent: hosts forwarding values
- * into the agent host are expected to migrate deprecated → modern IDs
- * before dispatching `RootConfigChanged`.
- */
 export const sandboxSettingIdToAgentHostKey: Readonly<Record<string, AgentHostSandboxKey>> = {
 	[AgentSandboxSettingId.AgentSandboxEnabled]: AgentHostSandboxKey.Enabled,
 	[AgentSandboxSettingId.AgentSandboxWindowsEnabled]: AgentHostSandboxKey.WindowsEnabled,

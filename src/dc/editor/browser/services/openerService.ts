@@ -18,6 +18,107 @@ import { ICommandService } from '../../../platform/commands/common/commands.js';
 import { EditorOpenSource } from '../../../platform/editor/common/editor.js';
 import { extractSelection, IExternalOpener, IExternalUriResolver, IOpener, IOpenerService, IResolvedExternalUri, IValidator, OpenOptions, ResolveExternalUriOptions } from '../../../platform/opener/common/opener.js';
 
+const dardcorDocumentationAuthority = 'www.dardcor-code.web.id';
+
+const legacyDocumentationRoutes: Record<string, string> = {
+	'/allow-vscode-popup': '/docs/troubleshooting/browser-popups',
+	'/vscode-agent-plugins': '/docs/agent-customization/agent-plugins',
+	'/vscode-agent-skills': '/docs/agent-customization/agent-skills',
+	'/vscode-agent-tunnel-access': '/docs/remote/tunnels',
+	'/vscode-chat-hooks': '/docs/agent-customization/hooks',
+	'/vscode-claude-auto-mode': '/docs/permissions/approval-modes',
+	'/vscode-dardcor-workspace-remote-index': '/docs/workspaces/remote-index',
+	'/vscode-eliminating-rootpath': '/docs/extensions/api-migration',
+	'/vscode-extension-bisect': '/docs/extensions/troubleshooting/bisect',
+	'/vscode-extension-security': '/docs/extensions/security',
+	'/vscode-extensions/navigator': '/docs/extensions/api/navigator',
+	'/vscode-external-ingest-policy': '/docs/enterprise/data-and-privacy',
+	'/vscode-faq-old-macos': '/docs/troubleshooting/macos-compatibility',
+	'/vscode-download-git': '/docs/getting-started/git',
+	'/vscode-git-repository-in-parent-folders': '/docs/editor/versioncontrol',
+	'/vscode-git-unsafe-repository': '/docs/security/git-ownership',
+	'/vscode-github-push-protection': '/docs/security/github-push-protection',
+	'/vscode-getting-started-video': '/docs/getstarted/tutorials',
+	'/vscode-gh-mcp-channel': '/docs/agent-customization/mcp-servers',
+	'/vscode-gh-mcp-lockdown': '/docs/agent-customization/mcp-servers',
+	'/vscode-gh-mcp-readonly': '/docs/agent-customization/mcp-servers',
+	'/vscode-gh-mcp-toolsets': '/docs/agent-customization/mcp-servers',
+	'/vscode-ghcp-custom-chat-modes': '/docs/agent-customization/custom-agents',
+	'/vscode-ghcp-custom-instructions': '/docs/agent-customization/custom-instructions',
+	'/vscode-ghcp-prompt-snippets': '/docs/agent-customization/prompt-files',
+	'/vscode-glob-patterns': '/docs/configuration/glob-patterns',
+	'/vscode-hot-exit': '/docs/editor/hot-exit',
+	'/vscode-insiders': '/updates/insiders',
+	'/vscode-install-git': '/docs/getting-started/git',
+	'/vscode-nes': '/docs/editor/inline-completions',
+	'/vscode-platform-specific-extensions': '/docs/extensions/platform-specific',
+	'/vscode-profiles-help': '/docs/user-data/profiles',
+	'/vscode-remote': '/docs/remote/overview',
+	'/vscode-remote-linux-arm-32-eol': '/docs/remote/linux-arm-support',
+	'/vscode-remote/faq/old-linux': '/docs/remote/troubleshooting/linux',
+	'/vscode-remote/wsl/install-wsl': '/docs/remote/wsl',
+	'/vscode-sandboxing': '/docs/permissions/sandboxing',
+	'/vscode-scm': '/docs/editor/versioncontrol',
+	'/vscode-setup-git': '/docs/getting-started/git',
+	'/vscode-server-doc': '/docs/remote/server',
+	'/vscode-settings-sync-help': '/docs/user-data/settings-sync',
+	'/vscode-telemetry': '/docs/privacy/telemetry',
+	'/vscode-terminal-intellisense': '/docs/terminal/suggestions',
+	'/vscode-try-ts-7-learn-more': '/docs/languages/typescript/preview',
+	'/vscode-troubleshoot-terminal-launch': '/docs/terminal/troubleshooting',
+	'/vscode-tracing-cpu-profile': '/docs/troubleshooting/performance/cpu-profile',
+	'/vscode-verify-publisher': '/docs/extensions/publishers',
+	'/vscode-web-extensions-guide': '/docs/extensions/web',
+	'/vscode-webview-missing-csp': '/docs/extensions/api/webviews',
+	'/vscode-webview-use-aswebviewuri': '/docs/extensions/api/webviews',
+	'/vscode-when-clause': '/docs/configuration/when-clauses',
+	'/vscode-weblocalfilesystemaccess': '/docs/platform/browser-file-access',
+	'/vscode-windows-unc': '/docs/platform/windows/unc-paths',
+	'/vscode-workspace-trust': '/docs/editor/workspace-trust',
+	'/vscode/docs/permissions': '/docs/permissions',
+	'/vscode/enterprise/extensions/allowed': '/docs/enterprise/extensions/allowlist',
+	'/vscode/jsts/partial-mode': '/docs/languages/javascript/partial-mode',
+};
+
+/** Redirects product documentation links while leaving service/API endpoints untouched. */
+function redirectLegacyDocumentationUri(resource: URI): URI {
+	if (!matchesSomeScheme(resource, Schemas.http, Schemas.https)) {
+		return resource;
+	}
+
+	const authority = resource.authority.toLowerCase();
+	if (authority === 'code.visualstudio.com') {
+		// This host/path is an update-notes API consumed by the app, not a user-facing help page.
+		if (resource.path === '/raw' || resource.path.startsWith('/raw/')) {
+			return resource;
+		}
+		return resource.with({ scheme: 'https', authority: dardcorDocumentationAuthority });
+	}
+
+	if (authority !== 'aka.ms') {
+		return resource;
+	}
+
+	const path = resource.path.toLowerCase().replace(/\/$/, '');
+	let destinationPath = legacyDocumentationRoutes[path];
+	if (!destinationPath && path === '/vscode') {
+		destinationPath = '/docs';
+	} else if (!destinationPath && (path === '/vscode/docs' || path.startsWith('/vscode/docs/'))) {
+		destinationPath = path.slice('/vscode'.length);
+	} else if (!destinationPath && path.startsWith('/vscode/')) {
+		destinationPath = `/docs/compatibility/aka-ms/${path.slice('/vscode/'.length)}`;
+	} else if (!destinationPath && path.startsWith('/vscode-mcp-install/')) {
+		destinationPath = `/docs/agent-customization/mcp-servers/install/${path.slice('/vscode-mcp-install/'.length)}`;
+	} else if (!destinationPath && path.startsWith('/vscode-')) {
+		// Keep unknown product aliases on Dardcor's compatibility documentation instead of the vendor site.
+		destinationPath = `/docs/compatibility/aka-ms/${path.slice('/vscode-'.length)}`;
+	}
+
+	return destinationPath
+		? resource.with({ scheme: 'https', authority: dardcorDocumentationAuthority, path: destinationPath })
+		: resource;
+}
+
 class CommandOpener implements IOpener {
 
 	constructor(@ICommandService private readonly _commandService: ICommandService) { }
@@ -28,8 +129,6 @@ class CommandOpener implements IOpener {
 		}
 
 		if (!options?.allowCommands) {
-			// silently ignore commands when command-links are disabled, also
-			// suppress other openers by returning TRUE
 			return true;
 		}
 
@@ -38,23 +137,18 @@ class CommandOpener implements IOpener {
 		}
 
 		if (Array.isArray(options.allowCommands)) {
-			// Only allow specific commands
 			if (!options.allowCommands.includes(target.path)) {
-				// Suppress other openers by returning TRUE
 				return true;
 			}
 		}
 
-		// execute as command
 		let args: unknown[] = [];
 		try {
 			args = parse(decodeURIComponent(target.query));
 		} catch {
-			// ignore and retry
 			try {
 				args = parse(target.query);
 			} catch {
-				// ignore error
 			}
 		}
 		if (!Array.isArray(args)) {
@@ -78,7 +172,7 @@ class EditorOpener implements IOpener {
 		target = uri;
 
 		if (target.scheme === Schemas.file) {
-			target = normalizePath(target); // workaround for non-normalized paths (https://github.com/microsoft/vscode/issues/12954)
+			target = normalizePath(target);
 		}
 
 		await this._editorService.openCodeEditor(
@@ -114,13 +208,8 @@ export class OpenerService implements IOpenerService {
 		@ICodeEditorService editorService: ICodeEditorService,
 		@ICommandService commandService: ICommandService
 	) {
-		// Default external opener is going through window.open()
 		this._defaultExternalOpener = {
 			openExternal: async href => {
-				// ensure to open HTTP/HTTPS links into new windows
-				// to not trigger a navigation. Any other link is
-				// safe to be set as HREF to prevent a blank window
-				// from opening.
 				if (matchesSomeScheme(href, Schemas.http, Schemas.https)) {
 					dom.windowOpenNoOpener(href);
 				} else {
@@ -130,11 +219,9 @@ export class OpenerService implements IOpenerService {
 			}
 		};
 
-		// Default opener: any external, maito, http(s), command, and catch-all-editors
 		this._openers.push({
 			open: async (target: URI | string, options?: OpenOptions) => {
 				if (options?.openExternal || matchesSomeScheme(target, Schemas.mailto, Schemas.http, Schemas.https, Schemas.vsls)) {
-					// open externally
 					await this._doOpenExternal(target, options);
 					return true;
 				}
@@ -170,16 +257,18 @@ export class OpenerService implements IOpenerService {
 	}
 
 	async open(target: URI | string, options?: OpenOptions): Promise<boolean> {
-		const targetURI = typeof target === 'string' ? URI.parse(target) : target;
+		const parsedTarget = typeof target === 'string' ? URI.parse(target) : target;
+		const targetURI = redirectLegacyDocumentationUri(parsedTarget);
+		if (targetURI !== parsedTarget) {
+			target = targetURI;
+		}
 
-		// Internal schemes are not openable and must instead be handled in event listeners
 		if (targetURI.scheme === Schemas.internal) {
 			return false;
 		}
 
-		// check with contributed validators
 		if (!options?.skipValidation) {
-			const validationTarget = this._resolvedUriTargets.get(targetURI) ?? target; // validate against the original URI that this URI resolves to, if one exists
+			const validationTarget = this._resolvedUriTargets.get(targetURI) ?? target;
 			for (const validator of this._validators) {
 				if (!(await validator.shouldOpen(validationTarget, options))) {
 					return false;
@@ -187,7 +276,6 @@ export class OpenerService implements IOpenerService {
 			}
 		}
 
-		// check with contributed openers
 		for (const opener of this._openers) {
 			const handled = await opener.open(target, options);
 			if (handled) {
@@ -209,7 +297,6 @@ export class OpenerService implements IOpenerService {
 					return result;
 				}
 			} catch {
-				// noop
 			}
 		}
 
@@ -218,7 +305,6 @@ export class OpenerService implements IOpenerService {
 
 	private async _doOpenExternal(resource: URI | string, options: OpenOptions | undefined): Promise<boolean> {
 
-		//todo@jrieken IExternalUriResolver should support `uri: URI | string`
 		const uri = typeof resource === 'string' ? URI.parse(resource) : resource;
 		let externalUri: URI;
 
@@ -230,10 +316,8 @@ export class OpenerService implements IOpenerService {
 
 		let href: string;
 		if (typeof resource === 'string' && uri.toString() === externalUri.toString()) {
-			// open the url-string AS IS
 			href = resource;
 		} else {
-			// open URI using the toString(noEncode)+encodeURI-trick
 			href = encodeURI(externalUri.toString(true));
 		}
 

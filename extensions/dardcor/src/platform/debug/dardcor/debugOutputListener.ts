@@ -14,7 +14,6 @@ export function getMostRecentDebugOutput(): string {
 function appendLimitedWindow(target: string[], data: string) {
 	target.push(removeAnsiEscapeCodes(data));
 	if (target.length > 40) {
-		// 40 lines should capture ~twice the visible area
 		target.shift();
 	}
 }
@@ -49,7 +48,6 @@ class DebugSessionTracker implements DebugAdapterTracker {
 	public onExit(code: number | undefined, signal: string | undefined) { }
 }
 
-// taken from https://github.com/microsoft/vscode/blob/499fb52ae8c985485e6503669f3711ee0d6f31dc/src/vs/base/common/strings.ts#L731
 function removeAnsiEscapeCodes(str: string): string {
 	const CSI_SEQUENCE = /(:?\x1b\[|\x9B)[=?>!]?[\d;:]*["$#'* ]?[a-zA-Z@^`{}|~]/g;
 	if (str) {

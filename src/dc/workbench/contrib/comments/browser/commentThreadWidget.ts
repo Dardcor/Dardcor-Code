@@ -225,12 +225,11 @@ export class CommentThreadWidget<T extends IRange | ICellRange = IRange> extends
 	}
 
 	async display(lineHeight: number, focus: boolean) {
-		const headHeight = Math.max(23, Math.ceil(lineHeight * 1.2)); // 23 is the value of `Math.ceil(lineHeight * 1.2)` with the default editor font size
+		const headHeight = Math.max(23, Math.ceil(lineHeight * 1.2));
 		this._header.updateHeight(headHeight);
 
 		await this._body.display();
 
-		// create comment thread only when it supports reply
 		if (this._commentThread.canReply) {
 			this._createCommentForm(focus);
 		}
@@ -240,8 +239,6 @@ export class CommentThreadWidget<T extends IRange | ICellRange = IRange> extends
 			this._refresh(dimension);
 		}));
 
-		// If there are no existing comments, place focus on the text area. This must be done after show, which also moves focus.
-		// if this._commentThread.comments is undefined, it doesn't finish initialization yet, so we don't focus the editor immediately.
 		if (this._commentThread.canReply && this._commentReply) {
 			this._commentReply.focusIfNeeded();
 		}

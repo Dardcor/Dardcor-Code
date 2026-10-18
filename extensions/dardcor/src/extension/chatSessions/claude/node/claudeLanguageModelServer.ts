@@ -31,10 +31,6 @@ import { IClaudeCodeModels } from './claudeCodeModels';
 import { PROXY_ERROR_PREFIX } from '../common/claudeMessageDispatch';
 import { IClaudeSessionStateService } from '../common/claudeSessionStateService';
 
-/**
- * A list of known Anthropic betas supported by CAPI. Used to filter incoming `anthropic-beta` header values
- * to prevent unsupported betas from being sent to CAPI.
- */
 const SUPPORTED_ANTHROPIC_BETAS = [
 	'interleaved-thinking',
 	'context-management',
@@ -67,10 +63,6 @@ interface AnthropicErrorResponse {
 const DEFAULT_MAX_TOKENS = 200_000;
 const DEFAULT_MAX_OUTPUT_TOKENS = 64_000;
 
-/**
- * HTTP server that provides an Anthropic Messages API compatible endpoint.
- * Acts as a pure pass-through proxy to the underlying model endpoint.
- */
 export class ClaudeLanguageModelServer extends Disposable {
 	private server: http.Server;
 	private config: IClaudeLanguageModelServerConfig;
@@ -86,7 +78,7 @@ export class ClaudeLanguageModelServer extends Disposable {
 	) {
 		super();
 		this.config = {
-			port: 0, // Will be set to random available port
+			port: 0,
 			nonce: 'vscode-lm-' + generateUuid()
 		};
 
@@ -104,8 +96,6 @@ export class ClaudeLanguageModelServer extends Disposable {
 				return;
 			}
 
-			// Handle /v1/messages endpoint (also //messages if base URL ends in /)
-			// Use URL to properly parse and extract pathname, ignoring query string
 			const pathname = new URL(req.url ?? '/', 'http://localhost').pathname;
 			if (req.method === 'POST' && (pathname === '/v1/messages' || pathname === '/messages' || pathname === '//messages')) {
 				await this.handleMessagesRequest(req, res);
@@ -153,7 +143,6 @@ export class ClaudeLanguageModelServer extends Disposable {
 	}
 
 	private async handleAuthedMessagesRequest(bodyString: string, headers: http.IncomingHttpHeaders, res: http.ServerResponse, sessionId: string | undefined): Promise<void> {
-		// Create cancellation token for the request
 		const tokenSource = new CancellationTokenSource();
 
 		try {
@@ -168,20 +157,13 @@ export class ClaudeLanguageModelServer extends Disposable {
 			}
 			this.trace(`Session ${sessionId}: model=${selectedEndpoint.model}`);
 			requestBody.model = selectedEndpoint.model;
-			// Determine if this is a user-initiated message using counter-based approach
 			const count = this._userInitiatedMessageCounts.get(selectedEndpoint.model) ?? 0;
 			const isUserInitiatedMessage = count > 0;
 			if (isUserInitiatedMessage) {
 				this._userInitiatedMessageCounts.set(selectedEndpoint.model, count - 1);
 			}
 
-			// Set up streaming response
-			// Response headers are written by ClaudeStreamingPassThroughEndpoint
-			// once the upstream response arrives, so we can mirror the upstream
-			// Content-Type (text/event-stream for stream: true, application/json
-			// for stream: false — used by `auto` permission mode classifier calls).
 
-			// Handle client disconnect
 			let requestComplete = false;
 			res.on('close', () => {
 				if (!requestComplete) {
@@ -208,7 +190,6 @@ export class ClaudeLanguageModelServer extends Disposable {
 
 			let messagesForLogging: Raw.ChatMessage[] = [];
 			try {
-				// Don't fail based on any assumptions about the shape of the request
 				messagesForLogging = Array.isArray(requestBody.messages) ?
 					messagesApiInputToRawMessagesForLogging(requestBody) :
 					[];
@@ -233,7 +214,6 @@ export class ClaudeLanguageModelServer extends Disposable {
 				requestOptions: { stream: !!requestBody.stream },
 			}, tokenSource.token);
 
-			// Wrap in trace context so chat spans are parented to the invoke_agent span
 			const traceContext = sessionId ? this.sessionStateService.getTraceContextForSession(sessionId) : undefined;
 			const doRequestInContext = traceContext
 				? () => this._otelService.runWithTraceContext(traceContext, doRequest)
@@ -246,8 +226,6 @@ export class ClaudeLanguageModelServer extends Disposable {
 				chatResponse = await doRequestInContext();
 			}
 
-			// If the upstream returned an error, forward a proper HTTP error to the
-			// SDK subprocess so it can surface it instead of silently hanging.
 			if (chatResponse.type !== ChatFetchResponseType.Success && !res.headersSent) {
 				const { status, errorType, message } = this.mapChatResponseToHttpError(chatResponse);
 				this.sendErrorResponse(res, status, errorType, message);
@@ -264,13 +242,7 @@ export class ClaudeLanguageModelServer extends Disposable {
 		}
 	}
 
-	/**
-	 * Maps a non-success ChatResponse to an HTTP status, Anthropic error type, and message
-	 * that the SDK subprocess can interpret.
-	 */
 	private mapChatResponseToHttpError(chatResponse: ChatResponse): { status: number; errorType: AnthropicErrorResponse['error']['type']; message: string } {
-		// Base64-encode the full ChatFetchError JSON after the proxy error prefix.
-		// Base64 survives the SDK's JSON re-encoding without double-escaping issues.
 		const proxyMessage = `${PROXY_ERROR_PREFIX}${Buffer.from(JSON.stringify(chatResponse)).toString('base64')}`;
 
 		switch (chatResponse.type) {
@@ -311,7 +283,6 @@ export class ClaudeLanguageModelServer extends Disposable {
 
 	public async start(): Promise<void> {
 		if (this.config.port !== 0) {
-			// Already started
 			return;
 		}
 
@@ -341,10 +312,6 @@ export class ClaudeLanguageModelServer extends Disposable {
 		return { ...this.config };
 	}
 
-	/**
-	 * Increments the user-initiated message count for a given model.
-	 * Called when a user sends a new message in a Claude session.
-	 */
 	public incrementUserInitiatedMessageCount(modelId: string): void {
 		const current = this._userInitiatedMessageCounts.get(modelId) ?? 0;
 		this._userInitiatedMessageCounts.set(modelId, current + 1);
@@ -371,36 +338,24 @@ export class ClaudeLanguageModelServer extends Disposable {
 }
 
 export interface ExtractSessionIdResult {
-	/** Whether the auth nonce is valid. */
 	readonly valid: boolean;
-	/** The session ID, if present in the `nonce.sessionId` format. `undefined` for legacy (nonce-only) format. */
 	readonly sessionId: string | undefined;
 }
 
-/**
- * Extracts and validates the session ID from HTTP request headers.
- * Reads the `Authorization: Bearer <nonce>.<sessionId>` header set via `ANTHROPIC_AUTH_TOKEN`.
- *
- * The `x-api-key` header is intentionally ignored to prevent the user's personal
- * `ANTHROPIC_API_KEY` environment variable from interfering with authentication.
- */
 export function extractSessionId(headers: http.IncomingHttpHeaders, expectedNonce: string): ExtractSessionIdResult {
 	let apiKey: string | undefined;
 
-	// Check Authorization header with Bearer prefix (set via ANTHROPIC_AUTH_TOKEN)
 	const authHeader = headers['authorization'];
 	if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-		apiKey = authHeader.slice(7); // Remove "Bearer " prefix
+		apiKey = authHeader.slice(7);
 	}
 
 	if (!apiKey) {
 		return { valid: false, sessionId: undefined };
 	}
 
-	// Parse `nonce.sessionId` format
 	const dotIndex = apiKey.indexOf('.');
 	if (dotIndex === -1) {
-		// Legacy format without session ID — validate nonce only
 		return { valid: apiKey === expectedNonce, sessionId: undefined };
 	}
 
@@ -410,13 +365,6 @@ export function extractSessionId(headers: http.IncomingHttpHeaders, expectedNonc
 	return { valid, sessionId: valid ? sessionId : undefined };
 }
 
-/**
- * Filters a comma-separated `anthropic-beta` header value to only include
- * betas that match {@link SUPPORTED_ANTHROPIC_BETAS}. Entries are matched by
- * prefix so that e.g. `'context-management'` allows `'context-management-2025-06-27'`.
- *
- * Returns the filtered comma-separated string, or `undefined` if no betas matched.
- */
 export function filterSupportedBetas(headerValue: string): string | undefined {
 	const filtered = headerValue
 		.split(',')
@@ -426,13 +374,9 @@ export function filterSupportedBetas(headerValue: string): string | undefined {
 	return filtered.length > 0 ? filtered.join(',') : undefined;
 }
 
-/**
- * Converts Anthropic Messages API input to Raw.ChatMessage[] for logging purposes.
- */
 function messagesApiInputToRawMessagesForLogging(request: AnthropicMessagesRequest): Raw.ChatMessage[] {
 	const messages: Raw.ChatMessage[] = [];
 
-	// Add system message if present
 	if (request.system) {
 		const systemText = typeof request.system === 'string'
 			? request.system
@@ -443,7 +387,6 @@ function messagesApiInputToRawMessagesForLogging(request: AnthropicMessagesReque
 		});
 	}
 
-	// Convert each message
 	for (const msg of request.messages ?? []) {
 		const role = msg.role === 'user' ? Raw.ChatRole.User : Raw.ChatRole.Assistant;
 		const content: Raw.ChatCompletionContentPart[] = [];
@@ -455,7 +398,6 @@ function messagesApiInputToRawMessagesForLogging(request: AnthropicMessagesReque
 				if (block.type === 'text') {
 					content.push({ type: Raw.ChatCompletionContentPartKind.Text, text: block.text });
 				} else if (block.type === 'image') {
-					// Handle image blocks if needed for logging
 					content.push({ type: Raw.ChatCompletionContentPartKind.Text, text: '[image]' });
 				} else if (block.type === 'tool_use') {
 					content.push({ type: Raw.ChatCompletionContentPartKind.Text, text: `[tool_use: ${block.name}]` });
@@ -471,22 +413,6 @@ function messagesApiInputToRawMessagesForLogging(request: AnthropicMessagesReque
 	return messages;
 }
 
-/**
- * Drains a non-streaming Anthropic Messages API response while
- * simultaneously:
- *   1. Forwarding every upstream byte chunk verbatim to `forwardChunk` so the
- *      Claude SDK client (which made the original `stream: false` request)
- *      receives a byte-perfect passthrough.
- *   2. Reconstituting the buffered body and delegating to the shared
- *      `processNonStreamingResponseFromMessagesEndpoint` parser so the
- *      caller receives real `ChatCompletion`s (with telemetry, usage, and
- *      finish-callback wiring). Without this, `chatMLFetcher` would see
- *      zero completions and fail with "Response contained no choices".
- *
- * On cancellation, the for-await `return`s out of the drain loop before
- * forwarding the in-flight chunk; the `finally` still destroys the upstream
- * body, and no completions are emitted.
- */
 export function processNonStreamingPassThroughResponse(
 	response: Response,
 	forwardChunk: (chunk: Uint8Array) => void,
@@ -513,8 +439,6 @@ export function processNonStreamingPassThroughResponse(
 			await response.body.destroy();
 		}
 
-		// Concatenate then decode as UTF-8 once so multi-byte characters that
-		// span chunk boundaries decode correctly.
 		const concatenated = new Uint8Array(totalLength);
 		let offset = 0;
 		for (const chunk of chunks) {
@@ -571,8 +495,6 @@ class ClaudeStreamingPassThroughEndpoint implements IChatEndpoint {
 	) { }
 
 	public get urlOrRequestMetadata(): string | RequestMetadata {
-		// Force Messages API endpoint - we need this regardless of the useMessagesApi setting
-		// since we're proxying Messages API format requests from Claude Code
 		const baseUrl = this.base.urlOrRequestMetadata;
 		if (typeof baseUrl === 'string') {
 			return baseUrl;
@@ -738,9 +660,6 @@ class ClaudeStreamingPassThroughEndpoint implements IChatEndpoint {
 		const upstreamContentType = response.headers.get('content-type') ?? '';
 		const isStreaming = upstreamContentType.includes('text/event-stream');
 
-		// Mirror upstream Content-Type so the SDK client parses correctly.
-		// `auto` permission mode uses non-streaming (application/json); the
-		// regular agent loop uses SSE.
 		if (!this.responseStream.headersSent) {
 			if (isStreaming) {
 				this.responseStream.writeHead(200, {
@@ -760,7 +679,6 @@ class ClaudeStreamingPassThroughEndpoint implements IChatEndpoint {
 		}
 
 		return new AsyncIterableObject<ChatCompletion>(async feed => {
-			// We parse the stream just to return a correct ChatCompletion for logging the response and token usage details.
 			const requestId = response.headers.get('X-Request-ID') ?? generateUuid();
 			const ghRequestId = response.headers.get('x-github-request-id') ?? '';
 			const { serverExperiments } = getRequestId(response.headers);
@@ -782,12 +700,10 @@ class ClaudeStreamingPassThroughEndpoint implements IChatEndpoint {
 					if (completion) {
 						feed.emitOne(completion);
 
-						// Report usage to the usage handler if available
 						if (completion.usage && this.sessionId) {
 							const usageHandler = this.sessionStateService.getUsageHandlerForSession(this.sessionId);
 							if (usageHandler) {
 								usageHandler({
-									// Could we bucketize these token counts somehow for the details?
 									promptTokens: completion.usage.prompt_tokens,
 									completionTokens: completion.usage.completion_tokens,
 									dardcorCredits: nanoAiuToCredits(completion.usage.dardcor_usage?.total_nano_aiu),
@@ -823,8 +739,6 @@ class ClaudeStreamingPassThroughEndpoint implements IChatEndpoint {
 		telemetryData: TelemetryData,
 		cancellationToken?: CancellationToken,
 	): AsyncIterableObject<ChatCompletion> {
-		// The usage handler is looked up per-completion (mirroring the streaming
-		// branch above) in case it gets registered after the request starts.
 		const sessionId = this.sessionId;
 		const onUsage = sessionId
 			? (usage: { promptTokens: number; completionTokens: number; dardcorCredits?: number }) => {
@@ -873,15 +787,11 @@ class ClaudeStreamingPassThroughEndpoint implements IChatEndpoint {
 	): IEndpointBody {
 		const base = this.base.createRequestBody(options);
 
-		// Claude models don't support both temperature and top_p simultaneously.
-		// If the SDK request specifies either, clear both from base to avoid conflicts.
 		if (this.requestBody.temperature !== undefined || this.requestBody.top_p !== undefined) {
 			delete base.temperature;
 			delete base.top_p;
 		}
 
-		// Merge with original request body to preserve any additional properties
-		// i.e. default thinking budget.
 		return {
 			...base,
 			...this.requestBody

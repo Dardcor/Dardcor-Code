@@ -66,7 +66,6 @@ suite('StorageMainService', function () {
 	async function testStorage(storage: IStorageMain, scope: StorageScope): Promise<void> {
 		strictEqual(storage.isInMemory(), true);
 
-		// Telemetry: added after init unless workspace/profile scoped
 		if (scope === StorageScope.APPLICATION) {
 			strictEqual(storage.items.size, 0);
 			await storage.init();
@@ -84,7 +83,6 @@ suite('StorageMainService', function () {
 		let storageDidClose = false;
 		disposables.add(storage.onDidCloseStorage(() => storageDidClose = true));
 
-		// Basic store/get/remove
 		const size = storage.items.size;
 
 		storage.set('bar', 'foo');
@@ -103,10 +101,8 @@ suite('StorageMainService', function () {
 
 		strictEqual(storage.items.size, size + 2);
 
-		// IS_NEW
 		strictEqual(storage.get(IS_NEW_KEY), 'true');
 
-		// Close
 		await storage.close();
 
 		strictEqual(storageDidClose, true);
@@ -262,9 +258,9 @@ suite('StorageMainService', function () {
 			didCloseApplicationStorage = true;
 		}));
 
-		strictEqual(applicationStorage, storageMainService.applicationStorage); // same instance as long as not closed
-		strictEqual(profileStorage, storageMainService.profileStorage(profile)); // same instance as long as not closed
-		strictEqual(workspaceStorage, storageMainService.workspaceStorage(workspace)); // same instance as long as not closed
+		strictEqual(applicationStorage, storageMainService.applicationStorage);
+		strictEqual(profileStorage, storageMainService.profileStorage(profile));
+		strictEqual(workspaceStorage, storageMainService.workspaceStorage(workspace));
 
 		await applicationStorage.init();
 		await profileStorage.init();

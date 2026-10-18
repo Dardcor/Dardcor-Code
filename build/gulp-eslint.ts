@@ -38,7 +38,6 @@ export default function eslint(action: EslintAction) {
 			}
 
 			try {
-				// TODO: Should this be checked?
 				if (await linter.isPathIgnored(filePath)) {
 					cb(null, file);
 					return;

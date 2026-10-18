@@ -9,27 +9,7 @@ import { AnnotatedString, AnnotationsUpdate, IAnnotation, IAnnotationUpdate } fr
 import { OffsetRange } from '../../../common/core/ranges/offsetRange.js';
 import { StringEdit } from '../../../common/core/edits/stringEdit.js';
 
-// ============================================================================
-// Visual Annotation Test Infrastructure
-// ============================================================================
-// This infrastructure allows representing annotations visually using brackets:
-// - '[id:text]' marks an annotation with the given id covering 'text'
-// - Plain text represents unannotated content
-//
-// Example: "Lorem [1:ipsum] dolor [2:sit] amet" represents:
-//   - annotation "1" at offset 6-11 (content "ipsum")
-//   - annotation "2" at offset 18-21 (content "sit")
-//
-// For updates:
-// - '[id:text]' sets an annotation
-// - '<id:text>' deletes an annotation in that range
-// ============================================================================
 
-/**
- * Parses a visual string representation into annotations.
- * The visual string uses '[id:text]' to mark annotation boundaries.
- * The id becomes the annotation value, and text is the annotated content.
- */
 function parseVisualAnnotations(visual: string): { annotations: IAnnotation<string>[]; baseString: string } {
 	const annotations: IAnnotation<string>[] = [];
 	let baseString = '';
@@ -37,7 +17,6 @@ function parseVisualAnnotations(visual: string): { annotations: IAnnotation<stri
 
 	while (i < visual.length) {
 		if (visual[i] === '[') {
-			// Find the colon and closing bracket
 			const colonIdx = visual.indexOf(':', i + 1);
 			const closeIdx = visual.indexOf(']', colonIdx + 1);
 			if (colonIdx === -1 || closeIdx === -1) {
@@ -58,13 +37,6 @@ function parseVisualAnnotations(visual: string): { annotations: IAnnotation<stri
 	return { annotations, baseString };
 }
 
-/**
- * Converts annotations to a visual string representation.
- * Uses '[id:text]' to mark annotation boundaries.
- *
- * @param annotations - The annotations to visualize
- * @param baseString - The base string content
- */
 function toVisualString(
 	annotations: IAnnotation<string>[],
 	baseString: string
@@ -73,31 +45,23 @@ function toVisualString(
 		return baseString;
 	}
 
-	// Sort annotations by start position
 	const sortedAnnotations = [...annotations].sort((a, b) => a.range.start - b.range.start);
 
-	// Build the visual representation
 	let result = '';
 	let pos = 0;
 
 	for (const ann of sortedAnnotations) {
-		// Add plain text before this annotation
 		result += baseString.substring(pos, ann.range.start);
-		// Add annotated content with id
 		const annotatedText = baseString.substring(ann.range.start, ann.range.endExclusive);
 		result += `[${ann.annotation}:${annotatedText}]`;
 		pos = ann.range.endExclusive;
 	}
 
-	// Add remaining text after last annotation
 	result += baseString.substring(pos);
 
 	return result;
 }
 
-/**
- * Represents an AnnotatedString with its base string for visual testing.
- */
 class VisualAnnotatedString {
 	constructor(
 		public readonly annotatedString: AnnotatedString<string>,
@@ -126,26 +90,15 @@ class VisualAnnotatedString {
 	}
 }
 
-/**
- * Creates a VisualAnnotatedString from a visual representation.
- */
 function fromVisual(visual: string): VisualAnnotatedString {
 	const { annotations, baseString } = parseVisualAnnotations(visual);
 	return new VisualAnnotatedString(new AnnotatedString<string>(annotations), baseString);
 }
 
-/**
- * Converts a VisualAnnotatedString to a visual representation.
- */
 function toVisual(vas: VisualAnnotatedString): string {
 	return toVisualString(vas.getAllAnnotations(), vas.baseString);
 }
 
-/**
- * Parses visual update annotations, where:
- * - '[id:text]' represents an annotation to set
- * - '<id:text>' represents an annotation to delete (range is tracked but annotation is undefined)
- */
 function parseVisualUpdate(visual: string): { updates: IAnnotationUpdate<string>[]; baseString: string } {
 	const updates: IAnnotationUpdate<string>[] = [];
 	let baseString = '';
@@ -153,7 +106,6 @@ function parseVisualUpdate(visual: string): { updates: IAnnotationUpdate<string>
 
 	while (i < visual.length) {
 		if (visual[i] === '[') {
-			// Set annotation: [id:text]
 			const colonIdx = visual.indexOf(':', i + 1);
 			const closeIdx = visual.indexOf(']', colonIdx + 1);
 			if (colonIdx === -1 || closeIdx === -1) {
@@ -166,7 +118,6 @@ function parseVisualUpdate(visual: string): { updates: IAnnotationUpdate<string>
 			updates.push({ range: new OffsetRange(startOffset, baseString.length), annotation: id });
 			i = closeIdx + 1;
 		} else if (visual[i] === '<') {
-			// Delete annotation: <id:text>
 			const colonIdx = visual.indexOf(':', i + 1);
 			const closeIdx = visual.indexOf('>', colonIdx + 1);
 			if (colonIdx === -1 || closeIdx === -1) {
@@ -186,9 +137,6 @@ function parseVisualUpdate(visual: string): { updates: IAnnotationUpdate<string>
 	return { updates, baseString };
 }
 
-/**
- * Creates an AnnotationsUpdate from a visual representation.
- */
 function updateFromVisual(...visuals: string[]): AnnotationsUpdate<string> {
 	const updates: IAnnotationUpdate<string>[] = [];
 
@@ -200,14 +148,6 @@ function updateFromVisual(...visuals: string[]): AnnotationsUpdate<string> {
 	return AnnotationsUpdate.create(updates);
 }
 
-/**
- * Helper to create a StringEdit from visual notation.
- * Uses a pattern matching approach where:
- * - 'd' marks positions to delete
- * - 'i:text:' inserts 'text' at the marked position
- *
- * Simpler approach: just use offset-based helpers
- */
 function editDelete(start: number, end: number): StringEdit {
 	return StringEdit.replace(new OffsetRange(start, end), '');
 }
@@ -220,16 +160,11 @@ function editReplace(start: number, end: number, text: string): StringEdit {
 	return StringEdit.replace(new OffsetRange(start, end), text);
 }
 
-/**
- * Asserts that a VisualAnnotatedString matches the expected visual representation.
- * Only compares annotations, not the base string (since setAnnotations doesn't change the base string).
- */
 function assertVisual(vas: VisualAnnotatedString, expectedVisual: string): void {
 	const actual = toVisual(vas);
 	const { annotations: expectedAnnotations } = parseVisualAnnotations(expectedVisual);
 	const actualAnnotations = vas.getAllAnnotations();
 
-	// Compare annotations for better error messages
 	if (actualAnnotations.length !== expectedAnnotations.length) {
 		assert.fail(
 			`Annotation count mismatch.\n` +
@@ -261,10 +196,6 @@ function assertVisual(vas: VisualAnnotatedString, expectedVisual: string): void 
 	}
 }
 
-/**
- * Helper to visualize the effect of an edit on annotations.
- * Returns both before and after states as visual strings.
- */
 function visualizeEdit(
 	beforeAnnotations: string,
 	edit: StringEdit
@@ -278,17 +209,6 @@ function visualizeEdit(
 	return { before, after };
 }
 
-// ============================================================================
-// Visual Annotations Test Suite
-// ============================================================================
-// These tests use a visual representation for better readability:
-// - '[id:text]' marks annotated regions with id and content
-// - Plain text represents unannotated content
-// - '<id:text>' marks regions to delete (in updates)
-//
-// Example: "Lorem [1:ipsum] dolor [2:sit] amet" represents two annotations:
-//          "1" at (6,11) covering "ipsum", "2" at (18,21) covering "sit"
-// ============================================================================
 
 suite('Annotations Suite', () => {
 
@@ -327,7 +247,6 @@ suite('Annotations Suite', () => {
 	});
 
 	test('setAnnotations 4', () => {
-		// 54 chars before 'i': "Lorem ipsum dolor sit amet, consectetur adipiscing el"
 		const vas = fromVisual('Lorem ipsum dolor sit amet, consectetur adipiscing el[:it]');
 		vas.setAnnotations(updateFromVisual('Lorem ipsum dolor sit amet, consectetur adipiscing el<_:i>t'));
 		assertVisual(vas, 'Lorem ipsum dolor sit amet, consectetur adipiscing elit');

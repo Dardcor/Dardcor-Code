@@ -206,7 +206,7 @@ If the setting `jsonFoldingLimit` or `jsoncFoldingLimit` is set, the JSON langua
 
 ## Try
 
-The JSON language server is shipped with [Visual Studio Code](https://code.visualstudio.com/) as part of the built-in VSCode extension `json-language-features`. The server is started when the first JSON file is opened. The [VSCode JSON documentation](https://code.visualstudio.com/docs/languages/json) for detailed information on the user experience and has more information on how to configure the language support.
+The JSON language server is shipped with Dardcor Code as part of the built-in `json-language-features` extension. The server is started when the first JSON file is opened. See the [Dardcor Code JSON guide](https://www.dardcor-code.web.id/docs/languages/json) for information about the user experience and language settings.
 
 ## Integrate
 

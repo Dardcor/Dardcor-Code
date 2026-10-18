@@ -6,18 +6,8 @@
 import { IDisposable } from '../../../../../../base/common/lifecycle.js';
 
 export interface IResourcePoolOptions {
-	/**
-	 * Maximum number of idle items to keep in the pool.
-	 * When exceeded after a debounce period, excess idle items are disposed.
-	 * Defaults to no limit.
-	 */
 	maxIdleSize?: number;
 
-	/**
-	 * Delay in milliseconds before trimming excess idle items.
-	 * Allows rapid get/release cycles (e.g. during streaming) without
-	 * unnecessary disposal. Defaults to 10 seconds.
-	 */
 	trimIdleDelay?: number;
 }
 
@@ -59,8 +49,6 @@ export class ResourcePool<T extends IDisposable> implements IDisposable {
 			return;
 		}
 
-		// Debounce: reset the timer on every release so that rapid
-		// get/release cycles (streaming, scrolling) don't cause churn.
 		if (this._trimTimer !== undefined) {
 			clearTimeout(this._trimTimer);
 		}
@@ -83,9 +71,6 @@ export class ResourcePool<T extends IDisposable> implements IDisposable {
 		}
 	}
 
-	/**
-	 * Clear and dispose the items in the pool that are not in use.
-	 */
 	clear(): void {
 		if (this._trimTimer !== undefined) {
 			clearTimeout(this._trimTimer);
@@ -107,12 +92,6 @@ export class ResourcePool<T extends IDisposable> implements IDisposable {
 	}
 }
 
-/**
- * A resource pool that supports keyed reuse. On {@link get}, the pool will
- * prefer returning an idle item that was previously {@link release released}
- * with the same key. Keys are best-effort hints — multiple items can share a
- * key and the pool falls back to any idle item when no keyed match is found.
- */
 export class KeyedResourcePool<T extends IDisposable> implements IDisposable {
 	private readonly _idle: T[] = [];
 	private readonly _inUse = new Set<T>();
@@ -159,7 +138,6 @@ export class KeyedResourcePool<T extends IDisposable> implements IDisposable {
 		this._inUse.delete(item);
 		this._idle.push(item);
 
-		// Remove old key association if it changed
 		const oldKey = this._itemToKey.get(item);
 		if (oldKey !== undefined && oldKey !== key) {
 			const oldSet = this._keyToItems.get(oldKey);

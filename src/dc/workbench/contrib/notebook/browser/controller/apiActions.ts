@@ -71,7 +71,7 @@ CommandsRegistry.registerCommand('_resolveNotebookKernels', async (accessor, arg
 		label: provider.label,
 		description: provider.description,
 		detail: provider.detail,
-		isPreferred: false, // todo@jrieken,@rebornix
+		isPreferred: false,
 		preloads: provider.preloadUris,
 	}));
 });

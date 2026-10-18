@@ -89,7 +89,6 @@ export class RunPlaywrightCodeTool implements IToolImpl {
 			return errorResult(`No page ID provided. Use '${OpenPageToolId}' first.`);
 		}
 
-		// Resume waiting for a deferred execution
 		if (params.deferredResultId) {
 			try {
 				const result = await this.playwrightService.waitForDeferredResult(sessionId, params.deferredResultId, params.timeoutMs ?? 5_000);

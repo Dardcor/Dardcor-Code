@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* --- Explorer viewlet --- */
 .explorer-folders-view,
 .explorer-folders-view {
 	height: 100%;
@@ -21,7 +20,7 @@
 }
 
 .explorer-folders-view .explorer-item {
-	display: flex; /* this helps showing the overflow ellipsis (...) even though we use display:inline-block for the labels */
+	display: flex;
 	flex-wrap: nowrap;
 }
 
@@ -41,7 +40,7 @@
 }
 
 .explorer-folders-view .explorer-item.explorer-item-edited .label-name {
-	flex: 0; /* do not steal space when label is hidden because we are in edit mode */
+	flex: 0;
 }
 
 .explorer-folders-view .explorer-item.nonexistent-root {
@@ -101,7 +100,6 @@
 	height: 20px;
 }
 
-/* High Contrast Theming */
 .monaco-workbench.hc-black .explorer-folders-view .explorer-item,
 .monaco-workbench.hc-light .explorer-folders-view .explorer-item {
 	line-height: 20px;

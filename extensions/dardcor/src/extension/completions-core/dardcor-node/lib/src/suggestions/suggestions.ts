@@ -2,7 +2,6 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-// General utility functions for all kinds of suggestions (Ghost Text, Open Copilot)
 
 import { ILogger } from '../../../../../../platform/log/common/logService';
 import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
@@ -12,24 +11,12 @@ import { TelemetryData, TelemetryStore, telemetry } from '../telemetry';
 import { IPosition, TextDocumentContents } from '../textDocument';
 import { isRepetitive } from './anomalyDetection';
 
-/**
- * To avoid double-closing blocks (#272), maybe snip a trailing block-close token
- * from the given completion.
- *
- * We check whether the completion ends with a block-close token, and the next line
- * after the cursor starts with that same token at the same indentation. If so,
- * we snip.
- */
 function maybeSnipCompletion(accessor: ServicesAccessor, doc: TextDocumentContents, position: IPosition, completion: string): string {
-	// Default to `}` for block closing token
 	let blockCloseToken = '}';
 
-	//TODO: This should be properly handled in promptlib (in `getBlockCloseToken`)
-	//but we don't want to change it before Universe.
 	try {
 		blockCloseToken = getBlockCloseToken(doc.detectedLanguageId) ?? '}';
 	} catch (e) {
-		// Ignore errors
 	}
 
 	return maybeSnipCompletionImpl(
@@ -51,11 +38,6 @@ export function maybeSnipCompletionImpl(
 	completion: string,
 	blockCloseToken: string
 ): string {
-	// if the last lines of the completion are just indented block close tokens (e.g. `\t}\n}`),
-	// and if these lines exactly match the lines of the document after the insertion position (ignoring empty lines in both the document and the completion),
-	// these lines are removed from the completion.
-	// Additionally, the last line of the completion can be a prefix of a line in the model.
-	// Thus, if `\tif (true) {\n\t}` is suggested and the next line of the doc is `\t} else {`, only `if (true) {` will be suggested.
 
 	const completionLinesInfo = splitByNewLine(completion);
 	const completionLines = completionLinesInfo.lines;
@@ -77,7 +59,6 @@ export function maybeSnipCompletionImpl(
 				const docLineIdx = position.line + 1 + offset + docSkippedEmptyLineCount;
 				docLine = docLineIdx >= doc.getLineCount() ? undefined : doc.getLineText(docLineIdx);
 				if (docLine !== undefined && docLine.trim() === '') {
-					// Skip empty lines in the document and loop
 					docSkippedEmptyLineCount++;
 				} else {
 					break;
@@ -91,7 +72,6 @@ export function maybeSnipCompletionImpl(
 				completionLine =
 					completionLineIdx >= completionLines.length ? undefined : completionLines[completionLineIdx];
 				if (completionLine !== undefined && completionLine.trim() === '') {
-					// Skip empty lines in the completion and loop
 					completionSkippedEmptyLineCount++;
 				} else {
 					break;
@@ -104,11 +84,9 @@ export function maybeSnipCompletionImpl(
 				!(
 					docLine &&
 					(isLastCompletionLine
-						? // For the last line, accept any line that starts with the completion line and vice versa.
-						// This allows for brackets, braces, parentheses, quotes, identifiers like "end" and "fi",
-						// heredocs, etc.
+						?
 						docLine.startsWith(completionLine) || completionLine.startsWith(docLine)
-						: // For other lines, strictly require the block close token, and nothing else
+						:
 						docLine === completionLine && completionLine.trim() === blockCloseToken)
 				)
 			) {
@@ -157,9 +135,6 @@ function matchesNextLine(
 	return false;
 }
 
-/**
- * Post-processed a completion choice in the context of the document where the choice is offered.
- */
 export function postProcessChoiceInContext(
 	accessor: ServicesAccessor,
 	document: TextDocumentContents,
@@ -172,14 +147,12 @@ export function postProcessChoiceInContext(
 		const telemetryData = TelemetryData.createAndMarkAsIssued();
 		telemetryData.extendWithRequestId(choice.requestId);
 		telemetry(accessor, 'repetition.detected', telemetryData, TelemetryStore.Enhanced);
-		// FIXME: trim request at start of repetitive block? for now we just skip
 		logger.info('Filtered out repetitive solution');
 		return undefined;
 	}
 
 	const postProcessedChoice = { ...choice };
 
-	// Avoid single-line completions that duplicate the next line (#993)
 	if (matchesNextLine(document, position, postProcessedChoice.completionText, !isMoreMultiline)) {
 		const baseTelemetryData = TelemetryData.createAndMarkAsIssued();
 		baseTelemetryData.extendWithRequestId(choice.requestId);
@@ -196,7 +169,6 @@ export function postProcessChoiceInContext(
 		return undefined;
 	}
 
-	// Avoid double-closing blocks (#272)
 	postProcessedChoice.completionText = maybeSnipCompletion(
 		accessor,
 		document,
@@ -212,8 +184,6 @@ export function checkSuffix(document: TextDocumentContents, position: IPosition,
 	const restOfLine = currentLine.text.substring(position.character);
 	if (restOfLine.length > 0) {
 		if (choice.completionText.indexOf(restOfLine) !== -1) {
-			//If current suggestion contains rest of the line as substring
-			//then we will include it in our suggestion range
 			return restOfLine.length;
 		} else {
 			let lastIndex = -1;

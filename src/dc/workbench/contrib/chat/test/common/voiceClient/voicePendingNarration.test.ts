@@ -11,11 +11,6 @@ import { formatQuestionPrompt } from '../../../common/voiceClient/voicePendingNa
 suite('formatQuestionPrompt', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Every expectation below is byte-identical to the Python fixtures in
-	// apps/voice_code/tests/test_session_pending.py::test_format_*. The client
-	// speaks question 1 of a form and the backend speaks 2..N as it replies to
-	// each answer, so a divergence is audible as the assistant changing register
-	// partway through one form.
 
 	const single: IVoicePendingQuestion = {
 		id: 'q_single',
@@ -70,8 +65,6 @@ suite('formatQuestionPrompt', () => {
 	});
 
 	test('a text question is just its title', () => {
-		// Freeform-capable, but the hint is suppressed: it only means something
-		// when there is a list of options to answer *instead of*.
 		assert.strictEqual(formatQuestionPrompt(text, false), 'Anything else?');
 	});
 
@@ -87,9 +80,6 @@ suite('formatQuestionPrompt', () => {
 	});
 
 	test('reads the ordinals it was given rather than renumbering', () => {
-		// The ordinals come from `_buildPendingPayload`, which assigns them from
-		// the widget's displayed order. Renumbering here would be a second,
-		// independent source of truth for the number the user says back.
 		assert.strictEqual(
 			formatQuestionPrompt(
 				{

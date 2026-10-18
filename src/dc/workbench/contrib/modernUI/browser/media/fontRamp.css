@@ -60,7 +60,7 @@
 .modern-ui .monaco-editor .settings-header-widget .title-container .title,
 
 .modern-ui .chat-viewpane.has-sessions-control .agent-sessions-container .agent-sessions-title-container {
-	text-transform: capitalize;
+	text-transform: none;
 	font-size: var(--vscode-fontSize-label1);
 }
 

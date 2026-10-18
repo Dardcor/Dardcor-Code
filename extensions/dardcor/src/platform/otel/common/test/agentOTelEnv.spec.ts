@@ -45,7 +45,7 @@ describe('deriveCopilotCliOTelEnv', () => {
 	it('returns correct env vars when enabled', () => {
 		const result = deriveCopilotCliOTelEnv(makeConfig(), emptyEnv);
 		expect(result).toEqual({
-			COPILOT_OTEL_ENABLED: 'true',
+			DARDCOR_OTEL_ENABLED: 'true',
 			OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318',
 		});
 	});
@@ -57,22 +57,22 @@ describe('deriveCopilotCliOTelEnv', () => {
 
 	it('includes file exporter path when set', () => {
 		const result = deriveCopilotCliOTelEnv(makeConfig({ fileExporterPath: '/tmp/otel.jsonl', exporterType: 'file' }), emptyEnv);
-		expect(result['COPILOT_OTEL_FILE_EXPORTER_PATH']).toBe('/tmp/otel.jsonl');
-		expect(result['COPILOT_OTEL_EXPORTER_TYPE']).toBe('file');
+		expect(result['DARDCOR_OTEL_FILE_EXPORTER_PATH']).toBe('/tmp/otel.jsonl');
+		expect(result['DARDCOR_OTEL_EXPORTER_TYPE']).toBe('file');
 	});
 
 	it('does not set exporter type for non-file exporters', () => {
 		const result = deriveCopilotCliOTelEnv(makeConfig({ exporterType: 'otlp-http' }), emptyEnv);
-		expect(result['COPILOT_OTEL_EXPORTER_TYPE']).toBeUndefined();
+		expect(result['DARDCOR_OTEL_EXPORTER_TYPE']).toBeUndefined();
 	});
 
 	it('does not overwrite existing env vars', () => {
 		const existingEnv: Record<string, string | undefined> = {
-			COPILOT_OTEL_ENABLED: 'false',
+			DARDCOR_OTEL_ENABLED: 'false',
 			OTEL_EXPORTER_OTLP_ENDPOINT: 'http://custom:9999',
 		};
 		const result = deriveCopilotCliOTelEnv(makeConfig(), existingEnv);
-		expect(result['COPILOT_OTEL_ENABLED']).toBeUndefined();
+		expect(result['DARDCOR_OTEL_ENABLED']).toBeUndefined();
 		expect(result['OTEL_EXPORTER_OTLP_ENDPOINT']).toBeUndefined();
 	});
 
@@ -135,6 +135,6 @@ describe('deriveClaudeOTelEnv', () => {
 
 	it('does not include file exporter path (not supported by Claude SDK)', () => {
 		const result = deriveClaudeOTelEnv(makeConfig({ fileExporterPath: '/tmp/otel.jsonl' }), emptyEnv);
-		expect(result['COPILOT_OTEL_FILE_EXPORTER_PATH']).toBeUndefined();
+		expect(result['DARDCOR_OTEL_FILE_EXPORTER_PATH']).toBeUndefined();
 	});
 });

@@ -14,7 +14,6 @@ export async function getFoldingRanges(languageModes: LanguageModes, document: T
 		result.push(... await htmlMode.getFoldingRanges(document));
 	}
 
-	// cache folding ranges per mode
 	const rangesPerMode: { [mode: string]: FoldingRange[] } = Object.create(null);
 	const getRangesForMode = async (mode: LanguageMode) => {
 		if (mode.getFoldingRanges) {
@@ -51,8 +50,6 @@ function limitRanges(ranges: FoldingRange[], maxRanges: number) {
 		return diff;
 	});
 
-	// compute each range's nesting level in 'nestingLevels'.
-	// count the number of ranges for each level in 'nestingLevelCounts'
 	let top: FoldingRange | undefined = undefined;
 	const previous: FoldingRange[] = [];
 	const nestingLevels: number[] = [];
@@ -65,7 +62,6 @@ function limitRanges(ranges: FoldingRange[], maxRanges: number) {
 		}
 	};
 
-	// compute nesting levels and sanitize
 	for (let i = 0; i < ranges.length; i++) {
 		const entry = ranges[i];
 		if (!top) {

@@ -69,8 +69,6 @@ export const switchTerminalShowTabsTitle = localize('showTerminalTabs', "Show Ta
 
 const category = terminalStrings.actionCategory;
 
-// Some terminal context keys get complicated. Since normalizing and/or context keys can be
-// expensive this is done once per context key and shared.
 export const sharedWhenClause = (() => {
 	const terminalAvailable = ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated);
 	return {
@@ -101,13 +99,11 @@ export async function getCwdForSplit(
 				if (folders.length === 1) {
 					return folders[0].uri;
 				} else if (folders.length > 1) {
-					// Only choose a path when there's more than 1 folder
 					const options: IPickOptions<IQuickPickItem> = {
 						placeHolder: localize('workbench.action.terminal.newWorkspacePlaceholder', "Select current working directory for new terminal")
 					};
 					const workspace = await commandService.executeCommand<IWorkspaceFolder>(PICK_WORKSPACE_FOLDER_COMMAND_ID, [options]);
 					if (!workspace) {
-						// Don't split the instance if the workspace picker was canceled
 						return undefined;
 					}
 					return Promise.resolve(workspace.uri);
@@ -130,30 +126,19 @@ export class TerminalLaunchHelpAction extends Action {
 	}
 
 	override async run(): Promise<void> {
-		this._openerService.open('https://aka.ms/vscode-troubleshoot-terminal-launch');
+		this._openerService.open('https://www.dardcor-code.web.id/docs/terminal/troubleshooting');
 	}
 }
 
-/**
- * A wrapper function around registerAction2 to help make registering terminal actions more concise.
- * The following default options are used if undefined:
- *
- * - `f1`: true
- * - `category`: Terminal
- * - `precondition`: TerminalContextKeys.processSupported
- */
 export function registerTerminalAction(
 	options: IAction2Options & { run: (c: ITerminalServicesCollection, accessor: ServicesAccessor, args?: unknown, args2?: unknown) => void | Promise<unknown> }
 ): IDisposable {
-	// Set defaults
 	options.f1 = options.f1 ?? true;
 	options.category = options.category ?? category;
 	options.precondition = options.precondition ?? TerminalContextKeys.processSupported;
-	// Remove run function from options so it's not passed through to registerAction2
 	const runFunc = options.run;
 	const strictOptions: IAction2Options & { run?: (c: ITerminalServicesCollection, accessor: ServicesAccessor, args?: unknown) => void | Promise<unknown> } = options;
 	delete (strictOptions as IAction2Options & { run?: (c: ITerminalServicesCollection, accessor: ServicesAccessor, args?: unknown) => void | Promise<unknown> })['run'];
-	// Register
 	return registerAction2(class extends Action2 {
 		constructor() {
 			super(strictOptions as IAction2Options);
@@ -174,23 +159,10 @@ function parseActionArgs(args?: unknown): InstanceContext[] | undefined {
 	}
 	return undefined;
 }
-/**
- * A wrapper around {@link registerTerminalAction} that runs a callback for all currently selected
- * instances provided in the action context. This falls back to the active instance if there are no
- * contextual instances provided.
- */
 export function registerContextualInstanceAction(
 	options: IAction2Options & {
-		/**
-		 * When specified, only this type of active instance will be used when there are no
-		 * contextual instances.
-		 */
 		activeInstanceType?: 'view' | 'editor';
 		run: (instance: ITerminalInstance, c: ITerminalServicesCollection, accessor: ServicesAccessor, args?: unknown) => void | Promise<unknown>;
-		/**
-		 * A callback to run after the `run` callbacks have completed.
-		 * @param instances The selected instance(s) that the command was run on.
-		 */
 		runAfter?: (instances: ITerminalInstance[], c: ITerminalServicesCollection, accessor: ServicesAccessor, args?: unknown) => void | Promise<unknown>;
 	}
 ): IDisposable {
@@ -224,10 +196,6 @@ export function registerContextualInstanceAction(
 	});
 }
 
-/**
- * A wrapper around {@link registerTerminalAction} that ensures an active instance exists and
- * provides it to the run function.
- */
 export function registerActiveInstanceAction(
 	options: IAction2Options & { run: (activeInstance: ITerminalInstance, c: ITerminalServicesCollection, accessor: ServicesAccessor, args?: unknown) => void | Promise<unknown> }
 ): IDisposable {
@@ -243,12 +211,6 @@ export function registerActiveInstanceAction(
 	});
 }
 
-/**
- * A wrapper around {@link registerTerminalAction} that ensures an active terminal
- * exists and provides it to the run function.
- *
- * This includes detached xterm terminals that are not managed by an {@link ITerminalInstance}.
- */
 export function registerActiveXtermAction(
 	options: IAction2Options & { run: (activeTerminal: IXtermTerminal, accessor: ServicesAccessor, instance: ITerminalInstance | IDetachedTerminalInstance, args?: unknown) => void | Promise<unknown> }
 ): IDisposable {
@@ -309,7 +271,6 @@ export function registerTerminalActions() {
 		}
 	});
 
-	// Register new with profile command
 	refreshTerminalActions([]);
 
 	registerTerminalAction({
@@ -330,8 +291,6 @@ export function registerTerminalActions() {
 		title: localize2('workbench.action.terminal.createTerminalEditor', 'Create New Terminal in Editor Area'),
 		f1: false,
 		run: async (c, accessor, args) => {
-			// Force the editor into the same editor group if it's locked. This command is only ever
-			// called when a terminal is the active editor
 			const editorGroupsService = accessor.get(IEditorGroupsService);
 			const instance = await c.service.createTerminal({
 				location: {
@@ -413,7 +372,6 @@ export function registerTerminalActions() {
 				secondary: [KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.UpArrow]
 			},
 			when: ContextKeyExpr.and(TerminalContextKeys.focus, TerminalContextKeys.splitTerminalActive),
-			// Should win over send sequence commands https://github.com/microsoft/vscode/issues/259326
 			weight: KeybindingWeight.WorkbenchContrib + 1
 		},
 		precondition: sharedWhenClause.terminalAvailable,
@@ -434,7 +392,6 @@ export function registerTerminalActions() {
 				secondary: [KeyMod.Alt | KeyMod.CtrlCmd | KeyCode.DownArrow]
 			},
 			when: ContextKeyExpr.and(TerminalContextKeys.focus, TerminalContextKeys.splitTerminalActive),
-			// Should win over send sequence commands https://github.com/microsoft/vscode/issues/259326
 			weight: KeybindingWeight.WorkbenchContrib + 1
 		},
 		precondition: sharedWhenClause.terminalAvailable,
@@ -606,7 +563,6 @@ export function registerTerminalActions() {
 				return;
 			}
 
-			// TODO: Convert this to ctrl+c, ctrl+v for pwsh?
 			await instance.sendPath(uri, true);
 			return c.groupService.showPanel();
 		}
@@ -752,7 +708,6 @@ export function registerTerminalActions() {
 			}
 			for (const terminal of getSelectedViewInstances(accessor) ?? []) {
 				const skipQuickPick = i !== 0;
-				// Always show the quickpick on the first iteration
 				color = await terminal.changeColor(color, skipQuickPick);
 				i++;
 			}
@@ -796,7 +751,6 @@ export function registerTerminalActions() {
 			c.editingService.setEditable(firstInstance, {
 				validationMessage: value => validateTerminalName(value),
 				onFinish: async (value, success) => {
-					// Cancel editing first as instance.rename will trigger a rerender automatically
 					c.editingService.setEditable(firstInstance, null);
 					c.editingService.setEditingTerminal(undefined);
 					if (success) {
@@ -965,7 +919,6 @@ export function registerTerminalActions() {
 		precondition: sharedWhenClause.terminalAvailable,
 		run: async (xterm, _, instance) => {
 			xterm.markTracker.selectToPreviousLine();
-			// prefer to call focus on the TerminalInstance for additional accessibility triggers
 			(instance || xterm).focus();
 		}
 	});
@@ -976,7 +929,6 @@ export function registerTerminalActions() {
 		precondition: sharedWhenClause.terminalAvailable,
 		run: async (xterm, _, instance) => {
 			xterm.markTracker.selectToNextLine();
-			// prefer to call focus on the TerminalInstance for additional accessibility triggers
 			(instance || xterm).focus();
 		}
 	});
@@ -1197,12 +1149,7 @@ export function registerTerminalActions() {
 		title: localize2('workbench.action.terminal.selectAll', 'Select All'),
 		precondition: sharedWhenClause.terminalAvailable,
 		keybinding: [{
-			// Don't use ctrl+a by default as that would override the common go to start
-			// of prompt shell binding
 			primary: 0,
-			// Technically this doesn't need to be here as it will fall back to this
-			// behavior anyway when handed to xterm.js, having this handled by VS Code
-			// makes it easier for users to see how it works though.
 			mac: { primary: KeyMod.CtrlCmd | KeyCode.KeyA },
 			weight: KeybindingWeight.WorkbenchContrib,
 			when: TerminalContextKeys.focusInAny
@@ -1240,13 +1187,10 @@ export function registerTerminalActions() {
 
 				let instance: ITerminalInstance | undefined;
 				if (folders.length <= 1) {
-					// Allow terminal service to handle the path when there is only a
-					// single root
 					instance = await c.service.createTerminal(eventOrOptions);
 				} else {
 					const cwd = (await pickTerminalCwd(accessor))?.cwd;
 					if (!cwd) {
-						// Don't create the instance if the workspace picker was canceled
 						return;
 					}
 					eventOrOptions.cwd = cwd;
@@ -1283,7 +1227,7 @@ export function registerTerminalActions() {
 	registerTerminalAction({
 		id: TerminalCommandId.KillViewOrEditor,
 		title: terminalStrings.kill,
-		f1: false, // This is an internal command used for context menus
+		f1: false,
 		precondition: ContextKeyExpr.or(sharedWhenClause.terminalAvailable, TerminalContextKeys.isOpen),
 		run: async (c) => killInstance(c, c.service.activeInstance)
 	});
@@ -1358,11 +1302,7 @@ export function registerTerminalActions() {
 		keybinding: [{
 			primary: 0,
 			mac: { primary: KeyMod.CtrlCmd | KeyCode.KeyK },
-			// Weight is higher than work workbench contributions so the keybinding remains
-			// highest priority when chords are registered afterwards
 			weight: KeybindingWeight.WorkbenchContrib + 1,
-			// Disable the keybinding when accessibility mode is enabled as chords include
-			// important screen reader keybindings such as cmd+k, cmd+i to show the hover
 			when: ContextKeyExpr.or(ContextKeyExpr.and(TerminalContextKeys.focus, CONTEXT_ACCESSIBILITY_MODE_ENABLED.negate()), ContextKeyExpr.and(CONTEXT_ACCESSIBILITY_MODE_ENABLED, accessibleViewIsShown, accessibleViewCurrentProviderId.isEqualTo(AccessibleViewProviderId.Terminal))),
 		}],
 		run: (activeInstance) => activeInstance.clearBuffer()
@@ -1427,7 +1367,6 @@ export function registerTerminalActions() {
 
 			const quickSelectProfiles = c.profileService.availableProfiles;
 
-			// Remove 'New ' from the selected item to get the profile name
 			const profileSelection = item.substring(4);
 			if (quickSelectProfiles) {
 				const profile = quickSelectProfiles.find(profile => profile.profileName === profileSelection);
@@ -1473,11 +1412,8 @@ function getSelectedViewInstances(accessor: ServicesAccessor, args?: unknown, ar
 	const terminalGroupService = accessor.get(ITerminalGroupService);
 	const result: ITerminalInstance[] = [];
 
-	// Assign list only if it's an instance of TerminalTabList (#234791)
 	const list = listService.lastFocusedList instanceof TerminalTabList ? listService.lastFocusedList : undefined;
-	// Get selected tab list instance(s)
 	const selections = list?.getSelection();
-	// Get inline tab instance if there are not tab list selections #196578
 	if (terminalGroupService.lastAccessedMenu === 'inline-tab' && !selections?.length) {
 		const instance = terminalGroupService.activeInstance;
 		return instance ? [terminalGroupService.activeInstance] : undefined;
@@ -1490,13 +1426,10 @@ function getSelectedViewInstances(accessor: ServicesAccessor, args?: unknown, ar
 
 	const viewInstances = terminalGroupService.instances;
 	if (focused.length === 1 && !selections.includes(focused[0])) {
-		// focused length is always a max of 1
-		// if the focused one is not in the selected list, return that item
 		result.push(viewInstances[focused[0]]);
 		return result;
 	}
 
-	// multi-select
 	for (const selection of selections) {
 		result.push(viewInstances[selection]);
 	}
@@ -1530,7 +1463,6 @@ let newWithProfileAction: IDisposable;
 export function refreshTerminalActions(detectedProfiles: ITerminalProfile[]): IDisposable {
 	const profileEnum = createProfileSchemaEnums(detectedProfiles);
 	newWithProfileAction?.dispose();
-	// TODO: Use new register function
 	newWithProfileAction = registerAction2(class extends Action2 {
 		constructor() {
 			super({
@@ -1603,7 +1535,6 @@ export function refreshTerminalActions(detectedProfiles: ITerminalProfile[]): ID
 				options = convertOptionsOrProfileToOptions(eventOrOptionsOrProfile);
 			}
 
-			// split terminal
 			if (event && (event.altKey || event.ctrlKey)) {
 				const parentTerminal = c.service.activeInstance;
 				if (parentTerminal) {
@@ -1614,13 +1545,11 @@ export function refreshTerminalActions(detectedProfiles: ITerminalProfile[]): ID
 
 			const folders = workspaceContextService.getWorkspace().folders;
 			if (folders.length > 1) {
-				// multi-root workspace, create root picker
 				const options: IPickOptions<IQuickPickItem> = {
 					placeHolder: localize('workbench.action.terminal.newWorkspacePlaceholder', "Select current working directory for new terminal")
 				};
 				const workspace = await commandService.executeCommand<IWorkspaceFolder>(PICK_WORKSPACE_FOLDER_COMMAND_ID, [options]);
 				if (!workspace) {
-					// Don't create the instance if the workspace picker was canceled
 					return;
 				}
 				cwd = workspace.uri;
@@ -1704,9 +1633,6 @@ async function resolveWorkspaceFolderCwd(folder: IWorkspaceFolder, configuration
 		: { folder, isAbsolute: false, isOverridden: true, cwd: URI.joinPath(folder.uri, resolvedCwdConfig) };
 }
 
-/**
- * Drops repeated CWDs, if any, by keeping the one which best matches the workspace folder. It also preserves the original order.
- */
 export function shrinkWorkspaceFolderCwdPairs(pairs: WorkspaceFolderCwdPair[]): WorkspaceFolderCwdPair[] {
 	const map = new Map<string, WorkspaceFolderCwdPair>();
 	for (const pair of pairs) {
@@ -1737,9 +1663,7 @@ async function focusActiveTerminal(instance: ITerminalInstance | undefined, c: I
 
 async function renameWithQuickPick(c: ITerminalServicesCollection, accessor: ServicesAccessor, resource?: unknown) {
 	let instance: ITerminalInstance | undefined = resource as ITerminalInstance;
-	// Check if the 'instance' does not exist or if 'instance.rename' is not defined
 	if (!instance || !instance?.rename) {
-		// If not, obtain the resource instance using 'getResourceOrActiveInstance'
 		instance = getResourceOrActiveInstance(c, resource);
 	}
 

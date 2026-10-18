@@ -14,15 +14,10 @@ import { IContextMenuService } from '../../../../platform/contextview/browser/co
 import { ITerminalInstance } from './terminal.js';
 import { ISerializedTerminalInstanceContext } from '../common/terminal.js';
 
-/**
- * A context that is passed to actions as arguments to represent the terminal instance(s) being
- * acted upon.
- */
 export class InstanceContext {
 	readonly instanceId: number;
 
 	constructor(instance: ITerminalInstance) {
-		// Only store the instance to avoid contexts holding on to disposed instances.
 		this.instanceId = instance.instanceId;
 	}
 
@@ -39,8 +34,6 @@ export class TerminalContextActionRunner extends ActionRunner {
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	protected override async runAction(action: IAction, context?: SingleOrMany<InstanceContext>): Promise<void> {
 		if (Array.isArray(context) && context.every(e => e instanceof InstanceContext)) {
-			// arg1: The (first) focused instance
-			// arg2: All selected instances
 			await action.run(context?.[0], context);
 			return;
 		}

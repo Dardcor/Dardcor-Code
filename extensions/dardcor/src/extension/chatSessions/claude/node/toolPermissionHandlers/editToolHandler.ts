@@ -13,10 +13,6 @@ import { ClaudeToolNames } from '../../common/claudeTools';
 
 type EditToolName = ClaudeToolNames.Edit | ClaudeToolNames.Write | ClaudeToolNames.MultiEdit;
 
-/**
- * Handler for edit tools (Edit, Write, MultiEdit).
- * Auto-approves edits to files within the workspace, or when permission mode is 'acceptEdits'.
- */
 export class EditToolHandler implements IClaudeToolPermissionHandler<EditToolName> {
 	public readonly toolNames = [ClaudeToolNames.Edit, ClaudeToolNames.Write, ClaudeToolNames.MultiEdit] as const;
 
@@ -29,7 +25,6 @@ export class EditToolHandler implements IClaudeToolPermissionHandler<EditToolNam
 		input: FileEditInput | FileWriteInput,
 		context: ClaudeToolPermissionContext
 	): Promise<boolean> {
-		// Auto-approve all edits in 'acceptEdits' mode
 		if (context.permissionMode === 'acceptEdits') {
 			return true;
 		} else if (context.permissionMode === 'bypassPermissions') {
@@ -37,12 +32,10 @@ export class EditToolHandler implements IClaudeToolPermissionHandler<EditToolNam
 		} else if (context.permissionMode === 'default') {
 			return false;
 		}
-		// Otherwise, only auto-approve files within the workspace
 		return this.instantiationService.invokeFunction(isFileOkForTool, URI.file(input.file_path));
 	}
 }
 
-// Self-register the handler
 registerToolPermissionHandler(
 	[ClaudeToolNames.Edit, ClaudeToolNames.Write, ClaudeToolNames.MultiEdit],
 	EditToolHandler

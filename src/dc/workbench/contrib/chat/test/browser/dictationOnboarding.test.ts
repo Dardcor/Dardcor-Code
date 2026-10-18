@@ -15,7 +15,6 @@ import { workbenchInstantiationService } from '../../../../test/browser/workbenc
 import { buildMicrophoneOptions, DictationOnboardingBanner, DictationOnboardingService, indexOfMicrophone } from '../../browser/speechToText/dictationOnboarding.js';
 import { isChatInputStackSlotShowing } from '../../browser/widget/input/chatInputStack.js';
 
-/** Minimal stand-in for the browser's device descriptor. */
 function device(kind: MediaDeviceKind, deviceId: string, label: string): MediaDeviceInfo {
 	return { kind, deviceId, label, groupId: '', toJSON: () => ({}) };
 }
@@ -59,14 +58,11 @@ suite('Dictation onboarding', () => {
 
 	test('labels the physical default microphone without listing it twice', () => {
 		const options = buildMicrophoneOptions([
-			// The virtual entries duplicate a real device under a synthetic id.
 			device('audioinput', 'default', 'Default - Studio Mic'),
 			device('audioinput', 'communications', 'Communications - Studio Mic'),
 			device('audioinput', 'mic-a', 'Studio Mic'),
-			// Same device reported twice, and a device that is not a microphone.
 			device('audioinput', 'mic-a', 'Studio Mic'),
 			device('audiooutput', 'speaker-a', 'Speakers'),
-			// Labels stay empty until permission has been granted at least once.
 			device('audioinput', 'abcdefghij-unlabelled', ''),
 		]);
 
@@ -300,8 +296,6 @@ suite('Dictation onboarding', () => {
 		disposables.add(service.registerHost({ container: first.container, focusRoot: first.root }));
 		disposables.add(service.registerHost({ container: second.container, focusRoot: second.root }));
 
-		// The renderer running these tests does not reliably hand out real focus,
-		// so raise the same event the focus tracker listens for.
 		second.root.focus();
 		second.root.dispatchEvent(new FocusEvent('focus'));
 		service.showIfNeeded();
@@ -328,7 +322,6 @@ suite('Dictation onboarding', () => {
 		assert.deepStrictEqual(
 			{
 				count: links.length,
-				// Every link has to be reachable without a mouse, not just the first.
 				keyboardReachable: Array.from(links).every(link => link.tabIndex === 0),
 				executed,
 				telemetryEvents,

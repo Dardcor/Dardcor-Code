@@ -11,10 +11,6 @@ export interface IExperimentationTelemetryReporter extends tas.IExperimentationT
 	postEventObj(eventName: string, props: { [prop: string]: string }): void;
 }
 
-/**
- * This reporter *supports* experimentation telemetry,
- * but will only do so when passed to an {@link ExperimentationService}.
- */
 
 export class ExperimentationTelemetryReporter implements IExperimentationTelemetryReporter {
 

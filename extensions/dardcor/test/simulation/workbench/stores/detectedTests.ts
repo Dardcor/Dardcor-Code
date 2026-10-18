@@ -9,12 +9,6 @@ import { IDetectedTestOutput } from '../../shared/sharedTypes';
 import { spawnSimulation } from '../utils/simulationExec';
 import { genericEquals } from '../utils/utils';
 
-/**
- * Detects tests that are available in the simulation.
- *
- * @param extraArgs - Additional CLI args to pass to `simulationMain` when listing tests.
- *                    Used by NES External mode to pass `--nes=external --external-scenarios=<path>`.
- */
 
 export class DetectedTests extends Disposable {
 

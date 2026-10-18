@@ -7,8 +7,6 @@ import { Schema, Type } from '@google/genai';
 import { describe, expect, it } from 'vitest';
 import { toGeminiFunction, ToolJsonSchema } from '../geminiFunctionDeclarationConverter';
 
-// The JSON Schema keys that Gemini's `Schema` type accepts (see @google/genai types).
-// Anything the converter emits outside this set would be rejected by the API.
 const GEMINI_SCHEMA_KEYS = [
 	'anyOf', 'default', 'description', 'enum', 'example', 'format', 'items',
 	'maxItems', 'maxLength', 'maxProperties', 'maximum', 'minItems', 'minLength',
@@ -778,9 +776,6 @@ describe('GeminiFunctionDeclarationConverter', () => {
 		});
 
 		it('should never emit keys outside Gemini schema, even for unsupported JSON Schema keywords', () => {
-			// Real tool schemas carry JSON Schema keywords beyond what Gemini accepts
-			// (format, $ref, additionalProperties, min/max, ...). They may be dropped,
-			// but must never leak through as invalid keys on the Gemini schema.
 			const raw = {
 				type: 'object',
 				properties: {

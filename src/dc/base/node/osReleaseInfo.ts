@@ -18,9 +18,6 @@ export async function getOSReleaseInfo(errorLogger: (error: string | Error) => v
 		return;
 	}
 
-	// Extract release information on linux based systems
-	// using the identifiers specified in
-	// https://www.freedesktop.org/software/systemd/man/os-release.html
 	let handle: FSPromises.FileHandle | undefined;
 	for (const filePath of ['/etc/os-release', '/usr/lib/os-release', '/etc/lsb-release']) {
 		try {

@@ -42,7 +42,6 @@ export class SurveyService implements ISurveyService {
 	) {
 		this.sessionSeed = Math.random();
 
-		// Inactive survey check only runs once
 		this.inactiveTimeout = setTimeout(async () => {
 			await this.updateUsageData(false);
 			const eligible = await this.checkInactiveUserHeuristic();
@@ -138,19 +137,16 @@ export class SurveyService implements ISurveyService {
 		const now = Date.now();
 
 		if (wasActive) {
-			// Set firstActive if not already set
 			if (!usageData.firstActive) {
 				usageData.firstActive = now;
 			}
 
 			const today = new Date().setHours(0, 0, 0, 0);
-			// Add today's timestamp if not already present
 			if (!usageData.activeDays.includes(today)) {
 				usageData.activeDays.push(today);
 			}
 		}
 
-		// Prune timestamps older than 14 days
 		usageData.activeDays = usageData.activeDays.filter(timestamp => timestamp >= now - DAYS_14);
 
 		await this.vscodeExtensionContext.globalState.update(USAGE_DATA_KEY, usageData);
@@ -165,17 +161,6 @@ export class SurveyService implements ISurveyService {
 		const source = this.lastSource || '';
 		const language = this.lastLanguageId || '';
 		const firstSeenInDays = Math.floor((Date.now() - usage.firstActive) / (1000 * 60 * 60 * 24));
-		/* __GDPR__
-			"survey.show" : {
-				"owner": "digitarald",
-				"comment": "Measures survey notification result",
-				"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The last used feature before the survey." },
-				"language": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The last used editor language before the survey." },
-				"activeDays": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of days the user has used the extension." },
-				"firstActive": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of days since the user first used the extension." },
-				"surveyType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The type of survey being prompted." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('survey.show', {
 			source,
 			language,
@@ -193,16 +178,6 @@ export class SurveyService implements ISurveyService {
 			const accepted = selection === confirmation;
 			const postponed = selection === later;
 
-			/* __GDPR__
-				"survey.action" : {
-					"owner": "digitarald",
-					"comment": "Measures survey notification result",
-					"source": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source of the survey prompt." },
-					"language": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The last used editor language before the survey." },
-					"selection": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The user's selection." },
-					"surveyType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The type of survey being prompted." }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent('survey.action', {
 				source,
 				language,
@@ -211,11 +186,9 @@ export class SurveyService implements ISurveyService {
 			});
 
 			if (accepted) {
-				// Open in-editor survey pane with the source context
 				try {
 					await vscode.commands.executeCommand('_workbench.action.openCopilotSurvey', source);
 				} catch {
-					// Command unavailable — reset cooldown so user can be prompted again
 					await this.updateNextSurveyDate(DAYS_LATER);
 				}
 			} else if (postponed) {

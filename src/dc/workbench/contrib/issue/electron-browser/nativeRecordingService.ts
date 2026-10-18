@@ -10,14 +10,11 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 import { INativeHostService } from '../../../../platform/native/common/native.js';
 import { IRecordingData, IRecordingService, RecordingState } from '../browser/recordingService.js';
 
-const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB — GitHub upload limit
-const SIZE_LIMIT_THRESHOLD = 0.9; // Stop at 90% to account for chunk overshoot
+const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+const SIZE_LIMIT_THRESHOLD = 0.9;
 
 export class NativeRecordingService extends Disposable implements IRecordingService {
 	readonly _serviceBrand: undefined;
-	// MediaRecorder + getDisplayMedia may be absent if the renderer is run with reduced
-	// APIs (e.g. some test/runtime configurations); derive support from feature detection
-	// so startRecording can early-reject rather than blowing up with ReferenceError.
 	readonly isSupported = typeof MediaRecorder !== 'undefined'
 		&& typeof navigator !== 'undefined'
 		&& !!navigator.mediaDevices?.getDisplayMedia;
@@ -48,7 +45,6 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 
 	openScreenCapturePermissionSettings(): void {
 		if (isMacintosh) {
-			// Deep-link to the Screen Recording pane in macOS Privacy & Security.
 			void this.nativeHostService.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
 		}
 	}
@@ -89,9 +85,6 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 
 		this.cleanup();
 
-		// Use getDisplayMedia — on Electron desktop the main process handler
-		// auto-selects the screen containing the VS Code window via
-		// desktopCapturer.getSources() (cached for subsequent recordings).
 		try {
 			this.mediaStream = await navigator.mediaDevices.getDisplayMedia({
 				video: true,
@@ -102,7 +95,6 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 			throw new Error('Failed to start recording. The user may have cancelled the source picker.');
 		}
 
-		// Select mime type: prefer caller's choice, fall back to best available
 		let mimeType: string;
 		if (preferredMimeType && MediaRecorder.isTypeSupported(preferredMimeType)) {
 			mimeType = preferredMimeType;
@@ -122,7 +114,7 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 		try {
 			this.mediaRecorder = new MediaRecorder(this.mediaStream, {
 				mimeType,
-				videoBitsPerSecond: 2_500_000, // 2.5 Mbps — good quality, reasonable file size
+				videoBitsPerSecond: 2_500_000,
 			});
 		} catch (err) {
 			this.logService.error('[RecordingService] Failed to create MediaRecorder:', err);
@@ -135,9 +127,6 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 				if (this.stoppedBySize) {
 					return;
 				}
-				// Always accept the current chunk, then check if we've hit the limit.
-				// This means the file may overshoot by up to one 1000ms chunk,
-				// which is small enough for the 100 MB GitHub limit.
 				this.chunks.push(e.data);
 				this.bytesRecorded += e.data.size;
 				if (this.bytesRecorded >= MAX_FILE_SIZE_BYTES * SIZE_LIMIT_THRESHOLD && this._state === RecordingState.Recording) {
@@ -148,16 +137,13 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 			}
 		};
 
-		// If the user stops sharing via the browser/OS UI, treat it as stop
 		this.mediaRecorder.onstop = () => {
-			// Only move to Stopped if we were Recording (avoid double transition)
 			if (this._state === RecordingState.Recording) {
 				this.stopTracks();
 				this.setState(RecordingState.Stopped);
 			}
 		};
 
-		// Also handle the stream ending externally (user clicked "Stop sharing")
 		for (const track of this.mediaStream.getTracks()) {
 			track.onended = () => {
 				if (this._state === RecordingState.Recording && this.mediaRecorder?.state === 'recording') {
@@ -166,7 +152,7 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 			};
 		}
 
-		this.mediaRecorder.start(1000); // 1-second timeslice for size tracking
+		this.mediaRecorder.start(1000);
 		this.setState(RecordingState.Recording);
 	}
 
@@ -175,20 +161,12 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 			return undefined;
 		}
 
-		// If still recording, stop the recorder and wait for it to finish
 		if (this._state === RecordingState.Recording && this.mediaRecorder?.state === 'recording') {
 			const recorder = this.mediaRecorder;
 			await new Promise<void>(resolve => {
-				// Replace onstop entirely so the original "external stop" handler doesn't
-				// emit setState(Stopped) here. That event would re-enter the auto-stop
-				// listener (IssueReporterEditorPane) and recursively call stopRecording.
-				// Explicit stops own the state transitions themselves and end with
-				// setState(Idle) below, which still satisfies the IRecordingService
-				// contract by emitting the terminal Idle transition.
 				recorder.onstop = () => {
 					resolve();
 				};
-				// Flush any buffered data before stopping
 				recorder.requestData();
 				recorder.stop();
 			});
@@ -222,8 +200,6 @@ export class NativeRecordingService extends Disposable implements IRecordingServ
 
 	discardRecording(): void {
 		if (this.mediaRecorder) {
-			// Clear handlers BEFORE stop() so any final ondataavailable fired after stop()
-			// does not append a chunk that we'd then have to GC explicitly.
 			this.mediaRecorder.ondataavailable = null;
 			this.mediaRecorder.onstop = null;
 			if (this._state === RecordingState.Recording && this.mediaRecorder.state === 'recording') {

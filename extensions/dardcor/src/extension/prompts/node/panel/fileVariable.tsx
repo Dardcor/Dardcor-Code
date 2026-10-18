@@ -40,9 +40,6 @@ export interface FileVariableProps extends BasePromptElementProps {
 	alwaysIncludeSummary?: boolean;
 	omitReferences?: boolean;
 	description?: string;
-	/**
-	 * If true, file contents are omitted and only the file path is included.
-	 */
 	omitContents?: boolean;
 }
 
@@ -63,16 +60,14 @@ export class FileVariable extends PromptElement<FileVariableProps, unknown> {
 	override async render(_state: unknown, sizing: PromptSizing) {
 		const uri = 'uri' in this.props.variableValue ? this.props.variableValue.uri : this.props.variableValue;
 
-		if (await this.ignoreService.isCopilotIgnored(uri)) {
+		if (await this.ignoreService.isIgnored(uri)) {
 			return <ignoredFiles value={[uri]} />;
 		}
 
 		if (uri.scheme === 'untitled' && !this.workspaceService.textDocuments.some(doc => doc.uri.toString() === uri.toString())) {
-			// A previously open untitled document that isn't open anymore- opening it would open an empty text editor
 			return;
 		}
 
-		// When omitContents is true, just render the file path without reading the file contents
 		if (this.props.omitContents) {
 			const filePath = this.promptPathRepresentationService.getFilePath(uri);
 			const attrs: Record<string, string> = {};
@@ -133,7 +128,6 @@ export class FileVariable extends PromptElement<FileVariableProps, unknown> {
 			try {
 				const buffer = await this.fileService.readFile(uri);
 
-				// Validate PDF magic bytes (%PDF = 0x25 0x50 0x44 0x46)
 				if (buffer.length < 4 || buffer[0] !== 0x25 || buffer[1] !== 0x50 || buffer[2] !== 0x44 || buffer[3] !== 0x46) {
 					if (this.props.omitReferences) {
 						return;
@@ -174,7 +168,6 @@ export class FileVariable extends PromptElement<FileVariableProps, unknown> {
 		let fileUri: Uri = uri;
 
 		if (uri.scheme === Schemas.vscodeNotebookCellOutput) {
-			// add exception for notebook cell output with image mime type in unsupported endpoint
 			const items = getNotebookCellOutput(uri, this.workspaceService.notebookDocuments);
 			if (!items) {
 				return;
@@ -202,12 +195,10 @@ export class FileVariable extends PromptElement<FileVariableProps, unknown> {
 			if (cell) {
 				const cellRange = new Range(cell.document.lineAt(0).range.start, cell.document.lineAt(cell.document.lineCount - 1).range.end);
 				range = range ?? cellRange;
-				// Ensure the range is within the cell range
 				if (range.start > cellRange.end || range.end < cellRange.start) {
 					range = cellRange;
 				}
 				const altDocument = this.alternativeNotebookContent.create(this.alternativeNotebookContent.getFormat(this.promptEndpoint)).getAlternativeDocument(notebook);
-				//Translate the range to alternative content.
 				range = new Range(altDocument.fromCellPosition(cell, range.start), altDocument.fromCellPosition(cell, range.end));
 			} else {
 				range = undefined;
@@ -231,7 +222,6 @@ export class FileVariable extends PromptElement<FileVariableProps, unknown> {
 		}
 
 		if ((range && (!this.props.alwaysIncludeSummary || range.isEqual(new Range(new Position(0, 0), documentSnapshot.lineAt(documentSnapshot.lineCount - 1).range.end)))) || /\.(svg)$/i.test(uri.path)) {
-			// Don't summarize if the file is an SVG, since summarization will almost certainly not work as expected
 			return <CodeSelection variableName={this.props.variableName} document={documentSnapshot} range={range} filePathMode={this.props.filePathMode} omitReferences={this.props.omitReferences} description={this.props.description} />;
 		}
 
@@ -373,7 +363,7 @@ export const fileVariableCostFn: ICostFnFactory<AbstractDocumentWithLanguageId> 
 				return currentCost;
 			}
 			if (node.kind === 'import_statement') {
-				return 1000; // Include import statements last
+				return 1000;
 			}
 			const m = nodeMultiplier.get(node);
 			return currentCost * m;

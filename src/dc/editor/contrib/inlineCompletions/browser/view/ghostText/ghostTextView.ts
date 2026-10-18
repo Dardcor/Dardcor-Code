@@ -84,7 +84,7 @@ export class GhostTextView extends Disposable {
 		private readonly _editor: ICodeEditor,
 		private readonly _data: IObservable<IGhostTextWidgetData | undefined>,
 		options: {
-			extraClasses?: readonly string[]; // TODO@benibenj improve
+			extraClasses?: readonly string[];
 			isClickable?: boolean;
 			shouldKeepCursorStable?: boolean;
 			minReservedLineCount?: IObservable<number>;
@@ -107,7 +107,6 @@ export class GhostTextView extends Disposable {
 			new AdditionalLinesWidget(
 				this._editor,
 				derivedOpts({ owner: this, equalsFn: equalsIfDefinedC(thisEqualsC()) }, reader => {
-					/** @description lines */
 					const uiState = this._state.read(reader);
 					return uiState ? new AdditionalLinesData(
 						uiState.lineNumber,
@@ -330,7 +329,7 @@ export class GhostTextView extends Disposable {
 							+ (this._isClickable ? ' clickable' : '')
 							+ extraClassNames
 							+ inlineExtraClassNames
-							+ p.lineDecorations.map(d => ' ' + d.className).join(' '), // TODO: take the ranges into account for line decorations
+							+ p.lineDecorations.map(d => ' ' + d.className).join(' '),
 						cursorStops: InjectedTextCursorStops.Left,
 						attachedData: new GhostTextAttachedData(this),
 					},
@@ -508,7 +507,6 @@ export class AdditionalLinesWidget extends Disposable {
 		}
 
 		this._register(autorun(reader => {
-			/** @description update view zone */
 			const lines = this._lines.read(reader);
 			this.editorOptionsChanged.read(reader);
 
@@ -555,7 +553,7 @@ export class AdditionalLinesWidget extends Disposable {
 
 					if (this._isClickable) {
 						store.add(addDisposableListener(domNode, 'mousedown', (e) => {
-							e.preventDefault(); // This prevents that the editor loses focus
+							e.preventDefault();
 						}));
 						store.add(addDisposableListener(domNode, 'click', (e) => {
 							if (isTargetGhostText(e.target)) {
@@ -579,7 +577,7 @@ export class AdditionalLinesWidget extends Disposable {
 			domNode,
 			afterColumnAffinity: PositionAffinity.Right,
 			onComputedHeight: (height: number) => {
-				this._viewZoneHeight.set(height, undefined); // TODO: can a transaction be used to avoid flickering?
+				this._viewZoneHeight.set(height, undefined);
 			}
 		});
 
@@ -619,7 +617,7 @@ function isTargetGhostText(target: EventTarget | null): boolean {
 
 export class LineData implements IEquatable<LineData> {
 	constructor(
-		public readonly content: LineTokens, // Must not contain a linebreak!
+		public readonly content: LineTokens,
 		public readonly decorations: readonly LineDecoration[]
 	) { }
 
@@ -634,7 +632,6 @@ export class LineData implements IEquatable<LineData> {
 function renderLines(domNode: HTMLElement, tabSize: number, lines: readonly LineData[], opts: IComputedEditorOptions, isClickable: boolean): void {
 	const disableMonospaceOptimizations = opts.get(EditorOption.disableMonospaceOptimizations);
 	const stopRenderingLineAfter = opts.get(EditorOption.stopRenderingLineAfter);
-	// To avoid visual confusion, we don't want to render visible whitespace
 	const renderWhitespace = 'none';
 	const renderControlCharacters = opts.get(EditorOption.renderControlCharacters);
 	const fontLigatures = opts.get(EditorOption.fontLigatures);

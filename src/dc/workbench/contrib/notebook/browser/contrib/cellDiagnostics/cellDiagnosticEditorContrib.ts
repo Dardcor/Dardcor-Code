@@ -77,7 +77,6 @@ export class CellDiagnostics extends Disposable implements INotebookEditorContri
 			if (e.type === NotebookExecutionType.cell && notebookUri && e.affectsNotebook(notebookUri) && !handled.has(e.cellHandle)) {
 				handled.add(e.cellHandle);
 				if (!!e.changed) {
-					// cell is running
 					this.clear(e.cellHandle);
 				} else {
 					this.setDiagnostics(e.cellHandle);
@@ -104,7 +103,6 @@ export class CellDiagnostics extends Disposable implements INotebookEditorContri
 
 	private setDiagnostics(cellHandle: number) {
 		if (this.diagnosticsByHandle.has(cellHandle)) {
-			// multiple diagnostics per cell not supported for now
 			return;
 		}
 

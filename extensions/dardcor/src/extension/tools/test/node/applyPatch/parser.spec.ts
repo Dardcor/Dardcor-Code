@@ -189,8 +189,6 @@ suite('applyPatch parser', () => {
 	});
 
 	it('tolerates missing hunk line addition', () => {
-		// We observe that sometimes 4.1 omits the operation for outdented lines.
-		// We attempt to fix this automatica,,y
 		const input = [
 			'*** Begin Patch',
 			'*** Update File: a.txt',
@@ -262,7 +260,6 @@ suite('applyPatch parser', () => {
 	});
 
 	it('matches explicit \\t tab chars', () => {
-		// 4.1 likes to explicitly put tabs as `\\t` in its patches
 		const input = `*** Begin Patch\n*** Update File: a.txt\n@@\n-\\t\\tworld\n+\\t\\tworld hello\n*** End Patch`;
 
 		expect(text_to_patch(input, {
@@ -368,7 +365,6 @@ suite('applyPatch parser', () => {
 	});
 
 	it('always normalizes explicit \\t tab chars in replacement', () => {
-		// 4.1 likes to explicitly put tabs as `\\t` in its patches
 		const input = `*** Begin Patch\n*** Update File: a.txt\n@@\n-hello\n+\\t\\tworld\n*** End Patch`;
 
 		expect(text_to_patch(input, {
@@ -459,7 +455,6 @@ suite('applyPatch parser', () => {
 		const commit = patch_to_commit(parsed, docs);
 		const actualOutput = Object.values(commit.changes).at(0)?.newContent;
 
-		// Normalize line endings for consistent comparison
 		expect(actualOutput?.replaceAll('\r\n', '\n')).toBe(expectedOutput.replaceAll('\r\n', '\n'));
 	});
 
@@ -476,7 +471,6 @@ suite('applyPatch parser', () => {
 		const commit = patch_to_commit(parsed, docs);
 		const actualOutput = Object.values(commit.changes).at(0)?.newContent;
 
-		// Normalize line endings for consistent comparison
 		expect(actualOutput?.replaceAll('\r\n', '\n')).toBe(expectedOutput.replaceAll('\r\n', '\n'));
 	});
 
@@ -493,7 +487,6 @@ suite('applyPatch parser', () => {
 		const commit = patch_to_commit(parsed, docs);
 		const actualOutput = Object.values(commit.changes).at(0)?.newContent;
 
-		// Normalize line endings for consistent comparison
 		expect(actualOutput?.replaceAll('\r\n', '\n')).toBe(expectedOutput.replaceAll('\r\n', '\n'));
 	});
 
@@ -529,7 +522,6 @@ suite('applyPatch parser', () => {
 			}
 		});
 
-		// Unskip to generate a corpus of randomized patches for files in a sibling vscode repo
 		it.skip('generate randomized corpus', async () => {
 			const filesSampled = 50;
 			const maxEditsPerFile = 3;
@@ -552,7 +544,7 @@ suite('applyPatch parser', () => {
 				const lines = content.split('\n');
 				if (lines.length < 10) {
 					i--;
-					continue; // Skip files that are too short
+					continue;
 				}
 
 				const fpath = '/' + path.relative(src, file).replaceAll('\\', '/');
@@ -596,17 +588,17 @@ suite('applyPatch parser', () => {
 
 					if (prevModified === ln) {
 						switch (random(0, 2)) {
-							case 0: {//insert
+							case 0: {
 								const insertText = `// Inserted line ${ln}`;
 								modified.push(insertText, lines[ln]);
 								patch.push(`+${insertText}`, lines[ln]);
 								break;
 							}
-							case 1: {//delete
+							case 1: {
 								patch.push(`-${lines[ln]}`);
 								break;
 							}
-							case 2: {//replace
+							case 2: {
 								const newText = `// Replaced line ${ln}`;
 								patch.push(`-${lines[ln]}`);
 								patch.push(`+${newText}`);

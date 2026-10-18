@@ -313,7 +313,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 	private registryGeneration = 0;
 	private localQueryGeneration = 0;
 	private profileChangeGeneration = 0;
-	// Source identity is intentionally trusted only in-process; IPC copies are re-verified.
 	private readonly gallerySourceGenerations = new WeakMap<IGalleryMcpServer, number>();
 	private readonly registrySyncDelayer = this._register(new ThrottledDelayer<void>(0));
 	readonly whenInitialLocalMcpServersLoaded: Promise<void>;
@@ -376,7 +375,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 			this._onChange.fire(undefined);
 		}));
 
-		// React to enablement changes on individual servers
 		this._register(autorun(reader => {
 			for (const server of mcpService.servers.read(reader)) {
 				server.enablement.read(reader);
@@ -530,8 +528,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 
 			const result = resolved.get(local.name);
 
-			// Undetermined (e.g. registry unreachable): keep the current state so a
-			// transient failure never disables a previously verified server.
 			if (!result || result.status === McpGalleryResolveStatus.Failed) {
 				continue;
 			}
@@ -720,7 +716,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 	private async doInstall(server: McpWorkbenchServer, installTask: () => Promise<IWorkbenchLocalMcpServer>): Promise<IWorkbenchMcpServer> {
 		const source = server.gallery ? 'gallery' : 'local';
 		const serverName = server.name;
-		// Check for inputs in installable config or if it comes from handleURL with inputs
 		const hasInputs = !!(server.installable?.inputs && server.installable.inputs.length > 0);
 
 		this.installing.push(server);
@@ -730,7 +725,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 			await installTask();
 			const result = await this.waitAndGetInstalledMcpServer(server);
 
-			// Track successful installation
 			this.telemetryService.publicLog2<McpServerInstallData, McpServerInstallClassification>('mcp/serverInstall', {
 				serverName,
 				source,
@@ -741,7 +735,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 
 			return result;
 		} catch (error) {
-			// Track failed installation
 			this.telemetryService.publicLog2<McpServerInstallData, McpServerInstallClassification>('mcp/serverInstall', {
 				serverName,
 				source,
@@ -767,7 +760,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 		}
 		installed = this.local.find(local => local.name === server.name);
 		if (!installed) {
-			// This should not happen
 			throw new Error('Extension should have been installed');
 		}
 		return installed;
@@ -899,14 +891,9 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 		try {
 			const { name, inputs, config } = parsed;
 
-			// When a gallery field is present and the gallery service is available,
-			// verify the server exists in the active gallery by name. If verified,
-			// route through the gallery-only path (matching handleMcpServerByName).
 			if (config.gallery && this.mcpGalleryService.isEnabled()) {
 				try {
 					const registryGeneration = this.registryGeneration;
-					// Verify by name against the active gallery (not by URL, which would
-					// make outbound requests to untrusted URLs from the protocol payload).
 					const [galleryServer] = await this.mcpGalleryService.getMcpServersFromGallery([{ name }]);
 					if (galleryServer) {
 						this.rememberGallerySource(galleryServer, registryGeneration);
@@ -922,7 +909,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 
 			this.open(this.instantiationService.createInstance(McpWorkbenchServer, e => this.getInstallState(e), e => this.getRuntimeStatus(e), undefined, undefined, { name, config, inputs }));
 		} catch (e) {
-			// ignore
 		}
 		return true;
 	}
@@ -937,7 +923,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 			const local = this.local.find(e => e.name === gallery.name) ?? this.instantiationService.createInstance(McpWorkbenchServer, e => this.getInstallState(e), e => this.getRuntimeStatus(e), undefined, gallery, undefined);
 			this.open(local);
 		} catch (e) {
-			// ignore
 			this.logService.error(e);
 		}
 		return true;
@@ -955,7 +940,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 			const local = this.local.find(e => e.name === gallery.name) ?? this.instantiationService.createInstance(McpWorkbenchServer, e => this.getInstallState(e), e => this.getRuntimeStatus(e), undefined, gallery, undefined);
 			this.open(local);
 		} catch (e) {
-			// ignore
 			this.logService.error(e);
 		}
 		return true;
@@ -1046,7 +1030,6 @@ export class McpWorkbenchService extends Disposable implements IMcpWorkbenchServ
 				};
 			}
 
-			// Registry membership is name-based for local configurations; remote URLs must match exactly.
 			const remoteUrl = mcpServer.local.config.type === McpServerType.REMOTE && mcpServer.local.config.url;
 			if (remoteUrl && !mcpServer.gallery.configuration.remotes?.some(remote => remote.url === remoteUrl)) {
 				return {

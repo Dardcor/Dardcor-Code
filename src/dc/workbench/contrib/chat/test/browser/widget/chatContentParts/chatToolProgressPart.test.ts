@@ -399,7 +399,6 @@ suite('ChatToolProgressSubPart', () => {
 				ariaLabel: button?.getAttribute('aria-label'),
 				tabIndex: button?.tabIndex,
 				calendarIconIsChild: !!button?.querySelector('.codicon-calendar'),
-				// `codicon-*` on the root would restyle the label text.
 				rootCarriesCodiconClass: button?.classList.contains('codicon'),
 				injectedIcons: [...button?.querySelectorAll('.codicon') ?? []]
 					.flatMap(el => [...el.classList]).filter(c => c.startsWith('codicon-')),
@@ -521,7 +520,7 @@ suite('ChatToolProgressSubPart', () => {
 		));
 		const thinkingPart = disposables.add(instantiationService.createInstance(
 			ChatToolStreamingSubPart,
-			createStreamingToolInvocation('Generating patch (282 lines)', /* isAttachedToThinking */ true),
+			createStreamingToolInvocation('Generating patch (282 lines)', true),
 			createRenderContext(false),
 			mockMarkdownRenderer
 		));
@@ -532,7 +531,6 @@ suite('ChatToolProgressSubPart', () => {
 				shimmer: !!part.domNode.querySelector('.shimmer-progress'),
 				spinner: !!part.domNode.querySelector('.codicon-loading, .codicon-loading-compact'),
 				shimmerText: shimmerText?.textContent,
-				// A negative animation-delay keeps the sweep continuous across streaming rerenders.
 				shimmerPhaseSynced: (shimmerText?.style.animationDelay ?? '').endsWith('ms'),
 				text: part.domNode.textContent,
 			};

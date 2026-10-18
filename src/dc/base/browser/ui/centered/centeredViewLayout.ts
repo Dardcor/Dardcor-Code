@@ -12,11 +12,8 @@ import { Event } from '../../../common/event.js';
 import { DisposableStore, IDisposable } from '../../../common/lifecycle.js';
 
 export interface CenteredViewState {
-	// width of the fixed centered layout
 	targetWidth: number;
-	// proportional size of left margin
 	leftMarginRatio: number;
-	// proportional size of right margin
 	rightMarginRatio: number;
 }
 
@@ -74,7 +71,6 @@ export class CenteredViewLayout implements IDisposable {
 		private centeredLayoutFixedWidth: boolean = false
 	) {
 		this.container.appendChild(this.view.element);
-		// Make sure to hide the split view overflow like sashes #52892
 		this.container.style.overflow = 'hidden';
 	}
 

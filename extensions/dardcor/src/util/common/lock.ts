@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * A class representing a lock that can be acquired and released.
- */
 export class Lock {
 
 	private _locked = false;
@@ -15,9 +12,6 @@ export class Lock {
 		return this._locked;
 	}
 
-	/**
-	 * Acquires the lock. If the lock is already acquired, waits until it is released.
-	 */
 	async acquire(): Promise<void> {
 		if (!this._locked) {
 			this._locked = true;
@@ -30,10 +24,6 @@ export class Lock {
 		await this.acquire();
 	}
 
-	/**
-	 * Releases the lock and allows the next queued function to execute.
-	 * If the lock is not currently locked, an error will be thrown.
-	 */
 	release(): void {
 		if (!this._locked) {
 			throw new Error('Cannot release an unlocked lock');

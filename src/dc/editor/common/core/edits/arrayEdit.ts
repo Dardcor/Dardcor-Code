@@ -6,10 +6,6 @@
 import { OffsetRange } from '../ranges/offsetRange.js';
 import { BaseEdit, BaseReplacement } from './edit.js';
 
-/**
- * Represents a set of replacements to an array.
- * All these replacements are applied at once.
-*/
 export class ArrayEdit<T> extends BaseEdit<ArrayReplacement<T>, ArrayEdit<T>> {
 	public static readonly empty = new ArrayEdit<never>([]);
 
@@ -49,9 +45,6 @@ export class ArrayEdit<T> extends BaseEdit<ArrayReplacement<T>, ArrayEdit<T>> {
 		return resultData;
 	}
 
-	/**
-	 * Creates an edit that reverts this edit.
-	 */
 	public inverse(baseVal: readonly T[]): ArrayEdit<T> {
 		const edits: ArrayReplacement<T>[] = [];
 		let offset = 0;

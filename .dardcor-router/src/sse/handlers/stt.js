@@ -10,7 +10,6 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
 import * as log from "../utils/logger.js";
 
-// Providers requiring credentials for STT
 const CREDENTIALED_PROVIDERS = new Set(
   Object.entries(AI_PROVIDERS)
     .filter(([, p]) => p.serviceKinds?.includes("stt") && !p.noAuth && p.sttConfig?.authType !== "none")
@@ -45,14 +44,12 @@ export async function handleStt(request) {
   const { provider, model } = modelInfo;
   log.info("ROUTING", `Provider: ${provider}, Model: ${model}`);
 
-  // noAuth providers
   if (!CREDENTIALED_PROVIDERS.has(provider)) {
     const result = await handleSttCore({ provider, model, formData, sttConfig: AI_PROVIDERS[provider]?.sttConfig });
     if (result.success) return result.response;
     return errorResponse(result.status || HTTP_STATUS.BAD_GATEWAY, result.error || "STT failed");
   }
 
-  // Credentialed — fallback loop
   const excludeConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;

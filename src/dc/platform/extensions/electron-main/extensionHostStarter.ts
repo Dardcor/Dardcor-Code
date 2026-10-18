@@ -33,7 +33,6 @@ export class ExtensionHostStarter extends Disposable implements IDisposable, IEx
 	) {
 		super();
 
-		// On shutdown: gracefully await extension host shutdowns
 		this._register(this._lifecycleMainService.onWillShutdown(e => {
 			this._shutdown = true;
 			e.join('extHostStarter', this._waitForAllExit(6000));
@@ -41,7 +40,6 @@ export class ExtensionHostStarter extends Disposable implements IDisposable, IEx
 	}
 
 	override dispose(): void {
-		// Intentionally not killing the extension host processes
 		super.dispose();
 	}
 
@@ -88,18 +86,12 @@ export class ExtensionHostStarter extends Disposable implements IDisposable, IEx
 				this._extHosts.delete(id);
 			});
 
-			// See https://github.com/microsoft/vscode/issues/194477
-			// We have observed that sometimes the process sends an exit
-			// event, but does not really exit and is stuck in an endless
-			// loop. In these cases we kill the process forcefully after
-			// a certain timeout.
 			setTimeout(() => {
 				try {
-					process.kill(pid, 0); // will throw if the process doesn't exist anymore.
+					process.kill(pid, 0);
 					this._logService.error(`Extension host with pid ${pid} still exists, forcefully killing it...`);
 					process.kill(pid);
 				} catch (er) {
-					// ignore, as the process is already gone
 				}
 			}, 1000);
 		});
@@ -149,7 +141,6 @@ export class ExtensionHostStarter extends Disposable implements IDisposable, IEx
 		}
 		const extHostProcess = this._extHosts.get(id);
 		if (!extHostProcess) {
-			// already gone!
 			return;
 		}
 		extHostProcess.kill();

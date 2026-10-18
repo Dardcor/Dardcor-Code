@@ -86,7 +86,6 @@ suite('ExtHostLanguageFeatures', function () {
 
 		languageFeaturesService = new LanguageFeaturesService();
 
-		// Use IInstantiationService to get typechecking when instantiating
 		let inst: IInstantiationService;
 		{
 			instantiationService = new TestInstantiationService();
@@ -152,7 +151,6 @@ suite('ExtHostLanguageFeatures', function () {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// --- outline
 
 	test('DocumentSymbols, register/deregister', async () => {
 		assert.strictEqual(languageFeaturesService.documentSymbolProvider.all(model).length, 0);
@@ -231,7 +229,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.deepStrictEqual(value.map(s => s.name), ['containers', 'container 0', 'name', 'ports', 'ports 0', 'containerPort']);
 	});
 
-	// --- code lens
 
 	test('CodeLens, evil provider', async () => {
 		return runWithFakedTimers({ useFakeTimers: true }, async () => {
@@ -295,7 +292,6 @@ suite('ExtHostLanguageFeatures', function () {
 		});
 	});
 
-	// --- definition
 
 	test('Definition, data conversion', async () => {
 
@@ -348,7 +344,6 @@ suite('ExtHostLanguageFeatures', function () {
 		await rpcProtocol.sync();
 		const value = await getDefinitionsAtPosition(languageFeaturesService.definitionProvider, model, new EditorPosition(1, 1), false, CancellationToken.None);
 		assert.strictEqual(value.length, 2);
-		// let [first, second] = value;
 		assert.strictEqual(value[0].uri.authority, 'second');
 		assert.strictEqual(value[1].uri.authority, 'first');
 	});
@@ -371,7 +366,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(value.length, 1);
 	});
 
-	// -- declaration
 
 	test('Declaration, data conversion', async () => {
 
@@ -389,7 +383,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(entry.uri.toString(), model.uri.toString());
 	});
 
-	// --- implementation
 
 	test('Implementation, data conversion', async () => {
 
@@ -407,7 +400,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(entry.uri.toString(), model.uri.toString());
 	});
 
-	// --- type definition
 
 	test('Type Definition, data conversion', async () => {
 
@@ -425,7 +417,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(entry.uri.toString(), model.uri.toString());
 	});
 
-	// --- extra info
 
 	test('HoverProvider, word range at pos', async () => {
 
@@ -500,7 +491,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(hovers.length, 1);
 	});
 
-	// --- occurrences
 
 	test('Occurrences, data conversion', async () => {
 
@@ -579,7 +569,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(value!.size, 1);
 	});
 
-	// --- references
 
 	test('References, registration order', async () => {
 
@@ -637,7 +626,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(value.length, 1);
 	});
 
-	// --- quick fix
 
 	test('Quick Fix, command data conversion', async () => {
 		return runWithFakedTimers({ useFakeTimers: true }, async () => {
@@ -732,7 +720,6 @@ suite('ExtHostLanguageFeatures', function () {
 		});
 	});
 
-	// --- navigate types
 
 	test('Navigate types, evil provider', async () => {
 
@@ -765,13 +752,13 @@ suite('ExtHostLanguageFeatures', function () {
 
 		disposables.add(extHost.registerWorkspaceSymbolProvider(defaultExtension, new class implements vscode.WorkspaceSymbolProvider {
 			provideWorkspaceSymbols(): any {
-				return [new types.SymbolInformation('ONE', types.SymbolKind.Array, undefined, new types.Location(uri, new types.Range(0, 0, 1, 1)))]; // get de-duped
+				return [new types.SymbolInformation('ONE', types.SymbolKind.Array, undefined, new types.Location(uri, new types.Range(0, 0, 1, 1)))];
 			}
 		}));
 
 		disposables.add(extHost.registerWorkspaceSymbolProvider(defaultExtension, new class implements vscode.WorkspaceSymbolProvider {
 			provideWorkspaceSymbols(): any {
-				return [new types.SymbolInformation('ONE', types.SymbolKind.Array, undefined, new types.Location(uri, undefined!))]; // NO dedupe because of resolve
+				return [new types.SymbolInformation('ONE', types.SymbolKind.Array, undefined, new types.Location(uri, undefined!))];
 			}
 			resolveWorkspaceSymbol(a: vscode.SymbolInformation) {
 				return a;
@@ -780,7 +767,7 @@ suite('ExtHostLanguageFeatures', function () {
 
 		disposables.add(extHost.registerWorkspaceSymbolProvider(defaultExtension, new class implements vscode.WorkspaceSymbolProvider {
 			provideWorkspaceSymbols(): any {
-				return [new types.SymbolInformation('ONE', types.SymbolKind.Struct, undefined, new types.Location(uri, new types.Range(0, 0, 1, 1)))]; // NO dedupe because of kind
+				return [new types.SymbolInformation('ONE', types.SymbolKind.Struct, undefined, new types.Location(uri, new types.Range(0, 0, 1, 1)))];
 			}
 		}));
 
@@ -789,7 +776,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(value.length, 3);
 	});
 
-	// --- rename
 
 	test('Rename, evil provider 0/2', async () => {
 
@@ -805,7 +791,6 @@ suite('ExtHostLanguageFeatures', function () {
 			throw Error();
 		}
 		catch (err) {
-			// expected
 		}
 	});
 
@@ -862,7 +847,6 @@ suite('ExtHostLanguageFeatures', function () {
 
 		await rpcProtocol.sync();
 		const value = await rename(languageFeaturesService.renameProvider, model, new EditorPosition(1, 1), 'newName');
-		// least relevant rename provider
 		assert.strictEqual(value.edits.length, 2);
 	});
 
@@ -928,11 +912,9 @@ suite('ExtHostLanguageFeatures', function () {
 		await rpcProtocol.sync();
 		await rename(languageFeaturesService.renameProvider, model, new EditorPosition(1, 1), 'newName');
 
-		// first provider has NO prepare which means it is taken by default
 		assert.deepStrictEqual(called, [false, false, true]);
 	});
 
-	// --- parameter hints
 
 	test('Parameter Hints, order', async () => {
 
@@ -970,7 +952,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.strictEqual(value, undefined);
 	});
 
-	// --- suggestions
 
 	test('Suggest, order 1/3', async () => {
 		return runWithFakedTimers({ useFakeTimers: true }, async () => {
@@ -998,13 +979,13 @@ suite('ExtHostLanguageFeatures', function () {
 		return runWithFakedTimers({ useFakeTimers: true }, async () => {
 			disposables.add(extHost.registerCompletionItemProvider(defaultExtension, '*', new class implements vscode.CompletionItemProvider {
 				provideCompletionItems(): any {
-					return [new types.CompletionItem('weak-selector')]; // weaker selector but result
+					return [new types.CompletionItem('weak-selector')];
 				}
 			}, []));
 
 			disposables.add(extHost.registerCompletionItemProvider(defaultExtension, defaultSelector, new class implements vscode.CompletionItemProvider {
 				provideCompletionItems(): any {
-					return []; // stronger selector but not a good result;
+					return [];
 				}
 			}, []));
 
@@ -1033,7 +1014,7 @@ suite('ExtHostLanguageFeatures', function () {
 			await rpcProtocol.sync();
 			const value = await provideSuggestionItems(languageFeaturesService.completionProvider, model, new EditorPosition(1, 1), new CompletionOptions(undefined, new Set<languages.CompletionItemKind>().add(languages.CompletionItemKind.Snippet)));
 			assert.strictEqual(value.items.length, 2);
-			assert.strictEqual(value.items[0].completion.insertText, 'strong-1'); // sort by label
+			assert.strictEqual(value.items[0].completion.insertText, 'strong-1');
 			assert.strictEqual(value.items[1].completion.insertText, 'strong-2');
 			value.disposable.dispose();
 		});
@@ -1078,7 +1059,6 @@ suite('ExtHostLanguageFeatures', function () {
 		});
 	});
 
-	// --- format
 
 	const NullWorkerService = new class extends mock<IEditorWorkerService>() {
 		override computeMoreMinimalEdits(resource: URI, edits: languages.TextEdit[] | null | undefined): Promise<languages.TextEdit[] | undefined> {
@@ -1272,7 +1252,6 @@ suite('ExtHostLanguageFeatures', function () {
 		assert.deepStrictEqual(first.colorInfo.range, { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 21 });
 	});
 
-	// -- selection ranges
 
 	test('Selection Ranges, data conversion', async () => {
 		disposables.add(extHost.registerSelectionRangeProvider(defaultExtension, defaultSelector, new class implements vscode.SelectionRangeProvider {

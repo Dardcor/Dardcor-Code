@@ -105,7 +105,6 @@ suite('ChatRequestParser', () => {
 	});
 
 	test('multi-word #chat reference preserves its range through toVariableEntry', () => {
-		// The reference carries the opaque backend chat URI verbatim.
 		const chatResource = URI.parse('ahp-chat://chat-2/base64session');
 		const text = 'what did I ask about in #chat:circuit-breaker testing coverage summary ?';
 		const tokenStart = text.indexOf('#chat:');
@@ -360,44 +359,17 @@ suite('ChatRequestParser', () => {
 		});
 	});
 
-	// test('variables', async () => {
-	// 	varService.hasVariable.returns(true);
-	// 	varService.getVariable.returns({ id: 'copilot.selection' });
 
-	// 	parser = instantiationService.createInstance(ChatRequestParser);
-	// 	const text = 'What does #selection mean?';
-	// 	const result = parser.parseChatRequest(testSessionUri, text);
-	// 	await assertSnapshot(result);
-	// });
 
-	// test('variable with question mark', async () => {
-	// 	varService.hasVariable.returns(true);
-	// 	varService.getVariable.returns({ id: 'copilot.selection' });
 
-	// 	parser = instantiationService.createInstance(ChatRequestParser);
-	// 	const text = 'What is #selection?';
-	// 	const result = parser.parseChatRequest(testSessionUri, text);
-	// 	await assertSnapshot(result);
-	// });
 
-	// test('invalid variables', async () => {
-	// 	varService.hasVariable.returns(false);
 
-	// 	parser = instantiationService.createInstance(ChatRequestParser);
-	// 	const text = 'What does #selection mean?';
-	// 	const result = parser.parseChatRequest(testSessionUri, text);
-	// 	await assertSnapshot(result);
-	// });
 
 	const getAgentWithSlashCommands = (slashCommands: IChatAgentCommand[]) => {
 		return { id: 'agent', name: 'agent', extensionId: nullExtensionDescription.identifier, extensionVersion: undefined, publisherDisplayName: '', extensionDisplayName: '', extensionPublisherId: '', locations: [ChatAgentLocation.Chat], modes: [ChatModeKind.Ask], metadata: {}, slashCommands, disambiguation: [] } satisfies IChatAgentData;
 	};
 
 	test('agent host: forcedAgent + supportsPromptAttachments revives /skill as prompt slash part', async () => {
-		// Mirrors what AgentHostSessionHandler._parsePromptForHistory does
-		// when restoring a session: pass forcedAgent + capabilities + an
-		// empty references/tools map and expect a ChatRequestSlashPromptPart
-		// for /skill <name>.
 		const slashCommandService = mockObject<IChatSlashCommandService>()({ _serviceBrand: undefined });
 		slashCommandService.getCommands.returns([]);
 		instantiationService.stub(IChatSlashCommandService, slashCommandService);

@@ -53,7 +53,6 @@ export class ChatUrlFetchingConfirmationContribution implements ILanguageModelTo
 
 		const approvedUrls = this._getApprovedUrls();
 
-		// Check if all URLs are approved
 		const allApproved = urls.every(url => {
 			try {
 				const uri = URI.parse(url);
@@ -87,23 +86,18 @@ export class ChatUrlFetchingConfirmationContribution implements ILanguageModelTo
 			return [];
 		}
 
-		//remove query strings
 		const urlsWithoutQuery = urls.map(u => u.split('?')[0]);
 
 		const actions: ILanguageModelToolConfirmationActions[] = [];
 
-		// Get unique URLs (may have duplicates)
 		const uniqueUrls = Array.from(new Set(urlsWithoutQuery)).map(u => URI.parse(u));
 
-		// For each URL, get its patterns
 		const urlPatterns = new ResourceMap<string[]>(uniqueUrls.map(u => [u, extractUrlPatterns(u)] as const));
 
-		// If only one URL, show quick actions for specific patterns
 		if (urlPatterns.size === 1) {
 			const uri = uniqueUrls[0];
 			const patterns = urlPatterns.get(uri)!;
 
-			// Show top 2 most relevant patterns as quick actions
 			const topPatterns = patterns.slice(0, 2);
 			for (const pattern of topPatterns) {
 				const patternLabel = getPatternLabel(uri, pattern);
@@ -118,7 +112,6 @@ export class ChatUrlFetchingConfirmationContribution implements ILanguageModelTo
 				});
 			}
 
-			// "More options" action
 			actions.push({
 				label: localize('moreOptions', "Allow requests to..."),
 				select: async () => {
@@ -127,7 +120,6 @@ export class ChatUrlFetchingConfirmationContribution implements ILanguageModelTo
 				}
 			});
 		} else {
-			// Multiple URLs - show "More options" only
 			actions.push({
 				label: localize('moreOptionsMultiple', "Configure URL Approvals..."),
 				select: async () => {
@@ -196,7 +188,6 @@ export class ChatUrlFetchingConfirmationContribution implements ILanguageModelTo
 			const updateApprovals = () => {
 				const current = { ...this._getApprovedUrls() };
 				for (const item of quickTree.itemTree) {
-					// root-level items
 
 					const allowPre = item.children?.find(c => c.approvalType === 'request')?.checked;
 					const allowPost = item.children?.find(c => c.approvalType === 'response')?.checked;
@@ -236,7 +227,6 @@ export class ChatUrlFetchingConfirmationContribution implements ILanguageModelTo
 	private async _approvePattern(pattern: string, approveRequest: boolean, approveResponse: boolean): Promise<void> {
 		const approvedUrls = { ...this._getApprovedUrls() };
 
-		// Merge with existing settings for this pattern
 		const existingSettings = approvedUrls[pattern];
 		let existingRequest = false;
 		let existingResponse = false;
@@ -251,7 +241,6 @@ export class ChatUrlFetchingConfirmationContribution implements ILanguageModelTo
 		const mergedRequest = approveRequest || existingRequest;
 		const mergedResponse = approveResponse || existingResponse;
 
-		// Create the approval settings
 		let value: boolean | IUrlApprovalSettings;
 		if (mergedRequest === mergedResponse) {
 			value = mergedRequest;

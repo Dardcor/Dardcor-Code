@@ -72,7 +72,6 @@ export class DebugTaskRunner implements IDisposable {
 		try {
 			const taskSummary = await this.runTask(root, taskId, this.globalCancellation.token);
 			if (taskSummary && (taskSummary.exitCode === undefined || taskSummary.cancelled)) {
-				// User canceled, either debugging, or the prelaunch task
 				return TaskRunResult.Failure;
 			}
 
@@ -198,7 +197,6 @@ export class DebugTaskRunner implements IDisposable {
 		if (!root) {
 			return Promise.reject(new Error(nls.localize('invalidTaskReference', "Task '{0}' can not be referenced from a launch configuration that is in a different workspace folder.", typeof taskId === 'string' ? taskId : taskId.type)));
 		}
-		// run a task before starting a debug session
 		const task = await this.taskService.getTask(root, taskId);
 		if (!task) {
 			const errorMessage = typeof taskId === 'string'
@@ -207,17 +205,12 @@ export class DebugTaskRunner implements IDisposable {
 			return Promise.reject(createErrorWithActions(errorMessage, [toAction({ id: DEBUG_CONFIGURE_COMMAND_ID, label: DEBUG_CONFIGURE_LABEL, enabled: true, run: () => this.commandService.executeCommand(DEBUG_CONFIGURE_COMMAND_ID) })]));
 		}
 
-		// If a task is missing the problem matcher the promise will never complete, so we need to have a workaround #35340
 		let taskStarted = false;
 		const store = new DisposableStore();
 		const getTaskKey = (t: Task) => t.getKey() ?? t.getMapKey();
 		const taskKey = getTaskKey(task);
 		const inactivePromise: Promise<ITaskSummary | null> = new Promise((resolve) => store.add(
 			onceFilter(this.taskService.onDidStateChange, e => {
-				// When a task isBackground it will go inactive when it is safe to launch.
-				// But when a background task is terminated by the user, it will also fire an inactive event.
-				// This means that we will not get to see the real exit code from running the task (undefined when terminated by the user).
-				// Catch the ProcessEnded event here, which occurs before inactive, and capture the exit code to prevent this.
 				return (e.kind === TaskEventKind.Inactive
 					|| (e.kind === TaskEventKind.ProcessEnded && e.exitCode === undefined))
 					&& getTaskKey(e.__task) === taskKey;
@@ -230,8 +223,6 @@ export class DebugTaskRunner implements IDisposable {
 		store.add(
 			onceFilter(this.taskService.onDidStateChange, e => ((e.kind === TaskEventKind.Active) || (e.kind === TaskEventKind.DependsOnStarted)) && getTaskKey(e.__task) === taskKey
 			)(() => {
-				// Task is active, so everything seems to be fine, no need to prompt after 10 seconds
-				// Use case being a slow running task should not be prompted even though it takes more than 10 seconds
 				taskStarted = true;
 			})
 		);
@@ -245,13 +236,11 @@ export class DebugTaskRunner implements IDisposable {
 		const taskDonePromise: Promise<ITaskSummary | null> = this.taskService.getActiveTasks().then(async (tasks): Promise<ITaskSummary | null> => {
 			if (tasks.find(t => getTaskKey(t) === taskKey)) {
 				didAcquireInput.fire();
-				// Check that the task isn't busy and if it is, wait for it
 				const busyTasks = await this.taskService.getBusyTasks();
 				if (busyTasks.find(t => getTaskKey(t) === taskKey)) {
 					taskStarted = true;
 					return inactivePromise;
 				}
-				// task is already running and isn't busy - nothing to do.
 				return Promise.resolve(null);
 			}
 
@@ -274,11 +263,9 @@ export class DebugTaskRunner implements IDisposable {
 				this.taskService.terminate(task).catch(() => { });
 			}));
 
-			// Start the timeouts once a terminal has been acquired
 			store.add(didAcquireInput.event(() => {
 				const waitTime = task.configurationProperties.isBackground ? 5000 : 10000;
 
-				// Error shown if there's a background task with no problem matcher that doesn't exit quickly
 				store.add(disposableTimeout(() => {
 					if (!taskStarted) {
 						const errorMessage = nls.localize('taskNotTracked', "The task '{0}' has not exited and doesn't have a 'problemMatcher' defined. Make sure to define a problem matcher for watch tasks.", typeof taskId === 'string' ? taskId : JSON.stringify(taskId));
@@ -288,7 +275,6 @@ export class DebugTaskRunner implements IDisposable {
 
 				const hideSlowPreLaunchWarning = this.configurationService.getValue<IDebugConfiguration>('debug').hideSlowPreLaunchWarning;
 				if (!hideSlowPreLaunchWarning) {
-					// Notification shown on any task taking a while to resolve
 					store.add(disposableTimeout(() => {
 						const message = nls.localize('runningTask', "Waiting for preLaunchTask '{0}'...", task.configurationProperties.name);
 						const buttons = [DEBUG_ANYWAY_LABEL_NO_MEMO, ABORT_LABEL];
@@ -302,13 +288,12 @@ export class DebugTaskRunner implements IDisposable {
 							() => result.catch(() => { }),
 							(choice) => {
 								if (choice === undefined) {
-									// no-op, keep waiting
-								} else if (choice === 0) { // debug anyway
+								} else if (choice === 0) {
 									resolve({ exitCode: 0 });
-								} else { // abort or configure
+								} else {
 									resolve({ exitCode: undefined, cancelled: true });
 									this.taskService.terminate(task).catch(() => { });
-									if (canConfigure && choice === 1) { // configure
+									if (canConfigure && choice === 1) {
 										this.taskService.openConfig(task as CustomTask);
 									}
 								}

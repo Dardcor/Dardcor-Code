@@ -60,7 +60,6 @@ function createTestsFromFixtures(testDir: string, runTest: (original: string, di
 				try {
 					messages = JSON.parse(await fs.readFile(path.join(testDir, `${entry}.messages`), 'utf8'));
 				} catch (e) {
-					// ignore
 				}
 				runTest(original, diff, expected, messages);
 			});

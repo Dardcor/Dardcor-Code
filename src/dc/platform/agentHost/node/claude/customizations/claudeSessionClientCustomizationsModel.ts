@@ -12,34 +12,14 @@ import { autorun, IObservable, ISettableObservable, observableValueOpts } from '
 import type { ISyncedCustomization } from '../../../common/agentPluginManager.js';
 import type { ClientPluginCustomization } from '../../../common/state/sessionState.js';
 
-/**
- * Per-session **client-pushed** customization snapshot. Server-side
- * (SDK-discovered) customizations live separately and are never stored here.
- */
 export interface ISessionCustomizationsState {
 	readonly synced: readonly ISyncedCustomization[];
 }
 
 const INITIAL_STATE: ISessionCustomizationsState = { synced: [] };
 
-/**
- * Pure observable state holder for the **client-pushed**
- * {@link ISyncedCustomization} list.
- *
- * Server-side (SDK-discovered) customizations are NOT in scope here
- * — they're fetched on demand from the live `Query` in
- * `getSessionCustomizations` and never written into this
- * model.
- *
- * `state` dedupes structurally-equivalent writes: a re-send of the
- * same synced snapshot does NOT fire downstream
- * subscribers. Knows nothing about diffing or the SDK — pair with
- * {@link SessionClientCustomizationsDiff} to track "has the client-pushed
- * snapshot changed since the last successful SDK plugin reload".
- */
 export class SessionClientCustomizationsModel {
 
-	/** Per-client synced customizations, keyed by `clientId`, merged into `state.synced`. */
 	private readonly _byClient = new Map<string, readonly ISyncedCustomization[]>();
 
 	private readonly _state: ISettableObservable<ISessionCustomizationsState> = observableValueOpts(
@@ -48,11 +28,6 @@ export class SessionClientCustomizationsModel {
 	);
 	readonly state: IObservable<ISessionCustomizationsState> = this._state;
 
-	/**
-	 * The union of every client's synced customizations, deduplicated by
-	 * customization `id` with the first-inserted client winning. Order
-	 * follows client insertion order.
-	 */
 	private _mergedSynced(): readonly ISyncedCustomization[] {
 		const seen = new Set<string>();
 		const result: ISyncedCustomization[] = [];
@@ -68,13 +43,11 @@ export class SessionClientCustomizationsModel {
 		return result;
 	}
 
-	/** Replace a single client's pushed customization snapshot for this session. */
 	setSyncedCustomizations(clientId: string, synced: readonly ISyncedCustomization[]): void {
 		this._byClient.set(clientId, synced);
 		this._state.set({ synced: this._mergedSynced() }, undefined);
 	}
 
-	/** Remove a client's pushed customizations from this session. */
 	removeClient(clientId: string): void {
 		if (!this._byClient.delete(clientId)) {
 			return;
@@ -83,46 +56,14 @@ export class SessionClientCustomizationsModel {
 	}
 }
 
-/**
- * Tracks "has the **client-pushed** customization snapshot changed
- * since the SDK was last (re)started against it?". Subscribes to
- * {@link SessionClientCustomizationsModel.state}, with the state
- * observable's equalsFn structurally comparing the meaningful
- * fields (URI list, nonce, status, user-visible
- * metadata). Same race semantics as `SessionClientToolsDiff`: a
- * write that lands during an in-flight rebind re-flips dirty via
- * the autorun, so callers don't need to snapshot-compare.
- *
- * The SDK captures `Options.plugins` at startup. Synced customization changes
- * mark the diff dirty, while reducer-backed enablement drift is detected by
- * comparing desired plugin paths with the last successfully applied paths.
- *
- * Server-side (SDK-discovered) customizations are NOT tracked
- * here — the SDK manages its own discovery lifecycle, and
- * changes to server-side data flow to the workbench via separate
- * event fires (post-materialize, post-rebind).
- *
- * On rebind throw the bit is left set — the SDK is still running
- * with the previous plugin set, so the next sendMessage should
- * retry.
- */
 export class SessionClientCustomizationsDiff extends Disposable {
 
 	readonly model: SessionClientCustomizationsModel = new SessionClientCustomizationsModel();
 
 	private _dirty = false;
 	private _appliedPluginPaths: readonly URI[] = [];
-	// `autorun` invokes its callback once at registration for dependency
-	// tracking. Skip that initial run so a brand-new diff doesn't
-	// report dirty before any mutation has happened.
 	private _ignoreNextFire = true;
 
-	/**
-	 * Outward fire-and-forget signal that the underlying state
-	 * changed. Derived from the observable so external listeners
-	 * (e.g. agent-level event aggregation) don't have to subscribe to
-	 * the observable directly.
-	 */
 	readonly onDidChange: Event<void> = Event.fromObservableLight(this.model.state);
 
 	constructor() {
@@ -145,24 +86,12 @@ export class SessionClientCustomizationsDiff extends Disposable {
 		return this._dirty || !pluginPathsEqual(this._appliedPluginPaths, pluginPaths);
 	}
 
-	/**
-	 * Record the resolved desired plugin paths and mark the current
-	 * snapshot as applied. A subsequent write that changes any
-	 * meaningful field re-flips dirty via the autorun. If the caller's
-	 * downstream work (e.g. SDK rebind) fails, call {@link markDirty}
-	 * to surface the stale state.
-	 */
 	consume(paths: readonly URI[]): readonly URI[] {
 		this._appliedPluginPaths = paths;
 		this._dirty = false;
 		return paths;
 	}
 
-	/**
-	 * Force the dirty bit on. Use when async work that followed
-	 * {@link consume} failed and the SDK is therefore still on the
-	 * previous plugin set.
-	 */
 	markDirty(): void {
 		this._dirty = true;
 	}

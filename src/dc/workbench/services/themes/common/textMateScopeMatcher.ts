@@ -79,7 +79,7 @@ export function createMatchers<T>(selector: string, matchesName: (names: string[
 			matchers.push(matcher);
 			matcher = parseOperand();
 		}
-		return matcherInput => {  // and
+		return matcherInput => {
 			let min = matchers[0](matcherInput);
 			for (let i = 1; min >= 0 && i < matchers.length; i++) {
 				min = Math.min(min, matchers[i](matcherInput));
@@ -98,13 +98,13 @@ export function createMatchers<T>(selector: string, matchesName: (names: string[
 			if (token === '|' || token === ',') {
 				do {
 					token = tokenizer.next();
-				} while (token === '|' || token === ','); // ignore subsequent commas
+				} while (token === '|' || token === ',');
 			} else {
 				break;
 			}
 			matcher = parseConjunction();
 		}
-		return matcherInput => {  // or
+		return matcherInput => {
 			let max = matchers[0](matcherInput);
 			for (let i = 1; i < matchers.length; i++) {
 				max = Math.max(max, matchers[i](matcherInput));

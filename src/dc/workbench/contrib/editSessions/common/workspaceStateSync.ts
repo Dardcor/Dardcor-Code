@@ -83,7 +83,6 @@ export class WorkspaceStateSynchroniser extends AbstractSynchroniser implements 
 			return null;
 		}
 
-		// Ensure we have latest state by sending out onWillSaveState event
 		await this.storageService.flush();
 
 		const keys = this.storageService.keys(StorageScope.WORKSPACE, StorageTarget.USER);
@@ -119,7 +118,6 @@ export class WorkspaceStateSynchroniser extends AbstractSynchroniser implements 
 			return null;
 		}
 
-		// Evaluate whether storage is applicable for current workspace
 		const cancellationTokenSource = new CancellationTokenSource();
 		const replaceUris = await this.workspaceIdentityService.matches(remoteWorkspaceState.folders, cancellationTokenSource.token);
 		if (!replaceUris) {
@@ -133,13 +131,10 @@ export class WorkspaceStateSynchroniser extends AbstractSynchroniser implements 
 		}
 
 		if (Object.keys(storage).length) {
-			// Initialize storage with remote storage
 			const storageEntries: Array<IStorageEntry> = [];
 			for (const key of Object.keys(storage)) {
-				// Deserialize the stored state
 				try {
 					const value = parse(storage[key]);
-					// Run URI conversion on the stored state
 					replaceUris(value);
 					storageEntries.push({ key, value, scope: StorageScope.WORKSPACE, target: StorageTarget.USER });
 				} catch {
@@ -153,7 +148,6 @@ export class WorkspaceStateSynchroniser extends AbstractSynchroniser implements 
 		return null;
 	}
 
-	// TODO@joyceerhl implement AbstractSynchronizer in full
 	protected override applyResult(remoteUserData: IRemoteUserData, lastSyncUserData: IRemoteUserData | null, result: [IResourcePreview, IAcceptResult][], force: boolean): Promise<void> {
 		throw new Error('Method not implemented.');
 	}

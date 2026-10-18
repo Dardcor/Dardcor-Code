@@ -37,7 +37,6 @@ export class DebugWatchAccessibilityAnnouncer extends Disposable implements IWor
 					return;
 				}
 
-				// TODO: get user feedback, perhaps setting to configure verbosity + whether value, name, neither, or both are announced
 				this._accessibilityService.alert(`${e.name} = ${e.value}`);
 				this._logService.trace(`debugAccessibilityAnnouncerValueChanged ${e.name} ${e.value}`);
 			});

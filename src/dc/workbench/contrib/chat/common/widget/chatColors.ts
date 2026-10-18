@@ -5,16 +5,12 @@
 
 import { Color, RGBA } from '../../../../../base/common/color.js';
 import { localize } from '../../../../../nls.js';
-import { badgeBackground, badgeForeground, contrastBorder, editorBackground, editorSelectionBackground, editorWidgetBackground, focusBorder, foreground, registerColor, transparent } from '../../../../../platform/theme/common/colorRegistry.js';
+import { badgeBackground, badgeForeground, contrastBorder, editorBackground, editorWidgetBackground, focusBorder, foreground, registerColor, transparent } from '../../../../../platform/theme/common/colorRegistry.js';
 import { editorFindMatchHighlight } from '../../../../../platform/theme/common/colors/editorColors.js';
 import { buttonBackground } from '../../../../../platform/theme/common/colors/inputColors.js';
 import { darken, lighten } from '../../../../../platform/theme/common/colorUtils.js';
 import { COMMAND_CENTER_BACKGROUND } from '../../../../common/theme.js';
 
-// This color inherits its default value from commandCenter.background but is registered
-// separately so that it doesn't get overridden when debugging (the debug toolbar overrides
-// commandCenter.background). This allows themes to customize it while maintaining
-// independence from debug mode changes.
 export const agentStatusIndicatorBackground = registerColor(
 	'agentStatusIndicator.background',
 	COMMAND_CENTER_BACKGROUND,
@@ -41,13 +37,13 @@ export const chatStatusBackground = registerColor(
 
 export const chatSlashCommandBackground = registerColor(
 	'chat.slashCommandBackground',
-	{ dark: '#26477866', light: '#adceff7a', hcDark: Color.white, hcLight: badgeBackground },
+	{ dark: '#7C4DFF33', light: '#7C4DFF26', hcDark: Color.white, hcLight: badgeBackground },
 	localize('chat.slashCommandBackground', 'The background color of a chat slash command.')
 );
 
 export const chatSlashCommandForeground = registerColor(
 	'chat.slashCommandForeground',
-	{ dark: '#ffffff', light: '#26569e', hcDark: Color.black, hcLight: badgeForeground },
+	{ dark: '#B388FF', light: '#6A1B9A', hcDark: Color.black, hcLight: badgeForeground },
 	localize('chat.slashCommandForeground', 'The foreground color of a chat slash command.')
 );
 
@@ -74,11 +70,11 @@ export const chatEditedFileForeground = registerColor(
 	localize('chat.editedFileForeground', 'The foreground color of a chat edited file in the edited file list.')
 );
 
-export const chatRequestCodeBorder = registerColor('chat.requestCodeBorder', { dark: '#004972B8', light: '#0e639c40', hcDark: null, hcLight: null }, localize('chat.requestCodeBorder', 'Border color of code blocks within the chat request bubble.'), true);
+export const chatRequestCodeBorder = registerColor('chat.requestCodeBorder', { dark: '#6A1B9A80', light: '#6A1B9A40', hcDark: null, hcLight: null }, localize('chat.requestCodeBorder', 'Border color of code blocks within the chat request bubble.'), true);
 
-export const chatRequestBubbleBackground = registerColor('chat.requestBubbleBackground', { light: transparent(editorSelectionBackground, 0.3), dark: transparent(editorSelectionBackground, 0.3), hcDark: null, hcLight: null }, localize('chat.requestBubbleBackground', "Background color of the chat request bubble."), true);
+export const chatRequestBubbleBackground = registerColor('chat.requestBubbleBackground', { light: Color.fromHex('#6A1B9A').transparent(0.12), dark: Color.fromHex('#6A1B9A').transparent(0.25), hcDark: null, hcLight: null }, localize('chat.requestBubbleBackground', "Background color of the chat request bubble."), true);
 
-export const chatRequestBubbleHoverBackground = registerColor('chat.requestBubbleHoverBackground', { dark: transparent(editorSelectionBackground, 0.6), light: transparent(editorSelectionBackground, 0.6), hcDark: null, hcLight: null }, localize('chat.requestBubbleHoverBackground', 'Background color of the chat request bubble on hover.'), true);
+export const chatRequestBubbleHoverBackground = registerColor('chat.requestBubbleHoverBackground', { dark: Color.fromHex('#7C4DFF').transparent(0.35), light: Color.fromHex('#7C4DFF').transparent(0.20), hcDark: null, hcLight: null }, localize('chat.requestBubbleHoverBackground', 'Background color of the chat request bubble on hover.'), true);
 
 export const chatCheckpointSeparator = registerColor('chat.checkpointSeparator',
 	{ dark: '#585858', light: '#a9a9a9', hcDark: '#a9a9a9', hcLight: '#a5a5a5' },
@@ -126,11 +122,6 @@ export const chatInputWorkingBorderColor3 = registerColor(
 	localize('chat.inputWorkingBorderColor3', 'Unused tertiary chat input accent color.'), false,
 	localize('chat.inputWorkingBorderColor3.deprecated', "This color is no longer used. Use 'chat.inputWorkingBorderColor1' to customize the animated chat input border."));
 
-// --- Voice Mode ambient glow -------------------------------------------------
-// The listening / processing / speaking glows are derived from a single base
-// accent by hue-shifting (see `resolveVoiceGlowColors` in `voiceGlow.ts`), so the
-// glow harmonizes with whatever accent the active theme uses. Themes can pin any
-// individual state by setting its own token.
 
 export const chatVoiceGlowBaseColor = registerColor(
 	'chat.voiceGlowBaseColor',
@@ -147,8 +138,6 @@ export const chatVoiceSpeakingGlow = registerColor(
 	{ dark: null, light: null, hcDark: null, hcLight: null },
 	localize('chat.voiceSpeakingGlow', 'Accent color of the Voice Mode glow while the agent is speaking. Derived from {0} when unset.', 'chat.voiceGlowBaseColor'), true);
 
-// Dictation shares Voice Mode's listening accent, so an open microphone reads the
-// same whichever feature opened it.
 export const chatDictationActiveMicGlow = registerColor(
 	'chat.dictationActiveMicGlow',
 	chatVoiceGlowBaseColor,

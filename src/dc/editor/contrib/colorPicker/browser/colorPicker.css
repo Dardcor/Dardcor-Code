@@ -9,7 +9,6 @@
 	-webkit-user-select: none;
 }
 
-/* Decoration */
 
 .colorpicker-color-decoration,
 .hc-light .colorpicker-color-decoration {
@@ -28,7 +27,6 @@
 	border: solid 0.1em #eee;
 }
 
-/* Header */
 
 .colorpicker-header {
 	display: flex;
@@ -103,7 +101,6 @@
 	padding: 3px;
 }
 
-/* Body */
 
 .colorpicker-body {
 	display: flex;

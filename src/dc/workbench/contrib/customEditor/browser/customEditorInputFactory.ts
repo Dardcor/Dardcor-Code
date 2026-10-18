@@ -239,7 +239,7 @@ export class ComplexCustomWorkingCopyEditorHandler extends Disposable implements
 		@IWorkingCopyEditorService _workingCopyEditorService: IWorkingCopyEditorService,
 		@IWorkingCopyBackupService private readonly _workingCopyBackupService: IWorkingCopyBackupService,
 		@IWebviewService private readonly _webviewService: IWebviewService,
-		@ICustomEditorService _customEditorService: ICustomEditorService // DO NOT REMOVE (needed on startup to register overrides properly)
+		@ICustomEditorService _customEditorService: ICustomEditorService
 	) {
 		super();
 
@@ -273,7 +273,6 @@ export class ComplexCustomWorkingCopyEditorHandler extends Disposable implements
 			return false;
 		}
 
-		// The working copy stores the uri of the original resource as its query param
 		try {
 			const data = JSON.parse(workingCopy.resource.query);
 			const workingCopyResource = URI.from(data);

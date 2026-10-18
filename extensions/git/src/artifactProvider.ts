@@ -11,11 +11,6 @@ import { RefType } from './api/git.constants';
 import { OperationKind } from './operation';
 import { Icons } from './icons';
 
-/**
- * Sorts refs like a directory tree: refs with more path segments (directories) appear first
- * and are sorted alphabetically, while refs at the same level (files) maintain insertion order.
- * Refs without '/' maintain their insertion order and appear after refs with '/'.
- */
 function sortRefByName(refA: Ref, refB: Ref): number {
 	const nameA = refA.name ?? '';
 	const nameB = refB.name ?? '';
@@ -23,24 +18,19 @@ function sortRefByName(refA: Ref, refB: Ref): number {
 	const lastSlashA = nameA.lastIndexOf('/');
 	const lastSlashB = nameB.lastIndexOf('/');
 
-	// Neither ref has a slash, maintain insertion order
 	if (lastSlashA === -1 && lastSlashB === -1) {
 		return 0;
 	}
 
-	// Ref with a slash comes first
 	if (lastSlashA !== -1 && lastSlashB === -1) {
 		return -1;
 	} else if (lastSlashA === -1 && lastSlashB !== -1) {
 		return 1;
 	}
 
-	// Both have slashes
-	// Get directory segments
 	const segmentsA = nameA.substring(0, lastSlashA).split('/');
 	const segmentsB = nameB.substring(0, lastSlashB).split('/');
 
-	// Compare directory segments
 	for (let index = 0; index < Math.min(segmentsA.length, segmentsB.length); index++) {
 		const result = segmentsA[index].localeCompare(segmentsB[index]);
 		if (result !== 0) {
@@ -48,12 +38,10 @@ function sortRefByName(refA: Ref, refB: Ref): number {
 		}
 	}
 
-	// Directory with more segments comes first
 	if (segmentsA.length !== segmentsB.length) {
 		return segmentsB.length - segmentsA.length;
 	}
 
-	// Insertion order
 	return 0;
 }
 

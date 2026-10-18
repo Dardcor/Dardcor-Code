@@ -9,37 +9,23 @@ import { OffsetRange } from '../../../common/core/ranges/offsetRange.js';
 export type CompressedVirtualizedItemVisibility = 'before' | 'visible' | 'after';
 
 export interface ICompressedVirtualizedItemLayout {
-	/** Complete item range in outer scroll coordinates. */
 	readonly contentRange: OffsetRange;
-	/** Item range in the compressed rendered coordinate system. */
 	readonly renderedRange: OffsetRange;
-	/** Height removed from the rendered row and represented by item-local scrolling. */
 	readonly maxScrollOffset: number;
-	/**
-	 * Item-local scroll coordinates:
-	 *
-	 *     0 ---------------------------- maxScrollOffset
-	 *     item begins                    item end is aligned
-	 */
 	readonly scrollOffset: number;
 	readonly visibility: CompressedVirtualizedItemVisibility;
 }
 
 export interface ICompressedVirtualizedScrollLayout {
 	readonly revision: LayoutRevision;
-	/** Clamped position in the complete outer scroll coordinates. */
 	readonly scrollTop: number;
-	/** Complete height of the logical item content, excluding transient scroll slack. */
 	readonly logicalScrollHeight: number;
-	/** Complete height of all items and inter-item gaps. */
 	readonly scrollHeight: number;
 	readonly leadingScrollSlack: number;
 	readonly trailingScrollSlack: number;
-	/** Height occupied by the compressed item rows and inter-item gaps. */
 	readonly renderedHeight: number;
 	readonly contentViewport: OffsetRange;
 	readonly renderedViewport: OffsetRange;
-	/** Full-content height above the viewport represented by item-local scrolling instead of DOM movement. */
 	readonly hiddenContentHeightAboveViewport: number;
 	readonly items: readonly ICompressedVirtualizedItemLayout[];
 }
@@ -77,9 +63,6 @@ export function asLayoutRevision(value: number): LayoutRevision {
 	return value as LayoutRevision;
 }
 
-/**
- * Computes the complete and compressed vertical layout of a virtualized list.
- */
 export function computeCompressedVirtualizedScrollLayout(input: ICompressedVirtualizedScrollLayoutInput): ICompressedVirtualizedScrollLayout {
 	assertNonNegative('viewportHeight', input.viewportHeight);
 	const leadingScrollSlack = input.leadingScrollSlack ?? 0;

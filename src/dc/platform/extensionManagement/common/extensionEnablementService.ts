@@ -27,7 +27,7 @@ export class GlobalExtensionEnablementService extends Disposable implements IGlo
 		this._register(this.storageManager.onDidChange(extensions => this._onDidChangeEnablement.fire({ extensions, source: 'storage' })));
 		this._register(extensionManagementService.onDidInstallExtensions(e => e.forEach(({ local, operation }) => {
 			if (local && operation === InstallOperation.Migrate) {
-				this._removeFromDisabledExtensions(local.identifier); /* Reset migrated extensions */
+				this._removeFromDisabledExtensions(local.identifier);
 			}
 		})));
 	}
@@ -155,7 +155,6 @@ export class StorageManager extends Disposable {
 
 	private _set(key: string, value: string | undefined, scope: StorageScope): void {
 		if (value) {
-			// Enablement state is synced separately through extensions
 			this.storageService.store(key, value, scope, StorageTarget.MACHINE);
 		} else {
 			this.storageService.remove(key, scope);

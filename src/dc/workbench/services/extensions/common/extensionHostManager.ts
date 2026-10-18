@@ -31,7 +31,6 @@ import { ActivationKind, ExtensionActivationReason, ExtensionHostStartup, IExten
 import { Proxied, ProxyIdentifier } from './proxyIdentifier.js';
 import { IRPCProtocolLogger, RPCProtocol, RequestInitiator, ResponsiveState } from './rpcProtocol.js';
 
-// Enable to see detailed message communication between window and extension host
 const LOG_EXTENSION_HOST_COMMUNICATION = false;
 const LOG_USE_COLORS = true;
 
@@ -62,9 +61,6 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 	private readonly _onDidChangeResponsiveState: Emitter<ResponsiveState> = this._register(new Emitter<ResponsiveState>());
 	public readonly onDidChangeResponsiveState: Event<ResponsiveState> = this._onDidChangeResponsiveState.event;
 
-	/**
-	 * A map of already requested activation events to speed things up if the same activation event is triggered multiple times.
-	 */
 	private readonly _cachedActivationEvents: Map<string, Promise<void>>;
 	private readonly _resolvedActivationEvents: Set<string>;
 	private _rpcProtocol: RPCProtocol | null;
@@ -117,7 +113,6 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 		this._proxy = this._extensionHost.start().then(
 			(protocol) => {
 
-				// Track healthy extension host startup
 				const successTelemetryEvent: ExtensionHostStartupEvent = {
 					time: Date.now(),
 					action: 'success',
@@ -131,7 +126,6 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 				this._logService.error(`Error received from starting extension host (kind: ${extensionHostKindToString(this.kind)})`);
 				this._logService.error(err);
 
-				// Track errors during extension host startup
 				const failureTelemetryEvent: ExtensionHostStartupEvent = {
 					time: Date.now(),
 					action: 'error',
@@ -224,7 +218,7 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 	}
 
 	private async _measureUp(proxy: IExtensionHostProxy): Promise<number> {
-		const SIZE = 10 * 1024 * 1024; // 10MB
+		const SIZE = 10 * 1024 * 1024;
 
 		const buff = VSBuffer.alloc(SIZE);
 		const value = Math.ceil(Math.random() * 256);
@@ -238,7 +232,7 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 	}
 
 	private async _measureDown(proxy: IExtensionHostProxy): Promise<number> {
-		const SIZE = 10 * 1024 * 1024; // 10MB
+		const SIZE = 10 * 1024 * 1024;
 
 		const sw = StopWatch.create();
 		await proxy.test_down(SIZE);
@@ -268,7 +262,6 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 			assertRegistered: (identifiers: ProxyIdentifier<any>[]): void => this._rpcProtocol!.assertRegistered(identifiers),
 			drain: (): Promise<void> => this._rpcProtocol!.drain(),
 
-			//#region internal
 			internalExtensionService: this._internalExtensionService,
 			_setExtensionHostProxy: (value: IExtensionHostProxy): void => {
 				extensionHostProxy = value;
@@ -276,10 +269,8 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 			_setAllMainProxyIdentifiers: (value: ProxyIdentifier<any>[]): void => {
 				mainProxyIdentifiers = value;
 			},
-			//#endregion
 		};
 
-		// Named customers
 		const namedCustomers = ExtHostCustomersRegistry.getNamedCustomers();
 		for (let i = 0, len = namedCustomers.length; i < len; i++) {
 			const [id, ctor] = namedCustomers[i];
@@ -294,7 +285,6 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 			}
 		}
 
-		// Customers
 		const customers = ExtHostCustomersRegistry.getCustomers();
 		for (const ctor of customers) {
 			try {
@@ -310,7 +300,6 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 			throw new Error(`Missing IExtensionHostProxy!`);
 		}
 
-		// Check that no named customers are missing
 		this._rpcProtocol.assertRegistered(mainProxyIdentifiers);
 
 		return extensionHostProxy;
@@ -341,8 +330,6 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 		}
 		const proxy = await this._proxy;
 		if (!proxy) {
-			// this case is already covered above and logged.
-			// i.e. the extension host could not be started
 			return;
 		}
 
@@ -450,7 +437,6 @@ export class ExtensionHostManager extends Disposable implements IExtensionHostMa
 		}
 		const outgoingExtensionsDelta = this._extensionHost.extensions!.delta(incomingExtensionsDelta);
 		if (!outgoingExtensionsDelta) {
-			// The extension host already has this version of the extensions.
 			return;
 		}
 		return proxy.deltaExtensions(outgoingExtensionsDelta);
@@ -552,7 +538,7 @@ type RPCTelemetryDataClassification = {
 class TelemetryRPCLogger implements IRPCProtocolLogger {
 
 	static isEnabled(): boolean {
-		return Math.random() < 0.0001; // 0.01% of users
+		return Math.random() < 0.0001;
 	}
 
 	private readonly _pendingRequests = new Map<number, string>();
@@ -562,7 +548,6 @@ class TelemetryRPCLogger implements IRPCProtocolLogger {
 	logIncoming(msgLength: number, req: number, initiator: RequestInitiator, str: string): void {
 
 		if (initiator === RequestInitiator.LocalSide && /^receiveReply(Err)?:/.test(str)) {
-			// log the size of reply messages
 			const requestStr = this._pendingRequests.get(req) ?? 'unknown_reply';
 			this._pendingRequests.delete(req);
 			this._telemetryService.publicLog2<RPCTelemetryData, RPCTelemetryDataClassification>('extensionhost.incoming', {
@@ -572,7 +557,6 @@ class TelemetryRPCLogger implements IRPCProtocolLogger {
 		}
 
 		if (initiator === RequestInitiator.OtherSide && /^receiveRequest /.test(str)) {
-			// incoming request
 			this._telemetryService.publicLog2<RPCTelemetryData, RPCTelemetryDataClassification>('extensionhost.incoming', {
 				type: `${str}`,
 				length: msgLength

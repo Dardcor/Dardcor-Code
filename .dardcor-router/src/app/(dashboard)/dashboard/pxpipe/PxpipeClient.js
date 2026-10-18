@@ -80,7 +80,6 @@ export default function PxpipeClient() {
       const healthRes = await fetch("/api/pxpipe/health", { method: "POST" });
       setHealth(await healthRes.json());
     } catch {
-      /* sections render placeholders */
     } finally {
       setLoading(false);
     }

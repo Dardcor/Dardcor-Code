@@ -17,24 +17,12 @@ import { CodeBlock, Uri as UriElement, UriMode } from '../panel/safeElements';
 
 
 export type LanguageServerContextProps = PromptElementProps<{
-	/**
-	 * The text document to get context for.
-	 */
 	document: TextDocumentSnapshot;
 
-	/**
-	 * The position in the document to get context for.
-	 */
 	position: Position;
 
-	/**
-	 * The request id for the context.
-	 */
 	requestId?: string;
 
-	/**
-	 * The source of the request.
-	 */
 	source?: KnownSources | string;
 }>;
 
@@ -102,12 +90,12 @@ export class LanguageServerContextPrompt extends PromptElement<LanguageServerCon
 				if (item.value.length === 0) {
 					continue;
 				}
-				if (await this.ignoreService.isCopilotIgnored(item.uri)) {
+				if (await this.ignoreService.isIgnored(item.uri)) {
 					continue;
 				}
 				if (item.additionalUris !== undefined && item.additionalUris.length > 0) {
 					for (const uri of item.additionalUris) {
-						if (await this.ignoreService.isCopilotIgnored(uri)) {
+						if (await this.ignoreService.isIgnored(uri)) {
 							continue outer;
 						}
 					}

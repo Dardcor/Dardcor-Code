@@ -89,7 +89,6 @@ export class CursorUndoRedoController extends Disposable implements IEditorContr
 				this._undoStack.push(new StackElement(prevState, editor.getScrollTop(), editor.getScrollLeft()));
 				this._redoStack = [];
 				if (this._undoStack.length > 50) {
-					// keep the cursor undo stack bounded
 					this._undoStack.shift();
 				}
 			}
@@ -158,6 +157,6 @@ export class CursorRedo extends EditorAction {
 	}
 }
 
-registerEditorContribution(CursorUndoRedoController.ID, CursorUndoRedoController, EditorContributionInstantiation.Eager); // eager because it needs to listen to record cursor state ASAP
+registerEditorContribution(CursorUndoRedoController.ID, CursorUndoRedoController, EditorContributionInstantiation.Eager);
 registerEditorAction(CursorUndo);
 registerEditorAction(CursorRedo);

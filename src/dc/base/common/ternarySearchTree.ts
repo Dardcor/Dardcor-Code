@@ -71,7 +71,6 @@ export class ConfigKeysIterator implements IKeyIterator<string> {
 	}
 
 	next(): this {
-		// this._data = key.split(/[\\/]/).filter(s => !!s);
 		this._from = this._to;
 		let justSeps = true;
 		for (; this._to < this._value.length; this._to++) {
@@ -132,7 +131,6 @@ export class PathIterator implements IKeyIterator<string> {
 	}
 
 	next(): this {
-		// this._data = key.split(/[\\/]/).filter(s => !!s);
 		this._from = this._to;
 		let justSeps = true;
 		for (; this._to < this._valueLen; this._to++) {
@@ -345,13 +343,7 @@ export class TernarySearchTree<K, V> {
 		this._root = undefined;
 	}
 
-	/**
-	 * Fill the tree with the same value of the given keys
-	 */
 	fill(element: V, keys: readonly K[]): void;
-	/**
-	 * Fill the tree with given [key,value]-tuples
-	 */
 	fill(values: readonly [K, V][]): void;
 	fill(values: readonly [K, V][] | V, keys?: readonly K[]): void {
 		if (keys) {
@@ -379,12 +371,10 @@ export class TernarySearchTree<K, V> {
 		}
 		const stack: [Dir, TernarySearchTreeNode<K, V>][] = [];
 
-		// find insert_node
 		node = this._root;
 		while (true) {
 			const val = iter.cmp(node.segment);
 			if (val > 0) {
-				// left
 				if (!node.left) {
 					node.left = new TernarySearchTreeNode<K, V>();
 					node.left.segment = iter.value();
@@ -393,7 +383,6 @@ export class TernarySearchTree<K, V> {
 				node = node.left;
 
 			} else if (val < 0) {
-				// right
 				if (!node.right) {
 					node.right = new TernarySearchTreeNode<K, V>();
 					node.right.segment = iter.value();
@@ -402,7 +391,6 @@ export class TernarySearchTree<K, V> {
 				node = node.right;
 
 			} else if (iter.hasNext()) {
-				// mid
 				iter.next();
 				if (!node.mid) {
 					node.mid = new TernarySearchTreeNode<K, V>();
@@ -415,12 +403,10 @@ export class TernarySearchTree<K, V> {
 			}
 		}
 
-		// set value
 		const oldElement = Undef.unwrap(node.value);
 		node.value = Undef.wrap(element);
 		node.key = key;
 
-		// balance
 		for (let i = stack.length - 1; i >= 0; i--) {
 			const node = stack[i][1];
 
@@ -428,25 +414,20 @@ export class TernarySearchTree<K, V> {
 			const bf = node.balanceFactor();
 
 			if (bf < -1 || bf > 1) {
-				// needs rotate
 				const d1 = stack[i][0];
 				const d2 = stack[i + 1][0];
 
 				if (d1 === Dir.Right && d2 === Dir.Right) {
-					//right, right -> rotate left
 					stack[i][1] = node.rotateLeft();
 
 				} else if (d1 === Dir.Left && d2 === Dir.Left) {
-					// left, left -> rotate right
 					stack[i][1] = node.rotateRight();
 
 				} else if (d1 === Dir.Right && d2 === Dir.Left) {
-					// right, left -> double rotate right, left
 					node.right = stack[i + 1][1] = stack[i + 1][1].rotateRight();
 					stack[i][1] = node.rotateLeft();
 
 				} else if (d1 === Dir.Left && d2 === Dir.Right) {
-					// left, right -> double rotate left, right
 					node.left = stack[i + 1][1] = stack[i + 1][1].rotateLeft();
 					stack[i][1] = node.rotateRight();
 
@@ -454,7 +435,6 @@ export class TernarySearchTree<K, V> {
 					throw new Error();
 				}
 
-				// patch path to parent
 				if (i > 0) {
 					switch (stack[i - 1][0]) {
 						case Dir.Left:
@@ -486,13 +466,10 @@ export class TernarySearchTree<K, V> {
 		while (node) {
 			const val = iter.cmp(node.segment);
 			if (val > 0) {
-				// left
 				node = node.left;
 			} else if (val < 0) {
-				// right
 				node = node.right;
 			} else if (iter.hasNext()) {
-				// mid
 				iter.next();
 				node = node.mid;
 			} else {
@@ -520,19 +497,15 @@ export class TernarySearchTree<K, V> {
 		const stack: [Dir, TernarySearchTreeNode<K, V>][] = [];
 		let node = this._root;
 
-		// find node
 		while (node) {
 			const val = iter.cmp(node.segment);
 			if (val > 0) {
-				// left
 				stack.push([Dir.Left, node]);
 				node = node.left;
 			} else if (val < 0) {
-				// right
 				stack.push([Dir.Right, node]);
 				node = node.right;
 			} else if (iter.hasNext()) {
-				// mid
 				iter.next();
 				stack.push([Dir.Mid, node]);
 				node = node.mid;
@@ -542,28 +515,21 @@ export class TernarySearchTree<K, V> {
 		}
 
 		if (!node) {
-			// node not found
 			return;
 		}
 
 		if (superStr) {
-			// removing children, reset height
 			node.left = undefined;
 			node.mid = undefined;
 			node.right = undefined;
 			node.height = 1;
 		} else {
-			// removing element
 			node.key = undefined;
 			node.value = undefined;
 		}
 
-		// BST node removal
 		if (!node.mid && !node.value) {
 			if (node.left && node.right) {
-				// full node
-				// replace deleted-node with the min-node of the right branch.
-				// If there is no true min-node leave things as they are
 				const stack2: typeof stack = [[Dir.Right, node]];
 				const min = this._min(node.right, stack2);
 
@@ -573,7 +539,6 @@ export class TernarySearchTree<K, V> {
 					node.value = min.value;
 					node.segment = min.segment;
 
-					// remove NODE (inorder successor can only have right child)
 					const newChild = min.right;
 					if (stack2.length > 1) {
 						const [dir, parent] = stack2[stack2.length - 1];
@@ -586,7 +551,6 @@ export class TernarySearchTree<K, V> {
 						node.right = newChild;
 					}
 
-					// balance right branch and UPDATE parent pointer for stack
 					const newChild2 = this._balanceByStack(stack2)!;
 					if (stack.length > 0) {
 						const [dir, parent] = stack[stack.length - 1];
@@ -601,7 +565,6 @@ export class TernarySearchTree<K, V> {
 				}
 
 			} else {
-				// empty or half empty
 				const newChild = node.left ?? node.right;
 				if (stack.length > 0) {
 					const [dir, parent] = stack[stack.length - 1];
@@ -616,7 +579,6 @@ export class TernarySearchTree<K, V> {
 			}
 		}
 
-		// AVL balance
 		this._root = this._balanceByStack(stack) ?? this._root;
 	}
 
@@ -636,29 +598,22 @@ export class TernarySearchTree<K, V> {
 			node.updateHeight();
 			const bf = node.balanceFactor();
 			if (bf > 1) {
-				// right heavy
 				if (node.right!.balanceFactor() >= 0) {
-					// right, right -> rotate left
 					stack[i][1] = node.rotateLeft();
 				} else {
-					// right, left -> double rotate
 					node.right = node.right!.rotateRight();
 					stack[i][1] = node.rotateLeft();
 				}
 
 			} else if (bf < -1) {
-				// left heavy
 				if (node.left!.balanceFactor() <= 0) {
-					// left, left -> rotate right
 					stack[i][1] = node.rotateRight();
 				} else {
-					// left, right -> double rotate
 					node.left = node.left!.rotateLeft();
 					stack[i][1] = node.rotateRight();
 				}
 			}
 
-			// patch path to parent
 			if (i > 0) {
 				switch (stack[i - 1][0]) {
 					case Dir.Left:
@@ -686,13 +641,10 @@ export class TernarySearchTree<K, V> {
 		while (node) {
 			const val = iter.cmp(node.segment);
 			if (val > 0) {
-				// left
 				node = node.left;
 			} else if (val < 0) {
-				// right
 				node = node.right;
 			} else if (iter.hasNext()) {
-				// mid
 				iter.next();
 				candidate = Undef.unwrap(node.value) || candidate;
 				node = node.mid;
@@ -715,17 +667,13 @@ export class TernarySearchTree<K, V> {
 		while (node) {
 			const val = iter.cmp(node.segment);
 			if (val > 0) {
-				// left
 				node = node.left;
 			} else if (val < 0) {
-				// right
 				node = node.right;
 			} else if (iter.hasNext()) {
-				// mid
 				iter.next();
 				node = node.mid;
 			} else {
-				// collect
 				if (!node.mid) {
 					if (allowValue) {
 						return Undef.unwrap(node.value);
@@ -761,7 +709,6 @@ export class TernarySearchTree<K, V> {
 	}
 
 	private _dfsEntries(node: TernarySearchTreeNode<K, V> | undefined, bucket: [K, V][]) {
-		// DFS
 		if (!node) {
 			return;
 		}
@@ -779,7 +726,6 @@ export class TernarySearchTree<K, V> {
 		}
 	}
 
-	// for debug/testing
 	_isBalanced(): boolean {
 		const nodeIsBalanced = (node: TernarySearchTreeNode<unknown, unknown> | undefined): boolean => {
 			if (!node) {

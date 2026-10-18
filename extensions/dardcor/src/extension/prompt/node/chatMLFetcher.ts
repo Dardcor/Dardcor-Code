@@ -22,13 +22,13 @@ import { getImageTelemetryMeasurementsFromMessages, type ImageTelemetryMeasureme
 import { collectSingleLineErrorMessage, ILogService } from '../../../platform/log/common/logService';
 import { FinishedCallback, getRequestId, IResponseDelta, OptionalChatRequestParams, RequestId } from '../../../platform/networking/common/fetch';
 import { FetcherId, IFetcherService, Response } from '../../../platform/networking/common/fetcherService';
-import { IChatEndpoint, IEndpointBody, InteractionTypeOverride, postRequest, stringifyUrlOrRequestMetadata } from '../../../platform/networking/common/networking';
+import { IChatEndpoint, IEndpointBody, InteractionTypeOverride, isCAPIEndpoint, postRequest, stringifyUrlOrRequestMetadata } from '../../../platform/networking/common/networking';
 import { CAPIChatMessage, ChatCompletion, FilterReason, FinishedCompletionReason, rawMessageToCAPI } from '../../../platform/networking/common/openai';
 import { sendEngineMessagesTelemetry } from '../../../platform/networking/node/chatStream';
 import { CAPIWebSocketErrorEvent, IChatWebSocketManager, isCAPIWebSocketError } from '../../../platform/networking/node/chatWebSocketManager';
 import { sendCommunicationErrorTelemetry } from '../../../platform/networking/node/stream';
 import { ChatFailKind, ChatRequestCanceled, ChatRequestFailed, ChatResults, FetchResponseKind } from '../../../platform/openai/node/fetch';
-import { collectSystemTextsFromRequestBody, CopilotChatAttr, emitInferenceDetailsEvent, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, normalizeProviderMessages, normalizeResponseModel, StdAttr, stringifyToolDefinitionsForOTel, stringifyToolsRawForTelemetry, toSystemInstructions, truncateForOTel } from '../../../platform/otel/common/index';
+import { collectSystemTextsFromRequestBody, DardcorChatAttr, emitInferenceDetailsEvent, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, normalizeProviderMessages, normalizeResponseModel, StdAttr, stringifyToolDefinitionsForOTel, stringifyToolsRawForTelemetry, toSystemInstructions, truncateForOTel } from '../../../platform/otel/common/index';
 import { IOTelService, ISpanHandle, SpanKind, SpanStatusCode } from '../../../platform/otel/common/otelService';
 import { IRequestLogger } from '../../../platform/requestLogger/common/requestLogger';
 import { getCurrentCapturingToken } from '../../../platform/requestLogger/node/requestLogger';
@@ -71,8 +71,6 @@ export abstract class AbstractChatMLFetcher extends Disposable implements IChatM
 		return {
 			temperature: this.options.temperature,
 			top_p: this.options.topP,
-			// Default to streaming; callers can override via requestOptions.stream
-			// to opt into non-streaming (e.g. for background summarization).
 			stream: true,
 			...requestOptions,
 		};
@@ -92,9 +90,6 @@ export abstract class AbstractChatMLFetcher extends Disposable implements IChatM
 		return resp;
 	}
 
-	/**
-	 * Note: the returned array of strings may be less than `n` (e.g., in case there were errors during streaming)
-	 */
 	public abstract fetchMany(opts: IFetchMLOptions, token: CancellationToken): Promise<ChatResponses>;
 }
 
@@ -102,16 +97,8 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 
 	private static readonly _maxConsecutiveWebSocketFallbacks = 3;
 
-	/**
-	 * Delays (in ms) between connectivity check attempts before retrying a failed request.
-	 * Configurable for testing purposes.
-	 */
 	public connectivityCheckDelays = [1000, 10000, 10000];
 
-	/**
-	 * Tracks consecutive WebSocket request failures where the HTTP retry succeeded.
-	 * After {@link _maxConsecutiveWebSocketFallbacks} such failures, WebSocket requests are disabled entirely.
-	 */
 	private _consecutiveWebSocketRetryFallbacks = 0;
 
 	constructor(
@@ -134,9 +121,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		super(options);
 	}
 
-	/**
-	 * Note: the returned array of strings may be less than `n` (e.g., in case there were errors during streaming)
-	 */
 	public async fetchMany(opts: IFetchMLOptions, token: CancellationToken): Promise<ChatResponses> {
 		let { debugName, endpoint: chatEndpoint, finishedCb, location, messages, requestOptions, source, telemetryProperties, userInitiatedRequest, interactionTypeOverride, conversationId, webSocketConnectionId, turnId, topLevelTurnId, useWebSocket, ignoreStatefulMarker } = opts;
 		const interactionType = interactionTypeOverride ?? locationToIntent(location);
@@ -155,14 +139,12 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 
 		const transport = useWebSocket ? 'websocket' : 'http';
 
-		// TODO @lramos15 telemetry should not drive request ids
 		const ourRequestId = telemetryProperties.requestId ?? telemetryProperties.messageId ?? generateUuid();
 
 		const maxResponseTokens = chatEndpoint.maxOutputTokens;
 		if (!requestOptions?.prediction) {
 			requestOptions = { max_tokens: maxResponseTokens, ...requestOptions };
 		}
-		// Avoid sending a prediction with no content as this will yield a 400 Bad Request
 		if (!requestOptions.prediction?.content) {
 			delete requestOptions['prediction'];
 		}
@@ -220,10 +202,11 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				let tokenCountPromise: Promise<number> | undefined;
 				const countTokens = () => tokenCountPromise ??= chatEndpoint.acquireTokenizer().countMessagesTokens(messages);
 				let dardcorToken: CopilotToken | undefined;
-				try {
-					dardcorToken = await this._authenticationService.getCopilotToken();
-				} catch {
-					// BYOK / air-gapped: no Copilot token available. Continue without one.
+				if (isCAPIEndpoint(chatEndpoint)) {
+					try {
+						dardcorToken = await this._authenticationService.getCopilotToken();
+					} catch {
+					}
 				}
 				usernameToScrub = dardcorToken?.username ?? this._authenticationService.dardcorToken?.username;
 
@@ -259,24 +242,18 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				resumeEventSeen = fetchResult.resumeEventSeen;
 				actualModelCallId = fetchResult.modelCallId;
 				otelInferenceSpan = fetchResult.otelSpan;
-				// Tag span with debug name so orphaned spans (title, progressMessages, etc.) are identifiable
 				otelInferenceSpan?.setAttribute(GenAiAttr.AGENT_NAME, debugName);
 
-				// Extract and set structured prompt sections for the debug panel
 				if (otelInferenceSpan) {
-					// Support both Chat Completions API (messages) and Responses API (input) formats
 					const capiMessages = (requestBody.messages ?? requestBody.input) as ReadonlyArray<{ role?: string; content?: string | unknown[] }> | undefined;
-					// User request: last user-role message
 					const userMessages = capiMessages?.filter(m => m.role === 'user');
 					const lastUserMsg = userMessages?.[userMessages.length - 1];
 					if (lastUserMsg?.content) {
 						const userContent = typeof lastUserMsg.content === 'string'
 							? lastUserMsg.content
 							: JSON.stringify(lastUserMsg.content);
-						otelInferenceSpan.setAttribute(CopilotChatAttr.USER_REQUEST, truncateForOTel(userContent, this._otelService.config.maxAttributeSizeChars));
+						otelInferenceSpan.setAttribute(DardcorChatAttr.USER_REQUEST, truncateForOTel(userContent, this._otelService.config.maxAttributeSizeChars));
 					}
-					// System instructions go on a dedicated attribute; stripped from
-					// input messages below to avoid rendering the prompt twice.
 					const systemTexts = collectSystemTextsFromRequestBody(requestBody);
 					const systemInstructions = toSystemInstructions(systemTexts);
 					if (systemInstructions) {
@@ -284,34 +261,23 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 					}
 				}
 
-				// Always capture full request content for the debug panel
 				if (otelInferenceSpan) {
 					const capiMessages = (requestBody.messages ?? requestBody.input) as ReadonlyArray<Record<string, unknown>> | undefined;
 					if (capiMessages) {
-						// Normalize provider-specific content to OTel schema; exclude
-						// system entries since they are emitted via `system_instructions`.
 						const nonSystemMessages = capiMessages.filter(m => (m as { role?: unknown }).role !== 'system');
 						otelInferenceSpan.setAttribute(GenAiAttr.INPUT_MESSAGES, truncateForOTel(JSON.stringify(normalizeProviderMessages(nonSystemMessages)), this._otelService.config.maxAttributeSizeChars));
 					}
-					// Tool definitions: emit on every chat span so trace viewers can render the
-					// tool catalog per LLM call (issue #299934). Includes `parameters` per
-					// OTel GenAI semantic conventions (issue #300318).
 					const toolDefsJson = stringifyToolDefinitionsForOTel(requestBody.tools);
 					if (toolDefsJson) {
 						otelInferenceSpan.setAttribute(GenAiAttr.TOOL_DEFINITIONS, truncateForOTel(toolDefsJson, this._otelService.config.maxAttributeSizeChars));
 					}
-					// Cache-relevant request options. Anything in this blob, when changed
-					// between two requests, will invalidate the prompt cache even when
-					// the messages array is byte-identical. The Cache Explorer uses
-					// this to surface "options changed" drift alongside the message
-					// signature diff.
 					const requestOptions = pickCacheRelevantRequestOptions(requestBody);
 					if (requestOptions) {
-						otelInferenceSpan.setAttribute(CopilotChatAttr.REQUEST_OPTIONS, truncateForOTel(JSON.stringify(requestOptions), this._otelService.config.maxAttributeSizeChars));
+						otelInferenceSpan.setAttribute(DardcorChatAttr.REQUEST_OPTIONS, truncateForOTel(JSON.stringify(requestOptions), this._otelService.config.maxAttributeSizeChars));
 					}
 					const requestShape = pickRequestShapeMetadata(requestBody);
 					if (requestShape) {
-						otelInferenceSpan.setAttribute(CopilotChatAttr.REQUEST_SHAPE, truncateForOTel(JSON.stringify(requestShape), this._otelService.config.maxAttributeSizeChars));
+						otelInferenceSpan.setAttribute(DardcorChatAttr.REQUEST_SHAPE, truncateForOTel(JSON.stringify(requestShape), this._otelService.config.maxAttributeSizeChars));
 					}
 				}
 				tokenCount = await countTokens();
@@ -325,15 +291,12 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			}
 			const timeToFirstToken = Date.now() - baseTelemetry.issuedTime;
 			pendingLoggedChatRequest?.markTimeToFirstToken(timeToFirstToken);
-			/** Resolved response model, normalized once and reused by span attributes and the streaming metrics below. */
 			let normalizedResponseModel: string | undefined;
-			/** Time (ms) from request issue to the first content-bearing streamed chunk; basis for the GenAI `time_to_first_chunk` signals. Distinct from `timeToFirstToken`, which is the time to receive the Response object. */
 			let timeToFirstChunkMs: number | undefined;
 			switch (response.type) {
 				case FetchResponseKind.Success: {
 					const result = await this.processSuccessfulResponse(response, messages, imageTelemetryMeasurements, requestBody, ourRequestId, maxResponseTokens, tokenCount, timeToFirstToken, streamRecorder, baseTelemetry, chatEndpoint, userInitiatedRequest, interactionType, transport, actualFetcher, actualBytesReceived, suspendEventSeen, resumeEventSeen, actualModelCallId);
 
-					// Handle FilteredRetry case with augmented messages
 					if (result.type === ChatFetchResponseType.FilteredRetry) {
 
 						if (opts.enableRetryOnFilter) {
@@ -352,7 +315,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 									}
 								];
 
-								// Retry with augmented messages
 								const retryResult = await this.fetchMany({
 									...opts,
 									debugName: 'retry-' + debugName,
@@ -362,7 +324,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 									endpoint: chatEndpoint,
 									source,
 									requestOptions,
-									userInitiatedRequest: false, // do not mark the retry as user initiated
+									userInitiatedRequest: false,
 									telemetryProperties: { ...telemetryProperties, retryAfterFilterCategory: result.category ?? 'uncategorized' },
 									enableRetryOnFilter: false,
 									canRetryOnceWithoutRollback: false,
@@ -387,22 +349,15 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 
 					pendingLoggedChatRequest?.resolve(result, streamRecorder.deltas);
 
-					// First content-chunk timing, captured after the stream is consumed. Mirrors
-					// `timeToFirstTokenEmitted` below and the CLI runtime's TTFC semantics.
 					if (streamRecorder.firstTokenEmittedTime !== undefined) {
 						timeToFirstChunkMs = streamRecorder.firstTokenEmittedTime - baseTelemetry.issuedTime;
 					}
 
-					// Record OTel token usage metrics if available
 					if (result.type === ChatFetchResponseType.Success && result.usage) {
-						// Store dardcor_usage for per-request credits display, scoped to the turn.
-						// Skip background requests — they are not part of an active user turn.
 						if (typeof result.usage.dardcor_usage?.total_nano_aiu === 'number' && turnId && interactionType !== 'conversation-background') {
-							this._chatQuotaService.setLastCopilotUsage(result.usage.dardcor_usage.total_nano_aiu, topLevelTurnId ?? turnId);
+							this._chatQuotaService.setLastDardcorUsage(result.usage.dardcor_usage.total_nano_aiu, topLevelTurnId ?? turnId);
 						}
 
-						// Normalize once so span attributes, metric attributes, and the inference
-						// details event all report the same value (issue #318805).
 						normalizedResponseModel = normalizeResponseModel(chatEndpoint.model, result.resolvedModel);
 
 						const metricAttrs = {
@@ -418,7 +373,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 							GenAiMetrics.recordTokenUsage(this._otelService, result.usage.completion_tokens, 'output', metricAttrs);
 						}
 
-						// Set token usage and response details on the chat span before ending it
 						otelInferenceSpan?.setAttributes({
 							[GenAiAttr.USAGE_INPUT_TOKENS]: result.usage.prompt_tokens ?? 0,
 							[GenAiAttr.USAGE_OUTPUT_TOKENS]: result.usage.completion_tokens ?? 0,
@@ -431,10 +385,10 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 							...(result.usage.prompt_tokens_details?.cache_creation_input_tokens !== undefined
 								? { [GenAiAttr.USAGE_CACHE_CREATION_INPUT_TOKENS]: result.usage.prompt_tokens_details.cache_creation_input_tokens }
 								: {}),
-							[CopilotChatAttr.TIME_TO_FIRST_TOKEN]: timeToFirstToken,
+							[DardcorChatAttr.TIME_TO_FIRST_TOKEN]: timeToFirstToken,
 							[GenAiAttr.REQUEST_STREAM]: true,
 							...(timeToFirstChunkMs !== undefined && timeToFirstChunkMs > 0 ? { [GenAiAttr.RESPONSE_TIME_TO_FIRST_CHUNK]: timeToFirstChunkMs / 1000 } : {}),
-							...(result.serverRequestId ? { [CopilotChatAttr.SERVER_REQUEST_ID]: result.serverRequestId } : {}),
+							...(result.serverRequestId ? { [DardcorChatAttr.SERVER_REQUEST_ID]: result.serverRequestId } : {}),
 							...(result.usage.completion_tokens_details?.reasoning_tokens
 								? {
 									[GenAiAttr.USAGE_REASONING_TOKENS]: result.usage.completion_tokens_details.reasoning_tokens,
@@ -442,11 +396,10 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 								}
 								: {}),
 							...(typeof result.usage.dardcor_usage?.total_nano_aiu === 'number'
-								? { [CopilotChatAttr.COPILOT_USAGE_NANO_AIU]: result.usage.dardcor_usage.total_nano_aiu }
+								? { [DardcorChatAttr.DARDCOR_USAGE_NANO_AIU]: result.usage.dardcor_usage.total_nano_aiu }
 								: {}),
 						});
 					}
-					// Always capture response content for the debug panel
 					if (otelInferenceSpan && result.type === ChatFetchResponseType.Success) {
 						const responseText = streamRecorder.deltas.map(d => d.text).join('');
 						const toolCalls = streamRecorder.deltas
@@ -462,7 +415,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 						if (parts.length > 0) {
 							otelInferenceSpan.setAttribute(GenAiAttr.OUTPUT_MESSAGES, truncateForOTel(JSON.stringify([{ role: 'assistant', parts }]), this._otelService.config.maxAttributeSizeChars));
 						}
-						// Capture reasoning/thinking text if present
 						const hasThinking = streamRecorder.deltas.some(d => d.thinking);
 						if (hasThinking) {
 							const thinkingTexts = streamRecorder.deltas
@@ -473,12 +425,10 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 									return Array.isArray(t.text) ? t.text.join('') : (t.text ?? '');
 								});
 							const reasoningText = thinkingTexts.join('');
-							otelInferenceSpan.setAttribute(CopilotChatAttr.REASONING_CONTENT, truncateForOTel(reasoningText || '[encrypted]', this._otelService.config.maxAttributeSizeChars));
+							otelInferenceSpan.setAttribute(DardcorChatAttr.REASONING_CONTENT, truncateForOTel(reasoningText || '[encrypted]', this._otelService.config.maxAttributeSizeChars));
 						}
 					}
 
-					// Emit OTel inference details event BEFORE ending the span
-					// so the log record inherits the active trace context
 					emitInferenceDetailsEvent(
 						this._otelService,
 						{
@@ -498,13 +448,10 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 					otelInferenceSpan?.end();
 					otelInferenceSpan = undefined;
 
-					// Record OTel time-to-first-token metric
 					if (timeToFirstToken > 0) {
 						GenAiMetrics.recordTimeToFirstToken(this._otelService, chatEndpoint.model, timeToFirstToken / 1000);
 					}
 
-					// GenAI-convention streaming signal (time to first content chunk), dual-emitted
-					// alongside the legacy time-to-first-token metric above.
 					if (timeToFirstChunkMs !== undefined && timeToFirstChunkMs > 0) {
 						GenAiMetrics.recordTimeToFirstChunk(this._otelService, timeToFirstChunkMs / 1000, {
 							operationName: GenAiOperationName.CHAT,
@@ -514,7 +461,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 						});
 					}
 
-					// Record per-output-chunk inter-arrival latency for the streamed response.
 					for (const gapMs of streamRecorder.outputChunkGapsMs) {
 						GenAiMetrics.recordTimePerOutputChunk(this._otelService, gapMs / 1000, {
 							operationName: GenAiOperationName.CHAT,
@@ -567,17 +513,15 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 							imageTelemetryMeasurements,
 						});
 					pendingLoggedChatRequest?.resolveWithCancelation();
-					// Set canceled status on OTel span
 					otelInferenceSpan?.setAttributes({
 						[GenAiAttr.RESPONSE_FINISH_REASONS]: ['cancelled'],
-						[CopilotChatAttr.CANCELED]: true,
+						[DardcorChatAttr.CANCELED]: true,
 					});
 					otelInferenceSpan?.end();
 					otelInferenceSpan = undefined;
 					return this.processCanceledResponse(response, ourRequestId, streamRecorder, telemetryProperties);
 				case FetchResponseKind.Failed: {
 					const processed = this.processFailedResponse(response, ourRequestId, isAutoModel(chatEndpoint) === 1);
-					// Retry on server errors based on configured status codes
 					const retryServerErrorStatusCodes = this._configurationService.getExperimentBasedConfig(ConfigKey.TeamInternal.RetryServerErrorStatusCodes, this._experimentationService);
 					const statusCodesToRetry = retryServerErrorStatusCodes
 						.split(',')
@@ -636,7 +580,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				}
 			}
 		} catch (err) {
-			// End OTel inference span on error if not already ended
 			if (otelInferenceSpan) {
 				otelInferenceSpan.setStatus(SpanStatusCode.ERROR, err instanceof Error ? err.message : String(err));
 				otelInferenceSpan.setAttribute(StdAttr.ERROR_TYPE, err instanceof Error ? err.constructor.name : 'Error');
@@ -749,7 +692,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 	}
 
 	private async _checkNetworkConnectivity(useFetcher?: FetcherId): Promise<{ retryRequest: boolean; connectivityTestError?: string; connectivityTestErrorGitHubRequestId?: string }> {
-		// Ping CAPI to check network connectivity before retrying
 		const delays = this.connectivityCheckDelays;
 		let connectivityTestError: string | undefined = undefined;
 		let connectivityTestErrorGitHubRequestId: string | undefined = undefined;
@@ -775,7 +717,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				}
 			} catch (err) {
 				connectivityTestError = collectSingleLineErrorMessage(err, true);
-				connectivityTestErrorGitHubRequestId = undefined; // no response headers yet
+				connectivityTestErrorGitHubRequestId = undefined;
 				this._logService.info(`CAPI ping failed with error, retrying ping: ${connectivityTestError}`);
 			}
 		}
@@ -792,7 +734,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				try {
 					token = (await this._authenticationService.getCopilotToken()).token;
 				} catch (_err) {
-					// Ignore error
 					token = '';
 				}
 			}
@@ -848,10 +789,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			interactionType,
 		} = params;
 
-		// net::ERR_NETWORK_CHANGED: https://github.com/microsoft/vscode/issues/260297
 		const isNetworkChangedError = ['darwin', 'linux'].includes(process.platform) && processed.reason.indexOf('net::ERR_NETWORK_CHANGED') !== -1;
-		// When Electron's network process crashes, all requests through it fail permanently.
-		// Fall back to node-fetch which bypasses Electron's network stack entirely.
 		const fallbackEnabled = this._configurationService.getExperimentBasedConfig(
 			ConfigKey.TeamInternal.FallbackNodeFetchOnNetworkProcessCrash, this._experimentationService);
 		const isNetworkProcessCrash = processed.type === ChatFetchResponseType.NetworkError
@@ -897,7 +835,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			useWebSocket: false,
 			ignoreStatefulMarker: opts.useWebSocket || opts.ignoreStatefulMarker,
 			debugName: debugNamePrefix + opts.debugName,
-			userInitiatedRequest: false, // do not mark the retry as user initiated
+			userInitiatedRequest: false,
 			telemetryProperties: {
 				...telemetryProperties,
 				retryAfterError: processed.reasonDetail || processed.reason,
@@ -914,7 +852,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			this._consecutiveWebSocketRetryFallbacks++;
 			this._logService.info(`[ChatWebSocketManager] WebSocket request failed with successful HTTP fallback (${this._consecutiveWebSocketRetryFallbacks} consecutive).`);
 			if (opts.conversationId) {
-				// Closing here because the retry is transparent.
 				this._webSocketManager.closeConnection(opts.conversationId, opts.webSocketConnectionId);
 			}
 		}
@@ -1031,7 +968,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			return { result: { type: FetchResponseKind.Canceled, reason: 'before fetch request' } };
 		}
 
-		// OTel inference span for this LLM call
 		const serverAddress = typeof chatEndpointInfo.urlOrRequestMetadata === 'string'
 			? (() => { try { return new URL(chatEndpointInfo.urlOrRequestMetadata).hostname; } catch { return undefined; } })()
 			: undefined;
@@ -1048,12 +984,12 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				[GenAiAttr.REQUEST_MAX_TOKENS]: request.max_tokens ?? request.max_output_tokens ?? request.max_completion_tokens ?? 2048,
 				...(request.temperature !== undefined ? { [GenAiAttr.REQUEST_TEMPERATURE]: request.temperature } : {}),
 				...(request.top_p !== undefined ? { [GenAiAttr.REQUEST_TOP_P]: request.top_p } : {}),
-				[CopilotChatAttr.MAX_PROMPT_TOKENS]: chatEndpointInfo.modelMaxPromptTokens,
+				[DardcorChatAttr.MAX_PROMPT_TOKENS]: chatEndpointInfo.modelMaxPromptTokens,
 				...(serverAddress ? { [StdAttr.SERVER_ADDRESS]: serverAddress } : {}),
-				...((conversationId ?? chatSessionId) ? { [CopilotChatAttr.SESSION_ID]: conversationId ?? chatSessionId } : {}),
-				...(chatSessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}),
-				...(parentChatSessionId ? { [CopilotChatAttr.PARENT_CHAT_SESSION_ID]: parentChatSessionId } : {}),
-				...(debugLogLabel ? { [CopilotChatAttr.DEBUG_LOG_LABEL]: debugLogLabel } : {}),
+				...((conversationId ?? chatSessionId) ? { [DardcorChatAttr.SESSION_ID]: conversationId ?? chatSessionId } : {}),
+				...(chatSessionId ? { [DardcorChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}),
+				...(parentChatSessionId ? { [DardcorChatAttr.PARENT_CHAT_SESSION_ID]: parentChatSessionId } : {}),
+				...(debugLogLabel ? { [DardcorChatAttr.DEBUG_LOG_LABEL]: debugLogLabel } : {}),
 			},
 		});
 		const otelStartTime = Date.now();
@@ -1064,16 +1000,11 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			this._logService.debug(`modelMaxResponseTokens ${request.max_tokens ?? 2048}`);
 			this._logService.debug(`chat model ${chatEndpointInfo.model}`);
 
-			// BYOK endpoints that own their `Authorization` (see IChatEndpoint.ownsAuthorization)
-			// opt out of the CAPI Copilot-token fallback to avoid leaking the user's bearer to a
-			// third-party URL and to keep the wire request from carrying an unintended
-			// `Authorization: Bearer …` alongside their own auth header.
 			if (!chatEndpointInfo.ownsAuthorization) {
 				secretKey ??= dardcorToken?.token;
 			}
 			secretKey ??= 'sk-dardcor-local-key';
 
-			// WebSocket path: use persistent WebSocket connection for Responses API endpoints
 			if (useWebSocket && turnId && conversationId) {
 				const wsResult = await this._doFetchViaWebSocket(
 					chatEndpointInfo,
@@ -1127,14 +1058,9 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				providerName: GenAiProviderName.GITHUB,
 				requestModel: chatEndpointInfo.model,
 			});
-			// Span is NOT ended here — caller (fetchMany) will set token attributes and end it
 		}
 	}
 
-	/**
-	 * Sends a chat request via a persistent WebSocket connection instead of HTTP POST.
-	 * Events are the same Responses API streaming events, processed by OpenAIResponsesProcessor.
-	 */
 	private async _doFetchViaWebSocket(
 		chatEndpointInfo: IChatEndpoint,
 		request: IEndpointBody,
@@ -1177,7 +1103,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			throw err;
 		}
 
-		// Generate unique ID to link input and output messages
 		const modelCallId = generateUuid();
 
 		const telemetryData = TelemetryData.createAndMarkAsIssued({
@@ -1191,7 +1116,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		});
 
 		const modelRequestId = getRequestId(connection.responseHeaders);
-		// Request id changes over the lifetime of the connection.
 		modelRequestId.headerRequestId = ourRequestId;
 		telemetryData.extendWithRequestId(modelRequestId);
 		if (modelRequestId.serverExperiments) {
@@ -1201,7 +1125,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		for (const [key, value] of Object.entries(request)) {
 			if (key === 'messages' || key === 'input') {
 				continue;
-			} // Skip messages (PII)
+			}
 			if (key === 'tools') {
 				telemetryData.properties[`request.option.${key}`] = stringifyToolsRawForTelemetry(value as ReadonlyArray<unknown> | undefined) ?? 'undefined';
 				continue;
@@ -1215,7 +1139,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				headerRequestId: ourRequestId,
 				conversationId,
 				messagesJson: stringifyToolsRawForTelemetry(request.tools)!,
-			}).then(properties => this._telemetryService.sendEnhancedGHTelemetryEvent('request.options.tools', properties, telemetryData.measurements)).catch(() => { /* best-effort telemetry */ });
+			}).then(properties => this._telemetryService.sendEnhancedGHTelemetryEvent('request.options.tools', properties, telemetryData.measurements)).catch(() => { });
 		}
 
 		const requestStart = Date.now();
@@ -1224,8 +1148,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		const extendedBaseTelemetryData = baseTelemetryData.extendedBy({ modelCallId });
 		const processor = this._instantiationService.createInstance(OpenAIResponsesProcessor, extendedBaseTelemetryData, this._telemetryService, modelRequestId.headerRequestId, modelRequestId.gitHubRequestId, modelRequestId.serverExperiments, getResponsesApiCompactionThresholdFromBody(request));
 
-		// Set up streaming first so event listeners are registered before we
-		// await the first event — AsyncIterableObject runs its executor eagerly.
 		const chatCompletions = new AsyncIterableObject<ChatCompletion>(async emitter => {
 			try {
 				await new Promise<void>((resolve, reject) => {
@@ -1245,7 +1167,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 					});
 
 					handle.onCAPIError(event => {
-						// Mid-stream CAPI error — throw so the caller can handle it
 						const error = new Error(`${event.error.message} (${event.error.code})`);
 						(error as any).gitHubRequestId = modelRequestId.gitHubRequestId;
 						(error as any).capiWebSocketError = event;
@@ -1294,15 +1215,12 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			}
 		});
 
-		// Wait for the first event to determine the response type,
-		// analogous to checking HTTP status code before streaming the body.
 		const firstEvent = await handle.firstEvent;
 
 		if (cancellationToken.isCancellationRequested) {
 			return { result: { type: FetchResponseKind.Canceled, reason: 'after first WebSocket event' } };
 		}
 
-		// CAPI error before any stream events — return Failed like HTTP non-200
 		if (isCAPIWebSocketError(firstEvent)) {
 			const totalTimeMs = Date.now() - requestStart;
 			telemetryData.measurements.totalTimeMs = totalTimeMs;
@@ -1312,8 +1230,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			return { result: await this._handleWebSocketCAPIError(firstEvent, modelRequestId) };
 		}
 
-		// Clear stale quota-exceeded state if the server accepted the request.
-		if (this._authenticationService.dardcorToken?.isFreeUser && this._authenticationService.dardcorToken?.isChatQuotaExceeded) {
+		if (isCAPIEndpoint(chatEndpointInfo) && this._authenticationService.dardcorToken?.isFreeUser && this._authenticationService.dardcorToken?.isChatQuotaExceeded) {
 			this._authenticationService.resetCopilotToken();
 		}
 
@@ -1342,7 +1259,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		canRetryOnce: boolean | undefined,
 		interactionTypeOverride: InteractionTypeOverride | undefined,
 	): Promise<{ result: ChatResults | ChatRequestFailed | ChatRequestCanceled; fetcher?: FetcherId; bytesReceived?: number; statusCode?: number; modelCallId?: string }> {
-		// Generate unique ID to link input and output messages
 		const modelCallId = generateUuid();
 
 		const response = await this._fetchWithInstrumentation(
@@ -1361,8 +1277,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 
 		if (cancellationToken.isCancellationRequested) {
 			try {
-				// Destroy the stream so that the server is hopefully notified we don't want any more data
-				// and can cancel/forget about the request itself.
 				await response!.body.destroy();
 			} catch (e) {
 				this._logService.error(e, `Error destroying stream`);
@@ -1375,7 +1289,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			};
 		}
 
-		if (response.status === 200 && this._authenticationService.dardcorToken?.isFreeUser && this._authenticationService.dardcorToken?.isChatQuotaExceeded) {
+		if (response.status === 200 && isCAPIEndpoint(chatEndpointInfo) && this._authenticationService.dardcorToken?.isFreeUser && this._authenticationService.dardcorToken?.isChatQuotaExceeded) {
 			this._authenticationService.resetCopilotToken();
 		}
 
@@ -1383,14 +1297,13 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			const telemetryData = createTelemetryData(chatEndpointInfo, location, ourRequestId);
 			this._logService.info('Request ID for failed request: ' + ourRequestId);
 			return {
-				result: await this._handleError(telemetryData, response, ourRequestId),
+				result: await this._handleError(telemetryData, response, ourRequestId, isCAPIEndpoint(chatEndpointInfo)),
 				fetcher: response.fetcher,
 				bytesReceived: response.bytesReceived,
 				statusCode: response.status
 			};
 		}
 
-		// Extend baseTelemetryData with modelCallId for output messages
 		const extendedBaseTelemetryData = baseTelemetryData.extendedBy({ modelCallId });
 
 		let chatCompletions;
@@ -1400,7 +1313,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				this._telemetryService,
 				this._logService,
 				response,
-				nChoices ?? /* OpenAI's default */ 1,
+				nChoices ?? 1,
 				finishedCb,
 				extendedBaseTelemetryData,
 				cancellationToken,
@@ -1425,8 +1338,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			throw err;
 		}
 
-		// CAPI will return us a Copilot Edits Session Header which is our token to using the speculative decoding endpoint
-		// We should store this in the auth service for easy use later
 		if (response.headers.get('Copilot-Edits-Session')) {
 			this._authenticationService.speculativeDecodingEndpointToken = response.headers.get('Copilot-Edits-Session') ?? undefined;
 		}
@@ -1458,10 +1369,9 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		interactionTypeOverride?: InteractionTypeOverride,
 	): Promise<Response> {
 
-		// If request contains an image, we include this header.
 		const additionalHeaders: Record<string, string> = {
 			'X-Interaction-Id': this._interactionService.interactionId,
-			'X-Initiator': userInitiatedRequest ? 'user' : 'agent', // Agent = a system request / not the primary user query.
+			'X-Initiator': userInitiatedRequest ? 'user' : 'agent',
 		};
 		if (request.messages?.some((m: CAPIChatMessage) => Array.isArray(m.content) ? m.content.some(c => 'image_url' in c) : false) && chatEndpoint.supportsVision) {
 			additionalHeaders['Copilot-Vision-Request'] = 'true';
@@ -1471,7 +1381,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			engineName: 'chat',
 			uiKind: ChatLocation.toString(location),
 			transport: 'http',
-			...telemetryProperties // This includes the modelCallId from fetchAndStreamChat
+			...telemetryProperties
 		}, {
 			maxTokenWindow: chatEndpoint.modelMaxPromptTokens
 		});
@@ -1479,7 +1389,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		for (const [key, value] of Object.entries(request)) {
 			if (key === 'messages' || key === 'input') {
 				continue;
-			} // Skip messages (PII)
+			}
 			if (key === 'tools') {
 				telemetryData.properties[`request.option.${key}`] = stringifyToolsRawForTelemetry(value as ReadonlyArray<unknown> | undefined) ?? 'undefined';
 				continue;
@@ -1487,9 +1397,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			telemetryData.properties[`request.option.${key}`] = JSON.stringify(value) ?? 'undefined';
 		}
 
-		// The request ID we are passed in is sent in the request to the proxy, and included in our pre-request telemetry.
-		// We hope (but do not rely on) that the model will use the same ID in the response, allowing us to correlate
-		// the request and response.
 		telemetryData.properties['headerRequestId'] = ourRequestId;
 
 		this._telemetryService.sendGHTelemetryEvent('request.sent', telemetryData.properties, telemetryData.measurements);
@@ -1499,13 +1406,12 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				headerRequestId: ourRequestId,
 				conversationId: telemetryProperties?.conversationId,
 				messagesJson: stringifyToolsRawForTelemetry(request.tools)!,
-			}).then(properties => this._telemetryService.sendEnhancedGHTelemetryEvent('request.options.tools', properties, telemetryData.measurements)).catch(() => { /* best-effort telemetry */ });
+			}).then(properties => this._telemetryService.sendEnhancedGHTelemetryEvent('request.options.tools', properties, telemetryData.measurements)).catch(() => { });
 		}
 
 		const requestStart = Date.now();
 		const intent = locationToIntent(location);
 
-		// Wrap the Promise with success/error callbacks so we can log/measure it
 		return this._instantiationService.invokeFunction(postRequest, {
 			endpointOrUrl: chatEndpoint,
 			secretKey,
@@ -1527,17 +1433,13 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			if (ghRequestId) {
 				this._logService.debug(`GH request id: ${ghRequestId}`);
 			}
-			// This ID is hopefully the one the same as ourRequestId, but it is not guaranteed.
-			// If they are different then we will override the original one we set in telemetryData above.
 			const modelRequestId = getRequestId(response.headers);
-			// Preserve ourRequestId as headerRequestId if the server didn't echo x-request-id
 			modelRequestId.headerRequestId = modelRequestId.headerRequestId || ourRequestId;
 			telemetryData.extendWithRequestId(modelRequestId);
 			if (modelRequestId.serverExperiments) {
 				this._telemetryService.setSharedProperty('capi.assignmentcontext', modelRequestId.serverExperiments);
 			}
 
-			// TODO: Add response length (requires parsing)
 			const totalTimeMs = Date.now() - requestStart;
 			telemetryData.measurements.totalTimeMs = totalTimeMs;
 
@@ -1549,7 +1451,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		})
 			.catch(error => {
 				if (this._fetcherService.isAbortError(error)) {
-					// If we cancelled a network request, we don't want to log a `request.error`
 					throw error;
 				}
 
@@ -1573,7 +1474,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			.finally(() => {
 				let messagesToLog = request.messages;
 
-				// For Response API (has input but no messages), convert input to messages for logging
 				if ((!messagesToLog || messagesToLog.length === 0) && (request as OpenAI.Responses.ResponseCreateParams).input) {
 					try {
 						const rawMessages = responseApiInputToRawMessagesForLogging(request as OpenAI.Responses.ResponseCreateParams);
@@ -1591,13 +1491,16 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 	private async _handleError(
 		telemetryData: TelemetryData,
 		response: Response,
-		requestId: string
+		requestId: string,
+		isCapiEndpoint: boolean,
 	): Promise<ChatRequestFailed> {
 		const modelRequestIdObj = getRequestId(response.headers);
 		requestId = modelRequestIdObj.headerRequestId || requestId;
 		modelRequestIdObj.headerRequestId = requestId;
 
-		this._chatQuotaService.processQuotaHeaders(response.headers);
+		if (isCapiEndpoint) {
+			this._chatQuotaService.processQuotaHeaders(response.headers);
+		}
 
 		telemetryData.properties.error = `Response status was ${response.status}`;
 		telemetryData.properties.status = String(response.status);
@@ -1607,9 +1510,8 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		let jsonData: Record<string, any> | undefined;
 		try {
 			jsonData = JSON.parse(text);
-			jsonData = jsonData?.error ?? jsonData; // Extract nested error object if it exists
+			jsonData = jsonData?.error ?? jsonData;
 		} catch {
-			// JSON parsing failed, it's not json content.
 		}
 
 		const reasonNoText = `Server error: ${response.status}`;
@@ -1648,9 +1550,9 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			}
 
 			if (response.status === 401 || response.status === 403) {
-				// Token has expired or invalid, fetch a new one on next request
-				// TODO(drifkin): these actions should probably happen in vsc specific code
-				this._authenticationService.resetCopilotToken(response.status);
+				if (isCapiEndpoint) {
+					this._authenticationService.resetCopilotToken(response.status);
+				}
 				return {
 					type: FetchResponseKind.Failed,
 					modelRequestId: modelRequestIdObj,
@@ -1660,9 +1562,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			}
 
 			if (response.status === 402) {
-				// When we receive a 402, we have exceed a quota
-				// This is stored on the token so let's refresh it
-				if (!this._authenticationService.dardcorToken?.isChatQuotaExceeded) {
+				if (isCapiEndpoint && !this._authenticationService.dardcorToken?.isChatQuotaExceeded) {
 					this._authenticationService.resetCopilotToken(response.status);
 					await this._authenticationService.getCopilotToken();
 				}
@@ -1674,13 +1574,11 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 						return undefined;
 					}
 
-					// Try treating it as a date
 					const retryAfterDate = new Date(retryAfterString);
 					if (!isNaN(retryAfterDate.getDate())) {
 						return retryAfterDate;
 					}
 
-					// It is not a date, try treating it as a duration from the current date
 					const retryAfterDuration = parseInt(retryAfterString, 10);
 					if (isNaN(retryAfterDuration)) {
 						return undefined;
@@ -1706,7 +1604,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			if (response.status === 404) {
 				let errorReason: string;
 
-				// Check if response body is valid JSON
 				if (!jsonData) {
 					errorReason = text;
 				} else {
@@ -1756,7 +1653,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 					};
 				}
 
-				// HTTP 429 Too Many Requests
 				return {
 					type: FetchResponseKind.Failed,
 					modelRequestId: modelRequestIdObj,
@@ -1806,7 +1702,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 				};
 			}
 
-			// HTTP 5xx Server Error
 			return {
 				type: FetchResponseKind.Failed,
 				modelRequestId: modelRequestIdObj,
@@ -1945,17 +1840,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			this._telemetryService.sendEnhancedGHTelemetryEvent('conversation.repetition.detected', extended.properties, extended.measurements);
 		}
 		if (lineRepetitionStats.numberOfRepetitions >= 10) {
-			/* __GDPR__
-				"conversation.repetition.detected" : {
-					"owner": "lramos15",
-					"comment": "Calculates the number of repetitions in a response. Useful for loop detection",
-					"finishReason": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Reason for why a response finished. Helps identify cancellation vs length limits" },
-					"requestId": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Id for this message request." },
-					"lengthOfLine": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Length of the repeating line, in characters." },
-					"numberOfRepetitions": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Number of times the line repeats." },
-					"totalLines": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Number of total lines in the response." }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('conversation.repetition.detected', {
 				requestId: chatCompletion.requestId.headerRequestId,
 				finishReason: chatCompletion.finishReason,
@@ -1968,60 +1852,33 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		return hasRepetition;
 	}
 
-	/**
-	 * Check for repetition in partial response deltas from a cancelled request.
-	 *
-	 * This method performs the same repetition detection as the `isRepetitive` method,
-	 * but operates on partial response data collected before the request was cancelled.
-	 *
-	 * Key differences from completed requests:
-	 * - Text is reconstructed from delta.text values instead of message.content
-	 * - Tokens are approximated by splitting text on whitespace instead of using
-	 *   the actual token array (which is only available in completed responses)
-	 * - Enhanced telemetry won't include RequestId fields since we only have the
-	 *   headerRequestId string, not the full RequestId object
-	 * - The finishReason is marked as 'canceled' to distinguish from server-generated
-	 *   finish reasons
-	 */
 	private checkRepetitionInDeltas(
 		deltas: IResponseDelta[],
 		requestId: string,
 		telemetryProperties?: TelemetryProperties
 	): void {
-		// Reconstruct the text content from deltas (filter out null, undefined, and empty text values)
 		const textContent = deltas.filter(delta => delta.text?.length > 0).map(delta => delta.text).join('');
 
-		// Early exit if no content
 		if (!textContent || textContent.trim().length === 0) {
 			return;
 		}
 
-		// For cancelled requests, we don't have the actual token array (only available in ChatCompletion),
-		// so we approximate by splitting text content on whitespace. This is less precise than actual
-		// tokenization but sufficient for detecting obvious repetition patterns.
 		const tokens = textContent.split(/\s+/).filter(t => t.length > 0);
 
-		// Check for line repetition
 		const lineRepetitionStats = calculateLineRepetitionStats(textContent);
 
-		// Check for token-level repetition
 		const hasRepetition = isRepetitive(tokens);
 
-		// Send telemetry if repetition is detected
 		if (hasRepetition) {
 			const telemetryData = TelemetryData.createAndMarkAsIssued();
 			const extended = telemetryData.extendedBy(telemetryProperties);
-			// Note: For cancelled requests, we don't have a full RequestId object,
-			// so we can't use extendWithRequestId like the non-cancelled path does.
-			// This means enhanced telemetry for cancelled requests won't include
-			// completionId, created, deploymentId, or serverExperiments fields.
 			this._telemetryService.sendEnhancedGHTelemetryEvent('conversation.repetition.detected', extended.properties, extended.measurements);
 		}
 
 		if (lineRepetitionStats.numberOfRepetitions >= 10) {
 			this._telemetryService.sendMSFTTelemetryEvent('conversation.repetition.detected', {
 				requestId: requestId,
-				finishReason: 'canceled', // Client-side finish reason to distinguish from server-generated reasons
+				finishReason: 'canceled',
 			}, {
 				numberOfRepetitions: lineRepetitionStats.numberOfRepetitions,
 				lengthOfLine: lineRepetitionStats.mostRepeatedLine.length,
@@ -2036,7 +1893,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		streamRecorder?: FetchStreamRecorder,
 		telemetryProperties?: TelemetryProperties
 	): ChatResponses {
-		// Check for repetition in the partial response before cancellation
 		if (streamRecorder && streamRecorder.deltas.length > 0) {
 			this.checkRepetitionInDeltas(streamRecorder.deltas, requestId, telemetryProperties);
 		}
@@ -2097,7 +1953,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		}
 
 		const fetcher = this._fetcherService;
-		// If we cancelled a network request, we don't want to log an error
 		if (fetcher.isAbortError(err)) {
 			return {
 				type: ChatFetchResponseType.Canceled,
@@ -2116,7 +1971,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 		}
 		if (err && (
 			(err instanceof Error && err.message === 'Premature close') ||
-			(typeof err === 'object' && (err as any).code === 'ERR_STREAM_PREMATURE_CLOSE') /* to be extra sure */)
+			(typeof err === 'object' && (err as any).code === 'ERR_STREAM_PREMATURE_CLOSE') )
 		) {
 			return {
 				type: ChatFetchResponseType.Canceled,
@@ -2176,8 +2031,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			};
 		}
 		if (codePrefix === 'quota_exceeded' || codePrefix === 'free_quota_exceeded' || codePrefix === 'overage_limit_reached' || codePrefix === 'billing_not_configured' || codePrefix === 'additional_spend_limit_reached') {
-			// Refresh the dardcor token so isChatQuotaExceeded reflects the new state,
-			// matching the HTTP 402 handler behavior.
 			if (!this._authenticationService.dardcorToken?.isChatQuotaExceeded) {
 				this._authenticationService.resetCopilotToken(402);
 				await this._authenticationService.getCopilotToken();
@@ -2231,7 +2084,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			};
 		}
 
-		// internal_error, session_expired, or any unknown code
 		return {
 			type: FetchResponseKind.Failed,
 			modelRequestId,
@@ -2261,7 +2113,6 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			return { type: ChatFetchResponseType.BadRequest, reason: message, requestId, serverRequestId };
 		}
 
-		// internal_error, session_expired, service_unavailable, request_too_large, or any unknown code
 		return { type: ChatFetchResponseType.Failed, reason: `Request Failed: ${code} ${message || 'WebSocket server error'}`, requestId, serverRequestId };
 	}
 
@@ -2270,15 +2121,10 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			const regex = new RegExp(escapeRegExpCharacters(usernameToScrub), 'ig');
 			errorDetail = errorDetail.replaceAll(regex, '<login>');
 		}
-		return errorDetail.replaceAll(/(?<=logged in as )(?!<login>)[^\s]+/ig, '!<login>!'); // marking fallback with !
+		return errorDetail.replaceAll(/(?<=logged in as )(?!<login>)[^\s]+/ig, '!<login>!');
 	}
 }
 
-/**
- * Validates a chat request payload to ensure it is valid
- * @param params The params being sent in the chat request
- * @returns Whether the chat payload is valid
- */
 function isValidChatPayload(messages: Raw.ChatMessage[], postOptions: OptionalChatRequestParams, endpoint: IChatEndpoint, configurationService: IConfigurationService, experimentationService: IExperimentationService): { isValid: boolean; reason: string } {
 	if (messages.length === 0) {
 		return { isValid: false, reason: asUnexpected('No messages provided') };
@@ -2315,11 +2161,6 @@ export function createTelemetryData(chatEndpointInfo: IChatEndpoint, location: C
 	});
 }
 
-/**
- * WARNING: The value that is returned from this function drives the disablement of RAI for full-file rewrite requests
- * in Copilot Edits, Copilot Chat, Agent Mode, and Inline Chat.
- * If your chat location generates full-file rewrite requests and you are unsure if changing something here will cause problems, please talk to @roblourens
- */
 
 export function locationToIntent(location: ChatLocation): string {
 	switch (location) {
@@ -2344,19 +2185,6 @@ export function locationToIntent(location: ChatLocation): string {
 	}
 }
 
-/**
- * Curate the cache-relevant subset of a request body. Anything in the
- * returned object that differs between two requests will invalidate the
- * prompt cache even when the message array itself is byte-identical
- * (e.g. switching from `tool_choice: 'auto'` to `'required'`, raising
- * `reasoning_effort`, enabling thinking, changing the response format).
- *
- * Strict allowlist on purpose: we never want a future provider-specific
- * body field (especially anything resembling auth headers, API keys, or
- * personal identifiers) to silently leak into the OTel attribute or the
- * on-disk debug log via a catch-all. New cache-keying knobs must be
- * added explicitly here.
- */
 function pickCacheRelevantRequestOptions(body: IEndpointBody): Record<string, unknown> | undefined {
 	const out: Record<string, unknown> = {};
 	for (const key of [
@@ -2375,12 +2203,6 @@ function pickCacheRelevantRequestOptions(body: IEndpointBody): Record<string, un
 	return Object.keys(out).length > 0 ? out : undefined;
 }
 
-/**
- * Sanitized request-shape metadata for debug views. This intentionally omits
- * identifiers such as `previous_response_id` itself and never includes message
- * or tool contents; it only records whether a Responses API continuation marker
- * was present and which top-level input item kinds were sent on the wire.
- */
 function pickRequestShapeMetadata(body: IEndpointBody): Record<string, unknown> | undefined {
 	const out: Record<string, unknown> = {};
 	if (Array.isArray(body.input)) {

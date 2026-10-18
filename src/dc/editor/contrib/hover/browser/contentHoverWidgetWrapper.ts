@@ -85,7 +85,7 @@ export class ContentHoverWidgetWrapper extends Disposable implements IHoverWidge
 		}));
 		this._register(TokenizationRegistry.onDidChange(() => {
 			if (this._contentHoverWidget.position && this._currentResult) {
-				this._setCurrentResult(this._currentResult); // render again
+				this._setCurrentResult(this._currentResult);
 			}
 		}));
 		this._register(this._contentHoverWidget.onContentsChanged(() => {
@@ -93,9 +93,6 @@ export class ContentHoverWidgetWrapper extends Disposable implements IHoverWidge
 		}));
 	}
 
-	/**
-	 * Returns true if the hover shows now or will show.
-	 */
 	private _startShowingOrUpdateHover(
 		anchor: HoverAnchor | null,
 		mode: HoverStartMode,
@@ -114,33 +111,26 @@ export class ContentHoverWidgetWrapper extends Disposable implements IHoverWidge
 		const isHoverSticky = this._editor.getOption(EditorOption.hover).sticky;
 		const isMouseGettingCloser = mouseEvent && this._contentHoverWidget.isMouseGettingCloser(mouseEvent.event.posx, mouseEvent.event.posy);
 		const isHoverStickyAndIsMouseGettingCloser = isHoverSticky && isMouseGettingCloser;
-		// The mouse is getting closer to the hover, so we will keep the hover untouched
-		// But we will kick off a hover update at the new anchor, insisting on keeping the hover visible.
 		if (isHoverStickyAndIsMouseGettingCloser) {
 			if (anchor) {
 				this._startHoverOperationIfNecessary(anchor, mode, source, focus, true);
 			}
 			return true;
 		}
-		// If mouse is not getting closer and anchor not defined, hide the hover
 		if (!anchor) {
 			this._setCurrentResult(null);
 			return false;
 		}
-		// If mouse if not getting closer and anchor is defined, and the new anchor is the same as the previous anchor
 		const currentAnchorEqualsPreviousAnchor = this._currentResult && this._currentResult.options.anchor.equals(anchor);
 		if (currentAnchorEqualsPreviousAnchor) {
 			return true;
 		}
-		// If mouse if not getting closer and anchor is defined, and the new anchor is not compatible with the previous anchor
 		const currentAnchorCompatibleWithPreviousAnchor = this._currentResult && anchor.canAdoptVisibleHover(this._currentResult.options.anchor, this._contentHoverWidget.position);
 		if (!currentAnchorCompatibleWithPreviousAnchor) {
 			this._setCurrentResult(null);
 			this._startHoverOperationIfNecessary(anchor, mode, source, focus, false);
 			return true;
 		}
-		// We aren't getting any closer to the hover, so we will filter existing results
-		// and keep those which also apply to the new anchor.
 		if (this._currentResult) {
 			this._setCurrentResult(this._currentResult.filter(anchor));
 		}
@@ -200,17 +190,14 @@ export class ContentHoverWidgetWrapper extends Disposable implements IHoverWidge
 		if (!previousHoverIsVisibleWithCompleteResult) {
 			this._setCurrentResult(hoverResult);
 		}
-		// The hover is visible with a previous complete result.
 		const isCurrentHoverResultComplete = hoverResult.isComplete;
 		if (!isCurrentHoverResultComplete) {
-			// Instead of rendering the new partial result, we wait for the result to be complete.
 			return;
 		}
 		const currentHoverResultIsEmpty = hoverResult.hoverParts.length === 0;
 		const insistOnKeepingPreviousHoverVisible = hoverResult.options.insistOnKeepingHoverVisible;
 		const shouldKeepPreviousHoverVisible = currentHoverResultIsEmpty && insistOnKeepingPreviousHoverVisible;
 		if (shouldKeepPreviousHoverVisible) {
-			// The hover would now hide normally, so we'll keep the previous messages
 			return;
 		}
 		this._setCurrentResult(hoverResult);
@@ -283,7 +270,6 @@ export class ContentHoverWidgetWrapper extends Disposable implements IHoverWidge
 			}
 			case MouseTargetType.CONTENT_EMPTY: {
 				const epsilon = this._editor.getOption(EditorOption.fontInfo).typicalHalfwidthCharacterWidth / 2;
-				// Let hover kick in even when the mouse is technically in the empty area after a line, given the distance is small enough
 				const mouseIsWithinLinesAndCloseToHover = !target.detail.isAfterLines
 					&& typeof target.detail.horizontalDistanceToText === 'number'
 					&& target.detail.horizontalDistanceToText < epsilon;

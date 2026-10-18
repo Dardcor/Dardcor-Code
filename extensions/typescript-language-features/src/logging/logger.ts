@@ -25,7 +25,6 @@ export class Logger {
 	}
 
 	public error(message: string, data?: unknown): void {
-		// See https://github.com/microsoft/TypeScript/issues/10496
 		if (data && (data as { message?: string }).message === 'No content available.') {
 			return;
 		}

@@ -68,7 +68,6 @@ class BrowserChatAgentToolsContribution extends Disposable implements IWorkbench
 			this._updateToolRegistrations();
 		}));
 
-		// Dispose Playwright sessions when the corresponding chat session ends.
 		this._register(this.chatService.onDidDisposeSession(e => {
 			for (const resource of e.sessionResources) {
 				void this.playwrightService.disposeSession(resource.toString()).catch(() => { });
@@ -81,8 +80,6 @@ class BrowserChatAgentToolsContribution extends Disposable implements IWorkbench
 		this._modelListeners.clearAndDisposeAll();
 
 		if (!this.browserViewService.isSharingAvailable) {
-			// If chat tools are disabled, we only register the non-agentic open tool,
-			// which allows opening browser pages without granting access to their contents.
 			this._toolsStore.add(this.toolsService.registerTool(OpenBrowserToolNonAgenticData, this.instantiationService.createInstance(OpenBrowserToolNonAgentic)));
 			this._toolsStore.add(this._browserToolSet.addTool(OpenBrowserToolNonAgenticData));
 			this.chatContextService.updateWorkspaceContextItems(BrowserChatAgentToolsContribution.CONTEXT_ID, []);
@@ -100,7 +97,6 @@ class BrowserChatAgentToolsContribution extends Disposable implements IWorkbench
 		this._toolsStore.add(this.toolsService.registerTool(RunPlaywrightCodeToolData, this.instantiationService.createInstance(RunPlaywrightCodeTool)));
 		this._toolsStore.add(this.toolsService.registerTool(HandleDialogBrowserToolData, this.instantiationService.createInstance(HandleDialogBrowserTool)));
 
-		// Note: this is not currently exposed directly to models. It is mostly exposed so extensions can use it to provide model context via the API.
 		this._toolsStore.add(this.toolsService.registerTool(ListBrowserPagesToolData, this.instantiationService.createInstance(ListBrowserPagesTool)));
 
 		this._toolsStore.add(this._browserToolSet.addTool(OpenBrowserToolData));
@@ -114,7 +110,6 @@ class BrowserChatAgentToolsContribution extends Disposable implements IWorkbench
 		this._toolsStore.add(this._browserToolSet.addTool(RunPlaywrightCodeToolData));
 		this._toolsStore.add(this._browserToolSet.addTool(HandleDialogBrowserToolData));
 
-		// Subscribe to browser view changes and model sharing state changes
 		this._syncModelListeners();
 		this._toolsStore.add(this.browserViewService.onDidChangeBrowserViews(() => {
 			this._syncModelListeners();
@@ -127,19 +122,13 @@ class BrowserChatAgentToolsContribution extends Disposable implements IWorkbench
 		this._updateBrowserContext();
 	}
 
-	/**
-	 * Subscribe to sharingState changes on each known model so the workspace
-	 * context updates whenever a page is shared or unshared.
-	 */
 	private _syncModelListeners(): void {
 		const views = this.browserViewService.getContextualBrowserViews();
-		// Remove listeners for views that no longer exist
 		for (const id of this._modelListeners.keys()) {
 			if (!views.has(id)) {
 				this._modelListeners.deleteAndDispose(id);
 			}
 		}
-		// Add listeners for new views
 		for (const [id, input] of views) {
 			if (!this._modelListeners.has(id) && input.model) {
 				const store = new DisposableStore();

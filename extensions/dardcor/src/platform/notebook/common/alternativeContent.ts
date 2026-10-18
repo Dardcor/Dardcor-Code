@@ -31,9 +31,6 @@ export function getAlternativeNotebookDocumentProvider(kind: 'xml' | 'text' | 'j
 	}
 }
 
-/**
- * Given the content, determine the format of the content.
- */
 export function inferAlternativeNotebookContentFormat(content: string): AlternativeContentFormat {
 	if (isXmlContent(content)) {
 		return 'xml';
@@ -59,10 +56,8 @@ export class AlternativeNotebookContentService implements IAlternativeNotebookCo
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IExperimentationService private readonly experimentationService: IExperimentationService,
 	) {
-		//
 	}
 	getFormat(options: LanguageModelChat | IChatEndpoint | undefined): AlternativeContentFormat {
-		// GPT 4.1 supports apply_patch, such models work best with JSON format (doesn't have great support for XML yet, thats being worked on).
 		if (options && modelPrefersJsonNotebookRepresentation(options)) {
 			return 'json';
 		}
@@ -76,7 +71,6 @@ export class AlternativeNotebookContentService implements IAlternativeNotebookCo
 }
 
 export function getAltNotebookRange(range: Range, cellUri: Uri, notebook: NotebookDocument, format: AlternativeContentFormat) {
-	// If we have a range for cell, then translate that from notebook cell range to alternative range.
 	const cell = findCell(cellUri, notebook);
 	if (!cell) {
 		return undefined;

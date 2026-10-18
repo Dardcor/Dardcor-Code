@@ -18,7 +18,6 @@ suite('WebContentCache', () => {
 		cache = new WebContentCache();
 	});
 
-	//#region Basic Cache Operations
 
 	test('returns undefined for uncached URI', () => {
 		const uri = URI.parse('https://example.com/page');
@@ -67,9 +66,7 @@ suite('WebContentCache', () => {
 		assert.deepStrictEqual(cached, extractResult);
 	});
 
-	//#endregion
 
-	//#region Options-Based Cache Key
 
 	test('different options produce different cache entries', () => {
 		const uri = URI.parse('https://example.com/page');
@@ -89,15 +86,11 @@ suite('WebContentCache', () => {
 
 		cache.add(uri, undefined, extractResult);
 
-		// Both undefined and { followRedirects: false } should resolve to the same key
-		// because !!undefined === false and !!false === false
 		assert.deepStrictEqual(cache.tryGet(uri, undefined), extractResult);
 		assert.deepStrictEqual(cache.tryGet(uri, { followRedirects: false }), extractResult);
 	});
 
-	//#endregion
 
-	//#region URI Case Sensitivity
 
 	test('URI path case is ignored for cache lookup', () => {
 		const uri1 = URI.parse('https://example.com/Page');
@@ -106,19 +99,15 @@ suite('WebContentCache', () => {
 
 		cache.add(uri1, undefined, extractResult);
 
-		// extUriIgnorePathCase should make these equivalent
 		assert.deepStrictEqual(cache.tryGet(uri2, undefined), extractResult);
 	});
 
-	//#endregion
 
-	//#region Cache Expiration
 
 	test('expired success entries are not returned', () => {
 		const uri = URI.parse('https://example.com/page');
 		const extractResult: WebContentExtractResult = { status: 'ok', result: 'Content', title: 'Title' };
 
-		// Mock Date.now to control expiration
 		const originalDateNow = Date.now;
 		let currentTime = 1000000;
 		Date.now = () => currentTime;
@@ -126,8 +115,7 @@ suite('WebContentCache', () => {
 		try {
 			cache.add(uri, undefined, extractResult);
 
-			// Move time forward past the 24-hour success cache duration
-			currentTime += (1000 * 60 * 60 * 24) + 1; // 24 hours + 1ms
+			currentTime += (1000 * 60 * 60 * 24) + 1;
 
 			const cached = cache.tryGet(uri, undefined);
 			assert.strictEqual(cached, undefined);
@@ -147,8 +135,7 @@ suite('WebContentCache', () => {
 		try {
 			cache.add(uri, undefined, extractResult);
 
-			// Move time forward past the 5-minute error cache duration
-			currentTime += (1000 * 60 * 5) + 1; // 5 minutes + 1ms
+			currentTime += (1000 * 60 * 5) + 1;
 
 			const cached = cache.tryGet(uri, undefined);
 			assert.strictEqual(cached, undefined);
@@ -168,8 +155,7 @@ suite('WebContentCache', () => {
 		try {
 			cache.add(uri, undefined, extractResult);
 
-			// Move time forward but stay within the 24-hour success cache duration
-			currentTime += (1000 * 60 * 60 * 23); // 23 hours
+			currentTime += (1000 * 60 * 60 * 23);
 
 			const cached = cache.tryGet(uri, undefined);
 			assert.deepStrictEqual(cached, extractResult);
@@ -189,8 +175,7 @@ suite('WebContentCache', () => {
 		try {
 			cache.add(uri, undefined, extractResult);
 
-			// Move time forward but stay within the 5-minute error cache duration
-			currentTime += (1000 * 60 * 4); // 4 minutes
+			currentTime += (1000 * 60 * 4);
 
 			const cached = cache.tryGet(uri, undefined);
 			assert.deepStrictEqual(cached, extractResult);
@@ -210,8 +195,7 @@ suite('WebContentCache', () => {
 		try {
 			cache.add(uri, undefined, extractResult);
 
-			// Move time forward past error duration but within success duration
-			currentTime += (1000 * 60 * 60); // 1 hour (past 5 min error, within 24 hour success)
+			currentTime += (1000 * 60 * 60);
 
 			const cached = cache.tryGet(uri, undefined);
 			assert.deepStrictEqual(cached, extractResult);
@@ -220,9 +204,7 @@ suite('WebContentCache', () => {
 		}
 	});
 
-	//#endregion
 
-	//#region Cache Overwrite
 
 	test('adding same URI overwrites previous entry', () => {
 		const uri = URI.parse('https://example.com/page');
@@ -236,9 +218,7 @@ suite('WebContentCache', () => {
 		assert.deepStrictEqual(cached, secondResult);
 	});
 
-	//#endregion
 
-	//#region Different URI Components
 
 	test('different hosts produce different cache entries', () => {
 		const uri1 = URI.parse('https://example.com/page');
@@ -279,5 +259,4 @@ suite('WebContentCache', () => {
 		assert.deepStrictEqual(cache.tryGet(uri2, undefined), result2);
 	});
 
-	//#endregion
 });

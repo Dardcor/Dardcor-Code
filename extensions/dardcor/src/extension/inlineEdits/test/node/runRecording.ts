@@ -76,7 +76,6 @@ export async function runRecording<T>(
 		};
 
 		store.add(r.onDocumentEvent(e => {
-			// TODO: _onStructuredData.fire(e);
 			if (e.data.sourceId === 'TextModel.setChangeReason') {
 				_onHandleChangeReason.fire({
 					documentUri: e.doc.id.toUri().toString(),
@@ -110,7 +109,6 @@ export async function runRecording<T>(
 			workspace: r.workspace,
 			finishReplay: () => {
 				while (r.step()) {
-					// noop
 				}
 			},
 			step: () => {
@@ -213,13 +211,11 @@ interface IRecordingDoc {
 	writeStep: true;
 }
 
-/** This is to avoid non-deterministic race conditions. */
 export class SyncDiffService implements IDiffService {
 	readonly _serviceBrand: undefined;
 
 	computeDiff(original: string, modified: string, options: ILinesDiffComputerOptions): Promise<IDocumentDiff> {
 		const result = computeDiffSync(original, modified, options);
-		// Convert from space efficient JSON data to rich objects.
 		const diff: IDocumentDiff = {
 			identical: result.identical,
 			quitEarly: result.quitEarly,

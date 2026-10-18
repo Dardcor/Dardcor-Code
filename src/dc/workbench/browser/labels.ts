@@ -48,34 +48,16 @@ function toResource(props: IResourceLabelProps | undefined): URI | undefined {
 
 export interface IResourceLabelOptions extends IIconLabelValueOptions {
 
-	/**
-	 * A hint to the file kind of the resource.
-	 */
 	fileKind?: FileKind;
 
-	/**
-	 * File decorations to use for the label.
-	 */
 	readonly fileDecorations?: { colors: boolean; badges: boolean };
 
-	/**
-	 * Will take the provided label as is and e.g. not override it for untitled files.
-	 */
 	readonly forceLabel?: boolean;
 
-	/**
-	 * A prefix to be added to the name of the label.
-	 */
 	readonly namePrefix?: string;
 
-	/**
-	 * A suffix to be added to the name of the label.
-	 */
 	readonly nameSuffix?: string;
 
-	/**
-	 * Uses the provided icon instead of deriving a resource icon.
-	 */
 	readonly icon?: ThemeIcon | URI;
 }
 
@@ -91,26 +73,12 @@ export interface IResourceLabel extends IDisposable {
 
 	readonly onDidRender: Event<void>;
 
-	/**
-	 * Most generic way to apply a label with raw information.
-	 */
 	setLabel(label?: string, description?: string, options?: IIconLabelValueOptions): void;
 
-	/**
-	 * Convenient method to apply a label by passing a resource along.
-	 *
-	 * Note: for file resources consider to use the #setFile() method instead.
-	 */
 	setResource(label: IResourceLabelProps, options?: IResourceLabelOptions): void;
 
-	/**
-	 * Convenient method to render a file label based on a resource.
-	 */
 	setFile(resource: URI, options?: IFileLabelOptions): void;
 
-	/**
-	 * Resets the label to be empty.
-	 */
 	clear(): void;
 }
 
@@ -149,38 +117,32 @@ export class ResourceLabels extends Disposable {
 
 	private registerListeners(container: IResourceLabelsContainer): void {
 
-		// notify when visibility changes
 		this._register(container.onDidChangeVisibility(visible => {
 			this.widgets.forEach(widget => widget.notifyVisibilityChanged(visible));
 		}));
 
-		// notify when extensions are registered with potentially new languages
 		this._register(this.languageService.onDidChange(() => this.widgets.forEach(widget => widget.notifyExtensionsRegistered())));
 
-		// notify when model language changes
 		this._register(this.modelService.onModelLanguageChanged(e => {
 			if (!e.model.uri) {
-				return; // we need the resource to compare
+				return;
 			}
 
 			this.widgets.forEach(widget => widget.notifyModelLanguageChanged(e.model));
 		}));
 
-		// notify when model is added
 		this._register(this.modelService.onModelAdded(model => {
 			if (!model.uri) {
-				return; // we need the resource to compare
+				return;
 			}
 
 			this.widgets.forEach(widget => widget.notifyModelAdded(model));
 		}));
 
-		// notify when workspace folders changes
 		this._register(this.workspaceService.onDidChangeWorkspaceFolders(() => {
 			this.widgets.forEach(widget => widget.notifyWorkspaceFoldersChange());
 		}));
 
-		// notify when file decoration changes
 		this._register(this.decorationsService.onDidChangeDecorations(e => {
 			let notifyDidChangeDecorations = false;
 			this.widgets.forEach(widget => {
@@ -194,22 +156,18 @@ export class ResourceLabels extends Disposable {
 			}
 		}));
 
-		// notify when theme changes
 		this._register(this.themeService.onDidColorThemeChange(() => this.widgets.forEach(widget => widget.notifyThemeChange())));
 
-		// notify when files.associations changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(FILES_ASSOCIATIONS_CONFIG)) {
 				this.widgets.forEach(widget => widget.notifyFileAssociationsChange());
 			}
 		}));
 
-		// notify when label formatters change
 		this._register(this.labelService.onDidChangeFormatters(e => {
 			this.widgets.forEach(widget => widget.notifyFormattersChange(e.scheme));
 		}));
 
-		// notify when untitled labels change
 		this._register(this.textFileService.untitled.onDidChangeLabel(model => {
 			this.widgets.forEach(widget => widget.notifyUntitledLabelChange(model.resource));
 		}));
@@ -222,7 +180,6 @@ export class ResourceLabels extends Disposable {
 	create(container: HTMLElement, options?: IIconLabelCreationOptions): IResourceLabel {
 		const widget = this.instantiationService.createInstance(ResourceLabelWidget, container, options);
 
-		// Only expose a handle to the outside
 		const label: IResourceLabel = {
 			element: widget.element,
 			get onDidRender() { return widget.onDidRender; },
@@ -233,7 +190,6 @@ export class ResourceLabels extends Disposable {
 			dispose: () => this.disposeWidget(widget)
 		};
 
-		// Store
 		this.labels.push(label);
 		this.widgets.push(widget);
 
@@ -262,10 +218,6 @@ export class ResourceLabels extends Disposable {
 	}
 }
 
-/**
- * Note: please consider to use `ResourceLabels` if you are in need
- * of more than one label for your widget.
- */
 export class ResourceLabel extends ResourceLabels {
 
 	private label: IResourceLabel;
@@ -352,13 +304,13 @@ class ResourceLabelWidget extends IconLabel {
 	private handleModelEvent(model: ITextModel): void {
 		const resource = toResource(this.label);
 		if (!resource) {
-			return; // only update if resource exists
+			return;
 		}
 
 		if (isEqual(model.uri, resource)) {
 			if (this.computedLanguageId !== model.getLanguageId()) {
 				this.computedLanguageId = model.getLanguageId();
-				this.render({ updateIcon: true, updateDecoration: false }); // update if the language id of the model has changed from our last known state
+				this.render({ updateIcon: true, updateDecoration: false });
 			}
 		}
 	}
@@ -434,9 +386,6 @@ class ResourceLabelWidget extends IconLabel {
 		if (!options?.hidePath) {
 			const descriptionCandidate = this.labelService.getUriLabel(dirname(resource), { relative: true });
 			if (descriptionCandidate && descriptionCandidate !== '.') {
-				// omit description if its not significant: a relative path
-				// of '.' just indicates that there is no parent to the path
-				// https://github.com/microsoft/vscode/issues/208692
 				description = descriptionCandidate;
 			}
 		}
@@ -449,17 +398,6 @@ class ResourceLabelWidget extends IconLabel {
 		const isSideBySideEditor = label?.resource && !URI.isUri(label.resource);
 
 		if (!options.forceLabel && !isSideBySideEditor && resource?.scheme === Schemas.untitled) {
-			// Untitled labels are very dynamic because they may change
-			// whenever the content changes (unless a path is associated).
-			// As such we always ask the actual editor for it's name and
-			// description to get latest in case name/description are
-			// provided. If they are not provided from the label we got
-			// we assume that the client does not want to display them
-			// and as such do not override.
-			//
-			// We do not touch the label if it represents a primary-secondary
-			// because in that case we expect it to carry a proper label
-			// and description.
 			const untitledModel = this.textFileService.untitled.get(resource);
 			if (untitledModel && !untitledModel.hasAssociatedFilePath) {
 				if (typeof label.name === 'string') {
@@ -485,9 +423,6 @@ class ResourceLabelWidget extends IconLabel {
 		}
 
 		if (!options.forceLabel && !isSideBySideEditor && resource?.scheme === Schemas.vscodeNotebookCell) {
-			// Notebook cells are embeded in a notebook document
-			// As such we always ask the actual notebook document
-			// for its position in the document.
 			const notebookDocument = this.notebookDocumentService.getNotebook(resource);
 			const cellIndex = notebookDocument?.getCellIndex(resource);
 			if (notebookDocument && cellIndex !== undefined && typeof label.name === 'string') {
@@ -557,11 +492,11 @@ class ResourceLabelWidget extends IconLabel {
 		this.options = options;
 
 		if (hasResourceChanged) {
-			this.computedLanguageId = undefined; // reset computed language since resource changed
+			this.computedLanguageId = undefined;
 		}
 
 		if (hasPathLabelChanged) {
-			this.computedPathLabel = undefined; // reset path label due to resource/path-label change
+			this.computedPathLabel = undefined;
 		}
 
 		this.render({
@@ -574,7 +509,7 @@ class ResourceLabelWidget extends IconLabel {
 		const newFileKind = newOptions?.fileKind;
 		const oldFileKind = this.options?.fileKind;
 
-		return newFileKind !== oldFileKind; // same resource but different kind (file, folder)
+		return newFileKind !== oldFileKind;
 	}
 
 	private hasResourceChanged(newLabel: IResourceLabelProps): boolean {
@@ -651,7 +586,7 @@ class ResourceLabelWidget extends IconLabel {
 			iconLabelOptions.title = this.options.title;
 		}
 
-		if (resource && resource.scheme !== Schemas.data /* do not accidentally inline Data URIs */
+		if (resource && resource.scheme !== Schemas.data
 			&& (
 				(!this.options?.title)
 				|| ((typeof this.options.title !== 'string') && !this.options.title.markdownNotSupportedFallback)

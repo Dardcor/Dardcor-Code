@@ -14,7 +14,7 @@ function dispose(socket: net.Socket): void {
 		socket.destroy();
 		socket.unref();
 	} catch (error) {
-		console.error(error); // otherwise this error would get lost in the callback chain
+		console.error(error);
 	}
 }
 
@@ -41,10 +41,9 @@ export async function waitForListenerOnPort(port: number, host: string | undefin
 				}, 1000);
 				socket.connect(port, host ?? '127.0.0.1');
 			});
-			return; // Successfully connected
+			return;
 		} catch {
-			// Ignore errors and retry
-			await new Promise(resolve => setTimeout(resolve, 100)); // Wait before retrying
+			await new Promise(resolve => setTimeout(resolve, 100));
 		}
 	}
 

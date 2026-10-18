@@ -30,7 +30,6 @@ import { IInlineChatSessionService } from '../../../inlineChat/browser/inlineCha
 export abstract class BaseCellViewModel extends Disposable {
 
 	protected readonly _onDidChangeEditorAttachState = this._register(new Emitter<void>());
-	// Do not merge this event with `onDidChangeState` as we are using `Event.once(onDidChangeEditorAttachState)` elsewhere.
 	readonly onDidChangeEditorAttachState = this._onDidChangeEditorAttachState.event;
 	protected readonly _onDidChangeState = this._register(new Emitter<CellViewModelStateChangeEvent>());
 	public readonly onDidChangeState: Event<CellViewModelStateChangeEvent> = this._onDidChangeState.event;
@@ -191,7 +190,6 @@ export abstract class BaseCellViewModel extends Disposable {
 		private readonly _undoRedoService: IUndoRedoService,
 		private readonly _codeEditorService: ICodeEditorService,
 		private readonly _inlineChatSessionService: IInlineChatSessionService
-		// private readonly _keymapService: INotebookKeymapService
 	) {
 		super();
 
@@ -202,7 +200,6 @@ export abstract class BaseCellViewModel extends Disposable {
 		this._register(model.onDidChangeInternalMetadata(e => {
 			this._onDidChangeState.fire({ internalMetadataChanged: true });
 			if (e.lastRunSuccessChanged) {
-				// Statusbar visibility may change
 				this.layoutChange({});
 			}
 		}));
@@ -250,11 +247,6 @@ export abstract class BaseCellViewModel extends Disposable {
 		return false;
 	}
 
-	// private handleKeyDown(e: IKeyboardEvent) {
-	// 	if (this.viewType === IPYNB_VIEW_TYPE && isWindows && e.ctrlKey && e.keyCode === KeyCode.Enter) {
-	// 		this._keymapService.promptKeymapRecommendation();
-	// 	}
-	// }
 
 	attachTextEditor(editor: ICodeEditor, estimatedHasHorizontalScrolling?: boolean) {
 		if (!editor.hasModel()) {
@@ -264,7 +256,6 @@ export abstract class BaseCellViewModel extends Disposable {
 		if (this._textEditor === editor) {
 			if (this._editorListeners.length === 0) {
 				this._editorListeners.push(this._textEditor.onDidChangeCursorSelection(() => { this._onDidChangeState.fire({ selectionChanged: true }); }));
-				// this._editorListeners.push(this._textEditor.onKeyDown(e => this.handleKeyDown(e)));
 				this._onDidChangeState.fire({ selectionChanged: true });
 			}
 			return;
@@ -277,8 +268,6 @@ export abstract class BaseCellViewModel extends Disposable {
 		if (this._editorViewStates) {
 			this._restoreViewState(this._editorViewStates);
 		} else {
-			// If no real editor view state was persisted, restore a default state.
-			// This forces the editor to measure its content width immediately.
 			if (estimatedHasHorizontalScrolling) {
 				this._restoreViewState({
 					contributionsState: {},
@@ -297,14 +286,12 @@ export abstract class BaseCellViewModel extends Disposable {
 		}
 
 		if (this._isDisposed) {
-			// Restore View State could adjust the editor layout and trigger a list view update. The list view update might then dispose this view model.
 			return;
 		}
 
 		editor.changeDecorations((accessor) => {
 			this._resolvedDecorations.forEach((value, key) => {
 				if (key.startsWith('_lazy_')) {
-					// lazy ones
 					const ret = accessor.addDecoration(value.options.range, value.options.options);
 					this._resolvedDecorations.get(key)!.id = ret;
 				}
@@ -329,7 +316,6 @@ export abstract class BaseCellViewModel extends Disposable {
 	detachTextEditor() {
 		this.saveViewState();
 		this.saveTransientState();
-		// decorations need to be cleared first as editors can be resued.
 		this._textEditor?.changeDecorations((accessor) => {
 			this._resolvedDecorations.forEach(value => {
 				const resolvedid = value.id;
@@ -427,7 +413,6 @@ export abstract class BaseCellViewModel extends Disposable {
 			});
 		}
 
-		// lastly, remove all the cache
 		this._resolvedDecorations.delete(decorationId);
 	}
 
@@ -449,7 +434,6 @@ export abstract class BaseCellViewModel extends Disposable {
 
 		if (options) {
 			for (const existingOptions of this._resolvedCellDecorations.values()) {
-				// don't remove decorations that are applied from other entries
 				if (options.className === existingOptions.className) {
 					options.className = undefined;
 				}
@@ -482,7 +466,6 @@ export abstract class BaseCellViewModel extends Disposable {
 
 	getCellDecorationRange(decorationId: string): Range | null {
 		if (this._textEditor) {
-			// (this._textEditor as CodeEditorWidget).decora
 			return this._textEditor.getModel()?.getDecorationRange(decorationId) ?? null;
 		}
 
@@ -622,10 +605,8 @@ export abstract class BaseCellViewModel extends Disposable {
 			return CursorAtBoundary.None;
 		}
 
-		// only validate primary cursor
 		const selection = this._textEditor.getSelection();
 
-		// only validate empty cursor
 		if (!selection || !selection.isEmpty()) {
 			return CursorAtBoundary.None;
 		}
@@ -676,9 +657,6 @@ export abstract class BaseCellViewModel extends Disposable {
 		return this.model.textBuffer;
 	}
 
-	/**
-	 * Text model is used for editing.
-	 */
 	async resolveTextModel(): Promise<model.ITextModel> {
 		if (!this._textModelRef || !this.textModel) {
 			this._textModelRef = await this._modelService.createModelReference(this.uri);
@@ -733,9 +711,6 @@ export abstract class BaseCellViewModel extends Disposable {
 
 		dispose(this._editorListeners);
 
-		// Only remove the undo redo stack if we map this cell uri to itself
-		// If we are not in perCell mode, it will map to the full NotebookDocument and
-		// we don't want to remove that entire document undo / redo stack when a cell is deleted
 		if (this._undoRedoService.getUriComparisonKey(this.uri) === this.uri.toString()) {
 			this._undoRedoService.removeElements(this.uri);
 		}

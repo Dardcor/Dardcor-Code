@@ -137,7 +137,7 @@ class CallHierarchyController implements IEditorContribution {
 
 		model.then(model => {
 			if (cts.token.isCancellationRequested) {
-				return; // nothing
+				return;
 			}
 			if (model) {
 				this._sessionDisposables.add(model);
@@ -172,7 +172,7 @@ class CallHierarchyController implements IEditorContribution {
 	}
 }
 
-registerEditorContribution(CallHierarchyController.Id, CallHierarchyController, EditorContributionInstantiation.Eager); // eager because it needs to define a context key
+registerEditorContribution(CallHierarchyController.Id, CallHierarchyController, EditorContributionInstantiation.Eager);
 
 registerAction2(class PeekCallHierarchyAction extends EditorAction2 {
 

@@ -17,15 +17,10 @@ import { canUseProfileWithTest, ITestProfileService } from '../common/testProfil
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 
 interface IConfigurationPickerOptions {
-	/** Placeholder text */
 	placeholder?: string;
-	/** Show buttons to trigger configuration */
 	showConfigureButtons?: boolean;
-	/** Only show configurations from this controller */
 	onlyForTest?: InternalTestItem;
-	/** Only show this group */
 	onlyGroup?: TestRunProfileBitset;
-	/** Only show items which are configurable */
 	onlyConfigurable?: boolean;
 }
 
@@ -46,7 +41,7 @@ function buildPicker(accessor: ServicesAccessor, {
 					continue;
 				}
 
-				addedHeader = true; // showing one group, no need for label
+				addedHeader = true;
 			}
 
 			for (const profile of profiles) {

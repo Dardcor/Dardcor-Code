@@ -78,7 +78,6 @@ export class WorkbenchContextKeysHandler extends Disposable {
 	) {
 		super();
 
-		// Platform
 		IsMacContext.bindTo(this.contextKeyService);
 		IsLinuxContext.bindTo(this.contextKeyService);
 		IsWindowsContext.bindTo(this.contextKeyService);
@@ -94,97 +93,65 @@ export class WorkbenchContextKeysHandler extends Disposable {
 		this.temporaryWorkspaceContext = TemporaryWorkspaceContext.bindTo(this.contextKeyService);
 		this.updateWorkspaceContextKeys();
 
-		// Capabilities
 		HasWebFileSystemAccess.bindTo(this.contextKeyService).set(WebFileSystemAccess.supported(mainWindow));
 
-		// Development
 		const isDevelopment = !this.environmentService.isBuilt || this.environmentService.isExtensionDevelopment;
 		IsDevelopmentContext.bindTo(this.contextKeyService).set(isDevelopment);
 		setConstantContextKey(IsDevelopmentContext.key, isDevelopment);
 
-		// Product Service
 		ProductQualityContext.bindTo(this.contextKeyService).set(this.productService.quality || '');
 		EmbedderIdentifierContext.bindTo(this.contextKeyService).set(productService.embedderIdentifier);
 
-		// Automation
 		this.inAutomationContext = InAutomationContext.bindTo(this.contextKeyService);
 		this.inAutomationContext.set(!!this.environmentService.enableSmokeTestDriver);
 
-		// Editor Groups
 		this.activeEditorGroupEmpty = ActiveEditorGroupEmptyContext.bindTo(this.contextKeyService);
 		this.activeEditorGroupIndex = ActiveEditorGroupIndexContext.bindTo(this.contextKeyService);
 		this.activeEditorGroupLast = ActiveEditorGroupLastContext.bindTo(this.contextKeyService);
 		this.activeEditorGroupLocked = ActiveEditorGroupLockedContext.bindTo(this.contextKeyService);
 		this.multipleEditorGroupsContext = MultipleEditorGroupsContext.bindTo(this.contextKeyService);
 
-		// Editors
 		this.editorsVisibleContext = EditorsVisibleContext.bindTo(this.contextKeyService);
 
-		// Working Copies
 		this.dirtyWorkingCopiesContext = DirtyWorkingCopiesContext.bindTo(this.contextKeyService);
 		this.dirtyWorkingCopiesContext.set(this.workingCopyService.hasDirty);
 
-		// Workbench State
 		this.workbenchStateContext = WorkbenchStateContext.bindTo(this.contextKeyService);
 		this.updateWorkbenchStateContextKey();
 
-		// Workspace Folder Count
 		this.workspaceFolderCountContext = WorkspaceFolderCountContext.bindTo(this.contextKeyService);
 		this.updateWorkspaceFolderCountContextKey();
 
-		// Opening folder support: support for opening a folder workspace
-		// (e.g. "Open Folder...") is limited in web when not connected
-		// to a remote.
 		this.openFolderWorkspaceSupportContext = OpenFolderWorkspaceSupportContext.bindTo(this.contextKeyService);
 		this.openFolderWorkspaceSupportContext.set(isNative || typeof this.environmentService.remoteAuthority === 'string');
 
-		// Empty workspace support: empty workspaces require built-in file system
-		// providers to be available that allow to enter a workspace or open loose
-		// files. This condition is met:
-		// - desktop: always
-		// -     web: only when connected to a remote
 		this.emptyWorkspaceSupportContext = EmptyWorkspaceSupportContext.bindTo(this.contextKeyService);
 		this.emptyWorkspaceSupportContext.set(isNative || typeof this.environmentService.remoteAuthority === 'string');
 
-		// Entering a multi root workspace support: support for entering a multi-root
-		// workspace (e.g. "Open Workspace from File...", "Duplicate Workspace", "Save Workspace")
-		// is driven by the ability to resolve a workspace configuration file (*.code-workspace)
-		// with a built-in file system provider.
-		// This condition is met:
-		// - desktop: always
-		// -     web: only when connected to a remote
 		this.enterMultiRootWorkspaceSupportContext = EnterMultiRootWorkspaceSupportContext.bindTo(this.contextKeyService);
 		this.enterMultiRootWorkspaceSupportContext.set(isNative || typeof this.environmentService.remoteAuthority === 'string');
 
-		// Editor Layout
 		this.splitEditorsVerticallyContext = SplitEditorsVertically.bindTo(this.contextKeyService);
 		this.updateSplitEditorsVerticallyContext();
 
-		// Window
 		this.isMainWindowFullscreenContext = IsMainWindowFullscreenContext.bindTo(this.contextKeyService);
 		this.isAuxiliaryWindowFocusedContext = IsAuxiliaryWindowFocusedContext.bindTo(this.contextKeyService);
 
-		// Zen Mode
 		this.inZenModeContext = InEditorZenModeContext.bindTo(this.contextKeyService);
 
-		// Centered Layout (Main Editor)
 		this.isMainEditorCenteredLayoutContext = IsMainEditorCenteredLayoutContext.bindTo(this.contextKeyService);
 
-		// Editor Area
 		this.mainEditorAreaVisibleContext = MainEditorAreaVisibleContext.bindTo(this.contextKeyService);
 		this.mainEditorAreaVisibleContext.set(this.layoutService.isVisible(Parts.EDITOR_PART, mainWindow));
 		this.editorTabsVisibleContext = EditorTabsVisibleContext.bindTo(this.contextKeyService);
 
-		// Sidebar
 		this.sideBarVisibleContext = SideBarVisibleContext.bindTo(this.contextKeyService);
 		this.sideBarVisibleContext.set(this.layoutService.isVisible(Parts.SIDEBAR_PART));
 
-		// Title Bar
 		this.titleAreaVisibleContext = TitleBarVisibleContext.bindTo(this.contextKeyService);
 		this.titleBarStyleContext = TitleBarStyleContext.bindTo(this.contextKeyService);
 		this.updateTitleBarContextKeys();
 
-		// Panel
 		this.panelPositionContext = PanelPositionContext.bindTo(this.contextKeyService);
 		this.panelPositionContext.set(positionToString(this.layoutService.getPanelPosition()));
 		this.panelVisibleContext = PanelVisibleContext.bindTo(this.contextKeyService);
@@ -194,7 +161,6 @@ export class WorkbenchContextKeysHandler extends Disposable {
 		this.panelAlignmentContext = PanelAlignmentContext.bindTo(this.contextKeyService);
 		this.panelAlignmentContext.set(this.layoutService.getPanelAlignment());
 
-		// Auxiliary Bar
 		this.auxiliaryBarVisibleContext = AuxiliaryBarVisibleContext.bindTo(this.contextKeyService);
 		this.auxiliaryBarVisibleContext.set(this.layoutService.isVisible(Parts.AUXILIARYBAR_PART));
 		this.secondarySideBarVisibleContext = SecondarySideBarVisibleContext.bindTo(this.contextKeyService);
@@ -272,7 +238,6 @@ export class WorkbenchContextKeysHandler extends Disposable {
 		}
 	}
 
-	// Context keys depending on the state of the editor group itself
 	private updateActiveEditorGroupContextKeys(): void {
 		if (!this.editorService.activeEditor) {
 			this.activeEditorGroupEmpty.set(true);
@@ -281,13 +246,12 @@ export class WorkbenchContextKeysHandler extends Disposable {
 		}
 
 		const activeGroup = this.editorGroupService.activeGroup;
-		this.activeEditorGroupIndex.set(activeGroup.index + 1); // not zero-indexed
+		this.activeEditorGroupIndex.set(activeGroup.index + 1);
 		this.activeEditorGroupLocked.set(activeGroup.isLocked);
 
 		this.updateEditorGroupsContextKeys();
 	}
 
-	// Context keys depending on the state of other editor groups
 	private updateEditorGroupsContextKeys(): void {
 		const groupCount = this.editorGroupService.count;
 		if (groupCount > 1) {

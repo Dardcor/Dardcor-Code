@@ -24,9 +24,6 @@ import * as extHostProtocol from '../common/extHost.protocol.js';
 import { MainThreadWebviews, reviveWebviewContentOptions, reviveWebviewExtension } from './mainThreadWebviews.js';
 import { ThemeIcon } from '../../../base/common/themables.js';
 
-/**
- * Bi-directional map between webview handles and inputs.
- */
 class WebviewInputStore {
 	private readonly _handlesToInputs = new Map<string, WebviewInput>();
 	private readonly _inputsToHandles = new Map<WebviewInput, string>();
@@ -119,8 +116,6 @@ export class MainThreadWebviewPanels extends Disposable implements extHostProtoc
 			this.updateWebviewViewStates(input);
 		}));
 
-		// This reviver's only job is to activate extensions.
-		// This should trigger the real reviver to be registered from the extension host side.
 		this._register(_webviewWorkbenchService.registerResolver({
 			canResolve: (webview: WebviewInput) => {
 				const viewType = this.webviewPanelViewType.toExternal(webview.viewType);
@@ -218,17 +213,11 @@ export class MainThreadWebviewPanels extends Disposable implements extHostProtoc
 		}
 
 		if (showOptions.viewColumn >= 0) {
-			// First check to see if an existing group exists
 			const groupInColumn = this._editorGroupService.getGroups(GroupsOrder.GRID_APPEARANCE)[showOptions.viewColumn];
 			if (groupInColumn) {
 				return groupInColumn.id;
 			}
 
-			// We are dealing with an unknown group and therefore need a new group.
-			// Note that the new group's id may not match the one requested. We only allow
-			// creating a single new group, so if someone passes in `showOptions.viewColumn = 99`
-			// and there are two editor groups open, we simply create a third editor group instead
-			// of creating all the groups up to 99.
 			const newGroup = this._editorGroupService.findGroup({ location: GroupLocation.LAST });
 			if (newGroup) {
 				const direction = preferredSideBySideGroupDirection(this._configurationService);

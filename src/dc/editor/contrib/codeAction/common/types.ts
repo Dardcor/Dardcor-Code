@@ -56,7 +56,6 @@ export interface CodeActionFilter {
 }
 
 export function mayIncludeActionsOfKind(filter: CodeActionFilter, providedKind: HierarchicalKind): boolean {
-	// A provided kind may be a subset or superset of our filtered kind.
 	if (filter.include && !filter.include.intersects(providedKind)) {
 		return false;
 	}
@@ -67,7 +66,6 @@ export function mayIncludeActionsOfKind(filter: CodeActionFilter, providedKind: 
 		}
 	}
 
-	// Don't return source actions unless they are explicitly requested
 	if (!filter.includeSourceActions && CodeActionKind.Source.contains(providedKind)) {
 		return false;
 	}
@@ -78,7 +76,6 @@ export function mayIncludeActionsOfKind(filter: CodeActionFilter, providedKind: 
 export function filtersAction(filter: CodeActionFilter, action: languages.CodeAction): boolean {
 	const actionKind = action.kind ? new HierarchicalKind(action.kind) : undefined;
 
-	// Filter out actions by kind
 	if (filter.include) {
 		if (!actionKind || !filter.include.contains(actionKind)) {
 			return false;
@@ -91,7 +88,6 @@ export function filtersAction(filter: CodeActionFilter, action: languages.CodeAc
 		}
 	}
 
-	// Don't return source actions unless they are explicitly requested
 	if (!filter.includeSourceActions) {
 		if (actionKind && CodeActionKind.Source.contains(actionKind)) {
 			return false;
@@ -112,7 +108,6 @@ function excludesAction(providedKind: HierarchicalKind, exclude: HierarchicalKin
 		return false;
 	}
 	if (include && exclude.contains(include)) {
-		// The include is more specific, don't filter out
 		return false;
 	}
 	return true;

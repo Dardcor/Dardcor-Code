@@ -11,9 +11,6 @@ export const enum ExtHostConnectionType {
 	MessagePort = 3
 }
 
-/**
- * The extension host will connect via named pipe / domain socket to its renderer.
- */
 export class IPCExtHostConnection {
 	public static ENV_KEY = 'VSCODE_EXTHOST_IPC_HOOK';
 
@@ -28,9 +25,6 @@ export class IPCExtHostConnection {
 	}
 }
 
-/**
- * The extension host will receive via nodejs IPC the socket to its renderer.
- */
 export class SocketExtHostConnection {
 	public static ENV_KEY = 'VSCODE_EXTHOST_WILL_SEND_SOCKET';
 
@@ -41,9 +35,6 @@ export class SocketExtHostConnection {
 	}
 }
 
-/**
- * The extension host will receive via nodejs IPC the MessagePort to its renderer.
- */
 export class MessagePortExtHostConnection {
 	public static ENV_KEY = 'VSCODE_WILL_SEND_MESSAGE_PORT';
 
@@ -62,18 +53,11 @@ function clean(env: IProcessEnvironment): void {
 	delete env[MessagePortExtHostConnection.ENV_KEY];
 }
 
-/**
- * Write `connection` into `env` and clean up `env`.
- */
 export function writeExtHostConnection(connection: ExtHostConnection, env: IProcessEnvironment): void {
-	// Avoid having two different keys that might introduce amiguity or problems.
 	clean(env);
 	connection.serialize(env);
 }
 
-/**
- * Read `connection` from `env` and clean up `env`.
- */
 export function readExtHostConnection(env: IProcessEnvironment): ExtHostConnection {
 	if (env[IPCExtHostConnection.ENV_KEY]) {
 		return cleanAndReturn(env, new IPCExtHostConnection(env[IPCExtHostConnection.ENV_KEY]!));

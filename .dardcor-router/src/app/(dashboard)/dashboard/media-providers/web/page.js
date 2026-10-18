@@ -75,7 +75,7 @@ function ComboList({ combos }) {
             <div className="flex min-w-0 items-center gap-3">
               <span className="material-symbols-outlined text-primary text-[18px]">layers</span>
               <code className="text-sm font-mono font-medium flex-1 truncate">{combo.name}</code>
-              {/* Provider icons preview */}
+              {}
               <div className="flex flex-wrap items-center gap-1 sm:shrink-0">
                 {combo.models.slice(0, 6).map((entry, i) => {
                   const pid = typeof entry === "string" ? entry.split("/")[0] : "";
@@ -110,7 +110,7 @@ function ComboList({ combos }) {
 function Section({ title, icon, kind, providers, connections, combos, onCreateCombo }) {
   return (
     <div>
-      {/* Header — title left, Create Combo right */}
+      {}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="material-symbols-outlined text-primary">{icon}</span>
@@ -120,14 +120,14 @@ function Section({ title, icon, kind, providers, connections, combos, onCreateCo
         <Button size="sm" icon="add" onClick={onCreateCombo}>Create Combo</Button>
       </div>
 
-      {/* Combos — top */}
+      {}
       {combos.length > 0 && (
         <div className="mb-4">
           <ComboList combos={combos} />
         </div>
       )}
 
-      {/* Providers grid — bottom */}
+      {}
       {providers.length === 0 ? (
         <div className="text-center py-8 border border-dashed border-border rounded-xl text-text-muted text-sm">
           No providers.
@@ -156,7 +156,7 @@ export default function WebProvidersPage() {
       ]);
       if (connsRes.ok) setConnections((await connsRes.json()).connections || []);
       if (combosRes.ok) setCombos((await combosRes.json()).combos || []);
-    } catch { /* noop */ }
+    } catch { }
   };
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -168,7 +168,6 @@ export default function WebProvidersPage() {
   const fetchCombos = combos.filter((c) => c.kind === "webFetch");
 
   const handleCreateCombo = async (kind) => {
-    // Generate unique default name
     const base = kind === "webSearch" ? "search-combo" : "fetch-combo";
     let name = base;
     let i = 1;
@@ -196,7 +195,7 @@ export default function WebProvidersPage() {
         onCreateCombo={() => handleCreateCombo("webSearch")}
       />
 
-      {/* Divider between sections */}
+      {}
       <div className="border-t border-border" />
 
       <Section

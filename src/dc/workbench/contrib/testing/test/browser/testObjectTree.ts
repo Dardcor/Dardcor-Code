@@ -97,7 +97,6 @@ class ByLabelTreeSorter implements ITreeSorter<TestExplorerTreeElement> {
 	}
 }
 
-// names are hard
 export class TestTreeTestHarness<T extends ITestTreeProjection = ITestTreeProjection> extends Disposable {
 	private readonly onDiff = this._register(new Emitter<TestsDiff>());
 	public readonly onFolderChange = this._register(new Emitter<IWorkspaceFoldersChangeEvent>());
@@ -108,7 +107,7 @@ export class TestTreeTestHarness<T extends ITestTreeProjection = ITestTreeProjec
 	constructor(makeTree: (listener: ITestService) => T, public readonly c = testStubs.nested()) {
 		super();
 		this._register(c);
-		this._register(this.c.onDidGenerateDiff(d => this.c.setDiff(d /* don't clear during testing */)));
+		this._register(this.c.onDidGenerateDiff(d => this.c.setDiff(d )));
 
 		const collection = new MainThreadTestCollection({ asCanonicalUri: u => u }, (testId, levels) => {
 			this.c.expand(testId, levels);

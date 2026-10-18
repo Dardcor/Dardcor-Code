@@ -9,20 +9,11 @@ import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { IToolCall, IToolCallRound } from './intents';
 
 
-/**
- * Represents a round of tool calling from the AI assistant.
- * Each round contains the assistant's response text, any tool calls it made,
- * and retry information if there were input validation issues.
- */
 export class ToolCallRound implements IToolCallRound {
 	public summary: string | undefined;
 	public phase?: string;
 	public modelId?: string;
 
-	/**
-	 * Creates a ToolCallRound from an existing IToolCallRound object.
-	 * Prefer this over using a constructor overload to keep construction explicit.
-	 */
 	public static create(params: Omit<IToolCallRound, 'id'> & { id?: string }): ToolCallRound {
 		const round = new ToolCallRound(
 			params.response,
@@ -41,15 +32,6 @@ export class ToolCallRound implements IToolCallRound {
 		return round;
 	}
 
-	/**
-	 * @param response The text response from the assistant
-	 * @param toolCalls The tool calls made by the assistant
-	 * @param toolInputRetry The number of times this round has been retried due to tool input validation failures
-	 * @param id A stable identifier for this round
-	 * @param statefulMarker Optional stateful marker used with the responses API
-	 * @param thinking Optional thinking/reasoning data
-	 * @param timestamp Epoch millis when this round started (defaults to `Date.now()`)
-	 */
 	constructor(
 		public readonly response: string,
 		public readonly toolCalls: IToolCall[] = [],
@@ -99,7 +81,6 @@ export class ThinkingDataItem implements ThinkingData {
 		}
 		if (delta.text !== undefined) {
 
-			// handles all possible text states
 			if (Array.isArray(delta.text)) {
 				if (Array.isArray(this.text)) {
 					this.text.push(...delta.text);

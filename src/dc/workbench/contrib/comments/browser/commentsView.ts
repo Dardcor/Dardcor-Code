@@ -440,7 +440,6 @@ export class CommentsPanel extends FilterViewPane implements ICommentsView {
 						if (a instanceof ResourceWithCommentThreads && b instanceof ResourceWithCommentThreads) {
 							const workspaceScheme = this.pathService.defaultUriScheme;
 							if ((a.resource.scheme !== b.resource.scheme) && (a.resource.scheme === workspaceScheme || b.resource.scheme === workspaceScheme)) {
-								// Workspace scheme should always come first
 								return b.resource.scheme === workspaceScheme ? 1 : -1;
 							}
 							return a.resource.toString() > b.resource.toString() ? 1 : -1;

@@ -10,9 +10,8 @@ import { ChatResponseStreamImpl } from '../../../../util/common/chatResponseStre
 import { ChatSubagentToolInvocationData, ChatToolInvocationPart, LanguageModelTextPart } from '../../../../dardcorTypes';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { toolCategories, ToolCategory, ToolName } from '../../common/toolNames';
-import { CopilotToolMode, ToolRegistry } from '../../common/toolsRegistry';
+import { AgentToolMode, ToolRegistry } from '../../common/toolsRegistry';
 
-// Ensure side-effect registration
 import '../executionSubagentTool';
 
 function createTool() {
@@ -62,7 +61,7 @@ suite('ExecutionSubagentTool', () => {
 			conversation: { sessionId: 'conversation-id' },
 			stream,
 			requestId: 'top-level-turn-id',
-		} as unknown as IBuildPromptContext, CopilotToolMode.FullContext);
+		} as unknown as IBuildPromptContext, AgentToolMode.FullContext);
 
 		const result = await tool.invoke({
 			input,

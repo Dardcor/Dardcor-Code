@@ -62,7 +62,6 @@ export class RemoteAuthorityResolverService extends Disposable implements IRemot
 	}
 
 	async getCanonicalURI(uri: URI): Promise<URI> {
-		// todo@connor4312 make this work for web
 		return uri;
 	}
 
@@ -106,8 +105,6 @@ export class RemoteAuthorityResolverService extends Disposable implements IRemot
 	_setResolvedAuthority(resolvedAuthority: ResolvedAuthority, options?: ResolvedOptions): void {
 		if (this._resolveAuthorityRequests.has(resolvedAuthority.authority)) {
 			const request = this._resolveAuthorityRequests.get(resolvedAuthority.authority)!;
-			// For non-websocket types, it's expected the embedder passes a `remoteResourceProvider`
-			// which is wrapped to a `IResourceUriProvider` and is not handled here.
 			if (resolvedAuthority.connectTo.type === RemoteConnectionType.WebSocket) {
 				RemoteAuthorities.set(resolvedAuthority.authority, resolvedAuthority.connectTo.host, resolvedAuthority.connectTo.port);
 			}
@@ -122,7 +119,6 @@ export class RemoteAuthorityResolverService extends Disposable implements IRemot
 	_setResolvedAuthorityError(authority: string, err: any): void {
 		if (this._resolveAuthorityRequests.has(authority)) {
 			const request = this._resolveAuthorityRequests.get(authority)!;
-			// Avoid that this error makes it to telemetry
 			request.error(errors.ErrorNoTelemetry.fromError(err));
 		}
 	}

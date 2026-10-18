@@ -9,33 +9,23 @@ import { bootstrapESM } from './bootstrap-esm.js';
 
 performance.mark('code/fork/start');
 
-//#region Helpers
 
 function pipeLoggingToParent(): void {
 	const MAX_STREAM_BUFFER_LENGTH = 1024 * 1024;
 	const MAX_LENGTH = 100000;
 
-	/**
-	 * Prevent circular stringify and convert arguments to real array
-	 */
 	function safeToString(args: ArrayLike<unknown>): string {
 		const seen: unknown[] = [];
 		const argsArray: unknown[] = [];
 
-		// Massage some arguments with special treatment
 		if (args.length) {
 			for (let i = 0; i < args.length; i++) {
 				let arg = args[i];
 
-				// Any argument of type 'undefined' needs to be specially treated because
-				// JSON.stringify will simply ignore those. We replace them with the string
-				// 'undefined' which is not 100% right, but good enough to be logged to console
 				if (typeof arg === 'undefined') {
 					arg = 'undefined';
 				}
 
-				// Any argument that is an Error will be changed to be just the error stack/message
-				// itself because currently cannot serialize the error over entirely.
 				else if (arg instanceof Error) {
 					const errorObj = arg;
 					if (errorObj.stack) {
@@ -52,7 +42,6 @@ function pipeLoggingToParent(): void {
 		try {
 			const res = JSON.stringify(argsArray, function (key, value: unknown) {
 
-				// Objects get special treatment to prevent circles
 				if (isObject(value) || Array.isArray(value)) {
 					if (seen.indexOf(value) !== -1) {
 						return '[Circular]';
@@ -80,7 +69,6 @@ function pipeLoggingToParent(): void {
 				process.send(arg);
 			}
 		} catch (error) {
-			// Can happen if the parent channel is closed meanwhile
 		}
 	}
 
@@ -96,12 +84,6 @@ function pipeLoggingToParent(): void {
 		safeSend({ type: '__$console', severity, arguments: args });
 	}
 
-	/**
-	 * Wraps a console message so that it is transmitted to the renderer.
-	 *
-	 * The wrapped property is not defined with `writable: false` to avoid
-	 * throwing errors, but rather a no-op setting. See https://github.com/microsoft/vscode-extension-telemetry/issues/88
-	 */
 	function wrapConsoleMethod(method: 'log' | 'info' | 'warn' | 'error', severity: 'log' | 'warn' | 'error'): void {
 		Object.defineProperty(console, method, {
 			set: () => { },
@@ -109,12 +91,6 @@ function pipeLoggingToParent(): void {
 		});
 	}
 
-	/**
-	 * Wraps process.stderr/stdout.write() so that it is transmitted to the
-	 * renderer or CLI. It both calls through to the original method as well
-	 * as to console.log with complete lines so that they're made available
-	 * to the debugger/CLI.
-	 */
 	function wrapStream(streamName: 'stdout' | 'stderr', severity: 'log' | 'warn' | 'error'): void {
 		const stream = process[streamName];
 		const original = stream.write;
@@ -142,9 +118,9 @@ function pipeLoggingToParent(): void {
 		wrapConsoleMethod('warn', 'warn');
 		wrapConsoleMethod('error', 'error');
 	} else {
-		console.log = function () { /* ignore */ };
-		console.warn = function () { /* ignore */ };
-		console.info = function () { /* ignore */ };
+		console.log = function () { };
+		console.warn = function () { };
+		console.info = function () { };
 		wrapConsoleMethod('error', 'error');
 	}
 
@@ -154,12 +130,10 @@ function pipeLoggingToParent(): void {
 
 function handleExceptions(): void {
 
-	// Handle uncaught exceptions
 	process.on('uncaughtException', function (err) {
 		console.error('Uncaught Exception: ', err);
 	});
 
-	// Handle unhandled promise rejections
 	process.on('unhandledRejection', function (reason) {
 		console.error('Unhandled Promise Rejection: ', reason);
 	});
@@ -171,7 +145,7 @@ function terminateWhenParentTerminates(): void {
 	if (typeof parentPid === 'number' && !isNaN(parentPid)) {
 		setInterval(function () {
 			try {
-				process.kill(parentPid, 0); // throws an exception if the main process doesn't exist anymore.
+				process.kill(parentPid, 0);
 			} catch (e) {
 				process.exit();
 			}
@@ -184,7 +158,7 @@ function configureCrashReporter(): void {
 	if (crashReporterProcessType) {
 		try {
 			//@ts-expect-error
-			if (process['crashReporter'] && typeof process['crashReporter'].addExtraParameter === 'function' /* Electron only */) {
+			if (process['crashReporter'] && typeof process['crashReporter'].addExtraParameter === 'function' ) {
 				//@ts-expect-error
 				process['crashReporter'].addExtraParameter('processType', crashReporterProcessType);
 			}
@@ -194,9 +168,7 @@ function configureCrashReporter(): void {
 	}
 }
 
-//#endregion
 
-// Crash reporter
 configureCrashReporter();
 
 // Remove global paths from the node module lookup (node.js only)
@@ -207,27 +179,22 @@ if (devInjectPath) {
 	devInjectNodeModuleLookupPath(devInjectPath);
 }
 
-// Configure: pipe logging to parent process
 if (!!process.send && (process.env['DCCODE_PIPE_LOGGING'] === 'true' || process.env['VSCODE_PIPE_LOGGING'] === 'true')) {
 	pipeLoggingToParent();
 }
 
-// Handle Exceptions
 if (!process.env['DCCODE_HANDLES_UNCAUGHT_ERRORS'] && !process.env['VSCODE_HANDLES_UNCAUGHT_ERRORS']) {
 	handleExceptions();
 }
 
-// Terminate when parent terminates
 if (process.env['DCCODE_PARENT_PID'] || process.env['VSCODE_PARENT_PID']) {
 	terminateWhenParentTerminates();
 }
 
-// Bootstrap ESM
 await bootstrapESM();
 
-// Load ESM entry point
 let entryPoint = process.env['DCCODE_ESM_ENTRYPOINT'] || process.env['VSCODE_ESM_ENTRYPOINT'] || '';
 if (entryPoint.startsWith('vs/')) {
 	entryPoint = 'dc/' + entryPoint.substring(3);
 }
-await import([`./${entryPoint}.js`].join('/') /* workaround: esbuild prints some strange warnings when trying to inline? */);
+await import([`./${entryPoint}.js`].join('/') );

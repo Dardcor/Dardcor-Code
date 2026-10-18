@@ -8,9 +8,6 @@ use std::path::{Component, Path, PathBuf};
 
 use super::errors::{wrap, WrappedError};
 
-/// Lexically normalizes a path, resolving `.` and `..` components without
-/// touching the filesystem. Returns `None` if normalization would walk above
-/// the path's root via a leading `..`.
 fn lexically_normalize(path: &Path) -> Option<PathBuf> {
 	let mut out = PathBuf::new();
 	for component in path.components() {
@@ -29,8 +26,6 @@ fn lexically_normalize(path: &Path) -> Option<PathBuf> {
 	Some(out)
 }
 
-/// Ensures the extraction root exists and returns its canonicalized form to
-/// use as the reference for containment checks.
 pub fn prepare_extraction_root(root: &Path) -> Result<PathBuf, WrappedError> {
 	fs::create_dir_all(root)
 		.map_err(|e| wrap(e, format!("could not create extraction root {}", root.display())))?;
@@ -42,10 +37,6 @@ pub fn prepare_extraction_root(root: &Path) -> Result<PathBuf, WrappedError> {
 	})
 }
 
-/// Joins an archive entry's relative path under `root_canonical` after
-/// rejecting any entry that would land outside the root. Rejects empty
-/// entries, absolute paths, drive prefixes, and `..` traversal that escapes
-/// the root.
 pub fn safe_extract_join(root_canonical: &Path, entry: &Path) -> Result<PathBuf, WrappedError> {
 	if entry.as_os_str().is_empty() {
 		return Err(wrap(
@@ -79,9 +70,6 @@ pub fn safe_extract_join(root_canonical: &Path, entry: &Path) -> Result<PathBuf,
 	Ok(normalized)
 }
 
-/// Validates that an existing path resolves (via filesystem canonicalization)
-/// to a location inside `root_canonical`. This catches symlinks created
-/// earlier in the archive that would redirect writes outside the root.
 pub fn ensure_canonical_within_root(
 	root_canonical: &Path,
 	path: &Path,
@@ -105,9 +93,6 @@ pub fn ensure_canonical_within_root(
 	Ok(())
 }
 
-/// For Unix symlink entries: validates that the symlink target, interpreted
-/// relative to the symlink's parent directory, would not point outside the
-/// extraction root. Absolute targets are rejected outright.
 #[cfg(unix)]
 pub fn validate_symlink_target(
 	root_canonical: &Path,

@@ -288,8 +288,6 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 		super();
 		this.root = new Root();
 		this.lastActive = this.root;
-		// Try not to add anything that could be costly to this constructor. It gets called once per tree view
-		// during startup, and anything added here can affect performance.
 	}
 
 	private _isInitialized: boolean = false;
@@ -299,8 +297,6 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 		}
 		this._isInitialized = true;
 
-		// Remember when adding to this method that it isn't called until the view is visible, meaning that
-		// properties could be set and events could be fired before we're initialized and that this needs to be handled.
 
 		this.contextKeyService.bufferChangeEvents(() => {
 			this.initializeShowCollapseAllAction();
@@ -315,7 +311,7 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('explorer.decorations')) {
-				this.doRefresh([this.root]); /** soft refresh **/
+				this.doRefresh([this.root]);
 			}
 		}));
 		this._register(this.viewDescriptorService.onDidChangeLocation(({ views, from, to }) => {
@@ -614,9 +610,6 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 	}
 
 	setVisibility(isVisible: boolean): void {
-		// Throughout setVisibility we need to check if the tree view's data provider still exists.
-		// This can happen because the `getChildren` call to the extension can return
-		// after the tree has been disposed.
 
 		this.initialize();
 		isVisible = !!isVisible;
@@ -630,7 +623,7 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 			if (this.isVisible) {
 				DOM.show(this.tree.getHTMLElement());
 			} else {
-				DOM.hide(this.tree.getHTMLElement()); // make sure the tree goes out of the tabindex world by hiding it
+				DOM.hide(this.tree.getHTMLElement());
 			}
 
 			if (this.isVisible && this.elementsToRefresh.length && this.dataProvider) {
@@ -655,13 +648,11 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 
 	focus(reveal: boolean = true, revealItem?: ITreeItem): void {
 		if (this.tree && this.root.children && this.root.children.length > 0) {
-			// Make sure the current selected element is revealed
 			const element = revealItem ?? this.tree.getSelection()[0];
 			if (element && reveal) {
 				this.tree.reveal(element, 0.5);
 			}
 
-			// Pass Focus to Viewer
 			this.tree.domFocus();
 		} else if (this.tree && this.treeContainer && !this.treeContainer.classList.contains('hide')) {
 			this.tree.domFocus();
@@ -713,8 +704,6 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 						return treeMenus.getResourceActions([element]).length > 0 ? localize('treeAriaLabelHasActionsTooltip', "{0}, has actions", element.tooltip) : element.tooltip;
 					} else {
 						if (element.resourceUri && !element.label) {
-							// The custom tree has no good information on what should be used for the aria label.
-							// Allow the tree widget's default aria label to be used.
 							return null;
 						}
 						let buildAriaLabel: string = '';
@@ -809,8 +798,6 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 			if (command && isTreeCommandEnabled(command, this.contextKeyService)) {
 				let args = command.arguments || [];
 				if (command.id === API_OPEN_EDITOR_COMMAND_ID || command.id === API_OPEN_DIFF_EDITOR_COMMAND_ID) {
-					// Some commands owned by us should receive the
-					// `IOpenEvent` as context to open properly
 					args = [...args, e];
 				}
 
@@ -1020,11 +1007,10 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 			}
 			if (!elements) {
 				elements = [this.root];
-				// remove all waiting elements to refresh if root is asked to refresh
 				this.elementsToRefresh = [];
 			}
 			for (const element of elements) {
-				element.children = undefined; // reset children
+				element.children = undefined;
 			}
 			if (this.isVisible) {
 				const affectedElements = this.updateCheckboxes(checkboxes ?? []);
@@ -1057,8 +1043,6 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 				await tree.expand(element, false);
 			}
 		} catch (e) {
-			// The extension could have changed the tree during the reveal.
-			// Because of that, we ignore errors.
 		}
 	}
 
@@ -1100,9 +1084,6 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 			try {
 				await Promise.all(elements.map(element => tree.updateChildren(element, true, true)));
 			} catch (e) {
-				// When multiple calls are made to refresh the tree in quick succession,
-				// we can get a "Tree element not found" error. This is expected.
-				// Ideally this is fixable, so log instead of ignoring so the error is preserved.
 				this.logService.error(e);
 			}
 			const newSelection = tree.getSelection();
@@ -1137,9 +1118,7 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 
 	private updateContentAreas(): void {
 		const isTreeEmpty = !this.root.children || this.root.children.length === 0;
-		// Hide tree container only when there is a message and tree is empty and not refreshing
 		if (this._messageValue && isTreeEmpty && !this.refreshing && this.treeContainer) {
-			// If there's a dnd controller then hiding the tree prevents it from being dragged into.
 			if (!this.dragAndDropController) {
 				this.treeContainer.classList.add('hide');
 			}
@@ -1255,7 +1234,7 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 	private _actionRunner: MultipleSelectionActionRunner | undefined;
 	private _hoverDelegate: IHoverDelegate;
 	private _hasCheckbox: boolean = false;
-	private _renderedElements = new Map<string, { original: ITreeNode<ITreeItem, FuzzyScore>; rendered: ITreeExplorerTemplateData }[]>(); // tree item handle to template data
+	private _renderedElements = new Map<string, { original: ITreeNode<ITreeItem, FuzzyScore>; rendered: ITreeExplorerTemplateData }[]>();
 
 	constructor(
 		private treeViewId: string,
@@ -1315,7 +1294,7 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 					return label;
 				}
 			} else if (!isString(node.tooltip)) {
-				return { markdown: node.tooltip, markdownNotSupportedFallback: resource ? undefined : renderAsPlaintext(node.tooltip) }; // Passing undefined as the fallback for a resource falls back to the old native hover
+				return { markdown: node.tooltip, markdownNotSupportedFallback: resource ? undefined : renderAsPlaintext(node.tooltip) };
 			} else if (node.tooltip !== '') {
 				return node.tooltip;
 			} else {
@@ -1330,7 +1309,7 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 						node.resolve(token).then(() => resolve(node.tooltip));
 					});
 				},
-			markdownNotSupportedFallback: resource ? undefined : (label ? (isMarkdownString(label) ? label.value : label) : '') // Passing undefined as the fallback for a resource falls back to the old native hover
+			markdownNotSupportedFallback: resource ? undefined : (label ? (isMarkdownString(label) ? label.value : label) : '')
 		};
 	}
 
@@ -1364,7 +1343,6 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 			let didChange = false;
 			for (const syntax of syntaxes) {
 				if (text.startsWith(syntax.open) && text.endsWith(syntax.close)) {
-					// If there is a match within the markers, stop processing
 					if (matches?.some(match => match.start < syntax.open.length || match.end > text.length - syntax.close.length)) {
 						return false;
 					}
@@ -1378,7 +1356,6 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 			return didChange;
 		}
 
-		// Arbitrary max # of iterations
 		for (let i = 0; i < 10; i++) {
 			if (!checkSyntaxes()) {
 				break;
@@ -1422,7 +1399,6 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 		const iconUrl = icon ? URI.revive(icon) : undefined;
 		const title = this.getHover(treeItemLabel?.label, resource, node);
 
-		// reset
 		templateData.actionBar.clear();
 		templateData.icon.style.color = '';
 
@@ -1495,8 +1471,6 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 		const menuActions = this.menus.getResourceActions([node]);
 		templateData.actionBar.push(menuActions, { icon: true, label: false });
 
-		// Associate the inline toolbar with the tree item so screen readers
-		// announce which item the actions belong to when focus moves to them.
 		if (menuActions.length > 0) {
 			const itemName = [label, description].filter((part): part is string => !!part).join(' ').trim();
 			templateData.actionBar.setAriaLabel(itemName ? localize('treeActionBarAriaLabel', "Actions for {0}", itemName) : localize('treeActionBarAriaLabelNoName', "Actions"));
@@ -1509,14 +1483,11 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 		}
 		this.setAlignment(templateData.container, node);
 
-		// remember rendered element, an element can be rendered multiple times
 		const renderedItems = this._renderedElements.get(element.element.handle) ?? [];
 		this._renderedElements.set(element.element.handle, [...renderedItems, { original: element, rendered: templateData }]);
 	}
 
 	private rerender() {
-		// As we add items to the map during this call we can't directly use the map in the for loop
-		// but have to create a copy of the keys first
 		const keys = new Set(this._renderedElements.keys());
 		for (const key of keys) {
 			const values = this._renderedElements.get(key) ?? [];
@@ -1529,7 +1500,6 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 
 	private renderCheckbox(node: ITreeItem, templateData: ITreeExplorerTemplateData) {
 		if (node.checkbox) {
-			// The first time we find a checkbox we want to rerender the visible tree to adapt the alignment
 			if (!this._hasCheckbox) {
 				this._hasCheckbox = true;
 				this.rerender();
@@ -1550,8 +1520,6 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 	}
 
 	private shouldHideResourceLabelIcon(iconUrl: URI | undefined, icon: ThemeIcon | undefined): boolean {
-		// We always hide the resource label in favor of the iconUrl when it's provided.
-		// When `ThemeIcon` is provided, we hide the resource label icon in favor of it only if it's a not a file icon.
 		return (!!iconUrl || (!!icon && !this.isFileKindThemeIcon(icon)));
 	}
 
@@ -1560,8 +1528,6 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 			return false;
 		}
 
-		// If there's a resource and the icon is a file icon, then the icon (or lack thereof) will already be coming from the
-		// icon theme and should use whatever the icon theme has provided.
 		return !(hasResource && this.isFileKindThemeIcon(icon));
 	}
 
@@ -1681,9 +1647,6 @@ class Aligner extends Disposable {
 		if (icon) {
 			return true;
 		}
-		// `file` and `folder` ThemeIcons defer to the file icon theme only when the item has a resource.
-		// Any other ThemeIcon, or a `file`/`folder` ThemeIcon on an item without a resource, is always
-		// rendered as a codicon and therefore always has an icon regardless of the file icon theme.
 		if (node.themeIcon && (!node.resourceUri || (node.themeIcon.id !== FileThemeIcon.id && node.themeIcon.id !== FolderThemeIcon.id))) {
 			return true;
 		}
@@ -1741,17 +1704,11 @@ class TreeMenus implements IDisposable {
 		@IMenuService private readonly menuService: IMenuService
 	) { }
 
-	/**
-	 * Gets only the actions that apply to all of the given elements.
-	 */
 	getResourceActions(elements: ITreeItem[]): IAction[] {
 		const actions = this.getActions(this.getMenuId(), elements);
 		return actions.primary;
 	}
 
-	/**
-	 * Gets only the actions that apply to all of the given elements.
-	 */
 	getResourceContextActions(elements: ITreeItem[]): IAction[] {
 		return this.getActions(this.getMenuId(), elements).secondary;
 	}
@@ -1963,7 +1920,6 @@ export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 		this.treeItemsTransfer.setData([new DraggedTreeItemsIdentifier(uuid)], DraggedTreeItemsIdentifier.prototype);
 		originalEvent.dataTransfer.clearData(Mimes.text);
 		if (this.dndController.dragMimeTypes.find((element) => element === Mimes.uriList)) {
-			// Add the type that the editor knows
 			originalEvent.dataTransfer?.setData(DataTransfers.RESOURCES, '');
 		}
 		this.dndController.dragMimeTypes.forEach(supportedType => {
@@ -1973,11 +1929,8 @@ export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 
 	private addResourceInfoToTransfer(originalEvent: DragEvent, resources: URI[]) {
 		if (resources.length && originalEvent.dataTransfer) {
-			// Apply some datatransfer types to allow for dragging the element outside of the application
 			this.instantiationService.invokeFunction(accessor => fillEditorsDragData(accessor, resources, originalEvent));
 
-			// The only custom data transfer we set from the explorer is a file transfer
-			// to be able to DND between multiple code file explorers across windows
 			const fileResources = resources.filter(s => s.scheme === Schemas.file).map(r => r.fsPath);
 			if (fileResources.length) {
 				originalEvent.dataTransfer.setData(CodeDataTransfers.FILES, JSON.stringify(fileResources));
@@ -2020,7 +1973,6 @@ export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 		const types = new Set<string>(Array.from(dataTransfer, x => x[0]));
 
 		if (originalEvent.dataTransfer) {
-			// Also add uri-list if we have any files. At this stage we can't actually access the file itself though.
 			for (const item of originalEvent.dataTransfer.items) {
 				if (item.kind === 'file' || item.type === DataTransfers.RESOURCES.toLowerCase()) {
 					types.add(Mimes.uriList);
@@ -2091,7 +2043,6 @@ export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 					try {
 						treeSourceInfo = JSON.parse(await item.asString());
 					} catch {
-						// noop
 					}
 				}
 			}
@@ -2107,7 +2058,6 @@ export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 	}
 
 	onDragEnd(originalEvent: DragEvent): void {
-		// Check if the drag was cancelled.
 		if (originalEvent.dataTransfer?.dropEffect === 'none') {
 			this.dragCancellationToken?.cancel();
 		}

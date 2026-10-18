@@ -10,13 +10,7 @@ import { IXtermTerminal } from '../../../terminal/browser/terminal.js';
 import type { IMarker, Terminal } from '@xterm/xterm';
 
 export class BufferContentTracker extends Disposable {
-	/**
-	 * Marks the last part of the buffer that was cached
-	 */
 	private _lastCachedMarker: IMarker | undefined;
-	/**
-	 * The number of wrapped lines in the viewport when the last cached marker was set
-	 */
 	private _priorEditorViewportLineCount: number = 0;
 
 	private _lines: string[] = [];
@@ -40,7 +34,6 @@ export class BufferContentTracker extends Disposable {
 
 	update(): void {
 		if (this._lastCachedMarker?.isDisposed) {
-			// the terminal was cleared, reset the cache
 			this._lines = [];
 			this._lastCachedMarker = undefined;
 		}
@@ -56,11 +49,9 @@ export class BufferContentTracker extends Disposable {
 		const start = this._lastCachedMarker?.line ? this._lastCachedMarker.line - this._xterm.raw.rows + 1 : 0;
 		const end = buffer.baseY;
 		if (start < 0 || start > end) {
-			// in the viewport, no need to cache
 			return;
 		}
 
-		// to keep the cache size down, remove any lines that are no longer in the scrollback
 		const scrollback: number = this._configurationService.getValue(TerminalSettingId.Scrollback);
 		const maxBufferSize = scrollback + this._xterm.raw.rows - 1;
 		const linesToAdd = end - start;
@@ -72,7 +63,6 @@ export class BufferContentTracker extends Disposable {
 			this._logService.debug('Buffer content tracker: removed ', numToRemove, ' lines from top of cached lines, now ', this._lines.length, ' lines');
 		}
 
-		// iterate through the buffer lines and add them to the editor line cache
 		const cachedLines = [];
 		let currentLine: string = '';
 		for (let i = start; i < end; i++) {
@@ -98,7 +88,6 @@ export class BufferContentTracker extends Disposable {
 		if (!this._lines.length) {
 			return;
 		}
-		// remove previous viewport content in case it has changed
 		let linesToRemove = this._priorEditorViewportLineCount;
 		let index = 1;
 		while (linesToRemove) {

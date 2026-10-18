@@ -13,9 +13,6 @@ import { ReconnectingRelayTransport, RelayTransport, type IRelayChannel, type IR
 import { NonReconnectableTransportError } from '../../common/state/sessionTransport.js';
 import { MALFORMED_FRAMES_FORCE_CLOSE_THRESHOLD, MALFORMED_FRAMES_LOG_CAP } from '../../common/transportConstants.js';
 
-/**
- * Minimal SSH-shaped relay channel for testing the transport.
- */
 class MockRelayChannel implements IRelayChannel {
 	private readonly _onDidRelayMessage = new Emitter<IRelayMessage>();
 	readonly onDidRelayMessage = this._onDidRelayMessage.event;
@@ -29,7 +26,6 @@ class MockRelayChannel implements IRelayChannel {
 		this.sentMessages.push({ connectionId, message });
 	}
 
-	// Test helpers
 	fireRelayMessage(msg: IRelayMessage): void {
 		this._onDidRelayMessage.fire(msg);
 	}
@@ -99,7 +95,6 @@ suite('RelayTransport', () => {
 		const received: unknown[] = [];
 		disposables.add(transport.onMessage(msg => received.push(msg)));
 
-		// Should not throw
 		mockChannel.fireRelayMessage({ connectionId: 'conn-1', data: 'not-json{{{' });
 
 		assert.strictEqual(received.length, 0);
@@ -161,7 +156,6 @@ suite('RelayTransport', () => {
 		const msg = { jsonrpc: '2.0' as const, method: 'test', id: 42 };
 		transport.send(msg);
 
-		// Give the async relaySend a tick to register
 		await new Promise<void>(r => queueMicrotask(r));
 
 		assert.strictEqual(mockChannel.sentMessages.length, 1);

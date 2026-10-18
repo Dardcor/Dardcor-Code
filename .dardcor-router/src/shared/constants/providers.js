@@ -1,15 +1,13 @@
-// Provider definitions
 import REGISTRY from "open-sse/providers/registry/index.js";
 import { RISK_NOTICE } from "@/shared/constants/providersDisplay";
 
 const MEDIA_ENTRY_KEYS = [
   "serviceKinds", "ttsConfig", "sttConfig", "embeddingConfig",
   "imageConfig", "imageToTextConfig", "videoConfig", "musicConfig",
-  "searchViaChat", "searchConfig", "fetchConfig", "credentialFallback",
+  "searchViaChat", "searchConfig", "fetchConfig", "credentialFallback", "systemoneConfig",
   "modelsFetcher", "mediaPriority", "hiddenKinds",
 ];
 
-// Build provider UI object from registry entry
 function buildProviderEntry(r) {
   const mediaFields = {};
   if (r.media) Object.assign(mediaFields, r.media);
@@ -45,11 +43,6 @@ const byCategory = (cat) => Object.fromEntries(
 export const FREE_PROVIDERS = byCategory("free");
 export const FREE_TIER_PROVIDERS = byCategory("freeTier");
 
-// Thinking config definitions
-// options: list of selectable modes ("auto" = no override from server)
-// defaultMode: fallback when user hasn't configured
-// extended: claude-style thinking (thinking.type + budget_tokens) — used by most providers
-// effort: openai-style reasoning_effort — only openai + codex
 export const THINKING_CONFIG = {
   extended: {
     options: ["auto", "on", "off"],
@@ -65,10 +58,8 @@ export const THINKING_CONFIG = {
 export const OAUTH_PROVIDERS = byCategory("oauth");
 export const APIKEY_PROVIDERS = byCategory("apikey");
 
-// Web Cookie Providers (use browser session cookie instead of API key)
 export const WEB_COOKIE_PROVIDERS = byCategory("webCookie");
 
-// Media provider kinds — each kind maps to a route and endpoint config
 export const MEDIA_PROVIDER_KINDS = [
   { id: "embedding",   label: "Embedding",      icon: "data_array",        endpoint: { method: "POST", path: "/v1/embeddings" } },
   { id: "image",       label: "Text to Image",  icon: "brush",             endpoint: { method: "POST", path: "/v1/images/generations" } },
@@ -79,6 +70,7 @@ export const MEDIA_PROVIDER_KINDS = [
   { id: "webFetch",    label: "Web Fetch",      icon: "language",          endpoint: { method: "POST", path: "/v1/web/fetch" } },
   { id: "video",       label: "Video",          icon: "movie",             endpoint: { method: "POST", path: "/v1/videos/generations" } },
   { id: "music",       label: "Music",          icon: "music_note",        endpoint: { method: "POST", path: "/v1/audio/music" } },
+  { id: "systemone",   label: "System One",     icon: "psychology",        endpoint: { method: "POST", path: "/v1/systemone" }, isNew: true },
 ];
 
 export const OPENAI_COMPATIBLE_PREFIX = "openai-compatible-";
@@ -97,17 +89,14 @@ export function isCustomEmbeddingProvider(providerId) {
   return typeof providerId === "string" && providerId.startsWith(CUSTOM_EMBEDDING_PREFIX);
 }
 
-// All providers (combined)
 export const AI_PROVIDERS = { ...FREE_PROVIDERS, ...FREE_TIER_PROVIDERS, ...OAUTH_PROVIDERS, ...APIKEY_PROVIDERS, ...WEB_COOKIE_PROVIDERS };
 
-// Auth methods
 export const AUTH_METHODS = {
   oauth: { id: "oauth" },
   apikey: { id: "apikey" },
   cookie: { id: "cookie" },
 };
 
-// Helper: Get provider by alias
 export function getProviderByAlias(alias) {
   for (const provider of Object.values(AI_PROVIDERS)) {
     if (provider.alias === alias || provider.id === alias) {
@@ -117,32 +106,26 @@ export function getProviderByAlias(alias) {
   return null;
 }
 
-// Helper: Get provider ID from alias
 export function resolveProviderId(aliasOrId) {
   const provider = getProviderByAlias(aliasOrId);
   return provider?.id || aliasOrId;
 }
 
-// Helper: Get alias from provider ID
 export function getProviderAlias(providerId) {
   const provider = AI_PROVIDERS[providerId];
   return provider?.alias || providerId;
 }
 
-// Alias to ID mapping (for quick lookup)
 export const ALIAS_TO_ID = Object.values(AI_PROVIDERS).reduce((acc, p) => {
   acc[p.alias] = p.id;
   return acc;
 }, {});
 
-// ID to Alias mapping
 export const ID_TO_ALIAS = Object.values(AI_PROVIDERS).reduce((acc, p) => {
   acc[p.id] = p.alias;
   return acc;
 }, {});
 
-// Helper: Get providers by service kind (e.g. "tts", "embedding", "image")
-// Providers without serviceKinds default to ["llm"]
 export function getProvidersByKind(kind) {
   return Object.values(AI_PROVIDERS)
     .filter((p) => {
@@ -155,7 +138,6 @@ export function getProvidersByKind(kind) {
     .sort((a, b) => (a.priority ?? a.mediaPriority ?? 999) - (b.priority ?? b.mediaPriority ?? 999));
 }
 
-// Derive từ registry features flags
 export const USAGE_SUPPORTED_PROVIDERS = REGISTRY
   .filter(r => r.features?.usage)
   .map(r => r.id);

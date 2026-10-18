@@ -63,12 +63,10 @@ export class Kernel {
 	}
 
 	protected async _runCell(cell: vscode.NotebookCell) {
-		// create a single output with exec order 1 and output is plain/text
-		// of either the cell itself or (iff empty) the cell's document's uri
 		const task = this.controller.createNotebookCellExecution(cell);
 		task.start(Date.now());
 		task.executionOrder = 1;
-		await sleep(10); // Force to be take some time
+		await sleep(10);
 		await task.replaceOutput([new vscode.NotebookCellOutput([
 			vscode.NotebookCellOutputItem.text(cell.document.getText() || cell.document.uri.toString(), 'text/plain')
 		])]);
@@ -142,7 +140,6 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 	let defaultKernel: Kernel;
 
 	setup(async function () {
-		// there should be ONE default kernel in this suite
 		defaultKernel = new Kernel('mainKernel', 'Notebook Default Kernel');
 		testDisposables.push(defaultKernel.controller);
 		await saveAllFilesAndCloseAll();
@@ -186,7 +183,6 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 
 		assert.strictEqual(vscode.window.activeNotebookEditor, undefined);
 
-		// opening a cell-uri opens a notebook editor
 		await vscode.window.showTextDocument(cell.document, { viewColumn: vscode.ViewColumn.Active });
 
 		assert.strictEqual(!!vscode.window.activeNotebookEditor, true);
@@ -198,7 +194,6 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 
 		assert.strictEqual(vscode.window.activeNotebookEditor, undefined);
 
-		// opening a cell-uri opens a notebook editor
 		await vscode.window.showNotebookDocument(document);
 
 		assert.strictEqual(!!vscode.window.activeNotebookEditor, true);
@@ -222,9 +217,6 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 		await saveAllFilesAndCloseAll();
 		assert.strictEqual(vscode.window.activeNotebookEditor, undefined);
 
-		// BUG is that the editor opener (https://github.com/microsoft/vscode/blob/8e7877bdc442f1e83a7fec51920d82b696139129/src/vs/editor/browser/services/openerService.ts#L69)
-		// removes the fragment if it matches something numeric. For notebooks that's not wanted...
-		// opening a cell-uri opens a notebook editor
 		await vscode.commands.executeCommand('vscode.open', cell.document.uri);
 
 		assert.strictEqual(vscode.window.activeNotebookEditor!.notebook.uri.toString(), document.uri.toString());
@@ -241,7 +233,6 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 
 		assert.strictEqual(getFocusedCell(editor)?.document.getText(), 'var abc = 0;');
 
-		// no kernel -> no default language
 		assert.strictEqual(getFocusedCell(editor)?.document.languageId, 'typescript');
 
 		await vscode.window.showNotebookDocument(await vscode.workspace.openNotebookDocument(notebook.uri));
@@ -261,17 +252,14 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 		assert.notStrictEqual(vscode.window.activeNotebookEditor, undefined, 'untitled notebook editor is not undefined');
 		const document = vscode.window.activeNotebookEditor!.notebook;
 
-		// open another text editor
 		const textDocument = await vscode.workspace.openTextDocument({ language: 'javascript', content: 'let abc = 0;' });
 		await vscode.window.showTextDocument(textDocument);
 
-		// insert a new cell to notebook document
 		const edit = new vscode.WorkspaceEdit();
 		const notebookEdit = new vscode.NotebookEdit(new vscode.NotebookRange(1, 1), [new vscode.NotebookCellData(vscode.NotebookCellKind.Code, 'print(1)', 'python')]);
 		edit.set(document.uri, [notebookEdit]);
 		await vscode.workspace.applyEdit(edit);
 
-		// switch to the notebook editor
 		await vscode.window.showNotebookDocument(document);
 		await closeAllEditors();
 		await vscode.commands.executeCommand('ipynb.newUntitledIpynb');
@@ -280,7 +268,6 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 		await closeAllEditors();
 	});
 
-	// TODO: Skipped due to notebook content provider removal
 	test.skip('#115855 onDidSaveNotebookDocument', async function () {
 		const resource = await createRandomNotebookFile();
 		const notebook = await vscode.workspace.openNotebookDocument(resource);

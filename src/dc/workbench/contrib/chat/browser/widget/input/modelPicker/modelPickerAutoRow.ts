@@ -20,7 +20,6 @@ export interface IAutoRowOptions {
 	readonly onToggle: (enabled: boolean) => void;
 }
 
-/** Auto's routing tiers remain available while off; activating a tier also enables Auto. */
 export class ModelPickerAutoRow extends DisposableStore {
 
 	readonly element = dom.$('.chat-model-picker-auto-row');
@@ -46,8 +45,6 @@ export class ModelPickerAutoRow extends DisposableStore {
 		main.appendChild(this._toggle.domNode);
 		this.add(this._toggle.onChange(checked => this._toggleAuto(checked)));
 
-		// The label and the gap beside it flip the switch too, the way a row carrying a
-		// standalone toggle does. The switch stops its own clicks from reaching here.
 		this.add(dom.addDisposableListener(main, dom.EventType.CLICK, () => {
 			if (this._toggle.disabled) {
 				return;
@@ -55,19 +52,14 @@ export class ModelPickerAutoRow extends DisposableStore {
 			this._toggle.checked = !this._toggle.checked;
 			this._toggleAuto(this._toggle.checked);
 		}));
-		// Pressing the strip must not move focus out of the list, which would blur the
-		// popup and dismiss it before the click lands.
 		this.add(dom.addDisposableGenericMouseDownListener(main, e => e.preventDefault()));
 
 		this._tierContainer = dom.append(this.element, dom.$('.chat-model-picker-auto-tiers'));
 		this._description = dom.append(this.element, dom.$('.chat-model-picker-auto-description'));
-		// The description is inert text, so pressing it must not dismiss the popup either.
-		// The tiers are left alone: their buttons take focus of their own accord.
 		this.add(dom.addDisposableGenericMouseDownListener(this._description, e => e.preventDefault()));
 		this.render();
 	}
 
-	/** Re-reads the selection and tier so the row matches the current state. */
 	render(): void {
 		if (this.isDisposed) {
 			return;
@@ -110,7 +102,6 @@ export class ModelPickerAutoRow extends DisposableStore {
 		}
 
 		const tierDescription = tier?.schema.enumDescriptions?.[selectedIndex];
-		// Auto's own detail stays put; the tier description joins it rather than replacing it.
 		const detail = this._options.autoModel.metadata.detail;
 		const parts = [detail, tierDescription].filter(part => !!part);
 		this._description.textContent = parts.join(' · ');

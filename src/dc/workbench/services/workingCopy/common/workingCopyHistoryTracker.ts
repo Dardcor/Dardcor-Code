@@ -70,29 +70,22 @@ export class WorkingCopyHistoryTracker extends Disposable implements IWorkbenchC
 
 	private registerListeners() {
 
-		// File Events
 		this._register(this.fileService.onDidRunOperation(e => this.onDidRunFileOperation(e)));
 
-		// Working Copy Events
 		this._register(this.workingCopyService.onDidChangeContent(workingCopy => this.onDidChangeContent(workingCopy)));
 		this._register(this.workingCopyService.onDidSave(e => this.onDidSave(e)));
 	}
 
 	private async onDidRunFileOperation(e: FileOperationEvent): Promise<void> {
 		if (!this.shouldTrackHistoryFromFileOperationEvent(e)) {
-			return; // return early for working copies we are not interested in
+			return;
 		}
 
 		const source = e.resource;
 		const target = e.target.resource;
 
-		// Move working copy history entries for this file move event
 		const resources = await this.workingCopyHistoryService.moveEntries(source, target);
 
-		// Make sure to track the content version of each entry that
-		// was moved in our map. This ensures that a subsequent save
-		// without a content change does not add a redundant entry
-		// (https://github.com/microsoft/vscode/issues/145881)
 		for (const resource of resources) {
 			const contentVersion = this.getContentVersion(resource);
 			this.historyEntryContentVersion.set(resource, contentVersion);
@@ -101,7 +94,6 @@ export class WorkingCopyHistoryTracker extends Disposable implements IWorkbenchC
 
 	private onDidChangeContent(workingCopy: IWorkingCopy): void {
 
-		// Increment content version ID for resource
 		const contentVersionId = this.getContentVersion(workingCopy.resource);
 		this.workingCopyContentVersion.set(workingCopy.resource, contentVersionId + 1);
 	}
@@ -112,22 +104,19 @@ export class WorkingCopyHistoryTracker extends Disposable implements IWorkbenchC
 
 	private onDidSave(e: IWorkingCopySaveEvent): void {
 		if (!this.shouldTrackHistoryFromSaveEvent(e)) {
-			return; // return early for working copies we are not interested in
+			return;
 		}
 
 		const contentVersion = this.getContentVersion(e.workingCopy.resource);
 		if (this.historyEntryContentVersion.get(e.workingCopy.resource) === contentVersion) {
-			return; // return early when content version already has associated history entry
+			return;
 		}
 
-		// Cancel any previous operation for this resource
 		this.pendingAddHistoryEntryOperations.get(e.workingCopy.resource)?.dispose(true);
 
-		// Create new cancellation token support and remember
 		const cts = new CancellationTokenSource();
 		this.pendingAddHistoryEntryOperations.set(e.workingCopy.resource, cts);
 
-		// Queue new operation to add to history
 		this.limiter.queue(async () => {
 			if (cts.token.isCancellationRequested) {
 				return;
@@ -135,23 +124,19 @@ export class WorkingCopyHistoryTracker extends Disposable implements IWorkbenchC
 
 			const contentVersion = this.getContentVersion(e.workingCopy.resource);
 
-			// Figure out source of save operation if not provided already
 			let source = e.source;
 			if (!e.source) {
 				source = this.resolveSourceFromUndoRedo(e);
 			}
 
-			// Add entry
 			await this.workingCopyHistoryService.addEntry({ resource: e.workingCopy.resource, source, timestamp: e.stat.mtime }, cts.token);
 
-			// Remember content version as being added to history
 			this.historyEntryContentVersion.set(e.workingCopy.resource, contentVersion);
 
 			if (cts.token.isCancellationRequested) {
 				return;
 			}
 
-			// Finally remove from pending operations
 			this.pendingAddHistoryEntryOperations.delete(e.workingCopy.resource);
 		});
 	}
@@ -160,7 +145,7 @@ export class WorkingCopyHistoryTracker extends Disposable implements IWorkbenchC
 		const lastStackElement = this.undoRedoService.getLastElement(e.workingCopy.resource);
 		if (lastStackElement) {
 			if (lastStackElement.code === 'undoredo.textBufferEdit') {
-				return undefined; // ignore any unspecific stack element that resulted just from typing
+				return undefined;
 			}
 
 			return lastStackElement.label;
@@ -176,7 +161,7 @@ export class WorkingCopyHistoryTracker extends Disposable implements IWorkbenchC
 
 	private shouldTrackHistoryFromSaveEvent(e: IWorkingCopySaveEvent): e is IStoredFileWorkingCopySaveEvent<IStoredFileWorkingCopyModel> {
 		if (!isStoredFileWorkingCopySaveEvent(e)) {
-			return false; // only support working copies that are backed by stored files
+			return false;
 		}
 
 		return this.shouldTrackHistory(e.workingCopy.resource, e.stat);
@@ -184,7 +169,7 @@ export class WorkingCopyHistoryTracker extends Disposable implements IWorkbenchC
 
 	private shouldTrackHistoryFromFileOperationEvent(e: FileOperationEvent): e is IFileOperationEventWithMetadata {
 		if (!e.isOperation(FileOperation.MOVE)) {
-			return false; // only interested in move operations
+			return false;
 		}
 
 		return this.shouldTrackHistory(e.target.resource, e.target);
@@ -192,23 +177,22 @@ export class WorkingCopyHistoryTracker extends Disposable implements IWorkbenchC
 
 	private shouldTrackHistory(resource: URI, stat: IFileStatWithMetadata): boolean {
 		if (
-			resource.scheme !== this.pathService.defaultUriScheme && 	// track history for all workspace resources
-			resource.scheme !== Schemas.vscodeUserData &&				// track history for all settings
-			resource.scheme !== Schemas.inMemory	 					// track history for tests that use in-memory
+			resource.scheme !== this.pathService.defaultUriScheme &&
+			resource.scheme !== Schemas.vscodeUserData &&
+			resource.scheme !== Schemas.inMemory
 		) {
-			return false; // do not support unknown resources
+			return false;
 		}
 
 		const configuredMaxFileSizeInBytes = 1024 * this.configurationService.getValue<number>(WorkingCopyHistoryTracker.SETTINGS.SIZE_LIMIT, { resource });
 		if (stat.size > configuredMaxFileSizeInBytes) {
-			return false; // only track files that are not too large
+			return false;
 		}
 
 		if (this.configurationService.getValue(WorkingCopyHistoryTracker.SETTINGS.ENABLED, { resource }) === false) {
-			return false; // do not track when history is disabled
+			return false;
 		}
 
-		// Finally check for exclude setting
 		return !this.resourceExcludeMatcher.value.matches(resource);
 	}
 }

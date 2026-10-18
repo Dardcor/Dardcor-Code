@@ -118,9 +118,6 @@ export class MultiDiffEditorViewModel extends Disposable {
 }
 
 export class DocumentDiffItemViewModel extends Disposable {
-	/**
-	 * The diff editor view model keeps its inner objects alive.
-	*/
 	public readonly diffEditorViewModelRef: RefCounted<DiffEditorViewModel>;
 	public get diffEditorViewModel(): DiffEditorViewModel {
 		return this.diffEditorViewModelRef.object;

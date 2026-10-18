@@ -22,7 +22,7 @@ export class OutputLinkComputer implements IWebWorkerServerRequestHandler {
 	_requestHandlerBrand: void = undefined;
 
 	private readonly workerTextModelSyncServer = new WorkerTextModelSyncServer();
-	private patterns = new Map<URI /* folder uri */, RegExp[]>();
+	private patterns = new Map<URI , RegExp[]>();
 
 	constructor(workerServer: IWebWorkerServer) {
 		this.workerTextModelSyncServer.bindToServer(workerServer);
@@ -34,11 +34,8 @@ export class OutputLinkComputer implements IWebWorkerServerRequestHandler {
 
 	private computePatterns(_workspaceFolders: string[]): void {
 
-		// Produce patterns for each workspace root we are configured with
-		// This means that we will be able to detect links for paths that
-		// contain any of the workspace roots as segments.
 		const workspaceFolders = _workspaceFolders
-			.sort((resourceStrA, resourceStrB) => resourceStrB.length - resourceStrA.length) // longest paths first (for https://github.com/microsoft/vscode/issues/88121)
+			.sort((resourceStrA, resourceStrB) => resourceStrB.length - resourceStrA.length)
 			.map(resourceStr => URI.parse(resourceStr));
 
 		for (const workspaceFolder of workspaceFolders) {
@@ -60,7 +57,6 @@ export class OutputLinkComputer implements IWebWorkerServerRequestHandler {
 		const links: ILink[] = [];
 		const lines = strings.splitLines(model.getValue());
 
-		// For each workspace root patterns
 		for (const [folderUri, folderPatterns] of this.patterns) {
 			const resourceCreator: IResourceCreator = {
 				toResource: (folderRelativePath: string): URI | null => {
@@ -95,43 +91,29 @@ export class OutputLinkComputer implements IWebWorkerServerRequestHandler {
 			const pathPattern = `${validPathCharacterOrSpacePattern}+\\.${validPathCharacterPattern}+`;
 			const strictPathPattern = `${validPathCharacterPattern}+`;
 
-			// Example: /workspaces/express/server.js on line 8, column 13
 			patterns.push(new RegExp(strings.escapeRegExpCharacters(workspaceFolderVariant) + `(${pathPattern}) on line ((\\d+)(, column (\\d+))?)`, 'gi'));
 
-			// Example: /workspaces/express/server.js:line 8, column 13
 			patterns.push(new RegExp(strings.escapeRegExpCharacters(workspaceFolderVariant) + `(${pathPattern}):line ((\\d+)(, column (\\d+))?)`, 'gi'));
 
-			// Example: /workspaces/mankala/Features.ts(45): error
-			// Example: /workspaces/mankala/Features.ts (45): error
-			// Example: /workspaces/mankala/Features.ts(45,18): error
-			// Example: /workspaces/mankala/Features.ts (45,18): error
-			// Example: /workspaces/mankala/Features Special.ts (45,18): error
 			patterns.push(new RegExp(strings.escapeRegExpCharacters(workspaceFolderVariant) + `(${pathPattern})(\\s?\\((\\d+)(,(\\d+))?)\\)`, 'gi'));
 
-			// Example: at /workspaces/mankala/Game.ts
-			// Example: at /workspaces/mankala/Game.ts:336
-			// Example: at /workspaces/mankala/Game.ts:336:9
 			patterns.push(new RegExp(strings.escapeRegExpCharacters(workspaceFolderVariant) + `(${strictPathPattern})(:(\\d+))?(:(\\d+))?`, 'gi'));
 		}
 
 		return patterns;
 	}
 
-	/**
-	 * Detect links. Made static to allow for tests.
-	 */
 	static detectLinks(line: string, lineIndex: number, patterns: RegExp[], resourceCreator: IResourceCreator): ILink[] {
 		const links: ILink[] = [];
 
 		patterns.forEach(pattern => {
-			pattern.lastIndex = 0; // the holy grail of software development
+			pattern.lastIndex = 0;
 
 			let match: RegExpExecArray | null;
 			let offset = 0;
 			while ((match = pattern.exec(line)) !== null) {
 
-				// Convert the relative path information to a resource that we can use in links
-				const folderRelativePath = strings.rtrim(match[1], '.').replace(/\\/g, '/'); // remove trailing "." that likely indicate end of sentence
+				const folderRelativePath = strings.rtrim(match[1], '.').replace(/\\/g, '/');
 				let resourceString: string | undefined;
 				try {
 					const resource = resourceCreator.toResource(folderRelativePath);
@@ -139,10 +121,9 @@ export class OutputLinkComputer implements IWebWorkerServerRequestHandler {
 						resourceString = resource.toString();
 					}
 				} catch (error) {
-					continue; // we might find an invalid URI and then we dont want to loose all other links
+					continue;
 				}
 
-				// Append line/col information to URI if matching
 				if (match[3]) {
 					const lineNumber = match[3];
 
@@ -154,7 +135,7 @@ export class OutputLinkComputer implements IWebWorkerServerRequestHandler {
 					}
 				}
 
-				const fullMatch = strings.rtrim(match[0], '.'); // remove trailing "." that likely indicate end of sentence
+				const fullMatch = strings.rtrim(match[0], '.');
 
 				const index = line.indexOf(fullMatch, offset);
 				offset = index + fullMatch.length;
@@ -167,7 +148,7 @@ export class OutputLinkComputer implements IWebWorkerServerRequestHandler {
 				};
 
 				if (links.some(link => Range.areIntersectingOrTouching(link.range, linkRange))) {
-					return; // Do not detect duplicate links
+					return;
 				}
 
 				links.push({

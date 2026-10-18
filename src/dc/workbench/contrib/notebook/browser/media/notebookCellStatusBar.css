@@ -42,7 +42,7 @@
 	align-items: center;
 	white-space: pre;
 
-	height: 21px; /* Editor outline is -1px in, don't overlap */
+	height: 21px;
 	margin: 0px 3px;
 	padding: 0px 3px;
 	overflow: hidden;
@@ -59,7 +59,7 @@
 
 .monaco-workbench .notebookOverlay .cell-statusbar-container .codicon {
 	font-size: 14px;
-	color: unset; /* Inherit from parent cell-status-item */
+	color: unset;
 }
 
 .monaco-workbench .notebookOverlay .cell-statusbar-container .cell-status-item-show-when-active {
@@ -70,7 +70,6 @@
 	display: initial;
 }
 
-/* Ensure execution status icons always maintain their themed colors */
 .monaco-workbench .notebookOverlay .monaco-list .monaco-list-row .cell-statusbar-container .cell-status-item .codicon-notebook-state-success {
 	color: var(--vscode-notebookStatusSuccessIcon-foreground);
 }

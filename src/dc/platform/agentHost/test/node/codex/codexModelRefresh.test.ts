@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../../common/dardcorRouterModel.js';
 import assert from 'assert';
 import { DeferredPromise } from '../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
@@ -31,7 +31,7 @@ import { AgentChatMigrationDeferred, AgentSession } from '../../../common/agent.
 import { buildDefaultChatUri } from '../../../common/state/sessionState.js';
 import { CodexAgent, toCodexModelSelectionId } from '../../../node/codex/codexAgent.js';
 import { ICodexProxyService } from '../../../node/codex/codexProxyService.js';
-import { ICopilotApiService } from '../../../node/shared/copilotApiService.js';
+import { IDardcorRouterService } from '../../../node/shared/dardcorRouterService.js';
 import { ISessionDataService } from '../../../common/sessionDataService.js';
 import { createTestGitHubEndpointService } from '../testGitHubEndpointService.js';
 import { AgentHostCodexMultiRootEnabledConfigKey } from '../../../common/agentHostSchema.js';
@@ -51,20 +51,14 @@ interface ITestAgentContext {
 	readonly runStartupAccountProbe: () => Promise<void>;
 }
 
-/**
- * The downloader defaults to "SDK already on disk", which is what makes these
- * tests deterministic — otherwise the answer depends on whether the machine
- * running the suite has `@openai/codex` in `node_modules`. Tests wanting the
- * cold case override `_isSdkResolvableWithoutDownload` directly.
- */
-function createAgentContext(disposables: Pick<DisposableStore, 'add'>, models: () => Promise<CCAModel[]>, rootConfig: Record<string, boolean> = {}, sdkDownloader = new RecordingAgentSdkDownloader()): ITestAgentContext {
+function createAgentContext(disposables: Pick<DisposableStore, 'add'>, models: () => Promise<IDardcorRouterModel[]>, rootConfig: Record<string, boolean> = {}, sdkDownloader = new RecordingAgentSdkDownloader()): ITestAgentContext {
 	const instantiationService = new TestInstantiationService();
 	const logService = new NullLogService();
 	const stateManager = disposables.add(new AgentHostStateManager(logService));
 	const configurationService = disposables.add(new AgentConfigurationService(stateManager, logService));
 	configurationService.updateRootConfig(rootConfig);
 	instantiationService.stub(ISessionDataService, { _serviceBrand: undefined });
-	instantiationService.stub(ICopilotApiService, { _serviceBrand: undefined, models });
+	instantiationService.stub(IDardcorRouterService, { _serviceBrand: undefined, models });
 	instantiationService.stub(ICodexProxyService, { _serviceBrand: undefined });
 	instantiationService.stub(IAgentConfigurationService, configurationService);
 	instantiationService.stub(IAgentHostWorktreeIsolation, new NullAgentHostWorktreeIsolation());
@@ -84,7 +78,7 @@ function createAgentContext(disposables: Pick<DisposableStore, 'add'>, models: (
 	return { agent, stateManager, configurationService, sdkDownloader, runStartupAccountProbe };
 }
 
-function createAgent(disposables: Pick<DisposableStore, 'add'>, models: () => Promise<CCAModel[]>, rootConfig: Record<string, boolean> = {}, sdkDownloader = new RecordingAgentSdkDownloader()): CodexAgent {
+function createAgent(disposables: Pick<DisposableStore, 'add'>, models: () => Promise<IDardcorRouterModel[]>, rootConfig: Record<string, boolean> = {}, sdkDownloader = new RecordingAgentSdkDownloader()): CodexAgent {
 	return createAgentContext(disposables, models, rootConfig, sdkDownloader).agent;
 }
 
@@ -117,11 +111,6 @@ const modelListResponse = {
 	nextCursor: null,
 };
 
-/**
- * @param requests records every method the agent asks for, so a test can assert
- * on enumeration specifically — `config/read` shares this connection once the
- * SDK is local, so a raw "did we connect" count conflates callers.
- */
 function createChatGPTConnection(account: unknown = { type: 'chatgpt', email: 'person@example.com', planType: 'plus' }, requests: string[] = []) {
 	return {
 		kind: 'ready',
@@ -163,8 +152,6 @@ suite('CodexAgent model refresh', () => {
 			return connection as never;
 		};
 
-		// These are all ambient registration/startup paths in AgentService. None is
-		// an affirmative choice to use Codex.
 		const discoveryListener = agent.onDidDiscoverChats(() => { });
 		const migrated = await agent.listChatsToMigrate();
 		const session = AgentSession.uri('codex', 'existing-session');
@@ -179,18 +166,14 @@ suite('CodexAgent model refresh', () => {
 			models: [],
 		});
 
-		// Even an ambient catalog refresh must not cross the session boundary.
 		await agent.refreshModels();
 		assert.strictEqual(connectionRequested, false);
 
-		// Session creation/restoration crosses the activation boundary; its catalog
-		// refresh may now retain the app-server connection.
 		agent['_activate']();
 		await agent.refreshModels();
 
 		assert.deepStrictEqual({
 			connectionRequested,
-			// One enumeration, not one per caller that happened to want the connection.
 			enumerations: requests.filter(method => method === 'model/list').length,
 			discoveries: requests.filter(method => method === 'thread/list').length,
 			models: agent.models.get().map(model => ({ provider: model.provider, id: model.id, name: model.name, meta: model._meta })),
@@ -208,7 +191,7 @@ suite('CodexAgent model refresh', () => {
 	});
 
 	test('restored model waits for an authentication refresh queued behind activation', async () => {
-		const copilotModels = [{ id: 'copilot-model', name: 'Copilot Model', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as CCAModel[];
+		const copilotModels = [{ id: 'copilot-model', name: 'Copilot Model', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as unknown as IDardcorRouterModel[];
 		const firstRefreshStarted = new DeferredPromise<void>();
 		const releaseFirstRefresh = new DeferredPromise<void>();
 		const authenticatedRefreshStarted = new DeferredPromise<void>();
@@ -221,7 +204,7 @@ suite('CodexAgent model refresh', () => {
 			return copilotModels;
 		});
 		agent['_refreshProviderConfiguration'] = async () => { };
-		agent['_resolveGitHubMcpServerConfiguration'] = async () => undefined;
+		(agent as any)['_resolveGitHubMcpServerConfiguration'] = async () => undefined;
 		let codexRefreshes = 0;
 		agent['_refreshCodexModels'] = async () => {
 			codexRefreshes++;
@@ -259,9 +242,9 @@ suite('CodexAgent model refresh', () => {
 	});
 
 	test('model resolution starts discovery when the catalog is empty', async () => {
-		const copilotModels = [{ id: 'copilot-model', name: 'Copilot Model', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as CCAModel[];
+		const copilotModels = [{ id: 'copilot-model', name: 'Copilot Model', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as unknown as IDardcorRouterModel[];
 		const agent = createAgent(disposables, async () => copilotModels);
-		agent['_githubToken'] = 'token';
+		(agent as any)['_githubToken'] = 'token';
 		agent['_isSdkResolvableWithoutDownload'] = async () => false;
 		const selectedModel = { id: toCodexModelSelectionId('vscode-proxy', 'copilot-model') };
 		const session = { model: selectedModel };
@@ -298,7 +281,7 @@ suite('CodexAgent model refresh', () => {
 	});
 
 	test('queues a fresh model refresh when Codex activates during an ambient refresh', async () => {
-		const copilotModels = [{ id: 'copilot-model', name: 'Copilot Model', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as CCAModel[];
+		const copilotModels = [{ id: 'copilot-model', name: 'Copilot Model', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as unknown as IDardcorRouterModel[];
 		const ambientRefreshStarted = new DeferredPromise<void>();
 		const ambientCodexRefreshFinished = new DeferredPromise<void>();
 		const releaseAmbientRefresh = new DeferredPromise<void>();
@@ -311,7 +294,7 @@ suite('CodexAgent model refresh', () => {
 			}
 			return copilotModels;
 		}, { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true });
-		agent['_githubToken'] = 'token';
+		(agent as any)['_githubToken'] = 'token';
 		agent['_refreshProviderConfiguration'] = async () => { };
 		const refreshCodexModels = agent['_refreshCodexModels'].bind(agent);
 		let codexRefreshes = 0;
@@ -638,7 +621,6 @@ suite('CodexAgent model refresh', () => {
 				}
 				if (method === 'account/login/start') {
 					// Model the persistent connection's global completion handler
-					// winning the race against this request's response.
 					ctx.agent['_setOpenAIAccountState']({
 						usageSource: 'openai',
 						status: 'signedIn',
@@ -772,8 +754,6 @@ suite('CodexAgent model refresh', () => {
 
 		await new Promise<void>(resolve => setTimeout(resolve, 0));
 
-		// Reading `config.toml` may still open a connection — that is unrelated to
-		// enumeration. What must not happen is asking about the account or catalog.
 		assert.deepStrictEqual({
 			enumerationRequests: requests.filter(method => method === 'account/read' || method === 'model/list'),
 			models: agent.models.get(),
@@ -795,8 +775,6 @@ suite('CodexAgent model refresh', () => {
 
 		await agent.refreshModels();
 
-		// The download is an explicit gesture now, so a refresh that finds no local
-		// SDK reports the honest empty catalog and leaves the offer to the banner.
 		assert.deepStrictEqual({
 			ensureConnectionCalls,
 			models: agent.models.get(),
@@ -818,10 +796,6 @@ suite('CodexAgent model refresh', () => {
 		withAccount['_connection'] = createChatGPTConnection() as never;
 		await Promise.all([withoutAccount.refreshModels(), withAccount.refreshModels()]);
 
-		// `required: false` is unconditional: a `true` here from any of these
-		// combinations puts the whole Agents window behind a GitHub sign-in wall,
-		// because `resolveSignedOutWindowGate` forces sign-in only when *every*
-		// session type requires GitHub.
 		assert.deepStrictEqual({
 			signedOutUseDisabled: copilotRequired(createAgent(disposables, async () => [], {})),
 			noLocalSdk: copilotRequired(withoutSdk),
@@ -839,7 +813,7 @@ suite('CodexAgent model refresh', () => {
 		const models = [
 			{ id: 'picker-enabled', name: 'Picker Enabled', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' },
 			{ id: 'picker-disabled', name: 'Picker Disabled', model_picker_enabled: false, supported_endpoints: ['/responses'], vendor: 'OpenAI' },
-		] as CCAModel[];
+		] as unknown as IDardcorRouterModel[];
 		const agent = createAgent(disposables, async () => models);
 		agent['_isSdkResolvableWithoutDownload'] = async () => false;
 
@@ -857,7 +831,7 @@ suite('CodexAgent model refresh', () => {
 			{ id: 'grok-4.6', name: 'Grok 4.6', model_picker_enabled: true, supported_endpoints: ['/responses'], capabilities: { family: 'grok-4.6' }, vendor: 'xAI' },
 			{ id: 'mai-code-1.1-flash', name: 'MAI-Code-1.1-Flash', model_picker_enabled: true, supported_endpoints: ['/responses'], capabilities: { family: 'oswe-vscode-modelD' }, vendor: 'Microsoft' },
 			{ id: 'gpt-5.6', name: 'GPT-5.6', model_picker_enabled: true, supported_endpoints: ['/responses'], capabilities: { family: 'gpt-5.6' }, vendor: 'OpenAI' },
-		] as CCAModel[];
+		] as unknown as IDardcorRouterModel[];
 		const agent = createAgent(disposables, async () => models);
 		agent['_isSdkResolvableWithoutDownload'] = async () => false;
 
@@ -890,9 +864,9 @@ suite('CodexAgent model refresh', () => {
 	});
 
 	test('publishes no ChatGPT models when the app server reports no account', async () => {
-		const copilotModels = [{ id: 'copilot-model', name: 'Copilot Model', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as CCAModel[];
+		const copilotModels = [{ id: 'copilot-model', name: 'Copilot Model', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as unknown as IDardcorRouterModel[];
 		const agent = createAgent(disposables, async () => copilotModels, { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true });
-		agent['_githubToken'] = 'token';
+		(agent as any)['_githubToken'] = 'token';
 		agent['_connection'] = createChatGPTConnection(null) as never;
 
 		await agent.refreshModels();
@@ -928,7 +902,7 @@ suite('CodexAgent model refresh', () => {
 
 	test('keeps the last known-good models when a periodic refresh fails', async () => {
 		let shouldFail = false;
-		const models = [{ id: 'gpt-5.5', name: 'GPT-5.5', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as CCAModel[];
+		const models = [{ id: 'gpt-5.5', name: 'GPT-5.5', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as unknown as IDardcorRouterModel[];
 		const agent = createAgent(disposables, async () => {
 			if (shouldFail) {
 				throw new Error('transient failure');
@@ -948,7 +922,7 @@ suite('CodexAgent model refresh', () => {
 
 	test('retries Copilot model discovery after a transient authentication refresh failure', async () => {
 		let attempts = 0;
-		const models = [{ id: 'gpt-5.5', name: 'GPT-5.5', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as CCAModel[];
+		const models = [{ id: 'gpt-5.5', name: 'GPT-5.5', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as unknown as IDardcorRouterModel[];
 		const agent = createAgent(disposables, async () => {
 			attempts++;
 			if (attempts === 1) {
@@ -979,20 +953,16 @@ suite('CodexAgent model refresh', () => {
 	});
 
 	test('uses the reasoning efforts advertised by Copilot models', async () => {
-		const model: CCAModel = {
+		const model: IDardcorRouterModel = {
 			billing: { is_premium: true, multiplier: 1, restricted_to: [] },
 			capabilities: {
-				family: 'gpt-5.6',
 				limits: { max_context_window_tokens: 272_000, max_output_tokens: 32_000, max_prompt_tokens: 240_000 },
-				object: 'model_capabilities',
-				supports: { parallel_tool_calls: true, streaming: true, tool_calls: true, vision: true },
-				tokenizer: 'o200k_base',
-				type: 'chat',
+				supports: { tool_calls: true, vision: true, reasoning_effort: ['none', 'low', 'medium', 'high', 'xhigh', 'max'] },
 			},
 			id: 'gpt-5.6-sol',
 			is_chat_default: true,
 			is_chat_fallback: false,
-			model_picker_category: 'advanced',
+			model_picker_price_category: 'advanced',
 			model_picker_enabled: true,
 			name: 'GPT-5.6-Sol',
 			object: 'model',
@@ -1000,9 +970,7 @@ suite('CodexAgent model refresh', () => {
 			preview: false,
 			supported_endpoints: ['/responses'],
 			vendor: 'OpenAI',
-			version: 'gpt-5.6-sol',
 		};
-		(model.capabilities.supports as { reasoning_effort?: string[] }).reasoning_effort = ['none', 'low', 'medium', 'high', 'xhigh', 'max'];
 		const agent = createAgent(disposables, async () => [model]);
 
 		await agent.authenticate(agent.getProtectedResources()[0].resource, 'token');
@@ -1024,7 +992,7 @@ suite('CodexAgent model refresh', () => {
 	});
 
 	test('omits the thinking level when a Copilot model advertises no reasoning efforts', async () => {
-		const model = { id: 'gpt-5.5', name: 'GPT-5.5', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' } as CCAModel;
+		const model = { id: 'gpt-5.5', name: 'GPT-5.5', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' } as unknown as IDardcorRouterModel;
 		const agent = createAgent(disposables, async () => [model]);
 
 		await agent.authenticate(agent.getProtectedResources()[0].resource, 'token');
@@ -1111,9 +1079,6 @@ suite('CodexAgent model refresh', () => {
 		agent['_connectionGeneration'] = 4;
 		agent['_connection'] = { kind: 'ready', ...current } as never;
 
-		// Both the generation and client identity protect the replacement: the
-		// first models a queued event from the prior generation; the second guards
-		// against a callback whose bookkeeping was stale but generation was not.
 		agent['_handleConnectionLost'](stale as never, 3);
 		agent['_handleConnectionLost'](stale as never, 4);
 
@@ -1130,8 +1095,6 @@ suite('CodexAgent model refresh', () => {
 		const agent = createAgent(disposables, async () => []);
 		const disposed: string[] = [];
 		agent['_startConnection'] = async generation => {
-			// Let `_ensureConnection` publish its `starting` state before simulating
-			// an exit in the narrow window before this promise resolves.
 			await Promise.resolve();
 			const ready = {
 				client: { dispose: () => disposed.push('client') },
@@ -1581,8 +1544,6 @@ suite('CodexAgent model refresh', () => {
 		await agent['_signOutOfChatGPT']();
 
 		assert.deepStrictEqual({
-			// Scoped to the sign-out gesture: with the SDK local, the startup
-			// `config.toml` read lands on this same connection.
 			requests: requests.filter(method => method.startsWith('account/')),
 			accountStatus: agent['_openAIAccountState'].status,
 		}, {
@@ -1594,14 +1555,14 @@ suite('CodexAgent model refresh', () => {
 	test('clears Copilot proxy credentials and models when authentication is removed', async () => {
 		const agent = createAgent(disposables, async () => []);
 		const appliedTokens: string[] = [];
-		agent['_githubToken'] = 'stale-token';
-		agent['_copilotModels'] = [{
+		(agent as any)['_githubToken'] = 'stale-token';
+		(agent as any)['_copilotModels'] = [{
 			provider: 'copilot',
 			id: toCodexModelSelectionId('vscode-proxy', 'gpt-5.3-codex'),
 			name: 'GPT-5.3-Codex',
 			supportsVision: false,
 		}];
-		agent['_models'].set(agent['_copilotModels'], undefined);
+		agent['_models'].set((agent as any)['_copilotModels'], undefined);
 		agent['_connection'] = {
 			kind: 'ready',
 			client: {
@@ -1623,7 +1584,7 @@ suite('CodexAgent model refresh', () => {
 		await agent.refreshModels();
 
 		assert.deepStrictEqual({
-			githubToken: agent['_githubToken'],
+			githubToken: (agent as any)['_githubToken'],
 			appliedTokens,
 			models: agent.models.get(),
 		}, {
@@ -1653,33 +1614,24 @@ suite('CodexAgent — agent SDK setup channel', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** What the workbench would read off root state right now. */
 	function readSetup(ctx: ITestAgentContext) {
 		return readAgentSdkSetupInfos(ctx.stateManager.rootState).find(setup => setup.agent === 'codex');
 	}
 
-	/** Addresses a download request at an agent the way `IAgentSdkSetupService` does. */
 	function dispatchDownload(ctx: ITestAgentContext, agent = 'codex', request = 'req-1'): void {
 		ctx.configurationService.updateRootConfig({ [AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY]: { agent, request } });
 	}
 
-	/** Addresses a reload request the same way, as the banner's link does. */
 	function dispatchReload(ctx: ITestAgentContext, agent = 'codex', request = 'req-1'): void {
 		ctx.configurationService.updateRootConfig({ [AGENT_SDK_SETUP_RELOAD_REQUEST_KEY]: { agent, request } });
 	}
 
-	/** Waits for the ctor's queued publish (and any refresh it chains) to settle. */
 	async function settle(): Promise<void> {
 		for (let i = 0; i < 20; i++) {
 			await new Promise<void>(resolve => setTimeout(resolve, 0));
 		}
 	}
 
-	/**
-	 * A build that knows where to fetch the SDK from but has not yet — the state
-	 * the banner's offer exists for. Both flags are set explicitly because
-	 * `isAvailable` false would fall through to `resolveCodexDevSdkRoot()`.
-	 */
 	function createNotDownloaded(): RecordingAgentSdkDownloader {
 		const sdkDownloader = new RecordingAgentSdkDownloader();
 		sdkDownloader.resolvableWithoutDownload = false;
@@ -1694,8 +1646,6 @@ suite('CodexAgent — agent SDK setup channel', () => {
 			agent: 'codex',
 			download: 'ready',
 			setupDocsUrl: 'https://learn.chatgpt.com/codex/auth',
-			// Unlike Claude, ChatGPT sign-in is a control request the app server
-			// answers, so the banner can start it without the user leaving the window.
 			signInProviderName: 'ChatGPT',
 		});
 	});
@@ -1711,12 +1661,10 @@ suite('CodexAgent — agent SDK setup channel', () => {
 		const sdkDownloader = createNotDownloaded();
 		let releaseDownload = () => { };
 		const downloaded = new Promise<void>(resolve => {
-			// Releasing the gate is the moment the SDK lands on disk.
 			releaseDownload = () => { sdkDownloader.resolvableWithoutDownload = true; resolve(); };
 		});
 		sdkDownloader.loadSdkRootResult = async () => { await downloaded; return '/tmp/codex-sdk'; };
 		const ctx = createAgentContext(disposables, async () => [], {}, sdkDownloader);
-		// The refresh the download chains must not spawn a real app server.
 		ctx.agent['_ensureConnection'] = async () => { throw new Error('offline'); };
 		await settle();
 
@@ -1787,7 +1735,6 @@ suite('CodexAgent — agent SDK setup channel', () => {
 
 		assert.deepStrictEqual({
 			downloads: sdkDownloader.progressInterests,
-			// Left in place for the agent it names, rather than consumed by this one.
 			key: ctx.configurationService.getRootConfigValues()[AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY],
 		}, {
 			downloads: [],
@@ -1823,7 +1770,6 @@ suite('CodexAgent — agent SDK setup channel', () => {
 
 		assert.deepStrictEqual({
 			key: ctx.configurationService.getRootConfigValues()[AGENT_SDK_SETUP_RELOAD_REQUEST_KEY],
-			// Reload only re-reads what is already there; nothing is ever fetched.
 			interests: ctx.sdkDownloader.progressInterests,
 		}, {
 			key: undefined,

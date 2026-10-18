@@ -25,22 +25,22 @@ export const enum TerminalSuggestSettingId {
 }
 
 export const windowsDefaultExecutableExtensions: string[] = [
-	'exe',   // Executable file
-	'bat',   // Batch file
-	'cmd',   // Command script
-	'com',   // Command file
+	'exe',
+	'bat',
+	'cmd',
+	'com',
 
-	'msi',   // Windows Installer package
+	'msi',
 
-	'ps1',   // PowerShell script
+	'ps1',
 
-	'vbs',   // VBScript file
-	'js',    // JScript file
-	'jar',   // Java Archive (requires Java runtime)
-	'py',    // Python script (requires Python interpreter)
-	'rb',    // Ruby script (requires Ruby interpreter)
-	'pl',    // Perl script (requires Perl interpreter)
-	'sh',    // Shell script (via WSL or third-party tools)
+	'vbs',
+	'js',
+	'jar',
+	'py',
+	'rb',
+	'pl',
+	'sh',
 ];
 
 export const terminalSuggestConfigSection = 'terminal.integrated.suggest';
@@ -64,13 +64,6 @@ export interface ITerminalQuickSuggestionsOptions {
 	unknown: 'on' | 'off';
 }
 
-/**
- * Normalizes the quickSuggestions config value to an object.
- * Handles migration from boolean values:
- * - `true` -> { commands: 'on', arguments: 'on', unknown: 'on' }
- * - `false` -> { commands: 'off', arguments: 'off', unknown: 'off' }
- * - object -> passed through as-is
- */
 export function normalizeQuickSuggestionsConfig(config: ITerminalSuggestConfiguration['quickSuggestions']): ITerminalQuickSuggestionsOptions {
 	if (typeof config === 'boolean') {
 		return config
@@ -83,7 +76,7 @@ export function normalizeQuickSuggestionsConfig(config: ITerminalSuggestConfigur
 export const terminalSuggestConfiguration: IStringDictionary<IConfigurationPropertySchema> = {
 	[TerminalSuggestSettingId.Enabled]: {
 		restricted: true,
-		markdownDescription: localize('suggest.enabled', "Enables terminal IntelliSense suggestions (also known as autocomplete) for supported shells ({0}). This requires {1} to be enabled and working or [manually installed](https://code.visualstudio.com/docs/terminal/shell-integration#_manual-installation-install).", 'Windows PowerShell, PowerShell v7+, zsh, bash, fish', `\`#${TerminalSettingId.ShellIntegrationEnabled}#\``),
+		markdownDescription: localize('suggest.enabled', "Enables terminal IntelliSense suggestions (also known as autocomplete) for supported shells ({0}). This requires {1} to be enabled and working or [manually installed](https://www.dardcor-code.web.id/docs/terminal/shell-integration#_manual-installation-install).", 'Windows PowerShell, PowerShell v7+, zsh, bash, fish', `\`#${TerminalSettingId.ShellIntegrationEnabled}#\``),
 		type: 'boolean',
 		default: true,
 	},

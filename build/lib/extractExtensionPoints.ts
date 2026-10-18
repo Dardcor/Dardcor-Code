@@ -3,27 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Extracts extension point names from TypeScript source files by parsing the AST
- * to find all calls to `ExtensionsRegistry.registerExtensionPoint(...)`.
- *
- * Handles:
- * - Inline string literals: `{ extensionPoint: 'foo' }`
- * - Enum member values passed via function parameters
- * - Imported descriptor variables where the `extensionPoint` property is in another file
- *
- * This module can be used standalone (`node build/lib/extractExtensionPoints.ts`)
- * to regenerate the extension points file, or imported for use in gulp build tasks.
- */
 
 import ts from 'typescript';
 import path from 'path';
 import fs from 'fs';
 
-/**
- * Extract extension point names registered via `registerExtensionPoint` from
- * a single TypeScript source file's AST. No type checker is needed.
- */
 export function extractExtensionPointNamesFromFile(sourceFile: ts.SourceFile): string[] {
 	const results: string[] = [];
 	visit(sourceFile);
@@ -59,13 +43,11 @@ export function extractExtensionPointNamesFromFile(sourceFile: ts.SourceFile): s
 		if (ts.isStringLiteral(epProp.initializer)) {
 			results.push(epProp.initializer.text);
 		} else if (ts.isIdentifier(epProp.initializer)) {
-			// The value references a function parameter - resolve via call sites
 			handleParameterReference(call, epProp.initializer.text);
 		}
 	}
 
 	function handleParameterReference(registerCall: ts.CallExpression, paramName: string): void {
-		// Walk up to find the containing function
 		let current: ts.Node | undefined = registerCall.parent;
 		while (current && !ts.isFunctionDeclaration(current) && !ts.isFunctionExpression(current) && !ts.isArrowFunction(current)) {
 			current = current.parent;
@@ -75,7 +57,6 @@ export function extractExtensionPointNamesFromFile(sourceFile: ts.SourceFile): s
 		}
 		const fn = current as ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction;
 
-		// Find which parameter position matches paramName
 		const paramIndex = fn.parameters.findIndex(
 			p => ts.isIdentifier(p.name) && p.name.text === paramName
 		);
@@ -83,13 +64,11 @@ export function extractExtensionPointNamesFromFile(sourceFile: ts.SourceFile): s
 			return;
 		}
 
-		// Find the function name to locate call sites
 		const fnName = ts.isFunctionDeclaration(fn) && fn.name ? fn.name.text : undefined;
 		if (!fnName) {
 			return;
 		}
 
-		// Find all call sites of this function in the same file
 		ts.forEachChild(sourceFile, function findCalls(node) {
 			if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === fnName) {
 				const callArg = node.arguments[paramIndex];
@@ -131,7 +110,6 @@ export function extractExtensionPointNamesFromFile(sourceFile: ts.SourceFile): s
 						results.push(value);
 					}
 				} catch {
-					// Imported file not found, skip
 				}
 				return;
 			}
@@ -142,7 +120,6 @@ export function extractExtensionPointNamesFromFile(sourceFile: ts.SourceFile): s
 		if (ts.isStringLiteral(node)) {
 			return node.text;
 		}
-		// Property access: Enum.Member
 		if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
 			const enumName = node.expression.text;
 			const memberName = node.name.text;
@@ -188,7 +165,6 @@ function findExtensionPointInVariable(sourceFile: ts.SourceFile, varName: string
 	return undefined;
 }
 
-// --- Standalone CLI ---
 
 const rootDir = path.resolve(import.meta.dirname, '..', '..');
 const srcDir = path.join(rootDir, 'src');
@@ -226,7 +202,6 @@ function main(): void {
 			return;
 		}
 	} catch {
-		// File doesn't exist yet, write it
 	}
 	fs.writeFileSync(outputPath, output, 'utf-8');
 	console.log(`Wrote ${names.length} extension points to ${path.relative(rootDir, outputPath)}`);

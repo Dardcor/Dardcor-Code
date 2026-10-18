@@ -49,13 +49,6 @@ interface IInternalPendingRequest extends IPendingResourceRequest {
 interface IInMemoryGrant {
 	readonly identity: AgentHostResourceIdentity;
 	readonly uri: URI;
-	/**
-	 * Resolves to the realpath'd URI for the grant. Stored as a promise so
-	 * `grantImplicitRead` can return synchronously while the realpath lookup
-	 * is in flight; consumers in `_isCovered` await the resolved URI before
-	 * comparing, so a check that happens before the lookup completes still
-	 * compares against the canonical path. Always resolves (never rejects).
-	 */
 	readonly realpath: Promise<URI>;
 	readonly mode: AgentHostAccessMode;
 }
@@ -74,29 +67,6 @@ function normalizeResourceIdentity(identity: AgentHostResourceIdentity): AgentHo
 	return identity === LOCAL_AGENT_HOST_RESOURCE_IDENTITY ? identity : normalizeRemoteAgentHostAddress(identity);
 }
 
-/**
- * Default implementation of {@link IAgentHostResourceService} — the unified
- * owner of agent-host-facing filesystem operations and the permission
- * policy that gates them. Reads transparently fall back to
- * {@link ITextModelService} so virtual resources (untitled documents,
- * notebook cells, ...) work without the host having to know about them.
- *
- * Permission storage shape (in user settings):
- *
- * ```jsonc
- * "chat.agentHost.localFilePermissions": {
- *   "localhost:3000": {
- *     "file:///Users/me/.gitconfig": "r",
- *     "file:///Users/me/.agentConfig": "rw"
- *   }
- * }
- * ```
- *
- * - Keys are remote addresses normalized via
- *   {@link normalizeRemoteAgentHostAddress}.
- * - Values are URI strings → `r` | `rw`. Descendant URIs are covered by a
- *   parent grant.
- */
 export class AgentHostResourceService extends Disposable implements IAgentHostResourceService {
 	declare readonly _serviceBrand: undefined;
 
@@ -114,7 +84,6 @@ export class AgentHostResourceService extends Disposable implements IAgentHostRe
 		super();
 	}
 
-	// ---- Gated FS operations ------------------------------------------------
 
 	async list(identity: AgentHostResourceIdentity, uri: URI): Promise<IResourceListResult> {
 		const normalized = normalizeResourceIdentity(identity);
@@ -235,7 +204,6 @@ export class AgentHostResourceService extends Disposable implements IAgentHostRe
 		await this._fileService.createFolder(uri);
 	}
 
-	// ---- Permission requests / observables ---------------------------------
 
 	async check(identity: AgentHostResourceIdentity, uri: URI, mode: AgentHostPermissionMode): Promise<boolean> {
 		const normalized = normalizeResourceIdentity(identity);
@@ -312,7 +280,6 @@ export class AgentHostResourceService extends Disposable implements IAgentHostRe
 		}
 	}
 
-	// ---- internals ---------------------------------------------------------
 
 	private async _gate(
 		identity: AgentHostResourceIdentity,
@@ -338,11 +305,6 @@ export class AgentHostResourceService extends Disposable implements IAgentHostRe
 		}
 	}
 
-	/**
-	 * Write {@link bytes} as text into the resolved text model for {@link uri},
-	 * if one can be resolved and is writable. Returns `true` when the model was
-	 * updated, `false` otherwise (no provider, readonly, decode failure).
-	 */
 	private async _writeVirtual(uri: URI, bytes: VSBuffer): Promise<boolean> {
 		try {
 			const ref = await this._textModelService.createModelReference(uri);
@@ -360,12 +322,6 @@ export class AgentHostResourceService extends Disposable implements IAgentHostRe
 		}
 	}
 
-	/**
-	 * Resolve {@link uri} via {@link ITextModelService} and synthesize a
-	 * {@link ResourceResolveResult} so virtual resources stat as `File` with
-	 * a size matching their text content. Returns `undefined` if no model
-	 * can be resolved.
-	 */
 	private async _statVirtual(uri: URI): Promise<ResourceResolveResult | undefined> {
 		try {
 			const ref = await this._textModelService.createModelReference(uri);
@@ -384,13 +340,6 @@ export class AgentHostResourceService extends Disposable implements IAgentHostRe
 		}
 	}
 
-	/**
-	 * Resolve {@link uri} against the local filesystem, collapsing `..`
-	 * segments and following symlinks so the policy check sees the same
-	 * path the OS will actually open. For URIs that don't exist (e.g. a
-	 * `resourceWrite` for a new file), realpath the deepest existing
-	 * ancestor and re-append the missing suffix.
-	 */
 	private async _canonicalize(uri: URI): Promise<URI> {
 		const normalized = extUri.normalizePath(uri);
 		const suffix: string[] = [];
@@ -558,12 +507,10 @@ export class AgentHostResourceService extends Disposable implements IAgentHostRe
 					try {
 						lexicalUri = URI.parse(grant.lexicalUri);
 					} catch {
-						// Fall back to the canonical URI for malformed lexical metadata.
 					}
 				}
 				yield { uri, lexicalUri, mode };
 			} catch {
-				// Ignore malformed URI keys.
 			}
 		}
 	}

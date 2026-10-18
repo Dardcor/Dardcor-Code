@@ -107,8 +107,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 		vscode.window.onDidChangeActiveTextEditor(editor => {
 			if (editor?.document.languageId === 'search-result') {
-				// Clear the parse whenever we open a new editor.
-				// Conservative because things like the URI might remain constant even if the contents change, and re-parsing even large files is relatively fast.
 				cachedLastParse = undefined;
 
 				documentChangeListener?.dispose();
@@ -161,8 +159,6 @@ function relativePathToUri(path: string, resultsUri: vscode.Uri): vscode.Uri | u
 		else if (vscode.workspace.workspaceFolders.length === 1) {
 			return uriFromFolderWithPath(vscode.workspace.workspaceFolders[0], path);
 		} else if (resultsUri.scheme !== 'untitled') {
-			// We're in a multi-root workspace, but the path is not multi-root formatted
-			// Possibly a saved search from a single root session. Try checking if the search result document's URI is in a current workspace folder.
 			const prefixMatch = vscode.workspace.workspaceFolders.filter(wf => resultsUri.toString().startsWith(wf.uri.toString()))[0];
 			if (prefixMatch) {
 				return uriFromFolderWithPath(prefixMatch, path);
@@ -194,7 +190,6 @@ function parseSearchResults(document: vscode.TextDocument, token?: vscode.Cancel
 	let currentTargetLocations: vscode.LocationLink[] | undefined = undefined;
 
 	for (let i = 0; i < lines.length; i++) {
-		// TODO: This is probably always false, given we're pegging the thread...
 		if (token?.isCancellationRequested) { return []; }
 		const line = lines[i];
 
@@ -250,12 +245,10 @@ function parseSearchResults(document: vscode.TextDocument, token?: vscode.Cancel
 					originSelectionRange: new vscode.Range(i, lastEnd, i, line.length),
 				});
 			}
-			// only show result lines in file-level peek
 			if (separator.includes(':')) {
 				currentTargetLocations?.push(...locations);
 			}
 
-			// Allow line number, indentation, etc to take you to definition as well.
 			const convenienceLocation: Required<vscode.LocationLink> = {
 				targetRange,
 				targetSelectionRange: new vscode.Range(lineNumber, 0, lineNumber, 1),

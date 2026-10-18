@@ -37,14 +37,10 @@ export class FetchRequestCollector {
 				const request = await requestPromise;
 				this._interceptedRequests.push(request);
 			} catch (err) {
-				// ignore errors here- the error will be thrown out of the ChatMLFetcher and handled
 			}
 		}));
 	}
 
-	/**
-	 * Intercepted requests are async. This method waits for all pending requests to complete.
-	 */
 	public async complete(): Promise<void> {
 		await Promise.all(this._scheduledRequests);
 	}
@@ -54,7 +50,6 @@ export class FetchRequestCollector {
 	}
 
 	public get usage(): APIUsage {
-		// Have to extract this to give it an explicit type or TS is confused
 		const initial: APIUsage = { completion_tokens: 0, prompt_tokens: 0, total_tokens: 0, prompt_tokens_details: { cached_tokens: 0 } };
 		return this.interceptedRequests.reduce((p, c): APIUsage => {
 			const initialUsage: APIUsage = { completion_tokens: 0, prompt_tokens: 0, total_tokens: 0, prompt_tokens_details: { cached_tokens: 0 } };

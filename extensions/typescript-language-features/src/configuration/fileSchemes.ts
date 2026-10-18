@@ -13,13 +13,11 @@ export const github = 'github';
 export const azurerepos = 'azurerepos';
 export const chatEditingTextModel = 'chat-editing-text-model';
 
-/** Live share scheme */
 export const vsls = 'vsls';
 export const walkThroughSnippet = 'walkThroughSnippet';
 export const vscodeNotebookCell = 'vscode-notebook-cell';
 export const officeScript = 'office-script';
 
-/** Used for code blocks in chat by vs code core */
 export const chatCodeBlock = 'vscode-chat-code-block';
 
 export function getSemanticSupportedSchemes() {
@@ -43,9 +41,6 @@ export function getSemanticSupportedSchemes() {
 	];
 }
 
-/**
- * File scheme for which JS/TS language feature should be disabled
- */
 export const disabledSchemes = new Set([
 	git,
 	vsls,

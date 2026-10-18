@@ -18,21 +18,9 @@ export interface IWebSocketFactory {
 }
 
 export interface IWebSocketCloseEvent {
-	/**
-	 * Returns the WebSocket connection close code provided by the server.
-	 */
 	readonly code: number;
-	/**
-	 * Returns the WebSocket connection close reason provided by the server.
-	 */
 	readonly reason: string;
-	/**
-	 * Returns true if the connection closed cleanly; false otherwise.
-	 */
 	readonly wasClean: boolean;
-	/**
-	 * Underlying event.
-	 */
 	readonly event: unknown | undefined;
 }
 
@@ -118,15 +106,6 @@ class BrowserWebSocket extends Disposable implements IWebSocket {
 			this._onOpen.fire();
 		}));
 
-		// WebSockets emit error events that do not contain any real information
-		// Our only chance of getting to the root cause of an error is to
-		// listen to the close event which gives out some real information:
-		// - https://www.w3.org/TR/websockets/#closeevent
-		// - https://tools.ietf.org/html/rfc6455#section-11.7
-		//
-		// But the error event is emitted before the close event, so we therefore
-		// delay the error event processing in the hope of receiving a close event
-		// with more information
 
 		let pendingErrorEvent: unknown | null = null;
 
@@ -157,16 +136,11 @@ class BrowserWebSocket extends Disposable implements IWebSocket {
 
 			if (pendingErrorEvent) {
 				if (!navigator.onLine) {
-					// The browser is offline => this is a temporary error which might resolve itself
 					sendErrorNow(new RemoteAuthorityResolverError('Browser is offline', RemoteAuthorityResolverErrorCode.TemporarilyNotAvailable, e));
 				} else {
-					// An error event is pending
-					// The browser appears to be online...
 					if (!e.wasClean) {
-						// Let's be optimistic and hope that perhaps the server could not be reached or something
 						sendErrorNow(new RemoteAuthorityResolverError(e.reason || `WebSocket close with status code ${e.code}`, RemoteAuthorityResolverErrorCode.TemporarilyNotAvailable, e));
 					} else {
-						// this was a clean close => send existing error
 						errorRunner.cancel();
 						sendPendingErrorNow();
 					}
@@ -184,7 +158,6 @@ class BrowserWebSocket extends Disposable implements IWebSocket {
 
 	send(data: ArrayBuffer | ArrayBufferView<ArrayBuffer>): void {
 		if (this._isClosed) {
-			// Refuse to write data to closed WebSocket...
 			return;
 		}
 		this.traceSocketEvent(SocketDiagnosticsEventType.Write, data);

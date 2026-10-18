@@ -138,7 +138,6 @@ export class BrowserWindowDriver implements IWindowDriver {
 			throw new Error(`Editor not found: ${selector}`);
 		}
 		if (isHTMLDivElement(element)) {
-			// Edit context is enabled
 			const editContext = element.editContext;
 			if (!editContext) {
 				throw new Error(`Edit context not found: ${selector}`);

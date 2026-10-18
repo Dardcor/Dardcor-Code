@@ -23,7 +23,7 @@ import { IUntitledTextEditorService } from './untitledTextEditorService.js';
 
 interface ISerializedUntitledTextEditorInput {
 	readonly resourceJSON: UriComponents;
-	readonly modeId: string | undefined; // should be `languageId` but is kept for backwards compatibility
+	readonly modeId: string | undefined;
 	readonly encoding: string | undefined;
 }
 
@@ -48,13 +48,9 @@ export class UntitledTextEditorInputSerializer implements IEditorSerializer {
 
 		let resource = untitledTextEditorInput.resource;
 		if (untitledTextEditorInput.hasAssociatedFilePath) {
-			resource = toLocalResource(resource, this.environmentService.remoteAuthority, this.pathService.defaultUriScheme); // untitled with associated file path use the local schema
+			resource = toLocalResource(resource, this.environmentService.remoteAuthority, this.pathService.defaultUriScheme);
 		}
 
-		// Language: only remember language if it is either specific (not text)
-		// or if the language was explicitly set by the user. We want to preserve
-		// this information across restarts and not set the language unless
-		// this is the case.
 		let languageId: string | undefined;
 		const languageIdCandidate = untitledTextEditorInput.getLanguageId();
 		if (languageIdCandidate !== PLAINTEXT_LANGUAGE_ID) {
@@ -109,18 +105,12 @@ export class UntitledTextEditorWorkingCopyEditorHandler extends Disposable imple
 			return false;
 		}
 
-		// Also match editors that are not UntitledTextEditorInput but share the
-		// same untitled resource (e.g. a text-based custom editor that wraps the
-		// same underlying text model). Without this, the backup restorer would
-		// create a duplicate UntitledTextEditorInput alongside the custom editor.
 		return isEqual(workingCopy.resource, editor.resource);
 	}
 
 	createEditor(workingCopy: IWorkingCopyIdentifier): EditorInput {
 		let editorInputResource: URI;
 
-		// If the untitled has an associated resource,
-		// ensure to restore the local resource it had
 		if (this.untitledTextEditorService.isUntitledWithAssociatedResource(workingCopy.resource)) {
 			editorInputResource = toLocalResource(workingCopy.resource, this.environmentService.remoteAuthority, this.pathService.defaultUriScheme);
 		} else {

@@ -21,7 +21,6 @@ registerThemingParticipant((theme, collector) => {
 	}
 	const hoverBackground = theme.getColor(MODERN_EDITOR_TAB_HOVER_BACKGROUND);
 	if (stripBackground && hoverBackground) {
-		// Flatten against the strip, not the document, so the action mask and pill paint one surface.
 		collector.addRule(`.monaco-workbench.modern-ui.modern-ui-connected-editor-tabs { --modern-ui-connected-tab-upper-hover-background: ${hoverBackground.makeOpaque(stripBackground)}; }`);
 	}
 });

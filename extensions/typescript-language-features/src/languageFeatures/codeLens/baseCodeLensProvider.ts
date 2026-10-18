@@ -27,7 +27,6 @@ export abstract class TypeScriptBaseCodeLensProvider extends Disposable implemen
 	public onDidChangeCodeLenses = this.changeEmitter.event;
 
 	public static readonly cancelledCommand: vscode.Command = {
-		// Cancellation is not an error. Just show nothing until we can properly re-compute the code lens
 		title: '',
 		command: ''
 	};
@@ -89,7 +88,6 @@ export function getSymbolRange(
 		return typeConverters.Range.fromTextSpan(item.nameSpan);
 	}
 
-	// In older versions, we have to calculate this manually. See #23924
 	const span = item.spans?.[0];
 	if (!span) {
 		return undefined;

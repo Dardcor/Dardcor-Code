@@ -38,13 +38,9 @@ suite('ExtHostTerminalService', () => {
 
 		const terminalId = 42;
 		service.$acceptTerminalOpened(terminalId, undefined, 'test', {} as IShellLaunchConfigDto);
-		// $acceptTerminalClosed splices the terminal out of `_terminals` but doesn't dispose it,
-		// so register it with the test store to keep the leak detector quiet.
 		const terminal = service.getTerminalById(terminalId)!;
 		store.add(terminal);
 
-		// Link provider that only resolves when the cancellation token fires, so we can observe
-		// cancellation as the externally-visible effect of $acceptTerminalClosed.
 		let providerTokenCancelled = false;
 		let handledAfterClose = false;
 		const provider: vscode.TerminalLinkProvider = {
@@ -66,11 +62,8 @@ suite('ExtHostTerminalService', () => {
 		await service.$acceptTerminalClosed(terminalId, undefined, TerminalExitReason.Unknown);
 		const firstLinks = await inFlight;
 
-		// Any cached links that might have been written before close should have been cleared, so
-		// $activateLink for a closed terminal is a no-op.
 		service.$activateLink(terminalId, 0);
 
-		// A subsequent $provideLinks for the same id sees a clean slate (terminal is gone -> []).
 		const linksAfterClose = await service.$provideLinks(terminalId, 'hello');
 
 		assert.deepStrictEqual(

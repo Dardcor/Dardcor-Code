@@ -9,22 +9,10 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/c
 import type { IByokLmBridgeConnection, IByokLmChatResult, IByokLmModelInfo } from '../../common/agentHostByokLm.js';
 import { ByokLmBridgeRegistry } from '../../node/byokLmBridgeRegistry.js';
 
-/**
- * Pins the behaviour of {@link ByokLmBridgeRegistry}: it caches the model
- * snapshots pushed by each connection, surfaces the models of a single *serving*
- * connection (preferring one that actually has models), routes inference there,
- * excludes connections that never push, and notifies listeners on
- * model/connection changes.
- */
 suite('ByokLmBridgeRegistry', () => {
 
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
-	/**
-	 * A scripted bridge connection whose model snapshots are pushed on demand via
-	 * the returned `push`. A connection that never pushes stays non-serving.
-	 * `chat` is unused by these tests.
-	 */
 	function pushable(): { connection: IByokLmBridgeConnection; push: (models: IByokLmModelInfo[]) => void } {
 		const emitter = store.add(new Emitter<IByokLmModelInfo[]>());
 		return {
@@ -38,8 +26,6 @@ suite('ByokLmBridgeRegistry', () => {
 
 	test('surfaces the serving window\'s models and routes inference to it; a non-serving window is excluded', () => {
 		const registry = new ByokLmBridgeRegistry();
-		// A serving window (it pushes a snapshot) and a window that connected
-		// without a BYOK handler, which never pushes.
 		const serving = pushable();
 		const nonServing = pushable();
 		const regServing = registry.register('editor', serving.connection);
@@ -75,9 +61,6 @@ suite('ByokLmBridgeRegistry', () => {
 
 	test('a window that pushed empty does not shadow a peer that has models, even when it connected first', () => {
 		const registry = new ByokLmBridgeRegistry();
-		// The Agents app connects first and pushes empty (its BYOK extension has
-		// not registered models yet); a peer window pushes models. The peer must
-		// win — an empty-but-serving window must never shadow a populated one.
 		const empty = pushable();
 		const withModels = pushable();
 		const regEmpty = registry.register('agents', empty.connection);
@@ -150,8 +133,6 @@ suite('ByokLmBridgeRegistry', () => {
 		let changes = 0;
 		store.add(registry.onDidChangeModels(() => { changes++; }));
 
-		// Only the carried identifier changed (e.g. the user renamed the provider group) — the
-		// registry must still notice and re-publish so the picker keys visibility by the new id.
 		conn.push([{ vendor: 'openrouter', id: 'aion-labs/aion-3.0', modelIdentifier: 'openrouter/OpenRouter 2/aion-labs/aion-3.0' }]);
 
 		assert.deepStrictEqual({ changes, models: registry.getModels() }, {

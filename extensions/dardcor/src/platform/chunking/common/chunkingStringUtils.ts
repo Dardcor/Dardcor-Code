@@ -6,8 +6,6 @@
 import { splitLines } from '../../../util/dardcor/base/common/strings';
 
 export function truncateToMaxUtf8Length(str: string, maxBytes: number): string {
-	// utf-16 strings have at most 4 bytes per character (2 * 2)
-	// If we're under that, skip the more expensive checks
 	const upperEstimatedByteLength = str.length * 4;
 	if (upperEstimatedByteLength <= maxBytes) {
 		return str;
@@ -22,22 +20,11 @@ export function truncateToMaxUtf8Length(str: string, maxBytes: number): string {
 
 	const truncatedBytes = encodedStr.slice(0, maxBytes);
 
-	// Decode the truncated bytes back to a string, ensuring no partial characters
 	return new TextDecoder().decode(truncatedBytes, {
-		stream: true // Don't emit partial characters
+		stream: true
 	});
 }
 
-/**
- * Returned chunks are formatted with extra metadata:
- *
- * File: `fileName.ext`:
- * ```lang
- * chunk text
- * ```
- *
- * Try to strip this out
- */
 
 export function stripChunkTextMetadata(text: string): string {
 	const lines = splitLines(text);

@@ -100,10 +100,6 @@ class FilenameAndExensionLanguageDetection extends LanguageDetection {
 	}
 }
 
-// This class is used to group similar languages together.
-// The main drawback of trying to keep them apart is that for related files (e.g. header files),
-// the language detection might be wrong and thus features like neighbor tabs might not work as expected.
-// In the end, this feature should be moved to neighborTabs.ts (but that's hard to do behind a feature flag)
 class GroupingLanguageDetection extends LanguageDetection {
 	constructor(private readonly delegate: LanguageDetection) {
 		super();

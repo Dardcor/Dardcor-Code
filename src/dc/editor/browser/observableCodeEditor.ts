@@ -17,9 +17,6 @@ import { IModelContentChangedEvent } from '../common/textModelEvents.js';
 import { ContentWidgetPositionPreference, ICodeEditor, IContentWidget, IContentWidgetPosition, IEditorMouseEvent, IOverlayWidget, IOverlayWidgetPosition, IPasteEvent } from './editorBrowser.js';
 import { Point } from '../common/core/2d/point.js';
 
-/**
- * Returns a facade for the code editor that provides observables for various states/events.
-*/
 export function observableCodeEditor(editor: ICodeEditor): ObservableCodeEditor {
 	return ObservableCodeEditor.get(editor);
 }
@@ -27,9 +24,6 @@ export function observableCodeEditor(editor: ICodeEditor): ObservableCodeEditor 
 export class ObservableCodeEditor extends Disposable {
 	private static readonly _map = new Map<ICodeEditor, ObservableCodeEditor>();
 
-	/**
-	 * Make sure that editor is not disposed yet!
-	*/
 	public static get(editor: ICodeEditor): ObservableCodeEditor {
 		let result = ObservableCodeEditor._map.get(editor);
 		if (!result) {
@@ -54,7 +48,6 @@ export class ObservableCodeEditor extends Disposable {
 		this._updateCounter++;
 		if (this._updateCounter === 1) {
 			this._currentTransaction = new TransactionImpl(() => {
-				/** @description Update editor state */
 			});
 		}
 	}
@@ -214,13 +207,6 @@ export class ObservableCodeEditor extends Disposable {
 		});
 	}
 
-	/**
-	 * Batches the transactions started by observableFromEvent.
-	 *
-	 * If the callback causes the editor to fire an event that updates
-	 * an observable value backed by observableFromEvent (such as scrollTop etc.),
-	 * then all such updates will be part of the same transaction.
-	*/
 	public transaction<T>(cb: (tx: ITransaction) => T): T {
 		this._beginUpdate();
 		try {
@@ -383,16 +369,12 @@ export class ObservableCodeEditor extends Disposable {
 		});
 	}
 
-	/**
-	 * Uses an approximation if the exact position cannot be determined.
-	 */
 	getLeftOfPosition(position: Position, reader: IReader | undefined): number {
 		this.layoutInfo.read(reader);
 		this.value.read(reader);
 
 		let offset = this.editor.getOffsetForColumn(position.lineNumber, position.column);
 		if (offset === -1) {
-			// approximation
 			const typicalHalfwidthCharacterWidth = this.editor.getOption(EditorOption.fontInfo).typicalHalfwidthCharacterWidth;
 			const approximation = position.column * typicalHalfwidthCharacterWidth;
 			offset = approximation;
@@ -416,7 +398,6 @@ export class ObservableCodeEditor extends Disposable {
 			afterRender: (position, coordinate) => {
 				const model = this._model.get();
 				if (model && pos && pos.lineNumber > model.getLineCount()) {
-					// the position is after the last line
 					result.set(new Point(0, this.editor.getBottomForLineNumber(model.getLineCount()) - this.scrollTop.get()), undefined);
 				} else {
 					result.set(coordinate ? new Point(coordinate.left, coordinate.top) : null, undefined);
@@ -497,24 +478,13 @@ export class ObservableCodeEditor extends Disposable {
 	private readonly _onDidHiddenAreasChanged;
 	private readonly _onDidLineHeightChanged;
 
-	/**
-	 * Tracks whether getWidthOfLine returned 0, indicating the editor may be hidden.
-	 * When resize happens and this flag is set, we reset cached line widths.
-	 */
 	private _sawZeroLineWidth = false;
 
-	/**
-	 * Fires when the editor container resizes.
-	 * This is lazily created only when someone subscribes to it.
-	 * Useful for detecting when a parent element's display changes from 'none' to 'block'.
-	 */
 	private readonly _onDidContainerResize = observableFromEventOpts(
 		{ owner: this, getTransaction: () => this._currentTransaction },
 		e => {
 			const container = this.editor.getContainerDomNode();
 			const resizeObserver = new ResizeObserver(() => {
-				// If we previously saw a 0 width, the editor was likely hidden.
-				// Now that it resized (became visible), flush the cached widths.
 				if (this._sawZeroLineWidth) {
 					this._sawZeroLineWidth = false;
 					this.editor.resetLineWidthCaches();
@@ -524,14 +494,9 @@ export class ObservableCodeEditor extends Disposable {
 			resizeObserver.observe(container);
 			return { dispose: () => resizeObserver.disconnect() };
 		},
-		() => ({}) // Return new object each time to ensure change detection
+		() => ({})
 	);
 
-	/**
-	 * Get the width of a line in pixels.
-	 * Reading the returned value depends on layoutInfo, value, scrollTop, and container resize events.
-	 * The container resize dependency ensures correct values when the editor becomes visible after being hidden.
-	 */
 	getWidthOfLine(lineNumber: number, reader: IReader | undefined): number {
 		this.layoutInfo.read(reader);
 		this.value.read(reader);
@@ -544,9 +509,6 @@ export class ObservableCodeEditor extends Disposable {
 		return width;
 	}
 
-	/**
-	 * Get the vertical position (top offset) for the line's bottom w.r.t. to the first line.
-	 */
 	observeTopForLineNumber(lineNumber: number): IObservable<number> {
 		return derived(reader => {
 			this.layoutInfo.read(reader);
@@ -558,9 +520,6 @@ export class ObservableCodeEditor extends Disposable {
 		});
 	}
 
-	/**
-	 * Get the vertical position (top offset) for the line's bottom w.r.t. to the first line.
-	 */
 	observeBottomForLineNumber(lineNumber: number): IObservable<number> {
 		return derived(reader => {
 			this.layoutInfo.read(reader);

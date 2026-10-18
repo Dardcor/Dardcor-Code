@@ -5,11 +5,9 @@
 
 import * as nls from '../../../../nls.js';
 
-// Import the effects we need
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { registerColor, oneOf } from '../colorUtils.js';
 
-// Import the colors we need
 import { editorWidgetBackground, editorWidgetForeground } from './editorColors.js';
 import { listActiveSelectionBackground, listActiveSelectionForeground, listActiveSelectionIconForeground, listFocusHighlightForeground } from './listColors.js';
 
@@ -27,7 +25,7 @@ export const quickInputTitleBackground = registerColor('quickInputTitle.backgrou
 	nls.localize('pickerTitleBackground', "Quick picker title background color. The quick picker widget is the container for pickers like the command palette."));
 
 export const pickerGroupForeground = registerColor('pickerGroup.foreground',
-	{ dark: '#3794FF', light: '#0066BF', hcDark: Color.white, hcLight: '#0F4A85' },
+	{ dark: '#7C4DFF', light: '#6A1B9A', hcDark: Color.white, hcLight: '#0F4A85' },
 	nls.localize('pickerGroupForeground', "Quick picker color for grouping labels."));
 
 export const pickerGroupBorder = registerColor('pickerGroup.border',

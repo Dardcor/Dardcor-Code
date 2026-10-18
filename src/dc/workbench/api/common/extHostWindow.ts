@@ -32,7 +32,6 @@ export class ExtHostWindow implements ExtHostWindowShape {
 	private _state = ExtHostWindow.InitialState;
 
 	getState(): WindowState {
-		// todo@connor4312: this can be changed to just return this._state after proposed api is finalized
 		const state = this._state;
 
 		return {

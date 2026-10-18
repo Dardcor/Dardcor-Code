@@ -52,31 +52,16 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 	}
 
 	private getFormat(firstLine: string): AlternativeContentFormat {
-		// if the source starts with `{` or `[`, then its a JSON string,
-		// If it starts with `<`, then its an XML string, else text
-		// Trim, as we want to ensure we remove any leading/trailing whitespace (e.g. its possible there's empty space between the fence and the content)
 		const firstChar = firstLine.trim().substring(0, 1);
 		const format = firstChar === '{' ? 'json' : firstChar === '<' ? 'xml' : 'text';
 		return format;
 	}
 
-	/**
-	 * Given a NotebookDocument or Uri, and a cell kind, return the EOL for the new cell.
-	 * If the notebook is empty, then return the default EOL.
-	 * Else default to the EOL of the first cell of the given kind.
-	 * This way we have a consistent EOL for new cells (matching existing cells).
-	 */
 	private getEOLForNewCell(notebookOrUri: NotebookDocument | Uri, cellKind: NotebookCellKind): string | undefined {
 		const eolInExistingCodeCell = isUri(notebookOrUri) ? undefined : (notebookOrUri.getCells().find(c => c.kind === cellKind)?.document.eol ?? undefined);
 		return eolInExistingCodeCell ? eolInExistingCodeCell === EndOfLine.LF ? '\n' : '\r\n' : EOL;
 	}
 
-	/**
-	 * Given a stream of lines for the alternative content, generate the corresponding edits to apply to the notebook document.
-	 * We accept a NotebookDocument or a Uri.
-	 * This is because its possible the Notebook may not have been created/loaded as of yet.
-	 * I.e. for new Notebooks, we can emity the Insert Cell Edits without the notebook being created.
-	 */
 	public async *generateNotebookEdits(notebookOrUri: NotebookDocument | Uri, lines: AsyncIterable<LineOfText> | string, telemetryOptions: NotebookEditGenerationTelemtryOptions | undefined, token: CancellationToken): AsyncIterable<NotebookEdit | [Uri, TextEdit[]]> {
 		lines = typeof lines === 'string' ? textToAsyncIterableLines(lines) : lines;
 		const firstNonEmptyLinePromise = new DeferredPromise<LineOfText>();
@@ -84,9 +69,6 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 		const firstNonEmptyLine = (await firstNonEmptyLinePromise.p).value;
 		const format = this.getFormat(firstNonEmptyLine);
 
-		// Sometimes llm hallucinates with jupytext format, and doesn't send the cell markers.
-		// Instead just sends plain python code.
-		// In such cases, if no new cells were emitted, then emit a new cell with the contents of the entire plain python code.
 		const linesCollected: string[] = [];
 		lines = collectWhileStreaming(lines, linesCollected);
 		const isEmptyNotebook = isUri(notebookOrUri) || notebookOrUri.cellCount === 0;
@@ -117,22 +99,6 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 
 		(async () => {
 			const model = await Promise.resolve(telemetryOptions?.model).catch(() => undefined);
-			/* __GDPR__
-				"notebook.editGeneration" : {
-					"owner": "donjayamanne",
-					"comment": "Metadata about the code mapper request",
-					"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-					"requestSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source from where the request was made" },
-					"model": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Model selection for the response" },
-					"inputFormat": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Input format for the notebook source (xml, json, text)" },
-					"isEmptyNotebook": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether the notebook is empty", "isMeasurement": true },
-					"isNotebookOrUri": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether we're given a notebook or just a uri (1 = Notebook, 0 = Uri)", "isMeasurement": true },
-					"isJupyterNotebookUri": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether we're given a Jupyter notebook or just a uri (1 = Jupyter Notebook, 0 = Other)", "isMeasurement": true },
-					"isEditEmitted": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether a Notebook edit was emitted (insert or delete cell) (1 = Yes, 0 = No)", "isMeasurement": true },
-					"isCellTextEditEmitted": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Whether an edit was emitted for a cell (1 = Yes, 0 = No)", "isMeasurement": true },
-					"sourceLength": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Number of lines in the source code from which we're to generate edits", "isMeasurement": true }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent('notebook.editGeneration', {
 				requestId: telemetryOptions?.requestId,
 				requestSource: telemetryOptions?.source,
@@ -170,7 +136,6 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 		}
 
 
-		// This tracks the order and content of the cells as they are expected to be in the notebook.
 		type ExpectedCellInfo = { index: number; cell?: NotebookCell; lines: string[]; language: string };
 		const expectedCells: ExpectedCellInfo[] = [];
 		const original: { id: string; uri?: Uri }[] = isUri(notebookOrUri) ? [] : notebookOrUri.getCells().map(cell => ({ id: getCellId(cell), uri: cell.document.uri }));
@@ -202,34 +167,17 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 				cellInfo.ended = true;
 				const doc = cellInfo.cell?.document;
 				if (!cellInfo.insertEdit && !cellInfo.cell && !cellInfo.lines.length) {
-					// This is a case where we have an empty cell.
-					// We do not get the line at all, but we only have a start and end,
-					// Meaning it is a cell, and it is well structured, but its empty.
 					const cellData = new NotebookCellData(cellInfo.language === 'markdown' ? NotebookCellKind.Markup : NotebookCellKind.Code, '', cellInfo.language);
 					const insertEdit = NotebookEdit.insertCells(cellInfo.index, [cellData]);
 					yield insertEdit;
 					editsEmitted = true;
 					original.splice(cellInfo.index, 0, { id: getCellIdOfNewCell(cellInfo) });
 				} else if (cellInfo.insertEdit && !cellInfo.cell) {
-					// Possible we got a cell from LLM that doesn't have an id, but matches the content of an existing cell.
-					// This can happen as follows:
-					// 1. User asks LLM to insert a cell
-					// 2. LLM returns a edit request to insert the cell without the cell id
-					// 3. We insert the cell
-					// 4. User asks for some other changes,
-					// 5. LLM uses history and see that the cell in history that doestn' have an id
-					// 6. LLM returns this same cell again along with other cells (new/changes, etc)
-					// 7. Some how SD endpoint cannot figure out this is the same cell, and SD returns this cell but without the id
-					// 8. Now we see this cell without an id, we insert it and we delete the old cell that was in this place.
-					// Solution: If the cell being inserted is the same as the cell that is already in the notebook in the same position, then don't insert it.
 					const existingCell = (!isEmptyNotebook && isNotebookAvailable && cellInfo.index < notebookOrUri.cellCount) ? notebookOrUri.cellAt(cellInfo.index) : undefined;
 					if (existingCell && existingCell.document.getText() === cellInfo.insertEdit.newCells[0].value) {
-						// Emit the edits for this cell.
-						// & do not insert this cell.
 						cellsSeen.add(existingCell);
 						expectedCells[expectedCells.length - 1].cell = existingCell;
 
-						// Remit the edits for all the lines of this existing cell.
 						const doc = existingCell.document;
 						for (let i = 0; i < doc.lineCount; i++) {
 							const line = doc.lineAt(i);
@@ -262,7 +210,6 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 					const eolForNewCell = this.getEOLForNewCell(notebookOrUri, cellInfo.insertEdit.newCells[0].kind);
 					cellInfo.insertEdit.newCells[0].value = cellInfo.lines.join(eolForNewCell);
 				} else {
-					// Insert the new cell.
 					const cellData = new NotebookCellData(cellInfo.language === 'markdown' ? NotebookCellKind.Markup : NotebookCellKind.Code, line.line, cellInfo.language);
 					cellInfo.insertEdit = NotebookEdit.insertCells(cellInfo.index, [cellData]);
 				}
@@ -273,11 +220,6 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 			return;
 		}
 
-		// If we have content in the original notebook and no edits were emitted,
-		// But we have some content,
-		// This this can mean only one thing = invalid format.
-		// If the format is correct, then we should have emitted some edits.
-		// If we don't exit here we end up deleting all the cells in the notebook.
 		if (!editsEmitted && allLines.length) {
 			this.logger.warn(`No edits generated for notebook ${notebookOrUri.uri.toString()}. This is likely due to an invalid format. Expected format: ${format}. Provided content as follows:\n\n${allLines.join('\n')}`);
 			return;
@@ -285,7 +227,6 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 
 		const modified = expectedCells.map(cell => cell.cell ? getCellId(cell.cell) : getCellIdOfNewCell(cell));
 
-		// Delete the missing cells.
 		for (const missingCell of original.filter(cell => cell.uri && !modified.includes(cell.id)).reverse()) {
 			const cell = cellIdMap.get(missingCell.id);
 			if (cell) {
@@ -302,12 +243,10 @@ export class AlternativeNotebookContentEditGenerator implements IAlternativeNote
 			return;
 		}
 
-		// Delete items
 		for (const change of diffResult.filter(d => d.type === 'delete').reverse()) {
 			yield NotebookEdit.deleteCells(new NotebookRange(change.originalCellIndex, change.originalCellIndex + 1));
 		}
 
-		// insert items
 		for (const change of diffResult.filter(d => d.type === 'insert')) {
 			const expectedCell = expectedCells[change.modifiedCellIndex];
 			const kind = expectedCell.language === 'markdown' ? NotebookCellKind.Markup : NotebookCellKind.Code;
@@ -328,9 +267,6 @@ export function textToAsyncIterableLines(text: string): AsyncIterable<LineOfText
 }
 
 
-/**
- * Split an incoming stream of text to a stream of lines.
- */
 function streamLines(source: AsyncIterable<string>): AsyncIterableObject<LineOfText> {
 	return new AsyncIterableObject<LineOfText>(async (emitter) => {
 		let buffer = '';
@@ -342,7 +278,6 @@ function streamLines(source: AsyncIterable<string>): AsyncIterableObject<LineOfT
 					break;
 				}
 
-				// take the first line
 				const line = buffer.substring(0, newlineIndex);
 				buffer = buffer.substring(newlineIndex + 1);
 
@@ -351,7 +286,6 @@ function streamLines(source: AsyncIterable<string>): AsyncIterableObject<LineOfT
 		}
 
 		if (buffer.length > 0) {
-			// last line which doesn't end with \n
 			emitter.emitOne(new LineOfText(buffer));
 		}
 	});

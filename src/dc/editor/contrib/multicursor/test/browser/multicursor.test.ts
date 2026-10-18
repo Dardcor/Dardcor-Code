@@ -556,7 +556,6 @@ suite('Multicursor selection', () => {
 					new Selection(4, 1, 4, 4),
 				]);
 
-				// change selection
 				editor.setSelections([
 					new Selection(1, 1, 1, 4),
 				]);

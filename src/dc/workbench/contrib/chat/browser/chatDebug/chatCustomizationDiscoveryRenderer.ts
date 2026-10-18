@@ -27,9 +27,6 @@ import { setupCollapsibleToggle } from './chatDebugCollapsible.js';
 
 const $ = DOM.$;
 
-/**
- * Map a discovery type string to its corresponding settings key.
- */
 function getSettingsKeyForDiscoveryType(discoveryType: string): string | undefined {
 	switch (discoveryType) {
 		case 'prompt': return 'chat.promptFilesLocations';
@@ -41,24 +38,14 @@ function getSettingsKeyForDiscoveryType(discoveryType: string): string | undefin
 	}
 }
 
-/**
- * Get a display label for a file's location.
- * Extension files show the extension ID,
- * all other files show the relative (or tildified) parent folder path.
- */
 function getFileLocationLabel(file: { uri: URI; storage?: string; extensionId?: string }, labelService: ILabelService, discoveryType?: string): string {
 	if (file.extensionId) {
 		return file.extensionId;
 	}
-	// Skills live inside individual skill folders (e.g. .github/skills/foo/SKILL.md),
-	// so group by the parent of the skill folder for a more useful label.
 	const parentDir = discoveryType === 'skill' ? dirname(dirname(file.uri)) : dirname(file.uri);
 	return labelService.getUriLabel(parentDir, { relative: true });
 }
 
-/**
- * Create a file link element styled like the chat panel's InlineAnchorWidget.
- */
 function createInlineFileLink(uri: URI, displayText: string, fileKind: FileKind, openerService: IOpenerService, modelService: IModelService, languageService: ILanguageService, hoverService: IHoverService, labelService: ILabelService, disposables: DisposableStore, hoverSuffix?: string): HTMLElement {
 	const link = $(`a.${InlineAnchorWidget.className}.show-file-icons`);
 	link.tabIndex = -1;
@@ -81,12 +68,6 @@ function createInlineFileLink(uri: URI, displayText: string, fileKind: FileKind,
 	return link;
 }
 
-/**
- * Set up roving tabindex with arrow-key navigation on a list of rows.
- * The first row starts with tabIndex 0; the rest get -1.
- * Up/Down arrow keys move focus, Home/End jump to first/last.
- * Enter on a focused row activates the associated action.
- */
 function setupFileListNavigation(listEl: HTMLElement, rows: { element: HTMLElement; activate: () => void }[], disposables: DisposableStore): void {
 	if (rows.length === 0) {
 		return;
@@ -134,9 +115,6 @@ function setupFileListNavigation(listEl: HTMLElement, rows: { element: HTMLEleme
 	}));
 }
 
-/**
- * Render a file list resolved content as a rich HTML element.
- */
 export function renderCustomizationDiscoveryContent(content: IChatDebugEventFileListContent, openerService: IOpenerService, modelService: IModelService, languageService: ILanguageService, hoverService: IHoverService, labelService: ILabelService, scrollable?: { scanDomNode(): void }): { element: HTMLElement; disposables: DisposableStore } {
 	const disposables = new DisposableStore();
 	const container = $('div.chat-debug-file-list');
@@ -146,14 +124,12 @@ export function renderCustomizationDiscoveryContent(content: IChatDebugEventFile
 	DOM.append(container, $('div.chat-debug-file-list-title', undefined, localize('chatDebug.discoveryResults', "{0} Discovery Results", capitalizedType)));
 	DOM.append(container, $('div.chat-debug-file-list-summary', undefined, localize('chatDebug.totalFiles', "Total files: {0}", content.files.length)));
 
-	// Loaded files - grouped by source location
 	const loaded = content.files.filter(f => f.status === 'loaded');
 	if (loaded.length > 0) {
 		const section = DOM.append(container, $('div.chat-debug-file-list-section'));
 		DOM.append(section, $('div.chat-debug-file-list-section-title', undefined,
 			localize('chatDebug.loadedFiles', "Loaded ({0})", loaded.length)));
 
-		// Group files by location label (extension ID or folder path)
 		const groups = new Map<string, typeof loaded>();
 		for (const file of loaded) {
 			const key = getFileLocationLabel(file, labelService, content.discoveryType);
@@ -171,7 +147,6 @@ export function renderCustomizationDiscoveryContent(content: IChatDebugEventFile
 
 		const rows: { element: HTMLElement; activate: () => void }[] = [];
 		for (const [locationLabel, files] of groups) {
-			// Group header - show the source location
 			const groupHeader = DOM.append(listEl, $('div.chat-debug-file-list-group-header'));
 			const firstFile = files[0];
 			if (firstFile.extensionId) {
@@ -201,14 +176,12 @@ export function renderCustomizationDiscoveryContent(content: IChatDebugEventFile
 		setupFileListNavigation(listEl, rows, disposables);
 	}
 
-	// Skipped files - grouped by skip reason
 	const skipped = content.files.filter(f => f.status === 'skipped');
 	if (skipped.length > 0) {
 		const section = DOM.append(container, $('div.chat-debug-file-list-section'));
 		DOM.append(section, $('div.chat-debug-file-list-section-title', undefined,
 			localize('chatDebug.skippedFiles', "Skipped ({0})", skipped.length)));
 
-		// Group files by skip reason
 		const groups = new Map<string, typeof skipped>();
 		for (const file of skipped) {
 			const key = file.skipReason ?? localize('chatDebug.unknown', "unknown");
@@ -226,7 +199,6 @@ export function renderCustomizationDiscoveryContent(content: IChatDebugEventFile
 
 		const rows: { element: HTMLElement; activate: () => void }[] = [];
 		for (const [reasonLabel, files] of groups) {
-			// Group header - show the skip reason
 			const groupHeader = DOM.append(listEl, $('div.chat-debug-file-list-group-header'));
 			DOM.append(groupHeader, $('span.chat-debug-file-list-group-label', undefined, reasonLabel));
 
@@ -234,7 +206,6 @@ export function renderCustomizationDiscoveryContent(content: IChatDebugEventFile
 				const row = DOM.append(listEl, $('div.chat-debug-file-list-row'));
 				DOM.append(row, $(`span.chat-debug-file-list-icon${ThemeIcon.asCSSSelector(Codicon.closeCompact)}`));
 
-				// Build per-file detail (error message / duplicate info)
 				let detail = '';
 				if (file.errorMessage) {
 					detail += file.errorMessage;
@@ -259,7 +230,6 @@ export function renderCustomizationDiscoveryContent(content: IChatDebugEventFile
 		setupFileListNavigation(listEl, rows, disposables);
 	}
 
-	// Source folders (paths attempted) - collapsible, initially collapsed
 	if (content.sourceFolders && content.sourceFolders.length > 0) {
 		const sectionEl = DOM.append(container, $('div.chat-debug-message-section'));
 
@@ -269,7 +239,6 @@ export function renderCustomizationDiscoveryContent(content: IChatDebugEventFile
 		DOM.append(header, $('span.chat-debug-message-section-title', undefined,
 			localize('chatDebug.sourceFolders', "Sources ({0})", content.sourceFolders.length)));
 
-		// Settings gear button on the right side of the header
 		const settingsKey = getSettingsKeyForDiscoveryType(content.discoveryType);
 		if (settingsKey) {
 			const gearBtn = disposables.add(new Button(header, {
@@ -309,15 +278,12 @@ export function renderCustomizationDiscoveryContent(content: IChatDebugEventFile
 			DOM.append(row, $('span.chat-debug-source-folder-label', undefined, folder.uri.path));
 		}
 
-		setupCollapsibleToggle(chevron, header, contentEl, disposables, /* initiallyCollapsed */ true, scrollable);
+		setupCollapsibleToggle(chevron, header, contentEl, disposables, true, scrollable);
 	}
 
 	return { element: container, disposables };
 }
 
-/**
- * Convert a file list content to plain text for clipboard / editor output.
- */
 export function fileListToPlainText(content: IChatDebugEventFileListContent): string {
 	const lines: string[] = [];
 	const capitalizedType = content.discoveryType.charAt(0).toUpperCase() + content.discoveryType.slice(1);
@@ -330,7 +296,6 @@ export function fileListToPlainText(content: IChatDebugEventFileListContent): st
 
 	if (loaded.length > 0) {
 		lines.push(localize('chatDebug.plainText.loaded', "Loaded ({0})", loaded.length));
-		// Group by location
 		const groups = new Map<string, typeof loaded>();
 		for (const f of loaded) {
 			const parentDir = content.discoveryType === 'skill' ? dirname(dirname(f.uri)) : dirname(f.uri);
@@ -354,7 +319,6 @@ export function fileListToPlainText(content: IChatDebugEventFileListContent): st
 
 	if (skipped.length > 0) {
 		lines.push(localize('chatDebug.plainText.skipped', "Skipped ({0})", skipped.length));
-		// Group by skip reason
 		const skippedGroups = new Map<string, typeof skipped>();
 		for (const f of skipped) {
 			const key = f.skipReason ?? localize('chatDebug.plainText.unknown', "unknown");
@@ -396,9 +360,6 @@ export function fileListToPlainText(content: IChatDebugEventFileListContent): st
 	return lines.join('\n');
 }
 
-/**
- * Get a human-readable section title for a resolution log category.
- */
 function getCategorySectionTitle(category: IChatDebugCustomizationLogEntry['category'], count: number): string {
 	switch (category) {
 		case 'applying': return localize('chatDebug.customization.instructions', "Instructions ({0})", count);
@@ -410,16 +371,11 @@ function getCategorySectionTitle(category: IChatDebugCustomizationLogEntry['cate
 	}
 }
 
-/**
- * Render a customization summary showing per-file resolution logs
- * from the instructions context computer.
- */
 export function renderCustomizationSummaryContent(content: IChatDebugEventCustomizationSummaryContent, openerService: IOpenerService, modelService: IModelService, languageService: ILanguageService, hoverService: IHoverService, labelService: ILabelService, scrollable?: { scanDomNode(): void }): { element: HTMLElement; disposables: DisposableStore } {
 	const disposables = new DisposableStore();
 	const container = $('div.chat-debug-customization-summary');
 	container.tabIndex = 0;
 
-	// Title with counts and duration
 	const mainSection = DOM.append(container, $('div.chat-debug-file-list'));
 	DOM.append(mainSection, $('div.chat-debug-file-list-title', undefined,
 		localize('chatDebug.customizationTitle', "Customization Resolution Results")));
@@ -427,8 +383,6 @@ export function renderCustomizationSummaryContent(content: IChatDebugEventCustom
 		localize('chatDebug.customizationSummary', "{0} instructions, {1} skills, {2} agents, {3} hooks, {4} skipped in {5}ms",
 			content.counts.instructions, content.counts.skills, content.counts.agents, content.counts.hooks, content.counts.skipped, content.durationInMillis.toFixed(1))));
 
-	// Group entries by display section: instructions (applying+referenced), skills, agents, skipped
-	// Instructions section merges applying + referenced
 	const instructionEntries = content.resolutionLogs.filter(e => e.category === 'applying' || e.category === 'referenced');
 	const skillEntries = content.resolutionLogs.filter(e => e.category === 'skill');
 	const agentEntries = content.resolutionLogs.filter(e => e.category === 'custom-agent');
@@ -457,10 +411,8 @@ export function renderCustomizationSummaryContent(content: IChatDebugEventCustom
 
 		const rows: { element: HTMLElement; activate: () => void }[] = [];
 
-		// For hooks, group entries by lifecycle event (stored in reason).
 		const isHookSection = entries.length > 0 && entries[0].category === 'hook';
 		if (isHookSection) {
-			// Collect entries by hook type, preserving insertion order.
 			const groupedByType = new Map<string, IChatDebugCustomizationLogEntry[]>();
 			for (const entry of entries) {
 				const hookType = entry.reason ?? '';
@@ -498,7 +450,6 @@ export function renderCustomizationSummaryContent(content: IChatDebugEventCustom
 				const row = DOM.append(listEl, $('div.chat-debug-file-list-row'));
 				DOM.append(row, $(`span.chat-debug-file-list-icon${ThemeIcon.asCSSSelector(getCompactCodicon(icon))}`));
 
-				// Hide the reason for skills (e.g. "local") and custom-agents — it's noise in the UI.
 				const showReason = entry.category !== 'skill' && entry.category !== 'custom-agent';
 
 				if (entry.uri) {
@@ -530,9 +481,6 @@ export function renderCustomizationSummaryContent(content: IChatDebugEventCustom
 	return { element: container, disposables };
 }
 
-/**
- * Serialize a customization summary to plain text for clipboard / full-screen.
- */
 export function customizationSummaryToPlainText(content: IChatDebugEventCustomizationSummaryContent): string {
 	const lines: string[] = [];
 

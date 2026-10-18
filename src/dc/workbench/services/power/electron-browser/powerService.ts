@@ -9,9 +9,6 @@ import { INativeHostService } from '../../../../platform/native/common/native.js
 import { IPowerService, PowerSaveBlockerType, SystemIdleState, ThermalState } from '../common/powerService.js';
 import { Event } from '../../../../base/common/event.js';
 
-/**
- * Desktop implementation of IPowerService using Electron's powerMonitor.
- */
 export class NativePowerService extends Disposable implements IPowerService {
 
 	declare readonly _serviceBrand: undefined;
@@ -30,7 +27,6 @@ export class NativePowerService extends Disposable implements IPowerService {
 	) {
 		super();
 
-		// Forward events from native host service
 		this.onDidSuspend = nativeHostService.onDidSuspendOS;
 		this.onDidResume = Event.map(nativeHostService.onDidResumeOS, () => undefined);
 		this.onDidChangeOnBatteryPower = nativeHostService.onDidChangeOnBatteryPower;

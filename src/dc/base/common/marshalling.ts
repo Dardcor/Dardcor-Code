@@ -22,7 +22,6 @@ export interface MarshalledObject {
 }
 
 function replacer(key: string, value: any): any {
-	// URI is done via toJSON-member
 	if (value instanceof RegExp) {
 		return {
 			$mid: MarshalledId.Regexp,
@@ -71,7 +70,6 @@ export function revive<T = any>(obj: any, depth = 0): Revived<T> {
 				obj[i] = revive(obj[i], depth + 1);
 			}
 		} else {
-			// walk object
 			for (const key in obj) {
 				if (Object.hasOwnProperty.call(obj, key)) {
 					obj[key] = revive(obj[key], depth + 1);

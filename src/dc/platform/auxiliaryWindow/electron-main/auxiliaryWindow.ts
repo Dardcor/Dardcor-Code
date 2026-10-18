@@ -46,13 +46,12 @@ export class AuxiliaryWindow extends BaseWindow implements IAuxiliaryWindow {
 
 		this.id = this.webContents.id;
 
-		// Try to claim window
 		this.tryClaimWindow();
 	}
 
 	tryClaimWindow(options?: BrowserWindowConstructorOptions): void {
 		if (this._store.isDisposed || this.webContents.isDestroyed()) {
-			return; // already disposed
+			return;
 		}
 
 		const effectiveOptions = options ?? this.windowOptions;
@@ -67,11 +66,6 @@ export class AuxiliaryWindow extends BaseWindow implements IAuxiliaryWindow {
 				y: effectiveOptions.y,
 				width: effectiveOptions.width,
 				height: effectiveOptions.height,
-				// We currently do not support restoring fullscreen state for auxiliary
-				// windows because we do not get hold of the original `features` string
-				// that contains that info in `window-fullscreen`. However, we can
-				// probe the `options.show` value for whether the window should be maximized
-				// or not because we never show maximized windows initially to reduce flicker.
 				mode: effectiveOptions.show === false ? WindowMode.Maximized : WindowMode.Normal
 			});
 		}
@@ -79,36 +73,30 @@ export class AuxiliaryWindow extends BaseWindow implements IAuxiliaryWindow {
 
 	private doTryClaimWindow(options?: BrowserWindowConstructorOptions): void {
 		if (this._win) {
-			return; // already claimed
+			return;
 		}
 
 		const window = BrowserWindow.fromWebContents(this.webContents);
 		if (window) {
 			this.logService.trace('[aux window] Claimed browser window instance');
 
-			// Remember
 			this.setWin(window, options);
 
-			// Disable Menu
 			window.setMenu(null);
-			if ((isWindows || isLinux) && hasNativeTitlebar(this.configurationService, options?.titleBarStyle === 'hidden' ? TitlebarStyle.CUSTOM : undefined /* unknown */)) {
-				window.setAutoHideMenuBar(true); // Fix for https://github.com/microsoft/vscode/issues/200615
+			if ((isWindows || isLinux) && hasNativeTitlebar(this.configurationService, options?.titleBarStyle === 'hidden' ? TitlebarStyle.CUSTOM : undefined )) {
+				window.setAutoHideMenuBar(true);
 			}
 
-			// Lifecycle
 			this.lifecycleMainService.registerAuxWindow(this);
 
-			// Allow frameless windows to size down to their content
 			if (options?.frame === false) {
 				window.setMinimumSize(1, 1);
 
-				// Hide macOS traffic light buttons
 				if (isMacintosh) {
 					window.setWindowButtonVisibility(false);
 				}
 			}
 
-			// Disable resizing for non-resizable windows
 			if (options?.resizable === false) {
 				window.setResizable(false);
 			}

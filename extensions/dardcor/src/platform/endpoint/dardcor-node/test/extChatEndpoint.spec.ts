@@ -129,8 +129,6 @@ describe('ExtensionContributedChatEndpoint', () => {
 		expect(decodeStatefulMarker(getStatefulMarkerPart(converted[0])!.data).marker).toBe('resp-legacy');
 	});
 
-	// https://github.com/microsoft/vscode/issues/313920: the internal cache_control sentinel
-	// must only reach providers that handle it, or a naive serializer leaks it upstream.
 	it('omits the internal cache_control sentinel for providers that do not handle it, keeps it for those that do', () => {
 		const toolMessage: Raw.ChatMessage = {
 			role: Raw.ChatRole.Tool,

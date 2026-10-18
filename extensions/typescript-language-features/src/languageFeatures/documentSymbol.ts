@@ -52,7 +52,6 @@ class TypeScriptDocumentSymbolProvider implements vscode.DocumentSymbolProvider 
 			return undefined;
 		}
 
-		// The root represents the file. Ignore this when showing in the UI
 		const result: vscode.DocumentSymbol[] = [];
 		for (const item of response.body.childItems) {
 			TypeScriptDocumentSymbolProvider.convertNavTree(document.uri, result, item);

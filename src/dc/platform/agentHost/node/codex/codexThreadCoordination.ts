@@ -30,7 +30,6 @@ export function buildCodexThreadOpenLink(threadId: string): string {
 	return buildOpenSessionLinkUri(AgentSession.uri(CODEX_AGENT_PROVIDER_ID, threadId));
 }
 
-/** Recognizes successful Codex thread-creation and message-sending tool outcomes. */
 export function getCodexThreadCoordinationCall(item: DynamicToolCallItem): ICodexThreadCoordinationCall | undefined {
 	if (item.namespace !== 'codex_app' || item.success === false || item.status !== 'completed') {
 		return undefined;
@@ -67,7 +66,6 @@ export function getCodexThreadCoordinationCall(item: DynamicToolCallItem): ICode
 	};
 }
 
-/** Recovers a completed thread-management call from its persisted invocation and output. */
 export function getCodexRolloutThreadCoordinationCall(input: string, output: readonly string[]): ICodexThreadCoordinationCall | undefined {
 	const result = readThreadResultText(output);
 	const targetThreadId = result?.threadId ?? result?.clientThreadId;
@@ -100,7 +98,6 @@ export function getCodexRolloutThreadCoordinationCall(input: string, output: rea
 	};
 }
 
-/** Removes valid created-thread directives while preserving examples inside fenced code blocks. */
 export function extractCodexCreatedThreadDirectives(text: string): ICodexCreatedThreadDirectives {
 	const threadIds: string[] = [];
 	const output: string[] = [];
@@ -160,7 +157,6 @@ function readThreadResultText(output: readonly string[]): { threadId?: string; c
 					};
 				}
 			} catch {
-				// Tool output can contain status text alongside its JSON result.
 			}
 		}
 	}

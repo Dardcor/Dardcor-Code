@@ -21,17 +21,14 @@ suite('JSDoc Completions', () => {
 	let oldConfig: { [key: string]: any } = {};
 
 	setup(async () => {
-		// the tests assume that typescript features are registered
 		await vscode.extensions.getExtension('vscode.typescript-language-features')!.activate();
 
-		// Save off config and apply defaults
 		oldConfig = await updateConfig(testDocumentUri, configDefaults);
 	});
 
 	teardown(async () => {
 		disposeAll(_disposables);
 
-		// Restore config
 		await updateConfig(testDocumentUri, oldConfig);
 
 		return vscode.commands.executeCommand('workbench.action.closeAllEditors');

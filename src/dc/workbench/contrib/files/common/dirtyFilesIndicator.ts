@@ -34,14 +34,13 @@ export class DirtyFilesIndicator extends Disposable implements IWorkbenchContrib
 
 	private registerListeners(): void {
 
-		// Working copy dirty indicator
 		this._register(this.workingCopyService.onDidChangeDirty(workingCopy => this.onWorkingCopyDidChangeDirty(workingCopy)));
 	}
 
 	private onWorkingCopyDidChangeDirty(workingCopy: IWorkingCopy): void {
 		const gotDirty = workingCopy.isDirty();
 		if (gotDirty && !(workingCopy.capabilities & WorkingCopyCapabilities.Untitled) && this.filesConfigurationService.hasShortAutoSaveDelay(workingCopy.resource)) {
-			return; // do not indicate dirty of working copies that are auto saved after short delay
+			return;
 		}
 
 		if (gotDirty || this.lastKnownDirtyCount > 0) {
@@ -52,7 +51,6 @@ export class DirtyFilesIndicator extends Disposable implements IWorkbenchContrib
 	private updateActivityBadge(): void {
 		const dirtyCount = this.lastKnownDirtyCount = this.workingCopyService.dirtyCount;
 
-		// Indicate dirty count in badge if any
 		if (dirtyCount > 0) {
 			this.badgeHandle.value = this.activityService.showViewContainerActivity(
 				VIEWLET_ID,

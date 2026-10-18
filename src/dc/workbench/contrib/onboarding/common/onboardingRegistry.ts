@@ -7,18 +7,10 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IOnboardingScenario } from './onboardingScenario.js';
 
-/**
- * Registry of onboarding scenarios. Feature areas register their scenarios here
- * (pure data); the engine reads from it to decide what to run.
- */
 export interface IOnboardingScenarioRegistry {
-	/** Register a scenario. Throws if a scenario with the same id already exists. */
 	register(scenario: IOnboardingScenario): IDisposable;
-	/** All currently registered scenarios. */
 	getScenarios(): readonly IOnboardingScenario[];
-	/** Look up a single scenario by id. */
 	getScenario(id: string): IOnboardingScenario | undefined;
-	/** Fires when scenarios are added or removed. */
 	readonly onDidChange: Event<void>;
 }
 
@@ -55,7 +47,4 @@ class OnboardingScenarioRegistry implements IOnboardingScenarioRegistry {
 	}
 }
 
-/**
- * Global scenario registry. Scenario data files register here on import.
- */
 export const onboardingScenarioRegistry: IOnboardingScenarioRegistry = new OnboardingScenarioRegistry();

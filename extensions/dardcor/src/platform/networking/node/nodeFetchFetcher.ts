@@ -35,9 +35,6 @@ export class NodeFetchFetcher extends BaseFetchFetcher {
 		userAgentLibraryUpdate?: (original: string) => string,
 		cacheOptions: NodeFetchCacheOptions = { mode: 'memory' },
 	) {
-		// Caching requires the host-provided fetch-patch factory so cached requests
-		// still go through the proxy/CA-injection patch. On older hosts that lack
-		// the factory, caching is silently disabled.
 		const factory = (globalThis as any).__vscodeCreateFetchPatch as FetchPatchFactory | undefined;
 		const interceptor = cacheOptions.mode !== 'off' && factory ? createCacheInterceptor(cacheOptions) : undefined;
 		super(getFetch(interceptor, factory), envService, NodeFetchFetcher.ID, reportEvent, userAgentLibraryUpdate);
@@ -97,7 +94,6 @@ function getFetch(cacheInterceptor: undici.Dispatcher.DispatcherComposeIntercept
 	};
 }
 
-// Cache agent to reuse connections.
 const agent = new Lazy(() => new undici.Agent({ allowH2: true }));
 
 export function createWebSocket(url: string, options?: WebSocketConnectOptions): WebSocketConnection {

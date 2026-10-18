@@ -62,12 +62,10 @@ export class Kernel {
 	}
 
 	protected async _runCell(cell: vscode.NotebookCell) {
-		// create a single output with exec order 1 and output is plain/text
-		// of either the cell itself or (iff empty) the cell's document's uri
 		const task = this.controller.createNotebookCellExecution(cell);
 		task.start(Date.now());
 		task.executionOrder = 1;
-		await sleep(10); // Force to be take some time
+		await sleep(10);
 		await task.replaceOutput([new vscode.NotebookCellOutput([
 			vscode.NotebookCellOutputItem.text(cell.document.getText() || cell.document.uri.toString(), 'text/plain')
 		])]);
@@ -146,7 +144,6 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 	let defaultKernel: Kernel;
 
 	setup(async function () {
-		// there should be ONE default kernel in this suite
 		defaultKernel = new Kernel('mainKernel', 'Notebook Default Kernel');
 		testDisposables.push(defaultKernel.controller);
 		await saveAllFilesAndCloseAll();
@@ -175,7 +172,7 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 			console.log('Step6.cell execute command takes arguments');
 			await event;
 			console.log('Step7.cell execute command takes arguments');
-			assert.strictEqual(cell.outputs.length, 1, 'should execute'); // runnable, it worked
+			assert.strictEqual(cell.outputs.length, 1, 'should execute');
 		});
 
 		console.log('Step8.cell execute command takes arguments');
@@ -202,7 +199,7 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 			console.log('Step17.cell execute command takes arguments');
 			await event;
 			console.log('Step18.cell execute command takes arguments');
-			assert.strictEqual(cell.outputs.length, 1, 'should execute'); // runnable, it worked
+			assert.strictEqual(cell.outputs.length, 1, 'should execute');
 			assert.strictEqual(vscode.window.activeNotebookEditor?.notebook.uri.fsPath, secondResource.fsPath);
 		});
 		console.log('Step19.cell execute command takes arguments');
@@ -251,7 +248,7 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 		await withEvent<vscode.NotebookDocumentChangeEvent>(vscode.workspace.onDidChangeNotebookDocument, async (event) => {
 			await vscode.commands.executeCommand('notebook.execute', notebook.uri);
 			await event;
-			assert.strictEqual(cell.outputs.length, 1, 'should execute'); // runnable, it worked
+			assert.strictEqual(cell.outputs.length, 1, 'should execute');
 		});
 	});
 
@@ -283,7 +280,7 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 			await assertKernel(defaultKernel, notebook);
 			await vscode.commands.executeCommand('notebook.cell.execute');
 			await event;
-			assert.strictEqual(cell.outputs.length, 1, 'should execute'); // runnable, it worked
+			assert.strictEqual(cell.outputs.length, 1, 'should execute');
 			assert.strictEqual(cell.outputs[0].items.length, 1);
 			assert.strictEqual(cell.outputs[0].items[0].mime, 'text/plain');
 			assert.deepStrictEqual(new TextDecoder().decode(cell.outputs[0].items[0].data), cell.document.getText());
@@ -293,7 +290,7 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 			await assertKernel(alternativeKernel, notebook);
 			await vscode.commands.executeCommand('notebook.cell.execute');
 			await event;
-			assert.strictEqual(cell.outputs.length, 1, 'should execute'); // runnable, it worked
+			assert.strictEqual(cell.outputs.length, 1, 'should execute');
 			assert.strictEqual(cell.outputs[0].items.length, 1);
 			assert.strictEqual(cell.outputs[0].items[0].mime, 'text/plain');
 			assert.deepStrictEqual(new TextDecoder().decode(cell.outputs[0].items[0].data), 'my second output');
@@ -379,7 +376,6 @@ const apiTestSerializer: vscode.NotebookSerializer = {
 		await assertKernel(cancelledKernel, document);
 		await vscode.commands.executeCommand('notebook.cell.execute');
 
-		// Delete executing cell
 		const edit = new vscode.WorkspaceEdit();
 		edit.set(cell!.notebook.uri, [vscode.NotebookEdit.replaceCells(new vscode.NotebookRange(cell!.index, cell!.index + 1), [])]);
 		await vscode.workspace.applyEdit(edit);

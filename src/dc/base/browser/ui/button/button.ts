@@ -28,9 +28,6 @@ import { safeSetInnerHtml, DomSanitizerConfig } from '../../domSanitize.js';
 
 export interface IButtonOptions extends Partial<IButtonStyles> {
 	readonly title?: boolean | string;
-	/**
-	 * Will fallback to `title` if not set.
-	 */
 	readonly ariaLabel?: string;
 	readonly supportIcons?: boolean;
 	readonly supportShortLabel?: boolean;
@@ -84,7 +81,6 @@ export interface IButtonWithDescription extends IButton {
 	description: string;
 }
 
-// Only allow a very limited set of inline html tags
 const buttonSanitizerConfig = Object.freeze<DomSanitizerConfig>({
 	allowedTags: {
 		override: ['b', 'i', 'u', 'code', 'span'],
@@ -94,7 +90,6 @@ const buttonSanitizerConfig = Object.freeze<DomSanitizerConfig>({
 	},
 });
 
-// Markdown render options that allow class attributes to pass through
 const buttonMarkdownRenderOptions = Object.freeze({
 	sanitizerConfig: {
 		allowedAttributes: {
@@ -201,10 +196,9 @@ export class Button extends Disposable implements IButton {
 		}));
 
 		this._register(addDisposableListener(this._element, EventType.MOUSE_OUT, e => {
-			this.updateStyles(false); // restore standard styles
+			this.updateStyles(false);
 		}));
 
-		// Also set hover background when button is focused for feedback
 		this.focusTracker = this._register(trackFocus(this._element));
 		this._register(this.focusTracker.onDidFocus(() => { if (this.enabled) { this.updateStyles(true); } }));
 		this._register(this.focusTracker.onDidBlur(() => { if (this.enabled) { this.updateStyles(false); } }));
@@ -221,12 +215,10 @@ export class Button extends Disposable implements IButton {
 			if (typeof (segment) === 'string') {
 				segment = segment.trim();
 
-				// Ignore empty segment
 				if (segment === '') {
 					continue;
 				}
 
-				// Convert string segments to <span> nodes
 				const node = document.createElement('span');
 				node.textContent = segment;
 				elements.push(node);
@@ -277,7 +269,6 @@ export class Button extends Disposable implements IButton {
 			const rendered = renderMarkdown(value, buttonMarkdownRenderOptions, document.createElement('span'));
 			rendered.dispose();
 
-			// Don't include outer `<p>`
 			// eslint-disable-next-line no-restricted-syntax
 			const root = rendered.element.querySelector('p')?.innerHTML;
 			if (root) {
@@ -400,9 +391,6 @@ export interface IButtonWithDropdownOptions extends IButtonOptions {
 	readonly actions: readonly IAction[] | IActionProvider;
 	readonly actionRunner?: IActionRunner;
 	readonly addPrimaryActionToDropdown?: boolean;
-	/**
-	 * dropdown menus with higher layers are rendered higher in z-index order
-	 */
 	readonly dropdownLayer?: number;
 }
 
@@ -440,7 +428,6 @@ export class ButtonWithDropdown extends Disposable implements IButton {
 		this.separatorContainer.appendChild(this.separator);
 		this.element.appendChild(this.separatorContainer);
 
-		// Separator styles
 		const border = options.buttonBorder;
 		if (border) {
 			this.separatorContainer.style.borderTop = '1px solid ' + border;
@@ -647,7 +634,6 @@ export class ButtonBar {
 			const event = new StandardKeyboardEvent(e);
 			let eventHandled = true;
 
-			// Next / Previous Button
 			let buttonIndexToFocus: number | undefined;
 			if (event.equals(this.options?.alignment === ButtonBarAlignment.Vertical ? KeyCode.UpArrow : KeyCode.LeftArrow)) {
 				buttonIndexToFocus = index > 0 ? index - 1 : this._buttons.length - 1;
@@ -666,9 +652,6 @@ export class ButtonBar {
 	}
 }
 
-/**
- * This is a Button that supports an icon to the left, and markdown to the right, with proper separation and wrapping the markdown label, which Button doesn't do.
- */
 export class ButtonWithIcon extends Button {
 	private readonly _iconElement: HTMLElement;
 	private readonly _mdlabelElement: HTMLElement;

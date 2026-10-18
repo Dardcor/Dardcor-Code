@@ -51,7 +51,6 @@ export class MainThreadUriOpeners extends Disposable implements MainThreadUriOpe
 
 	public async *getOpeners(targetUri: URI): AsyncIterable<IExternalUriOpener> {
 
-		// Currently we only allow openers for http and https urls
 		if (targetUri.scheme !== Schemas.http && targetUri.scheme !== Schemas.https) {
 			return;
 		}

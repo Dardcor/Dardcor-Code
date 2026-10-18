@@ -9,15 +9,6 @@ import { ILogService } from '../../../../../platform/log/common/log.js';
 import { ChatMessageRole, getTextResponseFromStream, IChatMessage, ILanguageModelsService } from '../../common/languageModels.js';
 import { buildRouterMessages, ISessionRouteRequest, ISessionRouteResult, ISessionRouter, parseRouterResponse } from '../../common/sessionRouter.js';
 
-/**
- * Default {@link ISessionRouter}. Scores candidate sessions with a renderer
- * language model (Copilot/CAPI under the hood). If model scoring is unavailable,
- * it returns no matches so the caller starts a new session rather than guessing.
- *
- * The prompt/parse logic lives in `../../common/sessionRouter.ts` so the scoring
- * backend can later be swapped for the agent-host CAPI utility completion or a
- * local model without changing this service's contract.
- */
 export class SessionRouterService implements ISessionRouter {
 
 	declare readonly _serviceBrand: undefined;
@@ -38,10 +29,7 @@ export class SessionRouterService implements ISessionRouter {
 	private async scoreWithModel(request: ISessionRouteRequest, token: CancellationToken): Promise<ISessionRouteResult[] | undefined> {
 		let modelId: string | undefined;
 		try {
-			// Use the small utility model for this background scoring task, matching
-			// other internal utility features (e.g. chatGoalSummaryService,
-			// chatToolRiskAssessmentService) rather than consuming a premium model.
-			const models = await this.languageModelsService.selectLanguageModels({ vendor: 'copilot', id: 'copilot-utility-small' });
+			const models = await this.languageModelsService.selectLanguageModels({ vendor: 'dardcor', id: 'dardcor-utility-small' });
 			modelId = models.at(0);
 		} catch (err) {
 			this.logService.trace('[SessionRouter] model selection failed, routing to a new session', err);
@@ -61,8 +49,6 @@ export class SessionRouterService implements ISessionRouter {
 			const validIds = new Set(request.sessions.map(session => session.sessionId));
 			return parseRouterResponse(text, validIds);
 		} catch (err) {
-			// Preserve cancellation semantics: a canceled token must reject so the
-			// caller can abort routing, rather than silently degrading to the heuristic.
 			if (token.isCancellationRequested) {
 				throw new CancellationError();
 			}

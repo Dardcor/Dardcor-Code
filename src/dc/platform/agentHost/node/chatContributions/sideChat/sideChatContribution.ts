@@ -14,10 +14,6 @@ import { buildBoundedSideChatSourceContext, getSideChatPartialResponse, injectSi
 
 const sideChatSeededMemento = createChatMementoKey<boolean>('seeded', () => false);
 
-/**
- * Adds host-owned side-chat context to the first message and removes it from
- * restored histories.
- */
 export class SideChatContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'sideChat';

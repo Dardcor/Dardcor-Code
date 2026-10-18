@@ -167,7 +167,6 @@ export async function getExperimentalExtensionToggleData(
 		const recommendedExtensionsGalleryInfo: IStringDictionary<IGalleryExtension> = {};
 		for (const key in settingsEditorRecommendedExtensions) {
 			const extensionId = key;
-			// Recommend prerelease if not on Stable.
 			const isStable = productService.quality === 'stable';
 			try {
 				const extensions = await raceTimeout(
@@ -176,12 +175,9 @@ export async function getExperimentalExtensionToggleData(
 				if (extensions?.length === 1) {
 					recommendedExtensionsGalleryInfo[key] = extensions[0];
 				} else {
-					// same as network connection fail. we do not want a blank settings page: https://github.com/microsoft/vscode/issues/195722
-					// so instead of returning partial data we return undefined here
 					return undefined;
 				}
 			} catch (e) {
-				// Network connection fail. Return nothing rather than partial data.
 				return undefined;
 			}
 		}
@@ -195,9 +191,6 @@ export async function getExperimentalExtensionToggleData(
 	return undefined;
 }
 
-/**
- * Compares two nullable numbers such that null values always come after defined ones.
- */
 export function compareTwoNullableNumbers(a: number | undefined, b: number | undefined): number {
 	const aOrMax = a ?? Number.MAX_SAFE_INTEGER;
 	const bOrMax = b ?? Number.MAX_SAFE_INTEGER;
@@ -243,11 +236,11 @@ knownTermMappings.set('resharper', 'ReSharper');
 
 export function wordifyKey(key: string): string {
 	key = key
-		.replace(/\.([a-z0-9])/g, (_, p1) => ` \u203A ${p1.toUpperCase()}`) // Replace dot with spaced '>'
-		.replace(/([a-z0-9])([A-Z])/g, '$1 $2') // Camel case to spacing, fooBar => foo Bar
-		.replace(/([A-Z]{1,})([A-Z][a-z])/g, '$1 $2') // Split consecutive capitals letters, AISearch => AI Search
-		.replace(/^[a-z]/g, match => match.toUpperCase()) // Upper casing all first letters, foo => Foo
-		.replace(/\b\w+\b/g, match => { // Upper casing known acronyms
+		.replace(/\.([a-z0-9])/g, (_, p1) => ` \u203A ${p1.toUpperCase()}`)
+		.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+		.replace(/([A-Z]{1,})([A-Z][a-z])/g, '$1 $2')
+		.replace(/^[a-z]/g, match => match.toUpperCase())
+		.replace(/\b\w+\b/g, match => {
 			return knownAcronyms.has(match.toLowerCase()) ?
 				match.toUpperCase() :
 				match;

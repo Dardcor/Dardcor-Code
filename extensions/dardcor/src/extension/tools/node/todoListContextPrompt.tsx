@@ -11,9 +11,6 @@ export interface TodoListContextPromptProps extends BasePromptElementProps {
 	sessionResource?: string;
 }
 
-/**
- * A wrapper prompt element that provides todo list context
- */
 export class TodoListContextPrompt extends PromptElement<TodoListContextPromptProps> {
 	constructor(
 		props: any,

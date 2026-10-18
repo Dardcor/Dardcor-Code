@@ -150,7 +150,6 @@ export class ChatViewWelcomePart extends Disposable {
 
 		try {
 
-			// Icon
 			const icon = dom.append(this.element, $('.chat-welcome-view-icon'));
 			if (content.useLargeIcon) {
 				icon.classList.add('large-icon');
@@ -182,7 +181,6 @@ export class ChatViewWelcomePart extends Disposable {
 			const messageResult = this.renderMarkdownMessageContent(content.message, options);
 			dom.append(message, messageResult.element);
 
-			// Additional message
 			if (content.additionalMessage) {
 				const disclaimers = dom.append(this.element, $('.chat-welcome-view-disclaimer'));
 				if (typeof content.additionalMessage === 'string') {
@@ -193,7 +191,6 @@ export class ChatViewWelcomePart extends Disposable {
 				}
 			}
 
-			// Tips
 			if (content.tips) {
 				const tips = dom.append(this.element, $('.chat-welcome-view-tips'));
 				const tipsResult = this._register(this.markdownRendererService.render(content.tips));
@@ -205,7 +202,6 @@ export class ChatViewWelcomePart extends Disposable {
 	}
 
 	public needsRerender(content: IChatViewWelcomeContent): boolean {
-		// Heuristic based on content that changes between states
 		return !!(
 			this.content.title !== content.title ||
 			this.content.message.value !== content.message.value ||

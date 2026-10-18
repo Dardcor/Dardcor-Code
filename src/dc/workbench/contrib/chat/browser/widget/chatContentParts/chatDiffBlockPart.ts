@@ -19,10 +19,6 @@ import { IDisposableReference } from './chatCollections.js';
 import { DiffEditorPool } from './chatContentCodePools.js';
 import { CodeCompareBlockPart, ICodeCompareBlockData, ICodeCompareBlockDiffData } from './codeBlockPart.js';
 
-/**
- * Parses unified diff format into before/after content.
- * Supports standard unified diff format with - and + prefixes.
- */
 export function parseUnifiedDiff(diffText: string): { before: string; after: string } {
 	const lines = diffText.split('\n');
 	const beforeLines: string[] = [];
@@ -38,12 +34,10 @@ export function parseUnifiedDiff(diffText: string): { before: string; after: str
 		} else if (line.startsWith('+')) {
 			afterLines.push(line.substring(1));
 		} else if (line.startsWith(' ')) {
-			// Context line - appears in both
 			const content = line.substring(1);
 			beforeLines.push(content);
 			afterLines.push(content);
 		} else if (!line.startsWith('@@') && !line.startsWith('---') && !line.startsWith('+++') && !line.startsWith('diff ')) {
-			// Regular line without prefix - treat as context
 			beforeLines.push(line);
 			afterLines.push(line);
 		}
@@ -55,9 +49,6 @@ export function parseUnifiedDiff(diffText: string): { before: string; after: str
 	};
 }
 
-/**
- * Simple diff editor model for inline diffs in markdown code blocks
- */
 class SimpleDiffEditorModel extends EditorModel {
 	public readonly original: ITextModel;
 	public readonly modified: ITextModel;
@@ -89,10 +80,6 @@ export interface IMarkdownDiffBlockData {
 	readonly horizontalPadding?: number;
 }
 
-/**
- * Renders a diff block from markdown content.
- * This is a lightweight wrapper that uses CodeCompareBlockPart for the actual rendering.
- */
 export class MarkdownDiffBlockPart extends Disposable {
 	readonly element: HTMLElement;
 	private readonly comparePart: IDisposableReference<CodeCompareBlockPart>;
@@ -110,7 +97,6 @@ export class MarkdownDiffBlockPart extends Disposable {
 
 		this.comparePart = this._register(diffEditorPool.get());
 
-		// Create in-memory models for the diff
 		const originalUri = URI.from({
 			scheme: Schemas.vscodeChatCodeBlock,
 			path: `/chat-diff-original-${data.codeBlockIndex}-${generateUuid()}`,

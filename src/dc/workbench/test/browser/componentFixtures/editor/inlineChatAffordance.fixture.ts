@@ -18,7 +18,6 @@ import { Codicon } from '../../../../../base/common/codicons.js';
 import { observableCodeEditor } from '../../../../../editor/browser/observableCodeEditor.js';
 
 
-// Register menu items
 import '../../../../contrib/inlineChat/browser/inlineChatActions.js';
 import '../../../../../editor/contrib/codeAction/browser/codeActionContributions.js';
 
@@ -37,7 +36,6 @@ function renderInlineChatAffordance({ container, disposableStore, theme }: Compo
 	container.style.height = '180px';
 	container.style.border = '1px solid var(--vscode-editorWidget-border)';
 
-	// Register fake menu items scoped to this fixture's lifetime
 	disposableStore.add(MenuRegistry.appendMenuItem(MenuId.InlineChatEditorAffordance, {
 		group: '0_chat', order: 2, when: ChatContextKeys.enabled,
 		command: { id: 'workbench.action.chat.attachSelection', title: 'Add Selection to Chat', icon: Codicon.attach },
@@ -75,7 +73,6 @@ function renderInlineChatAffordance({ container, disposableStore, theme }: Compo
 
 	editor.setModel(textModel);
 
-	// Set context keys required by InlineChatEditorAffordance menu items
 	const contextKeyService = instantiationService.get(IContextKeyService);
 	EditorContextKeys.readOnly.bindTo(contextKeyService).set(false);
 	EditorContextKeys.hasNonEmptySelection.bindTo(contextKeyService).set(withSelection);

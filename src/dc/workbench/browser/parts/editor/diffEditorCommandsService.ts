@@ -19,39 +19,27 @@ import { TextDiffEditor } from './textDiffEditor.js';
 
 export const IDiffEditorCommandsService = createDecorator<IDiffEditorCommandsService>('diffEditorCommandsService');
 
-/** Which side of the active diff editor to focus. */
 export const enum FocusTextDiffEditorMode {
 	Original,
 	Modified,
 	Toggle
 }
 
-/**
- * Backs the diff-editor commands (see {@link registerDiffEditorCommands}). The Agents window
- * overrides this to also drive its multi-diff Changes editor.
- */
 export interface IDiffEditorCommandsService {
 	readonly _serviceBrand: undefined;
 
-	/** Toggles inline vs. side-by-side rendering for the active diff editor. */
 	toggleRenderSideBySide(args: unknown[]): Promise<void>;
 
-	/** Opens the original or modified side of the active diff editor, whichever has focus, as its own editor. */
 	openActiveDiffSide(): Promise<void>;
 
-	/** Navigates to the next or previous change in the active diff editor. */
 	navigateInDiffEditor(args: unknown[], next: boolean): void;
 
-	/** Focuses the original, modified, or currently unfocused side of the active diff editor. */
 	focusInDiffEditor(args: unknown[], mode: FocusTextDiffEditorMode): void;
 
-	/** Toggles whether the active diff editor ignores trim whitespace. */
 	toggleDiffIgnoreTrimWhitespace(args: unknown[]): Promise<void>;
 
-	/** Swaps the original and modified sides of the active diff editor. */
 	swapDiffSides(args: unknown[]): Promise<void>;
 
-	/** Sets the view mode for the active diff editor. */
 	setViewMode(args: unknown[], mode: DiffEditorViewMode): Promise<void>;
 }
 
@@ -149,10 +137,6 @@ export class DiffEditorCommandsService implements IDiffEditorCommandsService {
 			return;
 		}
 
-		// Since we are about to replace the diff editor, make
-		// sure to first open the modified side if it is not
-		// yet opened. This ensures that the swapping is not
-		// bringing up a confirmation dialog to save.
 		if (diffInput.modified.isModified() && this.editorService.findEditors({ resource: diffInput.modified.resource, typeId: diffInput.modified.typeId, editorId: diffInput.modified.editorId }).length === 0) {
 			const editorToOpen: IUntypedEditorInput = { ...untypedDiffInput.modified };
 			if (!editorToOpen.options) {
@@ -164,7 +148,6 @@ export class DiffEditorCommandsService implements IDiffEditorCommandsService {
 			await this.editorService.openEditor(editorToOpen, activeGroup);
 		}
 
-		// Replace the input with the swapped variant
 		await this.editorService.replaceEditors([
 			{
 				editor: diffInput,

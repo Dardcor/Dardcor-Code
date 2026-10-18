@@ -23,9 +23,6 @@ import { WebviewInitInfo } from '../browser/webview.js';
 import { WebviewElement } from '../browser/webviewElement.js';
 import { WindowIgnoreMenuShortcutsManager } from './windowIgnoreMenuShortcutsManager.js';
 
-/**
- * Webview backed by an iframe but that uses Electron APIs to power the webview.
- */
 export class ElectronWebviewElement extends WebviewElement {
 
 	private readonly _webviewKeyboardHandler: WindowIgnoreMenuShortcutsManager;
@@ -76,7 +73,6 @@ export class ElectronWebviewElement extends WebviewElement {
 	}
 
 	override dispose(): void {
-		// Make sure keyboard handler knows it closed (#71800)
 		this._webviewKeyboardHandler.didBlur();
 
 		super.dispose();
@@ -86,13 +82,6 @@ export class ElectronWebviewElement extends WebviewElement {
 		return `${Schemas.vscodeWebview}://${iframeId}`;
 	}
 
-	/**
-	 * Webviews expose a stateful find API.
-	 * Successive calls to find will move forward or backward through onFindResults
-	 * depending on the supplied options.
-	 *
-	 * @param value The string to search for. Empty strings are ignored.
-	 */
 	public override find(value: string, previous: boolean): void {
 		if (!this.element) {
 			return;
@@ -101,7 +90,6 @@ export class ElectronWebviewElement extends WebviewElement {
 		if (!this._findStarted) {
 			this.updateFind(value);
 		} else {
-			// continuing the find, so set findNext to false
 			const options: FindInFrameOptions = { forward: !previous, findNext: false, matchCase: false };
 			this._webviewMainService.findInFrame({ windowId: this._nativeHostService.windowId }, this.id, value, options);
 		}
@@ -112,7 +100,6 @@ export class ElectronWebviewElement extends WebviewElement {
 			return;
 		}
 
-		// FindNext must be true for a first request
 		const options: FindInFrameOptions = {
 			forward: true,
 			findNext: true,

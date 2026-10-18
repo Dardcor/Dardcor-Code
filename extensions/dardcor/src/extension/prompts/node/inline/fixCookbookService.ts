@@ -22,11 +22,8 @@ export enum ContextLocation {
 
 export type ManualSuggestedFix = {
 	title: string;
-	/** The dardcor query is equal to title + message. */
 	message: string;
-	/** If true, replace the diagnostic provider's message with this message. */
 	replaceMessage?: string;
-	/** If true, display definition */
 	additionalContext?: ContextLocation;
 };
 
@@ -35,7 +32,6 @@ export class FixCookbookService implements IFixCookbookService {
 	constructor(
 		@ITelemetryService private readonly telemetryService: ITelemetryService
 	) {
-		// Always enable the Ruff cookbook by default
 		errorPrompts.Ruff = pythonRuffCookbooks;
 	}
 
@@ -79,23 +75,12 @@ export class FixCookbookService implements IFixCookbookService {
 			return [];
 		}
 
-		// send telemetry
-		/* __GDPR__
-			"cookbook.accessed" : {
-				"owner": "luabud",
-				"comment": "Reports when a cookbook entry is accessed for a diagnostic.",
-				"languageID": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The current file language." },
-				"diagnosticCode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The diagnostic code accessed in the cookbook." },
-				"provider": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The tool which is the diagnostic provider." }
-				}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('cookbook.accessed', {
 			languageId,
 			diagnosticCode: diagnostic.toString(),
 			provider
 		});
 
-		// Ensure result is always an array of ManualSuggestedFix
 		const prompts = Array.isArray(diagnosticPrompts) ? diagnosticPrompts : [diagnosticPrompts];
 		return prompts.map(prompt => typeof prompt === 'string' ? { title: prompt, message: '' } : prompt);
 	}
@@ -110,14 +95,13 @@ export interface Cookbook {
 }
 
 
-/** add diagnostic providers here as needed */
 type Provider = 'eslint' | 'ts' | 'pylint' | 'Pylint' | 'Ruff';
 type Prompt = string | ManualSuggestedFix | (string | ManualSuggestedFix)[];
 type CookbookInternal = Record<Provider, Record<string, Prompt>>;
 
 
 const errorPrompts: CookbookInternal = {
-	'Ruff': {},  // default to empty during experimentation
+	'Ruff': {},
 
 	'pylint': {
 		'C0301': [

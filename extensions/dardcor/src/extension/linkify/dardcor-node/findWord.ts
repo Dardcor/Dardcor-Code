@@ -17,20 +17,12 @@ import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/p
 import { PromptReference } from '../../prompt/common/conversation';
 import { extractSymbolNamesInCode } from './findSymbol';
 
-/**
- * How the word was resolved.
- */
 enum ResolvedWordLocationType {
-	// Ordered by priority. Higher properties are preferred.
 
-	/** Resolve using string matching */
 	TextualMatch = 1,
 
-	/** Resolve by matching a symbol name in code */
 	SymbolMatch = 2,
 
-	/** Resolve by matching a definition in code */
-	// TODO: not implemented yet
 	Definition = 3,
 }
 
@@ -259,7 +251,6 @@ async function findWordInDoc(parserService: IParserService, word: string, uri: v
 		return;
 	}
 
-	// Fall back to word based
 	const text = doc.getText(range);
 	const startOffset = doc.offsetAt(range.start);
 	for (const match of text.matchAll(new RegExp(escapeRegExpCharacters(word), 'g'))) {
@@ -356,7 +347,6 @@ async function getSymbolsInRange(parserService: IParserService, doc: SimpleTextD
 }
 
 export class ReferencesSymbolResolver {
-	/** Symbols which we have already tried to resolve */
 	private readonly cache = new Map<string, Promise<vscode.Location[] | undefined>>();
 	private readonly documentCache = new Map<string, Promise<SimpleTextDocument | undefined>>();
 
@@ -381,42 +371,32 @@ export class ReferencesSymbolResolver {
 	}
 
 	private async doResolve(codeText: string, references: readonly PromptReference[], token: CancellationToken): Promise<vscode.Location[] | undefined> {
-		// Prefer exact match
 		let wordMatches = await this.instantiationService.invokeFunction(accessor => findWordInReferences(accessor, references, codeText, this.findWordOptions, token, this.documentCache));
 		if (token.isCancellationRequested) {
 			return;
 		}
 
-		// But then try breaking up inline code into symbol parts
 		if (!wordMatches.length) {
-			// Extract all symbol parts from the code text
-			// For example: `TextModel.undo()` -> ['TextModel', 'undo']
 			const symbolParts = extractSymbolNamesInCode(codeText);
 
 			if (symbolParts.length >= 2) {
-				// For qualified names like `Class.method()`, search for both parts together
-				// This helps disambiguate when there are multiple methods with the same name
 				const firstPart = symbolParts[0];
 				const lastPart = symbolParts[symbolParts.length - 1];
 
-				// First, try to find the class
 				const classMatches = await this.instantiationService.invokeFunction(accessor => findWordInReferences(accessor, references, firstPart, {
 					symbolMatchesOnly: true,
 					maxResultCount: this.findWordOptions.maxResultCount,
 				}, token, this.documentCache));
 
-				// If we found the class, we'll rely on the click-time resolution to find the method
 				if (classMatches.length) {
 					wordMatches = classMatches;
 				} else {
-					// If no class found, try just the method name as fallback
 					wordMatches = await this.instantiationService.invokeFunction(accessor => findWordInReferences(accessor, references, lastPart, {
 						symbolMatchesOnly: true,
 						maxResultCount: this.findWordOptions.maxResultCount,
 					}, token));
 				}
 			} else if (symbolParts.length > 0) {
-				// For single names like `undo`, try to find the method directly
 				const lastPart = symbolParts[symbolParts.length - 1];
 
 				if (lastPart && lastPart !== codeText) {

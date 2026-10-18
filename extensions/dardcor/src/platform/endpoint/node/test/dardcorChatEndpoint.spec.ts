@@ -25,9 +25,8 @@ import { NullExperimentationService } from '../../../telemetry/common/nullExperi
 import { ITelemetryService } from '../../../telemetry/common/telemetry';
 import { ITokenizerProvider } from '../../../tokenizer/node/tokenizer';
 import { ChatEndpoint } from '../chatEndpoint';
-import { CopilotChatEndpoint } from '../dardcorChatEndpoint';
+import { DardcorChatEndpoint } from '../dardcorChatEndpoint';
 
-// Test fixtures for thinking content
 const createThinkingMessage = (thinkingId: string, thinkingText: string): Raw.ChatMessage => ({
 	role: Raw.ChatRole.Assistant,
 	content: [
@@ -53,7 +52,6 @@ const createTestOptions = (messages: Raw.ChatMessage[]): ICreateEndpointBodyOpti
 	location: undefined as any
 });
 
-// Mock implementations
 const createMockServices = () => ({
 	fetcherService: {} as IFetcherService,
 	domainService: {} as IDomainService,
@@ -100,7 +98,7 @@ const createNonAnthropicModelMetadata = (family: string): IChatModelInformation 
 	}
 });
 
-describe('CopilotChatEndpoint - Reasoning Properties', () => {
+describe('DardcorChatEndpoint - Reasoning Properties', () => {
 	let mockServices: ReturnType<typeof createMockServices>;
 	let modelMetadata: IChatModelInformation;
 
@@ -137,7 +135,7 @@ describe('CopilotChatEndpoint - Reasoning Properties', () => {
 
 	describe('CAPI reasoning properties', () => {
 		it('should set reasoning_opaque and reasoning_text properties when processing thinking content', () => {
-			const endpoint = new CopilotChatEndpoint(
+			const endpoint = new DardcorChatEndpoint(
 				modelMetadata,
 				mockServices.domainService,
 				mockServices.capiClientService,
@@ -167,7 +165,7 @@ describe('CopilotChatEndpoint - Reasoning Properties', () => {
 		});
 
 		it('should handle multiple messages with thinking content', () => {
-			const endpoint = new CopilotChatEndpoint(
+			const endpoint = new DardcorChatEndpoint(
 				modelMetadata,
 				mockServices.domainService,
 				mockServices.capiClientService,
@@ -197,17 +195,15 @@ describe('CopilotChatEndpoint - Reasoning Properties', () => {
 			const messages = body.messages as any[];
 			expect(messages).toHaveLength(2);
 
-			// User message should not have reasoning properties
 			expect(messages[0].reasoning_opaque).toBeUndefined();
 			expect(messages[0].reasoning_text).toBeUndefined();
 
-			// Assistant message should have reasoning properties
 			expect(messages[1].reasoning_opaque).toBe('dardcor-reasoning-def');
 			expect(messages[1].reasoning_text).toBe('analyzing the code request');
 		});
 
 		it('should handle messages without thinking content', () => {
-			const endpoint = new CopilotChatEndpoint(
+			const endpoint = new DardcorChatEndpoint(
 				modelMetadata,
 				mockServices.domainService,
 				mockServices.capiClientService,
@@ -324,8 +320,6 @@ describe('ChatEndpoint - Image Count Validation', () => {
 		return count;
 	};
 
-	// Exercises the private `validateAndFilterImages` method directly so we can
-	// assert on the filtered messages without being blocked by downstream mocks.
 	const filterImages = (endpoint: ChatEndpoint, messages: Raw.ChatMessage[], maxImages: number): Raw.ChatMessage[] => {
 		return (endpoint as unknown as { validateAndFilterImages(m: Raw.ChatMessage[], n: number): Raw.ChatMessage[] })
 			.validateAndFilterImages(messages, maxImages);
@@ -337,13 +331,11 @@ describe('ChatEndpoint - Image Count Validation', () => {
 			const messages = [createImageMessage(), createImageMessage()];
 			const options = createTestOptions(messages);
 			expect(() => endpoint.createRequestBody(options)).not.toThrow();
-			// Input is within limit — messages should be returned untouched.
 			expect(filterImages(endpoint, messages, 5)).toBe(messages);
 		});
 
 		it('should silently filter history images when total exceeds limit', () => {
 			const endpoint = createEndpoint(createGeminiModelMetadata(3));
-			// 2 history user messages with 1 image each + current user message with 2 images = 4 total > 3 limit
 			const messages = [
 				createImageMessage(),
 				createAssistantMessage(),
@@ -353,11 +345,8 @@ describe('ChatEndpoint - Image Count Validation', () => {
 			];
 			expect(() => endpoint.createRequestBody(createTestOptions(messages))).not.toThrow();
 			const filtered = filterImages(endpoint, messages, 3);
-			// Total image parts in the filtered output must not exceed the limit.
 			expect(countImages(filtered)).toBeLessThanOrEqual(3);
-			// Current user message (last) must retain all 2 of its images.
 			expect(countImages([filtered[filtered.length - 1]])).toBe(2);
-			// Original messages must not be mutated.
 			expect(countImages(messages)).toBe(4);
 		});
 	});
@@ -366,13 +355,11 @@ describe('ChatEndpoint - Image Count Validation', () => {
 		it('should allow requests within image limit', () => {
 			const endpoint = createEndpoint(createAnthropicMessagesModelMetadata());
 			const messages = [createImageMessage(5)];
-			// Within limit — filter must not alter the messages.
 			expect(filterImages(endpoint, messages, 20)).toBe(messages);
 		});
 
 		it('should silently filter history images when total exceeds limit', () => {
 			const endpoint = createEndpoint(createAnthropicMessagesModelMetadata());
-			// Build history with 18 images + current message with 5 images = 23 total > 20 limit
 			const messages: Raw.ChatMessage[] = [];
 			for (let i = 0; i < 18; i++) {
 				messages.push(createImageMessage());
@@ -381,9 +368,7 @@ describe('ChatEndpoint - Image Count Validation', () => {
 			messages.push(createImageMessage(5));
 			const filtered = filterImages(endpoint, messages, 20);
 			expect(countImages(filtered)).toBeLessThanOrEqual(20);
-			// Current user message must retain all 5 of its images.
 			expect(countImages([filtered[filtered.length - 1]])).toBe(5);
-			// Original messages must not be mutated.
 			expect(countImages(messages)).toBe(23);
 		});
 	});
@@ -392,7 +377,6 @@ describe('ChatEndpoint - Image Count Validation', () => {
 		it('should not apply image limits to non-Anthropic non-Gemini models', () => {
 			const metadata = createNonAnthropicModelMetadata('gpt-4o');
 			const endpoint = createEndpoint(metadata);
-			// 25 images should not throw for a non-limited model
 			const options = createTestOptions([createImageMessage(25)]);
 			expect(() => endpoint.createRequestBody(options)).not.toThrow();
 		});
@@ -408,7 +392,6 @@ describe('ChatEndpoint - Image Count Validation', () => {
 					{ type: Raw.ChatCompletionContentPartKind.Image, imageUrl: { url: 'https://example.com/tool.png' } }
 				]
 			};
-			// 2 tool-result images in history + 1 current user image = 3 total > 2 limit
 			const messages: Raw.ChatMessage[] = [
 				toolResultImage,
 				createAssistantMessage(),
@@ -418,13 +401,10 @@ describe('ChatEndpoint - Image Count Validation', () => {
 			];
 			const filtered = filterImages(endpoint, messages, 2);
 			expect(countImages(filtered)).toBeLessThanOrEqual(2);
-			// Original messages must not be mutated.
 			expect(countImages(messages)).toBe(3);
 		});
 
 		it('should ignore an overly-restrictive server-provided maxPromptImages and use the hardcoded Gemini limit of 10', () => {
-			// Server reports max_prompt_images: 1 but the true Gemini limit is 10.
-			// 2 images in the current turn must not throw.
 			const endpoint = createEndpoint(createGeminiModelMetadata(1));
 			const options = createTestOptions([createImageMessage(2)]);
 			expect(() => endpoint.createRequestBody(options)).not.toThrow();
@@ -444,7 +424,6 @@ describe('ChatEndpoint - Image Count Validation', () => {
 
 		it('should throw a clear error when the current turn alone exceeds the limit', () => {
 			const endpoint = createEndpoint(createGeminiModelMetadata(2));
-			// Current user message has 5 images, limit is 2. History has 1 image.
 			const messages = [
 				createImageMessage(),
 				createAssistantMessage(),
@@ -612,9 +591,6 @@ describe('ChatEndpoint - CAPI reasoning effort', () => {
 			mockServices.logService
 		);
 
-	// A CAPI chat-completions model (no supported_endpoints) that optionally
-	// declares the reasoning effort levels it accepts, mirroring how Gemini
-	// models are hydrated from the CAPI `/models` response.
 	const createReasoningModelMetadata = (family: string, reasoningEffort?: string[]): IChatModelInformation => {
 		const base = createNonAnthropicModelMetadata(family);
 		return {

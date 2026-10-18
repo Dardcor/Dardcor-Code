@@ -22,7 +22,7 @@ import { ILogService } from '../../../platform/log/common/logService';
 import { isOpenAIContextManagementResponse, OpenAiFunctionDef } from '../../../platform/networking/common/fetch';
 import { IChatEndpoint, IMakeChatRequestOptions } from '../../../platform/networking/common/networking';
 import { nanoAiuToCredits, OpenAIContextManagementResponse } from '../../../platform/networking/common/openai';
-import { CopilotChatAttr, emitAgentTurnEvent, emitSessionStartEvent, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, GitHubCopilotAttr, normalizeResponseModel, resolveWorkspaceOTelMetadata, StdAttr, stringifyToolDefinitionsForOTel, truncateForOTel, workspaceMetadataToOTelAttributes } from '../../../platform/otel/common/index';
+import { DardcorChatAttr, emitAgentTurnEvent, emitSessionStartEvent, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, DardcorAttr, normalizeResponseModel, resolveWorkspaceOTelMetadata, StdAttr, stringifyToolDefinitionsForOTel, truncateForOTel, workspaceMetadataToOTelAttributes } from '../../../platform/otel/common/index';
 import { IOTelService, ISpanHandle, SpanKind, SpanStatusCode } from '../../../platform/otel/common/otelService';
 import { IRequestLogger } from '../../../platform/requestLogger/common/requestLogger';
 import { getCurrentCapturingToken } from '../../../platform/requestLogger/node/requestLogger';
@@ -66,31 +66,11 @@ export const enum ToolCallLimitBehavior {
 export interface IToolCallingLoopOptions {
 	conversation: Conversation;
 	toolCallLimit: number;
-	/**
-	 * What to do when the limit is hit. Defaults to {@link ToolCallLimitBehavior.Stop}.
-	 * If set to confirm you can use {@link isToolCallLimitCancellation} and
-	 * {@link isToolCallIterationIncrease} to get followup data.
-	 */
 	onHitToolCallLimit?: ToolCallLimitBehavior;
-	/**
-	 * "mixins" that can be used to wrap the response stream.
-	 */
 	streamParticipants?: ResponseStreamParticipant[];
-	/**
-	 * Optional custom response stream processor.
-	 */
 	responseProcessor?: IResponseProcessor;
-	/** Context for the {@link InteractionOutcomeComputer} */
 	interactionContext?: URI;
-	/**
-	 * The current chat request
-	 */
 	request: ChatRequest;
-	/**
-	 * A getter that returns true if VS Code has requested the extension to
-	 * gracefully yield. When set, it's likely that the editor will immediately
-	 * follow up with a new request in the same conversation.
-	 */
 	yieldRequested?: () => boolean;
 }
 
@@ -108,48 +88,23 @@ export interface IToolCallingBuiltPromptEvent {
 export type ToolCallingLoopFetchOptions = Required<Pick<IMakeChatRequestOptions, 'messages' | 'finishedCb' | 'requestOptions' | 'userInitiatedRequest' | 'turnId'>> & Pick<IMakeChatRequestOptions, 'modelCapabilities' | 'summarizedAtRoundId' | 'topLevelTurnId'> & { iterationNumber: number; isKeepAliveProbe?: boolean };
 
 interface StartHookResult {
-	/**
-	 * Additional context to add to the agent's context, if any.
-	 */
 	readonly additionalContext?: string;
 }
 
 interface StopHookResult {
-	/**
-	 * Whether the agent should continue (not stop).
-	 */
 	readonly shouldContinue: boolean;
-	/**
-	 * The reasons the agent should continue, if shouldContinue is true.
-	 * Multiple hooks may block with different reasons.
-	 */
 	readonly reasons?: readonly string[];
 }
 
 interface SubagentStartHookResult {
-	/**
-	 * Additional context to add to the subagent's context, if any.
-	 */
 	readonly additionalContext?: string;
 }
 
 interface SubagentStopHookResult {
-	/**
-	 * Whether the subagent should continue (not stop).
-	 */
 	readonly shouldContinue: boolean;
-	/**
-	 * The reasons the subagent should continue, if shouldContinue is true.
-	 * Multiple hooks may block with different reasons.
-	 */
 	readonly reasons?: readonly string[];
 }
 
-/**
- * Formats a hook context message from blocking reasons.
- * @param reasons The reasons hooks blocked the agent from stopping
- * @returns A formatted message for the model to address the requirements
- */
 function formatHookContext(reasons: readonly string[]): string {
 	if (reasons.length === 1) {
 		return `You were about to complete but a hook blocked you with the following message: "${reasons[0]}". Please address this requirement before completing.`;
@@ -158,12 +113,6 @@ function formatHookContext(reasons: readonly string[]): string {
 	return `You were about to complete but multiple hooks blocked you with the following messages:\n${formattedReasons}\n\nPlease address all of these requirements before completing.`;
 }
 
-/**
- * This is a base class that can be used to implement a tool calling loop
- * against a model. It requires only that you build a prompt and is decoupled
- * from intents (i.e. the {@link DefaultIntentRequestHandler}), allowing easier
- * programmatic use.
- */
 export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions = IToolCallingLoopOptions> extends Disposable {
 	private static NextToolCallId = Date.now();
 
@@ -180,25 +129,10 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	private lastHeaderRequestId: string | undefined;
 	private lastModelCallId: string | undefined;
 
-	/**
-	 * Running total of Copilot credits across every model call in the current
-	 * turn. Each fetch reports the credits for that single call, but the context
-	 * usage widget and `IChatModel.sessionCost` treat the per-request value as the
-	 * whole turn, so we accumulate here and emit the running total — mirroring the
-	 * cumulative credits the agent host reports. Reset on the first iteration of a
-	 * turn ({@link runOne} with `iterationNumber === 0`).
-	 */
 	private _accumulatedCopilotCredits: number | undefined;
 
-	/**
-	 * The full {@link ToolCallingLoopFetchOptions} from the most recent fetch.
-	 * Probes reuse this wholesale (overriding only `messages` and `finishedCb`)
-	 * so that the server-side prompt cache key — which includes tool schemas,
-	 * model capabilities, and other request-shape fields — matches.
-	 */
 	private lastFetchOptions: ToolCallingLoopFetchOptions | undefined;
 
-	/** Interval between keep-alive probes while buildPrompt is in flight. */
 	private static readonly KEEP_ALIVE_INTERVAL_MS = 4 * 60 * 1000;
 
 	public appendAdditionalHookContext(context: string): void {
@@ -248,13 +182,10 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		super();
 	}
 
-	/** Builds a prompt with the context. */
 	protected abstract buildPrompt(buildPromptContext: IBuildPromptContext, progress: Progress<ChatResponseReferencePart | ChatResponseProgressPart>, token: CancellationToken): Promise<IBuildPromptResult>;
 
-	/** Gets the tools that should be callable by the model. */
 	protected abstract getAvailableTools(outputStream: ChatResponseStream | undefined, token: CancellationToken): Promise<LanguageModelToolInformation[]>;
 
-	/** Creates the prompt context for the request. */
 	protected createPromptContext(availableTools: LanguageModelToolInformation[], outputStream: ChatResponseStream | undefined): Mutable<IBuildPromptContext> {
 		const { request } = this.options;
 		const chatVariables = new ChatVariablesCollection(request.references);
@@ -263,18 +194,15 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		let query: string;
 		let hasStopHookQuery = false;
 		if (this.stopHookReason) {
-			// Include the stop hook reason as a user message so the model knows what to do.
-			// Wrap with context so the model understands it needs to take action.
 			query = formatHookContext([this.stopHookReason]);
 			this._logService.info(`[ToolCallingLoop] Using stop hook reason as query: ${query}`);
-			this.stopHookReason = undefined; // Clear after use
+			this.stopHookReason = undefined;
 			hasStopHookQuery = true;
 		} else if (isContinuation) {
 			query = 'Please continue';
 		} else {
 			query = this.turn.request.message;
 		}
-		// exclude turns from the history that errored due to prompt filtration
 		const history = this.options.conversation.turns.slice(0, -1).filter(turn => turn.responseStatus !== TurnStatus.PromptFiltered);
 
 		return {
@@ -307,23 +235,10 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		token: CancellationToken
 	): Promise<ChatResponse>;
 
-	/**
-	 * The context window widget in chat input should represent only the parent
-	 * request, so a subagent's token counts must stay isolated to avoid inflating
-	 * the parent widget. Subagents still report their running credit (AIC) total
-	 * separately (without token counts) so the subagent tool can show its own cost.
-	 */
 	private shouldReportUsageToContextWidget(): boolean {
 		return !this.options.request.subAgentInvocationId;
 	}
 
-	/**
-	 * Called before the loop stops to give hooks a chance to block the stop.
-	 * @param input The stop hook input containing stop_hook_active flag
-	 * @param outputStream The output stream for displaying messages
-	 * @param token Cancellation token
-	 * @returns Result indicating whether to continue and the reasons
-	 */
 	protected async executeStopHook(input: StopHookInput, sessionId: string, outputStream: ChatResponseStream | undefined, token: CancellationToken): Promise<StopHookResult> {
 		try {
 			const results = await this._chatHookService.executeHook('Stop', this.options.request.hooks, input, sessionId, token);
@@ -345,7 +260,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 						}
 					}
 				},
-				// Collect errors as blocking reasons (stderr from exit code != 0)
 				onError: (errorMessage) => {
 					if (errorMessage) {
 						this._logService.trace(`[ToolCallingLoop] Stop hook error collected as blocking reason: ${errorMessage}`);
@@ -367,12 +281,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 	}
 
-	/**
-	 * Shows a message when the stop hook blocks the agent from stopping.
-	 * Override in subclasses to customize the display.
-	 * @param outputStream The output stream for displaying messages
-	 * @param reasons The reasons the stop hook blocked stopping
-	 */
 	protected showStopHookBlockedMessage(outputStream: ChatResponseStream | undefined, reasons: readonly string[]): void {
 		if (outputStream) {
 			if (reasons.length === 1) {
@@ -393,11 +301,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	private taskCompleted = false;
 	private autopilotStopHookActive = false;
 	private autopilotProgressDeferred: DeferredPromise<void> | undefined;
-	/**
-	 * Short, user-facing reason for the most recent goal-mode continuation. Set
-	 * by {@link shouldAutopilotContinue} on each call (or cleared if no reason
-	 * is available) so the caller can surface it in the progress spinner.
-	 */
 	private autopilotLastUserReason: string | undefined;
 	private _recentToolCallSignatures: string[] = [];
 
@@ -478,18 +381,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			'Keep working autonomously until the task is truly finished, then call task_complete.';
 	}
 
-	/**
-	 * Advanced Autopilot continuation logic. Unlike standard Autopilot — where the model
-	 * signals completion by calling `task_complete` — Advanced Autopilot relies solely on
-	 * a small/fast goal classifier to judge whether the user's original request has been
-	 * satisfied after each turn. `task_complete` is ignored as a stop signal: the loop
-	 * continues until the classifier agrees the goal is met (or is impossible), or a safety
-	 * cap on consecutive continuations is hit. Returns a continuation message or `undefined` to let the loop stop.
-	 */
 	private async advancedAutopilotContinue(result: IToolCallSingleResult, token: CancellationToken): Promise<string | undefined> {
-		// Safety cap on consecutive classifier-driven continuations. Note run() resets
-		// autopilotIterationCount whenever the model makes productive tool calls, so
-		// this bounds stalled nudge loops rather than the total number of turns; the
 		// overall run is still bounded by the global tool-call limit.
 		if (this.autopilotIterationCount >= ToolCallingLoop.MAX_AUTOPILOT_ITERATIONS) {
 			this._logService.info(`[ToolCallingLoop] Advanced Autopilot: hit max consecutive iterations (${ToolCallingLoop.MAX_AUTOPILOT_ITERATIONS}), letting it stop`);
@@ -515,9 +407,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 				'Do NOT repeat or restate your previous response.';
 		}
 
-		// Classifier unavailable (network/parse failure). Advanced Autopilot does not fall
-		// back to task_complete, so issue one bounded generic nudge — unless a prior nudge
-		// already stalled (no further tool calls), in which case stop to avoid wasted requests.
 		if (this.autopilotStopHookActive && result.round.toolCalls.length === 0) {
 			this._logService.info('[ToolCallingLoop] Advanced Autopilot: classifier unavailable and prior nudge produced no tool calls, stopping');
 			return undefined;
@@ -529,16 +418,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			'If you were planning, stop planning and start implementing, and resolve any errors or remaining steps before you stop.';
 	}
 
-	/**
-	 * Asks a small/fast model whether the user's original request has been fully
-	 * satisfied by the conversation so far. Returns `undefined` if the classifier
-	 * fails so callers can fall back to a rules-based decision.
-	 *
-	 * The classifier may also return `impossible: true` when the goal can never be
-	 * satisfied in the current session (self-contradictory, missing capability,
-	 * exhausted approaches). Callers treat that the same as `done: true` to bail
-	 * out of the loop instead of nudging forever.
-	 */
 	private async _runAutopilotGoalClassifier(result: IToolCallSingleResult, token: CancellationToken): Promise<{ done: boolean; impossible?: boolean; reason: string } | undefined> {
 		try {
 			const endpoint = await this._endpointProvider.getChatEndpoint('dardcor-utility-small');
@@ -601,11 +480,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 	}
 
-	/**
-	 * Renders the conversation so far (all previous tool-call rounds plus the current
-	 * one) as a compact transcript for the goal classifier. Per-field truncation keeps
-	 * a runaway file edit or grep result from blowing the small-model context window.
-	 */
 	private _buildAutopilotTranscript(result: IToolCallSingleResult): string {
 		const MAX_ARGS_PER_CALL = 200;
 		const MAX_RESPONSE_PER_TURN = 800;
@@ -624,8 +498,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			return `Turn ${index + 1}:\n  Tool calls: ${toolCalls}\n  Assistant response: ${response}`;
 		};
 
-		// Concatenate prior rounds plus the current round, then truncate the whole thing
-		// from the front so we keep the most recent context if it overflows.
 		const allRounds = [...this.toolCallRounds, result.round];
 		const rendered = allRounds.map(formatRound).join('\n\n');
 		if (rendered.length <= MAX_TOTAL) {
@@ -634,10 +506,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		return `… (earlier turns truncated)\n\n${rendered.slice(-MAX_TOTAL)}`;
 	}
 
-	/**
-	 * Shows a progress spinner in the chat stream while autopilot continues.
-	 * The spinner resolves to the past-tense message when {@link resolveAutopilotProgress} is called.
-	 */
 	private showAutopilotProgress(outputStream: ChatResponseStream | undefined, message: string, pastTenseMessage: string): void {
 		this.resolveAutopilotProgress();
 		const deferred = new DeferredPromise<void>();
@@ -648,9 +516,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		});
 	}
 
-	/**
-	 * Resolves any pending autopilot progress spinner, transitioning it to its past-tense message.
-	 */
 	private resolveAutopilotProgress(): void {
 		if (this.autopilotProgressDeferred) {
 			this.autopilotProgressDeferred.complete(undefined);
@@ -658,11 +523,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 	}
 
-	/**
-	 * Ensures the `task_complete` tool is present in the available tools when running in
-	 * autopilot mode. If it's missing (e.g. filtered out by the tool picker), it's resolved
-	 * from the tools service and appended so the model can always signal completion.
-	 */
 	protected ensureAutopilotTools(availableTools: LanguageModelToolInformation[]): LanguageModelToolInformation[] {
 		if (!this.isAutonomousMode()) {
 			return availableTools;
@@ -681,10 +541,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		return availableTools;
 	}
 
-	/**
-	 * Whether the loop should auto-retry after a failed fetch in auto-approve/autopilot mode.
-	 * Does not retry rate-limited, quota-exceeded, or cancellation errors.
-	 */
 	protected shouldAutoRetry(response: ChatResponse): boolean {
 		const permLevel = this.options.request.permissionLevel;
 		if (permLevel !== 'autoApprove' && permLevel !== 'autopilot') {
@@ -704,13 +560,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 	}
 
-	/**
-	 * Called when a session starts to allow hooks to provide additional context.
-	 * @param input The session start hook input containing source
-	 * @param outputStream The output stream for displaying messages
-	 * @param token Cancellation token
-	 * @returns Result containing additional context from hooks
-	 */
 	protected async executeSessionStartHook(input: SessionStartHookInput, sessionId: string, outputStream: ChatResponseStream | undefined, token: CancellationToken): Promise<StartHookResult> {
 		try {
 			const results = await this._chatHookService.executeHook('SessionStart', this.options.request.hooks, input, sessionId, token);
@@ -731,7 +580,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 						}
 					}
 				},
-				// SessionStart blocking errors and stopReason are silently ignored
 				ignoreErrors: true,
 			});
 
@@ -747,13 +595,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 	}
 
-	/**
-	 * Called when a subagent starts to allow hooks to provide additional context.
-	 * @param input The subagent start hook input containing agent_id and agent_type
-	 * @param outputStream The output stream for displaying messages
-	 * @param token Cancellation token
-	 * @returns Result containing additional context from hooks
-	 */
 	protected async executeSubagentStartHook(input: SubagentStartHookInput, sessionId: string, outputStream: ChatResponseStream | undefined, token: CancellationToken): Promise<SubagentStartHookResult> {
 		try {
 			const results = await this._chatHookService.executeHook('SubagentStart', this.options.request.hooks, input, sessionId, token);
@@ -774,7 +615,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 						}
 					}
 				},
-				// SubagentStart blocking errors and stopReason are silently ignored
 				ignoreErrors: true,
 			});
 
@@ -790,13 +630,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 	}
 
-	/**
-	 * Called before a subagent stops to give hooks a chance to block the stop.
-	 * @param input The subagent stop hook input containing agent_id, agent_type, and stop_hook_active flag
-	 * @param outputStream The output stream for displaying messages
-	 * @param token Cancellation token
-	 * @returns Result indicating whether to continue and the reasons
-	 */
 	protected async executeSubagentStopHook(input: SubagentStopHookInput, sessionId: string, outputStream: ChatResponseStream | undefined, token: CancellationToken): Promise<SubagentStopHookResult> {
 		try {
 			const results = await this._chatHookService.executeHook('SubagentStop', this.options.request.hooks, input, sessionId, token);
@@ -818,7 +651,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 						}
 					}
 				},
-				// Collect errors as blocking reasons (stderr from exit code != 0)
 				onError: (errorMessage) => {
 					if (errorMessage) {
 						this._logService.trace(`[ToolCallingLoop] SubagentStop hook error collected as blocking reason: ${errorMessage}`);
@@ -840,12 +672,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 	}
 
-	/**
-	 * Shows a message when the subagent stop hook blocks the subagent from stopping.
-	 * Override in subclasses to customize the display.
-	 * @param outputStream The output stream for displaying messages
-	 * @param reasons The reasons the subagent stop hook blocked stopping
-	 */
 	protected showSubagentStopHookBlockedMessage(outputStream: ChatResponseStream | undefined, reasons: readonly string[]): void {
 		if (outputStream) {
 			if (reasons.length === 1) {
@@ -865,22 +691,12 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 	}
 
-	/**
-	 * Executes start hooks (SessionStart for regular sessions, SubagentStart for subagents).
-	 * Should be called before run() to allow hooks to provide context before the first prompt.
-	 *
-	 * - For subagents: Always executes SubagentStart hook
-	 * - For regular sessions: Only executes SessionStart hook on the first turn
-	 * @throws HookAbortError if a hook requests the session/subagent to abort
-	 */
 	public async runStartHooks(outputStream: ChatResponseStream | undefined, token: CancellationToken): Promise<void> {
 		const sessionId = this.options.conversation.sessionId;
 		const hasHooks = this.options.request.hasHooksEnabled;
 
-		// Report which hooks are configured for this request
 		this._chatHookService.logConfiguredHooks(this.options.request.hooks);
 
-		// Execute SubagentStart hook for subagent requests, or SessionStart hook for first turn of regular sessions
 		if (this.options.request.subAgentInvocationId) {
 			const startHookResult = await this.executeSubagentStartHook({
 				agent_id: this.options.request.subAgentInvocationId,
@@ -894,7 +710,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			const isFirstTurn = this.options.conversation.turns.length === 1;
 
 			if (hasHooks) {
-				// Build history from prior turns (excluding the current one) for transcript replay
 				const priorTurns = this.options.conversation.turns.slice(0, -1);
 				const history: IHistoricalTurn[] = priorTurns.map(turn => ({
 					userMessage: turn.request.message,
@@ -913,7 +728,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 					})),
 				}));
 
-				// Start the transcript (will replay history if no file exists yet)
 				await this._sessionTranscriptService.startSession(sessionId, undefined, history.length > 0 ? history : undefined);
 			}
 
@@ -930,7 +744,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			}
 		}
 
-		// Log the user message for the transcript (no-ops if session was not started)
 		this._sessionTranscriptService.logUserMessage(
 			sessionId,
 			this.turn.request.message,
@@ -940,27 +753,22 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	public async run(outputStream: ChatResponseStream | undefined, token: CancellationToken): Promise<IToolCallLoopResult> {
 		const agentName = this.agentName ?? 'Dardcor AI Chat';
 
-		// Extract custom mode name for debug logging (kept separate from agentName to avoid metric cardinality)
 		const modeInstructions = (this.options.request as { modeInstructions2?: { name?: string; isBuiltin?: boolean } }).modeInstructions2;
 		const customModeName = modeInstructions?.name && !modeInstructions.isBuiltin ? modeInstructions.name : undefined;
 		const agentType: 'builtin' | 'custom' = modeInstructions && modeInstructions.isBuiltin === false ? 'custom' : 'builtin';
 
-		// If this is a subagent request, look up the parent trace context stored by the parent agent's execute_tool span
-		// Try subAgentInvocationId first (unique per subagent, supports parallel), then request-level key
 		const subAgentInvocationId = this.options.request.subAgentInvocationId;
 		const parentRequestId = this.options.request.parentRequestId;
 		const parentTraceContext = (subAgentInvocationId
 			? this._otelService.getStoredTraceContext(`subagent:invocation:${subAgentInvocationId}`)
 			: undefined)
 			?? (() => {
-				// For request-level fallback, read and re-store so parallel subagents can all read it
 				if (!parentRequestId) { return undefined; }
 				const ctx = this._otelService.getStoredTraceContext(`subagent:request:${parentRequestId}`);
 				if (ctx) { this._otelService.storeTraceContext(`subagent:request:${parentRequestId}`, ctx); }
 				return ctx;
 			})();
 
-		// Get the VS Code chat session ID from the CapturingToken (same mechanism as old debug panel)
 		const chatSessionId = getCurrentCapturingToken()?.chatSessionId;
 		const parentChatSessionId = getCurrentCapturingToken()?.parentChatSessionId;
 		const debugLogLabel = getCurrentCapturingToken()?.debugLogLabel;
@@ -974,12 +782,12 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 					[GenAiAttr.PROVIDER_NAME]: GenAiProviderName.GITHUB,
 					[GenAiAttr.AGENT_NAME]: agentName,
 					[GenAiAttr.CONVERSATION_ID]: this.options.conversation.sessionId,
-					[CopilotChatAttr.SESSION_ID]: this.options.conversation.sessionId,
-					...(chatSessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}),
-					...(parentChatSessionId ? { [CopilotChatAttr.PARENT_CHAT_SESSION_ID]: parentChatSessionId } : {}),
-					...(debugLogLabel ? { [CopilotChatAttr.DEBUG_LOG_LABEL]: debugLogLabel } : {}),
-					...(customModeName ? { [CopilotChatAttr.MODE_NAME]: customModeName } : {}),
-					[GitHubCopilotAttr.AGENT_TYPE]: agentType,
+					[DardcorChatAttr.SESSION_ID]: this.options.conversation.sessionId,
+					...(chatSessionId ? { [DardcorChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}),
+					...(parentChatSessionId ? { [DardcorChatAttr.PARENT_CHAT_SESSION_ID]: parentChatSessionId } : {}),
+					...(debugLogLabel ? { [DardcorChatAttr.DEBUG_LOG_LABEL]: debugLogLabel } : {}),
+					...(customModeName ? { [DardcorChatAttr.MODE_NAME]: customModeName } : {}),
+					[DardcorAttr.AGENT_TYPE]: agentType,
 					...workspaceMetadataToOTelAttributes(resolveWorkspaceOTelMetadata(this._gitService)),
 				},
 				parentTraceContext,
@@ -987,69 +795,49 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			async (span) => {
 				const otelStartTime = Date.now();
 
-				// Register this session as a child of its parent so that debug
-				// log entries are routed to a dedicated child JSONL file.
-				// parentChatSessionId is only set on subagent requests
-				// (see CapturingToken setup in defaultIntentRequestHandler).
 				if (chatSessionId) {
 					const fileLogger = this._instantiationService.invokeFunction(accessor =>
 						accessor.get(IChatDebugFileLoggerService));
 
-					// Register this session as a child of its parent so that debug
-					// log entries are routed to a dedicated child JSONL file.
-					// parentChatSessionId is only set on subagent requests
-					// (see CapturingToken setup in defaultIntentRequestHandler).
 					if (parentChatSessionId) {
 						const childLabel = debugLogLabel ?? `runSubagent-${agentName}`;
 						fileLogger.startChildSession(
 							chatSessionId, parentChatSessionId, childLabel, parentTraceContext?.spanId);
-						// Also register the invoke_agent span's ID so that hook spans
-						// (whose parentSpanId is this span) are routed to the child session.
 						const invokeSpanId = span.getSpanContext()?.spanId;
 						if (invokeSpanId) {
 							fileLogger.registerSpanSession(invokeSpanId, chatSessionId);
 						}
 					} else {
-						// For top-level agent invocations (not subagents), start a debug
-						// file logging session so entries are flushed to JSONL on disk.
-						// This is idempotent — calling startSession on an already-started
-						// session just promotes it if needed.
-						fileLogger.startSession(chatSessionId).catch(() => { /* best effort */ });
+						fileLogger.startSession(chatSessionId).catch(() => { });
 					}
 				}
 
-				// Resolve the endpoint once for session start + request model attribute.
 				let requestModel: string | undefined;
 				try {
 					const endpoint = await this._endpointProvider.getChatEndpoint(this.options.request);
 					requestModel = endpoint.model;
 					span.setAttribute(GenAiAttr.REQUEST_MODEL, endpoint.model);
-				} catch { /* endpoint not yet available */ }
+				} catch { }
 
-				// Emit session start event and metric for top-level agent invocations (not subagents)
 				if (!parentTraceContext) {
 					GenAiMetrics.incrementSessionCount(this._otelService);
 					emitSessionStartEvent(this._otelService, this.options.conversation.sessionId, requestModel ?? 'unknown', agentName);
 				}
 
-				// Always capture user input message for the debug panel
 				{
 					const userMessage = this.turn.request.message;
 					const maxLen = this._otelService.config.maxAttributeSizeChars;
 					span.setAttribute(GenAiAttr.INPUT_MESSAGES, truncateForOTel(JSON.stringify([
 						{ role: 'user', parts: [{ type: 'text', content: userMessage }] }
 					]), maxLen));
-					// Set USER_REQUEST so event translator can emit user.message
 					if (userMessage) {
-						span.setAttribute(CopilotChatAttr.USER_REQUEST, truncateForOTel(userMessage, maxLen));
+						span.setAttribute(DardcorChatAttr.USER_REQUEST, truncateForOTel(userMessage, maxLen));
 					}
-					// Emit user_message span event for real-time debug panel streaming
 					if (userMessage) {
-						span.addEvent('user_message', { content: truncateForOTel(userMessage, maxLen), ...(chatSessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}) });
+						span.addEvent('user_message', { content: truncateForOTel(userMessage, maxLen), ...(chatSessionId ? { [DardcorChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}) });
 					}
 				}
 
-				// Accumulate token usage across all LLM turns per GenAI agent span spec
 				let totalInputTokens = 0;
 				let totalOutputTokens = 0;
 				let totalCacheReadTokens = 0;
@@ -1077,18 +865,14 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 				try {
 					const result = await this._runLoop(outputStream, token, span, chatSessionId);
 					span.setAttributes({
-						[CopilotChatAttr.TURN_COUNT]: result.toolCallRounds.length,
+						[DardcorChatAttr.TURN_COUNT]: result.toolCallRounds.length,
 						[GenAiAttr.USAGE_INPUT_TOKENS]: totalInputTokens,
 						[GenAiAttr.USAGE_OUTPUT_TOKENS]: totalOutputTokens,
 						...(totalCacheReadTokens ? { [GenAiAttr.USAGE_CACHE_READ_INPUT_TOKENS]: totalCacheReadTokens } : {}),
 						...(totalCacheCreationTokens ? { [GenAiAttr.USAGE_CACHE_CREATION_INPUT_TOKENS]: totalCacheCreationTokens } : {}),
-						// Reasoning tokens are a SUBSET of USAGE_OUTPUT_TOKENS (mirrors OpenAI
-						// completion_tokens_details.reasoning_tokens), so this is a sub-breakdown
-						// of output, not an addition.
 						...(totalReasoningTokens ? { [GenAiAttr.USAGE_REASONING_OUTPUT_TOKENS]: totalReasoningTokens } : {}),
 						...(lastResolvedModel ? { [GenAiAttr.RESPONSE_MODEL]: normalizeResponseModel(requestModel, lastResolvedModel) ?? lastResolvedModel } : {}),
 					});
-					// Always capture agent output message and tool definitions for the debug panel
 					{
 						const lastRound = result.toolCallRounds.at(-1);
 						if (lastRound?.response) {
@@ -1097,9 +881,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 								{ role: 'assistant', parts: [{ type: 'text', content: responseText }] }
 							])));
 						}
-						// Log tool definitions once on the agent span (same set across all turns).
-						// Includes `parameters` (inputSchema) per OTel GenAI semantic convention so
-						// trace viewers can render full tool signatures (issue #300318).
 						if (result.availableTools.length > 0) {
 							const toolDefsJson = stringifyToolDefinitionsForOTel(result.availableTools);
 							if (toolDefsJson) {
@@ -1109,7 +890,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 					}
 					span.setStatus(SpanStatusCode.OK);
 
-					// Record agent-level metrics
 					const durationSec = (Date.now() - otelStartTime) / 1000;
 					GenAiMetrics.recordAgentDuration(this._otelService, agentName, durationSec);
 					GenAiMetrics.recordAgentTurnCount(this._otelService, agentName, result.toolCallRounds.length);
@@ -1133,7 +913,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		let stopHookActive = false;
 		const sessionId = this.options.conversation.sessionId;
 
-		// Store span context so runOne() can emit tools_available on first call
 		this.agentSpan = agentSpan;
 		this.chatSessionIdForTools = chatSessionId;
 		this.toolsAvailableEmitted = false;
@@ -1158,7 +937,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			try {
 				const turnId = String(i);
 				this._sessionTranscriptService.logAssistantTurnStart(sessionId, turnId);
-				agentSpan?.addEvent('turn_start', { turnId, ...(chatSessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}) });
+				agentSpan?.addEvent('turn_start', { turnId, ...(chatSessionId ? { [DardcorChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}) });
 				this.resolveAutopilotProgress();
 				const result = await this.runOne(outputStream, i, token);
 				if (lastRequestMessagesStartingIndexForRun === undefined) {
@@ -1171,7 +950,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 
 				this.toolCallRounds.push(result.round);
 				this._sessionTranscriptService.logAssistantTurnEnd(sessionId, turnId);
-				agentSpan?.addEvent('turn_end', { turnId, ...(chatSessionId ? { [CopilotChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}) });
+				agentSpan?.addEvent('turn_end', { turnId, ...(chatSessionId ? { [DardcorChatAttr.CHAT_SESSION_ID]: chatSessionId } : {}) });
 
 				if (this.detectToolCallOscillation(result.round.toolCalls)) {
 					this._logService.warn('[ToolCallingLoop] Oscillation detected: repeated identical tool calls 3 times consecutively. Halting loop.');
@@ -1284,10 +1063,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	}
 
 	private async emitReadFileTrajectories() {
-		// We are tuning our `read_file` tool to read files more effectively and efficiently.
-		// This is a likely-temporary function that emits trajectory telemetry read_files
-		// at the end of each agentic loop so that we can do so, in addition to the
-		// per-call telemetry in ReadFileTool
 
 		function tryGetRFArgs(call: IToolCall): ReadFileParams | undefined {
 			if (call.name !== ToolName.ReadFile) {
@@ -1344,18 +1119,8 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 					}
 				}
 
-				/* __GDPR__
-					"readFileTrajectory" : {
-						"owner": "connor4312",
-						"comment": "read_file tool invokation trajectory",
-						"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-						"rounds": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of times the file was read sequentially" },
-						"avgChunkSize": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of lines read at a time" }
-					}
-				*/
 				this._telemetryService.sendMSFTTelemetryEvent('readFileTrajectory',
 					{
-						// model will be undefined in the simulator
 						model: this.options.request.model?.id,
 					},
 					{
@@ -1398,24 +1163,19 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		return lastResult;
 	}
 
-	/** Runs a single iteration of the tool calling loop. */
 	public async runOne(outputStream: ChatResponseStream | undefined, iterationNumber: number, token: CancellationToken): Promise<IToolCallSingleResult> {
-		// The first iteration of a turn starts a fresh credit total. Resetting here
-		// (rather than only in run()) keeps runOne() correct when called standalone.
 		if (iterationNumber === 0) {
 			this._accumulatedCopilotCredits = undefined;
 		}
 		let availableTools = await this.getAvailableTools(outputStream, token);
 
-		// Emit tools_available on the agent span once, before the first CHAT span
-		// starts in fetch(). This lets the debug logger write tools_*.json early.
 		if (!this.toolsAvailableEmitted && this.agentSpan && availableTools.length > 0) {
 			this.toolsAvailableEmitted = true;
 			const toolDefsJson = stringifyToolDefinitionsForOTel(availableTools);
 			if (toolDefsJson) {
 				this.agentSpan.addEvent('tools_available', {
 					toolDefinitions: truncateForOTel(toolDefsJson),
-					...(this.chatSessionIdForTools ? { [CopilotChatAttr.CHAT_SESSION_ID]: this.chatSessionIdForTools } : {}),
+					...(this.chatSessionIdForTools ? { [DardcorChatAttr.CHAT_SESSION_ID]: this.chatSessionIdForTools } : {}),
 				});
 			}
 		}
@@ -1424,11 +1184,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		const isContinuation = context.isContinuation || false;
 		markChatExt(this.options.conversation.sessionId, ChatExtPerfMark.WillBuildPrompt);
 		let buildPromptResult: IBuildPromptResult;
-		// Resolve a (cheap, cached) endpoint up front so the keep-alive can decide whether
-		// to arm before buildPrompt2 runs. `startBuildPromptKeepAlive` bails fast on
-		// non-Anthropic families and when the experiment is off, so the flag-off path stays
-		// a no-op. Kept as a *separate* lookup from the tokenizer endpoint below so the
-		// rest of runOne is byte-for-byte identical to upstream.
 		const keepAliveEndpoint = await this._endpointProvider.getChatEndpoint(this.options.request);
 		const keepAlive = this.startBuildPromptKeepAlive(token, keepAliveEndpoint);
 		try {
@@ -1439,10 +1194,8 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 		this.throwIfCancelled(token);
 		this.turn.addReferences(buildPromptResult.references);
-		// Possible the tool call resulted in new tools getting added.
 		availableTools = await this.getAvailableTools(outputStream, token);
 
-		// Apply debug prompt/tool overrides from either inline YAML text or a YAML file.
 		const promptOverride = this._configurationService.getConfig(ConfigKey.Advanced.DebugPromptOverrideString);
 		const promptOverrideFile = this._configurationService.getConfig(ConfigKey.Advanced.DebugPromptOverrideFile);
 		let effectiveBuildPromptResult: IBuildPromptResult = buildPromptResult;
@@ -1459,7 +1212,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			availableTools = overrideResult.tools;
 		}
 
-		// Ensure task_complete is available in autopilot mode so the model can signal completion
 		availableTools = this.ensureAutopilotTools(availableTools);
 
 		const isToolInputFailure = effectiveBuildPromptResult.metadata.get(ToolFailureEncountered);
@@ -1468,7 +1220,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			this.turn.setMetadata(conversationSummary);
 		}
 
-		// Find the latest summarized round.
 		let summarizedAtRoundId: string | undefined;
 		for (let i = this.toolCallRounds.length - 1; i >= 0; i--) {
 			if (this.toolCallRounds[i].summary) {
@@ -1498,12 +1249,10 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		this._onDidBuildPrompt.fire({ result: effectiveBuildPromptResult, tools: availableTools, promptTokenLength, toolTokenCount });
 		this._logService.trace('Built prompt');
 
-		// Tool calls happen during prompt building. Check yield again here to see if we should abort prior to sending off the next request.
 		if (iterationNumber > 0 && this.options.yieldRequested?.()) {
 			throw new CancellationError();
 		}
 
-		// todo@connor4312: can interaction outcome logic be implemented in a more generic way?
 		const interactionOutcomeComputer = new InteractionOutcomeComputer(this.options.interactionContext);
 
 		const that = this;
@@ -1539,16 +1288,12 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			fetchStreamSource = new FetchStreamSource();
 			processResponsePromise = responseProcessor.processResponse(undefined, fetchStreamSource.stream, stream, token);
 
-			// Allows the response processor to do an early stop of the LLM request.
 			processResponsePromise.finally(() => {
-				// The response processor indicates that it has finished processing the response,
-				// so let's stop the request if it's still in flight.
 				stopEarly = true;
 			});
 		}
 
 		if (effectiveBuildPromptResult.messages.length === 0) {
-			// /fixTestFailure relies on this check running after processResponse
 			fetchStreamSource?.resolve();
 			await processResponsePromise;
 			await finalizeStreams(streamParticipants);
@@ -1620,20 +1365,11 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		});
 		markChatExt(this.options.conversation.sessionId, ChatExtPerfMark.DidFetch);
 
-		// Store the server-echoed headerRequestId from the fetch response for subagent telemetry linking.
-		// Prefer serverRequestId (the server's x-request-id response header) because it matches
-		// chatCompletion.requestId.headerRequestId which is reported as `requestId` in response.success.
-		// Fall back to requestId (client-generated UUID) if the server didn't echo the header.
-		// Use || instead of ?? because getRequestId() returns '' for missing headers.
 		if (fetchResult.type === ChatFetchResponseType.Success) {
 			this.lastHeaderRequestId = fetchResult.serverRequestId || fetchResult.requestId;
 			this.lastModelCallId = fetchResult.modelCallId;
 		}
 
-		// Cache the full fetch options so the next iteration's keep-alive probes can
-		// reuse them as a cache-warming prefix while buildPrompt2 is awaiting slow
-		// tool calls. The options include already-post-processed messages so probes
-		// apply the same validation/stripping (e.g. stripOrphanedToolCalls for Gemini).
 		this.lastFetchOptions = fetchOptions;
 
 		const promptTokenDetails = await computePromptTokenDetails({
@@ -1644,12 +1380,8 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		fetchStreamSource?.resolve();
 		const chatResult = await processResponsePromise ?? undefined;
 
-		// Report token usage to the stream for rendering the context window widget
 		const stream = streamParticipants[streamParticipants.length - 1];
 		if (fetchResult.type === ChatFetchResponseType.Success && fetchResult.usage && stream) {
-			// Credits are billed per model call and a single turn can make many calls.
-			// Accumulate so the per-request usage reflects the whole turn (and the
-			// session cost sums correctly) instead of only the final call's credits.
 			const callCredits = nanoAiuToCredits(fetchResult.usage.dardcor_usage?.total_nano_aiu);
 			if (callCredits !== undefined) {
 				this._accumulatedCopilotCredits = (this._accumulatedCopilotCredits ?? 0) + callCredits;
@@ -1664,11 +1396,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 					promptTokenDetails,
 				});
 			} else if (this._accumulatedCopilotCredits !== undefined) {
-				// Subagent request: report only the running credit (AIC) total, with
-				// no token counts, so the subagent tool can surface its own cost on
-				// hover. The core RunSubagentTool intercepts this usage part and does
-				// not forward it to the parent request, so the parent context-window
-				// widget and token counts stay isolated to the parent turn.
 				stream.usage({
 					completionTokens: 0,
 					promptTokens: 0,
@@ -1678,7 +1405,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			}
 		}
 
-		// Validate authentication session upgrade and handle accordingly
 		if (
 			outputStream &&
 			toolCalls.some(tc => tc.name === ToolName.Codebase) &&
@@ -1704,7 +1430,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 
 			thinkingItem?.updateWithFetchResult(fetchResult);
 
-			// Log the assistant message to the transcript
 			const transcriptToolRequests: ToolRequest[] = toolCalls.map(tc => ({
 				toolCallId: tc.id,
 				name: tc.name,
@@ -1747,12 +1472,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		};
 	}
 
-	/**
-	 * Sometimes 4o reuses tool call IDs, so make sure they are unique. Really we should restructure how tool calls and results are represented
-	 * to not expect them to be globally unique.
-	 */
 	private createInternalToolCallId(toolCallId: string): string {
-		// Note- if this code is ever removed, these IDs will still exist in persisted session metadata!
 		return toolCallId + `__vscode-${ToolCallingLoop.NextToolCallId++}`;
 	}
 
@@ -1791,7 +1511,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			}
 		}
 
-		// If no user message found, return false to disable thinking
 		if (lastUserMessageIndex === -1) {
 			return false;
 		}
@@ -1808,18 +1527,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		return false;
 	}
 
-	/**
-	 * Apparently we can render prompts which have a tool message which is out of place.
-	 * Don't know why this is happening, but try to detect this and fix it up.
-	 *
-	 * Validates tool messages in the conversation, ensuring:
-	 * 1. Tool result messages have a matching tool_call in the preceding assistant message
-	 * 2. (When stripOrphanedToolCalls is set) Every tool_call in an assistant message has
-	 *    a matching tool result message. This prevents errors with models like Gemini which
-	 *    strictly require 1:1 function_call ↔ function_response pairing.
-	 *
-	 * Returns the validated messages and an array of reasons for any corrections made.
-	 */
 	public static validateToolMessagesCore(messages: Raw.ChatMessage[], options?: { stripOrphanedToolCalls?: boolean }): { messages: Raw.ChatMessage[]; filterReasons: string[]; strippedToolCallCount: number } {
 		const filterReasons: string[] = [];
 		let strippedToolCallCount = 0;
@@ -1829,20 +1536,17 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 				previousAssistantMessage = m;
 			} else if (m.role === Raw.ChatRole.Tool) {
 				if (!previousAssistantMessage) {
-					// No previous assistant message
 					filterReasons.push('noPreviousAssistantMessage');
 					return false;
 				}
 
 				if (!previousAssistantMessage.toolCalls?.length) {
-					// The assistant did not call any tools
 					filterReasons.push('noToolCalls');
 					return false;
 				}
 
 				const toolCall = previousAssistantMessage.toolCalls.find(tc => tc.id === m.toolCallId);
 				if (!toolCall) {
-					// This tool call is excluded
 					return false;
 				}
 			}
@@ -1850,10 +1554,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			return true;
 		});
 
-		// Second pass: strip tool_calls from assistant messages that lack matching tool result messages.
-		// This prevents sending orphaned tool_calls that would cause errors with models like Gemini
-		// which strictly require every function_call to have a corresponding function_response.
-		// Gated behind stripOrphanedToolCalls to limit scope to models that need it.
 		if (!options?.stripOrphanedToolCalls) {
 			return { messages: filtered, filterReasons, strippedToolCallCount };
 		}
@@ -1864,7 +1564,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 				continue;
 			}
 
-			// Collect tool result IDs that follow this assistant message (up to the next assistant message)
 			const toolResultIds = new Set<string>();
 			for (let j = i + 1; j < filtered.length; j++) {
 				const next = filtered[j];
@@ -1880,7 +1579,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			if (orphanedToolCalls.length > 0) {
 				strippedToolCallCount += orphanedToolCalls.length;
 				const validToolCalls = m.toolCalls.filter(tc => toolResultIds.has(tc.id));
-				// Mutate in place — the assistant message was already shallow-copied by stripInternalToolCallIds
 				(m as Mutable<Raw.AssistantChatMessage>).toolCalls = validToolCalls.length > 0 ? validToolCalls : undefined;
 			}
 		}
@@ -1895,15 +1593,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			const allReasons = strippedToolCallCount > 0 ? [...filterReasons, `orphanedToolCalls:${strippedToolCallCount}`] : filterReasons;
 			const filterReasonsStr = allReasons.join(', ');
 			this._logService.warn('Filtered invalid tool messages: ' + filterReasonsStr);
-			/* __GDPR__
-					"toolCalling.invalidToolMessages" : {
-						"owner": "roblourens",
-						"comment": "Provides info about invalid tool messages that were rendered in a prompt",
-						"filterReasons": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Reasons for filtering the messages and stripping orphaned tool calls." },
-						"filterCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of filtered messages." },
-						"strippedToolCallCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of orphaned tool_calls stripped from assistant messages." }
-					}
-				*/
 			this._telemetryService.sendMSFTTelemetryEvent('toolCalling.invalidToolMessages', {
 				filterReasons: filterReasonsStr,
 			}, {
@@ -1915,26 +1604,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		return filtered;
 	}
 
-	/**
-	 * While `buildPrompt2` is awaiting slow tool calls (e.g. long-running subagents),
-	 * the prompt cache on the model side can expire. This sets up a periodic side-channel
-	 * `fetch` that re-sends the previous turn's messages plus a dummy "Still working"
-	 * user message so that the server keeps the cache prefix warm.
-	 *
-	 * - Fires every {@link KEEP_ALIVE_INTERVAL_MS} starting 4 minutes after `buildPrompt2`
-	 *   is called (so a fast render incurs no probe).
-	 * - Stops after the configured max probes limit is reached.
-	 * - Probes are pure side-channel: results are discarded, no mutation of
-	 *   `toolCallRounds`, `toolCallResults`, or `conversation`. Nothing to "slice off".
-	 * - The first chunk of any probe response causes the network layer to stop reading
-	 *   (we only need the server to ingest the prefix to refresh its cache).
-	 *
-	 * Returns a disposable that clears the timer and cancels any in-flight probe.
-	 */
 	private startBuildPromptKeepAlive(parentToken: CancellationToken, endpoint: IChatEndpoint): IDisposable {
-		// Only Anthropic-family models benefit from this side-channel cache warming today;
-		// other providers' caches behave differently and probes would just be wasted requests.
-		// Checked before the config lookup so non-Anthropic flows skip the experiment evaluation entirely.
 		if (!isAnthropicFamily(endpoint)) {
 			return Disposable.None;
 		}
@@ -1944,15 +1614,10 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		}
 
 		const baseFetchOptions = this.lastFetchOptions;
-		// Nothing useful to send if we haven't rendered a prompt yet (first iteration).
 		if (!baseFetchOptions || baseFetchOptions.messages.length === 0) {
 			return Disposable.None;
 		}
 
-		// Only keep the cache warm when the round we're currently awaiting includes an
-		// execution subagent, which is the primary source of long tool-call durations
-		// that cause cache expiry. Scoping to the latest round (vs. any past round in the
-		// turn) avoids firing probes for fast tool calls that follow an earlier subagent.
 		const latestRound = this.toolCallRounds[this.toolCallRounds.length - 1];
 		const hasExecutionSubagent = latestRound?.toolCalls.some(tc => tc.name === ToolName.ExecutionSubagent) ?? false;
 		if (!hasExecutionSubagent) {
@@ -1978,10 +1643,6 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 			const cts = new CancellationTokenSource(parentToken);
 			inFlight.add(cts);
 
-			// Reuse the already-post-processed messages from the last real fetch so
-			// the same validation/stripping (e.g. stripOrphanedToolCalls for Gemini)
-			// is applied. Only append a dummy user message if the last message was
-			// from the assistant.
 			const processedMessages = baseFetchOptions.messages;
 			const lastMessage = processedMessages[processedMessages.length - 1];
 			const probeMessages: Raw.ChatMessage[] = lastMessage.role === Raw.ChatRole.Assistant
@@ -1999,7 +1660,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 				await this.fetch({
 					...baseFetchOptions,
 					messages: probeMessages,
-					finishedCb: async () => 1, // returning any number (vs undefined) stops reading on the first chunk; constant 1 avoids the empty-string edge case where text.length would be 0
+					finishedCb: async () => 1,
 					userInitiatedRequest: false,
 					isKeepAliveProbe: true,
 				}, cts.token);
@@ -2062,7 +1723,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 
 	private logToolResult(buildPromptContext: IBuildPromptContext, metadata: ToolResultMetadata) {
 		if (this.toolCallResults[metadata.toolCallId]) {
-			return; // already logged this on a previous turn
+			return;
 		}
 
 		const lastTurn = this.toolCallRounds.at(-1);
@@ -2095,7 +1756,7 @@ export class EmptyPromptError extends Error {
 export interface IToolCallSingleResult {
 	response: ChatResponse;
 	round: IToolCallRound;
-	chatResult?: ChatResult; // TODO should just be metadata
+	chatResult?: ChatResult;
 	hadIgnoredFiles: boolean;
 	lastRequestMessages: Raw.ChatMessage[];
 	availableTools: readonly LanguageModelToolInformation[];

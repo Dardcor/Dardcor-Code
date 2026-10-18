@@ -25,9 +25,6 @@ export interface ICommonEncryptionService {
 	isEncryptionAvailable(): Promise<boolean>;
 }
 
-// The values provided to the `password-store` command line switch.
-// Notice that they are not the same as the values returned by
-// `getSelectedStorageBackend` in the `safeStorage` API.
 export const enum PasswordStoreCLIOption {
 	kwallet = 'kwallet',
 	kwallet5 = 'kwallet5',
@@ -35,12 +32,10 @@ export const enum PasswordStoreCLIOption {
 	basic = 'basic'
 }
 
-// The values returned by `getSelectedStorageBackend` in the `safeStorage` API.
 export const enum KnownStorageProvider {
 	unknown = 'unknown',
 	basicText = 'basic_text',
 
-	// Linux
 	gnomeAny = 'gnome_any',
 	gnomeLibsecret = 'gnome_libsecret',
 	gnomeKeyring = 'gnome_keyring',
@@ -48,13 +43,9 @@ export const enum KnownStorageProvider {
 	kwallet5 = 'kwallet5',
 	kwallet6 = 'kwallet6',
 
-	// The rest of these are not returned by `getSelectedStorageBackend`
-	// but these were added for platform completeness.
 
-	// Windows
 	dplib = 'dpapi',
 
-	// macOS
 	keychainAccess = 'keychain_access',
 }
 

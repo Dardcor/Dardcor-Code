@@ -16,7 +16,7 @@ export interface ITokenColorizationRule {
 export interface ITokenColorizationSetting {
 	foreground?: string;
 	background?: string;
-	fontStyle?: string;  // italic, underline, strikethrough, bold
+	fontStyle?: string;
 }
 
 export function findMatchingThemeRule(theme: IColorTheme, scopes: string[], onlyColorRules: boolean = true): ThemeRule | null {
@@ -34,7 +34,6 @@ export function findMatchingThemeRule(theme: IColorTheme, scopes: string[], only
 function findMatchingThemeRule2(theme: IColorTheme, scope: string, parentScopes: string[], onlyColorRules: boolean): ThemeRule | null {
 	let result: ThemeRule | null = null;
 
-	// Loop backwards, to ensure the last most specific rule wins
 	for (let i = theme.tokenColors.length - 1; i >= 0; i--) {
 		const rule = theme.tokenColors[i];
 		if (onlyColorRules && !rule.settings.foreground) {
@@ -88,21 +87,17 @@ export class ThemeRule {
 			return 0;
 		}
 		if (a === null) {
-			// b > a
 			return -1;
 		}
 		if (b === null) {
-			// a > b
 			return 1;
 		}
 		if (a.scope.length !== b.scope.length) {
-			// longer scope length > shorter scope length
 			return a.scope.length - b.scope.length;
 		}
 		const aParentScopesLen = a.parentScopes.length;
 		const bParentScopesLen = b.parentScopes.length;
 		if (aParentScopesLen !== bParentScopesLen) {
-			// more parents > less parents
 			return aParentScopesLen - bParentScopesLen;
 		}
 		for (let i = 0; i < aParentScopesLen; i++) {

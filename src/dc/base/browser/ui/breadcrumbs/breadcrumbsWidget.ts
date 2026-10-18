@@ -127,7 +127,6 @@ export class BreadcrumbsWidget {
 			return;
 		}
 		if (dim) {
-			// only measure
 			this._pendingDimLayout?.dispose();
 			this._pendingDimLayout = this._updateDimensions(dim);
 		} else {
@@ -149,7 +148,7 @@ export class BreadcrumbsWidget {
 
 	private _updateScrollbar(): IDisposable {
 		return dom.measure(dom.getWindow(this._domNode), () => {
-			dom.measure(dom.getWindow(this._domNode), () => { // double RAF
+			dom.measure(dom.getWindow(this._domNode), () => {
 				this._scrollable.setRevealOnScroll(false);
 				this._scrollable.scanDomNode();
 				this._scrollable.setRevealOnScroll(true);
@@ -326,7 +325,6 @@ export class BreadcrumbsWidget {
 			this._renderItem(item, node);
 			didChange = true;
 		}
-		// case a: more nodes -> remove them
 		while (start < this._nodes.length) {
 			const free = this._nodes.pop();
 			if (free) {
@@ -336,7 +334,6 @@ export class BreadcrumbsWidget {
 			}
 		}
 
-		// case b: more items -> render them
 		for (; start < this._items.length; start++) {
 			const item = this._items[start];
 			const node = this._freeNodes.length > 0 ? this._freeNodes.pop() : document.createElement('div');

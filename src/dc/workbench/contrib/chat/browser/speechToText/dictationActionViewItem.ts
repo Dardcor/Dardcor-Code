@@ -21,14 +21,6 @@ import { setupDictationMicGlow } from './dictationMicGlow.js';
 import { getDictationHoverContent } from './micButtonHovers.js';
 import { addMicButtonContextMenuListener, getDictationContextMenuActions } from './micButtonMenuActions.js';
 
-/**
- * Action view item for the chat-input dictation mic button. Behaves like a
- * normal toolbar mic (click to dictate) but adds a right-click context menu with
- * dictation-specific entries — "Configure Keybinding" (mirroring the standard
- * toolbar affordance), "Select Microphone" and "Disable Dictation" — instead of
- * the generic toolbar context menu. Its hover also describes what dictation does
- * and which model transcribes the audio.
- */
 export class DictationActionViewItem extends MenuEntryActionViewItem {
 
 	constructor(

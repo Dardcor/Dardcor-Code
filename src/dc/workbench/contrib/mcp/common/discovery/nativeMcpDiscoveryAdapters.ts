@@ -53,7 +53,6 @@ export async function claudeConfigToServerDefinition(idPrefix: string, contents:
 			sandbox: undefined
 		};
 		const defaultCwd = launch.type === McpServerTransportType.Stdio ? options?.defaultCwd : undefined;
-		// Keep the legacy fsPath-based nonce so existing trust decisions survive this URI-preservation change.
 		const nonceLaunch = defaultCwd && launch.type === McpServerTransportType.Stdio ? { ...launch, cwd: defaultCwd.fsPath } : launch;
 
 		return {

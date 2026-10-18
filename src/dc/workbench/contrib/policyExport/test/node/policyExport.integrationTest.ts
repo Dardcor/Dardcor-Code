@@ -19,10 +19,8 @@ suite('PolicyExport Integration Tests', () => {
 			this.skip();
 		}
 
-		// The canonical export launches both product entrypoints.
 		this.timeout(120000);
 
-		// FileAccess.asFileUri('') points to the 'out' directory.
 		const rootPath = dirname(FileAccess.asFileUri('').fsPath);
 		const exportScript = join(rootPath, 'build/lib/policies/exportPolicyData.ts');
 		const fixturePath = join(rootPath, 'src/vs/workbench/contrib/policyExport/test/node/extensionPolicyFixture.json');

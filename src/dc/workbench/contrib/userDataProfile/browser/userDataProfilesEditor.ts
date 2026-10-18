@@ -152,7 +152,7 @@ export class UserDataProfilesEditor extends EditorPane implements IUserDataProfi
 			layout: (width, _, height) => {
 				sidebarView.style.width = `${width}px`;
 				if (height && this.profilesList) {
-					const listHeight = height - 40 /* new profile button */ - 15 /* marginTop */;
+					const listHeight = height - 40 - 15 ;
 					this.profilesList.getHTMLElement().style.height = `${listHeight}px`;
 					this.profilesList.layout(listHeight, width);
 				}
@@ -181,10 +181,8 @@ export class UserDataProfilesEditor extends EditorPane implements IUserDataProfi
 	}
 
 	private renderSidebar(parent: HTMLElement): void {
-		// render New Profile Button
 		this.renderNewProfileButton(append(parent, $('.new-profile-button')));
 
-		// render profiles list
 		const renderer = this.instantiationService.createInstance(ProfileElementRenderer);
 		const delegate = new ProfileElementDelegate();
 		this.profilesList = this._register(this.instantiationService.createInstance(WorkbenchList<AbstractUserDataProfileElement>, 'ProfilesList',
@@ -2098,8 +2096,6 @@ class WorkspaceUriPathColumnRenderer implements ITableRenderer<WorkspaceTableEle
 			return normalizeDriveLetter(uri.fsPath);
 		}
 
-		// If the path is not a file uri, but points to a windows remote, we should create windows fs path
-		// e.g. /c:/user/directory => C:\user\directory
 		if (uri.path.startsWith(posix.sep)) {
 			const pathWithoutLeadingSeparator = uri.path.substring(1);
 			const isWindowsPath = hasDriveLetter(pathWithoutLeadingSeparator, true);

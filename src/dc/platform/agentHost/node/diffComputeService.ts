@@ -9,11 +9,6 @@ import { FileAccess } from '../../../base/common/network.js';
 import { ILogService } from '../../log/common/log.js';
 import { DEFAULT_DIFF_TIMEOUT_MS, IDiffComputeService, type IDetailedDiffResult, type IDiffCountResult } from '../common/diffComputeService.js';
 
-/**
- * Node.js implementation of {@link IDiffComputeService} that runs
- * {@link DefaultLinesDiffComputer} in a worker thread to avoid blocking
- * the main thread.
- */
 export class NodeWorkerDiffComputeService extends Disposable implements IDiffComputeService {
 
 	declare readonly _serviceBrand: undefined;

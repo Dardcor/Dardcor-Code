@@ -54,7 +54,6 @@ export class FindDecorations implements IDisposable {
 		return this._decorations.length;
 	}
 
-	/** @deprecated use getFindScopes to support multiple selections */
 	public getFindScope(): Range | null {
 		if (this._findScopeDecorationIds[0]) {
 			return this._editor.getModel().getDecorationRange(this._findScopeDecorationIds[0]);
@@ -107,7 +106,6 @@ export class FindDecorations implements IDisposable {
 				return this._getDecorationIndex(candidate.id);
 			}
 		}
-		// We don't know the current match position, so returns zero to show '?' in find widget
 		return 0;
 	}
 
@@ -161,17 +159,13 @@ export class FindDecorations implements IDisposable {
 			const newOverviewRulerApproximateDecorations: IModelDeltaDecoration[] = [];
 
 			if (findMatches.length > 1000) {
-				// we go into a mode where the overview ruler gets "approximate" decorations
-				// the reason is that the overview ruler paints all the decorations in the file and we don't want to cause freezes
 				findMatchesOptions = FindDecorations._FIND_MATCH_NO_OVERVIEW_DECORATION;
 
-				// approximate a distance in lines where matches should be merged
 				const lineCount = this._editor.getModel().getLineCount();
 				const height = this._editor.getLayoutInfo().height;
 				const approxPixelsPerLine = height / lineCount;
 				const mergeLinesDelta = Math.max(2, Math.ceil(3 / approxPixelsPerLine));
 
-				// merge decorations as much as possible
 				let prevStartLineNumber = findMatches[0].range.startLineNumber;
 				let prevEndLineNumber = findMatches[0].range.endLineNumber;
 				for (let i = 1, len = findMatches.length; i < len; i++) {
@@ -196,7 +190,6 @@ export class FindDecorations implements IDisposable {
 				});
 			}
 
-			// Find matches
 			const newFindMatchesDecorations: IModelDeltaDecoration[] = new Array<IModelDeltaDecoration>(findMatches.length);
 			for (let i = 0, len = findMatches.length; i < len; i++) {
 				newFindMatchesDecorations[i] = {
@@ -206,16 +199,13 @@ export class FindDecorations implements IDisposable {
 			}
 			this._decorations = accessor.deltaDecorations(this._decorations, newFindMatchesDecorations);
 
-			// Overview ruler approximate decorations
 			this._overviewRulerApproximateDecorations = accessor.deltaDecorations(this._overviewRulerApproximateDecorations, newOverviewRulerApproximateDecorations);
 
-			// Range highlight
 			if (this._rangeHighlightDecorationId) {
 				accessor.removeDecoration(this._rangeHighlightDecorationId);
 				this._rangeHighlightDecorationId = null;
 			}
 
-			// Find scope
 			if (this._findScopeDecorationIds.length) {
 				this._findScopeDecorationIds.forEach(findScopeDecorationId => accessor.removeDecoration(findScopeDecorationId));
 				this._findScopeDecorationIds = [];

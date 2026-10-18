@@ -37,7 +37,6 @@ const voiceTranscriptsIcon = registerIcon(
 	localize('voiceTranscriptsViewIcon', "View icon of the Voice Transcripts view."),
 );
 
-// --- Container ---
 
 const viewContainersRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 const viewsRegistry = Registry.as<IViewsRegistry>(ViewContainerExtensions.ViewsRegistry);
@@ -55,7 +54,6 @@ const container = viewContainersRegistry.registerViewContainer(
 	ViewContainerLocation.Sidebar,
 );
 
-// --- View ---
 
 const viewDescriptor: IViewDescriptor = {
 	id: VIEW_ID,
@@ -73,7 +71,6 @@ const viewDescriptor: IViewDescriptor = {
 
 viewsRegistry.registerViews([viewDescriptor], container);
 
-// --- Show action (toggles the context key so the view appears in the activity bar, then focuses it) ---
 
 const SHOW_VIEW_COMMAND_ID = 'agentsVoice.showTranscripts';
 
@@ -98,8 +95,6 @@ class ShowVoiceTranscriptsAction extends Action2 {
 
 registerAction2(ShowVoiceTranscriptsAction);
 
-// --- View-title actions (Refresh / Archive All / Delete All) shown as ---
-// --- inline icons in the view's title bar, and in the view's ⋯ menu.    ---
 
 const VIEW_TITLE_WHEN = ContextKeyExpr.equals('view', VIEW_ID);
 
@@ -188,9 +183,6 @@ registerAction2(RefreshVoiceTranscriptsAction);
 registerAction2(ArchiveAllVoiceTranscriptsAction);
 registerAction2(DeleteAllVoiceTranscriptsAction);
 
-// --- Surface the action in the Chat view's ⋯ overflow menu, right alongside ---
-// --- "Show Chat Debug View" (contributed by extensions/copilot/package.json    ---
-// --- under view/title with when: view == workbench.panel.chat.view.copilot)    ---
 
 MenuRegistry.appendMenuItem(MenuId.ViewTitle, {
 	command: {
@@ -202,10 +194,6 @@ MenuRegistry.appendMenuItem(MenuId.ViewTitle, {
 	order: 2,
 });
 
-// --- Workbench contribution placeholder ---
-// We don't have lifecycle work yet but reserving a contribution slot makes it
-// easy to add e.g. an autorun that refreshes the view when the underlying store
-// changes (future enhancement).
 
 class VoiceTranscriptsContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.voiceTranscripts';

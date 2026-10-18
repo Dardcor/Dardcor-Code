@@ -7,11 +7,6 @@ import { assertNever } from '../../../../../base/common/assert.js';
 import { VSBuffer } from '../../../../../base/common/buffer.js';
 import { isUndefinedOrNull } from '../../../../../base/common/types.js';
 
-/**
- * Updates an error's message and stack trace with a prefix. In V8 the stack
- * string starts with "ErrorName: message\n  at …", so we rebuild the header
- * after mutating the message.
- */
 function prefixError(e: Error, prefix: string): void {
 	e.message = prefix + e.message;
 	if (e.stack) {
@@ -22,11 +17,6 @@ function prefixError(e: Error, prefix: string): void {
 	}
 }
 
-/**
- * Prepends a path segment to an error as it unwinds through nested extract
- * calls. Each level adds its segment so the final message reads e.g.
- * `.responses[2].content: Cannot read property 'x' of undefined`.
- */
 function rethrowWithPathSegment(e: unknown, segment: string | number): never {
 	if (e instanceof Error) {
 		const part = typeof segment === 'number' ? `[${segment}]` : `.${segment}`;
@@ -36,7 +26,6 @@ function rethrowWithPathSegment(e: unknown, segment: string | number): never {
 	throw e;
 }
 
-/** IMPORTANT: `Key` comes first. Then we should sort in order of least->most expensive to diff */
 const enum TransformKind {
 	Key,
 	Primitive,
@@ -44,35 +33,26 @@ const enum TransformKind {
 	Object,
 }
 
-/** Schema entries sorted with key properties first */
 export type SchemaEntries = [string, Transform<unknown, unknown>][];
 
 interface TransformBase<TFrom, TTo> {
 	readonly kind: TransformKind;
-	/** Extracts the serializable value from the source object */
 	extract(from: TFrom): TTo;
 }
 
-/** Transform for primitive values (keys and values) that can be compared for equality */
 export interface TransformValue<TFrom, TTo> extends TransformBase<TFrom, TTo> {
 	readonly kind: TransformKind.Key | TransformKind.Primitive;
-	/** Compares two serialized values for equality */
 	equals(a: TTo, b: TTo): boolean;
 }
 
-/** Transform for arrays with an item schema */
 export interface TransformArray<TFrom, TTo> extends TransformBase<TFrom, TTo> {
 	readonly kind: TransformKind.Array;
-	/** The schema for array items */
 	readonly itemSchema: TransformObject<unknown, unknown> | TransformValue<unknown, unknown>;
 }
 
-/** Transform for objects with child properties */
 export interface TransformObject<TFrom, TTo> extends TransformBase<TFrom, TTo> {
 	readonly kind: TransformKind.Object;
-	/** Schema entries sorted with Key properties first */
 	readonly children: SchemaEntries;
-	/** Checks if the object is sealed (won't change). */
 	sealed?(obj: TTo, wasSerialized: boolean): boolean;
 }
 
@@ -85,10 +65,6 @@ export type Schema<TFrom, TTo> = {
 	[K in keyof Required<TTo>]: Transform<TFrom, TTo[K]>
 };
 
-/**
- * A primitive that will be tracked and compared first. If this is changed, the entire
- * object is thrown out and re-stored.
- */
 export function key<T, R = T>(comparator?: (a: R, b: R) => boolean): TransformValue<T, R> {
 	return {
 		kind: TransformKind.Key,
@@ -97,7 +73,6 @@ export function key<T, R = T>(comparator?: (a: R, b: R) => boolean): TransformVa
 	};
 }
 
-/** A value that will be tracked and replaced if the comparator is not equal. */
 export function value<T, R extends string | number | boolean | undefined>(): TransformValue<T, R>;
 export function value<T, R>(comparator: (a: R, b: R) => boolean): TransformValue<T, R>;
 export function value<T, R>(comparator?: (a: R, b: R) => boolean): TransformValue<T, R> {
@@ -105,10 +80,6 @@ export function value<T, R>(comparator?: (a: R, b: R) => boolean): TransformValu
 		kind: TransformKind.Primitive,
 		extract: (from: T) => {
 			let value = from as unknown as R;
-			// We map the object to JSON for two reasons (a) reduce issues with references to
-			// mutable type that could be held internally in the LogAdapter and (b) to make
-			// object comparison work with the data we re-hydrate from disk (e.g. if using
-			// objectsEqual, a hydrated URI is not equal to the serialized UriComponents)
 			if (!!value && typeof value === 'object') {
 				value = deepCloneWithFallback(value);
 			}
@@ -119,7 +90,6 @@ export function value<T, R>(comparator?: (a: R, b: R) => boolean): TransformValu
 	};
 }
 
-/** An array that will use the schema to compare items positionally. */
 export function array<T, R>(schema: TransformObject<T, R> | TransformValue<T, R>): TransformArray<readonly T[], R[]> {
 	return {
 		kind: TransformKind.Array,
@@ -135,17 +105,10 @@ export function array<T, R>(schema: TransformObject<T, R> | TransformValue<T, R>
 }
 
 export interface ObjectOptions<R> {
-	/**
-	 * Returns true if the object is sealed and will never change again.
-	 * When comparing two sealed objects, only key fields are compared
-	 * (to detect replacement), but other fields are not diffed.
-	 */
 	sealed?: (obj: R, wasSerialized: boolean) => boolean;
 }
 
-/** An object schema. */
 export function object<T, R extends object>(schema: Schema<T, R>, options?: ObjectOptions<R>): TransformObject<T, R> {
-	// Sort entries with key properties first for fast key checking
 	const entries = (Object.entries(schema) as [string, Transform<T, R[keyof R]>][]).sort(([, a], [, b]) => a.kind - b.kind);
 	return {
 		kind: TransformKind.Object,
@@ -169,10 +132,6 @@ export function object<T, R extends object>(schema: Schema<T, R>, options?: Obje
 	};
 }
 
-/**
- * Defines a getter on the object to extract a value, compared with the given schema.
- * It should return the value that will get serialized in the resulting log file.
- */
 export function t<T, O, R>(getter: (obj: T) => O, schema: Transform<O, R>): Transform<T, R> {
 	return {
 		...schema,
@@ -180,7 +139,6 @@ export function t<T, O, R>(getter: (obj: T) => O, schema: Transform<O, R>): Tran
 	};
 }
 
-/** Shortcut for t(fn, value()) */
 export function v<T, R extends string | number | boolean | undefined>(getter: (obj: T) => R): TransformValue<T, R>;
 export function v<T, R>(getter: (obj: T) => R, comparator: (a: R, b: R) => boolean): TransformValue<T, R>;
 export function v<T, R>(getter: (obj: T) => R, comparator?: (a: R, b: R) => boolean): TransformValue<T, R> {
@@ -193,13 +151,9 @@ export function v<T, R>(getter: (obj: T) => R, comparator?: (a: R, b: R) => bool
 
 
 const enum EntryKind {
-	/** Initial complete object state, valid only as the first entry */
 	Initial = 0,
-	/** Property update */
 	Set = 1,
-	/** Array push/splice. */
 	Push = 2,
-	/** Delete a property */
 	Delete = 3,
 }
 
@@ -207,50 +161,19 @@ type ObjectPath = (string | number)[];
 
 type Entry =
 	| { kind: EntryKind.Initial; v: unknown }
-	/** Update a property of an object, replacing it entirely */
 	| { kind: EntryKind.Set; k: ObjectPath; v: unknown }
-	/** Delete a property of an object */
 	| { kind: EntryKind.Delete; k: ObjectPath }
-	/** Pushes 0 or more new entries to an array. If `i` is set, everything after that index is removed */
 	| { kind: EntryKind.Push; k: ObjectPath; v?: unknown[]; i?: number };
 
 const LF = VSBuffer.fromString('\n');
 
-/**
- * Per-string cap (in UTF-16 code units, matching `string.length`) applied when
- * {@link stringifyEntryWithFallback} retries after `JSON.stringify` throws
- * `RangeError: Invalid string length` (V8's max string length is ~512 MiB on
- * 64-bit). Any single string longer than this is replaced with a marker on
- * retry. Generous so it triggers only on outliers.
- */
 export const PERSIST_ENTRY_MAX_STRING_CHARS = 1 * 1024 * 1024;
 
-/**
- * Total-size budget (sum of `string.length` for tracked strings, in UTF-16
- * code units) for the retry of {@link stringifyEntryWithFallback}. Once the
- * cumulative tracked size during serialization exceeds this, remaining values
- * are replaced with a marker.
- *
- * This is an approximation: JSON escaping, property keys, and non-string
- * payload are not counted, so the actual output may be moderately larger.
- * The cap is sized well under V8's max string length to leave ample headroom
- * for that overhead.
- */
 export const PERSIST_ENTRY_MAX_TOTAL_CHARS = 100 * 1024 * 1024;
 
 const TRUNCATION_MARKER_PREFIX = '[VS Code: value truncated for persistence';
 const TRUNCATION_MARKER_TOTAL = `${TRUNCATION_MARKER_PREFIX}; entry exceeded size budget]`;
 
-/**
- * Wraps `JSON.stringify(entry)` with a safety net for the V8 max-string-length
- * limit. The common path is a single `JSON.stringify` with zero overhead. If
- * stringification throws `RangeError` (the resulting JSON would exceed V8's
- * ~512 MiB max string length — see microsoft/vscode#308843), retry with a
- * replacer that truncates oversized strings. Extensions sometimes put very
- * large content (browser dumps, command output, …) into chat result metadata;
- * losing the tail of one such value is dramatically better than losing the
- * entire chat session.
- */
 export function stringifyEntryWithFallback(entry: unknown): string {
 	try {
 		return JSON.stringify(entry);
@@ -262,21 +185,10 @@ export function stringifyEntryWithFallback(entry: unknown): string {
 	}
 }
 
-/**
- * Deep-clones `value` through JSON with the same V8 max-string-length safety net
- * as {@link stringifyEntryWithFallback}. Exported for testing only.
- */
 export function deepCloneWithFallback<T>(value: T): T {
 	return JSON.parse(stringifyEntryWithFallback(value)) as T;
 }
 
-/**
- * Exported for testing only. Builds the stateful `JSON.stringify` replacer
- * used by {@link stringifyEntryWithFallback} on its retry path.
- *
- * Sizes are tracked in UTF-16 code units (`string.length`); JSON escaping,
- * property keys, and non-string payload are not counted.
- */
 export function makeTruncatingReplacer(maxStringChars: number, maxTotalChars: number): (key: string, value: unknown) => unknown {
 	let total = 0;
 	return (_key, val) => {
@@ -297,12 +209,6 @@ export function makeTruncatingReplacer(maxStringChars: number, maxTotalChars: nu
 	};
 }
 
-/**
- * An implementation of an append-based mutation logger. Given a `Transform`
- * definition of an object, it can recreate it from a file on disk. It is
- * then stateful, and given a `write` call it can update the log in a minimal
- * way.
- */
 export class ObjectMutationLog<TFrom, TTo> {
 	private _previous: TTo | undefined;
 	private _entryCount = 0;
@@ -315,22 +221,11 @@ export class ObjectMutationLog<TFrom, TTo> {
 		private readonly _compactAfterEntries = 512,
 	) { }
 
-	/**
-	 * Creates an initial log file from the given object.
-	 */
 	createInitial(current: TFrom): VSBuffer {
 		return this.createInitialFromSerialized(this._transform.extract(current));
 	}
 
 
-	/**
-	 * Creates an initial log file from the serialized object.
-	 *
-	 * Unlike {@link write}, this commits state immediately without requiring
-	 * {@link confirmWrite}. This is safe because the returned buffer contains
-	 * a self-contained `Initial` entry — if it fails to persist, no
-	 * incremental entries can be appended to a non-existent file.
-	 */
 	createInitialFromSerialized(value: TTo): VSBuffer {
 		this._previous = value;
 		this._entryCount = 1;
@@ -339,9 +234,6 @@ export class ObjectMutationLog<TFrom, TTo> {
 		return VSBuffer.fromString(stringifyEntryWithFallback(entry) + '\n');
 	}
 
-	/**
-	 * Reads and reconstructs the state from a log file.
-	 */
 	read(content: VSBuffer): TTo {
 		let state: unknown;
 		let lineCount = 0;
@@ -399,19 +291,10 @@ export class ObjectMutationLog<TFrom, TTo> {
 		return state as TTo;
 	}
 
-	/**
-	 * Writes updates to the log. Returns the operation type and data to write.
-	 * The caller **must** invoke {@link confirmWrite} after the data is
-	 * successfully persisted to commit the internal state. Without confirmation,
-	 * the next write is computed against the last confirmed state, and will only
-	 * produce a full initial entry when no confirmed state exists, preventing
-	 * corrupted log files when a write fails.
-	 */
 	write(current: TFrom): { op: 'append' | 'replace'; data: VSBuffer } {
 		const currentValue = this._transform.extract(current);
 
 		if (!this._previous || this._entryCount > this._compactAfterEntries) {
-			// No previous state, create initial
 			this._hasPendingWrite = true;
 			this._pendingPrevious = currentValue;
 			this._pendingEntryCount = 1;
@@ -419,7 +302,6 @@ export class ObjectMutationLog<TFrom, TTo> {
 			return { op: 'replace', data: VSBuffer.fromString(stringifyEntryWithFallback(entry) + '\n') };
 		}
 
-		// Generate diff entries
 		const entries: Entry[] = [];
 		const path: ObjectPath = [];
 		try {
@@ -433,7 +315,6 @@ export class ObjectMutationLog<TFrom, TTo> {
 		}
 
 		if (entries.length === 0) {
-			// No changes
 			this._clearPending();
 			return { op: 'append', data: VSBuffer.fromString('') };
 		}
@@ -442,7 +323,6 @@ export class ObjectMutationLog<TFrom, TTo> {
 		this._pendingEntryCount = this._entryCount + entries.length;
 		this._pendingPrevious = currentValue;
 
-		// Append entries - build string directly
 		let data = '';
 		for (const e of entries) {
 			data += stringifyEntryWithFallback(e) + '\n';
@@ -450,9 +330,6 @@ export class ObjectMutationLog<TFrom, TTo> {
 		return { op: 'append', data: VSBuffer.fromString(data) };
 	}
 
-	/**
-	 * Commits the internal state after a successful write to disk.
-	 */
 	confirmWrite(): void {
 		if (this._hasPendingWrite) {
 			this._previous = this._pendingPrevious;
@@ -469,7 +346,7 @@ export class ObjectMutationLog<TFrom, TTo> {
 
 	private _applySet(state: unknown, path: ObjectPath, value: unknown): void {
 		if (path.length === 0) {
-			return; // Root replacement handled by caller
+			return;
 		}
 
 		let current = state as Record<string | number, unknown>;
@@ -508,7 +385,6 @@ export class ObjectMutationLog<TFrom, TTo> {
 		entries: Entry[]
 	): void {
 		if (transform.kind === TransformKind.Key || transform.kind === TransformKind.Primitive) {
-			// Simple value change - copy path since we're storing it
 			if (!transform.equals(prev, curr)) {
 				entries.push({ kind: EntryKind.Set, k: path.slice(), v: curr });
 			}
@@ -542,27 +418,22 @@ export class ObjectMutationLog<TFrom, TTo> {
 		const prevObj = prev as Record<string, unknown> | undefined;
 		const currObj = curr as Record<string, unknown>;
 
-		// First check key fields (sorted to front) - if any key changed, replace the entire object
 		let i = 0;
 		for (; i < children.length; i++) {
 			const [key, transform] = children[i];
 			if (transform.kind !== TransformKind.Key) {
-				break; // Keys are sorted to front, so we can stop
+				break;
 			}
 			if (!transform.equals(prevObj?.[key], currObj[key])) {
-				// Key changed, replace entire object
 				entries.push({ kind: EntryKind.Set, k: path.slice(), v: curr });
 				return;
 			}
 		}
 
-		// If both objects are sealed, we've already verified keys match above,
-		// so we can skip diffing the other properties since sealed objects don't change
 		if (sealed && sealed(prev, true) && sealed(curr, false)) {
 			return;
 		}
 
-		// Diff each property using mutable path
 		for (; i < children.length; i++) {
 			const [key, transform] = children[i];
 			path.push(key);
@@ -584,39 +455,30 @@ export class ObjectMutationLog<TFrom, TTo> {
 		const itemSchema = transform.itemSchema;
 		const minLen = Math.min(prevArr.length, currArr.length);
 
-		// If the item schema is an object, we can recurse into it to diff individual
-		// properties instead of replacing the entire item. However, we only do this
-		// if the key fields match.
 		if (itemSchema.kind === TransformKind.Object) {
 			const childEntries = itemSchema.children;
 
-			// Diff common elements by recursing into them
 			for (let i = 0; i < minLen; i++) {
 				const prevItem = prevArr[i];
 				const currItem = currArr[i];
 
-				// Check if key fields match - if not, we need to replace from this point
 				if (this._hasKeyMismatch(childEntries, prevItem, currItem)) {
-					// Key mismatch: replace from this point onward
 					const newItems = currArr.slice(i);
 					entries.push({ kind: EntryKind.Push, k: path.slice(), v: newItems.length > 0 ? newItems : undefined, i });
 					return;
 				}
 
-				// Keys match, recurse into the object
 				path.push(i);
 				this._diffObject(childEntries, path, prevItem, currItem, entries, itemSchema.sealed);
 				path.pop();
 			}
 
-			// Handle length changes
 			if (currArr.length > prevArr.length) {
 				entries.push({ kind: EntryKind.Push, k: path.slice(), v: currArr.slice(prevArr.length) });
 			} else if (currArr.length < prevArr.length) {
 				entries.push({ kind: EntryKind.Push, k: path.slice(), i: currArr.length });
 			}
 		} else {
-			// No children schema, use the original positional comparison
 			let firstMismatch = -1;
 
 			for (let i = 0; i < minLen; i++) {
@@ -627,17 +489,12 @@ export class ObjectMutationLog<TFrom, TTo> {
 			}
 
 			if (firstMismatch === -1) {
-				// All common elements match
 				if (currArr.length > prevArr.length) {
-					// New items appended
 					entries.push({ kind: EntryKind.Push, k: path.slice(), v: currArr.slice(prevArr.length) });
 				} else if (currArr.length < prevArr.length) {
-					// Items removed from end
 					entries.push({ kind: EntryKind.Push, k: path.slice(), i: currArr.length });
 				}
-				// else: same length, all match - no change
 			} else {
-				// Mismatch found, rewrite from that point
 				const newItems = currArr.slice(firstMismatch);
 				entries.push({ kind: EntryKind.Push, k: path.slice(), v: newItems.length > 0 ? newItems : undefined, i: firstMismatch });
 			}
@@ -649,7 +506,7 @@ export class ObjectMutationLog<TFrom, TTo> {
 		const currObj = curr as Record<string, unknown>;
 		for (const [key, transform] of children) {
 			if (transform.kind !== TransformKind.Key) {
-				break; // Keys are sorted to front, so we can stop
+				break;
 			}
 			if (!transform.equals(prevObj?.[key], currObj[key])) {
 				return true;

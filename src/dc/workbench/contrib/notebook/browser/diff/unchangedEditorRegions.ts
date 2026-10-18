@@ -32,9 +32,6 @@ function createHideUnchangedRegionOptions(configurationService: IConfigurationSe
 			contextLineCount: configurationService.getValue<number>('diffEditor.hideUnchangedRegions.contextLineCount'),
 			revealLineCount: configurationService.getValue<number>('diffEditor.hideUnchangedRegions.revealLineCount'),
 		},
-		// We only care about enable/disablement.
-		// If user changes counters when a diff editor is open, we do not care, might as well ask user to reload.
-		// Simpler and almost never going to happen.
 		onDidChangeEnablement: unchangedRegionsEnablementEmitter.event.bind(unchangedRegionsEnablementEmitter),
 		dispose: () => disposables.dispose()
 	};

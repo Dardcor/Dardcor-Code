@@ -45,7 +45,6 @@ suite('isAgentEnabled', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	const cases: ReadonlyArray<{ envValue: string | undefined; defaultEnabled: boolean; expected: boolean; description: string }> = [
-		// Fallback to default
 		{ envValue: undefined, defaultEnabled: true, expected: true, description: 'undefined falls back to default=true' },
 		{ envValue: undefined, defaultEnabled: false, expected: false, description: 'undefined falls back to default=false' },
 		{ envValue: '', defaultEnabled: true, expected: true, description: 'empty string falls back to default=true' },
@@ -53,12 +52,10 @@ suite('isAgentEnabled', () => {
 		{ envValue: '   ', defaultEnabled: true, expected: true, description: 'whitespace-only falls back to default=true' },
 		{ envValue: 'maybe', defaultEnabled: true, expected: true, description: 'unrecognized value falls back to default=true' },
 		{ envValue: 'maybe', defaultEnabled: false, expected: false, description: 'unrecognized value falls back to default=false' },
-		// Explicit enable
 		{ envValue: 'true', defaultEnabled: false, expected: true, description: '"true" enables even when default=false' },
 		{ envValue: 'TRUE', defaultEnabled: false, expected: true, description: '"TRUE" is case-insensitive' },
 		{ envValue: '  true  ', defaultEnabled: false, expected: true, description: '"true" with whitespace is trimmed' },
 		{ envValue: '1', defaultEnabled: false, expected: true, description: '"1" enables even when default=false' },
-		// Explicit disable
 		{ envValue: 'false', defaultEnabled: true, expected: false, description: '"false" disables even when default=true' },
 		{ envValue: 'FALSE', defaultEnabled: true, expected: false, description: '"FALSE" is case-insensitive' },
 		{ envValue: '  false  ', defaultEnabled: true, expected: false, description: '"false" with whitespace is trimmed' },
@@ -166,7 +163,6 @@ suite('buildAgentHostOTelEnv', () => {
 			{ [AgentHostOTelEnvVars.ServiceName]: 'env-service' },
 			{ serviceName: '' },
 		);
-		// The builder returns only overrides; leaving the key out preserves the inherited env value.
 		assert.strictEqual(env[AgentHostOTelEnvVars.ServiceName], undefined);
 	});
 
@@ -279,8 +275,6 @@ suite('sanitizeAgentHostOTelPolicySettings', () => {
 	});
 
 	test('resourceAttributes drop prototype-pollution keys', () => {
-		// JSON.parse yields an OWN enumerable `__proto__` data property; the sanitizer must not
-		// copy it onto the result (which would trigger the prototype setter).
 		const raw = JSON.parse('{"resourceAttributes":{"__proto__":"polluted","constructor":"x","service.namespace":"acme"}}');
 		const result = sanitizeAgentHostOTelPolicySettings(raw);
 		assert.deepStrictEqual(result.resourceAttributes, { 'service.namespace': 'acme' });
@@ -315,17 +309,11 @@ suite('protectedResourcesRequireGitHubCopilotSignIn', () => {
 
 	test('derives the requirement from advertised protected resources', () => {
 		const scenarios: Record<string, ProtectedResourceMetadata[]> = {
-			// Proxy-mode Copilot / Claude: advertises the resource as required.
 			copilotRequired: [GITHUB_COPILOT_PROTECTED_RESOURCE],
-			// Absent `required` is treated the same as `true`.
 			copilotRequiredAbsent: [githubCopilotWithoutRequired],
-			// An agent that advertises no protected resources at all.
 			noResourcesAdvertised: [],
-			// Codex on OpenAI: advertises the resource but marks it optional.
 			copilotRequiredFalse: [githubCopilotRequiredFalse],
-			// Only unrelated resources are advertised.
 			onlyOtherResource: [otherRequiredResource],
-			// Mixed: an optional GitHub Copilot resource alongside a required other one.
 			optionalCopilotWithOtherRequired: [githubCopilotRequiredFalse, otherRequiredResource],
 		};
 

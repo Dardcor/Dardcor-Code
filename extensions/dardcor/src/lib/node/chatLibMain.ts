@@ -7,8 +7,7 @@ import type * as vscode from 'vscode';
 import { DocumentSelector, Position } from 'vscode-languageserver-protocol';
 import { GhostTextLogContext } from '../../extension/completions-core/common/ghostTextContext';
 import { CompletionsTelemetryServiceBridge, ICompletionsTelemetryService } from '../../extension/completions-core/dardcor-node/bridge/src/completionsTelemetryServiceBridge';
-import { CopilotExtensionStatus, ICompletionsExtensionStatus } from '../../extension/completions-core/dardcor-node/extension/src/extensionStatus';
-import { CopilotTokenManagerImpl, ICompletionsCopilotTokenManager } from '../../extension/completions-core/dardcor-node/lib/src/auth/dardcorTokenManager';
+import { DardcorCompletionStatus, ICompletionsExtensionStatus } from '../../extension/completions-core/dardcor-node/extension/src/extensionStatus';
 import { ICompletionsCitationManager, IPCitationDetail, IPDocumentCitation } from '../../extension/completions-core/dardcor-node/lib/src/citationManager';
 import { CompletionNotifier, ICompletionsNotifierService } from '../../extension/completions-core/dardcor-node/lib/src/completionNotifier';
 import { ICompletionsObservableWorkspace } from '../../extension/completions-core/dardcor-node/lib/src/completionsObservableWorkspace';
@@ -75,8 +74,10 @@ import { DiffServiceImpl } from '../../platform/diff/node/diffServiceImpl';
 import { ICAPIClientService } from '../../platform/endpoint/common/capiClient';
 import { IDomainService } from '../../platform/endpoint/common/domainService';
 import { IEndpointProvider } from '../../platform/endpoint/common/endpointProvider';
+import { IAutomodeService } from '../../platform/endpoint/node/automodeService';
 import { CAPIClientImpl } from '../../platform/endpoint/node/capiClientImpl';
 import { DomainService } from '../../platform/endpoint/node/domainServiceImpl';
+import { ProductionEndpointProvider } from '../../extension/prompt/dardcor-node/endpointProviderImpl';
 import { IEnvService, NameAndVersion, OperatingSystem } from '../../platform/env/common/envService';
 import { NullEnvService } from '../../platform/env/common/nullEnvService';
 import { IGitExtensionService } from '../../platform/git/common/gitExtensionService';
@@ -103,8 +104,6 @@ import { IChatWebSocketManager, NullChatWebSocketManager } from '../../platform/
 import { NoopOTelService } from '../../platform/otel/common/noopOtelService';
 import { resolveOTelConfig } from '../../platform/otel/common/otelConfig';
 import { IOTelService } from '../../platform/otel/common/otelService';
-import { IProxyModelsService } from '../../platform/proxyModels/common/proxyModelsService';
-import { ProxyModelsService } from '../../platform/proxyModels/node/proxyModelsService';
 import { IRequestLogger } from '../../platform/requestLogger/common/requestLogger';
 import { NullRequestLogger } from '../../platform/requestLogger/node/nullRequestLogger';
 import { ISimulationTestContext, NulSimulationTestContext } from '../../platform/simulationTestContext/common/simulationTestContext';
@@ -131,39 +130,18 @@ export {
 export { TokenizerName };
 export type { ExternalTokenizerProvider, Tokenizer };
 
-/**
- * Log levels (taken from vscode.d.ts)
- */
 export enum LogLevel {
 
-	/**
-	 * No messages are logged with this level.
-	 */
 	Off = 0,
 
-	/**
-	 * All messages are logged with this level.
-	 */
 	Trace = 1,
 
-	/**
-	 * Messages with debug and higher log level are logged with this level.
-	 */
 	Debug = 2,
 
-	/**
-	 * Messages with info and higher log level are logged with this level.
-	 */
 	Info = 3,
 
-	/**
-	 * Messages with warning and higher log level are logged with this level.
-	 */
 	Warning = 4,
 
-	/**
-	 * Only error messages are logged with this level.
-	 */
 	Error = 5
 }
 
@@ -182,41 +160,16 @@ export interface INESProviderOptions {
 	readonly workspace: ObservableWorkspace;
 	readonly fetcher: IFetcher;
 	readonly dardcorTokenManager: ICopilotTokenManager;
+	readonly endpointProvider?: IEndpointProvider;
 	readonly terminalService: ITerminalService;
 	readonly telemetrySender: ITelemetrySender;
 	readonly logTarget?: ILogTarget;
-	/**
-	 * Identifies the host editor (e.g. `{ name: 'vscode', version: '1.99.0' }`).
-	 * Together with {@link editorPluginInfo} this sets the `Editor-Version` and
-	 * `Editor-Plugin-Version` headers on outgoing requests (including the model
-	 * list fetch) so the backend can identify the caller.
-	 */
 	readonly editorInfo: IEditorInfo;
-	/**
-	 * Identifies the plugin/integration embedding the provider (e.g.
-	 * `{ name: 'dardcor-chat', version: '0.1.0' }`). See {@link editorInfo}.
-	 */
 	readonly editorPluginInfo: IEditorPluginInfo;
-	/**
-	 * If true, the provider will wait for treatment variables to be set.
-	 * INESProvider.updateTreatmentVariables() must be called to unblock.
-	 */
 	readonly waitForTreatmentVariables?: boolean;
 	readonly undesiredModelsManager?: IUndesiredModelsManager;
 	readonly configOverrides?: Map<ConfigKeyType, unknown>;
-	/**
-	 * Diagnostics provider used to enrich the NES prompt with the active file's
-	 * lint/error context. When omitted, falls back to an in-memory
-	 * {@link TestLanguageDiagnosticsService} that returns empty diagnostics
-	 */
 	readonly languageDiagnosticsService?: ILanguageDiagnosticsService;
-	/**
-	 * Tokenizer provider backing prompt rendering and token budgeting. When
-	 * omitted, falls back to the built-in {@link TokenizerProvider}, which
-	 * loads its own BPE dictionaries. Embedders that already have the
-	 * cl100k/o200k dictionaries in memory can supply a provider here to avoid
-	 * loading a second copy (~100 MB per encoder).
-	 */
 	readonly tokenizerProvider?: ITokenizerProvider;
 }
 
@@ -227,12 +180,6 @@ export interface INESResult {
 			readonly start: number;
 			readonly endExclusive: number;
 		};
-		/**
-		 * URI of the document the edit should be applied to. When omitted, the
-		 * edit targets the document that was passed to {@link INESProvider.getNextEdit}.
-		 * For cross-file suggestions this points at a different document, and the
-		 * {@link range} offsets are resolved against that target document.
-		 */
 		readonly targetDocumentUri?: string;
 	};
 }
@@ -327,9 +274,8 @@ class NESProvider extends Disposable implements INESProvider<NESResult> {
 	async getNextEdit(documentUri: vscode.Uri, cancellationToken: CancellationToken): Promise<NESResult> {
 		const docId = DocumentId.create(documentUri.toString());
 
-		// Create minimal required context objects
 		const context: NESInlineCompletionContext = {
-			triggerKind: 1, // Invoke
+			triggerKind: 1,
 			selectedCompletionInfo: undefined,
 			requestUuid: generateUuid(),
 			requestIssuedDateTime: Date.now(),
@@ -337,7 +283,6 @@ class NESProvider extends Disposable implements INESProvider<NESResult> {
 			enforceCacheDelay: true,
 		};
 
-		// Create log context
 		const logContext = new InlineEditRequestLogContext(documentUri.toString(), 1, context);
 
 		const document = this._options.workspace.getDocument(docId);
@@ -345,10 +290,9 @@ class NESProvider extends Disposable implements INESProvider<NESResult> {
 			throw new Error('DocumentNotFound');
 		}
 
-		// Create telemetry builder - we'll need to pass null/undefined for services we don't have
 		const telemetryBuilder = new NextEditProviderTelemetryBuilder(
 			new NullGitExtensionService(),
-			undefined, // INotebookService
+			undefined,
 			this._workspaceService,
 			this._nextEditProvider.ID,
 			document,
@@ -442,12 +386,16 @@ function setupServices(options: INESProviderOptions) {
 		topP: 1,
 		rejectionMessage: 'Sorry, but I can only assist with programming related questions.',
 	});
-	builder.define(IProxyModelsService, new SyncDescriptor(ProxyModelsService));
 	builder.define(IInlineEditsModelService, new SyncDescriptor(InlineEditsModelService));
 	builder.define(IUndesiredModelsManager, options.undesiredModelsManager || new SyncDescriptor(NullUndesiredModelsManager));
 	builder.define(ITerminalService, options.terminalService || new SyncDescriptor(NullTerminalService));
 	builder.define(ISimilarFilesContextService, new SyncDescriptor(NullSimilarFilesContextService));
-	builder.define(IEndpointProvider, new NullEndpointProvider());
+	builder.define(IAutomodeService, new NullAutomodeService());
+	if (options.endpointProvider) {
+		builder.define(IEndpointProvider, options.endpointProvider);
+	} else {
+		builder.define(IEndpointProvider, new SyncDescriptor(ProductionEndpointProvider));
+	}
 	const configProvider = new InMemoryConfigProvider(new DefaultsOnlyConfigProvider());
 	if (options.configOverrides) {
 		configProvider.setOverrides(options.configOverrides);
@@ -529,13 +477,11 @@ class OverridableConfigurationService extends DefaultsOnlyConfigurationService {
 	}
 }
 
-class NullEndpointProvider implements IEndpointProvider {
+class NullAutomodeService implements IAutomodeService {
 	declare readonly _serviceBrand: undefined;
-	readonly onDidModelsRefresh = VsEvent.None;
-	async getAllCompletionModels(): Promise<[]> { return []; }
-	async getAllChatEndpoints(): Promise<[]> { return []; }
-	async getChatEndpoint(): Promise<never> { throw new Error('not implemented'); }
-	async getEmbeddingsEndpoint(): Promise<never> { throw new Error('not implemented'); }
+	async resolveAutoModeEndpoint(): Promise<never> { throw new Error('Auto mode is unavailable in the standalone NES provider.'); }
+	consumeLastRoutingDecision(): undefined { return undefined; }
+	invalidateRouterCache(): void { }
 }
 
 export class SimpleExperimentationService extends Disposable implements IExperimentationService {
@@ -729,14 +675,8 @@ export interface ICompletionsTextDocumentManager {
 	onDidFocusTextDocument: ICompletionsTextDocumentFocusedEvent;
 	onDidChangeWorkspaceFolders: ICompletionsWorkspaceFoldersChangeEvent;
 
-	/**
-	 * Get all open text documents, skipping content exclusions and other validations.
-	 */
 	getTextDocumentsUnsafe(): ITextDocument[];
 
-	/**
-	 * If `TextDocument` represents notebook returns `INotebookDocument` instance, otherwise returns `undefined`
-	 */
 	findNotebook(doc: TextDocumentIdentifier): ICompletionsNotebookDocument | undefined;
 
 	getWorkspaceFolders(): WorkspaceFolder[];
@@ -792,14 +732,6 @@ export interface IInlineCompletionsProviderOptions {
 	readonly citationHandler?: IInlineCompletionsCitationHandler;
 	readonly configOverrides?: Map<ConfigKeyType, unknown>;
 	readonly languageDiagnosticsService?: ILanguageDiagnosticsService;
-	/**
-	 * Tokenizer backing prompt token counting/truncation in the completions
-	 * (ghost text) path. When omitted, this module lazily loads its own
-	 * cl100k/o200k BPE dictionaries. Embedders that already hold those
-	 * dictionaries can supply a provider here to avoid loading a second copy
-	 * (~100 MB per encoder). Installed synchronously when the provider is
-	 * created, so it must be passed at construction time.
-	 */
 	readonly tokenizerProvider?: ExternalTokenizerProvider;
 }
 
@@ -817,8 +749,6 @@ export interface IInlineCompletionsProvider {
 
 export function createInlineCompletionsProvider(options: IInlineCompletionsProviderOptions): IInlineCompletionsProvider {
 	if (options.tokenizerProvider) {
-		// Install before building the provider (which constructs GhostText and
-		// tokenizes), so the host's tokenizer is in effect for the first prompt.
 		setExternalTokenizerProvider(options.tokenizerProvider);
 	}
 	const svc = setupCompletionServices(options);
@@ -952,7 +882,7 @@ function setupCompletionServices(options: IInlineCompletionsProviderOptions): II
 			return options.relatedPluginInfo;
 		}
 	});
-	builder.define(ICompletionsExtensionStatus, new CopilotExtensionStatus());
+	builder.define(ICompletionsExtensionStatus, new DardcorCompletionStatus());
 	builder.define(ICompletionsFeaturesService, new SyncDescriptor(Features));
 	builder.define(ICompletionsObservableWorkspace, new class implements ICompletionsObservableWorkspace {
 		declare _serviceBrand: undefined;
@@ -974,7 +904,6 @@ function setupCompletionServices(options: IInlineCompletionsProviderOptions): II
 			statusHandler.didChange(event);
 		}
 	});
-	builder.define(ICompletionsCopilotTokenManager, new SyncDescriptor(CopilotTokenManagerImpl, [false]));
 	builder.define(ICompletionsTextDocumentManagerService, new SyncDescriptor(class extends TextDocumentManager {
 		onDidChangeTextDocument = documentManager.onDidChangeTextDocument;
 		onDidOpenTextDocument = documentManager.onDidOpenTextDocument;

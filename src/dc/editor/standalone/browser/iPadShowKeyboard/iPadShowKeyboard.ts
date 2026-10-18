@@ -82,7 +82,6 @@ class ShowKeyboardWidget extends Disposable implements IOverlayWidget {
 		super.dispose();
 	}
 
-	// ----- IOverlayWidget API
 
 	public getId(): string {
 		return ShowKeyboardWidget.ID;

@@ -496,11 +496,8 @@ suite('SearchModel', () => {
 
 		return result.then(() => {
 			return timeout(1).then(() => {
-				// timeout because promise handlers may run in a different order. We only care that these
-				// are fired at some point.
 				assert.ok(target1.calledWith('searchResultsFirstRender'));
 				assert.ok(target1.calledWith('searchResultsFinished'));
-				// assert.strictEqual(1, target2.callCount);
 			});
 		});
 	});
@@ -547,7 +544,6 @@ suite('SearchModel', () => {
 			return timeout(1).then(() => {
 				assert.ok(target1.calledWith('searchResultsFirstRender'));
 				assert.ok(target1.calledWith('searchResultsFinished'));
-				// assert.ok(target2.calledOnce);
 			});
 		});
 	});

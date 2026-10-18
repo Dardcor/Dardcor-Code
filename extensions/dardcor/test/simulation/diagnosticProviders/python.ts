@@ -19,9 +19,6 @@ import { PYTHON_EXECUTES_WITHOUT_ERRORS, PYTHON_VALID_SYNTAX_CACHE_SALT } from '
 import { ITestDiagnostic } from './diagnosticsProvider';
 import { LintingDiagnosticsProvider } from './utils';
 
-/**
- * Class which finds Pyright diagnostics
- */
 export class PyrightDiagnosticsProvider extends LintingDiagnosticsProvider {
 
 	override readonly id = 'pyright';
@@ -33,7 +30,6 @@ export class PyrightDiagnosticsProvider extends LintingDiagnosticsProvider {
 		await fs.promises.writeFile(configPyrightFile, JSON.stringify({}));
 		const virtualEnvironment = ensurePythonVEnv();
 		if (!virtualEnvironment) {
-			// throw
 			throw new Error('No virtual environment found');
 		}
 
@@ -68,9 +64,6 @@ export class PyrightDiagnosticsProvider extends LintingDiagnosticsProvider {
 	}
 }
 
-/**
- * Class which finds Pylint diagnostics
- */
 export class PylintDiagnosticsProvider extends LintingDiagnosticsProvider {
 
 	override readonly id = 'pylint';
@@ -137,8 +130,6 @@ export class PylintDiagnosticsProvider extends LintingDiagnosticsProvider {
 
 
 export async function isValidPythonFile(accessor: ITestingServicesAccessor, text: string): Promise<boolean> {
-	// Remove lines that start with `%xyz` as they can be cell magics in Jupyter Notebooks
-	// & that doesn't work in a standalone Python file
 	text = text.split(/\r?\n/g).filter(line => !line.startsWith('%')).join('\n');
 	const cacheKey = computeSHA256(`python-v2${PYTHON_VALID_SYNTAX_CACHE_SALT}-${text}`);
 	return accessor.get(ICachingResourceFetcher).invokeWithCache(
@@ -172,8 +163,6 @@ async function doIsValidPythonFile(text: string): Promise<boolean> {
 }
 
 export async function canExecutePythonCodeWithoutErrors(accessor: ITestingServicesAccessor, text: string): Promise<boolean> {
-	// Remove lines that start with `%xyz` as they can be cell magics in Jupyter Notebooks
-	// & that doesn't work in a standalone Python file
 	text = text.split(/\r?\n/g).filter(line => !line.startsWith('%')).join('\n');
 	const cacheKey = computeSHA256(`python-verify-execution_${PYTHON_EXECUTES_WITHOUT_ERRORS}-${text}`);
 	return accessor.get(ICachingResourceFetcher).invokeWithCache(

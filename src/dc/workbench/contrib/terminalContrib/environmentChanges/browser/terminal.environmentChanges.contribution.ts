@@ -15,9 +15,7 @@ import { registerActiveInstanceAction } from '../../../terminal/browser/terminal
 import { TerminalCommandId } from '../../../terminal/common/terminal.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 
-// TODO: The rest of the terminal environment changes feature should move here https://github.com/microsoft/vscode/issues/177241
 
-// #region Actions
 
 registerActiveInstanceAction({
 	id: TerminalCommandId.ShowEnvironmentContributions,
@@ -47,7 +45,6 @@ registerActiveInstanceAction({
 	}
 });
 
-// #endregion
 
 function describeEnvironmentChanges(collection: IMergedEnvironmentVariableCollection, scope: EnvironmentVariableScope | undefined): string {
 	let content = `# ${localize('envChanges', 'Terminal Environment Changes')}`;
@@ -62,7 +59,6 @@ function describeEnvironmentChanges(collection: IMergedEnvironmentVariableCollec
 		}
 		const workspaceDescription = workspaceDescriptions.get(ext);
 		if (workspaceDescription) {
-			// Only show '(workspace)' suffix if there is already a description for the extension.
 			const workspaceSuffix = globalDescription ? ` (${localize('ScopedEnvironmentContributionInfo', 'workspace')})` : '';
 			content += `\n${workspaceDescription}${workspaceSuffix}\n`;
 		}
@@ -84,7 +80,6 @@ function filterScope(
 	if (!mutator.scope) {
 		return true;
 	}
-	// Only mutators which are applicable on the relevant workspace should be shown.
 	if (mutator.scope.workspaceFolder && scope?.workspaceFolder && mutator.scope.workspaceFolder.index === scope.workspaceFolder.index) {
 		return true;
 	}

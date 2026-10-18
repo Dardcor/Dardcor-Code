@@ -7,14 +7,6 @@ import { OffsetRange } from '../core/ranges/offsetRange.js';
 import { ILanguageIdCodec } from '../languages.js';
 import { LineTokens } from './lineTokens.js';
 
-/**
- * This class represents a sequence of tokens.
- * Conceptually, each token has a length and a metadata number.
- * A token array might be used to annotate a string with metadata.
- * Use {@link TokenWithTextArrayBuilder} to efficiently create a token array.
- *
- * TODO: Make this class more efficient (e.g. by using a Int32Array).
-*/
 export class TokenWithTextArray {
 	public static fromLineTokens(lineTokens: LineTokens): TokenWithTextArray {
 		const tokenInfo: TokenWithTextInfo[] = [];
@@ -93,9 +85,6 @@ export class TokenWithTextInfo {
 	) { }
 }
 
-/**
- * TODO: Make this class more efficient (e.g. by using a Int32Array).
-*/
 export class TokenWithTextArrayBuilder {
 	private readonly _tokens: TokenWithTextInfo[] = [];
 

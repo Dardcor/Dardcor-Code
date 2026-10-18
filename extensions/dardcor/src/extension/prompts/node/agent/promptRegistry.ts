@@ -84,13 +84,6 @@ export const PromptRegistry = new class {
 		return undefined;
 	}
 
-	/**
-	 * Resolves all customizations from the prompt registry for a given endpoint.
-	 * This is the main method to call to get all per-model customizations in one place.
-	 * @param instantiationService The instantiation service to create the agent prompt instance
-	 * @param endpoint The chat endpoint to resolve customizations for
-	 * @returns All resolved customizations for the endpoint
-	 */
 	async resolveAllCustomizations(
 		instantiationService: IInstantiationService,
 		endpoint: IChatEndpoint,

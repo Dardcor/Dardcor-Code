@@ -30,7 +30,6 @@ import { INotificationService } from '../../../../platform/notification/common/n
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { Extensions as ConfigurationExtensions, IConfigurationRegistry } from '../../../../platform/configuration/common/configurationRegistry.js';
 
-// --- Configuration ---
 
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).registerConfiguration({
 	id: 'imageCarousel',
@@ -51,7 +50,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 	}
 });
 
-// --- Editor Pane Registration ---
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
@@ -64,7 +62,6 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 	]
 );
 
-// --- Serializer ---
 
 class ImageCarouselEditorInputSerializer implements IEditorSerializer {
 	canSerialize(): boolean {
@@ -83,7 +80,6 @@ class ImageCarouselEditorInputSerializer implements IEditorSerializer {
 Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory)
 	.registerEditorSerializer(ImageCarouselEditorInput.ID, ImageCarouselEditorInputSerializer);
 
-// --- Args Types ---
 
 interface IOpenCarouselCollectionArgs {
 	readonly collection: IImageCarouselCollection;
@@ -110,7 +106,6 @@ function isSingleImageArgs(args: unknown): args is IOpenCarouselSingleImageArgs 
 		&& (args as IOpenCarouselSingleImageArgs).data instanceof Uint8Array;
 }
 
-// --- Actions ---
 
 class OpenImageInCarouselAction extends Action2 {
 	constructor() {
@@ -156,9 +151,7 @@ class OpenImageInCarouselAction extends Action2 {
 
 registerAction2(OpenImageInCarouselAction);
 
-// --- Explorer Context Menu Integration ---
 
-/** Supported media (image + video) extensions for the carousel explorer context menu. */
 const MEDIA_EXTENSION_REGEX = /^\.(png|jpg|jpeg|jpe|gif|webp|svg|bmp|ico|mp4|webm|mov)$/i;
 
 function isMediaResource(uri: URI): boolean {
@@ -223,9 +216,6 @@ class OpenImagesInCarouselFromExplorerAction extends Action2 {
 
 		try {
 			if (context.length === 0) {
-				// Empty-space right-click: the explorer passes the workspace root
-				// as the resource argument. Fall back to the first workspace folder
-				// when no resource is available.
 				let folderUri: URI | undefined;
 				if (URI.isUri(resource)) {
 					folderUri = resource;
@@ -243,14 +233,10 @@ class OpenImagesInCarouselFromExplorerAction extends Action2 {
 				const hasSingleImageFile = context.length === 1 && !context[0].isDirectory && isMediaResource(context[0].resource);
 
 				if (hasSingleImageFile) {
-					// Single image: show all sibling images in the same folder with
-					// the selected image focused
 					startUri = context[0].resource;
 					const parentUri = dirname(context[0].resource);
 					imageUris = await collectImageFilesFromFolder(fileService, parentUri);
 				} else {
-					// Multiple items or a folder: collect images from selection,
-					// deduplicating in case a folder and its children are both selected
 					const seen = new ResourceSet();
 					for (const item of context) {
 						if (item.isDirectory) {

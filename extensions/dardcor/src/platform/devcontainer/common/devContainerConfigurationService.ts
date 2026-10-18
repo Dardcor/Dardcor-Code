@@ -47,9 +47,6 @@ export interface IDevContainerConfigurationService {
 	generateConfiguration(args: DevContainerConfigGeneratorArguments, cancellationToken: CancellationToken): Promise<DevContainerConfigGeneratorResult>;
 }
 
-/**
- * @remark For testing purposes only.
- */
 export class FailingDevContainerConfigurationService implements IDevContainerConfigurationService {
 	readonly _serviceBrand: undefined;
 	generateConfiguration(_args: DevContainerConfigGeneratorArguments, _cancellationToken: CancellationToken): Promise<DevContainerConfigGeneratorResult> {

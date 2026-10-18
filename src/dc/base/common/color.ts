@@ -13,24 +13,12 @@ function roundFloat(number: number, decimalPoints: number): number {
 export class RGBA {
 	_rgbaBrand: void = undefined;
 
-	/**
-	 * Red: integer in [0-255]
-	 */
 	readonly r: number;
 
-	/**
-	 * Green: integer in [0-255]
-	 */
 	readonly g: number;
 
-	/**
-	 * Blue: integer in [0-255]
-	 */
 	readonly b: number;
 
-	/**
-	 * Alpha: float in [0-1]
-	 */
 	readonly a: number;
 
 	constructor(r: number, g: number, b: number, a: number = 1) {
@@ -49,24 +37,12 @@ export class HSLA {
 
 	_hslaBrand: void = undefined;
 
-	/**
-	 * Hue: integer in [0, 360]
-	 */
 	readonly h: number;
 
-	/**
-	 * Saturation: float in [0, 1]
-	 */
 	readonly s: number;
 
-	/**
-	 * Luminosity: float in [0, 1]
-	 */
 	readonly l: number;
 
-	/**
-	 * Alpha: float in [0, 1]
-	 */
 	readonly a: number;
 
 	constructor(h: number, s: number, l: number, a: number) {
@@ -80,12 +56,6 @@ export class HSLA {
 		return a.h === b.h && a.s === b.s && a.l === b.l && a.a === b.a;
 	}
 
-	/**
-	 * Converts an RGB color value to HSL. Conversion formula
-	 * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
-	 * Assumes r, g, and b are contained in the set [0, 255] and
-	 * returns h in the set [0, 360], s, and l in the set [0, 1].
-	 */
 	static fromRGBA(rgba: RGBA): HSLA {
 		const r = rgba.r / 255;
 		const g = rgba.g / 255;
@@ -133,19 +103,13 @@ export class HSLA {
 		return p;
 	}
 
-	/**
-	 * Converts an HSL color value to RGB. Conversion formula
-	 * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
-	 * Assumes h in the set [0, 360] s, and l are contained in the set [0, 1] and
-	 * returns r, g, and b in the set [0, 255].
-	 */
 	static toRGBA(hsla: HSLA): RGBA {
 		const h = hsla.h / 360;
 		const { s, l, a } = hsla;
 		let r: number, g: number, b: number;
 
 		if (s === 0) {
-			r = g = b = l; // achromatic
+			r = g = b = l;
 		} else {
 			const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
 			const p = 2 * l - q;
@@ -162,24 +126,12 @@ export class HSVA {
 
 	_hsvaBrand: void = undefined;
 
-	/**
-	 * Hue: integer in [0, 360]
-	 */
 	readonly h: number;
 
-	/**
-	 * Saturation: float in [0, 1]
-	 */
 	readonly s: number;
 
-	/**
-	 * Value: float in [0, 1]
-	 */
 	readonly v: number;
 
-	/**
-	 * Alpha: float in [0, 1]
-	 */
 	readonly a: number;
 
 	constructor(h: number, s: number, v: number, a: number) {
@@ -193,7 +145,6 @@ export class HSVA {
 		return a.h === b.h && a.s === b.s && a.v === b.v && a.a === b.a;
 	}
 
-	// from http://www.rapidtables.com/convert/color/rgb-to-hsv.htm
 	static fromRGBA(rgba: RGBA): HSVA {
 		const r = rgba.r / 255;
 		const g = rgba.g / 255;
@@ -217,7 +168,6 @@ export class HSVA {
 		return new HSVA(Math.round(m * 60), s, cmax, rgba.a);
 	}
 
-	// from http://www.rapidtables.com/convert/color/hsv-to-rgb.htm
 	static toRGBA(hsva: HSVA): RGBA {
 		const { h, s, v, a } = hsva;
 		const c = v * s;
@@ -307,10 +257,6 @@ export class Color {
 		return !!other && RGBA.equals(this.rgba, other.rgba) && HSLA.equals(this.hsla, other.hsla) && HSVA.equals(this.hsva, other.hsva);
 	}
 
-	/**
-	 * http://www.w3.org/TR/WCAG20/#relativeluminancedef
-	 * Returns the number in the set [0, 1]. O => Darkest Black. 1 => Lightest white.
-	 */
 	getRelativeLuminance(): number {
 		const R = Color._relativeLuminanceForComponent(this.rgba.r);
 		const G = Color._relativeLuminanceForComponent(this.rgba.g);
@@ -320,20 +266,11 @@ export class Color {
 		return roundFloat(luminance, 4);
 	}
 
-	/**
-	 * Reduces the "foreground" color on this "background" color unti it is
-	 * below the relative luminace ratio.
-	 * @returns the new foreground color
-	 * @see https://github.com/xtermjs/xterm.js/blob/44f9fa39ae03e2ca6d28354d88a399608686770e/src/common/Color.ts#L315
-	 */
 	reduceRelativeLuminace(foreground: Color, ratio: number): Color {
-		// This is a naive but fast approach to reducing luminance as converting to
-		// HSL and back is expensive
 		let { r: fgR, g: fgG, b: fgB } = foreground.rgba;
 
 		let cr = this.getContrastRatio(foreground);
 		while (cr < ratio && (fgR > 0 || fgG > 0 || fgB > 0)) {
-			// Reduce by 10% until the ratio is hit
 			fgR -= Math.max(0, Math.ceil(fgR * 0.1));
 			fgG -= Math.max(0, Math.ceil(fgG * 0.1));
 			fgB -= Math.max(0, Math.ceil(fgB * 0.1));
@@ -343,15 +280,7 @@ export class Color {
 		return new Color(new RGBA(fgR, fgG, fgB));
 	}
 
-	/**
-	 * Increases the "foreground" color on this "background" color unti it is
-	 * below the relative luminace ratio.
-	 * @returns the new foreground color
-	 * @see https://github.com/xtermjs/xterm.js/blob/44f9fa39ae03e2ca6d28354d88a399608686770e/src/common/Color.ts#L335
-	 */
 	increaseRelativeLuminace(foreground: Color, ratio: number): Color {
-		// This is a naive but fast approach to reducing luminance as converting to
-		// HSL and back is expensive
 		let { r: fgR, g: fgG, b: fgB } = foreground.rgba;
 		let cr = this.getContrastRatio(foreground);
 		while (cr < ratio && (fgR < 0xFF || fgG < 0xFF || fgB < 0xFF)) {
@@ -369,29 +298,17 @@ export class Color {
 		return (c <= 0.03928) ? c / 12.92 : Math.pow(((c + 0.055) / 1.055), 2.4);
 	}
 
-	/**
-	 * http://www.w3.org/TR/WCAG20/#contrast-ratiodef
-	 * Returns the contrast ration number in the set [1, 21].
-	 */
 	getContrastRatio(another: Color): number {
 		const lum1 = this.getRelativeLuminance();
 		const lum2 = another.getRelativeLuminance();
 		return lum1 > lum2 ? (lum1 + 0.05) / (lum2 + 0.05) : (lum2 + 0.05) / (lum1 + 0.05);
 	}
 
-	/**
-	 *	http://24ways.org/2010/calculating-color-contrast
-	 *  Return 'true' if darker color otherwise 'false'
-	 */
 	isDarker(): boolean {
 		const yiq = (this.rgba.r * 299 + this.rgba.g * 587 + this.rgba.b * 114) / 1000;
 		return yiq < 128;
 	}
 
-	/**
-	 *	http://24ways.org/2010/calculating-color-contrast
-	 *  Return 'true' if lighter color otherwise 'false'
-	 */
 	isLighter(): boolean {
 		const yiq = (this.rgba.r * 299 + this.rgba.g * 587 + this.rgba.b * 114) / 1000;
 		return yiq >= 128;
@@ -409,19 +326,6 @@ export class Color {
 		return lum1 < lum2;
 	}
 
-	/**
-	 * Based on xterm.js: https://github.com/xtermjs/xterm.js/blob/44f9fa39ae03e2ca6d28354d88a399608686770e/src/common/Color.ts#L288
-	 *
-	 * Given a foreground color and a background color, either increase or reduce the luminance of the
-	 * foreground color until the specified contrast ratio is met. If pure white or black is hit
-	 * without the contrast ratio being met, go the other direction using the background color as the
-	 * foreground color and take either the first or second result depending on which has the higher
-	 * contrast ratio.
-	 *
-	 * @param foreground The foreground color.
-	 * @param ratio The contrast ratio to achieve.
-	 * @returns The adjusted foreground color.
-	 */
 	ensureConstrast(foreground: Color, ratio: number): Color {
 		const bgL = this.getRelativeLuminance();
 		const fgL = foreground.getRelativeLuminance();
@@ -478,7 +382,6 @@ export class Color {
 	blend(c: Color): Color {
 		const rgba = c.rgba;
 
-		// Convert to 0..1 opacity
 		const thisA = this.rgba.a;
 		const colorA = rgba.a;
 
@@ -494,12 +397,6 @@ export class Color {
 		return new Color(new RGBA(r, g, b, a));
 	}
 
-	/**
-	 * Mixes the current color with the provided color based on the given factor.
-	 * @param color The color to mix with
-	 * @param factor The factor of mixing (0 means this color, 1 means the input color, 0.5 means equal mix)
-	 * @returns A new color representing the mix
-	 */
 	mix(color: Color, factor: number = 0.5): Color {
 		const normalize = Math.min(Math.max(factor, 0), 1);
 		const thisRGBA = this.rgba;
@@ -515,13 +412,11 @@ export class Color {
 
 	makeOpaque(opaqueBackground: Color): Color {
 		if (this.isOpaque() || opaqueBackground.rgba.a !== 1) {
-			// only allow to blend onto a non-opaque color onto a opaque color
 			return this;
 		}
 
 		const { r, g, b, a } = this.rgba;
 
-		// https://stackoverflow.com/questions/12228548/finding-equivalent-color-with-opacity
 		return new Color(new RGBA(
 			opaqueBackground.rgba.r - a * (opaqueBackground.rgba.r - r),
 			opaqueBackground.rgba.g - a * (opaqueBackground.rgba.g - g),
@@ -558,9 +453,9 @@ export class Color {
 	toNumber32Bit(): number {
 		if (!this._toNumber32Bit) {
 			this._toNumber32Bit = (
-				this.rgba.r /*  */ << 24 |
-				this.rgba.g /*  */ << 16 |
-				this.rgba.b /*  */ << 8 |
+				this.rgba.r << 24 |
+				this.rgba.g << 16 |
+				this.rgba.b << 8 |
 				this.rgba.a * 0xFF << 0
 			) >>> 0;
 		}
@@ -632,17 +527,10 @@ export namespace Color {
 				return r.length !== 2 ? '0' + r : r;
 			}
 
-			/**
-			 * Formats the color as #RRGGBB
-			 */
 			export function formatHex(color: Color): string {
 				return `#${_toTwoDigitHex(color.rgba.r)}${_toTwoDigitHex(color.rgba.g)}${_toTwoDigitHex(color.rgba.b)}`;
 			}
 
-			/**
-			 * Formats the color as #RRGGBBAA
-			 * If 'compact' is set, colors without transparancy will be printed as #RRGGBB
-			 */
 			export function formatHexA(color: Color, compact = false): string {
 				if (compact && color.rgba.a === 1) {
 					return Color.Format.CSS.formatHex(color);
@@ -651,9 +539,6 @@ export namespace Color {
 				return `#${_toTwoDigitHex(color.rgba.r)}${_toTwoDigitHex(color.rgba.g)}${_toTwoDigitHex(color.rgba.b)}${_toTwoDigitHex(Math.round(color.rgba.a * 255))}`;
 			}
 
-			/**
-			 * The default format will use HEX if opaque and RGBA otherwise.
-			 */
 			export function format(color: Color): string {
 				if (color.isOpaque()) {
 					return Color.Format.CSS.formatHex(color);
@@ -662,11 +547,6 @@ export namespace Color {
 				return Color.Format.CSS.formatRGBA(color);
 			}
 
-			/**
-			 * Parse a CSS color and return a {@link Color}.
-			 * @param css The CSS color to parse.
-			 * @see https://drafts.csswg.org/css-color/#typedef-color
-			 */
 			export function parse(css: string): Color | null {
 				if (css === 'transparent') {
 					return Color.transparent;
@@ -695,12 +575,10 @@ export namespace Color {
 					const b = parseInt(color.groups?.b ?? '0');
 					return new Color(new RGBA(r, g, b));
 				}
-				// TODO: Support more formats as needed
 				return parseNamedKeyword(css);
 			}
 
 			function parseNamedKeyword(css: string): Color | null {
-				// https://drafts.csswg.org/css-color/#named-colors
 				switch (css) {
 					case 'aliceblue': return new Color(new RGBA(240, 248, 255, 1));
 					case 'antiquewhite': return new Color(new RGBA(250, 235, 215, 1));
@@ -854,26 +732,18 @@ export namespace Color {
 				}
 			}
 
-			/**
-			 * Converts an Hex color value to a Color.
-			 * returns r, g, and b are contained in the set [0, 255]
-			 * @param hex string (#RGB, #RGBA, #RRGGBB or #RRGGBBAA).
-			 */
 			export function parseHex(hex: string): Color | null {
 				const length = hex.length;
 
 				if (length === 0) {
-					// Invalid color
 					return null;
 				}
 
 				if (hex.charCodeAt(0) !== CharCode.Hash) {
-					// Does not begin with a #
 					return null;
 				}
 
 				if (length === 7) {
-					// #RRGGBB format
 					const r = 16 * _parseHexDigit(hex.charCodeAt(1)) + _parseHexDigit(hex.charCodeAt(2));
 					const g = 16 * _parseHexDigit(hex.charCodeAt(3)) + _parseHexDigit(hex.charCodeAt(4));
 					const b = 16 * _parseHexDigit(hex.charCodeAt(5)) + _parseHexDigit(hex.charCodeAt(6));
@@ -881,7 +751,6 @@ export namespace Color {
 				}
 
 				if (length === 9) {
-					// #RRGGBBAA format
 					const r = 16 * _parseHexDigit(hex.charCodeAt(1)) + _parseHexDigit(hex.charCodeAt(2));
 					const g = 16 * _parseHexDigit(hex.charCodeAt(3)) + _parseHexDigit(hex.charCodeAt(4));
 					const b = 16 * _parseHexDigit(hex.charCodeAt(5)) + _parseHexDigit(hex.charCodeAt(6));
@@ -890,7 +759,6 @@ export namespace Color {
 				}
 
 				if (length === 4) {
-					// #RGB format
 					const r = _parseHexDigit(hex.charCodeAt(1));
 					const g = _parseHexDigit(hex.charCodeAt(2));
 					const b = _parseHexDigit(hex.charCodeAt(3));
@@ -898,7 +766,6 @@ export namespace Color {
 				}
 
 				if (length === 5) {
-					// #RGBA format
 					const r = _parseHexDigit(hex.charCodeAt(1));
 					const g = _parseHexDigit(hex.charCodeAt(2));
 					const b = _parseHexDigit(hex.charCodeAt(3));
@@ -906,7 +773,6 @@ export namespace Color {
 					return new Color(new RGBA(16 * r + r, 16 * g + g, 16 * b + b, (16 * a + a) / 255));
 				}
 
-				// Invalid color
 				return null;
 			}
 

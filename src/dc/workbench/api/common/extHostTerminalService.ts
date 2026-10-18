@@ -74,10 +74,6 @@ export interface ITerminalInternalOptions {
 	forceShellIntegration?: boolean;
 	useShellEnvironment?: boolean;
 	resolvedExtHostIdentifier?: ExtHostTerminalIdentifier;
-	/**
-	 * This location is different from the API location because it can include splitActiveTerminal,
-	 * a property we resolve internally
-	 */
 	location?: TerminalLocation | { viewColumn: number; preserveState?: boolean } | { splitActiveTerminal: boolean };
 }
 
@@ -216,7 +212,6 @@ export class ExtHostTerminal extends Disposable {
 			shellIntegrationNonce: shellIntegrationNonce ?? undefined,
 			titleTemplate: titleTemplate ?? undefined,
 		});
-		// At this point, the id has been set via `$acceptTerminalOpened`
 		if (typeof this._id === 'string') {
 			throw new Error('Terminal creation failed');
 		}
@@ -255,7 +250,6 @@ export class ExtHostTerminal extends Disposable {
 
 	public setDimensions(cols: number, rows: number): boolean {
 		if (cols === this._cols && rows === this._rows) {
-			// Nothing changed
 			return false;
 		}
 		if (cols === 0 || rows === 0) {
@@ -294,12 +288,10 @@ export class ExtHostTerminal extends Disposable {
 	}
 
 	public _setProcessId(processId: number | undefined): void {
-		// The event may fire 2 times when the panel is restored
 		if (this._pidPromiseComplete) {
 			this._pidPromiseComplete(processId);
 			this._pidPromiseComplete = undefined;
 		} else {
-			// Recreate the promise if this is the nth processId set (e.g. reused task terminals)
 			this._pidPromise.then(pid => {
 				if (pid !== processId) {
 					this._pidPromise = Promise.resolve(processId);
@@ -345,8 +337,6 @@ class ExtHostPseudoterminal implements ITerminalChildProcess {
 	}
 
 	sendSignal(signal: string): void {
-		// Extension owned terminals don't support sending signals directly to processes
-		// This could be extended in the future if the pseudoterminal API is enhanced
 	}
 
 	resize(cols: number, rows: number): void {
@@ -354,20 +344,15 @@ class ExtHostPseudoterminal implements ITerminalChildProcess {
 	}
 
 	clearBuffer(): void {
-		// no-op
 	}
 
 	async processBinary(data: string): Promise<void> {
-		// No-op, processBinary is not supported in extension owned terminals.
 	}
 
 	acknowledgeDataEvent(charCount: number): void {
-		// No-op, flow control is not supported in extension owned terminals. If this is ever
-		// implemented it will need new pause and resume VS Code APIs.
 	}
 
 	async setUnicodeVersion(version: '6' | '11'): Promise<void> {
-		// No-op, xterm-headless isn't used for extension owned terminals.
 	}
 
 	getInitialCwd(): Promise<string> {
@@ -379,7 +364,6 @@ class ExtHostPseudoterminal implements ITerminalChildProcess {
 	}
 
 	startSendingEvents(initialDimensions: ITerminalDimensionsDto | undefined): void {
-		// Attach the listeners
 		this._pty.onDidWrite(e => this._onProcessData.fire(e));
 		this._pty.onDidClose?.((e: number | void = undefined) => {
 			this._onProcessExit.fire(e === void 0 ? undefined : e);
@@ -478,13 +462,11 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 				switch (arg?.$mid) {
 					case MarshalledId.TerminalContext: return deserialize(arg);
 					default: {
-						// Do array transformation in place as this is a hot path
 						if (Array.isArray(arg)) {
 							for (let i = 0; i < arg.length; i++) {
 								if (arg[i].$mid === MarshalledId.TerminalContext) {
 									arg[i] = deserialize(arg[i]);
 								} else {
-									// Probably something else, so exit early
 									break;
 								}
 							}
@@ -600,8 +582,6 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 	}
 
 	public async $acceptTerminalMaximumDimensions(id: number, cols: number, rows: number): Promise<void> {
-		// Extension pty terminal only - when virtual process resize fires it means that the
-		// terminal's maximum dimensions changed
 		this._terminalProcesses.get(id)?.resize(cols, rows);
 	}
 
@@ -613,7 +593,6 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 	}
 
 	public async $acceptTerminalClosed(id: number, exitCode: number | undefined, exitReason: TerminalExitReason): Promise<void> {
-		// Release any cached terminal links and cancel in-flight link providers for this terminal
 		this._terminalLinkCache.delete(id);
 		const cancellationSource = this._terminalLinkCancellationSource.get(id);
 		if (cancellationSource) {
@@ -631,10 +610,8 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 
 	public $acceptTerminalOpened(id: number, extHostTerminalId: string | undefined, name: string, shellLaunchConfigDto: IShellLaunchConfigDto): void {
 		if (extHostTerminalId) {
-			// Resolve with the renderer generated id
 			const index = this._getTerminalObjectIndexById(this._terminals, extHostTerminalId);
 			if (index !== null) {
-				// The terminal has already been created (via createTerminal*), only fire the event
 				this._terminals[index]._id = id;
 				this._onDidOpenTerminal.fire(this.terminals[index]);
 				this._terminals[index].isOpen = true;
@@ -663,17 +640,13 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 	}
 
 	public async $startExtensionTerminal(id: number, initialDimensions: ITerminalDimensionsDto | undefined): Promise<ITerminalLaunchError | undefined> {
-		// Make sure the ExtHostTerminal exists so onDidOpenTerminal has fired before we call
-		// Pseudoterminal.start
 		const terminal = this.getTerminalById(id);
 		if (!terminal) {
 			return { message: localize('launchFail.idMissingOnExtHost', "Could not find the terminal with id {0} on the extension host", id) };
 		}
 
-		// Wait for onDidOpenTerminal to fire
 		if (!terminal.isOpen) {
 			await new Promise<void>(r => {
-				// Ensure open is called after onDidOpenTerminal
 				const listener = this.onDidOpenTerminal(async e => {
 					if (e === terminal.value) {
 						listener.dispose();
@@ -687,7 +660,6 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 		if (terminalProcess) {
 			(terminalProcess as ExtHostPseudoterminal).startSendingEvents(initialDimensions);
 		} else {
-			// Defer startSendingEvents call to when _setupExtHostProcessListeners is called
 			this._extensionTerminalAwaitingStart[id] = { initialDimensions };
 		}
 
@@ -699,7 +671,6 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 		disposables.add(p.onProcessReady(e => this._proxy.$sendProcessReady(id, e.pid, e.cwd, e.windowsPty)));
 		disposables.add(p.onDidChangeProperty(property => this._proxy.$sendProcessProperty(id, property)));
 
-		// Buffer data events to reduce the amount of messages going to the renderer
 		this._bufferer.startBuffering(id, p.onProcessData);
 		disposables.add(p.onProcessExit(exitCode => this._onProcessExit(id, exitCode)));
 		this._terminalProcesses.set(id, p);
@@ -736,7 +707,6 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 		try {
 			this._terminalProcesses.get(id)?.resize(cols, rows);
 		} catch (error) {
-			// We tried to write to a closed pipe / channel.
 			if (error.code !== 'EPIPE' && error.code !== 'ERR_IPC_CHANNEL_CLOSED') {
 				throw (error);
 			}
@@ -839,12 +809,10 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 		const store = new DisposableStore();
 		this._lastQuickFixCommands.value = store;
 
-		// Single
 		if (!Array.isArray(quickFixes)) {
 			return quickFixes ? TerminalQuickFix.from(quickFixes, this._extHostCommands.converter, store) : undefined;
 		}
 
-		// Many
 		const result = [];
 		for (const fix of quickFixes) {
 			const converted = TerminalQuickFix.from(fix, this._extHostCommands.converter, store);
@@ -878,8 +846,6 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 			console.error(`[${profileProviderData.extension.identifier.value}] \`titleTemplate\` returned from TerminalProfileProvider is ignored because the \`terminalTitle\` proposed API is not enabled.`);
 			profile = { options: { ...profile.options, titleTemplate: undefined } };
 		}
-		// options.titleTemplate is not explicitly stripped here because the profileOptions
-		// assignment below only applies it when hasTerminalTitleProposal is true.
 		if (!hasTerminalTitleProposal && options.titleTemplate !== undefined) {
 			console.error(`[${profileProviderData.extension.identifier.value}] \`titleTemplate\` passed to createContributedTerminalProfile is ignored because the \`terminalTitle\` proposed API is not enabled.`);
 		}
@@ -914,8 +880,6 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 			return [];
 		}
 
-		// Discard any cached links the terminal has been holding, currently all links are released
-		// when new links are provided.
 		this._terminalLinkCache.delete(terminalId);
 
 		const oldToken = this._terminalLinkCancellationSource.get(terminalId);
@@ -982,17 +946,14 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 	private _onProcessExit(id: number, exitCode: number | undefined): void {
 		this._bufferer.stopBuffering(id);
 
-		// Remove process reference
 		this._terminalProcesses.delete(id);
 		delete this._extensionTerminalAwaitingStart[id];
 
-		// Clean up process disposables
 		const processDiposable = this._terminalProcessDisposables[id];
 		if (processDiposable) {
 			processDiposable.dispose();
 			delete this._terminalProcessDisposables[id];
 		}
-		// Send exit event to main side
 		this._proxy.$sendProcessExit(id, exitCode);
 	}
 
@@ -1054,18 +1015,11 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 	private _setEnvironmentVariableCollection(extensionIdentifier: string, collection: UnifiedEnvironmentVariableCollection): void {
 		this._environmentVariableCollections.set(extensionIdentifier, collection);
 		this._register(collection.onDidChangeCollection(() => {
-			// When any collection value changes send this immediately, this is done to ensure
-			// following calls to createTerminal will be created with the new environment. It will
-			// result in more noise by sending multiple updates when called but collections are
-			// expected to be small.
 			this._syncEnvironmentVariableCollection(extensionIdentifier, collection);
 		}));
 	}
 }
 
-/**
- * Unified environment variable collection carrying information for all scopes, for a specific extension.
- */
 class UnifiedEnvironmentVariableCollection extends Disposable {
 	readonly map: Map<string, IEnvironmentVariableMutator> = new Map();
 	private readonly scopedCollections: Map<string, ScopedEnvironmentVariableCollection> = new Map();
@@ -1145,7 +1099,6 @@ class UnifiedEnvironmentVariableCollection extends Disposable {
 	get(variable: string, scope: vscode.EnvironmentVariableScope | undefined): vscode.EnvironmentVariableMutator | undefined {
 		const key = this.getKey(variable, scope);
 		const value = this.map.get(key);
-		// TODO: Set options to defaults if needed
 		return value ? convertMutator(value) : undefined;
 	}
 
@@ -1201,7 +1154,6 @@ class UnifiedEnvironmentVariableCollection extends Disposable {
 			if (typeof description === 'string') {
 				descriptionStr = description;
 			} else {
-				// Only take the description before the first `\n\n`, so that the description doesn't mess up the UI
 				descriptionStr = description?.value.split('\n\n')[0];
 			}
 			const value: IEnvironmentVariableCollectionDescription = { description: descriptionStr, scope };

@@ -40,17 +40,8 @@ namespace CustomDataContent {
 }
 
 interface AutoInsertParams {
-	/**
-	 * The auto insert kind
-	 */
 	kind: 'autoQuote' | 'autoClose';
-	/**
-	 * The text document.
-	 */
 	textDocument: TextDocumentIdentifier;
-	/**
-	 * The position inside the text document.
-	 */
 	position: Position;
 }
 
@@ -58,7 +49,6 @@ namespace AutoInsertRequest {
 	export const type: RequestType<AutoInsertParams, string | null, any> = new RequestType('html/autoInsert');
 }
 
-// experimental: semantic tokens
 interface SemanticTokenParams {
 	textDocument: TextDocumentIdentifier;
 	ranges?: Range[];
@@ -87,10 +77,7 @@ export interface CustomDataRequestService {
 
 export function startServer(connection: Connection, runtime: RuntimeEnvironment) {
 
-	// Create a text document manager.
 	const documents = new TextDocuments(TextDocument);
-	// Make the text document manager listen on the connection
-	// for open, change and close text document events
 	documents.listen(connection);
 
 	let workspaceFolders: WorkspaceFolder[] = [];
@@ -114,7 +101,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 
 	let globalSettings: Settings = {};
 	let documentSettings: { [key: string]: Thenable<Settings> } = {};
-	// remove document settings on close
 	documents.onDidClose(e => {
 		delete documentSettings[e.document.uri];
 	});
@@ -134,8 +120,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		return Promise.resolve(undefined);
 	}
 
-	// After the server has started the client sends an initialize request. The server receives
-	// in the passed params the rootPath of the workspace plus the client capabilities
 	connection.onInitialize((params: InitializeParams): InitializeResult => {
 		const initializationOptions = params.initializationOptions || {};
 
@@ -249,13 +233,11 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 
 	let formatterRegistrations: Thenable<Disposable>[] | null = null;
 
-	// The settings have changed. Is send on server activation as well.
 	connection.onDidChangeConfiguration((change) => {
 		globalSettings = change.settings as Settings;
-		documentSettings = {}; // reset all document settings
+		documentSettings = {};
 		diagnosticsSupport?.requestRefresh();
 
-		// dynamically enable & disable the formatter
 		if (dynamicFormatterRegistration) {
 			const enableFormatter = globalSettings && globalSettings.html && globalSettings.html.format && globalSettings.html.format.enable;
 			if (enableFormatter) {
@@ -289,7 +271,7 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 				const modes = languageModes.getAllModesInDocument(textDocument);
 				const settings = await getDocumentSettings(textDocument, () => modes.some(m => !!m.doValidation));
 				const latestTextDocument = documents.get(textDocument.uri);
-				if (latestTextDocument && latestTextDocument.version === version) { // check no new version has come in after in after the async op
+				if (latestTextDocument && latestTextDocument.version === version) {
 					for (const mode of modes) {
 						if (mode.doValidation && isValidationEnabled(mode.getId(), settings)) {
 							pushAll(diagnostics, await mode.doValidation(latestTextDocument, settings));
@@ -545,7 +527,7 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 
 	connection.languages.onLinkedEditingRange((params, token) => {
 		// eslint-disable-next-line local/code-no-any-casts
-		return <any> /* todo remove when microsoft/vscode-languageserver-node#700 fixed */ runSafe(runtime, async () => {
+		return <any> runSafe(runtime, async () => {
 			const document = documents.get(params.textDocument.uri);
 			if (document) {
 				const pos = params.position;
@@ -605,7 +587,6 @@ export function startServer(connection: Connection, runtime: RuntimeEnvironment)
 		}, { text: '' }, `Error while computing text document content for ${params.uri}`, token);
 	});
 
-	// Listen on the connection
 	connection.listen();
 }
 

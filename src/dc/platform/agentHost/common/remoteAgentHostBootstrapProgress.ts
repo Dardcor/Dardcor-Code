@@ -13,12 +13,10 @@ export interface IRemoteAgentHostBootstrapProgress {
 	readonly percentage: number;
 }
 
-/** Redact connection tokens from output produced by a remote agent host. */
 export function redactToken(text: string): string {
 	return text.replace(/\?tkn=[^\s&]+/g, '?tkn=***');
 }
 
-/** Parses and throttles recognized bootstrap progress after redacting its input. */
 export class RemoteAgentHostBootstrapProgressReporter extends Disposable {
 
 	private readonly _progress = observableValue<IRemoteAgentHostBootstrapProgress | undefined>(this, undefined);
@@ -32,7 +30,6 @@ export class RemoteAgentHostBootstrapProgressReporter extends Disposable {
 		super();
 	}
 
-	/** Consumes one decoded output line. */
 	acceptLine(line: string): void {
 		const progress = this._parseProgress(redactToken(line));
 		if (!progress) {
@@ -41,9 +38,6 @@ export class RemoteAgentHostBootstrapProgressReporter extends Disposable {
 
 		const now = Date.now();
 		if (this._lastReportTime === undefined || now - this._lastReportTime >= this._intervalMs) {
-			// Discard any queued report first: if the event loop stalled past the
-			// interval, a stale pending value would otherwise land after this newer
-			// one and make the displayed progress run backwards.
 			if (this._timeoutHandle !== undefined) {
 				clearTimeout(this._timeoutHandle);
 				this._timeoutHandle = undefined;
@@ -68,7 +62,6 @@ export class RemoteAgentHostBootstrapProgressReporter extends Disposable {
 		}
 	}
 
-	/** Immediately publishes the newest pending progress, if any. */
 	flush(): void {
 		if (this._timeoutHandle !== undefined) {
 			clearTimeout(this._timeoutHandle);

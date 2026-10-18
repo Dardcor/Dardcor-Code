@@ -26,22 +26,11 @@ export interface IVoiceChatService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Similar to `ISpeechService.createSpeechToTextSession`, but with
-	 * support for agent prefixes and command prefixes. For example,
-	 * if the user says "at workspace slash fix this problem", the result
-	 * will be "@workspace /fix this problem".
-	 */
 	createVoiceChatSession(token: CancellationToken, options: IVoiceChatSessionOptions): Promise<IVoiceChatSession>;
 }
 
 export interface IVoiceChatTextEvent extends ISpeechToTextEvent {
 
-	/**
-	 * This property will be `true` when the text recognized
-	 * so far only consists of agent prefixes (`@workspace`)
-	 * and/or command prefixes (`@workspace /fix`).
-	 */
 	readonly waitingForInput?: boolean;
 }
 
@@ -165,7 +154,6 @@ export class VoiceChatService extends Disposable implements IVoiceChatService {
 
 							let waitingForInput = false;
 
-							// Check for agent + slash command
 							if (options.usesAgents && startsWithAgent && !detectedAgent && !detectedSlashCommand && originalWords.length >= 4) {
 								const phrase = phrases.get(originalWords.slice(0, 4).map(word => this.normalizeWord(word)).join(' '));
 								if (phrase) {
@@ -180,7 +168,6 @@ export class VoiceChatService extends Disposable implements IVoiceChatService {
 								}
 							}
 
-							// Check for agent (if not done already)
 							if (options.usesAgents && startsWithAgent && !detectedAgent && !transformedWords && originalWords.length >= 2) {
 								const phrase = phrases.get(originalWords.slice(0, 2).map(word => this.normalizeWord(word)).join(' '));
 								if (phrase) {
@@ -194,13 +181,12 @@ export class VoiceChatService extends Disposable implements IVoiceChatService {
 								}
 							}
 
-							// Check for slash command (if not done already)
 							if (startsWithSlashCommand && !detectedSlashCommand && !transformedWords && originalWords.length >= 2) {
 								const phrase = phrases.get(originalWords.slice(0, 2).map(word => this.normalizeWord(word)).join(' '));
 								if (phrase) {
 									transformedWords = [this.toText(phrase, options.usesAgents && !detectedAgent ?
-										PhraseTextType.AGENT_AND_COMMAND : 	// rewrite `/fix` to `@workspace /foo` in this case
-										PhraseTextType.COMMAND				// when we have not yet detected an agent before
+										PhraseTextType.AGENT_AND_COMMAND :
+										PhraseTextType.COMMAND
 									), ...originalWords.slice(2)];
 
 									waitingForInput = originalWords.length === 2;

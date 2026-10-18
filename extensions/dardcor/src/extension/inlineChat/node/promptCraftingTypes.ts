@@ -12,11 +12,7 @@ import { ChatTelemetry } from '../../prompt/node/chatParticipantTelemetry';
 import { IDocumentContext } from '../../prompt/node/documentContext';
 import { IIntent } from '../../prompt/node/intents';
 
-//#region interpreting dardcor response
 
-/**
- * Determines the interaction outcome based on what passes through the stream.
- */
 export class InteractionOutcomeComputer {
 
 	private _annotations: OutcomeAnnotation[] = [];
@@ -27,7 +23,6 @@ export class InteractionOutcomeComputer {
 
 	private get _interactionOutcomeKind(): InteractionOutcomeKind {
 		if (this._seenEdits.size > 0) {
-			// edits have been sent to the response stream
 			return (
 				this._seenEdits.size === 1 && this._currentDocument && this._seenEdits.has(this._currentDocument)
 					? 'inlineEdit'
@@ -116,15 +111,11 @@ export enum OutcomeAnnotationLabel {
 	NOOP_EDITS = 'noop edits'
 }
 
-/**
- * Some data that can be saved in the session across turns.
- */
 export interface ISessionTurnStorage {
 	lastDocumentContent: string;
 	lastWholeRange: vscode.Range;
 }
 
-//#endregion
 
 export interface PromptQuery extends IDocumentContext {
 	query: string;

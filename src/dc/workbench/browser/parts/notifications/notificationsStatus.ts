@@ -53,8 +53,6 @@ export class NotificationsStatus extends Disposable {
 
 	private onDidChangeNotification(e: INotificationChangeEvent): void {
 
-		// Consider a notification as unread as long as it only
-		// appeared as toast and not in the notification center
 		if (!this.isNotificationsCenterVisible) {
 			if (e.kind === NotificationChangeType.ADD) {
 				this.newNotificationsCount++;
@@ -63,15 +61,11 @@ export class NotificationsStatus extends Disposable {
 			}
 		}
 
-		// Update in status bar
 		this.updateNotificationsCenterStatusItem();
 	}
 
 	private updateNotificationsCenterStatusItem(): void {
 
-		// Figure out how many notifications have progress only if neither
-		// toasts are visible nor center is visible. In that case we still
-		// want to give a hint to the user that something is running.
 		let notificationsInProgress = 0;
 		if (!this.isNotificationsCenterVisible && !this.isNotificationsToastsVisible) {
 			for (const notification of this.model.notifications) {
@@ -81,7 +75,6 @@ export class NotificationsStatus extends Disposable {
 			}
 		}
 
-		// Show the status bar entry depending on do not disturb setting
 
 		let statusProperties: IStatusbarEntry = {
 			name: localize('status.notifications', "Notifications"),
@@ -101,8 +94,6 @@ export class NotificationsStatus extends Disposable {
 			};
 		}
 
-		// For top-right position, hide the status bar bell entirely
-		// (it is shown in the title bar instead via menu registration)
 		const position = getNotificationsPosition(this.configurationService);
 		if (position === NotificationsPosition.TOP_RIGHT) {
 			this.notificationsCenterStatusItem?.dispose();
@@ -111,11 +102,9 @@ export class NotificationsStatus extends Disposable {
 			this.currentAlignment = undefined;
 		}
 
-		// For other positions, figure out the desired alignment
 		else {
 			const desiredAlignment = this.getDesiredAlignment();
 
-			// If alignment changed, dispose old entry and create a new one
 			if (this.currentAlignment !== desiredAlignment) {
 				this.notificationsCenterStatusItem?.dispose();
 				this.notificationsCenterStatusItem = undefined;
@@ -129,8 +118,8 @@ export class NotificationsStatus extends Disposable {
 					'status.notifications.right',
 					this.currentAlignment,
 					this.currentAlignment === StatusbarAlignment.LEFT
-						? Number.MAX_SAFE_INTEGER 	// almost leftmost on the left side
-						: Number.NEGATIVE_INFINITY 	// rightmost on the right side
+						? Number.MAX_SAFE_INTEGER
+						: Number.NEGATIVE_INFINITY
 				);
 			} else {
 				this.notificationsCenterStatusItem.update(statusProperties);
@@ -179,7 +168,7 @@ export class NotificationsStatus extends Disposable {
 
 		if (this.isNotificationsCenterVisible !== isCenterVisible) {
 			this.isNotificationsCenterVisible = isCenterVisible;
-			this.newNotificationsCount = 0; // Showing the notification center resets the unread counter to 0
+			this.newNotificationsCount = 0;
 			updateNotificationsCenterStatusItem = true;
 		}
 
@@ -188,7 +177,6 @@ export class NotificationsStatus extends Disposable {
 			updateNotificationsCenterStatusItem = true;
 		}
 
-		// Update in status bar as needed
 		if (updateNotificationsCenterStatusItem) {
 			this.updateNotificationsCenterStatusItem();
 		}
@@ -199,13 +187,11 @@ export class NotificationsStatus extends Disposable {
 
 		switch (e.kind) {
 
-			// Show status notification
 			case StatusMessageChangeType.ADD:
 				this.doSetStatusMessage(statusItem);
 
 				break;
 
-			// Hide status notification (if its still the current one)
 			case StatusMessageChangeType.REMOVE:
 				if (this.currentStatusMessage && this.currentStatusMessage[0] === statusItem) {
 					dispose(this.currentStatusMessage[1]);
@@ -222,12 +208,10 @@ export class NotificationsStatus extends Disposable {
 		const showAfter = item.options && typeof item.options.showAfter === 'number' ? item.options.showAfter : 0;
 		const hideAfter = item.options && typeof item.options.hideAfter === 'number' ? item.options.hideAfter : -1;
 
-		// Dismiss any previous
 		if (this.currentStatusMessage) {
 			dispose(this.currentStatusMessage[1]);
 		}
 
-		// Create new
 		let statusMessageEntry: IStatusbarEntryAccessor;
 		let showHandle: Timeout | undefined = setTimeout(() => {
 			statusMessageEntry = this.statusbarService.addEntry(
@@ -238,12 +222,11 @@ export class NotificationsStatus extends Disposable {
 				},
 				'status.message',
 				StatusbarAlignment.LEFT,
-				Number.NEGATIVE_INFINITY /* last entry */
+				Number.NEGATIVE_INFINITY
 			);
 			showHandle = undefined;
 		}, showAfter);
 
-		// Dispose function takes care of timeouts and actual entry
 		let hideHandle: Timeout | undefined;
 		const statusMessageDispose = {
 			dispose: () => {
@@ -263,7 +246,6 @@ export class NotificationsStatus extends Disposable {
 			hideHandle = setTimeout(() => statusMessageDispose.dispose(), hideAfter);
 		}
 
-		// Remember as current status message
 		this.currentStatusMessage = [item, statusMessageDispose];
 	}
 }

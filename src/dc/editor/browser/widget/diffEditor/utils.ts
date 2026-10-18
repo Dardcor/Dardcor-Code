@@ -56,7 +56,6 @@ export function joinCombine<T>(arr1: readonly T[], arr2: readonly T[], keySelect
 	return result;
 }
 
-// TODO make utility
 export function applyObservableDecorations(editor: ICodeEditor, decorations: IObservable<IModelDeltaDecoration[]>): IDisposable {
 	const d = new DisposableStore();
 	const decorationsCollection = editor.createDecorationsCollection();
@@ -106,7 +105,6 @@ export class ObservableElementSizeObserver extends Disposable {
 		this._height = observableValue(this, this.elementSizeObserver.getHeight());
 
 		this._register(this.elementSizeObserver.onDidChange(e => transaction(tx => {
-			/** @description Set width/height from elementSizeObserver */
 			this._width.set(this.elementSizeObserver.getWidth(), tx);
 			this._height.set(this.elementSizeObserver.getHeight(), tx);
 		})));
@@ -147,7 +145,6 @@ export function animatedObservable(targetWindow: Window, base: IObservableWithCh
 			}
 		}
 	}, (reader, s) => {
-		/** @description update value */
 		if (animationFrame !== undefined) {
 			targetWindow.cancelAnimationFrame(animationFrame);
 			animationFrame = undefined;
@@ -156,7 +153,6 @@ export function animatedObservable(targetWindow: Window, base: IObservableWithCh
 		startVal = curVal;
 		targetVal = base.read(reader);
 		if (startVal === targetVal) {
-			// No change, no animation
 			animationStartMs = Date.now() - durationMs;
 		} else {
 			animationStartMs = Date.now() - (s.animate ? 0 : durationMs);
@@ -221,10 +217,8 @@ export abstract class ViewZoneOverlayWidget extends Disposable {
 }
 
 export interface IObservableViewZone extends IViewZone {
-	// Causes the view zone to relayout.
 	onChange?: IObservable<unknown>;
 
-	// Tells a view zone its id.
 	setZoneId?(zoneId: string): void;
 }
 
@@ -302,7 +296,6 @@ export interface CSSStyle {
 
 export function applyStyle(domNode: HTMLElement, style: Partial<{ [TKey in keyof CSSStyle]: CSSStyle[TKey] | IObservable<CSSStyle[TKey] | undefined> | undefined }>) {
 	return autorun(reader => {
-		/** @description applyStyle */
 		for (let [key, val] of Object.entries(style)) {
 			if (val && typeof val === 'object' && 'read' in val) {
 				// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
@@ -323,13 +316,11 @@ export function applyViewZones(editor: ICodeEditor, viewZones: IObservable<IObse
 	const lastViewZoneIds: string[] = [];
 
 	store.add(autorunWithStore((reader, store) => {
-		/** @description applyViewZones */
 		const curViewZones = viewZones.read(reader);
 
 		const viewZonIdsPerViewZone = new Map<IObservableViewZone, string>();
 		const viewZoneIdPerOnChangeObservable = new Map<IObservable<unknown>, string>();
 
-		// Add/remove view zones
 		if (setIsUpdating) { setIsUpdating(true); }
 		editor.changeViewZones(a => {
 			for (const id of lastViewZoneIds) { a.removeZone(id); zoneIds?.delete(id); }
@@ -347,7 +338,6 @@ export function applyViewZones(editor: ICodeEditor, viewZones: IObservable<IObse
 		});
 		if (setIsUpdating) { setIsUpdating(false); }
 
-		// Layout zone on change
 		store.add(autorunHandleChanges({
 			changeTracker: {
 				createChangeSummary() {
@@ -360,7 +350,6 @@ export function applyViewZones(editor: ICodeEditor, viewZones: IObservable<IObse
 				},
 			}
 		}, (reader, changeSummary) => {
-			/** @description layoutZone on change */
 			for (const vz of curViewZones) {
 				if (vz.onChange) {
 					viewZoneIdPerOnChangeObservable.set(vz.onChange, viewZonIdsPerViewZone.get(vz)!);
@@ -394,7 +383,6 @@ export class DisposableCancellationTokenSource extends CancellationTokenSource {
 export function translatePosition(posInOriginal: Position, mappings: DetailedLineRangeMapping[]): Range {
 	const mapping = findLast(mappings, m => m.original.startLineNumber <= posInOriginal.lineNumber);
 	if (!mapping) {
-		// No changes before the position
 		return Range.fromPositions(posInOriginal);
 	}
 
@@ -404,7 +392,6 @@ export function translatePosition(posInOriginal: Position, mappings: DetailedLin
 	}
 
 	if (!mapping.innerChanges) {
-		// Only for legacy algorithm
 		return Range.fromPositions(new Position(mapping.modified.startLineNumber, 1));
 	}
 

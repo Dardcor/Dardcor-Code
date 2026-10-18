@@ -66,8 +66,6 @@ export class ExtHostStatusBarEntry implements vscode.StatusBarItem {
 
 		if (id && extension) {
 			this._entryId = asStatusBarItemIdentifier(extension.identifier, id);
-			// if new item already exists mark it as visible and copy properties
-			// this can only happen when an item was contributed by an extension
 			const item = staticItems.get(this._entryId);
 			if (item) {
 				alignment = item.alignLeft ? ExtHostStatusBarAlignment.Left : ExtHostStatusBarAlignment.Right;
@@ -91,13 +89,9 @@ export class ExtHostStatusBarEntry implements vscode.StatusBarItem {
 
 	private validatePriority(priority?: number): number | undefined {
 		if (!isNumber(priority)) {
-			return undefined; // using this method to catch `NaN` too!
+			return undefined;
 		}
 
-		// Our RPC mechanism use JSON to serialize data which does
-		// not support `Infinity` so we need to fill in the number
-		// equivalent as close as possible.
-		// https://github.com/microsoft/vscode/issues/133317
 
 		if (priority === Number.POSITIVE_INFINITY) {
 			return Number.MAX_VALUE;
@@ -248,13 +242,9 @@ export class ExtHostStatusBarEntry implements vscode.StatusBarItem {
 
 		clearTimeout(this._timeoutHandle);
 
-		// Defer the update so that multiple changes to setters dont cause a redraw each
 		this._timeoutHandle = setTimeout(() => {
 			this._timeoutHandle = undefined;
 
-			// If the id is not set, derive it from the extension identifier,
-			// otherwise make sure to prefix it with the extension identifier
-			// to get a more unique value across extensions.
 			let id: string;
 			if (this._extension) {
 				if (this._id) {
@@ -266,7 +256,6 @@ export class ExtHostStatusBarEntry implements vscode.StatusBarItem {
 				id = this._id!;
 			}
 
-			// If the name is not set, derive it from the extension descriptor
 			let name: string;
 			if (this._name) {
 				name = this._name;
@@ -274,7 +263,6 @@ export class ExtHostStatusBarEntry implements vscode.StatusBarItem {
 				name = localize('extensionLabel', "{0} (Extension)", this._extension!.displayName || this._extension!.name);
 			}
 
-			// If a background color is set, the foreground is determined
 			let color = this._color;
 			if (this._backgroundColor) {
 				color = ExtHostStatusBarEntry.ALLOWED_BACKGROUND_COLORS.get(this._backgroundColor.id);
@@ -290,12 +278,10 @@ export class ExtHostStatusBarEntry implements vscode.StatusBarItem {
 				hasTooltipProvider = false;
 			}
 
-			// Set to status bar
 			this.#proxy.$setEntry(this._entryId, id, this._extension?.identifier.value, name, this._text, tooltip, hasTooltipProvider, this._command?.internal, color,
 				this._backgroundColor, this._alignment === ExtHostStatusBarAlignment.Left,
 				this._priority, this._accessibilityInformation);
 
-			// clean-up state commands _after_ updating the UI
 			this._staleCommandRegistrations.clear();
 		}, 0);
 	}
@@ -325,7 +311,7 @@ class StatusBarMessage {
 	}
 
 	setMessage(message: string): Disposable {
-		const data: { message: string } = { message }; // use object to not confuse equal strings
+		const data: { message: string } = { message };
 		this._messages.unshift(data);
 		this._update();
 

@@ -66,7 +66,6 @@ export class ToolsContribution extends Disposable {
 
 			const items: MemoryItem[] = [];
 
-			// Collect user-scoped memories from globalStorageUri/memory-tool/memories/
 			if (globalStorageUri) {
 				const userMemoryUri = URI.joinPath(globalStorageUri, 'memory-tool/memories');
 				try {
@@ -83,11 +82,9 @@ export class ToolsContribution extends Disposable {
 						}
 					}
 				} catch {
-					// User memory directory may not exist yet
 				}
 			}
 
-			// Collect local repo-scoped memories
 			if (storageUri) {
 				const repoMemoryUri = URI.joinPath(storageUri, 'memory-tool/memories/repo');
 				try {
@@ -104,11 +101,9 @@ export class ToolsContribution extends Disposable {
 						}
 					}
 				} catch {
-					// Repo memory directory may not exist yet
 				}
 			}
 
-			// Collect session-scoped memories from storageUri/memory-tool/memories/<sessionId>/
 			const sessionResource = vscode.window.activeChatPanelSessionResource;
 			if (storageUri && sessionResource) {
 				const sessionId = extractSessionId(sessionResource.toString());
@@ -127,7 +122,6 @@ export class ToolsContribution extends Disposable {
 						}
 					}
 				} catch {
-					// Session memory directory may not exist yet
 				}
 			}
 
@@ -145,7 +139,6 @@ export class ToolsContribution extends Disposable {
 			}
 		}));
 
-		// Needed by the artifact feature to resolve memory file URIs to open them, since they use a custom URI scheme that vscode doesn't know about
 		this._register(vscode.commands.registerCommand('github.dardcor.chat.tools.memory.resolveMemoryFileUri', (memoryPath: string, sessionResource?: string): string | undefined => {
 			if (!memoryPath || !memoryPath.startsWith('/memories/')) {
 				return undefined;
@@ -206,7 +199,6 @@ export class ToolsContribution extends Disposable {
 			let hasError = false;
 			let hasDeleted = false;
 
-			// Clear user-scoped memories
 			if (globalStorageUri) {
 				const userMemoryUri = URI.joinPath(globalStorageUri, 'memory-tool/memories');
 				try {
@@ -214,14 +206,12 @@ export class ToolsContribution extends Disposable {
 					hasDeleted = true;
 				} catch (e) {
 					if (e instanceof vscode.FileSystemError && e.code === 'FileNotFound') {
-						// Nothing to delete
 					} else {
 						hasError = true;
 					}
 				}
 			}
 
-			// Clear all session memories
 			if (storageUri) {
 				const sessionMemoryUri = URI.joinPath(storageUri, 'memory-tool/memories');
 				try {
@@ -229,7 +219,6 @@ export class ToolsContribution extends Disposable {
 					hasDeleted = true;
 				} catch (e) {
 					if (e instanceof vscode.FileSystemError && e.code === 'FileNotFound') {
-						// Nothing to delete
 					} else {
 						hasError = true;
 					}

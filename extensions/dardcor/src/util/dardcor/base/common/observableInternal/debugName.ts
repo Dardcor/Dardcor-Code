@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -6,22 +5,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 export interface IDebugNameData {
-	/**
-	 * The owner object of an observable.
-	 * Used for debugging only, such as computing a name for the observable by iterating over the fields of the owner.
-	 */
 	readonly owner?: DebugOwner | undefined;
 
-	/**
-	 * A string or function that returns a string that represents the name of the observable.
-	 * Used for debugging only.
-	 */
 	readonly debugName?: DebugNameSource | undefined;
 
-	/**
-	 * A function that points to the defining function of the object.
-	 * Used for debugging only.
-	 */
 	readonly debugReferenceFn?: Function | undefined;
 }
 
@@ -37,10 +24,6 @@ export class DebugNameData {
 	}
 }
 
-/**
- * The owning object of an observable.
- * Is only used for debugging purposes, such as computing a name for the observable by iterating over the fields of the owner.
- */
 export type DebugOwner = object | undefined;
 export type DebugNameSource = string | (() => string | undefined);
 
@@ -142,7 +125,6 @@ export function getClassName(obj: object): string | undefined {
 
 export function getFunctionName(fn: Function): string | undefined {
 	const fnSrc = fn.toString();
-	// Pattern: /** @description ... */
 	const regexp = /\/\*\*\s*@description\s*([^*]*)\*\//;
 	const match = regexp.exec(fnSrc);
 	const result = match ? match[1] : undefined;

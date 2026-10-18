@@ -5,25 +5,10 @@
 
 import * as undici from 'undici';
 
-/**
- * Internal response header stamped by {@link taggedCacheInterceptor} so the
- * fetcher can attribute a response to the cache for telemetry purposes.
- */
 export const VSCODE_CACHE_STATUS_HEADER = 'x-vscode-cache-status';
 
 export type CacheStatus = 'hit' | 'stale-hit' | 'revalidated' | 'miss';
 
-/**
- * Wraps undici's built-in `interceptors.cache(...)` and stamps the served
- * response with {@link VSCODE_CACHE_STATUS_HEADER} so downstream code can
- * tell whether the response came from the cache without relying on header
- * heuristics.
- *
- * Detection is based on observing whether the cache interceptor invoked the
- * downstream dispatcher for a given request and whether it added conditional
- * revalidation headers — both of which are deterministic for a given code
- * path in `undici/lib/interceptor/cache.js`.
- */
 export function taggedCacheInterceptor(
 	cacheOpts: Parameters<typeof undici.interceptors.cache>[0],
 ): undici.Dispatcher.DispatcherComposeInterceptor {

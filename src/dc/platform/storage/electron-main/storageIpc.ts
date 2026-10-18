@@ -21,7 +21,7 @@ export class StorageDatabaseChannel extends Disposable implements IServerChannel
 	private readonly onDidChangeApplicationStorageEmitter = this._register(new Emitter<ISerializableItemsChangeEvent>());
 	private readonly onDidChangeApplicationSharedStorageEmitter = this._register(new Emitter<ISerializableItemsChangeEvent>());
 
-	private readonly mapProfileToOnDidChangeProfileStorageEmitter = new Map<string /* profile ID */, Emitter<ISerializableItemsChangeEvent>>();
+	private readonly mapProfileToOnDidChangeProfileStorageEmitter = new Map<string , Emitter<ISerializableItemsChangeEvent>>();
 
 	constructor(
 		private readonly logService: ILogService,
@@ -33,12 +33,9 @@ export class StorageDatabaseChannel extends Disposable implements IServerChannel
 		this.registerStorageChangeListeners(storageMainService.applicationSharedStorage, this.onDidChangeApplicationSharedStorageEmitter);
 	}
 
-	//#region Storage Change Events
 
 	private registerStorageChangeListeners(storage: IStorageMain, emitter: Emitter<ISerializableItemsChangeEvent>): void {
 
-		// Listen for changes in provided storage to send to listeners
-		// that are listening. Use a debouncer to reduce IPC traffic.
 
 		this._register(Event.debounce(storage.onDidChangeStorage, (prev: IStorageChangeEvent[] | undefined, cur: IStorageChangeEvent) => {
 			if (!prev) {
@@ -79,7 +76,6 @@ export class StorageDatabaseChannel extends Disposable implements IServerChannel
 			case 'onDidChangeStorage': {
 				const profile = arg.profile ? revive<IUserDataProfile>(arg.profile) : undefined;
 
-				// Without profile: application or application-shared scope
 				if (!profile) {
 					if (arg.applicationShared) {
 						return this.onDidChangeApplicationSharedStorageEmitter.event;
@@ -88,7 +84,6 @@ export class StorageDatabaseChannel extends Disposable implements IServerChannel
 					return this.onDidChangeApplicationStorageEmitter.event;
 				}
 
-				// With profile: profile scope for the profile
 				let profileStorageChangeEmitter = this.mapProfileToOnDidChangeProfileStorageEmitter.get(profile.id);
 				if (!profileStorageChangeEmitter) {
 					profileStorageChangeEmitter = this._register(new Emitter<ISerializableItemsChangeEvent>());
@@ -103,7 +98,6 @@ export class StorageDatabaseChannel extends Disposable implements IServerChannel
 		throw new Error(`Event not found: ${event}`);
 	}
 
-	//#endregion
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	async call(_: unknown, command: string, arg: IBaseSerializableStorageRequest): Promise<any> {
@@ -111,10 +105,8 @@ export class StorageDatabaseChannel extends Disposable implements IServerChannel
 		const workspace = reviveIdentifier(arg.workspace);
 		const applicationShared = arg.applicationShared;
 
-		// Get storage to be ready
 		const storage = await this.withStorageInitialized(profile, workspace, applicationShared);
 
-		// handle call
 		switch (command) {
 			case 'getItems': {
 				const items = new Map(storage.items);

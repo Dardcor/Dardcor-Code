@@ -19,8 +19,8 @@ export interface TelemetryReporter {
 }
 
 const nullReporter = new class NullTelemetryReporter implements TelemetryReporter {
-	sendTelemetryEvent() { /** noop */ }
-	dispose() { /** noop */ }
+	sendTelemetryEvent() { }
+	dispose() { }
 };
 
 class ExtensionReporter implements TelemetryReporter {

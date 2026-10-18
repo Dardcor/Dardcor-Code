@@ -111,7 +111,6 @@ class TypeScriptRenameProvider implements vscode.RenameProvider {
 			return undefined;
 		}
 
-		// Prefer renaming matching jsx tag when available
 		if (this.client.apiVersion.gte(API.v510) &&
 			readUnifiedConfig<boolean>('preferences.renameMatchingJsxTags', true, { scope: document, fallbackSection: this.language.id }) &&
 			this.looksLikePotentialJsxTagContext(document, position)
@@ -171,7 +170,6 @@ class TypeScriptRenameProvider implements vscode.RenameProvider {
 		newName: string,
 		token: vscode.CancellationToken,
 	): Promise<vscode.WorkspaceEdit | undefined> {
-		// Make sure we preserve file extension if extension is unchanged or none provided
 		if (!path.extname(newName)) {
 			newName += path.extname(fileToRename);
 		}

@@ -38,7 +38,6 @@ export async function GET() {
   try {
     const installed = isTailscaleInstalled();
     const platform = os.platform();
-    // Run independent probes in parallel — none blocks the event loop
     const [brewAvailable, customDaemonRunning, systemDaemonRunning] = await Promise.all([
       platform === "darwin" ? hasBrew() : Promise.resolve(false),
       installed ? isCustomDaemonRunning() : Promise.resolve(false),

@@ -583,7 +583,7 @@ class ExtractedUserDataSyncActivityViewDataProvider extends UserDataSyncActivity
 				this.activityDataLocation = this.activityDataResource;
 			} else {
 				this.activityDataLocation = this.uriIdentityService.extUri.joinPath(this.uriIdentityService.extUri.dirname(this.activityDataResource), 'remoteActivity');
-				try { await this.fileService.del(this.activityDataLocation, { recursive: true }); } catch (e) {/* ignore */ }
+				try { await this.fileService.del(this.activityDataLocation, { recursive: true }); } catch (e) { }
 				await this.userDataSyncService.extractActivityData(this.activityDataResource, this.activityDataLocation);
 			}
 		}

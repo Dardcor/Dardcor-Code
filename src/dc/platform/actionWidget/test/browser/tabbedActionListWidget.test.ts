@@ -26,11 +26,6 @@ function action(id: string): IActionListItem<ITestItem> {
 	return { kind: ActionListItemKind.Action, label: id, item: { id } };
 }
 
-/**
- * Minimal fake `IContextViewService` that captures the most recent delegate
- * and synchronously calls `render()` so we can drive the widget without a
- * real DOM-backed context view.
- */
 class FakeContextViewService implements Partial<IContextViewService> {
 	declare readonly _serviceBrand: undefined;
 
@@ -43,7 +38,6 @@ class FakeContextViewService implements Partial<IContextViewService> {
 	}
 
 	showContextView(delegate: IContextViewDelegate): { close: () => void } {
-		// Tear down any previous render before showing a new one.
 		this.hideContextView();
 		this._activeDelegate = delegate;
 		this._container = document.createElement('div');
@@ -62,15 +56,12 @@ class FakeContextViewService implements Partial<IContextViewService> {
 		this._activeDelegate = undefined;
 		this._activeRenderDisposables = undefined;
 		this._container = undefined;
-		// Notify the delegate first so its `onHide` runs against the still-
-		// mounted DOM, mirroring the real `ContextView` order. The widget
-		// uses this to fire its consumer `onHide` callback.
 		delegate?.onHide?.();
 		renderDisposables?.dispose();
 		container?.remove();
 	}
 
-	layout(): void { /* no-op */ }
+	layout(): void { }
 	getContextViewElement(): HTMLElement {
 		return this._container ?? document.body;
 	}
@@ -182,7 +173,6 @@ suite('TabbedActionListWidget', () => {
 			delegate: { onSelect: () => { }, onHide: () => { } },
 		});
 
-		// Simulate an external dismissal (e.g. user clicked outside).
 		contextView.hideContextView();
 		assert.strictEqual(hidden, 1, `expected onDidHide to fire once, got ${hidden}; widget visible: ${widget.isVisible}`);
 		assert.strictEqual(widget.isVisible, false);

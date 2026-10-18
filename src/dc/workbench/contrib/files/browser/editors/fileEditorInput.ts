@@ -33,9 +33,6 @@ const enum ForceOpenAs {
 	Binary
 }
 
-/**
- * A file editor input is the input type for the file editor of file system resources.
- */
 export class FileEditorInput extends AbstractTextResourceEditorInput implements IFileEditorInput {
 
 	override get typeId(): string {
@@ -126,10 +123,8 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 			this.setPreferredContents(preferredContents);
 		}
 
-		// Attach to model that matches our resource once created
 		this._register(this.textFileService.files.onDidCreate(model => this.onDidCreateTextFileModel(model)));
 
-		// If a file model already exists, make sure to wire it in
 		if (this.model) {
 			this.registerModelListeners(this.model);
 		}
@@ -137,8 +132,6 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 
 	private onDidCreateTextFileModel(model: ITextFileEditorModel): void {
 
-		// Once the text file model is created, we keep it inside
-		// the input to be able to implement some methods properly
 		if (isEqual(model.resource, this.resource)) {
 			this.model = model;
 
@@ -148,19 +141,13 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 
 	private registerModelListeners(model: ITextFileEditorModel): void {
 
-		// Clear any old
 		this.modelListeners.clear();
 
-		// re-emit some events from the model
 		this.modelListeners.add(model.onDidChangeDirty(() => this._onDidChangeDirty.fire()));
 		this.modelListeners.add(model.onDidChangeReadonly(() => this._onDidChangeCapabilities.fire()));
 
-		// important: treat save errors as potential dirty change because
-		// a file that is in save conflict or error will report dirty even
-		// if auto save is turned on.
 		this.modelListeners.add(model.onDidSaveError(() => this._onDidChangeDirty.fire()));
 
-		// remove model association once it gets disposed
 		this.modelListeners.add(Event.once(model.onWillDispose)(() => {
 			this.modelListeners.clear();
 			this.model = undefined;
@@ -173,7 +160,7 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 
 	setPreferredName(name: string): void {
 		if (!this.allowLabelOverride()) {
-			return; // block for specific schemes we consider to be owning
+			return;
 		}
 
 		if (this.preferredName !== name) {
@@ -204,7 +191,7 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 
 	setPreferredDescription(description: string): void {
 		if (!this.allowLabelOverride()) {
-			return; // block for specific schemes we consider to be owning
+			return;
 		}
 
 		if (this.preferredDescription !== description) {
@@ -262,7 +249,6 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 	setPreferredEncoding(encoding: string): void {
 		this.preferredEncoding = encoding;
 
-		// encoding is a good hint to open the file as text
 		this.setForceOpenAsText();
 	}
 
@@ -287,14 +273,12 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 	setPreferredLanguageId(languageId: string): void {
 		this.preferredLanguageId = languageId;
 
-		// languages are a good hint to open the file as text
 		this.setForceOpenAsText();
 	}
 
 	setPreferredContents(contents: string): void {
 		this.preferredContents = contents;
 
-		// contents is a good hint to open the file as text
 		this.setForceOpenAsText();
 	}
 
@@ -312,16 +296,12 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 
 	override isSaving(): boolean {
 		if (this.model?.hasState(TextFileEditorModelState.SAVED) || this.model?.hasState(TextFileEditorModelState.CONFLICT) || this.model?.hasState(TextFileEditorModelState.ERROR)) {
-			return false; // require the model to be dirty and not in conflict or error state
+			return false;
 		}
 
-		// Note: currently not checking for ModelState.PENDING_SAVE for a reason
-		// because we currently miss an event for this state change on editors
-		// and it could result in bad UX where an editor can be closed even though
-		// it shows up as dirty and has not finished saving yet.
 
 		if (this.filesConfigurationService.hasShortAutoSaveDelay(this)) {
-			return true; // a short auto save is configured, treat this as being saved
+			return true;
 		}
 
 		return super.isSaving();
@@ -337,49 +317,35 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 
 	override resolve(options?: IFileEditorInputOptions): Promise<ITextFileEditorModel | BinaryEditorModel> {
 
-		// Resolve as binary
 		if (this.forceOpenAs === ForceOpenAs.Binary) {
 			return this.doResolveAsBinary();
 		}
 
-		// Resolve as text
 		return this.doResolveAsText(options);
 	}
 
 	private async doResolveAsText(options?: IFileEditorInputOptions): Promise<ITextFileEditorModel | BinaryEditorModel> {
 		try {
 
-			// Unset preferred contents after having applied it once
-			// to prevent this property to stick. We still want future
-			// `resolve` calls to fetch the contents from disk.
 			const preferredContents = this.preferredContents;
 			this.preferredContents = undefined;
 
-			// Resolve resource via text file service and only allow
-			// to open binary files if we are instructed so
 			await this.textFileService.files.resolve(this.resource, {
 				languageId: this.preferredLanguageId,
 				encoding: this.preferredEncoding,
 				contents: typeof preferredContents === 'string' ? createTextBufferFactory(preferredContents) : undefined,
-				reload: { async: true }, // trigger a reload of the model if it exists already but do not wait to show the model
+				reload: { async: true },
 				allowBinary: this.forceOpenAs === ForceOpenAs.Text,
 				reason: TextFileResolveReason.EDITOR,
 				limits: this.ensureLimits(options)
 			});
 
-			// This is a bit ugly, because we first resolve the model and then resolve a model reference. the reason being that binary
-			// or very large files do not resolve to a text file model but should be opened as binary files without text. First calling into
-			// resolve() ensures we are not creating model references for these kind of resources.
-			// In addition we have a bit of payload to take into account (encoding, reload) that the text resolver does not handle yet.
 			if (!this.cachedTextFileModelReference) {
 				this.cachedTextFileModelReference = await this.textModelService.createModelReference(this.resource) as IReference<ITextFileEditorModel>;
 			}
 
 			const model = this.cachedTextFileModelReference.object;
 
-			// It is possible that this input was disposed before the model
-			// finished resolving. As such, we need to make sure to dispose
-			// the model reference to not leak it.
 			if (this.isDisposed()) {
 				this.disposeModelReference();
 			}
@@ -387,12 +353,10 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 			return model;
 		} catch (error) {
 
-			// Handle binary files with binary model
 			if ((<TextFileOperationError>error).textFileOperationResult === TextFileOperationResult.FILE_IS_BINARY) {
 				return this.doResolveAsBinary();
 			}
 
-			// Bubble any other error up
 			throw error;
 		}
 	}
@@ -435,7 +399,7 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 			untypedInput.contents = (() => {
 				const model = this.textFileService.files.get(this.resource);
 				if (model?.isDirty() && !model.textEditorModel.isTooLargeForHeapOperation()) {
-					return model.textEditorModel.getValue(); // only if dirty and not too large
+					return model.textEditorModel.getValue();
 				}
 
 				return undefined;
@@ -468,10 +432,8 @@ export class FileEditorInput extends AbstractTextResourceEditorInput implements 
 
 	override dispose(): void {
 
-		// Model
 		this.model = undefined;
 
-		// Model reference
 		this.disposeModelReference();
 
 		super.dispose();

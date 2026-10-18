@@ -10,10 +10,6 @@ import { ModelDecorationOptions } from '../../../../../editor/common/model/textM
 import { IModelService } from '../../../../../editor/common/services/model.js';
 import { Range } from '../../../../../editor/common/core/range.js';
 
-/**
- * Can add a range highlight decoration to a model.
- * It will automatically remove it when the model has its decorations changed.
- */
 
 export class RangeHighlightDecorations implements IDisposable {
 

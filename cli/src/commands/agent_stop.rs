@@ -14,12 +14,9 @@ use super::agent;
 use super::args::AgentStopArgs;
 use super::CommandContext;
 
-/// Cancels the active turn of every in-progress chat in a session on a running
-/// agent host.
 pub async fn agent_stop(ctx: CommandContext, args: AgentStopArgs) -> Result<i32, AnyError> {
 	let client = agent::connect(&ctx, args.address.as_deref(), args.tunnel.as_deref()).await?;
 
-	// Subscribe to the session to get its catalog of chats.
 	let result: SubscribeResult = agent::request_with_auth(
 		&ctx,
 		&client,
@@ -30,8 +27,6 @@ pub async fn agent_stop(ctx: CommandContext, args: AgentStopArgs) -> Result<i32,
 	)
 	.await?;
 
-	// Turns live on individual chats now, so collect the chats that look active
-	// from the session catalog before drilling into each one.
 	let chat_uris: Vec<String> = match result.snapshot.map(|s| s.state) {
 		Some(SnapshotState::Session(session)) => session
 			.chats
@@ -44,7 +39,6 @@ pub async fn agent_stop(ctx: CommandContext, args: AgentStopArgs) -> Result<i32,
 
 	let mut cancelled = 0;
 	for chat_uri in chat_uris {
-		// Subscribe to the chat to find its active turn, if any.
 		let chat_result: SubscribeResult = agent::request_with_auth(
 			&ctx,
 			&client,

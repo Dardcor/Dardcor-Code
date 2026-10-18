@@ -7,7 +7,6 @@ import { ICellViewModel, INotebookEditorDelegate } from '../../../notebookBrowse
 import { CellContentPart } from '../../cellPart.js';
 
 export class CellChatPart extends CellContentPart {
-	// private _controller: NotebookCellChatController | undefined;
 
 	get activeCell() {
 		return this.currentCell;

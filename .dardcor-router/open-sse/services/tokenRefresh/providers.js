@@ -31,8 +31,6 @@ export async function refreshXaiToken(refreshToken, log) {
   }, log);
 }
 
-// Per-provider refresh variants for the generic path. Keys not listed fall back
-// to the default form-encoded OAuth2 refresh with client_id + client_secret.
 const REFRESH_PROFILES = {
   claude: {
     bodyFormat: "json",
@@ -56,11 +54,20 @@ const REFRESH_PROFILES = {
     dedupKey: "kimi",
     extraHeaders: (creds) => buildKimiHeaders(creds?.providerSpecificData?.deviceId),
   },
+  opencode: {
+    bodyFormat: "json",
+    includeClientSecret: false,
+    url: () => "https://opencode.ai/console/auth/device/token",
+    dedupKey: "opencode",
+    extraHeaders: () => ({
+      "User-Agent": "opencode/stable/2.0.29/cli",
+    }),
+  },
 };
 
 function resolveRefreshUrl(provider, config, profile) {
   if (profile?.url) {
-    try { return profile.url(); } catch { /* fall through */ }
+    try { return profile.url(); } catch { }
   }
   return config?.refreshUrl || PROVIDER_OAUTH[provider]?.tokenUrl || null;
 }
@@ -141,8 +148,6 @@ export async function refreshAccessToken(provider, refreshToken, credentials, lo
   }, log);
 }
 
-// CLIProxyAPI DeviceFlowClient.RefreshToken: form body (no client_secret) + X-Msh-* headers
-// Delegate to refreshAccessToken("kimi", ...) — profile carries the X-Msh headers.
 export async function refreshKimiToken(refreshToken, credentials, log) {
   return refreshAccessToken("kimi", refreshToken, credentials, log);
 }
@@ -194,7 +199,6 @@ export async function refreshClineToken(refreshToken, log) {
   }, log);
 }
 
-// Claude OAuth: JSON body, client_id only. Delegate to refreshAccessToken("claude", ...).
 export async function refreshClaudeOAuthToken(refreshToken, log) {
   return refreshAccessToken("claude", refreshToken, {}, log);
 }
@@ -455,12 +459,10 @@ export async function refreshKiroToken(refreshToken, providerSpecificData, log, 
   }, log);
 }
 
-// iFlow: Basic Auth + client_id+client_secret in body. Delegate to refreshAccessToken("iflow", ...).
 export async function refreshIflowToken(refreshToken, log) {
   return refreshAccessToken("iflow", refreshToken, {}, log);
 }
 
-// GitHub: optional client_secret. Delegate to refreshAccessToken("github", ...).
 export async function refreshGitHubToken(refreshToken, log) {
   return refreshAccessToken("github", refreshToken, {}, log);
 }
@@ -509,9 +511,6 @@ export async function refreshCopilotToken(githubAccessToken, log) {
   }, log);
 }
 
-// CodeBuddy (Tencent) refresh — POST /v2/plugin/auth/token/refresh with the
-// refresh token carried in the X-Refresh-Token header (not a form body),
-// matching the official CodeBuddy CLI. Response: { code: 0, data: <token> }.
 export async function refreshCodebuddyToken(refreshToken, log) {
   if (!refreshToken) return null;
   return dedupRefresh("codebuddy-cn", refreshToken, async () => {
@@ -614,8 +613,6 @@ export async function refreshCodebuddyIntlToken(refreshToken, log) {
   }, log);
 }
 
-// Trae refresh — POST ExchangeToken with JSON body {ClientID, RefreshToken, ClientSecret, UserID}.
-// Response: {Result: {AccessToken, RefreshToken, TokenType, ExpiresAt}}.
 export async function refreshTraeToken(refreshToken, credentials, log) {
   if (!refreshToken) return null;
   const oauth = PROVIDER_OAUTH.trae || {};
@@ -687,21 +684,69 @@ export async function refreshTraeToken(refreshToken, credentials, log) {
   }, log);
 }
 
-// Zed access_token is long-lived; auth flow returns no refresh_token.
-// No refresh possible — re-login required when token expires/revoked.
-// Mirrors cursor/kilocode null-refresh pattern.
 export function refreshZedToken() {
   return null;
 }
 
-// Windsurf apiKey is the long-lived terminal credential (no OAuth2 refresh_token
-// grant yields a fresh apiKey). Refresh handled out-of-band by the caller.
-// TODO(firebase): if short-lived Firebase JWT credentials must be refreshed,
-// re-run RegisterUser with the refreshed Firebase JWT (separate code path).
 export async function refreshWindsurfToken(credentials, log) {
   log?.info?.(
     "TOKEN_REFRESH",
     "windsurf: apiKey is long-lived (no refresh_token flow) — skipping"
   );
   return null;
+}
+
+const MINIMAX_CODE_SITES = {
+  "minimax-code": "https://account.minimax.cn/oauth2/token",
+  "minimax-code-global": "https://account.minimax.io/oauth2/token",
+};
+
+export async function refreshMiniMaxCodeToken(provider, refreshToken, log) {
+  const tokenUrl = MINIMAX_CODE_SITES[provider];
+  if (!tokenUrl || !refreshToken) return null;
+  return dedupRefresh(provider, refreshToken, async () => {
+    try {
+      const response = await fetch(tokenUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          client_id: "mcode-public",
+          scope: "agent.default",
+          audience: "agent-backend",
+        }).toString(),
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || (data && typeof data.error === "string" && data.error)) {
+        const code = data?.error || `HTTP ${response.status}`;
+        if (response.status === 400 && data?.error === "invalid_grant") {
+          log?.warn?.("TOKEN_REFRESH", `MiniMax refresh token spent/rejected (${provider}) — sign-in gone`);
+          return { error: "invalid_grant" };
+        }
+        log?.error?.("TOKEN_REFRESH", `MiniMax token refresh failed (${provider})`, { status: response.status, error: code });
+        return null;
+      }
+      if (!data?.access_token) {
+        log?.error?.("TOKEN_REFRESH", `MiniMax refresh returned no access_token (${provider})`);
+        return null;
+      }
+      return {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token || refreshToken,
+        expiresIn: data.expires_in,
+      };
+    } catch (error) {
+      log?.error?.("TOKEN_REFRESH", `Error refreshing MiniMax token (${provider}): ${error.message}`);
+      return null;
+    }
+  }, log);
+}
+
+export async function refreshOpencodeToken(refreshToken, log) {
+  return refreshAccessToken("opencode", refreshToken, {}, log);
 }

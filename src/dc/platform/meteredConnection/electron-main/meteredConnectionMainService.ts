@@ -7,10 +7,6 @@ import { IConfigurationService } from '../../configuration/common/configuration.
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { AbstractMeteredConnectionService } from '../common/meteredConnection.js';
 
-/**
- * Electron-main implementation of the metered connection service.
- * This implementation receives metered connection updates via IPC channel from the renderer process.
- */
 export class MeteredConnectionMainService extends AbstractMeteredConnectionService {
 	private telemetryService: ITelemetryService | undefined;
 
@@ -23,7 +19,6 @@ export class MeteredConnectionMainService extends AbstractMeteredConnectionServi
 	}
 
 	protected override onChangeBrowserConnection() {
-		// Fire event after sending telemetry if switching to metered since telemetry will be paused.
 		const fireAfter = this.isBrowserConnectionMetered;
 		if (!fireAfter) {
 			super.onChangeBrowserConnection();

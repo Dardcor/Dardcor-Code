@@ -1,4 +1,3 @@
-// Linux incompatible
 
 const signals = [
 	"hup",
@@ -15,8 +14,6 @@ const signals = [
 	"sys",
 	"pipe",
 	"alrm",
-	// This is the default signal
-	// "term",
 	"urg",
 	"stop",
 	"tstp",
@@ -42,7 +39,6 @@ const completionSpec: Fig.Spec = {
 		name: "process_name",
 		isVariadic: true,
 		generators: {
-			// All processes, only display the path
 			script: ["bash", "-c", "ps -A -o comm | sort -u"],
 			postProcess: (out) =>
 				out

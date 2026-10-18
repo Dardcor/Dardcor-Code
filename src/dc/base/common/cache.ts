@@ -41,17 +41,9 @@ export function identity<T>(t: T): T {
 }
 
 interface ICacheOptions<TArg> {
-	/**
-	 * The cache key is used to identify the cache entry.
-	 * Strict equality is used to compare cache keys.
-	*/
 	getCacheKey: (arg: TArg) => unknown;
 }
 
-/**
- * Uses a LRU cache to make a given parametrized function cached.
- * Caches just the last key/value.
-*/
 export class LRUCachedFunction<TArg, TComputed> {
 	private lastCache: TComputed | undefined = undefined;
 	private lastArgKey: unknown | undefined = undefined;
@@ -81,9 +73,6 @@ export class LRUCachedFunction<TArg, TComputed> {
 	}
 }
 
-/**
- * Uses an unbounded cache to memoize the results of the given function.
-*/
 export class CachedFunction<TArg, TComputed> {
 	private readonly _map = new Map<TArg, TComputed>();
 	private readonly _map2 = new Map<unknown, TComputed>();
@@ -119,9 +108,6 @@ export class CachedFunction<TArg, TComputed> {
 	}
 }
 
-/**
- * Uses an unbounded cache to memoize the results of the given function.
-*/
 export class WeakCachedFunction<TArg, TComputed> {
 	private readonly _map = new WeakMap<WeakKey, TComputed>();
 

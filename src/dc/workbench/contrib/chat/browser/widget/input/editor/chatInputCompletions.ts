@@ -54,7 +54,7 @@ import { IChatRequestVariableEntry } from '../../../../common/attachments/chatVa
 import { IDynamicVariable, toAttachedContextDynamicVariable } from '../../../../common/attachments/chatVariables.js';
 import { ChatAgentLocation, ChatModeKind, isSupportedChatFileScheme } from '../../../../common/constants.js';
 import { isToolSet } from '../../../../common/tools/languageModelToolsService.js';
-import { IChatSessionsService, isAgentHostTarget } from '../../../../common/chatSessionsService.js';
+import { IChatSessionsService } from '../../../../common/chatSessionsService.js';
 import { ICustomizationHarnessService } from '../../../../common/customizationHarnessService.js';
 import { matchesSessionType } from '../../../../common/promptSyntax/service/promptsService.js';
 import { PromptsType } from '../../../../common/promptSyntax/promptTypes.js';
@@ -65,28 +65,13 @@ import { ChatDynamicVariableModel } from '../../../attachments/chatDynamicVariab
 import { IChatService } from '../../../../common/chatService/chatService.js';
 import { getChatSessionType } from '../../../../common/model/chatUri.js';
 import { attachedContextCompletionAdditionalTriggerCharacters, computeCompletionRanges, escapeForCharClass, getAttachedContextCompletionMatch, getAttachedContextCompletionSortText, getCompletionRangeWord, IChatCompletionRangeResult, isEmptyUpToCompletionWord, isOnlySlashOrPromptCommandsUpToCompletionWord } from './chatInputCompletionUtils.js';
-import { getAgentSessionProviderIcon, AgentSessionProviders } from '../../../agentSessions/agentSessions.js';
 
-/**
- * Regex matching a slash command word (e.g. `/foo`). Uses `\p{L}` for Unicode
- * letter matching, consistent with `isValidSlashCommandName`.
- */
 const SlashCommandWord = /\/[\p{L}0-9_.:-]*/gu;
 
-/**
- * Regex matching an agent-or-slash command word (e.g. `@agent` or `/cmd`).
- */
 const AgentOrSlashCommandWord = /(@|\/)[\p{L}0-9_.:-]*/gu;
 
-/**
- * Returns `true` when the widget's chat session is backed by an agent
- * host (local or remote). For these sessions, completions are delegated
- * to the agent host via `AgentHostInputCompletions`, and the workbench's
- * default in-process providers (file/symbol/tool/agent) short-circuit.
- */
 function isAgentHostBackedWidget(widget: IChatWidget): boolean {
-	const sessionResource = widget.viewModel?.model.sessionResource;
-	return !!sessionResource && isAgentHostTarget(getChatSessionType(sessionResource));
+	return false;
 }
 
 class SlashCommandCompletions extends Disposable {
@@ -110,12 +95,11 @@ class SlashCommandCompletions extends Disposable {
 					return null;
 				}
 
-				const range = computeCompletionRanges(model, position, SlashCommandWord);
+				const range = computeCompletionRanges(model, position, SlashCommandWord, true);
 				if (!range) {
 					return null;
 				}
 
-				// Allow chaining: prior tokens must all be slash/prompt commands (e.g. `/skill1 /`)
 				if (!isOnlySlashOrPromptCommandsUpToCompletionWord(model, range)) {
 					return;
 				}
@@ -137,9 +121,6 @@ class SlashCommandCompletions extends Disposable {
 				return {
 					suggestions: slashCommands
 						.filter(c => {
-							// silent commands are client-side only... so they're not "attaching anything"
-							// so this check can be scoped to when the command _does_ attach something before
-							// checking if the widget supports attachments at all
 							if (!c.silent && !widget.attachmentCapabilities.supportsPromptAttachments) {
 								return false;
 							}
@@ -165,7 +146,7 @@ class SlashCommandCompletions extends Disposable {
 								documentation: c.detail,
 								range,
 								sortText: c.sortText ?? 'a'.repeat(i + 1),
-								kind: CompletionItemKind.Text, // The icons are disabled here anyway,
+								kind: CompletionItemKind.Text,
 								command: c.executeImmediately ? { id: ChatSubmitAction.ID, title: withSlash, arguments: [{ widget, inputValue: `${withSlash} ` } satisfies IChatExecuteActionContext] } : undefined,
 							};
 						})
@@ -187,7 +168,6 @@ class SlashCommandCompletions extends Disposable {
 				}
 
 				if (!isEmptyUpToCompletionWord(model, range)) {
-					// No text allowed before the completion
 					return;
 				}
 
@@ -215,7 +195,7 @@ class SlashCommandCompletions extends Disposable {
 								range,
 								filterText: `${chatAgentLeader}${c.command}`,
 								sortText: c.sortText ?? 'z'.repeat(i + 1),
-								kind: CompletionItemKind.Text, // The icons are disabled here anyway,
+								kind: CompletionItemKind.Text,
 								command: c.executeImmediately ? { id: ChatSubmitAction.ID, title: withSlash, arguments: [{ widget, inputValue: `${withSlash} ` } satisfies IChatExecuteActionContext] } : undefined,
 							};
 						})
@@ -231,22 +211,13 @@ class SlashCommandCompletions extends Disposable {
 					return null;
 				}
 
-				// NOTE: intentionally NOT blocking agent-host sessions here,
-				// so local skills are available in Workspace Agent too.
 
-				const range = computeCompletionRanges(model, position, SlashCommandWord);
+				const range = computeCompletionRanges(model, position, SlashCommandWord, true);
 				if (!range) {
 					return null;
 				}
 
 				if (!isOnlySlashOrPromptCommandsUpToCompletionWord(model, range)) {
-					return;
-				}
-
-				const parsedRequest = widget.parsedInput.parts;
-				const usedAgent = parsedRequest.find(p => p instanceof ChatRequestAgentPart);
-				if (usedAgent) {
-					// No (classic) global slash commands when an agent is used
 					return;
 				}
 
@@ -279,11 +250,9 @@ class SlashCommandCompletions extends Disposable {
 							insertText: `${displayLabel} `,
 							documentation: c.description,
 							range,
-							// Allow matching by either the space form (what the user sees) or the
-							// colon form (so legacy `/chronicle:tips` typing still filters).
 							filterText: hasSubcommand ? `${colonLabel} ${displayLabel}` : undefined,
 							sortText: 'a'.repeat(i + 1),
-							kind: CompletionItemKind.Text, // The icons are disabled here anyway,
+							kind: CompletionItemKind.Text,
 						};
 					})
 				};
@@ -303,8 +272,7 @@ class SlashCommandCompletions extends Disposable {
 					return;
 				}
 
-				// regex is the opposite of `mcpPromptReplaceSpecialChars` found in `mcpTypes.ts`
-				const range = computeCompletionRanges(model, position, /\/[\p{L}0-9_.-]*/gu);
+				const range = computeCompletionRanges(model, position, /\/[\p{L}0-9_.-]*/gu, true);
 				if (!range) {
 					return null;
 				}
@@ -364,14 +332,13 @@ class AgentCompletions extends Disposable {
 					return;
 				}
 
-				const range = computeCompletionRanges(model, position, SlashCommandWord);
+				const range = computeCompletionRanges(model, position, SlashCommandWord, true);
 				if (!range) {
 					return;
 				}
 
 				const usedAgent = this.getCurrentAgentForWidget(widget);
 				if (!usedAgent || usedAgent.command) {
-					// Only one allowed
 					return;
 				}
 
@@ -383,7 +350,7 @@ class AgentCompletions extends Disposable {
 							insertText: `${withSlash} `,
 							documentation: c.description,
 							range,
-							kind: CompletionItemKind.Text, // The icons are disabled here anyway
+							kind: CompletionItemKind.Text,
 						};
 					})
 				};
@@ -415,24 +382,17 @@ class AgentCompletions extends Disposable {
 				}
 
 				if (!isEmptyUpToCompletionWord(model, range)) {
-					// No text allowed before the completion
 					return;
 				}
 
 				const agents = this.chatAgentService.getAgents()
 					.filter(a => a.locations.includes(widget.location));
 
-				// Filter out chatSessions contributions for slash command completions
 				const chatSessionContributions = this.chatSessionsService.getAllChatSessionContributions();
 				const chatSessionAgentIds = new Set(chatSessionContributions.map(contribution => contribution.type));
 				const agentsForSlashCommands = agents.filter(a => !chatSessionAgentIds.has(a.id));
 
-				// When the input is only `/`, items are sorted by sortText.
-				// When typing, filterText is used to score and sort.
-				// The same list is refiltered/ranked while typing.
 				const getFilterText = (agent: IChatAgentData, command: string) => {
-					// This is hacking the filter algorithm to make @terminal /explain match worse than @workspace /explain by making its match index later in the string.
-					// When I type `/exp`, the workspace one should be sorted over the terminal one.
 					const dummyPrefix = agent.id === 'github.copilot.terminalPanel' ? `0000` : ``;
 					return `${chatAgentLeader}${dummyPrefix}${agent.name}.${command}`;
 				};
@@ -476,13 +436,12 @@ class AgentCompletions extends Disposable {
 								commitCharacters: [' '],
 								insertText: label + ' ',
 								range,
-								kind: CompletionItemKind.Text, // The icons are disabled here anyway
+								kind: CompletionItemKind.Text,
 								sortText: `x${chatAgentLeader}${agent.name}${c.name}`,
 								command: { id: AssignSelectedAgentAction.ID, title: AssignSelectedAgentAction.ID, arguments: [{ agent, widget } satisfies AssignSelectedAgentActionArgs] },
 							};
 
 							if (agent.isDefault) {
-								// default agent isn't mentioned nor inserted
 								const label = `${chatSubcommandLeader}${c.name}`;
 								item.label = label;
 								item.insertText = `${label} `;
@@ -519,13 +478,11 @@ class AgentCompletions extends Disposable {
 				}
 
 				if (!isEmptyUpToCompletionWord(model, range)) {
-					// No text allowed before the completion
 					return;
 				}
 
 				const agents = this.chatAgentService.getAgents()
 					.filter(a => a.locations.includes(widget.location) && a.modes.includes(widget.input.currentModeKind))
-					// Filter out chatSessions contributions for slash command completions
 					.filter(a => !this.chatSessionsService.getChatSessionContribution(a.id));
 
 				return {
@@ -544,13 +501,12 @@ class AgentCompletions extends Disposable {
 							insertText: `${agentLabel} ${withSlash} `,
 							documentation: `(${agentLabel}) ${c.description ?? ''}`,
 							range,
-							kind: CompletionItemKind.Text, // The icons are disabled here anyway
+							kind: CompletionItemKind.Text,
 							sortText,
 							command: { id: AssignSelectedAgentAction.ID, title: AssignSelectedAgentAction.ID, arguments: [{ agent, widget } satisfies AssignSelectedAgentActionArgs] },
 						};
 
 						if (agent.isDefault) {
-							// default agent isn't mentioned nor inserted
 							const label = `${chatSubcommandLeader}${c.name}`;
 							item.label = label;
 							item.insertText = `${label} `;
@@ -590,7 +546,6 @@ class AgentCompletions extends Disposable {
 				}
 
 				if (!isEmptyUpToCompletionWord(model, range)) {
-					// No text allowed before the completion
 					return;
 				}
 
@@ -599,7 +554,7 @@ class AgentCompletions extends Disposable {
 					label,
 					insertText: '',
 					range,
-					kind: CompletionItemKind.Text, // The icons are disabled here anyway
+					kind: CompletionItemKind.Text,
 					command: { id: 'workbench.extensions.search', title: '', arguments: ['@tag:chat-participant'] },
 					filterText: chatAgentLeader + label,
 					sortText: 'zzz'
@@ -628,7 +583,6 @@ class AgentCompletions extends Disposable {
 
 		const usedOtherCommand = parsedRequest.find(p => p instanceof ChatRequestAgentSubcommandPart || p instanceof ChatRequestSlashPromptPart);
 		if (usedOtherCommand) {
-			// Only one allowed
 			return {
 				agent: usedAgent.agent,
 				command: usedOtherCommand instanceof ChatRequestAgentSubcommandPart ? usedOtherCommand.command.name : undefined
@@ -636,9 +590,7 @@ class AgentCompletions extends Disposable {
 		}
 
 		for (const partAfterAgent of parsedRequest.slice(usedAgentIdx + 1)) {
-			// Could allow text after 'position'
 			if (!(partAfterAgent instanceof ChatRequestTextPart) || !partAfterAgent.text.trim().match(/^(\/[\p{L}0-9_.:-]*)?$/u)) {
-				// No text allowed between agent and subcommand
 				return;
 			}
 		}
@@ -666,7 +618,7 @@ class AssignSelectedAgentAction extends Action2 {
 	constructor() {
 		super({
 			id: AssignSelectedAgentAction.ID,
-			title: '' // not displayed
+			title: ''
 		});
 	}
 
@@ -691,7 +643,7 @@ class StartParameterizedPromptAction extends Action2 {
 	constructor() {
 		super({
 			id: StartParameterizedPromptAction.ID,
-			title: '' // not displayed
+			title: ''
 		});
 	}
 
@@ -723,7 +675,7 @@ class StartParameterizedPromptAction extends Action2 {
 
 		store.add(model.onDidChangeContent(() => {
 			if (getPromptIndex()) {
-				cts.cancel(); // cancel if the user deletes their prompt
+				cts.cancel();
 			}
 		}));
 
@@ -745,8 +697,6 @@ class StartParameterizedPromptAction extends Action2 {
 		const pick = store.add(instantiationService.createInstance(McpPromptArgumentPick, prompt));
 
 		try {
-			// start the server if not already running so that it's ready to resolve
-			// the prompt instantly when the user finishes picking arguments.
 			await server.start();
 
 			const args = await pick.createArgs();
@@ -774,7 +724,6 @@ class StartParameterizedPromptAction extends Action2 {
 						try {
 							validURI ||= await fileService.exists(uri) ? uri : undefined;
 						} catch {
-							// ignored
 						}
 					}
 				}
@@ -814,7 +763,6 @@ class StartParameterizedPromptAction extends Action2 {
 						name: basename(validURI),
 					});
 				} else {
-					// not a valid resource/resource URI
 				}
 			};
 
@@ -875,7 +823,7 @@ interface IVariableCompletionsDetails {
 
 class BuiltinDynamicCompletions extends Disposable {
 	private static readonly addReferenceCommand = '_addReferenceCmd';
-	private static readonly VariableNameDef = new RegExp(`[${escapeForCharClass(chatVariableLeader)}${escapeForCharClass(chatAgentLeader)}][\\w:-]*`, 'g'); // MUST be using `g`-flag
+	private static readonly VariableNameDef = new RegExp(`[${escapeForCharClass(chatVariableLeader)}${escapeForCharClass(chatAgentLeader)}][\\w:-]*`, 'g');
 
 
 	constructor(
@@ -939,7 +887,6 @@ class BuiltinDynamicCompletions extends Disposable {
 			return { suggestions, incomplete: true };
 		}, BuiltinDynamicCompletions.VariableNameDef, true, attachedContextCompletionAdditionalTriggerCharacters);
 
-		// File/Folder completions in one go and m
 		const fileWordPattern = new RegExp(`[${escapeForCharClass(chatVariableLeader)}${escapeForCharClass(chatAgentLeader)}][^\\s]*`, 'g');
 		this.registerVariableCompletions('fileAndFolder', async ({ widget, range }, token) => {
 			if (!widget.supportsFileReferences) {
@@ -948,7 +895,6 @@ class BuiltinDynamicCompletions extends Disposable {
 
 			const result: CompletionList = { suggestions: [] };
 
-			// If locked to an agent that doesn't support file attachments, skip
 			if (widget.lockedAgentId) {
 				const agent = this.chatAgentService.getAgent(widget.lockedAgentId);
 				if (agent && !agent.capabilities?.supportsFileAttachments) {
@@ -960,7 +906,6 @@ class BuiltinDynamicCompletions extends Disposable {
 
 		}, fileWordPattern);
 
-		// Selection completion
 		this.registerVariableCompletions('selection', ({ widget, range }, token) => {
 			if (!widget.supportsFileReferences) {
 				return;
@@ -1007,7 +952,6 @@ class BuiltinDynamicCompletions extends Disposable {
 			return result;
 		});
 
-		// Symbol completions
 		this.registerVariableCompletions('symbol', ({ widget, range, position, model }, token) => {
 			if (!widget.supportsFileReferences) {
 				return null;
@@ -1022,7 +966,6 @@ class BuiltinDynamicCompletions extends Disposable {
 			return result;
 		});
 
-		// Session Reference completion
 		const sessionWordPattern = new RegExp(`${chatVariableLeader}[^\\s]*`, 'g');
 		this.registerVariableCompletions('sessionReference', async ({ widget, range }, token) => {
 			if (widget.location !== ChatAgentLocation.Chat) {
@@ -1034,15 +977,13 @@ class BuiltinDynamicCompletions extends Disposable {
 			const result: CompletionList = { suggestions: [] };
 
 			if (typedWord.toLowerCase().startsWith(`${sessionPrefix}:`)) {
-				// User has typed #session: — fetch all sessions and show them inline
 				const allSessions: { title: string; sessionResource: URI; lastMessageDate: number; icon: ThemeIcon }[] = [];
 
-				const sessionProviderFilter = [AgentSessionProviders.Local, AgentSessionProviders.Background, AgentSessionProviders.AgentHostCopilot];
-				for await (const group of this.chatSessionsService.getChatSessionItems(sessionProviderFilter, token)) {
+				for await (const group of this.chatSessionsService.getChatSessionItems(undefined, token)) {
 					if (token.isCancellationRequested) {
 						return;
 					}
-					const providerIcon = getAgentSessionProviderIcon(group.chatSessionType);
+					const providerIcon = Codicon.comment;
 					for (const item of group.items) {
 						allSessions.push({
 							title: item.label,
@@ -1079,7 +1020,6 @@ class BuiltinDynamicCompletions extends Disposable {
 					});
 				}
 			} else {
-				// User typed # or #s etc — show single #session entry that inserts #session: and re-triggers suggest
 				result.suggestions.push({
 					label: { label: sessionPrefix, description: localize('session.description', 'Attach a chat session') },
 					filterText: sessionPrefix,
@@ -1136,8 +1076,6 @@ class BuiltinDynamicCompletions extends Disposable {
 				}
 
 				if (!includeAgentHost && isAgentHostBackedWidget(widget)) {
-					// Agent-host sessions delegate completions to the host
-					// process via `AgentHostInputCompletions`.
 					return;
 				}
 
@@ -1164,7 +1102,6 @@ class BuiltinDynamicCompletions extends Disposable {
 			const labelDescription = description
 				? localize('fileEntryDescription', '{0} ({1})', uriLabel, description)
 				: uriLabel;
-			// keep files above other completions
 			const sortText = boostPriority ? ' ' : '!';
 
 			return {
@@ -1188,23 +1125,19 @@ class BuiltinDynamicCompletions extends Disposable {
 
 		let pattern: string | undefined;
 		if (info.varWord?.word && (info.varWord.word.startsWith(chatVariableLeader) || info.varWord.word.startsWith(chatAgentLeader))) {
-			pattern = info.varWord.word.toLowerCase().slice(1); // remove leading # or @
+			pattern = info.varWord.word.toLowerCase().slice(1);
 		}
 
 		const seen = new ResourceSet();
 		const len = result.suggestions.length;
 
-		// HISTORY
-		// always take the last N items
 		for (const [i, item] of this.historyService.getHistory().entries()) {
 			const resource = isDiffEditorInput(item) ? item.modified.resource : item.resource;
 			if (!resource || seen.has(resource) || !this.instantiationService.invokeFunction(accessor => isSupportedChatFileScheme(accessor, resource.scheme))) {
-				// ignore editors without a resource
 				continue;
 			}
 
 			if (pattern) {
-				// use pattern if available
 				const uriLabel = this.labelService.getUriLabel(resource, { relative: true }).toLowerCase();
 				const basename = this.labelService.getUriBasenameLabel(resource).toLowerCase();
 				const combined = `${basename} ${uriLabel}`;
@@ -1220,8 +1153,6 @@ class BuiltinDynamicCompletions extends Disposable {
 			}
 		}
 
-		// SEARCH
-		// use file search when having a pattern
 		if (pattern) {
 
 			const cacheKey = this.updateCacheKey();
@@ -1244,8 +1175,6 @@ class BuiltinDynamicCompletions extends Disposable {
 			}
 		}
 
-		// mark results as incomplete because further typing might yield
-		// in more search results
 		result.incomplete = true;
 	}
 
@@ -1259,7 +1188,7 @@ class BuiltinDynamicCompletions extends Disposable {
 			const text = `${typedLeader}sym:${symbolItem.name}`;
 			const resource = symbolItem.location.uri;
 			const uriLabel = this.labelService.getUriLabel(resource, { relative: true });
-			const sortText = pattern ? '{' /* after z */ : '|' /* after { */;
+			const sortText = pattern ? '{' : '|' ;
 
 			return {
 				label: { label: symbolItem.name, description: uriLabel },
@@ -1282,7 +1211,7 @@ class BuiltinDynamicCompletions extends Disposable {
 
 		let pattern: string | undefined;
 		if (info.varWord?.word && (info.varWord.word.startsWith(chatVariableLeader) || info.varWord.word.startsWith(chatAgentLeader))) {
-			pattern = info.varWord.word.toLowerCase().slice(1); // remove leading # or @
+			pattern = info.varWord.word.toLowerCase().slice(1);
 		}
 
 		const symbolsToAdd: { symbol: DocumentSymbol; uri: URI }[] = [];
@@ -1325,7 +1254,6 @@ class BuiltinDynamicCompletions extends Disposable {
 	}
 
 	private cmdAddReference(arg: ReferenceArgument) {
-		// invoked via the completion command
 		arg.widget.getContrib<ChatDynamicVariableModel>(ChatDynamicVariableModel.ID)?.addReference(arg.variable);
 	}
 }
@@ -1334,7 +1262,7 @@ Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench).regi
 
 class ToolCompletions extends Disposable {
 
-	private static readonly VariableNameDef = new RegExp(`(?<=^|\\s)[${escapeForCharClass(chatVariableLeader)}${escapeForCharClass(chatAgentLeader)}]\\w*`, 'g'); // MUST be using `g`-flag
+	private static readonly VariableNameDef = new RegExp(`(?<=^|\\s)[${escapeForCharClass(chatVariableLeader)}${escapeForCharClass(chatAgentLeader)}]\\w*`, 'g');
 
 	constructor(
 		@ILanguageFeaturesService private readonly languageFeaturesService: ILanguageFeaturesService,
@@ -1353,12 +1281,9 @@ class ToolCompletions extends Disposable {
 				}
 
 				if (isAgentHostBackedWidget(widget)) {
-					// Agent-host sessions delegate completions to the host
-					// process via `AgentHostInputCompletions`.
 					return null;
 				}
 
-				// If locked to an agent that doesn't support tool attachments, skip
 				if (widget.lockedAgentId) {
 					const agent = this.chatAgentService.getAgent(widget.lockedAgentId);
 					if (agent && !agent.capabilities?.supportsToolAttachments) {

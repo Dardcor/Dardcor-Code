@@ -4,10 +4,6 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { Modal, Button, Input } from "@/shared/components";
 
-/**
- * iFlow Cookie Authentication Modal
- * User pastes browser cookie to get fresh API key
- */
 export default function IFlowCookieModal({ isOpen, onSuccess, onClose }) {
   const [cookie, setCookie] = useState("");
   const [loading, setLoading] = useState(false);

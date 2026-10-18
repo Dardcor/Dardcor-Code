@@ -19,7 +19,6 @@ import { IBrowserViewCDPService, IBrowserViewWorkbenchService } from '../common/
 import { BrowserViewWorkbenchService } from './browserViewWorkbenchService.js';
 import { BrowserViewCDPService } from './browserViewCDPService.js';
 
-// Register actions and browser features
 import './features/webContentsViewRendererFeature.js';
 import './features/browserNavigationFeatures.js';
 import './features/browserWelcomeFeature.js';
@@ -85,14 +84,12 @@ class BrowserEditorResolverContribution implements IWorkbenchContribution {
 						...(options?.viewState as any)
 					});
 
-					// Start resolving the input right away. This will create the browser view.
-					// This allows browser views to be loaded in the background.
 					void browserInput.resolve();
 
 					return {
 						editor: browserInput,
 						options: {
-							pinned: !!browserInput.url, // pin if navigated
+							pinned: !!browserInput.url,
 							...options
 						}
 					};

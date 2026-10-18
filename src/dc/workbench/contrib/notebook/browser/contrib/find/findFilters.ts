@@ -111,7 +111,6 @@ export class NotebookFindFilters extends Disposable {
 	}
 
 	isModified(): boolean {
-		// do not include findInSelection or either selectedRanges in the check. This will incorrectly mark the filter icon as modified
 		return (
 			this._markupInput !== this._initialMarkupInput
 			|| this._markupPreview !== this._initialMarkupPreview

@@ -179,8 +179,6 @@ describe('normalizeProviderMessages', () => {
 	});
 
 	it('preserves the absent-vs-empty tools distinction on tool_search_output', () => {
-		// Absent `tools` field is meaningfully different from `tools: []` for
-		// cache-key purposes; the normalizer must not coerce the two together.
 		const absent = normalizeProviderMessages([{ type: 'tool_search_output', call_id: 'a' }]);
 		const empty = normalizeProviderMessages([{ type: 'tool_search_output', call_id: 'a', tools: [] }]);
 		expect(absent[0].parts[0]).not.toHaveProperty('tools');
@@ -439,7 +437,7 @@ describe('toToolDefinitions', () => {
 	it('filters out tools without a function property', () => {
 		const result = toToolDefinitions([
 			{ type: 'function', function: { name: 'a' } },
-			{ type: 'function' }, // no function and no top-level name → skipped
+			{ type: 'function' },
 		]);
 		expect(result).toHaveLength(1);
 		expect(result![0].name).toBe('a');
@@ -505,7 +503,7 @@ describe('stringifyToolDefinitionsForOTel', () => {
 
 	it('skips re-stringification on repeated calls with the same array reference', () => {
 		const tools = [{ name: 'readFile_byref_' + Math.random(), description: 'd', inputSchema: { type: 'object' } }];
-		stringifyToolDefinitionsForOTel(tools); // prime the WeakMap
+		stringifyToolDefinitionsForOTel(tools);
 		const spy = vi.spyOn(JSON, 'stringify');
 		try {
 			const a = stringifyToolDefinitionsForOTel(tools);
@@ -526,7 +524,6 @@ describe('stringifyToolDefinitionsForOTel', () => {
 		const spy = vi.spyOn(JSON, 'stringify');
 		try {
 			const b = stringifyToolDefinitionsForOTel(t2);
-			// Distinct ref forces one new JSON.stringify; intern then collapses the result.
 			expect(spy).toHaveBeenCalledTimes(1);
 			expect(Object.is(a, b)).toBe(true);
 		} finally {
@@ -544,7 +541,7 @@ describe('stringifyToolsRawForTelemetry', () => {
 	it('skips re-stringification on repeated calls with the same array reference', () => {
 		const tools = [{ type: 'function', name: 'raw_byref_' + Math.random() }];
 		const expected = JSON.stringify(tools);
-		stringifyToolsRawForTelemetry(tools); // prime the WeakMap
+		stringifyToolsRawForTelemetry(tools);
 		const spy = vi.spyOn(JSON, 'stringify');
 		try {
 			const a = stringifyToolsRawForTelemetry(tools);

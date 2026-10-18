@@ -51,7 +51,6 @@ export class NotebookCellAnchor implements IDisposable {
 	}
 
 	public watchAchorDuringExecution(executingCell: ICellViewModel) {
-		// anchor while the cell is executing unless the user scrolls up.
 		if (!this.executionWatcher && executingCell.cellKind === CellKind.Code) {
 			const executionState = this.notebookExecutionStateService.getCellExecution(executingCell.uri);
 			if (executionState && executionState.state === NotebookCellExecutionState.Executing) {

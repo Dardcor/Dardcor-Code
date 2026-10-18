@@ -203,7 +203,6 @@ export class TestNativeHostService implements INativeHostService {
 	async clearToast(id: string): Promise<void> { }
 	async clearToasts(): Promise<void> { }
 
-	// Power APIs
 	async getSystemIdleState(idleThreshold: number): Promise<SystemIdleState> { return 'unknown'; }
 	async getSystemIdleTime(): Promise<number> { return 0; }
 	async getCurrentThermalState(): Promise<ThermalState> { return 'unknown'; }
@@ -380,7 +379,7 @@ export class TestIPCFileSystemProvider implements IFileSystemProvider {
 			ctime: stats.ctimeMs,
 			mtime: stats.mtimeMs,
 			size: stats.size,
-			permissions: stats.isReadonly ? 1 /* FilePermission.Readonly */ : undefined
+			permissions: stats.isReadonly ? 1 : undefined
 		};
 	}
 

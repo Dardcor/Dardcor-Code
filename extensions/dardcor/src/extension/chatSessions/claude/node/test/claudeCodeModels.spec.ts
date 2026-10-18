@@ -14,9 +14,6 @@ import { createExtensionUnitTestingServices } from '../../../../test/node/servic
 import { ClaudeCodeModels, isEffortLevel } from '../claudeCodeModels';
 import { tryParseClaudeModelId } from '../claudeModelId';
 
-/**
- * Creates a minimal mock IChatEndpoint with required properties for testing
- */
 function createMockEndpoint(overrides: {
 	model: string;
 	name: string;
@@ -37,7 +34,6 @@ function createMockEndpoint(overrides: {
 		multiplier: overrides.multiplier,
 		modelProvider: overrides.modelProvider ?? 'Anthropic',
 		apiType: overrides.apiType ?? (isAnthropic ? 'messages' : 'chatCompletions'),
-		// Required properties with sensible defaults
 		maxOutputTokens: 4096,
 		supportsToolCalls: true,
 		supportsVision: false,
@@ -56,9 +52,6 @@ function createMockEndpoint(overrides: {
 	} as unknown as IChatEndpoint;
 }
 
-/**
- * Mock endpoint provider that supports firing onDidModelsRefresh and updating endpoints.
- */
 class RefreshableMockEndpointProvider implements IEndpointProvider {
 	declare readonly _serviceBrand: undefined;
 	private readonly _onDidModelsRefresh = new Emitter<void>();
@@ -135,7 +128,6 @@ describe('ClaudeCodeModels', () => {
 				createMockEndpoint({ model: 'claude-opus-4.5', name: 'Claude Opus 4.5', family: 'claude-opus-4.5' }),
 			]);
 
-			// SDK format uses hyphens; endpoint format uses dots
 			const endpoint = await service.resolveEndpoint('claude-opus-4-5', undefined);
 			expect(endpoint?.model).toBe('claude-opus-4.5');
 		});
@@ -462,18 +454,15 @@ describe('ClaudeCodeModels', () => {
 				createMockEndpoint({ model: 'claude-sonnet-4', name: 'Claude Sonnet 4', family: 'claude-sonnet-4' }),
 			]);
 
-			// Initial fetch
 			const before = await service.resolveEndpoint('claude-sonnet-4', undefined);
 			expect(before?.model).toBe('claude-sonnet-4');
 
-			// Update endpoints and fire refresh
 			provider.setEndpoints([
 				createMockEndpoint({ model: 'claude-sonnet-4', name: 'Claude Sonnet 4', family: 'claude-sonnet-4' }),
 				createMockEndpoint({ model: 'claude-opus-4.5', name: 'Claude Opus 4.5', family: 'claude-opus-4.5' }),
 			]);
 			provider.fireRefresh();
 
-			// After refresh, new endpoint should be resolvable
 			const after = await service.resolveEndpoint('claude-opus-4.5', undefined);
 			expect(after?.model).toBe('claude-opus-4.5');
 		});
@@ -497,7 +486,6 @@ describe('ClaudeCodeModels', () => {
 			await service.resolveEndpoint(undefined, undefined);
 			await service.resolveEndpoint(undefined, undefined);
 
-			// Should only have fetched once due to caching
 			expect(fetchCount).toBe(1);
 		});
 	});

@@ -6,9 +6,9 @@
 .monaco-workbench .part.activitybar {
 	width: var(--activity-bar-width, 48px);
 	height: 100%;
+	border-radius: 0;
 }
 
-/* Activity Bar - shadow when sidebar is hidden or on the right */
 .monaco-workbench.nosidebar .part.activitybar {
 	box-shadow: var(--vscode-shadow-md);
 }
@@ -46,7 +46,6 @@
 	justify-content: space-between;
 }
 
-/** Viewlet Switcher */
 
 .monaco-workbench .activitybar > .content .monaco-action-bar {
 	text-align: left;
@@ -54,14 +53,14 @@
 }
 
 .monaco-workbench .activitybar .action-item:focus {
-	outline: 0 !important; /* activity bar indicates focus custom */
+	outline: 0 !important;
 }
 
 .monaco-workbench .activitybar > .content > .composite-bar {
+	margin-top: 6px;
 	margin-bottom: auto;
 }
 
-/** Menu Bar */
 
 .monaco-workbench .activitybar .menubar {
 	width: 100%;

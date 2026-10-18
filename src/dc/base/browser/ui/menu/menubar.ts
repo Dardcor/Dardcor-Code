@@ -71,7 +71,6 @@ export class MenuBar extends Disposable {
 	private focusToReturn: HTMLElement | undefined;
 	private menuUpdater: RunOnceScheduler;
 
-	// Input-related
 	private _mnemonicsInUse: boolean = false;
 	private openedViaKeyboard: boolean = false;
 	private awaitingAltRelease: boolean = false;
@@ -137,7 +136,6 @@ export class MenuBar extends Disposable {
 				eventHandled = false;
 			}
 
-			// Never allow default tab behavior when not compact
 			if (!this.isCompact && (event.equals(KeyCode.Tab | KeyMod.Shift) || event.equals(KeyCode.Tab))) {
 				event.preventDefault();
 			}
@@ -150,7 +148,6 @@ export class MenuBar extends Disposable {
 
 		const window = DOM.getWindow(this.container);
 		this._register(DOM.addDisposableListener(window, DOM.EventType.MOUSE_DOWN, () => {
-			// This mouse event is outside the menubar so it counts as a focus out
 			if (this.isFocused) {
 				this.setUnfocusedState();
 			}
@@ -169,11 +166,9 @@ export class MenuBar extends Disposable {
 		this._register(DOM.addDisposableListener(this.container, DOM.EventType.FOCUS_OUT, (e) => {
 			const event = e;
 
-			// We are losing focus and there is no related target, e.g. webview case
 			if (!event.relatedTarget) {
 				this.setUnfocusedState();
 			}
-			// We are losing focus and there is a target, reset focusToReturn value as not to redirect
 			else if (event.relatedTarget && !this.container.contains(event.relatedTarget as HTMLElement)) {
 				this.focusToReturn = undefined;
 				this.setUnfocusedState();
@@ -209,7 +204,6 @@ export class MenuBar extends Disposable {
 
 			const mnemonicMatches = MENU_MNEMONIC_REGEX.exec(menuBarMenu.label);
 
-			// Register mnemonics
 			if (mnemonicMatches) {
 				const mnemonic = !!mnemonicMatches[1] ? mnemonicMatches[1] : mnemonicMatches[3];
 
@@ -247,7 +241,6 @@ export class MenuBar extends Disposable {
 
 				this._register(Gesture.addTarget(buttonElement));
 				this._register(DOM.addDisposableListener(buttonElement, EventType.Tap, (e: GestureEvent) => {
-					// Ignore this touch if the menu is touched
 					if (this.isOpen && this.focusedMenu && this.focusedMenu.holder && DOM.isAncestor(e.initialTarget as HTMLElement, this.focusedMenu.holder)) {
 						return;
 					}
@@ -260,7 +253,6 @@ export class MenuBar extends Disposable {
 				}));
 
 				this._register(DOM.addDisposableListener(buttonElement, DOM.EventType.MOUSE_DOWN, (e: MouseEvent) => {
-					// Ignore non-left-click
 					const mouseEvent = new StandardMouseEvent(DOM.getWindow(buttonElement), e);
 					if (!mouseEvent.leftButton) {
 						e.preventDefault();
@@ -268,7 +260,6 @@ export class MenuBar extends Disposable {
 					}
 
 					if (!this.isOpen) {
-						// Open the menu with mouse down and ignore the following mouse up event
 						this.ignoreNextMouseUp = true;
 						this.onMenuTriggered(menuIndex, true);
 					} else {
@@ -356,7 +347,6 @@ export class MenuBar extends Disposable {
 
 		this._register(Gesture.addTarget(buttonElement));
 		this._register(DOM.addDisposableListener(buttonElement, EventType.Tap, (e: GestureEvent) => {
-			// Ignore this touch if the menu is touched
 			if (this.isOpen && this.focusedMenu && this.focusedMenu.holder && DOM.isAncestor(e.initialTarget as HTMLElement, this.focusedMenu.holder)) {
 				return;
 			}
@@ -369,7 +359,6 @@ export class MenuBar extends Disposable {
 		}));
 
 		this._register(DOM.addDisposableListener(buttonElement, DOM.EventType.MOUSE_DOWN, (e) => {
-			// Ignore non-left-click
 			const mouseEvent = new StandardMouseEvent(DOM.getWindow(buttonElement), e);
 			if (!mouseEvent.leftButton) {
 				e.preventDefault();
@@ -377,7 +366,6 @@ export class MenuBar extends Disposable {
 			}
 
 			if (!this.isOpen) {
-				// Open the menu with mouse down and ignore the following mouse up event
 				this.ignoreNextMouseUp = true;
 				this.onMenuTriggered(MenuBar.OVERFLOW_INDEX, true);
 			} else {
@@ -478,7 +466,6 @@ export class MenuBar extends Disposable {
 
 		const overflowMenuOnlyClass = 'overflow-menu-only';
 
-		// Remove overflow only restriction to allow the most space
 		this.container.classList.toggle(overflowMenuOnlyClass, false);
 
 		const sizeAvailable = this.container.offsetWidth;
@@ -508,7 +495,6 @@ export class MenuBar extends Disposable {
 		}
 
 
-		// If below minimium menu threshold, show the overflow menu only as hamburger menu
 		if (this.numMenusShown - 1 <= showableMenus.length / 4) {
 			for (const menuBarMenu of showableMenus) {
 				menuBarMenu.buttonElement.style.visibility = 'hidden';
@@ -519,7 +505,6 @@ export class MenuBar extends Disposable {
 			currentSize = 0;
 		}
 
-		// Overflow
 		if (this.isCompact) {
 			this.overflowMenu.actions = [];
 			for (let idx = this.numMenusShown; idx < this.menus.length; idx++) {
@@ -534,7 +519,6 @@ export class MenuBar extends Disposable {
 
 			this.overflowMenu.buttonElement.style.visibility = 'visible';
 		} else if (full) {
-			// Can't fit the more button, need to remove more menus
 			while (currentSize + this.overflowMenu.buttonElement.offsetWidth > sizeAvailable && this.numMenusShown > 0) {
 				this.numMenusShown--;
 				const size = showableMenus[this.numMenusShown].buttonElement.offsetWidth;
@@ -559,14 +543,12 @@ export class MenuBar extends Disposable {
 			this.overflowMenu.buttonElement.style.visibility = 'hidden';
 		}
 
-		// If we are only showing the overflow, add this class to avoid taking up space
 		this.container.classList.toggle(overflowMenuOnlyClass, this.numMenusShown === 0);
 	}
 
 	private updateLabels(titleElement: HTMLElement, buttonElement: HTMLElement, label: string): void {
 		const cleanMenuLabel = cleanMnemonic(label);
 
-		// Update the button label to reflect mnemonics
 
 		if (this.options.enableMnemonics) {
 			const cleanLabel = strings.escape(label);
@@ -575,7 +557,6 @@ export class MenuBar extends Disposable {
 			MENU_ESCAPED_MNEMONIC_REGEX.lastIndex = 0;
 			let escMatch = MENU_ESCAPED_MNEMONIC_REGEX.exec(cleanLabel);
 
-			// We can't use negative lookbehind so we match our negative and skip
 			while (escMatch && escMatch[1]) {
 				escMatch = MENU_ESCAPED_MNEMONIC_REGEX.exec(cleanLabel);
 			}
@@ -598,7 +579,6 @@ export class MenuBar extends Disposable {
 
 		const mnemonicMatches = MENU_MNEMONIC_REGEX.exec(label);
 
-		// Register mnemonics
 		if (mnemonicMatches) {
 			const mnemonic = !!mnemonicMatches[1] ? mnemonicMatches[1] : mnemonicMatches[3];
 
@@ -615,7 +595,6 @@ export class MenuBar extends Disposable {
 			this.options = options;
 		}
 
-		// Don't update while using the menu
 		if (this.isFocused) {
 			this.updatePending = true;
 			return;
@@ -665,7 +644,6 @@ export class MenuBar extends Disposable {
 
 	private set focusState(value: MenubarState) {
 		if (this._focusState >= MenubarState.FOCUSED && value < MenubarState.FOCUSED) {
-			// Losing focus, update the menu if needed
 
 			if (this.updatePending) {
 				this.menuUpdater.schedule();
@@ -741,8 +719,6 @@ export class MenuBar extends Disposable {
 				}
 
 				if (this.focusedMenu) {
-					// When the menu is toggled on, it may be in compact state and trying to
-					// focus the first menu. In this case we should focus the overflow instead.
 					if (this.focusedMenu.index === 0 && this.numMenusShown === 0) {
 						this.focusedMenu.index = MenuBar.OVERFLOW_INDEX;
 					}
@@ -931,21 +907,18 @@ export class MenuBar extends Disposable {
 			return;
 		}
 
-		// Prevent alt-key default if the menu is not hidden and we use alt to focus
 		if (modifierKeyStatus.event && this.shouldAltKeyFocus) {
 			if (ScanCodeUtils.toEnum(modifierKeyStatus.event.code) === ScanCode.AltLeft) {
 				modifierKeyStatus.event.preventDefault();
 			}
 		}
 
-		// Alt key pressed while menu is focused. This should return focus away from the menubar
 		if (this.isFocused && modifierKeyStatus.lastKeyPressed === 'alt' && modifierKeyStatus.altKey) {
 			this.setUnfocusedState();
 			this.mnemonicsInUse = false;
 			this.awaitingAltRelease = true;
 		}
 
-		// Clean alt key press and release
 		if (allModifiersReleased && modifierKeyStatus.lastKeyPressed === 'alt' && modifierKeyStatus.lastKeyReleased === 'alt') {
 			if (!this.awaitingAltRelease) {
 				if (!this.isFocused && this.shouldAltKeyFocus) {
@@ -958,7 +931,6 @@ export class MenuBar extends Disposable {
 			}
 		}
 
-		// Alt key released
 		if (!modifierKeyStatus.altKey && modifierKeyStatus.lastKeyReleased === 'alt') {
 			this.awaitingAltRelease = false;
 		}
@@ -978,7 +950,6 @@ export class MenuBar extends Disposable {
 
 	private cleanupCustomMenu(): void {
 		if (this.focusedMenu) {
-			// Remove focus from the menus first
 			if (this.focusedMenu.index === MenuBar.OVERFLOW_INDEX) {
 				this.overflowMenu.buttonElement.focus();
 			} else {
@@ -1024,7 +995,6 @@ export class MenuBar extends Disposable {
 		}
 
 		if (this.options.compactMode?.vertical === VerticalDirection.Above) {
-			// TODO@benibenj Do not hardcode the height of the menu holder
 			menuHolder.style.top = `${titleBoundingRect.top - this.menus.length * 30 + this.container.clientHeight}px`;
 		} else if (this.options.compactMode?.vertical === VerticalDirection.Below) {
 			menuHolder.style.top = `${titleBoundingRect.top}px`;

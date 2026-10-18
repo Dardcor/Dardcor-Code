@@ -42,14 +42,11 @@ export class WorkspaceTags implements IWorkbenchContribution {
 	}
 
 	private async report(): Promise<void> {
-		// Windows-only Edition Event
 		this.reportWindowsEdition();
 
-		// Workspace Tags
 		this.workspaceTagsService.getTags()
 			.then(tags => this.reportWorkspaceTags(tags), error => onUnexpectedError(error));
 
-		// Cloud Stats
 		this.reportCloudStats();
 
 		this.reportProxyStats();
@@ -86,14 +83,6 @@ export class WorkspaceTags implements IWorkbenchContribution {
 	}
 
 	private reportWorkspaceTags(tags: Tags): void {
-		/* __GDPR__
-			"workspce.tags" : {
-				"owner": "lramos15",
-				"${include}": [
-					"${WorkspaceTags}"
-				]
-			}
-		*/
 		this.telemetryService.publicLog('workspce.tags', tags);
 	}
 
@@ -107,19 +96,13 @@ export class WorkspaceTags implements IWorkbenchContribution {
 				}
 				return this.textFileService.read(uri, { acceptTextOnly: true }).then(
 					content => getDomainsOfRemotes(content.value, AllowedSecondLevelDomains),
-					err => [] // ignore missing or binary file
+					err => []
 				);
 			});
 		})).then(domains => {
 			const set = domains.reduce((set, list) => list.reduce((set, item) => set.add(item), set), new Set<string>());
 			const list: string[] = [];
 			set.forEach(item => list.push(item));
-			/* __GDPR__
-				"workspace.remotes" : {
-					"owner": "lramos15",
-					"domains" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-				}
-			*/
 			this.telemetryService.publicLog('workspace.remotes', { domains: list.sort() });
 		}, onUnexpectedError);
 	}
@@ -130,13 +113,7 @@ export class WorkspaceTags implements IWorkbenchContribution {
 		})).then(() => { }, onUnexpectedError);
 	}
 
-	/* __GDPR__FRAGMENT__
-		"AzureTags" : {
-			"node" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true }
-		}
-	*/
 	private reportAzureNode(workspaceUris: URI[], tags: Tags): Promise<Tags> {
-		// TODO: should also work for `node_modules` folders several levels down
 		const uris = workspaceUris.map(workspaceUri => {
 			const path = workspaceUri.path;
 			return workspaceUri.with({ path: `${path !== '/' ? path : ''}/node_modules` });
@@ -159,11 +136,6 @@ export class WorkspaceTags implements IWorkbenchContribution {
 		return arr.some(v => v.search(regEx) > -1) || undefined;
 	}
 
-	/* __GDPR__FRAGMENT__
-		"AzureTags" : {
-			"java" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true }
-		}
-	*/
 	private reportAzureJava(workspaceUris: URI[], tags: Tags): Promise<Tags> {
 		return Promise.all(workspaceUris.map(workspaceUri => {
 			const path = workspaceUri.path;
@@ -191,14 +163,6 @@ export class WorkspaceTags implements IWorkbenchContribution {
 			return this.reportAzureJava(uris, tags);
 		}).then((tags) => {
 			if (Object.keys(tags).length) {
-				/* __GDPR__
-					"workspace.azure" : {
-						"owner": "lramos15",
-						"${include}": [
-							"${AzureTags}"
-						]
-					}
-				*/
 				this.telemetryService.publicLog('workspace.azure', tags);
 			}
 		}).then(undefined, onUnexpectedError);

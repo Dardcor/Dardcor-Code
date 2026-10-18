@@ -2,7 +2,6 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-// The following code was moved from config.ts into here to break the cyclic dependencies
 
 import { createServiceIdentifier } from '../../../../../../util/common/services';
 import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
@@ -41,13 +40,9 @@ export class ConfigBlockModeConfig implements ICompletionsBlockModeConfig {
 		if (BlockTrimmer.isTrimmedByDefault(languageId)) {
 			return toApplicableBlockMode(BlockMode.MoreMultiline, languageId);
 		}
-		// special casing once cancellations based on tree-sitter propagate to
-		// the proxy.
 		if (languageId === 'ruby') {
 			return BlockMode.Parsing;
 		}
-		// For existing multiline languages use standard tree-sitter based parsing
-		// plus proxy-side trimming
 		if (isSupportedLanguageId(languageId)) {
 			return BlockMode.ParsingAndServer;
 		}
@@ -59,10 +54,6 @@ function blockModeRequiresTreeSitter(blockMode: BlockMode): boolean {
 	return [BlockMode.Parsing, BlockMode.ParsingAndServer, BlockMode.MoreMultiline].includes(blockMode);
 }
 
-/**
- * Prevents tree-sitter parsing from being applied to languages we don't include
- * parsers for.
- */
 function toApplicableBlockMode(blockMode: BlockMode, languageId: string): BlockMode {
 	if (blockMode === BlockMode.MoreMultiline && StatementTree.isSupported(languageId)) {
 		return blockMode;

@@ -19,18 +19,15 @@ import { Tag } from '../base/tag';
 import { CodeBlockFormattingRules, EXISTING_CODE_MARKER } from '../panel/codeBlockFormattingRules';
 import { ResponseRenderingRules } from '../panel/editorIntegrationRules';
 
-// Types and interfaces for reusable components
 export interface ToolCapabilities extends Partial<Record<ToolName, boolean>> {
 	readonly hasSomeEditTool: boolean;
 	readonly hasAgenticBrowserTools: boolean;
 }
 
-// Utility function to detect available tools
 export function detectToolCapabilities(availableTools: readonly LanguageModelToolInformation[] | undefined, toolsService?: IToolsService): ToolCapabilities {
 	const toolMap: Partial<Record<ToolName, boolean>> = {};
 	const available = new Set(availableTools?.map(t => t.name) ?? []);
 	for (const name of Object.values(ToolName) as unknown as ToolName[]) {
-		// name is the enum VALUE (e.g., 'read_file'), which matches LanguageModelToolInformation.name
 		toolMap[name] = available.has(name as unknown as string);
 	}
 
@@ -101,15 +98,12 @@ export function getEditingReminder(hasEditFileTool: boolean, hasReplaceStringToo
 export class DefaultReminderInstructions extends PromptElement<ReminderInstructionsProps> {
 	async render(state: void, sizing: PromptSizing) {
 		return <>
-			{/* Tool-dependent editing reminders that apply to all models */}
-			{getEditingReminder(this.props.hasEditFileTool, this.props.hasReplaceStringTool, false /* useStrongReplaceStringHint */, this.props.hasMultiReplaceStringTool)}
+			{}
+			{getEditingReminder(this.props.hasEditFileTool, this.props.hasReplaceStringTool, false , this.props.hasMultiReplaceStringTool)}
 		</>;
 	}
 }
 
-/**
- * Base system prompt for agent mode
- */
 export class DefaultAgentPrompt extends PromptElement<DefaultAgentPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const tools = detectToolCapabilities(this.props.availableTools);
@@ -212,10 +206,6 @@ export class DefaultAgentPrompt extends PromptElement<DefaultAgentPromptProps> {
 	}
 }
 
-/**
- * GPT-specific agent prompt that incorporates structured workflow and autonomous behavior patterns
- * for improved multi-step task execution and more systematic problem-solving approach.
- */
 export class AlternateGPTPrompt extends PromptElement<DefaultAgentPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const tools = detectToolCapabilities(this.props.availableTools);
@@ -295,7 +285,7 @@ export class AlternateGPTPrompt extends PromptElement<DefaultAgentPromptProps> {
 				If the user corrects you, do not immediately assume they are right. Think deeply about their feedback and how you can incorporate it into your solution. Stand your ground if you have the evidence to support your conclusion.<br />
 			</Tag>
 			{this.props.codesearchMode && <CodesearchModeInstructions {...this.props} />}
-			{/* Include the rest of the existing tool instructions but maintain GPT 4.1 specific workflow */}
+			{}
 			<Tag name='toolUseInstructions'>
 				If the user is requesting a code sample, you can answer it directly without using any tools.<br />
 				When using a tool, follow the JSON schema very carefully and make sure to include ALL required properties.<br />
@@ -389,7 +379,6 @@ export class McpToolInstructions extends PromptElement<{ tools: readonly Languag
 		const instructions = new Map<string, string>();
 		for (const tool of this.props.tools) {
 			if (tool.source instanceof LanguageModelToolMCPSource && tool.source.instructions) {
-				// MCP tools are labelled `mcp_servername_toolname`, give instructions for `mcp_servername` prefixes
 				const [, serverLabel] = tool.name.split('_');
 				instructions.set(`mcp_${serverLabel}`, tool.source.instructions);
 			}
@@ -401,9 +390,6 @@ export class McpToolInstructions extends PromptElement<{ tools: readonly Languag
 	}
 }
 
-/**
- * Instructions specific to code-search mode AKA AskAgent
- */
 export class CodesearchModeInstructions extends PromptElement<DefaultAgentPromptProps> {
 	render(state: void, sizing: PromptSizing) {
 		return <>

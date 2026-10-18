@@ -93,7 +93,6 @@ export class BreadcrumbsModel {
 	getElements(): ReadonlyArray<FileElement | OutlineElement2> {
 		let result: (FileElement | OutlineElement2)[] = [];
 
-		// file path elements
 		if (this._cfgFilePath.getValue() === 'on') {
 			result = result.concat(this._fileInfo.path);
 		} else if (this._cfgFilePath.getValue() === 'last' && this._fileInfo.path.length > 0) {
@@ -173,7 +172,6 @@ export class BreadcrumbsModel {
 
 		this._outlineService.createOutline(editor, OutlineTarget.Breadcrumbs, newCts.token).then(outline => {
 			if (newCts.token.isCancellationRequested) {
-				// cancelled: dispose new outline and reset
 				outline?.dispose();
 				outline = undefined;
 			}

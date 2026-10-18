@@ -6,9 +6,6 @@
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { getIconRegistry } from '../../../../platform/theme/common/iconRegistry.js';
 
-/**
- * Returns the compact variant of a codicon when one is registered.
- */
 export function getCompactCodicon(icon: ThemeIcon): ThemeIcon {
 	const modifier = ThemeIcon.getModifier(icon);
 	const id = modifier ? icon.id.slice(0, -(modifier.length + 1)) : icon.id;
@@ -24,9 +21,6 @@ export function getCompactCodicon(icon: ThemeIcon): ThemeIcon {
 	};
 }
 
-/**
- * Replaces rendered codicon classes with their registered compact variants.
- */
 export function compactCodiconsIn(element: HTMLElement): void {
 	const visit = (container: Element): void => {
 		for (const child of container.children) {

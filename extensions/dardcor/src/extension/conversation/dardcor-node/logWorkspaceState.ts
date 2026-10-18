@@ -25,12 +25,10 @@ export class LogWorkspaceStateContribution extends Disposable implements IExtens
 	) {
 		super();
 
-		// register command "Developer: Log Workbench State"
 		this._register(vscode.commands.registerCommand('github.dardcor.debug.workbenchState', async () => {
 			const symbolQueries = await vscode.window.showInputBox({
 				prompt: 'Enter a comma-separated list of symbol queries. Can be left blank if not using WorkspaceSymbols',
 			});
-			// Show a quick input asking the user for a file name
 			const fileName = await vscode.window.showInputBox({
 				prompt: 'Enter a file name - .state.json will be appended as the extension',
 				value: 'workspaceState',
@@ -39,15 +37,12 @@ export class LogWorkspaceStateContribution extends Disposable implements IExtens
 				return;
 			}
 			const state = await instantiationService.createInstance(WorkspaceStateSnapshotHelper).captureWorkspaceStateSnapshot(symbolQueries?.split(',') ?? []);
-			// Get workspace root
 			const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri;
 			if (!workspaceRoot) {
 				return;
 			}
-			// Write the file
 			const fileUri = vscode.Uri.joinPath(workspaceRoot, `${fileName}.state.json`);
 			let serializedState = JSON.stringify(state, null, 2);
-			// Replace workspaceRoot with `./` to make the file path relative
 			serializedState = serializedState.replace(new RegExp(`${workspaceRoot.fsPath}/`, 'g'), './');
 			vscode.workspace.fs.writeFile(fileUri, Buffer.from(serializedState));
 		}));
@@ -55,17 +50,6 @@ export class LogWorkspaceStateContribution extends Disposable implements IExtens
 }
 
 export class WorkspaceStateSnapshotHelper {
-	/**
-	 * Constructs a new instance of the PromptContextModel.
-	 *
-	 * @param tabAndEditorsService - Service for managing tabs and editors.
-	 * @param languageDiagnosticService - Service for providing language diagnostics.
-	 * @param languageService - Service for language features.
-	 * @param workspaceService - Service for workspace management.
-	 * @param terminalService - Service for terminal operations.
-	 * @param debugOutputService - Service for debug output.
-	 * @param gitService - Service for Git operations.
-	 */
 	constructor(
 		@ITabsAndEditorsService private readonly tabAndEditorsService: ITabsAndEditorsService,
 		@ILanguageDiagnosticsService private readonly languageDiagnosticService: ILanguageDiagnosticsService,

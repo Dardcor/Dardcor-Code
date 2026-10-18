@@ -35,7 +35,6 @@ function trusted(fingerprint: string, keyType = 'ssh-ed25519'): ISSHTrustedHostK
 	return [{ keyType, fingerprint, addedAt: 1 }];
 }
 
-/** Reduce a decision to a compact string so whole tables can be asserted at once. */
 function summarize(decision: SSHHostKeyDecision): string {
 	return decision.kind === 'trust'
 		? `trust(${decision.reason}${decision.persist ? ',persist' : ''})`
@@ -51,8 +50,6 @@ suite('sshHostKeyPolicy', () => {
 			{
 				storedMatch: summarize(decideHostKeyTrust(makeRequest(), trusted(FINGERPRINT))),
 				storedDiffers: summarize(decideHostKeyTrust(makeRequest(), trusted(OTHER_FINGERPRINT))),
-				// A stored entry for a *different* algorithm says nothing about
-				// this key, so it must not suppress the prompt.
 				storedOtherKeyType: summarize(decideHostKeyTrust(makeRequest(), trusted(OTHER_FINGERPRINT, 'ssh-rsa'))),
 			},
 			{
@@ -74,8 +71,6 @@ suite('sshHostKeyPolicy', () => {
 				unknown: decide('unknown'),
 			},
 			{
-				// A known_hosts hit is copied into our store so later decisions
-				// no longer depend on re-reading the user's files.
 				match: 'trust(known-hosts,persist)',
 				mismatch: 'deny(mismatch)',
 				revoked: 'deny(revoked)',
@@ -91,11 +86,6 @@ suite('sshHostKeyPolicy', () => {
 	});
 
 	test('revocation overrides even a StrictHostKeyChecking opt-out', () => {
-		// Verified against OpenSSH 9.9: with StrictHostKeyChecking=no it still
-		// reports "REVOKED HOST KEY DETECTED" and disables password auth,
-		// keyboard-interactive auth and agent forwarding. Disabling host key
-		// checking means "I accept unknown keys", never "I accept keys I have
-		// explicitly revoked".
 		assert.deepStrictEqual(
 			{
 				no: summarize(decideHostKeyTrust(makeRequest({ knownHostsMatch: 'revoked', strictHostKeyChecking: 'no' }), [])),
@@ -105,9 +95,6 @@ suite('sshHostKeyPolicy', () => {
 	});
 
 	test('a stored key wins over a disagreeing known_hosts file', () => {
-		// Our store is authoritative for hosts already connected to, so a
-		// known_hosts entry that agrees with the server must not silently
-		// override a key the user previously accepted.
 		assert.strictEqual(
 			summarize(decideHostKeyTrust(makeRequest({ knownHostsMatch: 'match' }), trusted(OTHER_FINGERPRINT))),
 			'deny(mismatch)');
@@ -123,18 +110,11 @@ suite('sshHostKeyPolicy', () => {
 				yesUnknown: decide('yes'),
 				no: decide('no'),
 				off: decide('off'),
-				// The opt-out covers *unknown* keys only. Verified against
-				// OpenSSH 9.9: with StrictHostKeyChecking=no and a changed key
-				// it warns and disables password auth, keyboard-interactive
-				// auth and agent forwarding. We refuse outright instead.
 				noWithMismatch: decide('no', 'mismatch'),
 				offWithMismatch: decide('off', 'mismatch'),
-				// A stored key that disagrees is refused under the opt-out too.
 				noWithStoredMismatch: summarize(decideHostKeyTrust(
 					makeRequest({ strictHostKeyChecking: 'no', knownHostsMatch: 'unknown' }),
 					trusted(OTHER_FINGERPRINT))),
-				// accept-new only relaxes *unknown* hosts; a changed key still
-				// hard-fails, matching OpenSSH.
 				acceptNewMismatch: decide('accept-new', 'mismatch'),
 				acceptNewRevoked: decide('accept-new', 'revoked'),
 			},
@@ -157,11 +137,8 @@ suite('sshHostKeyPolicy', () => {
 			summarize(decideHostKeyTrust(makeRequest({ knownHostsMatch, userInitiated: false }), keys));
 		assert.deepStrictEqual(
 			{
-				// An unknown key on a silent reconnect is declined rather than
-				// raising a modal the user never asked for.
 				unknown: decide('unknown'),
 				caOnly: decide('ca-only'),
-				// Already-trusted hosts still reconnect without interaction.
 				stored: decide('unknown', trusted(FINGERPRINT)),
 				knownHosts: decide('match'),
 			},

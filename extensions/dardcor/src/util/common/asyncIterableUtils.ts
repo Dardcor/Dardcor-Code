@@ -79,9 +79,6 @@ export namespace AsyncIterUtils {
 	}
 }
 
-/**
- * Namespace for extensions to AsyncIterUtils that are not generally useful enough to be in the main namespace, but are still worth keeping around.
- */
 export namespace AsyncIterUtilsExt {
 
 	export async function* splitLines(stream: AsyncIterable<string>): AsyncIterable<string> {

@@ -128,13 +128,11 @@ describe('modelSupportsToolSearch', () => {
 		expect(modelSupportsToolSearch('claude-opus-4.7')).toBe(true);
 		expect(modelSupportsToolSearch('claude-opus-4-7@1.0.0')).toBe(true);
 		expect(modelSupportsToolSearch('claude-sonnet-4-6@1.0.0')).toBe(true);
-		// Denylist: newer/future Claude families are picked up automatically.
 		expect(modelSupportsToolSearch('claude-opus-4-8')).toBe(true);
 		expect(modelSupportsToolSearch('claude-future-version')).toBe(true);
 	});
 
 	test('rejects pre-4.5 models, including date-suffixed ones', () => {
-		// Regression guard: the datestamp must not be read as the minor version.
 		expect(modelSupportsToolSearch('claude-sonnet-4-20250514')).toBe(false);
 		expect(modelSupportsToolSearch('claude-sonnet-4')).toBe(false);
 		expect(modelSupportsToolSearch('claude-opus-4')).toBe(false);
@@ -145,7 +143,6 @@ describe('modelSupportsToolSearch', () => {
 	});
 
 	test('rejects Haiku and legacy Claude families', () => {
-		// Haiku is current-gen but has no tool search support — denied explicitly.
 		expect(modelSupportsToolSearch('claude-haiku-4-5')).toBe(false);
 		expect(modelSupportsToolSearch('claude-haiku-4.5')).toBe(false);
 		expect(modelSupportsToolSearch('claude-3-5-sonnet-20241022')).toBe(false);
@@ -171,7 +168,6 @@ describe('modelSupportsToolSearch', () => {
 	});
 
 	test('matches via endpoint.family when the model id is unknown', () => {
-		// An unknown preview id whose family has been aliased to a supported production family.
 		expect({
 			'preview-id + family=claude-opus-4.7': modelSupportsToolSearch(fakeModel('claude-opus-4.7', 'preview-anthropic')),
 			'preview-id + family=claude-sonnet-4.6': modelSupportsToolSearch(fakeModel('claude-sonnet-4.6', 'preview-sonnet-internal')),
@@ -203,10 +199,10 @@ describe('modelSupportsContextEditing', () => {
 			'claude-fable-5': true,
 			'claude-opus-4.7': true,
 			'claude-opus-4.8': true,
-			'claude-opus-4-8-1m': false, // 1M variant excluded
+			'claude-opus-4-8-1m': false,
 			'claude-sonnet-4.5': true,
 			'claude-haiku-4-5': true,
-			'claude-opus-4.6-1m': false, // 1M variant excluded
+			'claude-opus-4.6-1m': false,
 			'gpt-5': false,
 		});
 	});

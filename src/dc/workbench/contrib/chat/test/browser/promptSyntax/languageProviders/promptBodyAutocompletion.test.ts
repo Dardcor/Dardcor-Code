@@ -48,7 +48,6 @@ suite('PromptBodyAutocompletion', () => {
 		const fileSystemProvider = disposables.add(new InMemoryFileSystemProvider());
 		disposables.add(fileService.registerProvider('test', fileSystemProvider));
 
-		// Create some test files and directories
 		await fileService.createFolder(URI.parse('test:///workspace'));
 		await fileService.createFolder(URI.parse('test:///workspace/src'));
 		await fileService.createFolder(URI.parse('test:///workspace/docs'));

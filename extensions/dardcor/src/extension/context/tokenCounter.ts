@@ -7,12 +7,11 @@ export function estimateTokenCount(text: string): number {
 	if (!text) {
 		return 0;
 	}
-	// Heuristic estimation: ~4 chars per token for English/code, ~2 for unicode/multibyte
 	return Math.ceil(text.length / 3.5);
 }
 
 export function estimateMessageTokens(message: { content?: string; role?: string; toolCalls?: any[] }): number {
-	let tokens = 4; // Overhead per message
+	let tokens = 4;
 	if (message.content) {
 		tokens += estimateTokenCount(message.content);
 	}

@@ -12,15 +12,8 @@ export const IWebContentExtractorService = createDecorator<IWebContentExtractorS
 export const ISharedWebContentExtractorService = createDecorator<ISharedWebContentExtractorService>('ISharedWebContentExtractorService');
 
 export interface IWebContentExtractorOptions {
-	/**
-	 * Whether to allow cross-authority redirects on the web content.
-	 * 'false' by default.
-	 */
 	followRedirects?: boolean;
 
-	/**
-	 * List of trusted domain patterns for redirect validation.
-	 */
 	trustedDomains?: string[];
 }
 
@@ -34,19 +27,11 @@ export interface IWebContentExtractorService {
 	extract(uri: URI[], options?: IWebContentExtractorOptions): Promise<WebContentExtractResult[]>;
 }
 
-/*
- * A service that extracts image content from a given arbitrary URI. This is done in the shared process to avoid running non trusted application code in the main process.
- */
 export interface ISharedWebContentExtractorService {
 	_serviceBrand: undefined;
 	readImage(uri: URI, token: CancellationToken): Promise<VSBuffer | undefined>;
 }
 
-/**
- * A service that extracts web content from a given URI.
- * This is a placeholder implementation that does not perform any actual extraction.
- * It's intended to be used on platforms where web content extraction is not supported such as in the browser.
- */
 export class NullWebContentExtractorService implements IWebContentExtractorService {
 	_serviceBrand: undefined;
 

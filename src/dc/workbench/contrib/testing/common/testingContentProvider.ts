@@ -17,10 +17,6 @@ import { ITestResultService } from './testResultService.js';
 import { TestMessageType } from './testTypes.js';
 import { TEST_DATA_SCHEME, TestUriType, parseTestUri } from './testingUri.js';
 
-/**
- * A content provider that returns various outputs for tests. This is used
- * in the inline peek view.
- */
 export class TestingContentProvider implements IWorkbenchContribution, ITextModelContentProvider {
 	public static readonly ID = 'workbench.contrib.testing.contentProvider';
 
@@ -33,9 +29,6 @@ export class TestingContentProvider implements IWorkbenchContribution, ITextMode
 		textModelResolverService.registerTextModelContentProvider(TEST_DATA_SCHEME, this);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public async provideTextContent(resource: URI): Promise<ITextModel | null> {
 		const existing = this.modelService.getModel(resource);
 		if (existing && !existing.isDisposed()) {

@@ -43,7 +43,6 @@ interface FixtureData {
 	languageId: 'typescript' | string;
 }
 
-/** See https://github.com/microsoft/vscode-ts-file-path-support */
 export type RelativeFilePath<T extends string> = string & { baseDir?: T };
 
 export function fixture(relativePath: RelativeFilePath<'$dir/fixtures'>): string {
@@ -220,7 +219,6 @@ export async function generateSummarizedDocuments(
 				file.formattingOptions
 			);
 		}
-		// const selections = selection ? getAdjustedSelection(structure, doc, toSelection(selection)) : undefined;
 
 		items.push({
 			document: doc,

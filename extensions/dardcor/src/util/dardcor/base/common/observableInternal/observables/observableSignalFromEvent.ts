@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -57,6 +56,5 @@ class FromEventObservableSignal extends BaseObservable<void> {
 	}
 
 	public override get(): void {
-		// NO OP
 	}
 }

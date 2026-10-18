@@ -52,7 +52,6 @@ export abstract class LanguagePackBaseService extends Disposable implements ILan
 				pageSize: 20
 			}, timeout.token);
 		} catch (_) {
-			// This method is best effort. So, we ignore any errors.
 			return [];
 		}
 

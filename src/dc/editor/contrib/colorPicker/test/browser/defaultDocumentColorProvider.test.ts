@@ -17,7 +17,6 @@ suite('DefaultDocumentColorProvider', () => {
 	test('Color presentations should not include alpha channel when alpha is 1', () => {
 		const provider = new DefaultDocumentColorProvider(null!);
 
-		// Test case 1: Fully opaque color (alpha = 1) should not include alpha channel
 		const opaqueColorInfo: IColorInformation = {
 			range: new Range(1, 1, 1, 10),
 			color: {
@@ -37,7 +36,6 @@ suite('DefaultDocumentColorProvider', () => {
 	test('Color presentations should include alpha channel when alpha is not 1', () => {
 		const provider = new DefaultDocumentColorProvider(null!);
 
-		// Test case 2: Transparent color (alpha = 0) should include alpha channel
 		const transparentColorInfo: IColorInformation = {
 			range: new Range(1, 1, 1, 10),
 			color: {
@@ -57,7 +55,6 @@ suite('DefaultDocumentColorProvider', () => {
 	test('Color presentations should include alpha channel when alpha is between 0 and 1', () => {
 		const provider = new DefaultDocumentColorProvider(null!);
 
-		// Test case 3: Semi-transparent color (alpha = 0.67) should include alpha channel
 		const semiTransparentColorInfo: IColorInformation = {
 			range: new Range(1, 1, 1, 10),
 			color: {
@@ -75,8 +72,6 @@ suite('DefaultDocumentColorProvider', () => {
 	});
 
 	test('Regression test for issue #243746: opacity should be preserved when switching to hex format', () => {
-		// Original bug: When switching from rgba/hsla with opacity to hex format,
-		// the opacity was being lost because alpha was falsy (0 or less than 1)
 		const provider = new DefaultDocumentColorProvider(null!);
 
 		const colorWithOpacity: IColorInformation = {
@@ -91,19 +86,16 @@ suite('DefaultDocumentColorProvider', () => {
 
 		const presentations = provider.provideColorPresentations(null!, colorWithOpacity, CancellationToken.None);
 
-		// Hex format should preserve the opacity by including alpha channel
 		assert.strictEqual(presentations[2].label, '#80808080', 'HEX format should preserve opacity (issue #243746)');
 	});
 
 	test('Regression test for issue #256853: fully opaque colors should not add unnecessary alpha suffix', () => {
-		// Bug introduced by fix for #243746: When alpha was 1 (fully opaque),
-		// the hex format would incorrectly add 'ff' suffix
 		const provider = new DefaultDocumentColorProvider(null!);
 
 		const fullyOpaqueColor: IColorInformation = {
 			range: new Range(1, 1, 1, 10),
 			color: {
-				red: 0.58, // #935ba5 example from issue
+				red: 0.58,
 				green: 0.36,
 				blue: 0.65,
 				alpha: 1
@@ -112,8 +104,6 @@ suite('DefaultDocumentColorProvider', () => {
 
 		const presentations = provider.provideColorPresentations(null!, fullyOpaqueColor, CancellationToken.None);
 
-		// Hex format should NOT include alpha when it's 1 (fully opaque)
-		// The actual hex value is #945ca6 (after rounding 0.58*255, 0.36*255, 0.65*255)
 		assert.strictEqual(presentations[2].label, '#945ca6', 'HEX format should not add ff suffix when fully opaque (issue #256853)');
 	});
 });

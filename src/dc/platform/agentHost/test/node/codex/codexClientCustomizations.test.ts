@@ -93,7 +93,7 @@ suite('codexClientCustomizations', () => {
 			plugin('unparsed', undefined, undefined),
 			plugin('off', '/plugins/off', parsed()),
 		]);
-		store.setClient('c2', [plugin('shared', '/plugins/other', parsed())]); // duplicate id ignored
+		store.setClient('c2', [plugin('shared', '/plugins/other', parsed())]);
 		store.setEnabled('off', false);
 		assert.deepStrictEqual(store.enabledPlugins().map(p => p.synced.customization.id), ['shared']);
 	});
@@ -135,9 +135,6 @@ suite('codexClientCustomizations', () => {
 		const plugins = [plugin('p', '/plugins/p', parsed({
 			skills: [skillDef('/plugins/p', 'b'), skillDef('/plugins/p', 'a')],
 		})), plugin('q', '/plugins/q', parsed({ skills: [skillDef('/plugins/q', 'c')] }))];
-		// The roots are native fsPaths (backslashes on Windows), so express the
-		// expectation with the same platform-aware transform rather than a
-		// hardcoded posix path.
 		const skillsRoot = (pluginDir: string) => URI.file(`${pluginDir}/skills`).fsPath;
 		assert.deepStrictEqual(codexSkillRootsFromPlugins(plugins), [skillsRoot('/plugins/p'), skillsRoot('/plugins/q')]);
 		assert.deepStrictEqual(codexSkillCapabilityRoots(plugins).map(root => root.fsPath), [skillsRoot('/plugins/p'), skillsRoot('/plugins/q')]);

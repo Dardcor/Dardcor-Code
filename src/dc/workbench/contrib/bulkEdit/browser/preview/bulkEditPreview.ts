@@ -175,7 +175,6 @@ export class BulkFileOperations {
 			let uri: URI;
 			let type: BulkFileOperationType;
 
-			// store inital checked state
 			this.checked.updateChecked(edit, !edit.metadata?.needsConfirmation);
 
 			if (edit instanceof ResourceTextEdit) {
@@ -187,18 +186,14 @@ export class BulkFileOperations {
 					type = BulkFileOperationType.Rename;
 					uri = edit.oldResource;
 					if (edit.options?.overwrite === undefined && edit.options?.ignoreIfExists && await this._fileService.exists(uri)) {
-						// noop -> "soft" rename to something that already exists
 						continue;
 					}
-					// map newResource onto oldResource so that text-edit appear for
-					// the same file element
 					newToOldUri.set(edit.newResource, uri);
 
 				} else if (edit.oldResource) {
 					type = BulkFileOperationType.Delete;
 					uri = edit.oldResource;
 					if (edit.options?.ignoreIfNotExists && !await this._fileService.exists(uri)) {
-						// noop -> "soft" delete something that doesn't exist
 						continue;
 					}
 
@@ -206,17 +201,14 @@ export class BulkFileOperations {
 					type = BulkFileOperationType.Create;
 					uri = edit.newResource;
 					if (edit.options?.overwrite === undefined && edit.options?.ignoreIfExists && await this._fileService.exists(uri)) {
-						// noop -> "soft" create something that already exists
 						continue;
 					}
 
 				} else {
-					// invalid edit -> skip
 					continue;
 				}
 
 			} else {
-				// unsupported edit
 				continue;
 			}
 
@@ -224,7 +216,6 @@ export class BulkFileOperations {
 				let key = extUri.getComparisonKey(uri, true);
 				let operation = map.get(key);
 
-				// rename
 				if (!operation && newToOldUri.has(uri)) {
 					uri = newToOldUri.get(uri)!;
 					key = extUri.getComparisonKey(uri, true);
@@ -240,7 +231,6 @@ export class BulkFileOperations {
 
 			insert(uri, operationByResource);
 
-			// insert into "this" category
 			const key = BulkCategory.keyOf(edit.metadata);
 			let category = operationByCategory.get(key);
 			if (!category) {
@@ -253,9 +243,6 @@ export class BulkFileOperations {
 		operationByResource.forEach(value => this.fileOperations.push(value));
 		operationByCategory.forEach(value => this.categories.push(value));
 
-		// "correct" invalid parent-check child states that is
-		// unchecked file edits (rename, create, delete) uncheck
-		// all edits for a file, e.g no text change without rename
 		for (const file of this.fileOperations) {
 			if (file.type !== BulkFileOperationType.TextEdit) {
 				let checked = true;
@@ -272,7 +259,6 @@ export class BulkFileOperations {
 			}
 		}
 
-		// sort (once) categories atop which have unconfirmed edits
 		this.categories.sort((a, b) => {
 			if (a.metadata.needsConfirmation === b.metadata.needsConfirmation) {
 				return a.metadata.label.localeCompare(b.metadata.label);
@@ -303,7 +289,6 @@ export class BulkFileOperations {
 			return this._bulkEdit;
 		}
 
-		// not all edits have been accepted
 		coalesceInPlace(result);
 		return result;
 	}
@@ -331,7 +316,6 @@ export class BulkFileOperations {
 						}
 
 					} else if (!this.checked.isChecked(edit)) {
-						// UNCHECKED WorkspaceFileEdit disables all text edits
 						ignoreAll = true;
 					}
 				}
@@ -406,12 +390,10 @@ export class BulkEditPreviewProvider implements ITextModelContentProvider {
 	private async _applyTextEditsToPreviewModel(uri: URI) {
 		const model = await this._getOrCreatePreviewModel(uri);
 
-		// undo edits that have been done before
 		const undoEdits = this._modelPreviewEdits.get(model.id);
 		if (undoEdits) {
 			model.applyEdits(undoEdits);
 		}
-		// apply new edits and keep (future) undo edits
 		const newEdits = await this._operations.getFileEdits(uri);
 		const newUndoEdits = model.applyEdits(newEdits, true);
 		this._modelPreviewEdits.set(model.id, newUndoEdits);
@@ -422,7 +404,6 @@ export class BulkEditPreviewProvider implements ITextModelContentProvider {
 		let model = this._modelService.getModel(previewUri);
 		if (!model) {
 			try {
-				// try: copy existing
 				const ref = await this._textModelResolverService.createModelReference(uri);
 				const sourceModel = ref.object.textEditorModel;
 				model = this._modelService.createModel(
@@ -433,16 +414,12 @@ export class BulkEditPreviewProvider implements ITextModelContentProvider {
 				ref.dispose();
 
 			} catch {
-				// create NEW model
 				model = this._modelService.createModel(
 					'',
 					this._languageService.createByFilepathOrFirstLine(previewUri),
 					previewUri
 				);
 			}
-			// this is a little weird but otherwise editors and other cusomers
-			// will dispose my models before they should be disposed...
-			// And all of this is off the eventloop to prevent endless recursion
 			queueMicrotask(async () => {
 				this._disposables.add(await this._textModelResolverService.createModelReference(model!.uri));
 			});

@@ -61,7 +61,6 @@ export class KeyboardLayoutService extends Disposable implements IKeyboardLayout
 	public getKeyboardMapper(): IKeyboardMapper {
 		const config = readKeyboardConfig(this._configurationService);
 		if (config.dispatch === DispatchConfig.KeyCode) {
-			// Forcefully set to use keyCode
 			return new FallbackKeyboardMapper(config.mapAltGrToCtrlAlt, OS);
 		}
 		if (!this._keyboardMapper) {
@@ -82,14 +81,12 @@ function createKeyboardMapper(layoutInfo: IKeyboardLayoutInfo | null, rawMapping
 	}
 
 	if (!rawMapping || Object.keys(rawMapping).length === 0) {
-		// Looks like reading the mappings failed (most likely Mac + Japanese/Chinese keyboard layouts)
 		return new FallbackKeyboardMapper(mapAltGrToCtrlAlt, OS);
 	}
 
 	if (OS === OperatingSystem.Macintosh) {
 		const kbInfo = <IMacKeyboardLayoutInfo>layoutInfo;
 		if (kbInfo.id === 'com.apple.keylayout.DVORAK-QWERTYCMD') {
-			// Use keyCode based dispatching for DVORAK - QWERTY ⌘
 			return new FallbackKeyboardMapper(mapAltGrToCtrlAlt, OS);
 		}
 	}

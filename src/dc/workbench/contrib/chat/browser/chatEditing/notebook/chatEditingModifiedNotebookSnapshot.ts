@@ -69,7 +69,6 @@ export class SnapshotComparer {
 		const transientDocumentMetadata = this.transientOptions?.transientDocumentMetadata || {};
 		const notebookMetadata = filter(notebook.metadata || {}, key => !transientDocumentMetadata[key]);
 		const comparerMetadata = filter(this.data.metadata || {}, key => !transientDocumentMetadata[key]);
-		// When comparing ignore transient items.
 		if (JSON.stringify(notebookMetadata) !== JSON.stringify(comparerMetadata)) {
 			return false;
 		}
@@ -97,14 +96,12 @@ export class SnapshotComparer {
 				if (!this.transientOptions?.transientOutputs && notebookCell.outputs.length !== comparerCell.outputs.length) {
 					return false;
 				}
-				// When comparing ignore transient items.
 				const cellMetadata = filter(notebookCell.metadata || {}, key => !transientCellMetadata[key]);
 				const comparerCellMetadata = filter(comparerCell.metadata || {}, key => !transientCellMetadata[key]);
 				if (JSON.stringify(cellMetadata) !== JSON.stringify(comparerCellMetadata)) {
 					return false;
 				}
 
-				// When comparing ignore transient items.
 				if (JSON.stringify(sanitizeCellDto2(notebookCell, true, this.transientOptions)) !== JSON.stringify(sanitizeCellDto2(comparerCell, true, this.transientOptions))) {
 					return false;
 				}
@@ -118,8 +115,6 @@ export class SnapshotComparer {
 function sanitizeCellDto2(cell: ICellDto2, ignoreInternalMetadata?: boolean, transientOptions?: TransientOptions): ICellDto2 {
 	const transientCellMetadata = transientOptions?.transientCellMetadata || {};
 	const outputs = transientOptions?.transientOutputs ? [] : cell.outputs.map(output => {
-		// Ensure we're in full control of the data being stored.
-		// Possible we have classes instead of plain objects.
 		return {
 			outputId: output.outputId,
 			metadata: output.metadata,
@@ -131,8 +126,6 @@ function sanitizeCellDto2(cell: ICellDto2, ignoreInternalMetadata?: boolean, tra
 			}),
 		};
 	});
-	// Ensure we're in full control of the data being stored.
-	// Possible we have classes instead of plain objects.
 	return {
 		cellKind: cell.cellKind,
 		language: cell.language,
@@ -147,10 +140,6 @@ function sanitizeCellDto2(cell: ICellDto2, ignoreInternalMetadata?: boolean, tra
 
 function serializeSnapshot(data: NotebookData, transientOptions: TransientOptions | undefined): string {
 	const dataDto: NotebookData = {
-		// Never pass transient options, as we're after a backup here.
-		// Else we end up stripping outputs from backups.
-		// Whether its persisted or not is up to the serializer.
-		// However when reloading/restoring we need to preserve outputs.
 		cells: data.cells.map(cell => sanitizeCellDto2(cell)),
 		metadata: data.metadata,
 	};

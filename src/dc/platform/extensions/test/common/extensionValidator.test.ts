@@ -57,7 +57,6 @@ suite('Extension Version Validator', () => {
 		assertParseVersion('>=0.0.1', false, true, 0, true, 0, true, 1, true, null);
 		assertParseVersion('>=2.4.3', false, true, 2, true, 4, true, 3, true, null);
 
-		// Parse versions with HHMM date format
 		assertParseVersion('1.10.0-202105111430', false, false, 1, true, 10, true, 0, true, '-202105111430');
 		assertParseVersion('^1.10.0-202105112359', true, false, 1, true, 10, true, 0, true, '-202105112359');
 	});
@@ -73,7 +72,6 @@ suite('Extension Version Validator', () => {
 		assertNormalizeVersion('0.10.0-222222222', 0, true, 10, true, 0, true, false, 0);
 		assertNormalizeVersion('0.10.0-20210511', 0, true, 10, true, 0, true, false, new Date('2021-05-11T00:00:00Z').getTime());
 
-		// Normalize versions with HHMM date format
 		assertNormalizeVersion('1.10.0-202105111430', 1, true, 10, true, 0, true, false, new Date('2021-05-11T14:30:00Z').getTime());
 		assertNormalizeVersion('1.10.0-202105112359', 1, true, 10, true, 0, true, false, new Date('2021-05-11T23:59:00Z').getTime());
 		assertNormalizeVersion('1.10.0-202105110000', 1, true, 10, true, 0, true, false, new Date('2021-05-11T00:00:00Z').getTime());
@@ -152,7 +150,6 @@ suite('Extension Version Validator', () => {
 		testIsValidVersion('0.11.0', '^0.10.0', false);
 		testIsValidVersion('0.11.0', '*', true);
 
-		// Anything < 1.0.0 is compatible
 
 		testIsValidVersion('1.0.0', 'x.x.x', true);
 		testIsValidVersion('1.0.0', '0.x.x', true);
@@ -249,7 +246,6 @@ suite('Extension Version Validator', () => {
 			testExtensionVersion(version, desiredVersion, false, true, expectedResult);
 		}
 
-		// builtin are allowed to use * or x.x.x
 		testIsValidExtensionVersion('0.10.0-dev', '*', true, true);
 		testIsValidExtensionVersion('0.10.0-dev', 'x.x.x', true, true);
 		testIsValidExtensionVersion('0.10.0-dev', '0.x.x', true, true);
@@ -263,7 +259,6 @@ suite('Extension Version Validator', () => {
 		testIsValidExtensionVersion('1.10.0-dev', '1.x.x', true, false);
 		testIsValidExtensionVersion('1.10.0-dev', '1.10.x', true, false);
 
-		// normal extensions are allowed to use * or x.x.x only if they have no main
 		testIsInvalidExtensionVersion('0.10.0-dev', '*', false, true);
 		testIsInvalidExtensionVersion('0.10.0-dev', 'x.x.x', false, true);
 		testIsInvalidExtensionVersion('0.10.0-dev', '0.x.x', false, true);
@@ -277,7 +272,6 @@ suite('Extension Version Validator', () => {
 		testIsValidExtensionVersion('1.10.0-dev', '1.x.x', false, false);
 		testIsValidExtensionVersion('1.10.0-dev', '1.10.x', false, false);
 
-		// extensions without "main" get no version check
 		testIsValidExtensionVersion('0.10.0-dev', '>=0.9.1-pre.1', false, false);
 		testIsValidExtensionVersion('0.10.0-dev', '*', false, false);
 		testIsValidExtensionVersion('0.10.0-dev', 'x.x.x', false, false);
@@ -292,75 +286,73 @@ suite('Extension Version Validator', () => {
 		testIsValidExtensionVersion('1.10.0-dev', '1.x.x', false, false);
 		testIsValidExtensionVersion('1.10.0-dev', '1.10.x', false, false);
 
-		// normal extensions with code
-		testIsValidVersion('0.10.0-dev', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('0.10.0-dev', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('0.10.0-dev', 'x.x.x', false);
+		testIsValidVersion('0.10.0-dev', '0.x.x', false);
 		testIsValidVersion('0.10.0-dev', '0.10.0', true);
 		testIsValidVersion('0.10.0-dev', '0.10.2', false);
 		testIsValidVersion('0.10.0-dev', '^0.10.2', false);
 		testIsValidVersion('0.10.0-dev', '0.10.x', true);
 		testIsValidVersion('0.10.0-dev', '^0.10.0', true);
-		testIsValidVersion('0.10.0-dev', '*', false); // fails due to lack of specificity
+		testIsValidVersion('0.10.0-dev', '*', false);
 
-		testIsValidVersion('0.10.0', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('0.10.0', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('0.10.0', 'x.x.x', false);
+		testIsValidVersion('0.10.0', '0.x.x', false);
 		testIsValidVersion('0.10.0', '0.10.0', true);
 		testIsValidVersion('0.10.0', '0.10.2', false);
 		testIsValidVersion('0.10.0', '^0.10.2', false);
 		testIsValidVersion('0.10.0', '0.10.x', true);
 		testIsValidVersion('0.10.0', '^0.10.0', true);
-		testIsValidVersion('0.10.0', '*', false); // fails due to lack of specificity
+		testIsValidVersion('0.10.0', '*', false);
 
-		testIsValidVersion('0.10.1', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('0.10.1', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('0.10.1', 'x.x.x', false);
+		testIsValidVersion('0.10.1', '0.x.x', false);
 		testIsValidVersion('0.10.1', '0.10.0', false);
 		testIsValidVersion('0.10.1', '0.10.2', false);
 		testIsValidVersion('0.10.1', '^0.10.2', false);
 		testIsValidVersion('0.10.1', '0.10.x', true);
 		testIsValidVersion('0.10.1', '^0.10.0', true);
-		testIsValidVersion('0.10.1', '*', false); // fails due to lack of specificity
+		testIsValidVersion('0.10.1', '*', false);
 
-		testIsValidVersion('0.10.100', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('0.10.100', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('0.10.100', 'x.x.x', false);
+		testIsValidVersion('0.10.100', '0.x.x', false);
 		testIsValidVersion('0.10.100', '0.10.0', false);
 		testIsValidVersion('0.10.100', '0.10.2', false);
 		testIsValidVersion('0.10.100', '^0.10.2', true);
 		testIsValidVersion('0.10.100', '0.10.x', true);
 		testIsValidVersion('0.10.100', '^0.10.0', true);
-		testIsValidVersion('0.10.100', '*', false); // fails due to lack of specificity
+		testIsValidVersion('0.10.100', '*', false);
 
-		testIsValidVersion('0.11.0', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('0.11.0', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('0.11.0', 'x.x.x', false);
+		testIsValidVersion('0.11.0', '0.x.x', false);
 		testIsValidVersion('0.11.0', '0.10.0', false);
 		testIsValidVersion('0.11.0', '0.10.2', false);
 		testIsValidVersion('0.11.0', '^0.10.2', false);
 		testIsValidVersion('0.11.0', '0.10.x', false);
 		testIsValidVersion('0.11.0', '^0.10.0', false);
-		testIsValidVersion('0.11.0', '*', false); // fails due to lack of specificity
+		testIsValidVersion('0.11.0', '*', false);
 
-		testIsValidVersion('1.0.0', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('1.0.0', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('1.0.0', 'x.x.x', false);
+		testIsValidVersion('1.0.0', '0.x.x', false);
 		testIsValidVersion('1.0.0', '0.10.0', false);
 		testIsValidVersion('1.0.0', '0.10.2', false);
 		testIsValidVersion('1.0.0', '^0.10.2', true);
 		testIsValidVersion('1.0.0', '0.10.x', true);
 		testIsValidVersion('1.0.0', '^0.10.0', true);
-		testIsValidVersion('1.0.0', '*', false); // fails due to lack of specificity
+		testIsValidVersion('1.0.0', '*', false);
 
-		testIsValidVersion('1.10.0', 'x.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('1.10.0', 'x.x.x', false);
 		testIsValidVersion('1.10.0', '1.x.x', true);
 		testIsValidVersion('1.10.0', '1.10.0', true);
 		testIsValidVersion('1.10.0', '1.10.2', false);
 		testIsValidVersion('1.10.0', '^1.10.2', false);
 		testIsValidVersion('1.10.0', '1.10.x', true);
 		testIsValidVersion('1.10.0', '^1.10.0', true);
-		testIsValidVersion('1.10.0', '*', false); // fails due to lack of specificity
+		testIsValidVersion('1.10.0', '*', false);
 
 
-		// Anything < 1.0.0 is compatible
 
-		testIsValidVersion('1.0.0', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('1.0.0', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('1.0.0', 'x.x.x', false);
+		testIsValidVersion('1.0.0', '0.x.x', false);
 		testIsValidVersion('1.0.0', '0.10.0', false);
 		testIsValidVersion('1.0.0', '0.10.2', false);
 		testIsValidVersion('1.0.0', '^0.10.2', true);
@@ -369,10 +361,10 @@ suite('Extension Version Validator', () => {
 		testIsValidVersion('1.0.0', '1.0.0', true);
 		testIsValidVersion('1.0.0', '^1.0.0', true);
 		testIsValidVersion('1.0.0', '^2.0.0', false);
-		testIsValidVersion('1.0.0', '*', false); // fails due to lack of specificity
+		testIsValidVersion('1.0.0', '*', false);
 
-		testIsValidVersion('1.0.100', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('1.0.100', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('1.0.100', 'x.x.x', false);
+		testIsValidVersion('1.0.100', '0.x.x', false);
 		testIsValidVersion('1.0.100', '0.10.0', false);
 		testIsValidVersion('1.0.100', '0.10.2', false);
 		testIsValidVersion('1.0.100', '^0.10.2', true);
@@ -382,10 +374,10 @@ suite('Extension Version Validator', () => {
 		testIsValidVersion('1.0.100', '^1.0.0', true);
 		testIsValidVersion('1.0.100', '^1.0.1', true);
 		testIsValidVersion('1.0.100', '^2.0.0', false);
-		testIsValidVersion('1.0.100', '*', false); // fails due to lack of specificity
+		testIsValidVersion('1.0.100', '*', false);
 
-		testIsValidVersion('1.100.0', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('1.100.0', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('1.100.0', 'x.x.x', false);
+		testIsValidVersion('1.100.0', '0.x.x', false);
 		testIsValidVersion('1.100.0', '0.10.0', false);
 		testIsValidVersion('1.100.0', '0.10.2', false);
 		testIsValidVersion('1.100.0', '^0.10.2', true);
@@ -396,10 +388,10 @@ suite('Extension Version Validator', () => {
 		testIsValidVersion('1.100.0', '^1.1.0', true);
 		testIsValidVersion('1.100.0', '^1.100.0', true);
 		testIsValidVersion('1.100.0', '^2.0.0', false);
-		testIsValidVersion('1.100.0', '*', false); // fails due to lack of specificity
+		testIsValidVersion('1.100.0', '*', false);
 
-		testIsValidVersion('2.0.0', 'x.x.x', false); // fails due to lack of specificity
-		testIsValidVersion('2.0.0', '0.x.x', false); // fails due to lack of specificity
+		testIsValidVersion('2.0.0', 'x.x.x', false);
+		testIsValidVersion('2.0.0', '0.x.x', false);
 		testIsValidVersion('2.0.0', '0.10.0', false);
 		testIsValidVersion('2.0.0', '0.10.2', false);
 		testIsValidVersion('2.0.0', '^0.10.2', false);
@@ -410,19 +402,17 @@ suite('Extension Version Validator', () => {
 		testIsValidVersion('2.0.0', '^1.1.0', false);
 		testIsValidVersion('2.0.0', '^1.100.0', false);
 		testIsValidVersion('2.0.0', '^2.0.0', true);
-		testIsValidVersion('2.0.0', '*', false); // fails due to lack of specificity
+		testIsValidVersion('2.0.0', '*', false);
 
-		// date tags
-		testIsValidVersion('1.10.0', '^1.10.0-20210511', true); // current date
-		testIsValidVersion('1.10.0', '^1.10.0-20210510', true); // before date
-		testIsValidVersion('1.10.0', '^1.10.0-20210512', false); // future date
-		testIsValidVersion('1.10.1', '^1.10.0-20200101', true); // before date, but ahead version
+		testIsValidVersion('1.10.0', '^1.10.0-20210511', true);
+		testIsValidVersion('1.10.0', '^1.10.0-20210510', true);
+		testIsValidVersion('1.10.0', '^1.10.0-20210512', false);
+		testIsValidVersion('1.10.1', '^1.10.0-20200101', true);
 		testIsValidVersion('1.11.0', '^1.10.0-20200101', true);
 
-		// Test with HHMM date format
-		testIsValidVersion('1.10.0', '^1.10.0-202105111400', true); // product at beginning of day, required time at 14:00
-		testIsValidVersion('1.10.0', '^1.10.0-202105112359', false); // product at beginning of day, required time at 23:59
-		testIsValidVersion('1.10.0', '^1.10.0-202105110000', true); // product at beginning of day, required time at 00:00
+		testIsValidVersion('1.10.0', '^1.10.0-202105111400', true);
+		testIsValidVersion('1.10.0', '^1.10.0-202105112359', false);
+		testIsValidVersion('1.10.0', '^1.10.0-202105110000', true);
 	});
 
 	test('isValidExtensionVersion checks browser only extensions', () => {

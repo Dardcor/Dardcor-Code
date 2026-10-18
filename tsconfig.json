@@ -16,7 +16,7 @@
   "include": [
     "src/**/*",
     "src/typings/**/*",
-    "src/vscode-dts/**/*"
+    "src/dardcor-dts/**/*"
   ],
   "exclude": [
     "node_modules",

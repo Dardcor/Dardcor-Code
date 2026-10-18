@@ -12,20 +12,16 @@ suite('Protocol version negotiation', () => {
 
 	test('matrix of compatibility rules', () => {
 		const cases: ReadonlyArray<readonly [string, string, boolean]> = [
-			// Exact match always works.
 			['0.1.0', '0.1.0', true],
 			['1.2.3', '1.2.3', true],
-			// 0.x: minor must match; offered <= server.
 			['0.1.0', '0.1.5', true],
 			['0.1.5', '0.1.5', true],
 			['0.1.5', '0.1.0', false],
 			['0.2.0', '0.1.0', false],
 			['0.0.1', '0.1.0', false],
-			// >=1.x: same major; offered <= server.
 			['1.0.0', '1.2.3', true],
 			['1.2.3', '1.0.0', false],
 			['2.0.0', '1.2.3', false],
-			// Invalid versions: never compatible.
 			['not-a-version', '0.1.0', false],
 			['0.1.0', '0.1', false],
 		];
@@ -44,7 +40,6 @@ suite('Protocol version negotiation', () => {
 		assert.strictEqual(negotiateProtocolVersion(['0.1.0', '0.2.0'], '0.1.0'), '0.1.0');
 		assert.strictEqual(negotiateProtocolVersion(['0.0.5', '0.2.0'], '0.1.0'), undefined);
 		assert.strictEqual(negotiateProtocolVersion([], '0.1.0'), undefined);
-		// Order of offered versions does not affect the result.
 		assert.strictEqual(negotiateProtocolVersion(['0.1.2', '0.1.0'], '0.1.5'), '0.1.2');
 	});
 });

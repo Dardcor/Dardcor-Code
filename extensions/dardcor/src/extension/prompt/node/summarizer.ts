@@ -76,7 +76,6 @@ export class ChatSummarizerProvider implements vscode.ChatSummarizer {
 			return '';
 		}
 
-		// Extract the parent session ID from the context's sessionResource (provided by VS Code)
 		const sessionResource = context.sessionResource;
 		const parentChatSessionId = sessionResource ? sessionResourceToId(URI.from(sessionResource)) : undefined;
 

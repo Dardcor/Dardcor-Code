@@ -46,13 +46,11 @@ function assertDiff(originalLines: string[], modifiedLines: string[], expectedCh
 	assert.deepStrictEqual(actual, expectedChanges);
 
 	if (!shouldIgnoreTrimWhitespace) {
-		// The diffs should describe how to apply edits to the original text model to get to the modified text model.
 
 		const modifiedTextModel = createTextModel(modifiedLines.join('\n'));
 		const expectedValue = modifiedTextModel.getValue();
 
 		{
-			// Line changes:
 			const originalTextModel = createTextModel(originalLines.join('\n'));
 			originalTextModel.applyEdits(changes.map(c => getLineEdit(c, modifiedTextModel)));
 			assert.deepStrictEqual(originalTextModel.getValue(), expectedValue);
@@ -60,7 +58,6 @@ function assertDiff(originalLines: string[], modifiedLines: string[], expectedCh
 		}
 
 		if (shouldComputeCharChanges) {
-			// Char changes:
 			const originalTextModel = createTextModel(originalLines.join('\n'));
 			originalTextModel.applyEdits(changes.flatMap(c => getCharEdits(c, modifiedTextModel)));
 			assert.deepStrictEqual(originalTextModel.getValue(), expectedValue);
@@ -88,7 +85,6 @@ function getCharEdits(lineChange: ILineChange, modifiedTextModel: ITextModel): I
 function getLineEdit(lineChange: ILineChange, modifiedTextModel: ITextModel): IIdentifiedSingleEditOperation {
 	let originalRange: LineRange;
 	if (lineChange.originalEndLineNumber === 0) {
-		// Insertion
 		originalRange = new LineRange(lineChange.originalStartLineNumber + 1, 0);
 	} else {
 		originalRange = new LineRange(lineChange.originalStartLineNumber, lineChange.originalEndLineNumber - lineChange.originalStartLineNumber + 1);
@@ -96,7 +92,6 @@ function getLineEdit(lineChange: ILineChange, modifiedTextModel: ITextModel): II
 
 	let modifiedRange: LineRange;
 	if (lineChange.modifiedEndLineNumber === 0) {
-		// Deletion
 		modifiedRange = new LineRange(lineChange.modifiedStartLineNumber + 1, 0);
 	} else {
 		modifiedRange = new LineRange(lineChange.modifiedStartLineNumber, lineChange.modifiedEndLineNumber - lineChange.modifiedStartLineNumber + 1);
@@ -128,7 +123,6 @@ function diffFromLineRanges(originalRange: LineRange, modifiedRange: LineRange):
 			];
 		}
 
-		// When one of them is one and one of them is empty, the other cannot be the last line of the document
 		return [
 			new Range(
 				originalRange.startLineNumber,
@@ -226,7 +220,6 @@ suite('Editor Diff - DiffComputer', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// ---- insertions
 
 	test('one inserted line below', () => {
 		const original = ['line'];
@@ -277,7 +270,6 @@ suite('Editor Diff - DiffComputer', () => {
 		assertDiff(original, modified, expected);
 	});
 
-	// ---- deletions
 
 	test('one deleted line below', () => {
 		const original = ['line', 'new line'];
@@ -328,7 +320,6 @@ suite('Editor Diff - DiffComputer', () => {
 		assertDiff(original, modified, expected);
 	});
 
-	// ---- changes
 
 	test('one line changed: chars inserted at the end', () => {
 		const original = ['line'];
@@ -779,7 +770,6 @@ suite('Editor Diff - DiffComputer', () => {
 					createCharChange(27, 1, 27, 1, 27, 1, 27, 2),
 				]
 			)
-			// createLineInsertion(7, 11, 6)
 		];
 		assertDiff(original, modified, expected, true, true, false);
 	});

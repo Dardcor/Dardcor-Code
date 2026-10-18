@@ -3,16 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Domain + Intent + Scope + Time Estimate classification taxonomy.
- *
- * Single source of truth for the domain, intent, and scope categories (derived from
- * clustering analysis) and time estimate dimensions.
- */
 
-// ============================================================================
-// INTENTS - What action the user wants
-// ============================================================================
 
 export const INTENT_DEFINITIONS = {
 	explain: {
@@ -73,9 +64,6 @@ export const INTENT_DEFINITIONS = {
 	},
 } as const satisfies Record<string, CategoryDefinition>;
 
-// ============================================================================
-// DOMAINS - What area of code/system (orthogonal to intents)
-// ============================================================================
 
 export const DOMAIN_DEFINITIONS = {
 	cicd_cloud_infra: {
@@ -152,12 +140,8 @@ export const DOMAIN_DEFINITIONS = {
 	},
 } as const satisfies Record<string, CategoryDefinition>;
 
-// ============================================================================
-// SCOPES - What code context is needed
-// ============================================================================
 
 export const SCOPE_DEFINITIONS = {
-	// File-level scopes
 	selection: {
 		description: 'Operates on user\'s currently selected/highlighted code',
 		signals: ['user has active selection', 'uses "this"'],
@@ -175,7 +159,6 @@ export const SCOPE_DEFINITIONS = {
 		signals: ['"all components"', '"entire module"', '"across files"'],
 	},
 
-	// Repository scopes
 	codebase: {
 		description: 'Entire project/codebase understanding required',
 		signals: ['"project"', '"codebase"', '"application"', '"system"', 'architecture-level'],
@@ -185,7 +168,6 @@ export const SCOPE_DEFINITIONS = {
 		signals: ['"other repo"', '"microservice"', '"shared library"', 'cross-repo dependency', 'multi-package'],
 	},
 
-	// External scopes
 	scm_operations: {
 		description: 'Git operations, branch management, PR creation',
 		signals: ['git commands', 'branch', 'PR', 'merge', 'rebase', 'git history', 'cherry-pick', 'git push', 'git pull', 'git fetch', 'git commit', 'git diff', 'git stash'],
@@ -203,7 +185,6 @@ export const SCOPE_DEFINITIONS = {
 		signals: ['questions about languages', 'frameworks', 'best practices', '"how to" (general)'],
 	},
 
-	// Transient
 	ephemeral: {
 		description: 'One-off task, doesn\'t directly modify main codebase',
 		signals: ['"write a script to"', '"analyze this data"', 'temporary/throwaway work'],
@@ -214,9 +195,6 @@ export const SCOPE_DEFINITIONS = {
 	},
 } as const satisfies Record<string, CategoryDefinition>;
 
-// ============================================================================
-// Shared types and utilities
-// ============================================================================
 
 interface CategoryDefinition {
 	description: string;
@@ -226,17 +204,14 @@ interface CategoryDefinition {
 	notes?: string;
 }
 
-/** Extract keys as union type */
 export type PromptIntent = keyof typeof INTENT_DEFINITIONS;
 export type PromptDomain = keyof typeof DOMAIN_DEFINITIONS;
 export type PromptScope = keyof typeof SCOPE_DEFINITIONS;
 
-/** Validation sets - derived from definitions */
 export const VALID_INTENTS = new Set(Object.keys(INTENT_DEFINITIONS)) as ReadonlySet<PromptIntent>;
 export const VALID_DOMAINS = new Set(Object.keys(DOMAIN_DEFINITIONS)) as ReadonlySet<PromptDomain>;
 export const VALID_SCOPES = new Set(Object.keys(SCOPE_DEFINITIONS)) as ReadonlySet<PromptScope>;
 
-/** Type guards */
 export function isValidIntent(value: string): value is PromptIntent {
 	return VALID_INTENTS.has(value as PromptIntent);
 }
@@ -247,28 +222,18 @@ export function isValidScope(value: string): value is PromptScope {
 	return VALID_SCOPES.has(value as PromptScope);
 }
 
-/**
- * The classification result structure
- */
 export interface PromptClassification {
 	intent: PromptIntent;
 	domain: PromptDomain;
 	timeEstimate: {
-		/** ISO 8601 duration for best case scenario, e.g., "PT5M" for 5 minutes */
 		bestCase: string;
-		/** ISO 8601 duration for realistic scenario, e.g., "PT15M" for 15 minutes */
 		realistic: string;
 	};
 	scope: PromptScope;
-	/** Confidence score between 0.0 and 1.0 */
 	confidence: number;
-	/** Brief reasoning for the classification */
 	reasoning: string;
 }
 
-// ============================================================================
-// Prompt generation helpers
-// ============================================================================
 
 function formatCategoryForPrompt(key: string, def: CategoryDefinition): string {
 	const parts = [`### \`${key}\``, def.description];
@@ -289,7 +254,6 @@ function formatCategoryForPrompt(key: string, def: CategoryDefinition): string {
 	return parts.join('\n');
 }
 
-/** Generate prompt section for intents */
 export function generateIntentPromptSection(): string {
 	const header = '## Intent Categories\n';
 	const categories = Object.entries(INTENT_DEFINITIONS)
@@ -298,7 +262,6 @@ export function generateIntentPromptSection(): string {
 	return header + categories;
 }
 
-/** Generate prompt section for domains */
 export function generateDomainPromptSection(): string {
 	const header = '## Domain Categories\n';
 	const categories = Object.entries(DOMAIN_DEFINITIONS)
@@ -307,7 +270,6 @@ export function generateDomainPromptSection(): string {
 	return header + categories;
 }
 
-/** Generate prompt section for scopes */
 export function generateScopePromptSection(): string {
 	const header = '# SCOPE - What code context is needed (choose ONE)\n';
 	const categories = Object.entries(SCOPE_DEFINITIONS)
@@ -316,7 +278,6 @@ export function generateScopePromptSection(): string {
 	return header + categories;
 }
 
-/** Classification guidance for the LLM */
 const CLASSIFICATION_GUIDANCE = `# CLASSIFICATION GUIDANCE
 
 ## Domain vs Intent — these are separate dimensions
@@ -343,7 +304,6 @@ Focus on semantic meaning, not keyword matching. Keywords are illustrative, not 
 3. **What is the user trying to do?** Match to the most specific intent category.
 4. **If multiple intents apply**, choose the primary one — the intent that best captures the user's goal.`;
 
-/** Generate full taxonomy prompt */
 export function generateTaxonomyPrompt(): string {
 	return [
 		CLASSIFICATION_GUIDANCE,
@@ -359,14 +319,9 @@ export function generateTaxonomyPrompt(): string {
 	].join('\n\n');
 }
 
-// ============================================================================
-// Tool calling schema for structured output
-// ============================================================================
 
-/** Tool name for prompt categorization */
 export const CATEGORIZE_PROMPT_TOOL_NAME = 'categorize_prompt';
 
-/** JSON Schema for the categorize_prompt tool parameters */
 export const CATEGORIZE_PROMPT_TOOL_SCHEMA = {
 	type: 'object',
 	additionalProperties: false,

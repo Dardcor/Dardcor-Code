@@ -14,13 +14,6 @@ import { LineRangeEdit, RangeEdit } from './editing.js';
 import { MergeEditorLineRange } from './lineRange.js';
 import { DetailedLineRangeMapping, MappingAlignment } from './mapping.js';
 
-/**
- * Describes modifications in input 1 and input 2 for a specific range in base.
- *
- * The UI offers a mechanism to either apply all changes from input 1 or input 2 or both.
- *
- * Immutable.
-*/
 export class ModifiedBaseRange {
 	public static fromDiffs(
 		diffs1: readonly DetailedLineRangeMapping[],
@@ -54,16 +47,10 @@ export class ModifiedBaseRange {
 		public readonly input1Range: MergeEditorLineRange,
 		public readonly input1TextModel: ITextModel,
 
-		/**
-		 * From base to input1
-		*/
 		public readonly input1Diffs: readonly DetailedLineRangeMapping[],
 		public readonly input2Range: MergeEditorLineRange,
 		public readonly input2TextModel: ITextModel,
 
-		/**
-		 * From base to input2
-		*/
 		public readonly input2Diffs: readonly DetailedLineRangeMapping[]
 	) {
 		this.input1CombinedDiff = DetailedLineRangeMapping.join(this.input1Diffs);
@@ -223,9 +210,6 @@ function editsToLineRangeEdit(range: MergeEditorLineRange, sortedEdits: RangeEdi
 		}
 		let originalText = textModel.getValueInRange(Range.fromPositions(currentPosition, diffStart));
 		if (diffStart.lineNumber > textModel.getLineCount()) {
-			// assert diffStart.lineNumber === textModel.getLineCount() + 1
-			// getValueInRange doesn't include this virtual line break, as the document ends the line before.
-			// endsLineAfter will be false.
 			originalText += '\n';
 		}
 		text += originalText;

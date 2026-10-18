@@ -8,10 +8,6 @@ import { IConfigurationService } from '../../configuration/common/configuration.
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
 import { AbstractMeteredConnectionService, getIsBrowserConnectionMetered, IMeteredConnectionService, NavigatorWithConnection } from '../common/meteredConnection.js';
 
-/**
- * Browser implementation of the metered connection service.
- * This implementation monitors navigator.connection for changes.
- */
 export class MeteredConnectionService extends AbstractMeteredConnectionService {
 	constructor(@IConfigurationService configurationService: IConfigurationService) {
 		super(configurationService, getIsBrowserConnectionMetered());

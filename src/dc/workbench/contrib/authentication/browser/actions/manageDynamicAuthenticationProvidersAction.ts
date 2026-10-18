@@ -59,7 +59,6 @@ export class RemoveDynamicAuthenticationProvidersAction extends Action2 {
 			return;
 		}
 
-		// Confirm deletion
 		const providerNames = selected.map(item => item.provider.label).join(', ');
 		const message = selected.length === 1
 			? localize('confirmDeleteSingleProvider', 'Are you sure you want to remove the dynamic authentication provider "{0}"?', providerNames)
@@ -76,16 +75,13 @@ export class RemoveDynamicAuthenticationProvidersAction extends Action2 {
 			return;
 		}
 
-		// Remove the selected providers
 		for (const item of selected) {
 			const providerId = item.provider.providerId;
 
-			// Unregister from authentication service if still registered
 			if (authenticationService.isAuthenticationProviderRegistered(providerId)) {
 				authenticationService.unregisterAuthenticationProvider(providerId);
 			}
 
-			// Remove from dynamic storage service
 			await dynamicAuthStorageService.removeDynamicProvider(providerId);
 		}
 	}

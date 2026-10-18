@@ -18,11 +18,8 @@ const enum Constants {
 }
 
 export interface ISamplingStoredData {
-	// UTC day ordinal of the first bin in the bins
 	head: number;
-	// Requests per day, max length of `Constants.SamplingRetentionDays`
 	bins: number[];
-	// Last sampling requests/responses
 	lastReqs: { request: MCP.SamplingMessage[]; response: string; at: number; model: string }[];
 }
 
@@ -109,7 +106,6 @@ export class McpSamplingLog extends Disposable {
 				lastReqs: [],
 			};
 		} else {
-			// Shift bins back by daysSinceHead, dropping old days
 			for (let i = 0; i < (utcOrdinal - record.head) && i < Constants.SamplingRetentionDays; i++) {
 				record.bins.pop();
 				record.bins.unshift(0);
@@ -117,7 +113,6 @@ export class McpSamplingLog extends Disposable {
 			record.head = utcOrdinal;
 		}
 
-		// Increment the current day's bin (head)
 		record.bins[0]++;
 		record.lastReqs.unshift({ request, response, at: now, model });
 		while (record.lastReqs.length > Constants.SamplingLastNMessage) {

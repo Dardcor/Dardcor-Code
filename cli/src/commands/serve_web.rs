@@ -47,31 +47,16 @@ use crate::{
 
 use super::{args::ServeWebArgs, CommandContext};
 
-/// Length of a commit hash, for validation
 const COMMIT_HASH_LEN: usize = 40;
-/// Number of seconds where, if there's no connections to a VS Code server,
-/// the server is shut down.
 const SERVER_IDLE_TIMEOUT_SECS: u64 = 60 * 60;
-/// Number of seconds in which the server times out when there is a connection
-/// (should be large enough to basically never happen)
 const SERVER_ACTIVE_TIMEOUT_SECS: u64 = SERVER_IDLE_TIMEOUT_SECS * 24 * 30 * 12;
-/// How long to cache the "latest" version we get from the update service.
 const RELEASE_CHECK_INTERVAL: u64 = 60 * 60;
 
-/// Number of bytes for the secret keys. See workbench.ts for their usage.
 const SECRET_KEY_BYTES: usize = 32;
-/// Path to mint the key combining server and client parts.
 const SECRET_KEY_MINT_PATH: &str = "_vscode-cli/mint-key";
-/// Cookie set to the `SECRET_KEY_MINT_PATH`
 const PATH_COOKIE_NAME: &str = "vscode-secret-key-path";
-/// HTTP-only cookie where the client's secret half is stored.
 const SECRET_KEY_COOKIE_NAME: &str = "vscode-cli-secret-half";
 
-/// Implements the vscode "server of servers". Clients who go to the URI get
-/// served the latest version of the VS Code server whenever they load the
-/// page. The VS Code server prefixes all assets and connections it loads with
-/// its version string, so existing clients can continue to get served even
-/// while new clients get new VS Code Server versions.
 pub async fn serve_web(ctx: CommandContext, mut args: ServeWebArgs) -> Result<i32, AnyError> {
 	legal::require_consent(&ctx.paths, args.accept_server_license_terms)?;
 
@@ -82,8 +67,6 @@ pub async fn serve_web(ctx: CommandContext, mut args: ServeWebArgs) -> Result<i3
 				.map_err(CodeError::CouldNotReadConnectionTokenFile)?;
 			args.connection_token = Some(token.trim().to_string());
 		} else {
-			// Ensure there's a defined connection token, since if multiple server versions
-			// are executed, they will need to have a single shared token.
 			let token_path = ctx.paths.root().join("serve-web-token");
 			let token = mint_connection_token(&token_path, args.connection_token.clone())
 				.map_err(CodeError::CouldNotCreateConnectionTokenFile)?;
@@ -98,8 +81,6 @@ pub async fn serve_web(ctx: CommandContext, mut args: ServeWebArgs) -> Result<i3
 		cm.clone()
 			.start_update_checker(Duration::from_secs(update_check_interval));
 	} else {
-		// If a commit was provided, invoke get_latest_release() once to ensure we're using that exact version;
-		// get_latest_release() will short-circuit to args.commit_id.
 		if let Err(e) = cm.get_latest_release().await {
 			warning!(cm.log, "error getting latest version: {}", e);
 		}
@@ -132,7 +113,7 @@ pub async fn serve_web(ctx: CommandContext, mut args: ServeWebArgs) -> Result<i3
 				_ = shutdown.wait() => break,
 			}
 		}
-		let _ = std::fs::remove_file(&s); // cleanup
+		let _ = std::fs::remove_file(&s);
 	} else {
 		let addr: SocketAddr = match &args.host {
 			Some(h) => {
@@ -144,7 +125,6 @@ pub async fn serve_web(ctx: CommandContext, mut args: ServeWebArgs) -> Result<i3
 			.await
 			.map_err(CodeError::CouldNotListenOnInterface)?;
 
-		// Get the actual bound address (important when port 0 is used for random port assignment)
 		let bound_addr = listener
 			.local_addr()
 			.map_err(CodeError::CouldNotListenOnInterface)?;
@@ -191,7 +171,6 @@ struct HandleContext {
 	server_secret_key: SecretKeyPart,
 }
 
-/// Handler function for an inbound request
 async fn handle(
 	ctx: HandleContext,
 	req: Request<Incoming>,
@@ -249,9 +228,6 @@ fn handle_secret_mint(ctx: &HandleContext, req: Request<Incoming>) -> Response<H
 	response::secret_key(hash)
 }
 
-/// Appends headers to response to maintain the secret storage of the workbench:
-/// sets the `PATH_COOKIE_VALUE` so workbench.ts knows about the 'mint' endpoint,
-/// and maintains the http-only cookie the client will use for cookies.
 fn append_secret_headers(
 	base_path: &str,
 	res: &mut Response<HyperBody>,
@@ -276,11 +252,9 @@ fn append_secret_headers(
 	);
 }
 
-/// Gets the release info from the VS Code path prefix, which is in the
-/// format `/<quality>-<commit>/...`
 fn get_release_from_path(path: &str, platform: Platform) -> Option<(Release, String)> {
 	if !path.starts_with('/') {
-		return None; // paths must start with '/'
+		return None;
 	}
 
 	let path = &path[1..];
@@ -297,7 +271,6 @@ fn get_release_from_path(path: &str, platform: Platform) -> Option<(Release, Str
 
 	Some((
 		Release {
-			// remember to trim off the leading '/' which is now part of th quality
 			quality: Quality::try_from(quality).ok()?,
 			commit: commit.to_string(),
 			platform,
@@ -308,7 +281,6 @@ fn get_release_from_path(path: &str, platform: Platform) -> Option<(Release, Str
 	))
 }
 
-/// Proxies the standard HTTP request to the async pipe, returning the piped response
 async fn forward_http_req_to_server(
 	(rw, handle): (AsyncPipe, ConnectionHandle),
 	req: Request<Incoming>,
@@ -326,30 +298,22 @@ async fn forward_http_req_to_server(
 		Err(e) => response::connection_err(e),
 	};
 
-	// technically, we should buffer the body into memory since it may not be
-	// read at this point, but because the keepalive time is very large
-	// there's not going to be responses that take hours to send and x
-	// cause us to kill the server before the response is sent
 	drop(handle);
 
 	res
 }
 
-/// Proxies the websocket request to the async pipe
 async fn forward_ws_req_to_server(
 	log: log::Logger,
 	(rw, handle): (AsyncPipe, ConnectionHandle),
 	mut req: Request<Incoming>,
 ) -> Response<HyperBody> {
-	// splicing of client and servers inspired by https://github.com/hyperium/hyper/blob/fece9f7f50431cf9533cfe7106b53a77b48db699/examples/upgrades.rs
 	let (mut request_sender, connection) =
 		match hyper::client::conn::http1::handshake(TokioIo::new(rw)).await {
 			Ok(r) => r,
 			Err(e) => return response::connection_err(e),
 		};
 
-	// `.with_upgrades()` is required so that `hyper::upgrade::on` can later
-	// take over the connection for websocket traffic.
 	tokio::spawn(connection.with_upgrades());
 
 	let mut proxied_req = Request::builder().uri(req.uri());
@@ -375,7 +339,6 @@ async fn forward_ws_req_to_server(
 		proxied_res.headers_mut().insert(k, v.clone());
 	}
 
-	// only start upgrade at this point in case the server decides to deny socket
 	if res.status() == ::http::StatusCode::SWITCHING_PROTOCOLS {
 		tokio::spawn(async move {
 			let (s_req, s_res) =
@@ -404,12 +367,10 @@ async fn forward_ws_req_to_server(
 	proxied_res
 }
 
-/// Returns whether the string looks like a commit hash.
 fn is_commit_hash(s: &str) -> bool {
 	s.len() == COMMIT_HASH_LEN && s.chars().all(|c| c.is_ascii_hexdigit())
 }
 
-/// Gets a cookie from the request by name.
 fn extract_cookie(req: &Request<Incoming>, name: &str) -> Option<String> {
 	for h in req.headers().get_all(::http::header::COOKIE) {
 		if let Ok(str) = h.to_str() {
@@ -456,7 +417,6 @@ impl SecretKeyPart {
 	}
 }
 
-/// Gets the server's half of the secret key.
 fn get_server_key_half(paths: &LauncherPaths) -> SecretKeyPart {
 	let ps = PersistedState::new(paths.root().join("serve-web-key-half"));
 	let value: String = ps.load();
@@ -469,7 +429,6 @@ fn get_server_key_half(paths: &LauncherPaths) -> SecretKeyPart {
 	key
 }
 
-/// Gets the client's half of the secret key.
 fn get_client_key_half(req: &Request<Incoming>) -> SecretKeyPart {
 	if let Some(c) = extract_cookie(req, SECRET_KEY_COOKIE_NAME) {
 		if let Ok(sk) = SecretKeyPart::decode(&c) {
@@ -480,7 +439,6 @@ fn get_client_key_half(req: &Request<Incoming>) -> SecretKeyPart {
 	SecretKeyPart::new()
 }
 
-/// Module holding original responses the CLI's server makes.
 mod response {
 	use const_format::concatcp;
 
@@ -505,7 +463,7 @@ mod response {
 	pub fn wait_for_download() -> Response<HyperBody> {
 		Response::builder()
 			.status(202)
-			.header("Content-Type", "text/html") // todo: get latest
+			.header("Content-Type", "text/html")
 			.body(full_body(concatcp!("The latest version of the ", QUALITYLESS_SERVER_NAME, " is downloading, please wait a moment...<script>setTimeout(()=>location.reload(),1500)</script>", )))
 			.unwrap()
 	}
@@ -513,14 +471,12 @@ mod response {
 	pub fn secret_key(hash: Vec<u8>) -> Response<HyperBody> {
 		Response::builder()
 			.status(200)
-			.header("Content-Type", "application/octet-stream") // todo: get latest
+			.header("Content-Type", "application/octet-stream")
 			.body(full_body(hash))
 			.unwrap()
 	}
 }
 
-/// Handle returned when getting a stream to the server, used to refcount
-/// connections to a server so it can be disposed when there are no more clients.
 struct ConnectionHandle {
 	client_counter: Arc<tokio::sync::watch::Sender<usize>>,
 }
@@ -544,7 +500,6 @@ impl Drop for ConnectionHandle {
 
 type StartData = (PathBuf, Arc<tokio::sync::watch::Sender<usize>>);
 
-/// State stored in the ConnectionManager for each server version.
 struct VersionState {
 	downloaded: bool,
 	socket_path: Barrier<Result<StartData, String>>,
@@ -552,24 +507,15 @@ struct VersionState {
 
 type ConnectionStateMap = Arc<Mutex<HashMap<(Quality, String), VersionState>>>;
 
-/// Manages the connections to running web UI instances. Multiple web servers
-/// can run concurrently, with routing based on the URL path.
 struct ConnectionManager {
 	pub platform: Platform,
 	pub log: log::Logger,
 	args: ServeWebArgs,
-	/// Extension IDs for which to enable proposed API, forwarded from the
-	/// global `--enable-proposed-api` flag to the server subprocess.
 	enable_proposed_api: Vec<String>,
-	/// Server base path, ending in `/`
 	base_path: String,
-	/// Cache where servers are stored
 	cache: DownloadCache,
-	/// Mapping of (Quality, Commit) to the state each server is in
 	state: ConnectionStateMap,
-	/// Update service instance
 	update_service: UpdateService,
-	/// Cache of the latest released version, storing the time we checked as well
 	latest_version: tokio::sync::Mutex<Option<(Instant, Release)>>,
 }
 
@@ -603,9 +549,9 @@ impl ConnectionManager {
 		let latest_version = tokio::sync::Mutex::new(cache.get().first().map(|latest_commit| {
 			(
 				now.checked_sub(Duration::from_secs(RELEASE_CHECK_INTERVAL))
-					.unwrap_or(now), // handle 0-ish instants, #233155
+					.unwrap_or(now),
 				Release {
-					name: String::from("0.0.0"), // Version information not stored on cache
+					name: String::from("0.0.0"),
 					commit: latest_commit.clone(),
 					platform,
 					target: target_kind,
@@ -630,7 +576,6 @@ impl ConnectionManager {
 		})
 	}
 
-	// spawns a task that checks for updates every n seconds duration
 	pub fn start_update_checker(self: Arc<Self>, duration: Duration) {
 		tokio::spawn(async move {
 			let mut interval = time::interval(duration);
@@ -644,7 +589,6 @@ impl ConnectionManager {
 		});
 	}
 
-	// Returns the latest release from the cache, if one exists.
 	pub async fn get_release_from_cache(&self) -> Result<Release, CodeError> {
 		let latest = self.latest_version.lock().await;
 		if let Some((_, release)) = &*latest {
@@ -655,21 +599,16 @@ impl ConnectionManager {
 		self.get_latest_release().await
 	}
 
-	/// Gets a connection to a server version
 	pub async fn get_connection(
 		&self,
 		release: Release,
 	) -> Result<(AsyncPipe, ConnectionHandle), CodeError> {
-		// todo@connor4312: there is likely some performance benefit to
-		// implementing a 'keepalive' for these connections.
 		let (path, counter) = self.get_version_data(release).await?;
 		let handle = ConnectionHandle::new(counter);
 		let rw = get_socket_rw_stream(&path).await?;
 		Ok((rw, handle))
 	}
 
-	/// Gets the latest release for the CLI quality, caching its result for some
-	/// time to allow for fast loads.
 	pub async fn get_latest_release(&self) -> Result<Release, CodeError> {
 		let mut latest = self.latest_version.lock().await;
 		let now = Instant::now();
@@ -703,7 +642,6 @@ impl ConnectionManager {
 			.await
 			.map_err(|e| CodeError::UpdateCheckFailed(e.to_string()));
 
-		// If the update service is unavailable and we have stale data, use that
 		if let (Err(e), Some((_, previous))) = (&release, latest.clone()) {
 			warning!(self.log, "error getting latest release, using stale: {}", e);
 			*latest = Some((now, previous.clone()));
@@ -717,9 +655,6 @@ impl ConnectionManager {
 		Ok(release)
 	}
 
-	/// Gets the StartData for the a version of the VS Code server, triggering
-	/// download/start if necessary. It returns `CodeError::ServerNotYetDownloaded`
-	/// while the server is downloading, which is used to have a refresh loop on the page.
 	async fn get_version_data(&self, release: Release) -> Result<StartData, CodeError> {
 		self.get_version_data_inner(release)?
 			.wait()
@@ -788,7 +723,6 @@ impl ConnectionManager {
 		}
 	}
 
-	/// Downloads a server version into the cache and starts it.
 	async fn download_version(
 		args: StartArgs,
 		update_service: UpdateService,
@@ -819,7 +753,6 @@ impl ConnectionManager {
 		}
 	}
 
-	/// Starts a downloaded server that can be found in the given `path`.
 	async fn start_version(args: StartArgs, path: PathBuf) {
 		info!(args.log, "Starting server {}", args.release.commit);
 
@@ -836,7 +769,6 @@ impl ConnectionManager {
 		cmd.arg("--socket-path");
 		cmd.arg(&socket_path);
 
-		// License agreement already checked by the `server_web` function.
 		cmd.args(["--accept-server-license-terms"]);
 
 		if let Some(a) = &args.args.server_base_path {
@@ -850,8 +782,6 @@ impl ConnectionManager {
 		if args.args.without_connection_token {
 			cmd.arg("--without-connection-token");
 		}
-		// Note: intentional that we don't pass --connection-token here, we always
-		// convert it into the file variant.
 		if let Some(ct) = &args.args.connection_token_file {
 			cmd.arg("--connection-token-file");
 			cmd.arg(ct);
@@ -871,7 +801,6 @@ impl ConnectionManager {
 			cmd.arg(format!("--enable-proposed-api={ext_id}"));
 		}
 
-		// removed, otherwise the workbench will not be usable when running the CLI from sources.
 		cmd.env_remove("VSCODE_DEV");
 
 		let mut child = match cmd.spawn() {
@@ -887,7 +816,6 @@ impl ConnectionManager {
 			BufReader::new(child.stderr.take().unwrap()).lines(),
 		);
 
-		// wrapped option to prove that we only use this once in the loop
 		let (counter_tx, mut counter_rx) = tokio::sync::watch::channel(0);
 		let mut opener = Some((args.opener, socket_path, Arc::new(counter_tx)));
 		let commit_prefix = &args.release.commit[..7];
@@ -910,7 +838,6 @@ impl ConnectionManager {
 				},
 				n = counter_rx.changed() => {
 					kill_timer.as_mut().reset(match n {
-						// err means that the record was dropped
 						Err(_) => tokio::time::Instant::now(),
 						Ok(_) => {
 							if *counter_rx.borrow() == 0 {

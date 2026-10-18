@@ -18,22 +18,12 @@ export interface IAuthenticationAccessService {
 
 	readonly onDidChangeExtensionSessionAccess: Event<{ providerId: string; accountName: string }>;
 
-	/**
-	 * Check extension access to an account
-	 * @param providerId The id of the authentication provider
-	 * @param accountName The account name that access is checked for
-	 * @param extensionId The id of the extension requesting access
-	 * @returns Returns true or false if the user has opted to permanently grant or disallow access, and undefined
-	 * if they haven't made a choice yet
-	 */
 	isAccessAllowed(providerId: string, accountName: string, extensionId: string): boolean | undefined;
 	readAllowedExtensions(providerId: string, accountName: string): AllowedExtension[];
 	updateAllowedExtensions(providerId: string, accountName: string, extensions: AllowedExtension[]): void;
 	removeAllowedExtensions(providerId: string, accountName: string): void;
 }
 
-// TODO@TylerLeonhardt: Move this class to MainThreadAuthentication
-// TODO@TylerLeonhardt: Should this class only keep track of allowed things and throw away disallowed ones?
 export class AuthenticationAccessService extends Disposable implements IAuthenticationAccessService {
 	_serviceBrand: undefined;
 
@@ -63,7 +53,6 @@ export class AuthenticationAccessService extends Disposable implements IAuthenti
 		if (!extensionData) {
 			return undefined;
 		}
-		// This property didn't exist on this data previously, inclusion in the list at all indicates allowance
 		return extensionData.allowed !== undefined
 			? extensionData.allowed
 			: true;
@@ -78,13 +67,10 @@ export class AuthenticationAccessService extends Disposable implements IAuthenti
 			}
 		} catch (err) { }
 
-		// Add trusted extensions from product.json if they're not already in the list
 		const trustedExtensionAuthAccess = this._productService.trustedExtensionAuthAccess;
 		const trustedExtensionIds =
-			// Case 1: trustedExtensionAuthAccess is an array
 			Array.isArray(trustedExtensionAuthAccess)
 				? trustedExtensionAuthAccess
-				// Case 2: trustedExtensionAuthAccess is an object
 				: typeof trustedExtensionAuthAccess === 'object'
 					? trustedExtensionAuthAccess[providerId] ?? []
 					: [];
@@ -93,15 +79,13 @@ export class AuthenticationAccessService extends Disposable implements IAuthenti
 			const extensionKey = ExtensionIdentifier.toKey(extensionId);
 			const existingExtension = trustedExtensions.find(extension => extension.id === extensionKey);
 			if (!existingExtension) {
-				// Add new trusted extension (name will be set by caller if they have extension info)
 				trustedExtensions.push({
 					id: extensionKey,
-					name: extensionId, // Use original casing for display name
+					name: extensionId,
 					allowed: true,
 					trusted: true
 				});
 			} else {
-				// Update existing extension to be trusted
 				existingExtension.allowed = true;
 				existingExtension.trusted = true;
 			}
@@ -122,14 +106,12 @@ export class AuthenticationAccessService extends Disposable implements IAuthenti
 				});
 			} else {
 				allowList[index].allowed = extension.allowed;
-				// Update name if provided and not already set to a proper name
 				if (extension.name && extension.name !== extensionKey && allowList[index].name !== extension.name) {
 					allowList[index].name = extension.name;
 				}
 			}
 		}
 
-		// Filter out trusted extensions before storing - they should only come from product.json, not user storage
 		const userManagedExtensions = allowList.filter(extension => !extension.trusted);
 		this._storageService.store(`${providerId}-${accountName}`, JSON.stringify(userManagedExtensions), StorageScope.APPLICATION, StorageTarget.USER);
 		this._onDidChangeExtensionSessionAccess.fire({ providerId, accountName });

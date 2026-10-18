@@ -13,16 +13,12 @@ suite('LinkedList', function () {
 
 	function assertElements<E>(list: LinkedList<E>, ...elements: E[]) {
 
-		// check size
 		assert.strictEqual(list.size, elements.length);
 
-		// assert toArray
 		assert.deepStrictEqual(Array.from(list), elements);
 
-		// assert Symbol.iterator (1)
 		assert.deepStrictEqual([...list], elements);
 
-		// assert Symbol.iterator (2)
 		for (const item of list) {
 			assert.strictEqual(item, elements.shift());
 		}

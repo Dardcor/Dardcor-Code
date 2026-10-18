@@ -26,7 +26,7 @@ class TestIgnoreService extends NullIgnoreService {
 		}
 	}
 
-	override async isCopilotIgnored(file: Uri): Promise<boolean> {
+	override async isIgnored(file: Uri): Promise<boolean> {
 		return this._ignoredUris.has(file.toString());
 	}
 }
@@ -40,7 +40,6 @@ describe('GitDiffService', () => {
 	let testIgnoreService: TestIgnoreService;
 
 	beforeEach(() => {
-		// Create mock workspace.fs.readFile if it doesn't exist
 		if (!vscode.workspace?.fs?.readFile) {
 			const workspaceWithFs = vscode as unknown as { workspace: typeof vscode.workspace };
 			workspaceWithFs.workspace = {
@@ -53,10 +52,8 @@ describe('GitDiffService', () => {
 			};
 		}
 
-		// Spy on workspace.fs.readFile
 		readFileSpy = vi.spyOn(vscode.workspace.fs, 'readFile').mockImplementation(() => Promise.resolve(new Uint8Array()));
-		// Spy on workspace.fs.stat - default to a small file
-		statSpy = vi.spyOn(vscode.workspace.fs, 'stat').mockImplementation(() => Promise.resolve({ size: 100, type: 1 /* File */, ctime: 0, mtime: 0 } as vscode.FileStat));
+		statSpy = vi.spyOn(vscode.workspace.fs, 'stat').mockImplementation(() => Promise.resolve({ size: 100, type: 1 , ctime: 0, mtime: 0 } as vscode.FileStat));
 
 		mockRepository = {
 			rootUri: Uri.file('/repo'),
@@ -97,7 +94,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 0 /* INDEX_MODIFIED */
+				status: 0
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -116,7 +113,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 5 /* MODIFIED */
+				status: 5
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -135,8 +132,8 @@ describe('GitDiffService', () => {
 			(mockRepository.diffWithHEAD as ReturnType<typeof vi.fn>).mockResolvedValue('normal diff');
 
 			const changes: Change[] = [
-				{ uri: ignoredUri, originalUri: ignoredUri, renameUri: undefined, status: 5 /* MODIFIED */ },
-				{ uri: normalUri, originalUri: normalUri, renameUri: undefined, status: 5 /* MODIFIED */ }
+				{ uri: ignoredUri, originalUri: ignoredUri, renameUri: undefined, status: 5 },
+				{ uri: normalUri, originalUri: normalUri, renameUri: undefined, status: 5 }
 			];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -153,7 +150,7 @@ describe('GitDiffService', () => {
 				uri: Uri.file('/repo/file.txt'),
 				originalUri: Uri.file('/repo/file.txt'),
 				renameUri: undefined,
-				status: 5 /* MODIFIED */
+				status: 5
 			}];
 
 			await expect(gitDiffService.getChangeDiffs(mockRepository as Repository, changes, cts.token))
@@ -195,7 +192,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 5 /* MODIFIED */
+				status: 5
 			}];
 
 			const diffs = await gitDiffService.getWorkingTreeDiffsFromRef(mockRepository as Repository, changes, 'main');
@@ -213,7 +210,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 7 /* UNTRACKED */
+				status: 7
 			}];
 
 			const diffs = await gitDiffService.getWorkingTreeDiffsFromRef(mockRepository as Repository, changes, 'main');
@@ -232,7 +229,7 @@ describe('GitDiffService', () => {
 				uri: ignoredUri,
 				originalUri: ignoredUri,
 				renameUri: undefined,
-				status: 5 /* MODIFIED */
+				status: 5
 			}];
 
 			const diffs = await gitDiffService.getWorkingTreeDiffsFromRef(mockRepository as Repository, changes, 'main');
@@ -250,7 +247,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 5 /* MODIFIED */
+				status: 5
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -269,7 +266,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 5 /* MODIFIED */
+				status: 5
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -282,14 +279,14 @@ describe('GitDiffService', () => {
 	describe('large untracked files', () => {
 		it('should return a minimal patch for files exceeding MAX_UNTRACKED_FILE_SIZE', async () => {
 			const fileUri = Uri.file('/repo/huge.bin');
-			const largeSize = 2 * 1024 * 1024; // 2 MB
+			const largeSize = 2 * 1024 * 1024;
 			statSpy.mockResolvedValue({ size: largeSize, type: 1, ctime: 0, mtime: 0 } as vscode.FileStat);
 
 			const changes: Change[] = [{
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 7 /* UNTRACKED */
+				status: 7
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -297,7 +294,6 @@ describe('GitDiffService', () => {
 			expect(diffs).toHaveLength(1);
 			expect(diffs[0].diff).toContain('File too large to diff');
 			expect(diffs[0].diff).toContain('--- /dev/null');
-			// readFile should not have been called
 			expect(readFileSpy).not.toHaveBeenCalled();
 		});
 
@@ -310,7 +306,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 7 /* UNTRACKED */
+				status: 7
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -332,7 +328,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 7 /* UNTRACKED */
+				status: 7
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -340,29 +336,24 @@ describe('GitDiffService', () => {
 			expect(diffs).toHaveLength(1);
 			const patch = diffs[0].diff;
 
-			// Verify standard git patch headers
 			expect(patch).toContain('diff --git a/newfile.txt b/newfile.txt');
 			expect(patch).toContain('new file mode 100644');
 			expect(patch).toContain('--- /dev/null');
 			expect(patch).toContain('+++ b/newfile.txt');
 
-			// Verify range header uses line count (2 lines), not byte length
 			expect(patch).toContain('@@ -0,0 +1,2 @@');
 
-			// Verify content
 			expect(patch).toContain('+line1');
 			expect(patch).toContain('+line2');
 
-			// Verify final newline
 			expect(patch.endsWith('\n')).toBe(true);
 
-			// Verify no "No newline at end of file" warning since file ends with \n
 			expect(patch).not.toContain('\\ No newline at end of file');
 		});
 
 		it('should handle file without trailing newline', async () => {
 			const fileUri = Uri.file('/repo/no-newline.txt');
-			const fileContent = 'line1'; // No trailing \n
+			const fileContent = 'line1';
 
 			readFileSpy.mockResolvedValue(Buffer.from(fileContent));
 
@@ -370,7 +361,7 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 7 /* UNTRACKED */
+				status: 7
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
@@ -386,33 +377,29 @@ describe('GitDiffService', () => {
 			const fileUri = Uri.file('/repo/empty.txt');
 			const fileContent = '';
 
-			// Mock readFile to return an empty buffer
 			readFileSpy.mockResolvedValue(Buffer.from(fileContent));
 
 			const changes: Change[] = [{
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 7 /* UNTRACKED */
+				status: 7
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
 
-			// Empty file case: git omits range header and content for totally empty files
 			const patch = diffs[0].diff;
 			expect(patch).toContain('diff --git a/empty.txt b/empty.txt');
 			expect(patch).toContain('new file mode 100644');
 			expect(patch).toContain('--- /dev/null');
 			expect(patch).toContain('+++ b/empty.txt');
-			// No range header for empty files
 			expect(patch).not.toContain('@@');
-			// No content lines
 			expect(patch).not.toMatch(/^\+[^+]/m);
 		});
 
 		it('should handle file with single blank line', async () => {
 			const fileUri = Uri.file('/repo/blank-line.txt');
-			const fileContent = '\n'; // Single newline
+			const fileContent = '\n';
 
 			readFileSpy.mockResolvedValue(Buffer.from(fileContent));
 
@@ -420,19 +407,18 @@ describe('GitDiffService', () => {
 				uri: fileUri,
 				originalUri: fileUri,
 				renameUri: undefined,
-				status: 7 /* UNTRACKED */
+				status: 7
 			}];
 
 			const diffs = await gitDiffService.getChangeDiffs(mockRepository as Repository, changes);
 
-			// Single blank line: should have range header and one empty line addition
 			const patch = diffs[0].diff;
 			expect(patch).toContain('diff --git a/blank-line.txt b/blank-line.txt');
 			expect(patch).toContain('new file mode 100644');
 			expect(patch).toContain('--- /dev/null');
 			expect(patch).toContain('+++ b/blank-line.txt');
 			expect(patch).toContain('@@ -0,0 +1,1 @@');
-			expect(patch).toContain('+'); // One empty line
+			expect(patch).toContain('+');
 			expect(patch.endsWith('\n')).toBe(true);
 		});
 	});

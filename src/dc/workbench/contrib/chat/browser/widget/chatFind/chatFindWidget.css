@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Painted via the CSS Custom Highlight API; see chatFindHighlights.ts. */
 ::highlight(chat-find-current-match) {
 	background-color: var(--vscode-chat-findMatchBackground);
 	color: var(--vscode-editor-findMatchForeground);

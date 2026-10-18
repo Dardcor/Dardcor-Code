@@ -133,7 +133,6 @@ class ReferenceReusingObjectMutationLog<TFrom, TTo> implements BenchmarkWriter<T
 	}
 
 	confirmWrite(): void {
-		// Perf benchmark always succeeds, state is eagerly updated in write()
 	}
 
 	private _diff<T, R>(
@@ -416,7 +415,6 @@ perfSuite('Chat ObjectMutationLog - perf', function () {
 	test('compares baseline writes against sealed-reference reuse', function () {
 		this.timeout(120_000);
 
-		// Warm up both variants once so the measured rounds are less noisy.
 		runBenchmarkRound(new Adapt.ObjectMutationLog(schema), states, schema);
 		runBenchmarkRound(new ReferenceReusingObjectMutationLog(schema), states, schema);
 

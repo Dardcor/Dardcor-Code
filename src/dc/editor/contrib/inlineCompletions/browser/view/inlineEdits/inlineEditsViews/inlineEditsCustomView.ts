@@ -27,7 +27,6 @@ const PADDING_VERTICALLY = 0;
 const PADDING_HORIZONTALLY = 4;
 const HORIZONTAL_OFFSET_WHEN_ABOVE_BELOW = 4;
 const VERTICAL_OFFSET_WHEN_ABOVE_BELOW = 2;
-// !! minEndOfLinePadding should always be larger than paddingHorizontally + horizontalOffsetWhenAboveBelow
 
 export class InlineEditsCustomView extends Disposable implements IInlineEditsView {
 
@@ -102,7 +101,7 @@ export class InlineEditsCustomView extends Disposable implements IInlineEditsVie
 					+ this._editorObs.layoutInfoVerticalScrollbarWidth.read(reader)
 					+ PADDING_HORIZONTALLY
 					- this._editorObs.layoutInfoContentLeft.read(reader);
-				return Math.max(prev ?? 0, current); // will run into infinite loop otherwise TODO: fix this
+				return Math.max(prev ?? 0, current);
 			}).recomputeInitiallyAndOnChange(this._store),
 		}));
 
@@ -113,7 +112,6 @@ export class InlineEditsCustomView extends Disposable implements IInlineEditsVie
 		}));
 	}
 
-	// TODO: this is very similar to side by side `fitsInsideViewport`, try to use the same function
 	private fitsInsideViewport(range: LineRange, displayLabel: string, reader: IReader | undefined): boolean {
 		const editorWidth = this._editorObs.layoutInfoWidth.read(reader);
 		const editorContentLeft = this._editorObs.layoutInfoContentLeft.read(reader);
@@ -153,7 +151,6 @@ export class InlineEditsCustomView extends Disposable implements IInlineEditsVie
 
 		const startLineNumber = displayLocation.range.startLineNumber;
 		const endLineNumber = displayLocation.range.endLineNumber;
-		// only check viewport once in the beginning when rendering the view
 		const fitsInsideViewport = this.fitsInsideViewport(new LineRange(startLineNumber, endLineNumber + 1), displayLocation.content, undefined);
 
 		const rect = derived(this, reader => {
@@ -168,13 +165,13 @@ export class InlineEditsCustomView extends Disposable implements IInlineEditsVie
 
 			let position: 'end' | 'below' | 'above';
 			if (startLineNumber === endLineNumber && endContentLeftOffset + 5 * w >= lineWidth && fitsInsideViewport) {
-				position = 'end'; // Render at the end of the line if the range ends almost at the end of the line
+				position = 'end';
 			} else if (lineWidthBelow !== undefined && lineWidthBelow + MIN_END_OF_LINE_PADDING - HORIZONTAL_OFFSET_WHEN_ABOVE_BELOW - PADDING_HORIZONTALLY < startContentLeftOffset) {
-				position = 'below'; // Render Below if possible
+				position = 'below';
 			} else if (lineWidthAbove !== undefined && lineWidthAbove + MIN_END_OF_LINE_PADDING - HORIZONTAL_OFFSET_WHEN_ABOVE_BELOW - PADDING_HORIZONTALLY < startContentLeftOffset) {
-				position = 'above'; // Render Above if possible
+				position = 'above';
 			} else {
-				position = 'end'; // Render at the end of the line otherwise
+				position = 'end';
 			}
 
 			let topOfLine;
@@ -257,7 +254,7 @@ export class InlineEditsCustomView extends Disposable implements IInlineEditsVie
 				whiteSpace: 'nowrap',
 			},
 			onmousedown: e => {
-				e.preventDefault(); // This prevents that the editor loses focus
+				e.preventDefault();
 			},
 			onclick: (e) => { this._onDidClick.fire(InlineEditClickEvent.create(e)); }
 		}, [

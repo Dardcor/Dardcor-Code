@@ -22,7 +22,6 @@ describe('ExternalEditTracker', () => {
 
 			await tracker.trackEdit('edit-1', [planFile, regularFile], stream, CancellationToken.None);
 
-			// Only the regular file should be tracked
 			expect(stream.externalEditUris.length).toBe(1);
 			expect(stream.externalEditUris[0].toString()).toBe(regularFile.toString());
 		});
@@ -38,7 +37,6 @@ describe('ExternalEditTracker', () => {
 
 			await tracker.trackEdit('edit-2', [agentFile, memoryFile], stream, CancellationToken.None);
 
-			// Both files should be tracked
 			expect(stream.externalEditUris.length).toBe(2);
 		});
 
@@ -55,7 +53,6 @@ describe('ExternalEditTracker', () => {
 
 			await tracker.trackEdit('edit-3', [planFile, tempFile, regularFile], stream, CancellationToken.None);
 
-			// Only the regular file should be tracked
 			expect(stream.externalEditUris.length).toBe(1);
 			expect(stream.externalEditUris[0].toString()).toBe(regularFile.toString());
 		});
@@ -71,7 +68,6 @@ describe('ExternalEditTracker', () => {
 
 			await tracker.trackEdit('edit-4', [nestedPlanFile, regularFile], stream, CancellationToken.None);
 
-			// Only the regular file should be tracked
 			expect(stream.externalEditUris.length).toBe(1);
 			expect(stream.externalEditUris[0].toString()).toBe(regularFile.toString());
 		});
@@ -87,7 +83,6 @@ describe('ExternalEditTracker', () => {
 
 			await tracker.trackEdit('edit-5', [similarFile, regularFile], stream, CancellationToken.None);
 
-			// Both should be tracked because plans-backup is not the plans directory
 			expect(stream.externalEditUris.length).toBe(2);
 		});
 
@@ -99,7 +94,6 @@ describe('ExternalEditTracker', () => {
 
 			await tracker.trackEdit('edit-6', [file1, file2], stream, CancellationToken.None);
 
-			// All files should be tracked
 			expect(stream.externalEditUris.length).toBe(2);
 		});
 
@@ -114,7 +108,6 @@ describe('ExternalEditTracker', () => {
 
 			await tracker.trackEdit('edit-7', [planFile1, planFile2], stream, CancellationToken.None);
 
-			// No files should be tracked
 			expect(stream.externalEditUris.length).toBe(0);
 		});
 	});

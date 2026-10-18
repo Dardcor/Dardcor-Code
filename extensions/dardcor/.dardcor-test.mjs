@@ -21,10 +21,8 @@ const raw = readFileSync(packageJsonPath, 'utf8');
 const pkg = JSON.parse(raw);
 pkg.engines.vscode = pkg.engines.vscode.split('-')[0];
 
-// remove the date from the vscode engine version
 writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'));
 
-// and revert it once done
 process.on('exit', () => writeFileSync(packageJsonPath, raw));
 
 const isRecoveryBuild = !pkg.version.endsWith('.0');
@@ -40,9 +38,6 @@ const config = {
 		color: true,
 		forbidOnly: !!process.env.CI,
 		timeout: 5000,
-		// Sanity tests hit the live model endpoint, so they can fail for
-		// transient upstream reasons (empty response, rate limit, etc.).
-		// Give each test up to three attempts before marking it as failed.
 		retries: isSanity ? 2 : 0
 	}
 };

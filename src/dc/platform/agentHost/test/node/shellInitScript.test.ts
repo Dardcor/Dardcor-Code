@@ -42,8 +42,6 @@ suite('shellInitScript', () => {
 	test('PowerShell profiles load under Continue with per-profile isolation', () => {
 		const { script } = createShellInitScript('powershell', `& 'C:\\repo\\.venv\\Scripts\\Activate.ps1'`);
 		assert.deepStrictEqual({
-			// The runtime sources init scripts under 'Stop'; profiles must get
-			// their normal preference back or a benign error skips the rest.
 			continueBeforeProfiles: script.includes(`$ErrorActionPreference = 'Continue'`)
 				&& script.indexOf(`$ErrorActionPreference = 'Continue'`) < script.indexOf('$PROFILE.CurrentUserAllHosts'),
 			tryInsideForeach: script.includes('try {') && script.indexOf('foreach ($__vscodeProfile') < script.indexOf('try {'),

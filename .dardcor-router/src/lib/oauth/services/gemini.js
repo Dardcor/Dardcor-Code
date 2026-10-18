@@ -5,18 +5,11 @@ import { getServerCredentials } from "../config/index.js";
 import { startLocalServer } from "../utils/server.js";
 import { spinner as createSpinner } from "../utils/ui.js";
 
-/**
- * Gemini CLI (Google Cloud Code Assist) OAuth Service
- * Uses standard OAuth2 Authorization Code flow (no PKCE)
- */
 export class GeminiCLIService {
   constructor() {
     this.config = GEMINI_CONFIG;
   }
 
-  /**
-   * Build Gemini CLI authorization URL
-   */
   buildAuthUrl(redirectUri, state) {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
@@ -31,9 +24,6 @@ export class GeminiCLIService {
     return `${this.config.authorizeUrl}?${params.toString()}`;
   }
 
-  /**
-   * Exchange authorization code for tokens
-   */
   async exchangeCode(code, redirectUri) {
     const response = await fetch(this.config.tokenUrl, {
       method: "POST",
@@ -58,9 +48,6 @@ export class GeminiCLIService {
     return await response.json();
   }
 
-  /**
-   * Fetch project ID from Google Cloud Code Assist
-   */
   async fetchProjectId(accessToken) {
     const response = await fetch(
       "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
@@ -87,7 +74,6 @@ export class GeminiCLIService {
 
     const data = await response.json();
 
-    // Extract project ID
     let projectId = "";
     if (typeof data.cloudaicompanionProject === "string") {
       projectId = data.cloudaicompanionProject.trim();
@@ -102,9 +88,6 @@ export class GeminiCLIService {
     return projectId;
   }
 
-  /**
-   * Get user info from Google
-   */
   async getUserInfo(accessToken) {
     const response = await fetch(`${this.config.userInfoUrl}?alt=json`, {
       headers: {
@@ -121,9 +104,6 @@ export class GeminiCLIService {
     return await response.json();
   }
 
-  /**
-   * Save Gemini CLI tokens to server
-   */
   async saveTokens(tokens, userInfo, projectId) {
     const { server, token, userId } = getServerCredentials();
 
@@ -152,16 +132,12 @@ export class GeminiCLIService {
     return await response.json();
   }
 
-  /**
-   * Complete Gemini OAuth flow
-   */
   async connect() {
     const spinner = createSpinner("Starting Gemini OAuth...").start();
 
     try {
       spinner.text = "Starting local server...";
 
-      // Start local server for callback
       let callbackParams = null;
       const { port, close } = await startLocalServer((params) => {
         callbackParams = params;
@@ -170,19 +146,15 @@ export class GeminiCLIService {
       const redirectUri = `http://localhost:${port}/callback`;
       spinner.succeed(`Local server started on port ${port}`);
 
-      // Generate state
       const state = crypto.randomBytes(32).toString("base64url");
 
-      // Build authorization URL
       const authUrl = this.buildAuthUrl(redirectUri, state);
 
       console.log("\nOpening browser for Google authentication...");
       console.log(`If browser doesn't open, visit:\n${authUrl}\n`);
 
-      // Open browser
       await open(authUrl);
 
-      // Wait for callback
       spinner.start("Waiting for Google authorization...");
 
       await new Promise((resolve, reject) => {
@@ -211,22 +183,18 @@ export class GeminiCLIService {
 
       spinner.start("Exchanging code for tokens...");
 
-      // Exchange code for tokens
       const tokens = await this.exchangeCode(callbackParams.code, redirectUri);
 
       spinner.text = "Fetching user info...";
 
-      // Get user info
       const userInfo = await this.getUserInfo(tokens.access_token);
 
       spinner.text = "Fetching project ID...";
 
-      // Fetch project ID
       const projectId = await this.fetchProjectId(tokens.access_token);
 
       spinner.text = "Saving tokens to server...";
 
-      // Save tokens to server
       await this.saveTokens(tokens, userInfo, projectId);
 
       spinner.succeed(`Gemini CLI connected successfully! (${userInfo.email}, Project: ${projectId})`);

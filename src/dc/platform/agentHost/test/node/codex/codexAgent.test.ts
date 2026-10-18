@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { DeferredPromise } from '../../../../../base/common/async.js';
 import { Emitter } from '../../../../../base/common/event.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
@@ -19,20 +18,12 @@ import { AgentHostStateManager } from '../../../node/agentHostStateManager.js';
 import { getCustomizationEnablementKey, type CustomizationEnablementResolution, type ICustomizationEnablementTarget } from '../../../node/agentHostCustomizationEnablementService.js';
 import { CodexAgent } from '../../../node/codex/codexAgent.js';
 import { CodexClientCustomizationStore, type ICodexClientPlugin } from '../../../node/codex/codexClientCustomizations.js';
-import type { ICodexMcpServerConfigJson, ICodexMcpServerEntry } from '../../../node/codex/codexMcpServers.js';
+import type { ICodexMcpServerEntry } from '../../../node/codex/codexMcpServers.js';
 import type { ItemGuardianApprovalReviewCompletedNotification } from '../../../node/codex/protocol/generated/v2/ItemGuardianApprovalReviewCompletedNotification.js';
 import type { GuardianWarningNotification } from '../../../node/codex/protocol/generated/v2/GuardianWarningNotification.js';
 import { targetForMcpServer } from '../../../node/shared/customizationEnablementGate.js';
 import { McpCustomizationController, type IMcpCustomizationControllerOptions } from '../../../node/shared/mcpCustomizationController.js';
-import { createGitHubMcpServerConfiguration, getGitHubMcpTools } from '../../../node/shared/githubMcpServer.js';
 
-/**
- * Exactly the state `_resolveConversationSession` reads: the provider id it
- * mints canonical session URIs with, and the chat→runtime bindings it recorded.
- * Notably NOT the session map — resolution answers with the canonical URI of
- * the bound runtime id rather than echoing whatever URI an entry happens to
- * carry, so a stale or mis-stamped entry cannot redirect a chat.
- */
 interface ICodexConversationResolverHarness {
 	readonly id: AgentProvider;
 	readonly _sessionIdByChatUri: Map<string, string>;
@@ -66,21 +57,6 @@ interface ICodexMcpRequestHarness {
 	readonly _mcpInventory: {
 		forThread(threadId: string | undefined): ReadonlyMap<string, ICodexMcpServerEntry>;
 	};
-}
-
-interface ICodexGitHubMcpHarness {
-	_buildSessionMcpServers(session: {
-		readonly sessionId: string;
-		readonly workingDirectory: URI;
-	}): Record<string, ICodexMcpServerConfigJson>;
-}
-
-interface ICodexGitHubEndpointChangeHarness {
-	_handleGitHubEndpointChange(): void;
-}
-
-interface ICodexAuthenticateHarness {
-	authenticate(resource: string, token: string): Promise<boolean>;
 }
 
 interface ICodexGuardianWarningHarness {
@@ -249,123 +225,6 @@ suite('CodexAgent', () => {
 		});
 	});
 
-	test('GitHub MCP injection respects unowned server enablement', () => {
-		const createHarness = (enabled: boolean, customizationEnabled: boolean, token: string | undefined): ICodexGitHubMcpHarness => Object.assign(Object.create(CodexAgent.prototype), {
-			_configurationService: { getRootValue: () => undefined },
-			_sessionMcpDiscoveries: new Map(),
-			_enabledClientPlugins: () => [],
-			_mcpAuthTokens: new Map(),
-			_githubMcpServerEnabled: enabled,
-			_githubToken: token,
-			_gitHubMcpServerConfiguration: token ? createGitHubMcpServerConfiguration('https://api.githubcopilot.com') : undefined,
-			_isMcpServerEnabledForSdk: (_session: unknown, name: string) => name !== 'github-mcp-server' || customizationEnabled,
-		});
-
-		const enabledServers = createHarness(true, true, 'token')._buildSessionMcpServers({ sessionId: 'enabled', workingDirectory: URI.file('/work') });
-		const customizationDisabledServers = createHarness(true, false, 'token')._buildSessionMcpServers({ sessionId: 'customization-disabled', workingDirectory: URI.file('/work') });
-		const settingDisabledServers = createHarness(false, true, 'token')._buildSessionMcpServers({ sessionId: 'setting-disabled', workingDirectory: URI.file('/work') });
-		const unauthenticatedServers = createHarness(true, true, undefined)._buildSessionMcpServers({ sessionId: 'unauthenticated', workingDirectory: URI.file('/work') });
-
-		assert.deepStrictEqual({
-			enabled: enabledServers['github-mcp-server'],
-			customizationDisabled: customizationDisabledServers['github-mcp-server'],
-			settingDisabled: settingDisabledServers['github-mcp-server'],
-			unauthenticated: unauthenticatedServers['github-mcp-server'],
-		}, {
-			enabled: {
-				url: 'https://api.githubcopilot.com/mcp',
-				http_headers: {
-					'X-MCP-Features': 'remote_mcp_ui_apps,mcp_apps_disable_form_deferral',
-					'X-MCP-Tools': getGitHubMcpTools(false).join(','),
-				},
-			},
-			customizationDisabled: undefined,
-			settingDisabled: undefined,
-			unauthenticated: undefined,
-		});
-
-		const aliasedServers = Object.assign(Object.create(CodexAgent.prototype), {
-			_configurationService: { getRootValue: () => ({ alias: { type: 'http', url: 'https://api.githubcopilot.com/mcp/' } }) },
-			_sessionMcpDiscoveries: new Map(),
-			_enabledClientPlugins: () => [],
-			_mcpAuthTokens: new Map(),
-			_githubMcpServerEnabled: true,
-			_githubToken: 'token',
-			_gitHubMcpServerConfiguration: createGitHubMcpServerConfiguration('https://api.githubcopilot.com'),
-			_isMcpServerEnabledForSdk: () => true,
-		}) as ICodexGitHubMcpHarness;
-		assert.deepStrictEqual(aliasedServers._buildSessionMcpServers({ sessionId: 'alias', workingDirectory: URI.file('/work') }), {
-			alias: { url: 'https://api.githubcopilot.com/mcp/' },
-		});
-	});
-
-	test('clears GitHub MCP credentials when the GitHub endpoint changes', () => {
-		const proxyTokens: string[] = [];
-		let modelRefreshes = 0;
-		let reconciliations = 0;
-		const harness = Object.assign(Object.create(CodexAgent.prototype), {
-			_githubToken: 'token',
-			_gitHubMcpServerConfiguration: createGitHubMcpServerConfiguration('https://api.enterprise.githubcopilot.com'),
-			_connection: { kind: 'ready', proxyHandle: { setToken: (token: string) => proxyTokens.push(token) } },
-			_queueModelRefresh: () => { modelRefreshes++; },
-			_sessions: new Map([['session', {}]]),
-			_reconcileMaterializedCustomizations: async () => { reconciliations++; },
-		}) as ICodexGitHubEndpointChangeHarness & { _githubToken?: string; _gitHubMcpServerConfiguration?: object };
-
-		harness._handleGitHubEndpointChange();
-
-		assert.deepStrictEqual({
-			token: harness._githubToken,
-			configuration: harness._gitHubMcpServerConfiguration,
-			proxyTokens,
-			modelRefreshes,
-			reconciliations,
-		}, {
-			token: undefined,
-			configuration: undefined,
-			proxyTokens: [''],
-			modelRefreshes: 1,
-			reconciliations: 1,
-		});
-	});
-
-	test('does not commit stale GitHub authentication after an endpoint change', async () => {
-		const resolution = new DeferredPromise<ReturnType<typeof createGitHubMcpServerConfiguration>>();
-		const proxyTokens: string[] = [];
-		let reconciliations = 0;
-		const copilotResource = { resource: 'https://api.github.com/copilot_internal/user' };
-		const harness = Object.assign(Object.create(CodexAgent.prototype), {
-			_gitHubEndpointService: { getCopilotResource: () => copilotResource, getRepoResource: () => ({ resource: 'https://api.github.com' }) },
-			_githubAuthenticationGeneration: 0,
-			_githubToken: undefined,
-			_gitHubMcpServerConfiguration: undefined,
-			_resolveGitHubMcpServerConfiguration: async () => resolution.p,
-			_connection: { kind: 'ready', proxyHandle: { setToken: (token: string) => proxyTokens.push(token) } },
-			_queueModelRefresh: () => { },
-			_sessions: new Map([['session', {}]]),
-			_reconcileMaterializedCustomizations: async () => { reconciliations++; },
-			_logService: new NullLogService(),
-			_refreshProviderConfiguration: async () => { },
-		}) as ICodexAuthenticateHarness & ICodexGitHubEndpointChangeHarness & { _githubToken?: string; _gitHubMcpServerConfiguration?: object };
-
-		const authenticating = harness.authenticate(copilotResource.resource, 'old-token');
-		harness._handleGitHubEndpointChange();
-		resolution.complete(createGitHubMcpServerConfiguration('https://api.enterprise.githubcopilot.com'));
-		await authenticating;
-
-		assert.deepStrictEqual({
-			token: harness._githubToken,
-			configuration: harness._gitHubMcpServerConfiguration,
-			proxyTokens,
-			reconciliations,
-		}, {
-			token: undefined,
-			configuration: undefined,
-			proxyTokens: [''],
-			reconciliations: 1,
-		});
-	});
-
 	test('does not treat a transient host configuration scope as a chat backing', () => {
 		const session = AgentSession.uri('codex', 'session-1');
 
@@ -395,12 +254,7 @@ suite('CodexAgent', () => {
 		const defaultChat = URI.parse(buildDefaultChatUri(session));
 
 		assert.deepStrictEqual({
-			// The legacy "a codex session URI addresses its own chat" adapter is
-			// gone: an unbound session URI is not self-resolving any more.
 			unboundSessionUri: resolveConversationSession(emptyHarness(), session)?.toString(),
-			// Nor is a chat URI recognized by shape or by the configuration scope
-			// supplied in host context. That scope does not identify a peer's
-			// independent backing thread.
 			unboundDefaultChat: resolveConversationSession(emptyHarness(), defaultChat)?.toString(),
 			withHostContext: resolveConversationSession(emptyHarness(), defaultChat, { configurationResource: session, resource: defaultChat })?.toString(),
 			foreignUri: resolveConversationSession(emptyHarness(), URI.parse('untitled:unknown'))?.toString(),
@@ -562,7 +416,6 @@ suite('CodexAgent', () => {
 		await discovery._startCodexChatDiscovery.call(harness);
 		const cold = [...discoveredChats];
 
-		// What the explicit download does on its way out.
 		sdkIsLocal = true;
 		discovery._restartChatDiscovery.call(harness);
 		await harness._codexChatDiscovery;
@@ -590,8 +443,6 @@ suite('CodexAgent', () => {
 				_logService: { info(message: string): void };
 			}): Promise<typeof chats | undefined | typeof AgentChatMigrationDeferred>;
 		}).listChatsToMigrate;
-		// Deferred while the SDK is absent: the catalog it reads lives inside one,
-		// and fetching it is the user's call.
 		let sdkIsLocal = false;
 		const harness = {
 			_activated: true,

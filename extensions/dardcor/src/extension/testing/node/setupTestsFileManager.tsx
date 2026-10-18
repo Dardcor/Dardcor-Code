@@ -76,13 +76,11 @@ class WorkspaceMutation implements IWorkspaceMutation {
 		this.fileDescriptions = this.getFileDescriptions();
 	}
 
-	/** @inheritdoc */
 	public get(file: string) {
 		file = file.replaceAll('\\', '/').replace(/^\//, '');
 
 		const res = this.getInner(file);
 
-		// optimisiticly pre-fetch for a case of a user going through the files in sequence
 		const index = this.opts.files.indexOf(file);
 		if (index !== -1 && index < this.opts.files.length - 1) {
 			res.then(() => this.getInner(this.opts.files[index + 1]));
@@ -91,7 +89,6 @@ class WorkspaceMutation implements IWorkspaceMutation {
 		return res;
 	}
 
-	/** @inheritdoc */
 	public async apply(progress: undefined | vscode.Progress<{ message: string }>, token: CancellationToken): Promise<void> {
 		if (this.applied) {
 			throw new Error(l10n.t('Edits have already been applied'));
@@ -134,7 +131,6 @@ class WorkspaceMutation implements IWorkspaceMutation {
 		try {
 			document = await this.workspaceService.openTextDocumentAndSnapshot(URI.joinPath(this.opts.baseURI, file));
 		} catch {
-			// ignored
 		}
 		const originalText = document?.getText();
 
@@ -258,7 +254,6 @@ interface WorkspaceFileMutationPromptArgs extends BasePromptElementProps {
 	fileTree: string;
 	allInstructions: string | undefined;
 	instructionsForThisFile?: string;
-	/** existing text document, if any */
 	document?: TextDocumentSnapshot;
 }
 

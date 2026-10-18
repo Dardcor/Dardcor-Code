@@ -27,7 +27,7 @@ import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uri
 import { IWorkspaceContextService, IWorkspaceFolder, IWorkspaceFoldersChangeEvent, WorkbenchState } from '../../../../platform/workspace/common/workspace.js';
 import { OS } from '../../../../base/common/platform.js';
 import { IEditorPane } from '../../../common/editor.js';
-import { launchSchemaId } from '../../../services/configuration/common/configuration.js';
+import { launchSchemaId, FOLDER_CONFIG_FOLDER_NAME } from '../../../services/configuration/common/configuration.js';
 import { ACTIVE_GROUP, IEditorService } from '../../../services/editor/common/editorService.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { IHistoryService } from '../../../services/history/common/history.js';
@@ -44,7 +44,6 @@ jsonRegistry.registerSchema(launchSchemaId, launchSchema);
 
 const DEBUG_SELECTED_CONFIG_NAME_KEY = 'debug.selectedconfigname';
 const DEBUG_SELECTED_ROOT = 'debug.selectedroot';
-// Debug type is only stored if a dynamic configuration is used for better restore
 const DEBUG_SELECTED_TYPE = 'debug.selectedtype';
 const DEBUG_RECENT_DYNAMIC_CONFIGURATIONS = 'debug.recentdynamicconfigurations';
 const ON_DEBUG_DYNAMIC_CONFIGURATIONS_NAME = 'onDebugDynamicConfigurations';
@@ -107,7 +106,6 @@ export class ConfigurationManager implements IConfigurationManager {
 				this._onDidSelectConfigurationName.fire();
 			}
 		}, () => {
-			// Ignore remote environment failures and fall back to the local OS.
 		});
 	}
 
@@ -133,14 +131,10 @@ export class ConfigurationManager implements IConfigurationManager {
 		}
 	}
 
-	/**
-	 * if scope is not specified,a value of DebugConfigurationProvideTrigger.Initial is assumed.
-	 */
 	hasDebugConfigurationProvider(debugType: string, triggerKind?: DebugConfigurationProviderTriggerKind): boolean {
 		if (triggerKind === undefined) {
 			triggerKind = DebugConfigurationProviderTriggerKind.Initial;
 		}
-		// check if there are providers for the given type that contribute a provideDebugConfigurations method
 		const provider = this.configProviders.find(p => p.provideDebugConfigurations && (p.type === debugType) && (p.triggerKind === triggerKind));
 		return !!provider;
 	}
@@ -173,13 +167,11 @@ export class ConfigurationManager implements IConfigurationManager {
 	}
 
 	async resolveDebugConfigurationWithSubstitutedVariables(folderUri: uri | undefined, type: string | undefined, config: IConfig, token: CancellationToken): Promise<IConfig | null | undefined> {
-		// pipe the config through the promises sequentially. Append at the end the '*' types
 		const providers = this.configProviders.filter(p => p.type === type && p.resolveDebugConfigurationWithSubstitutedVariables)
 			.concat(this.configProviders.filter(p => p.type === '*' && p.resolveDebugConfigurationWithSubstitutedVariables));
 
 		let result: IConfig | null | undefined = config;
 		await sequence(providers.map(provider => async () => {
-			// If any provider returned undefined or null make sure to respect that and do not pass the result to more resolver
 			if (result) {
 				result = await provider.resolveDebugConfigurationWithSubstitutedVariables!(folderUri, result, token);
 			}
@@ -239,7 +231,6 @@ export class ConfigurationManager implements IConfigurationManager {
 				},
 				type,
 				pick: async () => {
-					// Do a late 'onDebugDynamicConfigurationsName' activation so extensions are not activated too early #108578
 					await this.adapterManager.activateDebuggers(ON_DEBUG_DYNAMIC_CONFIGURATIONS_NAME, type);
 
 					const disposables = new DisposableStore();
@@ -255,7 +246,6 @@ export class ConfigurationManager implements IConfigurationManager {
 							resolve(undefined);
 							const { launch, config } = context.item;
 							await launch.openConfigFile({ preserveFocus: false, type: config.type, suppressInitialConfigs: true });
-							// Only Launch have a pin trigger button
 							await (launch as Launch).writeConfiguration(config);
 							await this.selectConfiguration(launch, config.name);
 							this.removeRecentDynamicConfigurations(config.name, config.type);
@@ -265,9 +255,6 @@ export class ConfigurationManager implements IConfigurationManager {
 
 					let items: IDynamicPickItem[];
 					try {
-						// This await invokes the extension providers, which might fail due to several reasons,
-						// therefore we gate this logic under a try/catch to prevent leaving the Debug Tab
-						// selector in a borked state.
 						items = await this.getDynamicConfigurationsByType(type, token.token);
 					} catch (err) {
 						this.logService.error(err);
@@ -288,7 +275,6 @@ export class ConfigurationManager implements IConfigurationManager {
 	}
 
 	async getDynamicConfigurationsByType(type: string, token: CancellationToken = CancellationToken.None): Promise<IDynamicPickItem[]> {
-		// Do a late 'onDebugDynamicConfigurationsName' activation so extensions are not activated too early #108578
 		await this.adapterManager.activateDebuggers(ON_DEBUG_DYNAMIC_CONFIGURATIONS_NAME, type);
 
 		const picks: Promise<IDynamicPickItem[]>[] = [];
@@ -347,7 +333,6 @@ export class ConfigurationManager implements IConfigurationManager {
 		}));
 		this.toDispose.push(this.configurationService.onDidChangeConfiguration(async e => {
 			if (e.affectsConfiguration('launch')) {
-				// A change happen in the launch.json. If there is already a launch configuration selected, do not change the selection.
 				await this.selectConfiguration(undefined);
 				this.setCompoundSchemaValues();
 			}
@@ -445,8 +430,6 @@ export class ConfigurationManager implements IConfigurationManager {
 		if (name && names.indexOf(name) >= 0) {
 			this.setSelectedLaunchName(name);
 		} else if (dynamicConfig && dynamicConfig.type) {
-			// We could not find the previously used name and config is not passed. We should get all dynamic configurations from providers
-			// And potentially auto select the previously used dynamic configuration #96293
 			type = dynamicConfig.type;
 			if (!config) {
 				const providers = (await this.getDynamicProviders()).filter(p => p.type === type);
@@ -469,13 +452,11 @@ export class ConfigurationManager implements IConfigurationManager {
 
 			let recentDynamicProviders = this.getRecentDynamicConfigurations();
 			if (name && dynamicConfig.type) {
-				// We need to store the recently used dynamic configurations to be able to show them in UI #110009
 				recentDynamicProviders.unshift({ name, type: dynamicConfig.type });
 				recentDynamicProviders = distinct(recentDynamicProviders, t => `${t.name} : ${t.type}`);
 				this.storageService.store(DEBUG_RECENT_DYNAMIC_CONFIGURATIONS, JSON.stringify(recentDynamicProviders), StorageScope.WORKSPACE, StorageTarget.MACHINE);
 			}
 		} else if (!this.selectedName || names.indexOf(this.selectedName) === -1) {
-			// We could not find the configuration to select, pick the first one, or reset the selection if there is no launch configuration
 			const nameToSet = names.length ? names[0] : undefined;
 			this.setSelectedLaunchName(nameToSet);
 		}
@@ -487,7 +468,6 @@ export class ConfigurationManager implements IConfigurationManager {
 
 		this.selectedType = dynamicConfig?.type || config?.type;
 		this.selectedDynamic = !!dynamicConfig;
-		// Only store the selected type if we are having a dynamic configuration. Otherwise restoring this configuration from storage might be misindentified as a dynamic configuration
 		this.storageService.store(DEBUG_SELECTED_TYPE, dynamicConfig ? this.selectedType : undefined, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 
 		if (type) {
@@ -560,7 +540,6 @@ abstract class AbstractLaunch implements ILaunch {
 	}
 
 	getConfiguration(name: string): IConfig | undefined {
-		// We need to clone the configuration in order to be able to make changes to it #42198
 		const config = this.getDeduplicatedConfig();
 		if (!config || !config.configurations) {
 			return undefined;
@@ -643,7 +622,7 @@ class Launch extends AbstractLaunch implements ILaunch {
 	}
 
 	get uri(): uri {
-		return resources.joinPath(this.workspace.uri, '/.vscode/launch.json');
+		return resources.joinPath(this.workspace.uri, `/${FOLDER_CONFIG_FOLDER_NAME}/launch.json`);
 	}
 
 	get name(): string {
@@ -662,14 +641,12 @@ class Launch extends AbstractLaunch implements ILaunch {
 			const fileContent = await this.fileService.readFile(resource);
 			content = fileContent.value.toString();
 		} catch {
-			// launch.json not found: create one by collecting launch configs from debugConfigProviders
 			content = await this.getInitialConfigurationContent(this.workspace.uri, type, !suppressInitialConfigs, token);
 			if (!content) {
-				// Cancelled
 				return { editor: null, created: false };
 			}
 
-			created = true; // pin only if config file is created #8727
+			created = true;
 			try {
 				await this.textFileService.write(resource, content);
 			} catch (error) {
@@ -703,7 +680,6 @@ class Launch extends AbstractLaunch implements ILaunch {
 	}
 
 	async writeConfiguration(configuration: IConfig): Promise<void> {
-		// note: we don't get the deduplicated config since we don't want that to 'leak' into the file
 		const fullConfig: Partial<IGlobalConfig> = { ...(this.getConfig() ?? {}) };
 		fullConfig.configurations = [...fullConfig.configurations || [], configuration];
 		await this.configurationService.updateValue('launch', fullConfig, { resource: this.workspace.uri }, ConfigurationTarget.WORKSPACE_FOLDER);
@@ -740,7 +716,6 @@ class WorkspaceLaunch extends AbstractLaunch implements ILaunch {
 	async openConfigFile({ preserveFocus, type, useInitialConfigs }: { preserveFocus: boolean; type?: string; useInitialConfigs?: boolean }, token?: CancellationToken): Promise<{ editor: IEditorPane | null; created: boolean }> {
 		const launchExistInFile = !!this.getConfig();
 		if (!launchExistInFile) {
-			// Launch property in workspace config not found: create one by collecting launch configs from debugConfigProviders
 			const content = await this.getInitialConfigurationContent(undefined, type, useInitialConfigs, token);
 			if (content) {
 				await this.configurationService.updateValue('launch', json.parse(content), ConfigurationTarget.WORKSPACE);

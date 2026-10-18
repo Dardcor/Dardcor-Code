@@ -76,7 +76,7 @@ suite('File Service', () => {
 		assert.strictEqual(capabilityChanges.length, 2);
 
 		await service.activateProvider('test');
-		assert.strictEqual(callCount, 2); // activation is called again
+		assert.strictEqual(callCount, 2);
 
 		assert.strictEqual(service.hasCapability(resource, FileSystemProviderCapabilities.Readonly), true);
 		assert.strictEqual(service.hasCapability(resource, FileSystemProviderCapabilities.FileOpenReadWriteClose), false);
@@ -105,7 +105,7 @@ suite('File Service', () => {
 		const resource1 = URI.parse('test://foo/bar1');
 		const watcher1Disposable = service.watch(resource1);
 
-		await timeout(0); // service.watch() is async
+		await timeout(0);
 		assert.strictEqual(disposeCounter, 0);
 		watcher1Disposable.dispose();
 		assert.strictEqual(disposeCounter, 1);
@@ -116,7 +116,7 @@ suite('File Service', () => {
 		const watcher2Disposable2 = service.watch(resource2);
 		const watcher2Disposable3 = service.watch(resource2);
 
-		await timeout(0); // service.watch() is async
+		await timeout(0);
 		assert.strictEqual(disposeCounter, 0);
 		watcher2Disposable1.dispose();
 		assert.strictEqual(disposeCounter, 0);
@@ -131,7 +131,7 @@ suite('File Service', () => {
 		const watcher3Disposable2 = service.watch(resource3, { recursive: true, excludes: [] });
 		const watcher3Disposable3 = service.watch(resource3, { recursive: false, excludes: [], includes: [] });
 
-		await timeout(0); // service.watch() is async
+		await timeout(0);
 		assert.strictEqual(disposeCounter, 0);
 		watcher3Disposable1.dispose();
 		assert.strictEqual(disposeCounter, 1);

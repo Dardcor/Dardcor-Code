@@ -14,7 +14,7 @@ export type IData = {
 	response: string;
 	altAction: IAlternativeAction;
 	postProcessingOutcome: {
-		suggestedEdit: string; // example: "[978, 1021) -> \"foo\"";
+		suggestedEdit: string;
 		isInlineCompletion: boolean;
 	};
 	suggestionStatus: NextEditTelemetryStatus;

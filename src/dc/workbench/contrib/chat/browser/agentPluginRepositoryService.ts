@@ -30,7 +30,6 @@ import { GitHubPluginSource, GitUrlPluginSource, NpmPluginSource, PipPluginSourc
 
 const MARKETPLACE_INDEX_STORAGE_KEY = 'chat.plugins.marketplaces.index.v1';
 
-/** Full commit SHA — a ref pinned to one has nothing to pull. */
 const SHA_REF_PATTERN = /^[0-9a-f]{40}$/i;
 
 interface IMarketplaceIndexEntry {
@@ -63,9 +62,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 		@IStorageService private readonly _storageService: IStorageService,
 		@IUserDataProfileService userDataProfileService: IUserDataProfileService,
 	) {
-		// On native, use the well-known ~/{dataFolderName}/agent-plugins/ path
-		// so that external tools can discover it. On web, fall back to the
-		// internal cache location.
 		this.agentPluginsHome = userDataProfileService.currentProfile.agentPluginsHome;
 		const legacyCacheRoot = joinPath(environmentService.cacheHome, 'agentPlugins');
 		const oldCacheRoot = environmentService.cacheHome.scheme === 'file'
@@ -73,16 +69,12 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 			: this.agentPluginsHome;
 		this._cacheRoot = this.agentPluginsHome;
 
-		// Migrate plugin files from the old internal cache directory to the
-		// new well-known location. This is a one-time operation.
 		if (!isEqual(oldCacheRoot, this.agentPluginsHome)) {
 			this._migrationDone = this._migrateDirectory(oldCacheRoot);
 		} else {
 			this._migrationDone = Promise.resolve();
 		}
 
-		// Build per-kind source repository map via instantiation service so
-		// each repository can inject its own dependencies.
 		this._pluginSources = new Map<PluginSourceKind, IPluginSource>([
 			[PluginSourceKind.RelativePath, new RelativePathPluginSource()],
 			[PluginSourceKind.GitHub, instantiationService.createInstance(GitHubPluginSource)],
@@ -151,10 +143,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 		});
 	}
 
-	/**
-	 * Whether an existing clone is stale enough to warrant a silent pull.
-	 * Local (user-owned) directories and SHA-pinned refs are never refreshed.
-	 */
 	private _isRefreshDue(marketplace: IMarketplaceReference, options: IEnsureRepositoryOptions | undefined): boolean {
 		const refreshIfOlderThanMs = options?.refreshIfOlderThanMs;
 		if (refreshIfOlderThanMs === undefined || options?.token?.isCancellationRequested) {
@@ -169,15 +157,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 		return lastRefreshedAt === undefined || Date.now() - lastRefreshedAt >= refreshIfOlderThanMs;
 	}
 
-	/**
-	 * Silently pulls an existing clone, never throwing — a marketplace that
-	 * cannot be refreshed still serves its cached contents.
-	 *
-	 * Returns the timestamp to record as the last refresh attempt, or
-	 * `undefined` when the pull was cancelled so that cancellation does not
-	 * suppress the next attempt. Genuine failures are recorded, otherwise an
-	 * unreachable remote would be retried on every single fetch.
-	 */
 	private async _refreshRepository(repoDir: URI, marketplace: IMarketplaceReference, token: CancellationToken | undefined): Promise<number | undefined> {
 		try {
 			await this._pluginGit.pull(repoDir, token);
@@ -206,10 +185,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 				? await this._pluginGit.pull(repoDir)
 				: await this._pullWithProgress(repoDir, updateLabel);
 
-			// An explicit pull leaves the clone exactly as fresh as a stale
-			// refresh would, so record it — otherwise flows that pull and then
-			// re-read the marketplace (e.g. `updateAllPlugins`) would pull the
-			// same repository twice in a row.
 			this._updateMarketplaceIndex(marketplace, repoDir, options?.marketplaceType, Date.now());
 			return changed;
 		} catch (err) {
@@ -234,7 +209,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 		}
 	}
 
-	/** Pulls a clone behind a cancellable progress notification. */
 	private async _pullWithProgress(repoDir: URI, updateLabel: string): Promise<boolean> {
 		const cts = new CancellationTokenSource();
 		try {
@@ -354,8 +328,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 
 	private async _cloneRepository(repoDir: URI, cloneUrl: string, progressTitle: string, failureLabel: string, ref?: string, token?: CancellationToken): Promise<void> {
 		const cts = new CancellationTokenSource();
-		// Cancelling the caller (e.g. the marketplace refresh progress) must
-		// also abort a first-time clone, not just an incremental refresh.
 		const tokenListener = token?.onCancellationRequested(() => cts.cancel());
 		try {
 			await this._progressService.withProgress(
@@ -435,8 +407,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 			return;
 		}
 
-		// Skip deletion when another installed plugin shares the same
-		// cleanup target (e.g. same cloned repository with different sub-paths).
 		if (otherInstalledDescriptors) {
 			const shared = otherInstalledDescriptors.some(other => {
 				const otherRepo = this.getPluginSource(other.kind);
@@ -460,20 +430,12 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 		}
 
 		try {
-			// Prune empty parent directories up to (but not including) the cache root
-			// so we don't leave dangling owner/authority folders behind.
 			await this._pruneEmptyParents(cleanupDir);
 		} catch (err) {
 			this._logService.warn(`[${plugin.sourceDescriptor.kind}] Failed to cleanup plugin source:`, err);
 		}
 	}
 
-	/**
-	 * Walk from {@link child}'s parent toward {@link _cacheRoot}, removing
-	 * each directory that is empty. Stops as soon as a non-empty directory
-	 * is found or the cache root is reached. Only operates on descendants
-	 * of the cache root — returns immediately for paths outside it.
-	 */
 	private async _pruneEmptyParents(child: URI): Promise<void> {
 		if (!isEqualOrParent(child, this._cacheRoot)) {
 			return;
@@ -493,11 +455,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 		}
 	}
 
-	/**
-	 * One-time migration of plugin files from the old internal cache
-	 * directory (`{cacheHome}/agentPlugins/`) to the new well-known
-	 * location (`~/{dataFolderName}/agent-plugins/`).
-	 */
 	private async _migrateDirectory(oldCacheRoot: URI): Promise<void> {
 		try {
 			const oldExists = await this._fileService.exists(oldCacheRoot);
@@ -514,8 +471,6 @@ export class AgentPluginRepositoryService implements IAgentPluginRepositoryServi
 			this._logService.info(`[AgentPluginRepositoryService] Migrating agent plugins from ${oldCacheRoot.toString()} to ${this.agentPluginsHome.toString()}`);
 			await this._fileService.move(oldCacheRoot, this.agentPluginsHome, false);
 
-			// Clear the marketplace index — it caches repository URIs that
-			// pointed to the old location and would cause path mismatches.
 			this._storageService.remove(MARKETPLACE_INDEX_STORAGE_KEY, StorageScope.APPLICATION);
 			this._marketplaceIndex.value.clear();
 		} catch (error) {

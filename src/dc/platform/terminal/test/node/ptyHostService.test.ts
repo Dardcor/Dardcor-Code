@@ -17,8 +17,6 @@ suite('PtyHostService', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('restartPtyHost disposes listeners registered during pty host startup', async () => {
-		// Track active listener counts per event across pty host restarts. Without the
-		// fix, each restart would leak the listeners registered in _startPtyHost.
 		const listenerCounts = new Map<string, number>();
 		const makeEvent = (name: string): Event<unknown> => (_listener: (e: unknown) => void): IDisposable => {
 			listenerCounts.set(name, (listenerCounts.get(name) ?? 0) + 1);
@@ -49,8 +47,6 @@ suite('PtyHostService', () => {
 			store.add(new NullLoggerService())
 		));
 
-		// _startPtyHost runs lazily on first use, so trigger one restart to spin up the
-		// initial host and capture the listener counts after a single startup as the baseline.
 		await service.restartPtyHost();
 		const baseline = new Map(listenerCounts);
 

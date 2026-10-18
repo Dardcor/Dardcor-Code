@@ -76,7 +76,6 @@ export abstract class ReferencesController implements IEditorContribution {
 
 	toggleWidget(range: Range, modelPromise: CancelablePromise<ReferencesModel>, peekMode: boolean): void {
 
-		// close current widget and return early is position didn't change
 		let widgetPosition: Position | undefined;
 		if (this._widget) {
 			widgetPosition = this._widget.position;
@@ -89,7 +88,6 @@ export abstract class ReferencesController implements IEditorContribution {
 		this._peekMode = peekMode;
 		this._referenceSearchVisible.set(true);
 
-		// close the widget on model/mode changes
 		this._disposables.add(this._editor.onDidChangeModelLanguage(() => { this.closeWidget(); }));
 		this._disposables.add(this._editor.onDidChangeModel(() => {
 			if (!this._ignoreModelChangeEvent) {
@@ -107,7 +105,6 @@ export abstract class ReferencesController implements IEditorContribution {
 			if (this._widget) {
 				this._storageService.store(storageKey, JSON.stringify(this._widget.layoutData), StorageScope.PROFILE, StorageTarget.MACHINE);
 				if (!this._widget.isClosing) {
-					// to prevent calling this too many times, check whether it was already closing.
 					this.closeWidget();
 				}
 				this._widget = undefined;
@@ -124,8 +121,6 @@ export abstract class ReferencesController implements IEditorContribution {
 			switch (kind) {
 				case 'open':
 					if (event.source !== 'editor' || !this._configurationService.getValue('editor.stablePeek')) {
-						// when stable peek is configured we don't close
-						// the peek window on selecting the editor
 						this.openReference(element, false, false);
 					}
 					break;
@@ -146,7 +141,6 @@ export abstract class ReferencesController implements IEditorContribution {
 
 		modelPromise.then(model => {
 
-			// still current request? widget still open?
 			if (requestId !== this._requestIdPool || !this._widget) {
 				model.dispose();
 				return undefined;
@@ -155,18 +149,15 @@ export abstract class ReferencesController implements IEditorContribution {
 			this._model?.dispose();
 			this._model = model;
 
-			// show widget
 			return this._widget.setModel(this._model).then(() => {
-				if (this._widget && this._model && this._editor.hasModel()) { // might have been closed
+				if (this._widget && this._model && this._editor.hasModel()) {
 
-					// set title
 					if (!this._model.isEmpty) {
 						this._widget.setMetaTitle(nls.localize('metaTitle.N', "{0} ({1})", this._model.title, this._model.references.length));
 					} else {
 						this._widget.setMetaTitle('');
 					}
 
-					// set 'best' selection
 					const uri = this._editor.getModel().uri;
 					const pos = new Position(range.startLineNumber, range.startColumn);
 					const selection = this._model.nearestReference(uri, pos);
@@ -188,7 +179,6 @@ export abstract class ReferencesController implements IEditorContribution {
 
 	changeFocusBetweenPreviewAndReferences() {
 		if (!this._widget) {
-			// can be called while still resolving...
 			return;
 		}
 		if (this._widget.isPreviewEditorFocused()) {
@@ -200,7 +190,6 @@ export abstract class ReferencesController implements IEditorContribution {
 
 	async goToNextOrPreviousReference(fwd: boolean) {
 		if (!this._editor.hasModel() || !this._model || !this._widget) {
-			// can be called while still resolving...
 			return;
 		}
 		const currentPosition = this._widget.position;
@@ -225,7 +214,6 @@ export abstract class ReferencesController implements IEditorContribution {
 
 	async revealReference(reference: OneReference): Promise<void> {
 		if (!this._editor.hasModel() || !this._model || !this._widget) {
-			// can be called while still resolving...
 			return;
 		}
 
@@ -242,7 +230,7 @@ export abstract class ReferencesController implements IEditorContribution {
 		if (focusEditor) {
 			this._editor.focus();
 		}
-		this._requestIdPool += 1; // Cancel pending requests
+		this._requestIdPool += 1;
 	}
 
 	private _gotoReference(ref: Location, pinned: boolean): Promise<unknown> {
@@ -258,19 +246,15 @@ export abstract class ReferencesController implements IEditorContribution {
 			this._ignoreModelChangeEvent = false;
 
 			if (!openedEditor || !this._widget) {
-				// something went wrong...
 				this.closeWidget();
 				return;
 			}
 
 			if (this._editor === openedEditor) {
-				//
 				this._widget.show(range);
 				this._widget.focusOnReferenceTree();
 
 			} else {
-				// we opened a different editor instance which means a different controller instance.
-				// therefore we stop with this controller and continue with the other
 				const other = ReferencesController.get(openedEditor);
 				const model = this._model!.clone();
 
@@ -291,7 +275,6 @@ export abstract class ReferencesController implements IEditorContribution {
 	}
 
 	openReference(ref: Location, sideBySide: boolean, pinned: boolean): void {
-		// clear stage
 		if (!sideBySide) {
 			this.closeWidget();
 		}
@@ -353,11 +336,9 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	}
 });
 
-// commands that aren't needed anymore because there is now ContextKeyExpr.OR
 CommandsRegistry.registerCommandAlias('goToNextReferenceFromEmbeddedEditor', 'goToNextReference');
 CommandsRegistry.registerCommandAlias('goToPreviousReferenceFromEmbeddedEditor', 'goToPreviousReference');
 
-// close
 CommandsRegistry.registerCommandAlias('closeReferenceSearchEditor', 'closeReferenceSearch');
 CommandsRegistry.registerCommand(
 	'closeReferenceSearch',

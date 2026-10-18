@@ -17,7 +17,7 @@ suite('Completions in settings.json', () => {
 	const testFile = 'settings.json';
 
 	test('window.title', async () => {
-		{ // inserting after text
+		{
 			const content = [
 				'{',
 				'  "window.title": "custom|"',
@@ -31,7 +31,7 @@ suite('Completions in settings.json', () => {
 			const expected = { label: '${activeEditorShort}', resultText };
 			await testCompletion(testFile, 'jsonc', content, expected);
 		}
-		{	// inserting before a variable
+		{
 			const content = [
 				'{',
 				'  "window.title": "|${activeEditorShort}"',
@@ -45,7 +45,7 @@ suite('Completions in settings.json', () => {
 			const expected = { label: '${folderPath}', resultText };
 			await testCompletion(testFile, 'jsonc', content, expected);
 		}
-		{	// inserting after a variable
+		{
 			const content = [
 				'{',
 				'  "window.title": "${activeEditorShort}|"',
@@ -59,7 +59,7 @@ suite('Completions in settings.json', () => {
 			const expected = { label: '${folderPath}', resultText };
 			await testCompletion(testFile, 'jsonc', content, expected);
 		}
-		{ // replacing an variable
+		{
 			const content = [
 				'{',
 				'  "window.title": "${a|ctiveEditorShort}"',
@@ -73,7 +73,7 @@ suite('Completions in settings.json', () => {
 			const expected = { label: '${activeEditorMedium}', resultText };
 			await testCompletion(testFile, 'jsonc', content, expected);
 		}
-		{ // replacing a partial variable
+		{
 			const content = [
 				'{',
 				'  "window.title": "${a|"',
@@ -87,7 +87,7 @@ suite('Completions in settings.json', () => {
 			const expected = { label: '${dirty}', resultText };
 			await testCompletion(testFile, 'jsonc', content, expected);
 		}
-		{ // inserting a literal
+		{
 			const content = [
 				'{',
 				'  "window.title": |',
@@ -101,7 +101,7 @@ suite('Completions in settings.json', () => {
 			const expected = { label: '"${activeEditorMedium}"', resultText };
 			await testCompletion(testFile, 'jsonc', content, expected);
 		}
-		{ // no proposals after literal
+		{
 			const content = [
 				'{',
 				'  "window.title": "${activeEditorShort}"   |',
@@ -553,7 +553,6 @@ async function testCompletion(testFileName: string, languageId: string, content:
 	const editor = await setTestContent(docUri, languageId, content);
 	const position = editor.document.positionAt(offset);
 
-	// Executing the command `vscode.executeCompletionItemProvider` to simulate triggering completion
 	const actualCompletions = (await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', docUri, position)) as vscode.CompletionList;
 
 	const matches = actualCompletions.items.filter(completion => {

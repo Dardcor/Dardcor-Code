@@ -31,9 +31,6 @@ interface TypeScriptTaskDefinition extends vscode.TaskDefinition {
 	option?: string;
 }
 
-/**
- * Provides tasks for building `tsconfig.json` files in a project.
- */
 class TscTaskProvider extends Disposable implements vscode.TaskProvider {
 
 	private readonly projectInfoRequestTimeout = 2000;
@@ -72,7 +69,6 @@ class TscTaskProvider extends Disposable implements vscode.TaskProvider {
 	public async resolveTask(task: vscode.Task): Promise<vscode.Task | undefined> {
 		const definition = <TypeScriptTaskDefinition>task.definition;
 		if (/\\tsconfig.*\.json/.test(definition.tsconfig)) {
-			// Warn that the task has the wrong slash type
 			vscode.window.showWarningMessage(vscode.l10n.t("TypeScript Task in tasks.json contains \"\\\\\". TypeScript tasks tsconfig must use \"/\""));
 			return undefined;
 		}
@@ -83,7 +79,6 @@ class TscTaskProvider extends Disposable implements vscode.TaskProvider {
 		}
 
 		if (task.scope === undefined || task.scope === vscode.TaskScope.Global || task.scope === vscode.TaskScope.Workspace) {
-			// scope is required to be a WorkspaceFolder for resolveTask
 			return undefined;
 		}
 		const tsconfigUri = task.scope.uri.with({ path: task.scope.uri.path + '/' + tsconfigPath });
@@ -275,14 +270,13 @@ class TscTaskProvider extends Disposable implements vscode.TaskProvider {
 				return ['-b', project.fsPath];
 			}
 		} catch {
-			// noops
 		}
 		return defaultArgs;
 	}
 
 	private getLabelForTasks(project: TSConfig): string {
 		if (project.workspaceFolder) {
-			const workspaceNormalizedUri = vscode.Uri.file(path.normalize(project.workspaceFolder.uri.fsPath)); // Make sure the drive letter is lowercase
+			const workspaceNormalizedUri = vscode.Uri.file(path.normalize(project.workspaceFolder.uri.fsPath));
 			return path.posix.relative(workspaceNormalizedUri.path, project.posixPath);
 		}
 

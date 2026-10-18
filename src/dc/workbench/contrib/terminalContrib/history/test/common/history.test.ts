@@ -358,7 +358,6 @@ suite('Terminal history', () => {
 						authority: remoteConnection?.remoteAuthority,
 						path: URI.file(filePath).path
 					});
-					// Sanitize the encoded `/` chars as they don't impact behavior
 					strictEqual(resource.toString().replaceAll('%5C', '/'), expected.toString().replaceAll('%5C', '/'));
 					return { value: VSBuffer.fromString(fileContent) };
 				}
@@ -601,9 +600,6 @@ suite('Terminal history', () => {
 
 		suite('sanitizeFishHistoryCmd', () => {
 			test('valid new-lines', () => {
-				/**
-				 * Valid new-lines have odd number of leading backslashes: \n, \\\n, \\\\\n
-				 */
 				const cases = [
 					'\\n',
 					'\\n at start',
@@ -628,9 +624,6 @@ suite('Terminal history', () => {
 			});
 
 			test('invalid new-lines', () => {
-				/**
-				 * Invalid new-lines have even number of leading backslashes: \\n, \\\\n, \\\\\\n
-				 */
 				const cases = [
 					'\\\\n',
 					'\\\\n invalid at start',

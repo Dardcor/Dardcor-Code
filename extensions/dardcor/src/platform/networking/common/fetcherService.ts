@@ -8,7 +8,6 @@ import { Event } from '../../../util/dardcor/base/common/event';
 
 export const IFetcherService = createServiceIdentifier<IFetcherService>('IFetcherService');
 
-/** Use as the callSite value to suppress fetch telemetry for a request (e.g. from the telemetry service itself). */
 export const NO_FETCH_TELEMETRY = 'NO_FETCH_TELEMETRY';
 
 export interface IFetcherService {
@@ -71,17 +70,11 @@ export interface FetchTelemetryEvent {
 	latencyMs: number;
 	statusCode: number | undefined;
 	success: boolean;
-	/**
-	 * Cache outcome when the caller opted in via {@link FetchOptions.cache}.
-	 * `undefined` when the caller did not opt in or the selected fetcher does
-	 * not implement caching.
-	 */
 	cacheStatus?: CacheStatus;
 }
 
 export type CacheStatus = 'hit' | 'stale-hit' | 'revalidated' | 'miss' | 'bypass';
 
-/** A basic version of http://developer.mozilla.org/en-US/docs/Web/API/Response */
 export class Response {
 	ok = this.status >= 200 && this.status < 300;
 	readonly body: DestroyableStream<Uint8Array>;
@@ -160,17 +153,11 @@ export class Response {
 
 export type FetcherId = 'electron-fetch' | 'node-fetch' | 'node-http' | 'test-stub' | 'helix-fetch';
 
-/** These are the options we currently use, for ease of reference. */
 export interface FetchOptions {
-	/** Identifies the call site for telemetry tracking. Use {@link NO_FETCH_TELEMETRY} to suppress. */
 	callSite: string;
 	headers?: { [name: string]: string };
 	body?: string;
 	timeout?: number;
-	/**
-	 * If `json` is provided, it will be stringified using `JSON.stringify` and sent as the body with
-	 * the `Content-Type` header set to `application/json`.
-	 */
 	json?: unknown;
 	method?: 'GET' | 'POST' | 'PUT';
 	signal?: IAbortSignal;
@@ -178,12 +165,6 @@ export interface FetchOptions {
 	expectJSON?: boolean;
 	useFetcher?: FetcherId;
 	suppressIntegrationId?: boolean;
-	/**
-	 * Opportunistic cache hint. When set to `true`, fetchers that implement
-	 * caching (today only the Node fetch fetcher) will route the request
-	 * through an RFC 9111 cache. Fetchers without cache support ignore this
-	 * flag, and fallback to other fetchers continues to work normally.
-	 */
 	cache?: boolean;
 }
 
@@ -248,33 +229,16 @@ export class HeadersImpl implements IHeaders {
 	}
 }
 
-/**
- * Wraps a ReadableStream to allow cancellation even while a `for await` loop
- * holds the stream locked. Use `destroy()` to safely cancel from an external
- * callback (e.g., `onReturn`) - it cancels through the reader if locked.
- *
- * When `pipeThrough()` is called, destroy() will forward to the piped stream.
- */
 export class DestroyableStream<T> implements AsyncIterable<T> {
 	private reader: ReadableStreamDefaultReader<T> | undefined;
 	private pipedHead: DestroyableStream<unknown> | undefined;
 
 	constructor(private readonly stream: ReadableStream<T>) { }
 
-	/**
-	 * Returns the underlying ReadableStream for APIs that require it
-	 * (e.g., Readable.fromWeb). Use with caution as operations on the
-	 * returned stream bypass the DestroyableStream's reader tracking.
-	 */
 	toReadableStream(): ReadableStream<T> {
 		return this.stream;
 	}
 
-	/**
-	 * Pipes this stream through a transform stream.
-	 * Returns a new DestroyableStream wrapping the transformed stream.
-	 * Calling destroy() on this stream will forward to the piped stream.
-	 */
 	pipeThrough<U>(transform: { readable: ReadableStream<U>; writable: WritableStream<T> }): DestroyableStream<U> {
 		const piped = new DestroyableStream(this.stream.pipeThrough(transform));
 		this.pipedHead = piped;
@@ -298,15 +262,12 @@ export class DestroyableStream<T> implements AsyncIterable<T> {
 	}
 
 	destroy(): Promise<void> {
-		// Forward to piped stream if pipeThrough was called
 		if (this.pipedHead) {
 			return this.pipedHead.destroy();
 		}
 		if (this.reader) {
-			// Cancels the underlying stream and releases the lock
 			return this.reader.cancel();
 		} else {
-			// If stream was consumed and unlocked, cancel() is a no-op
 			return this.stream.cancel();
 		}
 	}
@@ -325,7 +286,6 @@ export async function jsonVerboseError(resp: Response) {
 }
 
 export function isAbortError(e: any): boolean {
-	// see https://github.com/nodejs/node/issues/38361#issuecomment-1683839467
 	return e && e.name === 'AbortError';
 }
 

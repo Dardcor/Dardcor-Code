@@ -163,7 +163,6 @@ class InitializedWorkspaceRecorderFeature extends Disposable {
 					workspaceRecorder.handleDocumentEvent(docUri, item.time, { ...item, time: undefined, modelUri: undefined, modelVersion: undefined, v: item.modelVersion });
 				}
 			} else {
-				// send to first recorder
 				const recorder = this.recorders.values().next().value;
 				if (recorder) {
 					recorder.handleEvent(item.time, { ...item, time: undefined });
@@ -222,7 +221,6 @@ class InitializedWorkspaceRecorderFeature extends Disposable {
 
 	private getWorkspaceRepository(docUri: string): gitExt.Repository | undefined {
 		if (process.platform === 'win32') {
-			// Use case insensitive
 			return this.gitApi.repositories.find(r => startsWithIgnoreCase(docUri, r.rootUri.toString()));
 		}
 		return this.gitApi.repositories.find(r => docUri.startsWith(r.rootUri.toString()));

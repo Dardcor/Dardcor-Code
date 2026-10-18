@@ -26,7 +26,6 @@ class TestExtensionService extends NullExtensionService {
 		(this.extensions as IExtensionDescription[]).push(...initial);
 	}
 
-	/** Applies a delta to the registry and fires the matching change event. */
 	fireChange(added: IExtensionDescription[], removed: IExtensionDescription[]): void {
 		const extensions = this.extensions as IExtensionDescription[];
 		for (const toRemove of removed) {
@@ -39,11 +38,6 @@ class TestExtensionService extends NullExtensionService {
 		this._onDidChangeExtensions.fire({ added, removed });
 	}
 
-	/**
-	 * Overwrites the final registry and fires an event carrying an arbitrary
-	 * (possibly misleading) delta. Used to simulate the case where registry
-	 * validation rejects an `added` extension without reporting it in `removed`.
-	 */
 	setExtensionsAndFire(finalExtensions: IExtensionDescription[], event: ExtensionsChangeEvent): void {
 		const extensions = this.extensions as IExtensionDescription[];
 		extensions.length = 0;
@@ -80,14 +74,14 @@ suite('ExtensionEnablementContextKeysContribution', () => {
 		const { contextKeyService, extensionService } = createContribution([aExtension('pub.a'), aExtension('pub.b')]);
 
 		assert.deepStrictEqual(snapshot(contextKeyService, ['pub.a', 'pub.b', 'pub.c']), {
-			'pub.a': true, // seeded from already-registered extensions
+			'pub.a': true,
 			'pub.b': true,
-			'pub.c': undefined, // never present -> key was never set
+			'pub.c': undefined,
 		});
 
-		extensionService.fireChange([aExtension('pub.c')], []); // newly enabled
-		extensionService.fireChange([], [aExtension('pub.b')]); // disabled or uninstalled
-		extensionService.fireChange([aExtension('pub.a')], [aExtension('pub.a')]); // update -> removed then re-added
+		extensionService.fireChange([aExtension('pub.c')], []);
+		extensionService.fireChange([], [aExtension('pub.b')]);
+		extensionService.fireChange([aExtension('pub.a')], [aExtension('pub.a')]);
 
 		assert.deepStrictEqual(snapshot(contextKeyService, ['pub.a', 'pub.b', 'pub.c']), {
 			'pub.a': true,
@@ -105,9 +99,6 @@ suite('ExtensionEnablementContextKeysContribution', () => {
 	test('reconciles against the final registry, not the change delta', () => {
 		const { contextKeyService, extensionService } = createContribution([aExtension('pub.a')]);
 
-		// Registry validation drops pub.a from the final set (e.g. a dependency
-		// loop) but reports it as `added` and omits it from `removed`. The key
-		// must follow the final registry and become false, not trust the delta.
 		extensionService.setExtensionsAndFire([], { added: [aExtension('pub.a')], removed: [] });
 
 		assert.strictEqual(contextKeyService.getContextKeyValue(EXTENSION_ENABLED_CONTEXT_KEY_PREFIX + 'pub.a'), false);

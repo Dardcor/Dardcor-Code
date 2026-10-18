@@ -265,10 +265,8 @@ sw.addEventListener('message', async (event) => {
 				/** @type {ReadableStream<Uint8Array>} */
 				let stream;
 				if (response.stream) {
-					// Transferable stream (Chromium/Firefox)
 					stream = response.stream;
 				} else {
-					// Safari fallback: set up a TransformStream for incoming chunks
 					const transform = new TransformStream();
 					const writer = transform.writable.getWriter();
 					safariResourceStreams.set(response.id, writer);
@@ -308,7 +306,6 @@ sw.addEventListener('message', async (event) => {
 			}
 			return;
 		}
-		// Safari fallback: chunk-based streaming for browsers without transferable streams
 		case 'did-load-resource-chunk': {
 			const data = event.data.data;
 			const writer = safariResourceStreams.get(data.id);
@@ -324,9 +321,9 @@ sw.addEventListener('message', async (event) => {
 			const writer = safariResourceStreams.get(data.id);
 			if (writer) {
 				if (data.error) {
-					writer.abort(new Error('Stream error')).catch(() => { /* already cleaning up */ });
+					writer.abort(new Error('Stream error')).catch(() => { });
 				} else {
-					writer.close().catch(() => { /* already cleaning up */ });
+					writer.close().catch(() => { });
 				}
 				safariResourceStreams.delete(data.id);
 			}
@@ -354,7 +351,7 @@ sw.addEventListener('fetch', (event) => {
 			case 'HEAD': {
 				const firstHostSegment = requestUrl.hostname.slice(0, requestUrl.hostname.length - (resourceBaseAuthority.length + 1));
 				const scheme = firstHostSegment.split('+', 1)[0];
-				const authority = firstHostSegment.slice(scheme.length + 1); // may be empty
+				const authority = firstHostSegment.slice(scheme.length + 1);
 				return event.respondWith(processResourceRequest(event, {
 					scheme,
 					authority,
@@ -368,10 +365,6 @@ sw.addEventListener('fetch', (event) => {
 		}
 	}
 
-	// If we're making a request against the remote authority, we want to go
-	// through VS Code itself so that we are authenticated properly.  If the
-	// service worker is hosted on the same origin we will have cookies and
-	// authentication will not be an issue.
 	if (requestUrl.origin !== sw.origin && requestUrl.host === remoteAuthority) {
 		switch (event.request.method) {
 			case 'GET':
@@ -389,18 +382,17 @@ sw.addEventListener('fetch', (event) => {
 		}
 	}
 
-	// See if it's a localhost request
 	if (requestUrl.origin !== sw.origin && requestUrl.host.match(/^(localhost|127.0.0.1|0.0.0.0):(\d+)$/)) {
 		return event.respondWith(processLocalhostRequest(event, requestUrl));
 	}
 });
 
 sw.addEventListener('install', (event) => {
-	event.waitUntil(sw.skipWaiting()); // Activate worker immediately
+	event.waitUntil(sw.skipWaiting());
 });
 
 sw.addEventListener('activate', (event) => {
-	event.waitUntil(sw.clients.claim()); // Become available to all pages
+	event.waitUntil(sw.clients.claim());
 });
 
 
@@ -432,9 +424,6 @@ async function processResourceRequest(
 
 	const webviewId = getWebviewIdForClient(client);
 
-	// Refs https://github.com/microsoft/vscode/issues/244143
-	// With PlzDedicatedWorker, worker subresources and blob workers
-	// will use clients different from the window client.
 	if (!webviewId && client.type !== 'worker' && client.type !== 'sharedworker') {
 		console.error('Could not resolve webview id');
 		return notFound();
@@ -460,7 +449,7 @@ async function processResourceRequest(
 		};
 
 		const entry = result.value;
-		if (entry.status === 304) { // Not modified
+		if (entry.status === 304) {
 			if (cachedResponse) {
 				releaseHostResourceResponseBody();
 				const r = cachedResponse.clone();
@@ -497,7 +486,6 @@ async function processResourceRequest(
 			headers['Last-Modified'] = new Date(entry.mtime).toUTCString();
 		}
 
-		// support COI requests, see network.ts#COI.getHeadersFromQuery(...)
 		const coiRequest = new URL(event.request.url).searchParams.get('vscode-coi');
 		if (coiRequest === '3') {
 			headers['Cross-Origin-Opener-Policy'] = 'same-origin';
@@ -509,8 +497,6 @@ async function processResourceRequest(
 		}
 
 		if (entry.stream) {
-			// Range responses: the host already read only the requested range,
-			// so we just pipe the stream through with a 206 status.
 			if (entry.status === 206 && entry.range) {
 				headers['Content-Range'] = entry.range;
 				headers['Cache-Control'] = 'no-store';
@@ -540,7 +526,6 @@ async function processResourceRequest(
 		cached = await cache.match(event.request);
 	}
 
-	// Parse range header to forward to the host so it can read only the needed bytes
 	/** @type {{ start: number, end?: number } | undefined} */
 	let range;
 	const rangeHeader = event.request.headers.get('range');
@@ -617,14 +602,9 @@ async function processLocalhostRequest(
 ) {
 	const client = await sw.clients.get(event.clientId);
 	if (!client) {
-		// This is expected when requesting resources on other localhost ports
-		// that are not spawned by vs code
 		return fetch(event.request);
 	}
 	const webviewId = getWebviewIdForClient(client);
-	// Refs https://github.com/microsoft/vscode/issues/244143
-	// With PlzDedicatedWorker, worker subresources and blob workers
-	// will use clients different from the window client.
 	if (!webviewId && client.type !== 'worker' && client.type !== 'sharedworker') {
 		console.error('Could not resolve webview id');
 		return fetch(event.request);

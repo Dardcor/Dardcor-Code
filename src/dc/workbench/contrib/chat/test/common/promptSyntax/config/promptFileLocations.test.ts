@@ -113,8 +113,6 @@ suite('promptFileLocations', function () {
 			assert.strictEqual(getPromptFileType(uri), PromptsType.skill);
 		});
 
-		// Note: getPromptFileType assumes the URI is from a valid prompt source folder.
-		// Any .json file returns PromptsType.hook - the caller filters by folder.
 		test('any .json file should be recognized as hook', () => {
 			assert.strictEqual(getPromptFileType(URI.file('/workspace/.github/hooks/hooks.json')), PromptsType.hook);
 			assert.strictEqual(getPromptFileType(URI.file('/workspace/.github/hooks/custom-hooks.json')), PromptsType.hook);
@@ -223,8 +221,6 @@ suite('promptFileLocations', function () {
 			assert.strictEqual(isPromptOrInstructionsFile(URI.file('/workspace/SKILL2.md')), false);
 		});
 
-		// Note: Any .json file returns true because getPromptFileType returns hook for all JSON.
-		// The caller is responsible for only passing URIs from valid prompt source folders.
 		test('any .json file should return true', () => {
 			assert.strictEqual(isPromptOrInstructionsFile(URI.file('/workspace/.github/hooks/custom-hooks.json')), true);
 			assert.strictEqual(isPromptOrInstructionsFile(URI.file('/workspace/.claude/settings.json')), true);

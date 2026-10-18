@@ -11,7 +11,7 @@ import { CMDCollectDiagnosticsChat, CMDDisableCompletionsChat, CMDEnableCompleti
 import { ICompletionsExtensionStatus } from './extensionStatus';
 import { Icon } from './icon';
 
-export class CopilotStatusBarPickMenu {
+export class DardcorStatusBarPickMenu {
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
@@ -44,7 +44,7 @@ export class CopilotStatusBarPickMenu {
 			await commands.executeCommand(commandSelection.command, ...commandSelection.commandArgs);
 			quickpickList.hide();
 		} else {
-			throw new Error('Unexpected Copilot quick picker selection');
+			throw new Error('Unexpected Dardcor completion picker selection');
 		}
 	}
 

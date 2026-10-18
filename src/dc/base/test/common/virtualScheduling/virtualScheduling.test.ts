@@ -210,9 +210,6 @@ suite('virtualScheduling - VirtualTimeProcessor termination policies', () => {
 	});
 
 	test('untilTime: resolves at deadline even when no events scheduled', async () => {
-		// The deadline alone — with no other events queued — must still drive
-		// virtual time to the deadline. The processor inserts a sentinel
-		// event at the deadline to guarantee this.
 		const store = new DisposableStore();
 		const clock = new VirtualClock();
 		const p = makeProcessor(store, clock);
@@ -259,7 +256,6 @@ suite('virtualScheduling - VirtualTimeProcessor termination policies', () => {
 
 		const runP = p.run({ until: untilToken(cts.token) });
 
-		// While run is parked (no events), schedule + cancel.
 		await Promise.resolve();
 		clock.schedule({ time: 5, source: { toString: () => 't' }, run: () => log.push('a') });
 		cts.cancel();
@@ -274,7 +270,6 @@ suite('virtualScheduling - VirtualTimeProcessor termination policies', () => {
 		const clock = new VirtualClock();
 		const p = makeProcessor(store, clock);
 
-		// Self-rescheduling timer
 		const tick = (n: number) => {
 			clock.schedule({
 				time: clock.now + 1,

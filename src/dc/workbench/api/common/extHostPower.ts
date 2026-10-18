@@ -15,7 +15,6 @@ export class ExtHostPower extends Disposable implements ExtHostPowerShape {
 
 	private readonly _proxy: MainThreadPowerShape;
 
-	// Events
 	private readonly _onDidSuspend = this._register(new Emitter<void>());
 	readonly onDidSuspend: Event<void> = this._onDidSuspend.event;
 
@@ -47,7 +46,6 @@ export class ExtHostPower extends Disposable implements ExtHostPowerShape {
 		this._proxy = extHostRpc.getProxy(MainContext.MainThreadPower);
 	}
 
-	// === Proxy callbacks (called by MainThread) ===
 
 	$onDidSuspend(): void {
 		this._onDidSuspend.fire();
@@ -81,7 +79,6 @@ export class ExtHostPower extends Disposable implements ExtHostPowerShape {
 		this._onDidUnlockScreen.fire();
 	}
 
-	// === API for extensions ===
 
 	getSystemIdleState(idleThresholdSeconds: number): Promise<PowerSystemIdleState> {
 		return this._proxy.$getSystemIdleState(idleThresholdSeconds);

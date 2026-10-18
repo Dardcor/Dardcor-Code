@@ -64,7 +64,6 @@ const nullContext = {
 suite('Configuration Resolver Service', () => {
 	let configurationResolverService: IConfigurationResolverService | null;
 	const envVariables: { [key: string]: string } = { key1: 'Value for key1', key2: 'Value for key2' };
-	// let environmentService: MockWorkbenchEnvironmentService;
 	let mockCommandService: MockCommandService;
 	let editorService: TestEditorServiceWithActiveEditor;
 	let containingWorkspace: Workspace;
@@ -80,7 +79,6 @@ suite('Configuration Resolver Service', () => {
 		mockCommandService = new MockCommandService();
 		editorService = disposables.add(new TestEditorServiceWithActiveEditor());
 		quickInputService = new TestQuickInputService();
-		// environmentService = new MockWorkbenchEnvironmentService(envVariables);
 		labelService = new MockLabelService();
 		pathService = new MockPathService();
 		extensionService = new TestExtensionService();
@@ -141,7 +139,7 @@ suite('Configuration Resolver Service', () => {
 		assert.strictEqual(config.windows, undefined);
 		assert.strictEqual(config.osx, undefined);
 		assert.strictEqual(config.linux, undefined);
-		assert.strictEqual(JSON.stringify(obj), originalObj); // did not mutate original
+		assert.strictEqual(JSON.stringify(obj), originalObj);
 	});
 
 	test('workspace folder with argument', async () => {
@@ -243,16 +241,6 @@ suite('Configuration Resolver Service', () => {
 		assert.strictEqual(await configurationResolverService!.resolveAsync(workspace, '${extensionInstallFolder:publisher.extId}'), URI.file('/some/path').fsPath);
 	});
 
-	// test('substitute keys and values in object', () => {
-	// 	const myObject = {
-	// 		'${workspaceRootFolderName}': '${lineNumber}',
-	// 		'hey ${env:key1} ': '${workspaceRootFolderName}'
-	// 	};
-	// 	assert.deepStrictEqual(configurationResolverService!.resolveAsync(workspace, myObject), {
-	// 		'workspaceLocation': `${editorService.mockLineNumber}`,
-	// 		'hey Value for key1 ': 'workspaceLocation'
-	// 	});
-	// });
 
 
 	test('substitute one env variable using platform case sensitivity', async () => {

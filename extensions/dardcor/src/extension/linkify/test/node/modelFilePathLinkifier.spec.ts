@@ -120,7 +120,6 @@ suite('Model File Path Linkifier', () => {
 	test('Should handle absolute paths with forward slashes on Windows', async () => {
 		const absolutePath = workspaceFile('src/file.ts').fsPath;
 		const service = createTestLinkifierService('src/file.ts');
-		// Simulate model-generated path with forward slashes (e.g., c:/Repos/...)
 		const pathWithForwardSlashes = absolutePath.replace(/\\/g, '/');
 		const result = await linkify(service, `[line 67](${pathWithForwardSlashes}#L67)`);
 		const anchor = result.parts[0] as LinkifyLocationAnchor;
@@ -130,16 +129,12 @@ suite('Model File Path Linkifier', () => {
 	});
 
 	test('Should NOT linkify when display text looks like filename but does not match target filename', async () => {
-		// This tests the case where model hallucinates a link like [nonexistent.ts](existing.ts#L10)
-		// The display text "nonexistent.ts" looks like a filename but doesn't match "existing.ts"
 		const service = createTestLinkifierService('src/existing.ts');
 		const result = await linkify(service, '[nonexistent.ts](src/existing.ts#L10)');
-		// Should NOT create a link to the wrong file - just return the display text
 		assertPartsEqual(result.parts, ['nonexistent.ts']);
 	});
 
 	test('Should linkify when display text filename matches target filename with anchor', async () => {
-		// Display text is just the filename, target is full path - should work
 		const service = createTestLinkifierService('src/file.ts');
 		const result = await linkify(service, '[file.ts](src/file.ts#L10)');
 		const anchor = result.parts[0] as LinkifyLocationAnchor;
@@ -230,7 +225,6 @@ suite('Model File Path Linkifier Remote Workspace', () => {
 		const parts = await remoteLinkify(service, '[/home/user/project/src/remote.ts](/home/user/project/src/remote.ts#L3-5)');
 		expect(parts.length).toBe(1);
 		const anchor = parts[0] as LinkifyLocationAnchor;
-		// Anchor value is a Location when an anchor is present.
 		const location = anchor.value as Location;
 		expect(location.uri.toString()).toBe(remoteFile.toString());
 		const range = location.range;

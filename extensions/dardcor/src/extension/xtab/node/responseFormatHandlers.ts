@@ -15,9 +15,6 @@ import { ResponseTags } from '../common/tags';
 import { EditIntentParseMode, parseEditIntentFromStream } from './editIntent';
 import { linesWithBackticksRemoved } from './xtabUtils';
 
-// ============================================================================
-// Result type
-// ============================================================================
 
 export namespace ResponseParseResult {
 
@@ -26,9 +23,6 @@ export namespace ResponseParseResult {
 		readonly parseError?: string;
 	}
 
-	/**
-	 * The response contains edit-window lines to be fed into *ResponseProcessor.diff*.
-	 */
 	export class EditWindowLines {
 		constructor(
 			readonly lines: AsyncIterable<string>,
@@ -36,17 +30,10 @@ export namespace ResponseParseResult {
 		) { }
 	}
 
-	/**
-	 * The handler has finished — no more processing needed. Carries a {@link NoNextEditReason}.
-	 */
 	export class Done {
 		constructor(readonly reason: NoNextEditReason) { }
 	}
 
-	/**
-	 * The handler yields edits directly (e.g. INSERT or CustomDiffPatch).
-	 * The coordinator should `yield*` the stream.
-	 */
 	export class DirectEdits {
 		constructor(readonly stream: AsyncGenerator<StreamedEdit, NoNextEditReason, void>) { }
 	}
@@ -54,25 +41,16 @@ export namespace ResponseParseResult {
 	export type t = EditWindowLines | Done | DirectEdits;
 }
 
-// ============================================================================
-// Handler: EditWindowOnly
-// ============================================================================
 
 export function handleEditWindowOnly(linesStream: AsyncIterable<string>): ResponseParseResult.EditWindowLines {
 	return new ResponseParseResult.EditWindowLines(linesStream);
 }
 
-// ============================================================================
-// Handler: CodeBlock
-// ============================================================================
 
 export function handleCodeBlock(linesStream: AsyncIterable<string>): ResponseParseResult.EditWindowLines {
 	return new ResponseParseResult.EditWindowLines(linesWithBackticksRemoved(linesStream));
 }
 
-// ============================================================================
-// Handler: EditWindowWithEditIntent / EditWindowWithEditIntentShort
-// ============================================================================
 
 export async function handleEditWindowWithEditIntent(
 	linesStream: AsyncIterable<string>,
@@ -87,9 +65,6 @@ export async function handleEditWindowWithEditIntent(
 	);
 }
 
-// ============================================================================
-// Handler: UnifiedWithXml
-// ============================================================================
 
 export interface UnifiedXmlInsertContext {
 	readonly editWindowLines: string[];
@@ -141,9 +116,6 @@ export async function handleUnifiedWithXml(
 	);
 }
 
-// ============================================================================
-// Internal generators for UnifiedWithXml sub-tags
-// ============================================================================
 
 async function* generateInsertEdits(
 	linesIter: AsyncIterator<string>,
@@ -160,7 +132,7 @@ async function* generateInsertEdits(
 	const cursorLineContent = editWindowLines[cursorLineInEditWindowOffset];
 	const edit = new LineReplacement(
 		new LineRange(
-			editWindowLineRange.start + cursorLineInEditWindowOffset + 1 /* 0-based to 1-based */,
+			editWindowLineRange.start + cursorLineInEditWindowOffset + 1 ,
 			editWindowLineRange.start + cursorLineInEditWindowOffset + 2,
 		),
 		[cursorLineContent.slice(0, cursorColumnZeroBased) + lineWithCursorContinued.value + cursorLineContent.slice(cursorColumnZeroBased)],

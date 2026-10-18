@@ -36,7 +36,6 @@ export class DiskFileSystemProviderChannel extends AbstractDiskFileSystemProvide
 		return URI.revive(_resource);
 	}
 
-	//#region Delete: override to support Electron's trash support
 
 	protected override async delete(uriTransformer: IURITransformer, _resource: UriComponents, opts: IFileDeleteOptions): Promise<void> {
 		if (!opts.useTrash) {
@@ -52,15 +51,12 @@ export class DiskFileSystemProviderChannel extends AbstractDiskFileSystemProvide
 		}
 	}
 
-	//#endregion
 
-	//#region File Watching
 
 	protected createSessionFileWatcher(uriTransformer: IURITransformer, emitter: Emitter<IFileChange[] | string>): ISessionFileWatcher {
 		return new SessionFileWatcher(uriTransformer, emitter, this.logService, this.environmentService);
 	}
 
-	//#endregion
 
 }
 

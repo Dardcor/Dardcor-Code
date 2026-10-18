@@ -277,7 +277,6 @@ if (GENERATE_TESTS) {
 
 		const testModel = new TestModel();
 
-		// console.log(testModel.print());
 
 		console.log('------END NEW TEST: ' + (number++));
 
@@ -287,14 +286,12 @@ if (GENERATE_TESTS) {
 				testModel.edits,
 				testModel.resultingContent.split('\n')
 			);
-			// throw new Error('a');
 		} catch (err) {
 			console.log(err);
 			console.log(testModel.print());
 			break;
 		}
 
-		// break;
 	}
 
 }

@@ -6,32 +6,19 @@
 import { TreeSitterOffsetRange } from '../../node/nodes';
 
 export interface MarkerRange extends TreeSitterOffsetRange {
-	/** If provided, will be put in the annotation */
 	kind?: string;
 }
 
 interface InsertMarkersOptions {
-	/** Include offsets */
 	withOffsets: boolean;
-	/** Include index within provided marker ranges */
 	includeArrayIndex: boolean;
-	/** Include occurrence # of a marker kind */
 	includeKindIndex: boolean;
 }
 
-/**
- * Inserts range markers into a source string based on the provided ranges.
- *
- * @param source - The source string where markers will be inserted.
- * @param ranges - An array of MarkerRange objects, each representing a range to be marked.
- * @param opts - An optional "options" object to _override_ particular behavior, i.e., options are received by `{...defaultOptions, ...opts}`.
- *
- * @returns A new string with the range markers inserted.
- */
 export function insertRangeMarkers(source: string, ranges: MarkerRange[], opts?: Partial<InsertMarkersOptions>) {
 
 	opts = {
-		...{ withOffsets: false, includeArrayIndex: false, includeKindIndex: true }, // default
+		...{ withOffsets: false, includeArrayIndex: false, includeKindIndex: true },
 		...opts,
 	};
 
@@ -47,22 +34,18 @@ export function insertRangeMarkers(source: string, ranges: MarkerRange[], opts?:
 		];
 	});
 
-	// @ulugbekna: representing a tree in a flat data structure
 	const markedOffsets = unsortedMarkedOffsets.sort(({ offset, offsetKind, len, indexInArray }, { offset: otherOffset, offsetKind: otherOffsetKind, len: otherLen, indexInArray: otherIndexInArray }) => {
-		// try to order by offset - from small to large
 		const offsetDiff = offset - otherOffset;
 		if (offsetDiff !== 0) {
 			return offsetDiff;
 		}
 
 		if (offsetKind === otherOffsetKind) {
-			// if both start offsets, larger node wins; if both end offsets, smaller wins
 			const d = len - otherLen;
 			return offsetKind === 'start' ? -d : d;
 		} else {
-			// we always want to close an open node before "opening" another node unless start & end offsets are for the same node
 			return indexInArray === otherIndexInArray
-				? offsetKind === 'start' ? -1 : 1 // if same node, start should come first
+				? offsetKind === 'start' ? -1 : 1
 				: offsetKind === 'start' ? 1 : -1;
 		}
 	});
@@ -72,7 +55,7 @@ export function insertRangeMarkers(source: string, ranges: MarkerRange[], opts?:
 
 	const includeArrayIndex = opts.includeArrayIndex && sortedRanges.length > 1;
 
-	const kindIndexMap = new Map</* kind */string, number>();
+	const kindIndexMap = new Map< string, number>();
 	const arrayIndexToKindIndex = new Map<number, number>();
 
 	for (const { offset, offsetKind, indexInArray, rangeKind } of markedOffsets) {

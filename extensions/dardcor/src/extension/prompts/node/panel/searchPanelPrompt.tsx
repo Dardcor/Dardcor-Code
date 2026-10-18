@@ -45,14 +45,12 @@ export class SearchChunkResult extends PromptElement<ISearchChunkResultProps> {
 		return <>
 			{this.props.chunkResults
 				.map((chunk, i) => {
-					// Give chunks a scaled priority from `X` to `X + 1` with the earliest chunks having the highest priority
 					const priority = typeof this.props.priority !== 'undefined'
 						? this.props.priority + (1 - ((i + 1) / this.props.chunkResults.length))
 						: undefined;
 
 					return { chunk, priority };
 				})
-				// Send chunks in reverse order with most relevant chunks last
 				.reverse()
 				.filter(x => x.chunk.text)
 				.map(({ chunk, priority }) => {

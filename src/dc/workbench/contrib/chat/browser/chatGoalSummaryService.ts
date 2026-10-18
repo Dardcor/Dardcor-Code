@@ -13,12 +13,6 @@ export const IChatGoalSummaryService = createDecorator<IChatGoalSummaryService>(
 export interface IChatGoalSummaryService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Returns a short (one-phrase) summary of the user's prompt suitable for display
-	 * as a "Goal: <summary>" banner above the chat input. Returns `undefined` when
-	 * no model is available, the model declines to summarize, or the summary cannot
-	 * be produced.
-	 */
 	summarize(prompt: string, token: CancellationToken): Promise<string | undefined>;
 }
 
@@ -26,14 +20,6 @@ const MAX_PROMPT_CHARS = 4000;
 const MAX_SUMMARY_CHARS = 100;
 const CACHE_SIZE = 50;
 
-/**
- * Matches responses where the summary model declined to summarize the prompt and
- * returned a refusal (e.g. "Sorry, I can't assist with that.") instead of a goal
- * phrase. Anchored at the start: valid summaries are imperative phrases ("Add
- * tests for X", "Fix the popup bug") and never begin with an apology or an
- * inability statement, so legitimate summaries that merely mention these words
- * (such as a request to fix a "can't assist" error) are not misclassified.
- */
 const REFUSAL_PREFIX_RE = /^(?:sorry\b|unfortunately\b|my apologies\b|as an ai\b|i\s+apologi[sz]e\b|i\s*['\u2019]?m\s+sorry\b|i\s+am\s+sorry\b|i\s*['\u2019]?m\s+unable\b|i\s+am\s+unable\b|i\s+am\s+not\s+able\b|i\s*(?:can['\u2019]?t|cannot|can\s?not|won['\u2019]?t)\b)/i;
 
 export class ChatGoalSummaryService implements IChatGoalSummaryService {
@@ -81,7 +67,7 @@ export class ChatGoalSummaryService implements IChatGoalSummaryService {
 	}
 
 	private async _invokeModel(prompt: string, token: CancellationToken): Promise<string | undefined> {
-		const models = await this._languageModelsService.selectLanguageModels({ vendor: 'copilot', id: 'copilot-utility-small' });
+		const models = await this._languageModelsService.selectLanguageModels({ vendor: 'dardcor', id: 'dardcor-utility-small' });
 		if (!models.length || token.isCancellationRequested) {
 			return undefined;
 		}
@@ -130,27 +116,14 @@ export class ChatGoalSummaryService implements IChatGoalSummaryService {
 	}
 }
 
-/**
- * Normalizes a raw summary-model response into a goal phrase suitable for the
- * banner, or `undefined` when nothing usable remains. Strips quotes and a
- * leading "Goal:", collapses whitespace, suppresses model refusals (see
- * {@link REFUSAL_PREFIX_RE}), and truncates to {@link MAX_SUMMARY_CHARS}.
- *
- * Exported for unit testing.
- */
 export function cleanGoalSummary(raw: string): string | undefined {
 	let s = raw.trim();
 	if (!s) {
 		return undefined;
 	}
-	// Strip surrounding quotes and any leading "Goal:" the model may have added.
 	s = s.replace(/^["'`]+|["'`]+$/g, '');
 	s = s.replace(/^\s*goal\s*[:\-—]\s*/i, '');
 	s = s.replace(/\s+/g, ' ').trim();
-	// The summary model occasionally declines to summarize (e.g. content
-	// filtering) and replies with a refusal like "Sorry, I can't assist with
-	// that.". That is a refusal, not a goal, so suppress the banner entirely
-	// rather than surfacing the refusal text.
 	if (!s || REFUSAL_PREFIX_RE.test(s)) {
 		return undefined;
 	}

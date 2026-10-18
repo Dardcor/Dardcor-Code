@@ -16,7 +16,7 @@ export interface ICompletionsExtensionStatus {
 	command?: Command;
 }
 
-export class CopilotExtensionStatus implements ICompletionsExtensionStatus {
+export class DardcorCompletionStatus implements ICompletionsExtensionStatus {
 	declare _serviceBrand: undefined;
 	constructor(
 		public kind: StatusKind = 'Normal',

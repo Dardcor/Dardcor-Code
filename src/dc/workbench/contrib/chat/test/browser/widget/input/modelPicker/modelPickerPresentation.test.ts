@@ -17,7 +17,7 @@ function model(identifier: string, metadataId: string): ILanguageModelChatMetada
 			extension: new ExtensionIdentifier('test.extension'),
 			id: metadataId,
 			name: identifier,
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			version: '1.0',
 			family: 'test',
 			maxInputTokens: 1,

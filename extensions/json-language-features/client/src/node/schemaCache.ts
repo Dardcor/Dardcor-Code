@@ -103,12 +103,10 @@ export class JSONSchemaCache {
 		try {
 			await fs.rm(cacheLocation);
 		} catch (e) {
-			// ignore
 		}
 	}
 
 
-	// for debugging
 	public getCacheInfo() {
 		return this.cacheInfo;
 	}
@@ -117,7 +115,6 @@ export class JSONSchemaCache {
 		try {
 			await this.globalState.update(MEMENTO_KEY, this.cacheInfo);
 		} catch (e) {
-			// ignore
 		}
 	}
 
@@ -129,11 +126,9 @@ export class JSONSchemaCache {
 				try {
 					await fs.unlink(path.join(this.schemaCacheLocation, file));
 				} catch (_e) {
-					// ignore
 				}
 			}
 		} catch (e) {
-			// ignore
 		} finally {
 
 			this.cacheInfo = {};

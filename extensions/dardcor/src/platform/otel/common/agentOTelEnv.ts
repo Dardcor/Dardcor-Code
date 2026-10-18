@@ -5,26 +5,15 @@
 
 import type { OTelConfig } from './otelConfig';
 
-/**
- * Derives environment variables for the Copilot CLI SDK from the extension's
- * resolved OTel configuration. Only sets variables that are not already present
- * in `process.env`, so explicit user env vars serve as per-agent overrides.
- *
- * Used for both the in-process `LocalSessionManager` (spread into `process.env`)
- * and the terminal CLI session (spread into `TerminalOptions.env`).
- */
 export function deriveCopilotCliOTelEnv(config: OTelConfig, env: Record<string, string | undefined> = process.env): Record<string, string> {
-	// Only forward to subprocess when the user explicitly opted in. In db-only
-	// mode the in-process SDK uses NoopSpanExporter; the subprocess has no DB
-	// exporter and would silently export to the OTLP endpoint.
 	if (!config.enabled || !config.enabledExplicitly) {
 		return {};
 	}
 
 	const result: Record<string, string> = {};
 
-	if (!env['COPILOT_OTEL_ENABLED']) {
-		result['COPILOT_OTEL_ENABLED'] = 'true';
+	if (!env['DARDCOR_OTEL_ENABLED']) {
+		result['DARDCOR_OTEL_ENABLED'] = 'true';
 	}
 	if (!env['OTEL_EXPORTER_OTLP_ENDPOINT'] && config.otlpEndpoint) {
 		result['OTEL_EXPORTER_OTLP_ENDPOINT'] = config.otlpEndpoint;
@@ -32,30 +21,17 @@ export function deriveCopilotCliOTelEnv(config: OTelConfig, env: Record<string, 
 	if (!env['OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT'] && config.captureContent) {
 		result['OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT'] = 'true';
 	}
-	if (!env['COPILOT_OTEL_FILE_EXPORTER_PATH'] && config.fileExporterPath) {
-		result['COPILOT_OTEL_FILE_EXPORTER_PATH'] = config.fileExporterPath;
+	if (!env['DARDCOR_OTEL_FILE_EXPORTER_PATH'] && config.fileExporterPath) {
+		result['DARDCOR_OTEL_FILE_EXPORTER_PATH'] = config.fileExporterPath;
 	}
-	if (!env['COPILOT_OTEL_EXPORTER_TYPE'] && config.exporterType === 'file') {
-		result['COPILOT_OTEL_EXPORTER_TYPE'] = 'file';
+	if (!env['DARDCOR_OTEL_EXPORTER_TYPE'] && config.exporterType === 'file') {
+		result['DARDCOR_OTEL_EXPORTER_TYPE'] = 'file';
 	}
-	// Note: Copilot CLI runtime only supports otlp-http (not gRPC).
-	// The OTEL_EXPORTER_OTLP_ENDPOINT is used with the HTTP protocol regardless.
-	// Standard vars (OTEL_EXPORTER_OTLP_HEADERS, OTEL_RESOURCE_ATTRIBUTES, OTEL_SERVICE_NAME)
-	// flow via process.env inheritance — no explicit forwarding needed.
 
 	return result;
 }
 
-/**
- * Derives environment variables for the Claude Code subprocess from the
- * extension's resolved OTel configuration. Claude uses different env var names
- * than the Copilot CLI SDK.
- *
- * Only sets variables not already present in `process.env`.
- */
 export function deriveClaudeOTelEnv(config: OTelConfig, env: Record<string, string | undefined> = process.env): Record<string, string> {
-	// See `deriveCopilotCliOTelEnv`: gate on `enabledExplicitly` so db-only
-	// mode doesn't leak the OTLP endpoint to the subprocess.
 	if (!config.enabled || !config.enabledExplicitly) {
 		return {};
 	}
@@ -85,8 +61,6 @@ export function deriveClaudeOTelEnv(config: OTelConfig, env: Record<string, stri
 			result['OTEL_LOG_TOOL_DETAILS'] = '1';
 		}
 	}
-	// Claude SDK has no file exporter — skip fileExporterPath.
-	// Standard vars (OTEL_EXPORTER_OTLP_HEADERS, OTEL_RESOURCE_ATTRIBUTES) flow via inheritance.
 
 	return result;
 }

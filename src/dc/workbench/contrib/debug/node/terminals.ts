@@ -28,7 +28,6 @@ function spawnAsPromised(command: string, args: string[]): Promise<string> {
 export async function hasChildProcesses(processId: number | undefined): Promise<boolean> {
 	if (processId) {
 
-		// if shell has at least one child process, assume that shell is busy
 		if (platform.isWindows) {
 			const windowsProcessTree = await import('@vscode/windows-process-tree');
 			return new Promise<boolean>(resolve => {
@@ -39,7 +38,7 @@ export async function hasChildProcesses(processId: number | undefined): Promise<
 		} else {
 			return spawnAsPromised('/usr/bin/pgrep', ['-lP', String(processId)]).then(stdout => {
 				const r = stdout.trim();
-				if (r.length === 0 || r.indexOf(' tmux') >= 0) { // ignore 'tmux'; see #43683
+				if (r.length === 0 || r.indexOf(' tmux') >= 0) {
 					return false;
 				} else {
 					return true;
@@ -49,7 +48,6 @@ export async function hasChildProcesses(processId: number | undefined): Promise<
 			});
 		}
 	}
-	// fall back to safe side
 	return Promise.resolve(true);
 }
 
@@ -60,7 +58,6 @@ export function prepareCommand(shell: string, args: string[], argsCanBeInterpret
 
 	shell = shell.trim().toLowerCase();
 
-	// try to determine the shell type
 	let shellType;
 	if (shell.indexOf('powershell') >= 0 || shell.indexOf('pwsh') >= 0) {
 		shellType = ShellType.powershell;
@@ -69,13 +66,12 @@ export function prepareCommand(shell: string, args: string[], argsCanBeInterpret
 	} else if (shell.indexOf('bash') >= 0) {
 		shellType = ShellType.bash;
 	} else if (platform.isWindows) {
-		shellType = ShellType.cmd; // pick a good default for Windows
+		shellType = ShellType.cmd;
 	} else {
-		shellType = ShellType.bash;	// pick a good default for anything else
+		shellType = ShellType.bash;
 	}
 
 	let quote: (s: string) => string;
-	// begin command with a space to avoid polluting shell history
 	let command = ' ';
 
 	switch (shellType) {
@@ -121,10 +117,6 @@ export function prepareCommand(shell: string, args: string[], argsCanBeInterpret
 		case ShellType.cmd:
 
 			quote = (s: string) => {
-				// Note: Wrapping in cmd /C "..." complicates the escaping.
-				// cmd /C "node -e "console.log(process.argv)" """A^>0"""" # prints "A>0"
-				// cmd /C "node -e "console.log(process.argv)" "foo^> bar"" # prints foo> bar
-				// Outside of the cmd /C, it could be a simple quoting, but here, the ^ is needed too
 				s = s.replace(/\"/g, '""');
 				s = s.replace(/([><!^&|])/g, '^$1');
 				return (' "'.split('').some(char => s.includes(char)) || s.length === 0) ? `"${s}"` : s;

@@ -16,52 +16,44 @@ export class SettingsDocument {
 	public async provideCompletionItems(position: vscode.Position, _token: vscode.CancellationToken): Promise<vscode.CompletionItem[] | vscode.CompletionList> {
 		const location = getLocation(this.document.getText(), this.document.offsetAt(position));
 
-		// window.title
 		if (location.path[0] === 'window.title') {
 			return this.provideWindowTitleCompletionItems(location, position);
 		}
 
-		// files.association
 		if (location.path[0] === 'files.associations') {
 			return this.provideFilesAssociationsCompletionItems(location, position);
 		}
 
-		// files.exclude, search.exclude, explorer.autoRevealExclude
 		if (location.path[0] === 'files.exclude' || location.path[0] === 'search.exclude' || location.path[0] === 'explorer.autoRevealExclude') {
 			return this.provideExcludeCompletionItems(location, position);
 		}
 
-		// files.defaultLanguage
 		if (location.path[0] === 'files.defaultLanguage') {
 			return this.provideLanguageCompletionItems(location, position);
 		}
 
-		// workbench.editor.label
 		if (location.path[0] === 'workbench.editor.label.patterns') {
 			return this.provideEditorLabelCompletionItems(location, position);
 		}
 
-		// settingsSync.ignoredExtensions
 		if (location.path[0] === 'settingsSync.ignoredExtensions') {
 			let ignoredExtensions = [];
 			try {
 				ignoredExtensions = parse(this.document.getText())['settingsSync.ignoredExtensions'];
-			} catch (e) {/* ignore error */ }
+			} catch (e) { }
 			const range = this.getReplaceRange(location, position);
 			return provideInstalledExtensionProposals(ignoredExtensions, '', range, true);
 		}
 
-		// remote.extensionKind
 		if (location.path[0] === 'remote.extensionKind' && location.path.length === 2 && location.isAtPropertyKey) {
 			let alreadyConfigured: string[] = [];
 			try {
 				alreadyConfigured = Object.keys(parse(this.document.getText())['remote.extensionKind']);
-			} catch (e) {/* ignore error */ }
+			} catch (e) { }
 			const range = this.getReplaceRange(location, position);
 			return provideInstalledExtensionProposals(alreadyConfigured, location.previousNode ? '' : `: [\n\t"ui"\n]`, range, true);
 		}
 
-		// remote.portsAttributes
 		if (location.path[0] === 'remote.portsAttributes' && location.path.length === 2 && location.isAtPropertyKey) {
 			return this.providePortsAttributesCompletionItem(this.getReplaceRange(location, position));
 		}
@@ -160,7 +152,6 @@ export class SettingsDocument {
 		const completions: vscode.CompletionItem[] = [];
 
 		if (location.path.length === 2) {
-			// Key
 			if (location.path[1] === '') {
 				const range = this.getReplaceRange(location, position);
 
@@ -178,7 +169,6 @@ export class SettingsDocument {
 					range
 				}));
 			} else if (this.isCompletingPropertyValue(location, position)) {
-				// Value
 				return this.provideLanguageCompletionItemsForLanguageOverrides(this.getReplaceRange(location, position));
 			}
 		}
@@ -189,7 +179,6 @@ export class SettingsDocument {
 	private async provideExcludeCompletionItems(location: Location, position: vscode.Position): Promise<vscode.CompletionItem[]> {
 		const completions: vscode.CompletionItem[] = [];
 
-		// Key
 		if (location.path.length === 1 || (location.path.length === 2 && location.path[1] === '')) {
 			const range = this.getReplaceRange(location, position);
 
@@ -236,7 +225,6 @@ export class SettingsDocument {
 			}));
 		}
 
-		// Value
 		else if (location.path.length === 2 && this.isCompletingPropertyValue(location, position)) {
 			const range = this.getReplaceRange(location, position);
 			completions.push(this.newSnippetCompletionItem({
@@ -285,7 +273,6 @@ export class SettingsDocument {
 			while (matches?.length) {
 				lastLanguageOverrideRange = new vscode.Range(this.document.positionAt(location.previousNode.offset + 1 + matches.index), this.document.positionAt(location.previousNode.offset + 1 + matches.index + matches[0].length));
 				languageOverridesRanges.push(lastLanguageOverrideRange);
-				/* Suggest the configured language if the position is in the match range */
 				if (!lastLanguageOverrideRange.contains(position)) {
 					donotSuggestLanguages.push(matches[1].trim());
 				}
@@ -297,10 +284,6 @@ export class SettingsDocument {
 			}
 			const languageOverrideRange = languageOverridesRanges.find(range => range.contains(position));
 
-			/**
-			 *  Skip if suggestions are for first language override range
-			 *  Since VSCode registers language overrides to the schema, JSON language server does suggestions for first language override.
-			 */
 			if (languageOverrideRange && !languageOverrideRange.isEqual(languageOverridesRanges[0])) {
 				const languages = await vscode.languages.getLanguages();
 				const completionItems = [];

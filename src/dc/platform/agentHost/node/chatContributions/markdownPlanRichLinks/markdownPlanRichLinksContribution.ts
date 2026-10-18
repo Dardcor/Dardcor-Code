@@ -24,11 +24,9 @@ function createMarkdownPlanRichLinksInstruction(chat: IOutgoingTurn['chat']): st
 	].join('\n');
 }
 
-/** Adds Markdown plan rich-link guidance when the feature is enabled. */
 export class MarkdownPlanRichLinksContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'markdownPlanRichLinks';
-	// Send contributions reserve 100-400 for the original host-instruction sequence.
 	readonly order = 100;
 
 	constructor(

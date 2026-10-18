@@ -105,9 +105,6 @@ export class RenderingContext extends RestrictedRenderingContext {
 }
 
 export class LineVisibleRanges {
-	/**
-	 * Returns the element with the smallest `lineNumber`.
-	 */
 	public static firstLine(ranges: LineVisibleRanges[] | null): LineVisibleRanges | null {
 		if (!ranges) {
 			return null;
@@ -121,9 +118,6 @@ export class LineVisibleRanges {
 		return result;
 	}
 
-	/**
-	 * Returns the element with the largest `lineNumber`.
-	 */
 	public static lastLine(ranges: LineVisibleRanges[] | null): LineVisibleRanges | null {
 		if (!ranges) {
 			return null;
@@ -141,9 +135,6 @@ export class LineVisibleRanges {
 		public readonly outsideRenderedLine: boolean,
 		public readonly lineNumber: number,
 		public readonly ranges: HorizontalRange[],
-		/**
-		 * Indicates if the requested range does not end in this line, but continues on the next line.
-		 */
 		public readonly continuesOnNextLine: boolean,
 	) { }
 }
@@ -195,9 +186,6 @@ export class FloatHorizontalRange {
 
 export class HorizontalPosition {
 	public outsideRenderedLine: boolean;
-	/**
-	 * Math.round(this.originalLeft)
-	 */
 	public left: number;
 	public originalLeft: number;
 

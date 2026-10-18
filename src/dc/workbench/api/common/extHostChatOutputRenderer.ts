@@ -15,7 +15,7 @@ export class ExtHostChatOutputRenderer implements ExtHostChatOutputRendererShape
 
 	private readonly _proxy: MainThreadChatOutputRendererShape;
 
-	private readonly _renderers = new Map</*viewType*/ string, {
+	private readonly _renderers = new Map< string, {
 		readonly renderer: vscode.ChatOutputRenderer;
 		readonly extension: IExtensionDescription;
 	}>();

@@ -14,25 +14,14 @@ import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../..
 import { isMacintosh } from '../../../common/platform.js';
 import './sash.css';
 
-/**
- * Allow the sashes to be visible at runtime.
- * @remark Use for development purposes only.
- */
 const DEBUG = false;
-// DEBUG = Boolean("true"); // done "weirdly" so that a lint warning prevents you from pushing this
 
-/**
- * A vertical sash layout provider provides position and height for a sash.
- */
 export interface IVerticalSashLayoutProvider {
 	getVerticalSashLeft(sash: Sash): number;
 	getVerticalSashTop?(sash: Sash): number;
 	getVerticalSashHeight?(sash: Sash): number;
 }
 
-/**
- * A vertical sash layout provider provides position and width for a sash.
- */
 export interface IHorizontalSashLayoutProvider {
 	getHorizontalSashTop(sash: Sash): number;
 	getHorizontalSashLeft?(sash: Sash): number;
@@ -65,40 +54,14 @@ export interface IBoundarySashes {
 
 export interface ISashOptions {
 
-	/**
-	 * Whether a sash is horizontal or vertical.
-	 */
 	readonly orientation: Orientation;
 
-	/**
-	 * The width or height of a vertical or horizontal sash, respectively.
-	 */
 	readonly size?: number;
 
-	/**
-	 * A reference to another sash, perpendicular to this one, which
-	 * aligns at the start of this one. A corner sash will be created
-	 * automatically at that location.
-	 *
-	 * The start of a horizontal sash is its left-most position.
-	 * The start of a vertical sash is its top-most position.
-	 */
 	readonly orthogonalStartSash?: Sash;
 
-	/**
-	 * A reference to another sash, perpendicular to this one, which
-	 * aligns at the end of this one. A corner sash will be created
-	 * automatically at that location.
-	 *
-	 * The end of a horizontal sash is its right-most position.
-	 * The end of a vertical sash is its bottom-most position.
-	 */
 	readonly orthogonalEndSash?: Sash;
 
-	/**
-	 * Provides a hint as to what mouse cursor to use whenever the user
-	 * hovers over a corner sash provided by this and an orthogonal sash.
-	 */
 	readonly orthogonalEdge?: OrthogonalEdge;
 }
 
@@ -117,30 +80,12 @@ export const enum Orientation {
 
 export const enum SashState {
 
-	/**
-	 * Disable any UI interaction.
-	 */
 	Disabled,
 
-	/**
-	 * Allow dragging down or to the right, depending on the sash orientation.
-	 *
-	 * Some OSs allow customizing the mouse cursor differently whenever
-	 * some resizable component can't be any smaller, but can be larger.
-	 */
 	AtMinimum,
 
-	/**
-	 * Allow dragging up or to the left, depending on the sash orientation.
-	 *
-	 * Some OSs allow customizing the mouse cursor differently whenever
-	 * some resizable component can't be any larger, but can be smaller.
-	 */
 	AtMaximum,
 
-	/**
-	 * Enable dragging.
-	 */
 	Enabled
 }
 
@@ -229,25 +174,11 @@ class OrthogonalPointerEventFactory implements IPointerEventFactory {
 	constructor(private factory: IPointerEventFactory) { }
 
 	dispose(): void {
-		// noop
 	}
 }
 
 const PointerEventsDisabledCssClass = 'pointer-events-disabled';
 
-/**
- * The {@link Sash} is the UI component which allows the user to resize other
- * components. It's usually an invisible horizontal or vertical line which, when
- * hovered, becomes highlighted and can be dragged along the perpendicular dimension
- * to its direction.
- *
- * Features:
- * - Touch event handling
- * - Corner sash support
- * - Hover with different mouse cursor support
- * - Configurable hover size
- * - Linked sash support, for 2x2 corner sashes
- */
 export class Sash extends Disposable {
 
 	private el: HTMLElement;
@@ -277,10 +208,6 @@ export class Sash extends Disposable {
 	get orthogonalStartSash(): Sash | undefined { return this._orthogonalStartSash; }
 	get orthogonalEndSash(): Sash | undefined { return this._orthogonalEndSash; }
 
-	/**
-	 * The state of a sash defines whether it can be interacted with by the user
-	 * as well as what mouse cursor to use, when hovered.
-	 */
 	set state(state: SashState) {
 		if (this._state === state) {
 			return;
@@ -294,23 +221,12 @@ export class Sash extends Disposable {
 		this.onDidEnablementChange.fire(state);
 	}
 
-	/**
-	 * An event which fires whenever the user starts dragging this sash.
-	 */
 	get onDidStart() { return this._onDidStart.event; }
 
-	/**
-	 * An event which fires whenever the user moves the mouse while
-	 * dragging this sash.
-	 */
 	get onDidChange() { return this._onDidChange.event; }
 
-	/**
-	 * An event which fires whenever the user double clicks this sash.
-	 */
 	get onDidReset() { return this._onDidReset.event; }
 
-	/** Adds a CSS class for the lifetime of the returned disposable. */
 	addClass(className: string): IDisposable {
 		const existingLease = this.classNameLeases.get(className);
 		if (existingLease) {
@@ -333,27 +249,10 @@ export class Sash extends Disposable {
 		});
 	}
 
-	/**
-	 * An event which fires whenever the user stops dragging this sash.
-	 */
 	get onDidEnd() { return this._onDidEnd.event; }
 
-	/**
-	 * A linked sash will be forwarded the same user interactions and events
-	 * so it moves exactly the same way as this sash.
-	 *
-	 * Useful in 2x2 grids. Not meant for widespread usage.
-	 */
 	linkedSash: Sash | undefined = undefined;
 
-	/**
-	 * A reference to another sash, perpendicular to this one, which
-	 * aligns at the start of this one. A corner sash will be created
-	 * automatically at that location.
-	 *
-	 * The start of a horizontal sash is its left-most position.
-	 * The start of a vertical sash is its top-most position.
-	 */
 	set orthogonalStartSash(sash: Sash | undefined) {
 		if (this._orthogonalStartSash === sash) {
 			return;
@@ -381,14 +280,6 @@ export class Sash extends Disposable {
 		this._orthogonalStartSash = sash;
 	}
 
-	/**
-	 * A reference to another sash, perpendicular to this one, which
-	 * aligns at the end of this one. A corner sash will be created
-	 * automatically at that location.
-	 *
-	 * The end of a horizontal sash is its right-most position.
-	 * The end of a vertical sash is its bottom-most position.
-	 */
 
 	set orthogonalEndSash(sash: Sash | undefined) {
 		if (this._orthogonalEndSash === sash) {
@@ -417,22 +308,8 @@ export class Sash extends Disposable {
 		this._orthogonalEndSash = sash;
 	}
 
-	/**
-	 * Create a new vertical sash.
-	 *
-	 * @param container A DOM node to append the sash to.
-	 * @param verticalLayoutProvider A vertical layout provider.
-	 * @param options The options.
-	 */
 	constructor(container: HTMLElement, verticalLayoutProvider: IVerticalSashLayoutProvider, options: IVerticalSashOptions);
 
-	/**
-	 * Create a new horizontal sash.
-	 *
-	 * @param container A DOM node to append the sash to.
-	 * @param horizontalLayoutProvider A horizontal layout provider.
-	 * @param options The options.
-	 */
 	constructor(container: HTMLElement, horizontalLayoutProvider: IHorizontalSashLayoutProvider, options: IHorizontalSashOptions);
 	constructor(container: HTMLElement, layoutProvider: ISashLayoutProvider, options: ISashOptions) {
 		super();
@@ -538,7 +415,7 @@ export class Sash extends Disposable {
 		// eslint-disable-next-line no-restricted-syntax
 		const iframes = this.el.ownerDocument.getElementsByTagName('iframe');
 		for (const iframe of iframes) {
-			iframe.classList.add(PointerEventsDisabledCssClass); // disable mouse events on iframes as long as we drag the sash
+			iframe.classList.add(PointerEventsDisabledCssClass);
 		}
 
 		const startX = event.pageX;
@@ -549,7 +426,6 @@ export class Sash extends Disposable {
 		this.el.classList.add('active');
 		this._onDidStart.fire(startEvent);
 
-		// fix https://github.com/microsoft/vscode/issues/21675
 		const style = createStyleSheet(this.el);
 		const updateStyle = () => {
 			let cursor = '';
@@ -648,19 +524,10 @@ export class Sash extends Disposable {
 		}
 	}
 
-	/**
-	 * Forcefully stop any user interactions with this sash.
-	 * Useful when hiding a parent component, while the user is still
-	 * interacting with the sash.
-	 */
 	clearSashHoverState(): void {
 		Sash.onMouseLeave(this);
 	}
 
-	/**
-	 * Layout the sash. The sash will size and position itself
-	 * based on its provided {@link ISashLayoutProvider layout provider}.
-	 */
 	layout(): void {
 		if (this.orientation === Orientation.VERTICAL) {
 			const verticalProvider = (<IVerticalSashLayoutProvider>this.layoutProvider);

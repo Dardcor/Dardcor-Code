@@ -23,7 +23,6 @@ import { INotificationService } from '../../../../../../platform/notification/co
 import { EditorContextKeys } from '../../../../../../editor/common/editorContextKeys.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 
-//#region Move/Copy cells
 const MOVE_CELL_UP_COMMAND_ID = 'notebook.cell.moveUp';
 const MOVE_CELL_DOWN_COMMAND_ID = 'notebook.cell.moveDown';
 const COPY_CELL_UP_COMMAND_ID = 'notebook.cell.copyUp';
@@ -126,9 +125,7 @@ registerAction2(class extends NotebookCellAction {
 });
 
 
-//#endregion
 
-//#region Join/Split
 
 const SPLIT_CELL_COMMAND_ID = 'notebook.cell.split';
 const JOIN_SELECTED_CELLS_COMMAND_ID = 'notebook.cell.joinSelected';
@@ -288,9 +285,7 @@ registerAction2(class extends NotebookCellAction {
 	}
 });
 
-//#endregion
 
-//#region Change Cell Type
 
 const CHANGE_CELL_TO_CODE_COMMAND_ID = 'notebook.cell.changeToCode';
 const CHANGE_CELL_TO_MARKDOWN_COMMAND_ID = 'notebook.cell.changeToMarkdown';
@@ -343,9 +338,7 @@ registerAction2(class ChangeCellToMarkdownAction extends NotebookMultiCellAction
 	}
 });
 
-//#endregion
 
-//#region Collapse Cell
 
 const COLLAPSE_CELL_INPUT_COMMAND_ID = 'notebook.cell.collapseCellInput';
 const COLLAPSE_CELL_OUTPUT_COMMAND_ID = 'notebook.cell.collapseCellOutput';
@@ -554,7 +547,6 @@ registerAction2(class ToggleCellOutputScrolling extends NotebookMultiCellAction 
 
 	private toggleOutputScrolling(viewModel: ICellOutputViewModel, globalScrollSetting: boolean, collapsed: boolean) {
 		const cellMetadata = viewModel.model.metadata;
-		// TODO: when is cellMetadata undefined? Is that a case we need to support? It is currently a read-only property.
 		if (cellMetadata) {
 			const currentlyEnabled = cellMetadata['scrollable'] !== undefined ? cellMetadata['scrollable'] : globalScrollSetting;
 			const shouldEnableScrolling = collapsed || !currentlyEnabled;
@@ -581,7 +573,6 @@ registerAction2(class ToggleCellOutputScrolling extends NotebookMultiCellAction 
 	}
 });
 
-//#endregion
 
 function forEachCell(editor: INotebookEditor, callback: (cell: ICellViewModel, index: number) => void) {
 	for (let i = 0; i < editor.getLength(); i++) {

@@ -1,9 +1,6 @@
-# ---------------------------------------------------------------------------------------------
 #   Copyright (c) Dardcor Corporation. All rights reserved.
 #   Licensed under the MIT License. See License.txt in the project root for license information.
-# ---------------------------------------------------------------------------------------------
 
-# Prevent the script recursing when setting up
 if [[ -n "${VSCODE_SHELL_INTEGRATION:-}" ]]; then
 	builtin return
 fi
@@ -23,23 +20,18 @@ IFS=',' read -ra envVarsToReport <<< "$__vscode_shell_env_reporting"
 
 if (( BASH_VERSINFO[0] >= 4 )); then
 	use_associative_array=1
-	# Associative arrays are only available in bash 4.0+
 	declare -A vsc_aa_env
 fi
 
-# Run relevant rc/profile only if shell integration has been injected, not when run manually
 if [ "$VSCODE_INJECTION" == "1" ]; then
 	if [ -z "$VSCODE_SHELL_LOGIN" ]; then
 		if [ -r ~/.bashrc ]; then
 			. ~/.bashrc
 		fi
 	else
-		# Imitate -l because --init-file doesn't support it:
-		# run the first of these files that exists
 		if [ -r /etc/profile ]; then
 			. /etc/profile
 		fi
-		# execute the first that exists
 		if [ -r ~/.bash_profile ]; then
 			. ~/.bash_profile
 		elif [ -r ~/.bash_login ]; then
@@ -49,7 +41,6 @@ if [ "$VSCODE_INJECTION" == "1" ]; then
 		fi
 		builtin unset VSCODE_SHELL_LOGIN
 
-		# Apply any explicit path prefix (see #99878)
 		if [ -n "${VSCODE_PATH_PREFIX:-}" ]; then
 			export PATH="$VSCODE_PATH_PREFIX$PATH"
 			builtin unset VSCODE_PATH_PREFIX
@@ -62,13 +53,11 @@ if [ -z "$VSCODE_SHELL_INTEGRATION" ]; then
 	builtin return
 fi
 
-# Prevent AI-executed commands from polluting shell history
 if [ "${VSCODE_PREVENT_SHELL_HISTORY:-}" = "1" ]; then
 	export HISTCONTROL="ignorespace"
 	builtin unset VSCODE_PREVENT_SHELL_HISTORY
 fi
 
-# Apply EnvironmentVariableCollections if needed
 if [ -n "${VSCODE_ENV_REPLACE:-}" ]; then
 	IFS=':' read -ra ADDR <<< "$VSCODE_ENV_REPLACE"
 	for ITEM in "${ADDR[@]}"; do
@@ -97,18 +86,14 @@ if [ -n "${VSCODE_ENV_APPEND:-}" ]; then
 	builtin unset VSCODE_ENV_APPEND
 fi
 
-# Register Python shell activate hooks
-# Prevent multiple activation with guard
 if [ -z "${VSCODE_PYTHON_AUTOACTIVATE_GUARD:-}" ]; then
 	export VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
 	if [ -n "${VSCODE_PYTHON_BASH_ACTIVATE:-}" ] && [ "$TERM_PROGRAM" = "vscode" ]; then
-		# Prevent crashing by negating exit code
 		if ! builtin eval "$VSCODE_PYTHON_BASH_ACTIVATE"; then
 			__vsc_activation_status=$?
 			builtin printf '\x1b[0m\x1b[7m * \x1b[0;103m VS Code Python bash activation failed with exit code %d \x1b[0m' "$__vsc_activation_status"
 		fi
 	fi
-	# Remove any leftover Python activation env vars.
 	for var in "${!VSCODE_PYTHON_@}"; do
 		case "$var" in
 			VSCODE_PYTHON_*_ACTIVATE)
@@ -119,23 +104,8 @@ if [ -z "${VSCODE_PYTHON_AUTOACTIVATE_GUARD:-}" ]; then
 fi
 
 __vsc_get_trap() {
-	# 'trap -p DEBUG' outputs a shell command like `trap -- '…shellcode…' DEBUG`.
-	# The terms are quoted literals, but are not guaranteed to be on a single line.
-	# (Consider a trap like $'echo foo\necho \'bar\'').
-	# To parse, we splice those terms into an expression capturing them into an array.
-	# This preserves the quoting of those terms: when we `eval` that expression, they are preserved exactly.
-	# This is different than simply exploding the string, which would split everything on IFS, oblivious to quoting.
 	builtin local -a terms
 	builtin eval "terms=( $(trap -p "${1:-DEBUG}") )"
-	#                    |________________________|
-	#                            |
-	#        \-------------------*--------------------/
-	# terms=( trap  --  '…arbitrary shellcode…'  DEBUG )
-	#        |____||__| |_____________________| |_____|
-	#          |    |            |                |
-	#          0    1            2                3
-	#                            |
-	#                   \--------*----/
 	builtin printf '%s' "${terms[2]:-}"
 }
 
@@ -146,16 +116,12 @@ __vsc_escape_value_fast() {
 	builtin printf '%s\n' "${out}"
 }
 
-# The property (P) and command (E) codes embed values which require escaping.
-# Backslashes are doubled. Non-alphanumeric characters are converted to escaped hex.
 __vsc_escape_value() {
-	# If the input being too large, switch to the faster function
 	if [ "${#1}" -ge 2000 ]; then
 		__vsc_escape_value_fast "$1"
 		builtin return
 	fi
 
-	# Process text byte by byte, not by codepoint.
 	builtin local -r LC_ALL=C
 	builtin local -r str="${1}"
 	builtin local -ir len="${#str}"
@@ -167,14 +133,13 @@ __vsc_escape_value() {
 	builtin local out=''
 
 	for (( i=0; i < "${#str}"; ++i )); do
-		# Escape backslashes, semi-colons specially, then special ASCII chars below space (0x20).
 		byte="${str:$i:1}"
 		builtin printf -v val '%d' "'$byte"
 		if  (( val < 31 )); then
 			builtin printf -v token '\\x%02x' "'$byte"
-		elif (( val == 92 )); then # \
+		elif (( val == 92 )); then
 			token="\\\\"
-		elif (( val == 59 )); then # ;
+		elif (( val == 59 )); then
 			token="\\x3b"
 		else
 			token="$byte"
@@ -186,7 +151,6 @@ __vsc_escape_value() {
 	builtin printf '%s\n' "$out"
 }
 
-# Send the IsWindows property if the environment looks like Windows
 __vsc_regex_environment="^CYGWIN*|MINGW*|MSYS*"
 if [[ "$(uname -s)" =~ $__vsc_regex_environment ]]; then
 	builtin printf '\e]633;P;IsWindows=True\a'
@@ -195,8 +159,6 @@ else
 	__vsc_is_windows=0
 fi
 
-# Allow verifying $BASH_COMMAND doesn't have aliases resolved via history when the right HISTCONTROL
-# configuration is used
 __vsc_regex_histcontrol=".*(erasedups|ignoreboth|ignoredups|ignorespace).*"
 if [[ "${HISTCONTROL:-}" =~ $__vsc_regex_histcontrol ]]; then
 	__vsc_history_verify=0
@@ -219,11 +181,9 @@ __vsc_current_command=""
 __vsc_nonce="$VSCODE_NONCE"
 unset VSCODE_NONCE
 
-# Some features should only work in Insiders
 __vsc_stable="$VSCODE_STABLE"
 unset VSCODE_STABLE
 
-# Report continuation prompt
 if [ "$__vsc_stable" = "0" ]; then
 	builtin printf "\e]633;P;ContinuationPrompt=$(echo "$PS2" | sed 's/\x1b/\\\\x1b/g')\a"
 fi
@@ -234,12 +194,9 @@ elif [ -n "$POSH_SESSION_ID" ]; then
 	builtin printf '\e]633;P;PromptType=oh-my-posh\a'
 fi
 
-# Report this shell supports rich command detection
 builtin printf '\e]633;P;HasRichCommandDetection=True\a'
 
 __vsc_report_prompt() {
-	# Expand the original PS1 similarly to how bash would normally
-	# See https://stackoverflow.com/a/37137981 for technique
 	if ((BASH_VERSINFO[0] >= 5 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4))); then
 		__vsc_prompt=${__vsc_original_PS1@P}
 	else
@@ -303,7 +260,6 @@ __vsc_update_env() {
 
 		if [ "$use_associative_array" = 1 ]; then
 			if [ ${#vsc_aa_env[@]} -eq 0 ]; then
-				# Associative array is empty, do not diff, just add
 				for key in "${envVarsToReport[@]}"; do
 					if [ -n "${!key+x}" ]; then
 						local value="${!key}"
@@ -312,19 +268,16 @@ __vsc_update_env() {
 					fi
 				done
 			else
-				# Diff approach for associative array
 				for key in "${envVarsToReport[@]}"; do
 					if [ -n "${!key+x}" ]; then
 						local value="${!key}"
 						__updateEnvCacheAA "$key" "$value"
 					fi
 				done
-				# Track missing env vars not needed for now, as we are only tracking pre-defined env var from terminalEnvironment.
 			fi
 
 		else
 			if [[ -z ${vsc_env_keys[@]} ]] && [[ -z ${vsc_env_values[@]} ]]; then
-				# Non associative arrays are both empty, do not diff, just add
 				for key in "${envVarsToReport[@]}"; do
 					if [ -n "${!key+x}" ]; then
 						local value="${!key}"
@@ -334,14 +287,12 @@ __vsc_update_env() {
 					fi
 				done
 			else
-				# Diff approach for non-associative arrays
 				for key in "${envVarsToReport[@]}"; do
 					if [ -n "${!key+x}" ]; then
 						local value="${!key}"
 						__updateEnvCache "$key" "$value"
 					fi
 				done
-				# Track missing env vars not needed for now, as we are only tracking pre-defined env var from terminalEnvironment.
 			fi
 		fi
 		builtin printf '\e]633;EnvSingleEnd;%s;\a' $__vsc_nonce
@@ -377,9 +328,7 @@ __vsc_command_complete() {
 	__vsc_update_cwd
 }
 __vsc_update_prompt() {
-	# in command execution
 	if [ "$__vsc_in_command_execution" = "1" ]; then
-		# Wrap the prompt if it is not yet wrapped, if the PS1 changed this this was last set it
 		# means the user re-exported the PS1 so we should re-wrap it
 		if [[ "$__vsc_custom_PS1" == "" || "$__vsc_custom_PS1" != "$PS1" ]]; then
 			__vsc_original_PS1=$PS1
@@ -398,7 +347,6 @@ __vsc_update_prompt() {
 __vsc_precmd() {
 	__vsc_command_complete "$__vsc_status"
 	__vsc_current_command=""
-	# Report prompt is a work in progress, currently encoding is too slow
 	if [ "$__vsc_stable" = "0" ]; then
 		__vsc_report_prompt
 	fi
@@ -410,8 +358,6 @@ __vsc_precmd() {
 __vsc_preexec() {
 	__vsc_initialized=1
 	if [[ ! $BASH_COMMAND == __vsc_prompt* ]]; then
-		# Use history if it's available to verify the command as BASH_COMMAND comes in with aliases
-		# resolved
 		if [ "$__vsc_history_verify" = "1" ]; then
 			__vsc_current_command="$(builtin history 1 | sed 's/ *[0-9]* *//')"
 		else
@@ -423,7 +369,6 @@ __vsc_preexec() {
 	__vsc_command_output_start
 }
 
-# Debug trapping/preexec inspired by starship (ISC)
 if [[ -n "${bash_preexec_imported:-}" ]]; then
 	__vsc_preexec_only() {
 		if [ "$__vsc_in_command_execution" = "0" ]; then
@@ -466,8 +411,6 @@ __vsc_prompt_cmd_original() {
 	__vsc_status="$?"
 	builtin local cmd
 	__vsc_restore_exit_code "${__vsc_status}"
-	# Evaluate the original PROMPT_COMMAND similarly to how bash would normally
-	# See https://unix.stackexchange.com/a/672843 for technique
 	for cmd in "${__vsc_original_prompt_command[@]}"; do
 		eval "${cmd:-}"
 	done
@@ -479,8 +422,6 @@ __vsc_prompt_cmd() {
 	__vsc_precmd
 }
 
-# PROMPT_COMMAND arrays and strings seem to be handled the same (handling only the first entry of
-# the array?)
 __vsc_original_prompt_command=${PROMPT_COMMAND:-}
 
 if [[ -z "${bash_preexec_imported:-}" ]]; then

@@ -79,11 +79,6 @@ suite('ChatTipService', () => {
 	let currentChatModes: IChatModes;
 	let catalogCommandRegistrations: Map<string, IDisposable>;
 
-	/**
-	 * Registers every `command:` link referenced by the real {@link TIP_CATALOG} so that tips are
-	 * considered eligible, simulating a running workbench where these commands exist. Returns a map
-	 * keyed by command id so individual registrations can be disposed to simulate a missing command.
-	 */
 	function registerCatalogCommands(): Map<string, IDisposable> {
 		const registrations = new Map<string, IDisposable>();
 		for (const tip of TIP_CATALOG) {
@@ -114,10 +109,6 @@ suite('ChatTipService', () => {
 		return testDisposables.add(instantiationService.createInstance(ChatTipService));
 	}
 
-	/**
-	 * Creates a mock ITipDefinition with a buildMessage function.
-	 * Tests can provide any ITipDefinition properties except buildMessage.
-	 */
 	function createMockTip(overrides: Omit<Partial<ITipDefinition>, 'buildMessage'> & Pick<ITipDefinition, 'id'> & { message?: string }): ITipDefinition {
 		const { message, ...rest } = overrides;
 		return {
@@ -528,7 +519,7 @@ suite('ChatTipService', () => {
 	});
 
 	test('returns undefined when Copilot is not enabled', () => {
-		const service = createService(/* hasCopilot */ false);
+		const service = createService( false);
 
 		const tip = service.getWelcomeTip(contextKeyService);
 		assert.strictEqual(tip, undefined, 'Should not return a tip when Copilot is not enabled');
@@ -543,7 +534,7 @@ suite('ChatTipService', () => {
 	});
 
 	test('returns undefined when tips setting is disabled', () => {
-		const service = createService(/* hasCopilot */ true, /* tipsEnabled */ false);
+		const service = createService( true, false);
 
 		const tip = service.getWelcomeTip(contextKeyService);
 		assert.strictEqual(tip, undefined, 'Should not return a tip when tips setting is disabled');
@@ -694,28 +685,22 @@ suite('ChatTipService', () => {
 	test('getNextEligibleTip returns next tip even when only one remains', async () => {
 		const service = createService();
 
-		// Flush microtask queue so async file-check exclusions resolve
 		await new Promise<void>(r => queueMicrotask(r));
 
-		// Get the initial tip
 		const tip1 = service.getWelcomeTip(contextKeyService);
 		assert.ok(tip1, 'Should have an initial tip');
 
-		// Navigate to next tip
 		const tip2 = service.navigateToNextTip();
 		assert.ok(tip2, 'Should have a second tip');
 		assert.notStrictEqual(tip1.id, tip2.id, 'Second tip should be different');
 
-		// Dismiss all tips except tip1 by dismissing current tip and using getNextEligibleTip
 		const dismissedIds = new Set<string>();
 		dismissedIds.add(tip2.id);
 		service.dismissTip();
 
-		// Keep dismissing until we can't get any more tips
 		let nextTip = service.getNextEligibleTip();
 		while (nextTip && !dismissedIds.has(nextTip.id)) {
 			if (nextTip.id === tip1.id) {
-				// We found tip1 again - this is the expected behavior (bug fix verification)
 				break;
 			}
 			dismissedIds.add(nextTip.id);
@@ -723,17 +708,14 @@ suite('ChatTipService', () => {
 			nextTip = service.getNextEligibleTip();
 		}
 
-		// The key assertion: getNextEligibleTip should return tip1 even if it's the only one left
 		assert.ok(nextTip, 'getNextEligibleTip should return the last remaining eligible tip');
 	});
 
 	test('getNextEligibleTip returns undefined when all tips are dismissed', async () => {
 		const service = createService();
 
-		// Flush microtask queue so async file-check exclusions resolve
 		await new Promise<void>(r => queueMicrotask(r));
 
-		// Dismiss all tips
 		for (let i = 0; i < 100; i++) {
 			const tip = service.getWelcomeTip(contextKeyService);
 			if (!tip) {
@@ -742,7 +724,6 @@ suite('ChatTipService', () => {
 			service.dismissTip();
 		}
 
-		// After dismissing all, getNextEligibleTip should return undefined
 		const nextTip = service.getNextEligibleTip();
 		assert.strictEqual(nextTip, undefined, 'getNextEligibleTip should return undefined when all tips are dismissed');
 	});
@@ -845,9 +826,6 @@ suite('ChatTipService', () => {
 	test('dismissed tips stay dismissed after disabling and re-enabling tips', async () => {
 		const service = createService();
 
-		// Flush microtask queue so async file-check exclusions resolve before
-		// we start dismissing tips (otherwise excludeUntilChecked tips are
-		// temporarily excluded and never get dismissed in the loop below).
 		await new Promise<void>(r => queueMicrotask(r));
 
 		for (let i = 0; i < 100; i++) {
@@ -1017,7 +995,6 @@ suite('ChatTipService', () => {
 			new NullLogService(),
 		));
 
-		// Wait for the async file check to complete
 		await new Promise(r => setTimeout(r, 0));
 
 		assert.strictEqual(tracker.isExcluded(tip), true, 'Should be excluded when copilot-instructions.md exists');
@@ -1038,7 +1015,6 @@ suite('ChatTipService', () => {
 			new NullLogService(),
 		));
 
-		// Wait for the async file check to complete
 		await new Promise(r => setTimeout(r, 0));
 
 		assert.strictEqual(tracker.isExcluded(tip), false, 'Should not be excluded when only AGENTS.md exists');
@@ -1059,7 +1035,6 @@ suite('ChatTipService', () => {
 			new NullLogService(),
 		));
 
-		// Wait for the async file check to complete
 		await new Promise(r => setTimeout(r, 0));
 
 		assert.strictEqual(tracker.isExcluded(tip), true, 'Should be excluded when .instructions.md files exist');
@@ -1080,7 +1055,6 @@ suite('ChatTipService', () => {
 			new NullLogService(),
 		));
 
-		// Wait for the async file check to complete
 		await new Promise(r => setTimeout(r, 0));
 
 		assert.strictEqual(tracker.isExcluded(tip), false, 'Should not be excluded when no instruction files exist');
@@ -1198,7 +1172,6 @@ suite('ChatTipService', () => {
 		commandExecutedEmitter.fire({ commandId: 'workbench.action.chat.restoreCheckpoint', args: [] });
 		assert.strictEqual(tracker1.isExcluded(tip), true);
 
-		// Second tracker reads from storage — should be excluded immediately
 		const tracker2 = testDisposables.add(new TipEligibilityTracker(
 			[tip],
 			{ onDidExecuteCommand: Event.None, onWillExecuteCommand: Event.None } as Partial<ICommandService> as ICommandService,
@@ -1232,7 +1205,6 @@ suite('ChatTipService', () => {
 		tracker1.recordCurrentMode(contextKeyService);
 		assert.strictEqual(tracker1.isExcluded(tip), true);
 
-		// Second tracker reads from storage — should be excluded immediately
 		const tracker2 = testDisposables.add(new TipEligibilityTracker(
 			[tip],
 			{ onDidExecuteCommand: Event.None, onWillExecuteCommand: Event.None } as Partial<ICommandService> as ICommandService,
@@ -1365,20 +1337,16 @@ suite('ChatTipService', () => {
 
 	test('Plan tip is excluded after switching to Plan mode during stable rerender', () => {
 		const service = createService();
-		// Start in Agent mode — Plan tip should be eligible
 		contextKeyService.createKey(ChatContextKeys.chatModeKind.key, ChatModeKind.Agent);
 		const modeNameKey = contextKeyService.createKey<string>(ChatContextKeys.chatModeName.key, 'Agent');
 
 		assert.ok(findTipById(service, 'tip.planMode'), 'Plan tip should be shown when in Agent mode');
 
-		// Simulate user switching to Plan mode (context keys update, widget rerenders)
 		modeNameKey.set('Plan');
 
-		// Stable rerender — getWelcomeTip is called again without resetSession
 		const rerenderTip = service.getWelcomeTip(contextKeyService);
 		assert.ok(!rerenderTip || rerenderTip.id !== 'tip.planMode', 'Plan tip should not be shown after switching to Plan mode');
 
-		// New session in Agent mode — Plan tip must NOT reappear
 		service.resetSession();
 		modeNameKey.set('Agent');
 
@@ -1427,7 +1395,6 @@ suite('ChatTipService', () => {
 		mockToolsService.fireOnDidInvokeTool({ toolId: 'runSubagent', sessionResource: undefined, requestId: undefined, subagentInvocationId: undefined });
 		assert.strictEqual(tracker1.isExcluded(tip), true);
 
-		// Second tracker reads from storage — should be excluded immediately
 		const tracker2 = testDisposables.add(new TipEligibilityTracker(
 			[tip],
 			{ onDidExecuteCommand: Event.None, onWillExecuteCommand: Event.None } as Partial<ICommandService> as ICommandService,
@@ -1455,7 +1422,6 @@ suite('ChatTipService', () => {
 			new NullLogService(),
 		));
 
-		// Wait for the async file check to complete
 		await new Promise(r => setTimeout(r, 0));
 
 		assert.strictEqual(tracker.isExcluded(tip), true, 'Should be excluded when skill files exist');
@@ -1476,7 +1442,6 @@ suite('ChatTipService', () => {
 			new NullLogService(),
 		));
 
-		// Wait for the async file check to complete
 		await new Promise(r => setTimeout(r, 0));
 
 		assert.strictEqual(tracker.isExcluded(tip), false, 'Should not be excluded when no skill files exist');
@@ -1818,11 +1783,9 @@ suite('ChatTipService', () => {
 			new NullLogService(),
 		));
 
-		// Initial check: no agent files, but excludeUntilChecked means excluded first
 		await new Promise(r => setTimeout(r, 0));
 		assert.strictEqual(tracker.isExcluded(tip), false, 'Should not be excluded after initial check finds no files');
 
-		// Simulate agent files appearing
 		agentFiles = [{ uri: URI.file('/.github/agents/my-agent.agent.md'), storage: PromptsStorage.local, type: PromptsType.agent }];
 		agentChangeEmitter.fire();
 		await new Promise(r => setTimeout(r, 0));
@@ -1868,13 +1831,9 @@ suite('ChatTipService', () => {
 
 		const service = createService();
 
-		// Acquire a tip so the service stashes the (scoped) context key service.
 		const tip = service.getWelcomeTip(contextKeyService);
 		assert.ok(tip);
 
-		// Simulate the owning chat widget being torn down, which disposes its
-		// scoped context key service. Subsequent contextMatchesRules calls then
-		// throw "AbstractContextKeyService has been disposed".
 		const originalContextMatchesRules = contextKeyService.contextMatchesRules.bind(contextKeyService);
 		contextKeyService.contextMatchesRules = () => {
 			throw new Error('AbstractContextKeyService has been disposed');
@@ -2086,7 +2045,6 @@ suite('CreateSlashCommandsUsageTracker', () => {
 		submitRequestEmitter.fire({ chatSessionResource: sessionResource });
 		assert.strictEqual(storageService.getBoolean('chat.tips.usedCreateSlashCommands', StorageScope.APPLICATION, false), true);
 
-		// Fire again — should be a no-op
 		sessions.set(sessionResource.toString(), {
 			lastRequest: {
 				message: { text: '/create-prompt test', parts: [] },

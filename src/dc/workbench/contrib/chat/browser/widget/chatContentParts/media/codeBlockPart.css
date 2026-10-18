@@ -99,7 +99,7 @@
 .interactive-result-code-block .interactive-result-vulns-list {
 	margin: 0px;
 	padding-bottom: 3px;
-	padding-left: 16px !important; /* Override markdown styles */
+	padding-left: 16px !important;
 }
 
 .interactive-result-code-block.chat-vulnerabilities-collapsed .interactive-result-vulns-list {
@@ -115,14 +115,13 @@
 }
 
 .interactive-result-code-block .interactive-result-vulns-header .monaco-button {
-	/* unset Button styles */
 	display: inline-flex;
 	width: 100%;
 	border: none;
 	padding: 0;
 	text-align: initial;
 	justify-content: initial;
-	color: var(--vscode-foreground) !important; /* This is inside .rendered-markdown */
+	color: var(--vscode-foreground) !important;
 	user-select: none;
 }
 
@@ -134,7 +133,6 @@
 	outline: 1px solid var(--vscode-focusBorder);
 }
 
-/* compare code block */
 
 .interactive-result-code-block.compare.no-diff .message {
 	display: inherit;

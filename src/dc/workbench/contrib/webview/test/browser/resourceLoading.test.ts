@@ -81,7 +81,7 @@ suite('Webview Resource Loading - getResourceToLoad', () => {
 		assert.strictEqual(result, undefined);
 	});
 
-	(!isWindows /* UNC is windows only */ ? suite.skip : suite)('UNC paths', () => {
+	(!isWindows ? suite.skip : suite)('UNC paths', () => {
 		test('Returns resource when file is under UNC root', () => {
 			const root = URI.file('\\\\server\\share\\folder');
 			const resource = URI.file('\\\\server\\share\\folder\\file.txt');
@@ -230,7 +230,6 @@ suite('Webview Resource Loading - getResourceToLoad', () => {
 			];
 			const resource = URI.file('/home/user/project/subdir/file.txt');
 			const result = getResourceToLoad(resource, roots, uriIdentityService);
-			// Should match first root in the list
 			assert.strictEqual(result?.toString(), resource.toString());
 		});
 

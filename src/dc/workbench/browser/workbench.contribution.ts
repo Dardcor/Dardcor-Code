@@ -19,16 +19,12 @@ import { defaultWindowTitle, defaultWindowTitleSeparator } from './parts/titleba
 
 const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 
-// Configuration
 (function registerConfiguration(): void {
 
-	// Migration support
 	registerWorkbenchContribution2(ConfigurationMigrationWorkbenchContribution.ID, ConfigurationMigrationWorkbenchContribution, WorkbenchPhase.Eventually);
 
-	// Dynamic Configuration
 	registerWorkbenchContribution2(DynamicWorkbenchSecurityConfiguration.ID, DynamicWorkbenchSecurityConfiguration, WorkbenchPhase.AfterRestored);
 
-	// Workbench
 	registry.registerConfiguration({
 		...workbenchConfigurationNodeBase,
 		'properties': {
@@ -126,7 +122,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 						localize('workbench.editor.label.filename', "`${filename}`: name of the file without the file extension (e.g. `WORKSPACE_FOLDER/folder/file.txt -> file`)."),
 						localize('workbench.editor.label.extname', "`${extname}`: the file extension (e.g. `WORKSPACE_FOLDER/folder/file.txt -> txt`)."),
 						localize('workbench.editor.label.nthextname', "`${extname(N)}`: the nth extension of the file separated by '.' (e.g. `N=2: WORKSPACE_FOLDER/folder/file.ext1.ext2.ext3 -> ext1`). Extension can be picked from the start of the extension by using negative numbers (e.g. `N=-1: WORKSPACE_FOLDER/folder/file.ext1.ext2.ext3 -> ext2`)."),
-					].join('\n- '); // intentionally concatenated to not produce a string that is too long for translations
+					].join('\n- ');
 					customEditorLabelDescription += '\n\n' + localize('customEditorLabelDescriptionExample', "Example: `\"**/static/**/*.html\": \"${filename} - ${dirname} (${extname})\"` will render a file `WORKSPACE_FOLDER/static/folder/file.html` as `file - folder (html)`.");
 
 					return customEditorLabelDescription;
@@ -314,7 +310,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 			'workbench.editor.enablePreview': {
 				'type': 'boolean',
 				'description': localize('enablePreview', "Controls whether preview mode is used when editors open. There is a maximum of one preview mode editor per editor group. This editor displays its filename in italics on its tab or title label and in the Open Editors view. Its contents will be replaced by the next editor opened in preview mode. Making a change in a preview mode editor will persist it, as will a double-click on its label, or the 'Keep Open' option in its label context menu. Opening a file from Explorer with a double-click persists its editor immediately."),
-				'default': true
+				'default': false
 			},
 			'workbench.editor.enablePreviewFromQuickOpen': {
 				'type': 'boolean',
@@ -483,7 +479,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 				'patternProperties': {
 					'.*': { 'type': 'boolean' }
 				},
-				'markdownDescription': localize('exclude', "Configure paths or [glob patterns](https://aka.ms/vscode-glob-patterns) for excluding files from the local file history. Glob patterns are always evaluated relative to the path of the workspace folder unless they are absolute paths. Changing this setting has no effect on existing local file history entries."),
+				'markdownDescription': localize('exclude', "Configure paths or [glob patterns](https://www.dardcor-code.web.id/docs/configuration/glob-patterns) for excluding files from the local file history. Glob patterns are always evaluated relative to the path of the workspace folder unless they are absolute paths. Changing this setting has no effect on existing local file history entries."),
 				'scope': ConfigurationScope.RESOURCE
 			},
 			'workbench.localHistory.mergeWindow': {
@@ -722,8 +718,6 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 			'workbench.hover.delay': {
 				'type': 'number',
 				'description': localize('workbench.hover.delay', "Controls the delay in milliseconds after which the hover is shown for workbench items (ex. some extension provided tree view items). Already visible items may require a refresh before reflecting this setting change."),
-				// Testing has indicated that on Windows and Linux 500 ms matches the native hovers most closely.
-				// On Mac, the delay is 1500.
 				'default': isMacintosh ? 1500 : 500,
 				'minimum': 0
 			},
@@ -802,7 +796,6 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 		}
 	});
 
-	// Window
 
 	let windowTitleDescription = localize('windowTitle', "Controls the window title based on the current context such as the opened workspace or active editor. Variables are substituted based on the context:");
 	windowTitleDescription += '\n- ' + [
@@ -827,7 +820,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 		localize('activeRepositoryBranchName', "`${activeRepositoryBranchName}`: the name of the active branch in the active repository (e.g. main)."),
 		localize('activeEditorState', "`${activeEditorState}`: provides information about the state of the active editor (e.g. modified). This will be appended by default when in screen reader mode with {0} enabled.", '`accessibility.windowTitleOptimized`'),
 		localize('separator', "`${separator}`: a conditional separator (\" - \") that only shows when surrounded by variables with values or static text.")
-	].join('\n- '); // intentionally concatenated to not produce a string that is too long for translations
+	].join('\n- ');
 
 	registry.registerConfiguration({
 		...windowConfigurationNodeBase,
@@ -927,7 +920,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 						localize('window.confirmBeforeClose.never.web', "Never explicitly ask for confirmation unless data loss is imminent.") :
 						localize('window.confirmBeforeClose.never', "Never explicitly ask for confirmation.")
 				],
-				'default': (isWeb && !isStandalone()) ? 'keyboardOnly' : 'never', // on by default in web, unless PWA, never on desktop
+				'default': (isWeb && !isStandalone()) ? 'keyboardOnly' : 'never',
 				'markdownDescription': isWeb ?
 					localize('confirmBeforeCloseWeb', "Controls whether to show a confirmation dialog before closing the browser tab or window. Note that even if enabled, browsers may still decide to close a tab or window without confirmation and that this setting is only a hint that may not work in all cases.") :
 					localize('confirmBeforeClose', "Controls whether to show a confirmation dialog before closing a window or quitting the application."),
@@ -936,10 +929,8 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 		}
 	});
 
-	// Dynamic Window Configuration
 	registerWorkbenchContribution2(DynamicWindowConfiguration.ID, DynamicWindowConfiguration, WorkbenchPhase.Eventually);
 
-	// Problems
 	registry.registerConfiguration({
 		...problemsConfigurationNodeBase,
 		'properties': {
@@ -1017,10 +1008,6 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration)
 		}
 	}]);
 
-// Migrate the previous standalone experiments (`workbench.experimental.floatingPanels`
-// and `workbench.experimental.styleOverrides`) onto the consolidated
-// `workbench.experimental.modernUI` toggle. Either of the old settings being on
-// enables the unified Modern UI Update experiment.
 Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration)
 	.registerConfigurationMigrations([{
 		key: 'workbench.experimental.floatingPanels', migrateFn: (value: unknown, valueAccessor) => {

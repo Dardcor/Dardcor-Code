@@ -129,7 +129,6 @@ export class Debug extends Viewlet {
 		await this.code.waitForActiveElement(selector);
 		await this.code.waitForSetValue(selector, text);
 
-		// Wait for the keys to be picked up by the editor model such that repl evaluates what just got typed
 		await this.editor.waitForEditorContents('debug:replinput', s => s.indexOf(text) >= 0);
 		await this.code.dispatchKeybinding('enter', async () => {
 			await this.code.waitForElements(CONSOLE_EVALUATION_RESULT, false,
@@ -137,7 +136,6 @@ export class Debug extends Viewlet {
 		});
 	}
 
-	// Different node versions give different number of variables. As a workaround be more relaxed when checking for variable count
 	async waitForVariableCount(count: number, alternativeCount: number): Promise<void> {
 		await this.code.waitForElements(VARIABLE, false, els => els.length === count || els.length === alternativeCount);
 	}

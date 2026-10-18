@@ -33,7 +33,6 @@ const PLATFORM_MAPPINGS = {
   }
 };
 
-// Fallback order: prefer smallest/most-compatible binary per platform
 const PLATFORM_FALLBACK = {
   darwin: "cloudflared-darwin-amd64.tgz",
   win32: "cloudflared-windows-386.exe",
@@ -53,7 +52,6 @@ function getDownloadUrl() {
   return `${GITHUB_BASE_URL}/${binaryName}`;
 }
 
-// Download state — shared so status API can read it
 const dlState = { downloading: false, progress: 0 };
 
 export function getDownloadStatus() {
@@ -114,9 +112,8 @@ function downloadFile(url, dest) {
   });
 }
 
-const MIN_BINARY_SIZE = 1024 * 1024; // 1MB - cloudflared is ~30MB+
+const MIN_BINARY_SIZE = 1024 * 1024;
 
-// Validate binary is executable on current platform and not truncated
 function isValidBinary(filePath) {
   try {
     const stat = fs.statSync(filePath);
@@ -126,9 +123,9 @@ function isValidBinary(filePath) {
     fs.readSync(fd, buf, 0, 4, 0);
     fs.closeSync(fd);
     const magic = buf.toString("hex");
-    if (IS_WINDOWS) return magic.startsWith("4d5a"); // PE (MZ)
+    if (IS_WINDOWS) return magic.startsWith("4d5a");
     if (os.platform() === "darwin") return magic.startsWith("cffaedfe") || magic.startsWith("cefaedfe");
-    return magic.startsWith("7f454c46"); // ELF (Linux)
+    return magic.startsWith("7f454c46");
   } catch {
     return false;
   }
@@ -147,10 +144,9 @@ async function _ensureCloudflared() {
     fs.mkdirSync(BIN_DIR, { recursive: true });
   }
 
-  // Clean up incomplete downloads from previous runs
   const tmpPath = `${BIN_PATH}.tmp`;
   if (fs.existsSync(tmpPath)) {
-    try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+    try { fs.unlinkSync(tmpPath); } catch { }
   }
 
   if (fs.existsSync(BIN_PATH)) {
@@ -185,9 +181,8 @@ async function _ensureCloudflared() {
 
 let cloudflaredProcess = null;
 let unexpectedExitHandler = null;
-let intentionalKill = false; // suppress unexpected-exit callback during deliberate kill
+let intentionalKill = false;
 
-/** Register a callback to be called when cloudflared exits unexpectedly after connecting */
 export function setUnexpectedExitHandler(handler) {
   unexpectedExitHandler = handler;
 }
@@ -215,7 +210,6 @@ export async function spawnCloudflared(tunnelToken) {
 
     const handleLog = (data) => {
       const msg = data.toString();
-      // Count exact occurrences in this chunk (each chunk may contain multiple lines)
       const matches = msg.match(/Registered tunnel connection/g);
       if (matches) {
         connectionCount += matches.length;
@@ -241,18 +235,15 @@ export async function spawnCloudflared(tunnelToken) {
     child.on("exit", (code, signal) => {
       if (cloudflaredProcess === child) cloudflaredProcess = null;
       clearPid(child.pid);
-      const wasConnected = resolved; // true = already connected successfully
+      const wasConnected = resolved;
       if (!resolved) {
         resolved = true;
         clearTimeout(timeout);
-        // Collect stderr output for better error diagnosis
         let stderrOutput = "";
         if (child.stderr && !child.stderr.destroyed) {
-          // Try to read any buffered stderr (may not have all output but helps with common errors)
           stderrOutput = " Check cloudflared logs for details.";
         }
         if (code === 1) {
-          // Common exit code 1 issues: invalid token, auth failure, network issues
           reject(new Error(`cloudflared exited with code ${code}${stderrOutput} Ensure your tunnel token is valid and network is reachable.`));
         } else if (code === 2) {
           reject(new Error(`cloudflared exited with code ${code}${stderrOutput} Check if required arguments are correct.`));
@@ -261,23 +252,17 @@ export async function spawnCloudflared(tunnelToken) {
         }
         return;
       }
-      // Watchdog (initializeApp) handles recovery — no auto-reconnect here
       if (intentionalKill) { intentionalKill = false; return; }
       if (wasConnected && unexpectedExitHandler) unexpectedExitHandler();
     });
   });
 }
 
-/**
- * Spawn cloudflared quick tunnel (no account needed)
- * Returns the generated trycloudflare.com URL
- */
 export async function spawnQuickTunnel(localPort, onUrlUpdate) {
   const binaryPath = await ensureCloudflared();
 
   const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "cloudflared-quick-"));
   const configPath = path.join(configDir, "config.yml");
-  // Avoid using default ~/.cloudflared/config.yml, which can conflict with quick tunnel behavior.
   fs.writeFileSync(configPath, "# quick-tunnel config placeholder\n", "utf8");
 
   let isCleaned = false;
@@ -286,7 +271,7 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
     isCleaned = true;
     try {
       fs.rmSync(configDir, { recursive: true, force: true });
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
   };
 
   const requestedProtocol = String(process.env.TUNNEL_TRANSPORT_PROTOCOL || process.env.CLOUDFLARED_PROTOCOL || DEFAULT_QUICK_TUNNEL_PROTOCOL).trim().toLowerCase();
@@ -307,12 +292,9 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
 
   return new Promise((resolve, reject) => {
     let resolved = false;
-    // Keep a small tail of raw cloudflared logs to surface real failure causes
     let logTail = "";
 
     function getQuickTunnelUrlFromLog(message) {
-      // cloudflared logs may contain "api.trycloudflare.com" as well,
-      // but that is NOT the quick-tunnel endpoint we need.
       const regex = /https:\/\/([a-z0-9-]+)\.trycloudflare\.com/gi;
       const candidates = [];
 
@@ -342,7 +324,6 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
       if (!tunnelUrl) return;
 
       if (!resolved) {
-        // First URL — resolve the promise, do NOT call onUrlUpdate (caller handles initial register)
         resolved = true;
         lastUrl = tunnelUrl;
         clearTimeout(timeout);
@@ -352,7 +333,6 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
         return;
       }
 
-      // URL changed after initial connect — notify caller to re-register
       if (tunnelUrl !== lastUrl) {
         console.log(`[Tunnel] cloudflared URL changed: ${tunnelUrl}`);
         lastUrl = tunnelUrl;
@@ -374,7 +354,6 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
     child.on("exit", (code, signal) => {
       if (cloudflaredProcess === child) cloudflaredProcess = null;
       clearPid(child.pid);
-      // Deliberate kill (restart/disable) — exit silently, no error noise
       if (intentionalKill) {
         intentionalKill = false;
         clearTimeout(timeout);
@@ -403,8 +382,6 @@ export async function spawnQuickTunnel(localPort, onUrlUpdate) {
   });
 }
 
-// Kill cloudflared processes whose command line targets the given port (any host).
-// Boundary check ensures :21128 doesn't match :211280 or :202128.
 function killCloudflaredByPort(port) {
   if (!port) return;
   try {
@@ -414,7 +391,7 @@ function killCloudflaredByPort(port) {
     } else {
       execSync(`pkill -f "cloudflared.*:${port}([^0-9]|$)" 2>/dev/null || true`, { stdio: "ignore", windowsHide: true });
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) { }
 }
 
 export function killCloudflared(localPort) {
@@ -422,7 +399,7 @@ export function killCloudflared(localPort) {
   if (cloudflaredProcess) {
     try {
       cloudflaredProcess.kill();
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
     cloudflaredProcess = null;
   }
 
@@ -430,7 +407,7 @@ export function killCloudflared(localPort) {
   if (pid) {
     try {
       process.kill(pid);
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
     clearPid();
   }
 

@@ -15,17 +15,8 @@ export class StickyRange {
 export class StickyElement {
 
 	constructor(
-		/**
-		 * Range of line numbers spanned by the current scope
-		 */
 		public readonly range: StickyRange | undefined,
-		/**
-		 * Must be sorted by start line number
-		*/
 		public readonly children: StickyElement[],
-		/**
-		 * Parent sticky outline element
-		 */
 		public readonly parent: StickyElement | undefined
 	) {
 	}

@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
-#
 # Copyright (c) Dardcor Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for license information.
 if [ "$DARDCOR_WSL_DEBUG_INFO" = true ] || [ "$VSCODE_WSL_DEBUG_INFO" = true ]; then
@@ -33,7 +32,6 @@ if [ $IN_WSL = true ]; then
 	export WSLENV="ELECTRON_RUN_AS_NODE/w:$WSLENV"
 	CLI=$(wslpath -m "$DARDCOR_PATH/resources/app/out/cli.js")
 
-	# use the Remote WSL extension if installed
 	WSL_EXT_ID="ms-vscode-remote.remote-wsl"
 
 	ELECTRON_RUN_AS_NODE=1 "$ELECTRON" "$CLI" --locate-extension $WSL_EXT_ID >/tmp/remote-wsl-loc.txt 2>/dev/null </dev/null

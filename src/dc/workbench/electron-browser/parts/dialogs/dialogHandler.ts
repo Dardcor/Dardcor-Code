@@ -22,11 +22,6 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 		super();
 	}
 
-	/**
-	 * Native Electron message boxes have no Markdown rendering capability, so
-	 * a Markdown `detail` is degraded to its plain-text equivalent rather than
-	 * shown with raw Markdown/link syntax.
-	 */
 	private toNativeDetail(detail: string | IMarkdownString | undefined): string | undefined {
 		return typeof detail === 'object' ? renderAsPlaintext(detail) : detail;
 	}
@@ -42,7 +37,7 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 			message: prompt.message,
 			detail: this.toNativeDetail(prompt.detail),
 			buttons,
-			cancelId: prompt.cancelButton ? buttons.length - 1 : -1 /* Disabled */,
+			cancelId: prompt.cancelButton ? buttons.length - 1 : -1 ,
 			checkboxLabel: prompt.checkbox?.label,
 			checkboxChecked: prompt.checkbox?.checked,
 			targetWindowId: getActiveWindow().vscodeWindowId
@@ -72,7 +67,7 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 	}
 
 	input(): never {
-		throw new Error('Unsupported'); // we have no native API for password dialogs in Electron
+		throw new Error('Unsupported');
 	}
 
 	async about(title: string, details: string, detailsToCopy: string): Promise<void> {

@@ -42,7 +42,6 @@ ssuite.optional(shouldSkipAgentTests, {
 					});
 				},
 				[ToolName.GetNotebookSummary]: async () => {
-					// Ok to call this
 				},
 				[ToolName.EditNotebook]: async () => {
 					throw new Error('EditNotebook should not be called');
@@ -66,13 +65,10 @@ ssuite.optional(shouldSkipAgentTests, {
 			allowParallelToolCalls: true,
 			toolCallValidators: {
 				[ToolName.EditNotebook]: async () => {
-					//
 				},
 				[ToolName.CreateNewJupyterNotebook]: async () => {
-					//
 				},
 				[ToolName.EditFile]: async () => {
-					//
 				}
 			}
 		})
@@ -94,7 +90,6 @@ ssuite.optional(shouldSkipAgentTests, {
 					throw new Error('EditNotebook should not be called');
 				},
 				[ToolName.CreateNewJupyterNotebook]: async () => {
-					//
 				},
 				[ToolName.EditFile]: async () => {
 					throw new Error('EditFile should not be called');
@@ -120,7 +115,6 @@ ssuite.optional(shouldSkipAgentTests, {
 					throw new Error('EditNotebook should not be called');
 				},
 				[ToolName.CreateNewJupyterNotebook]: async () => {
-					//
 				},
 				[ToolName.EditFile]: async () => {
 					throw new Error('EditFile should not be called');
@@ -153,7 +147,6 @@ ssuite.optional(shouldSkipAgentTests, {
 					});
 				},
 				[ToolName.GetNotebookSummary]: async () => {
-					// Ok to call this
 				},
 				[ToolName.EditNotebook]: async () => {
 					throw new Error('EditNotebook should not be called');
@@ -187,7 +180,6 @@ ssuite.optional(shouldSkipAgentTests, {
 					});
 				},
 				[ToolName.GetNotebookSummary]: async () => {
-					// Ok to call this
 				},
 				[ToolName.EditNotebook]: async () => {
 					throw new Error('EditNotebook should not be called');
@@ -203,7 +195,7 @@ ssuite.optional(shouldSkipAgentTests, {
 			expectedToolCalls: ToolName.EditNotebook,
 			getState,
 			tools: {
-				[ContributedToolName.GetNotebookSummary]: true, // Include this tool and verify that this isn't invoked (in the past this used to get invoked as part of editing).
+				[ContributedToolName.GetNotebookSummary]: true,
 			}
 		}, {
 			allowParallelToolCalls: true,
@@ -222,7 +214,6 @@ ssuite.optional(shouldSkipAgentTests, {
 					});
 				},
 				[ToolName.GetNotebookSummary]: async () => {
-					// Ok to call this
 				},
 			},
 		})

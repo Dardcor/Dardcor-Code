@@ -16,7 +16,6 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     return;
   }
 
-  // 1. Fully synchronize server bundle (ensures dynamic route chunks like 9381.js, 5182.js are NEVER omitted)
   const serverSource = resolve(buildDir, "server");
   const serverDestination = resolve(standaloneDir, distDir, "server");
   if (existsSync(serverSource)) {
@@ -24,7 +23,6 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     console.log(`[standalone-assets] Fully synchronized server bundle to ${serverDestination}`);
   }
 
-  // 2. Synchronize static assets
   const staticSource = resolve(buildDir, "static");
   const staticDestination = resolve(standaloneDir, distDir, "static");
   if (existsSync(staticSource)) {
@@ -32,7 +30,6 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     console.log(`[standalone-assets] Copied static assets to ${staticDestination}`);
   }
 
-  // 3. Synchronize public assets
   const publicSource = resolve(projectRoot, "public");
   const publicDestination = resolve(standaloneDir, "public");
   if (existsSync(publicSource)) {
@@ -40,7 +37,6 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     console.log(`[standalone-assets] Copied public assets to ${publicDestination}`);
   }
 
-  // 4. Salin custom-server wrapper
   const serverWrapperSource = resolve(projectRoot, "custom-server.js");
   const serverWrapperDestination = resolve(standaloneDir, "custom-server.js");
   if (existsSync(serverWrapperSource)) {
@@ -48,7 +44,6 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     console.log(`[standalone-assets] Copied custom-server.js to ${serverWrapperDestination}`);
   }
 
-  // 5. Salin package.json
   const packageJsonSource = resolve(projectRoot, "package.json");
   const packageJsonDestination = resolve(standaloneDir, "package.json");
   if (existsSync(packageJsonSource)) {
@@ -56,7 +51,6 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     console.log(`[standalone-assets] Copied package.json to ${packageJsonDestination}`);
   }
 
-  // 6. Automated Integrity & Chunk Parity Verification
   const srcChunksDir = resolve(serverSource, "chunks");
   const dstChunksDir = resolve(serverDestination, "chunks");
   if (existsSync(srcChunksDir) && existsSync(dstChunksDir)) {

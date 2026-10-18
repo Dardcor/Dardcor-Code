@@ -34,7 +34,7 @@ export const UNDO_REDO_SOURCE = new UndoRedoSource();
 export class ExplorerService implements IExplorerService {
 	declare readonly _serviceBrand: undefined;
 
-	private static readonly EXPLORER_FILE_CHANGES_REACT_DELAY = 500; // delay in ms to react to file changes to give our internal events a chance to react first
+	private static readonly EXPLORER_FILE_CHANGES_REACT_DELAY = 500;
 
 	private readonly disposables = new DisposableStore();
 	private editable: { stat: ExplorerItem; data: IEditableData } | undefined;
@@ -70,26 +70,21 @@ export class ExplorerService implements IExplorerService {
 			const events = this.fileChangeEvents;
 			this.fileChangeEvents = [];
 
-			// Filter to the ones we care
 			const types = [FileChangeType.DELETED];
 			if (this.config.sortOrder === SortOrder.Modified) {
 				types.push(FileChangeType.UPDATED);
 			}
 
 			let shouldRefresh = false;
-			// For DELETED and UPDATED events go through the explorer model and check if any of the items got affected
 			this.roots.forEach(r => {
 				if (this.view && !shouldRefresh) {
 					shouldRefresh = doesFileEventAffect(r, this.view, events, types);
 				}
 			});
-			// For ADDED events we need to go through all the events and check if the explorer is already aware of some of them
-			// Or if they affect not yet resolved parts of the explorer. If that is the case we will not refresh.
 			events.forEach(e => {
 				if (!shouldRefresh) {
 					for (const resource of e.rawAdded) {
 						const parent = this.model.findClosest(dirname(resource));
-						// Parent of the added resource is resolved and the explorer model is not aware of the added resource - we need to refresh
 						if (parent && !parent.getChild(basename(resource))) {
 							shouldRefresh = true;
 							break;
@@ -106,7 +101,6 @@ export class ExplorerService implements IExplorerService {
 
 		this.disposables.add(this.fileService.onDidFilesChange(e => {
 			this.fileChangeEvents.push(e);
-			// Don't mess with the file tree while in the process of editing. #112293
 			if (this.editable) {
 				return;
 			}
@@ -133,7 +127,6 @@ export class ExplorerService implements IExplorerService {
 			this.view?.setTreeInput();
 		}));
 
-		// Refresh explorer when window gets focus to compensate for missing file events #126817
 		this.disposables.add(hostService.onDidChangeFocus(hasFocus => {
 			if (hasFocus) {
 				this.refresh(false);
@@ -161,10 +154,6 @@ export class ExplorerService implements IExplorerService {
 	registerView(contextProvider: IExplorerView): void {
 		this.view = contextProvider;
 
-		// The explorer decorations are computed from this (window wide) model and
-		// are therefore shared by all explorer views. Register the provider only
-		// once, otherwise each view contributes its own badge and decorations
-		// render multiple times per resource.
 		if (!this.decorationsProviderRegistered) {
 			this.decorationsProviderRegistered = true;
 			const provider = this.disposables.add(new ExplorerDecorationsProvider(this, this.contextService));
@@ -190,8 +179,6 @@ export class ExplorerService implements IExplorerService {
 					}
 				}
 			} catch {
-				// We will error out trying to resolve collapsed nodes that have not yet been resolved.
-				// So we catch and ignore them in the multiSelect context
 				return;
 			}
 		});
@@ -235,7 +222,6 @@ export class ExplorerService implements IExplorerService {
 		return !!this.view && this.view.hasFocus();
 	}
 
-	// IExplorerService methods
 
 	findClosest(resource: URI): ExplorerItem | null {
 		return this.model.findClosest(resource);
@@ -299,7 +285,6 @@ export class ExplorerService implements IExplorerService {
 			return;
 		}
 
-		// If file or parent matches exclude patterns, do not reveal unless reveal argument is 'force'
 		const ignoreRevealExcludes = reveal === 'force';
 
 		const fileStat = this.findClosest(resource);
@@ -311,7 +296,6 @@ export class ExplorerService implements IExplorerService {
 			return Promise.resolve(undefined);
 		}
 
-		// Stat needs to be resolved first and then revealed
 		const options: IResolveFileOptions = { resolveTo: [resource], resolveMetadata: this.config.sortOrder === SortOrder.Modified };
 		const root = this.findClosestRoot(resource);
 		if (!root) {
@@ -321,14 +305,11 @@ export class ExplorerService implements IExplorerService {
 		try {
 			const stat = await this.fileService.resolve(root.resource, options);
 
-			// Convert to model
 			const modelStat = ExplorerItem.create(this.fileService, this.configurationService, this.filesConfigurationService, stat, undefined, options.resolveTo);
-			// Update Input with disk Stat
 			ExplorerItem.mergeLocalWithDisk(modelStat, root);
 			const item = root.find(resource);
 			await this.view.refresh(true, root);
 
-			// Once item is resolved, check again if folder should be expanded
 			if (item && !this.shouldAutoRevealItem(item, ignoreRevealExcludes)) {
 				return;
 			}
@@ -340,7 +321,6 @@ export class ExplorerService implements IExplorerService {
 	}
 
 	async refresh(reveal = true): Promise<void> {
-		// Do not refresh the tree when it is showing temporary nodes (phantom elements)
 		if (this.view?.hasPhantomElements()) {
 			return;
 		}
@@ -352,21 +332,15 @@ export class ExplorerService implements IExplorerService {
 			const autoReveal = this.configurationService.getValue<IFilesConfiguration>().explorer.autoReveal;
 
 			if (reveal && resource && autoReveal) {
-				// We did a top level refresh, reveal the active file #67118
 				this.select(resource, autoReveal);
 			}
 		}
 	}
 
-	// File events
 
 	private async onDidRunOperation(e: FileOperationEvent): Promise<void> {
-		// When nesting, changes to one file in a folder may impact the rendered structure
-		// of all the folder's immediate children, thus a recursive refresh is needed.
-		// Ideally the tree would be able to recusively refresh just one level but that does not yet exist.
 		const shouldDeepRefresh = this.config.fileNesting.enabled;
 
-		// Add
 		if (e.isOperation(FileOperation.CREATE) || e.isOperation(FileOperation.COPY)) {
 			const addedElement = e.target;
 			const parentResource = dirname(addedElement.resource);
@@ -374,9 +348,7 @@ export class ExplorerService implements IExplorerService {
 
 			if (parents.length) {
 
-				// Add the new file to its parent (Model)
 				await Promise.all(parents.map(async p => {
-					// We have to check if the parent is resolved #29177
 					const resolveMetadata = this.config.sortOrder === `modified`;
 					if (!p.isDirectoryResolved) {
 						const stat = await this.fileService.resolve(p.resource, { resolveMetadata });
@@ -387,16 +359,13 @@ export class ExplorerService implements IExplorerService {
 					}
 
 					const childElement = ExplorerItem.create(this.fileService, this.configurationService, this.filesConfigurationService, addedElement, p.parent);
-					// Make sure to remove any previous version of the file if any
 					p.removeChild(childElement);
 					p.addChild(childElement);
-					// Refresh the Parent (View)
 					await this.view?.refresh(shouldDeepRefresh, p);
 				}));
 			}
 		}
 
-		// Move (including Rename)
 		else if (e.isOperation(FileOperation.MOVE)) {
 			const oldResource = e.resource;
 			const newElement = e.target;
@@ -405,20 +374,16 @@ export class ExplorerService implements IExplorerService {
 			const modelElements = this.model.findAll(oldResource);
 			const sameParentMove = modelElements.every(e => !e.nestedParent) && this.uriIdentityService.extUri.isEqual(oldParentResource, newParentResource);
 
-			// Handle Rename
 			if (sameParentMove) {
 				await Promise.all(modelElements.map(async modelElement => {
-					// Rename File (Model)
 					modelElement.rename(newElement);
 					await this.view?.refresh(shouldDeepRefresh, modelElement.parent);
 				}));
 			}
 
-			// Handle Move
 			else {
 				const newParents = this.model.findAll(newParentResource);
 				if (newParents.length && modelElements.length) {
-					// Move in Model
 					await Promise.all(modelElements.map(async (modelElement, index) => {
 						const oldParent = modelElement.parent;
 						const oldNestedParent = modelElement.nestedParent;
@@ -433,12 +398,10 @@ export class ExplorerService implements IExplorerService {
 			}
 		}
 
-		// Delete
 		else if (e.isOperation(FileOperation.DELETE)) {
 			const modelElements = this.model.findAll(e.resource);
 			await Promise.all(modelElements.map(async modelElement => {
 				if (modelElement.parent) {
-					// Remove Element from Parent (Model)
 					const parent = modelElement.parent;
 					parent.removeChild(modelElement);
 					this.view?.focusNext();
@@ -448,7 +411,6 @@ export class ExplorerService implements IExplorerService {
 						oldNestedParent.removeChild(modelElement);
 						await this.view?.refresh(false, oldNestedParent);
 					}
-					// Refresh Parent (View)
 					await this.view?.refresh(shouldDeepRefresh, parent);
 
 					if (this.view?.getFocus().length === 0) {
@@ -459,7 +421,6 @@ export class ExplorerService implements IExplorerService {
 		}
 	}
 
-	// Check if an item matches a explorer.autoRevealExclude pattern
 	private shouldAutoRevealItem(item: ExplorerItem | undefined, ignore: boolean): boolean {
 		if (item === undefined || ignore) {
 			return true;

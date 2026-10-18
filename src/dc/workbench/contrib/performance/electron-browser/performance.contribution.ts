@@ -13,21 +13,18 @@ import { IConfigurationRegistry, Extensions as ConfigExt } from '../../../../pla
 import { localize } from '../../../../nls.js';
 import { applicationConfigurationNodeBase } from '../../../common/configuration.js';
 
-// -- auto profiler
 
 Registry.as<IWorkbenchContributionsRegistry>(Extensions.Workbench).registerWorkbenchContribution(
 	RendererProfiling,
 	LifecyclePhase.Eventually
 );
 
-// -- startup profiler
 
 Registry.as<IWorkbenchContributionsRegistry>(Extensions.Workbench).registerWorkbenchContribution(
 	StartupProfiler,
 	LifecyclePhase.Restored
 );
 
-// -- startup timings
 
 Registry.as<IWorkbenchContributionsRegistry>(Extensions.Workbench).registerWorkbenchContribution(
 	NativeStartupTimings,

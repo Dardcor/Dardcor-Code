@@ -11,7 +11,7 @@
 	left: calc((var(--activity-bar-width, 36px) - var(--activity-bar-action-height, 36px) + 4px) / 2);
 	width: calc(var(--activity-bar-action-height, 36px) - 4px);
 	height: calc(var(--activity-bar-action-height, 36px) - 4px);
-	border-radius: var(--vscode-cornerRadius-small);
+	border-radius: var(--vscode-cornerRadius-medium, 6px);
 }
 
 .modern-ui .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked .active-item-indicator {

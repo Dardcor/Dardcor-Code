@@ -26,12 +26,12 @@ export class EditorGutter<T extends IGutterItemInfo = IGutterItemInfo> extends D
 		super();
 		this.scrollTop = observableFromEvent(this,
 			this._editor.onDidScrollChange,
-			(e) => /** @description editor.onDidScrollChange */ this._editor.getScrollTop()
+			(e) => this._editor.getScrollTop()
 		);
-		this.isScrollTopZero = this.scrollTop.map((scrollTop) => /** @description isScrollTopZero */ scrollTop === 0);
+		this.isScrollTopZero = this.scrollTop.map((scrollTop) => scrollTop === 0);
 		this.modelAttached = observableFromEvent(this,
 			this._editor.onDidChangeModel,
-			(e) => /** @description editor.onDidChangeModel */ this._editor.hasModel()
+			(e) => this._editor.hasModel()
 		);
 		this.editorOnDidChangeViewZones = observableSignalFromEvent('onDidChangeViewZones', this._editor.onDidChangeViewZones);
 		this.editorOnDidContentSizeChange = observableSignalFromEvent('onDidContentSizeChange', this._editor.onDidContentSizeChange);
@@ -45,7 +45,6 @@ export class EditorGutter<T extends IGutterItemInfo = IGutterItemInfo> extends D
 
 		const o = new ResizeObserver(() => {
 			transaction(tx => {
-				/** @description ResizeObserver: size changed */
 				this.domNodeSizeChanged.trigger(tx);
 			});
 		});
@@ -53,11 +52,10 @@ export class EditorGutter<T extends IGutterItemInfo = IGutterItemInfo> extends D
 		this._register(toDisposable(() => o.disconnect()));
 
 		this._register(autorun(reader => {
-			/** @description update scroll decoration */
 			scrollDecoration.className = this.isScrollTopZero.read(reader) ? '' : 'scroll-decoration';
 		}));
 
-		this._register(autorun(reader => /** @description EditorGutter.Render */ this.render(reader)));
+		this._register(autorun(reader => this.render(reader)));
 	}
 
 	override dispose(): void {

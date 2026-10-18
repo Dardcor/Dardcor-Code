@@ -29,9 +29,6 @@ interface INotebookGettingStartedMemento {
 	hasShownNotebookGettingStarted?: boolean;
 }
 
-/**
- * Sets a context key when a notebook has ever been opened by the user
- */
 export class NotebookGettingStarted extends Disposable implements IWorkbenchContribution {
 
 	constructor(
@@ -65,7 +62,6 @@ export class NotebookGettingStarted extends Disposable implements IWorkbenchCont
 			};
 
 			if (_editorService.activeEditor?.typeId === NotebookEditorInput.ID) {
-				// active editor is notebook
 				onDidOpenNotebook();
 				return;
 			}

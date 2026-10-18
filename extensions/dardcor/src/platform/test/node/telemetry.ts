@@ -128,11 +128,7 @@ async function _withTelemetryCapture<T>(
 	const fakeTelemetryServer = await startFakeTelemetryServerIfNecessary();
 
 	const extensionId = 'dardcor-test';
-	// Using a random endpoint URL avoids collisions with other tests.
-	// At present the tests run serially and _should_ flush the captured messages after each call,
-	// so this shouldn't be strictly necessary, but it makes things more robust.
 	const endpoint = Math.floor(Math.random() * 100000).toString();
-	// ensure we don't have a proxy setup in place from other tests
 	delete process.env.http_proxy;
 	delete process.env.https_proxy;
 
@@ -160,7 +156,7 @@ async function _withTelemetryCapture<T>(
 
 	try {
 		const result = await work(accessor);
-		await ghTelemetry.deactivate(); // awaits all open promises and flushes the events
+		await ghTelemetry.deactivate();
 		const messages = await collectMessagesWithRetry(accessor.get(ICAPIClientService), accessor.get(IFetcherService));
 		return [messages, result];
 	} finally {
@@ -170,7 +166,6 @@ async function _withTelemetryCapture<T>(
 
 async function collectMessagesWithRetry(capiClientService: ICAPIClientService, fetcherService: IFetcherService) {
 	for (let waitTimeMultiplier = 0; waitTimeMultiplier < 3; waitTimeMultiplier++) {
-		// race condition between test and telemetry server, wait a bit and try again
 		await new Promise(resolve => setTimeout(resolve, waitTimeMultiplier * 1000));
 		const messages = await collectCapturedTelemetry(capiClientService, fetcherService);
 		if (messages.length > 0) {

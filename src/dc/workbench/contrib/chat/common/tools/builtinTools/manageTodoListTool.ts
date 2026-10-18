@@ -75,13 +75,12 @@ export function createManageTodoListToolData(): IToolData {
 export const ManageTodoListToolData: IToolData = createManageTodoListToolData();
 
 interface IManageTodoListToolInputParams {
-	operation?: 'write' | 'read'; // Optional, defaults to 'write'
+	operation?: 'write' | 'read';
 	todoList: Array<{
 		id: number;
 		title: string;
 		status: 'not-started' | 'in-progress' | 'completed';
 	}>;
-	// used for todo read only
 	chatSessionResource?: string;
 }
 
@@ -173,45 +172,38 @@ export class ManageTodoListTool extends Disposable implements IToolImpl {
 	}
 
 	private generatePastTenseMessage(currentTodos: IChatTodo[], newTodos: IManageTodoListToolInputParams['todoList']): string {
-		// If no current todos and we're adding new ones, this is creating new ones.
-		// When both lists are empty (a no-op write), fall through to the default
-		// "Updated todo list" message rather than showing "Created 0 todos".
 		if (currentTodos.length === 0 && newTodos.length > 0) {
 			return newTodos.length === 1
 				? localize('todo.created.single', "Created 1 todo")
 				: localize('todo.created.multiple', "Created {0} todos", newTodos.length);
 		}
 
-		// Create map for easier comparison
 		const currentTodoMap = new Map(currentTodos.map(todo => [todo.id, todo]));
 
-		// Check for newly started todos (marked as in-progress) - highest priority
 		const startedTodos = newTodos.filter(newTodo => {
 			const currentTodo = currentTodoMap.get(newTodo.id);
 			return currentTodo && currentTodo.status !== 'in-progress' && newTodo.status === 'in-progress';
 		});
 
 		if (startedTodos.length > 0) {
-			const startedTodo = startedTodos[0]; // Should only be one in-progress at a time
+			const startedTodo = startedTodos[0];
 			const totalTodos = newTodos.length;
 			const currentPosition = newTodos.findIndex(todo => todo.id === startedTodo.id) + 1;
 			return localize('todo.starting', "Starting: *{0}* ({1}/{2})", startedTodo.title, currentPosition, totalTodos);
 		}
 
-		// Check for newly completed todos
 		const completedTodos = newTodos.filter(newTodo => {
 			const currentTodo = currentTodoMap.get(newTodo.id);
 			return currentTodo && currentTodo.status !== 'completed' && newTodo.status === 'completed';
 		});
 
 		if (completedTodos.length > 0) {
-			const completedTodo = completedTodos[0]; // Get the first completed todo for the message
+			const completedTodo = completedTodos[0];
 			const totalTodos = newTodos.length;
 			const currentPosition = newTodos.findIndex(todo => todo.id === completedTodo.id) + 1;
 			return localize('todo.completed', "Completed: *{0}* ({1}/{2})", completedTodo.title, currentPosition, totalTodos);
 		}
 
-		// Check for new todos added
 		const addedTodos = newTodos.filter(newTodo => !currentTodoMap.has(newTodo.id));
 		if (addedTodos.length > 0) {
 			return addedTodos.length === 1
@@ -219,7 +211,6 @@ export class ManageTodoListTool extends Disposable implements IToolImpl {
 				: localize('todo.added.multiple', "Added {0} todos", addedTodos.length);
 		}
 
-		// Default message for other updates
 		return localize('todo.updated', "Updated todo list");
 	}
 
@@ -277,7 +268,6 @@ export class ManageTodoListTool extends Disposable implements IToolImpl {
 		this.chatTodoListService.setTodos(chatSessionResource, todoList);
 		const statusCounts = this.calculateStatusCounts(todoList);
 
-		// Build warnings
 		const warnings: string[] = [];
 		if (todoList.length < 3) {
 			warnings.push('Warning: Small todo list (<3 items). This task might not need a todo list.');
@@ -345,7 +335,6 @@ export class ManageTodoListTool extends Disposable implements IToolImpl {
 	}
 
 	private calculateTodoChanges(oldList: IChatTodo[], newList: IChatTodo[]): number {
-		// Assume arrays are equivalent in order; compare index-by-index
 		let modified = 0;
 		const minLen = Math.min(oldList.length, newList.length);
 		for (let i = 0; i < minLen; i++) {

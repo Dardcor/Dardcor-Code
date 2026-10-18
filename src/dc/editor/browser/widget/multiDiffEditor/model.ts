@@ -15,9 +15,6 @@ export interface IMultiDiffEditorModel {
 	readonly contextKeys?: Record<string, ContextKeyValue>;
 }
 
-/**
- * A resource participating on one side of a document diff.
- */
 export class DiffItemSource {
 	constructor(
 		public readonly uri: URI,
@@ -26,14 +23,8 @@ export class DiffItemSource {
 }
 
 export interface IDocumentDiffItem {
-	/**
-	 * undefined if the file was created.
-	 */
 	readonly original: DiffItemSource | undefined;
 
-	/**
-	 * undefined if the file was deleted.
-	 */
 	readonly modified: DiffItemSource | undefined;
 	readonly options?: IDiffEditorOptions;
 	readonly onOptionsDidChange?: Event<void>;

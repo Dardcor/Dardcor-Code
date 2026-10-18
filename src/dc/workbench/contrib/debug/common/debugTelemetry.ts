@@ -16,18 +16,6 @@ export class DebugTelemetry {
 
 	logDebugSessionStart(dbgr: Debugger, launchJsonExists: boolean) {
 		const extension = dbgr.getMainExtensionDescriptor();
-		/* __GDPR__
-			"debugSessionStart" : {
-				"owner": "connor4312",
-				"type": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"breakpointCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-				"exceptionBreakpoints": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"watchExpressionsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-				"extensionName": { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
-				"isBuiltin": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true},
-				"launchJsonExists": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true }
-			}
-		*/
 		this.telemetryService.publicLog('debugSessionStart', {
 			type: dbgr.type,
 			breakpointCount: this.model.getBreakpoints().length,
@@ -43,16 +31,6 @@ export class DebugTelemetry {
 
 		const breakpoints = this.model.getBreakpoints();
 
-		/* __GDPR__
-			"debugSessionStop" : {
-				"owner": "connor4312",
-				"type" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"success": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-				"sessionLengthInSeconds": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-				"breakpointCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-				"watchExpressionsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true }
-			}
-		*/
 		this.telemetryService.publicLog('debugSessionStop', {
 			type: session && session.configuration.type,
 			success: adapterExitEvent.emittedStopped || breakpoints.length === 0,

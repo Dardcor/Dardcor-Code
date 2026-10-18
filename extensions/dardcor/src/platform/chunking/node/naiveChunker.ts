@@ -90,7 +90,6 @@ export class NaiveChunker {
 			}
 
 			if (usedTokensInChunk + lineTokenCount > maxTokenLength) {
-				// Emit previous chunk and reset state
 				const chunk = this.finalizeChunk(uri, accumulatingChunk, shouldDedent, longestCommonWhitespaceInChunk ?? '', false);
 				if (chunk) {
 					yield chunk;
@@ -126,7 +125,6 @@ export class NaiveChunker {
 		const lastLine = chunkLines[chunkLines.length - 1];
 		return {
 			file: file,
-			// For naive chunking, the raw text is the same as the processed text
 			text: finalizedChunkText,
 			rawText: finalizedChunkText,
 			isFullFile: isLastChunk && chunkLines[0].lineNumber === 0,
@@ -153,7 +151,6 @@ export function trimCommonLeadingWhitespace(lines: string[]): { trimmedLines: st
 		}
 
 		if (!longestCommonWhitespace || longestCommonWhitespace.length === 0) {
-			// No common leading whitespace, no need to continue
 			return {
 				trimmedLines: lines,
 				shortestLeadingCommonWhitespace: '',

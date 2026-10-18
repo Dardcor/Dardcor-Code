@@ -18,7 +18,7 @@ import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/
 import { ChatResponseTextEditPart, Range } from '../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { ToolName } from '../../common/toolNames';
-import { CopilotToolMode } from '../../common/toolsRegistry';
+import { AgentToolMode } from '../../common/toolsRegistry';
 import { IToolsService } from '../../common/toolsService';
 import { IMultiReplaceStringToolParams } from '../multiReplaceStringTool';
 import { toolResultToString } from './toolTestUtils';
@@ -28,7 +28,6 @@ suite('MultiReplaceString', () => {
 	const documents = new ResourceMap<IExtHostDocumentData>();
 
 	beforeAll(() => {
-		// Create a large document for testing truncation (3000 lines to exceed MAX_LINES_PER_READ)
 		const largeContent = Array.from({ length: 3000 }, (_, i) => `line ${i + 1}`).join('\n');
 		const allDocs = [
 			createTextDocumentData(URI.file('/workspace/file.ts'), 'line 1\nline 2\n\nline 4\nline 5', 'ts'),
@@ -77,7 +76,7 @@ suite('MultiReplaceString', () => {
 			}
 		};
 		const toolsService = accessor.get(IToolsService);
-		toolsService.getCopilotTool(ToolName.MultiReplaceString)?.resolveInput?.(params, { stream } as any, CopilotToolMode.FullContext);
+		toolsService.getAgentTool(ToolName.MultiReplaceString)?.resolveInput?.(params, { stream } as any, AgentToolMode.FullContext);
 
 		const result = await toolsService.invokeTool(ToolName.MultiReplaceString, { input: params, toolInvocationToken: null as never }, CancellationToken.None);
 		return { result, edits };
@@ -233,7 +232,7 @@ export function sumThreeFloats(a, b, c) {`,
 			Edit at index 1 conflicts with another replacement in /workspace/math.js. You can make another call to try again."
 		`);
 
-		const edits = Object.values(r.edits).flat(); //
+		const edits = Object.values(r.edits).flat();
 
 		edits.sort((a, b) => a.range.start.compareTo(b.range.start));
 

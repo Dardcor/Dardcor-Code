@@ -88,7 +88,6 @@ export class SimulationWorkspaceService extends AbstractWorkspaceService {
 	override async openNotebookDocument(notebookType: string, content?: vscode.NotebookData): Promise<vscode.NotebookDocument>;
 	override async openNotebookDocument(arg1: vscode.Uri | string, arg2?: vscode.NotebookData): Promise<vscode.NotebookDocument> {
 		if (typeof arg1 === 'string') {
-			// Handle the overload for notebookType and content
 			throw new Error('Not implemented');
 		} else {
 			if (this.workspace.hasNotebookDocument(arg1)) {
@@ -112,7 +111,6 @@ export class SimulationWorkspaceService extends AbstractWorkspaceService {
 	}
 
 	override ensureWorkspaceIsFullyLoaded(): Promise<void> {
-		// We aren't using virtual workspaces here, so we can just return
 		return Promise.resolve();
 	}
 
@@ -220,7 +218,6 @@ export class SimulationFileSystemAdaptor implements IFileSystemService {
 						}
 					}
 				} catch (e) {
-					// ignore non existing folders
 				}
 			}
 			return result;
@@ -397,10 +394,8 @@ export class SimulationNotebookService implements INotebookService {
 export class SimulationNotebookSummaryTracker implements INotebookSummaryTracker {
 	declare _serviceBrand: undefined;
 	trackNotebook(notebook: vscode.NotebookDocument): void {
-		//
 	}
 	clearState(notebook: vscode.NotebookDocument): void {
-		//
 	}
 	listNotebooksWithChanges(): vscode.NotebookDocument[] {
 		return [];
@@ -411,9 +406,6 @@ export class SimulationNotebookSummaryTracker implements INotebookSummaryTracker
 export class SimulationAlternativeNotebookContentService implements IAlternativeNotebookContentService {
 
 	constructor(
-		/**
-		 * Allow tests to override the format of the alternative content provider.
-		 */
 		public format: 'xml' | 'json' | 'text' = 'json'
 	) { }
 	_serviceBrand: undefined;
@@ -474,7 +466,6 @@ export class SnapshotSearchService extends AbstractSearchService {
 					}
 				}
 			} catch {
-				// I can't figure out why errors here fire 'unhandledrejection' so just swallow them
 			}
 
 			return {
@@ -680,7 +671,6 @@ export class TestingGitService implements IGitService {
 		return;
 	}
 
-	// TODO implement later if tests use this, only used by ignore service
 	getRepository(uri: URI, forceOpen?: boolean): Promise<RepoContext | undefined> {
 		return Promise.resolve(undefined);
 	}
@@ -723,7 +713,6 @@ export class TestingGitService implements IGitService {
 
 				return {
 					...repo,
-					// rootUri is not set on some serialized repos
 					rootUri: repo.rootUri
 						? URI.revive(repo.rootUri)
 						: workspaceFolderPath
@@ -929,10 +918,8 @@ export class TestingTerminalService extends Disposable implements ITerminalServi
 		throw new Error('Method not implemented.');
 	}
 	contributePath(contributor: string, pathLocation: string, description?: string | { command: string }): void {
-		// No-op for test service
 	}
 	removePathContribution(contributor: string): void {
-		// No-op for test service
 	}
 }
 
@@ -967,11 +954,9 @@ class SimulationTerminal extends Disposable implements vscode.Terminal {
 	}
 
 	show(preserveFocus: boolean = true): void {
-		// no-op
 	}
 
 	hide(): void {
-		// no-op
 	}
 }
 

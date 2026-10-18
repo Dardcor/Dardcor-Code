@@ -28,15 +28,12 @@ export class NullFeedbackReporterImpl implements IFeedbackReporter {
 	readonly canReport = constObservable(false);
 
 	async reportInline(conversation: Conversation, promptQuery: PromptQuery, interactionOutcome: InteractionOutcome): Promise<void> {
-		// nothing
 	}
 
 	async reportChat(turn: Turn): Promise<void> {
-		// nothing
 	}
 
 	async reportSearch(): Promise<void> {
-		// nothing
 	}
 }
 

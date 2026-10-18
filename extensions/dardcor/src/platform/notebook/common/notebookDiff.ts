@@ -27,7 +27,6 @@ export function computeDiff(originalModel: string[], modifiedModel: string[], ce
 
 	for (let i = 0; i < cellChanges.length; i++) {
 		const change = cellChanges[i];
-		// common cells
 
 		for (let j = 0; j < change.original.startLineNumber - 1 - originalCellIndex; j++) {
 			cellDiffInfo.push({
@@ -57,7 +56,6 @@ export function computeDiff(originalModel: string[], modifiedModel: string[], ce
 
 function computeModifiedLCS(original: string[], modified: string[], change: DetailedLineRangeMapping) {
 	const result: CellDiffInfo[] = [];
-	// modified cells
 	const modifiedLen = Math.min(change.original.length, change.modified.length);
 
 	for (let j = 0; j < modifiedLen; j++) {
@@ -82,7 +80,6 @@ function computeModifiedLCS(original: string[], modified: string[], change: Deta
 	}
 
 	for (let j = modifiedLen; j < change.original.length; j++) {
-		// deletion
 		result.push({
 			originalCellIndex: change.original.startLineNumber - 1 + j,
 			type: 'delete'

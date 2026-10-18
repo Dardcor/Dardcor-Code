@@ -42,8 +42,6 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 					this.map.set(key, entry);
 				}
 
-				// If the first item in the entry is replace ignore any other entries as they would
-				// just get replaced by this one.
 				if (entry.length > 0 && entry[0].type === EnvironmentVariableMutatorType.Replace) {
 					next = it.next();
 					continue;
@@ -58,9 +56,8 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 					options: mutator.options
 				};
 				if (!extensionMutator.scope) {
-					delete extensionMutator.scope; // Convenient for tests
+					delete extensionMutator.scope;
 				}
-				// Mutators get applied in the reverse order than they are created
 				entry.unshift(extensionMutator);
 
 				next = it.next();
@@ -83,7 +80,6 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 					continue;
 				}
 
-				// Default: true
 				if (mutator.options?.applyAtProcessCreation ?? true) {
 					switch (mutator.type) {
 						case EnvironmentVariableMutatorType.Append:
@@ -97,7 +93,6 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 							break;
 					}
 				}
-				// Default: false
 				if (mutator.options?.applyAtShellIntegration ?? false) {
 					const key = `VSCODE_ENV_${mutatorTypeToLabelMap.get(mutator.type)!}`;
 					env[key] = (env[key] ? env[key] + ':' : '') + variable + '=' + this._encodeColons(value);
@@ -111,7 +106,6 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 	}
 
 	private blockPythonActivationVar(variable: string, extensionIdentifier: string): boolean {
-		// Only Python env extension can modify Python activate env var.
 		if (PYTHON_ACTIVATION_VARS_PATTERN.test(variable) && PYTHON_ENV_EXTENSION_ID !== extensionIdentifier) {
 			return true;
 		}
@@ -123,7 +117,6 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 		const changed: Map<string, IExtensionOwnedEnvironmentVariableMutator[]> = new Map();
 		const removed: Map<string, IExtensionOwnedEnvironmentVariableMutator[]> = new Map();
 
-		// Find added
 		other.getVariableMap(scope).forEach((otherMutators, variable) => {
 			const currentMutators = this.getVariableMap(scope).get(variable);
 			const result = getMissingMutatorsFromArray(otherMutators, currentMutators);
@@ -132,7 +125,6 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 			}
 		});
 
-		// Find removed
 		this.getVariableMap(scope).forEach((currentMutators, variable) => {
 			const otherMutators = other.getVariableMap(scope).get(variable);
 			const result = getMissingMutatorsFromArray(currentMutators, otherMutators);
@@ -141,7 +133,6 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 			}
 		});
 
-		// Find changed
 		this.getVariableMap(scope).forEach((currentMutators, variable) => {
 			const otherMutators = other.getVariableMap(scope).get(variable);
 			const result = getChangedMutatorsFromArray(currentMutators, otherMutators);
@@ -162,7 +153,6 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 		for (const mutators of this.map.values()) {
 			const filteredMutators = mutators.filter(m => filterScope(m, scope));
 			if (filteredMutators.length > 0) {
-				// All of these mutators are for the same variable because they are in the same scope, hence choose anyone to form a key.
 				result.set(filteredMutators[0].variable, filteredMutators);
 			}
 		}
@@ -200,7 +190,7 @@ export class MergedEnvironmentVariableCollection implements IMergedEnvironmentVa
 				description: mutator.description
 			};
 			if (!extensionMutator.scope) {
-				delete extensionMutator.scope; // Convenient for tests
+				delete extensionMutator.scope;
 			}
 			entry.push(extensionMutator);
 
@@ -228,8 +218,6 @@ function filterScope(
 		}
 		return true;
 	}
-	// If a mutator is scoped to a workspace folder, only apply it if the workspace
-	// folder matches.
 	if (mutator.scope.workspaceFolder && scope?.workspaceFolder && mutator.scope.workspaceFolder.index === scope.workspaceFolder.index) {
 		return true;
 	}
@@ -240,16 +228,13 @@ function getMissingMutatorsFromArray(
 	current: IExtensionOwnedEnvironmentVariableMutator[],
 	other: IExtensionOwnedEnvironmentVariableMutator[] | undefined
 ): IExtensionOwnedEnvironmentVariableMutator[] | undefined {
-	// If it doesn't exist, all are removed
 	if (!other) {
 		return current;
 	}
 
-	// Create a map to help
 	const otherMutatorExtensions = new Set<string>();
 	other.forEach(m => otherMutatorExtensions.add(m.extensionIdentifier));
 
-	// Find entries removed from other
 	const result: IExtensionOwnedEnvironmentVariableMutator[] = [];
 	current.forEach(mutator => {
 		if (!otherMutatorExtensions.has(mutator.extensionIdentifier)) {
@@ -264,21 +249,17 @@ function getChangedMutatorsFromArray(
 	current: IExtensionOwnedEnvironmentVariableMutator[],
 	other: IExtensionOwnedEnvironmentVariableMutator[] | undefined
 ): IExtensionOwnedEnvironmentVariableMutator[] | undefined {
-	// If it doesn't exist, none are changed (they are removed)
 	if (!other) {
 		return undefined;
 	}
 
-	// Create a map to help
 	const otherMutatorExtensions = new Map<string, IExtensionOwnedEnvironmentVariableMutator>();
 	other.forEach(m => otherMutatorExtensions.set(m.extensionIdentifier, m));
 
-	// Find entries that exist in both but are not equal
 	const result: IExtensionOwnedEnvironmentVariableMutator[] = [];
 	current.forEach(mutator => {
 		const otherMutator = otherMutatorExtensions.get(mutator.extensionIdentifier);
 		if (otherMutator && (mutator.type !== otherMutator.type || mutator.value !== otherMutator.value || mutator.scope?.workspaceFolder?.index !== otherMutator.scope?.workspaceFolder?.index)) {
-			// Return the new result, not the old one
 			result.push(otherMutator);
 		}
 	});

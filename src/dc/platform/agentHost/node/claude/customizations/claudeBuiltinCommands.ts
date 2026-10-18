@@ -9,29 +9,8 @@ import { AGENT_BUILTIN_CUSTOMIZATION_SCHEME } from '../../../common/agentHostCus
 import { CustomizationType } from '../../../common/state/protocol/channels-session/state.js';
 import { CustomizationLoadStatus, customizationId, type DirectoryCustomization, type SkillCustomization } from '../../../common/state/sessionState.js';
 
-/**
- * A Claude built-in slash command backed by the Skill tool, used to seed the
- * **pre-materialize** built-in list. These ship compiled into the Claude
- * CLI/SDK — they have no editable file on disk and, before a live session
- * exists, the SDK can't tell us its real command set, so we show a curated
- * best-guess list for discoverability.
- *
- * Once a session materializes, {@link buildSdkBuiltinSkillsContainer} replaces
- * this list with the runtime's actual built-ins (the SDK commands we don't
- * discover on disk), so this list only matters pre-session and may safely
- * drift from the CLI over time.
- *
- * This list covers the Skill-tool built-ins only. The CLI-level built-ins
- * typed directly in the terminal (`/help`, `/clear`, `/compact`, `/config`,
- * `/fast`, `/model`, `/tasks`, `/workflows`) are intentionally excluded —
- * they are not skills and would be mislabeled in a Skills container.
- */
 interface IClaudeBuiltinCommand {
 	readonly name: string;
-	/**
-	 * User-facing description, resolved lazily so `localize()` runs at call
-	 * time rather than module-init (which would freeze the bundle locale).
-	 */
 	readonly description: () => string;
 }
 
@@ -51,22 +30,8 @@ const CLAUDE_BUILTIN_COMMANDS: readonly IClaudeBuiltinCommand[] = [
 	{ name: 'write-a-skill', description: () => localize('claude.builtin.writeASkill', "(Built-In) Author a new skill.") },
 ];
 
-/**
- * A Claude built-in subagent, used to seed the **pre-materialize** agent list.
- * These ship compiled into the Claude CLI/SDK (no editable file on disk), so
- * before a live session exists we surface a curated best-guess set for
- * discovery and selection. Once a session materializes, the live
- * `supportedAgents()` set supersedes this (see the SDK fallback in
- * `buildDiscoveredCustomizations`), so the list may safely drift over time.
- *
- * Includes the SDK default (`general-purpose`) for completeness; the discovery
- * layer hides it (selecting it is equivalent to "no selection"). The model
- * each agent runs on is folded into the description since the customization
- * surface has no model field.
- */
 export interface IClaudeBuiltinAgent {
 	readonly name: string;
-	/** User-facing description, resolved lazily (see {@link IClaudeBuiltinCommand.description}). */
 	readonly description: () => string;
 }
 
@@ -78,23 +43,11 @@ export const CLAUDE_BUILTIN_AGENTS: readonly IClaudeBuiltinAgent[] = [
 	{ name: 'Plan', description: () => localize('claude.builtinAgent.plan', "(Built-In) Software architect agent for designing implementation plans — step-by-step plans, critical files, and architectural trade-offs.") },
 ];
 
-/**
- * A resolved built-in skill entry ready to become a read-only customization.
- * Structurally matches the SDK's `SlashCommand` (`{ name, description }`), so
- * the live command set can be passed straight through.
- */
 interface IBuiltinSkillEntry {
 	readonly name: string;
 	readonly description: string;
 }
 
-/**
- * Builds the read-only "Built-in" skills container from resolved
- * `{ name, description }` entries. Each child is a {@link CustomizationType.Skill}
- * on the {@link AGENT_BUILTIN_CUSTOMIZATION_SCHEME}; the name and description shown in the
- * list are the discovery information it carries (the entries have no openable
- * content). Returns `undefined` when there are no entries.
- */
 function buildBuiltinSkillsContainer(entries: readonly IBuiltinSkillEntry[]): DirectoryCustomization | undefined {
 	if (entries.length === 0) {
 		return undefined;
@@ -125,20 +78,6 @@ function buildBuiltinSkillsContainer(entries: readonly IBuiltinSkillEntry[]): Di
 	};
 }
 
-/**
- * The curated, hardcoded built-in container. Used ONLY pre-materialize —
- * before a live SDK snapshot exists, this is our best guess at the runtime's
- * built-in slash commands so the user can still discover them. Once a session
- * materializes, {@link buildSdkBuiltinSkillsContainer} supersedes it with the
- * runtime's real command set.
- *
- * Curated commands that collide with a discovered disk skill are excluded so
- * a user's editable `/<name>` is never duplicated by a read-only built-in
- * (mirrors {@link buildSdkBuiltinSkillsContainer} and the built-in-agent path).
- * Returns `undefined` when nothing remains.
- *
- * @param diskSkillNames Names of skills discovered on disk, to exclude.
- */
 export function buildClaudeBuiltinSkillsContainer(diskSkillNames: ReadonlySet<string>): DirectoryCustomization | undefined {
 	return buildBuiltinSkillsContainer(
 		CLAUDE_BUILTIN_COMMANDS
@@ -147,18 +86,6 @@ export function buildClaudeBuiltinSkillsContainer(diskSkillNames: ReadonlySet<st
 	);
 }
 
-/**
- * The post-materialize built-in container, derived from the live SDK command
- * set. A command the SDK reports but that we do NOT discover on disk as an
- * editable skill is a genuine runtime built-in (it has no editable file), so
- * it is surfaced read-only via {@link AGENT_BUILTIN_CUSTOMIZATION_SCHEME} using the SDK's
- * own description. Commands backed by a discovered disk skill are excluded —
- * they are already shown as their editable selves. This auto-includes runtime
- * built-ins we never hardcoded and self-heals as the CLI evolves.
- *
- * @param commands The live SDK command set (`supportedCommands()`).
- * @param diskSkillNames Names of skills discovered on disk, to exclude.
- */
 export function buildSdkBuiltinSkillsContainer(
 	commands: readonly IBuiltinSkillEntry[],
 	diskSkillNames: ReadonlySet<string>,

@@ -7,7 +7,7 @@ import { TextureAtlas } from '../atlas/textureAtlas.js';
 import { TextureAtlasPage } from '../atlas/textureAtlasPage.js';
 import { BindingId } from '../gpu.js';
 
-export const fullFileRenderStrategyWgsl = /*wgsl*/ `
+export const fullFileRenderStrategyWgsl = `
 struct GlyphInfo {
 	position: vec2f,
 	size: vec2f,

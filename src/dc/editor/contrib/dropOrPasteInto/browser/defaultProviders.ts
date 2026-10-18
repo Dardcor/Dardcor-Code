@@ -82,8 +82,6 @@ export class DefaultTextPasteOrDropEditProvider extends SimplePasteAndDropProvid
 			return;
 		}
 
-		// Suppress if there's also a uriList entry.
-		// Typically the uri-list contains the same text as the text entry so showing both is confusing.
 		if (dataTransfer.has(Mimes.uriList)) {
 			return;
 		}
@@ -127,12 +125,10 @@ class PathProvider extends SimplePasteAndDropProvider {
 
 		let label: string;
 		if (uriCount > 0) {
-			// Dropping at least one generic uri (such as https) so use most generic label
 			label = entries.length > 1
 				? localize('defaultDropProvider.uriList.uris', "Insert Uris")
 				: localize('defaultDropProvider.uriList.uri', "Insert Uri");
 		} else {
-			// All the paths are file paths
 			label = entries.length > 1
 				? localize('defaultDropProvider.uriList.paths', "Insert Paths")
 				: localize('defaultDropProvider.uriList.path', "Insert Path");
@@ -229,7 +225,6 @@ async function extractUriList(dataTransfer: IReadonlyVSDataTransfer): Promise<{ 
 		try {
 			entries.push({ uri: URI.parse(entry), originalText: entry });
 		} catch {
-			// noop
 		}
 	}
 	return entries;

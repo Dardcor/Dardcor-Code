@@ -54,32 +54,25 @@ suite('ChatStatusBarEntry - computeQuotaResumeState', () => {
 	}
 
 	const scenarios: IScenario[] = [
-		// Free: enter blocked when premium chat is exhausted
 		{ name: 'free not blocked stays none', previous: 'none', entitlement: ChatEntitlement.Free, quotas: { premiumChat: available }, expected: 'none' },
 		{ name: 'free premium exhausted becomes blocked', previous: 'none', entitlement: ChatEntitlement.Free, quotas: { premiumChat: exhausted }, expected: 'blocked' },
 
-		// Free: reset after being blocked surfaces "resumed"
 		{ name: 'free reset after blocked becomes resumed', previous: 'blocked', entitlement: ChatEntitlement.Free, quotas: { premiumChat: available }, expected: 'resumed' },
 		{ name: 'free still exhausted stays blocked', previous: 'blocked', entitlement: ChatEntitlement.Free, quotas: { premiumChat: exhausted }, expected: 'blocked' },
 
-		// Offline / unresolved quota: do not falsely resume, keep blocked until fresh data
 		{ name: 'free no quota data keeps blocked', previous: 'blocked', entitlement: ChatEntitlement.Free, quotas: {}, expected: 'blocked' },
 
-		// Additional spend: never blocked, and never surfaces resumed
 		{ name: 'free exhausted with additional spend not blocked', previous: 'none', entitlement: ChatEntitlement.Free, quotas: { premiumChat: exhausted, additionalUsageEnabled: true }, expected: 'none' },
 		{ name: 'blocked then additional spend clears to none', previous: 'blocked', entitlement: ChatEntitlement.Free, quotas: { premiumChat: exhausted, additionalUsageEnabled: true }, expected: 'none' },
 
-		// Resumed persists until dismissed
 		{ name: 'resumed persists while not blocked', previous: 'resumed', entitlement: ChatEntitlement.Free, quotas: { premiumChat: available }, expected: 'resumed' },
 		{ name: 'resumed overridden when blocked again', previous: 'resumed', entitlement: ChatEntitlement.Free, quotas: { premiumChat: exhausted }, expected: 'blocked' },
 
-		// Pooled Business/Enterprise
 		{ name: 'business pooled depleted becomes blocked', previous: 'none', entitlement: ChatEntitlement.Business, quotas: { premiumChat: pooledDepleted }, expected: 'blocked' },
 		{ name: 'enterprise pooled depleted becomes blocked', previous: 'none', entitlement: ChatEntitlement.Enterprise, quotas: { premiumChat: pooledDepleted }, expected: 'blocked' },
 		{ name: 'business pooled depleted with additional spend not blocked', previous: 'none', entitlement: ChatEntitlement.Business, quotas: { premiumChat: pooledDepleted, additionalUsageEnabled: true }, expected: 'none' },
 		{ name: 'business reset after blocked becomes resumed', previous: 'blocked', entitlement: ChatEntitlement.Business, quotas: { premiumChat: pooledAvailable }, expected: 'resumed' },
 
-		// Paid individual plans (Pro/Pro+/EDU): tracked via premium chat quota
 		{ name: 'pro premium exhausted becomes blocked', previous: 'none', entitlement: ChatEntitlement.Pro, quotas: { premiumChat: exhausted }, expected: 'blocked' },
 		{ name: 'pro plus premium exhausted becomes blocked', previous: 'none', entitlement: ChatEntitlement.ProPlus, quotas: { premiumChat: exhausted }, expected: 'blocked' },
 		{ name: 'edu premium exhausted becomes blocked', previous: 'none', entitlement: ChatEntitlement.EDU, quotas: { premiumChat: exhausted }, expected: 'blocked' },
@@ -87,7 +80,6 @@ suite('ChatStatusBarEntry - computeQuotaResumeState', () => {
 		{ name: 'pro premium with additional spend not blocked', previous: 'none', entitlement: ChatEntitlement.Pro, quotas: { premiumChat: exhausted, additionalUsageEnabled: true }, expected: 'none' },
 		{ name: 'pro no quota data keeps blocked', previous: 'blocked', entitlement: ChatEntitlement.Pro, quotas: {}, expected: 'blocked' },
 
-		// Untracked audience (signed out / unresolved / not entitled): never tracked
 		{ name: 'unresolved while blocked clears to none', previous: 'blocked', entitlement: ChatEntitlement.Unresolved, quotas: {}, expected: 'none' },
 		{ name: 'unavailable resumed clears to none', previous: 'resumed', entitlement: ChatEntitlement.Unavailable, quotas: {}, expected: 'none' },
 	];
@@ -269,7 +261,6 @@ suite('ChatStatusBarEntry', () => {
 		await flushTimers();
 		assert.strictEqual(statusbar.current?.text, '$(copilot) Copilot Resumed');
 
-		// Opening the dashboard happens through the status entry tooltip element factory.
 		const tooltip = statusbar.current?.tooltip as { element: (token: CancellationToken) => HTMLElement };
 		const cts = new CancellationTokenSource();
 		tooltip.element(cts.token);

@@ -93,7 +93,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	}
 });
 
-// configuration
 Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration({
 	...problemsConfigurationNodeBase,
 	'properties': {
@@ -128,7 +127,6 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfigurat
 
 const markersViewIcon = registerIcon('markers-view-icon', Codicon.warning, localize('markersViewIcon', 'View icon of the markers view.'));
 
-// markers view container
 const VIEW_CONTAINER: ViewContainer = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry).registerViewContainer({
 	id: Markers.MARKERS_CONTAINER_ID,
 	title: Messages.MARKERS_PANEL_TITLE_PROBLEMS,
@@ -156,10 +154,8 @@ Registry.as<IViewsRegistry>(ViewContainerExtensions.ViewsRegistry).registerViews
 	windowEnablement: WindowEnablement.Both
 }], VIEW_CONTAINER);
 
-// workbench
 const workbenchRegistry = Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench);
 
-// actions
 registerAction2(class extends ViewAction<IMarkersView> {
 	constructor() {
 		super({
@@ -580,13 +576,12 @@ class MarkersStatusBarContributions extends Disposable implements IWorkbenchCont
 		@IConfigurationService private readonly configurationService: IConfigurationService
 	) {
 		super();
-		this.markersStatusItem = this._register(this.statusbarService.addEntry(this.getMarkersItem(), 'status.problems', StatusbarAlignment.LEFT, 50 /* Medium Priority */));
+		this.markersStatusItem = this._register(this.statusbarService.addEntry(this.getMarkersItem(), 'status.problems', StatusbarAlignment.LEFT, 50 ));
 
 		const addStatusBarEntry = () => {
 			this.markersStatusItemOff = this.statusbarService.addEntry(this.getMarkersItemTurnedOff(), 'status.problemsVisibility', StatusbarAlignment.LEFT, 49);
 		};
 
-		// Add the status bar entry if the problems is not visible
 		let config = this.configurationService.getValue('problems.visibility');
 		if (!config) {
 			addStatusBarEntry();
@@ -600,7 +595,6 @@ class MarkersStatusBarContributions extends Disposable implements IWorkbenchCont
 			if (e.affectsConfiguration('problems.visibility')) {
 				this.markersStatusItem.update(this.getMarkersItem());
 
-				// Update based on what setting was changed to.
 				config = this.configurationService.getValue('problems.visibility');
 				if (!config && !this.markersStatusItemOff) {
 					addStatusBarEntry();
@@ -625,7 +619,6 @@ class MarkersStatusBarContributions extends Disposable implements IWorkbenchCont
 	}
 
 	private getMarkersItemTurnedOff(): IStatusbarEntry {
-		// Update to true, config checked before `getMarkersItemTurnedOff` is called.
 		this.statusbarService.updateEntryVisibility('status.problemsVisibility', true);
 		const openSettingsCommand = 'workbench.action.openSettings';
 		const configureSettingsLabel = '@id:problems.visibility';
@@ -669,13 +662,10 @@ class MarkersStatusBarContributions extends Disposable implements IWorkbenchCont
 	private getMarkersText(stats: MarkerStatistics): string {
 		const problemsText: string[] = [];
 
-		// Errors
 		problemsText.push('$(error) ' + this.packNumber(stats.errors));
 
-		// Warnings
 		problemsText.push('$(warning) ' + this.packNumber(stats.warnings));
 
-		// Info (only if any)
 		if (stats.infos > 0) {
 			problemsText.push('$(info) ' + this.packNumber(stats.infos));
 		}
@@ -720,5 +710,4 @@ class ActivityUpdater extends Disposable implements IWorkbenchContribution {
 
 workbenchRegistry.registerWorkbenchContribution(ActivityUpdater, LifecyclePhase.Restored);
 
-// Register Accessible View Help
 AccessibleViewRegistry.register(new ProblemsAccessibilityHelp());

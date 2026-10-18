@@ -310,7 +310,6 @@ suite('generateAutoApproveActions', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	function createMockRule(sourceText: string): IAutoApproveRule {
-		// Escape special regex characters for test purposes to prevent regex errors
 		const escapedText = sourceText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 		return {
 			regex: new RegExp(escapedText),
@@ -608,11 +607,6 @@ suite('buildCommandDisplayText', () => {
 		ok(result.endsWith('...'));
 	});
 
-	// Regression test for #318601: system notification labels used to wrap the
-	// raw command in a single-backtick inline code span. Multi-line commands
-	// (which contain blank lines) broke the code span and rendered the leading
-	// backtick literally. The command must be collapsed to a single line and
-	// safely fenced so it always renders as inline code.
 	test('multi-line command renders as inline code (not a literal backtick)', () => {
 		const opts: marked.MarkedOptions = { gfm: true, breaks: true };
 		const render = (value: string) => marked.parser(marked.lexer(value, opts), opts);
@@ -653,9 +647,6 @@ suite('buildCompletionNotificationCommand', () => {
 		strictEqual(buildCompletionNotificationCommand('echo \\"hi\\"\necho ignored'), 'echo "hi"…');
 	});
 
-	// Regression test for #318601: the final label must render as inline code
-	// (no literal backticks) when fed to the markdown renderer wrapped with
-	// `appendEscapedMarkdownInlineCode`.
 	test('result renders as inline code when wrapped with appendEscapedMarkdownInlineCode', () => {
 		const opts: marked.MarkedOptions = { gfm: true, breaks: true };
 		const render = (value: string) => marked.parser(marked.lexer(value, opts), opts);

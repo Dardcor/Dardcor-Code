@@ -77,24 +77,24 @@ export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingServi
 
 	private async saveUntitledBeforeShutdown(reason: ShutdownReason): Promise<boolean> {
 		if (reason !== ShutdownReason.LOAD && reason !== ShutdownReason.CLOSE) {
-			return false; // only interested when window is closing or loading
+			return false;
 		}
 
 		const workspaceIdentifier = this.getCurrentWorkspaceIdentifier();
 		if (!workspaceIdentifier || !isUntitledWorkspace(workspaceIdentifier.configPath, this.environmentService)) {
-			return false; // only care about untitled workspaces to ask for saving
+			return false;
 		}
 
 		const windowCount = await this.nativeHostService.getWindowCount();
 		if (reason === ShutdownReason.CLOSE && !isMacintosh && windowCount === 1) {
-			return false; // Windows/Linux: quits when last window is closed, so do not ask then
+			return false;
 		}
 
 		const confirmSaveUntitledWorkspace = this.configurationService.getValue<boolean>('window.confirmSaveUntitledWorkspace') !== false;
 		if (!confirmSaveUntitledWorkspace) {
 			await this.workspacesService.deleteUntitledWorkspace(workspaceIdentifier);
 
-			return false; // no confirmation configured
+			return false;
 		}
 
 		let canceled = false;
@@ -108,24 +108,21 @@ export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingServi
 					run: async () => {
 						const newWorkspacePath = await this.pickNewWorkspacePath();
 						if (!newWorkspacePath || !hasWorkspaceFileExtension(newWorkspacePath)) {
-							return true; // keep veto if no target was provided
+							return true;
 						}
 
 						try {
 							await this.saveWorkspaceAs(workspaceIdentifier, newWorkspacePath);
 
-							// Make sure to add the new workspace to the history to find it again
 							const newWorkspaceIdentifier = await this.workspacesService.getWorkspaceIdentifier(newWorkspacePath);
 							await this.workspacesService.addRecentlyOpened([{
 								label: this.labelService.getWorkspaceLabel(newWorkspaceIdentifier, { verbose: Verbosity.LONG }),
 								workspace: newWorkspaceIdentifier,
-								remoteAuthority: this.environmentService.remoteAuthority // remember whether this was a remote window
+								remoteAuthority: this.environmentService.remoteAuthority
 							}]);
 
-							// Delete the untitled one
 							await this.workspacesService.deleteUntitledWorkspace(workspaceIdentifier);
 						} catch (error) {
-							// ignore
 						}
 
 						return false;
@@ -144,7 +141,7 @@ export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingServi
 				run: () => {
 					canceled = true;
 
-					return true; // veto
+					return true;
 				}
 			},
 			checkbox: {
@@ -162,7 +159,6 @@ export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingServi
 	override async isValidTargetWorkspacePath(workspaceUri: URI): Promise<boolean> {
 		const windows = await this.nativeHostService.getWindows({ includeAuxiliaryWindows: false });
 
-		// Prevent overwriting a workspace that is currently opened in another window
 		if (windows.some(window => isWorkspaceIdentifier(window.workspace) && this.uriIdentityService.extUri.isEqual(window.workspace.configPath, workspaceUri))) {
 			await this.dialogService.info(
 				localize('workspaceOpenedMessage', "Unable to save workspace '{0}'", basename(workspaceUri)),
@@ -172,7 +168,7 @@ export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingServi
 			return false;
 		}
 
-		return true; // OK
+		return true;
 	}
 
 	async enterWorkspace(workspaceUri: URI): Promise<void> {
@@ -185,26 +181,20 @@ export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingServi
 		const result = await this.doEnterWorkspace(workspaceUri);
 		if (result) {
 
-			// Migrate storage to new workspace
-			await this.storageService.switch(result.workspace, true /* preserve data */);
+			await this.storageService.switch(result.workspace, true );
 
-			// Reinitialize backup service
 			if (this.workingCopyBackupService instanceof WorkingCopyBackupService) {
 				const newBackupWorkspaceHome = result.backupPath ? URI.file(result.backupPath).with({ scheme: this.environmentService.userRoamingDataHome.scheme }) : undefined;
 				this.workingCopyBackupService.reinitialize(newBackupWorkspaceHome);
 			}
 
-			// Fire event to allow participants to join
 			await this.fireDidEnterWorkspace(oldWorkspace, result.workspace);
 		}
 
-		// TODO@aeschli: workaround until restarting works
 		if (this.environmentService.remoteAuthority) {
 			this.hostService.reload();
 		}
 
-		// Restart the extension host: entering a workspace means a new location for
-		// storage and potentially a change in the workspace.rootPath property.
 		else {
 			this.extensionService.startExtensionHosts();
 		}

@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
 .chat-pills,
 .chat-pills .monaco-toolbar,
 .chat-pills .monaco-action-bar,
@@ -34,8 +39,6 @@
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
 	touch-action: manipulation;
-	border: 1px solid #6A1B9A;
-	background-color: #000000;
 }
 
 .chat-pill-item .monaco-button.chat-pill-button.secondary {
@@ -48,12 +51,10 @@
 }
 
 .chat-pill-item .monaco-button.chat-pill-button:focus {
-	outline: 1px solid #7C4DFF !important;
 	outline-offset: -1px !important;
 }
 
 .chat-pills .monaco-button:focus {
-	outline: 1px solid #7C4DFF !important;
 	outline-offset: -1px !important;
 }
 
@@ -149,6 +150,24 @@
 	background-position: center center;
 }
 
+.action-widget.chat-pill-dropdown .monaco-list .monaco-list-row.has-toolbar:not(.has-standalone-toggle):not(.has-inline-toggle):not(.has-detail) {
+	padding-right: 0;
+}
+
+.action-widget.chat-pill-dropdown .monaco-list .monaco-list-row.has-toolbar:not(.has-standalone-toggle):not(.has-inline-toggle):not(.has-detail) .action-list-item-toolbar {
+	margin-right: 0;
+}
+
+.action-widget.chat-pill-dropdown .monaco-list-row.chat-pill-github-reference .action-item-badge {
+	margin-left: var(--vscode-spacing-size40);
+	padding: 0;
+	border-radius: 0;
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	font-size: inherit;
+	line-height: inherit;
+}
+
 .chat-pills-row {
 	width: 100%;
 	min-width: 0;
@@ -208,8 +227,8 @@
 }
 
 .chat-pills-row.empty .chat-pills-row-content:focus-visible {
-	outline: 1px solid #7C4DFF;
-	outline-offset: -1px;
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: calc(-1 * var(--vscode-strokeThickness));
 	border-radius: var(--vscode-cornerRadius-small);
 }
 
@@ -222,13 +241,13 @@
 	position: absolute;
 	inset: var(--vscode-strokeThickness);
 	border-radius: var(--vscode-cornerRadius-circle);
-	background: #888888;
+	background: var(--vscode-scrollbarSlider-background);
 }
 
 .chat-pills-row > .scrollbar > .slider:hover::before {
-	background: #aaaaaa;
+	background: var(--vscode-scrollbarSlider-hoverBackground);
 }
 
 .chat-pills-row > .scrollbar > .slider.active::before {
-	background: #cccccc;
+	background: var(--vscode-scrollbarSlider-activeBackground);
 }

@@ -8,7 +8,7 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface IOsc633TerminalParams {
 	command: string;
@@ -31,10 +31,6 @@ export interface IOsc633Event {
 	exitCode?: number;
 }
 
-/**
- * Stateful chunk-boundary safe parser for OSC 633 shell integration sequences.
- * Sequence format: \x1b]633;<Type>[;<Payload>]\x07 or \x1b]633;<Type>[;<Payload>]\x1b\\
- */
 export class Osc633StreamParser {
 	private buffer: string = '';
 	private commandOutput: string[] = [];
@@ -115,7 +111,7 @@ export class Osc633StreamParser {
 	}
 }
 
-export class Osc633TerminalRunnerTool implements ICopilotTool<IOsc633TerminalParams> {
+export class Osc633TerminalRunnerTool implements IAgentTool<IOsc633TerminalParams> {
 	public static readonly toolName = ToolName.Osc633TerminalRunner;
 
 	private isInteractivePrompt(chunk: string): boolean {

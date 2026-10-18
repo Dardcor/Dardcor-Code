@@ -18,10 +18,6 @@ export interface IFileSystemService extends FileSystem {
 	readDirectory(uri: Uri): Promise<[string, FileType][]>;
 	createDirectory(uri: Uri): Promise<void>;
 
-	/**
-	 * @param uri
-	 * @param disableLimit Disable the {@link FS_READ_MAX_FILE_SIZE} limit and potentially crash the EH. USE THIS WITH CAUTION!
-	 */
 	readFile(uri: Uri, disableLimit?: boolean): Promise<Uint8Array>;
 	writeFile(uri: Uri, content: Uint8Array): Promise<void>;
 	delete(uri: Uri, options?: { recursive?: boolean; useTrash?: boolean }): Promise<void>;
@@ -32,10 +28,6 @@ export interface IFileSystemService extends FileSystem {
 	createFileSystemWatcher(glob: string | RelativePattern): FileSystemWatcher;
 }
 
-/**
- * This is here to allow us to reuse the same readFile/JSON.parse across multiple invocations during simulations.
- * This is disabled in production.
- */
 export const fileSystemServiceReadAsJSON = new class {
 	private _cache: LRUCache<any> | null = null;
 
@@ -63,7 +55,7 @@ export const fileSystemServiceReadAsJSON = new class {
 }();
 
 
-export const FS_READ_MAX_FILE_SIZE = 1024 * 1024 * 5; // 5 MB
+export const FS_READ_MAX_FILE_SIZE = 1024 * 1024 * 5;
 
 export async function assertReadFileSizeLimit(fileSystemService: IFileSystemService, uri: Uri, onlyWarn?: boolean) {
 	const stat = await fileSystemService.stat(uri);
@@ -86,7 +78,6 @@ export async function createDirectoryIfNotExists(fileSystemService: IFileSystemS
 		}
 		await fileSystemService.createDirectory(uri);
 	} catch (err) {
-		// Possibly created by another asyn operation. Check again.
 		const exists = await fileSystemService.stat(uri).then(() => true).catch(() => false);
 		if (exists) {
 			return;

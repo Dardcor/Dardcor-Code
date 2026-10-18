@@ -42,11 +42,6 @@ class TestAgentHostChangesetService extends AgentHostChangesetService {
 	}
 }
 
-/**
- * Builds a test subscription service backed by a mutable set of subscribed
- * changeset URIs, so service tests can simulate subscribe / unsubscribe
- * without wiring up the coordinator.
- */
 function createSubscriptionService(...changesets: string[]): IAgentHostChangesetSubscriptionService & { readonly subscriptions: Set<string> } {
 	const subscriptions = new Set(changesets);
 	return {
@@ -60,11 +55,6 @@ function createSubscriptionService(...changesets: string[]): IAgentHostChangeset
 	};
 }
 
-/**
- * Builds a no-op changeset operation service for tests. It advertises no
- * operations, which mirrors the default behaviour of a session without any
- * operation contributions.
- */
 function createOperationService(): IAgentHostChangesetOperationService {
 	return {
 		_serviceBrand: undefined,
@@ -76,7 +66,6 @@ function createOperationService(): IAgentHostChangesetOperationService {
 	};
 }
 
-/** Captures `publicLog2` telemetry events so tests can assert on emitted fields. */
 class CapturingTelemetryService implements ITelemetryService {
 	declare readonly _serviceBrand: undefined;
 	readonly telemetryLevel = TelemetryLevel.USAGE;
@@ -148,8 +137,6 @@ suite.skip('AgentHostChangesetService', () => {
 		const sessionStr = sessionUri.toString();
 		setupSession();
 
-		// Catalogue is seeded by setupSession (mirrors what `_buildInitialSummary`
-		// does in production) — sanity check before exercising registration.
 		assert.deepStrictEqual(stateManager.getSessionState(sessionStr)?.changesets, [
 			{ label: 'Branch Changes', uriTemplate: `${sessionStr}/changeset/session`, changeKind: 'session' },
 			{ label: 'Uncommitted Changes', uriTemplate: `${sessionStr}/changeset/uncommitted`, description: 'Show uncommitted changes in this session', changeKind: 'uncommitted' },
@@ -157,16 +144,12 @@ suite.skip('AgentHostChangesetService', () => {
 
 		changesetService.registerStaticChangesets(sessionStr);
 
-		// Both static changeset URIs are now registered and subscribable
-		// with `computing` snapshots so a client that subscribes before
-		// the first compute pass sees a valid state.
 		for (const id of ['uncommitted', 'session']) {
 			const snapshot = stateManager.getSnapshot(`${sessionStr}/changeset/${id}`);
 			assert.ok(snapshot, `expected ${id} changeset URI to be subscribable`);
 			assert.strictEqual((snapshot.state as { status: string }).status, 'computing');
 		}
 
-		// Registration must not mutate the seeded catalogue.
 		assert.deepStrictEqual(stateManager.getSessionState(sessionStr)?.changesets, [
 			{ label: 'Branch Changes', uriTemplate: `${sessionStr}/changeset/session`, changeKind: 'session' },
 			{ label: 'Uncommitted Changes', uriTemplate: `${sessionStr}/changeset/uncommitted`, description: 'Show uncommitted changes in this session', changeKind: 'uncommitted' },
@@ -279,7 +262,6 @@ suite.skip('AgentHostChangesetService', () => {
 
 	test('restoreStaticChangeset works without a live session state (seeds the changeset for unopened sessions)', () => {
 		const sessionStr = sessionUri.toString();
-		// Note: setupSession is intentionally NOT called.
 
 		const diffs = [
 			{
@@ -289,8 +271,6 @@ suite.skip('AgentHostChangesetService', () => {
 		];
 		changesetService.restoreStaticChangeset(sessionStr, 'session', diffs);
 
-		// Session state still doesn't exist — only the changeset
-		// state is registered so a client subscription resolves.
 		assert.strictEqual(stateManager.getSessionState(sessionStr), undefined);
 		const snapshot = stateManager.getSnapshot(`${sessionStr}/changeset/session`);
 		assert.ok(snapshot, 'expected the changeset URI to be subscribable even without a session state');
@@ -338,33 +318,18 @@ suite.skip('AgentHostChangesetService', () => {
 				envelopes.push(e);
 			}));
 
-			// Trigger a turn-complete (which fires the immediate diff path).
-			// The uncommitted subscription makes on-turn-complete compute that
-			// slot alongside the session-wide one.
 			localChangesets.onTurnComplete(sessionUri.toString(), 'turn-1');
 
-			// Turn-complete recomputes both the uncommitted and the
-			// session-wide changesets via the per-key sequencer; wait
-			// deterministically until both git calls have been observed
-			// rather than racing on the first dispatched envelope.
 			for (let i = 0; i < 200 && computeCalls.length < 2; i++) {
 				await timeout(2);
 			}
 
-			// Turn-complete recomputes both the uncommitted (no
-			// `baseBranch`) and the session-wide (with `baseBranch`)
-			// changesets in parallel; assert both ran with the right
-			// options regardless of order.
 			const sortedCalls = [...computeCalls].sort((a, b) =>
 				(a.baseBranch ?? '') < (b.baseBranch ?? '') ? -1 : 1);
 			assert.deepStrictEqual(sortedCalls, [
 				{ workingDirectory: 'file:///wd', sessionUri: sessionUri.toString(), baseBranch: undefined },
 				{ workingDirectory: 'file:///wd', sessionUri: sessionUri.toString(), baseBranch: 'main' },
 			]);
-			// Each compute pass lands as a single `changeset/contentChanged`
-			// envelope carrying the full file list. Walk the captured stream
-			// and reconstruct the per-changeset file lists to assert each
-			// matches the git service output.
 			const contentChanges = envelopes
 				.filter(e => e.action.type === ActionType.ChangesetContentChanged) as Array<{ channel: string; action: { files: Array<{ edit: unknown }> } }>;
 			const sessionContent = contentChanges.filter(e => e.channel === `${sessionUri.toString()}/changeset/session`);
@@ -372,10 +337,6 @@ suite.skip('AgentHostChangesetService', () => {
 			assert.deepStrictEqual(sessionContent.at(-1)?.action.files.map(f => f.edit), gitDiffs);
 			assert.deepStrictEqual(uncommittedContent.at(-1)?.action.files.map(f => f.edit), gitDiffs);
 
-			// The compute pass also persists the file list under the
-			// legacy `'diffs'` slot so it survives restarts. The write
-			// is fire-and-forget through the metadata sequencer; poll
-			// briefly until it lands.
 			let persisted: string | undefined;
 			for (let i = 0; i < 50 && !persisted; i++) {
 				await timeout(2);
@@ -493,12 +454,6 @@ suite.skip('AgentHostChangesetService', () => {
 
 			await diffsEmitted;
 
-			// With no recorded edits, the edit-tracker aggregator returns an
-			// empty array — the single `changeset/contentChanged` envelope
-			// carries an empty file list. The important assertion is that we
-			// still ran the producer through to a `changeset/statusChanged →
-			// ready` envelope, which proves the fallback path executed without
-			// throwing.
 			const contentChanges = envelopes
 				.map(e => e.action)
 				.filter(a => a.type === ActionType.ChangesetContentChanged) as Array<{ files: unknown[] }>;
@@ -578,9 +533,6 @@ suite.skip('AgentHostChangesetService', () => {
 			const sessionStr = sessionUri.toString();
 			setupSession('file:///wd');
 
-			// Shared `changesetService` uses createNoopGitService() whose
-			// computeSessionFileDiffs returns undefined — exactly the
-			// "not a git work tree" signal we want to exercise.
 			await changesetService.computeUncommittedChangeset(sessionStr);
 
 			const uncommittedUri = `${sessionStr}/changeset/uncommitted`;
@@ -712,7 +664,6 @@ suite.skip('AgentHostChangesetService', () => {
 			createSessionState(localStateManager, undefined);
 
 			service.refreshSessionChangeset(sessionStr);
-			// Last subscriber leaves before the working directory is known.
 			subscriptions.delete(buildSessionChangesetUri(sessionStr));
 
 			const summary = localStateManager.getSessionSummary(sessionStr)!;
@@ -768,7 +719,7 @@ suite.skip('AgentHostChangesetService', () => {
 
 			const result = changesetService.restorePersistedStaticChangesets(sessionStr, {
 				sessionRaw: JSON.stringify([aDiff]),
-				legacyRaw: JSON.stringify([bDiff]), // would lose
+				legacyRaw: JSON.stringify([bDiff]),
 			});
 
 			assert.deepStrictEqual(result.session?.map(d => d.after?.uri), ['file:///wd/a.ts'], 'new key wins over legacy');
@@ -795,8 +746,6 @@ suite.skip('AgentHostChangesetService', () => {
 			});
 
 			assert.strictEqual(result.session, undefined, 'malformed slot returns undefined');
-			// Session snapshot stayed in `computing` because malformed input
-			// was discarded — not seeded with garbage.
 			const session = stateManager.getSnapshot(`${sessionStr}/changeset/session`);
 			assert.strictEqual((session?.state as { status: string }).status, 'computing');
 		});
@@ -804,14 +753,10 @@ suite.skip('AgentHostChangesetService', () => {
 		test('seedIfEmpty honoured: live state with files is not overwritten', () => {
 			setupSession();
 
-			// Seed live session state via restoreStaticChangeset to mimic
-			// a fresh refresh that landed before the persisted-overlay call.
 			changesetService.restoreStaticChangeset(sessionStr, 'session', [aDiff]);
 			const before = stateManager.getSnapshot(`${sessionStr}/changeset/session`);
 			assert.deepStrictEqual((before?.state as { files: Array<{ id: string }> }).files.map(f => f.id), ['file:///wd/a.ts']);
 
-			// Persisted blob points at a DIFFERENT file; without the guard it
-			// would clobber the live state.
 			changesetService.restorePersistedStaticChangesets(sessionStr, {
 				sessionRaw: JSON.stringify([bDiff]),
 			});
@@ -922,11 +867,6 @@ suite.skip('AgentHostChangesetService', () => {
 
 	suite('per-turn live streaming', () => {
 
-		// Test rig: a subclass that counts `computeTurnChangeset` invocations
-		// so we can assert gating wiring without needing real session DB
-		// content for `computeTurnDiffs` to chew on. The base class behaviour
-		// is preserved (super-call is awaited), so any per-file dispatch the
-		// production path would emit still flows through normally.
 		class CountingChangesetService extends TestAgentHostChangesetService {
 			readonly turnComputeCalls: { session: string; turnId: string }[] = [];
 			readonly uncommittedComputeCalls: string[] = [];
@@ -964,7 +904,6 @@ suite.skip('AgentHostChangesetService', () => {
 
 			svc.onTurnComplete(sessionUri.toString(), 'turn-1');
 
-			// Sequencer drains async; wait briefly for the per-turn call.
 			for (let i = 0; i < 50 && svc.turnComputeCalls.length === 0; i++) {
 				await timeout(2);
 			}
@@ -981,8 +920,6 @@ suite.skip('AgentHostChangesetService', () => {
 
 			svc.onTurnComplete(sessionUri.toString(), 'turn-1');
 
-			// Give the static computes a chance to drain — the per-turn
-			// call must remain absent throughout.
 			await timeout(20);
 			assert.deepStrictEqual(svc.turnComputeCalls, [], 'no per-turn compute when nothing observes the turn URI');
 		});
@@ -1010,8 +947,6 @@ suite.skip('AgentHostChangesetService', () => {
 
 			svc.onTurnComplete(sessionUri.toString(), 'turn-1');
 
-			// Give the static computes a chance to drain — the uncommitted
-			// call must remain absent throughout.
 			await timeout(20);
 			assert.deepStrictEqual(svc.uncommittedComputeCalls, [], 'no uncommitted compute when nothing observes the uncommitted URI');
 		});
@@ -1022,22 +957,16 @@ suite.skip('AgentHostChangesetService', () => {
 				const svc = makeService();
 				subscriptions.add(buildTurnChangesetUri(sessionUri.toString(), 'turn-1'));
 
-				// 1) edits with subscriber -> after debounce, exactly one per-turn compute fires.
 				svc.onToolCallEditsApplied(sessionUri.toString(), 'turn-1');
-				await timeout(6_000); // debounce is 5s
+				await timeout(6_000);
 				assert.strictEqual(svc.turnComputeCalls.length, 1, 'debounce should fire one per-turn compute');
 
-				// 2) another edit batch + onTurnComplete before the debounce
-				// elapses -> the debounce is cancelled and the final compute
-				// is scheduled directly by onTurnComplete (one additional call).
 				svc.onToolCallEditsApplied(sessionUri.toString(), 'turn-1');
 				await timeout(1_000);
 				svc.onTurnComplete(sessionUri.toString(), 'turn-1');
 				await timeout(10);
 				assert.strictEqual(svc.turnComputeCalls.length, 2, 'onTurnComplete cancels pending debounce and runs exactly one final compute');
 
-				// 3) clearing the subscription mid-stream silences future
-				// per-turn computes even if more edits arrive.
 				subscriptions.clear();
 				svc.onToolCallEditsApplied(sessionUri.toString(), 'turn-1');
 				await timeout(6_000);
@@ -1046,10 +975,6 @@ suite.skip('AgentHostChangesetService', () => {
 		});
 
 		test('per-turn URI streams a ChangesetContentChanged snapshot as the same turn is recomputed', async () => {
-			// End-to-end variant exercising the real `computeTurnDiffs` path
-			// — produces actual diff payloads from session-DB messages so
-			// `_publishChangesetDiffs` emits a full content snapshot on each
-			// recompute pass.
 			const sessionDb = new SessionDatabase(':memory:');
 			disposables.add(toDisposable(() => sessionDb.close()));
 			const localStateManager = disposables.add(new AgentHostStateManager(new NullLogService()));
@@ -1080,25 +1005,16 @@ suite.skip('AgentHostChangesetService', () => {
 			disposables.add(localStateManager.onDidEmitEnvelope(e => envelopes.push(e)));
 			const turnUri = `${sessionUri.toString()}/changeset/turn/turn-1`;
 
-			// First compute pass — no edits yet, so just establishes the
-			// per-turn state at status: ready with an empty file list.
 			await svc.computeTurnChangeset(sessionUri.toString(), 'turn-1');
 			const statusReady = envelopes
 				.find(e => e.action.type === ActionType.ChangesetStatusChanged && e.channel === turnUri);
 			assert.ok(statusReady, 'first per-turn compute must transition the URI to ready');
 
-			// Subsequent recomputes are observable via `_publishChangesetDiffs`
-			// even with empty diffs — the delta diffing is what matters here.
-			// Smoke-check that calling `onTurnComplete` triggers another
-			// `computeTurnChangeset` invocation through the sequencer.
 			envelopes.length = 0;
 			svc.onTurnComplete(sessionUri.toString(), 'turn-1');
 			for (let i = 0; i < 100 && !envelopes.some(e => e.action.type === ActionType.ChangesetStatusChanged && e.channel === `${sessionUri.toString()}/changeset/session`); i++) {
 				await timeout(2);
 			}
-			// Per-turn recompute was scheduled — at minimum its presence is
-			// proven by the static-session recompute also having run (both
-			// share the same `onTurnComplete` dispatch path).
 			assert.ok(
 				envelopes.some(e => e.action.type === ActionType.ChangesetStatusChanged),
 				'onTurnComplete must drive at least one downstream changeset status transition',
@@ -1171,7 +1087,6 @@ suite.skip('AgentHostChangesetService', () => {
 				gitService,
 				makeCheckpointService({
 					'orig': { parent: 'ref-orig-parent', current: 'ref-orig' },
-					// 'mod' is intentionally absent
 				}),
 				disposables.add(new AgentConfigurationService(stateManager, new NullLogService())),
 				createOperationService(),
@@ -1314,10 +1229,6 @@ suite('AgentHostChangesetService - materialization refresh', () => {
 	});
 });
 
-/**
- * A log service that records every warning/error message so multi-root tests
- * can assert the never-hard-fail path logged the expected per-folder failure.
- */
 class RecordingLogService extends NullLogService {
 	readonly errors: string[] = [];
 	readonly warnings: string[] = [];
@@ -1403,11 +1314,6 @@ suite('AgentHostChangesetService - turn changeset lifecycle', () => {
 	});
 });
 
-/**
- * Multi-root turn changeset aggregation (AC-2). A separate top-level suite so
- * these run against the current service (the older `AgentHostChangesetService`
- * suite above is skipped pending an unrelated catalogue refresh).
- */
 suite('AgentHostChangesetService - multi-root turn changeset', () => {
 
 	const disposables = new DisposableStore();
@@ -1423,7 +1329,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 		return { after: { uri, content: { uri } }, diff: { added, removed } };
 	}
 
-	/** Builds a checkpoint service whose per-repo pair is derived from the working directory. */
 	function makeCheckpoint(pairFor: (workingDirectory: string | undefined) => { parent: string; current: string } | undefined): IAgentHostCheckpointService {
 		return {
 			...NULL_CHECKPOINT_SERVICE,
@@ -1431,7 +1336,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 		};
 	}
 
-	/** Polls until `changesetUri` reaches `Ready`. */
 	async function waitForChangesetReady(stateManager: AgentHostStateManager, changesetUri: string): Promise<void> {
 		for (let i = 0; i < 500; i++) {
 			if (stateManager.getChangesetState(changesetUri)?.status === ChangesetStatus.Ready) {
@@ -1455,9 +1359,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 		const log = options.log ?? new RecordingLogService();
 		const stateManager = disposables.add(new AgentHostStateManager(new NullLogService()));
 		const db = options.db ?? new TestSessionDatabase();
-		// The production diff-count worker runs an ESM module in a raw
-		// worker_thread, which the unit-test harness cannot load, so substitute
-		// the shared synchronous in-process computer via the factory seam.
 		const diffService = new TestDiffComputeService();
 		class TestableChangesetService extends TestAgentHostChangesetService {
 			protected override _createDiffComputeService() {
@@ -1544,16 +1445,12 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 
 	test('partitions git vs non-git folders so git-folder edits are not double-counted by the DB', async () => {
 		const db = new TestSessionDatabase();
-		// The DB edit tracker is path-based (no folder column) so it records
-		// edits from BOTH folders, including two under the git-backed repoB.
 		db.addEdit({ turnId: 'turn-1', toolCallId: 'tcX', filePath: '/folderA/x.txt', kind: FileEditKind.Edit, addedLines: undefined, removedLines: undefined, beforeContent: encodeString('a'), afterContent: encodeString('a\nb') });
 		db.addEdit({ turnId: 'turn-1', toolCallId: 'tcY', filePath: '/repoB/y.txt', kind: FileEditKind.Edit, addedLines: undefined, removedLines: undefined, beforeContent: encodeString('c'), afterContent: encodeString('c\nd') });
 		db.addEdit({ turnId: 'turn-1', toolCallId: 'tcZ', filePath: '/repoB/z.txt', kind: FileEditKind.Edit, addedLines: undefined, removedLines: undefined, beforeContent: encodeString('e'), afterContent: encodeString('e\nf') });
 
 		const git = createNoopGitService();
 		git.getRepositoryRoot = async wd => wd.toString() === 'file:///repoB' ? URI.parse('file:///repoB') : undefined;
-		// git reports only y.txt for repoB (not z.txt) — if the DB partition
-		// leaked git-folder edits, z.txt would wrongly appear.
 		git.computeFileDiffsBetweenRefs = async () => [gitDiff('/repoB/y.txt', 2, 0)];
 		const checkpoint = makeCheckpoint(() => ({ parent: 'p', current: 'c' }));
 		const { svc, stateManager } = build({ workingDirectories: ['file:///folderA', 'file:///repoB'], git, checkpoint, db });
@@ -1644,9 +1541,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 	test('a git repository whose turn diff fails falls back to that folder\'s DB edits', async () => {
 		const log = new RecordingLogService();
 		const db = new TestSessionDatabase();
-		// repoBad is git-backed but its git turn diff throws; the edit under it is
-		// tracked only in the path-based DB, so the per-folder DB fallback must
-		// surface it instead of the folder being dropped.
 		db.addEdit({ turnId: 'turn-1', toolCallId: 'tcBad', filePath: '/repoBad/x.ts', kind: FileEditKind.Edit, addedLines: undefined, removedLines: undefined, beforeContent: encodeString('a'), afterContent: encodeString('a\nb') });
 		const git = createNoopGitService();
 		git.getRepositoryRoot = async wd => URI.parse(wd.toString());
@@ -1699,10 +1593,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 	test('a folder whose repository-root lookup throws is treated as non-git (DB fallback) without dropping the whole turn', async () => {
 		const log = new RecordingLogService();
 		const db = new TestSessionDatabase();
-		// repoBad's ROOT resolution fails (not its git diff). Its edit is tracked
-		// only in the path-based DB, so it must surface via the non-git fallback
-		// while repoGood still contributes its git diff — before Issue 10 a single
-		// root-resolution failure dropped the WHOLE turn to an empty changeset.
 		db.addEdit({ turnId: 'turn-1', toolCallId: 'tcBad', filePath: '/repoBad/x.ts', kind: FileEditKind.Edit, addedLines: undefined, removedLines: undefined, beforeContent: encodeString('a'), afterContent: encodeString('a\nb') });
 		const git = createNoopGitService();
 		git.getRepositoryRoot = async wd => {
@@ -1737,7 +1627,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 		const pending: Array<() => void> = [];
 		const git = createNoopGitService();
 		git.getRepositoryRoot = async wd => URI.parse(wd.toString());
-		// Each diff parks on its own gate so we can observe how many run at once.
 		git.computeFileDiffsBetweenRefs = async wd => {
 			diffCalls.push(wd.toString());
 			active++;
@@ -1750,16 +1639,12 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 
 		const turnPromise = svc.computeTurnChangeset(sessionStr, 'turn-1');
 
-		// With every diff gated, only the concurrency limit start at once; the
-		// rest stay queued in the limiter (they are not dropped).
 		for (let i = 0; i < 500 && diffCalls.length < 5; i++) {
 			await timeout(1);
 		}
-		await timeout(10); // give a (wrongly) unbounded 6th diff a chance to start
+		await timeout(10);
 		const dispatchedWhileGated = diffCalls.length;
 
-		// Release the gated diffs one at a time, yielding so the limiter starts
-		// the next queued diff, until the whole turn compute settles.
 		let settled = false;
 		void turnPromise.then(() => { settled = true; });
 		while (!settled) {
@@ -1826,11 +1711,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 		assert.strictEqual(repoRootCalls, 0, 'single-folder fallback must not resolve repositories');
 	});
 
-	/**
-	 * A workspace continuation is a real provider turn even though its request
-	 * row is hidden; a later pure host notice must not replace it as the latest
-	 * attributable turn.
-	 */
 	test('session changeset attributes a hidden workspace continuation before a host notice', async () => {
 		const git = createNoopGitService();
 		git.getRepositoryRoot = async wd => URI.parse(wd.toString());
@@ -1954,16 +1834,8 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 		});
 	}
 
-	/**
-	 * All-folder branch summary (AC-3). In a multi-folder session the
-	 * `summary.changes` chip must reflect EVERY folder's branch delta, computed
-	 * independently of the primary-only branch changeset, and must survive a
-	 * subsequent branch recompute. Single-folder sessions stay branch-derived
-	 * (byte-for-byte unchanged).
-	 */
 	suite('all-folder branch summary', () => {
 
-		/** Polls until the live session summary carries a `changes` aggregate. */
 		async function waitForSummaryChanges(stateManager: AgentHostStateManager): Promise<ChangesSummary | undefined> {
 			for (let i = 0; i < 500; i++) {
 				const changes = stateManager.getSessionSummary(sessionStr)?.changes;
@@ -1975,14 +1847,12 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			return stateManager.getSessionSummary(sessionStr)?.changes;
 		}
 
-		/** Polls until `count()` reaches (at least) `target`. */
 		async function waitForCount(count: () => number, target: number): Promise<void> {
 			for (let i = 0; i < 500 && count() < target; i++) {
 				await timeout(1);
 			}
 		}
 
-		/** Polls until the independently published primary branch changeset settles. */
 		async function waitForBranchCompute(svc: AgentHostChangesetService, stateManager: AgentHostStateManager): Promise<void> {
 			const branchUri = buildBranchChangesetUri(sessionStr);
 			for (let i = 0; i < 500; i++) {
@@ -2009,7 +1879,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			svc.refreshBranchChangeset(sessionStr);
 			const changes = await waitForSummaryChanges(stateManager);
 
-			// repoA => 1 file / +3 / -1; repoB => 2 files / +6 / -2.
 			assert.deepStrictEqual(changes, { additions: 9, deletions: 3, files: 3 }, 'the chip counts every folder, not only the primary');
 			assert.deepStrictEqual(
 				JSON.parse((await db.getMetadata(META_CHANGES_SUMMARY))!),
@@ -2035,11 +1904,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			const first = await waitForSummaryChanges(stateManager);
 			assert.deepStrictEqual(first, { additions: 2, deletions: 0, files: 2 }, 'first recompute yields the all-folder aggregate');
 
-			// F7: the primary repo's branch diff is REUSED by the summary, so each
-			// branch recompute issues exactly 2 `computeSessionFileDiffs` calls for
-			// a 2-repo session (primary once for the branch changeset + secondary
-			// once for the chip), not 3. Drain the second recompute, then allow a
-			// beat for any (unwanted) extra diff to surface.
 			const callsAfterFirst = calls.length;
 			svc.refreshBranchChangeset(sessionStr);
 			await waitForCount(() => calls.length, callsAfterFirst + 2);
@@ -2068,8 +1932,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			const db = new TestSessionDatabase();
 			const { svc, stateManager } = build({ workingDirectories: ['file:///repoA', 'file:///repoB'], git, checkpoint: NULL_CHECKPOINT_SERVICE, db });
 
-			// Warm the session: persist the all-folder summary and make the branch
-			// + session changesets Ready (idle eviction keeps changesets cached).
 			svc.refreshBranchChangeset(sessionStr);
 			svc.refreshSessionChangeset(sessionStr);
 			const warm = await waitForSummaryChanges(stateManager);
@@ -2077,19 +1939,13 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			await waitForCount(() => stateManager.getChangesetState(buildSessionChangesetUri(sessionStr))?.status === ChangesetStatus.Ready ? 1 : 0, 1);
 			const persistedSummary = (await db.getMetadata(META_CHANGES_SUMMARY))!;
 
-			// Idle eviction: drops the live summary but KEEPS the changesets cached.
 			stateManager.removeSession(sessionStr);
 			assert.strictEqual(stateManager.getSessionSummary(sessionStr)?.changes, undefined, 'live summary is gone after eviction');
 			assert.strictEqual(stateManager.getChangesetState(buildSessionChangesetUri(sessionStr))?.status, ChangesetStatus.Ready, 'session changeset stays cached after eviction (LRU keeps the on-screen chip)');
 
-			// The list overlay must still request the persisted summary key — before
-			// the fix it returned undefined here (session changeset Ready), skipping
-			// META_CHANGES_SUMMARY and falling back to the primary-only branch count.
 			const keys = svc.getListMetadataKeys(sessionStr);
 			assert.ok(keys && keys[META_CHANGES_SUMMARY], `getListMetadataKeys must request the persisted summary post-eviction, got ${JSON.stringify(keys)}`);
 
-			// ... and prefer it (all-folder), never deriving+persisting the
-			// primary-only branch count (repoA-only would be 3/1/1).
 			const overlay = svc.computeListEntryChanges(sessionStr, { [META_CHANGES_SUMMARY]: persistedSummary });
 			assert.deepStrictEqual(overlay, { additions: 8, deletions: 3, files: 2 }, 'evicted chip stays all-folder, not primary-only');
 			assert.deepStrictEqual(JSON.parse((await db.getMetadata(META_CHANGES_SUMMARY))!), { additions: 8, deletions: 3, files: 2 }, 'persisted all-folder summary is not clobbered');
@@ -2109,10 +1965,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			svc.refreshBranchChangeset(sessionStr);
 			await waitForSummaryChanges(stateManager);
 
-			// The chip aggregates ALL folders, but the branch CHANGESET data itself
-			// must remain primary-only — AC-8: only the turn changeset and the chip
-			// change in multi-folder sessions; branch/session/uncommitted/compare
-			// data is untouched.
 			const branch = stateManager.getChangesetState(buildBranchChangesetUri(sessionStr));
 			assert.deepStrictEqual(branch?.files.map(f => f.id), [URI.file('/repoA/a.ts').toString()], 'branch changeset data stays primary-only in a multi-root session');
 		});
@@ -2127,7 +1979,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			svc.refreshBranchChangeset(sessionStr);
 			const changes = await waitForSummaryChanges(stateManager);
 
-			// The single primary branch diff IS the whole session footprint, exactly as today.
 			assert.deepStrictEqual(changes, { additions: 4, deletions: 2, files: 1 });
 			assert.deepStrictEqual(
 				JSON.parse((await db.getMetadata(META_CHANGES_SUMMARY))!),
@@ -2176,7 +2027,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			};
 			const db = new TestSessionDatabase();
 			const { svc, stateManager } = build({ workingDirectories: ['file:///repoA', 'file:///repoB'], git, checkpoint: NULL_CHECKPOINT_SERVICE, db });
-			// The session's configured base branch applies to the PRIMARY repo only.
 			stateManager.setSessionMeta(sessionStr, withSessionGitState(undefined, { baseBranchName: 'main' }));
 
 			svc.refreshBranchChangeset(sessionStr);
@@ -2221,7 +2071,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 
 		test('folds non-git folder edits into the all-folder chip', async () => {
 			const db = new TestSessionDatabase();
-			// folderA is not git-backed; its edits are tracked only in the DB.
 			db.addEdit({ turnId: 'turn-1', toolCallId: 'tcA', filePath: '/folderA/x.txt', kind: FileEditKind.Edit, addedLines: undefined, removedLines: undefined, beforeContent: encodeString('a'), afterContent: encodeString('a\nb') });
 			const git = createNoopGitService();
 			git.getRepositoryRoot = async wd => wd.toString() === 'file:///repoB' ? URI.parse('file:///repoB') : undefined;
@@ -2231,7 +2080,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			svc.refreshBranchChangeset(sessionStr);
 			const changes = await waitForSummaryChanges(stateManager);
 
-			// repoB git branch diff => 1 file / +5 / -2; folderA DB edit => 1 file / +1 / -0.
 			assert.deepStrictEqual(changes, { additions: 6, deletions: 2, files: 2 }, 'non-git folder DB edits count toward the chip alongside git repos');
 		});
 
@@ -2251,16 +2099,12 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			const db = new TestSessionDatabase();
 			const { svc, stateManager } = build({ workingDirectories: ['file:///repoA', 'file:///repoB'], git, checkpoint: NULL_CHECKPOINT_SERVICE, db });
 
-			// Warm the summary to Ready with a real all-folder aggregate.
 			svc.refreshBranchChangeset(sessionStr);
 			const warm = await waitForSummaryChanges(stateManager);
 			assert.deepStrictEqual(warm, { additions: 8, deletions: 3, files: 2 }, 'warm all-folder aggregate');
 			await timeout(10);
 			const callsAfterWarm = calls.length;
 
-			// Every repository now fails: refresh and let the recompute settle.
-			// Observe completion via the git call count, NOT the (already-truthy)
-			// live summary, which would false-positive on the warm value.
 			available = false;
 			svc.refreshBranchChangeset(sessionStr);
 			await waitForCount(() => calls.length, callsAfterWarm + 1);
@@ -2278,9 +2122,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 		test('all repositories succeeding with no changes writes a zero summary (no over-preserve)', async () => {
 			const git = createNoopGitService();
 			git.getRepositoryRoot = async wd => URI.parse(wd.toString());
-			// Both repos succeed with an EMPTY diff (genuinely no changes) — this
-			// is an available source, so the aggregate must be written as zero,
-			// never preserved as if it were unavailable.
 			git.computeSessionFileDiffs = async () => [];
 			const db = new TestSessionDatabase();
 			const { svc, stateManager } = build({ workingDirectories: ['file:///repoA', 'file:///repoB'], git, checkpoint: NULL_CHECKPOINT_SERVICE, db });
@@ -2301,7 +2142,6 @@ suite('AgentHostChangesetService - multi-root turn changeset', () => {
 			const log = new RecordingLogService();
 			const git = createNoopGitService();
 			git.getRepositoryRoot = async wd => URI.parse(wd.toString());
-			// The SECONDARY repo's default-branch probe rejects (git spawn failure).
 			git.getDefaultBranch = async wd => {
 				if (wd.toString() === 'file:///repoB') { throw new Error('default branch lookup exploded'); }
 				return undefined;

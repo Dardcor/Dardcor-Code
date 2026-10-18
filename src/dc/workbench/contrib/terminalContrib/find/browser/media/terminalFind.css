@@ -16,6 +16,5 @@
 .xterm-find-active-result-decoration {
 	outline-style: solid !important;
 	outline-width: 2px !important;
-	/* Ensure the active decoration is above the regular decoration */
 	z-index: 7 !important;
 }

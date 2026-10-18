@@ -4,13 +4,8 @@ import { ROLE, CLAUDE_BLOCK, MODEL_FALLBACK } from "../schema/index.js";
 import { fromOpenAIFinish } from "../concerns/finishReason.js";
 import { extractReasoningText } from "../concerns/reasoning.js";
 
-// Legacy "proxy_" prefix used by older request translators. Response strips it
-// defensively so tool names from such turns resolve back (e.g. proxy_Read → Read
-// for arg sanitization). Current request translator emits no prefix ("") — strip
-// is then a no-op. Kept intentionally; do NOT couple to request's empty prefix.
 const CLAUDE_OAUTH_TOOL_PREFIX = "proxy_";
 
-// Sanitize tool call arguments to fix bad params from non-Anthropic models
 function sanitizeToolArgs(toolName, argsJson) {
   try {
     const args = JSON.parse(argsJson);
@@ -46,7 +41,6 @@ function isValidPdfPagesArg(filePath, pages) {
     /^\d+(?:-\d+)?$/.test(pages);
 }
 
-// Helper: stop thinking block if started
 function stopThinkingBlock(state, results) {
   if (!state.thinkingBlockStarted) return;
   results.push({
@@ -56,7 +50,6 @@ function stopThinkingBlock(state, results) {
   state.thinkingBlockStarted = false;
 }
 
-// Helper: stop text block if started
 function stopTextBlock(state, results) {
   if (!state.textBlockStarted || state.textBlockClosed) return;
   state.textBlockClosed = true;
@@ -67,7 +60,6 @@ function stopTextBlock(state, results) {
   state.textBlockStarted = false;
 }
 
-// Convert OpenAI stream chunk to Claude format
 export function openaiToClaudeResponse(chunk, state) {
   if (!chunk || !chunk.choices?.[0]) return null;
 
@@ -75,19 +67,15 @@ export function openaiToClaudeResponse(chunk, state) {
   const choice = chunk.choices[0];
   const delta = choice.delta;
 
-  // Track usage from OpenAI chunk if available
   if (chunk.usage && typeof chunk.usage === "object") {
     const promptTokens = typeof chunk.usage.prompt_tokens === "number" ? chunk.usage.prompt_tokens : 0;
     const outputTokens = typeof chunk.usage.completion_tokens === "number" ? chunk.usage.completion_tokens : 0;
 
-    // Extract cache tokens from prompt_tokens_details
     const cachedTokens = chunk.usage.prompt_tokens_details?.cached_tokens;
     const cacheCreationTokens = chunk.usage.prompt_tokens_details?.cache_creation_tokens;
     const cacheReadTokens = typeof cachedTokens === "number" ? cachedTokens : 0;
     const cacheCreateTokens = typeof cacheCreationTokens === "number" ? cacheCreationTokens : 0;
 
-    // input_tokens = prompt_tokens - cached_tokens - cache_creation_tokens
-    // Because OpenAI's prompt_tokens includes all prompt-side tokens
     const inputTokens = promptTokens - cacheReadTokens - cacheCreateTokens;
 
     state.usage = {
@@ -95,21 +83,16 @@ export function openaiToClaudeResponse(chunk, state) {
       output_tokens: outputTokens
     };
 
-    // Add cache_read_input_tokens if present
     if (cacheReadTokens > 0) {
       state.usage.cache_read_input_tokens = cacheReadTokens;
     }
 
-    // Add cache_creation_input_tokens if present
     if (cacheCreateTokens > 0) {
       state.usage.cache_creation_input_tokens = cacheCreateTokens;
     }
 
-    // Note: completion_tokens_details.reasoning_tokens is already included in output_tokens
-    // No need to add separately as Claude expects total output_tokens
   }
 
-  // First chunk - ALWAYS send message_start first
   if (!state.messageStartSent) {
     state.messageStartSent = true;
     state.messageId = chunk.id?.replace("chatcmpl-", "") || `msg_${Date.now()}`;
@@ -135,7 +118,6 @@ export function openaiToClaudeResponse(chunk, state) {
     });
   }
 
-  // Handle reasoning (thinking) across vendor shapes - GLM/DeepSeek/Qwen/MiniMax/etc.
   const reasoningContent = extractReasoningText(delta);
   if (reasoningContent) {
     stopTextBlock(state, results);
@@ -157,7 +139,6 @@ export function openaiToClaudeResponse(chunk, state) {
     });
   }
 
-  // Handle regular content
   if (delta?.content) {
     stopThinkingBlock(state, results);
 
@@ -179,12 +160,10 @@ export function openaiToClaudeResponse(chunk, state) {
     });
   }
 
-  // Tool calls
   if (delta?.tool_calls) {
     for (const tc of delta.tool_calls) {
       const idx = tc.index ?? 0;
 
-      // GLM/fireworks repeats id+null-name on every arg chunk; open block once per idx
       if (tc.id && !state.toolCalls.has(idx)) {
         stopThinkingBlock(state, results);
         stopTextBlock(state, results);
@@ -192,7 +171,6 @@ export function openaiToClaudeResponse(chunk, state) {
         const toolBlockIndex = state.nextBlockIndex++;
         state.toolCalls.set(idx, { id: tc.id, name: tc.function?.name || "", blockIndex: toolBlockIndex });
 
-        // Strip prefix from tool name for response
         let toolName = tc.function?.name || "";
         if (toolName.startsWith(CLAUDE_OAUTH_TOOL_PREFIX)) {
           toolName = toolName.slice(CLAUDE_OAUTH_TOOL_PREFIX.length);
@@ -213,7 +191,6 @@ export function openaiToClaudeResponse(chunk, state) {
       if (tc.function?.arguments) {
         const toolInfo = state.toolCalls.get(idx);
         if (toolInfo) {
-          // Buffer args instead of streaming — sanitize at finish to fix bad params
           if (!state.toolArgBuffers) state.toolArgBuffers = new Map();
           state.toolArgBuffers.set(idx, (state.toolArgBuffers.get(idx) || "") + tc.function.arguments);
         }
@@ -221,13 +198,11 @@ export function openaiToClaudeResponse(chunk, state) {
     }
   }
 
-  // Finish
   if (choice.finish_reason) {
     stopThinkingBlock(state, results);
     stopTextBlock(state, results);
 
     for (const [idx, toolInfo] of state.toolCalls) {
-      // Emit buffered + sanitized args as single delta before stop
       const buffered = state.toolArgBuffers?.get(idx);
       if (buffered) {
         const sanitized = sanitizeToolArgs(toolInfo.name, buffered);
@@ -243,10 +218,8 @@ export function openaiToClaudeResponse(chunk, state) {
       });
     }
 
-    // Mark finish for later usage injection in stream.js
     state.finishReason = choice.finish_reason;
 
-    // Use tracked usage (will be estimated in stream.js if not valid)
     const finalUsage = state.usage || { input_tokens: 0, output_tokens: 0 };
     results.push({
       type: "message_delta",
@@ -261,5 +234,4 @@ export function openaiToClaudeResponse(chunk, state) {
 
 const convertFinishReason = (reason) => fromOpenAIFinish(reason, "claude");
 
-// Register
 register(FORMATS.OPENAI, FORMATS.CLAUDE, null, openaiToClaudeResponse);

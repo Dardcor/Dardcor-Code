@@ -76,7 +76,6 @@ suite('ChatQuestionCarouselPart', () => {
 
 			const title = widget.domNode.querySelector('.chat-question-title');
 			assert.ok(title);
-			// Title includes progress prefix like "(1/1) What is your name?"
 			assert.ok(title?.textContent?.includes('What is your name?'));
 		});
 
@@ -88,7 +87,6 @@ suite('ChatQuestionCarouselPart', () => {
 
 			const title = widget.domNode.querySelector('.chat-question-title');
 			assert.ok(title, 'title element should exist when only title is provided');
-			// Title should fall back to title property when message is not provided
 			assert.ok(title?.textContent?.includes('Fallback title text'));
 		});
 
@@ -206,7 +204,6 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Progress is shown in the step indicator in the footer as "1/3"
 			const stepIndicator = widget.domNode.querySelector('.chat-question-step-indicator');
 			assert.ok(stepIndicator);
 			assert.ok(stepIndicator?.textContent?.includes('1'));
@@ -446,7 +443,6 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Default option 'b' is re-sorted to appear first
 			const listItems = widget.domNode.querySelectorAll('.chat-question-list-item') as NodeListOf<HTMLElement>;
 			assert.strictEqual(listItems[0].classList.contains('selected'), true, 'Default option should be re-sorted to first and selected');
 			assert.strictEqual(listItems[1].classList.contains('selected'), false);
@@ -468,7 +464,6 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Default options 'a' and 'c' are re-sorted to appear first
 			const listItems = widget.domNode.querySelectorAll('.chat-question-list-item') as NodeListOf<HTMLElement>;
 			assert.strictEqual(listItems[0].classList.contains('checked'), true, 'First default option should be checked');
 			assert.strictEqual(listItems[1].classList.contains('checked'), true, 'Second default option should be checked (re-sorted from third)');
@@ -492,7 +487,7 @@ suite('ChatQuestionCarouselPart', () => {
 
 			const listItems = widget.domNode.querySelectorAll('.chat-question-list-item') as NodeListOf<HTMLElement>;
 			assert.strictEqual(listItems.length, 2, 'Expected two options');
-			listItems[1].click(); // Option A after default-first ordering
+			listItems[1].click();
 
 			const answer = submittedAnswers?.get('q1') as { selectedValue: unknown; freeformValue: unknown };
 			assert.strictEqual(answer.selectedValue, 'value_a');
@@ -517,7 +512,7 @@ suite('ChatQuestionCarouselPart', () => {
 
 			const listItems = widget.domNode.querySelectorAll('.chat-question-list-item') as NodeListOf<HTMLElement>;
 			assert.strictEqual(listItems.length, 3, 'Expected three options');
-			listItems[1].click(); // Option A after default-first ordering
+			listItems[1].click();
 
 			const submitButton = widget.domNode.querySelector('.chat-question-submit-button') as HTMLButtonElement;
 			assert.ok(submitButton, 'Submit button should exist');
@@ -565,7 +560,6 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Navigate to last question
 			widget.navigateToNextQuestion();
 
 			const navArrows = widget.domNode.querySelectorAll('.chat-question-nav-arrow') as NodeListOf<HTMLButtonElement>;
@@ -581,7 +575,6 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Navigate to last question
 			widget.navigateToNextQuestion();
 
 			const submitButton = widget.domNode.querySelector('.chat-question-submit-button') as HTMLButtonElement;
@@ -621,7 +614,7 @@ suite('ChatQuestionCarouselPart', () => {
 			createWidget(carousel);
 
 			widget.skip();
-			submittedAnswers = null; // reset
+			submittedAnswers = null;
 			const result = widget.skip();
 			assert.strictEqual(result, false, 'Second skip() should return false');
 			assert.strictEqual(submittedAnswers, null, 'onSubmit should not be called again');
@@ -633,9 +626,6 @@ suite('ChatQuestionCarouselPart', () => {
 			], true);
 			createWidget(carousel);
 
-			// A voice answer resolves the carousel directly, after this part has
-			// already rendered interactively. The auto-skip that fires on the next
-			// request submit must not overwrite it with defaults.
 			carousel.isUsed = true;
 
 			const result = widget.skip();
@@ -674,7 +664,7 @@ suite('ChatQuestionCarouselPart', () => {
 			createWidget(carousel);
 
 			widget.ignore();
-			submittedAnswers = null; // reset
+			submittedAnswers = null;
 			const result = widget.ignore();
 			assert.strictEqual(result, false, 'Second ignore() should return false');
 			assert.strictEqual(submittedAnswers, null, 'onSubmit should not be called again');
@@ -700,7 +690,7 @@ suite('ChatQuestionCarouselPart', () => {
 			createWidget(carousel);
 
 			widget.skip();
-			submittedAnswers = null; // reset
+			submittedAnswers = null;
 			const result = widget.ignore();
 			assert.strictEqual(result, false, 'ignore() should return false after skip()');
 			assert.strictEqual(submittedAnswers, null, 'onSubmit should not be called again');
@@ -755,13 +745,11 @@ suite('ChatQuestionCarouselPart', () => {
 			const listItems = widget.domNode.querySelectorAll('.chat-question-list-item');
 			assert.strictEqual(listItems.length, 2, 'Should have 2 list items');
 
-			// First item should be auto-selected (no default value, so first is selected)
 			const firstItem = listItems[0] as HTMLElement;
 			assert.strictEqual(firstItem.getAttribute('role'), 'option');
 			assert.ok(firstItem.id, 'List item should have an id');
 			assert.strictEqual(firstItem.getAttribute('aria-selected'), 'true', 'First item should be auto-selected');
 
-			// Second item should not be selected
 			const secondItem = listItems[1] as HTMLElement;
 			assert.strictEqual(secondItem.getAttribute('role'), 'option');
 			assert.strictEqual(secondItem.getAttribute('aria-selected'), 'false', 'Unselected item should have aria-selected=false');
@@ -779,24 +767,17 @@ suite('ChatQuestionCarouselPart', () => {
 			return widget.domNode.querySelector('.chat-question-list') as HTMLElement;
 		}
 
-		/**
-		 * `keyCode` is a legacy read-only property. Chromium does accept it in the init dict, but
-		 * that is non-standard and would need a cast, so define it explicitly as the survey test
-		 * helper does. `StandardKeyboardEvent` reads it to derive its own key code.
-		 */
 		function press(target: HTMLElement, keyCode: number, key: string): void {
 			const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
 			Object.defineProperty(event, 'keyCode', { get: () => keyCode });
 			target.dispatchEvent(event);
 		}
 
-		/** The option index the list reports as selected, via the class the styling keys off. */
 		function selectedIndex(): number {
 			const items = [...widget.domNode.querySelectorAll('.chat-question-list-item')];
 			return items.findIndex(i => i.classList.contains('selected'));
 		}
 
-		/** The option index `aria-activedescendant` points at, which is what a screen reader reads. */
 		function activeDescendantIndex(list: HTMLElement): number {
 			const id = list.getAttribute('aria-activedescendant');
 			const items = [...widget.domNode.querySelectorAll('.chat-question-list-item')];
@@ -807,14 +788,14 @@ suite('ChatQuestionCarouselPart', () => {
 			const list = createSelectWidget(3);
 
 			const start = selectedIndex();
-			press(list, 40 /* DownArrow */, 'ArrowDown');
+			press(list, 40 , 'ArrowDown');
 			const afterDown = selectedIndex();
-			press(list, 38 /* UpArrow */, 'ArrowUp');
-			press(list, 38 /* UpArrow */, 'ArrowUp');
+			press(list, 38 , 'ArrowUp');
+			press(list, 38 , 'ArrowUp');
 			const clampedAtTop = selectedIndex();
-			press(list, 40 /* DownArrow */, 'ArrowDown');
-			press(list, 40 /* DownArrow */, 'ArrowDown');
-			press(list, 40 /* DownArrow */, 'ArrowDown');
+			press(list, 40 , 'ArrowDown');
+			press(list, 40 , 'ArrowDown');
+			press(list, 40 , 'ArrowDown');
 			const clampedAtBottom = selectedIndex();
 
 			assert.deepStrictEqual({ start, afterDown, clampedAtTop, clampedAtBottom }, {
@@ -828,9 +809,9 @@ suite('ChatQuestionCarouselPart', () => {
 		test('number keys select the matching option, and the one past the last focuses freeform', () => {
 			const list = createSelectWidget(3);
 
-			press(list, 51 /* Digit3 */, '3');
+			press(list, 51 , '3');
 			const afterDigit3 = selectedIndex();
-			press(list, 52 /* Digit4 */, '4');
+			press(list, 52 , '4');
 			const afterDigitPastEnd = selectedIndex();
 			const freeform = widget.domNode.querySelector('.chat-question-freeform-textarea');
 
@@ -845,7 +826,7 @@ suite('ChatQuestionCarouselPart', () => {
 			const list = createSelectWidget(3);
 
 			const initial = activeDescendantIndex(list);
-			press(list, 40 /* DownArrow */, 'ArrowDown');
+			press(list, 40 , 'ArrowDown');
 			const afterDown = activeDescendantIndex(list);
 
 			assert.deepStrictEqual({ initial, afterDown, matchesSelection: afterDown === selectedIndex() }, {
@@ -855,11 +836,6 @@ suite('ChatQuestionCarouselPart', () => {
 			});
 		});
 
-		/**
-		 * `aria-activedescendant` is only honoured on the element that actually has DOM focus. The
-		 * list declares it, so the list is what has to be focused for the active option to be
-		 * announced as the user arrows through the options.
-		 */
 		test('auto focus lands on the listbox that owns aria-activedescendant', async () => {
 			const list = createSelectWidget(3);
 			await new Promise<void>(resolve => mainWindow.requestAnimationFrame(() => mainWindow.requestAnimationFrame(() => resolve())));
@@ -931,7 +907,6 @@ suite('ChatQuestionCarouselPart', () => {
 
 			widget.skip();
 			assert.ok(submittedAnswers instanceof Map);
-			// singleSelect always returns structured format with freeformValue
 			const answer = submittedAnswers?.get('q1') as { selectedValue: unknown; freeformValue: unknown };
 			assert.strictEqual(answer.selectedValue, 'value_b');
 			assert.strictEqual(answer.freeformValue, undefined);
@@ -955,7 +930,6 @@ suite('ChatQuestionCarouselPart', () => {
 
 			widget.skip();
 			assert.ok(submittedAnswers instanceof Map);
-			// multiSelect always returns structured format with freeformValue
 			const answer = submittedAnswers?.get('q1') as { selectedValues: unknown[]; freeformValue: unknown };
 			assert.ok(Array.isArray(answer.selectedValues));
 			assert.strictEqual(answer.selectedValues.length, 2);
@@ -982,7 +956,6 @@ suite('ChatQuestionCarouselPart', () => {
 			widget.skip();
 			assert.ok(submittedAnswers instanceof Map);
 			assert.strictEqual(submittedAnswers?.get('q1'), 'text default');
-			// singleSelect always returns structured format with freeformValue
 			const answer = submittedAnswers?.get('q2') as { selectedValue: unknown; freeformValue: unknown };
 			assert.strictEqual(answer.selectedValue, 'first_value');
 			assert.strictEqual(answer.freeformValue, undefined);
@@ -1385,12 +1358,10 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Try to submit without entering a value
 			const submitButton = widget.domNode.querySelector('.chat-question-submit-button') as HTMLButtonElement;
 			assert.ok(submitButton, 'Submit button should exist');
 			submitButton.click();
 
-			// Should show validation error and not submit
 			const validationMsg = widget.domNode.querySelector('.chat-question-validation-message');
 			assert.ok(validationMsg?.textContent, 'Validation error should be shown');
 			assert.strictEqual(submittedAnswers, null, 'Should not have submitted');
@@ -1403,7 +1374,6 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Next button should be disabled since required field has no answer
 			const nextButton = widget.domNode.querySelector('.chat-question-nav-next') as HTMLButtonElement;
 			assert.ok(nextButton, 'Next button should exist');
 			assert.ok(nextButton.classList.contains('disabled'), 'Next button should be disabled when required field is empty');
@@ -1415,13 +1385,11 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Enter a value in the text input
 			const inputBox = widget.domNode.querySelector('.monaco-inputbox input') as HTMLInputElement;
 			assert.ok(inputBox, 'Input should exist');
 			inputBox.value = 'John';
 			inputBox.dispatchEvent(new Event('input', { bubbles: true }));
 
-			// Submit
 			const submitButton = widget.domNode.querySelector('.chat-question-submit-button') as HTMLButtonElement;
 			submitButton.click();
 
@@ -1435,19 +1403,15 @@ suite('ChatQuestionCarouselPart', () => {
 			]);
 			createWidget(carousel);
 
-			// Navigate to q2 without filling q1 (optional, so allowed)
 			widget.navigateToNextQuestion();
 
-			// Go back to q1 and try to submit (q2 required but empty)
 			widget.navigateToPreviousQuestion();
 
-			// Cmd+Enter should check all required fields
 			const submitButton = widget.domNode.querySelector('.chat-question-submit-button') as HTMLButtonElement;
 			if (submitButton) {
 				submitButton.click();
 			}
 
-			// Should not submit because q2 is required but empty
 			assert.strictEqual(submittedAnswers, null, 'Should not submit when required field is empty');
 		});
 	});

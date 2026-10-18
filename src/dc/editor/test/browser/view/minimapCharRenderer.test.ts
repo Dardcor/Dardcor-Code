@@ -75,7 +75,6 @@ suite('MinimapCharRenderer', () => {
 		const background = new RGBA8(0, 0, 0, 255);
 		const color = new RGBA8(255, 255, 255, 255);
 		const imageData = createFakeImageData(Constants.BASE_CHAR_WIDTH * 2, Constants.BASE_CHAR_HEIGHT * 2);
-		// set the background color
 		for (let i = 0, len = imageData.data.length / 4; i < len; i++) {
 			imageData.data[4 * i + 0] = background.r;
 			imageData.data[4 * i + 1] = background.g;
@@ -104,7 +103,6 @@ suite('MinimapCharRenderer', () => {
 		const background = new RGBA8(0, 0, 0, 255);
 		const color = new RGBA8(255, 255, 255, 255);
 		const imageData = createFakeImageData(Constants.BASE_CHAR_WIDTH, Constants.BASE_CHAR_HEIGHT);
-		// set the background color
 		for (let i = 0, len = imageData.data.length / 4; i < len; i++) {
 			imageData.data[4 * i + 0] = background.r;
 			imageData.data[4 * i + 1] = background.g;

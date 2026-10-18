@@ -130,10 +130,6 @@ export class CoreContextProviderRegistry implements ICompletionsContextProviderR
 		return this.registryService.getAllProviders([ProviderTarget.Completions]).slice() as ContextProvider<SupportedContextItem>[];
 	}
 
-	/**
-	 * Resolves all context providers for the given context.
-	 * Items returned will need to be filtered by schema.
-	 */
 	async resolveAllProviders(
 		completionId: string,
 		opportunityId: string,
@@ -146,7 +142,6 @@ export class CoreContextProviderRegistry implements ICompletionsContextProviderR
 			logger.debug(this.logTarget, `Resolving context providers cancelled`);
 			return [];
 		}
-		// Pass experiments here if needed.
 		const activeExperiments: ActiveExperiments = new Map();
 		this.instantiationService.invokeFunction(fillInCSharpActiveExperiments, activeExperiments, telemetryData);
 		const resolvedContextItems: ResolvedContextItem[] = [];
@@ -160,7 +155,6 @@ export class CoreContextProviderRegistry implements ICompletionsContextProviderR
 		const matchedProviders = providersWithMatchScore.filter(p => p[1] > 0);
 		const unmatchedProviders = providersWithMatchScore.filter(p => p[1] <= 0);
 
-		// For the unmatched providers, we still want to create a context item, but with an empty data array.
 		unmatchedProviders.forEach(([provider, score]) => {
 			const item: ResolvedContextItem = {
 				providerId: provider.id,
@@ -180,7 +174,6 @@ export class CoreContextProviderRegistry implements ICompletionsContextProviderR
 			return [];
 		}
 
-		// Fill in the active experiments for the matched providers.
 		this.instantiationService.invokeFunction(fillInCppVSCodeActiveExperiments,
 			matchedProviders.map(p => p[0].id),
 			activeExperiments,
@@ -205,7 +198,6 @@ export class CoreContextProviderRegistry implements ICompletionsContextProviderR
 			});
 		}
 
-		// Overriding this config with a value of 0 will create an infinite timeout (useful for debugging)
 		const timeBudget =
 			this.runtimeMode.isDebugEnabled() && !this.runtimeMode.isRunningInSimulation()
 				? 0
@@ -247,7 +239,6 @@ export class CoreContextProviderRegistry implements ICompletionsContextProviderR
 
 		const results = await resolveAll(resolutionMap, providerCancellationTokenSource.token);
 
-		// Once done, clear the timeout so that we don't cancel the request once it has finished.
 		if (timeoutId) {
 			clearTimeout(timeoutId);
 		}
@@ -306,11 +297,9 @@ export class CoreContextProviderRegistry implements ICompletionsContextProviderR
 				}
 				statistics.setLastResolution(provider.id, result.status);
 			} else {
-				// This can't happen
 				logger.error(this.logTarget, `Context provider ${provider.id} not found in results`);
 			}
 		}
-		// Sort the results by match score, so that the highest match score is first.
 		return resolvedContextItems.sort((a, b) => b.matchScore - a.matchScore);
 	}
 
@@ -374,8 +363,6 @@ export class MutableContextProviderRegistry extends CoreContextProviderRegistry 
 
 export class CachedContextProviderRegistry implements ICompletionsContextProviderRegistryService {
 	declare _serviceBrand: undefined;
-	// We don't need to cache many items, since initially we will only hold the cache for
-	// the duration of a single completion request.
 	private _cachedContextItems: LRUCacheMap<string, ResolvedContextItem[]> = new LRUCacheMap(5);
 
 	private readonly delegate: CoreContextProviderRegistry;
@@ -443,8 +430,6 @@ export function telemetrizeContextItems(
 		const providerStatistics = contextProviderStatistics.get(providerId);
 		let usage = providerStatistics?.usage ?? 'none';
 
-		// Unmatched providers are special: we still want to telemetrize them, but we don't
-		// rely on the statistics since those will refer to the last time it was matched!
 		if (matchScore <= 0 || resolution === 'none' || resolution === 'error') {
 			usage = 'none';
 		}
@@ -473,7 +458,6 @@ export function telemetrizeContextItems(
 				).length
 				: undefined;
 
-		// TODO: Inline this above once promptlib has been removed
 		if (numUsedItems !== undefined) {
 			contextProviderTelemetry.numUsedItems = numUsedItems;
 		}
@@ -502,15 +486,10 @@ function getActiveContextProviders(accessor: ServicesAccessor, languageId: strin
 		return ['*'];
 	}
 
-	// Merge the two arrays and deduplicate
 	const defaultContextProviders = accessor.get(ICompletionsDefaultContextProviders).getIds();
 	return Array.from(new Set([...defaultContextProviders, ...expContextProviders, ...configContextProviders]));
 }
 
-/**
- * This only returns the context providers that are enabled by EXP.
- * Use `getActiveContextProviders` to get the context providers that are enabled by both EXP and config.
- */
 function getExpContextProviders(accessor: ServicesAccessor, languageId: string, telemetryData: TelemetryWithExp): string[] {
 	if (accessor.get(ICompletionsRuntimeModeService).isDebugEnabled()) {
 		return ['*'];
@@ -543,7 +522,7 @@ function getContextProviderTimeBudget(accessor: ServicesAccessor, languageId: st
 
 export type DefaultDiagnosticSettings = {
 	warnings: 'no' | 'yes' | 'yesIfNoErrors';
-	maxLineDistance: number; // how far away (in lines) to look for lints
+	maxLineDistance: number;
 	maxDiagnostics: number;
 };
 export namespace DefaultDiagnosticSettings {

@@ -26,11 +26,9 @@ export function renderDataPartToString(part: LanguageModelDataPart) {
 	const isImage = Object.values(ChatImageMimeType).includes(part.mimeType as ChatImageMimeType);
 
 	if (isImage) {
-		// return a string of data uri schema
 		const base64 = btoa(String.fromCharCode(...part.data));
 		return `data:${part.mimeType};base64,${base64}`;
 	} else {
-		// return a string of the decoded data
 		try {
 			const nonImageStr = new TextDecoder().decode(part.data);
 			return nonImageStr;

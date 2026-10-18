@@ -14,13 +14,7 @@ import { FileOperationError, FileOperationResult, IFileService } from '../../fil
 import { ILogService } from '../../log/common/log.js';
 import { IFileManagedSettingsService, normalizeManagedSettings, RawManagedSettingsData } from './copilotManagedSettings.js';
 
-/**
- * Upper bound on the size of `managed-settings.json` we will read into the main process. A
- * legitimate settings file is a few KB; capping the read keeps a malformed or hostile file on the
- * (externally writable, privileged) well-known path from OOM-ing the main process. `readFile`
- * throws `FILE_TOO_LARGE` past this, which `refresh()` treats like any other read failure.
- */
-const MANAGED_SETTINGS_MAX_FILE_SIZE = 1024 * 1024; // 1 MB
+const MANAGED_SETTINGS_MAX_FILE_SIZE = 1024 * 1024;
 
 export class FileManagedSettingsService extends Disposable implements IFileManagedSettingsService {
 
@@ -51,9 +45,6 @@ export class FileManagedSettingsService extends Disposable implements IFileManag
 		this._register(fileService.watch(file));
 		this._register(onDidChangeFile(() => this.throttledDelayer.trigger(() => this.refresh())));
 
-		// Initial read — routed through the same delayer (with no delay) so it is serialized
-		// against change-triggered refreshes and can't be clobbered by a racing read. Non-blocking;
-		// IPC clients handle eventual data arrival.
 		this.throttledDelayer.trigger(() => this.refresh(), 0);
 	}
 

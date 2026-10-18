@@ -130,7 +130,7 @@ export class McpPromptArgumentPick extends Disposable {
 		store.add(autorun(reader => {
 			if (didRestoreState) {
 				input$.read(reader);
-				return; // don't overwrite initial items until the user types
+				return;
 			}
 
 			let items: (PickItem | IQuickPickSeparator)[] = [];
@@ -153,7 +153,6 @@ export class McpPromptArgumentPick extends Disposable {
 
 			const lastActive = items.find(i => previouslyActive.some(a => a.id === i.id)) as PickItem | undefined;
 			const serverSuggestions = asyncPicks[0].observer;
-			// Keep any selection state, but otherwise select the first completion item, and avoid default-selecting the top item unless there are no compltions
 			if (lastActive) {
 				quickPick.activeItems = [lastActive];
 			} else if (serverSuggestions.read(reader).picks?.length) {
@@ -181,7 +180,6 @@ export class McpPromptArgumentPick extends Disposable {
 					if (!quickPick.value && arg.required && (!item || item.action === 'text' || item.action === 'command')) {
 						quickPick.validationMessage = localize('mcp.arg.required', "This argument is required");
 					} else if (!item) {
-						// For optional arguments when no item is selected, return empty text action
 						resolve({ id: 'insert-text', label: '', action: 'text' });
 					} else {
 						resolve(item);
@@ -294,7 +292,6 @@ export class McpPromptArgumentPick extends Disposable {
 
 			const items: PickItem[] = [];
 
-			// Add active file option
 			items.push({
 				id: 'active-file',
 				label: localize('mcp.arg.activeFile', 'Active File'),
@@ -305,7 +302,6 @@ export class McpPromptArgumentPick extends Disposable {
 			});
 
 			const selection = selectionObs.read(reader);
-			// Add selected text option if there's a selection
 			if (selection && selection.model && selection.range && !selection.range.isEmpty()) {
 				const selectedText = selection.model.getValueInRange(selection.range);
 				const lineCount = selection.range.endLineNumber - selection.range.startLineNumber + 1;
@@ -347,11 +343,6 @@ export class McpPromptArgumentPick extends Disposable {
 	}
 
 	private async _getTerminalOutput(command: string, token: CancellationToken): Promise<string | undefined> {
-		// The terminal outlives the specific pick argument. This is both a feature and a bug.
-		// Feature: we can reuse the terminal if the user puts in multiple args
-		// Bug workaround: if we dispose the terminal here and that results in the panel
-		// closing, then focus moves out of the quickpick and into the active editor pane (chat input)
-		// https://github.com/microsoft/vscode/blob/6a016f2507cd200b12ca6eecdab2f59da15aacb1/src/dc/workbench/browser/parts/editor/editorGroupView.ts#L1084
 		const terminal = (this._terminal ??= this._register(await this._terminalService.createTerminal({
 			config: {
 				name: localize('mcp.terminal.name', "MCP Terminal"),

@@ -14,10 +14,6 @@ const BUILT_IN_GROUP = 'builtin';
 const SUMMARY_PREFIX = 'Call this tool when you need access to a new category of tools. The category of tools is described as follows:\n\n';
 const SUMMARY_SUFFIX = '\n\nBe sure to call this tool if you need a capability related to the above.';
 
-/**
- * Get the summary description for a tool category.
- * For RedundantButSpecific, dynamically includes the list of tool names.
- */
 function getCategorySummary(category: ToolCategory): string {
 	switch (category) {
 		case ToolCategory.JupyterNotebook:
@@ -42,9 +38,7 @@ function getCategorySummary(category: ToolCategory): string {
 export class BuiltInToolGroupHandler {
 	constructor() { }
 
-	/** Creates groups for built-in tools based on the type-safe categorization system */
 	createBuiltInToolGroups(tools: LanguageModelToolInformation[]): (VirtualTool | LanguageModelToolInformation)[] {
-		// If there are too few tools, don't group them
 		if (tools.length <= Constant.MIN_TOOLSET_SIZE_TO_GROUP) {
 			return tools;
 		}
@@ -52,7 +46,6 @@ export class BuiltInToolGroupHandler {
 		const contributedTools = tools.filter(t => !toolCategories.hasOwnProperty(t.name));
 		const builtInTools = tools.filter(t => toolCategories.hasOwnProperty(t.name));
 
-		// Filter out Core tools from grouping (they should remain individual)
 		const toolsToGroup = builtInTools.filter(t => toolCategories[t.name as ToolName] !== ToolCategory.Core);
 		const coreTools = builtInTools.filter(t => toolCategories[t.name as ToolName] === ToolCategory.Core);
 
@@ -75,7 +68,6 @@ export class BuiltInToolGroupHandler {
 			);
 		});
 
-		// Return: virtual tool groups + individual core tools + contributed tools
 		return [...virtualTools, ...coreTools, ...contributedTools];
 	}
 

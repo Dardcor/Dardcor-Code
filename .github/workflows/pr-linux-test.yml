@@ -365,11 +365,11 @@ run: npm run gulp transpile-client-esbuild transpile-extensions
         run: npm run compile
         continue-on-error: true
         if: ${{ inputs.smoke_tests }}
-        working-directory: extensions/copilot
+        working-directory: extensions/dardcor
         run: npm run compile
 
       # Remove the musl-libc Claude Code native binary so the bundled
-      # @anthropic-ai/claude-agent-sdk in extensions/copilot falls through to the
+      # @anthropic-ai/claude-agent-sdk in extensions/dardcor falls through to the
       # glibc variant (or its bundled ./cli.js fallback). The musl binary is
       # pulled in by the root devDependency @anthropic-ai/claude-agent-sdk@0.2.x,
       # whose package metadata declares both "linux-x64" and "linux-x64-musl" as

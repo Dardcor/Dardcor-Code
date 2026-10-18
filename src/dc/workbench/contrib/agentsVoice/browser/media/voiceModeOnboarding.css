@@ -3,31 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*
- * The Voice Mode introduction card.
- *
- * One layout at every width - a vertical stack - because the chat panel is
- * routinely ~250px and a card that re-tiers as it narrows never settles into a
- * rhythm. Stacked, the spacing is identical everywhere and nothing has to be
- * dropped, scrolled or clipped.
- *
- * Spacing rhythm, all from the shared spacing ramp:
- *   12px  card padding                      (size120)
- *    8px  between tiers, and voices to close (size80)
- *    2px  between voice chips, and title to its sentence (size20)
- *  2/4px  inside a voice chip               (size20 / size40)
- */
 
-/* The host is a peer directly above the chat input, and stays out of the layout
- * entirely until the card is attached. */
 .voice-mode-onboarding-container {
 	display: none;
 }
 
 .voice-mode-onboarding-container.has-voice-mode-onboarding {
 	display: block;
-	/* Tuck the squared-off bottom edge behind the rounded top of the chat input
-	 * so the two surfaces read as one stack with no visible seam. */
 	margin-bottom: -10px;
 	padding-bottom: 10px;
 }
@@ -45,14 +27,12 @@
 	color: var(--vscode-foreground);
 }
 
-/* --- Copy --- */
 
 .voice-mode-onboarding-copy {
 	display: flex;
 	flex-direction: column;
 	gap: var(--vscode-spacing-size20);
 	min-width: 0;
-	/* Clear of the pinned close button. */
 	padding-right: var(--vscode-spacing-size240);
 }
 
@@ -64,14 +44,9 @@
 .voice-mode-onboarding-description {
 	font-size: var(--vscode-fontSize-label2);
 	color: var(--vscode-descriptionForeground);
-	/* Wraps rather than truncating: this sentence carries the promise, the ask
-	 * and the escape hatch, so it survives at every width. */
 	line-height: 1.4;
 }
 
-/* The settings link sits inside the sentence, so it takes its colour from the
- * link token and nothing else - no weight, no size, no box that would lift it
- * out of the prose it belongs to. */
 .voice-mode-onboarding-description a {
 	color: var(--vscode-textLink-foreground);
 	cursor: pointer;
@@ -89,28 +64,13 @@
 	outline-offset: 2px;
 }
 
-/* --- Waveform --- */
 
-/*
- * The waveform gets a row of its own. Earlier it sat behind the copy, which
- * forced a scrim over it, which erased it - a waveform competing with a
- * paragraph is a fight neither side wins. With its own space it needs no mask,
- * no scrim and no dimming, so it can simply be seen.
- */
 .voice-mode-onboarding-wave {
 	height: 34px;
 	pointer-events: none;
-	/* Eases into the card's edges rather than being sliced off at them. */
 	mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 1) 12%, rgba(0, 0, 0, 1) 88%, transparent 100%);
 }
 
-/*
- * Monochrome, and it is this declaration that decides the tier: the canvas
- * paints its bars in its own computed `color`, the same way the toolbar
- * waveform uses `currentColor`. It sits at the description's tier because it is
- * ambient - present, but never louder than the choice below it - and taking a
- * theme token means it stays legible in light, dark and high-contrast alike.
- */
 .voice-mode-onboarding-canvas {
 	display: block;
 	width: 100%;
@@ -118,7 +78,6 @@
 	color: var(--vscode-descriptionForeground);
 }
 
-/* --- Microphone picker --- */
 
 .voice-mode-onboarding-microphone-picker {
 	position: relative;
@@ -174,7 +133,6 @@
 	outline: none;
 }
 
-/* --- Voices and confirmation --- */
 
 .voice-mode-onboarding-actions {
 	display: flex;
@@ -182,7 +140,6 @@
 	gap: var(--vscode-spacing-size80);
 }
 
-/* --- Voice options --- */
 
 .voice-mode-onboarding-voices-label {
 	flex: 0 0 auto;
@@ -191,10 +148,6 @@
 	white-space: nowrap;
 }
 
-/*
- * The options are buttons and have to look like it. Bare text gave no sign it
- * could be clicked, let alone that clicking would speak *and* stick.
- */
 .voice-mode-onboarding-voices {
 	display: flex;
 	align-items: center;
@@ -224,7 +177,6 @@
 	border-color: var(--vscode-agentsVoice-speakingForeground);
 }
 
-/* Pressed feedback, so a click is felt as well as seen. */
 .voice-mode-onboarding-voice:active {
 	transform: translateY(1px);
 }
@@ -241,18 +193,7 @@
 	font-weight: var(--vscode-fontWeight-semiBold);
 }
 
-/* --- The icon carries the story --- */
 
-/*
- * One slot, three states. Play says "this will speak", the bars say "it is
- * speaking", the check says "this one is yours". Stacking them in a fixed-size
- * slot means swapping state never reflows the row.
- */
-/*
- * The slot collapses to nothing at rest and slides open on hover or once the
- * voice is chosen - the same move the Voice Mode pill makes with its own cells.
- * That is what lets four named buttons share one row in a narrow panel.
- */
 .voice-mode-onboarding-voice-icon {
 	position: relative;
 	display: flex;
@@ -288,7 +229,6 @@
 	color: inherit;
 }
 
-/* Idle: the play glyph, brightening on hover. */
 .voice-mode-onboarding-voice .voice-mode-onboarding-voice-idle {
 	opacity: 0.6;
 }
@@ -297,7 +237,6 @@
 	opacity: 1;
 }
 
-/* Chosen: the check replaces play, so the row says which voice is in use. */
 .voice-mode-onboarding-voice.selected .voice-mode-onboarding-voice-idle {
 	opacity: 0;
 }
@@ -306,7 +245,6 @@
 	opacity: 1;
 }
 
-/* Speaking: miniature bars, the same instrument as the big waveform. */
 .voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-idle,
 .voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-chosen {
 	opacity: 0;
@@ -340,33 +278,18 @@
 	animation-delay: 0.24s;
 }
 
-/* Mirrors `chat-voice-input-mode-eq`, so the two waveforms move alike. */
 @keyframes voice-mode-onboarding-eq {
 	0%, 100% { height: 3px; }
 	50% { height: 10px; }
 }
 
-/* --- Reduced motion --- */
 
-/*
- * The keyframe animations above are already opt-in via `.monaco-enable-motion`,
- * but transitions are not: without this the icon slot would still slide open
- * over 200ms and its glyphs still crossfade, which is exactly the movement the
- * preference asks us not to make. Colour changes are left alone - they convey
- * state rather than motion.
- */
 .monaco-reduce-motion .voice-mode-onboarding-voice-icon,
 .monaco-reduce-motion .voice-mode-onboarding-voice-icon > * {
 	transition: none;
 }
 
-/* --- Close --- */
 
-/*
- * Pinned to the corner and out of the content flow, so it never competes with
- * the voices for room and never moves as the card re-tiers. Always available:
- * a disabled dismiss would trap someone inside the card.
- */
 .voice-mode-onboarding-close {
 	position: absolute;
 	top: var(--vscode-spacing-size80);
@@ -391,11 +314,6 @@
 	outline-offset: -1px;
 }
 
-/*
- * `.monaco-workbench .codicon` sets colour and size directly on the glyph, so
- * without out-ranking it this renders as a dark 16px icon rather than a compact
- * one inheriting the button's foreground.
- */
 .monaco-workbench .voice-mode-onboarding-close .codicon[class*='codicon-'] {
 	font-size: var(--vscode-codiconFontSize-compact, 12px);
 	line-height: 1;

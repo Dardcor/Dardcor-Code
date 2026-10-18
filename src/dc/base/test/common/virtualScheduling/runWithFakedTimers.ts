@@ -14,23 +14,9 @@ import { createVirtualTimeApi } from './virtualTimeApi.js';
 
 export interface RunWithFakedTimersOptions {
 	readonly startTime?: number;
-	/** Default `true`. Set `false` to bypass virtual time entirely (for
-	 *  cases where the same test is parameterised over real/virtual time). */
 	readonly useFakeTimers?: boolean;
-	/** No effect in the new processor; accepted for legacy compatibility.
-	 *  The drain-microtasks embedding picks the fastest available macrotask
-	 *  primitive automatically. */
 	readonly useSetImmediate?: boolean;
-	/** Maximum number of virtual events the run is allowed to execute
-	 *  before being rejected. Default 100. */
 	readonly maxTaskCount?: number;
-	/**
-	 * If set, called once `fn` resolves with the recorded timer events.
-	 * In virtual mode the events come from the {@link VirtualTimeProcessor}'s
-	 * own history; in real mode a recording wrapper around the host time
-	 * API is installed for the duration of `fn`. Useful for swimlane
-	 * diagnostics.
-	 */
 	readonly onHistory?: (history: readonly RecordedTimerEvent[]) => void;
 }
 
@@ -79,9 +65,6 @@ export async function runWithFakedTimers<T>(
 		result = await fn();
 		didThrow = false;
 	} finally {
-		// Stop intercepting real-time scheduling before draining: any tasks
-		// scheduled during the drain itself must not land back in the
-		// virtual queue.
 		restoreGlobals.dispose();
 		cts.cancel();
 
@@ -89,9 +72,7 @@ export async function runWithFakedTimers<T>(
 			if (!didThrow) {
 				await runPromise;
 			} else {
-				// Avoid an unhandled rejection in case disposal rejects the
-				// run.
-				runPromise.catch(() => { /* swallowed: fn() already failed */ });
+				runPromise.catch(() => { });
 			}
 		} finally {
 			cts.dispose();

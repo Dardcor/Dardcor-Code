@@ -7,7 +7,7 @@ import type * as vscode from 'vscode';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface ISwarmConsensusParams {
 	problemStatement: string;
@@ -18,7 +18,7 @@ export interface ISwarmConsensusParams {
 	description: string;
 }
 
-export class SwarmConsensusTool implements ICopilotTool<ISwarmConsensusParams> {
+export class SwarmConsensusTool implements IAgentTool<ISwarmConsensusParams> {
 	public static toolName = ToolName.SwarmConsensusMesh;
 
 	private readonly routerBaseUrl = 'http://127.0.0.1:25128/v1';
@@ -32,7 +32,6 @@ export class SwarmConsensusTool implements ICopilotTool<ISwarmConsensusParams> {
 
 		const models = participatingModels ?? ['deepseek-r1', 'claude-3-7-sonnet', 'gpt-4o'];
 
-		// Attempt to query Dardcor Router
 		let routerActive = false;
 		try {
 			const res = await this.fetcherService.fetch(`${this.routerBaseUrl}/models`, {

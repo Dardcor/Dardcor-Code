@@ -19,24 +19,8 @@ import type { SkillMetadata } from './protocol/generated/v2/SkillMetadata.js';
 import type { SkillScope } from './protocol/generated/v2/SkillScope.js';
 import type { SkillsListResponse } from './protocol/generated/v2/SkillsListResponse.js';
 
-/**
- * Codex reports its *effective* skills and hooks through the cwd-scoped
- * `skills/list` and `hooks/list` app-server methods (see
- * `codex-rs/.../catalog_processor.rs`). Codex natively discovers skills from
- * the VS Code `.agents/skills` convention (`<repo>/.agents/skills` at repo
- * scope and `~/.agents/skills` at user scope) as well as `.codex` and bundled
- * roots. These helpers project those catalogs into the AHP
- * {@link DirectoryCustomization} containers that back the workbench
- * Customizations surface, so what codex actually loaded is visible alongside
- * the MCP servers already surfaced by {@link McpCustomizationController}.
- *
- * The mappers are pure (no codex round-trip): the {@link CodexAgent} fetches
- * the `skills/list` / `hooks/list` responses and feeds them here.
- */
 
-/** Synthetic URI scheme for the per-scope codex skills container. */
 const CODEX_SKILLS_SCHEME = 'codex-skills';
-/** Synthetic URI scheme for the codex hooks container. */
 const CODEX_HOOKS_SCHEME = 'codex-hooks';
 
 export interface ICodexWorkspaceAgentDiscovery {
@@ -44,9 +28,6 @@ export interface ICodexWorkspaceAgentDiscovery {
 	readonly containers: readonly DirectoryCustomization[];
 }
 
-/**
- * Discovers custom agents owned by the session's workspace roots.
- */
 export async function discoverCodexWorkspaceAgents(
 	workingDirectories: readonly URI[],
 	fileService: IFileService,
@@ -78,8 +59,6 @@ export async function discoverCodexWorkspaceAgents(
 		}
 
 		const children: IParsedAgent[] = [];
-		// Candidate filtering happens before frontmatter parsing and name
-		// de-duplication so README metadata cannot suppress a real agent.
 		for (const resource of await readAgentComponents(candidateFiles, fileService)) {
 			if (seenNames.has(resource.name)) {
 				continue;
@@ -169,11 +148,6 @@ export function excludeCodexWorkspaceSkillDuplicates(
 	});
 }
 
-/**
- * Surfaces the root `AGENTS.md` file that Codex natively loads for each
- * workspace. The transport/provider owns applying the instruction; this scan
- * only projects that effective workspace customization into AHP state.
- */
 export async function discoverCodexWorkspaceInstructions(
 	workingDirectories: readonly URI[],
 	fileService: IFileService,
@@ -237,9 +211,6 @@ function capabilityRootId(comparisonKey: string): string {
 	return `codex-selected-capability-root-v1-${digest}`;
 }
 
-/**
- * Builds the deterministic skill capability roots supplied for secondary workspaces.
- */
 export function codexSelectedCapabilityRootCandidates(workingDirectories: readonly URI[]): SelectedCapabilityRoot[] {
 	const primaryKey = workingDirectories.length > 0 ? localFileComparisonKey(workingDirectories[0])?.key : undefined;
 	const seenRoots = new Set<string>();
@@ -273,7 +244,6 @@ export function codexSelectedCapabilityRootCandidates(workingDirectories: readon
 	return result;
 }
 
-/** Human-facing container name for each {@link SkillScope}. */
 function skillScopeContainerName(scope: SkillScope): string {
 	switch (scope) {
 		case 'repo': return 'Repository';
@@ -284,7 +254,6 @@ function skillScopeContainerName(scope: SkillScope): string {
 	}
 }
 
-/** Stable ordering of scopes so the container list is deterministic. */
 const SKILL_SCOPE_ORDER: readonly SkillScope[] = ['repo', 'user', 'system', 'admin'];
 
 function skillToCustomization(skill: SkillMetadata): SkillCustomization {
@@ -299,14 +268,6 @@ function skillToCustomization(skill: SkillMetadata): SkillCustomization {
 	};
 }
 
-/**
- * Projects a codex `skills/list` response into one read-only
- * {@link DirectoryCustomization} container per {@link SkillScope}, each
- * carrying its skills as {@link SkillCustomization} children. Skills are
- * de-duplicated by their `SKILL.md` path (codex can report the same skill
- * for several requested cwds). Scopes with no skills are omitted; the result
- * is ordered by {@link SKILL_SCOPE_ORDER}.
- */
 export function codexSkillsToContainers(response: SkillsListResponse | undefined): DirectoryCustomization[] {
 	const byScope = new Map<SkillScope, Map<string, SkillMetadata>>();
 	for (const entry of response?.data ?? []) {
@@ -347,8 +308,6 @@ export function codexSkillsToContainers(response: SkillsListResponse | undefined
 }
 
 function hookToCustomization(hook: HookMetadata): HookCustomization {
-	// A single source file can declare several hooks, so disambiguate with the
-	// codex hook `key` in the fragment to keep customization ids unique.
 	const uri = URI.file(hook.sourcePath).with({ fragment: hook.key }).toString();
 	return {
 		type: CustomizationType.Hook,
@@ -359,12 +318,6 @@ function hookToCustomization(hook: HookMetadata): HookCustomization {
 	};
 }
 
-/**
- * Projects a codex `hooks/list` response into a single read-only
- * {@link DirectoryCustomization} container carrying its hooks as
- * {@link HookCustomization} children. Hooks are de-duplicated by their codex
- * `key`. Returns an empty array when no hooks are configured.
- */
 export function codexHooksToContainers(response: HooksListResponse | undefined): DirectoryCustomization[] {
 	const byKey = new Map<string, HookMetadata>();
 	for (const entry of response?.data ?? []) {

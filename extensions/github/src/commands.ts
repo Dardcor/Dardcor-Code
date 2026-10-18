@@ -103,7 +103,6 @@ async function createPullRequest(gitAPI: GitAPI, sessionResource: vscode.Uri | u
 
 	const { repository, remoteInfo, gitRemote, head } = resolved;
 
-	// Ensure the branch is published to the remote
 	if (!head.upstream) {
 		try {
 			await vscode.window.withProgress(
@@ -118,8 +117,6 @@ async function createPullRequest(gitAPI: GitAPI, sessionResource: vscode.Uri | u
 		}
 	}
 
-	// Build the GitHub PR creation URL
-	// Format: https://github.com/owner/repo/compare/base...head
 	const prUrl = `https://github.com/${remoteInfo.owner}/${remoteInfo.repo}/compare/${head.name}?expand=1`;
 
 	vscode.env.openExternal(vscode.Uri.parse(prUrl));
@@ -145,20 +142,16 @@ async function openPullRequest(gitAPI: GitAPI, _sessionResource: vscode.Uri | un
 			return;
 		}
 	} catch {
-		// If the API call fails, fall through to open the repo page
 	}
 
-	// Fallback: open the repository page
 	const { remoteInfo } = resolved;
 	vscode.env.openExternal(vscode.Uri.parse(`https://github.com/${remoteInfo.owner}/${remoteInfo.repo}`));
 }
 
 async function openOnGitHub(repository: Repository, commit: string): Promise<void> {
-	// Get the unique remotes that contain the commit
 	const branches = await repository.getBranches({ contains: commit, remote: true });
 	const remoteNames = new Set(branches.filter(b => b.type === RefType.RemoteHead && b.remote).map(b => b.remote!));
 
-	// GitHub remotes that contain the commit
 	const remotes = repository.state.remotes
 		.filter(r => remoteNames.has(r.name) && r.fetchUrl && getRepositoryFromUrl(r.fetchUrl));
 
@@ -167,7 +160,6 @@ async function openOnGitHub(repository: Repository, commit: string): Promise<voi
 		return;
 	}
 
-	// upstream -> origin -> first
 	const remote = remotes.find(r => r.name === 'upstream')
 		?? remotes.find(r => r.name === 'origin')
 		?? remotes[0];

@@ -15,12 +15,6 @@ import { agentHostAuthority } from '../common/agentHostUri.js';
 import { IRemoteAgentHostService } from '../common/remoteAgentHostService.js';
 import type { URI } from '../../../base/common/uri.js';
 
-/**
- * Default {@link IAgentHostConnectionsService} that composes the ambient
- * `IAgentHostService` with the `IRemoteAgentHostService` registry. Works in
- * every entry point: where the remote registry is the `NullRemoteAgentHostService`
- * (e.g. web workbench) it simply surfaces the ambient connection only.
- */
 export class AgentHostConnectionsService extends Disposable implements IAgentHostConnectionsService {
 	declare readonly _serviceBrand: undefined;
 
@@ -37,7 +31,6 @@ export class AgentHostConnectionsService extends Disposable implements IAgentHos
 		super();
 
 		this._register(this._remoteAgentHostService.onDidChangeConnections(() => this._fireConnectionsChanged()));
-		// Ambient (re)start/exit changes whether the ambient connection is ready.
 		this._register(this._agentHostService.onAgentHostStart(() => this._fireConnectionsChanged()));
 		this._register(this._agentHostService.onAgentHostExit(() => this._fireConnectionsChanged()));
 	}
@@ -119,9 +112,6 @@ export class AgentHostConnectionsService extends Disposable implements IAgentHos
 		}
 
 		if (isRemoteAgentHostSessionType(scheme)) {
-			// `remote-<authority>-<provider>`: both segments may contain dashes,
-			// so resolve the authority against the known connection/policy set (longest
-			// match wins) rather than splitting the string blindly.
 			const authorities = new Set([
 				...this.connections.filter(c => !c.isAmbient).map(c => c.authority),
 				...this._sessionResolutionPolicies.keys(),

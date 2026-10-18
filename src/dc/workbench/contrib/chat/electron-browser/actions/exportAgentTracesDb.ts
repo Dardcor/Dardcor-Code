@@ -16,23 +16,6 @@ import { INotificationService, Severity } from '../../../../../platform/notifica
 import { INativeWorkbenchEnvironmentService } from '../../../../services/environment/electron-browser/environmentService.js';
 import { CHAT_CATEGORY } from '../../browser/actions/chatActions.js';
 
-/**
- * Exports the local OTel span SQLite database produced by `IAgentHostOTelService`
- * (path: `<userDataPath>/agent-host/otel/agent-host-traces.db`). The action is
- * gated on `chat.agentHost.otel.dbSpanExporter.enabled` so it does not appear
- * when DB mode is off — in that case there is nothing to export.
- *
- * The store runs in WAL mode (see `OTelSqliteStore`) and lives in a separate
- * utility process, so we can't safely call `wal_checkpoint` from here. To
- * avoid missing data that still sits in the `-wal` sidecar we also copy
- * `<src>-wal` and `<src>-shm` next to the destination when they exist. The
- * resulting trio is a valid WAL-mode SQLite database that any SQLite reader
- * can open and checkpoint on demand.
- *
- * When invoked programmatically with a `savePath` (URI or filesystem path)
- * pointing to a destination directory, the DB is copied to
- * `<savePath>/agent-host-traces.db` and no save dialog is shown.
- */
 export function registerExportAgentTracesDbAction() {
 	registerAction2(class ExportAgentTracesDbAction extends Action2 {
 		constructor() {
@@ -78,8 +61,6 @@ export function registerExportAgentTracesDbAction() {
 			try {
 				await fileService.copy(sourceUri, target, true);
 
-				// Also copy the WAL and SHM sidecars when present so the export
-				// includes data that hasn't been checkpointed into the main .db.
 				for (const suffix of ['-wal', '-shm']) {
 					const sidecarSrc = sourceUri.with({ path: sourceUri.path + suffix });
 					if (await fileService.exists(sidecarSrc)) {

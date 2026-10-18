@@ -45,8 +45,6 @@ export class CacheableChatRequest {
 		const salt = CHAT_ML_CACHE_SALT_PER_MODEL[model] ?? CHAT_ML_CACHE_SALT_PER_MODEL['DEFAULT'];
 		this.hash = computeSHA256(salt + JSON.stringify(this.obj));
 
-		// To aid in reading cache entries, we will write objects to disk splitting each message by new lines
-		// We do this after the sha computation to avoid invalidating all the existing caches
 		(this.obj as any).messages = (this.obj as any).messages.map((m: Raw.ChatMessage) => {
 			return { ...m, content: getTextPart(m.content).split('\n') };
 		});
@@ -97,9 +95,9 @@ export type CachedExtraData = { cacheMetadata: CachedResponseMetadata | undefine
 export type CachedResponse = ChatResponses & CachedExtraData;
 
 export type ResponseWithMeta = ChatResponses & {
-	isCacheHit?: boolean; // set when the cache was checked
-	cacheKey?: string; // set when the cache was used or updated
-	cacheMetadata?: CachedResponseMetadata; // set when the cache was used or updated
+	isCacheHit?: boolean;
+	cacheKey?: string;
+	cacheMetadata?: CachedResponseMetadata;
 };
 
 
@@ -155,7 +153,6 @@ export class CachingChatMLFetcher extends AbstractChatMLFetcher {
 
 		const finalReqOptions = this.preparePostOptions(opts.requestOptions);
 		const req = new CacheableChatRequest(opts.messages, opts.endpoint.model, finalReqOptions, this.extraCacheProperties);
-		// console.log(`request with hash: ${req.hash}`);
 
 		return CachingChatMLFetcher.Locks.withLock(req.hash, async () => {
 			let isCacheHit: boolean | undefined = undefined;
@@ -209,7 +206,6 @@ export class CachingChatMLFetcher extends AbstractChatMLFetcher {
 			}
 			const result = await this.fetcher.fetchMany({ ...opts, finishedCb: callbackWrapper.getCb() }, token);
 			const fetchingResponseTimeInMs = Date.now() - start;
-			// Don't cache failed results
 			if (
 				result.type === ChatFetchResponseType.OffTopic
 				|| result.type === ChatFetchResponseType.Filtered
@@ -249,8 +245,6 @@ export class CachingChatMLFetcher extends AbstractChatMLFetcher {
 					return { ...result, cacheMetadata, isCacheHit, cacheKey: req.hash };
 				}
 			} else {
-				// A request failed, so we don't want to cache it.
-				// But we should warn the developer that they need to rerun
 				this.simulationEndpointHealth.markFailure(this.testInfo, result);
 			}
 			return { ...result, isCacheHit };

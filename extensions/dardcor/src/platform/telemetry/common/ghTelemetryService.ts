@@ -12,7 +12,6 @@ import { IGHTelemetryService, ITelemetryUserConfig } from './telemetry';
 import { TelemetryData } from './telemetryData';
 
 
-// A container for the secure and insecure reporters
 class TelemetryReporters {
 	private reporter: TelemetrySender | undefined;
 	private reporterSecure: TelemetrySender | undefined;
@@ -21,10 +20,6 @@ class TelemetryReporters {
 		if (!secure) {
 			return this.reporter;
 		}
-		// Callers should do this check themselves as they may need to behave differently
-		// if we are not sending enhanced telemetry. The guard here is a backstop.
-		// Note: if the decision about what telemetry to send when the user is opted-out
-		// becomes more nuanced, we may need to drop this backstop.
 		if (shouldSendEnhancedTelemetry(telemetryUserConfig)) {
 			return this.reporterSecure;
 		}
@@ -40,7 +35,6 @@ class TelemetryReporters {
 		this.reporterSecure = reporter;
 	}
 	async deactivate(): Promise<void> {
-		// This will ensure all pending events get flushed
 		let disposeReporter: Thenable<void> | void | undefined = Promise.resolve();
 		if (this.reporter) {
 			disposeReporter = this.reporter.flush ? this.reporter.flush() : undefined;
@@ -137,7 +131,6 @@ export class GHTelemetryService implements IGHTelemetryService {
 		if (secure && !shouldSendEnhancedTelemetry(this._telemetryUserConfig)) {
 			return;
 		}
-		// if telemetry data isn't given, make a new one to hold at least the config
 		const definedTelemetryData = telemetryData || TelemetryData.createAndMarkAsIssued({}, {});
 		definedTelemetryData.makeReadyForSending(this._configService, this._envService, this._telemetryUserConfig);
 		this.sendTelemetryEvent(secure ?? false, name, definedTelemetryData);
@@ -148,7 +141,7 @@ export class GHTelemetryService implements IGHTelemetryService {
 		const name = 'expProblem';
 		const definedTelemetryData = TelemetryData.createAndMarkAsIssued(telemetryProperties, {});
 		definedTelemetryData.makeReadyForSending(this._configService, this._envService, this._telemetryUserConfig);
-		this.sendTelemetryEvent(false /* not secure */, name, definedTelemetryData);
+		this.sendTelemetryEvent(false , name, definedTelemetryData);
 	}
 
 
@@ -167,19 +160,14 @@ export class GHTelemetryService implements IGHTelemetryService {
 
 		definedTelemetryDataStub.makeReadyForSending(this._configService, this._envService, this._telemetryUserConfig);
 
-		// send a placeholder to standard ("insecure") telemetry
-		this.sendTelemetryEvent(false /* not secure */, 'exception', definedTelemetryDataStub);
+		this.sendTelemetryEvent(false , 'exception', definedTelemetryDataStub);
 
 		if (!sendEnhanced) { return; }
 
 		const definedTelemetryDataSecure = TelemetryData.createAndMarkAsIssued({ origin });
 		definedTelemetryDataSecure.makeReadyForSending(this._configService, this._envService, this._telemetryUserConfig);
 
-		// and the real error, which might contain arbitrary data, to enhanced telemetry.
-		// We have previously observed paths and other potential PII in
-		//  - arbitrary unhandled exceptions coming from other extensions in the VSCode extension
-		//  - fields inserted into the data sent by `sendTelemetryException` in `vscode-extension-telementry` like `Assembly`,
-		this.sendTelemetryException(true /* secure */, error, definedTelemetryDataSecure);
+		this.sendTelemetryException(true , error, definedTelemetryDataSecure);
 	}
 
 
@@ -194,7 +182,6 @@ export class GHTelemetryService implements IGHTelemetryService {
 	}
 
 
-	// helpers
 
 	private sendTelemetryEvent(
 		secure: boolean,

@@ -97,17 +97,9 @@ class RemoteInvalidWorkspaceDetector extends Disposable implements IWorkbenchCon
 	) {
 		super();
 
-		// When connected to a remote workspace, we currently cannot
-		// validate that the workspace exists before actually opening
-		// it. As such, we need to check on that after startup and guide
-		// the user to a valid workspace.
-		// (see https://github.com/microsoft/vscode/issues/133872)
 		if (this.environmentService.remoteAuthority) {
 			remoteAgentService.getEnvironment().then(remoteEnv => {
 				if (remoteEnv) {
-					// we use the presence of `remoteEnv` to figure out
-					// if we got a healthy remote connection
-					// (see https://github.com/microsoft/vscode/issues/135331)
 					this.validateRemoteWorkspace();
 				}
 			});
@@ -118,12 +110,12 @@ class RemoteInvalidWorkspaceDetector extends Disposable implements IWorkbenchCon
 		const workspace = this.contextService.getWorkspace();
 		const workspaceUriToStat = workspace.configuration ?? workspace.folders.at(0)?.uri;
 		if (!workspaceUriToStat) {
-			return; // only when in workspace
+			return;
 		}
 
 		const exists = await this.fileService.exists(workspaceUriToStat);
 		if (exists) {
-			return; // all good!
+			return;
 		}
 
 		const res = await this.dialogService.confirm({
@@ -135,12 +127,10 @@ class RemoteInvalidWorkspaceDetector extends Disposable implements IWorkbenchCon
 
 		if (res.confirmed) {
 
-			// Pick Workspace
 			if (workspace.configuration) {
 				return this.fileDialogService.pickWorkspaceAndOpen({});
 			}
 
-			// Pick Folder
 			return this.fileDialogService.pickFolderAndOpen({});
 		}
 	}
@@ -250,9 +240,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 				description: localize('remote.forwardOnClick', "Controls whether local URLs with a port will be forwarded when opened from the terminal and the debug console."),
 				default: true
 			},
-			// Consider making changes to extensions\configuration-editing\schemas\devContainer.schema.src.json
-			// and extensions\configuration-editing\schemas\attachContainer.schema.json
-			// to keep in sync with devcontainer.json schema.
 			'remote.portsAttributes': {
 				type: 'object',
 				patternProperties: {

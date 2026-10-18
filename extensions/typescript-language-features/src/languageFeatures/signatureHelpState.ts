@@ -11,7 +11,6 @@ interface PreviousSignatureHelpState {
 	readonly userSelectedSignatureLabel: string | undefined;
 }
 
-/** Tracks automatic and user-selected signature help overloads between provider calls. */
 export class SignatureHelpState {
 
 	private readonly requestIds = new WeakMap<vscode.TextDocument, number>();

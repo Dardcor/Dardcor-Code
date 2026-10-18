@@ -50,7 +50,6 @@ export class SearchHistoryService implements ISearchHistoryService {
 			try {
 				result = JSON.parse(raw);
 			} catch (e) {
-				// Invalid data
 			}
 		}
 

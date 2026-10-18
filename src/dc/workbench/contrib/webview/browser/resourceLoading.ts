@@ -67,7 +67,7 @@ export async function loadLocalResource(
 		return WebviewResourceResponse.AccessDenied;
 	}
 
-	const mime = getWebviewContentMimeType(requestUri); // Use the original path for the mime
+	const mime = getWebviewContentMimeType(requestUri);
 
 	try {
 		const readOptions: { etag?: string; position?: number; length?: number } = { etag: options.ifNoneMatch };
@@ -87,14 +87,12 @@ export async function loadLocalResource(
 		if (err instanceof FileOperationError) {
 			const result = err.fileOperationResult;
 
-			// NotModified status is expected and can be handled gracefully
 			if (result === FileOperationResult.FILE_NOT_MODIFIED_SINCE) {
 				logService.trace(`Webview.loadLocalResource - not modified. requestUri=${requestUri}, resourceToLoad=${resourceToLoad}`);
 				return new WebviewResourceResponse.NotModified(mime, (err.options as IWriteFileOptions | undefined)?.mtime);
 			}
 		}
 
-		// Otherwise the error is unexpected.
 		logService.error(`Webview.loadLocalResource - Error using fileReader. requestUri=${requestUri}, resourceToLoad=${resourceToLoad}`);
 		return WebviewResourceResponse.Failed;
 	}
@@ -116,11 +114,10 @@ export function getResourceToLoad(
 }
 
 function containsResource(root: URI, resource: URI, uriIdentityService: IUriIdentityService): boolean {
-	if (uriIdentityService.extUri.isEqual(root, resource, /* ignoreFragment */ true)) {
+	if (uriIdentityService.extUri.isEqual(root, resource, true)) {
 		return false;
 	}
 
-	// Compare unc paths case-insensitively
 	if (root.scheme === Schemas.file && isUNC(root.fsPath)) {
 		if (resource.scheme === Schemas.file && isUNC(resource.fsPath)) {
 			return uriIdentityService.extUri.isEqualOrParent(
@@ -132,17 +129,16 @@ function containsResource(root: URI, resource: URI, uriIdentityService: IUriIden
 					path: root.path.toLowerCase(),
 					authority: root.authority.toLowerCase()
 				}),
-				/* ignoreFragment */ true
+				true
 			);
 		}
 		return false;
 	}
 
-	return uriIdentityService.extUri.isEqualOrParent(resource, root, /* ignoreFragment */ true);
+	return uriIdentityService.extUri.isEqualOrParent(resource, root, true);
 }
 
 function normalizeResourcePath(resource: URI): URI {
-	// Rewrite remote uris to a path that the remote file system can understand
 	if (resource.scheme === Schemas.vscodeRemote) {
 		return URI.from({
 			scheme: Schemas.vscodeRemote,

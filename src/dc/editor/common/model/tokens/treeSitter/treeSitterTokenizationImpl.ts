@@ -80,14 +80,12 @@ export class TreeSitterTokenizationImpl extends Disposable {
 				}
 			} else {
 				if (this.hasTokens()) {
-					// Mark the range for refresh immediately
 
 					for (const range of changeEvent.ranges) {
 						this._markForRefresh(range.newRange);
 					}
 				}
 
-				// First time we see a tree we need to build a token store.
 				if (!this.hasTokens()) {
 					this._firstTreeUpdate(changeEvent.versionId);
 				} else {
@@ -101,23 +99,17 @@ export class TreeSitterTokenizationImpl extends Disposable {
 		this._guessVersion = e.versionId;
 		for (const change of e.changes) {
 			if (change.text.length > change.rangeLength) {
-				// If possible, use the token before the change as the starting point for the new token.
-				// This is more likely to let the new text be the correct color as typeing is usually at the end of the token.
 				const offset = change.rangeOffset > 0 ? change.rangeOffset - 1 : change.rangeOffset;
 				const oldToken = this._tokenStore.getTokenAt(offset);
 				let newToken: TokenUpdate;
 				if (oldToken) {
-					// Insert. Just grow the token at this position to include the insert.
 					newToken = { startOffsetInclusive: oldToken.startOffsetInclusive, length: oldToken.length + change.text.length - change.rangeLength, token: oldToken.token };
-					// Also mark tokens that are in the range of the change as needing a refresh.
 					this._tokenStore.markForRefresh(offset, change.rangeOffset + (change.text.length > change.rangeLength ? change.text.length : change.rangeLength));
 				} else {
-					// The document got larger and the change is at the end of the document.
 					newToken = { startOffsetInclusive: offset, length: change.text.length, token: 0 };
 				}
 				this._tokenStore.update(oldToken?.length ?? 0, [newToken], TokenQuality.EditGuess);
 			} else if (change.text.length < change.rangeLength) {
-				// Delete. Delete the tokens at the corresponding range.
 				const deletedCharCount = change.rangeLength - change.text.length;
 				this._tokenStore.delete(deletedCharCount, change.rangeOffset);
 			}
@@ -341,9 +333,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 		return this._handleTreeUpdate(rangeChanges, versionId);
 	}
 
-	/**
-	 * Do not await in this method, it will cause a race
-	 */
 	private _handleTreeUpdate(ranges: RangeChange[], versionId: number) {
 		const rangeChanges: RangeWithOffsets[] = [];
 		const chunkSize = 1000;
@@ -351,7 +340,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 		for (let i = 0; i < ranges.length; i++) {
 			const rangeLinesLength = ranges[i].newRange.endLineNumber - ranges[i].newRange.startLineNumber;
 			if (rangeLinesLength > chunkSize) {
-				// Split the range into chunks to avoid long operations
 				const fullRangeEndLineNumber = ranges[i].newRange.endLineNumber;
 				let chunkLineStart = ranges[i].newRange.startLineNumber;
 				let chunkColumnStart = ranges[i].newRange.startColumn;
@@ -377,7 +365,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 					}
 				} while (chunkLineEnd <= fullRangeEndLineNumber);
 			} else {
-				// Check that the previous range doesn't overlap
 				if ((i === 0) || (rangeChanges[i - 1].endOffset < ranges[i].newRangeStartOffset)) {
 					rangeChanges.push({
 						range: ranges[i].newRange,
@@ -385,7 +372,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 						endOffset: ranges[i].newRangeEndOffset
 					});
 				} else if (rangeChanges[i - 1].endOffset < ranges[i].newRangeEndOffset) {
-					// clip the range to the previous range
 					const startPosition = this._textModel.getPositionAt(rangeChanges[i - 1].endOffset + 1);
 					const range = new Range(startPosition.lineNumber, startPosition.column, ranges[i].newRange.endLineNumber, ranges[i].newRange.endColumn);
 					rangeChanges.push({
@@ -397,9 +383,7 @@ export class TreeSitterTokenizationImpl extends Disposable {
 			}
 		}
 
-		// Get the captures immediately while the text model is correct
 		const captures = rangeChanges.map(range => this._getCaptures(range.range));
-		// Don't block
 		return this._updateTreeForRanges(rangeChanges, versionId, captures).then(() => {
 			if (!this._textModel.isDisposed() && (this._tree.treeLastParsedVersion.get() === this._textModel.getVersionId())) {
 				this._refreshNeedsRefresh(versionId);
@@ -412,7 +396,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 
 		for (let i = 0; i < rangeChanges.length; i++) {
 			if (!this._textModel.isDisposed() && versionId !== this._textModel.getVersionId()) {
-				// Our captures have become invalid and we need to re-capture
 				break;
 			}
 			const capture = captures[i];
@@ -480,13 +463,11 @@ export class TreeSitterTokenizationImpl extends Disposable {
 		this._parseAndTokenizeViewPort(this._visibleLineRanges.get());
 	}
 
-	// Was used for inspect editor tokens command
 	captureAtPosition(lineNumber: number, column: number): QueryCapture[] {
 		const captures = this.captureAtRangeWithInjections(new Range(lineNumber, column, lineNumber, column + 1));
 		return captures;
 	}
 
-	// Was used for the colorization tests
 	captureAtRangeTree(range: Range): QueryCapture[] {
 		const captures = this.captureAtRangeWithInjections(range);
 		return captures;
@@ -497,7 +478,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 		if (!tree) {
 			return [];
 		}
-		// Tree sitter row is 0 based, column is 0 based
 		return this._highlightingQueries.captures(tree.rootNode, { startPosition: { row: range.startLineNumber - 1, column: range.startColumn - 1 }, endPosition: { row: range.endLineNumber - 1, column: range.endColumn - 1 } }).map(capture => (
 			{
 				name: capture.name,
@@ -544,13 +524,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 		return captures;
 	}
 
-	/**
-	 * Gets the tokens for a given line.
-	 * Each token takes 2 elements in the array. The first element is the offset of the end of the token *in the line, not in the document*, and the second element is the metadata.
-	 *
-	 * @param lineNumber
-	 * @returns
-	 */
 	public tokenizeEncoded(lineNumber: number) {
 		const tokens = this._tokenizeEncoded(lineNumber);
 		if (!tokens) {
@@ -616,7 +589,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 			if (position !== undefined) {
 				const oldScopes = endOffsetsAndScopes[position].scopes;
 				let oldBracket = endOffsetsAndScopes[position].bracket;
-				// Check that the previous token ends at the same point that the current token starts
 				const prevEndOffset = position > 0 ? endOffsetsAndScopes[position - 1].endOffset : 0;
 				if (prevEndOffset !== startOffset) {
 					let preInsertBracket: number[] | undefined = undefined;
@@ -640,7 +612,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 							oldBracket = postInsertBracket;
 						}
 					}
-					// We need to add some of the position token to cover the space
 					endOffsetsAndScopes.splice(position, 0, { endOffset: startOffset, scopes: [...oldScopes], bracket: preInsertBracket, encodedLanguageId: capture.encodedLanguageId });
 					position++;
 					increaseSizeOfTokensByOneToken();
@@ -662,8 +633,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 
 			const endOffset = tokenEndIndex - rangeStartOffset;
 
-			// Not every character will get captured, so we need to make sure that our current capture doesn't bleed toward the start of the line and cover characters that it doesn't apply to.
-			// We do this by creating a new token in the array if the previous token ends before the current token starts.
 			let previousEndOffset: number;
 			const currentTokenLength = tokenEndIndex - tokenStartIndex;
 			if (captureIndex > 0) {
@@ -673,7 +642,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 			}
 			const startOffset = endOffset - currentTokenLength;
 			if ((previousEndOffset >= 0) && (previousEndOffset < startOffset)) {
-				// Add en empty token to cover the space where there were no captures
 				endOffsetsAndScopes[tokenIndex] = { endOffset: startOffset, scopes: [baseScope], encodedLanguageId: this._encodedLanguageId };
 				tokenIndex++;
 
@@ -681,22 +649,18 @@ export class TreeSitterTokenizationImpl extends Disposable {
 			}
 
 			if (currentTokenLength < 0) {
-				// This happens when we have a token "gap" right at the end of the capture range. The last capture isn't used because it's start index isn't included in the range.
 				continue;
 			}
 
 			if (previousEndOffset >= endOffset) {
-				// walk back through the tokens until we find the one that contains the current token
 				let withinTokenIndex = tokenIndex - 1;
 				let previousTokenEndOffset = endOffsetsAndScopes[withinTokenIndex].endOffset;
 
 				let previousTokenStartOffset = ((withinTokenIndex >= 2) ? endOffsetsAndScopes[withinTokenIndex - 1].endOffset : 0);
 				do {
 
-					// Check that the current token doesn't just replace the last token
 					if ((previousTokenStartOffset + currentTokenLength) === previousTokenEndOffset) {
 						if (previousTokenStartOffset === startOffset) {
-							// Current token and previous token span the exact same characters, add the scopes to the previous token
 							endOffsetsAndScopes[withinTokenIndex].scopes.push(capture.name);
 							const oldBracket = endOffsetsAndScopes[withinTokenIndex].bracket;
 							endOffsetsAndScopes[withinTokenIndex].bracket = ((oldBracket && (oldBracket.length > 0)) ? oldBracket : brackets(capture, startOffset));
@@ -710,12 +674,10 @@ export class TreeSitterTokenizationImpl extends Disposable {
 					previousTokenEndOffset = ((withinTokenIndex >= 0) ? endOffsetsAndScopes[withinTokenIndex].endOffset : 0);
 				} while (previousTokenEndOffset > startOffset);
 			} else {
-				// Just add the token to the array
 				addCurrentTokenToArray(capture, startOffset, endOffset);
 			}
 		}
 
-		// Account for uncaptured characters at the end of the line
 		if ((endOffsetsAndScopes[tokenIndex - 1].endOffset < rangeLength)) {
 			if (rangeLength - endOffsetsAndScopes[tokenIndex - 1].endOffset > 0) {
 				increaseSizeOfTokensByOneToken();
@@ -735,17 +697,6 @@ export class TreeSitterTokenizationImpl extends Disposable {
 	}
 
 	private _getInjectionCaptures(parentCapture: QueryCapture, range: Range): QueryCapture[] {
-		/*
-				const injection = textModelTreeSitter.getInjection(parentCapture.node.startIndex, this._treeSitterModel.languageId);
-				if (!injection?.tree || injection.versionId !== textModelTreeSitter.parseResult?.versionId) {
-					return undefined;
-				}
-
-				const feature = TreeSitterTokenizationRegistry.get(injection.languageId);
-				if (!feature) {
-					return undefined;
-				}
-				return feature.tokSupport_captureAtRangeTree(range, injection.tree, textModelTreeSitter);*/
 		return [];
 	}
 

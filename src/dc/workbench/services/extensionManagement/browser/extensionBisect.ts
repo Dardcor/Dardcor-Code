@@ -25,7 +25,6 @@ import { areSameExtensions } from '../../../../platform/extensionManagement/comm
 import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
 import { IWorkbenchExtensionEnablementService } from '../common/extensionManagement.js';
 
-// --- bisect service
 
 export const IExtensionBisectService = createDecorator<IExtensionBisectService>('IExtensionBisectService');
 
@@ -101,15 +100,12 @@ class ExtensionBisectService implements IExtensionBisectService {
 
 	isDisabledByBisect(extension: IExtension): boolean {
 		if (!this._state) {
-			// bisect isn't active
 			return false;
 		}
 		if (isResolverExtension(extension.manifest, this._envService.remoteAuthority)) {
-			// the current remote resolver extension cannot be disabled
 			return false;
 		}
 		if (this._isEnabledInEnv(extension)) {
-			// Extension enabled in env cannot be disabled
 			return false;
 		}
 		const disabled = this._disabled.get(extension.identifier.id);
@@ -134,17 +130,13 @@ class ExtensionBisectService implements IExtensionBisectService {
 		if (!this._state) {
 			throw new Error('invalid state');
 		}
-		// check if bad when all extensions are disabled
 		if (seeingBad && this._state.mid === 0 && this._state.high === this._state.extensions.length) {
 			return { bad: true, id: '' };
 		}
-		// check if there is only one left
 		if (this._state.low === this._state.high - 1) {
 			await this.reset();
 			return { id: this._state.extensions[this._state.low], bad: seeingBad };
 		}
-		// the second half is disabled so if there is still bad it must be
-		// in the first half
 		const nextState = new BisectState(
 			this._state.extensions,
 			seeingBad ? this._state.low : this._state.mid,
@@ -163,7 +155,6 @@ class ExtensionBisectService implements IExtensionBisectService {
 
 registerSingleton(IExtensionBisectService, ExtensionBisectService, InstantiationType.Delayed);
 
-// --- bisect UI
 
 class ExtensionBisectUi {
 
@@ -294,14 +285,12 @@ registerAction2(class extends Action2 {
 		}
 
 		if (done.bad) {
-			// DONE but nothing found
 			await dialogService.info(
 				localize('done.msg', "Extension Bisect"),
 				localize('done.detail2', "Extension Bisect is done but no extension has been identified. This might be a problem with {0}.", productService.nameShort)
 			);
 
 		} else {
-			// DONE and identified extension
 			const res = await dialogService.confirm({
 				type: Severity.Info,
 				message: localize('done.msg', "Extension Bisect"),
@@ -329,20 +318,20 @@ registerAction2(class extends Action2 {
 			buttons: [
 				{
 					label: localize({ key: 'next.good', comment: ['&& denotes a mnemonic'] }, "I ca&&n't reproduce"),
-					run: () => false // good now
+					run: () => false
 				},
 				{
 					label: localize({ key: 'next.bad', comment: ['&& denotes a mnemonic'] }, "I can &&reproduce"),
-					run: () => true // bad
+					run: () => true
 				},
 				{
 					label: localize({ key: 'next.stop', comment: ['&& denotes a mnemonic'] }, "&&Stop Bisect"),
-					run: () => undefined // stop
+					run: () => undefined
 				}
 			],
 			cancelButton: {
 				label: localize({ key: 'next.cancel', comment: ['&& denotes a mnemonic'] }, "&&Cancel Bisect"),
-				run: () => null // cancel
+				run: () => null
 			}
 		});
 		return result;

@@ -12,10 +12,6 @@ import { DebugLocation } from '../debugLocation.js';
 import { observableValue } from '../observables/observableValue.js';
 import { transaction } from '../transaction.js';
 
-/**
- * Runs immediately and whenever a transaction ends and an observed observable changed.
- * {@link fn} should start with a JS Doc using `@description` to name the autorun.
- */
 export function autorun(fn: (reader: IReaderWithStore) => void, debugLocation = DebugLocation.ofCaller()): IDisposable {
 	return new AutorunObserver(
 		new DebugNameData(undefined, undefined, fn),
@@ -25,10 +21,6 @@ export function autorun(fn: (reader: IReaderWithStore) => void, debugLocation = 
 	);
 }
 
-/**
- * Runs immediately and whenever a transaction ends and an observed observable changed.
- * {@link fn} should start with a JS Doc using `@description` to name the autorun.
- */
 export function autorunOpts(options: IDebugNameData & {}, fn: (reader: IReaderWithStore) => void, debugLocation = DebugLocation.ofCaller()): IDisposable {
 	return new AutorunObserver(
 		new DebugNameData(options.owner, options.debugName, options.debugReferenceFn ?? fn),
@@ -38,17 +30,6 @@ export function autorunOpts(options: IDebugNameData & {}, fn: (reader: IReaderWi
 	);
 }
 
-/**
- * Runs immediately and whenever a transaction ends and an observed observable changed.
- * {@link fn} should start with a JS Doc using `@description` to name the autorun.
- *
- * Use `changeTracker.createChangeSummary` to create a "change summary" that can collect the changes.
- * Use `changeTracker.handleChange` to add a reported change to the change summary.
- * The run function is given the last change summary.
- * The change summary is discarded after the run function was called.
- *
- * @see autorun
- */
 export function autorunHandleChanges<TChangeSummary>(
 	options: IDebugNameData & {
 		changeTracker: IChangeTracker<TChangeSummary>;
@@ -64,9 +45,6 @@ export function autorunHandleChanges<TChangeSummary>(
 	);
 }
 
-/**
- * @see autorunHandleChanges (but with a disposable store that is cleared before the next run or on dispose)
- */
 export function autorunWithStoreHandleChanges<TChangeSummary>(
 	options: IDebugNameData & {
 		changeTracker: IChangeTracker<TChangeSummary>;
@@ -92,11 +70,6 @@ export function autorunWithStoreHandleChanges<TChangeSummary>(
 	});
 }
 
-/**
- * @see autorun (but with a disposable store that is cleared before the next run or on dispose)
- *
- * @deprecated Use `autorun(reader => { reader.store.add(...) })` instead!
- */
 export function autorunWithStore(fn: (reader: IReader, store: DisposableStore) => void): IDisposable {
 	const store = new DisposableStore();
 	const disposable = autorunOpts(
@@ -157,24 +130,6 @@ export function autorunIterableDelta<T>(
 	});
 }
 
-/**
- * For each key-stable item in {@link items}, runs {@link setup} once when the
- * key is first observed and disposes the per-key {@link DisposableStore} when
- * the key is no longer present in the array (or when the returned disposable
- * is disposed).
- *
- * The {@link IObservable} handed to {@link setup} fires whenever the array
- * still contains an item with the same key but the item value itself has
- * changed (e.g. because the upstream state is immutable and produced a new
- * object with the same id). All per-key value updates triggered by a single
- * change to {@link items} are batched into one transaction, so dependent
- * autoruns observe a consistent snapshot.
- *
- * Per-key state should be stored in closures or in disposables registered
- * against the per-key {@link DisposableStore}. {@link setup} should not call
- * `.read()` on the outer {@link items} observable from its body (use the
- * provided per-key value observable, or create inner autoruns).
- */
 export function autorunPerKeyedItem<TIn, TKey>(
 	items: IObservable<readonly TIn[]>,
 	keyFn: (input: TIn) => TKey,
@@ -212,8 +167,6 @@ export function autorunPerKeyedItem<TIn, TKey>(
 				}
 			}
 		});
-		// Setup runs after the transaction so per-key autoruns observe the
-		// final cell values on their first read.
 		for (const { key, cell } of additions) {
 			setup(key, cell.value, cell.store);
 		}
@@ -229,11 +182,6 @@ export function autorunPerKeyedItem<TIn, TKey>(
 
 export interface IReaderWithDispose extends IReaderWithStore, IDisposable { }
 
-/**
- * An autorun with a `dispose()` method on its `reader` which cancels the autorun.
- * It it safe to call `dispose()` synchronously.
- * @deprecated Use autorunSelfDisposable2
- */
 export function autorunSelfDisposable(fn: (reader: IReaderWithDispose) => void, debugLocation = DebugLocation.ofCaller()): IDisposable {
 	let ar: IDisposable | undefined;
 	let disposed = false;
@@ -259,11 +207,6 @@ export function autorunSelfDisposable(fn: (reader: IReaderWithDispose) => void, 
 }
 
 
-/**
- * An autorun with a `dispose()` method on its `reader` which cancels the autorun.
- * It it safe to call `dispose()` synchronously.
- * TODO@hediet/copilot: rename to delete autorunSelfDisposable, and rename autorunSelfDisposable2 to autorunSelfDisposable.
- */
 export function registerAutorunSelfDisposable(store: DisposableStore, fn: (reader: IReaderWithDispose) => void, debugLocation = DebugLocation.ofCaller()): void {
 	let ar: IDisposable | undefined;
 	let disposeSync = false;
@@ -276,10 +219,8 @@ export function registerAutorunSelfDisposable(store: DisposableStore, fn: (reade
 			readObservable: reader.readObservable.bind(reader),
 			dispose: () => {
 				if (!ar) {
-					// dispose on first run, ar is not initialized yet.
 					disposeSync = true;
 				} else {
-					// dispose on reaction, ar is already registered.
 					store.delete(ar);
 				}
 			}

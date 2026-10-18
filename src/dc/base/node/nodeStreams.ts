@@ -5,12 +5,6 @@
 import { Transform } from 'stream';
 import { binaryIndexOf } from '../common/buffer.js';
 
-/**
- * A Transform stream that splits the input on the "splitter" substring.
- * The resulting chunks will contain (and trail with) the splitter match.
- * The last chunk when the stream ends will be emitted even if a splitter
- * is not encountered.
- */
 export class StreamSplitter extends Transform {
 	private buffer: Buffer | undefined;
 	private readonly splitter: Buffer | number;

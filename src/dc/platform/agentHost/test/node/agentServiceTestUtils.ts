@@ -28,7 +28,7 @@ import { createAgentServiceComposition, type IAgentServiceComposition } from '..
 import { activateAgentHostContributions } from '../../node/agentHostContributions.js';
 import { createAgentServiceFoundation } from '../../node/agentServiceFoundation.js';
 import { registerAgentHostCoreServices } from '../../node/agentHostServices.js';
-import { ICopilotApiService } from '../../node/shared/copilotApiService.js';
+import { IDardcorRouterService } from '../../node/shared/dardcorRouterService.js';
 import { AgentHostClientConnectionService, IAgentHostClientConnectionService } from '../../node/agentHostClientConnectionService.js';
 import { AgentHostStateManager } from '../../node/agentHostStateManager.js';
 import { IAgentHostProviderService } from '../../node/agentHostProviderService.js';
@@ -138,7 +138,7 @@ export function createTestAgentService(
 	rootConfigResource?: URI,
 	telemetryService: ITelemetryService = NullTelemetryService,
 	fileMonitorService?: IAgentHostFileMonitorService,
-	copilotApiService?: ICopilotApiService,
+	dardcorRouterService?: IDardcorRouterService,
 	fetchFn: typeof globalThis.fetch = globalThis.fetch,
 	providerConfigurations: readonly IAgentCustomizationSettingsRegistration[] = [],
 	hostLaunchKind = AgentHostLaunchKind.Unknown,
@@ -163,7 +163,7 @@ export function createTestAgentService(
 	);
 	const options = {
 		rootConfigResource,
-		copilotApiService,
+		dardcorRouterService,
 		providerConfigurations,
 		hostLaunchKind,
 		storageResource,
@@ -186,27 +186,23 @@ export function createTestAgentService(
 		storageResource,
 		fetchFn,
 		gitHubServiceOptions: foundation.gitHubServiceOptions,
-		copilotApiService,
+		dardcorRouterService,
 	});
 	services.set(IAgentHostFileMonitorService, effectiveFileMonitorService);
 	services.set(IAgentEditAttributionService, new NullAgentEditAttributionService());
 	services.set(IAgentHostWorktreeIsolation, worktreeIsolation.service);
-	const instantiationService = new InstantiationService(services, /*strict*/ true);
+	const instantiationService = new InstantiationService(services, true);
 	const octoKitService = instantiationService.invokeFunction(accessor => accessor.get(IAgentHostOctoKitService));
-	const effectiveCopilotApiService = instantiationService.invokeFunction(accessor => accessor.get(ICopilotApiService));
+	const effectiveDardcorRouterService = instantiationService.invokeFunction(accessor => accessor.get(IDardcorRouterService));
 	services.set(IAgentHostSessionTitleController, foundationDisposables.add(instantiationService.createInstance(AgentHostSessionTitleController, foundation.stateManager, {
 		sessionDataService,
-		getGitHubCopilotToken: () => {
-			const resource = foundation.gitHubEndpointService.getCopilotResource();
-			return foundation.authenticationService.getAuthToken({ resource: resource.resource, scopes: resource.scopes_supported });
-		},
 		getGitHubToken: () => {
 			const resource = foundation.gitHubEndpointService.getRepoResource();
 			return foundation.authenticationService.getAuthToken({ resource: resource.resource, scopes: resource.scopes_supported });
 		},
 		getGitHubHost: () => foundation.gitHubEndpointService.getEnterpriseHost() ?? 'github.com',
 		octoKitService,
-		copilotApiService: effectiveCopilotApiService,
+		dardcorRouterService: effectiveDardcorRouterService,
 		isActiveAgentTitleGenerationEnabled: () => foundation.configurationService.getRootValue(platformRootSchema, AgentHostActiveAgentTitleGenerationConfigKey) === true,
 	})));
 	const localTurns = new AgentHostLocalTurns(sessionDataService, logService);

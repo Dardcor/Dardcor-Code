@@ -12,7 +12,6 @@ use crate::util::{
 	sync::{new_barrier, Barrier, Receivable},
 };
 
-/// Describes the signal to manully stop the server
 #[derive(Copy, Clone)]
 pub enum ShutdownSignal {
 	CtrlC,
@@ -68,8 +67,6 @@ impl ShutdownRequest {
 			ShutdownRequest::Derived(mut rx) => rx.recv_msg().await,
 		}
 	}
-	/// Creates a receiver channel sent to once any of the signals are received.
-	/// Note: does not handle ServiceStopped
 	pub fn create_rx(
 		signals: impl IntoIterator<Item = ShutdownRequest>,
 	) -> Barrier<ShutdownSignal> {

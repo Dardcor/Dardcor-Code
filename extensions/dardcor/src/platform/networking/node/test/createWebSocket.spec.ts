@@ -52,9 +52,6 @@ describe('createWebSocket', () => {
 	});
 
 	test('should capture 404 status on non-upgrade response', async () => {
-		// Connect to a path where the server does not upgrade (use a plain HTTP endpoint by not hitting the WebSocket path)
-		// We achieve this by connecting to the server but requesting a non-existent WebSocket endpoint.
-		// Since our server upgrades all connections on /, we need a server that doesn't upgrade.
 		const nonWsServer = http.createServer((_req, res) => {
 			res.writeHead(404, 'Not Found', { 'content-type': 'text/plain' });
 			res.end('Not Found');

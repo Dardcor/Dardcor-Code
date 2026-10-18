@@ -14,7 +14,6 @@ import { NullState } from '../../../common/languages/nullTokenize.js';
 import { TextModel } from '../../../common/model/textModel.js';
 import { createTextModel } from '../testTextModel.js';
 
-// --------- utils
 
 suite('Editor Model - Model Modes 1', () => {
 

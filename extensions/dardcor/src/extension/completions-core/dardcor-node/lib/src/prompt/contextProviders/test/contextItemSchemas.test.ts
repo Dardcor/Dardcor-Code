@@ -33,7 +33,6 @@ suite('contextItemSchemas', function () {
 			],
 		};
 
-		// Since they are homogeneous, it's either all or nothing.
 		assert.deepStrictEqual(filterContextItemsByType([badItem], 'Trait'), []);
 		assert.deepStrictEqual(filterContextItemsByType([goodItem], 'Trait'), [goodItem]);
 	});
@@ -131,7 +130,6 @@ suite('contextItemSchemas', function () {
 		const [validItems, invalidItems] = filterSupportedContextItems(resolvedContextItems);
 		assert.deepStrictEqual(invalidItems, 0);
 		assert.deepStrictEqual(validItems.length, 2);
-		// Keeps all optional properties
 		assert.deepStrictEqual((validItems[0] as unknown as { [key: string]: unknown }).optionalProp, 'optional');
 	});
 });

@@ -19,10 +19,7 @@ suite('Mime', () => {
 	});
 
 	test('getExtensionForMimeType', () => {
-		// Note: for MIME types with multiple extensions (e.g., image/jpg -> .jpe, .jpeg, .jpg),
-		// the function returns the first matching extension in iteration order
 		assert.ok(['.jpe', '.jpeg', '.jpg'].includes(getExtensionForMimeType('image/jpg')!));
-		// image/jpeg is an alias for image/jpg and should also return a valid extension
 		assert.ok(['.jpe', '.jpeg', '.jpg'].includes(getExtensionForMimeType('image/jpeg')!));
 		assert.strictEqual(getExtensionForMimeType('image/png'), '.png');
 		assert.strictEqual(getExtensionForMimeType('image/gif'), '.gif');

@@ -46,14 +46,12 @@ suite('PromptCodeActionProvider', () => {
 
 		const toolService = disposables.add(instaService.createInstance(LanguageModelToolsService));
 
-		// Register test tools including deprecated ones
 		const testTool1 = { id: 'testTool1', displayName: 'tool1', canBeReferencedInPrompt: true, modelDescription: 'Test Tool 1', source: ToolDataSource.External, inputSchema: {} } satisfies IToolData;
 		disposables.add(toolService.registerToolData(testTool1));
 
 		const deprecatedTool = { id: 'oldTool', displayName: 'oldTool', canBeReferencedInPrompt: true, modelDescription: 'Deprecated Tool', source: ToolDataSource.External, inputSchema: {} } satisfies IToolData;
 		disposables.add(toolService.registerToolData(deprecatedTool));
 
-		// Mock deprecated tool names
 		toolService.getDeprecatedFullReferenceNames = () => {
 			const map = new Map<string, Set<string>>();
 			map.set('oldTool', new Set(['newTool1', 'newTool2']));
@@ -67,7 +65,6 @@ suite('PromptCodeActionProvider', () => {
 
 		fileService = {
 			canMove: async (source: URI, target: URI) => {
-				// Mock file service that allows moves for testing
 				return true;
 			}
 		} as IFileService;
@@ -79,7 +76,6 @@ suite('PromptCodeActionProvider', () => {
 				return parser.parse(model.uri, model.getValue());
 			},
 			getAgentFileURIFromModeFile(uri: URI) {
-				// Mock conversion from .chatmode.md to .agent.md
 				if (uri.path.endsWith('.chatmode.md')) {
 					return uri.with({ path: uri.path.replace('.chatmode.md', '.agent.md') });
 				}
@@ -177,11 +173,11 @@ suite('PromptCodeActionProvider', () => {
 				`tools: ['oldTool', 'singleDeprecated', 'validTool']`,
 				'---',
 			].join('\n');
-			const actions = await getCodeActions(content, 4, 8, PromptsType.agent); // Position at the bracket
+			const actions = await getCodeActions(content, 4, 8, PromptsType.agent);
 			assert.strictEqual(actions.length, 1);
 			assert.strictEqual(actions[0].title, `Update all tool names`);
 			assert.ok(actions[0].textEdits);
-			assert.strictEqual(actions[0].textEdits!.length, 2); // Only deprecated tools are updated
+			assert.strictEqual(actions[0].textEdits!.length, 2);
 		});
 
 		test('handles double quotes in tool names', async () => {
@@ -204,14 +200,14 @@ suite('PromptCodeActionProvider', () => {
 				'---',
 				'description: "Test"',
 				'target: vscode',
-				'tools: [singleDeprecated]', // No quotes
+				'tools: [singleDeprecated]',
 				'---',
 			].join('\n');
 			const actions = await getCodeActions(content, 4, 10, PromptsType.agent);
 			assert.strictEqual(actions.length, 1);
 			assert.strictEqual(actions[0].title, `Update to 'singleReplacement'`);
 			assert.ok(actions[0].textEdits);
-			assert.strictEqual(actions[0].textEdits![0].textEdit.text, `singleReplacement`); // No quotes preserved
+			assert.strictEqual(actions[0].textEdits![0].textEdit.text, `singleReplacement`);
 		});
 
 		test('no code actions when range not in tools array', async () => {
@@ -222,7 +218,7 @@ suite('PromptCodeActionProvider', () => {
 				`tools: ['singleDeprecated']`,
 				'---',
 			].join('\n');
-			const actions = await getCodeActions(content, 2, 1, PromptsType.agent); // Range in description, not tools
+			const actions = await getCodeActions(content, 2, 1, PromptsType.agent);
 			assert.strictEqual(actions.length, 0);
 		});
 
@@ -366,7 +362,7 @@ suite('PromptCodeActionProvider', () => {
 				'mode: edit',
 				'---',
 			].join('\n');
-			const actions = await getCodeActions(content, 2, 1, PromptsType.prompt); // Range in description, not mode
+			const actions = await getCodeActions(content, 2, 1, PromptsType.prompt);
 			assert.strictEqual(actions.length, 0);
 		});
 
@@ -378,12 +374,10 @@ suite('PromptCodeActionProvider', () => {
 				`tools: ['singleDeprecated']`,
 				'---',
 			].join('\n');
-			// Test mode action
 			const modeActions = await getCodeActions(content, 3, 1, PromptsType.prompt);
 			assert.strictEqual(modeActions.length, 1);
 			assert.strictEqual(modeActions[0].title, `Rename to 'agent'`);
 
-			// Test tools action
 			const toolActions = await getCodeActions(content, 4, 10, PromptsType.prompt);
 			assert.strictEqual(toolActions.length, 1);
 			assert.strictEqual(toolActions[0].title, `Update to 'singleReplacement'`);
@@ -395,7 +389,7 @@ suite('PromptCodeActionProvider', () => {
 			'---',
 			'description: "Test"',
 			'target: vscode',
-			`tools: ['validTool']`, // No deprecated tools
+			`tools: ['validTool']`,
 			'---',
 		].join('\n');
 		const actions = await getCodeActions(content, 4, 10, PromptsType.agent);

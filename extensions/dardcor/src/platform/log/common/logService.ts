@@ -8,39 +8,18 @@ import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 
 export const ILogService = createServiceIdentifier<ILogService>('ILogService');
 
-/**
- * Log levels (taken from vscode.d.ts)
- */
 export enum LogLevel {
 
-	/**
-	 * No messages are logged with this level.
-	 */
 	Off = 0,
 
-	/**
-	 * All messages are logged with this level.
-	 */
 	Trace = 1,
 
-	/**
-	 * Messages with debug and higher log level are logged with this level.
-	 */
 	Debug = 2,
 
-	/**
-	 * Messages with info and higher log level are logged with this level.
-	 */
 	Info = 3,
 
-	/**
-	 * Messages with warning and higher log level are logged with this level.
-	 */
 	Warning = 4,
 
-	/**
-	 * Only error messages are logged with this level.
-	 */
 	Error = 5
 }
 
@@ -49,24 +28,12 @@ export interface ILogTarget {
 	show?(preserveFocus?: boolean): void;
 }
 
-/**
- * Utility functions for creating ILogTarget instances.
- */
 export namespace LogTarget {
-	/**
-	 * Creates an ILogTarget from a simple callback function.
-	 *
-	 * @example
-	 * logger.withExtraTarget(LogTarget.fromCallback((level, msg) => {
-	 *     console.log(`[${LogLevel[level]}] ${msg}`);
-	 * }));
-	 */
 	export function fromCallback(fn: (level: LogLevel, message: string) => void): ILogTarget {
 		return { logIt: fn };
 	}
 }
 
-// Simple implementation of a log targe used for logging to the console.
 export class ConsoleLog implements ILogTarget {
 	constructor(private readonly prefix?: string, private readonly minLogLevel: LogLevel = LogLevel.Warning) { }
 
@@ -75,8 +42,6 @@ export class ConsoleLog implements ILogTarget {
 			metadataStr = `${this.prefix}${metadataStr}`;
 		}
 
-		// Note we don't log INFO or DEBUG messages into console.
-		// They are still logged in the output channel.
 		if (level === LogLevel.Error) {
 			console.error(metadataStr, ...extra);
 		} else if (level === LogLevel.Warning) {
@@ -91,56 +56,16 @@ export interface ILogService extends ILogger {
 	readonly _serviceBrand: undefined;
 }
 
-/**
- * Mirrors vscode's {@link LogOutputChannel} in terms of available logging functions
- * Args has been ommitted for now in favor of simplifying the interface
- */
 export interface ILogger {
 	trace(message: string): void;
 	debug(message: string): void;
 	info(message: string): void;
 	warn(message: string): void;
-	/**
-	 * Logs an error message. Prefer this method over `error()` when logging exception details.
-	 *
-	 * @param error The Error object that was thrown
-	 * @param message An optional message for context (e.g. "Request error"). Must not contain customer data. **Do not include stack trace or messages from the error object.**
-	*/
 	error(error: string | Error, message?: string): void;
 	show(preserveFocus?: boolean): void;
 
-	/**
-	 * Creates a sub-logger with a topic prefix. All messages logged through
-	 * the sub-logger will be prefixed with the topic, e.g., `[Topic] message`.
-	 *
-	 * Sub-loggers can be nested, and the prefixes will accumulate,
-	 * e.g., `[Parent][Child] message`.
-	 *
-	 * Sub-loggers inherit extra targets from their parent.
-	 *
-	 * @param topic The topic name or array of topic names to prefix messages with
-	 */
 	createSubLogger(topic: string | readonly string[]): ILogger;
 
-	/**
-	 * Returns a new logger that also logs to the specified extra target.
-	 * The original logger is unchanged (immutable).
-	 *
-	 * Can be chained to add multiple targets. Sub-loggers created from this
-	 * logger will inherit all extra targets.
-	 *
-	 * Errors thrown by extra targets are silently caught.
-	 *
-	 * @param target An ILogTarget instance
-	 * @returns A new ILogger with the extra target attached
-	 *
-	 * @example
-	 * const logger = logService
-	 *     .createSubLogger('MyFeature')
-	 *     .withExtraTarget(LogTarget.fromCallback((level, msg) => {
-	 *         logContext.trace(msg);
-	 *     }));
-	 */
 	withExtraTarget(target: ILogTarget): ILogger;
 }
 
@@ -156,7 +81,6 @@ export class LogServiceImpl extends Disposable implements ILogService {
 		this.logger = new LoggerImpl(logTargets);
 	}
 
-	// Delegate logging methods directly to the internal logger
 	trace(message: string): void {
 		this.logger.trace(message);
 	}
@@ -297,7 +221,6 @@ class LoggerWithExtraTargets implements ILogger {
 			try {
 				target.logIt(level, prefixedMessage);
 			} catch {
-				// Silent catch - extra targets must not affect primary logging
 			}
 		}
 	}
@@ -323,7 +246,6 @@ class LoggerWithExtraTargets implements ILogger {
 	}
 
 	error(error: string | Error, message?: string): void {
-		// For extra targets, format a simple message
 		const errorStr = typeof error === 'string' ? error : (error.message || 'Error');
 		const fullMessage = message ? `${errorStr}: ${message}` : errorStr;
 		this._notifyExtraTargets(LogLevel.Error, fullMessage);
@@ -336,13 +258,11 @@ class LoggerWithExtraTargets implements ILogger {
 			try {
 				target.show?.(preserveFocus);
 			} catch {
-				// Silent catch
 			}
 		}
 	}
 
 	createSubLogger(topic: string | readonly string[]): ILogger {
-		// Sub-logger inherits extra targets with updated prefix
 		const topics = Array.isArray(topic) ? topic : [topic];
 		const newPrefix = this._prefix + topics.map(t => `[${t}]`).join('');
 		return new LoggerWithExtraTargets(
@@ -362,7 +282,6 @@ class LoggerWithExtraTargets implements ILogger {
 }
 
 export function collectErrorMessages(e: any): string {
-	// Collect error messages from nested errors as seen with Node's `fetch`.
 	const seen = new Set<any>();
 	function collect(e: any, indent: string): string {
 		if (!e || !['object', 'string'].includes(typeof e) || seen.has(e)) {
@@ -383,7 +302,6 @@ export function collectErrorMessages(e: any): string {
 }
 
 export function collectSingleLineErrorMessage(e: any, includeDetails = false): string {
-	// Collect error messages from nested errors as seen with Node's `fetch`.
 	const seen = new Set<any>();
 	function collect(e: any): string {
 		if (!e || !['object', 'string'].includes(typeof e) || seen.has(e)) {
@@ -403,33 +321,17 @@ export function collectSingleLineErrorMessage(e: any, includeDetails = false): s
 	return collect(e);
 }
 
-/**
- * Sanitizes a network error message for telemetry by replacing hostnames,
- * IP addresses, and credentials with placeholders.
- */
 export function sanitizeNetworkErrorForTelemetry(message: string): string {
-	// Strip credentials and host from proxy result strings (e.g., "PROXY user:pass@host" → "PROXY <credentials>@<host>")
 	message = message.replace(/(\b(?:PROXY|HTTPS?|SOCKS[45]?)\s+)[^\s]+@([^\s:\/]+)/gi, '$1<credentials>@<host>');
-	// Strip host from proxy result strings without credentials (e.g., "PROXY host:8080" → "PROXY <host>:8080")
 	message = message.replace(/(\b(?:PROXY|HTTPS?|SOCKS[45]?)\s+)([a-zA-Z0-9][-a-zA-Z0-9.]*)/gi, '$1<host>');
-	// Strip credentials and host from URLs (e.g., "://user:pass@host" → "://<credentials>@<host>")
 	message = message.replace(/(\/\/)[^\s/]+@([^\s:\/]+)/g, '$1<credentials>@<host>');
-	// Replace IPv4 addresses, preserving the port if present
 	message = message.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '<ip>');
-	// Replace IPv6 addresses (full form, e.g., "2001:db8:85a3:0:0:8a2e:370:7334")
 	message = message.replace(/(?<![a-zA-Z_:])(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}(?![a-zA-Z_])/g, '<ip>');
-	// Replace IPv6 addresses (compressed form with ::, e.g., "2001:db8::1" or "::1")
 	message = message.replace(/(?<![a-zA-Z_:])(?:(?:[0-9a-fA-F]{1,4}:){1,7}|:):[0-9a-fA-F:]*[0-9a-fA-F](?![a-zA-Z_])/g, '<ip>');
-	// Replace FQDNs (at least one dot, TLD of 2+ alpha chars), preserving the port if present
 	message = message.replace(/\b([a-zA-Z0-9][-a-zA-Z0-9]*\.)+[a-zA-Z]{2,}\b/g, '<host>');
 	return message;
 }
 
-/**
- * Chromium error details attached by Electron to fetch errors.
- * Electron's network service process runs separately; when it crashes,
- * `network_process_crashed` is set to `true` on the error's `chromiumDetails`.
- */
 export interface ElectronFetchErrorChromiumDetails {
 	readonly is_request_error?: boolean;
 	readonly network_process_crashed?: boolean;
@@ -643,10 +545,6 @@ export class LogMemory {
 	private static _requestIds: string[] = [];
 	private static readonly MAX_LOGS = 50;
 
-	/**
-	 * Extracts the requestId from a log message if it matches the expected pattern.
-	 * Returns a string in the format 'requestId: {string}' or undefined if not found.
-	 */
 	private static extractRequestIdFromMessage(message: string): string | undefined {
 		const match = message.match(/request done: requestId: \[([0-9a-fA-F-]+)\] model deployment ID: \[/);
 		if (match) {
@@ -664,7 +562,6 @@ export class LogMemory {
 		}
 		this._logs.push(`${level}: ${message}`);
 
-		// Extract and store requestId if present
 		if (this._requestIds.length >= this.MAX_LOGS) {
 			this._requestIds.shift();
 		}

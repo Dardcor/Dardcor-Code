@@ -48,9 +48,9 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
       ? `name1|pt-xxxxx\nname2|pt-yyyyy\npt-only-auto-named`
       : BULK_PLACEHOLDER;
 
-  const [mode, setMode] = useState("single"); // "single" | "bulk"
+  const [mode, setMode] = useState("single");
   const [bulkText, setBulkText] = useState("");
-  const [bulkResult, setBulkResult] = useState(null); // { success, failed }
+  const [bulkResult, setBulkResult] = useState(null);
 
   const buildProviderSpecificData = () => {
     if (isOllamaLocal && formData.ollamaHostUrl.trim()) {
@@ -94,7 +94,6 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
     if (!provider) return;
     if (!isOllamaLocal && !formData.apiKey) return;
     if (!isOllamaLocal) {
-      // Non-ollama providers require a name
       if (!formData.name) return;
     }
     if (isCompatible && !formData.defaultModel.trim()) return;
@@ -136,9 +135,6 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   const handleBulkSubmit = async () => {
     const lines = bulkText.split("\n");
     if (!lines.length) return;
-    // Plan collision-free names against existing connections so a generated
-    // "Key N" never matches a saved name (which the backend would upsert /
-    // overwrite instead of inserting). See bulkAdd.js for the full rationale.
     const plan = planBulkAdd(lines, existingNames, { isCloudflareAi });
     if (!plan.length) return;
     setSaving(true);
@@ -147,9 +143,6 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
     let failed = 0;
     for (const entry of plan) {
       try {
-        // Validate each key before saving so bulk-added connections get a
-        // real status (active/unknown) like single adds, instead of a
-        // hardcoded "unknown" that never flips until a manual test.
         let isValid = false;
         try {
           const vres = await fetch("/api/providers/validate", {
@@ -190,7 +183,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   return (
     <Modal isOpen={isOpen} title={`Add ${providerName || provider} ${credentialLabel}`} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        {/* Mode switcher */}
+        {}
         <div className="flex gap-2">
           <Button size="sm" variant={mode === "single" ? "primary" : "ghost"} onClick={() => { setMode("single"); setBulkResult(null); }}>Single</Button>
           <Button size="sm" variant={mode === "bulk" ? "primary" : "ghost"} onClick={() => { setMode("bulk"); setBulkResult(null); }}>Bulk Add</Button>

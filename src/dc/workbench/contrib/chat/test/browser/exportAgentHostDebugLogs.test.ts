@@ -32,7 +32,6 @@ function artifactOfSize(size: number): IAgentHostDebugLogsArtifact {
 	};
 }
 
-/** Serves `contents` in fixed-size slices, like a remote host would. */
 function chunkedReader(contents: VSBuffer, chunkSize: number): (position: number) => Promise<IAgentHostDebugLogsChunk> {
 	return async position => {
 		const data = contents.slice(position, Math.min(position + chunkSize, contents.byteLength));

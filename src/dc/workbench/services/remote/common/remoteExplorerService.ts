@@ -180,7 +180,6 @@ class RemoteExplorerService implements IRemoteExplorerService {
 	}
 
 	set targetType(name: string[]) {
-		// Can just compare the first element of the array since there are no target overlaps
 		const current: string = this._targetType.length > 0 ? this._targetType[0] : '';
 		const newName: string = name.length > 0 ? name[0] : '';
 		if (current !== newName) {

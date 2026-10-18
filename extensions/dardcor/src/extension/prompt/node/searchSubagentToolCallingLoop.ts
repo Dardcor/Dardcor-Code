@@ -35,17 +35,11 @@ export interface ISearchSubagentToolCallingLoopOptions extends IToolCallingLoopO
 	request: ChatRequest;
 	location: ChatLocation;
 	promptText: string;
-	/** Optional pre-generated subagent invocation ID. If not provided, a new UUID will be generated. */
 	subAgentInvocationId?: string;
-	/** The tool_call_id from the parent agent's LLM response that triggered this subagent invocation. */
 	parentToolCallId?: string;
-	/** The headerRequestId from the parent agent's fetch response that triggered this subagent invocation. */
 	parentHeaderRequestId?: string;
-	/** The modelCallId from the parent agent's model call that triggered this subagent invocation. */
 	parentModelCallId?: string;
-	/** The top-level turn ID for aggregating credits across subagent calls. */
 	topLevelTurnId?: string;
-	/** Thoroughness level for the search, passed through to the prompt when thoroughnessEnabled config is on. */
 	thoroughness?: 'normal' | 'deep';
 }
 
@@ -53,9 +47,6 @@ export class SearchSubagentToolCallingLoop extends ToolCallingLoop<ISearchSubage
 
 	public static readonly ID = 'searchSubagentTool';
 
-	// Render proactively at 0.9. If the model still returns a context-overflow 400,
-	// we do one retry at an aggressively smaller factor before surfacing
-	// a benign fallback to the main agent via the tool wrapper.
 	private static readonly INITIAL_SAFETY_FACTOR = 0.9;
 	private static readonly RETRY_SAFETY_FACTOR = 0.5;
 	private _didRetryAfterOverflow = false;
@@ -96,68 +87,57 @@ export class SearchSubagentToolCallingLoop extends ToolCallingLoop<ISearchSubage
 		return context;
 	}
 
-	/**
-	 * Get the endpoint to use for the search subagent
-	 */
 	private getEndpoint(): Promise<IChatEndpoint> {
 		return this._endpoint ??= this.resolveEndpoint();
 	}
 
-	/** Returns the display name of the endpoint used for this search. */
 	public async getModelName(): Promise<string> {
 		return (await this.getEndpoint()).name;
 	}
 
 	private async resolveEndpoint(): Promise<IChatEndpoint> {
 		const modelName = this._configurationService.getExperimentBasedConfig(ConfigKey.Advanced.SearchSubagentModel, this._experimentationService);
-		const useAgenticProxy = this._configurationService.getExperimentBasedConfig(ConfigKey.Advanced.SearchSubagentUseAgenticProxy, this._experimentationService);
+		const useDedicatedSubagentModel = this._configurationService.getExperimentBasedConfig(ConfigKey.Advanced.SearchSubagentUseAgenticProxy, this._experimentationService);
 
-		if (useAgenticProxy) {
-			// Primary gating lives in getAgentTools, which is hidden
-			// when CAPI doesn't advertise the search-agent family. This fallback handles
-			// the secondary cases: races between gating and execution, transient CAPI
-			// errors, and any future caller that invokes the loop without the agent gate
+		if (useDedicatedSubagentModel) {
 			try {
-				const allEndpoints = await this.endpointProvider.getAllChatEndpoints();
-				const searchAgentEndpoints = allEndpoints.filter(e => e.family === SEARCH_AGENT_FAMILY);
-				const searchAgentEndpoint = modelName
-					? (searchAgentEndpoints.find(e => e.model === modelName) ?? searchAgentEndpoints[0])
-					: searchAgentEndpoints[0];
-				if (searchAgentEndpoint instanceof ChatEndpoint) {
-					return this.instantiationService.createInstance(SearchAgentChatEndpoint, searchAgentEndpoint.modelMetadata);
+				const routerEndpoints = await this.endpointProvider.getAllChatEndpoints();
+				const searchAgentEndpoints = routerEndpoints.filter(endpoint => endpoint.family === SEARCH_AGENT_FAMILY);
+				const dedicatedEndpoint = (modelName && routerEndpoints.find(endpoint => endpoint.model === modelName))
+					?? searchAgentEndpoints.find(endpoint => endpoint.model === modelName)
+					?? searchAgentEndpoints[0]
+					?? (modelName
+						? await this.endpointProvider.getChatEndpoint(modelName)
+						: await this.endpointProvider.getChatEndpoint('dardcor-utility-small'));
+				if (dedicatedEndpoint.supportsToolCalls) {
+					if (dedicatedEndpoint.family === SEARCH_AGENT_FAMILY && dedicatedEndpoint instanceof ChatEndpoint) {
+						return this.instantiationService.createInstance(SearchAgentChatEndpoint, dedicatedEndpoint.modelMetadata);
+					}
+					return dedicatedEndpoint;
 				}
-				this._logService.warn(`Search-agent model not available in CAPI, falling back to main agent endpoint`);
+				this._logService.warn(`Search subagent Router model '${dedicatedEndpoint.model}' does not support tool calls; using the main agent model.`);
 			} catch (error) {
 				const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
-				this._logService.warn(`Failed to get search-agent endpoint from CAPI, falling back to main agent: ${message}`);
+				this._logService.warn(`Failed to resolve the configured search subagent Router model; using the main agent model: ${message}`);
 			}
 			return await this.endpointProvider.getChatEndpoint(this.options.request);
 		}
 
 		if (modelName) {
 			try {
-				// The setting is model-name based, so prefer an exact model-id match.
-				// IChatEndpoint exposes the model id, so we can resolve it directly
-				// from the known endpoints. Fall back to family resolution (the prior
-				// behavior) when no id matches, e.g. when the setting is a CAPI family.
 				const allEndpoints = await this.endpointProvider.getAllChatEndpoints();
 				const endpoint = allEndpoints.find(e => e.model === modelName)
 					?? await this.endpointProvider.getChatEndpoint(modelName);
 				if (endpoint.supportsToolCalls) {
 					return endpoint;
 				}
-				// Model does not support tool calls, fallback to main agent endpoint.
-				// The search subagent is a tool-calling loop, and the endpoint would
-				// otherwise strip its search tools from the request body.
 				this._logService.warn(`Model ${modelName} does not support tool calls, falling back to main agent endpoint`);
 				return await this.endpointProvider.getChatEndpoint(this.options.request);
 			} catch (error) {
-				// Model not available, fallback to main agent
 				this._logService.warn(`Failed to get model ${modelName}, falling back to main agent endpoint: ${error}`);
 				return await this.endpointProvider.getChatEndpoint(this.options.request);
 			}
 		} else {
-			// No model name specified, use main agent endpoint
 			return await this.endpointProvider.getChatEndpoint(this.options.request);
 		}
 	}
@@ -196,11 +176,8 @@ export class SearchSubagentToolCallingLoop extends ToolCallingLoop<ISearchSubage
 		const endpoint = await this.getEndpoint();
 		const allTools = this.toolsService.getEnabledTools(this.options.request, endpoint);
 
-		// Only include tools relevant for search operations.
-		// We include semantic_search (Codebase) and the basic search primitives.
-		// The Codebase tool checks for inSubAgent context to prevent nested tool calling loops.
 		const allowedSearchTools = new Set([
-			ToolName.Codebase,  // Semantic search
+			ToolName.Codebase,
 			ToolName.FindFiles,
 			ToolName.FindTextInFiles,
 			ToolName.ReadFile
@@ -223,7 +200,6 @@ export class SearchSubagentToolCallingLoop extends ToolCallingLoop<ISearchSubage
 					...requestOptions,
 					temperature: 0
 				},
-				// This loop is inside a tool called from another request, so never user initiated
 				userInitiatedRequest: false,
 				turnId: this.options.request.id,
 				topLevelTurnId: this.options.topLevelTurnId,
@@ -263,9 +239,6 @@ export class SearchSubagentToolCallingLoop extends ToolCallingLoop<ISearchSubage
 		}
 	}
 
-	/**
-	 * Skip the autopilot auto-retry layer for context-overflow BadRequest.
-	 */
 	protected override shouldAutoRetry(response: ChatResponse): boolean {
 		if (isContextOverflowBadRequest(response)) {
 			return false;
@@ -278,15 +251,6 @@ export class SearchSubagentToolCallingLoop extends ToolCallingLoop<ISearchSubage
 		model: string,
 		safetyFactor: number,
 	): void {
-		/* __GDPR__
-			"searchSubagent.contextOverflow" : {
-				"owner": "t-guomaggie",
-				"comment": "Tracks when the search subagent's model returns a 400 with a context-overflow reason, and whether the single shrink-and-retry recovered.",
-				"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "One of: 'retried' (overflowed on the initial 0.9 budget, re-rendering at the retry factor), 'exhausted' (also overflowed on the retry; failure surfaced to the tool wrapper as a benign fallback)." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model id used by the subagent." },
-				"safetyFactor": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The message-budget multiplier in effect after the shrink. Currently always RETRY_SAFETY_FACTOR, but logged as a value so tuning is visible if we change it." }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('searchSubagent.contextOverflow', {
 			outcome,
 			model,

@@ -10,10 +10,6 @@ import { IModelService } from '../../../editor/common/services/model.js';
 import { ILanguageDetectionService } from '../../services/languageDetection/common/languageDetectionWorkerService.js';
 import { IAccessibilityService } from '../../../platform/accessibility/common/accessibility.js';
 
-/**
- * An editor model for in-memory, readonly text content that
- * is backed by an existing editor model.
- */
 export class TextResourceEditorModel extends BaseTextEditorModel {
 
 	constructor(
@@ -28,7 +24,6 @@ export class TextResourceEditorModel extends BaseTextEditorModel {
 
 	override dispose(): void {
 
-		// force this class to dispose the underlying model
 		if (this.textEditorModelHandle) {
 			this.modelService.destroyModel(this.textEditorModelHandle);
 		}

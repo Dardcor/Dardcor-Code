@@ -76,7 +76,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	private _pathSeparator: string | undefined;
 	private _isFilteringDirectories: boolean = false;
 
-	// TODO: Remove these in favor of prompt input state
 	private _leadingLineContent?: string;
 	private _cursorIndexDelta: number = 0;
 	private _requestedCompletionsIndex: number = 0;
@@ -89,7 +88,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 
 	private _discoverability: TerminalSuggestShownTracker | undefined;
 
-	// Terminal suggest resolution tracking (similar to editor's suggest widget)
 	private _currentSuggestionDetails?: CancelablePromise<void>;
 	private _focusedItem?: TerminalCompletionItem;
 	private _ignoreFocusEvents: boolean = false;
@@ -154,8 +152,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 
 	private readonly _inlineCompletion: ITerminalCompletion = {
 		label: '',
-		// Right arrow is used to accept the completion. This is a common keybinding in pwsh, zsh
-		// and fish.
 		inputData: '\x1b[C',
 		replacementRange: [0, 0],
 		provider: 'core:inlineSuggestion',
@@ -184,10 +180,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	) {
 		super();
 
-		// Initialize shell type, including a promise that completions can await for that resolves:
-		// - immediately if shell type
-		// - after a short delay if shell type gets set
-		// - after a long delay if it doesn't get set
 		this.shellType = shellType;
 		if (this.shellType) {
 			this._shellTypeInit = Promise.resolve();
@@ -262,25 +254,17 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	private async _handleCompletionProviders(terminal: Terminal | undefined, token: CancellationToken, explicitlyInvoked?: boolean): Promise<void> {
 		this._logService.trace('SuggestAddon#_handleCompletionProviders');
 
-		// Nothing to handle if the terminal is not attached
 		if (!terminal?.element || !this._enableWidget || !this._promptInputModel) {
 			return;
 		}
 
-		// Only show the suggest widget if the terminal is focused
 		if (!dom.isAncestorOfActiveElement(terminal.element)) {
 			return;
 		}
 
-		// Wait for the shell type to initialize. This will wait a short period after launching to
-		// allow the shell type to be set if possible. This prevents user requests sometimes getting
-		// lost if requested shortly after the terminal is created. Completion providers can still
-		// work with undefined shell types such as Pseudoterminal-based extension terminals.
 		await this._shellTypeInit;
 
 		let doNotRequestExtensionCompletions = false;
-		// Ensure that a key has been pressed since the last accepted completion in order to prevent
-		// completions being requested again right after accepting a completion
 		if (this._promptInputModel.value !== '' && this._lastUserDataTimestamp < SuggestAddon.lastAcceptedCompletionTimestamp) {
 			doNotRequestExtensionCompletions = true;
 		}
@@ -294,7 +278,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		};
 		this._requestedCompletionsIndex = this._currentPromptInputState.cursorIndex;
 
-		// Show loading indicator before making async completion request (only for explicit invocations)
 		if (explicitlyInvoked && this._container) {
 			const suggestWidget = this._ensureSuggestWidget(terminal);
 			const cursorPosition = this._getCursorPosition(terminal);
@@ -306,7 +289,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		const quickSuggestionsConfig = normalizeQuickSuggestionsConfig(this._configurationService.getValue<ITerminalSuggestConfiguration>(terminalSuggestConfigSection).quickSuggestions);
 		const allowFallbackCompletions = explicitlyInvoked || quickSuggestionsConfig.unknown === 'on';
 		this._logService.trace('SuggestAddon#_handleCompletionProviders provideCompletions');
-		// Trim ghost text from the prompt value when requesting completions
 		const ghostTextIndex = this._mostRecentPromptInputState?.ghostTextIndex === undefined ? -1 : this._mostRecentPromptInputState?.ghostTextIndex;
 		const promptValue = ghostTextIndex > -1 ? this._currentPromptInputState.value.substring(0, ghostTextIndex) : this._currentPromptInputState.value;
 		const providedCompletions = await this._terminalCompletionService.provideCompletions(promptValue, this._currentPromptInputState.cursorIndex, allowFallbackCompletions, this.shellType, this._capabilities, token, false, doNotRequestExtensionCompletions, explicitlyInvoked);
@@ -327,23 +309,16 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		}
 
 		const firstChar = this._leadingLineContent.length === 0 ? '' : this._leadingLineContent[0];
-		// This is a TabExpansion2 result
 		if (this._leadingLineContent.includes(' ') || firstChar === '[') {
 			this._leadingLineContent = this._promptInputModel.prefix;
 		}
 
 		let normalizedLeadingLineContent = this._leadingLineContent;
 
-		// If there is a single directory in the completions:
-		// - `\` and `/` are normalized such that either can be used
-		// - Using `\` or `/` will request new completions. It's important that this only occurs
-		//   when a directory is present, if not completions like git branches could be requested
-		//   which leads to flickering
 		this._isFilteringDirectories = completions.some(e => e.kind === TerminalCompletionItemKind.Folder);
 		if (this._isFilteringDirectories) {
 			const firstDir = completions.find(e => e.kind === TerminalCompletionItemKind.Folder);
 			const textLabel = isString(firstDir?.label) ? firstDir.label : firstDir?.label.label;
-			// Get path separator from the completion label, which is coming from the extension host
 			const labelSep = textLabel?.match(/(?<sep>[\\\/])/)?.groups?.sep;
 			if (labelSep) {
 				this._pathSeparator = labelSep;
@@ -353,12 +328,8 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			}
 		}
 
-		// Add any "ghost text" suggestion suggested by the shell. This aligns with behavior of the
-		// editor and how it interacts with inline completions. This object is tracked and reused as
-		// it may change on input.
 		this._refreshInlineCompletion(completions);
 
-		// Add any missing icons based on the completion item kind
 		for (const completion of completions) {
 			if (!completion.icon) {
 				if (completion.kind !== undefined) {
@@ -440,12 +411,10 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		this._cancellationTokenSource = new CancellationTokenSource();
 		const token = this._cancellationTokenSource.token;
 
-		// Track the time when completions are requested
 		this._completionRequestTimestamp = Date.now();
 
 		await this._handleCompletionProviders(this._terminal, token, explicitlyInvoked);
 
-		// If completions are not shown (widget not visible), reset the tracker
 		if (!this._terminalSuggestWidgetVisibleContextKey.get()) {
 			this._completionRequestTimestamp = undefined;
 		}
@@ -455,9 +424,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		const inlineCompletionLabel = (isString(this._inlineCompletionItem.completion.label) ? this._inlineCompletionItem.completion.label : this._inlineCompletionItem.completion.label.label).trim();
 		const inlineCompletionMatchIndex = completions.findIndex(c => isString(c.label) ? c.label === inlineCompletionLabel : c.label.label === inlineCompletionLabel);
 		if (inlineCompletionMatchIndex !== -1) {
-			// Remove the existing inline completion item from the completions list
 			const richCompletionMatchingInline = completions.splice(inlineCompletionMatchIndex, 1)[0];
-			// Apply its properties to the inline completion item
 			this._inlineCompletionItem.completion.label = richCompletionMatchingInline.label;
 			this._inlineCompletionItem.completion.detail = richCompletionMatchingInline.detail;
 			this._inlineCompletionItem.completion.documentation = richCompletionMatchingInline.documentation;
@@ -469,8 +436,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 
 	private _requestTriggerCharQuickSuggestCompletions(): boolean {
 		if (!this._wasLastInputVerticalArrowKey() && !this._wasLastInputTabKey()) {
-			// Only request on trigger character when it's a regular input, or on an arrow if the widget
-			// is already visible
 			if (!this._wasLastInputIncludedEscape() || this._terminalSuggestWidgetVisibleContextKey.get()) {
 				this.requestCompletions();
 				return true;
@@ -501,17 +466,11 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		return !!this._lastUserData?.match(/^\x1b[\[O]?[A-B]$/);
 	}
 
-	/**
-	 * Whether the last input included the escape character. Typically this will mean it was more
-	 * than just a simple character, such as arrow keys, home, end, etc.
-	 */
 	private _wasLastInputIncludedEscape(): boolean {
 		return !!this._lastUserData?.includes('\x1b');
 	}
 
 	private _wasLastInputArrowKey(): boolean {
-		// Never request completions if the last key sequence was up or down as the user was likely
-		// navigating history
 		return !!this._lastUserData?.match(/^\x1b[\[O]?[A-D]$/);
 	}
 
@@ -525,15 +484,12 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		{
 			let sent = false;
 
-			// If completions were requested from the addon
 			if (this._requestCompletionsOnNextSync) {
 				this._requestCompletionsOnNextSync = false;
 				sent = this._requestTriggerCharQuickSuggestCompletions();
 			}
 
-			// If the cursor moved to the right
 			if (!this._mostRecentPromptInputState || promptInputState.cursorIndex > this._mostRecentPromptInputState.cursorIndex) {
-				// Quick suggestions - Trigger whenever a new non-whitespace character is used
 				if (!this._terminalSuggestWidgetVisibleContextKey.get()) {
 					const commandLineHasSpace = promptInputState.prefix.trim().match(/\s/);
 					if (
@@ -546,15 +502,10 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 					}
 				}
 
-				// Trigger characters - this happens even if the widget is showing
 				if (config.suggestOnTriggerCharacters && !sent) {
 					const prefix = promptInputState.prefix;
 					if (
-						// Only trigger on `-` if it's after a space. This is required to not clear
-						// completions when typing the `-` in `git cherry-pick`
 						prefix?.match(/\s[\-]$/) ||
-						// Only trigger on `\` and `/` if it's a directory. Not doing so causes problems
-						// with git branches in particular
 						this._isFilteringDirectories && prefix?.match(/[\\\/]$/)
 					) {
 						sent = this._requestTriggerCharQuickSuggestCompletions();
@@ -575,20 +526,13 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 				}
 			}
 
-			// If the cursor moved to the left
 			if (this._mostRecentPromptInputState && promptInputState.cursorIndex < this._mostRecentPromptInputState.cursorIndex && promptInputState.cursorIndex > 0) {
-				// We only want to refresh via trigger characters in this case if the widget is
-				// already visible
 				if (this._terminalSuggestWidgetVisibleContextKey.get()) {
-					// Backspace or left past a trigger character
 					if (config.suggestOnTriggerCharacters && !sent && this._mostRecentPromptInputState.cursorIndex > 0) {
 						const char = this._mostRecentPromptInputState.value[this._mostRecentPromptInputState.cursorIndex - 1];
 						if (
 							char && (
-								// Only trigger on `\` and `/` if it's a directory. Not doing so causes problems
-								// with git branches in particular
 								this._isFilteringDirectories && char.match(/[\\\/]$/) ||
-								// Check if the character is a trigger character from providers
 								this._checkProviderTriggerCharacters(char)
 							)
 						) {
@@ -599,7 +543,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			}
 		}
 
-		// Hide the widget if ghost text was just completed via right arrow
 		if (
 			this._wasLastInputRightArrowKey() &&
 			this._mostRecentPromptInputState?.ghostTextIndex !== -1 &&
@@ -617,7 +560,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		const previousPromptInputState = this._currentPromptInputState;
 		this._currentPromptInputState = promptInputState;
 
-		// Hide the widget if the latest character was a space
 		if (this._currentPromptInputState.cursorIndex > 1 && this._currentPromptInputState.value.at(this._currentPromptInputState.cursorIndex - 1) === ' ') {
 			if (!this._wasLastInputArrowKey()) {
 				this.hideSuggestWidget(false);
@@ -625,10 +567,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			}
 		}
 
-		// Hide the widget if the cursor moves to the left and invalidates the completions.
-		// Originally this was to the left of the initial position that the completions were
-		// requested, but since extensions are expected to allow the client-side to filter, they are
-		// only invalidated when whitespace is encountered.
 		if (this._currentPromptInputState && this._currentPromptInputState.cursorIndex < this._leadingLineContent.length) {
 			if (this._currentPromptInputState.cursorIndex <= 0 || previousPromptInputState?.value[this._currentPromptInputState.cursorIndex]?.match(/[\\\/\s]/)) {
 				this.hideSuggestWidget(false);
@@ -648,7 +586,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 
 		this._refreshInlineCompletion(this._model?.items.map(i => i.completion) || []);
 
-		// Hide and clear model if there are no more items
 		if (!this._suggestWidget.hasCompletions()) {
 			this.hideSuggestWidget(false);
 			return;
@@ -663,7 +600,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 
 	private _refreshInlineCompletion(completions: ITerminalCompletion[]): void {
 		if (!isInlineCompletionSupported(this.shellType)) {
-			// If the shell type is not supported, the inline completion item is invalid
 			return;
 		}
 		const oldIsInvalid = this._inlineCompletionItem.isInvalid;
@@ -671,17 +607,12 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			this._inlineCompletionItem.isInvalid = true;
 		} else {
 			this._inlineCompletionItem.isInvalid = false;
-			// Update properties
 			const spaceIndex = this._currentPromptInputState.value.lastIndexOf(' ', this._currentPromptInputState.ghostTextIndex - 1);
 			const replacementIndex = spaceIndex === -1 ? 0 : spaceIndex + 1;
 			const suggestion = this._currentPromptInputState.value.substring(replacementIndex);
 			this._inlineCompletion.label = suggestion;
-			// Update replacementRange (inclusive start, exclusive end) for replacement
 			const end = this._currentPromptInputState.cursorIndex - this._cursorIndexDelta;
 			this._inlineCompletion.replacementRange = [replacementIndex, end];
-			// Reset the completion item as the object reference must remain the same but its
-			// contents will differ across syncs. This is done so we don't need to reassign the
-			// model and the slowdown/flickering that could potentially cause.
 			this._addPropertiesToInlineCompletionItem(completions);
 
 			const x = new TerminalCompletionItem(this._inlineCompletion, this._pathSeparator);
@@ -697,7 +628,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			this._model?.forceRefilterAll();
 		}
 
-		// Force a filter all in order to re-evaluate the inline completion
 		if (this._inlineCompletionItem.isInvalid !== oldIsInvalid) {
 			this._model?.forceRefilterAll();
 		}
@@ -743,12 +673,8 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		const letterSpacing: number = font.letterSpacing;
 		const fontWeight: string = this._configurationService.getValue('editor.fontWeight');
 
-		// Unlike editor suggestions, line height in terminal is always multiplied to the font size.
-		// Make sure that we still enforce a minimum line height to avoid content from being clipped.
-		// See https://github.com/microsoft/vscode/issues/255851
 		lineHeight = lineHeight * fontSize;
 
-		// Enforce integer, minimum constraints
 		lineHeight = Math.round(lineHeight);
 		const minTerminalLineHeight = GOLDEN_LINE_HEIGHT_RATIO * fontSize;
 		if (lineHeight < minTerminalLineHeight) {
@@ -790,7 +716,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		if (!cursorPosition) {
 			return;
 		}
-		// Track the time when completions are shown for the first time
 		if (this._completionRequestTimestamp !== undefined) {
 			const completionLatency = Date.now() - this._completionRequestTimestamp;
 			if (this._suggestTelemetry && this._discoverability) {
@@ -844,32 +769,26 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 					return;
 				}
 
-				// Cancel any previous resolution
 				this._currentSuggestionDetails?.cancel();
 				this._currentSuggestionDetails = undefined;
 				this._focusedItem = focusedItem;
 
-				// Check if the item needs resolution and hasn't been resolved yet
 				if (focusedItem && (!focusedItem.completion.documentation || !focusedItem.completion.detail)) {
 
 					this._currentSuggestionDetails = createCancelablePromise(async token => {
 						try {
 							await focusedItem.resolve(token);
 						} catch (error) {
-							// Silently fail - the item is still usable without details
 							this._logService.warn(`Failed to resolve suggestion details for item ${focusedItem} at index ${focusedIndex}`, error);
 						}
 					});
 
 					this._currentSuggestionDetails.then(() => {
-						// Check if this is still the focused item and it's still in the list
 						if (focusedItem !== this._focusedItem || !this._suggestWidget?.list || focusedIndex >= this._suggestWidget.list.length) {
 							return;
 						}
 
-						// Re-render the specific item to show resolved details (like editor does)
 						this._ignoreFocusEvents = true;
-						// Use splice to replace the item and trigger re-render
 						this._suggestWidget.list.splice(focusedIndex, 1, [focusedItem]);
 						this._suggestWidget.list.setFocus([focusedIndex]);
 						this._ignoreFocusEvents = false;
@@ -893,9 +812,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			this._register(this._suggestWidget.onDidBlurDetails((e) => {
 				const elt = e.relatedTarget as HTMLElement;
 				if (this._terminal?.element?.contains(elt)) {
-					// Do nothing, just the terminal getting focused
-					// If there was a mouse click, the suggest widget will be
-					// hidden above
 					return;
 				}
 				this._suggestWidget?.hide();
@@ -951,20 +867,13 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 
 		const currentPromptInputState = this._currentPromptInputState ?? initialPromptInputState;
 
-		// The replacement text is any text after the replacement index for the completions, this
-		// includes any text that was there before the completions were requested and any text added
-		// since to refine the completion.
 		const startIndex = suggestion.item.completion.replacementRange?.[0] ?? currentPromptInputState.cursorIndex;
 		const replacementText = currentPromptInputState.value.substring(startIndex, currentPromptInputState.cursorIndex);
 
-		// Right side of replacement text in the same word
 		let rightSideReplacementText = '';
 		if (
-			// The line didn't end with ghost text
 			(currentPromptInputState.ghostTextIndex === -1 || currentPromptInputState.ghostTextIndex > currentPromptInputState.cursorIndex) &&
-			// There is more than one charatcer
 			currentPromptInputState.value.length > currentPromptInputState.cursorIndex + 1 &&
-			// THe next character is not a space
 			currentPromptInputState.value.at(currentPromptInputState.cursorIndex) !== ' '
 		) {
 			const spaceIndex = currentPromptInputState.value.substring(currentPromptInputState.cursorIndex, currentPromptInputState.ghostTextIndex === -1 ? undefined : currentPromptInputState.ghostTextIndex).indexOf(' ');
@@ -974,11 +883,9 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		const completion = suggestion.item.completion;
 		let resultSequence = completion.inputData;
 
-		// Use for amend the label if inputData is not defined
 		if (resultSequence === undefined) {
 			let completionText = isString(completion.label) ? completion.label : completion.label.label;
 			if ((completion.kind === TerminalCompletionItemKind.Folder || completion.isFileOverride) && completionText.includes(' ')) {
-				// Escape spaces in files or folders so they're valid paths
 				completionText = completionText.replaceAll(' ', '\\ ');
 			}
 			let runOnEnter = false;
@@ -1007,28 +914,21 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			const commonPrefix = replacementText.substring(replacementText.length - 1 - commonPrefixLen, replacementText.length - 1);
 			const completionSuffix = completionText.substring(commonPrefixLen);
 			if (currentPromptInputState.suffix.length > 0 && currentPromptInputState.prefix.endsWith(commonPrefix) && currentPromptInputState.suffix.startsWith(completionSuffix)) {
-				// Move right to the end of the completion
 				resultSequence = '\x1bOC'.repeat(completionText.length - commonPrefixLen);
 			} else {
 				resultSequence = [
-					// Backspace (left) to remove all additional input
 					'\x7F'.repeat(replacementText.length - commonPrefixLen),
-					// Delete (right) to remove any additional text in the same word
 					'\x1b[3~'.repeat(rightSideReplacementText.length),
-					// Write the completion
 					completionSuffix,
-					// Run on enter if needed
 					runOnEnter ? '\r' : ''
 				].join('');
 			}
 		}
 
-		// For folders, allow the next completion request to get completions for that folder
 		if (completion.kind === TerminalCompletionItemKind.Folder) {
 			SuggestAddon.lastAcceptedCompletionTimestamp = 0;
 		}
 
-		// Add trailing space if enabled and not a folder or symbolic link folder
 		const config = this._configurationService.getValue<ITerminalSuggestConfiguration>(terminalSuggestConfigSection);
 		if (config.insertTrailingSpace && completion.kind !== TerminalCompletionItemKind.Folder && completion.kind !== TerminalCompletionItemKind.SymbolicLinkFolder) {
 			resultSequence += ' ';
@@ -1036,7 +936,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			this._requestCompletionsOnNextSync = true;
 		}
 
-		// Send the completion
 		this._onAcceptedCompletion.fire(resultSequence);
 		this._suggestTelemetry?.acceptCompletion(this._sessionId, completion, this._mostRecentPromptInputState?.value);
 		this.hideSuggestWidget(true);
@@ -1047,7 +946,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		if (cancelAnyRequest) {
 			this._cancellationTokenSource?.dispose(true);
 			this._cancellationTokenSource = undefined;
-			// Also cancel any pending resolution requests
 			this._currentSuggestionDetails?.cancel();
 			this._currentSuggestionDetails = undefined;
 		}
@@ -1087,7 +985,6 @@ class PersistedWidgetSize {
 				return dom.Dimension.lift(obj);
 			}
 		} catch {
-			// ignore
 		}
 		return undefined;
 	}

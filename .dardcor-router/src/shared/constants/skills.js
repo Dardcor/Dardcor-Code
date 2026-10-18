@@ -1,5 +1,3 @@
-// Agent Skills metadata — single source of truth for /dashboard/skills page.
-// Each skill = 1 raw GitHub URL the user copies and pastes to any AI agent.
 
 const REPO = "decolua/dardcor-code";
 const BRANCH = "master";

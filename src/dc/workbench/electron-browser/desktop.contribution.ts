@@ -30,15 +30,12 @@ import { applicationConfigurationNodeBase, securityConfigurationNodeBase } from 
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from '../../platform/window/electron-browser/window.js';
 import product from '../../platform/product/common/product.js';
 
-// Actions
 (function registerActions(): void {
 
-	// Actions: Zoom
 	registerAction2(ZoomInAction);
 	registerAction2(ZoomOutAction);
 	registerAction2(ZoomResetAction);
 
-	// Actions: Window
 	registerAction2(SwitchWindowAction);
 	registerAction2(QuickSwitchWindowAction);
 	registerAction2(SwitchToMainWindowAction);
@@ -50,10 +47,6 @@ import product from '../../platform/product/common/product.js';
 	registerAction2(DisableWindowAlwaysOnTopAction);
 
 	if (isMacintosh) {
-		// macOS: behave like other native apps that have documents
-		// but can run without a document opened and allow to close
-		// the window when the last document is closed
-		// (https://github.com/microsoft/vscode/issues/126042)
 		KeybindingsRegistry.registerKeybindingRule({
 			id: CloseWindowAction.ID,
 			weight: KeybindingWeight.WorkbenchContrib,
@@ -62,13 +55,11 @@ import product from '../../platform/product/common/product.js';
 		});
 	}
 
-	// Actions: Install Shell Script (macOS only)
 	if (isMacintosh) {
 		registerAction2(InstallShellScriptAction);
 		registerAction2(UninstallShellScriptAction);
 	}
 
-	// Quit
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: 'workbench.action.quit',
 		weight: KeybindingWeight.WorkbenchContrib,
@@ -80,7 +71,7 @@ import product from '../../platform/product/common/product.js';
 			if (confirmBeforeClose === 'always' || (confirmBeforeClose === 'keyboardOnly' && ModifierKeyEmitter.getInstance().isModifierPressed)) {
 				const confirmed = await NativeWindow.confirmOnShutdown(accessor, ShutdownReason.QUIT);
 				if (!confirmed) {
-					return; // quit prevented by user
+					return;
 				}
 			}
 
@@ -91,7 +82,6 @@ import product from '../../platform/product/common/product.js';
 		linux: { primary: KeyMod.CtrlCmd | KeyCode.KeyQ }
 	});
 
-	// Actions: macOS Native Tabs
 	if (isMacintosh) {
 		for (const command of [
 			{ handler: NewWindowTabHandler, id: 'workbench.action.newWindowTab', title: localize2('newTab', 'New Window Tab') },
@@ -110,7 +100,6 @@ import product from '../../platform/product/common/product.js';
 		}
 	}
 
-	// Actions: Developer
 	registerAction2(ReloadWindowWithExtensionsDisabledAction);
 	registerAction2(ConfigureRuntimeArgumentsAction);
 	registerAction2(ToggleDevToolsAction);
@@ -122,10 +111,8 @@ import product from '../../platform/product/common/product.js';
 	registerAction2(StartHeapTracing);
 })();
 
-// Menu
 (function registerMenu(): void {
 
-	// Quit
 	MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 		group: 'z_Exit',
 		command: {
@@ -137,11 +124,9 @@ import product from '../../platform/product/common/product.js';
 	});
 })();
 
-// Configuration
 (function registerConfiguration(): void {
 	const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 
-	// Application
 	registry.registerConfiguration({
 		...applicationConfigurationNodeBase,
 		'properties': {
@@ -157,7 +142,6 @@ import product from '../../platform/product/common/product.js';
 		}
 	});
 
-	// Window
 	registry.registerConfiguration({
 		'id': 'window',
 		'order': 8,
@@ -281,7 +265,7 @@ import product from '../../platform/product/common/product.js';
 						localize(`window.menuStyle.native`, "Use the native menu. This is ignored when {0} is set to {1}.", '`#window.titleBarStyle#`', '`custom`'),
 						localize(`window.menuStyle.inherit`, "Matches the menu style to the title bar style defined in {0}.", '`#window.titleBarStyle#`'),
 					],
-				'default': product.quality !== 'stable' ? 'inherit' : (isMacintosh ? 'native' : 'inherit'), // TODO@bpasero figure out the default
+				'default': product.quality !== 'stable' ? 'inherit' : (isMacintosh ? 'native' : 'inherit'),
 				'scope': ConfigurationScope.APPLICATION,
 				'markdownDescription': isMacintosh ?
 					localize('window.menuStyle.mac', "Adjust the context menu appearances to either be native by the OS, custom, or inherited from the title bar style defined in {0}.", '`#window.titleBarStyle#`') :
@@ -335,7 +319,6 @@ import product from '../../platform/product/common/product.js';
 		}
 	});
 
-	// Telemetry
 	registry.registerConfiguration({
 		'id': 'telemetry',
 		'order': 110,
@@ -352,7 +335,6 @@ import product from '../../platform/product/common/product.js';
 		}
 	});
 
-	// Keybinding
 	registry.registerConfiguration({
 		'id': 'keyboard',
 		'order': 15,
@@ -377,7 +359,6 @@ import product from '../../platform/product/common/product.js';
 		}
 	});
 
-	// Security
 	registry.registerConfiguration({
 		...securityConfigurationNodeBase,
 		'properties': {
@@ -397,7 +378,6 @@ import product from '../../platform/product/common/product.js';
 	});
 })();
 
-// JSON Schemas
 (function registerJSONSchemas(): void {
 	const argvDefinitionFileSchemaId = 'vscode://schemas/argv';
 	const jsonRegistry = Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONContribution);

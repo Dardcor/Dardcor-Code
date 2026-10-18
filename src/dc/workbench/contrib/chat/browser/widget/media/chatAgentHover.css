@@ -23,7 +23,7 @@
 }
 
 .chat-agent-hover .chat-agent-hover-icon .codicon {
-	font-size: 23px !important; /* Override workbench hover styles */
+	font-size: 23px !important;
 	display: flex;
 	justify-content: center;
 	align-items: center;

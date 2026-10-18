@@ -145,7 +145,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 		super.dispose();
 	}
 
-	// #region layout constraints
 
 	private readonly _onDidChangeSizeConstraints;
 	override readonly onDidChangeSizeConstraints: Event<void>;
@@ -156,7 +155,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 			: this.input1View.view.minimumWidth + this.input2View.view.minimumWidth + this.inputResultView.view.minimumWidth;
 	}
 
-	// #endregion
 
 	override getTitle(): string {
 		if (this.input) {
@@ -243,9 +241,7 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 		});
 		this._sessionDisposables.add(viewModel);
 
-		// Track focus changes to update the editor name
 		this._sessionDisposables.add(autorun(reader => {
-			/** @description Update focused editor name based on focus */
 			const focusedType = viewModel.focusedEditorType.read(reader);
 
 			if (!(input instanceof MergeEditorInput)) {
@@ -255,7 +251,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 			input.updateFocusedEditor(focusedType || 'result');
 		}));
 
-		// Set/unset context keys based on input
 		this._ctxResultUri.set(inputModel.resultUri.toString());
 		this._ctxBaseUri.set(model.base.uri.toString());
 		this._sessionDisposables.add(toDisposable(() => {
@@ -265,10 +260,7 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 
 		const viewZoneRegistrationStore = new DisposableStore();
 		this._sessionDisposables.add(viewZoneRegistrationStore);
-		// Set the view zones before restoring view state!
-		// Otherwise scrolling will be off
 		this._sessionDisposables.add(autorunWithStore((reader) => {
-			/** @description update alignment view zones */
 			const baseView = this.baseView.read(reader);
 
 			const resultScrollTop = this.inputResultView.editor.getScrollTop();
@@ -335,13 +327,11 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 				}
 				this.input1View.editor.revealLineInCenter(firstConflict.input1Range.startLineNumber);
 				transaction(tx => {
-					/** @description setActiveModifiedBaseRange */
 					viewModel.setActiveModifiedBaseRange(firstConflict, tx);
 				});
 			}));
 		}
 
-		// word wrap special case - sync transient state from result model to input[1|2] models
 		const mirrorWordWrapTransientState = (candidate: ITextModel) => {
 			const candidateState = readTransientState(candidate, this._codeEditorService);
 
@@ -359,9 +349,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 		}));
 		mirrorWordWrapTransientState(this.inputResultView.editor.getModel()!);
 
-		// detect when base, input1, and input2 become empty and replace THIS editor with its result editor
-		// TODO@jrieken@hediet this needs a better/cleaner solution
-		// https://github.com/microsoft/vscode/issues/155940
 		const that = this;
 		this._sessionDisposables.add(new class {
 
@@ -389,7 +376,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 						return;
 					}
 				}
-				// all empty -> replace this editor with a normal editor for result
 				that.editorService.replaceEditors(
 					[{ editor: input, replacement: { resource: input.result, options: { preserveFocus: true } }, forceReplaceDirty: true }],
 					that.group
@@ -519,7 +505,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 		this._ctxIsMergeEditor.set(visible);
 	}
 
-	// ---- interact with "outside world" via`getControl`, `scopedContextKeyService`: we only expose the result-editor keep the others internal
 
 	override getControl(): ICodeEditor | undefined {
 		return this.inputResultView.editor;
@@ -530,7 +515,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 		return control?.invokeWithinContext(accessor => accessor.get(IContextKeyService));
 	}
 
-	// --- layout
 
 	public toggleBase(): void {
 		this.setLayout({
@@ -581,7 +565,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 
 	private applyLayout(layout: IMergeEditorLayout): void {
 		transaction(tx => {
-			/** @description applyLayout */
 
 			if (layout.showBase && !this.baseView.get()) {
 				this.baseViewDisposables.clear();
@@ -592,7 +575,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 					)
 				);
 				this.baseViewDisposables.add(autorun(reader => {
-					/** @description Update base view options */
 					const options = this.baseViewOptions.read(reader);
 					if (options) {
 						baseView.updateOptions(options);
@@ -662,8 +644,6 @@ export class MergeEditor extends AbstractTextEditor<IMergeEditorViewState> {
 		});
 
 		reset(this.rootHtmlElement!, this._grid.value.element);
-		// Only call layout after the elements have been added to the DOM,
-		// so that they have a defined size.
 		if (width !== -1) {
 			this._grid.value.layout(width, height);
 		}
@@ -720,7 +700,6 @@ export interface IMergeEditorLayout {
 	readonly showBaseAtTop: boolean;
 }
 
-// TODO use PersistentStore
 class MergeEditorLayoutStore {
 	private static readonly _key = 'mergeEditor/layout';
 	private _value: IMergeEditorLayout = { kind: 'mixed', showBase: false, showBaseAtTop: true };
@@ -770,14 +749,11 @@ export class MergeEditorOpenHandlerContribution extends Disposable {
 			&& activePane.input instanceof MergeEditorInput
 			&& isEqual(input.resource, activePane.input.result)
 		) {
-			// Special: stay inside the merge editor when it is active and when the input
-			// targets the result editor of the merge editor.
 			const targetEditor = <ICodeEditor>activePane.getControl()!;
 			applyTextEditorOptions(input.options, targetEditor, ScrollType.Smooth);
 			return targetEditor;
 		}
 
-		// cannot handle this
 		return null;
 	}
 }

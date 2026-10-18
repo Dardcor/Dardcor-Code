@@ -187,10 +187,6 @@ export function parseGrokBuildConfig(toml) {
   };
 }
 
-/**
- * Apply main model and optional per-type subagent overrides while preserving all unrelated TOML.
- * `subagentModels === undefined` leaves existing subagent config untouched for API compatibility.
- */
 export function applyGrokBuildConfig(
   toml,
   { baseUrl, apiKey, model, contextWindow, subagentModels },

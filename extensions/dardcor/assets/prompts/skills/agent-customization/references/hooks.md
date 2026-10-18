@@ -1,4 +1,4 @@
-# [Hooks (.json)](https://code.visualstudio.com/docs/dardcor/customization/hooks)
+# [Hooks (.json)](https://www.dardcor-code.web.id/docs/dardcor/customization/hooks)
 
 Deterministic lifecycle automation for agent sessions. Use hooks to enforce policy, automate validation, and inject runtime context.
 

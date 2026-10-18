@@ -47,7 +47,6 @@ export class BannerController extends Disposable {
 	}
 }
 
-// TODO@hediet: Investigate if this can be reused by the workspace banner (bannerPart.ts).
 class Banner extends Disposable {
 	public element: HTMLElement;
 
@@ -91,16 +90,13 @@ class Banner extends Disposable {
 	}
 
 	public show(item: IBannerItem) {
-		// Clear previous item
 		clearNode(this.element);
 
-		// Banner aria label
 		const ariaLabel = this.getAriaLabel(item);
 		if (ariaLabel) {
 			this.element.setAttribute('aria-label', ariaLabel);
 		}
 
-		// Icon
 		const iconContainer = append(this.element, $('div.icon-container'));
 		iconContainer.setAttribute('aria-hidden', 'true');
 
@@ -108,12 +104,10 @@ class Banner extends Disposable {
 			iconContainer.appendChild($(`div${ThemeIcon.asCSSSelector(item.icon)}`));
 		}
 
-		// Message
 		const messageContainer = append(this.element, $('div.message-container'));
 		messageContainer.setAttribute('aria-hidden', 'true');
 		messageContainer.appendChild(this.getBannerMessage(item.message));
 
-		// Message Actions
 		this.messageActionsContainer = append(this.element, $('div.message-actions-container'));
 		if (item.actions) {
 			for (const action of item.actions) {
@@ -121,7 +115,6 @@ class Banner extends Disposable {
 			}
 		}
 
-		// Action
 		const actionBarContainer = append(this.element, $('div.action-container'));
 		this.actionBar = this._register(new ActionBar(actionBarContainer));
 		this.actionBar.push(this._register(

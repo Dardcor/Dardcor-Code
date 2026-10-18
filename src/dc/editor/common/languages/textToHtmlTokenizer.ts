@@ -102,7 +102,6 @@ export function tokenizeLineToHTML(text: string, viewLineTokens: IViewLineTokens
 					break;
 
 				case CharCode.CarriageReturn:
-					// zero width space, because carriage return would introduce a line break
 					partContent += '&#8203';
 					prevIsSpace = false;
 					break;

@@ -10,9 +10,6 @@ import * as ts from 'typescript';
 const VS_ROOT = join(__dirname, '../../../../src');
 const TARGET = join(__dirname, '../../src/util/vs');
 
-/**
- * Returns the absolute file path where the given file should be placed.
- */
 function determineTargetPath(absoluteVSCodeFilePath: string): string {
 
 	const vsRelative = path.relative(VS_ROOT, absoluteVSCodeFilePath);
@@ -26,9 +23,6 @@ function determineTargetPath(absoluteVSCodeFilePath: string): string {
 	return join(TARGET, segements.join(path.sep));
 }
 
-/**
- * Returns the relative path of `importedFilePath` to `currentFilePath` in a format suitable for import statements.
- */
 function createRelativeImportPath(currentFilePath: string, importedFilePath: string): string {
 	const relativePath = path.relative(path.dirname(currentFilePath), importedFilePath).replaceAll('\\', '/');
 	const result = relativePath.startsWith('.') ? relativePath : './' + relativePath;
@@ -46,14 +40,13 @@ async function doIt(filepaths: string[]) {
 	try {
 		await fs.promises.rm(join(TARGET), { recursive: true });
 	} catch {
-		// ignore
 	}
 
 	type Edit = ts.TextRange & { newText: string };
 	type File = { sourceFilePath: string; targetFilePath: string; contents: string };
 	type StackElement = { filepath: string; importTrajectory: string[] };
 
-	const seen = new Map<string, File>(); // indexed by sourceFilePath
+	const seen = new Map<string, File>();
 	const stack: StackElement[] = [...filepaths.map(p => ({ filepath: join(VS_ROOT, p), importTrajectory: [] }))];
 
 	while (stack.length > 0) {
@@ -72,7 +65,6 @@ async function doIt(filepaths: string[]) {
 			source = String(await fs.promises.readFile(filepath));
 		} catch (e) {
 			try {
-				// .ts doesn't exist, try, .d.ts
 				filepath = filepath.replace(/\.ts$/, '.d.ts');
 				source = String(await fs.promises.readFile(filepath));
 			} catch (e) {
@@ -101,7 +93,6 @@ async function doIt(filepaths: string[]) {
 				});
 			}
 
-			// console.log(`${filepath} <<<imports<<< ${absolutePath}`);
 		}
 
 		let newSource = source;
@@ -133,10 +124,6 @@ async function doIt(filepaths: string[]) {
 (async function () {
 	try {
 		await doIt([
-			// ********************************************
-			// add modules from `base` here and
-			// run `npx tsx script/setup/copySources.ts`
-			// ********************************************
 			'vs/base/common/arrays.ts',
 			'vs/base/common/async.ts',
 			'vs/base/common/cache.ts',
@@ -193,7 +180,6 @@ async function doIt(filepaths: string[]) {
 
 			'vs/base/common/sseParser.ts',
 
-			// SPECIAL IMPLICIT DEPENDENCIES
 			'typings/vscode-globals-nls.d.ts',
 			'typings/vscode-globals-product.d.ts',
 			'typings/base-common.d.ts',

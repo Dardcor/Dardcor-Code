@@ -83,20 +83,20 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 			editor.selections = [new Selection(2, 2, 2, 2)];
 
 			const expectedNextItemPoints: [number, number, number][] = [
-				[2, 1, 5],   // html
-				[2, 6, 15],  // lang="en"
-				[2, 12, 14], // en
-				[3, 1, 5],   // head
-				[4, 2, 6],   // meta
-				[4, 7, 17], // charset=""
-				[5, 2, 6],   // meta
-				[5, 7, 22], // name="viewport"
-				[5, 13, 21], // viewport
-				[5, 23, 70], // content="width=device-width, initial-scale=1.0"
-				[5, 32, 69], // width=device-width, initial-scale=1.0
-				[5, 32, 51], // width=device-width,
-				[5, 52, 69], // initial-scale=1.0
-				[6, 2, 7]   // title
+				[2, 1, 5],
+				[2, 6, 15],
+				[2, 12, 14],
+				[3, 1, 5],
+				[4, 2, 6],
+				[4, 7, 17],
+				[5, 2, 6],
+				[5, 7, 22],
+				[5, 13, 21],
+				[5, 23, 70],
+				[5, 32, 69],
+				[5, 32, 51],
+				[5, 52, 69],
+				[6, 2, 7]
 			];
 			expectedNextItemPoints.forEach(([line, colstart, colend]) => {
 				fetchSelectItem('next');
@@ -142,14 +142,14 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 			editor.selections = [new Selection(2, 2, 2, 2)];
 
 			const expectedNextItemPoints: [number, number, number][] = [
-				[2, 2, 5],  // div
-				[2, 6, 20], // class="header"
-				[2, 13, 19], // header
-				[3, 3, 5],   // ul
-				[3, 6, 22],   // class="nav main"
-				[3, 13, 21], // nav main
-				[3, 13, 16],   // nav
-				[3, 17, 21], // main
+				[2, 2, 5],
+				[2, 6, 20],
+				[2, 13, 19],
+				[3, 3, 5],
+				[3, 6, 22],
+				[3, 13, 21],
+				[3, 13, 16],
+				[3, 17, 21],
 			];
 			expectedNextItemPoints.forEach(([line, colstart, colend]) => {
 				fetchSelectItem('next');
@@ -171,16 +171,16 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 			editor.selections = [new Selection(0, 0, 0, 0)];
 
 			const expectedNextItemPoints: [number, number, number][] = [
-				[1, 0, 4],   // .boo
-				[2, 1, 19],  // margin: 20px 10px;
-				[2, 9, 18],   // 20px 10px
-				[2, 9, 13],   // 20px
-				[2, 14, 18], // 10px
-				[3, 1, 36],   // background-image: url('tryme.png');
-				[3, 19, 35], // url('tryme.png')
-				[6, 0, 9], // .boo .hoo
-				[7, 1, 14], // margin: 10px;
-				[7, 9, 13], // 10px
+				[1, 0, 4],
+				[2, 1, 19],
+				[2, 9, 18],
+				[2, 9, 13],
+				[2, 14, 18],
+				[3, 1, 36],
+				[3, 19, 35],
+				[6, 0, 9],
+				[7, 1, 14],
+				[7, 9, 13],
 			];
 			expectedNextItemPoints.forEach(([line, colstart, colend]) => {
 				fetchSelectItem('next');
@@ -202,16 +202,16 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 			editor.selections = [new Selection(0, 0, 0, 0)];
 
 			const expectedNextItemPoints: [number, number, number][] = [
-				[1, 0, 4],   // .boo
-				[2, 1, 19],  // margin: 20px 10px;
-				[2, 9, 18],   // 20px 10px
-				[2, 9, 13],   // 20px
-				[2, 14, 18], // 10px
-				[3, 1, 36],   // background-image: url('tryme.png');
-				[3, 19, 35], // url('tryme.png')
-				[5, 1, 10], // .boo .hoo
-				[6, 2, 15], // margin: 10px;
-				[6, 10, 14], // 10px
+				[1, 0, 4],
+				[2, 1, 19],
+				[2, 9, 18],
+				[2, 9, 13],
+				[2, 14, 18],
+				[3, 1, 36],
+				[3, 19, 35],
+				[5, 1, 10],
+				[6, 2, 15],
+				[6, 10, 14],
 			];
 			expectedNextItemPoints.forEach(([line, colstart, colend]) => {
 				fetchSelectItem('next');
@@ -233,15 +233,15 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 
 			editor.selections = [new Selection(14, 6, 14, 10)];
 			const expectedBalanceOutRanges: [number, number, number, number][] = [
-				[14, 3, 14, 32],   // <li class="item1">Item 1</li>
-				[13, 23, 16, 2],  // inner contents of <ul class="nav main">
-				[13, 2, 16, 7],		// outer contents of <ul class="nav main">
-				[12, 21, 17, 1], // inner contents of <div class="header">
-				[12, 1, 17, 7], // outer contents of <div class="header">
-				[8, 6, 18, 0],	// inner contents of <body>
-				[8, 0, 18, 7], // outer contents of <body>
-				[2, 16, 19, 0],   // inner contents of <html>
-				[2, 0, 19, 7],   // outer contents of <html>
+				[14, 3, 14, 32],
+				[13, 23, 16, 2],
+				[13, 2, 16, 7],
+				[12, 21, 17, 1],
+				[12, 1, 17, 7],
+				[8, 6, 18, 0],
+				[8, 0, 18, 7],
+				[2, 16, 19, 0],
+				[2, 0, 19, 7],
 			];
 			expectedBalanceOutRanges.forEach(([linestart, colstart, lineend, colend]) => {
 				balanceOut();
@@ -250,11 +250,11 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 
 			editor.selections = [new Selection(12, 7, 12, 7)];
 			const expectedBalanceInRanges: [number, number, number, number][] = [
-				[12, 21, 17, 1],   // inner contents of <div class="header">
-				[13, 2, 16, 7],		// outer contents of <ul class="nav main">
-				[13, 23, 16, 2],  // inner contents of <ul class="nav main">
-				[14, 3, 14, 32],   // <li class="item1">Item 1</li>
-				[14, 21, 14, 27]   // Item 1
+				[12, 21, 17, 1],
+				[13, 2, 16, 7],
+				[13, 23, 16, 2],
+				[14, 3, 14, 32],
+				[14, 21, 14, 27]
 			];
 			expectedBalanceInRanges.forEach(([linestart, colstart, lineend, colend]) => {
 				balanceIn();
@@ -270,15 +270,15 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 
 			editor.selections = [new Selection(15, 6, 15, 10)];
 			const expectedBalanceOutRanges: [number, number, number, number][] = [
-				[15, 3, 15, 32],   // <li class="item1">Item 2</li>
-				[13, 23, 16, 2],  // inner contents of <ul class="nav main">
-				[13, 2, 16, 7],		// outer contents of <ul class="nav main">
-				[12, 21, 17, 1], // inner contents of <div class="header">
-				[12, 1, 17, 7], // outer contents of <div class="header">
-				[8, 6, 18, 0],	// inner contents of <body>
-				[8, 0, 18, 7], // outer contents of <body>
-				[2, 16, 19, 0],   // inner contents of <html>
-				[2, 0, 19, 7],   // outer contents of <html>
+				[15, 3, 15, 32],
+				[13, 23, 16, 2],
+				[13, 2, 16, 7],
+				[12, 21, 17, 1],
+				[12, 1, 17, 7],
+				[8, 6, 18, 0],
+				[8, 0, 18, 7],
+				[2, 16, 19, 0],
+				[2, 0, 19, 7],
 			];
 			expectedBalanceOutRanges.forEach(([linestart, colstart, lineend, colend]) => {
 				balanceOut();
@@ -297,17 +297,17 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 	test('Emmet Balance In when selection doesnt span entire node or its inner contents', function (): any {
 		return withRandomFileEditor(htmlContents, 'html', (editor, _) => {
 
-			editor.selection = new Selection(13, 7, 13, 10); // Inside the open tag of <ul class="nav main">
+			editor.selection = new Selection(13, 7, 13, 10);
 			balanceIn();
-			testSelection(editor.selection, 23, 13, 2, 16); // inner contents of <ul class="nav main">
+			testSelection(editor.selection, 23, 13, 2, 16);
 
-			editor.selection = new Selection(16, 4, 16, 5); // Inside the open close of <ul class="nav main">
+			editor.selection = new Selection(16, 4, 16, 5);
 			balanceIn();
-			testSelection(editor.selection, 23, 13, 2, 16); // inner contents of <ul class="nav main">
+			testSelection(editor.selection, 23, 13, 2, 16);
 
-			editor.selection = new Selection(13, 7, 14, 2); // Inside the open tag of <ul class="nav main"> and the next line
+			editor.selection = new Selection(13, 7, 14, 2);
 			balanceIn();
-			testSelection(editor.selection, 23, 13, 2, 16); // inner contents of <ul class="nav main">
+			testSelection(editor.selection, 23, 13, 2, 16);
 
 			return Promise.resolve();
 		});
@@ -328,12 +328,12 @@ suite('Tests for Next/Previous Select/Edit point and Balance actions', () => {
 
 			editor.selections = [new Selection(5, 24, 5, 24)];
 			const expectedBalanceOutRanges: [number, number, number, number][] = [
-				[5, 20, 5, 26],	// <li class="item1">``Item 2''</li>
-				[5, 2, 5, 31],	// ``<li class="item1">Item 2</li>''
-				[3, 22, 6, 1],	// inner contents of ul
-				[3, 1, 6, 6],	// outer contents of ul
-				[2, 20, 7, 0],	// inner contents of div
-				[2, 0, 7, 6],	// outer contents of div
+				[5, 20, 5, 26],
+				[5, 2, 5, 31],
+				[3, 22, 6, 1],
+				[3, 1, 6, 6],
+				[2, 20, 7, 0],
+				[2, 0, 7, 6],
 			];
 			expectedBalanceOutRanges.forEach(([linestart, colstart, lineend, colend]) => {
 				balanceOut();

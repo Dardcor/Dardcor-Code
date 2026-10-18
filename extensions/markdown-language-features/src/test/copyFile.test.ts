@@ -78,12 +78,10 @@ suite('resolveCopyDestination', () => {
 	test('Should support escaping snippet variables ', async () => {
 		const documentUri = vscode.Uri.parse('test://projects/project/sub/readme.md');
 
-		// Escape leading '$'
 		assert.strictEqual(
 			resolveCopyDestination(documentUri, 'img.png', '\\${fileName}', () => undefined).toString(true),
 			'test://projects/project/sub/${fileName}');
 
-		// Escape closing '}'
 		assert.strictEqual(
 			resolveCopyDestination(documentUri, 'img.png', '${fileName\\}', () => undefined).toString(true),
 			'test://projects/project/sub/${fileName\\}');

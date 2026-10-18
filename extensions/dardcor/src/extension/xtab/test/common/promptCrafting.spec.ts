@@ -37,7 +37,7 @@ describe('expandRangeToPageRange', () => {
 
 	const PAGE_SIZE = 10;
 	const UNLIM_BUDGET = 10000;
-	const computeTokens = (s: string) => 0; // pay 0 tokens per line (1 token for newline)
+	const computeTokens = (s: string) => 0;
 
 	it('expands correctly when budget is only for two touched pages', () => {
 
@@ -47,8 +47,8 @@ describe('expandRangeToPageRange', () => {
 			docLines,
 			new OffsetRange(11, 22),
 			PAGE_SIZE,
-			2 * PAGE_SIZE, // budget for 2 pages
-			computeTokens, // pay 1 token per line (1 token for newline)
+			2 * PAGE_SIZE,
+			computeTokens,
 			false,
 			false
 		);
@@ -87,19 +87,16 @@ describe('expandRangeToPageRange', () => {
 
 	it('does not donate leftover above-cursor budget to below-cursor by default', () => {
 
-		// Focal page is page 0, so there are no pages above the cursor to spend the
-		// upper half of the budget on. With an even split that upper half is
-		// discarded, so the lower half (15 tokens) only reaches one more page.
 		const nDocLines = 47;
 		const docLines = nLines(nDocLines).getLines();
 		const r = expandRangeToPageRange(
 			docLines,
 			new OffsetRange(0, 1),
 			PAGE_SIZE,
-			40, // page 0 costs 10 => availableTokenBudget 30 => 15 per half
+			40,
 			computeTokens,
 			false,
-			false /* useLeftoverBudgetFromAbove */
+			false
 		);
 
 		expect(r).toMatchInlineSnapshot(`
@@ -113,8 +110,6 @@ describe('expandRangeToPageRange', () => {
 
 	it('donates leftover above-cursor budget to below-cursor when enabled', () => {
 
-		// Same setup, but with donation enabled the unused upper half is given to
-		// the below-cursor expansion, so it reaches three more pages instead of one.
 		const nDocLines = 47;
 		const docLines = nLines(nDocLines).getLines();
 		const r = expandRangeToPageRange(
@@ -124,7 +119,7 @@ describe('expandRangeToPageRange', () => {
 			40,
 			computeTokens,
 			false,
-			true /* useLeftoverBudgetFromAbove */
+			true
 		);
 
 		expect(r).toMatchInlineSnapshot(`
@@ -341,7 +336,7 @@ suite('constructTaggedFile', () => {
 		...DEFAULT_OPTIONS,
 		currentFile: {
 			...DEFAULT_OPTIONS.currentFile,
-			maxTokens: 10000, // large budget to avoid clipping
+			maxTokens: 10000,
 		}
 	};
 
@@ -349,12 +344,12 @@ suite('constructTaggedFile', () => {
 
 		test('cursor tag appears in current file content when includeCursorTag is true', () => {
 			const content = 'line1\nline2\nline3\nline4\nline5';
-			const doc = createDocument(content, 3, 3); // cursor at line 3, column 3
+			const doc = createDocument(content, 3, 3);
 
 			const result = constructTaggedFile(
 				doc,
-				new OffsetRange(1, 4), // edit window: lines 2-4 (0-indexed)
-				new OffsetRange(0, 5), // area around: all lines
+				new OffsetRange(1, 4),
+				new OffsetRange(0, 5),
 				{
 					...defaultPromptOptions,
 					currentFile: { ...defaultPromptOptions.currentFile, includeCursorTag: true, includeTags: false }
@@ -366,7 +361,6 @@ suite('constructTaggedFile', () => {
 			assert(result.isOk());
 			const { clippedTaggedCurrentDoc, areaAroundCodeToEdit } = result.val;
 
-			// Current file content should contain cursor tag
 			expect(clippedTaggedCurrentDoc.lines.join('\n')).toMatchInlineSnapshot(`
 				"line1
 				line2
@@ -375,7 +369,6 @@ suite('constructTaggedFile', () => {
 				line5"
 			`);
 
-			// Area around should always contain cursor tag
 			expect(areaAroundCodeToEdit).toMatchInlineSnapshot(`
 				"<|area_around_code_to_edit|>
 				line1
@@ -391,12 +384,12 @@ suite('constructTaggedFile', () => {
 
 		test('cursor tag does NOT appear in current file content when includeCursorTag is false', () => {
 			const content = 'line1\nline2\nline3\nline4\nline5';
-			const doc = createDocument(content, 3, 3); // cursor at line 3, column 3
+			const doc = createDocument(content, 3, 3);
 
 			const result = constructTaggedFile(
 				doc,
-				new OffsetRange(1, 4), // edit window: lines 2-4 (0-indexed)
-				new OffsetRange(0, 5), // area around: all lines
+				new OffsetRange(1, 4),
+				new OffsetRange(0, 5),
 				{
 					...defaultPromptOptions,
 					currentFile: { ...defaultPromptOptions.currentFile, includeCursorTag: false, includeTags: false }
@@ -408,7 +401,6 @@ suite('constructTaggedFile', () => {
 			assert(result.isOk());
 			const { clippedTaggedCurrentDoc, areaAroundCodeToEdit } = result.val;
 
-			// Current file content should NOT contain cursor tag
 			expect(clippedTaggedCurrentDoc.lines.join('\n')).toMatchInlineSnapshot(`
 				"line1
 				line2
@@ -417,7 +409,6 @@ suite('constructTaggedFile', () => {
 				line5"
 			`);
 
-			// Area around should still contain cursor tag (preserves old behavior)
 			expect(areaAroundCodeToEdit).toMatchInlineSnapshot(`
 				"<|area_around_code_to_edit|>
 				line1
@@ -433,7 +424,7 @@ suite('constructTaggedFile', () => {
 
 		test('cursor tag appears correctly when cursor is at end of line', () => {
 			const content = 'line1\nline2\nline3';
-			const doc = createDocument(content, 2, 6); // cursor at end of line 2 (after "line2")
+			const doc = createDocument(content, 2, 6);
 
 			const result = constructTaggedFile(
 				doc,
@@ -535,7 +526,7 @@ suite('constructTaggedFile', () => {
 
 		test('line numbers and cursor tag together', () => {
 			const content = 'foo\nbar\nbaz';
-			const doc = createDocument(content, 2, 2); // cursor in "bar"
+			const doc = createDocument(content, 2, 2);
 
 			const result = constructTaggedFile(
 				doc,
@@ -580,7 +571,6 @@ suite('constructTaggedFile', () => {
 
 			assert(result.isOk());
 
-			// Area around uses WithSpaceAfter
 			expect(result.val.areaAroundCodeToEdit).toMatchInlineSnapshot(`
 				"<|area_around_code_to_edit|>
 				0| line1
@@ -593,7 +583,6 @@ suite('constructTaggedFile', () => {
 				<|/area_around_code_to_edit|>"
 			`);
 
-			// Current file uses WithoutSpace
 			expect(result.val.clippedTaggedCurrentDoc.lines.join('\n')).toMatchInlineSnapshot(`
 				"0|line1
 				1|line2
@@ -661,22 +650,16 @@ describe('getUserPrompt', () => {
 		const pieces = createTestPromptPieces({ cursorLine: 2, cursorColumn: 9, strategy: PromptingStrategy.PatchBased02 });
 		const { prompt } = getUserPrompt(pieces);
 
-		// Contains cursor_position tags with cursor tag in the right position
 		expect(prompt).toContain(PromptTags.CURSOR_LOCATION.start);
 		expect(prompt).toContain(PromptTags.CURSOR_LOCATION.end);
 		expect(prompt).toContain(PromptTags.CURSOR);
 
-		// Cursor at column 9 (1-indexed) inserts tag before the 9th character ('x')
-		// Default includeLineNumbers is None, so no line number prefix
 		expect(prompt).toContain('  const ' + PromptTags.CURSOR + 'x = 1;');
 
-		// Does not contain areaAroundCodeToEdit
 		expect(prompt).not.toContain('<area>');
 
-		// Not wrapped in backticks
 		expect(prompt).not.toMatch(/^```/);
 
-		// Includes postscript (includePostScript defaults to true)
 		expect(prompt).toContain('developer was working on a section of code');
 	});
 
@@ -690,7 +673,6 @@ describe('getUserPrompt', () => {
 		expect(prompt).not.toContain('<area>');
 		expect(prompt).not.toMatch(/^```/);
 
-		// No postscript
 		expect(prompt).not.toContain('developer was working');
 	});
 
@@ -716,7 +698,6 @@ describe('getUserPrompt', () => {
 		const pieces = createTestPromptPieces({ cursorLine: 3, cursorColumn: 1, strategy: PromptingStrategy.PatchBased02 });
 		const { prompt } = getUserPrompt(pieces);
 
-		// Cursor at col 1 means tag is inserted before the line content
 		expect(prompt).toContain(PromptTags.CURSOR + '  return x;');
 	});
 
@@ -724,7 +705,6 @@ describe('getUserPrompt', () => {
 		const pieces = createTestPromptPieces({ cursorLine: 1, cursorColumn: 17, strategy: PromptingStrategy.PatchBased02 });
 		const { prompt } = getUserPrompt(pieces);
 
-		// Cursor at end: "function foo() {<|cursor|>"
 		expect(prompt).toContain('function foo() {' + PromptTags.CURSOR);
 	});
 
@@ -758,7 +738,6 @@ describe('getUserPrompt', () => {
 		});
 		const { prompt } = getUserPrompt(pieces);
 
-		// No line number prefix — cursor line starts directly with content
 		expect(prompt).toContain(PromptTags.CURSOR_LOCATION.start + '\n' + '  const ' + PromptTags.CURSOR + 'x = 1;' + '\n' + PromptTags.CURSOR_LOCATION.end);
 	});
 
@@ -867,7 +846,6 @@ describe('getUserPrompt', () => {
 		});
 
 		test('reports 0 for absent optional sections and non-zero for present ones', () => {
-			// Fixture has no language context (relatedInformation empty) and always renders a current file.
 			const withPostScript = getUserPrompt(createTestPromptPieces({ cursorLine: 2, cursorColumn: 9, strategy: PromptingStrategy.PatchBased02 })).sectionTokens;
 			const withoutPostScript = getUserPrompt(createTestPromptPieces({ cursorLine: 2, cursorColumn: 9, strategy: PromptingStrategy.PatchBased02, includePostScript: false })).sectionTokens;
 
@@ -952,8 +930,6 @@ describe('getUserPrompt — globalBudget cascade', () => {
 			order: GlobalBudgetOptions.DEFAULT_ORDER,
 			shares: GlobalBudgetOptions.DEFAULT_SHARES,
 		}));
-		// History is empty and language context/neighbor files are disabled, so
-		// both paths produce identical output (current file + empty sections).
 		expect(cascaded.prompt).toBe(legacy.prompt);
 		expect(cascaded.nDiffsInPrompt).toBe(legacy.nDiffsInPrompt);
 	});
@@ -995,7 +971,6 @@ describe('getUserPrompt — globalBudget cascade', () => {
 		const pieces = makePieces({
 			totalTokens: 1000,
 			order: GlobalBudgetOptions.DEFAULT_ORDER,
-			// missing 'diffHistory'
 			shares: {
 				currentFile: 0.2,
 				languageContext: 0.4,
@@ -1010,7 +985,6 @@ describe('getUserPrompt — globalBudget cascade', () => {
 		const pieces = makePieces({
 			totalTokens: 1000,
 			order: GlobalBudgetOptions.DEFAULT_ORDER,
-			// missing 'currentFile'
 			shares: {
 				languageContext: 0.25,
 				recentlyViewedDocuments: 0.25,
@@ -1028,11 +1002,6 @@ describe('getUserPrompt — globalBudget cascade', () => {
 	}
 
 	test('finalSurplus carries the full unused pool when no cascade part consumes budget', () => {
-		// No langCtx, empty history and neighbors disabled ⇒ every cascade part
-		// consumes 0, so the entire non-currentFile pool carries to finalSurplus.
-		// DEFAULT_TOTAL_TOKENS (7500) − currentFileBudget (1500) = 6000. This is
-		// exactly the budget the provider adds to the current file's clip
-		// (currentFileBudget 1500 + finalSurplus 6000 = 7500 = T).
 		const cascade = runCascade({
 			totalTokens: GlobalBudgetOptions.DEFAULT_TOTAL_TOKENS,
 			order: GlobalBudgetOptions.DEFAULT_ORDER,
@@ -1047,12 +1016,7 @@ describe('getUserPrompt — globalBudget cascade', () => {
 			order: GlobalBudgetOptions.DEFAULT_ORDER,
 			shares: GlobalBudgetOptions.DEFAULT_SHARES,
 		};
-		// Empty cascade ⇒ the whole non-currentFile pool (6000) carries to finalSurplus.
 		const empty = runCascade(globalBudget);
-		// A rendered language-context snippet consumes budget from the pool, so less
-		// leftover carries to finalSurplus. The provider clips the current file last to
-		// currentFileBudget + finalSurplus, so a smaller finalSurplus ⇒ the current file
-		// reuses less leftover (it is trimmed more) once other parts have content.
 		const consuming = runCascade(globalBudget, { langCtx: makeLangCtxWithSnippet('const ctxMarker = 1;\n'.repeat(40)) });
 		expect(consuming.finalSurplus).toBeLessThan(empty.finalSurplus);
 	});
@@ -1074,11 +1038,6 @@ describe('getUserPrompt — globalBudget cascade', () => {
 	});
 
 	test('reports the recently-viewed subsection token breakdown, matching the legacy path', () => {
-		// Empty history and disabled neighbor files leave the recently-viewed-files
-		// and neighbor-files subsections at 0; the language-context snippet populates
-		// the language-context subsection. Large budgets keep the two assembly paths
-		// (cascade vs legacy `getRecentCodeSnippets`) byte-identical, so their
-		// subsection counts must match.
 		const snippet = 'const sharedCtxMarker = 42;';
 		const globalBudget: PromptOptions['globalBudget'] = {
 			totalTokens: 100000,

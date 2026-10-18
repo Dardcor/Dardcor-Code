@@ -10,7 +10,6 @@ export function sendInlineCompletionsEndOfLifeTelemetry(dataChannel: DataChannel
 }
 
 export type InlineCompletionEndOfLifeEvent = {
-	// request
 	opportunityId: string;
 	requestReason: string;
 	editorType: string;
@@ -21,12 +20,10 @@ export type InlineCompletionEndOfLifeEvent = {
 	availableProviders: string;
 	skuPlan: string | undefined;
 	skuType: string | undefined;
-	// response
 	correlationId: string | undefined;
 	extensionId: string;
 	extensionVersion: string;
 	groupId: string | undefined;
-	// behavior
 	shown: boolean;
 	shownDuration: number | undefined;
 	shownDurationUncollapsed: number | undefined;
@@ -48,7 +45,6 @@ export type InlineCompletionEndOfLifeEvent = {
 	renameDroppedOtherEdits: number | undefined;
 	renameDroppedRenameEdits: number | undefined;
 	performanceMarkers: string | undefined;
-	// rendering
 	viewKind: string | undefined;
 	cursorColumnDistance: number | undefined;
 	cursorLineDistance: number | undefined;
@@ -61,9 +57,7 @@ export type InlineCompletionEndOfLifeEvent = {
 	longDistanceHintVisible: boolean | undefined;
 	longDistanceHintDistance: number | undefined;
 	isForAnotherDocument: boolean | undefined;
-	// empty
 	noSuggestionReason: string | undefined;
-	// shape
 	editKind: string | undefined;
 };
 

@@ -20,11 +20,9 @@ suite('MainThreadCommands', function () {
 		const commands = new MainThreadCommands(SingleProxyRPCProtocol(null), undefined!, new class extends mock<IExtensionService>() { });
 		assert.strictEqual(CommandsRegistry.getCommand('foo'), undefined);
 
-		// register
 		commands.$registerCommand('foo');
 		assert.ok(CommandsRegistry.getCommand('foo'));
 
-		// unregister
 		commands.$unregisterCommand('foo');
 		assert.strictEqual(CommandsRegistry.getCommand('foo'), undefined);
 
@@ -70,7 +68,6 @@ suite('MainThreadCommands', function () {
 			}
 		);
 
-		// case 1: arguments and retry
 		try {
 			activations.length = 0;
 			await commands.$executeCommand('bazz', [1, 2, { n: 3 }], true);
@@ -80,12 +77,10 @@ suite('MainThreadCommands', function () {
 			assert.strictEqual((<Error>e).message, '$executeCommand:retry');
 		}
 
-		// case 2: no arguments and retry
 		runs.length = 0;
 		await commands.$executeCommand('bazz', [], true);
 		assert.deepStrictEqual(runs, ['bazz']);
 
-		// case 3: arguments and no retry
 		runs.length = 0;
 		await commands.$executeCommand('bazz', [1, 2, true], false);
 		assert.deepStrictEqual(runs, ['bazz']);

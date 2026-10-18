@@ -1,8 +1,5 @@
-// Port of compact_ls (rtk/src/cmds/system/ls.rs:154-232)
-// Input: `ls -la` style output. Output: compact "name/  (dirs)\nname  size"
 import { LS_EXT_SUMMARY_TOP, LS_NOISE_DIRS } from "../constants.js";
 
-// Rust LS_DATE_RE: month + day + (year|HH:MM)
 const LS_DATE_RE = /\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+(\d{4}|\d{2}:\d{2})\s+/;
 
 function humanSize(bytes) {
@@ -22,7 +19,6 @@ function parseLsLine(line) {
   const perms = beforeParts[0];
   const fileType = perms.charAt(0);
 
-  // size = rightmost parseable number before the date
   let size = 0;
   for (let i = beforeParts.length - 1; i >= 0; i--) {
     const n = Number(beforeParts[i]);
@@ -33,7 +29,7 @@ function parseLsLine(line) {
 
 export function ls(input) {
   const dirs = [];
-  const files = [];      // [name, sizeStr]
+  const files = [];
   const byExt = new Map();
 
   for (const line of input.split("\n")) {
@@ -42,7 +38,6 @@ export function ls(input) {
     if (!parsed) continue;
     if (parsed.name === "." || parsed.name === "..") continue;
 
-    // Rust ls.rs: show_all flag respected — for LLM context always skip noise
     if (LS_NOISE_DIRS.includes(parsed.name)) continue;
 
     if (parsed.fileType === "d") {
@@ -61,7 +56,6 @@ export function ls(input) {
   for (const d of dirs) out += `${d}/\n`;
   for (const [name, size] of files) out += `${name}  ${size}\n`;
 
-  // Summary line (Rust port)
   let summary = `\nSummary: ${files.length} files, ${dirs.length} dirs`;
   if (byExt.size > 0) {
     const ext = Array.from(byExt.entries()).sort((a, b) => b[1] - a[1]);

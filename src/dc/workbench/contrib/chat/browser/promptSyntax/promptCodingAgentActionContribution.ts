@@ -30,10 +30,8 @@ export class PromptCodingAgentActionContribution extends Disposable {
 	private _updateOverlayWidget(): void {
 		const model = this._editor.getModel();
 
-		// Remove existing overlay if present
 		this._overlayWidgets.deleteAndDispose(this._editor);
 
-		// Add overlay if this is a prompt file
 		if (model && model.getLanguageId() === PROMPT_LANGUAGE_ID) {
 			const widget = this._instantiationService.createInstance(PromptCodingAgentActionOverlayWidget, this._editor);
 			this._overlayWidgets.set(this._editor, widget);

@@ -165,7 +165,6 @@ class WorkspaceTrustedUrisTable extends Disposable {
 		) as WorkbenchTable<ITrustedUriItem>;
 
 		this._register(this.table.onDidOpen(item => {
-			// default prevented when input box is double clicked #125052
 			if (item && item.element && !item.browserEvent?.defaultPrevented) {
 				this.edit(item.element, true);
 			}
@@ -243,7 +242,6 @@ class WorkspaceTrustedUrisTable extends Disposable {
 			};
 		});
 
-		// Sort entries
 		const sortedEntries = entries.sort((a, b) => {
 			if (a.uri.scheme !== b.uri.scheme) {
 				if (a.uri.scheme === Schemas.file) {
@@ -530,7 +528,6 @@ class TrustedUriPathColumnRenderer implements ITableRenderer<ITrustedUriItem, IT
 			}
 		}));
 
-		// stop double click action from re-rendering the element on the table #125052
 		templateData.renderDisposables.add(addDisposableListener(templateData.pathInput.element, EventType.DBLCLICK, e => {
 			EventHelper.stop(e);
 		}));
@@ -594,8 +591,6 @@ class TrustedUriPathColumnRenderer implements ITableRenderer<ITrustedUriItem, IT
 			return normalizeDriveLetter(uri.fsPath);
 		}
 
-		// If the path is not a file uri, but points to a windows remote, we should create windows fs path
-		// e.g. /c:/user/directory => C:\user\directory
 		if (uri.path.startsWith(posix.sep)) {
 			const pathWithoutLeadingSeparator = uri.path.substring(1);
 			const isWindowsPath = hasDriveLetter(pathWithoutLeadingSeparator, true);
@@ -669,7 +664,6 @@ export class WorkspaceTrustEditor extends EditorPane {
 	static readonly ID: string = 'workbench.editor.workspaceTrust';
 	private rootElement!: HTMLElement;
 
-	// Header Section
 	private headerContainer!: HTMLElement;
 	private headerTitleContainer!: HTMLElement;
 	private headerTitleIcon!: HTMLElement;
@@ -678,12 +672,10 @@ export class WorkspaceTrustEditor extends EditorPane {
 
 	private bodyScrollBar!: DomScrollableElement;
 
-	// Affected Features Section
 	private affectedFeaturesContainer!: HTMLElement;
 	private trustedContainer!: HTMLElement;
 	private untrustedContainer!: HTMLElement;
 
-	// Settings Section
 	private configurationContainer!: HTMLElement;
 	private workspaceTrustedUrisTable!: WorkspaceTrustedUrisTable;
 
@@ -724,7 +716,6 @@ export class WorkspaceTrustEditor extends EditorPane {
 		this.rootElement.style.setProperty('--workspace-trust-check-color', asCssVariable(debugIconStartForeground));
 		this.rootElement.style.setProperty('--workspace-trust-x-color', asCssVariable(editorErrorForeground));
 
-		// Navigate page with keyboard
 		this._register(addDisposableListener(this.rootElement, EventType.KEY_DOWN, e => {
 			const event = new StandardKeyboardEvent(e);
 
@@ -842,9 +833,6 @@ export class WorkspaceTrustEditor extends EditorPane {
 	private readonly rerenderDisposables: DisposableStore = this._register(new DisposableStore());
 	@debounce(100)
 	private async render() {
-		// The debounced render can fire after the editor pane (and its scoped
-		// instantiation service) has been disposed. Bail out so we never call
-		// createInstance on a disposed InstantiationService.
 		if (this._store.isDisposed) {
 			return;
 		}
@@ -860,7 +848,6 @@ export class WorkspaceTrustEditor extends EditorPane {
 		this.rootElement.classList.toggle('trusted', isWorkspaceTrusted);
 		this.rootElement.classList.toggle('untrusted', !isWorkspaceTrusted);
 
-		// Header Section
 		this.headerTitleText.innerText = this.getHeaderTitleText(isWorkspaceTrusted);
 		this.headerTitleIcon.className = 'workspace-trust-title-icon';
 		this.headerTitleIcon.classList.add(...this.getHeaderTitleIconClassNames(isWorkspaceTrusted));
@@ -872,7 +859,7 @@ export class WorkspaceTrustEditor extends EditorPane {
 			localize('untrustedDescription', "{0} is in a restricted mode intended for safe code browsing.", this.productService.nameShort);
 
 		const headerDescriptionActions = append(this.headerDescription, $('div'));
-		const headerDescriptionActionsText = localize({ key: 'workspaceTrustEditorHeaderActions', comment: ['Please ensure the markdown link syntax is not broken up with whitespace [text block](link block)'] }, "[Configure your settings]({0}) or [learn more](https://aka.ms/vscode-workspace-trust).", `command:workbench.trust.configure`);
+		const headerDescriptionActionsText = localize({ key: 'workspaceTrustEditorHeaderActions', comment: ['Please ensure the markdown link syntax is not broken up with whitespace [text block](link block)'] }, "[Configure your settings]({0}) or [learn more](https://www.dardcor-code.web.id/docs/editor/workspace-trust).", `command:workbench.trust.configure`);
 		for (const node of parseLinkedText(headerDescriptionActionsText).nodes) {
 			if (typeof node === 'string') {
 				append(headerDescriptionActions, document.createTextNode(node));
@@ -884,18 +871,15 @@ export class WorkspaceTrustEditor extends EditorPane {
 		this.headerContainer.className = this.getHeaderContainerClass(isWorkspaceTrusted);
 		this.rootElement.setAttribute('aria-label', `${localize('root element label', "Manage Workspace Trust")}:  ${this.headerContainer.innerText}`);
 
-		// Settings
 		const restrictedSettings = this.configurationService.restrictedSettings;
 		const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration);
 		const settingsRequiringTrustedWorkspaceCount = restrictedSettings.default.filter(key => {
 			const property = configurationRegistry.getConfigurationProperties()[key];
 
-			// cannot be configured in workspace
 			if (property.scope && (APPLICATION_SCOPES.includes(property.scope) || property.scope === ConfigurationScope.MACHINE)) {
 				return false;
 			}
 
-			// If deprecated include only those configured in the workspace
 			if (property.deprecationMessage || property.markdownDeprecationMessage) {
 				if (restrictedSettings.workspace?.includes(key)) {
 					return true;
@@ -913,10 +897,8 @@ export class WorkspaceTrustEditor extends EditorPane {
 			return true;
 		}).length;
 
-		// Features List
 		this.renderAffectedFeatures(settingsRequiringTrustedWorkspaceCount, this.getExtensionCount());
 
-		// Configuration Tree
 		this.workspaceTrustedUrisTable.updateTable();
 
 		this.bodyScrollBar.getDomNode().style.height = `calc(100% - ${this.headerContainer.clientHeight}px)`;
@@ -981,7 +963,6 @@ export class WorkspaceTrustEditor extends EditorPane {
 		clearNode(this.trustedContainer);
 		clearNode(this.untrustedContainer);
 
-		// Trusted features
 		const [trustedTitle, trustedSubTitle] = this.getFeaturesHeaderText(true);
 
 		this.renderLimitationsHeaderElement(this.trustedContainer, trustedTitle, trustedSubTitle);
@@ -999,7 +980,6 @@ export class WorkspaceTrustEditor extends EditorPane {
 			];
 		this.renderLimitationsListElement(this.trustedContainer, trustedContainerItems, ThemeIcon.asClassNameArray(checkListIcon));
 
-		// Restricted Mode features
 		const [untrustedTitle, untrustedSubTitle] = this.getFeaturesHeaderText(false);
 
 		this.renderLimitationsHeaderElement(this.untrustedContainer, untrustedTitle, untrustedSubTitle);
@@ -1132,8 +1112,7 @@ export class WorkspaceTrustEditor extends EditorPane {
 	}
 }
 
-// Highly scoped fix for #126614
 function fixBadLocalizedLinks(badString: string): string {
-	const regex = /(.*)\[(.+)\]\s*\((.+)\)(.*)/; // markdown link match with spaces
+	const regex = /(.*)\[(.+)\]\s*\((.+)\)(.*)/;
 	return badString.replace(regex, '$1[$2]($3)$4');
 }

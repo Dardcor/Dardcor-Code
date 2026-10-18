@@ -71,7 +71,7 @@ suite('findMergeConflictMarkersRange', () => {
 			'>>>>>>> branch',
 		];
 		const editWindowRange = new OffsetRange(0, 6);
-		const maxMergeConflictLines = 3; // Too small to reach end marker
+		const maxMergeConflictLines = 3;
 
 		const result = findMergeConflictMarkersRange(lines, editWindowRange, maxMergeConflictLines);
 
@@ -104,7 +104,7 @@ suite('findMergeConflictMarkersRange', () => {
 			'>>>>>>> branch',
 			'}',
 		];
-		const editWindowRange = new OffsetRange(0, 2); // Excludes the conflict
+		const editWindowRange = new OffsetRange(0, 2);
 		const maxMergeConflictLines = 10;
 
 		const result = findMergeConflictMarkersRange(lines, editWindowRange, maxMergeConflictLines);
@@ -198,7 +198,7 @@ suite('findMergeConflictMarkersRange', () => {
 
 		const result = findMergeConflictMarkersRange(lines, editWindowRange, maxMergeConflictLines);
 
-		expect(result).toBeUndefined(); // Should not match as markers don't start at line beginning
+		expect(result).toBeUndefined();
 	});
 
 	test('should handle conflict that extends beyond lines array', () => {
@@ -220,7 +220,7 @@ suite('findMergeConflictMarkersRange', () => {
 			'content',
 			'>>>>>>> branch',
 		];
-		const editWindowRange = new OffsetRange(0, 100); // Beyond array length
+		const editWindowRange = new OffsetRange(0, 100);
 		const maxMergeConflictLines = 10;
 
 		const result = findMergeConflictMarkersRange(lines, editWindowRange, maxMergeConflictLines);
@@ -255,7 +255,7 @@ suite('findMergeConflictMarkersRange', () => {
 
 		const result = findMergeConflictMarkersRange(lines, editWindowRange, maxMergeConflictLines);
 
-		expect(result).toBeUndefined(); // Cannot find end marker within limit
+		expect(result).toBeUndefined();
 	});
 
 	test('should handle maxMergeConflictLines of 2', () => {

@@ -47,7 +47,6 @@ export class DetachedTerminal extends Disposable implements IDetachedTerminalIns
 		this.capabilities = capabilities;
 		this._register(_xterm);
 
-		// Initialize contributions
 		const contributionDescs = TerminalExtensionsRegistry.getTerminalContributions();
 		for (const desc of contributionDescs) {
 			if (this._contributions.has(desc.id)) {
@@ -72,8 +71,6 @@ export class DetachedTerminal extends Disposable implements IDetachedTerminalIns
 			}
 		}
 
-		// xterm is already by the time DetachedTerminal is created, so trigger everything
-		// on the next microtask, allowing the caller to do any extra initialization
 		this._register(new Delayer(MicrotaskDelay)).trigger(() => {
 			for (const contr of this._contributions.values()) {
 				contr.xtermReady?.(this._xterm);
@@ -106,7 +103,6 @@ export class DetachedTerminal extends Disposable implements IDetachedTerminalIns
 
 		const attachStore = new DisposableStore();
 		const scheduleFocus = () => {
-			// Defer so scrollable containers can handle focus first; ensures textarea focus sticks
 			setTimeout(() => this.focus(true), 0);
 		};
 		attachStore.add(dom.addDisposableListener(container, dom.EventType.MOUSE_DOWN, scheduleFocus));
@@ -126,11 +122,6 @@ export class DetachedTerminal extends Disposable implements IDetachedTerminalIns
 	}
 }
 
-/**
- * Implements {@link ITerminalProcessInfo} for a detached terminal where most
- * properties are stubbed. Properties are mutable and can be updated by
- * the instantiator.
- */
 export class DetachedProcessInfo extends Disposable implements ITerminalProcessInfo {
 	processState = ProcessState.Running;
 	ptyProcessReady = Promise.resolve();

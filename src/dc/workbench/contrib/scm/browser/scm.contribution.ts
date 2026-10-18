@@ -47,7 +47,7 @@ import product from '../../../../platform/product/common/product.js';
 ModesRegistry.registerLanguage({
 	id: 'scminput',
 	extensions: [],
-	aliases: [], // hide from language selector
+	aliases: [],
 	mimetypes: ['text/x-scm-input']
 });
 
@@ -99,7 +99,6 @@ viewsRegistry.registerViews([{
 	weight: 20,
 	order: 0,
 	when: ContextKeyExpr.and(ContextKeyExpr.has('scm.providerCount'), ContextKeyExpr.notEquals('scm.providerCount', 0)),
-	// readonly when = ContextKeyExpr.or(ContextKeyExpr.equals('config.scm.alwaysShowProviders', true), ContextKeyExpr.and(ContextKeyExpr.notEquals('scm.providerCount', 0), ContextKeyExpr.notEquals('scm.providerCount', 1)));
 	containerIcon: sourceControlViewIcon
 }], viewContainer);
 
@@ -553,7 +552,6 @@ CommandsRegistry.registerCommand('scm.openInIntegratedTerminal', async (accessor
 			const [index] = list.getFocus();
 			const focusedElement = list.element(index);
 
-			// Source Control Repositories
 			if (isSCMRepository(focusedElement)) {
 				provider = focusedElement.provider;
 			}

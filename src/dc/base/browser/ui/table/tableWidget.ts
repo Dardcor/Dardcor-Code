@@ -17,7 +17,6 @@ import { ScrollbarVisibility, ScrollEvent } from '../../../common/scrollable.js'
 import { ISpliceable } from '../../../common/sequence.js';
 import './table.css';
 
-// TODO@joao
 type TCell = any;
 
 interface RowTemplateData {

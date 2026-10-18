@@ -24,7 +24,6 @@ use crate::{
 	},
 };
 
-/// Parsed instance that a user can request.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "t", content = "c")]
 pub enum RequestedVersion {
@@ -87,7 +86,6 @@ impl TryFrom<&str> for RequestedVersion {
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 struct Stored {
-	/// Map of requested versions to locations where those versions are installed.
 	versions: Vec<(RequestedVersion, OsString)>,
 	current: usize,
 }
@@ -105,11 +103,9 @@ impl CodeVersionManager {
 		}
 	}
 
-	/// Tries to find the binary entrypoint for VS Code installed in the path.
 	pub async fn get_entrypoint_for_install_dir(path: &Path) -> Option<PathBuf> {
 		use tokio::sync::mpsc;
 
-		// Check whether the user is supplying a path to the CLI directly (e.g. #164622)
 		if let Ok(true) = path.metadata().map(|m| m.is_file()) {
 			let result = new_std_command(path)
 				.args(["--version"])
@@ -123,7 +119,6 @@ impl CodeVersionManager {
 
 		let (tx, mut rx) = mpsc::channel(1);
 
-		// Look for all the possible paths in parallel
 		for entry in DESKTOP_CLI_RELATIVE_PATH.split(',') {
 			let my_path = path.join(entry);
 			let my_tx = tx.clone();
@@ -134,12 +129,11 @@ impl CodeVersionManager {
 			});
 		}
 
-		drop(tx); // drop so rx gets None if no sender emits
+		drop(tx);
 
 		rx.recv().await
 	}
 
-	/// Sets the "version" as the persisted one for the user.
 	pub async fn set_preferred_version(
 		&self,
 		version: RequestedVersion,
@@ -151,8 +145,6 @@ impl CodeVersionManager {
 		Ok(())
 	}
 
-	/// Stores or updates the path used for the given version. Returns the index
-	/// that the path exists at.
 	fn store_version_path(
 		&self,
 		state: &mut Stored,
@@ -170,7 +162,6 @@ impl CodeVersionManager {
 		}
 	}
 
-	/// Gets the currently preferred version based on set_preferred_version.
 	pub fn get_preferred_version(&self) -> RequestedVersion {
 		let stored = self.state.load();
 		stored
@@ -180,7 +171,6 @@ impl CodeVersionManager {
 			.unwrap_or(RequestedVersion::Default)
 	}
 
-	/// Tries to get the entrypoint for the version, if one can be found.
 	pub async fn try_get_entrypoint(&self, version: &RequestedVersion) -> Option<PathBuf> {
 		let mut state = self.state.load();
 		if let Some((_, install_path)) = state.versions.iter().find(|(v, _)| v == version) {
@@ -190,7 +180,6 @@ impl CodeVersionManager {
 			}
 		}
 
-		// For simple quality requests, see if that's installed already on the system
 		let candidates = match &version {
 			RequestedVersion::Default => match detect_installed_program(&self.log) {
 				Ok(p) => p,
@@ -207,7 +196,6 @@ impl CodeVersionManager {
 			None => return None,
 		};
 
-		// stash the found path for faster lookup
 		self.store_version_path(&mut state, version.clone(), found.clone());
 		if let Err(e) = self.state.save(state) {
 			debug!(self.log, "error caching version path: {}", e);
@@ -217,15 +205,11 @@ impl CodeVersionManager {
 	}
 }
 
-/// Shows a nice UI prompt to users asking them if they want to install the
-/// requested version.
 pub fn prompt_to_install(version: &RequestedVersion) {
 	println!("No installation of {QUALITYLESS_PRODUCT_NAME} {version} was found.");
 
 	if let RequestedVersion::Default = version {
 		if let Some(uri) = PRODUCT_DOWNLOAD_URL {
-			// todo: on some platforms, we may be able to help automate installation. For example,
-			// we can unzip the app ourselves on macOS and on windows we can download and spawn the GUI installer
 			#[cfg(target_os = "linux")]
 			println!("Install it from your system's package manager or {uri}, restart your shell, and try again.");
 			#[cfg(target_os = "macos")]
@@ -243,7 +227,6 @@ pub fn prompt_to_install(version: &RequestedVersion) {
 fn detect_installed_program(log: &log::Logger) -> io::Result<Vec<PathBuf>> {
 	use crate::constants::PRODUCT_NAME_LONG;
 
-	// easy, fast detection for where apps are usually installed
 	let mut probable = PathBuf::from("/Applications");
 	probable.push(format!("{}.app", PRODUCT_NAME_LONG));
 	if probable.exists() {
@@ -251,21 +234,6 @@ fn detect_installed_program(log: &log::Logger) -> io::Result<Vec<PathBuf>> {
 		return Ok(vec![probable]);
 	}
 
-	// _Much_ slower detection using the system_profiler (~10s for me). While the
-	// profiler can output nicely structure plist xml, pulling in an xml parser
-	// just for this is overkill. The default output looks something like...
-	//
-	//     Visual Studio Code - Exploration 2:
-	//
-	//        Version: 1.73.0-exploration
-	//        Obtained from: Identified Developer
-	//        Last Modified: 9/23/22, 10:16 AM
-	//        Kind: Intel
-	//        Signed by: Developer ID Application: Dardcor Corporation (UBF8T346G9), Developer ID Certification Authority, Apple Root CA
-	//        Location: /Users/connor/Downloads/Visual Studio Code - Exploration 2.app
-	//
-	// So, use a simple state machine that looks for the first line, and then for
-	// the `Location:` line for the path.
 	info!(log, "Searching for installations on your machine, this is done once and will take about 10 seconds...");
 
 	let stdout = new_std_command("system_profiler")
@@ -302,8 +270,6 @@ fn detect_installed_program(log: &log::Logger) -> io::Result<Vec<PathBuf>> {
 		}
 	}
 
-	// Sort shorter paths to the front, preferring "more global" installs, and
-	// incidentally preferring local installs over Parallels 'installs'.
 	output.sort_by_key(|a| a.as_os_str().len());
 
 	Ok(output)
@@ -363,8 +329,6 @@ fn detect_installed_program(_log: &log::Logger) -> io::Result<Vec<PathBuf>> {
 	Ok(output)
 }
 
-// Looks for the given binary name in the PATH, returning all candidate matches.
-// Based on https://github.dev/microsoft/vscode-js-debug/blob/7594d05518df6700df51771895fcad0ddc7f92f9/src/common/pathUtils.ts#L15
 #[cfg(target_os = "linux")]
 fn detect_installed_program(log: &log::Logger) -> io::Result<Vec<PathBuf>> {
 	use crate::constants::APPLICATION_NAME;
@@ -387,9 +351,6 @@ fn detect_installed_program(log: &log::Logger) -> io::Result<Vec<PathBuf>> {
 			Err(_) => continue,
 		};
 
-		// note: intentionally store the non-canonicalized version, since if it's a
-		// symlink, (1) it's probably desired to use it and (2) resolving the link
-		// breaks snap installations.
 		output.push(target);
 	}
 
@@ -439,8 +400,6 @@ mod tests {
 
 	#[test]
 	fn test_detect_installed_program() {
-		// developers can run this test and debug output manually; VS Code will not
-		// be installed in CI, so the test only makes sure it doesn't error out
 		let result = detect_installed_program(&log::Logger::test());
 		println!("result: {result:?}");
 		assert!(result.is_ok());

@@ -15,11 +15,9 @@ export class MainThreadDialogs implements MainThreadDiaglogsShape {
 		context: IExtHostContext,
 		@IFileDialogService private readonly _fileDialogService: IFileDialogService,
 	) {
-		//
 	}
 
 	dispose(): void {
-		//
 	}
 
 	async $showOpenDialog(options?: MainThreadDialogOpenOptions): Promise<URI[] | undefined> {

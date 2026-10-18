@@ -67,7 +67,7 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 		try {
 			([fileHandle] = await activeWindow.showOpenFilePicker({ multiple: false }));
 		} catch (error) {
-			return; // `showOpenFilePicker` will throw an error when the user cancels
+			return;
 		}
 
 		if (!WebFileSystemAccess.isFileSystemFileHandle(fileHandle)) {
@@ -129,7 +129,7 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 		try {
 			fileHandle = await activeWindow.showSaveFilePicker({ types: this.getFilePickerTypes(options.filters), ...{ suggestedName: basename(defaultUri), startIn } });
 		} catch (error) {
-			return; // `showSaveFilePicker` will throw an error when the user cancels
+			return;
 		}
 
 		if (!WebFileSystemAccess.isFileSystemFileHandle(fileHandle)) {
@@ -171,7 +171,7 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 		try {
 			fileHandle = await activeWindow.showSaveFilePicker({ types: this.getFilePickerTypes(options.filters), ...options.defaultUri ? { suggestedName: basename(options.defaultUri) } : undefined, ...{ startIn } });
 		} catch (error) {
-			return undefined; // `showSaveFilePicker` will throw an error when the user cancels
+			return undefined;
 		}
 
 		if (!WebFileSystemAccess.isFileSystemFileHandle(fileHandle)) {
@@ -207,7 +207,6 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 				uri = await this.fileSystemProvider.registerDirectoryHandle(handle);
 			}
 		} catch (error) {
-			// ignore - `showOpenFilePicker` / `showDirectoryPicker` will throw an error when the user cancels
 		}
 
 		return uri ? [uri] : undefined;
@@ -215,8 +214,6 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 
 	private async showUnsupportedBrowserWarning(context: 'save' | 'open'): Promise<undefined> {
 
-		// When saving, try to just download the contents
-		// of the active text editor if any as a workaround
 		if (context === 'save') {
 			const activeCodeEditor = this.codeEditorService.getActiveCodeEditor();
 			if (!(activeCodeEditor instanceof EmbeddedCodeEditorWidget)) {
@@ -228,7 +225,6 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 			}
 		}
 
-		// Otherwise inform the user about options
 
 		const buttons: IPromptButton<void>[] = [
 			{
@@ -237,7 +233,7 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 			},
 			{
 				label: localize({ key: 'learnMore', comment: ['&& denotes a mnemonic'] }, "&&Learn More"),
-				run: async () => { await this.openerService.open('https://aka.ms/VSCodeWebLocalFileSystemAccess'); }
+				run: async () => { await this.openerService.open('https://www.dardcor-code.web.id/docs/platform/browser-file-access'); }
 			}
 		];
 		if (context === 'open') {

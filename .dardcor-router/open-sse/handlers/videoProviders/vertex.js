@@ -1,22 +1,9 @@
-// Vertex AI (Veo) video jobs.
-//
-// Vertex does NOT speak the OpenAI-ish /v1/videos shape, so unlike OpenRouter
-// this adapter translates both directions:
-//   create → POST {model}:predictLongRunning  { instances[], parameters{} } → { name }
-//   poll   → POST {model}:fetchPredictOperation { operationName } → { done, response }
-// Docs: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/veo-video-generation
-//
-// The operation name is a resource path (contains "/"), so it is base64url-encoded
-// into the job id returned to the client — GET /v1/videos/{id} stays a flat path.
 import { parseVertexSaJson, refreshVertexToken } from "../../services/tokenRefresh.js";
 
 const DEFAULT_LOCATION = "us-central1";
 
 const encodeJobId = (name) => Buffer.from(name, "utf8").toString("base64url");
 
-// Operation name shape: projects/{p}/locations/{l}/publishers/{pub}/models/{m}/operations/{op}.
-// Anchored and single-segment-per-field so a decoded path can never carry `..` or a
-// host-changing prefix into the request URL.
 const OPERATION_NAME_RE = /^projects\/[^/]+\/locations\/[^/]+\/publishers\/[^/]+\/models\/[^/]+\/operations\/[^/]+$/;
 
 function modelPathOf(operationName) {
@@ -25,8 +12,6 @@ function modelPathOf(operationName) {
 
 function decodeJobId(id) {
   const raw = String(id ?? "");
-  // Buffer.from(x, "base64url") silently drops invalid characters instead of
-  // throwing, so only ids that re-encode byte-for-byte are accepted.
   if (!raw || raw.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(raw)) return null;
   const decoded = Buffer.from(raw, "base64url").toString("utf8");
   if (Buffer.from(decoded, "utf8").toString("base64url") !== raw) return null;
@@ -56,10 +41,8 @@ async function resolveAuth(credentials, log) {
   return { token, projectId, location };
 }
 
-/** OpenAI-ish video body → Vertex predictLongRunning body. */
 function toVertexBody(body) {
   const instance = { prompt: body.prompt };
-  // Image-to-video: accept the Vertex-native shape or a bare data URL / base64 string.
   const image = body.image ?? body.image_url;
   if (image && typeof image === "object") {
     instance.image = image;
@@ -78,15 +61,12 @@ function toVertexBody(body) {
   if (body.resolution) parameters.resolution = body.resolution;
   if (body.seed != null) parameters.seed = body.seed;
   if (body.negative_prompt) parameters.negativePrompt = body.negative_prompt;
-  // Without storageUri Vertex returns inline base64 bytes; a GCS bucket keeps
-  // the poll response small and is what production callers want.
   if (body.storage_uri) parameters.storageUri = body.storage_uri;
   if (body.generate_audio != null) parameters.generateAudio = !!body.generate_audio;
 
   return { instances: [instance], ...(Object.keys(parameters).length ? { parameters } : {}) };
 }
 
-/** Vertex operation → the async-job shape Dardcor Code clients already poll for. */
 function fromVertexOperation(json) {
   if (!json?.name) return json;
   const id = encodeJobId(json.name);
@@ -132,7 +112,6 @@ export default {
     }
 
     if (action !== "generations") {
-      // ponytail: Veo extend/edit go through generations with `video`/`image` in the body.
       return { error: `Vertex video supports 'generations' only (got '${action}')` };
     }
 
@@ -143,7 +122,6 @@ export default {
       return { error: "Invalid JSON body" };
     }
     if (!body.model) return { error: "Vertex video requires a model (e.g. vertex/veo-3.1-generate-preview)" };
-    // Plain model id only — a path segment carrying "/" or ".." would rewrite the URL.
     if (!/^[A-Za-z0-9._-]+$/.test(body.model)) return { error: "Invalid Vertex video model id" };
     if (!body.prompt && !body.image && !body.image_url) return { error: "Vertex video requires a prompt or an image" };
 

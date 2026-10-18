@@ -92,10 +92,8 @@ export class Application {
 	private async _start(workspaceOrFolder = this._workspacePathOrFolder, extraArgs: string[] = []): Promise<void> {
 		this._workspacePathOrFolder = workspaceOrFolder;
 
-		// Launch Code...
 		const code = await this.startApplication(extraArgs);
 
-		// ...and make sure the window is ready to interact
 		await measureAndLog(() => this.checkWindowReady(code), 'Application#checkWindowReady()', this.logger);
 	}
 
@@ -132,26 +130,16 @@ export class Application {
 
 	private async checkWindowReady(code: Code): Promise<void> {
 
-		// We need a rendered workbench
 		await measureAndLog(() => code.didFinishLoad(), 'Application#checkWindowReady: wait for navigation to be committed', this.logger);
 		await measureAndLog(() => code.waitForElement('.monaco-workbench'), 'Application#checkWindowReady: wait for .monaco-workbench element', this.logger);
 		await measureAndLog(() => code.whenWorkbenchRestored(), 'Application#checkWorkbenchRestored', this.logger);
 
-		// Remote but not web: wait for a remote connection state change
 		if (this.remote) {
 			await measureAndLog(() => code.waitForTextContent('.monaco-workbench .statusbar-item[id="status.host"]', undefined, statusHostLabel => {
 				this.logger.log(`checkWindowReady: remote indicator text is ${statusHostLabel}`);
 
-				// The absence of "Opening Remote" is not a strict
-				// indicator for a successful connection, but we
-				// want to avoid hanging here until timeout because
-				// this method is potentially called from a location
-				// that has no tracing enabled making it hard to
-				// diagnose this. As such, as soon as the connection
-				// state changes away from the "Opening Remote..." one
-				// we return.
 				return !statusHostLabel.includes('Opening Remote');
-			}, 300 /* = 30s of retry */), 'Application#checkWindowReady: wait for remote indicator', this.logger);
+			}, 300 ), 'Application#checkWindowReady: wait for remote indicator', this.logger);
 		}
 	}
 }

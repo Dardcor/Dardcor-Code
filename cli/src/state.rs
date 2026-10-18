@@ -85,7 +85,6 @@ where
 	}
 }
 
-/// Container that holds some state value that is persisted to disk.
 #[derive(Clone)]
 pub struct PersistedState<T>
 where
@@ -98,12 +97,10 @@ impl<T> PersistedState<T>
 where
 	T: Clone + Serialize + DeserializeOwned + Default,
 {
-	/// Creates a new state container that persists to the given path.
 	pub fn new(path: PathBuf) -> PersistedState<T> {
 		Self::new_with_mode(path, 0o644)
 	}
 
-	/// Creates a new state container that persists to the given path.
 	pub fn new_with_mode(path: PathBuf, mode: u32) -> PersistedState<T> {
 		PersistedState {
 			container: Arc::new(Mutex::new(PersistedStateContainer {
@@ -114,17 +111,14 @@ where
 		}
 	}
 
-	/// Loads persisted state.
 	pub fn load(&self) -> T {
 		self.container.lock().unwrap().load_or_get()
 	}
 
-	/// Saves persisted state.
 	pub fn save(&self, state: T) -> Result<(), WrappedError> {
 		self.container.lock().unwrap().save(state)
 	}
 
-	/// Mutates persisted state.
 	pub fn update<R>(&self, mutator: impl FnOnce(&mut T) -> R) -> Result<R, WrappedError> {
 		let mut container = self.container.lock().unwrap();
 		let mut state = container.load_or_get();
@@ -134,7 +128,6 @@ where
 }
 
 impl LauncherPaths {
-	/// todo@conno4312: temporary migration from the old CLI data directory
 	pub fn migrate(root: Option<String>) -> Result<LauncherPaths, AnyError> {
 		if root.is_some() {
 			return Self::new(root);
@@ -154,7 +147,6 @@ impl LauncherPaths {
 		}
 
 		if let Err(e) = std::fs::rename(&old_dir, &new_dir) {
-			// no logger exists at this point in the lifecycle, so just log to stderr
 			eprintln!("Failed to migrate old CLI data directory, will create a new one ({e})");
 		}
 
@@ -187,7 +179,6 @@ impl LauncherPaths {
 	}
 
 	pub fn new_without_replacements(root: PathBuf) -> LauncherPaths {
-		// cleanup folders that existed before the new LRU strategy:
 		let _ = std::fs::remove_dir_all(root.join("server-insiders"));
 		let _ = std::fs::remove_dir_all(root.join("server-stable"));
 
@@ -198,12 +189,10 @@ impl LauncherPaths {
 		}
 	}
 
-	/// Root directory for the server launcher
 	pub fn root(&self) -> &Path {
 		&self.root
 	}
 
-	/// Lockfile for the running tunnel
 	pub fn tunnel_lockfile(&self) -> PathBuf {
 		self.root.join(format!(
 			"tunnel-{}.lock",
@@ -211,7 +200,6 @@ impl LauncherPaths {
 		))
 	}
 
-	/// Lockfile for port forwarding
 	pub fn forwarding_lockfile(&self) -> PathBuf {
 		self.root.join(format!(
 			"forwarding-{}.lock",
@@ -219,12 +207,10 @@ impl LauncherPaths {
 		))
 	}
 
-	/// Suggested path for tunnel service logs, when using file logs
 	pub fn service_log_file(&self) -> PathBuf {
 		self.root.join("tunnel-service.log")
 	}
 
-	/// Removes the launcher data directory.
 	pub fn remove(&self) -> Result<(), WrappedError> {
 		remove_dir_all(&self.root).map_err(|e| {
 			wrap(
@@ -237,11 +223,6 @@ impl LauncherPaths {
 		})
 	}
 
-	/// Lockfile for the running agent host. Pinned to the canonical
-	/// server data dir (see [`agent_host_root`]) so a `code agent host`
-	/// invoked locally and the supervisor spawned by the SSH
-	/// `command-shell` path agree on the same lockfile regardless of
-	/// `--cli-data-dir`.
 	pub fn agent_host_lockfile(&self) -> PathBuf {
 		self.agent_host_root().join(format!(
 			"agent-host-{}.lock",
@@ -249,10 +230,6 @@ impl LauncherPaths {
 		))
 	}
 
-	/// Suggested path for the detached `code agent host` supervisor's log
-	/// file. The supervisor severs its inherited stdio after signalling
-	/// readiness, so a file log is the only way to debug post-handoff
-	/// issues (download progress, AH child crashes, update loop errors).
 	pub fn agent_host_log_file(&self) -> PathBuf {
 		self.agent_host_root().join(format!(
 			"agent-host-{}.log",
@@ -260,11 +237,6 @@ impl LauncherPaths {
 		))
 	}
 
-	/// Canonical machine-wide directory holding agent host coordination
-	/// files (lockfile + supervisor log). Anchored on `serverDataFolderName`
-	/// rather than `self.root` so different `--cli-data-dir` values still
-	/// land on the same lockfile. Falls back to `self.root` when no home
-	/// directory is available.
 	fn agent_host_root(&self) -> PathBuf {
 		match dirs::home_dir() {
 			Some(home) => home.join(SERVER_DATA_PARENT_DIR).join("cli"),
@@ -272,7 +244,6 @@ impl LauncherPaths {
 		}
 	}
 
-	/// Suggested path for web server storage
 	pub fn web_server_storage(&self) -> PathBuf {
 		self.root.join("serve-web")
 	}

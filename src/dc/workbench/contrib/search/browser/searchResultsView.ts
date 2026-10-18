@@ -147,7 +147,6 @@ export class TextSearchResultRenderer extends Disposable implements ICompressibl
 			try {
 				await node.element.parent().searchModel.getAITextResultProviderName();
 			} catch {
-				// ignore
 			}
 
 			const localizedLabel = nls.localize({
@@ -155,7 +154,6 @@ export class TextSearchResultRenderer extends Disposable implements ICompressibl
 				comment: ['This is displayed before the AI text search results, now always "AI-assisted results".']
 			}, 'AI-assisted results');
 
-			// todo: make icon extension-contributed.
 			templateData.label.setLabel(`$(${Codicon.searchSparkle.id}) ${localizedLabel}`);
 
 			SearchContext.AIResultsTitle.bindTo(templateData.contextKeyService).set(true);
@@ -367,8 +365,6 @@ export class FileMatchRenderer extends Disposable implements ICompressibleTreeRe
 			SearchContext.IsEditableItemKey.bindTo(templateData.contextKeyService).set(!fileMatch.hasOnlyReadOnlyMatches());
 		}));
 
-		// when hidesExplorerArrows: true, then the file nodes should still have a twistie because it would otherwise
-		// be hard to tell whether the node is collapsed or expanded.
 		// eslint-disable-next-line no-restricted-syntax
 		const twistieContainer = templateData.el.parentElement?.parentElement?.querySelector('.monaco-tl-twistie');
 		twistieContainer?.classList.add('force-twistie');

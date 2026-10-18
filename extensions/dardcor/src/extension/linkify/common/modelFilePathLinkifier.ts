@@ -12,8 +12,6 @@ import { coalesceParts, LinkifiedPart, LinkifiedText, LinkifyLocationAnchor } fr
 import { IContributedLinkifier, LinkifierContext } from './linkifyService';
 import { IStatCache } from './statCache';
 
-// Matches markdown links where the text is a path and optional #L anchor is present
-// Example: [src/file.ts](src/file.ts#L10-12) or [src/file.ts](src/file.ts)
 const modelLinkRe = /\[(?<text>[^\]\n]+)\]\((?<target>[^\s)]+)\)/gu;
 
 export class ModelFilePathLinkifier implements IContributedLinkifier {
@@ -46,8 +44,6 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 				continue;
 			}
 
-			// Push promise to resolve in parallel with other matches
-			// Pass originalTargetPath to preserve platform-specific separators (e.g., c:/path vs c:\path) before Uri.file() conversion
 			parts.push(this.resolveTarget(parsed.targetPath, parsed.originalTargetPath, workspaceFolders, parsed.preserveDirectorySlash, token).then(resolved => {
 				if (!resolved) {
 					return original;
@@ -98,7 +94,6 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 		try {
 			decodedBase = decodeURIComponent(baseTarget);
 		} catch {
-			// noop
 		}
 
 		const preserveDirectorySlash = decodedBase.endsWith('/') && decodedBase.length > 1;
@@ -108,16 +103,13 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 	}
 
 	private normalizeSlashes(value: string): string {
-		// Collapse one or more backslashes into a single forward slash so mixed separators normalize consistently.
 		return value.replace(/\\+/g, '/');
 	}
 
 	private normalizeLinkText(rawText: string): string {
 		let text = this.normalizeSlashes(rawText);
-		// Remove a leading or trailing backtick that sometimes wraps the visible link label.
 		text = text.replace(/^`|`$/g, '');
 
-		// Look for a trailing #L anchor segment so it can be stripped before we compare names.
 		const anchorMatch = /^(.+?)(#L\d+(?:-\d+)?)$/.exec(text);
 		return anchorMatch ? anchorMatch[1] : text;
 	}
@@ -127,18 +119,14 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 		const textMatchesBase = targetPath === text;
 		const textIsFilename = !text.includes('/') && targetPath.endsWith(`/${text}`);
 
-		// Allow descriptive text with anchor, but if text looks like a filename (has extension),
-		// it must match the target's filename to prevent linking to wrong files
 		let descriptiveWithAnchor = false;
 		if (anchor) {
 			const textLooksLikeFilename = /\.\w+$/.test(text);
 			if (textLooksLikeFilename) {
-				// Text looks like a filename/path - require it ends with target's basename
 				const targetBasename = targetPath.split('/').pop() ?? '';
 				const textBasename = text.split('/').pop() ?? '';
 				descriptiveWithAnchor = textBasename === targetBasename;
 			} else {
-				// Text is truly descriptive (e.g., "widget initialization") - allow it
 				descriptiveWithAnchor = true;
 			}
 		}
@@ -156,12 +144,8 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 		}
 
 		if (this.isAbsolutePath(targetPath)) {
-			// Choose URI construction strategy based on workspace folder schemes.
-			// For local (file:) workspaces we keep using Uri.file; for remote schemes we attempt
-			// to project the absolute path into the remote scheme preserving the folder URI's authority.
 			const normalizedAbs = targetPath.replace(/\\/g, '/');
 
-			// Build candidate URIs for all workspace folders, then stat them in parallel.
 			const candidates: Uri[] = [];
 			for (const folderUri of workspaceFolders) {
 				if (folderUri.scheme === 'file') {
@@ -170,7 +154,6 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 						candidates.push(absoluteFileUri);
 					}
 				} else {
-					// Remote / virtual workspace: attempt to map the absolute path into the same scheme.
 					const folderPath = folderUri.path.replace(/\\/g, '/');
 					const prefix = folderPath.endsWith('/') ? folderPath : folderPath + '/';
 					if (normalizedAbs.startsWith(prefix)) {
@@ -216,7 +199,6 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 	}
 
 	private parseAnchor(anchor: string | undefined): { readonly range: Range; readonly startLine: string; readonly endLine: string | undefined } | undefined {
-		// Parse supported anchor formats: L123, L123-456, L123-L456, 123, 123-456
 		if (!anchor) {
 			return undefined;
 		}
@@ -242,7 +224,6 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 	}
 
 	private isAbsolutePath(path: string): boolean {
-		// Treat drive-letter prefixes (e.g. C:) or leading slashes as absolute paths.
 		return /^[a-z]:/i.test(path) || path.startsWith('/');
 	}
 

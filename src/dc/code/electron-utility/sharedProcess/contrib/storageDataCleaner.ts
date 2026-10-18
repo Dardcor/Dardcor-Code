@@ -29,13 +29,10 @@ export class UnusedWorkspaceStorageDataCleaner extends Disposable {
 
 		const scheduler = this._register(new RunOnceScheduler(() => {
 			this.cleanUpStorage();
-		}, 30 * 1000 /* after 30s */));
+		}, 30 * 1000 ));
 		scheduler.schedule();
 	}
 
-	/**
-	 * Public for testing.
-	 */
 	async cleanUpStorage(): Promise<void> {
 		this.logService.trace('[storage cleanup]: Starting to clean up workspace storage folders for unused empty workspaces.');
 
@@ -48,21 +45,21 @@ export class UnusedWorkspaceStorageDataCleaner extends Disposable {
 				const workspaceStoragePath = join(workspaceStorageHome, workspaceStorageFolder);
 
 				if (workspaceStorageFolder.length === NON_EMPTY_WORKSPACE_ID_LENGTH) {
-					return; // keep workspace storage for folders/workspaces that can be accessed still
+					return;
 				}
 
 				if (workspaceStorageFolder === EXTENSION_DEVELOPMENT_EMPTY_WINDOW_WORKSPACE.id) {
-					return; // keep workspace storage for empty extension development workspaces
+					return;
 				}
 
 				const windows = await this.nativeHostService.getWindows({ includeAuxiliaryWindows: false });
 				if (windows.some(window => window.workspace?.id === workspaceStorageFolder)) {
-					return; // keep workspace storage for empty workspaces opened as window
+					return;
 				}
 
 				const isStorageUsed = await storageClient.isUsed(workspaceStoragePath);
 				if (isStorageUsed) {
-					return; // keep workspace storage for empty workspaces that are in use
+					return;
 				}
 
 				this.logService.trace(`[storage cleanup]: Deleting workspace storage folder ${workspaceStorageFolder} as it seems to be an unused empty workspace.`);

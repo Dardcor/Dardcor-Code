@@ -6,14 +6,6 @@
 import { describe, expect, test } from 'vitest';
 import { resolveModelIdForTelemetry } from '../resolveModelId';
 
-/**
- * Tests the resolveModelIdForTelemetry helper used by copy/insert/apply
- * telemetry events to substitute 'dardcor/auto' with the actual resolved model.
- *
- * Integration tests verifying that resolvedModel is propagated through
- * DefaultIntentRequestHandler into result metadata live in
- * defaultIntentRequestHandler.spec.ts.
- */
 describe('resolveModelIdForTelemetry', () => {
 	test('returns resolvedModel when modelId is dardcor/auto', () => {
 		expect(resolveModelIdForTelemetry('dardcor/auto', 'gpt-4o')).toBe('gpt-4o');

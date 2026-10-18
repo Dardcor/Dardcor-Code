@@ -87,15 +87,12 @@ export class SCMWorkingSetController extends Disposable implements IWorkbenchCon
 				return;
 			}
 
-			// Editors for the current working set are automatically restored
 			if (repositoryWorkingSets.currentHistoryItemGroupId === historyItemRefIdValue) {
 				return;
 			}
 
-			// Save the working set
 			this._saveWorkingSet(providerKey, historyItemRefIdValue, repositoryWorkingSets);
 
-			// Restore the working set
 			await this._restoreWorkingSet(providerKey, historyItemRefIdValue);
 		}));
 
@@ -130,7 +127,6 @@ export class SCMWorkingSetController extends Disposable implements IWorkbenchCon
 		const editorWorkingSet = this.editorGroupsService.saveWorkingSet(previousHistoryItemGroupId);
 		this._workingSets.set(providerKey, { currentHistoryItemGroupId, editorWorkingSets: editorWorkingSets.set(previousHistoryItemGroupId, editorWorkingSet) });
 
-		// Save to storage
 		const workingSets: ISCMSerializedWorkingSet[] = [];
 		for (const [providerKey, { currentHistoryItemGroupId, editorWorkingSets }] of this._workingSets) {
 			workingSets.push({ providerKey, currentHistoryItemGroupId, editorWorkingSets: [...editorWorkingSets] });
@@ -150,10 +146,6 @@ export class SCMWorkingSetController extends Disposable implements IWorkbenchCon
 		}
 
 		if (editorWorkingSetId) {
-			// Applying a working set can be the result of a user action that has been
-			// initiated from the terminal (ex: switching branches). As such, we want
-			// to preserve the focus in the terminal. This does not cover the scenario
-			// in which the terminal is in the editor part.
 			const preserveFocus = this.layoutService.hasFocus(Parts.PANEL_PART);
 
 			await this.editorGroupsService.applyWorkingSet(editorWorkingSetId, { preserveFocus });

@@ -3,8 +3,6 @@ import { createProxyPool } from "@/models";
 
 const VERCEL_API = "https://api.vercel.com";
 
-// Relay function source code deployed to Vercel
-// Forwards requests to target URL specified in x-relay-target header
 const RELAY_FUNCTION_CODE = `
 export const config = { runtime: "edge" };
 
@@ -55,7 +53,6 @@ async function pollDeployment(deploymentId, token, maxMs = 120000) {
   throw new Error("Deployment timed out");
 }
 
-// POST /api/proxy-pools/vercel-deploy
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -66,7 +63,6 @@ export async function POST(request) {
       return NextResponse.json({ error: "Vercel API token is required" }, { status: 400 });
     }
 
-    // Deploy relay function to Vercel
     const deployRes = await fetch(`${VERCEL_API}/v13/deployments`, {
       method: "POST",
       headers: {
@@ -109,7 +105,6 @@ export async function POST(request) {
     const deployment = await deployRes.json();
     const deploymentId = deployment.id || deployment.uid;
 
-    // Disable deployment protection (Vercel Authentication)
     const projectId = deployment.projectId || projectName;
     await fetch(`${VERCEL_API}/v9/projects/${projectId}`, {
       method: "PATCH",
@@ -120,11 +115,9 @@ export async function POST(request) {
       body: JSON.stringify({ ssoProtection: null }),
     });
 
-    // Poll until deployment is ready
     const ready = await pollDeployment(deploymentId, vercelToken);
     const deployUrl = `https://${ready.url}`;
 
-    // Create proxy pool entry with type vercel
     const proxyPool = await createProxyPool({
       name: projectName,
       proxyUrl: deployUrl,

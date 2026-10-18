@@ -23,12 +23,6 @@ import { IExperimentationService } from '../../telemetry/common/nullExperimentat
 import { ITelemetryService } from '../../telemetry/common/telemetry';
 import { TelemetryData } from '../../telemetry/common/telemetryData';
 
-/**
- * Build the `input_schema` for an Anthropic tool from an arbitrary JSON Schema
- * object. Ensures `type: 'object'` and `properties` default, preserves extra
- * keys like `$defs` and `additionalProperties`, and strips `$schema` which the
- * Anthropic API rejects.
- */
 export function buildToolInputSchema(schema: Record<string, unknown> | undefined): Record<string, unknown> & { type: 'object' } {
 	if (!schema) {
 		return { type: 'object', properties: {} };
@@ -37,16 +31,10 @@ export function buildToolInputSchema(schema: Record<string, unknown> | undefined
 	return { type: 'object', properties: {}, ...rest };
 }
 
-/**
- * Anthropic only accepts ASCII letters, digits, underscores, and hyphens in tool call IDs.
- */
 function sanitizeToolCallId(id: string): string {
 	return id.replace(/[^a-zA-Z0-9_-]/gu, '_');
 }
 
-/**
- * Allocates Anthropic-compatible tool call IDs while preserving call/result pairing.
- */
 function createAnthropicToolCallIdMapper(messages: readonly Raw.ChatMessage[]): (id: string) => string {
 	const validIdPattern = /^[a-zA-Z0-9_-]+$/u;
 	const usedIds = new Set<string>();
@@ -89,7 +77,6 @@ function createAnthropicToolCallIdMapper(messages: readonly Raw.ChatMessage[]): 
 	};
 }
 
-/** IP Code Citation annotation from Messages API dardcor_annotations */
 interface AnthropicIPCodeCitation {
 	id: number;
 	start_offset: number;
@@ -173,9 +160,6 @@ export function createMessagesRequestBody(accessor: ServicesAccessor, options: I
 	const toolSearchEnabled = !!endpoint.supportsToolSearch
 		&& !!options.requestOptions?.tools?.some(t => t.function.name === CUSTOM_TOOL_SEARCH_NAME);
 
-	// Split tools into non-deferred and deferred up front so we can build finalTools
-	// with non-deferred first. This ensures the cache_control breakpoint on the last
-	// non-deferred tool caches the maximum stable prefix.
 	const nonDeferredTools: AnthropicMessagesTool[] = [];
 	const deferredTools: AnthropicMessagesTool[] = [];
 	if (options.requestOptions?.tools) {
@@ -194,15 +178,8 @@ export function createMessagesRequestBody(accessor: ServicesAccessor, options: I
 		}
 	}
 
-	// Build final tools array. The client-side search_tools tool is already in the
-	// anthropicTools array (registered as a model-specific VS Code tool) and will handle
-	// tool search client-side. Deferred tools still have defer_loading: true so the model
-	// knows to use the search tool to discover them.
 	const finalTools: AnthropicMessagesTool[] = [...nonDeferredTools, ...deferredTools];
 
-	// Thinking is enabled only when options.modelCapabilities?.enableThinking is true, a non-zero thinking budget
-	// is configured for the model, and the model supports thinking. reasoningEffort (if present)
-	// is used only to configure the effort level when thinking is enabled, not to gate it.
 	const reasoningEffort = options.modelCapabilities?.reasoningEffort;
 	let thinkingConfig: { type: 'enabled' | 'adaptive'; budget_tokens?: number; display?: 'summarized' } | undefined;
 	if (options.modelCapabilities?.enableThinking) {
@@ -239,28 +216,15 @@ export function createMessagesRequestBody(accessor: ServicesAccessor, options: I
 		}
 	}
 
-	// Build context management configuration
 	const contextManagement = options.modelCapabilities?.enableContextEditing && isAnthropicContextEditingEnabled(endpoint, configurationService, experimentationService)
 		? getContextManagementFromConfig(configurationService, experimentationService, thinkingEnabled)
 		: undefined;
 
 	const logService = accessor.get(ILogService);
 	const telemetryService = accessor.get(ITelemetryService);
-	// TODO: Ideally the custom tool_search tool should filter results itself, but it doesn't
-	// have access to the enabled tools for the request. For now, filter tool_reference blocks
-	// here against the actual tools sent to Anthropic to avoid 400 errors from unknown tool names.
 	const validToolNames = finalTools.length > 0 ? new Set(finalTools.map(t => t.name)) : undefined;
 	const messagesResult = rawMessagesToMessagesAPI(options.messages, toolSearchEnabled ? validToolNames : undefined);
 
-	// Subagent requests are out of scope for the extended cache TTL — their
-	// context is short-lived. The three subagent call sites (search loop,
-	// execution loop, Task-tool-spawned agent) all set
-	// `interactionTypeOverride: 'conversation-subagent'`, which is also the
-	// source of truth for the `X-Interaction-Type` wire header.
-	//
-	// The rolling message breakpoints default to the 5m TTL and only upgrade to
-	// 1h when the `extendedTtlMessages` sub-toggle is on (which itself requires
-	// the parent `extendedTtl` to be on — see `isExtendedCacheTtlMessagesEnabled`).
 	const isSubagent = options.interactionTypeOverride === 'conversation-subagent';
 	const useExtendedCacheTtl = isExtendedCacheTtlEnabled(endpoint, configurationService, experimentationService, options.location, isSubagent);
 	const cacheTtl = useExtendedCacheTtl ? '1h' : undefined;
@@ -271,23 +235,10 @@ export function createMessagesRequestBody(accessor: ServicesAccessor, options: I
 	addMessagesApiCacheControl(messagesResult, messageCacheTtl);
 	addToolsAndSystemCacheControl(finalTools, messagesResult, cacheTtl);
 
-	// Guard: The Anthropic Messages API requires the conversation to end with a user message.
-	// A trailing assistant message is treated as a prefill request, which is not supported
-	// and will return a 400 error. This catches upstream edge cases where isContinuation
-	// skips the UserMessage or validateToolMessages drops trailing tool messages.
 	const lastMessage = messagesResult.messages.at(-1);
 	if (lastMessage && lastMessage.role === 'assistant') {
 		logService.warn(`[messagesAPI] Trailing assistant message detected — appending synthetic user message to prevent prefill error. Total messages: ${messagesResult.messages.length}`);
 
-		/* __GDPR__
-			"messagesApi.trailingAssistantGuard" : {
-				"owner": "bhavyaus",
-				"comment": "Tracks when a trailing assistant message is detected and a synthetic user message is appended to prevent prefill errors",
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model being used" },
-				"location": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The chat location (agent, panel, etc)" },
-				"messageCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total number of messages in the conversation" }
-			}
-		*/
 		telemetryService.sendMSFTTelemetryEvent('messagesApi.trailingAssistantGuard',
 			{ model, location: ChatLocation.toString(options.location) },
 			{ messageCount: messagesResult.messages.length }
@@ -341,7 +292,6 @@ export function rawMessagesToMessagesAPI(messages: readonly Raw.ChatMessage[], v
 						try {
 							parsedInput = JSON.parse(toolCall.function.arguments);
 						} catch {
-							// Keep empty object if parse fails
 						}
 						content.push({
 							type: 'tool_use',
@@ -364,7 +314,6 @@ export function rawMessagesToMessagesAPI(messages: readonly Raw.ChatMessage[], v
 			case Raw.ChatRole.Tool: {
 				if (message.toolCallId) {
 					const toolContent = rawContentToAnthropicContent(message.content);
-					// Extract cache_control from content blocks - it belongs on the tool_result block, not inner content
 					let hasCacheControl = false;
 					for (const block of toolContent) {
 						if (contentBlockSupportsCacheControl(block) && block.cache_control) {
@@ -373,12 +322,6 @@ export function rawMessagesToMessagesAPI(messages: readonly Raw.ChatMessage[], v
 						}
 					}
 
-					// If this is a custom tool search result and validToolNames is provided,
-					// attempt to convert the text content into tool_reference blocks per the
-					// Anthropic custom tool search spec. When validToolNames is undefined
-					// (i.e. tool_reference conversion is disabled/unsupported for this
-					// request), fall through to the regular text/image filter to avoid
-					// sending unsupported content types.
 					const isCustomToolSearch = validToolNames && toolCallIdToName.get(message.toolCallId) === CUSTOM_TOOL_SEARCH_NAME;
 					const toolReferenceContent = isCustomToolSearch
 						? tryParseToolReferences(toolContent, validToolNames)
@@ -431,7 +374,6 @@ function isThinkingBlock(block: ContentBlockParam): boolean {
 	return block.type === 'thinking' || block.type === 'redacted_thinking';
 }
 
-// Keep at most one response's thinking blocks when merging consecutive assistants (#327646).
 function mergeAssistantContent(prevContent: ContentBlockParam[], newContent: ContentBlockParam[]): ContentBlockParam[] {
 	const hasToolUse = (blocks: ContentBlockParam[]) => blocks.some(block => block.type === 'tool_use');
 	const thinkingSource = hasToolUse(newContent) ? newContent : hasToolUse(prevContent) ? prevContent : undefined;
@@ -443,12 +385,6 @@ function mergeAssistantContent(prevContent: ContentBlockParam[], newContent: Con
 	];
 }
 
-/**
- * Parses tool result content from the custom tool search tool into
- * tool_reference content blocks that the Anthropic API understands.
- * Expects a single text block containing a JSON array of tool name strings.
- * @see https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool#custom-tool-search-implementation
- */
 function tryParseToolReferences(content: ContentBlockParam[], validToolNames?: Set<string>): ToolReferenceBlockParam[] | undefined {
 	if (content.length !== 1 || content[0].type !== 'text') {
 		return undefined;
@@ -472,7 +408,6 @@ function tryParseToolReferences(content: ContentBlockParam[], validToolNames?: S
 
 function rawContentToAnthropicContent(content: readonly Raw.ChatCompletionContentPart[]): ContentBlockParam[] {
 	const convertedContent: ContentBlockParam[] = [];
-	// Track pending cache_control that couldn't be attached to a preceding block
 	let pendingCacheControl = false;
 
 	for (const part of content) {
@@ -484,7 +419,6 @@ function rawContentToAnthropicContent(content: readonly Raw.ChatCompletionConten
 				break;
 			case Raw.ChatCompletionContentPartKind.Image: {
 				const url = part.imageUrl.url;
-				// Parse data URL: data:image/png;base64,<data>
 				const match = url.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/);
 				if (match) {
 					convertedContent.push({
@@ -496,7 +430,6 @@ function rawContentToAnthropicContent(content: readonly Raw.ChatCompletionConten
 						}
 					});
 				} else if (url.startsWith('https://')) {
-					// URL image source: https://platform.claude.com/docs/en/api/messages#url_image_source
 					convertedContent.push({
 						type: 'image',
 						source: {
@@ -512,11 +445,6 @@ function rawContentToAnthropicContent(content: readonly Raw.ChatCompletionConten
 				if (previousBlock && contentBlockSupportsCacheControl(previousBlock)) {
 					previousBlock.cache_control = { type: 'ephemeral' };
 				} else {
-					// No preceding block to attach to — defer until the next
-					// cacheable content block is added, or silently drop it.
-					// Previously this created a whitespace-only text block which
-					// the Anthropic API rejects with "text content block must
-					// contain non-whitespace text".
 					pendingCacheControl = true;
 				}
 				break;
@@ -542,17 +470,11 @@ function rawContentToAnthropicContent(content: readonly Raw.ChatCompletionConten
 							? opaqueValue.thinking.text.join('')
 							: opaqueValue.thinking.text;
 						if (opaqueValue.thinking.redacted && opaqueValue.thinking.encrypted) {
-							// Genuine redacted_thinking block: `encrypted` holds the opaque `data` blob.
 							convertedContent.push({
 								type: 'redacted_thinking',
 								data: opaqueValue.thinking.encrypted,
 							});
 						} else if (opaqueValue.thinking.encrypted) {
-							// Regular thinking block: `encrypted` holds the signature. The text may be
-							// empty (e.g. `display: "omitted"` or pruned under token budget); the Anthropic
-							// API still accepts a thinking block with an empty `thinking` field as long as
-							// the signature is intact. We must NEVER ship the signature as redacted `data`,
-							// which the API rejects with "Invalid 'data' in 'redacted_thinking' block".
 							convertedContent.push({
 								type: 'thinking',
 								thinking: thinkingText || '',
@@ -565,7 +487,6 @@ function rawContentToAnthropicContent(content: readonly Raw.ChatCompletionConten
 			}
 		}
 
-		// Attach any pending cache_control to the block we just added
 		if (pendingCacheControl && convertedContent.length > 0) {
 			const lastBlock = convertedContent.at(-1)!;
 			if (contentBlockSupportsCacheControl(lastBlock)) {
@@ -582,7 +503,6 @@ function contentBlockSupportsCacheControl(block: ContentBlockParam): block is Ex
 	return block.type !== 'thinking' && block.type !== 'redacted_thinking';
 }
 
-/** Removes any cache_control fields from system and message blocks. */
 export function clearAllCacheControl(
 	messagesResult: { messages: MessageParam[]; system?: TextBlockParam[] },
 ): void {
@@ -602,14 +522,6 @@ export function clearAllCacheControl(
 	}
 }
 
-/**
- * Marks the last non-deferred tool and the last system block for caching.
- *
- * When {@link cacheTtl} is `'1h'`, the breakpoints request the extended cache
- * TTL. Sending this requires the `extended-cache-ttl-2025-04-11` Anthropic
- * beta header — see {@link IChatEndpoint.getExtraHeaders}. When omitted, the
- * default 5 minute TTL is used.
- */
 export function addToolsAndSystemCacheControl(
 	tools: AnthropicMessagesTool[],
 	messagesResult: { messages: MessageParam[]; system?: TextBlockParam[] },
@@ -632,20 +544,6 @@ export function addToolsAndSystemCacheControl(
 	}
 }
 
-/**
- * Marks the last cacheable block of the two most recent cacheable messages.
- *
- * Anthropic's prompt cache matches on content prefix, so a single tail anchor
- * is sufficient under steady-state. The second (older) anchor is intended to
- * improve the chance of retaining a useful fallback within Anthropic's
- * lookback window: if the tail anchor misses (TTL expiry on a slow tool call,
- * or rare content drift), the older anchor can still serve a cache hit
- * covering everything up to it, so we typically lose at most one exchange
- * instead of resetting the entire conversation cache.
- *
- * Combined with the tools + system breakpoints, this can produce up to 4
- * cache_control markers, which matches Anthropic's per-request limit.
- */
 export function addMessagesApiCacheControl(
 	messagesResult: { messages: MessageParam[]; system?: TextBlockParam[] },
 	cacheTtl?: '1h',
@@ -682,8 +580,6 @@ export async function processResponseFromMessagesEndpoint(
 	finishCallback: FinishedCallback,
 	telemetryData: TelemetryData
 ): Promise<AsyncIterableObject<ChatCompletion>> {
-	// Route based on Content-Type: non-streaming Anthropic responses return
-	// application/json, streaming returns text/event-stream.
 	const contentType = response.headers.get('content-type') ?? '';
 	if (!contentType.includes('text/event-stream')) {
 		return processNonStreamingResponseFromMessagesEndpoint(telemetryService, logService, response, finishCallback, telemetryData);
@@ -748,11 +644,6 @@ export async function processResponseFromMessagesEndpoint(
 	});
 }
 
-/**
- * Inputs for {@link buildAnthropicCompletion}. Both the streaming
- * `message_stop` handler and the non-streaming response handler
- * populate this from their respective data sources.
- */
 interface AnthropicCompletionState {
 	readonly model: string;
 	readonly messageId: string;
@@ -765,12 +656,6 @@ interface AnthropicCompletionState {
 	readonly cacheCreation1hTokens: number | undefined;
 	readonly cacheCreation5mTokens: number | undefined;
 	readonly cacheReadTokens: number;
-	/**
-	 * Anthropic-reported thinking (reasoning) tokens, a subset of
-	 * `output_tokens`. Surfaced as `completion_tokens_details.reasoning_tokens`
-	 * to match the OpenAI/CAPI naming used elsewhere in telemetry. Undefined
-	 * when the server did not include `output_tokens_details`.
-	 */
 	readonly thinkingTokens: number | undefined;
 	readonly requestId: string;
 	readonly ghRequestId: string;
@@ -779,9 +664,6 @@ interface AnthropicCompletionState {
 	readonly dardcorUsage?: { total_nano_aiu: number };
 }
 
-/**
- * Map an Anthropic `stop_reason` string to a {@link FinishedCompletionReason}.
- */
 function mapStopReason(stopReason: string | null | undefined): FinishedCompletionReason {
 	switch (stopReason) {
 		case 'refusal':
@@ -794,14 +676,6 @@ function mapStopReason(stopReason: string | null | undefined): FinishedCompletio
 	}
 }
 
-/**
- * Build a {@link ChatCompletion} from the accumulated Anthropic response
- * state. Shared between the streaming (`message_stop`) and non-streaming
- * response handlers so token accounting, finish-reason mapping, and
- * message construction are defined in exactly one place.
- *
- * @param logService Used for the cache-token consistency warning.
- */
 function buildAnthropicCompletion(state: AnthropicCompletionState, logService: ILogService): ChatCompletion {
 	const computedPromptTokens = state.inputTokens + state.cacheCreationTokens + state.cacheReadTokens;
 	if (computedPromptTokens < state.cacheReadTokens) {
@@ -866,11 +740,6 @@ function buildAnthropicCompletion(state: AnthropicCompletionState, logService: I
 	};
 }
 
-/**
- * Shape of an Anthropic Messages API non-streaming response.
- * Tagged union: successful responses have `type: 'message'`, error
- * responses have `type: 'error'`.
- */
 type AnthropicNonStreamingResponse =
 	| {
 		type: 'message';
@@ -903,15 +772,6 @@ type AnthropicNonStreamingResponse =
 		error: { type?: string; message?: string };
 	};
 
-/**
- * Process a non-streaming response from the Anthropic Messages API.
- * Returns the same `ChatCompletion` shape as the streaming path.
- *
- * NOTE: Thinking / redacted_thinking content blocks are intentionally
- * not surfaced. If a future caller needs them, this function must be
- * extended to include them in the `ChatCompletion.message` and in the
- * `finishCallback` delta.
- */
 export async function processNonStreamingResponseFromMessagesEndpoint(
 	telemetryService: ITelemetryService,
 	logService: ILogService,
@@ -939,8 +799,6 @@ export async function processNonStreamingResponseFromMessagesEndpoint(
 			return;
 		}
 
-		// Extract content blocks — guard against missing content array
-		// (shouldn't happen for type=message, but be defensive).
 		let textContent = '';
 		const toolCalls: { id: string; name: string; arguments: string }[] = [];
 		for (const block of parsed.content ?? []) {
@@ -957,21 +815,10 @@ export async function processNonStreamingResponseFromMessagesEndpoint(
 					break;
 				case 'thinking':
 				case 'redacted_thinking':
-					// Intentionally not surfaced — see function JSDoc.
 					break;
 				default: {
-					// Parity with streaming path: log + emit telemetry for unknown block types
 					const unknownType = (block as { type: string }).type;
 					logService.warn(`[messagesAPI] non-streaming: unknown content_block type '${unknownType}' for model ${parsed.model}`);
-					/* __GDPR__
-						"messagesApi.unknownContentBlock" : {
-							"owner": "bhavyaus",
-							"comment": "Tracks unknown Anthropic content block types",
-							"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request ID for correlation" },
-							"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that emitted the unknown block" },
-							"blockType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The unknown content_block.type string" }
-						}
-					*/
 					telemetryService.sendMSFTTelemetryEvent('messagesApi.unknownContentBlock', {
 						requestId,
 						model: parsed.model,
@@ -982,9 +829,6 @@ export async function processNonStreamingResponseFromMessagesEndpoint(
 			}
 		}
 
-		// Report text and tool calls to finishedCb so callers that rely on
-		// the callback (e.g. for OTEL tracing, progress, langModelServer SSE
-		// forwarding) see the complete response — matching the streaming path.
 		const delta: IResponseDelta = {
 			text: textContent,
 			...(toolCalls.length > 0 ? {
@@ -1000,15 +844,6 @@ export async function processNonStreamingResponseFromMessagesEndpoint(
 		if (parsed.stop_reason === 'refusal') {
 			logService.warn(`[messagesAPI] non-streaming: Refusal received for model ${parsed.model}`);
 
-			/* __GDPR__
-				"messagesApi.refusal" : {
-					"owner": "bhavyaus",
-					"comment": "Tracks Anthropic refusal responses including cyber and other policy categories",
-					"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request ID for correlation" },
-					"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that produced the refusal" },
-					"category": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The refusal category (e.g. cyber, content_policy)" }
-				}
-			*/
 			telemetryService.sendMSFTTelemetryEvent('messagesApi.refusal',
 				{
 					requestId,
@@ -1097,15 +932,11 @@ export class AnthropicMessagesProcessor {
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 	) { }
 
-	/**
-	 * Extract IP code citations from dardcor_annotations and convert to IIPCodeCitation format
-	 */
 	private extractIPCodeCitations(annotations?: { IPCodeCitations?: AnthropicIPCodeCitation[] }): IIPCodeCitation[] {
 		if (!annotations?.IPCodeCitations?.length) {
 			return [];
 		}
 
-		// Deduplicate by URL since the same citation can appear multiple times
 		const seenUrls = new Set<string>();
 		const citations: IIPCodeCitation[] = [];
 
@@ -1225,7 +1056,6 @@ export class AnthropicMessagesProcessor {
 						if (thinking) {
 							thinking.signature += chunk.delta.signature;
 						}
-						// Don't report signature deltas to the user
 					} else if (chunk.delta.type === 'input_json_delta' && chunk.delta.partial_json && chunk.index !== undefined) {
 						const toolCall = this.toolCallAccumulator.get(chunk.index);
 						if (toolCall) {
@@ -1272,7 +1102,6 @@ export class AnthropicMessagesProcessor {
 				return;
 			case 'message_delta':
 				if (chunk.usage) {
-					// message_delta provides the most accurate token counts
 					this.outputTokens = chunk.usage.output_tokens;
 					this.inputTokens = chunk.usage.input_tokens ?? this.inputTokens;
 					this.cacheCreationTokens = chunk.usage.cache_creation_input_tokens ?? this.cacheCreationTokens;
@@ -1286,13 +1115,11 @@ export class AnthropicMessagesProcessor {
 				}
 				if (chunk.context_management) {
 					this.contextManagementResponse = chunk.context_management;
-					// Report context management via delta so it gets logged to request logger
 					return onProgress({
 						text: '',
 						contextManagement: chunk.context_management
 					});
 				}
-				// Track stop_reason and stop_details for determining finish reason in message_stop
 				if (chunk.delta?.stop_reason) {
 					this.stopReason = chunk.delta.stop_reason;
 				}
@@ -1316,18 +1143,6 @@ export class AnthropicMessagesProcessor {
 					);
 					this.logService.trace(`[messagesAPI] Anthropic context editing applied: cleared ${totalClearedTokens} tokens, ${totalClearedToolUses} tool uses.`);
 
-					/* __GDPR__
-						"contextEditingApplied" : {
-							"owner": "bhavyaus",
-							"comment": "Tracks when Anthropic context editing is applied to manage context window",
-							"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request ID for correlation" },
-							"interactionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The interaction ID for correlation" },
-							"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used" },
-							"clearedTokens": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total tokens cleared" },
-							"clearedToolUses": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total tool uses cleared" },
-							"clearedThinkingTurns": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Total thinking turns cleared" }
-						}
-					*/
 					this.telemetryService.sendMSFTTelemetryEvent('contextEditingApplied',
 						{
 							requestId: this.requestId,
@@ -1345,15 +1160,6 @@ export class AnthropicMessagesProcessor {
 					const category = this.stopDetails?.category ?? 'unknown';
 					this.logService.warn(`[messagesAPI] Refusal received: category='${category}' for model ${this.model}`);
 
-					/* __GDPR__
-						"messagesApi.refusal" : {
-							"owner": "bhavyaus",
-							"comment": "Tracks Anthropic refusal responses including cyber and other policy categories",
-							"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request ID for correlation" },
-							"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that produced the refusal" },
-							"category": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The refusal category (e.g. cyber, content_policy)" }
-						}
-					*/
 					this.telemetryService.sendMSFTTelemetryEvent('messagesApi.refusal',
 						{
 							requestId: this.requestId,

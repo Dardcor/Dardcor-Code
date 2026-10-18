@@ -56,9 +56,9 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { InsertLineAfterAction } from '../../../../editor/contrib/linesOperations/browser/linesOperations.js';
 
-const MAX_NUM_INLINE_VALUES = 100; // JS Global scope can have 700+ entries. We want to limit ourselves for perf reasons
-const MAX_INLINE_DECORATOR_LENGTH = 150; // Max string length of each inline decorator when debugging. If exceeded ... is added
-const MAX_TOKENIZATION_LINE_LEN = 500; // If line is too long, then inline values for the line are skipped
+const MAX_NUM_INLINE_VALUES = 100;
+const MAX_INLINE_DECORATOR_LENGTH = 150;
+const MAX_TOKENIZATION_LINE_LEN = 500;
 
 const DEAFULT_INLINE_DEBOUNCE_DELAY = 200;
 
@@ -78,7 +78,6 @@ class InlineSegment {
 
 export function formatHoverContent(contentText: string): MarkdownString {
 	if (contentText.includes(',') && contentText.includes('=')) {
-		// Custom split: for each equals sign after the first, backtrack to the nearest comma
 		const customSplit = (text: string): string[] => {
 			const splits: number[] = [];
 			let equalsFound = 0;
@@ -125,9 +124,8 @@ export function formatHoverContent(contentText: string): MarkdownString {
 }
 
 export function createInlineValueDecoration(lineNumber: number, contentText: string, classNamePrefix: string, column = Constants.MAX_SAFE_SMALL_INTEGER, viewportMaxCol: number = MAX_INLINE_DECORATOR_LENGTH): IModelDeltaDecoration[] {
-	const rawText = contentText; // store raw text for hover message
+	const rawText = contentText;
 
-	// Truncate contentText if it exceeds the viewport max column
 	if (contentText.length > viewportMaxCol) {
 		contentText = contentText.substring(0, viewportMaxCol) + '...';
 	}
@@ -179,7 +177,6 @@ function createInlineValueDecorationsInsideRange(expressions: ReadonlyArray<IExp
 	const nameValueMap = new Map<string, string>();
 	for (const expr of expressions) {
 		nameValueMap.set(expr.name, expr.value);
-		// Limit the size of map. Too large can have a perf impact
 		if (nameValueMap.size >= MAX_NUM_INLINE_VALUES) {
 			break;
 		}
@@ -187,7 +184,6 @@ function createInlineValueDecorationsInsideRange(expressions: ReadonlyArray<IExp
 
 	const lineToNamesMap: Map<number, string[]> = new Map<number, string[]>();
 
-	// Compute unique set of names on each line
 	nameValueMap.forEach((_value, name) => {
 		const lineNumbers = wordToLineNumbersMap.get(name);
 		if (lineNumbers) {
@@ -205,7 +201,6 @@ function createInlineValueDecorationsInsideRange(expressions: ReadonlyArray<IExp
 		}
 	});
 
-	// Compute decorators for each line
 	return [...lineToNamesMap].map(([line, names]) => ({
 		line,
 		variables: names.sort((first, second) => {
@@ -217,7 +212,6 @@ function createInlineValueDecorationsInsideRange(expressions: ReadonlyArray<IExp
 
 function getWordToLineNumbersMap(model: ITextModel, lineNumber: number, result: Map<string, number[]>) {
 	const lineLength = model.getLineLength(lineNumber);
-	// If line is too long then skip the line
 	if (lineLength > MAX_TOKENIZATION_LINE_LEN) {
 		return;
 	}
@@ -228,9 +222,8 @@ function getWordToLineNumbersMap(model: ITextModel, lineNumber: number, result: 
 	for (let tokenIndex = 0, tokenCount = lineTokens.getCount(); tokenIndex < tokenCount; tokenIndex++) {
 		const tokenType = lineTokens.getStandardTokenType(tokenIndex);
 
-		// Token is a word and not a comment
 		if (tokenType === StandardTokenType.Other) {
-			DEFAULT_WORD_REGEXP.lastIndex = 0; // We assume tokens will usually map 1:1 to words if they match
+			DEFAULT_WORD_REGEXP.lastIndex = 0;
 
 			const tokenStartOffset = lineTokens.getStartOffset(tokenIndex);
 			const tokenEndOffset = lineTokens.getEndOffset(tokenIndex);
@@ -270,7 +263,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 	private allowScrollToExceptionWidget = true;
 	private shouldScrollToExceptionWidget = () => this.allowScrollToExceptionWidget;
 
-	// Holds a Disposable that prevents the default editor hover behavior while it exists.
 	private readonly defaultHoverLockout = new MutableDisposable();
 
 	constructor(
@@ -298,7 +290,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 	private registerListeners(): void {
 		this.toDispose.push(this.debugService.getViewModel().onDidFocusStackFrame(e => this.onFocusStackFrame(e.stackFrame)));
 
-		// hover listeners & hover widget
 		this.toDispose.push(this.editor.onMouseDown((e: IEditorMouseEvent) => this.onEditorMouseDown(e)));
 		this.toDispose.push(this.editor.onMouseUp(() => this.mouseDown = false));
 		this.toDispose.push(this.editor.onMouseMove((e: IEditorMouseEvent) => this.onEditorMouseMove(e)));
@@ -309,7 +300,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 			}
 
 			const rect = hoverDomNode.getBoundingClientRect();
-			// Only hide the hover widget if the editor mouse leave event is outside the hover widget #3528
 			if (e.event.posx < rect.left || e.event.posx > rect.right || e.event.posy < rect.top || e.event.posy > rect.bottom) {
 				this.hideHoverWidget();
 			}
@@ -332,7 +322,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 		this.toDispose.push(this.editor.onDidScrollChange(() => {
 			this.hideHoverWidget();
 
-			// Inline value provider should get called on view port change
 			const model = this.editor.getModel();
 			if (model && this.languageFeaturesService.inlineValuesProvider.has(model)) {
 				this.updateInlineValuesScheduler.schedule();
@@ -380,7 +369,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 
 		const ownerDocument = this.editor.getContainerDomNode().ownerDocument;
 
-		// When the alt key is pressed show regular editor hover and hide the debug hover #84561
 		this.altListener.value = addDisposableListener(ownerDocument, 'keydown', keydownEvent => {
 			const standardKeyboardEvent = new StandardKeyboardEvent(keydownEvent);
 			if (standardKeyboardEvent.keyCode === KeyCode.Alt) {
@@ -390,7 +378,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 				this.defaultHoverLockout.clear();
 
 				if (debugHoverWasVisible && this.hoverPosition) {
-					// If the debug hover was visible immediately show the editor hover for the alt transition to be smooth
 					this.showEditorHover(this.hoverPosition.position, false);
 				}
 
@@ -412,7 +399,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 	}
 
 	async showHover(position: Position, focus: boolean, mouseEvent?: IMouseEvent): Promise<void> {
-		// normally will already be set in `showHoverScheduler`, but public callers may hit this directly:
 		this.preventDefaultEditorHover();
 
 		const sf = this.debugService.getViewModel().focusedStackFrame;
@@ -420,7 +406,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 		if (sf && model && this.uriIdentityService.extUri.isEqual(sf.source.uri, model.uri)) {
 			const result = await this.hoverWidget.showAt(position, focus, mouseEvent);
 			if (result === ShowDebugHoverResult.NOT_AVAILABLE) {
-				// When no expression available fallback to editor hover
 				this.showEditorHover(position, focus);
 			}
 		} else {
@@ -449,8 +434,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 	private showEditorHover(position: Position, focus: boolean) {
 		const hoverController = this.editor.getContribution<ContentHoverController>(ContentHoverController.ID);
 		const range = new Range(position.lineNumber, position.column, position.lineNumber, position.column);
-		// enable the editor hover, otherwise the content controller will see it
-		// as disabled and hide it on the first mouse move (#193149)
 		this.defaultHoverLockout.clear();
 		hoverController?.showContentHover(range, HoverStartMode.Immediate, HoverStartSource.Mouse, focus);
 	}
@@ -472,13 +455,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 	private get hoverDelay() {
 		const baseDelay = this.editorHoverOptions?.delay || 0;
 
-		// heuristic to get a 'good' but configurable delay for evaluation. The
-		// debug hover can be very large, so we tend to be more conservative about
-		// when to show it (#180621). With this equation:
-		// - default 300ms hover => * 2   = 600ms
-		// - short   100ms hover => * 2   = 200ms
-		// - longer  600ms hover => * 1.5 = 900ms
-		// - long   1000ms hover => * 1.0 = 1000ms
 		const delayFactor = clamp(2 - (baseDelay - 300) / 600, 1, 2);
 
 		return baseDelay * delayFactor;
@@ -504,7 +480,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 		this.defaultHoverLockout.clear();
 	}
 
-	// hover business
 
 	private onEditorMouseDown(mouseEvent: IEditorMouseEvent): void {
 		this.mouseDown = true;
@@ -537,7 +512,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 			(target.type === MouseTargetType.CONTENT_WIDGET && target.detail === DebugHoverWidget.ID)
 			|| this.hoverWidget.isInSafeTriangle(mouseEvent.event.posx, mouseEvent.event.posy)
 		) {
-			// mouse moved on top of debug hover widget
 
 			const sticky = this.editorHoverOptions?.sticky ?? true;
 			if (sticky || this.hoverWidget.isShowingComplexValue || mouseEvent.event[stopKey]) {
@@ -548,12 +522,10 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 		if (target.type === MouseTargetType.CONTENT_TEXT) {
 			if (target.position && !Position.equals(target.position, this.hoverPosition?.position || null) && !this.hoverWidget.isInSafeTriangle(mouseEvent.event.posx, mouseEvent.event.posy)) {
 				this.hoverPosition = { position: target.position, event: mouseEvent.event };
-				// Disable the editor hover during the request to avoid flickering
 				this.preventDefaultEditorHover();
 				this.showHoverScheduler.schedule(this.hoverDelay);
 			}
 		} else if (!this.mouseDown) {
-			// Do not hide debug hover when the mouse is pressed because it usually leads to accidental closing #64620
 			this.hideHoverWidget();
 		}
 	}
@@ -561,15 +533,11 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 	private onKeyDown(e: IKeyboardEvent): void {
 		const stopKey = env.isMacintosh ? KeyCode.Meta : KeyCode.Ctrl;
 		if (e.keyCode !== stopKey && e.keyCode !== KeyCode.Alt) {
-			// do not hide hover when Ctrl/Meta is pressed, and alt is handled separately
 			this.hideHoverWidget();
 		}
 	}
-	// end hover business
 
-	// exception widget
 	private async toggleExceptionWidget(): Promise<void> {
-		// Toggles exception widget based on the state of the current editor model and debug stack frame
 		const model = this.editor.getModel();
 		const focusedSf = this.debugService.getViewModel().focusedStackFrame;
 		const callStack = focusedSf ? focusedSf.thread.getCallStack() : null;
@@ -578,7 +546,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 			return;
 		}
 
-		// First call stack frame that is available is the frame where exception has been thrown
 		const exceptionSf = callStack.find(sf => !!(sf && sf.source && sf.source.available && sf.source.presentationHint !== 'deemphasize'));
 		if (!exceptionSf || exceptionSf !== focusedSf) {
 			this.closeExceptionWidget();
@@ -589,17 +556,14 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 		if (this.exceptionWidget && !sameUri) {
 			this.closeExceptionWidget();
 		} else if (sameUri) {
-			// Show exception widget in all editors with the same file, but only scroll in the active editor
 			const activeControl = this.editorService.activeTextEditorControl;
 			const isActiveEditor = activeControl === this.editor;
 			const exceptionInfo = await focusedSf.thread.exceptionInfo;
 
 			if (exceptionInfo) {
 				if (isActiveEditor) {
-					// Active editor: show widget and scroll to it
 					this.showExceptionWidget(exceptionInfo, this.debugService.getViewModel().focusedSession, exceptionSf.range.startLineNumber, exceptionSf.range.startColumn);
 				} else {
-					// Inactive editor: show widget without scrolling
 					this.showExceptionWidgetWithoutScroll(exceptionInfo, this.debugService.getViewModel().focusedSession, exceptionSf.range.startLineNumber, exceptionSf.range.startColumn);
 				}
 			}
@@ -628,13 +592,11 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 			this.exceptionWidget.dispose();
 		}
 
-		// Disable scrolling to exception widget
 		this.allowScrollToExceptionWidget = false;
 
 		const currentScrollTop = this.editor.getScrollTop();
 		const visibleRanges = this.editor.getVisibleRanges();
 		if (visibleRanges.length === 0) {
-			// Editor not fully initialized or not visible; skip scroll adjustment
 			this.exceptionWidget = this.instantiationService.createInstance(ExceptionWidget, this.editor, exceptionInfo, debugSession, this.shouldScrollToExceptionWidget);
 			this.exceptionWidget.show({ lineNumber, column }, 0);
 			this.exceptionWidgetVisible.set(true);
@@ -644,22 +606,16 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 
 		const firstVisibleLine = visibleRanges[0].startLineNumber;
 
-		// Create widget - this may add a zone that pushes content down
 		this.exceptionWidget = this.instantiationService.createInstance(ExceptionWidget, this.editor, exceptionInfo, debugSession, this.shouldScrollToExceptionWidget);
 		this.exceptionWidget.show({ lineNumber, column }, 0);
 		this.exceptionWidgetVisible.set(true);
 
-		// only adjust scroll if the exception widget is above the first visible line
 		if (lineNumber < firstVisibleLine) {
-			// Get the actual height of the widget that was just added from the whitespace
-			// The whitespace height is more accurate than the container height
 			const scrollAdjustment = this.exceptionWidget.getWhitespaceHeight();
 
-			// Scroll down by the actual widget height to keep the first visible line the same
 			this.editor.setScrollTop(currentScrollTop + scrollAdjustment, ScrollType.Immediate);
 		}
 
-		// Re-enable scrolling to exception widget
 		this.allowScrollToExceptionWidget = true;
 	}
 
@@ -705,7 +661,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 		getConfigurationPosition();
 
 		if (!configurationsArrayPosition) {
-			// "configurations" array doesn't exist. Add it here.
 			const { tabSize, insertSpaces } = model.getOptions();
 			const eol = model.getEOL();
 			const edit = (basename(model.uri.fsPath) === 'launch.json') ?
@@ -715,7 +670,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 			const lineNumber = startPosition.lineNumber;
 			const range = new Range(lineNumber, startPosition.column, lineNumber, model.getLineMaxColumn(lineNumber));
 			model.pushEditOperations(null, [EditOperation.replace(range, edit.content)], () => null);
-			// Go through the file again since we've edited it
 			getConfigurationPosition();
 		}
 		if (!configurationsArrayPosition) {
@@ -725,7 +679,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 		this.editor.focus();
 
 		const insertLine = (position: Position): Promise<any> => {
-			// Check if there are more characters on a line after a "configurations": [, if yes enter a newline
 			if (model.getLineLastNonWhitespaceColumn(position.lineNumber) > position.column) {
 				this.editor.setPosition(position);
 				this.instantiationService.invokeFunction((accessor) => {
@@ -740,7 +693,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 		await this.commandService.executeCommand('editor.action.triggerSuggest');
 	}
 
-	// Inline Decorations
 
 	@memoize
 	private get removeInlineValuesScheduler(): RunOnceScheduler {
@@ -856,7 +808,7 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 								lineSegments = [];
 								lineDecorations.set(line, lineSegments);
 							}
-							if (!lineSegments.some(iv => iv.text === text)) {	// de-dupe
+							if (!lineSegments.some(iv => iv.text === text)) {
 								lineSegments.push(new InlineSegment(iv.range.startColumn, text));
 							}
 						}
@@ -870,10 +822,8 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 
 			await Promise.all(promises);
 
-			// update debounce info
 			this.updateInlineValuesScheduler.delay = this.debounceInfo.update(model, Date.now() - startTime);
 
-			// sort line segments and concatenate them into a decoration
 
 			lineDecorations.forEach((segments, line) => {
 				if (segments.length > 0) {
@@ -887,16 +837,12 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 			});
 
 		} else {
-			// old "one-size-fits-all" strategy
 
 			const scopes = await stackFrame.getMostSpecificScopes(stackFrame.range);
 			const scopesWithVariables = await Promise.all(scopes.map(async scope =>
 				({ scope, variables: await scope.getChildren() })));
 
-			// Map of inline values per line that's populated in scope order, from
-			// narrowest to widest. This is done to avoid duplicating values if
-			// they appear in multiple scopes or are shadowed (#129770, #217326)
-			const valuesPerLine = new Map</* line */number, Map</* var */string, /* value */ string>>();
+			const valuesPerLine = new Map< number, Map< string, string>>();
 
 			for (const { scope, variables } of scopesWithVariables) {
 				let scopeRange = new Range(0, 0, stackFrame.range.startLineNumber, stackFrame.range.startColumn);
@@ -939,9 +885,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 			return;
 		}
 
-		// If word wrap is on, application of inline decorations may change the scroll position.
-		// Ensure the cursor maintains its vertical position relative to the viewport when
-		// we apply decorations.
 		let preservePosition: { position: Position; top: number } | undefined;
 		if (this.editor.getOption(EditorOption.wordWrap) !== 'off') {
 			const position = this.editor.getPosition();
@@ -967,7 +910,6 @@ export class DebugEditorContribution implements IDebugEditorContribution {
 }
 
 class WordsToLineNumbersCache {
-	// we use this as an array of bits where each 1 bit is a line number that's been parsed
 	private readonly intervals: Uint8Array;
 	public readonly value = new Map<string, number[]>();
 
@@ -975,11 +917,10 @@ class WordsToLineNumbersCache {
 		this.intervals = new Uint8Array(Math.ceil(model.getLineCount() / 8));
 	}
 
-	/** Ensures that variables names in the given range have been identified. */
 	public ensureRangePopulated(range: Range) {
 		for (let lineNumber = range.startLineNumber; lineNumber <= range.endLineNumber; lineNumber++) {
-			const bin = lineNumber >> 3;  /* Math.floor(i / 8) */
-			const bit = 1 << (lineNumber & 0b111); /* 1 << (i % 8) */
+			const bin = lineNumber >> 3;
+			const bit = 1 << (lineNumber & 0b111);
 			if (!(this.intervals[bin] & bit)) {
 				getWordToLineNumbersMap(this.model, lineNumber, this.value);
 				this.intervals[bin] |= bit;

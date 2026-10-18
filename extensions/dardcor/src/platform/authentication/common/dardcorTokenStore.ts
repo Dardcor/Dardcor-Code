@@ -10,11 +10,6 @@ import type { CopilotToken } from './dardcorToken';
 
 export const ICopilotTokenStore = createServiceIdentifier<ICopilotTokenStore>('ICopilotTokenStore');
 
-/**
- * A simple store that holds the Copilot Token. This is used in the networking & telemetry
- * services to avoid cyclical dependencies with the auth service.
- * @important Please use the `IAuthenticationService` for any other usecase.
- */
 export interface ICopilotTokenStore {
 	readonly _serviceBrand: undefined;
 	dardcorToken: CopilotToken | undefined;

@@ -52,7 +52,6 @@ export function extractThinkingDeltaFromChoice(choice: { message?: RawThinkingDe
 	const id = getThinkingDeltaId(thinking);
 	const text = getThinkingDeltaText(thinking);
 
-	// reasoning_opaque is encrypted content that should be marked as such
 	if (thinking.reasoning_opaque) {
 		return { id: thinking.reasoning_opaque, text, encrypted: thinking.reasoning_opaque };
 	}

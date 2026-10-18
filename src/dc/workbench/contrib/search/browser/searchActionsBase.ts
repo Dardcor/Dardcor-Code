@@ -36,7 +36,6 @@ export function getSearchView(viewsService: IViewsService): SearchView | undefin
 export function getElementsToOperateOn(viewer: WorkbenchCompressibleAsyncDataTree<ISearchResult, RenderableMatch, void>, currElement: RenderableMatch | undefined, sortConfig: ISearchConfigurationProperties | undefined): RenderableMatch[] {
 	let elements: RenderableMatch[] = viewer.getSelection().filter((x): x is RenderableMatch => x !== null).sort((a, b) => searchComparer(a, b, sortConfig?.sortOrder));
 
-	// if selection doesn't include multiple elements, just return current focus element.
 	if (currElement && !(elements.length > 1 && elements.includes(currElement))) {
 		elements = [currElement];
 	}
@@ -44,11 +43,6 @@ export function getElementsToOperateOn(viewer: WorkbenchCompressibleAsyncDataTre
 	return elements;
 }
 
-/**
- * @param elements elements that are going to be removed
- * @param focusElement element that is focused
- * @returns whether we need to re-focus on a remove
- */
 export function shouldRefocus(elements: RenderableMatch[], focusElement: RenderableMatch | undefined) {
 	if (!focusElement) {
 		return false;
@@ -96,8 +90,6 @@ export async function findInFilesCommand(accessor: ServicesAccessor, _args: IFin
 	const commandService = accessor.get(ICommandService);
 	const args: IFindInFilesArgs = {};
 	if (Object.keys(_args).length !== 0) {
-		// resolve variables in the same way as in
-		// https://github.com/microsoft/vscode/blob/8b76efe9d317d50cb5b57a7658e09ce6ebffaf36/src/vs/workbench/contrib/searchEditor/browser/searchEditorActions.ts#L152-L158
 		const configurationResolverService = accessor.get(IConfigurationResolverService);
 		const historyService = accessor.get(IHistoryService);
 		const workspaceContextService = accessor.get(IWorkspaceContextService);

@@ -112,24 +112,18 @@ export class MemFs implements vscode.FileSystemProvider {
 	}
 
 	private getEntry(uri: vscode.Uri): FsEntry | undefined {
-		// TODO: have this throw FileNotFound itself?
-		// TODO: support configuring case sensitivity
 		let node: FsEntry = this.root;
 		for (const component of uri.path.split('/')) {
 			if (!component) {
-				// Skip empty components (root, stuff between double slashes,
-				// trailing slashes)
 				continue;
 			}
 
 			if (!(node instanceof FsDirectoryEntry)) {
-				// We're looking at a File or such, so bail.
 				return;
 			}
 
 			const next = node.contents.get(component);
 			if (!next) {
-				// not found!
 				return;
 			}
 
@@ -149,7 +143,6 @@ export class MemFs implements vscode.FileSystemProvider {
 		return dir;
 	}
 
-	// --- manage file events
 
 	private readonly _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
 

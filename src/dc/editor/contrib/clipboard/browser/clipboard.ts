@@ -28,9 +28,6 @@ const CLIPBOARD_CONTEXT_MENU_GROUP = '9_cutcopypaste';
 
 const supportsCut = (platform.isNative || document.queryCommandSupported('cut'));
 const supportsCopy = (platform.isNative || document.queryCommandSupported('copy'));
-// Firefox only supports navigator.clipboard.readText() in browser extensions.
-// See https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/readText#Browser_compatibility
-// When loading over http, navigator.clipboard can be undefined. See https://github.com/microsoft/monaco-editor/issues/2313
 const supportsPaste = (typeof navigator.clipboard === 'undefined' || browser.isFirefox) ? document.queryCommandSupported('paste') : true;
 
 function registerCommand<T extends Command>(command: T): T {
@@ -42,8 +39,6 @@ export const CutAction = supportsCut ? registerCommand(new MultiCommand({
 	id: 'editor.action.clipboardCutAction',
 	precondition: undefined,
 	kbOpts: (
-		// Do not bind cut keybindings in the browser,
-		// since browsers do that for us and it avoids security prompts
 		platform.isNative ? {
 			primary: KeyMod.CtrlCmd | KeyCode.KeyX,
 			win: { primary: KeyMod.CtrlCmd | KeyCode.KeyX, secondary: [KeyMod.Shift | KeyCode.Delete] },
@@ -79,8 +74,6 @@ export const CopyAction = supportsCopy ? registerCommand(new MultiCommand({
 	id: 'editor.action.clipboardCopyAction',
 	precondition: undefined,
 	kbOpts: (
-		// Do not bind copy keybindings in the browser,
-		// since browsers do that for us and it avoids security prompts
 		platform.isNative ? {
 			primary: KeyMod.CtrlCmd | KeyCode.KeyC,
 			win: { primary: KeyMod.CtrlCmd | KeyCode.KeyC, secondary: [KeyMod.CtrlCmd | KeyCode.Insert] },
@@ -119,8 +112,6 @@ export const PasteAction = supportsPaste ? registerCommand(new MultiCommand({
 	id: 'editor.action.clipboardPasteAction',
 	precondition: undefined,
 	kbOpts: (
-		// Do not bind paste keybindings in the browser,
-		// since browsers do that for us and it avoids security prompts
 		platform.isNative ? {
 			primary: KeyMod.CtrlCmd | KeyCode.KeyV,
 			win: { primary: KeyMod.CtrlCmd | KeyCode.KeyV, secondary: [KeyMod.Shift | KeyCode.Insert] },
@@ -192,17 +183,9 @@ class ExecCommandCopyWithSyntaxHighlightingAction extends EditorAction {
 }
 
 function executeClipboardCopyWithWorkaround(editor: IActiveCodeEditor, clipboardService: IClipboardService) {
-	// !!!!!
-	// This is a workaround for what we think is an Electron bug where
-	// execCommand('copy') does not always work (it does not fire a clipboard event)
-	// We will use this as a signal that we have executed a copy command
-	// !!!!!
 	CopyOptions.electronBugWorkaroundCopyEventHasFired = false;
 	editor.getContainerDomNode().ownerDocument.execCommand('copy');
 	if (platform.isNative && CopyOptions.electronBugWorkaroundCopyEventHasFired === false) {
-		// We have encountered the Electron bug!
-		// As a workaround, we will write (only the plaintext data) to the clipboard in a different way
-		// We will use the clipboard service (which in the native case will go to electron's clipboard API)
 		const { dataToCopy } = generateDataToCopyAndStoreInMemory(editor._getViewModel(), undefined, browser.isFirefox);
 		clipboardService.writeText(dataToCopy.text);
 	}
@@ -213,24 +196,19 @@ function registerExecCommandImpl(target: MultiCommand | undefined, browserComman
 		return;
 	}
 
-	// 1. handle case when focus is in editor.
 	target.addImplementation(10000, 'code-editor', (accessor: ServicesAccessor, args: unknown) => {
 		const logService = accessor.get(ILogService);
 		const clipboardService = accessor.get(IClipboardService);
 		logService.trace('registerExecCommandImpl (addImplementation code-editor for : ', browserCommand, ')');
-		// Only if editor text focus (i.e. not if editor has widget focus).
 		const focusedEditor = accessor.get(ICodeEditorService).getFocusedCodeEditor();
 		if (focusedEditor && focusedEditor.hasTextFocus() && focusedEditor.hasModel()) {
-			// Do not execute if there is no selection and empty selection clipboard is off
 			const emptySelectionClipboard = focusedEditor.getOption(EditorOption.emptySelectionClipboard);
 			const selection = focusedEditor.getSelection();
 			if (selection && selection.isEmpty() && !emptySelectionClipboard) {
 				return true;
 			}
-			// TODO this is very ugly. The entire copy/paste/cut system needs a complete refactoring.
 			if (focusedEditor.getOption(EditorOption.effectiveEditContext) && browserCommand === 'cut') {
 				logCopyCommand(focusedEditor);
-				// execCommand(copy) works for edit context, but not execCommand(cut).
 				logService.trace('registerExecCommandImpl (before execCommand copy)');
 				executeClipboardCopyWithWorkaround(focusedEditor, clipboardService);
 				focusedEditor.trigger(undefined, Handler.Cut, undefined);
@@ -250,7 +228,6 @@ function registerExecCommandImpl(target: MultiCommand | undefined, browserComman
 		return false;
 	});
 
-	// 2. (default) handle case when focus is somewhere else.
 	target.addImplementation(0, 'generic-dom', (accessor: ServicesAccessor, args: unknown) => {
 		const logService = accessor.get(ILogService);
 		logService.trace('registerExecCommandImpl (addImplementation generic-dom for : ', browserCommand, ')');
@@ -275,17 +252,14 @@ registerExecCommandImpl(CutAction, 'cut');
 registerExecCommandImpl(CopyAction, 'copy');
 
 if (PasteAction) {
-	// 1. Paste: handle case when focus is in editor.
 	PasteAction.addImplementation(10000, 'code-editor', (accessor: ServicesAccessor, args: unknown) => {
 		const logService = accessor.get(ILogService);
 		logService.trace('registerExecCommandImpl (addImplementation code-editor for : paste)');
 		const codeEditorService = accessor.get(ICodeEditorService);
 		const clipboardService = accessor.get(IClipboardService);
 
-		// Only if editor text focus (i.e. not if editor has widget focus).
 		const focusedEditor = codeEditorService.getFocusedCodeEditor();
 		if (focusedEditor && focusedEditor.hasModel() && focusedEditor.hasTextFocus()) {
-			// execCommand(paste) does not work with edit context
 			const editContextEnabled = focusedEditor.getOption(EditorOption.effectiveEditContext);
 			if (editContextEnabled) {
 				const nativeEditContext = NativeEditContextRegistry.get(focusedEditor.getId());
@@ -307,7 +281,6 @@ if (PasteAction) {
 			}
 			if (platform.isWeb) {
 				logService.trace('registerExecCommandImpl (Paste handling on web)');
-				// Use the clipboard service if document.execCommand('paste') was not successful
 				return (async () => {
 					const clipboardText = await clipboardService.readText();
 					if (clipboardText !== '') {
@@ -335,7 +308,6 @@ if (PasteAction) {
 		return false;
 	});
 
-	// 2. Paste: (default) handle case when focus is somewhere else.
 	PasteAction.addImplementation(0, 'generic-dom', (accessor: ServicesAccessor, args: unknown) => {
 		const logService = accessor.get(ILogService);
 		logService.trace('registerExecCommandImpl (addImplementation generic-dom for : paste)');

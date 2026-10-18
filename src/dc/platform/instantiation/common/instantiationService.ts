@@ -13,9 +13,7 @@ import { GetLeadingNonServiceArgs, IInstantiationService, ServiceIdentifier, Ser
 import { ServiceCollection } from './serviceCollection.js';
 import { LinkedList } from '../../../base/common/linkedList.js';
 
-// TRACING
 const _enableAllTracing = false
-	// || "TRUE" // DO NOT CHECK IN!
 	;
 
 class CyclicDependencyError extends Error {
@@ -50,11 +48,9 @@ export class InstantiationService implements IInstantiationService {
 	dispose(): void {
 		if (!this._isDisposed) {
 			this._isDisposed = true;
-			// dispose all child services
 			dispose(this._children);
 			this._children.clear();
 
-			// dispose all services created by this service
 			for (const candidate of this._servicesToMaybeDispose) {
 				if (isDisposable(candidate)) {
 					candidate.dispose();
@@ -133,7 +129,6 @@ export class InstantiationService implements IInstantiationService {
 
 	private _createInstance<T>(ctor: any, args: unknown[] = [], _trace: Trace): T {
 
-		// arguments defined by service decorators
 		const serviceDependencies = _util.getServiceDependencies(ctor).sort((a, b) => a.index - b.index);
 		const serviceArgs: unknown[] = [];
 		for (const dependency of serviceDependencies) {
@@ -146,7 +141,6 @@ export class InstantiationService implements IInstantiationService {
 
 		const firstServiceArgPos = serviceDependencies.length > 0 ? serviceDependencies[0].index : args.length;
 
-		// check for argument mismatches, adjust static args if needed
 		if (args.length !== firstServiceArgPos) {
 			console.trace(`[createInstance] First service dependency of ${ctor.name} at position ${firstServiceArgPos + 1} conflicts with ${args.length} static arguments`);
 
@@ -158,7 +152,6 @@ export class InstantiationService implements IInstantiationService {
 			}
 		}
 
-		// now create the instance
 		return Reflect.construct<any, T>(ctor, args.concat(serviceArgs));
 	}
 
@@ -227,12 +220,10 @@ export class InstantiationService implements IInstantiationService {
 
 			graph.lookupOrInsertNode(item);
 
-			// a weak but working heuristic for cycle checks
 			if (cycleCount++ > 1000) {
 				throw new CyclicDependencyError(graph);
 			}
 
-			// check all dependencies for existence and if they need to be created first
 			for (const dependency of _util.getServiceDependencies(item.desc.ctor)) {
 
 				const instanceOrDesc = this._getServiceInstanceOrDescriptor(dependency.id);
@@ -240,7 +231,6 @@ export class InstantiationService implements IInstantiationService {
 					this._throwIfStrict(`[createInstance] ${id} depends on ${dependency.id} which is NOT registered.`, true);
 				}
 
-				// take note of all service dependencies
 				this._globalGraph?.insertEdge(String(item.id), String(dependency.id));
 
 				if (instanceOrDesc instanceof SyncDescriptor) {
@@ -254,8 +244,6 @@ export class InstantiationService implements IInstantiationService {
 		while (true) {
 			const roots = graph.roots();
 
-			// if there is no more roots but still
-			// nodes in the graph we have a cycle
 			if (roots.length === 0) {
 				if (!graph.isEmpty()) {
 					throw new CyclicDependencyError(graph);
@@ -264,12 +252,8 @@ export class InstantiationService implements IInstantiationService {
 			}
 
 			for (const { data } of roots) {
-				// Repeat the check for this still being a service sync descriptor. That's because
-				// instantiating a dependency might have side-effect and recursively trigger instantiation
-				// so that some dependencies are now fullfilled already.
 				const instanceOrDesc = this._getServiceInstanceOrDescriptor(data.id);
 				if (instanceOrDesc instanceof SyncDescriptor) {
-					// create instance and overwrite the service collections
 					const instance = this._createServiceInstanceWithOwner(data.id, data.desc.ctor, data.desc.staticArguments, data.desc.supportsDelayedInstantiation, data._trace);
 					this._setCreatedServiceInstance(data.id, instance);
 				}
@@ -291,7 +275,6 @@ export class InstantiationService implements IInstantiationService {
 
 	private _createServiceInstance<T>(id: ServiceIdentifier<T>, ctor: any, args: unknown[] = [], supportsDelayedInstantiation: boolean, _trace: Trace, disposeBucket: Set<any>): T {
 		if (!supportsDelayedInstantiation) {
-			// eager instantiation
 			const result = this._createInstance<T>(ctor, args, _trace);
 			disposeBucket.add(result);
 			return result;
@@ -305,18 +288,12 @@ export class InstantiationService implements IInstantiationService {
 				disposable?: IDisposable;
 			};
 
-			// Return a proxy object that's backed by an idle value. That
-			// strategy is to instantiate services in our idle time or when actually
-			// needed but not when injected into a consumer
 
-			// return "empty events" when the service isn't instantiated yet
 			const earlyListeners = new Map<string, LinkedList<EaryListenerData>>();
 
 			const idle = new GlobalIdleValue<any>(() => {
 				const result = child._createInstance<T>(ctor, args, _trace);
 
-				// early listeners that we kept are now being subscribed to
-				// the real service
 				for (const [key, values] of earlyListeners) {
 					// eslint-disable-next-line local/code-no-any-casts
 					const candidate = <Event<any>>(<any>result)[key];
@@ -334,7 +311,6 @@ export class InstantiationService implements IInstantiationService {
 				get(target: any, key: PropertyKey): unknown {
 
 					if (!idle.isInitialized) {
-						// looks like an event
 						if (typeof key === 'string' && (key.startsWith('onDid') || key.startsWith('onWill'))) {
 							let list = earlyListeners.get(key);
 							if (!list) {
@@ -358,12 +334,10 @@ export class InstantiationService implements IInstantiationService {
 						}
 					}
 
-					// value already exists
 					if (key in target) {
 						return target[key];
 					}
 
-					// create value
 					const obj = idle.value;
 					let prop = obj[key];
 					if (typeof prop !== 'function') {
@@ -394,7 +368,6 @@ export class InstantiationService implements IInstantiationService {
 	}
 }
 
-//#region -- tracing ---
 
 const enum TraceType {
 	None = 0,
@@ -472,4 +445,3 @@ export class Trace {
 	}
 }
 
-//#endregion

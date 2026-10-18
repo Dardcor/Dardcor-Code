@@ -23,7 +23,7 @@ export class LanguageService extends Disposable implements ILanguageService {
 	private readonly _onDidRequestRichLanguageFeatures = this._register(new Emitter<string>());
 	public readonly onDidRequestRichLanguageFeatures = this._onDidRequestRichLanguageFeatures.event;
 
-	protected readonly _onDidChange = this._register(new Emitter<void>({ leakWarningThreshold: 200, leakWarningName: 'LanguageService._onDidChange' /* https://github.com/microsoft/vscode/issues/119968 */ }));
+	protected readonly _onDidChange = this._register(new Emitter<void>({ leakWarningThreshold: 200, leakWarningName: 'LanguageService._onDidChange' }));
 	public readonly onDidChange: Event<void> = this._onDidChange.event;
 
 	private readonly _requestedBasicLanguages = new Set<string>();
@@ -120,7 +120,6 @@ export class LanguageService extends Disposable implements ILanguageService {
 
 	private _createAndGetLanguageIdentifier(languageId: string | null | undefined): string {
 		if (!languageId || !this.isRegisteredLanguageId(languageId)) {
-			// Fall back to plain text if language is unknown
 			languageId = PLAINTEXT_LANGUAGE_ID;
 		}
 
@@ -138,10 +137,8 @@ export class LanguageService extends Disposable implements ILanguageService {
 		if (!this._requestedRichLanguages.has(languageId)) {
 			this._requestedRichLanguages.add(languageId);
 
-			// Ensure basic features are requested
 			this.requestBasicLanguageFeatures(languageId);
 
-			// Ensure tokenizers are created
 			TokenizationRegistry.getOrCreate(languageId);
 
 			this._onDidRequestRichLanguageFeatures.fire(languageId);

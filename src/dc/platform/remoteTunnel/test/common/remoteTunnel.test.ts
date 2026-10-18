@@ -10,9 +10,6 @@ import { MAX_TUNNEL_NAME_LENGTH, normalizeTunnelName, tunnelNameFromHostname } f
 suite('Remote tunnel name normalization', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Mirrors `test_clean_hostname_for_tunnel` in the CLI's
-	// `cli/src/tunnels/dev_tunnels.rs`; the two must agree or a machine ends
-	// up with one dev tunnel per producer.
 	test('derives host names the same way the CLI does', () => {
 		assert.deepStrictEqual([
 			tunnelNameFromHostname('hello123'),

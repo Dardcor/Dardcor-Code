@@ -12,10 +12,8 @@ import { URI } from '../../../../../../base/common/uri.js';
 import { localize } from '../../../../../../nls.js';
 import { ILinkPresentation, ILinkPresentationService, ILinkPresentationStatus, ILinkPresentationWatcher, LinkPresentationKind, LinkPresentationStatusKind } from '../../../../../../platform/dataChannel/common/dataChannel.js';
 import { IHoverService } from '../../../../../../platform/hover/browser/hover.js';
-import { ISessionSummaryHoverService } from '../../agentSessions/sessionSummaryHoverService.js';
 import './media/chatRichLink.css';
 
-// Copied and adapted from @vscode/markdown-editor's src/view/content/richLink.ts.
 
 export type ChatLinkPresentationKind = LinkPresentationKind;
 export type ChatLinkPresentationStatusKind = LinkPresentationStatusKind;
@@ -106,7 +104,7 @@ export class ChatRichLinkDecorator extends Disposable {
 	constructor(
 		private readonly _linkPresentationService: ILinkPresentationService,
 		private readonly _hoverService: IHoverService,
-		private readonly _sessionSummaryHoverService: ISessionSummaryHoverService,
+		
 	) {
 		super();
 	}
@@ -138,9 +136,6 @@ export class ChatRichLinkDecorator extends Disposable {
 			richLink.update(presentation);
 		}));
 		store.add(this._hoverService.setupManagedHover(getDefaultHoverDelegate('element'), anchor, () => {
-			// A session pill gets the same rich hover the sessions list shows, when
-			// this window can resolve the session behind the link. Anything else —
-			// and any link the window does not know — keeps the plain tooltip.
 			if (kind !== 'session' && kind !== 'chat') {
 				return tooltip;
 			}
@@ -152,13 +147,12 @@ export class ChatRichLinkDecorator extends Disposable {
 	}
 
 	private async _createSessionHoverElement(href: string, token: CancellationToken): Promise<HTMLElement | undefined> {
-		let resource: URI;
 		try {
-			resource = URI.parse(href);
+			URI.parse(href);
 		} catch {
 			return undefined;
 		}
-		return this._sessionSummaryHoverService.createHoverElement(resource, token);
+		return undefined;
 	}
 
 	private _getLinkPresentationWatcher(href: string): ILinkPresentationWatcher | undefined {
@@ -173,11 +167,6 @@ export class ChatRichLinkDecorator extends Disposable {
 	}
 }
 
-/**
- * The plain tooltip as an element, so a session link whose hover data cannot be
- * resolved still shows something (the managed hover's element factory has no way
- * to fall back to a string).
- */
 function plainTooltipElement(document: Document, tooltip: string): HTMLElement {
 	const element = document.createElement('div');
 	element.className = 'chat-rich-link-plain-hover';

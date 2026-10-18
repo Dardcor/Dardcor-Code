@@ -5,4 +5,4 @@
 
 import { l10n } from 'vscode';
 
-export const HAS_IGNORED_FILES_MESSAGE = l10n.t('\n\n**Note:** Some files were excluded from the context due to content exclusion rules. Click [here](https://docs.github.com/en/dardcor/managing-github-dardcor-in-your-organization/configuring-content-exclusions-for-github-dardcor) to learn more.');
+export const HAS_IGNORED_FILES_MESSAGE = l10n.t('\n\n**Note:** Some files were excluded from the context by `.dardcorignore` rules.');

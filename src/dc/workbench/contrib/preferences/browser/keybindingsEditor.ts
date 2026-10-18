@@ -256,7 +256,7 @@ export class KeybindingsEditor extends EditorPane<IKeybindingsEditorMemento> imp
 			} else {
 				await this.keybindingEditingService.editKeybinding(keybindingEntry.keybindingItem.keybindingItem, key, when || undefined);
 			}
-			if (!keybindingEntry.keybindingItem.keybinding) { // reveal only if keybinding was added to unassinged. Because the entry will be placed in different position after rendering
+			if (!keybindingEntry.keybindingItem.keybinding) {
 				this.unAssignedKeybindingItemToRevealAndFocus = keybindingEntry;
 			}
 		}
@@ -264,7 +264,7 @@ export class KeybindingsEditor extends EditorPane<IKeybindingsEditorMemento> imp
 
 	async removeKeybinding(keybindingEntry: IKeybindingItemEntry): Promise<void> {
 		this.selectEntry(keybindingEntry);
-		if (keybindingEntry.keybindingItem.keybinding) { // This should be a pre-condition
+		if (keybindingEntry.keybindingItem.keybinding) {
 			try {
 				await this.keybindingEditingService.removeKeybinding(keybindingEntry.keybindingItem.keybindingItem);
 				this.focus();
@@ -279,7 +279,7 @@ export class KeybindingsEditor extends EditorPane<IKeybindingsEditorMemento> imp
 		this.selectEntry(keybindingEntry);
 		try {
 			await this.keybindingEditingService.resetKeybinding(keybindingEntry.keybindingItem.keybindingItem);
-			if (!keybindingEntry.keybindingItem.keybinding) { // reveal only if keybinding was added to unassinged. Because the entry will be placed in different position after rendering
+			if (!keybindingEntry.keybindingItem.keybinding) {
 				this.unAssignedKeybindingItemToRevealAndFocus = keybindingEntry;
 			}
 			this.selectEntry(keybindingEntry);
@@ -349,7 +349,7 @@ export class KeybindingsEditor extends EditorPane<IKeybindingsEditorMemento> imp
 	private createOverlayContainer(parent: HTMLElement): void {
 		this.overlayContainer = DOM.append(parent, $('.overlay-container'));
 		this.overlayContainer.style.position = 'absolute';
-		this.overlayContainer.style.zIndex = '40'; // has to greater than sash z-index which is 35
+		this.overlayContainer.style.zIndex = '40';
 		this.defineKeybindingWidget = this._register(this.instantiationService.createInstance(DefineKeybindingWidget, this.overlayContainer));
 		this._register(this.defineKeybindingWidget.onDidChange(keybindingStr => this.defineKeybindingWidget.printExisting(this.keybindingsEditorModel!.fetch(`"${keybindingStr}"`).length)));
 		this._register(this.defineKeybindingWidget.onShowExistingKeybidings(keybindingStr => this.searchWidget.setValue(`"${keybindingStr}"`)));
@@ -531,7 +531,7 @@ export class KeybindingsEditor extends EditorPane<IKeybindingsEditorMemento> imp
 				multipleSelectionSupport: false,
 				setRowLineHeight: false,
 				openOnSingleClick: false,
-				transformOptimization: false // disable transform optimization as it causes the editor overflow widgets to be mispositioned
+				transformOptimization: false
 			}
 		)) as WorkbenchTable<IKeybindingItemEntry>;
 
@@ -546,7 +546,6 @@ export class KeybindingsEditor extends EditorPane<IKeybindingsEditorMemento> imp
 			this.keybindingFocusContextKey.reset();
 		}));
 		this._register(this.keybindingsTable.onDidOpen((e) => {
-			// stop double click action on the input #148493
 			if (e.browserEvent?.defaultPrevented) {
 				return;
 			}
@@ -662,7 +661,7 @@ export class KeybindingsEditor extends EditorPane<IKeybindingsEditorMemento> imp
 			return;
 		}
 
-		const tableHeight = this.dimension.height - (DOM.getDomNodePagePosition(this.headerContainer).height + 12 /*padding*/);
+		const tableHeight = this.dimension.height - (DOM.getDomNodePagePosition(this.headerContainer).height + 12 );
 		this.keybindingsTableContainer.style.height = `${tableHeight}px`;
 		this.keybindingsTable.layout(tableHeight);
 	}

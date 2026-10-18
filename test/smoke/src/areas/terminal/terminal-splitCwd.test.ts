@@ -8,7 +8,6 @@ import { setTerminalTestSettings } from './terminal-helpers';
 
 export function setup(options?: { skipSuite: boolean }) {
 	(options?.skipSuite ? describe.skip : describe)('Terminal splitCwd', () => {
-		// Acquire automation API
 		let terminal: Terminal;
 		let settingsEditor: SettingsEditor;
 		before(async function () {

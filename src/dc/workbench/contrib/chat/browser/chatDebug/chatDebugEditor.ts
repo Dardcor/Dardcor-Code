@@ -74,10 +74,6 @@ export class ChatDebugEditor extends EditorPane {
 
 	private _scopedContextKeyService: IContextKeyService | undefined;
 
-	/**
-	 * Shared overlay shown in place of a session sub-view (Logs, Flow Chart,
-	 * Cache Explorer) when agent debug logging is disabled for the session.
-	 */
 	private disabledOverlay: HTMLElement | undefined;
 	private readonly disabledOverlayDisposables = this._register(new DisposableStore());
 
@@ -88,11 +84,6 @@ export class ChatDebugEditor extends EditorPane {
 	private readonly sessionModelListener = this._register(new MutableDisposable());
 	private readonly modelChangeListeners = this._register(new DisposableMap<string>());
 
-	/**
-	 * Stops the streaming pipeline and clears cached events for the
-	 * active session. Called when navigating away from a session or
-	 * when the editor becomes hidden.
-	 */
 	private endActiveSession(): void {
 		const sessionResource = this.chatDebugService.activeSessionResource;
 		if (sessionResource) {
@@ -120,13 +111,11 @@ export class ChatDebugEditor extends EditorPane {
 	protected override createEditor(parent: HTMLElement): void {
 		this.container = DOM.append(parent, $('.chat-debug-editor'));
 
-		// Shared filter state used by both Logs and FlowChart views
 		this.filterState = this._register(new ChatDebugFilterState());
 		const scopedContextKeyService = this._register(this.contextKeyService.createScoped(this.container));
 		this._scopedContextKeyService = scopedContextKeyService;
 		this._register(registerFilterMenuItems(this.filterState, scopedContextKeyService));
 
-		// Create sub-views via DI
 		this.homeView = this._register(this.instantiationService.createInstance(ChatDebugHomeView, this.container));
 		this._register(this.homeView.onNavigateToSession(sessionResource => {
 			this.navigateToSession(sessionResource);
@@ -206,7 +195,6 @@ export class ChatDebugEditor extends EditorPane {
 			}
 		}));
 
-		// When new debug events arrive, refresh the active session view
 		this._register(this.chatDebugService.onDidAddEvent(event => {
 			if (this.viewState === ViewState.Home) {
 				this.homeView?.render();
@@ -220,13 +208,9 @@ export class ChatDebugEditor extends EditorPane {
 				} else if (this.viewState === ViewState.WireLog) {
 					this.wireLogView?.refresh();
 				}
-				// Note: Logs view is intentionally omitted here — it handles
-				// onDidAddEvent internally via loadEvents() → addEvent() →
-				// scheduleRefresh() to avoid a redundant full refresh.
 			}
 		}));
 
-		// When the focused chat widget changes, refresh home view session list
 		this._register(this.chatWidgetService.onDidChangeFocusedSession(() => {
 			if (this.viewState === ViewState.Home) {
 				this.homeView?.render();
@@ -234,8 +218,6 @@ export class ChatDebugEditor extends EditorPane {
 		}));
 
 		this._register(this.chatService.onDidCreateModel(model => {
-			// Track title changes per model, disposing the previous listener
-			// for the same model URI to avoid leaks.
 			const key = model.sessionResource.toString();
 			this.modelChangeListeners.set(key, model.onDidChange(e => {
 				if (e.kind === 'setCustomTitle') {
@@ -258,13 +240,9 @@ export class ChatDebugEditor extends EditorPane {
 			}
 		}));
 
-		// Shared overlay shown when agent debug logging is disabled for the
-		// current session. Appended last so it stacks above the sub-views.
 		this.disabledOverlay = DOM.append(this.container, $('.chat-debug-disabled-overlay'));
 		DOM.hide(this.disabledOverlay);
 
-		// Re-evaluate the active view when an enablement setting changes so the
-		// disabled message appears/disappears without needing to re-navigate.
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(AgentHostAgentDebugLogEnabledSettingId)
 				|| e.affectsConfiguration(AGENT_DEBUG_LOG_FILE_LOGGING_ENABLED_SETTING)
@@ -276,9 +254,6 @@ export class ChatDebugEditor extends EditorPane {
 		this.showView(ViewState.Home);
 	}
 
-	// =====================================================================
-	// View switching
-	// =====================================================================
 
 	private showView(state: ViewState): void {
 		this.viewState = state;
@@ -293,12 +268,6 @@ export class ChatDebugEditor extends EditorPane {
 	private displayView(state: ViewState): void {
 		const session = this.chatDebugService.activeSessionResource;
 
-		// The data sub-views (Logs, Flow Chart, Cache Explorer) are gated on the
-		// agent debug logging setting; the AHP (wire) log is gated on its own
-		// AHP logging setting. When the governing setting is off there is
-		// nothing to show, so we render a shared "enable the setting" overlay
-		// instead of the (empty) view content. The Overview keeps its buttons
-		// and renders the hint inline.
 		const dataViewDisabled = (state === ViewState.Logs || state === ViewState.FlowChart || state === ViewState.CacheExplorer)
 			&& !isChatDebugLoggingEnabledForSession(this.configurationService, session);
 		const wireLogDisabled = state === ViewState.WireLog
@@ -365,7 +334,6 @@ export class ChatDebugEditor extends EditorPane {
 	}
 
 	navigateToSession(sessionResource: URI, view?: 'logs' | 'overview' | 'flowchart' | 'cache' | 'wirelog'): void {
-		// End the previous session's streaming pipeline before switching
 		const previousSessionResource = this.chatDebugService.activeSessionResource;
 		if (previousSessionResource && previousSessionResource.toString() !== sessionResource.toString()) {
 			this.chatDebugService.endSession(previousSessionResource);
@@ -406,9 +374,6 @@ export class ChatDebugEditor extends EditorPane {
 		});
 	}
 
-	// =====================================================================
-	// EditorPane overrides
-	// =====================================================================
 
 	override focus(): void {
 		if (this.viewState === ViewState.Logs) {
@@ -419,12 +384,6 @@ export class ChatDebugEditor extends EditorPane {
 	}
 
 	override clearInput(): void {
-		// Tear down the active session's streaming pipeline and live file
-		// watcher when the editor input is removed (tab closed or replaced),
-		// so nothing keeps reading the session's events.jsonl in the
-		// background while the panel is not open. Re-opening the editor runs
-		// setInput → _applyNavigationOptions → navigateToSession, which
-		// re-invokes providers and re-arms the watcher.
 		this.endActiveSession();
 		super.clearInput();
 	}
@@ -443,11 +402,6 @@ export class ChatDebugEditor extends EditorPane {
 		}
 	}
 
-	/**
-	 * The panel is enabled when either local file logging or agent-host (Copilot
-	 * CLI) debug logging is on. Each provider self-gates on its own setting, so
-	 * this only decides whether to fall back to the home view.
-	 */
 	private _isDebugEnabled(): boolean {
 		return this.configurationService.getValue<boolean>(AGENT_DEBUG_LOG_FILE_LOGGING_ENABLED_SETTING)
 			|| this.configurationService.getValue<boolean>(AgentHostAgentDebugLogEnabledSettingId);
@@ -457,22 +411,16 @@ export class ChatDebugEditor extends EditorPane {
 		super.setEditorVisible(visible);
 		if (visible) {
 			this.telemetryService.publicLog2<{}, ChatDebugPanelOpenedClassification>('chatDebugPanelOpened');
-			// If debug logging is disabled, always reset to the home view
 			if (!this._isDebugEnabled()) {
 				this.endActiveSession();
 				this.showView(ViewState.Home);
 				return;
 			}
-			// Re-show the current view so it reloads events from scratch,
-			// ensuring correct ordering and no stale duplicates.
-			// Navigation from new openEditor() options is handled by
-			// setOptions → _applyNavigationOptions (fires after this).
 			this.showView(this.viewState);
 		}
 	}
 
 	private _applyNavigationOptions(options: IChatDebugEditorOptions): void {
-		// If debug logging is disabled, always show the home view
 		if (!this._isDebugEnabled()) {
 			this.endActiveSession();
 			this.showView(ViewState.Home);
@@ -499,7 +447,6 @@ export class ChatDebugEditor extends EditorPane {
 			this.showView(ViewState.Home);
 		}
 
-		// Apply filter text if provided (e.g. from debug events snapshot)
 		if (filter !== undefined && this.filterState) {
 			this.filterState.setTextFilter(filter);
 			this.logsView?.setFilterText(filter);

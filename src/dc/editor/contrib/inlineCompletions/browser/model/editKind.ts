@@ -60,14 +60,12 @@ function analyzeTextShape(text: string): TextShape {
 		}
 	}
 
-	// Analyze whitespace patterns
 	const whitespaceMatches = text.match(/[ \t]+/g) || [];
 	const isMultipleWhitespace = whitespaceMatches.some(ws => ws.length > 1);
 	const hasDuplicatedWhitespace = whitespaceMatches.some(ws =>
 		(ws.includes('  ') || ws.includes('\t\t'))
 	);
 
-	// Analyze word patterns
 	const words = text.split(/\s+/).filter(w => w.length > 0);
 	const isWord = words.length === 1 && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(words[0]);
 	const isMultipleWords = words.length > 1;
@@ -133,7 +131,6 @@ export class InlineSuggestionEditKind {
 
 export function computeEditKind(edit: StringEdit, textModel: ITextModel, cursorPosition?: Position): InlineSuggestionEditKind | undefined {
 	if (edit.replacements.length === 0) {
-		// Empty edit - return undefined as there's no edit to classify
 		return undefined;
 	}
 
@@ -196,7 +193,6 @@ function computeInsertProperties(offset: number, newText: string, textModel: ITe
 	const lineContent = textModel.getLineContent(insertPosition.lineNumber);
 	const lineLength = lineContent.length;
 
-	// Determine location shape
 	let locationShape: InsertLocationShape;
 	const isLineEmpty = lineContent.trim().length === 0;
 	const isAtEndOfLine = insertPosition.column > lineLength;
@@ -212,7 +208,6 @@ function computeInsertProperties(offset: number, newText: string, textModel: ITe
 		locationShape = 'middleOfLine';
 	}
 
-	// Compute relative to cursor if cursor position is provided
 	let relativeToCursor: InsertLocationRelativeToCursor | undefined;
 	if (cursorPosition) {
 		const cursorLine = cursorPosition.lineNumber;
@@ -249,11 +244,9 @@ function computeDeleteProperties(startOffset: number, endOffset: number, textMod
 	const startPosition = textModel.getPositionAt(startOffset);
 	const endPosition = textModel.getPositionAt(endOffset);
 
-	// Check if delete is at end of line
 	const lineContent = textModel.getLineContent(endPosition.lineNumber);
 	const isAtEndOfLine = endPosition.column > lineContent.length;
 
-	// Check if entire line content is deleted
 	const deletesEntireLineContent =
 		startPosition.lineNumber === endPosition.lineNumber &&
 		startPosition.column === 1 &&

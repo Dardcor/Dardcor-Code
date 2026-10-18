@@ -100,9 +100,6 @@ export class SetupTestsFrameworkQueryInvocationRaw {
 	}
 }
 
-/**
- * Asks the user what framework they want to use to set up their tests.
- */
 export class SetupTestsFrameworkQueryInvocation extends SetupTestsFrameworkQueryInvocationRaw implements IIntentInvocation {
 	constructor(
 		public readonly intent: IIntent,

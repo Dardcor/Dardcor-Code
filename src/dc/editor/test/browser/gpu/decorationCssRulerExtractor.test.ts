@@ -108,9 +108,7 @@ suite('DecorationCssRulerExtractor', () => {
 			`.${secondClassName} { opacity: 0.5; }`,
 			`.${testClassName}.${secondClassName} { font-weight: bold; }`,
 		].join('\n'));
-		// Pass space-separated classes like 'class1 class2'
 		const rules = extractor.getStyleRules(container, `${testClassName} ${secondClassName}`);
-		// Should find rules for both classes and the chained selector
 		deepStrictEqual(rules.length, 3);
 	});
 });

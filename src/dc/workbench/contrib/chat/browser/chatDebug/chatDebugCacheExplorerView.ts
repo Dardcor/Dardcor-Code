@@ -30,27 +30,20 @@ const $ = DOM.$;
 const numberFormatter = safeIntl.NumberFormat();
 const timeFormatter = safeIntl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
 
-/** Default rail width in pixels. */
 const RAIL_DEFAULT_WIDTH = 280;
 const RAIL_MIN_WIDTH = 180;
 const RAIL_MAX_WIDTH = 600;
 const CURRENT_CONTINUATION_DELTA_COMPONENT = 'current continuation delta';
 
-/** Idle gaps at or above this many minutes get a TTL marker in the rail. */
 const TTL_GAP_MINUTES = 5;
 
-/** The main panel edit agent, selected by default in the agent filter. */
 const DEFAULT_AGENT_KEY = 'panel/editAgent';
 
-/**
- * Navigation events fired by the Cache Explorer breadcrumb.
- */
 export const enum CacheExplorerNavigation {
 	Home = 'home',
 	Overview = 'overview',
 }
 
-/** Resolved data for one A or B side. */
 interface ISideData {
 	readonly event: IChatDebugModelTurnEvent;
 	readonly content: IChatDebugEventModelTurnContent | undefined;
@@ -68,23 +61,12 @@ interface IRequestShapeInfo {
 	readonly inputItemTypes: readonly string[];
 }
 
-/** A grouping of model turns sharing the same parent (one user request). */
 interface ITurnGroup {
 	readonly key: string;
 	readonly userMessage: IChatDebugUserMessageEvent | undefined;
 	readonly turns: readonly { readonly turn: IChatDebugModelTurnEvent; readonly index: number }[];
 }
 
-/**
- * Cache Explorer view — the third entry under "Explore Trace Data". Shows a
- * left rail of model turns with their cache hit %, plus a side-by-side prompt
- * signature diff that pinpoints where the prefix breaks.
- *
- * v1 reads {@link IChatDebugEventModelTurnContent} from the in-memory chat
- * debug service via {@link IChatDebugService.resolveEvent}. Content may be
- * truncated by the OTel attribute cap; the file-logger backed full-fidelity
- * provider is a follow-up.
- */
 export class ChatDebugCacheExplorerView extends Disposable {
 
 	private readonly _onNavigate = this._register(new Emitter<CacheExplorerNavigation>());
@@ -98,69 +80,28 @@ export class ChatDebugCacheExplorerView extends Disposable {
 	private readonly content: HTMLElement;
 	private readonly sash: Sash;
 	private railWidth = RAIL_DEFAULT_WIDTH;
-	/** Disposables for the left rail (toolbar + turn rows). Cleared on every full render. */
 	private readonly railDisposables = this._register(new DisposableStore());
-	/** Disposables for the right content panel. Cleared whenever the content is re-rendered. */
 	private readonly contentDisposables = this._register(new DisposableStore());
 	private readonly refreshScheduler: RunOnceScheduler;
 
 	private currentSessionResource: URI | undefined;
-	/** All model turns for the session, before the agent filter is applied. */
 	private allModelTurns: IChatDebugModelTurnEvent[] = [];
-	/** Model turns after the agent filter — the list the rail and diff operate on. */
 	private modelTurns: IChatDebugModelTurnEvent[] = [];
-	/** Selected turn (B side). A is computed as `selectedIndex - 1`. -1 = no explicit selection yet. */
 	private selectedIndex = -1;
-	/**
-	 * Selected agent names (keyed by {@link agentKey}). `undefined` until the
-	 * first render applies the default selection. An empty set is never stored —
-	 * clearing the last agent falls back to "all".
-	 */
 	private selectedAgents: Set<string> | undefined;
-	/**
-	 * Turn to re-select after the next render, used to keep the user's place
-	 * when the agent filter changes. Stored as the event object rather than its
-	 * id because {@link IChatDebugModelTurnEvent.id} is optional; matching falls
-	 * back to object reference and a composite identity for turns without an id.
-	 */
 	private pendingSelectTurn: IChatDebugModelTurnEvent | undefined;
-	/** Whether the per-chunk signature breakdown table is expanded. */
 	private sigBreakdownOpen = false;
-	/** Rail turn-row elements by turn index, for in-place selection updates without rebuilding the rail. */
 	private readonly railRowsByIndex = new Map<number, HTMLElement>();
-	/**
-	 * Component accordion entries by component name (`system`, `tools`,
-	 * `messages[i]`), so findings and signature segments can reveal the
-	 * matching entry. We track both the outer item (for the open/flash
-	 * classes and scroll target) and the inner header (the focus target).
-	 * Rebuilt on every content render.
-	 */
 	private readonly componentElements = new Map<string, { item: HTMLElement; head: HTMLElement }>();
-	/** Selection index the breaking component was last auto-expanded for. */
 	private autoOpenedForIndex = -1;
-	/**
-	 * Memoized cross-turn session report. Keyed on the session + filtered
-	 * turn list so background refreshes with new events recompute it while
-	 * plain selection changes reuse it.
-	 */
 	private sessionReportCache: { key: string; report: ISessionCacheReport } | undefined;
 
-	/**
-	 * Monotonically-increasing render token. Each call to {@link render}
-	 * captures the current value, then re-checks it after each await; if a
-	 * newer render has started in the meantime, the older one bails out
-	 * before mutating the DOM. Avoids races where a slow model-turn
-	 * resolve from one session writes into another's panel.
-	 */
 	private renderToken = 0;
 
-	/** Cache of resolved model-turn content keyed by event id. */
 	private readonly resolvedCache = new Map<string, IChatDebugEventModelTurnContent | undefined>();
 
-	/** Components currently expanded (by component name). */
 	private readonly openComponents = new Set<string>(['system', 'tools']);
 
-	/** Rail groups currently collapsed (by group key — the parent event id). */
 	private readonly collapsedGroups = new Set<string>();
 
 	constructor(
@@ -173,7 +114,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		this.container = DOM.append(parent, $('.chat-debug-cache'));
 		DOM.hide(this.container);
 
-		// Breadcrumb
 		const breadcrumbContainer = DOM.append(this.container, $('.chat-debug-breadcrumb'));
 		this.breadcrumbWidget = this._register(new BreadcrumbsWidget(breadcrumbContainer, 3, undefined, Codicon.chevronRight, defaultBreadcrumbsWidgetStyles));
 		this._register(setupBreadcrumbKeyboardNavigation(breadcrumbContainer, this.breadcrumbWidget));
@@ -190,7 +130,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			}
 		}));
 
-		// Body: 2-column split with resizable rail
 		const body = DOM.append(this.container, $('.chat-debug-cache-body'));
 		this.rail = DOM.append(body, $('.chat-debug-cache-rail'));
 		this.rail.style.width = `${this.railWidth}px`;
@@ -268,16 +207,9 @@ export class ChatDebugCacheExplorerView extends Disposable {
 	}
 
 	private async render(): Promise<void> {
-		// Monotonically-increasing token. Captured at the start of every
-		// render() and re-checked after each await so an in-flight resolve
-		// that's been superseded by a newer render bails out before
-		// touching the DOM.
 		const token = ++this.renderToken;
 		const isCurrent = () => token === this.renderToken;
 
-		// Preserve the rail scroll position across a full rebuild so a
-		// background refresh (new events) doesn't yank the list while the
-		// user is reading it.
 		const railScrollTop = this.railList.scrollTop;
 
 		this.updateBreadcrumb();
@@ -304,9 +236,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			return;
 		}
 
-		// Agent filter: derive the distinct agents and apply the default
-		// selection (the main panel edit agent) the first time we render a
-		// session. The toolbar lets the user reveal the other agents.
 		const agentCounts = computeAgentCounts(this.allModelTurns);
 		if (this.selectedAgents === undefined) {
 			this.selectedAgents = defaultAgentSelection(agentCounts);
@@ -323,20 +252,11 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			return;
 		}
 
-		// Restore the previously-selected turn when the filter changes, so
-		// toggling agents keeps the user on the same request when possible.
-		// When that turn no longer survives the filter, fall back to the most
-		// recent turn rather than leaving the stale ordinal index pointing at
-		// an unrelated turn.
 		if (this.pendingSelectTurn) {
 			this.selectedIndex = resolveFilteredSelectionIndex(this.modelTurns, this.pendingSelectTurn);
 			this.pendingSelectTurn = undefined;
 		}
 
-		// Default to the most recent turn on first display, and silently
-		// fall back to the most recent turn when switching to a session
-		// that has fewer turns than the previous selection \u2014 the rail
-		// re-renders so the new selection is still visible.
 		if (this.selectedIndex < 0 || this.selectedIndex >= this.modelTurns.length) {
 			this.selectedIndex = this.modelTurns.length - 1;
 		}
@@ -347,36 +267,18 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		await this.renderContentInner(token, isCurrent);
 	}
 
-	/**
-	 * Render the right-hand content panel (summary, signature, options,
-	 * components) for the current selection. Split out of {@link render} so a
-	 * selection change can refresh just the content without rebuilding the
-	 * rail \u2014 which is what keeps keyboard focus and scroll position stable
-	 * while navigating turns.
-	 *
-	 * @param preserveScroll keep the content scroll position (used for zoom
-	 * and breakdown toggles where the selection is unchanged).
-	 */
 	private async renderContentInner(token: number, isCurrent: () => boolean, preserveScroll = false): Promise<void> {
 		const prevScroll = preserveScroll ? this.content.scrollTop : 0;
 
 		const bEvent = this.modelTurns[this.selectedIndex];
 		const aEvent = this.selectedIndex > 0 ? this.modelTurns[this.selectedIndex - 1] : undefined;
 
-		// Resolve everything — both sides AND the session report — *before*
-		// touching the DOM, then build the panel in one synchronous pass.
-		// Nothing mutates the layout after it is shown, so it never jumps.
-		// The report is scoped to the turns up to the selected one, which
-		// also makes it immune to new requests streaming in: selecting the
-		// last request shows the whole conversation.
 		const report = await this.ensureSessionReport();
 		if (!isCurrent()) {
 			return;
 		}
 
 		if (!aEvent) {
-			// No prior turn to diff against — still surface OTel-reported cache hit
-			// and request metadata for the first turn of a session.
 			const b = await this.resolveSide(bEvent);
 			if (!isCurrent()) {
 				return;
@@ -392,7 +294,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		}
 
 		const [a, b] = await Promise.all([this.resolveSide(aEvent), this.resolveSide(bEvent)]);
-		// If a newer render started while we were resolving, drop this one.
 		if (!isCurrent()) {
 			return;
 		}
@@ -404,12 +305,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			this.renderSessionHealth(DOM.append(this.content, $('.chat-debug-cache-session-health')), report);
 		}
 
-		// When the request-side prompt was not captured (e.g. agent-host /
-		// Copilot CLI sessions, whose log records the model's output but not the
-		// request sent to it), the reported cache-hit numbers are still accurate
-		// but there is nothing to diff. Show the token-based performance only and
-		// skip the divergence analysis — running it against absent data would
-		// fabricate a "stable prefix" / "cache expiration" verdict.
 		const hasSignatureData = !!(a.system || a.tools || a.inputMessages.length || b.system || b.tools || b.inputMessages.length);
 		if (!hasSignatureData) {
 			this.renderTokenOnlySummary(a, b);
@@ -426,9 +321,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		const drift = appendToolsDrift(appendSystemDrift([...diff.drift], a.system, b.system), a.tools, b.tools);
 		const { insights, optionsDiff } = this.buildInsights(a, b, diff, compareInputMessages);
 
-		// Auto-expand the breaking component once per selection so the
-		// evidence is one scroll away, while respecting a deliberate
-		// collapse on subsequent re-renders of the same selection.
 		if (this.autoOpenedForIndex !== this.selectedIndex) {
 			this.autoOpenedForIndex = this.selectedIndex;
 			const target = primaryInsight(insights)?.component;
@@ -446,10 +338,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		}
 	}
 
-	/**
-	 * Build the findings list for an A→B pair. Shared between the per-turn
-	 * content panel and the cross-turn session report.
-	 */
 	private buildInsights(a: ISideData, b: ISideData, diff: ICacheDiffResult, compareInputMessages: boolean): { insights: ICacheInsight[]; optionsDiff: readonly IOptionDelta[] } {
 		const optionsDiff = computeOptionsDiff(a, b);
 		const minutesSincePrevious = (b.event.created.getTime() - a.event.created.getTime()) / 60_000;
@@ -474,18 +362,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		return { insights, optionsDiff };
 	}
 
-	/**
-	 * Memoization key for the session report. The report is scoped to the
-	 * turns up to (and including) the selected one, so it is stable while
-	 * later requests stream in. Undefined when there is nothing to report
-	 * (no session, or fewer than two turns in scope).
-	 *
-	 * Every in-scope turn contributes its identity AND token counts to the
-	 * key — endpoints alone would miss a middle turn replaced in place, and
-	 * token counts live on the event (not the id-cached resolved content),
-	 * so a usage update arriving after the first render must invalidate the
-	 * memoized report or the overall hit rate stays stale.
-	 */
 	private sessionReportKey(): string | undefined {
 		if (!this.currentSessionResource || this.selectedIndex < 1) {
 			return undefined;
@@ -501,13 +377,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		return parts.join('|');
 	}
 
-	/**
-	 * Run the insights engine over every consecutive turn pair up to the
-	 * selected turn and aggregate the outcome. Memoized per (session,
-	 * selection prefix, agent filter) — per-turn resolution is cached in
-	 * {@link resolvedCache}, so even a cold run is one pass over in-memory
-	 * events.
-	 */
 	private async ensureSessionReport(): Promise<ISessionCacheReport | undefined> {
 		const key = this.sessionReportKey();
 		if (key === undefined) {
@@ -534,20 +403,14 @@ export class ChatDebugCacheExplorerView extends Disposable {
 				lostTokens: Math.max(0, inputTokens - cachedTokens),
 			});
 		}
-		// All in-scope turns (including the first, which has no pair) feed
-		// the token-weighted overall hit rate.
 		const turnTokens = scopedTurns.map(t => ({ inputTokens: t.inputTokens ?? 0, cachedTokens: t.cachedTokens ?? 0 }));
 		const report = buildSessionCacheReport(pairs, turnTokens);
 		this.sessionReportCache = { key, report };
 		return report;
 	}
 
-	/** Render the session-level cache health card from the cross-turn report. */
 	private renderSessionHealth(container: HTMLElement, report: ISessionCacheReport): void {
 		DOM.append(container, $('.chat-debug-cache-card-h', undefined, localize('chatDebug.cache.sessionHealth', "Session cache health")));
-		// Token-weighted overall hit: per-request percentages overweight
-		// small utility calls (titles, summaries); weighting by input tokens
-		// shows what the session actually cost.
 		if (report.overall) {
 			const headline = DOM.append(container, $('.chat-debug-cache-card-headline'));
 			headline.textContent = localize('chatDebug.cache.sessionOverallHit', "{0}% overall cache hit", formatCachePct(report.overall.hitPct));
@@ -585,12 +448,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 	}
 
 
-	/**
-	 * Select a turn (the B side of the diff) and refresh only the content
-	 * panel. The rail is updated in place \u2014 just the selected classes move \u2014
-	 * so clicking or arrowing through turns never rebuilds the list, keeping
-	 * focus and scroll position stable.
-	 */
 	private selectTurn(index: number, focusOptions?: FocusOptions): void {
 		if (index < 0 || index >= this.modelTurns.length || index === this.selectedIndex) {
 			return;
@@ -613,11 +470,7 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		void this.renderContentInner(token, () => token === this.renderToken);
 	}
 
-	/** Move the selection to the previous/next visible turn row (arrow keys). */
 	private moveSelection(delta: number): void {
-		// `railRowsByIndex` is populated in render (visual) order and `Map`
-		// iteration preserves insertion order, so the keys already match the
-		// order rows appear in the rail — no need to sort on every keypress.
 		const indices = [...this.railRowsByIndex.keys()];
 		if (indices.length === 0) {
 			return;
@@ -630,10 +483,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 	}
 
 
-	/**
-	 * Render the agent filter dropdown at the top of the rail. Hidden when a
-	 * session only used a single agent (nothing to filter).
-	 */
 	private renderRailToolbar(agentCounts: Map<string, number>): void {
 		const agents = [...agentCounts.keys()];
 		if (agents.length <= 1) {
@@ -683,7 +532,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		});
 	}
 
-	/** Toggle a single agent on/off. Never leaves the selection empty. */
 	private toggleAgent(agent: string): void {
 		const agents = [...computeAgentCounts(this.allModelTurns).keys()];
 		const next = new Set(this.selectedAgents ?? agents);
@@ -696,19 +544,11 @@ export class ChatDebugCacheExplorerView extends Disposable {
 	}
 
 	private setAgentSelection(agents: Set<string>): void {
-		// Remember the current turn so we can keep the user on it after the
-		// list is refiltered (if it survives the new filter).
 		this.pendingSelectTurn = this.modelTurns[this.selectedIndex];
 		this.selectedAgents = agents;
 		this.render();
 	}
 
-	/**
-	 * Render a collapsible per-chunk breakdown table. Lists every signature
-	 * chunk (including identical ones the bar may hide) with its exact char
-	 * count on each side and its share of the current request \u2014 i.e. where the
-	 * bytes are allocated.
-	 */
 	private renderChunkBreakdown(
 		section: HTMLElement,
 		rows: readonly IChunkBreakdownRow[],
@@ -753,8 +593,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			DOM.append(chunk, $('span.chat-debug-cache-sig-breakdown-chunk-label', undefined, r.label));
 			DOM.append(row, $('.cell.num', { role: 'cell' }, r.aChars !== undefined ? numberFormatter.value.format(r.aChars) : '\u2014'));
 			DOM.append(row, $('.cell.num', { role: 'cell' }, r.bChars !== undefined ? numberFormatter.value.format(r.bChars) : '\u2014'));
-			// Token estimate for the current side, calibrated against the
-			// request's reported input tokens (chars \u00d7 tokens-per-char).
 			const tok = r.bChars !== undefined && bTokensPerChar !== undefined ? Math.round(r.bChars * bTokensPerChar) : undefined;
 			DOM.append(row, $('.cell.num', { role: 'cell' }, tok !== undefined ? numberFormatter.value.format(tok) : '\u2014'));
 			const pct = r.bChars !== undefined && totalB > 0 ? (r.bChars / totalB) * 100 : undefined;
@@ -786,24 +624,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		const requestShapeJson = findSection(content?.sections, 'Request Shape');
 		const inputMessagesJson = findSection(content?.sections, 'Input Messages');
 		const rawMessages = parseInputMessages(inputMessagesJson);
-		// `chatMLFetcher.ts` extracts the system prompt from the messages
-		// array AND emits it separately as `gen_ai.system_instructions`.
-		// That double-counts the system prompt: once as the synthetic
-		// `system` segment we already render, and a second time as
-		// messages[0]. Strip leading system-role messages here so the
-		// signature lane reads `[system, tools, ...userMessages]`
-		// regardless of how the provider chose to ferry the system prompt
-		// (in-band as messages[0], or out-of-band via `instructions` /
-		// top-level `system`). The synthetic `system` component still
-		// diffs the system content faithfully because both sides go
-		// through the same dedup.
-		// Strip leading system-role messages here so the signature lane reads
-		// `[system, tools, ...userMessages]` regardless of how the provider
-		// chose to ferry the system prompt (in-band as messages[0], or
-		// out-of-band via `instructions` / top-level `system`). Loop in case a
-		// provider prepends multiple system-role messages; the synthetic
-		// `system` component still diffs the system content faithfully because
-		// both sides go through the same dedup.
 		let stripFrom = 0;
 		if (system) {
 			while (stripFrom < rawMessages.length && rawMessages[stripFrom].role === 'system') {
@@ -815,9 +635,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 	}
 
 	private renderRail(groups: readonly ITurnGroup[]): void {
-		// Idle-gap markers: a gap at or above the typical cache TTL between
-		// two consecutive turns means the cached prefix likely expired in
-		// between — make that visible in the rail before anyone clicks.
 		const gapBefore = (turnIndex: number): number | undefined => {
 			if (turnIndex <= 0) {
 				return undefined;
@@ -881,8 +698,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			}
 
 			for (const [posInGroup, { turn: evt, index: i }] of group.turns.entries()) {
-				// Gaps before the first turn of a group render before the
-				// group header above; only intra-group gaps render here.
 				if (posInGroup > 0) {
 					const gap = gapBefore(i);
 					if (gap !== undefined) {
@@ -897,7 +712,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 
 				const main = DOM.append(row, $('.chat-debug-cache-turn-main'));
 
-				// Top line: agent source with bracketed cache hit, duration, and timestamp
 				const top = DOM.append(main, $('.chat-debug-cache-turn-top'));
 				const source = DOM.append(top, $('span.chat-debug-cache-turn-source'));
 				source.textContent = evt.requestName || localize('chatDebug.cache.modelTurn', "Model Turn");
@@ -914,7 +728,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 				}
 				DOM.append(top, $('span.chat-debug-cache-turn-chip', undefined, `[${timeFormatter.value.format(evt.created)}]`));
 
-				// Bottom line: model name
 				if (evt.model) {
 					const sub = DOM.append(main, $('.chat-debug-cache-turn-sub'));
 					sub.textContent = evt.model;
@@ -957,13 +770,10 @@ export class ChatDebugCacheExplorerView extends Disposable {
 
 		const hit = computeCacheHit(b.event);
 
-		// Card border color tracks the worst finding \u2014 green/neutral when the
-		// loss is expected growth, red only for an avoidable break.
 		const breakCard = DOM.append(row, $('.chat-debug-cache-card.break'));
 		breakCard.classList.add(`is-${maxInsightSeverity(insights)}`);
 		DOM.append(breakCard, $('.chat-debug-cache-card-h', undefined, localize('chatDebug.cache.performance', "Cache performance")));
 
-		// Headline: hit % + the verdict (the first warning-or-worse finding).
 		const primary = primaryInsight(insights);
 		const headline = DOM.append(breakCard, $('.chat-debug-cache-card-headline'));
 		headline.textContent = primary
@@ -975,9 +785,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			shapeLine.textContent = b.requestShape.description;
 		}
 
-		// Findings: each detected cause in cache-key order (model, tools,
-		// system, options, messages) \u2014 the first critical one is the earliest
-		// byte change and therefore the actual cache breaker.
 		DOM.append(breakCard, $('.chat-debug-cache-perf-rule'));
 		DOM.append(breakCard, $('.chat-debug-cache-perf-section-h', undefined, localize('chatDebug.cache.findings', "Findings")));
 		const list = DOM.append(breakCard, $('.chat-debug-cache-findings'));
@@ -988,8 +795,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			this.renderFinding(list, insight);
 		}
 
-		// Structural diff summary \u2014 only meaningful when messages were
-		// positionally compared (the counts are empty for continuations).
 		if (compareInputMessages) {
 			DOM.append(breakCard, $('.chat-debug-cache-perf-rule'));
 			DOM.append(breakCard, $('.chat-debug-cache-perf-section-h', undefined, localize('chatDebug.cache.diffSummary', "Diff summary")));
@@ -1010,10 +815,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			summaryLine.textContent = parts.join(' \u00b7 ');
 		}
 
-		// Inline one-liner: surface request-option drift right under the
-		// summary cards so it is visible regardless of which card the user
-		// scans first. The detailed Request options card lives in the
-		// Components row.
 		if (optionsDiff.length > 0) {
 			const optsLine = DOM.append(this.content, $('.chat-debug-cache-options-banner'));
 			optsLine.textContent = localize('chatDebug.cache.optionsBanner',
@@ -1023,15 +824,8 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		}
 	}
 
-	/**
-	 * Render one finding row: severity icon, title, evidence, and hint.
-	 * Findings that point at a Components entry render as a button that
-	 * reveals (scrolls to, expands, and flashes) that component.
-	 */
 	private renderFinding(list: HTMLElement, insight: ICacheInsight): void {
 		const isLink = !!insight.component;
-		// Explicit `type="button"` keeps the row from being treated as a
-		// submit button if a future ancestor `<form>` is ever introduced.
 		const row = DOM.append(list, isLink ? $('button.chat-debug-cache-finding.is-clickable', { type: 'button' }) : $('.chat-debug-cache-finding'));
 		DOM.append(row, $(`span.codicon.codicon-${findingIcon(insight.severity)}.chat-debug-cache-finding-icon.is-${insight.severity}`, { 'aria-hidden': 'true' }));
 		const body = DOM.append(row, $('.chat-debug-cache-finding-body'));
@@ -1049,11 +843,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 	}
 
 
-	/**
-	 * Scroll the named Components entry into view, expand it, and flash it so
-	 * the eye lands on the right place. No-op when the component isn't part
-	 * of the current drift list (e.g. an identical message).
-	 */
 	private revealComponent(name: string): void {
 		const entry = this.componentElements.get(name);
 		if (!entry) {
@@ -1066,13 +855,9 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			head.setAttribute('aria-expanded', 'true');
 		}
 		item.scrollIntoView({ behavior: 'smooth', block: 'start' });
-		// Remove + reflow + re-add so a second click restarts the animation.
 		item.classList.remove('flash');
 		void item.offsetWidth;
 		item.classList.add('flash');
-		// Move focus to the revealed header so keyboard / screen reader users
-		// know where the activation landed. preventScroll because we already
-		// did the smooth-scroll above and don't want focus to jump-snap on top.
 		head.focus({ preventScroll: true });
 	}
 
@@ -1109,12 +894,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		return card;
 	}
 
-	/**
-	 * Render the summary cards alone when there is no prior turn to diff
-	 * against (e.g. the first request in a brand-new session). The OTel-
-	 * reported cache hit is still useful here — the system prompt and tool
-	 * definitions can already be cached from previous sessions.
-	 */
 	private renderSingleSummary(b: ISideData): void {
 		const row = DOM.append(this.content, $('.chat-debug-cache-summary'));
 		row.appendChild(this.renderSideCard(b, localize('chatDebug.cache.requestTitle', "Request")));
@@ -1131,14 +910,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		}
 	}
 
-	/**
-	 * Render the token-based cache performance for a request pair when the
-	 * request-side prompt signature (system, tools, input messages) was not
-	 * captured for the session — e.g. agent-host (Copilot CLI) sessions, whose
-	 * log records the model's output but not the request sent to it. The reported
-	 * cache-hit numbers are still accurate, but there is nothing to diff, so the
-	 * divergence-based root-cause analysis is deliberately skipped.
-	 */
 	private renderTokenOnlySummary(a: ISideData, b: ISideData): void {
 		const row = DOM.append(this.content, $('.chat-debug-cache-summary'));
 		row.appendChild(this.renderSideCard(a, localize('chatDebug.cache.previousRequest', "Previous request")));
@@ -1154,7 +925,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		note.textContent = localize('chatDebug.cache.noSignatureNote', "The request-side prompt (system instructions, tool catalog, and input messages) was not captured for this session, so the prompt-signature diff and root-cause findings are unavailable. The cache-hit numbers above come from reported token usage.");
 	}
 
-	/** Appends the "{cached} of {input} input tokens reused" sub-line for a request. */
 	private appendTokensReusedLine(parent: HTMLElement, event: IChatDebugModelTurnEvent): void {
 		const inputTokens = event.inputTokens ?? 0;
 		const cachedTokens = event.cachedTokens ?? 0;
@@ -1186,8 +956,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 	}
 
 	private renderSignature(a: ISideData, b: ISideData, diff: ICacheDiffResult, compareInputMessages: boolean): void {
-		// See note next to `continuationComparison` in `renderSummary`: only the
-		// current request's shape determines whether this is a continuation view.
 		const continuationComparison = b.requestShape.isContinuation;
 		const section = DOM.append(this.content, $('.chat-debug-cache-section'));
 		const heading = DOM.append(section, $('h3.chat-debug-cache-section-h'));
@@ -1200,9 +968,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		}
 
 		const legend = DOM.append(section, $('.chat-debug-cache-sig-legend'));
-		// Order matters: keep `tools` (orange, the catalog of available tools)
-		// far from `tool` (yellow, individual tool result messages) so they
-		// aren't read as the same thing.
 		for (const role of ['system', 'user', 'assistant', 'tool', 'tool_search', 'tools']) {
 			const entry = DOM.append(legend, $('span.chat-debug-cache-sig-legend-entry'));
 			DOM.append(entry, $(`span.chat-debug-cache-sig-swatch.role-${roleClass(role)}`));
@@ -1219,19 +984,12 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		DOM.append(groupEntry, $('span.chat-debug-cache-sig-swatch.role-coalesced'));
 		DOM.append(groupEntry, DOM.$('span', undefined, localize('chatDebug.cache.groupLegend', "small messages (grouped)")));
 
-		// Per-side char-length sequences. We prepend synthetic 'system' and
-		// 'tools' segments (when present) so they show up in the bar even
-		// though they are not part of the inputMessages array. The synthetic
-		// segments share the cache-key role with the messages: a change in
-		// either also breaks the prefix.
 		interface ISegment {
 			readonly role: string;
 			readonly chars: number;
 			readonly drift: boolean;
 			readonly label: string;
-			/** True if this is one of the synthetic prefix segments (system/tools). */
 			readonly synthetic: boolean;
-			/** Components-section anchor for this segment (e.g. `messages[3]`). */
 			readonly component: string;
 		}
 		const toSegments = (side: ISideData, isA: boolean): ISegment[] => {
@@ -1264,17 +1022,10 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		const totalB = bSegs.reduce((s, x) => s + x.chars, 0);
 		const max = Math.max(totalA, totalB, 1);
 
-		// Compute char position of cache break inside each side's bar.
-		// Returns undefined if the break index falls outside the side's
-		// segment list (e.g. break is at messages[N] but B has fewer
-		// messages); rendering that as the right edge of the bar would
-		// misleadingly suggest "the cache broke at the end".
 		const breakCharPos = (segs: readonly ISegment[]): number | undefined => {
 			if (!diff.break) {
 				return undefined;
 			}
-			// Skip the synthetic system / tools segments when matching
-			// diff.break.index, which is an index into the messages array.
 			let cumulative = 0;
 			let idx = 0;
 			for (const s of segs) {
@@ -1291,9 +1042,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			return undefined;
 		};
 
-		// Estimated tokens per char, calibrated against the OTel-reported
-		// input token count for each side. Linear, so it doesn't change the
-		// bar proportions — it turns char counts into the unit that's billed.
 		const aTokensPerChar = a.event.inputTokens && totalA > 0 ? a.event.inputTokens / totalA : undefined;
 		const bTokensPerChar = b.event.inputTokens && totalB > 0 ? b.event.inputTokens / totalB : undefined;
 
@@ -1311,9 +1059,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 				const seg = DOM.append(bar, $(`span.chat-debug-cache-sig-seg.role-${roleClass(s.role)}`));
 				if (s.drift) {
 					seg.classList.add('is-drift');
-					// Drifting segments have a matching Components entry \u2014 make
-					// them clickable so a red mark in the bar can be inspected
-					// directly instead of hunting for it in the accordion.
 					seg.classList.add('is-clickable');
 					seg.setAttribute('role', 'button');
 					seg.tabIndex = 0;
@@ -1330,24 +1075,14 @@ export class ChatDebugCacheExplorerView extends Disposable {
 				seg.title = s.drift
 					? localize('chatDebug.cache.segDriftTooltip', "{0} ({1}): {2} \u2014 drifted. Click to inspect.", s.component, s.label, sizeText(s.chars))
 					: localize('chatDebug.cache.segTooltip', "{0} ({1}): {2}", s.component, s.label, sizeText(s.chars));
-				// Mirror the tooltip into an accessible name so screen readers
-				// announce what the button-role span does. Only drift segments
-				// are focusable, so non-drift slivers don't need one.
 				if (s.drift) {
 					seg.setAttribute('aria-label', seg.title);
 				}
-				// In-bar text is the char count alone \u2014 the role is already
-				// color-coded, and partial labels ("user:24,9\u2026") read worse
-				// than none. Only segments wide enough for the digits get text.
 				if (s.chars > max * 0.06) {
 					seg.textContent = numberFormatter.value.format(s.chars);
 				}
 			};
 
-			// Runs of small same-kind messages render as one muted group so
-			// dozens of tiny tool/assistant slivers don't turn the bar into
-			// noise. Drift and synthetic (system/tools) segments always render
-			// individually; a "run" of one keeps its own colors too.
 			const renderGroup = (group: ISegment[]) => {
 				if (group.length === 1) {
 					renderSegment(group[0]);
@@ -1379,7 +1114,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 				renderGroup(pending);
 			}
 
-			// Pad the lane so both sides share the same x scale.
 			if (sideTotal < max) {
 				const pad = DOM.append(bar, $('span.chat-debug-cache-sig-seg.role-empty'));
 				pad.style.width = `${((max - sideTotal) / max) * 100}%`;
@@ -1397,11 +1131,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		lanes.appendChild(buildLane(localize('chatDebug.cache.lanePrevious', "Previous"), aSegs, breakCharPos(aSegs), aTokensPerChar));
 		lanes.appendChild(buildLane(localize('chatDebug.cache.laneCurrent', "Current"), bSegs, breakCharPos(bSegs), bTokensPerChar));
 
-		// Prefix-match rail: a thin bar under the lanes splitting the current
-		// request into the span that byte-matches the previous request (cache-
-		// servable) and the span after the first drift (recomputed). Walks the
-		// current side's segments in render order — system, tools, messages —
-		// so a tools/system change correctly pulls the boundary to the front.
 		if (compareInputMessages && totalB > 0) {
 			let reused = 0;
 			let sawDrift = false;
@@ -1431,15 +1160,8 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			DOM.append(railRow, $('.chat-debug-cache-sig-lane-total', undefined, localize('chatDebug.cache.reusePct', "{0}% match", String(Math.floor((reused / totalB) * 100)))));
 		}
 
-		// Per-chunk breakdown: an exact, scannable table of where the bytes go on
-		// each side. Complements the bar (which hides small chunks) and the
-		// Components section (which only lists drifting components).
 		this.renderChunkBreakdown(section, alignSignatureChunks(aSegs, bSegs), totalA, totalB, bTokensPerChar);
 
-		// Single-line text summary below the bars. Compute this in the
-		// same order the provider sees cache-keying inputs: system, tools,
-		// then captured input messages. This avoids reporting messages[0] as
-		// the first break when the tool catalog changed earlier.
 		let shared = 0;
 		let firstDrift: string | undefined;
 		if (a.system || b.system) {
@@ -1478,12 +1200,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 		}
 	}
 
-	/**
-	 * Render the per-key request-options table. Shows every cache-keying
-	 * option captured from the model provider request body, with a column
-	 * for the previous turn and one for the current turn. Rows whose
-	 * values differ are highlighted.
-	 */
 	private renderRequestOptions(a: ISideData, b: ISideData): void {
 		const prev = sideOptions(a);
 		const curr = sideOptions(b);
@@ -1543,16 +1259,11 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			if (isOpen) { item.classList.add('open'); }
 			const head = DOM.append(item, $('.chat-debug-cache-acc-head'));
 			this.componentElements.set(c.name, { item, head });
-			// Expose the header as an expand/collapse button so keyboard and
-			// screen reader users can operate it the same way mouse users can.
 			head.tabIndex = 0;
 			head.setAttribute('role', 'button');
 			head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 			DOM.append(head, $('span.chat-debug-cache-chev'));
 			const name = DOM.append(head, $('.chat-debug-cache-acc-name'));
-			// Lead with the same role swatch the signature bar uses so a
-			// component reads as "one of those colored pieces", not an
-			// anonymous diff row.
 			const swatchRole = c.role ?? (c.name === 'system' || c.name === 'tools' ? c.name : undefined);
 			if (swatchRole) {
 				DOM.append(name, $(`span.chat-debug-cache-sig-swatch.role-${roleClass(swatchRole)}`, { 'aria-hidden': 'true' }));
@@ -1567,10 +1278,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			const body = DOM.append(item, $('.chat-debug-cache-acc-body'));
 			const aText = c.name === CURRENT_CONTINUATION_DELTA_COMPONENT ? '' : textForComponent(c, a);
 			const bText = c.name === CURRENT_CONTINUATION_DELTA_COMPONENT ? continuationDeltaText(b) : textForComponent(c, b);
-			// Surface OTel-side truncation: when either side ends with the
-			// truncation marker emitted by `truncateForOTel`, the diff below
-			// will only reflect the surviving prefix. Most likely on `tools`
-			// (large MCP catalogs) and very long messages.
 			const truncationNote = describeTruncation(aText, bText);
 			if (truncationNote) {
 				const note = DOM.append(item, $('.chat-debug-cache-acc-truncated'));
@@ -1578,10 +1285,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 				note.title = truncationNote;
 				head.title = truncationNote;
 			}
-			// One-line structural summary of the change — "first 130 chars
-			// removed", "edited in place at char N" — so the red/green diff
-			// below has a conclusion to verify rather than being the only
-			// way to understand what happened.
 			if (aText && bText && aText !== bText) {
 				const dv = analyzeStringDivergence(aText, bText);
 				if (dv) {
@@ -1611,9 +1314,6 @@ export class ChatDebugCacheExplorerView extends Disposable {
 			}));
 		}
 
-		// The accordion only lists drifting components; say how much of the
-		// prompt was identical so "2 entries" isn't misread as "the request
-		// only had 2 messages".
 		if (compareInputMessages && identicalCount > 0) {
 			const note = DOM.append(section, $('.chat-debug-cache-acc-identical-note'));
 			note.textContent = localize('chatDebug.cache.identicalNote', "{0} identical message(s) not shown — they extend the shared, cache-servable prefix.", identicalCount);
@@ -1653,17 +1353,14 @@ function findSection(sections: readonly IChatDebugMessageSection[] | undefined, 
 	return undefined;
 }
 
-/** A prompt-signature segment: a synthetic prefix (system/tools) or an input message. */
 export interface ISignatureSegment {
 	readonly role: string;
 	readonly chars: number;
 	readonly drift: boolean;
 	readonly label: string;
-	/** True for the synthetic system/tools prefix segments, false for input messages. */
 	readonly synthetic: boolean;
 }
 
-/** One aligned row of the chunk breakdown — a chunk present on either or both sides. */
 export interface IChunkBreakdownRow {
 	readonly role: string;
 	readonly label: string;
@@ -1672,15 +1369,6 @@ export interface IChunkBreakdownRow {
 	readonly drift: boolean;
 }
 
-/**
- * Align the previous (A) and current (B) signature segments into comparable
- * rows for the chunk breakdown table.
- *
- * Synthetic prefix segments (system, tools) are matched by identity so that a
- * tool catalog or system prompt present on only one side does not shift every
- * later message row. Input messages are matched positionally, consistent with
- * the positional prompt-signature diff used elsewhere in this view.
- */
 export function alignSignatureChunks(aSegs: readonly ISignatureSegment[], bSegs: readonly ISignatureSegment[]): IChunkBreakdownRow[] {
 	const rows: IChunkBreakdownRow[] = [];
 	const toRow = (aS: ISignatureSegment | undefined, bS: ISignatureSegment | undefined): IChunkBreakdownRow => {
@@ -1690,14 +1378,10 @@ export function alignSignatureChunks(aSegs: readonly ISignatureSegment[], bSegs:
 			label: ref.label,
 			aChars: aS?.chars,
 			bChars: bS?.chars,
-			// A row drifts if either side flags drift (e.g. OnlyInA marks only
-			// the A segment) or the chunk is present on just one side.
 			drift: (aS?.drift ?? false) || (bS?.drift ?? false) || (!!aS !== !!bS),
 		};
 	};
 
-	// Synthetic prefixes first, matched by role so presence asymmetry is shown
-	// as an added/removed row rather than knocking the message rows out of sync.
 	for (const role of ['system', 'tools']) {
 		const aS = aSegs.find(s => s.synthetic && s.role === role);
 		const bS = bSegs.find(s => s.synthetic && s.role === role);
@@ -1715,16 +1399,10 @@ export function alignSignatureChunks(aSegs: readonly ISignatureSegment[], bSegs:
 	return rows;
 }
 
-/**
- * The agent a model turn belongs to. `requestName` carries the debug/agent
- * name the producer tagged the request with (e.g. `panel/editAgent`,
- * `backgroundTodoAgent`, or a utility name such as `title`).
- */
 export function agentKey(turn: IChatDebugModelTurnEvent): string {
 	return turn.requestName?.trim() || localize('chatDebug.cache.unnamedAgent', "(unnamed)");
 }
 
-/** Count model turns per agent, preserving first-seen order. */
 export function computeAgentCounts(turns: readonly IChatDebugModelTurnEvent[]): Map<string, number> {
 	const counts = new Map<string, number>();
 	for (const turn of turns) {
@@ -1734,11 +1412,6 @@ export function computeAgentCounts(turns: readonly IChatDebugModelTurnEvent[]): 
 	return counts;
 }
 
-/**
- * Default agent selection: focus on the main panel edit agent when present so
- * background and utility calls don't clutter the rail. Falls back to all agents
- * when the edit agent isn't part of the session.
- */
 export function defaultAgentSelection(agentCounts: Map<string, number>): Set<string> {
 	if (agentCounts.has(DEFAULT_AGENT_KEY)) {
 		return new Set([DEFAULT_AGENT_KEY]);
@@ -1746,28 +1419,13 @@ export function defaultAgentSelection(agentCounts: Map<string, number>): Set<str
 	return new Set(agentCounts.keys());
 }
 
-/**
- * Whether two model-turn events refer to the *exact same* turn. This is the
- * precise identity test: the same object reference, or the same stable span
- * `id` when both events carry one. It never reports two distinct turns as equal,
- * so it is safe to scan a list with it even when several turns look alike.
- */
 export function isSameModelTurn(a: IChatDebugModelTurnEvent, b: IChatDebugModelTurnEvent): boolean {
 	if (a === b) {
 		return true;
 	}
-	// Distinct objects: only a stable span id can prove they are the same turn.
 	return a.id !== undefined && b.id !== undefined && a.id === b.id;
 }
 
-/**
- * Best-effort identity for a turn that carries no `id`, used only when the
- * exact object can no longer be found (e.g. events were re-fetched as fresh
- * instances). Both sides must lack an `id`; a turn with an id is matched
- * precisely by {@link isSameModelTurn} instead. This can match two distinct
- * turns that happen to share every field, so it is only consulted as a
- * fallback after the precise pass fails.
- */
 function isSimilarNoIdModelTurn(a: IChatDebugModelTurnEvent, b: IChatDebugModelTurnEvent): boolean {
 	return a.id === undefined && b.id === undefined
 		&& a.created.getTime() === b.created.getTime()
@@ -1776,19 +1434,6 @@ function isSimilarNoIdModelTurn(a: IChatDebugModelTurnEvent, b: IChatDebugModelT
 		&& a.model === b.model;
 }
 
-/**
- * Resolve which turn index to select after the agent filter changes. Prefers
- * the previously-selected turn; when that turn no longer survives the filter —
- * or there was no prior selection — falls back to the most recent turn so the
- * selection never lands on an unrelated turn that happens to occupy the old
- * ordinal position. Returns -1 when there are no turns to select.
- *
- * Matching runs in two passes so the exact turn always wins: first the precise
- * id/reference identity ({@link isSameModelTurn}), then a best-effort composite
- * match for id-less turns ({@link isSimilarNoIdModelTurn}). Without the split,
- * an earlier look-alike turn could be picked by `findIndex` before the real
- * object is reached.
- */
 export function resolveFilteredSelectionIndex(turns: readonly IChatDebugModelTurnEvent[], previous: IChatDebugModelTurnEvent | undefined): number {
 	if (previous) {
 		const exact = turns.findIndex(t => isSameModelTurn(t, previous));
@@ -1803,13 +1448,7 @@ export function resolveFilteredSelectionIndex(turns: readonly IChatDebugModelTur
 	return turns.length - 1;
 }
 
-/**
- * Group model turns by request — turns that share the same `parentEventId`
- * belong to the same agent invocation (one user prompt). The group key is
- * used as the request id surfaced in the rail header.
- */
 function buildTurnGroups(turns: readonly IChatDebugModelTurnEvent[], userMessages: readonly IChatDebugUserMessageEvent[]): readonly ITurnGroup[] {
-	// Index user messages by their span id (and the live `user-msg-` prefixed variant).
 	const userById = new Map<string, IChatDebugUserMessageEvent>();
 	for (const um of userMessages) {
 		if (!um.id) {
@@ -1870,7 +1509,6 @@ function currentDeltaComponent(side: ISideData): IComponentDrift {
 	};
 }
 
-/** Codicon name for a break-cause category (rail chips, health card). */
 function categoryIcon(category: CacheBreakCategory): string {
 	switch (category) {
 		case CacheBreakCategory.Healthy: return 'check-compact';
@@ -1884,7 +1522,6 @@ function categoryIcon(category: CacheBreakCategory): string {
 	}
 }
 
-/** Codicon name for a finding severity. */
 function findingIcon(severity: CacheInsightSeverity): string {
 	switch (severity) {
 		case CacheInsightSeverity.Ok: return 'check';
@@ -1904,16 +1541,6 @@ function badgeLabel(status: CacheDiffKind): string {
 	}
 }
 
-/**
- * Detect the OTel truncation marker that `truncateForOTel` appends to large
- * attribute values: `...[truncated, original N chars]`. When either side of
- * a component carries it, the diff below only reflects the surviving
- * prefix \u2014 differences past the cap are invisible. We surface that as a
- * one-line note above the diff so users don't read a partial diff as
- * authoritative.
- *
- * Returns `undefined` when neither side is truncated.
- */
 function describeTruncation(aText: string, bText: string): string | undefined {
 	const re = /\.\.\.\[truncated, original (\d+) chars\]$/;
 	const aMatch = re.exec(aText);
@@ -1947,13 +1574,6 @@ function computeCacheHit(event: IChatDebugModelTurnEvent): number {
 }
 
 function shouldCompareInputMessages(a: ISideData, b: ISideData): boolean {
-	// A Responses API continuation (`previous_response_id`) sends only the
-	// current wire delta. Positionally diffing that delta against the other
-	// side's input array makes it look as if previous context disappeared,
-	// when it is actually provider-side state. Suppress message-level diffing
-	// when *either* side is a continuation — the comparison would be
-	// asymmetric (delta vs. full input). Still compare system/tools and
-	// request options; show the current delta as a separate component.
 	return !a.requestShape.isContinuation && !b.requestShape.isContinuation;
 }
 
@@ -1965,8 +1585,6 @@ interface IRequestShapeMetadata {
 
 function describeRequestShape(inputMessages: readonly INormalizedMessage[], requestShapeJson: string | undefined): IRequestShapeInfo {
 	const metadata = parseRequestShapeMetadata(requestShapeJson);
-	// Defensive: a malformed log entry could deserialize `inputItemTypes` as
-	// something other than an array, which would crash `.includes(...)` below.
 	const inputItemTypes = Array.isArray(metadata?.inputItemTypes)
 		? metadata.inputItemTypes.filter((x): x is string => typeof x === 'string')
 		: [];
@@ -2033,17 +1651,10 @@ function parseRequestShapeMetadata(requestShapeJson: string | undefined): IReque
 			return parsed;
 		}
 	} catch {
-		// Ignore malformed metadata. The input-message role fallback still
-		// provides a conservative label for older or partially captured logs.
 	}
 	return undefined;
 }
 
-/**
- * Maps a normalized message role onto the small set of CSS color classes
- * the prompt-signature visualization recognizes. Unknown roles fall through
- * to `tool` so they still get a swatch.
- */
 function roleClass(role: string): string {
 	switch (role) {
 		case 'system':
@@ -2053,28 +1664,17 @@ function roleClass(role: string): string {
 		case 'tool':
 			return role;
 		case 'tool_search':
-			// Use a hyphenated CSS class for consistency with the rest of the
-			// `role-*` swatch/segment classes; the underlying data role keeps
-			// `tool_search` to match the OTel-emitted role string.
 			return 'tool-search';
 		default:
 			return 'tool';
 	}
 }
 
-/**
- * Format a cache hit percentage with 2-decimal precision, truncating rather
- * than rounding so a value like 99.998% does not display as 100%. We only
- * report a literal `100%` when the ratio is exactly 1.
- */
 function formatCachePct(pct: number): string {
 	const truncated = Math.floor(pct * 100) / 100;
 	return truncated.toFixed(2);
 }
 
-/**
- * Integer-precision variant of {@link formatCachePct} for the rail chip.
- */
 function formatCachePctInt(pct: number): string {
 	return String(Math.floor(pct));
 }
@@ -2092,23 +1692,12 @@ interface IOptionDelta {
 	readonly current: unknown;
 }
 
-/**
- * Build the cache-relevant options table for one side. Combines the
- * request body's `request_options` blob with the model id surfaced on
- * the OTel chat span, since switching models is the most aggressive
- * cache invalidator and users expect to see it here.
- */
 function sideOptions(side: ISideData): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
 	if (side.event.model !== undefined) {
 		out.model = side.event.model;
 	}
 	Object.assign(out, parseOptions(side.content?.requestOptions));
-	// Effort is a first-class cost/latency lever, but a thinking-capable
-	// request that doesn't send one falls back to the provider's server-side
-	// default with nothing on the wire. Surface that explicitly so the table
-	// answers "what effort ran?" instead of silently omitting the row \u2014 and
-	// so a request that *stops* sending effort shows up as an option change.
 	const hasEffort = out['output_config.effort'] !== undefined
 		|| out['reasoning.effort'] !== undefined
 		|| out['reasoning_effort'] !== undefined;
@@ -2119,13 +1708,6 @@ function sideOptions(side: ISideData): Record<string, unknown> {
 	return out;
 }
 
-/**
- * Compute the per-key delta between two requests' option tables.
- * Keys are flattened one level deep so nested objects (e.g.
- * `reasoning.effort`) show up with their own row instead of dumping the
- * full object onto one line. The result is sorted by key for stable
- * rendering.
- */
 function computeOptionsDiff(a: ISideData, b: ISideData): readonly IOptionDelta[] {
 	const prev = sideOptions(a);
 	const curr = sideOptions(b);
@@ -2194,17 +1776,6 @@ const DIFF_OPTIONS = {
 	computeMoves: false,
 } as const;
 
-/**
- * Render a side-by-side line + character diff into the two body elements.
- *
- * Uses {@link linesDiffComputers.getDefault()} to compute a line-level diff
- * with inner character-level mappings, then walks the result to emit one
- * div per line. Lines belonging to a removed range are styled with the
- * "remove" class on the previous side; added ranges with the "add" class
- * on the current side; modified ranges appear on both sides with character
- * spans highlighted within. Identical lines are placed on both sides as
- * context.
- */
 function renderInlineDiff(prevHost: HTMLElement, currHost: HTMLElement, prev: string, curr: string): void {
 	const prevLines = prev.split(/\r?\n/);
 	const currLines = curr.split(/\r?\n/);
@@ -2218,7 +1789,6 @@ function renderInlineDiff(prevHost: HTMLElement, currHost: HTMLElement, prev: st
 		const modStart = change.modified.startLineNumber;
 		const modEnd = change.modified.endLineNumberExclusive;
 
-		// Emit identical context lines up to this change.
 		while (prevIdx + 1 < origStart && currIdx + 1 < modStart) {
 			appendLine(prevHost, prevLines[prevIdx], 'context');
 			appendLine(currHost, currLines[currIdx], 'context');
@@ -2226,10 +1796,8 @@ function renderInlineDiff(prevHost: HTMLElement, currHost: HTMLElement, prev: st
 			currIdx++;
 		}
 
-		// Emit changed lines on each side. Inner range mappings give us
-		// character-level spans; we apply them per line.
-		const innerByOrig = groupInnerChangesByLine(change.innerChanges, /* original */ true);
-		const innerByMod = groupInnerChangesByLine(change.innerChanges, /* original */ false);
+		const innerByOrig = groupInnerChangesByLine(change.innerChanges, true);
+		const innerByMod = groupInnerChangesByLine(change.innerChanges, false);
 
 		for (let line = origStart; line < origEnd; line++) {
 			const lineText = prevLines[line - 1] ?? '';
@@ -2244,12 +1812,6 @@ function renderInlineDiff(prevHost: HTMLElement, currHost: HTMLElement, prev: st
 		currIdx = modEnd - 1;
 	}
 
-	// Emit any trailing identical context. The line-level diff guarantees
-	// every change range is reported, so anything left over on both sides
-	// after the last change is identical context — the `&&` is intentional:
-	// if one side has more lines than the other at this point the overflow
-	// is already covered by the change ranges above (otherwise we'd have a
-	// bug in the diff computer).
 	while (prevIdx < prevLines.length && currIdx < currLines.length) {
 		appendLine(prevHost, prevLines[prevIdx], 'context');
 		appendLine(currHost, currLines[currIdx], 'context');
@@ -2274,7 +1836,7 @@ function appendChangedLine(host: HTMLElement, text: string, ranges: readonly IIn
 		line.textContent = text === '' ? '\u00a0' : text;
 		return;
 	}
-	let cursor = 1; // 1-based column index
+	let cursor = 1;
 	const sorted = [...ranges].sort((a, b) => a.startColumn - b.startColumn);
 	for (const r of sorted) {
 		if (r.startColumn > cursor) {
@@ -2289,12 +1851,6 @@ function appendChangedLine(host: HTMLElement, text: string, ranges: readonly IIn
 	}
 }
 
-/**
- * Group {@link DetailedLineRangeMapping.innerChanges} by line so the diff
- * renderer can look up character ranges per line. Multi-line range
- * mappings only contribute a partial range to their first/last line; we
- * approximate by clamping to the line bounds.
- */
 function groupInnerChangesByLine(
 	innerChanges: readonly RangeMapping[] | undefined,
 	useOriginal: boolean,
@@ -2305,9 +1861,6 @@ function groupInnerChangesByLine(
 	}
 	for (const r of innerChanges) {
 		const range = useOriginal ? r.originalRange : r.modifiedRange;
-		// Only handle single-line inner ranges for v1. Multi-line spans
-		// are flagged at the line level via the surrounding add/remove
-		// styling, so we don't need pixel-perfect column highlights.
 		if (range.startLineNumber !== range.endLineNumber) {
 			continue;
 		}

@@ -73,32 +73,24 @@ export async function showRunRecentQuickPick(
 		placeholder = isMacintosh ? localize('selectRecentCommandMac', 'Select a command to run (hold Option-key to edit the command)') : localize('selectRecentCommand', 'Select a command to run (hold Alt-key to edit the command)');
 		const cmdDetection = instance.capabilities.get(TerminalCapability.CommandDetection);
 		const commands = cmdDetection?.commands;
-		// Current session history
 		const executingCommand = cmdDetection?.executingCommand;
 		if (executingCommand) {
 			commandMap.add(executingCommand);
 		}
 		function formatLabel(label: string) {
 			return label
-				// Replace new lines with "enter" symbol
 				.replace(/\r?\n/g, '\u23CE')
-				// Replace 3 or more spaces with midline horizontal ellipsis which looks similar
-				// to whitespace in the editor
 				.replace(/\s\s\s+/g, '\u22EF');
 		}
 		if (commands && commands.length > 0) {
 			for (let i = commands.length - 1; i >= 0; i--) {
 				const entry = commands[i];
-				// Trim off any whitespace and/or line endings, replace new lines with the
-				// Downwards Arrow with Corner Leftwards symbol
 				const label = entry.command.trim();
 				if (label.length === 0 || commandMap.has(label)) {
 					continue;
 				}
 				let description = collapseTildePath(entry.cwd, instance.userHome, instance.os === OperatingSystem.Windows ? '\\' : '/');
 				if (entry.exitCode) {
-					// Since you cannot get the last command's exit code on pwsh, just whether it failed
-					// or not, -1 is treated specially as simply failed
 					if (entry.exitCode === -1) {
 						description += ' failed';
 					} else {
@@ -107,7 +99,6 @@ export async function showRunRecentQuickPick(
 				}
 				description = description.trim();
 				const buttons: IQuickInputButton[] = [commandOutputButton];
-				// Merge consecutive commands
 				const lastItem = items.length > 0 ? items[items.length - 1] : undefined;
 				if (lastItem?.type !== 'separator' && lastItem?.label === label) {
 					lastItem.id = entry.timestamp.toString();
@@ -135,16 +126,14 @@ export async function showRunRecentQuickPick(
 		if (items.length > 0) {
 			items.unshift({
 				type: 'separator',
-				buttons: [], // HACK: Force full sized separators as there's no flag currently
+				buttons: [],
 				label: terminalStrings.currentSessionCategory
 			});
 		}
 
-		// Gather previous session history
 		const history = instantiationService.invokeFunction(getCommandHistory);
 		const previousSessionItems: (IQuickPickItem & { rawLabel: string })[] = [];
 		for (const [label, info] of history.entries) {
-			// Only add previous session item if it's not in this session
 			if (!commandMap.has(label) && info.shellType === instance.shellType) {
 				previousSessionItems.unshift({
 					label: formatLabel(label),
@@ -159,14 +148,13 @@ export async function showRunRecentQuickPick(
 			items.push(
 				{
 					type: 'separator',
-					buttons: [], // HACK: Force full sized separators as there's no flag currently
+					buttons: [],
 					label: terminalStrings.previousSessionCategory
 				},
 				...previousSessionItems,
 			);
 		}
 
-		// Gather shell file history
 		const shellFileHistory = await instantiationService.invokeFunction(getShellFileHistory, instance.shellType);
 		if (shellFileHistory !== undefined) {
 			const dedupedShellFileItems: (IQuickPickItem & { rawLabel: string })[] = [];
@@ -202,7 +190,6 @@ export async function showRunRecentQuickPick(
 			? localize('selectRecentDirectoryMac', 'Select a directory to go to (hold Option-key to edit the command)')
 			: localize('selectRecentDirectory', 'Select a directory to go to (hold Alt-key to edit the command)');
 
-		// Check path uniqueness following target platform's case sensitivity rules.
 		const uriComparer = instance.os === OperatingSystem.Windows ? extUriIgnorePathCase : extUri;
 		const uniqueUris = new ResourceSet(o => uriComparer.getComparisonKey(o));
 
@@ -222,10 +209,8 @@ export async function showRunRecentQuickPick(
 			items.unshift({ type: 'separator', label: terminalStrings.currentSessionCategory });
 		}
 
-		// Gather previous session history
 		const history = instantiationService.invokeFunction(getDirectoryHistory);
 		const previousSessionItems: (IQuickPickItem & { rawLabel: string })[] = [];
-		// Only add previous session item if it's not in this session and it matches the remote authority
 		for (const [label, info] of history.entries) {
 			if (info === null || info.remoteAuthority === instance.remoteAuthority) {
 				const itemUri = info?.remoteAuthority ? await pathService.fileURI(label) : URI.file(label);
@@ -353,7 +338,7 @@ export async function showRunRecentQuickPick(
 		let text: string;
 		if (type === 'cwd') {
 			text = `cd ${await instance.preparePathForShell(result.rawLabel)}`;
-		} else { // command
+		} else {
 			text = result.rawLabel;
 		}
 		quickPick.hide();

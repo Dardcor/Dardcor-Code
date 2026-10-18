@@ -5,13 +5,6 @@
 
 import { ThemeIcon } from 'vscode';
 
-/**
- * Shared, immutable ThemeIcon instances used across the git extension. ThemeIcon has no
- * mutable state, so a single instance can safely be reused wherever the same icon id is
- * needed, instead of allocating a new instance per ref/commit/artifact on every refresh.
- * This avoids allocating large numbers of short-lived ThemeIcon instances when rendering
- * many refs, tags, worktrees, or stashes across many repositories.
- */
 export const Icons = {
 	account: new ThemeIcon('account'),
 	branch: new ThemeIcon('git-branch'),

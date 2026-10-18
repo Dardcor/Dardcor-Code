@@ -4,7 +4,7 @@
 
 ## Features
 
-See [Git support in VS Code](https://code.visualstudio.com/docs/editor/versioncontrol#_git-support) to learn about the features of this extension.
+See [Git support in VS Code](https://www.dardcor-code.web.id/docs/editor/versioncontrol#_git-support) to learn about the features of this extension.
 
 ## API
 
@@ -18,7 +18,7 @@ The Git extension exposes an API, reachable by any other extension.
 	const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git').exports;
 	const git = gitExtension.getAPI(1);
 	```
-	**Note:** To ensure that the `vscode.git` extension is activated before your extension, add `extensionDependencies` ([docs](https://code.visualstudio.com/api/references/extension-manifest)) into the `package.json` of your extension:
+	**Note:** To ensure that the `vscode.git` extension is activated before your extension, add `extensionDependencies` ([docs](https://www.dardcor-code.web.id/api/references/extension-manifest)) into the `package.json` of your extension:
 	```json
 	"extensionDependencies": [
 		"vscode.git"

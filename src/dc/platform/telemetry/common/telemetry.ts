@@ -27,35 +27,18 @@ export interface ITelemetryService {
 	readonly firstSessionDate: string;
 	readonly msftInternal?: boolean;
 
-	/**
-	 * Whether error telemetry will get sent. If false, `publicLogError` will no-op.
-	 */
 	readonly sendErrorTelemetry: boolean;
 
-	/**
-	 * @deprecated Use publicLog2 and the typescript GDPR annotation where possible
-	 */
 	publicLog(eventName: string, data?: ITelemetryData): void;
 
-	/**
-	 * Sends a telemetry event that has been privacy approved.
-	 * Do not call this unless you have been given approval.
-	 */
 	publicLog2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>): void;
 
-	/**
-	 * @deprecated Use publicLogError2 and the typescript GDPR annotation where possible
-	 */
 	publicLogError(errorEventName: string, data?: ITelemetryData): void;
 
 	publicLogError2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>): void;
 
 	setExperimentProperty(name: string, value: string): void;
 
-	/**
-	 * Sets a common property that will be attached to all telemetry events.
-	 * Common properties are added after PII cleaning and cannot be overridden by event data.
-	 */
 	setCommonProperty(name: string, value: string | boolean | undefined): void;
 }
 
@@ -63,10 +46,6 @@ export function telemetryLevelEnabled(service: ITelemetryService, level: Telemet
 	return service.telemetryLevel >= level;
 }
 
-/**
- * Replaces `/` and `\` with `|` in model identifiers to prevent the
- * telemetry pipeline from redacting them as file paths.
- */
 export function escapeModelIdForTelemetry(modelId: string | undefined): string | undefined {
 	return modelId?.replace(/[\/\\]/g, '|');
 }
@@ -86,7 +65,6 @@ export interface ICustomEndpointTelemetryService {
 	publicLogError(endpoint: ITelemetryEndpoint, errorEventName: string, data?: ITelemetryData): void;
 }
 
-// Keys
 export const currentSessionDateStorageKey = 'telemetry.currentSessionDate';
 export const firstSessionDateStorageKey = 'telemetry.firstSessionDate';
 export const lastSessionDateStorageKey = 'telemetry.lastSessionDate';
@@ -94,7 +72,6 @@ export const machineIdKey = 'telemetry.machineId';
 export const sqmIdKey = 'telemetry.sqmId';
 export const devDeviceIdKey = 'telemetry.devDeviceId';
 
-// Configuration Keys
 export const TELEMETRY_SECTION_ID = 'telemetry';
 export const TELEMETRY_SETTING_ID = 'telemetry.telemetryLevel';
 export const TELEMETRY_CRASH_REPORTER_SETTING_ID = 'telemetry.enableCrashReporter';

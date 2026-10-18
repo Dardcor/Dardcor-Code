@@ -28,7 +28,7 @@ import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer'
 import { Tag } from '../../prompts/node/base/tag';
 import { DiagnosticContext, Diagnostics } from '../../prompts/node/inline/diagnosticsContext';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { checkCancellation, resolveToolInputPath } from './toolUtils';
 
@@ -41,11 +41,7 @@ export interface ITerminalErrorInfo {
 }
 
 interface IGetErrorsParams {
-	// Note that empty array is not the same as absence; empty array
-	// will not return any errors. Absence returns all errors.
 	filePaths?: string[];
-	// sparse array of ranges, as numbers because it goes through JSON
-	// ignored if filePaths is missing / null.
 	ranges?: ([a: number, b: number, c: number, d: number] | undefined)[];
 }
 
@@ -73,7 +69,7 @@ export function annotateDiagnosticsWithCausality(diagnostics: vscode.Diagnostic[
 	});
 }
 
-export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrorsParams> {
+export class GetErrorsTool extends Disposable implements IAgentTool<IGetErrorsParams> {
 	public static readonly toolName = ToolName.GetErrors;
 	public static readonly nonDeferred = true;
 
@@ -89,14 +85,9 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 		super();
 	}
 
-	/**
-	 * Get diagnostics for the given paths and optional ranges.
-	 * Note - This is made public for testing purposes only.
-	 */
 	public getDiagnostics(paths: { uri: URI; range: Range | undefined }[]): Array<{ uri: URI; diagnostics: vscode.Diagnostic[]; inputUri?: URI }> {
 		const results: Array<{ uri: URI; diagnostics: vscode.Diagnostic[]; inputUri?: URI }> = [];
 
-		// for notebooks, we need to find the cell matching the range and get diagnostics for that cell
 		const nonNotebookPaths = paths.filter(p => {
 			const isNotebook = this.notebookService.hasSupportedNotebooks(p.uri);
 			if (isNotebook) {
@@ -113,16 +104,12 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 
 		const pendingMatchPaths = new Set(nonNotebookPaths.map(p => p.uri));
 
-		// for non-notebooks, we get all diagnostics and filter down
 		for (const [resource, entries] of this.languageDiagnosticsService.getAllDiagnostics()) {
 			const pendingDiagnostics = entries.filter(d => d.severity <= DiagnosticSeverity.Warning);
 			if (pendingDiagnostics.length === 0) {
 				continue;
 			}
 
-			// find all path&range pairs and collect the ranges to further filter diagnostics
-			// if any path matches the resource without a range, take all diagnostics for that file
-			// otherwise, filter diagnostics to those intersecting one of the provided ranges
 			const ranges: Range[] = [];
 			let shouldTakeAll = false;
 			let foundMatch = false;
@@ -130,18 +117,14 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 			let matchedExactPath = false;
 
 			for (const path of nonNotebookPaths) {
-				// we support file or folder paths
 				if (isEqualOrParent(resource, path.uri)) {
 					foundMatch = true;
 
-					// Track the input URI that matched - prefer exact matches, otherwise use the folder
 					const isExactMatch = resource.toString() === path.uri.toString();
 					if (isExactMatch) {
-						// Exact match - this is the file itself, no input folder
 						inputUri = undefined;
 						matchedExactPath = true;
 					} else if (!matchedExactPath) {
-						// Folder match - only set if we haven't found an exact match or a previous folder match
 						if (inputUri === undefined) {
 							inputUri = path.uri;
 						}
@@ -154,7 +137,6 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 					if (path.range) {
 						ranges.push(path.range);
 					} else {
-						// no range, so all diagnostics for this file
 						shouldTakeAll = true;
 						break;
 					}
@@ -172,7 +154,6 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 			}
 		}
 
-		// for any given paths that didn't match any files, return empty diagnostics for each of them
 		for (const uri of pendingMatchPaths) {
 			results.push({ uri, diagnostics: [] });
 		}
@@ -269,7 +250,6 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<IGetErrorsParams>, token: CancellationToken) {
 		const getAll = () => this.languageDiagnosticsService.getAllDiagnostics()
 			.map(d => ({ uri: d[0], diagnostics: d[1].filter(e => e.severity <= DiagnosticSeverity.Warning), inputUri: undefined }))
-			// filter any documents w/o warnings or errors
 			.filter(d => d.diagnostics.length > 0);
 
 		const getSome = (filePaths: string[]) =>
@@ -315,7 +295,7 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 						context: { document, language: getLanguage(document) },
 						inputUri: undefined
 					});
-				} catch { /* ignore */ }
+				} catch { }
 			}
 		}
 
@@ -327,8 +307,6 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 
 		const numDiagnostics = diagnostics.reduce((acc, { diagnostics }) => acc + diagnostics.length, 0);
 
-		// For display message, use inputUri if available (indicating file was found via folder input), otherwise use the file uri
-		// Deduplicate URIs since multiple files may have the same inputUri
 		const displayUriSet = new ResourceSet();
 		for (const d of diagnostics) {
 			const displayUri = d.inputUri ?? d.uri;
@@ -363,7 +341,6 @@ export class GetErrorsTool extends Disposable implements ICopilotTool<IGetErrors
 
 	prepareInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<IGetErrorsParams>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
 		if (!options.input.filePaths?.length) {
-			// When no file paths provided, check all files with diagnostics
 			return {
 				invocationMessage: new MarkdownString(l10n.t`Checking workspace for problems`),
 			};
@@ -519,7 +496,7 @@ export class DiagnosticToolOutput extends PromptElement<IDiagnosticToolOutputPro
 						? <Diagnostics
 							documentContext={d.context}
 							diagnostics={d.diagnostics}
-							includeRelatedInfos={false} // avoid blowing up the prompt #12655
+							includeRelatedInfos={false}
 						/>
 						: 'No errors found'}
 				</Tag>

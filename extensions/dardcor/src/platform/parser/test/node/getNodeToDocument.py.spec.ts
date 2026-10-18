@@ -62,13 +62,6 @@ suite('getNodeToDocument - python', () => {
 		`);
 	});
 
-	// Regression test for https://github.com/microsoft/vscode/issues/283165:
-	// when a Python function has a decorator, the documentable node should be
-	// the inner `function_definition` (not the wrapping `decorated_definition`),
-	// so that anything downstream (LLM prompt context, docstring insertion)
-	// treats the `def` line — not the `@decorator` line — as the start of the
-	// function. Otherwise docstrings end up *before* the decorator, which is a
-	// syntax error / Pylance error.
 	test('decorated function - cursor in body picks function_definition (not decorated_definition)', async () => {
 		const result = await run(
 			outdent`
@@ -242,12 +235,6 @@ suite('getNodeToDocument - python', () => {
 		`);
 	});
 
-	// Reproduces the exact scenario from
-	// https://github.com/microsoft/vscode/issues/283165: a Python file with an
-	// import and a single decorated function, with the user selecting the entire
-	// file content. The node-to-document must be the inner `function_definition`
-	// so that any docstring is inserted *inside* the function (after `def …:`),
-	// not above the `@pytest.fixture(...)` decorator.
 	test('issue #283165: decorated pytest fixture with whole-file selection', async () => {
 		const result = await run(
 			outdent`
@@ -276,11 +263,6 @@ suite('getNodeToDocument - python', () => {
 		`);
 	});
 
-	// Regression test: when the cursor is *on the decorator line*, the
-	// node-to-document must still be the inner function/class (with the range
-	// excluding the `@decorator`). Previously this would walk all the way up
-	// to the `module` node, which is a regression for `/doc` invoked with the
-	// cursor on `@decorator`.
 	test('decorated function - cursor on decorator picks function_definition (not module)', async () => {
 		const result = await run(
 			outdent`

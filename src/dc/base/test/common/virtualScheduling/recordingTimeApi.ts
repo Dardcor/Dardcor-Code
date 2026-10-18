@@ -7,29 +7,12 @@ import { realTimeApi, TimeApi } from './timeApi.js';
 import { Trace, TraceContext } from './trace.js';
 import { EventSource } from './virtualClock.js';
 
-/**
- * One entry in a real-time trace recording. Structurally compatible with
- * `VirtualEvent` (and `ScheduledTaskLike` consumed by
- * `buildHistoryFromTasks`), so the same swimlane renderer can plot both.
- */
 export interface RecordedTimerEvent {
 	readonly time: number;
 	readonly source: EventSource;
 	readonly trace?: Trace;
 }
 
-/**
- * Wrap the real host time API so every `setTimeout` / `setInterval` /
- * `requestAnimationFrame` call is tagged with a child {@link Trace} and
- * pushes a {@link RecordedTimerEvent} into `history` when the handler
- * actually runs.
- *
- * Handlers are invoked through {@link TraceContext.runAsHandler} so causal
- * chains carry across awaits inside a handler. Note: because each handler's
- * deferred trace-reset fires as its own real macrotask, attribution can
- * drift slightly when many handlers fire in quick succession — accurate
- * enough for diagnostics, not for assertions.
- */
 export function createRecordingRealTimeApi(history: RecordedTimerEvent[]): TimeApi {
 	const realSetTimeout = realTimeApi.setTimeout;
 
@@ -92,8 +75,6 @@ export function createRecordingRealTimeApi(history: RecordedTimerEvent[]): TimeA
 		performanceTimeOrigin: realTimeApi.performanceTimeOrigin,
 	};
 
-	// Preserve the `originalFn` back-door used by polling loops to escape
-	// any wrapping setTimeout (matches what `createVirtualTimeApi` does).
 	(api.setTimeout as unknown as { originalFn: TimeApi['setTimeout'] }).originalFn = realTimeApi.setTimeout;
 
 	return api;

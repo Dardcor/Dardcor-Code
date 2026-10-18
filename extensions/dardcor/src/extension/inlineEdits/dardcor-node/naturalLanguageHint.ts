@@ -21,7 +21,6 @@ export namespace LineCheck {
 	_keywordsByLanguage.set('rust', new Set(['as', 'break', 'const', 'continue', 'crate', 'else', 'enum', 'extern', 'false', 'fn', 'for', 'if', 'impl', 'in', 'let', 'loop', 'match', 'mod', 'move', 'mut', 'pub', 'ref', 'return', 'self', 'Self', 'static', 'struct', 'super', 'trait', 'true', 'type', 'unsafe', 'use', 'where', 'while', 'async', 'await', 'dyn']));
 	_keywordsByLanguage.set('ruby', new Set(['BEGIN', 'END', 'alias', 'and', 'begin', 'break', 'case', 'class', 'def', 'defined?', 'do', 'else', 'elsif', 'end', 'ensure', 'false', 'for', 'if', 'in', 'module', 'next', 'nil', 'not', 'or', 'redo', 'rescue', 'retry', 'return', 'self', 'super', 'then', 'true', 'undef', 'unless', 'until', 'when', 'while', 'yield']));
 
-	// typical keywords of various programming languages
 	_keywordsByLanguage.set('*', new Set(['abstract', 'as', 'async', 'await', 'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'enum', 'export', 'extends', 'false', 'finally', 'for', 'from', 'function', 'get', 'if', 'import', 'in', 'instanceof', 'interface', 'is', 'let', 'new', 'null', 'package', 'private', 'protected', 'public', 'return', 'static', 'super', 'switch', 'this', 'throw', 'true', 'try', 'type', 'typeof', 'var', 'void', 'while', 'with', 'yield']));
 
 	export const languages = Array.from(_keywordsByLanguage.keys());
@@ -81,7 +80,6 @@ export namespace LineCheck {
 
 		const last = result.at(-1);
 		if (last?.type === 'word') {
-			// check if this is a keyword prefix
 			for (const keyword of keywords ?? []) {
 				if (keyword.startsWith(last.value)) {
 					last.type = 'keyword_start';
@@ -95,8 +93,6 @@ export namespace LineCheck {
 
 	export function isNaturalLanguageDominated(document: vscode.TextDocument, position: vscode.Position): boolean {
 
-		// LOGIC: tokenize the line into words (as defined by the language), whitespace, and other
-		// characters (which can be a mix of whitespace and non-word characters).
 
 		const tokens = _classifyLine(document, position);
 
@@ -128,7 +124,6 @@ export namespace LineCheck {
 		}
 
 		if (tokens.length < 4 || spaceCount < 2) {
-			// too little content
 			return false;
 		}
 
@@ -137,11 +132,11 @@ export namespace LineCheck {
 		}
 
 		if ((keywordCount + keywordStartCount) >= wordCount) {
-			return false; // too many keywords
+			return false;
 		}
 
 		if (otherCount >= spaceCount) {
-			return false; // too much punctuation
+			return false;
 		}
 
 		return true;

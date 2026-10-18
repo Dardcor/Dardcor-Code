@@ -14,7 +14,6 @@ const RING_CAP = 50;
 const CONN_CACHE_TTL_MS = 30 * 1000;
 const PERIOD_MS = { "24h": 86400000, "7d": 604800000, "30d": 2592000000, "60d": 5184000000, "90d": 7776000000, "180d": 15552000000, "360d": 31104000000 };
 
-// In-memory state shared across Next.js modules
 if (!global._pendingRequests) global._pendingRequests = { byModel: {}, byAccount: {} };
 if (!global._lastErrorProvider) global._lastErrorProvider = { provider: "", ts: 0 };
 if (!global._statsEmitter) {
@@ -138,10 +137,7 @@ async function calculateCost(provider, model, tokens) {
     const pricing = await getPricingForModel(provider, model);
     if (!pricing) return 0;
 
-    // Delegate the actual math to the single source of truth (avoids the two
-    // copies drifting apart — see open-sse/providers/pricing.js for the
-    // cache-inclusive prompt_tokens convention this assumes).
-    const { calculateCostFromTokens } = await import("open-sse/providers/pricing.js");
+    const { calculateCostFromTokens } = await import("../../../../open-sse/providers/pricing.js").catch(() => import("open-sse/providers/pricing.js"));
     return calculateCostFromTokens(tokens, pricing);
   } catch (e) {
     console.error("Error calculating cost:", e);
@@ -189,7 +185,6 @@ export function trackPendingRequest(model, provider, connectionId, started, erro
     lastErrorProvider.ts = Date.now();
   }
 
-  // [PENDING] console line removed; lifecycle is visible via "▶" and "📊 done" lines
   scheduleStatsEvent("pending");
 }
 
@@ -252,8 +247,6 @@ export async function saveRequestUsage(entry) {
 
     let inserted = false;
 
-    // All 3 writes (history insert, daily upsert, lifetime counter) in ONE transaction.
-    // better-sqlite3 is sync → no JS yield mid-transaction → no race in same process.
     db.transaction(() => {
       const existing = hasExplicitTimestamp
         ? db.get(
@@ -300,7 +293,6 @@ export async function saveRequestUsage(entry) {
       aggregateEntryToDay(day, entry);
       db.run(`INSERT INTO usageDaily(dateKey, data) VALUES(?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`, [dateKey, stringifyJson(day)]);
 
-      // Atomic counter increment in same transaction
       const cur = db.get(`SELECT value FROM _meta WHERE key = 'totalRequestsLifetime'`);
       const next = (cur ? parseInt(cur.value, 10) : 0) + 1;
       db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [String(next)]);
@@ -371,7 +363,6 @@ export async function getUsageStats(period = "all") {
   const apiKeyMap = {};
   for (const k of allApiKeys) apiKeyMap[k.key] = { name: k.name, id: k.id, createdAt: k.createdAt };
 
-  // recentRequests from live history (last 100 entries enough for 20 deduped)
   const recentRows = db.all(`SELECT timestamp, provider, model, tokens, status FROM usageHistory ORDER BY id DESC LIMIT 100`);
   const seen = new Set();
   const recentRequests = recentRows
@@ -406,7 +397,6 @@ export async function getUsageStats(period = "all") {
     errorProvider: (Date.now() - lastErrorProvider.ts < 10000) ? lastErrorProvider.provider : "",
   };
 
-  // Active requests
   for (const [connectionId, models] of Object.entries(pendingRequests.byAccount)) {
     for (const [modelKey, count] of Object.entries(models)) {
       if (count > 0) {
@@ -421,7 +411,6 @@ export async function getUsageStats(period = "all") {
     }
   }
 
-  // last10Minutes — query 10min window
   const now = new Date();
   const currentMinuteStart = new Date(Math.floor(now.getTime() / 60000) * 60000);
   const tenMinutesAgo = new Date(currentMinuteStart.getTime() - 9 * 60 * 1000);
@@ -540,7 +529,6 @@ export async function getUsageStats(period = "all") {
       }
     }
 
-    // Overlay precise lastUsed timestamps from history
     const overlayCutoff = maxDays ? Date.now() - maxDays * 86400000 : 0;
     const histRows = db.all(
       `SELECT timestamp, provider, model, connectionId, apiKey, endpoint FROM usageHistory WHERE timestamp >= ?`,
@@ -567,7 +555,6 @@ export async function getUsageStats(period = "all") {
       if (stats.byEndpoint[endpointKey] && new Date(ts) > new Date(stats.byEndpoint[endpointKey].lastUsed)) stats.byEndpoint[endpointKey].lastUsed = ts;
     }
   } else {
-    // 24h / today: live history
     let cutoff;
     if (period === "today") {
       const startOfDay = new Date();
@@ -717,7 +704,6 @@ export async function getChartData(period = "7d") {
   const today = new Date();
   const labelFn = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-  // Build map of dateKey → day data
   const dayRows = loadDaysInRange(db, bucketCount);
   const dayMap = {};
   for (const r of dayRows) dayMap[r.dateKey] = parseJson(r.data, {});
@@ -740,7 +726,6 @@ function formatLogDate(date = new Date()) {
   return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-// No-op: request log is now derived from usageHistory table on read.
 export async function appendRequestLog() {}
 
 export async function getRecentLogs(limit = 200) {

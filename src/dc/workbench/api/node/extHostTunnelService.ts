@@ -73,14 +73,12 @@ export function parseIpAddress(hex: string): string {
 			}
 		}
 	} else {
-		// Nice explanation of host format in tcp6 file: https://serverfault.com/questions/592574/why-does-proc-net-tcp6-represents-1-as-1000
 		for (let i = 0; i < hex.length; i += 8) {
 			const word = hex.substring(i, i + 8);
 			let subWord = '';
 			for (let j = 8; j >= 2; j -= 2) {
 				subWord += word.substring(j - 2, j);
 				if ((j === 6) || (j === 2)) {
-					// Trim leading zeros
 					subWord = parseInt(subWord, 16).toString(16);
 					result += `${subWord}`;
 					subWord = '';
@@ -160,8 +158,6 @@ export function tryFindRootPorts(connections: { socket: number; ip: string; port
 		const rootProcessMatch = rootProcesses.find((value) => value.cmd.includes(`${connection.port}`));
 		if (rootProcessMatch) {
 			let bestMatch = rootProcessMatch;
-			// There are often several processes that "look" like they could match the port.
-			// The one we want is usually the child of the other. Find the most child process.
 			let mostChild: { pid: number; cmd: string; ppid: number } | undefined;
 			do {
 				mostChild = rootProcesses.find(value => value.ppid === bestMatch.pid);
@@ -199,20 +195,17 @@ export class NodeExtHostTunnelService extends ExtHostTunnelService {
 
 	override async $registerCandidateFinder(enable: boolean): Promise<void> {
 		if (enable && this._candidateFindingEnabled) {
-			// already enabled
 			return;
 		}
 
 		this._candidateFindingEnabled = enable;
 		let oldPorts: { host: string; port: number; detail?: string }[] | undefined = undefined;
 
-		// If we already have found initial candidates send those immediately.
 		if (this._initialCandidates) {
 			oldPorts = this._initialCandidates;
 			await this._proxy.$onFoundNewCandidates(this._initialCandidates);
 		}
 
-		// Regularly scan to see if the candidate ports have changed.
 		const movingAverage = new MovingAverage();
 		let scanCount = 0;
 		while (this._candidateFindingEnabled) {
@@ -221,7 +214,6 @@ export class NodeExtHostTunnelService extends ExtHostTunnelService {
 			this.logService.trace(`ForwardedPorts: (ExtHostTunnelService) found candidate ports ${newPorts.map(port => port.port).join(', ')}`);
 			const timeTaken = new Date().getTime() - startTime;
 			this.logService.trace(`ForwardedPorts: (ExtHostTunnelService) candidate port scan took ${timeTaken} ms.`);
-			// Do not count the first few scans towards the moving average as they are likely to be slower.
 			if (scanCount++ > 3) {
 				movingAverage.update(timeTaken);
 			}
@@ -236,7 +228,6 @@ export class NodeExtHostTunnelService extends ExtHostTunnelService {
 	}
 
 	private calculateDelay(movingAverage: number) {
-		// Some local testing indicated that the moving average might be between 50-100 ms.
 		return Math.max(movingAverage * 20, 2000);
 	}
 
@@ -252,7 +243,6 @@ export class NodeExtHostTunnelService extends ExtHostTunnelService {
 			tcp = await fs.promises.readFile('/proc/net/tcp', 'utf8');
 			tcp6 = await fs.promises.readFile('/proc/net/tcp6', 'utf8');
 		} catch (e) {
-			// File reading error. No additional handling needed.
 		}
 		const connections: { socket: number; ip: string; port: number }[] = loadListeningPorts(tcp, tcp6);
 
@@ -278,7 +268,6 @@ export class NodeExtHostTunnelService extends ExtHostTunnelService {
 					processes.push({ pid, cwd, cmd });
 				}
 			} catch (e) {
-				//
 			}
 		}
 
@@ -327,8 +316,6 @@ export class NodeExtHostTunnelService extends ExtHostTunnelService {
 					quality: this.initData.quality,
 					logService: this.logService,
 					ipcLogger: null,
-					// services and address providers have stubs since we don't need
-					// the connection identification that the renderer process uses
 					remoteSocketFactoryService: {
 						_serviceBrand: undefined,
 						async connect(_connectTo: ManagedRemoteConnection, path: string, query: string, debugLabel: string): Promise<ISocket> {

@@ -10,46 +10,11 @@ import { Position } from './core/position.js';
 import { InjectedTextCursorStops, InjectedTextOptions, PositionAffinity } from './model.js';
 import { LineInjectedText } from './textModelEvents.js';
 
-/**
- * *input*:
- * ```
- * xxxxxxxxxxxxxxxxxxxxxxxxxxx
- * ```
- *
- * -> Applying injections `[i...i]`, *inputWithInjections*:
- * ```
- * xxxxxx[iiiiiiiiii]xxxxxxxxxxxxxxxxx[ii]xxxx
- * ```
- *
- * -> breaking at offsets `|` in `xxxxxx[iiiiiii|iii]xxxxxxxxxxx|xxxxxx[ii]xxxx|`:
- * ```
- * xxxxxx[iiiiiii
- * iii]xxxxxxxxxxx
- * xxxxxx[ii]xxxx
- * ```
- *
- * -> applying wrappedTextIndentLength, *output*:
- * ```
- * xxxxxx[iiiiiii
- *    iii]xxxxxxxxxxx
- *    xxxxxx[ii]xxxx
- * ```
- */
 export class ModelLineProjectionData {
 	constructor(
 		public injectionOffsets: number[] | null,
-		/**
-		 * `injectionOptions.length` must equal `injectionOffsets.length`
-		 */
 		public injectionOptions: InjectedTextOptions[] | null,
-		/**
-		 * Refers to offsets after applying injections to the source.
-		 * The last break offset indicates the length of the source after applying injections.
-		 */
 		public breakOffsets: number[],
-		/**
-		 * Refers to offsets after applying injections
-		 */
 		public breakOffsetsVisibleColumn: number[],
 		public wrappedTextIndentLength: number
 	) {
@@ -67,7 +32,6 @@ export class ModelLineProjectionData {
 	}
 
 	public getLineLength(outputLineIndex: number): number {
-		// These offsets refer to model text with injected text.
 		const startOffset = outputLineIndex > 0 ? this.breakOffsets[outputLineIndex - 1] : 0;
 		const endOffset = this.breakOffsets[outputLineIndex];
 
@@ -94,7 +58,6 @@ export class ModelLineProjectionData {
 			for (let i = 0; i < this.injectionOffsets.length; i++) {
 				if (offsetInInput > this.injectionOffsets[i]) {
 					if (offsetInInput < this.injectionOffsets[i] + this.injectionOptions![i].content.length) {
-						// `inputOffset` is within injected text
 						offsetInInput = this.injectionOffsets[i];
 					} else {
 						offsetInInput -= this.injectionOptions![i].content.length;
@@ -171,7 +134,6 @@ export class ModelLineProjectionData {
 			const offsetInInputWithInjections = this.outputPositionToOffsetInInputWithInjections(outputLineIndex, outputOffset);
 			const normalizedOffsetInUnwrappedLine = this.normalizeOffsetInInputWithInjectionsAroundInjections(offsetInInputWithInjections, affinity);
 			if (normalizedOffsetInUnwrappedLine !== offsetInInputWithInjections) {
-				// injected text caused a change
 				return this.offsetInInputWithInjectionsToOutputPosition(normalizedOffsetInUnwrappedLine, affinity);
 			}
 		}
@@ -232,17 +194,14 @@ export class ModelLineProjectionData {
 		} else if (affinity === PositionAffinity.Right || affinity === PositionAffinity.RightOfInjectedText) {
 			let result = injectedText.offsetInInputWithInjections + injectedText.length;
 			let index = injectedText.injectedTextIndex;
-			// traverse all injected text that touch each other
 			while (index + 1 < this.injectionOffsets!.length && this.injectionOffsets![index + 1] === this.injectionOffsets![index]) {
 				result += this.injectionOptions![index + 1].content.length;
 				index++;
 			}
 			return result;
 		} else if (affinity === PositionAffinity.Left || affinity === PositionAffinity.LeftOfInjectedText) {
-			// affinity is left
 			let result = injectedText.offsetInInputWithInjections;
 			let index = injectedText.injectedTextIndex;
-			// traverse all injected text that touch each other
 			while (index - 1 >= 0 && this.injectionOffsets![index - 1] === this.injectionOffsets![index]) {
 				result -= this.injectionOptions![index - 1].content.length;
 				index--;
@@ -276,12 +235,10 @@ export class ModelLineProjectionData {
 				const injectedTextEndOffsetInInputWithInjections = injectionOffsets[i] + totalInjectedTextLengthBefore + length;
 
 				if (injectedTextStartOffsetInInputWithInjections > offsetInInputWithInjections) {
-					// Injected text starts later.
-					break; // All later injected texts have an even larger offset.
+					break;
 				}
 
 				if (offsetInInputWithInjections <= injectedTextEndOffsetInInputWithInjections) {
-					// Injected text ends after or with the given position (but also starts with or before it).
 					return {
 						injectedTextIndex: i,
 						offsetInInputWithInjections: injectedTextStartOffsetInInputWithInjections,
@@ -338,9 +295,6 @@ export interface ILineBreaksComputerFactory {
 }
 
 export interface ILineBreaksComputer {
-	/**
-	 * Pass in `previousLineBreakData` if the only difference is in breaking columns!!!
-	 */
 	addRequest(lineNumber: number, previousLineBreakData: ModelLineProjectionData | null): void;
 	finalize(): (ModelLineProjectionData | null)[];
 }

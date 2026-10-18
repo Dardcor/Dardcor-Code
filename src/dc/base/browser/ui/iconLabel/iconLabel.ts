@@ -354,7 +354,6 @@ class LabelWithHighlights extends Disposable {
 		this.label = label;
 		this.options = options;
 
-		// Determine supportIcons: use option if provided, otherwise use constructor value
 		const supportIcons = options?.supportIcons ?? this.supportIcons;
 
 		if (typeof label === 'string') {

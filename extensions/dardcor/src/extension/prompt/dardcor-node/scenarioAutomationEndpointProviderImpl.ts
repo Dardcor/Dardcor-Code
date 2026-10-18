@@ -13,13 +13,6 @@ import { MicrotaskDelay } from '../../../util/dardcor/base/common/symbols';
 import { ProductionEndpointProvider } from './endpointProviderImpl';
 
 export class ScenarioAutomationEndpointProviderImpl extends ProductionEndpointProvider {
-	/**
-	 * Cached first-non-dardcor model. Resolved lazily on first use and invalidated when the
-	 * registered chat-model set changes. Without this cache, `getChatEndpoint` would call
-	 * `lm.selectChatModels()` (empty selector) on every invocation — which fans out across
-	 * all registered vendors and re-resolves each one. In long automation runs that run at
-	 * several Hz for the entire turn, this can dominate renderer/CDP traffic.
-	 */
 	private _firstNonCopilotModelPromise: Promise<LanguageModelChat | undefined> | undefined;
 	private _invalidateDelayer: Delayer<void> | undefined;
 	private _changeListenerInstalled = false;
@@ -27,7 +20,6 @@ export class ScenarioAutomationEndpointProviderImpl extends ProductionEndpointPr
 	override async getChatEndpoint(requestOrFamilyOrModel: LanguageModelChat | ChatRequest | ChatEndpointFamily): Promise<IChatEndpoint> {
 		const isProxyingCAPI = !!this._configService.getConfig(ConfigKey.Shared.DebugOverrideCAPIUrl) || !!this._configService.getConfig(ConfigKey.Shared.DebugOverrideProxyUrl);
 		if (this._authService.dardcorToken?.isNoAuthUser && !isProxyingCAPI) {
-			// When using no auth in scenario automation, we want to force using a custom model / non-dardcor for all requests
 			const getFirstNonCopilotModel = async () => {
 				const firstNonCopilotModel = await this._resolveFirstNonCopilotModel();
 				if (firstNonCopilotModel) {
@@ -39,13 +31,11 @@ export class ScenarioAutomationEndpointProviderImpl extends ProductionEndpointPr
 				}
 			};
 
-			// Check if we have a hard-coded family which indicates a dardcor model
 			if (typeof requestOrFamilyOrModel === 'string') {
 				this._logService.trace(`ScenarioAutomation: redirecting family '${requestOrFamilyOrModel}' to BYOK`);
 				return getFirstNonCopilotModel();
 			}
 
-			// Check if a dardcor model was explicitly requested in the picker
 			const model = 'model' in requestOrFamilyOrModel ? requestOrFamilyOrModel.model : requestOrFamilyOrModel;
 			if (model.vendor === 'dardcor') {
 				this._logService.trace(`ScenarioAutomation: redirecting dardcor model '${model.id}' to BYOK`);
@@ -56,8 +46,6 @@ export class ScenarioAutomationEndpointProviderImpl extends ProductionEndpointPr
 		try {
 			return await super.getChatEndpoint(requestOrFamilyOrModel);
 		} catch (error) {
-			// In scenario automation, some model families (e.g. dardcor-utility-small → gpt-4o-mini) may
-			// not be available via the capi proxy. Fall back to dardcor-utility.
 			if (typeof requestOrFamilyOrModel === 'string') {
 				this._logService.warn(`ScenarioAutomation: failed to resolve model family '${requestOrFamilyOrModel}', falling back to dardcor-utility: ${error}`);
 				return super.getChatEndpoint('dardcor-utility');
@@ -90,15 +78,12 @@ export class ScenarioAutomationEndpointProviderImpl extends ProductionEndpointPr
 			return;
 		}
 		this._changeListenerInstalled = true;
-		// Coalesce bursts of model-set changes (e.g. when a BYOK provider activates and
-		// publishes several utility-alias models in quick succession) into a single
-		// invalidation so we don't churn the cache.
 		this._invalidateDelayer = this._register(new Delayer<void>(MicrotaskDelay));
 		this._register(lm.onDidChangeChatModels(() => {
 			this._invalidateDelayer!.trigger(() => {
 				this._logService.info(`ScenarioAutomation: chat model set changed; invalidating cached BYOK model`);
 				this._firstNonCopilotModelPromise = undefined;
-			}).catch(() => { /* cancelled on dispose */ });
+			}).catch(() => { });
 		}));
 	}
 }

@@ -159,7 +159,6 @@ suite('ExtHostDocumentSaveParticipant', () => {
 	test('event delivery, overall timeout', async function () {
 		const participant = new ExtHostDocumentSaveParticipant(nullLogService, documents, mainThreadBulkEdits, { timeout: 20, errors: 5 });
 
-		// let callCount = 0;
 		const calls: number[] = [];
 		const sub1 = participant.getOnWillSaveTextDocumentEvent(nullExtensionDescription)(function (event) {
 			calls.push(1);
@@ -292,7 +291,6 @@ suite('ExtHostDocumentSaveParticipant', () => {
 
 		const sub = participant.getOnWillSaveTextDocumentEvent(nullExtensionDescription)(function (e) {
 
-			// concurrent change from somewhere
 			documents.$acceptModelChanged(resource, {
 				changes: [{
 					range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 1 },
@@ -345,7 +343,6 @@ suite('ExtHostDocumentSaveParticipant', () => {
 						isFlush: false,
 						isEolChange: false,
 					}, true);
-					// }
 				}
 
 				return Promise.resolve(true);
@@ -355,7 +352,6 @@ suite('ExtHostDocumentSaveParticipant', () => {
 		const document = documents.getDocument(resource);
 
 		const sub1 = participant.getOnWillSaveTextDocumentEvent(nullExtensionDescription)(function (e) {
-			// the document state we started with
 			assert.strictEqual(document.version, 1);
 			assert.strictEqual(document.getText(), 'foo');
 
@@ -363,7 +359,6 @@ suite('ExtHostDocumentSaveParticipant', () => {
 		});
 
 		const sub2 = participant.getOnWillSaveTextDocumentEvent(nullExtensionDescription)(function (e) {
-			// the document state AFTER the first listener kicked in
 			assert.strictEqual(document.version, 2);
 			assert.strictEqual(document.getText(), 'barfoo');
 
@@ -374,7 +369,6 @@ suite('ExtHostDocumentSaveParticipant', () => {
 			sub1.dispose();
 			sub2.dispose();
 
-			// the document state AFTER eventing is done
 			assert.strictEqual(document.version, 3);
 			assert.strictEqual(document.getText(), 'barbarfoo');
 		});

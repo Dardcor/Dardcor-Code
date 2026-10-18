@@ -45,10 +45,6 @@ const getTools = (instaService: IInstantiationService, request: vscode.ChatReque
 		const endpointProvider = accessor.get<IEndpointProvider>(IEndpointProvider);
 		const model = await endpointProvider.getChatEndpoint(request);
 
-		// Special case...
-		// Since AskAgent currently has no tool picker, have to duplicate the toolReference logic here.
-		// When it's no longer experimental, it should be a custom mode, have a tool picker, etc.
-		// And must return boolean to avoid falling back on other logic that we don't want, like the `extension_installed_by_tool` check.
 		return toolsService.getEnabledTools(request, model, tool => tool.tags.some(tag => lookForTags.has(tag)) || request.toolReferences.some(ref => ref.name === tool.name));
 	});
 

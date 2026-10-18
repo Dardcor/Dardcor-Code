@@ -142,16 +142,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 				notebookEditor.setOptions({ isReadOnly: true });
 			} else if (originalReadonly === false) {
 				notebookEditor.setOptions({ isReadOnly: false });
-				// Ensure all cells area editable.
-				// We make use of chatEditingCodeEditorIntegration to handle cell diffing and navigation.
-				// However that also makes the cell read-only. We need to ensure that the cell is editable.
-				// E.g. first we make notebook readonly (in here), then cells end up being readonly because notebook is readonly.
-				// Then chatEditingCodeEditorIntegration makes cells readonly and keeps track of the original readonly state.
-				// However the cell is already readonly because the notebook is readonly.
-				// So when we restore the notebook to editable (in here), the cell is made editable again.
-				// But when chatEditingCodeEditorIntegration attempts to restore, it will restore the original readonly state.
-				// & from the perpspective of chatEditingCodeEditorIntegration, the cell was readonly & should continue to be readonly.
-				// To get around this, we wait for a few ms before restoring the original readonly state for each cell.
 				const timeout = setTimeout(() => {
 					notebookEditor.setOptions({ isReadOnly: true });
 					notebookEditor.setOptions({ isReadOnly: false });
@@ -162,7 +152,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 			}
 		}));
 
-		// INIT when not streaming nor diffing the response anymore, once per request, and when having changes
 		let lastModifyingRequestId: string | undefined;
 		this._store.add(autorun(r => {
 
@@ -172,7 +161,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 				&& cellChanges.read(r).some(c => c.type !== 'unchanged' && !c.diff.read(r).identical)
 			) {
 				lastModifyingRequestId = _entry.lastModifyingRequestId;
-				// Check if any of the changes are visible, if not, reveal the first change.
 				const visibleChange = this.sortedCellChanges.find(c => {
 					if (c.type === 'unchanged') {
 						return false;
@@ -202,7 +190,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 			}
 		}));
 
-		// Build cell integrations (responsible for navigating changes within a cell and decorating cell text changes)
 		this._register(autorun(r => {
 			if (this.notebookEditor.textModel !== this.notebookModel) {
 				return;
@@ -255,7 +242,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 				validCells.add(cell);
 				const currentDiff = this.cellEditorIntegrations.get(cell);
 				if (currentDiff) {
-					// Do not unnecessarily trigger a change event
 					if (!areDocumentDiff2Equal(currentDiff.diff.read(undefined), diff)) {
 						currentDiff.diff.set(diff, undefined);
 					}
@@ -277,7 +263,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 				}
 			});
 
-			// Dispose old integrations as the editors are no longer valid.
 			this.cellEditorIntegrations.forEach((v, cell) => {
 				if (!validCells.has(cell)) {
 					v.integration.dispose();
@@ -292,12 +277,10 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 			if (this.notebookEditor.textModel !== this.notebookModel || !cellsAreVisible.read(r) || !this.notebookEditor.getViewModel()) {
 				return;
 			}
-			// We can have inserted cells that have been accepted, in those cases we do not want any decorators on them.
 			const changes = debouncedChanges.read(r).filter(c => c.type === 'insert' ? !c.diff.read(r).identical : true);
 			const modifiedChanges = changes.filter(c => c.type === 'modified');
 
 			this.createDecorators();
-			// If all cells are just inserts, then no need to show any decorations.
 			if (changes.every(c => c.type === 'insert')) {
 				this.insertedCellDecorator?.apply([]);
 				this.modifiedCellDecorator?.apply([]);
@@ -347,7 +330,7 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 				if (!action.class) {
 					return new class extends ActionViewItem {
 						constructor() {
-							super(undefined, action, { ...options, keybindingNotRenderedWithLabel: true /* hide keybinding for actions without icon */, icon: false, label: true });
+							super(undefined, action, { ...options, keybindingNotRenderedWithLabel: true , icon: false, label: true });
 						}
 					};
 				}
@@ -402,7 +385,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 				}
 			case 'delete':
 				this.blur(this.getCurrentChange()?.change);
-				// reveal the deleted cell decorator
 				this.deletedCellDecorator?.reveal(change.originalCellIndex);
 				this.updateCurrentIndex(change);
 				return true;
@@ -430,7 +412,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 				}
 			case 'delete':
 				this.updateCurrentIndex(change);
-				// reveal the deleted cell decorator
 				this.deletedCellDecorator?.reveal(change.originalCellIndex);
 				return true;
 			default:
@@ -493,8 +474,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 			return false;
 		}
 
-		// go to next
-		// first check if we are at the end of the current change
 		switch (currentChange.change.type) {
 			case 'modified':
 				{
@@ -525,7 +504,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 			case 'delete':
 				{
 					this.blur(currentChange.change);
-					// go to next change directly
 					const nextChange = changes[changes.indexOf(currentChange.change) + 1];
 					if (nextChange && this._revealFirstOrLast(nextChange, true)) {
 						return true;
@@ -558,8 +536,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 			return false;
 		}
 
-		// go to previous
-		// first check if we are at the start of the current change
 		switch (currentChange.change.type) {
 			case 'modified':
 				{
@@ -589,7 +565,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 			case 'delete':
 				{
 					this.blur(currentChange.change);
-					// go to previous change directly
 					const prevChange = changes[changes.indexOf(currentChange.change) - 1];
 					if (prevChange && this._revealFirstOrLast(prevChange, false)) {
 						return true;
@@ -632,7 +607,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 		} else {
 			const current = this.getCurrentChange();
 			const focused = this.getfocusedIntegration();
-			// delete changes can't be focused
 			if (current && !focused || current?.change.type === 'delete') {
 				current.change.keep(current?.change.diff.get().changes[current.index]);
 			} else if (focused) {
@@ -650,7 +624,6 @@ class ChatEditingNotebookEditorWidgetIntegration extends Disposable implements I
 		} else {
 			const current = this.getCurrentChange();
 			const focused = this.getfocusedIntegration();
-			// delete changes can't be focused
 			if (current && !focused || current?.change.type === 'delete') {
 				current.change.undo(current.change.diff.get().changes[current.index]);
 			} else if (focused) {
@@ -687,9 +660,6 @@ export class ChatEditingNotebookDiffEditorIntegration extends Disposable impleme
 			const index = notebookDiffEditor.currentChangedIndex.read(r);
 			const numberOfCellChanges = cellChanges.read(r).filter(c => !c.diff.read(r).identical);
 			if (numberOfCellChanges.length && index >= 0 && index < numberOfCellChanges.length) {
-				// Notebook Diff editor only supports navigating through changes to cells.
-				// However in chat we take changes to lines in the cells into account.
-				// So if we're on the second cell and first cell has 3 changes, then we're on the 4th change.
 				const changesSoFar = countChanges(numberOfCellChanges.slice(0, index + 1));
 				this._currentIndex.set(changesSoFar - 1, undefined);
 			} else {
@@ -729,7 +699,6 @@ export class ChatEditingNotebookDiffEditorIntegration extends Disposable impleme
 	}
 
 	enableAccessibleDiffView(): void {
-		//
 	}
 	async acceptNearestChange(change: IModifiedFileEntryChangeHunk): Promise<void> {
 		await change.accept();
@@ -740,7 +709,6 @@ export class ChatEditingNotebookDiffEditorIntegration extends Disposable impleme
 		this.next(true);
 	}
 	async toggleDiff(_change: IModifiedFileEntryChangeHunk | undefined, _show?: boolean): Promise<void> {
-		//
 	}
 }
 

@@ -15,10 +15,6 @@ import { ExpressionContainer } from './debugModel.js';
 let topReplElementCounter = 0;
 const getUniqueId = () => `topReplElement:${topReplElementCounter++}`;
 
-/**
- * General case of data from DAP the `output` event. {@link ReplVariableElement}
- * is used instead only if there is a `variablesReference` with no `output` text.
- */
 export class ReplOutputElement implements INestingReplElement {
 
 	private _count = 1;
@@ -69,7 +65,6 @@ export class ReplOutputElement implements INestingReplElement {
 	}
 }
 
-/** Top-level variable logged via DAP output when there's no `output` string */
 export class ReplVariableElement implements INestingReplElement {
 	public readonly hasChildren: boolean;
 	private readonly id = generateUuid();
@@ -102,7 +97,7 @@ export class ReplVariableElement implements INestingReplElement {
 
 export class RawObjectReplElement implements IExpression, INestingReplElement {
 
-	private static readonly MAX_CHILDREN = 1000; // upper bound of children per value
+	private static readonly MAX_CHILDREN = 1000;
 
 	constructor(private id: string, public name: string, public valueObj: any, public sourceData?: IReplElementSource, public annotation?: string) { }
 
@@ -289,15 +284,12 @@ export class ReplModel {
 		const clearAnsiSequence = '\u001b[2J';
 		const clearAnsiIndex = output.lastIndexOf(clearAnsiSequence);
 		if (clearAnsiIndex !== -1) {
-			// [2J is the ansi escape sequence for clearing the display http://ascii-table.com/ansi-escape-sequences.php
 			this.removeReplExpressions();
 			this.appendToRepl(session, { output: nls.localize('consoleCleared', "Console was cleared"), sev: severity.Ignore });
 			output = output.substring(clearAnsiIndex + clearAnsiSequence.length);
 		}
 
 		if (expression) {
-			// if there is an output string, prefer to show that, since the DA could
-			// have formatted it nicely e.g. with ANSI color codes.
 			this.addReplElement(output
 				? new ReplOutputElement(session, getUniqueId(), output, sev, source, expression)
 				: new ReplVariableElement(session, expression, sev, source));
@@ -311,22 +303,17 @@ export class ReplModel {
 		const config = this.configurationService.getValue<IDebugConfiguration>('debug');
 		const previousElement = this.replElements.length ? this.replElements[this.replElements.length - 1] : undefined;
 
-		// Handle concatenation of incomplete lines first
 		if (previousElement instanceof ReplOutputElement && previousElement.severity === sev && areSourcesEqual(previousElement.sourceData, source)) {
 			if (!previousElement.value.endsWith('\n') && !previousElement.value.endsWith('\r\n') && previousElement.count === 1) {
-				// Concatenate with previous incomplete line
 				const combinedOutput = previousElement.value + output;
 				this.replElements[this.replElements.length - 1] = new ReplOutputElement(
 					session, getUniqueId(), combinedOutput, sev, source);
 				this._onDidChangeElements.fire(undefined);
 
-				// If the combined output now forms a complete line and collapsing is enabled,
-				// check if it can be collapsed with previous elements
 				if (config.console.collapseIdenticalLines && combinedOutput.endsWith('\n')) {
 					this.tryCollapseCompleteLine(sev, source);
 				}
 
-				// If the combined output contains multiple lines, apply line-level collapsing
 				if (config.console.collapseIdenticalLines && combinedOutput.includes('\n')) {
 					const lines = this.splitIntoLines(combinedOutput);
 					if (lines.length > 1) {
@@ -337,15 +324,12 @@ export class ReplModel {
 			}
 		}
 
-		// If collapsing is enabled and the output contains line breaks, parse and collapse at line level
 		if (config.console.collapseIdenticalLines && output.includes('\n')) {
 			this.processMultiLineOutput(session, output, sev, source);
 		} else {
-			// For simple output without line breaks, use the original logic
 			if (previousElement instanceof ReplOutputElement && previousElement.severity === sev && areSourcesEqual(previousElement.sourceData, source)) {
 				if (previousElement.value === output && config.console.collapseIdenticalLines) {
 					previousElement.count++;
-					// No need to fire an event, just the count updates and badge will adjust automatically
 					return;
 				}
 			}
@@ -356,7 +340,6 @@ export class ReplModel {
 	}
 
 	private tryCollapseCompleteLine(sev: severity, source?: IReplElementSource): void {
-		// Try to collapse the last element with the second-to-last if they are identical complete lines
 		if (this.replElements.length < 2) {
 			return;
 		}
@@ -374,7 +357,6 @@ export class ReplModel {
 			lastElement.count === 1 &&
 			lastElement.value.endsWith('\n')) {
 
-			// Collapse the last element into the second-to-last
 			secondToLastElement.count += lastElement.count;
 			this.replElements.pop();
 			this._onDidChangeElements.fire(undefined);
@@ -382,7 +364,6 @@ export class ReplModel {
 	}
 
 	private processMultiLineOutput(session: IDebugSession, output: string, sev: severity, source?: IReplElementSource): void {
-		// Split output into lines, preserving line endings
 		const lines = this.splitIntoLines(output);
 
 		for (const line of lines) {
@@ -390,13 +371,11 @@ export class ReplModel {
 
 			const previousElement = this.replElements.length ? this.replElements[this.replElements.length - 1] : undefined;
 
-			// Check if this line can be collapsed with the previous one
 			if (previousElement instanceof ReplOutputElement &&
 				previousElement.severity === sev &&
 				areSourcesEqual(previousElement.sourceData, source) &&
 				previousElement.value === line) {
 				previousElement.count++;
-				// No need to fire an event, just the count updates and badge will adjust automatically
 			} else {
 				const element = new ReplOutputElement(session, getUniqueId(), line, sev, source);
 				this.addReplElement(element);
@@ -405,7 +384,6 @@ export class ReplModel {
 	}
 
 	private splitIntoLines(text: string): string[] {
-		// Split text into lines while preserving line endings, using indexOf for efficiency
 		const lines: string[] = [];
 		let start = 0;
 
@@ -423,7 +401,6 @@ export class ReplModel {
 	}
 
 	private applyLineLevelCollapsing(session: IDebugSession, sev: severity, source?: IReplElementSource): void {
-		// Apply line-level collapsing to the last element if it contains multiple lines
 		const lastElement = this.replElements[this.replElements.length - 1];
 		if (!(lastElement instanceof ReplOutputElement) || lastElement.severity !== sev || !areSourcesEqual(lastElement.sourceData, source)) {
 			return;
@@ -431,19 +408,16 @@ export class ReplModel {
 
 		const lines = this.splitIntoLines(lastElement.value);
 		if (lines.length <= 1) {
-			return; // No multiple lines to collapse
+			return;
 		}
 
-		// Remove the last element and reprocess it as multiple lines
 		this.replElements.pop();
 
-		// Process each line and try to collapse with existing elements
 		for (const line of lines) {
 			if (line.length === 0) { continue; }
 
 			const previousElement = this.replElements.length ? this.replElements[this.replElements.length - 1] : undefined;
 
-			// Check if this line can be collapsed with the previous one
 			if (previousElement instanceof ReplOutputElement &&
 				previousElement.severity === sev &&
 				areSourcesEqual(previousElement.sourceData, source) &&
@@ -491,7 +465,6 @@ export class ReplModel {
 		}
 	}
 
-	/** Returns a new REPL model that's a copy of this one. */
 	clone() {
 		const newRepl = new ReplModel(this.configurationService);
 		newRepl.replElements = this.replElements.slice();

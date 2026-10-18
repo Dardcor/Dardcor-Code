@@ -58,7 +58,6 @@ export class ContextProviderBridge implements ICompletionsContextProviderBridgeS
 		);
 
 		this.scheduledResolutions.set(completionId, resolutionPromise);
-		// intentionally not awaiting to avoid blocking
 	}
 
 	async resolution(id: string): Promise<ResolvedContextItem[]> {

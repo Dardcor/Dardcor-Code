@@ -134,7 +134,6 @@ export class Configuration extends BaseConfiguration {
 
 	override compareAndDeleteFolderConfiguration(folder: URI): IConfigurationChange {
 		if (this._workspace && this._workspace.folders.length > 0 && this._workspace.folders[0].uri.toString() === folder.toString()) {
-			// Do not remove workspace configuration
 			return { keys: [], overrides: [] };
 		}
 		return super.compareAndDeleteFolderConfiguration(folder);
@@ -146,15 +145,12 @@ export class Configuration extends BaseConfiguration {
 			keys.push(...toKeys.filter(key => fromKeys.indexOf(key) === -1));
 			keys.push(...fromKeys.filter(key => toKeys.indexOf(key) === -1));
 			keys.push(...fromKeys.filter(key => {
-				// Ignore if the key does not exist in both models
 				if (toKeys.indexOf(key) === -1) {
 					return false;
 				}
-				// Compare workspace value
 				if (!equals(this.getValue(key, { overrideIdentifier }), other.getValue(key, { overrideIdentifier }))) {
 					return true;
 				}
-				// Compare workspace folder value
 				return this._workspace && this._workspace.folders.some(folder => !equals(this.getValue(key, { resource: folder.uri, overrideIdentifier }), other.getValue(key, { resource: folder.uri, overrideIdentifier })));
 			}));
 			return keys;

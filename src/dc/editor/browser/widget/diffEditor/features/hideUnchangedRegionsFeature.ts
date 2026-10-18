@@ -27,9 +27,6 @@ import { DiffEditorOptions } from '../diffEditorOptions.js';
 import { DiffEditorViewModel, RevealPreference, UnchangedRegion } from '../diffEditorViewModel.js';
 import { IObservableViewZone, PlaceholderViewZone, ViewZoneOverlayWidget, applyObservableDecorations, applyStyle } from '../utils.js';
 
-/**
- * Make sure to add the view zones to the editor!
- */
 export class HideUnchangedRegionsFeature extends Disposable {
 	public static readonly _breadcrumbsSourceFactory = observableValue<((textModel: ITextModel, instantiationService: IInstantiationService) => IDiffEditorBreadcrumbsSource)>(
 		this, () => ({
@@ -99,7 +96,6 @@ export class HideUnchangedRegionsFeature extends Disposable {
 		});
 
 		this.viewZones = derived(this, (reader) => {
-			/** @description view Zones */
 			const modifiedOutlineSource = this._modifiedOutlineSource.read(reader);
 			if (!modifiedOutlineSource) { return { origViewZones: [], modViewZones: [] }; }
 
@@ -122,7 +118,7 @@ export class HideUnchangedRegionsFeature extends Disposable {
 
 				if (compactMode) {
 					{
-						const d = derived(this, reader => /** @description hiddenOriginalRangeStart */ r.getHiddenOriginalRange(reader).startLineNumber - 1);
+						const d = derived(this, reader => r.getHiddenOriginalRange(reader).startLineNumber - 1);
 						const origVz = new PlaceholderViewZone(d, 12);
 						origViewZones.push(origVz);
 						reader.store.add(new CompactCollapsedCodeOverlayWidget(
@@ -133,7 +129,7 @@ export class HideUnchangedRegionsFeature extends Disposable {
 						));
 					}
 					{
-						const d = derived(this, reader => /** @description hiddenModifiedRangeStart */ r.getHiddenModifiedRange(reader).startLineNumber - 1);
+						const d = derived(this, reader => r.getHiddenModifiedRange(reader).startLineNumber - 1);
 						const modViewZone = new PlaceholderViewZone(d, 12);
 						modViewZones.push(modViewZone);
 						reader.store.add(new CompactCollapsedCodeOverlayWidget(
@@ -144,7 +140,7 @@ export class HideUnchangedRegionsFeature extends Disposable {
 					}
 				} else {
 					{
-						const d = derived(this, reader => /** @description hiddenOriginalRangeStart */ r.getHiddenOriginalRange(reader).startLineNumber - 1);
+						const d = derived(this, reader => r.getHiddenOriginalRange(reader).startLineNumber - 1);
 						const origVz = new PlaceholderViewZone(d, 24);
 						origViewZones.push(origVz);
 						reader.store.add(new CollapsedCodeOverlayWidget(
@@ -160,7 +156,7 @@ export class HideUnchangedRegionsFeature extends Disposable {
 						));
 					}
 					{
-						const d = derived(this, reader => /** @description hiddenModifiedRangeStart */ r.getHiddenModifiedRange(reader).startLineNumber - 1);
+						const d = derived(this, reader => r.getHiddenModifiedRange(reader).startLineNumber - 1);
 						const modViewZone = new PlaceholderViewZone(d, 24);
 						modViewZones.push(modViewZone);
 						reader.store.add(new CollapsedCodeOverlayWidget(
@@ -196,7 +192,6 @@ export class HideUnchangedRegionsFeature extends Disposable {
 		};
 
 		this._register(applyObservableDecorations(this._editors.original, derived(this, reader => {
-			/** @description decorations */
 			const curUnchangedRegions = unchangedRegions.read(reader);
 			const result = curUnchangedRegions.map<IModelDeltaDecoration>(r => ({
 				range: r.originalUnchangedRange.toInclusiveRange()!,
@@ -214,7 +209,6 @@ export class HideUnchangedRegionsFeature extends Disposable {
 		})));
 
 		this._register(applyObservableDecorations(this._editors.modified, derived(this, reader => {
-			/** @description decorations */
 			const curUnchangedRegions = unchangedRegions.read(reader);
 			const result = curUnchangedRegions.map<IModelDeltaDecoration>(r => ({
 				range: r.modifiedUnchangedRange.toInclusiveRange()!,
@@ -232,7 +226,6 @@ export class HideUnchangedRegionsFeature extends Disposable {
 		})));
 
 		this._register(autorun((reader) => {
-			/** @description update folded unchanged regions */
 			const curUnchangedRegions = unchangedRegions.read(reader);
 			this._isUpdatingHiddenAreas = true;
 			try {
@@ -293,7 +286,6 @@ class CompactCollapsedCodeOverlayWidget extends ViewZoneOverlayWidget {
 		}
 
 		this._register(autorun(reader => {
-			/** @description update labels */
 
 			if (!this._hide) {
 				const lineCount = this._unchangedRegion.getHiddenModifiedRange(reader).length;
@@ -339,7 +331,6 @@ class CollapsedCodeOverlayWidget extends ViewZoneOverlayWidget {
 		}
 
 		this._register(autorun(reader => {
-			/** @description Update CollapsedCodeOverlayWidget canMove* css classes */
 			const isFullyRevealed = this._unchangedRegion.visibleLineCountTop.read(reader) + this._unchangedRegion.visibleLineCountBottom.read(reader) === this._unchangedRegion.lineCount;
 
 			this._nodes.bottom.classList.toggle('canMoveTop', !isFullyRevealed);
@@ -440,7 +431,6 @@ class CollapsedCodeOverlayWidget extends ViewZoneOverlayWidget {
 		}));
 
 		this._register(autorun(reader => {
-			/** @description update labels */
 
 			const children: HTMLElement[] = [];
 			if (!this._hide) {

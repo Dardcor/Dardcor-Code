@@ -58,10 +58,8 @@ ssuite({ title: '/tests', location: 'inline', language: 'python', }, () => {
 				query: '/tests',
 				expectedIntent: Intent.Tests,
 				validate: async (outcome, workspace, accessor) => {
-					// Here the existing ex_test.py file should be found and edited for the newest test written
 					assertWorkspaceEdit(outcome);
 					assert.strictEqual(outcome.files.length, 1, 'Expected one file to be created');
-					// make sure type is IRelativeFile
 					assert.ok(outcome.files[0].hasOwnProperty('fileName'));
 					const relFile = <IRelativeFile>outcome.files[0];
 					assert.strictEqual(relFile.fileName, 'ex_test.py');
@@ -86,7 +84,6 @@ ssuite({ title: '/tests', location: 'inline', language: 'python', }, () => {
 				query: '/tests include a docstring',
 				expectedIntent: Intent.Tests,
 				validate: async (outcome, workspace, accessor) => {
-					// Here the outcome should include a docstring as requested in the query
 					assertWorkspaceEdit(outcome);
 					assert.strictEqual((getFileContent(outcome.files[0]).match(/"""/g) || []).length, 2, 'Expected 2 instances of """ in the test file for the doc string');
 				}
@@ -109,7 +106,6 @@ ssuite({ title: '/tests', location: 'inline', language: 'python', }, () => {
 				query: '/tests make them parameterized tests',
 				expectedIntent: Intent.Tests,
 				validate: async (outcome, workspace, accessor) => {
-					// Here the outcome should include parameterized tests as requested in the query
 					assertWorkspaceEdit(outcome);
 					assert.ok(getFileContent(outcome.files[0]).includes('import pytest'), 'Expected pytest import to be included');
 					assert.ok(getFileContent(outcome.files[0]).includes('@pytest.mark.parametrize'), 'Expected parameterized test decorator to be included');
@@ -134,8 +130,6 @@ ssuite({ title: '/tests', location: 'inline', language: 'python', }, () => {
 				query: '/tests',
 				expectedIntent: Intent.Tests,
 				validate: async (outcome, workspace, accessor) => {
-					// Here the general expectation is that the test file should be created in the existing test folder
-					// since the workspace has ex.py and test_ex.py defined; new tests should follow existing location / naming conventions
 					assertWorkspaceEdit(outcome);
 					assert.strictEqual(outcome.files.length, 1, 'Expected one file to be created');
 					assert.ok(outcome.files[0].hasOwnProperty('uri'));
@@ -167,8 +161,6 @@ ssuite({ title: '/tests', location: 'inline', language: 'python', }, () => {
 				query: '/tests make them parameterized tests',
 				expectedIntent: Intent.Tests,
 				validate: async (outcome, workspace, accessor) => {
-					// Here the expectation is that the test file should be created in the root of the repo, next to the focal file
-					// since the focal file is at the root (even though __init__.py exists), relative imports are not possible
 					assertWorkspaceEdit(outcome);
 					assert.ok(outcome.files[0].hasOwnProperty('uri'), 'Expected test file to be a newly created file as no testing files exist');
 					const relFile = <IQualifiedFile>outcome.files[0];
@@ -198,7 +190,6 @@ ssuite({ title: '/tests', location: 'inline', language: 'python', }, () => {
 				expectedIntent: Intent.Tests,
 				validate: async (outcome, workspace, accessor) => {
 					assertWorkspaceEdit(outcome);
-					// check that the import statement is updated when a new function is being added as a reference in the test file
 					assert.ok(outcome.files[0].hasOwnProperty('fileName'), 'Expect new file created, which makes it a IRelativeFile with a fileName');
 					assert.ok((getFileContent(outcome.files[0]).includes('from src.ex import fraction_to_decimal, decimal_to_fraction')) || (getFileContent(outcome.files[0]).includes('from .ex import fraction_to_decimal, decimal_to_fraction')), 'Expected import statement to be updated with newest function.');
 				}
@@ -228,7 +219,6 @@ ssuite({ title: '/tests', location: 'inline', language: 'python', }, () => {
 						const workspaceEdits = outcome.edits.entries();
 						assert.strictEqual(workspaceEdits.length, 1, 'Expected exactly one file to be edited');
 						const workspaceEditUri: URI = workspaceEdits[0][0];
-						// check that the file 'tests/test_sub.py' was the one edited
 						const posixPath = isWindows ? toPosixPath(workspaceEditUri.path) : workspaceEditUri.path;
 						assert.ok(posixPath.endsWith('tests/test_sub.py'), 'Expected the URI of the first edit to end with "tests/test_sub.py"');
 					}
@@ -260,7 +250,6 @@ ssuite({ title: '/tests', location: 'inline', language: 'python', }, () => {
 						const workspaceEditUri: URI = workspaceEdits[0][0];
 
 						assert.ok(workspaceEditUri.fsPath.endsWith('test_grocery.py'), 'Expected the URI of the first edit to end with "tests/test_grocery.py"');
-						// the optimal import statement would be 'from .grocery import create_grocery_item' or 'from . import grocery'
 						assert.ok(getFileContent(outcome.files[0]).includes('from .grocery') ||
 							getFileContent(outcome.files[0]).includes('from . import grocery'));
 					}

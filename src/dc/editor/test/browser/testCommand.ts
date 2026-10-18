@@ -50,9 +50,6 @@ export function testCommand(
 	disposables.dispose();
 }
 
-/**
- * Extract edit operations if command `command` were to execute on model `model`
- */
 export function getEditOperation(model: ITextModel, command: ICommand): ISingleEditOperation[] {
 	const operations: ISingleEditOperation[] = [];
 	const editOperationBuilder: IEditOperationBuilder = {

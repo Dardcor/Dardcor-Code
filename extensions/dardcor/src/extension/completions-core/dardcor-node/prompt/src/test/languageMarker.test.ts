@@ -2,7 +2,6 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-// we need useless escapes before `!` or some tooling breaks; contact @johanrosenkilde for details
 import {
 	comment,
 	commentBlockAsSingles,
@@ -52,7 +51,7 @@ suite('LanguageMarker Test Suite', function () {
 		doc.languageId = 'python';
 		doc.source = 'import mypants\ndef my_socks():\n  pass';
 		assert.ok(!hasLanguageMarker(doc));
-		doc.source = '#!/bin/python\n' + doc.source; //Note: not the shebang we add ourselves
+		doc.source = '#!/bin/python\n' + doc.source;
 		assert.ok(hasLanguageMarker(doc));
 
 		doc.languageId = 'html';

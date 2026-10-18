@@ -6,7 +6,6 @@
 import { mkdir } from 'fs/promises';
 import { RunOnceScheduler } from '../../../../base/common/async.js';
 import { dirname, join } from '../../../../base/common/path.js';
-import type { TelemetryConfig } from '@github/copilot-sdk';
 import { Disposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
@@ -24,36 +23,20 @@ import { GenAiAttr } from '../../../otel/common/genAiAttributes.js';
 import { ICompletedSpanData, SpanStatusCode } from '../../../otel/common/spanData.js';
 import { OTelSqliteStore } from '../../../otel/node/sqlite/otelSqliteStore.js';
 import { AgentHostOTelSpansDbSubPath } from '../../common/agentService.js';
-import { AgentHostOTelServiceName, AgentHostOTelServiceNamespace, AgentHostSessionSpanName, AgentHostSessionTitleAttribute, AgentHostSessionTitleSpanName, AgentHostSessionUriAttribute, IAgentHostNativeOTelConfig, IAgentHostOTelService, IAgentHostTraceContext } from '../../common/otel/agentHostOTelService.js';
+import { AgentHostOTelServiceName, AgentHostOTelServiceNamespace, AgentHostSessionSpanName, AgentHostSessionTitleAttribute, AgentHostSessionTitleSpanName, AgentHostSessionUriAttribute, IAgentHostNativeOTelConfig, IAgentHostOTelService, IAgentHostTraceContext, type TelemetryConfig } from '../../common/otel/agentHostOTelService.js';
 
-/** Sub-path under the user data directory where the span DB lives. */
 const SPANS_DB_SUBPATH = AgentHostOTelSpansDbSubPath;
 
-/**
- * Effective OTel configuration resolved from `process.env`. Settings → env conversion
- * happens in the workbench-side agent-host starter (see `nodeAgentHostStarter.ts`);
- * this service only consumes env so it can stay decoupled from configuration plumbing.
- */
 interface ResolvedConfig {
-	/** Telemetry enabled at all? */
 	readonly enabled: boolean;
-	/** DB mode (loopback + SQLite) requested? */
 	readonly dbSpanExporter: boolean;
-	/** Pass-through exporter type. */
 	readonly exporterType: 'otlp-http' | 'otlp-grpc' | 'console' | 'file';
-	/** Pass-through OTLP endpoint. */
 	readonly otlpEndpoint: string | undefined;
-	/** Pass-through file path (file exporter). */
 	readonly filePath: string | undefined;
-	/** Instrumentation source/service name. */
 	readonly sourceName: string | undefined;
-	/** Capture prompt/response content in spans. */
 	readonly captureContent: boolean | undefined;
-	/** Parsed OTEL_EXPORTER_OTLP_HEADERS for outbound forwarding. */
 	readonly headers: Record<string, string> | undefined;
-	/** Effective OTLP protocol configured for the SDK runtime. */
 	readonly otlpProtocol: string;
-	/** Resource attributes applied to host-produced metadata spans. */
 	readonly resourceAttributes: Record<string, string>;
 }
 
@@ -111,15 +94,14 @@ function parseResourceAttributes(raw: string | undefined, serviceName: string | 
 }
 
 export function readAgentHostOTelEnv(env: NodeJS.ProcessEnv): ResolvedConfig {
-	const dbSpanExporter = isTruthy(env.COPILOT_OTEL_DB_SPAN_EXPORTER_ENABLED);
-	const otlpEndpoint = env.OTEL_EXPORTER_OTLP_ENDPOINT ?? env.COPILOT_OTEL_ENDPOINT;
-	const filePath = env.COPILOT_OTEL_FILE_EXPORTER_PATH;
-	const explicitlyEnabled = isTruthy(env.COPILOT_OTEL_ENABLED);
+	const dbSpanExporter = isTruthy(env.DARDCOR_OTEL_DB_SPAN_EXPORTER_ENABLED);
+	const otlpEndpoint = env.OTEL_EXPORTER_OTLP_ENDPOINT ?? env.DARDCOR_OTEL_ENDPOINT;
+	const filePath = env.DARDCOR_OTEL_FILE_EXPORTER_PATH;
+	const explicitlyEnabled = isTruthy(env.DARDCOR_OTEL_ENABLED);
 	const enabled = explicitlyEnabled || dbSpanExporter || !!otlpEndpoint || !!filePath;
 
-	// Map the OTLP protocol env var onto our four user-visible exporter types.
-	const rawType = (env.COPILOT_OTEL_EXPORTER_TYPE ?? '').trim().toLowerCase();
-	const protocol = (env.OTEL_EXPORTER_OTLP_PROTOCOL ?? env.COPILOT_OTEL_PROTOCOL ?? '').trim().toLowerCase();
+	const rawType = (env.DARDCOR_OTEL_EXPORTER_TYPE ?? '').trim().toLowerCase();
+	const protocol = (env.OTEL_EXPORTER_OTLP_PROTOCOL ?? env.DARDCOR_OTEL_PROTOCOL ?? '').trim().toLowerCase();
 	let exporterType: ResolvedConfig['exporterType'] = 'otlp-http';
 	if (rawType === 'console' || rawType === 'file' || rawType === 'otlp-grpc' || rawType === 'otlp-http') {
 		exporterType = rawType;
@@ -136,7 +118,7 @@ export function readAgentHostOTelEnv(env: NodeJS.ProcessEnv): ResolvedConfig {
 		exporterType,
 		otlpEndpoint,
 		filePath,
-		sourceName: env.COPILOT_OTEL_SOURCE_NAME,
+		sourceName: env.DARDCOR_OTEL_SOURCE_NAME,
 		captureContent: env.OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT === undefined
 			? undefined
 			: isTruthy(env.OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT),
@@ -191,7 +173,6 @@ function upsertResourceAttribute(attributes: IOtlpAttribute[], key: string, valu
 	}
 }
 
-/** Normalize Agent Host resource identity and suppress the Codex 0.142 auth polling span. */
 export function normalizeAgentHostOtlpBody(body: Buffer): INormalizedAgentHostOtlpBody {
 	const payload = JSON.parse(body.toString('utf8')) as IOtlpTracePayload;
 	let filteredSpanCount = 0;
@@ -253,8 +234,6 @@ export class AgentHostOTelService extends Disposable implements IAgentHostOTelSe
 		if (this._config.dbSpanExporter) {
 			await this._ensureStarted();
 			if (!this._receiver) {
-				// Start failed; we already logged. Fall through to pass-through if
-				// the user also has an external endpoint configured.
 				if (!this._config.otlpEndpoint && this._config.exporterType !== 'console' && !this._config.filePath) {
 					return undefined;
 				}
@@ -331,9 +310,6 @@ export class AgentHostOTelService extends Disposable implements IAgentHostOTelSe
 		const previous = this._currentTraceContext;
 		this._currentTraceContext = context;
 		try {
-			// Provider SDKs read their callback-based trace carrier synchronously
-			// while constructing the RPC promise. Do not retain context for the
-			// lifetime of that promise: concurrent turns must not inherit it.
 			return fn();
 		} finally {
 			this._currentTraceContext = previous;
@@ -387,10 +363,6 @@ export class AgentHostOTelService extends Disposable implements IAgentHostOTelSe
 	}
 
 	private _buildLoopbackConfig(): TelemetryConfig {
-		// In DB mode we always point the SDK at our loopback OTLP/HTTP endpoint
-		// regardless of what the user configured externally — the user's external
-		// sink is fed by our outbound forwarder instead. This guarantees we get a
-		// SQLite mirror of every span the agent emits.
 		return {
 			exporterType: 'otlp-http',
 			otlpEndpoint: this._receiver!.baseUrl,
@@ -413,8 +385,6 @@ export class AgentHostOTelService extends Disposable implements IAgentHostOTelSe
 		if (!this._startPromise) {
 			this._startPromise = this._start().catch(err => {
 				this._logService.error('[agentHost.otel] failed to start loopback OTel pipeline', err);
-				// Drop the receiver/store/forwarder so getSdkTelemetryConfig falls back
-				// to pass-through (or undefined) on subsequent calls.
 				this._receiver = undefined;
 				this._forwarder = undefined;
 			});
@@ -423,7 +393,6 @@ export class AgentHostOTelService extends Disposable implements IAgentHostOTelSe
 	}
 
 	private async _start(): Promise<void> {
-		// 1. Persistent SQLite store.
 		await mkdir(dirname(this._spansDbPath), { recursive: true });
 		const store = new OTelSqliteStore(this._spansDbPath);
 		this._spanStore = store;
@@ -432,10 +401,8 @@ export class AgentHostOTelService extends Disposable implements IAgentHostOTelSe
 			this._spanStore = undefined;
 		}));
 
-		// 2. Optional outbound forwarder when the user *also* wants an external sink.
 		this._forwarder = this._buildOutboundForwarder();
 
-		// 3. Loopback OTLP/HTTP receiver.
 		const receiver = await startLocalOtlpHttpReceiver(
 			{
 				transformBody: body => {
@@ -451,9 +418,6 @@ export class AgentHostOTelService extends Disposable implements IAgentHostOTelSe
 							this._logService.warn('[agentHost.otel] failed to insert span', err);
 						}
 					}
-					// Also feed decoded spans to forwarders that consume IDecodeResult
-					// (FileForwarder / ConsoleForwarder). OTLP-style forwarders consume
-					// the raw body via onForward below.
 					this._forwarder?.forwardSpans?.(result);
 				},
 				onForward: this._forwarder ? (body, contentType) => {

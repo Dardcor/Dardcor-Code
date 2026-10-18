@@ -10,7 +10,6 @@ export async function OPTIONS() {
   });
 }
 
-/** POST /v1/images/generations - OpenAI-compatible image generation endpoint */
 export async function POST(request) {
   return await handleImageGeneration(request);
 }

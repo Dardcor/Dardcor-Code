@@ -13,13 +13,10 @@ import { registerTerminalContribution } from '../../../terminal/browser/terminal
 import { TerminalStickyScrollContribution } from './terminalStickyScrollContribution.js';
 import { TerminalStickyScrollSettingId } from '../common/terminalStickyScrollConfiguration.js';
 
-// #region Terminal Contributions
 
 registerTerminalContribution(TerminalStickyScrollContribution.ID, TerminalStickyScrollContribution);
 
-// #endregion
 
-// #region Actions
 
 const enum TerminalStickyScrollCommandId {
 	ToggleStickyScroll = 'workbench.action.terminal.toggleStickyScroll',
@@ -43,10 +40,7 @@ registerTerminalAction({
 	]
 });
 
-// #endregion
 
-// #region Colors
 
 import './terminalStickyScrollColorRegistry.js';
 
-// #endregion

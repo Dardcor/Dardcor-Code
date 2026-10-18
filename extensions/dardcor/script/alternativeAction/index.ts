@@ -14,15 +14,15 @@ import { Either, log } from '../../test/pipeline/alternativeAction/util';
 
 async function extractFromCsv(csvContents: string): Promise<(Scoring.t | undefined)[]> {
 	const options = {
-		columns: true as const, // Use first row as column headers
-		delimiter: ',',         // Comma delimiter
-		quote: '"',             // Double quotes
-		escape: '"',            // Standard CSV escape character
-		skip_empty_lines: true, // Skip any empty rows
-		trim: true,             // Remove whitespace around fields
-		relax_quotes: true,     // Handle quotes within fields more flexibly
-		bom: true,              // Handle UTF-8 BOM
-		cast: false             // Keep all values as strings initially
+		columns: true as const,
+		delimiter: ',',
+		quote: '"',
+		escape: '"',
+		skip_empty_lines: true,
+		trim: true,
+		relax_quotes: true,
+		bom: true,
+		cast: false
 	} as const;
 
 	type CsvRecord = { Data: string };
@@ -134,7 +134,7 @@ function parseSuggestedEdit(suggestedEditStr: string): [number, number, string] 
 	if (match) {
 		const start = parseInt(match[1], 10);
 		const endEx = parseInt(match[2], 10);
-		const text = quotedText.slice(1, -1); // Remove surrounding quotes
+		const text = quotedText.slice(1, -1);
 		return [start, endEx, text];
 	}
 	return null;

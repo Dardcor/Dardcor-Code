@@ -5,8 +5,6 @@
 
 import type { IV8Profile, IV8ProfileNode } from './profiling.js';
 
-// #region
-// https://github.com/microsoft/vscode-js-profile-visualizer/blob/6e7401128ee860be113a916f80fcfe20ac99418e/packages/vscode-js-profile-core/src/cpu/model.ts#L4
 
 export interface IProfileModel {
 	nodes: ReadonlyArray<IComputedNode>;
@@ -29,7 +27,6 @@ export interface IComputedNode {
 export interface ISourceLocation {
 	lineNumber: number;
 	columnNumber: number;
-	//   source: Dap.Source;
 	relativePath?: string;
 }
 
@@ -48,7 +45,6 @@ export interface CdpPositionTickInfo {
 
 export interface INode {
 	id: number;
-	//   category: Category;
 	callFrame: CdpCallFrame;
 	src?: ISourceLocation;
 }
@@ -73,15 +69,10 @@ export interface IProfileNode extends IV8ProfileNode {
 }
 
 export interface ICpuProfileRaw extends IV8Profile {
-	//   $vscode?: IJsDebugAnnotations;
 	nodes: IProfileNode[];
 }
 
 
-/**
- * Recursive function that computes and caches the aggregate time for the
- * children of the computed now.
- */
 const computeAggregateTime = (index: number, nodes: IComputedNode[]): number => {
 	const row = nodes[index];
 	if (row.aggregateTime) {
@@ -121,11 +112,6 @@ const ensureSourceLocations = (profile: ICpuProfileRaw): ReadonlyArray<IAnnotati
 			location: {
 				lineNumber: callFrame.lineNumber + 1,
 				columnNumber: callFrame.columnNumber + 1,
-				// source: {
-				// 	name: maybeFileUrlToPath(callFrame.url),
-				// 	path: maybeFileUrlToPath(callFrame.url),
-				// 	sourceReference: 0,
-				// },
 			},
 		});
 
@@ -136,9 +122,6 @@ const ensureSourceLocations = (profile: ICpuProfileRaw): ReadonlyArray<IAnnotati
 		node.locationId = getLocationIdFor(node.callFrame);
 		node.positionTicks = node.positionTicks?.map(tick => ({
 			...tick,
-			// weirdly, line numbers here are 1-based, not 0-based. The position tick
-			// only gives line-level granularity, so 'mark' the entire range of source
-			// code the tick refers to
 			startLocationId: getLocationIdFor({
 				...node.callFrame,
 				lineNumber: tick.line - 1,
@@ -157,9 +140,6 @@ const ensureSourceLocations = (profile: ICpuProfileRaw): ReadonlyArray<IAnnotati
 		.map(l => ({ locations: [l.location], callFrame: l.callFrame }));
 };
 
-/**
- * Computes the model for the given profile.
- */
 export const buildModel = (profile: ICpuProfileRaw): IProfileModel => {
 	if (!profile.timeDeltas || !profile.samples) {
 		return {
@@ -167,7 +147,6 @@ export const buildModel = (profile: ICpuProfileRaw): IProfileModel => {
 			locations: [],
 			samples: profile.samples || [],
 			timeDeltas: profile.timeDeltas || [],
-			// rootPath: profile.$vscode?.rootPath,
 			duration: profile.endTime - profile.startTime,
 		};
 	}
@@ -175,20 +154,19 @@ export const buildModel = (profile: ICpuProfileRaw): IProfileModel => {
 	const { samples, timeDeltas } = profile;
 	const sourceLocations = ensureSourceLocations(profile);
 	const locations: ILocation[] = sourceLocations.map((l, id) => {
-		const src = l.locations[0]; //getBestLocation(profile, l.locations);
+		const src = l.locations[0];
 
 		return {
 			id,
 			selfTime: 0,
 			aggregateTime: 0,
 			ticks: 0,
-			// category: categorize(l.callFrame, src),
 			callFrame: l.callFrame,
 			src,
 		};
 	});
 
-	const idMap = new Map<number /* id in profile */, number /* incrementing ID */>();
+	const idMap = new Map<number , number >();
 	const mapId = (nodeId: number) => {
 		let id = idMap.get(nodeId);
 		if (id === undefined) {
@@ -199,13 +177,10 @@ export const buildModel = (profile: ICpuProfileRaw): IProfileModel => {
 		return id;
 	};
 
-	// 1. Created a sorted list of nodes. It seems that the profile always has
-	// incrementing IDs, although they are just not initially sorted.
 	const nodes = new Array<IComputedNode>(profile.nodes.length);
 	for (let i = 0; i < profile.nodes.length; i++) {
 		const node = profile.nodes[i];
 
-		// make them 0-based:
 		const id = mapId(node.id);
 		nodes[id] = {
 			id,
@@ -228,8 +203,6 @@ export const buildModel = (profile: ICpuProfileRaw): IProfileModel => {
 		}
 	}
 
-	// 2. The profile samples are the 'bottom-most' node, the currently running
-	// code. Sum of these in the self time.
 	const duration = profile.endTime - profile.startTime;
 	let lastNodeTime = duration - timeDeltas[0];
 	for (let i = 0; i < timeDeltas.length - 1; i++) {
@@ -238,16 +211,11 @@ export const buildModel = (profile: ICpuProfileRaw): IProfileModel => {
 		lastNodeTime -= d;
 	}
 
-	// Add in an extra time delta for the last sample. `timeDeltas[0]` is the
-	// time before the first sample, and the time of the last sample is only
-	// derived (approximately) by the missing time in the sum of deltas. Save
-	// some work by calculating it here.
 	if (nodes.length) {
 		nodes[mapId(samples[timeDeltas.length - 1])].selfTime += lastNodeTime;
 		timeDeltas.push(lastNodeTime);
 	}
 
-	// 3. Add the aggregate times for all node children and locations
 	for (let i = 0; i < nodes.length; i++) {
 		const node = nodes[i];
 		const location = locations[node.locationId];
@@ -260,7 +228,6 @@ export const buildModel = (profile: ICpuProfileRaw): IProfileModel => {
 		locations,
 		samples: samples.map(mapId),
 		timeDeltas,
-		// rootPath: profile.$vscode?.rootPath,
 		duration,
 	};
 };
@@ -324,7 +291,6 @@ export const processNode = (aggregate: BottomUpNode, node: IComputedNode, model:
 	}
 };
 
-//#endregion
 
 
 export interface BottomUpSample {

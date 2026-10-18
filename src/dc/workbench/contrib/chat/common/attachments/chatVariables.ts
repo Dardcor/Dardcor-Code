@@ -60,12 +60,6 @@ export interface IDynamicVariable {
 	isDirectory?: boolean;
 	isAttachmentReference?: boolean;
 	data: IChatRequestVariableValue;
-	/**
-	 * Implementation-defined metadata that flows through to the resulting
-	 * {@link IChatRequestVariableEntry} and any {@link MessageAttachment}
-	 * derived from it. Used to round-trip provider-specific data attached
-	 * to chat input completions.
-	 */
 	_meta?: Record<string, unknown>;
 }
 

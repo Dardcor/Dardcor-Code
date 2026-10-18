@@ -14,19 +14,16 @@ export const enum ClickAnimation {
 }
 
 const confettiColors = [
-	'#007acc',
-	'#005a9e',
-	'#0098ff',
-	'#4fc3f7',
-	'#64b5f6',
-	'#42a5f5',
+	'#6A1B9A',
+	'#7C4DFF',
+	'#9C27B0',
+	'#BA68C8',
+	'#AB47BC',
+	'#8E24AA',
 ];
 
 let activeOverlay: HTMLElement | undefined;
 
-/**
- * Creates a fixed-positioned overlay centered on the given element.
- */
 function createOverlay(element: HTMLElement): { overlay: HTMLElement; cx: number; cy: number } | undefined {
 	if (activeOverlay) {
 		return undefined;
@@ -51,9 +48,6 @@ function createOverlay(element: HTMLElement): { overlay: HTMLElement; cx: number
 	return { overlay, cx: rect.width / 2, cy: rect.height / 2 };
 }
 
-/**
- * Cleans up the overlay after specified period.
- */
 function cleanupOverlay(duration: number) {
 	setTimeout(() => {
 		if (activeOverlay) {
@@ -63,9 +57,6 @@ function cleanupOverlay(duration: number) {
 	}, duration);
 }
 
-/**
- * Bounce the element with a given scale and optional rotation.
- */
 export function bounceElement(element: HTMLElement, opts: { scale?: number[]; rotate?: number[]; translateY?: number[]; duration?: number }) {
 	const frames: Keyframe[] = [];
 
@@ -106,10 +97,6 @@ export function bounceElement(element: HTMLElement, opts: { scale?: number[]; ro
 	});
 }
 
-/**
- * Confetti: small particles burst outward in a circle from the element center,
- * with an expanding ring.
- */
 export function triggerConfettiAnimation(element: HTMLElement) {
 	const result = createOverlay(element);
 	if (!result) {
@@ -119,14 +106,12 @@ export function triggerConfettiAnimation(element: HTMLElement) {
 	const { overlay, cx, cy } = result;
 	const rect = element.getBoundingClientRect();
 
-	// Element bounce
 	bounceElement(element, {
 		scale: [1, 1.3, 1],
 		rotate: [0, -10, 10, 0],
 		duration: 350,
 	});
 
-	// Confetti particles
 	const particleCount = 10;
 	for (let i = 0; i < particleCount; i++) {
 		const size = 3 + (i % 3) * 1.5;
@@ -159,7 +144,6 @@ export function triggerConfettiAnimation(element: HTMLElement) {
 		});
 	}
 
-	// Expanding ring
 	const ring = dom.$('.animation-particle');
 	ring.style.position = 'absolute';
 	ring.style.left = '0';
@@ -167,7 +151,7 @@ export function triggerConfettiAnimation(element: HTMLElement) {
 	ring.style.width = `${rect.width}px`;
 	ring.style.height = `${rect.height}px`;
 	ring.style.borderRadius = '50%';
-	ring.style.border = '2px solid var(--vscode-focusBorder, #007acc)';
+	ring.style.border = '2px solid var(--vscode-focusBorder, #7C4DFF)';
 	ring.style.boxSizing = 'border-box';
 	overlay.appendChild(ring);
 
@@ -183,9 +167,6 @@ export function triggerConfettiAnimation(element: HTMLElement) {
 	cleanupOverlay(2000);
 }
 
-/**
- * Floating Icons: small icons float upward from the element.
- */
 export function triggerFloatingIconsAnimation(element: HTMLElement, icon: ThemeIcon) {
 	const result = createOverlay(element);
 	if (!result) {
@@ -195,13 +176,11 @@ export function triggerFloatingIconsAnimation(element: HTMLElement, icon: ThemeI
 	const { overlay, cx, cy } = result;
 	const rect = element.getBoundingClientRect();
 
-	// Element bounce upward
 	bounceElement(element, {
 		translateY: [0, -6, 0],
 		duration: 350,
 	});
 
-	// Floating icons
 	const iconCount = 6;
 	for (let i = 0; i < iconCount; i++) {
 		const size = 12 + (i % 3) * 2;
@@ -211,7 +190,7 @@ export function triggerFloatingIconsAnimation(element: HTMLElement, icon: ThemeI
 		iconEl.style.top = `${cy}px`;
 		iconEl.style.fontSize = `${size}px`;
 		iconEl.style.lineHeight = '1';
-		iconEl.style.color = 'var(--vscode-focusBorder, #007acc)';
+		iconEl.style.color = 'var(--vscode-focusBorder, #7C4DFF)';
 		iconEl.classList.add(...ThemeIcon.asClassNameArray(icon));
 		overlay.appendChild(iconEl);
 
@@ -233,7 +212,6 @@ export function triggerFloatingIconsAnimation(element: HTMLElement, icon: ThemeI
 		});
 	}
 
-	// Expanding ring
 	const ring = dom.$('.animation-particle');
 	ring.style.position = 'absolute';
 	ring.style.left = '0';
@@ -241,7 +219,7 @@ export function triggerFloatingIconsAnimation(element: HTMLElement, icon: ThemeI
 	ring.style.width = `${rect.width}px`;
 	ring.style.height = `${rect.height}px`;
 	ring.style.borderRadius = '50%';
-	ring.style.border = '2px solid var(--vscode-focusBorder, #007acc)';
+	ring.style.border = '2px solid var(--vscode-focusBorder, #7C4DFF)';
 	ring.style.boxSizing = 'border-box';
 	overlay.appendChild(ring);
 
@@ -257,9 +235,6 @@ export function triggerFloatingIconsAnimation(element: HTMLElement, icon: ThemeI
 	cleanupOverlay(2000);
 }
 
-/**
- * Pulse Wave: expanding rings and sparkle dots radiate from the element center.
- */
 export function triggerPulseWaveAnimation(element: HTMLElement) {
 	const result = createOverlay(element);
 	if (!result) {
@@ -269,14 +244,12 @@ export function triggerPulseWaveAnimation(element: HTMLElement) {
 	const { overlay, cx, cy } = result;
 	const rect = element.getBoundingClientRect();
 
-	// Element bounce with slight rotation
 	bounceElement(element, {
 		scale: [1, 1.1, 1],
 		rotate: [0, -12, 0],
 		duration: 400,
 	});
 
-	// Expanding rings
 	for (let i = 0; i < 2; i++) {
 		const ring = dom.$('.animation-particle');
 		ring.style.position = 'absolute';
@@ -285,7 +258,7 @@ export function triggerPulseWaveAnimation(element: HTMLElement) {
 		ring.style.width = `${rect.width}px`;
 		ring.style.height = `${rect.height}px`;
 		ring.style.borderRadius = '50%';
-		ring.style.border = '2px solid var(--vscode-focusBorder, #007acc)';
+		ring.style.border = '2px solid var(--vscode-focusBorder, #7C4DFF)';
 		ring.style.boxSizing = 'border-box';
 		overlay.appendChild(ring);
 
@@ -301,7 +274,6 @@ export function triggerPulseWaveAnimation(element: HTMLElement) {
 		});
 	}
 
-	// Sparkle dots
 	for (let i = 0; i < 6; i++) {
 		const angle = (i * 60 * Math.PI) / 180;
 		const distance = 30 + (i % 2) * 10;
@@ -312,7 +284,7 @@ export function triggerPulseWaveAnimation(element: HTMLElement) {
 		dot.style.width = `${size}px`;
 		dot.style.height = `${size}px`;
 		dot.style.borderRadius = '50%';
-		dot.style.backgroundColor = '#0098ff';
+		dot.style.backgroundColor = '#9C27B0';
 		dot.style.left = `${cx - size / 2}px`;
 		dot.style.top = `${cy - size / 2}px`;
 		overlay.appendChild(dot);
@@ -332,7 +304,6 @@ export function triggerPulseWaveAnimation(element: HTMLElement) {
 		});
 	}
 
-	// Background glow
 	const glow = dom.$('.animation-particle');
 	glow.style.position = 'absolute';
 	glow.style.left = '0';
@@ -340,7 +311,7 @@ export function triggerPulseWaveAnimation(element: HTMLElement) {
 	glow.style.width = `${rect.width}px`;
 	glow.style.height = `${rect.height}px`;
 	glow.style.borderRadius = '50%';
-	glow.style.backgroundColor = 'var(--vscode-focusBorder, #007acc)';
+	glow.style.backgroundColor = 'var(--vscode-focusBorder, #7C4DFF)';
 	overlay.appendChild(glow);
 
 	glow.animate([
@@ -356,9 +327,6 @@ export function triggerPulseWaveAnimation(element: HTMLElement) {
 	cleanupOverlay(2000);
 }
 
-/**
- * Radiant Lines: lines and dots emanate outward from the element center.
- */
 export function triggerRadiantLinesAnimation(element: HTMLElement) {
 	const result = createOverlay(element);
 	if (!result) {
@@ -367,13 +335,11 @@ export function triggerRadiantLinesAnimation(element: HTMLElement) {
 
 	const { overlay, cx, cy } = result;
 
-	// Element scale bounce
 	bounceElement(element, {
 		scale: [1, 1.15, 1],
 		duration: 350,
 	});
 
-	// Dots at offset angles
 	for (let i = 0; i < 8; i++) {
 		const size = 3;
 		const dotOpacity = 0.7;
@@ -409,7 +375,6 @@ export function triggerRadiantLinesAnimation(element: HTMLElement) {
 		});
 	}
 
-	// Radiant lines
 	for (let i = 0; i < 8; i++) {
 		const angleDeg = i * 45;
 
@@ -426,7 +391,7 @@ export function triggerRadiantLinesAnimation(element: HTMLElement) {
 		line.style.position = 'absolute';
 		line.style.width = '2px';
 		line.style.height = '10px';
-		line.style.backgroundColor = 'var(--vscode-focusBorder, #007acc)';
+		line.style.backgroundColor = 'var(--vscode-focusBorder, #7C4DFF)';
 		line.style.left = '-1px';
 		line.style.top = '-22px';
 		line.style.transformOrigin = 'bottom center';
@@ -449,12 +414,6 @@ export function triggerRadiantLinesAnimation(element: HTMLElement) {
 	cleanupOverlay(2000);
 }
 
-/**
- * Triggers the specified click animation on the element.
- * @param element The target element to animate.
- * @param animation The type of click animation to trigger.
- * @param icon Optional icon for animations that require it (e.g., FloatingIcons).
- */
 export function triggerClickAnimation(element: HTMLElement, animation: ClickAnimation, icon?: ThemeIcon) {
 	switch (animation) {
 		case ClickAnimation.Confetti:

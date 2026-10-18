@@ -11,7 +11,6 @@ export async function POST() {
     getSettings()
       .then(configureTunnelMonitoring)
       .catch((error) => console.warn("Tunnel monitor start failed:", error.message));
-    // Wait for DNS warmup to propagate at Cloudflare edge after tunnel registered
     await new Promise((r) => setTimeout(r, DNS_WARMUP_DELAY_MS));
     return NextResponse.json(result);
   } catch (error) {

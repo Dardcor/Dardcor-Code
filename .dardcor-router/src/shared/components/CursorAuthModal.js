@@ -4,10 +4,6 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Modal, Button, Input } from "@/shared/components";
 
-/**
- * Cursor Auth Modal
- * Auto-detect and import token from Cursor IDE's local SQLite database
- */
 export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
   const [accessToken, setAccessToken] = useState("");
   const [machineId, setMachineId] = useState("");
@@ -43,7 +39,6 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
     }
   };
 
-  // Auto-detect tokens when modal opens
   useEffect(() => {
     if (!isOpen) return;
     runAutoDetect();
@@ -91,7 +86,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
   return (
     <Modal isOpen={isOpen} title="Connect Cursor IDE" onClose={onClose}>
       <div className="flex flex-col gap-4">
-        {/* Auto-detecting state */}
+        {}
         {autoDetecting && (
           <div className="text-center py-6">
             <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -106,10 +101,10 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
           </div>
         )}
 
-        {/* Form (shown after auto-detect completes) */}
+        {}
         {!autoDetecting && (
           <>
-            {/* Success message if auto-detected */}
+            {}
             {autoDetected && (
               <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex gap-2">
@@ -121,7 +116,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
               </div>
             )}
 
-            {/* Windows manual instructions */}
+            {}
             {windowsManual && (
               <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800 flex flex-col gap-2">
                 <div className="flex gap-2 items-center">
@@ -139,7 +134,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
               </div>
             )}
 
-            {/* Info message if not auto-detected */}
+            {}
             {!autoDetected && !windowsManual && !error && (
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex gap-2">
@@ -151,7 +146,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
               </div>
             )}
 
-            {/* Access Token Input */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Access Token <span className="text-red-500">*</span>
@@ -165,7 +160,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
               />
             </div>
 
-            {/* Machine ID Input */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Machine ID <span className="text-red-500">*</span>
@@ -178,14 +173,14 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
               />
             </div>
 
-            {/* Error Display */}
+            {}
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
                 <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               </div>
             )}
 
-            {/* Action Buttons */}
+            {}
             <div className="flex gap-2">
               <Button
                 onClick={handleImportToken}

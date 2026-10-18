@@ -35,7 +35,6 @@ suite('Virtual prompt reconciler', function () {
 
 		const orderedPaths = extractNodesWitPath(result!);
 
-		// Assert expected paths
 		assert.deepStrictEqual(orderedPaths, [
 			'$.f',
 			'$.f[0].MyNestedComponent',
@@ -54,7 +53,6 @@ suite('Virtual prompt reconciler', function () {
 			'$.f[2].MyNestedComponent[0].f[1].Text[0]',
 		]);
 
-		// Assert uniqueness of paths
 		assert.deepStrictEqual([...new Set(orderedPaths)], orderedPaths);
 	});
 
@@ -102,7 +100,6 @@ suite('Virtual prompt reconciler', function () {
 			'$.f[2].MyNestedComponent[0].f["23"].Text[0]',
 		]);
 
-		// Assert uniqueness of paths
 		assert.deepStrictEqual([...new Set(orderedPaths)], orderedPaths);
 	});
 
@@ -196,7 +193,6 @@ suite('Virtual prompt reconciler', function () {
 			'$.f[1].f["23"].Text[0]',
 		]);
 
-		// Assert uniqueness of paths
 		assert.deepStrictEqual([...new Set(orderedPaths)], orderedPaths);
 	});
 
@@ -219,7 +215,6 @@ suite('Virtual prompt reconciler', function () {
 
 		outerShouldRenderChildren!(true);
 
-		// Should re-render since the state changed
 		const resultTwo = reconciler.reconcile();
 		assert.deepStrictEqual(resultTwo!.children?.length, 1);
 	});
@@ -250,7 +245,6 @@ suite('Virtual prompt reconciler', function () {
 
 		outerSetShouldRenderChildren!(true);
 
-		// Should re-render since the state changed
 		const resultTwo = reconciler.reconcile();
 		assert.deepStrictEqual(resultTwo!.children?.length, 1);
 		assert.deepStrictEqual(resultTwo!.children[0].children?.length, 1);

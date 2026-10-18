@@ -96,7 +96,6 @@ export class UserSettingsRenderer extends Disposable implements IPreferencesRend
 
 	private onModelChanged(): void {
 		if (!this.editor.hasModel()) {
-			// model could have been disposed during the delay
 			return;
 		}
 		this.render();
@@ -106,7 +105,6 @@ export class UserSettingsRenderer extends Disposable implements IPreferencesRend
 		this.editor.focus();
 		setting = this.getSetting(setting)!;
 		if (setting) {
-			// TODO:@sandy Selection range should be template range
 			this.editor.setSelection(setting.valueRange);
 			this.settingHighlighter.highlight(setting, true);
 		}
@@ -300,7 +298,6 @@ class EditSettingRenderer extends Disposable {
 				}
 				if (this.isDefaultSettings()) {
 					if (setting.key === 'launch') {
-						// Do not show because of https://github.com/microsoft/vscode/issues/32593
 						return false;
 					}
 					return true;
@@ -319,7 +316,6 @@ class EditSettingRenderer extends Disposable {
 	}
 
 	private getSettingsAtLineNumber(lineNumber: number): IIndexedSetting[] {
-		// index of setting, across all groups/sections
 		let index = 0;
 
 		const settings: IIndexedSetting[] = [];
@@ -335,7 +331,6 @@ class EditSettingRenderer extends Disposable {
 						}
 						if (lineNumber >= setting.range.startLineNumber && lineNumber <= setting.range.endLineNumber) {
 							if (!this.isDefaultSettings() && setting.overrides!.length) {
-								// Only one level because override settings cannot have override settings
 								for (const overrideSetting of setting.overrides!) {
 									if (lineNumber >= overrideSetting.range.startLineNumber && lineNumber <= overrideSetting.range.endLineNumber) {
 										settings.push({ ...overrideSetting, index, groupId: group.id });
@@ -620,7 +615,6 @@ class UnsupportedSettingsRenderer extends Disposable implements languages.CodeAc
 	private handleLocalUserConfiguration(setting: ISetting, configuration: IConfigurationPropertySchema, markerData: IMarkerData[]): void {
 		if (!this.userDataProfileService.currentProfile.isDefault && !this.userDataProfileService.currentProfile.useDefaultFlags?.settings) {
 			if (isEqual(this.userDataProfilesService.defaultProfile.settingsResource, this.settingsEditorModel.uri) && !this.configurationService.isSettingAppliedForAllProfiles(setting.key)) {
-				// If we're in the default profile setting file, and the setting cannot be applied in all profiles
 				markerData.push({
 					severity: MarkerSeverity.Hint,
 					tags: [MarkerTag.Unnecessary],
@@ -629,10 +623,8 @@ class UnsupportedSettingsRenderer extends Disposable implements languages.CodeAc
 				});
 			} else if (isEqual(this.userDataProfileService.currentProfile.settingsResource, this.settingsEditorModel.uri)) {
 				if (configuration.scope && APPLICATION_SCOPES.includes(configuration.scope)) {
-					// If we're in a profile setting file, and the setting is application-scoped, fade it out.
 					markerData.push(this.generateUnsupportedApplicationSettingMarker(setting));
 				} else if (this.configurationService.isSettingAppliedForAllProfiles(setting.key)) {
-					// If we're in the non-default profile setting file, and the setting can be applied in all profiles, fade it out.
 					markerData.push({
 						severity: MarkerSeverity.Hint,
 						tags: [MarkerTag.Unnecessary],
@@ -839,7 +831,6 @@ class McpSettingsRenderer extends Disposable implements languages.CodeActionProv
 	private generateMarkerData(): IMarkerData[] {
 		const markerData: IMarkerData[] = [];
 
-		// Only check for MCP configuration in user local and user remote settings
 		if (this.settingsEditorModel.configurationTarget !== ConfigurationTarget.USER_LOCAL &&
 			this.settingsEditorModel.configurationTarget !== ConfigurationTarget.USER_REMOTE) {
 			return markerData;

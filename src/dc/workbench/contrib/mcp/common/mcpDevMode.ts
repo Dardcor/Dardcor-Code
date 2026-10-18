@@ -38,7 +38,6 @@ export class McpDevModeServerAttache extends Disposable {
 			await server.start({ debug: lastDebugged });
 		};
 
-		// 1. Auto-start the server, restart if entering debug mode
 		let didAutoStart = false;
 		this._register(autorun(reader => {
 			const defs = server.readDefinitions().read(reader);
@@ -47,7 +46,6 @@ export class McpDevModeServerAttache extends Disposable {
 				return;
 			}
 
-			// don't keep trying to start the server unless it's a new server or devmode is newly turned on
 			if (didAutoStart) {
 				return;
 			}
@@ -68,7 +66,6 @@ export class McpDevModeServerAttache extends Disposable {
 			}
 		}));
 
-		// 2. Watch for file changes
 		const watchObs = derivedOpts<string[] | undefined>({ equalsFn: arraysEqual }, reader => {
 			const def = server.readDefinitions().read(reader);
 			const watch = def.server?.devMode?.watch;
@@ -129,7 +126,7 @@ export class McpDevModeDebugging implements IMcpDevModeDebugging {
 		}
 
 		const port = await this.getDebugPort();
-		const name = `MCP: ${definition.label}`; // for debugging
+		const name = `MCP: ${definition.label}`;
 		const options: IDebugSessionOptions = { startedByUser: false, suppressDebugView: true };
 		const commonConfig: Partial<IConfig> = {
 			internalConsoleOptions: 'neverOpen',
@@ -142,7 +139,6 @@ export class McpDevModeDebugging implements IMcpDevModeDebugging {
 					throw new Error(localize('mcp.debug.nodeBinReq', 'MCP server must be launched with the "node" executable to enable debugging, but was launched with "{0}"', launch.command));
 				}
 
-				// We intentionally assert types as the DA has additional properties beyong IConfig
 				// eslint-disable-next-line local/code-no-dangerous-type-assertions
 				this._debugService.startDebugging(undefined, {
 					type: 'pwa-node',
@@ -167,14 +163,12 @@ export class McpDevModeDebugging implements IMcpDevModeDebugging {
 					command = definition.devMode.debug.debugpyPath;
 				} else {
 					try {
-						// The Python debugger exposes a command to get its bundle debugpy module path.  Use that if it's available.
 						const debugPyPath = await this._commandService.executeCommand<string | undefined>('python.getDebugpyPackagePath');
 						if (debugPyPath) {
 							command = launch.command;
 							args = [debugPyPath, ...args];
 						}
 					} catch {
-						// ignored, no Python debugger extension installed or an error therein
 					}
 				}
 				if (!command) {

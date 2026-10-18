@@ -79,8 +79,6 @@ export class ExtHostTimeline implements IExtHostTimeline {
 				if (options?.resetCache) {
 					timelineDisposables.clear();
 
-					// For now, only allow the caching of a single Uri
-					// itemsBySourceAndUriMap.get(provider.id)?.get(getUriKey(uri))?.clear();
 					itemsBySourceAndUriMap.get(provider.id)?.clear();
 				}
 
@@ -89,7 +87,6 @@ export class ExtHostTimeline implements IExtHostTimeline {
 					return undefined;
 				}
 
-				// TODO: Should we bother converting all the data if we aren't caching? Meaning it is being requested by an extension?
 
 				const convertItem = convertTimelineItem(uri, options);
 				return {
@@ -156,7 +153,6 @@ export class ExtHostTimeline implements IExtHostTimeline {
 				else if (isString(props.tooltip)) {
 					tooltip = props.tooltip;
 				}
-				// TODO @jkearl, remove once migration complete.
 				// eslint-disable-next-line local/code-no-any-casts
 				else if (MarkdownStringType.isMarkdownString((props as any).detail)) {
 					console.warn('Using deprecated TimelineItem.detail, migrate to TimelineItem.tooltip');
@@ -187,7 +183,6 @@ export class ExtHostTimeline implements IExtHostTimeline {
 	}
 
 	private registerTimelineProviderCore(provider: TimelineProvider, extension: ExtensionIdentifier): IDisposable {
-		// console.log(`ExtHostTimeline#registerTimelineProvider: id=${provider.id}`);
 
 		const existing = this._providers.get(provider.id);
 		if (existing) {

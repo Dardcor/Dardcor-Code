@@ -28,7 +28,6 @@ export class MainThreadStatusBar extends Disposable implements MainThreadStatusB
 		super();
 		this._proxy = extHostContext.getProxy(ExtHostContext.ExtHostStatusBar);
 
-		// once, at startup read existing items and send them over
 		const entries: StatusBarItemDto[] = [];
 		for (const [entryId, item] of statusbarService.getEntries()) {
 			entries.push(asDto(entryId, item));

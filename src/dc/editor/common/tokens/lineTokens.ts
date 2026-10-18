@@ -194,11 +194,6 @@ export class LineTokens implements IViewLineTokens {
 		return this._tokens[tokenIndex << 1];
 	}
 
-	/**
-	 * Find the token containing offset `offset`.
-	 * @param offset The search offset
-	 * @return The index of the token containing the offset.
-	 */
 	public findTokenIndexAtOffset(offset: number): number {
 		return LineTokens.findIndexInTokensArray(this._tokens, offset);
 	}
@@ -215,10 +210,6 @@ export class LineTokens implements IViewLineTokens {
 		return this.sliceAndInflate(range.start, range.endExclusive, 0);
 	}
 
-	/**
-	 * @pure
-	 * @param insertTokens Must be sorted by offset.
-	*/
 	public withInserted(insertTokens: { offset: number; text: string; tokenMetadata: number }[]): LineTokens {
 		if (insertTokens.length === 0) {
 			return this;
@@ -235,7 +226,6 @@ export class LineTokens implements IViewLineTokens {
 			const nextInsertToken = nextInsertTokenIdx < insertTokens.length ? insertTokens[nextInsertTokenIdx] : null;
 
 			if (nextOriginalTokenEndOffset !== -1 && (nextInsertToken === null || nextOriginalTokenEndOffset <= nextInsertToken.offset)) {
-				// original token ends before next insert token
 				text += this._text.substring(originalEndOffset, nextOriginalTokenEndOffset);
 				const metadata = this._tokens[(nextOriginalTokenIdx << 1) + 1];
 				newTokens.push(text.length, metadata);
@@ -244,7 +234,6 @@ export class LineTokens implements IViewLineTokens {
 
 			} else if (nextInsertToken) {
 				if (nextInsertToken.offset > originalEndOffset) {
-					// insert token is in the middle of the next token.
 					text += this._text.substring(originalEndOffset, nextInsertToken.offset);
 					const metadata = this._tokens[(nextOriginalTokenIdx << 1) + 1];
 					newTokens.push(text.length, metadata);
@@ -424,14 +413,6 @@ export function getStandardTokenTypeAtPosition(model: ITextModel, position: IPos
 
 
 
-/**
- * This class represents a sequence of tokens.
- * Conceptually, each token has a length and a metadata number.
- * A token array might be used to annotate a string with metadata.
- * Use {@link TokenArrayBuilder} to efficiently create a token array.
- *
- * TODO: Make this class more efficient (e.g. by using a Int32Array).
-*/
 export class TokenArray {
 	public static fromLineTokens(lineTokens: LineTokens): TokenArray {
 		const tokenInfo: TokenInfo[] = [];
@@ -509,9 +490,6 @@ export class TokenInfo {
 		public readonly metadata: ITokenMetadata
 	) { }
 }
-/**
- * TODO: Make this class more efficient (e.g. by using a Int32Array).
-*/
 
 export class TokenArrayBuilder {
 	private readonly _tokens: TokenInfo[] = [];

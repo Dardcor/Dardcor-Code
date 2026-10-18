@@ -80,13 +80,11 @@ export class BulkCellEdits {
 			const [first] = group;
 			const ref = await this._notebookModelService.resolve(first.resource);
 
-			// check state
 			if (typeof first.notebookVersionId === 'number' && ref.object.notebook.versionId !== first.notebookVersionId) {
 				ref.dispose();
 				throw new Error(`Notebook '${first.resource}' has changed in the meantime`);
 			}
 
-			// apply edits
 			const edits = group.map(entry => entry.cellEdit);
 			const computeUndo = !ref.object.isReadonly();
 			const editor = getNotebookEditorFromEditorPane(this._editorService.activeEditorPane);

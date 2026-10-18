@@ -20,13 +20,6 @@ export interface IFindInputToggleOpts {
 	readonly hoverLifecycleOptions?: IHoverLifecycleOptions;
 }
 
-/**
- * Arrow-Key support to navigate between the toggles of a find input, with
- * `Escape` moving focus back to the input box.
- *
- * The toggles are resolved through a callback because they are only needed
- * once one of the handled keys is pressed.
- */
 export function navigateToggles(event: IKeyboardEvent, domNode: HTMLElement, getToggleDomNodes: () => HTMLElement[], focusInput: () => void): void {
 	if (event.equals(KeyCode.LeftArrow) || event.equals(KeyCode.RightArrow) || event.equals(KeyCode.Escape)) {
 		const indexes = getToggleDomNodes();

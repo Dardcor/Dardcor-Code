@@ -60,7 +60,6 @@ class FileDiagnostics {
 
 		const existing = this._diagnostics.get(kind);
 		if (existing?.length === 0 && diagnostics.length === 0) {
-			// No need to update
 			return false;
 		}
 
@@ -89,9 +88,6 @@ class FileDiagnostics {
 		}
 	}
 
-	/**
-	 * @param ranges The ranges whose diagnostics were updated.
-	 */
 	private updateRegionDiagnostics(
 		diagnostics: ReadonlyArray<vscode.Diagnostic>,
 		ranges: ReadonlyArray<vscode.Range>): boolean {
@@ -110,7 +106,6 @@ class FileDiagnostics {
 		const enableSuggestions = settings.getEnableSuggestions(this.language);
 		return this.get(DiagnosticKind.Suggestion).filter(x => {
 			if (!enableSuggestions) {
-				// Still show unused
 				return x.tags && (x.tags.includes(vscode.DiagnosticTag.Unnecessary) || x.tags.includes(vscode.DiagnosticTag.Deprecated));
 			}
 			return true;
@@ -201,19 +196,6 @@ class DiagnosticsTelemetryManager extends Disposable {
 
 	public logDiagnosticsPerformanceTelemetry(performanceData: DiagnosticPerformanceData[]): void {
 		for (const data of performanceData) {
-			/* __GDPR__
-				"diagnostics.performance" : {
-					"owner": "mjbvz",
-					"syntaxDiagDuration" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-					"semanticDiagDuration" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-					"suggestionDiagDuration" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-					"regionSemanticDiagDuration" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-					"fileLineCount" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-					"${include}": [
-						"${TypeScriptCommonProperties}"
-					]
-				}
-			*/
 			this._telemetryReporter.logTelemetry('diagnostics.performance',
 				{
 					syntaxDiagDuration: data.syntaxDiag,
@@ -258,20 +240,11 @@ class DiagnosticsTelemetryManager extends Disposable {
 					diagnosticCodes += `${key}:${value},`;
 				});
 				this._diagnosticCodesMap.clear();
-				/* __GDPR__
-					"typescript.diagnostics" : {
-						"owner": "aiday-mar",
-						"diagnosticCodes" : { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
-						"${include}": [
-							"${TypeScriptCommonProperties}"
-						]
-					}
-				*/
 				this._telemetryReporter.logTelemetry('typescript.diagnostics', {
 					diagnosticCodes: diagnosticCodes
 				});
 			}
-		}, 5 * 60 * 1000); // 5 minutes
+		}, 5 * 60 * 1000);
 	}
 
 	override dispose() {
@@ -285,7 +258,7 @@ export class DiagnosticsManager extends Disposable {
 	private readonly _diagnostics: ResourceMap<FileDiagnostics>;
 	private readonly _settings = new DiagnosticSettings();
 	private readonly _currentDiagnostics: vscode.DiagnosticCollection;
-	private readonly _pendingUpdates: ResourceMap</* timeout */ any>;
+	private readonly _pendingUpdates: ResourceMap< any>;
 
 	private readonly _updateDelay = 50;
 
@@ -302,7 +275,6 @@ export class DiagnosticsManager extends Disposable {
 		this._pendingUpdates = new ResourceMap<any>(undefined, { onCaseInsensitiveFileSystem });
 
 		this._currentDiagnostics = this._register(vscode.languages.createDiagnosticCollection(owner));
-		// Here we are selecting only 1 user out of 1000 to send telemetry diagnostics
 		if (Math.random() * 1000 <= 1 || configuration.enableDiagnosticsTelemetry) {
 			this._diagnosticsTelemetryManager = this._register(new DiagnosticsTelemetryManager(telemetryReporter, this._currentDiagnostics));
 		}

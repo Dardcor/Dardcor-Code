@@ -43,10 +43,8 @@ export class InlineEditDebugComponent extends Disposable {
 			data.appendLine(`# Inline Edits Debug Info`);
 
 			if (!isInternalUser) {
-				// Public users
 				data.appendLine(args.logContext.toMinimalLog());
 			} else {
-				// Internal users
 				data.appendLine(args.logContext.toLogDocument());
 
 				let logFilteredForSensitiveFiles: LogEntry[] | undefined;
@@ -161,107 +159,88 @@ stest({ description: 'MyTest', language: 'typescript' }, collection => tester.ru
 `.toString();
 }
 
-/**
- * Sensitive file patterns that should be filtered from logs to prevent
- * accidental exposure of secrets, credentials, or private configuration.
- */
 const SENSITIVE_FILE_PATTERNS = {
-	// Exact basename matches (case-insensitive)
 	exactNames: new Set([
-		'settings.json',      // VS Code settings
-		'keybindings.json',   // VS Code keybindings (may contain custom bindings)
-		'launch.json',        // Debug configs often contain env vars with secrets
-		'.npmrc',             // npm auth tokens
-		'.netrc',             // Network credentials
-		'.htpasswd',          // HTTP auth passwords
-		'.gitconfig',         // Git config can contain tokens
-		'credentials',        // Generic credentials file
+		'settings.json',
+		'keybindings.json',
+		'launch.json',
+		'.npmrc',
+		'.netrc',
+		'.htpasswd',
+		'.gitconfig',
+		'credentials',
 		'credentials.json',
 		'secrets.json',
-		'config.json',        // Often contains API keys
-		'password.txt',       // Plain text password files
+		'config.json',
+		'password.txt',
 		'passwords.txt',
 		'password.json',
 		'passwords.json',
-		'token.json',         // Token storage files
+		'token.json',
 		'tokens.json',
 		'token.txt',
 		'tokens.txt',
 	]),
 
-	// File extensions that are sensitive (checked with endsWith)
 	extensions: [
-		'.env',               // Files ending with .env (e.g., app.env, local.env)
-		'.pem',               // Private keys
-		'.key',               // Private keys
-		'.p12',               // PKCS#12 certificates
-		'.pfx',               // PKCS#12 certificates
+		'.env',
+		'.pem',
+		'.key',
+		'.p12',
+		'.pfx',
 	],
 
-	// Prefixes for dotfiles that are sensitive (e.g., .env, .env.local, .env.production)
 	sensitiveDotfilePrefixes: [
-		'.env',               // Environment files (.env, .env.local, .env.development, etc.)
+		'.env',
 	],
 
-	// Path segments that indicate sensitive directories
 	sensitivePathSegments: [
-		'.aws',               // AWS credentials
-		'.ssh',               // SSH keys
-		'.gnupg',             // GPG keys
-		'.docker',            // Docker config with registry auth
+		'.aws',
+		'.ssh',
+		'.gnupg',
+		'.docker',
 	],
 
-	// Filename patterns (using includes)
 	patterns: [
-		'id_rsa',             // SSH private keys
-		'id_ed25519',         // SSH private keys
-		'id_ecdsa',           // SSH private keys
-		'id_dsa',             // SSH private keys
-		'.secret',            // Files with .secret in name
-		'_secret',            // Files with _secret in name
+		'id_rsa',
+		'id_ed25519',
+		'id_ecdsa',
+		'id_dsa',
+		'.secret',
+		'_secret',
 	],
 };
 
-/**
- * Check if a file path represents a sensitive file that should be filtered.
- */
 function isSensitiveFile(relativePath: string): boolean {
-	// Normalize path separators for consistent handling across platforms
 	const normalizedPath = relativePath.replace(/\\/g, '/');
 	const pathParts = normalizedPath.split('/');
 
-	// Use basename/extname on normalized path for robust filename extraction
 	const fileName = basename(normalizedPath);
 	const fileNameLower = fileName.toLowerCase();
 	const fileExt = extname(normalizedPath).toLowerCase();
 
-	// Check exact filename matches (case-insensitive)
 	if (SENSITIVE_FILE_PATTERNS.exactNames.has(fileNameLower)) {
 		return true;
 	}
 
-	// Check file extensions (e.g., .pem, .key, .p12, .pfx, files ending in .env like app.env)
 	for (const ext of SENSITIVE_FILE_PATTERNS.extensions) {
 		if (fileExt === ext || fileNameLower.endsWith(ext)) {
 			return true;
 		}
 	}
 
-	// Check sensitive dotfile prefixes (e.g., .env, .env.local, .env.production)
 	for (const prefix of SENSITIVE_FILE_PATTERNS.sensitiveDotfilePrefixes) {
 		if (fileNameLower === prefix || fileNameLower.startsWith(prefix + '.')) {
 			return true;
 		}
 	}
 
-	// Check sensitive path segments
 	for (const segment of SENSITIVE_FILE_PATTERNS.sensitivePathSegments) {
 		if (pathParts.some(part => part === segment)) {
 			return true;
 		}
 	}
 
-	// Check filename patterns
 	for (const pattern of SENSITIVE_FILE_PATTERNS.patterns) {
 		if (fileNameLower.includes(pattern)) {
 			return true;
@@ -278,7 +257,6 @@ export function filterLogForSensitiveFiles(log: LogEntry[]): LogEntry[] {
 
 	for (const entry of log) {
 		switch (entry.kind) {
-			// safe entry
 			case 'meta':
 			case 'header':
 			case 'applicationStart':
@@ -287,9 +265,6 @@ export function filterLogForSensitiveFiles(log: LogEntry[]): LogEntry[] {
 				safeEntries.push(entry);
 				break;
 
-			// check if newly encountered document is sensitive
-			// if so, add it to the sensitive file ids
-			// otherwise, add it to the safe entries
 			case 'documentEncountered': {
 				if (isSensitiveFile(entry.relativePath)) {
 					sensitiveFileIds.add(entry.id);
@@ -299,7 +274,6 @@ export function filterLogForSensitiveFiles(log: LogEntry[]): LogEntry[] {
 				break;
 			}
 
-			// ensure the entry doesn't belong to a sensitive file
 			case 'setContent':
 			case 'storeContent':
 			case 'restoreContent':
@@ -348,7 +322,7 @@ class SimpleMarkdownBuilder {
 	appendSection(header: string, lines: string[]): void {
 		this._lines.push(
 			`<details><summary>${header}</summary>`,
-			'', // we need separation between the summary and the content
+			'',
 			...lines,
 			`</details>`
 		);

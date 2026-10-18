@@ -29,7 +29,6 @@ export class InPlaceReplaceCommand implements ICommand {
 		const srcRange = inverseEditOperations[0].range;
 
 		if (!this._originalSelection.isEmpty()) {
-			// Preserve selection and extends to typed text
 			return new Selection(
 				srcRange.endLineNumber,
 				srcRange.endColumn - this._text.length,

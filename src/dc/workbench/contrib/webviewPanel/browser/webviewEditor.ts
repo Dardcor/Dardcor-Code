@@ -27,9 +27,6 @@ import { IHostService } from '../../../services/host/browser/host.js';
 import { IWorkbenchLayoutService, Parts } from '../../../services/layout/browser/layoutService.js';
 import { isHTMLElement } from '../../../../base/browser/dom.js';
 
-/**
- * Tracks the id of the actively focused webview.
- */
 export const CONTEXT_ACTIVE_WEBVIEW_PANEL_ID = new RawContextKey<string>('activeWebviewPanelId', '', {
 	type: 'string',
 	description: nls.localize('context.activeWebviewId', "The viewType of the currently active webview panel."),
@@ -99,7 +96,6 @@ export class WebviewEditor extends EditorPane {
 	public override focus(): void {
 		super.focus();
 		if (!this._onFocusWindowHandler.value && !isWeb) {
-			// Make sure we restore focus when switching back to a VS Code window
 			this._onFocusWindowHandler.value = this._hostService.onDidChangeFocus(focused => {
 				if (focused && this._editorService.activeEditorPane === this && this._workbenchLayoutService.hasFocus(Parts.EDITOR_PART)) {
 					this.focus();
@@ -168,14 +164,12 @@ export class WebviewEditor extends EditorPane {
 			DOM.setParentFlowTo(input.webview.container, this._element);
 		}
 
-		// Check if this editor is inside a modal editor
 		const modalEditorContainer = this._editorGroupsService.activeModalEditorPart?.modalElement;
 		const isModal = isHTMLElement(modalEditorContainer) && this._element && modalEditorContainer.contains(this._element);
 		this._clippingContainer = isModal ? undefined : this._workbenchLayoutService.getContainer(this.window, Parts.EDITOR_PART);
 
 		this._webviewVisibleDisposables.clear();
 
-		// Webviews are not part of the normal editor dom, so we have to register our own drag and drop handler on them.
 		this._webviewVisibleDisposables.add(this._editorGroupsService.createEditorDropTarget(input.webview.container, {
 			containsGroup: (group) => this.group.id === group.id
 		}));
@@ -197,12 +191,10 @@ export class WebviewEditor extends EditorPane {
 	private trackFocus(webview: IOverlayWebview): IDisposable {
 		const store = new DisposableStore();
 
-		// Track focus in webview content
 		const webviewContentFocusTracker = DOM.trackFocus(webview.container);
 		store.add(webviewContentFocusTracker);
 		store.add(webviewContentFocusTracker.onDidFocus(() => this._onDidFocusWebview.fire()));
 
-		// Track focus in webview element
 		store.add(webview.onDidFocus(() => this._onDidFocusWebview.fire()));
 
 		return store;

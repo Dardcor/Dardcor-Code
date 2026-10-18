@@ -9,9 +9,6 @@ import { IRange, Range } from '../range.js';
 import { findFirstIdxMonotonousOrArrLen, findLastIdxMonotonous, findLastMonotonous } from '../../../../base/common/arraysFind.js';
 import { Comparator, compareBy, numberComparator } from '../../../../base/common/arrays.js';
 
-/**
- * A range of lines (1-based).
- */
 export class LineRange {
 	public static ofLength(startLineNumber: number, length: number): LineRange {
 		return new LineRange(startLineNumber, startLineNumber + length);
@@ -45,9 +42,6 @@ export class LineRange {
 		}
 	}
 
-	/**
-	 * @param lineRanges An array of arrays of of sorted line ranges.
-	 */
 	public static joinMany(lineRanges: readonly (readonly LineRange[])[]): readonly LineRange[] {
 		if (lineRanges.length === 0) {
 			return [];
@@ -79,14 +73,8 @@ export class LineRange {
 		return new LineRange(lineRange[0], lineRange[1]);
 	}
 
-	/**
-	 * The start line number.
-	 */
 	public readonly startLineNumber: number;
 
-	/**
-	 * The end line number (exclusive).
-	 */
 	public readonly endLineNumberExclusive: number;
 
 	constructor(
@@ -100,9 +88,6 @@ export class LineRange {
 		this.endLineNumberExclusive = endLineNumberExclusive;
 	}
 
-	/**
-	 * Indicates if this line range contains the given line number.
-	 */
 	public contains(lineNumber: number): boolean {
 		return this.startLineNumber <= lineNumber && lineNumber < this.endLineNumberExclusive;
 	}
@@ -111,16 +96,10 @@ export class LineRange {
 		return this.startLineNumber <= range.startLineNumber && range.endLineNumberExclusive <= this.endLineNumberExclusive;
 	}
 
-	/**
-	 * Indicates if this line range is empty.
-	 */
 	get isEmpty(): boolean {
 		return this.startLineNumber === this.endLineNumberExclusive;
 	}
 
-	/**
-	 * Moves this line range by the given offset of line numbers.
-	 */
 	public delta(offset: number): LineRange {
 		return new LineRange(this.startLineNumber + offset, this.endLineNumberExclusive + offset);
 	}
@@ -129,16 +108,10 @@ export class LineRange {
 		return new LineRange(this.startLineNumber, this.endLineNumberExclusive + offset);
 	}
 
-	/**
-	 * The number of lines this line range spans.
-	 */
 	public get length(): number {
 		return this.endLineNumberExclusive - this.startLineNumber;
 	}
 
-	/**
-	 * Creates a line range that combines this and the given line range.
-	 */
 	public join(other: LineRange): LineRange {
 		return new LineRange(
 			Math.min(this.startLineNumber, other.startLineNumber),
@@ -150,10 +123,6 @@ export class LineRange {
 		return `[${this.startLineNumber},${this.endLineNumberExclusive})`;
 	}
 
-	/**
-	 * The resulting range is empty if the ranges do not intersect, but touch.
-	 * If the ranges don't even touch, the result is undefined.
-	 */
 	public intersect(other: LineRange): LineRange | undefined {
 		const startLineNumber = Math.max(this.startLineNumber, other.startLineNumber);
 		const endLineNumberExclusive = Math.min(this.endLineNumberExclusive, other.endLineNumberExclusive);
@@ -182,9 +151,6 @@ export class LineRange {
 		return new Range(this.startLineNumber, 1, this.endLineNumberExclusive - 1, Number.MAX_SAFE_INTEGER);
 	}
 
-	/**
-	 * @deprecated Using this function is discouraged because it might lead to bugs: The end position is not guaranteed to be a valid position!
-	*/
 	public toExclusiveRange(): Range {
 		return new Range(this.startLineNumber, 1, this.endLineNumberExclusive, 1);
 	}
@@ -251,10 +217,6 @@ export type ISerializedLineRange = [startLineNumber: number, endLineNumberExclus
 
 export class LineRangeSet {
 	constructor(
-		/**
-		 * Sorted by start line number.
-		 * No two line ranges are touching or intersecting.
-		 */
 		private readonly _normalizedRanges: LineRange[] = []
 	) {
 	}
@@ -268,23 +230,16 @@ export class LineRangeSet {
 			return;
 		}
 
-		// Idea: Find joinRange such that:
-		// replaceRange = _normalizedRanges.replaceRange(joinRange, range.joinAll(joinRange.map(idx => this._normalizedRanges[idx])))
 
-		// idx of first element that touches range or that is after range
 		const joinRangeStartIdx = findFirstIdxMonotonousOrArrLen(this._normalizedRanges, r => r.endLineNumberExclusive >= range.startLineNumber);
-		// idx of element after { last element that touches range or that is before range }
 		const joinRangeEndIdxExclusive = findLastIdxMonotonous(this._normalizedRanges, r => r.startLineNumber <= range.endLineNumberExclusive) + 1;
 
 		if (joinRangeStartIdx === joinRangeEndIdxExclusive) {
-			// If there is no element that touches range, then joinRangeStartIdx === joinRangeEndIdxExclusive and that value is the index of the element after range
 			this._normalizedRanges.splice(joinRangeStartIdx, 0, range);
 		} else if (joinRangeStartIdx === joinRangeEndIdxExclusive - 1) {
-			// Else, there is an element that touches range and in this case it is both the first and last element. Thus we can replace it
 			const joinRange = this._normalizedRanges[joinRangeStartIdx];
 			this._normalizedRanges[joinRangeStartIdx] = joinRange.join(range);
 		} else {
-			// First and last element are different - we need to replace the entire range
 			const joinRange = this._normalizedRanges[joinRangeStartIdx].join(this._normalizedRanges[joinRangeEndIdxExclusive - 1]).join(range);
 			this._normalizedRanges.splice(joinRangeStartIdx, joinRangeEndIdxExclusive - joinRangeStartIdx, joinRange);
 		}
@@ -336,10 +291,8 @@ export class LineRangeSet {
 				current = next;
 			} else {
 				if (current.endLineNumberExclusive >= next.startLineNumber) {
-					// merge
 					current = new LineRange(current.startLineNumber, Math.max(current.endLineNumberExclusive, next.endLineNumberExclusive));
 				} else {
-					// push
 					result.push(current);
 					current = next;
 				}
@@ -351,13 +304,8 @@ export class LineRangeSet {
 		return new LineRangeSet(result);
 	}
 
-	/**
-	 * Subtracts all ranges in this set from `range` and returns the result.
-	 */
 	subtractFrom(range: LineRange): LineRangeSet {
-		// idx of first element that touches range or that is after range
 		const joinRangeStartIdx = findFirstIdxMonotonousOrArrLen(this._normalizedRanges, r => r.endLineNumberExclusive >= range.startLineNumber);
-		// idx of element after { last element that touches range or that is before range }
 		const joinRangeEndIdxExclusive = findLastIdxMonotonous(this._normalizedRanges, r => r.startLineNumber <= range.endLineNumberExclusive) + 1;
 
 		if (joinRangeStartIdx === joinRangeEndIdxExclusive) {

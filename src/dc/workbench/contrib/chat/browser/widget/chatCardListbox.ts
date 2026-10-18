@@ -3,13 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * The ARIA scaffolding for the small single select lists inside chat cards.
- *
- * Keeps the active row's class, `aria-selected`, and `aria-activedescendant` in agreement, which is
- * silent to get wrong. Keyboard handling and row rendering stay with the caller, since the
- * consumers differ on wrapping, digit shortcuts, and what a selection change commits.
- */
 export class ChatCardListbox {
 
 	private readonly options: HTMLElement[] = [];
@@ -18,7 +11,6 @@ export class ChatCardListbox {
 	constructor(
 		readonly domNode: HTMLElement,
 		ariaLabel: string,
-		/** Class toggled on the active row. */
 		private readonly activeClass: string,
 	) {
 		this.domNode.setAttribute('role', 'listbox');
@@ -34,10 +26,6 @@ export class ChatCardListbox {
 		return this.options.length;
 	}
 
-	/**
-	 * Registers a row as an option. The element is given an id, because
-	 * `aria-activedescendant` can only refer to one.
-	 */
 	addOption(element: HTMLElement, idPrefix: string): void {
 		element.id = `${idPrefix}-option-${this.options.length}`;
 		element.setAttribute('role', 'option');
@@ -45,7 +33,6 @@ export class ChatCardListbox {
 		this.options.push(element);
 	}
 
-	/** Moves the active option. Pass -1 to clear it, which some callers use for freeform input. */
 	setActive(index: number): void {
 		this._activeIndex = index;
 		this.options.forEach((option, i) => {
@@ -62,20 +49,14 @@ export class ChatCardListbox {
 		}
 	}
 
-	/**
-	 * Focuses the container. `aria-activedescendant` is only honoured on the element that actually
-	 * has DOM focus, so focus must never move into an option or arrowing goes unannounced.
-	 */
 	focus(): void {
 		this.domNode.focus();
 	}
 
-	/** Clamps to the ends, matching the workbench lists. */
 	clampedIndex(index: number): number {
 		return Math.max(0, Math.min(index, this.options.length - 1));
 	}
 
-	/** Wraps around the ends. */
 	wrappedIndex(index: number): number {
 		if (this.options.length === 0) {
 			return -1;

@@ -8,15 +8,6 @@ import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.j
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import type { IAssignmentFilter } from './assignmentService.js';
 
-/**
- * Applies the registered {@link IAssignmentFilter assignment filters} to the assignment context
- * and remembers, per filter, which assignment-context ids each filter excluded.
- *
- * The excluded ids are persisted so that they stay filtered out across reloads even before the
- * owning filter has been registered again. Once a filter is registered it becomes authoritative
- * for its own id: the persisted state is repopulated from the ids it currently excludes and any
- * id that is no longer excluded is dropped from storage.
- */
 export class AssignmentContextFilter extends Disposable {
 
 	private static readonly STORAGE_KEY = 'workbench.assignment.filteredOutAssignmentContextIds';
@@ -24,22 +15,11 @@ export class AssignmentContextFilter extends Disposable {
 	private readonly _filters: IAssignmentFilter[] = [];
 	private readonly _filterDisposables = this._register(new DisposableStore());
 
-	/**
-	 * Assignment-context ids that were filtered out, keyed by the id of the filter that
-	 * excluded them. Entries owned by a filter that has not been registered yet are honored
-	 * across reloads so those ids stay excluded until the filter takes over.
-	 */
 	private _cachedFilteredOutIds: Map<string, Set<string>>;
 
-	/**
-	 * Ids of filters that have been registered this session. Once a filter is registered it
-	 * becomes authoritative for its own id and the persisted cache is repopulated from the
-	 * ids it actually excludes.
-	 */
 	private readonly _registeredFilterIds = new Set<string>();
 
 	private readonly _onDidChange = this._register(new Emitter<void>());
-	/** Fires when a filter is added or an already registered filter changes its exclusions. */
 	readonly onDidChange: Event<void> = this._onDidChange.event;
 
 	constructor(
@@ -53,8 +33,6 @@ export class AssignmentContextFilter extends Disposable {
 	addFilter(filter: IAssignmentFilter): void {
 		this._filters.push(filter);
 
-		// This filter now owns exclusion decisions for its id: drop the state persisted for it
-		// in a previous session and let it repopulate the cache as ids actually get filtered out.
 		this._registeredFilterIds.add(filter.id);
 		if (this._cachedFilteredOutIds.has(filter.id)) {
 			const next = new Map(this._cachedFilteredOutIds);
@@ -66,14 +44,9 @@ export class AssignmentContextFilter extends Disposable {
 		this._onDidChange.fire();
 	}
 
-	/**
-	 * Removes the excluded assignment-context ids from the given context and persists the
-	 * reconciled per-filter cache.
-	 */
 	filter(assignmentContext: string): string {
 		const assignments = assignmentContext.split(';');
 
-		// Fresh exclusions produced by the currently registered filters, keyed by filter id.
 		const freshFilteredOut = new Map<string, Set<string>>();
 
 		const filteredAssignments = assignments.filter(assignment => {
@@ -93,8 +66,6 @@ export class AssignmentContextFilter extends Disposable {
 				return false;
 			}
 
-			// Honor ids cached by filters that have not been registered yet, so they remain
-			// excluded until the owning filter takes over.
 			for (const [filterId, ids] of this._cachedFilteredOutIds) {
 				if (!this._registeredFilterIds.has(filterId) && ids.has(assignment)) {
 					return false;
@@ -104,9 +75,6 @@ export class AssignmentContextFilter extends Disposable {
 			return true;
 		});
 
-		// Persist the reconciled cache: registered filters contribute exactly what they
-		// currently exclude (dropping ids that are no longer filtered out), while entries owned
-		// by not-yet-registered filters are preserved.
 		const next = new Map<string, Set<string>>();
 		for (const [filterId, ids] of this._cachedFilteredOutIds) {
 			if (!this._registeredFilterIds.has(filterId)) {
@@ -141,14 +109,12 @@ export class AssignmentContextFilter extends Disposable {
 				}
 			}
 		} catch {
-			// Ignore malformed cache.
 		}
 
 		return result;
 	}
 
 	private _storeFilteredOutIds(next: Map<string, Set<string>>): void {
-		// Drop empty entries so an id disappears from storage once nothing is filtered out for it.
 		const normalized = new Map<string, Set<string>>();
 		for (const [filterId, ids] of next) {
 			if (ids.size > 0) {

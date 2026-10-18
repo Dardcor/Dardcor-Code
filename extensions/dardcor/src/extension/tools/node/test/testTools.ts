@@ -30,9 +30,6 @@ interface IEditToolParams {
 	code: string;
 }
 
-/**
- * An implementation of the EditFile tool for simulation tests
- */
 export class TestEditFileTool extends EditFileTool {
 	readonly info: vscode.LanguageModelToolInformation;
 
@@ -83,7 +80,6 @@ export class TestEditFileTool extends EditFileTool {
 
 		const document = await this.workspaceService.openTextDocumentAndSnapshot(uri);
 
-		// Showing the document is necessary for some extensions to report diagnostics when running in the ext host simulator
 		await this.workspaceService.showTextDocument(document.document);
 
 		return new LanguageModelToolResult([
@@ -92,8 +88,6 @@ export class TestEditFileTool extends EditFileTool {
 					this.instantiationService,
 					EditFileResult,
 					{ files: [{ operation: ActionType.UPDATE, uri, isNotebook: false }], toolName: ToolName.EditFile, requestId: 'test', model: undefined },
-					// If we are not called with tokenization options, have _some_ fake tokenizer
-					// otherwise we end up returning the entire document
 					options.tokenizationOptions ?? {
 						tokenBudget: 1000,
 						countTokens: (t) => Promise.resolve(t.length * 3 / 4)

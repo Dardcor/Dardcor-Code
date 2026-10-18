@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface IQuestionItem {
 	question: string;
@@ -19,7 +19,7 @@ export interface IInteractiveQuestionParams {
 	questions: IQuestionItem[];
 }
 
-export class InteractiveClarificationQuestionTool implements ICopilotTool<IInteractiveQuestionParams> {
+export class InteractiveClarificationQuestionTool implements IAgentTool<IInteractiveQuestionParams> {
 	public static readonly toolName = ToolName.InteractiveClarificationQuestion;
 
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<IInteractiveQuestionParams>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {

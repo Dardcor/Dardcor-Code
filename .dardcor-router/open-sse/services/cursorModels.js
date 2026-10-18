@@ -1,10 +1,3 @@
-/**
- * Cursor live model catalog fetcher.
- *
- * Cursor exposes the account-specific model picker through the AgentService
- * `GetUsableModels` Connect RPC. Unlike the static provider registry, this
- * includes models newly enabled for the account and omits unavailable ones.
- */
 
 import crypto from "crypto";
 import http2 from "http2";
@@ -15,14 +8,12 @@ import { decodeMessage } from "../utils/cursorProtobuf.js";
 const FETCH_TIMEOUT_MS = 10_000;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-// agent.v1.ModelDetails protobuf field numbers.
 const MODEL_ID_FIELD = 1;
 const DISPLAY_MODEL_ID_FIELD = 3;
 const DISPLAY_NAME_FIELD = 4;
 const DISPLAY_NAME_SHORT_FIELD = 5;
 const RESPONSE_MODELS_FIELD = 1;
 
-/** @type {Map<string, { expiresAt: number, models: { id: string, name: string }[] }>} */
 const catalogCache = new Map();
 
 function getCursorModelsUrl() {
@@ -46,10 +37,6 @@ function firstString(fields, fieldNumber) {
   return Buffer.from(value).toString("utf8");
 }
 
-/**
- * Decode Cursor's `agent.v1.GetUsableModelsResponse` protobuf payload.
- * The response contains repeated `agent.v1.ModelDetails` messages in field 1.
- */
 export function parseCursorUsableModels(payload) {
   const response = decodeMessage(payload);
   const seen = new Set();
@@ -74,10 +61,6 @@ export function parseCursorUsableModels(payload) {
   return models;
 }
 
-/**
- * agent.api5.cursor.sh is HTTP/2-only; Node fetch/undici cannot speak h2.
- * Unary GetUsableModels uses an unframed protobuf body (application/proto).
- */
 function http2PostProto(url, headers, body, signal, timeoutMs) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
@@ -136,8 +119,6 @@ async function fetchCursorCatalog(credentials, signal) {
 
   const headers = {
     ...buildCursorHeaders(accessToken, machineId, credentials?.providerSpecificData?.ghostMode !== false),
-    // Connect unary calls use an unframed protobuf body, unlike Cursor chat's
-    // streaming `application/connect+proto` endpoint.
     accept: "application/proto",
     "content-type": "application/proto",
   };
@@ -154,10 +135,6 @@ async function fetchCursorCatalog(credentials, signal) {
   return parseCursorUsableModels(new Uint8Array(response.body));
 }
 
-/**
- * Resolve the live Cursor catalog for the authenticated account.
- * Returns null on any failure so callers can fall back to static models.
- */
 export async function resolveCursorModels(credentials, options = {}) {
   if (!credentials?.accessToken || !credentials?.providerSpecificData?.machineId) {
     options.log?.debug?.("CURSOR_MODELS", "No Cursor access token or machine ID; skipping live fetch");

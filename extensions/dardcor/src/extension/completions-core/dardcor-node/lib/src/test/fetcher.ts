@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
+import { DardcorNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
 import { Completions, ICompletionsFetchService } from '../../../../../../platform/nesFetch/common/completionsFetchService';
 import { ResponseStream } from '../../../../../../platform/nesFetch/common/responseStream';
 import { jsonlStreamToCompletions } from '../../../../../../platform/nesFetch/node/streamTransformer';
@@ -16,7 +16,7 @@ type HeadersParameter = { [key: string]: string };
 
 export function createFakeResponse(statusCode: number, response?: string, headers?: HeadersParameter) {
 	const fakeHeaders = new FakeHeaders();
-	fakeHeaders.set('x-github-request-id', '1');
+	fakeHeaders.set('x-request-id', '1');
 	for (const [key, value] of Object.entries(headers || {})) {
 		fakeHeaders.set(key, value);
 	}
@@ -51,7 +51,7 @@ export function createFakeStreamResponse(body: string): Response {
 
 export function createFakeCompletionResponse(
 	completionText: string | string[],
-	options?: { annotations?: CopilotNamedAnnotationList }
+	options?: { annotations?: DardcorNamedAnnotationList }
 ): Response {
 	const now = Math.floor(Date.now() / 1000);
 	if (typeof completionText === 'string') {
@@ -80,7 +80,7 @@ export function fakeCodeReference(
 	stopOffset: number = 1,
 	license: string = 'MIT',
 	url: string = 'https://github.com/github/example'
-): CopilotNamedAnnotationList {
+): DardcorNamedAnnotationList {
 	return {
 		ip_code_citations: [
 			{
@@ -173,10 +173,6 @@ export class FakeAbortController implements IAbortController {
 	}
 }
 
-/**
- * Adapts a `StaticFetcher` (which returns raw SSE `Response` objects) into an
- * `ICompletionsFetchService` for tests that use `LiveOpenAIFetcher` (v2).
- */
 export class StaticCompletionsFetchService implements ICompletionsFetchService {
 	declare _serviceBrand: undefined;
 	constructor(private readonly fetcher: FakeFetcher) { }

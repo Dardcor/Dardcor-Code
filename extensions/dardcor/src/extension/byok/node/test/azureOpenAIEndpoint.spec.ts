@@ -68,13 +68,10 @@ describe('AzureOpenAIEndpoint', () => {
 			);
 			const headers = endpoint.getExtraHeaders();
 
-			// Should have Authorization header with Bearer token
 			expect(headers['Authorization']).toBe(`Bearer ${entraToken}`);
 
-			// Should NOT have api-key header (Azure API key auth)
 			expect(headers['api-key']).toBeUndefined();
 
-			// Should have standard headers
 			expect(headers['Content-Type']).toBe('application/json');
 		});
 
@@ -88,7 +85,6 @@ describe('AzureOpenAIEndpoint', () => {
 			);
 			const headers = endpoint.getExtraHeaders();
 
-			// Verify the override worked correctly
 			expect(headers['Authorization']).toBe(`Bearer ${entraToken}`);
 			expect(headers['api-key']).toBeUndefined();
 			expect(Object.keys(headers)).not.toContain('api-key');
@@ -97,7 +93,6 @@ describe('AzureOpenAIEndpoint', () => {
 		it('should work with different Azure OpenAI endpoint URLs', () => {
 			const entraToken = 'test-token-456';
 
-			// Test with different endpoint formats
 			const urls = [
 				'https://example-endpoint-1.example.com/v1/chat/completions',
 				'https://example-endpoint-2.example.com/v1/chat/completions',
@@ -130,10 +125,8 @@ describe('AzureOpenAIEndpoint', () => {
 
 			const headers = endpoint.getExtraHeaders();
 
-			// Should preserve Content-Type from parent
 			expect(headers['Content-Type']).toBe('application/json');
 
-			// Should have Authorization header
 			expect(headers['Authorization']).toBeDefined();
 			expect(headers['Authorization']).toContain('Bearer');
 		});
@@ -143,7 +136,6 @@ describe('AzureOpenAIEndpoint', () => {
 		it('should inherit from OpenAIEndpoint and maintain same constructor signature', () => {
 			const entraToken = 'test-token-inheritance';
 
-			// Should be able to instantiate with same parameters as OpenAIEndpoint
 			const endpoint = instaService.createInstance(
 				AzureOpenAIEndpoint,
 				modelMetadata,
@@ -151,10 +143,8 @@ describe('AzureOpenAIEndpoint', () => {
 				'https://example-endpoint.example.com/v1/chat/completions'
 			);
 
-			// Should be an instance of AzureOpenAIEndpoint
 			expect(endpoint).toBeInstanceOf(AzureOpenAIEndpoint);
 
-			// Should have getExtraHeaders method
 			expect(typeof endpoint.getExtraHeaders).toBe('function');
 		});
 	});

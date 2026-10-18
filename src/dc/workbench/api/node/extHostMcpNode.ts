@@ -36,7 +36,7 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 	override $stopMcp(id: number): void {
 		const nodeServer = this.nodeServers.get(id);
 		if (nodeServer) {
-			nodeServer.stop(); // will get removed from map when process is fully stopped
+			nodeServer.stop();
 		} else {
 			super.$stopMcp(id);
 		}
@@ -59,8 +59,6 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 			message: typeof err === 'string' ? err : err.message,
 		});
 
-		// MCP servers are run on the same authority where they are defined, so
-		// reading the envfile based on its path off the filesystem here is fine.
 		const env = { ...process.env };
 		if (launch.envFile) {
 			try {
@@ -73,7 +71,6 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 			}
 		}
 		for (const [key, value] of Object.entries(launch.env)) {
-			// For PATH, we want to append to the existing PATH instead of overwriting it.
 			if (key.toUpperCase() === 'PATH' && value !== null) {
 				env[key] = env[key] ? `${env[key]}${path.delimiter}${String(value)}` : String(value);
 				continue;
@@ -108,7 +105,6 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 			return;
 		}
 
-		// Create the connection manager for graceful shutdown
 		const connectionManager = new McpStdioStateHandler(child);
 
 		this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Starting });
@@ -118,8 +114,6 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 		child.stdin.on('error', onError);
 		child.stdout.on('error', onError);
 
-		// Stderr handling is not currently specified https://github.com/modelcontextprotocol/specification/issues/177
-		// Just treat it as generic log data for now
 		child.stderr.pipe(new StreamSplitter('\n')).on('data', line => this._proxy.$onDidPublishLog(id, LogLevel.Warning, `[server stderr] ${line.toString().trimEnd()}`));
 
 		child.on('spawn', () => this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Running }));
@@ -148,7 +142,6 @@ class McpHTTPHandleNode extends McpHTTPHandle {
 	private readonly _undici = new Lazy(() => import('undici'));
 
 	protected override async _fetchInternal(url: string, init?: CommonRequestInit): Promise<CommonResponse> {
-		// Note: imported async so that we can ensure we load undici after proxy patches have been applied
 		const { fetch, Agent } = await this._undici.value;
 
 		const undiciInit: UndiciRequestInit = { ...init };
@@ -157,16 +150,13 @@ class McpHTTPHandleNode extends McpHTTPHandle {
 		const uri = URI.parse(url);
 
 		if (uri.scheme === 'unix' || uri.scheme === 'pipe') {
-			// By convention, we put the *socket path* as the URI path, and the *request path* in the fragment
-			// So, set the dispatcher with the socket path
 			undiciInit.dispatcher = new Agent({
 				socketPath: uri.path,
 			});
 
-			// And then rewrite the URL to be http://localhost/<fragment>
 			httpUrl = uri.with({
 				scheme: 'http',
-				authority: 'localhost', // HTTP always wants a host (not that we're using it), but if we're using a socket or pipe then localhost is sorta right anyway
+				authority: 'localhost',
 				path: uri.fragment,
 			}).toString(true);
 		} else {
@@ -178,8 +168,8 @@ class McpHTTPHandleNode extends McpHTTPHandle {
 		return {
 			status: undiciResponse.status,
 			statusText: undiciResponse.statusText,
-			headers: undiciResponse.headers as unknown as Headers, // undici `Headers` class no longer overlaps with lib.dom `Headers` (`SpecIterableIterator` vs `HeadersIterator`)
-			body: undiciResponse.body as ReadableStream, // Way down in `ReadableStreamReadDoneResult<T>`, `value` is optional in the undici type but required (yet can be `undefined`) in the standard type
+			headers: undiciResponse.headers as unknown as Headers,
+			body: undiciResponse.body as ReadableStream,
 			url: undiciResponse.url,
 			json: () => undiciResponse.json(),
 			text: () => undiciResponse.text(),
@@ -191,9 +181,6 @@ const windowsShellScriptRe = /\.(bat|cmd)$/i;
 
 export const escapeCmdArg = (s: string): string => `"${s.replace(/"/g, '""')}"`;
 
-/**
- * Formats arguments to avoid issues on Windows for CVE-2024-27980.
- */
 export const formatSubprocessArguments = async (
 	executable: string,
 	args: ReadonlyArray<string>,

@@ -17,12 +17,12 @@ import { GitRefType, IAgentHostGitService, META_DIFF_BASE_BRANCH, type IAddWorkt
 import { SessionConfigKey } from '../../../common/sessionConfigKeys.js';
 import { AH_META_IS_ARCHIVED_DB_KEY, AH_META_IS_DONE_DB_KEY, MessageKind, ResponsePartKind, TurnState, type Turn } from '../../../common/state/sessionState.js';
 import { AgentBranchNameGenerator, IAgentBranchNameGenerator } from '../../../node/shared/agentBranchNameGenerator.js';
-import { ICopilotApiService } from '../../../node/shared/copilotApiService.js';
+import { IDardcorRouterService } from '../../../node/shared/dardcorRouterService.js';
 import { buildWorktreeFailureNotification, normalizeWorktreeFailureDiagnostic, NullAgentHostWorktreeIsolation, SessionWorkingDirectoryMissingError, WorktreeIsolation, getWorktreeName, getWorktreesRoot } from '../../../node/shared/worktreeIsolation.js';
 import { TestSessionDatabase, createNoopGitService, createSessionDataService } from '../../common/sessionTestHelpers.js';
 import type { ISessionDataService } from '../../../common/sessionDataService.js';
 
-function createNullCopilotApiService(): ICopilotApiService {
+function createNullDardcorRouterService(): IDardcorRouterService {
 	return {
 		_serviceBrand: undefined,
 		messages: (..._args: unknown[]): never => { throw new Error('not implemented'); },
@@ -30,8 +30,6 @@ function createNullCopilotApiService(): ICopilotApiService {
 		models: async () => [],
 		responses: async () => { throw new Error('not implemented'); },
 		utilityChatCompletion: async () => { throw new Error('not implemented'); },
-		resolveRestrictedTelemetryContext: async () => { throw new Error('not implemented'); },
-		resolveApiEndpoint: async () => undefined,
 	};
 }
 
@@ -196,7 +194,7 @@ suite('WorktreeIsolation', () => {
 		const repoWorktreeSelected = await isolation.resolveIsolationConfig({ workingDirectory: repoRoot, config: { [SessionConfigKey.Isolation]: 'worktree', [SessionConfigKey.Branch]: 'feature' } });
 		const repoFolder = await isolation.resolveIsolationConfig({ workingDirectory: repoRoot, config: { [SessionConfigKey.Isolation]: 'folder' } });
 		const repoFolderSelected = await isolation.resolveIsolationConfig({ workingDirectory: repoRoot, config: { [SessionConfigKey.Isolation]: 'folder', [SessionConfigKey.Branch]: 'main' } });
-		headCommit = undefined; // unborn HEAD (no commits)
+		headCommit = undefined;
 		const noCommits = await isolation.resolveIsolationConfig({ workingDirectory: repoRoot, config: undefined });
 
 		assert.deepStrictEqual({
@@ -601,7 +599,7 @@ suite('WorktreeIsolation', () => {
 		mkdirSync(existingWorktree.fsPath, { recursive: true });
 		branchExists = false;
 		const isolation = createIsolation(disposables, {
-			branchNameGenerator: new AgentBranchNameGenerator(createNullCopilotApiService(), new NullLogService()),
+			branchNameGenerator: new AgentBranchNameGenerator(createNullDardcorRouterService(), new NullLogService()),
 		});
 
 		const resolved = await isolation.resolveWorkingDirectory({
@@ -633,7 +631,7 @@ suite('WorktreeIsolation', () => {
 			return false;
 		};
 		const isolation = createIsolation(disposables, {
-			branchNameGenerator: new AgentBranchNameGenerator(createNullCopilotApiService(), new NullLogService()),
+			branchNameGenerator: new AgentBranchNameGenerator(createNullDardcorRouterService(), new NullLogService()),
 			gitService,
 		});
 
@@ -678,7 +676,7 @@ suite('WorktreeIsolation', () => {
 			activeAddWorktrees--;
 		};
 		const isolation = createIsolation(disposables, {
-			branchNameGenerator: new AgentBranchNameGenerator(createNullCopilotApiService(), new NullLogService()),
+			branchNameGenerator: new AgentBranchNameGenerator(createNullDardcorRouterService(), new NullLogService()),
 			gitService,
 		});
 		const config = { [SessionConfigKey.Isolation]: 'worktree', [SessionConfigKey.Branch]: 'main' };
@@ -879,11 +877,6 @@ suite('WorktreeIsolation', () => {
 	});
 
 	test('resolveWorktreeProject / sessionWorktreeProject expose the repository as the session project', async () => {
-		// The worktree lives at `<repo>.worktrees/<name>`, but a worktree session
-		// must group under the repository in the sessions UI. Both accessors return
-		// the repo root as the project so agents can merge it into the reported
-		// `IAgentSessionMetadata` / materialize event. Folder (non-worktree)
-		// sessions have no worktree metadata and get `undefined`.
 		const isolation = createIsolation(disposables);
 		const expectedDisplayName = basename(repoRoot);
 

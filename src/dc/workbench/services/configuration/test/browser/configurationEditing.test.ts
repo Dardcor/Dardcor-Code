@@ -397,7 +397,7 @@ suite('ConfigurationEditing', () => {
 
 	test('write workspace standalone setting - existing file with JSON errors - full JSON', async () => {
 		const target = joinPath(workspaceService.getWorkspace().folders[0].uri, WORKSPACE_STANDALONE_CONFIGURATIONS['tasks']);
-		await fileService.writeFile(target, VSBuffer.fromString('{ "my.super.setting": ')); // invalid JSON
+		await fileService.writeFile(target, VSBuffer.fromString('{ "my.super.setting": '));
 
 		await testObject.writeConfiguration(EditableConfigurationTarget.WORKSPACE, { key: 'tasks', value: { 'version': '1.0.0', tasks: [{ 'taskName': 'myTask' }] } });
 
@@ -409,7 +409,7 @@ suite('ConfigurationEditing', () => {
 
 	test('write user standalone setting - existing file with JSON errors - full JSON', async () => {
 		const target = joinPath(environmentService.userRoamingDataHome, USER_STANDALONE_CONFIGURATIONS['tasks']);
-		await fileService.writeFile(target, VSBuffer.fromString('{ "my.super.setting": ')); // invalid JSON
+		await fileService.writeFile(target, VSBuffer.fromString('{ "my.super.setting": '));
 
 		await testObject.writeConfiguration(EditableConfigurationTarget.USER_LOCAL, { key: 'tasks', value: { 'version': '1.0.0', tasks: [{ 'taskName': 'myTask' }] } });
 

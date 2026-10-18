@@ -63,7 +63,7 @@ export class PickerEditorState extends Disposable {
 		state: ICodeEditorViewState | IDiffEditorViewState | undefined;
 	} | undefined = undefined;
 
-	private readonly openedTransientEditors = new Set<EditorInput>(); // editors that were opened between set and restore
+	private readonly openedTransientEditors = new Set<EditorInput>();
 
 	constructor(
 		@IEditorService private readonly editorService: IEditorService,
@@ -74,7 +74,7 @@ export class PickerEditorState extends Disposable {
 
 	set(): void {
 		if (this.editorViewState) {
-			return; // return early if already done
+			return;
 		}
 
 		const activeEditorPane = this.editorService.activeEditorPane;
@@ -87,10 +87,6 @@ export class PickerEditorState extends Disposable {
 		}
 	}
 
-	/**
-	 * Open a transient editor such that it may be closed when the state is restored.
-	 * Note that, when the state is restored, if the editor is no longer transient, it will not be closed.
-	 */
 	async openTransientEditor(editor: IResourceEditorInput | ITextResourceEditorInput | IUntitledTextResourceEditorInput | IUntypedEditorInput, group?: PreferredGroup): Promise<IEditorPane | undefined> {
 		editor.options = { ...editor.options, transient: true };
 
@@ -118,7 +114,7 @@ export class PickerEditorState extends Disposable {
 
 			await this.editorViewState.group.openEditor(this.editorViewState.editor, {
 				viewState: this.editorViewState.state,
-				preserveFocus: true // important to not close the picker as a result
+				preserveFocus: true
 			});
 
 			this.reset();

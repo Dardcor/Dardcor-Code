@@ -70,8 +70,7 @@ import { IRemoteRepositoriesService, RemoteRepositoriesService } from '../../../
 import { IReviewService } from '../../../platform/review/common/reviewService';
 import { ReviewServiceImpl } from '../../../platform/review/dardcor/reviewServiceImpl';
 import { ISimulationTestContext, NulSimulationTestContext } from '../../../platform/simulationTestContext/common/simulationTestContext';
-import { ISnippyService } from '../../../platform/snippy/common/snippyService';
-import { SnippyService } from '../../../platform/snippy/common/snippyServiceImpl';
+import { ISnippyService, NullSnippyService } from '../../../platform/snippy/common/snippyService';
 import { ISurveyService } from '../../../platform/survey/common/surveyService';
 import { SurveyService } from '../../../platform/survey/dardcor/surveyServiceImpl';
 import { ITabsAndEditorsService } from '../../../platform/tabs/common/tabsAndEditorsService';
@@ -98,13 +97,6 @@ import { ToolGroupingService } from '../../tools/common/virtualTools/toolGroupin
 import { ToolGroupingCache } from '../../tools/common/virtualTools/virtualToolGroupCache';
 import { IToolGroupingCache, IToolGroupingService } from '../../tools/common/virtualTools/virtualToolTypes';
 
-// ##########################################################################
-// ###                                                                    ###
-// ###      Services that run in both web and node.js extension host.     ###
-// ###                                                                    ###
-// ### !!! Prefer to list services in HERE to support them anywhere !!!   ###
-// ###                                                                    ###
-// ##########################################################################
 
 export function registerServices(builder: IInstantiationServiceBuilder, extensionContext: ExtensionContext): void {
 	const isTestMode = extensionContext.extensionMode === ExtensionMode.Test;
@@ -126,7 +118,7 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(ITestProvider, new SyncDescriptor(TestProvider));
 	builder.define(IUrlOpener, isTestMode && !isScenarioAutomation ? new NullUrlOpener() : new RealUrlOpener());
 	builder.define(INotificationService, isTestMode && !isScenarioAutomation ? new NullNotificationService() : new NotificationService());
-	builder.define(IVSCodeExtensionContext, <any>/*force _serviceBrand*/extensionContext);
+	builder.define(IVSCodeExtensionContext, <any> extensionContext);
 	builder.define(IWorkbenchService, new WorkbenchServiceImpl());
 	builder.define(IConversationOptions, {
 		_serviceBrand: undefined,
@@ -150,8 +142,8 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(IWorkspaceService, new SyncDescriptor(ExtensionTextDocumentManager));
 	builder.define(IMcpService, new SyncDescriptor(McpService));
 	builder.define(IExtensionsService, new SyncDescriptor(VSCodeExtensionsService));
-	builder.define(ICombinedEmbeddingIndex, new SyncDescriptor(VSCodeCombinedIndexImpl, [/*useRemoteCache*/ true]));
-	builder.define(IProjectTemplatesIndex, new SyncDescriptor(ProjectTemplatesIndex, [/*useRemoteCache*/ true]));
+	builder.define(ICombinedEmbeddingIndex, new SyncDescriptor(VSCodeCombinedIndexImpl, [ true]));
+	builder.define(IProjectTemplatesIndex, new SyncDescriptor(ProjectTemplatesIndex, [ true]));
 	builder.define(IBlockedExtensionService, new SyncDescriptor(BlockedExtensionService));
 	builder.define(IEditLogService, new SyncDescriptor(EditLogService));
 	builder.define(IMultiFileEditInternalTelemetryService, new SyncDescriptor(MultiFileEditInternalTelemetryService));
@@ -161,7 +153,7 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(IEditSurvivalTrackerService, new SyncDescriptor(EditSurvivalTrackerService));
 	builder.define(IPromptPathRepresentationService, new SyncDescriptor(PromptPathRepresentationService));
 	builder.define(IReleaseNotesService, new SyncDescriptor(ReleaseNotesService));
-	builder.define(ISnippyService, new SyncDescriptor(SnippyService));
+	builder.define(ISnippyService, new SyncDescriptor(NullSnippyService));
 	builder.define(IInteractiveSessionService, new InteractiveSessionServiceImpl());
 	builder.define(IAuthenticationChatUpgradeService, new SyncDescriptor(AuthenticationChatUpgradeService));
 	builder.define(IEmbeddingsComputer, new SyncDescriptor(RemoteEmbeddingsComputer));

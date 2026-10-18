@@ -18,13 +18,6 @@ import { IKeybindingService } from '../../../../../platform/keybinding/common/ke
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 
-/**
- * Action view item for checkpoint actions that adds an inline confirmation
- * affordance before discarding edits.
- *
- * This gives a lightweight, in-place warning for sessions (such as agent host
- * sessions) where the modal removal-confirmation dialog does not apply.
- */
 export class ChatRestoreCheckpointActionViewItem extends MenuEntryActionViewItem {
 
 	private _confirming = false;
@@ -53,9 +46,6 @@ export class ChatRestoreCheckpointActionViewItem extends MenuEntryActionViewItem
 
 		const cancelButton = this._cancelButton = dom.append(container, dom.$('a.action-label.chat-restore-checkpoint-cancel'));
 		cancelButton.setAttribute('role', 'button');
-		// Keep the cancel affordance out of the tab order so it does not break
-		// the ActionBar roving-tabindex pattern; keyboard users can use Escape to
-		// cancel the inline confirmation.
 		cancelButton.tabIndex = -1;
 		dom.reset(cancelButton, ...renderLabelWithIcons(`$(close-compact)`));
 		cancelButton.title = this._cancelLabel;
@@ -63,15 +53,9 @@ export class ChatRestoreCheckpointActionViewItem extends MenuEntryActionViewItem
 		this._register(dom.addDisposableListener(cancelButton, dom.EventType.CLICK, e => {
 			dom.EventHelper.stop(e, true);
 			this._setConfirming(false);
-			// The cancel button is hidden once confirmation is dismissed, so move
-			// focus back to the main action label to avoid losing keyboard focus.
 			this.label?.focus();
 		}));
 
-		// The action bar runs the action directly on keyboard trigger (Enter /
-		// Space) via its own keydown/keyup handling, bypassing onClick. Intercept
-		// it here so keyboard activation respects the inline confirmation state
-		// just like a mouse click does.
 		this._register(dom.addDisposableListener(container, dom.EventType.KEY_DOWN, e => {
 			const event = new StandardKeyboardEvent(e);
 			if (!event.equals(KeyCode.Enter) && !event.equals(KeyCode.Space)) {
@@ -87,7 +71,6 @@ export class ChatRestoreCheckpointActionViewItem extends MenuEntryActionViewItem
 				dom.EventHelper.stop(e, true);
 				this._setConfirming(true);
 			}
-			// Otherwise fall through so the action bar runs the restore as usual.
 		}));
 
 		this._updateConfirmUI();
@@ -117,8 +100,6 @@ export class ChatRestoreCheckpointActionViewItem extends MenuEntryActionViewItem
 		this._confirmDisposables.clear();
 
 		if (value && this.element) {
-			// Revert to the default state when focus leaves the button or
-			// when the user presses Escape.
 			this._confirmDisposables.add(dom.addDisposableListener(this.element, dom.EventType.FOCUS_OUT, e => {
 				const next = e.relatedTarget as HTMLElement | null;
 				if (!next || !this.element?.contains(next)) {

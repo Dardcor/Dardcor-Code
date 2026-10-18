@@ -22,9 +22,6 @@ function editorMatchToTextSearchResult(matches: FindMatch[], model: ITextModel, 
 		previewOptions);
 }
 
-/**
- * Combine a set of FindMatches into a set of TextSearchResults. They should be grouped by matches that start on the same line that the previous match ends on.
- */
 export function editorMatchesToTextSearchResults(matches: FindMatch[], model: ITextModel, previewOptions?: ITextSearchPreviewOptions): TextSearchMatch[] {
 	let previousEndLine = -1;
 	const groupedMatches: FindMatch[][] = [];

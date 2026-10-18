@@ -103,10 +103,8 @@ export class PolicyConfiguration extends Disposable implements IPolicyConfigurat
 	private _configurationModel: ConfigurationModel;
 	get configurationModel() { return this._configurationModel; }
 
-	/** Last definition submitted per policy name; avoids redundant re-registration. */
 	private readonly _submittedPolicyDefinitions = new Map<PolicyName, PolicyDefinition>();
 
-	/** Maps each policy-controlled setting key to its policy name, so removed keys can be re-resolved. */
 	private readonly _policyNameByKey = new Map<string, PolicyName>();
 
 	constructor(
@@ -130,8 +128,6 @@ export class PolicyConfiguration extends Disposable implements IPolicyConfigurat
 	}
 
 	private toPolicyDefinitionType(configType: unknown, policyName: PolicyName): 'string' | 'number' | 'boolean' | undefined {
-		// `configType` may be a single type or a union (e.g. `['array', 'null']`).
-		// Normalize to an array and keep only the types we can represent as policies.
 		const configTypes = Array.isArray(configType) ? configType : [configType];
 		const supportedTypes = configTypes.filter(type => type === 'string' || type === 'number' || type === 'array' || type === 'object' || type === 'boolean');
 		if (supportedTypes.length === 0) {
@@ -151,7 +147,7 @@ export class PolicyConfiguration extends Disposable implements IPolicyConfigurat
 		for (const key of properties) {
 			const config = configurationProperties[key] ?? excludedConfigurationProperties[key];
 			if (!config) {
-				keys.push(key); // deregistered — update() will clear this key's applied policy value
+				keys.push(key);
 				const removedPolicyName = this._policyNameByKey.get(key);
 				if (removedPolicyName !== undefined) {
 					this._policyNameByKey.delete(key);
@@ -187,7 +183,6 @@ export class PolicyConfiguration extends Disposable implements IPolicyConfigurat
 		return !!a && a.type === b.type && a.value === b.value && a.managedSettings === b.managedSettings && a.restrictedValue === b.restrictedValue;
 	}
 
-	/** Resolve the authoritative definition: owner wins; references provide a bare type fallback. */
 	private resolvePolicyDefinition(policyName: PolicyName): PolicyDefinition | undefined {
 		const configurationProperties = this.configurationRegistry.getConfigurationProperties();
 		const excludedConfigurationProperties = this.configurationRegistry.getExcludedConfigurationProperties();
@@ -244,9 +239,6 @@ export class PolicyConfiguration extends Disposable implements IPolicyConfigurat
 			const policyName = property?.policy?.name ?? property?.policyReference?.name;
 			if (policyName) {
 				let policyValue: PolicyValue | ParsedType | undefined = this.policyService.getPolicyValue(policyName);
-				// `property.type` may be a single type or a union (e.g. `['array', 'null']`).
-				// A string policy value carries a JSON payload that must be parsed unless the
-				// setting itself is (or can be) a plain string.
 				const acceptsStringType = Array.isArray(property.type) ? property.type.includes('string') : property.type === 'string';
 				if (isString(policyValue) && !acceptsStringType) {
 					try {

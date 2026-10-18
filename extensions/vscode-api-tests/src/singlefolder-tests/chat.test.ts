@@ -10,14 +10,12 @@ import 'mocha';
 import { ChatContext, ChatRequest, ChatRequestTurn, ChatRequestTurn2, ChatResult, Disposable, env, Event, EventEmitter, chat, commands, lm, UIKind } from 'vscode';
 import { DeferredPromise, asPromise, assertNoRpc, closeAllEditors, delay, disposeAll } from '../utils';
 
-// TODO: this now became flaky with built-in copilot
 suite('chat', () => {
 
 	let disposables: Disposable[] = [];
 	setup(() => {
 		disposables = [];
 
-		// Register a dummy default model which is required for a participant request to go through
 		disposables.push(lm.registerLanguageModelChatProvider('copilot', {
 			async provideLanguageModelChatInformation(_options, _token) {
 				return [{
@@ -59,9 +57,6 @@ suite('chat', () => {
 		return emitter.event;
 	}
 
-	// Chat participants are a Local-harness feature, but the panel defaults to
-	// Agent Host Copilot when the agent host is enabled. `newLocalChat` opens the
-	// view directly into a Local session (from cold), so these tests run it first.
 	test('participant and slash command history', async () => {
 		const onRequest = setupParticipant();
 		await commands.executeCommand('workbench.action.chat.newLocalChat');
@@ -106,7 +101,6 @@ suite('chat', () => {
 		};
 		disposables.push(participant);
 
-		// Participants are Local-only; open a Local chat first (see note above).
 		await commands.executeCommand('workbench.action.chat.newLocalChat');
 		commands.executeCommand('workbench.action.chat.open', { query: '@participant /hello friend' });
 		const result = await deferred.p;
@@ -117,12 +111,10 @@ suite('chat', () => {
 		const onRequest = setupParticipant();
 		const onRequest2 = setupParticipant(true);
 
-		// Participants are Local-only; open a Local chat first (see note above).
 		await commands.executeCommand('workbench.action.chat.newLocalChat');
 		commands.executeCommand('workbench.action.chat.open', { query: '@participant hi' });
 		await asPromise(onRequest);
 
-		// Request is still being handled at this point, wait for it to end
 		setTimeout(() => {
 			commands.executeCommand('workbench.action.chat.open', { query: '@participant2 hi' });
 		}, 0);
@@ -133,12 +125,9 @@ suite('chat', () => {
 			commands.executeCommand('workbench.action.chat.open', { query: '@participant2 hi' });
 		}, 0);
 		const request3 = await asPromise(onRequest2);
-		assert.strictEqual(request3.context.history.length, 2); // request + response = 2
+		assert.strictEqual(request3.context.history.length, 2);
 	});
 
-	// fixme(rwoll): workbench.action.chat.open.blockOnResponse tests are flaking in CI:
-	//               * https://github.com/microsoft/vscode/issues/263572
-	//               * https://github.com/microsoft/vscode/issues/263575
 	test.skip('workbench.action.chat.open.blockOnResponse defaults to non-blocking for backwards compatibility', async () => {
 		const toolRegistration = lm.registerTool<void>('requires_confirmation_tool', {
 			invoke: async (_options, _token) => null, prepareInvocation: async (_options, _token) => {
@@ -212,23 +201,19 @@ suite('chat', () => {
 		};
 		disposables.push(participant);
 
-		// Participants are Local-only; open a Local chat first (see note above).
 		await commands.executeCommand('workbench.action.chat.newLocalChat');
 		commands.executeCommand('workbench.action.chat.open', { query: '@participant /hello friend' });
 
-		// Wait for title provider to be called once
 		await deferred.p;
 		assert.strictEqual(calls, 1);
 
 		commands.executeCommand('workbench.action.chat.open', { query: '@participant /hello friend' });
 		await delay(500);
 
-		// Title provider was not called again
 		assert.strictEqual(calls, 1);
 	});
 
 	test('can access node-pty module', async function () {
-		// Required for copilot cli in chat extension.
 		if (env.uiKind === UIKind.Web) {
 			this.skip();
 		}
@@ -238,14 +223,12 @@ suite('chat', () => {
 		];
 
 		for (const modulePath of nodePtyModules) {
-			// try to stat and require module
 			try {
 				await fs.promises.stat(modulePath);
 				const nodePty = require(modulePath);
 				assert.ok(nodePty, `Successfully required node-pty from ${modulePath}`);
 				return;
 			} catch (err) {
-				// failed to require, try next
 			}
 		}
 		assert.fail('Failed to find and require node-pty module');

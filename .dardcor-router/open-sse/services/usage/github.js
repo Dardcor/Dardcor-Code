@@ -1,28 +1,19 @@
-/**
- * GitHub Copilot usage handler
- */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { PROVIDER_OAUTH } from "../../providers/index.js";
 import { U, parseResetTime } from "./shared.js";
 
-// GitHub API config — single source from registry oauth block
 const GITHUB_CONFIG = {
   apiVersion: PROVIDER_OAUTH.github?.apiVersion,
   userAgent: PROVIDER_OAUTH.github?.userAgent,
 };
 
-/**
- * GitHub Copilot Usage
- * Uses GitHub accessToken (not copilotToken) to call copilot_internal/user API
- */
 export async function getGitHubUsage(accessToken, providerSpecificData, proxyOptions = null) {
   try {
     if (!accessToken) {
       throw new Error("No GitHub access token available. Please re-authorize the connection.");
     }
 
-    // copilot_internal/user API requires GitHub OAuth token, not copilotToken
     const response = await proxyAwareFetch(U("github").url, {
       headers: {
         "Authorization": `token ${accessToken}`,
@@ -41,9 +32,7 @@ export async function getGitHubUsage(accessToken, providerSpecificData, proxyOpt
 
     const data = await response.json();
 
-    // Handle different response formats (paid vs free)
     if (data.quota_snapshots) {
-      // Paid plan format
       const snapshots = data.quota_snapshots;
       const resetAt = parseResetTime(data.quota_reset_date);
 
@@ -57,7 +46,6 @@ export async function getGitHubUsage(accessToken, providerSpecificData, proxyOpt
         },
       };
     } else if (data.monthly_quotas || data.limited_user_quotas) {
-      // Free/limited plan format
       const monthlyQuotas = data.monthly_quotas || {};
       const usedQuotas = data.limited_user_quotas || {};
       const resetAt = parseResetTime(data.limited_user_reset_date);

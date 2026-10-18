@@ -36,8 +36,6 @@ async function getSpecificNLS(resourceUrlTemplate: string, languageId: string, v
 
 	const { contents: result } = await res.json() as { contents: LanguageTranslations };
 
-	// TODO: support module namespacing
-	// Flatten all moduleName keys to empty string
 	const flattened: LanguageTranslations = { '': {} };
 	for (const moduleName in result) {
 		for (const nlsKey in result[moduleName]) {
@@ -85,7 +83,7 @@ async function getNLS(extensionGalleryServiceUrl: string, resourceUrlTemplate: s
 	const versions = await queryVersions(extensionGalleryServiceUrl, languageId);
 	const nextMinor: Version = [version[0], version[1] + 1, 0];
 	const compatibleVersions = versions.filter(v => compareVersions(v, nextMinor) < 0);
-	const latestCompatibleVersion = compatibleVersions.at(-1)!; // order is newest to oldest
+	const latestCompatibleVersion = compatibleVersions.at(-1)!;
 
 	if (!latestCompatibleVersion) {
 		throw new Error(`No compatible language pack found for ${languageId} for version ${version}`);
@@ -94,7 +92,6 @@ async function getNLS(extensionGalleryServiceUrl: string, resourceUrlTemplate: s
 	return await getSpecificNLS(resourceUrlTemplate, languageId, latestCompatibleVersion);
 }
 
-// TODO: add more policy types
 const PolicyTypes = [
 	BooleanPolicy,
 	NumberPolicy,
@@ -131,7 +128,6 @@ async function parsePolicies(policyDataFile: string): Promise<Policy[]> {
 		policies.push(result);
 	}
 
-	// Sort policies first by category name, then by policy name
 	policies.sort((a, b) => {
 		const categoryCompare = a.category.name.value.localeCompare(b.category.name.value);
 		if (categoryCompare !== 0) {

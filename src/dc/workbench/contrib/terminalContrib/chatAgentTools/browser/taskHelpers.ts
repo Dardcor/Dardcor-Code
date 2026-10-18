@@ -84,8 +84,6 @@ export async function getTaskForTool(id: string | undefined, taskDefinition: { t
 	}
 	for (const configTask of configTasks) {
 		if ((!allowParentTask && !configTask.type) || (Object.hasOwn(configTask, 'hide') && configTask.hide)) {
-			// Skip these as they are not included in the agent prompt and we need to align with
-			// the indices used there.
 			continue;
 		}
 
@@ -130,19 +128,6 @@ export async function getTaskForTool(id: string | undefined, taskDefinition: { t
 	return resolvedTask;
 }
 
-/**
- * Represents a configured task in the system.
- *
- * This interface is used to define tasks that can be executed within the workspace.
- * It includes optional properties for identifying and describing the task.
- *
- * Properties:
- * - `type`: (optional) The type of the task, which categorizes it (e.g., "build", "test").
- * - `label`: (optional) A user-facing label for the task, typically used for display purposes.
- * - `script`: (optional) A script associated with the task, if applicable.
- * - `command`: (optional) A command associated with the task, if applicable.
- *
- */
 export interface IConfiguredTask {
 	label?: string;
 	type?: string;
@@ -153,6 +138,7 @@ export interface IConfiguredTask {
 	problemMatcher?: string[];
 	group?: string;
 	hide?: boolean;
+	presentation?: any;
 }
 
 export async function resolveDependencyTasks(parentTask: Task, workspaceFolder: string, configurationService: IConfigurationService, taskService: ITaskService): Promise<Task[] | undefined> {
@@ -169,9 +155,6 @@ export async function resolveDependencyTasks(parentTask: Task, workspaceFolder: 
 	return dependencyTasks.filter((t: Task | undefined): t is Task => t !== undefined);
 }
 
-/**
- * Collects output, polling duration, and idle status for all terminals.
- */
 export async function collectTerminalResults(
 	terminals: ITerminalInstance[],
 	task: Task,
@@ -212,7 +195,6 @@ export async function collectTerminalResults(
 		taskLabelToTaskMap[dependencyTask._label] = dependencyTask;
 	}
 
-	// Process all terminals in parallel
 	const terminalNames = terminals.map(t => t.shellLaunchConfig.name ?? t.title ?? 'unknown');
 	progress.report({ message: new MarkdownString(`Checking output for ${terminalNames.map(n => `\`${n}\``).join(', ')}`) });
 
@@ -222,9 +204,7 @@ export async function collectTerminalResults(
 			: instance.registerMarker();
 		let terminalTask = task;
 
-		// For composite tasks, find the actual dependency task running in this terminal
 		if (dependencyTasks?.length) {
-			// Use reconnection data if possible to match, since the properties here are unique
 			const reconnectionData = instance.reconnectionProperties?.data as IReconnectionTaskData | undefined;
 			if (reconnectionData) {
 				if (Object.hasOwn(commonTaskIdToTaskMap, reconnectionData.lastTask)) {
@@ -233,7 +213,6 @@ export async function collectTerminalResults(
 					terminalTask = taskIdToTaskMap[reconnectionData.id];
 				}
 			} else {
-				// Otherwise, fallback to label matching
 				if (instance.shellLaunchConfig.name && Object.hasOwn(taskLabelToTaskMap, instance.shellLaunchConfig.name)) {
 					terminalTask = taskLabelToTaskMap[instance.shellLaunchConfig.name];
 				} else if (Object.hasOwn(taskLabelToTaskMap, instance.title)) {
@@ -251,9 +230,8 @@ export async function collectTerminalResults(
 			sessionResource: invocationContext.sessionResource
 		};
 
-		// For tasks with problem matchers, wait until the task becomes busy before creating the output monitor
 		if (terminalTask.configurationProperties.problemMatchers && terminalTask.configurationProperties.problemMatchers.length > 0 && taskService) {
-			const maxWaitTime = 1000; // Wait up to 1 second
+			const maxWaitTime = 1000;
 			const startTime = Date.now();
 			while (!token.isCancellationRequested && Date.now() - startTime < maxWaitTime) {
 				const busyTasks = await taskService.getBusyTasks();
@@ -315,7 +293,6 @@ export async function taskProblemPollFn(execution: IExecution, token: Cancellati
 	if (execution.task) {
 		const data: Map<string, { resources: URI[]; markers: IMarkerData[] }> | undefined = taskService.getTaskProblems(execution.instance.instanceId);
 		if (data) {
-			// Problem matchers exist for this task
 			const problemList: string[] = [];
 			const resultResources: ILinkLocation[] = [];
 			for (const [owner, { resources, markers }] of data.entries()) {

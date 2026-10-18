@@ -3,15 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Compares blocks-ci fixture screenshots from a rendered manifest against the committed markdown.
-// Usage: node build/lib/screenshotBlocksCi.ts <manifest-path> <markdown-path> <service-url> [--json]
-//
-// Exit codes:
-//   0 — all screenshots match (or no blocks-ci fixtures)
-//   1 — mismatches found
-//
-// Without --json: prints the full updated markdown to stdout.
-// With --json: prints a JSON object with { startLine, endLine, replacement } for a GitHub suggestion.
 
 import * as fs from 'fs';
 
@@ -56,8 +47,8 @@ function computeDiff(committedLines: string[], updatedLines: string[]): { startL
 	}
 
 	return {
-		startLine: firstDiff + 1, // 1-indexed
-		endLine: committedEnd + 1, // 1-indexed
+		startLine: firstDiff + 1,
+		endLine: committedEnd + 1,
 		replacement: updatedLines.slice(firstDiff, updatedEnd + 1).join('\n'),
 	};
 }

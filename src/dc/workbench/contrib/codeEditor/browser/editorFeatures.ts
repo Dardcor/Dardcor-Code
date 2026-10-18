@@ -35,7 +35,6 @@ class EditorFeaturesInstantiator extends Disposable implements IWorkbenchContrib
 		}
 		this._instantiated = true;
 
-		// Instantiate all editor features
 		const editorFeatures = getEditorFeatures();
 		for (const feature of editorFeatures) {
 			try {

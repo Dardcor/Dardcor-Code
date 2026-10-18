@@ -10,13 +10,6 @@ import type { CreateTerminalParams } from '../../common/state/protocol/commands.
 import type { TerminalClaim, TerminalInfo, TerminalState } from '../../common/state/protocol/state.js';
 import type { IAgentHostTerminalManager, ICommandFinishedEvent } from '../../node/agentHostTerminalManager.js';
 
-/**
- * Controllable fake {@link IAgentHostTerminalManager} for tests. `createTerminal`
- * records the request and announces the terminal URI via
- * {@link onDidCreateTerminal}; tests drive command completion with
- * {@link fireCommandFinished}. When no terminal interaction is needed it also
- * serves as a benign no-op stand-in.
- */
 export class TestAgentHostTerminalManager extends Disposable implements IAgentHostTerminalManager {
 	declare readonly _serviceBrand: undefined;
 
@@ -30,7 +23,6 @@ export class TestAgentHostTerminalManager extends Disposable implements IAgentHo
 	readonly outputTerminalResets: string[] = [];
 	readonly outputTerminalsFinalized: { uri: string; exitCode: number | undefined }[] = [];
 
-	/** Resolves once a command-finished listener is registered (i.e. a command is running). */
 	readonly commandFinishedListenerRegistered = new DeferredPromise<void>();
 
 	private readonly _onCommandFinished = this._register(new Emitter<ICommandFinishedEvent>());

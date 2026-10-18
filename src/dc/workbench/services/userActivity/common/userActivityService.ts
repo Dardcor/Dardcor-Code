@@ -12,34 +12,16 @@ import { userActivityRegistry } from './userActivityRegistry.js';
 
 export interface IMarkActiveOptions {
 	whenHeldFor?: number;
-	/**
-	 * Only consider this progress if the state is already active. Used to avoid
-	 * background work from incorrectly marking the user as active (#237386)
-	 */
 	extendOnly?: boolean;
 }
 
-/**
- * Service that observes user activity in the window.
- */
 export interface IUserActivityService {
 	_serviceBrand: undefined;
 
-	/**
-	 * Whether the user is currently active.
-	 */
 	readonly isActive: boolean;
 
-	/**
-	 * Fires when the activity state changes.
-	 */
 	readonly onDidChangeIsActive: Event<boolean>;
 
-	/**
-	 * Marks the user as being active until the Disposable is disposed of.
-	 * Multiple consumers call this method; the user will only be considered
-	 * inactive once all consumers have disposed of their Disposables.
-	 */
 	markActive(opts?: IMarkActiveOptions): IDisposable;
 }
 
@@ -57,16 +39,8 @@ export class UserActivityService extends Disposable implements IUserActivityServ
 	private readonly changeEmitter = this._register(new Emitter<boolean>);
 	private active = 0;
 
-	/**
-	 * @inheritdoc
-	 *
-	 * Note: initialized to true, since the user just did something to open the
-	 * window. The bundled DomActivityTracker will initially assume activity
-	 * as well in order to unset this if the window gets abandoned.
-	 */
 	public isActive = true;
 
-	/** @inheritdoc */
 	readonly onDidChangeIsActive: Event<boolean> = this.changeEmitter.event;
 
 	constructor(@IInstantiationService instantiationService: IInstantiationService) {
@@ -74,7 +48,6 @@ export class UserActivityService extends Disposable implements IUserActivityServ
 		this._register(runWhenGlobalIdle(() => userActivityRegistry.take(this, instantiationService)));
 	}
 
-	/** @inheritdoc */
 	markActive(opts?: IMarkActiveOptions): IDisposable {
 		if (opts?.extendOnly && !this.isActive) {
 			return Disposable.None;

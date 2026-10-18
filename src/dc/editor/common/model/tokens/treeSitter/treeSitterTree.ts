@@ -32,11 +32,8 @@ export class TreeSitterTree extends Disposable {
 	constructor(
 		public readonly languageId: string,
 		private _ranges: TreeSitter.Range[] | undefined,
-		// readonly treeSitterLanguage: Language,
-		/** Must have the language set! */
 		private readonly _parser: TreeSitter.Parser,
 		private readonly _parserClass: typeof TreeSitter.Parser,
-		// private readonly _injectionQuery: TreeSitter.Query,
 		public readonly textModel: TextModel,
 		@ILogService private readonly _logService: ILogService,
 		@ITelemetryService private readonly _telemetryService: ITelemetryService
@@ -68,7 +65,6 @@ export class TreeSitterTree extends Disposable {
 		this._onDidChangeContentQueue.clearPending();
 		this._onDidChangeContentQueue.schedule(async () => {
 			if (this._store.isDisposed) {
-				// No need to continue the queue if we are disposed
 				return;
 			}
 
@@ -107,7 +103,6 @@ export class TreeSitterTree extends Disposable {
 	}
 
 	public getInjectionTrees(startIndex: number, languageId: string): TreeSitterTree | undefined {
-		// TODO
 		return undefined;
 	}
 
@@ -141,10 +136,6 @@ export class TreeSitterTree extends Disposable {
 
 		do {
 			if (newCursor.currentNode.hasChanges) {
-				// Check if only one of the children has changes.
-				// If it's only one, then we go to that child.
-				// If it's more then, we need to go to each child
-				// If it's none, then we've found one of our ranges
 				const newChildren = newCursor.currentNode.children;
 				const indexChangedChildren: number[] = [];
 				const changedChildren = newChildren.filter((c, index) => {
@@ -154,13 +145,10 @@ export class TreeSitterTree extends Disposable {
 					}
 					return false;
 				});
-				// If we have changes and we *had* an error, the whole node should be refreshed.
 				if ((changedChildren.length === 0) || (newCursor.currentNode.hasError !== oldCursor.currentNode.hasError)) {
-					// walk up again until we get to the first one that's named as unnamed nodes can be too granular
 					while (newCursor.currentNode.parent && next && !newCursor.currentNode.isNamed) {
 						next = gotoParent(newCursor, oldCursor);
 					}
-					// Use the end position of the previous node and the start position of the current node
 					const newNode = newCursor.currentNode;
 					const closestPreviousNode = getClosestPreviousNodes(newCursor, newTree) ?? newNode;
 					nodes.push({
@@ -187,13 +175,11 @@ export class TreeSitterTree extends Disposable {
 		let newRangeIndex = 0;
 		const mergedChanges: RangeChange[] = [];
 
-		// Find the parent in the new tree of the changed node
 		for (let nodeIndex = 0; nodeIndex < changedNodes.length; nodeIndex++) {
 			const node = changedNodes[nodeIndex];
 
 			if (mergedChanges.length > 0) {
 				if ((node.startIndex >= mergedChanges[mergedChanges.length - 1].newRangeStartOffset) && (node.endIndex <= mergedChanges[mergedChanges.length - 1].newRangeEndOffset)) {
-					// This node is within the previous range, skip it
 					continue;
 				}
 			}
@@ -202,7 +188,6 @@ export class TreeSitterTree extends Disposable {
 			const cursorContainersNode = () => cursor.startIndex < node.startIndex && cursor.endIndex > node.endIndex;
 
 			while (cursorContainersNode()) {
-				// See if we can go to a child
 				let child = cursor.gotoFirstChild();
 				let foundChild = false;
 				while (child) {
@@ -229,7 +214,6 @@ export class TreeSitterTree extends Disposable {
 
 			const newChange = { newRange: new Range(startPosition.row + 1, startPosition.column + 1, endPosition.row + 1, endPosition.column + 1), newRangeStartOffset: startIndex, newRangeEndOffset: endIndex };
 			if ((newRangeIndex < newRanges.length) && rangesIntersect(newRanges[newRangeIndex], { startIndex, endIndex, startPosition, endPosition })) {
-				// combine the new change with the range
 				if (newRanges[newRangeIndex].startIndex < newChange.newRangeStartOffset) {
 					newChange.newRange = newChange.newRange.setStartPosition(newRanges[newRangeIndex].startPosition.row + 1, newRanges[newRangeIndex].startPosition.column + 1);
 					newChange.newRangeStartOffset = newRanges[newRangeIndex].startIndex;
@@ -240,7 +224,6 @@ export class TreeSitterTree extends Disposable {
 				}
 				newRangeIndex++;
 			} else if (newRangeIndex < newRanges.length && newRanges[newRangeIndex].endIndex < newChange.newRangeStartOffset) {
-				// add the full range to the merged changes
 				mergedChanges.push({
 					newRange: new Range(newRanges[newRangeIndex].startPosition.row + 1, newRanges[newRangeIndex].startPosition.column + 1, newRanges[newRangeIndex].endPosition.row + 1, newRanges[newRangeIndex].endPosition.column + 1),
 					newRangeStartOffset: newRanges[newRangeIndex].startIndex,
@@ -249,7 +232,6 @@ export class TreeSitterTree extends Disposable {
 			}
 
 			if ((mergedChanges.length > 0) && (mergedChanges[mergedChanges.length - 1].newRangeEndOffset >= newChange.newRangeStartOffset)) {
-				// Merge the changes
 				mergedChanges[mergedChanges.length - 1].newRange = Range.fromPositions(mergedChanges[mergedChanges.length - 1].newRange.getStartPosition(), newChange.newRange.getEndPosition());
 				mergedChanges[mergedChanges.length - 1].newRangeEndOffset = newChange.newRangeEndOffset;
 			} else {
@@ -271,13 +253,10 @@ export class TreeSitterTree extends Disposable {
 			const change = changes[changesIndex];
 			const range = this._ranges[rangesIndex];
 			if (change.newRangeEndOffset < range.startIndex) {
-				// Change is before the range, move to the next change
 				changesIndex++;
 			} else if (change.newRangeStartOffset > range.endIndex) {
-				// Change is after the range, move to the next range
 				rangesIndex++;
 			} else {
-				// Change is within the range, constrain it
 				const newRangeStartOffset = Math.max(change.newRangeStartOffset, range.startIndex);
 				const newRangeEndOffset = Math.min(change.newRangeEndOffset, range.endIndex);
 				const newRange = change.newRange.intersectRanges(new Range(range.startPosition.row + 1, range.startPosition.column + 1, range.endPosition.row + 1, range.endPosition.column + 1))!;
@@ -286,12 +265,10 @@ export class TreeSitterTree extends Disposable {
 					newRangeEndOffset,
 					newRangeStartOffset
 				});
-				// Remove the intersected range from the current change
 				if (newRangeEndOffset < change.newRangeEndOffset) {
 					change.newRange = Range.fromPositions(newRange.getEndPosition(), change.newRange.getEndPosition());
 					change.newRangeStartOffset = newRangeEndOffset + 1;
 				} else {
-					// Move to the next change
 					changesIndex++;
 				}
 			}
@@ -310,8 +287,6 @@ export class TreeSitterTree extends Disposable {
 
 			return tree;
 		} else if (!this._tree.get()) {
-			// No tree means this is the initial parse and there were edits
-			// parse function doesn't handle this well and we can end up with an incorrect tree, so we reset
 			this._parser.reset();
 		}
 		return undefined;
@@ -341,7 +316,6 @@ export class TreeSitterTree extends Disposable {
 			time += performance.now() - timer;
 			passes++;
 
-			// So long as this isn't the initial parse, even if the model changes and edits are applied, the tree parsing will continue correctly after the await.
 			await new Promise<void>(resolve => setTimeout0(resolve));
 
 		} while (!this._store.isDisposed && !newTree && inProgressVersion === this.textModel.getVersionId());
@@ -360,7 +334,6 @@ export class TreeSitterTree extends Disposable {
 
 	private _setRanges(newRanges: TreeSitter.Range[]): TreeSitter.Range[] {
 		const unKnownRanges: TreeSitter.Range[] = [];
-		// If we have existing ranges, find the parts of the new ranges that are not included in the existing ones
 		if (this._ranges) {
 			for (const newRange of newRanges) {
 				let isFullyIncluded = false;
@@ -379,7 +352,6 @@ export class TreeSitterTree extends Disposable {
 				}
 			}
 		} else {
-			// No existing ranges, all new ranges are unknown
 			unKnownRanges.push(...newRanges);
 		}
 

@@ -39,8 +39,6 @@ export class NewOutputChannelLogTarget implements ILogTarget {
 					break;
 			}
 		} catch {
-			// The output channel may be closed during extension host shutdown
-			// (see https://github.com/microsoft/vscode/issues/303916)
 		}
 	}
 

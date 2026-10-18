@@ -19,7 +19,7 @@ import { TestExtensionService } from '../../../../test/common/workbenchTestServi
 import { HasByokModelsContribution } from '../../browser/hasByokModelsContribution.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { ChatAIDisabledSettingId } from '../../common/constants.js';
-import { COPILOT_VENDOR_ID } from '../../common/languageModels.js';
+import { DARD_COR_VENDOR_ID } from '../../common/languageModels.js';
 import { ILanguageModelsConfigurationService, ILanguageModelsProviderGroup } from '../../common/languageModelsConfiguration.js';
 
 suite('HasByokModelsContribution', () => {
@@ -32,7 +32,7 @@ suite('HasByokModelsContribution', () => {
 		readonly groups?: readonly FakeProviderGroup[];
 		readonly contextKeys?: {
 			readonly clientByokEnabled?: boolean;
-			readonly nonCopilotUserSelectable?: boolean;
+			readonly nonDardcorUserSelectable?: boolean;
 		};
 		readonly configuration?: {
 			readonly aiDisabled?: boolean;
@@ -86,7 +86,7 @@ suite('HasByokModelsContribution', () => {
 		readonly storage: InMemoryStorageService;
 		readonly configService: FakeLanguageModelsConfigurationService;
 		readonly hasByokModels: IContextKey<boolean>;
-		readonly nonCopilotUserSelectable: IContextKey<boolean>;
+		readonly nonDardcorUserSelectable: IContextKey<boolean>;
 		readonly clientByokEnabled: IContextKey<boolean>;
 	}
 
@@ -98,8 +98,8 @@ suite('HasByokModelsContribution', () => {
 
 		const clientByokEnabled = ChatEntitlementContextKeys.clientByokEnabled.bindTo(contextKeyService);
 		clientByokEnabled.set(options.contextKeys?.clientByokEnabled ?? true);
-		const nonCopilotUserSelectable = ChatContextKeys.nonCopilotLanguageModelsAreUserSelectable.bindTo(contextKeyService);
-		nonCopilotUserSelectable.set(options.contextKeys?.nonCopilotUserSelectable ?? false);
+		const nonDardcorUserSelectable = ChatContextKeys.nonCopilotLanguageModelsAreUserSelectable.bindTo(contextKeyService);
+		nonDardcorUserSelectable.set(options.contextKeys?.nonDardcorUserSelectable ?? false);
 
 		const storage = store.add(new InMemoryStorageService());
 		if (options.storage?.lastKnown !== undefined) {
@@ -122,10 +122,9 @@ suite('HasByokModelsContribution', () => {
 		const hasByokModels = ChatEntitlementContextKeys.hasByokModels.bindTo(contextKeyService);
 		store.add(instantiation.createInstance(HasByokModelsContribution));
 
-		return { storage, configService, hasByokModels, nonCopilotUserSelectable, clientByokEnabled };
+		return { storage, configService, hasByokModels, nonDardcorUserSelectable, clientByokEnabled };
 	}
 
-	/** Allow the `whenInstalledExtensionsRegistered()` continuation to run. */
 	async function flush(): Promise<void> {
 		for (let i = 0; i < 5; i++) {
 			await Promise.resolve();
@@ -167,7 +166,7 @@ suite('HasByokModelsContribution', () => {
 		const store = disposables.add(new DisposableStore());
 		const scenario = createScenario(store, {
 			groups: [{ vendor: 'ollama', name: 'Ollama' }],
-			contextKeys: { nonCopilotUserSelectable: true },
+			contextKeys: { nonDardcorUserSelectable: true },
 		});
 		await flush();
 
@@ -181,8 +180,6 @@ suite('HasByokModelsContribution', () => {
 			storage: { lastKnown: true },
 		});
 
-		// Synchronously after construction, no signal has flipped yet but the optimistic value
-		// must already be visible to consumers of the context key.
 		assert.strictEqual(scenario.hasByokModels.get(), true);
 	});
 
@@ -200,7 +197,7 @@ suite('HasByokModelsContribution', () => {
 	test('optimistic true cleared when extensions register and there are no BYOK groups', async () => {
 		const store = disposables.add(new DisposableStore());
 		const scenario = createScenario(store, {
-			groups: [{ vendor: COPILOT_VENDOR_ID, name: 'Copilot' }],
+			groups: [{ vendor: DARD_COR_VENDOR_ID, name: 'Dardcor Router' }],
 			storage: { lastKnown: true },
 		});
 		await flush();
@@ -221,10 +218,9 @@ suite('HasByokModelsContribution', () => {
 	test('pre-registration: signal flipping on optimistically updates the persisted value', () => {
 		const store = disposables.add(new DisposableStore());
 		const scenario = createScenario(store, {});
-		// No flush — extensions are not yet registered.
 		assert.deepStrictEqual(snapshot(scenario), { hasByokModels: false, persistedLastKnown: false });
 
-		scenario.nonCopilotUserSelectable.set(true);
+		scenario.nonDardcorUserSelectable.set(true);
 
 		assert.deepStrictEqual(snapshot(scenario), { hasByokModels: true, persistedLastKnown: true });
 	});
@@ -232,9 +228,7 @@ suite('HasByokModelsContribution', () => {
 	test('stale signal is ignored once extensions register and no BYOK groups remain', async () => {
 		const store = disposables.add(new DisposableStore());
 		const scenario = createScenario(store, {
-			// The signal is on (e.g. the language-model cache still has a model whose underlying
-			// BYOK group was just removed) but no non-Copilot vendor group is configured anymore.
-			contextKeys: { nonCopilotUserSelectable: true },
+			contextKeys: { nonDardcorUserSelectable: true },
 			storage: { lastKnown: true },
 		});
 		await flush();
@@ -261,7 +255,7 @@ suite('HasByokModelsContribution', () => {
 		const store = disposables.add(new DisposableStore());
 		const scenario = createScenario(store, {
 			groups: [{ vendor: 'ollama', name: 'Ollama' }],
-			contextKeys: { nonCopilotUserSelectable: true },
+			contextKeys: { nonDardcorUserSelectable: true },
 		});
 		await flush();
 		assert.strictEqual(scenario.hasByokModels.get(), true);
@@ -275,9 +269,6 @@ suite('HasByokModelsContribution', () => {
 		assert.deepStrictEqual(snapshot(scenario), { hasByokModels: true, persistedLastKnown: true });
 	});
 
-	// Regression for #319121: during cold start, the language-models configuration file load is
-	// async. A previously-persisted `true` must survive until that load completes; otherwise
-	// BYOK-gated UI (e.g. the Copilot signed-out placeholder) flickers on every restart.
 	test('persisted true survives while config load is pending (#319121)', async () => {
 		const store = disposables.add(new DisposableStore());
 		const scenario = createScenario(store, {
@@ -286,10 +277,8 @@ suite('HasByokModelsContribution', () => {
 		});
 		await flush();
 
-		// Extensions have registered but configuration has not loaded yet — keep restored value.
 		assert.deepStrictEqual(snapshot(scenario, true), { hasByokModels: true, persistedLastKnown: true });
 
-		// Once the config loads and reports a BYOK group, the value stays true.
 		(scenario.configService as unknown as { _groups: readonly FakeProviderGroup[] })._groups = [{ vendor: 'ollama', name: 'Ollama' }];
 		scenario.configService.resolveReady();
 		await flush();

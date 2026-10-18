@@ -7,7 +7,7 @@ import type * as vscode from 'vscode';
 import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { IToolsService } from '../common/toolsService';
 
 export interface ITodoWriteItem {
@@ -36,7 +36,7 @@ function normalizeStatus(status: string): 'not-started' | 'in-progress' | 'compl
 	}
 }
 
-export class TodoWriteTool implements ICopilotTool<ITodoWriteParams> {
+export class TodoWriteTool implements IAgentTool<ITodoWriteParams> {
 	public static readonly toolName = ToolName.TodoWrite;
 	public static readonly nonDeferred = true;
 
@@ -55,7 +55,6 @@ export class TodoWriteTool implements ICopilotTool<ITodoWriteParams> {
 		}));
 
 		try {
-			// Synchronize with the workbench-level todo manager and UI widget
 			await this._toolsService.invokeTool(
 				ToolName.CoreManageTodoList,
 				{
@@ -68,7 +67,6 @@ export class TodoWriteTool implements ICopilotTool<ITodoWriteParams> {
 				token
 			);
 		} catch {
-			// Continue execution even if the workbench UI widget is not registered
 		}
 
 		const summary = {

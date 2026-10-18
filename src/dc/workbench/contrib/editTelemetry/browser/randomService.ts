@@ -22,7 +22,6 @@ export class RandomService implements IRandomService {
 		return generateUuid();
 	}
 
-	/** Namespace should be 3 letter. */
 	generatePrefixedUuid(namespace: string): string {
 		return `${namespace}-${this.generateUuid()}`;
 	}

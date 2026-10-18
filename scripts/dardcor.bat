@@ -12,6 +12,13 @@ if "%DARDCOR_SKIP_PRELAUNCH%"=="" if "%VSCODE_SKIP_PRELAUNCH%"=="" (
 	)
 )
 
+if exist "out\main.js" if exist "out\dc\platform\environment\node\userDataPath.js" (
+	if not exist "out\.build-done" (
+		type nul > "out\.build-done"
+	)
+	goto skip_transpile
+)
+
 if not exist "out\main.js" goto transpile
 if not exist "out\.build-done" goto transpile
 if not exist "out\dc\platform\environment\node\userDataPath.js" goto transpile

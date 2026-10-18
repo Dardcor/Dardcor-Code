@@ -83,9 +83,6 @@ export abstract class DragScrollingOperation extends Disposable {
 		this._mouseEvent = mouseEvent;
 	}
 
-	/**
-	 * update internal state and return elapsed ms since last time
-	 */
 	protected _tick(): number {
 		const now = Date.now();
 		const elapsed = now - this._lastTime;
@@ -105,9 +102,6 @@ export class TopBottomDragScrolling extends DragScrolling {
 
 export class TopBottomDragScrollingOperation extends DragScrollingOperation {
 
-	/**
-	 * get the number of lines per second to auto-scroll
-	 */
 	private _getScrollSpeed(): number {
 		const lineHeight = this._context.configuration.options.get(EditorOption.lineHeight);
 		const viewportInLines = this._context.configuration.options.get(EditorOption.layoutInfo).height / lineHeight;
@@ -136,7 +130,6 @@ export class TopBottomDragScrollingOperation extends DragScrollingOperation {
 		const edgeLineNumber = (this._position.outsidePosition === 'above' ? viewportData.startLineNumber : viewportData.endLineNumber);
 		const cannotScrollAnymore = (this._position.outsidePosition === 'above' ? viewportData.startLineNumber === 1 : viewportData.endLineNumber === this._context.viewModel.getLineCount());
 
-		// First, try to find a position that matches the horizontal position of the mouse
 		let mouseTarget: IMouseTarget;
 		{
 			const editorPos = createEditorPagePosition(this._viewHelper.viewDomNode);
@@ -166,9 +159,6 @@ export class LeftRightDragScrolling extends DragScrolling {
 
 export class LeftRightDragScrollingOperation extends DragScrollingOperation {
 
-	/**
-	 * get the number of cols per second to auto-scroll
-	 */
 	private _getScrollSpeed(): number {
 		const charWidth = this._context.configuration.options.get(EditorOption.fontInfo).typicalFullwidthCharacterWidth;
 		const viewportInChars = this._context.configuration.options.get(EditorOption.layoutInfo).contentWidth / charWidth;
@@ -197,7 +187,6 @@ export class LeftRightDragScrollingOperation extends DragScrollingOperation {
 		}
 		const edgeLineNumber = this._position.position.lineNumber;
 
-		// First, try to find a position that matches the horizontal position of the mouse
 		let mouseTarget: IMouseTarget;
 		{
 			const editorPos = createEditorPagePosition(this._viewHelper.viewDomNode);

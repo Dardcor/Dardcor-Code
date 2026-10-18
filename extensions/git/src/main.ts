@@ -46,7 +46,6 @@ async function createModel(context: ExtensionContext, logger: LogOutputChannel, 
 	const excludes = isTrusted ? [] : workspaceFolders.map(f => path.normalize(f.uri.fsPath).replace(/[\r\n]+$/, ''));
 
 	if (!isTrusted && pathHints.length !== 0) {
-		// Filter out any non-absolute paths
 		pathHints = pathHints.filter(p => path.isAbsolute(p));
 	}
 
@@ -183,7 +182,7 @@ async function warnAboutMissingGit(): Promise<void> {
 	);
 
 	if (choice === download) {
-		commands.executeCommand('vscode.open', Uri.parse('https://aka.ms/vscode-download-git'));
+		commands.executeCommand('vscode.open', Uri.parse('https://www.dardcor-code.web.id/docs/getting-started/git'));
 	} else if (choice === neverShowAgain) {
 		await config.update('ignoreMissingGitWarning', true, true);
 	}
@@ -234,11 +233,6 @@ export async function _activate(context: ExtensionContext): Promise<GitExtension
 			throw err;
 		}
 
-		/* __GDPR__
-			"git.missing" : {
-				"owner": "lszomoru"
-			}
-		*/
 		telemetryReporter.sendTelemetryEvent('git.missing');
 
 		commands.executeCommand('setContext', 'git.missing', true);
@@ -285,7 +279,7 @@ async function checkGitv1(info: IGit): Promise<void> {
 	);
 
 	if (choice === update) {
-		commands.executeCommand('vscode.open', Uri.parse('https://aka.ms/vscode-download-git'));
+		commands.executeCommand('vscode.open', Uri.parse('https://www.dardcor-code.web.id/docs/getting-started/git'));
 	} else if (choice === neverShowAgain) {
 		await config.update('ignoreLegacyWarning', true, true);
 	}
@@ -312,7 +306,7 @@ async function checkGitWindows(info: IGit): Promise<void> {
 	);
 
 	if (choice === update) {
-		commands.executeCommand('vscode.open', Uri.parse('https://aka.ms/vscode-download-git'));
+		commands.executeCommand('vscode.open', Uri.parse('https://www.dardcor-code.web.id/docs/getting-started/git'));
 	} else if (choice === neverShowAgain) {
 		await config.update('ignoreWindowsGit27Warning', true, true);
 	}

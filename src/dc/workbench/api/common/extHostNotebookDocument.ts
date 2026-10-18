@@ -113,8 +113,6 @@ export class ExtHostCell {
 			output.items.push(...newItems);
 
 			if (output.items.length > 1 && output.items.every(item => isTextStreamMime(item.mime))) {
-				// Look for the mimes in the items, and keep track of their order.
-				// Merge the streams into one output item, per mime type.
 				const mimeOutputs = new Map<string, Uint8Array[]>();
 				const mimeTypes: string[] = [];
 				output.items.forEach(item => {
@@ -179,7 +177,7 @@ export class ExtHostNotebookDocument {
 	) {
 		this._notebookType = data.viewType;
 		this._metadata = Object.freeze(data.metadata ?? Object.create(null));
-		this._spliceNotebookCells([[0, 0, data.cells]], true /* init -> no event*/, undefined);
+		this._spliceNotebookCells([[0, 0, data.cells]], true , undefined);
 		this._versionId = data.versionId;
 	}
 
@@ -248,7 +246,6 @@ export class ExtHostNotebookDocument {
 		type RelaxedCellChange = Partial<vscode.NotebookDocumentCellChange> & { cell: vscode.NotebookCell };
 		const relaxedCellChanges: RelaxedCellChange[] = [];
 
-		// -- apply change and populate content changes
 
 		for (const rawEvent of event.rawEvents) {
 			if (rawEvent.kind === notebookCommon.NotebookCellsChangeType.ModelChange) {
@@ -284,7 +281,6 @@ export class ExtHostNotebookDocument {
 			}
 		}
 
-		// -- compact cellChanges
 
 		const map = new Map<vscode.NotebookCell, number>();
 		for (let i = 0; i < relaxedCellChanges.length; i++) {
@@ -307,7 +303,6 @@ export class ExtHostNotebookDocument {
 			}
 		}
 
-		// Freeze event properties so handlers cannot accidentally modify them
 		Object.freeze(result);
 		Object.freeze(result.cellChanges);
 		Object.freeze(result.contentChanges);

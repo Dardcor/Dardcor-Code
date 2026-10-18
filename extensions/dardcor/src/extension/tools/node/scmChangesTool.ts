@@ -17,27 +17,20 @@ import { LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelToolRes
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { GitChanges } from '../../prompts/node/git/gitChanges';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';
 import { checkCancellation } from './toolUtils';
 
-/**
- * Maximum number of changed files to process diffs for.
- * Beyond this limit, only file names are reported to the model.
- */
 const MAX_CHANGED_FILES = 200;
 
-/**
- * Timeout for the entire diff retrieval operation (in milliseconds).
- */
-const DIFF_RETRIEVAL_TIMEOUT_MS = 30_000; // 30 seconds
+const DIFF_RETRIEVAL_TIMEOUT_MS = 30_000;
 
 interface IGetScmChangesToolParams {
 	repositoryPath?: string;
 	sourceControlState?: ('unstaged' | 'staged' | 'merge-conflicts')[];
 }
 
-class GetScmChangesTool implements ICopilotTool<IGetScmChangesToolParams> {
+class GetScmChangesTool implements IAgentTool<IGetScmChangesToolParams> {
 
 	public static readonly toolName = ToolName.GetScmChanges;
 
@@ -105,7 +98,6 @@ class GetScmChangesTool implements ICopilotTool<IGetScmChangesToolParams> {
 
 			this.logService.trace(`[GetScmChangesTool][invoke] Total changed files: ${changedFiles.length}`);
 
-			// Limit the number of files to process for diffs
 			const filesToDiff = changedFiles.slice(0, MAX_CHANGED_FILES);
 			truncatedCount = Math.max(0, changedFiles.length - MAX_CHANGED_FILES);
 			if (truncatedCount > 0) {
@@ -146,7 +138,6 @@ class GetScmChangesTool implements ICopilotTool<IGetScmChangesToolParams> {
 			resultParts.push(new LanguageModelPromptTsxPart(await renderPromptElementJSON(this.instantiationService, GitChanges, { diffs }, options.tokenizationOptions, token)));
 		}
 
-		// Report files that were not diffed due to the limit
 		if (truncatedCount > 0) {
 			const truncatedFiles = changedFiles.slice(MAX_CHANGED_FILES);
 			const truncatedFileList = truncatedFiles.map(f => f.uri.fsPath).join('\n');

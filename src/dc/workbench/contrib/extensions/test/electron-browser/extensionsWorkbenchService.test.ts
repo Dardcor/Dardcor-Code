@@ -394,7 +394,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 
 			const identifier = gallery.identifier;
 
-			// Installing
 			installEvent.fire({ identifier, source: gallery, profileLocation: null! });
 			const local = testObject.local;
 			assert.strictEqual(1, local.length);
@@ -402,18 +401,15 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 			assert.strictEqual(`${gallery.publisher}.${gallery.name}`, actual.identifier.id);
 			assert.strictEqual(ExtensionState.Installing, actual.state);
 
-			// Installed
 			didInstallEvent.fire([{ identifier, source: gallery, operation: InstallOperation.Install, local: aLocalExtension(gallery.name, gallery, { identifier }), profileLocation: null! }]);
 			assert.strictEqual(ExtensionState.Installed, actual.state);
 			assert.strictEqual(1, testObject.local.length);
 
 			testObject.uninstall(actual);
 
-			// Uninstalling
 			uninstallEvent.fire({ identifier, profileLocation: null! });
 			assert.strictEqual(ExtensionState.Uninstalling, actual.state);
 
-			// Uninstalled
 			didUninstallEvent.fire({ identifier, profileLocation: null! });
 			assert.strictEqual(ExtensionState.Uninstalled, actual.state);
 
@@ -432,28 +428,28 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('test isAutoUpdateDelayed returns true for a recently published version', async () => {
-		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) /* 1 hour ago */);
+		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) );
 
 		assert.strictEqual(testObject.local[0].outdated, true);
 		assert.strictEqual(testObject.isAutoUpdateDelayed(testObject.local[0]), true);
 	});
 
 	test('test isAutoUpdateDelayed returns true for a recently published signed version', async () => {
-		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) /* 1 hour ago */, true);
+		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) , true);
 
 		assert.strictEqual(testObject.local[0].outdated, true);
 		assert.strictEqual(testObject.isAutoUpdateDelayed(testObject.local[0]), true);
 	});
 
 	test('test isAutoUpdateDelayed returns false for a version published more than 2 hours ago', async () => {
-		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60 * 3) /* 3 hours ago */);
+		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60 * 3) );
 
 		assert.strictEqual(testObject.local[0].outdated, true);
 		assert.strictEqual(testObject.isAutoUpdateDelayed(testObject.local[0]), false);
 	});
 
 	test('test isAutoUpdateDelayed returns false for a version with a future published timestamp', async () => {
-		testObject = await anOutdatedExtensionWorkbenchService(Date.now() + (1000 * 60 * 60) /* 1 hour in the future */);
+		testObject = await anOutdatedExtensionWorkbenchService(Date.now() + (1000 * 60 * 60) );
 
 		assert.strictEqual(testObject.local[0].outdated, true);
 		assert.strictEqual(testObject.isAutoUpdateDelayed(testObject.local[0]), false);
@@ -461,22 +457,21 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 
 	test('test isAutoUpdateDelayed returns false when auto update is disabled', async () => {
 		stubConfiguration(false);
-		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) /* 1 hour ago */);
+		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) );
 
 		assert.strictEqual(testObject.local[0].outdated, true);
 		assert.strictEqual(testObject.isAutoUpdateDelayed(testObject.local[0]), false);
 	});
 
 	test('test getAutoUpdateDelayRemaining returns remaining time within the delay window', async () => {
-		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) /* 1 hour ago */);
+		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) );
 
 		const remaining = testObject.getAutoUpdateDelayRemaining(testObject.local[0]);
-		// Published 1 hour ago, so ~1 hour of the 2 hour window remains.
 		assert.ok(remaining > (1000 * 60 * 30) && remaining <= (1000 * 60 * 60), `unexpected remaining time ${remaining}`);
 	});
 
 	test('test getAutoUpdateDelayRemaining returns remaining time regardless of signing', async () => {
-		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) /* 1 hour ago */, false);
+		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) , false);
 
 		const remaining = testObject.getAutoUpdateDelayRemaining(testObject.local[0]);
 		assert.ok(remaining > (1000 * 60 * 30) && remaining <= (1000 * 60 * 60), `unexpected remaining time ${remaining}`);
@@ -490,7 +485,7 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 
 	test('test getAutoUpdateDelayRemaining returns 0 for a trusted publisher', async () => {
 		instantiationService.stub(IProductService, { ...TestProductService, trustedExtensionPublishers: ['pub'] });
-		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) /* 1 hour ago */);
+		testObject = await anOutdatedExtensionWorkbenchService(Date.now() - (1000 * 60 * 60) );
 
 		assert.strictEqual(testObject.getAutoUpdateDelayRemaining(testObject.local[0]), 0);
 		assert.strictEqual(testObject.isAutoUpdateDelayed(testObject.local[0]), false);
@@ -561,7 +556,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 		installEvent.fire({ identifier: gallery.identifier, source: gallery, profileLocation: null! });
 		const promise = Event.toPromise(testObject.onChange);
 
-		// Installed
 		didInstallEvent.fire([{ identifier: gallery.identifier, source: gallery, operation: InstallOperation.Install, local: aLocalExtension(gallery.name, gallery, gallery), profileLocation: null! }]);
 
 		await promise;
@@ -579,7 +573,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 
 			disposableStore.add(testObject.onChange(target));
 
-			// Installing
 			installEvent.fire({ identifier: gallery.identifier, source: gallery, profileLocation: null! });
 
 			assert.ok(target.calledOnce);
@@ -1006,7 +999,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 		const localExtension = aLocalExtension('my_extension', {}, { identifier: { id: 'my_publisher.my_extension' } });
 		instantiationService.stubPromise(IExtensionManagementService, 'getInstalled', [localExtension]);
 
-		// Mock a running extension (not under development)
 		const runningExtension = {
 			identifier: new ExtensionIdentifier('my_publisher.my_extension'),
 			name: 'my_extension',
@@ -1031,7 +1023,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 		testObject = await aWorkbenchService();
 		const extension = testObject.local[0];
 
-		// Extension should require reload action when disabling
 		await testObject.setEnablement(extension, EnablementState.DisabledGlobally);
 		assert.strictEqual(extension.runtimeState?.action, ExtensionRuntimeActionType.RestartExtensions);
 	});
@@ -1040,7 +1031,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 		const localExtension = aLocalExtension('my_extension', {}, { identifier: { id: 'my_publisher.my_extension' } });
 		instantiationService.stubPromise(IExtensionManagementService, 'getInstalled', [localExtension]);
 
-		// Mock a running extension under development
 		const runningExtension = {
 			identifier: new ExtensionIdentifier('my_publisher.my_extension'),
 			name: 'my_extension',
@@ -1065,7 +1055,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 		testObject = await aWorkbenchService();
 		const extension = testObject.local[0];
 
-		// Extension should have no reload action required when disabling
 		await testObject.setEnablement(extension, EnablementState.DisabledGlobally);
 		assert.strictEqual(extension.runtimeState, undefined);
 	});
@@ -1231,7 +1220,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local ui extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['ui'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1247,7 +1235,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local workspace extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1263,7 +1250,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local web extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['web'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1279,7 +1265,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local ui,workspace extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['ui', 'workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1295,7 +1280,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local workspace,ui extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['workspace', 'ui'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1311,7 +1295,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local ui,workspace,web extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['ui', 'workspace', 'web'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1327,7 +1310,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local ui,web,workspace extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['ui', 'web', 'workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1343,7 +1325,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local web,ui,workspace extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['web', 'ui', 'workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1359,7 +1340,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local web,workspace,ui extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['web', 'workspace', 'ui'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1375,7 +1355,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local workspace,web,ui extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['workspace', 'web', 'ui'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1391,7 +1370,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local workspace,ui,web extension is chosen if it exists only in local server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['workspace', 'ui', 'web'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 
@@ -1407,7 +1385,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local UI extension is chosen if it exists in both servers', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['ui'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
@@ -1424,7 +1401,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local ui,workspace extension is chosen if it exists in both servers', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['ui', 'workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
@@ -1441,7 +1417,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test remote workspace extension is chosen if it exists in remote server', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['workspace'];
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
 
@@ -1457,7 +1432,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test remote workspace extension is chosen if it exists in both servers', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
@@ -1474,7 +1448,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test remote workspace extension is chosen if it exists in both servers and local is disabled', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
@@ -1493,7 +1466,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test remote workspace extension is chosen if it exists in both servers and remote is disabled in workspace', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
@@ -1512,7 +1484,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local ui, workspace extension is chosen if it exists in both servers and local is disabled', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['ui', 'workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
@@ -1531,7 +1502,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local ui, workspace extension is chosen if it exists in both servers and local is disabled in workspace', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['ui', 'workspace'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
@@ -1550,7 +1520,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test local web extension is chosen if it exists in both servers', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['web'];
 		const localExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`) });
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
@@ -1567,7 +1536,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 	});
 
 	test('Test remote web extension is chosen if it exists only in remote', async () => {
-		// multi server setup
 		const extensionKind: ExtensionKind[] = ['web'];
 		const remoteExtension = aLocalExtension('a', { extensionKind }, { location: URI.file(`pub.a`).with({ scheme: Schemas.vscodeRemote }) });
 
@@ -1685,7 +1653,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 			await testObject.updateAutoUpdateEnablementFor(testObject.local[0], true);
 			assert.fail('error expected');
 		} catch (error) {
-			// expected
 		}
 	});
 
@@ -1699,7 +1666,6 @@ suite('ExtensionsWorkbenchServiceTest', () => {
 			await testObject.updateAutoUpdateEnablementFor(testObject.local[0].publisher, true);
 			assert.fail('error expected');
 		} catch (error) {
-			// expected
 		}
 	});
 

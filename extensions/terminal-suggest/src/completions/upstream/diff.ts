@@ -1,4 +1,3 @@
-// https://www.gnu.org/software/diffutils
 const groupFormatOptions = (names: string[]) =>
 	names.map<Fig.Option>((name) => ({
 		name: `--${name}-group-format`,

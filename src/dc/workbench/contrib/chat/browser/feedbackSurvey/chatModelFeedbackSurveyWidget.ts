@@ -23,7 +23,6 @@ import { ChatCardListbox } from '../widget/chatCardListbox.js';
 import { ChatModelFeedbackSurveyStatus, IChatModelFeedbackSurveyService, IChatModelFeedbackSurveyState } from './chatModelFeedbackSurveyService.js';
 import './media/chatModelFeedbackSurvey.css';
 
-/** Keys the chat list acts on, which the survey has to claim while it is focused. */
 const KEYS_HANDLED_BY_LIST = new Set<KeyCode>([
 	KeyCode.UpArrow,
 	KeyCode.DownArrow,
@@ -40,30 +39,20 @@ const KEYS_HANDLED_BY_LIST = new Set<KeyCode>([
 
 const TEXT_INPUT_MAX_HEIGHT = 96;
 
-/** Stands in for a step key once the survey is answered and only acknowledges. */
 const ACKNOWLEDGEMENT_STEP_KEY = 'acknowledged';
 
-/**
- * The inline survey shown beneath a chat response footer.
- *
- * It renders below the footer toolbar so opening it never moves the footer icons. All durable
- * state lives in the survey service, since chat rows are virtualized and recycle this widget.
- */
 export class ChatModelFeedbackSurveyWidget extends Disposable {
 
 	private readonly renderDisposables = this._register(new DisposableStore());
 	private response: IChatResponseViewModel | undefined;
 	private readonly hasSurveyContextKey: IContextKey<boolean>;
 	private readonly surveyOpenContextKey: IContextKey<boolean>;
-	/** Step focus was last moved to, so an unrelated re-render does not move it again. */
 	private lastFocusedStep: string | undefined;
 	private isPanelOpen = false;
-	/** Guards against `render` being re-entered when reading state changes that state. */
 	private isRendering = false;
 
 	constructor(
 		private readonly container: HTMLElement,
-		/** Returns focus to whatever opened the survey once its controls are torn down. */
 		private readonly restoreFocus: () => void,
 		@IChatModelFeedbackSurveyService private readonly surveyService: IChatModelFeedbackSurveyService,
 		@IHoverService private readonly hoverService: IHoverService,
@@ -82,7 +71,6 @@ export class ChatModelFeedbackSurveyWidget extends Disposable {
 
 		this._register(this.surveyService.onDidChangeConfiguration(() => this.render(this.response)));
 
-		// Escape is handled in capture, because Button stops propagation on its own Escape.
 		this._register(dom.addDisposableListener(this.container, dom.EventType.KEY_DOWN, e => {
 			const event = new StandardKeyboardEvent(e);
 			if (event.keyCode === KeyCode.Escape) {
@@ -92,8 +80,6 @@ export class ChatModelFeedbackSurveyWidget extends Disposable {
 			}
 		}, true));
 
-		// Claimed on the way back up, after the survey has had its turn, so the chat list does
-		// not also move its selection. Stopping these in capture would starve the option list.
 		this._register(dom.addDisposableListener(this.container, dom.EventType.KEY_DOWN, e => {
 			const event = new StandardKeyboardEvent(e);
 			if (KEYS_HANDLED_BY_LIST.has(event.keyCode) && !dom.isEditableElement(e.target as HTMLElement)) {
@@ -102,11 +88,7 @@ export class ChatModelFeedbackSurveyWidget extends Disposable {
 		}));
 	}
 
-	/** Renders the survey for `response`, or clears the panel when there is nothing to show. */
 	render(response: IChatResponseViewModel | undefined): void {
-		// Reading the survey can open it, which reports a state change back to this widget. The
-		// call already in flight reads the latest state, so a nested render would only duplicate
-		// what it is about to draw.
 		if (this.isRendering) {
 			return;
 		}
@@ -134,8 +116,6 @@ export class ChatModelFeedbackSurveyWidget extends Disposable {
 		this.container.classList.toggle('hidden', !isOpen);
 		if (!response || !state || !isOpen) {
 			this.lastFocusedStep = undefined;
-			// The focused control has just been removed, so hand focus back to the control that
-			// opened the survey rather than letting it fall to the document body.
 			if (wasOpen) {
 				this.restoreFocus();
 			}
@@ -160,12 +140,10 @@ export class ChatModelFeedbackSurveyWidget extends Disposable {
 
 		const closeButton = this.renderCloseButton(header);
 
-		// An answered survey has nothing left to ask, so it only acknowledges.
 		if (state.isSubmitted) {
 			if (this.lastFocusedStep !== ACKNOWLEDGEMENT_STEP_KEY) {
 				this.lastFocusedStep = ACKNOWLEDGEMENT_STEP_KEY;
 				status(localize('chat.feedbackSurvey.submitted', "Feedback submitted. Thank you."));
-				// Submitting removed the control that had focus, so move it to the one left.
 				closeButton.focus();
 			}
 			return;
@@ -185,7 +163,6 @@ export class ChatModelFeedbackSurveyWidget extends Disposable {
 		if (this.lastFocusedStep !== stepKey) {
 			this.lastFocusedStep = stepKey;
 			status(localize('chat.feedbackSurvey.stepAnnouncement', "{0}. Step {1} of {2}.", step.title, state.stepIndex + 1, state.config.steps.length));
-			// A survey the user asked for takes focus, one that appeared on its own does not.
 			if (state.openTrigger === 'manual' || state.stepIndex > 0) {
 				firstControl?.focus();
 			}
@@ -203,7 +180,6 @@ export class ChatModelFeedbackSurveyWidget extends Disposable {
 		return close;
 	}
 
-	/** Renders the options as a single select list, matching the ask question tool. */
 	private renderChoiceStep(response: IChatResponseViewModel, body: HTMLElement, instanceId: string, stepId: string, options: readonly { id: string; label: string }[], title: string): HTMLElement {
 		const listbox = new ChatCardListbox(dom.append(body, dom.$('.chat-feedback-survey-list')), title, 'active');
 

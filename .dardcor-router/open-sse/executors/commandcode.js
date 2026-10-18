@@ -4,17 +4,6 @@ import { PROVIDERS } from "../config/providers.js";
 import { commandCodeToOpenAIResponse } from "../translator/response/commandcode-to-openai.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
 
-/**
- * CommandCodeExecutor — talks to https://api.commandcode.ai/alpha/generate
- *
- * Auth: Bearer <user_xxx> API key (stored as the connection's apiKey).
- * Adds the per-request `x-session-id` header expected by CommandCode upstream.
- *
- * Upstream returns AI SDK v5 NDJSON (one JSON event per line, no `data:` prefix).
- * We translate each event to an OpenAI chat.completion.chunk and emit it as SSE so
- * both the streaming and non-streaming (forced SSE → JSON) downstream handlers in
- * dardcor-code can consume it without further format translation.
- */
 export class CommandCodeExecutor extends BaseExecutor {
   constructor() {
     super("commandcode", PROVIDERS.commandcode);
@@ -198,12 +187,12 @@ export async function inspectAndWrapCommandCodeResponse(originalResponse, model)
       if (stopLoop) break;
     }
   } catch {
-    try { reader.releaseLock(); } catch { /* ignore */ }
+    try { reader.releaseLock(); } catch { }
     return originalResponse;
   }
 
   if (detectedError) {
-    try { await reader.cancel(); } catch { /* ignore */ }
+    try { await reader.cancel(); } catch { }
     const { statusCode, message, type } = parseCommandCodeError(detectedError);
     return new Response(
       JSON.stringify({
@@ -264,7 +253,6 @@ function createReplayedStream(bufferedLines, remainingBuffer, reader) {
       try {
         await reader.cancel(reason);
       } catch {
-        /* ignore */
       }
     },
   });

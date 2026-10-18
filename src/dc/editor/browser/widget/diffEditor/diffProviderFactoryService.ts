@@ -69,7 +69,6 @@ export class WorkerBasedDocumentDiffProvider implements IDocumentDiffProvider, I
 		}
 
 		if (original.isDisposed() || modified.isDisposed()) {
-			// TODO@hediet
 			return {
 				changes: [],
 				identical: true,
@@ -78,7 +77,6 @@ export class WorkerBasedDocumentDiffProvider implements IDocumentDiffProvider, I
 			};
 		}
 
-		// This significantly speeds up the case when the original file is empty
 		if (original.getLineCount() === 1 && original.getLineMaxColumn(1) === 1) {
 			if (modified.getLineCount() === 1 && modified.getLineMaxColumn(1) === 1) {
 				return {
@@ -138,7 +136,6 @@ export class WorkerBasedDocumentDiffProvider implements IDocumentDiffProvider, I
 		});
 
 		if (cancellationToken.isCancellationRequested) {
-			// Text models might be disposed!
 			return {
 				changes: [],
 				identical: false,
@@ -151,7 +148,6 @@ export class WorkerBasedDocumentDiffProvider implements IDocumentDiffProvider, I
 			throw new Error('no diff result available');
 		}
 
-		// max 10 items in cache
 		if (WorkerBasedDocumentDiffProvider.diffCache.size > 10) {
 			WorkerBasedDocumentDiffProvider.diffCache.delete(WorkerBasedDocumentDiffProvider.diffCache.keys().next().value!);
 		}

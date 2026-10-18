@@ -57,9 +57,6 @@ const ttPolicy = ((): ReturnType<typeof createTrustedTypesPolicy> => {
 		workerttPolicy?: ReturnType<typeof createTrustedTypesPolicy>;
 	};
 
-	// Reuse the trusted types policy defined from worker bootstrap
-	// when available.
-	// Refs https://github.com/microsoft/vscode/issues/222193
 	const workerGlobalThis = globalThis as WorkerGlobalWithPolicy;
 	if (typeof self === 'object' && self.constructor && self.constructor.name === 'DedicatedWorkerGlobalScope' && workerGlobalThis.workerttPolicy !== undefined) {
 		return workerGlobalThis.workerttPolicy;
@@ -77,8 +74,6 @@ export function createBlobWorker(blobUrl: string, options?: WorkerOptions): Work
 
 function getWorkerBootstrapUrl(label: string, workerScriptUrl: string, workerLoadingFailedErrorMessage: string | undefined): string {
 	if (/^((http:)|(https:)|(file:))/.test(workerScriptUrl) && workerScriptUrl.substring(0, globalThis.origin.length) !== globalThis.origin) {
-		// this is the cross-origin case
-		// i.e. the webpage is running at a different origin than where the scripts are loaded from
 	} else {
 		const start = workerScriptUrl.lastIndexOf('?');
 		const end = workerScriptUrl.lastIndexOf('#', start);
@@ -95,9 +90,6 @@ function getWorkerBootstrapUrl(label: string, workerScriptUrl: string, workerLoa
 		}
 	}
 
-	// In below blob code, we are using JSON.stringify to ensure the passed
-	// in values are not breaking our script. The values may contain string
-	// terminating characters (such as ' or ").
 	const blob = new Blob([coalesce([
 		`/*${label}*/`,
 		`globalThis._VSCODE_NLS_MESSAGES = ${JSON.stringify(getNLSMessages())};`,
@@ -147,7 +139,7 @@ export class WebWorker extends Disposable implements IWebWorker {
 		super();
 		this.id = id;
 		this.worker = worker;
-		this.postMessage('-please-ignore-', []); // TODO: Eliminate this extra message
+		this.postMessage('-please-ignore-', []);
 		const errorHandler = (ev: ErrorEvent) => {
 			this._onError.fire(ev);
 		};

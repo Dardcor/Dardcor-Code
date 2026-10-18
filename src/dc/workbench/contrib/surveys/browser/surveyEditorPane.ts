@@ -86,7 +86,6 @@ export class SurveyEditorPane extends EditorPane {
 	private renderForm(container: HTMLElement, survey: ISurveyDefinition): void {
 		const form = append(container, $('div.survey-form'));
 
-		// Title with decorative icon
 		const title = append(form, $('div.survey-title'));
 		const titleIcon = append(title, $('span.survey-title-icon'));
 		titleIcon.classList.add(...ThemeIcon.asClassNameArray(Codicon.sparkle));
@@ -97,12 +96,10 @@ export class SurveyEditorPane extends EditorPane {
 		const description = append(form, $('div.survey-description'));
 		description.textContent = survey.description;
 
-		// Questions
 		for (const question of survey.questions) {
 			this.renderQuestion(form, question);
 		}
 
-		// Submit button (shared Button widget for consistent theming)
 		const submitRow = append(form, $('div.survey-submit-row'));
 		const submitButton = this.inputDisposables.add(new Button(submitRow, { ...defaultButtonStyles }));
 		submitButton.label = localize('survey.submitFeedback', "Submit feedback");
@@ -227,13 +224,11 @@ export class SurveyEditorPane extends EditorPane {
 	}
 
 	private handleSubmit(container: HTMLElement, survey: ISurveyDefinition): void {
-		// Snapshot answers at submit time
 		const answersSnapshot: Record<string, string[]> = {};
 		for (const [key, value] of this.answers) {
 			answersSnapshot[key] = [...value];
 		}
 
-		// Build telemetry from question telemetryKey declarations
 		let score = -1;
 		let primaryBenefit = '';
 		let primaryFriction = '';
@@ -258,7 +253,6 @@ export class SurveyEditorPane extends EditorPane {
 			}
 		}
 
-		// Get the source from the input (what feature triggered the survey)
 		const source = (this.input as SurveyEditorInput)?.source ?? '';
 
 		type SurveySubmitEvent = {
@@ -310,12 +304,10 @@ export class SurveyEditorPane extends EditorPane {
 		const detail = append(success, $('div.survey-success-detail'));
 		detail.textContent = localize('survey.success.detail', "Your answer helps us understand who needs this most. Thank you.");
 
-		// Announce to screen readers and move focus to success container
 		status(successMessage);
 		success.tabIndex = -1;
 		success.focus();
 
-		// Auto-close after 5 seconds (longer than visual to allow screen readers to finish)
 		const timeout = setTimeout(() => {
 			if (submittedInput) {
 				this.editorService.closeEditor({ editor: submittedInput, groupId: this.group.id }).catch(onUnexpectedError);
@@ -331,7 +323,6 @@ export class SurveyEditorPane extends EditorPane {
 	}
 
 	override layout(): void {
-		// no-op: CSS handles sizing
 	}
 }
 

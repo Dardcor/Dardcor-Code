@@ -8,7 +8,6 @@ import { URI } from '../../../../../../base/common/uri.js';
 import { IChatModelFeedbackSurveyService, IChatModelFeedbackSurveyState } from '../../../browser/feedbackSurvey/chatModelFeedbackSurveyService.js';
 import { IChatResponseViewModel } from '../../../common/model/chatViewModel.js';
 
-/** Never offers a survey, matching any build without the experiment configured. */
 export class MockChatModelFeedbackSurveyService implements IChatModelFeedbackSurveyService {
 
 	declare readonly _serviceBrand: undefined;

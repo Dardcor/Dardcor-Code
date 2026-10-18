@@ -9,17 +9,12 @@ import { e } from '../common/publish.ts';
 async function main() {
 	const esrpCliDLLPath = e('EsrpCliDllPath');
 
-	// Start the code sign processes in parallel
-	// 1. Codesign deb package
-	// 2. Codesign rpm package
 	const codesignTask1 = spawnCodesignProcess(esrpCliDLLPath, 'sign-pgp', '.build/linux/deb', '*.deb');
 	const codesignTask2 = spawnCodesignProcess(esrpCliDLLPath, 'sign-pgp', '.build/linux/rpm', '*.rpm');
 
-	// Codesign deb package
 	printBanner('Codesign deb package');
 	await streamProcessOutputAndCheckResult('Codesign deb package', codesignTask1);
 
-	// Codesign rpm package
 	printBanner('Codesign rpm package');
 	await streamProcessOutputAndCheckResult('Codesign rpm package', codesignTask2);
 }

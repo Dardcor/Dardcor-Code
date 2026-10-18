@@ -20,14 +20,12 @@ import { IWorkspaceService } from '../../workspace/common/workspaceService';
 import { AgentInstructionFileType, AgentInstructionsLogger, IAgentInstructionFile, PromptConfig } from '../common/promptsService';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 
-// File and folder name constants. Mirrors the values in
-// `src/vs/workbench/contrib/chat/common/promptSyntax/config/promptFileLocations.ts`.
 const AGENT_MD_FILENAME = 'AGENTS.md';
 const CLAUDE_MD_FILENAME = 'CLAUDE.md';
 const CLAUDE_LOCAL_MD_FILENAME = 'CLAUDE.local.md';
 const CLAUDE_CONFIG_FOLDER = '.claude';
-const COPILOT_CONFIG_FOLDER = '.dardcor';
-const COPILOT_CUSTOM_INSTRUCTIONS_FILENAME = 'dardcor-instructions.md';
+const DARDCOR_CONFIG_FOLDER = '.dardcor';
+const DARDCOR_CUSTOM_INSTRUCTIONS_FILENAME = 'dardcor-instructions.md';
 const GITHUB_CONFIG_FOLDER = '.github';
 
 
@@ -37,12 +35,6 @@ interface IWorkspaceInstructionFile {
 	readonly type: AgentInstructionFileType;
 }
 
-/**
- * Extension-side counterpart of the agent instruction file lookups in
- * core's `PromptFilesLocator` / `PromptsService.listAgentInstructions`.
- * Only the methods needed for assembling the customizations index live
- * here; the broader prompt file location logic stays in core.
- */
 export class AgentInstructionsLocator extends Disposable {
 
 	constructor(
@@ -56,10 +48,6 @@ export class AgentInstructionsLocator extends Disposable {
 
 	}
 
-	/**
-	 * Returns the combined list of `AGENTS.md`, `CLAUDE.md` and
-	 * `dardcor-instructions.md` files that apply to the current workspace.
-	 */
 	public async listAgentInstructions(token: CancellationToken, logger?: AgentInstructionsLogger): Promise<IAgentInstructionFile[]> {
 		const resolvedAgentFiles: IAgentInstructionFile[] = [];
 		const promises: Promise<IAgentInstructionFile[]>[] = [];
@@ -80,27 +68,22 @@ export class AgentInstructionsLocator extends Disposable {
 			logger?.logInfo('Claude MD files are disabled via configuration.');
 		} else {
 			const claudeMdFile: IWorkspaceInstructionFile = { fileName: CLAUDE_MD_FILENAME, type: AgentInstructionFileType.claudeMd };
-			rootFiles.push(claudeMdFile); // CLAUDE.md in workspace root
-			rootFiles.push({ fileName: CLAUDE_LOCAL_MD_FILENAME, type: AgentInstructionFileType.claudeMd }); // CLAUDE.local.md in workspace root
+			rootFiles.push(claudeMdFile);
+			rootFiles.push({ fileName: CLAUDE_LOCAL_MD_FILENAME, type: AgentInstructionFileType.claudeMd });
 
-			// CLAUDE.md inside the .claude folder under each workspace root, plus ~/.claude/CLAUDE.md.
 			promises.push(this.findFilesInRoots(rootFolders, CLAUDE_CONFIG_FOLDER, [claudeMdFile], token, resolvedAgentFiles));
 			promises.push(this.findFilesInRoots([this.envService.userHome], CLAUDE_CONFIG_FOLDER, [claudeMdFile], token, resolvedAgentFiles));
 		}
 
-		// `useCopilotInstructionsFiles` gates both workspace and personal
-		// `dardcor-instructions.md` discovery.
-		// Reuses the existing extension config (default true) instead of hard-coding the qualified key.
-		const useCopilotInstructionsFiles = this.configurationService.getConfig(ConfigKey.UseInstructionFiles) !== false;
-		if (!useCopilotInstructionsFiles) {
-			logger?.logInfo('Copilot instructions files are disabled via configuration.');
+		const useDardcorInstructionsFiles = this.configurationService.getConfig(ConfigKey.UseInstructionFiles) !== false;
+		if (!useDardcorInstructionsFiles) {
+			logger?.logInfo('Dardcor instruction files are disabled via configuration.');
 		} else {
-			const dardcorInstructionsFile: IWorkspaceInstructionFile = { fileName: COPILOT_CUSTOM_INSTRUCTIONS_FILENAME, type: AgentInstructionFileType.dardcorInstructionsMd };
-			promises.push(this.findFilesInRoots(rootFolders, GITHUB_CONFIG_FOLDER, [dardcorInstructionsFile], token, resolvedAgentFiles)); // dardcor-instructions.md in .github folder under workspace root
-			promises.push(this.findFilesInRoots([this.envService.userHome], COPILOT_CONFIG_FOLDER, [dardcorInstructionsFile], token, resolvedAgentFiles)); // dardcor-instructions.md in ~/.dardcor folder
+			const dardcorInstructionsFile: IWorkspaceInstructionFile = { fileName: DARDCOR_CUSTOM_INSTRUCTIONS_FILENAME, type: AgentInstructionFileType.dardcorInstructionsMd };
+			promises.push(this.findFilesInRoots(rootFolders, GITHUB_CONFIG_FOLDER, [dardcorInstructionsFile], token, resolvedAgentFiles));
+			promises.push(this.findFilesInRoots([this.envService.userHome], DARDCOR_CONFIG_FOLDER, [dardcorInstructionsFile], token, resolvedAgentFiles));
 		}
 
-		// Files at the workspace root itself (AGENTS.md / CLAUDE.md / CLAUDE.local.md).
 		promises.push(this.findFilesInRoots(rootFolders, undefined, rootFiles, token, resolvedAgentFiles));
 
 		await Promise.all(promises);
@@ -108,7 +91,6 @@ export class AgentInstructionsLocator extends Disposable {
 			return [];
 		}
 
-		// Filter out symlinks pointing to files we already included.
 		const seenFileURI = new ResourceSet();
 		const symlinks: (IAgentInstructionFile & { realPath: URI })[] = [];
 		const result: IAgentInstructionFile[] = [];
@@ -131,10 +113,6 @@ export class AgentInstructionsLocator extends Disposable {
 		return result.sort((a, b) => a.uri.toString().localeCompare(b.uri.toString()));
 	}
 
-	/**
-	 * Returns nested `AGENTS.md` files anywhere in the workspace, gated by
-	 * the `chat.useAgentsMdFile` and `chat.useNestedAgentsMdFiles` settings.
-	 */
 	public async listNestedAgentMDs(token: CancellationToken): Promise<IAgentInstructionFile[]> {
 		const useAgentMD = this.configurationService.getNonExtensionConfig<boolean>(PromptConfig.USE_AGENT_MD) !== false;
 		if (!useAgentMD) {
@@ -144,8 +122,6 @@ export class AgentInstructionsLocator extends Disposable {
 		if (!useNestedAgentMD) {
 			return [];
 		}
-		// Use the proposed `vscode.workspace.findFiles` glob search so we only pull back
-		// `AGENTS.md` paths and respect the user's standard exclude/.gitignore filters.
 		const found = await vscode.workspace.findFiles('**/AGENTS.md', undefined, undefined, token);
 		if (token.isCancellationRequested) {
 			return [];
@@ -153,14 +129,6 @@ export class AgentInstructionsLocator extends Disposable {
 		return found.map(uri => ({ uri, type: AgentInstructionFileType.agentsMd }));
 	}
 
-	/**
-	 * Returns the workspace folders, optionally walking up to enclosing
-	 * repository roots when {@link includeParents} is `true`.
-	 *
-	 * Mirrors `PromptFilesLocator.getWorkspaceFolderRoots`, including the
-	 * per-URI trust check on the discovered repo root via the workspace
-	 * service's `isResourceTrusted` API.
-	 */
 	private async getWorkspaceFolderRoots(includeParents: boolean, logger?: AgentInstructionsLogger): Promise<URI[]> {
 		const workspaceFolders = this.workspaceService.getWorkspaceFolders();
 		if (!includeParents) {
@@ -178,11 +146,6 @@ export class AgentInstructionsLocator extends Disposable {
 		return [...roots];
 	}
 
-	/**
-	 * Walks up from {@link folderUri} collecting parent folders until a
-	 * repository root (a folder containing `.git`) is found. Returns the
-	 * intermediate parent folders only when a repo root is found.
-	 */
 	private async findParentRepoFolders(folderUri: URI, userHome: URI, seen: ResourceSet, logger?: AgentInstructionsLogger): Promise<URI[]> {
 		const candidates: URI[] = [];
 		let current = folderUri;
@@ -191,7 +154,6 @@ export class AgentInstructionsLocator extends Disposable {
 				const gitFolder = joinPath(current, '.git');
 				const isRepoRoot = await this.fileSystemService.stat(gitFolder).then(() => true, () => false);
 				if (isRepoRoot) {
-					// Only include the repo root (and any intermediate parents) if the user has explicitly trusted it.
 					const trusted = await this.workspaceService.isResourceTrusted(current);
 					if (trusted) {
 						candidates.push(current);
@@ -207,7 +169,6 @@ export class AgentInstructionsLocator extends Disposable {
 			}
 			candidates.push(current);
 			const parent = dirname(current);
-			// Stop walking up at filesystem root, user home, or already-seen folders.
 			if (isEqual(current, parent) || current.path === '/' || isEqual(userHome, parent) || seen.has(parent)) {
 				break;
 			}
@@ -217,11 +178,6 @@ export class AgentInstructionsLocator extends Disposable {
 		return [];
 	}
 
-	/**
-	 * For each {@link roots} folder (optionally narrowed to a child {@link folder}),
-	 * appends entries to {@link result} for any direct child whose name matches
-	 * one of the requested {@link paths}.
-	 */
 	private async findFilesInRoots(roots: URI[], folder: string | undefined, paths: IWorkspaceInstructionFile[], token: CancellationToken, result: IAgentInstructionFile[]): Promise<IAgentInstructionFile[]> {
 		await Promise.all(roots.map(async root => {
 			if (token.isCancellationRequested) {
@@ -232,7 +188,6 @@ export class AgentInstructionsLocator extends Disposable {
 			try {
 				entries = await this.fileSystemService.readDirectory(dirUri);
 			} catch {
-				// Missing folder or permission error; nothing to do.
 				return;
 			}
 			for (const [name, type] of entries) {

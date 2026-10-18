@@ -24,7 +24,7 @@ export class ModifierLabelProvider {
 	public readonly modifierLabels: ModifierLabels[];
 
 	constructor(mac: ModifierLabels, windows: ModifierLabels, linux: ModifierLabels = windows) {
-		this.modifierLabels = [null!]; // index 0 will never me accessed.
+		this.modifierLabels = [null!];
 		this.modifierLabels[OperatingSystem.Macintosh] = mac;
 		this.modifierLabels[OperatingSystem.Windows] = windows;
 		this.modifierLabels[OperatingSystem.Linux] = linux;
@@ -40,7 +40,6 @@ export class ModifierLabelProvider {
 			const chord = chords[i];
 			const keyLabel = keyLabelProvider(chord);
 			if (keyLabel === null) {
-				// this keybinding cannot be expressed...
 				return null;
 			}
 			result[i] = _simpleAsString(chord, keyLabel, this.modifierLabels[OS]);
@@ -49,9 +48,6 @@ export class ModifierLabelProvider {
 	}
 }
 
-/**
- * A label provider that prints modifiers in a suitable format for displaying in the UI.
- */
 export const UILabelProvider = new ModifierLabelProvider(
 	{
 		ctrlKey: '\u2303',
@@ -76,9 +72,6 @@ export const UILabelProvider = new ModifierLabelProvider(
 	}
 );
 
-/**
- * A label provider that prints modifiers in a suitable format for ARIA.
- */
 export const AriaLabelProvider = new ModifierLabelProvider(
 	{
 		ctrlKey: nls.localize({ key: 'ctrlKey.long', comment: ['This is the long form for the Control key on the keyboard'] }, "Control"),
@@ -103,10 +96,6 @@ export const AriaLabelProvider = new ModifierLabelProvider(
 	}
 );
 
-/**
- * A label provider that prints modifiers in a suitable format for Electron Accelerators.
- * See https://github.com/electron/electron/blob/master/docs/api/accelerator.md
- */
 export const ElectronAcceleratorLabelProvider = new ModifierLabelProvider(
 	{
 		ctrlKey: 'Ctrl',
@@ -124,9 +113,6 @@ export const ElectronAcceleratorLabelProvider = new ModifierLabelProvider(
 	}
 );
 
-/**
- * A label provider that prints modifiers in a suitable format for user settings.
- */
 export const UserSettingsLabelProvider = new ModifierLabelProvider(
 	{
 		ctrlKey: 'ctrl',
@@ -158,7 +144,6 @@ function _simpleAsString(modifiers: Modifiers, key: string, labels: ModifierLabe
 
 	const result: string[] = [];
 
-	// translate modifier keys: Ctrl-Shift-Alt-Meta
 	if (modifiers.ctrlKey) {
 		result.push(labels.ctrlKey);
 	}
@@ -175,7 +160,6 @@ function _simpleAsString(modifiers: Modifiers, key: string, labels: ModifierLabe
 		result.push(labels.metaKey);
 	}
 
-	// the actual key
 	if (key !== '') {
 		result.push(key);
 	}

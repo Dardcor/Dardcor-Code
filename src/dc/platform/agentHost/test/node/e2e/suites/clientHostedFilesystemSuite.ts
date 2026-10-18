@@ -3,13 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * The reverse half of the symmetric AHP filesystem contract.
- *
- * These scenarios address local files through `vscode-agent-client:` URIs. The
- * host must decode and route each operation back over the WebSocket to the
- * client that owns the URI, then return that client's result to the caller.
- */
 
 import assert from 'assert';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
@@ -265,7 +258,6 @@ export function defineClientHostedFilesystemTests(context: IAgentHostE2ETestCont
 		assertReverseRequest({ method: 'resourceWrite', uri: URI.file(file).toString() });
 	});
 
-	// Reverse binary writes currently pass through UTF-8; see KNOWN_ISSUES.md.
 	conformanceTest(context, 'client-hosted resourceWrite decodes base64 content', async function () {
 		const clientId = await initializeClient('write-binary');
 		const workspace = createWorkspace('ahp-client-hosted-write-binary-');

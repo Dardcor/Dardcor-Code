@@ -104,7 +104,6 @@ export class ExtensionService extends AbstractExtensionService implements IExten
 			dialogService
 		);
 
-		// Initialize installed extensions first and do it only after workbench is ready
 		lifecycleService.when(LifecyclePhase.Ready).then(async () => {
 			await this._initializeIfNeeded();
 		});
@@ -166,9 +165,6 @@ export class ExtensionService extends AbstractExtensionService implements IExten
 
 		const remoteAuthority = this._environmentService.remoteAuthority!;
 
-		// Now that the canonical URI provider has been registered, we need to wait for the trust state to be
-		// calculated. The trust state will be used while resolving the authority, however the resolver can
-		// override the trust state through the resolver result.
 		await this._workspaceTrustManagementService.workspaceResolved;
 
 		const localExtensions = await this._scanWebExtensions();
@@ -186,15 +182,12 @@ export class ExtensionService extends AbstractExtensionService implements IExten
 			}
 			this._remoteAuthorityResolverService._setResolvedAuthorityError(remoteAuthority, err);
 
-			// Proceed with the local extension host
 			return this._resolveExtensionsDefault(emitter);
 		}
 
-		// set the resolved authority
 		this._remoteAuthorityResolverService._setResolvedAuthority(resolverResult.authority, resolverResult.options);
 		this._remoteExplorerService.setTunnelInformation(resolverResult.tunnelInformation);
 
-		// monitor for breakage
 		const connection = this._remoteAgentService.getConnection();
 		if (connection) {
 			this._register(connection.onDidStateChange(async (e) => {
@@ -209,10 +202,8 @@ export class ExtensionService extends AbstractExtensionService implements IExten
 	}
 
 	protected async _onExtensionHostExit(code: number): Promise<void> {
-		// Dispose everything associated with the extension host
 		await this._doStopExtensionHosts();
 
-		// If we are running extension tests, forward logs and exit code
 		const automatedWindow = mainWindow as unknown as IAutomatedWindow;
 		if (typeof automatedWindow.codeAutomationExit === 'function') {
 			automatedWindow.codeAutomationExit(code, await getLogs(this._fileService, this._environmentService));
@@ -264,14 +255,12 @@ class BrowserExtensionHostFactory implements IExtensionHostFactory {
 		return {
 			getInitData: async (): Promise<IWebWorkerExtensionHostInitData> => {
 				if (isInitialStart) {
-					// Here we load even extensions that would be disabled by workspace trust
-					const localExtensions = checkEnabledAndProposedAPI(this._logService, this._extensionEnablementService, this._extensionsProposedApi, await this._scanWebExtensions(), /* ignore workspace trust */true);
+					const localExtensions = checkEnabledAndProposedAPI(this._logService, this._extensionEnablementService, this._extensionsProposedApi, await this._scanWebExtensions(), true);
 					const runningLocation = runningLocations.computeRunningLocation(localExtensions, [], false);
 					const myExtensions = filterExtensionDescriptions(localExtensions, runningLocation, extRunningLocation => desiredRunningLocation.equals(extRunningLocation));
 					const extensions = new ExtensionHostExtensions(0, localExtensions, myExtensions.map(extension => extension.identifier));
 					return { extensions };
 				} else {
-					// restart case
 					const snapshot = await this._getExtensionRegistrySnapshotWhenReady();
 					const myExtensions = runningLocations.filterByRunningLocation(snapshot.extensions, desiredRunningLocation);
 					const extensions = new ExtensionHostExtensions(snapshot.versionId, snapshot.extensions, myExtensions.map(extension => extension.identifier));
@@ -326,7 +315,6 @@ export class BrowserExtensionHostKindPicker implements IExtensionHostKindPicker 
 		let canRunRemotely = false;
 		for (const extensionKind of extensionKinds) {
 			if (extensionKind === 'ui' && isInstalledRemotely) {
-				// ui extensions run remotely if possible (but only as a last resort)
 				if (preference === ExtensionRunningPreference.Remote) {
 					return ExtensionHostKind.Remote;
 				} else {
@@ -334,7 +322,6 @@ export class BrowserExtensionHostKindPicker implements IExtensionHostKindPicker 
 				}
 			}
 			if (extensionKind === 'workspace' && isInstalledRemotely) {
-				// workspace extensions run remotely if possible
 				if (preference === ExtensionRunningPreference.None || preference === ExtensionRunningPreference.Remote) {
 					return ExtensionHostKind.Remote;
 				} else {
@@ -342,7 +329,6 @@ export class BrowserExtensionHostKindPicker implements IExtensionHostKindPicker 
 				}
 			}
 			if (extensionKind === 'web' && (isInstalledLocally || isInstalledRemotely)) {
-				// web worker extensions run in the local web worker if possible
 				if (preference === ExtensionRunningPreference.None || preference === ExtensionRunningPreference.Local) {
 					return ExtensionHostKind.LocalWebWorker;
 				} else {

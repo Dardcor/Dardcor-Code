@@ -11,7 +11,6 @@ import { ChatReferenceBinaryData, ChatRequestTurn, ChatRequestTurn2, ChatRespons
 import { IClaudeCodeSession, ISubagentSession, StoredMessage, SYNTHETIC_MODEL_ID } from '../../claude/node/sessionParser/claudeSessionSchema';
 import { buildChatHistory } from '../chatHistoryBuilder';
 
-// #region Test Helpers
 
 let _msgCounter = 0;
 
@@ -121,11 +120,9 @@ function mapHistoryForSnapshot(history: readonly (vscode.ChatRequestTurn | vscod
 	});
 }
 
-// #endregion
 
 describe('buildChatHistory', () => {
 
-	// #region Empty and Minimal Cases
 
 	describe('empty and minimal cases', () => {
 		it('returns empty array for session with no messages', () => {
@@ -167,9 +164,7 @@ describe('buildChatHistory', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Simple Request/Response Pairs
 
 	describe('simple request/response pairs', () => {
 		it('converts a user message followed by an assistant text response', () => {
@@ -211,9 +206,7 @@ describe('buildChatHistory', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Consecutive Message Grouping
 
 	describe('consecutive message grouping', () => {
 		it('combines consecutive user messages into a single request turn', () => {
@@ -248,9 +241,7 @@ describe('buildChatHistory', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Single Tool Call
 
 	describe('single tool call', () => {
 		it('creates a tool invocation part for tool_use blocks', () => {
@@ -280,7 +271,6 @@ describe('buildChatHistory', () => {
 				toolResult('tool-1', 'file1.txt\nfile2.txt'),
 			]));
 			const snapshot = mapHistoryForSnapshot(result);
-			// Should be a single response with a completed tool
 			expect(snapshot).toHaveLength(2);
 			expect(snapshot[1]).toEqual({
 				type: 'response',
@@ -307,9 +297,7 @@ describe('buildChatHistory', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Multi-Round Tool Use (Core Bug Fix)
 
 	describe('multi-round tool use merging', () => {
 		it('merges assistant → tool_result → assistant into a single response', () => {
@@ -331,7 +319,6 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// Must be exactly 1 request + 1 response
 			expect(snapshot).toHaveLength(2);
 			expect(snapshot[0].type).toBe('request');
 			expect(snapshot[1].type).toBe('response');
@@ -354,7 +341,7 @@ describe('buildChatHistory', () => {
 
 			const snapshot = mapHistoryForSnapshot(result);
 			expect(snapshot).toHaveLength(2);
-			expect(getResponseParts(snapshot, 1)).toHaveLength(5); // 4 tools + 1 text
+			expect(getResponseParts(snapshot, 1)).toHaveLength(5);
 			expect(getResponseParts(snapshot, 1)[0]).toMatchObject({ type: 'tool', isComplete: true });
 			expect(getResponseParts(snapshot, 1)[1]).toMatchObject({ type: 'tool', isComplete: true });
 			expect(getResponseParts(snapshot, 1)[2]).toMatchObject({ type: 'tool', isComplete: true });
@@ -364,12 +351,10 @@ describe('buildChatHistory', () => {
 
 		it('correctly separates two user requests each with their own tool loops', () => {
 			const result = buildChatHistory(session([
-				// First user request with tool loop
 				userMsg('First task'),
 				assistantMsg([{ type: 'tool_use', id: 't1', name: 'Glob', input: {} }]),
 				toolResult('t1', 'found'),
 				assistantMsg([{ type: 'text', text: 'Done with first.' }]),
-				// Second user request with tool loop
 				userMsg('Second task'),
 				assistantMsg([{ type: 'tool_use', id: 't2', name: 'Read', input: {} }]),
 				toolResult('t2', 'content'),
@@ -377,13 +362,13 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			expect(snapshot).toHaveLength(4); // req, resp, req, resp
+			expect(snapshot).toHaveLength(4);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: 'First task' });
 			expect(snapshot[1]).toMatchObject({ type: 'response' });
-			expect(getResponseParts(snapshot, 1)).toHaveLength(2); // tool + text
+			expect(getResponseParts(snapshot, 1)).toHaveLength(2);
 			expect(snapshot[2]).toMatchObject({ type: 'request', prompt: 'Second task' });
 			expect(snapshot[3]).toMatchObject({ type: 'response' });
-			expect(getResponseParts(snapshot, 3)).toHaveLength(2); // tool + text
+			expect(getResponseParts(snapshot, 3)).toHaveLength(2);
 		});
 
 		it('handles parallel tool calls in a single assistant message', () => {
@@ -394,7 +379,6 @@ describe('buildChatHistory', () => {
 					{ type: 'tool_use', id: 't1', name: 'Glob', input: {} },
 					{ type: 'tool_use', id: 't2', name: 'Grep', input: {} },
 				]),
-				// Both tool results come in the same user message
 				userMsg([
 					{ type: 'tool_result', tool_use_id: 't1', content: 'glob result' },
 					{ type: 'tool_result', tool_use_id: 't2', content: 'grep result' },
@@ -404,7 +388,7 @@ describe('buildChatHistory', () => {
 
 			const snapshot = mapHistoryForSnapshot(result);
 			expect(snapshot).toHaveLength(2);
-			expect(getResponseParts(snapshot, 1)).toHaveLength(4); // text + 2 tools + text
+			expect(getResponseParts(snapshot, 1)).toHaveLength(4);
 			expect(getResponseParts(snapshot, 1)[1]).toMatchObject({ type: 'tool', isComplete: true });
 			expect(getResponseParts(snapshot, 1)[2]).toMatchObject({ type: 'tool', isComplete: true });
 		});
@@ -416,7 +400,6 @@ describe('buildChatHistory', () => {
 					{ type: 'tool_use', id: 't1', name: 'Glob', input: {} },
 					{ type: 'tool_use', id: 't2', name: 'Grep', input: {} },
 				]),
-				// Each tool result as a separate user message (both should be merged)
 				toolResult('t1', 'glob result'),
 				toolResult('t2', 'grep result'),
 				assistantMsg([{ type: 'text', text: 'Done.' }]),
@@ -429,9 +412,7 @@ describe('buildChatHistory', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region System Reminder Filtering
 
 	describe('system reminder filtering', () => {
 		it('filters out system-reminder blocks from user messages', () => {
@@ -462,7 +443,6 @@ describe('buildChatHistory', () => {
 				assistantMsg([{ type: 'text', text: 'Hello!' }]),
 			]));
 			const snapshot = mapHistoryForSnapshot(result);
-			// Only the assistant response should appear
 			expect(snapshot).toHaveLength(1);
 			expect(snapshot[0]).toMatchObject({ type: 'response' });
 		});
@@ -473,7 +453,6 @@ describe('buildChatHistory', () => {
 				assistantMsg([
 					{ type: 'tool_use', id: 't1', name: 'bash', input: {} },
 				]),
-				// Tool result + system reminder in the same user message group
 				userMsg([
 					{ type: 'tool_result', tool_use_id: 't1', content: 'done' },
 				]),
@@ -484,16 +463,13 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// System-reminder-only user messages should not break the response
 			expect(snapshot).toHaveLength(2);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: 'Do task' });
-			expect(getResponseParts(snapshot, 1)).toHaveLength(2); // tool + text
+			expect(getResponseParts(snapshot, 1)).toHaveLength(2);
 		});
 	});
 
-	// #endregion
 
-	// #region Interrupted Requests
 
 	describe('interrupted requests', () => {
 		it('skips user messages that are interruption markers', () => {
@@ -509,16 +485,11 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// The interruption marker should not create a request turn
-			// The "Stopped." response merges into a new response (since the interrupted
-			// user message broke the assistant grouping but produced no request turn)
 			expect(snapshot.filter(s => s.type === 'request')).toHaveLength(1);
 		});
 	});
 
-	// #endregion
 
-	// #region Thinking Blocks
 
 	describe('thinking blocks', () => {
 		it('includes thinking blocks in response parts', () => {
@@ -530,7 +501,6 @@ describe('buildChatHistory', () => {
 				]),
 			]));
 
-			// Thinking block + text = 2 parts
 			expect(result).toHaveLength(2);
 			const response = result[1] as vscode.ChatResponseTurn2;
 			expect(response.response).toHaveLength(2);
@@ -551,13 +521,11 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			expect(snapshot).toHaveLength(2); // 1 request, 1 merged response
+			expect(snapshot).toHaveLength(2);
 		});
 	});
 
-	// #endregion
 
-	// #region Edge Cases
 
 	describe('edge cases', () => {
 		it('handles tool_use without a corresponding tool_result', () => {
@@ -566,14 +534,13 @@ describe('buildChatHistory', () => {
 				assistantMsg([
 					{ type: 'tool_use', id: 't1', name: 'bash', input: {} },
 				]),
-				// No tool result - session may have been interrupted
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
 			expect(snapshot).toHaveLength(2);
 			expect(getResponseParts(snapshot, 1)[0]).toMatchObject({
 				type: 'tool',
-				isComplete: undefined, // Not completed since no result arrived
+				isComplete: undefined,
 			});
 		});
 
@@ -586,7 +553,6 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// The text should become a request; the tool_result is processed (but orphaned)
 			expect(snapshot).toHaveLength(1);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: 'Here is context: ' });
 		});
@@ -608,7 +574,6 @@ describe('buildChatHistory', () => {
 				toolResult('nonexistent-id', 'result'),
 			]));
 
-			// Should not throw, the orphaned tool result is just ignored
 			const snapshot = mapHistoryForSnapshot(result);
 			expect(snapshot).toHaveLength(2);
 		});
@@ -620,8 +585,6 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// Empty content produces no parts, so no response turn is created.
-			// Only the request turn from the user message exists.
 			expect(snapshot).toHaveLength(1);
 			expect(snapshot[0]).toMatchObject({ type: 'request' });
 		});
@@ -633,7 +596,6 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// Whitespace-only should not create a request turn
 			expect(snapshot).toHaveLength(1);
 			expect(snapshot[0]).toMatchObject({ type: 'response' });
 		});
@@ -657,14 +619,12 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// Request, Response (with system appended), Request, Response
 			expect(snapshot).toHaveLength(4);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: 'Hello' });
 			expect(snapshot[1]).toMatchObject({ type: 'response' });
 			expect(snapshot[2]).toMatchObject({ type: 'request', prompt: 'After compaction' });
 			expect(snapshot[3]).toMatchObject({ type: 'response' });
 
-			// The system message should be appended as a second markdown part with separator
 			const responseParts = getResponseParts(snapshot, 1);
 			expect(responseParts).toHaveLength(2);
 			expect(responseParts[0]).toMatchObject({ type: 'markdown', content: 'Hi there' });
@@ -688,7 +648,6 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// System response (standalone since no preceding parts), Request, Response
 			expect(snapshot).toHaveLength(3);
 			expect(snapshot[0]).toMatchObject({ type: 'response' });
 			expect(snapshot[1]).toMatchObject({ type: 'request', prompt: 'After compaction' });
@@ -718,15 +677,11 @@ describe('buildChatHistory', () => {
 			const snapshot = mapHistoryForSnapshot(result);
 			const responseParts = getResponseParts(snapshot, 1);
 			expect(responseParts).toHaveLength(2);
-			// Content is trimmed so the leading/trailing whitespace does not break
-			// the inline emphasis delimiters (which would otherwise render literally).
 			expect(responseParts[1]).toMatchObject({ type: 'markdown', content: '\n\n---\n\n*`someCommand` was run*' });
 		});
 	});
 
-	// #endregion
 
-	// #region Subagent Tool Calls
 
 	describe('subagent tool calls', () => {
 		function subagentSession(agentId: string, messages: StoredMessage[], parentToolUseId?: string): ISubagentSession {
@@ -754,21 +709,17 @@ describe('buildChatHistory', () => {
 				assistantMsg([{ type: 'text', text: 'Done!' }]),
 			], [subagent]));
 
-			// Should have: request, response
 			expect(result).toHaveLength(2);
 
 			const response = result[1] as vscode.ChatResponseTurn2;
 			const toolParts = response.response.filter((p): p is vscode.ChatToolInvocationPart => p instanceof ChatToolInvocationPart);
 
-			// Should have Task tool + subagent Bash tool
 			expect(toolParts).toHaveLength(2);
 
-			// First tool is the Task itself
 			expect(toolParts[0].toolName).toBe('Task');
 			expect(toolParts[0].toolCallId).toBe(taskToolUseId);
 			expect(toolParts[0].isComplete).toBe(true);
 
-			// Second tool is the subagent's Bash call
 			expect(toolParts[1].toolName).toBe('Bash');
 			expect(toolParts[1].toolCallId).toBe(subagentBashId);
 			expect(toolParts[1].subAgentInvocationId).toBe(taskToolUseId);
@@ -823,9 +774,6 @@ describe('buildChatHistory', () => {
 			const response = result[1] as vscode.ChatResponseTurn2;
 			const toolParts = response.response.filter((p): p is vscode.ChatToolInvocationPart => p instanceof ChatToolInvocationPart);
 
-			// Task + 2 subagent tools (Read returns undefined from createFormattedToolInvocation for Edit/Write)
-			// Read should produce an invocation, Edit/Write return undefined
-			// Let's just check all subagent tools have the correct subAgentInvocationId
 			const subagentTools = toolParts.filter(t => t.subAgentInvocationId === taskToolUseId);
 			expect(subagentTools.length).toBeGreaterThan(0);
 
@@ -856,7 +804,6 @@ describe('buildChatHistory', () => {
 			const response = result[1] as vscode.ChatResponseTurn2;
 			const toolParts = response.response.filter((p): p is vscode.ChatToolInvocationPart => p instanceof ChatToolInvocationPart);
 
-			// Only the Task tool itself, no subagent tools
 			expect(toolParts).toHaveLength(1);
 			expect(toolParts[0].toolName).toBe('Task');
 		});
@@ -889,14 +836,11 @@ describe('buildChatHistory', () => {
 			const response = result[1] as vscode.ChatResponseTurn2;
 			const toolParts = response.response.filter((p): p is vscode.ChatToolInvocationPart => p instanceof ChatToolInvocationPart);
 
-			// 2 Task tools + 2 subagent Bash tools
 			expect(toolParts).toHaveLength(4);
 
-			// First two are the Task tools
 			expect(toolParts[0].toolName).toBe('Task');
 			expect(toolParts[1].toolName).toBe('Task');
 
-			// Subagent tools follow their respective Task results
 			const subagent1Tools = toolParts.filter(t => t.subAgentInvocationId === task1Id);
 			expect(subagent1Tools).toHaveLength(1);
 			expect(subagent1Tools[0].toolName).toBe('Bash');
@@ -921,7 +865,6 @@ describe('buildChatHistory', () => {
 					{ type: 'tool_use', id: bashId, name: 'Bash', input: { command: 'echo hi' } },
 					{ type: 'tool_use', id: taskId, name: 'Task', input: { description: 'Sub task', prompt: 'find files' } },
 				]),
-				// Non-Task tool result first, then Task result — separate StoredMessages
 				toolResult(bashId, 'hi'),
 				toolResult(taskId, 'Sub task done'),
 				assistantMsg([{ type: 'text', text: 'All done.' }]),
@@ -930,7 +873,6 @@ describe('buildChatHistory', () => {
 			const response = result[1] as vscode.ChatResponseTurn2;
 			const toolParts = response.response.filter((p): p is vscode.ChatToolInvocationPart => p instanceof ChatToolInvocationPart);
 
-			// Bash (main) + Task + subagent Glob = 3 tools
 			expect(toolParts).toHaveLength(3);
 			expect(toolParts[0].toolName).toBe('Bash');
 			expect(toolParts[0].subAgentInvocationId).toBeUndefined();
@@ -938,7 +880,6 @@ describe('buildChatHistory', () => {
 			expect(toolParts[1].toolName).toBe('Task');
 			expect(toolParts[1].subAgentInvocationId).toBeUndefined();
 
-			// Subagent tool is correctly linked to the Task, not the Bash tool
 			const subagentTools = toolParts.filter(t => t.subAgentInvocationId === taskId);
 			expect(subagentTools).toHaveLength(1);
 			expect(subagentTools[0].toolName).toBe('Glob');
@@ -972,7 +913,6 @@ describe('buildChatHistory', () => {
 			const response = result[1] as vscode.ChatResponseTurn2;
 			const toolParts = response.response.filter((p): p is vscode.ChatToolInvocationPart => p instanceof ChatToolInvocationPart);
 
-			// Task + its subagent Bash + Agent + its subagent Bash = 4
 			expect(toolParts).toHaveLength(4);
 			expect(toolParts[0].toolName).toBe('Task');
 			expect(toolParts[1].toolName).toBe('Agent');
@@ -998,16 +938,13 @@ describe('buildChatHistory', () => {
 			const response = result[1] as vscode.ChatResponseTurn2;
 			const toolParts = response.response.filter((p): p is vscode.ChatToolInvocationPart => p instanceof ChatToolInvocationPart);
 
-			// Only the Agent tool itself, no subagent tools injected
 			expect(toolParts).toHaveLength(1);
 			expect(toolParts[0].toolName).toBe('Agent');
 			expect(toolParts[0].subAgentInvocationId).toBeUndefined();
 		});
 	});
 
-	// #endregion
 
-	// #region Image References
 
 	describe('image references', () => {
 		it('creates request turn with image references from base64 image blocks', () => {
@@ -1089,7 +1026,6 @@ describe('buildChatHistory', () => {
 				]),
 			]));
 
-			// Even with no text, should produce a request turn because of the image
 			expect(result).toHaveLength(1);
 			const requestTurn = result[0] as vscode.ChatRequestTurn2;
 			expect(requestTurn.references).toHaveLength(1);
@@ -1114,26 +1050,21 @@ describe('buildChatHistory', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Slash Command Messages
 
 	describe('slash command messages', () => {
 		it('renders /compact command as request turn with stdout as response turn', () => {
 			const result = buildChatHistory(session([
 				userMsg('Hello'),
 				assistantMsg([{ type: 'text', text: 'Hi there' }]),
-				// Command message with <command-name> tags
 				userMsg([
 					{ type: 'text', text: '<system-reminder>\nContext.\n</system-reminder>' },
 					{ type: 'text', text: '<command-name>/compact</command-name>\n            <command-message>compact</command-message>\n            <command-args></command-args>' },
 				]),
-				// Command stdout in a separate user message
 				userMsg('<local-command-stdout>Compacted PreCompact [callback] completed successfully</local-command-stdout>'),
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// Request, Response, Command Request, Command Response
 			expect(snapshot).toHaveLength(4);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: 'Hello' });
 			expect(snapshot[1]).toMatchObject({ type: 'response' });
@@ -1146,7 +1077,6 @@ describe('buildChatHistory', () => {
 
 		it('renders /init command as request turn without stdout', () => {
 			const result = buildChatHistory(session([
-				// Init command message (string format from real fixture)
 				userMsg('<command-message>init is analyzing your codebase…</command-message>\n<command-name>/init</command-name>'),
 				assistantMsg([{ type: 'text', text: 'Analyzing...' }]),
 			]));
@@ -1166,7 +1096,6 @@ describe('buildChatHistory', () => {
 				]),
 				toolResult('t1', 'done'),
 				assistantMsg([{ type: 'text', text: 'Finished.' }]),
-				// Now the user runs /compact
 				userMsg([
 					{ type: 'text', text: '<command-name>/compact</command-name>\n<command-message>compact</command-message>\n<command-args></command-args>' },
 				]),
@@ -1174,7 +1103,6 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// Request, Response (with tool + text), Command Request, Command Response
 			expect(snapshot).toHaveLength(4);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: 'Do task' });
 			expect(snapshot[1]).toMatchObject({ type: 'response' });
@@ -1193,7 +1121,6 @@ describe('buildChatHistory', () => {
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// Only the command request turn, no response
 			expect(snapshot).toHaveLength(1);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: '/help' });
 		});
@@ -1211,24 +1138,18 @@ describe('buildChatHistory', () => {
 			const result = buildChatHistory(session([
 				userMsg('Hello'),
 				assistantMsg([{ type: 'text', text: 'Hi there' }]),
-				// System compact_boundary
 				systemMessage,
-				// /compact command
 				userMsg([
 					{ type: 'text', text: '<system-reminder>\nContext.\n</system-reminder>' },
 					{ type: 'text', text: '<command-name>/compact</command-name>\n<command-message>compact</command-message>\n<command-args></command-args>' },
 				]),
-				// Stdout
 				userMsg('<local-command-stdout>Compacted successfully</local-command-stdout>'),
-				// In real sessions, a synthetic assistant message separates the command from the next turn
 				assistantMsg([{ type: 'text', text: 'No response requested.' }], '<synthetic>'),
-				// Conversation continues
 				userMsg('What were we talking about?'),
 				assistantMsg([{ type: 'text', text: 'We were discussing...' }]),
 			]));
 
 			const snapshot = mapHistoryForSnapshot(result);
-			// Request, Response (with system appended), Command Request, Command Response, Request, Response
 			expect(snapshot).toHaveLength(6);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: 'Hello' });
 			expect(snapshot[1]).toMatchObject({ type: 'response' });
@@ -1237,7 +1158,6 @@ describe('buildChatHistory', () => {
 			expect(snapshot[4]).toMatchObject({ type: 'request', prompt: 'What were we talking about?' });
 			expect(snapshot[5]).toMatchObject({ type: 'response' });
 
-			// The first response should have the assistant text + system separator
 			const responseParts = getResponseParts(snapshot, 1);
 			expect(responseParts).toHaveLength(2);
 			expect(responseParts[0]).toMatchObject({ type: 'markdown', content: 'Hi there' });
@@ -1245,9 +1165,7 @@ describe('buildChatHistory', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Synthetic Message Filtering
 
 	describe('Synthetic Message Filtering', () => {
 		it('filters out synthetic assistant messages', () => {
@@ -1261,12 +1179,10 @@ describe('buildChatHistory', () => {
 			const result = buildChatHistory(s);
 			const snapshot = mapHistoryForSnapshot(result);
 
-			// The synthetic message should be filtered out entirely
 			expect(snapshot).toEqual([
 				{ type: 'request', prompt: 'Hello' },
 				{ type: 'response', parts: [{ type: 'markdown', content: 'Hi there!' }] },
 				{ type: 'request', prompt: 'Do something' },
-				// No response from the synthetic message
 			]);
 		});
 
@@ -1294,9 +1210,7 @@ describe('buildChatHistory', () => {
 					{ type: 'tool_use', id: 't1', name: 'bash', input: { command: 'echo hi' } },
 				]),
 				toolResult('t1', 'hi'),
-				// Synthetic message mid-loop (e.g., from an abort)
 				assistantMsg([{ type: 'text', text: 'No response requested.' }], '<synthetic>'),
-				// Real assistant continues
 				assistantMsg([{ type: 'text', text: 'Done.' }]),
 			]));
 
@@ -1304,21 +1218,17 @@ describe('buildChatHistory', () => {
 			expect(snapshot).toHaveLength(2);
 			expect(snapshot[0]).toMatchObject({ type: 'request', prompt: 'Do task' });
 
-			// The response should contain the tool call, the text before, and the text after — but not the synthetic message
 			const parts = getResponseParts(snapshot, 1);
 			const markdownParts = parts.filter(p => p.type === 'markdown');
 			expect(markdownParts).toEqual([
 				{ type: 'markdown', content: 'Working...' },
 				{ type: 'markdown', content: 'Done.' },
 			]);
-			// No "No response requested." in any part
 			expect(parts.every(p => p.type !== 'markdown' || (p as Record<string, unknown>).content !== 'No response requested.')).toBe(true);
 		});
 	});
 
-	// #endregion
 
-	// #region Model ID Resolution
 
 	describe('model ID resolution via parseClaudeModelId', () => {
 		it('converts SDK model ID to endpoint format on request turns', () => {
@@ -1413,13 +1323,9 @@ describe('buildChatHistory', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region Response Details (model footer)
 
 	describe('response details via getModelDetails', () => {
-		// Returns the raw model id back so we can spot-check exactly which id the
-		// builder fed into the lookup for each response turn.
 		const echoLookup = (id: string) => `details:${id}`;
 
 		it('omits details when no lookup is provided (regression)', () => {
@@ -1479,7 +1385,6 @@ describe('buildChatHistory', () => {
 				userMsg('Run'),
 				assistantMsg([{ type: 'tool_use', id: 't1', name: 'bash', input: {} }], 'claude-sonnet-4-20250514'),
 				toolResult('t1', 'done'),
-				// Final assistant message uses a different model — that's the one we attribute.
 				assistantMsg([{ type: 'text', text: 'OK' }], 'claude-opus-4-5-20251101'),
 			]);
 
@@ -1509,8 +1414,6 @@ describe('buildChatHistory', () => {
 			const s = session([
 				userMsg('Hello'),
 				assistantMsg([{ type: 'text', text: 'Real reply' }], 'claude-sonnet-4-20250514'),
-				// A trailing synthetic message (e.g. cancellation marker) must not
-				// override the real model id we just observed.
 				assistantMsg([{ type: 'text', text: 'No response requested.' }], SYNTHETIC_MODEL_ID),
 			]);
 
@@ -1528,11 +1431,9 @@ describe('buildChatHistory', () => {
 
 			const result = buildChatHistory(s, echoLookup);
 
-			// [request, response]
 			const responseTurn = result[1] as vscode.ChatResponseTurn2;
 			expect(responseTurn.result).toEqual({ details: 'details:claude-sonnet-4-20250514' });
 		});
 	});
 
-	// #endregion
 });

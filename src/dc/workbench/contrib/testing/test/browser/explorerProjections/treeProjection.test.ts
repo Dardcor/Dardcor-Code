@@ -131,7 +131,6 @@ suite('Workbench - Testing Explorer Hierarchal by Location Projection', () => {
 			controllerId: 'ctrl',
 		});
 
-		// Applies the change:
 		resultsService.getStateById = () => [undefined!, resultInState(TestResultState.Queued)];
 		onTestChanged.fire({
 			reason: TestResultItemChangeReason.OwnStateChange,
@@ -147,7 +146,6 @@ suite('Workbench - Testing Explorer Hierarchal by Location Projection', () => {
 			{ e: 'b', data: String(TestResultState.Unset) }
 		]);
 
-		// Falls back if moved into unset state:
 		resultsService.getStateById = () => [undefined!, resultInState(TestResultState.Failed)];
 		onTestChanged.fire({
 			reason: TestResultItemChangeReason.OwnStateChange,
@@ -170,7 +168,6 @@ suite('Workbench - Testing Explorer Hierarchal by Location Projection', () => {
 		assert.deepStrictEqual(harness.flush(), [
 			{ e: 'a', children: [{ e: 'aa' }, { e: 'ab' }] }, { e: 'b' }
 		]);
-		// sortText causes order to change
 		harness.pushDiff({
 			op: TestDiffOpType.Update,
 			item: { extId: new TestId(['ctrlId', 'id-a', 'id-aa']).toString(), item: { sortText: 'z' } }
@@ -181,7 +178,6 @@ suite('Workbench - Testing Explorer Hierarchal by Location Projection', () => {
 		assert.deepStrictEqual(harness.flush(), [
 			{ e: 'a', children: [{ e: 'ab' }, { e: 'aa' }] }, { e: 'b' }
 		]);
-		// label causes order to change
 		harness.pushDiff({
 			op: TestDiffOpType.Update,
 			item: { extId: new TestId(['ctrlId', 'id-a', 'id-aa']).toString(), item: { sortText: undefined, label: 'z' } }
@@ -209,7 +205,6 @@ suite('Workbench - Testing Explorer Hierarchal by Location Projection', () => {
 		assert.deepStrictEqual(harness.flush(), [
 			{ e: 'a' }, { e: 'b' }
 		]);
-		// sortText causes order to change
 		harness.pushDiff({
 			op: TestDiffOpType.Update,
 			item: { extId: new TestId(['ctrlId', 'id-a']).toString(), item: { error: 'bad' } }

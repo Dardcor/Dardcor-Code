@@ -70,7 +70,6 @@ export class InlineCompletionsHintsWidget extends Disposable {
 		});
 
 		this._register(autorunWithStore((reader, store) => {
-			/** @description setup content widget */
 			const model = this.model.read(reader);
 			if (!model || !this.alwaysShowToolbar.read(reader)) {
 				return;
@@ -92,7 +91,6 @@ export class InlineCompletionsHintsWidget extends Disposable {
 				reader.store.add(toDisposable(() => editor.removeContentWidget(contentWidget)));
 
 				reader.store.add(autorun(reader => {
-					/** @description request explicit */
 					const position = this.position.read(reader);
 					if (!position) {
 						return;
@@ -153,7 +151,6 @@ export class InlineSuggestionHintsContentWidget extends Disposable implements IC
 
 	private readonly toolBar: CustomizedMenuWorkbenchToolBar;
 
-	// TODO@hediet: deprecate MenuId.InlineCompletionsActions
 	private readonly inlineCompletionsActionsMenus;
 
 	private readonly clearAvailableSuggestionCountLabelDebounced;
@@ -222,7 +219,6 @@ export class InlineSuggestionHintsContentWidget extends Disposable implements IC
 		this._register(autorun(reader => {
 			this._warningMessageContentNode.read(reader);
 			this._warningMessageNode.readEffect(reader);
-			// Only update after the warning message node has been rendered
 			this._relayout();
 		}));
 
@@ -254,13 +250,11 @@ export class InlineSuggestionHintsContentWidget extends Disposable implements IC
 		}));
 
 		this._register(autorun(reader => {
-			/** @description update position */
 			this._position.read(reader);
 			this.editor.layoutContentWidget(this);
 		}));
 
 		this._register(autorun(reader => {
-			/** @description counts */
 			const suggestionCount = this._suggestionCount.read(reader);
 			const currentSuggestionIdx = this._currentSuggestionIdx.read(reader);
 
@@ -280,7 +274,6 @@ export class InlineSuggestionHintsContentWidget extends Disposable implements IC
 		}));
 
 		this._register(autorun(reader => {
-			/** @description extra commands */
 			const extraCommands = this._extraCommands.read(reader);
 			const extraActions = extraCommands.map<IAction>(c => ({
 				class: undefined,
@@ -337,7 +330,6 @@ class ActionViewItemWithClassName extends ActionViewItem {
 	}
 
 	protected override updateTooltip(): void {
-		// NOOP, disable tooltip
 	}
 }
 
@@ -359,7 +351,6 @@ class StatusBarViewItem extends MenuEntryActionViewItem {
 	}
 
 	protected override updateTooltip(): void {
-		// NOOP, disable tooltip
 	}
 }
 

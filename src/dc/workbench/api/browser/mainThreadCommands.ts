@@ -38,7 +38,6 @@ export class MainThreadCommands implements MainThreadCommandsShape {
 	private async _generateCommandsDocumentation(): Promise<void> {
 		const result = await this._proxy.$getContributedCommandMetadata();
 
-		// add local commands
 		const commands = CommandsRegistry.getCommands();
 		for (const [id, command] of commands) {
 			if (command.metadata) {
@@ -46,7 +45,6 @@ export class MainThreadCommands implements MainThreadCommandsShape {
 			}
 		}
 
-		// print all as markdown
 		const all: string[] = [];
 		for (const id in result) {
 			all.push('`' + id + '` - ' + _generateMarkdown(result[id]));
@@ -72,8 +70,6 @@ export class MainThreadCommands implements MainThreadCommandsShape {
 	$fireCommandActivationEvent(id: string): void {
 		const activationEvent = `onCommand:${id}`;
 		if (!this._extensionService.activationEventIsDone(activationEvent)) {
-			// this is NOT awaited because we only use it as drive-by-activation
-			// for commands that are already known inside the extension host
 			this._extensionService.activateByEvent(activationEvent);
 		}
 	}
@@ -97,7 +93,6 @@ export class MainThreadCommands implements MainThreadCommandsShape {
 	}
 }
 
-// --- command doc
 
 function _generateMarkdown(description: string | Dto<ICommandMetadata> | ICommandMetadata): string {
 	if (typeof description === 'string') {
@@ -105,7 +100,6 @@ function _generateMarkdown(description: string | Dto<ICommandMetadata> | IComman
 	} else {
 		const descriptionString = isString(description.description)
 			? description.description
-			// Our docs website is in English, so keep the original here.
 			: description.description.original;
 		const parts = [descriptionString];
 		parts.push('\n\n');

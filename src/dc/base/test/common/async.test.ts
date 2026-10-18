@@ -24,14 +24,14 @@ suite('Async', () => {
 			let canceled = 0;
 			const promise = async.createCancelablePromise(token => {
 				store.add(token.onCancellationRequested(_ => { canceled += 1; }));
-				return new Promise(resolve => { /*never*/ });
+				return new Promise(resolve => { });
 			});
 			const result = promise.then(_ => assert.ok(false), err => {
 				assert.strictEqual(canceled, 1);
 				assert.ok(isCancellationError(err));
 			});
 			promise.cancel();
-			promise.cancel(); // cancel only once
+			promise.cancel();
 			return result;
 		});
 
@@ -65,8 +65,6 @@ suite('Async', () => {
 			promise.cancel();
 		});
 
-		// Cancelling a sync cancelable promise will fire the cancelled token.
-		// Also, every `then` callback runs in another execution frame.
 		test('execution order (sync)', function () {
 			const order: string[] = [];
 
@@ -88,7 +86,6 @@ suite('Async', () => {
 			return promise.then(() => assert.deepStrictEqual(order, ['in callback', 'afterCreate', 'cancelled', 'afterCancel', 'finally']));
 		});
 
-		// Cancelling an async cancelable promise is just the same as a sync cancellable promise.
 		test('execution order (async)', function () {
 			const order: string[] = [];
 
@@ -299,7 +296,6 @@ suite('Async', () => {
 					await promise;
 					assert.fail('SHOULD NOT BE HERE');
 				} catch (err) {
-					// OK
 				}
 			});
 
@@ -534,7 +530,7 @@ suite('Async', () => {
 			const task = async () => {
 				await async.timeout(0);
 				workCounter++;
-				queue.dispose(); // DISPOSE HERE
+				queue.dispose();
 			};
 
 			const p1 = queue.queue(task);
@@ -555,8 +551,8 @@ suite('Async', () => {
 			const task = async () => {
 				await async.timeout(0);
 				workCounter++;
-				queue.clear(); // CLEAR HERE
-				assert.strictEqual(queue.size, 1); // THIS task is still running
+				queue.clear();
+				assert.strictEqual(queue.size, 1);
 			};
 
 			const p1 = queue.queue(task);
@@ -566,7 +562,7 @@ suite('Async', () => {
 
 			await p1;
 			assert.strictEqual(workCounter, 1);
-			assert.strictEqual(queue.size, 0); // has been cleared
+			assert.strictEqual(queue.size, 0);
 
 
 			const p2 = queue.queue(task);
@@ -581,14 +577,14 @@ suite('Async', () => {
 			const task = async () => {
 				await async.timeout(0);
 				workCounter++;
-				queue.clear(); // CLEAR HERE
+				queue.clear();
 			};
 
 			const p0 = Event.toPromise(queue.onDrained);
 			const p1 = queue.queue(task);
 
 			await p1;
-			await p0; // expect drain to fire because a task was running
+			await p0;
 			assert.strictEqual(workCounter, 1);
 			queue.dispose();
 		});
@@ -603,7 +599,7 @@ suite('Async', () => {
 
 			queue.clear();
 
-			assert.strictEqual(didFire, false); // no work, no drain!
+			assert.strictEqual(didFire, false);
 			d.dispose();
 			queue.dispose();
 		});
@@ -626,7 +622,6 @@ suite('Async', () => {
 			});
 
 			const p1 = queue.queue(() => {
-				// await async.timeout(10);
 				didFinishTime1 = logicClock.tick();
 				return Promise.resolve();
 			});
@@ -778,19 +773,18 @@ suite('Async', () => {
 		test('simple', async function () {
 			const queue = new async.ResourceQueue();
 
-			await queue.whenDrained(); // returns immediately since empty
+			await queue.whenDrained();
 
 			let done1 = false;
 			queue.queueFor(URI.file('/some/path'), async () => { done1 = true; });
-			await queue.whenDrained(); // returns immediately since no work scheduled
+			await queue.whenDrained();
 			assert.strictEqual(done1, true);
 
 			let done2 = false;
 			queue.queueFor(URI.file('/some/other/path'), async () => { done2 = true; });
-			await queue.whenDrained(); // returns immediately since no work scheduled
+			await queue.whenDrained();
 			assert.strictEqual(done2, true);
 
-			// schedule some work
 			const w1 = new async.DeferredPromise<void>();
 			queue.queueFor(URI.file('/some/path'), () => w1.p);
 
@@ -801,7 +795,6 @@ suite('Async', () => {
 			await async.timeout(0);
 			assert.strictEqual(drained, true);
 
-			// schedule some work
 			const w2 = new async.DeferredPromise<void>();
 			const w3 = new async.DeferredPromise<void>();
 			queue.queueFor(URI.file('/some/path'), () => w2.p);
@@ -857,14 +850,12 @@ suite('Async', () => {
 			assert.ok(!sequentializer.isRunning(2323));
 			assert.ok(!sequentializer.running);
 
-			// pending removes itself after done
 			await sequentializer.run(1, Promise.resolve());
 			assert.ok(!sequentializer.isRunning());
 			assert.ok(!sequentializer.isRunning(1));
 			assert.ok(!sequentializer.running);
 			assert.ok(!sequentializer.hasQueued());
 
-			// pending removes itself after done (use async.timeout)
 			sequentializer.run(2, async.timeout(1));
 			assert.ok(sequentializer.isRunning());
 			assert.ok(sequentializer.isRunning(2));
@@ -884,7 +875,6 @@ suite('Async', () => {
 			let pendingDone = false;
 			sequentializer.run(1, async.timeout(1).then(() => { pendingDone = true; return; }));
 
-			// queued finishes instantly
 			let queuedDone = false;
 			const res = sequentializer.queue(() => Promise.resolve(null).then(() => { queuedDone = true; return; }));
 
@@ -902,7 +892,6 @@ suite('Async', () => {
 			let pendingDone = false;
 			sequentializer.run(1, async.timeout(1).then(() => { pendingDone = true; return; }));
 
-			// queued finishes after async.timeout
 			let queuedDone = false;
 			const res = sequentializer.queue(() => async.timeout(1).then(() => { queuedDone = true; return; }));
 
@@ -936,7 +925,6 @@ suite('Async', () => {
 			let pendingDone = false;
 			sequentializer.run(1, async.timeout(1).then(() => { pendingDone = true; return; }));
 
-			// queued finishes after async.timeout
 			let queuedDone = false;
 			sequentializer.queue(() => async.timeout(1).then(() => { queuedDone = true; return; }));
 
@@ -953,7 +941,6 @@ suite('Async', () => {
 			let pendingDone = false;
 			sequentializer.run(1, async.timeout(1).then(() => { pendingDone = true; return; }));
 
-			// queued finishes after async.timeout
 			let firstDone = false;
 			const firstRes = sequentializer.queue(() => async.timeout(2).then(() => { firstDone = true; return; }));
 
@@ -1061,7 +1048,7 @@ suite('Async', () => {
 				let cb = false;
 				const t = async.disposableLongTimeout(() => cb = true, async.MAX_TIMEOUT_DELAY * 2);
 
-				await async.timeout(async.MAX_TIMEOUT_DELAY); // advance one chunk, then re-armed
+				await async.timeout(async.MAX_TIMEOUT_DELAY);
 				t.dispose();
 				await async.timeout(async.MAX_TIMEOUT_DELAY * 2);
 
@@ -1114,7 +1101,6 @@ suite('Async', () => {
 	test('raceTimeout', async () => {
 		const cts = store.add(new CancellationTokenSource());
 
-		// timeout wins
 		let timedout = false;
 		let triggered = false;
 
@@ -1129,7 +1115,6 @@ suite('Async', () => {
 		assert.strictEqual(timedout, true);
 		ctsTimeout1.cancel();
 
-		// promise wins
 		timedout = false;
 
 		const ctsTimeout2 = store.add(new CancellationTokenSource());
@@ -1153,11 +1138,9 @@ suite('Async', () => {
 		await s.queue('key2', () => Promise.reject(new Error('failed'))).then(() => {
 			throw new Error('should not be resolved');
 		}, err => {
-			// Expected error
 			assert.strictEqual(err.message, 'failed');
 		});
 
-		// Still works after a queued promise is rejected
 		const r3 = await s.queue('key2', () => Promise.resolve('hello'));
 		assert.strictEqual(r3, 'hello');
 	});
@@ -1442,7 +1425,6 @@ suite('Async', () => {
 				throttleDelay: 1
 			}, handler));
 
-			// Work less than chunk size
 
 			let worked = worker.work([1, 2, 3]);
 
@@ -1457,7 +1439,6 @@ suite('Async', () => {
 			assert.strictEqual(worker.pending, 0);
 			assert.strictEqual(worked, true);
 
-			// Work more than chunk size (variant 1)
 
 			handled = [];
 			handledCounterToResolve = 2;
@@ -1485,7 +1466,6 @@ suite('Async', () => {
 
 			assertArrayEquals(handled, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
-			// Work more than chunk size (variant 2)
 
 			handled = [];
 			handledCounterToResolve = 2;
@@ -1500,7 +1480,6 @@ suite('Async', () => {
 
 			assertArrayEquals(handled, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-			// Work more while throttled (variant 1)
 
 			handled = [];
 			handledCounterToResolve = 3;
@@ -1523,7 +1502,6 @@ suite('Async', () => {
 			assertArrayEquals(handled, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 			assert.strictEqual(worker.pending, 0);
 
-			// Work more while throttled (variant 2)
 
 			handled = [];
 			handledCounterToResolve = 2;
@@ -1606,43 +1584,10 @@ suite('Async', () => {
 			assert.strictEqual(worked, false);
 		});
 
-		//  https://github.com/microsoft/vscode/issues/230366
-		// 	test('waitThrottleDelayBetweenWorkUnits option', async () => {
-		// 		const handled: number[] = [];
-		// 		let handledCallback: Function;
-		// 		let handledPromise = new Promise(resolve => handledCallback = resolve);
-		// 		let currentTime = 0;
 
-		// 		const handler = (units: readonly number[]) => {
-		// 			handled.push(...units);
-		// 			handledCallback();
-		// 			handledPromise = new Promise(resolve => handledCallback = resolve);
-		// 		};
 
-		// 		const worker = store.add(new async.ThrottledWorker<number>({
-		// 			maxWorkChunkSize: 5,
-		// 			maxBufferedWork: undefined,
-		// 			throttleDelay: 5,
-		// 			waitThrottleDelayBetweenWorkUnits: true
-		// 		}, handler));
 
-		// 		// Schedule work, it should execute immediately
-		// 		currentTime = Date.now();
-		// 		let worked = worker.work([1, 2, 3]);
-		// 		assert.strictEqual(worked, true);
-		// 		assertArrayEquals(handled, [1, 2, 3]);
-		// 		assert.strictEqual(Date.now() - currentTime < 5, true);
 
-		// 		// Schedule work again, it should wait at least throttle delay before executing
-		// 		currentTime = Date.now();
-		// 		worked = worker.work([4, 5]);
-		// 		assert.strictEqual(worked, true);
-		// 		// Throttle delay hasn't reset so we still must wait
-		// 		assertArrayEquals(handled, [1, 2, 3]);
-		// 		await handledPromise;
-		// 		assert.strictEqual(Date.now() - currentTime >= 5, true);
-		// 		assertArrayEquals(handled, [1, 2, 3, 4, 5]);
-		// 	});
 	});
 
 	suite('LimitedQueue', () => {
@@ -1661,7 +1606,6 @@ suite('Async', () => {
 
 			await Promise.all(promises);
 
-			// only the last task executed
 			assert.strictEqual(counter, 4);
 		});
 
@@ -1678,7 +1622,6 @@ suite('Async', () => {
 
 			await Promise.all(promises);
 
-			// only the last task executed
 			assert.strictEqual(counter, 4);
 		});
 	});
@@ -1852,7 +1795,6 @@ suite('Async', () => {
 				}
 			};
 
-			// Cancel before iteration starts
 			cts.cancel();
 			const cancelableIterable = async.cancellableIterable(asyncIterable, cts.token);
 
@@ -1914,14 +1856,12 @@ suite('Async', () => {
 				},
 			};
 
-			// Add a return method to the iterator
 			const originalIterable = asyncIterable[Symbol.asyncIterator]();
 			originalIterable.return = async function () {
 				returnCalled = true;
 				return Promise.resolve({ done: true, value: undefined });
 			};
 
-			// Create a test-specific iterable with our mocked iterator
 			const testIterable = {
 				[Symbol.asyncIterator]: () => originalIterable
 			};
@@ -2061,7 +2001,6 @@ suite('Async', () => {
 
 		test('empty producer', async () => {
 			const producer = new async.AsyncIterableProducer<number>(emitter => {
-				// Don't emit anything
 			});
 
 			const result: number[] = [];
@@ -2075,7 +2014,6 @@ suite('Async', () => {
 		test('async executor resolves without emitting', async () => {
 			const producer = new async.AsyncIterableProducer<number>(async emitter => {
 				await async.timeout(1);
-				// Don't emit anything
 			});
 
 			const result: number[] = [];
@@ -2091,13 +2029,11 @@ suite('Async', () => {
 				emitter.emitMany([1, 2, 3]);
 			});
 
-			// First iterator should consume all values
 			const result1: number[] = [];
 			for await (const item of producer) {
 				result1.push(item);
 			}
 
-			// Second iterator should not see any values (already consumed)
 			const result2: number[] = [];
 			for await (const item of producer) {
 				result2.push(item);
@@ -2119,13 +2055,11 @@ suite('Async', () => {
 			const iterator1 = producer[Symbol.asyncIterator]();
 			const iterator2 = producer[Symbol.asyncIterator]();
 
-			// Both iterators share the same underlying producer
 			const first1 = await iterator1.next();
 			const first2 = await iterator2.next();
 			const second1 = await iterator1.next();
 			const second2 = await iterator2.next();
 
-			// Since they share the same producer, values are consumed in order
 			assert.strictEqual(first1.value, 1);
 			assert.strictEqual(first2.value, 2);
 			assert.strictEqual(second1.value, 3);
@@ -2236,7 +2170,6 @@ suite('Async', () => {
 		});
 
 		test('tee - both iterators receive all values', async () => {
-			// TODO: Implementation bug - executors don't await start(), causing producers to finalize early
 			async function* sourceGenerator() {
 				yield 1;
 				yield 2;
@@ -2250,7 +2183,6 @@ suite('Async', () => {
 			const result1: number[] = [];
 			const result2: number[] = [];
 
-			// Consume both iterables concurrently
 			await Promise.all([
 				(async () => {
 					for await (const item of iter1) {
@@ -2269,20 +2201,17 @@ suite('Async', () => {
 		});
 
 		test('tee - sequential consumption', async () => {
-			// TODO: Implementation bug - executors don't await start(), causing producers to finalize early
 			const source = new async.AsyncIterableProducer<number>(emitter => {
 				emitter.emitMany([1, 2, 3]);
 			});
 
 			const [iter1, iter2] = async.AsyncIterableProducer.tee(source);
 
-			// Consume first iterator completely
 			const result1: number[] = [];
 			for await (const item of iter1) {
 				result1.push(item);
 			}
 
-			// Then consume second iterator
 			const result2: number[] = [];
 			for await (const item of iter2) {
 				result2.push(item);
@@ -2293,9 +2222,7 @@ suite('Async', () => {
 		});
 
 		test.skip('tee - empty source', async () => {
-			// TODO: Implementation bug - executors don't await start(), causing producers to finalize early
 			const source = new async.AsyncIterableProducer<number>(emitter => {
-				// Emit nothing
 			});
 
 			const [iter1, iter2] = async.AsyncIterableProducer.tee(source);
@@ -2321,7 +2248,6 @@ suite('Async', () => {
 		});
 
 		test.skip('tee - handles errors in source', async () => {
-			// TODO: Implementation bug - executors don't await start(), causing producers to finalize early
 			const expectedError = new Error('source error');
 			const source = new async.AsyncIterableProducer<number>(async emitter => {
 				emitter.emitOne(1);
@@ -2357,11 +2283,9 @@ suite('Async', () => {
 				})()
 			]);
 
-			// Both iterators should have received the same values before error
 			assert.deepStrictEqual(result1, [1, 2]);
 			assert.deepStrictEqual(result2, [1, 2]);
 
-			// Both should have received the error
 			assert.strictEqual(error1, expectedError);
 			assert.strictEqual(error2, expectedError);
 		});
@@ -2402,13 +2326,13 @@ suite('Async', () => {
 
 			assert.strictEqual(reader.endOfStream, false);
 
-			await reader.read(); // 1
+			await reader.read();
 			assert.strictEqual(reader.endOfStream, false);
 
-			await reader.read(); // 2
+			await reader.read();
 			assert.strictEqual(reader.endOfStream, false);
 
-			await reader.read(); // end
+			await reader.read();
 			assert.strictEqual(reader.endOfStream, true);
 		});
 
@@ -2416,8 +2340,8 @@ suite('Async', () => {
 			const reader = new async.AsyncReader(createAsyncIterator([1, 2, 3]));
 
 			assert.strictEqual(await reader.peek(), 1);
-			assert.strictEqual(await reader.peek(), 1); // Should return same value
-			assert.strictEqual(await reader.read(), 1); // Should consume the peeked value
+			assert.strictEqual(await reader.peek(), 1);
+			assert.strictEqual(await reader.read(), 1);
 
 			assert.strictEqual(await reader.peek(), 2);
 			assert.strictEqual(await reader.read(), 2);
@@ -2432,17 +2356,14 @@ suite('Async', () => {
 		test('readSyncOrThrow - throws when no data available', async () => {
 			const reader = new async.AsyncReader(createAsyncIterator([1]));
 
-			// Read the only item
 			await reader.read();
 
-			// Should throw since no more data and not at end yet
 			assert.throws(() => reader.readBufferedOrThrow());
 		});
 
 		test('readSyncOrThrow - returns end of stream when at end', async () => {
 			const reader = new async.AsyncReader(createAsyncIterator([]));
 
-			// Trigger end detection
 			await reader.read();
 
 			assert.strictEqual(reader.readBufferedOrThrow(), async.AsyncReaderEndOfStream);
@@ -2451,25 +2372,21 @@ suite('Async', () => {
 		test('peekSyncOrThrow - with buffered data', async () => {
 			const reader = new async.AsyncReader(createAsyncIterator([1, 2, 3]));
 
-			// First peek to populate buffer
 			await reader.peek();
 
-			// Should be able to peek sync now
 			assert.strictEqual(reader.peekBufferedOrThrow(), 1);
-			assert.strictEqual(reader.peekBufferedOrThrow(), 1); // Should return same value
+			assert.strictEqual(reader.peekBufferedOrThrow(), 1);
 		});
 
 		test('peekSyncOrThrow - throws when no data available', async () => {
 			const reader = new async.AsyncReader(createAsyncIterator([1]));
 
-			// Should throw since buffer is empty and we haven't loaded anything
 			assert.throws(() => reader.peekBufferedOrThrow());
 		});
 
 		test('peekSyncOrThrow - returns end of stream when at end', async () => {
 			const reader = new async.AsyncReader(createAsyncIterator([]));
 
-			// Trigger end detection
 			await reader.peek();
 
 			assert.strictEqual(reader.peekBufferedOrThrow(), async.AsyncReaderEndOfStream);
@@ -2478,11 +2395,9 @@ suite('Async', () => {
 		test('consumeToEnd - consumes all remaining data', async () => {
 			const reader = new async.AsyncReader(createAsyncIterator([1, 2, 3, 4, 5]));
 
-			// Read some data first
 			assert.strictEqual(await reader.read(), 1);
 			assert.strictEqual(await reader.read(), 2);
 
-			// Consume the rest
 			await reader.consumeToEnd();
 
 			assert.strictEqual(reader.endOfStream, true);
@@ -2510,7 +2425,6 @@ suite('Async', () => {
 
 			assert.deepStrictEqual(collected, [1, 2, 3]);
 
-			// Next read should return 4
 			assert.strictEqual(await reader.read(), 4);
 		});
 
@@ -2519,7 +2433,7 @@ suite('Async', () => {
 			const collected: number[] = [];
 
 			await reader.readWhile(
-				value => value < 10, // Always true
+				value => value < 10,
 				async value => {
 					collected.push(value);
 				}
@@ -2548,7 +2462,7 @@ suite('Async', () => {
 			const collected: number[] = [];
 
 			await reader.readWhile(
-				value => false, // Always false
+				value => false,
 				async value => {
 					collected.push(value);
 				}
@@ -2556,7 +2470,6 @@ suite('Async', () => {
 
 			assert.deepStrictEqual(collected, []);
 
-			// First item should still be available
 			assert.strictEqual(await reader.read(), 1);
 		});
 
@@ -2603,17 +2516,13 @@ suite('Async', () => {
 		test('mixed operations - complex scenario', async () => {
 			const reader = new async.AsyncReader(createAsyncIterator([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
 
-			// Peek first
 			assert.strictEqual(await reader.peek(), 1);
 
-			// Read some
 			assert.strictEqual(await reader.read(), 1);
 			assert.strictEqual(await reader.read(), 2);
 
-			// Peek again
 			assert.strictEqual(await reader.peek(), 3);
 
-			// Read while
 			const collected: number[] = [];
 			await reader.readWhile(
 				value => value <= 5,
@@ -2621,12 +2530,10 @@ suite('Async', () => {
 			);
 			assert.deepStrictEqual(collected, [3, 4, 5]);
 
-			// Use sync operations
 			assert.strictEqual(await reader.peek(), 6);
 			assert.strictEqual(reader.peekBufferedOrThrow(), 6);
 			assert.strictEqual(reader.readBufferedOrThrow(), 6);
 
-			// Consume rest
 			await reader.consumeToEnd();
 			assert.strictEqual(reader.endOfStream, true);
 		});
@@ -2663,17 +2570,14 @@ suite('Async', () => {
 		test('concurrent operations', async () => {
 			const reader = new async.AsyncReader(createDelayedAsyncIterator([1, 2, 3], 5));
 
-			// Start multiple operations concurrently
 			const peekPromise = reader.peek();
 			const readPromise = reader.read();
 
 			const [peekResult, readResult] = await Promise.all([peekPromise, readPromise]);
 
-			// Both should return the same first value
 			assert.strictEqual(peekResult, 1);
 			assert.strictEqual(readResult, 1);
 
-			// Next read should get the second value
 			assert.strictEqual(await reader.read(), 2);
 		});
 
@@ -2692,7 +2596,6 @@ suite('Async', () => {
 
 			const reader = new async.AsyncReader(mockIterator);
 
-			// Multiple concurrent operations should only trigger one extend buffer call
 			const promises = [
 				reader.peek(),
 				reader.peek(),
@@ -2701,7 +2604,6 @@ suite('Async', () => {
 
 			await Promise.all(promises);
 
-			// Should have called next() only once despite multiple concurrent operations
 			assert.strictEqual(nextCallCount, 1);
 		});
 	});

@@ -8,9 +8,6 @@ import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { MeteredConnectionCommand } from '../common/meteredConnectionIpc.js';
 import { MeteredConnectionMainService } from './meteredConnectionMainService.js';
 
-/**
- * IPC channel implementation for the metered connection service.
- */
 export class MeteredConnectionChannel implements IServerChannel {
 	constructor(private readonly service: MeteredConnectionMainService) { }
 

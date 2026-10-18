@@ -7,10 +7,10 @@ import { InlineCompletionItemProvider } from 'vscode';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createContext, setup } from '../../completions-core/dardcor-node/completionsServiceBridges';
-import { CopilotInlineCompletionItemProvider } from '../../completions-core/dardcor-node/extension/src/dardcorInlineCompletionItemProvider';
-import { ICopilotInlineCompletionItemProviderService } from '../common/dardcorInlineCompletionItemProviderService';
+import { DardcorInlineCompletionItemProvider } from '../../completions-core/dardcor-node/extension/src/dardcorInlineCompletionItemProvider';
+import { IDardcorInlineCompletionItemProviderService } from '../common/dardcorInlineCompletionItemProviderService';
 
-export class CopilotInlineCompletionItemProviderService extends Disposable implements ICopilotInlineCompletionItemProviderService {
+export class DardcorInlineCompletionItemProviderService extends Disposable implements IDardcorInlineCompletionItemProviderService {
 	readonly _serviceBrand: undefined;
 
 	private _provider: InlineCompletionItemProvider | undefined;
@@ -33,7 +33,7 @@ export class CopilotInlineCompletionItemProviderService extends Disposable imple
 		if (!this._provider) {
 			this._completionsInstantiationService = this.getOrCreateInstantiationService();
 			this._completionsInstantiationService.invokeFunction(setup, this._store);
-			this._provider = this._register(this._completionsInstantiationService.createInstance(CopilotInlineCompletionItemProvider));
+			this._provider = this._register(this._completionsInstantiationService.createInstance(DardcorInlineCompletionItemProvider));
 		}
 		return this._provider;
 	}

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { CCAModel } from '@vscode/copilot-api';
+import type { IDardcorRouterModel } from '../../../common/dardcorRouterModel.js';
 import assert from 'assert';
 import { PassThrough } from 'stream';
 import * as fs from 'fs';
@@ -48,7 +48,7 @@ import { CodexAppServerClient, type ICodexAppServerTransport } from '../../../no
 import { CODEX_FILE_LINK_INSTRUCTIONS, type ICodexClientPlugin } from '../../../node/codex/codexClientCustomizations.js';
 import { codexSkillsToContainers } from '../../../node/codex/codexCustomizations.js';
 import { ICodexProxyService } from '../../../node/codex/codexProxyService.js';
-import { ICopilotApiService } from '../../../node/shared/copilotApiService.js';
+import { IDardcorRouterService } from '../../../node/shared/dardcorRouterService.js';
 import { buildMcpChannel } from '../../../node/shared/mcpCustomizationController.js';
 import { createTestGitHubEndpointService } from '../testGitHubEndpointService.js';
 import { AgentHostCodexMultiRootEnabledConfigKey } from '../../../common/agentHostSchema.js';
@@ -200,7 +200,7 @@ class TestCodexConfigurationService extends AgentConfigurationService {
 }
 
 async function createAgent(disposables: Pick<DisposableStore, 'add'>, options: ICreateAgentOptions = {}): Promise<CodexAgent> {
-	const models = [{ id: 'gpt-test', name: 'GPT Test', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as CCAModel[];
+	const models = [{ id: 'gpt-test', name: 'GPT Test', model_picker_enabled: true, supported_endpoints: ['/responses'], vendor: 'OpenAI' }] as unknown as IDardcorRouterModel[];
 	const instantiationService = new TestInstantiationService();
 	const logService = new TestCodexLogService();
 	const fileService = disposables.add(new TestCodexFileService(logService));
@@ -214,7 +214,7 @@ async function createAgent(disposables: Pick<DisposableStore, 'add'>, options: I
 		basePath: URI.file('/plugins'),
 		syncCustomizations: async (_clientId, customizations) => customizations.map(customization => ({ customization })),
 	});
-	instantiationService.stub(ICopilotApiService, { _serviceBrand: undefined, models: async () => models });
+	instantiationService.stub(IDardcorRouterService, { _serviceBrand: undefined, models: async () => models });
 	instantiationService.stub(ICodexProxyService, { _serviceBrand: undefined });
 	instantiationService.stub(IAgentConfigurationService, configurationService);
 	instantiationService.stub(IAgentHostWorktreeIsolation, new NullAgentHostWorktreeIsolation());
@@ -243,7 +243,6 @@ async function createAgent(disposables: Pick<DisposableStore, 'add'>, options: I
 	return agent;
 }
 
-/** The deterministic session-backed chat URI Agent Host mints for `session`. */
 function defaultChatOf(session: URI): URI {
 	return URI.parse(buildDefaultChatUri(session));
 }
@@ -256,12 +255,6 @@ function chatContext(session: URI, chat: URI): IAgentChatContext {
 	return { configurationResource: session, resource: chat };
 }
 
-/**
- * Provision a session by creating its first chat through the single
- * {@link IAgentChats.createChat} seam, already addressed by the exact chat URI
- * Agent Host minted. The provider result never echoes a session identity back,
- * so the `session` field returned here is this helper's own synthesized value.
- */
 async function createSession(agent: CodexAgent, options: IAgentCreateChatOptions & { readonly session?: URI } = {}): Promise<IAgentCreateChatResult & { readonly session: URI }> {
 	const { session: requestedSession, ...chatOptions } = options;
 	const session = requestedSession ?? AgentSession.uri(agent.id, generateUuid());
@@ -2660,9 +2653,6 @@ suite('CodexAgent prewarm eviction', () => {
 		const source = await createSession(agent, { model: { id: COPILOT_TEST_MODEL } });
 		const sourceChat = defaultChatOf(source.session);
 		const sourceEntry = agent['_sessions'].get(AgentSession.id(source.session))!;
-		// A workspace-less session is not prewarmed (there is no directory to
-		// start a thread in yet), so its first send materializes the thread in
-		// the managed temp folder Codex creates for it.
 		const sending = agent.chats.sendMessage(sourceChat, 'hello', undefined, undefined, 'turn-1');
 		const start = await readNextRequest(peer.outbound);
 		peer.push({ id: start.id, result: { thread: { id: 'managed-source', cwd: start.params.cwd } } });
@@ -2673,8 +2663,6 @@ suite('CodexAgent prewarm eviction', () => {
 		assert.ok(sourceDirectory);
 		await fs.promises.writeFile(join(sourceDirectory.fsPath, 'marker.txt'), 'fork me');
 
-		// A fork is provisioned through the same exact-chat seam as a fresh
-		// session, so the test mints the target chat the way the host does.
 		const forkSession = AgentSession.uri(agent.id, generateUuid());
 		const forkChat = defaultChatOf(forkSession);
 		const forking = createSession(agent, {
@@ -2711,11 +2699,6 @@ suite('CodexAgent prewarm eviction', () => {
 		const forkInventory = await readNextRequest(peer.outbound);
 		peer.push({ id: forkInventory.id, result: { data: [], nextCursor: null } });
 
-		// Teardown runs the way Agent Host runs it: dispose each session's own
-		// chat. Configuration-scope ref tracking reclaims a managed working
-		// directory automatically once a scope's last chat is disposed, keyed
-		// by that scope's own configuration resource — so disposing the
-		// source's chat here can never read or delete the fork's directory.
 		const disposingSource = agent.chats.disposeChat(sourceChat, { configurationResource: source.session, resource: sourceChat });
 		const sourceUnsubscribe = await readNextRequest(peer.outbound);
 		peer.push({ id: sourceUnsubscribe.id, result: {} });
@@ -2737,9 +2720,6 @@ suite('CodexAgent prewarm eviction', () => {
 			copiedMarker: 'fork me',
 		});
 
-		// Disposing the fork's own (only) chat drops its configuration scope's
-		// ref count to zero, so the reclaim runs inline — no separate
-		// finalize call is needed.
 		const disposingFork = agent.chats.disposeChat(forkChat, { configurationResource: forked.session, resource: forkChat });
 		const forkUnsubscribe = await readNextRequest(peer.outbound);
 		peer.push({ id: forkUnsubscribe.id, result: {} });
@@ -2810,9 +2790,6 @@ suite('CodexAgent prewarm eviction', () => {
 			const metadata = await metadataPromise;
 			assert.strictEqual(peerB.outbound.readableLength, 0);
 
-			// Mirror Agent Host restore: metadata discovery identifies the cold
-			// runtime, then the chat's opaque backing re-attaches that runtime to
-			// this exact chat before any chat-addressed operation can reach it.
 			await agentB.materializeChat(restoredChat, { configurationResource: created.session, resource: restoredChat }, created.providerData);
 			const resumedSend = agentB.chats.sendMessage(restoredChat, 'again', undefined, undefined, 'turn-2', undefined, undefined, { configurationResource: created.session, resource: restoredChat });
 			const reloadUnsubscribe = await readNextRequest(peerB.outbound);
@@ -3029,22 +3006,16 @@ suite('CodexAgent baseline checkpoint', () => {
 		const entry = agent['_sessions'].get(AgentSession.id(session))!;
 		const chat = URI.parse(buildDefaultChatUri(session));
 
-		// Complete the prewarm `thread/start` so the folder thread is materialized
-		// (which sets the tool/mcp/customization signatures).
 		const prewarmStart = await readNextRequest(peer.outbound);
 		try {
 			peer.push({ id: prewarmStart.id, result: { thread: { id: 'thread-baseline' } } });
 			await entry.materializePromise;
 
-			// Fresh first send: the folder is already materialized with matching
-			// signatures, so the only outbound request is `turn/start`.
 			const send1 = agent.chats.sendMessage(chat, 'hello', [folder], undefined, 'turn-1');
 			const turnStart1 = await readNextRequest(peer.outbound);
 			peer.push({ id: turnStart1.id, result: {} });
 			await send1;
 
-			// The second send has `firstTurnSent === true`, so the gate prevents
-			// a second capture.
 			const send2 = agent.chats.sendMessage(chat, 'again', [folder], undefined, 'turn-2');
 			const turnStart2 = await readNextRequest(peer.outbound);
 			peer.push({ id: turnStart2.id, result: {} });
@@ -3073,10 +3044,6 @@ suite('CodexAgent managed working directory ownership', () => {
 		const marker = join(userFolder, 'marker.txt');
 		fs.writeFileSync(marker, 'keep-me');
 		try {
-			// An overlay written before the explicit `managedWorkingDirectory`
-			// field existed: only the legacy boolean flag was ever recorded,
-			// and `cwd` has since been overwritten — by an adoption in some
-			// prior process — with a real, unmanaged user folder.
 			await agent['_metadataStore'].write(session, {
 				threadId: 'legacy-thread',
 				cwd: URI.file(userFolder),
@@ -3090,12 +3057,6 @@ suite('CodexAgent managed working directory ownership', () => {
 				'a legacy flag with no explicit path must not resurrect a managed directory',
 			);
 
-			// Idle-release then dispose: drops the runtime from memory and
-			// untracks the chat's configuration scope, driving the reclaim
-			// path for a session that is no longer live — the exact path a
-			// stale flag could otherwise infer `cwd` from. Clearing the
-			// released-directory memo simulates the in-memory map being
-			// empty, as it would be after a process restart.
 			agent['_releasedManagedWorkingDirectories'].clear();
 			await agent.chats.releaseChat(chat, chatContext(session, chat));
 			await agent.chats.disposeChat(chat, chatContext(session, chat));
@@ -3150,13 +3111,6 @@ suite('CodexAgent managed working directory ownership', () => {
 			child: { kill: () => true },
 		} as never;
 
-		// A workspace-less session defers its backing until the first send.
-		// `_materialize` mints the managed temp folder and records it on the
-		// session *before* issuing `thread/start`; if that request fails, the
-		// folder is left behind with no thread id ever assigned. A retry that
-		// supplies a real, host-selected folder must abandon that stale
-		// managed folder via its own recorded path rather than orphaning it,
-		// and must never treat the newly adopted folder as managed.
 		const { session } = await createSession(agent, { model: { id: COPILOT_TEST_MODEL } });
 		const chat = defaultChatOf(session);
 		const sessionId = AgentSession.id(session);

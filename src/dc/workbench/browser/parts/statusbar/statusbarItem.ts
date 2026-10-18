@@ -65,18 +65,15 @@ export class StatusbarEntryItem extends Disposable {
 	) {
 		super();
 
-		// Label Container
 		this.labelContainer = $('a.statusbar-item-label', {
 			role: 'button',
-			tabIndex: -1 // allows screen readers to read title, but still prevents tab focus.
+			tabIndex: -1
 		});
-		this._register(Gesture.addTarget(this.labelContainer)); // enable touch
+		this._register(Gesture.addTarget(this.labelContainer));
 
-		// Label (with support for progress)
 		this.label = this._register(new StatusBarCodiconLabel(this.labelContainer));
 		this.container.appendChild(this.labelContainer);
 
-		// Beak Container
 		this.beakContainer = $('.status-bar-item-beak-container');
 		this.container.appendChild(this.beakContainer);
 
@@ -89,10 +86,8 @@ export class StatusbarEntryItem extends Disposable {
 
 	update(entry: IStatusbarEntry): void {
 
-		// Update: Progress
 		this.label.showProgress = entry.showProgress ?? false;
 
-		// Update: Text
 		if (!this.entry || entry.text !== this.entry.text) {
 			this.label.text = entry.text;
 
@@ -103,10 +98,6 @@ export class StatusbarEntryItem extends Disposable {
 			}
 		}
 
-		// Update: ARIA label
-		//
-		// Set the aria label on both elements so screen readers would read
-		// the correct thing without duplication #96210
 
 		if (!this.entry || entry.ariaLabel !== this.entry.ariaLabel) {
 			this.container.setAttribute('aria-label', entry.ariaLabel);
@@ -117,7 +108,6 @@ export class StatusbarEntryItem extends Disposable {
 			this.labelContainer.setAttribute('role', entry.role || 'button');
 		}
 
-		// Update: Hover
 		if (!this.entry || !this.isEqualTooltip(this.entry, entry)) {
 			let hoverOptions: IManagedHoverOptions | undefined;
 			let hoverTooltip: TooltipContent | undefined;
@@ -142,14 +132,13 @@ export class StatusbarEntryItem extends Disposable {
 			}
 		}
 
-		// Update: Command
 		if (!this.entry || entry.command !== this.entry.command) {
 			this.commandMouseListener.clear();
 			this.commandTouchListener.clear();
 			this.commandKeyboardListener.clear();
 
 			const command = entry.command;
-			if (command && (command !== ShowTooltipCommand || this.hover) /* "Show Hover" is only valid when we have a hover */) {
+			if (command && (command !== ShowTooltipCommand || this.hover) ) {
 				this.commandMouseListener.value = addDisposableListener(this.labelContainer, EventType.CLICK, () => this.executeCommand(command));
 				this.commandTouchListener.value = addDisposableListener(this.labelContainer, TouchEventType.Tap, () => this.executeCommand(command));
 				this.commandKeyboardListener.value = addDisposableListener(this.labelContainer, EventType.KEY_DOWN, e => {
@@ -171,7 +160,6 @@ export class StatusbarEntryItem extends Disposable {
 			}
 		}
 
-		// Update: Beak
 		if (!this.entry || entry.showBeak !== this.entry.showBeak) {
 			if (entry.showBeak) {
 				this.container.classList.add('has-beak');
@@ -182,7 +170,6 @@ export class StatusbarEntryItem extends Disposable {
 
 		const hasBackgroundColor = !!entry.backgroundColor || (entry.kind && entry.kind !== 'standard');
 
-		// Update: Kind
 		if (!this.entry || entry.kind !== this.entry.kind) {
 			for (const kind of StatusbarEntryKinds) {
 				this.container.classList.remove(`${kind}-kind`);
@@ -195,18 +182,15 @@ export class StatusbarEntryItem extends Disposable {
 			this.container.classList.toggle('has-background-color', hasBackgroundColor);
 		}
 
-		// Update: Foreground
 		if (!this.entry || entry.color !== this.entry.color) {
 			this.applyColor(this.labelContainer, entry.color);
 		}
 
-		// Update: Background
 		if (!this.entry || entry.backgroundColor !== this.entry.backgroundColor) {
 			this.container.classList.toggle('has-background-color', hasBackgroundColor);
 			this.applyColor(this.container, entry.backgroundColor, true);
 		}
 
-		// Remember for next round
 		this.entry = entry;
 	}
 
@@ -224,12 +208,10 @@ export class StatusbarEntryItem extends Disposable {
 
 	private async executeCommand(command: string | Command): Promise<void> {
 
-		// Custom command from us: Show tooltip
 		if (command === ShowTooltipCommand) {
-			this.hover?.show(true /* focus */);
+			this.hover?.show(true );
 		}
 
-		// Any other command is going through command service
 		else {
 			const id = typeof command === 'string' ? command : command.id;
 			const args = typeof command === 'string' ? [] : command.arguments ?? [];
@@ -309,33 +291,26 @@ class StatusBarCodiconLabel extends SimpleIconLabel {
 
 	override set text(text: string) {
 
-		// Progress: insert progress codicon as first element as needed
-		// but keep it stable so that the animation does not reset
 		if (this.currentShowProgress && this.progressCodicon) {
 
-			// Append as needed
 			if (this.container.firstChild !== this.progressCodicon) {
 				this.container.appendChild(this.progressCodicon);
 			}
 
-			// Remove others
 			for (const node of Array.from(this.container.childNodes)) {
 				if (node !== this.progressCodicon) {
 					node.remove();
 				}
 			}
 
-			// If we have text to show, add a space to separate from progress
 			let textContent = text ?? '';
 			if (textContent) {
-				textContent = `\u00A0${textContent}`; // prepend non-breaking space
+				textContent = `\u00A0${textContent}`;
 			}
 
-			// Append new elements
 			append(this.container, ...renderLabelWithIcons(textContent));
 		}
 
-		// No Progress: no special handling
 		else {
 			super.text = text;
 		}

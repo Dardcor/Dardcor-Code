@@ -58,15 +58,9 @@ function stripAppPath(argv: string[]): string[] | undefined {
 	return undefined;
 }
 
-/**
- * Use this to parse raw code process.argv such as: `Electron . --verbose --wait`
- */
 export function parseMainProcessArgv(processArgv: string[]): NativeParsedArgs {
 	let [, ...args] = processArgv;
 
-	// When code.exe is configured to 'Run as administrator' on Windows, the CLI launcher (code.cmd) sets ELECTRON_RUN_AS_NODE=1 and passes
-	// cli.js as the first argument. The elevated process does not inherit the environment variable so Electron starts as a GUI app with cli.js
-	// as a stray positional argument. Detect and strip it. The path may include a version subdirectory (e.g., 2ca3b2734b\resources\app\out\cli.js).
 	if (isWindows && args.length > 0) {
 		const resolvedArg = resolve(args[0]).toLowerCase();
 		const installDir = dirname(process.execPath).toLowerCase() + '\\';
@@ -75,23 +69,17 @@ export function parseMainProcessArgv(processArgv: string[]): NativeParsedArgs {
 		}
 	}
 
-	// If dev, remove the first non-option argument: it's the app location
 	if (process.env['VSCODE_DEV']) {
 		args = stripAppPath(args) || [];
 	}
 
-	// If called from CLI, don't report warnings as they are already reported.
 	const reportWarnings = !isLaunchedFromCli(process.env);
 	return parseAndValidate(args, reportWarnings);
 }
 
-/**
- * Use this to parse raw code CLI process.argv such as: `Electron cli.js . --verbose --wait`
- */
 export function parseCLIProcessArgv(processArgv: string[]): NativeParsedArgs {
-	let [, , ...args] = processArgv; // remove the first non-option argument: it's always the app location
+	let [, , ...args] = processArgv;
 
-	// If dev, remove the first non-option argument: it's the app location
 	if (process.env['VSCODE_DEV']) {
 		args = stripAppPath(args) || [];
 	}
@@ -104,9 +92,6 @@ export function addArg(argv: string[], ...args: string[]): string[] {
 	if (endOfArgsMarkerIndex === -1) {
 		argv.push(...args);
 	} else {
-		// if the we have an argument "--" (end of argument marker)
-		// we cannot add arguments at the end. rather, we add
-		// arguments before the "--" marker.
 		argv.splice(endOfArgsMarkerIndex, 0, ...args);
 	}
 

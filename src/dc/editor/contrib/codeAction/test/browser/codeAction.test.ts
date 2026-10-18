@@ -123,11 +123,9 @@ suite('CodeAction', () => {
 		disposables.add(registry.register('fooLang', provider));
 
 		const expected = [
-			// CodeActions with a diagnostics array are shown first without further sorting
 			new CodeActionItem(testData.diagnostics.bcd, provider),
 			new CodeActionItem(testData.diagnostics.abc, provider),
 
-			// CodeActions without diagnostics are shown in the given order without any further sorting
 			new CodeActionItem(testData.command.abc, provider),
 			new CodeActionItem(testData.spelling.bcd, provider),
 			new CodeActionItem(testData.tsLint.bcd, provider),

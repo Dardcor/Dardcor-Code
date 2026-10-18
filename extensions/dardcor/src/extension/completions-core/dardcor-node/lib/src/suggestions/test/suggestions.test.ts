@@ -139,7 +139,6 @@ class LicenseStore {
 }`
 		);
 
-		// Not restricted to the block close token
 		const lines2 = new StaticLines(`
 const list [
 	@

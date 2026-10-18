@@ -31,7 +31,6 @@ const mapExtToTextMimes: Record<string, string> = {
 	'.xml': 'text/xml'
 };
 
-// Known media mimes that we can handle
 const mapExtToMediaMimes: MapExtToMediaMimes = {
 	'.aac': 'audio/x-aac',
 	'.avi': 'video/x-msvideo',
@@ -123,14 +122,9 @@ export function normalizeMimeType(mimeType: string, strict?: true): string | und
 			? undefined
 			: mimeType;
 	}
-	// https://datatracker.ietf.org/doc/html/rfc2045#section-5.1
-	// media and subtype must ALWAYS be lowercase, parameter not
 	return `${match[1].toLowerCase()}/${match[2].toLowerCase()}${match[3] ?? ''}`;
 }
 
-/**
- * Whether the provided mime type is a text stream like `stdout`, `stderr`.
- */
 export function isTextStreamMime(mimeType: string) {
 	return ['application/vnd.code.notebook.stdout', 'application/vnd.code.notebook.stderr'].includes(mimeType);
 }

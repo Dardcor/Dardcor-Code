@@ -3,16 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Replays the AHP frames Mission Control persists for a task back into session and chat state,
-// without a live relay connection.
-//
-// When a sandbox's compute is deleted the relay is gone for good, but Mission Control keeps a mirror
-// of every `ActionEnvelope` it relayed, so the history can be rebuilt from
-// `GET /agents/tasks/<id>/events`.
-//
-// Only the transport boundary is decoded here — ordering, chunk integrity, and the minimal envelope
-// shape. The envelopes are folded by the same `sessionReducer` / `chatReducer` the live
-// subscriptions use, so a replayed session and a live one cannot drift.
 
 import { ChunkEnvelope, Reassembler } from './webPubSub/chunking.js';
 import { ActionEnvelope, ActionType, StateAction } from './state/protocol/common/actions.js';
@@ -23,15 +13,8 @@ import { sessionReducer } from './state/protocol/channels-session/reducer.js';
 import { SessionLifecycle, SessionState, SessionStatus } from './state/protocol/channels-session/state.js';
 import { ChatAction, SessionAction } from './state/sessionActions.js';
 
-/**
- * Highest transport sequence number that may legitimately appear *below* the expected next
- * sequence. Mission Control re-hosts a dormant session on a fresh mirror process whose transport
- * sequence restarts at 0 or 1 while `/events` continues with only the new actions; anything
- * further back is a genuine gap.
- */
 const MAX_RESTART_EPOCH_INITIAL_SEQUENCE = 1;
 
-/** A persisted history that could not be decoded. Distinct from a transport/HTTP failure. */
 export class TaskEventReplayError extends Error {
 	constructor(message: string) {
 		super(message);
@@ -39,46 +22,24 @@ export class TaskEventReplayError extends Error {
 	}
 }
 
-/** The replayed state of a single session found in a task's persisted history. */
 export interface IReplayedSession {
-	/** Session channel URI (`ahp-session:/<uuid>`). */
 	readonly session: string;
-	/** Folded session-channel state. */
 	readonly state: SessionState;
-	/** Folded chat-channel state, keyed by chat channel URI. */
 	readonly chats: ReadonlyMap<string, ChatState>;
-	/**
-	 * Channel of the session's default chat, as the recorded history named it.
-	 *
-	 * Resolved from the history rather than derived locally: the host writes whatever channel
-	 * convention it uses (today `<session>/chat`), which need not match the URI a client would
-	 * build for the same chat.
-	 */
 	readonly defaultChat: string;
-	/** Timestamp of the last persisted event, ISO 8601. */
 	readonly modifiedAt: string;
 }
 
-/**
- * Outcome of replaying a task's persisted AHP history.
- *
- * {@link truncated} MUST be surfaced rather than presented as a complete transcript: a partial
- * tail means the recorded conversation stops short of what actually happened.
- */
 export interface IReplayedTaskHistory {
-	/** Every session the task's history covers. A task may own more than one. */
 	readonly sessions: readonly IReplayedSession[];
-	/** Whether the recorded history ends mid-action, so the tail is missing. */
 	readonly truncated: boolean;
 }
 
-/** Per-session accumulator used while decoding the transport layer. */
 interface ISessionReplayState {
 	readonly envelopes: ActionEnvelope[];
 	modifiedAt: string;
 	nextSeq: number;
 	reassembler: Reassembler;
-	/** Whether an earlier mirror epoch ended with a chunk group that never completed. */
 	abandonedChunkGroup: boolean;
 }
 
@@ -100,10 +61,6 @@ function requireNonNegativeInteger(value: unknown, field: string, eventIndex: nu
 	return value as number;
 }
 
-/**
- * Validate the minimal envelope shape the fold depends on. The action payload itself is left to
- * the reducers, which already tolerate unknown action types.
- */
 function parseActionEnvelope(value: unknown, eventIndex: number): ActionEnvelope {
 	if (!isRecord(value)) {
 		throw new TaskEventReplayError(`Task AHP event ${eventIndex} did not contain an ActionEnvelope object.`);
@@ -122,12 +79,9 @@ function parseActionEnvelope(value: unknown, eventIndex: number): ActionEnvelope
 		requireNonEmptyString(rejectionReason, 'payload.data.rejectionReason', eventIndex);
 	}
 
-	// The live path (`agentHostProtocolClient`) likewise forwards the wire envelope as-is;
-	// the protocol's `URI` is a string alias, so no revival is needed.
 	return value as unknown as ActionEnvelope;
 }
 
-/** Normalize a bare session id to its channel URI. */
 function sessionChannelFor(sessionId: string): string {
 	return sessionId.startsWith('ahp-session:/') ? sessionId : `ahp-session:/${sessionId}`;
 }
@@ -153,12 +107,6 @@ function seedChatState(chatChannel: string, modifiedAt: string): ChatState {
 	};
 }
 
-/**
- * Decode the persisted transport layer into ordered envelopes, grouped by session.
- *
- * Throws on a genuine sequence gap or a corrupt record — a history that cannot be trusted must
- * not be shown as if it were complete.
- */
 function decodeEvents(events: readonly unknown[]): Map<string, ISessionReplayState> {
 	const sessions = new Map<string, ISessionReplayState>();
 
@@ -187,10 +135,6 @@ function decodeEvents(events: readonly unknown[]): Map<string, ISessionReplaySta
 				`Task AHP event ${eventIndex} for session '${session}' has sequence ${seq}; expected ${entry.nextSeq}.`);
 		}
 		if (startsRestartEpoch) {
-			// Mission Control re-hosted the session on a fresh mirror process. Keep the fold so far,
-			// but never carry a half-assembled chunk group across process lifetimes. A group still
-			// buffered at the restart is an action the previous epoch never finished emitting, so
-			// remember it — replacing the reassembler is what would otherwise lose that fact.
 			entry.abandonedChunkGroup ||= entry.reassembler.inFlightGroupCount > 0;
 			entry.nextSeq = seq;
 			entry.reassembler = new Reassembler();
@@ -206,16 +150,11 @@ function decodeEvents(events: readonly unknown[]): Map<string, ISessionReplaySta
 				`Task AHP event ${eventIndex} for session '${session}' could not be reassembled: ${message}`);
 		}
 
-		// As in live ingestion, an incomplete group has produced no action yet. Chunks arrive as a
-		// contiguous, non-interleaved run, so a group still buffered when the events run out is a
-		// truncated tail (a torn one fails the sequence check above). Keep the complete actions and
-		// report the loss rather than discarding everything.
 		if (reassembled === null) {
 			continue;
 		}
 
 		const envelope = parseActionEnvelope(reassembled, eventIndex);
-		// A rejected action never mutated host state, so it must not mutate the replayed state.
 		if (!envelope.rejectionReason) {
 			entry.envelopes.push(envelope);
 		}
@@ -224,21 +163,9 @@ function decodeEvents(events: readonly unknown[]): Map<string, ISessionReplaySta
 	return sessions;
 }
 
-/**
- * Fold one session's envelopes into session state plus a chat state per chat channel.
- *
- * Routed by **action type**, not channel scheme: recorded channels are whatever the host wrote
- * (today `<session>/chat`, not the `ahp-chat://` URI a client builds), so matching on a scheme would
- * silently drop every chat action. The live subscriptions route the same way.
- *
- * A session may own several peer chats, so each chat channel found in the history gets its own fold
- * — discovered from the envelopes rather than assumed, which keeps forked and peer chats intact.
- */
 function foldSession(session: string, entry: ISessionReplayState): IReplayedSession {
 	let state = seedSessionState();
 	const chats = new Map<string, ChatState>();
-	// The host announces its default chat via `session/defaultChatChanged`; until then the
-	// deterministic `<session>/chat` is the convention it writes.
 	let defaultChat = `${session}/chat`;
 
 	for (const envelope of entry.envelopes) {
@@ -256,12 +183,8 @@ function foldSession(session: string, entry: ISessionReplayState): IReplayedSess
 			const current = chats.get(channel) ?? seedChatState(channel, entry.modifiedAt);
 			chats.set(channel, chatReducer(current, action as ChatAction));
 		}
-		// Other channels (terminals, changesets, annotations) carry no conversation history and
-		// are intentionally skipped.
 	}
 
-	// A session whose history never announced its chats still owns a default chat, so surface an
-	// empty one rather than a session that appears to have no conversation at all.
 	if (!chats.has(defaultChat)) {
 		chats.set(defaultChat, seedChatState(defaultChat, entry.modifiedAt));
 	}
@@ -269,12 +192,6 @@ function foldSession(session: string, entry: ISessionReplayState): IReplayedSess
 	return { session, state, chats, defaultChat, modifiedAt: entry.modifiedAt };
 }
 
-/**
- * Replay Mission Control's persisted AHP frames for a task.
- *
- * Returns `undefined` when the task has no AHP history at all (a cloud task that never ran on a
- * sandbox), which is not an error.
- */
 export function replayTaskAhpEvents(events: readonly unknown[]): IReplayedTaskHistory | undefined {
 	const decoded = decodeEvents(events);
 	if (decoded.size === 0) {
@@ -285,19 +202,11 @@ export function replayTaskAhpEvents(events: readonly unknown[]): IReplayedTaskHi
 	let truncated = false;
 	for (const [session, entry] of decoded) {
 		sessions.push(foldSession(session, entry));
-		// Counts *any* group left buffered, including one abandoned mid-stream, plus groups a
-		// restart epoch left unfinished before its reassembler was replaced.
 		truncated ||= entry.abandonedChunkGroup || entry.reassembler.inFlightGroupCount > 0;
 	}
 	return { sessions, truncated };
 }
 
-/**
- * Decode the `events` array of a Mission Control `GET /agents/tasks/<id>/events` response.
- *
- * The `total` cross-check guards against a silently short page being folded into a transcript
- * that looks whole.
- */
 export function parseTaskEventsResponse(body: unknown): readonly unknown[] {
 	if (!isRecord(body) || !Array.isArray(body['events'])) {
 		throw new TaskEventReplayError('Task AHP history response is malformed.');

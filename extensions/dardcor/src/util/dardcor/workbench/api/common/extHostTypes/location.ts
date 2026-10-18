@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -32,7 +31,6 @@ export class Location {
 		this.uri = uri;
 
 		if (!rangeOrPosition) {
-			//that's OK
 		} else if (Range.isRange(rangeOrPosition)) {
 			this.range = Range.of(rangeOrPosition);
 		} else if (Position.isPosition(rangeOrPosition)) {

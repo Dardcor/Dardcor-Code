@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -123,13 +122,11 @@ export class Position {
 		} else if (this._line > other.line) {
 			return 1;
 		} else {
-			// equal line
 			if (this._character < other._character) {
 				return -1;
 			} else if (this._character > other._character) {
 				return 1;
 			} else {
-				// equal line and character
 				return 0;
 			}
 		}

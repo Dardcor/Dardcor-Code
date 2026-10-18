@@ -18,11 +18,6 @@ import { reviveFileChanges } from './watcher.js';
 
 export const LOCAL_FILE_SYSTEM_CHANNEL_NAME = 'localFilesystem';
 
-/**
- * An implementation of a local disk file system provider
- * that is backed by a `IChannel` and thus implemented via
- * IPC on a different process.
- */
 export class DiskFileSystemProviderClient extends Disposable implements
 	IFileSystemProviderWithFileReadWriteCapability,
 	IFileSystemProviderWithOpenReadWriteCloseCapability,
@@ -40,7 +35,6 @@ export class DiskFileSystemProviderClient extends Disposable implements
 		this.registerFileChangeListeners();
 	}
 
-	//#region File Capabilities
 
 	readonly onDidChangeCapabilities: Event<void> = Event.None;
 
@@ -72,9 +66,7 @@ export class DiskFileSystemProviderClient extends Disposable implements
 		return this._capabilities;
 	}
 
-	//#endregion
 
-	//#region File Metadata Resolving
 
 	stat(resource: URI): Promise<IStat> {
 		return this.channel.call('stat', [resource]);
@@ -88,9 +80,7 @@ export class DiskFileSystemProviderClient extends Disposable implements
 		return this.channel.call('readdir', [resource]);
 	}
 
-	//#endregion
 
-	//#region File Reading/Writing
 
 	async readFile(resource: URI, opts?: IFileAtomicReadOptions): Promise<Uint8Array> {
 		const { buffer } = await this.channel.call('readFile', [resource, opts]) as VSBuffer;
@@ -102,29 +92,22 @@ export class DiskFileSystemProviderClient extends Disposable implements
 		const stream = newWriteableStream<Uint8Array>(data => VSBuffer.concat(data.map(data => VSBuffer.wrap(data))).buffer);
 		const disposables = new DisposableStore();
 
-		// Reading as file stream goes through an event to the remote side
 		disposables.add(this.channel.listen<ReadableStreamEventPayload<VSBuffer>>('readFileStream', [resource, opts])(dataOrErrorOrEnd => {
 
-			// data
 			if (dataOrErrorOrEnd instanceof VSBuffer) {
 				stream.write(dataOrErrorOrEnd.buffer);
 			}
 
-			// end or error
 			else {
 				if (dataOrErrorOrEnd === 'end') {
 					stream.end();
 				} else {
 					let error: Error;
 
-					// Take Error as is if type matches
 					if (dataOrErrorOrEnd instanceof Error) {
 						error = dataOrErrorOrEnd;
 					}
 
-					// Otherwise, try to deserialize into an error.
-					// Since we communicate via IPC, we cannot be sure
-					// that Error objects are properly serialized.
 					else {
 						const errorCandidate = dataOrErrorOrEnd as IFileSystemProviderError;
 
@@ -135,22 +118,15 @@ export class DiskFileSystemProviderClient extends Disposable implements
 					stream.end();
 				}
 
-				// Signal to the remote side that we no longer listen
 				disposables.dispose();
 			}
 		}));
 
-		// Support cancellation
 		disposables.add(token.onCancellationRequested(() => {
 
-			// Ensure to end the stream properly with an error
-			// to indicate the cancellation.
 			stream.error(canceled());
 			stream.end();
 
-			// Ensure to dispose the listener upon cancellation. This will
-			// bubble through the remote side as event and allows to stop
-			// reading the file.
 			disposables.dispose();
 		}));
 
@@ -172,10 +148,6 @@ export class DiskFileSystemProviderClient extends Disposable implements
 	async read(fd: number, pos: number, data: Uint8Array, offset: number, length: number): Promise<number> {
 		const [bytes, bytesRead]: [VSBuffer, number] = await this.channel.call('read', [fd, pos, length]);
 
-		// copy back the data that was written into the buffer on the remote
-		// side. we need to do this because buffers are not referenced by
-		// pointer, but only by value and as such cannot be directly written
-		// to from the other process.
 		data.set(bytes.buffer.slice(0, bytesRead), offset);
 
 		return bytesRead;
@@ -185,9 +157,7 @@ export class DiskFileSystemProviderClient extends Disposable implements
 		return this.channel.call('write', [fd, pos, VSBuffer.wrap(data), offset, length]);
 	}
 
-	//#endregion
 
-	//#region Move/Copy/Delete/Create Folder
 
 	mkdir(resource: URI): Promise<void> {
 		return this.channel.call('mkdir', [resource]);
@@ -205,17 +175,13 @@ export class DiskFileSystemProviderClient extends Disposable implements
 		return this.channel.call('copy', [resource, target, opts]);
 	}
 
-	//#endregion
 
-	//#region Clone File
 
 	cloneFile(resource: URI, target: URI): Promise<void> {
 		return this.channel.call('cloneFile', [resource, target]);
 	}
 
-	//#endregion
 
-	//#region File Watching
 
 	private readonly _onDidChange = this._register(new Emitter<readonly IFileChange[]>());
 	readonly onDidChangeFile = this._onDidChange.event;
@@ -223,19 +189,10 @@ export class DiskFileSystemProviderClient extends Disposable implements
 	private readonly _onDidWatchError = this._register(new Emitter<string>());
 	readonly onDidWatchError = this._onDidWatchError.event;
 
-	// The contract for file watching via remote is to identify us
-	// via a unique but readonly session ID. Since the remote is
-	// managing potentially many watchers from different clients,
-	// this helps the server to properly partition events to the right
-	// clients.
 	private readonly sessionId = generateUuid();
 
 	private registerFileChangeListeners(): void {
 
-		// The contract for file changes is that there is one listener
-		// for both events and errors from the watcher. So we need to
-		// unwrap the event from the remote and emit through the proper
-		// emitter.
 		this._register(this.channel.listen<IFileChange[] | string>('fileChange', [this.sessionId])(eventsOrError => {
 			if (Array.isArray(eventsOrError)) {
 				const events = eventsOrError;
@@ -249,8 +206,6 @@ export class DiskFileSystemProviderClient extends Disposable implements
 
 	watch(resource: URI, opts: IWatchOptions): IDisposable {
 
-		// Generate a request UUID to correlate the watcher
-		// back to us when we ask to dispose the watcher later.
 		const req = generateUuid();
 
 		this.channel.call('watch', [this.sessionId, req, resource, opts]);
@@ -258,5 +213,4 @@ export class DiskFileSystemProviderClient extends Disposable implements
 		return toDisposable(() => this.channel.call('unwatch', [this.sessionId, req]));
 	}
 
-	//#endregion
 }

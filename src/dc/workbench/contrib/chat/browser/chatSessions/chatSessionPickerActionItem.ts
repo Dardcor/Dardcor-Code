@@ -38,10 +38,6 @@ export interface IChatSessionPickerDelegate {
 	getSessionResource: () => URI | undefined;
 }
 
-/**
- * Action view item for making an option selection for a contributed chat session
- * These options are provided by the relevant ChatSession Provider
- */
 export class ChatSessionPickerActionItem extends ActionWidgetDropdownActionViewItem {
 	protected currentOption: IChatSessionProviderOptionItem | undefined;
 	protected container: HTMLElement | undefined;
@@ -99,11 +95,7 @@ export class ChatSessionPickerActionItem extends ActionWidgetDropdownActionViewI
 		}
 	}
 
-	/**
-	 * Returns the actions to show in the dropdown. Can be overridden by subclasses.
-	 */
 	protected getDropdownActions(): IActionWidgetDropdownAction[] {
-		// if locked, show the current option only
 		const currentOption = this.delegate.getCurrentOption();
 		if (currentOption?.locked) {
 			return [this.createLockedOptionAction(currentOption)];
@@ -132,7 +124,6 @@ export class ChatSessionPickerActionItem extends ActionWidgetDropdownActionViewI
 			} satisfies IActionWidgetDropdownAction;
 		});
 
-		// Add commands at the end in a separate section (only if there are options)
 		if (group.commands?.length) {
 			const addSeparator = actions.length > 0;
 			for (const command of group.commands) {
@@ -149,7 +140,6 @@ export class ChatSessionPickerActionItem extends ActionWidgetDropdownActionViewI
 					description: undefined,
 					tooltip: command.tooltip ?? command.title,
 					label: command.title,
-					// Use category to create a separator before commands (only if there are options)
 					category: addSeparator ? { label: '', order: Number.MAX_SAFE_INTEGER } : undefined,
 					run: () => {
 						this.commandService.executeCommand(command.command, ...args);
@@ -206,9 +196,6 @@ export class ChatSessionPickerActionItem extends ActionWidgetDropdownActionViewI
 		return undefined;
 	}
 
-	/**
-	 * Creates a disabled action for a locked option.
-	 */
 	protected createLockedOptionAction(option: IChatSessionProviderOptionItem): IActionWidgetDropdownAction {
 		return {
 			id: option.id,
@@ -223,10 +210,6 @@ export class ChatSessionPickerActionItem extends ActionWidgetDropdownActionViewI
 		};
 	}
 
-	/**
-	 * Returns the anchor element for the dropdown.
-	 * Falls back to the overflow anchor if this element is not in the DOM.
-	 */
 	private _getAnchorElement(): HTMLElement {
 		if (this.element && getActiveWindow().document.contains(this.element)) {
 			return this.element;
@@ -241,7 +224,6 @@ export class ChatSessionPickerActionItem extends ActionWidgetDropdownActionViewI
 		const compact = this._pickerOptions?.compact.get() ?? false;
 		element.classList.toggle('compact', compact);
 		const label = this.currentOption?.name ?? group?.description ?? localize('chat.sessionPicker.label', "Pick Option");
-		// If the current option is the default and has an icon, collapse the text and show only the icon
 		const isDefaultWithIcon = this.currentOption?.default && this.currentOption?.icon;
 		element.classList.toggle('icon-only', compact && !!this.currentOption?.icon);
 
@@ -264,15 +246,11 @@ export class ChatSessionPickerActionItem extends ActionWidgetDropdownActionViewI
 		super.render(container);
 		container.classList.add(this.getContainerClass());
 
-		// Set initial locked state on container
 		if (this.currentOption?.locked) {
 			container.classList.add('locked');
 		}
 	}
 
-	/**
-	 * Returns the CSS class to add to the container. Can be overridden by subclasses.
-	 */
 	protected getContainerClass(): string {
 		return 'chat-sessionPicker-item';
 	}

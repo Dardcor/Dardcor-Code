@@ -25,24 +25,17 @@ import { AsyncReader, ClassifiedTextPiece, IStreamingEditsStrategy, IStreamingTe
 
 export interface IIntentSlashCommandInfo {
 
-	// TODO@jrieken REMOVE, implicit via existence of commandInfo
 	readonly hiddenFromUser?: boolean;
-	readonly allowsEmptyArgs?: boolean; // True by default
-	readonly defaultEnablement?: boolean; // True by default
+	readonly allowsEmptyArgs?: boolean;
+	readonly defaultEnablement?: boolean;
 
 	readonly toolEquivalent?: ContributedToolName;
 }
 
 export interface IIntentInvocationContext {
 
-	/**
-	 * The locations where this intent can be invoked: panel and or inline
-	 */
 	readonly location: ChatLocation;
 
-	/**
-	 * The document context to use
-	 */
 	readonly documentContext?: IDocumentContext;
 
 	readonly request: vscode.ChatRequest;
@@ -52,43 +45,19 @@ export interface IIntentInvocationContext {
 
 export interface IIntent {
 
-	/**
-	 * The id of this intent, without a leading slash.
-	 */
 	readonly id: string;
 
 
-	/**
-	 * The description of this intent, used for the help command.
-	 */
 	readonly description: string;
 
-	/**
-	 * The locations where this intent can be invoked: panel and or inline
-	 */
 	readonly locations: ChatLocation[];
 
-	/**
-	 * How this is wired up to the slash command system. *Note* that `undefined` means default wiring is used.
-	 */
 	readonly commandInfo?: IIntentSlashCommandInfo;
 
-	/**
-	 * Whether this intent is listed as a capability in the prompt. Defaults to true.
-	 */
 	readonly isListedCapability?: boolean;
 
-	/**
-	 * This intent is invoked, return an invocation object that will be used to craft the prompt and to process the
-	 * response. The passed context must be used to the entire invocation
-	 *
-	 */
 	invoke(invocationContext: IIntentInvocationContext): Promise<IIntentInvocation>;
 
-	/**
-	 * Handle a request. Note that when defined `invoke` isn't called anymore, e.g return
-	 * the `NullIntentInvocation` or throw an error.
-	 */
 	handleRequest?(
 		conversation: Conversation,
 		request: vscode.ChatRequest,
@@ -103,12 +72,6 @@ export interface IIntent {
 }
 
 
-/**
- * An error type that can be thrown from {@link IIntent.invoke} to signal an
- * ordinary error to the user.
- *
- * note: this is only treated specially in stests at the moment
- */
 export class IntentError extends Error {
 	public readonly errorDetails: vscode.ChatErrorDetails;
 
@@ -144,10 +107,6 @@ export const promptResultMetadata = (metadata: PromptMetadata[]): MetadataMap =>
 	}
 });
 
-/**
- * Generic marker type of telemetry data that can be passed
- * along in an opaque way
- */
 export class TelemetryData extends PromptMetadata {
 
 	override toString(): string {
@@ -163,42 +122,20 @@ export interface IBuildPromptResult extends RenderPromptResult {
 
 export interface IIntentInvocation extends Partial<IResponseProcessor> {
 
-	/**
-	 * The intent that was invoked (owns this invocation)
-	 */
 	readonly intent: IIntent;
 
-	/**
-	 * The location for this invocation.
-	 */
 	readonly location: ChatLocation;
 
-	/**
-	 * The endpoint for this invocation.
-	 */
 	readonly endpoint: IChatEndpoint;
 
-	/**
-	 * Tools that should should be made available to the invocation. If not
-	 * provided, the default {@link IToolsService.getEnabledTools} will be used
-	 * with no specific filter.
-	 */
 	getAvailableTools?(): vscode.LanguageModelToolInformation[] | Promise<vscode.LanguageModelToolInformation[]> | undefined;
 
-	/**
-	 * Build the prompt which is a system and different user messages.
-	 */
 	buildPrompt(
 		context: IBuildPromptContext,
 		progress: vscode.Progress<vscode.ChatResponseReferencePart | vscode.ChatResponseProgressPart>,
 		token: vscode.CancellationToken
 	): Promise<IBuildPromptResult>;
 
-	/**
-	 * ONLY: panel
-	 *
-	 * Called when a request with confirmation data is made, and handles the request. The PromptCrafter/ResponseProcessor will not be called in this scenario.
-	 */
 	confirmationHandler?(acceptedConfirmationData: any[] | undefined, rejectedConfirmationData: any[] | undefined, progress: vscode.ChatResponseStream): Promise<void>;
 
 	readonly linkification?: IntentLinkificationOptions;
@@ -224,47 +161,18 @@ export class NullIntentInvocation implements IIntentInvocation {
 }
 
 export interface IResponseProcessorContext {
-	/**
-	 * The chat session id
-	 */
 	readonly chatSessionId: string;
 
-	/**
-	 * The current running turn
-	 */
 	readonly turn: Turn;
 
-	/**
-	 * The messages that have been sent with the LLM request
-	 */
 	readonly messages: readonly Raw.ChatMessage[];
 
-	/**
-	 * Record annotations that occurred when processing the LLM reply.
-	 */
 	addAnnotations(annotations: OutcomeAnnotation[]): void;
 
-	/**
-	 * Store in inline chat session storage.
-	 * ONLY: inline
-	 */
 	storeInInlineSession(store: ISessionTurnStorage): void;
 }
 
 export interface IResponseProcessor {
-	/**
-	 * Process a response as it streams in from the LLM.
-	 *
-	 * Anything reported to the progress object will be shown to the user in the UI.
-	 * This allows processing the response as it streams in and selectively reporting it to the user.
-	 *
-	 * The LLM request will be cancelled when returning early (before the input stream finishes).
-	 *
-	 * @param context Context allowing to get more information about the request or to store more information generated during response processing
-	 * @param inputStream The stream containing the LLM response
-	 * @param outputStream The stream to report the processed response to the user
-	 * @param token A cancellation token
-	 */
 	processResponse(context: IResponseProcessorContext, inputStream: AsyncIterable<IResponsePart>, outputStream: vscode.ChatResponseStream, token: CancellationToken): Promise<vscode.ChatResult | void>;
 }
 
@@ -303,7 +211,6 @@ export function applyEdits(text: string, edits: TextEdit[]): string {
 		});
 	});
 
-	// sort is stable: does not change the order of edits that start at the same offset
 	offsetEdits.sort((a, b) => a.startOffset - b.startOffset || a.endOffset - b.endOffset);
 
 	for (let i = offsetEdits.length - 1; i >= 0; i--) {
@@ -356,14 +263,12 @@ export class StreamingEditsController {
 		const textPieceStreamWithoutDelimiters = textPieceStream.filter(piece => piece.kind !== TextPieceKind.Delimiter);
 		const reader = new AsyncReader(textPieceStreamWithoutDelimiters[Symbol.asyncIterator]());
 
-		// Read all the markdown pieces until the first code block
 		await reader.readWhile(
 			piece => piece.kind === TextPieceKind.OutsideCodeBlock,
 			piece => leadingMarkdown.emitOne(piece.value)
 		);
 		leadingMarkdown.resolve();
 
-		// Read the first code block
 		await reader.readWhile(
 			piece => piece.kind === TextPieceKind.InsideCodeBlock,
 			piece => firstCodeBlockText.emitOne(piece.value)
@@ -371,7 +276,6 @@ export class StreamingEditsController {
 
 		this._leftFirstCodeBlock = true;
 
-		// Finish reading the rest of the text
 		await reader.consumeToEnd();
 
 		firstCodeBlockText.resolve();
@@ -381,7 +285,6 @@ export class StreamingEditsController {
 
 	public update(newText: string): { shouldFinish: boolean } {
 		if (this._earlyStopping === EarlyStopping.StopAfterFirstCodeBlock && this._leftFirstCodeBlock) {
-			// stop was requested!
 			return { shouldFinish: true };
 		}
 

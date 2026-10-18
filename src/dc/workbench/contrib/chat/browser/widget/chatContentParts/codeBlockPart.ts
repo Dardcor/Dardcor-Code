@@ -83,10 +83,6 @@ export interface ICodeBlockData {
 	readonly codeBlockIndex: number;
 	readonly element: IChatRequestViewModel | IChatResponseViewModel;
 
-	/**
-	 * Text content for the code block. The CodeBlockPart will manage
-	 * creating and updating its own text model from this text.
-	 */
 	readonly text: string;
 	readonly languageId: string;
 
@@ -122,11 +118,6 @@ const defaultCodeblockPadding = 10;
 const defaultChatScrollbarSize = 7;
 export class CodeBlockPart extends Disposable {
 
-	/**
-	 * Compute a pool reuse key for a code block. When the same key is used
-	 * across render cycles the pool will try to return the same CodeBlockPart,
-	 * which lets the setText append-optimisation avoid a full model reset.
-	 */
 	static poolKey(elementId: string, codeBlockIndex: number): string {
 		return `${elementId}/${codeBlockIndex}`;
 	}
@@ -213,10 +204,6 @@ export class CodeBlockPart extends Disposable {
 		this._toolbarElement = toolbarElement;
 		const editorScopedService = this._register(this.editor.contextKeyService.createScoped(toolbarElement));
 		const editorScopedInstantiationService = this._register(scopedInstantiationService.createChild(new ServiceCollection([IContextKeyService, editorScopedService])));
-		// The toolbar itself creates listeners on the menu service and shared
-		// context key service. In large responses there can be many code
-		// blocks, so defer creation until the user actually interacts with
-		// this code block (hover, editor focus, or screen reader mode).
 		this._toolbarFactory = () => editorScopedInstantiationService.createInstance(MenuWorkbenchToolBar, toolbarElement, menuId, {
 			menuOptions: {
 				shouldForwardArgs: true
@@ -245,16 +232,8 @@ export class CodeBlockPart extends Disposable {
 			this.vulnsButton.label = this.getVulnerabilitiesLabel();
 			this.element.classList.toggle('chat-vulnerabilities-collapsed', !element.vulnerabilitiesListExpanded);
 			this.layout();
-			// this.updateAriaLabel(collapseButton.element, referencesLabel, element.usedReferencesExpanded);
 		}));
 
-		// Track hover state via JS so the toolbar remains visible and clickable
-		// even when the code block DOM element is briefly detached and reattached
-		// during streaming re-renders. CSS :hover is lost when an element leaves
-		// the DOM, which causes the toolbar to flicker and become unclickable
-		// because of the pointer-events:none rule. By tracking hover state with a
-		// persistent boolean and the force-visibility class, the toolbar survives
-		// DOM reattachment.
 		this._isHovered = false;
 		this._register(dom.addDisposableListener(this.element, 'mouseenter', () => {
 			this._isHovered = true;
@@ -295,8 +274,6 @@ export class CodeBlockPart extends Disposable {
 		}));
 		this._register(this.editor.onDidFocusEditorWidget(() => {
 			this.element.classList.add('focused');
-			// Editor focus puts the code block into keyboard interaction range;
-			// create the toolbar so Tab can reach it.
 			this._ensureToolbar();
 			WordHighlighterContribution.get(this.editor)?.restoreViewState(true);
 		}));
@@ -309,7 +286,6 @@ export class CodeBlockPart extends Disposable {
 			}
 		}));
 
-		// Parent list scrolled
 		if (delegate.onDidScroll) {
 			this._register(delegate.onDidScroll(e => {
 				this.clearWidgets();
@@ -320,9 +296,6 @@ export class CodeBlockPart extends Disposable {
 			URI.from({ scheme: Schemas.vscodeChatCodeBlock, path: generateUuid() }),
 			this.isSimpleWidget
 		));
-		// Hold a model reference to prevent the TextModelResolverService from
-		// disposing our model when other consumers (e.g. WordHighlighter)
-		// acquire and release their references.
 		thenRegisterOrDispose(this.textModelService.createModelReference(this._textModel.uri), this._store);
 		this.editor.setModel(this._textModel);
 	}
@@ -367,8 +340,6 @@ export class CodeBlockPart extends Disposable {
 	}
 
 	private updatePaddingForLayout() {
-		// scrollWidth = "the width of the content that needs to be scrolled"
-		// contentWidth = "the width of the area where content is displayed"
 		const horizontalScrollbarVisible = this.currentScrollWidth > this.editor.getLayoutInfo().contentWidth;
 		const scrollbarHeight = this.editor.getLayoutInfo().horizontalScrollbarHeight;
 		const bottomPadding = horizontalScrollbarVisible ?
@@ -381,9 +352,6 @@ export class CodeBlockPart extends Disposable {
 		if (this.isDisposed) {
 			return undefined;
 		}
-		// If the current render explicitly hid the toolbar, don't pay the cost
-		// of creating it (and adding listeners on the shared menu / context
-		// key services). It will be created later if a render makes it visible.
 		if (this.currentCodeBlockData?.renderOptions?.hideToolbar) {
 			return undefined;
 		}
@@ -417,15 +385,9 @@ export class CodeBlockPart extends Disposable {
 		const hideToolbar = !!this.currentCodeBlockData?.renderOptions?.hideToolbar;
 		if (this.accessibilityService.isScreenReaderOptimized()) {
 			if (hideToolbar) {
-				// hideToolbar is authoritative; don't reveal the wrapper just
-				// because SR mode is on.
 				dom.hide(this._toolbarElement);
 			} else {
 				this._toolbarElement.style.display = 'block';
-				// Screen readers need the toolbar DOM to exist so it can be
-				// announced and navigated, but only create it once render data
-				// is available so pooled or reset instances don't eagerly
-				// attach toolbar listeners.
 				if (this.currentCodeBlockData) {
 					this._ensureToolbar();
 				}
@@ -439,11 +401,6 @@ export class CodeBlockPart extends Disposable {
 
 	private getEditorOptionsFromConfig(): IEditorOptions {
 		const renderOptions = this.currentCodeBlockData?.renderOptions;
-		// When the code block is height-capped via `maxHeightInLines`, content can
-		// exceed the visible area. In that case the default hidden vertical
-		// scrollbar leaves users unable to reach the clipped content (see #283242).
-		// Enable a chat-sized visible scrollbar. Callers can still override
-		// via `renderOptions.editorOptions.scrollbar`.
 		const scrollbar: IEditorOptions['scrollbar'] | undefined = renderOptions?.maxHeightInLines
 			? { vertical: 'auto', verticalScrollbarSize: defaultChatScrollbarSize, ...renderOptions?.editorOptions?.scrollbar }
 			: undefined;
@@ -464,7 +421,7 @@ export class CodeBlockPart extends Disposable {
 
 	layout(width = this.lastLayoutWidth): void {
 		if (width === undefined) {
-			return; // not yet in DOM
+			return;
 		}
 
 		this.lastLayoutWidth = width;
@@ -477,12 +434,7 @@ export class CodeBlockPart extends Disposable {
 
 		const editorBorder = 2;
 		width = width - editorBorder - (this.currentCodeBlockData?.renderOptions?.reserveWidth ?? 0);
-		// !!!!
-		// Important: Using here postponeRendering = true to avoid doing a sync layout on the editor
-		// which can be very expensive if there are many code blocks being laid out at once.
-		// This allows multiple editors to coordinate and render together at the next animation frame.
-		// !!!!
-		this.editor.layout({ width: isRequestVM(this.currentCodeBlockData?.element) ? width * 0.9 : width, height }, /* postponeRendering */ true);
+		this.editor.layout({ width: isRequestVM(this.currentCodeBlockData?.element) ? width * 0.9 : width, height }, true);
 		this.updatePaddingForLayout();
 	}
 
@@ -497,8 +449,6 @@ export class CodeBlockPart extends Disposable {
 		}
 
 		if (this.getEditorOptionsFromConfig().wordWrap === 'on') {
-			// Initialize the editor with the new proper width so that getContentHeight
-			// will be computed correctly in the next call to layout()
 			this.layout(width);
 		}
 
@@ -511,7 +461,6 @@ export class CodeBlockPart extends Disposable {
 			...this.getEditorOptionsFromConfig(),
 		});
 		if (!this.editor.getOption(EditorOption.ariaLabel)) {
-			// Don't override the ariaLabel if it was set by the editor options
 			this.editor.updateOptions({
 				ariaLabel: localize('chat.codeBlockLabel', "Code block {0}", data.codeBlockIndex + 1),
 			});
@@ -527,10 +476,6 @@ export class CodeBlockPart extends Disposable {
 			dom.hide(this._toolbarElement);
 		} else {
 			dom.show(this._toolbarElement);
-			// In screen reader mode the toolbar must exist in the DOM so it
-			// can be announced and Tab-navigated. If a previous render hid
-			// the toolbar, _ensureToolbar would have early-exited; create
-			// it now that it is visible.
 			if (this.accessibilityService.isScreenReaderOptimized()) {
 				this._ensureToolbar();
 			}
@@ -546,21 +491,12 @@ export class CodeBlockPart extends Disposable {
 			this.element.classList.add('no-vulns');
 		}
 
-		// Restore toolbar visibility if the element was hovered before re-render.
-		// During streaming, code block elements are briefly detached from and
-		// reattached to the DOM, which causes the browser to lose CSS :hover state.
-		// The force-visibility class ensures the toolbar remains interactive.
 		if (this._isHovered) {
 			this._toolbarElement.classList.add('force-visibility');
 		}
 
 		this.layout();
 
-		// The editor element is typically not yet connected to the live DOM at
-		// this point (the caller still needs to attach it). Any render pass
-		// scheduled by setText/setLanguage/layout is silently dropped by the
-		// editor view when `isConnected` is false. Schedule a deferred render
-		// so the view lines are painted once the element is in the document.
 		this.editor.renderAsync(true);
 	}
 
@@ -571,9 +507,6 @@ export class CodeBlockPart extends Disposable {
 
 	onDidRemount(): void {
 		if (this.currentCodeBlockData) {
-			// !!!!
-			// Important: if the editor was off-dom and is now connected, we need to re-render it
-			// !!!!
 			this.editor.renderAsync(true);
 		}
 	}
@@ -671,7 +604,6 @@ export class ChatCodeBlockContentProvider extends Disposable {
 	}
 }
 
-//
 
 export interface ICodeCompareBlockActionContext {
 	readonly element: IChatResponseViewModel;
@@ -697,11 +629,9 @@ export interface ICodeCompareBlockData {
 
 	readonly horizontalPadding?: number;
 	readonly isReadOnly?: boolean;
-	// readonly hideToolbar?: boolean;
 }
 
 
-// long-lived object that sits in the DiffPool and that gets reused
 export class CodeCompareBlockPart extends Disposable {
 	private readonly contextKeyService: IContextKeyService;
 	private readonly diffEditor: DiffEditorWidget;
@@ -815,7 +745,6 @@ export class CodeCompareBlockPart extends Disposable {
 		}));
 
 
-		// Parent list scrolled
 		if (delegate.onDidScroll) {
 			this._register(delegate.onDidScroll(e => {
 				this.clearWidgets();
@@ -875,8 +804,6 @@ export class CodeCompareBlockPart extends Disposable {
 	}
 
 	private updatePaddingForLayout() {
-		// scrollWidth = "the width of the content that needs to be scrolled"
-		// contentWidth = "the width of the area where content is displayed"
 		const horizontalScrollbarVisible = this.currentScrollWidth > this.diffEditor.getModifiedEditor().getLayoutInfo().contentWidth;
 		const scrollbarHeight = this.diffEditor.getModifiedEditor().getLayoutInfo().horizontalScrollbarHeight;
 		const bottomPadding = horizontalScrollbarVisible ?
@@ -887,7 +814,6 @@ export class CodeCompareBlockPart extends Disposable {
 
 	private _configureForScreenReader(): void {
 		const toolbarElt = this.toolbar.getElement();
-		// Always show toolbar, but add aria-label for screen readers
 		toolbarElt.style.display = 'block';
 		if (this.accessibilityService.isScreenReaderOptimized()) {
 			toolbarElt.ariaLabel = localize('chat.codeBlock.toolbar', 'Code block toolbar');
@@ -910,7 +836,7 @@ export class CodeCompareBlockPart extends Disposable {
 
 	layout(width = this.lastLayoutWidth): void {
 		if (width === undefined) {
-			return; // not yet in DOM
+			return;
 		}
 
 		this.lastLayoutWidth = width;
@@ -937,8 +863,6 @@ export class CodeCompareBlockPart extends Disposable {
 		}
 
 		if (this.options.configuration.resultEditor.wordWrap === 'on') {
-			// Initialize the editor with the new proper width so that getContentHeight
-			// will be computed correctly in the next call to layout()
 			this.layout(width);
 		}
 
@@ -1024,8 +948,6 @@ export class CodeCompareBlockPart extends Disposable {
 			}
 
 			const listener = Event.any(diffData.original.onWillDispose, diffData.modified.onWillDispose)(() => {
-				// this a bit weird and basically duplicates https://github.com/microsoft/vscode/blob/7cbcafcbcc88298cfdcd0238018fbbba8eb6853e/src/dc/editor/browser/widget/diffEditor/diffEditorWidget.ts#L328
-				// which cannot call `setModel(null)` without first complaining
 				this.diffEditor.setModel(null);
 			});
 			this.diffEditor.setModel(viewModel);
@@ -1045,8 +967,6 @@ export class CodeCompareBlockPart extends Disposable {
 				const renderSideBySide = isCurrentlyInline;
 				this.diffEditor.updateOptions({
 					renderSideBySide,
-					// Make it not-compact in side by side mode, otherwise we may not actually
-					// show it side-by-side if it's a simple diff https://github.com/microsoft/vscode/blob/0632563332c7c08656fb47c97bc4328d62ee1d80/src/dc/editor/browser/widget/diffEditor/diffEditorOptions.ts#L35-L39
 					compactMode: !renderSideBySide,
 					useInlineViewWhenSpaceIsLimited: false,
 				});
@@ -1069,12 +989,10 @@ export class DefaultChatTextEditor {
 	async apply(response: IChatResponseModel | IChatResponseViewModel, item: IChatTextEditGroup, diffEditor: IDiffEditor | undefined): Promise<void> {
 
 		if (!response.response.value.includes(item)) {
-			// bogous item
 			return;
 		}
 
 		if (item.state?.applied) {
-			// already applied
 			return;
 		}
 
@@ -1163,12 +1081,10 @@ export class DefaultChatTextEditor {
 
 	discard(response: IChatResponseModel | IChatResponseViewModel, item: IChatTextEditGroup) {
 		if (!response.response.value.includes(item)) {
-			// bogous item
 			return;
 		}
 
 		if (item.state?.applied) {
-			// already applied
 			return;
 		}
 

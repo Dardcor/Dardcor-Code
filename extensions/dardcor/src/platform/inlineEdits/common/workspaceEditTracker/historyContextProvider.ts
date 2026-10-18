@@ -11,17 +11,11 @@ import { Edits, RootedEdit } from '../dataTypes/edit';
 import { LanguageId } from '../dataTypes/languageId';
 
 export interface IHistoryContextProvider {
-	/**
-	 * The result must contain a document with `docUri`.
-	*/
 	getHistoryContext(id: DocumentId): HistoryContext | undefined;
 }
 
 export class HistoryContext {
 	constructor(
-		/**
-		 * Sorted by time, from least recent to most recent.
-		*/
 		public readonly documents: readonly DocumentHistory[],
 	) {
 		assert(documents.length > 0);
@@ -51,9 +45,6 @@ export class DocumentHistory {
 		public readonly base: StringText,
 		public readonly lastEdits: Edits,
 
-		/**
-		 * Refers to the state after edits
-		*/
 		public readonly lastSelection: OffsetRange | undefined,
 	) {
 	}

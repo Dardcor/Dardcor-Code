@@ -68,7 +68,6 @@ abstract class ToolConfirmationAction extends Action2 {
 			}
 		}
 
-		// Return focus to the chat input, in case it was in the tool confirmation editor
 		widget?.focusInput();
 	}
 }
@@ -83,7 +82,6 @@ class AcceptToolConfirmation extends ToolConfirmationAction {
 			keybinding: {
 				when: ContextKeyExpr.and(ChatContextKeys.inChatSession, ChatContextKeys.Editing.hasToolConfirmation),
 				primary: KeyMod.CtrlCmd | KeyCode.Enter,
-				// Override chatEditor.action.accept
 				weight: KeybindingWeight.WorkbenchContrib + 1,
 			},
 		});
@@ -104,7 +102,6 @@ class SkipToolConfirmation extends ToolConfirmationAction {
 			keybinding: {
 				when: ContextKeyExpr.and(ChatContextKeys.inChatSession, ChatContextKeys.Editing.hasToolConfirmation),
 				primary: KeyMod.CtrlCmd | KeyCode.Enter | KeyMod.Alt,
-				// Override chatEditor.action.accept
 				weight: KeybindingWeight.WorkbenchContrib + 1,
 			},
 		});
@@ -127,15 +124,6 @@ export class ConfigureToolsAction extends Action2 {
 			category: CHAT_CATEGORY,
 			precondition: ChatContextKeys.enabled,
 			menu: [
-				{
-					when: ContextKeyExpr.and(
-						ChatContextKeys.enabled,
-						ChatContextKeys.lockedToCodingAgent.negate(),
-					),
-					id: MenuId.ChatInput,
-					group: 'navigation',
-					order: 2,
-				},
 				{
 					when: ContextKeyExpr.and(
 						ChatContextKeys.enabled,
@@ -192,7 +180,6 @@ export class ConfigureToolsAction extends Action2 {
 
 		}
 
-		// Create a cancellation token that cancels when the mode changes
 		const cts = new CancellationTokenSource();
 		const initialMode = widget.input.currentModeObs.get();
 		const modeListener = autorun(reader => {

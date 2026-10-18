@@ -4,32 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it } from 'vitest';
-import { CopilotChatAttr, GenAiAttr, GenAiOperationName, GenAiProviderName } from '../genAiAttributes';
+import { DardcorChatAttr, GenAiAttr, GenAiOperationName, GenAiProviderName } from '../genAiAttributes';
 import { emitAgentTurnEvent, emitSessionStartEvent } from '../genAiEvents';
 import { GenAiMetrics } from '../genAiMetrics';
 import { SpanKind, SpanStatusCode } from '../otelService';
 import { CapturingOTelService } from './capturingOTelService';
 
-/**
- * Verifies that the OTel instrumentation produces the correct span hierarchy,
- * metric recordings, and event emissions for a complete agent interaction.
- *
- * Span hierarchy (expected):
- *   invoke_agent dardcor        [INTERNAL]
- *     ├── chat gpt-4o           [CLIENT]
- *     ├── execute_tool readFile  [INTERNAL]
- *     └── chat gpt-4o           [CLIENT]
- *
- * Subagent trace propagation (via storeTraceContext/getStoredTraceContext):
- *   invoke_agent dardcor
- *     ├── execute_tool runSubagent
- *     │   └── invoke_agent Explore  (same traceId via parentTraceContext)
- */
 describe('Agent Trace Hierarchy', () => {
 	it('produces invoke_agent, chat, and execute_tool spans with correct attributes', async () => {
 		const otel = new CapturingOTelService();
 
-		// Simulate invoke_agent span
 		await otel.startActiveSpan('invoke_agent dardcor', {
 			kind: SpanKind.INTERNAL,
 			attributes: {
@@ -39,7 +23,6 @@ describe('Agent Trace Hierarchy', () => {
 				[GenAiAttr.CONVERSATION_ID]: 'conv-123',
 			},
 		}, async (agentSpan) => {
-			// Simulate chat span (LLM call)
 			const chatSpan = otel.startSpan('chat gpt-4o', {
 				kind: SpanKind.CLIENT,
 				attributes: {
@@ -55,7 +38,6 @@ describe('Agent Trace Hierarchy', () => {
 			chatSpan.setStatus(SpanStatusCode.OK);
 			chatSpan.end();
 
-			// Simulate tool call span
 			const toolSpan = otel.startSpan('execute_tool readFile', {
 				kind: SpanKind.INTERNAL,
 				attributes: {
@@ -66,7 +48,6 @@ describe('Agent Trace Hierarchy', () => {
 			toolSpan.setStatus(SpanStatusCode.OK);
 			toolSpan.end();
 
-			// Simulate second chat span
 			const chat2 = otel.startSpan('chat gpt-4o', {
 				kind: SpanKind.CLIENT,
 				attributes: {
@@ -80,10 +61,8 @@ describe('Agent Trace Hierarchy', () => {
 			agentSpan.setStatus(SpanStatusCode.OK);
 		});
 
-		// Verify all 4 spans created
 		expect(otel.spans).toHaveLength(4);
 
-		// invoke_agent span
 		const agentSpan = otel.spans[0];
 		expect(agentSpan.name).toBe('invoke_agent dardcor');
 		expect(agentSpan.kind).toBe(SpanKind.INTERNAL);
@@ -92,20 +71,17 @@ describe('Agent Trace Hierarchy', () => {
 		expect(agentSpan.statusCode).toBe(SpanStatusCode.OK);
 		expect(agentSpan.ended).toBe(true);
 
-		// First chat span
 		const chatSpan = otel.spans[1];
 		expect(chatSpan.name).toBe('chat gpt-4o');
 		expect(chatSpan.kind).toBe(SpanKind.CLIENT);
 		expect(chatSpan.attributes[GenAiAttr.USAGE_INPUT_TOKENS]).toBe(1500);
 		expect(chatSpan.attributes[GenAiAttr.RESPONSE_MODEL]).toBe('gpt-4o-2024-08-06');
 
-		// Tool span
 		const toolSpan = otel.spans[2];
 		expect(toolSpan.name).toBe('execute_tool readFile');
 		expect(toolSpan.kind).toBe(SpanKind.INTERNAL);
 		expect(toolSpan.attributes[GenAiAttr.TOOL_NAME]).toBe('readFile');
 
-		// Second chat span
 		expect(otel.spans[3].name).toBe('chat gpt-4o');
 	});
 
@@ -118,15 +94,12 @@ describe('Agent Trace Hierarchy', () => {
 		GenAiMetrics.recordAgentTurnCount(otel, 'dardcor', 4);
 		emitAgentTurnEvent(otel, 0, 1500, 250, 2);
 
-		// Session event
-		expect(otel.logRecords).toHaveLength(2); // session.start + agent.turn
+		expect(otel.logRecords).toHaveLength(2);
 		expect(otel.logRecords[0].attributes?.['event.name']).toBe('dardcor_chat.session.start');
 
-		// Agent turn event
 		expect(otel.logRecords[1].attributes?.['event.name']).toBe('dardcor_chat.agent.turn');
 		expect(otel.logRecords[1].attributes?.['turn.index']).toBe(0);
 
-		// Metrics
 		expect(otel.counters).toHaveLength(1);
 		expect(otel.counters[0].name).toBe('dardcor_chat.session.count');
 		expect(otel.metrics).toHaveLength(2);
@@ -138,14 +111,11 @@ describe('Agent Trace Hierarchy', () => {
 		const otel = new CapturingOTelService();
 		const parentCtx = { traceId: 'aaaa0000bbbb1111cccc2222dddd3333', spanId: 'eeee4444ffff5555' };
 
-		// Parent agent stores context when launching subagent
 		otel.storeTraceContext('subagent:req-123', parentCtx);
 
-		// Subagent retrieves it
 		const restored = otel.getStoredTraceContext('subagent:req-123');
 		expect(restored).toEqual(parentCtx);
 
-		// Create subagent span with parentTraceContext
 		otel.startSpan('invoke_agent Explore', {
 			kind: SpanKind.INTERNAL,
 			attributes: { [GenAiAttr.OPERATION_NAME]: GenAiOperationName.INVOKE_AGENT },
@@ -156,7 +126,6 @@ describe('Agent Trace Hierarchy', () => {
 		expect(subagentSpan.name).toBe('invoke_agent Explore');
 		expect(subagentSpan.parentTraceContext).toEqual(parentCtx);
 
-		// Context is consumed (single-use)
 		expect(otel.getStoredTraceContext('subagent:req-123')).toBeUndefined();
 	});
 
@@ -180,7 +149,6 @@ describe('Agent Trace Hierarchy', () => {
 	it('records tool call metrics and events correctly', () => {
 		const otel = new CapturingOTelService();
 
-		// Simulate a successful and failed tool call
 		GenAiMetrics.recordToolCallCount(otel, 'readFile', true);
 		GenAiMetrics.recordToolCallDuration(otel, 'readFile', 50);
 		GenAiMetrics.recordToolCallCount(otel, 'runCommand', false);
@@ -233,28 +201,25 @@ describe('Agent Trace Hierarchy', () => {
 		GenAiMetrics.recordEditSurvivalNoRevert(otel, 'inline_chat', 0.92, 30000);
 		GenAiMetrics.recordChatEditOutcome(otel, 'chat_editing', 'accepted', 'typescript', false);
 
-		// Acceptance counters
 		expect(otel.counters).toHaveLength(3);
 		expect(otel.counters[0].name).toBe('dardcor_chat.edit.acceptance.count');
-		expect(otel.counters[0].attributes?.[CopilotChatAttr.EDIT_SOURCE]).toBe('inline_chat');
-		expect(otel.counters[0].attributes?.[CopilotChatAttr.EDIT_OUTCOME]).toBe('accepted');
-		expect(otel.counters[0].attributes?.[CopilotChatAttr.LANGUAGE_ID]).toBe('typescript');
+		expect(otel.counters[0].attributes?.[DardcorChatAttr.EDIT_SOURCE]).toBe('inline_chat');
+		expect(otel.counters[0].attributes?.[DardcorChatAttr.EDIT_OUTCOME]).toBe('accepted');
+		expect(otel.counters[0].attributes?.[DardcorChatAttr.LANGUAGE_ID]).toBe('typescript');
 
 		expect(otel.counters[1].name).toBe('dardcor_chat.edit.acceptance.count');
-		expect(otel.counters[1].attributes?.[CopilotChatAttr.EDIT_OUTCOME]).toBe('rejected');
+		expect(otel.counters[1].attributes?.[DardcorChatAttr.EDIT_OUTCOME]).toBe('rejected');
 
-		// Chat edit outcome counter
 		expect(otel.counters[2].name).toBe('dardcor_chat.chat_edit.outcome.count');
-		expect(otel.counters[2].attributes?.[CopilotChatAttr.EDIT_SOURCE]).toBe('chat_editing');
-		expect(otel.counters[2].attributes?.[CopilotChatAttr.EDIT_OUTCOME]).toBe('accepted');
-		expect(otel.counters[2].attributes?.[CopilotChatAttr.HAS_REMAINING_EDITS]).toBe(false);
+		expect(otel.counters[2].attributes?.[DardcorChatAttr.EDIT_SOURCE]).toBe('chat_editing');
+		expect(otel.counters[2].attributes?.[DardcorChatAttr.EDIT_OUTCOME]).toBe('accepted');
+		expect(otel.counters[2].attributes?.[DardcorChatAttr.HAS_REMAINING_EDITS]).toBe(false);
 
-		// Survival histograms
 		expect(otel.metrics).toHaveLength(2);
 		expect(otel.metrics[0].name).toBe('dardcor_chat.edit.survival.four_gram');
 		expect(otel.metrics[0].value).toBe(0.85);
-		expect(otel.metrics[0].attributes?.[CopilotChatAttr.EDIT_SOURCE]).toBe('inline_chat');
-		expect(otel.metrics[0].attributes?.[CopilotChatAttr.TIME_DELAY_MS]).toBe(30000);
+		expect(otel.metrics[0].attributes?.[DardcorChatAttr.EDIT_SOURCE]).toBe('inline_chat');
+		expect(otel.metrics[0].attributes?.[DardcorChatAttr.TIME_DELAY_MS]).toBe(30000);
 
 		expect(otel.metrics[1].name).toBe('dardcor_chat.edit.survival.no_revert');
 		expect(otel.metrics[1].value).toBe(0.92);
@@ -266,8 +231,8 @@ describe('Agent Trace Hierarchy', () => {
 		GenAiMetrics.recordEditAcceptance(otel, 'inline_chat', 'accepted', undefined);
 		GenAiMetrics.recordChatEditOutcome(otel, 'chat_editing', 'rejected', undefined, undefined);
 
-		expect(otel.counters[0].attributes?.[CopilotChatAttr.LANGUAGE_ID]).toBeUndefined();
-		expect(otel.counters[1].attributes?.[CopilotChatAttr.LANGUAGE_ID]).toBeUndefined();
-		expect(otel.counters[1].attributes?.[CopilotChatAttr.HAS_REMAINING_EDITS]).toBeUndefined();
+		expect(otel.counters[0].attributes?.[DardcorChatAttr.LANGUAGE_ID]).toBeUndefined();
+		expect(otel.counters[1].attributes?.[DardcorChatAttr.LANGUAGE_ID]).toBeUndefined();
+		expect(otel.counters[1].attributes?.[DardcorChatAttr.HAS_REMAINING_EDITS]).toBeUndefined();
 	});
 });

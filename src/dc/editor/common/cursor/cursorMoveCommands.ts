@@ -183,7 +183,6 @@ export class CursorMoveCommands {
 		);
 
 		if (!inSelectionMode) {
-			// Entering line selection for the first time
 			const lineCount = viewModel.model.getLineCount();
 
 			let selectToLineNumber = position.lineNumber + 1;
@@ -199,7 +198,6 @@ export class CursorMoveCommands {
 			));
 		}
 
-		// Continuing line selection
 		const enteringLineNumber = cursor.modelState.selectionStart.getStartPosition().lineNumber;
 
 		if (position.lineNumber < enteringLineNumber) {
@@ -274,43 +272,33 @@ export class CursorMoveCommands {
 		switch (direction) {
 			case CursorMove.Direction.Left: {
 				if (unit === CursorMove.Unit.HalfLine) {
-					// Move left by half the current line length
 					return this._moveHalfLineLeft(viewModel, cursors, inSelectionMode);
 				} else {
-					// Move left by `moveParams.value` columns
 					return this._moveLeft(viewModel, cursors, inSelectionMode, value);
 				}
 			}
 			case CursorMove.Direction.Right: {
 				if (unit === CursorMove.Unit.HalfLine) {
-					// Move right by half the current line length
 					return this._moveHalfLineRight(viewModel, cursors, inSelectionMode);
 				} else {
-					// Move right by `moveParams.value` columns
 					return this._moveRight(viewModel, cursors, inSelectionMode, value);
 				}
 			}
 			case CursorMove.Direction.Up: {
 				if (unit === CursorMove.Unit.WrappedLine) {
-					// Move up by view lines
 					return this._moveUpByViewLines(viewModel, cursors, inSelectionMode, value);
 				} else if (unit === CursorMove.Unit.FoldedLine) {
-					// Move up by model lines, skipping over folded regions
 					return this._moveUpByFoldedLines(viewModel, cursors, inSelectionMode, value);
 				} else {
-					// Move up by model lines
 					return this._moveUpByModelLines(viewModel, cursors, inSelectionMode, value);
 				}
 			}
 			case CursorMove.Direction.Down: {
 				if (unit === CursorMove.Unit.WrappedLine) {
-					// Move down by view lines
 					return this._moveDownByViewLines(viewModel, cursors, inSelectionMode, value);
 				} else if (unit === CursorMove.Unit.FoldedLine) {
-					// Move down by model lines, skipping over folded regions
 					return this._moveDownByFoldedLines(viewModel, cursors, inSelectionMode, value);
 				} else {
-					// Move down by model lines
 					return this._moveDownByModelLines(viewModel, cursors, inSelectionMode, value);
 				}
 			}
@@ -329,23 +317,18 @@ export class CursorMoveCommands {
 				}
 			}
 			case CursorMove.Direction.WrappedLineStart: {
-				// Move to the beginning of the current view line
 				return this._moveToViewMinColumn(viewModel, cursors, inSelectionMode);
 			}
 			case CursorMove.Direction.WrappedLineFirstNonWhitespaceCharacter: {
-				// Move to the first non-whitespace column of the current view line
 				return this._moveToViewFirstNonWhitespaceColumn(viewModel, cursors, inSelectionMode);
 			}
 			case CursorMove.Direction.WrappedLineColumnCenter: {
-				// Move to the "center" of the current view line
 				return this._moveToViewCenterColumn(viewModel, cursors, inSelectionMode);
 			}
 			case CursorMove.Direction.WrappedLineEnd: {
-				// Move to the end of the current view line
 				return this._moveToViewMaxColumn(viewModel, cursors, inSelectionMode);
 			}
 			case CursorMove.Direction.WrappedLineLastNonWhitespaceCharacter: {
-				// Move to the last non-whitespace column of the current view line
 				return this._moveToViewLastNonWhitespaceColumn(viewModel, cursors, inSelectionMode);
 			}
 			default:
@@ -359,25 +342,21 @@ export class CursorMoveCommands {
 		const visibleModelRange = viewModel.coordinatesConverter.convertViewRangeToModelRange(visibleViewRange);
 		switch (direction) {
 			case CursorMove.Direction.ViewPortTop: {
-				// Move to the nth line start in the viewport (from the top)
 				const modelLineNumber = this._firstLineNumberInRange(viewModel.model, visibleModelRange, value);
 				const modelColumn = viewModel.model.getLineFirstNonWhitespaceColumn(modelLineNumber);
 				return [this._moveToModelPosition(viewModel, cursors[0], inSelectionMode, modelLineNumber, modelColumn)];
 			}
 			case CursorMove.Direction.ViewPortBottom: {
-				// Move to the nth line start in the viewport (from the bottom)
 				const modelLineNumber = this._lastLineNumberInRange(viewModel.model, visibleModelRange, value);
 				const modelColumn = viewModel.model.getLineFirstNonWhitespaceColumn(modelLineNumber);
 				return [this._moveToModelPosition(viewModel, cursors[0], inSelectionMode, modelLineNumber, modelColumn)];
 			}
 			case CursorMove.Direction.ViewPortCenter: {
-				// Move to the line start in the viewport center
 				const modelLineNumber = Math.round((visibleModelRange.startLineNumber + visibleModelRange.endLineNumber) / 2);
 				const modelColumn = viewModel.model.getLineFirstNonWhitespaceColumn(modelLineNumber);
 				return [this._moveToModelPosition(viewModel, cursors[0], inSelectionMode, modelLineNumber, modelColumn)];
 			}
 			case CursorMove.Direction.ViewPortIfOutside: {
-				// Move to a position inside the viewport
 				const result: PartialCursorState[] = [];
 				for (let i = 0, len = cursors.length; i < len; i++) {
 					const cursor = cursors[i];
@@ -394,7 +373,6 @@ export class CursorMoveCommands {
 		const viewLineNumber = cursor.viewState.position.lineNumber;
 
 		if (visibleViewRange.startLineNumber <= viewLineNumber && viewLineNumber <= visibleViewRange.endLineNumber - 1) {
-			// Nothing to do, cursor is in viewport
 			return new CursorState(cursor.modelState, cursor.viewState);
 
 		} else {
@@ -411,26 +389,18 @@ export class CursorMoveCommands {
 		}
 	}
 
-	/**
-	 * Find the nth line start included in the range (from the start).
-	 */
 	private static _firstLineNumberInRange(model: ICursorSimpleModel, range: Range, count: number): number {
 		let startLineNumber = range.startLineNumber;
 		if (range.startColumn !== model.getLineMinColumn(startLineNumber)) {
-			// Move on to the second line if the first line start is not included in the range
 			startLineNumber++;
 		}
 
 		return Math.min(range.endLineNumber, startLineNumber + count - 1);
 	}
 
-	/**
-	 * Find the nth line start included in the range (from the end).
-	 */
 	private static _lastLineNumberInRange(model: ICursorSimpleModel, range: Range, count: number): number {
 		let startLineNumber = range.startLineNumber;
 		if (range.startColumn !== model.getLineMinColumn(startLineNumber)) {
-			// Move on to the second line if the first line start is not included in the range
 			startLineNumber++;
 		}
 
@@ -558,8 +528,6 @@ export class CursorMoveCommands {
 		});
 	}
 
-	// Compute the target line after moving `count` steps downward from `startLine`,
-	// treating each folded region as a single step.
 	private static _targetFoldedDown(startLine: number, count: number, hiddenAreas: Range[], lineCount: number): number {
 		let line = startLine;
 		let i = 0;
@@ -583,7 +551,6 @@ export class CursorMoveCommands {
 			}
 
 			if (candidate > lineCount) {
-				// The next visible line does not exist (e.g. a fold reaches EOF).
 				return line;
 			}
 
@@ -593,8 +560,6 @@ export class CursorMoveCommands {
 		return line;
 	}
 
-	// Compute the target line after moving `count` steps upward from `startLine`,
-	// treating each folded region as a single step.
 	private static _targetFoldedUp(startLine: number, count: number, hiddenAreas: Range[]): number {
 		let line = startLine;
 		let i = hiddenAreas.length - 1;
@@ -618,7 +583,6 @@ export class CursorMoveCommands {
 			}
 
 			if (candidate < 1) {
-				// The previous visible line does not exist (e.g. a fold reaches BOF).
 				return line;
 			}
 
@@ -778,9 +742,6 @@ export namespace CursorMove {
 		]
 	};
 
-	/**
-	 * Positions in the view for cursor move command.
-	 */
 	export const RawDirection = {
 		Left: 'left',
 		Right: 'right',
@@ -803,9 +764,6 @@ export namespace CursorMove {
 		ViewPortIfOutside: 'viewPortIfOutside'
 	};
 
-	/**
-	 * Units for Cursor move 'by' argument
-	 */
 	export const RawUnit = {
 		Line: 'line',
 		WrappedLine: 'wrappedLine',
@@ -814,9 +772,6 @@ export namespace CursorMove {
 		FoldedLine: 'foldedLine'
 	};
 
-	/**
-	 * Arguments for Cursor move command
-	 */
 	export interface RawArguments {
 		to: string;
 		select?: boolean;
@@ -827,7 +782,6 @@ export namespace CursorMove {
 
 	export function parse(args: Partial<RawArguments>): ParsedArguments | null {
 		if (!args.to) {
-			// illegal arguments
 			return null;
 		}
 
@@ -879,7 +833,6 @@ export namespace CursorMove {
 				direction = Direction.ViewPortIfOutside;
 				break;
 			default:
-				// illegal arguments
 				return null;
 		}
 

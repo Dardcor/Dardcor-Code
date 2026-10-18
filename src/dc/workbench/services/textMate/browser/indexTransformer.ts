@@ -9,12 +9,8 @@ export interface IIndexTransformer {
 	transform(index: number): number | undefined;
 }
 
-/**
- * Can only be called with increasing values of `index`.
-*/
 export class MonotonousIndexTransformer implements IIndexTransformer {
 	public static fromMany(transformations: AnyEdit[]): IIndexTransformer {
-		// TODO improve performance by combining transformations first
 		const transformers = transformations.map(t => new MonotonousIndexTransformer(t));
 		return new CombinedIndexTransformer(transformers);
 	}
@@ -25,9 +21,6 @@ export class MonotonousIndexTransformer implements IIndexTransformer {
 	constructor(private readonly transformation: AnyEdit) {
 	}
 
-	/**
-	 * Precondition: index >= previous-value-of(index).
-	 */
 	transform(index: number): number | undefined {
 		let nextChange = this.transformation.replacements.at(this.idx);
 		while (nextChange && nextChange.replaceRange.endExclusive <= index) {
@@ -35,10 +28,8 @@ export class MonotonousIndexTransformer implements IIndexTransformer {
 			this.idx++;
 			nextChange = this.transformation.replacements.at(this.idx);
 		}
-		// assert nextChange === undefined || index < nextChange.offset + nextChange.length
 
 		if (nextChange && nextChange.replaceRange.start <= index) {
-			// Offset is touched by the change
 			return undefined;
 		}
 

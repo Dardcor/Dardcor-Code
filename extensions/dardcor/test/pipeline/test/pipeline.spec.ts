@@ -13,15 +13,15 @@ import { runInputPipeline, RunPipelineOptions } from '../pipeline';
 
 async function extractFromCsv(csvContents: string): Promise<unknown[]> {
 	const options = {
-		columns: true as const, // Use first row as column headers
-		delimiter: ',',         // Comma delimiter
-		quote: '"',             // Double quotes
-		escape: '"',            // Standard CSV escape character
-		skip_empty_lines: true, // Skip any empty rows
-		trim: true,             // Remove whitespace around fields
-		relax_quotes: true,     // Handle quotes within fields more flexibly
-		bom: true,              // Handle UTF-8 BOM
-		cast: false             // Keep all values as strings initially
+		columns: true as const,
+		delimiter: ',',
+		quote: '"',
+		escape: '"',
+		skip_empty_lines: true,
+		trim: true,
+		relax_quotes: true,
+		bom: true,
+		cast: false
 	} as const;
 
 	type CsvRecord = { Data: string };
@@ -47,8 +47,8 @@ function convertToInputRows(csvEntries: unknown[]): Result<IInputRow, Error>[] {
 	function entryToInputRow(index: number, entry: unknown) {
 		const fieldReqs: [entryName: string, fieldName: string][] = [
 			['suggestion_status', 'status'] as const,
-			['alternative_action', 'action'], //json
-			['prompt', 'input'], //json
+			['alternative_action', 'action'],
+			['prompt', 'input'],
 			['model_response', 'response'],
 			['post_processing_outcome', 'outcome'],
 			['active_document_language_id', 'language'],
@@ -95,10 +95,6 @@ suite.skip('from csv to input rows to pipeline', () => {
 
 		const configFilePath = path.join(fixtures, 'config.json');
 
-		// await fs.writeFile(configFilePath, JSON.stringify({
-		// 	'github.dardcor.chat.advanced.inlineEdits.xtabProvider.modelConfiguration': {
-		// 	}
-		// }, null, 2));
 
 		const logs: string[] = [];
 		const log = (m: any, ...rest: any[]) => logs.push([m, ...rest].map(s => typeof s === 'object' ? JSON.stringify(s, null, '\t') : s).join(', '));

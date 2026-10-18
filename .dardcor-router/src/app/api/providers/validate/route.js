@@ -7,33 +7,28 @@ import { openaiToCommandCodeRequest } from "open-sse/translator/request/openai-t
 import { resolveQoderCredentials, resolveQoderModels } from "open-sse/services/qoderModels.js";
 import { normalizeProviderId } from "@/lib/providerNormalization";
 
-// Probe a webSearch/webFetch provider using its searchConfig/fetchConfig.
-// Returns true if API key is accepted (status !== 401 && !== 403).
 async function probeWebProvider(provider, apiKey) {
   const p = AI_PROVIDERS[provider];
   if (!p) return null;
-  // Skip if provider has dual-purpose (LLM + search), let LLM validate handle it
   const kinds = p.serviceKinds || ["llm"];
   const isWebOnly = kinds.every((k) => k === "webSearch" || k === "webFetch");
   if (!isWebOnly) return null;
   const cfg = p.searchConfig || p.fetchConfig;
   if (!cfg) return null;
-  if (cfg.authType === "none") return true; // no-auth (e.g. searxng)
+  if (cfg.authType === "none") return true;
 
   let url = cfg.validateUrl || cfg.baseUrl;
   const headers = { "Content-Type": "application/json" };
   let body;
 
-  // Apply auth based on authHeader
   switch (cfg.authHeader) {
     case "bearer":              headers["Authorization"] = `Bearer ${apiKey}`; break;
     case "x-api-key":           headers["x-api-key"] = apiKey; break;
     case "x-subscription-token":headers["x-subscription-token"] = apiKey; break;
-    case "key":                 url += `?key=${encodeURIComponent(apiKey)}&q=ping&cx=test`; break; // google-pse
-    case "api_key":             url += `?api_key=${encodeURIComponent(apiKey)}&q=ping&engine=google`; break; // searchapi
+    case "key":                 url += `?key=${encodeURIComponent(apiKey)}&q=ping&cx=test`; break;
+    case "api_key":             url += `?api_key=${encodeURIComponent(apiKey)}&q=ping&engine=google`; break;
   }
 
-  // Minimal body for POST endpoints; GET sends nothing
   if (cfg.method === "POST") {
     body = JSON.stringify({ query: "ping", q: "ping", url: "https://example.com" });
   }
@@ -42,8 +37,6 @@ async function probeWebProvider(provider, apiKey) {
   return res.status !== 401 && res.status !== 403;
 }
 
-// Probe a media provider (tts/embedding/stt/image/video) using *Config.
-// Returns true if API key is accepted; null to skip (let default handler decide).
 async function probeMediaProvider(provider, apiKey) {
   const p = AI_PROVIDERS[provider];
   if (!p) return null;
@@ -52,10 +45,8 @@ async function probeMediaProvider(provider, apiKey) {
   const isMediaOnly = kinds.every((k) => MEDIA_KINDS.has(k));
   if (!isMediaOnly) return null;
   const cfg = p.ttsConfig || p.sttConfig || p.embeddingConfig || p.imageConfig || p.videoConfig || p.musicConfig;
-  // No probe config → best-effort accept (validate at usage time)
   if (!cfg) return true;
   if (p.noAuth || cfg.authType === "none") return true;
-  // Skip auth schemes that need provider-specific data
   if (cfg.authHeader === "playht" || cfg.authHeader === "aws-sigv4") return true;
 
   const headers = { "Content-Type": "application/json", ...(cfg.extraHeaders || {}) };
@@ -81,7 +72,6 @@ async function probeMediaProvider(provider, apiKey) {
   return res.status !== 401 && res.status !== 403;
 }
 
-// POST /api/providers/validate - Validate API key with provider
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -96,7 +86,6 @@ export async function POST(request) {
     let isValid = false;
     let error = null;
 
-    // Validate with each provider
     try {
       if (isOpenAICompatibleProvider(provider)) {
         const node = await getProviderNodeById(provider);
@@ -114,7 +103,6 @@ export async function POST(request) {
         });
       }
 
-      // Custom Embedding nodes: probe /models (most embedding APIs are OpenAI-compatible)
       if (isCustomEmbeddingProvider(provider)) {
         const node = await getProviderNodeById(provider);
         if (!node) {
@@ -127,17 +115,14 @@ export async function POST(request) {
         if (modelsRes.ok) {
           return NextResponse.json({ valid: true });
         }
-        // Auth errors are definitive
         if (modelsRes.status === 401 || modelsRes.status === 403) {
           return NextResponse.json({ valid: false, error: "Invalid API key" });
         }
-        // Fallback: probe /embeddings with a common test model — many providers lack /models
         const embedRes = await fetch(`${baseUrl}/embeddings`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({ model: "test", input: "ping" }),
         });
-        // 401/403 = bad key; anything else (including 400 "model not found") means key works
         isValid = embedRes.status !== 401 && embedRes.status !== 403;
         return NextResponse.json({
           valid: isValid,
@@ -153,7 +138,7 @@ export async function POST(request) {
 
         let normalizedBase = node.baseUrl?.trim().replace(/\/$/, "") || "";
         if (normalizedBase.endsWith("/messages")) {
-          normalizedBase = normalizedBase.slice(0, -9); // remove /messages
+          normalizedBase = normalizedBase.slice(0, -9);
         }
 
         const messagesUrl = `${normalizedBase}/v1/messages`;
@@ -174,7 +159,6 @@ export async function POST(request) {
           }),
         });
 
-        // 400/529 still confirms key accepted; only 401/403 = bad key
         isValid = res.status !== 401 && res.status !== 403;
         return NextResponse.json({
           valid: isValid,
@@ -234,7 +218,6 @@ export async function POST(request) {
         });
       }
 
-      // Generic probe for webSearch/webFetch providers (config-driven)
       const webResult = await probeWebProvider(provider, apiKey);
       if (webResult !== null) {
         return NextResponse.json({
@@ -243,7 +226,6 @@ export async function POST(request) {
         });
       }
 
-      // Generic probe for tts/embedding providers (config-driven)
       const mediaResult = await probeMediaProvider(provider, apiKey);
       if (mediaResult !== null) {
         return NextResponse.json({
@@ -305,7 +287,6 @@ export async function POST(request) {
         case "alims-intl":
         case "alicode":
         case "agentrouter": {
-          // Use baseUrl from PROVIDERS (DRY); separate openai-format vs claude-format flow
           const cfg = PROVIDERS[provider];
           const isOpenAiFormat = provider === "glm-cn" || provider === "alicode" || provider === "alicode-intl" || provider === "alims-intl";
 
@@ -329,7 +310,6 @@ export async function POST(request) {
               },
               body: JSON.stringify({ model: testModel, max_tokens: 1, messages: [{ role: "user", content: "test" }] }),
             });
-            // 400 = model resolution error but auth passed (e.g. agentrouter "no available channel")
             isValid = res.status !== 401 && res.status !== 403;
           }
           break;
@@ -376,18 +356,15 @@ export async function POST(request) {
             ...Object.fromEntries(
               Object.entries(PROVIDERS).filter(([, t]) => t.validateUrl).map(([id, t]) => [id, t.validateUrl])
             ),
-            // dynamic URLs (depend on providerSpecificData) — kept inline
             "ollama-local": `${resolveOllamaLocalHost({ providerSpecificData })}/api/tags`,
             "xiaomi-tokenplan": `${resolveXiaomiTokenplanBaseUrl({ providerSpecificData })}/models`,
           };
           const headers = {};
           if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
           const res = await fetch(endpoints[provider], { headers, signal: AbortSignal.timeout(8000) });
-          // xai returns 400 for bad key, 403 for valid-but-no-credit. Other providers use 401.
           if (provider === "xai") {
             isValid = res.status === 200 || res.status === 403;
           } else if (provider === "xiaomi-tokenplan") {
-            // /models returns 403 for valid keys lacking list permission; only 401 means invalid
             isValid = res.status !== 401;
           } else {
             isValid = res.ok;
@@ -407,6 +384,14 @@ export async function POST(request) {
             }),
           });
           isValid = res.status !== 401 && res.status !== 403;
+          break;
+        }
+
+        case "opencode": {
+          const res = await fetch("https://opencode.ai/console/api/user", {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          isValid = res.status !== 401;
           break;
         }
 
@@ -453,20 +438,16 @@ export async function POST(request) {
               max_tokens: 10,
             }),
           });
-          // Returns 401 for invalid key, 200 for valid, 400 for malformed
           isValid = res.status === 200 || res.status === 400;
           break;
         }
 
         case "vertex": {
           // Raw key: probe global endpoint (always 404 for unknown model, never 401)
-          // SA JSON: attempt token mint via JWT assertion
           const saJson = (() => { try { const p = JSON.parse(apiKey); return p.type === "service_account" ? p : null; } catch { return null; } })();
           if (saJson) {
-            // Validate SA JSON has required fields
             isValid = !!(saJson.client_email && saJson.private_key && saJson.project_id);
           } else {
-            // Raw key: probe Vertex — 404 means key is valid (model just doesn't exist), 401 means invalid key
             const probeRes = await fetch(
               `https://aiplatform.googleapis.com/v1/publishers/google/models/__probe__:generateContent?key=${apiKey}`,
               { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }
@@ -492,7 +473,6 @@ export async function POST(request) {
 
         case "grok-web": {
           const token = apiKey.startsWith("sso=") ? apiKey.slice(4) : apiKey;
-          // Cloudflare-bypass: send POST with same browser fingerprint headers as GrokWebExecutor
           const randomHex = (n) => {
             const a = new Uint8Array(n);
             crypto.getRandomValues(a);
@@ -534,7 +514,6 @@ export async function POST(request) {
               forceSideBySide: false, isAsyncChat: false, disableSelfHarmShortCircuit: false,
             }),
           });
-          // Cookie valid = any non-401/403 response (200, 400, 429 all mean cookie accepted)
           if (res.status === 401 || res.status === 403) {
             isValid = false;
             error = "Invalid SSO cookie — re-paste from grok.com DevTools → Cookies → sso";
@@ -583,8 +562,6 @@ export async function POST(request) {
         }
 
         case "qoder": {
-          // PAT (pt-...) needs the job-token exchange before it can sign
-          // anything — the generic OpenAI-compat probe below can't validate it.
           try {
             const resolved = await resolveQoderCredentials({ apiKey, providerSpecificData }, null, AbortSignal.timeout(8000));
             const result = await resolveQoderModels(resolved, { forceRefresh: true });
@@ -597,7 +574,6 @@ export async function POST(request) {
         }
 
         default: {
-          // Generic probe for OpenAI-compatible providers (config-driven from PROVIDERS)
           const cfg = PROVIDERS[provider];
           if (!cfg || cfg.format !== "openai" || !cfg.baseUrl) {
             return NextResponse.json({ error: "Provider validation not supported" }, { status: 400 });
@@ -606,23 +582,20 @@ export async function POST(request) {
             isValid = true;
             break;
           }
-          // Build auth headers based on cfg.authHeader (default: bearer)
           const headers = { "Content-Type": "application/json", ...(cfg.headers || {}) };
           if (cfg.authHeader === "x-api-key") headers["X-API-Key"] = apiKey;
           else headers["Authorization"] = `Bearer ${apiKey}`;
-          // Try /models first (fast GET), fallback to chat probe on ambiguous response
           const modelsUrl = cfg.baseUrl.replace(/\/chat\/completions$/, "/models").replace(/\/chatbot$/, "/models");
           let probeOk = null;
           try {
             const probeRes = await fetch(modelsUrl, { headers, signal: AbortSignal.timeout(8000) });
             if (probeRes.status === 401 || probeRes.status === 403) probeOk = false;
             else if (probeRes.ok) probeOk = true;
-          } catch { /* fallback to chat */ }
+          } catch { }
           if (probeOk !== null) {
             isValid = probeOk;
             break;
           }
-          // Fallback: minimal chat probe
           const defaultModel = getDefaultModel(provider) || "test";
           const chatRes = await fetch(cfg.baseUrl, {
             method: "POST",

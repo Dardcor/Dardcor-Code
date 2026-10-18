@@ -1,4 +1,3 @@
-// Codex (ChatGPT Plus/Pro) image generation via Responses API + SSE
 import { randomUUID } from "node:crypto";
 import { nowSec } from "./_base.js";
 import { PROVIDERS } from "../../config/providers.js";
@@ -59,7 +58,6 @@ function buildContent(prompt, refs, detail = CODEX_REF_DETAIL) {
   return content;
 }
 
-// Parse Codex SSE stream → final base64 image. Optional callbacks for client streaming.
 async function parseStream(response, log, callbacks = {}) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -122,7 +120,6 @@ async function parseStream(response, log, callbacks = {}) {
   return imageB64;
 }
 
-// SSE Response that pipes codex progress + partial + done events to client
 function buildSseResponse(providerResponse, log, onSuccess) {
   const stream = new ReadableStream({
     async start(controller) {
@@ -204,7 +201,6 @@ export default {
       reasoning: toolModel ? { effort: "medium", summary: "auto" } : null,
     };
   },
-  // Custom: codex parses SSE → either pipe to client or collect b64
   async parseResponse(response, { log, streamToClient, onRequestSuccess }) {
     if (streamToClient) {
       return { sseResponse: buildSseResponse(response, log, onRequestSuccess) };

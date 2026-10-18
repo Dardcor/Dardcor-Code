@@ -1,7 +1,5 @@
-// Dardcor Code color palette: black surfaces with purple accents
 
 export const COLORS = {
-  // Primary brand purple
   primary: {
     DEFAULT: "#A855F7",
     hover: "#9333EA",
@@ -9,7 +7,6 @@ export const COLORS = {
     dark: "#7E22CE",
   },
 
-  // Light theme backgrounds (mapped to dark palette for consistency)
   light: {
     bg: "#09090B",
     bgAlt: "#000000",
@@ -20,7 +17,6 @@ export const COLORS = {
     textMuted: "#9AA4B1",
   },
 
-  // Dark theme backgrounds
   dark: {
     bg: "#09090B",
     bgAlt: "#000000",
@@ -31,7 +27,6 @@ export const COLORS = {
     textMuted: "#9AA4B1",
   },
 
-  // Status colors
   status: {
     success: "#22C55E",
     successLight: "#166534",
@@ -48,7 +43,6 @@ export const COLORS = {
   },
 };
 
-// CSS Variables mapping for Tailwind
 export const CSS_VARIABLES = {
   light: {
     "--color-primary": COLORS.primary.DEFAULT,

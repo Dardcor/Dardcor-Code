@@ -11,20 +11,10 @@ export interface IDisposable {
 }
 
 export interface HtmlRenderingHook {
-	/**
-	 * Invoked after the output item has been rendered but before it has been appended to the document.
-	 *
-	 * @return A new `HTMLElement` or `undefined` to continue using the provided element.
-	 */
 	postRender(outputItem: OutputItem, element: HTMLElement, signal: AbortSignal): HTMLElement | undefined | Promise<HTMLElement | undefined>;
 }
 
 export interface JavaScriptRenderingHook {
-	/**
-	 * Invoked before the script is evaluated.
-	 *
-	 * @return A new string of JavaScript or `undefined` to continue using the provided string.
-	 */
 	preEvaluate(outputItem: OutputItem, element: HTMLElement, script: string, signal: AbortSignal): string | undefined | Promise<string | undefined>;
 }
 

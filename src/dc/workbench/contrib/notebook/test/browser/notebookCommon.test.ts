@@ -178,27 +178,21 @@ suite('NotebookCommon', () => {
 		]);
 		assert.deepStrictEqual(m.toArray(), [Mimes.markdown, 'text/html', 'application/json']);
 
-		// no-op if already in the right order
 		m.prioritize('text/html', ['application/json']);
 		assert.deepStrictEqual(m.toArray(), [Mimes.markdown, 'text/html', 'application/json']);
 
-		// sorts to highest priority
 		m.prioritize('text/html', ['application/json', Mimes.markdown]);
 		assert.deepStrictEqual(m.toArray(), ['text/html', Mimes.markdown, 'application/json']);
 
-		// adds in new type
 		m.prioritize('text/plain', ['application/json', Mimes.markdown]);
 		assert.deepStrictEqual(m.toArray(), ['text/plain', 'text/html', Mimes.markdown, 'application/json']);
 
-		// moves multiple, preserves order
 		m.prioritize(Mimes.markdown, ['text/plain', 'application/json', Mimes.markdown]);
 		assert.deepStrictEqual(m.toArray(), ['text/html', Mimes.markdown, 'text/plain', 'application/json']);
 
-		// deletes multiple
 		m.prioritize('text/plain', ['text/plain', 'text/html', Mimes.markdown]);
 		assert.deepStrictEqual(m.toArray(), ['text/plain', 'text/html', Mimes.markdown, 'application/json']);
 
-		// handles multiple mimetypes, unknown mimetype
 		const m2 = new MimeTypeDisplayOrder(['a', 'b']);
 		m2.prioritize('b', ['a', 'b', 'a', 'q']);
 		assert.deepStrictEqual(m2.toArray(), ['b', 'a']);
@@ -207,9 +201,6 @@ suite('NotebookCommon', () => {
 	});
 
 	test('prioritizes mimetypes with 10+ entries (numeric index sort)', () => {
-		// Regression for the case where `Array.from(uniqueIndices).sort()` did a
-		// lexicographic sort on numeric indices, so `[2, 10]` became `[10, 2]`
-		// and the reverse-splice loop removed the wrong entries.
 		const mimes = Array.from({ length: 12 }, (_, i) => `type/${i}`);
 		const m = new MimeTypeDisplayOrder(mimes);
 		assert.deepStrictEqual(m.toArray(), mimes);

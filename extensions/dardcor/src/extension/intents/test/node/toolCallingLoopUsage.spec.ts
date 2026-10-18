@@ -84,7 +84,6 @@ class CreditsTestToolCallingLoop extends ToolCallingLoop<IToolCallingLoopOptions
 		return [];
 	}
 
-	// Each model call bills 5 credits (5 * 1e9 nano-AIU).
 	protected override async fetch(): Promise<ChatResponse> {
 		return {
 			type: ChatFetchResponseType.Success,
@@ -209,8 +208,6 @@ describe('ToolCallingLoop usage reporting', () => {
 
 		await loop.runOne(stream, 0, tokenSource.token);
 
-		// Subagents report their running credit total with no token counts so the
-		// subagent tool can surface its own cost without inflating the parent widget.
 		expect(stream.usages).toEqual([{ promptTokens: 0, completionTokens: 0, dardcorCredits: 5 }]);
 	});
 
@@ -227,8 +224,6 @@ describe('ToolCallingLoop usage reporting', () => {
 		disposables.add(loop);
 		const stream = new UsageCapturingStream();
 
-		// Two model calls in the same turn: the per-request credits must be the
-		// running total (5, then 10), not just the final call's 5.
 		await loop.runOne(stream, 0, tokenSource.token);
 		await loop.runOne(stream, 1, tokenSource.token);
 

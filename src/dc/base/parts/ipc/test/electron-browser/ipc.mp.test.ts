@@ -15,11 +15,6 @@ suite('IPC, MessagePorts', () => {
 		const client1 = new MessagePortClient(port1, 'client1');
 		const client2 = new MessagePortClient(port2, 'client2');
 
-		// This test ensures that Electron's API for the close event
-		// does not break because we rely on it to dispose client
-		// connections from the server.
-		//
-		// This event is not provided by browser MessagePort API though.
 		const whenClosed = new Promise<boolean>(resolve => port1.addEventListener('close', () => resolve(true)));
 
 		client2.dispose();

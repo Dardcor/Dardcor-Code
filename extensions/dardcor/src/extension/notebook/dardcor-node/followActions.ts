@@ -21,11 +21,9 @@ export class NotebookFollowCommands extends Disposable {
 	) {
 		super();
 
-		// get setting and set initial follower context state
 		this.followSettingEnabled = this._configurationService.getConfig(ConfigKey.NotebookFollowCellExecution);
 		this.updateFollowContext(this.followSettingEnabled);
 
-		// config listener to disable if the setting changes
 		this._register(Event.runAndSubscribe(this._configurationService.onDidChangeConfiguration, e => {
 			if (!e || e.affectsConfiguration(ConfigKey.NotebookFollowCellExecution.fullyQualifiedId)) {
 				this.followSettingEnabled = this._configurationService.getConfig(ConfigKey.NotebookFollowCellExecution);
@@ -33,7 +31,6 @@ export class NotebookFollowCommands extends Disposable {
 			}
 		}));
 
-		// commands to change context state
 		this._register(vscode.commands.registerCommand('github.dardcor.chat.notebook.enableFollowCellExecution', () => {
 			this.updateFollowContext(true);
 		}));

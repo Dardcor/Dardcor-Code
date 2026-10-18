@@ -70,7 +70,6 @@ class RemoteSourceProviderQuickPick implements Disposable {
 			this.quickpick!.show();
 
 			const remoteSources = await this.provider.getRemoteSources(this.quickpick?.value) || [];
-			// The user may have cancelled the picker in the meantime
 			if (this.isDisposed) {
 				return;
 			}

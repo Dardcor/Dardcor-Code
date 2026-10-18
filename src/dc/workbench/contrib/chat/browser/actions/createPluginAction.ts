@@ -82,10 +82,6 @@ function isUserDefinedMcpCollection(collection: McpCollectionDefinition): boolea
 		|| order === McpCollectionSortOrder.Workspace;
 }
 
-/**
- * Gets a display label for a prompt resource. Skills need special handling
- * because their URI points to `SKILL.md`, so we use the parent directory name.
- */
 export function getResourceLabel(r: IPromptPath): string {
 	if (r.name) {
 		return r.name;
@@ -96,10 +92,6 @@ export function getResourceLabel(r: IPromptPath): string {
 	return basename(r.uri);
 }
 
-/**
- * Gets a filesystem-safe name for a resource, stripping any namespace prefix
- * (e.g. `plugin:skillname` → `skillname`).
- */
 export function getResourceFileName(r: IPromptPath): string {
 	const label = getResourceLabel(r);
 	const colonIndex = label.indexOf(':');
@@ -140,7 +132,6 @@ class CreatePluginAction extends Action2 {
 		const commandService = accessor.get(ICommandService);
 		const notificationService = accessor.get(INotificationService);
 
-		// Step 1: Gather resources
 		const [instructions, prompts, agents, skills, hooks] = await (async () => {
 			const cts = new CancellationTokenSource();
 			try {
@@ -158,7 +149,6 @@ class CreatePluginAction extends Action2 {
 
 		const mcpCollections = mcpRegistry.collections.get();
 
-		// Step 2: Build tree items grouped by resource type
 		let showAll = false;
 
 		const buildTree = (): (IGroupTreeItem | IResourceTreeItem)[] => {
@@ -193,11 +183,10 @@ class CreatePluginAction extends Action2 {
 
 			addGroup(instructions, 'instruction', localize('instructions', "Instructions"), Codicon.book);
 			addGroup(prompts, 'prompt', localize('prompts', "Prompts"), Codicon.comment);
-			addGroup(agents, 'agent', localize('agents', "Agents"), Codicon.copilot);
+			addGroup(agents, 'agent', localize('agents', "Agents"), Codicon.robot);
 			addGroup(skills, 'skill', localize('skills', "Skills"), Codicon.lightbulb);
 			addGroup(hooks, 'hook', localize('hooks', "Hooks"), Codicon.zap);
 
-			// MCP servers
 			const mcpChildren: IResourceTreeItem[] = [];
 			for (const collection of mcpCollections) {
 				if (!showAll && !isUserDefinedMcpCollection(collection)) {
@@ -228,7 +217,6 @@ class CreatePluginAction extends Action2 {
 			return groups;
 		};
 
-		// Step 3: Show QuickTree for multi-select with groupings
 		const disposables = new DisposableStore();
 		const tree = disposables.add(quickInputService.createQuickTree<IGroupTreeItem | IResourceTreeItem>());
 		tree.placeholder = localize('selectResources', "Select resources to include in the plugin");
@@ -267,7 +255,6 @@ class CreatePluginAction extends Action2 {
 
 		const selected = selectedItems.filter((i): i is IResourceTreeItem => !!i.resourceType);
 
-		// Step 4: Ask which plugin format to create
 		const formatPick = await quickInputService.pick<IPluginCreationFormatPick>([
 			{
 				label: localize('agentPluginFormat', "Agent Plugin"),
@@ -288,7 +275,6 @@ class CreatePluginAction extends Action2 {
 			return;
 		}
 
-		// Step 5: Ask for plugin name
 		const pluginName = await quickInputService.input({
 			prompt: localize('pluginNamePrompt', "Enter a name for the plugin"),
 			placeHolder: 'my-plugin',
@@ -299,7 +285,6 @@ class CreatePluginAction extends Action2 {
 			return;
 		}
 
-		// Step 6: Ask where to save
 		const folderUris = await fileDialogService.showOpenDialog({
 			canSelectFiles: false,
 			canSelectFolders: true,
@@ -315,24 +300,19 @@ class CreatePluginAction extends Action2 {
 		const targetDir = folderUris[0];
 		const pluginRoot = joinPath(targetDir, pluginName);
 
-		// Check if plugin directory already exists
 		if (await fileService.exists(pluginRoot)) {
 			notificationService.error(localize('pluginExists', "A directory named '{0}' already exists at this location. Please choose a different name or location.", pluginName));
 			return;
 		}
 
-		// Step 7: Create plugin structure
 		try {
 			await writePluginToDisk(fileService, pluginRoot, pluginName, selected, formatPick.format);
 
-			// Step 8: Check for marketplace.json and update it
 			await updateMarketplaceIfNeeded(fileService, targetDir, pluginName);
 
-			// Step 9: Reveal the plugin directory in the OS file explorer
 			try {
 				await commandService.executeCommand('revealFileInOS', pluginRoot);
 			} catch {
-				// revealFileInOS may not be available for all URI schemes
 			}
 
 			notificationService.info(localize('pluginCreated', "Plugin '{0}' created successfully.", pluginName));
@@ -343,9 +323,6 @@ class CreatePluginAction extends Action2 {
 	}
 }
 
-/**
- * Writes a plugin directory structure to disk from selected resources.
- */
 export async function writePluginToDisk(
 	fileService: IFileService,
 	pluginRoot: URI,
@@ -443,7 +420,6 @@ export async function writePluginToDisk(
 		}
 	}
 
-	// Copy skills → skills/ (recursive directory copy)
 	if (byType.skill.length > 0) {
 		const skillsDir = joinPath(pluginRoot, 'skills');
 		await fileService.createFolder(skillsDir);
@@ -454,7 +430,6 @@ export async function writePluginToDisk(
 			const sourceUri = item.promptPath.uri;
 			const skillName = getResourceFileName(item.promptPath);
 
-			// The URI for a skill might point to the SKILL.md file or to the directory
 			const sourceName = basename(sourceUri);
 			const isFile = sourceName.toLowerCase() === 'skill.md';
 			const skillSourceDir = isFile ? joinPath(sourceUri, '..') : sourceUri;
@@ -493,7 +468,6 @@ export async function writePluginToDisk(
 					}
 				}
 			} catch {
-				// Skip unparseable hook files
 			}
 		}
 
@@ -688,7 +662,6 @@ export async function updateMarketplaceIfNeeded(fileService: IFileService, targe
 
 					const plugins = marketplace['plugins'] as { name?: string; source?: string }[];
 
-					// Skip if a plugin with this name already exists
 					if (plugins.some(p => p.name === pluginName)) {
 						return;
 					}
@@ -704,9 +677,8 @@ export async function updateMarketplaceIfNeeded(fileService: IFileService, targe
 					);
 				}
 			} catch {
-				// Skip if marketplace.json is unparseable
 			}
-			return; // Only update the first found marketplace
+			return;
 		}
 	}
 }

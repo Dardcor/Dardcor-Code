@@ -25,7 +25,6 @@ import { STATUS_BAR_ERROR_ITEM_BACKGROUND, STATUS_BAR_WARNING_ITEM_BACKGROUND } 
 import { IManagedHoverTooltipMarkdownString } from '../../../base/browser/ui/hover/hover.js';
 
 
-// --- service
 
 export const IExtensionStatusBarItemService = createDecorator<IExtensionStatusBarItemService>('IExtensionStatusBarItemService');
 
@@ -81,7 +80,6 @@ class ExtensionStatusBarItemService implements IExtensionStatusBarItemService {
 		command: Command | undefined, color: string | ThemeColor | undefined, backgroundColor: ThemeColor | undefined,
 		alignLeft: boolean, priority: number | undefined, accessibilityInformation: IAccessibilityInformation | undefined
 	): StatusBarUpdateKind {
-		// if there are icons in the text use the tooltip for the aria label
 		let ariaLabel: string;
 		let role: string | undefined = undefined;
 		if (accessibilityInformation) {
@@ -98,7 +96,6 @@ class ExtensionStatusBarItemService implements IExtensionStatusBarItemService {
 		switch (backgroundColor?.id) {
 			case STATUS_BAR_ERROR_ITEM_BACKGROUND:
 			case STATUS_BAR_WARNING_ITEM_BACKGROUND:
-				// override well known colors that map to status entry kinds to support associated themable hover colors
 				kind = backgroundColor.id === STATUS_BAR_ERROR_ITEM_BACKGROUND ? 'error' : 'warning';
 				color = undefined;
 				backgroundColor = undefined;
@@ -111,22 +108,15 @@ class ExtensionStatusBarItemService implements IExtensionStatusBarItemService {
 
 		let alignment = alignLeft ? StatusbarAlignment.LEFT : StatusbarAlignment.RIGHT;
 
-		// alignment and priority can only be set once (at creation time)
 		const existingEntry = this._entries.get(entryId);
 		if (existingEntry) {
 			alignment = existingEntry.alignment;
 			priority = existingEntry.priority;
 		}
 
-		// Create new entry if not existing
 		if (!existingEntry) {
 			let entryPriority: number | IStatusbarEntryPriority;
 			if (typeof extensionId === 'string') {
-				// We cannot enforce unique priorities across all extensions, so we
-				// use the extension identifier as a secondary sort key to reduce
-				// the likelyhood of collisions.
-				// See https://github.com/microsoft/vscode/issues/177835
-				// See https://github.com/microsoft/vscode/issues/123827
 				entryPriority = { primary: priority, secondary: hash(extensionId) };
 			} else {
 				entryPriority = priority;
@@ -149,7 +139,6 @@ class ExtensionStatusBarItemService implements IExtensionStatusBarItemService {
 			return StatusBarUpdateKind.DidDefine;
 
 		} else {
-			// Otherwise update
 			existingEntry.accessor.update(entry);
 			existingEntry.entry = entry;
 			return StatusBarUpdateKind.DidUpdate;
@@ -168,7 +157,6 @@ class ExtensionStatusBarItemService implements IExtensionStatusBarItemService {
 
 registerSingleton(IExtensionStatusBarItemService, ExtensionStatusBarItemService, InstantiationType.Delayed);
 
-// --- extension point and reading of it
 
 type IUserFriendlyStatusItemEntry = TypeFromJsonSchema<typeof statusBarItemSchema>;
 

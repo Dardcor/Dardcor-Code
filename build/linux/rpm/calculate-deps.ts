@@ -14,7 +14,6 @@ export function generatePackageDeps(files: string[]): Set<string>[] {
 	return dependencies;
 }
 
-// Based on https://source.chromium.org/chromium/chromium/src/+/main:chrome/installer/linux/rpm/calculate_package_deps.py.
 function calculatePackageDeps(binaryPath: string): Set<string> {
 	try {
 		const st = statSync(binaryPath);

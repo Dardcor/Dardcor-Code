@@ -19,7 +19,6 @@ export class QuickInputTreeSorter extends Disposable implements ITreeSorter<IQui
 	}
 
 	compare(a: IQuickTreeItem, b: IQuickTreeItem): number {
-		// No-op
 		if (!this._sortByLabel) {
 			return 0;
 		}
@@ -29,7 +28,6 @@ export class QuickInputTreeSorter extends Disposable implements ITreeSorter<IQui
 		} else if (a.label > b.label) {
 			return 1;
 		}
-		// use description to break ties
 		if (a.description && b.description) {
 			if (a.description < b.description) {
 				return -1;

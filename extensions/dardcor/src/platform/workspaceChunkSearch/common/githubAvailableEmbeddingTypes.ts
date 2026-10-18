@@ -40,11 +40,6 @@ export const IGithubAvailableEmbeddingTypesService = createServiceIdentifier<IGi
 export interface IGithubAvailableEmbeddingTypesService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Gets the preferred embedding type based on available types and user configuration.
-	 * @param silent Whether to silently handle authentication errors
-	 * @returns The preferred embedding type or undefined if none available
-	 */
 	getPreferredType(silent: boolean): Promise<EmbeddingType | undefined>;
 }
 
@@ -81,7 +76,6 @@ export class GithubAvailableEmbeddingTypesService implements IGithubAvailableEmb
 					return cachedResult;
 				}
 			} catch {
-				// noop
 			}
 
 			if (this._cached === oldCached) {
@@ -131,18 +125,10 @@ export class GithubAvailableEmbeddingTypesService implements IGithubAvailableEmb
 		}
 
 		if (!response.ok) {
-			/* __GDPR__
-				"githubAvailableEmbeddingTypes.getAvailableTypes.error" : {
-					"owner": "mjbvz",
-					"comment": "Information about failed githubAvailableEmbeddingTypes calls",
-					"statusCode": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The response status code" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('githubAvailableEmbeddingTypes.getAvailableTypes.error', {}, {
 				statusCode: response.status,
 			});
 
-			// Also treat 404s as unauthorized since this typically indicates that the user is anonymous
 			if (response.status === 401 || response.status === 404) {
 				return Result.error<GetAvailableTypesError>({ type: 'unauthorized', status: response.status });
 			}
@@ -175,14 +161,6 @@ export class GithubAvailableEmbeddingTypesService implements IGithubAvailableEmb
 			}
 		}
 
-		/* __GDPR__
-			"githubAvailableEmbeddingTypes.getAvailableTypes.success" : {
-				"owner": "mjbvz",
-				"comment": "Information about successful githubAvailableEmbeddingTypes calls",
-				"primaryEmbeddingTypes": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "List of primary embedding types" },
-				"deprecatedEmbeddingTypes": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "List of deprecated embedding types" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('githubAvailableEmbeddingTypes.getAvailableTypes.success', {
 			primaryEmbeddingTypes: primary.map(type => type.id).join(','),
 			deprecatedEmbeddingTypes: deprecated.map(type => type.id).join(','),
@@ -196,13 +174,6 @@ export class GithubAvailableEmbeddingTypesService implements IGithubAvailableEmb
 		if (!result.isOk()) {
 			this._logService.info(`GithubAvailableEmbeddingTypesManager: Could not find any available embedding types. Error: ${result.err.type}`);
 
-			/* __GDPR__
-				"githubAvailableEmbeddingTypes.getPreferredType.error" : {
-					"owner": "mjbvz",
-					"comment": "Information about failed githubAvailableEmbeddingTypes calls",
-					"error": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The reason why the request failed" }
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('githubAvailableEmbeddingTypes.getPreferredType.error', {
 				error: result.err.type,
 			});

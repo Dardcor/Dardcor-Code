@@ -21,27 +21,17 @@ import { generateUuid } from '../../../../base/common/uuid.js';
 import type { AgentHostStateManager } from '../agentHostStateManager.js';
 import type { IServerToolDisplay, IServerToolDisplayResult, IServerToolGroup } from './agentServerToolHost.js';
 
-/**
- * Maximum `create_session` recursion depth. A user/top-level session is depth 0;
- * a session created by `create_session` from within a depth-N session is depth
- * N+1. Once a session reaches this depth, its agent may not create further
- * sessions — this bounds recursive spawn *chains* (A→B→C→…). Breadth is bounded
- * separately by {@link maxCreatedSessions} plus the per-call user confirmation.
- */
 const maxSessionSpawnDepth = 3;
 
-/** Process-wide backstop against runaway spawning (breadth), independent of depth. */
 const maxCreatedSessions = 25;
 const maxCreatedChats = 25;
 
-/** Process-wide backstop against runaway `send_message` fan-out. */
 const maxSentMessages = 50;
 
 const sessionConfirmationToolNames: ReadonlySet<string> = new Set([SessionServerToolName.SetWorkspace, SessionServerToolName.CreateSession, SessionServerToolName.CreateChat, SessionServerToolName.SendMessage, SessionServerToolName.DeleteSession]);
 const createSessionRelationshipValues = ['currentSession', 'independent'] as const;
 export type CreateSessionRelationship = typeof createSessionRelationshipValues[number];
 
-/** Whether the given session server tool requires user confirmation before it runs. */
 export function sessionToolRequiresConfirmation(toolName: string): boolean {
 	return sessionConfirmationToolNames.has(toolName);
 }
@@ -147,7 +137,6 @@ const getSessionContextInputSchema: ToolDefinition['inputSchema'] = {
 	required: ['session'],
 };
 
-/** Server tool definitions for session management. */
 export const sessionServerToolDefinitions: IAgentServerToolDefinition[] = [
 	{
 		name: SessionServerToolName.ListSessions,
@@ -207,7 +196,6 @@ export const sessionServerToolDefinitions: IAgentServerToolDefinition[] = [
 	},
 ];
 
-/** Resolves the owning backend session URI for the channel a tool call runs on. */
 export function currentSessionUri(toolCallChannel: ProtocolURI): URI {
 	const owning = parseChatUri(toolCallChannel) ?? undefined;
 	return URI.parse(owning?.session ?? toolCallChannel);
@@ -234,7 +222,6 @@ export type IResolvedCreateSessionArgs = {
 	readonly model?: IAgentModelInfo;
 };
 
-/** AgentService-owned operations used by the session server-tool group. */
 export interface IAgentServiceSessionServerToolAccessor {
 	readonly isActiveAgentTitleGenerationEnabled: () => boolean;
 	readonly canConvertWorkspace: (session: URI) => boolean;
@@ -248,15 +235,11 @@ export interface IAgentServiceSessionServerToolAccessor {
 	readonly renameChat: (session: URI, chat: URI, title: string) => Promise<IRenameTitleResult>;
 	readonly reportToolError: (toolName: SessionServerToolName, error: unknown) => void;
 	readonly deleteSession: (session: URI) => Promise<void>;
-	/** Reads a point-in-time snapshot of a session's chat conversation (default chat, or a specific chat by id). */
 	readonly getChatContext: (session: URI, chatId?: string) => Promise<IChatContextSnapshot | undefined>;
-	/** The spawn depth of a session (0 for a user/top-level session, N for one created N levels deep by `create_session`). */
 	readonly getSessionSpawnDepth: (session: URI) => number;
-	/** Records the spawn depth of a freshly-created session so its own `create_session` calls can enforce the recursion limit. */
 	readonly setSessionSpawnDepth: (session: URI, depth: number) => void;
 }
 
-/** Complete dependency surface needed by the session server-tool group. */
 export interface ISessionServerToolAccessor extends IAgentServiceSessionServerToolAccessor {
 	readonly requestSessionWorkspaceUpdate: (chat: URI, turnId: string, workspaceFolder: URI, isolation: boolean) => void;
 }
@@ -273,13 +256,9 @@ export interface ISessionCreationDefaults {
 	readonly project?: URI;
 }
 
-/** Point-in-time snapshot of a chat's conversation, read from the host state. */
 export interface IChatContextSnapshot {
-	/** Completed turns, oldest first. */
 	readonly turns: readonly Turn[];
-	/** The in-progress turn, if the chat is mid-response. */
 	readonly activeTurn?: Pick<Turn, 'message' | 'responseParts'>;
-	/** `true` when older completed turns exist beyond the in-memory window. */
 	readonly hasMoreHistory: boolean;
 }
 
@@ -295,30 +274,21 @@ interface ISerializedGitState {
 interface ISerializedGitHubState {
 	readonly owner?: string;
 	readonly repo?: string;
-	/** Most recent pull request in this compact tool-facing session summary. */
 	readonly pullRequestUrl?: string;
 }
 
 interface ISerializedSession {
 	readonly session: string;
-	/** Clickable URI that opens the session in the Agents window. */
 	readonly openLink: string;
 	readonly title?: string;
 	readonly status?: string;
-	/** Human-readable description of what the session is currently doing. */
 	readonly activity?: string;
 	readonly workingDirectory?: string;
-	/** Every working-directory URI when the session has more than one. */
 	readonly workingDirectories?: readonly string[];
-	/** Display name of the session's project/workspace. */
 	readonly project?: string;
-	/** Configured project root URI, which may differ from a transient working directory. */
 	readonly projectUri?: string;
-	/** `true` when the session has updates the user has not yet seen. */
 	readonly unread?: boolean;
-	/** ISO-8601 timestamp of when the session was created. */
 	readonly createdAt?: string;
-	/** ISO-8601 timestamp of the session's last activity. */
 	readonly modifiedAt?: string;
 	readonly changes?: IAgentSessionMetadata['changes'];
 	readonly changesets?: readonly {
@@ -403,7 +373,6 @@ export function validateRenameTitle(title: string, toolName: SessionServerToolNa
 }
 
 function parseWorkspaceUri(workspace: string): URI | undefined {
-	// Absolute filesystem path (POSIX `/…` or Windows `C:\…` / `\\share`).
 	if (/^(\/|[a-zA-Z]:[\\/]|\\\\)/.test(workspace)) {
 		return URI.file(workspace);
 	}
@@ -415,7 +384,6 @@ function parseWorkspaceUri(workspace: string): URI | undefined {
 	}
 }
 
-/** Validates and resolves the workspace requested by `set_workspace`. */
 export function getSetWorkspaceArgs(rawArgs: unknown): { readonly workspaceFolder: URI; readonly isolation: boolean } {
 	const args = (rawArgs ?? {}) as { readonly workspaceFolder?: unknown; readonly isolation?: unknown };
 	const input = getRequiredString(args.workspaceFolder, 'workspaceFolder', SessionServerToolName.SetWorkspace);
@@ -468,11 +436,8 @@ async function getCreateSessionCatalog(accessor: ISessionServerToolAccessor, raw
 		return [];
 	}
 	try {
-		// Prefer the catalog because a project display name can also be a valid URI.
 		return await accessor.listSessions();
 	} catch (error) {
-		// An explicit URI/path is self-contained, so it remains usable when a
-		// provider cannot enumerate its session catalog.
 		if (parseWorkspaceUri(workspace) !== undefined) {
 			return [];
 		}
@@ -506,7 +471,6 @@ function getCreateSessionRelationship(rawArgs: unknown): CreateSessionRelationsh
 	return relationship as CreateSessionRelationship;
 }
 
-/** Validates and resolves create-session arguments against current sessions and models. */
 export function getCreateSessionArgs(rawArgs: unknown, sessions: readonly IAgentSessionMetadata[], models: readonly IAgentModelInfo[], currentProvider?: AgentProvider): IResolvedCreateSessionArgs {
 	const args = (rawArgs ?? {}) as ICreateSessionArgs;
 	const relationship = getCreateSessionRelationship(args);
@@ -536,11 +500,8 @@ export function getCreateSessionArgs(rawArgs: unknown, sessions: readonly IAgent
 	};
 }
 
-/** Decodes the {@link SessionStatus} bit-flags into readable names for the agent. */
 function describeSessionStatusBits(status: SessionStatus): string[] {
 	const names: string[] = [];
-	// `InputNeeded` is a superset of the `InProgress` bit, so it must be matched
-	// with an exact-bits check before falling back to plain `InProgress`.
 	if ((status & SessionStatus.InputNeeded) === SessionStatus.InputNeeded) {
 		names.push('inputNeeded');
 	} else if (status & SessionStatus.InProgress) {
@@ -557,15 +518,10 @@ function describeSessionStatusBits(status: SessionStatus): string[] {
 	return names;
 }
 
-/**
- * Decodes a session's status into readable names, used by both filtering and
- * serialization so they agree on which sessions are considered `archived`.
- */
 function describeSessionStatusNames(session: IAgentSessionMetadata): string[] {
 	return session.status !== undefined ? describeSessionStatusBits(session.status) : [];
 }
 
-/** Renders a session's status names as the compact string used in tool results. */
 function describeSessionStatus(session: IAgentSessionMetadata): string | undefined {
 	const names = describeSessionStatusNames(session);
 	if (names.length > 0) {
@@ -575,9 +531,7 @@ function describeSessionStatus(session: IAgentSessionMetadata): string | undefin
 }
 
 
-/** Filters accepted by `list_sessions` to narrow the returned set. */
 export interface IListSessionsArgs {
-	/** Direct lookup: return only the session with this URI / open link, ignoring all other filters. */
 	readonly session?: string;
 	readonly status?: ReadonlySet<string>;
 	readonly workspace?: string;
@@ -585,9 +539,7 @@ export interface IListSessionsArgs {
 	readonly unread?: boolean;
 	readonly withPullRequest?: boolean;
 	readonly includeArchived?: boolean;
-	/** Lower bound on session creation time, in epoch milliseconds. */
 	readonly createdAfter?: number;
-	/** Upper bound on session creation time, in epoch milliseconds. */
 	readonly createdBefore?: number;
 }
 
@@ -615,7 +567,6 @@ function getOptionalTimestamp(value: unknown, field: string, toolName: string): 
 	return parsed;
 }
 
-/** Validates and normalizes the optional `list_sessions` filter arguments. */
 export function getListSessionsArgs(rawArgs: unknown): IListSessionsArgs {
 	const args = (rawArgs ?? {}) as { session?: unknown; status?: unknown; workspace?: unknown; withChanges?: unknown; unread?: unknown; withPullRequest?: unknown; includeArchived?: unknown; createdAfter?: unknown; createdBefore?: unknown };
 
@@ -644,7 +595,6 @@ export function getListSessionsArgs(rawArgs: unknown): IListSessionsArgs {
 	};
 }
 
-/** Whether a session has any pending worktree changes (insertions, deletions, or changed files). */
 function sessionHasChanges(session: IAgentSessionMetadata): boolean {
 	const changes = session.changes;
 	return !!changes && ((changes.files ?? 0) > 0 || (changes.additions ?? 0) > 0 || (changes.deletions ?? 0) > 0);
@@ -654,16 +604,10 @@ function sessionIsArchived(session: IAgentSessionMetadata): boolean {
 	return isSessionStatusArchived(session.status);
 }
 
-/**
- * Whether a session is *known* to be unread. A session with no status has no
- * recorded read state — cold sessions from agents that don't project one, such
- * as Claude — and must not be reported as unread.
- */
 function sessionIsUnread(session: IAgentSessionMetadata): boolean {
 	return session.status !== undefined && !isSessionStatusRead(session.status);
 }
 
-/** Whether a session's project or any working directory matches the given workspace selector. */
 function sessionMatchesWorkspace(session: IAgentSessionMetadata, workspace: string): boolean {
 	if (session.project?.displayName.toLowerCase() === workspace.toLowerCase()) {
 		return true;
@@ -673,10 +617,7 @@ function sessionMatchesWorkspace(session: IAgentSessionMetadata, workspace: stri
 		&& [session.project?.uri, ...(session.workingDirectories ?? [])].some(candidate => candidate !== undefined && isEqual(candidate, parsed));
 }
 
-/** Applies the {@link IListSessionsArgs} filters to a set of sessions. */
 export function filterSessions(sessions: readonly IAgentSessionMetadata[], args: IListSessionsArgs): readonly IAgentSessionMetadata[] {
-	// A direct `session` lookup returns just that session, bypassing the other
-	// filters (including the default archived exclusion).
 	if (args.session !== undefined) {
 		const target = parseOpenSessionLinkUri(args.session)?.toString() ?? args.session;
 		return sessions.filter(session => session.session.toString() === target);
@@ -700,8 +641,6 @@ export function filterSessions(sessions: readonly IAgentSessionMetadata[], args:
 		if (args.withPullRequest && getSessionRelatedPullRequestUrls(readSessionGitHubState(session._meta)).length === 0) {
 			return false;
 		}
-		// Archived sessions are hidden unless explicitly requested, either via
-		// `includeArchived` or by asking for the `archived` status directly.
 		if (args.includeArchived !== true && !args.status?.has('archived') && sessionIsArchived(session)) {
 			return false;
 		}
@@ -776,7 +715,6 @@ function serializeSession(session: IAgentSessionMetadata): ISerializedSession {
 	};
 }
 
-/** Serializes session metadata into the compact tool-result JSON payload. */
 export function serializeSessions(sessions: readonly IAgentSessionMetadata[]): string {
 	return JSON.stringify({ sessions: sessions.map(serializeSession) });
 }
@@ -785,13 +723,9 @@ export interface ICreateSessionResult {
 	readonly relationship: CreateSessionRelationship;
 	readonly session: string;
 	readonly chat: string;
-	/** Clickable {@link AGENT_HOST_SESSION_LINK_SCHEME} URI that opens the session in the Agents window. */
 	readonly openLink: string;
 }
 
-/**
- * Creates work with the requested relationship and sends its initial prompt.
- */
 export async function applyCreateSessionTool(accessor: ISessionServerToolAccessor, rawArgs: unknown, source?: URI, sourceTurnId?: string): Promise<ICreateSessionResult> {
 	const sessions = await getCreateSessionCatalog(accessor, rawArgs);
 	const currentSession = source ? currentSessionUri(source.toString()) : undefined;
@@ -855,7 +789,6 @@ export async function applyCreateSessionTool(accessor: ISessionServerToolAccesso
 	return { relationship: args.relationship, session: session.toString(), chat: chat.toString(), openLink: buildOpenSessionLinkUri(session) };
 }
 
-/** Builds the model-facing `create_session` result. */
 export function formatCreateSessionResult(result: ICreateSessionResult): string {
 	if (result.relationship === 'currentSession') {
 		return `Chat created in the current session (${result.openLink}).`;
@@ -873,7 +806,6 @@ interface ICreateChatArgs {
 export interface ICreateChatResult {
 	readonly session: string;
 	readonly chat: string;
-	/** Clickable {@link AGENT_HOST_SESSION_LINK_SCHEME} URI that opens the created chat. */
 	readonly openLink: string;
 }
 
@@ -884,21 +816,13 @@ interface IResolvedCreateChatArgs {
 	readonly model?: IAgentModelInfo;
 }
 
-/**
- * Resolves a session identifier — accepting either a backend session URI
- * (`copilotcli:/…` from `list_sessions`) or an `agent-host-session://…` open
- * link (as returned by `create_session`/`get_current_session`) — against the
- * set of known sessions. Returns `undefined` when it matches no known session.
- */
 function resolveKnownSession(sessionInput: string, sessions: readonly IAgentSessionMetadata[]): URI | undefined {
-	// Normalize an open-session link back to its backend session URI.
 	const fromLink = parseOpenSessionLinkUri(sessionInput);
 	const candidate = fromLink?.toString() ?? sessionInput;
 	const match = sessions.find(s => s.session.toString() === candidate);
 	return match?.session;
 }
 
-/** Resolves the target session URI for `create_chat` against the known sessions. */
 function resolveChatSession(sessionInput: string, sessions: readonly IAgentSessionMetadata[]): URI {
 	const session = resolveKnownSession(sessionInput, sessions);
 	if (!session) {
@@ -907,7 +831,6 @@ function resolveChatSession(sessionInput: string, sessions: readonly IAgentSessi
 	return session;
 }
 
-/** Validates and resolves create-chat arguments; defaults the session to {@link currentSession} when omitted. */
 export function getCreateChatArgs(rawArgs: unknown, sessions: readonly IAgentSessionMetadata[], models: readonly IAgentModelInfo[], currentSession?: URI): IResolvedCreateChatArgs {
 	const args = (rawArgs ?? {}) as ICreateChatArgs;
 	const prompt = getRequiredString(args.prompt, 'prompt', SessionServerToolName.CreateChat);
@@ -948,14 +871,12 @@ async function createChat(accessor: ISessionServerToolAccessor, args: IResolvedC
 	return { session: args.session.toString(), chat: chat.toString(), openLink: buildOpenSessionLinkUri(args.session, chatId) };
 }
 
-/** Executes the retired `create_chat` contract for sessions that advertised it previously. */
 export async function applyCreateChatTool(accessor: ISessionServerToolAccessor, rawArgs: unknown, source?: URI, sourceTurnId?: string): Promise<ICreateChatResult> {
 	const sessions = await accessor.listSessions();
 	const currentSession = source ? currentSessionUri(source.toString()) : undefined;
 	return createChat(accessor, getCreateChatArgs(rawArgs, sessions, accessor.getModels(), currentSession), source, sourceTurnId);
 }
 
-/** Builds the model-facing `create_chat` result. */
 export function formatCreateChatResult(result: ICreateChatResult): string {
 	return `Chat created (${result.openLink}).`;
 }
@@ -1088,20 +1009,12 @@ interface ISendMessageArgs {
 }
 
 export interface IResolvedSendMessageArgs {
-	/** The owning backend session URI of the target chat. */
 	readonly session: URI;
-	/** The chat channel to deliver the message on (default chat, or a specific chat when the link carried one). */
 	readonly chat: URI;
-	/** The chat id when a specific chat was targeted (from a `create_chat` link). */
 	readonly chatId?: string;
 	readonly message: string;
 }
 
-/**
- * Validates and resolves send-message arguments. When the `session` input is a
- * `create_chat` open link (carrying a chat id), the message is targeted at that
- * specific chat rather than the session's default chat.
- */
 export function getSendMessageArgs(rawArgs: unknown, sessions: readonly IAgentSessionMetadata[]): IResolvedSendMessageArgs {
 	const args = (rawArgs ?? {}) as ISendMessageArgs;
 	const message = getRequiredString(args.message, 'message', SessionServerToolName.SendMessage);
@@ -1115,12 +1028,6 @@ export function getSendMessageArgs(rawArgs: unknown, sessions: readonly IAgentSe
 	return { session, chat, message, ...(chatId !== undefined ? { chatId } : {}) };
 }
 
-/**
- * Sends a message to an existing session/chat, starting a new turn there or
- * queuing it behind the target chat's active or pending messages.
- * Refuses to target {@link currentChannel} (the chat channel the tool runs on)
- * to avoid a session trivially messaging itself in a loop.
- */
 export async function applySendMessageTool(accessor: ISessionServerToolAccessor, rawArgs: unknown, currentChannel?: ProtocolURI, sourceTurnId?: string, stateManager?: AgentHostStateManager): Promise<string> {
 	const sessions = await accessor.listSessions();
 	const { session, chat, chatId, message } = getSendMessageArgs(rawArgs, sessions);
@@ -1153,22 +1060,17 @@ export async function applySendMessageTool(accessor: ISessionServerToolAccessor,
 	return formatSendMessageResult(buildOpenSessionLinkUri(session, chatId), false);
 }
 
-/** Builds the model-facing `send_message` result. */
 export function formatSendMessageResult(openLink: string, queued: boolean): string {
 	return `Message ${queued ? 'queued' : 'sent'} (${openLink}).`;
 }
 
-// --- get_session_context -----------------------------------------------------
 
 type SessionContextDetail = (typeof sessionContextDetailValues)[number];
 
 const defaultTranscriptLimit = 10;
 const maxTranscriptLimit = 50;
 
-/** Per-detail truncation caps (characters); a value of 0 omits the field. */
 const contextCaps: Record<SessionContextDetail, { user: number; assistant: number; toolInput: number }> = {
-	// `summary` still carries a short assistant gist per turn so the reader sees
-	// what each turn actually did, not just what was asked.
 	summary: { user: 160, assistant: 140, toolInput: 0 },
 	digest: { user: 300, assistant: 800, toolInput: 0 },
 	full: { user: 1000, assistant: 2000, toolInput: 200 },
@@ -1187,7 +1089,6 @@ export interface IResolvedSessionContextArgs {
 	readonly transcriptLimit: number;
 }
 
-/** Validates and resolves get-session-context arguments against the known sessions. */
 export function getSessionContextArgs(rawArgs: unknown, sessions: readonly IAgentSessionMetadata[]): IResolvedSessionContextArgs {
 	const args = (rawArgs ?? {}) as ISessionContextArgs;
 	const sessionInput = getRequiredString(args.session, 'session', SessionServerToolName.GetSessionContext);
@@ -1213,7 +1114,6 @@ export function getSessionContextArgs(rawArgs: unknown, sessions: readonly IAgen
 	return { session, detail, transcriptLimit, ...(chatId !== undefined ? { chatId } : {}) };
 }
 
-/** Truncates {@link text} to {@link max} characters, appending an ellipsis when cut. */
 function truncateText(text: string, max: number): { text: string; truncated: boolean } {
 	const trimmed = text.trim();
 	if (trimmed.length <= max) {
@@ -1222,12 +1122,10 @@ function truncateText(text: string, max: number): { text: string; truncated: boo
 	return { text: `${trimmed.slice(0, Math.max(0, max - 1))}…`, truncated: true };
 }
 
-/** Reads the tool-call parts of a turn, newest-emitted last. */
 function toolCallsOf(parts: readonly ResponsePart[]): ToolCallState[] {
 	return parts.filter((p): p is Extract<ResponsePart, { kind: ResponsePartKind.ToolCall }> => p.kind === ResponsePartKind.ToolCall).map(p => p.toolCall);
 }
 
-/** Concatenated markdown text of a turn's response, in stream order. */
 function assistantTextOf(parts: readonly ResponsePart[]): string {
 	return parts.filter((p): p is Extract<ResponsePart, { kind: ResponsePartKind.Markdown }> => p.kind === ResponsePartKind.Markdown).map(p => p.content).join('').trim();
 }
@@ -1240,7 +1138,6 @@ interface ISerializedContextTurn {
 	readonly toolCalls?: readonly (string | { readonly name: string; readonly input?: string })[];
 }
 
-/** Maps a {@link TurnState} (or the in-progress active turn) to a display string. */
 function describeTurnState(state: TurnState | 'inProgress'): string {
 	switch (state) {
 		case TurnState.Complete: return 'complete';
@@ -1256,11 +1153,9 @@ interface ISerializedSessionContext {
 	readonly detail: SessionContextDetail;
 	readonly transcript: readonly ISerializedContextTurn[];
 	readonly hasMoreHistory: boolean;
-	/** `true` when turns were dropped from the window or any field was shortened. */
 	readonly truncated: boolean;
 }
 
-/** Builds the compacted, model-facing session-context payload from a snapshot. */
 export function serializeSessionContext(session: URI, chatId: string | undefined, snapshot: IChatContextSnapshot, detail: SessionContextDetail, transcriptLimit: number): string {
 	const caps = contextCaps[detail];
 	let truncated = false;
@@ -1318,14 +1213,11 @@ export function serializeSessionContext(session: URI, chatId: string | undefined
 	return JSON.stringify(payload);
 }
 
-/** Reads and serializes the context of an existing session/chat. */
 export async function applyGetSessionContextTool(accessor: ISessionServerToolAccessor, rawArgs: unknown): Promise<string> {
 	const sessions = await accessor.listSessions();
 	const { session, chatId, detail, transcriptLimit } = getSessionContextArgs(rawArgs, sessions);
 	const snapshot = await accessor.getChatContext(session, chatId);
 	if (!snapshot) {
-		// No live conversation state (e.g. a cold/unsubscribed session): return the
-		// identity + an empty transcript. Metadata is available via list_sessions.
 		return JSON.stringify({
 			session: session.toString(),
 			openLink: buildOpenSessionLinkUri(session, chatId),
@@ -1339,7 +1231,6 @@ export async function applyGetSessionContextTool(accessor: ISessionServerToolAcc
 }
 
 
-/** Serializes the current session's metadata + open link as the `get_current_session` result. */
 export function serializeCurrentSession(currentSession: URI, sessions: readonly IAgentSessionMetadata[]): string {
 	const meta = sessions.find(s => s.session.toString() === currentSession.toString());
 	return JSON.stringify({
@@ -1353,11 +1244,6 @@ interface IDeleteSessionArgs {
 	readonly session?: unknown;
 }
 
-/**
- * Validates delete-session arguments against current sessions and refuses to
- * delete {@link currentSession} (deleting the session the tool runs in would
- * tear down its own conversation).
- */
 export function getDeleteSessionArgs(rawArgs: unknown, sessions: readonly IAgentSessionMetadata[], currentSession?: URI): URI {
 	const args = (rawArgs ?? {}) as IDeleteSessionArgs;
 	const sessionInput = getRequiredString(args.session, 'session', SessionServerToolName.DeleteSession);
@@ -1371,7 +1257,6 @@ export function getDeleteSessionArgs(rawArgs: unknown, sessions: readonly IAgent
 	return session;
 }
 
-/** Deletes a session and returns the model-facing confirmation. */
 export async function applyDeleteSessionTool(accessor: ISessionServerToolAccessor, rawArgs: unknown, currentSession?: URI): Promise<string> {
 	const sessions = await accessor.listSessions();
 	const session = getDeleteSessionArgs(rawArgs, sessions, currentSession);
@@ -1379,7 +1264,6 @@ export async function applyDeleteSessionTool(accessor: ISessionServerToolAccesso
 	return `Deleted session ${session.toString()}. Reply with one short sentence confirming the session was deleted.`;
 }
 
-/** Requests setting the workspace in place after the tool's active turn completes. */
 export function applySetWorkspaceTool(accessor: ISessionServerToolAccessor, rawArgs: unknown, chat: URI, turnId: string | undefined): string {
 	if (!turnId) {
 		throw new Error(`${SessionServerToolName.SetWorkspace} must run from an active chat turn.`);
@@ -1478,22 +1362,12 @@ function getSessionToolDisplay(toolName: string, args: unknown, _result?: IServe
 	}
 }
 
-/**
- * Creates the session server-tool group with process-local recursion protection.
- *
- * The {@link accessor} is optional so the group can also back the pure display
- * path (`getServerToolDisplay`), which only needs {@link IServerToolGroup.definitions},
- * {@link IServerToolGroup.getDisplay} and {@link IServerToolGroup.canRequireConfirmation}
- * and never invokes {@link IServerToolGroup.execute}. `execute` throws when no
- * accessor was provided.
- */
 export function createSessionServerToolGroup(accessor?: ISessionServerToolAccessor): IServerToolGroup {
 	let createdSessionCount = 0;
 	let createdChatCount = 0;
 	let sentMessageCount = 0;
 	const group: IServerToolGroup = {
 		definitions: sessionServerToolDefinitions,
-		// Remove after 2026-10-26; self-mapped because its arguments differ from create_session.
 		legacyToolNames: new Map([[SessionServerToolName.CreateChat, SessionServerToolName.CreateChat]]),
 		materializeDefinitions: true,
 		isEnabled(toolName: string): boolean {

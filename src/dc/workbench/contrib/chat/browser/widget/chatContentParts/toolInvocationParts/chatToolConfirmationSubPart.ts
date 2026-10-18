@@ -90,7 +90,6 @@ export class ToolConfirmationSubPart extends AbstractToolConfirmationSubPart {
 		}
 
 		if (state.confirmationMessages?.allowAutoConfirm !== false || isAutoApprovePolicyRestricted(this.configurationService)) {
-			// Get combination label and precomputed key if present
 			const approveCombination = state.confirmationMessages?.approveCombination;
 			const combination = approveCombination
 				? {
@@ -100,7 +99,6 @@ export class ToolConfirmationSubPart extends AbstractToolConfirmationSubPart {
 				}
 				: undefined;
 
-			// Get actions from confirmation service
 			const confirmActions = this.confirmationService.getPreConfirmActions({
 				toolId: this.toolInvocation.toolId,
 				source: this.toolInvocation.source,
@@ -189,7 +187,6 @@ export class ToolConfirmationSubPart extends AbstractToolConfirmationSubPart {
 				elements.editor.appendChild(titleEl);
 
 				const inputData = toolInvocation.toolSpecificData;
-				// Editable unless a producer opts out, so tools that predate the flag are unchanged.
 				const isEditable = inputData.editable ?? true;
 
 				const codeBlockRenderOptions: ICodeBlockRenderOptions = {
@@ -206,8 +203,7 @@ export class ToolConfirmationSubPart extends AbstractToolConfirmationSubPart {
 
 				const langId = this.languageService.getLanguageIdByLanguageName('json');
 				const rawJsonInput = JSON.stringify(inputData.rawInput ?? {}, null, 1);
-				const canSeeMore = count(rawJsonInput, '\n') > 2; // if more than one key:value
-				// View a single JSON line by default until they 'see more'
+				const canSeeMore = count(rawJsonInput, '\n') > 2;
 				const initialText = rawJsonInput.replace(/\n */g, ' ');
 
 				const key = CodeBlockPart.poolKey(this.context.element.id, this.codeBlockStartIndex);
@@ -272,7 +268,6 @@ export class ToolConfirmationSubPart extends AbstractToolConfirmationSubPart {
 						try {
 							inputData.rawInput = JSON.parse(model.getValue());
 						} catch {
-							// ignore
 						}
 					}));
 				}
@@ -289,7 +284,6 @@ export class ToolConfirmationSubPart extends AbstractToolConfirmationSubPart {
 							editor.object.editor.updateOptions({ tabFocusMode: false });
 							editor.object.editor.updateOptions({ wordWrap: 'on' });
 						} catch {
-							// ignored
 						}
 						seeMore.root.remove();
 					}));

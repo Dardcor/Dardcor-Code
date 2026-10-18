@@ -30,12 +30,6 @@ suite('MCP - Sampling Log', () => {
 	setup(() => {
 		storage = ds.add(new TestStorageService());
 		log = ds.add(new McpSamplingLog(storage));
-		// `shouldClearNativeTimers` silently absorbs `clearTimeout` calls for
-		// native timer IDs scheduled outside the fake clock (e.g. by cross-test
-		// background schedulers) instead of emitting a `console.warn` that would
-		// fail the renderer's no-console-output assertion. The option exists in
-		// @sinonjs/fake-timers but is missing from the @types/sinon typings, so
-		// we widen the config type locally.
 		const fakeTimerOpts: any = { shouldClearNativeTimers: true };
 		clock = sinon.useFakeTimers(fakeTimerOpts);
 		clock.setSystemTime(new Date('2023-10-01T00:00:00Z').getTime());
@@ -53,7 +47,6 @@ suite('MCP - Sampling Log', () => {
 			'foobar9000',
 		);
 
-		// storage.testEmitWillSaveState(WillSaveStateReason.NONE);
 		await storage.flush();
 		assert.deepStrictEqual(
 			(storage.getObject('mcp.sampling.logs', StorageScope.APPLICATION) as unknown),
@@ -78,7 +71,6 @@ suite('MCP - Sampling Log', () => {
 	});
 
 	test('logs multiple requests on the same day', async () => {
-		// First request
 		log.add(
 			fakeServer,
 			[{ role: 'user', content: { type: 'text', text: 'first request' } }],
@@ -86,10 +78,8 @@ suite('MCP - Sampling Log', () => {
 			'foobar9000',
 		);
 
-		// Advance time by a few hours but stay on the same day
-		clock.tick(5 * 60 * 60 * 1000); // 5 hours
+		clock.tick(5 * 60 * 60 * 1000);
 
-		// Second request
 		log.add(
 			fakeServer,
 			[{ role: 'user', content: { type: 'text', text: 'second request' } }],
@@ -100,17 +90,14 @@ suite('MCP - Sampling Log', () => {
 		await storage.flush();
 		const data = (storage.getObject('mcp.sampling.logs', StorageScope.APPLICATION) as [string, any][])[0][1];
 
-		// Verify the bin for the current day has 2 requests
 		assert.strictEqual(data.bins[0], 2);
 
-		// Verify both requests are in the lastReqs array, with the most recent first
 		assert.strictEqual(data.lastReqs.length, 2);
 		assert.strictEqual(data.lastReqs[0].request[0].content.text, 'second request');
 		assert.strictEqual(data.lastReqs[1].request[0].content.text, 'first request');
 	});
 
 	test('shifts bins when adding requests on different days', async () => {
-		// First request on day 1
 		log.add(
 			fakeServer,
 			[{ role: 'user', content: { type: 'text', text: 'day 1 request' } }],
@@ -118,10 +105,8 @@ suite('MCP - Sampling Log', () => {
 			'foobar9000',
 		);
 
-		// Advance time to the next day
 		clock.tick(24 * 60 * 60 * 1000);
 
-		// Second request on day 2
 		log.add(
 			fakeServer,
 			[{ role: 'user', content: { type: 'text', text: 'day 2 request' } }],
@@ -132,14 +117,11 @@ suite('MCP - Sampling Log', () => {
 		await storage.flush();
 		const data = (storage.getObject('mcp.sampling.logs', StorageScope.APPLICATION) as [string, ISamplingStoredData][])[0][1];
 
-		// Verify the bins: day 2 should have 1 request, day 1 should have 1 request
-		assert.strictEqual(data.bins[0], 1); // day 2
-		assert.strictEqual(data.bins[1], 1); // day 1
+		assert.strictEqual(data.bins[0], 1);
+		assert.strictEqual(data.bins[1], 1);
 
-		// Advance time by 5 more days
 		clock.tick(5 * 24 * 60 * 60 * 1000);
 
-		// Request on day 7
 		log.add(
 			fakeServer,
 			[{ role: 'user', content: { type: 'text', text: 'day 7 request' } }],
@@ -150,14 +132,12 @@ suite('MCP - Sampling Log', () => {
 		await storage.flush();
 		const updatedData = (storage.getObject('mcp.sampling.logs', StorageScope.APPLICATION) as [string, ISamplingStoredData][])[0][1];
 
-		// Verify the bins have shifted correctly
-		assert.strictEqual(updatedData.bins[0], 1); // day 7
-		assert.strictEqual(updatedData.bins[5], 1); // day 2
-		assert.strictEqual(updatedData.bins[6], 1); // day 1
+		assert.strictEqual(updatedData.bins[0], 1);
+		assert.strictEqual(updatedData.bins[5], 1);
+		assert.strictEqual(updatedData.bins[6], 1);
 	});
 
 	test('limits the number of stored requests', async () => {
-		// Add more than the maximum number of requests (Constants.SamplingLastNMessage = 30)
 		for (let i = 0; i < 35; i++) {
 			log.add(
 				fakeServer,
@@ -170,14 +150,12 @@ suite('MCP - Sampling Log', () => {
 		await storage.flush();
 		const data = (storage.getObject('mcp.sampling.logs', StorageScope.APPLICATION) as [string, ISamplingStoredData][])[0][1];
 
-		// Verify only the last 30 requests are kept
 		assert.strictEqual(data.lastReqs.length, 30);
 		assert.strictEqual((data.lastReqs[0].request[0].content as { type: 'text'; text: string }).text, 'request 34');
 		assert.strictEqual((data.lastReqs[29].request[0].content as { type: 'text'; text: string }).text, 'request 5');
 	});
 
 	test('handles different content types', async () => {
-		// Add a request with text content
 		log.add(
 			fakeServer,
 			[{ role: 'user', content: { type: 'text', text: 'text request' } }],
@@ -185,7 +163,6 @@ suite('MCP - Sampling Log', () => {
 			'foobar9000',
 		);
 
-		// Add a request with image content
 		log.add(
 			fakeServer,
 			[{
@@ -200,7 +177,6 @@ suite('MCP - Sampling Log', () => {
 			'foobar9000',
 		);
 
-		// Add a request with mixed content
 		log.add(
 			fakeServer,
 			[
@@ -221,9 +197,8 @@ suite('MCP - Sampling Log', () => {
 		await storage.flush();
 		const data = (storage.getObject('mcp.sampling.logs', StorageScope.APPLICATION) as [string, ISamplingStoredData][])[0][1];
 
-		// Verify all requests are stored correctly
 		assert.strictEqual(data.lastReqs.length, 3);
-		assert.strictEqual(data.lastReqs[0].request.length, 2); // Mixed content request has 2 messages
+		assert.strictEqual(data.lastReqs[0].request.length, 2);
 		assert.strictEqual(asArray(data.lastReqs[1].request[0].content)[0].type, 'image');
 		assert.strictEqual(asArray(data.lastReqs[2].request[0].content)[0].type, 'text');
 	});
@@ -253,7 +228,6 @@ suite('MCP - Sampling Log', () => {
 		await storage.flush();
 		const storageData = (storage.getObject('mcp.sampling.logs', StorageScope.APPLICATION) as [string, ISamplingStoredData][]);
 
-		// Verify both servers have their data stored
 		assert.strictEqual(storageData.length, 2);
 		assert.strictEqual(storageData[0][0], 'testServer');
 		assert.strictEqual(storageData[1][0], 'testServer2');

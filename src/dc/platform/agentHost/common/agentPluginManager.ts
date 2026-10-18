@@ -9,47 +9,15 @@ import type { ClientPluginCustomization, PluginCustomization } from './state/ses
 
 export const IAgentPluginManager = createDecorator<IAgentPluginManager>('agentPluginManager');
 
-/**
- * A synced customization with its local plugin directory (when available).
- */
 export interface ISyncedCustomization {
-	/** The session customization with loading/error status. */
 	readonly customization: PluginCustomization;
-	/** Local plugin directory URI, defined when the sync was successful. */
 	readonly pluginDir?: URI;
 }
 
-/**
- * Manages Open Plugin directories for agent backends.
- *
- * Shared across agents and sessions. Syncs client-provided customization
- * references to local disk, tracking nonces to avoid redundant copies.
- * Concurrent syncs of the same plugin URI are serialized internally.
- */
 export interface IAgentPluginManager {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Root directory under which all agent plugin data is materialized.
-	 * Exposed so other host-side components can carve out sibling
-	 * directories for their own bundles (e.g. session-discovered
-	 * customizations) without having to thread `userDataPath` separately.
-	 */
 	readonly basePath: URI;
 
-	/**
-	 * Syncs a set of client-provided plugin customizations to local storage.
-	 *
-	 * Each plugin is copied to a local directory, respecting nonce-based
-	 * caching. The optional {@link progress} callback fires with the single
-	 * customization that completed or failed, allowing callers to publish
-	 * targeted incremental status updates.
-	 *
-	 * Concurrent calls for the same plugin URI are serialized so that
-	 * overlapping syncs do not clobber each other.
-	 *
-	 * @returns Final status for every customization, with `pluginDir`
-	 * defined when the sync was successful.
-	 */
 	syncCustomizations(clientId: string, customizations: ClientPluginCustomization[], progress?: (status: PluginCustomization) => void): Promise<ISyncedCustomization[]>;
 }

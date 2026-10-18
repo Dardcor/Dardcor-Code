@@ -44,32 +44,6 @@ export class CustomLine {
 	}
 }
 
-/**
- * Manages line heights in the editor with support for custom line heights from decorations.
- *
- * This class maintains an ordered collection of line heights, where each line can have either
- * the default height or a custom height specified by decorations. It supports efficient querying
- * of individual line heights as well as accumulated heights up to a specific line.
- *
- * Line heights are stored in a sorted array for efficient binary search operations. Each line
- * with custom height is represented by a {@link CustomLine} object which tracks its special height,
- * accumulated height prefix sum, and associated decoration ID.
- *
- * The class optimizes performance by:
- * - Using binary search to locate lines in the ordered array
- * - Batching updates through a pending changes mechanism
- * - Computing prefix sums for O(1) accumulated height lookup
- * - Tracking maximum height for lines with multiple decorations
- * - Efficiently handling document changes (line insertions and deletions)
- *
- * When lines are inserted or deleted, the manager updates line numbers and prefix sums
- * for all affected lines. It also handles special cases like decorations that span
- * the insertion/deletion points by re-applying those decorations appropriately.
- *
- * All query operations automatically commit pending changes to ensure consistent results.
- * Clients can modify line heights by adding or removing custom line height decorations,
- * which are tracked by their unique decoration IDs.
- */
 export class LineHeightsManager {
 
 	private _decorationIDToCustomLine: ArrayMap<string, CustomLine> = new ArrayMap<string, CustomLine>();
@@ -409,8 +383,8 @@ export class LineHeightsManager {
 			for (const decorationId of decorationsWithGaps) {
 				const decoration = this._decorationIDToCustomLine.get(decorationId);
 				if (decoration) {
-					const startLineNumber = decoration.reduce((min, l) => Math.min(min, l.lineNumber), fromLineNumber); // min
-					const endLineNumber = decoration.reduce((max, l) => Math.max(max, l.lineNumber), fromLineNumber); // max
+					const startLineNumber = decoration.reduce((min, l) => Math.min(min, l.lineNumber), fromLineNumber);
+					const endLineNumber = decoration.reduce((max, l) => Math.max(max, l.lineNumber), fromLineNumber);
 					const lineHeight = decoration.reduce((max, l) => Math.max(max, l.specialHeight), 0);
 					toReAdd.push({
 						decorationId,

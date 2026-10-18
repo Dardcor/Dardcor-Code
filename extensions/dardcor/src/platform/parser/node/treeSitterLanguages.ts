@@ -3,12 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Languages we can parse using tree-sitter. Each enum member corresponds to a tree-sitter parser.
- */
 export enum WASMLanguage {
 	Python = 'python',
-	JavaScript = 'javascript', // Also includes jsx support
+	JavaScript = 'javascript',
 	TypeScript = 'typescript',
 	TypeScriptTsx = 'tsx',
 	Go = 'go',
@@ -41,9 +38,6 @@ const languageIdToWasmLanguageMapping: { [language: string]: WASMLanguage } = {
 	rust: WASMLanguage.Rust,
 };
 
-/**
- * @returns a {@link WASMLanguage} if can convert the language ID (from VS Code); otherwise, returns `undefined`.
- */
 export function getWasmLanguage(languageId: string): WASMLanguage | undefined {
 	if (languageId in languageIdToWasmLanguageMapping) {
 		return languageIdToWasmLanguageMapping[languageId];

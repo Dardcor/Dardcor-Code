@@ -44,7 +44,6 @@ export class ChatToolProgressSubPart extends BaseChatToolInvocationSubPart {
 		if (isComplete && this.toolIsConfirmed && (this.toolInvocation.pastTenseMessage || this.toolInvocation.invocationMessage)) {
 			const key = this.getAnnouncementKey('complete');
 			const completionContent = this.toolInvocation.pastTenseMessage ?? this.toolInvocation.invocationMessage;
-			// Don't render anything if there's no meaningful content
 			if (!this.hasMeaningfulContent(completionContent)) {
 				return document.createElement('div');
 			}
@@ -61,7 +60,6 @@ export class ChatToolProgressSubPart extends BaseChatToolInvocationSubPart {
 				if (this.toolInvocation.kind === 'toolInvocation') {
 					const state = this.toolInvocation.state.read(reader);
 
-					// Handle cancelled state with reason message
 					if (state.type === IChatToolInvocation.StateKind.Cancelled && state.reasonMessage) {
 						progressContent = state.reasonMessage;
 					} else if (state.type === IChatToolInvocation.StateKind.Executing) {
@@ -74,7 +72,6 @@ export class ChatToolProgressSubPart extends BaseChatToolInvocationSubPart {
 					progressContent = this.toolInvocation.invocationMessage;
 				}
 
-				// Don't render anything if there's no meaningful content
 				if (!this.hasMeaningfulContent(progressContent)) {
 					dom.clearNode(container);
 					return;

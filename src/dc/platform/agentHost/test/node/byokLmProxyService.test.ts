@@ -9,26 +9,14 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/c
 import { NullLogService } from '../../../log/common/log.js';
 import type { IByokLmBridgeConnection, IByokLmChatRequest, IByokLmChatResult, IByokLmModelInfo } from '../../common/agentHostByokLm.js';
 import { ByokLmBridgeRegistry } from '../../node/byokLmBridgeRegistry.js';
-import { ByokLmProxyService, type IByokLmProxyHandle } from '../../node/copilot/byokLmProxyService.js';
+import { ByokLmProxyService, type IByokLmProxyHandle } from '../../node/shared/byokLmProxyService.js';
 
-/**
- * Exercises the inference path end-to-end without the Copilot SDK runtime:
- * the test plays the runtime's role by POSTing OpenAI Responses
- * requests at the loopback proxy, and plays the renderer's role with a fake
- * {@link IByokLmChatRequest} -> {@link IByokLmChatResult} bridge function. The
- * only contract under test is the OpenAI wire format in, the bridge DTO out,
- * and the SSE wire format back.
- */
 suite('ByokLmProxyService', () => {
 
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	const sessionId = 'sess-1';
 
-	/**
-	 * A serving bridge connection: it pushes its model snapshot (default empty)
-	 * synchronously when the registry subscribes, so it is a valid routing target.
-	 */
 	function servingConnection(chat: IByokLmBridgeConnection['chat'], models: IByokLmModelInfo[] = []): IByokLmBridgeConnection {
 		const emitter = store.add(new Emitter<IByokLmModelInfo[]>({
 			onDidAddFirstListener: () => emitter.fire(models),
@@ -319,8 +307,6 @@ suite('ByokLmProxyService', () => {
 		await withProxy(
 			async () => ({ output: [] }),
 			async (handle) => {
-				// `encodeURIComponent('a/b')` → `a%2Fb`, which survives the
-				// pre-decode segment check but decodes back into `a/b`.
 				const response = await fetch(responsesUrl(handle, 'a/b'), {
 					method: 'POST',
 					headers: authHeaders(handle),
@@ -414,13 +400,10 @@ suite('ByokLmProxyService', () => {
 	test('routes requests to a serving window and excludes a non-serving one', async () => {
 		const registry = new ByokLmBridgeRegistry();
 		const calls: string[] = [];
-		// The serving window (editor): pushes models and answers chat.
 		const regServing = registry.register('editor', servingConnection(
 			async () => { calls.push('serving'); return { output: [{ type: 'message', content: [{ type: 'text', text: 'from serving' }] }] }; },
 			[{ vendor: 'acme', id: 'claude' }],
 		));
-		// A non-serving window (connected without a BYOK handler): it never pushes
-		// a snapshot, so it must never be picked for routing even though connected.
 		const regNonServing = registry.register('no-handler', {
 			chat: async () => { calls.push('no-handler'); return { output: [{ type: 'message', content: [{ type: 'text', text: 'from non-serving' }] }] }; },
 			onDidChangeModels: Event.None,

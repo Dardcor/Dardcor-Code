@@ -36,19 +36,14 @@ impl DownloadCache {
 		}
 	}
 
-	/// Gets the value stored on the state
 	pub fn get(&self) -> Vec<String> {
 		self.state.load()
 	}
 
-	/// Gets the download cache path. Names of cache entries can be formed by
-	/// joining them to the path.
 	pub fn path(&self) -> &Path {
 		&self.path
 	}
 
-	/// Gets whether a cache exists with the name already. Marks it as recently
-	/// used if it does exist.
 	pub fn exists(&self, name: &str) -> Option<PathBuf> {
 		let p = self.path.join(name);
 		if !p.exists() {
@@ -59,7 +54,6 @@ impl DownloadCache {
 		Some(p)
 	}
 
-	/// Removes the item from the cache, if it exists
 	pub fn delete(&self, name: &str) -> Result<(), WrappedError> {
 		let f = self.path.join(name);
 		if f.exists() {
@@ -71,10 +65,6 @@ impl DownloadCache {
 		})
 	}
 
-	/// Calls the function to create the cached folder if it doesn't exist,
-	/// returning the path where the folder is. Note that the path passed to
-	/// the `do_create` method is a staging path and will not be the same as the
-	/// final returned path.
 	pub async fn create<F, T>(
 		&self,
 		name: impl AsRef<str>,
@@ -91,14 +81,12 @@ impl DownloadCache {
 		}
 
 		let temp_dir = self.path.join(format!("{name}{STAGING_SUFFIX}"));
-		let _ = remove_dir_all(&temp_dir).await; // cleanup any existing
+		let _ = remove_dir_all(&temp_dir).await;
 
 		create_dir_all(&temp_dir).map_err(|e| wrap(e, "error creating server directory"))?;
 		do_create(temp_dir.clone()).await?;
 
 		let _ = self.touch(name.to_string());
-		// retry the rename, it seems on WoA sometimes it takes a second for the
-		// directory to be 'unlocked' after doing file/process operations in it.
 		for attempt_no in 0..=RENAME_ATTEMPTS {
 			match std::fs::rename(&temp_dir, &target_dir) {
 				Ok(_) => {

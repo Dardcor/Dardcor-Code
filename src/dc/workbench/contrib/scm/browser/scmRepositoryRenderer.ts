@@ -44,8 +44,6 @@ export class RepositoryActionRunner extends ActionRunner {
 
 		const actionContext = [context];
 
-		// If the selection contains the repository, add the
-		// other selected repositories to the action context
 		const selection = this.getSelectedRepositories().map(r => r.provider);
 		if (selection.some(s => s === context)) {
 			actionContext.push(...selection.filter(s => s !== context));
@@ -115,7 +113,6 @@ export class RepositoryRenderer implements ICompressibleTreeRenderer<ISCMReposit
 				? repository.provider.iconPath
 				: Codicon.repo;
 
-			// Only show the selected icon if there are multiple repositories in the workspace
 			const showSelectedIcon = icon.id === Codicon.repo.id && isVisible && this.scmViewService.repositories.length > 1;
 
 			templateData.icon.className = showSelectedIcon
@@ -123,9 +120,6 @@ export class RepositoryRenderer implements ICompressibleTreeRenderer<ISCMReposit
 				: `icon ${ThemeIcon.asClassName(icon)}`;
 		}));
 
-		// Use the description to disambiguate repositories with the same name and have
-		// a `rootUri`. Use the `provider.rootUri` for disambiguation. If they have the
-		// same path, we will use the provider label to disambiguate.
 		let description: string | undefined = undefined;
 		if (repository.provider.rootUri) {
 			const repositoriesWithRootUri = this.scmViewService.repositories

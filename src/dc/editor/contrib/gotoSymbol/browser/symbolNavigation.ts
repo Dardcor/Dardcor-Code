@@ -114,15 +114,12 @@ class SymbolNavigationService implements ISymbolNavigationService {
 			return Promise.resolve();
 		}
 
-		// get next result and advance
 		this._currentIdx += 1;
 		this._currentIdx %= this._currentModel.references.length;
 		const reference = this._currentModel.references[this._currentIdx];
 
-		// status
 		this._showMessage();
 
-		// open editor, ignore events while that happens
 		this._ignoreEditorChange = true;
 		return this._editorService.openCodeEditor({
 			resource: reference.uri,
@@ -179,7 +176,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	}
 });
 
-//
 
 class EditorState {
 

@@ -57,7 +57,6 @@ export class ConfigurationModel implements IConfigurationModel {
 				});
 				this._rawConfiguration = rawConfigurationModels.reduce((previous, current) => current === previous ? current : previous.merge(current), rawConfigurationModels[0]);
 			} else {
-				// raw is same as current
 				this._rawConfiguration = this;
 			}
 		}
@@ -189,7 +188,6 @@ export class ConfigurationModel implements IConfigurationModel {
 		const overrideContents = this.getContentsForOverrideIdentifer(identifier);
 
 		if (!overrideContents || typeof overrideContents !== 'object' || !Object.keys(overrideContents).length) {
-			// If there are no valid overrides, return self
 			return this;
 		}
 
@@ -199,9 +197,7 @@ export class ConfigurationModel implements IConfigurationModel {
 			let contentsForKey = this.contents[key];
 			const overrideContentsForKey = overrideContents[key];
 
-			// If there are override contents for the key, clone and merge otherwise use base contents
 			if (overrideContentsForKey) {
-				// Clone and merge only if base contents and override contents are of type object otherwise just override
 				if (typeof contentsForKey === 'object' && typeof overrideContentsForKey === 'object') {
 					contentsForKey = objects.deepClone(contentsForKey);
 					this.mergeContents(contentsForKey as IStringDictionary<unknown>, overrideContentsForKey as IStringDictionary<unknown>);
@@ -247,7 +243,6 @@ export class ConfigurationModel implements IConfigurationModel {
 				mergeContents(override.contents);
 			}
 		}
-		// Merge contents of the identifier only at the end to take precedence.
 		mergeContents(contentsForIdentifierOnly);
 		return contents;
 	}
@@ -260,7 +255,6 @@ export class ConfigurationModel implements IConfigurationModel {
 		};
 	}
 
-	// Update methods
 
 	public addValue(key: string, value: unknown): void {
 		this.updateValue(key, value, true);
@@ -354,7 +348,7 @@ export class ConfigurationModelParser {
 	public parseRaw(raw: IStringDictionary<unknown>, options?: ConfigurationParseOptions): void {
 		this._raw = raw;
 		const { contents, keys, overrides, restricted, hasExcludedProperties } = this.doParseRaw(raw, options);
-		this._configurationModel = new ConfigurationModel(contents, keys, overrides, hasExcludedProperties ? [raw] : undefined /* raw has not changed */, this.logService);
+		this._configurationModel = new ConfigurationModel(contents, keys, overrides, hasExcludedProperties ? [raw] : undefined , this.logService);
 		this._restrictedConfigurations = restricted || [];
 	}
 
@@ -518,7 +512,6 @@ export class UserSettings extends Disposable {
 		super();
 		this.parser = new ConfigurationModelParser(this.userSettingsResource.toString(), logService);
 		this._register(this.fileService.watch(extUri.dirname(this.userSettingsResource)));
-		// Also listen to the resource incase the resource is a symlink - https://github.com/microsoft/vscode/issues/118134
 		this._register(this.fileService.watch(this.userSettingsResource));
 		this._register(Event.any(
 			Event.filter(this.fileService.onDidFilesChange, e => e.contains(this.userSettingsResource)),
@@ -993,7 +986,6 @@ export class Configuration {
 			configurationModel = configurationModel.override(overrides.overrideIdentifier);
 		}
 		if (!this._policyConfiguration.isEmpty() && this._policyConfiguration.getValue(section) !== undefined) {
-			// clone by merging
 			configurationModel = configurationModel.merge();
 			for (const key of this._policyConfiguration.keys) {
 				configurationModel.setValue(key, this._policyConfiguration.getValue(key));
@@ -1199,7 +1191,6 @@ export class ConfigurationChangeEvent implements IConfigurationChangeEvent {
 			}
 		}
 
-		// Example: '\nfoo.bar\nabc.def\n'
 		this._affectsConfigStr = this._marker;
 		for (const key of this.affectedKeys) {
 			this._affectsConfigStr += key + this._marker;
@@ -1215,12 +1206,9 @@ export class ConfigurationChangeEvent implements IConfigurationChangeEvent {
 	}
 
 	affectsConfiguration(section: string, overrides?: IConfigurationOverrides): boolean {
-		// we have one large string with all keys that have changed. we pad (marker) the section
-		// and check that either find it padded or before a segment character
 		const needle = this._marker + section;
 		const idx = this._affectsConfigStr.indexOf(needle);
 		if (idx < 0) {
-			// NOT: (marker + section)
 			return false;
 		}
 		const pos = idx + needle.length;
@@ -1229,7 +1217,6 @@ export class ConfigurationChangeEvent implements IConfigurationChangeEvent {
 		}
 		const code = this._affectsConfigStr.charCodeAt(pos);
 		if (code !== this._markerCode1 && code !== this._markerCode2) {
-			// NOT: section + (marker | segment)
 			return false;
 		}
 		if (overrides) {

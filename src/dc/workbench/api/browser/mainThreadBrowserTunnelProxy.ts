@@ -11,20 +11,8 @@ import { IWorkbenchEnvironmentService } from '../../services/environment/common/
 import { IExtHostContext, extHostNamedCustomer } from '../../services/extensions/common/extHostCustomers.js';
 import { ExtHostBrowserTunnelProxyShape, ExtHostContext, MainContext, MainThreadBrowserTunnelProxyShape } from '../common/extHost.protocol.js';
 
-/**
- * Setting that gates whether the window's local extension host hosts the
- * tunnel proxy for remote browser views. Mirrors `BrowserRemoteProxyEnabledSettingId`
- * declared in the integrated browser contribution (which cannot be imported
- * here because it lives in the electron-browser layer).
- */
 const browserRemoteProxyEnabledSettingId = 'workbench.browser.enableRemoteProxy';
 
-/**
- * Renderer-side bridge for the local extension host tunnel proxy. Gates the
- * ext host proxy by the remote-proxy setting (and the presence of a remote
- * authority) and forwards the resolved proxy info to the main process so it
- * can be applied to the window's remote browser view Electron sessions.
- */
 @extHostNamedCustomer(MainContext.MainThreadBrowserTunnelProxy)
 export class MainThreadBrowserTunnelProxy extends Disposable implements MainThreadBrowserTunnelProxyShape {
 

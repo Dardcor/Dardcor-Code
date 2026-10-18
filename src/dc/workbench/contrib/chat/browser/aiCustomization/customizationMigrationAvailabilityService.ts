@@ -14,7 +14,6 @@ import { InstantiationType, registerSingleton } from '../../../../../platform/in
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IMcpService, IMcpWorkbenchService } from '../../../mcp/common/mcpTypes.js';
-import { IAgentHostCustomizationService } from '../agentSessions/agentHost/agentHostCustomizationService.js';
 import { isAgentHostTarget } from '../../common/chatSessionsService.js';
 import { ChatConfiguration } from '../../common/constants.js';
 import { ICustomizationHarnessService } from '../../common/customizationHarnessService.js';
@@ -45,7 +44,6 @@ class CustomizationMigrationAvailabilityService extends Disposable implements IC
 		@IPromptsService private readonly promptsService: IPromptsService,
 		@IMcpService private readonly mcpService: IMcpService,
 		@IMcpWorkbenchService private readonly mcpWorkbenchService: IMcpWorkbenchService,
-		@IAgentHostCustomizationService private readonly agentHostCustomizationService: IAgentHostCustomizationService,
 		@ILogService private readonly logService: ILogService,
 	) {
 		super();
@@ -74,7 +72,6 @@ class CustomizationMigrationAvailabilityService extends Disposable implements IC
 		}));
 		this._register(this.mcpWorkbenchService.onChange(() => this.scheduleMcpRefresh()));
 		this._register(this.mcpWorkbenchService.onReset(() => this.scheduleMcpRefresh()));
-		this._register(this.agentHostCustomizationService.onDidChangeCustomizations(() => this.scheduleMcpRefresh()));
 		this._register(Event.any(
 			this.harnessService.onDidChangeSlashCommands,
 			this.harnessService.onDidChangeCustomAgents,

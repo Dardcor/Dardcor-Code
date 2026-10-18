@@ -64,7 +64,6 @@ export class ConfigBasedRecommendations extends ExtensionRecommendations {
 		if (event.added.length) {
 			const oldImportantRecommended = this.importantTips;
 			await this.fetch();
-			// Suggest only if at least one of the newly added recommendations was not suggested before
 			if (this.importantTips.some(current => oldImportantRecommended.every(old => current.extensionId !== old.extensionId))) {
 				this._onDidChangeRecommendations.fire();
 			}

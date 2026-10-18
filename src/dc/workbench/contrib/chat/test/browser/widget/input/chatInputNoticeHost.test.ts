@@ -12,7 +12,6 @@ suite('ChatInputNoticeHost', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** Records every leadership announcement as `name:leading`. */
 	function recorder(host: ChatInputNoticeHost) {
 		const events: string[] = [];
 		const claim = (name: string, lane: ChatInputNoticeLane) => host.occupy(lane, {
@@ -26,8 +25,6 @@ suite('ChatInputNoticeHost', () => {
 		const store = disposables.add(new DisposableStore());
 		const { events, claim } = recorder(host);
 
-		// Recency within a lane and precedence between lanes are one mechanism, so
-		// a peer introduction and a notification both put the first card away.
 		store.add(claim('voice', ChatInputNoticeLane.Onboarding));
 		const dictation = claim('dictation', ChatInputNoticeLane.Onboarding);
 		const notification = claim('notification', ChatInputNoticeLane.Notification);
@@ -60,8 +57,6 @@ suite('ChatInputNoticeHost', () => {
 		const { events, claim } = recorder(host);
 		store.add(claim('tip', ChatInputNoticeLane.Tip));
 
-		// Voice hands the onboarding lane over to dictation. The tip must not get
-		// a window to lead in between the two claims.
 		const target = { hasFocus: () => false, focus: () => { } };
 		host.setOccupied(ChatInputNoticeLane.Onboarding, true, target);
 		host.setOccupied(ChatInputNoticeLane.Onboarding, true, target);
@@ -76,8 +71,6 @@ suite('ChatInputNoticeHost', () => {
 		const events: string[] = [];
 		let notification: IDisposable | undefined;
 
-		// Standing down is a real side effect (it moves focus), so a callback can
-		// change who owns the space while the host is still announcing.
 		store.add(host.occupy(ChatInputNoticeLane.Onboarding, {
 			onDidChangeLeading: leading => {
 				events.push(`voice:${leading}`);
@@ -92,8 +85,6 @@ suite('ChatInputNoticeHost', () => {
 			onDidChangeLeading: leading => events.push(`dictation:${leading}`),
 		}));
 
-		// Dictation must never be told it leads: by the time voice had stood down,
-		// a notification owned the space.
 		assert.deepStrictEqual(events, ['voice:true', 'voice:false', 'notification:true']);
 	});
 
@@ -103,10 +94,6 @@ suite('ChatInputNoticeHost', () => {
 		const events: string[] = [];
 		let released = false;
 
-		// The onboarding card reacts to being put away by taking the notification
-		// down. That release happens before the notification's lease is stored, so
-		// storing it afterwards would leave lane 0 held by a notification the widget
-		// already considers hidden - and the card below it never comes back.
 		store.add(host.occupy(ChatInputNoticeLane.Onboarding, {
 			onDidChangeLeading: leading => {
 				events.push(`onboarding:${leading}`);
@@ -129,15 +116,11 @@ suite('ChatInputNoticeHost', () => {
 		const store = disposables.add(new DisposableStore());
 		let noticeHasFocus = true;
 
-		// Standing down is not the producer's decision, so the host - not every
-		// producer that can be displaced - keeps focus out of <body>. Content
-		// displaced while the user is typing in the input must not move it.
 		store.add(host.occupy(ChatInputNoticeLane.Tip, {
 			focusTarget: { hasFocus: () => noticeHasFocus, focus: () => { } },
 		}));
 		const notification = host.occupy(ChatInputNoticeLane.Notification);
 		const afterFocusedStandDown = inputFocusCount;
-		// Coming back is not a stand-down: the notice is announced, not focused.
 		notification.dispose();
 		const afterReturning = inputFocusCount;
 
@@ -177,7 +160,6 @@ suite('ChatInputNoticeHost', () => {
 		const target = (name: string) => ({ focusTarget: { hasFocus: () => false, focus: () => { focused.push(name); } } });
 
 		const notification = host.occupy(ChatInputNoticeLane.Notification, target('notification'));
-		// A tip claiming afterwards must not steal focus from the notification.
 		store.add(host.occupy(ChatInputNoticeLane.Tip, target('tip')));
 		host.toggleFocus();
 		notification.dispose();
@@ -191,9 +173,6 @@ suite('ChatInputNoticeHost', () => {
 		const store = disposables.add(new DisposableStore());
 		let built = false;
 
-		// A claim is held from the moment content is wanted, but the card behind it
-		// is only built once it leads. Focus must not be reported as handled - and
-		// the "no notice" announcement suppressed - during that window.
 		store.add(host.occupy(ChatInputNoticeLane.Onboarding, {
 			focusTarget: { hasFocus: () => false, focus: () => { }, canFocus: () => built },
 		}));
@@ -209,8 +188,6 @@ suite('ChatInputNoticeHost', () => {
 		const { events, claim } = recorder(host);
 		const notification = claim('notification', ChatInputNoticeLane.Notification);
 
-		// Releasing a lane during teardown must not promote a pending claim: the
-		// content behind it would be rebuilt - and marked as seen - on a dying input.
 		const pending = claim('pending', ChatInputNoticeLane.Onboarding);
 		host.dispose();
 		notification.dispose();

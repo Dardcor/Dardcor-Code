@@ -23,7 +23,6 @@ import { NotebookOptions } from '../../notebookOptions.js';
 import { CellViewModelStateChangeEvent } from '../../notebookViewEvents.js';
 import { ITextModelUpdateOptions } from '../../../../../../editor/common/model.js';
 
-//todo@Yoyokrazy implenets is needed or not?
 export class CellEditorOptions extends CellContentPart implements ITextModelUpdateOptions {
 	private _lineNumbers: 'on' | 'off' | 'inherit' = 'inherit';
 	private _tabSize?: number;
@@ -92,9 +91,8 @@ export class CellEditorOptions extends CellContentPart implements ITextModelUpda
 	}
 
 	private _computeEditorOptions() {
-		const value = this.base.value; // base IEditorOptions
+		const value = this.base.value;
 
-		// TODO @Yoyokrazy find a different way to get the editor overrides, this is not the right way
 		const cellEditorOverridesRaw = this.notebookOptions.getDisplayOptions().editorOptionsCustomizations;
 		const indentSize = cellEditorOverridesRaw?.['editor.indentSize'];
 		if (indentSize !== undefined) {
@@ -113,20 +111,18 @@ export class CellEditorOptions extends CellContentPart implements ITextModelUpda
 
 		switch (this._lineNumbers) {
 			case 'inherit':
-				// inherit from the notebook setting
 				if (this.configurationService.getValue<'on' | 'off'>('notebook.lineNumbers') === 'on') {
 					if (value.lineNumbers === 'off') {
 						cellRenderLineNumber = 'on';
-					} // otherwise just use the editor setting
+					}
 				} else {
 					cellRenderLineNumber = 'off';
 				}
 				break;
 			case 'on':
-				// should turn on, ignore the editor line numbers off options
 				if (value.lineNumbers === 'off') {
 					cellRenderLineNumber = 'on';
-				} // otherwise just use the editor setting
+				}
 				break;
 			case 'off':
 				cellRenderLineNumber = 'off';
@@ -150,7 +146,7 @@ export class CellEditorOptions extends CellContentPart implements ITextModelUpda
 
 	getUpdatedValue(internalMetadata: NotebookCellInternalMetadata, cellUri: URI): IEditorOptions {
 		const options = this.getValue(internalMetadata, cellUri);
-		delete options.hover; // This is toggled by a debug editor contribution
+		delete options.hover;
 
 		return options;
 	}
@@ -260,12 +256,6 @@ registerAction2(class ToggleActiveLineNumberAction extends NotebookMultiCellActi
 	private updateCell(configurationService: IConfigurationService, cell: ICellViewModel) {
 		const renderLineNumbers = configurationService.getValue<'on' | 'off'>('notebook.lineNumbers') === 'on';
 		const cellLineNumbers = cell.lineNumbers;
-		// 'on', 'inherit' 	-> 'on'
-		// 'on', 'off'		-> 'off'
-		// 'on', 'on'		-> 'on'
-		// 'off', 'inherit'	-> 'off'
-		// 'off', 'off'		-> 'off'
-		// 'off', 'on'		-> 'on'
 		const currentLineNumberIsOn = cellLineNumbers === 'on' || (cellLineNumbers === 'inherit' && renderLineNumbers);
 
 		if (currentLineNumberIsOn) {

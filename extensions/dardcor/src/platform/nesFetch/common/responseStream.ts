@@ -12,27 +12,10 @@ import { IHeaders, Response } from '../../networking/common/fetcherService';
 import { Completion } from './completionsAPI';
 
 export class ResponseStream {
-	/**
-	 * A promise that resolves to the array of completions that were emitted by the stream.
-	 *
-	 * (it's expected to not throw)
-	 */
 	public readonly aggregatedStream: Promise<Result<Completion[], Error>>;
 
-	/**
-	 * A completion that aggregates completions stream.
-	 *
-	 * (it's expected to not throw)
-	 */
 	public readonly response: Promise<Result<Completion, Error>>;
 
-	/**
-	 * The stream of completions that were emitted by the response.
-	 *
-	 * @remarks This stream is single-use — it can only be iterated once.
-	 *
-	 * @throws {Error} if the response stream throws an error.
-	 */
 	public readonly stream: AsyncIterable<Completion>;
 
 	constructor(private readonly fetcherResponse: Response, stream: AsyncIterable<Completion>, public readonly requestId: RequestId, public readonly headers: IHeaders) {
@@ -52,9 +35,6 @@ export class ResponseStream {
 		this.stream = streamWithAggregation(stream, tokensDeferredPromise);
 	}
 
-	/**
-	 * @throws client of the method should handle the error
-	 */
 	public async destroy(): Promise<void> {
 		await this.fetcherResponse.body.destroy();
 	}
@@ -66,7 +46,7 @@ export class ResponseStream {
 		let aggregatedUsage: Completion.Usage | undefined = undefined;
 
 		for (const completion of stream) {
-			const choice = completion.choices[0]; // TODO@ulugbekna: we only support choice.index=0
+			const choice = completion.choices[0];
 			text += choice.text ?? '';
 			if (choice.logprobs) {
 				if (aggregatedLogsProbs === null) {
@@ -141,10 +121,6 @@ export class ResponseStream {
 	}
 }
 
-/**
- * Wraps an async iterable stream into an async generator that also collects completions
- * for aggregation and resolves the deferred promise when done.
- */
 async function* streamWithAggregation(
 	stream: AsyncIterable<Completion>,
 	deferredPromise: DeferredPromise<Result<Completion[], Error>>

@@ -118,22 +118,13 @@ class DocumentCodeMapper extends Disposable implements ICodeMapperService {
 		}
 
 		if ((!documentContext || (documentContext.getText().length === 0)) && !codeBlock.code.includes(EXISTING_CODE_MARKER)) {
-			// for non existing, empty file and no '...existing code... content, we can emit the code block as is
-			// Fast path: the base request already gave us the content to apply in full, we can avoid going to the speculative decoding endpoint
 			responseStream.textEdit(codeBlock.resource, new TextEdit(new Range(0, 0, 0, 0), codeBlock.code));
-			/* __GDPR__
-				"codemapper.completeCodeBlock" : {
-					"owner": "aeschli",
-					"comment": "Sent when a codemapper request is received for a complete code block that contains no ...existing code... comments."
-				}
-				*/
 			this._telemetryService.sendMSFTTelemetryEvent('codemapper.completeCodeBlock');
 			return {};
 		}
 
 
 		let editSurvivalTracker: IEditSurvivalTrackingSession | undefined;
-		// set up edit survival tracking currently only when we are modifying an existing document
 		if (documentContext) {
 			const tracker = editSurvivalTracker = this._editSurvivalTrackerService.initialize(documentContext.document);
 			responseStream = spyResponseStream(responseStream, (_target, edits) => { tracker.collectAIEdits(edits); });
@@ -161,7 +152,6 @@ class DocumentCodeMapper extends Disposable implements ICodeMapperService {
 
 			return await this._workspaceService.openTextDocumentAndSnapshot(codeblock.resource);
 		} catch (ex) {
-			// ignore, probably an invalid URI or the like.
 			console.error(`Failed to get document context for ${codeblock.resource.toString()}`, ex);
 			return undefined;
 		}
@@ -193,15 +183,7 @@ class NotebookCodeMapper extends Disposable implements ICodeMapperService {
 		}
 
 		if ((!documentContext || (documentContext.getText().length === 0)) && !codeBlock.code.includes(EXISTING_CODE_MARKER)) {
-			// for non existing, empty file and no '...existing code... content, we can emit the code block as is
-			// Fast path: the base request already gave us the content to apply in full, we can avoid going to the speculative decoding endpoint
 			await processFullRewriteNewNotebook(codeBlock.resource, codeBlock.code, responseStream, this.alternativeNotebookEditGenerator, { source: NotebookEditGenrationSource.newNotebookIntent, model: telemetryInfo?.chatRequestModel, requestId: telemetryInfo?.chatRequestId }, token);
-			/* __GDPR__
-				"codemapper.completeCodeBlock" : {
-					"owner": "aeschli",
-					"comment": "Sent when a codemapper request is received for a complete code block that contains no ...existing code... comments."
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('codemapper.completeCodeBlock');
 			return {};
 		}
@@ -223,7 +205,6 @@ class NotebookCodeMapper extends Disposable implements ICodeMapperService {
 			}
 			return await this._workspaceService.openNotebookDocumentAndSnapshot(codeblock.resource, format);
 		} catch (ex) {
-			// ignore, probably an invalid URI or the like.
 			console.error(`Failed to get document context for ${codeblock.resource.toString()}`, ex);
 			return undefined;
 		}
@@ -261,19 +242,9 @@ async function mapCode(request: IMapCodeRequest, responseStream: vscode.MappedEd
 }
 function reportTelemetry(telemetryService: ITelemetryService, { telemetry, annotations }: IMapCodeResult) {
 	if (!telemetry) {
-		return; // cancelled
+		return;
 	}
 
-	/* __GDPR__
-		"codemapper.request" : {
-			"owner": "aeschli",
-			"comment": "Metadata about the code mapper request",
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-			"requestSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source from where the request was made" },
-			"mapper": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The mapper used: One of 'fast', 'fast-lora', 'full' and 'patch'" },
-			"outcomeAnnotations": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Annotations about the outcome of the request." }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('codemapper.request', {
 		requestId: telemetry.requestId,
 		requestSource: telemetry.requestSource,
@@ -297,21 +268,6 @@ function spyResponseStream(responseStream: vscode.MappedEditsResponseStream, cal
 
 function reportEditSurvivalEvent(res: EditSurvivalResult, { requestId, speculationRequestId, requestSource, mapper, chatRequestModel }: CodeMapperOutcomeTelemetry, otelService: IOTelService) {
 
-	/* __GDPR__
-		"codeMapper.trackEditSurvival" : {
-			"owner": "aeschli",
-			"comment": "Tracks how much percent of the AI edits survived after 5 minutes of accepting",
-			"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-			"speculationRequestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the speculation request." },
-			"requestSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source from where the request was made" },
-			"chatRequestModel": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the base chat request to generate the edit object." },
-			"mapper": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The code mapper used: One of 'fast', 'fast-lora', 'full' and 'patch'" },
-			"survivalRateFourGram": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the AI edit is still present in the document." },
-			"survivalRateNoRevert": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the ranges the AI touched ended up being reverted." },
-			"didBranchChange": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Indicates if the branch changed in the meantime. If the branch changed (value is 1), this event should probably be ignored." },
-			"timeDelayMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The time delay between the user accepting the edit and measuring the survival rate." }
-		}
-	*/
 	res.telemetryService.sendMSFTTelemetryEvent('codeMapper.trackEditSurvival', { requestId, speculationRequestId, requestSource, chatRequestModel, mapper }, {
 		survivalRateFourGram: res.fourGram,
 		survivalRateNoRevert: res.noRevert,

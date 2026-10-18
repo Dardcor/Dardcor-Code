@@ -51,7 +51,6 @@ suite('TerminalOutputCache', () => {
 	test('mutation invalidates same-program reads', () => {
 		const cache = new TerminalOutputCache(() => 1000);
 		cache.record(TerminalToolId.RunInTerminal, input('git status'), 'clean');
-		// git commit is a mutation that invalidates other git entries in the same cwd.
 		cache.observe(TerminalToolId.RunInTerminal, input('git commit -m hi'));
 		strictEqual(cache.lookup(TerminalToolId.RunInTerminal, input('git status')), undefined);
 	});

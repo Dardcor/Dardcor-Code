@@ -24,9 +24,6 @@ import { WorkingCopyService } from '../../../workingCopy/common/workingCopyServi
 import { UriIdentityService } from '../../../../../platform/uriIdentity/common/uriIdentityService.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
-// optimization: we don't need to run this suite in native environment,
-// because we have nativeTextFileService.io.test.ts for it,
-// so our tests run faster
 if (isWeb) {
 	suite('Files - BrowserTextFileService i/o', function () {
 		const disposables = new DisposableStore();
@@ -106,7 +103,7 @@ if (isWeb) {
 
 				return detectEncodingByBOMFromBuffer(buffer.slice(0, 3), 3);
 			} catch (error) {
-				return null; // ignore errors (like file not found)
+				return null;
 			}
 		}
 

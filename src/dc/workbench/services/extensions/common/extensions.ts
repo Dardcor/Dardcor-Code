@@ -60,58 +60,20 @@ export class MissingExtensionDependency {
 	constructor(readonly dependency: string) { }
 }
 
-/**
- * e.g.
- * ```
- * {
- *    startTime: 1511954813493000,
- *    endTime: 1511954835590000,
- *    deltas: [ 100, 1500, 123456, 1500, 100000 ],
- *    ids: [ 'idle', 'self', 'extension1', 'self', 'idle' ]
- * }
- * ```
- */
 export interface IExtensionHostProfile {
-	/**
-	 * Profiling start timestamp in microseconds.
-	 */
 	startTime: number;
-	/**
-	 * Profiling end timestamp in microseconds.
-	 */
 	endTime: number;
-	/**
-	 * Duration of segment in microseconds.
-	 */
 	deltas: number[];
-	/**
-	 * Segment identifier: extension id or one of the four known strings.
-	 */
 	ids: ProfileSegmentId[];
 
-	/**
-	 * Get the information as a .cpuprofile.
-	 */
 	data: IV8Profile;
 
-	/**
-	 * Get the aggregated time per segmentId
-	 */
 	getAggregatedTimes(): Map<ProfileSegmentId, number>;
 }
 
 export const enum ExtensionHostStartup {
-	/**
-	 * The extension host should be launched immediately and doesn't require a `$startExtensionHost` call.
-	 */
 	EagerAutoStart = 1,
-	/**
-	 * The extension host should be launched immediately and needs a `$startExtensionHost` call.
-	 */
 	EagerManualStart = 2,
-	/**
-	 * The extension host should be launched lazily and only when it has extensions it needs to host. It doesn't require a `$startExtensionHost` call.
-	 */
 	LazyAutoStart = 3,
 }
 
@@ -127,11 +89,6 @@ export interface IExtensionHost {
 	readonly runningLocation: ExtensionRunningLocation;
 	readonly remoteAuthority: string | null;
 	readonly startup: ExtensionHostStartup;
-	/**
-	 * A collection of extensions which includes information about which
-	 * extension will execute or is executing on this extension host.
-	 * **NOTE**: this will reflect extensions correctly only after `start()` resolves.
-	 */
 	readonly extensions: ExtensionHostExtensions | null;
 	readonly onExit: Event<[number, string | null]>;
 
@@ -204,8 +161,6 @@ export class ExtensionHostExtensions {
 				continue;
 			}
 			if (!extensionsAreTheSame(oldExtension, newExtension)) {
-				// The new extension is different than the old one
-				// (e.g. maybe it executes in a different location)
 				toRemove.push(oldExtension.identifier);
 				oldExtensionsMap.delete(oldExtension.identifier);
 				continue;
@@ -218,8 +173,6 @@ export class ExtensionHostExtensions {
 				continue;
 			}
 			if (!extensionsAreTheSame(oldExtension, newExtension)) {
-				// The new extension is different than the old one
-				// (e.g. maybe it executes in a different location)
 				toRemove.push(oldExtension.identifier);
 				oldExtensionsMap.delete(oldExtension.identifier);
 				continue;
@@ -247,12 +200,10 @@ export class ExtensionHostExtensions {
 
 	public delta(extensionsDelta: IExtensionDescriptionDelta): IExtensionDescriptionDelta | null {
 		if (this._versionId >= extensionsDelta.versionId) {
-			// ignore older deltas
 			return null;
 		}
 
 		const { toRemove, toAdd, myToRemove, myToAdd } = extensionsDelta;
-		// First handle removals
 		const toRemoveSet = new ExtensionIdentifierSet(toRemove);
 		const myToRemoveSet = new ExtensionIdentifierSet(myToRemove);
 		for (let i = 0; i < this._allExtensions.length; i++) {
@@ -267,7 +218,6 @@ export class ExtensionHostExtensions {
 				i--;
 			}
 		}
-		// Then handle additions
 		for (const extension of toAdd) {
 			this._allExtensions.push(extension);
 		}
@@ -275,7 +225,6 @@ export class ExtensionHostExtensions {
 			this._myExtensions.push(extensionId);
 		}
 
-		// clear cached activation events
 		this._myActivationEvents = null;
 
 		return extensionsDelta;
@@ -329,8 +278,6 @@ export function isProposedApiEnabled(extension: IExtensionDescription, proposal:
 	}
 	let enabled = extension.enabledApiProposals.includes(proposal);
 	if (!enabled && _proposedApiEnabledResolver?.(extension, proposal)) {
-		// an experiment can grant proposed API access to extension/proposal combinations
-		// that have not declared the proposal via their `enabledApiProposals`-property
 		enabled = true;
 	}
 	if (!enabled) {
@@ -340,13 +287,7 @@ export function isProposedApiEnabled(extension: IExtensionDescription, proposal:
 }
 
 export interface IProposedApiUsage {
-	/**
-	 * The identifier of the extension that attempted to use the proposal.
-	 */
 	readonly extensionId: string;
-	/**
-	 * The name of the API proposal that the extension is not allowed to use.
-	 */
 	readonly proposalName: ApiProposalName;
 }
 
@@ -355,14 +296,6 @@ type ProposedApiUsageReporter = (usage: IProposedApiUsage) => void;
 let _proposedApiUsageReporter: ProposedApiUsageReporter | undefined;
 const _reportedProposedApiUsages = new Set<string>();
 
-/**
- * Registers a reporter that is invoked whenever an extension attempts to use a proposed API
- * that it has not declared via its `enabledApiProposals`-property. This is used to gather
- * telemetry about extensions that rely on proposed API they are not entitled to use.
- *
- * Each unique extension/proposal combination is reported at most once per session in order to
- * avoid flooding telemetry from the (potentially hot) call sites of {@link isProposedApiEnabled}.
- */
 export function setProposedApiUsageReporter(reporter: ProposedApiUsageReporter): IDisposable {
 	_proposedApiUsageReporter = reporter;
 	return toDisposable(() => {
@@ -389,50 +322,21 @@ type ProposedApiEnabledResolver = (extension: IExtensionDescription, proposal: A
 
 let _proposedApiEnabledResolver: ProposedApiEnabledResolver | undefined;
 
-/**
- * The name of the experiment ("treatment") that can grant proposed API access to
- * extension/proposal combinations that have not declared the proposal themselves.
- */
 export const enabledApiProposalsFallbackExperimentName = 'extensionEnabledApiProposalsFallback';
 
-/**
- * Experiment value that explicitly blocks all proposals reaching the fallback.
- */
 export const enabledApiProposalsFallbackNone = 'none';
 
-/**
- * Resolves the value of the {@link enabledApiProposalsFallbackExperimentName}-experiment, or
- * `undefined` when it does not apply (non-`stable` quality) or cannot be read in time.
- */
 export async function resolveEnabledApiProposalsFallbackExperiment(assignmentService: IAssignmentService, quality: string | undefined): Promise<string | undefined> {
 	if (quality !== 'stable') {
 		return undefined;
 	}
 	try {
-		// This runs while building the ext host init data (whose promise has no error handling) and
-		// the assignment service can block on its initial network fetch, so cap the wait and swallow
-		// errors: falling back to `undefined` keeps today's behavior and the value is read from the
-		// cache on the next start.
 		return await raceTimeout(assignmentService.getTreatment<string>(enabledApiProposalsFallbackExperimentName), 5000);
 	} catch {
 		return undefined;
 	}
 }
 
-/**
- * Enables the {@link enabledApiProposalsFallbackExperimentName}-experiment which can grant proposed
- * API access to extension/proposal combinations that have not declared the proposal via their
- * `enabledApiProposals`-property. It only takes effect on `stable` builds.
- *
- * Note that the experiment only applies to extensions that already declare at least one proposal:
- * an extension with no `enabledApiProposals` at all is never granted access.
- *
- * @param value A comma-separated list of `publisher.extension:proposalName` entries. Any combination
- * that appears here will have {@link isProposedApiEnabled} return `true` even when the extension has
- * not declared that particular proposal. When unset, all proposals are allowed;
- * {@link enabledApiProposalsFallbackNone} blocks all proposals that reach the fallback.
- * @param quality The product quality. The experiment only takes effect when this is `stable`.
- */
 export function setEnabledApiProposalsFallbackExperiment(value: string | undefined, quality: string | undefined): IDisposable {
 	if (quality !== 'stable') {
 		return Disposable.None;
@@ -470,9 +374,6 @@ export function checkProposedApiEnabled(extension: IExtensionDescription, propos
 }
 
 
-/**
- * Extension id or one of the four known program states.
- */
 export type ProfileSegmentId = string | 'idle' | 'program' | 'gc' | 'self';
 
 export interface ExtensionActivationReason {
@@ -510,9 +411,6 @@ export interface IWillActivateEvent {
 export interface IResponsiveStateChangeEvent {
 	extensionHostKind: ExtensionHostKind;
 	isResponsive: boolean;
-	/**
-	 * Return the inspect port or `0`. `0` means inspection is not possible.
-	 */
 	getInspectListener(tryEnableInspector: boolean): Promise<IExtensionInspectInfo | undefined>;
 }
 
@@ -523,163 +421,54 @@ export const enum ActivationKind {
 
 export interface WillStopExtensionHostsEvent {
 
-	/**
-	 * A human readable reason for stopping the extension hosts
-	 * that e.g. can be shown in a confirmation dialog to the
-	 * user.
-	 */
 	readonly reason: string;
 
-	/**
-	 * A flag to indicate if the operation was triggered automatically
-	 */
 	readonly auto: boolean;
 
-	/**
-	 * Allows to veto the stopping of extension hosts. The veto can be a long running
-	 * operation.
-	 *
-	 * @param reason a human readable reason for vetoing the extension host stop in case
-	 * where the resolved `value: true`.
-	 */
 	veto(value: boolean | Promise<boolean>, reason: string): void;
 }
 
 export interface IExtensionService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * An event emitted when extensions are registered after their extension points got handled.
-	 *
-	 * This event will also fire on startup to signal the installed extensions.
-	 *
-	 * @returns the extensions that got registered
-	 */
 	readonly onDidRegisterExtensions: Event<void>;
 
-	/**
-	 * @event
-	 * Fired when extensions status changes.
-	 * The event contains the ids of the extensions that have changed.
-	 */
 	readonly onDidChangeExtensionsStatus: Event<ExtensionIdentifier[]>;
 
-	/**
-	 * Fired when the available extensions change (i.e. when extensions are added or removed).
-	 */
 	readonly onDidChangeExtensions: Event<{ readonly added: readonly IExtensionDescription[]; readonly removed: readonly IExtensionDescription[] }>;
 
-	/**
-	 * All registered extensions.
-	 * - List will be empty initially during workbench startup and will be filled with extensions as they are registered
-	 * - Listen to `onDidChangeExtensions` event for any changes to the extensions list. It will change as extensions get registered or de-reigstered.
-	 * - Listen to `onDidRegisterExtensions` event or wait for `whenInstalledExtensionsRegistered` promise to get the initial list of registered extensions.
-	 */
 	readonly extensions: readonly IExtensionDescription[];
 
-	/**
-	 * An event that is fired when activation happens.
-	 */
 	readonly onWillActivateByEvent: Event<IWillActivateEvent>;
 
-	/**
-	 * An event that is fired when an extension host changes its
-	 * responsive-state.
-	 */
 	readonly onDidChangeResponsiveChange: Event<IResponsiveStateChangeEvent>;
 
-	/**
-	 * Fired before stop of extension hosts happens. Allows listeners to veto against the
-	 * stop to prevent it from happening.
-	 */
 	readonly onWillStop: Event<WillStopExtensionHostsEvent>;
 
-	/**
-	 * Send an activation event and activate interested extensions.
-	 *
-	 * This will wait for the normal startup of the extension host(s).
-	 *
-	 * In extraordinary circumstances, if the activation event needs to activate
-	 * one or more extensions before the normal startup is finished, then you can use
-	 * `ActivationKind.Immediate`. Please do not use this flag unless really necessary
-	 * and you understand all consequences.
-	 */
 	activateByEvent(activationEvent: string, activationKind?: ActivationKind): Promise<void>;
 
-	/**
-	 * Send an activation ID and activate interested extensions.
-	 *
-	 */
 	activateById(extensionId: ExtensionIdentifier, reason: ExtensionActivationReason): Promise<void>;
 
-	/**
-	 * Determine if `activateByEvent(activationEvent)` has resolved already.
-	 *
-	 * i.e. the activation event is finished and all interested extensions are already active.
-	 */
 	activationEventIsDone(activationEvent: string): boolean;
 
-	/**
-	 * An promise that resolves when the installed extensions are registered after
-	 * their extension points got handled.
-	 */
 	whenInstalledExtensionsRegistered(): Promise<boolean>;
 
-	/**
-	 * Return a specific extension
-	 * @param id An extension id
-	 */
 	getExtension(id: string): Promise<IExtensionDescription | undefined>;
 
-	/**
-	 * Returns `true` if the given extension can be added. Otherwise `false`.
-	 * @param extension An extension
-	 */
 	canAddExtension(extension: IExtensionDescription): boolean;
 
-	/**
-	 * Returns `true` if the given extension can be removed. Otherwise `false`.
-	 * @param extension An extension
-	 */
 	canRemoveExtension(extension: IExtensionDescription): boolean;
 
-	/**
-	 * Read all contributions to an extension point.
-	 */
 	readExtensionPointContributions<T extends IExtensionContributions[keyof IExtensionContributions]>(extPoint: IExtensionPoint<T>): Promise<ExtensionPointContribution<T>[]>;
 
-	/**
-	 * Get information about extensions status.
-	 */
 	getExtensionsStatus(): { [id: string]: IExtensionsStatus };
 
-	/**
-	 * Return the inspect ports (if inspection is possible) for extension hosts of kind `extensionHostKind`.
-	 */
 	getInspectPorts(extensionHostKind: ExtensionHostKind, tryEnableInspector: boolean): Promise<IExtensionInspectInfo[]>;
 
-	/**
-	 * Stops the extension hosts.
-	 *
-	 * @param reason a human readable reason for stopping the extension hosts. This maybe
-	 * can be presented to the user when showing dialogs.
-	 *
-	 * @param auto indicates if the operation was triggered by an automatic action
-	 *
-	 * @returns a promise that resolves to `true` if the extension hosts were stopped, `false`
-	 * if the operation was vetoed by listeners of the `onWillStop` event.
-	 */
 	stopExtensionHosts(reason: string, auto?: boolean): Promise<boolean>;
 
-	/**
-	 * Starts the extension hosts. If updates are provided, the extension hosts are started with the given updates.
-	 */
 	startExtensionHosts(updates?: { readonly toAdd: readonly IExtension[]; readonly toRemove: readonly string[] }): Promise<void>;
 
-	/**
-	 * Modify the environment of the remote extension host
-	 * @param env New properties for the remote extension host
-	 */
 	setRemoteEnvironment(env: { [key: string]: string | null }): Promise<void>;
 }
 

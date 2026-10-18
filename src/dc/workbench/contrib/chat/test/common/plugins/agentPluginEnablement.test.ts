@@ -159,7 +159,6 @@ suite('AgentPlugin enablement', () => {
 
 		test('additive: a plugin the policy never mentions is not blocked', () => {
 			const plugin = makeMarketplacePluginForPolicy();
-			// Enterprise enables a different plugin; the user's own plugin must keep working.
 			assert.strictEqual(isAgentPluginBlockedByPolicy(plugin, { 'workiq@copilot-plugins': true }), false);
 		});
 

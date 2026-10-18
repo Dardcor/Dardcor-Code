@@ -46,8 +46,6 @@ const PONG_TIMEOUT_MS = 10_000;
 const FAST_RETRY_COUNT = 3;
 const FAST_RETRY_DELAY_MS = 2_000;
 const SLOW_RETRY_DELAY_MS = 10_000;
-// Kept short on purpose: a user staring at a reconnecting UI would rather be told
-// it failed than wait. Gives 3 fast attempts plus ~5 slow ones before giving up.
 const MAX_RECONNECT_DURATION_MS = 60_000;
 const TTS_SUPPORTED_LANGUAGE_BASES = new Set([
 	'en', 'de', 'es', 'fr', 'it', 'pt', 'ja', 'ko', 'zh',
@@ -104,28 +102,18 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 	private _reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 	private _isConnected = false;
 	private _isResuming = false;
-	// Set once start_session/resume_session (which carries session_context) has
-	// been sent on the current connection; reset per connection. Gates
-	// `_sendSetLanguage` and `requestNarration` so the backend has the session
-	// before those follow-up messages are sent.
 	private _sessionStartedOnSocket = false;
 	private _window: (Window & typeof globalThis) | undefined;
 	private _lastSessionId: string | undefined;
 
-	// --- Keep-alive ping/pong ---
 	private _pingTimer: ReturnType<Window['setInterval']> | undefined;
 	private _pongTimer: ReturnType<typeof setTimeout> | undefined;
 
-	// --- Debounced context sending with per-session delta tracking ---
 	private _contextSendTimer: ReturnType<typeof setTimeout> | undefined;
-	// Latest context handed to ``sendSessionContext`` while a debounce is in
-	// flight. Held so ``flushSessionContext`` can ship it synchronously if a
-	// state-change event needs to fire before the timer expires.
 	private _pendingContext: IVoiceSessionContext | undefined;
-	private _lastSentById = new Map<string, Record<string, unknown>>(); // session id → last-sent field values
+	private _lastSentById = new Map<string, Record<string, unknown>>();
 	private readonly _invalidatedSessionIds = new Set<string>();
 
-	// --- Events ---
 	private readonly _onTranscription = this._register(new Emitter<IVoiceTranscription>());
 	readonly onTranscription: Event<IVoiceTranscription> = this._onTranscription.event;
 
@@ -193,10 +181,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 	) {
 		super();
 
-		// Push turn-endpointing settings to the backend live. Takes effect on
-		// the next push-to-talk press (the backend never mutates an in-flight
-		// press). When disconnected this no-ops; the latest config rides along
-		// on the next ``start_session`` / ``resume_session`` instead.
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (
 				e.affectsConfiguration('agents.voice.turn.silenceMs') ||
@@ -244,10 +228,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 		}
 	}
 
-	/**
-	 * Whether a configuration setting has an explicit user/workspace/application
-	 * value, as opposed to falling back to its registered default.
-	 */
 	private _isExplicitlyConfigured(key: string): boolean {
 		const inspected = this._configurationService.inspect(key);
 		return inspected.userValue !== undefined
@@ -258,19 +238,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 			|| inspected.applicationValue !== undefined;
 	}
 
-	/**
-	 * Assemble the ``turn_config`` wire object from the ``agents.voice.turn.*``
-	 * settings, normalizing each into the shape the backend expects. The
-	 * ``auto_end_mode`` is derived from the other two settings: trailing-silence
-	 * ending is enabled unless ``silenceMs`` is ``-1`` (or otherwise non-positive),
-	 * and stop-phrase ending is enabled when at least one phrase is configured.
-	 *
-	 * When hands-free mode (``agents.voice.handsFree``) is disabled, the turn is
-	 * not sent automatically by default: trailing-silence and stop-phrase ending
-	 * are each suppressed unless the corresponding setting has been explicitly
-	 * configured, so a user who opts out of the hands-free loop keeps manual
-	 * control over when a turn is sent.
-	 */
 	private _getTurnConfig(): IVoiceTurnConfig {
 		const cfg = this._configurationService;
 		const handsFree = cfg.getValue<boolean>('agents.voice.handsFree') === true;
@@ -338,16 +305,12 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 		this._sessionStartedOnSocket = false;
 
 		ws.onopen = () => {
-			// Does not reset the retry budget: refused connections also fire onopen,
-			// so resetting here would refill the budget on every failing cycle. The
-			// reset happens on session_init/session_resumed instead.
 			this._isResuming = !!this._lastSessionId;
 			this._sessionStartedOnSocket = false;
 			this._setConnected(true);
 			this._startPing();
 
 			if (this._lastSessionId) {
-				// Reconnecting — resume_session with context is sent by sendResumeSession()
 			}
 		};
 
@@ -392,8 +355,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 					break;
 				case 'session_init':
 					this._resetReconnectBudget();
-					// Adopt the server's session id even when a resume failed and it
-					// started a fresh session; keeping the old id stalled reconnect (`_isResuming`).
 					this._lastSessionId = msg.session_id;
 					this._isResuming = false;
 					this._onSessionInit.fire({ sessionId: msg.session_id ?? '' });
@@ -458,10 +419,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 					break;
 				}
 				case 'audio_response': {
-					// Old pre-streaming server (pre PR #44076) doesn't send
-					// `is_first_chunk` at all. Treat missing field as TRUE so
-					// suppression-clearing in _enqueueAudio still works; new
-					// streaming server always emits true/false explicitly.
 					const requestId = asOptionalString(msg.request_id);
 					const checkpointId = isVoiceCheckpointId(msg.checkpoint_id) ? msg.checkpoint_id : undefined;
 					const sequence = typeof msg.sequence === 'number' && Number.isSafeInteger(msg.sequence) && msg.sequence > 0 ? msg.sequence : undefined;
@@ -494,10 +451,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 					});
 					break;
 				case 'turn_auto_ended': {
-					// Backend ended the held turn itself (server VAD silence or a
-					// matched stop phrase). Normalize the reason and let the
-					// consumer stop capture for that turn; it must not send its
-					// own ptt_end.
 					const reason: IVoiceTurnAutoEndReason = msg.reason === 'stop_phrase' ? 'stop_phrase' : 'vad_silence';
 					this._onTurnAutoEnded.fire({ reason, turnId: asOptionalString(msg.turn_id) ?? '' });
 					break;
@@ -515,8 +468,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 		ws.onclose = (evt: CloseEvent) => {
 			this._logService.trace(`[voice] ws.onclose code=${evt.code} reason=${evt.reason ?? ''} wasClean=${evt.wasClean}`);
 			if (this._ws === ws) {
-				// Every terminal outcome must report itself, so consumers can leave
-				// the reconnecting state.
 				if (isTerminalCloseCode(evt.code)) {
 					const kind = voiceCloseCodeInfo(evt.code)?.kind ?? 'fatal';
 					this._logService.warn(`[voice] terminal close ${evt.code} (${kind}): ${evt.reason}, not reconnecting`);
@@ -550,8 +501,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 					this._connectWebSocket();
 				}, delay);
 				this._setConnected(false);
-				// Must follow _setConnected: consumers enter the reconnecting state on
-				// that event and only then render this reason.
 				this._onConnectionIssue.fire({ code: evt.code, reason: evt.reason ?? '' });
 			}
 		};
@@ -691,13 +640,11 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 		const currentIds = new Set(context.sessions.map(s => s.id));
 		const removes = [...this._lastSentById.keys()].filter(id => !currentIds.has(id));
 
-		// Compute per-session field-level patches (JSON Merge Patch style)
 		const upserts: Record<string, unknown>[] = [];
 		for (const session of context.sessions) {
 			const current = session as unknown as Record<string, unknown>;
 			const prev = this._lastSentById.get(session.id);
 			if (!prev) {
-				// New session — send all fields
 				upserts.push(current);
 			} else {
 				const patch: Record<string, unknown> = { id: session.id };
@@ -716,7 +663,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 						}
 					}
 				} else {
-					// Fields that changed or were added
 					for (const key of Object.keys(current)) {
 						if (key === 'id') { continue; }
 						if (stableStringify(current[key]) !== stableStringify(prev[key])) {
@@ -724,7 +670,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 							hasChanges = true;
 						}
 					}
-					// Fields that were removed (present in prev, absent in current) → null per RFC 7396
 					for (const key of Object.keys(prev)) {
 						if (key === 'id') { continue; }
 						if (!Object.prototype.hasOwnProperty.call(current, key) || current[key] === undefined) {
@@ -733,15 +678,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 						}
 					}
 				}
-				// ``agent_state_detail`` (the confirmation prompt text) and
-				// ``last_response_summary`` (the agent's final reply) stream in
-				// observables that may wobble multiple times within a single
-				// stable ``agent_state``. Without this guard, each wobble ships
-				// a delta and the BE re-narrates the same approval/idle event.
-				// They are already delivered inline on ``session_state_change``
-				// for real transitions, so we only let them ride in a context
-				// delta when ``agent_state`` itself is in the same patch
-				// (i.e. on an actual state transition).
 				if (!Object.prototype.hasOwnProperty.call(patch, 'agent_state')) {
 					if (Object.prototype.hasOwnProperty.call(patch, 'agent_state_detail')) {
 						delete patch.agent_state_detail;
@@ -749,7 +685,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 					if (Object.prototype.hasOwnProperty.call(patch, 'last_response_summary')) {
 						delete patch.last_response_summary;
 					}
-					// Recompute whether anything other than id remains
 					hasChanges = Object.keys(patch).some(k => k !== 'id');
 				}
 				if (hasChanges) {
@@ -762,7 +697,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 			return;
 		}
 
-		// Update tracking state
 		for (const session of context.sessions) {
 			const obj: Record<string, unknown> = {};
 			for (const [k, v] of Object.entries(session as unknown as Record<string, unknown>)) {
@@ -815,12 +749,7 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 	}
 
 	requestNarration(codingSessionId: string, kind: VoiceNarrationKind, text: string, narrationId?: string, checkpoint?: IVoiceCheckpointNarrationMetadata, confirmationType?: VoiceConfirmationType, pending?: { pendingId: string }): string | undefined {
-		// Gate on session_context having been sent: the WS preserves send order,
-		// so the backend processes start_session/resume_session before any
-		// request_narration. Pre-session this returns undefined, so _narrate queues
-		// a retry that onSessionInit replays once the session exists.
 		if (this._ws?.readyState === WebSocket.OPEN && this._sessionStartedOnSocket) {
-			// Reuse a caller-supplied id (a `busy` retry) so the backend dedups; else mint one.
 			const id = narrationId ?? generateUuid();
 			this._ws.send(JSON.stringify({
 				type: 'request_narration',
@@ -857,23 +786,10 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 	stopSpeaking(): void {
 	}
 
-	/**
-	 * Send the start_session message with the given context.
-	 * Called by the consumer after connect() resolves and AudioContext is ready.
-	 *
-	 * ``priorTimeline`` carries an ordered slice of cross-session entries
-	 * (voice turns, voice tool calls, coding-session events, and a synthesized
-	 * coding-agent-reply summary per active session) from the previous voice
-	 * session. The BE consumes it once on the first command turn so the model
-	 * can answer recall questions across reconnects without backend
-	 * persistence. See ``IVoicePriorTimelineEntry``.
-	 */
 	sendStartSession(context: IVoiceSessionContext, machineId: string, priorTimeline?: readonly IVoicePriorTimelineEntry[], turnConfigOverride?: IVoiceTurnConfig, voiceInstructions?: string): void {
 		if (this._ws?.readyState === WebSocket.OPEN) {
 			const sessionContext = { ...context, display_locale: this._getLanguage() };
 			this._seedTracking(sessionContext);
-			// This client drives narration itself via `requestNarration`, so opt out
-			// of the backend's default context-delta auto-narration to avoid double narration.
 			const payload: Record<string, unknown> = { type: 'start_session', session_context: sessionContext, machine_id: machineId, turn_config: turnConfigOverride ?? this._getTurnConfig(), voice: this._getVoice(), auto_narrate: false };
 			if (priorTimeline && priorTimeline.length > 0) {
 				payload.prior_timeline = priorTimeline;
@@ -890,8 +806,6 @@ export class VoiceClientService extends Disposable implements IVoiceClientServic
 		if (this._ws?.readyState === WebSocket.OPEN && this._lastSessionId) {
 			const sessionContext = { ...context, display_locale: this._getLanguage() };
 			this._seedTracking(sessionContext);
-			// `auto_narrate: false` for the same reason as start_session: this client
-			// drives narration, so the backend must not also auto-narrate.
 			const payload: Record<string, unknown> = { type: 'resume_session', session_id: this._lastSessionId, session_context: sessionContext, machine_id: machineId, turn_config: this._getTurnConfig(), voice: this._getVoice(), auto_narrate: false };
 			if (voiceInstructions) {
 				payload.voice_instructions = voiceInstructions;

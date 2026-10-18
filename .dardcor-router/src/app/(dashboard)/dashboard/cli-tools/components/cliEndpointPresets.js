@@ -1,6 +1,5 @@
 import { UPDATER_CONFIG } from "@/shared/constants/config";
 
-// Browser-local preset stores (endpoints, API keys) shared by every CLI tool card
 function createStore({ storageKey, changeEvent, itemField, normalize = (v) => v, defaultName = (v) => v }) {
   const read = () => {
     if (typeof window === "undefined") return [];
@@ -26,7 +25,6 @@ function createStore({ storageKey, changeEvent, itemField, normalize = (v) => v,
       window.addEventListener(changeEvent, handler);
       return () => window.removeEventListener(changeEvent, handler);
     },
-    // Adds or replaces a preset; returns the stored name, or null when skipped
     upsert: (value, name) => {
       const v = normalize(value);
       if (!v) return null;
@@ -75,7 +73,6 @@ export const subscribeKeyPresets = apiKeys.subscribe;
 export const upsertKeyPreset = apiKeys.upsert;
 export const deleteKeyPreset = apiKeys.remove;
 
-// Save an applied endpoint unless it exactly matches a built-in dropdown option
 export function rememberEndpoint(baseUrl, { tunnelPublicUrl, tailscaleUrl, cloudUrl } = {}) {
   const url = stripSlash(baseUrl);
   if (!url) return null;

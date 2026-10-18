@@ -8,13 +8,8 @@ import { resolve } from 'path';
 
 const rootPath = resolve(import.meta.dirname, '..', '..', '..');
 
-// VS Code OAuth app client ID (same as the GitHub Authentication extension)
 const CLIENT_ID = '01ab8ac9400c4e429b23';
 
-/**
- * Acquires a GitHub token via the OAuth device flow.
- * Opens the browser for the user to authorize, then polls for the token.
- */
 async function acquireTokenViaDeviceFlow(): Promise<string> {
 	const response1 = await (await fetch('https://github.com/login/device/code', {
 		method: 'POST',
@@ -49,19 +44,15 @@ async function acquireTokenViaDeviceFlow(): Promise<string> {
 	throw new Error('Timed out waiting for GitHub authorization');
 }
 
-// Ensure sources are transpiled
 console.log('Transpiling client sources...');
 execSync('npm run transpile-client', { cwd: rootPath, stdio: 'inherit' });
 
-// Set up GITHUB_TOKEN if not already set
 if (!process.env['GITHUB_TOKEN'] && !process.env['DISTRO_PRODUCT_JSON']) {
-	// Try gh CLI first (fast, non-interactive)
 	let token: string | undefined;
 	try {
 		token = execFileSync('gh', ['auth', 'token'], { encoding: 'utf8' }).trim();
 		console.log('Set GITHUB_TOKEN from gh CLI.');
 	} catch {
-		// Fall back to OAuth device flow (interactive)
 		console.log('gh CLI not available, starting GitHub OAuth device flow...');
 		token = await acquireTokenViaDeviceFlow();
 		console.log('GitHub authorization successful.');
@@ -70,7 +61,6 @@ if (!process.env['GITHUB_TOKEN'] && !process.env['DISTRO_PRODUCT_JSON']) {
 	process.env['GITHUB_TOKEN'] = token;
 }
 
-// Run the export
 console.log('Exporting policy data...');
 const codeScript = process.platform === 'win32'
 	? resolve(rootPath, 'scripts', 'code.bat')

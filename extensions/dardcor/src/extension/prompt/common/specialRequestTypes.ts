@@ -15,7 +15,6 @@ const isToolCallIterationIncrease = (c: unknown): c is IToolCallIterationIncreas
 export const getRequestedToolCallIterationLimit = (request: ChatRequest) => request.acceptedConfirmationData?.find(isToolCallIterationIncrease)?.dardcorRequestedRoundLimit;
 export const getRejectedToolCallIterationLimit = (request: ChatRequest) => request.rejectedConfirmationData?.find(isToolCallIterationIncrease)?.dardcorRequestedRoundLimit;
 
-// todo@connor4312 improve with the choices API
 export const cancelText = () => l10n.t('Pause');
 export const isToolCallLimitCancellation = (request: ChatRequest) => !!getRejectedToolCallIterationLimit(request);
 export const isToolCallLimitAcceptance = (request: ChatRequest) => !!getRequestedToolCallIterationLimit(request) && !isToolCallLimitCancellation(request);

@@ -12,7 +12,6 @@ import { ExpTreatmentVariables } from './expConfig';
 import { getCppNumberOfSnippets, getCppSimilarFilesOptions } from './similarFileOptionsProviderCpp';
 
 type SimilarFilesOptionsProvider = (accessor: ServicesAccessor, exp: TelemetryWithExp) => SimilarFilesOptions;
-// Add here for more options for other language ids.
 const languageSimilarFilesOptions: ReadonlyMap<string, SimilarFilesOptionsProvider> = new Map<
 	string,
 	SimilarFilesOptionsProvider
@@ -31,7 +30,6 @@ export function getSimilarFilesOptions(accessor: ServicesAccessor, exp: Telemetr
 }
 
 type NumberOfSnippetsProvider = (exp: TelemetryWithExp) => number;
-// Add here for more values for other language ids.
 const numberOfSnippets: ReadonlyMap<string, NumberOfSnippetsProvider> = new Map<string, NumberOfSnippetsProvider>([
 	['cpp', getCppNumberOfSnippets],
 ]);

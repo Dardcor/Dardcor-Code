@@ -56,7 +56,6 @@ export class ShareService implements IShareService {
 	}
 
 	getShareActions(): ISubmenuItem[] {
-		// todo@joyceerhl return share actions
 		return [];
 	}
 

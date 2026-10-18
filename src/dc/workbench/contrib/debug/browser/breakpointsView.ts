@@ -79,9 +79,6 @@ export function getExpandedBodySize(model: IDebugModel, sessionId: string | unde
 }
 type BreakpointItem = IBreakpoint | IFunctionBreakpoint | IDataBreakpoint | IExceptionBreakpoint | IInstructionBreakpoint;
 
-/**
- * Represents a file node in the breakpoints tree that groups breakpoints by file.
- */
 export class BreakpointsFolderItem {
 	constructor(
 		readonly uri: URI,
@@ -260,7 +257,7 @@ export class BreakpointsView extends ViewPane {
 				return;
 			}
 
-			if (dom.isMouseEvent(e.browserEvent) && e.browserEvent.button === 1) { // middle click
+			if (dom.isMouseEvent(e.browserEvent) && e.browserEvent.button === 1) {
 				return;
 			}
 
@@ -269,11 +266,9 @@ export class BreakpointsView extends ViewPane {
 			}
 			if (element instanceof InstructionBreakpoint) {
 				const disassemblyView = await this.editorService.openEditor(DisassemblyViewInput.instance);
-				// Focus on double click
 				(disassemblyView as DisassemblyView).goToInstructionAndOffset(element.instructionReference, element.offset, dom.isMouseEvent(e.browserEvent) && e.browserEvent.detail === 2);
 			}
 			if (dom.isMouseEvent(e.browserEvent) && e.browserEvent.detail === 2 && element instanceof FunctionBreakpoint && element !== this.inputBoxData?.breakpoint) {
-				// double click
 				this.renderInputBox({ breakpoint: element, type: 'name' });
 			}
 		}));
@@ -293,7 +288,6 @@ export class BreakpointsView extends ViewPane {
 			}
 		}));
 
-		// Track collapsed state and update size (items are expanded by default)
 		this._register(this.tree.onDidChangeCollapseState(e => {
 			const element = e.node.element;
 			if (element instanceof BreakpointsFolderItem) {
@@ -306,7 +300,6 @@ export class BreakpointsView extends ViewPane {
 			}
 		}));
 
-		// React to configuration changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('debug.breakpointsView.presentation')) {
 				const presentation = this.getPresentation();
@@ -381,7 +374,6 @@ export class BreakpointsView extends ViewPane {
 	private onTreeContextMenu(e: ITreeContextMenuEvent<BreakpointTreeElement | null>): void {
 		const element = e.element;
 		if (element instanceof BreakpointsFolderItem) {
-			// For folder items, show file-level context menu
 			this.breakpointItemType.set('breakpointFolder');
 			const { secondary } = getContextMenuActions(this.menu.getActions({ arg: element, shouldForwardArgs: false }), 'inline');
 			this.contextMenuService.showContextMenu({
@@ -414,8 +406,6 @@ export class BreakpointsView extends ViewPane {
 	private updateSize(): void {
 		const containerModel = this.viewDescriptorService.getViewContainerModel(this.viewDescriptorService.getViewContainerByViewId(this.id)!);
 
-		// Calculate visible row count from tree's content height
-		// Each row is 22px high
 		const rowHeight = 22;
 
 		this.minimumBodySize = this.orientation === Orientation.VERTICAL ? Math.min(MAX_VISIBLE_BREAKPOINTS * rowHeight, this.tree.contentHeight) : 170;
@@ -485,7 +475,6 @@ export class BreakpointsView extends ViewPane {
 				}
 			}
 			if (!found) {
-				// Deselect breakpoint in breakpoint view when no longer stopped on it #125528
 				const focus = this.tree.getFocus();
 				const selection = this.tree.getSelection();
 				if (this.autoFocusedElement && equals(focus, selection) && selection.includes(this.autoFocusedElement)) {
@@ -512,25 +501,20 @@ export class BreakpointsView extends ViewPane {
 
 		const result: ICompressedTreeElement<BreakpointTreeElement>[] = [];
 
-		// Exception breakpoints at the top (root level)
 		for (const exBp of model.getExceptionBreakpointsForSession(sessionId)) {
 			result.push({ element: exBp, incompressible: true });
 		}
 
-		// Function breakpoints (root level)
 		for (const funcBp of model.getFunctionBreakpoints()) {
 			result.push({ element: funcBp, incompressible: true });
 		}
 
-		// Data breakpoints (root level)
 		for (const dataBp of model.getDataBreakpoints()) {
 			result.push({ element: dataBp, incompressible: true });
 		}
 
-		// Source breakpoints - group by file if showAsTree is enabled
 		const sourceBreakpoints = model.getBreakpoints();
 		if (showAsTree && sourceBreakpoints.length > 0) {
-			// Group breakpoints by URI
 			const breakpointsByUri = new Map<string, IBreakpoint[]>();
 			for (const bp of sourceBreakpoints) {
 				const key = bp.uri.toString();
@@ -540,12 +524,10 @@ export class BreakpointsView extends ViewPane {
 				breakpointsByUri.get(key)!.push(bp);
 			}
 
-			// Create folder items for each file
 			for (const [uriStr, breakpoints] of breakpointsByUri) {
 				const uri = URI.parse(uriStr);
 				const folderItem = new BreakpointsFolderItem(uri, breakpoints);
 
-				// Sort breakpoints by line number
 				breakpoints.sort((a, b) => a.lineNumber - b.lineNumber);
 
 				const children: ICompressedTreeElement<BreakpointTreeElement>[] = breakpoints.map(bp => ({
@@ -561,13 +543,11 @@ export class BreakpointsView extends ViewPane {
 				});
 			}
 		} else {
-			// Flat mode - just add all source breakpoints
 			for (const bp of sourceBreakpoints) {
 				result.push({ element: bp, incompressible: true });
 			}
 		}
 
-		// Instruction breakpoints (root level)
 		for (const instrBp of model.getInstructionBreakpoints()) {
 			result.push({ element: instrBp, incompressible: true });
 		}
@@ -587,7 +567,6 @@ export class BreakpointsView extends ViewPane {
 class BreakpointsDelegate implements IListVirtualDelegate<BreakpointTreeElement> {
 
 	constructor(private view: BreakpointsView) {
-		// noop
 	}
 
 	getHeight(_element: BreakpointTreeElement): number {
@@ -768,14 +747,12 @@ class BreakpointsFolderRenderer implements ICompressibleTreeRenderer<Breakpoints
 		const fullPath = this.labelService.getUriLabel(folderItem.uri, { relative: true });
 		data.elementDisposables.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('mouse'), data.container, fullPath));
 
-		// Set checkbox state
 		if (folderItem.indeterminate) {
 			data.checkbox.checked = 'mixed';
 		} else {
 			data.checkbox.checked = folderItem.enabled;
 		}
 
-		// Add remove action
 		data.actionBar.clear();
 		const removeAction = data.elementDisposables.add(new Action(
 			'debug.removeBreakpointsInFile',
@@ -796,21 +773,18 @@ class BreakpointsFolderRenderer implements ICompressibleTreeRenderer<Breakpoints
 		const folderItem = elements[elements.length - 1];
 		data.context = folderItem;
 
-		// For compressed nodes, show the combined path
 		const names = elements.map(e => resources.basenameOrAuthority(e.uri));
 		data.name.textContent = names.join('/');
 
 		const fullPath = this.labelService.getUriLabel(folderItem.uri, { relative: true });
 		data.elementDisposables.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('mouse'), data.container, fullPath));
 
-		// Set checkbox state
 		if (folderItem.indeterminate) {
 			data.checkbox.checked = 'mixed';
 		} else {
 			data.checkbox.checked = folderItem.enabled;
 		}
 
-		// Add remove action
 		data.actionBar.clear();
 		const removeAction = data.elementDisposables.add(new Action(
 			'debug.removeBreakpointsInFile',
@@ -851,7 +825,6 @@ class BreakpointsRenderer implements ICompressibleTreeRenderer<IBreakpoint, void
 		@ILabelService private readonly labelService: ILabelService,
 		@ITextModelService private readonly textModelService: ITextModelService
 	) {
-		// noop
 	}
 
 	static readonly ID = 'breakpoints';
@@ -997,7 +970,6 @@ class ExceptionBreakpointsRenderer implements ICompressibleTreeRenderer<IExcepti
 		private debugService: IDebugService,
 		private readonly hoverService: IHoverService,
 	) {
-		// noop
 	}
 
 	static readonly ID = 'exceptionbreakpoints';
@@ -1091,7 +1063,6 @@ class FunctionBreakpointsRenderer implements ICompressibleTreeRenderer<FunctionB
 		@IHoverService private readonly hoverService: IHoverService,
 		@ILabelService private readonly labelService: ILabelService
 	) {
-		// noop
 	}
 
 	static readonly ID = 'functionbreakpoints';
@@ -1156,7 +1127,6 @@ class FunctionBreakpointsRenderer implements ICompressibleTreeRenderer<FunctionB
 			data.badge.style.display = 'none';
 		}
 
-		// Mark function breakpoints as disabled if deactivated or if debug type does not support them #9099
 		const session = this.debugService.getViewModel().focusedSession;
 		data.breakpoint.classList.toggle('disabled', (session && !session.capabilities.supportsFunctionBreakpoints) || !this.debugService.getModel().areBreakpointsActivated());
 		if (session && !session.capabilities.supportsFunctionBreakpoints) {
@@ -1196,7 +1166,6 @@ class DataBreakpointsRenderer implements ICompressibleTreeRenderer<DataBreakpoin
 		@IHoverService private readonly hoverService: IHoverService,
 		@ILabelService private readonly labelService: ILabelService
 	) {
-		// noop
 	}
 
 	static readonly ID = 'databreakpoints';
@@ -1257,7 +1226,6 @@ class DataBreakpointsRenderer implements ICompressibleTreeRenderer<DataBreakpoin
 			data.badge.style.display = 'none';
 		}
 
-		// Mark data breakpoints as disabled if deactivated or if debug type does not support them
 		const session = this.debugService.getViewModel().focusedSession;
 		data.breakpoint.classList.toggle('disabled', (session && !session.capabilities.supportsDataBreakpoints) || !this.debugService.getModel().areBreakpointsActivated());
 		if (session && !session.capabilities.supportsDataBreakpoints) {
@@ -1306,7 +1274,6 @@ class InstructionBreakpointsRenderer implements ICompressibleTreeRenderer<IInstr
 		@IHoverService private readonly hoverService: IHoverService,
 		@ILabelService private readonly labelService: ILabelService
 	) {
-		// noop
 	}
 
 	static readonly ID = 'instructionBreakpoints';
@@ -1475,7 +1442,7 @@ class FunctionBreakpointInputRenderer implements ICompressibleTreeRenderer<IFunc
 	renderElement(node: ITreeNode<FunctionBreakpoint, void>, _index: number, data: IFunctionBreakpointInputTemplateData): void {
 		const functionBreakpoint = node.element;
 		data.breakpoint = functionBreakpoint;
-		data.type = this.view.inputBoxData?.type || 'name'; // If there is no type set take the 'name' as the default
+		data.type = this.view.inputBoxData?.type || 'name';
 		const { icon, message } = getBreakpointMessageAndIcon(this.debugService.state, this.debugService.getModel().areBreakpointsActivated(), functionBreakpoint, this.labelService, this.debugService.getModel());
 
 		data.icon.className = ThemeIcon.asClassName(icon);
@@ -1505,7 +1472,6 @@ class FunctionBreakpointInputRenderer implements ICompressibleTreeRenderer<IFunc
 	}
 
 	renderCompressedElements(node: ITreeNode<ICompressedTreeNode<IFunctionBreakpoint>, void>, _index: number, data: IFunctionBreakpointInputTemplateData): void {
-		// Function breakpoints are not compressible
 	}
 
 	disposeElement(node: ITreeNode<IFunctionBreakpoint, void>, index: number, templateData: IFunctionBreakpointInputTemplateData): void {
@@ -1600,7 +1566,7 @@ class DataBreakpointInputRenderer implements ICompressibleTreeRenderer<IDataBrea
 	renderElement(node: ITreeNode<DataBreakpoint, void>, _index: number, data: IDataBreakpointInputTemplateData): void {
 		const dataBreakpoint = node.element;
 		data.breakpoint = dataBreakpoint;
-		data.type = this.view.inputBoxData?.type || 'condition'; // If there is no type set take the 'condition' as the default
+		data.type = this.view.inputBoxData?.type || 'condition';
 		const { icon, message } = getBreakpointMessageAndIcon(this.debugService.state, this.debugService.getModel().areBreakpointsActivated(), dataBreakpoint, this.labelService, this.debugService.getModel());
 
 		data.icon.className = ThemeIcon.asClassName(icon);
@@ -1629,7 +1595,6 @@ class DataBreakpointInputRenderer implements ICompressibleTreeRenderer<IDataBrea
 	}
 
 	renderCompressedElements(node: ITreeNode<ICompressedTreeNode<IDataBreakpoint>, void>, _index: number, data: IDataBreakpointInputTemplateData): void {
-		// Data breakpoints are not compressible
 	}
 
 	disposeElement(node: ITreeNode<IDataBreakpoint, void>, index: number, templateData: IDataBreakpointInputTemplateData): void {
@@ -1652,7 +1617,6 @@ class ExceptionBreakpointInputRenderer implements ICompressibleTreeRenderer<IExc
 		private debugService: IDebugService,
 		private contextViewService: IContextViewService,
 	) {
-		// noop
 	}
 
 	static readonly ID = 'exceptionbreakpointinput';
@@ -1701,7 +1665,6 @@ class ExceptionBreakpointInputRenderer implements ICompressibleTreeRenderer<IExc
 			}
 		}));
 		toDispose.add(dom.addDisposableListener(inputBox.inputElement, 'blur', () => {
-			// Need to react with a timeout on the blur event due to possible concurent splices #56443
 			setTimeout(() => {
 				wrapUp(true);
 			});
@@ -1735,7 +1698,6 @@ class ExceptionBreakpointInputRenderer implements ICompressibleTreeRenderer<IExc
 	}
 
 	renderCompressedElements(node: ITreeNode<ICompressedTreeNode<IExceptionBreakpoint>, void>, _index: number, data: IExceptionBreakpointInputTemplateData): void {
-		// Exception breakpoints are not compressible
 	}
 
 	disposeElement(node: ITreeNode<IExceptionBreakpoint, void>, index: number, templateData: IExceptionBreakpointInputTemplateData): void {
@@ -1910,7 +1872,6 @@ export function getBreakpointMessageAndIcon(state: State, breakpointsActivated: 
 		};
 	}
 
-	// can change this when all breakpoint supports dependent breakpoint condition
 	let triggeringBreakpoint: IBreakpoint | undefined;
 	if (breakpoint instanceof Breakpoint && breakpoint.triggeredBy) {
 		triggeringBreakpoint = debugModel.getBreakpoints().find(bp => bp.getId() === breakpoint.triggeredBy);
@@ -2480,7 +2441,7 @@ registerAction2(class extends ViewAction<BreakpointsView> {
 		} else if (breakpoint instanceof ExceptionBreakpoint) {
 			breakpoint.mode = picked.mode;
 			breakpoint.modeLabel = picked.label;
-			debugService.setExceptionBreakpointCondition(breakpoint, breakpoint.condition); // no-op to trigger a re-send
+			debugService.setExceptionBreakpointCondition(breakpoint, breakpoint.condition);
 		}
 	}
 });

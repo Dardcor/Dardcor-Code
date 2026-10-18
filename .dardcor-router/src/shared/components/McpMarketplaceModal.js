@@ -61,7 +61,6 @@ export default function McpMarketplaceModal({ isOpen, onClose, onAdd, addedNames
       const fallback = Array.isArray(server.toolNames) ? server.toolNames : [];
       const toolNames = tools.length > 0 ? tools.map((t) => t.name) : fallback;
       setToolsCache((p) => ({ ...p, [server.url]: { tools, requiresAuth: !!d.requiresAuth, error: d.error } }));
-      // Default: all checked
       setToolSelection((p) => ({ ...p, [server.url]: Object.fromEntries(toolNames.map((t) => [t, true])) }));
     } catch (e) {
       setToolsCache((p) => ({ ...p, [server.url]: { tools: [], error: e.message } }));

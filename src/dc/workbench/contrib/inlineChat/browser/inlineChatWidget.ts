@@ -55,16 +55,10 @@ export interface InlineChatWidgetViewState {
 
 export interface IInlineChatWidgetConstructionOptions {
 
-	/**
-	 * The menu that rendered as button bar, use for accept, discard etc
-	 */
 	statusMenuId?: { menu: MenuId; options: IWorkbenchButtonBarOptions };
 
 	secondaryMenuId?: MenuId;
 
-	/**
-	 * The options for the chat widget
-	 */
 	chatWidgetViewOptions?: IChatWidgetViewOptions;
 
 	inZoneWidget?: boolean;
@@ -159,7 +153,6 @@ export abstract class InlineChatWidget {
 				supportsFileReferences: true,
 				filter: item => {
 					if (!isResponseVM(item) || item.errorDetails) {
-						// show all requests and errors
 						return true;
 					}
 					const emptyResponse = item.response.value.length === 0;
@@ -235,7 +228,6 @@ export abstract class InlineChatWidget {
 			this._onDidChangeHeight.fire();
 		}));
 
-		// context keys
 		this.#ctxResponseFocused = CTX_INLINE_CHAT_RESPONSE_FOCUSED.bindTo(contextKeyService);
 		const tracker = this._store.add(trackFocus(this.domNode));
 		this._store.add(tracker.onDidBlur(() => this.#ctxResponseFocused.set(false)));
@@ -246,7 +238,6 @@ export abstract class InlineChatWidget {
 		this._store.add(this.chatWidget.inputEditor.onDidBlurEditorWidget(() => this.#ctxInputEditorFocused.set(false)));
 
 
-		// BUTTON bar
 		if (options.statusMenuId) {
 			const statusMenuOptions = options.statusMenuId.options;
 			const statusButtonBar = scopedInstaService.createInstance(MenuWorkbenchButtonBar, this._elements.toolbar1, options.statusMenuId.menu, {
@@ -259,7 +250,6 @@ export abstract class InlineChatWidget {
 			this._store.add(statusButtonBar);
 		}
 
-		// secondary toolbar
 		const toolbar2 = scopedInstaService.createInstance(MenuWorkbenchToolBar, this._elements.toolbar2, options.secondaryMenuId ?? MenuId.for(''), {
 			telemetrySource: options.chatWidgetViewOptions?.menus?.telemetrySource,
 			menuOptions: { renderShortTitle: true, shouldForwardArgs: true },
@@ -358,7 +348,6 @@ export abstract class InlineChatWidget {
 		const extraHeight = this._getExtraHeight();
 		const statusHeight = getTotalHeight(this._elements.status);
 
-		// console.log('ZONE#Widget#layout', { height: dimension.height, extraHeight, progressHeight, followUpsHeight, statusHeight, LIST: dimension.height - progressHeight - followUpsHeight - statusHeight - extraHeight });
 
 		this._elements.root.style.height = `${dimension.height - extraHeight}px`;
 		this._elements.root.style.width = `${dimension.width}px`;
@@ -369,9 +358,6 @@ export abstract class InlineChatWidget {
 		);
 	}
 
-	/**
-	 * The content height of this widget is the size that would require no scrolling
-	 */
 	get contentHeight(): number {
 		const data = {
 			chatWidgetContentHeight: this.chatWidget.contentHeight,
@@ -383,8 +369,6 @@ export abstract class InlineChatWidget {
 	}
 
 	get minHeight(): number {
-		// The chat widget is variable height and supports scrolling. It should be
-		// at least "maxWidgetHeight" high and at most the content height.
 
 		let maxWidgetOutputHeight = 100;
 		for (const item of this.chatWidget.viewModel?.getItems() ?? []) {
@@ -401,7 +385,7 @@ export abstract class InlineChatWidget {
 	}
 
 	protected _getExtraHeight(): number {
-		return this.#options.inZoneWidget ? 1 : (2 /*border*/ + 4 /*shadow*/);
+		return this.#options.inZoneWidget ? 1 : (2 + 4 );
 	}
 
 	updateInfo(message: string): void {
@@ -498,7 +482,6 @@ export class EditorBasedInlineChatWidget extends InlineChatWidget {
 		}));
 	}
 
-	// --- layout
 
 
 	protected override _doLayout(dimension: Dimension): void {
@@ -507,7 +490,6 @@ export class EditorBasedInlineChatWidget extends InlineChatWidget {
 
 		super._doLayout(dimension.with(undefined, newHeight));
 
-		// update/fix the height of the zone which was set to newHeight in super._doLayout
 		this._elements.root.style.height = `${dimension.height - this._getExtraHeight()}px`;
 	}
 

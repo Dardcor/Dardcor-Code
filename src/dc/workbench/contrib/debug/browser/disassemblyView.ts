@@ -55,21 +55,14 @@ export interface IDisassembledInstructionEntry {
 	allowBreakpoint: boolean;
 	isBreakpointSet: boolean;
 	isBreakpointEnabled: boolean;
-	/** Instruction reference from the DA */
 	instructionReference: string;
-	/** Offset from the instructionReference that's the basis for the `instructionOffset` */
 	instructionReferenceOffset: number;
-	/** The number of instructions (+/-) away from the instructionReference and instructionReferenceOffset this instruction lies */
 	instructionOffset: number;
-	/** Whether this is the first instruction on the target line. */
 	showSourceLocation?: boolean;
-	/** Original instruction from the debugger */
 	instruction: DebugProtocol.DisassembledInstruction;
-	/** Parsed instruction address */
 	address: bigint;
 }
 
-// Special entry as a placeholer when disassembly is not available
 const disassemblyNotAvailable: IDisassembledInstructionEntry = {
 	allowBreakpoint: false,
 	isBreakpointSet: false,
@@ -88,7 +81,6 @@ export class DisassemblyView extends EditorPane {
 
 	private static readonly NUM_INSTRUCTIONS_TO_LOAD = 50;
 
-	// Used in instruction renderer
 	private _fontInfo: BareFontInfo | undefined;
 	private _disassembledInstructions: WorkbenchTable<IDisassembledInstructionEntry> | undefined;
 	private _onDidChangeStackFrame: Emitter<void>;
@@ -120,11 +112,9 @@ export class DisassemblyView extends EditorPane {
 		this._previousDebuggingState = _debugService.state;
 		this._register(_configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('debug')) {
-				// show/hide source code requires changing height which WorkbenchTable doesn't support dynamic height, thus force a total reload.
 				const newValue = this._configurationService.getValue<IDebugConfiguration>('debug').disassemblyView.showSourceCode;
 				if (this._enableSourceCodeRender !== newValue) {
 					this._enableSourceCodeRender = newValue;
-					// todo: trigger rerender
 				} else {
 					this._disassembledInstructions?.rerender();
 				}
@@ -159,7 +149,6 @@ export class DisassemblyView extends EditorPane {
 			map(ref => ref ? this.getReferenceAddress(ref) : undefined);
 	}
 
-	// Instruction reference of the top stack frame of the focused stack
 	get focusedCurrentInstructionReference() {
 		return this._debugService.getViewModel().focusedStackFrame?.thread.getTopStackFrame()?.instructionPointerReference;
 	}
@@ -206,19 +195,16 @@ export class DisassemblyView extends EditorPane {
 		const lineHeight = this.fontInfo.lineHeight;
 		const thisOM = this;
 		const delegate = new class implements ITableVirtualDelegate<IDisassembledInstructionEntry> {
-			headerRowHeight: number = 0; // No header
+			headerRowHeight: number = 0;
 			getHeight(row: IDisassembledInstructionEntry): number {
 				if (thisOM.isSourceCodeRender && row.showSourceLocation && row.instruction.location?.path && row.instruction.line) {
-					// instruction line + source lines
 					if (row.instruction.endLine) {
 						return lineHeight * Math.max(2, (row.instruction.endLine - row.instruction.line + 2));
 					} else {
-						// source is only a single line.
 						return lineHeight * 2;
 					}
 				}
 
-				// just instruction line
 				return lineHeight;
 			}
 		};
@@ -300,10 +286,8 @@ export class DisassemblyView extends EditorPane {
 			this._onDidChangeStackFrame.fire();
 		}));
 
-		// refresh breakpoints view
 		this._register(this._debugService.getModel().onDidChangeBreakpoints(bpEvent => {
 			if (bpEvent && this._disassembledInstructions) {
-				// draw viewable BP
 				let changed = false;
 				bpEvent.added?.forEach((bp) => {
 					if (bp instanceof InstructionBreakpoint) {
@@ -338,12 +322,8 @@ export class DisassemblyView extends EditorPane {
 					}
 				});
 
-				// get an updated list so that items beyond the current range would render when reached.
 				this._instructionBpList = this._debugService.getModel().getInstructionBreakpoints();
 
-				// breakpoints restored from a previous session can be based on memory
-				// references that may no longer exist in the current session. Request
-				// those instructions to be loaded so the BP can be displayed.
 				for (const bp of this._instructionBpList) {
 					this.primeMemoryReference(bp.instructionReference);
 				}
@@ -357,7 +337,6 @@ export class DisassemblyView extends EditorPane {
 		this._register(this._debugService.onDidChangeState(e => {
 			if ((e === State.Running || e === State.Stopped) &&
 				(this._previousDebuggingState !== State.Running && this._previousDebuggingState !== State.Stopped)) {
-				// Just started debugging, clear the view
 				this.clear();
 				this._enableSourceCodeRender = this._configurationService.getValue<IDebugConfiguration>('debug').disassemblyView.showSourceCode;
 			}
@@ -383,14 +362,10 @@ export class DisassemblyView extends EditorPane {
 		}
 	}
 
-	/** Gets the address associated with the instruction reference. */
 	getReferenceAddress(instructionReference: string) {
 		return this._referenceToMemoryAddress.get(instructionReference);
 	}
 
-	/**
-	 * Go to the address provided. If no address is provided, reveal the address of the currently focused stack frame. Returns false if that address is not available.
-	 */
 	private goToAddress(address: bigint, focus?: boolean): boolean {
 		if (!this._disassembledInstructions) {
 			return false;
@@ -442,12 +417,6 @@ export class DisassemblyView extends EditorPane {
 		return 0;
 	}
 
-	/**
-	 * Sets the memory reference address. We don't just loadDisassembledInstructions
-	 * for this, since we can't really deal with discontiguous ranges (we can't
-	 * detect _if_ a range is discontiguous since we don't know how much memory
-	 * comes between instructions.)
-	 */
 	private async primeMemoryReference(instructionReference: string) {
 		if (this._referenceToMemoryAddress.has(instructionReference)) {
 			return true;
@@ -466,12 +435,10 @@ export class DisassemblyView extends EditorPane {
 		return false;
 	}
 
-	/** Loads disasembled instructions. Returns the number of instructions that were loaded. */
 	private async loadDisassembledInstructions(instructionReference: string, offset: number, instructionOffset: number, instructionCount: number): Promise<number> {
 		const session = this.debugSession;
 		const resultEntries = await session?.disassemble(instructionReference, offset, instructionOffset, instructionCount);
 
-		// Ensure we always load the baseline instructions so we know what address the instructionReference refers to.
 		if (!this._referenceToMemoryAddress.has(instructionReference) && instructionOffset !== 0) {
 			await this.loadDisassembledInstructions(instructionReference, 0, 0, DisassemblyView.NUM_INSTRUCTIONS_TO_LOAD);
 		}
@@ -485,7 +452,6 @@ export class DisassemblyView extends EditorPane {
 				const instruction = resultEntries[i];
 				const thisInstructionOffset = instructionOffset + i;
 
-				// Forward fill the missing location as detailed in the DAP spec.
 				if (instruction.location) {
 					lastLocation = instruction.location;
 					lastLine = undefined;
@@ -499,7 +465,6 @@ export class DisassemblyView extends EditorPane {
 						endColumn: instruction.endColumn ?? 0,
 					};
 
-					// Add location only to the first unique range. This will give the appearance of grouping of instructions.
 					if (!Range.equalsRange(currentLine, lastLine ?? null)) {
 						lastLine = currentLine;
 						instruction.location = lastLocation;
@@ -515,7 +480,6 @@ export class DisassemblyView extends EditorPane {
 				}
 
 				if (address === -1n) {
-					// Ignore invalid instructions returned by the adapter.
 					continue;
 				}
 
@@ -532,7 +496,6 @@ export class DisassemblyView extends EditorPane {
 
 				newEntries.push(entry);
 
-				// if we just loaded the first instruction for this reference, mark its address.
 				if (offset === 0 && thisInstructionOffset === 0) {
 					this._referenceToMemoryAddress.set(instructionReference, address);
 				}
@@ -578,8 +541,6 @@ export class DisassemblyView extends EditorPane {
 			const end = endN < 0 ? ~endN : endN + 1;
 			const toDelete = end - start;
 
-			// Go through everything we're about to add, and only show the source
-			// location if it's different from the previous one, "grouping" instructions by line
 			let lastLocated: undefined | DebugProtocol.DisassembledInstruction;
 			for (let i = start - 1; i >= 0; i--) {
 				const { instruction } = da.row(i);
@@ -629,19 +590,15 @@ export class DisassemblyView extends EditorPane {
 		return -1;
 	}
 
-	/**
-	 * Clears the table and reload instructions near the target address
-	 */
 	private reloadDisassembly(instructionReference: string, offset: number) {
 		if (!this._disassembledInstructions) {
 			return;
 		}
 
-		this._loadingLock = true; // stop scrolling during the load.
+		this._loadingLock = true;
 		this.clear();
 		this._instructionBpList = this._debugService.getModel().getInstructionBreakpoints();
 		this.loadDisassembledInstructions(instructionReference, offset, -DisassemblyView.NUM_INSTRUCTIONS_TO_LOAD * 4, DisassemblyView.NUM_INSTRUCTIONS_TO_LOAD * 8).then(() => {
-			// on load, set the target instruction as the current instructionReference.
 			if (this._disassembledInstructions!.length > 0) {
 				let targetIndex: number | undefined = undefined;
 				const refBaseAddress = this._referenceToMemoryAddress.get(instructionReference);
@@ -649,18 +606,16 @@ export class DisassemblyView extends EditorPane {
 					const da = this._disassembledInstructions!;
 					targetIndex = binarySearch2(da.length, i => Number(da.row(i).address - refBaseAddress));
 					if (targetIndex < 0) {
-						targetIndex = ~targetIndex; // shouldn't happen, but fail gracefully if it does
+						targetIndex = ~targetIndex;
 					}
 				}
 
-				// If didn't find the instructonReference, set the target instruction in the middle of the page.
 				if (targetIndex === undefined) {
 					targetIndex = Math.floor(this._disassembledInstructions!.length / 2);
 				}
 
 				this._disassembledInstructions!.reveal(targetIndex, 0.5);
 
-				// Always focus the target address on reload, or arrow key navigation would look terrible
 				this._disassembledInstructions!.domFocus();
 				this._disassembledInstructions!.setFocus([targetIndex]);
 			}
@@ -708,7 +663,6 @@ class BreakpointRenderer implements ITableRenderer<IDisassembledInstructionEntry
 	}
 
 	renderTemplate(container: HTMLElement): IBreakpointColumnTemplateData {
-		// align from the bottom so that it lines up with instruction when source code is present.
 		container.style.alignSelf = 'flex-end';
 
 		const icon = append(container, $('.codicon'));
@@ -733,17 +687,11 @@ class BreakpointRenderer implements ITableRenderer<IDisassembledInstructionEntry
 			}),
 			addStandardDisposableListener(container, 'click', () => {
 				if (currentElement.element?.allowBreakpoint) {
-					// click show hint while waiting for BP to resolve.
 					icon.classList.add(this._breakpointHintIcon);
 					const reference = currentElement.element.instructionReference;
 					const address = currentElement.element.address;
 					const offset = Number(address - this._disassemblyView.getReferenceAddress(reference)!);
 					if (currentElement.element.isBreakpointSet) {
-						// Identify the breakpoint by its resolved memory address:
-						// the debug adapter may hand out a new `instructionReference`
-						// for the same location after symbol reloads / certain steps,
-						// so a reference+offset lookup would otherwise fail to remove
-						// the breakpoint (microsoft/vscode#289678).
 						this._debugService.removeInstructionBreakpoints(reference, offset, address);
 					} else if (currentElement.element.allowBreakpoint && !currentElement.element.isBreakpointSet) {
 						this._debugService.addInstructionBreakpoint({ instructionReference: reference, offset, address, canPersist: false });
@@ -794,12 +742,9 @@ class BreakpointRenderer implements ITableRenderer<IDisassembledInstructionEntry
 
 interface IInstructionColumnTemplateData {
 	currentElement: { element?: IDisassembledInstructionEntry };
-	// TODO: hover widget?
 	instruction: HTMLElement;
 	sourcecode: HTMLElement;
-	// disposed when cell is closed.
 	cellDisposable: IDisposable[];
-	// disposed when template is closed.
 	disposables: IDisposable[];
 }
 
@@ -868,13 +813,12 @@ class InstructionRenderer extends Disposable implements ITableRenderer<IDisassem
 				const sourceSB = new StringBuilder(10000);
 				const ref = await this.textModelService.createModelReference(sourceURI);
 				if (templateData.currentElement.element !== element) {
-					ref.dispose(); // avoid a leak when element went stale during async, #192831
+					ref.dispose();
 					return;
 				}
 				textModel = ref.object.textEditorModel;
 				templateData.cellDisposable.push(ref);
 
-				// templateData could have moved on during async.  Double check if it is still the same source.
 				if (textModel && templateData.currentElement.element === element) {
 					let lineNumber = instruction.line;
 
@@ -975,12 +919,10 @@ class InstructionRenderer extends Disposable implements ITableRenderer<IDisassem
 	}
 
 	private getUriFromSource(instruction: DebugProtocol.DisassembledInstruction): URI {
-		// Try to resolve path before consulting the debugSession.
 		const path = instruction.location!.path;
-		if (path && isUriString(path)) {	// path looks like a uri
+		if (path && isUriString(path)) {
 			return this.uriService.asCanonicalUri(URI.parse(path));
 		}
-		// assume a filesystem path
 		if (path && isAbsolute(path)) {
 			return this.uriService.asCanonicalUri(URI.file(path));
 		}
@@ -1040,8 +982,6 @@ export class DisassemblyViewContribution implements IWorkbenchContribution {
 			const activeTextEditorControl = editorService.activeTextEditorControl;
 			if (isCodeEditor(activeTextEditorControl)) {
 				const language = activeTextEditorControl.getModel()?.getLanguageId();
-				// TODO: instead of using idDebuggerInterestedInLanguage, have a specific ext point for languages
-				// support disassembly
 				this._languageSupportsDisassembleRequest?.set(!!language && debugService.getAdapterManager().someDebuggerInterestedInLanguage(language));
 
 				this._onDidChangeModelLanguage = activeTextEditorControl.onDidChangeModelLanguage(e => {

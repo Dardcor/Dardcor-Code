@@ -76,7 +76,6 @@ export interface INotebookService {
 
 	getStaticPreloads(viewType: string): Iterable<INotebookStaticPreloadInfo>;
 
-	/** Updates the preferred renderer for the given mimetype in the workspace. */
 	updateMimePreferredRenderer(viewType: string, mimeType: string, rendererId: string, otherMimetypes: readonly string[]): void;
 	saveMimeDisplayOrder(target: ConfigurationTarget): void;
 
@@ -87,7 +86,6 @@ export interface INotebookService {
 	getNotebookTextModels(): Iterable<NotebookTextModel>;
 	listNotebookDocuments(): readonly NotebookTextModel[];
 
-	/**	Register a notebook type that we will handle. The notebook editor will be registered for notebook types contributed by extensions */
 	registerContributedNotebookType(viewType: string, data: INotebookContributionData): IDisposable;
 	getContributedNotebookType(viewType: string): NotebookProviderInfo | undefined;
 	getContributedNotebookTypes(resource?: URI): readonly NotebookProviderInfo[];

@@ -5,42 +5,26 @@
 import { extname } from '../dardcor/base/common/resources';
 import { URI } from '../dardcor/base/common/uri';
 
-/**
- * Interface for writing single-line comments in a given language.
- * Does not include the terminal new-line character (i.e. for many languages,
- * `end` will just be the empty string).
- */
 interface CommentMarker {
 	readonly start: string;
 	readonly end?: string;
 }
 
-/**
- * A tuple of two characters, like a pair of
- * opening and closing brackets.
- */
 export type CharacterPair = [string, string];
 
 export interface ILanguageInfo {
 	readonly aliases?: string[];
 	readonly extensions?: string[];
 	readonly lineComment: CommentMarker;
-	/**
-	 * The block comment character pair, like `/* block comment *&#47;`
-	 */
 	readonly blockComment?: CharacterPair;
 	readonly alternativeLineComments?: CommentMarker[];
-	readonly markdownLanguageIds?: string[]; // if not set, defaults to the language id
+	readonly markdownLanguageIds?: string[];
 }
 
 export interface ILanguage extends ILanguageInfo {
 	readonly languageId: string;
 }
 
-/**
- * Well known language [from VSCode](https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers)
- * Markdown ids from https://raw.githubusercontent.com/highlightjs/highlight.js/refs/heads/main/SUPPORTED_LANGUAGES.md
- */
 const languages = Object.freeze({
 	'abap': {
 		lineComment: { start: '\'' },

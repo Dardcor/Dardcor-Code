@@ -5,7 +5,6 @@
 
 .monaco-list .monaco-list-row.focused.selected .outline-element .monaco-highlighted-label,
 .monaco-list .monaco-list-row.focused.selected .outline-element-decoration {
-	/* make sure selection color wins when a label is being selected */
 	color: inherit !important;
 }
 
@@ -31,7 +30,6 @@
 	color: var(--outline-element-color);
 }
 
-/* when showing in breadcrumbs than hide a few things, like markers or descriptions */
 .monaco-breadcrumbs .outline-element .monaco-icon-label-container .monaco-icon-description-container,
 .monaco-breadcrumbs .outline-element .outline-element-decoration {
 	display: none;

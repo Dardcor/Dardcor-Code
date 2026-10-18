@@ -72,7 +72,6 @@ export class RectangleRenderer extends ViewEventHandler {
 
 	private async _initWebgpu(device: Promise<GPUDevice>) {
 
-		// #region General
 
 		this._device = await device;
 
@@ -88,7 +87,7 @@ export class RectangleRenderer extends ViewEventHandler {
 		});
 
 		this._renderPassColorAttachment = {
-			view: null!, // Will be filled at render time
+			view: null!,
 			loadOp: 'load',
 			storeOp: 'store',
 		};
@@ -97,9 +96,7 @@ export class RectangleRenderer extends ViewEventHandler {
 			colorAttachments: [this._renderPassColorAttachment],
 		};
 
-		// #endregion General
 
-		// #region Uniforms
 
 		let layoutInfoUniformBuffer: GPUBuffer;
 		{
@@ -141,9 +138,7 @@ export class RectangleRenderer extends ViewEventHandler {
 		})).object;
 		this._scrollOffsetValueBuffer = new Float32Array(scrollOffsetBufferSize);
 
-		// #endregion Uniforms
 
-		// #region Storage buffers
 
 		const createShapeBindBuffer = () => {
 			return GPULifecycle.createBuffer(this._device, {
@@ -160,9 +155,7 @@ export class RectangleRenderer extends ViewEventHandler {
 			}
 		}));
 
-		// #endregion Storage buffers
 
-		// #region Vertex buffer
 
 		this._vertexBuffer = this._register(GPULifecycle.createBuffer(this._device, {
 			label: 'Monaco rectangle renderer vertex buffer',
@@ -170,18 +163,14 @@ export class RectangleRenderer extends ViewEventHandler {
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 		}, quadVertices)).object;
 
-		// #endregion Vertex buffer
 
-		// #region Shader module
 
 		const module = this._device.createShaderModule({
 			label: 'Monaco rectangle renderer shader module',
 			code: rectangleRendererWgsl,
 		});
 
-		// #endregion Shader module
 
-		// #region Pipeline
 
 		this._pipeline = this._device.createRenderPipeline({
 			label: 'Monaco rectangle renderer render pipeline',
@@ -190,9 +179,9 @@ export class RectangleRenderer extends ViewEventHandler {
 				module,
 				buffers: [
 					{
-						arrayStride: 2 * Float32Array.BYTES_PER_ELEMENT, // 2 floats, 4 bytes each
+						arrayStride: 2 * Float32Array.BYTES_PER_ELEMENT,
 						attributes: [
-							{ shaderLocation: 0, offset: 0, format: 'float32x2' },  // position
+							{ shaderLocation: 0, offset: 0, format: 'float32x2' },
 						],
 					}
 				]
@@ -217,13 +206,10 @@ export class RectangleRenderer extends ViewEventHandler {
 			},
 		});
 
-		// #endregion Pipeline
 
-		// #region Bind group
 
 		this._updateBindGroup(this._pipeline, layoutInfoUniformBuffer);
 
-		// endregion Bind group
 
 		this._initialized = true;
 	}
@@ -244,7 +230,6 @@ export class RectangleRenderer extends ViewEventHandler {
 		return this._shapeCollection.createEntry({ x, y, width, height, red, green, blue, alpha });
 	}
 
-	// #region Event handlers
 
 	public override onScrollChanged(e: ViewScrollChangedEvent): boolean {
 		if (this._device) {
@@ -256,7 +241,6 @@ export class RectangleRenderer extends ViewEventHandler {
 		return true;
 	}
 
-	// #endregion
 
 	private _update() {
 		if (!this._device) {
@@ -284,7 +268,6 @@ export class RectangleRenderer extends ViewEventHandler {
 		pass.setVertexBuffer(0, this._vertexBuffer);
 		pass.setBindGroup(0, this._bindGroup);
 
-		// Only draw the content area
 		const contentLeft = Math.ceil(this._contentLeft.get() * this._devicePixelRatio.get());
 		pass.setScissorRect(contentLeft, 0, this._canvas.width - contentLeft, this._canvas.height);
 

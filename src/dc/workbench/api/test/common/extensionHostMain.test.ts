@@ -129,11 +129,9 @@ suite('ExtensionHostMain#ErrorHandler - Wrapping prepareStackTrace can cause slo
 		Error.prepareStackTrace = original;
 		assert.strictEqual(findSubstrCount, 1);
 
-		// already checked
 		onUnexpectedError(probeErr);
 		assert.strictEqual(findSubstrCount, 1);
 
-		// one more error
 		const err = new Error('test2');
 		onUnexpectedError(err);
 
@@ -192,10 +190,8 @@ suite('ExtensionHostMain#ErrorHandler - Wrapping prepareStackTrace can cause slo
 	suite('https://gist.github.com/thecrypticace/f0f2e182082072efdaf0f8e1537d2cce', function () {
 
 		test('Restored, separate operations', () => {
-			// Actual Test
 			let original;
 
-			// Operation 1
 			original = Error.prepareStackTrace;
 			for (let i = 0; i < 12_500; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			const err1 = new Error();
@@ -203,46 +199,38 @@ suite('ExtensionHostMain#ErrorHandler - Wrapping prepareStackTrace can cause slo
 			assert.strictEqual(findSubstrCount, 1);
 			Error.prepareStackTrace = original;
 
-			// Operation 2
 			original = Error.prepareStackTrace;
 			for (let i = 0; i < 12_500; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			assert.ok(new Error().stack);
 			assert.strictEqual(findSubstrCount, 2);
 			Error.prepareStackTrace = original;
 
-			// Operation 3
 			original = Error.prepareStackTrace;
 			for (let i = 0; i < 12_500; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			assert.ok(new Error().stack);
 			assert.strictEqual(findSubstrCount, 3);
 			Error.prepareStackTrace = original;
 
-			// Operation 4
 			original = Error.prepareStackTrace;
 			for (let i = 0; i < 12_500; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			assert.ok(new Error().stack);
 			assert.strictEqual(findSubstrCount, 4);
 			Error.prepareStackTrace = original;
 
-			// Back to Operation 1
 			assert.ok(err1.stack);
 			assert.strictEqual(findSubstrCount, 4);
 		});
 
 		test('Never restored, separate operations', () => {
-			// Operation 1
 			for (let i = 0; i < 12_500; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			assert.ok(new Error().stack);
 
-			// Operation 2
 			for (let i = 0; i < 12_500; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			assert.ok(new Error().stack);
 
-			// Operation 3
 			for (let i = 0; i < 12_500; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			assert.ok(new Error().stack);
 
-			// Operation 4
 			for (let i = 0; i < 12_500; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			assert.ok(new Error().stack);
 		});
@@ -251,7 +239,6 @@ suite('ExtensionHostMain#ErrorHandler - Wrapping prepareStackTrace can cause slo
 			const original = Error.prepareStackTrace;
 			Error.prepareStackTrace = (_, stack) => stack;
 
-			// Operation 1 — more uses of `prepareStackTrace`
 			for (let i = 0; i < 10_000; ++i) { Error.prepareStackTrace = Error.prepareStackTrace; }
 			assert.ok(new Error().stack);
 

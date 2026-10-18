@@ -5,7 +5,7 @@
 import { assert } from 'console';
 import * as fs from 'fs';
 import * as path from 'path';
-import { CopilotToolMode } from '../../../src/extension/tools/common/toolsRegistry';
+import { AgentToolMode } from '../../../src/extension/tools/common/toolsRegistry';
 import { IToolsService } from '../../../src/extension/tools/common/toolsService';
 import { IConversationOptions } from '../../../src/platform/chat/common/conversationOptions';
 import { isInExtensionHost } from '../../../src/platform/test/node/isInExtensionHost';
@@ -27,7 +27,6 @@ const toolArgsPreprocessors: Record<string, ArgsPreprocessor> = {
 			if (path.isAbsolute(filePath)) {
 				return filePath;
 			}
-			// Use the first workspace folder as base path if available
 			return workspaceFoldersFilePaths && workspaceFoldersFilePaths.length > 0
 				? path.resolve(workspaceFoldersFilePaths[0], filePath)
 				: filePath;
@@ -42,7 +41,6 @@ const toolArgsPreprocessors: Record<string, ArgsPreprocessor> = {
 		assert(args.filePath, 'read_file tool requires a file path to read');
 		const filePath = args.filePath;
 
-		// Convert to absolute path if it's relative and we have workspace folders
 		const resolvedFilePath = path.isAbsolute(filePath) || !workspaceFoldersFilePaths || workspaceFoldersFilePaths.length === 0
 			? filePath
 			: path.resolve(workspaceFoldersFilePaths[0], filePath);
@@ -52,13 +50,10 @@ const toolArgsPreprocessors: Record<string, ArgsPreprocessor> = {
 			filePath: resolvedFilePath
 		};
 	},
-	// Add more tool-specific preprocessors here as needed
-	// 'another_tool': (args: any, runtime: ISimulationTestRuntime) => { ... }
 };
 
 
 ssuite({ title: 'tooltest', subtitle: 'toolcall', location: 'panel' }, (inputPath) => {
-	// This test suite simulates the execution of tools in a controlled environment
 	if (!inputPath) {
 		return;
 	}
@@ -150,7 +145,7 @@ ssuite({ title: 'tooltest', subtitle: 'toolcall', location: 'panel' }, (inputPat
 
 
 		const toolsService = accessor.get(IToolsService);
-		const tool = toolsService.getCopilotTool(toolName);
+		const tool = toolsService.getAgentTool(toolName);
 
 		if (!tool) {
 			throw new Error(`Tool not found: ${toolName}`);
@@ -163,7 +158,7 @@ ssuite({ title: 'tooltest', subtitle: 'toolcall', location: 'panel' }, (inputPat
 
 		if (tool.resolveInput) {
 			const context = { stream: new SpyChatResponseStream() } as any;
-			processedArgs = await tool.resolveInput(processedArgs, context, CopilotToolMode.FullContext);
+			processedArgs = await tool.resolveInput(processedArgs, context, AgentToolMode.FullContext);
 		}
 
 		return await toolsService.invokeTool(

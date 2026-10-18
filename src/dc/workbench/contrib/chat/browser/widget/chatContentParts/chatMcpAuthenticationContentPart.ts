@@ -10,11 +10,10 @@ import { escapeMarkdownSyntaxTokens, MarkdownString } from '../../../../../../ba
 import { Disposable, IDisposable, MutableDisposable } from '../../../../../../base/common/lifecycle.js';
 import { autorun, observableValue } from '../../../../../../base/common/observable.js';
 import { ThemeIcon } from '../../../../../../base/common/themables.js';
-import { URI } from '../../../../../../base/common/uri.js';
+
 import { localize } from '../../../../../../nls.js';
 import { McpServerStatus } from '../../../../../../platform/agentHost/common/state/protocol/state.js';
 import { IMarkdownRendererService } from '../../../../../../platform/markdown/browser/markdownRenderer.js';
-import { IAgentHostCustomizationService } from '../../agentSessions/agentHost/agentHostCustomizationService.js';
 import { IChatMcpAuthenticationRequired, IChatMcpAuthenticationRequiredServer } from '../../../common/chatService/chatService.js';
 import { ChatTreeItem } from '../../chat.js';
 import { IChatRendererContent } from '../../../common/model/chatViewModel.js';
@@ -27,40 +26,24 @@ export class ChatMcpAuthenticationContentPart extends Disposable implements ICha
 
 	private readonly rendered = this._register(new MutableDisposable<IRenderedMarkdown>());
 
-	/**
-	 * Whether this part was ever shown. Used to distinguish the initial empty
-	 * state (the part is emitted with an empty `servers` observable that is
-	 * populated immediately after) from the terminal state where every server
-	 * has been authenticated — only the latter marks the part
-	 * {@link IChatMcpAuthenticationRequired.isUsed used}.
-	 */
 	private _hasBeenVisible = false;
 
-	/**
-	 * The MCP server currently being authenticated, or `undefined` when idle.
-	 * While set, the part shows an "Authenticating …" progress message for that
-	 * server and stays visible regardless of the underlying auth-required state.
-	 */
 	private readonly _authenticating = observableValue<IChatMcpAuthenticationRequiredServer | undefined>(this, undefined);
 
 	constructor(
 		private readonly data: IChatMcpAuthenticationRequired,
 		@IMarkdownRendererService private readonly markdownRendererService: IMarkdownRendererService,
-		@IAgentHostCustomizationService private readonly agentHostCustomizationService: IAgentHostCustomizationService,
+		
 	) {
 		super();
 		this.domNode = dom.$('.chat-mcp-servers-interaction');
-		// Re-render whenever the set of servers requiring auth changes — e.g. a
-		// server whose auth requirement surfaced after this part was first shown
-		// is pushed into the same observable by the session handler — or while a
-		// server is actively being authenticated.
 		this._register(autorun(reader => {
 			const servers = this.data.servers.read(reader);
 			const authenticating = this._authenticating.read(reader);
 			this.render(servers, authenticating);
 			this.updateVisibility(servers, authenticating);
 		}));
-		this._register(this.agentHostCustomizationService.onDidChangeCustomizations(() => this.updateVisibility(this.data.servers.get(), this._authenticating.get())));
+		
 	}
 
 	private render(servers: readonly IChatMcpAuthenticationRequiredServer[], authenticating: IChatMcpAuthenticationRequiredServer | undefined): void {
@@ -96,8 +79,6 @@ export class ChatMcpAuthenticationContentPart extends Disposable implements ICha
 
 		const rendered = this.rendered.value = this.markdownRendererService.render(new MarkdownString(content, { isTrusted: true }), action ? {
 			actionHandler: (href: string) => {
-				// Only the dedicated authenticate link triggers auth; ignore any
-				// other link target so the handler stays scoped to this control.
 				if (href !== action.href) {
 					return Promise.resolve(false);
 				}
@@ -112,8 +93,6 @@ export class ChatMcpAuthenticationContentPart extends Disposable implements ICha
 		this.domNode.appendChild(container);
 
 		if (action) {
-			// Present the authenticate link as a button for assistive technology
-			// and clear its href so it doesn't behave like a navigable link.
 			// eslint-disable-next-line no-restricted-syntax
 			const actionLink = rendered.element.querySelector<HTMLAnchorElement>(`a[data-href="${action.href}"]`);
 			if (actionLink) {
@@ -124,11 +103,10 @@ export class ChatMcpAuthenticationContentPart extends Disposable implements ICha
 	}
 
 	private async authenticate(): Promise<void> {
-		const sessionResource = URI.revive(this.data.sessionResource);
 		try {
 			for (const server of this.data.servers.get()) {
 				this._authenticating.set(server, undefined);
-				await this.agentHostCustomizationService.authenticateMcpServer(sessionResource, server.id);
+				
 			}
 		} finally {
 			this._authenticating.set(undefined, undefined);
@@ -136,22 +114,17 @@ export class ChatMcpAuthenticationContentPart extends Disposable implements ICha
 	}
 
 	private updateVisibility(dataServers: readonly IChatMcpAuthenticationRequiredServer[], authenticating: IChatMcpAuthenticationRequiredServer | undefined): void {
-		// Stay visible while actively authenticating so the progress message is shown.
 		if (authenticating) {
 			this.domNode.style.display = '';
 			this._hasBeenVisible = true;
 			return;
 		}
-		const sessionResource = URI.revive(this.data.sessionResource);
-		const servers = this.agentHostCustomizationService.getMcpServers(sessionResource);
+		const servers: any[] = [];
 		const visible = dataServers.some(server => servers.some(current => current.id === server.id && current.status === McpServerStatus.AuthRequired));
 		this.domNode.style.display = visible ? '' : 'none';
 		if (visible) {
 			this._hasBeenVisible = true;
 		} else if (this._hasBeenVisible) {
-			// Every server has been authenticated. Mark this part used so a
-			// subsequent auth requirement surfaces as a fresh prompt rather than
-			// silently reusing this now-hidden one.
 			this.data.isUsed = true;
 		}
 	}

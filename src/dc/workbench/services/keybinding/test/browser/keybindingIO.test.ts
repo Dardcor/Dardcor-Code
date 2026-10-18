@@ -51,13 +51,11 @@ suite('keybindingIO', () => {
 		testRoundtrip(KeyCode.DownArrow, 'down', 'down', 'down');
 		testRoundtrip(KeyCode.LeftArrow, 'left', 'left', 'left');
 
-		// one modifier
 		testRoundtrip(KeyMod.Alt | KeyCode.KeyA, 'alt+a', 'alt+a', 'alt+a');
 		testRoundtrip(KeyMod.CtrlCmd | KeyCode.KeyA, 'ctrl+a', 'cmd+a', 'ctrl+a');
 		testRoundtrip(KeyMod.Shift | KeyCode.KeyA, 'shift+a', 'shift+a', 'shift+a');
 		testRoundtrip(KeyMod.WinCtrl | KeyCode.KeyA, 'win+a', 'ctrl+a', 'meta+a');
 
-		// two modifiers
 		testRoundtrip(KeyMod.CtrlCmd | KeyMod.Alt | KeyCode.KeyA, 'ctrl+alt+a', 'alt+cmd+a', 'ctrl+alt+a');
 		testRoundtrip(KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyA, 'ctrl+shift+a', 'shift+cmd+a', 'ctrl+shift+a');
 		testRoundtrip(KeyMod.CtrlCmd | KeyMod.WinCtrl | KeyCode.KeyA, 'ctrl+win+a', 'ctrl+cmd+a', 'ctrl+meta+a');
@@ -65,19 +63,15 @@ suite('keybindingIO', () => {
 		testRoundtrip(KeyMod.Shift | KeyMod.WinCtrl | KeyCode.KeyA, 'shift+win+a', 'ctrl+shift+a', 'shift+meta+a');
 		testRoundtrip(KeyMod.Alt | KeyMod.WinCtrl | KeyCode.KeyA, 'alt+win+a', 'ctrl+alt+a', 'alt+meta+a');
 
-		// three modifiers
 		testRoundtrip(KeyMod.CtrlCmd | KeyMod.Shift | KeyMod.Alt | KeyCode.KeyA, 'ctrl+shift+alt+a', 'shift+alt+cmd+a', 'ctrl+shift+alt+a');
 		testRoundtrip(KeyMod.CtrlCmd | KeyMod.Shift | KeyMod.WinCtrl | KeyCode.KeyA, 'ctrl+shift+win+a', 'ctrl+shift+cmd+a', 'ctrl+shift+meta+a');
 		testRoundtrip(KeyMod.Shift | KeyMod.Alt | KeyMod.WinCtrl | KeyCode.KeyA, 'shift+alt+win+a', 'ctrl+shift+alt+a', 'shift+alt+meta+a');
 
-		// all modifiers
 		testRoundtrip(KeyMod.CtrlCmd | KeyMod.Shift | KeyMod.Alt | KeyMod.WinCtrl | KeyCode.KeyA, 'ctrl+shift+alt+win+a', 'ctrl+shift+alt+cmd+a', 'ctrl+shift+alt+meta+a');
 
-		// chords
 		testRoundtrip(KeyChord(KeyMod.CtrlCmd | KeyCode.KeyA, KeyMod.CtrlCmd | KeyCode.KeyA), 'ctrl+a ctrl+a', 'cmd+a cmd+a', 'ctrl+a ctrl+a');
 		testRoundtrip(KeyChord(KeyMod.CtrlCmd | KeyCode.UpArrow, KeyMod.CtrlCmd | KeyCode.UpArrow), 'ctrl+up ctrl+up', 'cmd+up cmd+up', 'ctrl+up ctrl+up');
 
-		// OEM keys
 		testRoundtrip(KeyCode.Semicolon, ';', ';', ';');
 		testRoundtrip(KeyCode.Equal, '=', '=', '=');
 		testRoundtrip(KeyCode.Comma, ',', ',', ',');
@@ -94,7 +88,6 @@ suite('keybindingIO', () => {
 		testRoundtrip(KeyCode.OEM_8, 'oem_8', 'oem_8', 'oem_8');
 		testRoundtrip(KeyCode.IntlBackslash, 'oem_102', 'oem_102', 'oem_102');
 
-		// OEM aliases
 		testDeserialization('OEM_1', 'OEM_1', 'OEM_1', KeyCode.Semicolon);
 		testDeserialization('OEM_PLUS', 'OEM_PLUS', 'OEM_PLUS', KeyCode.Equal);
 		testDeserialization('OEM_COMMA', 'OEM_COMMA', 'OEM_COMMA', KeyCode.Comma);
@@ -111,10 +104,8 @@ suite('keybindingIO', () => {
 		testDeserialization('OEM_8', 'OEM_8', 'OEM_8', KeyCode.OEM_8);
 		testDeserialization('OEM_102', 'OEM_102', 'OEM_102', KeyCode.IntlBackslash);
 
-		// accepts '-' as separator
 		testDeserialization('ctrl-shift-alt-win-a', 'ctrl-shift-alt-cmd-a', 'ctrl-shift-alt-meta-a', KeyMod.CtrlCmd | KeyMod.Shift | KeyMod.Alt | KeyMod.WinCtrl | KeyCode.KeyA);
 
-		// various input mistakes
 		testDeserialization(' ctrl-shift-alt-win-A ', ' shift-alt-cmd-Ctrl-A ', ' ctrl-shift-alt-META-A ', KeyMod.CtrlCmd | KeyMod.Shift | KeyMod.Alt | KeyMod.WinCtrl | KeyCode.KeyA);
 	});
 
@@ -175,7 +166,7 @@ suite('keybindingIO', () => {
 
 	test('systemWide - write/export preserves the flag (roundtrip)', () => {
 		const resolvedKeybinding = createUSLayoutResolvedKeybinding(KeyMod.CtrlCmd | KeyMod.WinCtrl | KeyCode.KeyA, OperatingSystem.Macintosh)!;
-		const item = new ResolvedKeybindingItem(resolvedKeybinding, 'workbench.action.focusNextPart', undefined, undefined, false, null, false, /* systemWide */ true);
+		const item = new ResolvedKeybindingItem(resolvedKeybinding, 'workbench.action.focusNextPart', undefined, undefined, false, null, false, true);
 
 		const out = new OutputBuilder();
 		KeybindingIO.writeKeybindingItem(out, item);

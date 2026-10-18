@@ -19,9 +19,6 @@ interface TrackerEntry {
 	readonly tracker: DocumentEditSourceTracker;
 }
 
-/**
- * Tracks AI-generated edits across open documents using the edit telemetry pipeline.
- */
 export class AiContributionFeature extends Disposable {
 
 	private readonly _trackers = new ResourceMap<TrackerEntry>();

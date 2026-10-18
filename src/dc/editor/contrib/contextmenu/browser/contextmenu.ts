@@ -58,8 +58,6 @@ export class ContextMenuController implements IEditorContribution {
 				const view = this._contextViewService.getContextViewElement();
 				const target = e.srcElement as HTMLElement;
 
-				// Event triggers on shadow root host first
-				// Check if the context view is under this host before hiding it #103169
 				if (!(target.shadowRoot && dom.getShadowRoot(view) === target.shadowRoot)) {
 					this._contextViewService.hideContextView();
 				}
@@ -67,10 +65,9 @@ export class ContextMenuController implements IEditorContribution {
 		}));
 		this._toDispose.add(this._editor.onKeyDown((e: IKeyboardEvent) => {
 			if (!this._editor.getOption(EditorOption.contextmenu)) {
-				return; // Context menu is turned off through configuration
+				return;
 			}
 			if (e.keyCode === KeyCode.ContextMenu) {
-				// Chrome is funny like that
 				e.preventDefault();
 				e.stopPropagation();
 				this.showContextMenu();
@@ -85,18 +82,17 @@ export class ContextMenuController implements IEditorContribution {
 
 		if (!this._editor.getOption(EditorOption.contextmenu)) {
 			this._editor.focus();
-			// Ensure the cursor is at the position of the mouse click
 			if (e.target.position && !this._editor.getSelection().containsPosition(e.target.position)) {
 				this._editor.setPosition(e.target.position);
 			}
-			return; // Context menu is turned off through configuration
+			return;
 		}
 
 		if (e.target.type === MouseTargetType.OVERLAY_WIDGET) {
-			return; // allow native menu on widgets to support right click on input field for example in find
+			return;
 		}
 		if (e.target.type === MouseTargetType.CONTENT_TEXT && e.target.detail.injectedText) {
-			return; // allow native menu on injected text
+			return;
 		}
 
 		e.event.preventDefault();
@@ -107,13 +103,11 @@ export class ContextMenuController implements IEditorContribution {
 		}
 
 		if (e.target.type !== MouseTargetType.CONTENT_TEXT && e.target.type !== MouseTargetType.CONTENT_EMPTY && e.target.type !== MouseTargetType.TEXTAREA) {
-			return; // only support mouse click into text or native context menu key for now
+			return;
 		}
 
-		// Ensure the editor gets focus if it hasn't, so the right events are being sent to other contributions
 		this._editor.focus();
 
-		// Ensure the cursor is at the position of the mouse click
 		if (e.target.position) {
 			let hasSelectionAtPosition = false;
 			for (const selection of this._editor.getSelections()) {
@@ -128,29 +122,25 @@ export class ContextMenuController implements IEditorContribution {
 			}
 		}
 
-		// Unless the user triggerd the context menu through Shift+F10, use the mouse position as menu position
 		let anchor: IMouseEvent | null = null;
 		if (e.target.type !== MouseTargetType.TEXTAREA) {
 			anchor = e.event;
 		}
 
-		// Show the context menu
 		this.showContextMenu(anchor);
 	}
 
 	public showContextMenu(anchor?: IMouseEvent | null): void {
 		if (!this._editor.getOption(EditorOption.contextmenu)) {
-			return; // Context menu is turned off through configuration
+			return;
 		}
 		if (!this._editor.hasModel()) {
 			return;
 		}
 
-		// Find actions available for menu
 		const menuActions = this._getMenuActions(this._editor.getModel(),
 			this._editor.contextMenuId);
 
-		// Show menu if we have actions to show
 		if (menuActions.length > 0) {
 			this._doShowContextMenu(menuActions, anchor);
 		}
@@ -159,10 +149,8 @@ export class ContextMenuController implements IEditorContribution {
 	private _getMenuActions(model: ITextModel, menuId: MenuId): IAction[] {
 		const result: IAction[] = [];
 
-		// get menu groups
 		const groups = this._menuService.getMenuActions(menuId, this._contextKeyService, { arg: model.uri });
 
-		// translate them into other actions
 		for (const group of groups) {
 			const [, actions] = group;
 			let addedItems = 0;
@@ -185,7 +173,7 @@ export class ContextMenuController implements IEditorContribution {
 		}
 
 		if (result.length) {
-			result.pop(); // remove last separator
+			result.pop();
 		}
 
 		return result;
@@ -198,13 +186,11 @@ export class ContextMenuController implements IEditorContribution {
 
 		let anchor: IMouseEvent | IAnchor | null = event;
 		if (!anchor) {
-			// Ensure selection is visible
 			this._editor.revealPosition(this._editor.getPosition(), ScrollType.Immediate);
 
 			this._editor.render();
 			const cursorCoords = this._editor.getScrolledVisiblePosition(this._editor.getPosition());
 
-			// Translate to absolute editor position
 			const editorCoords = dom.getDomNodePagePosition(this._editor.getDomNode());
 			const posx = editorCoords.left + cursorCoords.left;
 			const posy = editorCoords.top + cursorCoords.top + cursorCoords.height;
@@ -212,9 +198,8 @@ export class ContextMenuController implements IEditorContribution {
 			anchor = { x: posx, y: posy };
 		}
 
-		const useShadowDOM = this._editor.getOption(EditorOption.useShadowDOM) && !isIOS; // Do not use shadow dom on IOS #122035
+		const useShadowDOM = this._editor.getOption(EditorOption.useShadowDOM) && !isIOS;
 
-		// Show menu
 		this._contextMenuIsBeingShownCount++;
 		this._contextMenuService.showContextMenu({
 			domForShadowRoot: useShadowDOM ? this._editor.getOverflowWidgetsDomNode() ?? this._editor.getDomNode() : undefined,
@@ -253,7 +238,6 @@ export class ContextMenuController implements IEditorContribution {
 		}
 
 		if (isStandaloneEditorWorkspace(this._workspaceContextService.getWorkspace())) {
-			// can't update the configuration properly in the standalone editor
 			return;
 		}
 
@@ -362,7 +346,7 @@ export class ContextMenuController implements IEditorContribution {
 			}]
 		));
 
-		const useShadowDOM = this._editor.getOption(EditorOption.useShadowDOM) && !isIOS; // Do not use shadow dom on IOS #122035
+		const useShadowDOM = this._editor.getOption(EditorOption.useShadowDOM) && !isIOS;
 		this._contextMenuIsBeingShownCount++;
 		this._contextMenuService.showContextMenu({
 			domForShadowRoot: useShadowDOM ? this._editor.getDomNode() : undefined,

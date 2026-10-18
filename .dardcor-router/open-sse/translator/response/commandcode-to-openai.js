@@ -1,20 +1,3 @@
-/**
- * CommandCode → OpenAI response translator
- *
- * CommandCode upstream emits NDJSON-style AI SDK v5 stream events:
- *   {"type":"start"} {"type":"start-step", ...}
- *   {"type":"reasoning-start","id":"..."} {"type":"reasoning-delta","text":"..."}
- *   {"type":"text-start","id":"..."}     {"type":"text-delta","text":"..."}
- *   {"type":"tool-input-start","id","toolName"}
- *   {"type":"tool-input-delta","id","delta"}
- *   {"type":"tool-input-end","id"}
- *   {"type":"tool-call","toolCallId","toolName","input"}
- *   {"type":"finish-step","finishReason","usage": {...}, ...}
- *   {"type":"finish",...}
- *
- * Each upstream "event" arrives as one JSON object per line — we receive it as a string chunk
- * already split per line by the upstream SSE/JSON-line reader in Dardcor Router.
- */
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { ROLE, OPENAI_BLOCK, OPENAI_FINISH } from "../schema/index.js";
@@ -52,17 +35,14 @@ const mapFinishReason = (reason) => toOpenAIFinish(reason, "commandcode");
 export function commandCodeToOpenAIResponse(chunk, state) {
   if (!chunk) return null;
 
-  // Already-OpenAI chunk: pass through
   if (chunk && typeof chunk === "object" && chunk.object === "chat.completion.chunk") {
     return chunk;
   }
 
-  // Parse string lines coming out of upstream
   let event = chunk;
   if (typeof chunk === "string") {
     const line = chunk.trim();
     if (!line) return null;
-    // Tolerate raw "data: {...}" framing if the upstream wrapper inserts it
     const json = line.startsWith("data:") ? line.slice(5).trim() : line;
     if (!json || json === "[DONE]") return null;
     try {
@@ -90,7 +70,6 @@ export function commandCodeToOpenAIResponse(chunk, state) {
     case "reasoning-delta": {
       const text = event.text || "";
       if (!text) break;
-      // Map reasoning to OpenAI "reasoning_content" field (used by deepseek-reasoner-style clients).
       const delta = reasoningDelta(text, state.chunkIndex === 0);
       state.chunkIndex++;
       out.push(makeChunk(state, delta));
@@ -131,7 +110,6 @@ export function commandCodeToOpenAIResponse(chunk, state) {
       break;
     }
     case "tool-call": {
-      // Final consolidated tool call — only emit if we never saw tool-input-* deltas.
       const id = event.toolCallId;
       if (state.toolIndexById.has(id)) break;
       const idx = state.toolIndex++;
@@ -172,8 +150,6 @@ export function commandCodeToOpenAIResponse(chunk, state) {
       out.push(makeChunk(state, {}, OPENAI_FINISH.STOP));
       break;
     }
-    // Silently ignore: start, start-step, reasoning-start, reasoning-end, text-start, text-end,
-    // provider-metadata, message-metadata, etc. They carry no client-visible content.
     default:
       break;
   }

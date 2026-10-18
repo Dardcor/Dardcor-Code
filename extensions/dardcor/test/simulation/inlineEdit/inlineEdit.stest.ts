@@ -19,18 +19,10 @@ function getTester() {
 type TestConfiguration = {
 	providerName: string;
 	extensionConfiguration: Configuration<any>[];
-	/**
-	 * Default is true.
-	 */
 	shouldBeRun?: boolean;
 };
 
 const commonXtabTestConfigurations: Configuration<unknown>[] = [
-	// uncomment to include viewed files
-	// {
-	// 	key: ConfigKey.Internal.InlineEditsXtabIncludeViewedFiles,
-	// 	value: true,
-	// },
 ];
 
 const testConfigs: TestConfiguration[] = [
@@ -52,7 +44,7 @@ for (const testConfig of testConfigs) {
 
 	function ssuiteByProvider(descr: ISimulationSuiteDescriptor, testRegistrationFactory: () => void) {
 		if (providerName === 'server') {
-			return ssuite.optional( // remember: optional tests aren't run in CI (which matches current desired behavior but don't be surprised)
+			return ssuite.optional(
 				(opts) => !opts.runServerPoweredNesProvider,
 				descr,
 				testRegistrationFactory
@@ -78,12 +70,10 @@ for (const testConfig of testConfigs) {
 			loadFile({ filePath: inlineEditsFixture('6-vscode-remote-try-java-part-1/recording.w.json') }),
 		));
 
-		// TODO: this test case is weird, it overspecifies like directing via comments
 		stest({ description: '[MustHave] 6-vscode-remote-try-java-part-2', language: 'java', attributes: { [CompScore1]: 1, [CompScore2]: 1, [CompScore3]: 0.75 } }, collection => tester.runAndScoreTestFromRecording(collection,
 			loadFile({ filePath: inlineEditsFixture('6-vscode-remote-try-java-part-2/recording.w.json') })
 		));
 
-		// 7 covered in "From codium"
 
 		stest({ description: '[MustHave] 8-cppIndividual-1-point.cpp', language: 'cpp', attributes: { [CompScore1]: 1, [CompScore2]: 0, [CompScore3]: 1 } }, collection => tester.runAndScoreTestFromRecording(collection,
 			loadFile({ filePath: inlineEditsFixture('8-cppIndividual-1-point.cpp/recording.w.json') }),

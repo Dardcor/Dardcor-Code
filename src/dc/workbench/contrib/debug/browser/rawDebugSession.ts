@@ -20,11 +20,6 @@ import { INotificationService, Severity } from '../../../../platform/notificatio
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { Schemas } from '../../../../base/common/network.js';
 
-/**
- * This interface represents a single command line argument split into a "prefix" and a "path" half.
- * The optional "prefix" contains arbitrary text and the optional "path" contains a file system path.
- * Concatenating both results in the original command line argument.
- */
 interface ILaunchVSCodeArgument {
 	prefix?: string;
 	path?: string;
@@ -36,28 +31,22 @@ interface ILaunchVSCodeArguments {
 	env?: { [key: string]: string | null };
 }
 
-/**
- * Encapsulates the DebugAdapter lifecycle and some idiosyncrasies of the Debug Adapter Protocol.
- */
 export class RawDebugSession implements IDisposable {
 
 	private allThreadsContinued = true;
 	private _readyForBreakpoints = false;
 	private _capabilities: DebugProtocol.Capabilities;
 
-	// shutdown
 	private debugAdapterStopped = false;
 	private inShutdown = false;
 	private terminated = false;
 	private firedAdapterExitEvent = false;
 
-	// telemetry
 	private startTime = 0;
 	private didReceiveStoppedEvent = false;
 
 	private readonly toDispose = new DisposableStore();
 
-	// DAP events
 	private readonly _onDidInitialize = this.toDispose.add(new Emitter<DebugProtocol.InitializedEvent>());
 	private readonly _onDidStop = this.toDispose.add(new Emitter<DebugProtocol.StoppedEvent>());
 	private readonly _onDidContinued = this.toDispose.add(new Emitter<DebugProtocol.ContinuedEvent>());
@@ -75,7 +64,6 @@ export class RawDebugSession implements IDisposable {
 	private readonly _onDidCustomEvent = this.toDispose.add(new Emitter<DebugProtocol.Event>());
 	private readonly _onDidEvent = this.toDispose.add(new Emitter<DebugProtocol.Event>());
 
-	// DA events
 	private readonly _onDidExitAdapter = this.toDispose.add(new Emitter<AdapterEndEvent>());
 	private debugAdapter: IDebugAdapter | null;
 	private stoppedSinceLastStep = false;
@@ -101,7 +89,6 @@ export class RawDebugSession implements IDisposable {
 			if (code !== 0) {
 				this.shutdown(new Error(`exit code: ${code}`));
 			} else {
-				// normal exit
 				this.shutdown();
 			}
 		}));
@@ -122,7 +109,7 @@ export class RawDebugSession implements IDisposable {
 					}
 					break;
 				case 'stopped':
-					this.didReceiveStoppedEvent = true;		// telemetry: remember that debugger stopped successfully
+					this.didReceiveStoppedEvent = true;
 					this.stoppedSinceLastStep = true;
 					this._onDidStop.fire(<DebugProtocol.StoppedEvent>event);
 					break;
@@ -186,15 +173,10 @@ export class RawDebugSession implements IDisposable {
 		return this._capabilities;
 	}
 
-	/**
-	 * DA is ready to accepts setBreakpoint requests.
-	 * Becomes true after "initialized" events has been received.
-	 */
 	get readyForBreakpoints(): boolean {
 		return this._readyForBreakpoints;
 	}
 
-	//---- DAP events
 
 	get onDidInitialize(): Event<DebugProtocol.InitializedEvent> {
 		return this._onDidInitialize.event;
@@ -260,11 +242,7 @@ export class RawDebugSession implements IDisposable {
 		return this._onDidEvent.event;
 	}
 
-	//---- DebugAdapter lifecycle
 
-	/**
-	 * Starts the underlying debug adapter and tracks the session time for telemetry.
-	 */
 	async start(): Promise<void> {
 		if (!this.debugAdapter) {
 			return Promise.reject(new Error(nls.localize('noDebugAdapterStart', "No debug adapter, can not start debug session.")));
@@ -274,9 +252,6 @@ export class RawDebugSession implements IDisposable {
 		this.startTime = new Date().getTime();
 	}
 
-	/**
-	 * Send client capabilities to the debug adapter and receive DA capabilities in return.
-	 */
 	async initialize(args: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.InitializeResponse | undefined> {
 		const response = await this.send('initialize', args, undefined, undefined, false);
 		if (response) {
@@ -286,16 +261,12 @@ export class RawDebugSession implements IDisposable {
 		return response;
 	}
 
-	/**
-	 * Terminate the debuggee and shutdown the adapter
-	 */
 	disconnect(args: DebugProtocol.DisconnectArguments): Promise<any> {
 		const terminateDebuggee = this.capabilities.supportTerminateDebuggee ? args.terminateDebuggee : undefined;
 		const suspendDebuggee = this.capabilities.supportTerminateDebuggee && this.capabilities.supportSuspendDebuggee ? args.suspendDebuggee : undefined;
 		return this.shutdown(undefined, args.restart, terminateDebuggee, suspendDebuggee);
 	}
 
-	//---- DAP requests
 
 	async launchOrAttach(config: IConfig): Promise<DebugProtocol.Response | undefined> {
 		const response = await this.send(config.request, config, undefined, undefined, false);
@@ -306,9 +277,6 @@ export class RawDebugSession implements IDisposable {
 		return response;
 	}
 
-	/**
-	 * Try killing the debuggee softly...
-	 */
 	terminate(restart = false): Promise<DebugProtocol.TerminateResponse | undefined> {
 		if (this.capabilities.supportsTerminateRequest) {
 			if (!this.terminated) {
@@ -587,7 +555,6 @@ export class RawDebugSession implements IDisposable {
 		return this.send(request, args);
 	}
 
-	//---- private
 
 	private async shutdown(error?: Error, restart = false, terminateDebuggee: boolean | undefined = undefined, suspendDebuggee: boolean | undefined = undefined): Promise<void> {
 		if (!this.inShutdown) {
@@ -603,10 +570,8 @@ export class RawDebugSession implements IDisposable {
 						args.suspendDebuggee = suspendDebuggee;
 					}
 
-					// if there's an error, the DA is probably already gone, so give it a much shorter timeout.
 					await this.send('disconnect', args, undefined, error ? 200 : 2000);
 				} catch (e) {
-					// Catch the potential 'disconnect' error - no need to show it to the user since the adapter is shutting down
 				} finally {
 					await this.stopAdapter(error);
 				}
@@ -758,7 +723,6 @@ export class RawDebugSession implements IDisposable {
 		return new Promise<DebugProtocol.Response | undefined>((completeDispatch, errorDispatch) => {
 			if (!this.debugAdapter) {
 				if (this.inShutdown) {
-					// We are in shutdown silently complete
 					completeDispatch(undefined);
 				} else {
 					errorDispatch(new Error(nls.localize('noDebugAdapter', "No debugger available found. Can not send '{0}'.", command)));
@@ -802,7 +766,6 @@ export class RawDebugSession implements IDisposable {
 		if (error && url) {
 			const label = error.urlLabel ? error.urlLabel : nls.localize('moreInfo', "More Info");
 			const uri = URI.parse(url);
-			// Use a suffixed id if uri invokes a command, so default 'Open launch.json' command is suppressed on dialog
 			const actionId = uri.scheme === Schemas.command ? 'debug.moreInfo.command' : 'debug.moreInfo';
 			return createErrorWithActions(userMessage, [toAction({ id: actionId, label, run: () => this.openerService.open(uri, { allowCommands: true }) })]);
 		}

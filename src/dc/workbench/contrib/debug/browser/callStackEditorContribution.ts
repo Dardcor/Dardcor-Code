@@ -25,7 +25,6 @@ export const topStackFrameColor = registerColor('editor.stackFrameHighlightBackg
 export const focusedStackFrameColor = registerColor('editor.focusedStackFrameHighlightBackground', { dark: '#7abd7a4d', light: '#cee7ce73', hcDark: '#7abd7a4d', hcLight: '#cee7ce73' }, localize('focusedStackFrameLineHighlight', 'Background color for the highlight of line at focused stack frame position.'));
 const stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges;
 
-// we need a separate decoration for glyph margin, since we do not want it on each line of a multi line statement.
 const TOP_STACK_FRAME_MARGIN: IModelDecorationOptions = {
 	description: 'top-stack-frame-margin',
 	glyphMarginClassName: ThemeIcon.asClassName(debugStackframe),
@@ -71,13 +70,10 @@ export const makeStackFrameColumnDecoration = (noCharactersBefore: boolean): IMo
 });
 
 export function createDecorationsForStackFrame(stackFrame: IStackFrame, isFocusedSession: boolean, noCharactersBefore: boolean): IModelDeltaDecoration[] {
-	// only show decorations for the currently focused thread.
 	const result: IModelDeltaDecoration[] = [];
 	const columnUntilEOLRange = new Range(stackFrame.range.startLineNumber, stackFrame.range.startColumn, stackFrame.range.startLineNumber, Constants.MAX_SAFE_SMALL_INTEGER);
 	const range = new Range(stackFrame.range.startLineNumber, stackFrame.range.startColumn, stackFrame.range.startLineNumber, stackFrame.range.startColumn + 1);
 
-	// compute how to decorate the editor. Different decorations are used if this is a top stack frame, focused stack frame,
-	// an exception or a stack frame that did not change the line number (we only decorate the columns, not the whole line).
 	const topStackFrame = stackFrame.thread.getTopStackFrame();
 	if (stackFrame.getId() === topStackFrame?.getId()) {
 		if (isFocusedSession) {
@@ -154,7 +150,6 @@ export class CallStackEditorContribution extends Disposable implements IEditorCo
 					const callStack = t.getCallStack();
 					const stackFrames: IStackFrame[] = [];
 					if (callStack.length > 0) {
-						// Always decorate top stack frame, and decorate focused stack frame if it is not the top stack frame
 						if (focusedStackFrame && !focusedStackFrame.equals(callStack[0])) {
 							stackFrames.push(focusedStackFrame);
 						}
@@ -176,7 +171,6 @@ export class CallStackEditorContribution extends Disposable implements IEditorCo
 			});
 		});
 
-		// Deduplicate same decorations so colors do not stack #109045
 		return distinct(decorations, d => `${d.options.className} ${d.options.glyphMarginClassName} ${d.range.startLineNumber} ${d.range.startColumn}`);
 	}
 

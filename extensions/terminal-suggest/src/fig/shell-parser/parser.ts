@@ -3,29 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Loosely follows the following grammar:
-// terminator = ";" | "&" | "&;"
-// literal = string | ansi_c_string | raw_string | expansion | simple_expansion | word
-// concatenation = literal literal
-// command = (concatenation | literal)+
-//
-// variable_name = word
-// subscript = variable_name"["literal"]"
-// assignment = (word | subscript)("=" | "+=")literal
-// assignment_list = assignment+ command?
-//
-// statement =
-//    | "{" (statement terminator)+ "}"
-//    | "(" statements ")"
-//    | statement "||" statement
-//    | statement "&&" statement
-//    | statement "|" statement
-//    | statement "|&" statement
-//    | command
-//    | assignment_list
-//
-// statements = (statement terminator)* statement terminator?
-// program = statements
 
 export enum NodeType {
 	Program = 'program',
@@ -41,17 +18,14 @@ export enum NodeType {
 	Pipeline = 'pipeline',
 	List = 'list',
 
-	// TODO: implement <(commands)
 	ProcessSubstitution = 'process_substitution',
 
-	// Primary expressions
 	Concatenation = 'concatenation',
 	Word = 'word',
 	String = 'string',
 	Expansion = 'expansion',
 	CommandSubstitution = 'command_substitution',
 
-	// Leaf Nodes
 	RawString = 'raw_string',
 	AnsiCString = 'ansi_c_string',
 	SimpleExpansion = 'simple_expansion',
@@ -73,7 +47,6 @@ export type LiteralNode =
 
 export interface BaseNode<Type extends NodeType = NodeType> {
 	text: string;
-	// Unquoted text in node.
 	innerText: string;
 
 	startIndex: number;
@@ -195,7 +168,6 @@ const nextWordIndex = (str: string, index: number) => {
 	return index + firstChar;
 };
 
-// Parse simple variable expansion ($foo or $$)
 const parseSimpleExpansion = (
 	str: string,
 	index: number,
@@ -219,7 +191,6 @@ const parseSimpleExpansion = (
 	let i = index + 1;
 	for (; i < str.length; i += 1) {
 		if (terminalSymbols.includes(str.charAt(i))) {
-			// Parse a literal $ if last token
 			return i === index + 1
 				? null
 				: createNode<BaseNode<NodeType.SimpleExpansion>>(str, {
@@ -234,7 +205,6 @@ const parseSimpleExpansion = (
 	});
 };
 
-// Parse command substitution $(foo) or `foo`
 function parseCommandSubstitution(
 	str: string,
 	startIndex: number,
@@ -365,7 +335,6 @@ function parseStatements(
 
 	let i = index;
 	while (i < str.length) {
-		// Will only exit on EOF, terminalChar or terminator symbol (;, &, &;)
 		let statement = parseStatement(str, i, mustTerminate ? '' : terminalChar);
 
 		const opIndex = nextWordIndex(str, statement.endIndex);
@@ -382,7 +351,6 @@ function parseStatements(
 
 		const op = !reachedEnd && parseOperator(str, opIndex);
 		if (op) {
-			// Terminator symbol, ; | & | &;
 			i = opIndex + op.length;
 			const nextIndex = nextWordIndex(str, i);
 			statements.push(statement);
@@ -390,8 +358,6 @@ function parseStatements(
 				return { statements, terminatorIndex: nextIndex };
 			}
 		} else {
-			// Missing terminator but still have tokens left.
-			// assignments do not require terminators
 			statement = createNode(str, {
 				...statement,
 				complete:
@@ -456,7 +422,6 @@ const parseConcatenationOrLiteralNode = (
 		const c = str.charAt(i);
 		const op = parseOperator(str, i);
 		if (op !== null || c === terminalChar) {
-			// TODO: handle terminator like ; as first token.
 			break;
 		}
 		const childNode = childAtIndex(str, i, false, terminators);
@@ -497,7 +462,6 @@ function parseCommand(
 		startIndex,
 		type: NodeType.Command,
 		complete: children.length > 0,
-		// Extend command up to separator.
 		endIndex: children.length > 0 ? endIndex : str.length,
 		children,
 	});
@@ -594,7 +558,6 @@ const parseAssignmentListNodeOrCommandNode = (
 		) {
 			command = parseCommand(str, lastAssignment.endIndex, terminalChar);
 		}
-		// if it makes sense to parse a command here do it else return the list
 		return createNode<AssignmentListNode>(str, {
 			type: NodeType.AssignmentList,
 			startIndex,
@@ -629,7 +592,6 @@ function parseStatement(
 	i = i === -1 ? index : i;
 	let statement = null;
 	if (['{', '('].includes(str.charAt(i))) {
-		// Parse compound statement or subshell
 		const isCompound = str.charAt(i) === '{';
 		const endChar = isCompound ? '}' : ')';
 
@@ -655,7 +617,6 @@ function parseStatement(
 			children,
 		});
 	} else {
-		// statement = parseAssignmentListNodeOrCommandNode(str, i, terminalChar)
 		statement = parseAssignmentListNodeOrCommandNode(str, i, terminalChar);
 	}
 
@@ -672,7 +633,6 @@ function parseStatement(
 		return statement;
 	}
 
-	// Recursively parse rightHandStatement if theres an operator.
 	const rightHandStatement = parseStatement(
 		str,
 		opIndex + op.length,

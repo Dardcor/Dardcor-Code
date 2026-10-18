@@ -34,7 +34,6 @@ export class ExtensionRecommendationsService extends Disposable implements IExte
 
 	declare readonly _serviceBrand: undefined;
 
-	// Recommendations
 	private readonly fileBasedRecommendations: FileBasedRecommendations;
 	private readonly workspaceRecommendations: WorkspaceRecommendations;
 	private readonly configBasedRecommendations: ConfigBasedRecommendations;
@@ -82,7 +81,6 @@ export class ExtensionRecommendationsService extends Disposable implements IExte
 
 		this.sessionSeed = +new Date();
 
-		// Activation
 		this.activationPromise = this.activate();
 
 		this._register(this.extensionManagementService.onDidInstallExtensions(e => this.onDidInstallExtensions(e)));
@@ -94,9 +92,8 @@ export class ExtensionRecommendationsService extends Disposable implements IExte
 				this.remoteExtensionsScannerService.whenExtensionsReady(),
 				this.userDataInitializationService.whenInitializationFinished(),
 				this.lifecycleService.when(LifecyclePhase.Restored)]);
-		} catch (error) { /* ignore */ }
+		} catch (error) { }
 
-		// activate all recommendations
 		await Promise.all([
 			this.workspaceRecommendations.activate(),
 			this.configBasedRecommendations.activate(),
@@ -121,7 +118,6 @@ export class ExtensionRecommendationsService extends Disposable implements IExte
 	}
 
 	getAllRecommendationsWithReason(): { [id: string]: { reasonId: ExtensionRecommendationReason; reasonText: string } } {
-		/* Activate proactive recommendations */
 		this.activateProactiveRecommendations();
 
 		const output: { [id: string]: { reasonId: ExtensionRecommendationReason; reasonText: string } } = Object.create(null);
@@ -229,15 +225,6 @@ export class ExtensionRecommendationsService extends Disposable implements IExte
 				const extRecommendations = this.getAllRecommendationsWithReason() || {};
 				const recommendationReason = extRecommendations[e.source.identifier.id.toLowerCase()];
 				if (recommendationReason) {
-					/* __GDPR__
-						"extensionGallery:install:recommendations" : {
-							"owner": "sandy081",
-							"recommendationReason": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-							"${include}": [
-								"${GalleryExtensionTelemetryData}"
-							]
-						}
-					*/
 					this.telemetryService.publicLog('extensionGallery:install:recommendations', { ...e.source.telemetryData, recommendationReason: recommendationReason.reasonId });
 				}
 			}

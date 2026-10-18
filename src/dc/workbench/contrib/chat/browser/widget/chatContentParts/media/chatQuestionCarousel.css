@@ -3,17 +3,17 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* input specific styling - box look comes from the shared container rule below */
 .interactive-session .interactive-input-part > .chat-question-carousel-widget-container .chat-question-carousel-container,
 .interactive-session .interactive-input-part .interactive-input-and-edit-session > .chat-question-carousel-widget-container .chat-question-carousel-container {
 	margin: 0;
 }
 
-/* general questions styling - card chrome comes from widget/media/chatCard.css */
 .interactive-session .chat-question-carousel-container {
 	margin: 8px 0;
 	container-type: inline-size;
 	max-height: min(420px, 45vh);
+	min-width: 0;
+	min-height: 0;
 	position: relative;
 }
 
@@ -25,7 +25,6 @@
 	border-color: var(--vscode-focusBorder);
 }
 
-/* input part wrapper */
 .interactive-session .interactive-input-part > .chat-question-carousel-widget-container,
 .interactive-session .interactive-input-part .interactive-input-and-edit-session > .chat-question-carousel-widget-container {
 	width: 100%;
@@ -40,10 +39,11 @@
 	min-height: 0;
 }
 
-/* container and header */
 .interactive-session .chat-question-carousel-container .chat-question-carousel-content {
 	display: flex;
 	flex-direction: column;
+	flex: 1 1 auto;
+	min-width: 0;
 	min-height: 0;
 	overflow: hidden;
 
@@ -57,14 +57,24 @@
 		}
 
 		.chat-question-title {
+			box-sizing: border-box;
+			max-height: min(220px, 25vh);
+			min-width: 0;
+			overflow-y: auto;
+			overflow-wrap: anywhere;
+			overscroll-behavior: contain;
 			word-break: break-word;
 			white-space: normal;
 			user-select: text;
 			-webkit-user-select: text;
 
 			.rendered-markdown {
+				max-width: 100%;
+				overflow-wrap: anywhere;
+
 				p {
 					margin: 0;
+					overflow-wrap: anywhere;
 				}
 			}
 		}
@@ -114,12 +124,14 @@
 	}
 }
 
-/* questions list and freeform area */
 .interactive-session .chat-question-carousel-container .chat-question-input-container {
 	display: flex;
 	flex-direction: column;
 	padding: 8px 16px;
 	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow-wrap: anywhere;
 
 	&::after {
 		content: '';
@@ -128,7 +140,6 @@
 		flex-shrink: 0;
 	}
 
-	/* some hackiness to get the focus looking right */
 	.chat-question-list-item:focus,
 	.chat-question-list:focus {
 		outline: none;
@@ -165,7 +176,6 @@
 				color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
 			}
 
-			/* Label in list item */
 			.chat-question-list-label {
 				font-size: var(--vscode-fontSize-body2);
 				font-weight: var(--vscode-fontWeight-semiBold);
@@ -197,7 +207,6 @@
 			}
 
 			.chat-question-list-checkbox {
-				/* Title line-height is ~17px (1.4 * body-s), checkbox is 16px: 1px offset */
 				margin-top: 1px;
 			}
 		}
@@ -206,7 +215,6 @@
 			background-color: var(--vscode-list-hoverBackground);
 		}
 
-		/* Single-select: highlight entire row when selected (list not focused) */
 		.chat-question-list-item.selected {
 			background-color: var(--vscode-list-inactiveSelectionBackground, var(--vscode-list-hoverBackground));
 			color: var(--vscode-list-inactiveSelectionForeground, var(--vscode-foreground));
@@ -229,11 +237,6 @@
 			}
 		}
 
-		/*
-		 * When the question list has focus, use active selection styling. Written with `&` because
-		 * this rule is nested inside `.chat-question-list`; spelling the class out again would
-		 * compile to a list inside a list and never match.
-		 */
 		&:focus .chat-question-list-item.selected {
 			background-color: var(--vscode-list-activeSelectionBackground, var(--vscode-list-hoverBackground));
 			color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
@@ -259,7 +262,6 @@
 			outline-offset: -1px;
 		}
 
-		/* Checkbox for multi-select */
 		.chat-question-list-checkbox {
 			flex-shrink: 0;
 		}
@@ -309,7 +311,6 @@
 
 	}
 
-	/* todo: change to use keybinding service so we don't have to recreate this */
 	.chat-question-list-number,
 	.chat-question-freeform-number {
 		font-size: var(--vscode-fontSize-body2);
@@ -326,12 +327,13 @@
 }
 
 .interactive-session .chat-question-carousel-container .chat-question-input-scrollable {
-	flex: 0 1 auto;
+	flex: 1 1 auto;
 	min-height: 0;
+	min-width: 0;
+	max-width: 100%;
 	overscroll-behavior: contain;
 }
 
-/* footer with nav arrows, step indicator, and submit */
 .interactive-session .chat-question-carousel-container .chat-question-footer-row {
 	display: flex;
 	justify-content: space-between;
@@ -383,14 +385,29 @@
 	}
 }
 
-/* user-select: text for elicitation dialog text areas */
 .interactive-session .chat-question-carousel-container .chat-question-detailed-message,
 .interactive-session .chat-question-carousel-container .chat-question-description {
+	min-width: 0;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+	word-break: break-word;
 	user-select: text;
 	-webkit-user-select: text;
 }
 
-/* carousel-level message (e.g. from MCP elicitation) */
+.interactive-session .chat-question-carousel-container .chat-question-detailed-message .rendered-markdown {
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+
+.interactive-session .chat-question-carousel-container .chat-question-detailed-message pre,
+.interactive-session .chat-question-carousel-container .chat-question-detailed-message code {
+	max-width: 100%;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
 .interactive-session .chat-question-carousel-container .chat-question-carousel-message {
 	padding: 8px 16px 0;
 	font-size: var(--vscode-chat-font-size-body-s);
@@ -406,14 +423,12 @@
 	}
 }
 
-/* field description below question title */
 .interactive-session .chat-question-carousel-container .chat-question-description {
 	padding: 4px 16px;
 	font-size: var(--vscode-chat-font-size-body-s);
 	color: var(--vscode-descriptionForeground);
 }
 
-/* validation error message below input area */
 .interactive-session .chat-question-carousel-container .chat-question-validation-message {
 	padding: 0 16px 4px;
 	font-size: var(--vscode-chat-font-size-body-s);
@@ -421,7 +436,6 @@
 	flex-shrink: 0;
 }
 
-/* summary (after finished) */
 .interactive-session .chat-question-carousel-summary {
 	display: flex;
 	flex-direction: column;

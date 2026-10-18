@@ -193,10 +193,6 @@ suite('FileWorkingCopyManager', () => {
 
 		const result = await manager.saveAs(source, target);
 		if (accessor.uriIdentityService.extUri.isEqual(source, target) && resolveSource) {
-			// if the uris are considered equal (different case on macOS/Windows)
-			// and the source is to be resolved, the resulting working copy resource
-			// will be the source resource because we consider file working copies
-			// the same in that case
 			assert.strictEqual(source.toString(), result?.resource.toString());
 		} else {
 			if (resolveSource || resolveTarget) {

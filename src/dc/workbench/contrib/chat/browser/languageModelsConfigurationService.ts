@@ -44,7 +44,6 @@ export class LanguageModelsConfigurationService extends Disposable implements IL
 
 	private languageModelsProviderGroups: LanguageModelsProviderGroups = [];
 
-	/** Resolved once the first config-file load attempt completes; assigned exactly once in the ctor. Rejections are swallowed so consumers can treat readiness as "first load attempted". */
 	private readonly _whenReady: Promise<void>;
 	get whenReady(): Promise<void> { return this._whenReady; }
 
@@ -59,9 +58,7 @@ export class LanguageModelsConfigurationService extends Disposable implements IL
 	) {
 		super();
 		this.modelsConfigurationFile = userDataProfileService.currentProfile.languageModelsResource;
-		this._whenReady = this.updateLanguageModelsConfiguration().catch(() => { /* swallow: readiness signals "attempted", not "succeeded" */ });
-		// Watch the parent folder for reliable change detection across platforms (especially Windows
-		// where `fs.watch` on individual files can miss in-place writes).
+		this._whenReady = this.updateLanguageModelsConfiguration().catch(() => { });
 		this._register(fileService.watch(uriIdentityService.extUri.dirname(this.modelsConfigurationFile)));
 		this._register(fileService.onDidFilesChange(e => {
 			if (e.contains(this.modelsConfigurationFile)) {
@@ -75,7 +72,6 @@ export class LanguageModelsConfigurationService extends Disposable implements IL
 		const oldGroupMap = new Map(this.languageModelsProviderGroups.map(g => [`${g.vendor}:${g.name}`, g]));
 		const newGroupMap = new Map(languageModelsConfiguration.map(g => [`${g.vendor}:${g.name}`, g]));
 
-		// Find added or modified groups
 		for (const [key, newGroup] of newGroupMap) {
 			const oldGroup = oldGroupMap.get(key);
 			if (!oldGroup || !equals(oldGroup, newGroup)) {
@@ -83,7 +79,6 @@ export class LanguageModelsConfigurationService extends Disposable implements IL
 			}
 		}
 
-		// Find removed groups
 		for (const [key, oldGroup] of oldGroupMap) {
 			if (!newGroupMap.has(key)) {
 				changedGroups.push(oldGroup);
@@ -158,9 +153,6 @@ export class LanguageModelsConfigurationService extends Disposable implements IL
 	}
 
 	async configureLanguageModels(options?: ConfigureLanguageModelsOptions): Promise<void> {
-		// Mirror the surface that the chat models editor is currently shown in: if
-		// it lives inside the modal editor part, open the JSON in the modal too;
-		// otherwise fall back to the default group resolution (regular editor area).
 		const preferredGroup = this.editorGroupsService.getPart(this.editorGroupsService.activeGroup) === this.editorGroupsService.activeModalEditorPart ? MODAL_GROUP : undefined;
 		const editor = await this.editorService.openEditor({
 			resource: this.modelsConfigurationFile,
@@ -176,7 +168,6 @@ export class LanguageModelsConfigurationService extends Disposable implements IL
 		}
 
 		if (options.snippet) {
-			// Insert snippet at the end of the last property line (before the closing brace line), with comma prepended
 			const model = codeEditor.getModel();
 			if (!model) {
 				return;
@@ -361,7 +352,6 @@ export class ChatLanguageModelsDataContribution extends Disposable implements IW
 	private updateSchema(registry: IJSONContributionRegistry): void {
 		const vendors = this.languageModelsService.getVendors();
 
-		// Build per-model configuration schemas
 		const modelSchemas: IJSONSchema[] = [];
 		const modelIds = this.languageModelsService.getLanguageModelIds();
 		for (const modelId of modelIds) {

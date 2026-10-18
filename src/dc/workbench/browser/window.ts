@@ -36,12 +36,12 @@ import { IContextMenuService } from '../../platform/contextview/browser/contextV
 
 export abstract class BaseWindow extends Disposable {
 
-	private static TIMEOUT_HANDLES = Number.MIN_SAFE_INTEGER; // try to not compete with the IDs of native `setTimeout`
+	private static TIMEOUT_HANDLES = Number.MIN_SAFE_INTEGER;
 	private static readonly TIMEOUT_DISPOSABLES = new Map<number, Set<IDisposable>>();
 
 	constructor(
 		targetWindow: CodeWindow,
-		dom = { getWindowsCount, getWindows }, /* for testing */
+		dom = { getWindowsCount, getWindows },
 		@IHostService protected readonly hostService: IHostService,
 		@IWorkbenchEnvironmentService protected readonly environmentService: IWorkbenchEnvironmentService,
 		@IContextMenuService protected readonly contextMenuService: IContextMenuService,
@@ -56,7 +56,6 @@ export abstract class BaseWindow extends Disposable {
 		this.registerContextMenuListeners(targetWindow);
 	}
 
-	//#region focus handling in multi-window applications
 
 	protected enableWindowFocusOnElementFocus(targetWindow: CodeWindow): void {
 		const originalFocus = targetWindow.HTMLElement.prototype.focus;
@@ -64,35 +63,18 @@ export abstract class BaseWindow extends Disposable {
 		const that = this;
 		targetWindow.HTMLElement.prototype.focus = function (this: HTMLElement, options?: FocusOptions | undefined): void {
 
-			// Ensure the window the element belongs to is focused
-			// in scenarios where auxiliary windows are present
 			that.onElementFocus(getWindow(this));
 
-			// Pass to original focus() method
 			originalFocus.apply(this, [options]);
 		};
 	}
 
 	private onElementFocus(targetWindow: CodeWindow): void {
 
-		// Check if focus should transfer: the application currently has focus somewhere, but not in the target window.
 		if (!targetWindow.document.hasFocus() && hasAppFocus()) {
 
-			// Call original focus()
 			targetWindow.focus();
 
-			// In Electron, `window.focus()` fails to bring the window
-			// to the front if multiple windows exist in the same process
-			// group (floating windows). As such, we ask the host service
-			// to focus the window which can take care of bringin the
-			// window to the front.
-			//
-			// To minimise disruption by bringing windows to the front
-			// by accident, we only do this if the window is not already
-			// focused and the active window is not the target window
-			// but has focus. This is an indication that multiple windows
-			// are opened in the same process group while the target window
-			// is not focused.
 
 			if (
 				!this.environmentService.extensionTestsLocationURI &&
@@ -103,16 +85,10 @@ export abstract class BaseWindow extends Disposable {
 		}
 	}
 
-	//#endregion
 
-	//#region timeout handling in multi-window applications
 
 	protected enableMultiWindowAwareTimeout(targetWindow: Window, dom = { getWindowsCount, getWindows }): void {
 
-		// Override `setTimeout` and `clearTimeout` on the provided window to make
-		// sure timeouts are dispatched to all opened windows. Some browsers may decide
-		// to throttle timeouts in minimized windows, so with this we can ensure the
-		// timeout is scheduled without being throttled (unless all windows are minimized).
 
 		const originalSetTimeout = targetWindow.setTimeout;
 		Object.defineProperty(targetWindow, 'vscodeOriginalSetTimeout', { get: () => originalSetTimeout });
@@ -121,7 +97,7 @@ export abstract class BaseWindow extends Disposable {
 		Object.defineProperty(targetWindow, 'vscodeOriginalClearTimeout', { get: () => originalClearTimeout });
 
 		targetWindow.setTimeout = function (this: unknown, handler: TimerHandler, timeout = 0, ...args: unknown[]): number {
-			if (dom.getWindowsCount() === 1 || typeof handler === 'string' || timeout === 0 /* immediates are never throttled */) {
+			if (dom.getWindowsCount() === 1 || typeof handler === 'string' || timeout === 0 ) {
 				return originalSetTimeout.apply(this, [handler, timeout, ...args]);
 			}
 
@@ -136,11 +112,9 @@ export abstract class BaseWindow extends Disposable {
 
 			for (const { window, disposables } of dom.getWindows()) {
 				if (isAuxiliaryWindow(window) && window.document.visibilityState === 'hidden') {
-					continue; // skip over hidden windows (but never over main window)
+					continue;
 				}
 
-				// we track didClear in case the browser does not properly clear the timeout
-				// this can happen for timeouts on unfocused windows
 				let didClear = false;
 
 				const handle = (window as { vscodeOriginalSetTimeout?: typeof window.setTimeout }).vscodeOriginalSetTimeout?.apply(this, [(...args: unknown[]) => {
@@ -154,8 +128,6 @@ export abstract class BaseWindow extends Disposable {
 					didClear = true;
 					(window as { vscodeOriginalClearTimeout?: typeof window.clearTimeout }).vscodeOriginalClearTimeout?.apply(this, [handle]);
 					timeoutDisposables.delete(timeoutDisposable);
-					// Remove from the window's DisposableStore. Re-disposal is a no-op and
-					// avoids re-registering the already-disposed timeout as a leak.
 					disposables.delete(timeoutDisposable);
 				});
 
@@ -177,9 +149,7 @@ export abstract class BaseWindow extends Disposable {
 		};
 	}
 
-	//#endregion
 
-	//#region Confirm on Shutdown
 
 	static async confirmOnShutdown(accessor: ServicesAccessor, reason: ShutdownReason): Promise<boolean> {
 		const dialogService = accessor.get(IDialogService);
@@ -200,7 +170,6 @@ export abstract class BaseWindow extends Disposable {
 			}
 		});
 
-		// Update setting if checkbox checked
 		if (res.confirmed && res.checkboxChecked) {
 			await configurationService.updateValue('window.confirmBeforeClose', 'never');
 		}
@@ -208,7 +177,6 @@ export abstract class BaseWindow extends Disposable {
 		return res.confirmed;
 	}
 
-	//#endregion
 
 	private registerFullScreenListeners(targetWindowId: number): void {
 		this._register(this.hostService.onDidChangeFullScreen(({ windowId, fullscreen }) => {
@@ -223,8 +191,6 @@ export abstract class BaseWindow extends Disposable {
 
 	private registerContextMenuListeners(targetWindow: Window): void {
 		if (targetWindow !== mainWindow) {
-			// we only need to listen in the main window as the code
-			// will go by the active container and update accordingly
 			return;
 		}
 
@@ -256,48 +222,33 @@ export class BrowserWindow extends BaseWindow {
 
 	private registerListeners(): void {
 
-		// Lifecycle
 		this._register(this.lifecycleService.onWillShutdown(() => this.onWillShutdown()));
 
-		// Layout
-		const viewport = isIOS && mainWindow.visualViewport ? mainWindow.visualViewport /** Visual viewport */ : mainWindow /** Layout viewport */;
+		const viewport = isIOS && mainWindow.visualViewport ? mainWindow.visualViewport : mainWindow ;
 		this._register(addDisposableListener(viewport, EventType.RESIZE, () => {
 			this.layoutService.layout();
 
-			// Sometimes the keyboard appearing scrolls the whole workbench out of view, as a workaround scroll back into view #121206
 			if (isIOS) {
 				mainWindow.scrollTo(0, 0);
 			}
 		}));
 
-		// Prevent the back/forward gestures in macOS
 		this._register(addDisposableListener(this.layoutService.mainContainer, EventType.WHEEL, e => e.preventDefault(), { passive: false }));
 
-		// Prevent native context menus in web
 		this._register(addDisposableListener(this.layoutService.mainContainer, EventType.CONTEXT_MENU, e => EventHelper.stop(e, true)));
 
-		// Prevent default navigation on drop
 		this._register(addDisposableListener(this.layoutService.mainContainer, EventType.DROP, e => EventHelper.stop(e, true)));
 	}
 
 	private onWillShutdown(): void {
 
-		// Try to detect some user interaction with the workbench
-		// when shutdown has happened to not show the dialog e.g.
-		// when navigation takes a longer time.
 		Event.toPromise(Event.any(
 			Event.once(new DomEmitter(mainWindow.document.body, EventType.KEY_DOWN, true).event),
 			Event.once(new DomEmitter(mainWindow.document.body, EventType.MOUSE_DOWN, true).event)
 		)).then(async () => {
 
-			// Delay the dialog in case the user interacted
-			// with the page before it transitioned away
 			await timeout(3000);
 
-			// This should normally not happen, but if for some reason
-			// the workbench was shutdown while the page is still there,
-			// inform the user that only a reload can bring back a working
-			// state.
 			await this.dialogService.prompt({
 				type: Severity.Error,
 				message: localize('shutdownError', "An unexpected error occurred that requires a reload of this page."),
@@ -305,7 +256,7 @@ export class BrowserWindow extends BaseWindow {
 				buttons: [
 					{
 						label: localize({ key: 'reload', comment: ['&& denotes a mnemonic'] }, "&&Reload"),
-						run: () => mainWindow.location.reload() // do not use any services at this point since they are likely not functional at this point
+						run: () => mainWindow.location.reload()
 					}
 				]
 			});
@@ -314,16 +265,12 @@ export class BrowserWindow extends BaseWindow {
 
 	private create(): void {
 
-		// Handle open calls
 		this.setupOpenHandlers();
 
-		// Label formatting
 		this.registerLabelFormatters();
 
-		// Commands
 		this.registerCommands();
 
-		// Smoke Test Driver
 		this.setupDriver();
 	}
 
@@ -335,13 +282,6 @@ export class BrowserWindow extends BaseWindow {
 
 	private setupOpenHandlers(): void {
 
-		// We need to ignore the `beforeunload` event while
-		// we handle external links to open specifically for
-		// the case of application protocols that e.g. invoke
-		// vscode itself. We do not want to open these links
-		// in a new window because that would leave a blank
-		// window to the user, but using `window.location.href`
-		// will trigger the `beforeunload`.
 		this.openerService.setDefaultExternalOpener({
 			openExternal: async (href: string) => {
 				let isAllowedOpener = false;
@@ -354,7 +294,6 @@ export class BrowserWindow extends BaseWindow {
 					}
 				}
 
-				// HTTP(s): open in new window and deal with potential popup blockers
 				if (matchesScheme(href, Schemas.http) || matchesScheme(href, Schemas.https)) {
 					if (isSafari) {
 						const opened = windowOpenWithSuccess(href, !isAllowedOpener);
@@ -363,7 +302,7 @@ export class BrowserWindow extends BaseWindow {
 								type: Severity.Warning,
 								message: localize('unableToOpenExternal', "The browser blocked opening a new tab or window. Press 'Retry' to try again."),
 								custom: {
-									markdownDetails: [{ markdown: new MarkdownString(localize('unableToOpenWindowDetail', "Please allow pop-ups for this website in your [browser settings]({0}).", 'https://aka.ms/allow-vscode-popup'), true) }]
+									markdownDetails: [{ markdown: new MarkdownString(localize('unableToOpenWindowDetail', "Please allow pop-ups for this website in your [browser settings]({0}).", 'https://www.dardcor-code.web.id/docs/troubleshooting/browser-popups'), true) }]
 								},
 								buttons: [
 									{
@@ -383,9 +322,6 @@ export class BrowserWindow extends BaseWindow {
 					}
 				}
 
-				// Anything else: set location to trigger protocol handler in the browser
-				// but make sure to signal this as an expected unload and disable unload
-				// handling explicitly to prevent the workbench from going down.
 				else {
 					const invokeProtocolHandler = () => {
 						this.lifecycleService.withExpectedShutdown({ disableShutdownHandling: true }, () => mainWindow.location.href = href);
@@ -417,7 +353,6 @@ export class BrowserWindow extends BaseWindow {
 								run: async () => {
 									await this.openerService.open(URI.parse(downloadUrl));
 
-									// Re-show the dialog so that the user can come back after installing and try again
 									showProtocolUrlOpenedDialog();
 								}
 							});
@@ -430,8 +365,6 @@ export class BrowserWindow extends BaseWindow {
 							);
 						}
 
-						// While this dialog shows, closing the tab will not display a confirmation dialog
-						// to avoid showing the user two dialogs at once
 						await this.hostService.withExpectedShutdown(() => this.dialogService.prompt({
 							type: Severity.Info,
 							message: localize('openExternalDialogTitle', "All done. You can close this tab now."),
@@ -441,8 +374,6 @@ export class BrowserWindow extends BaseWindow {
 						}));
 					};
 
-					// We cannot know whether the protocol handler succeeded.
-					// Display guidance in case it did not, e.g. the app is not installed locally.
 					if (matchesScheme(href, this.productService.urlProtocol)) {
 						await showProtocolUrlOpenedDialog();
 					}
@@ -466,17 +397,14 @@ export class BrowserWindow extends BaseWindow {
 
 	private registerCommands(): void {
 
-		// Allow extensions to request USB devices in Web
 		CommandsRegistry.registerCommand('workbench.experimental.requestUsbDevice', async (_accessor: ServicesAccessor, options?: { filters?: unknown[] }): Promise<UsbDeviceData | undefined> => {
 			return requestUsbDevice(options);
 		});
 
-		// Allow extensions to request Serial devices in Web
 		CommandsRegistry.registerCommand('workbench.experimental.requestSerialPort', async (_accessor: ServicesAccessor, options?: { filters?: unknown[] }): Promise<SerialPortData | undefined> => {
 			return requestSerialPort(options);
 		});
 
-		// Allow extensions to request HID devices in Web
 		CommandsRegistry.registerCommand('workbench.experimental.requestHidDevice', async (_accessor: ServicesAccessor, options?: { filters?: unknown[] }): Promise<HidDeviceData | undefined> => {
 			return requestHidDevice(options);
 		});

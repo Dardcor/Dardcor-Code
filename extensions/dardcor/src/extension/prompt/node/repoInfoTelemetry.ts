@@ -16,8 +16,6 @@ import { ITelemetryService, multiplexProperties } from '../../../platform/teleme
 import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
 import { IWorkspaceFileIndex } from '../../../platform/workspaceChunkSearch/node/workspaceFileIndex';
 
-// Create a mapping for the git status enum to put the actual status string in telemetry
-// The enum is a const enum and part of the public git extension API, so the order should stay stable
 const STATUS_TO_STRING: Record<number, string> = {
 	0: 'INDEX_MODIFIED',
 	1: 'INDEX_ADDED',
@@ -40,31 +38,17 @@ const STATUS_TO_STRING: Record<number, string> = {
 	18: 'BOTH_MODIFIED',
 };
 
-// The Application Insights SDK truncates any single custom string property at 8192 characters. When
-// the serialized diffs JSON exceeds that, `multiplexProperties` (see telemetry.ts) splits it across
-// up to 50 columns (`diffsJSON`, `diffsJSON_02`, `diffsJSON_03`, ...) so the full payload survives.
-// Two independent limits guard the diffs JSON, and it is dropped (`diffTooLarge`) if EITHER is exceeded:
-// - MAX_DIFFS_JSON_BYTES: conservative total-payload byte budget under the 1MB event limit.
-// - MAX_DIFFS_JSON_CHARS: the multiplex capacity in characters (UTF-16 code units), matching how
-//   `multiplexProperties` measures and slices, so nothing is silently dropped past the 50 columns.
 const MAX_DIFFS_JSON_BYTES = 900 * 1024;
 const MAX_DIFFS_JSON_CHARS = 50 * 8192;
 
-// Max changes to avoid degenerate cases like mass renames
 const MAX_CHANGES = 100;
 
-// Max age of the merge base commit in days before we skip the diff
 const MAX_MERGE_BASE_AGE_DAYS = 30;
 
-// Max number of commits between merge base and HEAD before we skip the diff
 const MAX_DIFF_COMMITS = 30;
 
-// Cap on the number of repositories we collect/send telemetry for per request.
-// Covers >p90 of real-world multi-repo workspaces in long-tail cases (e.g. git.autoRepositoryDetection: 'subFolders' with many submodules).
-// The active repository is always included; remaining slots are filled from the workspace repo list.
 const MAX_REPOS_FOR_TELEMETRY = 5;
 
-// EVENT: repoInfo
 type RepoInfoTelemetryResult = 'success' | 'filesChanged' | 'diffTooLarge' | 'noChanges' | 'tooManyChanges' | 'mergeBaseTooOld' | 'virtualFileSystem' | 'tooManyCommits';
 
 type RepoInfoTelemetryProperties = {
@@ -97,16 +81,10 @@ type RepoInfoInternalTelemetryProperties = RepoInfoTelemetryProperties & {
 	telemetryMessageId: string;
 };
 
-// Only send ending telemetry on states where we capture repo info or no changes currently
 function shouldSendEndTelemetry(result: RepoInfoTelemetryResult | undefined): boolean {
 	return result === 'success' || result === 'noChanges';
 }
 
-/*
-* Handles sending telemetry about the current git repository.
-* Repo metadata and diffsJSON are sent via sendEnhancedGHTelemetryEvent.
-* Full repo info is additionally sent for internal users via sendInternalMSFTTelemetryEvent.
-*/
 export class RepoInfoTelemetry {
 	private _beginTelemetrySent = false;
 	private _beginTelemetryPromise: Promise<Map<string, RepoInfoTelemetryData | undefined>> | undefined;
@@ -125,13 +103,8 @@ export class RepoInfoTelemetry {
 		@ICopilotTokenStore private readonly _dardcorTokenStore: ICopilotTokenStore,
 	) { }
 
-	/*
-	* Sends the begin event telemetry, make sure to only send one time, as multiple PanelChatTelemetry instances
-	* are created per user request.
-	*/
 	public async sendBeginTelemetryIfNeeded(): Promise<void> {
 		if (this._beginTelemetrySent) {
-			// Already sent or in progress
 			await this._beginTelemetryPromise;
 			return;
 		}
@@ -145,13 +118,9 @@ export class RepoInfoTelemetry {
 		}
 	}
 
-	/*
-	* Sends the end event telemetry
-	*/
 	public async sendEndTelemetry(): Promise<void> {
 		await this._beginTelemetryPromise;
 
-		// Skip end telemetry if no repos had a result that warrants an end event
 		const hasAnyEndCandidate = Array.from(this._beginTelemetryResults.values()).some(shouldSendEndTelemetry);
 		if (!hasAnyEndCandidate) {
 			return;
@@ -179,9 +148,6 @@ export class RepoInfoTelemetry {
 		const activeRepoUri = this._gitService.activeRepository?.get()?.rootUri;
 		const isInternal = !!this._dardcorTokenStore.dardcorToken?.isInternal;
 
-		// Cap the number of repos we process per request. Always include the active repo, then fill
-		// remaining slots from the workspace order. `repoCount` in measurements reports the TRUE total
-		// so dashboards can detect sampling.
 		const repositories: RepoContext[] = [];
 		if (activeRepoUri) {
 			const active = allRepositories.find(r => extUriBiasedIgnorePathCase.isEqual(r.rootUri, activeRepoUri));
@@ -198,12 +164,10 @@ export class RepoInfoTelemetry {
 			}
 		}
 
-		// Use allSettled so a failure on one repo does not drop telemetry for siblings.
 		const settled = await Promise.allSettled(repositories.map(async (repoContext, repoIndex) => {
 			const rootUriKey = repoContext.rootUri.toString();
 			const isActiveRepository = !!activeRepoUri && extUriBiasedIgnorePathCase.isEqual(repoContext.rootUri, activeRepoUri);
 
-			// For end events, only emit for repos whose begin result warranted an end event.
 			if (location === 'end' && !shouldSendEndTelemetry(this._beginTelemetryResults.get(rootUriKey))) {
 				return { rootUriKey, data: undefined };
 			}
@@ -226,8 +190,6 @@ export class RepoInfoTelemetry {
 		for (const { rootUriKey, data } of perRepo) {
 			results.set(rootUriKey, data);
 			if (location === 'begin') {
-				// Populate begin-results within the same promise so any awaiter of `_beginTelemetryPromise`
-				// is guaranteed to see populated results without relying on continuation ordering.
 				this._beginTelemetryResults.set(rootUriKey, data?.properties.result);
 			}
 			if (!data) {
@@ -242,9 +204,9 @@ export class RepoInfoTelemetry {
 
 			if (isInternal) {
 				const { headBranchName: _, fileRelativePaths: _2, ...msftProperties } = internalProperties;
-				void multiplexProperties(msftProperties).then(properties => this._telemetryService.sendInternalMSFTTelemetryEvent('request.repoInfo', properties, data.measurements)).catch(() => { /* best-effort telemetry */ });
+				void multiplexProperties(msftProperties).then(properties => this._telemetryService.sendInternalMSFTTelemetryEvent('request.repoInfo', properties, data.measurements)).catch(() => { });
 			}
-			void multiplexProperties(internalProperties).then(properties => this._telemetryService.sendEnhancedGHTelemetryEvent('request.repoInfo', properties, data.measurements)).catch(() => { /* best-effort telemetry */ });
+			void multiplexProperties(internalProperties).then(properties => this._telemetryService.sendEnhancedGHTelemetryEvent('request.repoInfo', properties, data.measurements)).catch(() => { });
 		}
 
 		return results;
@@ -309,11 +271,6 @@ export class RepoInfoTelemetry {
 			}
 		});
 
-		// VFS and sparse checkout enlistments are unlikely to have all blobs available locally,
-		// making diff operations expensive or impossible. Skip early if either is configured.
-		// core.virtualfilesystem is a path to a hook script, any non-empty value means VFS is active.
-		// core.sparsecheckout is a git boolean: true/yes/on/1 are truthy per git-config spec.
-		// If we can't determine the config, skip to be safe.
 		try {
 			const virtualFileSystem = await repository.getConfig('core.virtualfilesystem');
 			const sparseCheckout = await repository.getConfig('core.sparsecheckout');
@@ -325,9 +282,6 @@ export class RepoInfoTelemetry {
 			return skipDiffResult('virtualFileSystem');
 		}
 
-		// Check if the merge base commit is too old to avoid expensive diff operations
-		// on very stale branches where rename detection can consume many GB of memory.
-		// If we can't determine the commit age, treat it as too old to avoid the potentially expensive diff.
 		try {
 			const mergeBaseCommit = await repository.getCommit(upstreamCommit);
 			const ageDays = mergeBaseCommit.commitDate
@@ -341,9 +295,6 @@ export class RepoInfoTelemetry {
 			return skipDiffResult('mergeBaseTooOld');
 		}
 
-		// Check if there are too many commits between the merge base and HEAD.
-		// Extensive renames can make even the check for number of changed files expensive, and we are likely to have
-		// too big a diff to log anyways
 		try {
 			const commitLog = await repository.log({ range: `${upstreamCommit}..HEAD`, maxEntries: MAX_DIFF_COMMITS });
 			if (commitLog.length >= MAX_DIFF_COMMITS) {
@@ -353,8 +304,6 @@ export class RepoInfoTelemetry {
 			return skipDiffResult('tooManyCommits');
 		}
 
-		// Before we calculate our async diffs, sign up for file system change events scoped to this repo.
-		// A change in another repo should not invalidate this repo's diff.
 		const watcher = this._fileSystemService.createFileSystemWatcher(new RelativePattern(repoContext.rootUri, '**/*'));
 		let filesChanged = false;
 		const createDisposable = watcher.onDidCreate(() => filesChanged = true);
@@ -371,25 +320,19 @@ export class RepoInfoTelemetry {
 				isActiveRepository: isActiveRepository ? 'true' : 'false',
 			};
 
-			// Workspace file index will be used to get a rough count of files in the repository
-			// We need to call initialize here to have the count, but after first initialize call
-			// further calls are no-ops so only a hit first time.
 			await this._workspaceFileIndex.initialize();
 			const measurements: RepoInfoTelemetryMeasurements = {
 				workspaceFileCount: this._workspaceFileIndex.fileCount,
-				changedFileCount: 0, // Will be updated
-				diffSizeBytes: 0, // Will be updated
+				changedFileCount: 0,
+				diffSizeBytes: 0,
 				repoIndex,
 				repoCount,
 			};
 
-			// Combine our diff against the upstream commit with untracked changes, and working tree changes
-			// A change like a new untracked file could end up in either the untracked or working tree changes and won't be in the diffWith.
 			const diffChanges = await this._gitService.diffWith(repoContext.rootUri, upstreamCommit) ?? [];
 
 			const changeMap = new Map<string, Change>();
 
-			// Prority to the diffWith changes, then working tree changes, then untracked changes.
 			for (const change of diffChanges) {
 				changeMap.set(change.uri.toString(), change);
 			}
@@ -414,7 +357,6 @@ export class RepoInfoTelemetry {
 			}
 			measurements.changedFileCount = changes.length;
 
-			// Check if there are too many changes (e.g., mass renames)
 			if (changes.length > MAX_CHANGES) {
 				return {
 					properties: { ...baseProperties, fileRelativePaths: undefined, diffsJSON: undefined, result: 'tooManyChanges' },
@@ -422,7 +364,6 @@ export class RepoInfoTelemetry {
 				};
 			}
 
-			// Check if files changed during the git diff operation
 			if (filesChanged) {
 				return {
 					properties: { ...baseProperties, fileRelativePaths: undefined, diffsJSON: undefined, result: 'filesChanged' },
@@ -440,7 +381,6 @@ export class RepoInfoTelemetry {
 				};
 			});
 
-			// Check if files changed during the individual file diffs
 			if (filesChanged) {
 				return {
 					properties: { ...baseProperties, fileRelativePaths: undefined, diffsJSON: undefined, result: 'filesChanged' },
@@ -458,9 +398,6 @@ export class RepoInfoTelemetry {
 
 			const diffsJSON = diffs.length > 0 ? JSON.stringify(diffs) : undefined;
 
-			// The total telemetry event payload is limited to 1MB, and each multiplexed column holds at
-			// most 8192 characters across 50 columns. Drop the diffs JSON if it exceeds either the byte
-			// budget or the multiplex character capacity so nothing is silently truncated.
 			if (diffsJSON) {
 				const diffSizeBytes = Buffer.byteLength(diffsJSON, 'utf8');
 				measurements.diffSizeBytes = diffSizeBytes;

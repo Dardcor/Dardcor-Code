@@ -24,10 +24,10 @@ export const UTF16be_BOM = [0xFE, 0xFF];
 export const UTF16le_BOM = [0xFF, 0xFE];
 export const UTF8_BOM = [0xEF, 0xBB, 0xBF];
 
-const ZERO_BYTE_DETECTION_BUFFER_MAX_LEN = 512; 	// number of bytes to look at to decide about a file being binary or not
-const NO_ENCODING_GUESS_MIN_BYTES = 512; 			// when not auto guessing the encoding, small number of bytes are enough
-const AUTO_ENCODING_GUESS_MIN_BYTES = 512 * 8; 		// with auto guessing we want a lot more content to be read for guessing
-const AUTO_ENCODING_GUESS_MAX_BYTES = 512 * 128; 	// set an upper limit for the number of bytes we pass on to jschardet
+const ZERO_BYTE_DETECTION_BUFFER_MAX_LEN = 512;
+const NO_ENCODING_GUESS_MIN_BYTES = 512;
+const AUTO_ENCODING_GUESS_MIN_BYTES = 512 * 8;
+const AUTO_ENCODING_GUESS_MAX_BYTES = 512 * 128;
 
 export interface IDecodeStreamOptions {
 	acceptTextOnly: boolean;
@@ -45,10 +45,6 @@ export interface IDecodeStreamResult {
 
 export const enum DecodeStreamErrorKind {
 
-	/**
-	 * Error indicating that the stream is binary even
-	 * though `acceptTextOnly` was specified.
-	 */
 	STREAM_IS_BINARY = 1
 }
 
@@ -69,16 +65,6 @@ export interface IDecoderStream {
 
 class DecoderStream implements IDecoderStream {
 
-	/**
-	 * This stream will only load iconv-lite lazily if the encoding
-	 * is not UTF-8. This ensures that for most common cases we do
-	 * not pay the price of loading the module from disk.
-	 *
-	 * We still need to be careful when converting UTF-8 to a string
-	 * though because we read the file in chunks of Buffer and thus
-	 * need to decode it via TextDecoder helper that is available
-	 * in browser and node.js environments.
-	 */
 	static async create(encoding: string): Promise<DecoderStream> {
 		let decoder: IDecoderStream | undefined = undefined;
 		if (encoding !== UTF8) {
@@ -89,9 +75,6 @@ class DecoderStream implements IDecoderStream {
 			decoder = {
 				write(buffer: Uint8Array): string {
 					return utf8TextDecoder.decode(buffer, {
-						// Signal to TextDecoder that potentially more data is coming
-						// and that we are calling `decode` in the end to consume any
-						// remainders
 						stream: true
 					});
 				},
@@ -132,22 +115,17 @@ export function toDecodeStream(source: VSBufferReadableStream, options: IDecodeS
 		const createDecoder = async () => {
 			try {
 
-				// detect encoding from buffer
 				const detected = await detectEncodingFromBuffer({
 					buffer: VSBuffer.concat(bufferedChunks),
 					bytesRead: bytesBuffered
 				}, options.guessEncoding, options.candidateGuessEncodings);
 
-				// throw early if the source seems binary and
-				// we are instructed to only accept text
 				if (detected.seemsBinary && options.acceptTextOnly) {
 					throw new DecodeStreamError('Stream is binary but only text is accepted for decoding', DecodeStreamErrorKind.STREAM_IS_BINARY);
 				}
 
-				// ensure to respect overwrite of encoding
 				detected.encoding = await options.overwriteEncoding(detected.encoding);
 
-				// decode and write buffered content
 				decoder = await DecoderStream.create(detected.encoding);
 				const decoded = decoder.write(VSBuffer.concat(bufferedChunks).buffer);
 				target.write(decoded);
@@ -155,14 +133,12 @@ export function toDecodeStream(source: VSBufferReadableStream, options: IDecodeS
 				bufferedChunks.length = 0;
 				bytesBuffered = 0;
 
-				// signal to the outside our detected encoding and final decoder stream
 				resolve({
 					stream: target,
 					detected
 				});
 			} catch (error) {
 
-				// Stop handling anything from the source and target
 				cts.cancel();
 				target.destroy();
 
@@ -173,41 +149,31 @@ export function toDecodeStream(source: VSBufferReadableStream, options: IDecodeS
 		listenStream(source, {
 			onData: async chunk => {
 
-				// if the decoder is ready, we just write directly
 				if (decoder) {
 					target.write(decoder.write(chunk.buffer));
 				}
 
-				// otherwise we need to buffer the data until the stream is ready
 				else {
 					bufferedChunks.push(chunk);
 					bytesBuffered += chunk.byteLength;
 
-					// buffered enough data for encoding detection, create stream
 					if (bytesBuffered >= minBytesRequiredForDetection) {
 
-						// pause stream here until the decoder is ready
 						source.pause();
 
 						await createDecoder();
 
-						// resume stream now that decoder is ready but
-						// outside of this stack to reduce recursion
 						setTimeout(() => source.resume());
 					}
 				}
 			},
-			onError: error => target.error(error), // simply forward to target
+			onError: error => target.error(error),
 			onEnd: async () => {
 
-				// we were still waiting for data to do the encoding
-				// detection. thus, wrap up starting the stream even
-				// without all the data to get things going
 				if (!decoder) {
 					await createDecoder();
 				}
 
-				// end the target with the remainders of the decoder
 				target.end(decoder?.end());
 			}
 		}, cts.token);
@@ -231,9 +197,6 @@ export async function toEncodeReadable(readable: Readable<string>, encoding: str
 			if (typeof chunk !== 'string') {
 				done = true;
 
-				// If we are instructed to add a BOM but we detect that no
-				// bytes have been written, we must ensure to return the BOM
-				// ourselves so that we comply with the contract.
 				if (!bytesWritten && options?.addBOM) {
 					switch (encoding) {
 						case UTF8:
@@ -271,7 +234,7 @@ export async function encodingExists(encoding: string): Promise<boolean> {
 
 export function toNodeEncoding(enc: string | null): string {
 	if (enc === UTF8_with_bom || enc === null) {
-		return UTF8; // iconv does not distinguish UTF 8 with or without BOM, so we need to help it
+		return UTF8;
 	}
 
 	return enc;
@@ -285,12 +248,10 @@ export function detectEncodingByBOMFromBuffer(buffer: VSBuffer | null, bytesRead
 	const b0 = buffer.readUInt8(0);
 	const b1 = buffer.readUInt8(1);
 
-	// UTF-16 BE
 	if (b0 === UTF16be_BOM[0] && b1 === UTF16be_BOM[1]) {
 		return UTF16be;
 	}
 
-	// UTF-16 LE
 	if (b0 === UTF16le_BOM[0] && b1 === UTF16le_BOM[1]) {
 		return UTF16le;
 	}
@@ -301,7 +262,6 @@ export function detectEncodingByBOMFromBuffer(buffer: VSBuffer | null, bytesRead
 
 	const b2 = buffer.readUInt8(2);
 
-	// UTF-8
 	if (b0 === UTF8_BOM[0] && b1 === UTF8_BOM[1] && b2 === UTF8_BOM[2]) {
 		return UTF8_with_bom;
 	}
@@ -309,28 +269,15 @@ export function detectEncodingByBOMFromBuffer(buffer: VSBuffer | null, bytesRead
 	return null;
 }
 
-// we explicitly ignore a specific set of encodings from auto guessing
-// - ASCII: we never want this encoding (most UTF-8 files would happily detect as
-//          ASCII files and then you could not type non-ASCII characters anymore)
-// - UTF-16: we have our own detection logic for UTF-16
-// - UTF-32: we do not support this encoding in VSCode
 const IGNORE_ENCODINGS = ['ascii', 'utf-16', 'utf-32'];
 
-/**
- * Guesses the encoding from buffer.
- */
 async function guessEncodingByBuffer(buffer: VSBuffer, candidateGuessEncodings?: string[]): Promise<string | null> {
 	const jschardet = await importAMDNodeModule<typeof import('jschardet')>('jschardet', 'dist/jschardet.min.js');
 
-	// ensure to limit buffer for guessing due to https://github.com/aadsm/jschardet/issues/53
 	const limitedBuffer = buffer.slice(0, AUTO_ENCODING_GUESS_MAX_BYTES);
 
-	// before guessing jschardet calls toString('binary') on input if it is a Buffer,
-	// since we are using it inside browser environment as well we do conversion ourselves
-	// https://github.com/aadsm/jschardet/blob/v2.1.1/src/index.js#L36-L40
 	const binaryString = encodeLatin1(limitedBuffer.buffer);
 
-	// ensure to convert candidate encodings to jschardet encoding names if provided
 	if (candidateGuessEncodings) {
 		candidateGuessEncodings = coalesce(candidateGuessEncodings.map(e => toJschardetEncoding(e)));
 		if (candidateGuessEncodings.length === 0) {
@@ -342,7 +289,7 @@ async function guessEncodingByBuffer(buffer: VSBuffer, candidateGuessEncodings?:
 	try {
 		guessed = jschardet.detect(binaryString, candidateGuessEncodings ? { detectEncodings: candidateGuessEncodings } : undefined);
 	} catch (error) {
-		return null; // jschardet throws for unknown encodings (https://github.com/microsoft/vscode/issues/239928)
+		return null;
 	}
 
 	if (!guessed?.encoding) {
@@ -351,7 +298,7 @@ async function guessEncodingByBuffer(buffer: VSBuffer, candidateGuessEncodings?:
 
 	const enc = guessed.encoding.toLowerCase();
 	if (0 <= IGNORE_ENCODINGS.indexOf(enc)) {
-		return null; // see comment above why we ignore some encodings
+		return null;
 	}
 
 	return toIconvLiteEncoding(guessed.encoding);
@@ -389,11 +336,6 @@ function encodeLatin1(buffer: Uint8Array): string {
 	return result;
 }
 
-/**
- * The encodings that are allowed in a settings file don't match the canonical encoding labels specified by WHATWG.
- * See https://encoding.spec.whatwg.org/#names-and-labels
- * Iconv-lite strips all non-alphanumeric characters, but ripgrep doesn't. For backcompat, allow these labels.
- */
 export function toCanonicalName(enc: string): string {
 	switch (enc) {
 		case 'shiftjis':
@@ -441,48 +383,35 @@ export function detectEncodingFromBuffer(readResult: IReadResult, autoGuessEncod
 export function detectEncodingFromBuffer(readResult: IReadResult, autoGuessEncoding?: boolean, candidateGuessEncodings?: string[]): Promise<IDetectedEncodingResult>;
 export function detectEncodingFromBuffer({ buffer, bytesRead }: IReadResult, autoGuessEncoding?: boolean, candidateGuessEncodings?: string[]): Promise<IDetectedEncodingResult> | IDetectedEncodingResult {
 
-	// Always first check for BOM to find out about encoding
 	let encoding = detectEncodingByBOMFromBuffer(buffer, bytesRead);
 
-	// Detect 0 bytes to see if file is binary or UTF-16 LE/BE
-	// unless we already know that this file has a UTF-16 encoding
 	let seemsBinary = false;
 	if (encoding !== UTF16be && encoding !== UTF16le && buffer) {
-		let couldBeUTF16LE = true; // e.g. 0xAA 0x00
-		let couldBeUTF16BE = true; // e.g. 0x00 0xAA
+		let couldBeUTF16LE = true;
+		let couldBeUTF16BE = true;
 		let containsZeroByte = false;
 
-		// This is a simplified guess to detect UTF-16 BE or LE by just checking if
-		// the first 512 bytes have the 0-byte at a specific location. For UTF-16 LE
-		// this would be the odd byte index and for UTF-16 BE the even one.
-		// Note: this can produce false positives (a binary file that uses a 2-byte
-		// encoding of the same format as UTF-16) and false negatives (a UTF-16 file
-		// that is using 4 bytes to encode a character).
 		for (let i = 0; i < bytesRead && i < ZERO_BYTE_DETECTION_BUFFER_MAX_LEN; i++) {
-			const isEndian = (i % 2 === 1); // assume 2-byte sequences typical for UTF-16
+			const isEndian = (i % 2 === 1);
 			const isZeroByte = (buffer.readUInt8(i) === 0);
 
 			if (isZeroByte) {
 				containsZeroByte = true;
 			}
 
-			// UTF-16 LE: expect e.g. 0xAA 0x00
 			if (couldBeUTF16LE && (isEndian && !isZeroByte || !isEndian && isZeroByte)) {
 				couldBeUTF16LE = false;
 			}
 
-			// UTF-16 BE: expect e.g. 0x00 0xAA
 			if (couldBeUTF16BE && (isEndian && isZeroByte || !isEndian && !isZeroByte)) {
 				couldBeUTF16BE = false;
 			}
 
-			// Return if this is neither UTF16-LE nor UTF16-BE and thus treat as binary
 			if (isZeroByte && !couldBeUTF16LE && !couldBeUTF16BE) {
 				break;
 			}
 		}
 
-		// Handle case of 0-byte included
 		if (containsZeroByte) {
 			if (couldBeUTF16LE) {
 				encoding = UTF16le;
@@ -494,7 +423,6 @@ export function detectEncodingFromBuffer({ buffer, bytesRead }: IReadResult, aut
 		}
 	}
 
-	// Auto guess encoding if configured
 	if (autoGuessEncoding && !seemsBinary && !encoding && buffer) {
 		return guessEncodingByBuffer(buffer.slice(0, bytesRead), candidateGuessEncodings).then(guessedEncoding => {
 			return {

@@ -16,14 +16,7 @@ import { IClaudeRuntimeDataService } from '../claude/common/claudeRuntimeDataSer
 import { ClaudeSessionUri } from '../claude/common/claudeSessionUri';
 import { IPromptsService } from '../../../platform/promptFiles/common/promptsService';
 
-// TODO: Consider reporting Claude slash commands (from Query.supportedCommands()) when appropriate
-// TODO: Report MCP servers when ChatSessionCustomizationType.Mcp is available (use Query.mcpServerStatus())
 
-/**
- * Hard-coded CLAUDE.md instruction file names that Claude recognizes.
- * Per workspace folder: CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/CLAUDE.local.md
- * User home: ~/.claude/CLAUDE.md
- */
 const WORKSPACE_INSTRUCTION_PATHS = [
 	'CLAUDE.md',
 	'CLAUDE.local.md',
@@ -35,10 +28,6 @@ const HOME_INSTRUCTION_PATHS = [
 	['.claude', 'CLAUDE.md'] as const,
 ] as const;
 
-/**
- * Hook event IDs that Claude supports, matching the HookEvent types from
- * the Claude Agent SDK. Used to discover hooks from .claude/settings.json.
- */
 const HOOK_EVENT_IDS = [
 	'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest',
 	'UserPromptSubmit', 'Stop', 'SubagentStart', 'SubagentStop',
@@ -96,12 +85,9 @@ export class ClaudeCustomizationProvider extends Disposable implements vscode.Ch
 	async provideChatSessionCustomizations(_sessionResource: vscode.Uri, token: vscode.CancellationToken): Promise<vscode.ChatSessionCustomizationItem[]> {
 		const items: vscode.ChatSessionCustomizationItem[] = [];
 
-		// Agents: hybrid approach — file-based .claude/ agents merged with SDK-provided agents.
-		// File-based agents are available immediately; SDK agents appear once a session starts.
 		const sdkAgents = this.runtimeDataService.getAgents();
 		const sdkAgentNames = new Set(sdkAgents.map(a => a.name.toLowerCase()));
 
-		// SDK agents (built-in subagents like "Explore") — preferred when available
 		for (const agent of sdkAgents) {
 			items.push({
 				uri: URI.from({ scheme: ClaudeSessionUri.scheme, path: `/agents/${agent.name}` }),
@@ -111,11 +97,9 @@ export class ClaudeCustomizationProvider extends Disposable implements vscode.Ch
 				extensionId: undefined,
 				pluginUri: undefined,
 				source: 'builtin'
-				// No groupKey — vscode infers Built-in from non-file: scheme
 			});
 		}
 
-		// File-based agents from .claude/ paths — shown pre-session, deduplicated with SDK
 		for (const agent of await this.promptsService.getCustomAgents(token)) {
 			if (agent.enabled && isEnabledForClaudeCode(agent) && this.isClaudePath(agent.uri)) {
 				const name = agent.name;
@@ -136,12 +120,10 @@ export class ClaudeCustomizationProvider extends Disposable implements vscode.Ch
 		const agentItems = items.filter(i => i.type === vscode.ChatSessionCustomizationType.Agent);
 		this.logService.debug(`[ClaudeCustomizationProvider] agents (${agentItems.length}): ${agentItems.map(a => a.name).join(', ') || '(none)'}${sdkAgents.length ? ' [sdk]' : ' [files-only, no session]'}`);
 
-		// Instructions from hard-coded CLAUDE.md paths (checked for existence)
 		const instructionItems = await this.discoverInstructions();
 		items.push(...instructionItems);
 		this.logService.debug(`[ClaudeCustomizationProvider] instructions (${instructionItems.length}): ${instructionItems.map(i => i.name).join(', ') || '(none)'}`);
 
-		// Skills from .claude/skills/ directories (user-defined SKILL.md files)
 		const skillItems: vscode.ChatSessionCustomizationItem[] = [];
 		for (const skill of await this.promptsService.getSkills(token)) {
 			if (this.isClaudePath(skill.uri)) {
@@ -160,7 +142,6 @@ export class ClaudeCustomizationProvider extends Disposable implements vscode.Ch
 		items.push(...skillItems);
 		this.logService.debug(`[ClaudeCustomizationProvider] skills (${skillItems.length}): ${skillItems.map(s => s.name).join(', ') || '(none)'}`);
 
-		// Hooks from .claude/settings.json files
 		const hookItems = await this.discoverHooks();
 		items.push(...hookItems);
 		this.logService.debug(`[ClaudeCustomizationProvider] hooks (${hookItems.length}): ${hookItems.map(h => h.name).join(', ') || '(none)'}`);
@@ -273,7 +254,6 @@ export class ClaudeCustomizationProvider extends Disposable implements vscode.Ch
 					}
 				}
 			} catch {
-				// Settings file doesn't exist or is invalid — skip
 			}
 		}
 
@@ -304,7 +284,6 @@ export class ClaudeCustomizationProvider extends Disposable implements vscode.Ch
 			}
 		}
 
-		// Also check user home .claude/ directory
 		const homePath = this.envService.userHome.path;
 		const homePrefix = homePath.endsWith('/') ? homePath : homePath + '/';
 		if (uri.path.startsWith(homePrefix)) {

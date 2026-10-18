@@ -35,7 +35,6 @@ export async function resolveElectronConfiguration(options: LaunchOptions): Prom
 		`--logsPath=${logsPath}`
 	];
 
-	// Only add workspace path if provided
 	if (workspacePath) {
 		args.unshift(workspacePath);
 	}
@@ -60,14 +59,12 @@ export async function resolveElectronConfiguration(options: LaunchOptions): Prom
 		if (!workspacePath) {
 			throw new Error('Workspace path is required when running remote');
 		}
-		// Replace workspace path with URI
 		args[0] = `--${workspacePath.endsWith('.code-workspace') ? 'file' : 'folder'}-uri=vscode-remote://test+test/${URI.file(workspacePath).path}`;
 
 		if (codePath) {
 			if (!extensionsPath) {
 				throw new Error('Extensions path is required when running against a build at the moment.');
 			}
-			// running against a build: copy the test resolver extension
 			await measureAndLog(() => copyExtension(root, extensionsPath, 'vscode-test-resolver'), 'copyExtension(vscode-test-resolver)', logger);
 		}
 		args.push('--enable-proposed-api=vscode.vscode-test-resolver');
@@ -77,9 +74,6 @@ export async function resolveElectronConfiguration(options: LaunchOptions): Prom
 			env['TESTRESOLVER_DATA_FOLDER'] = remoteDataDir;
 		}
 		env['TESTRESOLVER_LOGS_FOLDER'] = join(logsPath, 'server');
-		// Exercise the remote server's exit diagnostics (see `installServerProcessExitDiagnostics`
-		// in server-main.ts) so unexpected server exits are explained in the captured logs,
-		// even when running smoke tests locally (where `isCI` is false).
 		env['VSCODE_SERVER_EXIT_DIAGNOSTICS'] = '1';
 		if (options.verbose) {
 			env['TESTRESOLVER_LOG_LEVEL'] = 'trace';
@@ -94,9 +88,6 @@ export async function resolveElectronConfiguration(options: LaunchOptions): Prom
 		args.push(...extraArgs);
 	}
 
-	// Apply extraEnv last so caller-provided env truly has final precedence
-	// over anything resolveElectronConfiguration sets (e.g. TESTRESOLVER_*).
-	// Copilot review feedback #317545.
 	if (extraEnv) {
 		for (const [key, value] of Object.entries(extraEnv)) {
 			if (value === undefined) {
@@ -117,13 +108,11 @@ export async function resolveElectronConfiguration(options: LaunchOptions): Prom
 }
 
 function findFilePath(root: string, path: string): string {
-	// First check if the path exists directly in the root
 	const directPath = join(root, path);
 	if (fs.existsSync(directPath)) {
 		return directPath;
 	}
 
-	// If not found directly, search through subdirectories
 	const entries = fs.readdirSync(root, { withFileTypes: true });
 
 	for (const entry of entries) {
@@ -169,10 +158,6 @@ export function getBuildElectronPath(root: string): string {
 			const packageJson = require(join(root, 'Contents', 'Resources', 'app', 'package.json'));
 			const product = require(join(root, 'Contents', 'Resources', 'app', 'product.json'));
 			const { major, minor } = parseVersion(packageJson.version);
-			// For macOS builds using the legacy Electron binary name, versions up to and including
-			// 1.109.x ship the executable as "Electron". From later versions onward, the executable
-			// is renamed to match product.nameShort. This check preserves compatibility with older
-			// builds; update the cutoff here only if the binary naming scheme changes again.
 			if (major === 1 && minor <= 109) {
 				return join(root, 'Contents', 'MacOS', 'Electron');
 			} else {

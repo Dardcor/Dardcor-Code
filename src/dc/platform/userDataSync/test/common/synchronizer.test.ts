@@ -457,12 +457,10 @@ suite('TestSynchronizer - Auto Sync', () => {
 	test('request latest data on precondition failure', async () => {
 		await runWithFakedTimers<void>({}, async () => {
 			const testObject: TestSynchroniser = disposableStore.add(client.instantiationService.createInstance(TestSynchroniser, { syncResource: SyncResource.Settings, profile: client.instantiationService.get(IUserDataProfilesService).defaultProfile }, undefined));
-			// Sync once
 			testObject.syncBarrier.open();
 			await testObject.sync(await client.getLatestRef(testObject.resource));
 			testObject.syncBarrier = new Barrier();
 
-			// update remote data before syncing so that 412 is thrown by server
 			const disposable = testObject.onDoSyncCall.event(async () => {
 				disposable.dispose();
 				await testObject.applyRef(ref, ref!);
@@ -470,7 +468,6 @@ suite('TestSynchronizer - Auto Sync', () => {
 				testObject.syncBarrier.open();
 			});
 
-			// Start sycing
 			const ref = await client.getLatestRef(testObject.resource);
 			await testObject.sync(await client.getLatestRef(testObject.resource));
 

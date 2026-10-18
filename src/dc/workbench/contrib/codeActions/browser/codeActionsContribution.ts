@@ -97,8 +97,6 @@ const notebookCodeActionsOnSaveSchema: IConfigurationPropertySchema = {
 	additionalProperties: {
 		type: ['string', 'boolean'],
 		enum: ['explicit', 'never', true, false],
-		// enum: ['explicit', 'always', 'never'], -- autosave support needs to be built first
-		// nls.localize('always', 'Always triggers Code Actions on save, including autosave, focus, and window change events.'),
 	},
 	default: {}
 };
@@ -122,7 +120,6 @@ export class CodeActionsContribution extends Disposable implements IWorkbenchCon
 	) {
 		super();
 
-		// TODO: @justschen caching of code actions based on extensions loaded: https://github.com/microsoft/vscode/issues/216019
 		this._register(
 			Event.runAndSubscribe(
 				Event.debounce(languageFeatures.codeActionProvider.onDidChange, () => { }, 1000),

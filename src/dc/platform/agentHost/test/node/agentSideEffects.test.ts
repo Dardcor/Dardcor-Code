@@ -72,9 +72,7 @@ import { MockAgent } from './mockAgent.js';
 import { TestAgentHostTerminalManager } from './testAgentHostTerminalManager.js';
 import { createTestAgentService, getTestAgentStateManager, registerTestAgentProvider } from './agentServiceTestUtils.js';
 
-// ---- Tests ------------------------------------------------------------------
 
-/** Spy `IAgentHostChangesetService` used to assert AgentSideEffects forwarding. */
 class FakeChangesetService implements IAgentHostChangesetService {
 	declare readonly _serviceBrand: undefined;
 
@@ -82,20 +80,20 @@ class FakeChangesetService implements IAgentHostChangesetService {
 	readonly turnCompletes: { session: string; turnId: string | undefined }[] = [];
 	readonly truncates: string[] = [];
 
-	registerStaticChangesets(): void { /* no-op for routing tests */ }
-	restoreStaticChangeset(_session: string, _kind: StaticChangesetKind, _diffs: readonly unknown[]): void { /* no-op */ }
+	registerStaticChangesets(): void { }
+	restoreStaticChangeset(_session: string, _kind: StaticChangesetKind, _diffs: readonly unknown[]): void { }
 	parsePersistedStaticChangesets(): { session?: undefined } { return {}; }
-	applyPersistedStaticChangesets(): void { /* no-op */ }
+	applyPersistedStaticChangesets(): void { }
 	restorePersistedStaticChangesets(): { session?: undefined } { return {}; }
-	persistChangesSummary(session: string, changesSummary: ChangesSummary): void { /* no-op */ }
+	persistChangesSummary(session: string, changesSummary: ChangesSummary): void { }
 	isStaticChangesetComputeActive(): boolean { return false; }
 	getListMetadataKeys(_sessionUri: string): Record<string, true> | undefined { return undefined; }
 	computeListEntryChanges(_sessionUri: string, _metadata: Record<string, string | undefined>): ChangesSummary | undefined { return undefined; }
-	refreshChangesetCatalog(session: string): void { /* no-op */ }
-	refreshBranchChangeset(): void { /* no-op */ }
-	refreshSessionChangeset(): void { /* no-op */ }
-	onWorkingDirectoryAvailable(): void { /* no-op */ }
-	recomputeSubscribedChangesets(): void { /* no-op */ }
+	refreshChangesetCatalog(session: string): void { }
+	refreshBranchChangeset(): void { }
+	refreshSessionChangeset(): void { }
+	onWorkingDirectoryAvailable(): void { }
+	recomputeSubscribedChangesets(): void { }
 	async computeUncommittedChangeset(session: string): Promise<string> { return `${session}/changeset/uncommitted`; }
 	async computeTurnChangeset(session: string): Promise<string> { return `${session}/changeset/turn/x`; }
 	async computeCompareTurnsChangeset(session: string, originalTurnId: string, modifiedTurnId: string): Promise<string> {
@@ -143,15 +141,6 @@ function createNoopCustomizationEnablementService(): IAgentHostCustomizationEnab
 
 let customizationEnablementService = createNoopCustomizationEnablementService();
 
-/**
- * Constructs an {@link AgentSideEffects} with a minimal local instantiation
- * scope that satisfies its {@link IAgentConfigurationService} /
- * {@link ILogService} / {@link IAgentHostChangesetService} dependencies.
- * `gitService` is no longer required by `AgentSideEffects` itself (moved
- * to {@link IAgentHostChangesetService}); it is kept here as a leftover
- * for any future tests that need to override the no-op git service via
- * the changeset fake's underlying implementation.
- */
 function createTestSideEffects(
 	disposables: DisposableStore,
 	stateManager: AgentHostStateManager,
@@ -193,7 +182,7 @@ function createTestSideEffects(
 	}, logService));
 	services.set(IAgentHostSessionTitleController, titleController);
 	services.set(IAgentHostProviderService, createTestAgentHostProviderService(session => options.getAgent(typeof session === 'string' ? session : session.toString())));
-	const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+	const instantiationService = disposables.add(new InstantiationService(services, true));
 	const chatContributions: IAgentHostChatContributions = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 	services.set(IAgentHostChatContributions, chatContributions);
 	services.set(IAgentHostTurnService, new AgentHostTurnService(stateManager, chatContributions, instantiationService));
@@ -214,12 +203,6 @@ function createTestSideEffects(
 	return disposables.add(instantiationService.createInstance(AgentSideEffects, stateManager, customizationEnablementService, resolvedOptions));
 }
 
-/**
- * Provision a session directly on an agent through the exact-chat seam
- * an initializing {@link IAgentChats.createChat} call, mirroring what
- * `AgentService.createSession` does. Used by tests that need a session to
- * exist on the agent backend without going through the orchestrator.
- */
 async function createAgentSession(agent: IAgent): Promise<URI> {
 	const session = AgentSession.uri(agent.id, generateUuid());
 	const defaultChat = URI.parse(buildDefaultChatUri(session));
@@ -283,13 +266,6 @@ suite('AgentSideEffects', () => {
 		);
 	}
 
-	/**
-	 * Resolves with the first non-`undefined` value returned by `match`,
-	 * re-evaluating it immediately and after every envelope emitted by the
-	 * state manager. Used to await the async tool-approval pipeline
-	 * (`_handleToolReady` -> `getAutoApproval` -> `realpath`) deterministically
-	 * instead of depending on a fixed settle delay.
-	 */
 	function waitForState<T>(manager: AgentHostStateManager, match: () => T | undefined): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
 			const initial = match();
@@ -325,7 +301,6 @@ suite('AgentSideEffects', () => {
 		const memFs = disposables.add(new InMemoryFileSystemProvider());
 		disposables.add(fileService.registerProvider(Schemas.inMemory, memFs));
 
-		// Seed a file so the handleBrowseDirectory tests can distinguish files from dirs
 		const testDir = URI.from({ scheme: Schemas.inMemory, path: '/testDir' });
 		await fileService.createFolder(testDir);
 		await fileService.writeFile(URI.from({ scheme: Schemas.inMemory, path: '/testDir/file.txt' }), VSBuffer.fromString('hello'));
@@ -343,11 +318,6 @@ suite('AgentSideEffects', () => {
 			hostLaunchKind: AgentHostLaunchKind.VSCodeMainProcess,
 		}, undefined, disposables.add(new AgentHostTelemetryService(telemetryService)));
 
-		// Mimic the orchestrator's spawn channel: in production AgentService adds
-		// a subagent's chat to the catalog (via _onChatSpawned) before
-		// AgentSideEffects starts its turn. Registered here (ahead of each test's
-		// registerProgressListener) so the subagent chat exists first. addChat is
-		// idempotent, matching the real spawn-channel/side-effects overlap.
 		disposables.add(agent.onDidChatProgress(signal => {
 			const spawn = SubagentChatSignal.toSpawnEvent(signal);
 			if (spawn) {
@@ -364,7 +334,6 @@ suite('AgentSideEffects', () => {
 	});
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// ---- handleAction: session/turnStarted ------------------------------
 
 	test('tracks a resumed turn as a new provider execution', () => {
 		setupSession();
@@ -1439,9 +1408,6 @@ suite('AgentSideEffects', () => {
 				getAgent: () => agent,
 				agents: agentList,
 				sessionDataService: createNullSessionDataService(),
-				// Mirrors agentService._resolveChatAttachmentTurns throwing
-				// ProtocolError(AHP_SESSION_NOT_FOUND) for a cross-session
-				// reference this host cannot restore.
 				resolveChatAttachmentTurns: async () => { throw new Error('AHP_SESSION_NOT_FOUND'); },
 			});
 			resolvingSideEffects.handleAction(defaultChatUri, {
@@ -1462,8 +1428,6 @@ suite('AgentSideEffects', () => {
 
 			await waitForSendMessageCalls(1);
 			const attachment = agent.sendMessageCalls[0].attachments?.[0];
-			// A stale/unreachable reference must not fail the turn: it resolves to
-			// a pointer with no excerpt and the endTurn pin is dropped.
 			assert.deepStrictEqual({
 				type: attachment?.type,
 				label: attachment?.label,
@@ -1558,8 +1522,6 @@ suite('AgentSideEffects', () => {
 
 			await waitForSendMessageCalls(1);
 			const attachment = agent.sendMessageCalls[0].attachments?.[0];
-			// No endTurn pin, so the whole retained transcript resolves — including
-			// the latest completed turn.
 			assert.deepStrictEqual({
 				type: attachment?.type,
 				hasOlder: attachment?.type === MessageAttachmentKind.Simple && attachment.modelRepresentation?.includes('Assistant: Remembered X'),
@@ -1694,8 +1656,6 @@ suite('AgentSideEffects', () => {
 
 		test('rejects a turn on a read-only chat without calling the agent', () => {
 			setupSession();
-			// A read-only peer chat (e.g. a subagent worker) on a non-archived
-			// session — enforcement keys off the chat's interactivity, not archived.
 			const readOnlyChat = buildChatUri(sessionUri, 'peer-ro');
 			stateManager.addChat(sessionUri.toString(), readOnlyChat, { interactivity: ChatInteractivity.ReadOnly });
 
@@ -1715,15 +1675,8 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- handleAction: first-turn materialization failure ---------------
 
 	suite('handleAction — first-turn materialization failure', () => {
-		/**
-		 * Create a provisional (not-yet-materialized) session: no `SessionReady`
-		 * (so lifecycle stays `Creating`) and a deferred `SessionAdded` — mirroring
-		 * how the agent host creates a session whose worktree/SDK setup happens on
-		 * the first `sendMessage`.
-		 */
 		function setupProvisionalSession(isEphemeral = false): void {
 			stateManager.createSession({
 				resource: sessionUri.toString(),
@@ -1740,9 +1693,6 @@ suite('AgentSideEffects', () => {
 			setupProvisionalSession();
 			agent.sendMessageError = new Error('git -c exited with code 128: fatal: invalid reference: main');
 
-			// Reduce the turn start (as the client would) so the chat has an
-			// active turn for the subsequent ChatError to terminate, then invoke
-			// the side effects that drive `sendMessage`.
 			const turnStarted = {
 				type: ActionType.ChatTurnStarted,
 				startedAt: '2025-01-01T00:00:00.000Z',
@@ -1758,7 +1708,6 @@ suite('AgentSideEffects', () => {
 
 			sideEffects.handleAction(defaultChatUri, turnStarted);
 
-			// Wait for the async send rejection + catch handling to run.
 			await waitForState(stateManager, () => envelopes.some(e => e.action.type === ActionType.SessionCreationFailed) || undefined);
 
 			const sessionAdded = notifications.find(n => n.type === 'root/sessionAdded');
@@ -1968,7 +1917,7 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('AgentSideEffects owns exactly one ChatError when an already-ready session send rejects', async () => {
-			setupSession(); // dispatches SessionReady -> lifecycle Ready
+			setupSession();
 			agent.sendMessageError = new Error('transient send failure');
 
 			const envelopes: ActionEnvelope[] = [];
@@ -2032,13 +1981,9 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- handleAction: generic /rename slash command ---------------------
 
 	suite('handleAction — /rename slash command', () => {
 
-		// `/rename` persists the new title, so these tests need a session data
-		// service whose `openDatabase` actually returns a database (the default
-		// null service throws).
 		function createRenameSideEffects(): AgentSideEffects {
 			return createTestSideEffects(disposables, stateManager, {
 				getAgent: () => agent,
@@ -2056,7 +2001,6 @@ suite('AgentSideEffects', () => {
 				startedAt: '2025-01-01T00:00:00.000Z',
 				message: { text: '/rename Renamed Session', origin: { kind: MessageKind.User } },
 			};
-			// Mirror production: the reducer applies the turn, then side effects run.
 			stateManager.dispatchClientAction(defaultChatUri, action, { clientId: 'test', clientSeq: 1 });
 			renameSideEffects.handleAction(defaultChatUri, action);
 			await new Promise(r => setTimeout(r, 10));
@@ -2189,7 +2133,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- handleAction: generic ! terminal command ------------------------
 
 	suite('handleAction — ! terminal command', () => {
 
@@ -2211,17 +2154,13 @@ suite('AgentSideEffects', () => {
 				startedAt: '2025-01-01T00:00:00.000Z',
 				message: { text: '!echo hi', origin: { kind: MessageKind.User } },
 			};
-			// Mirror production: the reducer opens the turn, then side effects run.
 			stateManager.dispatchClientAction(defaultChatUri, action, { clientId: 'test', clientSeq: 1 });
 			bangSideEffects.handleAction(defaultChatUri, action);
 
-			// Wait until the command is running (its completion listener is
-			// registered), then signal that the command finished.
 			await terminalManager.commandFinishedListenerRegistered.p;
 			const terminalUri = terminalManager.created[0].channel;
 			terminalManager.fireCommandFinished({ commandId: '1', command: 'echo hi', exitCode: 0, output: 'hi\n' });
 
-			// Wait for the turn to be closed out.
 			await waitForState(stateManager, () => stateManager.getActiveTurnId(sessionUri.toString()) === undefined ? true : undefined);
 
 			assert.deepStrictEqual(agent.sendMessageCalls, []);
@@ -2281,20 +2220,16 @@ suite('AgentSideEffects', () => {
 			terminalManager.fireCommandFinished({ commandId: '1', command: 'echo hi', exitCode: 0, output: 'hi\n' });
 			await waitForState(stateManager, () => stateManager.getActiveTurnId(sessionUri.toString()) === undefined ? true : undefined);
 
-			// The turn with no preceding real turn has no anchor.
 			assert.strictEqual(localTurns.resolveConcreteTurnId(defaultChatUri, 'turn-1'), undefined);
 			const persisted = await db.getLocalTurns();
 			assert.strictEqual(persisted.length, 1);
 			const payload = JSON.parse(persisted[0].payload) as { responseParts: { kind: string; toolCall?: { content?: { type: string }[] } }[] };
 			const toolCallPart = payload.responseParts.find(p => p.kind === ResponsePartKind.ToolCall);
-			// Live terminal reference is stripped; text output is retained.
 			assert.ok(toolCallPart?.toolCall?.content?.every(c => c.type !== ToolResultContentType.Terminal));
 			assert.ok(toolCallPart?.toolCall?.content?.some(c => c.type === ToolResultContentType.Text));
 		});
 
 		test('seeds the session title from the ! command when the session is untitled', async () => {
-			// A brand-new, untitled session: the bang command is the only thing
-			// we can title it with until a real request arrives.
 			stateManager.createSession({
 				resource: sessionUri.toString(),
 				provider: 'mock',
@@ -2320,20 +2255,16 @@ suite('AgentSideEffects', () => {
 			stateManager.dispatchClientAction(defaultChatUri, action, { clientId: 'test', clientSeq: 1 });
 			bangSideEffects.handleAction(defaultChatUri, action);
 
-			// The provisional title is applied synchronously, before the command runs.
 			assert.strictEqual(stateManager.getSessionState(sessionUri.toString())?.title, 'echo hi');
 
-			// Let the command finish so the turn closes cleanly.
 			await terminalManager.commandFinishedListenerRegistered.p;
 			terminalManager.fireCommandFinished({ commandId: '1', command: 'echo hi', exitCode: 0, output: 'hi\n' });
 			await waitForState(stateManager, () => stateManager.getActiveTurnId(sessionUri.toString()) === undefined ? true : undefined);
 
-			// The provisional title is persisted so it survives reload.
 			assert.strictEqual(await db.getMetadata('customTitle'), 'echo hi');
 		});
 	});
 
-	// ---- local turn persistence: anchoring + truncate resolution ---------
 
 	suite('local turn persistence', () => {
 
@@ -2343,7 +2274,6 @@ suite('AgentSideEffects', () => {
 			clientSeq = 0;
 		});
 
-		/** Drives a normal (SDK-backed) turn into `turns[]` via the reducer. */
 		function seedRealTurn(turnId: string, text: string): void {
 			stateManager.dispatchClientAction(defaultChatUri, {
 				type: ActionType.ChatTurnStarted, turnId, startedAt: '2025-01-01T00:00:00.000Z', message: { text, origin: { kind: MessageKind.User } },
@@ -2400,11 +2330,9 @@ suite('AgentSideEffects', () => {
 			seedRealTurn('real-1', 'hello');
 			await runBang(se, terminalManager, 'local-1');
 
-			// Truncate at the local turn (keep it). Reducer keeps [real-1, local-1].
 			stateManager.dispatchClientAction(defaultChatUri, { type: ActionType.ChatTruncated, turnId: 'local-1' }, { clientId: 'test', clientSeq: ++clientSeq });
 			se.handleAction(defaultChatUri, { type: ActionType.ChatTruncated, turnId: 'local-1' });
 
-			// The SDK is told to keep up to the concrete turn before the local one.
 			const truncateCall = agent.truncateChatCalls.at(-1);
 			assert.strictEqual(truncateCall?.chat.toString(), defaultChatUri);
 			assert.strictEqual(truncateCall?.turnId, 'real-1');
@@ -2419,19 +2347,16 @@ suite('AgentSideEffects', () => {
 			seedRealTurn('real-1', 'hello');
 			await runBang(se, terminalManager, 'local-1');
 
-			// Truncate at the real turn (drop the local turn after it).
 			stateManager.dispatchClientAction(defaultChatUri, { type: ActionType.ChatTruncated, turnId: 'real-1' }, { clientId: 'test', clientSeq: ++clientSeq });
 			se.handleAction(defaultChatUri, { type: ActionType.ChatTruncated, turnId: 'real-1' });
 
 			assert.strictEqual(agent.truncateChatCalls.at(-1)?.turnId, 'real-1');
-			// The local turn is dropped from memory synchronously and from the DB async.
 			assert.strictEqual(localTurns.isLocal(defaultChatUri, 'local-1'), false);
 			await new Promise(r => setTimeout(r, 10));
 			assert.deepStrictEqual(await db.getLocalTurns(), []);
 		});
 	});
 
-	// ---- turn usage persistence -------------------------------------------
 
 	suite('turn usage persistence', () => {
 
@@ -2448,9 +2373,6 @@ suite('AgentSideEffects', () => {
 		}
 
 		test('persists the latest usage of a turn, without waiting for the turn to end', async () => {
-			// Written eagerly rather than buffered until a terminal action: a turn
-			// cut short by a crash or disconnect must keep the usage it accrued,
-			// which is the class of loss this persistence exists to prevent.
 			setupSession('file:///work');
 			const db = new TestSessionDatabase();
 			createUsageSideEffects(db);
@@ -2458,7 +2380,6 @@ suite('AgentSideEffects', () => {
 			stateManager.dispatchServerAction(defaultChatUri, { type: ActionType.ChatUsage, turnId: 'turn-1', usage: { inputTokens: 1, outputTokens: 1 } });
 			stateManager.dispatchServerAction(defaultChatUri, { type: ActionType.ChatUsage, turnId: 'turn-1', usage });
 
-			// No ChatTurnComplete/Cancelled/Error — the rows are already durable.
 			await new Promise(r => setTimeout(r, 10));
 			assert.deepStrictEqual([...(await db.getTurnUsages()).entries()], [['turn-1', JSON.stringify(usage)]]);
 		});
@@ -2477,7 +2398,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- immediate title on first turn -----------------------------------
 
 	suite('immediate title on first turn', () => {
 
@@ -2559,7 +2479,6 @@ suite('AgentSideEffects', () => {
 			setupDefaultSession();
 			startTurn('turn-1');
 
-			// Complete the first turn so turns.length becomes 1.
 			stateManager.dispatchServerAction(defaultChatUri, {
 				type: ActionType.ChatTurnComplete,
 				turnId: 'turn-1',
@@ -2581,7 +2500,6 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('does not dispatch titleChanged when title is already set', () => {
-			// Session has a non-empty title (e.g. user renamed before first message)
 			stateManager.createSession({
 				resource: sessionUri.toString(),
 				provider: 'mock',
@@ -2616,10 +2534,6 @@ suite('AgentSideEffects', () => {
 				.map(e => (e.action as { isRead: boolean }).isRead);
 		}
 
-		/**
-		 * Turn completion persists the (un)read flag, so these tests need a real
-		 * session database rather than the suite's null data service.
-		 */
 		function setupPersisting(): { sideEffects: AgentSideEffects; db: TestSessionDatabase } {
 			const db = new TestSessionDatabase();
 			const persisting = createTestSideEffects(disposables, stateManager, {
@@ -2633,7 +2547,6 @@ suite('AgentSideEffects', () => {
 		test('marks a read session unread when a turn completes', () => {
 			const { sideEffects: persisting } = setupPersisting();
 			setupSession();
-			// The session has been read (e.g. a client viewed it).
 			stateManager.dispatchServerAction(sessionUri.toString(), { type: ActionType.SessionIsReadChanged, isRead: true });
 			disposables.add(persisting.registerProgressListener(agent));
 			startTurn('turn-1');
@@ -2658,7 +2571,6 @@ suite('AgentSideEffects', () => {
 		test('does not re-mark an already-unread session on turn completion', () => {
 			const { sideEffects: persisting } = setupPersisting();
 			setupSession();
-			// No SessionIsReadChanged dispatched: the session starts unread.
 			disposables.add(persisting.registerProgressListener(agent));
 			startTurn('turn-1');
 
@@ -2692,12 +2604,8 @@ suite('AgentSideEffects', () => {
 			const { db } = setupPersisting();
 			setupSession();
 
-			// A client marking the session read (e.g. the user opened it in the
-			// editor window or the agent window).
 			stateManager.dispatchClientAction(sessionUri.toString(), { type: ActionType.SessionIsReadChanged, isRead: true }, { clientId: 'client-1', clientSeq: 1 });
-			// The host marking it unread after background output.
 			stateManager.dispatchServerAction(sessionUri.toString(), { type: ActionType.SessionIsReadChanged, isRead: false });
-			// A rejected client action never reached state and must not persist.
 			stateManager.rejectClientAction(sessionUri.toString(), { type: ActionType.SessionIsReadChanged, isRead: true }, { clientId: 'client-1', clientSeq: 2 }, 'nope');
 
 			assert.deepStrictEqual(db.setMetadataCalls.filter(c => c.key === 'isRead'), [
@@ -2709,13 +2617,10 @@ suite('AgentSideEffects', () => {
 		test('marks the parent session unread when a subagent turn completes', () => {
 			const { sideEffects: persisting } = setupPersisting();
 			setupSession();
-			// The session has been read (e.g. a client viewed it after the parent
-			// turn already produced output). A background subagent then completes.
 			stateManager.dispatchServerAction(sessionUri.toString(), { type: ActionType.SessionIsReadChanged, isRead: true });
 			disposables.add(persisting.registerProgressListener(agent));
 			startTurn('turn-1');
 
-			// Spawn a subagent chat off a parent tool call.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -2777,8 +2682,6 @@ suite('AgentSideEffects', () => {
 			setupSession();
 			stateManager.dispatchServerAction(sessionUri.toString(), { type: ActionType.SessionIsReadChanged, isRead: true });
 			disposables.add(persisting.registerProgressListener(agent));
-			// Start through `handleAction` as `_dispatchActionNow` does, so the turn is tracked
-			// and a cancellation actually ends something.
 			const turnStarted = { type: ActionType.ChatTurnStarted, turnId: 'turn-1', startedAt: '2025-01-01T00:00:00.000Z', message: { text: 'hello', origin: { kind: MessageKind.User } } } as const;
 			stateManager.dispatchClientAction(defaultChatUri, turnStarted, { clientId: 'test', clientSeq: 1 });
 			persisting.handleAction(defaultChatUri, turnStarted);
@@ -2809,7 +2712,6 @@ suite('AgentSideEffects', () => {
 
 			const envelopes: ActionEnvelope[] = [];
 			disposables.add(stateManager.onDidEmitEnvelope(e => envelopes.push(e)));
-			// No turn ever started, so the reducer no-ops this and no turn end may be reported.
 			const cancellation = { type: ActionType.ChatTurnCancelled, turnId: 'never-started', duration: 0 } as const;
 			stateManager.dispatchClientAction(defaultChatUri, cancellation, { clientId: 'test', clientSeq: 2 });
 			persisting.handleAction(defaultChatUri, cancellation);
@@ -2879,7 +2781,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- handleAction: chat/turnStarted model selection --------------------
 
 	suite('handleAction — chat/turnStarted model selection', () => {
 
@@ -2975,7 +2876,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- handleAction: chat/turnStarted agent selection --------------------
 
 	suite('handleAction — chat/turnStarted agent selection', () => {
 
@@ -3013,7 +2913,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- registerProgressListener ---------------------------------------
 
 	suite('registerProgressListener', () => {
 
@@ -3052,7 +2951,6 @@ suite('AgentSideEffects', () => {
 				action: { type: ActionType.ChatResponsePart, turnId: 'turn-1', part: { kind: ResponsePartKind.Markdown, id: 'msg-1', content: 'hi' } },
 			});
 
-			// First delta creates a response part (not a delta action)
 			assert.ok(envelopes.some(e => e.action.type === ActionType.ChatResponsePart));
 		});
 
@@ -3262,10 +3160,6 @@ suite('AgentSideEffects', () => {
 		test('customizations change publishes once, then dedupes identical re-fetches', async () => {
 			setupSession();
 
-			// Return a freshly-built array of freshly-built objects on every
-			// fetch (matching real providers, which re-scan disk each time) so
-			// the dedup is proven to rely on structural equality, not reference
-			// identity.
 			const makeCustomizations = (): Customization[] => [
 				{ type: CustomizationType.Plugin, id: customizationId('file:///plugin-a'), uri: 'file:///plugin-a', name: 'Plugin A', load: { kind: CustomizationLoadStatus.Loaded } },
 			];
@@ -3280,14 +3174,10 @@ suite('AgentSideEffects', () => {
 			}));
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// First change: fetch + publish.
 			agent.fireCustomizationsChange();
 			await waitForState(stateManager, () => changed.length >= 1 || undefined);
 			assert.strictEqual(changed.length, 1);
 
-			// Subsequent changes that resolve to structurally-equal customizations
-			// (e.g. the O(N^2) fan-out from a shared `~/.claude` edit) must not
-			// re-publish, even though each fetch returns a brand-new array.
 			agent.fireCustomizationsChange();
 			agent.fireCustomizationsChange();
 			const deadline = Date.now() + 5000;
@@ -3314,16 +3204,10 @@ suite('AgentSideEffects', () => {
 			}));
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Initial publish populates the session state's customizations.
 			agent.fireCustomizationsChange();
 			await waitForState(stateManager, () => changed.length >= 1 || undefined);
 			assert.strictEqual(changed.length, 1);
 
-			// Idle-evict then restore the same session URI: the restored state
-			// starts without customizations. Because dedup compares against the
-			// authoritative session state (not a stale side cache), the next
-			// refresh must publish again even though the resolved set is
-			// structurally identical to the prior incarnation's.
 			stateManager.removeSession(sessionUri.toString());
 			setupSession();
 
@@ -3333,7 +3217,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- agents observable --------------------------------------------------
 
 	suite('agents observable', () => {
 
@@ -3419,7 +3302,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- Pending message sync -----------------------------------------------
 
 	suite('pending message sync', () => {
 
@@ -3449,7 +3331,6 @@ suite('AgentSideEffects', () => {
 			assert.strictEqual(agent.setPendingMessagesCalls.length, 1);
 			assert.deepStrictEqual(agent.setPendingMessagesCalls[0].steeringMessage, { id: 'steer-1', message: { text: 'focus on tests', origin: { kind: MessageKind.User } } });
 			assert.deepStrictEqual(agent.setPendingMessagesCalls[0].queuedMessages, []);
-			// Steering is always addressed by a concrete chat channel URI.
 			assert.strictEqual(agent.setPendingMessagesCalls[0].chat.toString(), defaultChatUri);
 		});
 
@@ -3489,12 +3370,10 @@ suite('AgentSideEffects', () => {
 			stateManager.dispatchClientAction(defaultChatUri, action, { clientId: 'test', clientSeq: 1 });
 			sideEffects.handleAction(defaultChatUri, action, 'client-editor', AgentHostClientType.EditorWindow);
 
-			// Queued messages are not forwarded to the agent; the server controls consumption
 			assert.strictEqual(agent.setPendingMessagesCalls.length, 1);
 			assert.strictEqual(agent.setPendingMessagesCalls[0].steeringMessage, undefined);
 			assert.deepStrictEqual(agent.setPendingMessagesCalls[0].queuedMessages, []);
 
-			// Session was idle, so the queued message is consumed immediately
 			await waitForSendMessageCalls(1);
 			assert.deepStrictEqual(agent.sendMessageCalls[0], {
 				session: URI.parse(sessionUri.toString()),
@@ -3562,7 +3441,6 @@ suite('AgentSideEffects', () => {
 		test('syncs on ChatPendingMessageRemoved', () => {
 			setupSession();
 
-			// Add a queued message
 			const setAction = {
 				type: ActionType.ChatPendingMessageSet as const,
 				kind: PendingMessageKind.Queued,
@@ -3574,7 +3452,6 @@ suite('AgentSideEffects', () => {
 
 			agent.setPendingMessagesCalls.length = 0;
 
-			// Remove
 			const removeAction = {
 				type: ActionType.ChatPendingMessageRemoved as const,
 				kind: PendingMessageKind.Queued,
@@ -3590,7 +3467,6 @@ suite('AgentSideEffects', () => {
 		test('syncs on ChatQueuedMessagesReordered', () => {
 			setupSession();
 
-			// Add two queued messages
 			const setA = { type: ActionType.ChatPendingMessageSet as const, kind: PendingMessageKind.Queued, id: 'q-a', message: { text: 'A', origin: { kind: MessageKind.User } } };
 			stateManager.dispatchClientAction(defaultChatUri, setA, { clientId: 'test', clientSeq: 1 });
 			sideEffects.handleAction(defaultChatUri, setA);
@@ -3601,7 +3477,6 @@ suite('AgentSideEffects', () => {
 
 			agent.setPendingMessagesCalls.length = 0;
 
-			// Reorder
 			const reorderAction = { type: ActionType.ChatQueuedMessagesReordered as const, order: ['q-b', 'q-a'] };
 			stateManager.dispatchClientAction(defaultChatUri, reorderAction, { clientId: 'test', clientSeq: 3 });
 			sideEffects.handleAction(defaultChatUri, reorderAction);
@@ -3611,7 +3486,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- Queued message consumption -----------------------------------------
 
 	suite('queued message consumption', () => {
 
@@ -3619,7 +3493,6 @@ suite('AgentSideEffects', () => {
 			setupSession();
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Queue a message while a turn is active
 			startTurn('turn-1');
 			const setAction = {
 				type: ActionType.ChatPendingMessageSet as const,
@@ -3630,13 +3503,11 @@ suite('AgentSideEffects', () => {
 			stateManager.dispatchClientAction(defaultChatUri, setAction, { clientId: 'test', clientSeq: 1 });
 			sideEffects.handleAction(defaultChatUri, setAction);
 
-			// Message should NOT be consumed yet (turn is active)
 			assert.strictEqual(agent.sendMessageCalls.length, 0);
 
 			const envelopes: ActionEnvelope[] = [];
 			disposables.add(stateManager.onDidEmitEnvelope(e => envelopes.push(e)));
 
-			// Fire idle → turn completes → queued message should be consumed
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: { type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1000 },
@@ -3653,7 +3524,6 @@ suite('AgentSideEffects', () => {
 			assert.strictEqual(agent.sendMessageCalls.length, 1);
 			assert.strictEqual(agent.sendMessageCalls[0].prompt, 'auto queued');
 
-			// Queued message should be removed from state
 			const state = stateManager.getSessionState(sessionUri.toString());
 			assert.strictEqual(state?.queuedMessages, undefined);
 		});
@@ -3710,14 +3580,9 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('does not drain queued messages when the cancelled turn completes late', () => {
-			// Cancelling a turn means "stop": messages queued behind it must stay
-			// queued for the user to dequeue/run manually, not auto-start. (A
-			// message the user sends *after* the abort is consumed separately via
-			// the ChatPendingMessageSet path once cancellation clears the turn.)
 			setupSession();
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Queue a message while a turn is active.
 			startTurn('turn-1');
 			const setAction = {
 				type: ActionType.ChatPendingMessageSet as const,
@@ -3728,10 +3593,8 @@ suite('AgentSideEffects', () => {
 			stateManager.dispatchClientAction(defaultChatUri, setAction, { clientId: 'test', clientSeq: 1 });
 			sideEffects.handleAction(defaultChatUri, setAction);
 
-			// Not consumed yet — the turn is still active.
 			assert.strictEqual(agent.sendMessageCalls.length, 0);
 
-			// Cancel the active turn (client abort).
 			const cancelAction = { type: ActionType.ChatTurnCancelled as const, turnId: 'turn-1', duration: 1000 };
 			stateManager.dispatchClientAction(defaultChatUri, cancelAction, { clientId: 'test', clientSeq: 2 });
 			sideEffects.handleAction(defaultChatUri, cancelAction);
@@ -3745,7 +3608,6 @@ suite('AgentSideEffects', () => {
 				action: { type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 2000 },
 			});
 
-			// The queued message must NOT auto-start, and must remain queued.
 			assert.strictEqual(agent.sendMessageCalls.length, 0, 'cancelling must not drain queued messages');
 			const state = stateManager.getSessionState(sessionUri.toString());
 			assert.strictEqual(state?.turns.length, 0, 'the cancelled turn should no longer be retained in history');
@@ -3755,9 +3617,6 @@ suite('AgentSideEffects', () => {
 
 		test('intercepts queued /rename and drains the message queued behind it', async () => {
 			setupSession();
-			// `/rename` persists the new title, so use a side effects instance
-			// whose `openDatabase` returns a real database (the suite default
-			// throws).
 			const renameSideEffects = createTestSideEffects(disposables, stateManager, {
 				getAgent: () => agent,
 				agents: agentList,
@@ -3765,7 +3624,6 @@ suite('AgentSideEffects', () => {
 			});
 			disposables.add(renameSideEffects.registerProgressListener(agent));
 
-			// Queue a `/rename` followed by a normal message while a turn is active
 			startTurn('turn-1');
 			for (const msg of [
 				{ id: 'q-rename', text: '/rename Queued Title' },
@@ -3781,19 +3639,15 @@ suite('AgentSideEffects', () => {
 				renameSideEffects.handleAction(defaultChatUri, setAction);
 			}
 
-			// Fire idle → turn completes → `/rename` is consumed and intercepted,
-			// then the message queued behind it must be drained to the agent.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: { type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1000 },
 			});
 
-			// The `/rename` must not reach the agent; only the message behind it does
 			await waitForSendMessageCalls(1);
 			assert.strictEqual(agent.sendMessageCalls.length, 1);
 			assert.strictEqual(agent.sendMessageCalls[0].prompt, 'after rename');
 
-			// Both queued messages should be drained from state
 			const state = stateManager.getSessionState(sessionUri.toString());
 			assert.strictEqual(state?.queuedMessages, undefined);
 			assert.strictEqual(state?.title, 'Queued Title');
@@ -3855,7 +3709,6 @@ suite('AgentSideEffects', () => {
 			stateManager.addChat(sessionUri.toString(), chatUri.toString());
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Start a turn on the peer chat, then queue a message behind it.
 			stateManager.dispatchClientAction(chatUri.toString(),
 				{ type: ActionType.ChatTurnStarted, turnId: 'pturn-1', startedAt: '2025-01-01T00:00:00.000Z', message: { text: 'hi', origin: { kind: MessageKind.User } } },
 				{ clientId: 'test', clientSeq: 1 });
@@ -3870,9 +3723,6 @@ suite('AgentSideEffects', () => {
 
 			assert.strictEqual(agent.sendMessageCalls.length, 0);
 
-			// Idle on the peer chat → the queued message drains to the parent
-			// session URI with the chat channel passed as the `chat` argument
-			// so the harness routes it to the right peer SDK chat.
 			agent.fireProgress({
 				kind: 'action', resource: chatUri,
 				action: { type: ActionType.ChatTurnComplete, turnId: 'pturn-1', duration: 1000 },
@@ -3907,12 +3757,10 @@ suite('AgentSideEffects', () => {
 			stateManager.dispatchClientAction(defaultChatUri, setAction, { clientId: 'test', clientSeq: 1 });
 			sideEffects.handleAction(defaultChatUri, setAction);
 
-			// No turn started for the queued message
 			const turnStarted = envelopes.find(e => e.action.type === ActionType.ChatTurnStarted);
 			assert.strictEqual(turnStarted, undefined, 'should not start a turn while one is active');
 			assert.strictEqual(agent.sendMessageCalls.length, 0);
 
-			// Queued message still in state
 			const state = stateManager.getSessionState(sessionUri.toString());
 			assert.strictEqual(state?.queuedMessages?.length, 1);
 			assert.strictEqual(state?.queuedMessages?.[0].id, 'q-wait');
@@ -3934,14 +3782,12 @@ suite('AgentSideEffects', () => {
 			stateManager.dispatchClientAction(defaultChatUri, action, { clientId: 'test', clientSeq: 1 });
 			sideEffects.handleAction(defaultChatUri, action);
 
-			// Removal is not dispatched synchronously; it waits for the agent
 			let removal = envelopes.find(e =>
 				e.action.type === ActionType.ChatPendingMessageRemoved &&
 				(e.action as { kind: PendingMessageKind }).kind === PendingMessageKind.Steering
 			);
 			assert.strictEqual(removal, undefined, 'should not dispatch removal until steering_consumed');
 
-			// Simulate the agent consuming the steering message
 			agent.fireProgress({
 				kind: 'steering_consumed',
 				chat: URI.parse(defaultChatUri),
@@ -3955,13 +3801,11 @@ suite('AgentSideEffects', () => {
 			assert.ok(removal, 'should dispatch ChatPendingMessageRemoved for steering');
 			assert.strictEqual((removal!.action as { id: string }).id, 'steer-rm');
 
-			// Steering message should be removed from state
 			const state = stateManager.getSessionState(sessionUri.toString());
 			assert.strictEqual(state?.steeringMessage, undefined);
 		});
 	});
 
-	// ---- handleAction: session/activeClientSet ----------------------
 
 	suite('handleAction — session/activeClientSet', () => {
 
@@ -3990,7 +3834,6 @@ suite('AgentSideEffects', () => {
 			};
 			sideEffects.handleAction(sessionUri.toString(), action);
 
-			// Wait for async setClientCustomizations
 			await new Promise(r => setTimeout(r, 50));
 
 			assert.deepStrictEqual(agent.setClientCustomizationsCalls, [{
@@ -4186,8 +4029,6 @@ suite('AgentSideEffects', () => {
 				activeClient: { clientId: 'test-client', tools: [] },
 			});
 
-			// An absent session has no authoritative membership, so the provider
-			// is not handed an invented default-chat-only list.
 			assert.deepStrictEqual(agent.activeClientCalls, []);
 		});
 
@@ -4197,8 +4038,6 @@ suite('AgentSideEffects', () => {
 				type: ActionType.SessionActiveClientSet,
 				activeClient: { clientId: 'test-client', tools: [] },
 			};
-			// Record the contribution in session state (as the real dispatch
-			// pipeline does) and run its side effect.
 			stateManager.dispatchClientAction(sessionUri.toString(), activeClientAction, { clientId: 'test-client', clientSeq: 1 });
 			sideEffects.handleAction(sessionUri.toString(), activeClientAction);
 
@@ -4216,7 +4055,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- handleAction: root/configChanged --------------------------------
 
 	suite('handleAction - root/configChanged', () => {
 
@@ -4266,7 +4104,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- onDidCustomizationsChange integration --------------------------
 
 	suite('onDidCustomizationsChange', () => {
 
@@ -4314,7 +4151,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- handleAction: session/toolCallConfirmed ------------------------
 
 	suite('handleAction — session/toolCallConfirmed', () => {
 
@@ -4323,7 +4159,6 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1', defaultChatUri);
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Fire tool_start to register the tool call
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -4341,7 +4176,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Fire tool_ready asking for permission (non-write, so not auto-approved)
 			agent.fireProgress({
 				kind: 'pending_confirmation', chat: URI.parse(defaultChatUri),
 				state: {
@@ -4353,7 +4187,6 @@ suite('AgentSideEffects', () => {
 				permissionKind: undefined, permissionPath: undefined,
 			});
 
-			// Now confirm the tool call
 			sideEffects.handleAction(defaultChatUri, {
 				type: ActionType.ChatToolCallConfirmed,
 				turnId: 'turn-1',
@@ -4403,7 +4236,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- tool_ready progress dispatch -----------------------------------
 
 	suite('tool_ready dispatches progress actions to advance tool call state', () => {
 
@@ -4412,7 +4244,6 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// tool_start puts the tool call into Streaming state
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -4427,8 +4258,6 @@ suite('AgentSideEffects', () => {
 			assert.strictEqual(partAfterStart?.kind, ResponsePartKind.ToolCall);
 			assert.strictEqual(partAfterStart?.kind === ResponsePartKind.ToolCall ? partAfterStart.toolCall.status : undefined, ToolCallStatus.Streaming);
 
-			// tool_ready without confirmationTitle should dispatch the ready
-			// action and advance the tool call to Running
 			agent.fireProgress({
 				kind: 'pending_confirmation', chat: URI.parse(defaultChatUri),
 				state: {
@@ -4465,8 +4294,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// tool_ready with confirmationTitle should dispatch the ready
-			// action and advance the tool call to PendingConfirmation
 			agent.fireProgress({
 				kind: 'pending_confirmation', chat: URI.parse(defaultChatUri),
 				state: {
@@ -4493,7 +4320,6 @@ suite('AgentSideEffects', () => {
 			setupSession();
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
-			// Rule resolvability requires a successful tree-sitter parse.
 			await sideEffects.initialize();
 
 			const cases = [
@@ -4540,9 +4366,6 @@ suite('AgentSideEffects', () => {
 			disposables.add(sideEffects.registerProgressListener(agent));
 			await sideEffects.initialize();
 
-			// `get-childitem` only matches the default `Get-ChildItem` allow rule
-			// under PowerShell's case-insensitive matching. Missing language fails
-			// closed before rule analysis.
 			const cases = [
 				['tc-shell-lang-1', 'powershell'],
 				['tc-shell-lang-2', 'bash'],
@@ -4711,16 +4534,10 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('pending_confirmation for a tool inside a subagent routes to the subagent session', async () => {
-			// Regression: a `pending_confirmation` signal for a client tool
-			// inside a subagent must dispatch ChatToolCallReady against
-			// the subagent session, not the parent. Otherwise the parent
-			// session sees a stray `session/toolCallReady` with no
-			// preceding `session/toolCallStart`, which is illegal.
 			setupSession();
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Parent tool that delegates to a subagent.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -4739,7 +4556,6 @@ suite('AgentSideEffects', () => {
 			});
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-parent', agentName: 'helper', agentDisplayName: 'Helper' });
 
-			// Inner client tool starts inside the subagent.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-parent',
 				action: {
@@ -4749,10 +4565,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Permission flow fires `pending_confirmation` for the inner
-			// client tool. The signal must be routed to the subagent
-			// chat — not to the parent — when the signal carries the parent
-			// chat URI and parentToolCallId.
 			agent.fireProgress({
 				kind: 'pending_confirmation', chat: URI.parse(defaultChatUri), parentToolCallId: 'tc-parent',
 				state: {
@@ -4764,7 +4576,6 @@ suite('AgentSideEffects', () => {
 				permissionKind: 'custom-tool', permissionPath: undefined,
 			});
 
-			// The subagent chat must contain the ChatToolCallReady.
 			const subagentUri = buildSubagentChatUri(sessionUri.toString(), 'tc-parent');
 			const subState = await waitForState(stateManager, () => {
 				const s = stateManager.getSessionState(subagentUri);
@@ -4783,9 +4594,6 @@ suite('AgentSideEffects', () => {
 				'inner client tool call should advance to Running after pending_confirmation'
 			);
 
-			// The parent session must NOT have a stray tool call for the
-			// inner toolCallId — that would be a ChatToolCallReady
-			// without a matching ChatToolCallStart.
 			const parentState = stateManager.getSessionState(sessionUri.toString());
 			const parentInner = parentState?.activeTurn?.responseParts.find(
 				rp => rp.kind === ResponsePartKind.ToolCall && rp.toolCall.toolCallId === 'tc-inner'
@@ -4794,16 +4602,10 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('pending_confirmation without an active turn still dispatches (does not hang)', async () => {
-			// Regression: when a hook-triggered continuation runs after
-			// the protocol turn has completed, the state manager has no
-			// active turn. Action signals go through a fallback path, but
-			// pending_confirmation was silently dropped — causing the
-			// permission deferred to never resolve and the session to hang.
 			setupSession(URI.file('/workspace').toString());
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Start a tool in the active turn
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -4814,7 +4616,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Complete the turn — state manager no longer has an active turn
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -4827,11 +4628,8 @@ suite('AgentSideEffects', () => {
 				action: { type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1000 },
 			});
 
-			// Verify no active turn
 			assert.strictEqual(stateManager.getActiveTurnId(sessionUri.toString()), undefined);
 
-			// Simulate the hook-triggered continuation: tool actions
-			// arrive without a new protocol turn being started
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -4842,7 +4640,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Now the pending_confirmation arrives — this must NOT be dropped
 			agent.fireProgress({
 				kind: 'pending_confirmation', chat: URI.parse(defaultChatUri),
 				state: {
@@ -4854,10 +4651,6 @@ suite('AgentSideEffects', () => {
 				permissionKind: 'read', permissionPath: '/workspace/file.ts',
 			});
 
-			// The respondToPermissionRequest should have been called
-			// (auto-approved because read is inside the working directory).
-			// _handleToolReady is async (awaits getAutoApproval -> realpath),
-			// so wait for the approval to settle deterministically.
 			await waitForState(stateManager, () => agent.respondToPermissionCalls.length > 0 || undefined);
 			assert.deepStrictEqual(agent.respondToPermissionCalls, [
 				{ requestId: 'tc-orphan', approved: true },
@@ -4865,13 +4658,10 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- ChatToolCallComplete routing -----------------------------------
 
 	suite('handleAction — chat/toolCallComplete routing', () => {
 
 		test('forwards session + default chat URI for a default-chat completion', () => {
-			// Regression: agents key their sessions by session id, but the
-			// The exact default chat URI must be forwarded unchanged.
 			setupSession();
 
 			sideEffects.handleAction(defaultChatUri, {
@@ -4931,9 +4721,6 @@ suite('AgentSideEffects', () => {
 				agent.clientToolCallCompleteCalls.map(c => ({
 					chat: c.chat.toString(),
 					toolCallId: c.toolCallId,
-					// `context` describes the *addressed* chat, so a provider can
-					// recover the spawning chat + tool call from it. Stamping the
-					// routing target here instead would make that unresolvable.
 					contextResource: c.context?.resource.toString(),
 					parent: resolveSubagentChatParent(c.context)?.chat.toString(),
 					parentToolCallId: resolveSubagentChatParent(c.context)?.toolCallId,
@@ -4949,13 +4736,11 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- Session-level auto-approve (config) ----------------------------
 
 	suite('session config auto-approve', () => {
 
 		function setupSessionWithConfig(autoApproveLevel: string): void {
 			setupSession(URI.file('/workspace').toString());
-			// Set config on the session state directly (as agentService.ts does)
 			stateManager.setSessionConfig(sessionUri.toString(), {
 				schema: {
 					type: 'object',
@@ -5007,7 +4792,6 @@ suite('AgentSideEffects', () => {
 			});
 
 			await waitForState(stateManager, () => agent.respondToPermissionCalls.length > 0 || undefined);
-			// .env would normally be blocked, but session-level auto-approve overrides
 			assert.deepStrictEqual(agent.respondToPermissionCalls, [
 				{ requestId: 'tc-bypass-1', approved: true },
 			]);
@@ -5047,8 +4831,6 @@ suite('AgentSideEffects', () => {
 			});
 
 			await waitForState(stateManager, () => agent.respondToPermissionCalls.length > 0 || undefined);
-			// Dangerous command would normally be blocked, but session-level
-			// bypass auto-approve overrides.
 			assert.deepStrictEqual(agent.respondToPermissionCalls, [
 				{ requestId: 'tc-bypass-shell-1', approved: true },
 			]);
@@ -5080,10 +4862,6 @@ suite('AgentSideEffects', () => {
 				requestSandboxBypass: true,
 			});
 
-			// A read-only command like `cat` (or even session-level bypass)
-			// would normally auto-approve, but opting out of the sandbox is an
-			// elevation of privilege the user must confirm, so no auto-approval
-			// response is sent.
 			assert.deepStrictEqual(agent.respondToPermissionCalls, []);
 		});
 
@@ -5175,7 +4953,6 @@ suite('AgentSideEffects', () => {
 				permissionKind: 'write', permissionPath: '/workspace/.env',
 			});
 
-			// .env should still be blocked with default config
 			assert.strictEqual(agent.respondToPermissionCalls.length, 0);
 		});
 
@@ -5184,7 +4961,6 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Change to bypass mid-session
 			stateManager.dispatchServerAction(sessionUri.toString(), {
 				type: ActionType.SessionConfigChanged,
 				config: { autoApprove: 'autoApprove' },
@@ -5219,7 +4995,6 @@ suite('AgentSideEffects', () => {
 			});
 
 			await waitForState(stateManager, () => agent.respondToPermissionCalls.length > 0 || undefined);
-			// Should now be auto-approved after config change
 			assert.deepStrictEqual(agent.respondToPermissionCalls, [
 				{ requestId: 'tc-mid-1', approved: true },
 			]);
@@ -5227,7 +5002,6 @@ suite('AgentSideEffects', () => {
 
 	});
 
-	// ---- Edit auto-approve ----------------------------------------------
 
 	suite('edit auto-approve', () => {
 
@@ -5265,7 +5039,6 @@ suite('AgentSideEffects', () => {
 			});
 
 			await waitForState(stateManager, () => agent.respondToPermissionCalls.length > 0 || undefined);
-			// Auto-approved writes call respondToPermissionRequest directly
 			assert.deepStrictEqual(agent.respondToPermissionCalls, [
 				{ requestId: 'tc-auto-1', approved: true },
 			]);
@@ -5307,10 +5080,8 @@ suite('AgentSideEffects', () => {
 				permissionKind: 'write', permissionPath: '/workspace/.env',
 			});
 
-			// Should NOT auto-approve — .env is excluded
 			assert.strictEqual(agent.respondToPermissionCalls.length, 0);
 
-			// Should dispatch a tool_ready action for the client to confirm
 			const readyAction = envelopes.find(e => e.action.type === ActionType.ChatToolCallReady);
 			assert.ok(readyAction, 'should dispatch tool_ready for blocked write');
 		});
@@ -5424,7 +5195,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- Read auto-approve -------------------------------------------------
 
 	suite('read auto-approve', () => {
 
@@ -5510,7 +5280,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- Title persistence --------------------------------------------------
 
 	suite('title persistence', () => {
 
@@ -5714,13 +5483,10 @@ suite('AgentSideEffects', () => {
 
 			await localService.createSession({ provider: localAgent.id });
 
-			// Persist a custom title in the DB
 			await sessionDb.setMetadata('customTitle', 'My Custom Title');
 
 			const sessions = await localService.listSessions();
 			assert.strictEqual(sessions.length, 1);
-			// Custom title comes from the DB and is returned via the agent's listSessions
-			// The mock agent summary is used; the service doesn't read the DB for list
 			assert.ok(sessions[0].summary);
 		});
 
@@ -5735,10 +5501,8 @@ suite('AgentSideEffects', () => {
 			const sessions = await localAgent.listSessions();
 			const sessionResource = sessions[0].session;
 
-			// Persist a custom title in the DB
 			await sessionDb.setMetadata('customTitle', 'Restored Title');
 
-			// Set up minimal messages for restore
 			localAgent.sessionMessages = [
 				{ type: 'message', session, role: 'user', messageId: 'msg-1', content: 'Hello', toolRequests: [] },
 				{ type: 'message', session, role: 'assistant', messageId: 'msg-2', content: 'Hi', toolRequests: [] },
@@ -5762,20 +5526,17 @@ suite('AgentSideEffects', () => {
 			const sessions = await localAgent.listSessions();
 			const sessionResource = sessions[0].session;
 
-			// The SDK transcript yields a single real turn keyed by the first
-			// user message id (`buildTurnsFromHistory`).
 			localAgent.sessionMessages = [
 				{ type: 'message', session, role: 'user', messageId: 'real-1', content: 'Hello', toolRequests: [] },
 				{ type: 'message', session, role: 'assistant', messageId: 'a-1', content: 'Hi', toolRequests: [] },
 			];
 
-			// A host-injected local turn recorded against that real turn.
 			const localTurn = {
 				id: 'local-1',
 				message: { text: '!echo hi', origin: { kind: MessageKind.User } },
 				responseParts: [{ kind: ResponsePartKind.Markdown, id: 'p1', content: 'ran' }],
 				usage: undefined,
-				state: 2, // TurnState.Complete
+				state: 2,
 			};
 			await sessionDb.insertLocalTurn({ turnId: 'local-1', chatUri: buildDefaultChatUri(sessionResource.toString()), anchorTurnId: 'real-1', seq: 1, payload: JSON.stringify(localTurn) });
 
@@ -5807,7 +5568,6 @@ suite('AgentSideEffects', () => {
 			});
 			session.config = { schema: { type: 'object', properties: {} }, values: { autoApprove: 'default' } };
 
-			// Mid-session change merges new values into existing.
 			localStateManager.dispatchClientAction(sessionUri.toString(), {
 				type: ActionType.SessionConfigChanged,
 				config: { autoApprove: 'autoApprove' },
@@ -5931,7 +5691,6 @@ suite('AgentSideEffects', () => {
 
 	});
 
-	// ---- Subagent sessions ----------------------------------------------
 
 	suite('subagent sessions', () => {
 
@@ -5988,7 +5747,6 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Start a parent tool call
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -6007,7 +5765,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Fire subagent_started
 			agent.fireProgress({
 				kind: 'subagent_started', chat: URI.parse(defaultChatUri),
 				toolCallId: 'tc-1',
@@ -6017,7 +5774,6 @@ suite('AgentSideEffects', () => {
 				taskPrompt: 'Review the auth module for security issues',
 			});
 
-			// Verify the subagent chat was created
 			const subagentUri = buildSubagentChatUri(sessionUri.toString(), 'tc-1');
 			const subState = stateManager.getSessionState(subagentUri);
 			assert.ok(subState, 'subagent chat should exist');
@@ -6027,7 +5783,6 @@ suite('AgentSideEffects', () => {
 			assert.ok(subState!.activeTurn, 'subagent chat should have an active turn');
 			assert.strictEqual(subState!.activeTurn!.message.text, 'Review the auth module for security issues', 'subagent turn should render the spawning tool call prompt as its request');
 
-			// Verify content was dispatched on the parent tool call
 			const parentState = stateManager.getSessionState(sessionUri.toString());
 			assert.ok(parentState?.activeTurn);
 			const parentToolCall = parentState!.activeTurn!.responseParts.find(
@@ -6065,42 +5820,22 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('nested subagent_started routes discovery block and seeds each request prompt via the immediate parent chat (arbitrary depth)', () => {
-			// Regression: for a subagent spawned by another subagent, the
-			// `subagent_started` signal's `chat` is the top-level chat, but
-			// its spawning tool call lives in the immediate parent's subagent
-			// chat. The discovery `ChatToolCallContentChanged` must land there
-			// (resolved via `parentToolCallId`) — dispatching it on the
-			// top-level chat is a no-op, leaving the nested subagent
-			// undiscoverable and hanging any client tool it runs. Driven three
-			// levels deep to prove the resolution is not capped at two: each
-			// level's block lands on its immediate parent chat via a single
-			// flat-map lookup, independent of depth.
 			setupSession();
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Level-1 subagent spawned from the default chat.
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-l1', toolName: 'task', displayName: 'Task', contributor: undefined, _meta: { toolKind: 'subagent', language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-l1', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-l1', agentName: 'l1', agentDisplayName: 'L1', agentDescription: 'first', taskPrompt: 'l1 prompt' });
 
-			// Level-2 subagent's spawning tool runs INSIDE the level-1
-			// subagent (parentToolCallId = tc-l1), so it lands on the level-1
-			// subagent chat rather than the default chat.
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-l1', action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-l2', toolName: 'task', displayName: 'Task', contributor: undefined, _meta: { toolKind: 'subagent', language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-l1', action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-l2', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 
-			// Level-2 subagent starts. Its spawning tool (tc-l2) lives in the
-			// level-1 subagent chat, so the signal carries parentToolCallId = tc-l1.
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-l2', agentName: 'l2', agentDisplayName: 'L2', agentDescription: 'second', taskPrompt: 'l2 prompt', parentToolCallId: 'tc-l1' });
 
-			// Level-3 subagent's spawning tool runs INSIDE the level-2
-			// subagent (parentToolCallId = tc-l2), landing on the level-2 chat.
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-l2', action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-l3', toolName: 'task', displayName: 'Task', contributor: undefined, _meta: { toolKind: 'subagent', language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-l2', action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-l3', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 
-			// Level-3 subagent starts. Its spawning tool (tc-l3) lives in the
-			// level-2 subagent chat, so the signal carries parentToolCallId = tc-l2.
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-l3', agentName: 'l3', agentDisplayName: 'L3', agentDescription: 'third', taskPrompt: 'l3 prompt', parentToolCallId: 'tc-l2' });
 
 			const l1ChatUri = buildSubagentChatUri(sessionUri.toString(), 'tc-l1');
@@ -6110,15 +5845,11 @@ suite('AgentSideEffects', () => {
 			assert.ok(stateManager.getSessionState(l2ChatUri), 'level-2 subagent chat should exist');
 			assert.ok(stateManager.getSessionState(l3ChatUri), 'level-3 subagent chat should exist');
 
-			// Asserts a subagent's discovery block landed on `parentChatUri`'s
-			// `spawningToolId` tool call, pointing at `childChatUri`.
 			const assertDiscoveryBlock = (parentChatUri: string, spawningToolId: string, childChatUri: string, label: string) => {
 				const parentState = stateManager.getSessionState(parentChatUri);
 				const spawningTool = parentState?.activeTurn?.responseParts.find(rp => rp.kind === ResponsePartKind.ToolCall && rp.toolCall.toolCallId === spawningToolId);
 				assert.ok(spawningTool && spawningTool.kind === ResponsePartKind.ToolCall, `${spawningToolId} should live in ${label}`);
 				const tc = spawningTool.toolCall;
-				// `content` only exists on the running/completed variants of the
-				// ToolCallState union; the spawning tool is running here.
 				assert.strictEqual(tc.status, ToolCallStatus.Running, `${spawningToolId} should be running in ${label}`);
 				if (tc.status !== ToolCallStatus.Running) {
 					return;
@@ -6128,19 +5859,14 @@ suite('AgentSideEffects', () => {
 				assert.strictEqual((block as { resource: string }).resource, childChatUri);
 			};
 
-			// Each level's discovery block lands on its immediate parent chat.
 			assertDiscoveryBlock(l1ChatUri, 'tc-l2', l2ChatUri, 'the level-1 chat');
 			assertDiscoveryBlock(l2ChatUri, 'tc-l3', l3ChatUri, 'the level-2 chat');
 
-			// Each child chat's opening request is seeded from its own
-			// `subagent_started` signal's `taskPrompt`.
 			assert.deepStrictEqual(
 				[l1ChatUri, l2ChatUri, l3ChatUri].map(uri => stateManager.getSessionState(uri)?.activeTurn?.message.text),
 				['l1 prompt', 'l2 prompt', 'l3 prompt'],
 			);
 
-			// Nested spawning tools must NOT be misrouted to the top-level
-			// default chat, where they do not exist.
 			const defaultState = stateManager.getSessionState(sessionUri.toString());
 			const l2ToolInDefault = defaultState?.activeTurn?.responseParts.find(rp => rp.kind === ResponsePartKind.ToolCall && (rp.toolCall.toolCallId === 'tc-l2' || rp.toolCall.toolCallId === 'tc-l3'));
 			assert.strictEqual(l2ToolInDefault, undefined, 'nested spawning tools must not appear in the top-level chat');
@@ -6151,12 +5877,10 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Start parent tool + subagent
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-1', toolName: 'runSubagent', displayName: 'Run Subagent', contributor: undefined, _meta: { toolKind: undefined, language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-1', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-1', agentName: 'helper', agentDisplayName: 'Helper', agentDescription: 'Helps' });
 
-			// Fire an inner tool start with parentToolCallId
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-1',
 				action: {
@@ -6174,7 +5898,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Verify the inner tool call is on the subagent chat's turn, not the parent
 			const subagentUri = buildSubagentChatUri(sessionUri.toString(), 'tc-1');
 			const subState = stateManager.getSessionState(subagentUri);
 			assert.ok(subState?.activeTurn);
@@ -6183,7 +5906,6 @@ suite('AgentSideEffects', () => {
 			);
 			assert.ok(innerTool, 'inner tool call should be in subagent chat');
 
-			// Verify the parent session does NOT have the inner tool call
 			const parentState = stateManager.getSessionState(sessionUri.toString());
 			const parentInnerTool = parentState!.activeTurn!.responseParts.find(
 				rp => rp.kind === ResponsePartKind.ToolCall && rp.toolCall.toolCallId === 'inner-tc-1'
@@ -6192,11 +5914,6 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('completeSubagentSession clears pending buffered events when subagent never started', () => {
-			// Regression: if the parent tool completes (or fails) before any
-			// `subagent_started` arrives, buffered inner events would
-			// otherwise leak in `_pendingSubagentEvents` until session
-			// disposal. After completion, a late `subagent_started` for the
-			// same toolCallId must not replay stale events.
 			setupSession();
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
@@ -6204,7 +5921,6 @@ suite('AgentSideEffects', () => {
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-1', toolName: 'runSubagent', displayName: 'Run Subagent', contributor: undefined, _meta: { toolKind: undefined, language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-1', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 
-			// Inner event arrives but `subagent_started` never does.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-1',
 				action: {
@@ -6222,7 +5938,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Parent tool completes (e.g. it errored before delegating).
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -6232,9 +5947,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Now a late `subagent_started` for the same toolCallId arrives.
-			// This is unusual but possible after a reconnect/replay. The
-			// drain must NOT replay the (cleared) buffered inner tool call.
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-1', agentName: 'helper', agentDisplayName: 'Helper', agentDescription: 'Helps' });
 
 			const subagentUri = buildSubagentChatUri(sessionUri.toString(), 'tc-1');
@@ -6251,14 +5963,10 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Start parent tool + subagent
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-1', toolName: 'runSubagent', displayName: 'Run Subagent', contributor: undefined, _meta: { toolKind: undefined, language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-1', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-1', agentName: 'helper', agentDisplayName: 'Helper', agentDescription: 'Helps' });
 
-			// Completing the parent tool call must NOT tear down the
-			// subagent session — background subagents keep running after
-			// their parent tool call returns.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -6273,8 +5981,6 @@ suite('AgentSideEffects', () => {
 			assert.ok(subState);
 			assert.ok(subState!.activeTurn, 'subagent turn should still be active after parent tool completes');
 
-			// The SDK's `subagent.completed`/`subagent.failed` event is what
-			// actually closes the subagent session.
 			agent.fireProgress({ kind: 'subagent_completed', chat: URI.parse(defaultChatUri), toolCallId: 'tc-1' });
 
 			subState = stateManager.getSessionState(subagentUri);
@@ -6353,7 +6059,6 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1', defaultChatUri);
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Start two parent tool calls with subagents
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-1', toolName: 'runSubagent', displayName: 'Sub 1', contributor: undefined, _meta: { toolKind: undefined, language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-1', invocationMessage: 'Delegating 1...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-1', agentName: 'sub1', agentDisplayName: 'Sub 1', agentDescription: 'First' });
@@ -6368,7 +6073,6 @@ suite('AgentSideEffects', () => {
 				duration: 1000,
 			});
 
-			// Both subagent chats should have their turns completed (cancelled)
 			const sub1 = stateManager.getSessionState(buildSubagentChatUri(sessionUri.toString(), 'tc-1'));
 			const sub2 = stateManager.getSessionState(buildSubagentChatUri(sessionUri.toString(), 'tc-2'));
 			assert.strictEqual(sub1?.activeTurn, undefined, 'sub1 turn should be cancelled');
@@ -6401,13 +6105,11 @@ suite('AgentSideEffects', () => {
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-1', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-1', agentName: 'helper', agentDisplayName: 'Helper', agentDescription: 'Helps' });
 
-			// Fire a delta with parentToolCallId
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-1',
 				action: { type: ActionType.ChatResponsePart, turnId: 'turn-1', part: { kind: ResponsePartKind.Markdown, id: 'msg-sub', content: 'thinking...' } },
 			});
 
-			// Verify the delta went to the subagent session
 			const subagentUri = buildSubagentChatUri(sessionUri.toString(), 'tc-1');
 			const subState = stateManager.getSessionState(subagentUri);
 			assert.ok(subState?.activeTurn);
@@ -6426,7 +6128,6 @@ suite('AgentSideEffects', () => {
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-1', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-1', agentName: 'explore', agentDisplayName: 'Explore', agentDescription: 'Explores' });
 
-			// Verify subagent content is on the running tool
 			const runningState = stateManager.getSessionState(sessionUri.toString());
 			const runningTool = runningState?.activeTurn?.responseParts.find(
 				rp => rp.kind === ResponsePartKind.ToolCall && rp.toolCall.toolCallId === 'tc-1'
@@ -6434,7 +6135,6 @@ suite('AgentSideEffects', () => {
 			assert.ok(runningTool?.kind === ResponsePartKind.ToolCall);
 			assert.strictEqual(runningTool.toolCall.status, ToolCallStatus.Running);
 
-			// Complete the tool — the SDK result has its own content
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -6444,7 +6144,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// Verify the completed tool still has the subagent content entry
 			const completedState = stateManager.getSessionState(sessionUri.toString());
 			const completedTool = completedState?.activeTurn?.responseParts.find(
 				rp => rp.kind === ResponsePartKind.ToolCall && rp.toolCall.toolCallId === 'tc-1'
@@ -6459,18 +6158,13 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('inner tool_start arriving BEFORE subagent_started routes to subagent (not parent)', () => {
-			// Reproduces the regression where inner subagent tool calls show up
-			// flat at the top level of the parent session because the SDK can
-			// emit `tool_start` (with parentToolCallId) before `subagent_started`.
 			setupSession();
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// 1. Parent tool starts (the `task` invocation).
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-parent', toolName: 'task', displayName: 'Task', contributor: undefined, _meta: { toolKind: undefined, language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-parent', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 
-			// 2. Inner tool fires BEFORE subagent_started (race condition).
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-parent',
 				action: {
@@ -6488,7 +6182,6 @@ suite('AgentSideEffects', () => {
 				},
 			});
 
-			// 3. subagent_started arrives later.
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-parent', agentName: 'helper', agentDisplayName: 'Helper', agentDescription: 'Helps' });
 
 			const subagentUri = buildSubagentChatUri(sessionUri.toString(), 'tc-parent');
@@ -6500,7 +6193,6 @@ suite('AgentSideEffects', () => {
 			);
 			assert.ok(innerTool, 'inner tool fired before subagent_started should still end up in the subagent session');
 
-			// Parent must NOT have the inner tool.
 			const parentState = stateManager.getSessionState(sessionUri.toString());
 			const parentInnerTool = parentState!.activeTurn!.responseParts.find(
 				rp => rp.kind === ResponsePartKind.ToolCall && rp.toolCall.toolCallId === 'inner-tc-1'
@@ -6509,21 +6201,14 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('reads inside parent working directory are auto-approved for tools in subagent sessions', async () => {
-			// Subagent sessions don't carry their own workingDirectory or
-			// autoApprove config. Without inheritance from the parent, every
-			// tool call inside a subagent (even a read in the workspace) would
-			// surface a confirmation dialog.
 			setupSession(URI.file('/workspace').toString());
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Parent task tool spawns a subagent.
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallStart, turnId: 'turn-1', toolCallId: 'tc-parent', toolName: 'task', displayName: 'Task', contributor: undefined, _meta: { toolKind: undefined, language: undefined } } });
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-parent', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-parent', agentName: 'helper', agentDisplayName: 'Helper', agentDescription: 'Helps' });
 
-			// Inner tool inside the subagent requests permission to read a file
-			// inside the parent workspace.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-parent',
 				action: {
@@ -6562,7 +6247,6 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1');
 			disposables.add(sideEffects.registerProgressListener(agent));
 
-			// Set the parent session to "Bypass Approvals" via session config.
 			stateManager.setSessionConfig(sessionUri.toString(), {
 				schema: {
 					type: 'object',
@@ -6583,8 +6267,6 @@ suite('AgentSideEffects', () => {
 			agent.fireProgress({ kind: 'action', resource: URI.parse(defaultChatUri), action: { type: ActionType.ChatToolCallReady, turnId: 'turn-1', toolCallId: 'tc-parent', invocationMessage: 'Delegating...', toolInput: undefined, confirmed: ToolCallConfirmationReason.NotNeeded } });
 			agent.fireProgress({ kind: 'subagent_started', chat: URI.parse(defaultChatUri), toolCallId: 'tc-parent', agentName: 'helper', agentDisplayName: 'Helper', agentDescription: 'Helps' });
 
-			// Inner write outside the workspace would normally NOT auto-approve,
-			// but session-level autoApprove on the parent must apply.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri), parentToolCallId: 'tc-parent',
 				action: {
@@ -6619,7 +6301,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- Session inputNeeded production -------------------------------------
 
 	suite('session inputNeeded production', () => {
 
@@ -6836,7 +6517,6 @@ suite('AgentSideEffects', () => {
 			setupSession();
 			startTurn('turn-1');
 
-			// Auto-approved calls flow through PendingConfirmation then Running but never block the user.
 			stateManager.dispatchServerAction(defaultChatUri, {
 				type: ActionType.ChatToolCallStart, turnId: 'turn-1',
 				toolCallId: 'tc-auto', toolName: 'browser_navigate', displayName: 'Navigate Browser',
@@ -6855,9 +6535,6 @@ suite('AgentSideEffects', () => {
 				toolCallId: 'tc-auto', approved: true, confirmed: ToolCallConfirmationReason.Setting,
 			});
 
-			// The client still has to run the call, so it must be discoverable
-			// from the session channel — but it is not a user prompt, so the
-			// session must not present as "input needed".
 			assert.deepStrictEqual(
 				sessionInputNeeded().map(r => ({ kind: r.kind, clientId: r.kind === SessionInputRequestKind.ToolClientExecution ? r.clientId : undefined })),
 				[{ kind: SessionInputRequestKind.ToolClientExecution, clientId: 'client-1' }],
@@ -6869,7 +6546,6 @@ suite('AgentSideEffects', () => {
 			setupSession();
 			startTurn('turn-1');
 
-			// The auto-approved parameter gate is suppressed, but a post-execution result gate is a genuine prompt.
 			stateManager.dispatchServerAction(defaultChatUri, {
 				type: ActionType.ChatToolCallStart, turnId: 'turn-1',
 				toolCallId: 'tc-auto-result', toolName: 'browser_navigate', displayName: 'Navigate Browser',
@@ -6998,7 +6674,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- Session permissions ------------------------------------------------
 
 	suite('session permissions', () => {
 
@@ -7322,8 +6997,6 @@ suite('AgentSideEffects', () => {
 		});
 
 		test('hard-denies a write to a snapshot under the session attachments dir, even with global auto-approve, and dispatches no confirmation-ready action (#331154)', async () => {
-			// `isSessionAttachmentPath` compares the write path (a `file:` URI) against the session
-			// attachments dir, so the session-data dir must resolve to a `file:` URI here.
 			const attachmentsSessionDataService: ISessionDataService = {
 				...createNullSessionDataService(),
 				getSessionDataDir: () => URI.file('/session-data/session-1'),
@@ -7336,8 +7009,6 @@ suite('AgentSideEffects', () => {
 			});
 
 			setupSession();
-			// Global auto-approve would otherwise approve the write; the snapshot deny must win because it
-			// is evaluated before `getAutoApproval`.
 			stateManager.dispatchServerAction(ROOT_STATE_URI, {
 				type: ActionType.RootConfigChanged,
 				config: { [AgentHostGlobalAutoApproveEnabledConfigKey]: true },
@@ -7345,8 +7016,6 @@ suite('AgentSideEffects', () => {
 			startTurn('turn-1');
 			disposables.add(localSideEffects.registerProgressListener(agent));
 
-			// A confirmation-ready action would only be dispatched by the auto-approval path; the deny path
-			// returns before dispatching one, so capturing them proves nothing was surfaced to the client.
 			const readyActions: ActionEnvelope[] = [];
 			disposables.add(stateManager.onDidEmitEnvelope(envelope => {
 				if (envelope.action.type === ActionType.ChatToolCallReady) {
@@ -7385,7 +7054,6 @@ suite('AgentSideEffects', () => {
 		});
 	});
 
-	// ---- Forwarding into IAgentHostChangesetService ------------------------
 
 	suite('changeset forwarders', () => {
 
@@ -7451,7 +7119,6 @@ suite('AgentSideEffects', () => {
 			}, undefined, NullTelemetryService, changesets);
 			disposables.add(localSideEffects.registerProgressListener(agent));
 
-			// tool_start + tool_ready + tool_complete with a recorded file edit.
 			agent.fireProgress({
 				kind: 'action', resource: URI.parse(defaultChatUri),
 				action: {
@@ -7505,11 +7172,6 @@ suite('AgentSideEffects', () => {
 				action: { type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1000 },
 			});
 
-			// `_runTurnCompleteSideEffects` now defers the
-			// `changesets.onTurnComplete` call behind the checkpoint capture
-			// promise (`captureTurnCheckpoint(...).then(...)`). Yield a
-			// microtask so the resolved promise's `.then` continuation
-			// runs before we assert.
 			await Promise.resolve();
 
 			assert.deepStrictEqual(changesets.turnCompletes, [{ session: sessionUri.toString(), turnId: 'turn-1' }]);
@@ -7679,12 +7341,9 @@ suite('AgentSideEffects', () => {
 			setupSession();
 			const peerChatUri = buildChatUri(sessionUri.toString(), 'peer-1');
 
-			// Peer chat: the chat URI is forwarded so the agent targets that
-			// chat's own backing rather than the session's default chat.
 			sideEffects.handleAction(peerChatUri, { type: ActionType.ChatTruncated, turnId: 'turn-peer' });
 			const peerCall = agent.truncateChatCalls.at(-1);
 
-			// Default chat: forwarded as the session's default chat URI.
 			sideEffects.handleAction(defaultChatUri, { type: ActionType.ChatTruncated, turnId: 'turn-default' });
 			const defaultCall = agent.truncateChatCalls.at(-1);
 

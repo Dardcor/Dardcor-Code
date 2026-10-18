@@ -23,10 +23,8 @@
 
 	const settings = getSettings();
 
-	// State
 	let hasLoadedMedia = false;
 
-	// Elements
 	const container = document.createElement('div');
 	container.className = 'audio-container';
 	document.body.appendChild(container);

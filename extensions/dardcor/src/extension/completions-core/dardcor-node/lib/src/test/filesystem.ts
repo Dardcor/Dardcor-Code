@@ -43,35 +43,6 @@ class FakeDir extends FakeFileNode {
 
 export type FakeFileSystemConfig = { [key: string]: string | FakeFileNode | FakeFileSystemConfig };
 
-/**
- * A fake for FileSystem that returns content and stats for a set of files
- * and folders configured for testing purposes.
- *
- * Accepts a configuration like the following:
- *
- * ```js
- *   {
- *     "/path/to/file": "file content",
- *     "/path/to/folder": {
- *       "file1": "file1 content",
- *       "file2": "file2 content",
- *     }
- *   }
- * ```
- *
- * It is also possible to control the results of `stat` by using `.file` and
- * `.directory` to create fakes:
- *
- * ```js
- *   {
- *     "/bigFile.txt": FakeFileSystem.file({ctime: 0, mtime: 0, size: 1000000}),
- *     "/futureFolder": FakeFileSystem.directory({
- *       ctime: Date.now() + 3600000,
- *       mtime: Date.now() + 3600000,
- *       size: 64}),
- *   }
- * ```
- */
 export class FakeFileSystem implements ICompletionsFileSystemService {
 	declare _serviceBrand: undefined;
 
@@ -98,7 +69,6 @@ export class FakeFileSystem implements ICompletionsFileSystemService {
 		}
 	}
 
-	/** Recursively creates directories in path */
 	mkdir(path: string): void {
 		if (!this.getNode(this.root, this.pathParts(path), true, 'mkdir').isDir) {
 			throw this.noEntryError(`mkdir '${path}'`);

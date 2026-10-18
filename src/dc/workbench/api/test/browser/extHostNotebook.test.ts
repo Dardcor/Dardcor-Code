@@ -225,19 +225,15 @@ suite('NotebookCell#Document', function () {
 			});
 		}
 
-		// this call happens when opening a document on the main side
 		extHostDocumentsAndEditors.$acceptDocumentsAndEditorsDelta({ addedDocuments: addData });
 
-		// this call happens when closing a document from the main side
 		extHostDocumentsAndEditors.$acceptDocumentsAndEditorsDelta({ removedDocuments: docs.map(d => d.uri) });
 
-		// notebook is still open -> cell documents stay open
 		for (const cell of notebook.apiNotebook.getCells()) {
 			assert.ok(extHostDocuments.getDocument(cell.document.uri));
 			assert.strictEqual(extHostDocuments.getDocument(cell.document.uri).isClosed, false);
 		}
 
-		// close notebook -> docs are closed
 		extHostNotebooks.$acceptDocumentAndEditorsDelta(new SerializableObjectWithBuffers({ removedDocuments: [notebook.uri] }));
 		for (const cell of notebook.apiNotebook.getCells()) {
 			assert.throws(() => extHostDocuments.getDocument(cell.document.uri));
@@ -263,7 +259,7 @@ suite('NotebookCell#Document', function () {
 		}), false);
 
 		assert.strictEqual(notebook.apiNotebook.cellCount, 1);
-		assert.strictEqual(cell1.document.isClosed, true); // ref still alive!
+		assert.strictEqual(cell1.document.isClosed, true);
 		assert.strictEqual(cell2.document.isClosed, false);
 
 		assert.throws(() => extHostDocuments.getDocument(cell1.document.uri));
@@ -276,7 +272,6 @@ suite('NotebookCell#Document', function () {
 		assert.strictEqual(first.index, 0);
 		assert.strictEqual(second.index, 1);
 
-		// remove first cell
 		extHostNotebookDocuments.$acceptModelChanged(notebook.uri, new SerializableObjectWithBuffers({
 			versionId: notebook.apiNotebook.version + 1,
 			rawEvents: [{
@@ -320,8 +315,6 @@ suite('NotebookCell#Document', function () {
 
 		const p = Event.toPromise(extHostNotebookDocuments.onDidChangeNotebookDocument);
 
-		// DON'T call this, make sure the cell-documents have not been created yet
-		// assert.strictEqual(notebook.notebookDocument.cellCount, 2);
 
 		extHostNotebookDocuments.$acceptModelChanged(notebook.uri, new SerializableObjectWithBuffers({
 			versionId: 100,

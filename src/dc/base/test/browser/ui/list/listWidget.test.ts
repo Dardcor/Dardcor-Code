@@ -42,7 +42,6 @@ suite('ListWidget', function () {
 		listWidget.focusNextPage();
 		assert.strictEqual(listWidget.getFocus()[0], 9, 'first page down moves focus to element at bottom');
 
-		// scroll to next page is async
 		listWidget.focusNextPage();
 		await timeout(0);
 		assert.strictEqual(listWidget.getFocus()[0], 19, 'page down to next page');
@@ -50,7 +49,6 @@ suite('ListWidget', function () {
 		listWidget.focusPreviousPage();
 		assert.strictEqual(listWidget.getFocus()[0], 10, 'first page up moves focus to element at top');
 
-		// scroll to previous page is async
 		listWidget.focusPreviousPage();
 		await timeout(0);
 		assert.strictEqual(listWidget.getFocus()[0], 0, 'page down to previous page');
@@ -83,12 +81,10 @@ suite('ListWidget', function () {
 		listWidget.focusFirst();
 		assert.strictEqual(listWidget.getFocus()[0], 0, 'initial focus is first element');
 
-		// scroll to next page is async
 		listWidget.focusNextPage();
 		await timeout(0);
 		assert.strictEqual(listWidget.getFocus()[0], 1, 'page down to next page');
 
-		// scroll to previous page is async
 		listWidget.focusPreviousPage();
 		await timeout(0);
 		assert.strictEqual(listWidget.getFocus()[0], 0, 'page up to next page');

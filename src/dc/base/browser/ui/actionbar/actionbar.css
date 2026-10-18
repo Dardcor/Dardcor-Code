@@ -26,7 +26,7 @@
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
-	position: relative;  /* DO NOT REMOVE - this is the key to preventing the ghosting icon bug in Chrome 42 */
+	position: relative;
 }
 
 .monaco-action-bar .action-item.disabled {
@@ -59,14 +59,12 @@
 	color: var(--vscode-disabledForeground);
 }
 
-/* Unable to change color of SVGs, hence opacity is used */
 .monaco-action-bar .action-item.disabled .action-label.icon ,
 .monaco-action-bar .action-item.disabled .action-label.icon::before,
 .monaco-action-bar .action-item.disabled .action-label.icon:hover {
 	opacity: 0.6;
 }
 
-/* Vertical actions */
 
 .monaco-action-bar.vertical {
 	text-align: left;
@@ -100,9 +98,8 @@
 	margin-left: 6px;
 }
 
-/* Action Items */
 .monaco-action-bar .action-item.select-container {
-	overflow: hidden; /* somehow the dropdown overflows its container, we prevent it here to not push */
+	overflow: hidden;
 	flex: 1;
 	max-width: 170px;
 	min-width: 60px;

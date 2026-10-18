@@ -33,14 +33,12 @@ import { SpecedToolAliases, isToolResultInputOutputDetails, IToolData, IToolImpl
 import { MockChatService } from '../../common/chatService/mockChatService.js';
 import { ChatToolInvocation } from '../../../common/model/chatProgressTypes/chatToolInvocation.js';
 import { LocalChatSessionUri } from '../../../common/model/chatUri.js';
-import { CopilotChatSettingId, CopilotToolId } from '../../../common/tools/copilotToolIds.js';
 import { ILanguageModelToolsConfirmationService } from '../../../common/tools/languageModelToolsConfirmationService.js';
 import { MockLanguageModelToolsConfirmationService } from '../../common/tools/mockLanguageModelToolsConfirmationService.js';
 import { IToolResultCompressor } from '../../../common/tools/toolResultCompressor.js';
 import { runWithFakedTimers } from '../../../../../../base/test/common/timeTravelScheduler.js';
 import { ILanguageModelChatMetadata } from '../../../common/languageModels.js';
 
-// --- Test helpers to reduce repetition and improve readability ---
 
 const noopToolResultCompressor: IToolResultCompressor = {
 	_serviceBrand: undefined,
@@ -82,20 +80,12 @@ class CountingDialogService extends TestDialogService {
 	}
 }
 
-/**
- * Configurable stub for {@link IChatToolRiskAssessmentService}. `enabled` models the
- * `chat.tools.riskAssessment.enabled` confirmation-badge setting; tests that exercise the
- * gate set `assessment`, `assessError`, or `onAssess` and inspect `assessCalls`. Note the
- * Autopilot gate is independent of `enabled` (it passes `ignoreEnablement`), so the gate's
- * opt-in is driven by Advanced Autopilot, not this field.
- */
 class TestChatToolRiskAssessmentService implements IChatToolRiskAssessmentService {
 	declare readonly _serviceBrand: undefined;
 
 	public enabled = false;
 	public assessment: IToolRiskAssessment | undefined = undefined;
 	public assessError: Error | undefined = undefined;
-	/** Invoked synchronously at the start of {@link assess} so tests can cancel mid-flight. */
 	public onAssess: (() => void) | undefined = undefined;
 	public readonly assessCalls: { toolId: string; parameters: unknown; kind?: ToolRiskPromptKind }[] = [];
 
@@ -110,7 +100,6 @@ class TestChatToolRiskAssessmentService implements IChatToolRiskAssessmentServic
 	async assess(tool: IToolData, parameters: unknown, _token: CancellationToken, kind?: ToolRiskPromptKind, options?: { ignoreEnablement?: boolean }): Promise<IToolRiskAssessment | undefined> {
 		this.assessCalls.push({ toolId: tool.id, parameters, kind });
 		this.onAssess?.();
-		// Mirror the real service: honor the badge setting unless the caller opts out.
 		if (!options?.ignoreEnablement && !this.enabled) {
 			return undefined;
 		}
@@ -191,19 +180,13 @@ interface TestToolsServiceOptions {
 	commandService?: Partial<ICommandService>;
 	dialogService?: IDialogService;
 	configurationService?: TestConfigurationService;
-	/** Called after configurationService is created but before the service is instantiated */
 	configureServices?: (config: TestConfigurationService) => void;
 }
 
-/**
- * Helper to create a LanguageModelToolsService with all common test stubs.
- * Reduces boilerplate when tests need custom service configurations.
- */
 function createTestToolsService(store: ReturnType<typeof ensureNoDisposablesAreLeakedInTestSuite>, options?: TestToolsServiceOptions): TestToolsServiceSetup {
 	const configurationService = options?.configurationService ?? new TestConfigurationService();
 	configurationService.setUserConfiguration(ChatConfiguration.ExtensionToolsEnabled, true);
 
-	// Allow tests to configure before service creation
 	options?.configureServices?.(configurationService);
 
 	const instaService = workbenchInstantiationService({
@@ -238,12 +221,6 @@ function createTestToolsService(store: ReturnType<typeof ensureNoDisposablesAreL
 	return { configurationService, chatService, service, contextKeyService, riskAssessmentService };
 }
 
-/**
- * Registers a confirmable tool in an Autopilot session for exercising the Autopilot risk
- * gate. Enables Advanced Autopilot, registers a tool whose `prepareToolInvocation`
- * optionally returns confirmation messages, stamps the session with the given permission
- * level, and returns an `invoke()` plus a `wasInvoked()` flag for the tool's `invoke`.
- */
 function setupRiskGateTool(
 	setup: TestToolsServiceSetup,
 	store: any,
@@ -290,8 +267,6 @@ suite('LanguageModelToolsService', () => {
 
 	function setupToolsForTest(service: LanguageModelToolsService, store: any) {
 
-		// Create a variety of tools and tool sets for testing
-		// Some with toolReferenceName, some without, some from extensions, mcp and user defined
 
 		const tool1: IToolData = {
 			id: 'tool1',
@@ -312,7 +287,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(tool2));
 
-		/** Extension Tool 1 */
 
 		const extTool1: IToolData = {
 			id: 'extTool1',
@@ -324,7 +298,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(extTool1));
 
-		/** Internal Tool Set with internalToolSetTool1 */
 
 		const internalToolSetTool1: IToolData = {
 			id: 'internalToolSetTool1',
@@ -343,7 +316,6 @@ suite('LanguageModelToolsService', () => {
 		));
 		store.add(internalToolSet.addTool(internalToolSetTool1));
 
-		/** User Tool Set with tool1 */
 
 		const userToolSet = store.add(service.createToolSet(
 			{ type: 'user', label: 'User', file: URI.file('/test/userToolSet.json') },
@@ -353,7 +325,6 @@ suite('LanguageModelToolsService', () => {
 		));
 		store.add(userToolSet.addTool(tool2));
 
-		/** MCP tool in a MCP tool set */
 
 		const mcpDataSource: ToolDataSource = { type: 'mcp', label: 'My MCP Server', serverLabel: 'MCP Server', instructions: undefined, collectionId: 'testMCPCollection', definitionId: 'testMCPDefId' };
 		const mcpTool1: IToolData = {
@@ -475,7 +446,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(toolData2));
 		store.add(service.registerToolData(toolData3));
 
-		// getToolByName searches all tools regardless of when clause
 		assert.strictEqual(service.getToolByName('testTool1')?.id, 'testTool1');
 		assert.strictEqual(service.getToolByName('testTool2')?.id, 'testTool2');
 		assert.strictEqual(service.getToolByName('testTool3')?.id, 'testTool3');
@@ -582,7 +552,6 @@ suite('LanguageModelToolsService', () => {
 				}
 			}),
 			invoke: async (invocation) => {
-				// The service should replace parameters with rawInput and strip toolSpecificData
 				assert.deepStrictEqual(invocation.parameters, rawInput);
 				assert.strictEqual(invocation.toolSpecificData, undefined);
 				return { content: [{ kind: 'text', value: 'ok' }] };
@@ -627,11 +596,9 @@ suite('LanguageModelToolsService', () => {
 		const published = await waitForPublishedInvocation(capture);
 		assert.ok(published, 'expected ChatToolInvocation to be published');
 		assert.strictEqual(published.toolId, tool.id);
-		// The service should have injected input toolSpecificData with the raw parameters
 		assert.strictEqual(published.toolSpecificData?.kind, 'input');
 		assert.deepStrictEqual(published.toolSpecificData?.rawInput, dto.parameters);
 
-		// Confirm to let invoke proceed
 		IChatToolInvocation.confirmWith(published, { type: ToolConfirmKind.UserAction });
 		const result = await invokeP;
 		assert.strictEqual(result.content[0].value, 'done');
@@ -882,7 +849,7 @@ suite('LanguageModelToolsService', () => {
 		const userToolSet = service.getToolSet('userToolSet');
 		const unknownTool = { id: 'unregisteredTool', toolReferenceName: 'unregisteredToolRefName', modelDescription: 'Unregistered Tool', displayName: 'Unregistered Tool', source: ToolDataSource.Internal, canBeReferencedInPrompt: true } satisfies IToolData;
 		const unknownToolSet = service.createToolSet(ToolDataSource.Internal, 'unknownToolSet', 'unknownToolSetRefName', { description: 'Unknown Test Set' });
-		unknownToolSet.dispose(); // unregister the set
+		unknownToolSet.dispose();
 		assert.ok(tool1);
 		assert.ok(extTool1);
 		assert.ok(mcpTool1);
@@ -891,25 +858,19 @@ suite('LanguageModelToolsService', () => {
 		assert.ok(internalTool);
 		assert.ok(userToolSet);
 
-		// Test with some enabled tool
 		{
-			// creating a map by hand is a no-go, we just do it for this test
 			const map = ToolAndToolSetEnablementMap.fromEntries([[tool1, true], [extTool1, true], [mcpToolSet, true], [mcpTool1, true]]);
 			const fullReferenceNames = service.toFullReferenceNames(map);
 			const expectedFullReferenceNames = ['tool1RefName', 'my.extension/extTool1RefName', 'mcpToolSetRefName/*'];
 			assert.deepStrictEqual(fullReferenceNames.sort(), expectedFullReferenceNames.sort(), 'toFullReferenceNames should return the original enabled names');
 		}
-		// Test with user data
 		{
-			// creating a map by hand is a no-go, we just do it for this test
 			const map = ToolAndToolSetEnablementMap.fromEntries([[tool1, true], [userToolSet, true], [internalToolSet, false], [internalTool, true]]);
 			const fullReferenceNames = service.toFullReferenceNames(map);
 			const expectedFullReferenceNames = ['tool1RefName', 'internalToolSetRefName/internalToolSetTool1RefName'];
 			assert.deepStrictEqual(fullReferenceNames.sort(), expectedFullReferenceNames.sort(), 'toFullReferenceNames should return the original enabled names');
 		}
-		// Test with unknown tool and tool set
 		{
-			// creating a map by hand is a no-go, we just do it for this test
 			const map = ToolAndToolSetEnablementMap.fromEntries([[unknownTool, true], [unknownToolSet, true], [internalToolSet, true], [internalTool, true]]);
 			const fullReferenceNames = service.toFullReferenceNames(map);
 			const expectedFullReferenceNames = ['internalToolSetRefName'];
@@ -931,14 +892,12 @@ suite('LanguageModelToolsService', () => {
 		assert.ok(internalToolSet);
 		assert.ok(internalTool);
 
-		// Tools and tool sets resolve back to their qualified full reference names.
 		assert.strictEqual(service.getFullReferenceName(extTool1), 'my.extension/extTool1RefName');
 		assert.strictEqual(service.getFullReferenceName(mcpToolSet), 'mcpToolSetRefName/*');
 		assert.strictEqual(service.getFullReferenceName(mcpTool1), 'mcpToolSetRefName/mcpTool1RefName');
 		assert.strictEqual(service.getFullReferenceName(internalToolSet), 'internalToolSetRefName');
 		assert.strictEqual(service.getFullReferenceName(internalTool), 'internalToolSetRefName/internalToolSetTool1RefName');
 
-		// Round-trip: the produced full reference name resolves back to the same item.
 		for (const item of [extTool1, mcpToolSet, mcpTool1, internalToolSet, internalTool]) {
 			assert.strictEqual(service.getToolByFullReferenceName(service.getFullReferenceName(item)), item);
 		}
@@ -961,7 +920,7 @@ suite('LanguageModelToolsService', () => {
 			'read',
 			'agent'
 		];
-		const numOfTools = allFullReferenceNames.length + 1; // +1 for userToolSet which has no full reference name but is a tool set
+		const numOfTools = allFullReferenceNames.length + 1;
 
 		const tool1 = service.getToolByFullReferenceName('tool1RefName');
 		const tool2 = service.getToolByFullReferenceName('Tool2 Display Name');
@@ -987,7 +946,6 @@ suite('LanguageModelToolsService', () => {
 		assert.ok(executeToolSet);
 		assert.ok(readToolSet);
 		assert.ok(agentToolSet);
-		// Test with enabled tool
 		{
 			const fullReferenceNames = ['tool1RefName'];
 			const result1 = service.toToolAndToolSetEnablementMap(fullReferenceNames, undefined);
@@ -999,7 +957,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames1.sort(), fullReferenceNames.sort(), 'toFullReferenceNames should return the original enabled names');
 
 		}
-		// Test with multiple enabled tools
 		{
 			const fullReferenceNames = ['my.extension/extTool1RefName', 'mcpToolSetRefName/*', 'internalToolSetRefName/internalToolSetTool1RefName'];
 			const result1 = service.toToolAndToolSetEnablementMap(fullReferenceNames, undefined);
@@ -1013,17 +970,15 @@ suite('LanguageModelToolsService', () => {
 			const fullReferenceNames1 = service.toFullReferenceNames(result1);
 			assert.deepStrictEqual(fullReferenceNames1.sort(), fullReferenceNames.sort(), 'toFullReferenceNames should return the expected names');
 		}
-		// Test with all enabled tools, redundant names
 		{
 			const result1 = service.toToolAndToolSetEnablementMap(allFullReferenceNames, undefined);
 			assert.strictEqual(result1.size, numOfTools, `Expected ${numOfTools} tools and tool sets`);
-			assert.strictEqual([...result1.entries()].filter(([_, enabled]) => enabled).length, 12, 'Expected 12 tools to be enabled'); // +4 including the vscode, execute, read, agent toolsets
+			assert.strictEqual([...result1.entries()].filter(([_, enabled]) => enabled).length, 12, 'Expected 12 tools to be enabled');
 
 			const fullReferenceNames1 = service.toFullReferenceNames(result1);
 			const expectedFullReferenceNames = ['tool1RefName', 'Tool2 Display Name', 'my.extension/extTool1RefName', 'mcpToolSetRefName/*', 'internalToolSetRefName', 'vscode', 'execute', 'read', 'agent'];
 			assert.deepStrictEqual(fullReferenceNames1.sort(), expectedFullReferenceNames.sort(), 'toFullReferenceNames should return the original enabled names');
 		}
-		// Test with no enabled tools
 		{
 			const fullReferenceNames: string[] = [];
 			const result1 = service.toToolAndToolSetEnablementMap(fullReferenceNames, undefined);
@@ -1033,7 +988,6 @@ suite('LanguageModelToolsService', () => {
 			const fullReferenceNames1 = service.toFullReferenceNames(result1);
 			assert.deepStrictEqual(fullReferenceNames1.sort(), fullReferenceNames.sort(), 'toFullReferenceNames should return the original enabled names');
 		}
-		// Test with unknown tool
 		{
 			const fullReferenceNames: string[] = ['unknownToolRefName'];
 			const result1 = service.toToolAndToolSetEnablementMap(fullReferenceNames, undefined);
@@ -1043,7 +997,6 @@ suite('LanguageModelToolsService', () => {
 			const fullReferenceNames1 = service.toFullReferenceNames(result1);
 			assert.deepStrictEqual(fullReferenceNames1.sort(), [], 'toFullReferenceNames should return no enabled names');
 		}
-		// Test with legacy tool names
 		{
 			const fullReferenceNames: string[] = ['extTool1RefName', 'mcpToolSetRefName', 'internalToolSetTool1RefName'];
 			const result1 = service.toToolAndToolSetEnablementMap(fullReferenceNames, undefined);
@@ -1058,7 +1011,6 @@ suite('LanguageModelToolsService', () => {
 			const expectedFullReferenceNames: string[] = ['my.extension/extTool1RefName', 'mcpToolSetRefName/*', 'internalToolSetRefName/internalToolSetTool1RefName'];
 			assert.deepStrictEqual(fullReferenceNames1.sort(), expectedFullReferenceNames.sort(), 'toFullReferenceNames should return the original enabled names');
 		}
-		// Test with tool in user tool set
 		{
 			const fullReferenceNames = ['Tool2 Display Name'];
 			const result1 = service.toToolAndToolSetEnablementMap(fullReferenceNames, undefined);
@@ -1074,7 +1026,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('toToolAndToolSetEnablementMap with extension tool', () => {
-		// Register individual tools
 		const toolData1: IToolData = {
 			id: 'tool1',
 			toolReferenceName: 'refTool1',
@@ -1086,7 +1037,6 @@ suite('LanguageModelToolsService', () => {
 
 		store.add(service.registerToolData(toolData1));
 
-		// Test enabling the tool set
 		const enabledNames = [toolData1].map(t => service.getFullReferenceName(t));
 		const result = service.toToolAndToolSetEnablementMap(enabledNames, undefined);
 
@@ -1097,7 +1047,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('toToolAndToolSetEnablementMap with tool sets', () => {
-		// Register individual tools
 		const toolData1: IToolData = {
 			id: 'tool1',
 			toolReferenceName: 'refTool1',
@@ -1118,7 +1067,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(toolData1));
 		store.add(service.registerToolData(toolData2));
 
-		// Create a tool set
 		const toolSet = store.add(service.createToolSet(
 			ToolDataSource.Internal,
 			'testToolSet',
@@ -1126,7 +1074,6 @@ suite('LanguageModelToolsService', () => {
 			{ description: 'Test Tool Set' }
 		));
 
-		// Add tools to the tool set
 		const toolSetTool1: IToolData = {
 			id: 'toolSetTool1',
 			modelDescription: 'Tool Set Tool 1',
@@ -1146,7 +1093,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(toolSet.addTool(toolSetTool1));
 		store.add(toolSet.addTool(toolSetTool2));
 
-		// Test enabling the tool set
 		const enabledNames = [toolSet, toolData1].map(t => service.getFullReferenceName(t));
 		const result = service.toToolAndToolSetEnablementMap(enabledNames, undefined);
 
@@ -1216,25 +1162,21 @@ suite('LanguageModelToolsService', () => {
 			canBeReferencedInPrompt: true,
 		};
 
-		// Test with non-existent tool names
 		const enabledNames = [toolData, unregisteredToolData].map(t => service.getFullReferenceName(t));
 		const result = service.toToolAndToolSetEnablementMap(enabledNames, undefined);
 
 		assert.strictEqual(result.get(toolData), true, 'existing tool should be enabled');
-		// Non-existent tools should not appear in the result map
 		assert.strictEqual(result.get(unregisteredToolData), undefined, 'non-existent tool should not be in result');
 
 		const fullReferenceNames = service.toFullReferenceNames(result);
-		const expectedNames = [service.getFullReferenceName(toolData)]; // Only the existing tool
+		const expectedNames = [service.getFullReferenceName(toolData)];
 		assert.deepStrictEqual(fullReferenceNames.sort(), expectedNames.sort(), 'toFullReferenceNames should return the original enabled names');
 
 	});
 
 
 	test('toToolAndToolSetEnablementMap with legacy names', () => {
-		// Test that legacy tool reference names and legacy toolset names work correctly
 
-		// Create a tool with legacy reference names
 		const toolWithLegacy: IToolData = {
 			id: 'newTool',
 			toolReferenceName: 'newToolRef',
@@ -1246,7 +1188,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(toolWithLegacy));
 
-		// Create a tool set with legacy names
 		const toolSetWithLegacy = store.add(service.createToolSet(
 			ToolDataSource.Internal,
 			'newToolSet',
@@ -1254,7 +1195,6 @@ suite('LanguageModelToolsService', () => {
 			{ description: 'New Tool Set', legacyFullNames: ['oldToolSet', 'deprecatedToolSet'] }
 		));
 
-		// Create a tool in the toolset
 		const toolInSet: IToolData = {
 			id: 'toolInSet',
 			toolReferenceName: 'toolInSetRef',
@@ -1265,7 +1205,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(toolInSet));
 		store.add(toolSetWithLegacy.addTool(toolInSet));
 
-		// Test 1: Using legacy tool reference name should enable the tool
 		{
 			const result = service.toToolAndToolSetEnablementMap(['oldToolName'], undefined);
 			assert.strictEqual(result.get(toolWithLegacy), true, 'tool should be enabled via legacy name');
@@ -1274,7 +1213,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames, ['newToolRef'], 'should return current full reference name, not legacy');
 		}
 
-		// Test 2: Using another legacy tool reference name should also work
 		{
 			const result = service.toToolAndToolSetEnablementMap(['deprecatedToolName'], undefined);
 			assert.strictEqual(result.get(toolWithLegacy), true, 'tool should be enabled via another legacy name');
@@ -1283,7 +1221,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames, ['newToolRef'], 'should return current full reference name, not legacy');
 		}
 
-		// Test 3: Using legacy toolset name should enable the entire toolset
 		{
 			const result = service.toToolAndToolSetEnablementMap(['oldToolSet'], undefined);
 			assert.strictEqual(result.get(toolSetWithLegacy), true, 'toolset should be enabled via legacy name');
@@ -1293,7 +1230,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames, ['newToolSetRef'], 'should return current full reference name, not legacy');
 		}
 
-		// Test 4: Using deprecated toolset name should also work
 		{
 			const result = service.toToolAndToolSetEnablementMap(['deprecatedToolSet'], undefined);
 			assert.strictEqual(result.get(toolSetWithLegacy), true, 'toolset should be enabled via another legacy name');
@@ -1303,7 +1239,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames, ['newToolSetRef'], 'should return current full reference name, not legacy');
 		}
 
-		// Test 5: Mix of current and legacy names
 		{
 			const result = service.toToolAndToolSetEnablementMap(['newToolRef', 'oldToolSet'], undefined);
 			assert.strictEqual(result.get(toolWithLegacy), true, 'tool should be enabled via current name');
@@ -1314,7 +1249,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames.sort(), ['newToolRef', 'newToolSetRef'].sort(), 'should return current full reference names');
 		}
 
-		// Test 6: Using legacy names and current names together (redundant but should work)
 		{
 			const result = service.toToolAndToolSetEnablementMap(['newToolRef', 'oldToolName', 'deprecatedToolName'], undefined);
 			assert.strictEqual(result.get(toolWithLegacy), true, 'tool should be enabled (redundant legacy names should not cause issues)');
@@ -1325,10 +1259,7 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('toToolAndToolSetEnablementMap with orphaned toolset in legacy names', () => {
-		// Test that when a tool has a legacy name with a toolset prefix, but that toolset no longer exists,
-		// we can enable the tool by either the full legacy name OR just the orphaned toolset name
 
-		// Create a tool that used to be in 'oldToolSet/oldToolName' but now is just 'newToolRef'
 		const toolWithOrphanedToolSet: IToolData = {
 			id: 'migratedTool',
 			toolReferenceName: 'newToolRef',
@@ -1340,7 +1271,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(toolWithOrphanedToolSet));
 
-		// Test 1: Using the full legacy name should enable the tool
 		{
 			const result = service.toToolAndToolSetEnablementMap(['oldToolSet/oldToolName'], undefined);
 			assert.strictEqual(result.get(toolWithOrphanedToolSet), true, 'tool should be enabled via full legacy name');
@@ -1349,7 +1279,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames, ['newToolRef'], 'should return current full reference name');
 		}
 
-		// Test 2: Using just the orphaned toolset name should also enable the tool
 		{
 			const result = service.toToolAndToolSetEnablementMap(['oldToolSet'], undefined);
 			assert.strictEqual(result.get(toolWithOrphanedToolSet), true, 'tool should be enabled via orphaned toolset name');
@@ -1358,7 +1287,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames, ['newToolRef'], 'should return current full reference name');
 		}
 
-		// Test 3: Multiple tools from the same orphaned toolset
 		const anotherToolFromOrphanedSet: IToolData = {
 			id: 'anotherMigratedTool',
 			toolReferenceName: 'anotherNewToolRef',
@@ -1379,7 +1307,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames.sort(), ['newToolRef', 'anotherNewToolRef'].sort(), 'should return both current full reference names');
 		}
 
-		// Test 4: Orphaned toolset name should NOT enable tools that weren't in that toolset
 		const unrelatedTool: IToolData = {
 			id: 'unrelatedTool',
 			toolReferenceName: 'unrelatedToolRef',
@@ -1401,11 +1328,10 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(fullReferenceNames.sort(), ['newToolRef', 'anotherNewToolRef'].sort(), 'should only return tools from oldToolSet');
 		}
 
-		// Test 5: If a toolset with the same name exists, it should take precedence over orphaned toolset mapping
 		const newToolSetWithSameName = store.add(service.createToolSet(
 			ToolDataSource.Internal,
 			'recreatedToolSet',
-			'oldToolSet',  // Same name as the orphaned toolset
+			'oldToolSet',
 			{ description: 'Recreated Tool Set' }
 		));
 
@@ -1421,15 +1347,12 @@ suite('LanguageModelToolsService', () => {
 
 		{
 			const result = service.toToolAndToolSetEnablementMap(['oldToolSet'], undefined);
-			// Now 'oldToolSet' should enable BOTH the recreated toolset AND the tools with legacy names pointing to oldToolSet
 			assert.strictEqual(result.get(newToolSetWithSameName), true, 'recreated toolset should be enabled');
 			assert.strictEqual(result.get(toolInRecreatedSet), true, 'tool in recreated set should be enabled');
-			// The tools with legacy toolset names should ALSO be enabled because their legacy names match
 			assert.strictEqual(result.get(toolWithOrphanedToolSet), true, 'tool with legacy toolset should still be enabled');
 			assert.strictEqual(result.get(anotherToolFromOrphanedSet), true, 'another tool with legacy toolset should still be enabled');
 
 			const fullReferenceNames = service.toFullReferenceNames(result);
-			// Should return the toolset name plus the individual tools that were enabled via legacy names
 			assert.deepStrictEqual(fullReferenceNames.sort(), ['oldToolSet', 'newToolRef', 'anotherNewToolRef'].sort(), 'should return toolset and individual tools');
 		}
 	});
@@ -1539,7 +1462,6 @@ suite('LanguageModelToolsService', () => {
 		}
 
 		{
-			// the speced names should work and not be altered
 			const toolNames = ['github/create_branch', 'playwright/browser_click'];
 			const result = service.toToolAndToolSetEnablementMap(toolNames, undefined);
 
@@ -1555,7 +1477,6 @@ suite('LanguageModelToolsService', () => {
 		}
 
 		{
-			// using the old MCP full names should also work
 			const toolNames = ['github/github-mcp-server/*', 'microsoft/playwright-mcp/*'];
 			const result = service.toToolAndToolSetEnablementMap(toolNames, undefined);
 
@@ -1570,7 +1491,6 @@ suite('LanguageModelToolsService', () => {
 			assert.deepStrictEqual(deprecatesTo('microsoft/playwright-mcp/*'), ['playwright/*']);
 		}
 		{
-			// using the old MCP full names should also work
 			const toolNames = ['github/github-mcp-server/create_branch', 'microsoft/playwright-mcp/browser_click'];
 			const result = service.toToolAndToolSetEnablementMap(toolNames, undefined);
 
@@ -1586,7 +1506,6 @@ suite('LanguageModelToolsService', () => {
 		}
 
 		{
-			// using the latest MCP full names should also work
 			const toolNames = ['io.github.github/github-mcp-server/*', 'com.microsoft/playwright-mcp/*'];
 			const result = service.toToolAndToolSetEnablementMap(toolNames, undefined);
 
@@ -1602,7 +1521,6 @@ suite('LanguageModelToolsService', () => {
 		}
 
 		{
-			// using the latest MCP full names should also work
 			const toolNames = ['io.github.github/github-mcp-server/create_branch', 'com.microsoft/playwright-mcp/browser_click'];
 			const result = service.toToolAndToolSetEnablementMap(toolNames, undefined);
 
@@ -1618,7 +1536,6 @@ suite('LanguageModelToolsService', () => {
 		}
 
 		{
-			// using the old MCP full names should also work
 			const toolNames = ['github-mcp-server/create_branch'];
 			const result = service.toToolAndToolSetEnablementMap(toolNames, undefined);
 
@@ -1634,12 +1551,10 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('accessibility signal for tool confirmation', async () => {
-		// Create a test accessibility service that simulates screen reader being enabled
 		const testAccessibilityService = new class extends TestAccessibilityService {
 			override isScreenReaderOptimized(): boolean { return true; }
 		}();
 
-		// Create a test accessibility signal service that tracks calls
 		const testAccessibilitySignalService = new TestAccessibilitySignalService();
 
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
@@ -1675,26 +1590,22 @@ suite('LanguageModelToolsService', () => {
 		assert.ok(published, 'expected ChatToolInvocation to be published');
 		assert.ok(published.confirmationMessages, 'should have confirmation messages');
 
-		// The accessibility signal should have been played
 		assert.strictEqual(testAccessibilitySignalService.signalPlayedCalls.length, 1, 'accessibility signal should have been played once');
 		const signalCall = testAccessibilitySignalService.signalPlayedCalls[0];
 		assert.strictEqual(signalCall.signal, AccessibilitySignal.chatUserActionRequired, 'correct signal should be played');
 		assert.ok(signalCall.options?.customAlertMessage.includes('Accessibility Test'), 'alert message should include tool title');
 		assert.ok(signalCall.options?.customAlertMessage.includes('Chat confirmation required'), 'alert message should include confirmation text');
 
-		// Complete the invocation
 		IChatToolInvocation.confirmWith(published, { type: ToolConfirmKind.UserAction });
 		const result = await promise;
 		assert.strictEqual(result.content[0].value, 'executed');
 	});
 
 	test('accessibility signal respects autoApprove configuration', async () => {
-		// Create a test accessibility service that simulates screen reader being enabled
 		const testAccessibilityService = new class extends TestAccessibilityService {
 			override isScreenReaderOptimized(): boolean { return true; }
 		}();
 
-		// Create a test accessibility signal service that tracks calls
 		const testAccessibilitySignalService = new TestAccessibilitySignalService();
 
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
@@ -1724,10 +1635,8 @@ suite('LanguageModelToolsService', () => {
 
 		const dto = tool.makeDto({ config: 'test' }, { sessionId });
 
-		// When auto-approve is enabled, tool should complete without user intervention
 		const result = await testService.invokeTool(dto, async () => 0, CancellationToken.None);
 
-		// Verify the tool completed and no accessibility signal was played
 		assert.strictEqual(result.content[0].value, 'auto approved');
 		assert.strictEqual(testAccessibilitySignalService.signalPlayedCalls.length, 0, 'accessibility signal should not be played when auto-approve is enabled');
 	});
@@ -1736,7 +1645,7 @@ suite('LanguageModelToolsService', () => {
 		// When autopilot is on, tools should auto-approve without needing global auto-approve enabled
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
-				config.setUserConfiguration('chat.tools.global.autoApprove', false); // Global OFF
+				config.setUserConfiguration('chat.tools.global.autoApprove', false);
 			}
 		});
 
@@ -1761,7 +1670,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('autopilot finds correct request by chatRequestId', async () => {
-		// When chatRequestId is provided, the exact request should be matched
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration('chat.tools.global.autoApprove', false);
@@ -1792,8 +1700,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('autopilot auto-approves terminal tool with confirmation messages', async () => {
-		// Terminal tools always return confirmationMessages when their own auto-approve is off.
-		// In autopilot mode, shouldAutoConfirm should still auto-approve the tool.
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration('chat.tools.global.autoApprove', false);
@@ -1823,7 +1729,6 @@ suite('LanguageModelToolsService', () => {
 			modeInfo: { permissionLevel: ChatPermissionLevel.Autopilot },
 		});
 
-		// Terminal tool should be auto-approved by autopilot even without terminal auto-approve enabled
 		const result = await testService.invokeTool(
 			tool.makeDto({ command: 'echo hello', explanation: 'test', goal: 'test', isBackground: false }, { sessionId }),
 			async () => 0,
@@ -1921,8 +1826,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('autopilot risk gate classifies a terminal command even when it has no confirmation', async () => {
-		// run_in_terminal suppresses its own confirmation under auto-approve sessions, so the
-		// gate must classify it anyway; a red command is skipped despite the missing confirmation.
 		const setup = createTestToolsService(store);
 		setup.riskAssessmentService.enabled = true;
 		setup.riskAssessmentService.assessment = { risk: ToolRiskLevel.Red, explanation: 'Force-pushes main, overwriting history.' };
@@ -1941,7 +1844,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('autopilot risk gate runs a non-red terminal command that has no confirmation', async () => {
-		// A terminal command is always classified in Autopilot, but a non-red verdict still runs.
 		const setup = createTestToolsService(store);
 		setup.riskAssessmentService.enabled = true;
 		setup.riskAssessmentService.assessment = { risk: ToolRiskLevel.Orange, explanation: 'Installs a package.' };
@@ -1956,9 +1858,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('autopilot risk gate classifies a fetch web page call even when it has no confirmation', async () => {
-		// Fetch web page tools auto-approve themselves (URL in the prompt / trusted domain) and so
-		// surface no confirmation; the gate must classify them anyway so a dangerous URL (e.g. one
-		// injected into the prompt to exfiltrate secrets) is still skipped when assessed red.
 		const setup = createTestToolsService(store);
 		setup.riskAssessmentService.enabled = true;
 		setup.riskAssessmentService.assessment = { risk: ToolRiskLevel.Red, explanation: 'Sends workspace secrets to an untrusted host.' };
@@ -1977,7 +1876,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('autopilot risk gate runs a non-red fetch web page call that has no confirmation', async () => {
-		// A fetch is always classified in Autopilot, but a non-red verdict still runs.
 		const setup = createTestToolsService(store);
 		setup.riskAssessmentService.enabled = true;
 		setup.riskAssessmentService.assessment = { risk: ToolRiskLevel.Green, explanation: 'Fetches public documentation.' };
@@ -2020,9 +1918,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('autopilot risk gate runs even when the risk assessment badge setting is disabled', async () => {
-		// The gate is independent of chat.tools.riskAssessment.enabled (which only controls the
-		// confirmation risk badge): a red verdict still skips the call. Also verifies the gate
-		// passes ignoreEnablement — without it the stub would return undefined and the tool would run.
 		const setup = createTestToolsService(store);
 		setup.riskAssessmentService.enabled = false;
 		setup.riskAssessmentService.assessment = { risk: ToolRiskLevel.Red, explanation: 'Deletes source files irreversibly.' };
@@ -2048,7 +1943,6 @@ suite('LanguageModelToolsService', () => {
 
 		const result = await t.invoke();
 
-		// The skip must still read as an automated risk-skip, never the user-skip fallback message.
 		assert.deepStrictEqual(
 			{
 				invoked: t.wasInvoked(),
@@ -2066,8 +1960,6 @@ suite('LanguageModelToolsService', () => {
 		setup.riskAssessmentService.assessment = { risk: ToolRiskLevel.Red, explanation: 'Deletes source files irreversibly.' };
 		const t = setupRiskGateTool(setup, store);
 
-		// Cancel synchronously while the classifier is running: the gate must abandon the
-		// assessment and propagate cancellation rather than mask it as a risk-skip result.
 		const cts = store.add(new CancellationTokenSource());
 		setup.riskAssessmentService.onAssess = () => cts.cancel();
 
@@ -2084,8 +1976,6 @@ suite('LanguageModelToolsService', () => {
 		setup.riskAssessmentService.assessment = { risk: ToolRiskLevel.Red, explanation: 'Deletes source files irreversibly.' };
 		const t = setupRiskGateTool(setup, store);
 
-		// The tool invocation part hides itself after completion, so the reason is surfaced
-		// as a separate info note appended to the response stream.
 		const progresses: IChatProgress[] = [];
 		setup.chatService.appendProgress = (_request, progress) => { progresses.push(progress); };
 
@@ -2146,7 +2036,6 @@ suite('LanguageModelToolsService', () => {
 			}
 		});
 
-		// Register a tool with the ID that should never be auto-approved
 		registerToolForTest(testService, store, 'vscode_get_modified_files_confirmation', {
 			prepareToolInvocation: async () => ({
 				confirmationMessages: {
@@ -2157,7 +2046,6 @@ suite('LanguageModelToolsService', () => {
 			invoke: async () => ({ content: [{ kind: 'text', value: 'confirmed' }] })
 		});
 
-		// Create a CLI session URI (authority = 'copilotcli' instead of 'local')
 		const sessionId = 'test-bypass-no-auto-confirm';
 		const cliSessionResource = URI.from({
 			scheme: LocalChatSessionUri.scheme,
@@ -2188,7 +2076,6 @@ suite('LanguageModelToolsService', () => {
 			CancellationToken.None
 		);
 
-		// The tool should NOT be auto-approved for CLI sessions — it must show confirmation UI
 		const published = await waitForPublishedInvocation(capture);
 		assert.ok(published?.confirmationMessages, 'tool in toolIdsThatCannotBeAutoApproved should require confirmation for CLI sessions even with Bypass Approvals');
 
@@ -2204,7 +2091,6 @@ suite('LanguageModelToolsService', () => {
 			}
 		});
 
-		// Register a tool with the ID that cannot be auto-approved for CLI
 		const tool = registerToolForTest(testService, store, 'vscode_get_modified_files_confirmation', {
 			prepareToolInvocation: async () => ({
 				confirmationMessages: {
@@ -2221,7 +2107,6 @@ suite('LanguageModelToolsService', () => {
 			modeInfo: { permissionLevel: ChatPermissionLevel.AutoApprove },
 		});
 
-		// For local sessions, Bypass Approvals should auto-approve even these tools
 		const result = await testService.invokeTool(
 			tool.makeDto({ test: true }, { sessionId }),
 			async () => 0,
@@ -2231,14 +2116,12 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('shouldAutoConfirm with basic configuration', async () => {
-		// Test basic shouldAutoConfirm behavior with simple configuration
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
-				config.setUserConfiguration('chat.tools.global.autoApprove', true); // Global enabled
+				config.setUserConfiguration('chat.tools.global.autoApprove', true);
 			}
 		});
 
-		// Register a tool that should be auto-approved
 		const autoTool = registerToolForTest(testService, store, 'autoTool', {
 			prepareToolInvocation: async () => ({ confirmationMessages: { title: 'Test', message: 'Should auto-approve' } }),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'auto approved' }] })
@@ -2257,7 +2140,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('shouldAutoConfirm with per-tool configuration object', async () => {
-		// Test per-tool configuration: { toolId: true/false }
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration('chat.tools.global.autoApprove', {
@@ -2267,7 +2149,6 @@ suite('LanguageModelToolsService', () => {
 			}
 		});
 
-		// Tool explicitly approved
 		const approvedTool = registerToolForTest(testService, store, 'approvedTool', {
 			prepareToolInvocation: async () => ({ confirmationMessages: { title: 'Test', message: 'Should auto-approve' } }),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'approved' }] })
@@ -2276,7 +2157,6 @@ suite('LanguageModelToolsService', () => {
 		const sessionId = 'test-per-tool';
 		stubGetSession(testChatService, sessionId, { requestId: 'req1' });
 
-		// Approved tool should auto-approve
 		const approvedResult = await testService.invokeTool(
 			approvedTool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -2284,7 +2164,6 @@ suite('LanguageModelToolsService', () => {
 		);
 		assert.strictEqual(approvedResult.content[0].value, 'approved');
 
-		// Test that non-specified tools require confirmation (default behavior)
 		const unspecifiedTool = registerToolForTest(testService, store, 'unspecifiedTool', {
 			prepareToolInvocation: async () => ({ confirmationMessages: { title: 'Test', message: 'Should require confirmation' } }),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'unspecified' }] })
@@ -2306,7 +2185,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('eligibleForAutoApproval setting controls tool eligibility', async () => {
-		// Test the new eligibleForAutoApproval setting
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration(ChatConfiguration.EligibleForAutoApproval, {
@@ -2316,7 +2194,6 @@ suite('LanguageModelToolsService', () => {
 			}
 		});
 
-		// Tool explicitly marked as eligible (using toolReferenceName) - no confirmation needed
 		const eligibleTool = registerToolForTest(testService, store, 'eligibleTool', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'eligible tool ran' }] })
@@ -2327,7 +2204,6 @@ suite('LanguageModelToolsService', () => {
 		const sessionId = 'test-eligible';
 		stubGetSession(testChatService, sessionId, { requestId: 'req1' });
 
-		// Eligible tool should not get default confirmation messages injected
 		const eligibleResult = await testService.invokeTool(
 			eligibleTool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -2335,7 +2211,6 @@ suite('LanguageModelToolsService', () => {
 		);
 		assert.strictEqual(eligibleResult.content[0].value, 'eligible tool ran');
 
-		// Tool explicitly marked as ineligible (using toolReferenceName) - must require confirmation
 		const ineligibleTool = registerToolForTest(testService, store, 'ineligibleTool', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'ineligible requires confirmation' }] })
@@ -2359,7 +2234,6 @@ suite('LanguageModelToolsService', () => {
 		const ineligibleResult = await ineligiblePromise;
 		assert.strictEqual(ineligibleResult.content[0].value, 'ineligible requires confirmation');
 
-		// Tool not specified should default to eligible - no confirmation needed
 		const unspecifiedTool = registerToolForTest(testService, store, 'unspecifiedTool', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'unspecified defaults to eligible' }] })
@@ -2404,7 +2278,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('tool content formatting with alwaysDisplayInputOutput', async () => {
-		// Test ensureToolDetails, formatToolInput, and toolResultToIO
 		const toolData: IToolData = {
 			id: 'formatTool',
 			modelDescription: 'Format Test Tool',
@@ -2430,29 +2303,24 @@ suite('LanguageModelToolsService', () => {
 			CancellationToken.None
 		);
 
-		// Should have tool result details because alwaysDisplayInputOutput = true
 		assert.ok(result.toolResultDetails, 'should have toolResultDetails');
 		const details = result.toolResultDetails;
 		assert.ok(isToolResultInputOutputDetails(details));
 
-		// Test formatToolInput - should be formatted JSON
 		const expectedInputJson = JSON.stringify(input, undefined, 2);
 		assert.strictEqual(details.input, expectedInputJson, 'input should be formatted JSON');
 
-		// Test toolResultToIO - should convert different content types
 		assert.strictEqual(details.output.length, 2, 'should have 2 output items');
 
-		// Text content
 		const textOutput = details.output[0];
 		assert.strictEqual(textOutput.type, 'embed');
 		assert.strictEqual(textOutput.isText, true);
 		assert.strictEqual(textOutput.value, 'Text result');
 
-		// Data content (base64 encoded)
 		const dataOutput = details.output[1];
 		assert.strictEqual(dataOutput.type, 'embed');
 		assert.strictEqual(dataOutput.mimeType, 'application/octet-stream');
-		assert.strictEqual(dataOutput.value, 'AQID'); // base64 of [1,2,3]
+		assert.strictEqual(dataOutput.value, 'AQID');
 	});
 
 	test('tool error handling and telemetry', async () => {
@@ -2462,7 +2330,6 @@ suite('LanguageModelToolsService', () => {
 			telemetryService: testTelemetryService
 		});
 
-		// Test successful invocation telemetry
 		const successTool = registerToolForTest(testService, store, 'successTool', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'success' }] })
@@ -2477,7 +2344,6 @@ suite('LanguageModelToolsService', () => {
 			CancellationToken.None
 		);
 
-		// Check success telemetry
 		const successEvents = testTelemetryService.events.filter(e => e.eventName === 'languageModelToolInvoked');
 		assert.strictEqual(successEvents.length, 1, 'should have success telemetry event');
 		assert.strictEqual(successEvents[0].data.result, 'success');
@@ -2486,7 +2352,6 @@ suite('LanguageModelToolsService', () => {
 
 		testTelemetryService.reset();
 
-		// Test error telemetry
 		const errorTool = registerToolForTest(testService, store, 'errorTool', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => { throw new Error('Tool error'); }
@@ -2502,10 +2367,8 @@ suite('LanguageModelToolsService', () => {
 			);
 			assert.fail('Should have thrown');
 		} catch (err) {
-			// Expected
 		}
 
-		// Check error telemetry
 		const errorEvents = testTelemetryService.events.filter(e => e.eventName === 'languageModelToolInvoked');
 		assert.strictEqual(errorEvents.length, 1, 'should have error telemetry event');
 		assert.strictEqual(errorEvents[0].data.result, 'error');
@@ -2513,18 +2376,14 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('call tracking and cleanup', async () => {
-		// Test that cancelToolCallsForRequest method exists and can be called
-		// (The detailed cancellation behavior is already tested in "cancel tool call" test)
 		const sessionId = 'tracking-session';
 		const requestId = 'tracking-request';
 		stubGetSession(chatService, sessionId, { requestId });
 
-		// Just verify the method exists and doesn't throw
 		assert.doesNotThrow(() => {
 			service.cancelToolCallsForRequest(requestId);
 		}, 'cancelToolCallsForRequest should not throw');
 
-		// Verify calling with non-existent request ID doesn't throw
 		assert.doesNotThrow(() => {
 			service.cancelToolCallsForRequest('non-existent-request');
 		}, 'cancelToolCallsForRequest with non-existent ID should not throw');
@@ -2533,7 +2392,6 @@ suite('LanguageModelToolsService', () => {
 	test('accessibility signal with different settings combinations', async () => {
 		const testAccessibilitySignalService = new TestAccessibilitySignalService();
 
-		// Test case 1: Sound enabled, announcement disabled, screen reader off
 		const testConfigService1 = new TestConfigurationService();
 		testConfigService1.setUserConfiguration('chat.tools.global.autoApprove', false);
 		testConfigService1.setUserConfiguration('accessibility.signals.chatUserActionRequired', { sound: 'on', announcement: 'off' });
@@ -2565,7 +2423,6 @@ suite('LanguageModelToolsService', () => {
 		const promise1 = testService1.invokeTool(tool1.makeDto({ test: 1 }, { sessionId: sessionId1 }), async () => 0, CancellationToken.None);
 		const published1 = await waitForPublishedInvocation(capture1);
 
-		// Signal should be played (sound=on, no screen reader requirement)
 		assert.strictEqual(testAccessibilitySignalService.signalPlayedCalls.length, 1, 'sound should be played when sound=on');
 		const call1 = testAccessibilitySignalService.signalPlayedCalls[0];
 		assert.strictEqual(call1.options?.modality, undefined, 'should use default modality for sound');
@@ -2575,7 +2432,6 @@ suite('LanguageModelToolsService', () => {
 
 		testAccessibilitySignalService.reset();
 
-		// Test case 2: Sound auto, announcement auto, screen reader on
 		const testConfigService2 = new TestConfigurationService();
 		testConfigService2.setUserConfiguration('chat.tools.global.autoApprove', false);
 		testConfigService2.setUserConfiguration('accessibility.signals.chatUserActionRequired', { sound: 'auto', announcement: 'auto' });
@@ -2607,7 +2463,6 @@ suite('LanguageModelToolsService', () => {
 		const promise2 = testService2.invokeTool(tool2.makeDto({ test: 2 }, { sessionId: sessionId2 }), async () => 0, CancellationToken.None);
 		const published2 = await waitForPublishedInvocation(capture2);
 
-		// Signal should be played (both sound and announcement enabled for screen reader)
 		assert.strictEqual(testAccessibilitySignalService.signalPlayedCalls.length, 1, 'signal should be played with screen reader optimization');
 		const call2 = testAccessibilitySignalService.signalPlayedCalls[0];
 		assert.ok(call2.options?.customAlertMessage, 'should have custom alert message');
@@ -2618,7 +2473,6 @@ suite('LanguageModelToolsService', () => {
 
 		testAccessibilitySignalService.reset();
 
-		// Test case 3: Sound off, announcement off - no signal
 		const testConfigService3 = new TestConfigurationService();
 		testConfigService3.setUserConfiguration('chat.tools.global.autoApprove', false);
 		testConfigService3.setUserConfiguration('accessibility.signals.chatUserActionRequired', { sound: 'off', announcement: 'off' });
@@ -2650,7 +2504,6 @@ suite('LanguageModelToolsService', () => {
 		const promise3 = testService3.invokeTool(tool3.makeDto({ test: 3 }, { sessionId: sessionId3 }), async () => 0, CancellationToken.None);
 		const published3 = await waitForPublishedInvocation(capture3);
 
-		// No signal should be played
 		assert.strictEqual(testAccessibilitySignalService.signalPlayedCalls.length, 0, 'no signal should be played when both sound and announcement are off');
 
 		IChatToolInvocation.confirmWith(published3, { type: ToolConfirmKind.UserAction });
@@ -2665,16 +2518,13 @@ suite('LanguageModelToolsService', () => {
 			{ icon: undefined, description: 'Test tool set' }
 		));
 
-		// Should be able to retrieve by ID
 		const retrieved = service.getToolSet('testToolSetId');
 		assert.ok(retrieved);
 		assert.strictEqual(retrieved.id, 'testToolSetId');
 		assert.strictEqual(retrieved.referenceName, 'testToolSetName');
 
-		// Should not find non-existent tool set
 		assert.strictEqual(service.getToolSet('nonExistentId'), undefined);
 
-		// Dispose should remove it
 		toolSet.dispose();
 		assert.strictEqual(service.getToolSet('testToolSetId'), undefined);
 	});
@@ -2692,23 +2542,20 @@ suite('LanguageModelToolsService', () => {
 			'refName2'
 		));
 
-		// Should find by reference name
 		assert.strictEqual(service.getToolSetByName('refName1')?.id, 'toolSet1');
 		assert.strictEqual(service.getToolSetByName('refName2')?.id, 'toolSet2');
 
-		// Should not find non-existent name
 		assert.strictEqual(service.getToolSetByName('nonExistentName'), undefined);
 	});
 
 	test('getTools with includeDisabled parameter', () => {
-		// Test the includeDisabled parameter behavior with context keys
 		contextKeyService.createKey('testKey', false);
 		const disabledTool: IToolData = {
 			id: 'disabledTool',
 			modelDescription: 'Disabled Tool',
 			displayName: 'Disabled Tool',
 			source: ToolDataSource.Internal,
-			when: ContextKeyEqualsExpr.create('testKey', true), // Will be disabled since testKey is false
+			when: ContextKeyEqualsExpr.create('testKey', true),
 		};
 
 		const enabledTool: IToolData = {
@@ -2737,10 +2584,8 @@ suite('LanguageModelToolsService', () => {
 			source: ToolDataSource.Internal,
 		};
 
-		// First registration should succeed
 		store.add(service.registerToolData(toolData));
 
-		// Second registration should throw
 		assert.throws(() => {
 			service.registerToolData(toolData);
 		}, /Tool "duplicateTool" is already registered/);
@@ -2751,7 +2596,6 @@ suite('LanguageModelToolsService', () => {
 			invoke: async () => ({ content: [] }),
 		};
 
-		// Should throw when registering implementation for non-existent tool
 		assert.throws(() => {
 			service.registerToolImplementation('nonExistentTool', toolImpl);
 		}, /Tool "nonExistentTool" was not contributed/);
@@ -2776,7 +2620,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(toolData));
 		store.add(service.registerToolImplementation('testTool', toolImpl1));
 
-		// Second implementation should throw
 		assert.throws(() => {
 			service.registerToolImplementation('testTool', toolImpl2);
 		}, /Tool "testTool" already has an implementation/);
@@ -2815,7 +2658,6 @@ suite('LanguageModelToolsService', () => {
 			context: undefined,
 		};
 
-		// Should throw after attempting extension activation
 		await assert.rejects(
 			service.invokeTool(dto, async () => 0, CancellationToken.None),
 			/Tool extensionActivationTool does not have an implementation registered/
@@ -2830,7 +2672,7 @@ suite('LanguageModelToolsService', () => {
 			}
 		});
 
-		const dto = tool.makeDto({ test: 1 }); // No context
+		const dto = tool.makeDto({ test: 1 });
 
 		const result = await service.invokeTool(dto, async () => 0, CancellationToken.None);
 		assert.strictEqual(result.content[0].value, 'non-chat result');
@@ -2843,13 +2685,11 @@ suite('LanguageModelToolsService', () => {
 
 		const dto = tool.makeDto({ test: 1 }, { sessionId: 'unknownSession' });
 
-		// Test that it throws, regardless of exact error message
 		let threwError = false;
 		try {
 			await service.invokeTool(dto, async () => 0, CancellationToken.None);
 		} catch (err) {
 			threwError = true;
-			// Verify it's one of the expected error types
 			assert.ok(
 				err instanceof Error && (
 					err.message.includes('Tool called for unknown chat session') ||
@@ -2884,8 +2724,6 @@ suite('LanguageModelToolsService', () => {
 			);
 			assert.fail('Should have thrown');
 		} catch (err: any) {
-			// The error should bubble up, but we need to check if toolResultError is set
-			// This tests the internal error handling path
 			assert.strictEqual(err.message, 'Tool execution failed');
 		}
 	});
@@ -2897,7 +2735,6 @@ suite('LanguageModelToolsService', () => {
 		});
 		store.add(disposable);
 
-		// Create a tool with a context key dependency
 		contextKeyService.createKey('dynamicKey', false);
 		const toolData: IToolData = {
 			id: 'contextTool',
@@ -2909,7 +2746,6 @@ suite('LanguageModelToolsService', () => {
 
 		store.add(service.registerToolData(toolData));
 
-		// Change the context key value
 		contextKeyService.createKey('dynamicKey', true);
 
 		service.flushToolUpdates();
@@ -2924,9 +2760,7 @@ suite('LanguageModelToolsService', () => {
 		});
 		store.add(disposable);
 
-		// Change the correct configuration key
 		configurationService.setUserConfiguration('chat.extensionTools.enabled', false);
-		// Fire the configuration change event manually
 		configurationService.onDidChangeConfigurationEmitter.fire({
 			affectsConfiguration: () => true,
 			affectedKeys: new Set(['chat.extensionTools.enabled']),
@@ -2940,7 +2774,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('toToolAndToolSetEnablementMap with MCP toolset enables contained tools', () => {
-		// Create MCP toolset
 		const mcpToolSet = store.add(service.createToolSet(
 			{ type: 'mcp', label: 'testServer', serverLabel: 'testServer', instructions: undefined, collectionId: 'testCollection', definitionId: 'testDef' },
 			'mcpSet',
@@ -2959,24 +2792,22 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(mcpTool));
 		store.add(mcpToolSet.addTool(mcpTool));
 
-		// Enable the MCP toolset
 		{
 			const enabledNames = [mcpToolSet].map(t => service.getFullReferenceName(t));
 			const result = service.toToolAndToolSetEnablementMap(enabledNames, undefined);
 
-			assert.strictEqual(result.get(mcpToolSet), true, 'MCP toolset should be enabled'); // Ensure the toolset is in the map
-			assert.strictEqual(result.get(mcpTool), true, 'MCP tool should be enabled when its toolset is enabled'); // Ensure the tool is in the map
+			assert.strictEqual(result.get(mcpToolSet), true, 'MCP toolset should be enabled');
+			assert.strictEqual(result.get(mcpTool), true, 'MCP tool should be enabled when its toolset is enabled');
 
 			const fullReferenceNames = service.toFullReferenceNames(result);
 			assert.deepStrictEqual(fullReferenceNames.sort(), enabledNames.sort(), 'toFullReferenceNames should return the original enabled names');
 		}
-		// Enable a tool from the MCP toolset
 		{
 			const enabledNames = [mcpTool].map(t => service.getFullReferenceName(t, mcpToolSet));
 			const result = service.toToolAndToolSetEnablementMap(enabledNames, undefined);
 
-			assert.strictEqual(result.get(mcpToolSet), false, 'MCP toolset should be disabled'); // Ensure the toolset is in the map
-			assert.strictEqual(result.get(mcpTool), true, 'MCP tool should be enabled'); // Ensure the tool is in the map
+			assert.strictEqual(result.get(mcpToolSet), false, 'MCP toolset should be disabled');
+			assert.strictEqual(result.get(mcpTool), true, 'MCP tool should be enabled');
 
 			const fullReferenceNames = service.toFullReferenceNames(result);
 			assert.deepStrictEqual(fullReferenceNames.sort(), enabledNames.sort(), 'toFullReferenceNames should return the original enabled names');
@@ -2999,7 +2830,6 @@ suite('LanguageModelToolsService', () => {
 		const sessionId = 'workspace-test';
 		stubGetSession(testChatService, sessionId, { requestId: 'req1' });
 
-		// Should auto-approve based on user configuration
 		const result = await testService.invokeTool(
 			workspaceTool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3035,26 +2865,20 @@ suite('LanguageModelToolsService', () => {
 
 		const deprecatedNames = service.getDeprecatedFullReferenceNames();
 
-		// Tools in internal tool sets should have their full reference names with toolset prefix, tools sets keep their name
 		assert.deepStrictEqual(deprecatedNames.get('internalToolSetTool1RefName'), new Set(['internalToolSetRefName/internalToolSetTool1RefName']));
 		assert.strictEqual(deprecatedNames.get('internalToolSetRefName'), undefined);
 
-		// For extension tools, the full reference name includes the extension ID
 		assert.deepStrictEqual(deprecatedNames.get('extTool1RefName'), new Set(['my.extension/extTool1RefName']));
 
-		// For MCP tool sets, the full reference name includes the /* suffix
 		assert.deepStrictEqual(deprecatedNames.get('mcpToolSetRefName'), new Set(['mcpToolSetRefName/*']));
 		assert.deepStrictEqual(deprecatedNames.get('mcpTool1RefName'), new Set(['mcpToolSetRefName/mcpTool1RefName']));
 
-		// Internal tool sets and user tools sets and tools without namespace changes should not appear
 		assert.strictEqual(deprecatedNames.get('Tool2 Display Name'), undefined);
 		assert.strictEqual(deprecatedNames.get('tool1RefName'), undefined);
 		assert.strictEqual(deprecatedNames.get('userToolSetRefName'), undefined);
 	});
 
 	test('getDeprecatedFullReferenceNames includes namespaced legacy names for tools in toolsets', () => {
-		// When a tool is in a toolset and has legacy names, the deprecated names map
-		// should also include the namespaced form (e.g. 'vscode/oldName' → 'vscode/newName')
 		const toolWithLegacy: IToolData = {
 			id: 'myNewBrowser',
 			toolReferenceName: 'openIntegratedBrowser',
@@ -3069,17 +2893,14 @@ suite('LanguageModelToolsService', () => {
 
 		const deprecated = service.getDeprecatedFullReferenceNames();
 
-		// The simple legacy name should map to the full reference name
 		assert.deepStrictEqual(deprecated.get('openSimpleBrowser'), new Set(['vscode/openIntegratedBrowser']));
 
-		// The namespaced legacy name should also map to the full reference name
 		assert.deepStrictEqual(deprecated.get('vscode/openSimpleBrowser'), new Set(['vscode/openIntegratedBrowser']));
 	});
 
 	test('getToolByFullReferenceName', () => {
 		setupToolsForTest(service, store);
 
-		// Test finding tools by their full reference names
 		const tool1 = service.getToolByFullReferenceName('tool1RefName');
 		assert.ok(tool1);
 		assert.strictEqual(tool1.id, 'tool1');
@@ -3105,7 +2926,6 @@ suite('LanguageModelToolsService', () => {
 		assert.ok(internalToolSet);
 		assert.strictEqual(internalToolSet.id, 'internalToolSetTool1');
 
-		// Test finding tools within tool sets
 		const toolInSet = service.getToolByFullReferenceName('internalToolSetRefName');
 		assert.ok(toolInSet);
 		assert.strictEqual(toolInSet!.id, 'internalToolSet');
@@ -3113,11 +2933,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('eligibleForAutoApproval setting can be configured via policy', async () => {
-		// Test that policy configuration works for eligibleForAutoApproval
-		// Policy values should be JSON strings for object-type settings
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
-				// Simulate policy configuration (would come from policy file)
 				config.setUserConfiguration(ChatConfiguration.EligibleForAutoApproval, {
 					'toolA': true,
 					'toolB': false
@@ -3125,7 +2942,6 @@ suite('LanguageModelToolsService', () => {
 			}
 		});
 
-		// Tool A is eligible (true in policy)
 		const toolA = registerToolForTest(testService, store, 'toolA', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'toolA executed' }] })
@@ -3133,7 +2949,6 @@ suite('LanguageModelToolsService', () => {
 			toolReferenceName: 'toolA'
 		});
 
-		// Tool B is ineligible (false in policy)
 		const toolB = registerToolForTest(testService, store, 'toolB', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'toolB executed' }] })
@@ -3144,7 +2959,6 @@ suite('LanguageModelToolsService', () => {
 		const sessionId = 'test-policy';
 		stubGetSession(testChatService, sessionId, { requestId: 'req1' });
 
-		// Tool A should execute without confirmation (eligible)
 		const resultA = await testService.invokeTool(
 			toolA.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3152,7 +2966,6 @@ suite('LanguageModelToolsService', () => {
 		);
 		assert.strictEqual(resultA.content[0].value, 'toolA executed');
 
-		// Tool B should require confirmation (ineligible)
 		const capture: { invocation?: any } = {};
 		stubGetSession(testChatService, sessionId + '2', { requestId: 'req2', capture });
 		const promiseB = testService.invokeTool(
@@ -3170,16 +2983,14 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('eligibleForAutoApproval with legacy tool reference names - eligible', async () => {
-		// Test backwards compatibility: configuring a legacy name as eligible should work
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration(ChatConfiguration.EligibleForAutoApproval, {
-					'oldToolName': true  // Using legacy name
+					'oldToolName': true
 				});
 			}
 		});
 
-		// Tool has been renamed but has legacy name
 		const renamedTool = registerToolForTest(testService, store, 'renamedTool', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'tool executed via legacy name' }] })
@@ -3191,7 +3002,6 @@ suite('LanguageModelToolsService', () => {
 		const sessionId = 'test-legacy-eligible';
 		stubGetSession(testChatService, sessionId, { requestId: 'req1' });
 
-		// Tool should be eligible even though we configured the legacy name
 		const result = await testService.invokeTool(
 			renamedTool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3201,16 +3011,14 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('eligibleForAutoApproval with legacy tool reference names - ineligible', async () => {
-		// Test backwards compatibility: configuring a legacy name as ineligible should work
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration(ChatConfiguration.EligibleForAutoApproval, {
-					'deprecatedToolName': false  // Using legacy name
+					'deprecatedToolName': false
 				});
 			}
 		});
 
-		// Tool has been renamed but has legacy name
 		const renamedTool = registerToolForTest(testService, store, 'renamedTool2', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'tool requires confirmation' }] })
@@ -3223,7 +3031,6 @@ suite('LanguageModelToolsService', () => {
 		const capture: { invocation?: any } = {};
 		stubGetSession(testChatService, sessionId, { requestId: 'req1', capture });
 
-		// Tool should be ineligible and require confirmation
 		const promise = testService.invokeTool(
 			renamedTool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3239,16 +3046,14 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('eligibleForAutoApproval with multiple legacy names', async () => {
-		// Test that any of the legacy names can be used in the configuration
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration(ChatConfiguration.EligibleForAutoApproval, {
-					'secondLegacyName': true  // Using the second legacy name
+					'secondLegacyName': true
 				});
 			}
 		});
 
-		// Tool has multiple legacy names
 		const multiLegacyTool = registerToolForTest(testService, store, 'multiLegacyTool', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'multi legacy executed' }] })
@@ -3260,7 +3065,6 @@ suite('LanguageModelToolsService', () => {
 		const sessionId = 'test-multi-legacy';
 		stubGetSession(testChatService, sessionId, { requestId: 'req1' });
 
-		// Tool should be eligible via second legacy name
 		const result = await testService.invokeTool(
 			multiLegacyTool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3270,12 +3074,11 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('eligibleForAutoApproval current name takes precedence over legacy names', async () => {
-		// Test forward compatibility: current name in config should take precedence
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration(ChatConfiguration.EligibleForAutoApproval, {
-					'currentName': false,      // Current name says ineligible
-					'oldName': true           // Legacy name says eligible
+					'currentName': false,
+					'oldName': true
 				});
 			}
 		});
@@ -3292,7 +3095,6 @@ suite('LanguageModelToolsService', () => {
 		const capture: { invocation?: any } = {};
 		stubGetSession(testChatService, sessionId, { requestId: 'req1', capture });
 
-		// Current name should take precedence, so tool should be ineligible
 		const promise = testService.invokeTool(
 			tool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3308,16 +3110,14 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('eligibleForAutoApproval with legacy full reference names from toolsets', async () => {
-		// Test legacy names that include toolset prefixes (e.g., 'oldToolSet/oldToolName')
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration(ChatConfiguration.EligibleForAutoApproval, {
-					'oldToolSet/oldToolName': false  // Legacy full reference name from old toolset
+					'oldToolSet/oldToolName': false
 				});
 			}
 		});
 
-		// Tool was in an old toolset but now standalone
 		const migratedTool = registerToolForTest(testService, store, 'migratedTool', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'migrated tool' }] })
@@ -3330,7 +3130,6 @@ suite('LanguageModelToolsService', () => {
 		const capture: { invocation?: any } = {};
 		stubGetSession(testChatService, sessionId, { requestId: 'req1', capture });
 
-		// Tool should be ineligible based on legacy full reference name
 		const promise = testService.invokeTool(
 			migratedTool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3346,18 +3145,16 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('eligibleForAutoApproval mixed current and legacy names', async () => {
-		// Test realistic migration scenario with mixed current and legacy names
 		const { service: testService, chatService: testChatService } = createTestToolsService(store, {
 			configureServices: config => {
 				config.setUserConfiguration(ChatConfiguration.EligibleForAutoApproval, {
-					'modernTool': true,           // Current name
-					'legacyToolOld': false,      // Legacy name
-					'unchangedTool': true        // Tool that never changed
+					'modernTool': true,
+					'legacyToolOld': false,
+					'unchangedTool': true
 				});
 			}
 		});
 
-		// Modern tool with current name
 		const tool1 = registerToolForTest(testService, store, 'tool1', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'modern executed' }] })
@@ -3365,7 +3162,6 @@ suite('LanguageModelToolsService', () => {
 			toolReferenceName: 'modernTool'
 		});
 
-		// Renamed tool with legacy name
 		const tool2 = registerToolForTest(testService, store, 'tool2', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'legacy needs confirmation' }] })
@@ -3374,7 +3170,6 @@ suite('LanguageModelToolsService', () => {
 			legacyToolReferenceFullNames: ['legacyToolOld']
 		});
 
-		// Unchanged tool
 		const tool3 = registerToolForTest(testService, store, 'tool3', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'unchanged executed' }] })
@@ -3385,7 +3180,6 @@ suite('LanguageModelToolsService', () => {
 		const sessionId = 'test-mixed';
 		stubGetSession(testChatService, sessionId, { requestId: 'req1' });
 
-		// Tool 1 should be eligible (current name)
 		const result1 = await testService.invokeTool(
 			tool1.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3393,7 +3187,6 @@ suite('LanguageModelToolsService', () => {
 		);
 		assert.strictEqual(result1.content[0].value, 'modern executed');
 
-		// Tool 2 should be ineligible (legacy name)
 		const capture2: { invocation?: any } = {};
 		stubGetSession(testChatService, sessionId + '2', { requestId: 'req2', capture: capture2 });
 		const promise2 = testService.invokeTool(
@@ -3408,7 +3201,6 @@ suite('LanguageModelToolsService', () => {
 		const result2 = await promise2;
 		assert.strictEqual(result2.content[0].value, 'legacy needs confirmation');
 
-		// Tool 3 should be eligible (unchanged)
 		const result3 = await testService.invokeTool(
 			tool3.makeDto({ test: 3 }, { sessionId }),
 			async () => 0,
@@ -3444,7 +3236,6 @@ suite('LanguageModelToolsService', () => {
 		const capture: { invocation?: any } = {};
 		stubGetSession(chatService, sessionId, { requestId: 'req1' });
 
-		// Tool should be eligible via legacy extension-prefixed name
 		const result = await testService.invokeTool(
 			tool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3471,7 +3262,6 @@ suite('LanguageModelToolsService', () => {
 		instaService.stub(IToolResultCompressor, noopToolResultCompressor);
 		const testService = store.add(instaService.createInstance(LanguageModelToolsService));
 
-		// Tool that was previously namespaced under extension but is now internal
 		const tool = registerToolForTest(testService, store, 'gitCommitTool2', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'commit executed' }] })
@@ -3484,7 +3274,6 @@ suite('LanguageModelToolsService', () => {
 		const capture: { invocation?: any } = {};
 		stubGetSession(chatService, sessionId, { requestId: 'req1' });
 
-		// Tool should be eligible via legacy extension-prefixed name
 		const result = await testService.invokeTool(
 			tool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3511,7 +3300,6 @@ suite('LanguageModelToolsService', () => {
 		instaService.stub(IToolResultCompressor, noopToolResultCompressor);
 		const testService = store.add(instaService.createInstance(LanguageModelToolsService));
 
-		// Tool that was previously namespaced under extension but is now internal
 		const tool = registerToolForTest(testService, store, 'gitCommitTool3', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'commit blocked' }] })
@@ -3524,7 +3312,6 @@ suite('LanguageModelToolsService', () => {
 		const capture: { invocation?: any } = {};
 		stubGetSession(chatService, sessionId, { requestId: 'req1', capture });
 
-		// Tool should be ineligible via legacy extension-prefixed name
 		const promise = testService.invokeTool(
 			tool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3554,7 +3341,6 @@ suite('LanguageModelToolsService', () => {
 		instaService.stub(IToolResultCompressor, noopToolResultCompressor);
 		const testService = store.add(instaService.createInstance(LanguageModelToolsService));
 
-		// Tool that was previously namespaced under extension but is now internal
 		const tool = registerToolForTest(testService, store, 'gitCommitTool4', {
 			prepareToolInvocation: async () => ({}),
 			invoke: async () => ({ content: [{ kind: 'text', value: 'commit blocked' }] })
@@ -3567,7 +3353,6 @@ suite('LanguageModelToolsService', () => {
 		const capture: { invocation?: any } = {};
 		stubGetSession(chatService, sessionId, { requestId: 'req1', capture });
 
-		// Tool should be ineligible via trimmed legacy name
 		const promise = testService.invokeTool(
 			tool.makeDto({ test: 1 }, { sessionId }),
 			async () => 0,
@@ -3666,7 +3451,6 @@ suite('LanguageModelToolsService', () => {
 
 		assert.ok(invocation, 'should create invocation');
 
-		// Update the stream with partial input
 		const partialInput = { partial: 'data' };
 		await service.updateToolStream('call-stream', partialInput, CancellationToken.None);
 
@@ -3675,15 +3459,11 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('updateToolStream does nothing for unknown tool call', async () => {
-		// Should not throw
 		await service.updateToolStream('unknown-call-id', { data: 'test' }, CancellationToken.None);
 	});
 
 	test('toToolAndToolSetEnablementMap with model metadata filters tools', () => {
-		// This test verifies that when a tool's models selector matches the provided model,
-		// it's included in the enablement map.
 
-		// Tool that requires gpt-4 family (matches provided model)
 		const gpt4ToolDef: IToolData = {
 			id: 'gpt4Tool',
 			toolReferenceName: 'gpt4ToolRef',
@@ -3694,7 +3474,6 @@ suite('LanguageModelToolsService', () => {
 			models: [{ family: 'gpt-4' }],
 		};
 
-		// Tool with no models selector (available for all models)
 		const anyModelToolDef: IToolData = {
 			id: 'anyModelTool',
 			toolReferenceName: 'anyModelToolRef',
@@ -3704,7 +3483,6 @@ suite('LanguageModelToolsService', () => {
 			canBeReferencedInPrompt: true,
 		};
 
-		// Tool that requires claude family (won't match)
 		const claudeToolDef: IToolData = {
 			id: 'claudeTool',
 			toolReferenceName: 'claudeToolRef',
@@ -3719,62 +3497,18 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(anyModelToolDef));
 		store.add(service.registerToolData(claudeToolDef));
 
-		// Get the tools from the service
 		const gpt4Tool = service.getTool('gpt4Tool');
 		const anyModelTool = service.getTool('anyModelTool');
 		const claudeTool = service.getTool('claudeTool');
 		assert.ok(gpt4Tool && anyModelTool && claudeTool, 'tools should be registered');
 
-		// Provide model metadata for gpt-4 family
 		const modelMetadata = { id: 'gpt-4-turbo', vendor: 'openai', family: 'gpt-4', version: '1.0' } as ILanguageModelChatMetadata;
 		const enabledNames = ['gpt4ToolRef', 'anyModelToolRef', 'claudeToolRef'];
 		const result = service.toToolAndToolSetEnablementMap(enabledNames, modelMetadata);
 
-		// gpt4Tool should be enabled (model matches)
 		assert.strictEqual(result.get(gpt4Tool), true, 'gpt4Tool should be enabled');
-		// anyModelTool should be enabled (no model restriction)
 		assert.strictEqual(result.get(anyModelTool), true, 'anyModelTool should be enabled');
-		// claudeTool should NOT be in the enablement map (filtered out by model)
 		assert.strictEqual(result.has(claudeTool), false, 'claudeTool should be filtered out by model');
-	});
-
-	test('gpt-5.5 readFile setting controls Copilot read tool availability', () => {
-		const readTool: IToolData = {
-			id: CopilotToolId.ReadFile,
-			toolReferenceName: 'readFile',
-			modelDescription: 'Read File Tool',
-			displayName: 'Read File',
-			source: ToolDataSource.Internal,
-			canBeReferencedInPrompt: true,
-		};
-		store.add(service.registerToolData(readTool));
-		store.add(service.readToolSet.addTool(readTool));
-
-		const gpt55Model = { id: 'gpt-5.5', vendor: 'copilot', family: 'gpt-5.5', version: '1.0' } as ILanguageModelChatMetadata;
-
-		configurationService.setUserConfiguration(CopilotChatSettingId.Gpt55ReadFileToolEnabled, false);
-
-		const disabledTools = Array.from(service.getTools(gpt55Model));
-		assert.ok(!disabledTools.some(tool => tool.id === CopilotToolId.ReadFile), 'readFile should not be returned from getTools when disabled for gpt-5.5');
-
-		const disabledReadToolSet = Array.from(service.getToolSetsForModel(gpt55Model)).find(toolSet => toolSet.id === 'read');
-		assert.ok(disabledReadToolSet, 'read tool set should exist');
-		assert.ok(!Array.from(disabledReadToolSet.getTools()).some(tool => tool.id === CopilotToolId.ReadFile), 'readFile should not be included as a read tool-set member when disabled for gpt-5.5');
-
-		const disabledEnablementMap = service.toToolAndToolSetEnablementMap(['read/readFile'], gpt55Model);
-		assert.strictEqual(disabledEnablementMap.has(readTool), false, 'readFile should not be included in explicit enablement maps when disabled for gpt-5.5');
-
-		configurationService.setUserConfiguration(CopilotChatSettingId.Gpt55ReadFileToolEnabled, true);
-
-		const enabledTools = Array.from(service.getTools(gpt55Model));
-		assert.ok(enabledTools.some(tool => tool.id === CopilotToolId.ReadFile), 'readFile should be returned from getTools when enabled for gpt-5.5');
-
-		const enabledReadToolSet = Array.from(service.getToolSetsForModel(gpt55Model)).find(toolSet => toolSet.id === 'read');
-		assert.ok(enabledReadToolSet, 'read tool set should exist');
-		assert.ok(Array.from(enabledReadToolSet.getTools()).some(tool => tool.id === CopilotToolId.ReadFile), 'readFile should be included as a read tool-set member when enabled for gpt-5.5');
-
-		const enabledEnablementMap = service.toToolAndToolSetEnablementMap(['read/readFile'], gpt55Model);
-		assert.strictEqual(enabledEnablementMap.get(readTool), true, 'readFile should be included in explicit enablement maps when enabled for gpt-5.5');
 	});
 
 	test('observeTools returns tools filtered by context', async () => {
@@ -3802,7 +3536,6 @@ suite('LanguageModelToolsService', () => {
 
 			const toolsObs = service.observeTools(undefined);
 
-			// Read current value directly
 			const tools = toolsObs.get();
 
 			assert.strictEqual(tools.length, 1, 'should only include enabled tool');
@@ -3821,7 +3554,6 @@ suite('LanguageModelToolsService', () => {
 		const capture: { invocation?: any } = {};
 		stubGetSession(chatService, sessionId, { requestId, capture });
 
-		// Start a streaming tool call
 		const streamingInvocation = service.beginToolCall({
 			toolCallId: 'stream-call-id',
 			toolId: tool.id,
@@ -3831,7 +3563,6 @@ suite('LanguageModelToolsService', () => {
 
 		assert.ok(streamingInvocation, 'should create streaming invocation');
 
-		// Now invoke the tool with a different callId but matching chatStreamToolCallId
 		const dto: IToolInvocation = {
 			callId: 'different-call-id',
 			toolId: tool.id,
@@ -3840,7 +3571,7 @@ suite('LanguageModelToolsService', () => {
 			context: {
 				sessionResource: LocalChatSessionUri.forSession(sessionId),
 			},
-			chatStreamToolCallId: 'stream-call-id', // This should correlate
+			chatStreamToolCallId: 'stream-call-id',
 		};
 
 		const result = await service.invokeTool(dto, async () => 0, CancellationToken.None);
@@ -3862,19 +3593,17 @@ suite('LanguageModelToolsService', () => {
 			modelDescription: 'Disabled Tool',
 			displayName: 'Disabled Tool',
 			source: ToolDataSource.Internal,
-			when: ContextKeyEqualsExpr.create('featureFlag', true), // Will be disabled
+			when: ContextKeyEqualsExpr.create('featureFlag', true),
 		};
 
 		store.add(service.registerToolData(enabledTool));
 		store.add(service.registerToolData(disabledTool));
 
-		// getAllToolsIncludingDisabled should return both tools
 		const allTools = Array.from(service.getAllToolsIncludingDisabled());
 		assert.strictEqual(allTools.length, 2, 'getAllToolsIncludingDisabled should return all tools');
 		assert.ok(allTools.some(t => t.id === 'enabledTool'), 'should include enabled tool');
 		assert.ok(allTools.some(t => t.id === 'disabledTool'), 'should include disabled tool');
 
-		// getTools should only return tools matching when clause
 		const enabledTools = Array.from(service.getTools(undefined));
 		assert.strictEqual(enabledTools.length, 1, 'getTools should only return matching tools');
 		assert.strictEqual(enabledTools[0].id, 'enabledTool');
@@ -3902,14 +3631,12 @@ suite('LanguageModelToolsService', () => {
 			modelDescription: 'Universal Tool',
 			displayName: 'Universal Tool',
 			source: ToolDataSource.Internal,
-			// No models - available for all models
 		};
 
 		store.add(service.registerToolData(gpt4Tool));
 		store.add(service.registerToolData(claudeTool));
 		store.add(service.registerToolData(universalTool));
 
-		// Mock model metadata with id 'gpt-4-turbo'
 		const modelMetadata = { id: 'gpt-4-turbo', vendor: 'openai', family: 'gpt-4', version: '1.0' } as ILanguageModelChatMetadata;
 		const tools = Array.from(service.getTools(modelMetadata));
 
@@ -3939,7 +3666,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(anthropicTool));
 		store.add(service.registerToolData(openaiTool));
 
-		// Mock model metadata with vendor 'anthropic'
 		const modelMetadata = { id: 'claude-3', vendor: 'anthropic', family: 'claude-3', version: '1.0' } as ILanguageModelChatMetadata;
 		const tools = Array.from(service.getTools(modelMetadata));
 
@@ -3967,7 +3693,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(gpt4FamilyTool));
 		store.add(service.registerToolData(gpt35FamilyTool));
 
-		// Mock model metadata with family 'gpt-4'
 		const modelMetadata = { id: 'gpt-4-turbo', vendor: 'openai', family: 'gpt-4', version: '1.0' } as ILanguageModelChatMetadata;
 		const tools = Array.from(service.getTools(modelMetadata));
 
@@ -3995,7 +3720,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(gpt4Tool));
 		store.add(service.registerToolData(claudeTool));
 
-		// When model is undefined, all tools should be returned (model filtering skipped)
 		const tools = Array.from(service.getTools(undefined));
 
 		assert.strictEqual(tools.length, 2, 'should return all tools when model is undefined');
@@ -4011,12 +3735,11 @@ suite('LanguageModelToolsService', () => {
 			modelDescription: 'Disabled Lookup Tool',
 			displayName: 'Disabled Lookup Tool',
 			source: ToolDataSource.Internal,
-			when: ContextKeyEqualsExpr.create('someFlag', true), // Disabled
+			when: ContextKeyEqualsExpr.create('someFlag', true),
 		};
 
 		store.add(service.registerToolData(disabledTool));
 
-		// getTool should still find the tool by ID
 		const tool = service.getTool('disabledLookupTool');
 		assert.ok(tool, 'getTool should return tool even when disabled');
 		assert.strictEqual(tool.id, 'disabledLookupTool');
@@ -4031,12 +3754,11 @@ suite('LanguageModelToolsService', () => {
 			modelDescription: 'Disabled Named Tool',
 			displayName: 'Disabled Named Tool',
 			source: ToolDataSource.Internal,
-			when: ContextKeyEqualsExpr.create('anotherFlag', true), // Disabled
+			when: ContextKeyEqualsExpr.create('anotherFlag', true),
 		};
 
 		store.add(service.registerToolData(disabledTool));
 
-		// getToolByName should still find the tool by reference name
 		const tool = service.getToolByName('disabledNamedToolRef');
 		assert.ok(tool, 'getToolByName should return tool even when disabled');
 		assert.strictEqual(tool.id, 'disabledNamedTool');
@@ -4065,7 +3787,6 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('tools with extension tools disabled setting are filtered', () => {
-		// Create a tool from an extension
 		const extensionTool: IToolData = {
 			id: 'extensionTool',
 			modelDescription: 'Extension Tool',
@@ -4075,17 +3796,14 @@ suite('LanguageModelToolsService', () => {
 
 		store.add(service.registerToolData(extensionTool));
 
-		// With extension tools enabled (default in setup)
 		let tools = Array.from(service.getTools(undefined));
 		assert.ok(tools.some(t => t.id === 'extensionTool'), 'extension tool should be included when enabled');
 
-		// Disable extension tools
 		configurationService.setUserConfiguration(ChatConfiguration.ExtensionToolsEnabled, false);
 
 		tools = Array.from(service.getTools(undefined));
 		assert.ok(!tools.some(t => t.id === 'extensionTool'), 'extension tool should be excluded when disabled');
 
-		// Re-enable for cleanup
 		configurationService.setUserConfiguration(ChatConfiguration.ExtensionToolsEnabled, true);
 	});
 
@@ -4113,27 +3831,22 @@ suite('LanguageModelToolsService', () => {
 
 		const toolsObs = service.observeTools(undefined);
 
-		// Initial state: value1 matches tool1
 		let tools = toolsObs.get();
 		assert.strictEqual(tools.length, 1, 'should have 1 tool initially');
 		assert.strictEqual(tools[0].id, 'dynamicTool1', 'should be dynamicTool1');
 
-		// Change context key to value2
 		testCtxKey.set('value2');
 
 		service.flushToolUpdates();
 
-		// Now tool2 should be available
 		tools = toolsObs.get();
 		assert.strictEqual(tools.length, 1, 'should have 1 tool after change');
 		assert.strictEqual(tools[0].id, 'dynamicTool2', 'should be dynamicTool2 after context change');
 	});
 
 	test('isPermitted allows tools in permitted toolsets when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create tool in the 'read' toolset (permitted)
 		const readTool: IToolData = {
 			id: 'readToolInSet',
 			toolReferenceName: 'readToolRef',
@@ -4144,7 +3857,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(readTool));
 		store.add(service.readToolSet.addTool(readTool));
 
-		// Create standalone tool not in any permitted toolset
 		const standaloneTool: IToolData = {
 			id: 'standaloneTool',
 			toolReferenceName: 'standaloneRef',
@@ -4154,7 +3866,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(standaloneTool));
 
-		// Get tools - should include the tool in the read toolset but not the standalone tool
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4163,10 +3874,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted allows all tools when agent mode is enabled', () => {
-		// Enable agent mode (default)
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, true);
 
-		// Create tool in the 'read' toolset
 		const readTool: IToolData = {
 			id: 'readToolEnabled',
 			toolReferenceName: 'readToolEnabledRef',
@@ -4177,7 +3886,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(readTool));
 		store.add(service.readToolSet.addTool(readTool));
 
-		// Create standalone tool not in any permitted toolset
 		const standaloneTool: IToolData = {
 			id: 'standaloneToolEnabled',
 			toolReferenceName: 'standaloneEnabledRef',
@@ -4187,7 +3895,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(standaloneTool));
 
-		// Get tools - both should be available when agent mode is enabled
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4196,10 +3903,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted filters toolsets when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create a custom internal toolset that is NOT in the permitted list
 		const customToolSet = store.add(service.createToolSet(
 			ToolDataSource.Internal,
 			'customToolSet',
@@ -4217,7 +3922,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(customTool));
 		store.add(customToolSet.addTool(customTool));
 
-		// Get toolsets - read/search/web should be available, custom should not
 		const toolSets = Array.from(service.toolSets.get());
 		const toolSetIds = Array.from(toolSets).map(ts => ts.id);
 
@@ -4226,10 +3930,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted allows execute toolset tools when agent mode is enabled', () => {
-		// Enable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, true);
 
-		// Create tool in the 'execute' toolset (only permitted when agent mode is enabled)
 		const executeTool: IToolData = {
 			id: 'executeToolInSet',
 			toolReferenceName: 'executeToolRef',
@@ -4240,7 +3942,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(executeTool));
 		store.add(service.executeToolSet.addTool(executeTool));
 
-		// Get tools - execute tool should be available when agent mode is enabled
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4248,10 +3949,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted blocks execute toolset tools when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create tool in the 'execute' toolset (NOT permitted when agent mode is disabled)
 		const executeTool: IToolData = {
 			id: 'executeToolBlocked',
 			toolReferenceName: 'executeToolBlockedRef',
@@ -4262,7 +3961,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(executeTool));
 		store.add(service.executeToolSet.addTool(executeTool));
 
-		// Get tools - execute tool should NOT be available when agent mode is disabled
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4270,10 +3968,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted allows search toolset tools when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create a 'search' toolset (permitted when agent mode is disabled)
 		const searchToolSet = store.add(service.createToolSet(
 			ToolDataSource.Internal,
 			'search',
@@ -4291,7 +3987,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(searchTool));
 		store.add(searchToolSet.addTool(searchTool));
 
-		// Get tools - search tool should be available when agent mode is disabled
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4299,10 +3994,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted allows web toolset tools when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create a 'web' toolset (permitted when agent mode is disabled)
 		const webToolSet = store.add(service.createToolSet(
 			ToolDataSource.Internal,
 			'web',
@@ -4320,7 +4013,6 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(webTool));
 		store.add(webToolSet.addTool(webTool));
 
-		// Get tools - web tool should be available when agent mode is disabled
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4328,10 +4020,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted allows vscode_fetchWebPage_internal special case when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Register the special-cased fetch tool (not added to any toolset)
 		const fetchTool: IToolData = {
 			id: 'vscode_fetchWebPage_internal',
 			toolReferenceName: 'fetchWebPage',
@@ -4341,7 +4031,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(fetchTool));
 
-		// Get tools - this special tool should be available even when not in a toolset
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4349,10 +4038,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted blocks extension tools not in permitted toolsets when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create extension tool not in any permitted toolset
 		const extensionTool: IToolData = {
 			id: 'extensionToolBlocked',
 			toolReferenceName: 'extensionToolRef',
@@ -4363,7 +4050,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(extensionTool));
 
-		// Get tools - extension tool should NOT be available when agent mode is disabled
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4371,10 +4057,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted blocks MCP tools not in permitted toolsets when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create MCP toolset (not in permitted list)
 		const mcpToolSet = store.add(service.createToolSet(
 			{ type: 'mcp', label: 'Test MCP', serverLabel: 'Test MCP Server', instructions: undefined, collectionId: 'testMcp', definitionId: 'testMcpDef' },
 			'mcpToolSetBlocked',
@@ -4393,13 +4077,11 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(mcpTool));
 		store.add(mcpToolSet.addTool(mcpTool));
 
-		// Get tools - MCP tool should NOT be available when agent mode is disabled
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
 		assert.ok(!toolIds.includes('mcpToolBlocked'), 'MCP tool should NOT be permitted when agent mode is disabled');
 
-		// Get toolsets - MCP toolset should NOT be available
 		const toolSets = Array.from(service.toolSets.get());
 		const toolSetIds = Array.from(toolSets).map(ts => ts.id);
 
@@ -4407,10 +4089,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted blocks agent toolset tools when agent mode is disabled', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create tool in the 'agent' toolset (NOT permitted when agent mode is disabled)
 		const agentTool: IToolData = {
 			id: 'agentToolBlocked',
 			toolReferenceName: 'agentToolBlockedRef',
@@ -4421,13 +4101,11 @@ suite('LanguageModelToolsService', () => {
 		store.add(service.registerToolData(agentTool));
 		store.add(service.agentToolSet.addTool(agentTool));
 
-		// Get tools - agent tool should NOT be available when agent mode is disabled
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
 		assert.ok(!toolIds.includes('agentToolBlocked'), 'Tool in agent toolset should NOT be permitted when agent mode is disabled');
 
-		// Get toolsets - agent toolset should NOT be available
 		const toolSets = Array.from(service.toolSets.get());
 		const toolSetIds = Array.from(toolSets).map(ts => ts.id);
 
@@ -4435,10 +4113,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted includes tool in multiple toolsets if one is permitted', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create a tool that is added to both a permitted toolset (read) and a non-permitted toolset
 		const multiSetTool: IToolData = {
 			id: 'multiSetTool',
 			toolReferenceName: 'multiSetToolRef',
@@ -4448,10 +4124,8 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(multiSetTool));
 
-		// Add to read toolset (permitted)
 		store.add(service.readToolSet.addTool(multiSetTool));
 
-		// Also create and add to a non-permitted toolset
 		const customToolSet = store.add(service.createToolSet(
 			ToolDataSource.Internal,
 			'customMultiSet',
@@ -4460,7 +4134,6 @@ suite('LanguageModelToolsService', () => {
 		));
 		store.add(customToolSet.addTool(multiSetTool));
 
-		// Get tools - tool should be available because it's in the 'read' toolset
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4468,10 +4141,8 @@ suite('LanguageModelToolsService', () => {
 	});
 
 	test('isPermitted allows internal tools with canBeReferencedInPrompt=false when agent mode is disabled (issue #292935)', () => {
-		// Disable agent mode
 		configurationService.setUserConfiguration(ChatConfiguration.AgentEnabled, false);
 
-		// Create internal infrastructure tool that explicitly cannot be referenced in prompts
 		const infrastructureTool: IToolData = {
 			id: 'infrastructureToolInternal',
 			toolReferenceName: 'infrastructureToolRef',
@@ -4482,7 +4153,6 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(infrastructureTool));
 
-		// Create internal tool with canBeReferencedInPrompt=true (should be blocked)
 		const referencableTool: IToolData = {
 			id: 'referencableTool',
 			toolReferenceName: 'referencableToolRef',
@@ -4493,18 +4163,15 @@ suite('LanguageModelToolsService', () => {
 		};
 		store.add(service.registerToolData(referencableTool));
 
-		// Create internal tool with canBeReferencedInPrompt=undefined (should be blocked)
 		const undefinedTool: IToolData = {
 			id: 'undefinedTool',
 			toolReferenceName: 'undefinedToolRef',
 			modelDescription: 'Undefined Tool',
 			displayName: 'Undefined Tool',
 			source: ToolDataSource.Internal,
-			// canBeReferencedInPrompt is undefined
 		};
 		store.add(service.registerToolData(undefinedTool));
 
-		// Get tools - only the infrastructure tool should be available
 		const tools = Array.from(service.getTools(undefined));
 		const toolIds = tools.map(t => t.id);
 
@@ -4515,10 +4182,8 @@ suite('LanguageModelToolsService', () => {
 
 	suite('ToolSet when clause filtering (issue #291154)', () => {
 		test('ToolSet.getTools filters tools by when clause', () => {
-			// Create a context key for testing
 			contextKeyService.createKey('testFeatureEnabled', false);
 
-			// Create tools with different when clauses
 			const toolWithWhenTrue: IToolData = {
 				id: 'toolWithWhenTrue',
 				modelDescription: 'Tool with when true',
@@ -4542,7 +4207,6 @@ suite('LanguageModelToolsService', () => {
 				source: ToolDataSource.Internal,
 			};
 
-			// Create a tool set and add the tools
 			const testToolSet = store.add(service.createToolSet(
 				ToolDataSource.Internal,
 				'testToolSet',
@@ -4558,21 +4222,17 @@ suite('LanguageModelToolsService', () => {
 			store.add(testToolSet.addTool(toolWithWhenFalse));
 			store.add(testToolSet.addTool(toolWithoutWhen));
 
-			// Get tools from the tool set
 			const tools = Array.from(testToolSet.getTools());
 			const toolIds = tools.map(t => t.id);
 
-			// Since testFeatureEnabled is false, only tools with when=false or no when clause should be available
 			assert.ok(toolIds.includes('toolWithWhenFalse'), 'Tool with when=false should be in tool set when context key is false');
 			assert.ok(toolIds.includes('toolWithoutWhen'), 'Tool without when clause should be in tool set');
 			assert.ok(!toolIds.includes('toolWithWhenTrue'), 'Tool with when=true should NOT be in tool set when context key is false');
 		});
 
 		test('ToolSet.getTools updates when context key changes', () => {
-			// Create a context key for testing
 			const testKey = contextKeyService.createKey<string>('dynamicTestKey', 'value1');
 
-			// Create tools with when clauses
 			const toolWithValue1: IToolData = {
 				id: 'toolWithValue1',
 				modelDescription: 'Tool with value1',
@@ -4589,7 +4249,6 @@ suite('LanguageModelToolsService', () => {
 				when: ContextKeyEqualsExpr.create('dynamicTestKey', 'value2'),
 			};
 
-			// Create a tool set and add the tools
 			const dynamicToolSet = store.add(service.createToolSet(
 				ToolDataSource.Internal,
 				'dynamicToolSet',
@@ -4603,19 +4262,16 @@ suite('LanguageModelToolsService', () => {
 			store.add(dynamicToolSet.addTool(toolWithValue1));
 			store.add(dynamicToolSet.addTool(toolWithValue2));
 
-			// Initial state: value1 is set
 			let tools = Array.from(dynamicToolSet.getTools());
 			let toolIds = tools.map(t => t.id);
 
 			assert.strictEqual(tools.length, 1, 'Should have 1 tool initially');
 			assert.strictEqual(toolIds[0], 'toolWithValue1', 'Should be toolWithValue1');
 
-			// Change context key to value2
 			testKey.set('value2');
 
 			service.flushToolUpdates();
 
-			// Now toolWithValue2 should be available
 			tools = Array.from(dynamicToolSet.getTools());
 			toolIds = tools.map(t => t.id);
 
@@ -4624,7 +4280,6 @@ suite('LanguageModelToolsService', () => {
 		});
 
 		test('ToolSet.getTools with complex when expressions', () => {
-			// Create multiple context keys for testing complex expressions
 			contextKeyService.createKey('featureA', true);
 			contextKeyService.createKey('featureB', false);
 			contextKeyService.createKey('featureC', true);
@@ -4659,7 +4314,6 @@ suite('LanguageModelToolsService', () => {
 				when: ContextKeyExpr.not('featureB'),
 			};
 
-			// Create a tool set and add the tools
 			const complexToolSet = store.add(service.createToolSet(
 				ToolDataSource.Internal,
 				'complexToolSet',
@@ -4675,24 +4329,17 @@ suite('LanguageModelToolsService', () => {
 			store.add(complexToolSet.addTool(toolWithOr));
 			store.add(complexToolSet.addTool(toolWithNot));
 
-			// Get tools from the tool set
 			const tools = Array.from(complexToolSet.getTools());
 			const toolIds = tools.map(t => t.id);
 
-			// featureA=true, featureB=false, featureC=true
-			// toolWithAnd: has('featureA') AND has('featureC') = true
-			// toolWithOr: has('featureA') OR has('featureC') = true
-			// toolWithNot: NOT has('featureB') = true
 			assert.ok(toolIds.includes('toolWithAnd'), 'Tool with AND should be in tool set (has(featureA) AND has(featureC) = true)');
 			assert.ok(toolIds.includes('toolWithOr'), 'Tool with OR should be in tool set (has(featureA) OR has(featureC) = true)');
 			assert.ok(toolIds.includes('toolWithNot'), 'Tool with NOT should be in tool set (NOT has(featureB) = true)');
 		});
 
 		test('ToolSet.getTools filters nested tool sets by when clause', () => {
-			// Create a context key for testing
 			contextKeyService.createKey('nestedFeature', false);
 
-			// Create tools in parent tool set
 			const parentTool: IToolData = {
 				id: 'parentTool',
 				modelDescription: 'Parent Tool',
@@ -4700,7 +4347,6 @@ suite('LanguageModelToolsService', () => {
 				source: ToolDataSource.Internal,
 			};
 
-			// Create tools in child tool set with when clause
 			const childToolWithWhen: IToolData = {
 				id: 'childToolWithWhen',
 				modelDescription: 'Child Tool with When',
@@ -4716,7 +4362,6 @@ suite('LanguageModelToolsService', () => {
 				source: ToolDataSource.Internal,
 			};
 
-			// Create parent tool set
 			const parentToolSet = store.add(service.createToolSet(
 				ToolDataSource.Internal,
 				'parentToolSet',
@@ -4724,7 +4369,6 @@ suite('LanguageModelToolsService', () => {
 				{ description: 'Parent Tool Set' }
 			));
 
-			// Create child tool set
 			const childToolSet = store.add(service.createToolSet(
 				ToolDataSource.Internal,
 				'childToolSet',
@@ -4741,11 +4385,9 @@ suite('LanguageModelToolsService', () => {
 			store.add(childToolSet.addTool(childToolWithWhen));
 			store.add(childToolSet.addTool(childToolWithoutWhen));
 
-			// Get tools from the parent tool set
 			const tools = Array.from(parentToolSet.getTools());
 			const toolIds = tools.map(t => t.id);
 
-			// Should include parent tool, child tool without when, but not child tool with when
 			assert.ok(toolIds.includes('parentTool'), 'Parent tool should be in tool set');
 			assert.ok(toolIds.includes('childToolWithoutWhen'), 'Child tool without when should be in tool set');
 			assert.ok(!toolIds.includes('childToolWithWhen'), 'Child tool with when=true should NOT be in tool set when context key is false');
@@ -4782,13 +4424,11 @@ suite('LanguageModelToolsService', () => {
 				CancellationToken.None
 			);
 
-			// Verify error result returned
 			assert.ok(result.toolResultError);
 			assert.ok((result.toolResultError as string).includes('Destructive operations require approval'));
 			assert.strictEqual(result.content[0].kind, 'text');
 			assert.ok((result.content[0] as IToolResultTextPart).value.includes('Tool execution denied'));
 
-			// Verify a cancelled invocation was created
 			const invocation = await waitForPublishedInvocation(capture);
 			assert.ok(invocation);
 			const state = invocation.state.get();
@@ -4892,7 +4532,6 @@ suite('LanguageModelToolsService', () => {
 				permissionDecisionReason: 'Requires user confirmation',
 			};
 
-			// Start invocation - it should wait for confirmation
 			const invokePromise = hookService.invokeTool(
 				dto,
 				async () => 0,
@@ -4902,12 +4541,10 @@ suite('LanguageModelToolsService', () => {
 			const invocation = await waitForPublishedInvocation(capture);
 			assert.ok(invocation, 'Tool invocation should be created');
 
-			// Check that the tool is waiting for confirmation (not auto-approved)
 			const state = invocation.state.get();
 			assert.strictEqual(state.type, IChatToolInvocation.StateKind.WaitingForConfirmation,
 				'Tool should be waiting for confirmation when hook returns ask');
 
-			// Confirm the tool to let the test complete
 			IChatToolInvocation.confirmWith(invocation, { type: ToolConfirmKind.UserAction });
 			await invokePromise;
 
@@ -4938,14 +4575,12 @@ suite('LanguageModelToolsService', () => {
 				permissionDecision: 'allow',
 			};
 
-			// Invoke the tool - it should auto-approve due to hook
 			const result = await hookService.invokeTool(
 				dto,
 				async () => 0,
 				CancellationToken.None
 			);
 
-			// Tool should have completed without waiting for confirmation
 			assert.strictEqual(invokeCompleted, true, 'Tool should complete immediately when hook allows');
 			assert.strictEqual(result.content[0].kind, 'text');
 			assert.strictEqual((result.content[0] as IToolResultTextPart).value, 'success');
@@ -5035,7 +4670,6 @@ suite('LanguageModelToolsService', () => {
 				CancellationToken.None
 			);
 
-			// Original parameters should be kept since validation failed
 			assert.deepStrictEqual(receivedParameters, { command: 'original' });
 		});
 
@@ -5043,7 +4677,7 @@ suite('LanguageModelToolsService', () => {
 			const mockCommandService = {
 				executeCommand: async (commandId: string) => {
 					if (commandId === 'json.validate') {
-						return []; // no diagnostics = valid
+						return [];
 					}
 					return undefined;
 				}
@@ -5089,7 +4723,6 @@ suite('LanguageModelToolsService', () => {
 				CancellationToken.None
 			);
 
-			// Updated parameters should be applied since validation passed
 			assert.deepStrictEqual(receivedParameters, { command: 'safe-command' });
 		});
 	});
@@ -5126,17 +4759,10 @@ suite('LanguageModelToolsService', () => {
 			const dto = tool.makeDto({ test: 1 }, { sessionId: 'pre-approved' });
 			dto.preApproved = { type: ToolConfirmKind.Setting, id: 'autoApprove' };
 
-			// Start the invocation without awaiting so the state at publish time is
-			// observable: an auto-approved call must be published already executing
-			// and must never surface a confirmation prompt (which would flicker
-			// "needs input" in the sessions list).
 			const invokePromise = preApprovedService.invokeTool(dto, async () => 0, CancellationToken.None);
 			const invocation = await waitForPublishedInvocation(capture);
 			const publishedState = invocation.state.get().type;
 
-			// If the fix regressed, the call would be stuck awaiting confirmation;
-			// confirm it so the promise resolves and the assertion below (rather
-			// than a test timeout) reports the failure.
 			if (publishedState === IChatToolInvocation.StateKind.WaitingForConfirmation) {
 				IChatToolInvocation.confirmWith(invocation, { type: ToolConfirmKind.UserAction });
 			}

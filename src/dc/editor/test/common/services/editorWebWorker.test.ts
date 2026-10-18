@@ -39,10 +39,10 @@ suite('EditorWebWorker', () => {
 	setup(() => {
 		worker = new WorkerWithModels();
 		model = worker.addModel([
-			'This is line one', //16
-			'and this is line number two', //27
-			'it is followed by #3', //20
-			'and finished with the fourth.', //29
+			'This is line one',
+			'and this is line number two',
+			'it is followed by #3',
+			'and finished with the fourth.',
 		]);
 	});
 
@@ -168,9 +168,9 @@ suite('EditorWebWorker', () => {
 	test('MoreMinimal, issue #15385 newline changes and other 2/2', function () {
 
 		const model = worker.addModel([
-			'package main',	// 1
-			'func foo() {',	// 2
-			'}'				// 3
+			'package main',
+			'func foo() {',
+			'}'
 		]);
 
 		return worker.$computeMoreMinimalEdits(model.uri.toString(), [{ text: '\n', range: new Range(3, 2, 4, 1000) }], false).then(edits => {
@@ -269,9 +269,9 @@ suite('EditorWebWorker', () => {
 	test('ICommonModel#getValueInRange, issue #17424', function () {
 
 		const model = worker.addModel([
-			'package main',	// 1
-			'func foo() {',	// 2
-			'}'				// 3
+			'package main',
+			'func foo() {',
+			'}'
 		]);
 
 		const value = model.getValueInRange({ startLineNumber: 3, startColumn: 1, endLineNumber: 4, endColumn: 1 });
@@ -282,8 +282,8 @@ suite('EditorWebWorker', () => {
 	test('textualSuggest, issue #17785', function () {
 
 		const model = worker.addModel([
-			'foobar',	// 1
-			'f f'	// 2
+			'foobar',
+			'f f'
 		]);
 
 		return worker.$textualSuggest([model.uri.toString()], 'f', '[a-z]+', 'img').then((result) => {
@@ -299,8 +299,8 @@ suite('EditorWebWorker', () => {
 	test('get words via iterator, issue #46930', function () {
 
 		const model = worker.addModel([
-			'one line',	// 1
-			'two line',	// 2
+			'one line',
+			'two line',
 			'',
 			'past empty',
 			'single',

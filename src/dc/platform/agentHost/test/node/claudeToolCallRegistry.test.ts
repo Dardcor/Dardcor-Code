@@ -11,10 +11,10 @@ import { ClaudeToolCallRegistry } from '../../node/claude/claudeToolCallRegistry
 class CapturingLog implements Partial<ILogService> {
 	readonly warns: string[] = [];
 	warn(message: string): void { this.warns.push(message); }
-	error(): void { /* unused */ }
-	info(): void { /* unused */ }
-	trace(): void { /* unused */ }
-	debug(): void { /* unused */ }
+	error(): void { }
+	info(): void { }
+	trace(): void { }
+	debug(): void { }
 	getLevel(): LogLevel { return LogLevel.Off; }
 }
 
@@ -62,8 +62,6 @@ suite('claudeToolCallRegistry — Phase 8.5 input/info tracking', () => {
 				parsedInput: entry?.info?.parsedInput,
 				displayName: entry?.info?.displayName,
 				invocationMessage: entry?.info?.invocationMessage,
-				// Raw buffer preserved so the UI still shows the SDK's payload
-				// instead of an empty input section.
 				toolInput: entry?.info?.toolInput,
 			},
 			{

@@ -123,9 +123,6 @@ suite('Protocol WebSocket — Session Lifecycle', function () {
 
 		await client.call('initialize', { channel: ROOT_STATE_URI, protocolVersions: [PROTOCOL_VERSION], clientId: 'test-restore' });
 
-		// The mock agent seeds a pre-existing session that was never created
-		// through the server's handleCreateSession -- simulating a session
-		// from a previous server lifetime.
 		const preExistingUri = PRE_EXISTING_SESSION_URI.toString();
 		client.notify('dispatchAction', {
 			channel: ROOT_STATE_URI,
@@ -149,11 +146,8 @@ suite('Protocol WebSocket — Session Lifecycle', function () {
 		const preExisting = list.items.find(s => s.resource === preExistingUri);
 		assert.ok(preExisting, 'listSessions should include the pre-existing session');
 
-		// Clear notifications so we can verify no duplicate sessionAdded fires.
 		client.clearReceived();
 
-		// Subscribing to this session should trigger the restore path: the
-		// server fetches message history from the agent and reconstructs turns.
 		const state = await fetchSessionWithChat(client, preExistingUri);
 
 		assert.strictEqual(state.lifecycle, 'ready', 'restored session should be in ready state');
@@ -168,8 +162,6 @@ suite('Protocol WebSocket — Session Lifecycle', function () {
 		const mdParts = turn.responseParts.filter((p): p is MarkdownResponsePart => p.kind === ResponsePartKind.Markdown);
 		assert.ok(mdParts.some(p => p.content.includes('file1.ts')), 'turn should have markdown part mentioning file1.ts');
 
-		// Restoring should NOT emit a duplicate sessionAdded notification
-		// (the session is already known to clients via listSessions).
 		await client.call('ping');
 		const sessionAddedNotifs = client.receivedNotifications(n =>
 			n.method === 'root/sessionAdded'
@@ -185,22 +177,15 @@ suite('Protocol WebSocket — Session Lifecycle', function () {
 		const preExistingUri = PRE_EXISTING_SESSION_URI.toString();
 		const chatUri = buildDefaultChatUri(preExistingUri);
 
-		// First subscribe restores turns from agent history.
 		const before = await fetchSessionWithChat(client, preExistingUri);
 		assert.ok(before.turns.length >= 1, 'session should restore turns on first subscribe');
 
-		// Drop every subscriber; the zero-capacity test server evicts the idle
-		// session and releases the provider's SDK resources.
 		client.notify('unsubscribe', { channel: chatUri });
 		client.notify('unsubscribe', { channel: preExistingUri });
 		await timeout(RESIDENCY_SETTLE_MS);
 
-		// Re-subscribing rehydrates the session from the preserved durable data
-		// — the turns must match the pre-eviction view.
 		const after = await fetchSessionWithChat(client, preExistingUri);
 		assert.strictEqual(after.lifecycle, 'ready', 'released session should restore to ready');
-		// Response-part ids are freshly generated on each reconstruction, so
-		// normalize them out before comparing the durable turn content.
 		const normalizeTurns = (turns: ISessionWithDefaultChat['turns']) =>
 			turns.map(turn => ({ ...turn, responseParts: turn.responseParts.map(part => ({ ...part, id: undefined })) }));
 		assert.deepStrictEqual(normalizeTurns(after.turns), normalizeTurns(before.turns), 'restored turns must match the pre-eviction state');
@@ -211,7 +196,6 @@ suite('Protocol WebSocket — Session Lifecycle', function () {
 
 		const sessionUri = await createAndSubscribeSession(client, 'test-read-archived-flags');
 
-		// Dispatch isArchived=true
 		client.notify('dispatchAction', {
 			channel: sessionUri,
 			clientSeq: 1,
@@ -223,7 +207,6 @@ suite('Protocol WebSocket — Session Lifecycle', function () {
 
 		await client.waitForNotification(n => isActionNotification(n, 'session/isArchivedChanged'));
 
-		// Dispatch isRead=true
 		client.notify('dispatchAction', {
 			channel: sessionUri,
 			clientSeq: 2,
@@ -235,13 +218,11 @@ suite('Protocol WebSocket — Session Lifecycle', function () {
 
 		await client.waitForNotification(n => isActionNotification(n, 'session/isReadChanged'));
 
-		// Verify the flags are reflected in the subscribed session state
 		const snapshot = await client.call<SubscribeResult>('subscribe', { channel: sessionUri });
 		const state = snapshot.snapshot!.state as ISessionWithDefaultChat;
 		assert.ok(state.status & SessionStatus.IsArchived, 'IsArchived flag should be set in snapshot');
 		assert.ok(state.status & SessionStatus.IsRead, 'IsRead flag should be set in snapshot');
 
-		// Poll listSessions until the persisted flags appear (async DB write)
 		client.close();
 		const client2 = createSecondaryClient();
 		await client2.connect();
@@ -267,9 +248,6 @@ suite('Protocol WebSocket — Session Lifecycle', function () {
 
 		const sessionUri = await createAndSubscribeSession(client, 'test-isread-false');
 
-		// On a fresh session, isRead is undefined in the DB.  Dispatching
-		// isRead=false should persist the value so that listSessions
-		// returns an explicit `false` rather than omitting the field.
 		client.notify('dispatchAction', {
 			channel: sessionUri,
 			clientSeq: 1,

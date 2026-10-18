@@ -245,7 +245,6 @@ export class SearchView extends ViewPane {
 
 		this.container = dom.$('.search-view');
 
-		// globals
 		this.viewletVisible = Constants.SearchContext.SearchViewVisibleKey.bindTo(this.contextKeyService);
 		this.firstMatchFocused = Constants.SearchContext.FirstMatchFocusKey.bindTo(this.contextKeyService);
 		this.fileMatchOrMatchFocused = Constants.SearchContext.FileMatchOrMatchFocusKey.bindTo(this.contextKeyService);
@@ -272,7 +271,6 @@ export class SearchView extends ViewPane {
 			}
 		}));
 
-		// scoped
 		this.contextKeyService = this._register(this.contextKeyService.createScoped(this.container));
 		Constants.SearchContext.SearchViewFocusedKey.bindTo(this.contextKeyService).set(true);
 		this.inputBoxFocused = Constants.SearchContext.InputBoxFocusedKey.bindTo(this.contextKeyService);
@@ -286,8 +284,6 @@ export class SearchView extends ViewPane {
 		this._register(this.configurationService.onDidChangeConfiguration(async e => {
 			if (e.affectsConfiguration('search.sortOrder')) {
 				if (this.searchConfig.sortOrder === SearchSortOrder.Modified) {
-					// If changing away from modified, remove all fileStats
-					// so that updated files are re-retrieved next time.
 					this.removeFileStats();
 				}
 				await this.refreshTreeController.queue();
@@ -343,7 +339,6 @@ export class SearchView extends ViewPane {
 
 		this._refreshResultsScheduler = this._register(new RunOnceScheduler(this._updateResults.bind(this), 80));
 
-		// storage service listener for for roaming changes
 		this._register(this.storageService.onWillSaveState(() => {
 			this._saveSearchHistoryService();
 		}));
@@ -456,14 +451,12 @@ export class SearchView extends ViewPane {
 
 		this._refreshResultsScheduler.schedule();
 
-		// remove old model and use the new searchModel
 		searchModel.location = SearchModelLocation.PANEL;
 		searchModel.replaceActive = this.viewModel.isReplaceActive();
 		searchModel.replaceString = this.searchWidget.getReplaceValue();
 		this._onSearchResultChangedDisposable?.dispose();
 		this._onSearchResultChangedDisposable = this._register(searchModel.onSearchResultChanged(async (event) => this.onSearchResultsChanged(event)));
 
-		// this call will also dispose of the old model
 		this.searchViewModelWorkbenchService.searchModel = searchModel;
 		this.viewModel = searchModel;
 		this.tree.setInput(this.viewModel.searchResult);
@@ -503,7 +496,6 @@ export class SearchView extends ViewPane {
 
 		this.queryDetails = dom.append(this.searchWidgetsContainerElement, $('.query-details'));
 
-		// Toggle query details button
 		const toggleQueryDetailsLabel = nls.localize('moreSearch', "Toggle Search Details");
 		this.toggleQueryDetailsButton = dom.append(this.queryDetails,
 			$('.more' + ThemeIcon.asCSSSelector(searchDetailsIcon), { tabindex: 0, role: 'button', 'aria-label': toggleQueryDetailsLabel }));
@@ -534,7 +526,6 @@ export class SearchView extends ViewPane {
 			}
 		}));
 
-		// folder includes list
 		const folderIncludesList = dom.append(this.queryDetails, $('.file-types.includes'));
 		const filesToIncludeTitle = nls.localize('searchScope.includes', "files to include");
 		dom.append(folderIncludesList, $('h4', undefined, filesToIncludeTitle));
@@ -559,7 +550,6 @@ export class SearchView extends ViewPane {
 
 		this.trackInputBox(this.inputPatternIncludes.inputFocusTracker, this.inputPatternIncludesFocused);
 
-		// excludes list
 		const excludesList = dom.append(this.queryDetails, $('.file-types.excludes'));
 		const excludesTitle = nls.localize('searchScope.excludes', "files to exclude");
 		dom.append(excludesList, $('h4', undefined, excludesTitle));
@@ -602,11 +592,9 @@ export class SearchView extends ViewPane {
 
 		this._onSearchResultChangedDisposable = this._register(this.viewModel.onSearchResultChanged(async (event) => await this.onSearchResultsChanged(event)));
 
-		// Subscribe to AI search result changes and update the tree when new AI results are reported
 		this._onAIResultChangedDisposable?.dispose();
 		this._onAIResultChangedDisposable = this._register(
 			this.viewModel.searchResult.aiTextSearchResult.onChange((e) => {
-				// Only refresh the AI node, not the whole tree
 				if (this.tree && this.tree.hasNode(this.searchResult.aiTextSearchResult) && !e.removed) {
 					this.tree.updateChildren(this.searchResult.aiTextSearchResult);
 				}
@@ -627,16 +615,13 @@ export class SearchView extends ViewPane {
 		this.viewletVisible.set(visible);
 		if (visible) {
 			if (this.changedWhileHidden) {
-				// Render if results changed while viewlet was hidden - #37818
 				await this.refreshAndUpdateCount();
 				this.changedWhileHidden = false;
 			}
 		} else {
-			// Reset last focus to input to preserve opening the viewlet always focusing the query editor.
 			this.lastFocusState = 'input';
 		}
 
-		// Enable highlights if there are searchresults
 		this.viewModel?.searchResult.toggleHighlights(visible);
 	}
 
@@ -886,7 +871,6 @@ export class SearchView extends ViewPane {
 	}
 
 	private buildReplaceAllConfirmationMessage(occurrences: number, fileCount: number, replaceValue?: string) {
-		// Helper to truncate long values to 10 lines max
 		const truncateValue = (value: string | undefined): string | undefined => {
 			if (!value) {
 				return value;
@@ -997,11 +981,9 @@ export class SearchView extends ViewPane {
 				paddingBottom: SearchDelegate.ITEM_HEIGHT,
 				collapseByDefault: (e: RenderableMatch) => {
 					if (isTextSearchHeading(e)) {
-						// always collapse the ai text search result, but always expand the text result
 						return e.isAIContributed;
 					}
 
-					// always expand compressed nodes
 					if (isSearchTreeFolderMatch(e) && e.matches().length === 1 && isSearchTreeFolderMatch(e.matches()[0])) {
 						return false;
 					}
@@ -1078,7 +1060,6 @@ export class SearchView extends ViewPane {
 			this.isEditableItem.reset();
 		}));
 
-		// Setup cursor position monitoring to clear selected match when cursor moves
 		this._register(this.editorService.onDidActiveEditorChange(() => {
 			const editor = getCodeEditor(this.editorService.activeTextEditorControl);
 			this.currentEditorCursorListener.value = editor?.onDidChangeCursorPosition(() => {
@@ -1118,7 +1099,6 @@ export class SearchView extends ViewPane {
 		const shouldShowAI = this.shouldShowAIResults();
 		do {
 			if (node && !viewer.isCollapsed(node) && (!shouldShowAI || !(isTextSearchHeading(node)))) {
-				// ignore the ai text search result id
 				return true;
 			}
 		} while (node = navigator.next());
@@ -1133,7 +1113,6 @@ export class SearchView extends ViewPane {
 
 		const [selected] = this.tree.getSelection();
 
-		// Expand the initial selected node, if needed
 		if (selected && !(isSearchTreeMatch(selected))) {
 			if (this.tree.isCollapsed(selected)) {
 				await this.tree.expand(selected);
@@ -1147,17 +1126,14 @@ export class SearchView extends ViewPane {
 			next = navigator.first();
 		}
 
-		// Expand until first child is a Match
 		while (next && !(isSearchTreeMatch(next))) {
 			if (this.tree.isCollapsed(next)) {
 				await this.tree.expand(next);
 			}
 
-			// Select the first child
 			next = navigator.next();
 		}
 
-		// Reveal the newly selected element
 		if (next) {
 			if (next === selected) {
 				this.tree.setFocus([]);
@@ -1181,7 +1157,6 @@ export class SearchView extends ViewPane {
 
 		let prev = navigator.previous();
 
-		// Select previous until find a Match or a collapsed item
 		while (!prev || (!(isSearchTreeMatch(prev)) && !this.tree.isCollapsed(prev))) {
 			const nextPrev = prev ? navigator.previous() : navigator.last();
 
@@ -1192,18 +1167,16 @@ export class SearchView extends ViewPane {
 			prev = nextPrev;
 		}
 
-		// Expand until last child is a Match
 		while (prev && !(isSearchTreeMatch(prev))) {
 			const nextItem = navigator.next();
 			if (!nextItem) {
 				break;
 			}
 			await this.tree.expand(prev);
-			navigator = this.tree.navigate(nextItem); // recreate navigator because modifying the tree can invalidate it
-			prev = nextItem ? navigator.previous() : navigator.last(); // select last child
+			navigator = this.tree.navigate(nextItem);
+			prev = nextItem ? navigator.previous() : navigator.last();
 		}
 
-		// Reveal the newly selected element
 		if (prev) {
 			if (prev === selected) {
 				this.tree.setFocus([]);
@@ -1372,10 +1345,10 @@ export class SearchView extends ViewPane {
 		const actionsPosition = this.searchConfig.actionsPosition;
 		this.getContainer().classList.toggle(SearchView.ACTIONS_RIGHT_CLASS_NAME, actionsPosition === 'right');
 
-		this.searchWidget.setWidth(this.size.width - 28 /* container margin */);
+		this.searchWidget.setWidth(this.size.width - 28 );
 
-		this.inputPatternExcludes.setWidth(this.size.width - 28 /* container margin */);
-		this.inputPatternIncludes.setWidth(this.size.width - 28 /* container margin */);
+		this.inputPatternExcludes.setWidth(this.size.width - 28 );
+		this.inputPatternIncludes.setWidth(this.size.width - 28 );
 
 		const widgetHeight = dom.getTotalHeight(this.searchWidgetsContainerElement);
 		const messagesHeight = dom.getTotalHeight(this.messagesElement);
@@ -1577,7 +1550,6 @@ export class SearchView extends ViewPane {
 			return;
 		}
 
-		// Show 'files to include' box
 		if (!this.showsFileTypes()) {
 			this.toggleQueryDetails(true, true);
 		}
@@ -1659,9 +1631,6 @@ export class SearchView extends ViewPane {
 				.map(resource => resource.sourceUri);
 		}
 
-		// Need the full match line to correctly calculate replace text, if this is a search/replace with regex group references ($1, $2, ...).
-		// 10000 chars is enough to avoid sending huge amounts of text around, if you do a replace with a longer match, it may or may not resolve the group refs correctly.
-		// https://github.com/microsoft/vscode/issues/58374
 		const charsPerLine = content.isRegExp ? 10000 : 1000;
 
 		const options: ITextQueryBuilderOptions = {
@@ -1705,20 +1674,18 @@ export class SearchView extends ViewPane {
 			this.onQueryTriggered(query, options, excludePatternText, includePatternText, triggeredOnType, shouldKeepAIResults, shouldUpdateAISearch);
 
 			if (!preserveFocus) {
-				this.searchWidget.focus(false, undefined, true); // focus back to input field
+				this.searchWidget.focus(false, undefined, true);
 			}
 		}, onQueryValidationError);
 	}
 
 	private validateQuery(query: ITextQuery): Promise<void> {
-		// Validate folderQueries
 		const folderQueriesExistP =
 			query.folderQueries.map(fq => {
 				return this.fileService.exists(fq.folder).catch(() => false);
 			});
 
 		return Promise.all(folderQueriesExistP).then(existResults => {
-			// If no folders exist, show an error message about the first one
 			const existingFolderQueries = query.folderQueries.filter((folderQuery, i) => existResults[i]);
 			if (!query.folderQueries.length || existingFolderQueries.length) {
 				query.folderQueries = existingFolderQueries;
@@ -1755,20 +1722,17 @@ export class SearchView extends ViewPane {
 			return;
 		}
 		try {
-			// Search result tree update
 			const fileCount = this.viewModel.searchResult.fileCount();
 			if (this._visibleMatches !== fileCount) {
 				this._visibleMatches = fileCount;
 				await this.refreshAndUpdateCount();
 			}
 		} finally {
-			// show frequent progress and results by scheduling updates 80 ms after the last one
 			this._refreshResultsScheduler.schedule();
 		}
 	}
 
 	private async expandIfSingularResult() {
-		// expand if just 1 file with less than 50 matches
 
 		const collapseResults = this.searchConfig.collapseResults;
 		if (collapseResults !== 'alwaysCollapse' && this.viewModel.searchResult.matches().length === 1) {
@@ -1805,11 +1769,9 @@ export class SearchView extends ViewPane {
 
 		this.state = SearchUIState.Idle;
 
-		// Complete up to 100% as needed
 		progressComplete();
 
 		if (shouldDoFinalRefresh) {
-			// anything that gets called from `getChildren` should not do this, since the tree will refresh anyways.
 			await this.refreshAndUpdateCount();
 		}
 
@@ -1819,10 +1781,8 @@ export class SearchView extends ViewPane {
 			return;
 		}
 
-		// Special case for when we have an AI provider registered
 		Constants.SearchContext.AIResultsRequested.bindTo(this.contextKeyService).set(this.shouldShowAIResults() && !!aiResults);
 
-		// Expand AI results if the node is collapsed
 		if (completed && this.tree.hasNode(this.searchResult.aiTextSearchResult) && this.tree.isCollapsed(this.searchResult.aiTextSearchResult)) {
 			this.tree.expand(this.searchResult.aiTextSearchResult);
 			return;
@@ -1858,7 +1818,6 @@ export class SearchView extends ViewPane {
 				}
 			}
 
-			// Indicate as status to ARIA
 			aria.status(message);
 
 			const messageEl = this.clearMessage();
@@ -1887,9 +1846,8 @@ export class SearchView extends ViewPane {
 			}
 			this.reLayout();
 		} else {
-			this.viewModel.searchResult.toggleHighlights(this.isVisible()); // show highlights
+			this.viewModel.searchResult.toggleHighlights(this.isVisible());
 
-			// Indicate final search result count for ARIA
 			aria.status(nls.localize('ariaSearchResultsStatus', "Search returned {0} results in {1} files", this.viewModel.searchResult.count(), this.viewModel.searchResult.fileCount()));
 		}
 
@@ -1951,12 +1909,10 @@ export class SearchView extends ViewPane {
 		this.tree.setFocus([]);
 
 		this.viewModel.replaceString = this.searchWidget.getReplaceValue();
-		// Reuse pending aiSearch if available
 		let aiSearchPromise = this._pendingSemanticSearchPromise;
 		if (!aiSearchPromise) {
 			this.viewModel.searchResult.setAIQueryUsingTextQuery();
 			aiSearchPromise = this._pendingSemanticSearchPromise = this.viewModel.aiSearch(() => {
-				// Clear pending promise when first result comes in
 				if (this._pendingSemanticSearchPromise === aiSearchPromise) {
 					this._pendingSemanticSearchPromise = undefined;
 				}
@@ -2127,7 +2083,6 @@ export class SearchView extends ViewPane {
 		const element = this.messagesElement.firstChild as HTMLDivElement;
 		if (this._cachedKeywords.length > 0) {
 			if (this._cachedKeywords.length >= 3) {
-				// If we already have 3 keywords, just return
 				return;
 			}
 			dom.append(element, ', ');
@@ -2142,7 +2097,6 @@ export class SearchView extends ViewPane {
 			const messageEl = this.clearMessage();
 			messageEl.classList.add('ai-keywords');
 
-			// Add unclickable message
 			const resultMsg = nls.localize('keywordSuggestion.message', "Search instead for: ");
 			dom.append(messageEl, resultMsg);
 
@@ -2157,7 +2111,6 @@ export class SearchView extends ViewPane {
 	}
 
 	private async getKeywordSuggestions() {
-		// Reuse pending aiSearch if available
 		let aiSearchPromise = this._pendingSemanticSearchPromise;
 		if (!aiSearchPromise) {
 			this.viewModel.searchResult.setAIQueryUsingTextQuery();
@@ -2166,7 +2119,6 @@ export class SearchView extends ViewPane {
 					this.updateKeywordSuggestionUI(result);
 					return;
 				}
-				// Clear pending promise when first result comes in
 				if (this._pendingSemanticSearchPromise === aiSearchPromise) {
 					this._pendingSemanticSearchPromise = undefined;
 				}
@@ -2210,10 +2162,7 @@ export class SearchView extends ViewPane {
 	private showEmptyStage(forceHideMessages = false): void {
 		const showingCancelled = (this.messagesElement.firstChild?.textContent?.indexOf(SEARCH_CANCELLED_MESSAGE) ?? -1) > -1;
 
-		// clean up ui
-		// this.replaceService.disposeAllReplacePreviews();
 		if (showingCancelled || forceHideMessages || !this.configurationService.getValue<ISearchConfiguration>().search?.searchOnType) {
-			// when in search to type, don't preemptively hide, as it causes flickering and shifting of the live results
 			dom.hide(this.messagesElement);
 		}
 
@@ -2222,8 +2171,6 @@ export class SearchView extends ViewPane {
 	}
 
 	private shouldOpenInNotebookEditor(match: ISearchTreeMatch, uri: URI): boolean {
-		// Untitled files will return a false positive for getContributedNotebookTypes.
-		// Since untitled files are already open, then untitled notebooks should return NotebookMatch results.
 		return isIMatchInNotebook(match) || (uri.scheme !== network.Schemas.untitled && this.notebookService.getContributedNotebookTypes(uri).length > 0);
 	}
 
@@ -2277,8 +2224,6 @@ export class SearchView extends ViewPane {
 				} else {
 					const editorWidget = editor.getControl();
 					if (editorWidget) {
-						// Ensure that the editor widget is binded. If if is, then this should return immediately.
-						// Otherwise, it will bind the widget.
 						elemParent.bindNotebookEditorWidget(editorWidget);
 						await elemParent.updateMatchesForEditorWidget();
 
@@ -2336,7 +2281,6 @@ export class SearchView extends ViewPane {
 			return;
 		}
 
-		// remove search results from this resource as it got disposed
 		let matches = this.viewModel.searchResult.matches();
 		for (let i = 0, len = matches.length; i < len; i++) {
 			if (resource.toString() === matches[i].resource.toString()) {
@@ -2362,10 +2306,8 @@ export class SearchView extends ViewPane {
 
 			this.viewModel.searchResult.remove(deletedMatches);
 		} else {
-			// Check if the changed file contained matches
 			const changedMatches = matches.filter(m => e.contains(m.resource));
 			if (changedMatches.length && this.searchConfig.sortOrder === SearchSortOrder.Modified) {
-				// No matches need to be removed, but modified files need to have their file stat updated.
 				this.updateFileStats(changedMatches).then(async () => this.refreshTreeController.queue());
 			}
 		}
@@ -2382,8 +2324,6 @@ export class SearchView extends ViewPane {
 	}
 
 	public override saveState(): void {
-		// This can be called before renderBody() method gets called for the first time
-		// if we move the searchView inside another viewPaneContainer
 		if (!this.searchWidget) {
 			return;
 		}
@@ -2615,13 +2555,11 @@ class SearchViewDataSource implements IAsyncDataSource<ISearchResult, Renderable
 		const ret: ITextSearchHeading[] = [];
 
 		if (this.searchView.shouldShowAIResults() && searchResult.searchModel.hasPlainResults && !searchResult.aiTextSearchResult.hidden) {
-			// as long as there is a query present, we can load AI results
 			ret.push(searchResult.aiTextSearchResult);
 		}
 
 		if (!searchResult.plainTextSearchResult.isEmpty()) {
 			if (!this.searchView.shouldShowAIResults() || searchResult.aiTextSearchResult.hidden) {
-				// only one root, so just return the children
 				return this.createTextSearchResultIterator(searchResult.plainTextSearchResult);
 			}
 			ret.push(searchResult.plainTextSearchResult);
@@ -2682,7 +2620,7 @@ class SearchViewDataSource implements IAsyncDataSource<ISearchResult, Renderable
 				this.searchView.addAIResults();
 				return new Promise<Iterable<RenderableMatch>>(resolve => {
 					const disposable = element.onChange(() => {
-						disposable.dispose(); // Clean up listener after first result
+						disposable.dispose();
 						resolve(this.createTextSearchResultIterator(element));
 					});
 				});
@@ -2751,16 +2689,13 @@ class RefreshTreeController extends Disposable {
 	private async refreshTree(event?: IChangeEvent): Promise<void> {
 		const searchConfig = this.geSearchConfig();
 		if (!event || event.added || event.removed) {
-			// Refresh whole tree
 			if (searchConfig.sortOrder === SearchSortOrder.Modified) {
-				// Ensure all matches have retrieved their file stat
 				await this.retrieveFileStats()
 					.then(() => this.searchView.getControl().updateChildren(undefined));
 			} else {
 				await this.searchView.getControl().updateChildren(undefined);
 			}
 		} else {
-			// If updated counts affect our search order, re-sort the view.
 			if (searchConfig.sortOrder === SearchSortOrder.CountAscending ||
 				searchConfig.sortOrder === SearchSortOrder.CountDescending) {
 
@@ -2768,7 +2703,6 @@ class RefreshTreeController extends Disposable {
 			} else {
 				const treeHasAllElements = event.elements.every(elem => this.searchView.getControl().hasNode(elem));
 				if (treeHasAllElements) {
-					// IFileMatchInstance modified, refresh those elements
 					await Promise.all(event.elements.map(async element => {
 						await this.searchView.getControl().updateChildren(element);
 						this.searchView.getControl().rerender(element);

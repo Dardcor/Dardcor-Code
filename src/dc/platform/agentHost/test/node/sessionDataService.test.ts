@@ -60,7 +60,6 @@ suite('SessionDataService', () => {
 		const dirA = service.getSessionDataDir(chatA);
 		const dirB = service.getSessionDataDir(chatB);
 		assert.notStrictEqual(dirA.toString(), dirB.toString());
-		// The plain session URI keeps its authority-free directory.
 		assert.strictEqual(service.getSessionDataDir(session).toString(), URI.joinPath(basePath, 'agentSessionData', 'session-1').toString());
 	});
 
@@ -77,7 +76,6 @@ suite('SessionDataService', () => {
 
 	test('deleteSessionData is a no-op when directory does not exist', async () => {
 		const session = AgentSession.uri('copilot', 'nonexistent');
-		// Should not throw
 		await service.deleteSessionData(session);
 	});
 
@@ -100,7 +98,6 @@ suite('SessionDataService', () => {
 	});
 
 	test('cleanupOrphanedData is a no-op when base directory does not exist', async () => {
-		// Should not throw
 		await service.cleanupOrphanedData(new Set());
 	});
 });
@@ -165,7 +162,6 @@ suite('SessionDataService — openDatabase ref-counting', () => {
 
 		ref1.dispose();
 
-		// ref2 still works
 		await ref2.object.createTurn('turn-1');
 
 		ref2.dispose();
@@ -181,7 +177,6 @@ suite('SessionDataService — openDatabase ref-counting', () => {
 
 		const ref2 = service.openDatabase(session);
 		disposables.add(ref2);
-		// New reference — may or may not be the same object, but must be functional
 		await ref2.object.createTurn('turn-1');
 		assert.notStrictEqual(ref2.object, db1);
 

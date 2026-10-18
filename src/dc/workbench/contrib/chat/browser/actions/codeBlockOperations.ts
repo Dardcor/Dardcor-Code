@@ -125,7 +125,6 @@ export class InsertCodeBlockOperation {
 	}
 
 	private notify(message: string) {
-		//this.notificationService.notify({ severity: Severity.Info, message });
 		this.dialogService.info(message);
 	}
 }
@@ -159,7 +158,6 @@ export class ApplyCodeBlockOperation {
 		}
 
 		if (codemapperUri && !isEqual(activeEditorControl?.getModel().uri, codemapperUri) && !this.notebookService.hasSupportedNotebooks(codemapperUri)) {
-			// reveal the target file
 			try {
 				const editorPane = await this.editorService.openEditor({ resource: codemapperUri });
 				const codeEditor = getCodeEditor(editorPane?.getControl());
@@ -224,14 +222,12 @@ export class ApplyCodeBlockOperation {
 
 		const options = [];
 		if (resource) {
-			// code block had an URI, but it doesn't exist
 			options.push({ label: localize('createFile', "New file '{0}'", this.labelService.getUriLabel(resource, { relative: true })), id: 'createFile' });
 			options.push(untitledEditorOption);
 			if (activeEditorOption) {
 				options.push(activeEditorOption);
 			}
 		} else {
-			// code block had no URI
 			if (activeEditorOption) {
 				options.push(activeEditorOption);
 			}
@@ -351,7 +347,6 @@ export class ApplyCodeBlockOperation {
 					executor.emitOne(edit);
 				},
 				notebookEdit(_resource, _edit) {
-					//
 				},
 			};
 			const result = await this.codeMapperService.mapCode(request, response, token);
@@ -414,7 +409,7 @@ export class ApplyCodeBlockOperation {
 	}
 
 	private tryToRevealCodeBlock(codeEditor: IActiveCodeEditor, codeBlock: string): void {
-		const match = codeBlock.match(/(\S[^\n]*)\n/); // substring that starts with a non-whitespace character and ends with a newline
+		const match = codeBlock.match(/(\S[^\n]*)\n/);
 		if (match && match[1].length > 10) {
 			const findMatch = codeEditor.getModel().findNextMatch(match[1], { lineNumber: 1, column: 1 }, false, false, null, false);
 			if (findMatch) {
@@ -424,7 +419,6 @@ export class ApplyCodeBlockOperation {
 	}
 
 	private notify(message: string) {
-		//this.notificationService.notify({ severity: Severity.Info, message });
 		this.dialogService.info(message);
 	}
 
@@ -477,7 +471,6 @@ function getEditableActiveCodeEditor(editorService: IEditorService): IActiveCode
 }
 
 function isReadOnly(model: ITextModel, textFileService: ITextFileService): boolean {
-	// Check if model is editable, currently only support untitled and text file
 	const activeTextModel = textFileService.files.get(model.uri) ?? textFileService.untitled.get(model.uri);
 	return !!activeTextModel?.isReadonly();
 }
@@ -493,16 +486,14 @@ function reindent(codeBlockContent: string, model: ITextModel, seletionStartLine
 
 	const indents = newContent.map(line => computeIndentation(line, formattingOptions.tabSize));
 
-	// find the smallest indent level in the code block
 	const newContentIndentLevel = indents.reduce<number>((min, indent, index) => {
-		if (indent.length !== newContent[index].length) { // ignore empty lines
+		if (indent.length !== newContent[index].length) {
 			return Math.min(indent.level, min);
 		}
 		return min;
 	}, Number.MAX_VALUE);
 
 	if (newContentIndentLevel === Number.MAX_VALUE || newContentIndentLevel === codeIndentLevel) {
-		// all lines are empty or the indent is already correct
 		return codeBlockContent;
 	}
 	const newLines = [];
@@ -515,11 +506,6 @@ function reindent(codeBlockContent: string, model: ITextModel, seletionStartLine
 	return newLines.join('\n');
 }
 
-/**
- * Returns:
- *  - level: the line's the ident level in tabs
- *  - length: the number of characters of the leading whitespace
- */
 export function computeIndentation(line: string, tabSize: number): { level: number; length: number } {
 	let nSpaces = 0;
 	let level = 0;

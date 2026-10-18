@@ -92,7 +92,6 @@ export class InspectEditorTokensController extends Disposable implements IEditor
 			return;
 		}
 		if (this._editor.getModel().uri.scheme === Schemas.vscodeNotebookCell) {
-			// disable in notebooks
 			return;
 		}
 		this._widget = new InspectEditorTokensWidget(this._editor, this._textMateService, this._languageService, this._themeService, this._notificationService, this._configurationService, this._languageFeaturesService);
@@ -163,11 +162,11 @@ function renderTokenText(tokenText: string): string {
 		const charCode = tokenText.charCodeAt(charIndex);
 		switch (charCode) {
 			case CharCode.Tab:
-				result += '\u2192'; // &rarr;
+				result += '\u2192';
 				break;
 
 			case CharCode.Space:
-				result += '\u00B7'; // &middot;
+				result += '\u00B7';
 				break;
 
 			default:
@@ -183,7 +182,6 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 
 	private static readonly _ID = 'editor.contrib.inspectEditorTokensWidget';
 
-	// Editor.IContentWidget.allowEditorOverflow
 	public readonly allowEditorOverflow = true;
 
 	private _isDisposed: boolean;
@@ -330,8 +328,7 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 			if (semanticTokenInfo.metadata) {
 				const properties: (keyof TokenStyleData)[] = ['foreground', 'bold', 'italic', 'underline', 'strikethrough'];
 				const propertiesByDefValue: { [rule: string]: string[] } = {};
-				const allDefValues = new Array<[Array<HTMLElement | string>, string]>(); // remember the order
-				// first collect to detect when the same rule is used for multiple properties
+				const allDefValues = new Array<[Array<HTMLElement | string>, string]>();
 				for (const property of properties) {
 					if (semanticTokenInfo.metadata[property] !== undefined) {
 						const definition = semanticTokenInfo.definitions[property];
@@ -603,11 +600,11 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 		const defaultLanguage = this._model.getLanguageId();
 		let lastLine = 0;
 		let lastCharacter = 0;
-		const posLine = pos.lineNumber - 1, posCharacter = pos.column - 1; // to 0-based position
+		const posLine = pos.lineNumber - 1, posCharacter = pos.column - 1;
 		for (let i = 0; i < tokenData.length; i += 5) {
 			const lineDelta = tokenData[i], charDelta = tokenData[i + 1], len = tokenData[i + 2], typeIdx = tokenData[i + 3], modSet = tokenData[i + 4];
-			const line = lastLine + lineDelta; // 0-based
-			const character = lineDelta === 0 ? lastCharacter + charDelta : charDelta; // 0-based
+			const line = lastLine + lineDelta;
+			const character = lineDelta === 0 ? lastCharacter + charDelta : charDelta;
 			if (posLine === line && character <= posCharacter && posCharacter < character + len) {
 				const type = semanticTokens.legend.tokenTypes[typeIdx] || 'not in legend (ignored)';
 				const modifiers = [];

@@ -78,17 +78,10 @@ export class TerminalEditorInput extends EditorInput implements IEditorCloseHand
 		return this._instantiationService.createInstance(TerminalEditorInput, instance.resource, instance);
 	}
 
-	/**
-	 * Sets the launch config to use for the next call to EditorInput.copy, which will be used when
-	 * the editor's split command is run.
-	 */
 	setCopyLaunchConfig(launchConfig: IShellLaunchConfig) {
 		this._copyLaunchConfig = launchConfig;
 	}
 
-	/**
-	 * Returns the terminal instance for this input if it has not yet been detached from the input.
-	 */
 	get terminalInstance(): ITerminalInstance | undefined {
 		return this._isDetached ? undefined : this._terminalInstance;
 	}
@@ -118,7 +111,6 @@ export class TerminalEditorInput extends EditorInput implements IEditorCloseHand
 	}
 
 	override async revert(): Promise<void> {
-		// On revert just treat the terminal as permanently non-dirty
 		this._isReverted = true;
 	}
 
@@ -167,21 +159,16 @@ export class TerminalEditorInput extends EditorInput implements IEditorCloseHand
 
 		this._register(toDisposable(() => {
 			if (!this._isDetached && !this._isShuttingDown) {
-				// Will be ignored if triggered by onExit or onDisposed terminal events
-				// as disposed was already called
 				instance.dispose(TerminalExitReason.User);
 			}
 			dispose(disposeListeners);
 			dispose([instanceOnDidFocusListener, instanceOnDidBlurListener]);
 		}));
 
-		// Don't dispose editor when instance is torn down on shutdown to avoid extra work and so
-		// the editor/tabs don't disappear
 		this._register(this._lifecycleService.onWillShutdown((e: WillShutdownEvent) => {
 			this._isShuttingDown = true;
 			dispose(disposeListeners);
 
-			// Don't touch processes if the shutdown was a result of reload as they will be reattached
 			const shouldPersistTerminals = this._configurationService.getValue<boolean>(TerminalSettingId.EnablePersistentSessions) && e.reason === ShutdownReason.RELOAD;
 			if (shouldPersistTerminals) {
 				instance.detachProcessAndDispose(TerminalExitReason.Shutdown);
@@ -218,10 +205,6 @@ export class TerminalEditorInput extends EditorInput implements IEditorCloseHand
 		return extraClasses;
 	}
 
-	/**
-	 * Detach the instance from the input such that when the input is disposed it will not dispose
-	 * of the terminal instance/process.
-	 */
 	detachInstance() {
 		if (!this._isShuttingDown) {
 			this._terminalInstance?.detachFromElement();

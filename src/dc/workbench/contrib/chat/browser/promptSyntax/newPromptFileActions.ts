@@ -29,20 +29,10 @@ import { getCleanPromptName, SKILL_FILENAME, VALID_SKILL_NAME_REGEX } from '../.
 import { PromptsStorage } from '../../common/promptSyntax/service/promptsService.js';
 import { getTarget } from '../../common/promptSyntax/languageProviders/promptFileAttributes.js';
 
-/**
- * Options to override the default folder-picker and editor-open behaviour
- * of the new-prompt-file actions. The agentic editor passes these to open
- * files in the embedded editor and pre-resolve the target folder.
- */
 export interface INewPromptOptions {
 	readonly targetFolder?: URI;
 	readonly targetStorage?: PromptsStorage;
 	readonly openFile?: (uri: URI) => Promise<ICodeEditor | undefined>;
-	/**
-	 * Override the file extension (e.g. `.md` for Claude rules instead of
-	 * `.instructions.md`). When set, the name picker uses this extension
-	 * instead of the default for the prompt type.
-	 */
 	readonly fileExtension?: string;
 }
 
@@ -93,7 +83,6 @@ class AbstractNewPromptFileAction extends Action2 {
 		if (!fileName) {
 			return;
 		}
-		// create the prompt file
 
 		await fileService.createFolder(folderUri);
 
@@ -120,23 +109,15 @@ class AbstractNewPromptFileAction extends Action2 {
 			return;
 		}
 
-		// due to PII concerns, synchronization of the 'user' reusable prompts
-		// is disabled by default, but we want to make that fact clear to the user
-		// hence after a 'user' prompt is create, we check if the synchronization
-		// was explicitly configured before, and if it wasn't, we show a suggestion
-		// to enable the synchronization logic in the Settings Sync configuration
 
 		const isConfigured = userDataSyncEnablementService
 			.isResourceEnablementConfigured(SyncResource.Prompts);
 		const isSettingsSyncEnabled = userDataSyncEnablementService.isEnabled();
 
-		// if prompts synchronization has already been configured before or
-		// if settings sync service is currently disabled, nothing to do
 		if ((isConfigured === true) || (isSettingsSyncEnabled === false)) {
 			return;
 		}
 
-		// show suggestion to enable synchronization of the user prompts and instructions to the user
 		notificationService.prompt(
 			Severity.Info,
 			localize(
@@ -156,7 +137,7 @@ class AbstractNewPromptFileAction extends Action2 {
 				{
 					label: localize('learnMore.capitalized', "Learn More"),
 					run: () => {
-						openerService.open(URI.parse('https://aka.ms/vscode-settings-sync-help'));
+						openerService.open(URI.parse('https://www.dardcor-code.web.id/docs/user-data/settings-sync'));
 					},
 				},
 			],
@@ -312,9 +293,6 @@ class NewSkillFileAction extends Action2 {
 			folderUri = selectedFolder.uri;
 		}
 
-		// Ask for skill name (will be the folder name)
-		// Per agentskills.io/specification: name must be 1-64 chars, lowercase alphanumeric + hyphens,
-		// no leading/trailing hyphens, no consecutive hyphens, must match folder name
 		const skillName = await quickInputService.input({
 			prompt: localize('commands.new.skill.name.prompt', "Enter a name for the skill (lowercase letters, numbers, and hyphens only)"),
 			placeHolder: localize('commands.new.skill.name.placeholder', "e.g., pdf-processing, data-analysis"),
@@ -326,7 +304,6 @@ class NewSkillFileAction extends Action2 {
 				if (name.length > 64) {
 					return localize('commands.new.skill.name.tooLong', "Skill name must be 64 characters or less");
 				}
-				// Per spec: lowercase alphanumeric and hyphens only
 				if (!VALID_SKILL_NAME_REGEX.test(name)) {
 					return localize('commands.new.skill.name.invalidChars', "Skill name may only contain lowercase letters, numbers, and hyphens");
 				}
@@ -346,7 +323,6 @@ class NewSkillFileAction extends Action2 {
 
 		const trimmedName = skillName.trim();
 
-		// Create the skill folder and SKILL.md file
 		const skillFolder = URI.joinPath(folderUri, trimmedName);
 		await fileService.createFolder(skillFolder);
 

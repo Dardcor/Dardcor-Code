@@ -7,9 +7,6 @@ import { Emitter, type Event } from '../../../../util/dardcor/base/common/event'
 import { resolveOTelConfig, type OTelConfig } from '../otelConfig';
 import { SpanStatusCode, type ICompletedSpanData, type IOTelService, type ISpanEventData, type ISpanEventRecord, type ISpanHandle, type SpanOptions, type TraceContext } from '../otelService';
 
-/**
- * Captured span record for test assertions.
- */
 export interface CapturedSpan {
 	name: string;
 	kind?: number;
@@ -22,28 +19,17 @@ export interface CapturedSpan {
 	events: ISpanEventRecord[];
 }
 
-/**
- * Captured metric record.
- */
 export interface CapturedMetric {
 	name: string;
 	value: number;
 	attributes?: Record<string, string | number | boolean>;
 }
 
-/**
- * Captured log record.
- */
 export interface CapturedLogRecord {
 	body: string;
 	attributes?: Record<string, unknown>;
 }
 
-/**
- * IOTelService implementation that captures all operations for test verification.
- * Unlike NoopOTelService, this records spans, metrics, and logs so tests can
- * assert on the OTel output without a real SDK.
- */
 export class CapturingOTelService implements IOTelService {
 	declare readonly _serviceBrand: undefined;
 	readonly config: OTelConfig;
@@ -64,7 +50,7 @@ export class CapturingOTelService implements IOTelService {
 
 	constructor(config?: Partial<OTelConfig>) {
 		this.config = {
-			...resolveOTelConfig({ env: { 'COPILOT_OTEL_ENABLED': 'true' }, extensionVersion: '1.0.0', sessionId: 'test' }),
+			...resolveOTelConfig({ env: { 'DARDCOR_OTEL_ENABLED': 'true' }, extensionVersion: '1.0.0', sessionId: 'test' }),
 			...config,
 		};
 	}
@@ -127,12 +113,10 @@ export class CapturingOTelService implements IOTelService {
 	async flush(): Promise<void> { }
 	async shutdown(): Promise<void> { }
 
-	/** Find spans by name prefix. */
 	findSpans(namePrefix: string): CapturedSpan[] {
 		return this.spans.filter(s => s.name.startsWith(namePrefix));
 	}
 
-	/** Reset all captured data. */
 	reset(): void {
 		this.spans.length = 0;
 		this.metrics.length = 0;

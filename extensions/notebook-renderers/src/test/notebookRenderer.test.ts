@@ -80,10 +80,6 @@ suite('Notebook builtin output renderer', () => {
 		return el;
 	}
 
-	// Helper to generate HTML similar to what is passed to the renderer
-	// <div class="cell_container" >
-	//   <div class="output_container" >
-	//     <div class="output" >
 	class OutputHtml {
 		private readonly cell = createElement('div', ['cell_container']);
 		private readonly firstOutput: HTMLElement;

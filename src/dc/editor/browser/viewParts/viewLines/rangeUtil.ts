@@ -9,11 +9,6 @@ import { DomReadingContext } from './domReadingContext.js';
 
 export class RangeUtil {
 
-	/**
-	 * Reusing the same range here
-	 * because IE is buggy and constantly freezes when using a large number
-	 * of ranges and calling .detach on them
-	 */
 	private static _handyReadyRange: Range;
 
 	private static _createRange(): Range {
@@ -24,8 +19,6 @@ export class RangeUtil {
 	}
 
 	private static _detachRange(range: Range, endNode: HTMLElement): void {
-		// Move range out of the span node, IE doesn't like having many ranges in
-		// the same spot and will act badly for lines containing dashes ('-')
 		range.selectNodeContents(endNode);
 	}
 
@@ -37,7 +30,6 @@ export class RangeUtil {
 
 			return range.getClientRects();
 		} catch (e) {
-			// This is life ...
 			return null;
 		} finally {
 			this._detachRange(range, endNode);
@@ -46,7 +38,6 @@ export class RangeUtil {
 
 	private static _mergeAdjacentRanges(ranges: FloatHorizontalRange[]): FloatHorizontalRange[] {
 		if (ranges.length === 1) {
-			// There is nothing to merge
 			return ranges;
 		}
 
@@ -58,7 +49,7 @@ export class RangeUtil {
 
 		for (let i = 1, len = ranges.length; i < len; i++) {
 			const range = ranges[i];
-			if (prev.left + prev.width + 0.9 /* account for browser's rounding errors*/ >= range.left) {
+			if (prev.left + prev.width + 0.9 >= range.left) {
 				prev.width = Math.max(prev.width, range.left + range.width - prev.left);
 			} else {
 				result[resultLen++] = prev;
@@ -76,8 +67,6 @@ export class RangeUtil {
 			return null;
 		}
 
-		// We go through FloatHorizontalRange because it has been observed in bi-di text
-		// that the clientRects are not coming in sorted from the browser
 
 		const result: FloatHorizontalRange[] = [];
 		for (let i = 0, len = clientRects.length; i < len; i++) {
@@ -89,7 +78,6 @@ export class RangeUtil {
 	}
 
 	public static readHorizontalRanges(domNode: HTMLElement, startChildIndex: number, startOffset: number, endChildIndex: number, endOffset: number, context: DomReadingContext): FloatHorizontalRange[] | null {
-		// Panic check
 		const min = 0;
 		const max = domNode.children.length - 1;
 		if (min > max) {
@@ -99,15 +87,11 @@ export class RangeUtil {
 		endChildIndex = Math.min(max, Math.max(min, endChildIndex));
 
 		if (startChildIndex === endChildIndex && startOffset === endOffset && startOffset === 0 && !domNode.children[startChildIndex].firstChild) {
-			// We must find the position at the beginning of a <span>
-			// To cover cases of empty <span>s, avoid using a range and use the <span>'s bounding box
 			const clientRects = domNode.children[startChildIndex].getClientRects();
 			context.markDidDomLayout();
 			return this._createHorizontalRangesFromClientRects(clientRects, context.clientRectDeltaLeft, context.clientRectScale);
 		}
 
-		// If crossing over to a span only to select offset 0, then use the previous span's maximum offset
-		// Chrome is buggy and doesn't handle 0 offsets well sometimes.
 		if (startChildIndex !== endChildIndex) {
 			if (endChildIndex > 0 && endOffset === 0) {
 				endChildIndex--;
@@ -119,7 +103,6 @@ export class RangeUtil {
 		let endElement = domNode.children[endChildIndex].firstChild;
 
 		if (!startElement || !endElement) {
-			// When having an empty <span> (without any text content), try to move to the previous <span>
 			if (!startElement && startOffset === 0 && startChildIndex > 0) {
 				startElement = domNode.children[startChildIndex - 1].firstChild;
 				startOffset = Constants.MAX_SAFE_SMALL_INTEGER;

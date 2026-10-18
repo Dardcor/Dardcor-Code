@@ -13,7 +13,6 @@ import { EditedFileEvents, renderedMessageToTsxChildren } from './agentPrompt';
 
 export interface AgentUserMessageInHistoryProps extends BasePromptElementProps {
 	readonly turn: Turn;
-	/** Tag name used to wrap the user query (e.g., 'userRequest' or 'user_query'). Defaults to 'userRequest'. */
 	readonly userQueryTagName?: string;
 }
 
@@ -43,22 +42,11 @@ export interface AgentConversationHistoryProps extends BasePromptElementProps {
 	readonly userQueryTagName?: string;
 }
 
-/**
- * Agent conversation history for when summarization/cache breakpoints are disabled.
- */
 export class AgentConversationHistory extends PromptElement<AgentConversationHistoryProps> {
 	override async render(state: void, sizing: PromptSizing) {
 		const history: PromptElement[] = [];
 		const contextHistory = this.props.promptContext.history;
 
-		// A summary (e.g. from a manual `/compact`) supersedes every message up to
-		// and including the round it is attached to. Find the most recent summarized
-		// round so the history it covers is dropped instead of replayed verbatim.
-		// Without this, a manual `/compact` has no effect when automatic
-		// summarization is disabled and the context window immediately refills on the
-		// next turn. `round.summary` is populated for historical rounds by
-		// `normalizeSummariesOnRounds`. This only applies an existing summary; it
-		// never triggers new summarization (which stays gated behind the setting).
 		let summaryTurnIndex = -1;
 		let summaryRoundIndex = -1;
 		findSummary: for (let t = contextHistory.length - 1; t >= 0; t--) {
@@ -73,22 +61,15 @@ export class AgentConversationHistory extends PromptElement<AgentConversationHis
 		}
 
 		for (const [i, turn] of contextHistory.entries()) {
-			// Turns fully covered by a later summary are dropped.
 			if (i < summaryTurnIndex) {
 				continue;
 			}
 
 			const metadata = turn.responseChatResult?.metadata as IResultMetadata | undefined;
 			const isSummaryTurn = i === summaryTurnIndex;
-			// Read both the summary text and the rounds we keep from one source so the
-			// summary index stays valid for the slice below. `turn.rounds` is the same
-			// reference as `metadata.toolCallRounds` whenever the latter is non-empty,
-			// which is always the case on a summary turn (the summary lives on a real round).
 			const rounds = turn.rounds;
 
 			if (isSummaryTurn) {
-				// The summary stands in for this turn's user message and the rounds up
-				// to and including the summarized one.
 				history.push(<UserMessage><Tag name='conversation-summary'>{rounds[summaryRoundIndex].summary}</Tag></UserMessage>);
 			} else if (metadata?.renderedUserMessage) {
 				history.push(<UserMessage><Chunk>{renderedMessageToTsxChildren(metadata.renderedUserMessage, false)}</Chunk></UserMessage>);
@@ -97,11 +78,8 @@ export class AgentConversationHistory extends PromptElement<AgentConversationHis
 			}
 
 			if (Array.isArray(metadata?.toolCallRounds) && metadata.toolCallRounds?.length > 0) {
-				// On the summarized turn, only the rounds after the summary remain.
 				const toolCallRounds = isSummaryTurn ? rounds.slice(summaryRoundIndex + 1) : metadata.toolCallRounds;
 				if (toolCallRounds.length > 0) {
-					// If a tool call limit is exceeded, the tool call from this turn will
-					// have been aborted and any result should be found in the next turn.
 					const toolCallResultInNextTurn = metadata.maxToolCallsExceeded;
 					let toolCallResults = metadata.toolCallResults;
 					if (toolCallResultInNextTurn) {

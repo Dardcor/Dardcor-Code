@@ -18,10 +18,6 @@ import { TextModelEditSource } from '../../../../editor/common/textModelEditSour
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 
-/**
- * Checks if a model content change event was caused only by typing or pasting.
- * Returns false for AI edits, refactorings, undo/redo, etc.
- */
 function isUserEdit(event: IModelContentChangedEvent): boolean {
 	if (event.isUndoing || event.isRedoing || event.isFlush) {
 		return false;
@@ -52,13 +48,6 @@ type WordState = {
 	position: Position;
 };
 
-/**
- * Tracks symbol edits for a single ITextModel.
- *
- * Receives cursor position updates from external sources (e.g., focused code editors).
- * Only tracks edits done by typing or paste. Resets when:
- * - A non-typing/paste edit occurs (AI, refactoring, undo/redo, etc.)
- */
 class ModelSymbolRenameTracker extends Disposable {
 	private readonly _trackedWord = observableValue<ITrackedWord | undefined>(this, undefined);
 	public readonly trackedWord: IObservable<ITrackedWord | undefined> = this._trackedWord;
@@ -73,11 +62,8 @@ class ModelSymbolRenameTracker extends Disposable {
 	) {
 		super();
 
-		// Listen to content changes - only reset on non-typing/paste edits
 		this._register(this._model.onDidChangeContent(e => {
 			if (!isUserEdit(e)) {
-				// Non-user edit has occurred - reset rename tracking at
-				// the current cursor position (if any)
 				const position = this._lastCursorPosition;
 				this.reset();
 				if (position !== undefined && position.lineNumber <= this._model.getLineCount()) {
@@ -85,26 +71,19 @@ class ModelSymbolRenameTracker extends Disposable {
 				}
 				return;
 			}
-			// Valid typing/paste edit - mark that content changed, cursor update will handle tracking
 			this._pendingContentChange = true;
 		}));
 	}
 
-	/**
-	 * Called by the service when the cursor position changes in an editor showing this model.
-	 * Updates tracking based on the word under cursor and whether content has changed.
-	 */
 	public updateCursorPosition(position: Position): void {
 		this._lastCursorPosition = position;
 		const wordAtPosition = this._model.getWordAtPosition(position);
 		if (!wordAtPosition) {
-			// Not on a word - just clear lastWordBeforeEdit
 			this._lastWordBeforeEdit = undefined;
 			this._pendingContentChange = false;
 			return;
 		}
 
-		// Check if the position is in a comment
 		if (this._isPositionInComment(position)) {
 			this._lastWordBeforeEdit = undefined;
 			this._pendingContentChange = false;
@@ -126,14 +105,11 @@ class ModelSymbolRenameTracker extends Disposable {
 		this._pendingContentChange = false;
 
 		if (!contentChanged) {
-			// Just cursor movement - remember this word for later
 			this._lastWordBeforeEdit = currentWord;
 			return;
 		}
 
-		// Content changed - update tracking
 		if (!this._capturedWord) {
-			// First edit on a word - use the word from before the edit as original
 			const originalWord = this._lastWordBeforeEdit ?? currentWord;
 			this._capturedWord = { ...originalWord };
 			this._trackedWord.set({
@@ -149,12 +125,10 @@ class ModelSymbolRenameTracker extends Disposable {
 		}
 
 		const capturedWord = this._capturedWord;
-		// Check if we're still on the same word (by position overlap or adjacency)
 		const isOnSameWord = this._rangesOverlap(capturedWord.range, currentWord.range) ||
 			this._isAdjacent(capturedWord.range, currentWord.range);
 
 		if (isOnSameWord) {
-			// Word has been edited - update the tracked word
 			this._trackedWord.set({
 				model: this._model,
 				originalWord: capturedWord.word,
@@ -164,7 +138,6 @@ class ModelSymbolRenameTracker extends Disposable {
 				currentRange: currentWord.range,
 			}, undefined);
 		} else {
-			// User started typing in a different word - use the word from before the edit as original
 			const originalWord = this._lastWordBeforeEdit ?? currentWord;
 			this._capturedWord = { ...originalWord };
 			this._trackedWord.set({
@@ -176,7 +149,6 @@ class ModelSymbolRenameTracker extends Disposable {
 				currentRange: currentWord.range,
 			}, undefined);
 		}
-		// Update lastWordBeforeEdit for the next iteration
 		this._lastWordBeforeEdit = currentWord;
 	}
 
@@ -230,17 +202,14 @@ class RenameSymbolTrackerService extends Disposable implements IRenameSymbolTrac
 	) {
 		super();
 
-		// Setup tracking for existing editors
 		for (const editor of this._codeEditorService.listCodeEditors()) {
 			this._setupEditorTracking(editor);
 		}
 
-		// Track editor additions
 		this._register(this._codeEditorService.onCodeEditorAdd(editor => {
 			this._setupEditorTracking(editor);
 		}));
 
-		// Clean up editor focus tracking when editors are removed
 		this._register(this._codeEditorService.onCodeEditorRemove(editor => {
 			const focusDisposable = this._editorFocusTrackingDisposables.get(editor);
 			if (focusDisposable) {
@@ -249,7 +218,6 @@ class RenameSymbolTrackerService extends Disposable implements IRenameSymbolTrac
 			}
 		}));
 
-		// Clean up model trackers when models are removed
 		this._register(this._modelService.onModelRemoved(model => {
 			const tracker = this._modelTrackers.get(model);
 			if (tracker) {
@@ -264,12 +232,10 @@ class RenameSymbolTrackerService extends Disposable implements IRenameSymbolTrac
 			return;
 		}
 
-		// Setup focus and cursor tracking
 		if (!this._editorFocusTrackingDisposables.has(editor)) {
 			const obsEditor = observableCodeEditor(editor);
 
 			const focusDisposable = autorun(reader => {
-				/** @description track focused editor and forward cursor to model tracker */
 				const isFocused = obsEditor.isFocused.read(reader);
 				const model = obsEditor.model.read(reader);
 				const cursorPosition = obsEditor.cursorPosition.read(reader);
@@ -278,19 +244,16 @@ class RenameSymbolTrackerService extends Disposable implements IRenameSymbolTrac
 					return;
 				}
 
-				// Ensure we have a tracker for this model
 				let tracker = this._modelTrackers.get(model);
 				if (!tracker) {
 					tracker = new ModelSymbolRenameTracker(model);
 					this._modelTrackers.set(model, tracker);
 				}
 
-				// Update the focused tracker
 				if (this._focusedModelTracker.read(undefined) !== tracker) {
 					this._focusedModelTracker.set(tracker, undefined);
 				}
 
-				// Forward cursor position to the model tracker
 				if (cursorPosition) {
 					tracker.updateCursorPosition(cursorPosition);
 				}

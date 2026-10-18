@@ -65,7 +65,6 @@ import { IPromptsService } from '../../../platform/promptFiles/common/promptsSer
 import { PromptsServiceImpl } from '../../../platform/promptFiles/dardcor-node/promptsServiceImpl';
 import { AutomaticInstructionsCollector, IAutomaticInstructionsCollector } from '../../../platform/promptFiles/node/automaticInstructionsCollector';
 import { IPromptPathRepresentationService, PromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
-import { IProxyModelsService, NullProxyModelsService } from '../../../platform/proxyModels/common/proxyModelsService';
 import { IRemoteRepositoriesService, RemoteRepositoriesService } from '../../../platform/remoteRepositories/dardcor/remoteRepositories';
 import { NullRequestLogger } from '../../../platform/requestLogger/node/nullRequestLogger';
 import { IRequestLogger } from '../../../platform/requestLogger/common/requestLogger';
@@ -98,7 +97,7 @@ import { IToolResultContentRenderer } from '../../agentDebug/common/toolResultRe
 import { ToolResultContentRenderer } from '../../agentDebug/dardcor-node/toolResultContentRenderer';
 import { GitHubOrgChatResourcesService, IGitHubOrgChatResourcesService } from '../../agents/dardcor-node/githubOrgChatResourcesService';
 import { CommandServiceImpl, ICommandService } from '../../commands/node/commandService';
-import { ICopilotInlineCompletionItemProviderService, NullCopilotInlineCompletionItemProviderService } from '../../completions/common/dardcorInlineCompletionItemProviderService';
+import { IDardcorInlineCompletionItemProviderService, NullDardcorInlineCompletionItemProviderService } from '../../completions/common/dardcorInlineCompletionItemProviderService';
 import { IPromptWorkspaceLabels, PromptWorkspaceLabels } from '../../context/node/resolvers/promptWorkspaceLabels';
 import { IUserFeedbackService, UserFeedbackService } from '../../conversation/dardcor-node/userActions';
 import { ConversationStore, IConversationStore } from '../../conversationStore/node/conversationStore';
@@ -130,10 +129,6 @@ import { IToolGroupingCache, IToolGroupingService } from '../../tools/common/vir
 import { ISessionStore } from '../../../platform/chronicle/common/sessionStore';
 import { SessionStore } from '../../../platform/chronicle/node/sessionStore';
 
-/**
- * A default context for VSCode extension testing, building on general one in `lib`.
- * Only includes items that are needed for almost all extension tests.
- */
 export function createExtensionTestingServices(): TestingServiceCollection {
 	const testingServiceCollection = _createBaselineServices();
 	testingServiceCollection.define(IAutomodeService, new SyncDescriptor(AutomodeService));
@@ -212,10 +207,9 @@ export function createExtensionTestingServices(): TestingServiceCollection {
 	testingServiceCollection.define(IToolGroupingService, new SyncDescriptor(ToolGroupingService));
 	testingServiceCollection.define(ITodoListContextProvider, new SyncDescriptor(TodoListContextProvider));
 	testingServiceCollection.define(IGithubAvailableEmbeddingTypesService, new SyncDescriptor(GithubAvailableEmbeddingTypesService));
-	testingServiceCollection.define(IProxyModelsService, new SyncDescriptor(NullProxyModelsService));
 	testingServiceCollection.define(IInlineEditsModelService, new SyncDescriptor(InlineEditsModelService));
 	testingServiceCollection.define(IUndesiredModelsManager, new SyncDescriptor(UndesiredModels.Manager));
-	testingServiceCollection.define(ICopilotInlineCompletionItemProviderService, new SyncDescriptor(NullCopilotInlineCompletionItemProviderService));
+	testingServiceCollection.define(IDardcorInlineCompletionItemProviderService, new SyncDescriptor(NullDardcorInlineCompletionItemProviderService));
 	testingServiceCollection.define(IRerankerService, new SyncDescriptor(RerankerService));
 	testingServiceCollection.define(IOTelSqliteStore, new OTelSqliteStore(':memory:'));
 	testingServiceCollection.define(ISessionStore, new SessionStore(':memory:'));

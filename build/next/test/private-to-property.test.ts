@@ -279,9 +279,7 @@ suite('convertPrivateFields', () => {
 		const code = 'class Foo { #x = 1; get() { return this.#x; } }';
 		const result = convertPrivateFields(code, 'test.js');
 		assert.strictEqual(result.edits.length, 2);
-		// Edits should be sorted by start position
 		assert.ok(result.edits[0].start < result.edits[1].start);
-		// First edit is the declaration #x, second is the usage this.#x
 		assert.strictEqual(result.edits[0].newText, '$a');
 		assert.strictEqual(result.edits[1].newText, '$a');
 	});
@@ -293,17 +291,10 @@ suite('convertPrivateFields', () => {
 	});
 
 	test('async private method — replacement must not merge with async keyword', async () => {
-		// In minified output, there is no space between `async` and `#method`:
-		//   class Foo{async#run(){await Promise.resolve(1)}}
-		// Replacing `#run` with `$a` naively produces `async$a()` which is a
-		// single identifier, not `async $a()`. The `await` inside then becomes
-		// invalid because the method is no longer async.
 		const code = 'class Foo{async#run(){return await Promise.resolve(1)}call(){return this.#run()}}';
 		const result = convertPrivateFields(code, 'test.js');
 		assert.ok(!result.code.includes('#run'), 'should replace #run');
-		// The replacement must NOT fuse with `async` into a single token
 		assert.doesNotThrow(() => new Function(result.code), 'transformed code must be valid JS');
-		// Verify it actually executes (the async method should still work)
 		const exec = new Function(`
 			${result.code}
 			return new Foo().call();
@@ -313,9 +304,6 @@ suite('convertPrivateFields', () => {
 	});
 
 	test('async private method — space inserted in declaration and not in usage', () => {
-		// More readable version: ensure that `async #method()` becomes
-		// `async $a()` (with space), while `this.#method()` becomes
-		// `this.$a()` (no extra space needed since `.` separates tokens).
 		const code = [
 			'class Foo {',
 			'  async #doWork() { return await 42; }',
@@ -352,9 +340,6 @@ suite('convertPrivateFields', () => {
 			'}',
 		].join('\n');
 		const result = convertPrivateFields(code, 'test.js');
-		// Outer.#x → $a (first class scanned), Inner.#x → $b (second)
-		// this.#x in the extends clause lexically refers to Outer.#x,
-		// so it must become this.$a, NOT this.$b
 		assert.ok(result.code.includes('this.$a, Object'),
 			'heritage clause should reference outer replacement ($a), got:\n' + result.code);
 	});
@@ -376,9 +361,6 @@ suite('convertPrivateFields', () => {
 			'return inst instanceof Base;',
 		].join('\n');
 		const result = convertPrivateFields(code, 'test.js');
-		// With the bug, this.#Base in extends resolves to Inner's replacement
-		// ($b) instead of Outer's ($a). Since the Outer instance has no $b
-		// property, `class extends undefined` throws TypeError.
 		assert.strictEqual(new Function(result.code)(), true,
 			'inner class should extend Base via outer private field, code:\n' + result.code);
 	});
@@ -393,7 +375,6 @@ suite('convertPrivateFields', () => {
 			'}',
 		].join('\n');
 		const result = convertPrivateFields(code, 'test.js');
-		// #x must not be renamed to $a since the class already has a public $a
 		const fieldDecls = result.code.match(/\$a\s*=/g);
 		assert.ok(!fieldDecls || fieldDecls.length <= 1,
 			'should not produce duplicate $a property declarations, got:\n' + result.code);
@@ -411,8 +392,6 @@ suite('convertPrivateFields', () => {
 			'return f.getPublic() + "," + f.getPrivate();',
 		].join('\n');
 		const result = convertPrivateFields(code, 'test.js');
-		// Original: getPublic() → "public", getPrivate() → "private"
-		// With the bug: both return "private" because $a overwrites $a
 		assert.strictEqual(new Function(result.code)(), 'public,private',
 			'public and private properties must remain distinct, code:\n' + result.code);
 	});
@@ -461,8 +440,6 @@ suite('convertPrivateFields', () => {
 			'}',
 		].join('\n');
 		const result = convertPrivateFields(code, 'test.js');
-		// #brand in the extends clause should resolve to Outer.#brand ($a),
-		// not Inner.#brand ($b)
 		assert.ok(result.code.includes('\'$a\' in obj'),
 			'brand check in heritage clause should use outer replacement, got:\n' + result.code);
 	});
@@ -470,10 +447,6 @@ suite('convertPrivateFields', () => {
 
 suite('adjustSourceMap', () => {
 
-	/**
-	 * Helper: creates a source map with dense 1:1 mappings (every character)
-	 * for a single-source file. Each column maps generated -> original identity.
-	 */
 	function createIdentitySourceMap(code: string, sourceName: string): RawSourceMap {
 		const gen = new SourceMapGenerator();
 		gen.setSourceContent(sourceName, code);
@@ -499,34 +472,22 @@ suite('adjustSourceMap', () => {
 	});
 
 	test('single edit shrinks token - columns after edit shift left', () => {
-		// "var #longName = 1; var y = 2;"
-		//  0   4         14     22
-		// After: "var $a = 1; var y = 2;"
-		//  0   4  7       15
 		const code = 'var #longName = 1; var y = 2;';
-		// Create a sparse map with mappings only at known token positions
 		const gen = new SourceMapGenerator();
 		gen.setSourceContent('test.js', code);
-		// Map 'var' at col 0
 		gen.addMapping({ generated: { line: 1, column: 0 }, original: { line: 1, column: 0 }, source: 'test.js' });
-		// Map '#longName' at col 4
 		gen.addMapping({ generated: { line: 1, column: 4 }, original: { line: 1, column: 4 }, source: 'test.js' });
-		// Map '=' at col 14
 		gen.addMapping({ generated: { line: 1, column: 14 }, original: { line: 1, column: 14 }, source: 'test.js' });
-		// Map 'var' at col 19
 		gen.addMapping({ generated: { line: 1, column: 19 }, original: { line: 1, column: 19 }, source: 'test.js' });
-		// Map 'y' at col 23
 		gen.addMapping({ generated: { line: 1, column: 23 }, original: { line: 1, column: 23 }, source: 'test.js' });
 		const map = JSON.parse(gen.toString());
 
 		const result = adjustSourceMap(map, code, [{ start: 4, end: 13, newText: '$a' }]);
 
 		const consumer = new SourceMapConsumer(result);
-		// 'y' was at gen col 23, edit shrunk 9->2 chars (delta -7), so now at gen col 16
 		const pos = consumer.originalPositionFor({ line: 1, column: 16 });
 		assert.strictEqual(pos.column, 23, 'y should map back to original column 23');
 
-		// '=' was at gen col 14, edit shrunk by 7, so now at gen col 7
 		const pos2 = consumer.originalPositionFor({ line: 1, column: 7 });
 		assert.strictEqual(pos2.column, 14, '= should map back to original column 14');
 	});
@@ -539,44 +500,37 @@ suite('adjustSourceMap', () => {
 		const result = adjustSourceMap(map, code, [{ start: hashPos, end: hashPos + 2, newText: '$a' }]);
 
 		const consumer = new SourceMapConsumer(result);
-		// Line 3 (1-based) should be completely unaffected
 		const pos = consumer.originalPositionFor({ line: 3, column: 0 });
 		assert.strictEqual(pos.line, 3);
 		assert.strictEqual(pos.column, 0);
 	});
 
 	test('multiple edits on same line accumulate shifts', () => {
-		// "this.#aaa + this.#bbb + this.#ccc;"
-		//  0    5      11   17      23   29
 		const code = 'this.#aaa + this.#bbb + this.#ccc;';
-		// Sparse map at token boundaries (not inside edit spans)
 		const gen = new SourceMapGenerator();
 		gen.setSourceContent('test.js', code);
-		gen.addMapping({ generated: { line: 1, column: 0 }, original: { line: 1, column: 0 }, source: 'test.js' });   // 'this'
-		gen.addMapping({ generated: { line: 1, column: 5 }, original: { line: 1, column: 5 }, source: 'test.js' });   // '#aaa'
-		gen.addMapping({ generated: { line: 1, column: 10 }, original: { line: 1, column: 10 }, source: 'test.js' }); // '+'
-		gen.addMapping({ generated: { line: 1, column: 12 }, original: { line: 1, column: 12 }, source: 'test.js' }); // 'this'
-		gen.addMapping({ generated: { line: 1, column: 17 }, original: { line: 1, column: 17 }, source: 'test.js' }); // '#bbb'
-		gen.addMapping({ generated: { line: 1, column: 22 }, original: { line: 1, column: 22 }, source: 'test.js' }); // '+'
-		gen.addMapping({ generated: { line: 1, column: 24 }, original: { line: 1, column: 24 }, source: 'test.js' }); // 'this'
-		gen.addMapping({ generated: { line: 1, column: 29 }, original: { line: 1, column: 29 }, source: 'test.js' }); // '#ccc'
-		gen.addMapping({ generated: { line: 1, column: 33 }, original: { line: 1, column: 33 }, source: 'test.js' }); // ';'
+		gen.addMapping({ generated: { line: 1, column: 0 }, original: { line: 1, column: 0 }, source: 'test.js' });
+		gen.addMapping({ generated: { line: 1, column: 5 }, original: { line: 1, column: 5 }, source: 'test.js' });
+		gen.addMapping({ generated: { line: 1, column: 10 }, original: { line: 1, column: 10 }, source: 'test.js' });
+		gen.addMapping({ generated: { line: 1, column: 12 }, original: { line: 1, column: 12 }, source: 'test.js' });
+		gen.addMapping({ generated: { line: 1, column: 17 }, original: { line: 1, column: 17 }, source: 'test.js' });
+		gen.addMapping({ generated: { line: 1, column: 22 }, original: { line: 1, column: 22 }, source: 'test.js' });
+		gen.addMapping({ generated: { line: 1, column: 24 }, original: { line: 1, column: 24 }, source: 'test.js' });
+		gen.addMapping({ generated: { line: 1, column: 29 }, original: { line: 1, column: 29 }, source: 'test.js' });
+		gen.addMapping({ generated: { line: 1, column: 33 }, original: { line: 1, column: 33 }, source: 'test.js' });
 		const map = JSON.parse(gen.toString());
 
 		const edits = [
-			{ start: 5, end: 9, newText: '$a' },   // #aaa(4) -> $a(2), delta -2
-			{ start: 17, end: 21, newText: '$b' },  // #bbb(4) -> $b(2), delta -2
-			{ start: 29, end: 33, newText: '$c' },  // #ccc(4) -> $c(2), delta -2
+			{ start: 5, end: 9, newText: '$a' },
+			{ start: 17, end: 21, newText: '$b' },
+			{ start: 29, end: 33, newText: '$c' },
 		];
 		const result = adjustSourceMap(map, code, edits);
 
 		const consumer = new SourceMapConsumer(result);
-		// After edits: "this.$a + this.$b + this.$c;"
-		// '#ccc' was at gen col 29, now at 29-2-2=25
 		const pos = consumer.originalPositionFor({ line: 1, column: 25 });
 		assert.strictEqual(pos.column, 29, 'third edit position should map to original column');
 
-		// '+' after #bbb was at gen col 22, both prior edits shift by -2 each: 22-4=18
 		const pos2 = consumer.originalPositionFor({ line: 1, column: 18 });
 		assert.strictEqual(pos2.column, 22, 'plus after second edit should map correctly');
 	});
@@ -596,11 +550,9 @@ suite('adjustSourceMap', () => {
 		assert.ok(result.edits.length > 0, 'should have edits');
 		assert.ok(!result.code.includes('#count'), 'should not contain #count');
 
-		// Adjust the source map
 		const adjusted = adjustSourceMap(map, code, result.edits);
 		const consumer = new SourceMapConsumer(adjusted);
 
-		// Find 'getValue' in the edited output and verify it maps back correctly
 		const editedLines = result.code.split('\n');
 		const getValueLine = editedLines.findIndex(l => l.includes('getValue'));
 		assert.ok(getValueLine >= 0, 'should find getValue in edited code');
@@ -608,7 +560,6 @@ suite('adjustSourceMap', () => {
 		const getValueCol = editedLines[getValueLine].indexOf('getValue');
 		const pos = consumer.originalPositionFor({ line: getValueLine + 1, column: getValueCol });
 
-		// getValue was on line 4 (1-based), same column in original
 		const origLines = code.split('\n');
 		const origGetValueCol = origLines[3].indexOf('getValue');
 		assert.strictEqual(pos.line, 4, 'getValue should map to original line 4');
@@ -616,19 +567,15 @@ suite('adjustSourceMap', () => {
 	});
 
 	test('multi-line edit: removing newlines shifts subsequent lines up', () => {
-		// Simulates the NLS scenario: a template literal with embedded newlines
-		// is replaced with `null`, collapsing 3 lines into 1.
 		const code = [
-			'var a = "hello";',          // line 0 (0-based)
-			'var b = `line1',             // line 1
-			'line2',                      // line 2
-			'line3`;',                    // line 3
-			'var c = "world";',           // line 4
+			'var a = "hello";',
+			'var b = `line1',
+			'line2',
+			'line3`;',
+			'var c = "world";',
 		].join('\n');
 		const map = createIdentitySourceMap(code, 'test.js');
 
-		// Replace the template literal `line1\nline2\nline3` with `null`
-		// (keeps `var b = ` and `;` intact)
 		const tplStart = code.indexOf('`line1');
 		const tplEnd = code.indexOf('line3`') + 'line3`'.length;
 		const edits = [{ start: tplStart, end: tplEnd, newText: 'null' }];
@@ -636,16 +583,11 @@ suite('adjustSourceMap', () => {
 		const result = adjustSourceMap(map, code, edits);
 		const consumer = new SourceMapConsumer(result);
 
-		// After edit, code is:
-		// "var a = \"hello\";\nvar b = null;\nvar c = \"world\";"
-		// "var c" was on line 5 (1-based), now on line 3 (1-based) since 2 newlines removed
 
-		// 'var c' at original line 5, col 0 should now map at generated line 3
 		const pos = consumer.originalPositionFor({ line: 3, column: 0 });
 		assert.strictEqual(pos.line, 5, 'var c should map to original line 5');
 		assert.strictEqual(pos.column, 0, 'var c column should be 0');
 
-		// 'var a' on line 1 should be unaffected
 		const posA = consumer.originalPositionFor({ line: 1, column: 0 });
 		assert.strictEqual(posA.line, 1, 'var a should still map to original line 1');
 	});
@@ -658,7 +600,6 @@ suite('adjustSourceMap', () => {
 		const adjusted = adjustSourceMap(map, code, result.edits);
 		const consumer = new SourceMapConsumer(adjusted);
 
-		// 'check' method should still map correctly
 		const editedCheckCol = result.code.indexOf('check');
 		const pos = consumer.originalPositionFor({ line: 1, column: editedCheckCol });
 		assert.strictEqual(pos.line, 1);

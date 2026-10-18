@@ -12,10 +12,6 @@ import { ITextModel } from '../../../../common/model.js';
 import { GhostText, GhostTextPart } from './ghostText.js';
 import { singleTextRemoveCommonPrefix } from './singleTextEditHelpers.js';
 
-/**
- * @param previewSuffixLength Sets where to split `inlineCompletion.text`.
- * 	If the text is `hello` and the suffix length is 2, the non-preview part is `hel` and the preview-part is `lo`.
-*/
 export function computeGhostText(
 	edit: TextReplacement,
 	model: ITextModel,
@@ -26,7 +22,6 @@ export function computeGhostText(
 	let e = singleTextRemoveCommonPrefix(edit, model);
 
 	if (e.range.endLineNumber !== e.range.startLineNumber) {
-		// This edit might span multiple lines, but the first lines must be a common prefix.
 		return undefined;
 	}
 
@@ -35,13 +30,6 @@ export function computeGhostText(
 
 	const suggestionTouchesIndentation = e.range.startColumn - 1 <= sourceIndentationLength;
 	if (suggestionTouchesIndentation) {
-		// source:      ··········[······abc]
-		//                         ^^^^^^^^^ inlineCompletion.range
-		//              ^^^^^^^^^^ ^^^^^^ sourceIndentationLength
-		//                         ^^^^^^ replacedIndentation.length
-		//                               ^^^ rangeThatDoesNotReplaceIndentation
-		// inlineCompletion.text: '··foo'
-		//                         ^^ suggestionAddedIndentationLength
 		const suggestionAddedIndentationLength = getLeadingWhitespace(e.text).length;
 
 		const replacedIndentation = sourceLine.substring(e.range.startColumn - 1, sourceIndentationLength);
@@ -53,21 +41,17 @@ export function computeGhostText(
 		const rangeThatDoesNotReplaceIndentation = Range.fromPositions(newStartPosition, endPosition);
 
 		const suggestionWithoutIndentationChange = e.text.startsWith(replacedIndentation)
-			// Adds more indentation without changing existing indentation: We can add ghost text for this
 			? e.text.substring(replacedIndentation.length)
-			// Changes or removes existing indentation. Only add ghost text for the non-indentation part.
 			: e.text.substring(suggestionAddedIndentationLength);
 
 		e = new TextReplacement(rangeThatDoesNotReplaceIndentation, suggestionWithoutIndentationChange);
 	}
 
-	// This is a single line string
 	const valueToBeReplaced = model.getValueInRange(e.range);
 
 	const changes = cachingDiff(valueToBeReplaced, e.text);
 
 	if (!changes) {
-		// No ghost text in case the diff would be too slow to compute
 		return undefined;
 	}
 
@@ -78,7 +62,6 @@ export function computeGhostText(
 	if (mode === 'prefix') {
 		const filteredChanges = changes.filter(c => c.originalLength === 0);
 		if (filteredChanges.length > 1 || filteredChanges.length === 1 && filteredChanges[0].originalStart !== valueToBeReplaced.length) {
-			// Prefixes only have a single change.
 			return undefined;
 		}
 	}
@@ -89,7 +72,6 @@ export function computeGhostText(
 		const insertColumn = e.range.startColumn + c.originalStart + c.originalLength;
 
 		if (mode === 'subwordSmart' && cursorPosition && cursorPosition.lineNumber === e.range.startLineNumber && insertColumn < cursorPosition.column) {
-			// No ghost text before cursor
 			return undefined;
 		}
 
@@ -126,10 +108,8 @@ function cachingDiff(originalValue: string, newValue: string): readonly IDiffCha
 		if (changes) {
 			const deletedChars = deletedCharacters(changes);
 			if (deletedChars > 0) {
-				// For performance reasons, don't compute diff if there is nothing to improve
 				const newChanges = smartDiff(originalValue, newValue, false);
 				if (newChanges && deletedCharacters(newChanges) < deletedChars) {
-					// Disabling smartness seems to be better here
 					changes = newChanges;
 				}
 			}
@@ -151,17 +131,8 @@ function deletedCharacters(changes: readonly IDiffChange[]): number {
 	return sum;
 }
 
-/**
- * When matching `if ()` with `if (f() = 1) { g(); }`,
- * align it like this:        `if (       )`
- * Not like this:			  `if (  )`
- * Also not like this:		  `if (             )`.
- *
- * The parenthesis are preprocessed to ensure that they match correctly.
- */
 export function smartDiff(originalValue: string, newValue: string, smartBracketMatching: boolean): (readonly IDiffChange[]) | undefined {
 	if (originalValue.length > 5000 || newValue.length > 5000) {
-		// We don't want to work on strings that are too big
 		return undefined;
 	}
 
@@ -189,7 +160,6 @@ export function smartDiff(originalValue: string, newValue: string, smartBracketM
 		let group = 0;
 		const characters = new Int32Array(source.length);
 		for (let i = 0, len = source.length; i < len; i++) {
-			// TODO support more brackets
 			if (smartBracketMatching && source[i] === '(') {
 				const id = group * 100 + level;
 				characters[i] = getUniqueCharCode(2 * id);

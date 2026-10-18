@@ -17,14 +17,6 @@ import { ExtensionIdentifier } from '../../../../platform/extensions/common/exte
 import { IWorkbenchLayoutService } from '../../../services/layout/browser/layoutService.js';
 import { IOverlayWebview, IWebview, IWebviewElement, IWebviewService, KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_ENABLED, KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_VISIBLE, WebviewContentOptions, WebviewExtensionDescription, WebviewInitInfo, WebviewMessageReceivedEvent, WebviewOptions } from './webview.js';
 
-/**
- * Webview that is absolutely positioned over another element and that can
- * creates and destroys an underlying webview as needed.
- *
- * Absolutely positioning is needed because webviews (iframes) cannot be re-parented without losing their state.
- * This means that webviews are always placed on a top level and then moved over
- * the element they are anchored to so they visually look like they are part of the original layout.
- */
 export class OverlayWebview extends Disposable implements IOverlayWebview {
 
 	private _isFirstLoad = true;
@@ -114,12 +106,8 @@ export class OverlayWebview extends Disposable implements IOverlayWebview {
 			this._overlayLayout = new OverlayLayoutElement();
 			this._overlayLayout.content.style.visibility = 'hidden';
 
-			// Marker used by floating panels (Modern UI) CSS to round the overlay content (and
-			// the iframe it directly hosts) to the card's rounded corners. See `floatingPanels.css`.
 			this._overlayLayout.content.classList.add('webview-overlay-content');
 
-			// Webviews cannot be reparented in the dom as it will destroy their contents.
-			// Mount them to a high level node to avoid this depending on the active container.
 			const root = this._layoutService.getContainer(this.window);
 			root.appendChild(this._overlayLayout.root);
 		}
@@ -135,9 +123,7 @@ export class OverlayWebview extends Disposable implements IOverlayWebview {
 		const oldOwner = this._owner;
 
 		if (this._windowId !== targetWindow.vscodeWindowId) {
-			// moving to a new window
 			this.release(oldOwner);
-			// since we are moving to a new window, we need to dispose the webview and recreate
 			this._webview.clear();
 			this._webviewEvents.clear();
 			this._overlayLayout?.dispose();
@@ -155,8 +141,6 @@ export class OverlayWebview extends Disposable implements IOverlayWebview {
 		if (oldOwner !== owner) {
 			const contextKeyService = (scopedContextKeyService || this._baseContextKeyService);
 
-			// Explicitly clear before creating the new context.
-			// Otherwise we create the new context while the old one is still around
 			this._scopedContextKeyService.clear();
 			this._scopedContextKeyService.value = contextKeyService.createScoped(this.container);
 
@@ -186,8 +170,6 @@ export class OverlayWebview extends Disposable implements IOverlayWebview {
 		}
 
 		if (this._options.retainContextWhenHidden) {
-			// https://github.com/microsoft/vscode/issues/157424
-			// We need to record the current state when retaining context so we can try to showFind() when showing webview again
 			this._shouldShowFindWidgetOnRestore = !!this._findWidgetVisible?.get();
 			this.hideFind(false);
 		} else {
@@ -198,7 +180,6 @@ export class OverlayWebview extends Disposable implements IOverlayWebview {
 
 	public setAnchorElement(anchorElement: HTMLElement, clippingContainer?: HTMLElement) {
 		this._anchorState = { anchorElement, clippingContainer };
-		// Force the overlay layout to be created if it doesn't exist
 		this.overlayLayout.setAnchorElement(anchorElement, { clippingContainer });
 	}
 
@@ -235,7 +216,6 @@ export class OverlayWebview extends Disposable implements IOverlayWebview {
 
 			webview.mountTo(this.container, targetWindow);
 
-			// Forward events from inner webview to outer listeners
 			this._webviewEvents.clear();
 			this._webviewEvents.add(webview.onDidFocus(() => { this._onDidFocus.fire(); }));
 			this._webviewEvents.add(webview.onDidBlur(() => { this._onDidBlur.fire(); }));
@@ -267,10 +247,8 @@ export class OverlayWebview extends Disposable implements IOverlayWebview {
 			this._firstLoadPendingMessages.clear();
 		}
 
-		// https://github.com/microsoft/vscode/issues/157424
 		if (this.options.retainContextWhenHidden && this._shouldShowFindWidgetOnRestore) {
 			this.showFind(false);
-			// Reset
 			this._shouldShowFindWidgetOnRestore = false;
 		}
 

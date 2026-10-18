@@ -21,13 +21,10 @@ import { ILogService, LogLevel } from '../../log/common/log.js';
 
 export class HTMLFileSystemProvider extends Disposable implements IFileSystemProviderWithFileReadWriteCapability, IFileSystemProviderWithFileReadStreamCapability {
 
-	//#region Events (unsupported)
 
 	readonly onDidChangeCapabilities = Event.None;
 
-	//#endregion
 
-	//#region File Capabilities
 
 	private extUri = isLinux ? extUri : extUriIgnorePathCase;
 
@@ -46,7 +43,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		return this._capabilities;
 	}
 
-	//#endregion
 
 
 	constructor(
@@ -57,7 +53,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		super();
 	}
 
-	//#region File Metadata Resolving
 
 	async stat(resource: URI): Promise<IStat> {
 		try {
@@ -107,15 +102,10 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		}
 	}
 
-	//#endregion
 
-	//#region File Reading/Writing
 
 	readFileStream(resource: URI, opts: IFileReadStreamOptions, token: CancellationToken): ReadableStreamEvents<Uint8Array> {
 		const stream = newWriteableStream<Uint8Array>(data => VSBuffer.concat(data.map(data => VSBuffer.wrap(data))).buffer, {
-			// Set a highWaterMark to prevent the stream
-			// for file upload to produce large buffers
-			// in-memory
 			highWaterMark: 10
 		});
 
@@ -128,7 +118,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 
 				const file = await handle.getFile();
 
-				// Partial file: implemented simply via `readFile`
 				if (typeof opts.length === 'number' || typeof opts.position === 'number') {
 					let buffer = new Uint8Array(await file.arrayBuffer());
 
@@ -143,7 +132,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 					stream.end(buffer);
 				}
 
-				// Entire file
 				else {
 					const reader: ReadableStreamDefaultReader<Uint8Array> = file.stream().getReader();
 
@@ -153,8 +141,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 							break;
 						}
 
-						// Write buffer into stream but make sure to wait
-						// in case the `highWaterMark` is reached
 						await stream.write(res.value);
 
 						if (token.isCancellationRequested) {
@@ -193,7 +179,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		try {
 			let handle = await this.getFileHandle(resource);
 
-			// Validate target unless { create: true, overwrite: true }
 			if (!opts.create || !opts.overwrite) {
 				if (handle) {
 					if (!opts.overwrite) {
@@ -206,7 +191,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 				}
 			}
 
-			// Create target as needed
 			if (!handle) {
 				const parent = await this.getDirectoryHandle(this.extUri.dirname(resource));
 				if (!parent) {
@@ -219,7 +203,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 				}
 			}
 
-			// Write to target overwriting any existing contents
 			const writable = await handle.createWritable();
 			await writable.write(content as Uint8Array<ArrayBuffer>);
 			await writable.close();
@@ -228,9 +211,7 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		}
 	}
 
-	//#endregion
 
-	//#region Move/Copy/Delete/Create Folder
 
 	async mkdir(resource: URI): Promise<void> {
 		try {
@@ -261,10 +242,9 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 	async rename(from: URI, to: URI, opts: IFileOverwriteOptions): Promise<void> {
 		try {
 			if (this.extUri.isEqual(from, to)) {
-				return; // no-op if the paths are the same
+				return;
 			}
 
-			// Implement file rename by write + delete
 			const fileHandle = await this.getFileHandle(from);
 			if (fileHandle) {
 				const file = await fileHandle.getFile();
@@ -274,7 +254,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 				await this.delete(from, { recursive: false, useTrash: false, atomic: false });
 			}
 
-			// File API does not support any real rename otherwise
 			else {
 				throw this.createFileSystemProviderError(from, localize('fileSystemRenameError', "Rename is only supported for files."), FileSystemProviderErrorCode.Unavailable);
 			}
@@ -283,9 +262,7 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		}
 	}
 
-	//#endregion
 
-	//#region File Watching (unsupported)
 
 	private readonly _onDidChangeFileEmitter = this._register(new Emitter<readonly IFileChange[]>());
 	readonly onDidChangeFile = this._onDidChangeFileEmitter.event;
@@ -352,9 +329,7 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		}
 	}
 
-	//#endregion
 
-	//#region File/Directoy Handle Registry
 
 	private readonly _files = new Map<string, FileSystemFileHandle>();
 	private readonly _directories = new Map<string, FileSystemDirectoryHandle>();
@@ -374,7 +349,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 	private async registerHandle(handle: FileSystemHandle, map: Map<string, FileSystemHandle>): Promise<URI> {
 		let handleId = `/${handle.name}`;
 
-		// Compute a valid handle ID in case this exists already
 		if (map.has(handleId) && !await map.get(handleId)?.isSameEntry(handle)) {
 			const fileExt = extname(handle.name);
 			const fileName = basename(handle.name, fileExt);
@@ -387,7 +361,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 
 		map.set(handleId, handle);
 
-		// Remember in IndexDB for future lookup
 		try {
 			await this.indexedDB?.runInTransaction(this.store, 'readwrite', objectStore => objectStore.put(handle, handleId));
 		} catch (error) {
@@ -399,10 +372,8 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 
 	async getHandle(resource: URI): Promise<FileSystemHandle | undefined> {
 
-		// First: try to find a well known handle first
 		let handle = await this.doGetHandle(resource);
 
-		// Second: walk up parent directories and resolve handle if possible
 		if (!handle) {
 			const parent = await this.getDirectoryHandle(this.extUri.dirname(resource));
 			if (parent) {
@@ -413,7 +384,6 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 					try {
 						handle = await parent.getDirectoryHandle(name);
 					} catch (error) {
-						// Ignore
 					}
 				}
 			}
@@ -433,7 +403,7 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		try {
 			return await parent?.getFileHandle(extUri.basename(resource));
 		} catch (error) {
-			return undefined; // guard against possible DOMException
+			return undefined;
 		}
 	}
 
@@ -445,7 +415,7 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 
 		const parentUri = this.extUri.dirname(resource);
 		if (this.extUri.isEqual(parentUri, resource)) {
-			return undefined; // return when root is reached to prevent infinite recursion
+			return undefined;
 		}
 
 		const parent = await this.getDirectoryHandle(parentUri);
@@ -453,27 +423,23 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 		try {
 			return await parent?.getDirectoryHandle(extUri.basename(resource));
 		} catch (error) {
-			return undefined; // guard against possible DOMException
+			return undefined;
 		}
 	}
 
 	private async doGetHandle(resource: URI): Promise<FileSystemHandle | undefined> {
 
-		// We store file system handles with the `handle.name`
-		// and as such require the resource to be on the root
 		if (this.extUri.dirname(resource).path !== '/') {
 			return undefined;
 		}
 
-		const handleId = resource.path.replace(/\/$/, ''); // remove potential slash from the end of the path
+		const handleId = resource.path.replace(/\/$/, '');
 
-		// First: check if we have a known handle stored in memory
 		const inMemoryHandle = this._files.get(handleId) ?? this._directories.get(handleId);
 		if (inMemoryHandle) {
 			return inMemoryHandle;
 		}
 
-		// Second: check if we have a persisted handle in IndexedDB
 		const persistedHandle = await this.indexedDB?.runInTransaction(this.store, 'readonly', store => store.get(handleId));
 		if (WebFileSystemAccess.isFileSystemHandle(persistedHandle)) {
 			let hasPermissions = await persistedHandle.queryPermission() === 'granted';
@@ -482,7 +448,7 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 					hasPermissions = await persistedHandle.requestPermission() === 'granted';
 				}
 			} catch (error) {
-				this.logService.error(error); // this can fail with a DOMException
+				this.logService.error(error);
 			}
 
 			if (hasPermissions) {
@@ -496,15 +462,13 @@ export class HTMLFileSystemProvider extends Disposable implements IFileSystemPro
 			}
 		}
 
-		// Third: fail with an error
 		throw this.createFileSystemProviderError(resource, 'No file system handle registered', FileSystemProviderErrorCode.Unavailable);
 	}
 
-	//#endregion
 
 	private toFileSystemProviderError(error: Error): FileSystemProviderError {
 		if (error instanceof FileSystemProviderError) {
-			return error; // avoid double conversion
+			return error;
 		}
 
 		let code = FileSystemProviderErrorCode.Unknown;

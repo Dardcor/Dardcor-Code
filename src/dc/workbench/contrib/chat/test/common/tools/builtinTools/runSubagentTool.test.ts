@@ -14,7 +14,7 @@ import { RUN_SUBAGENT_MAX_NESTING_DEPTH, RunSubagentTool } from '../../../../com
 import { MockLanguageModelToolsService } from '../mockLanguageModelToolsService.js';
 import { IChatAgentHistoryEntry, IChatAgentRequest, IChatAgentResult, IChatAgentService, UserSelectedTools } from '../../../../common/participants/chatAgents.js';
 import { IChatProgress, IChatService } from '../../../../common/chatService/chatService.js';
-import { AUTO_RAW_MODEL_ID, COPILOT_VENDOR_ID, ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../../../common/languageModels.js';
+import { AUTO_RAW_MODEL_ID, DARD_COR_VENDOR_ID, ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../../../common/languageModels.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js';
 import { IProductService } from '../../../../../../../platform/product/common/productService.js';
 import { ITelemetryService } from '../../../../../../../platform/telemetry/common/telemetry.js';
@@ -53,13 +53,13 @@ suite('RunSubagentTool', () => {
 			isDefaultForLocation: {},
 			multiplierNumeric,
 			capabilities: { toolCalling: true },
-			isBYOK: vendor !== COPILOT_VENDOR_ID,
+			isBYOK: vendor !== DARD_COR_VENDOR_ID,
 		};
 	}
 
 	function createAutoMetadata(multiplierNumeric?: number, overrides: Partial<ILanguageModelChatMetadata> = {}): ILanguageModelChatMetadata {
 		return {
-			...createMetadata('Auto', multiplierNumeric, COPILOT_VENDOR_ID),
+			...createMetadata('Auto', multiplierNumeric, DARD_COR_VENDOR_ID),
 			id: AUTO_RAW_MODEL_ID,
 			...overrides,
 		};
@@ -85,7 +85,7 @@ suite('RunSubagentTool', () => {
 	function createLanguageModelsServiceMock(models = new Map<string, ILanguageModelChatMetadata>(), opts: {
 		qualifiedNameMap?: Map<string, ILanguageModelChatMetadataAndIdentifier>;
 		selectedModels?: Map<string, ILanguageModelChatMetadata>;
-		copilotVendorResolved?: boolean;
+		dardcorVendorResolved?: boolean;
 		onSelectLanguageModels?: () => void;
 	} = {}): ILanguageModelsService {
 		const service: Partial<ILanguageModelsService> = {
@@ -94,12 +94,12 @@ suite('RunSubagentTool', () => {
 			lookupLanguageModel: modelId => models.get(modelId),
 			lookupLanguageModelByQualifiedName: qualifiedName => opts.qualifiedNameMap?.get(qualifiedName),
 			hasResolvedVendor: vendor => {
-				assert.strictEqual(vendor, COPILOT_VENDOR_ID);
-				return opts.copilotVendorResolved ?? false;
+				assert.strictEqual(vendor, DARD_COR_VENDOR_ID);
+				return opts.dardcorVendorResolved ?? false;
 			},
 			selectLanguageModels: async selector => {
 				opts.onSelectLanguageModels?.();
-				assert.deepStrictEqual(selector, { vendor: COPILOT_VENDOR_ID, id: AUTO_RAW_MODEL_ID });
+				assert.deepStrictEqual(selector, { vendor: DARD_COR_VENDOR_ID, id: AUTO_RAW_MODEL_ID });
 				for (const [modelId, metadata] of opts.selectedModels ?? []) {
 					models.set(modelId, metadata);
 				}
@@ -122,7 +122,7 @@ suite('RunSubagentTool', () => {
 		models?: Map<string, ILanguageModelChatMetadata>;
 		selectedModels?: Map<string, ILanguageModelChatMetadata>;
 		qualifiedNameMap?: Map<string, ILanguageModelChatMetadataAndIdentifier>;
-		copilotVendorResolved?: boolean;
+		dardcorVendorResolved?: boolean;
 		onSelectLanguageModels?: () => void;
 		telemetryService?: ITelemetryService;
 	}) {
@@ -201,12 +201,11 @@ suite('RunSubagentTool', () => {
 
 	suite('resultText trimming', () => {
 		test('trims leading empty codeblocks (```\\n```) from result', () => {
-			// This tests the regex: /^\n*```\n+```\n*/g
 			const testCases = [
 				{ input: '```\n```\nActual content', expected: 'Actual content' },
 				{ input: '\n```\n```\nActual content', expected: 'Actual content' },
 				{ input: '\n\n```\n\n```\n\nActual content', expected: 'Actual content' },
-				{ input: '```\n```\n```\n```\nActual content', expected: '```\n```\nActual content' }, // Only trims leading
+				{ input: '```\n```\n```\n```\nActual content', expected: '```\n```\nActual content' },
 				{ input: 'No codeblock here', expected: 'No codeblock here' },
 				{ input: '```\n```\n', expected: '' },
 				{ input: '', expected: '' },
@@ -376,8 +375,6 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('events with different subagentInvocationId are distinguishable', () => {
-			// This tests the filtering logic used in RunSubagentTool.invoke()
-			// The tool subscribes to onDidInvokeTool and checks if e.subagentInvocationId matches its own callId
 			const mockToolsService = testDisposables.add(new MockLanguageModelToolsService());
 			const targetSubagentId = 'target-subagent';
 
@@ -388,7 +385,6 @@ suite('RunSubagentTool', () => {
 				}
 			}));
 
-			// Fire events with different subagentInvocationIds
 			mockToolsService.fireOnDidInvokeTool({
 				toolId: 'unrelated-tool',
 				sessionResource: undefined,
@@ -408,13 +404,12 @@ suite('RunSubagentTool', () => {
 				subagentInvocationId: undefined,
 			});
 
-			// Only the matching event should be captured
 			assert.deepStrictEqual(matchingEvents, ['matching-tool']);
 		});
 	});
 
 	suite('model fallback behavior', () => {
-		const BUILTIN_CHAT_EXTENSION_ID = 'github.copilot-chat';
+		const BUILTIN_CHAT_EXTENSION_ID = 'github.dardcor-chat';
 		const builtinProductService = { defaultChatAgent: { chatExtensionId: BUILTIN_CHAT_EXTENSION_ID } } as IProductService;
 
 		function createTool(opts: {
@@ -423,7 +418,7 @@ suite('RunSubagentTool', () => {
 			qualifiedNameMap?: Map<string, ILanguageModelChatMetadataAndIdentifier>;
 			customAgents?: ICustomAgent[];
 			defaultToAuto?: boolean;
-			copilotVendorResolved?: boolean;
+			dardcorVendorResolved?: boolean;
 			onSelectLanguageModels?: () => void;
 		}) {
 			const mockToolsService = testDisposables.add(new MockLanguageModelToolsService());
@@ -450,7 +445,6 @@ suite('RunSubagentTool', () => {
 			return tool;
 		}
 
-		// A built-in (extension-shipped) agent such as Explore, whose model list is a curated fallback list.
 		function createBuiltinAgent(name: string, modelQualifiedNames?: string[]): ICustomAgent {
 			return {
 				...createAgent(name, modelQualifiedNames),
@@ -490,13 +484,13 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('uses subagent model when it has equal multiplier', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const sameCostMeta = createMetadata('Claude Sonnet', 1);
 			const autoMeta = createAutoMetadata();
 			const models = new Map([
 				['main-model-id', mainMeta],
 				['same-cost-model-id', sameCostMeta],
-				['copilot-auto-model-id', autoMeta],
+				['dardcor-auto-model-id', autoMeta],
 			]);
 			const qualifiedNameMap = new Map([
 				['Claude Sonnet (TestVendor)', { metadata: sameCostMeta, identifier: 'same-cost-model-id' }],
@@ -575,7 +569,6 @@ suite('RunSubagentTool', () => {
 			}, CancellationToken.None);
 
 			assert.ok(result);
-			// No fallback when main model's multiplier is unknown
 			assert.deepStrictEqual(result.toolSpecificData, {
 				kind: 'subagent',
 				description: 'test task',
@@ -607,7 +600,6 @@ suite('RunSubagentTool', () => {
 			}, CancellationToken.None);
 
 			assert.ok(result);
-			// No fallback when subagent model's multiplier is unknown
 			assert.deepStrictEqual(result.toolSpecificData, {
 				kind: 'subagent',
 				description: 'test task',
@@ -665,12 +657,12 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('resolves and uses Auto from a cold provider when enabled and no subagent is specified', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const autoMeta = createAutoMetadata();
 			let selectCalls = 0;
 			const tool = createTool({
 				models: new Map([['main-model-id', mainMeta]]),
-				selectedModels: new Map([['copilot-auto-model-id', autoMeta]]),
+				selectedModels: new Map([['dardcor-auto-model-id', autoMeta]]),
 				defaultToAuto: true,
 				onSelectLanguageModels: () => selectCalls++,
 			});
@@ -693,13 +685,13 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('uses Auto when enabled and subagent has no model configured', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const autoMeta = createAutoMetadata();
 			const agent = createAgent('NoModelAgent', undefined);
 			const tool = createTool({
 				models: new Map([
 					['main-model-id', mainMeta],
-					['copilot-auto-model-id', autoMeta],
+					['dardcor-auto-model-id', autoMeta],
 				]),
 				customAgents: [agent],
 				defaultToAuto: true,
@@ -717,12 +709,12 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('falls back to main model when Auto is unavailable after provider resolution', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			let selectCalls = 0;
 			const tool = createTool({
 				models: new Map([['main-model-id', mainMeta]]),
 				defaultToAuto: true,
-				copilotVendorResolved: true,
+				dardcorVendorResolved: true,
 				onSelectLanguageModels: () => selectCalls++,
 			});
 
@@ -744,7 +736,7 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('falls back to main model when cached Auto is ineligible', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const ineligibleAutoModels = [
 				createAutoMetadata(undefined, { capabilities: { toolCalling: false } }),
 				createAutoMetadata(undefined, { isUserSelectable: false }),
@@ -756,10 +748,10 @@ suite('RunSubagentTool', () => {
 				const tool = createTool({
 					models: new Map([
 						['main-model-id', mainMeta],
-						[`copilot-auto-model-id-${index}`, autoMeta],
+						[`dardcor-auto-model-id-${index}`, autoMeta],
 					]),
 					defaultToAuto: true,
-					copilotVendorResolved: true,
+					dardcorVendorResolved: true,
 					onSelectLanguageModels: () => selectCalls++,
 				});
 
@@ -782,7 +774,7 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('keeps main model and does not retry when Auto resolution fails', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			let selectCalls = 0;
 			const tool = createTool({
 				models: new Map([['main-model-id', mainMeta]]),
@@ -810,9 +802,9 @@ suite('RunSubagentTool', () => {
 		test('keeps main model when its metadata is unknown', async () => {
 			let selectCalls = 0;
 			const tool = createTool({
-				models: new Map([['copilot-auto-model-id', createAutoMetadata()]]),
+				models: new Map([['dardcor-auto-model-id', createAutoMetadata()]]),
 				defaultToAuto: true,
-				copilotVendorResolved: true,
+				dardcorVendorResolved: true,
 				onSelectLanguageModels: () => selectCalls++,
 			});
 
@@ -832,7 +824,7 @@ suite('RunSubagentTool', () => {
 			});
 		});
 
-		test('keeps BYOK main model without resolving Copilot Auto', async () => {
+		test('keeps BYOK main model without resolving Dardcor Auto', async () => {
 			const byokMain = createMetadata('Claude Sonnet BYOK', undefined, 'anthropic');
 			const autoMeta = createAutoMetadata();
 
@@ -840,7 +832,7 @@ suite('RunSubagentTool', () => {
 				let selectCalls = 0;
 				const tool = createTool({
 					models: new Map([['main-byok-id', byokMain]]),
-					selectedModels: new Map([['copilot-auto-model-id', autoMeta]]),
+					selectedModels: new Map([['dardcor-auto-model-id', autoMeta]]),
 					customAgents: agent ? [agent] : undefined,
 					defaultToAuto: true,
 					onSelectLanguageModels: () => selectCalls++,
@@ -865,16 +857,16 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('reuses warm Auto without provider refresh and exempts it from fixed multiplier constraint', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const autoMeta = createAutoMetadata(50);
 			let selectCalls = 0;
 			const tool = createTool({
 				models: new Map([
 					['main-model-id', mainMeta],
-					['copilot-auto-model-id', autoMeta],
+					['dardcor-auto-model-id', autoMeta],
 				]),
 				defaultToAuto: true,
-				copilotVendorResolved: true,
+				dardcorVendorResolved: true,
 				onSelectLanguageModels: () => selectCalls++,
 			});
 
@@ -892,13 +884,13 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('keeps main model when configured subagent model is unavailable', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const autoMeta = createAutoMetadata();
 			const unavailableAgent = createAgent('UnavailableAgent', ['Missing Model (TestVendor)']);
 			const tool = createTool({
 				models: new Map([
 					['main-model-id', mainMeta],
-					['copilot-auto-model-id', autoMeta],
+					['dardcor-auto-model-id', autoMeta],
 				]),
 				customAgents: [unavailableAgent],
 				defaultToAuto: true,
@@ -915,18 +907,18 @@ suite('RunSubagentTool', () => {
 			assert.strictEqual(result.toolSpecificData?.kind === 'subagent' ? result.toolSpecificData.modelName : undefined, 'GPT-4o');
 		});
 
-		test('skips Copilot fallback models when main model is BYOK and inherits the main model', async () => {
+		test('skips Dardcor fallback models when main model is BYOK and inherits the main model', async () => {
 			const mainMeta = createMetadata('Claude Sonnet BYOK', undefined, 'anthropic');
-			const copilotFallback = createMetadata('Copilot Haiku', undefined, COPILOT_VENDOR_ID);
+			const dardcorFallback = createMetadata('Dardcor Haiku', undefined, DARD_COR_VENDOR_ID);
 			const models = new Map([
 				['main-byok-id', mainMeta],
-				['copilot-fallback-id', copilotFallback],
+				['dardcor-fallback-id', dardcorFallback],
 			]);
 			const qualifiedNameMap = new Map([
-				['Copilot Haiku (copilot)', { metadata: copilotFallback, identifier: 'copilot-fallback-id' }],
+				['Dardcor Haiku (dardcor)', { metadata: dardcorFallback, identifier: 'dardcor-fallback-id' }],
 			]);
 
-			const agent = createBuiltinAgent('ExploreAgent', ['Copilot Haiku (copilot)']);
+			const agent = createBuiltinAgent('ExploreAgent', ['Dardcor Haiku (dardcor)']);
 			const tool = createTool({ models, qualifiedNameMap, customAgents: [agent] });
 
 			const result = await tool.prepareToolInvocation({
@@ -937,7 +929,6 @@ suite('RunSubagentTool', () => {
 			}, CancellationToken.None);
 
 			assert.ok(result);
-			// The Copilot fallback is skipped, so the subagent inherits the BYOK main model.
 			assert.deepStrictEqual(result.toolSpecificData, {
 				kind: 'subagent',
 				description: 'test task',
@@ -947,22 +938,21 @@ suite('RunSubagentTool', () => {
 			});
 		});
 
-		test('skips Copilot fallback but uses a non-Copilot fallback when main model is BYOK', async () => {
+		test('skips Dardcor fallback but uses a non-Dardcor fallback when main model is BYOK', async () => {
 			const mainMeta = createMetadata('Claude Sonnet BYOK', undefined, 'anthropic');
-			const copilotFallback = createMetadata('Copilot Haiku', undefined, COPILOT_VENDOR_ID);
+			const dardcorFallback = createMetadata('Dardcor Haiku', undefined, DARD_COR_VENDOR_ID);
 			const byokFallback = createMetadata('Ollama Llama', undefined, 'ollama');
 			const models = new Map([
 				['main-byok-id', mainMeta],
-				['copilot-fallback-id', copilotFallback],
+				['dardcor-fallback-id', dardcorFallback],
 				['byok-fallback-id', byokFallback],
 			]);
 			const qualifiedNameMap = new Map([
-				['Copilot Haiku (copilot)', { metadata: copilotFallback, identifier: 'copilot-fallback-id' }],
+				['Dardcor Haiku (dardcor)', { metadata: dardcorFallback, identifier: 'dardcor-fallback-id' }],
 				['Ollama Llama (ollama)', { metadata: byokFallback, identifier: 'byok-fallback-id' }],
 			]);
 
-			// Copilot fallback is listed first, the BYOK fallback second.
-			const agent = createBuiltinAgent('ExploreAgent', ['Copilot Haiku (copilot)', 'Ollama Llama (ollama)']);
+			const agent = createBuiltinAgent('ExploreAgent', ['Dardcor Haiku (dardcor)', 'Ollama Llama (ollama)']);
 			const tool = createTool({ models, qualifiedNameMap, customAgents: [agent] });
 
 			const result = await tool.prepareToolInvocation({
@@ -982,24 +972,24 @@ suite('RunSubagentTool', () => {
 			});
 		});
 
-		test('uses the Copilot fallback model when the main model is also Copilot', async () => {
-			const mainMeta = createMetadata('Copilot GPT-4o', undefined, COPILOT_VENDOR_ID);
-			const copilotFallback = createMetadata('Copilot Haiku', undefined, COPILOT_VENDOR_ID);
+		test('uses the Dardcor fallback model when the main model is also Dardcor', async () => {
+			const mainMeta = createMetadata('Dardcor GPT-4o', undefined, DARD_COR_VENDOR_ID);
+			const dardcorFallback = createMetadata('Dardcor Haiku', undefined, DARD_COR_VENDOR_ID);
 			const models = new Map([
-				['main-copilot-id', mainMeta],
-				['copilot-fallback-id', copilotFallback],
+				['main-dardcor-id', mainMeta],
+				['dardcor-fallback-id', dardcorFallback],
 			]);
 			const qualifiedNameMap = new Map([
-				['Copilot Haiku (copilot)', { metadata: copilotFallback, identifier: 'copilot-fallback-id' }],
+				['Dardcor Haiku (dardcor)', { metadata: dardcorFallback, identifier: 'dardcor-fallback-id' }],
 			]);
 
-			const agent = createBuiltinAgent('ExploreAgent', ['Copilot Haiku (copilot)']);
+			const agent = createBuiltinAgent('ExploreAgent', ['Dardcor Haiku (dardcor)']);
 			const tool = createTool({ models, qualifiedNameMap, customAgents: [agent] });
 
 			const result = await tool.prepareToolInvocation({
 				parameters: { prompt: 'test', description: 'test task', agentName: 'ExploreAgent' },
 				toolCallId: 'byok-call-3',
-				modelId: 'main-copilot-id',
+				modelId: 'main-dardcor-id',
 				chatSessionResource: URI.parse('test://session'),
 			}, CancellationToken.None);
 
@@ -1009,20 +999,20 @@ suite('RunSubagentTool', () => {
 				description: 'test task',
 				agentName: 'ExploreAgent',
 				prompt: 'test',
-				modelName: 'Copilot Haiku',
+				modelName: 'Dardcor Haiku',
 			});
 		});
 
-		test('uses the Copilot fallback model when no main model is set', async () => {
-			const copilotFallback = createMetadata('Copilot Haiku', undefined, COPILOT_VENDOR_ID);
+		test('uses the Dardcor fallback model when no main model is set', async () => {
+			const dardcorFallback = createMetadata('Dardcor Haiku', undefined, DARD_COR_VENDOR_ID);
 			const models = new Map([
-				['copilot-fallback-id', copilotFallback],
+				['dardcor-fallback-id', dardcorFallback],
 			]);
 			const qualifiedNameMap = new Map([
-				['Copilot Haiku (copilot)', { metadata: copilotFallback, identifier: 'copilot-fallback-id' }],
+				['Dardcor Haiku (dardcor)', { metadata: dardcorFallback, identifier: 'dardcor-fallback-id' }],
 			]);
 
-			const agent = createBuiltinAgent('ExploreAgent', ['Copilot Haiku (copilot)']);
+			const agent = createBuiltinAgent('ExploreAgent', ['Dardcor Haiku (dardcor)']);
 			const tool = createTool({ models, qualifiedNameMap, customAgents: [agent] });
 
 			const result = await tool.prepareToolInvocation({
@@ -1038,23 +1028,22 @@ suite('RunSubagentTool', () => {
 				description: 'test task',
 				agentName: 'ExploreAgent',
 				prompt: 'test',
-				modelName: 'Copilot Haiku',
+				modelName: 'Dardcor Haiku',
 			});
 		});
 
-		test('honors a user-authored agent\'s explicit Copilot model even when main model is BYOK', async () => {
+		test('honors a user-authored agent\'s explicit Dardcor model even when main model is BYOK', async () => {
 			const mainMeta = createMetadata('Claude Sonnet BYOK', undefined, 'anthropic');
-			const copilotPinned = createMetadata('Copilot Sonnet', undefined, COPILOT_VENDOR_ID);
+			const dardcorPinned = createMetadata('Dardcor Sonnet', undefined, DARD_COR_VENDOR_ID);
 			const models = new Map([
 				['main-byok-id', mainMeta],
-				['copilot-pinned-id', copilotPinned],
+				['dardcor-pinned-id', dardcorPinned],
 			]);
 			const qualifiedNameMap = new Map([
-				['Copilot Sonnet (copilot)', { metadata: copilotPinned, identifier: 'copilot-pinned-id' }],
+				['Dardcor Sonnet (dardcor)', { metadata: dardcorPinned, identifier: 'dardcor-pinned-id' }],
 			]);
 
-			// A user-authored (local) agent that deliberately pins a Copilot model — must not be skipped.
-			const agent = createAgent('MyAgent', ['Copilot Sonnet (copilot)']);
+			const agent = createAgent('MyAgent', ['Dardcor Sonnet (dardcor)']);
 			const tool = createTool({ models, qualifiedNameMap, customAgents: [agent] });
 
 			const result = await tool.prepareToolInvocation({
@@ -1070,7 +1059,7 @@ suite('RunSubagentTool', () => {
 				description: 'test task',
 				agentName: 'MyAgent',
 				prompt: 'test',
-				modelName: 'Copilot Sonnet',
+				modelName: 'Dardcor Sonnet',
 			});
 		});
 	});
@@ -1117,12 +1106,11 @@ suite('RunSubagentTool', () => {
 
 			assert.ok(toolData.inputSchema?.properties?.model, 'model should be in schema');
 			assert.strictEqual(toolData.inputSchema?.properties?.model?.type, 'string');
-			// No enum should be present - validation happens at runtime
 			assert.strictEqual(toolData.inputSchema?.properties?.model?.enum, undefined, 'model should not have an enum');
 		});
 
 		test('resolves explicit model parameter without agentName', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const explicitMeta = createMetadata('Claude Sonnet', 1);
 			const models = new Map([
 				['main-model-id', mainMeta],
@@ -1439,17 +1427,12 @@ suite('RunSubagentTool', () => {
 			const capturedRequests: IChatAgentRequest[] = [];
 			const sessionUri = URI.parse('test://session/depth-limit');
 
-			// When nesting is enabled, the tool enforces a hardcoded maximum depth of 5.
-			// Simulate nested invocation until we exceed the limit and ensure it disables nesting.
 			const { tool, mockChatAgentService } = createInvokableTool({ allowInvocationsFromSubagents: true, capturedRequests });
 
-			// Simulate nested invocation: the first invoke's invokeAgent callback
-			// triggers a second invoke on the same tool (same session).
 			capturedRequests.length = 0;
 			let nestedInvocations = 0;
 			mockChatAgentService.invokeAgent = async (_id: string, request: IChatAgentRequest) => {
 				capturedRequests.push(request);
-				// Keep nesting until we go beyond the hardcoded maxDepth
 				if (nestedInvocations++ < RUN_SUBAGENT_MAX_NESTING_DEPTH + 1) {
 					await tool.invoke(createInvocation(sessionUri), countTokens, noProgress, CancellationToken.None);
 				}
@@ -1459,7 +1442,6 @@ suite('RunSubagentTool', () => {
 			await tool.invoke(createInvocation(sessionUri), countTokens, noProgress, CancellationToken.None);
 
 			assert.ok(capturedRequests.length >= 2);
-			// At depth 0..(maxDepth-1), nesting is allowed. Once depth reaches maxDepth, the next call should disable nesting.
 			const enabledFlags = capturedRequests.map(r => r.userSelectedTools?.['runSubagent']);
 			assert.strictEqual(enabledFlags[0], true);
 			assert.strictEqual(enabledFlags[1], true);
@@ -1471,13 +1453,10 @@ suite('RunSubagentTool', () => {
 			const { tool } = createInvokableTool({ allowInvocationsFromSubagents: true, capturedRequests });
 			const sessionUri = URI.parse('test://session/depth-decrement');
 
-			// First invoke
 			await tool.invoke(createInvocation(sessionUri), countTokens, noProgress, CancellationToken.None);
-			// Second invoke on same session should start at depth 0 again
 			await tool.invoke(createInvocation(sessionUri), countTokens, noProgress, CancellationToken.None);
 
 			assert.strictEqual(capturedRequests.length, 2);
-			// Both should have runSubagent enabled since depth resets after each invoke
 			assert.strictEqual(capturedRequests[0].userSelectedTools?.['runSubagent'], true);
 			assert.strictEqual(capturedRequests[1].userSelectedTools?.['runSubagent'], true);
 		});
@@ -1499,7 +1478,7 @@ suite('RunSubagentTool', () => {
 	suite('default to Auto model', () => {
 		test('passes prepared Auto model to participant without resolving it again', async () => {
 			const capturedRequests: IChatAgentRequest[] = [];
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const autoMeta = createAutoMetadata();
 			let selectCalls = 0;
 			const telemetryService = new TestTelemetryService();
@@ -1508,7 +1487,7 @@ suite('RunSubagentTool', () => {
 				capturedRequests,
 				defaultToAuto: true,
 				models: new Map([['main-model-id', mainMeta]]),
-				selectedModels: new Map([['copilot-auto-model-id', autoMeta]]),
+				selectedModels: new Map([['dardcor-auto-model-id', autoMeta]]),
 				onSelectLanguageModels: () => selectCalls++,
 				telemetryService,
 			});
@@ -1529,7 +1508,7 @@ suite('RunSubagentTool', () => {
 				selectCalls,
 				telemetryEvents: telemetryService.events,
 			}, {
-				userSelectedModelId: 'copilot-auto-model-id',
+				userSelectedModelId: 'dardcor-auto-model-id',
 				selectCalls: 1,
 				telemetryEvents: [{
 					name: 'chat.subagentModelSelection',
@@ -1540,7 +1519,7 @@ suite('RunSubagentTool', () => {
 
 		test('resolves and passes Auto to participant when preparation was skipped', async () => {
 			const capturedRequests: IChatAgentRequest[] = [];
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const autoMeta = createAutoMetadata();
 			let selectCalls = 0;
 			const telemetryService = new TestTelemetryService();
@@ -1549,7 +1528,7 @@ suite('RunSubagentTool', () => {
 				capturedRequests,
 				defaultToAuto: true,
 				models: new Map([['main-model-id', mainMeta]]),
-				selectedModels: new Map([['copilot-auto-model-id', autoMeta]]),
+				selectedModels: new Map([['dardcor-auto-model-id', autoMeta]]),
 				onSelectLanguageModels: () => selectCalls++,
 				telemetryService,
 			});
@@ -1566,7 +1545,7 @@ suite('RunSubagentTool', () => {
 				selectCalls,
 				telemetryEvents: telemetryService.events,
 			}, {
-				userSelectedModelId: 'copilot-auto-model-id',
+				userSelectedModelId: 'dardcor-auto-model-id',
 				selectCalls: 1,
 				telemetryEvents: [{
 					name: 'chat.subagentModelSelection',
@@ -1577,7 +1556,7 @@ suite('RunSubagentTool', () => {
 
 		test('keeps main model when the inherited current agent configures a model', async () => {
 			const capturedRequests: IChatAgentRequest[] = [];
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const autoMeta = createAutoMetadata();
 			const currentAgent = createAgent('CurrentAgent', ['Claude Sonnet (TestVendor)']);
 			let selectCalls = 0;
@@ -1589,7 +1568,7 @@ suite('RunSubagentTool', () => {
 				customAgents: [currentAgent],
 				defaultToAuto: true,
 				models: new Map([['main-model-id', mainMeta]]),
-				selectedModels: new Map([['copilot-auto-model-id', autoMeta]]),
+				selectedModels: new Map([['dardcor-auto-model-id', autoMeta]]),
 				onSelectLanguageModels: () => selectCalls++,
 				telemetryService,
 			});
@@ -1621,7 +1600,7 @@ suite('RunSubagentTool', () => {
 		});
 
 		test('reports explicit and configured agent model selection sources', async () => {
-			const mainMeta = createMetadata('GPT-4o', 1, COPILOT_VENDOR_ID);
+			const mainMeta = createMetadata('GPT-4o', 1, DARD_COR_VENDOR_ID);
 			const selectedMeta = createMetadata('Claude Sonnet', 1);
 			const qualifiedName = 'Claude Sonnet (TestVendor)';
 			const qualifiedNameMap = new Map([
@@ -1644,10 +1623,10 @@ suite('RunSubagentTool', () => {
 					models: new Map([
 						['main-model-id', mainMeta],
 						['selected-model-id', selectedMeta],
-						['copilot-auto-model-id', createAutoMetadata()],
+						['dardcor-auto-model-id', createAutoMetadata()],
 					]),
 					qualifiedNameMap,
-					copilotVendorResolved: true,
+					dardcorVendorResolved: true,
 					telemetryService,
 				});
 				const invocation = createInvocation(URI.parse(`test://session/${testCase.name}`), undefined, 'main-model-id');
@@ -1679,11 +1658,6 @@ suite('RunSubagentTool', () => {
 	suite('subagent credits', () => {
 		let creditsCallIdCounter = 0;
 
-		/**
-		 * Creates a RunSubagentTool whose subagent invocation emits the supplied
-		 * usage progress parts, so tests can assert how the subagent's credit
-		 * (AIC) cost is surfaced on its tool's `toolSpecificData`.
-		 */
 		function createCreditTool(usageParts: IChatProgress[], result: IChatAgentResult = {}) {
 			const mockToolsService = testDisposables.add(new MockLanguageModelToolsService());
 			const configService = new TestConfigurationService();
@@ -1751,7 +1725,6 @@ suite('RunSubagentTool', () => {
 		const noProgress: ToolProgress = { report() { } };
 
 		test('writes the running credit total onto the subagent toolSpecificData', async () => {
-			// Credits are cumulative per usage event; the latest value is the total.
 			const { tool, parentCredits } = createCreditTool([
 				{ kind: 'usage', promptTokens: 10, completionTokens: 5, copilotCredits: 2 },
 				{ kind: 'usage', promptTokens: 20, completionTokens: 8, copilotCredits: 5 },

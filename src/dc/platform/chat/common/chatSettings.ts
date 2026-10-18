@@ -5,12 +5,6 @@
 
 export const ChatAIDisabledSettingId = 'chat.disableAIFeatures';
 
-/**
- * Configuration key gating the "Continue with Microsoft" sign-in choice. When `true`, every
- * sign-in dialog offers it, and choosing it exchanges a Microsoft Entra sign-in for a GitHub
- * token that is published as a process-lifetime GitHub authentication session. Off by default
- * while the flow is dogfooded.
- */
 export const ChatMicrosoftAuthenticationEnabledSettingId = 'chat.microsoftAuthentication.enabled';
 
 export const ChatEditAutoApproveSettingId = 'chat.tools.edits.autoApprove';
@@ -25,10 +19,10 @@ export const enum ChatExternalSessionsMode {
 	Last30Days = 'last30Days',
 }
 
-/** Edit paths whose executable side effects require confirmation regardless of user configuration. */
 export const ALWAYS_CHECKED_EDIT_PATTERNS: ChatEditAutoApprovePatterns = {
 	'**/.mcp.json': false,
 	'**/.npmrc': false,
+	'**/.dardcor-code/*.json': false,
 	'**/.vscode/*.json': false,
 	'**/.github/agents/**': false,
 	'**/.github/hooks/**': false,
@@ -56,8 +50,6 @@ export function mergeChatEditAutoApprovePatterns(value: unknown): ChatEditAutoAp
 		return patterns;
 	}
 	for (const [pattern, isApproved] of Object.entries(value)) {
-		// Re-inserting moves an overridden default to the end so the configured
-		// order keeps deciding which pattern matches last.
 		delete patterns[pattern];
 		patterns[pattern] = isApproved === true;
 	}

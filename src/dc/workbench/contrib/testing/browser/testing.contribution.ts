@@ -70,8 +70,6 @@ const viewContainer = Registry.as<IViewContainersRegistry>(ViewContainerExtensio
 	openCommandActionDescriptor: {
 		id: Testing.ViewletId,
 		mnemonicTitle: localize({ key: 'miViewTesting', comment: ['&& denotes a mnemonic'] }, "T&&esting"),
-		// todo: coordinate with joh whether this is available
-		// keybindings: { primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.US_SEMICOLON },
 		order: 4,
 	},
 	hideIfEmpty: true,
@@ -194,7 +192,7 @@ CommandsRegistry.registerCommand({
 
 		const [result, ownState] = lookup;
 		const opener = accessor.get(ITestingPeekOpener);
-		if (opener.tryPeekFirstError(result, ownState)) { // fast path
+		if (opener.tryPeekFirstError(result, ownState)) {
 			return true;
 		}
 
@@ -224,8 +222,6 @@ CommandsRegistry.registerCommand({
 			return;
 		}
 
-		// If an editor has the file open, there are decorations. Try to adjust the
-		// revealed range to those decorations (#133441).
 		const position = accessor.get(ITestingDecorationsService).getDecoratedTestPosition(uri, extId) || range?.getStartPosition();
 
 		accessor.get(ITestExplorerFilterState).reveal.set(extId, undefined);
@@ -237,7 +233,6 @@ CommandsRegistry.registerCommand({
 				isFile = false;
 			}
 		} catch {
-			// ignored
 		}
 
 		if (!isFile) {

@@ -17,25 +17,14 @@ import { coalesceParts, LinkifiedPart, LinkifiedText, LinkifyLocationAnchor } fr
 import { IContributedLinkifier, LinkifierContext } from './linkifyService';
 import { IStatCache } from './statCache';
 
-// Create a single regex which runs different regexp parts in a big `|` expression.
 const pathMatchRe = new RegExp(
 	[
-		// Inline code paths (exclude code-like characters $, {, }, that are common in code but rare in filenames)
 		/(?<!\[)`(?<inlineCodePath>[^`\s${}]+)`(?!\])/.source,
 
-		// File paths rendered as plain text (exclude code-like characters)
 		/(?<![\[`()<])(?<plainTextPath>[^\s`*${}()]+\.[^\s`*${}()]+)(?![\]`])/.source
 	].join('|'),
 	'gu');
 
-/**
- * Linkifies file paths in responses. This includes:
- *
- * ```
- * `file.md`
- * foo.ts
- * ```
- */
 export class FilePathLinkifier implements IContributedLinkifier {
 
 	constructor(
@@ -80,7 +69,6 @@ export class FilePathLinkifier implements IContributedLinkifier {
 		const includeDirectorySlash = pathText.endsWith('/');
 		const workspaceFolders = this.workspaceService.getWorkspaceFolders();
 
-		// Don't linkify very short paths such as '/' or special paths such as '../'
 		if (pathText.length < 2 || ['../', '..\\', '/.', './', '\\.', '..'].includes(pathText)) {
 			return;
 		}
@@ -96,11 +84,9 @@ export class FilePathLinkifier implements IContributedLinkifier {
 					return uri;
 				}
 			} catch {
-				// noop
 			}
 		}
 
-		// Handle paths that look like uris
 		const scheme = pathText.match(/^([a-z]+):/i)?.[1];
 		if (scheme) {
 			try {
@@ -112,7 +98,6 @@ export class FilePathLinkifier implements IContributedLinkifier {
 					}
 				}
 			} catch {
-				// Noop, parsing error
 			}
 			return;
 		}
@@ -122,11 +107,6 @@ export class FilePathLinkifier implements IContributedLinkifier {
 			return result;
 		}
 
-		// Then fallback to checking references based on filename.
-		// Only do this for simple filenames without directory components - if the user
-		// specified a path like `./node_modules/cli.js`, we shouldn't match a reference
-		// with a completely different path just because the basename matches.
-		// Also skip if text contains code-like characters that are rarely in real filenames.
 		if (!pathText.includes('/') && !pathText.includes('\\') && !/[${}()]/.test(pathText)) {
 			const name = path.basename(pathText);
 			const refUri = context.references

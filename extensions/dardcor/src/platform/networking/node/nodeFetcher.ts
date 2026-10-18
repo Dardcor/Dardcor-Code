@@ -78,7 +78,6 @@ export class NodeFetcher implements IFetcher {
 			const response = await this.fetch(url, options);
 
 			if (!response.ok) {
-				// Return what we've collected so far if request fails
 				return items;
 			}
 
@@ -116,7 +115,7 @@ export class NodeFetcher implements IFetcher {
 					hostname,
 				));
 			});
-			req.setTimeout(60 * 1000); // time out after 60s of receiving no data
+			req.setTimeout(60 * 1000);
 			req.on('error', reject);
 
 			if (body) {
@@ -126,7 +125,6 @@ export class NodeFetcher implements IFetcher {
 		});
 	}
 	async disconnectAll(): Promise<void> {
-		// Nothing to do
 	}
 	makeAbortController(): IAbortController {
 		return new AbortController();
@@ -149,11 +147,9 @@ export class NodeFetcher implements IFetcher {
 }
 
 function makeAbortError(signal: AbortSignal): Error {
-	// see https://github.com/nodejs/node/issues/38361#issuecomment-1683839467
 	return signal.reason;
 }
 function isAbortError(e: any): boolean {
-	// see https://github.com/nodejs/node/issues/38361#issuecomment-1683839467
 	return e && e.name === 'AbortError';
 }
 

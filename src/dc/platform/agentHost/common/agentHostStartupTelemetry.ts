@@ -109,7 +109,6 @@ export class AgentHostStartupTelemetry extends Disposable {
 		super.dispose();
 	}
 
-	/** Startup reaches the session-list stage as soon as the protocol connects. */
 	private _failureStage(): AgentHostStartupFailureStage {
 		return this._timeToProtocolConnectionMs === undefined ? 'protocolConnection' : 'sessionList';
 	}

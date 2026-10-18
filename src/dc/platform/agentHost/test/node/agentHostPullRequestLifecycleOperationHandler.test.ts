@@ -148,8 +148,6 @@ suite('AgentHostPullRequestLifecycleOperationHandler', () => {
 
 		await invoke(handler);
 
-		// The preparation gate runs before the merge, and the status is
-		// refreshed afterwards so the button bar re-derives.
 		assert.deepStrictEqual({ calls: recorded.calls, refreshed: refreshes.length, merged }, {
 			calls: ['prepareMerge', 'merge:SQUASH'],
 			refreshed: 1,
@@ -183,7 +181,6 @@ suite('AgentHostPullRequestLifecycleOperationHandler', () => {
 		assert.deepStrictEqual({
 			allowed: allowed.recorded.calls,
 			forbidden: forbidden.recorded.calls,
-			// Never falls back to a method the repository did not allow.
 			rejected: rejection?.message,
 			refreshedAfterFailure: forbidden.refreshes.length,
 		}, {

@@ -26,7 +26,7 @@ import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer'
 import { Tag } from '../../prompts/node/base/tag';
 import { getCharLimit } from '../../prompts/node/inline/summarizedDocument/summarizeDocumentHelpers';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 import { IToolsService } from '../common/toolsService';
 import { IInstallExtensionToolInput } from './installExtensionTool';
 import { ChatImageMimeType } from '../../conversation/common/languageModelChatMessageHelpers';
@@ -53,17 +53,6 @@ class RunNotebookTelemetryEvent {
 	public async send(telemetryService: ITelemetryService) {
 		const resourceHash = await createSha256Hash(this.filepath);
 
-		/* __GDPR__
-			"runNotebookCellInvoked" : {
-				"owner": "amunger",
-				"comment": "Tracks the usage and result ",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"resourceHash": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The hash of the resource of the current request turn. (Notebook Uri)" },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the request." },
-				"result": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Result of the operation: success, failure, or unknown." },
-				"resultInfo": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Reason for failure if the result is failure." }
-			}
-		*/
 		telemetryService.sendMSFTTelemetryEvent('runNotebookCellInvoked',
 			{
 				requestId: this.requestId,
@@ -76,7 +65,7 @@ class RunNotebookTelemetryEvent {
 	}
 }
 
-export class RunNotebookCellTool implements ICopilotTool<IRunNotebookCellToolParams> {
+export class RunNotebookCellTool implements IAgentTool<IRunNotebookCellToolParams> {
 	public static toolName = ToolName.RunNotebookCell;
 	private _promptContext: IBuildPromptContext | undefined;
 
@@ -101,10 +90,8 @@ export class RunNotebookCellTool implements ICopilotTool<IRunNotebookCellToolPar
 		try {
 			const { notebook, cell } = this.getNotebookAndCell(filePath, cellId);
 
-			// track that a notebook tool was invoked by the agent, exposes follow execution action to toolbar
 			this.notebookService.trackAgentUsage();
 
-			// If this is a Jupyter notebook with Python code and Jupyter extension isn't installed, recommend installing it
 			const JUPYTER_EXTENSION_ID = 'ms-toolsai.jupyter';
 			if (isJupyterNotebookUri(notebook.uri) && notebook.getCells().some(c => c.document.languageId.toLowerCase() === 'python') && !this.extensionsService.getExtension(JUPYTER_EXTENSION_ID)) {
 				try {
@@ -114,7 +101,6 @@ export class RunNotebookCellTool implements ICopilotTool<IRunNotebookCellToolPar
 					};
 					await this.toolsService.invokeTool(ToolName.InstallExtension, { ...options, input }, token);
 				} catch {
-					//
 				}
 			}
 
@@ -158,8 +144,6 @@ export class RunNotebookCellTool implements ICopilotTool<IRunNotebookCellToolPar
 						telemetryEvent.result = 'success';
 					}
 				} else {
-					// some controllers will return before finishing execution,
-					// But we can't tell the difference between a cell that is still executing and one that just failed to execute
 					infoMessage = `Cell ${cellId} did not finish executing. It may still be running, or it may have failed to execute.`;
 					telemetryEvent.failed('ExecutionTimeout');
 				}
@@ -170,7 +154,6 @@ export class RunNotebookCellTool implements ICopilotTool<IRunNotebookCellToolPar
 			const outputs = cell?.outputs || [];
 			const toolCallResults: Array<LanguageModelPromptTsxPart | unknown> = [];
 
-			// execution summary
 			toolCallResults.push(new LanguageModelPromptTsxPart(await renderPromptElementJSON(this.instantiationService, RunNotebookCellResultSummary, { executionSummary, infoMessage }, options.tokenizationOptions, token)));
 
 			const endpoint = this._promptContext?.request ? await this.endpointProvider.getChatEndpoint(this._promptContext?.request) : undefined;
@@ -206,7 +189,6 @@ export class RunNotebookCellTool implements ICopilotTool<IRunNotebookCellToolPar
 
 		const { cell } = this.getNotebookAndCell(filePath, cellId);
 
-		// track that a notebook tool was invoked by the agent, exposes follow execution action to toolbar
 		this.notebookService.trackAgentUsage();
 
 		const cellContent = this.formatRunMessage(cell, reason);
@@ -249,7 +231,6 @@ export class RunNotebookCellTool implements ICopilotTool<IRunNotebookCellToolPar
 		lines.push('```' + cell.document.languageId);
 
 		let emptyLine = true;
-		// remove leading and consecutive empty lines
 		for (const line of cell.document.getText().split('\n')) {
 
 			if (lines.length > 10) {

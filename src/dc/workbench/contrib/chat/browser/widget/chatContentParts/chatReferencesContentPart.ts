@@ -271,7 +271,6 @@ export class CollapsibleListPool extends Disposable {
 							const uris: URI[] = coalesce(elements.map(getResourceForElement));
 							this.instantiationService.invokeFunction(accessor => fillEditorsDragData(accessor, uris, originalEvent));
 						} catch {
-							// noop
 						}
 					},
 				},
@@ -407,10 +406,8 @@ class CollapsibleListRenderer implements IListRenderer<IChatCollapsibleListItem,
 			arg = uri;
 			const extraClasses = data.excluded ? ['excluded'] : [];
 			if (uri.scheme === 'https' && isEqualAuthority(uri.authority, 'github.com') && uri.path.includes('/tree/')) {
-				// Parse a nicer label for GitHub URIs that point at a particular commit + file
 				templateData.label.setResource(getResourceLabelForGithubUri(uri), { icon: Codicon.github, title: data.title, strikethrough: data.excluded, extraClasses });
 			} else if (uri.scheme === this.productService.urlProtocol && isEqualAuthority(uri.authority, SETTINGS_AUTHORITY)) {
-				// a nicer label for settings URIs
 				const settingId = uri.path.substring(1);
 				templateData.label.setResource({ resource: uri, name: settingId }, { icon: Codicon.settingsGear, title: localize('setting.hover', "Open setting '{0}'", settingId), strikethrough: data.excluded, extraClasses });
 			} else if (matchesSomeScheme(uri, Schemas.mailto, Schemas.http, Schemas.https)) {
@@ -418,7 +415,6 @@ class CollapsibleListRenderer implements IListRenderer<IChatCollapsibleListItem,
 			} else {
 				templateData.label.setFile(uri, {
 					fileKind: FileKind.FILE,
-					// Should not have this live-updating data on a historical reference
 					fileDecorations: undefined,
 					range: 'range' in reference ? reference.range : undefined,
 					title: data.options?.status?.description ?? data.title,
@@ -488,8 +484,6 @@ function getLineRangeFromGithubUri(uri: URI): IRange | undefined {
 		return undefined;
 	}
 
-	// Extract the line range from the fragment
-	// Github line ranges are 1-based
 	const match = uri.fragment.match(/\bL(\d+)(?:-L(\d+))?/);
 	if (!match) {
 		return undefined;
@@ -527,7 +521,6 @@ function getResourceForElement(element: IChatCollapsibleListItem): URI | null {
 	}
 }
 
-//#region Resource context menu
 
 registerAction2(class AddToChatAction extends Action2 {
 
@@ -587,4 +580,3 @@ registerAction2(class OpenChatReferenceLinkAction extends Action2 {
 	}
 });
 
-//#endregion

@@ -42,7 +42,6 @@ export class ManagePluginsAction extends Action2 {
 }
 
 interface IInstallFromSourceActionOptions {
-	/** When `true`, do not reveal the installed plugin in the Extensions viewlet after install. */
 	readonly skipReveal?: boolean;
 }
 
@@ -103,25 +102,21 @@ class InstallFromSourceAction extends Action2 {
 					return;
 				}
 
-				// Quick format validation keeps the input box open for correction.
 				const validationError = pluginInstallService.validatePluginSource(source);
 				if (validationError) {
 					inputBox.validationMessage = validationError;
 					return;
 				}
 
-				// Show busy state and prevent concurrent installs.
 				inputBox.busy = true;
 				inputBox.enabled = false;
 				installing = true;
 				try {
-					// Hide the input box so it doesn't conflict with trust/progress dialogs.
 					inputBox.hide();
 
 					const result = await pluginInstallService.installPluginFromSource(source);
 					if (!result.success) {
 						if (result.message) {
-							// Re-open with the error so the user can correct their input.
 							inputBox.validationMessage = result.message;
 						}
 						inputBox.show();
@@ -136,9 +131,6 @@ class InstallFromSourceAction extends Action2 {
 						store.dispose();
 					}
 				} catch (e) {
-					// An unexpected failure (e.g. cancelled trust prompt) would otherwise
-					// leave the hidden input box and awaited promise stuck. Re-show it with
-					// the error so the user can retry or cancel.
 					const detail = e instanceof Error ? e.message : String(e);
 					inputBox.validationMessage = localize('installFromSourceFailed', "Failed to install plugin: {0}", detail);
 					inputBox.show();
@@ -201,7 +193,6 @@ class ManagePluginMarketplacesAction extends Action2 {
 			return;
 		}
 
-		// Step 1: pick a marketplace
 		const items: IMarketplaceQuickPickItem[] = refs.map(ref => ({
 			label: ref.displayLabel,
 			description: ref.kind === MarketplaceReferenceKind.LocalFileUri
@@ -223,12 +214,10 @@ class ManagePluginMarketplacesAction extends Action2 {
 
 		const ref = selected.reference;
 
-		// Step 2: pick an action for the selected marketplace
 		const actionItems: IQuickPickItem[] = [
 			{ id: 'showPlugins', label: localize('showPlugins', "Show Plugins") },
 		];
 
-		// "Open Folder" only for cloned/local repos
 		const repoUri = pluginRepositoryService.getRepositoryUri(ref);
 		const repoExists = await fileService.exists(repoUri);
 		if (repoExists) {

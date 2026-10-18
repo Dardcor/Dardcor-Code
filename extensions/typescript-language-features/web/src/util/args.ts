@@ -20,9 +20,6 @@ export function findArgumentStringArray(args: readonly string[], name: string): 
 	return arg === undefined ? [] : arg.split(',').filter(name => name !== '');
 }
 
-/**
- * Copied from `ts.LanguageServiceMode` to avoid direct dependency.
- */
 export enum LanguageServiceMode {
 	Semantic = 0,
 	PartialSemantic = 1,

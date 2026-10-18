@@ -26,7 +26,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 	let fileService: IFileService;
 	const seed = (path: string, content = '') => seedFile(fileService, path, content);
 
-	/** Builds a resolved native plugin with optional bundled skills / agents. */
 	const nativePlugin = (id: string, rootPath: string, parts: { skills?: string[]; agents?: string[] } = {}): IResolvedNativePlugin => {
 		const root = URI.from({ scheme: Schemas.inMemory, path: rootPath });
 		return {
@@ -121,8 +120,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 			const result = mapDiscoveredCustomizations(discovered, mcp, [], [], workspace, userHome);
 
 			const dirs = result.filter(c => c.type === CustomizationType.Directory) as DirectoryCustomization[];
-			// Workspace containers first (agents, skills), then user — each rooted at
-			// the real `<scope>/.claude/<sub>` dir so the workbench can label scope.
 			assert.deepStrictEqual(
 				dirs
 					.filter(directory => (directory.children?.length ?? 0) > 0)
@@ -231,25 +228,18 @@ suite('claudeSessionCustomizationDiscovery', () => {
 
 			const result = buildDiscoveredCustomizations(discovered, [diskMcp], [], [], workspace, userHome, sdk);
 
-			// Children are split into per-scope containers; aggregate across them.
 			const dirs = result.filter(c => c.type === CustomizationType.Directory) as DirectoryCustomization[];
 			const agentChildren = dirs.filter(d => d.contents === CustomizationType.Agent).flatMap(d => d.children ?? []);
-			// Editable disk-skill directories only (exclude the read-only Built-in container).
 			const skillChildren = dirs.filter(d => d.contents === CustomizationType.Skill && URI.parse(d.uri).scheme !== 'agent-builtin').flatMap(d => d.children ?? []);
 			const mcps = result.filter(c => c.type === CustomizationType.McpServer) as McpServerCustomization[];
 
-			// known agent kept with its real URI; hidden dropped; sdkonly added
-			// non-editable; general-purpose default agent hidden.
 			assert.deepStrictEqual(agentChildren.map(c => ({ name: c.name, uri: c.uri })).sort((a, b) => a.name.localeCompare(b.name)), [
 				{ name: 'known', uri: knownAgent.toString() },
 				{ name: 'sdkonly', uri: 'claude-internal:/agent/sdkonly' },
 			]);
-			// disk skill kept (real URI); the SDK-only command `sdkcmd` is NOT mixed
-			// in among the editable disk skills (it surfaces in the Built-in container).
 			assert.deepStrictEqual(skillChildren.map(c => ({ name: c.name, uri: c.uri })), [
 				{ name: 'kskill', uri: diskSkill.toString() },
 			]);
-			// disk MCP kept + enriched to Ready (connected); SDK-only MCP added.
 			assert.deepStrictEqual(mcps.map(m => ({ name: m.name, state: m.state.kind })).sort((a, b) => a.name.localeCompare(b.name)), [
 				{ name: 'diskmcp', state: McpServerStatus.Ready },
 				{ name: 'sdkmcp', state: McpServerStatus.Starting },
@@ -261,8 +251,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 			const discovered = [toParsedSkill({ uri: diskSkill, name: 'real' })];
 			const sdk: ISdkResolvedCustomizations = {
 				agents: [],
-				// `real` is a loaded disk skill; `init` / `loop` are SDK-only
-				// built-in slash commands with no editable file.
 				commands: [
 					{ name: 'real', description: '', argumentHint: '' },
 					{ name: 'init', description: 'Initialize', argumentHint: '' },
@@ -275,13 +263,11 @@ suite('claudeSessionCustomizationDiscovery', () => {
 			const result = buildDiscoveredCustomizations(discovered, [], [], [], workspace, userHome, sdk);
 			const skillDirs = result.filter(c => c.type === CustomizationType.Directory) as DirectoryCustomization[];
 
-			// Editable disk-skill directories contain only the real on-disk skill.
 			const editableSkills = skillDirs
 				.filter(d => d.contents === CustomizationType.Skill && URI.parse(d.uri).scheme !== 'agent-builtin')
 				.flatMap(d => d.children ?? []);
 			assert.deepStrictEqual(editableSkills.map(c => ({ name: c.name, uri: c.uri })), [{ name: 'real', uri: diskSkill.toString() }]);
 
-			// The SDK-only commands appear in the read-only Built-in container.
 			const builtin = skillDirs.find(d => URI.parse(d.uri).scheme === 'agent-builtin');
 			assert.deepStrictEqual((builtin?.children ?? []).map(c => c.name), ['init', 'loop']);
 		});
@@ -291,9 +277,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 			const sdk: ISdkResolvedCustomizations = {
 				agents: [],
 				commands: [],
-				// `client` / `host` are the agent host's in-process client-tool and
-				// server-tool bridges, injected into `Options.mcpServers`; only
-				// `real` is user-configured.
 				mcpServers: [{ name: 'client', status: 'connected' }, { name: 'host', status: 'connected' }, { name: 'real', status: 'connected' }],
 				plugins: [],
 			};
@@ -316,8 +299,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 			const result = buildDiscoveredCustomizations([], [diskMcp], [], [], workspace, userHome, sdk);
 			const mcps = result.filter(c => c.type === CustomizationType.McpServer) as McpServerCustomization[];
 
-			// The user configured this one, so it stays visible (and editable via
-			// its real URI) rather than being hidden by the injected-name check.
 			assert.deepStrictEqual(mcps.map(m => ({ name: m.name, uri: m.uri })), [{ name: 'host', uri: 'inmemory:/settings.json' }]);
 		});
 
@@ -363,9 +344,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 		});
 
 		test('post-materialize matches a plugin by SDK `source` (id) even when the reported path is not the resolved root', () => {
-			// The SDK reports a workspace-`local`-scoped plugin with a path that
-			// is NOT its cache root (observed: `<workspace-parent>/<marketplace>/<plugin>/`).
-			// `source` (the `<plugin>@<marketplace>` id) is the reliable key.
 			const local = nativePlugin('github-inbox@team-kit', '/home/.claude/plugins/cache/team-kit/github-inbox/1.0.0', { agents: ['inbox'] });
 			const sdk: ISdkResolvedCustomizations = {
 				agents: [], commands: [], mcpServers: [],
@@ -389,10 +367,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 		});
 
 		test('a surfaced plugin\'s components do not also leak as standalone SDK fallbacks (bare + namespaced names suppressed)', () => {
-			// The live SDK reports a loaded plugin's components as agents
-			// (namespaced `<plugin>:<name>`) and commands (usually bare). Both
-			// forms must be suppressed from the standalone `claude-internal:`
-			// agents / Built-in skills — they belong under the plugin container.
 			const plugin = nativePlugin('inbox@team-kit', '/home/.claude/plugins/cache/team-kit/inbox/1.0.0', { agents: ['Investigator'], skills: ['do-thing'] });
 			const sdk: ISdkResolvedCustomizations = {
 				agents: [{ name: 'inbox:Investigator', description: 'p' }, { name: 'standalone-agent', description: 's' }],
@@ -403,9 +377,7 @@ suite('claudeSessionCustomizationDiscovery', () => {
 
 			const result = buildDiscoveredCustomizations([], [], [], [plugin], workspace, userHome, sdk);
 
-			// Plugin surfaced as its own container.
 			assert.deepStrictEqual((result.filter(c => c.type === CustomizationType.Plugin) as PluginCustomization[]).map(p => p.name), ['inbox@team-kit']);
-			// Standalone (per-scope Directory) entries: plugin components absent, non-plugin SDK entries present.
 			const standaloneNames = result.flatMap(c => c.type === CustomizationType.Directory ? (c.children ?? []).map(ch => ch.name) : []);
 			assert.strictEqual(standaloneNames.includes('inbox:Investigator'), false, 'namespaced plugin agent not standalone');
 			assert.strictEqual(standaloneNames.includes('do-thing'), false, 'bare plugin skill not in Built-in');
@@ -413,8 +385,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 		});
 
 		test('pre-materialize seeds curated built-in agents (claude-internal; general-purpose hidden; disk name wins)', () => {
-			// A disk agent named 'Explore' must shadow the curated built-in of the
-			// same name (the editable file wins).
 			const diskExplore = URI.from({ scheme: Schemas.inMemory, path: '/home/.claude/agents/Explore.md' });
 			const discovered = [toParsedAgent({ uri: diskExplore, name: 'Explore', description: 'mine' })];
 
@@ -424,9 +394,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 				.filter(d => d.contents === CustomizationType.Agent)
 				.flatMap(d => d.children ?? []);
 
-			// Disk Explore kept (real URI); every curated built-in EXCEPT
-			// general-purpose (hidden) and the disk-shadowed Explore is added as a
-			// non-editable `claude-internal:` entry.
 			const expected = [
 				{ name: 'Explore', uri: diskExplore.toString() },
 				...CLAUDE_BUILTIN_AGENTS
@@ -443,11 +410,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 	});
 
 	suite('ClaudeCustomizationWatcher', () => {
-		// Debounce wide enough that a burst of edits reliably lands in a single
-		// window even on a loaded CI machine; `settle` then waits a clear
-		// multiple of it so the one debounced fire is always counted before we
-		// assert. The burst itself is issued concurrently so the change events
-		// cluster inside one window rather than racing the debounce.
 		const debounceMs = 20;
 		const settle = () => timeout(debounceMs * 6);
 
@@ -456,13 +418,10 @@ suite('claudeSessionCustomizationDiscovery', () => {
 			let fires = 0;
 			disposables.add(watcher.onDidChange(() => { fires++; }));
 
-			// An unrelated edit in the workspace root must NOT trigger a refresh.
 			await seed('/workspace/unrelated.txt', 'x');
 			await settle();
 			assert.strictEqual(fires, 0);
 
-			// A burst of edits across the watched roots collapses to a single fire:
-			// a user-scope agent, a project-scope skill, and the sibling `.mcp.json`.
 			await Promise.all([
 				seed('/home/.claude/agents/a.md', 'a'),
 				seed('/workspace/.claude/skills/s/SKILL.md', 's'),
@@ -509,10 +468,6 @@ suite('claudeSessionCustomizationDiscovery', () => {
 			let fires = 0;
 			disposables.add(watcher.onDidChange(() => { fires++; }));
 
-			// The Claude SDK constantly rewrites these under `~/.claude` during a
-			// turn. None of them are customization sources, so they must not
-			// trigger a re-scan (previously each write fanned out to an O(N^2)
-			// storm of `SessionCustomizationsChanged` envelopes).
 			await Promise.all([
 				seed('/home/.claude/history.jsonl', '{}'),
 				seed('/home/.claude/projects/-Users-me-repo/session.jsonl', '{}'),

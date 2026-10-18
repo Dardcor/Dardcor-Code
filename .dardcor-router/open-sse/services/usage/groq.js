@@ -1,24 +1,9 @@
-/**
- * Groq usage — no dedicated quota endpoint. Rate-limit info instead rides on
- * every API response as x-ratelimit-* headers (requests + tokens, always
- * included). We piggyback on the models list (already used as
- * transport.validateUrl) so reading usage never costs tokens.
- *
- * Headers:
- *   x-ratelimit-limit-requests / x-ratelimit-remaining-requests
- *   x-ratelimit-limit-tokens   / x-ratelimit-remaining-tokens
- *   x-ratelimit-reset-requests / x-ratelimit-reset-tokens (duration strings, e.g. "2m59.56s")
- *
- * Docs: https://console.groq.com/docs/rate-limits
- */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { U } from "./shared.js";
 
 const MODELS_URL = U("groq").url;
 
-// Groq reset headers are Go-style duration strings ("2m59.56s", "7.66s"), not
-// timestamps — parse the h/m/s/ms components and add them to now().
 function parseGroqDurationMs(value) {
   if (typeof value !== "string" || !value.trim()) return null;
 
@@ -42,9 +27,6 @@ function resetAtFromDuration(value) {
 }
 
 function buildRateLimitQuota(headers, limitKey, remainingKey, resetKey) {
-  // headers.get() returns null when absent, and Number(null) is 0 (a finite
-  // number) — check presence explicitly so a missing header can't masquerade
-  // as a real "0 remaining" quota.
   const limitRaw = headers.get(limitKey);
   const remainingRaw = headers.get(remainingKey);
   if (limitRaw === null || remainingRaw === null) return null;
@@ -61,10 +43,6 @@ function buildRateLimitQuota(headers, limitKey, remainingKey, resetKey) {
   };
 }
 
-/**
- * @param {string|null|undefined} apiKey
- * @param {object|null} proxyOptions
- */
 export async function getGroqUsage(apiKey, proxyOptions = null) {
   if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
     return { message: "Groq API key not available. Add a key to view usage." };
@@ -95,8 +73,6 @@ export async function getGroqUsage(apiKey, proxyOptions = null) {
       };
     }
 
-    // The quota data lives in headers, not the body — drain it so the
-    // connection can be released without needing the payload.
     await response.text().catch(() => {});
 
     const requests = buildRateLimitQuota(
@@ -113,8 +89,6 @@ export async function getGroqUsage(apiKey, proxyOptions = null) {
     );
 
     if (!requests && !tokens) {
-      // Key is valid (request succeeded) but no rate-limit bucket reported —
-      // distinguish "not tracked yet" from an auth/error state.
       return {
         plan: "Groq",
         message: "Groq connected. No rate-limit data reported for this key yet.",

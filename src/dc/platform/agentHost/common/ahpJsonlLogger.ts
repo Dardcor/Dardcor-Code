@@ -19,7 +19,6 @@ interface IAhpLogMeta {
 	readonly connectionId: string;
 	readonly transport: string;
 	readonly byteLength?: number;
-	/** Set when oversized string values in the entry were elided (see {@link stringifyAhpLogEntryTruncated}). */
 	truncated?: boolean;
 }
 
@@ -34,22 +33,9 @@ export interface IAhpJsonlLoggerOptions {
 const AHP_LOG_DIR = 'ahp';
 const DEFAULT_MAX_FILE_SIZE_BYTES = 75 * 1024 * 1024;
 const DEFAULT_MAX_FILES = 5;
-// Cap the size of any single coalesced writeFile to avoid producing huge
-// concatenated VSBuffers (which would just create the GC pressure we're
-// trying to avoid). 1 MiB strikes a balance between amortizing IPC overhead
-// and keeping per-write allocations modest.
 const MAX_BATCH_BYTES = 1024 * 1024;
 
-// A single AHP protocol message can be enormous (e.g. a `resourceRead` carrying
-// a base64-encoded file, or an `action` carrying a full session snapshot). We
-// don't want to write hundreds of MB on a single JSONL line — it bloats the log
-// directory and, more importantly, building/holding that line creates exactly
-// the GC pressure these logs are meant to help diagnose. When a serialized
-// entry exceeds this size we re-serialize it with oversized string values
-// elided so the line stays well-formed JSONL.
 const MAX_LOG_LINE_LENGTH = 1024 * 1024;
-// When trimming an oversized entry, individual string values are capped to this
-// length. Generous enough to keep messages useful for debugging.
 const MAX_LOGGED_STRING_LENGTH = 16 * 1024;
 
 
@@ -74,7 +60,6 @@ export class AhpJsonlLogger extends Disposable {
 	) {
 		super();
 		this._directory = joinPath(this._options.logsHome, AHP_LOG_DIR);
-		// Truncate connectionId to avoid filesystem filename length limits (e.g. 255 on ext4/APFS)
 		const safeConnectionId = sanitizeFilePart(this._options.connectionId).slice(0, 64);
 		this._baseName = `ahp-${toFileTimestamp(new Date())}-${safeConnectionId}.jsonl`;
 		this._maxFileSizeBytes = this._options.maxFileSizeBytes ?? DEFAULT_MAX_FILE_SIZE_BYTES;
@@ -95,14 +80,8 @@ export class AhpJsonlLogger extends Disposable {
 			...(typeof byteLength === 'number' ? { byteLength } : {}),
 		};
 		const entry = { ...message, _ahpLog: meta };
-		// Fast path: serialize once. The vast majority of messages are small, so
-		// we only pay a single stringify and use its length to decide whether the
-		// rare oversized-message path below is needed.
 		let body = stringifyAhpLogEntry(entry);
 		if (body.length > MAX_LOG_LINE_LENGTH) {
-			// Slow path (rare): a single message carried very large payloads. Walk
-			// the object via a replacer that elides long string values, keeping the
-			// line valid JSONL instead of writing/holding the full multi-MB payload.
 			meta.truncated = true;
 			body = stringifyAhpLogEntryTruncated(entry, MAX_LOGGED_STRING_LENGTH);
 		}
@@ -112,9 +91,6 @@ export class AhpJsonlLogger extends Disposable {
 	}
 
 	async flush(): Promise<void> {
-		// Pending entries always have a drain scheduled (see _scheduleDrain), so
-		// awaiting the queue is sufficient to flush everything submitted before
-		// this call.
 		await this._queue;
 	}
 
@@ -129,8 +105,6 @@ export class AhpJsonlLogger extends Disposable {
 	}
 
 	private async _drainPending(): Promise<void> {
-		// Clear the scheduled flag before snapshotting _pending so that any log()
-		// calls happening during the awaits below will schedule a fresh drain.
 		this._drainScheduled = false;
 		if (this._pending.length === 0) {
 			return;
@@ -138,7 +112,6 @@ export class AhpJsonlLogger extends Disposable {
 		const buffers = this._pending;
 		this._pending = [];
 
-		// Create folder once and memoize to avoid repeated filesystem calls
 		if (!this._folderCreated) {
 			this._folderCreated = this._fileService.createFolder(this._directory);
 		}
@@ -147,9 +120,6 @@ export class AhpJsonlLogger extends Disposable {
 			this._currentSize = await this._getFileSize(this._currentFile);
 		}
 
-		// Coalesce buffers into chunks, respecting both file-rotation size and the
-		// per-write batch cap. Rotation is checked per-entry to preserve the
-		// invariant that we don't exceed maxFileSizeBytes once a file has data.
 		let chunk: VSBuffer[] = [];
 		let chunkSize = 0;
 		const flushChunk = async () => {
@@ -169,8 +139,6 @@ export class AhpJsonlLogger extends Disposable {
 				await flushChunk();
 				await this._rotate();
 			} else if (chunkSize > 0 && chunkSize + buffer.byteLength > MAX_BATCH_BYTES) {
-				// Same file but the batch is getting too large; flush early to
-				// avoid creating an oversized concatenated VSBuffer.
 				await flushChunk();
 			}
 			chunk.push(buffer);
@@ -216,12 +184,6 @@ export function stringifyAhpLogEntry(value: unknown): string {
 	return JSON.stringify(value, _ahpReplacer);
 }
 
-/**
- * Like {@link stringifyAhpLogEntry} but additionally elides any string value
- * longer than {@param maxStringLength}, replacing the overflow with a short
- * marker. The result is still well-formed JSON, so the log remains valid JSONL.
- * Only used for the rare oversized entry, so the extra per-value work is fine.
- */
 function stringifyAhpLogEntryTruncated(value: unknown, maxStringLength: number): string {
 	return JSON.stringify(value, function (this: unknown, key: string, val: unknown): unknown {
 		const revived = _ahpReplacer.call(this, key, val);
@@ -232,14 +194,6 @@ function stringifyAhpLogEntryTruncated(value: unknown, maxStringLength: number):
 	});
 }
 
-/**
- * JSON.stringify replacer that converts URI values to their canonical string
- * form. `URI.prototype.toJSON()` runs before this replacer is invoked and
- * produces a {@link UriComponents}-shaped object stamped with
- * `$mid: MarshalledId.Uri`, which we detect here to round-trip back through
- * {@link URI.revive}. This avoids the expensive deep-clone tree walk that
- * would otherwise be required to find every URI in a message payload.
- */
 function _ahpReplacer(this: unknown, _key: string, value: unknown): unknown {
 	if (
 		value

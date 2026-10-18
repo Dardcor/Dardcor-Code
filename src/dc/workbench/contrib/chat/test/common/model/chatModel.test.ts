@@ -67,8 +67,8 @@ suite('ChatModel', () => {
 		));
 
 		assert.strictEqual(model.isImported, true);
-		assert.ok(model.sessionId); // Should have generated ID
-		assert.ok(model.timestamp > 0); // Should have generated timestamp
+		assert.ok(model.sessionId);
+		assert.ok(model.timestamp > 0);
 	});
 
 	test('initialization with full serializable data (not imported)', async () => {
@@ -130,7 +130,6 @@ suite('ChatModel', () => {
 
 	test('initialization with invalid data', async () => {
 		const invalidData = {
-			// Missing required fields
 			requests: 'not-an-array'
 		} as unknown as IExportableChatData;
 
@@ -140,9 +139,8 @@ suite('ChatModel', () => {
 			{ initialLocation: ChatAgentLocation.Chat, canUseTools: true }
 		));
 
-		// Should handle gracefully with empty state
 		assert.strictEqual(model.getRequests().length, 0);
-		assert.ok(model.sessionId); // Should have generated ID
+		assert.ok(model.sessionId);
 	});
 
 	test('initialization without data', async () => {
@@ -244,9 +242,6 @@ suite('ChatModel', () => {
 		const text = 'hello';
 		const request = model.addRequest({ text, parts: [new ChatRequestTextPart(new OffsetRange(0, text.length), new Range(1, text.length, 1, text.length), text)] }, { variables: [] }, 0);
 
-		// The agent host reports one model call several times as its context attribution
-		// and session cost resolve asynchronously. Those refinements must update the
-		// stored usage without adding the call's completion tokens again.
 		model.acceptResponseProgress(request, { kind: 'usage', promptTokens: 10, completionTokens: 2, copilotCredits: 1, sessionCopilotCredits: 1 });
 		model.acceptResponseProgress(request, { kind: 'usage', promptTokens: 10, completionTokens: 2, copilotCredits: 1, sessionCopilotCredits: 5 });
 
@@ -289,11 +284,8 @@ suite('ChatModel', () => {
 		const model = testDisposables.add(instantiationService.createInstance(ChatModel, undefined, { initialLocation: ChatAgentLocation.Chat, canUseTools: true }));
 		const addRequest = (text: string) => model.addRequest({ text, parts: [new ChatRequestTextPart(new OffsetRange(0, text.length), new Range(1, text.length, 1, text.length), text)] }, { variables: [] }, 0);
 
-		// A turn from a backend that reports no session total (e.g. Claude) still counts.
 		const first = addRequest('one');
 		model.acceptResponseProgress(first, { kind: 'usage', promptTokens: 10, completionTokens: 2, copilotCredits: 2 });
-		// The reported session total exceeds the summed turns because it also covers work
-		// billed outside any turn, such as a compaction that ran between them.
 		const second = addRequest('two');
 		model.acceptResponseProgress(second, { kind: 'usage', promptTokens: 10, completionTokens: 2, copilotCredits: 3, sessionCopilotCredits: 9 });
 
@@ -305,8 +297,6 @@ suite('ChatModel', () => {
 		));
 		assert.strictEqual(restored.sessionCost, 9);
 
-		// A later turn whose cost has not yet reached the reported total must not shrink
-		// the session cost, and the summed turns take over once they exceed it.
 		const third = addRequest('three');
 		model.acceptResponseProgress(third, { kind: 'usage', promptTokens: 10, completionTokens: 2, copilotCredits: 6 });
 		assert.strictEqual(model.sessionCost, 11);
@@ -442,7 +432,7 @@ suite('ChatModel', () => {
 						isUsed: false,
 					},
 				],
-				modelState: { value: 2 /* ResponseModelState.Cancelled */, completedAt: Date.now() },
+				modelState: { value: 2 , completedAt: Date.now() },
 			}],
 			responderUsername: 'bot',
 		};
@@ -457,12 +447,10 @@ suite('ChatModel', () => {
 		assert.strictEqual(requests.length, 1);
 		const response = requests[0].response!;
 
-		// The question carousel should be marked as used after deserialization
 		const carouselPart = response.response.value.find(p => p.kind === 'questionCarousel');
 		assert.ok(carouselPart);
 		assert.strictEqual(carouselPart.isUsed, true);
 
-		// The response should be complete (not stuck in NeedsInput)
 		assert.strictEqual(response.isComplete, true);
 	});
 
@@ -524,19 +512,12 @@ suite('ChatModel', () => {
 		const serialized = model.inputModel.toJSON();
 		assert.ok(serialized);
 
-		// Should filter out string attachments and implicit attachments with StringChatContextValue
-		// Should keep file attachments and implicit attachments with URI values
 		assert.deepStrictEqual(serialized.attachments, [fileAttachment, implicitWithUri]);
 	});
 
 	test('inputModel.setState preserves contrib keys owned by other writers', async function () {
 		const model = testDisposables.add(instantiationService.createInstance(ChatModel, undefined, { initialLocation: ChatAgentLocation.Chat, canUseTools: true }));
 
-		// The chat service records "migration hint already shown" in `contrib`,
-		// then the input widget publishes its own contrib keys on the next sync
-		// (typing, sending, model change). That rebuild must not drop the
-		// service's key, or `chat.customizations.migrationHint: "once"` degrades
-		// into "always".
 		model.inputModel.setState({ contrib: { customizationMigrationHintShown: true } });
 		model.inputModel.setState({ inputText: 'typing', contrib: { widgetOwnedKey: 'from-widget' } });
 
@@ -571,7 +552,7 @@ suite('ChatModel', () => {
 				message: { text: 'plan something', parts: [] },
 				variableData: { variables: [] },
 				response: [{ value: 'Here is my plan', isTrusted: false }],
-				modelState: { value: 1 /* ResponseModelState.Complete */, completedAt: Date.now() },
+				modelState: { value: 1 , completedAt: Date.now() },
 				modeInfo,
 			}],
 		};
@@ -586,7 +567,6 @@ suite('ChatModel', () => {
 		assert.strictEqual(requests.length, 1);
 		assert.deepStrictEqual(requests[0].modeInfo, modeInfo);
 
-		// Verify roundtrip through toExport
 		const exported = model.toExport();
 		assert.strictEqual(exported.requests.length, 1);
 		assert.deepStrictEqual(exported.requests[0].modeInfo, modeInfo);
@@ -595,8 +575,6 @@ suite('ChatModel', () => {
 	test('restores legacy top-level modelConfiguration into selectedModel (backwards compat)', async () => {
 		const legacyConfig = { thinkingEffort: 'high', contextSize: 2000 };
 
-		// Old format: modelConfiguration was persisted as a sibling of selectedModel
-		// rather than nested inside it.
 		const legacyInputState = {
 			attachments: [],
 			contrib: {},
@@ -624,10 +602,8 @@ suite('ChatModel', () => {
 			{ initialLocation: ChatAgentLocation.Chat, canUseTools: true }
 		));
 
-		// Legacy config is recovered into the in-memory input state...
 		assert.deepStrictEqual(model.inputModel.state.get()?.modelConfiguration, legacyConfig);
 
-		// ...and re-serializes into the new nested shape with no top-level field.
 		const serialized = model.inputModel.toJSON();
 		assert.deepStrictEqual(serialized?.selectedModel?.modelConfiguration, legacyConfig);
 		assert.strictEqual((serialized as { modelConfiguration?: unknown }).modelConfiguration, undefined);
@@ -684,8 +660,6 @@ suite('Response', () => {
 		response.updateContent({ kind: 'autoModeResolution' });
 		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('Working on it.') });
 		response.updateContent({ kind: 'autoModeResolution', resolved: { id: 'gpt-5.4-mini', name: 'GPT-5.4 mini' } });
-		// Later routes each start their own row, including a switch back to a
-		// model used earlier in the turn.
 		response.updateContent({ kind: 'autoModeResolution', resolved: { id: 'gpt-5.5', name: 'GPT-5.5' } });
 		response.updateContent({ kind: 'autoModeResolution', resolved: { id: 'gpt-5.4-mini', name: 'GPT-5.4 mini' } });
 
@@ -892,8 +866,6 @@ suite('Response', () => {
 	});
 
 	test('inline file reference copies as code with its line suffix', () => {
-		// Matches what the inline anchor widget renders, and keeps names containing `*` or `_`
-		// intact when the copied markdown is rendered somewhere else.
 		const uri = URI.parse('file:///workspace/foo.ts');
 		const response = store.add(new Response([]));
 		response.updateContent({ kind: 'inlineReference', inlineReference: { uri, range: new Range(42, 1, 42, 8) } });
@@ -912,7 +884,6 @@ suite('Response', () => {
 		response.updateContent({ kind: 'textEditGroup', uri: URI.parse('file:///file2.ts'), edits: [], state: undefined, done: true });
 		response.updateContent({ content: new MarkdownString('Some content after edits'), kind: 'markdownContent' });
 
-		// Should have single "Made changes." at the end instead of multiple entries
 		const responseString = response.toString();
 		const madeChangesCount = (responseString.match(/Made changes\./g) || []).length;
 		assert.strictEqual(madeChangesCount, 1, 'Should have exactly one "Made changes." message');
@@ -926,7 +897,6 @@ suite('Response', () => {
 		response.updateContent({ content: new MarkdownString('Some content'), kind: 'markdownContent' });
 		response.updateContent({ content: new MarkdownString('More content'), kind: 'markdownContent' });
 
-		// Should not have "Made changes." when there are no edit groups
 		const responseString = response.toString();
 		assert.ok(!responseString.includes('Made changes.'), 'Should not include "Made changes." when no edits present');
 		assert.strictEqual(responseString, 'Some contentMore content');
@@ -940,7 +910,6 @@ suite('Response', () => {
 		response.updateContent({ content: new MarkdownString('Content after clear'), kind: 'markdownContent' });
 		response.updateContent({ kind: 'textEditGroup', uri: URI.parse('file:///file2.ts'), edits: [], state: undefined, done: true });
 
-		// Should only show "Made changes." for edits after the clear operation
 		const responseString = response.toString();
 		const madeChangesCount = (responseString.match(/Made changes\./g) || []).length;
 		assert.strictEqual(madeChangesCount, 1, 'Should have exactly one "Made changes." message after clear');
@@ -1025,7 +994,7 @@ suite('Response', () => {
 		response.updateContent({
 			kind: 'notebookEdit',
 			uri: notebookUri,
-			edits: [{ editType: 1 /* CellEditType.Replace */, index: 0, count: 0, cells: [] }],
+			edits: [{ editType: 1 , index: 0, count: 0, cells: [] }],
 			done: false,
 			isExternalEdit: true
 		});
@@ -1033,7 +1002,7 @@ suite('Response', () => {
 		response.updateContent({
 			kind: 'notebookEdit',
 			uri: notebookUri,
-			edits: [{ editType: 1 /* CellEditType.Replace */, index: 1, count: 0, cells: [] }],
+			edits: [{ editType: 1 , index: 1, count: 0, cells: [] }],
 			done: true
 		});
 
@@ -1051,14 +1020,14 @@ suite('Response', () => {
 		response.updateContent({
 			kind: 'notebookEdit',
 			uri: notebookUri,
-			edits: [{ editType: 1 /* CellEditType.Replace */, index: 0, count: 0, cells: [] }],
+			edits: [{ editType: 1 , index: 0, count: 0, cells: [] }],
 			done: true
 		});
 
 		response.updateContent({
 			kind: 'notebookEdit',
 			uri: notebookUri,
-			edits: [{ editType: 1 /* CellEditType.Replace */, index: 1, count: 0, cells: [] }],
+			edits: [{ editType: 1 , index: 1, count: 0, cells: [] }],
 			done: true
 		});
 
@@ -1072,14 +1041,14 @@ suite('Response', () => {
 		response.updateContent({
 			kind: 'notebookEdit',
 			uri: URI.parse('file:///notebook1.ipynb'),
-			edits: [{ editType: 1 /* CellEditType.Replace */, index: 0, count: 0, cells: [] }],
+			edits: [{ editType: 1 , index: 0, count: 0, cells: [] }],
 			done: false
 		});
 
 		response.updateContent({
 			kind: 'notebookEdit',
 			uri: URI.parse('file:///notebook2.ipynb'),
-			edits: [{ editType: 1 /* CellEditType.Replace */, index: 0, count: 0, cells: [] }],
+			edits: [{ editType: 1 , index: 0, count: 0, cells: [] }],
 			done: true
 		});
 
@@ -1381,7 +1350,6 @@ suite('normalizeSerializableChatData', () => {
 
 	test('old bad data', () => {
 		const v1Data: ISerializableChatData1 = {
-			// Testing the scenario where these are missing
 			sessionId: undefined!,
 			creationDate: undefined!,
 
@@ -1398,7 +1366,6 @@ suite('normalizeSerializableChatData', () => {
 
 	test('v3 with bug', () => {
 		const v3Data: ISerializableChatData3 = {
-			// Test case where old data was wrongly normalized and these fields were missing
 			creationDate: undefined!,
 
 			version: 3,
@@ -1600,12 +1567,10 @@ suite('ChatResponseModel', () => {
 			assert.strictEqual(response.timestamp, start);
 			assert.strictEqual(response.confirmationAdjustedTimestamp.get(), start);
 
-			// Advance time, no pending confirmation
 			clock.tick(1000);
 			assert.strictEqual(response.confirmationAdjustedTimestamp.get(), start);
 
-			// Add pending confirmation via tool invocation
-			const toolState = observableValue<any>('state', { type: 1 /* IChatToolInvocation.StateKind.WaitingForConfirmation */, confirmationMessages: { title: 'Please confirm' } });
+			const toolState = observableValue<any>('state', { type: 1 , confirmationMessages: { title: 'Please confirm' } });
 			const toolInvocation = {
 				kind: 'toolInvocation',
 				invocationMessage: 'calling tool',
@@ -1614,20 +1579,13 @@ suite('ChatResponseModel', () => {
 
 			model.acceptResponseProgress(request, toolInvocation);
 
-			// Advance time while pending
 			clock.tick(2000);
-			// Timestamp should still be start (it includes the wait time while waiting)
 			assert.strictEqual(response.confirmationAdjustedTimestamp.get(), start);
 
-			// Resolve confirmation
-			toolState.set({ type: 4 /* IChatToolInvocation.StateKind.Completed */ }, undefined);
+			toolState.set({ type: 4 }, undefined);
 
-			// Now adjusted timestamp should reflect the wait time
-			// The wait time was 2000ms.
-			// confirmationAdjustedTimestamp = start + waitTime = start + 2000
 			assert.strictEqual(response.confirmationAdjustedTimestamp.get(), start + 2000);
 
-			// Advance time again
 			clock.tick(1000);
 			assert.strictEqual(response.confirmationAdjustedTimestamp.get(), start + 2000);
 
@@ -1645,12 +1603,10 @@ suite('ChatResponseModel', () => {
 			const request = model.addRequest({ text, parts: [new ChatRequestTextPart(new OffsetRange(0, text.length), new Range(1, text.length, 1, text.length), text)] }, { variables: [] }, 0);
 			const response = request.response!;
 
-			// Initially incomplete and in progress
 			assert.strictEqual(response.isIncomplete.get(), true);
 			assert.strictEqual(response.isInProgress.get(), true);
 
-			// Add a pending tool confirmation
-			const toolState = observableValue<any>('state', { type: 1 /* IChatToolInvocation.StateKind.WaitingForConfirmation */, confirmationMessages: { title: 'Please confirm' } });
+			const toolState = observableValue<any>('state', { type: 1 , confirmationMessages: { title: 'Please confirm' } });
 			const toolInvocation = {
 				kind: 'toolInvocation',
 				invocationMessage: 'calling tool',
@@ -1658,16 +1614,13 @@ suite('ChatResponseModel', () => {
 			} as Partial<IChatToolInvocation> as IChatToolInvocation;
 			model.acceptResponseProgress(request, toolInvocation);
 
-			// isInProgress should be false (it factors out pending confirmations), but isIncomplete should remain true
 			assert.strictEqual(response.isInProgress.get(), false);
 			assert.strictEqual(response.isIncomplete.get(), true);
 
-			// Resolve tool confirmation
-			toolState.set({ type: 4 /* IChatToolInvocation.StateKind.Completed */ }, undefined);
+			toolState.set({ type: 4 }, undefined);
 			assert.strictEqual(response.isInProgress.get(), true);
 			assert.strictEqual(response.isIncomplete.get(), true);
 
-			// Complete the response
 			response.complete();
 			assert.strictEqual(response.isInProgress.get(), false);
 			assert.strictEqual(response.isIncomplete.get(), false);
@@ -1786,10 +1739,6 @@ suite('ChatResponseModel', () => {
 		const request = model.addRequest({ text, parts: [new ChatRequestTextPart(new OffsetRange(0, text.length), new Range(1, text.length, 1, text.length), text)] }, { variables: [] }, 0);
 		const response = request.response!;
 
-		// Simulate a tool invocation that is still streaming partial input from
-		// the LM (e.g. an edit tool whose args are still being produced) when
-		// the user presses Stop. This is the exact scenario reported in #288701
-		// where the "Editing files" spinner remained after cancellation.
 		const toolInvocation = ChatToolInvocation.createStreaming({
 			toolCallId: 'tool-call-1',
 			toolId: 'replace_string_in_file',
@@ -1802,15 +1751,11 @@ suite('ChatResponseModel', () => {
 		});
 		model.acceptResponseProgress(request, toolInvocation);
 
-		// Pre-conditions: the tool is in Streaming state (UI still shows spinner).
 		assert.strictEqual(toolInvocation.state.get().type, IChatToolInvocation.StateKind.Streaming);
 		assert.strictEqual(IChatToolInvocation.isComplete(toolInvocation), false);
 
-		// User presses Stop.
 		model.cancelRequest(request);
 
-		// The tool invocation must be transitioned out of Streaming so that the
-		// thinking content part sees it as complete and drops the spinner/label.
 		assert.strictEqual(toolInvocation.state.get().type, IChatToolInvocation.StateKind.Cancelled);
 		assert.strictEqual(IChatToolInvocation.isComplete(toolInvocation), true);
 		assert.strictEqual(response.state, ResponseModelState.Cancelled);
@@ -2037,10 +1982,9 @@ suite('ChatModel - Pending Requests', () => {
 		model.addPendingRequest(r2, ChatRequestQueueKind.Queued, {});
 		model.addPendingRequest(r3, ChatRequestQueueKind.Steering, {});
 
-		// Reverse the order
 		model.setPendingRequests([
 			{ requestId: r2.id, kind: ChatRequestQueueKind.Queued },
-			{ requestId: r1.id, kind: ChatRequestQueueKind.Steering }, // Change kind
+			{ requestId: r1.id, kind: ChatRequestQueueKind.Steering },
 		]);
 
 		const pending = model.getPendingRequests();
@@ -2108,8 +2052,6 @@ suite('serializeSendOptions', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('preserves request-scoped options through persist/restore', () => {
-		// A pending/queued request is serialized and later restored (e.g. window
-		// reload). The editor-scoped model configuration must round-trip, otherwise
 		// the restored request falls back to the profile-global value.
 		const serialized = serializeSendOptions({
 			userSelectedModelId: 'copilot/gpt',
@@ -2153,8 +2095,6 @@ suite('ChatResponseResource', () => {
 	});
 
 	test('parseUri rejects paths with fewer than 4 segments', () => {
-		// path "/tool/callId/0" splits into ['', 'tool', 'callId', '0'] = 4 parts => valid
-		// path "/tool/callId" splits into ['', 'tool', 'callId'] = 3 parts => invalid
 		const base = URI.from({ scheme: ChatResponseResource.scheme, authority: 'abc', path: '/tool/callId' });
 		assert.strictEqual(ChatResponseResource.parseUri(base), undefined);
 

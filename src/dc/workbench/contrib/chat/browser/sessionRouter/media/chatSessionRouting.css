@@ -35,7 +35,6 @@
 	flex-shrink: 0;
 	cursor: pointer;
 	color: var(--vscode-textLink-foreground);
-	/* Frameless-window drag regions swallow clicks; keep actions interactive. */
 	-webkit-app-region: no-drag;
 }
 

@@ -102,7 +102,7 @@ suite('UntitledFileWorkingCopyManager', () => {
 		assert.strictEqual(workingCopy1.isModified(), true);
 		assert.strictEqual(dirtyCounter, 1);
 
-		workingCopy1.model?.updateContents(''); // change to empty clears dirty/modified flags
+		workingCopy1.model?.updateContents('');
 		assert.strictEqual(workingCopy1.isDirty(), false);
 		assert.strictEqual(workingCopy1.isModified(), false);
 		assert.strictEqual(dirtyCounter, 2);
@@ -292,14 +292,14 @@ suite('UntitledFileWorkingCopyManager', () => {
 		workingCopy.model?.updateContents('Simple Save with associated resource');
 
 		let result = await workingCopy.save();
-		assert.ok(!result); // not confirmed
+		assert.ok(!result);
 
 		assert.strictEqual(manager.untitled.get(workingCopy.resource), workingCopy);
 
 		accessor.dialogService.setConfirmResult({ confirmed: true });
 
 		result = await workingCopy.save();
-		assert.ok(result); // confirmed
+		assert.ok(result);
 
 		assert.strictEqual(manager.untitled.get(workingCopy.resource), undefined);
 

@@ -14,7 +14,6 @@ export interface IViewsService {
 
 	readonly _serviceBrand: undefined;
 
-	// View Container APIs
 	readonly onDidChangeViewContainerVisibility: Event<{ id: string; visible: boolean; location: ViewContainerLocation }>;
 	isViewContainerVisible(id: string): boolean;
 	isViewContainerActive(id: string): boolean;
@@ -25,7 +24,6 @@ export interface IViewsService {
 	getFocusedView(): IViewDescriptor | null;
 	getFocusedViewName(): string;
 
-	// View APIs
 	readonly onDidChangeViewVisibility: Event<{ id: string; visible: boolean }>;
 	readonly onDidChangeFocusedView: Event<void>;
 	isViewVisible(id: string): boolean;

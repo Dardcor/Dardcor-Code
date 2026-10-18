@@ -55,9 +55,6 @@ export function stringValue(value: string): CssFragment {
 	return asFragment(`'${value.replaceAll(/'/g, '\\000027')}'`);
 }
 
-/**
- * returns url('...')
- */
 export function asCSSUrl(uri: URI | null | undefined): CssFragment {
 	if (!uri) {
 		return asFragment(`url('')`);
@@ -75,11 +72,6 @@ export function className(value: string, escapingExpected = false): CssFragment 
 
 type InlineCssTemplateValue = CssFragment | Color;
 
-/**
- * Template string tag that that constructs a CSS fragment.
- *
- * All expressions in the template must be css safe values.
- */
 export function inline(strings: TemplateStringsArray, ...values: InlineCssTemplateValue[]): CssFragment {
 	return asFragment(strings.reduce((result, str, i) => {
 		const value = values[i] || '';

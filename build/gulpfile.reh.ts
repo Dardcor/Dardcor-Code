@@ -23,7 +23,7 @@ import glob from 'glob';
 import { promisify } from 'util';
 import rceditCallback from 'rcedit';
 import { compileBuildWithManglingTask } from './gulpfile.compile.ts';
-import { cleanExtensionsBuildTask, compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileExtensionMediaBuildTask, compileCopilotExtensionBuildTask } from './gulpfile.extensions.ts';
+import { cleanExtensionsBuildTask, compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileExtensionMediaBuildTask } from './gulpfile.extensions.ts';
 import { vscodeWebResourceIncludes, createVSCodeWebFileContentMapper } from './gulpfile.dardcor.web.ts';
 import * as cp from 'child_process';
 import crypto from 'crypto';
@@ -31,7 +31,7 @@ import log from 'fancy-log';
 import buildfile from './buildfile.ts';
 import { fetchUrls } from './lib/fetch.ts';
 import { downloadFeedPackage } from './lib/azureFeed.ts';
-import { ensureCopilotPlatformPackage, getCopilotExcludeFilter, getCopilotRuntimePrebuildFiles, getCopilotTgrepExcludeFilter, getMxcExcludeFilter, getRipgrepExcludeFilter, prepareBuiltInCopilotRipgrepShim } from './lib/copilot.ts';
+import { getMxcExcludeFilter, getRipgrepExcludeFilter } from './lib/nativePackageFilters.ts';
 import { readAgentSdkResults } from './agent-sdk/common.ts';
 
 
@@ -42,7 +42,6 @@ const commit = getVersion(REPO_ROOT);
 const BUILD_ROOT = path.dirname(REPO_ROOT);
 const REMOTE_FOLDER = path.join(REPO_ROOT, 'remote');
 
-// Targets
 
 const BUILD_TARGETS = [
 	{ platform: 'win32', arch: 'x64' },
@@ -52,25 +51,19 @@ const BUILD_TARGETS = [
 	{ platform: 'linux', arch: 'x64' },
 	{ platform: 'linux', arch: 'arm64' },
 	{ platform: 'alpine', arch: 'arm64' },
-	// legacy: we use to ship only one alpine so it was put in the arch, but now we ship
-	// multiple alpine images and moved to a better model (alpine as the platform)
 	{ platform: 'linux', arch: 'alpine' },
 ];
 
 const serverResourceIncludes = [
 
-	// NLS
 	'out-build/nls.messages.json',
 	'out-build/nls.keys.json',
 
-	// Process monitor
 	'out-build/dc/base/node/cpuUsage.sh',
 	'out-build/dc/base/node/ps.sh',
 
-	// External Terminal
 	'out-build/dc/workbench/contrib/externalTerminal/**/*.scpt',
 
-	// Terminal shell integration
 	'out-build/dc/workbench/contrib/terminal/common/scripts/shellIntegration.ps1',
 	'out-build/dc/workbench/contrib/terminal/common/scripts/CodeTabExpansion.psm1',
 	'out-build/dc/workbench/contrib/terminal/common/scripts/GitTabExpansion.psm1',
@@ -127,10 +120,8 @@ const webEntryPoints = [
 
 const serverWithWebEntryPoints = [
 
-	// Include all of server
 	...serverEntryPoints,
 
-	// Include all of web
 	...webEntryPoints,
 ].flat();
 
@@ -141,10 +132,7 @@ const bootstrapEntryPoints = [
 ];
 
 function getNodeVersion() {
-	const npmrc = fs.readFileSync(path.join(REPO_ROOT, 'remote', '.npmrc'), 'utf8');
-	const nodeVersion = /^(?:npm_config_)?target="(.*)"$/m.exec(npmrc)![1];
-	const internalNodeVersion = /^(?:npm_config_)?ms_build_id="(.*)"$/m.exec(npmrc)![1];
-	return { nodeVersion, internalNodeVersion };
+	return util.getRemoteNodeVersion();
 }
 
 function getNodeChecksum(expectedName: string): string | undefined {
@@ -166,9 +154,6 @@ function extractAlpinefromDocker(nodeVersion: string, platform: string, arch: st
 	return es.readArray([new File({ path: 'node', contents, stat: { mode: parseInt('755', 8) } as fs.Stats })]);
 }
 
-// WSL1 binfmt_elf rejects PT_LOAD segments with p_align > PAGE_SIZE (0x1000).
-// Node 24 linux-x64 ships an `lpstub` LOAD segment aligned to 2 MiB for hugepage
-// remapping; clamp it so the binary still loads under WSL1.
 function patchElfLoadAlign(): NodeJS.ReadWriteStream {
 	return es.mapSync<File, File>(file => {
 		if (!file.contents || !Buffer.isBuffer(file.contents)) {
@@ -181,7 +166,7 @@ function patchElfLoadAlign(): NodeJS.ReadWriteStream {
 		if (buf[0] !== 0x7f || buf[1] !== 0x45 || buf[2] !== 0x4c || buf[3] !== 0x46) {
 			return file;
 		}
-		if (buf[4] !== 2 /* ELFCLASS64 */ || buf[5] !== 1 /* ELFDATA2LSB */) {
+		if (buf[4] !== 2 || buf[5] !== 1 ) {
 			return file;
 		}
 		const e_phoff = Number(buf.readBigUInt64LE(0x20));
@@ -210,12 +195,6 @@ function patchElfLoadAlign(): NodeJS.ReadWriteStream {
 
 const { nodeVersion, internalNodeVersion } = getNodeVersion();
 
-// In product builds, the server (reh) Node.js binaries are fetched on demand
-// from our Azure Artifacts feed named by `product.nodejsArtifactFeed` using the
-// `az` CLI, instead of from nodejs.org (which is used by OSS builds when no feed
-// is configured). Each universal package contains exactly one file, named after
-// the asset minus its last extension, lowercased and sanitized (e.g.
-// `node-v24.15.0-linux-x64.tar`, `win-x64-node`).
 const nodejsArtifactFeed = product.nodejsArtifactFeed;
 
 function internalNodeFeedPackageName(assetName: string): string {
@@ -333,8 +312,6 @@ function nodejs(platform: string, arch: string): NodeJS.ReadWriteStream | undefi
 	}
 }
 
-// Fetches a server (reh) Node.js asset from the Azure Artifacts feed named by
-// `product.nodejsArtifactFeed`. Only called when that feed is configured.
 function fetchNodejs(assetName: string, checksumSha256: string | undefined): NodeJS.ReadWriteStream {
 	const version = `${nodeVersion}-${internalNodeVersion}`;
 	return fetchNodejsFromInternalFeed(nodejsArtifactFeed, assetName, version, checksumSha256);
@@ -361,7 +338,6 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 					if (manifest.contributes && Object.keys(manifest.contributes).some(key => workspaceExtensionPoints.indexOf(key) !== -1)) {
 						return false;
 					}
-					// Default is UI Extension
 					return true;
 				}
 			}
@@ -369,15 +345,13 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 		const localWorkspaceExtensions = glob.sync('extensions/*/package.json')
 			.filter((extensionPath) => {
 				if (type === 'reh-web') {
-					return true; // web: ship all extensions for now
+					return true;
 				}
 
-				// Skip shipping UI extensions because the client side will have them anyways
-				// and they'd just increase the download without being used
 				const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, extensionPath)).toString());
 				return !isUIExtension(manifest);
 			}).map((extensionPath) => path.basename(path.dirname(extensionPath)))
-			.filter(name => name !== 'vscode-api-tests' && name !== 'vscode-test-resolver'); // Do not ship the test extensions
+			.filter(name => name !== 'vscode-api-tests' && name !== 'vscode-test-resolver');
 		const builtInExtensions: Array<{ name: string; platforms?: string[]; clientOnly?: boolean }> = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'product.json'), 'utf8')).builtInExtensions;
 		const marketplaceExtensions = builtInExtensions
 			.filter(entry => !entry.platforms || new Set(entry.platforms).has(platform))
@@ -414,10 +388,6 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 				json.commit = commit;
 				json.date = readISODate(sourceFolderName);
 				json.version = version;
-				// Stamp agentSdks from the per-platform results file produced
-				// by `build/agent-sdk/produce.ts`. REH-only: REH-web is
-				// browser-served and the agent host is node-only, so the
-				// SDK config has no consumer there.
 				if (type === 'reh') {
 					const agentSdks = readAgentSdkResults();
 					if (Object.keys(agentSdks).length > 0) {
@@ -438,15 +408,10 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 		const productionDependencies = getProductionDependencies(REMOTE_FOLDER);
 		const dependenciesSrc = productionDependencies.map(d => path.relative(REPO_ROOT, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`, `!${d}/.bin/**`]).flat();
 		const cleanedDeps = gulp.src(dependenciesSrc, { base: 'remote', dot: true })
-			// filter out unnecessary files, no source maps in server build
 			.pipe(filter(['**', '!**/package-lock.json', '!**/*.{js,css}.map']))
 			.pipe(util.cleanNodeModules(path.join(import.meta.dirname, '.moduleignore')))
 			.pipe(util.cleanNodeModules(path.join(import.meta.dirname, `.moduleignore.${process.platform}`)));
-		ensureCopilotPlatformPackage(platform, arch, 'remote/node_modules');
-		const copilotRuntimePrebuilds = gulp.src(getCopilotRuntimePrebuildFiles(platform, arch, 'remote/node_modules'), { base: 'remote', dot: true, allowEmpty: true });
-		const deps = es.merge(cleanedDeps, copilotRuntimePrebuilds)
-			.pipe(filter(getCopilotExcludeFilter(platform, arch)))
-			.pipe(filter(getCopilotTgrepExcludeFilter(platform, arch)))
+		const deps = cleanedDeps
 			.pipe(filter(getRipgrepExcludeFilter(platform, arch)))
 			.pipe(filter(getMxcExcludeFilter(arch)))
 			.pipe(jsFilter)
@@ -553,9 +518,6 @@ function hasAuthenticodeSignature(filePath: string): Promise<boolean> {
 }
 
 async function stripAuthenticodeSignature(filePath: string): Promise<void> {
-	// ESRP's `signtool /as` (append) fails with 0x800700C1 on PEs whose existing
-	// Authenticode signature was invalidated by rcedit. Strip cleanly first so
-	// rcedit operates on an unsigned PE.
 	if (!await hasAuthenticodeSignature(filePath)) {
 		return;
 	}
@@ -584,8 +546,6 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 			promisify(glob)('**/*.node', { cwd }),
 			promisify(glob)('**/rg.exe', { cwd }),
 			promisify(glob)('**/tgrep.exe', { cwd }),
-			promisify(glob)('**/node_modules/@github/copilot-win32-*/builtin-plugins/computer-use/*/win32-*/computer-use-mcp.exe', { cwd }),
-			promisify(glob)('**/node_modules/@github/copilot-win32-*/builtin-plugins/computer-use/*/win32-*/CopilotComputerUse.exe', { cwd }),
 		])).flatMap(o => o);
 		const packageJsonContents = JSON.parse(await fs.promises.readFile(path.join(cwd, 'package.json'), 'utf8'));
 		const productContents = JSON.parse(await fs.promises.readFile(path.join(cwd, 'product.json'), 'utf8'));
@@ -615,19 +575,6 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 	};
 }
 
-function prepareCopilotRipgrepShimTaskREH(platform: string, arch: string, destinationFolderName: string) {
-	return async () => {
-		const outputDir = path.join(BUILD_ROOT, destinationFolderName);
-		const nodeModulesDir = path.join(outputDir, 'node_modules');
-
-		const builtInCopilotExtensionDir = path.join(outputDir, 'extensions', 'copilot');
-		prepareBuiltInCopilotRipgrepShim(platform, arch, builtInCopilotExtensionDir, nodeModulesDir);
-	};
-}
-
-/**
- * @param product The parsed product.json file contents
- */
 function tweakProductForServerWeb(product: typeof import('../product.json')) {
 	const result: typeof product & { webEndpointUrlTemplate?: string } = { ...product };
 	delete result.webEndpointUrlTemplate;
@@ -674,7 +621,6 @@ function tweakProductForServerWeb(product: typeof import('../product.json')) {
 				task.task(`node-${platform}-${arch}`) as task.Task,
 				util.rimraf(path.join(BUILD_ROOT, destinationFolderName)),
 				packageTask(type, platform, arch, sourceFolderName, destinationFolderName),
-				prepareCopilotRipgrepShimTaskREH(platform, arch, destinationFolderName)
 			];
 
 			if (platform === 'win32') {
@@ -688,7 +634,6 @@ function tweakProductForServerWeb(product: typeof import('../product.json')) {
 				compileBuildWithManglingTask,
 				cleanExtensionsBuildTask,
 				compileNonNativeExtensionsBuildTask,
-				compileCopilotExtensionBuildTask,
 				compileExtensionMediaBuildTask,
 				minified ? minifyTask : bundleTask,
 				serverTaskCI

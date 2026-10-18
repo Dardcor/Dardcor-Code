@@ -84,7 +84,7 @@ export async function refreshAndUpdateCredentials(connection, force = false, pro
     updateData.expiresAt = refreshResult.expiresAt;
   }
 
-  // Handle provider-specific data (copilotToken for GitHub, etc.)
+  // Handle provider-specific data.
   const providerSpecificUpdates = {
     ...(refreshResult.providerSpecificData || {}),
   };

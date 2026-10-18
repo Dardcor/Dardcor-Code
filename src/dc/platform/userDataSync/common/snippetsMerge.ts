@@ -34,7 +34,6 @@ export function merge(local: IStringDictionary<string>, remote: IStringDictionar
 
 	const localToRemote = compare(local, remote);
 	if (localToRemote.added.size === 0 && localToRemote.removed.size === 0 && localToRemote.updated.size === 0) {
-		// No changes found between local and remote.
 		return {
 			local: { added: localAdded, updated: localUpdated, removed: [...localRemoved.values()] },
 			remote: { added: {}, updated: {}, removed: [] },
@@ -51,42 +50,32 @@ export function merge(local: IStringDictionary<string>, remote: IStringDictionar
 
 	const conflicts: Set<string> = new Set<string>();
 
-	// Removed snippets in Local
 	for (const key of baseToLocal.removed.values()) {
-		// Conflict - Got updated in remote.
 		if (baseToRemote.updated.has(key)) {
-			// Add to local
 			localAdded[key] = remote[key];
 		}
-		// Remove it in remote
 		else {
 			remoteRemoved.add(key);
 		}
 	}
 
-	// Removed snippets in Remote
 	for (const key of baseToRemote.removed.values()) {
 		if (conflicts.has(key)) {
 			continue;
 		}
-		// Conflict - Got updated in local
 		if (baseToLocal.updated.has(key)) {
 			conflicts.add(key);
 		}
-		// Also remove in Local
 		else {
 			localRemoved.add(key);
 		}
 	}
 
-	// Updated snippets in Local
 	for (const key of baseToLocal.updated.values()) {
 		if (conflicts.has(key)) {
 			continue;
 		}
-		// Got updated in remote
 		if (baseToRemote.updated.has(key)) {
-			// Has different value
 			if (localToRemote.updated.has(key)) {
 				conflicts.add(key);
 			}
@@ -95,14 +84,11 @@ export function merge(local: IStringDictionary<string>, remote: IStringDictionar
 		}
 	}
 
-	// Updated snippets in Remote
 	for (const key of baseToRemote.updated.values()) {
 		if (conflicts.has(key)) {
 			continue;
 		}
-		// Got updated in local
 		if (baseToLocal.updated.has(key)) {
-			// Has different value
 			if (localToRemote.updated.has(key)) {
 				conflicts.add(key);
 			}
@@ -111,14 +97,11 @@ export function merge(local: IStringDictionary<string>, remote: IStringDictionar
 		}
 	}
 
-	// Added snippets in Local
 	for (const key of baseToLocal.added.values()) {
 		if (conflicts.has(key)) {
 			continue;
 		}
-		// Got added in remote
 		if (baseToRemote.added.has(key)) {
-			// Has different value
 			if (localToRemote.updated.has(key)) {
 				conflicts.add(key);
 			}
@@ -127,14 +110,11 @@ export function merge(local: IStringDictionary<string>, remote: IStringDictionar
 		}
 	}
 
-	// Added snippets in remote
 	for (const key of baseToRemote.added.values()) {
 		if (conflicts.has(key)) {
 			continue;
 		}
-		// Got added in local
 		if (baseToLocal.added.has(key)) {
-			// Has different value
 			if (localToRemote.updated.has(key)) {
 				conflicts.add(key);
 			}

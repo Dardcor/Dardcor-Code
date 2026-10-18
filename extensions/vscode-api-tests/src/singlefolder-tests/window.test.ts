@@ -33,10 +33,6 @@ suite('vscode API - window', () => {
 		});
 	});
 
-	// test('editor, UN-active text editor', () => {
-	// 	assert.strictEqual(window.visibleTextEditors.length, 0);
-	// 	assert.ok(window.activeTextEditor === undefined);
-	// });
 
 	test('editor, assign and check view columns', async () => {
 		const doc = await workspace.openTextDocument(join(workspace.rootPath || '', './far.js'));
@@ -92,7 +88,6 @@ suite('vscode API - window', () => {
 				registration2.dispose();
 				resolve(event);
 			});
-			// close editor 1, wait a little for the event to bubble
 			commands.executeCommand('workbench.action.closeEditorsInOtherGroups');
 		});
 		assert.ok(actualEvent);
@@ -131,7 +126,6 @@ suite('vscode API - window', () => {
 				}
 			});
 
-			// move active editor group left
 			return commands.executeCommand('workbench.action.moveActiveEditorGroupLeft');
 
 		});
@@ -147,7 +141,6 @@ suite('vscode API - window', () => {
 	test('active editor not always correct... #49125', async function () {
 
 		if (!window.state.focused) {
-			// no focus!
 			this.skip();
 			return;
 		}
@@ -202,13 +195,6 @@ suite('vscode API - window', () => {
 			}
 		}));
 
-		// verify the result array matches our expectations: depending
-		// on execution time there are 2 possible results for the first
-		// two entries. For the last entry there is only the `fileC` URI
-		// as expected result because it is the last editor opened.
-		// - either `undefined` indicating that the opening of the editor
-		//   was cancelled by the next editor opening
-		// - or the expected `URI` that was opened in case it suceeds
 
 		assert.strictEqual(result.length, 3);
 		if (result[0]) {
@@ -354,10 +340,6 @@ suite('vscode API - window', () => {
 			}
 		});
 
-		// Open 10 line file, show it in slot 1, set cursor to line 10
-		// Open 30 line file, show it in slot 1, set cursor to line 30
-		// Open 10 line file, show it in slot 1
-		// Open 30 line file, show it in slot 1
 		workspace.openTextDocument(file10Path).then((doc) => {
 			return window.showTextDocument(doc, ViewColumn.One);
 		}).then((editor10line) => {
@@ -381,33 +363,13 @@ suite('vscode API - window', () => {
 		}).then(passOncePlease, failOncePlease);
 	});
 
-	//#region Tabs API tests
-	// test('Tabs - move tab', async function () {
-	// 	const [docA, docB, docC] = await Promise.all([
-	// 		workspace.openTextDocument(await createRandomFile()),
-	// 		workspace.openTextDocument(await createRandomFile()),
-	// 		workspace.openTextDocument(await createRandomFile())
-	// 	]);
 
-	// 	await window.showTextDocument(docA, { viewColumn: ViewColumn.One, preview: false });
-	// 	await window.showTextDocument(docB, { viewColumn: ViewColumn.One, preview: false });
-	// 	await window.showTextDocument(docC, { viewColumn: ViewColumn.Two, preview: false });
 
-	// 	const tabGroups = window.tabGroups;
-	// 	assert.strictEqual(tabGroups.all.length, 2);
 
-	// 	const group1Tabs = tabGroups.all[0].tabs;
-	// 	assert.strictEqual(group1Tabs.length, 2);
 
-	// 	const group2Tabs = tabGroups.all[1].tabs;
-	// 	assert.strictEqual(group2Tabs.length, 1);
 
-	// 	await tabGroups.move(group1Tabs[0], ViewColumn.One, 1);
-	// });
 
-	// TODO @lramos15 re-enable these once shape is more stable
 	test('Tabs - vscode.open & vscode.diff', async function () {
-		// Simple function to get the active tab
 		const getActiveTab = () => {
 			return window.tabGroups.all.find(g => g.isActive)?.activeTab;
 		};
@@ -424,7 +386,6 @@ suite('vscode API - window', () => {
 
 		const commandFile = await createRandomFile();
 		await commands.executeCommand('vscode.open', commandFile, ViewColumn.Three);
-		// Ensure active tab is correct after calling vscode.open
 		assert.strictEqual(getActiveTab()?.group.viewColumn, ViewColumn.Three);
 
 		const leftDiff = await createRandomFile();
@@ -445,10 +406,7 @@ suite('vscode API - window', () => {
 	});
 
 	(env.uiKind === UIKind.Web ? test.skip : test)('Tabs - Ensure tabs getter is correct', async function () {
-		// Reduce test timeout as this test should be quick, so even with 3 retries it will be under 60s.
 		this.timeout(10000);
-		// This test can be flaky because of opening a notebook
-		// Sometimes the webview doesn't resolve especially on windows so we will retry 3 times
 		this.retries(3);
 		const [docA, docB, docC, notebookDoc] = await Promise.all([
 			workspace.openTextDocument(await createRandomFile()),
@@ -469,7 +427,6 @@ suite('vscode API - window', () => {
 		const tabs = window.tabGroups.all.map(g => g.tabs).flat(1);
 		assert.strictEqual(tabs.length, 5);
 
-		// All resources should match the text documents as they're the only tabs currently open
 		assert.ok(tabs[0].input instanceof TabInputText);
 		assert.strictEqual(tabs[0].input.uri.toString(), docA.uri.toString());
 		assert.ok(tabs[1].input instanceof TabInputNotebook);
@@ -478,7 +435,6 @@ suite('vscode API - window', () => {
 		assert.strictEqual(tabs[2].input.uri.toString(), docB.uri.toString());
 		assert.ok(tabs[3].input instanceof TabInputText);
 		assert.strictEqual(tabs[3].input.uri.toString(), docC.uri.toString());
-		// Diff editor and side by side editor report the right side as the resource
 		assert.ok(tabs[4].input instanceof TabInputTextDiff);
 		assert.strictEqual(tabs[4].input.modified.toString(), rightDiff.toString());
 
@@ -497,7 +453,6 @@ suite('vscode API - window', () => {
 			workspace.openTextDocument(await createRandomFile()),
 		]);
 
-		// Function to acquire the active tab within the active group
 		const getActiveTabInActiveGroup = () => {
 			const activeGroup = window.tabGroups.all.filter(group => group.isActive)[0];
 			return activeGroup?.activeTab;
@@ -528,200 +483,48 @@ suite('vscode API - window', () => {
 		assert.ok(!getActiveTabInActiveGroup());
 	});
 
-	// TODO@lramos15 https://github.com/microsoft/vscode/issues/145846
-	// Should ensure to either use existing tab API for modifications
-	// or commands that operate on a dedicated editor that is passed
-	// in as an argument
 
-	// test('Tabs - verify pinned state', async () => {
 
-	// 	const [docA] = await Promise.all([
-	// 		workspace.openTextDocument(await createRandomFile())
-	// 	]);
 
-	// 	await window.showTextDocument(docA, { viewColumn: ViewColumn.One, preview: false });
 
-	// 	const tab = window.tabGroups.activeTabGroup?.activeTab;
-	// 	assert.ok(tab);
 
-	// 	assert.strictEqual(tab.isPinned, false);
 
-	// 	let onDidChangeTab = asPromise(window.tabGroups.onDidChangeTab);
 
-	// 	await commands.executeCommand('workbench.action.pinEditor');
-	// 	await onDidChangeTab;
 
-	// 	assert.strictEqual(tab.isPinned, true);
 
-	// 	onDidChangeTab = asPromise(window.tabGroups.onDidChangeTab);
 
-	// 	await commands.executeCommand('workbench.action.unpinEditor');
-	// 	await onDidChangeTab;
 
-	// 	assert.strictEqual(tab.isPinned, false);
-	// });
 
-	// test('Tabs - verify preview state', async () => {
 
-	// 	const [docA] = await Promise.all([
-	// 		workspace.openTextDocument(await createRandomFile())
-	// 	]);
 
-	// 	await window.showTextDocument(docA, { viewColumn: ViewColumn.One, preview: true });
 
-	// 	const tab = window.tabGroups.activeTabGroup?.activeTab;
-	// 	assert.ok(tab);
 
-	// 	assert.strictEqual(tab.isPreview, true);
 
-	// 	let onDidChangeTab = asPromise(window.tabGroups.onDidChangeTab);
 
-	// 	await commands.executeCommand('workbench.action.keepEditor');
-	// 	await onDidChangeTab;
 
-	// 	assert.strictEqual(tab.isPreview, false);
-	// });
 
-	// test('Tabs - verify dirty state', async () => {
 
-	// 	const [docA] = await Promise.all([
-	// 		workspace.openTextDocument(await createRandomFile())
-	// 	]);
 
-	// 	await window.showTextDocument(docA, { viewColumn: ViewColumn.One, preview: true });
 
-	// 	const tab = window.tabGroups.activeTabGroup?.activeTab;
-	// 	assert.ok(tab);
 
-	// 	assert.strictEqual(tab.isDirty, false);
-	// 	assert.strictEqual(docA.isDirty, false);
 
-	// 	let onDidChangeTab = asPromise(window.tabGroups.onDidChangeTab);
 
-	// 	const edit = new WorkspaceEdit();
-	// 	edit.insert(docA.uri, new Position(0, 0), 'var abc = 0;');
-	// 	await workspace.applyEdit(edit);
 
-	// 	await onDidChangeTab;
 
-	// 	assert.strictEqual(tab.isDirty, true);
 
-	// 	onDidChangeTab = asPromise(window.tabGroups.onDidChangeTab);
 
-	// 	await commands.executeCommand('workbench.action.files.save');
 
-	// 	await onDidChangeTab;
 
-	// 	assert.strictEqual(tab.isDirty, false);
-	// });
 
-	// test('Tabs - verify active state', async () => {
 
-	// 	const [docA, docB] = await Promise.all([
-	// 		workspace.openTextDocument(await createRandomFile()),
-	// 		workspace.openTextDocument(await createRandomFile()),
-	// 	]);
 
-	// 	await window.showTextDocument(docA, { viewColumn: ViewColumn.One, preview: false });
-	// 	await window.showTextDocument(docB, { viewColumn: ViewColumn.One, preview: false });
 
-	// 	const tab = window.tabGroups.activeTabGroup?.tabs;
-	// 	assert.strictEqual(tab?.length, 2);
 
-	// 	assert.strictEqual(tab[0].isActive, false);
-	// 	assert.strictEqual(tab[1].isActive, true);
 
-	// 	let onDidChangeTab = asPromise(window.tabGroups.onDidChangeTab);
 
-	// 	await window.showTextDocument(docA, { viewColumn: ViewColumn.One, preview: false });
 
-	// 	await onDidChangeTab;
 
-	// 	assert.strictEqual(tab[0].isActive, true);
-	// 	assert.strictEqual(tab[1].isActive, false);
-	// });
 
-	/*
-
-	test('Tabs - Move Tab', async () => {
-		const [docA, docB, docC] = await Promise.all([
-			workspace.openTextDocument(await createRandomFile()),
-			workspace.openTextDocument(await createRandomFile()),
-			workspace.openTextDocument(await createRandomFile()),
-		]);
-		await window.showTextDocument(docA, { viewColumn: ViewColumn.One, preview: false });
-		await window.showTextDocument(docB, { viewColumn: ViewColumn.One, preview: false });
-		await window.showTextDocument(docC, { viewColumn: ViewColumn.Two, preview: false });
-
-		const getAllTabs = () => {
-
-		};
-		let tabs = window.tabs;
-		assert.strictEqual(tabs.length, 3);
-
-		// Move the first tab of Group 1 to be the first tab of Group 2
-		await tabs[0].move(0, ViewColumn.Two);
-		assert.strictEqual(tabs.length, 3);
-		tabs = window.tabs;
-		// Tabs should now be B -> A -> C
-		assert.strictEqual(tabs[0].resource?.toString(), docB.uri.toString());
-
-		await tabs[2].move(0, ViewColumn.Two);
-		assert.strictEqual(tabs.length, 3);
-		tabs = window.tabs;
-		// Tabs should now be B -> C -> A
-		assert.strictEqual(tabs[1].resource?.toString(), docC.uri.toString());
-		await tabs[2].move(1000, ViewColumn.Two);
-		assert.strictEqual(tabs.length, 3);
-		tabs = window.tabs;
-		// Tabs should still be B -> C -> A
-		assert.strictEqual(tabs[2].resource?.toString(), docA.uri.toString());
-
-		await tabs[1].move(0, ViewColumn.Three);
-		assert.strictEqual(tabs.length, 3);
-		tabs = window.tabs;
-		// Tabs should now be B -> A -> C With C in a new group
-		assert.strictEqual(tabs[2].resource?.toString(), docC.uri.toString());
-		assert.strictEqual(tabs[2].viewColumn, ViewColumn.Three);
-
-		await commands.executeCommand('workbench.action.closeActiveEditor');
-		await commands.executeCommand('workbench.action.closeActiveEditor');
-		await commands.executeCommand('workbench.action.closeActiveEditor');
-
-		assert.ok(!window.activeTab);
-	});
-
-	test('Tabs - Close Tabs', async () => {
-		const [docA, docB, docC] = await Promise.all([
-			workspace.openTextDocument(await createRandomFile()),
-			workspace.openTextDocument(await createRandomFile()),
-			workspace.openTextDocument(await createRandomFile()),
-		]);
-		await window.showTextDocument(docA, { viewColumn: ViewColumn.One, preview: false });
-		await window.showTextDocument(docB, { viewColumn: ViewColumn.One, preview: false });
-		await window.showTextDocument(docC, { viewColumn: ViewColumn.Two, preview: false });
-
-		let tabs = window.tabs;
-		assert.strictEqual(tabs.length, 3);
-
-		await tabs[0].close();
-		tabs = window.tabs;
-		assert.strictEqual(tabs.length, 2);
-		assert.strictEqual(tabs[0].resource?.toString(), docB.uri.toString());
-
-		await tabs[0].close();
-		tabs = window.tabs;
-		assert.strictEqual(tabs.length, 1);
-		assert.strictEqual(tabs[0].resource?.toString(), docC.uri.toString());
-
-		await tabs[0].close();
-		tabs = window.tabs;
-		assert.strictEqual(tabs.length, 0);
-		assert.strictEqual(tabs.length, 0);
-		assert.ok(!window.activeTab);
-	});
-	*/
-	//#endregion
 
 	test('#7013 - input without options', function () {
 		const source = new CancellationTokenSource();
@@ -815,8 +618,6 @@ suite('vscode API - window', () => {
 	});
 
 	test('showQuickPick, select first two', async function () {
-		// const label = 'showQuickPick, select first two';
-		// let i = 0;
 		const resolves: ((value: string) => void)[] = [];
 		let done: () => void;
 		const unexpected = new Promise<void>((resolve, reject) => {
@@ -828,26 +629,16 @@ suite('vscode API - window', () => {
 			canPickMany: true
 		});
 		const first = new Promise(resolve => resolves.push(resolve));
-		// console.log(`${label}: ${++i}`);
-		await new Promise(resolve => setTimeout(resolve, 100)); // Allow UI to update.
-		// console.log(`${label}: ${++i}`);
+		await new Promise(resolve => setTimeout(resolve, 100));
 		await commands.executeCommand('workbench.action.quickOpenSelectNext');
-		// console.log(`${label}: ${++i}`);
 		assert.strictEqual(await first, 'eins');
-		// console.log(`${label}: ${++i}`);
 		await commands.executeCommand('workbench.action.quickPickManyToggle');
-		// console.log(`${label}: ${++i}`);
 		const second = new Promise(resolve => resolves.push(resolve));
 		await commands.executeCommand('workbench.action.quickOpenSelectNext');
-		// console.log(`${label}: ${++i}`);
 		assert.strictEqual(await second, 'zwei');
-		// console.log(`${label}: ${++i}`);
 		await commands.executeCommand('workbench.action.quickPickManyToggle');
-		// console.log(`${label}: ${++i}`);
 		await commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
-		// console.log(`${label}: ${++i}`);
 		assert.deepStrictEqual(await picks, ['eins', 'zwei']);
-		// console.log(`${label}: ${++i}`);
 		done!();
 		return unexpected;
 	});

@@ -170,7 +170,6 @@ export const openNewSearchEditor =
 			editor.setSearchConfig(args);
 		} else {
 			const input = instantiationService.invokeFunction(getOrMakeSearchEditorInput, { config: args, resultsContents: '', from: 'rawData' });
-			// TODO @roblourens make this use the editor resolver service if possible
 			editor = await editorService.openEditor(input, { pinned: true }, toSide ? SIDE_GROUP : ACTIVE_GROUP) as SearchEditor;
 		}
 

@@ -26,14 +26,12 @@ export const nodeSocketFactory = new class implements ISocketFactory<RemoteConne
 				const onData = (data: Buffer) => {
 					const strData = data.toString();
 					if (strData.indexOf('\r\n\r\n') >= 0) {
-						// headers received OK
 						socket.off('data', onData);
 						resolve(new NodeSocket(socket, debugLabel));
 					}
 				};
 				socket.on('data', onData);
 			});
-			// Disable Nagle's algorithm.
 			socket.setNoDelay(true);
 			socket.once('error', reject);
 		});

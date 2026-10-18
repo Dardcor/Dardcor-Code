@@ -40,12 +40,12 @@ const enum WindowSettingNames {
 
 export const defaultWindowTitle = (() => {
 	if (isMacintosh && isNative) {
-		return '${activeEditorShort}${separator}${rootName}${separator}${profileName}'; // macOS has native dirty indicator
+		return '${activeEditorShort}${separator}${rootName}${separator}${profileName}';
 	}
 
 	const base = '${dirty}${activeEditorShort}${separator}${rootName}${separator}${profileName}${separator}${appName}';
 	if (isWeb) {
-		return base + '${separator}${remoteName}'; // Web: always show remote name
+		return base + '${separator}${remoteName}';
 	}
 
 	return base;
@@ -59,7 +59,7 @@ export class WindowTitle extends Disposable {
 	private static readonly TITLE_DIRTY = '\u25cf ';
 
 	private readonly properties: ITitleProperties = { isPure: true, isAdmin: false, prefix: undefined };
-	private readonly variables = new Map<string /* context key */, string /* name */>();
+	private readonly variables = new Map<string , string >();
 
 	private readonly activeEditorListeners = this._register(new DisposableStore());
 	private readonly titleUpdater = this._register(new RunOnceScheduler(() => this.doUpdateTitle(), 0));
@@ -151,20 +151,16 @@ export class WindowTitle extends Disposable {
 
 	private onActiveEditorChange(): void {
 
-		// Dispose old listeners
 		this.activeEditorListeners.clear();
 
-		// Calculate New Window Title
 		this.titleUpdater.schedule();
 
-		// Apply listener for dirty and label changes
 		const activeEditor = this.editorService.activeEditor;
 		if (activeEditor) {
 			this.activeEditorListeners.add(activeEditor.onDidChangeDirty(() => this.titleUpdater.schedule()));
 			this.activeEditorListeners.add(activeEditor.onDidChangeLabel(() => this.titleUpdater.schedule()));
 		}
 
-		// Apply listeners for tracking focused code editor
 		if (this.titleIncludesFocusedView) {
 			const activeTextEditorControl = this.editorService.activeTextEditorControl;
 			const textEditorControls: ICodeEditor[] = [];
@@ -180,7 +176,6 @@ export class WindowTitle extends Disposable {
 			}
 		}
 
-		// Apply listener for decorations to track editor state
 		if (this.titleIncludesEditorState) {
 			this.activeEditorListeners.add(this.decorationsService.onDidChangeDecorations(() => this.titleUpdater.schedule()));
 		}
@@ -190,7 +185,6 @@ export class WindowTitle extends Disposable {
 		const title = this.getFullWindowTitle();
 		if (title !== this.title) {
 
-			// Always set the native window title to identify us properly to the OS
 			let nativeTitle = title;
 			if (!trim(nativeTitle)) {
 				nativeTitle = this.productService.nameLong;
@@ -198,13 +192,6 @@ export class WindowTitle extends Disposable {
 
 			const window = getWindowById(this.windowId, true).window;
 			if (!window.document.title && isMacintosh && nativeTitle === this.productService.nameLong) {
-				// TODO@electron macOS: if we set a window title for
-				// the first time and it matches the one we set in
-				// `windowImpl.ts` somehow the window does not appear
-				// in the "Windows" menu. As such, we set the title
-				// briefly to something different to ensure macOS
-				// recognizes we have a window.
-				// See: https://github.com/microsoft/vscode/issues/191288
 				window.document.title = `${this.productService.nameLong} ${WindowTitle.TITLE_DIRTY}`;
 			}
 
@@ -227,7 +214,6 @@ export class WindowTitle extends Disposable {
 			title = `${title} ${suffix}`;
 		}
 
-		// Replace non-space whitespace
 		return title.replace(/[^\S ]/g, ' ');
 	}
 
@@ -282,32 +268,10 @@ export class WindowTitle extends Disposable {
 		}
 	}
 
-	/**
-	 * Possible template values:
-	 *
-	 * {activeEditorLong}: e.g. /Users/Development/myFolder/myFileFolder/myFile.txt
-	 * {activeEditorMedium}: e.g. myFolder/myFileFolder/myFile.txt
-	 * {activeEditorShort}: e.g. myFile.txt
-	 * {activeEditorLanguageId}: e.g. typescript
-	 * {activeFolderLong}: e.g. /Users/Development/myFolder/myFileFolder
-	 * {activeFolderMedium}: e.g. myFolder/myFileFolder
-	 * {activeFolderShort}: e.g. myFileFolder
-	 * {rootName}: e.g. myFolder1, myFolder2, myFolder3
-	 * {rootPath}: e.g. /Users/Development
-	 * {folderName}: e.g. myFolder
-	 * {folderPath}: e.g. /Users/Development/myFolder
-	 * {appName}: e.g. VS Code
-	 * {remoteName}: e.g. SSH
-	 * {dirty}: indicator
-	 * {focusedView}: e.g. Terminal
-	 * {separator}: conditional separator
-	 * {activeEditorState}: e.g. Modified
-	 */
 	getWindowTitle(): string {
 		const editor = this.editorService.activeEditor;
 		const workspace = this.contextService.getWorkspace();
 
-		// Compute root
 		let root: URI | undefined;
 		if (workspace.configuration) {
 			root = workspace.configuration;
@@ -315,16 +279,12 @@ export class WindowTitle extends Disposable {
 			root = workspace.folders[0].uri;
 		}
 
-		// Compute active editor folder
 		const editorResource = EditorResourceAccessor.getOriginalUri(editor, { supportSideBySide: SideBySideEditor.PRIMARY });
 		let editorFolderResource = editorResource ? dirname(editorResource) : undefined;
 		if (editorFolderResource?.path === '.') {
 			editorFolderResource = undefined;
 		}
 
-		// Compute folder resource
-		// Single Root Workspace: always the root single workspace in this case
-		// Otherwise: root folder of the currently active file if any
 		let folder: IWorkspaceFolder | undefined = undefined;
 		if (this.contextService.getWorkbenchState() === WorkbenchState.FOLDER) {
 			folder = workspace.folders[0];
@@ -332,9 +292,6 @@ export class WindowTitle extends Disposable {
 			folder = this.contextService.getWorkspaceFolder(editorResource) ?? undefined;
 		}
 
-		// Compute remote
-		// vscode-remtoe: use as is
-		// otherwise figure out if we have a virtual folder opened
 		let remoteName: string | undefined = undefined;
 		if (this.environmentService.remoteAuthority && !isWeb) {
 			remoteName = this.labelService.getHostLabel(Schemas.vscodeRemote, this.environmentService.remoteAuthority);
@@ -345,7 +302,6 @@ export class WindowTitle extends Disposable {
 			}
 		}
 
-		// Variables
 		const activeEditorShort = editor ? editor.getTitle(Verbosity.SHORT) : '';
 		const activeEditorMedium = editor ? editor.getTitle(Verbosity.MEDIUM) : activeEditorShort;
 		const activeEditorLong = editor ? editor.getTitle(Verbosity.LONG) : activeEditorMedium;
@@ -418,7 +374,6 @@ export class WindowTitle extends Disposable {
 			return true;
 		}
 
-		// Check if the default value is overridden from the configuration registry
 		const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 		const configurationProperties = configurationRegistry.getConfigurationProperties();
 		return title.defaultValue !== configurationProperties[WindowSettingNames.title]?.defaultDefaultValue;

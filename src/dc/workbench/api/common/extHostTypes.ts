@@ -165,8 +165,6 @@ export class RemoteAuthorityResolverError extends Error {
 		this._code = code;
 		this._detail = detail;
 
-		// workaround when extending builtin objects and when compiling to ES5, see:
-		// https://github.com/microsoft/TypeScript-wiki/blob/master/Breaking-Changes.md#extending-built-ins-like-error-array-and-map-may-no-longer-work
 		Object.setPrototypeOf(this, RemoteAuthorityResolverError.prototype);
 	}
 }
@@ -704,25 +702,10 @@ export enum TextDocumentChangeReason {
 	Redo = 2,
 }
 
-/**
- * These values match very carefully the values of `TrackedRangeStickiness`
- */
 export enum DecorationRangeBehavior {
-	/**
-	 * TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges
-	 */
 	OpenOpen = 0,
-	/**
-	 * TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges
-	 */
 	ClosedClosed = 1,
-	/**
-	 * TrackedRangeStickiness.GrowsOnlyWhenTypingBefore
-	 */
 	OpenClosed = 2,
-	/**
-	 * TrackedRangeStickiness.GrowsOnlyWhenTypingAfter
-	 */
 	ClosedOpen = 3
 }
 
@@ -960,28 +943,12 @@ export class TerminalCompletionItem implements vscode.TerminalCompletionItem {
 	}
 }
 
-/**
- * Represents a collection of {@link CompletionItem completion items} to be presented
- * in the editor.
- */
 export class TerminalCompletionList<T extends TerminalCompletionItem = TerminalCompletionItem> {
 
-	/**
-	 * Resources should be shown in the completions list
-	 */
 	resourceOptions?: TerminalCompletionResourceOptions;
 
-	/**
-	 * The completion items.
-	 */
 	items: T[];
 
-	/**
-	 * Creates a new completion list.
-	 *
-	 * @param items The completion items.
-	 * @param isIncomplete The list is not complete.
-	 */
 	constructor(items?: T[], resourceOptions?: TerminalCompletionResourceOptions) {
 		this.items = items ?? [];
 		this.resourceOptions = resourceOptions;
@@ -1004,43 +971,30 @@ export enum TaskRevealKind {
 }
 
 export enum TaskEventKind {
-	/** Indicates a task's properties or configuration have changed */
 	Changed = 'changed',
 
-	/** Indicates a task has begun executing */
 	ProcessStarted = 'processStarted',
 
-	/** Indicates a task process has completed */
 	ProcessEnded = 'processEnded',
 
-	/** Indicates a task was terminated, either by user action or by the system */
 	Terminated = 'terminated',
 
-	/** Indicates a task has started running */
 	Start = 'start',
 
-	/** Indicates a task has acquired all needed input/variables to execute */
 	AcquiredInput = 'acquiredInput',
 
-	/** Indicates a dependent task has started */
 	DependsOnStarted = 'dependsOnStarted',
 
-	/** Indicates a task is actively running/processing */
 	Active = 'active',
 
-	/** Indicates a task is paused/waiting but not complete */
 	Inactive = 'inactive',
 
-	/** Indicates a task has completed fully */
 	End = 'end',
 
-	/** Indicates the task's problem matcher has started */
 	ProblemMatcherStarted = 'problemMatcherStarted',
 
-	/** Indicates the task's problem matcher has ended without errors */
 	ProblemMatcherEnded = 'problemMatcherEnded',
 
-	/** Indicates the task's problem matcher has ended with errors */
 	ProblemMatcherFoundErrors = 'problemMatcherFoundErrors'
 }
 
@@ -1755,8 +1709,6 @@ export class DataTransfer implements vscode.DataTransfer {
 	}
 
 	set(mimeType: string, value: vscode.DataTransferItem): void {
-		// This intentionally overwrites all entries for a given mimetype.
-		// This is similar to how the DOM DataTransfer type works
 		this.#items.set(this.#normalizeMime(mimeType), [value]);
 	}
 
@@ -1944,14 +1896,6 @@ export class RelativePattern implements IRelativePattern {
 
 const breakpointIds = new WeakMap<Breakpoint, string>();
 
-/**
- * We want to be able to construct Breakpoints internally that have a particular id, but we don't want extensions to be
- * able to do this with the exposed Breakpoint classes in extension API.
- * We also want "instanceof" to work with debug.breakpoints and the exposed breakpoint classes.
- * And private members will be renamed in the built js, so casting to any and setting a private member is not safe.
- * So, we store internal breakpoint IDs in a WeakMap. This function must be called after constructing a Breakpoint
- * with a known id.
- */
 export function setBreakpointId(bp: Breakpoint, id: string) {
 	breakpointIds.set(bp, id);
 }
@@ -2178,7 +2122,6 @@ export class NewSymbolName implements vscode.NewSymbolName {
 	}
 }
 
-//#region file api
 
 export enum FileChangeType {
 	Changed = 1,
@@ -2215,24 +2158,17 @@ export class FileSystemError extends Error {
 
 		this.code = terminator?.name ?? 'Unknown';
 
-		// mark the error as file system provider error so that
-		// we can extract the error code on the receiving side
 		markAsFileSystemProviderError(this, code);
 
-		// workaround when extending builtin objects and when compiling to ES5, see:
-		// https://github.com/microsoft/TypeScript-wiki/blob/master/Breaking-Changes.md#extending-built-ins-like-error-array-and-map-may-no-longer-work
 		Object.setPrototypeOf(this, FileSystemError.prototype);
 
 		if (typeof Error.captureStackTrace === 'function' && typeof terminator === 'function') {
-			// nice stack traces
 			Error.captureStackTrace(this, terminator);
 		}
 	}
 }
 
-//#endregion
 
-//#region folding api
 
 @es5ClassCompat
 export class FoldingRange {
@@ -2256,17 +2192,9 @@ export enum FoldingRangeKind {
 	Region = 3
 }
 
-//#endregion
 
-//#region Comment
 export enum CommentThreadCollapsibleState {
-	/**
-	 * Determines an item is collapsed
-	 */
 	Collapsed = 0,
-	/**
-	 * Determines an item is expanded
-	 */
 	Expanded = 1
 }
 
@@ -2295,9 +2223,7 @@ export enum CommentThreadFocus {
 	Comment = 2
 }
 
-//#endregion
 
-//#region Semantic Coloring
 
 export class SemanticTokensLegend {
 	public readonly tokenTypes: string[];
@@ -2351,11 +2277,9 @@ export class SemanticTokensBuilder {
 			if (typeof arg4 === 'undefined') {
 				arg4 = 0;
 			}
-			// 1st overload
 			return this._pushEncoded(arg0, arg1, arg2, arg3, arg4);
 		}
 		if (Range.isRange(arg0) && typeof arg1 === 'string' && isStrArrayOrUndefined(arg2)) {
-			// 2nd overload
 			return this._push(arg0, arg1, arg2);
 		}
 		throw illegalArgument();
@@ -2390,10 +2314,8 @@ export class SemanticTokensBuilder {
 
 	private _pushEncoded(line: number, char: number, length: number, tokenType: number, tokenModifiers: number): void {
 		if (this._dataIsSortedAndDeltaEncoded && (line < this._prevLine || (line === this._prevLine && char < this._prevChar))) {
-			// push calls were ordered and are no longer ordered
 			this._dataIsSortedAndDeltaEncoded = false;
 
-			// Remove delta encoding from data
 			const tokenCount = (this._data.length / 5) | 0;
 			let prevLine = 0;
 			let prevChar = 0;
@@ -2402,11 +2324,9 @@ export class SemanticTokensBuilder {
 				let char = this._data[5 * i + 1];
 
 				if (line === 0) {
-					// on the same line as previous token
 					line = prevLine;
 					char += prevChar;
 				} else {
-					// on a different line than previous token
 					line += prevLine;
 				}
 
@@ -2521,19 +2441,10 @@ export class SemanticTokensEdits {
 	}
 }
 
-//#endregion
 
-//#region debug
 export enum DebugConsoleMode {
-	/**
-	 * Debug session should have a separate debug console.
-	 */
 	Separate = 0,
 
-	/**
-	 * Debug session should share debug console with its parent session.
-	 * This value has no effect for sessions which do not have a parent session.
-	 */
 	MergeWithParent = 1
 }
 
@@ -2544,7 +2455,6 @@ export class DebugVisualization {
 	constructor(public name: string) { }
 }
 
-//#endregion
 
 export enum QuickInputButtonLocation {
 	Title = 1,
@@ -2610,7 +2520,6 @@ export class FileDecoration {
 	}
 }
 
-//#region Theming
 
 @es5ClassCompat
 export class ColorTheme implements vscode.ColorTheme {
@@ -2625,15 +2534,8 @@ export enum ColorThemeKind {
 	HighContrastLight = 4
 }
 
-//#endregion Theming
-//#region Notebook
 
 export class CellErrorStackFrame {
-	/**
-	 * @param label The name of the stack frame
-	 * @param file The file URI of the stack frame
-	 * @param position The position of the stack frame within the file
-	 */
 	constructor(
 		public label: string,
 		public uri?: vscode.Uri,
@@ -2703,51 +2605,28 @@ export enum NotebookVariablesRequestKind {
 	Indexed = 2
 }
 
-//#endregion
 
-//#region Timeline
 
 @es5ClassCompat
 export class TimelineItem implements vscode.TimelineItem {
 	constructor(public label: string, public timestamp: number) { }
 }
 
-//#endregion Timeline
 
-//#region ExtensionContext
 
 export enum ExtensionMode {
-	/**
-	 * The extension is installed normally (for example, from the marketplace
-	 * or VSIX) in VS Code.
-	 */
 	Production = 1,
 
-	/**
-	 * The extension is running from an `--extensionDevelopmentPath` provided
-	 * when launching VS Code.
-	 */
 	Development = 2,
 
-	/**
-	 * The extension is running from an `--extensionDevelopmentPath` and
-	 * the extension host is running unit tests.
-	 */
 	Test = 3,
 }
 
 export enum ExtensionRuntime {
-	/**
-	 * The extension is running in a NodeJS extension host. Runtime access to NodeJS APIs is available.
-	 */
 	Node = 1,
-	/**
-	 * The extension is running in a Webworker extension host. Runtime access is limited to Webworker APIs.
-	 */
 	Webworker = 2
 }
 
-//#endregion ExtensionContext
 
 export enum StandardTokenType {
 	Other = 0,
@@ -2770,7 +2649,6 @@ export class LinkedEditingRanges {
 	}
 }
 
-//#region ports
 export class PortAttributes {
 	private _autoForwardAction: PortAutoForwardAction;
 
@@ -2782,9 +2660,7 @@ export class PortAttributes {
 		return this._autoForwardAction;
 	}
 }
-//#endregion ports
 
-//#region Testing
 export enum TestResultState {
 	Queued = 1,
 	Running = 2,
@@ -2826,7 +2702,6 @@ export class TestMessage implements vscode.TestMessage {
 	public location?: vscode.Location;
 	public contextValue?: string;
 
-	/** proposed: */
 	public stackTrace?: TestMessageStackFrame[];
 
 	public static diff(message: string | vscode.MarkdownString, expected: string, actual: string) {
@@ -2845,11 +2720,6 @@ export class TestTag implements vscode.TestTag {
 }
 
 export class TestMessageStackFrame {
-	/**
-	 * @param label The name of the stack frame
-	 * @param file The file URI of the stack frame
-	 * @param position The position of the stack frame within the file
-	 */
 	constructor(
 		public label: string,
 		public uri?: vscode.Uri,
@@ -2857,9 +2727,7 @@ export class TestMessageStackFrame {
 	) { }
 }
 
-//#endregion
 
-//#region Test Coverage
 export class TestCoverageCount implements vscode.TestCoverageCount {
 	constructor(public covered: number, public total: number) {
 		validateTestCoverageCount(this);
@@ -2926,7 +2794,6 @@ export class FileCoverage implements vscode.FileCoverage {
 }
 
 export class StatementCoverage implements vscode.StatementCoverage {
-	// back compat until finalization:
 	get executionCount() { return +this.executed; }
 	set executionCount(n: number) { this.executed = n; }
 
@@ -2938,7 +2805,6 @@ export class StatementCoverage implements vscode.StatementCoverage {
 }
 
 export class BranchCoverage implements vscode.BranchCoverage {
-	// back compat until finalization:
 	get executionCount() { return +this.executed; }
 	set executionCount(n: number) { this.executed = n; }
 
@@ -2950,7 +2816,6 @@ export class BranchCoverage implements vscode.BranchCoverage {
 }
 
 export class DeclarationCoverage implements vscode.DeclarationCoverage {
-	// back compat until finalization:
 	get executionCount() { return +this.executed; }
 	set executionCount(n: number) { this.executed = n; }
 
@@ -2960,7 +2825,6 @@ export class DeclarationCoverage implements vscode.DeclarationCoverage {
 		public location: Position | Range,
 	) { }
 }
-//#endregion
 
 export enum ExternalUriOpenerPriority {
 	None = 0,
@@ -3006,7 +2870,6 @@ export class TypeHierarchyItem {
 	}
 }
 
-//#region Tab Inputs
 
 export class TextTabInput {
 	constructor(readonly uri: URI) { }
@@ -3050,9 +2913,7 @@ export class ChatEditorTabInput {
 export class TextMultiDiffTabInput {
 	constructor(readonly textDiffs: TextDiffTabInput[]) { }
 }
-//#endregion
 
-//#region Chat
 
 export enum InteractiveSessionVoteDirection {
 	Down = 0,
@@ -3100,9 +2961,7 @@ export enum ChatRequestEditedFileEventKind {
 	UserModification = 3,
 }
 
-//#endregion
 
-//#region Interactive Editor
 
 export enum InteractiveEditorResponseFeedbackKind {
 	Unhelpful = 0,
@@ -3128,10 +2987,6 @@ export class ChatResponseMarkdownPart {
 	}
 }
 
-/**
- * TODO if 'vulnerabilities' is finalized, this should be merged with the base ChatResponseMarkdownPart. I just don't see how to do that while keeping
- * vulnerabilities in a seperate API proposal in a clean way.
- */
 export class ChatResponseMarkdownWithVulnerabilitiesPart {
 	value: vscode.MarkdownString;
 	vulnerabilities: vscode.ChatVulnerability[];
@@ -3400,43 +3255,19 @@ export class ChatResponsePullRequestPart {
 	}
 }
 
-/**
- * The type of question for a chat question carousel.
- */
 export enum ChatQuestionType {
-	/**
-	 * A free-form text input question.
-	 */
 	Text = 1,
-	/**
-	 * A single-select question with radio buttons.
-	 */
 	SingleSelect = 2,
-	/**
-	 * A multi-select question with checkboxes.
-	 */
 	MultiSelect = 3
 }
 
-/**
- * Represents a question to be displayed in a chat question carousel.
- * Questions can be of type 'text' for free-form input, 'singleSelect' for radio buttons,
- * or 'multiSelect' for checkboxes.
- */
 export class ChatQuestion {
-	/** Unique identifier for the question. */
 	id: string;
-	/** The type of question: Text for free-form input, SingleSelect for radio buttons, MultiSelect for checkboxes. */
 	type: ChatQuestionType;
-	/** The title/header of the question. */
 	title: string;
-	/** Optional detailed message or description for the question. */
 	message?: string | vscode.MarkdownString;
-	/** Options for singleSelect or multiSelect questions. */
 	options?: { id: string; label: string; value: unknown }[];
-	/** The id(s) of the default selected option(s). */
 	defaultValue?: string | string[];
-	/** Whether to allow free-form text input in addition to predefined options. */
 	allowFreeformInput?: boolean;
 
 	constructor(
@@ -3460,14 +3291,8 @@ export class ChatQuestion {
 	}
 }
 
-/**
- * A carousel view for presenting multiple questions inline in the chat response.
- * Users can navigate between questions and submit their answers.
- */
 export class ChatResponseQuestionCarouselPart {
-	/** The questions to display in the carousel. */
 	questions: ChatQuestion[];
-	/** Whether users can skip answering the questions. */
 	allowSkip: boolean;
 
 	constructor(questions: ChatQuestion[], allowSkip: boolean = true) {
@@ -3932,8 +3757,6 @@ export class LanguageModelChatMessage implements vscode.LanguageModelChatMessage
 
 	set content(value: string | (LanguageModelTextPart | LanguageModelToolResultPart | LanguageModelToolCallPart | LanguageModelDataPart)[]) {
 		if (typeof value === 'string') {
-			// we changed this and still support setting content with a string property. this keep the API runtime stable
-			// despite the breaking change in the type definition.
 			this._content = [new LanguageModelTextPart(value)];
 		} else {
 			this._content = value;
@@ -3969,8 +3792,6 @@ export class LanguageModelChatMessage2 implements vscode.LanguageModelChatMessag
 
 	set content(value: string | (LanguageModelTextPart | LanguageModelToolResultPart | LanguageModelToolCallPart | LanguageModelDataPart | LanguageModelThinkingPart)[]) {
 		if (typeof value === 'string') {
-			// we changed this and still support setting content with a string property. this keep the API runtime stable
-			// despite the breaking change in the type definition.
 			this._content = [new LanguageModelTextPart(value)];
 		} else {
 			this._content = value;
@@ -3981,7 +3802,6 @@ export class LanguageModelChatMessage2 implements vscode.LanguageModelChatMessag
 		return this._content;
 	}
 
-	// Temp to avoid breaking changes
 	set content2(value: (string | LanguageModelToolResultPart | LanguageModelToolCallPart | LanguageModelDataPart)[] | undefined) {
 		if (value) {
 			this.content = value.map(part => {
@@ -4129,9 +3949,6 @@ export class LanguageModelPromptTsxPart {
 	}
 }
 
-/**
- * @deprecated
- */
 export class LanguageModelChatSystemMessage {
 	content: string;
 	constructor(content: string) {
@@ -4140,9 +3957,6 @@ export class LanguageModelChatSystemMessage {
 }
 
 
-/**
- * @deprecated
- */
 export class LanguageModelChatUserMessage {
 	content: string;
 	name: string | undefined;
@@ -4153,9 +3967,6 @@ export class LanguageModelChatUserMessage {
 	}
 }
 
-/**
- * @deprecated
- */
 export class LanguageModelChatAssistantMessage {
 	content: string;
 	name?: string;
@@ -4241,9 +4052,7 @@ export class LanguageModelToolMCPSource implements vscode.LanguageModelToolMCPSo
 	constructor(public readonly label: string, public readonly name: string, public readonly instructions: string | undefined) { }
 }
 
-//#endregion
 
-//#region ai
 
 export enum RelatedInformationType {
 	SymbolInformation = 1,
@@ -4258,9 +4067,7 @@ export enum SettingsSearchResultKind {
 	CANCELED = 3,
 }
 
-//#endregion
 
-//#region Speech
 
 export enum SpeechToTextStatus {
 	Started = 1,
@@ -4281,9 +4088,7 @@ export enum KeywordRecognitionStatus {
 	Stopped = 2
 }
 
-//#endregion
 
-//#region MCP
 export enum McpToolAvailability {
 	Initial = 0,
 	Dynamic = 1,
@@ -4312,7 +4117,4 @@ export class McpHttpServerDefinition implements vscode.McpHttpServerDefinition {
 		public authentication?: { providerId: string; scopes: string[] },
 	) { }
 }
-//#endregion
 
-//#region Chat Prompt Files
-//#endregion

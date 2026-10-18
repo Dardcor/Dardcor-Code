@@ -30,7 +30,6 @@ describe('Phase 2: Developer Experience Engines', () => {
 				{ role: 'assistant', content: 'all passing' },
 			];
 
-			// Lower threshold to trigger compaction
 			const config = {
 				maxContextTokens: 500,
 				pruneThresholdTokens: 200,

@@ -52,19 +52,16 @@ export class NotebookViewZones extends Disposable {
 			},
 			removeZone: (id: string): void => {
 				zonesHaveChanged = true;
-				// TODO: validate if zones have changed layout
 				this._removeZone(id);
 			},
 			layoutZone: (id: string): void => {
 				zonesHaveChanged = true;
-				// TODO: validate if zones have changed layout
 				this._layoutZone(id);
 			}
 		};
 
 		safeInvoke1Arg(callback, changeAccessor);
 
-		// Invalidate changeAccessor
 		changeAccessor.addZone = invalidFunc;
 		changeAccessor.removeZone = invalidFunc;
 		changeAccessor.layoutZone = invalidFunc;
@@ -89,10 +86,6 @@ export class NotebookViewZones extends Disposable {
 			const fromIndex = start;
 			const toIndex = start + deleted;
 
-			// 1, 2, 0
-			// delete cell index 1 and 2
-			// from index 1, to index 3 (exclusive): [1, 3)
-			// if we have whitespace afterModelPosition 3, which is after cell index 2
 
 			for (const id in this._zones) {
 				const zone = this._zones[id].zone;
@@ -100,12 +93,9 @@ export class NotebookViewZones extends Disposable {
 				const cellBeforeWhitespaceIndex = zone.afterModelPosition - 1;
 
 				if (cellBeforeWhitespaceIndex >= fromIndex && cellBeforeWhitespaceIndex < toIndex) {
-					// The cell this whitespace was after has been deleted
-					//  => move whitespace to before first deleted cell
 					zone.afterModelPosition = fromIndex;
 					this._updateWhitespace(this._zones[id]);
 				} else if (cellBeforeWhitespaceIndex >= toIndex) {
-					// adjust afterModelPosition for all other cells
 					const insertLength = newCells.length;
 					const offset = insertLength - deleted;
 					zone.afterModelPosition += offset;
@@ -159,11 +149,9 @@ export class NotebookViewZones extends Disposable {
 		this.listView.removeWhitespace(id);
 		const zoneWidget = this._zones[id];
 		if (zoneWidget) {
-			// safely remove the dom node from its parent
 			try {
 				this.domNode.removeChild(zoneWidget.domNode);
 			} catch {
-				// ignore the error
 			}
 		}
 
@@ -191,10 +179,8 @@ export class NotebookViewZones extends Disposable {
 	}
 
 	private _isInHiddenRanges(zone: INotebookViewZone) {
-		// The view zone is between two cells (zone.afterModelPosition - 1, zone.afterModelPosition)
 		const afterIndex = zone.afterModelPosition;
 
-		// In notebook, the first cell (markdown cell) in a folding range is always visible, so we need to check the cell after the notebook view zone
 		return !this.coordinator.modelIndexIsVisible(afterIndex);
 
 	}
@@ -234,9 +220,7 @@ class ToggleNotebookViewZoneDeveloperAction extends Action2 {
 		}
 
 		if (ToggleNotebookViewZoneDeveloperAction.viewZoneIds.length > 0) {
-			// remove all view zones
 			editor.changeViewZones(accessor => {
-				// remove all view zones in reverse order, to follow how we handle this in the prod code
 				ToggleNotebookViewZoneDeveloperAction.viewZoneIds.reverse().forEach(id => {
 					accessor.removeZone(id);
 				});

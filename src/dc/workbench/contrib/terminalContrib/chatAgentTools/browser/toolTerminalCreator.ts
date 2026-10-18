@@ -43,10 +43,6 @@ export interface IToolTerminal {
 }
 
 export class ToolTerminalCreator {
-	/**
-	 * The shell preference cached for the lifetime of the window. This allows skipping previous
-	 * shell approaches that failed in previous runs to save time.
-	 */
 	private static _lastSuccessfulShell: ShellLaunchType = ShellLaunchType.Unknown;
 
 	constructor(
@@ -65,7 +61,6 @@ export class ToolTerminalCreator {
 		};
 		let processReadyTimestamp = 0;
 
-		// Ensure the shell process launches successfully
 		const initResult = await Promise.any([
 			instance.processReady.then(() => processReadyTimestamp = Date.now()),
 			Event.toPromise(instance.onExit),
@@ -74,12 +69,8 @@ export class ToolTerminalCreator {
 			throw new Error(initResult.message);
 		}
 
-		// Wait for shell integration when the fallback case has not been hit or when shell
-		// integration injection is enabled. Note that it's possible for the fallback case to happen
-		// and then for SI to activate again later in the session.
 		const siInjectionEnabled = this._configurationService.getValue(TerminalSettingId.ShellIntegrationEnabled) === true;
 
-		// Get the configurable timeout to wait for shell integration
 		const waitTime = getShellIntegrationTimeout(
 			this._configurationService,
 			siInjectionEnabled,
@@ -98,9 +89,6 @@ export class ToolTerminalCreator {
 				throw new CancellationError();
 			}
 
-			// If SI is rich, wait for the prompt state to change. This prevents an issue with pwsh
-			// in particular where shell startup can swallow `\r` input events, preventing the
-			// command from executing.
 			if (shellIntegrationQuality === ShellIntegrationQuality.Rich) {
 				const commandDetection = instance.capabilities.get(TerminalCapability.CommandDetection);
 				if (commandDetection?.promptInputModel.state === PromptInputState.Unknown) {
@@ -121,18 +109,10 @@ export class ToolTerminalCreator {
 			this._logService.info(`ToolTerminalCreator#createTerminal: Skipping wait for shell integration - last successful launch type ${ToolTerminalCreator._lastSuccessfulShell}`);
 		}
 
-		// Fallback case: No shell integration in default profile
 		ToolTerminalCreator._lastSuccessfulShell = ShellLaunchType.Fallback;
 		return toolTerminal;
 	}
 
-	/**
-	 * Synchronously update shell integration quality based on the terminal instance's current
-	 * capabilities. This is a defensive change to avoid no shell integration being sticky
-	 * https://github.com/microsoft/vscode/issues/260880
-	 *
-	 * Only upgrade quality just in case.
-	 */
 	refreshShellIntegrationQuality(toolTerminal: IToolTerminal) {
 		const commandDetection = toolTerminal.instance.capabilities.get(TerminalCapability.CommandDetection);
 		if (commandDetection) {
@@ -149,31 +129,16 @@ export class ToolTerminalCreator {
 		const shellPath = isString(shellOrProfile) ? shellOrProfile : shellOrProfile.path;
 
 		const env: Record<string, string> = {
-			// Let CLI tools detect that they are running inside an AI agent.
-			// This allows programs to adapt their output (e.g. JSON instead of
-			// ANSI, disable interactive prompts, skip animations).
-			// See https://github.com/microsoft/vscode/issues/311734
-			// `AI_AGENT` is the cross-vendor standard; `COPILOT_AGENT` is kept
-			// for back-compat with CLIs that already adopted it.
 			[AiAgentEnvVar]: AiAgentEnvValue,
 			COPILOT_AGENT: '1',
-			// Avoid making `git diff` interactive when called from copilot
 			GIT_PAGER: 'cat',
-			// Prevent git from opening an editor for merge commits
 			GIT_MERGE_AUTOEDIT: 'no',
-			// Prevent git from opening an editor (e.g. for commit --amend, rebase -i).
-			// `:` is a POSIX shell built-in no-op (returns 0), works cross-platform
-			// since git always invokes the editor via `sh -c`.
 			GIT_EDITOR: ':',
-			// Prevent apt/dpkg from opening interactive prompts (e.g. needrestart
-			// "Which services should be restarted?" dialogs). The agent cannot
-			// drive TUI prompts, so non-interactive mode picks safe defaults.
 			DEBIAN_FRONTEND: 'noninteractive',
 		};
 
 		const preventShellHistory = this._configurationService.getValue(TerminalChatAgentToolsSettingId.PreventShellHistory) === true;
 		if (preventShellHistory) {
-			// Check if the shell supports history exclusion via shell integration scripts
 			if (
 				isBash(shellPath, os) ||
 				isZsh(shellPath, os) ||
@@ -184,9 +149,6 @@ export class ToolTerminalCreator {
 			}
 		}
 
-		// Zsh-specific fixups for agent terminals: disable bang history
-		// expansion (prevents ! in double quotes from hanging on dquote>)
-		// and enable inline # comments (lets the agent annotate commands).
 		if (isZsh(shellPath, os)) {
 			env['VSCODE_AGENT_ZSH_FIXUPS'] = '1';
 		}
@@ -222,11 +184,6 @@ export class ToolTerminalCreator {
 		const store = new DisposableStore();
 		const result = new DeferredPromise<ShellIntegrationQuality>();
 
-		// When screen reader mode is on, allow extra time before giving up on shell integration.
-		// Cold-loading PSReadLine on Windows PowerShell 5.1 with accessibility mode enabled can
-		// push the `HasRichCommandDetection` sequence past the default window, which otherwise
-		// causes `shellIntegrationQuality` to be stuck at `None` and the "Enable shell integration"
-		// banner to show up incorrectly. Only extend non-zero timeouts so tests using 0 remain 0.
 		const isScreenReaderOptimized = this._accessibilityService.isScreenReaderOptimized();
 		const effectiveTimeoutMs = timeoutMs > 0 && isScreenReaderOptimized
 			? timeoutMs + 3000
@@ -240,7 +197,6 @@ export class ToolTerminalCreator {
 		}, effectiveTimeoutMs);
 
 		if (instance.capabilities.get(TerminalCapability.CommandDetection)?.hasRichCommandDetection) {
-			// Rich command detection is available immediately.
 			siNoneTimer.clear();
 			this._logService.info(`ToolTerminalCreator#_waitForShellIntegration: Rich SI available immediately`);
 			result.complete(ShellIntegrationQuality.Rich);
@@ -251,7 +207,6 @@ export class ToolTerminalCreator {
 					return;
 				}
 				siNoneTimer.clear();
-				// Rich command detection becomes available some time after the terminal is created.
 				this._logService.info(`ToolTerminalCreator#_waitForShellIntegration: Rich SI available eventually`);
 				result.complete(ShellIntegrationQuality.Rich);
 			}));
@@ -259,8 +214,6 @@ export class ToolTerminalCreator {
 			const commandDetection = instance.capabilities.get(TerminalCapability.CommandDetection);
 			if (commandDetection) {
 				siNoneTimer.clear();
-				// When SI lights up, allow up to 200ms for the rich command
-				// detection sequence to come in before declaring it as basic shell integration.
 				store.add(disposableTimeout(() => {
 					this._logService.info(`ToolTerminalCreator#_waitForShellIntegration: Timed out 200ms, using basic SI`);
 					result.complete(ShellIntegrationQuality.Basic);
@@ -268,9 +221,6 @@ export class ToolTerminalCreator {
 			} else {
 				store.add(instance.capabilities.onDidAddCommandDetectionCapability(e => {
 					siNoneTimer.clear();
-					// When command detection lights up, allow up to 200ms for the rich command
-					// detection sequence to come in before declaring it as basic shell
-					// integration.
 					store.add(disposableTimeout(() => {
 						this._logService.info(`ToolTerminalCreator#_waitForShellIntegration: Timed out 200ms, using basic SI (via listener)`);
 						result.complete(ShellIntegrationQuality.Basic);

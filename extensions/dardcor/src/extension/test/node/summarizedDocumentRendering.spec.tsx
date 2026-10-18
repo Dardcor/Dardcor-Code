@@ -81,7 +81,7 @@ suite('SummarizedDocumentRendering', () => {
 
 		const used = renderResult.tokenCount / (endpoint.modelMaxPromptTokens / 100);
 
-		assert.ok(used > 18, `Actual used token ${used}%`); // MUST use 75% of the budget
+		assert.ok(used > 18, `Actual used token ${used}%`);
 	});
 
 	test('SelectionAwareSummarizedDocument supports custom reply interpreter', async function () {
@@ -124,7 +124,6 @@ suite('SummarizedDocumentRendering', () => {
 				query: 'convert this to if/else',
 				chatVariables: new ChatVariablesCollection([]),
 				history: [new Turn(undefined, { message: 'Hello 1', type: 'user' }, undefined), new Turn(undefined, { message: 'Hello 2', type: 'user' }, undefined)],
-				// customInstructions: [],
 			}
 		});
 
@@ -133,7 +132,7 @@ suite('SummarizedDocumentRendering', () => {
 		assert.ok(renderResult.messages.some(m => getTextPart(m.content).includes('Hello 1') && getTextPart(m.content).includes('Hello 2')));
 
 		const used = renderResult.tokenCount / (endpoint.modelMaxPromptTokens / 100);
-		assert.ok(used > 18, `Actual used token ${used}%`); // MUST use 75% of the budget
+		assert.ok(used > 18, `Actual used token ${used}%`);
 	});
 
 	test('issue #2496: Range of interest is imprecise after a streaming edit', async function () {
@@ -158,7 +157,6 @@ suite('SummarizedDocumentRendering', () => {
 			query: '"avoid using recursion"',
 			chatVariables: new ChatVariablesCollection([]),
 			history: [previous],
-			// customInstructions: [],
 		};
 		const renderer = PromptRenderer.create(instaService, endpoint, InlineChatEditCodePrompt, {
 			documentContext: context,
@@ -173,6 +171,6 @@ suite('SummarizedDocumentRendering', () => {
 		assert.ok(renderResult.messages.find(candidate => getTextPart(candidate.content).includes('Here are my previous messages:')));
 
 		const used = renderResult.tokenCount / (endpoint.modelMaxPromptTokens / 100);
-		assert.ok(used > 30, `Actual used token ${used}%`); // this doesn't go hight because the file has a few very large removalable node
+		assert.ok(used > 30, `Actual used token ${used}%`);
 	});
 });

@@ -16,12 +16,9 @@ import { getAdjustedSelection } from '../adjustSelection';
 import { IDocumentSummarizationItem, ISummarizedDocumentSettings, ProjectedDocument, summarizeDocumentsSync } from './summarizeDocument';
 
 export function getCharLimit(tokensBudget: number): number {
-	return tokensBudget * 4; // roughly 4 chars per token
+	return tokensBudget * 4;
 }
 
-/**
- * The selection is first adjusted {@link getAdjustedSelection} and then the document is summarized using the adjusted selection.
-*/
 export async function adjustSelectionAndSummarizeDocument(
 	parserService: IParserService,
 	document: TextDocumentSnapshot,
@@ -100,9 +97,6 @@ export interface SummarizeDocumentsItem {
 	selection: Range | undefined;
 }
 
-/**
- * Summarizes multiple tokens against a shared token budget
- */
 export async function summarizeDocuments(
 	parserService: IParserService,
 	documentData: SummarizeDocumentsItem[],

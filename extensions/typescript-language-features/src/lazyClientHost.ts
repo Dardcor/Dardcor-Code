@@ -66,7 +66,6 @@ export function lazilyActivateClient(
 			hasActivated = true;
 
 			onActivate().then(() => {
-				// Force activation
 				void lazyClientHost.value;
 
 				disposables.push(new ManagedFileContextManager(activeJsTsEditorTracker));

@@ -95,10 +95,9 @@ export class CodebaseToolCallingLoop extends ToolCallingLoop<ICodebaseToolCallin
 				...requestOptions,
 				temperature: 0
 			},
-			// This loop is inside a tool called from another request, so never user initiated
 			false,
 			{
-				messageId: randomUUID(), // @TODO@joyceerhl
+				messageId: randomUUID(),
 				messageSource: CodebaseToolCallingLoop.ID
 			},
 		);

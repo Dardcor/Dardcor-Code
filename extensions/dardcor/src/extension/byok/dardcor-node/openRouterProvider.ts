@@ -25,26 +25,13 @@ interface OpenRouterModelData {
 	architecture?: {
 		input_modalities?: string[];
 	};
-	/**
-	 * The model's actual maximum context window, independent of which provider
-	 * OpenRouter ranks highest. Prefer this over `top_provider.context_length`,
-	 * which only reflects the primary provider and can be far smaller for
-	 * multi-provider models.
-	 * @see https://openrouter.ai/docs/guides/overview/models
-	 */
 	context_length?: number;
 	top_provider: {
 		context_length: number;
-		/** Maximum tokens the primary provider will produce in a response. */
 		max_completion_tokens?: number;
 	};
 }
 
-/**
- * Fallback output-token budget used only when OpenRouter does not report
- * `top_provider.max_completion_tokens` for a model. The value is heuristic — most
- * tool-capable models do report an explicit budget, in which case this is unused.
- */
 const DEFAULT_MAX_OUTPUT_TOKENS = 16_000;
 
 export class OpenRouterLMProvider extends AbstractOpenAICompatibleLMProvider {
@@ -84,19 +71,10 @@ export class OpenRouterLMProvider extends AbstractOpenAICompatibleLMProvider {
 	protected override resolveModelCapabilities(modelData: unknown): BYOKModelCapabilities | undefined {
 		const openRouterModelData = modelData as OpenRouterModelData;
 		const supportedParameters = openRouterModelData.supported_parameters ?? [];
-		// OpenRouter reports reasoning support per model via `supported_parameters`. The unified `reasoning` parameter and
-		// the OpenAI-style `reasoning_effort` alias both indicate the model accepts an effort level.
-		// See https://openrouter.ai/docs/use-cases/reasoning-tokens
 		const supportsReasoningEffort = supportedParameters.includes('reasoning') || supportedParameters.includes('reasoning_effort')
 			? ['low', 'medium', 'high']
 			: undefined;
-		// Prefer the model-level `context_length` (the real capability) over
-		// `top_provider.context_length`, which only reflects OpenRouter's
-		// highest-ranked provider and can be much smaller for multi-provider models.
 		const contextWindow = openRouterModelData.context_length ?? openRouterModelData.top_provider.context_length;
-		// Reserve output tokens from the window. Clamp the reserve so a small-context
-		// model (or a missing/oversized `max_completion_tokens`) never yields a
-		// non-positive prompt budget.
 		const requestedMaxOutputTokens = openRouterModelData.top_provider.max_completion_tokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
 		const maxOutputTokens = Math.min(requestedMaxOutputTokens, Math.floor(contextWindow / 2));
 		return {
@@ -114,9 +92,6 @@ export class OpenRouterLMProvider extends AbstractOpenAICompatibleLMProvider {
 		const isAnthropic = isAnthropicModelId(model.id);
 
 		if (isAnthropic) {
-			// Anthropic models on OpenRouter use the native Messages API which
-			// provides full cache_control, thinking, and tool support identical
-			// to the direct Anthropic API.
 			modelInfo.supported_endpoints = [ModelSupportedEndpoint.Messages];
 		}
 
@@ -128,22 +103,10 @@ export class OpenRouterLMProvider extends AbstractOpenAICompatibleLMProvider {
 	}
 }
 
-/**
- * Checks whether an OpenRouter model ID refers to an Anthropic model.
- * OpenRouter model IDs follow the format `provider/model-name`, e.g.
- * `anthropic/claude-sonnet-4` or `anthropic/claude-opus-4`.
- */
 function isAnthropicModelId(modelId: string): boolean {
 	return modelId.startsWith('anthropic/');
 }
 
-/**
- * OpenRouter-specific endpoint that routes Anthropic models through the native
- * Messages API (`/api/v1/messages`) for full prompt caching, thinking, and tool
- * support identical to the direct Anthropic API.
- *
- * @see https://openrouter.ai/docs/api/api-reference/anthropic-messages/create-messages
- */
 export class OpenRouterEndpoint extends OpenAIEndpoint {
 	constructor(
 		modelMetadata: IChatModelInformation,
@@ -161,12 +124,6 @@ export class OpenRouterEndpoint extends OpenAIEndpoint {
 		super(modelMetadata, apiKey, modelUrl, domainService, chatMLFetcher, tokenizerProvider, instantiationService, configurationService, expService, chatWebSocketService, logService);
 	}
 
-	/**
-	 * Enable the Messages API path for Anthropic models. This bypasses the
-	 * experiment flag check in the base class because BYOK models are always
-	 * user-controlled — the `supported_endpoints` metadata is already set
-	 * correctly by {@link OpenRouterLMProvider.createOpenAIEndPoint}.
-	 */
 	protected override get useMessagesApi(): boolean {
 		return !!this.modelMetadata.supported_endpoints?.includes(ModelSupportedEndpoint.Messages);
 	}

@@ -3,19 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------------------------
- *  Focused unit checks for Section 4 (Cargo.lock harvesting) of scan-licenses.ts.
- *
- *  Run:  npx tsx cargo-section4.test.ts
- *
- *  Covers (no network required):
- *    1. isSpdxStub truth table — true for all 17 known CG stub bodies, false for
- *       real short license bodies and license prose.
- *    2. parseCargoLock — extracts packages from cli/Cargo.lock + build/win32,
- *       skips workspace crates with no source, returns correct name/version for
- *       clap, jiff, slog, term.
- *    3. getCrateRepository — override map returns mirror URLs.
- *--------------------------------------------------------------------------------------------*/
 
 import fs from 'fs';
 import path from 'path';
@@ -34,10 +21,8 @@ function check(name: string, cond: boolean): void {
 	}
 }
 
-// -- 1. isSpdxStub truth table ------------------------------------------------
 console.log('isSpdxStub — known stub bodies (must be TRUE):');
 
-// SPDX strings confirmed via crates.io for each of the 17 known stub crates.
 const stubBodies: Array<[string, string]> = [
 	['objc2', 'Zlib OR Apache-2.0 OR MIT'],
 	['objc2-app-kit', 'Zlib OR Apache-2.0 OR MIT'],
@@ -56,8 +41,6 @@ const stubBodies: Array<[string, string]> = [
 	['winapi-i686-pc-windows-gnu', 'MIT/Apache-2.0'],
 	['winapi-x86_64-pc-windows-gnu', 'MIT/Apache-2.0'],
 	['yasna', 'MIT OR Apache-2.0'],
-	// Nested-paren compound (internal parens). Must still be detected as a stub
-	// so the SPDX-as-body never survives in the notice. (e.g. encoding_rs)
 	['encoding_rs', '(Apache-2.0 OR MIT) AND BSD-3-Clause'],
 	['nested-leading-paren', '(MIT OR Apache-2.0) AND BSD-3-Clause'],
 ];
@@ -98,9 +81,7 @@ check('real: bare permission prose line', isSpdxStub(prose) === false);
 check('real: empty body', isSpdxStub('') === false);
 check('real: whitespace only', isSpdxStub('   \n  ') === false);
 
-// -- 2. parseCargoLock --------------------------------------------------------
 console.log('parseCargoLock:');
-// Run from the oss dir (build/azure-pipelines/oss): repo root is three levels up.
 const repoRoot = path.resolve(process.cwd(), '..', '..', '..');
 const cliLockPath = path.join(repoRoot, 'cli', 'Cargo.lock');
 const win32LockPath = path.join(repoRoot, 'build', 'win32', 'Cargo.lock');
@@ -127,11 +108,9 @@ check('win32: slog present with version', !!slog && /^\d/.test(slog!.version));
 const term = win32Pkgs.find(p => p.name === 'term');
 check('win32: term present with version', !!term && /^\d/.test(term!.version));
 
-// Sanity: no parsed package has a quote/bracket leaking into its fields.
 check('parse: no malformed names', cliPkgs.every(p => /^[A-Za-z0-9_.-]+$/.test(p.name)));
 check('parse: no malformed versions', cliPkgs.every(p => /^[0-9]/.test(p.version)));
 
-// -- 3. getCrateRepository override map ---------------------------------------
 console.log('getCrateRepository override map:');
 const mk = (id: string) => ({ crate: { id, repository: 'https://example.com/wrong' }, versions: [] });
 check('isatty -> dtolnay/isatty', getCrateRepository(mk('isatty')) === 'https://github.com/dtolnay/isatty');
@@ -140,7 +119,6 @@ check('redox_termios -> redox-os/termios', getCrateRepository(mk('redox_termios'
 check('termion -> redox-os/termion', getCrateRepository(mk('termion')) === 'https://github.com/redox-os/termion');
 check('fallback -> crate.repository', getCrateRepository({ crate: { id: 'clap', repository: 'https://github.com/clap-rs/clap' }, versions: [] }) === 'https://github.com/clap-rs/clap');
 
-// -- 4. crateLicenseRefs ordering ---------------------------------------------
 console.log('crateLicenseRefs:');
 const refs = crateLicenseRefs('clap', '4.5.20');
 check('refs: v<version> first', refs[0] === 'v4.5.20');
@@ -149,7 +127,6 @@ check('refs: <name>-v<version>', refs[2] === 'clap-v4.5.20');
 check('refs: <name>-<version>', refs[3] === 'clap-4.5.20');
 check('refs: default-branch fallbacks last', refs.includes('main') && refs.includes('master'));
 
-// -- summary ------------------------------------------------------------------
 console.log('');
 console.log(`=== cargo-section4 unit checks: ${passed} passed, ${failed} failed ===`);
 process.exit(failed === 0 ? 0 : 1);

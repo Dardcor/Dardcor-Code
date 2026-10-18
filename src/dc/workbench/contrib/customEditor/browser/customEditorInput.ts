@@ -52,7 +52,6 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 		options?: { readonly customClasses?: string; readonly oldResource?: URI },
 	): EditorInput {
 		return instantiationService.invokeFunction(accessor => {
-			// If it's an untitled file we must populate the untitledDocumentData
 			const untitledTextEditorService = accessor.get(IUntitledTextEditorService);
 			const untitledTextModel = untitledTextEditorService.get(init.resource);
 			const untitledString = untitledTextModel?.textEditorModel?.getValue();
@@ -117,7 +116,6 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 	}
 
 	private registerListeners(): void {
-		// Clear our labels on certain label related events
 		this._register(this.labelService.onDidChangeFormatters(e => this.onLabelEvent(e.scheme)));
 		this._register(this.fileService.onDidChangeFileSystemProviderRegistrations(e => this.onLabelEvent(e.scheme)));
 		this._register(this.fileService.onDidChangeFileSystemProviderCapabilities(e => this.onLabelEvent(e.scheme)));
@@ -133,7 +131,6 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 
 	private updateLabel(): void {
 
-		// Clear any cached labels from before
 		this._editorName = undefined;
 		this._shortDescription = undefined;
 		this._mediumDescription = undefined;
@@ -142,7 +139,6 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 		this._mediumTitle = undefined;
 		this._longTitle = undefined;
 
-		// Trigger recompute of label
 		this._onDidChangeLabel.fire();
 	}
 
@@ -286,10 +282,9 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 
 		const target = await this._modelRef.object.saveCustomEditor(options);
 		if (!target) {
-			return undefined; // save cancelled
+			return undefined;
 		}
 
-		// Different URIs == untyped input returned to allow resolver to possibly resolve to a different editor type
 		if (!isEqual(target, this.resource)) {
 			return { resource: target };
 		}
@@ -305,7 +300,7 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 		const dialogPath = this._editorResource;
 		const target = await this.fileDialogService.pickFileToSave(dialogPath, options?.availableFileSystems);
 		if (!target) {
-			return undefined; // save cancelled
+			return undefined;
 		}
 
 		if (!await this._modelRef.object.saveCustomEditorAs(this._editorResource, target, options)) {
@@ -335,7 +330,6 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 			this._modelRef = this._register(assertReturnsDefined(await this.customEditorService.models.tryRetain(this.resource, this.viewType)));
 			this._register(this._modelRef.object.onDidChangeDirty(() => this._onDidChangeDirty.fire()));
 			this._register(this._modelRef.object.onDidChangeReadonly(() => this._onDidChangeCapabilities.fire()));
-			// If we're loading untitled file data we should ensure it's dirty
 			if (this._untitledDocumentData) {
 				this._defaultDirtyState = true;
 			}
@@ -351,7 +345,6 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 	}
 
 	public override async rename(group: GroupIdentifier, newResource: URI): Promise<IMoveResult | undefined> {
-		// We return an untyped editor input which can then be resolved in the editor service
 		return { editor: { resource: newResource } };
 	}
 
@@ -368,7 +361,6 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 	private _moveHandler?: (newResource: URI) => void;
 
 	public onMove(handler: (newResource: URI) => void): void {
-		// TODO: Move this to the service
 		this._moveHandler = handler;
 	}
 
@@ -436,11 +428,6 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 			const sourceWindowId = getWindow(this.webview.container).vscodeWindowId;
 			if (sourceWindowId !== targetWindowId) {
 
-				// The custom editor is modified, not backed by a file and without a backup.
-				// We have to assume that the modified state is enclosed into the webview
-				// managed by an extension. As such, we cannot just move the webview
-				// into another window because that means, we potentally loose the modified
-				// state and thus trigger data loss.
 
 				return localize('editorCannotMove', "Unable to move '{0}': The editor contains changes that can only be saved in its current window.", this.getName());
 			}

@@ -42,11 +42,6 @@ function hydrateBYOKErrorMessages(response: ChatResponse): ChatResponse {
 	return response;
 }
 
-/**
- * Checks to see if a given endpoint is a BYOK model.
- * @param endpoint The endpoint to check if it's a BYOK model
- * @returns 1 if client side byok, 2 if server side byok, -1 if not a byok model
- */
 export function isBYOKModel(endpoint: IChatEndpoint | undefined): number {
 	if (!endpoint) {
 		return -1;
@@ -55,10 +50,7 @@ export function isBYOKModel(endpoint: IChatEndpoint | undefined): number {
 }
 
 export class OpenAIEndpoint extends ChatEndpoint {
-	// Reserved headers that cannot be overridden for security and functionality reasons
-	// Including forbidden request headers: https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
 	private static readonly _reservedHeaders: ReadonlySet<string> = new Set([
-		// Forbidden Request Headers
 		'accept-charset',
 		'accept-encoding',
 		'access-control-request-headers',
@@ -80,12 +72,10 @@ export class OpenAIEndpoint extends ChatEndpoint {
 		'upgrade',
 		'user-agent',
 		'via',
-		// Forwarding & Routing
 		'forwarded',
 		'x-forwarded-for',
 		'x-forwarded-host',
 		'x-forwarded-proto',
-		// Others
 		'api-key',
 		'authorization',
 		'content-type',
@@ -97,16 +87,10 @@ export class OpenAIEndpoint extends ChatEndpoint {
 		'x-onbehalf-extension-id',
 		'x-request-id',
 		'x-vscode-user-agent-library-version',
-		// Pattern-based forbidden headers are checked separately:
-		// - 'proxy-*' headers (handled in sanitization logic)
-		// - 'sec-*' headers (handled in sanitization logic)
-		// - 'x-http-method*' with forbidden methods CONNECT, TRACE, TRACK (handled in sanitization logic)
 	]);
 
-	// RFC 7230 compliant header name pattern: token characters only
 	private static readonly _validHeaderNamePattern = /^[!#$%&'*+\-.0-9A-Z^_`a-z|~]+$/;
 
-	// Maximum limits to prevent abuse
 	private static readonly _maxHeaderNameLength = 256;
 	private static readonly _maxHeaderValueLength = 8192;
 	private static readonly _maxCustomHeaderCount = 20;
@@ -139,11 +123,6 @@ export class OpenAIEndpoint extends ChatEndpoint {
 		this._customHeaders = this._sanitizeCustomHeaders(_modelMetadata.requestHeaders);
 	}
 
-	/**
-	 * BYOK endpoints supply their own credential (`api-key` / `Authorization`)
-	 * via {@link getExtraHeaders}, so the chat fetcher must not fall back to the
-	 * CAPI Copilot bearer token nor raise a missing-key error for these requests.
-	 */
 	public readonly ownsAuthorization = true;
 
 	protected override getCompletionsCallback(): RawMessageConversionCallback {
@@ -206,13 +185,11 @@ export class OpenAIEndpoint extends ChatEndpoint {
 				continue;
 			}
 
-			// Check for pattern-based forbidden headers
 			if (lowerKey.startsWith('proxy-') || lowerKey.startsWith('sec-')) {
 				this.logService.warn(`[OpenAIEndpoint] Model '${this.modelMetadata.id}' attempted to set forbidden header pattern '${key}', skipping.`);
 				continue;
 			}
 
-			// Check for X-HTTP-Method* headers with forbidden methods
 			if ((lowerKey === 'x-http-method' || lowerKey === 'x-http-method-override' || lowerKey === 'x-method-override')) {
 				const forbiddenMethods = ['connect', 'trace', 'track'];
 				const methodValue = String(rawValue).toLowerCase().trim();
@@ -246,14 +223,10 @@ export class OpenAIEndpoint extends ChatEndpoint {
 			return undefined;
 		}
 
-		// Disallow control characters including CR, LF, and others (0x00-0x1F, 0x7F)
-		// This prevents HTTP header injection and response splitting attacks
 		if (/[\x00-\x1F\x7F]/.test(trimmed)) {
 			return undefined;
 		}
 
-		// Additional check for potential Unicode issues
-		// Reject headers with bidirectional override characters or zero-width characters
 		if (/[\u200B-\u200D\u202A-\u202E\uFEFF]/.test(trimmed)) {
 			return undefined;
 		}
@@ -263,10 +236,7 @@ export class OpenAIEndpoint extends ChatEndpoint {
 
 	override createRequestBody(options: ICreateEndpointBodyOptions): IEndpointBody {
 		if (this.useResponsesApi) {
-			// Handle Responses API: customize the body directly
 			const zdr = !!this.modelMetadata.zeroDataRetentionEnabled;
-			// When ZDR is on the server refuses to retain responses, so we must
-			// not chain via `previous_response_id` and must not ask it to `store`.
 			options.ignoreStatefulMarker = options.ignoreStatefulMarker || zdr;
 			const body = super.createRequestBody(options);
 			body.store = !zdr;
@@ -277,13 +247,11 @@ export class OpenAIEndpoint extends ChatEndpoint {
 				body.include = undefined;
 			}
 			if (body.previous_response_id && (!body.previous_response_id.startsWith('resp_') || zdr)) {
-				// Don't use a response ID from CAPI or when zero data retention is enabled
 				body.previous_response_id = undefined;
 			}
 			this._applyReasoningEffort(body, options);
 			return this._applyConfiguredModelOptions(body, options);
 		} else if (this.useMessagesApi) {
-			// Delegate to base ChatEndpoint for Messages API dispatch
 			const body = super.createRequestBody(options);
 			this._applyReasoningEffort(body, options);
 			return this._applyConfiguredModelOptions(body, options);
@@ -321,13 +289,6 @@ export class OpenAIEndpoint extends ChatEndpoint {
 		return body;
 	}
 
-	/**
-	 * Forwards the per-request reasoning effort to the model body in the shape the endpoint expects.
-	 * Default shape mirrors the API path (`Responses` \u2192 nested `reasoning.effort`, `Messages` \u2192 `output_config.effort`,
-	 * `Chat Completions` \u2192 top-level `reasoning_effort`).
-	 * `IChatModelInformation.reasoningEffortFormat` overrides the default so users hosting OpenAI-compatible servers
-	 * with diverging conventions (e.g. nested `reasoning.effort` on `/chat/completions`) can opt in deterministically.
-	 */
 	private _applyReasoningEffort(body: IEndpointBody, options: ICreateEndpointBodyOptions): void {
 		const supports = this.supportsReasoningEffort;
 		if (!supports?.length) {
@@ -338,16 +299,12 @@ export class OpenAIEndpoint extends ChatEndpoint {
 		const override = this._configurationService.getConfig(ConfigKey.Advanced.ReasoningEffortOverride);
 		const requested = override || options.modelCapabilities?.reasoningEffort || body.reasoning?.effort || body.reasoning_effort || body.output_config?.effort;
 		const effort = requested && supports.includes(requested) ? requested : undefined;
-		// Scrub any pre-populated effort first so unsupported values (e.g. the hard-coded `medium` default
-		// from `createResponsesRequestBody`) cannot leak through, then write the resolved value into the
-		// expected shape.
 		if (body.reasoning) {
 			const { effort: _drop, ...rest } = body.reasoning;
 			body.reasoning = Object.keys(rest).length > 0 ? rest : undefined;
 		}
 		body.reasoning_effort = undefined;
 		if (body.output_config) {
-			// Drop only the effort so other output_config fields (e.g. structured output format) survive
 			const { effort: _drop, ...rest } = body.output_config;
 			body.output_config = Object.keys(rest).length > 0 ? rest : undefined;
 		}
@@ -364,7 +321,6 @@ export class OpenAIEndpoint extends ChatEndpoint {
 
 	override interceptBody(body: IEndpointBody | undefined): void {
 		super.interceptBody(body);
-		// TODO @lramos15 - We should do this for all models and not just here
 		if (body?.tools?.length === 0) {
 			delete body.tools;
 		}
@@ -382,14 +338,10 @@ export class OpenAIEndpoint extends ChatEndpoint {
 			if (this.modelMetadata.capabilities.supports.thinking) {
 				delete body.temperature;
 				if (!this.useMessagesApi && !this.useResponsesApi) {
-					// OpenAI Chat Completions thinking models (e.g. o1/o3) require `max_completion_tokens` instead of `max_tokens`.
-					// Responses bodies use `max_output_tokens` natively, and Messages requires `max_tokens` — neither needs this rename.
 					body['max_completion_tokens'] = body.max_tokens;
 					delete body.max_tokens;
 				}
 			}
-			// Chat Completions: drop `max_tokens` so the server defaults to its maximum (preferred for BYOK).
-			// Responses uses `max_output_tokens`, so this delete is a no-op there. Messages requires `max_tokens`, so leave it alone.
 			if (!this.useMessagesApi) {
 				delete body.max_tokens;
 			}
@@ -424,7 +376,6 @@ export class OpenAIEndpoint extends ChatEndpoint {
 	}
 
 	public override async makeChatRequest2(options: IMakeChatRequestOptions, token: CancellationToken): Promise<ChatResponse> {
-		// Use ignoreStatefulMarker: false as the initial request default; the parent retry flow can override it on InvalidStatefulMarker retries.
 		const modifiedOptions: IMakeChatRequestOptions = { ...options, ignoreStatefulMarker: options.ignoreStatefulMarker ?? false };
 		const response = await super.makeChatRequest2(modifiedOptions, token);
 		return hydrateBYOKErrorMessages(response);

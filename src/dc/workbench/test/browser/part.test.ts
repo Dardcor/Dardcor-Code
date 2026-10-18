@@ -141,7 +141,6 @@ suite('Workbench parts', () => {
 
 		assert.strictEqual(part.getId(), 'myPart');
 
-		// Memento
 		// eslint-disable-next-line local/code-no-any-casts
 		let memento = part.testGetMemento(StorageScope.PROFILE, StorageTarget.MACHINE) as any;
 		assert(memento);
@@ -150,7 +149,6 @@ suite('Workbench parts', () => {
 
 		part.testSaveState();
 
-		// Re-Create to assert memento contents
 		part = disposables.add(new MyPart(b));
 
 		memento = part.testGetMemento(StorageScope.PROFILE, StorageTarget.MACHINE);
@@ -158,7 +156,6 @@ suite('Workbench parts', () => {
 		assert.strictEqual(memento.foo, 'bar');
 		assert.strictEqual(memento.bar.length, 3);
 
-		// Empty Memento stores empty object
 		delete memento.foo;
 		delete memento.bar;
 

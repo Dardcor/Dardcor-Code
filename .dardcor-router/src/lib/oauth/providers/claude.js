@@ -17,7 +17,6 @@ const claude = {
     return `${config.authorizeUrl}?${params.toString()}`;
   },
   exchangeToken: async (config, code, redirectUri, codeVerifier, state) => {
-    // Parse code - may contain state after #
     let authCode = code;
     let codeState = "";
     if (authCode.includes("#")) {

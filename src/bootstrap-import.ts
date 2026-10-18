@@ -3,19 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Redirect to node_modules from the remote folder when running out of sources.
 
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promises } from 'node:fs';
 import { join } from 'node:path';
 
-// SEE https://nodejs.org/docs/latest/api/module.html#initialize
 
 const _specifierToUrl: Record<string, string> = {};
 const _specifierToFormat: Record<string, string> = {};
 
 export async function initialize(injectPath: string): Promise<void> {
-	// populate mappings
 
 	const injectPackageJSONPath = fileURLToPath(new URL('../package.json', pathToFileURL(injectPath)));
 	const packageJSON = JSON.parse(String(await promises.readFile(injectPackageJSONPath)));
@@ -25,10 +22,6 @@ export async function initialize(injectPath: string): Promise<void> {
 			const path = join(injectPackageJSONPath, `../node_modules/${name}/package.json`);
 			const pkgJson = JSON.parse(String(await promises.readFile(path)));
 
-			// Determine the entry point: prefer exports["."].import for ESM, then main.
-			// Handle conditional export targets where exports["."].import/default
-			// can be a string or an object with a string `default` field.
-			// (Added for copilot-sdk)
 			let main: string | undefined;
 			if (pkgJson.exports?.['.']) {
 				const dotExport = pkgJson.exports['.'];
@@ -62,7 +55,6 @@ export async function initialize(injectPath: string): Promise<void> {
 			}
 			const mainPath = join(injectPackageJSONPath, `../node_modules/${name}/${main}`);
 			_specifierToUrl[name] = pathToFileURL(mainPath).href;
-			// Determine module format: .mjs is always ESM, .cjs always CJS, otherwise check type field
 			const isModule = main.endsWith('.mjs')
 				? true
 				: main.endsWith('.cjs')
@@ -90,7 +82,5 @@ export async function resolve(specifier: string | number, context: unknown, next
 		};
 	}
 
-	// Defer to the next hook in the chain, which would be the
-	// Node.js default resolve if this is the last user-specified loader.
 	return nextResolve(specifier, context);
 }

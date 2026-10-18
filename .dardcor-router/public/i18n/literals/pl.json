@@ -173,9 +173,7 @@
   "Cert": "Certyfikat",
   "Server": "Serwer",
   "Purpose:": "Cel:",
-  "Use Antigravity IDE & GitHub Copilot → with ANY provider/model from Dardcor Code": "Użyj Antigravity IDE i GitHub Copilot → z DOWOLNYM dostawcą/modelem z Dardcor Code",
   "How it works:": "Jak to działa:",
-  "Antigravity/Copilot IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Code → response to Antigravity/Copilot": "Żądanie Antigravity/Copilot IDE → Przekierowanie DNS na localhost:443 → Serwer proxy MITM przechwytuje → Dardcor Code → odpowiedź do Antigravity/Copilot",
   "No API keys — create one in Keys page": "Brak kluczy API — utwórz jeden na stronie Klucze",
   "e.g. a warm, gentle voice, speaking slowly with a British accent": "np.: ciepły, delikatny głos, mówiący powoli z brytyjskim akcentem",
   "sk_dardcor-code (default)": "sk_dardcor-code (domyślnie)",
@@ -192,6 +190,5 @@
   "Sudo Password": "Hasło sudo",
   "Click to add, click again to remove. Changes are saved automatically.": "Kliknij, aby dodać, kliknij ponownie, aby usunąć. Zmiany są zapisywane automatycznie.",
   "⚠️ Risk Notice: This provider uses a subscription/OAuth session not officially licensed for proxy/router use. Account may be restricted or banned. Use at your own risk.": "⚠️ Ostrzeżenie o ryzyku: Ten dostawca używa sesji subskrypcji/OAuth, która nie jest oficjalnie licencjonowana do użytku proxy/routera. Konto może zostać ograniczone lub zbanowane. Używaj na własne ryzyko.",
-  "⚠️ MITM intercepts HTTPS traffic of IDE tools (Antigravity, GitHub Copilot, Kiro) via local CA to redirect requests to your providers. May violate ToS → account ban. Use at your own risk.": "⚠️ MITM przechwytuje ruch HTTPS narzędzi IDE (Antigravity, GitHub Copilot, Kiro) przez lokalne CA, aby przekierować żądania do twoich dostawców. Może naruszyć ToS → ryzyko zbanowania konta. Używaj na własne ryzyko.",
   "Endpoint is exposed without an API key.": "Punkt końcowy jest dostępny bez klucza API."
 }

@@ -32,7 +32,7 @@ import { getAdditionalWelcomeMessage } from './welcomeMessageProvider';
 export class ChatAgentService implements IChatAgentService {
 	declare readonly _serviceBrand: undefined;
 
-	private _lastChatAgents: ChatAgents | undefined; // will be cleared when disposed
+	private _lastChatAgents: ChatAgents | undefined;
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
@@ -110,9 +110,8 @@ class ChatAgents implements IDisposable {
 	}
 
 	private registerVSCodeAgent(): IDisposable {
-		const useInsidersIcon = vscode.env.appName.includes('Insiders') || vscode.env.appName.includes('OSS');
 		const vscodeAgent = this.createAgent(vscodeAgentName, Intent.VSCode);
-		vscodeAgent.iconPath = useInsidersIcon ? new vscode.ThemeIcon('vscode-insiders') : new vscode.ThemeIcon('vscode');
+		vscodeAgent.iconPath = new vscode.ThemeIcon('dardcor-code');
 		return vscodeAgent;
 	}
 
@@ -205,38 +204,23 @@ Learn more about [Dardcor AI](https://dardcor-code.web.id/docs) in [Dardcor Code
 		return async (request, context, stream, token): Promise<vscode.ChatResult> => {
 			markChatExt(request.sessionId, ChatExtPerfMark.WillHandleParticipant);
 			try {
-				// If we need to switch to the base model, this function will handle it
-				// Otherwise it just returns the same request passed into it
 				request = await this.switchToBaseModel(request, stream);
 
-				// Handle switch-to-auto confirmation button clicks from rate limit errors
 				const switchToAutoConfirmation = getSwitchToAutoOnRateLimitConfirmation(request);
 				if (switchToAutoConfirmation) {
 					const action = switchToAutoConfirmation.alwaysSwitchToAuto ? 'switchToAutoAlways' : 'switchToAuto';
-					/* __GDPR__
-						"chatRateLimitAction" : {
-							"owner": "lramos15",
-							"comment": "Tracks which action users take when rate limited",
-							"action": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The action taken: switchToAuto, switchToAutoAlways, tryAgain, or autoSwitch." },
-							"modelId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model ID the user was rate limited on." }
-						}
-					*/
 					this.telemetryService.sendMSFTTelemetryEvent('chatRateLimitAction', { action, modelId: request.model?.id });
 					request = await this.switchToAutoModel(request, stream, switchToAutoConfirmation.alwaysSwitchToAuto);
 				} else if (isContinueOnError(request)) {
 					this.telemetryService.sendMSFTTelemetryEvent('chatRateLimitAction', { action: 'tryAgain', modelId: request.model?.id });
 				}
 
-				// The user is starting an interaction with the chat
 				if (!request.subAgentInvocationId) {
 					this.interactionService.startInteraction();
 				}
 
-				// Generate a shared telemetry message ID on the first turn only — subsequent turns have no
-				// categorization event to join and ChatTelemetryBuilder will generate its own ID.
 				const telemetryMessageId = context.history.length === 0 ? generateUuid() : undefined;
 
-				// Categorize the first prompt (fire-and-forget)
 				if (telemetryMessageId !== undefined) {
 					this.promptCategorizerService.categorizePrompt(request, context, telemetryMessageId);
 				}
@@ -245,7 +229,6 @@ Learn more about [Dardcor AI](https://dardcor-code.web.id/docs) in [Dardcor Code
 					defaultIntentIdOrGetter(request) :
 					defaultIntentIdOrGetter;
 
-				// empty chatAgentArgs will force InteractiveSession to not use a command or try to parse one out of the query
 				const commandsForAgent = agentsToCommands[defaultIntentId];
 				const intentId = request.command && commandsForAgent ?
 					commandsForAgent[request.command] :
@@ -255,7 +238,6 @@ Learn more about [Dardcor AI](https://dardcor-code.web.id/docs) in [Dardcor Code
 
 				let result = await handler.getResult();
 
-				// Auto-retry with Auto model when the setting is enabled and the handler signals it
 				if ((result as ICopilotChatResultIn).metadata?.shouldAutoSwitchToAuto) {
 					const previousModelId = request.model?.id;
 					const switchedRequest = await this.switchToAutoModel(request, stream, false);
@@ -277,7 +259,6 @@ Learn more about [Dardcor AI](https://dardcor-code.web.id/docs) in [Dardcor Code
 
 	private async switchToBaseModel(request: vscode.ChatRequest, stream: vscode.ChatResponseStream): Promise<ChatRequest> {
 		const endpoint = await this.endpointProvider.getChatEndpoint(request);
-		// If it has a 0x multipler, it's free so don't switch them. If it's BYOK, it's free so don't switch them.
 		if (endpoint.multiplier === 0 || request.model.vendor !== 'dardcor' || endpoint.multiplier === undefined) {
 			return request;
 		}
@@ -290,14 +271,12 @@ Learn more about [Dardcor AI](https://dardcor-code.web.id/docs) in [Dardcor Code
 			return request;
 		}
 		await vscode.commands.executeCommand('workbench.action.chat.changeModel', { vendor: baseLmModel.vendor, id: baseLmModel.id, family: baseLmModel.family });
-		// Switch to the base model and show a warning
 		request = { ...request, model: baseLmModel };
 		let messageString: vscode.MarkdownString;
 		if (this.authenticationService.dardcorToken?.isIndividual) {
 			messageString = new vscode.MarkdownString(vscode.l10n.t({
 				message: 'You have reached your additional budget limit for this month. We have automatically switched you to {0} which is included with your plan. [Manage Budget]({1}) to keep going.',
 				args: [baseEndpoint.name, 'command:chat.enableAdditionalUsage'],
-				// To make sure the translators don't break the link
 				comment: [`{Locked=']({'}`]
 			}));
 			messageString.isTrusted = { enabledCommands: ['chat.enableAdditionalUsage'] };

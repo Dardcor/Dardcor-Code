@@ -268,7 +268,6 @@ suite('TextAreaInput', () => {
 	}
 
 	test('macOS - Chrome - Korean using 2-Set Korean (1)', async () => {
-		// macOS, 2-Set Korean, type 'dkrk' and click
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'none' },
@@ -329,8 +328,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('macOS - Chrome - Korean using 2-Set Korean (2)', async () => {
-		// macOS, 2-Set Korean, type 'qud' and click
-		// See https://github.com/microsoft/vscode/issues/134254
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'none' },
@@ -374,7 +371,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('macOS - Chrome - Japanese using Hiragana (Google)', async () => {
-		// macOS, Hiragana (Google), type 'sennsei' and Enter
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'none' },
@@ -453,7 +449,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('macOS - Chrome - Chinese using Pinyin - Traditional', async () => {
-		// macOS, Pinyin - Traditional, type 'xu' and '1'
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'none' },
@@ -497,8 +492,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('macOS - Chrome - long press with arrow keys', async () => {
-		// macOS, English, long press o, press arrow right twice and then press Enter
-		// See https://github.com/microsoft/vscode/issues/67739
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'none' },
@@ -553,7 +546,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('macOS - Chrome - pressing quotes on US Intl', async () => {
-		// macOS, US International - PC, press ', ', ;
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'none' },
@@ -607,8 +599,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('macOS - Chrome - inserting emoji using ctrl+cmd+space', async () => {
-		// macOS, English, press ctrl+cmd+space, and then pick an emoji using the mouse
-		// See https://github.com/microsoft/vscode/issues/4271
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'none' },
@@ -635,8 +625,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('macOS - Firefox - long press with mouse', async () => {
-		// macOS, English, long press e and choose using mouse
-		// See https://github.com/microsoft/monaco-editor/issues/2358
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: true, isChrome: false, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -669,8 +657,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('macOS - Firefox - inserting emojis', async () => {
-		// macOS, English, from the edit menu, click Emoji & Symbols, select an emoji
-		// See https://github.com/microsoft/vscode/issues/106392
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Macintosh, browser: { isAndroid: false, isFirefox: true, isChrome: false, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -734,7 +720,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Windows - Chrome - Japanese using Hiragana', async () => {
-		// Windows, Japanese/Hiragana, type 'sennsei' and Enter
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Windows, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -820,7 +805,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Windows 11 - Chrome - Japanese using Hiragana', async () => {
-		// Windows, Japanese/Hiragana, type 'sennsei' and Enter
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Windows, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -906,7 +890,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Windows - Chrome - Korean (1)', async () => {
-		// Windows, Korean, type 'dkrk' and click
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Windows, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -967,7 +950,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Windows 11 - Chrome - Korean (1)', async () => {
-		// Windows, Korean, type 'dkrk' and Space
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Windows, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 
@@ -1039,7 +1021,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Windows - Chrome - Korean (2)', async () => {
-		// Windows, Korean, type 'gksrmf' and Space
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Windows, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -1127,7 +1108,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Windows 11 - Chrome - Korean (2)', async () => {
-		// Windows, Korean, type 'gksrmf' and Space
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Windows, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -1216,7 +1196,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Windows - Chrome - Chinese', async () => {
-		// Windows, Chinese, Type 'ni' press Space and then 'hao' and press Space.
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Windows, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -1300,7 +1279,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Windows 11 - Chrome - Chinese', async () => {
-		// Windows, Chinese, Type 'ni' press Space and then 'hao' and press Space.
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Windows, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },
@@ -1384,7 +1362,6 @@ suite('TextAreaInput', () => {
 	});
 
 	test('Linux - Chrome - Korean', async () => {
-		// Linux, fcitx Hangul, Type 'rkr' and then click.
 		const recorded: IRecorded = {
 			env: { OS: OperatingSystem.Linux, browser: { isAndroid: false, isFirefox: false, isChrome: true, isSafari: false } },
 			initial: { value: 'aaaa', selectionStart: 2, selectionEnd: 2, selectionDirection: 'forward' },

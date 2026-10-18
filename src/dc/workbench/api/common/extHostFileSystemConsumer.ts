@@ -42,7 +42,6 @@ export class ExtHostConsumerFileSystem {
 
 					const provider = that._fileSystemProvider.get(uri.scheme);
 					if (provider) {
-						// use shortcut
 						await that._proxy.$ensureActivation(uri.scheme);
 						stat = await provider.impl.stat(uri);
 					} else {
@@ -64,9 +63,8 @@ export class ExtHostConsumerFileSystem {
 				try {
 					const provider = that._fileSystemProvider.get(uri.scheme);
 					if (provider) {
-						// use shortcut
 						await that._proxy.$ensureActivation(uri.scheme);
-						return (await provider.impl.readDirectory(uri)).slice(); // safe-copy
+						return (await provider.impl.readDirectory(uri)).slice();
 					} else {
 						return await that._proxy.$readdir(uri);
 					}
@@ -78,7 +76,6 @@ export class ExtHostConsumerFileSystem {
 				try {
 					const provider = that._fileSystemProvider.get(uri.scheme);
 					if (provider && !provider.isReadonly) {
-						// use shortcut
 						await that._proxy.$ensureActivation(uri.scheme);
 						return await that.mkdirp(provider.impl, provider.extUri, uri);
 					} else {
@@ -92,9 +89,8 @@ export class ExtHostConsumerFileSystem {
 				try {
 					const provider = that._fileSystemProvider.get(uri.scheme);
 					if (provider) {
-						// use shortcut
 						await that._proxy.$ensureActivation(uri.scheme);
-						return (await provider.impl.readFile(uri)).slice(); // safe-copy
+						return (await provider.impl.readFile(uri)).slice();
 					} else {
 						const buff = await that._proxy.$readFile(uri);
 						return buff.buffer;
@@ -107,7 +103,6 @@ export class ExtHostConsumerFileSystem {
 				try {
 					const provider = that._fileSystemProvider.get(uri.scheme);
 					if (provider && !provider.isReadonly) {
-						// use shortcut
 						await that._proxy.$ensureActivation(uri.scheme);
 						await that.mkdirp(provider.impl, provider.extUri, provider.extUri.dirname(uri));
 						return await that._writeQueue.queueFor(uri, () => Promise.resolve(provider.impl.writeFile(uri, content, { create: true, overwrite: true })));
@@ -121,8 +116,7 @@ export class ExtHostConsumerFileSystem {
 			async delete(uri: vscode.Uri, options?: { recursive?: boolean; useTrash?: boolean }): Promise<void> {
 				try {
 					const provider = that._fileSystemProvider.get(uri.scheme);
-					if (provider && !provider.isReadonly && !options?.useTrash /* no shortcut: use trash */) {
-						// use shortcut
+					if (provider && !provider.isReadonly && !options?.useTrash ) {
 						await that._proxy.$ensureActivation(uri.scheme);
 						return await provider.impl.delete(uri, { recursive: false, ...options });
 					} else {
@@ -134,7 +128,6 @@ export class ExtHostConsumerFileSystem {
 			},
 			async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options?: { overwrite?: boolean }): Promise<void> {
 				try {
-					// no shortcut: potentially involves different schemes, does mkdirp
 					return await that._proxy.$rename(oldUri, newUri, { ...{ overwrite: false }, ...options });
 				} catch (err) {
 					return ExtHostConsumerFileSystem._handleError(err);
@@ -142,7 +135,6 @@ export class ExtHostConsumerFileSystem {
 			},
 			async copy(source: vscode.Uri, destination: vscode.Uri, options?: { overwrite?: boolean }): Promise<void> {
 				try {
-					// no shortcut: potentially involves different schemes, does mkdirp
 					return await that._proxy.$copy(source, destination, { ...{ overwrite: false }, ...options });
 				} catch (err) {
 					return ExtHostConsumerFileSystem._handleError(err);
@@ -168,13 +160,12 @@ export class ExtHostConsumerFileSystem {
 					throw FileSystemError.FileExists(`Unable to create folder '${directory.scheme === Schemas.file ? directory.fsPath : directory.toString(true)}' that already exists but is not a directory`);
 				}
 
-				break; // we have hit a directory that exists -> good
+				break;
 			} catch (error) {
 				if (files.toFileSystemProviderErrorCode(error) !== files.FileSystemProviderErrorCode.FileNotFound) {
 					throw error;
 				}
 
-				// further go up and remember to create this directory
 				directoriesToCreate.push(providerExtUri.basename(directory));
 				directory = providerExtUri.dirname(directory);
 			}
@@ -187,14 +178,6 @@ export class ExtHostConsumerFileSystem {
 				await provider.createDirectory(directory);
 			} catch (error) {
 				if (files.toFileSystemProviderErrorCode(error) !== files.FileSystemProviderErrorCode.FileExists) {
-					// For mkdirp() we tolerate that the mkdir() call fails
-					// in case the folder already exists. This follows node.js
-					// own implementation of fs.mkdir({ recursive: true }) and
-					// reduces the chances of race conditions leading to errors
-					// if multiple calls try to create the same folders
-					// As such, we only throw an error here if it is other than
-					// the fact that the file already exists.
-					// (see also https://github.com/microsoft/vscode/issues/89834)
 					throw error;
 				}
 			}
@@ -202,12 +185,10 @@ export class ExtHostConsumerFileSystem {
 	}
 
 	private static _handleError(err: any): never {
-		// desired error type
 		if (err instanceof FileSystemError) {
 			throw err;
 		}
 
-		// file system provider error
 		if (err instanceof files.FileSystemProviderError) {
 			switch (err.code) {
 				case files.FileSystemProviderErrorCode.FileExists: throw FileSystemError.FileExists(err.message);
@@ -221,17 +202,14 @@ export class ExtHostConsumerFileSystem {
 			}
 		}
 
-		// generic error
 		if (!(err instanceof Error)) {
 			throw new FileSystemError(String(err));
 		}
 
-		// no provider (unknown scheme) error
 		if (err.name === 'ENOPRO' || err.message.includes('ENOPRO')) {
 			throw FileSystemError.Unavailable(err.message);
 		}
 
-		// file system error
 		switch (err.name) {
 			case files.FileSystemProviderErrorCode.FileExists: throw FileSystemError.FileExists(err.message);
 			case files.FileSystemProviderErrorCode.FileNotFound: throw FileSystemError.FileNotFound(err.message);
@@ -244,7 +222,6 @@ export class ExtHostConsumerFileSystem {
 		}
 	}
 
-	// ---
 
 	addFileSystemProvider(scheme: string, provider: vscode.FileSystemProvider, options?: { isCaseSensitive?: boolean; isReadonly?: boolean | IMarkdownString }): IDisposable {
 		this._fileSystemProvider.set(scheme, { impl: provider, extUri: options?.isCaseSensitive ? extUri : extUriIgnorePathCase, isReadonly: !!options?.isReadonly });

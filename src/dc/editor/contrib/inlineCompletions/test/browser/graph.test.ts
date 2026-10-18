@@ -47,7 +47,7 @@ suite('DirectedGraph', () => {
 		const getOutgoing = (node: string) => {
 			switch (node) {
 				case 'a':
-					return ['b', 'b']; // Duplicate edge
+					return ['b', 'b'];
 				case 'b':
 					return [];
 				default:
@@ -92,7 +92,7 @@ suite('DirectedGraph', () => {
 				case 'a':
 					return ['b'];
 				case 'b':
-					return ['a']; // Creates cycle
+					return ['a'];
 				default:
 					return [];
 			}
@@ -106,7 +106,6 @@ suite('DirectedGraph', () => {
 			result.foundCycles.includes('a') || result.foundCycles.includes('b')
 		);
 
-		// After removing cycles, one of the edges should be removed
 		const aOutgoing = graph.getOutgoing('a');
 		const bOutgoing = graph.getOutgoing('b');
 		assert.ok(
@@ -120,7 +119,7 @@ suite('DirectedGraph', () => {
 		const getOutgoing = (node: string) => {
 			switch (node) {
 				case 'a':
-					return ['a']; // Self loop
+					return ['a'];
 				default:
 					return [];
 			}
@@ -142,7 +141,7 @@ suite('DirectedGraph', () => {
 				case 'b':
 					return ['c'];
 				case 'c':
-					return ['d', 'a']; // Creates cycle back to 'a'
+					return ['d', 'a'];
 				case 'd':
 					return [];
 				default:
@@ -155,7 +154,6 @@ suite('DirectedGraph', () => {
 
 		assert.ok(result.foundCycles.length >= 1);
 
-		// After removing cycles, there should be no path back to 'a' from 'c'
 		const cOutgoing = graph.getOutgoing('c');
 		assert.ok(!cOutgoing.includes('a'));
 	});
@@ -167,11 +165,11 @@ suite('DirectedGraph', () => {
 				case 'a':
 					return ['b'];
 				case 'b':
-					return ['a']; // Cycle 1: a <-> b
+					return ['a'];
 				case 'c':
 					return ['d'];
 				case 'd':
-					return ['c']; // Cycle 2: c <-> d
+					return ['c'];
 				default:
 					return [];
 			}
@@ -182,7 +180,6 @@ suite('DirectedGraph', () => {
 
 		assert.ok(result.foundCycles.length >= 2);
 
-		// After removing cycles, each pair should have only one direction
 		const aOutgoing = graph.getOutgoing('a');
 		const bOutgoing = graph.getOutgoing('b');
 		const cOutgoing = graph.getOutgoing('c');

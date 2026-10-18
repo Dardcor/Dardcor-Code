@@ -29,9 +29,6 @@ export class RemoteFileSystemProviderClient extends DiskFileSystemProviderClient
 			try {
 				const environment = await remoteAgentService.getRawEnvironment();
 				if (environment) {
-					// Register remote fsp even before it is asked to activate
-					// because, some features (configuration) wait for its
-					// registration before making fs calls.
 					fileService.registerProvider(Schemas.vscodeRemote, disposables.add(new RemoteFileSystemProviderClient(environment, connection)));
 				} else {
 					logService.error('Cannot register remote filesystem provider. Remote environment doesnot exist.');

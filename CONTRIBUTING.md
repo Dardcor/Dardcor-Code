@@ -62,7 +62,7 @@ For daily development, you do not need to rebuild the entire application every t
 
 ### Compilation Scripts
 - `npm run compile-client` — Compiles the workbench, Monaco editor, and renderer sources.
-- `npm run compile-copilot` — Compiles the Dardcor AI Copilot extension located in `extensions/dardcor/`.
+- `npm run compile-dardcor-chat` — Compiles the Dardcor chat extension located in `extensions/dardcor/`.
 - `npm run compile-router` — Builds the standalone Next.js AI router application in `.dardcor-router/`.
 - `npm run watch-client` — Starts an incremental file watcher for the client; re-compiles modified files automatically.
 

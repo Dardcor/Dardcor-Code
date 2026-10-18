@@ -102,7 +102,7 @@ suite('Files - NativeTextFileService i/o', function () {
 
 			return detectEncodingByBOMFromBuffer(buffer.slice(0, 3), 3);
 		} catch (error) {
-			return null; // ignore errors (like file not found)
+			return null;
 		}
 	}
 

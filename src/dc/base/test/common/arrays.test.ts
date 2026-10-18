@@ -153,7 +153,6 @@ suite('Arrays', () => {
 		assert.strictEqual(arrays.binarySearch(array, 1, compare), 0);
 		assert.strictEqual(arrays.binarySearch(array, 5, compare), 2);
 
-		// insertion point
 		assert.strictEqual(arrays.binarySearch(array, 0, compare), ~0);
 		assert.strictEqual(arrays.binarySearch(array, 6, compare), ~3);
 		assert.strictEqual(arrays.binarySearch(array, 70, compare), ~10);
@@ -170,7 +169,6 @@ suite('Arrays', () => {
 		assert.strictEqual(arrays.binarySearch2(10, compareTo(1)), 0);
 		assert.strictEqual(arrays.binarySearch2(10, compareTo(5)), 2);
 
-		// insertion point
 		assert.strictEqual(arrays.binarySearch2(10, compareTo(0)), ~0);
 		assert.strictEqual(arrays.binarySearch2(10, compareTo(6)), ~3);
 		assert.strictEqual(arrays.binarySearch2(10, compareTo(70)), ~10);
@@ -331,7 +329,6 @@ suite('Arrays', () => {
 	});
 
 	test('splice', function () {
-		// negative start index, absolute value greater than the length
 		let array = [1, 2, 3, 4, 5];
 		arrays.splice(array, -6, 3, [6, 7]);
 		assert.strictEqual(array.length, 4);
@@ -340,7 +337,6 @@ suite('Arrays', () => {
 		assert.strictEqual(array[2], 4);
 		assert.strictEqual(array[3], 5);
 
-		// negative start index, absolute value less than the length
 		array = [1, 2, 3, 4, 5];
 		arrays.splice(array, -3, 3, [6, 7]);
 		assert.strictEqual(array.length, 4);
@@ -349,7 +345,6 @@ suite('Arrays', () => {
 		assert.strictEqual(array[2], 6);
 		assert.strictEqual(array[3], 7);
 
-		// Start index less than the length
 		array = [1, 2, 3, 4, 5];
 		arrays.splice(array, 3, 3, [6, 7]);
 		assert.strictEqual(array.length, 5);
@@ -359,7 +354,6 @@ suite('Arrays', () => {
 		assert.strictEqual(array[3], 6);
 		assert.strictEqual(array[4], 7);
 
-		// Start index greater than the length
 		array = [1, 2, 3, 4, 5];
 		arrays.splice(array, 6, 3, [6, 7]);
 		assert.strictEqual(array.length, 7);

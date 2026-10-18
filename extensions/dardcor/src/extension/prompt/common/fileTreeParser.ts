@@ -7,11 +7,6 @@ import type * as vscode from 'vscode';
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { ChatResponseFileTreePart } from '../../../dardcorTypes';
 
-/**
- * Converts a markdown-style file tree into a ChatResponseFileTreePart.
- * @param fileStructure Markdown-style file tree
- * @param generatePreviewURI Factory that converts a filename to a preview URI
- */
 export function convertFileTreeToChatResponseFileTree(
 	fileStructure: string,
 	generatePreviewURI: (filename: string) => URI,
@@ -61,9 +56,6 @@ export function convertFileTreeToChatResponseFileTree(
 	};
 }
 
-/**
- * List filenames in the tree, separated by forward-slashes.
- */
 export function listFilesInResponseFileTree(tree: vscode.ChatResponseFileTree[]): string[] {
 	const queue = tree.map(node => ({ node, path: node.name }));
 	const result: string[] = [];
@@ -93,9 +85,9 @@ function calculateDepth(inputString: string): number {
 }
 
 const filterList = [
-	/* compile/runtime files */ 'node_modules', 'out', 'bin', 'debug', 'obj', 'lib', '.dll', '.pdb', '.lib',
-	/* image assets */ '.jpg', '.png', '.ico', '.gif', '.svg', '.jpeg', '.tiff', '.bmp', '.webp', '.jpeg',
-	/* other files we should not be included in a new project */'.gitignore', 'LICENSE.txt', 'yarn.lock', 'package-lock.json'
+	'node_modules', 'out', 'bin', 'debug', 'obj', 'lib', '.dll', '.pdb', '.lib',
+	'.jpg', '.png', '.ico', '.gif', '.svg', '.jpeg', '.tiff', '.bmp', '.webp', '.jpeg',
+	'.gitignore', 'LICENSE.txt', 'yarn.lock', 'package-lock.json'
 ];
 
 function filterChatResponseFileTree(fileTree: vscode.ChatResponseFileTree[]): vscode.ChatResponseFileTree[] {
@@ -122,12 +114,6 @@ function isNodeInFilterList(node: vscode.ChatResponseFileTree): boolean {
 	return false;
 }
 
-/**
- * Guards against path traversal: a file tree node name must be a single, plain
- * path segment. Names that are empty, the current/parent directory (`.`/`..`),
- * or that contain path separators (`/` or `\`) could escape the generated
- * workspace folder when joined to a destination path and must be rejected.
- */
 export function isUnsafeNodeName(name: string): boolean {
 	if (!name || name === '.' || name === '..') {
 		return true;

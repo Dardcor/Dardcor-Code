@@ -26,25 +26,16 @@ enum Constants {
 	MaxRestarts = 5
 }
 
-/**
- * This service implements IPtyService by launching a pty host process, forwarding messages to and
- * from the pty host process and manages the connection.
- */
 export class PtyHostService extends Disposable implements IPtyHostService {
 	declare readonly _serviceBrand: undefined;
 
 	private __connection?: IPtyHostConnection;
-	// ProxyChannel is not used here because events get lost when forwarding across multiple proxies
 	private __proxy?: IPtyService;
 
 	private get _proxy(): IPtyService {
 		this._ensurePtyHost();
 		return this.__proxy!;
 	}
-	/**
-	 * Get the proxy if it exists, otherwise undefined. This is used when calls are not needed to be
-	 * passed through to the pty host if it has not yet been spawned.
-	 */
 	private get _optionalProxy(): IPtyService | undefined {
 		return this.__proxy;
 	}
@@ -98,8 +89,6 @@ export class PtyHostService extends Disposable implements IPtyHostService {
 	) {
 		super();
 
-		// Platform configuration is required on the process running the pty host (shared process or
-		// remote server).
 		registerTerminalPlatformConfiguration();
 
 		this._register(this._ptyHostStarter);
@@ -108,7 +97,6 @@ export class PtyHostService extends Disposable implements IPtyHostService {
 		this._resolveVariablesRequestStore = this._register(new RequestStore(undefined, this._logService));
 		this._register(this._resolveVariablesRequestStore.onCreateRequest(this._onPtyHostRequestResolveVariables.fire, this._onPtyHostRequestResolveVariables));
 
-		// Start the pty host when a window requests a connection, if the starter has that capability.
 		if (this._ptyHostStarter.onRequestConnection) {
 			this._register(Event.once(this._ptyHostStarter.onRequestConnection)(() => this._ensurePtyHost()));
 		}
@@ -144,20 +132,16 @@ export class PtyHostService extends Disposable implements IPtyHostService {
 		const connection = this._ptyHostStarter.start();
 		const client = connection.client;
 		const store = this._ptyHostStore;
-		// Transfer ownership of the per-host connection store so it is disposed together with the listeners below on the next restart.
 		store.add(connection.store);
 
-		// Log a full stack trace which will tell the exact reason the pty host is starting up
 		if (this._logService.getLevel() === LogLevel.Trace) {
 			this._logService.trace('PtyHostService#_startPtyHost', new Error().stack?.replace(/^Error/, ''));
 		}
 
-		// Setup heartbeat service and trigger a heartbeat immediately to reset the timeouts
 		const heartbeatService = ProxyChannel.toService<IHeartbeatService>(client.getChannel(TerminalIpcChannels.Heartbeat));
 		store.add(heartbeatService.onBeat(() => this._handleHeartbeat()));
 		this._handleHeartbeat(true);
 
-		// Handle exit
 		store.add(connection.onDidProcessExit(e => {
 			this._onPtyHostExit.fire(e.code);
 			if (!this._wasQuitRequested && !this._store.isDisposed) {
@@ -171,7 +155,6 @@ export class PtyHostService extends Disposable implements IPtyHostService {
 			}
 		}));
 
-		// Create proxy and forward events
 		const proxy = ProxyChannel.toService<IPtyService>(client.getChannel(TerminalIpcChannels.PtyHost));
 		store.add(proxy.onProcessData(e => this._onProcessData.fire(e)));
 		store.add(proxy.onProcessReady(e => this._onProcessReady.fire(e)));
@@ -305,8 +288,6 @@ export class PtyHostService extends Disposable implements IPtyHostService {
 		return detectAvailableProfiles(profiles, defaultProfile, includeDetectedProfiles, this._configurationService, shellEnv, undefined, this._logService, this._resolveVariables.bind(this, workspaceId));
 	}
 	async getEnvironment(): Promise<IProcessEnvironment> {
-		// If the pty host is yet to be launched, just return the environment of this process as it
-		// is essentially the same when used to evaluate terminal profiles.
 		if (!this.__proxy) {
 			return { ...process.env };
 		}
@@ -324,9 +305,6 @@ export class PtyHostService extends Disposable implements IPtyHostService {
 		return this._proxy.setTerminalLayoutInfo(args);
 	}
 	async getTerminalLayoutInfo(args: IGetTerminalLayoutInfoArgs): Promise<ITerminalsLayoutInfo | undefined> {
-		// This is optional as we want reconnect requests to go through only if the pty host exists.
-		// Revive is handled specially as reviveTerminalProcesses is guaranteed to be called before
-		// the request for layout info.
 		return this._optionalProxy?.getTerminalLayoutInfo(args);
 	}
 
@@ -368,11 +346,7 @@ export class PtyHostService extends Disposable implements IPtyHostService {
 	}
 
 	private _disposePtyHost(): void {
-		// Heartbeat timers are bare setTimeout handles, not disposables in the store, so they need an explicit clear.
-		// shutdownAll() is fired before clearing the store so any in-flight exit listener still has a live proxy to read from;
-		// the per-host listener store is cleared last so the on-exit signal isn't dropped on the floor.
 		this._clearHeartbeatTimeouts();
-		// Fire-and-forget: the IPC channel may already be gone; swallow rejections so we don't surface an unhandled promise.
 		this._optionalProxy?.shutdownAll().catch(() => { });
 		this.__connection = undefined;
 		this.__proxy = undefined;

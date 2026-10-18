@@ -17,7 +17,7 @@ import { autorunIterableDelta } from '../../../../util/dardcor/base/common/obser
 import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { LanguageModelToolInformation, LanguageModelToolResult2 } from '../../../../dardcorTypes';
 import { getContributedToolName, getToolName, mapContributedToolNamesInSchema, mapContributedToolNamesInString, ToolName } from '../../common/toolNames';
-import { ICopilotTool, ICopilotToolCtor, ToolRegistry } from '../../common/toolsRegistry';
+import { IAgentTool, IAgentToolCtor, ToolRegistry } from '../../common/toolsRegistry';
 import { BaseToolsService, IToolsService } from '../../common/toolsService';
 
 export class TestToolsService extends BaseToolsService implements IToolsService {
@@ -40,7 +40,7 @@ export class TestToolsService extends BaseToolsService implements IToolsService 
 		});
 	}
 
-	private readonly _dardcorTools: Map<ToolName, Lazy<ICopilotTool<unknown>>>;
+	private readonly _dardcorTools: Map<ToolName, Lazy<IAgentTool<unknown>>>;
 	get dardcorTools() {
 		return new Map(Iterable.map(this._dardcorTools.entries(),
 			([name, tool]) => [name, tool.value]));
@@ -72,7 +72,6 @@ export class TestToolsService extends BaseToolsService implements IToolsService 
 			}
 
 			if (tool.toolName === ToolName.GetErrors) {
-				// Some tests don't have ILanguageDiagnosticsService configured. Hacky, not sure how else to handle this
 				try {
 					instantiationService.invokeFunction(acc => acc.get(ILanguageDiagnosticsService));
 				} catch (e) {
@@ -92,8 +91,7 @@ export class TestToolsService extends BaseToolsService implements IToolsService 
 		}
 	}
 
-	protected getFilteredTools(disabledTools: Set<string>): readonly ICopilotToolCtor[] {
-		// Checking in a quick fix- needs a better check
+	protected getFilteredTools(disabledTools: Set<string>): readonly IAgentToolCtor[] {
 		const isSwebenchContainer = process.env.HOME === '/root';
 		const filteredTools = ToolRegistry.getTools()
 			.filter(t => !disabledTools.has(t.toolName))
@@ -109,7 +107,7 @@ export class TestToolsService extends BaseToolsService implements IToolsService 
 		const invoke = tool?.invoke;
 		if (invoke) {
 			this._onWillInvokeTool.fire({ toolName: name });
-			const result = await invoke.call(tool, options, token);
+			const result = await invoke.call(tool, options, token, { report: () => { } });
 			if (!result) {
 				throw new CancellationError();
 			}
@@ -152,7 +150,7 @@ export class TestToolsService extends BaseToolsService implements IToolsService 
 	}
 
 
-	override getCopilotTool(name: string): ICopilotTool<unknown> | undefined {
+	override getAgentTool(name: string): IAgentTool<unknown> | undefined {
 		const tool = this._dardcorTools.get(name as ToolName)?.value;
 		return tool;
 	}
@@ -185,7 +183,6 @@ export class TestToolsService extends BaseToolsService implements IToolsService 
 		const packageJsonTools = getPackagejsonToolsForTest();
 		return this.tools
 			.map(tool => {
-				// Apply model-specific alternative if available via alternativeDefinition
 				const owned = this._dardcorTools.get(getToolName(tool.name) as ToolName);
 				if (owned?.value?.alternativeDefinition) {
 					const alternative = owned.value.alternativeDefinition(tool, endpoint);
@@ -196,19 +193,16 @@ export class TestToolsService extends BaseToolsService implements IToolsService 
 				return tool;
 			})
 			.filter(tool => {
-				// 0. Check if the tool was enabled or disabled via the tool picker
 				const toolPickerSelection = requestToolsByName.get(getContributedToolName(tool.name));
 				if (typeof toolPickerSelection === 'boolean') {
 					return toolPickerSelection;
 				}
 
-				// 1. Check for what the consumer wants explicitly
 				const explicit = filter?.(tool);
 				if (explicit !== undefined) {
 					return explicit;
 				}
 
-				// 2. Check if the request's tools explicitly asked for this tool to be enabled
 				for (const ref of request.toolReferences) {
 					const usedTool = toolMap.get(ref.name);
 					if (usedTool?.tags.includes(`enable_other_tool_${tool.name}`)) {
@@ -239,22 +233,18 @@ export class NoopTestToolsService extends TestToolsService {
 		throw new Error('NoopTestToolsService does not support invoking tools');
 	}
 
-	protected override getFilteredTools(_disabledTools: Set<string>): readonly ICopilotToolCtor[] {
+	protected override getFilteredTools(_disabledTools: Set<string>): readonly IAgentToolCtor[] {
 		return ToolRegistry.getTools();
 	}
 }
 
 export function getPackagejsonToolsForTest() {
-	// Simulate what vscode would do- enable all tools that would be in the picker (tools in a toolset or with canBeReferencedInPrompt)
 	const toolsetReferenceNames = new Set(packageJson.contributes.languageModelToolSets
 		.flatMap(toolset => toolset.tools));
 	const tools = new Set(packageJson.contributes.languageModelTools
 		.filter(tool => (tool.canBeReferencedInPrompt || toolsetReferenceNames.has(tool.toolReferenceName)))
 		.map(tool => getToolName(tool.name)));
 
-	// Add core tools that should be enabled for the agent.
-	// Normally, vscode is in control of deciding which tools are enabled for a chat request, but in the simulator, the extension has to decide this.
-	// Since it can't get info like `canBeReferencedInPrompt` from the extension API, we have to hardcode tool names here.
 	tools.add(ToolName.CoreRunInTerminal);
 	tools.add(ToolName.CoreGetTerminalOutput);
 	tools.add(ToolName.CoreTerminalLastCommand);

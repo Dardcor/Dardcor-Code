@@ -137,7 +137,6 @@ export class NotebookOutputEditor extends EditorPane implements INotebookDelegat
 			fontFamily: this._generateFontFamily()
 		}, undefined) as BackLayerWebView<ICommonCellInfo>;
 
-		// attach the webview container to the DOM tree first
 		DOM.append(this._rootElement, this._outputWebview.element);
 
 		this._outputWebview.createWebview(this.window);

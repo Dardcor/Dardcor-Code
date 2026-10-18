@@ -48,13 +48,7 @@ interface SortOptions extends LSPFormattingOptions {
 }
 
 interface DocumentSortingParams {
-	/**
-	 * The uri of the document to sort.
-	 */
 	readonly uri: string;
-	/**
-	 * The sort options
-	 */
 	readonly options: SortOptions;
 }
 
@@ -277,17 +271,14 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 		return diagnostics;
 	}
 
-	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
-		// Register the server for json documents
 		documentSelector,
 		initializationOptions: {
-			handledSchemaProtocols: ['file'], // language server only loads file-URI. Fetching schemas with other protocols ('http'...) are made on the client.
-			provideFormatter: false, // tell the server to not provide formatting capability and ignore the `json.format.enable` setting.
+			handledSchemaProtocols: ['file'],
+			provideFormatter: false,
 			customCapabilities: { rangeFormatting: { editLimit: 10000 } }
 		},
 		synchronize: {
-			// Synchronize the setting section 'json' to the server
 			configurationSection: ['json', 'http'],
 			fileEvents: workspace.createFileSystemWatcher('**/*.json')
 		},
@@ -307,7 +298,6 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 				diagnostics = handleSchemaErrorDiagnostics(uri, diagnostics);
 				next(uri, diagnostics);
 			},
-			// testing the replace / insert mode
 			provideCompletionItem(document: TextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature): ProviderResult<CompletionItem[] | CompletionList> {
 				function update(item: CompletionItem) {
 					const range = item.range;
@@ -385,13 +375,11 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 	};
 
 	clientOptions.outputChannel = runtime.logOutputChannel;
-	// Create the language client and start the client.
 	const client = newLanguageClient('json', languageServerDescription, clientOptions);
 	client.registerProposedFeatures();
 
 	const schemaDocuments: { [uri: string]: boolean } = {};
 
-	// handle content request
 	client.onRequest(VSCodeContentRequest.type, async (uriPath: string) => {
 		const uri = Uri.parse(uriPath);
 		const uriString = uri.toString(true);
@@ -423,13 +411,6 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 				throw new ResponseError(SchemaRequestServiceErrors.UntrustedSchemaError, l10n.t('Location {0} is untrusted', uriString));
 			}
 			if (runtime.telemetry && uri.authority === 'schema.management.azure.com') {
-				/* __GDPR__
-					"json.schema" : {
-						"owner": "aeschli",
-						"comment": "Measure the use of the Azure resource manager schemas",
-						"schemaURL" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The azure schema URL that was requested." }
-					}
-				*/
 				runtime.telemetry.sendTelemetryEvent('json.schema', { schemaURL: uriString });
 			}
 			try {
@@ -589,7 +570,6 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 		refreshSchemaAssociations();
 	}));
 
-	// manually register / deregister format provider based on the `json.format.enable` setting avoiding issues with late registration. See #71652.
 	updateFormatterRegistration();
 	toDispose.push({ dispose: () => rangeFormatting && rangeFormatting.dispose() });
 
@@ -666,7 +646,6 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 			options
 		};
 		const edits = await client.sendRequest(DocumentSortingRequest.type, params);
-		// Here we convert the JSON objects to real TextEdit objects
 		return edits.map((edit) => {
 			return new TextEdit(
 				new Range(edit.range.start.line, edit.range.start.character, edit.range.end.line, edit.range.end.character),
@@ -695,7 +674,6 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 		}
 		const uriString = uri.toString(true);
 
-		// Check against trustedDomains setting
 		if (matchesUrlPattern(uri, trustedDomains)) {
 			return true;
 		}
@@ -748,7 +726,6 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 			const uri = Uri.parse(schemaUri);
 			const domain = `${uri.scheme}://${uri.authority}`;
 
-			// Add "Trust domain" option
 			items.push({
 				label: l10n.t('Trust Domain: {0}', domain),
 				description: l10n.t('Allow all schemas from this domain'),
@@ -758,7 +735,6 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 				}
 			});
 
-			// Add "Trust URI" option
 			items.push({
 				label: l10n.t('Trust URI: {0}', schemaUri),
 				description: l10n.t('Allow only this specific schema'),
@@ -772,7 +748,6 @@ async function startClientWithParticipants(_context: ExtensionContext, languageP
 		}
 
 
-		// Always add "Configure setting" option
 		items.push({
 			label: l10n.t('Configure Setting'),
 			description: l10n.t('Open settings editor'),
@@ -878,7 +853,6 @@ async function getSchemaRegistryAssociations(): Promise<ISchemaAssociation[]> {
 				}
 			}
 		} catch {
-			// Ignore unavailable or invalid registry.
 		}
 	}
 	return result;
@@ -913,7 +887,7 @@ function computeSettings(): Settings {
 			format: { enable: configuration.get(SettingIds.enableFormatter) },
 			keepLines: { enable: configuration.get(SettingIds.enableKeepLines) },
 			schemas,
-			resultLimit: resultLimit + 1, // ask for one more so we can detect if the limit has been exceeded
+			resultLimit: resultLimit + 1,
 			jsonFoldingLimit: jsonFoldingLimit + 1,
 			jsoncFoldingLimit: jsoncFoldingLimit + 1,
 			jsonColorDecoratorLimit: jsonColorDecoratorLimit + 1,
@@ -921,11 +895,6 @@ function computeSettings(): Settings {
 		}
 	};
 
-	/*
-	 * Add schemas from the settings
-	 * folderUri to which folder the setting is scoped to. `undefined` means global (also external files)
-	 * settingsLocation against which path relative schema URLs are resolved
-	 */
 	const collectSchemaSettings = (schemaSettings: JSONSchemaSettings[] | undefined, folderUri: string | undefined, settingsLocation: Uri | undefined) => {
 		if (schemaSettings) {
 			for (const setting of schemaSettings) {
@@ -942,12 +911,10 @@ function computeSettings(): Settings {
 
 	const schemaConfigInfo = workspace.getConfiguration('json', null).inspect<JSONSchemaSettings[]>('schemas');
 	if (schemaConfigInfo) {
-		// settings in user config
 		collectSchemaSettings(schemaConfigInfo.globalValue, undefined, undefined);
 		if (workspace.workspaceFile) {
 			if (schemaConfigInfo.workspaceValue) {
 				const settingsLocation = Uri.joinPath(workspace.workspaceFile, '..');
-				// settings in the workspace configuration file apply to all files (also external files)
 				collectSchemaSettings(schemaConfigInfo.workspaceValue, undefined, settingsLocation);
 			}
 			for (const folder of folders) {
@@ -957,7 +924,6 @@ function computeSettings(): Settings {
 			}
 		} else {
 			if (schemaConfigInfo.workspaceValue && folders.length === 1) {
-				// single folder workspace: settings apply to all files (also external files)
 				collectSchemaSettings(schemaConfigInfo.workspaceValue, undefined, folders[0].uri);
 			}
 		}

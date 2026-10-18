@@ -7,22 +7,15 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 import { localize } from '../../../../nls.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ChatConfiguration } from '../common/constants.js';
-import { COPILOT_VENDOR_ID, ILanguageModelsService } from '../common/languageModels.js';
+import { DARD_COR_VENDOR_ID, ILanguageModelsService } from '../common/languageModels.js';
 import { createDefaultModelArrays, DefaultModelContribution } from './defaultModelContribution.js';
 
-// The empty value uses the default utility behavior: a built-in model for a
-// Copilot main model, or no model for BYOK unless the user opts in.
 const defaultEntryLabel = localize('chat.utilityModel.defaultEntry.label', 'Default');
 const defaultEntryDescription = localize('chat.utilityModel.defaultEntry.description', "Use the default behavior for utility models");
 
 const utilityArrays = createDefaultModelArrays(defaultEntryLabel, defaultEntryDescription);
 const utilitySmallArrays = createDefaultModelArrays(defaultEntryLabel, defaultEntryDescription);
 
-/**
- * Populates the dynamic enum of language models for the `chat.utilityModel`
- * setting. Selecting a model here overrides the internal `copilot-utility`
- * family used for general background/fallback flows (titles, summaries, etc.).
- */
 export class UtilityModelContribution extends DefaultModelContribution {
 	static readonly ID = 'workbench.contrib.utilityModel';
 
@@ -38,7 +31,7 @@ export class UtilityModelContribution extends DefaultModelContribution {
 			configKey: ChatConfiguration.UtilityModel,
 			configSectionId: 'chatSidebar',
 			logPrefix: '[UtilityModel]',
-			filter: metadata => metadata.vendor !== COPILOT_VENDOR_ID,
+			filter: metadata => metadata.vendor !== DARD_COR_VENDOR_ID,
 			storageFormat: 'vendorAndId',
 			defaultEntryLabel,
 			defaultEntryDescription,
@@ -46,12 +39,6 @@ export class UtilityModelContribution extends DefaultModelContribution {
 	}
 }
 
-/**
- * Populates the dynamic enum of language models for the
- * `chat.utilitySmallModel` setting. Selecting a model here overrides the
- * internal `copilot-utility-small` family used for fast/cheap background
- * flows (commit messages, intent detection, inline-chat progress, etc.).
- */
 export class UtilitySmallModelContribution extends DefaultModelContribution {
 	static readonly ID = 'workbench.contrib.utilitySmallModel';
 
@@ -67,7 +54,7 @@ export class UtilitySmallModelContribution extends DefaultModelContribution {
 			configKey: ChatConfiguration.UtilitySmallModel,
 			configSectionId: 'chatSidebar',
 			logPrefix: '[UtilitySmallModel]',
-			filter: metadata => metadata.vendor !== COPILOT_VENDOR_ID,
+			filter: metadata => metadata.vendor !== DARD_COR_VENDOR_ID,
 			storageFormat: 'vendorAndId',
 			defaultEntryLabel,
 			defaultEntryDescription,

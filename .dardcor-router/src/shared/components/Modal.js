@@ -45,13 +45,13 @@ export default function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
+      {}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-[2px] fade-in"
         onClick={closeOnOverlay ? onClose : undefined}
       />
 
-      {/* Modal content */}
+      {}
       <div
         className={cn(
           "relative w-full bg-surface",
@@ -62,11 +62,11 @@ export default function Modal({
           className
         )}
       >
-        {/* Header */}
+        {}
         {(title || showTrafficLights) && (
           <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-border-subtle">
             <div className="flex items-center min-w-0 flex-1">
-              {/* Traffic lights — desktop aesthetic */}
+              {}
               {showTrafficLights && (
                 <div className="hidden md:flex items-center gap-2 mr-3.5 ml-1 shrink-0">
                   <Tooltip text="Close" position="top" color="#FF5F56">
@@ -87,7 +87,7 @@ export default function Modal({
                 <h2 className="text-base sm:text-lg font-semibold text-text-main truncate">{title}</h2>
               )}
             </div>
-            {/* Close button — visible on all platforms */}
+            {}
             <button
               onClick={onClose}
               aria-label="Close dialog"
@@ -98,10 +98,10 @@ export default function Modal({
           </div>
         )}
 
-        {/* Body */}
+        {}
         <div className="p-4 sm:p-6 max-h-[calc(88dvh-80px)] overflow-y-auto custom-scrollbar">{children}</div>
 
-        {/* Footer */}
+        {}
         {footer && (
           <div className="flex items-center justify-end gap-2 sm:gap-3 p-3.5 sm:p-6 border-t border-border-subtle">
             {footer}

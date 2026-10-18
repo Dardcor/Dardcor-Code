@@ -11,10 +11,6 @@ import { EditorInput } from '../../../../common/editor/editorInput.js';
 import { IModalEditorOptions, IModalEditorOptionsProvider } from '../../../../../platform/editor/common/editor.js';
 import { AI_CUSTOMIZATION_MANAGEMENT_EDITOR_INPUT_ID } from './aiCustomizationManagement.js';
 
-/**
- * Editor input for the AI Customizations Management Editor.
- * This is a singleton-style input with no file resource.
- */
 export class AICustomizationManagementEditorInput extends EditorInput implements IModalEditorOptionsProvider {
 
 	static readonly ID: string = AI_CUSTOMIZATION_MANAGEMENT_EDITOR_INPUT_ID;
@@ -32,9 +28,6 @@ export class AICustomizationManagementEditorInput extends EditorInput implements
 
 	private static _instance: AICustomizationManagementEditorInput | undefined;
 
-	/**
-	 * Gets or creates the singleton instance of this input.
-	 */
 	static getOrCreate(): AICustomizationManagementEditorInput {
 		if (!AICustomizationManagementEditorInput._instance || AICustomizationManagementEditorInput._instance.isDisposed()) {
 			AICustomizationManagementEditorInput._instance = new AICustomizationManagementEditorInput();

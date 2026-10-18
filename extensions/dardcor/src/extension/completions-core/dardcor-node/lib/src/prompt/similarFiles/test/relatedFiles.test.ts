@@ -45,7 +45,6 @@ suite('PromiseExpirationCacheMap', function () {
 		cache.set('b', x);
 		await new Promise(resolve => setTimeout(resolve, 20));
 		cache.set('c', x);
-		// size does count existing expired entries.
 		assert.equal(cache.size, 3);
 		assert.equal(cache.get('a'), undefined);
 		assert.equal(cache.get('b'), undefined);
@@ -136,7 +135,6 @@ suite('relatedFiles tests', function () {
 			language: 'cpp',
 		});
 
-		// Add the files provided by OpenTabs that are also provided by the C++ relatedFiles provider.
 		for (const openTabHeader of CPP_OPENTAB_HEADERS) {
 			OPEN_FILES_FOR_TEST.push({
 				uri: openTabHeader,
@@ -170,7 +168,6 @@ suite('relatedFiles tests', function () {
 		const tdm = accessor.get(ICompletionsTextDocumentManagerService) as TestTextDocumentManager;
 		NeighborSource.reset();
 
-		// Mock up the workspace folders.
 		tdm.init([{ uri: WKS_ROOTFOLDER }]);
 
 		accessTimes.clear();
@@ -183,7 +180,6 @@ suite('relatedFiles tests', function () {
 
 		const result = await NeighborSource.getNeighborFilesAndTraits(accessor, FILE_CPP, DEFAULT_FILE_LANGUAGE, telemetry);
 
-		// 4 header files, two provided by the OpenTabs neightborSource, and two provided by the C++ relatedFiles provider.
 		assert.strictEqual(result.docs.size, 4);
 		for (const file of CPP_ALL_HEADERS) {
 			assert.strictEqual(result.docs.has(file), true);
@@ -254,9 +250,7 @@ suite('relatedFiles tests', function () {
 		accessTimes.set(DUMMY_CPP, CURRENT_TIME_STAMP);
 		tdm.setTextDocument(DUMMY_CPP, DEFAULT_FILE_LANGUAGE, DUMMY_RELATED_FILE);
 
-		// One time init of NeighborSource singleton.
 		NeighborSource.reset();
-		// An empty list is cached when the retryCount limit is reached for a given URI.
 		let result = undefined;
 		for (let i = 0; i < RETRY_COUNT; i++) {
 			cppProvider.setFailWith(RETRY_COUNT % 2 === 0 ? FailureType.WithException : FailureType.WithUndefined);
@@ -274,7 +268,6 @@ suite('relatedFiles tests', function () {
 			cppProviderGetMock.resetHistory();
 		}
 
-		// The actual result is cached when retrieval works within the given retryCount limit.
 		accessTimes.set(DUMMY_OPEN_CPPFILE, CURRENT_TIME_STAMP);
 		tdm.setTextDocument(DUMMY_OPEN_CPPFILE, DEFAULT_FILE_LANGUAGE, DUMMY_RELATED_FILE);
 		cppProvider.setFailWith(FailureType.WithException);
@@ -341,7 +334,6 @@ suite('relatedFiles tests', function () {
 			const accessor = serviceCollection.createTestingAccessor();
 
 			const tdm = accessor.get(ICompletionsTextDocumentManagerService) as TestTextDocumentManager;
-			// Mock up the workspace folders.
 			tdm.init([{ uri: WKS_ROOTFOLDER }]);
 			const composite = accessor.get(ICompletionsRelatedFilesProviderService) as TestCompositeRelatedFilesProvider;
 			for (const { extensionId, languageId, callback } of providers) {
@@ -423,7 +415,7 @@ suite('relatedFiles tests', function () {
 				],
 				telemetryWithExp,
 				'javascript',
-				/*cancel*/ true
+				true
 			);
 			assert.deepStrictEqual(relatedFiles, new Map());
 		});

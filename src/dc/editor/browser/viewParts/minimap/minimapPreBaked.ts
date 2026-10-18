@@ -33,22 +33,7 @@ const decodeData = (str: string) => {
 	return output;
 };
 
-/*
-const encodeData = (data: Uint8ClampedArray, length: string) => {
-	const chars = '0123456789ABCDEF';
-	let output = '';
-	for (let i = 0; i < data.length; i++) {
-		output += chars[data[i] >> 4] + chars[data[i] & 0xf];
-	}
-	return output;
-};
-*/
 
-/**
- * Map of minimap scales to prebaked sample data at those scales. We don't
- * sample much larger data, because then font family becomes visible, which
- * is use-configurable.
- */
 export const prebakedMiniMaps: { [scale: number]: () => Uint8ClampedArray } = {
 	1: createSingleCallFunction(() =>
 		decodeData(

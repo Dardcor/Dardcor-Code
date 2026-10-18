@@ -106,7 +106,6 @@ registerTerminalAction({
 		const statusbarService = accessor.get(IStatusbarService);
 		const store = new DisposableStore();
 
-		// Set up status bar entry
 		const text = localize('workbench.action.terminal.recordSession.recording', "Recording terminal session...");
 		const statusbarEntry: IStatusbarEntry = {
 			text,
@@ -117,7 +116,6 @@ registerTerminalAction({
 		const statusbarHandle = statusbarService.addEntry(statusbarEntry, 'recordSession', StatusbarAlignment.LEFT);
 		store.add(statusbarHandle);
 
-		// Create, reveal and focus instance
 		const instance = await c.service.createTerminal();
 		c.service.setActiveInstance(instance);
 		await c.service.revealActiveTerminal();
@@ -126,7 +124,6 @@ registerTerminalAction({
 			instance.focusWhenReady(true)
 		]);
 
-		// Record session
 		return new Promise<void>(resolve => {
 			const events: unknown[] = [];
 			const endRecording = () => {
@@ -205,7 +202,6 @@ registerTerminalAction({
 		const logService = accessor.get(ITerminalLogService);
 		const backends = Array.from(c.instanceService.getRegisteredBackends());
 		const unresponsiveBackends = backends.filter(e => !e.isResponsive);
-		// Restart only unresponsive backends if there are any
 		const restartCandidates = unresponsiveBackends.length > 0 ? unresponsiveBackends : backends;
 		for (const backend of restartCandidates) {
 			logService.warn(`Restarting pty host for authority "${backend.remoteAuthority}"`);
@@ -265,11 +261,9 @@ class DevModeContribution extends Disposable implements ITerminalContribution {
 				this._activeDevModeDisposables.value = combinedDisposable(
 					commandDecorations,
 					otherDisposables,
-					// Prompt input
 					this._ctx.instance.onDidBlur(() => this._updateDevMode()),
 					this._ctx.instance.onDidFocus(() => this._updateDevMode()),
 					commandDetection.promptInputModel.onDidChangeInput(() => this._updateDevMode()),
-					// Sequence markers
 					commandDetection.onCommandFinished(command => {
 						const colorClass = `color-${this._currentColor}`;
 						const decorations: IDisposable[] = [];

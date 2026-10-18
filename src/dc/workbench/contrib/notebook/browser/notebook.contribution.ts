@@ -59,7 +59,6 @@ import { NotebookRendererMessagingService } from './services/notebookRendererMes
 import { INotebookRendererMessagingService } from '../common/notebookRendererMessagingService.js';
 import { INotebookCellOutlineDataSourceFactory, NotebookCellOutlineDataSourceFactory } from './viewModel/notebookOutlineDataSourceFactory.js';
 
-// Editor Controller
 import './controller/coreActions.js';
 import './controller/insertCellActions.js';
 import './controller/executeActions.js';
@@ -72,7 +71,6 @@ import './controller/foldingController.js';
 import './controller/chat/notebook.chat.contribution.js';
 import './controller/variablesActions.js';
 
-// Editor Contribution
 import './contrib/editorHint/emptyCellEditorHint.js';
 import './contrib/clipboard/notebookClipboard.js';
 import './contrib/find/notebookFind.js';
@@ -102,10 +100,8 @@ import './contrib/multicursor/notebookMulticursor.js';
 import './contrib/multicursor/notebookSelectionHighlight.js';
 import './contrib/notebookVariables/notebookInlineVariables.js';
 
-// Diff Editor Contribution
 import './diff/notebookDiffActions.js';
 
-// Services
 import { editorOptionsRegistry } from '../../../../editor/common/config/editorOptions.js';
 import { NotebookExecutionStateService } from './services/notebookExecutionStateServiceImpl.js';
 import { NotebookExecutionService } from './services/notebookExecutionServiceImpl.js';
@@ -135,7 +131,6 @@ import { getFormattedNotebookMetadataJSON } from '../common/model/notebookMetada
 import { NotebookOutputEditor } from './outputEditor/notebookOutputEditor.js';
 import { NotebookOutputEditorInput } from './outputEditor/notebookOutputEditorInput.js';
 
-/*--------------------------------------------------------------------------------------------- */
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
@@ -260,7 +255,7 @@ class NotebookOutputEditorSerializer implements IEditorSerializer {
 	serialize(input: EditorInput): string | undefined {
 		assertType(input instanceof NotebookOutputEditorInput);
 
-		const data = input.getSerializedData(); // in case of cell movement etc get latest indices
+		const data = input.getSerializedData();
 		if (!data) {
 			return undefined;
 		}
@@ -308,23 +303,19 @@ export class NotebookContribution extends Disposable implements IWorkbenchContri
 
 		this.updateCellUndoRedoComparisonKey(configurationService, undoRedoService);
 
-		// Watch for changes to undoRedoPerCell setting
 		this._register(configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(NotebookSetting.undoRedoPerCell)) {
 				this.updateCellUndoRedoComparisonKey(configurationService, undoRedoService);
 			}
 		}));
 
-		// register comment decoration
 		this._register(this.codeEditorService.registerDecorationType('comment-controller', COMMENTEDITOR_DECORATION_KEY, {}));
 	}
 
-	// Add or remove the cell undo redo comparison key based on the user setting
 	private updateCellUndoRedoComparisonKey(configurationService: IConfigurationService, undoRedoService: IUndoRedoService) {
 		const undoRedoPerCell = configurationService.getValue<boolean>(NotebookSetting.undoRedoPerCell);
 
 		if (!undoRedoPerCell) {
-			// Add comparison key to map cell => main document
 			if (!this._uriComparisonKeyComputer) {
 				this._uriComparisonKeyComputer = undoRedoService.registerUriComparisonKeyComputer(CellUri.scheme, {
 					getComparisonKey: (uri: URI): string => {
@@ -336,7 +327,6 @@ export class NotebookContribution extends Disposable implements IWorkbenchContri
 				});
 			}
 		} else {
-			// Dispose comparison key
 			this._uriComparisonKeyComputer?.dispose();
 			this._uriComparisonKeyComputer = undefined;
 		}
@@ -382,7 +372,6 @@ class CellContentProvider implements ITextModelContentProvider {
 			return existing;
 		}
 		const data = CellUri.parse(resource);
-		// const data = parseCellUri(resource);
 		if (!data) {
 			return null;
 		}
@@ -745,7 +734,6 @@ class RegisterSchemasContribution extends Disposable implements IWorkbenchContri
 					description: 'The language for the cell'
 				}
 			},
-			// patternProperties: allSettings.patternProperties,
 			additionalProperties: true,
 			allowTrailingCommas: true,
 			allowComments: true
@@ -766,7 +754,6 @@ class NotebookEditorManager implements IWorkbenchContribution {
 		@INotebookEditorModelResolverService private readonly _notebookEditorModelService: INotebookEditorModelResolverService,
 		@IEditorGroupsService editorGroups: IEditorGroupsService
 	) {
-		// OPEN notebook editor for models that have turned dirty without being visible in an editor
 		type E = IResolvedNotebookEditorModel;
 		this._disposables.add(Event.debounce<E, E[]>(
 			this._notebookEditorModelService.onDidChangeDirty,
@@ -774,7 +761,6 @@ class NotebookEditorManager implements IWorkbenchContribution {
 			100
 		)(this._openMissingDirtyNotebookEditors, this));
 
-		// CLOSE editors when we are about to open conflicting notebooks
 		this._disposables.add(_notebookEditorModelService.onWillFailWithConflict(e => {
 			for (const group of editorGroups.groups) {
 				const conflictInputs = group.editors.filter(input => input instanceof NotebookEditorInput && input.viewType !== e.viewType && isEqual(input.resource, e.resource));
@@ -828,7 +814,7 @@ class SimpleNotebookWorkingCopyEditorHandler extends Disposable implements IWork
 		return this._notebookService.canResolve(viewType);
 	}
 
-	private handlesSync(workingCopy: IWorkingCopyIdentifier): string /* viewType */ | undefined {
+	private handlesSync(workingCopy: IWorkingCopyIdentifier): string | undefined {
 		const viewType = this._getViewType(workingCopy);
 		if (!viewType || viewType === 'interactive') {
 			return undefined;
@@ -946,15 +932,6 @@ const editorOptionsCustomizationSchema: IConfigurationPropertySchema = {
 		{
 			properties: schemas,
 		}
-		// , {
-		// 	patternProperties: {
-		// 		'^\\[.*\\]$': {
-		// 			type: 'object',
-		// 			default: {},
-		// 			properties: schemas
-		// 		}
-		// 	}
-		// }
 	],
 	tags: ['notebookLayout']
 };
@@ -1088,12 +1065,6 @@ configurationRegistry.registerConfiguration({
 			default: true,
 			tags: ['notebookLayout']
 		},
-		// [NotebookSetting.openOutputInPreviewEditor]: {
-		// 	description: nls.localize('notebook.output.openInPreviewEditor.description', "Controls whether or not the action to open a cell output in a preview editor is enabled. This action can be used via the cell output menu."),
-		// 	type: 'boolean',
-		// 	default: false,
-		// 	tags: ['preview']
-		// },
 		[NotebookSetting.showFoldingControls]: {
 			description: nls.localize('notebook.showFoldingControls.description', "Controls when the Markdown header folding arrow is shown."),
 			type: 'string',
@@ -1184,7 +1155,7 @@ configurationRegistry.registerConfiguration({
 			markdownDescription: nls.localize('notebook.outputScrolling', "Initially render notebook outputs in a scrollable region when longer than the limit."),
 			type: 'boolean',
 			tags: ['notebookLayout', 'notebookOutputLayout'],
-			default: typeof product.quality === 'string' && product.quality !== 'stable' // only enable as default in insiders
+			default: typeof product.quality === 'string' && product.quality !== 'stable'
 		},
 		[NotebookSetting.outputWordWrap]: {
 			markdownDescription: nls.localize('notebook.outputWordWrap', "Controls whether the lines in output should wrap."),
@@ -1254,7 +1225,7 @@ configurationRegistry.registerConfiguration({
 		[NotebookSetting.remoteSaving]: {
 			markdownDescription: nls.localize('notebook.remoteSaving', "Enables the incremental saving of notebooks between processes and across Remote connections. When enabled, only the changes to the notebook are sent to the extension host, improving performance for large notebooks and slow network connections."),
 			type: 'boolean',
-			default: typeof product.quality === 'string' && product.quality !== 'stable', // only enable as default in insiders
+			default: typeof product.quality === 'string' && product.quality !== 'stable',
 			tags: ['experimental']
 		},
 		[NotebookSetting.scrollToRevealCell]: {

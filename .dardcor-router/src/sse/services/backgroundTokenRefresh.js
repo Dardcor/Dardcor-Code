@@ -1,11 +1,8 @@
-// Background proactive OAuth token refresh — independent of inbound requests.
-// Fail-open everywhere: tick errors and per-connection failures never kill the interval.
 
 import * as log from "../utils/logger.js";
 import { getRefreshLeadMs } from "open-sse/services/tokenRefresh.js";
 import { getCredentialExpiryMs } from "open-sse/services/oauthCredentialManager.js";
 
-/** Refresh when expiry is within 30 minutes (or the provider on-request lead, whichever larger). */
 export const BACKGROUND_REFRESH_LEAD_MS = 30 * 60 * 1000;
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
 const INITIAL_DELAY_MS = 10 * 1000;
@@ -32,19 +29,10 @@ function isNonServerRuntime() {
   ) {
     return true;
   }
-  // Next.js build / static generation markers
   if (process.env.NEXT_RUNTIME === "edge") return true;
   return false;
 }
 
-/**
- * Pure selection: OAuth connections with a refreshToken whose access token
- * expires within max(provider on-request lead, BACKGROUND_REFRESH_LEAD_MS).
- *
- * @param {Array<object>} connections
- * @param {number} [nowMs]
- * @returns {Array<object>}
- */
 export function selectConnectionsNeedingRefresh(connections, nowMs = Date.now()) {
   if (!Array.isArray(connections) || connections.length === 0) return [];
 
@@ -73,7 +61,6 @@ export function selectConnectionsNeedingRefresh(connections, nowMs = Date.now())
 }
 
 async function loadActiveConnections() {
-  // Dynamic import avoids circular load with db / app graph at module eval time.
   const { getProviderConnections } = await import("../../lib/db/repos/connectionsRepo.js");
   return getProviderConnections({ isActive: true });
 }
@@ -83,10 +70,6 @@ async function refreshOne(connection) {
   return checkAndRefreshToken(connection.provider, connection, { force: true });
 }
 
-/**
- * One scheduler tick. Fail-open at top level and per connection.
- * @param {{ loadConnections?: Function, refreshConnection?: Function }} [deps]
- */
 export async function runBackgroundTokenRefreshTick(deps = {}) {
   if (tickRunning) return;
   tickRunning = true;
@@ -121,7 +104,6 @@ export async function runBackgroundTokenRefreshTick(deps = {}) {
         });
       }
 
-      // Sequential delay between accounts to prevent bursting upstream providers (especially Google Cloud)
       if (i < due.length - 1) {
         const isSensitive = SENSITIVE_PROVIDERS.has(conn.provider);
         const baseDelay = isSensitive ? baseSensitiveDelay : baseNormalDelay;
@@ -138,11 +120,6 @@ export async function runBackgroundTokenRefreshTick(deps = {}) {
   }
 }
 
-/**
- * Start the background interval. Safe to call multiple times (no-op if already started).
- * @param {{ intervalMs?: number }} [opts]
- * @returns {boolean} true if started this call
- */
 export function startBackgroundTokenRefresh({ intervalMs } = {}) {
   if (started) return false;
   if (isTruthyEnv(process.env.DISABLE_BACKGROUND_TOKEN_REFRESH)) return false;
@@ -159,7 +136,6 @@ export function startBackgroundTokenRefresh({ intervalMs } = {}) {
     });
   };
 
-  // First pass soon after boot so idle connections don't wait a full interval.
   initialTimeoutHandle = setTimeout(safeTick, INITIAL_DELAY_MS);
   if (initialTimeoutHandle.unref) initialTimeoutHandle.unref();
 

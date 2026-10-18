@@ -32,9 +32,6 @@ import { Registry } from '../../../../../platform/registry/common/platform.js';
 const CONTEXT_BROWSER_CAN_ZOOM_IN = new RawContextKey<boolean>('browserCanZoomIn', true, localize('browser.canZoomIn', "Whether the browser can zoom in further"));
 const CONTEXT_BROWSER_CAN_ZOOM_OUT = new RawContextKey<boolean>('browserCanZoomOut', true, localize('browser.canZoomOut', "Whether the browser can zoom out further"));
 
-/**
- * Transient zoom-level indicator that briefly appears inside the URL bar on zoom changes.
- */
 class BrowserZoomPill extends Disposable {
 	readonly element: HTMLElement;
 	private readonly _icon: HTMLElement;
@@ -44,7 +41,6 @@ class BrowserZoomPill extends Disposable {
 	constructor() {
 		super();
 		this.element = $('.browser-zoom-pill');
-		// Don't announce this transient element; the zoom level is announced via IAccessibilityService.status()
 		this.element.setAttribute('aria-hidden', 'true');
 		this._icon = $('span');
 		this._label = $('span');
@@ -52,23 +48,16 @@ class BrowserZoomPill extends Disposable {
 		this.element.appendChild(this._label);
 	}
 
-	/**
-	 * Briefly show the zoom level, then auto-hide after 750 ms.
-	 */
 	show(zoomLabel: string, isAtOrAboveDefault: boolean): void {
 		this._icon.className = ThemeIcon.asClassName(isAtOrAboveDefault ? Codicon.zoomIn : Codicon.zoomOut);
 		this._label.textContent = zoomLabel;
 		this.element.classList.add('visible');
-		// Reset auto-hide timer so rapid zoom actions extend the display
 		this._timeout.value = disposableTimeout(() => {
 			this.element.classList.remove('visible');
-		}, 750); // Chrome shows the zoom level for 1.5 seconds, but we show it for less because ours is non-interactive
+		}, 750);
 	}
 }
 
-/**
- * Browser editor contribution that manages zoom context keys and the zoom pill indicator.
- */
 export class BrowserEditorZoomSupport extends BrowserEditorContribution {
 	private readonly _zoomPill: BrowserZoomPill;
 	private readonly _canZoomInContext: IContextKey<boolean>;
@@ -132,15 +121,12 @@ export class BrowserEditorZoomSupport extends BrowserEditorContribution {
 		const currentFactor = model.zoomFactor;
 		const label = browserZoomLabel(currentFactor);
 		this._zoomPill.show(label, currentFactor >= defaultFactor);
-		// Announce the new zoom level to screen readers (polite, non-interruptive).
 		this.accessibilityService.status(browserZoomAccessibilityLabel(currentFactor));
 	}
 }
 
-// Register the contribution
 BrowserEditor.registerContribution(BrowserEditorZoomSupport);
 
-// -- Actions ------------------------------------------------------------
 
 class ZoomInAction extends Action2 {
 	static readonly ID = 'workbench.action.browser.zoomIn';
@@ -163,7 +149,6 @@ class ZoomInAction extends Action2 {
 			keybinding: {
 				when: CONTEXT_BROWSER_FOCUSED,
 				weight: KeybindingWeight.WorkbenchContrib + 75,
-				// Same shortcuts as 'workbench.action.zoomIn'
 				primary: KeyMod.CtrlCmd | KeyCode.Equal,
 				secondary: [KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.Equal, KeyMod.CtrlCmd | KeyCode.NumpadAdd],
 			},
@@ -198,7 +183,6 @@ class ZoomOutAction extends Action2 {
 			keybinding: {
 				when: CONTEXT_BROWSER_FOCUSED,
 				weight: KeybindingWeight.WorkbenchContrib + 75,
-				// Same shortcuts as 'workbench.action.zoomOut'
 				primary: KeyMod.CtrlCmd | KeyCode.Minus,
 				secondary: [KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.Minus, KeyMod.CtrlCmd | KeyCode.NumpadSubtract],
 				linux: {
@@ -236,8 +220,6 @@ class ResetZoomAction extends Action2 {
 			keybinding: {
 				when: CONTEXT_BROWSER_FOCUSED,
 				weight: KeybindingWeight.WorkbenchContrib + 75,
-				// Same shortcuts as 'workbench.action.zoomReset'
-				// (note: both workbench and here use Numpad0 instead of Digit0 to avoid conflicts with keybinding to focus sidebar.)
 				primary: KeyMod.CtrlCmd | KeyCode.Numpad0,
 			},
 		});
@@ -254,10 +236,6 @@ registerAction2(ZoomInAction);
 registerAction2(ZoomOutAction);
 registerAction2(ResetZoomAction);
 
-/**
- * Bridges the application's UI zoom level changes into IBrowserZoomService so that
- * views using the 'Match Window' default zoom level stay in sync.
- */
 class WindowZoomSynchronizer extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.browserView.windowZoomSynchronizer';
 
@@ -292,7 +270,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 				{ comment: ['This is the description for a setting.'], key: 'browser.pageZoom' },
 				'Default zoom level for all sites in the Integrated Browser.'
 			),
-			// Zoom can change from machine to machine, so we don't need the workspace-level nor syncing that WINDOW has.
 			scope: ConfigurationScope.MACHINE
 		}
 	}

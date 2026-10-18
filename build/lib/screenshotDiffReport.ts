@@ -3,23 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Diffs a locally rendered screenshot manifest against a base-commit manifest
-// and prints Markdown to stdout. Empty output (exit 0) means no reportable
-// changes. The base manifest is supplied as a file path — the caller is
-// responsible for fetching it (e.g. via curl from the screenshot service's
-// public /commits/<owner>/<repo>/<sha> endpoint).
-//
-// Usage:
-//   node build/lib/screenshotDiffReport.ts \
-//     <service-url> <base-sha> <current-sha> <base-manifest> <local-manifest>
-//
-// Both before- and after-images are referenced via the public /images/<hash>
-// endpoint of the screenshot service. After-images become available there
-// once the workflow's upload step has pushed them. Note: GitHub markdown
-// does not render `data:` URIs, so we cannot inline images as base64; for
-// runs that skip the upload (e.g. fork PRs) the after-image URL will 404
-// until the service has the hash, which is acceptable since fork PRs do
-// not post a PR comment.
 
 import * as fs from 'fs';
 import * as https from 'https';
@@ -34,9 +17,6 @@ const EXPAND_FIRST_N = 5;
 const EXCLUDED_LABELS = new Set(['animated', 'flaky']);
 const MAX_BODY_BYTES = 300 * 1024;
 
-// ---------------------------------------------------------------------------
-// Pixel-level image comparison
-// ---------------------------------------------------------------------------
 
 const MAX_INSIGNIFICANT_PIXELS = 20;
 const MAX_INSIGNIFICANT_CHANNEL_DELTA = 2;

@@ -5,16 +5,27 @@ export default {
   priority: 140,
   alias: "glm",
   display: {
-    name: "GLM Coding",
+    name: "Zai GLM Coding",
     icon: "code",
     color: "#2563EB",
     textIcon: "GL",
     website: "https://open.bigmodel.cn",
     notice: {
       apiKeyUrl: "https://open.bigmodel.cn/usercenter/apikeys",
+      signupUrl: "https://chat.z.ai",
     },
   },
-  category: "apikey",
+  category: "oauth",
+  authModes: ["oauth", "apikey"],
+  hasOAuth: true,
+  oauth: {
+    providerId: "zai",
+    cliInitUrl: "https://zcode.z.ai/api/v1/oauth/cli/init",
+    cliPollUrl: "https://zcode.z.ai/api/v1/oauth/cli/poll",
+    businessLoginUrl: "https://api.z.ai/api/auth/z/login",
+    apiBaseUrl: "https://api.z.ai",
+    planApiKeyName: "zcode-api-key",
+  },
   transport: {
     baseUrl: "https://api.z.ai/api/anthropic/v1/messages",
     format: "claude",
@@ -29,7 +40,6 @@ export default {
       url: "https://api.z.ai/api/monitor/usage/quota/limit",
     },
   },
-  // Multi-endpoint: pick the transport matching client sourceFormat to skip translation.
   transports: [
     {
       format: "openai",
@@ -55,7 +65,6 @@ export default {
     { id: "glm-4.6v", name: "GLM 4.6V (Vision)" },
   ],
   serviceKinds: ["llm", "webSearch"],
-  // Coding plan bundles web search on the same API key as chat.
   searchConfig: {
     baseUrl: "https://api.z.ai/api/mcp/web_search_prime/mcp",
     method: "POST",

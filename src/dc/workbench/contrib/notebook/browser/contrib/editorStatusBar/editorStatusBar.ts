@@ -42,8 +42,6 @@ class ImplictKernelSelector implements IDisposable {
 			notebookKernelService.selectKernelForNotebook(suggested, notebook);
 		};
 
-		// IMPLICITLY select a suggested kernel when the notebook has been changed
-		// e.g change cell source, move cells, etc
 		disposables.add(notebook.onDidChangeContent(e => {
 			for (const event of e.rawEvents) {
 				switch (event.kind) {
@@ -59,9 +57,6 @@ class ImplictKernelSelector implements IDisposable {
 		}));
 
 
-		// IMPLICITLY select a suggested kernel when users start to hover. This should
-		// be a strong enough hint that the user wants to interact with the notebook. Maybe
-		// add more triggers like goto-providers or completion-providers
 		disposables.add(languageFeaturesService.hoverProvider.register({ scheme: Schemas.vscodeNotebookCell, pattern: notebook.uri.path }, {
 			provideHover() {
 				logService.trace('IMPLICIT kernel selection because of hover');
@@ -93,14 +88,12 @@ class KernelStatus extends Disposable implements IWorkbenchContribution {
 
 		const activeEditor = getNotebookEditorFromEditorPane(this._editorService.activeEditorPane);
 		if (!activeEditor) {
-			// not a notebook -> clean-up, done
 			this._kernelInfoElement.clear();
 			return;
 		}
 
 		const updateStatus = () => {
 			if (activeEditor.notebookOptions.getDisplayOptions().globalToolbar) {
-				// kernel info rendered in the notebook toolbar already
 				this._kernelInfoElement.clear();
 				return;
 			}
@@ -131,16 +124,12 @@ class KernelStatus extends Disposable implements IWorkbenchContribution {
 		let isSuggested = false;
 
 		if (all.length === 0) {
-			// no kernel -> no status
 			return;
 
 		} else if (selected || suggested) {
-			// selected or single kernel
 			let kernel = selected;
 
 			if (!kernel) {
-				// proceed with suggested kernel - show UI and install handler that selects the kernel
-				// when non trivial interactions with the notebook happen.
 				kernel = suggested!;
 				isSuggested = true;
 				this._kernelInfoElement.add(this._instantiationService.createInstance(ImplictKernelSelector, notebook, kernel));
@@ -163,7 +152,6 @@ class KernelStatus extends Disposable implements IWorkbenchContribution {
 
 
 		} else {
-			// multiple kernels -> show selection hint
 			this._kernelInfoElement.add(this._statusbarService.addEntry(
 				{
 					name: nls.localize('notebook.select', "Notebook Kernel Selection"),

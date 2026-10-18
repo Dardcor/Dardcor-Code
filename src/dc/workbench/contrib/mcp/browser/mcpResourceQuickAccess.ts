@@ -96,7 +96,7 @@ export class McpResourcePickHelper extends Disposable {
 		for (const server of this._mcpService.servers.read(reader)) {
 			const cap = server.capabilities.read(undefined);
 			if (cap === undefined) {
-				enabled = true; // until we know more
+				enabled = true;
 			} else if (cap & McpCapability.Resources) {
 				enabled = true;
 				break;
@@ -118,12 +118,6 @@ export class McpResourcePickHelper extends Disposable {
 		super();
 	}
 
-	/**
-	 * Navigate to a resource if it's a directory.
-	 * Returns true if the resource is a directory with children (navigation succeeded).
-	 * Returns false if the resource is a leaf file (no navigation).
-	 * When returning true, statefully updates the picker state to display directory contents.
-	 */
 	public async navigate(resource: IMcpResource | IMcpResourceTemplate, server: IMcpServer): Promise<boolean> {
 		if (isMcpResourceTemplate(resource)) {
 			return false;
@@ -138,13 +132,11 @@ export class McpResourcePickHelper extends Disposable {
 		}
 
 		if (stat && this._isDirectoryResource(resource) && (stat.children?.length ?? 0) > 0) {
-			// Save current state to stack before navigating
 			const currentResources = this._resources.get().picks.get(server);
 			if (currentResources) {
 				this.addCurrentMCPQuickPickItemLevel(server, currentResources);
 			}
 
-			// Convert all the children to IMcpResource objects
 			const childResources: IMcpResource[] = stat.children!.map(child => {
 				const mcpUri = McpResourceURI.fromServer(server.definition, child.resource.toString());
 				return {
@@ -167,7 +159,6 @@ export class McpResourcePickHelper extends Disposable {
 	public toAttachment(resource: IMcpResource | IMcpResourceTemplate, server: IMcpServer): Promise<ChatContextPickAttachment> | 'noop' {
 		const noop = 'noop';
 		if (this._isDirectoryResource(resource)) {
-			//Check if directory
 			this.checkIfDirectoryAndPopulate(resource, server);
 			return noop;
 		}
@@ -254,7 +245,6 @@ export class McpResourcePickHelper extends Disposable {
 				if (resolved === undefined) {
 					return undefined;
 				}
-				// mark the URI as needing verification if any part was not a completion pick
 				needsVerification ||= !resolved.completed;
 				vars[todo[i].name] = variable.repeatable ? resolved.value.split('/') : resolved.value;
 			}
@@ -331,7 +321,6 @@ export class McpResourcePickHelper extends Disposable {
 				if (item.id === currentID) {
 					resolve({ value: input.value, completed: false });
 				} else if (variable.explodable && item.label.endsWith('/') && item.label !== input.value) {
-					// if navigating in a path structure, picking a `/` should let the user pick in a subdirectory
 					input.value = item.label;
 				} else {
 					resolve({ value: item.label, completed: true });
@@ -370,8 +359,6 @@ export class McpResourcePickHelper extends Disposable {
 		const cts = new CancellationTokenSource(token);
 		let isBusyLoadingPicks = true;
 		this._register(toDisposable(() => cts.dispose(true)));
-		// We try to show everything in-sequence to avoid flickering (#250411) as long as
-		// it loads within 5 seconds. Otherwise we just show things as the load in parallel.
 		let showInSequence = true;
 		this._register(disposableTimeout(() => {
 			showInSequence = false;
@@ -400,7 +387,6 @@ export class McpResourcePickHelper extends Disposable {
 		type Rec = { templates: DeferredPromise<IMcpResourceTemplate[]>; resourcesSoFar: IMcpResource[]; resources: DeferredPromise<unknown> };
 
 		const servers = new Map<IMcpServer, Rec>();
-		// Enumerate servers and start servers that need to be started to get capabilities
 		Promise.all((this.explicitServers || this._mcpService.servers.get()).map(async server => {
 			let cap = server.capabilities.get();
 			const rec: Rec = {
@@ -408,7 +394,7 @@ export class McpResourcePickHelper extends Disposable {
 				resourcesSoFar: [],
 				resources: new DeferredPromise(),
 			};
-			servers.set(server, rec); // always add it to retain order
+			servers.set(server, rec);
 
 			if (cap === undefined) {
 				cap = await new Promise(resolve => {
@@ -446,7 +432,6 @@ export class McpResourcePickHelper extends Disposable {
 			publish();
 		});
 
-		// Use derived to compute the appropriate resource map based on directory navigation state
 		return derived(this, reader => {
 			const directoryResource = this._inDirectory.read(reader);
 			return directoryResource
@@ -495,7 +480,6 @@ export abstract class AbstractMcpResourceAccessPick {
 				}
 			}
 			if (helper.checkIfNestedResources()) {
-				// Add go back item
 				const goBackItem: IQuickPickItem = {
 					id: goBackId,
 					label: localize('goBack', 'Go back ↩'),
@@ -533,7 +517,6 @@ export abstract class AbstractMcpResourceAccessPick {
 				picker.busy = true;
 				const [item] = picker.selectedItems;
 
-				// Check if go back item was selected
 				if (item.id === goBackId) {
 					helper.navigateBack();
 					picker.busy = false;
@@ -542,7 +525,6 @@ export abstract class AbstractMcpResourceAccessPick {
 
 				const resourceItem = item as ResourceQuickPickItem;
 				const resource = resourceItem.resource;
-				// Try to navigate into the resource if it's a directory
 				const isNested = await helper.navigate(resource, resourceItem.server);
 				if (!isNested) {
 					const uri = await helper.toURI(resource);

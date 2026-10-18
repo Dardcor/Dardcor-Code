@@ -115,7 +115,6 @@ export class TriggerInlineSuggestionAction extends EditorAction {
 			: undefined;
 
 		await asyncTransaction(async tx => {
-			/** @description triggerExplicitly from command */
 			await controller?.model.get()?.trigger(tx, {
 				provider: provider,
 				explicit: validatedArgs?.explicit ?? true,
@@ -240,7 +239,7 @@ export class AcceptInlineCompletion extends EditorAction {
 }
 KeybindingsRegistry.registerKeybindingRule({
 	id: inlineSuggestCommitId,
-	weight: 202, // greater than jump
+	weight: 202,
 	primary: KeyCode.Tab,
 	when: ContextKeyExpr.and(InlineCompletionContextKeys.inInlineEditsPreviewEditor)
 });
@@ -321,7 +320,7 @@ export class HideInlineCompletion extends EditorAction {
 			precondition: ContextKeyExpr.or(InlineCompletionContextKeys.inlineSuggestionVisible, InlineCompletionContextKeys.inlineEditVisible),
 			kbOpts: {
 				kbExpr: EditorContextKeys.editorTextFocus,
-				weight: KeybindingWeight.EditorContrib + 90, // same as hiding the suggest widget
+				weight: KeybindingWeight.EditorContrib + 90,
 				primary: KeyCode.Escape,
 			},
 			menuOpts: [{
@@ -362,7 +361,7 @@ export class ToggleInlineCompletionShowCollapsed extends EditorAction {
 
 KeybindingsRegistry.registerKeybindingRule({
 	id: HideInlineCompletion.ID,
-	weight: -1, // very weak
+	weight: -1,
 	primary: KeyCode.Escape,
 	secondary: [KeyMod.Shift | KeyCode.Escape],
 	when: ContextKeyExpr.and(InlineCompletionContextKeys.inInlineEditsPreviewEditor)

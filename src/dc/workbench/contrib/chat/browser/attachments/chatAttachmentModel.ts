@@ -154,8 +154,6 @@ export class ChatAttachmentModel extends Disposable {
 	}
 
 	private _maybeResolveDirectoryImageCount(attachment: IChatRequestVariableEntry): void {
-		// Resolve the folder's image count asynchronously so the UI can warn when
-		// it exceeds the model's per-request image limit. Skip if already resolved.
 		if (attachment.kind !== 'directory' || typeof attachment.imageCount === 'number' || !URI.isUri(attachment.value)) {
 			return;
 		}
@@ -165,7 +163,7 @@ export class ChatAttachmentModel extends Disposable {
 			if (current && current.kind === 'directory' && current.value?.toString() === uri.toString()) {
 				this.updateContext(Iterable.empty(), [{ ...current, imageCount: images.length }]);
 			}
-		}, () => { /* ignore */ });
+		}, () => { });
 	}
 
 	private _watchAttachment(attachment: IChatRequestVariableEntry): void {
@@ -184,7 +182,6 @@ export class ChatAttachmentModel extends Disposable {
 		this._fileWatchers.set(attachment.id, combinedDisposable(onDidChangeListener, watcher));
 	}
 
-	// ---- create utils
 
 	asFileVariableEntry(uri: URI, range?: IRange): IChatRequestFileEntry {
 		return {
@@ -195,7 +192,6 @@ export class ChatAttachmentModel extends Disposable {
 		};
 	}
 
-	// Gets an image variable for a given URI, which may be a file or a web URL
 	async asImageVariableEntry(uri: URI): Promise<IChatRequestVariableEntry | undefined> {
 		if (uri.scheme === Schemas.file && await this.fileService.canHandleResource(uri)) {
 			return await this.chatAttachmentResolveService.resolveImageEditorAttachContext(uri);

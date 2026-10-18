@@ -38,8 +38,6 @@ import { EditorBasedInlineChatWidget } from './inlineChatWidget.js';
 import { ChatAgentLocation } from '../../chat/common/constants.js';
 import { ChatContextKeys } from '../../chat/common/actions/chatContextKeys.js';
 
-// a "creative" way of adding custom UI into the chat input part
-// without knowing/modifying its dom-structure
 class StatusPlaceholder extends Action2 {
 
 	static readonly Id = 'inlineChatWidget.statusPlaceholder';
@@ -69,7 +67,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 	static readonly #options: IOptions = {
 		showFrame: true,
 		frameWidth: 1,
-		// frameColor: 'var(--vscode-inlineChat-border)',
 		isResizeable: true,
 		showArrow: false,
 		isAccessible: true,
@@ -117,7 +114,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 		location: IChatWidgetLocationOptions,
 		options: IChatWidgetViewOptions | undefined,
 		editors: { editor: ICodeEditor; notebookEditor?: INotebookEditor },
-		/** @deprecated should go away with inline2 */
 		clearDelegate: () => Promise<void>,
 		@IInstantiationService instaService: IInstantiationService,
 		@IActionViewItemService actionViewItemService: IActionViewItemService,
@@ -129,10 +125,8 @@ export class InlineChatZoneWidget extends ZoneWidget {
 
 		this.#logService = logService;
 
-		// Build termination card DOM
 		this.#terminationCard = $('div.inline-chat-terminated-card.hidden');
 
-		// Markdown scrollable area
 		this.#terminationMarkdownContainer = $('div.markdown-scroll-container');
 		this.#terminationMarkdownMessage = $('div.markdown-message');
 		this.#terminationMarkdownContainer.appendChild(this.#terminationMarkdownMessage);
@@ -143,7 +137,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 		}));
 		this.#terminationCard.appendChild(this.#terminationMarkdownScrollable.getDomNode());
 
-		// Toolbar row
 		const contentRow = $('div.content-row');
 		this.#terminationToolbar = $('div.toolbar');
 		contentRow.appendChild(this.#terminationToolbar);
@@ -162,7 +155,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 			this.#ctxHasStatus.set(!!this.status.read(r));
 		}));
 
-		// Track this instance so the singleton factory can dispatch by DOM containment
 		InlineChatZoneWidget.#instances.add(this);
 		this._disposables.add(toDisposable(() => {
 			InlineChatZoneWidget.#instances.delete(this);
@@ -176,18 +168,12 @@ export class InlineChatZoneWidget extends ZoneWidget {
 			InlineChatZoneWidget.#statusDidChange.fire();
 		}));
 
-		// Register a single factory for the status placeholder action. Multiple zone widget
-		// instances can coexist (one per editor) so the factory uses DOM containment to find
-		// the owning widget and observe its status.
 		if (!InlineChatZoneWidget.#factoryRegistration) {
 			InlineChatZoneWidget.#factoryRegistration = actionViewItemService.register(MenuId.ChatInput, StatusPlaceholder.Id, (action, options) => {
 				const item = new class extends ActionViewItem {
 					override render(container: HTMLElement): void {
 						super.render(container);
 						container.classList.add('status-placeholder');
-						// Defer the DOM-based widget lookup to the next animation frame
-						// because actionbar calls render() before appending the element
-						// to the DOM, so closest() would fail during render().
 						const targetWindow = getWindow(container);
 						let handle = targetWindow.requestAnimationFrame(() => {
 							handle = 0;
@@ -223,7 +209,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 				...options,
 				rendererOptions: {
 					renderTextEditsAsSummary: (uri) => {
-						// render when dealing with the current file in the editor
 						return isEqual(uri, editors.editor.getModel()?.uri);
 					},
 					renderDetectedCommandsWithRequest: true,
@@ -242,7 +227,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 		}));
 		this._disposables.add(this.widget.onDidChangeHeight(() => {
 			if (this.position && !this._usesResizeHeight) {
-				// only relayout when visible
 				revealFn ??= this.#createZoneAndScrollRestoreFn(this.position);
 				const height = this.#computeHeight();
 				this._relayout(height.linesValue);
@@ -265,7 +249,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 		}, true));
 
 
-		// todo@jrieken listen ONLY when showing
 		const updateCursorIsAboveContextKey = () => {
 			if (!this.position || !this.editor.hasModel()) {
 				this.#ctxCursorPosition.reset();
@@ -298,15 +281,12 @@ export class InlineChatZoneWidget extends ZoneWidget {
 			: message;
 		const text = renderAsPlaintext(typeof message === 'string' ? new MarkdownString(message) : message);
 
-		// Markdown rendering with $(info) icon prefix in scrollable area
 		this.#terminationMarkdownMessage.replaceChildren();
 		const rendered = this.#terminationStore.add(renderMarkdown(markdownMessage));
 		this.#terminationMarkdownMessage.appendChild(rendered.element);
 		this.#terminationMarkdownScrollable.getDomNode().classList.remove('hidden');
 		this.#terminationMarkdownScrollable.scanDomNode();
 
-		// Toolbar - focus the owning editor before running any action so that
-		// EditorAction2-based actions resolve the correct editor instance.
 		const editor = this.editor;
 		const actionRunner = this.#terminationStore.add(new class extends ActionRunner {
 			protected override async runAction(action: IAction, context?: unknown): Promise<void> {
@@ -326,14 +306,11 @@ export class InlineChatZoneWidget extends ZoneWidget {
 			menuOptions: { renderShortTitle: true },
 		}));
 
-		// Flip visibility
 		this.widget.domNode.style.display = 'none';
 		this.#terminationCard.classList.remove('hidden');
 
-		// Announce for screen readers
 		aria.status(text);
 
-		// Relayout
 		if (this.position) {
 			const revealFn = this.#createZoneAndScrollRestoreFn(this.position);
 			const height = this.#computeHeight();
@@ -347,7 +324,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 		this.#terminationCard.classList.add('hidden');
 		this.widget.domNode.style.display = '';
 
-		// Relayout
 		if (this.position) {
 			const revealFn = this.#createZoneAndScrollRestoreFn(this.position);
 			const height = this.#computeHeight();
@@ -366,15 +342,12 @@ export class InlineChatZoneWidget extends ZoneWidget {
 
 		const info = this.editor.getLayoutInfo();
 		const width = info.contentWidth - info.verticalScrollbarWidth;
-		// width = Math.min(850, width);
 
 		this.#dimension = new Dimension(width, heightInPixel);
 		this.widget.layout(this.#dimension);
 
 		if (this.isShowingTerminationCard) {
-			// Set explicit maxHeight on the scrollable and its container so DomScrollableElement
-			// knows it needs to show a scrollbar (same pattern as the overlay widget)
-			const maxHeight = Math.max(50, heightInPixel - 40); // reserve space for toolbar row
+			const maxHeight = Math.max(50, heightInPixel - 40);
 			this.#terminationMarkdownScrollable.getDomNode().style.maxHeight = `${maxHeight}px`;
 			this.#terminationMarkdownContainer.style.maxHeight = `${maxHeight}px`;
 			this.#terminationMarkdownScrollable.scanDomNode();
@@ -386,7 +359,7 @@ export class InlineChatZoneWidget extends ZoneWidget {
 
 		let innerHeight: number;
 		if (this.isShowingTerminationCard) {
-			innerHeight = this.#terminationCard.offsetHeight || 80; // fallback before first layout
+			innerHeight = this.#terminationCard.offsetHeight || 80;
 		} else {
 			innerHeight = this.widget.contentHeight;
 		}
@@ -468,8 +441,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 			let forceScrollTop = false;
 
 			if (lineBottom >= (scrollTop + editorHeight)) {
-				// revealing the top of the zone would push out the line we are interested in and
-				// therefore we keep the line in the viewport
 				newScrollTop = lineBottom - editorHeight;
 				forceScrollTop = true;
 			}
@@ -482,7 +453,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 	}
 
 	protected override revealRange(range: Range, isLastLine: boolean): void {
-		// noop
 	}
 
 	override hide(): void {

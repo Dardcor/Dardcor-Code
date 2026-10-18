@@ -3,10 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// NOTE: When a handle.done or handle.firstEvent promise is expected to reject,
-// attach .catch(() => {}) BEFORE the action that triggers the rejection.
-// Otherwise Vitest reports an unhandled rejection even if the test later
-// uses `await expect(...).rejects.toThrow()`.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
@@ -81,7 +77,6 @@ describe('ChatWebSocketManager', () => {
 		disposables.add(manager);
 		const connection = manager.getOrCreateConnection(connectionKey, headers, 'req-conn');
 		const connectPromise = connection.connect();
-		// Defer open event to allow connect() to attach listeners first
 		await Promise.resolve();
 		ws.simulateOpen();
 		await connectPromise;
@@ -94,7 +89,6 @@ describe('ChatWebSocketManager', () => {
 		it('reuses an open connection across different turns', async () => {
 			const connection = await getConnection();
 
-			// Request a connection for a new turn — should return the same object
 			const connection2 = manager.getOrCreateConnection(connectionKey, {}, 'req-conn-2');
 			expect(connection2).toBe(connection);
 			expect(manager.hasActiveConnection(connectionKey)).toBe(true);
@@ -104,7 +98,6 @@ describe('ChatWebSocketManager', () => {
 			const connection = await getConnection();
 			connection.dispose();
 
-			// Same manager, new getOrCreateConnection call should replace the disposed one
 			const connection2 = manager.getOrCreateConnection(connectionKey, {}, 'req-conn-2');
 			expect(connection2).not.toBe(connection);
 		});
@@ -127,7 +120,7 @@ describe('ChatWebSocketManager', () => {
 		});
 
 		it('hasActiveConnection returns true regardless of current turnId', async () => {
-			await getConnection(); // connected on turn-1
+			await getConnection();
 			expect(manager.hasActiveConnection(connectionKey)).toBe(true);
 		});
 
@@ -400,7 +393,6 @@ describe('ChatWebSocketManager', () => {
 				cts1.token,
 			);
 
-			// Start a second request before the first completes
 			handle1.done.catch(() => { });
 			handle1.firstEvent.catch(() => { });
 			const cts2 = disposables.add(new CancellationTokenSource());
@@ -410,10 +402,8 @@ describe('ChatWebSocketManager', () => {
 				cts2.token,
 			);
 
-			// First request should be superseded
 			await expect(handle1.done).rejects.toThrow('superseded');
 
-			// Second request completes normally
 			ws.simulateMessage(completedEvent);
 			await handle2.done;
 		});
@@ -427,11 +417,9 @@ describe('ChatWebSocketManager', () => {
 				cts1.token,
 			);
 
-			// Complete the first request
 			ws.simulateMessage(completedEvent);
 			await handle1.done;
 
-			// Start a second request — first was already done, so no supersede
 			const cts2 = disposables.add(new CancellationTokenSource());
 			const handle2 = connection.sendRequest(
 				{ model: 'test-model', messages: [], stream: true },

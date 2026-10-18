@@ -19,12 +19,8 @@ import { IMarketplaceReference, parseMarketplaceObjectEntry } from './marketplac
 const SETTINGS_FILENAME = 'settings.json';
 const SETTINGS_LOCAL_FILENAME = 'settings.local.json';
 
-/** Copilot CLI settings folder inside `.github/`. */
 const COPILOT_CONFIG_FOLDER = '.github/copilot';
 
-/**
- * Minimal representation of a marketplace entry from `extraKnownMarketplaces`.
- */
 export interface IWorkspaceMarketplaceEntry {
 	readonly name: string;
 	readonly reference: IMarketplaceReference;
@@ -35,25 +31,12 @@ export const IWorkspacePluginSettingsService = createDecorator<IWorkspacePluginS
 export interface IWorkspacePluginSettingsService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Marketplace references parsed from `extraKnownMarketplaces` in workspace
-	 * settings files (`.claude/settings.json`, `.github/copilot/settings.json`).
-	 */
 	readonly extraMarketplaces: IObservable<readonly IWorkspaceMarketplaceEntry[]>;
 
-	/**
-	 * Plugin recommendation map parsed from `enabledPlugins` in workspace
-	 * settings files.
-	 * Keys are `"pluginName@marketplaceName"`, values indicate recommendation.
-	 */
 	readonly enabledPlugins: IObservable<ReadonlyMap<string, boolean>>;
 }
 
-// --- Parsing helpers ---------------------------------------------------------
 
-/**
- * Parses `enabledPlugins` from a JSON object.
- */
 function parseEnabledPlugins(json: unknown): ReadonlyMap<string, boolean> {
 	const result = new Map<string, boolean>();
 
@@ -71,9 +54,6 @@ function parseEnabledPlugins(json: unknown): ReadonlyMap<string, boolean> {
 	return result;
 }
 
-/**
- * Parses `extraKnownMarketplaces` from a JSON object.
- */
 function parseExtraMarketplaces(json: unknown, logPrefix: string, logService: ILogService): readonly IWorkspaceMarketplaceEntry[] {
 	const entries: IWorkspaceMarketplaceEntry[] = [];
 
@@ -100,7 +80,6 @@ function parseExtraMarketplaces(json: unknown, logPrefix: string, logService: IL
 	return entries;
 }
 
-// --- Settings reader (reusable per config folder) ----------------------------
 
 interface IWorkspaceSettingsData {
 	readonly marketplaces: readonly IWorkspaceMarketplaceEntry[];
@@ -109,19 +88,12 @@ interface IWorkspaceSettingsData {
 
 const EMPTY_DATA: IWorkspaceSettingsData = { marketplaces: [], enabledPlugins: new Map() };
 
-/**
- * Reads `enabledPlugins` and `extraKnownMarketplaces` from a pair of
- * `settings.json` / `settings.local.json` files inside a given config
- * folder (e.g. `.claude/` or `.github/copilot/`) across all workspace
- * folders. Watches for changes and exposes results as an observable.
- */
 class WorkspaceSettingsReader extends Disposable {
 
 	private readonly _data = observableValue<IWorkspaceSettingsData>('data', EMPTY_DATA);
 	readonly data: IObservable<IWorkspaceSettingsData> = this._data;
 
 	constructor(
-		/** Workspace-relative config folder (e.g. `.claude`). */
 		configFolder: string,
 		logPrefix: string,
 		fileService: IFileService,
@@ -141,7 +113,6 @@ class WorkspaceSettingsReader extends Disposable {
 			const dirs = settingsDirs.read(reader);
 			watcherStore.clear();
 
-			// Coalesce rapid file-change events into a single read.
 			const scheduler = new RunOnceScheduler(() => this._readSettings(dirs, logPrefix, fileService), 100);
 			watcherStore.add(scheduler);
 
@@ -155,7 +126,6 @@ class WorkspaceSettingsReader extends Disposable {
 				}));
 			}
 
-			// Perform initial read immediately.
 			this._readSettings(dirs, logPrefix, fileService);
 		}));
 	}
@@ -200,7 +170,6 @@ class WorkspaceSettingsReader extends Disposable {
 	}
 }
 
-// --- Aggregating service implementation --------------------------------------
 
 export class WorkspacePluginSettingsService extends Disposable implements IWorkspacePluginSettingsService {
 	declare readonly _serviceBrand: undefined;
@@ -225,7 +194,6 @@ export class WorkspacePluginSettingsService extends Disposable implements IWorks
 			fileService, workspaceContextService, logService,
 		));
 
-		// Merge marketplaces from all readers, deduplicating by canonical ID.
 		this.extraMarketplaces = derived(reader => {
 			const claude = claudeReader.data.read(reader).marketplaces;
 			const copilot = copilotReader.data.read(reader).marketplaces;
@@ -238,8 +206,6 @@ export class WorkspacePluginSettingsService extends Disposable implements IWorks
 			return [...byCanonicalId.values()];
 		});
 
-		// Merge enabledPlugins from all readers. Claude entries take
-		// precedence for keys that exist in both (first-writer wins).
 		this.enabledPlugins = derived(reader => {
 			const claude = claudeReader.data.read(reader).enabledPlugins;
 			const copilot = copilotReader.data.read(reader).enabledPlugins;

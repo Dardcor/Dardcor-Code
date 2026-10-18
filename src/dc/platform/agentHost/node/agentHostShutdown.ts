@@ -6,9 +6,6 @@
 import { raceTimeout } from '../../../base/common/async.js';
 import type { ILogService } from '../../log/common/log.js';
 
-/**
- * Drains protocol requests and providers before flushing persistence, without letting shutdown block process exit indefinitely.
- */
 export async function shutdownAgentHostBeforeDispose(
 	drainProtocol: () => Promise<void>,
 	shutdownProviders: () => Promise<void>,
@@ -33,10 +30,6 @@ export async function shutdownAgentHostBeforeDispose(
 	});
 }
 
-/**
- * Flushes Agent Host persistence without allowing a failed or stalled write to
- * prevent process cleanup and exit.
- */
 export async function flushAgentHostPersistenceBeforeShutdown(
 	flushes: readonly Promise<unknown>[],
 	timeoutMs: number,

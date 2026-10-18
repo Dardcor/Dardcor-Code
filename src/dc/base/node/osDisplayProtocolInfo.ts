@@ -22,34 +22,25 @@ export async function getDisplayProtocol(errorLogger: (error: string | Error) =>
 	const xdgSessionType = env[XDG_SESSION_TYPE];
 
 	if (xdgSessionType) {
-		// If XDG_SESSION_TYPE is set, return its value if it's either 'wayland' or 'x11'.
-		// We assume that any value other than 'wayland' or 'x11' is an error or unexpected,
-		// hence 'unknown' is returned.
 		return xdgSessionType === DisplayProtocolType.Wayland || xdgSessionType === DisplayProtocolType.X11 ? xdgSessionType : DisplayProtocolType.Unknown;
 	} else {
 		const waylandDisplay = env[WAYLAND_DISPLAY];
 
 		if (!waylandDisplay) {
-			// If WAYLAND_DISPLAY is empty, then the session is x11.
 			return DisplayProtocolType.X11;
 		} else {
 			const xdgRuntimeDir = env[XDG_RUNTIME_DIR];
 
 			if (!xdgRuntimeDir) {
-				// If XDG_RUNTIME_DIR is empty, then the session can only be guessed.
 				return DisplayProtocolType.Unknown;
 			} else {
-				// Check for the presence of the file $XDG_RUNTIME_DIR/wayland-0.
 				const waylandServerPipe = join(xdgRuntimeDir, 'wayland-0');
 
 				try {
 					await FSPromises.access(waylandServerPipe, FSConstants.R_OK);
 
-					// If the file exists, then the session is wayland.
 					return DisplayProtocolType.Wayland;
 				} catch (err) {
-					// If the file does not exist or an error occurs, we guess 'unknown'
-					// since WAYLAND_DISPLAY was set but no wayland-0 pipe could be confirmed.
 					errorLogger(err);
 					return DisplayProtocolType.Unknown;
 				}

@@ -48,7 +48,6 @@ export class InlineEditsOnboardingExperience extends Disposable {
 
 		this._register(this._initializeDebugSetting());
 
-		// Setup the onboarding experience for new users
 		this._disposables.value = this.setupNewUserExperience();
 
 		this._setupDone.set(true, undefined);
@@ -66,12 +65,10 @@ export class InlineEditsOnboardingExperience extends Disposable {
 		let firstTimeUserAnimationCount = 0;
 		let secondTimeUserAnimationCount = 0;
 
-		// pulse animation for new users
 		disposableStore.add(runOnChangeWithCancellationToken(this._activeCompletionId, async (id, _, __, token) => {
 			if (id === undefined) { return; }
 			let userType = this.getNewUserType();
 
-			// User Kind Transition
 			switch (userType) {
 				case UserKind.FirstTime: {
 					if (firstTimeUserAnimationCount++ >= 5 || userHasHoveredOverIcon) {
@@ -89,7 +86,6 @@ export class InlineEditsOnboardingExperience extends Disposable {
 				}
 			}
 
-			// Animation
 			switch (userType) {
 				case UserKind.FirstTime: {
 					for (let i = 0; i < 3 && !token.isCancellationRequested; i++) {
@@ -113,7 +109,6 @@ export class InlineEditsOnboardingExperience extends Disposable {
 			}
 		}));
 
-		// Remember when the user has hovered over the icon
 		disposableStore.add(autorun((reader) => {
 			const indicator = this._indicator.read(reader);
 			if (!indicator) { return; }
@@ -124,7 +119,6 @@ export class InlineEditsOnboardingExperience extends Disposable {
 			}));
 		}));
 
-		// Remember when the user has accepted an inline edit
 		disposableStore.add(autorun((reader) => {
 			const model = this._model.read(reader);
 			if (!model) { return; }
@@ -155,7 +149,6 @@ export class InlineEditsOnboardingExperience extends Disposable {
 	}
 
 	private _initializeDebugSetting(): IDisposable {
-		// Debug setting to reset the new user experience
 		const hiddenDebugSetting = 'editor.inlineSuggest.edits.resetNewUserExperience';
 		if (this._configurationService.getValue(hiddenDebugSetting)) {
 			this._storageService.remove('inlineEditsGutterIndicatorUserKind', StorageScope.APPLICATION);

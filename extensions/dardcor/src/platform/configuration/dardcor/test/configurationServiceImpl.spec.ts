@@ -62,9 +62,6 @@ describe('ConfigurationServiceImpl - migrated chat.advanced setting fallback', (
 		};
 
 		mockConfigStore.user = { [oldKey]: userValue };
-		// The new key is registered with `type: ["object", "null"]` and `default: null`,
-		// so an unconfigured user reads `null` for the new key, allowing the
-		// `?? config.get(oldKey)` fallback to take over.
 		mockConfigStore.defaults = { [newKey]: null };
 
 		const svc = new ConfigurationServiceImpl(fakeTokenStore);

@@ -78,6 +78,7 @@ function detectedParticipantToIntentId(detected: ChatParticipantDetectionResult)
 					return 'workspace';
 			}
 		case 'github.dardcor.vscode':
+		case 'github.dardcor.dardcor-code':
 			return 'vscode';
 		case 'github.dardcor-dynamic.platform':
 			return 'github.dardcor-dynamic.platform';

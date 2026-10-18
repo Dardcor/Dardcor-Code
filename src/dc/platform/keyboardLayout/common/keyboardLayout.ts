@@ -113,7 +113,6 @@ export function parseKeyboardLayoutDescription(layout: IKeyboardLayoutInfo | nul
 	}
 
 	if ((<IWindowsKeyboardLayoutInfo>layout).name) {
-		// windows
 		const windowsLayout = <IWindowsKeyboardLayoutInfo>layout;
 		return {
 			label: windowsLayout.text,

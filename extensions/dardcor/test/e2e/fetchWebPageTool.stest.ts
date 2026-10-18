@@ -42,15 +42,12 @@ ssuite.optional(shouldSkipAgentTests, { title: 'fetchWebPageTool', subtitle: 'to
 				assert.strictEqual(toolCalls.length, 1, 'should make exactly one fetch webpage tool call');
 				const input = toolCalls[0].input as IFetchWebPageToolParams;
 
-				// Should have exactly 1 URL
 				assert.ok(Array.isArray(input.urls), 'urls should be an array');
 				assert.strictEqual(input.urls.length, 1, 'should have exactly 1 URL');
 
-				// Should be the exact URL from the question
 				const expectedUrl = 'https://react.dev/reference/react';
 				assert.strictEqual(input.urls[0], expectedUrl, `should have the exact URL: ${expectedUrl}`);
 
-				// Validate query parameter if present
 				if (input.query !== undefined) {
 					assert.ok(typeof input.query === 'string', 'query should be a string if provided');
 					assert.ok(input.query.length > 0, 'query should not be empty if provided');
@@ -82,27 +79,21 @@ ssuite.optional(shouldSkipAgentTests, { title: 'fetchWebPageTool', subtitle: 'to
 				const expectedMdnUrl = 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function';
 				const expectedUrls = [expectedTypescriptUrl, expectedMdnUrl];
 
-				// Allow either 1 tool call with 2 URLs or 2 tool calls with 1 URL each
 				assert.ok(toolCalls.length === 1 || toolCalls.length === 2, 'should make either 1 or 2 fetch webpage tool calls');
 
 				if (toolCalls.length === 1) {
-					// Single tool call with multiple URLs
 					const input = toolCalls[0].input as IFetchWebPageToolParams;
 
-					// Should have exactly 2 URLs
 					assert.ok(Array.isArray(input.urls), 'urls should be an array');
 					assert.strictEqual(input.urls.length, 2, 'should have exactly 2 URLs');
 
-					// Check that both expected URLs are present
 					assert.ok(input.urls.includes(expectedTypescriptUrl), `should include the TypeScript URL: ${expectedTypescriptUrl}`);
 					assert.ok(input.urls.includes(expectedMdnUrl), `should include the MDN URL: ${expectedMdnUrl}`);
 
-					// Verify no unexpected URLs
 					input.urls.forEach(url => {
 						assert.ok(expectedUrls.includes(url), `unexpected URL found: ${url}`);
 					});
 				} else {
-					// Multiple parallel tool calls with one URL each
 					const allUrls: string[] = [];
 					toolCalls.forEach(toolCall => {
 						const input = toolCall.input as IFetchWebPageToolParams;
@@ -111,17 +102,14 @@ ssuite.optional(shouldSkipAgentTests, { title: 'fetchWebPageTool', subtitle: 'to
 						allUrls.push(input.urls[0]);
 					});
 
-					// Check that both expected URLs are present across all tool calls
 					assert.ok(allUrls.includes(expectedTypescriptUrl), `should include the TypeScript URL: ${expectedTypescriptUrl}`);
 					assert.ok(allUrls.includes(expectedMdnUrl), `should include the MDN URL: ${expectedMdnUrl}`);
 
-					// Verify no unexpected URLs
 					allUrls.forEach(url => {
 						assert.ok(expectedUrls.includes(url), `unexpected URL found: ${url}`);
 					});
 				}
 
-				// Check query parameter for any tool call that has it
 				toolCalls.forEach(toolCall => {
 					const input = toolCall.input as IFetchWebPageToolParams;
 					if (input.query) {
@@ -157,20 +145,16 @@ ssuite.optional(shouldSkipAgentTests, { title: 'fetchWebPageTool', subtitle: 'to
 				assert.strictEqual(toolCalls.length, 1, 'should make exactly one fetch webpage tool call');
 				const input = toolCalls[0].input as IFetchWebPageToolParams;
 
-				// Should have exactly 1 URL
 				assert.ok(Array.isArray(input.urls), 'urls should be an array');
 				assert.strictEqual(input.urls.length, 1, 'should have exactly 1 URL');
 
-				// Should be the exact URL from the question
 				const expectedUrl = 'https://nodejs.org/en/docs/guides/error-handling/';
 				assert.strictEqual(input.urls[0], expectedUrl, `should have the exact URL: ${expectedUrl}`);
 
-				// Should extract meaningful query when user asks for specific information
 				assert.ok(input.query !== undefined, 'should include a query when user asks for specific information');
 				assert.ok(typeof input.query === 'string', 'query should be a string');
 				assert.ok(input.query.length > 0, 'query should not be empty');
 
-				// Query should relate to error handling since that's what was requested
 				const queryLower = input.query.toLowerCase();
 				assert.ok(
 					queryLower.includes('error') || queryLower.includes('handling') || queryLower.includes('pattern'),
@@ -208,10 +192,8 @@ ssuite.optional(shouldSkipAgentTests, { title: 'fetchWebPageTool', subtitle: 'to
 					'https://lit.dev/docs/'
 				];
 
-				// Allow anywhere from 1 to 6 tool calls
 				assert.ok(toolCalls.length >= 1 && toolCalls.length <= 6, `should make between 1 and 6 fetch webpage tool calls, but got ${toolCalls.length}`);
 
-				// Collect all URLs from all tool calls
 				const allUrls: string[] = [];
 				let totalUrlCount = 0;
 
@@ -224,25 +206,20 @@ ssuite.optional(shouldSkipAgentTests, { title: 'fetchWebPageTool', subtitle: 'to
 					allUrls.push(...input.urls);
 				});
 
-				// Should have exactly 6 URLs total across all tool calls
 				assert.strictEqual(totalUrlCount, 6, 'should have exactly 6 URLs total across all tool calls');
 				assert.strictEqual(allUrls.length, 6, 'collected URLs array should have exactly 6 URLs');
 
-				// Check that all expected URLs are present
 				expectedUrls.forEach(expectedUrl => {
 					assert.ok(allUrls.includes(expectedUrl), `should include the URL: ${expectedUrl}`);
 				});
 
-				// Verify no unexpected URLs
 				allUrls.forEach(url => {
 					assert.ok(expectedUrls.includes(url), `unexpected URL found: ${url}`);
 				});
 
-				// Verify no duplicate URLs
 				const uniqueUrls = new Set(allUrls);
 				assert.strictEqual(uniqueUrls.size, 6, 'should not have duplicate URLs');
 
-				// Check query parameter for any tool call that has it
 				toolCalls.forEach((toolCall, index) => {
 					const input = toolCall.input as IFetchWebPageToolParams;
 					assert.ok(input.query, `tool call ${index + 1}: query should be defined if provided`);

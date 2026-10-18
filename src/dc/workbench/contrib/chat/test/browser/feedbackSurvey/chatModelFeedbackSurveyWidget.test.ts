@@ -103,7 +103,6 @@ suite('ChatModelFeedbackSurveyWidget', () => {
 		};
 	}
 
-	/** Browser key codes, which is what `StandardKeyboardEvent` reads and maps. */
 	const enum BrowserKey {
 		Enter = 13,
 		End = 35,
@@ -233,7 +232,6 @@ suite('ChatModelFeedbackSurveyWidget', () => {
 	});
 
 	test('renders one panel when the survey opens itself while the row is rendering', () => {
-		// Reading the survey can open it, which reports a change back while render is running.
 		const changeEmitter = store.add(new Emitter<IChatModelFeedbackSurveyChangeEvent>());
 		let fired = false;
 		const harness = createWidget({

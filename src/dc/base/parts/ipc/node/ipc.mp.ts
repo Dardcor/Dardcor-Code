@@ -9,10 +9,6 @@ import { ClientConnectionEvent, IMessagePassingProtocol, IPCServer } from '../co
 import { Emitter, Event } from '../../../common/event.js';
 import { assertType } from '../../../common/types.js';
 
-/**
- * The MessagePort `Protocol` leverages MessagePortMain style IPC communication
- * for the implementation of the `IMessagePassingProtocol`.
- */
 class Protocol implements IMessagePassingProtocol {
 
 	readonly onMessage;
@@ -24,7 +20,6 @@ class Protocol implements IMessagePassingProtocol {
 			}
 			return VSBuffer.alloc(0);
 		});
-		// we must call start() to ensure messages are flowing
 		port.start();
 	}
 
@@ -39,21 +34,9 @@ class Protocol implements IMessagePassingProtocol {
 
 export interface IClientConnectionFilter {
 
-	/**
-	 * Allows to filter incoming messages to the
-	 * server to handle them differently.
-	 *
-	 * @param e the message event to handle
-	 * @returns `true` if the event was handled
-	 * and should not be processed by the server.
-	 */
 	handledClientConnection(e: MessageEvent): boolean;
 }
 
-/**
- * An implementation of a `IPCServer` on top of MessagePort style IPC communication.
- * The clients register themselves via Electron Utility Process IPC transfer.
- */
 export class Server extends IPCServer {
 
 	private static getOnDidClientConnect(filter?: IClientConnectionFilter): Event<ClientConnectionEvent> {
@@ -77,9 +60,6 @@ export class Server extends IPCServer {
 
 			const result: ClientConnectionEvent = {
 				protocol,
-				// Not part of the standard spec, but in Electron we get a `close` event
-				// when the other side closes. We can use this to detect disconnects
-				// (https://github.com/electron/electron/blob/11-x-y/docs/api/message-port-main.md#event-close)
 				onDidClientDisconnect: Event.fromNodeEventEmitter(port, 'close')
 			};
 

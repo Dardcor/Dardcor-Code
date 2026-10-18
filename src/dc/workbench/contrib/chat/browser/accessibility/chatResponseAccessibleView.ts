@@ -130,10 +130,8 @@ export function getToolSpecificDataDescription(toolSpecificData: ToolSpecificDat
 			}
 			const paths = values.map(v => {
 				if ('uri' in v && 'range' in v) {
-					// Location
 					return `${v.uri.fsPath || v.uri.path}:${v.range.startLineNumber}`;
 				} else {
-					// URI
 					return v.fsPath || v.path;
 				}
 			}).join(', ');
@@ -325,37 +323,15 @@ class ChatResponseAccessibleProvider extends Disposable implements IAccessibleVi
 	}
 }
 
-/**
- * A single unit of plaintext extracted from a chat response, keyed to its
- * originating content part so callers (accessible view, transcript Find) can
- * both render and locate it. `partIndex` is the index into
- * {@link IChatResponseViewModel.response.value}, or `-1` for the synthetic
- * error-details part that has no corresponding content part.
- */
 export interface IChatResponsePlaintextPart {
 	readonly partIndex: number;
 	readonly text: string;
 }
 
-/**
- * Renders a chat message (markdown or plain string) as plaintext, stripping
- * icons. Shared by the accessible view and chat transcript Find so both
- * present the exact same text for a given message.
- */
 export function renderChatMessageAsPlaintext(message: string | IMarkdownString): string {
 	return typeof message === 'string' ? message : stripIcons(renderAsPlaintext(message, { useLinkFormatter: true }));
 }
 
-/**
- * Extracts the ordered, human-readable plaintext content of a chat response
- * item as a list of parts (markdown, reasoning/thinking, tool invocations,
- * confirmations, references, etc.), one entry per rendered content part.
- *
- * This is the single source of truth for "what text does this response
- * contain" outside of the DOM: it backs both the Chat accessible view and
- * the transcript Find feature, so collapsed/virtualized content remains
- * fully searchable and both features stay in sync.
- */
 export function getChatResponsePlaintextParts(item: IChatResponseViewModel, includeThinking: boolean): IChatResponsePlaintextPart[] {
 	const contentParts: IChatResponsePlaintextPart[] = [];
 
@@ -363,7 +339,6 @@ export function getChatResponsePlaintextParts(item: IChatResponseViewModel, incl
 		contentParts.push({ partIndex: -1, text: item.errorDetails.message });
 	}
 
-	// Process all parts in order to maintain the natural flow
 	item.response.value.forEach((part, partIndex) => {
 		switch (part.kind) {
 			case 'thinking': {
@@ -403,7 +378,6 @@ export function getChatResponsePlaintextParts(item: IChatResponseViewModel, incl
 					const path = ref.uri.scheme === 'file' ? ref.uri.path : ref.uri.toString(true);
 					text = `${name} (${path}:${ref.range.startLineNumber})`;
 				} else {
-					// IWorkspaceSymbol
 					const path = ref.location.uri.scheme === 'file' ? (ref.location.uri.fsPath || ref.location.uri.path) : ref.location.uri.toString(true);
 					text = `${ref.name} (${path}:${ref.location.range.startLineNumber})`;
 				}
@@ -483,8 +457,6 @@ export function getChatResponsePlaintextParts(item: IChatResponseViewModel, incl
 				break;
 			}
 			case 'autoModeResolution': {
-				// Matches the renderer: a row that never resolved is dropped once
-				// the response ends, so it must not linger in the text either.
 				if (!part.resolved && item.isComplete) {
 					break;
 				}

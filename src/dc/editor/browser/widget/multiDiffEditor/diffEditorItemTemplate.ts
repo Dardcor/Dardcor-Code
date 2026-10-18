@@ -202,7 +202,6 @@ export class DiffEditorItemTemplate extends VirtualizedItemTemplate<DocumentDiff
 		}
 
 		if (this._variantConfiguration.headerClickToCollapse) {
-			// Make the header clickable to toggle collapse/expand
 			this._elements.header.tabIndex = 0;
 			this._elements.header.setAttribute('role', 'button');
 			this._register(addDisposableListener(this._elements.header, EventType.MOUSE_ENTER, () => this._elements.root.classList.add('header-hovered')));
@@ -216,7 +215,6 @@ export class DiffEditorItemTemplate extends VirtualizedItemTemplate<DocumentDiff
 
 			this._register(addDisposableListener(this._elements.header, EventType.CLICK, (e) => {
 				activateItem();
-				// Don't toggle if clicking on actions or the collapse button itself (already handled)
 				const target = e.target;
 				if (!(target instanceof Element)) {
 					return;
@@ -483,7 +481,6 @@ export class DiffEditorItemTemplate extends VirtualizedItemTemplate<DocumentDiff
 		this._elements.root.style.width = `${width}px`;
 		this._elements.root.style.position = 'absolute';
 
-		// For sticky scroll
 		const maxDelta = verticalRange.length - this._headerHeight;
 		const delta = Math.max(0, Math.min(viewPort.start - verticalRange.start, maxDelta));
 		this._elements.header.style.transform = `translateY(${delta}px)`;
@@ -518,7 +515,7 @@ export class DiffEditorItemTemplate extends VirtualizedItemTemplate<DocumentDiff
 	public hide(): void {
 		this._elements.root.classList.remove('header-hovered');
 		this._elements.root.style.top = `-100000px`;
-		this._elements.root.style.visibility = 'hidden'; // Some editor parts are still visible
+		this._elements.root.style.visibility = 'hidden';
 	}
 
 	public focusBinaryFilePlaceholder(): void {

@@ -12,11 +12,6 @@ import { IClaudeAgentSdkLoaderService } from '../common/claudeAgentSdkLoaderServ
 import { BundledClaudeAgentSdkLoaderService } from '../node/bundledClaudeAgentSdkLoaderService';
 import { VsCodeClaudeAgentSdkLoaderService } from './claudeAgentSdkLoaderService';
 
-/**
- * Routes SDK loading to either the bundled SDK or the ms-vscode.vscode-claude-sdk
- * extension, based on the `chat.claudeAgent.useSdkExtension` setting. The choice
- * is captured once at construction; flipping the setting takes effect on reload.
- */
 export class RoutingClaudeAgentSdkLoaderService implements IClaudeAgentSdkLoaderService {
 	readonly _serviceBrand: undefined;
 

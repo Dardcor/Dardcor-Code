@@ -18,7 +18,6 @@ import { RefType, ForcePushMode, GitErrorCodes, Status } from './api/git.constan
 import * as byline from 'byline';
 import { StringDecoder } from 'string_decoder';
 
-// https://github.com/microsoft/vscode/issues/65693
 const MAX_CLI_LENGTH = 30000;
 
 export interface IGit {
@@ -56,18 +55,10 @@ interface MutableRemote extends Remote {
 	isReadOnly: boolean;
 }
 
-// TODO@eamodio: Move to git.d.ts once we are good with the api
-/**
- * Log file options.
- */
 export interface LogFileOptions {
-	/** Optional. Continue listing the history of a file beyond renames */
 	readonly follow?: boolean;
-	/** Optional. The maximum number of log entries to retrieve. */
 	readonly maxEntries?: number | string;
-	/** Optional. The Git sha (hash) to start retrieving log entries from. */
 	readonly hash?: string;
-	/** Optional. Specifies whether to start retrieving log entries in reverse order. */
 	readonly reverse?: boolean;
 	readonly sortByAuthorDate?: boolean;
 	readonly shortStats?: boolean;
@@ -105,7 +96,6 @@ function findGitDarwin(onValidate: (path: string) => boolean): Promise<IGit> {
 					return e(new Error(`Path "${path}" is invalid.`));
 				}
 
-				// make sure git executes
 				cp.exec('git --version', (err, stdout) => {
 
 					if (err) {
@@ -120,11 +110,8 @@ function findGitDarwin(onValidate: (path: string) => boolean): Promise<IGit> {
 				return getVersion(path);
 			}
 
-			// must check if XCode is installed
 			cp.exec('xcode-select -p', (err) => {
 				if (err && err.code === 2) {
-					// git is not installed, and launching /usr/bin/git
-					// will prompt the user to install it
 
 					return e(new Error('Executing "xcode-select -p" failed with error code 2.'));
 				}
@@ -161,7 +148,6 @@ export async function findGit(hints: string[], onValidate: (path: string) => boo
 		try {
 			return await findSpecificGit(hint, onValidate);
 		} catch (err) {
-			// noop
 			logger.info(`Unable to find git on the PATH: "${hint}". Error: ${err.message}`);
 		}
 	}
@@ -173,7 +159,6 @@ export async function findGit(hints: string[], onValidate: (path: string) => boo
 			default: return await findSpecificGit('git', onValidate);
 		}
 	} catch (err) {
-		// noop
 		logger.warn(`Unable to find git. Error: ${err.message}`);
 	}
 
@@ -251,7 +236,6 @@ async function exec(child: cp.ChildProcess, cancellationToken?: CancellationToke
 				try {
 					child.kill();
 				} catch (err) {
-					// noop
 				}
 
 				e(new CancellationError());
@@ -363,8 +347,6 @@ function getGitErrorCode(stderr: string): string | undefined {
 	return undefined;
 }
 
-// https://github.com/microsoft/vscode/issues/89373
-// https://github.com/git-for-windows/git/issues/2478
 function sanitizePath(path: string): string {
 	return path.replace(/^([a-z]):\\/i, (_, letter) => `${letter.toUpperCase()}:\\`);
 }
@@ -504,12 +486,8 @@ export class Git {
 	async getRepositoryRoot(pathInsidePossibleRepository: string): Promise<string> {
 		const result = await this.exec(pathInsidePossibleRepository, ['rev-parse', '--show-toplevel']);
 
-		// Keep trailing spaces which are part of the directory name
 		const repositoryRootPath = path.normalize(result.stdout.trimStart().replace(/[\r\n]+$/, ''));
 
-		// Handle symbolic links and UNC paths
-		// Git 2.31 added the `--path-format` flag to rev-parse which
-		// allows us to get the relative path of the repository root
 		if (!pathEquals(pathInsidePossibleRepository, repositoryRootPath) &&
 			!isDescendant(repositoryRootPath, pathInsidePossibleRepository) &&
 			!isDescendant(pathInsidePossibleRepository, repositoryRootPath) &&
@@ -519,9 +497,6 @@ export class Git {
 		}
 
 		if (isWindows) {
-			// On Git 2.25+ if you call `rev-parse --show-toplevel` on a mapped drive, instead of getting the mapped
-			// drive path back, you get the UNC path for the mapped drive. So we will try to normalize it back to the
-			// mapped drive path, if possible
 			const repoUri = Uri.file(repositoryRootPath);
 			const pathUri = Uri.file(pathInsidePossibleRepository);
 			if (repoUri.authority.length !== 0 && pathUri.authority.length === 0) {
@@ -536,8 +511,6 @@ export class Git {
 							),
 						);
 						if (networkPath !== undefined) {
-							// If the repository is at the root of the mapped drive then we
-							// have to append `\` (ex: D:\) otherwise the path is not valid.
 							const isDriveRoot = pathEquals(repoUri.fsPath, networkPath);
 
 							return path.normalize(
@@ -638,15 +611,12 @@ export class Git {
 		}
 
 		if (options.log !== false) {
-			// command
 			this.log(`> git ${args.join(' ')} [${Date.now() - startExec}ms]\n`);
 
-			// stdout
 			if (bufferResult.stdout.length > 0 && args.find(a => this.commandsToLog.includes(a))) {
 				this.log(`${bufferResult.stdout}\n`);
 			}
 
-			// stderr
 			if (bufferResult.stderr.length > 0) {
 				this.log(`${bufferResult.stderr}\n`);
 			}
@@ -683,7 +653,7 @@ export class Git {
 		}
 
 		if (!options.stdio && !options.input) {
-			options.stdio = ['ignore', null, null]; // Unless provided, ignore stdin and leave default streams for stdout and stderr
+			options.stdio = ['ignore', null, null];
 		}
 
 		options.env = assign({}, process.env, this.env, options.env || {}, {
@@ -732,7 +702,6 @@ export class Git {
 			return result.stdout;
 		} catch (err) {
 			if (typeof err.stdout === 'string') {
-				// The merge had conflicts, stdout still contains the merged result (with conflict markers)
 				return err.stdout;
 			} else {
 				throw err;
@@ -796,7 +765,6 @@ class GitConfigParser {
 		};
 
 		for (const line of raw.split(GitConfigParser._lineSeparator)) {
-			// Section
 			const sectionMatch = line.match(GitConfigParser._sectionRegex);
 			if (sectionMatch?.length === 3) {
 				addSection(section);
@@ -805,7 +773,6 @@ class GitConfigParser {
 				continue;
 			}
 
-			// Property
 			const propertyMatch = line.match(GitConfigParser._propertyRegex);
 			if (propertyMatch?.length === 3 && !Object.keys(section.properties).includes(propertyMatch[1])) {
 				section.properties[propertyMatch[1]] = propertyMatch[2];
@@ -853,7 +820,6 @@ export class GitStatusParser {
 			path: ''
 		};
 
-		// space
 		i++;
 
 		if (entry.x === 'R' || entry.y === 'R' || entry.x === 'C') {
@@ -875,7 +841,6 @@ export class GitStatusParser {
 
 		entry.path = raw.substring(i, lastIndex);
 
-		// If path ends with slash, it must be a nested git repo
 		if (entry.path[entry.path.length - 1] !== '/') {
 			this.result.push(entry);
 		}
@@ -951,7 +916,6 @@ export function parseGitCommits(data: string): Commit[] {
 			message = message.substr(0, message.length - 1);
 		}
 
-		// Stop excessive memory usage by using substr -- https://bugs.chromium.org/p/v8/issues/detail?id=2869
 		commits.push({
 			hash: ` ${ref}`.substr(1),
 			message: ` ${message}`.substr(1),
@@ -1079,8 +1043,6 @@ function parseGitChanges(repositoryRoot: string, raw: string): Change[] {
 		let renameUri = originalUri;
 		let status: Status = Status.UNTRACKED;
 
-		// Copy or Rename status comes with a number (ex: 'R100').
-		// We don't need the number, we use only first character of the status.
 		switch (change[0]) {
 			case 'A':
 				status = Status.INDEX_ADDED;
@@ -1094,7 +1056,6 @@ function parseGitChanges(repositoryRoot: string, raw: string): Change[] {
 				status = Status.DELETED;
 				break;
 
-			// Rename contains two paths, the second one is what the file is renamed/copied to.
 			case 'R': {
 				if (index >= segments.length) {
 					break;
@@ -1110,7 +1071,6 @@ function parseGitChanges(repositoryRoot: string, raw: string): Change[] {
 				break;
 			}
 			default:
-				// Unknown status
 				break segmentsLoop;
 		}
 
@@ -1135,7 +1095,6 @@ function parseGitChangesRaw(repositoryRoot: string, raw: string): DiffChange[] {
 		}
 
 		if (segment.startsWith(':')) {
-			// Parse --raw output
 			const [, , , , change] = segment.split(' ');
 			const filePath = segments[index++];
 			const originalUri = Uri.file(path.isAbsolute(filePath) ? filePath : path.join(repositoryRoot, filePath));
@@ -1168,20 +1127,15 @@ function parseGitChangesRaw(repositoryRoot: string, raw: string): DiffChange[] {
 					break;
 				}
 				default:
-					// Unknown status
 					break segmentsLoop;
 			}
 
 			changes.push({ status, uri, originalUri, renameUri });
 		} else {
-			// Parse --numstat output
 			const [insertions, deletions, filePath] = segment.split('\t');
 
 			let numstatPath: string;
 			if (filePath === '') {
-				// For renamed files, filePath is empty and the old/new paths
-				// are in the next two null-terminated segments. We skip the
-				// old path and use the new path for the stats key.
 				index++;
 
 				const renamePath = segments[index++];
@@ -1231,7 +1185,6 @@ function parseGitBlame(data: string): BlameInformation[] {
 	let endLineNumber: number | undefined = undefined;
 
 	for (const line of data.split(lineSeparator)) {
-		// Commit
 		const commitMatch = line.match(commitRegex);
 		if (!commitHash && commitMatch) {
 			const segments = line.split(' ');
@@ -1241,7 +1194,6 @@ function parseGitBlame(data: string): BlameInformation[] {
 			endLineNumber = Number(segments[2]) + Number(segments[3]) - 1;
 		}
 
-		// Commit properties
 		if (commitHash && line.startsWith('author ')) {
 			authorName = line.substring('author '.length);
 		}
@@ -1255,7 +1207,6 @@ function parseGitBlame(data: string): BlameInformation[] {
 			message = line.substring('summary '.length);
 		}
 
-		// Commit end
 		if (commitHash && startLineNumber && endLineNumber && line.startsWith('filename ')) {
 			const existingCommit = blameInformation.get(commitHash);
 			if (existingCommit) {
@@ -1489,9 +1440,6 @@ export class Repository {
 			args.push('--topo-order');
 			args.push('--decorate=full');
 
-			// In order to avoid hitting the command line limit due to large number of reference
-			// names (can happen when the `all` filter is used in the Source Control Graph view),
-			// we are passing the reference names via stdin.
 			spawnOptions.input = options.refNames.join('\n');
 			args.push('--stdin');
 		}
@@ -1502,7 +1450,6 @@ export class Repository {
 
 		const result = await this.exec(args, spawnOptions);
 		if (result.exitCode) {
-			// An empty repo
 			return [];
 		}
 
@@ -1517,7 +1464,6 @@ export class Repository {
 		}
 
 		if (options?.hash) {
-			// If we are reversing, we must add a range (with HEAD) because we are using --ancestry-path for better reverse walking
 			if (options?.reverse) {
 				args.push('--reverse', '--ancestry-path', `${options.hash}..HEAD`);
 			} else {
@@ -1542,13 +1488,11 @@ export class Repository {
 		try {
 			const result = await this.exec(args, { cancellationToken });
 			if (result.exitCode) {
-				// No file history, e.g. a new file or untracked
 				return [];
 			}
 
 			return parseGitCommits(result.stdout);
 		} catch (err) {
-			// Repository has no commits yet
 			if (/does not have any commits yet/.test(err.stderr)) {
 				return [];
 			}
@@ -1595,7 +1539,7 @@ export class Repository {
 	}
 
 	async getObjectDetails(treeish: string, path: string): Promise<{ mode: string; object: string; size: number }> {
-		if (!treeish || treeish === ':1' || treeish === ':2' || treeish === ':3') { // index
+		if (!treeish || treeish === ':1' || treeish === ':2' || treeish === ':3') {
 			const elements = await this.lsfiles(path);
 
 			if (elements.length === 0) {
@@ -1675,7 +1619,6 @@ export class Repository {
 		try {
 			child.kill();
 		} catch (err) {
-			// noop
 		}
 
 		const encoding = detectUnicodeEncoding(buffer);
@@ -1703,7 +1646,6 @@ export class Repository {
 		if (encoding) {
 			return { mimetype: 'text/plain', encoding };
 		} else {
-			// TODO@JOAO: read the setting OUTSIDE!
 			return { mimetype: 'text/plain' };
 		}
 	}
@@ -2119,7 +2061,6 @@ export class Repository {
 		}
 
 		if (opts.requireUserConfig ?? true) {
-			// Stops git from guessing at user/email
 			args.splice(0, 0, '-c', 'user.useConfigOnly=true');
 		}
 
@@ -2323,7 +2264,6 @@ export class Repository {
 		const result = await this.exec(['branch']);
 		let args: string[];
 
-		// In case there are no branches, we must use rm --cached
 		if (!result.stdout) {
 			args = ['rm', '--cached', '-r'];
 		} else {
@@ -2339,8 +2279,6 @@ export class Repository {
 				await this.exec([...args, '--', '.']);
 			}
 		} catch (err) {
-			// In case there are merge conflicts to be resolved, git reset will output
-			// some "needs merge" data. We try to get around that.
 			if (/([^:]+: needs merge\n)+/m.test(err.stdout || '')) {
 				return;
 			}
@@ -2421,7 +2359,6 @@ export class Repository {
 			} else if (/Could not read from remote repository/.test(err.stderr || '')) {
 				err.gitErrorCode = GitErrorCodes.RemoteConnectionError;
 			} else if (/! \[rejected\].*\(non-fast-forward\)/m.test(err.stderr || '')) {
-				// The local branch has outgoing changes and it cannot be fast-forwarded.
 				err.gitErrorCode = GitErrorCodes.BranchFastForwardRejected;
 			}
 
@@ -2459,7 +2396,6 @@ export class Repository {
 			args.push('--unshallow');
 		}
 
-		// --auto-stash option is only available `git pull --merge` starting with git 2.27.0
 		if (options.autoStash && this._git.compareGitVersionTo('2.27.0') !== -1) {
 			args.push('--autostash');
 		}
@@ -2579,12 +2515,10 @@ export class Repository {
 			await this.exec(['cherry-pick', commitHash]);
 		} catch (err) {
 			if (/The previous cherry-pick is now empty, possibly due to conflict resolution./.test(err.stderr ?? '')) {
-				// Abort cherry-pick
 				await this.cherryPickAbort();
 
 				err.gitErrorCode = GitErrorCodes.CherryPickEmpty;
 			} else {
-				// Conflict during cherry-pick
 				err.gitErrorCode = GitErrorCodes.CherryPickConflict;
 			}
 
@@ -2755,7 +2689,6 @@ export class Repository {
 			args.push('--ignore-submodules');
 		}
 
-		// --find-renames option is only available starting with git 2.18.0
 		if (opts?.similarityThreshold && opts.similarityThreshold !== 50 && this._git.compareGitVersionTo('2.18.0') !== -1) {
 			args.push(`--find-renames=${opts.similarityThreshold}%`);
 		}
@@ -2815,7 +2748,6 @@ export class Repository {
 					try {
 						child.kill();
 					} catch (err) {
-						// noop
 					}
 
 					e(new CancellationError());
@@ -2841,10 +2773,8 @@ export class Repository {
 			HEAD = await this.getHEAD();
 
 			if (HEAD.name) {
-				// Branch
 				HEAD = await this.getBranch(HEAD.name);
 
-				// Upstream commit
 				if (HEAD && HEAD.upstream) {
 					const ref = HEAD.upstream.remote !== '.'
 						? `refs/remotes/${HEAD.upstream.remote}/${HEAD.upstream.name}`
@@ -2853,7 +2783,6 @@ export class Repository {
 					HEAD = { ...HEAD, upstream: { ...HEAD.upstream, commit } };
 				}
 			} else if (HEAD.commit) {
-				// Tag || Commit
 				const tags = await this.getRefs({ pattern: 'refs/tags' });
 				const tag = tags.find(tag => tag.commit === HEAD!.commit);
 
@@ -2862,7 +2791,6 @@ export class Repository {
 				}
 			}
 		} catch (err) {
-			// noop
 		}
 
 		return HEAD;
@@ -2871,13 +2799,8 @@ export class Repository {
 	async getHEAD(): Promise<Ref> {
 		if (!this._isUsingRefTable) {
 			try {
-				// Attempt to parse the HEAD file
 				const result = await this.getHEADFS();
 
-				// Git 2.45 adds support for a new reference storage backend called "reftable", promising
-				// faster lookups, reads, and writes for repositories with any number of references. For
-				// backwards compatibility the `.git/HEAD` file contains `ref: refs/heads/.invalid`. More
-				// details are available at https://git-scm.com/docs/reftable
 				if (result.name === '.invalid') {
 					this._isUsingRefTable = true;
 					this.logger.warn(`[Git][getHEAD] Failed to parse HEAD file: Repository is using reftable format.`);
@@ -2891,7 +2814,6 @@ export class Repository {
 		}
 
 		try {
-			// Fallback to using git to determine HEAD
 			const result = await this.exec(['symbolic-ref', '--short', 'HEAD']);
 
 			if (!result.stdout) {
@@ -2902,7 +2824,6 @@ export class Repository {
 		}
 		catch (err) { }
 
-		// Detached HEAD
 		const result = await this.exec(['rev-parse', 'HEAD']);
 
 		if (!result.stdout) {
@@ -2915,13 +2836,11 @@ export class Repository {
 	async getHEADFS(): Promise<Ref> {
 		const raw = await fs.readFile(path.join(this.dotGit.path, 'HEAD'), 'utf8');
 
-		// Branch
 		const branchMatch = raw.match(/^ref: refs\/heads\/(?<name>.*)$/m);
 		if (branchMatch?.groups?.name) {
 			return { name: branchMatch.groups.name, commit: undefined, type: RefType.Head };
 		}
 
-		// Detached
 		const commitMatch = raw.match(/^(?<commit>[0-9a-f]{40})$/m);
 		if (commitMatch?.groups?.commit) {
 			return { name: undefined, commit: commitMatch.groups.commit, type: RefType.Head };
@@ -3029,7 +2948,6 @@ export class Repository {
 
 		try {
 			if (!this.dotGit.isBare) {
-				// Add main worktree for a non-bare repository
 				const headPath = path.join(mainRepositoryPath, 'HEAD');
 				const headContent = (await fs.readFile(headPath, 'utf8')).trim();
 
@@ -3044,7 +2962,6 @@ export class Repository {
 				} satisfies Worktree);
 			}
 
-			// List all worktree folder names
 			const worktreesPath = path.join(mainRepositoryPath, 'worktrees');
 			const dirents = await fs.readdir(worktreesPath, { withFileTypes: true });
 
@@ -3062,11 +2979,8 @@ export class Repository {
 
 					result.push({
 						name: dirent.name,
-						// Remove '/.git' suffix
 						path: gitdirContent.replace(/\/.git.*$/, ''),
-						// Remove 'ref: ' prefix
 						ref: headContent.replace(/^ref: /, ''),
-						// Detached if HEAD does not start with 'ref: '
 						detached: !headContent.startsWith('ref: '),
 						main: false
 					});
@@ -3094,7 +3008,6 @@ export class Repository {
 		const remotes: MutableRemote[] = [];
 
 		try {
-			// Attempt to parse the config file
 			remotes.push(...await this.getRemotesFS());
 
 			if (remotes.length === 0) {
@@ -3104,12 +3017,10 @@ export class Repository {
 		catch (err) {
 			this.logger.warn(`[Git][getRemotes] Error: ${err.message}`);
 
-			// Fallback to using git to get the remotes
 			remotes.push(...await this.getRemotesGit());
 		}
 
 		for (const remote of remotes) {
-			// https://github.com/microsoft/vscode/issues/45271
 			remote.isReadOnly = remote.pushUrl === undefined || remote.pushUrl === 'no_push';
 		}
 
@@ -3168,9 +3079,6 @@ export class Repository {
 			args.push('--format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref)');
 		}
 
-		// On Windows and macOS ref names are case insensitive so we add --ignore-case
-		// to handle the scenario where the user switched to a branch with incorrect
-		// casing
 		if (this.git.compareGitVersionTo('2.12') !== -1 && (isWindows || isMacintosh)) {
 			args.push('--ignore-case');
 		}
@@ -3251,7 +3159,6 @@ export class Repository {
 		return this.getBranch(result.stdout.trim());
 	}
 
-	// TODO: Support core.commentChar
 	stripCommitMessageComments(message: string): string {
 		return message.replace(/^\s*#.*$\n?/gm, '').trim();
 	}
@@ -3286,7 +3193,6 @@ export class Repository {
 				return '';
 			}
 
-			// https://github.com/git/git/blob/3a0f269e7c82aa3a87323cb7ae04ac5f129f036b/path.c#L612
 			const homedir = os.homedir();
 			let templatePath = result.stdout.trim()
 				.replace(/^~([^\/]*)\//, (_, user) => `${user ? path.join(path.dirname(homedir), user) : homedir}/`);
@@ -3396,7 +3302,6 @@ export class Repository {
 	private sanitizeRelativePath(filePath: string): string {
 		this.logger.trace(`[Git][sanitizeRelativePath] filePath: ${filePath}`);
 
-		// Relative path
 		if (!path.isAbsolute(filePath)) {
 			filePath = sanitizeRelativePath(filePath);
 			this.logger.trace(`[Git][sanitizeRelativePath] relativePath (noop): ${filePath}`);
@@ -3405,7 +3310,6 @@ export class Repository {
 
 		let relativePath: string | undefined;
 
-		// Repository root real path
 		if (this.repositoryRootRealPath) {
 			relativePath = relativePathWithNoFallback(this.repositoryRootRealPath, filePath);
 			if (relativePath) {
@@ -3415,7 +3319,6 @@ export class Repository {
 			}
 		}
 
-		// Repository root path
 		relativePath = relativePathWithNoFallback(this.repositoryRoot, filePath);
 		if (relativePath) {
 			relativePath = sanitizeRelativePath(relativePath);
@@ -3423,7 +3326,6 @@ export class Repository {
 			return relativePath;
 		}
 
-		// Fallback to relative()
 		filePath = sanitizeRelativePath(path.relative(this.repositoryRoot, filePath));
 		this.logger.trace(`[Git][sanitizeRelativePath] relativePath (fallback): ${filePath}`);
 		return filePath;

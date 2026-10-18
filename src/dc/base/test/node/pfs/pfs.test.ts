@@ -16,7 +16,7 @@ import { configureFlushOnWrite, Promises, realcase, realpathSync, RimRafMode, Sy
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../common/utils.js';
 import { flakySuite, getRandomTestPath } from '../testUtils.js';
 
-configureFlushOnWrite(false); // speed up all unit tests by disabling flush on write
+configureFlushOnWrite(false);
 
 flakySuite('PFS', function () {
 
@@ -217,10 +217,6 @@ flakySuite('PFS', function () {
 
 		fs.symlinkSync(symbolicLinkTarget, symLink, 'junction');
 
-		// Copy preserves symlinks if configured as such
-		//
-		// Windows: this test does not work because creating symlinks
-		// requires priviledged permissions (admin).
 		if (!isWindows) {
 			await Promises.copy(symLink, copyTarget, { preserveSymlinks: true });
 
@@ -233,7 +229,6 @@ flakySuite('PFS', function () {
 			const target = await fs.promises.readlink(copyTarget);
 			assert.strictEqual(target, symbolicLinkTarget);
 
-			// Copy does not preserve symlinks if configured as such
 
 			await Promises.rm(copyTarget);
 			await Promises.copy(symLink, copyTarget, { preserveSymlinks: false });
@@ -244,12 +239,11 @@ flakySuite('PFS', function () {
 			assert.ok(!symbolicLink2);
 		}
 
-		// Copy does not fail over dangling symlinks
 
 		await Promises.rm(copyTarget);
 		await Promises.rm(symbolicLinkTarget);
 
-		await Promises.copy(symLink, copyTarget, { preserveSymlinks: true }); // this should not throw
+		await Promises.copy(symLink, copyTarget, { preserveSymlinks: true });
 
 		if (!isWindows) {
 			const { symbolicLink } = await SymlinkSupport.stat(copyTarget);
@@ -261,27 +255,21 @@ flakySuite('PFS', function () {
 
 	test('copy handles symbolic links when the reference is inside source', async () => {
 
-		// Source Folder
-		const sourceFolder = join(randomPath(testDir), 'copy-test'); 		// copy-test
-		const sourceLinkTestFolder = join(sourceFolder, 'link-test');		// copy-test/link-test
-		const sourceLinkMD5JSFolder = join(sourceLinkTestFolder, 'md5');	// copy-test/link-test/md5
-		const sourceLinkMD5JSFile = join(sourceLinkMD5JSFolder, 'md5.js');	// copy-test/link-test/md5/md5.js
+		const sourceFolder = join(randomPath(testDir), 'copy-test');
+		const sourceLinkTestFolder = join(sourceFolder, 'link-test');
+		const sourceLinkMD5JSFolder = join(sourceLinkTestFolder, 'md5');
+		const sourceLinkMD5JSFile = join(sourceLinkMD5JSFolder, 'md5.js');
 		await fs.promises.mkdir(sourceLinkMD5JSFolder, { recursive: true });
 		await Promises.writeFile(sourceLinkMD5JSFile, 'Hello from MD5');
 
-		const sourceLinkMD5JSFolderLinked = join(sourceLinkTestFolder, 'md5-linked');	// copy-test/link-test/md5-linked
+		const sourceLinkMD5JSFolderLinked = join(sourceLinkTestFolder, 'md5-linked');
 		fs.symlinkSync(sourceLinkMD5JSFolder, sourceLinkMD5JSFolderLinked, 'junction');
 
-		// Target Folder
-		const targetLinkTestFolder = join(sourceFolder, 'link-test copy');				// copy-test/link-test copy
-		const targetLinkMD5JSFolder = join(targetLinkTestFolder, 'md5');				// copy-test/link-test copy/md5
-		const targetLinkMD5JSFile = join(targetLinkMD5JSFolder, 'md5.js');				// copy-test/link-test copy/md5/md5.js
-		const targetLinkMD5JSFolderLinked = join(targetLinkTestFolder, 'md5-linked');	// copy-test/link-test copy/md5-linked
+		const targetLinkTestFolder = join(sourceFolder, 'link-test copy');
+		const targetLinkMD5JSFolder = join(targetLinkTestFolder, 'md5');
+		const targetLinkMD5JSFile = join(targetLinkMD5JSFolder, 'md5.js');
+		const targetLinkMD5JSFolderLinked = join(targetLinkTestFolder, 'md5-linked');
 
-		// Copy with `preserveSymlinks: true` and verify result
-		//
-		// Windows: this test does not work because creating symlinks
-		// requires priviledged permissions (admin).
 		if (!isWindows) {
 			await Promises.copy(sourceLinkTestFolder, targetLinkTestFolder, { preserveSymlinks: true });
 
@@ -297,7 +285,6 @@ flakySuite('PFS', function () {
 			await Promises.rm(targetLinkTestFolder);
 		}
 
-		// Copy with `preserveSymlinks: false` and verify result
 		await Promises.copy(sourceLinkTestFolder, targetLinkTestFolder, { preserveSymlinks: false });
 
 		assert.ok(fs.existsSync(targetLinkTestFolder));
@@ -361,7 +348,7 @@ flakySuite('PFS', function () {
 		assert.ok(fs.existsSync(newDir));
 
 		const children = await Promises.readdir(parent);
-		assert.strictEqual(children.some(n => n === 'öäü'), true); // Mac always converts to NFD, so
+		assert.strictEqual(children.some(n => n === 'öäü'), true);
 	});
 
 	test('readdir (with file types)', async () => {
@@ -374,7 +361,7 @@ flakySuite('PFS', function () {
 
 		const children = await Promises.readdir(testDir, { withFileTypes: true });
 
-		assert.strictEqual(children.some(n => n.name === 'öäü'), true); // Mac always converts to NFD, so
+		assert.strictEqual(children.some(n => n.name === 'öäü'), true);
 		assert.strictEqual(children.some(n => n.isDirectory()), true);
 
 		assert.strictEqual(children.some(n => n.name === 'somefile.txt'), true);
@@ -434,7 +421,7 @@ flakySuite('PFS', function () {
 	test('writeFile (string, error handling)', async () => {
 		const testFile = join(testDir, 'flushed.txt');
 
-		fs.mkdirSync(testFile); // this will trigger an error later because testFile is now a directory!
+		fs.mkdirSync(testFile);
 
 		let expectedError: Error | undefined;
 		try {
@@ -460,19 +447,17 @@ flakySuite('PFS', function () {
 
 	test('realcase', async () => {
 
-		// assume case insensitive file system
 		if (process.platform === 'win32' || process.platform === 'darwin') {
 			const upper = testDir.toUpperCase();
 			const real = await realcase(upper);
 
-			if (real) { // can be null in case of permission errors
+			if (real) {
 				assert.notStrictEqual(real, upper);
 				assert.strictEqual(real.toUpperCase(), upper);
 				assert.strictEqual(real, testDir);
 			}
 		}
 
-		// linux, unix, etc. -> assume case sensitive file system
 		else {
 			let real = await realcase(testDir);
 			assert.strictEqual(real, testDir);

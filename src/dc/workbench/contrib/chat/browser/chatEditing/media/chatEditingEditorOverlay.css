@@ -3,6 +3,21 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+.chat-editing-editor-overlay {
+	position: absolute;
+	bottom: 24px;
+	left: 50% !important;
+	right: auto !important;
+	transform: translateX(-50%);
+	z-index: 100;
+	width: max-content;
+	max-width: calc(100% - 48px);
+	pointer-events: auto;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
 .chat-editor-overlay-widget {
 	padding: 2px 4px;
 	color: var(--vscode-foreground);
@@ -63,7 +78,7 @@
 	padding: 4px 6px;
 	font-size: 11px;
 	line-height: 14px;
-	border-radius: 4px; /* same as overlay widget */
+	border-radius: 4px;
 }
 
 .chat-editor-overlay-widget .monaco-action-bar .actions-container {
@@ -85,7 +100,7 @@
 
 .chat-editor-overlay-widget .action-item > .action-label.codicon:not(.separator) {
 	color: var(--vscode-foreground);
-	width: 22px; /* align with default icon button dimensions */
+	width: 22px;
 	height: 22px;
 	padding: 0;
 	font-size: 16px;

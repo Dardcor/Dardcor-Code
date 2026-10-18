@@ -90,12 +90,10 @@ export const allowedChatMarkdownHtmlTags = Object.freeze([
 	'a',
 	'img',
 
-	// TODO@roblourens when we sanitize attributes in markdown source, we can ban these elements at that step. microsoft/vscode-copilot#5091
-	// Not in the official list, but used for codicons and other vscode markdown extensions
 	'span',
 	'div',
 
-	'input', // Allowed for rendering checkboxes. Other types of inputs are removed and the inputs are always disabled
+	'input',
 ]);
 
 export function getChatMarkdownRenderOptions(options?: MarkdownRenderOptions): MarkdownRenderOptions {
@@ -116,9 +114,6 @@ export function getChatMarkdownRenderOptions(options?: MarkdownRenderOptions): M
 	};
 }
 
-/**
- * This wraps the MarkdownRenderer and applies sanitizer options needed for chat content.
- */
 export class ChatContentMarkdownRenderer implements IMarkdownRenderer {
 	constructor(
 		@ILanguageService languageService: ILanguageService,
@@ -141,16 +136,11 @@ export class ChatContentMarkdownRenderer implements IMarkdownRenderer {
 			{
 				...markdown,
 
-				// dompurify uses DOMParser, which strips leading comments. Wrapping it all in 'body' prevents this.
-				// The \n\n prevents marked.js from parsing the body contents as just text in an 'html' token, instead of actual markdown.
 				value: `<body>\n\n${markdown.value}\n\n</body>`,
 			}
 			: markdown;
 		const result = this.markdownRendererService.render(mdWithBody, options, outElement);
 
-		// In some cases, the renderer can return top level text nodes  but our CSS expects
-		// all text to be in a <p> for margin to be applied properly.
-		// So just normalize it.
 		result.element.normalize();
 		for (const child of result.element.childNodes) {
 			if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {

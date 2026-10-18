@@ -21,7 +21,6 @@ export class ArcTelemetryReporter extends Disposable {
 		private readonly _timesMs: number[],
 		private readonly _documentValueBeforeTrackedEdit: StringText,
 		private readonly _document: { value: IObservableWithChange<StringText, { edit: BaseStringEdit }> },
-		// _markedEdits -> document.value
 		private readonly _gitRepo: IObservable<IScmRepoAdapter | undefined>,
 		private readonly _trackedEdit: BaseStringEdit,
 		private readonly _sendTelemetryEvent: (res: ArcTelemetryReporterData) => void,

@@ -28,8 +28,6 @@ suite('diffing fixtures', () => {
 
 
 	const fixturesOutDir = FileAccess.asFileUri('vs/editor/test/node/diffing/fixtures').fsPath;
-	// We want the dir in src, so we can directly update the source files if they disagree and create invalid files to capture the previous state.
-	// This makes it very easy to update the fixtures.
 	const fixturesSrcDir = resolve(fixturesOutDir).replaceAll('\\', '/').replace('/out/vs/editor/', '/src/vs/editor/');
 	const folders = readdirSync(fixturesSrcDir);
 
@@ -95,15 +93,12 @@ suite('diffing fixtures', () => {
 		const actualJsonStr = JSON.stringify(actualDiffingResult, null, '\t');
 
 		if (!existsSync(expectedFilePath)) {
-			// New test, create expected file
 			writeFileSync(expectedFilePath, actualJsonStr);
-			// Create invalid file so that this test fails on a re-run
 			writeFileSync(invalidFilePath, '');
 			throw new Error('No expected file! Expected and invalid files were written. Delete the invalid file to make the test pass.');
 		} if (existsSync(invalidFilePath)) {
 			const invalidJsonStr = readFileSync(invalidFilePath, 'utf8');
 			if (invalidJsonStr === '') {
-				// Update expected file
 				writeFileSync(expectedFilePath, actualJsonStr);
 				throw new Error(`Delete the invalid ${invalidFilePath} file to make the test pass.`);
 			} else {
@@ -114,7 +109,6 @@ suite('diffing fixtures', () => {
 					writeFileSync(expectedFilePath, actualJsonStr);
 					throw e;
 				}
-				// Test succeeded with the invalid file, restore expected file from invalid
 				writeFileSync(expectedFilePath, invalidJsonStr);
 				rmSync(invalidFilePath);
 			}
@@ -124,9 +118,7 @@ suite('diffing fixtures', () => {
 			try {
 				assert.deepStrictEqual(actualDiffingResult, expectedFileDiffResult);
 			} catch (e) {
-				// Backup expected file
 				writeFileSync(invalidFilePath, expectedJsonStr);
-				// Update expected file
 				writeFileSync(expectedFilePath, actualJsonStr);
 				throw e;
 			}
@@ -155,19 +147,19 @@ interface DiffingResult {
 }
 
 interface IDetailedDiff {
-	originalRange: string; // [startLineNumber, endLineNumberExclusive)
-	modifiedRange: string; // [startLineNumber, endLineNumberExclusive)
+	originalRange: string;
+	modifiedRange: string;
 	innerChanges: IDiff[] | null;
 }
 
 interface IDiff {
-	originalRange: string; // [1,18 -> 1,19]
-	modifiedRange: string; // [1,18 -> 1,19]
+	originalRange: string;
+	modifiedRange: string;
 }
 
 interface IMoveInfo {
-	originalRange: string; // [startLineNumber, endLineNumberExclusive)
-	modifiedRange: string; // [startLineNumber, endLineNumberExclusive)
+	originalRange: string;
+	modifiedRange: string;
 
 	changes: IDetailedDiff[];
 }

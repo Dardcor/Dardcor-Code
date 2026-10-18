@@ -17,12 +17,6 @@ import { TerminalChatAgentToolsSettingId } from '../../common/terminalChatAgentT
 import { isMacintosh } from '../../../../../../base/common/platform.js';
 import { isMultilineCommand } from '../runInTerminalHelpers.js';
 
-/**
- * This strategy is used when no shell integration is available. There are very few extension APIs
- * available in this case. This uses similar strategies to the basic integration strategy, but
- * with `sendText` instead of `shellIntegration.executeCommand` and relying on idle events instead
- * of execution events.
- */
 export class NoneExecuteStrategy extends Disposable implements ITerminalExecuteStrategy {
 	readonly type = 'none';
 	private readonly _startMarker = this._register(new MutableDisposable<IXtermMarker>());
@@ -47,7 +41,6 @@ export class NoneExecuteStrategy extends Disposable implements ITerminalExecuteS
 				throw new CancellationError();
 			}
 
-			// Ensure xterm is available
 			this._log('Waiting for xterm');
 			const xterm = await this._instance.xtermReadyPromise;
 			if (!xterm) {
@@ -57,7 +50,6 @@ export class NoneExecuteStrategy extends Disposable implements ITerminalExecuteS
 
 			const idlePollInterval = this._configurationService.getValue<number>(TerminalChatAgentToolsSettingId.IdlePollInterval) ?? 1000;
 
-			// Wait for the terminal to idle before executing the command
 			this._log('Waiting for idle');
 			await waitForIdle(this._instance.onData, idlePollInterval);
 			if (token.isCancellationRequested) {
@@ -73,32 +65,17 @@ export class NoneExecuteStrategy extends Disposable implements ITerminalExecuteS
 			);
 
 			if (this._hasReceivedUserInput()) {
-				// Use Ctrl+U (kill line) to clear any pending input on the prompt
-				// rather than Ctrl+C, which would kill any command currently running.
-				// Without shell integration we cannot reliably detect whether a
-				// previous command is still executing, and Ctrl+C at an idle prompt
-				// has been observed to produce spurious "Command exited with code
-				// 130" results for the next command. Ctrl+U is a no-op on an idle
-				// prompt.
 				this._log('Sending Ctrl+U to clear any pending input before sending command');
 				await this._instance.sendText('\x15', false);
 				await waitForIdle(this._instance.onData, 100);
 			}
 
-			// Execute the command
-			// IMPORTANT: This uses `sendText` not `runCommand` since when no shell integration
-			// is used as sending ctrl+c before a shell is initialized (eg. PSReadLine) can result
-			// in failure (https://github.com/microsoft/vscode/issues/258989)
 			this._log(`Executing command line \`${commandLine}\``);
 			markerRecreation.dispose();
 			const startLine = this._startMarker.value?.line;
 			const forceBracketedPasteMode = isMacintosh || isMultilineCommand(commandLine);
 			this._instance.sendText(commandLine, true, forceBracketedPasteMode);
 
-			// Wait for the cursor to move past the command line before
-			// starting idle detection. Without this, the idle poll may
-			// resolve immediately on the existing prompt if the shell
-			// hasn't started processing the command yet.
 			if (startLine !== undefined) {
 				this._log('Waiting for cursor to move past start line');
 				const cursorMovedPromise = new Promise<void>(resolve => {
@@ -126,7 +103,6 @@ export class NoneExecuteStrategy extends Disposable implements ITerminalExecuteS
 			}
 
 
-			// Assume the command is done when it's idle
 			this._log('Waiting for idle with prompt heuristics');
 			const promptResultOrAltBuffer = await Promise.race([
 				waitForIdleWithPromptHeuristics(this._instance.onData, this._instance, idlePollInterval, idlePollInterval * 10),
@@ -150,7 +126,6 @@ export class NoneExecuteStrategy extends Disposable implements ITerminalExecuteS
 			}
 			const endMarker = store.add(xterm.raw.registerMarker());
 
-			// Assemble final result - exit code is not available without shell integration
 			let output: string | undefined;
 			const additionalInformationLines: string[] = [];
 			try {
@@ -158,11 +133,6 @@ export class NoneExecuteStrategy extends Disposable implements ITerminalExecuteS
 				output = xterm.getContentsAsText(this._startMarker.value, endMarker);
 				this._log('Fetched output via markers');
 
-				// The marker-based output includes the command echo (the line where the
-				// command was typed) and the next prompt line. Strip them to isolate
-				// only the actual command output. The first line always contains the
-				// command echo (since the start marker is placed at the cursor before
-				// sendText), and trailing lines that look like shell prompts are removed.
 				if (output !== undefined) {
 					output = stripCommandEchoAndPrompt(output, commandLine, this._log.bind(this));
 				}

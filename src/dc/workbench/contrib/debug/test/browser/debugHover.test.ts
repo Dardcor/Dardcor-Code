@@ -60,7 +60,6 @@ suite('Debug - Hover', () => {
 		assert.strictEqual(await findExpressionInStackFrame(stackFrame, ['A', 'B']), variableB);
 		assert.strictEqual(await findExpressionInStackFrame(stackFrame, ['A', 'C']), undefined);
 
-		// We do not search in expensive scopes
 		scope.expensive = true;
 		assert.strictEqual(await findExpressionInStackFrame(stackFrame, ['A']), undefined);
 	});

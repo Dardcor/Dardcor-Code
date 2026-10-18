@@ -23,7 +23,7 @@ const SCROLLABLE_ELEMENT_PADDING_TOP = 18;
 
 export const OutputInnerContainerTopPadding = 4;
 
-export interface NotebookDisplayOptions { // TODO @Yoyokrazy rename to a more generic name, not display
+export interface NotebookDisplayOptions {
 	showCellStatusBar: ShowCellStatusBarType;
 	cellToolbarLocation: string | { [key: string]: string };
 	cellToolbarInteraction: string;
@@ -166,7 +166,6 @@ export class NotebookOptions extends Disposable {
 		const insertToolbarPosition = this._computeInsertToolbarPositionOption(this.isReadonly);
 		const insertToolbarAlignment = this._computeInsertToolbarAlignmentOption();
 		const showFoldingControls = this._computeShowFoldingControlsOption();
-		// const { bottomToolbarGap, bottomToolbarHeight } = this._computeBottomToolbarDimensions(compactView, insertToolbarPosition, insertToolbarAlignment);
 		const fontSize = this.configurationService.getValue<number>('editor.fontSize');
 		const markupFontSize = this.configurationService.getValue<number>(NotebookSetting.markupFontSize);
 		const markdownLineHeight = this.configurationService.getValue<number>(NotebookSetting.markdownLineHeight);
@@ -200,8 +199,6 @@ export class NotebookOptions extends Disposable {
 			cellStatusBarHeight: 22,
 			cellOutputPadding: 8,
 			markdownPreviewPadding: 8,
-			// bottomToolbarHeight: bottomToolbarHeight,
-			// bottomToolbarGap: bottomToolbarGap,
 			editorToolbarHeight: 0,
 			editorTopPadding: editorTopPadding,
 			editorBottomPadding: 4,
@@ -287,13 +284,10 @@ export class NotebookOptions extends Disposable {
 					const cssRules = this.codeEditorService.resolveDecorationCSSRules(e);
 					if (cssRules !== null) {
 						for (let i = 0; i < cssRules.length; i++) {
-							// The following ways to index into the list are equivalent
 							if (
 								((cssRules[i] as CSSStyleRule).selectorText.endsWith('::after') || (cssRules[i] as CSSStyleRule).selectorText.endsWith('::after'))
 								&& (cssRules[i] as CSSStyleRule).cssText.indexOf('top:') > -1
 							) {
-								// there is a `::before` or `::after` text decoration whose position is above or below current line
-								// we at least make sure that the editor top padding is at least one line
 								const editorOptions = this.configurationService.getValue<IEditorOptions>('editor');
 								updateEditorTopPadding(createBareFontInfoFromRawSettings(editorOptions, PixelRatio.getInstance(this.targetWindow).value).lineHeight + 2);
 								decorationTriggeredAdjustment = true;
@@ -305,7 +299,6 @@ export class NotebookOptions extends Disposable {
 
 				decorationCheckSet.add(e);
 			} catch (_ex) {
-				// do not throw and break notebook
 			}
 
 		};
@@ -319,12 +312,10 @@ export class NotebookOptions extends Disposable {
 		const minimumLineHeight = 9;
 
 		if (lineHeight === 0) {
-			// use editor line height
 			const editorOptions = this.configurationService.getValue<IEditorOptions>('editor');
 			const fontInfo = FontMeasurements.readFontInfo(this.targetWindow, createBareFontInfoFromRawSettings(editorOptions, PixelRatio.getInstance(this.targetWindow).value));
 			lineHeight = fontInfo.lineHeight;
 		} else if (lineHeight < minimumLineHeight) {
-			// Values too small to be line heights in pixels are in ems.
 			let fontSize = outputFontSize;
 			if (fontSize === 0) {
 				fontSize = this.configurationService.getValue<number>('editor.fontSize');
@@ -333,7 +324,6 @@ export class NotebookOptions extends Disposable {
 			lineHeight = lineHeight * fontSize;
 		}
 
-		// Enforce integer, minimum constraints
 		lineHeight = Math.round(lineHeight);
 		if (lineHeight < minimumLineHeight) {
 			lineHeight = minimumLineHeight;
@@ -521,7 +511,6 @@ export class NotebookOptions extends Disposable {
 
 		this._layoutConfiguration = Object.freeze(configuration);
 
-		// trigger event
 		this._onDidChangeOptions.fire({
 			cellStatusBarVisibility,
 			cellToolbarLocation,

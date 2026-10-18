@@ -12,7 +12,6 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
   const [showModelModal, setShowModelModal] = useState(false);
   const [modelValue, setModelValue] = useState("");
   
-  // Initialize state directly with computed value - no need for useEffect
   const [selectedApiKey, setSelectedApiKey] = useState(() => 
     apiKeys?.length > 0 ? apiKeys[0].key : ""
   );
@@ -22,7 +21,6 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
       ? selectedApiKey 
       : (!cloudEnabled ? "sk_dardcor-code" : "your-api-key");
     
-    // Add /v1 suffix only if not already present (DRY - avoid duplicate)
     const normalizedBaseUrl = baseUrl || "http://localhost:21128";
     const baseUrlWithV1 = normalizedBaseUrl.endsWith("/v1") 
       ? normalizedBaseUrl 
@@ -104,7 +102,6 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
     return (
       <div className="flex flex-col gap-2 mb-4">
         {tool.notes.map((note, index) => {
-          // Skip cloudCheck note if tunnel or cloud is enabled
           if (note.type === "cloudCheck" && (cloudEnabled || tunnelEnabled)) return null;
           
           const isWarning = note.type === "warning";

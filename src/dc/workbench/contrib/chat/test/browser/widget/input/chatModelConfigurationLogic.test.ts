@@ -17,7 +17,7 @@ import {
 const effortSchema: ILanguageModelConfigurationSchema = {
 	properties: {
 		thinkingEffort: { enum: ['low', 'medium', 'high'], default: 'medium' },
-		contextSize: { type: 'number' }, // no default
+		contextSize: { type: 'number' },
 	}
 };
 
@@ -44,7 +44,6 @@ suite('chatModelConfigurationLogic', () => {
 		});
 
 		test('present empty entry resolves to schema defaults and ignores global (issue #320393)', () => {
-			// An empty entry marks an explicit reset-to-default. It must NOT fall
 			// back to the (possibly non-default) profile-global value.
 			const resolved = resolveModelConfiguration({}, defaults, { thinkingEffort: 'high' });
 			assert.deepStrictEqual(resolved, { thinkingEffort: 'medium' });
@@ -56,16 +55,11 @@ suite('chatModelConfigurationLogic', () => {
 		});
 
 		test('absent entry with no global value resolves to the schema defaults', () => {
-			// Schema defaults must be present even when nothing is stored, so a value
-			// the user never explicitly set (e.g. a model's default contextSize) is
-			// not dropped — otherwise the request and context-usage widget fall back
-			// to the model's full native window while the picker shows the default.
 			assert.deepStrictEqual(resolveModelConfiguration(undefined, defaults, undefined), { thinkingEffort: 'medium' });
 		});
 
 		test('absent entry with a partial global value keeps untouched schema defaults', () => {
 			// Regression for the contextSize 200K-vs-full-window bug: a global config
-			// that lacks contextSize must not strip the default contextSize.
 			const partialDefaults: IStringDictionary<unknown> = { thinkingEffort: 'medium', contextSize: 200_000 };
 			const resolved = resolveModelConfiguration(undefined, partialDefaults, { thinkingEffort: 'high' });
 			assert.deepStrictEqual(resolved, { thinkingEffort: 'high', contextSize: 200_000 });
@@ -96,7 +90,6 @@ suite('chatModelConfigurationLogic', () => {
 		});
 
 		test('drops values that violate the enum constraint, falling back to the live default', () => {
-			// 'extreme' was valid against an older schema but is no longer an enum member.
 			const filtered = filterConfigurationToSchema({ thinkingEffort: 'extreme' }, effortSchema);
 			assert.deepStrictEqual(filtered, {});
 		});
@@ -111,7 +104,6 @@ suite('chatModelConfigurationLogic', () => {
 		});
 
 		test('drops a value from another model, so an Auto tier is not set from a thinking level', () => {
-			// Auto's navigation-group property is its routing tier, not a thinking effort.
 			const autoSchema: ILanguageModelConfigurationSchema = { properties: { tier: { group: 'navigation', enum: ['eco', 'balanced', 'max'] } } };
 			assert.deepStrictEqual(filterConfigurationToSchema({ thinkingLevel: 'high', tier: 'high' }, autoSchema), {});
 		});
@@ -135,14 +127,10 @@ suite('chatModelConfigurationLogic', () => {
 		const defaults = extractSchemaDefaults(effortSchema);
 		const global: IStringDictionary<unknown> = { thinkingEffort: 'high' };
 
-		// Editor A seeds from global (no scoped entry yet), then the user picks the
-		// schema default 'medium'. The persisted entry is an empty marker.
 		const seeded = resolveModelConfiguration(undefined, defaults, global);
 		const stored = computeStoredConfiguration(seeded, { thinkingEffort: 'medium' }, defaults);
 		assert.deepStrictEqual(stored, {});
 
-		// Editor B opens later and reads the persisted (empty) entry: it must resolve
-		// to the default 'medium', NOT the stale global 'high'.
 		const resolvedInNewEditor = resolveModelConfiguration(stored, defaults, global);
 		assert.deepStrictEqual(resolvedInNewEditor, { thinkingEffort: 'medium' });
 	});

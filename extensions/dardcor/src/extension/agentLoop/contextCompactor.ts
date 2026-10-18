@@ -32,7 +32,6 @@ export class ContextCompactor {
 			};
 		}
 
-		// Truncate at character boundary without splitting high surrogates
 		let sliceIndex = maxChars;
 		const charCode = content.charCodeAt(sliceIndex - 1);
 		if (charCode >= 0xd800 && charCode <= 0xdbff) {

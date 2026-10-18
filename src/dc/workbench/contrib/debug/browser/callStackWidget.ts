@@ -108,11 +108,6 @@ type ListItem = WrappedCallStackFrame | SkippedCallFrames | WrappedCustomStackFr
 
 const WIDGET_CLASS_NAME = 'multiCallStackWidget';
 
-/**
- * A reusable widget that displays a call stack as a series of editors. Note
- * that this both used in debug's exception widget as well as in the testing
- * call stack view.
- */
 export class CallStackWidget extends Disposable {
 	private readonly list: WorkbenchList<ListItem>;
 	private readonly layoutEmitter = this._register(new Emitter<void>());
@@ -163,9 +158,7 @@ export class CallStackWidget extends Disposable {
 		) as WorkbenchList<ListItem>);
 	}
 
-	/** Replaces the call frames display in the view. */
 	public setFrames(frames: AnyStackFrame[]): void {
-		// cancel any existing load
 		this.currentFramesDs.clear();
 		const cts = new CancellationTokenSource();
 		this.currentFramesDs.add(toDisposable(() => cts.dispose(true)));
@@ -405,7 +398,6 @@ abstract class AbstractFrameRenderer<T extends IAbstractFrameRendererTemplateDat
 
 const CONTEXT_LINES = 2;
 
-/** Renderer for a normal stack frame where code is available. */
 class FrameCodeRenderer extends AbstractFrameRenderer<IStackTemplateData> {
 	public static readonly templateId = 'f';
 
@@ -421,8 +413,6 @@ class FrameCodeRenderer extends AbstractFrameRenderer<IStackTemplateData> {
 	}
 
 	protected override finishRenderTemplate(data: IAbstractFrameRendererTemplateData): IStackTemplateData {
-		// override default e.g. language contributions, only allow users to click
-		// on code in the call stack to go to its source location
 		const contributions: IEditorContributionDescription[] = [{
 			id: ClickToLocationContribution.ID,
 			instantiation: EditorContributionInstantiation.BeforeFirstInteraction,
@@ -544,7 +534,6 @@ interface IMissingTemplateData {
 	label: ResourceLabel;
 }
 
-/** Renderer for a call frame that's missing a URI */
 class MissingCodeRenderer implements IListRenderer<ListItem, IMissingTemplateData> {
 	public static readonly templateId = 'm';
 	public readonly templateId = MissingCodeRenderer.templateId;
@@ -576,7 +565,6 @@ class MissingCodeRenderer implements IListRenderer<ListItem, IMissingTemplateDat
 	}
 }
 
-/** Renderer for a call frame that's missing a URI */
 class CustomRenderer extends AbstractFrameRenderer<IAbstractFrameRendererTemplateData> {
 	public static readonly templateId = 'c';
 	public readonly templateId = CustomRenderer.templateId;
@@ -616,7 +604,6 @@ interface ISkippedTemplateData {
 	store: DisposableStore;
 }
 
-/** Renderer for a button to load more call frames */
 class SkippedRenderer implements IListRenderer<ListItem, ISkippedTemplateData> {
 	public static readonly templateId = 's';
 	public readonly templateId = SkippedRenderer.templateId;
@@ -658,7 +645,6 @@ class SkippedRenderer implements IListRenderer<ListItem, ISkippedTemplateData> {
 	}
 }
 
-/** A simple contribution that makes all data in the editor clickable to go to the location */
 class ClickToLocationContribution extends Disposable implements IEditorContribution {
 	public static readonly ID = 'clickToLocation';
 	private readonly linkDecorations: IEditorDecorationsCollection;

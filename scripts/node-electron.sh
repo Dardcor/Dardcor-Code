@@ -18,7 +18,6 @@ else
 	CODE="$ROOT/.build/electron/$NAME"
 fi
 
-# Get electron
 if [[ -z "${VSCODE_SKIP_PRELAUNCH}" ]]; then
 	npm run electron
 fi

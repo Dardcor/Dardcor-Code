@@ -98,12 +98,6 @@ class CapturingTelemetryService implements ITelemetryService {
 	setCommonProperty(): void { }
 }
 
-/**
- * Integration tests for the turn hang watchdog owned by
- * {@link AgentHostTurnTracker}, driven through {@link AgentSideEffects} so the
- * activity, blocker and tool-call signals are exercised through their real
- * wiring rather than by calling the tracker directly.
- */
 suite('AgentSideEffects — turn hang telemetry', () => {
 
 	const disposables = new DisposableStore();
@@ -154,7 +148,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 		fire({ type: ActionType.ChatDelta, turnId, partId: 'p1', content });
 	}
 
-	/** Normalizes the non-deterministic timing fields to booleans for snapshotting. */
 	function hangEvents(): { eventName: string; data: Record<string, unknown> }[] {
 		return telemetry.events
 			.filter(e => e.eventName === 'agentHost.turnHung')
@@ -236,7 +229,7 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 				updateSessionWorkspace: async () => { },
 			}],
 		);
-		const instantiationService = disposables.add(new InstantiationService(services, /*strict*/ true));
+		const instantiationService = disposables.add(new InstantiationService(services, true));
 		const chatContributions = disposables.add(new AgentHostChatContributions(logService, instantiationService));
 		services.set(IAgentHostChatContributions, chatContributions);
 		services.set(IAgentHostTurnService, new AgentHostTurnService(stateManager, chatContributions, instantiationService));
@@ -249,9 +242,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 		services.set(IAgentHostToolCallTracker, disposables.add(instantiationService.createInstance(AgentHostToolCallTracker)));
 		const localCommands = disposables.add(instantiationService.createInstance(AgentHostLocalCommands));
 		services.set(IAgentHostLocalCommands, localCommands);
-		// Blocked-turn hang telemetry is reported by `SessionInputNeededContribution`,
-		// so the built-in contributions must be registered for this graph to mirror
-		// production wiring.
 		disposables.add(registerBuiltInChatContributions(chatContributions));
 		sideEffects = disposables.add(instantiationService.createInstance(AgentSideEffects, stateManager, customizationEnablementService, {
 			getAgent: () => agent,
@@ -331,7 +321,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 			setupSession();
 			startTurn('turn-busy');
 			responsePart('turn-busy');
-			// Ten windows' worth of elapsed time, but never a full quiet window.
 			for (let i = 0; i < 10; i++) {
 				await timeout(TURN_HANG_THRESHOLD_MS - 1000);
 				delta('turn-busy', `chunk-${i}`);
@@ -400,8 +389,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 			});
 			await timeout(TURN_HANG_THRESHOLD_MS);
 
-			// The tool finally returns, but the agent loop never picks the turn
-			// back up — the second report distinguishes that from the first.
 			fire({ type: ActionType.ChatToolCallComplete, turnId: 'turn-tool', toolCallId: 'tc-slow', result: { success: true, pastTenseMessage: 'built' } });
 			await timeout(TURN_HANG_THRESHOLD_MS);
 		});
@@ -413,8 +400,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 			toolSourceKind: e.data.toolSourceKind,
 			inFlightToolCallCount: e.data.inFlightToolCallCount,
 		})), [
-			// The agent-host tool is named even though it never entered the
-			// session input queue, which is what `toolCallStalled` cannot see.
 			{ hangReason: 'runningTool', isExpected: true, toolId: 'bash', toolSourceKind: 'agentHost', inFlightToolCallCount: 1 },
 			{ hangReason: 'stalledAfterProgress', isExpected: false, toolId: undefined, toolSourceKind: undefined, inFlightToolCallCount: 0 },
 		]);
@@ -707,7 +692,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 			setupSession();
 			startTurn('turn-truncated');
 
-			// Omitting `turnId` clears every turn including the active one.
 			const truncate: ChatAction = { type: ActionType.ChatTruncated };
 			stateManager.dispatchClientAction(defaultChatUri, truncate, { clientId: 'test', clientSeq: 2 });
 			sideEffects.handleAction(defaultChatUri, truncate);
@@ -749,8 +733,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 			sideEffects.handleAction(defaultChatUri, confirmed);
 			fire({ type: ActionType.ChatToolCallComplete, turnId: 'turn-answered', toolCallId: 'tc-answered', result: { success: true, pastTenseMessage: 'wrote file' } });
 
-			// The tool is done and nothing is blocking, but the agent loop
-			// never picks the turn back up.
 			await timeout(TURN_HANG_THRESHOLD_MS);
 		});
 
@@ -772,9 +754,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 				displayName: 'run_tests',
 				contributor: { kind: ToolCallContributorKind.Client, clientId: 'client-1' },
 			});
-			// Confirmation is not needed, so the call goes straight to running
-			// and is surfaced as a `toolClientExecution` input request. That is
-			// delegated work, not a prompt — the turn is not waiting on a human.
 			fire({
 				type: ActionType.ChatToolCallReady,
 				turnId: 'turn-client',
@@ -811,8 +790,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 			await timeout(TURN_HANG_THRESHOLD_MS);
 		});
 
-		// `toolId` is a best guess among parallel calls; `inFlightToolCallCount`
-		// above one is the signal that attribution is ambiguous.
 		assert.deepStrictEqual(hangEvents().map(e => ({
 			toolId: e.data.toolId,
 			inFlightToolCallCount: e.data.inFlightToolCallCount,
@@ -823,7 +800,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 		await runWithFakedTimers({}, async () => {
 			setupSession();
 			startTurn('turn-refined');
-			// The start signal carries no contributor; `ready` supplies it.
 			fire({ type: ActionType.ChatToolCallStart, turnId: 'turn-refined', toolCallId: 'tc-refined', toolName: 'lookup', displayName: 'lookup' });
 			fire({
 				type: ActionType.ChatToolCallReady,
@@ -846,8 +822,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 		await runWithFakedTimers({}, async () => {
 			setupSession();
 			startTurn('turn-mixed');
-			// A long-running tool starts first, so it is the earliest entry in
-			// the in-flight set...
 			fire({ type: ActionType.ChatToolCallStart, turnId: 'turn-mixed', toolCallId: 'tc-running', toolName: 'bash', displayName: 'bash' });
 			fire({
 				type: ActionType.ChatToolCallReady,
@@ -856,8 +830,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 				invocationMessage: 'Run build',
 				confirmed: ToolCallConfirmationReason.NotNeeded,
 			});
-			// ...but a second tool is what actually blocks on the user, so that
-			// is the one the report must name.
 			fire({ type: ActionType.ChatToolCallStart, turnId: 'turn-mixed', toolCallId: 'tc-gated', toolName: 'write', displayName: 'write' });
 			fire({
 				type: ActionType.ChatToolCallReady,
@@ -898,9 +870,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 				invocationMessage: 'Write file',
 				confirmed: ToolCallConfirmationReason.NotNeeded,
 			});
-			// The tool ran to completion and is now awaiting *result* review, so
-			// it has left the in-flight set. The turn waits on the user reading
-			// a result, not on a tool — `toolId` is deliberately undefined.
 			fire({
 				type: ActionType.ChatToolCallComplete,
 				turnId: 'turn-result',
@@ -930,9 +899,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 		await runWithFakedTimers({}, async () => {
 			setupSession();
 			startTurn('turn-elicit');
-			// An elicitation is not attached to any tool call at all, and the
-			// action carries no `turnId` — the blocker resolves to the chat's
-			// active turn via the fallback in `_setSessionInputNeeded`.
 			fire({
 				type: ActionType.ChatInputRequested,
 				request: {
@@ -978,8 +944,6 @@ suite('AgentSideEffects — turn hang telemetry', () => {
 				confirmationTitle: 'Write file',
 			});
 
-			// Denial is terminal — no `ChatToolCallComplete` follows, so the
-			// tool must not stay in the turn's in-flight set.
 			const denied: ChatAction = {
 				type: ActionType.ChatToolCallConfirmed,
 				turnId: 'turn-denied',

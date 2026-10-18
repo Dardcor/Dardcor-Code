@@ -36,9 +36,6 @@ export class SetupTestsIntent implements IIntent {
 
 		let prompt = invocationContext.request.prompt;
 		if (invocationContext.request.acceptedConfirmationData) {
-			// todo@connor4312: VS Code currently creates a prompt like `${choice}: "${Confirmation Message}"`
-			// and so we parse the choice back out of three
-			// note: intentionally not localized as this is used as a prompt instruction:
 			prompt = `set up tests in my workspace using \`${prompt.split(':')[0]}\``;
 		}
 

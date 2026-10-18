@@ -106,12 +106,10 @@ export class InlineChatAffordance extends Disposable {
 			}
 		}));
 
-		// Hide when the editor context menu shows
 		this._store.add(this.#editor.onContextMenu(() => {
 			selectionData.set(undefined, undefined);
 		}));
 
-		// Hide when the editor loses focus (e.g., switching tabs in notebooks)
 		this._store.add(autorun(r => {
 			if (!editorObs.isFocused.read(r)) {
 				selectionData.set(undefined, undefined);

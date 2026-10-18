@@ -98,7 +98,6 @@ export class CodeCellDragImageRenderer {
 	getDragImage(templateData: BaseCellRenderTemplate, editor: ICodeEditor, type: 'code' | 'markdown'): HTMLElement {
 		let dragImage = this.getDragImageImpl(templateData, editor, type);
 		if (!dragImage) {
-			// TODO@roblourens I don't think this can happen
 			dragImage = document.createElement('div');
 			dragImage.textContent = '1 cell';
 		}

@@ -28,7 +28,6 @@ import { KeybindingWeight } from '../../../../../platform/keybinding/common/keyb
 import { terminalStrings } from '../../../terminal/common/terminalStrings.js';
 import { isString } from '../../../../../base/common/types.js';
 
-// #region Terminal Contributions
 
 export class TerminalClipboardContribution extends Disposable implements ITerminalContribution {
 	static readonly ID = 'terminal.clipboard';
@@ -59,7 +58,6 @@ export class TerminalClipboardContribution extends Disposable implements ITermin
 
 	xtermReady(xterm: IXtermTerminal & { raw: RawXtermTerminal }): void {
 		this._xterm = xterm;
-		// TODO: This should be a different event on xterm, copying html should not share the requesting run command event
 		this._register(xterm.onDidRequestCopyAsHtml(e => this.copySelection(true, e.command)));
 		this._register(xterm.raw.onSelectionChange(async () => {
 			if (this._configurationService.getValue(TerminalSettingId.CopyOnSelection)) {
@@ -74,13 +72,9 @@ export class TerminalClipboardContribution extends Disposable implements ITermin
 	}
 
 	async copySelection(asHtml?: boolean, command?: ITerminalCommand): Promise<void> {
-		// TODO: Confirm this is fine that it's no longer awaiting xterm promise
 		this._xterm?.copySelection(asHtml, command);
 	}
 
-	/**
-	 * Focuses and pastes the contents of the clipboard into the terminal instance.
-	 */
 	async paste(): Promise<void> {
 		let text = await this._clipboardService.readText();
 
@@ -94,9 +88,6 @@ export class TerminalClipboardContribution extends Disposable implements ITermin
 		await this._paste(text);
 	}
 
-	/**
-	 * Focuses and pastes the contents of the selection clipboard into the terminal instance.
-	 */
 	async pasteSelection(): Promise<void> {
 		await this._paste(await this._clipboardService.readText('selection'));
 	}
@@ -125,15 +116,14 @@ export class TerminalClipboardContribution extends Disposable implements ITermin
 
 	async handleMouseEvent(event: MouseEvent): Promise<{ handled: boolean } | void> {
 		switch (event.button) {
-			case 1: { // Middle click
+			case 1: {
 				if (this._terminalConfigurationService.config.middleClickBehavior === 'paste') {
 					this.paste();
 					return { handled: true };
 				}
 				break;
 			}
-			case 2: { // Right click
-				// Ignore shift click as it forces the context menu
+			case 2: {
 				if (event.shiftKey) {
 					return;
 				}
@@ -151,10 +141,6 @@ export class TerminalClipboardContribution extends Disposable implements ITermin
 						this._notificationService.info(`This browser doesn't support the clipboard.readText API needed to trigger a paste, try ${isMacintosh ? '⌘' : 'Ctrl'}+V instead.`);
 					}
 				}
-				// Clear selection after all click event bubbling is finished on Mac to prevent
-				// right-click selecting a word which is seemed cannot be disabled. There is a
-				// flicker when pasting but this appears to give the best experience if the
-				// setting is enabled.
 				if (isMacintosh) {
 					setTimeout(() => this._ctx.instance.clearSelection(), 0);
 				}
@@ -163,10 +149,6 @@ export class TerminalClipboardContribution extends Disposable implements ITermin
 		}
 	}
 
-	/**
-	 * Override the copy on selection feature with a custom value.
-	 * @param value Whether to enable copySelection.
-	 */
 	overrideCopyOnSelection(value: boolean): IDisposable {
 		if (this._overrideCopySelection !== undefined) {
 			throw new Error('Cannot set a copy on selection override multiple times');
@@ -178,9 +160,7 @@ export class TerminalClipboardContribution extends Disposable implements ITermin
 
 registerTerminalContribution(TerminalClipboardContribution.ID, TerminalClipboardContribution, false);
 
-// #endregion
 
-// #region Actions
 
 const terminalAvailableWhenClause = ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated);
 
@@ -244,12 +224,10 @@ registerActiveInstanceAction({
 	}
 });
 
-// Some commands depend on platform features
 if (BrowserFeatures.clipboard.writeText) {
 	registerActiveXtermAction({
 		id: TerminalCommandId.CopySelection,
 		title: localize2('workbench.action.terminal.copySelection', 'Copy Selection'),
-		// TODO: Why is copy still showing up when text isn't selected?
 		precondition: ContextKeyExpr.or(TerminalContextKeys.textSelectedInFocused, ContextKeyExpr.and(terminalAvailableWhenClause, TerminalContextKeys.textSelected)),
 		keybinding: [{
 			primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyC,
@@ -321,4 +299,3 @@ if (BrowserFeatures.clipboard.readText && isLinux) {
 	});
 }
 
-// #endregion

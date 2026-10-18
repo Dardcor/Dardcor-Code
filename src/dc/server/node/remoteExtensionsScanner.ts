@@ -64,7 +64,7 @@ export class RemoteExtensionsScannerService implements IRemoteExtensionsScannerS
 			const installOptions: InstallOptions = {
 				isMachineScoped: !!environmentService.args['do-not-sync'],
 				installPreReleaseVersion: !!environmentService.args['pre-release'],
-				isApplicationScoped: true // extensions installed during server startup are available to all profiles
+				isApplicationScoped: true
 			};
 			this._whenExtensionsReady = this._whenBuiltinExtensionsReady
 				.then(() => _extensionManagementCLI.installExtensions(this._asExtensionIdOrVSIX(extensionsToInstall), [], installOptions, !!environmentService.args['force']))
@@ -178,9 +178,7 @@ export class RemoteExtensionsScannerService implements IRemoteExtensionsScannerS
 
 	private async _ensureLanguagePackIsInstalled(language: string, languagePackId: string | undefined): Promise<void> {
 		if (
-			// No need to install language packs for the default language
 			language === platform.LANGUAGE_DEFAULT ||
-			// The extension gallery service needs to be available
 			!this._extensionGalleryService.isEnabled()
 		) {
 			return;
@@ -193,7 +191,6 @@ export class RemoteExtensionsScannerService implements IRemoteExtensionsScannerS
 				return;
 			}
 		} catch (err) {
-			// We tried to see what is installed but failed. We can try installing anyway.
 			this._logService.error(err);
 		}
 
@@ -206,20 +203,17 @@ export class RemoteExtensionsScannerService implements IRemoteExtensionsScannerS
 		try {
 			await this._extensionManagementCLI.installExtensions([languagePackId], [], { isMachineScoped: true }, true);
 		} catch (err) {
-			// We tried to install the language pack but failed. We can continue without it thus using the default language.
 			this._logService.error(err);
 		}
 	}
 
 	private _massageWhenConditions(extensions: IExtensionDescription[]): void {
-		// Massage "when" conditions which mention `resourceScheme`
 
 		interface WhenUser { when?: string }
 
 		interface LocWhenUser { [loc: string]: WhenUser[] }
 
 		const _mapResourceSchemeValue = (value: string, isRegex: boolean): string => {
-			// console.log(`_mapResourceSchemeValue: ${value}, ${isRegex}`);
 			return value.replace(/file/g, 'vscode-remote');
 		};
 

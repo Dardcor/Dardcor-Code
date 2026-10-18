@@ -200,12 +200,12 @@ describe('Notebook Prompt Rendering', function () {
 			}
 		});
 		const mockLogger: ILogger = {
-			error: () => { /* no-op */ },
-			warn: () => { /* no-op */ },
-			info: () => { /* no-op */ },
-			debug: () => { /* no-op */ },
-			trace: () => { /* no-op */ },
-			show: () => { /* no-op */ },
+			error: () => { },
+			warn: () => { },
+			info: () => { },
+			debug: () => { },
+			trace: () => { },
+			show: () => { },
 			createSubLogger(): ILogger { return mockLogger; },
 			withExtraTarget(): ILogger { return mockLogger; }
 		};
@@ -220,7 +220,6 @@ describe('Notebook Prompt Rendering', function () {
 			warn = mockLogger.warn;
 			error = mockLogger.error;
 			show(preserveFocus?: boolean): void {
-				//
 			}
 			createSubLogger(): ILogger {
 				return this;
@@ -250,11 +249,11 @@ describe('Notebook Prompt Rendering', function () {
 		});
 		const promptResult = await renderer.render(progressReporter, CancellationToken.None);
 		expect(promptResult.messages.length).toBe(5);
-		expect(getTextPart(promptResult.messages[0].content)).contains('AI programming'); // System message
-		expect(getTextPart(promptResult.messages[1].content)).contains('I am working on a Jupyter notebook'); // Notebook Document Context
-		expect(getTextPart(promptResult.messages[2].content)).contains('Now I edit a cell'); // Current Cell
-		expect(getTextPart(promptResult.messages[3].content)).contains('The following variables'); // Variables
-		expect(getTextPart(promptResult.messages[4].content)).contains('print hello world'); // User Query
+		expect(getTextPart(promptResult.messages[0].content)).contains('AI programming');
+		expect(getTextPart(promptResult.messages[1].content)).contains('I am working on a Jupyter notebook');
+		expect(getTextPart(promptResult.messages[2].content)).contains('Now I edit a cell');
+		expect(getTextPart(promptResult.messages[3].content)).contains('The following variables');
+		expect(getTextPart(promptResult.messages[4].content)).contains('print hello world');
 	});
 
 	test('Disable package should not render packages', async function () {
@@ -270,13 +269,6 @@ describe('Notebook Prompt Rendering', function () {
 			}
 		});
 		const promptResult = await renderer.render(progressReporter, CancellationToken.None);
-		/**
-		 * System+Instructions
-		 * Notebook Document Context
-		 * Current Cell
-		 * Variables
-		 * User Query
-		 */
 		expect(promptResult.messages.length).toBe(5);
 	});
 
@@ -319,7 +311,7 @@ describe('Notebook Prompt Rendering', function () {
 		});
 		const promptResult = await renderer.render(progressReporter, CancellationToken.None);
 		expect(promptResult.messages.length).toBe(5);
-		expect(getTextPart(promptResult.messages[3].content)).contains('The following variables'); // Variables
-		expect(getTextPart(promptResult.messages[4].content)).contains('print hello world'); // User Query
+		expect(getTextPart(promptResult.messages[3].content)).contains('The following variables');
+		expect(getTextPart(promptResult.messages[4].content)).contains('print hello world');
 	});
 });

@@ -36,12 +36,6 @@ export interface IWindowsMxcTerminalSandboxRuntime {
 	toWindowsPath(uri: URI): string;
 }
 
-/**
- * Windows-only MXC integration for terminal sandboxing.
- *
- * This class is intentionally isolated from the SRT-backed runtime so it can be
- * removed once SRT supports Windows sandboxing.
- */
 export class WindowsMxcTerminalSandboxRuntime implements IWindowsMxcTerminalSandboxRuntime {
 	declare readonly _serviceBrand: undefined;
 
@@ -121,8 +115,6 @@ export class WindowsMxcTerminalSandboxRuntime implements IWindowsMxcTerminalSand
 	}
 
 	private _createNetworkPolicy(allowNetwork: boolean): NonNullable<IWindowsMxcSandboxPolicy['network']> {
-		// MXC does not support per-host network policies on Windows. Rely on the
-		// overall allow/block policy instead of emitting unsupported host lists.
 		return { allowOutbound: allowNetwork };
 	}
 

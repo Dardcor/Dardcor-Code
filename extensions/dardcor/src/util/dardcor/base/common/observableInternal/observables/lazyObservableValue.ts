@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -13,9 +12,6 @@ import { getLogger } from '../logging/logging';
 import { BaseObservable } from './baseObservable';
 import { DebugLocation } from '../debugLocation';
 
-/**
- * Holds off updating observers until the value is actually read.
-*/
 export class LazyObservableValue<T, TChange = void>
 	extends BaseObservable<T, TChange>
 	implements ISettableObservable<T, TChange> {
@@ -80,7 +76,6 @@ export class LazyObservableValue<T, TChange = void>
 		if (this._updateCounter === 0) {
 			this._update();
 
-			// End update could change the observer list.
 			const observers = [...this._observers];
 			for (const r of observers) {
 				r.endUpdate(this);
@@ -102,7 +97,6 @@ export class LazyObservableValue<T, TChange = void>
 		super.removeObserver(observer);
 
 		if (shouldCallEndUpdate) {
-			// Calling end update after removing the observer makes sure endUpdate cannot be called twice here.
 			observer.endUpdate(this);
 		}
 	}
@@ -131,7 +125,6 @@ export class LazyObservableValue<T, TChange = void>
 			}, this);
 
 			if (this._updateCounter > 1) {
-				// We already started begin/end update, so we need to manually call handlePossibleChange
 				for (const observer of this._observers) {
 					observer.handlePossibleChange(this);
 				}

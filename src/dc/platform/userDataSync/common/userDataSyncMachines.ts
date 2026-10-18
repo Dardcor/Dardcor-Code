@@ -189,12 +189,10 @@ export class UserDataSyncMachinesService extends Disposable implements IUserData
 
 			const latestRef = manifest && manifest.latest ? manifest.latest[UserDataSyncMachinesService.RESOURCE] : undefined;
 
-			// Last time synced resource and latest resource on server are same
 			if (this.userData.ref === latestRef) {
 				return this.userData;
 			}
 
-			// There is no resource on server and last time it was synced with no resource
 			if (latestRef === undefined && this.userData.content === null) {
 				return this.userData;
 			}

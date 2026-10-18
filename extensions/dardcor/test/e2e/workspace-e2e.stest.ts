@@ -9,7 +9,6 @@ import { discoverScenarios } from './scenarioLoader';
 import { generateScenarioTestRunner, shouldSkip } from './scenarioTest';
 
 ssuite({ title: 'workspace', subtitle: 'e2e', location: 'panel' }, (inputPath) => {
-	// No default cases checked in at the moment
 	if (!inputPath) {
 		return;
 	}

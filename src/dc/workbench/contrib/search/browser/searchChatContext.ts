@@ -288,7 +288,6 @@ function continousMatchingGlobPattern(pattern: string): string {
 	return '*' + pattern + '*';
 }
 
-// TODO: remove this and have support from the search service
 function getMatchingFoldersFromFiles(resources: URI[], workspace: URI, segmentMatchPattern: string): URI[] {
 	const uniqueFolders = new ResourceSet();
 	for (const resource of resources) {

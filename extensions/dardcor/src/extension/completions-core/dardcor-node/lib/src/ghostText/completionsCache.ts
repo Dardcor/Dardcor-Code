@@ -17,22 +17,18 @@ export const ICompletionsCacheService = createServiceIdentifier<ICompletionsCach
 export interface ICompletionsCacheService {
 	readonly _serviceBrand: undefined;
 
-	/** Given a document prefix and suffix, return all of the completions that match. */
 	findAll(prefix: string, suffix: string): APIChoice[];
 
-	/** Add cached completions for a given prefix. */
 	append(prefix: string, suffix: string, choice: APIChoice): void;
 
 	clear(): void;
 }
 
-/** Caches recent completions by document prefix. */
 export class CompletionsCache implements ICompletionsCacheService {
 	readonly _serviceBrand: undefined;
 
 	private cache = new LRURadixTrie<CompletionsCacheContents>(100);
 
-	/** Given a document prefix and suffix, return all of the completions that match. */
 	findAll(prefix: string, suffix: string): APIChoice[] {
 		return this.cache.findAll(prefix).flatMap(({ remainingKey, value }) =>
 			value.content
@@ -50,15 +46,12 @@ export class CompletionsCache implements ICompletionsCacheService {
 		);
 	}
 
-	/** Add cached completions for a given prefix. */
 	append(prefix: string, suffix: string, choice: APIChoice) {
 		const existing = this.cache.findAll(prefix);
-		// Append to an existing array if there is an exact match.
 		if (existing.length > 0 && existing[0].remainingKey === '') {
 			const content = existing[0].value.content;
 			this.cache.set(prefix, { content: [...content, { suffix, choice }] });
 		} else {
-			// Otherwise, add a new value.
 			this.cache.set(prefix, { content: [{ suffix, choice }] });
 		}
 	}

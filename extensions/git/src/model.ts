@@ -99,10 +99,6 @@ class ClosedRepositoriesManager {
 
 class ParentRepositoriesManager {
 
-	/**
-	 * Key   - normalized path used in user interface
-	 * Value - value indicating whether the repository should be opened
-	 */
 	private _repositories = new Set<string>;
 	get repositories(): string[] {
 		return [...this._repositories.values()];
@@ -142,11 +138,6 @@ class ParentRepositoriesManager {
 
 class UnsafeRepositoriesManager {
 
-	/**
-	 * Key   - normalized path used in user interface
-	 * Value - path extracted from the output of the `git status` command
-	 *         used when calling `git config --global --add safe.directory`
-	 */
 	private _repositories = new Map<string, string>();
 	get repositories(): string[] {
 		return [...this._repositories.keys()];
@@ -266,14 +257,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 		return [...this._closedRepositoriesManager.repositories];
 	}
 
-	/**
-	 * We maintain a map containing both the path and the canonical path of the
-	 * workspace folders. We are doing this as `git.exe` expands the symbolic links
-	 * while there are scenarios in which VS Code does not.
-	 *
-	 * Key   - path of the workspace folder
-	 * Value - canonical path of the workspace folder
-	 */
 	private _workspaceFolders = new Map<string, string>();
 
 	private readonly _repositoryCache: RepositoryCache;
@@ -281,13 +264,11 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 		return this._repositoryCache;
 	}
 
-	// Throttle initial repository.status() across repositories to avoid starving the ext host (#318279).
 	private readonly _initialStatusLimiter = new Limiter<void>(5);
 
 	private disposables: Disposable[] = [];
 
 	constructor(readonly git: Git, private readonly askpass: Askpass, private globalState: Memento, readonly workspaceState: Memento, private logger: LogOutputChannel, private readonly telemetryReporter: TelemetryReporter) {
-		// Repositories managers
 		this._closedRepositoriesManager = new ClosedRepositoriesManager(workspaceState);
 		this._parentRepositoriesManager = new ParentRepositoriesManager(globalState);
 		this._unsafeRepositoriesManager = new UnsafeRepositoriesManager();
@@ -320,7 +301,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 
 		this.logger.trace(`[Model][doInitialScan] Settings: autoRepositoryDetection=${autoRepositoryDetection}, openRepositoryInParentFolders=${parentRepositoryConfig}`);
 
-		// Initial repository scan function
 		const initialScanFn = () => Promise.all([
 			this.onDidChangeWorkspaceFolders({ added: workspace.workspaceFolders || [], removed: [] }),
 			this.onDidChangeVisibleTextEditors(window.visibleTextEditors),
@@ -335,29 +315,15 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 
 		if (this.parentRepositories.length !== 0 &&
 			parentRepositoryConfig === 'prompt') {
-			// Parent repositories notification
 			this.showParentRepositoryNotification();
 		} else if (this.unsafeRepositories.length !== 0) {
-			// Unsafe repositories notification
 			this.showUnsafeRepositoryNotification();
 		}
 
-		/* __GDPR__
-			"git.repositoryInitialScan" : {
-				"owner": "lszomoru",
-				"autoRepositoryDetection": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Setting that controls the initial repository scan" },
-				"repositoryCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of repositories opened during initial repository scan" }
-			}
-		*/
 		this.telemetryReporter.sendTelemetryEvent('git.repositoryInitialScan', { autoRepositoryDetection: String(autoRepositoryDetection) }, { repositoryCount: this.openRepositories.length });
 		this.logger.info(`[Model][doInitialScan] Initial repository scan completed - repositories (${this.repositories.length}), closed repositories (${this.closedRepositories.length}), parent repositories (${this.parentRepositories.length}), unsafe repositories (${this.unsafeRepositories.length})`);
 	}
 
-	/**
-	 * Scans each workspace folder, looking for git repositories. By
-	 * default it scans one level deep but that can be changed using
-	 * the git.repositoryScanMaxDepth setting.
-	 */
 	private async scanWorkspaceFolders(): Promise<void> {
 		try {
 			const config = workspace.getConfiguration('git');
@@ -371,13 +337,11 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 				const root = folder.uri.fsPath;
 				this.logger.trace(`[Model][scanWorkspaceFolders] Workspace folder: ${root}`);
 
-				// Workspace folder children
 				const repositoryScanMaxDepth = (workspace.isTrusted ? workspace.getConfiguration('git', folder.uri) : config).get<number>('repositoryScanMaxDepth', 1);
 				const repositoryScanIgnoredFolders = (workspace.isTrusted ? workspace.getConfiguration('git', folder.uri) : config).get<string[]>('repositoryScanIgnoredFolders', []);
 
 				const subfolders = new Set(await this.traverseWorkspaceFolder(root, repositoryScanMaxDepth, repositoryScanIgnoredFolders));
 
-				// Repository scan folders
 				const scanPaths = (workspace.isTrusted ? workspace.getConfiguration('git', folder.uri) : config).get<string[]>('scanRepositories') || [];
 				this.logger.trace(`[Model][scanWorkspaceFolders] Workspace scan settings: repositoryScanMaxDepth=${repositoryScanMaxDepth}; repositoryScanIgnoredFolders=[${repositoryScanIgnoredFolders.join(', ')}]; scanRepositories=[${scanPaths.join(', ')}]`);
 
@@ -628,7 +592,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 				return;
 			}
 
-			// Handle git repositories that are in parent folders
 			const parentRepositoryConfig = config.get<'always' | 'never' | 'prompt'>('openRepositoryInParentFolders', 'prompt');
 			if (parentRepositoryConfig !== 'always' && this.globalState.get<boolean>(`parentRepository:${repositoryRoot}`) !== true) {
 				const isRepositoryOutsideWorkspace = await this.isRepositoryOutsideWorkspace(repositoryRoot);
@@ -636,7 +599,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 					this.logger.trace(`[Model][openRepository] Repository in parent folder: ${repositoryRoot}`);
 
 					if (!this._parentRepositoriesManager.hasRepository(repositoryRoot)) {
-						// Show a notification if the parent repository is opened after the initial scan
 						if (this.state === 'initialized' && parentRepositoryConfig === 'prompt') {
 							this.showParentRepositoryNotification();
 						}
@@ -648,11 +610,9 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 				}
 			}
 
-			// Handle unsafe repositories
 			if (unsafeRepositoryMatch && unsafeRepositoryMatch.length === 3) {
 				this.logger.trace(`[Model][openRepository] Unsafe repository: ${repositoryRoot}`);
 
-				// Show a notification if the unsafe repository is opened after the initial scan
 				if (this._state === 'initialized' && !this._unsafeRepositoriesManager.hasRepository(repositoryRoot)) {
 					this.showUnsafeRepositoryNotification();
 				}
@@ -662,16 +622,13 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 				return;
 			}
 
-			// Handle repositories that were closed by the user
 			if (!openIfClosed && this._closedRepositoriesManager.isRepositoryClosed(repositoryRoot)) {
 				this.logger.trace(`[Model][openRepository] Repository for path ${repositoryRoot} is closed`);
 				return;
 			}
 
-			// Get .git path and real path
 			const [dotGit, repositoryRootRealPath] = await Promise.all([this.git.getRepositoryDotGit(repositoryRoot), this.getRepositoryRootRealPath(repositoryRoot)]);
 
-			// Check that the folder containing the .git folder is trusted
 			const dotGitPath = dotGit.commonPath ?? dotGit.path;
 			const result = await workspace.requestResourceTrust({
 				message: l10n.t('You are opening a repository from a location that is not trusted. Do you trust the authors of the files in the repository you are opening?'),
@@ -683,7 +640,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 				return;
 			}
 
-			// Open repository
 			const gitRepository = this.git.open(repositoryRoot, repositoryRootRealPath, dotGit, this.logger);
 			const repository = new Repository(gitRepository, this, this, this, this, this, this, this.globalState, this.logger, this.telemetryReporter, this._repositoryCache);
 
@@ -694,12 +650,10 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 			this.logger.info(`[Model][openRepository] Opened repository (real path): ${repository.rootRealPath ?? repository.root}`);
 			this.logger.info(`[Model][openRepository] Opened repository (kind): ${gitRepository.kind}`);
 
-			// Do not await this, we want SCM to know about the repo asap.
 			this._initialStatusLimiter.queue(() => repository.status()).then(() => {
 				this._repositoryCache.update(repository.remotes, [], repository.root);
 			});
 		} catch (err) {
-			// noop
 			this.logger.trace(`[Model][openRepository] Opening repository for path='${repoPath}' failed. Error:${err}`);
 		}
 	}
@@ -713,11 +667,8 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 		try {
 			const rawRoot = await this.git.getRepositoryRoot(repoPath);
 
-			// This can happen whenever `path` has the wrong case sensitivity in case
-			// insensitive file systems https://github.com/microsoft/vscode/issues/33498
 			return { repositoryRoot: Uri.file(rawRoot).fsPath, unsafeRepositoryMatch: null };
 		} catch (err) {
-			// Handle unsafe repository
 			const unsafeRepositoryMatch = /^fatal: detected dubious ownership in repository at \'([^']+)\'[\s\S]*git config --global --add safe\.directory '?([^'\n]+)'?$/m.exec(err.stderr);
 			if (unsafeRepositoryMatch && unsafeRepositoryMatch.length === 3) {
 				return { repositoryRoot: path.normalize(unsafeRepositoryMatch[1]), unsafeRepositoryMatch };
@@ -828,7 +779,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 		};
 
 		const updateMergeChanges = () => {
-			// set mergeChanges context
 			const mergeChanges: Uri[] = [];
 			for (const { repository } of this.openRepositories.values()) {
 				for (const state of repository.mergeGroup.resourceStates) {
@@ -915,7 +865,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 		const repository = active && this.getRepository(active.document.fileName);
 		const index = picks.findIndex(pick => pick.repository === repository);
 
-		// Move repository pick containing the active text editor to appear first
 		if (index > -1) {
 			picks.unshift(...picks.splice(index, 1));
 		}
@@ -932,7 +881,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 	}
 
 	private async getRepositoryExact(repoPath: string): Promise<Repository | undefined> {
-		// Use the repository path
 		const openRepository = this.openRepositories
 			.find(r => pathEquals(r.repository.root, repoPath));
 
@@ -941,7 +889,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 		}
 
 		try {
-			// Use the repository real path
 			const repoPathRealPath = await fs.promises.realpath(repoPath, { encoding: 'utf8' });
 			const openRepositoryRealPath = this.openRepositories
 				.find(r => pathEquals(r.repository.rootRealPath ?? r.repository.root, repoPathRealPath));
@@ -1112,7 +1059,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 	}
 
 	private async isRepositoryOutsideWorkspace(repositoryPath: string): Promise<boolean> {
-		// Allow opening repositories in the empty workspace
 		if (workspace.workspaceFolders === undefined) {
 			return false;
 		}
@@ -1124,16 +1070,11 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 			return true;
 		}
 
-		// The repository path may be a worktree (usually stored outside the workspace) so we have
-		// to check the repository path against all the worktree paths of the repositories that have
-		// already been opened.
 		const worktreePaths = this.repositories.map(r => r.worktrees.map(w => w.path)).flat();
 		if (worktreePaths.some(p => pathEquals(p, repositoryPath))) {
 			return false;
 		}
 
-		// The repository path may be a canonical path or it may contain a symbolic link so we have
-		// to match it against the workspace folders and the canonical paths of the workspace folders
 		const workspaceFolderPaths = new Set<string | undefined>([
 			...workspaceFolders.map(folder => folder.uri.fsPath),
 			...await Promise.all(workspaceFolders.map(folder => this.getWorkspaceFolderRealPath(folder)))
@@ -1150,7 +1091,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 				result = await fs.promises.realpath(workspaceFolder.uri.fsPath, { encoding: 'utf8' });
 				this._workspaceFolders.set(workspaceFolder.uri.fsPath, result);
 			} catch (err) {
-				// noop - Workspace folder does not exist
 				this.logger.trace(`[Model][getWorkspaceFolderRealPath] Failed to resolve workspace folder "${workspaceFolder.uri.fsPath}". Error:${err}`);
 			}
 		}
@@ -1169,10 +1109,8 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 
 		const choice = await window.showInformationMessage(message, yes, always, never);
 		if (choice === yes) {
-			// Open Parent Repositories
 			commands.executeCommand('git.openRepositoriesInParentFolders');
 		} else if (choice === always || choice === never) {
-			// Update setting
 			const config = workspace.getConfiguration('git');
 			await config.update('openRepositoryInParentFolders', choice === always ? 'always' : 'never', true);
 
@@ -1185,9 +1123,6 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 	}
 
 	private async showUnsafeRepositoryNotification(): Promise<void> {
-		// If no repositories are open, we will use a welcome view to inform the user
-		// that a potentially unsafe repository was found so we do not have to show
-		// the notification
 		if (this.repositories.length === 0) {
 			return;
 		}
@@ -1201,11 +1136,9 @@ export class Model implements IRepositoryResolver, IBranchProtectionProviderRegi
 
 		const choice = await window.showErrorMessage(message, manageUnsafeRepositories, learnMore);
 		if (choice === manageUnsafeRepositories) {
-			// Manage Unsafe Repositories
 			commands.executeCommand('git.manageUnsafeRepositories');
 		} else if (choice === learnMore) {
-			// Learn More
-			commands.executeCommand('vscode.open', Uri.parse('https://aka.ms/vscode-git-unsafe-repository'));
+			commands.executeCommand('vscode.open', Uri.parse('https://www.dardcor-code.web.id/docs/security/git-ownership'));
 		}
 	}
 

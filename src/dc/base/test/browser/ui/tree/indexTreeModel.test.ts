@@ -27,10 +27,6 @@ function toElements<T>(node: ITreeNode<T>): any {
 
 const diffIdentityProvider = { getId: (n: number) => String(n) };
 
-/**
- * Calls that test function twice, once with an empty options and
- * once with `diffIdentityProvider`.
- */
 function withSmartSplice(fn: (options: IIndexTreeModelSpliceOptions<number, any>) => void) {
 	fn({});
 	fn({ diffIdentityProvider });
@@ -413,7 +409,6 @@ suite('IndexTreeModel', () => {
 					inserts.push({ element, children: [] });
 				}
 
-				// move existing items
 				if (Math.random() < 0.5) {
 					const elements = list.slice(spliceIndex, spliceIndex + Math.floor(deleteCount / 2));
 					inserts.push(...elements.map(({ element }) => ({ element, children: [] })));
@@ -719,7 +714,7 @@ suite('IndexTreeModel', () => {
 			},
 		]);
 
-		await timeout(0); // wait for refilter microtask
+		await timeout(0);
 
 		assert.deepStrictEqual(toArray(list), ['a', 'b', 'visible']);
 

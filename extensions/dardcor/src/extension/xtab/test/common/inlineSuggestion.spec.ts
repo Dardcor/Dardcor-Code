@@ -24,7 +24,6 @@ describe('isInlineSuggestionFromTextAfterCursor', () => {
 
 	describe('valid middle of line positions (returns true)', () => {
 		it.each([
-			// Single closing brackets/quotes
 			['closing parenthesis', ')'],
 			['closing bracket', ']'],
 			['closing brace', '}'],
@@ -33,13 +32,11 @@ describe('isInlineSuggestionFromTextAfterCursor', () => {
 			['single quote', `'`],
 			['backtick', '`'],
 
-			// Trailing punctuation
 			['semicolon', ';'],
 			['colon', ':'],
 			['comma', ','],
 			['opening brace', '{'],
 
-			// Combinations
 			['closing paren with semicolon', ');'],
 			['closing bracket with comma', '],'],
 			['closing brace with semicolon', '};'],
@@ -50,7 +47,6 @@ describe('isInlineSuggestionFromTextAfterCursor', () => {
 			['closing with whitespace', ')  '],
 			['closing with trailing whitespace', ');  '],
 
-			// With leading whitespace (trimmed in logic)
 			['whitespace before closing', '  )'],
 			['tabs before closing', '\t}'],
 		])('should return true for %s: "%s"', (_description, textAfterCursor) => {
@@ -60,7 +56,6 @@ describe('isInlineSuggestionFromTextAfterCursor', () => {
 
 	describe('invalid middle of line positions (returns undefined)', () => {
 		it.each([
-			// Code after cursor
 			['identifier', 'foo'],
 			['function call', 'bar()'],
 			['operator', '+ 1'],
@@ -70,12 +65,10 @@ describe('isInlineSuggestionFromTextAfterCursor', () => {
 			['comparison', '== true'],
 			['keyword', 'return'],
 
-			// Mixed valid/invalid
 			['text after closing paren', ') foo'],
 			['identifier after bracket', '] bar'],
 			['code after semicolon', '; var x'],
 
-			// Invalid characters
 			['open parenthesis alone', '('],
 			['open bracket alone', '['],
 			['at sign', '@'],
@@ -172,11 +165,9 @@ describe('isInlineSuggestion', () => {
 		it('should handle multi-line document with cursor on different lines', () => {
 			const lines = ['function test() {', '  const x = 1;', '  return x;', '}'];
 
-			// Before `;` in "const x = 1;"
 			const doc1 = createDocument(lines, 2, 14);
-			expect(determineIsInlineSuggestionPosition(doc1)).toBe(true); // before `;`
+			expect(determineIsInlineSuggestionPosition(doc1)).toBe(true);
 
-			// End of line
 			const doc2 = createDocument(lines, 2, 15);
 			expect(determineIsInlineSuggestionPosition(doc2)).toBe(false);
 		});

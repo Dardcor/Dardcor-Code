@@ -160,10 +160,8 @@ export class McpServerEditor extends EditorPane {
 	private mcpServerReadme: Cache<string> | null;
 	private mcpServerManifest: Cache<IGalleryMcpServerConfiguration> | null;
 
-	// Some action bar items use a webview whose vertical scroll position we track in this map
 	private initialScrollProgress: Map<WebviewIndex, number> = new Map();
 
-	// Spot when an ExtensionEditor instance gets reused for a different extension, in which case the vertical scroll positions must be zeroed
 	private currentIdentifier: string = '';
 
 	private layoutParticipants: ILayoutParticipant[] = [];
@@ -202,7 +200,7 @@ export class McpServerEditor extends EditorPane {
 		this._scopedContextKeyService.value = this.contextKeyService.createScoped(root);
 		this._scopedContextKeyService.value.createKey('inExtensionEditor', true);
 
-		root.tabIndex = 0; // this is required for the focus tracker on the editor
+		root.tabIndex = 0;
 		root.style.outline = 'none';
 		root.setAttribute('role', 'document');
 		const header = append(root, $('.header'));
@@ -281,7 +279,6 @@ export class McpServerEditor extends EditorPane {
 
 		actionBar.push(actions, { icon: true, label: true });
 		actionBar.setFocusable(true);
-		// update focusable elements when the enablement of an action changes
 		this._register(Event.any(...actions.map(a => Event.filter(a.onDidChange, e => e.enabled !== undefined)))(() => {
 			actionBar.setFocusable(false);
 			actionBar.setFocusable(true);
@@ -318,7 +315,7 @@ export class McpServerEditor extends EditorPane {
 		const navbar = new NavBar(body);
 
 		const content = append(body, $('.content'));
-		content.id = generateUuid(); // An id is needed for the webview parent flow to
+		content.id = generateUuid();
 
 		this.template = {
 			content,
@@ -518,9 +515,8 @@ export class McpServerEditor extends EditorPane {
 			this.contentDisposables.add(toDisposable(() => { isDisposed = true; }));
 
 			this.contentDisposables.add(this.themeService.onDidColorThemeChange(async () => {
-				// Render again since syntax highlighting of code blocks may have changed
 				const body = await this.renderMarkdown(extension, cacheResult, container);
-				if (!isDisposed) { // Make sure we weren't disposed of in the meantime
+				if (!isDisposed) {
 					webview.setHtml(body);
 				}
 			}));
@@ -529,7 +525,6 @@ export class McpServerEditor extends EditorPane {
 				if (!link) {
 					return;
 				}
-				// Only allow links with specific schemes
 				if (matchesScheme(link, Schemas.http) || matchesScheme(link, Schemas.https) || matchesScheme(link, Schemas.mailto)) {
 					this.openerService.open(link);
 				}
@@ -678,7 +673,6 @@ export class McpServerEditor extends EditorPane {
 			}
 			this.renderManifestDetails(content, manifest);
 		} catch (error) {
-			// Handle error - show no manifest message
 			while (content.firstChild) {
 				content.removeChild(content.firstChild);
 			}
@@ -706,30 +700,25 @@ export class McpServerEditor extends EditorPane {
 			return;
 		}
 
-		// Server Name
 		const nameSection = append(container, $('.config-section'));
 		const nameLabel = append(nameSection, $('.config-label'));
 		nameLabel.textContent = localize('serverName', "Name:");
 		const nameValue = append(nameSection, $('.config-value'));
 		nameValue.textContent = mcpServer.name;
 
-		// Server Type
 		const typeSection = append(container, $('.config-section'));
 		const typeLabel = append(typeSection, $('.config-label'));
 		typeLabel.textContent = localize('serverType', "Type:");
 		const typeValue = append(typeSection, $('.config-value'));
 		typeValue.textContent = config.type;
 
-		// Type-specific configuration
 		if (config.type === McpServerType.LOCAL) {
-			// Command
 			const commandSection = append(container, $('.config-section'));
 			const commandLabel = append(commandSection, $('.config-label'));
 			commandLabel.textContent = localize('command', "Command:");
 			const commandValue = append(commandSection, $('code.config-value'));
 			commandValue.textContent = config.command;
 
-			// Arguments (if present)
 			if (config.args && config.args.length > 0) {
 				const argsSection = append(container, $('.config-section'));
 				const argsLabel = append(argsSection, $('.config-label'));
@@ -738,7 +727,6 @@ export class McpServerEditor extends EditorPane {
 				argsValue.textContent = config.args.join(' ');
 			}
 
-			// Environment variables (if present)
 			if (config.env && Object.keys(config.env).length > 0) {
 				const envSection = append(container, $('.config-section'));
 				const envLabel = append(envSection, $('.config-label'));
@@ -749,7 +737,6 @@ export class McpServerEditor extends EditorPane {
 				}
 			}
 
-			// Env file (if present)
 			if (config.envFile) {
 				const envFileSection = append(container, $('.config-section'));
 				const envFileLabel = append(envFileSection, $('.config-label'));
@@ -758,14 +745,12 @@ export class McpServerEditor extends EditorPane {
 				envFileValue.textContent = config.envFile;
 			}
 		} else if (config.type === McpServerType.REMOTE) {
-			// URL
 			const urlSection = append(container, $('.config-section'));
 			const urlLabel = append(urlSection, $('.config-label'));
 			urlLabel.textContent = localize('url', "URL:");
 			const urlValue = append(urlSection, $('code.config-value'));
 			urlValue.textContent = config.url;
 
-			// Headers (if present)
 			if (config.headers && Object.keys(config.headers).length > 0) {
 				const headersSection = append(container, $('.config-section'));
 				const headersLabel = append(headersSection, $('.config-label'));
@@ -950,14 +935,14 @@ class AdditionalDetailsWidget extends Disposable {
 		if (extension.repository) {
 			try {
 				resources.push([localize('repository', "Repository"), ThemeIcon.fromId(Codicon.repo.id), URI.parse(extension.repository)]);
-			} catch (error) {/* Ignore */ }
+			} catch (error) { }
 		}
 		if (manifest) {
 			const supportUri = getMcpGalleryManifestResourceUri(manifest, McpGalleryResourceType.ContactSupportUri);
 			if (supportUri) {
 				try {
 					resources.push([localize('support', "Contact Support"), ThemeIcon.fromId(Codicon.commentDiscussion.id), URI.parse(supportUri)]);
-				} catch (error) {/* Ignore */ }
+				} catch (error) { }
 			}
 		}
 		if (resources.length) {

@@ -1,13 +1,9 @@
-/**
- * TTS Provider Configuration
- * Centralized config for TTS provider UI behavior
- */
 export const TTS_PROVIDER_CONFIG = {
   "google-tts": {
     hasLanguageDropdown: false,
     hasModelSelector: false,
     hasBrowseButton: true,
-    voiceSource: "hardcoded", // languages built from providerModels at runtime
+    voiceSource: "hardcoded",
   },
   "openai": {
     hasLanguageDropdown: false,
@@ -31,8 +27,8 @@ export const TTS_PROVIDER_CONFIG = {
     hasLanguageDropdown: false,
     hasModelSelector: true,
     hasBrowseButton: true,
-    hasVoiceIdInput: true, // allow manual voice id entry
-    voiceSource: "api-language", // grouped by language from backend
+    hasVoiceIdInput: true,
+    voiceSource: "api-language",
     modelKey: "elevenlabs-tts-models",
     apiEndpoint: "/api/media-providers/tts/elevenlabs/voices",
   },
@@ -40,15 +36,14 @@ export const TTS_PROVIDER_CONFIG = {
     hasLanguageDropdown: false,
     hasModelSelector: false,
     hasBrowseButton: true,
-    voiceSource: "api-language", // from API with language picker
+    voiceSource: "api-language",
   },
   "local-device": {
     hasLanguageDropdown: false,
     hasModelSelector: false,
     hasBrowseButton: true,
-    voiceSource: "api-language", // from API with language picker
+    voiceSource: "api-language",
   },
-  // ── Config-driven providers (load models from providers.js → ttsConfig.models) ──
   "nvidia": {
     hasModelSelector: true,
     hasBrowseButton: false,
@@ -127,7 +122,7 @@ export const TTS_PROVIDER_CONFIG = {
   },
   "gemini": {
     hasLanguageDropdown: false,
-    hasLanguageHint: true, // sends body.language to guide TTS pronunciation
+    hasLanguageHint: true,
     hasModelSelector: true,
     hasBrowseButton: false,
     voiceSource: "hardcoded",
@@ -140,8 +135,8 @@ export const TTS_PROVIDER_CONFIG = {
     hasModelSelector: true,
     hasBrowseButton: false,
     hasVoiceIdInput: false,
-    hasStyleInput: true, // style/voice instructions (role: user)
-    hasLanguageHint: true, // language dropdown (Auto-detect default); voices are language-independent
+    hasStyleInput: true,
+    hasLanguageHint: true,
     languageOptions: ["Chinese", "English"],
     voiceSource: "hardcoded",
     modelKey: "xiaomi-mimo-tts-models",

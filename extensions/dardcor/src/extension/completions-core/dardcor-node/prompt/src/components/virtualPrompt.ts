@@ -9,9 +9,6 @@ import { CancellationToken } from 'vscode-languageserver-protocol';
 
 type PromptSnapshot = Status & { snapshot: PromptSnapshotNode | undefined };
 
-/**
- * The `VirtualPrompt` class holds the in-memory representation of the prompt, and is responsible for updating it with context, and generating immutable snapshots which can be passed to a prompt renderer.
- */
 export class VirtualPrompt {
 	private reconciler: VirtualPromptReconciler;
 
@@ -82,9 +79,6 @@ export class VirtualPrompt {
 		return this.reconciler.createPipe();
 	}
 }
-/**
- * A data pipe is a one-way channel to get external data into the prompt. Pumping unsupported data types into the pipe will result in no-op.
- */
 export interface DataPipe {
 	pump(data: unknown): Promise<void>;
 }

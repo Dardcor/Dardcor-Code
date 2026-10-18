@@ -13,7 +13,6 @@ import { StringText } from '../../../../util/dardcor/editor/common/core/text/abs
 import { Diagnostic } from '../../dardcor-node/features/diagnosticsBasedCompletions/diagnosticsCompletions';
 import { DiagnosticsCollection } from '../../dardcor-node/features/diagnosticsCompletionProcessor';
 
-// Helper function to create a Diagnostic from a mock VS Code diagnostic
 function createDiagnostic(message: string, range: OffsetRange): Diagnostic {
 	return new Diagnostic(new DiagnosticData(
 		URI.parse('file:///test/document.ts'),
@@ -69,12 +68,11 @@ suite('DiagnosticsCollection', () => {
 	suite('applyEdit', () => {
 		test('should invalidate when typing numbers at the end of a diagnostic range', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 17)); // "test" = positions 12-15 (0-based)
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 17));
 			collection.isEqualAndUpdate([diagnostic]);
 
-			// Replace "test" with "test123"
 			const before = new StringText('hello world test');
-			const edit = StringEdit.replace(new OffsetRange(12, 17), 'test123'); // 0-based: 12-16
+			const edit = StringEdit.replace(new OffsetRange(12, 17), 'test123');
 			const after = edit.applyOnText(before);
 
 			const hasInvalidated = collection.applyEdit(before, edit, after);
@@ -84,12 +82,11 @@ suite('DiagnosticsCollection', () => {
 
 		test('should invalidate diagnostic when range shrinks', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(6, 11)); // "world"
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(6, 11));
 			collection.isEqualAndUpdate([diagnostic]);
 
-			// Create an edit that removes "w"
 			const before = new StringText('hello world test');
-			const edit = StringEdit.replace(new OffsetRange(6, 7), ''); // Remove "w"
+			const edit = StringEdit.replace(new OffsetRange(6, 7), '');
 			const after = edit.applyOnText(before);
 
 			const hasInvalidated = collection.applyEdit(before, edit, after);
@@ -103,7 +100,6 @@ suite('DiagnosticsCollection', () => {
 			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
-			// Insert " big" without touching the diagnostic range
 			const before = new StringText('hello world test');
 			const edit = StringEdit.replace(new OffsetRange(6, 6), ' big');
 			const after = edit.applyOnText(before);
@@ -116,10 +112,9 @@ suite('DiagnosticsCollection', () => {
 
 		test('should invalidate diagnostic when content at range changes with same length', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16)); // "test"
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
-			// Replace "test" with "best"
 			const before = new StringText('hello world test');
 			const edit = StringEdit.replace(new OffsetRange(12, 16), 'best');
 			const after = edit.applyOnText(before);
@@ -134,7 +129,6 @@ suite('DiagnosticsCollection', () => {
 			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
-			// "test" becomes "test!" (non-alphanumeric edge)
 			const before = new StringText('hello world test');
 			const edit = StringEdit.replace(new OffsetRange(12, 16), 'test!');
 			const after = edit.applyOnText(before);
@@ -144,14 +138,13 @@ suite('DiagnosticsCollection', () => {
 			assert.strictEqual(hasInvalidated, false);
 			assert.strictEqual(diagnostic.isValid(), true);
 
-			// Range should still point to the original "test" part
 			assert.strictEqual(diagnostic.range.start, 12);
 			assert.strictEqual(diagnostic.range.endExclusive, 16);
 		});
 
 		test('should handle range growth with same suffix content', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16)); // "test"
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
 			const before = new StringText('hello world test');
@@ -166,14 +159,13 @@ suite('DiagnosticsCollection', () => {
 
 		test('should invalidate when edge character is alphanumeric with prefix match', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16)); // "test"
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
 			const before = new StringText('hello world test');
 			const edit = StringEdit.replace(new OffsetRange(16, 16), 'A');
 			const after = edit.applyOnText(before);
 
-			// Add A after "test"
 
 			const hasInvalidated = collection.applyEdit(before, edit, after);
 
@@ -183,12 +175,11 @@ suite('DiagnosticsCollection', () => {
 
 		test('should not invalidate when edge character is non-alphanumeric with prefix match', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16)); // "test" = positions 12-15 (0-based)
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
-			// Replace "test" with "test!"
 			const before = new StringText('hello world test');
-			const edit = StringEdit.replace(new OffsetRange(12, 16), 'test!'); // 0-based: 12-15
+			const edit = StringEdit.replace(new OffsetRange(12, 16), 'test!');
 			const after = edit.applyOnText(before);
 
 			const hasInvalidated = collection.applyEdit(before, edit, after);
@@ -199,8 +190,8 @@ suite('DiagnosticsCollection', () => {
 
 		test('should handle multiple diagnostics correctly', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic1 = createDiagnostic('Error 1', new OffsetRange(0, 5));   // "hello" = positions 0-4 (0-based)
-			const diagnostic2 = createDiagnostic('Error 2', new OffsetRange(12, 16)); // "test" = positions 12-15 (0-based)
+			const diagnostic1 = createDiagnostic('Error 1', new OffsetRange(0, 5));
+			const diagnostic2 = createDiagnostic('Error 2', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic1, diagnostic2]);
 
 			const before = new StringText('hello world test');
@@ -213,63 +204,55 @@ suite('DiagnosticsCollection', () => {
 			assert.strictEqual(diagnostic1.isValid(), true);
 			assert.strictEqual(diagnostic2.isValid(), true);
 
-			// First diagnostic range should be unchanged
 			assert.strictEqual(diagnostic1.range.start, 0);
 			assert.strictEqual(diagnostic1.range.endExclusive, 5);
 
-			// Second diagnostic range should be shifted by 4 positions ("big ")
 			assert.strictEqual(diagnostic2.range.start, 16);
 			assert.strictEqual(diagnostic2.range.endExclusive, 20);
 		});
 
 		test('should handle edge case with empty edge character', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16)); // "test" = positions 12-15 (0-based)
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
 			const before = new StringText('hello world test');
-			const after = new StringText('hello world testx'); // Add 'x' at end
+			const after = new StringText('hello world testx');
 
-			// Replace "test" with "testx"
-			const edit = StringEdit.replace(new OffsetRange(12, 16), 'testx'); // 0-based: 12-15
+			const edit = StringEdit.replace(new OffsetRange(12, 16), 'testx');
 
 			const hasInvalidated = collection.applyEdit(before, edit, after);
 
-			// Since 'x' is alphanumeric, should invalidate
 			assert.strictEqual(hasInvalidated, true);
 			assert.strictEqual(diagnostic.isValid(), false);
 		});
 
 		test('should handle suffix match with non-alphanumeric edge character', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16)); // "test" = positions 12-15 (0-based)
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
 			const before = new StringText('hello world test');
-			const after = new StringText('hello world .test'); // "test" becomes ".test"
+			const after = new StringText('hello world .test');
 
-			// Replace "test" with ".test"
-			const edit = StringEdit.replace(new OffsetRange(12, 16), '.test'); // 0-based: 12-15
+			const edit = StringEdit.replace(new OffsetRange(12, 16), '.test');
 
 			const hasInvalidated = collection.applyEdit(before, edit, after);
 
 			assert.strictEqual(hasInvalidated, false);
 			assert.strictEqual(diagnostic.isValid(), true);
-			// Range should point to the suffix "test" part
 			assert.strictEqual(diagnostic.range.start, 13);
-			assert.strictEqual(diagnostic.range.endExclusive, 17);   // 17 + 1 (".")
+			assert.strictEqual(diagnostic.range.endExclusive, 17);
 		});
 
 		test('should handle case where newOffsetRange is null', () => {
 			const collection = new DiagnosticsCollection();
-			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16)); // "test" = positions 12-15 (0-based)
+			const diagnostic = createDiagnostic('Test error', new OffsetRange(12, 16));
 			collection.isEqualAndUpdate([diagnostic]);
 
-			// Mock applyEditsToRanges to return null (would happen if range is completely removed)
 			const before = new StringText('hello world test');
-			const after = new StringText('hello world'); // "test" completely removed
+			const after = new StringText('hello world');
 
-			// Remove " test" completely (0-based: positions 11-15)
 			const edit = StringEdit.replace(new OffsetRange(11, 16), '');
 
 			const hasInvalidated = collection.applyEdit(before, edit, after);

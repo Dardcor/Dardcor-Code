@@ -58,7 +58,6 @@ export class PluginInstallService implements IPluginInstallService {
 			return;
 		}
 
-		// GitHub / GitUrl
 		return this._installGitPlugin(plugin);
 	}
 
@@ -88,12 +87,10 @@ export class PluginInstallService implements IPluginInstallService {
 	}
 
 	private async _doInstallFromSource(reference: IMarketplaceReference, options?: IInstallPluginFromSourceOptions): Promise<IInstallPluginFromSourceResult> {
-		// Build a source descriptor for the git clone.
 		const sourceDescriptor = reference.kind === MarketplaceReferenceKind.GitHubShorthand
 			? { kind: PluginSourceKind.GitHub as const, repo: reference.githubRepo! }
 			: { kind: PluginSourceKind.GitUrl as const, url: reference.cloneUrl };
 
-		// Build a temporary plugin object for the trust gate and clone step.
 		const tempPlugin: IMarketplacePlugin = {
 			name: reference.displayLabel,
 			description: '',
@@ -109,7 +106,6 @@ export class PluginInstallService implements IPluginInstallService {
 			return { success: false };
 		}
 
-		// Clone the repository.
 		let repoDir: URI;
 		try {
 			repoDir = await this._pluginRepositoryService.ensurePluginSource(tempPlugin, {
@@ -133,15 +129,9 @@ export class PluginInstallService implements IPluginInstallService {
 			};
 		}
 
-		// Scan for marketplace.json to discover plugins.
 		const discoveredPlugins = await this._pluginMarketplaceService.readPluginsFromDirectory(repoDir, reference);
 
 		if (discoveredPlugins.length === 0) {
-			// Fall back to a single-plugin manifest at the repo root
-			// (e.g. `.claude-plugin/plugin.json`). Such repos are not
-			// marketplaces, so we do NOT register the reference under the
-			// `chat.plugins.marketplaces` config — updates flow through
-			// `updatePluginSource` via the plugin's git source descriptor.
 			const singlePlugin = await this._pluginMarketplaceService.readSinglePluginManifest(repoDir, reference);
 			if (singlePlugin) {
 				if (options?.plugin && options.plugin !== singlePlugin.name) {
@@ -163,17 +153,9 @@ export class PluginInstallService implements IPluginInstallService {
 			};
 		}
 
-		// When targeting a specific plugin, find it, register it, and return.
 		return this._installDiscoveredPlugins(reference, discoveredPlugins, options);
 	}
 
-	/**
-	 * Installs a plugin from a local folder path (`file://` URI, absolute path,
-	 * or `~`-prefixed path). Inspects the directory to decide whether it is a
-	 * marketplace or a standalone plugin and writes to the appropriate setting:
-	 * - a marketplace is registered under `chat.plugins.marketplaces`,
-	 * - a standalone plugin path is registered under `chat.pluginLocations`.
-	 */
 	private async _doInstallFromLocalSource(reference: IMarketplaceReference, configPath: string, options?: IInstallPluginFromSourceOptions): Promise<IInstallPluginFromSourceResult> {
 		const repoDir = reference.localRepositoryUri;
 		if (!repoDir) {
@@ -187,7 +169,6 @@ export class PluginInstallService implements IPluginInstallService {
 		try {
 			isDirectory = (await this._fileService.resolve(repoDir)).isDirectory;
 		} catch {
-			// resolve throws when the path doesn't exist — handled below.
 		}
 		if (!isDirectory) {
 			return {
@@ -196,12 +177,8 @@ export class PluginInstallService implements IPluginInstallService {
 			};
 		}
 
-		// A directory with a marketplace index is registered as a marketplace.
 		const discoveredPlugins = await this._pluginMarketplaceService.readPluginsFromDirectory(repoDir, reference);
 		if (discoveredPlugins.length > 0) {
-			// Verify trust before writing to config, mirroring the git path
-			// (_doInstallFromSource): declining the prompt must not persist the
-			// marketplace under `chat.plugins.marketplaces`.
 			const tempPlugin: IMarketplacePlugin = {
 				name: reference.displayLabel,
 				description: '',
@@ -218,8 +195,6 @@ export class PluginInstallService implements IPluginInstallService {
 			return this._installDiscoveredPlugins(reference, discoveredPlugins, options);
 		}
 
-		// Otherwise, a directory with a single-plugin manifest is registered as
-		// a standalone plugin location.
 		if (await this._pluginMarketplaceService.isPluginDirectory(repoDir)) {
 			await this._addPluginLocationToConfig(configPath);
 			return { success: true };
@@ -231,11 +206,6 @@ export class PluginInstallService implements IPluginInstallService {
 		};
 	}
 
-	/**
-	 * Registers the marketplace and installs the discovered plugin(s): when a
-	 * specific plugin is targeted it installs that one, when there is exactly
-	 * one it installs it directly, and otherwise prompts the user to choose.
-	 */
 	private async _installDiscoveredPlugins(reference: IMarketplaceReference, discoveredPlugins: readonly IMarketplacePlugin[], options?: IInstallPluginFromSourceOptions): Promise<IInstallPluginFromSourceResult> {
 		if (options?.plugin) {
 			const matchedPlugin = discoveredPlugins.find(p => p.name === options.plugin);
@@ -256,7 +226,6 @@ export class PluginInstallService implements IPluginInstallService {
 			return { success: true };
 		}
 
-		// Multiple plugins — let the user choose.
 		const picks: (IQuickPickItem & { plugin: IMarketplacePlugin })[] = discoveredPlugins.map(p => ({
 			label: p.name,
 			description: p.description,
@@ -295,11 +264,6 @@ export class PluginInstallService implements IPluginInstallService {
 		return this._configurationService.updateValue(ChatConfiguration.PluginLocations, { ...current, [pathKey]: true });
 	}
 
-	/**
-	 * Returns `true` when the source string looks like a local folder path —
-	 * a `file://` URI, an absolute filesystem path, or a `~`-prefixed path.
-	 * This is a synchronous format check only; existence is verified later.
-	 */
 	private _isLocalPathSource(source: string): boolean {
 		const trimmed = source.trim();
 		if (!trimmed) {
@@ -314,16 +278,9 @@ export class PluginInstallService implements IPluginInstallService {
 		return win32.isAbsolute(trimmed) || posix.isAbsolute(trimmed);
 	}
 
-	/**
-	 * Resolves a local folder source string to a {@link MarketplaceReferenceKind.LocalFileUri}
-	 * reference plus the path to persist in `chat.pluginLocations`. Tilde paths
-	 * are expanded against the user home. Returns `undefined` when the string
-	 * does not resolve to an absolute local folder.
-	 */
 	private async _resolveLocalDirectorySource(source: string): Promise<{ reference: IMarketplaceReference; configPath: string } | undefined> {
 		const trimmed = source.trim();
 
-		// Already a `file://` URI — parseMarketplaceReference yields a LocalFileUri reference.
 		const parsed = parseMarketplaceReference(trimmed);
 		if (parsed?.kind === MarketplaceReferenceKind.LocalFileUri && parsed.localRepositoryUri) {
 			return { reference: parsed, configPath: parsed.localRepositoryUri.fsPath };
@@ -349,8 +306,6 @@ export class PluginInstallService implements IPluginInstallService {
 			return undefined;
 		}
 
-		// Preserve the user's original path form (e.g. `~/plugins/foo`) so that
-		// the persisted `chat.pluginLocations` key stays portable.
 		return { reference, configPath: trimmed };
 	}
 
@@ -366,11 +321,9 @@ export class PluginInstallService implements IPluginInstallService {
 		const kind = plugin.sourceDescriptor.kind;
 
 		if (kind === PluginSourceKind.Npm || kind === PluginSourceKind.Pip) {
-			// Package-manager "update" re-runs install via terminal
 			return this._installPackagePlugin(plugin, silent);
 		}
 
-		// For relative-path and git sources, delegate to repository service
 		return this._pluginRepositoryService.updatePluginSource(plugin, {
 			pluginName: plugin.name,
 			failureLabel: plugin.name,
@@ -395,9 +348,6 @@ export class PluginInstallService implements IPluginInstallService {
 			const gitTasks: Promise<void>[] = [];
 			const packagePlugins: { installed: IMarketplacePlugin; marketplace: IMarketplacePlugin }[] = [];
 
-			// 1. Pull each unique marketplace repository first (handles all
-			//    relative-path plugins and ensures the marketplace index on
-			//    disk is up-to-date before we re-read it).
 			const seenMarketplaces = new Set<string>();
 			for (const entry of installed) {
 				const ref = entry.plugin.marketplaceReference;
@@ -433,8 +383,6 @@ export class PluginInstallService implements IPluginInstallService {
 
 			await Promise.all(gitTasks);
 
-			// 2. Re-fetch marketplace data *after* pulling so we see any
-			//    updated plugin descriptors (new versions, refs, etc.).
 			const marketplaceIds = new Set(installed.map(entry => entry.plugin.marketplaceReference.canonicalId));
 			const marketplacePlugins = await this._pluginMarketplaceService.fetchMarketplacePlugins(token, marketplaceIds);
 			const marketplaceByKey = new Map<string, IMarketplacePlugin>();
@@ -442,7 +390,6 @@ export class PluginInstallService implements IPluginInstallService {
 				marketplaceByKey.set(`${mp.marketplaceReference.canonicalId}::${mp.name}`, mp);
 			}
 
-			// 3. Update non-relative-path plugins individually.
 			const independentGitTasks: Promise<void>[] = [];
 			for (const entry of installed) {
 				if (entry.plugin.sourceDescriptor.kind === PluginSourceKind.RelativePath) {
@@ -550,17 +497,12 @@ export class PluginInstallService implements IPluginInstallService {
 		return this._pluginRepositoryService.getPluginInstallUri(plugin);
 	}
 
-	// --- Trust gate -------------------------------------------------------------
 
 	private async _ensureMarketplaceTrusted(plugin: IMarketplacePlugin): Promise<boolean> {
 		if (this._pluginMarketplaceService.isMarketplaceTrusted(plugin.marketplaceReference)) {
 			return true;
 		}
 
-		// Under the strict-marketplace enterprise policy, a marketplace that is not
-		// on the allowlist is blocked outright — the user cannot grant trust to
-		// bypass it. Surface a non-actionable enterprise-policy notification that
-		// points at the managed setting (shown as "Managed by organization").
 		if (this._pluginMarketplaceService.isStrictMarketplacePolicyActive()) {
 			this._notificationService.notify({
 				severity: Severity.Warning,
@@ -592,7 +534,6 @@ export class PluginInstallService implements IPluginInstallService {
 		return true;
 	}
 
-	// --- Relative-path source (existing git-based flow) -----------------------
 
 	private async _installRelativePathPlugin(plugin: IMarketplacePlugin): Promise<void> {
 		try {
@@ -628,7 +569,6 @@ export class PluginInstallService implements IPluginInstallService {
 		this._pluginMarketplaceService.addInstalledPlugin(pluginDir, plugin);
 	}
 
-	// --- GitHub / Git URL source (independent clone) --------------------------
 
 	private async _installGitPlugin(plugin: IMarketplacePlugin): Promise<void> {
 		const repo = this._pluginRepositoryService.getPluginSource(plugin.sourceDescriptor.kind);
@@ -655,7 +595,6 @@ export class PluginInstallService implements IPluginInstallService {
 		this._pluginMarketplaceService.addInstalledPlugin(pluginDir, plugin);
 	}
 
-	// --- Package-manager sources (npm / pip) ----------------------------------
 
 	private async _installPackagePlugin(plugin: IMarketplacePlugin, silent?: boolean): Promise<boolean> {
 		const repo = this._pluginRepositoryService.getPluginSource(plugin.sourceDescriptor.kind);
@@ -664,9 +603,7 @@ export class PluginInstallService implements IPluginInstallService {
 			return false;
 		}
 
-		// Ensure the parent cache directory exists (returns npm/<pkg> or pip/<pkg>)
 		const installDir = await this._pluginRepositoryService.ensurePluginSource(plugin);
-		// The actual plugin content location (e.g. npm/<pkg>/node_modules/<pkg>)
 		const pluginDir = this._pluginRepositoryService.getPluginSourceInstallUri(plugin.sourceDescriptor);
 
 		const result = await repo.runInstall(installDir, pluginDir, plugin, { silent });

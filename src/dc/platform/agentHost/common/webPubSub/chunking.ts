@@ -3,24 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Ported from github-ui `https://github.com/github/github-ui/blob/main/packages/ahp-relay/webpubsub/chunking.ts` (Microsoft, MIT).
-//
-// Chunking codec for the Web PubSub transport (`ChunkEnvelope`). Azure Web
-// PubSub rejects any WebSocket frame larger than 1 MB, and the reliable
-// subprotocol has no service-side chunking primitive. `ChunkEnvelope` is the
-// sole chunking layer on this transport — every publish is wrapped in one (the
-// unchunked `kind: "message"` shape is the happy case for small payloads).
 
 import { VSBuffer, decodeBase64, encodeBase64 } from '../../../../base/common/buffer.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 
-/**
- * `ChunkEnvelope` wire shape (snake_case field names per spec).
- *
- * `data` for the `"message"` variant is the complete inner application payload.
- * `bytes` for the `"chunk"` variant is a base64-encoded byte slice (RFC 4648
- * standard, with padding) of the serialised inner payload.
- */
 export type ChunkEnvelope =
 	| { readonly kind: 'message'; readonly data: unknown }
 	| {
@@ -31,28 +17,18 @@ export type ChunkEnvelope =
 		readonly bytes: string;
 	};
 
-/** Default per-segment ceiling (serialised `ChunkEnvelope` bytes). */
 export const DEFAULT_MAX_CHUNK_BYTES = 900 * 1024;
 
-/** Default reassembly timeout in milliseconds. */
 export const DEFAULT_REASSEMBLY_TIMEOUT_MS = 30_000;
 
-/** Recommended per-buffer ceiling (decoded payload bytes). */
 export const DEFAULT_MAX_REASSEMBLY_BYTES = 32 * 1024 * 1024;
 
-/** Recommended aggregate ceiling across all incomplete reassembly groups. */
 export const DEFAULT_MAX_REASSEMBLY_TOTAL_BYTES = 64 * 1024 * 1024;
 
-/** Recommended cap on the number of concurrent in-flight reassembly groups. */
 export const DEFAULT_MAX_CONCURRENT_GROUPS = 64;
 
-/** Defensive cap on the `total` field of an individual chunked group. */
 export const DEFAULT_MAX_SEGMENTS_PER_GROUP = 4096;
 
-/**
- * Error thrown by {@link Reassembler} on a contract violation and by
- * {@link chunk} on caller-side failures.
- */
 export class ChunkingError extends Error {
 	constructor(message: string) {
 		super(message);
@@ -60,40 +36,25 @@ export class ChunkingError extends Error {
 	}
 }
 
-/** Options accepted by {@link chunk}. */
 export interface ChunkOptions {
-	/** Per-segment ceiling in serialised-bytes. Defaults to {@link DEFAULT_MAX_CHUNK_BYTES}. */
 	readonly maxChunkBytes?: number;
 
-	/** UUID factory invoked once per chunked publish to mint a `group_id`. */
 	readonly newGroupId?: () => string;
 }
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder('utf-8', { fatal: true });
 
-/** Strict canonical base64 (RFC 4648 standard alphabet, with padding, no whitespace). */
 const CANONICAL_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
-/** Encode a byte slice as a base64 string (RFC 4648 standard, with padding). */
 function bytesToBase64(bytes: Uint8Array): string {
-	return encodeBase64(VSBuffer.wrap(bytes), true /* padded */, false /* urlSafe */);
+	return encodeBase64(VSBuffer.wrap(bytes), true , false );
 }
 
-/** Inverse of {@link bytesToBase64}. */
 function base64ToBytes(b64: string): Uint8Array {
 	return decodeBase64(b64).buffer;
 }
 
-/**
- * Split an application payload into one or more {@link ChunkEnvelope}s.
- *
- * If the serialised single-frame envelope fits inside the ceiling, returns a
- * one-element array containing the `kind: "message"` envelope. Otherwise mints
- * a `group_id` and returns `total = ceil(len(B) / R)` `kind: "chunk"`
- * envelopes. The raw-byte budget is derived from the actual group id and the
- * widest permitted sequence fields so every serialized envelope fits.
- */
 export function chunk(payload: unknown, options: ChunkOptions = {}): ChunkEnvelope[] {
 	const maxChunkBytes = options.maxChunkBytes ?? DEFAULT_MAX_CHUNK_BYTES;
 	if (maxChunkBytes <= 0 || !Number.isFinite(maxChunkBytes)) {
@@ -163,24 +124,17 @@ export function chunk(payload: unknown, options: ChunkOptions = {}): ChunkEnvelo
 	return out;
 }
 
-/** Options accepted by {@link Reassembler}. */
 export interface ReassemblerOptions {
-	/** Drop partial buffers older than this many milliseconds. */
 	readonly timeoutMs?: number;
 
-	/** Maximum total decoded bytes a single in-flight group may accumulate. */
 	readonly maxBufferBytes?: number;
 
-	/** Maximum decoded bytes retained across every in-flight group. */
 	readonly maxTotalBufferBytes?: number;
 
-	/** Maximum number of concurrent in-flight groups. */
 	readonly maxConcurrentGroups?: number;
 
-	/** Maximum `total` value the reassembler will accept on any chunked envelope. */
 	readonly maxSegmentsPerGroup?: number;
 
-	/** Clock source. Defaults to {@link Date.now}. */
 	readonly now?: () => number;
 }
 
@@ -192,14 +146,6 @@ interface ReassemblyBuffer {
 	startedAt: number;
 }
 
-/**
- * Stateful reassembler. One instance per Web PubSub subscriber connection.
- *
- * On `kind: "message"` {@link Reassembler.ingest} returns the inner payload
- * immediately. On `kind: "chunk"` it returns `null` while waiting for sibling
- * segments and the reassembled inner payload once the final segment arrives.
- * All contract violations throw {@link ChunkingError}.
- */
 export class Reassembler {
 	private readonly buffers = new Map<string, ReassemblyBuffer>();
 	private readonly timeoutMs: number;
@@ -219,11 +165,6 @@ export class Reassembler {
 		this.now = options.now ?? Date.now;
 	}
 
-	/**
-	 * Process one inbound envelope. Returns the inner payload when reassembly
-	 * completes (or immediately, for a `kind: "message"` envelope), `null` while
-	 * waiting for sibling chunks.
-	 */
 	ingest(envelope: ChunkEnvelope): unknown {
 		if (envelope === null || typeof envelope !== 'object') {
 			throw new ChunkingError(`ChunkEnvelope must be an object, got ${typeof envelope}`);
@@ -346,7 +287,6 @@ export class Reassembler {
 		}
 	}
 
-	/** Drop any buffer older than the configured timeout, returning dropped `group_id`s. */
 	sweepExpired(): string[] {
 		const dropped: string[] = [];
 		const cutoff = this.now() - this.timeoutMs;
@@ -359,12 +299,10 @@ export class Reassembler {
 		return dropped;
 	}
 
-	/** Number of in-flight reassembly buffers. Exposed for diagnostics + tests. */
 	get inFlightGroupCount(): number {
 		return this.buffers.size;
 	}
 
-	/** Decoded bytes currently retained across all incomplete groups. */
 	get inFlightBytes(): number {
 		return this.accumulatedBytes;
 	}

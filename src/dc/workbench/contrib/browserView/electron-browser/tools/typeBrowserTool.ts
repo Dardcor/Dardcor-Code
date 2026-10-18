@@ -133,7 +133,6 @@ export class TypeBrowserTool implements IToolImpl {
 			return errorResult('Either a "text" or "key" parameter is required.');
 		}
 
-		// Press key
 		if (params.key) {
 			if (selector) {
 				return playwrightInvoke(this.playwrightService, sessionId, params.pageId, (page, sel, key) => page.locator(sel).press(key), selector, params.key);
@@ -141,7 +140,6 @@ export class TypeBrowserTool implements IToolImpl {
 			return playwrightInvoke(this.playwrightService, sessionId, params.pageId, (page, key) => page.keyboard.press(key), params.key);
 		}
 
-		// Type text
 		if (selector) {
 			return playwrightInvoke(this.playwrightService, sessionId, params.pageId, async (page, sel, text, submit) => {
 				const locator = page.locator(sel);

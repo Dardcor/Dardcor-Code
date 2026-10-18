@@ -74,7 +74,6 @@ export class ColorPickerModel extends Disposable {
 		}
 
 		if (presentationIndex === -1) {
-			// check which color presentation text has same prefix as original text's prefix
 			const originalTextPrefix = originalText.split('(')[0].toLowerCase();
 			for (let i = 0; i < this.colorPresentations.length; i++) {
 				if (this.colorPresentations[i].label.toLowerCase().startsWith(originalTextPrefix)) {

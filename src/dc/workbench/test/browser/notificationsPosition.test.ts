@@ -52,7 +52,7 @@ suite('Notifications Position', () => {
 				case NotificationsPosition.BOTTOM_LEFT:
 					return 'left';
 				case NotificationsPosition.TOP_RIGHT:
-					return 'hidden'; // bell is in titlebar instead
+					return 'hidden';
 				case NotificationsPosition.BOTTOM_RIGHT:
 				default:
 					return 'right';

@@ -13,8 +13,6 @@ suite('rewriteMarkdownLinks', () => {
 	const rewriteToMarker = { rewriteLink: () => 'REWRITTEN' };
 
 	test('edits the token that produced the source, not the first lookalike', () => {
-		// Searching for a token's source text would match the sample inside the code span,
-		// corrupting it and leaving the real link in place.
 		assert.deepStrictEqual(
 			[
 				rewriteMarkdownLinks('Use `[a](./x.txt)` then a real [a](./x.txt) link.', rewriteToMarker),

@@ -54,7 +54,7 @@ const WIDGET_ID = 'vs.editor.contrib.zoneWidget';
 class ViewZoneDelegate implements IViewZone {
 
 	domNode: HTMLElement;
-	id: string = ''; // A valid zone id should be greater than 0
+	id: string = '';
 	afterLineNumber: number;
 	afterColumn: number;
 	heightInLines: number;
@@ -157,7 +157,6 @@ class Arrow {
 	show(where: IPosition): void {
 
 		if (where.column === 1) {
-			// the arrow isn't pretty at column 1 and we need to push it out a little
 			where = { lineNumber: where.lineNumber, column: 2 };
 		}
 
@@ -278,7 +277,6 @@ export abstract class ZoneWidget implements IHorizontalSashLayoutProvider {
 	}
 
 	private _getLeft(info: EditorLayoutInfo): number {
-		// If minimap is to the left, we move beyond it
 		if (info.minimap.minimapWidth > 0 && info.minimap.minimapLeft === 0) {
 			return info.minimap.minimapWidth;
 		}
@@ -377,7 +375,6 @@ export abstract class ZoneWidget implements IHorizontalSashLayoutProvider {
 		return result;
 	}
 
-	/** Gets the maximum widget height in lines. */
 	protected _getMaximumHeightInLines(): number | undefined {
 		return Math.max(12, (this.editor.getLayoutInfo().height / this.editor.getOption(EditorOption.lineHeight)) * 0.8);
 	}
@@ -389,12 +386,10 @@ export abstract class ZoneWidget implements IHorizontalSashLayoutProvider {
 		this.domNode.style.width = `${width}px`;
 		this.domNode.style.left = this._getLeft(layoutInfo) + 'px';
 
-		// Render the widget as zone (rendering) and widget (lifecycle)
 		const viewZoneDomNode = document.createElement('div');
 		viewZoneDomNode.style.overflow = 'hidden';
 		const lineHeight = this.editor.getOption(EditorOption.lineHeight);
 
-		// adjust heightInLines to viewport
 		const maxHeightInLines = this._getMaximumHeightInLines();
 		if (maxHeightInLines !== undefined) {
 			heightInLines = Math.min(heightInLines, maxHeightInLines);
@@ -403,19 +398,16 @@ export abstract class ZoneWidget implements IHorizontalSashLayoutProvider {
 		let arrowHeight = 0;
 		let frameThickness = 0;
 
-		// Render the arrow one 1/3 of an editor line height
 		if (this._arrow && this.options.showArrow) {
 			arrowHeight = Math.round(lineHeight / 3);
 			this._arrow.height = arrowHeight;
 			this._arrow.show(position);
 		}
 
-		// Render the frame as 1/9 of an editor line height
 		if (this.options.showFrame) {
 			frameThickness = Math.round(lineHeight / 9);
 		}
 
-		// insert zone widget
 		this.editor.changeViewZones((accessor: IViewZoneChangeAccessor) => {
 			if (this._viewZone) {
 				accessor.removeZone(this._viewZone.id);
@@ -492,11 +484,9 @@ export abstract class ZoneWidget implements IHorizontalSashLayoutProvider {
 	protected abstract _fillContainer(container: HTMLElement): void;
 
 	protected _onWidth(widthInPixel: number): void {
-		// implement in subclass
 	}
 
 	protected _doLayout(heightInPixel: number, widthInPixel: number): void {
-		// implement in subclass
 	}
 
 	protected _relayout(_newHeightInLines: number, useMax?: boolean): void {
@@ -513,7 +503,6 @@ export abstract class ZoneWidget implements IHorizontalSashLayoutProvider {
 		}
 	}
 
-	// --- sash
 
 	private _initSash(): void {
 		if (this._resizeSash) {

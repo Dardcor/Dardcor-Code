@@ -27,9 +27,6 @@ export interface PanZoomState {
 	readonly customHeight?: number;
 }
 
-/**
- * Manages all DiagramElement instances within a window/document.
- */
 export class DiagramManager {
 
 	private readonly instances = new Map<string, DiagramElement>();
@@ -52,16 +49,7 @@ export class DiagramManager {
 		this.config = config;
 	}
 
-	/**
-	 * Sets up pan-zoom support for a mermaid container.
-	 *
-	 * @param id Unique identifier for this instance (used for state preservation)
-	 * @param mermaidContainer The container element with the rendered diagram
-	 *
-	 * @returns An IDisposable that cleans up pan zoom support for this instance.
-	 */
 	public setup(id: string, mermaidContainer: HTMLElement): IDisposable {
-		// Clean up existing instance (state is saved automatically in disposeInstance)
 		this.disposeInstance(id);
 
 		const parent = mermaidContainer.parentNode;
@@ -69,7 +57,6 @@ export class DiagramManager {
 			return { dispose: () => { } };
 		}
 
-		// Create wrapper structure
 		const wrapper = document.createElement('div');
 		wrapper.className = 'mermaid-wrapper';
 
@@ -80,12 +67,10 @@ export class DiagramManager {
 		content.appendChild(mermaidContainer);
 		wrapper.appendChild(content);
 
-		// Create and track instance
 		const state = this.savedStates.get(id);
 		const instance = new DiagramElement(wrapper, content, this.config, state);
 		this.instances.set(id, instance);
 
-		// Initialize after DOM update
 		requestAnimationFrame(() => {
 			instance.initialize();
 		});
@@ -93,13 +78,9 @@ export class DiagramManager {
 		return { dispose: () => this.disposeInstance(id) };
 	}
 
-	/**
-	 * Disposes a specific instance by id, saving its state first.
-	 */
 	private disposeInstance(id: string): void {
 		const instance = this.instances.get(id);
 		if (instance) {
-			// Save state before disposing
 			this.savedStates.set(id, instance.getState());
 
 			instance.dispose();
@@ -107,10 +88,6 @@ export class DiagramManager {
 		}
 	}
 
-	/**
-	 * Removes saved states for IDs not in the given set.
-	 * Call this after rendering to clean up states for removed diagrams.
-	 */
 	public retainStates(activeIds: Set<string>): void {
 		for (const id of this.savedStates.keys()) {
 			if (!activeIds.has(id)) {
@@ -120,16 +97,10 @@ export class DiagramManager {
 	}
 }
 
-/**
- * Implements pan and zoom for a given DOM node.
- *
- * Features: drag to pan, pinch/scroll to zoom, Alt+click zoom, zoom controls.
- */
 export class DiagramElement {
 	private scale = 1;
 	private translate: Point = { x: 0, y: 0 };
 
-	/** Cached SVG intrinsic dimensions from last layout */
 	private lastSvgSize: Dimensions = { width: 0, height: 0 };
 
 	private isPanning = false;
@@ -166,7 +137,6 @@ export class DiagramElement {
 		this.resizable = config.resizable;
 		this.maxHeight = config.maxHeight;
 
-		// Restore state if provided
 		if (initialState) {
 			this.scale = initialState.scale;
 			this.translate = { x: initialState.translate.x, y: initialState.translate.y };
@@ -179,7 +149,6 @@ export class DiagramElement {
 		this.container.tabIndex = 0;
 		this.container.setAttribute('aria-label', 'Mermaid Diagram');
 
-		// Apply max height if configured and valid
 		if (this.maxHeight) {
 			const sanitizedMaxHeight = sanitizeCssLength(this.maxHeight);
 			if (sanitizedMaxHeight) {
@@ -187,7 +156,6 @@ export class DiagramElement {
 			}
 		}
 
-		// Set initial cursor based on click-drag mode
 		this.setCursor(false, false);
 
 		this.setupEventListeners();
@@ -200,15 +168,12 @@ export class DiagramElement {
 			this.container.appendChild(this.resizeHandle);
 		}
 
-		// Watch for container size changes
 		this.resizeObserver = new ResizeObserver(() => this.handleResize());
 		this.resizeObserver.observe(this.container);
 	}
 
 	public initialize(): void {
 		if (this.hasInteracted) {
-			// Restore previous transform if user had interacted
-			// Also cache SVG dimensions for resize calculations
 			this.tryResizeContainerToFitSvg();
 			this.applyTransform();
 		} else {
@@ -310,7 +275,6 @@ export class DiagramElement {
 			if (!this.isResizing) {
 				return;
 			}
-			// Check if mouse button was released outside the window
 			if (e.buttons === 0) {
 				this.isResizing = false;
 				document.body.style.cursor = '';
@@ -371,14 +335,12 @@ export class DiagramElement {
 	}
 
 	private setCursor(altKey: boolean, shiftKey: boolean): void {
-		// Pan mode always shows grab cursor
 		if (this.panModeEnabled) {
 			this.container.style.cursor = 'grab';
 			return;
 		}
 
 		if (this.clickDrag === ClickDragMode.Alt) {
-			// In Alt mode: default cursor normally, grab when alt is pressed
 			if (altKey && shiftKey) {
 				this.container.style.cursor = 'zoom-out';
 			} else if (altKey) {
@@ -387,7 +349,6 @@ export class DiagramElement {
 				this.container.style.cursor = 'default';
 			}
 		} else {
-			// In Always/Never mode: use grab cursor with zoom modifiers
 			if (altKey && !shiftKey) {
 				this.container.style.cursor = 'zoom-in';
 			} else if (altKey && shiftKey) {
@@ -421,8 +382,6 @@ export class DiagramElement {
 			const mouseX = e.clientX - rect.left;
 			const mouseY = e.clientY - rect.top;
 
-			// Pinch gestures report smaller deltaY values than scroll wheel,
-			// so we apply a multiplier to make them feel equally sensitive
 			const pinchMultiplier = isPinchZoom ? 10 : 1;
 			const delta = -e.deltaY * zoomFactor * pinchMultiplier;
 			const newScale = Math.min(maxScale, Math.max(minScale, this.scale * (1 + delta)));
@@ -444,7 +403,6 @@ export class DiagramElement {
 			return;
 		}
 
-		// Check if panning is allowed based on clickDrag mode or pan mode
 		if (!this.panModeEnabled && this.clickDrag === ClickDragMode.Alt && !e.altKey) {
 			return;
 		}
@@ -493,23 +451,17 @@ export class DiagramElement {
 
 	private handleResize(): void {
 		if (this.hasInteracted) {
-			// Try to preserve the  visible content as percentage of the SVG,
-			// then restore that same percentage after resize.
 
-			// Step 1: Calculate which SVG point is at the viewport's top-left (0, 0)
 			const svgAtOriginX = -this.translate.x / this.scale;
 			const svgAtOriginY = -this.translate.y / this.scale;
 
-			// Express as percentage of old SVG dimensions
 			const percentX = this.lastSvgSize.width > 0 ? svgAtOriginX / this.lastSvgSize.width : 0;
 			const percentY = this.lastSvgSize.height > 0 ? svgAtOriginY / this.lastSvgSize.height : 0;
 
-			// Step 2: Resize and update cached SVG dimensions
 			if (!this.tryResizeContainerToFitSvg()) {
 				return;
 			}
 
-			// Step 3: Calculate new translate to keep the same percentage at origin
 			const newSvgAtOriginX = percentX * this.lastSvgSize.width;
 			const newSvgAtOriginY = percentY * this.lastSvgSize.height;
 			this.translate = {
@@ -523,16 +475,6 @@ export class DiagramElement {
 		}
 	}
 
-	/**
-	 * Resizes the container's height and updates cached SVG dimensions.
-	 *
-	 * This will try to preserve the current height if the user has resized the diagram. Otherwise
-	 * it will resize to fit the SVG's intrinsic height.
-	 *
-	 * Updates `lastSvgSize` with the SVG's intrinsic dimensions.
-	 *
-	 * @returns true if the SVG was found and dimensions were updated, false otherwise.
-	 */
 	private tryResizeContainerToFitSvg(): boolean {
 		const svg = this.content.querySelector('svg');
 		if (!svg) {
@@ -541,16 +483,13 @@ export class DiagramElement {
 
 		svg.removeAttribute('height');
 
-		// Get the intrinsic size
 		const oldTransform = this.content.style.transform;
 		this.content.style.transform = 'none';
 		const rect = svg.getBoundingClientRect();
 		this.content.style.transform = oldTransform;
 
-		// Update cache
 		this.lastSvgSize = { width: rect.width, height: rect.height };
 
-		// Use custom height if set, otherwise use the SVG's intrinsic height
 		const containerHeight = this.customHeight ?? this.lastSvgSize.height;
 		this.container.style.height = `${containerHeight}px`;
 
@@ -562,7 +501,6 @@ export class DiagramElement {
 			return;
 		}
 
-		// Start at scale 1, centered
 		this.scale = 1;
 		const containerRect = this.container.getBoundingClientRect();
 		this.translate = {

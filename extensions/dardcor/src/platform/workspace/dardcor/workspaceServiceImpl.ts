@@ -50,11 +50,8 @@ export class ExtensionTextDocumentManager extends AbstractWorkspaceService {
 	override async openNotebookDocument(notebookType: string, content?: NotebookData): Promise<NotebookDocument>;
 	override async openNotebookDocument(arg1: Uri | string, arg2?: NotebookData): Promise<NotebookDocument> {
 		if (typeof arg1 === 'string') {
-			// Handle the overload for notebookType and content
 			return await workspace.openNotebookDocument(arg1, arg2);
 		} else {
-			// Handle the overload for Uri
-			// Possible we have an untitled file opened as a notebook.
 			return findNotebook(arg1, workspace.notebookDocuments) || await workspace.openNotebookDocument(arg1);
 		}
 	}
@@ -83,9 +80,6 @@ export class ExtensionTextDocumentManager extends AbstractWorkspaceService {
 		return workspace.applyEdit(edit);
 	}
 
-	// NOTE: I don't think it's possible to have a multi-root workspace with virtual workspaces
-	// so we shouldn't need to handle when the workspace folders change... but something to be
-	// aware of if we ever do support multi-root workspaces
 	override ensureWorkspaceIsFullyLoaded(): Promise<void> {
 		this._fullyLoadedPromise ??= (async () => {
 			for (const uri of this.getWorkspaceFolders()) {

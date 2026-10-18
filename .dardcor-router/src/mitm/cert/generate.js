@@ -3,18 +3,10 @@ const fs = require("fs");
 const { MITM_DIR } = require("../paths");
 const { generateRootCA, loadRootCA, generateLeafCert } = require("./rootCA");
 
-/**
- * Generate Root CA certificate (one-time setup)
- * This replaces the old static wildcard cert approach
- */
 function generateCert() {
   return generateRootCA();
 }
 
-/**
- * Get certificate for a specific domain (dynamic generation)
- * Used by SNICallback in server.js
- */
 function getCertForDomain(domain) {
   try {
     const rootCA = loadRootCA();

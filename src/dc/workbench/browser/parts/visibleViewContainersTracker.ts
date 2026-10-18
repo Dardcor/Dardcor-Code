@@ -7,11 +7,6 @@ import { Disposable, DisposableMap } from '../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { IViewDescriptorService, ViewContainerLocation } from '../../common/views.js';
 
-/**
- * Tracks the number of visible view containers at a given location.
- * A view container is considered visible if it has active views (activeViewDescriptors.length > 0).
- * Fires an event when the number of visible containers changes.
- */
 export class VisibleViewContainersTracker extends Disposable {
 
 	private readonly viewContainerModelListeners = this._register(new DisposableMap<string>());
@@ -32,23 +27,17 @@ export class VisibleViewContainersTracker extends Disposable {
 		this.updateVisibleCount();
 	}
 
-	/**
-	 * Returns the current number of visible view containers at this location.
-	 */
 	get visibleCount(): number {
 		return this._visibleCount;
 	}
 
 	private registerListeners(): void {
-		// Track view container additions/removals
 		this._register(this.viewDescriptorService.onDidChangeViewContainers(({ added, removed }) => {
-			// Add listeners for new view containers
 			for (const { container, location } of added) {
 				if (location === this.location) {
 					this.addViewContainerModelListener(container.id);
 				}
 			}
-			// Remove listeners for removed view containers
 			for (const { container, location } of removed) {
 				if (location === this.location) {
 					this.viewContainerModelListeners.deleteAndDispose(container.id);
@@ -61,9 +50,7 @@ export class VisibleViewContainersTracker extends Disposable {
 			}
 		}));
 
-		// Track container location changes
 		this._register(this.viewDescriptorService.onDidChangeContainerLocation(({ viewContainer, from, to }) => {
-			// Update listeners when container moves
 			if (from === this.location) {
 				this.viewContainerModelListeners.deleteAndDispose(viewContainer.id);
 			}
@@ -78,7 +65,6 @@ export class VisibleViewContainersTracker extends Disposable {
 	}
 
 	private initializeViewContainerListeners(): void {
-		// Initialize listeners for existing view containers
 		for (const container of this.viewDescriptorService.getViewContainersByLocation(this.location)) {
 			this.addViewContainerModelListener(container.id);
 		}

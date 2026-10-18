@@ -89,42 +89,21 @@ export interface ICodeWindow extends IBaseWindow {
 
 export const enum LoadReason {
 
-	/**
-	 * The window is loaded for the first time.
-	 */
 	INITIAL = 1,
 
-	/**
-	 * The window is loaded into a different workspace context.
-	 */
 	LOAD,
 
-	/**
-	 * The window is reloaded.
-	 */
 	RELOAD
 }
 
 export const enum UnloadReason {
 
-	/**
-	 * The window is closed.
-	 */
 	CLOSE = 1,
 
-	/**
-	 * All windows unload because the application quits.
-	 */
 	QUIT,
 
-	/**
-	 * The window is reloaded.
-	 */
 	RELOAD,
 
-	/**
-	 * The window is loaded into a different workspace context.
-	 */
 	LOAD
 }
 
@@ -149,12 +128,6 @@ export const defaultWindowState = function (mode = WindowMode.Normal, hasWorkspa
 
 export const defaultAuxWindowState = function (): IWindowState {
 
-	// Auxiliary windows are being created from a `window.open` call
-	// that sets `windowFeatures` that encode the desired size and
-	// position of the new window (`top`, `left`).
-	// In order to truly override this to a good default window state
-	// we need to set not only width and height but also x and y to
-	// a good location on the primary display.
 
 	const width = DEFAULT_AUX_WINDOW_SIZE.width;
 	const height = DEFAULT_AUX_WINDOW_SIZE.height;
@@ -174,7 +147,7 @@ export const defaultAuxWindowState = function (): IWindowState {
 export const enum WindowMode {
 	Maximized,
 	Normal,
-	Minimized, // not used anymore, but also cannot remove due to existing stored UI state (needs migration)
+	Minimized,
 	Fullscreen
 }
 
@@ -185,23 +158,11 @@ export interface ILoadEvent {
 
 export const enum WindowError {
 
-	/**
-	 * Maps to the `unresponsive` event on a `BrowserWindow`.
-	 */
 	UNRESPONSIVE = 1,
 
-	/**
-	 * Maps to the `render-process-gone` event on a `WebContents`.
-	 */
 	PROCESS_GONE = 2,
 
-	/**
-	 * Maps to the `did-fail-load` event on a `WebContents`.
-	 */
 	LOAD = 3,
 
-	/**
-	 * Maps to the `responsive` event on a `BrowserWindow`.
-	 */
 	RESPONSIVE = 4,
 }

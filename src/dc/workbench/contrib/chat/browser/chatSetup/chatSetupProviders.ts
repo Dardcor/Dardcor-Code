@@ -64,8 +64,6 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 
 	static registerDefaultAgents(instantiationService: IInstantiationService, location: ChatAgentLocation, mode: ChatModeKind, context: ChatEntitlementContext, controller: Lazy<ChatSetupController>): { agent: SetupAgent | undefined; disposable: IDisposable } {
 		return instantiationService.invokeFunction(accessor => {
-			// Bypassed for Dardcor Code: Do not register the SetupAgent as the default agent
-			// so it does not intercept and block the chat UI waiting for Copilot.
 			return { agent: undefined, disposable: new DisposableStore() };
 		});
 	}
@@ -74,7 +72,6 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 		return instantiationService.invokeFunction(accessor => {
 			const disposables = new DisposableStore();
 
-			// Register tools
 			disposables.add(SetupTool.registerTool(instantiationService, {
 				id: 'setup_tools_createNewWorkspace',
 				source: ToolDataSource.Internal,
@@ -122,7 +119,6 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 
 	private registerCommands(): void {
 
-		// Retry chat command
 		this._register(CommandsRegistry.registerCommand(SetupAgent.CHAT_RETRY_COMMAND_ID, async (accessor, sessionResource: URI) => {
 			const hostService = accessor.get(IHostService);
 			const chatWidgetService = accessor.get(IChatWidgetService);
@@ -133,13 +129,10 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 			hostService.reload();
 		}));
 
-		// Show output command: execute extension state command if available, then show output channel
 		this._register(CommandsRegistry.registerCommand(SetupAgent.CHAT_SHOW_OUTPUT_COMMAND_ID, async (accessor) => {
 			const commandService = accessor.get(ICommandService);
 
 			if (defaultChat.outputExtensionStateCommand) {
-				// Command invocation may fail or is blocked by the extension activating
-				// so we just don't wait and timeout after a certain time, logging the error if it fails or times out.
 				raceTimeout(
 					commandService.executeCommand(defaultChat.outputExtensionStateCommand),
 					5000,
@@ -156,7 +149,7 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 	}
 
 	async invoke(request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void): Promise<IChatAgentResult> {
-		return this.instantiationService.invokeFunction(async accessor /* using accessor for lazy loading */ => {
+		return this.instantiationService.invokeFunction(async accessor => {
 			const chatService = accessor.get(IChatService);
 			const languageModelsService = accessor.get(ILanguageModelsService);
 			const chatWidgetService = accessor.get(IChatWidgetService);
@@ -187,7 +180,7 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 		const requestModel = chatWidgetService.getWidgetBySessionResource(request.sessionResource)?.viewModel?.model.getRequests().at(-1);
 		if (!requestModel) {
 			this.logService.error('[chat setup] Request model not found, cannot redispatch request.');
-			return {}; // this should not happen
+			return {};
 		}
 
 		progress({
@@ -269,8 +262,8 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 		let result: IChatSetupResult | undefined = undefined;
 		try {
 			result = await ChatSetup.getInstance(this.instantiationService, this.context, this.controller).run({
-				disableChatViewReveal: true, 																				// we are already in a chat context
-				forceAnonymous: this.chatEntitlementService.anonymous ? ChatSetupAnonymous.EnabledWithoutDialog : undefined	// only enable anonymous selectively
+				disableChatViewReveal: true,
+				forceAnonymous: this.chatEntitlementService.anonymous ? ChatSetupAnonymous.EnabledWithoutDialog : undefined
 			});
 		} catch (error) {
 			this.logService.error(`[chat setup] Error during setup: ${toErrorMessage(error)}`);
@@ -278,14 +271,13 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 			setupListener.dispose();
 		}
 
-		// User has agreed to run the setup
 		if (typeof result?.success === 'boolean') {
 			if (result.success) {
 				if (result.dialogSkipped) {
-					await widget?.clear(); // make room for the Chat welcome experience
+					await widget?.clear();
 				} else if (requestModel) {
-					let newRequest = this.replaceAgentInRequestModel(requestModel, chatAgentService); 	// Replace agent part with the actual Chat agent...
-					newRequest = this.replaceToolInRequestModel(newRequest); 							// ...then replace any tool parts with the actual Chat tools
+					let newRequest = this.replaceAgentInRequestModel(requestModel, chatAgentService);
+					newRequest = this.replaceToolInRequestModel(newRequest);
 
 					await this.forwardRequestToChat(newRequest, progress, chatService, languageModelsService, chatAgentService, chatWidgetService, languageModelToolsService);
 				}
@@ -297,7 +289,6 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 			}
 		}
 
-		// User has cancelled the setup
 		else {
 			progress({
 				kind: 'markdownContent',
@@ -473,8 +464,6 @@ export class ChatCodeActionsProvider {
 	async provideCodeActions(model: ITextModel, range: Range | Selection): Promise<CodeActionList | undefined> {
 		const actions: CodeAction[] = [];
 
-		// "Generate" if the line is whitespace only
-		// "Modify" if there is a selection
 		let generateOrModifyTitle: string | undefined;
 		let generateOrModifyCommand: Command | undefined;
 		if (range.isEmpty()) {
@@ -493,7 +482,7 @@ export class ChatCodeActionsProvider {
 
 		if (generateOrModifyTitle && generateOrModifyCommand) {
 			actions.push({
-				kind: CodeActionKind.RefactorRewrite.append('copilot').value,
+				kind: CodeActionKind.RefactorRewrite.append('dardcor').value,
 				isAI: true,
 				title: generateOrModifyTitle,
 				command: generateOrModifyCommand,
@@ -503,18 +492,16 @@ export class ChatCodeActionsProvider {
 		const markers = AICodeActionsHelper.warningOrErrorMarkersAtRange(this.markerService, model.uri, range);
 		if (markers.length > 0) {
 
-			// "Fix" if there are diagnostics in the range
 			actions.push({
-				kind: CodeActionKind.QuickFix.append('copilot').value,
+				kind: CodeActionKind.QuickFix.append('dardcor').value,
 				isAI: true,
 				diagnostics: markers,
 				title: localize('fix', "Fix"),
 				command: AICodeActionsHelper.fixMarkers(markers, range)
 			});
 
-			// "Explain" if there are diagnostics in the range
 			actions.push({
-				kind: CodeActionKind.QuickFix.append('explain').append('copilot').value,
+				kind: CodeActionKind.QuickFix.append('explain').append('dardcor').value,
 				isAI: true,
 				diagnostics: markers,
 				title: localize('explain', "Explain"),

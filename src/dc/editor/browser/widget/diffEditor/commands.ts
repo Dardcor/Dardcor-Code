@@ -279,10 +279,6 @@ export function findFocusedDiffEditor(accessor: ServicesAccessor): IDiffEditor |
 }
 
 
-/**
- * If `editor` is the original or modified editor of a diff editor, it returns it.
- * It returns null otherwise.
- */
 export function findDiffEditorContainingCodeEditor(accessor: ServicesAccessor, editor: ICodeEditor): IDiffEditor | null {
 	if (!editor.getOption(EditorOption.inDiffEditor)) {
 		return null;

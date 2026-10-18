@@ -14,7 +14,6 @@
 	font-size: var(--vscode-bodyFontSize-small);
 }
 
-/* Header */
 .update-tooltip .header {
 	display: flex;
 	justify-content: space-between;
@@ -27,7 +26,6 @@
 	color: var(--vscode-foreground);
 }
 
-/* Product info */
 .update-tooltip .product-info {
 	display: flex;
 	gap: 12px;
@@ -78,7 +76,6 @@
 	color: var(--vscode-foreground);
 }
 
-/* Button bar */
 .update-tooltip .button-bar {
 	display: flex;
 	justify-content: flex-end;
@@ -114,7 +111,6 @@
 	background-color: var(--vscode-button-hoverBackground);
 }
 
-/* Progress bar */
 .update-tooltip .progress-bar {
 	height: 4px;
 	background-color: color-mix(in srgb, var(--vscode-progressBar-background) 30%, transparent);

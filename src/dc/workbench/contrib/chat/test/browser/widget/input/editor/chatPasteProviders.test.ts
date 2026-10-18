@@ -29,8 +29,6 @@ suite('Chat Paste Providers', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('does not offer an opened artifact back as attachable context', () => {
-		// Opening an artifact makes it the active editor; offering it as context
-		// would re-attach text the attachment already carries.
 		const instantiationService = store.add(new TestInstantiationService());
 		instantiationService.stub(IChatSessionsService, new class extends mock<IChatSessionsService>() {
 			override getContentProviderSchemes(): string[] { return []; }

@@ -8,7 +8,6 @@ import { DebugLocation, derivedOpts, IObservable, IReader, observableFromEvent, 
 import { IConfigurationService } from '../../configuration/common/configuration.js';
 import { ContextKeyValue, IContextKeyService, RawContextKey } from '../../contextkey/common/contextkey.js';
 
-/** Creates an observable update when a configuration key updates. */
 export function observableConfigValue<T>(
 	key: string,
 	defaultValue: T,
@@ -26,7 +25,6 @@ export function observableConfigValue<T>(
 	);
 }
 
-/** Update the configuration key with a value derived from observables. */
 export function bindContextKey<T extends ContextKeyValue>(
 	key: RawContextKey<T>,
 	service: IContextKeyService,

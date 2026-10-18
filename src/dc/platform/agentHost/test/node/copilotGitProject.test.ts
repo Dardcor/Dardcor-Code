@@ -7,7 +7,7 @@ import assert from 'assert';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { tryResolvePrimaryWorktreeRoot, type IAgentHostGitService, type IBranch, type IDefaultBranch } from '../../common/agentHostGitService.js';
-import { projectFromCopilotContext, projectFromRepository, resolveGitProject } from '../../node/copilot/copilotGitProject.js';
+import { projectFromCopilotContext, projectFromRepository, resolveGitProject } from '../../node/shared/agentGitProject.js';
 
 class TestAgentHostGitService implements IAgentHostGitService {
 	declare readonly _serviceBrand: undefined;

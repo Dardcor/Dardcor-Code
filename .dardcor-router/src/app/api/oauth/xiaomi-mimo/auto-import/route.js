@@ -4,39 +4,18 @@ import { homedir } from "os";
 import { join } from "path";
 import { readDesktopPassToken } from "open-sse/shared/mimoAccount.js";
 
-/**
- * GET /api/oauth/xiaomi-mimo/auto-import
- * Auto-detect Xiaomi MiMo credentials from local auth.json.
- *
- * Sources (in priority order):
- *   1. ~/.local/share/mimocode/auth.json  → xiaomi field
- *   2. %APPDATA%/Xiaomi MiMo/...          → (future: Desktop keychain)
- *
- * auth.json shape:
- * {
- *   "xiaomi": {
- *     "type": "api",
- *     "key": "sk-xxxx",
- *     "metadata": { "uid": "...", "base_url": "https://api.xiaomimimo.com/v1" }
- *   }
- * }
- */
 
 function getCandidatePaths() {
   const home = homedir();
   const paths = [];
 
-  // MiMoCode / MiMo Desktop shared data dir (cross-platform XDG)
   paths.push(join(home, ".local", "share", "mimocode", "auth.json"));
 
-  // Windows: also check USERPROFILE-based XDG
   if (process.platform === "win32") {
     const appData = process.env.APPDATA || join(home, "AppData", "Roaming");
-    // Desktop's own storage (may have separate credentials in the future)
     paths.push(join(appData, "Xiaomi MiMo", "auth.json"));
   }
 
-  // macOS
   if (process.platform === "darwin") {
     paths.push(
       join(home, "Library", "Application Support", "mimocode", "auth.json"),
@@ -46,9 +25,6 @@ function getCandidatePaths() {
   return paths;
 }
 
-/**
- * GET /api/oauth/xiaomi-mimo/auto-import
- */
 export async function GET() {
   try {
     const candidates = getCandidatePaths();
@@ -60,7 +36,6 @@ export async function GET() {
         authPath = candidate;
         break;
       } catch {
-        // Try next candidate
       }
     }
 
@@ -90,7 +65,6 @@ export async function GET() {
       });
     }
 
-    // Validate key format
     const key = String(xiaomi.key).trim();
     if (!key.startsWith("sk-")) {
       return NextResponse.json({
@@ -103,9 +77,6 @@ export async function GET() {
     const uid = metadata.uid || null;
     const baseUrl = metadata.base_url || "https://api.xiaomimimo.com/v1";
 
-    // Account-session passToken from Desktop's cookie store. Persisting it per
-    // connection is what lets multiple Xiaomi accounts rotate independently.
-    // (null while Desktop is running — its cookie DB is exclusively locked.)
     let mimoPassToken = null;
     let mimoUserId = null;
     let mimoCUserId = null;

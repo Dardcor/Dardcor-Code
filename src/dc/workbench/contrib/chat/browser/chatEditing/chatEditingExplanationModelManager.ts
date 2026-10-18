@@ -16,9 +16,6 @@ import { InstantiationType, registerSingleton } from '../../../../../platform/in
 import { ChatMessageRole, ILanguageModelsService } from '../../common/languageModels.js';
 import * as nls from '../../../../../nls.js';
 
-/**
- * Simple diff info interface for explanation generation
- */
 export interface IExplanationDiffInfo {
 	readonly changes: readonly (LineRangeMapping | DetailedLineRangeMapping)[];
 	readonly identical: boolean;
@@ -26,9 +23,6 @@ export interface IExplanationDiffInfo {
 	readonly modifiedModel: ITextModel;
 }
 
-/**
- * A single explanation for a change
- */
 export interface IChangeExplanation {
 	readonly uri: URI;
 	readonly startLineNumber: number;
@@ -38,14 +32,8 @@ export interface IChangeExplanation {
 	readonly explanation: string;
 }
 
-/**
- * Progress state for explanation generation
- */
 export type ExplanationProgress = 'idle' | 'loading' | 'complete' | 'error';
 
-/**
- * Explanation state for a single URI
- */
 export interface IExplanationState {
 	readonly progress: ExplanationProgress;
 	readonly explanations: readonly IChangeExplanation[];
@@ -54,18 +42,9 @@ export interface IExplanationState {
 	readonly errorMessage?: string;
 }
 
-/**
- * Handle returned when generating explanations
- */
 export interface IExplanationGenerationHandle extends IDisposable {
-	/**
-	 * The URIs being explained
-	 */
 	readonly uris: readonly URI[];
 
-	/**
-	 * Promise that resolves when generation is complete
-	 */
 	readonly completed: Promise<void>;
 }
 
@@ -74,44 +53,20 @@ export const IChatEditingExplanationModelManager = createDecorator<IChatEditingE
 export interface IChatEditingExplanationModelManager {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Observable map from URI to explanation state.
-	 * When a URI has state, explanations are shown. When removed, they are hidden.
-	 * UI code can use autorun or derived to react to state changes.
-	 */
 	readonly state: IObservable<ResourceMap<IExplanationState>>;
 
-	/**
-	 * Generates explanations for the given diff infos using a single LLM request.
-	 * This allows the model to understand the complete change across files.
-	 * Returns a disposable handle for lifecycle management.
-	 * The generation can be cancelled by disposing the handle or via the cancellation token.
-	 * Disposing the handle also removes the explanations from the state.
-	 *
-	 * State is updated per-file as explanations are parsed from the response.
-	 *
-	 * @param diffInfos Array of diff info objects, one per file
-	 * @param chatSessionResource Chat session resource for follow-up actions
-	 * @param token Cancellation token for external cancellation control
-	 * @returns A handle with disposal and completion tracking
-	 */
 	generateExplanations(diffInfos: readonly IExplanationDiffInfo[], chatSessionResource: URI | undefined, token: CancellationToken): IExplanationGenerationHandle;
 }
 
-/**
- * Gets the text content for a change
- */
 function getChangeTexts(change: LineRangeMapping | DetailedLineRangeMapping, diffInfo: IExplanationDiffInfo): { originalText: string; modifiedText: string } {
 	const originalLines: string[] = [];
 	const modifiedLines: string[] = [];
 
-	// Get original text
 	for (let i = change.original.startLineNumber; i < change.original.endLineNumberExclusive; i++) {
 		const line = diffInfo.originalModel.getLineContent(i);
 		originalLines.push(line);
 	}
 
-	// Get modified text
 	for (let i = change.modified.startLineNumber; i < change.modified.endLineNumberExclusive; i++) {
 		const line = diffInfo.modifiedModel.getLineContent(i);
 		modifiedLines.push(line);
@@ -165,7 +120,6 @@ export class ChatEditingExplanationModelManager extends Disposable implements IC
 		const uris = diffInfos.map(d => d.modifiedModel.uri);
 		const cts = new CancellationTokenSource(token);
 
-		// Set loading state for all URIs with diffInfo and chatSessionResource
 		for (const diffInfo of diffInfos) {
 			this._updateUriState(diffInfo.modifiedModel.uri, {
 				progress: 'loading',
@@ -188,7 +142,6 @@ export class ChatEditingExplanationModelManager extends Disposable implements IC
 	}
 
 	private async _doGenerateExplanations(diffInfos: readonly IExplanationDiffInfo[], cancellationToken: CancellationToken): Promise<void> {
-		// Filter out empty diffs and fire empty events for them
 		const nonEmptyDiffs: IExplanationDiffInfo[] = [];
 		for (const diffInfo of diffInfos) {
 			if (diffInfo.changes.length === 0 || diffInfo.identical) {
@@ -205,7 +158,6 @@ export class ChatEditingExplanationModelManager extends Disposable implements IC
 			return;
 		}
 
-		// Build change data for all files
 		interface FileChangeData {
 			uri: URI;
 			fileName: string;
@@ -232,12 +184,10 @@ export class ChatEditingExplanationModelManager extends Disposable implements IC
 			return { uri, fileName, changes };
 		});
 
-		// Total number of changes across all files
 		const totalChanges = fileChanges.reduce((sum, f) => sum + f.changes.length, 0);
 
 		try {
-			// Select a model for understanding all changes together
-			const models = await this._languageModelsService.selectLanguageModels({ vendor: 'copilot', id: 'copilot-utility-small' });
+			const models = await this._languageModelsService.selectLanguageModels({ vendor: 'dardcor', id: 'dardcor-utility-small' });
 			if (!models.length) {
 				for (const fileData of fileChanges) {
 					this._updateUriStatePartial(fileData.uri, {
@@ -253,7 +203,6 @@ export class ChatEditingExplanationModelManager extends Disposable implements IC
 				return;
 			}
 
-			// Build a prompt with all changes from all files
 			let changeIndex = 0;
 			const changesDescription = fileChanges.map(fileData => {
 				return fileData.changes.map(data => {
@@ -311,20 +260,16 @@ Example response format:
 				return;
 			}
 
-			// Parse the JSON response
 			let parsed: { explanation: string }[] = [];
 			try {
-				// Handle potential markdown wrapping
 				let jsonText = responseText.trim();
 				if (jsonText.startsWith('```')) {
 					jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
 				}
 				parsed = JSON.parse(jsonText);
 			} catch {
-				// JSON parsing failed - will use default messages
 			}
 
-			// Map explanations back to files
 			let parsedIndex = 0;
 			for (const fileData of fileChanges) {
 				const explanations: IChangeExplanation[] = [];

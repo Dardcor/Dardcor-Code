@@ -139,10 +139,8 @@ export class NotebookService implements INotebookService {
 	}
 
 	setVariables(notebook: Uri, variables: VariablesResult[]): void {
-		// no op
 	}
 
-	//#region Notebook Support
 
 	private populateNotebookEditorContributions() {
 		const notebookContributions: Partial<INotebookEditorContribution>[] = [];
@@ -174,9 +172,7 @@ export class NotebookService implements INotebookService {
 		return res;
 	}
 
-	//#endregion
 
-	//#region Execution Summary
 	private _registerExecutionListener(): void {
 		this._disposables.push(this._executionService.onDidChangeNotebookCellExecutionState(e => {
 			const cell = e.cell;
@@ -191,8 +187,6 @@ export class NotebookService implements INotebookService {
 
 			const index = cellExecutionList.findIndex(item => item.cell === cell);
 			if (index !== -1) {
-				// we are executing cell again
-				// remove it from the list first
 				cellExecutionList.splice(index, 1);
 			}
 
@@ -209,7 +203,6 @@ export class NotebookService implements INotebookService {
 					const executionSummary = cellChange.executionSummary;
 
 					if (executionSummary.success) {
-						// finished execution
 						commands.executeCommand<DocumentSymbol[]>(
 							'vscode.executeDocumentSymbolProvider',
 							cellChange.cell.document.uri
@@ -220,7 +213,6 @@ export class NotebookService implements INotebookService {
 				}
 
 				if (cellChange.document) {
-					// content changed
 					this._cellSymbols.delete(cellChange.cell);
 				}
 			}
@@ -251,7 +243,6 @@ export class NotebookService implements INotebookService {
 			});
 		}
 	}
-	//#endregion
 
 	dispose() {
 		this._disposables.forEach(d => d.dispose());

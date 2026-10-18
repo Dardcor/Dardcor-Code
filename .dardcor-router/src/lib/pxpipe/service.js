@@ -1,8 +1,6 @@
 import { getInstallInfo, isInstalling, findNpm } from "./install.js";
 import { getLoadedInfo, loadPxpipe, selfTest } from "./loader.js";
 
-// Aggregate status for the Token Saver card and /api/pxpipe/status.
-// "running" in library mode = module loaded into this process.
 export function getPxpipeStatus() {
   const install = getInstallInfo();
   const loaded = getLoadedInfo();
@@ -15,12 +13,10 @@ export function getPxpipeStatus() {
     loadedAt: loaded.loadedAt || null,
     uptimeMs: loaded.loaded ? Date.now() - loaded.loadedAt : 0,
     npmAvailable: !!findNpm(),
-    mode: "library", // in-process transform, not an external proxy
+    mode: "library",
   };
 }
 
-// PRD health checklist, adapted to library mode: installed? → module loads
-// (the "executable found / port listening" equivalent) → test request transforms.
 export async function runHealthCheck() {
   const checks = [];
   const fail = (error) => ({ healthy: false, checks, error });

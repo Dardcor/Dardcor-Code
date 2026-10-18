@@ -14,7 +14,7 @@ import { URI } from '../../../../../base/common/uri.js';
 import Severity from '../../../../../base/common/severity.js';
 import { SubmenuAction } from '../../../../../base/common/actions.js';
 import { NullLogService } from '../../../../../platform/log/common/log.js';
-import { ChatMessageRole, LanguageModelsService, IChatMessage, IChatResponsePart, ILanguageModelChatMetadata, createModelConfigurationActions, ILanguageModelConfigurationSchema, getByokProviderTelemetryName, THIRD_PARTY_PROVIDER_TELEMETRY_NAME, COPILOT_VENDOR_ID, getLanguageModelDisplayNameWithProvider, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../common/languageModels.js';
+import { ChatMessageRole, LanguageModelsService, IChatMessage, IChatResponsePart, ILanguageModelChatMetadata, createModelConfigurationActions, ILanguageModelConfigurationSchema, getByokProviderTelemetryName, THIRD_PARTY_PROVIDER_TELEMETRY_NAME, DARD_COR_VENDOR_ID, getLanguageModelDisplayNameWithProvider, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../common/languageModels.js';
 import { IPromptChoice, IPromptOptions } from '../../../../../platform/notification/common/notification.js';
 import { TestNotificationService } from '../../../../../platform/notification/test/common/testNotificationService.js';
 import { NullOpenerService } from '../../../../../platform/opener/test/common/nullOpenerService.js';
@@ -160,16 +160,16 @@ suite('LanguageModels', function () {
 				modelGroup,
 			},
 		});
-		const copilot = createModel('agent-host-codex:@provider=vscode-proxy:gpt-5.6-sol', { id: 'copilot' });
+		const dardcor = createModel('agent-host-codex:@provider=vscode-proxy:gpt-5.6-sol', { id: 'dardcor' });
 		const chatGPT = createModel('agent-host-codex:@provider=openai:gpt-5.6-sol', { id: 'chatgpt', sourceId: 'chatgptSubscription' });
 		const unrelated = createModel('agent-host-codex:anthropic/claude-opus', { id: 'anthropic' });
 
 		assert.deepStrictEqual({
-			copilot: getLanguageModelDisplayNameWithSubscriptionSource(copilot),
+			dardcor: getLanguageModelDisplayNameWithSubscriptionSource(dardcor),
 			chatGPT: getLanguageModelDisplayNameWithSubscriptionSource(chatGPT),
 			unrelated: getLanguageModelDisplayNameWithSubscriptionSource(unrelated),
 		}, {
-			copilot: 'GPT-5.6 Sol',
+			dardcor: 'GPT-5.6 Sol',
 			chatGPT: 'GPT-5.6 Sol (ChatGPT)',
 			unrelated: 'GPT-5.6 Sol',
 		});
@@ -214,7 +214,6 @@ suite('LanguageModels', function () {
 				return modelMetadataAndIdentifier;
 			},
 			sendChatRequest: async (modelId: string, messages: IChatMessage[], _from: ExtensionIdentifier | undefined, _options: { [name: string]: any }, token: CancellationToken) => {
-				// const message = messages.at(-1);
 
 				const defer = new DeferredPromise();
 				const stream = new AsyncIterableSource<IChatResponsePart>();
@@ -237,7 +236,6 @@ suite('LanguageModels', function () {
 			}
 		}));
 
-		// Register the extension point for the actual vendor
 		languageModels.deltaLanguageModelChatProviderDescriptors([
 			{ vendor: 'actual-vendor', displayName: 'Actual Vendor', configuration: undefined, managementCommand: undefined, when: undefined }
 		], []);
@@ -260,7 +258,6 @@ suite('LanguageModels', function () {
 
 	test('when clause defaults to true when omitted', async function () {
 		const vendors = languageModels.getVendors();
-		// Both test-vendor and actual-vendor have no when clause, so they should be visible
 		assert.ok(vendors.length >= 2);
 		assert.ok(vendors.some(v => v.vendor === 'test-vendor'));
 		assert.ok(vendors.some(v => v.vendor === 'actual-vendor'));
@@ -284,23 +281,23 @@ suite('LanguageModels', function () {
 			},
 		};
 		const bridgedModel: ILanguageModelChatMetadataAndIdentifier = {
-			identifier: 'agent-host-copilotcli:openrouter/amazon/nova-micro-v1',
+			identifier: 'agent-host-dardcorcli:openrouter/amazon/nova-micro-v1',
 			metadata: {
 				...originalModel.metadata,
-				vendor: 'agent-host-copilotcli',
+				vendor: 'agent-host-dardcorcli',
 				isBYOK: undefined,
 				modelGroup: { id: 'openrouter' },
 				byokModelIdentifier: originalIdentifier,
 			},
 		};
 		const nativeModel: ILanguageModelChatMetadataAndIdentifier = {
-			identifier: 'agent-host-copilotcli:claude-sonnet-4.6',
+			identifier: 'agent-host-dardcorcli:claude-sonnet-4.6',
 			metadata: {
 				...originalModel.metadata,
 				name: 'Claude Sonnet 4.6',
-				vendor: 'agent-host-copilotcli',
+				vendor: 'agent-host-dardcorcli',
 				isBYOK: undefined,
-				modelGroup: { id: 'copilotcli' },
+				modelGroup: { id: 'dardcorcli' },
 			},
 		};
 		const geminiModel: ILanguageModelChatMetadataAndIdentifier = {
@@ -350,25 +347,19 @@ suite('LanguageModels', function () {
 		});
 	});
 
-	test('selectLanguageModels matches by id for copilot vendor models even when isUserSelectable is false', async function () {
-		// Mirrors how the copilot extension publishes utility aliases such as
-		// `copilot-utility-small`: under the `copilot` (default) vendor, with
-		// `isUserSelectable: false`. The workbench's
-		// `chatToolRiskAssessmentService` resolves them with
-		// `selectLanguageModels({ vendor: 'copilot', id: 'copilot-utility-small' })`
-		// and must get a match.
+	test('selectLanguageModels matches by id for dardcor vendor models even when isUserSelectable is false', async function () {
 		languageModels.deltaLanguageModelChatProviderDescriptors([
-			{ vendor: 'copilot', displayName: 'Copilot', configuration: undefined, managementCommand: undefined, when: undefined }
+			{ vendor: 'dardcor', displayName: 'Dardcor', configuration: undefined, managementCommand: undefined, when: undefined }
 		], []);
 
-		store.add(languageModels.registerLanguageModelProvider('copilot', {
+		store.add(languageModels.registerLanguageModelProvider('dardcor', {
 			onDidChange: Event.None,
 			provideLanguageModelChatInfo: async () => {
 				const modelMetadata: ILanguageModelChatMetadata[] = [
 					{
 						extension: nullExtensionDescription.identifier,
 						name: 'GPT 4o mini',
-						vendor: 'copilot',
+						vendor: 'dardcor',
 						family: 'gpt-4o-mini',
 						version: '2024-07-18',
 						id: 'gpt-4o-mini',
@@ -379,10 +370,10 @@ suite('LanguageModels', function () {
 					{
 						extension: nullExtensionDescription.identifier,
 						name: 'GPT 4o mini',
-						vendor: 'copilot',
-						family: 'copilot-utility-small',
+						vendor: 'dardcor',
+						family: 'dardcor-utility-small',
 						version: '2024-07-18',
-						id: 'copilot-utility-small',
+						id: 'dardcor-utility-small',
 						maxInputTokens: 100,
 						maxOutputTokens: 100,
 						isDefaultForLocation: {},
@@ -395,12 +386,12 @@ suite('LanguageModels', function () {
 			provideTokenCount: async () => { throw new Error(); }
 		}));
 
-		const result = await languageModels.selectLanguageModels({ vendor: 'copilot', id: 'copilot-utility-small' });
-		assert.deepStrictEqual(result, ['copilot/copilot-utility-small']);
+		const result = await languageModels.selectLanguageModels({ vendor: 'dardcor', id: 'dardcor-utility-small' });
+		assert.deepStrictEqual(result, ['dardcor/dardcor-utility-small']);
 	});
 
 	test('model visibility — defaults to visible', async function () {
-		await languageModels.selectLanguageModels({}); // resolve models so groups populate
+		await languageModels.selectLanguageModels({});
 		assert.strictEqual(languageModels.isModelHidden('test-id-1'), false);
 		assert.strictEqual(languageModels.isModelHidden('test-id-12'), false);
 		assert.strictEqual(languageModels.isGroupHidden('test-vendor', 'Test Vendor'), false);
@@ -487,11 +478,8 @@ suite('LanguageModels', function () {
 
 		languageModels.setModelHidden('test-id-1', false);
 
-		// The group is no longer hidden — the user explicitly chose to surface a model.
 		assert.strictEqual(languageModels.isGroupHidden('test-vendor', 'Test Vendor'), false);
-		// The selected model is visible…
 		assert.strictEqual(languageModels.isModelHidden('test-id-1'), false);
-		// …but the sibling stays hidden.
 		assert.strictEqual(languageModels.isModelHidden('test-id-12'), true);
 		assert.deepStrictEqual(languageModels.getHiddenModelIds(), ['test-id-12']);
 	});
@@ -537,119 +525,109 @@ suite('LanguageModels', function () {
 		let fired = 0;
 		store.add(languageModels.onDidChangeModelVisibility(() => fired++));
 
-		// Already visible — no-op
 		languageModels.setModelHidden('test-id-1', false);
 		assert.strictEqual(fired, 0);
 
 		languageModels.setModelHidden('test-id-1', true);
 		assert.strictEqual(fired, 1);
 
-		// Already hidden — no-op
 		languageModels.setModelHidden('test-id-1', true);
 		assert.strictEqual(fired, 1);
 	});
 
 	test('model visibility — hiding an agent-host group excludes BYOK model copies', async function () {
-		// An agent host surfaces the user's BYOK models as copies under its own vendor.
-		// Those copies (id carries the upstream provider prefix + `modelGroup`) are not
-		// listed in Manage Models under the agent host, so group-level visibility toggles
-		// must not touch them — their visibility is owned by the real provider row.
 		languageModels.deltaLanguageModelChatProviderDescriptors([
-			{ vendor: 'agent-host-copilotcli', displayName: 'Copilot', configuration: undefined, managementCommand: undefined, when: undefined }
+			{ vendor: 'agent-host-dardcorcli', displayName: 'Dardcor', configuration: undefined, managementCommand: undefined, when: undefined }
 		], []);
-		store.add(languageModels.registerLanguageModelProvider('agent-host-copilotcli', {
+		store.add(languageModels.registerLanguageModelProvider('agent-host-dardcorcli', {
 			onDidChange: Event.None,
 			provideLanguageModelChatInfo: async () => [
 				{
 					metadata: {
 						extension: nullExtensionDescription.identifier,
-						name: 'Claude Haiku 4.5', vendor: 'agent-host-copilotcli', family: 'claude-haiku-4.5', version: '1.0',
+						name: 'Claude Haiku 4.5', vendor: 'agent-host-dardcorcli', family: 'claude-haiku-4.5', version: '1.0',
 						id: 'claude-haiku-4.5', maxInputTokens: 100, maxOutputTokens: 100, isDefaultForLocation: {},
-						targetChatSessionType: 'agent-host-copilotcli', modelGroup: { id: 'copilotcli' },
+						targetChatSessionType: 'agent-host-dardcorcli', modelGroup: { id: 'dardcorcli' },
 					} satisfies ILanguageModelChatMetadata,
-					identifier: 'agent-host-copilotcli:claude-haiku-4.5',
+					identifier: 'agent-host-dardcorcli:claude-haiku-4.5',
 				},
 				{
 					metadata: {
 						extension: nullExtensionDescription.identifier,
-						name: 'AionLabs: Aion-3.0', vendor: 'agent-host-copilotcli', family: 'openrouter/aion-labs/aion-3.0', version: '1.0',
+						name: 'AionLabs: Aion-3.0', vendor: 'agent-host-dardcorcli', family: 'openrouter/aion-labs/aion-3.0', version: '1.0',
 						id: 'openrouter/aion-labs/aion-3.0', maxInputTokens: 100, maxOutputTokens: 100, isDefaultForLocation: {},
-						targetChatSessionType: 'agent-host-copilotcli', modelGroup: { id: 'openrouter' },
+						targetChatSessionType: 'agent-host-dardcorcli', modelGroup: { id: 'openrouter' },
 						byokModelIdentifier: 'openrouter/OpenRouter 2/aion-labs/aion-3.0',
 					} satisfies ILanguageModelChatMetadata,
-					identifier: 'agent-host-copilotcli:openrouter/aion-labs/aion-3.0',
+					identifier: 'agent-host-dardcorcli:openrouter/aion-labs/aion-3.0',
 				},
 			],
 			sendChatRequest: async () => { throw new Error(); },
 			provideTokenCount: async () => { throw new Error(); },
 		}));
-		await languageModels.selectLanguageModels({ vendor: 'agent-host-copilotcli' });
+		await languageModels.selectLanguageModels({ vendor: 'agent-host-dardcorcli' });
 
-		languageModels.setGroupHidden('agent-host-copilotcli', 'Copilot', true);
+		languageModels.setGroupHidden('agent-host-dardcorcli', 'Dardcor', true);
 
-		// Only the native agent-host model is hidden; the BYOK copy is untouched, and the
-		// group reads as hidden because every model it actually owns (the native one) is.
 		assert.deepStrictEqual({
 			hiddenModels: languageModels.getHiddenModelIds(),
-			groupHidden: languageModels.isGroupHidden('agent-host-copilotcli', 'Copilot'),
-			byokCopyHidden: languageModels.isModelHidden('agent-host-copilotcli:openrouter/aion-labs/aion-3.0'),
+			groupHidden: languageModels.isGroupHidden('agent-host-dardcorcli', 'Dardcor'),
+			byokCopyHidden: languageModels.isModelHidden('agent-host-dardcorcli:openrouter/aion-labs/aion-3.0'),
 		}, {
-			hiddenModels: ['agent-host-copilotcli:claude-haiku-4.5'],
+			hiddenModels: ['agent-host-dardcorcli:claude-haiku-4.5'],
 			groupHidden: true,
 			byokCopyHidden: false,
 		});
 	});
 
-	/** Registers the default provider with its `Auto` model plus one regular model. */
 	async function registerDefaultVendorWithAutoModel(): Promise<void> {
 		languageModels.deltaLanguageModelChatProviderDescriptors([
-			{ vendor: COPILOT_VENDOR_ID, displayName: 'GitHub Copilot', configuration: undefined, managementCommand: undefined, when: undefined }
+			{ vendor: DARD_COR_VENDOR_ID, displayName: 'Dardcor Router', configuration: undefined, managementCommand: undefined, when: undefined }
 		], []);
-		store.add(languageModels.registerLanguageModelProvider(COPILOT_VENDOR_ID, {
+		store.add(languageModels.registerLanguageModelProvider(DARD_COR_VENDOR_ID, {
 			onDidChange: Event.None,
 			provideLanguageModelChatInfo: async () => [
 				{
 					metadata: {
 						extension: nullExtensionDescription.identifier,
-						name: 'Auto', vendor: COPILOT_VENDOR_ID, family: 'auto', version: '1.0',
+						name: 'Auto', vendor: DARD_COR_VENDOR_ID, family: 'auto', version: '1.0',
 						id: 'auto', maxInputTokens: 100, maxOutputTokens: 100, isDefaultForLocation: {},
 					} satisfies ILanguageModelChatMetadata,
-					identifier: 'copilot/auto',
+					identifier: 'dardcor/auto',
 				},
 				{
 					metadata: {
 						extension: nullExtensionDescription.identifier,
-						name: 'GPT-5', vendor: COPILOT_VENDOR_ID, family: 'gpt-5', version: '1.0',
+						name: 'GPT-5', vendor: DARD_COR_VENDOR_ID, family: 'gpt-5', version: '1.0',
 						id: 'gpt-5', maxInputTokens: 100, maxOutputTokens: 100, isDefaultForLocation: {},
 					} satisfies ILanguageModelChatMetadata,
-					identifier: 'copilot/gpt-5',
+					identifier: 'dardcor/gpt-5',
 				},
 			],
 			sendChatRequest: async () => { throw new Error(); },
 			provideTokenCount: async () => { throw new Error(); },
 		}));
-		await languageModels.selectLanguageModels({ vendor: COPILOT_VENDOR_ID });
+		await languageModels.selectLanguageModels({ vendor: DARD_COR_VENDOR_ID });
 	}
 
 	test('model visibility — the default provider Auto model cannot be hidden, directly or via its group', async function () {
-		// Auto has no row in Manage Language Models, so hiding it would be unrecoverable.
 		await registerDefaultVendorWithAutoModel();
 
 		let fired = 0;
 		store.add(languageModels.onDidChangeModelVisibility(() => fired++));
 
-		languageModels.setModelHidden('copilot/auto', true);
+		languageModels.setModelHidden('dardcor/auto', true);
 		assert.deepStrictEqual({ hiddenModels: languageModels.getHiddenModelIds(), events: fired }, { hiddenModels: [], events: 0 });
 
-		languageModels.setGroupHidden(COPILOT_VENDOR_ID, 'GitHub Copilot', true);
+		languageModels.setGroupHidden(DARD_COR_VENDOR_ID, 'Dardcor Router', true);
 
 		assert.deepStrictEqual({
 			hiddenModels: languageModels.getHiddenModelIds(),
-			autoHidden: languageModels.isModelHidden('copilot/auto'),
-			groupHidden: languageModels.isGroupHidden(COPILOT_VENDOR_ID, 'GitHub Copilot'),
+			autoHidden: languageModels.isModelHidden('dardcor/auto'),
+			groupHidden: languageModels.isGroupHidden(DARD_COR_VENDOR_ID, 'Dardcor Router'),
 			events: fired,
 		}, {
-			hiddenModels: ['copilot/gpt-5'],
+			hiddenModels: ['dardcor/gpt-5'],
 			autoHidden: false,
 			groupHidden: true,
 			events: 1,
@@ -657,49 +635,45 @@ suite('LanguageModels', function () {
 	});
 
 	test('model visibility — a non-default provider Auto model stays hideable', async function () {
-		// Copilot CLI's Auto gets a row, so it has a toggle that can bring it back.
 		languageModels.deltaLanguageModelChatProviderDescriptors([
-			{ vendor: 'copilotcli', displayName: 'Copilot CLI', configuration: undefined, managementCommand: undefined, when: undefined }
+			{ vendor: 'dardcorcli', displayName: 'Dardcor CLI', configuration: undefined, managementCommand: undefined, when: undefined }
 		], []);
-		store.add(languageModels.registerLanguageModelProvider('copilotcli', {
+		store.add(languageModels.registerLanguageModelProvider('dardcorcli', {
 			onDidChange: Event.None,
 			provideLanguageModelChatInfo: async () => [
 				{
 					metadata: {
 						extension: nullExtensionDescription.identifier,
-						name: 'Auto', vendor: 'copilotcli', family: 'auto', version: '1.0',
+						name: 'Auto', vendor: 'dardcorcli', family: 'auto', version: '1.0',
 						id: 'auto', maxInputTokens: 100, maxOutputTokens: 100, isDefaultForLocation: {},
-						targetChatSessionType: 'copilotcli',
+						targetChatSessionType: 'dardcorcli',
 					} satisfies ILanguageModelChatMetadata,
-					identifier: 'copilotcli/auto',
+					identifier: 'dardcorcli/auto',
 				},
 			],
 			sendChatRequest: async () => { throw new Error(); },
 			provideTokenCount: async () => { throw new Error(); },
 		}));
-		await languageModels.selectLanguageModels({ vendor: 'copilotcli' });
+		await languageModels.selectLanguageModels({ vendor: 'dardcorcli' });
 
-		languageModels.setModelHidden('copilotcli/auto', true);
+		languageModels.setModelHidden('dardcorcli/auto', true);
 
 		assert.deepStrictEqual({
 			hiddenModels: languageModels.getHiddenModelIds(),
-			autoHidden: languageModels.isModelHidden('copilotcli/auto'),
+			autoHidden: languageModels.isModelHidden('dardcorcli/auto'),
 		}, {
-			hiddenModels: ['copilotcli/auto'],
+			hiddenModels: ['dardcorcli/auto'],
 			autoHidden: true,
 		});
 	});
 
 	test('model visibility — an Auto model hidden by an older version is visible again', function () {
-		// Recovery for users already stuck: no UI can clear the entry, so it is ignored
-		// on read. Asserted before models resolve, which is when the picker first asks.
-		// Only one service at a time can own the language model provider extension point.
 		languageModels.dispose();
 
 		const storageService = store.add(new TestStorageService());
 		storageService.store(
 			'chatModelVisibility',
-			JSON.stringify({ hiddenModels: ['copilot/auto', 'copilot/gpt-5'] }),
+			JSON.stringify({ hiddenModels: ['dardcor/auto', 'dardcor/gpt-5'] }),
 			StorageScope.PROFILE,
 			StorageTarget.USER,
 		);
@@ -707,8 +681,8 @@ suite('LanguageModels', function () {
 		const service = store.add(createLanguageModelsService(storageService));
 
 		assert.deepStrictEqual({
-			autoHidden: service.isModelHidden('copilot/auto'),
-			siblingHidden: service.isModelHidden('copilot/gpt-5'),
+			autoHidden: service.isModelHidden('dardcor/auto'),
+			siblingHidden: service.isModelHidden('dardcor/gpt-5'),
 		}, {
 			autoHidden: false,
 			siblingHidden: true,
@@ -723,11 +697,9 @@ suite('LanguageModels - When Clause', function () {
 			if (!rules) {
 				return true;
 			}
-			// Simple evaluation based on stored keys
 			const keys = rules.keys();
 			for (const key of keys) {
 				const contextKey = this.getContextKeyValue(key);
-				// If the key exists and is truthy, the rule matches
 				if (contextKey) {
 					return true;
 				}
@@ -830,7 +802,6 @@ suite('LanguageModels - Model Change Events', function () {
 			NullTelemetryService,
 		);
 
-		// Register the vendor first
 		languageModelsService.deltaLanguageModelChatProviderDescriptors([
 			{ vendor: 'test-vendor', displayName: 'Test Vendor', configuration: undefined, managementCommand: undefined, when: undefined }
 		], []);
@@ -844,7 +815,6 @@ suite('LanguageModels - Model Change Events', function () {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('fires onChange event when new models are added', async function () {
-		// Create a promise that resolves when the event fires
 		const eventPromise = new Promise<string>((resolve) => {
 			disposables.add(languageModelsService.onDidChangeLanguageModels((vendorId) => {
 				resolve(vendorId);
@@ -876,7 +846,6 @@ suite('LanguageModels - Model Change Events', function () {
 			provideTokenCount: async () => { throw new Error(); }
 		}));
 
-		// Trigger model resolution by firing provider change
 		onDidChangeEmitter.fire();
 
 		const firedVendorId = await eventPromise;
@@ -928,18 +897,14 @@ suite('LanguageModels - Model Change Events', function () {
 			provideTokenCount: async () => { throw new Error(); }
 		}));
 
-		// Initial resolution
 		await languageModelsService.selectLanguageModels({ vendor: 'test-vendor' });
 
-		// Listen for change event
 		let eventFired = false;
 		disposables.add(languageModelsService.onDidChangeLanguageModels(() => {
 			eventFired = true;
 		}));
-		// Trigger provider change with same models
 		onDidChangeEmitter.fire();
 
-		// Call selectLanguageModels again - provider will return different models
 		await languageModelsService.selectLanguageModels({ vendor: 'test-vendor' });
 		assert.strictEqual(eventFired, false, 'Should not fire event when models are unchanged');
 	});
@@ -972,21 +937,18 @@ suite('LanguageModels - Model Change Events', function () {
 			provideTokenCount: async () => { throw new Error(); }
 		}));
 
-		// Initial resolution
 		await languageModelsService.selectLanguageModels({ vendor: 'test-vendor' });
 
-		// Create a promise that resolves when the event fires
 		const eventPromise = new Promise<void>((resolve) => {
 			disposables.add(languageModelsService.onDidChangeLanguageModels(() => {
 				resolve();
 			}));
 		});
 
-		// Change model metadata (e.g., maxInputTokens)
 		currentModels = [{
 			metadata: {
 				...initialModels[0].metadata,
-				maxInputTokens: 200 // Changed from 100
+				maxInputTokens: 200
 			},
 			identifier: 'test-vendor/model1'
 		}];
@@ -1024,17 +986,14 @@ suite('LanguageModels - Model Change Events', function () {
 			provideTokenCount: async () => { throw new Error(); }
 		}));
 
-		// Initial resolution
 		await languageModelsService.selectLanguageModels({ vendor: 'test-vendor' });
 
-		// Create a promise that resolves when the event fires
 		const eventPromise = new Promise<void>((resolve) => {
 			disposables.add(languageModelsService.onDidChangeLanguageModels(() => {
 				resolve();
 			}));
 		});
 
-		// Remove all models
 		currentModels = [];
 
 		onDidChangeEmitter.fire();
@@ -1070,17 +1029,14 @@ suite('LanguageModels - Model Change Events', function () {
 			provideTokenCount: async () => { throw new Error(); }
 		}));
 
-		// Initial resolution
 		await languageModelsService.selectLanguageModels({ vendor: 'test-vendor' });
 
-		// Create a promise that resolves when the event fires
 		const eventPromise = new Promise<void>((resolve) => {
 			disposables.add(languageModelsService.onDidChangeLanguageModels(() => {
 				resolve();
 			}));
 		});
 
-		// Add a new model
 		currentModels = [
 			...currentModels,
 			{
@@ -1108,11 +1064,10 @@ suite('LanguageModels - Model Change Events', function () {
 	test('fires onChange event when models change without provider emitting change event', async function () {
 		let callCount = 0;
 		disposables.add(languageModelsService.registerLanguageModelProvider('test-vendor', {
-			onDidChange: Event.None, // Provider doesn't emit change events
+			onDidChange: Event.None,
 			provideLanguageModelChatInfo: async () => {
 				callCount++;
 				if (callCount === 1) {
-					// First call returns initial model
 					return [{
 						metadata: {
 							extension: nullExtensionDescription.identifier,
@@ -1128,7 +1083,6 @@ suite('LanguageModels - Model Change Events', function () {
 						identifier: 'test-vendor/model1'
 					}];
 				} else {
-					// Subsequent calls return different model
 					return [{
 						metadata: {
 							extension: nullExtensionDescription.identifier,
@@ -1149,16 +1103,13 @@ suite('LanguageModels - Model Change Events', function () {
 			provideTokenCount: async () => { throw new Error(); }
 		}));
 
-		// Initial resolution
 		await languageModelsService.selectLanguageModels({ vendor: 'test-vendor' });
 
-		// Listen for change event
 		let eventFired = false;
 		disposables.add(languageModelsService.onDidChangeLanguageModels(() => {
 			eventFired = true;
 		}));
 
-		// Call selectLanguageModels again - provider will return different models
 		await languageModelsService.selectLanguageModels({ vendor: 'test-vendor' });
 
 		assert.strictEqual(eventFired, true, 'Should fire event when models change even without provider change event');
@@ -1234,7 +1185,6 @@ suite('LanguageModels - Vendor Change Events', function () {
 	});
 
 	test('fires onDidChangeLanguageModelVendors when multiple vendors are added and removed', async function () {
-		// Add multiple vendors
 		const addEventPromise = new Promise<readonly string[]>((resolve) => {
 			disposables.add(languageModelsService.onDidChangeLanguageModelVendors(vendors => resolve(vendors)));
 		});
@@ -1248,7 +1198,6 @@ suite('LanguageModels - Vendor Change Events', function () {
 		assert.ok(addedVendors.includes('vendor-a'));
 		assert.ok(addedVendors.includes('vendor-b'));
 
-		// Remove one vendor
 		const removeEventPromise = new Promise<readonly string[]>((resolve) => {
 			disposables.add(languageModelsService.onDidChangeLanguageModelVendors(vendors => resolve(vendors)));
 		});
@@ -1262,18 +1211,15 @@ suite('LanguageModels - Vendor Change Events', function () {
 	});
 
 	test('does not fire onDidChangeLanguageModelVendors when no vendors are added or removed', async function () {
-		// Add initial vendor
 		languageModelsService.deltaLanguageModelChatProviderDescriptors([
 			{ vendor: 'stable-vendor', displayName: 'Stable Vendor', configuration: undefined, managementCommand: undefined, when: undefined }
 		], []);
 
-		// Listen for change event
 		let eventFired = false;
 		disposables.add(languageModelsService.onDidChangeLanguageModelVendors(() => {
 			eventFired = true;
 		}));
 
-		// Call with empty arrays - should not fire event
 		languageModelsService.deltaLanguageModelChatProviderDescriptors([], []);
 
 		assert.strictEqual(eventFired, false, 'Should not fire event when vendor list is unchanged');
@@ -1411,8 +1357,6 @@ suite('LanguageModels - Per-Model Configuration', function () {
 		);
 		await request.result;
 
-		// User config overrides defaults: temperature=0.7 (not 0.5), reasoningEffort='high' (not 'medium')
-		// Schema default maxTokens=4096 is included since user didn't override it
 		assert.deepStrictEqual(receivedOptions, { configuration: { temperature: 0.7, reasoningEffort: 'high', maxTokens: 4096 } });
 	});
 
@@ -1463,7 +1407,6 @@ suite('LanguageModels - Per-Model Configuration with multiple same-vendor groups
 	}
 
 	setup(async function () {
-		// Two groups sharing the same `vendor`, each defining a different model.
 		providerGroups = [
 			{ vendor: 'customendpoint', name: 'DeepSeek' },
 			{ vendor: 'customendpoint', name: 'MyCustom' }
@@ -1509,9 +1452,6 @@ suite('LanguageModels - Per-Model Configuration with multiple same-vendor groups
 			{
 				vendor: 'customendpoint',
 				displayName: 'Custom Endpoint',
-				// Cast needed: TypeFromJsonSchema resolves the configuration field to
-				// `undefined`, but a configurable vendor is required so models are
-				// resolved per group.
 				configuration: { type: 'object', properties: {} } as unknown as undefined,
 				managementCommand: undefined,
 				when: undefined
@@ -1653,9 +1593,6 @@ suite('LanguageModels - Provider Group Management', function () {
 			{
 				vendor: 'custom-vendor',
 				displayName: 'Custom Vendor',
-				// Cast needed: TypeFromJsonSchema resolves the `anyOf`+`$ref` configuration
-				// field to `undefined`, but this provider-management test needs the
-				// runtime schema so the vendor is treated as configurable.
 				configuration: {
 					type: 'object',
 					required: ['apiKey'],
@@ -1808,10 +1745,6 @@ suite('LanguageModels - Provider Group Detail Fallback', function () {
 		));
 
 		languageModelsService.deltaLanguageModelChatProviderDescriptors([
-			// Cast needed: TypeFromJsonSchema resolves the `anyOf`+`$ref` configuration
-			// field to `undefined`, but the runtime value must be truthy so the
-			// service treats this vendor as a configurable (BYOK) provider and
-			// resolves models for every group rather than stopping after the first.
 			{ vendor: 'multi-vendor', displayName: 'Multi Vendor', configuration: {} as unknown as undefined, managementCommand: undefined, when: undefined }
 		], []);
 
@@ -1821,10 +1754,6 @@ suite('LanguageModels - Provider Group Detail Fallback', function () {
 				if (!options.group) {
 					return [];
 				}
-				// Provider returns the same model id for each group, but the
-				// identifier is namespaced by group so they don't collide.
-				// The provider does not set `detail`; the service should fall
-				// back to the per-instance group name.
 				return [{
 					metadata: {
 						extension: nullExtensionDescription.identifier,
@@ -1947,7 +1876,6 @@ suite('LanguageModels - Provider Group Detail Fallback', function () {
 		));
 
 		languageModelsService.deltaLanguageModelChatProviderDescriptors([
-			// Cast needed: see equivalent comment in the multi-vendor test above.
 			{ vendor: 'detail-vendor', displayName: 'Detail Vendor', configuration: {} as unknown as undefined, managementCommand: undefined, when: undefined }
 		], []);
 
@@ -1957,9 +1885,6 @@ suite('LanguageModels - Provider Group Detail Fallback', function () {
 				if (!options.group) {
 					return [];
 				}
-				// Provider supplies its own detail. The service should leave
-				// it untouched and only fall back to the group name when the
-				// provider does not set one.
 				return [{
 					metadata: {
 						extension: nullExtensionDescription.identifier,
@@ -2120,9 +2045,7 @@ suite('createModelConfigurationActions', function () {
 				enumDescriptions: ['Fast', 'Balanced', 'Thorough'],
 				default: 'medium',
 			},
-			// Included: single-item enums are shown as non-switchable indicators.
 			singleChoice: { enum: ['only'], default: 'only' },
-			// Skipped: not an enum.
 			contextSize: { type: 'number', default: 1000 },
 		}
 	};
@@ -2147,7 +2070,6 @@ suite('createModelConfigurationActions', function () {
 	});
 
 	test('uses enum item labels, marks the default, and checks the current value', () => {
-		// Current value differs from the default, so 'high' is checked.
 		const submenu = createModelConfigurationActions(schema, { thinkingEffort: 'high' }, () => { })[0] as SubmenuAction;
 		const [low, medium, high] = submenu.actions;
 
@@ -2168,7 +2090,7 @@ suite('createModelConfigurationActions', function () {
 		const submenu = createModelConfigurationActions(schema, {}, () => { })[0] as SubmenuAction;
 		assert.deepStrictEqual(
 			submenu.actions.map(a => a.checked),
-			[false, true, false], // 'medium' (default) is checked
+			[false, true, false],
 		);
 	});
 
@@ -2262,14 +2184,14 @@ suite('LanguageModels - provider usage telemetry', function () {
 	}
 
 	test('getByokProviderTelemetryName classifies vendors', function () {
-		const copilotExtension = new ExtensionIdentifier('github.copilot-chat');
+		const dardcorExtension = new ExtensionIdentifier('github.dardcor-chat');
 		const thirdPartyExtension = new ExtensionIdentifier('publisher.third-party');
 		assert.deepStrictEqual(
 			[
-				getByokProviderTelemetryName(undefined, copilotExtension),
-				getByokProviderTelemetryName(COPILOT_VENDOR_ID, copilotExtension),
-				getByokProviderTelemetryName('openai', copilotExtension),
-				getByokProviderTelemetryName('ollama', copilotExtension),
+				getByokProviderTelemetryName(undefined, dardcorExtension),
+				getByokProviderTelemetryName(DARD_COR_VENDOR_ID, dardcorExtension),
+				getByokProviderTelemetryName('openai', dardcorExtension),
+				getByokProviderTelemetryName('ollama', dardcorExtension),
 				getByokProviderTelemetryName('openai', thirdPartyExtension),
 				getByokProviderTelemetryName('some-third-party-vendor', thirdPartyExtension),
 			],
@@ -2278,7 +2200,7 @@ suite('LanguageModels - provider usage telemetry', function () {
 	});
 
 	test('sendChatRequest reports an in-built BYOK provider by name', async function () {
-		const events = await sendRequestForVendor('openai', new ExtensionIdentifier('github.copilot-chat'), true);
+		const events = await sendRequestForVendor('openai', new ExtensionIdentifier('github.dardcor-chat'), true);
 		assert.deepStrictEqual(events.map(e => e.data), [{ provider: 'openai', isBYOK: true }]);
 	});
 
@@ -2292,8 +2214,8 @@ suite('LanguageModels - provider usage telemetry', function () {
 		assert.deepStrictEqual(events.map(e => e.data), [{ provider: THIRD_PARTY_PROVIDER_TELEMETRY_NAME, isBYOK: false }]);
 	});
 
-	test('sendChatRequest does not report first-party Copilot models', async function () {
-		const events = await sendRequestForVendor(COPILOT_VENDOR_ID, new ExtensionIdentifier('github.copilot-chat'));
+	test('sendChatRequest does not report first-party Dardcor models', async function () {
+		const events = await sendRequestForVendor(DARD_COR_VENDOR_ID, new ExtensionIdentifier('github.dardcor-chat'));
 		assert.strictEqual(events.length, 0);
 	});
 });

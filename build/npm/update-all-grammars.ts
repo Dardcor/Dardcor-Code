@@ -30,7 +30,6 @@ async function main() {
 		await spawn(`npm`, ['run', 'update-grammar'], { cwd: `extensions/${extension}` });
 	}
 
-	// run integration tests
 
 	if (process.platform === 'win32') {
 		_spawn('.\\scripts\\test-integration.bat', [], { shell: true, env: process.env, stdio: 'inherit' });

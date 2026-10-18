@@ -52,10 +52,6 @@ export class GitHubBranchProtectionProviderManager {
 
 	private readonly disposables = new DisposableStore();
 
-	/**
-	 * Branch protection providers, keyed by repository root. Entries are disposed
-	 * when the repository is closed so that closed repositories are not retained.
-	 */
 	private readonly providers = new Map<string, Disposable>();
 
 	private _enabled = false;
@@ -190,7 +186,6 @@ export class GitHubBranchProtectionProvider implements BranchProtectionProvider 
 			const { repository } = await graphql<{ repository: GitHubRepository }>(REPOSITORY_RULESETS_QUERY, { owner, repo, cursor });
 
 			rulesets.push(...(repository.rulesets?.nodes ?? [])
-				// Active branch ruleset that contains the pull request required rule
 				.filter(node => node && node.target === 'BRANCH' && node.enforcement === 'ACTIVE' && (node.rules?.totalCount ?? 0) > 0) as RepositoryRuleset[]);
 
 			if (repository.rulesets?.pageInfo.hasNextPage) {
@@ -214,17 +209,14 @@ export class GitHubBranchProtectionProvider implements BranchProtectionProvider 
 					continue;
 				}
 
-				// Repository details
 				this.logger.trace(`[GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Fetching repository details for "${repository.owner}/${repository.repo}".`);
 				const repositoryDetails = await this.getRepositoryDetails(repository.owner, repository.repo);
 
-				// Check repository write permission
 				if (repositoryDetails.viewerPermission !== 'ADMIN' && repositoryDetails.viewerPermission !== 'MAINTAIN' && repositoryDetails.viewerPermission !== 'WRITE') {
 					this.logger.trace(`[GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Skipping branch protection for "${repository.owner}/${repository.repo}" due to missing repository write permission.`);
 					continue;
 				}
 
-				// Get repository rulesets
 				const branchProtectionRules: BranchProtectionRule[] = [];
 				const repositoryRulesets = await this.getRepositoryRulesets(repository.owner, repository.repo);
 
@@ -245,20 +237,11 @@ export class GitHubBranchProtectionProvider implements BranchProtectionProvider 
 			await this.globalState.update(this.globalStateKey, branchProtection);
 			this.logger.trace(`[GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Branch protection for "${this.repository.rootUri.toString()}": ${JSON.stringify(branchProtection)}.`);
 
-			/* __GDPR__
-				"branchProtection" : {
-					"owner": "lszomoru",
-					"rulesetCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of repository rulesets" }
-				}
-			*/
 			this.telemetryReporter.sendTelemetryEvent('branchProtection', undefined, { rulesetCount: this.branchProtection.length });
 		} catch (err) {
 			this.logger.warn(`[GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Failed to update repository branch protection: ${err.message}`);
 
 			if (err instanceof AuthenticationError) {
-				// A GitHub authentication session could be missing if the user has not yet
-				// signed in with their GitHub account or they have signed out. If there is
-				// branch protection information we have to clear it.
 				if (this.branchProtection.length !== 0) {
 					this.branchProtection = branchProtection;
 					this._onDidChangeBranchProtection.fire(this.repository.rootUri);

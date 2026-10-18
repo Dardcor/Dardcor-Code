@@ -24,9 +24,7 @@ describe.skip('Virtual Tools - Grouper', () => {
 	let root: VirtualTool;
 
 	class TestVirtualToolGrouper extends VirtualToolGrouper {
-		// Override the bulk description method to avoid hitting the endpoint
 		protected override async _generateBulkGroupDescriptions(embeddingGroups: LanguageModelToolInformation[][], token: CancellationToken): Promise<{ groups: ISummarizedToolCategory[]; missed: number }> {
-			// Simulate describing groups based on their tool names
 			const groups = embeddingGroups.map((group, index) => {
 				const prefix = group[0]?.name.split('_')[0] || 'unknown';
 				return {
@@ -50,12 +48,10 @@ describe.skip('Virtual Tools - Grouper', () => {
 	}
 
 	function makeExtensionSource(id: string): LanguageModelToolExtensionSource {
-		// TODO@connor4312
 		return new (LanguageModelToolExtensionSource as any)(id, id);
 	}
 
 	function makeMCPSource(label: string): LanguageModelToolMCPSource {
-		// TODO@connor4312
 		return new (LanguageModelToolMCPSource as any)(label, label);
 	}
 
@@ -87,7 +83,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 
 			const result = VirtualToolGrouper.deduplicateGroups(items) as Array<VirtualTool | LanguageModelToolInformation>;
 
-			// Expect both the LM tool and the prefixed VT to exist, and no unprefixed VT
 			const names = result.map(i => i.name);
 			expect(names).toContain(dupName);
 			expect(names).toContain(`activate_ext_${dupName.slice(VIRTUAL_TOOL_NAME_PREFIX.length)}`);
@@ -103,8 +98,8 @@ describe.skip('Virtual Tools - Grouper', () => {
 
 			const result = VirtualToolGrouper.deduplicateGroups(items) as Array<VirtualTool | LanguageModelToolInformation>;
 			const names = result.map(i => i.name);
-			expect(names).toContain(dupName); // LM tool remains under original name
-			expect(names).toContain(`activate_mcp_${dupName.slice(VIRTUAL_TOOL_NAME_PREFIX.length)}`); // VT is cloned with prefix
+			expect(names).toContain(dupName);
+			expect(names).toContain(`activate_mcp_${dupName.slice(VIRTUAL_TOOL_NAME_PREFIX.length)}`);
 		});
 
 		it('handles VT vs VT duplicate by prefixing the first and keeping the second', () => {
@@ -117,19 +112,17 @@ describe.skip('Virtual Tools - Grouper', () => {
 			const vtUnprefixed = result.find(i => i.name === dupName) as VirtualTool | undefined;
 
 			expect(vtPrefixed).toBeDefined();
-			// Second VT should remain at the original (unprefixed) name
 			expect(vtUnprefixed).toBeInstanceOf(VirtualTool);
 		});
 
 		it('drops duplicate when no possiblePrefix is available on VT', () => {
 			const dupName = `${VIRTUAL_TOOL_NAME_PREFIX}qux`;
 			const items = [
-				vt(dupName), // no possiblePrefix
+				vt(dupName),
 				makeTool(dupName),
 			];
 
 			const result = VirtualToolGrouper.deduplicateGroups(items) as Array<VirtualTool | LanguageModelToolInformation>;
-			// Only the first VT remains
 			expect(result).toHaveLength(1);
 			expect(result[0]).toBeInstanceOf(VirtualTool);
 			expect(result[0].name).toBe(dupName);
@@ -190,7 +183,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 				makeTool(`ext_tool_${i}`, extensionSource)
 			);
 
-			// Need enough tools to trigger grouping
 			const allTools = [
 				...extensionTools,
 				...Array.from({ length: START_GROUPING_AFTER_TOOL_COUNT }, (_, i) => makeTool(`extra_${i}`))
@@ -198,7 +190,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 
 			await grouper.addGroups('', root, allTools, CancellationToken.None);
 
-			// Should have created virtual tools for the extension
 			const vt = root.contents.filter((tool): tool is VirtualTool => tool instanceof VirtualTool);
 			expect(vt).toHaveLength(1);
 			expect(vt[0].name).toBe('activate_ext');
@@ -210,7 +201,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 				makeTool(`mcp_tool_${i}`, mcpSource)
 			);
 
-			// Need enough tools to trigger grouping
 			const allTools = [
 				...mcpTools,
 				...Array.from({ length: START_GROUPING_AFTER_TOOL_COUNT }, (_, i) => makeTool(`extra_${i}`))
@@ -218,7 +208,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 
 			await grouper.addGroups('', root, allTools, CancellationToken.None);
 
-			// Should have created virtual tools for the extension
 			const vt = root.contents.filter((tool): tool is VirtualTool => tool instanceof VirtualTool);
 			expect(vt).toHaveLength(1);
 			expect(vt[0].name).toBe('activate_mcp');
@@ -234,7 +223,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 				...Array.from({ length: GROUP_WITHIN_TOOLSET + 1 }, (_, i) => makeTool(`mcp_${i}`, mcpSource)),
 			];
 
-			// Need enough tools to trigger grouping
 			const allTools = [
 				...tools,
 				...Array.from({ length: START_GROUPING_AFTER_TOOL_COUNT }, (_, i) => makeTool(`extra_${i}`))
@@ -242,13 +230,12 @@ describe.skip('Virtual Tools - Grouper', () => {
 
 			await grouper.addGroups('', root, allTools, CancellationToken.None);
 
-			// Should have built-in tools and virtual tools for extension and MCP
 			const nonExtra = root.contents.filter(tool => !tool.name.includes('extra_'));
 			const builtInCount = nonExtra.filter(tool => !(tool instanceof VirtualTool)).length;
 			const virtualCount = nonExtra.filter(tool => tool instanceof VirtualTool).length;
 
-			expect(builtInCount).toBe(5); // Built-in tools added directly
-			expect(virtualCount).toBeGreaterThan(0); // Virtual tools for extension and MCP
+			expect(builtInCount).toBe(5);
+			expect(virtualCount).toBeGreaterThan(0);
 		});
 	});
 
@@ -259,7 +246,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 				makeTool(`small_${i}`, extensionSource)
 			);
 
-			// Need enough total tools to trigger grouping
 			const allTools = [
 				...smallToolset,
 				...Array.from({ length: START_GROUPING_AFTER_TOOL_COUNT }, (_, i) => makeTool(`builtin_${i}`))
@@ -267,7 +253,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 
 			await grouper.addGroups('', root, allTools, CancellationToken.None);
 
-			// Small toolset should be added directly without grouping
 			const addedDirectly = root.contents.filter(tool =>
 				!(tool instanceof VirtualTool) && tool.name.startsWith('small_')
 			);
@@ -277,10 +262,9 @@ describe.skip('Virtual Tools - Grouper', () => {
 		it('should divide large toolsets into subgroups', async () => {
 			const extensionSource = makeExtensionSource('large.extension');
 			const largeToolset = Array.from({ length: GROUP_WITHIN_TOOLSET + 5 }, (_, i) =>
-				makeTool(`group${i % 3}_tool_${i}`, extensionSource) // Create 3 groups
+				makeTool(`group${i % 3}_tool_${i}`, extensionSource)
 			);
 
-			// Need enough tools to trigger grouping
 			const allTools = [
 				...largeToolset,
 				...Array.from({ length: START_GROUPING_AFTER_TOOL_COUNT }, (_, i) => makeTool(`extra_${i}`))
@@ -289,7 +273,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 
 			await grouper.addGroups('', root, allTools, CancellationToken.None);
 
-			// Should have created virtual tools for the extension
 			const vt = root.contents.filter((tool): tool is VirtualTool => tool instanceof VirtualTool);
 			expect(vt).toHaveLength(3);
 			expect(vt.map(vt => vt.name)).toMatchInlineSnapshot(`
@@ -308,20 +291,16 @@ describe.skip('Virtual Tools - Grouper', () => {
 				makeTool(`file_tool_${i}`)
 			);
 
-			// First grouping
 			await grouper.addGroups('', root, tools, CancellationToken.None);
 
-			// Expand a virtual tool
 			const virtualTool = root.contents.find(tool => tool instanceof VirtualTool) as VirtualTool;
 			if (virtualTool) {
 				virtualTool.isExpanded = true;
 				virtualTool.lastUsedOnTurn = 5;
 			}
 
-			// Second grouping with same tools
 			await grouper.addGroups('', root, tools, CancellationToken.None);
 
-			// State should be preserved
 			const newVirtualTool = root.contents.find(tool =>
 				tool instanceof VirtualTool && tool.name === virtualTool?.name
 			) as VirtualTool;
@@ -447,23 +426,20 @@ describe.skip('Virtual Tools - Grouper', () => {
 		});
 
 		it('should expand virtual tools containing predicted tools when embedding ranking is enabled', async () => {
-			// Create extension tools that will be grouped
 			const extensionSource = makeExtensionSource('test.extension');
 			const extensionTools = [
-				makeTool('predicted_tool1', extensionSource), // Higher priority (index 0)
-				makeTool('predicted_tool2', extensionSource), // Lower priority (index 1)
+				makeTool('predicted_tool1', extensionSource),
+				makeTool('predicted_tool2', extensionSource),
 				makeTool('other_tool1', extensionSource),
 				makeTool('other_tool2', extensionSource),
 			];
 
-			// Add enough builtin tools to trigger grouping
 			const builtinTools = Array.from({ length: START_GROUPING_AFTER_TOOL_COUNT }, (_, i) =>
 				makeTool(`builtin_${i}`)
 			);
 
 			const allTools = [...extensionTools, ...builtinTools];
 
-			// Mock the embedding computation and tool retrieval
 			const embeddingsComputer = accessor.get(IEmbeddingsComputer);
 			vi.spyOn(embeddingsComputer, 'computeEmbeddings').mockResolvedValue({
 				type: EmbeddingType.text3small_512,
@@ -473,20 +449,16 @@ describe.skip('Virtual Tools - Grouper', () => {
 				}]
 			});
 
-			// Mock the tool embeddings computer to return specific predicted tools
 			vi.spyOn(grouper['_toolEmbeddingsComputer'], 'retrieveSimilarEmbeddingsForAvailableTools')
 				.mockResolvedValue(['predicted_tool1', 'predicted_tool2']);
 
 			const query = 'test query for embeddings';
 
-			// Call addGroups which should trigger embedding-based expansion
 			await grouper.addGroups(query, root, allTools, CancellationToken.None);
 
-			// Find the virtual tool that was created for the extension
 			const virtualTools = root.contents.filter((tool): tool is VirtualTool => tool instanceof VirtualTool);
 			expect(virtualTools.length).toBeGreaterThan(0);
 
-			// The virtual tool containing predicted tools should be expanded
 			const extVirtualTool = virtualTools.find(vt =>
 				vt.contents.some(tool => tool.name === 'predicted_tool1' || tool.name === 'predicted_tool2')
 			);
@@ -514,7 +486,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 			const originalContents = [...root.contents];
 			await grouper.recomputeEmbeddingRankings('query', root, CancellationToken.None);
 
-			// Should not have changed anything
 			expect(root.contents).toEqual(originalContents);
 		});
 
@@ -522,7 +493,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 			const tools = [makeTool('predicted1'), makeTool('regular1'), makeTool('predicted2'), makeTool('regular2')];
 			root.contents = [...tools];
 
-			// Mock the embeddings computer and tool retrieval
 			const embeddingsComputer = accessor.get(IEmbeddingsComputer);
 			vi.spyOn(embeddingsComputer, 'computeEmbeddings').mockResolvedValue({
 				type: EmbeddingType.text3small_512,
@@ -537,7 +507,6 @@ describe.skip('Virtual Tools - Grouper', () => {
 
 			await grouper.recomputeEmbeddingRankings('test query', root, CancellationToken.None);
 
-			// Should have added embeddings group at the beginning
 			expect(root.contents[0]).toBeInstanceOf(VirtualTool);
 			const embeddingsGroup = root.contents[0] as VirtualTool;
 			expect(embeddingsGroup.name).toBe('activate_embeddings');
@@ -546,11 +515,9 @@ describe.skip('Virtual Tools - Grouper', () => {
 			expect(embeddingsGroup.metadata.canBeCollapsed).toBe(false);
 			expect(embeddingsGroup.metadata.wasExpandedByDefault).toBe(true);
 
-			// Should contain the predicted tools
 			expect(embeddingsGroup.contents).toHaveLength(2);
 			expect(embeddingsGroup.contents.map(t => t.name)).toEqual(['predicted1', 'predicted2']);
 
-			// Original tools should still be in root
 			const remainingTools = root.contents.slice(1);
 			expect(remainingTools).toEqual(tools);
 		});
@@ -568,25 +535,21 @@ describe.skip('Virtual Tools - Grouper', () => {
 				}]
 			});
 
-			// First call - predict tool1
 			vi.spyOn(grouper['_toolEmbeddingsComputer'], 'retrieveSimilarEmbeddingsForAvailableTools')
 				.mockResolvedValueOnce(['tool1']);
 
 			await grouper.recomputeEmbeddingRankings('query1', root, CancellationToken.None);
 
-			// Should have embeddings group with tool1
 			expect(root.contents[0]).toBeInstanceOf(VirtualTool);
 			let embeddingsGroup = root.contents[0] as VirtualTool;
 			expect(embeddingsGroup.contents).toHaveLength(1);
 			expect(embeddingsGroup.contents[0].name).toBe('tool1');
 
-			// Second call - predict tool2 and tool3
 			vi.spyOn(grouper['_toolEmbeddingsComputer'], 'retrieveSimilarEmbeddingsForAvailableTools')
 				.mockResolvedValueOnce(['tool2', 'tool3']);
 
 			await grouper.recomputeEmbeddingRankings('query2', root, CancellationToken.None);
 
-			// Should have replaced the embeddings group
 			expect(root.contents[0]).toBeInstanceOf(VirtualTool);
 			embeddingsGroup = root.contents[0] as VirtualTool;
 			expect(embeddingsGroup.contents).toHaveLength(2);
@@ -606,19 +569,16 @@ describe.skip('Virtual Tools - Grouper', () => {
 				}]
 			});
 
-			// Return no predicted tools
 			vi.spyOn(grouper['_toolEmbeddingsComputer'], 'retrieveSimilarEmbeddingsForAvailableTools')
 				.mockResolvedValue([]);
 
 			await grouper.recomputeEmbeddingRankings('query', root, CancellationToken.None);
 
-			// Should have added empty embeddings group at the beginning
 			expect(root.contents[0]).toBeInstanceOf(VirtualTool);
 			const embeddingsGroup = root.contents[0] as VirtualTool;
 			expect(embeddingsGroup.name).toBe('activate_embeddings');
 			expect(embeddingsGroup.contents).toHaveLength(0);
 
-			// Original tools should still be in root after the embeddings group
 			const remainingTools = root.contents.slice(1);
 			expect(remainingTools).toEqual(tools);
 		});
@@ -636,19 +596,16 @@ describe.skip('Virtual Tools - Grouper', () => {
 				}]
 			});
 
-			// Return predicted tools that don't exist in root
 			vi.spyOn(grouper['_toolEmbeddingsComputer'], 'retrieveSimilarEmbeddingsForAvailableTools')
 				.mockResolvedValue(['nonexistent1', 'nonexistent2']);
 
 			await grouper.recomputeEmbeddingRankings('query', root, CancellationToken.None);
 
-			// Should have added empty embeddings group since predicted tools don't exist in root
 			expect(root.contents[0]).toBeInstanceOf(VirtualTool);
 			const embeddingsGroup = root.contents[0] as VirtualTool;
 			expect(embeddingsGroup.name).toBe('activate_embeddings');
 			expect(embeddingsGroup.contents).toHaveLength(0);
 
-			// Original tools should still be in root after the embeddings group
 			const remainingTools = root.contents.slice(1);
 			expect(remainingTools).toEqual(tools);
 		});
@@ -657,13 +614,11 @@ describe.skip('Virtual Tools - Grouper', () => {
 			const tools = [makeTool('tool1'), makeTool('tool2')];
 			root.contents = [...tools];
 
-			// Mock embeddings computation to throw an error
 			const embeddingsComputer = accessor.get(IEmbeddingsComputer);
 			vi.spyOn(embeddingsComputer, 'computeEmbeddings').mockRejectedValue(new Error('Embeddings computation failed'));
 
 			const originalContents = [...root.contents];
 
-			// Should not throw and should not modify contents
 			await expect(grouper.recomputeEmbeddingRankings('query', root, CancellationToken.None)).resolves.toBeUndefined();
 			expect(root.contents).toEqual(originalContents);
 		});

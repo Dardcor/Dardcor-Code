@@ -58,7 +58,6 @@ export function createVoiceBar(): VoiceBarComponent {
 
 			if ((isSpeaking && props.speakingSession) || (!isSpeaking && !isListening)) {
 				container.style.display = 'none';
-				// Detach handler when hidden to avoid stale listeners
 				if (currentStopHandler) {
 					stopBtn.removeEventListener('click', currentStopHandler);
 					currentStopHandler = undefined;

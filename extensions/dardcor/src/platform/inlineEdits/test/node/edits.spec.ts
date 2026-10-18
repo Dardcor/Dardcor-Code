@@ -127,7 +127,6 @@ suite('LineEdit', () => {
 		function testWithSeed(seed: number) {
 			const rand = Random.create(seed);
 			const lineCount = rand.nextIntRange(1, 4);
-			// Use unique letters to such that .shrink can be tested
 			const str = rand.nextMultiLineString(lineCount, new OffsetRange(0, 5), sequenceGenerator([...Random.alphabetUppercase]));
 
 			let randomOffsetEdit = rand.nextSingleOffsetEdit(str, Random.alphabetSmallLowercase + '\n');
@@ -262,11 +261,10 @@ suite('Edit#decompose', () => {
 
 export function shuffle<T>(array: T[], _seed?: number): Permutation {
 	let rand: () => number;
-	const indexMap = array.map((_, i) => i); // Create an index map that will be shuffled
+	const indexMap = array.map((_, i) => i);
 
 	if (typeof _seed === 'number') {
 		let seed = _seed;
-		// Seeded random number generator in JS
 		rand = () => {
 			const x = Math.sin(seed++) * 179426549;
 			return x - Math.floor(x);
@@ -278,10 +276,8 @@ export function shuffle<T>(array: T[], _seed?: number): Permutation {
 	for (let i = indexMap.length - 1; i > 0; i -= 1) {
 		const j = Math.floor(rand() * (i + 1));
 
-		// Swap elements in the index map
 		[indexMap[i], indexMap[j]] = [indexMap[j], indexMap[i]];
 	}
 
-	// Return a new Permutation instance based on the shuffled index map
 	return new Permutation(indexMap);
 }

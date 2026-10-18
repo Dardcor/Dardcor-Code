@@ -2,20 +2,6 @@ import { NextResponse } from "next/server";
 import { createProviderConnection } from "@/models";
 import { extractCodexAccountInfo } from "@/lib/oauth/providers";
 
-/**
- * POST /api/oauth/codex/bulk-import
- * Bulk import multiple codex (OAuth) account JSON objects in one call.
- *
- * Body accepts any of:
- *   - Array:    [{...}, {...}]
- *   - Single:   {...}
- *   - Wrapped:  { accounts: [{...}, ...] }
- *
- * Each item must contain at least `accessToken`. Missing email / chatgpt
- * account info is best-effort backfilled from the JWT (idToken or accessToken).
- *
- * Tokens are NEVER echoed back in the response.
- */
 export async function POST(request) {
   let body;
   try {
@@ -27,7 +13,6 @@ export async function POST(request) {
     );
   }
 
-  // Normalize to array
   let accounts;
   if (Array.isArray(body)) {
     accounts = body;
@@ -50,8 +35,6 @@ export async function POST(request) {
   let success = 0;
   let failed = 0;
 
-  // SERIAL loop — createProviderConnection reads max(priority) and reorders
-  // inside a transaction. Parallel calls would race on priority assignment.
   for (let i = 0; i < accounts.length; i++) {
     const raw = accounts[i];
     try {
@@ -59,7 +42,6 @@ export async function POST(request) {
         throw new Error("Item is not an object");
       }
 
-      // Strip server-controlled fields
       const {
         id: _id,
         provider: _provider,
@@ -73,7 +55,6 @@ export async function POST(request) {
         throw new Error("Missing accessToken");
       }
 
-      // Backfill missing identity fields from JWT claims
       const psd = item.providerSpecificData || {};
       const needsEmail = !item.email;
       const needsAccountId = !psd.chatgptAccountId;
@@ -93,12 +74,10 @@ export async function POST(request) {
         item.providerSpecificData = psd;
       }
 
-      // Compute expiresAt from expiresIn if absent
       if (!item.expiresAt && typeof item.expiresIn === "number" && item.expiresIn > 0) {
         item.expiresAt = new Date(Date.now() + item.expiresIn * 1000).toISOString();
       }
 
-      // Defaults aligned with OAuth-completed flow
       if (item.testStatus === undefined) item.testStatus = "active";
       if (item.isActive === undefined) item.isActive = true;
       if (!item.lastRefreshAt) item.lastRefreshAt = new Date().toISOString();

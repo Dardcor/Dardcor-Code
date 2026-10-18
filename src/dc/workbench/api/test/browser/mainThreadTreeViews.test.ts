@@ -100,7 +100,6 @@ suite('MainThreadHostTreeView', function () {
 	test('handleDrag reconstructs URI list from uriListData', async () => {
 		const testTreeViewIdWithDrag = 'testTreeViewWithDrag';
 
-		// Create a mock that returns URI list data
 		const mockExtHostWithDrag = new class extends mock<ExtHostTreeViewsShape>() {
 			override async $getChildren(treeViewId: string, treeItemHandle?: string[]): Promise<(number | ITreeItem)[][]> {
 				return [[0, { handle: 'item1', collapsibleState: TreeItemCollapsibleState.None }]];
@@ -113,16 +112,12 @@ suite('MainThreadHostTreeView', function () {
 			override $setVisible(): void { }
 
 			override async $handleDrag(_sourceViewId: string, _sourceTreeItemHandles: string[], _operationUuid: string, _token: CancellationToken): Promise<DataTransferDTO | undefined> {
-				// Return a DataTransferDTO with text/uri-list containing uriListData
-				// This simulates what the extension host sends after URI transformation
 				return {
 					items: [
 						[Mimes.uriList, {
 							id: 'test-id',
-							// This is the original (untransformed) string - should NOT be used
 							asString: 'file:///original/untransformed/path.txt',
 							fileData: undefined,
-							// This is the transformed URI data - should be used
 							uriListData: [
 								{ scheme: 'file', authority: '', path: '/transformed/correct/path.txt', query: '', fragment: '' }
 							]
@@ -132,7 +127,6 @@ suite('MainThreadHostTreeView', function () {
 			}
 		}();
 
-		// Register a view with drag support
 		const viewDescriptorWithDrag: ITreeViewDescriptor = {
 			id: testTreeViewIdWithDrag,
 			ctorDescriptor: null!,
@@ -165,21 +159,17 @@ suite('MainThreadHostTreeView', function () {
 		});
 		await dragTestExtensionService.whenInstalledExtensionsRegistered();
 
-		// Get the tree view and its drag controller
 		const dragTestTreeView: ITreeView = (<ITreeViewDescriptor>ViewsRegistry.getView(testTreeViewIdWithDrag)).treeView;
 		const dragController = dragTestTreeView.dragAndDropController;
 		assert(dragController, 'Drag controller should exist');
 
-		// Call handleDrag
 		const result = await dragController.handleDrag(['item1'], 'test-operation-uuid', CancellationToken.None);
 		assert(result, 'Result should not be undefined');
 
-		// Verify that the URI list was reconstructed from uriListData, not asString
 		const uriListItem = result.get(Mimes.uriList);
 		assert(uriListItem, 'URI list item should exist');
 
 		const uriListValue = await uriListItem.asString();
-		// The value should be the transformed URI, not the original untransformed one
 		assert.strictEqual(uriListValue, URI.from({ scheme: 'file', authority: '', path: '/transformed/correct/path.txt', query: '', fragment: '' }).toString());
 	});
 

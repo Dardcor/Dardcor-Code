@@ -33,12 +33,6 @@ export class ExtHostConsoleForwarder extends AbstractExtHostConsoleForwarder {
 		this._isMakingConsoleCall = false;
 	}
 
-	/**
-	 * Wraps process.stderr/stdout.write() so that it is transmitted to the
-	 * renderer or CLI. It both calls through to the original method as well
-	 * as to console.log with complete lines so that they're made available
-	 * to the debugger/CLI.
-	 */
 	private _wrapStream(streamName: 'stdout' | 'stderr', severity: 'log' | 'warn' | 'error') {
 		const stream = process[streamName];
 		const original = stream.write;

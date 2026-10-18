@@ -373,7 +373,6 @@
 	width: inherit;
 }
 
-/* Profile Editor Tree Theming */
 
 .profiles-editor .contents-container .profile-body .profile-tree .monaco-list-row.focused {
 	background-color: var(--vscode-settings-focusedRowBackground) !important;

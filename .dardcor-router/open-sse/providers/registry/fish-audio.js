@@ -1,5 +1,3 @@
-// Fish Audio TTS — the model id travels in an HTTP `model` header rather than the
-// JSON body, and the voice is a reference_id (a cloned or preset voice model).
 export default {
   id: "fish-audio",
   alias: "fish",

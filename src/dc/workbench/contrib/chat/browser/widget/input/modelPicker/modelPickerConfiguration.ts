@@ -51,8 +51,6 @@ export class ModelPickerConfiguration {
 				? effortConfig.schema.enumItemLabels[enumIndex]
 				: String(effortConfig.value);
 			labelParts.push(effortLabel);
-			// The group is generic, so producers name it: Copilot's Auto model uses it
-			// for "Optimize for" while regular models use it for thinking effort.
 			ariaParts.push(effortConfig.schema.title
 				? localize('chat.modelPicker.navigationAriaLabel', "{0}: {1}", effortConfig.schema.title, effortLabel)
 				: localize('chat.modelPicker.effortAriaLabel', "Thinking Effort: {0}", effortLabel));
@@ -67,9 +65,6 @@ export class ModelPickerConfiguration {
 		}
 
 		if (!labelParts.length) {
-			// First-party producers always supply a default, but configuration schemas can also come
-			// from third-party extensions via the LM API. Fall back to a generic label rather than
-			// hiding the button, so the configuration stays reachable.
 			const fallbackLabel = effortConfig?.schema.title ?? tokensConfig?.schema.title ?? localize('chat.modelPicker.configureLabel', "Configure");
 			labelParts.push(fallbackLabel);
 			ariaParts.push(fallbackLabel);

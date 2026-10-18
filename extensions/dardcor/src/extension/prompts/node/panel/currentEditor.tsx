@@ -36,11 +36,6 @@ export class CurrentEditor extends PromptElement<CurrentEditorPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const editor = this._tabsAndEditorsService.activeTextEditor;
 		if (editor) {
-			// TODO@DonJayamanne, need to figure out places relying on this and how its used.
-			// E.g. if problems were using this, then we need to translate positions in problems as well, & the like.
-			// return editor.document.uri.scheme === Schemas.vscodeNotebookCell ?
-			// 	this.renderActiveNotebookCellEditor(editor) :
-			// 	this.renderActiveTextEditor(editor);
 			return this.renderActiveTextEditor(editor);
 		}
 
@@ -55,13 +50,12 @@ export class CurrentEditor extends PromptElement<CurrentEditorPromptProps> {
 		const ranges = editor.visibleRanges;
 		const document = editor.document;
 
-		const isIgnored = await this._ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}
 
 		if (document.getText().trim().length === 0) {
-			// The document is empty or contains only whitespace
 			return (<>
 				<UserMessage priority={this.props.priority}>
 					<references value={[new PromptReference(document.uri)]} />
@@ -99,13 +93,12 @@ export class CurrentEditor extends PromptElement<CurrentEditorPromptProps> {
 		}
 		const format = this._alternativeNotebookContentService.getFormat(this._promptEndpoint);
 		const document = NotebookDocumentSnapshot.create(notebook, format);
-		const isIgnored = await this._ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}
 
 		if (document.getText().trim().length === 0) {
-			// The document is empty or contains only whitespace
 			return (<>
 				<UserMessage priority={this.props.priority}>
 					<references value={[new PromptReference(document.uri)]} />
@@ -143,13 +136,12 @@ export class CurrentEditor extends PromptElement<CurrentEditorPromptProps> {
 		const notebookRanges = editor.visibleRanges;
 		const format = this._alternativeNotebookContentService.getFormat(this._promptEndpoint);
 		const document = NotebookDocumentSnapshot.create(editor.notebook, format);
-		const isIgnored = await this._ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this._ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}
 
 		if (document.getText().trim().length === 0) {
-			// The document is empty or contains only whitespace
 			return (<>
 				<UserMessage priority={this.props.priority}>
 					<references value={[new PromptReference(document.uri)]} />

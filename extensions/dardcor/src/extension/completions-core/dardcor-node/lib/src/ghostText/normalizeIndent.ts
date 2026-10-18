@@ -27,23 +27,19 @@ export function normalizeIndentCharacter(
 			.join('\n');
 	}
 
-	//Get the "size" of indentation
 	let indentSize: number;
 	if (options.tabSize === undefined || typeof options.tabSize === 'string') {
-		//Undefined or string case never happens when getting the indent size. This case is just for making TS typechecker happy.
 		indentSize = 4;
 	} else {
 		indentSize = options.tabSize;
 	}
 
-	//If editor indentation is set to tabs
 	if (options.insertSpaces === false) {
 		const r = (txt: string) =>
 			replace(txt, ' ', n => '\t'.repeat(Math.floor(n / indentSize)) + ' '.repeat(n % indentSize));
 		completion.displayText = r(completion.displayText);
 		completion.completionText = r(completion.completionText);
 	}
-	//If editor indentation is set to spaces
 	else if (options.insertSpaces === true) {
 		const r = (txt: string) => replace(txt, '\t', n => ' '.repeat(n * indentSize));
 		completion.displayText = r(completion.displayText);

@@ -16,7 +16,7 @@ import { IOctoKitService } from '../../../platform/github/common/githubService';
 import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IChatEndpoint, IMakeChatRequestOptions } from '../../../platform/networking/common/networking';
-import { CopilotChatAttr, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, GitHubCopilotAttr, normalizeResponseModel, StdAttr, stringifyToolDefinitionsForOTel, truncateForOTel } from '../../../platform/otel/common/index';
+import { DardcorChatAttr, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, DardcorAttr, normalizeResponseModel, StdAttr, stringifyToolDefinitionsForOTel, truncateForOTel } from '../../../platform/otel/common/index';
 import { IOTelService, SpanKind, SpanStatusCode } from '../../../platform/otel/common/otelService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { ChatResponseStreamImpl } from '../../../util/common/chatResponseStreamImpl';
@@ -40,7 +40,7 @@ import { IIntent } from '../../prompt/node/intents';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { ICompletedToolCallRound, InlineChat2Prompt, LARGE_FILE_LINE_THRESHOLD } from './inlineChatPrompt';
 import { ToolName } from '../../tools/common/toolNames';
-import { CopilotToolMode } from '../../tools/common/toolsRegistry';
+import { AgentToolMode } from '../../tools/common/toolsRegistry';
 import { isToolValidationError, isValidatedToolInput, IToolsService } from '../../tools/common/toolsService';
 import { InlineChatProgressMessages } from './progressMessages';
 import { CopilotInteractiveEditorResponse, InteractionOutcome } from '../../inlineChat/node/promptCraftingTypes';
@@ -95,7 +95,7 @@ export class InlineChatIntent implements IIntent {
 		assertType(request.location2 instanceof ChatRequestEditorData);
 		assertType(documentContext);
 
-		if (await this._ignoreService.isCopilotIgnored(request.location2.document.uri, token)) {
+		if (await this._ignoreService.isIgnored(request.location2.document.uri, token)) {
 			return {
 				errorDetails: {
 					message: l10n.t('inlineChat.ignored', 'Dardcor AI is disabled for this file.'),
@@ -122,10 +122,8 @@ export class InlineChatIntent implements IIntent {
 			}
 		});
 
-		// Start generating contextual message immediately
 		const contextualMessagePromise = this._progressMessages.getContextualMessage(request.prompt, documentContext, token);
 
-		// Show progress message after ~1 second delay (unless request completes first)
 		timeout(1000, token).then(async () => {
 			const message = await contextualMessagePromise;
 			stream.progress(message);
@@ -152,7 +150,6 @@ export class InlineChatIntent implements IIntent {
 		}
 
 
-		// store metadata for telemetry sending
 		const turn = conversation.getLatestTurn();
 		turn.setMetadata(new CopilotInteractiveEditorResponse(
 			undefined,
@@ -220,11 +217,11 @@ class InlineChatToolCalling {
 					[GenAiAttr.AGENT_NAME]: 'Inline Chat',
 					[GenAiAttr.CONVERSATION_ID]: conversation.sessionId,
 					[GenAiAttr.REQUEST_MODEL]: endpoint.model,
-					[CopilotChatAttr.SESSION_ID]: conversation.sessionId,
-					[CopilotChatAttr.INTENT]: this._intent.id,
-					[CopilotChatAttr.LOCATION]: ChatLocation.toStringShorter(ChatLocation.Editor),
-					[CopilotChatAttr.USER_REQUEST]: truncateForOTel(request.prompt, this._otelService.config.maxAttributeSizeChars),
-					[GitHubCopilotAttr.AGENT_TYPE]: 'builtin',
+					[DardcorChatAttr.SESSION_ID]: conversation.sessionId,
+					[DardcorChatAttr.INTENT]: this._intent.id,
+					[DardcorChatAttr.LOCATION]: ChatLocation.toStringShorter(ChatLocation.Editor),
+					[DardcorChatAttr.USER_REQUEST]: truncateForOTel(request.prompt, this._otelService.config.maxAttributeSizeChars),
+					[DardcorAttr.AGENT_TYPE]: 'builtin',
 				},
 			},
 			async span => {
@@ -232,9 +229,6 @@ class InlineChatToolCalling {
 				try {
 					const result = await this._runInlineToolLoop(endpoint, conversation, request, stream, token, documentContext, chatTelemetry);
 
-					// Invoke the bail-out exit tool inside the active span so its
-					// `execute_tool` span is parented under `invoke_agent Inline Chat`
-					// instead of becoming a sibling root span.
 					if (!token.isCancellationRequested && result.needsExitTool) {
 						this._logService.warn('[InlineChat], BAIL_OUT because of needsExitTool');
 						await this._toolsService.invokeTool(INLINE_CHAT_EXIT_TOOL_NAME, {
@@ -247,7 +241,7 @@ class InlineChatToolCalling {
 					const toolDefinitionsJson = stringifyToolDefinitionsForOTel(result.availableTools);
 					const response = result.lastResponse;
 					span.setAttributes({
-						[CopilotChatAttr.TURN_COUNT]: result.toolCallRounds.length,
+						[DardcorChatAttr.TURN_COUNT]: result.toolCallRounds.length,
 						...(response.type === ChatFetchResponseType.Success ? {
 							...(result.lastResolvedModel ? { [GenAiAttr.RESPONSE_MODEL]: normalizeResponseModel(endpoint.model, result.lastResolvedModel) ?? result.lastResolvedModel } : {}),
 							[GenAiAttr.RESPONSE_ID]: response.modelCallId ?? response.requestId,
@@ -278,8 +272,6 @@ class InlineChatToolCalling {
 
 	private async _runInlineToolLoop(endpoint: IChatEndpoint, conversation: Conversation, request: vscode.ChatRequest, stream: vscode.ChatResponseStream, token: CancellationToken, documentContext: IDocumentContext, chatTelemetry: ChatTelemetryBuilder): Promise<IInlineChatEditResult> {
 
-		// Re-narrow `request.location2` for the type checker. `run()` has already asserted this,
-		// but the narrowing does not survive across the async boundary into this private method.
 		assertType(request.location2 instanceof ChatRequestEditorData);
 		const location2 = request.location2;
 
@@ -338,7 +330,6 @@ class InlineChatToolCalling {
 				lastResolvedModel = lastResponse.resolvedModel;
 			}
 
-			// telemetry
 			{
 				const responseText = lastResponse.type === ChatFetchResponseType.Success ? lastResponse.value : '';
 				telemetry.sendTelemetry(
@@ -355,11 +346,9 @@ class InlineChatToolCalling {
 			}
 
 			if (result.toolCalls.length === 0) {
-				// BAILOUT: when no tools have been used
 				break;
 			}
 
-			// Build a completed round from all tool calls in their original order
 			const roundCalls: [IToolCall, vscode.ExtendedLanguageModelToolResult][] = [];
 			for (const toolCall of result.toolCalls) {
 				const toolResult = result.allCallResults.get(toolCall.id);
@@ -369,12 +358,9 @@ class InlineChatToolCalling {
 			}
 			previousRounds.push({ calls: roundCalls });
 
-			// Check if this round was read-only (only read_file calls, no edit tool calls)
 			const hasEditToolCalls = result.toolCalls.some(tc => tc.name !== ToolName.ReadFile);
 
 			if (!hasEditToolCalls) {
-				// Read-only round: the model used read_file to gather more context.
-				// Continue the loop so it can make edits with the new info.
 				readOnlyRounds++;
 				if (readOnlyRounds > 9) {
 					this._logService.warn('Aborting inline chat edit: too many read-only rounds');
@@ -384,13 +370,11 @@ class InlineChatToolCalling {
 			}
 
 			if (result.failedEdits.length === 0 || token.isCancellationRequested) {
-				// DONE
 				break;
 			}
 
 			failedEditCount += result.failedEdits.length;
 			if (failedEditCount > 5) {
-				// TOO MANY FAILED ATTEMPTS
 				this._logService.error(`Aborting inline chat edit: too many failed edit attempts`);
 				break;
 			}
@@ -425,8 +409,6 @@ class InlineChatToolCalling {
 
 		const requestOptions: IMakeChatRequestOptions['requestOptions'] = {
 			tool_choice: 'auto',
-			// Inline chat only uses internal tools with known-good schemas,
-			// skip expensive normalizeToolSchema validation
 			tools: inlineChatTools.map(tool => ({
 				type: 'function' as const,
 				function: {
@@ -491,7 +473,7 @@ class InlineChatToolCalling {
 								? validationResult.inputObj
 								: JSON.parse(toolCall.arguments);
 
-							const dardcorTool = this._toolsService.getCopilotTool(toolCall.name as ToolName);
+							const dardcorTool = this._toolsService.getAgentTool(toolCall.name as ToolName);
 							if (dardcorTool?.resolveInput) {
 								input = await dardcorTool.resolveInput(input, {
 									request,
@@ -500,14 +482,12 @@ class InlineChatToolCalling {
 									chatVariables: new ChatVariablesCollection([...request.references]),
 									history: [],
 									allowedEditUris: request.location2 instanceof ChatRequestEditorData ? new ResourceSet([request.location2.document.uri]) : undefined,
-								}, CopilotToolMode.FullContext);
+								}, AgentToolMode.FullContext);
 							}
 
 							const result = await this._toolsService.invokeToolWithEndpoint(toolCall.name, {
 								input,
 								toolInvocationToken: request.toolInvocationToken,
-								// Split on `__vscode` so it's the chat stream id
-								// TODO @lramos15 - This is a gross hack
 								chatStreamToolCallId: toolCall.id.split('__vscode')[0],
 							}, endpoint, token) as vscode.ExtendedLanguageModelToolResult;
 
@@ -544,11 +524,9 @@ class InlineChatToolCalling {
 
 		const enabledTools = new Set(InlineChatToolCalling._EDIT_TOOLS);
 		if (!request.location2.selection.isEmpty) {
-			// only used the multi-replace when there is no selection
 			enabledTools.delete(ToolName.MultiReplaceString);
 		}
 
-		// ALWAYS enable editing tools (only) and ignore what the client did send
 		const fakeRequest: vscode.ChatRequest = {
 			...request,
 			tools: new Map(
@@ -567,14 +545,11 @@ class InlineChatToolCalling {
 			throw new Error('MISSING inline chat edit tools');
 		}
 
-		// EditFile is a poor performer, prefer other edit tools when available
 		if (editTools.length > 1) {
 			editTools = editTools.filter(tool => tool.name !== ToolName.EditFile);
 		}
-		// const result = [exitTool, ...editTools];
 		const result = [...editTools];
 
-		// For large files, also include the read tool so the model can read more of the file
 		if (isLargeFile) {
 			const readTool = this._toolsService.getTool(ToolName.ReadFile);
 			if (readTool) {

@@ -38,29 +38,6 @@ import type { Thread } from './protocol/generated/v2/Thread.js';
 import type { ThreadItem } from './protocol/generated/v2/ThreadItem.js';
 import type { Turn as CodexTurn } from './protocol/generated/v2/Turn.js';
 
-/**
- * Reconstruct protocol {@link Turn}s from codex's `thread/read` response.
- *
- * Codex stores each conversation as a stream of {@link CodexTurn}, each
- * with an array of {@link ThreadItem}s. We collapse that into the agent
- * host's turn shape: each user message opens a turn; subsequent assistant
- * items become response parts on that turn until `turn/completed` closes it.
- *
- * Produces:
- *  - `userMessage`      → opens a `Turn` with `userMessage: { text }`
- *  - `agentMessage`     → `MarkdownResponsePart` with the full text
- *  - `commandExecution` → completed terminal `ToolCallResponsePart`
- *  - `webSearch`        → completed web-search `ToolCallResponsePart`
- *  - `imageGeneration`  → completed image-generation `ToolCallResponsePart`
- *  - `fileChange`       → completed file-edit `ToolCallResponsePart`
- *  - thread coordination tools → completed session-link `ToolCallResponsePart`
- *  - `contextCompaction` → completed compaction `ToolCallResponsePart`
- *  - everything else    → currently dropped (reasoning/plan/mcp/collab)
- *
- * Mirrors the live mapper's translation kernel — including the sandbox
- * pre-flight coalescing (see {@link codexMapAppServerEvents}) — so restored
- * sessions render identically to active ones.
- */
 export function replayThreadToTurns(
 	thread: Thread,
 	modelsByTurnId?: ReadonlyMap<string, ModelSelection>,
@@ -80,7 +57,6 @@ export function replayThreadToTurns(
 	return turns;
 }
 
-/** A completed `commandExecution` item narrowed to its terminal fields. */
 type CommandExecutionItem = Extract<ThreadItem, { type: 'commandExecution' }>;
 
 function replayTurnToTurn(codexTurn: CodexTurn, model: ModelSelection | undefined, rolloutCoordination: readonly ICodexThreadCoordinationCall[] | undefined): Turn | undefined {
@@ -96,13 +72,7 @@ function replayTurnToTurn(codexTurn: CodexTurn, model: ModelSelection | undefine
 		}
 		parts.push(threadCoordinationToolCallPart(coordination));
 	}
-	// Separate consecutive agent messages so the chat model's separator-less
-	// markdown coalescing keeps a following heading on its own line.
 	let agentMessageCount = 0;
-	// A successful command that produced no output may be a sandbox pre-flight
-	// that codex immediately re-ran under an approval prompt (same command, new
-	// item). Defer emitting it so the re-run can coalesce into a single box —
-	// mirroring the live mapper's `pendingPreflight` state machine.
 	let pendingPreflight: { command: string; item: CommandExecutionItem } | undefined;
 	const flushPreflight = () => {
 		if (pendingPreflight) {
@@ -115,9 +85,6 @@ function replayTurnToTurn(codexTurn: CodexTurn, model: ModelSelection | undefine
 		if (item.type === 'commandExecution') {
 			const command = unwrapShellInvocation(item.command ?? '');
 			if (pendingPreflight && pendingPreflight.command === command) {
-				// Escalated re-run of the deferred pre-flight: render only this
-				// item (it carries the real output/approval), dropping the
-				// output-less pre-flight box.
 				pendingPreflight = undefined;
 				parts.push(shellToolCallPart(item, command));
 				continue;
@@ -133,8 +100,6 @@ function replayTurnToTurn(codexTurn: CodexTurn, model: ModelSelection | undefine
 			continue;
 		}
 
-		// Any other item supersedes a deferred pre-flight: finalize it first so
-		// a genuinely output-less command still renders as a single box.
 		flushPreflight();
 
 		if (item.type === 'userMessage') {
@@ -195,14 +160,10 @@ function replayTurnToTurn(codexTurn: CodexTurn, model: ModelSelection | undefine
 			}
 			parts.push(compactionToolCallPart());
 		}
-		// Other item types (plan/reasoning/mcpToolCall/collabAgentToolCall/…)
-		// are not yet reconstructed in replay.
 	}
 	flushPreflight();
 	const delegation = parseCodexDelegation(userText);
 
-	// If we got nothing recognizable, drop the turn — there's nothing for
-	// the UI to render.
 	if (!userText && parts.length === 0) {
 		return undefined;
 	}
@@ -252,7 +213,6 @@ function getServerToolPastTenseMessage(toolName: SessionServerToolName.CreateSes
 	return typeof pastTenseMessage === 'string' ? pastTenseMessage : pastTenseMessage?.markdown ?? toolName;
 }
 
-/** Restores turn timing from codex's persisted thread: Unix-second stamps widen to ISO 8601 `startedAt` plus a millisecond `duration`. */
 function codexTurnTiming(codexTurn: CodexTurn): { startedAt?: string; duration?: number } {
 	const startedAtSeconds = codexTurn.startedAt;
 	if (typeof startedAtSeconds !== 'number' || !Number.isFinite(startedAtSeconds)) {

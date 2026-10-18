@@ -3,13 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Default auto-approval rules for known PowerShell cmdlets.
- *
- * Keep this list explicit. PowerShell modules can define arbitrary cmdlets with
- * standard verbs, so verb-prefix rules such as `Select-*` or `Format-*` are not
- * safe enough for auto-approval.
- */
 export const powershellAutoApproveRules: Readonly<Record<string, boolean>> = {
 	'Get-ChildItem': true,
 	'Get-Content': true,

@@ -100,7 +100,7 @@ export class PreferencesEditor extends EditorPane {
 		this.searchWidget.layout(dimension);
 		this.searchWidget.inputBox.inputElement.style.paddingRight = `12px`;
 
-		this.preferencesEditorPane.value?.layout(new DOM.Dimension(this.bodyElement.clientWidth, dimension.height - 87 /* header height */));
+		this.preferencesEditorPane.value?.layout(new DOM.Dimension(this.bodyElement.clientWidth, dimension.height - 87 ));
 	}
 
 	override async setInput(input: EditorInput, options: IEditorOptions | undefined, context: IEditorOpenContext, token: CancellationToken): Promise<void> {

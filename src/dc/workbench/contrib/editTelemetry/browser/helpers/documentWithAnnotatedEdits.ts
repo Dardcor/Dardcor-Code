@@ -20,10 +20,6 @@ export interface IDocumentWithAnnotatedEdits<TEditData extends IEditData<TEditDa
 	waitForQueue(): Promise<void>;
 }
 
-/**
- * Creates a document that is a delayed copy of the original document,
- * but with edits annotated with the source of the edit.
-*/
 export class DocumentWithSourceAnnotatedEdits extends Disposable implements IDocumentWithAnnotatedEdits<EditSourceData> {
 	public readonly value: IObservableWithChange<StringText, { edit: AnnotatedStringEdit<EditSourceData> }>;
 
@@ -47,9 +43,6 @@ export class DocumentWithSourceAnnotatedEdits extends Disposable implements IDoc
 	}
 }
 
-/**
- * Only joins touching edits if the source and the metadata is the same (e.g. requestUuids must be equal).
-*/
 export class EditSourceData implements IEditData<EditSourceData> {
 	public readonly source;
 	public readonly key;
@@ -87,7 +80,6 @@ export class EditKeySourceData implements IEditData<EditKeySourceData> {
 		if (this.source !== data.source) {
 			return undefined;
 		}
-		// The representatives could be different! (But equal modulo key)
 		return this;
 	}
 }
@@ -194,7 +186,6 @@ class UserEditSource extends EditSourceBase {
 	public getColor(): string { return '#d3d3d333'; }
 }
 
-/** Caused by external tools that trigger a reload from disk */
 class ExternalEditSource extends EditSourceBase {
 	public readonly category = 'external';
 	constructor() { super(); }
@@ -331,9 +322,6 @@ export class MinimizeEditsProcessor<TEditData extends IEditData<TEditData>> exte
 	}
 }
 
-/**
- * Removing the metadata allows touching edits from the same source to merged, even if they were caused by different actions (e.g. two user edits).
- */
 export function createDocWithJustReason(docWithAnnotatedEdits: IDocumentWithAnnotatedEdits<EditSourceData>, store: DisposableStore): IDocumentWithAnnotatedEdits<EditKeySourceData> {
 	const docWithJustReason: IDocumentWithAnnotatedEdits<EditKeySourceData> = {
 		value: mapObservableDelta(docWithAnnotatedEdits.value, edit => ({ edit: edit.edit.mapData(d => d.data.toEditSourceData()) }), store),

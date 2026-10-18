@@ -408,7 +408,7 @@ namespace TaskDTO {
 		const definition = TaskDefinitionDTO.to(task.definition, executeOnly)!;
 		const id = (CustomExecutionDTO.is(task.execution!) && task._id) ? task._id : `${task.source.extensionId}.${definition._key}`;
 		const result: ContributedTask = new ContributedTask(
-			id, // uuidMap.getUUID(identifier)
+			id,
 			source,
 			label,
 			definition.type,
@@ -552,7 +552,7 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 				const dto = TaskDTO.from(task);
 
 				if (dto) {
-					dto.name = ((dto.name === undefined) ? '' : dto.name); // Using an empty name causes the name to default to the one given by the provider.
+					dto.name = ((dto.name === undefined) ? '' : dto.name);
 					return Promise.resolve(this._proxy.$resolveTask(handle, dto)).then(resolvedTask => {
 						if (resolvedTask) {
 							return TaskDTO.to(resolvedTask, this._workspaceContextServer, true, task.configurationProperties.icon, task.configurationProperties.hide);
@@ -631,8 +631,6 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 		}
 	}
 
-	// Passing in a TaskHandleDTO will cause the task to get re-resolved, which is important for tasks are coming from the core,
-	// such as those gotten from a fetchTasks, since they can have missing configuration properties.
 	public $executeTask(value: ITaskHandleDTO | ITaskDTO): Promise<ITaskExecutionDTO> {
 		return new Promise<ITaskExecutionDTO>((resolve, reject) => {
 			if (TaskHandleDTO.is(value)) {
@@ -647,13 +645,10 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 								task: TaskDTO.from(task)
 							};
 							this._taskService.run(task).then(summary => {
-								// Ensure that the task execution gets cleaned up if the exit code is undefined
-								// This can happen when the task has dependent tasks and one of them failed
 								if ((summary?.exitCode === undefined) || (summary.exitCode !== 0)) {
 									this._proxy.$OnDidEndTask(result);
 								}
 							}, reason => {
-								// eat the error, it has already been surfaced to the user and we don't care about it here
 							});
 							resolve(result);
 						}
@@ -666,7 +661,6 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 			} else {
 				const task = TaskDTO.to(value, this._workspaceContextServer, true)!;
 				this._taskService.run(task).then(undefined, reason => {
-					// eat the error, it has already been surfaced to the user and we don't care about it here
 				});
 				const result: ITaskExecutionDTO = {
 					id: task._id,

@@ -37,7 +37,6 @@ export const CodeSnippets = (props: CodeSnippetsProps, context: ComponentContext
 
 	const codeSnippetsWithRelativePath = addRelativePathToCodeSnippets(props.tdms, snippets);
 
-	// Snippets with the same URI should appear together as a single snippet.
 	const snippetsByUri = new Map<string, CodeSnippetWithRelativePath[]>();
 
 	for (const snippet of codeSnippetsWithRelativePath) {
@@ -60,7 +59,6 @@ export const CodeSnippets = (props: CodeSnippetsProps, context: ComponentContext
 		if (validSnippets.length > 0) {
 			codeSnippetChunks.push({
 				chunkElements: validSnippets.map(s => s.snippet),
-				// The importance is the maximum importance of the snippets in this group.
 				importance: Math.max(...validSnippets.map(snippet => snippet.snippet.importance ?? 0)),
 				uri,
 			});
@@ -71,10 +69,7 @@ export const CodeSnippets = (props: CodeSnippetsProps, context: ComponentContext
 		return;
 	}
 
-	// Sort by importance, with the most important first
 	codeSnippetChunks.sort((a, b) => b.importance - a.importance);
-	// Reverse the order so the most important snippet is last. Note, that we don't directly
-	// sort in ascending order to handle importance 0 correctly.
 	codeSnippetChunks.reverse();
 	return codeSnippetChunks.map(chunk => {
 		const elements = [];
@@ -96,7 +91,6 @@ export const CodeSnippets = (props: CodeSnippetsProps, context: ComponentContext
 			}
 		});
 
-		// TODO: change Chunk for KeepTogether
 		return <Chunk>{elements}</Chunk>;
 	});
 };

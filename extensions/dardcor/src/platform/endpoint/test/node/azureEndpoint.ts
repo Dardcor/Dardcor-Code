@@ -68,13 +68,12 @@ export class AzureTestEndpoint extends ChatEndpoint {
 			chatWebSocketService,
 			logService
 		);
-		this.isThinkingModel = false; // Set to true if testing a thinking model
+		this.isThinkingModel = false;
 	}
 
 	override get urlOrRequestMetadata(): string {
 		switch (this._azureModel) {
 			case CHAT_MODEL.EXPERIMENTAL:
-				// Set model params and thinking in constructor
 				return '<replace with your experimental endpoint URL>';
 			default:
 				throw new Error(`Unknown azure model passed ${this._azureModel} passed to test endpoint`);

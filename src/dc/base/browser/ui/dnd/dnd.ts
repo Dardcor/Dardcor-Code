@@ -26,6 +26,5 @@ export function applyDragImage(event: DragEvent, container: HTMLElement, label: 
 	dragContainer.appendChild(dragImage);
 	event.dataTransfer.setDragImage(dragImage, -10, -10);
 
-	// Removes the element when the DND operation is done
 	setTimeout(() => dragImage.remove(), 0);
 }

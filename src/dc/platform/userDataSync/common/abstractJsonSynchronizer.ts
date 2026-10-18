@@ -59,11 +59,9 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 	protected async generateSyncPreview(remoteUserData: IRemoteUserData, lastSyncUserData: IRemoteUserData | null, isRemoteDataFromCurrentMachine: boolean, userDataSyncConfiguration: IUserDataSyncConfiguration): Promise<IJsonResourcePreview[]> {
 		const remoteContent = remoteUserData.syncData ? this.getContentFromSyncContent(remoteUserData.syncData.content) : null;
 
-		// Use remote data as last sync data if last sync data does not exist and remote data is from same machine
 		lastSyncUserData = lastSyncUserData === null && isRemoteDataFromCurrentMachine ? remoteUserData : lastSyncUserData;
 		const lastSyncContent: string | null = lastSyncUserData?.syncData ? this.getContentFromSyncContent(lastSyncUserData.syncData.content) : null;
 
-		// Get file content last to get the latest
 		const fileContent = await this.getLocalFileContent();
 
 		let content: string | null = null;
@@ -73,9 +71,9 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 
 		if (remoteUserData.syncData) {
 			const localContent = fileContent ? fileContent.value.toString() : null;
-			if (!lastSyncContent // First time sync
-				|| lastSyncContent !== localContent // Local has forwarded
-				|| lastSyncContent !== remoteContent // Remote has forwarded
+			if (!lastSyncContent
+				|| lastSyncContent !== localContent
+				|| lastSyncContent !== remoteContent
 			) {
 				this.logService.trace(`${this.syncResourceLogLabel}: Merging remote ${this.syncResource.syncResource} with local ${this.syncResource.syncResource}...`);
 				const result = this.merge(localContent, remoteContent, lastSyncContent);
@@ -86,7 +84,6 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 			}
 		}
 
-		// First time syncing to remote
 		else if (fileContent) {
 			this.logService.trace(`${this.syncResourceLogLabel}: Remote ${this.syncResource.syncResource} does not exist. Synchronizing ${this.syncResource.syncResource} for the first time.`);
 			content = fileContent.value.toString();
@@ -138,7 +135,6 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 	}
 
 	protected async getAcceptResult(resourcePreview: IJsonResourcePreview, resource: URI, content: string | null | undefined, token: CancellationToken): Promise<IAcceptResult> {
-		/* Accept local resource */
 		if (this.extUri.isEqual(resource, this.localResource)) {
 			return {
 				content: resourcePreview.fileContent ? resourcePreview.fileContent.value.toString() : null,
@@ -147,7 +143,6 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 			};
 		}
 
-		/* Accept remote resource */
 		if (this.extUri.isEqual(resource, this.remoteResource)) {
 			return {
 				content: resourcePreview.remoteContent,
@@ -156,7 +151,6 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 			};
 		}
 
-		/* Accept preview resource */
 		if (this.extUri.isEqual(resource, this.previewResource)) {
 			if (content === undefined) {
 				return {
@@ -204,10 +198,9 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 			this.logService.info(`${this.syncResourceLogLabel}: Updated remote ${this.syncResource.syncResource}`);
 		}
 
-		// Delete the preview
 		try {
 			await this.fileService.del(this.previewResource);
-		} catch (e) { /* ignore */ }
+		} catch (e) { }
 
 		if (lastSyncUserData?.ref !== remoteUserData.ref) {
 			this.logService.trace(`${this.syncResourceLogLabel}: Updating last synchronized ${this.syncResource.syncResource}...`);
@@ -238,17 +231,14 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 		hasConflicts: boolean;
 	} {
 
-		/* no changes */
 		if (originalLocalContent === null && originalRemoteContent === null && baseContent === null) {
 			return { content: null, hasLocalChanged: false, hasRemoteChanged: false, hasConflicts: false };
 		}
 
-		// Normalize nulls to empty strings for easier comparison
 		originalRemoteContent = originalRemoteContent ?? '';
 		originalLocalContent = originalLocalContent ?? '';
 		baseContent = baseContent ?? '';
 
-		/* no changes */
 		if (originalLocalContent === originalRemoteContent) {
 			return { content: null, hasLocalChanged: false, hasRemoteChanged: false, hasConflicts: false };
 		}
@@ -256,17 +246,14 @@ export abstract class AbstractJsonSynchronizer extends AbstractFileSynchroniser 
 		const localForwarded = baseContent !== originalLocalContent;
 		const remoteForwarded = baseContent !== originalRemoteContent;
 
-		/* no changes */
 		if (!localForwarded && !remoteForwarded) {
 			return { content: null, hasLocalChanged: false, hasRemoteChanged: false, hasConflicts: false };
 		}
 
-		/* local has changed and remote has not */
 		if (localForwarded && !remoteForwarded) {
 			return { content: originalLocalContent, hasRemoteChanged: true, hasLocalChanged: false, hasConflicts: false };
 		}
 
-		/* remote has changed and local has not */
 		if (remoteForwarded && !localForwarded) {
 			return { content: originalRemoteContent, hasLocalChanged: true, hasRemoteChanged: false, hasConflicts: false };
 		}

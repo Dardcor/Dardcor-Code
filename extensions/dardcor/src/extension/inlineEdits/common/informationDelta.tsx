@@ -8,9 +8,6 @@ import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/off
 
 const N_GRAM_UNDO_RATIO_TO_FILTER_OUT = 0.7;
 
-/**
- * Represents information loss/gain (4-grams) via an edit.
- */
 export class InformationDelta {
 
 	constructor(
@@ -74,9 +71,6 @@ export function getInformationDelta(source: string, edit: StringEdit): Informati
 		tryAddDeleted(e2.replaceRange);
 		tryAddDeleted(e1.replaceRange.intersect(e2.replaceRange));
 
-		// tryAddInserted(e1.newText);
-		// tryAddInserted(e2.newText);
-		// e1 might have a suffix overlap with the prefix of e1
 		tryAddInserted(trimOverlap(e1.newText, e2.newText));
 	}
 	return new InformationDelta(inserted, deleted);

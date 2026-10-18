@@ -92,11 +92,6 @@ export const enum Status {
 
 export interface Change {
 
-	/**
-	 * Returns either `originalUri` or `renameUri`, depending
-	 * on whether this change is a rename change. When
-	 * in doubt always use `uri` over the other two alternatives.
-	 */
 	readonly uri: Uri;
 	readonly originalUri: Uri;
 	readonly renameUri: Uri | undefined;
@@ -122,11 +117,7 @@ export interface RepositoryUIState {
 	readonly onDidChange: Event<void>;
 }
 
-/**
- * Log options.
- */
 export interface LogOptions {
-	/** Max number of log entries to retrieve. If not specified, the default is 32. */
 	readonly maxEntries?: number;
 	readonly path?: string;
 }
@@ -141,12 +132,6 @@ export interface CommitOptions {
 	requireUserConfig?: boolean;
 	useEditor?: boolean;
 	verbose?: boolean;
-	/**
-	 * string    - execute the specified command after the commit operation
-	 * undefined - execute the command specified in git.postCommitCommand
-	 *             after the commit operation
-	 * null      - do not execute any command after the commit operation
-	 */
 	postCommitCommand?: string | null;
 }
 
@@ -244,7 +229,7 @@ export interface RemoteSource {
 
 export interface RemoteSourceProvider {
 	readonly name: string;
-	readonly icon?: string; // codicon name
+	readonly icon?: string;
 	readonly supportsQuery?: boolean;
 	getRemoteSources(query?: string): ProviderResult<RemoteSource[]>;
 	getBranches?(url: string): ProviderResult<string[]>;
@@ -253,7 +238,7 @@ export interface RemoteSourceProvider {
 
 export interface RemoteSourcePublisher {
 	readonly name: string;
-	readonly icon?: string; // codicon name
+	readonly icon?: string;
 	publishRepository(repository: Repository): Promise<void>;
 }
 
@@ -341,16 +326,6 @@ export interface GitExtension {
 	readonly enabled: boolean;
 	readonly onDidChangeEnablement: Event<boolean>;
 
-	/**
-	 * Returns a specific API version.
-	 *
-	 * Throws error if git extension is disabled. You can listen to the
-	 * [GitExtension.onDidChangeEnablement](#GitExtension.onDidChangeEnablement) event
-	 * to know when the extension becomes enabled/disabled.
-	 *
-	 * @param version Version number.
-	 * @returns API instance
-	 */
 	getAPI(version: 1): API;
 }
 

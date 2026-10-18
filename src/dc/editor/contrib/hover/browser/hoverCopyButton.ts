@@ -11,9 +11,6 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { SimpleButton } from '../../find/browser/findWidget.js';
 import { status } from '../../../../base/browser/ui/aria/aria.js';
 
-/**
- * A button that appears in hover parts to copy their content to the clipboard.
- */
 export class HoverCopyButton extends Disposable {
 
 	private readonly _button: SimpleButton;

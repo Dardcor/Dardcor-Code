@@ -11,7 +11,6 @@ import { observableMemento, ObservableMemento } from '../../../../platform/obser
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import type { ChatPullRequestState } from '../../../common/chatPullRequest.js';
 
-/** The kinds of pill shown above an agent chat input, each independently hideable. */
 export const enum SessionChatPillKind {
 	Changes = 'changes',
 	Artifacts = 'artifacts',
@@ -23,7 +22,6 @@ export const enum SessionChatPillKind {
 	Subagents = 'subagents',
 }
 
-/** All pill kinds, in the order they are offered in the visibility menu. */
 export const SESSION_CHAT_PILL_KINDS: readonly SessionChatPillKind[] = [
 	SessionChatPillKind.Changes,
 	SessionChatPillKind.PullRequests,
@@ -48,38 +46,22 @@ export function getSessionChatPillLabel(kind: SessionChatPillKind): string {
 	}
 }
 
-/**
- * Whether the user can hide a pill. Changes reports what the turn did to the
- * user's files, so it always shows once it has data.
- */
 export function isSessionChatPillHideable(kind: SessionChatPillKind): boolean {
 	return kind !== SessionChatPillKind.Changes;
 }
 
-/** One entry of the pill visibility context menu. */
 export interface ISessionChatPillMenuEntry {
 	readonly kind: SessionChatPillKind;
 	readonly label: string;
-	/** Whether the pill shows when it has data. */
 	readonly checked: boolean;
 }
 
-/**
- * The pill visibility context menu: an optional "Hide X" for the pill that was
- * right-clicked, then the kinds the surface has data for, then the rest. The
- * caller renders a separator between the groups it shows.
- */
 export interface ISessionChatPillMenu {
 	readonly hide?: { readonly kind: SessionChatPillKind; readonly label: string };
 	readonly withData: readonly ISessionChatPillMenuEntry[];
 	readonly withoutData: readonly ISessionChatPillMenuEntry[];
 }
 
-/**
- * Builds the visibility menu. Every offered, hideable kind is listed and
- * toggleable, checked while it is not hidden, and grouped by whether the
- * current session has data for it.
- */
 export function getSessionChatPillMenu(
 	kindsWithData: ReadonlySet<SessionChatPillKind>,
 	hiddenKinds: ReadonlySet<SessionChatPillKind>,
@@ -107,10 +89,6 @@ export function getSessionChatPillMenu(
 	return { ...(hide ? { hide } : {}), withData, withoutData };
 }
 
-/**
- * Pills hidden until the user turns them on: useful but noisy enough that they
- * should not claim room in the row by default.
- */
 const defaultHiddenKinds: readonly SessionChatPillKind[] = [
 	SessionChatPillKind.Customizations,
 	SessionChatPillKind.Subagents,
@@ -148,7 +126,6 @@ export interface ISessionChatPillVisibilityService {
 	toggle(kind: SessionChatPillKind): void;
 }
 
-/** The user's per-kind pill visibility choices, persisted across windows. */
 export class SessionChatPillVisibility extends Disposable implements ISessionChatPillVisibilityService {
 
 	declare readonly _serviceBrand: undefined;

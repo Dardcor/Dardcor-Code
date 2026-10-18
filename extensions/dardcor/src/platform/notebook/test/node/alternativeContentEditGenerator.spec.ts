@@ -26,12 +26,12 @@ describe('Alternative Content Edit Generator', () => {
 		new AlternativeJsonNotebookContentProvider()
 	].forEach((provider) => {
 		const mockLogger: ILogger = {
-			error: () => { /* no-op */ },
-			warn: () => { /* no-op */ },
-			info: () => { /* no-op */ },
-			debug: () => { /* no-op */ },
-			trace: () => { /* no-op */ },
-			show: () => { /* no-op */ },
+			error: () => { },
+			warn: () => { },
+			info: () => { },
+			debug: () => { },
+			trace: () => { },
+			show: () => { },
 			createSubLogger(): ILogger { return mockLogger; },
 			withExtraTarget(): ILogger { return mockLogger; }
 		};
@@ -54,7 +54,6 @@ describe('Alternative Content Edit Generator', () => {
 				warn = mockLogger.warn;
 				error = mockLogger.error;
 				show(preserveFocus?: boolean): void {
-					//
 				}
 				createSubLogger(): ILogger {
 					return this;

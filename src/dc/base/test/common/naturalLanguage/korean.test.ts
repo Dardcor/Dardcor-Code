@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// allow-any-unicode-file
 
 import { strictEqual } from 'assert';
 import { getKoreanAltChars } from '../../../common/naturalLanguage/korean.js';
@@ -170,15 +169,12 @@ suite('Korean', () => {
 				['ㅡ', 'm'],
 				['ㅢ', 'ml'],
 				['ㅣ', 'l'],
-				// HF: Hangul Filler (everything after this is archaic)
 			]);
 			for (const [hangul, alt] of cases.entries()) {
 				strictEqual(getKoreanAltCharsForString(hangul), alt, `"${hangul}" (0x${hangul.charCodeAt(0).toString(16)}) should result in "${alt}"`);
 			}
 		});
 
-		// There are too many characters to test exhaustively, so select some
-		// real world use cases from this code base (workbench contrib names)
 		test('Composed samples', () => {
 			const cases = new Map([
 				['ㅁㅊㅊㄷㄴ냐ㅠㅑㅣㅑ쇼', 'accessibility'],
@@ -265,8 +261,6 @@ suite('Korean', () => {
 				['재가넴ㅊㄷㄴ', 'workspaces'],
 			]);
 			for (const [hangul, alt] of cases.entries()) {
-				// Compare with lower case as some cases do not have
-				// corresponding hangul inputs
 				strictEqual(
 					getKoreanAltCharsForString(hangul).toLowerCase(),
 					alt.toLowerCase(),

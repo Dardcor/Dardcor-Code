@@ -70,7 +70,6 @@ export class MarkupCell extends Disposable {
 		this._register(toDisposable(() => renderedEditors.delete(this.viewCell)));
 		this.registerListeners();
 
-		// update for init state
 		this.templateData.cellParts.scheduleRenderCell(this.viewCell);
 
 		this._register(toDisposable(() => {
@@ -87,7 +86,6 @@ export class MarkupCell extends Disposable {
 		this.layoutFoldingIndicator();
 		this.updateFoldingIconShowClass();
 
-		// the markdown preview's height might already be updated after the renderer calls `element.getHeight()`
 		if (this.viewCell.layoutInfo.totalHeight > 0) {
 			this.relayoutCell();
 		}
@@ -105,11 +103,9 @@ export class MarkupCell extends Disposable {
 	}
 
 	private constructDOM() {
-		// Create an element that is only used to announce markup cell content to screen readers
 		const id = `aria-markup-cell-${this.viewCell.id}`;
 		this.markdownAccessibilityContainer = this.templateData.cellContainer;
 		this.markdownAccessibilityContainer.id = id;
-		// Hide the element from non-screen readers
 		this.markdownAccessibilityContainer.style.height = '1px';
 		this.markdownAccessibilityContainer.style.overflow = 'hidden';
 		this.markdownAccessibilityContainer.style.position = 'absolute';
@@ -225,7 +221,6 @@ export class MarkupCell extends Disposable {
 	override dispose() {
 		this._isDisposed = true;
 
-		// move focus back to the cell list otherwise the focus goes to body
 		if (this.notebookEditor.getActiveCell() === this.viewCell && this.viewCell.focusMode === CellFocusMode.Editor && (this.notebookEditor.hasEditorFocus() || this.notebookEditor.getDomNode().ownerDocument.activeElement === this.notebookEditor.getDomNode().ownerDocument.body)) {
 			this.notebookEditor.focusContainer();
 		}
@@ -287,7 +282,6 @@ export class MarkupCell extends Disposable {
 	}
 
 	private viewUpdateEditing(): void {
-		// switch to editing mode
 		let editorHeight: number;
 
 		DOM.show(this.editorPart);
@@ -302,7 +296,6 @@ export class MarkupCell extends Disposable {
 		if (this.editor && this.editor.hasModel()) {
 			editorHeight = this.editor.getContentHeight();
 
-			// not first time, we don't need to create editor
 			this.viewCell.attachTextEditor(this.editor);
 			this.focusEditorIfNeeded();
 
@@ -322,7 +315,6 @@ export class MarkupCell extends Disposable {
 
 			this.templateData.editorContainer.innerText = '';
 
-			// create a special context key service that set the inCompositeEditor-contextkey
 			const editorContextKeyService = this.contextKeyService.createScoped(this.templateData.editorPart);
 			EditorContextKeys.inCompositeEditor.bindTo(editorContextKeyService).set(true);
 			const editorInstaService = this.editorDisposables.add(this.instantiationService.createChild(new ServiceCollection([IContextKeyService, editorContextKeyService])));
@@ -335,7 +327,6 @@ export class MarkupCell extends Disposable {
 					height: editorHeight
 				},
 				allowVariableLineHeights: false,
-				// overflowWidgetsDomNode: this.notebookEditor.getOverflowContainerDomNode()
 			}, {
 				contributions: this.notebookEditor.creationOptions.cellEditorContributions
 			}));
@@ -418,7 +409,7 @@ export class MarkupCell extends Disposable {
 	private focusEditorIfNeeded() {
 		if (this.viewCell.focusMode === CellFocusMode.Editor &&
 			(this.notebookEditor.hasEditorFocus() || this.notebookEditor.getDomNode().ownerDocument.activeElement === this.notebookEditor.getDomNode().ownerDocument.body)
-		) { // Don't steal focus from other workbench parts, but if body has focus, we can take it
+		) {
 			if (!this.editor) {
 				return;
 			}
@@ -447,9 +438,6 @@ export class MarkupCell extends Disposable {
 			}
 		);
 
-		// LET the content size observer to handle it
-		// this.viewCell.editorHeight = realContentHeight;
-		// this.relayoutCell();
 	}
 
 	relayoutCell(): void {
@@ -495,7 +483,6 @@ export class MarkupCell extends Disposable {
 
 		this.localDisposables.add(editor.onDidChangeCursorSelection((e) => {
 			if (e.source === 'restoreState') {
-				// do not reveal the cell into view if this selection change was caused by restoring editors...
 				return;
 			}
 
@@ -519,9 +506,6 @@ export class MarkupCell extends Disposable {
 		}));
 
 		this.localDisposables.add(editor.onDidBlurEditorWidget(() => {
-			// this is for a special case:
-			// users click the status bar empty space, which we will then focus the editor
-			// so we don't want to update the focus state too eagerly
 			if (this.templateData.container.ownerDocument.activeElement?.contains(this.templateData.container)) {
 				this.focusSwitchDisposable.value = disposableTimeout(() => updateFocusMode(), 300);
 			} else {

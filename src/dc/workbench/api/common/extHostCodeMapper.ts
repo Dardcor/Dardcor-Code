@@ -26,13 +26,11 @@ export class ExtHostCodeMapper implements extHostProtocol.ExtHostCodeMapperShape
 	}
 
 	async $mapCode(handle: number, internalRequest: extHostProtocol.ICodeMapperRequestDto, token: CancellationToken): Promise<ICodeMapperResult | null> {
-		// Received request to map code from the main thread
 		const provider = this.providers.get(handle);
 		if (!provider) {
 			throw new Error(`Received request to map code for unknown provider handle ${handle}`);
 		}
 
-		// Construct a response object to pass to the provider
 		const stream: vscode.MappedEditsResponseStream = {
 			textEdit: (target: vscode.Uri, edits: vscode.TextEdit | vscode.TextEdit[]) => {
 				edits = asArray(edits);

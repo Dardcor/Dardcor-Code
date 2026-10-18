@@ -14,7 +14,6 @@ import * as extHostTypes from './extHostTypes.js';
 import * as typeConverters from './extHostTypeConverters.js';
 import { CDPEvent, CDPRequest, CDPResponse } from '../../../platform/browserView/common/cdp/types.js';
 
-// #region Internal browser tab object
 
 class ExtHostBrowserTab {
 	private _url: string;
@@ -81,9 +80,7 @@ class ExtHostBrowserTab {
 	}
 }
 
-// #endregion
 
-// #region CDP Session
 
 class ExtHostBrowserCDPSession {
 	private readonly _onDidReceiveMessage = new Emitter<unknown>();
@@ -142,7 +139,6 @@ class ExtHostBrowserCDPSession {
 		await this._proxy.$closeCDPSession(this.id);
 	}
 
-	// Called from main thread
 	_acceptMessage(message: unknown): void {
 		this._onDidReceiveMessage.fire(message);
 	}
@@ -153,7 +149,6 @@ class ExtHostBrowserCDPSession {
 	}
 }
 
-// #endregion
 
 export class ExtHostBrowsers extends Disposable implements ExtHostBrowsersShape {
 	private readonly _proxy: MainThreadBrowsersShape;
@@ -179,7 +174,6 @@ export class ExtHostBrowsers extends Disposable implements ExtHostBrowsersShape 
 		this._proxy = mainContext.getProxy(MainContext.MainThreadBrowsers);
 	}
 
-	// #region Public API (called from extension code)
 
 	get browserTabs(): readonly vscode.BrowserTab[] {
 		return [...this._browserTabs.values()].map(t => t.value);
@@ -202,9 +196,7 @@ export class ExtHostBrowsers extends Disposable implements ExtHostBrowsersShape 
 		return this._getOrCreateTab(dto).value;
 	}
 
-	// #endregion
 
-	// #region Internal helpers
 
 	private _getOrCreateTab(dto: BrowserTabDto): ExtHostBrowserTab {
 		let tab = this._browserTabs.get(dto.id);
@@ -218,9 +210,7 @@ export class ExtHostBrowsers extends Disposable implements ExtHostBrowsersShape 
 		return tab;
 	}
 
-	// #endregion
 
-	// #region Main thread callbacks
 
 	$onDidOpenBrowserTab(dto: BrowserTabDto): void {
 		this._getOrCreateTab(dto);
@@ -264,5 +254,4 @@ export class ExtHostBrowsers extends Disposable implements ExtHostBrowsersShape 
 		}
 	}
 
-	// #endregion
 }

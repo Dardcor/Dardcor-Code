@@ -6,10 +6,9 @@ import * as fs from 'fs';
 import { join } from 'path';
 import { SimulationOptions } from './base/simulationOptions';
 
-export const REPO_ROOT = join(__dirname, '..'); // This must hold for both the esbuild bundle location and the source!
+export const REPO_ROOT = join(__dirname, '..');
 
 export function createScoreRenderer(opts: SimulationOptions, canUseBaseline: boolean): (score: number) => string {
-	// We can show pass count only when using the same number of runs as the baseline
 	const maxDigitCount = String(opts.nRuns).length;
 	return (
 		canUseBaseline

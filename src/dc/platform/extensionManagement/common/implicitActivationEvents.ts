@@ -20,10 +20,6 @@ export class ImplicitActivationEventsImpl {
 		this._generators.set(extensionPointName, generator as IActivationEventsGenerator<unknown>);
 	}
 
-	/**
-	 * This can run correctly only on the renderer process because that is the only place
-	 * where all extension points and all implicit activation events generators are known.
-	 */
 	public readActivationEvents(extensionDescription: IExtensionDescription): string[] {
 		if (!this._cache.has(extensionDescription)) {
 			this._cache.set(extensionDescription, this._readActivationEvents(extensionDescription));
@@ -31,10 +27,6 @@ export class ImplicitActivationEventsImpl {
 		return this._cache.get(extensionDescription)!;
 	}
 
-	/**
-	 * This can run correctly only on the renderer process because that is the only place
-	 * where all extension points and all implicit activation events generators are known.
-	 */
 	public createActivationEventsMap(extensionDescriptions: IExtensionDescription[]): { [extensionId: string]: string[] } {
 		const result: { [extensionId: string]: string[] } = Object.create(null);
 		for (const extensionDescription of extensionDescriptions) {
@@ -54,21 +46,18 @@ export class ImplicitActivationEventsImpl {
 		const activationEvents: string[] = (Array.isArray(desc.activationEvents) ? desc.activationEvents.slice(0) : []);
 
 		for (let i = 0; i < activationEvents.length; i++) {
-			// TODO@joao: there's no easy way to contribute this
 			if (activationEvents[i] === 'onUri') {
 				activationEvents[i] = `onUri:${ExtensionIdentifier.toKey(desc.identifier)}`;
 			}
 		}
 
 		if (!desc.contributes) {
-			// no implicit activation events
 			return activationEvents;
 		}
 
 		for (const extPointName in desc.contributes) {
 			const generator = this._generators.get(extPointName);
 			if (!generator) {
-				// There's no generator for this extension point
 				continue;
 			}
 			const contrib = (desc.contributes as IStringDictionary<unknown>)[extPointName];

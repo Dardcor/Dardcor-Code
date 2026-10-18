@@ -11,45 +11,22 @@ import { ILogService } from '../../../log/common/log.js';
 import { TerminalClaimKind } from '../../common/state/protocol/state.js';
 import { IAgentHostTerminalManager } from '../agentHostTerminalManager.js';
 
-/**
- * Maximum scrollback content (in bytes) returned to the model / caller in
- * command results.
- */
 export const SHELL_COMMAND_MAX_OUTPUT_BYTES = 80_000;
 
-/**
- * Default command timeout in milliseconds (120 seconds).
- */
 export const DEFAULT_SHELL_COMMAND_TIMEOUT_MS = 120_000;
 
-/**
- * The sentinel prefix used to detect command completion in terminal output
- * when shell integration is unavailable. The full sentinel format is:
- * `<<<COPILOT_SENTINEL_<uuid>_EXIT_<code>>>`.
- */
 const SENTINEL_PREFIX = '<<<COPILOT_SENTINEL_';
 
-/**
- * The kind of shell a command runs in. Determines sentinel syntax, history
- * suppression and bracketed-paste heuristics.
- */
 export type ShellType = 'bash' | 'powershell';
 
-/**
- * Routes a resolved shell executable to a {@link ShellType}. Falls back to the
- * platform default for unknown shells.
- */
 export function shellTypeForExecutable(shellPath: string): ShellType {
-	// Strip path on either separator and the .exe suffix.
 	const lastSep = Math.max(shellPath.lastIndexOf('/'), shellPath.lastIndexOf('\\'));
 	const base = shellPath.slice(lastSep + 1).toLowerCase().replace(/\.exe$/, '');
 	switch (base) {
-		// PowerShell
 		case 'pwsh':
 		case 'powershell':
 		case 'pwsh-preview':
 			return 'powershell';
-		// POSIX shells
 		case 'bash':
 		case 'sh':
 		case 'zsh':
@@ -58,9 +35,7 @@ export function shellTypeForExecutable(shellPath: string): ShellType {
 		case 'ksh':
 		case 'nu':
 		case 'xonsh':
-		// Git for Windows bash entry points
 		case 'git-cmd':
-		// WSL launchers — bash inside, but invoked via these stubs
 		case 'wsl':
 		case 'ubuntu':
 		case 'ubuntu1804':
@@ -74,14 +49,6 @@ export function shellTypeForExecutable(shellPath: string): ShellType {
 	}
 }
 
-/**
- * For POSIX shells (bash/zsh) that honor `HISTCONTROL=ignorespace` /
- * `HIST_IGNORE_SPACE`, prepending a single space prevents the command from
- * being recorded in shell history. The shell integration scripts opt these
- * settings in via the `VSCODE_PREVENT_SHELL_HISTORY` env var (set when the
- * terminal is created with `preventShellHistory: true`). PowerShell
- * suppresses history through PSReadLine instead, so no prefix is needed.
- */
 export function prefixForHistorySuppression(shellType: ShellType): string {
 	return shellType === 'powershell' ? '' : ' ';
 }
@@ -123,19 +90,12 @@ function parseSentinel(content: string, sentinelId: string): { found: boolean; e
 				};
 			}
 		}
-		// Ignore echoed sentinel command text (for example `$?`) and continue
-		// scanning for the latest complete numeric sentinel marker.
 		markerIndex = content.lastIndexOf(marker, markerIndex - 1);
 	}
 
 	return { found: false, exitCode: -1, outputBeforeSentinel: content };
 }
 
-/**
- * Strips ANSI escape codes and trims the terminal output to the last
- * {@link SHELL_COMMAND_MAX_OUTPUT_BYTES} bytes so it is safe to surface to a
- * model or the transcript.
- */
 export function prepareOutputForModel(rawOutput: string): string {
 	let text = removeAnsiEscapeCodes(rawOutput).trim();
 	if (text.length > SHELL_COMMAND_MAX_OUTPUT_BYTES) {
@@ -144,50 +104,19 @@ export function prepareOutputForModel(rawOutput: string): string {
 	return text;
 }
 
-/**
- * Terminal against which a shell command is executed.
- */
 export interface IShellCommandTarget {
-	/** URI of the managed terminal the command runs in. */
 	readonly terminalUri: string;
-	/** The kind of shell backing the terminal. */
 	readonly shellType: ShellType;
 }
 
-/**
- * How a shell command execution finished.
- *
- * - `completed` — the command finished; {@link IShellCommandResult.exitCode} holds the exit code.
- * - `timeout` — the command did not finish within the timeout; output is partial.
- * - `background` — the terminal claim was narrowed (user chose to continue in background).
- * - `altBuffer` — the command switched to the terminal's alternate buffer (interactive UI).
- * - `shellExited` — the shell process exited unexpectedly.
- */
 export type ShellCommandStatus = 'completed' | 'timeout' | 'background' | 'altBuffer' | 'shellExited';
 
-/**
- * Neutral, agent-agnostic result of executing a shell command. Callers map this
- * to their own result shape (e.g. an SDK `ToolResultObject` or an AHP tool call
- * completion).
- */
 export interface IShellCommandResult {
-	/** How the command execution finished. */
 	readonly status: ShellCommandStatus;
-	/** Exit code, when known (`completed` and `shellExited`). */
 	readonly exitCode?: number;
-	/** Cleaned command output (empty for `background`/`altBuffer`). */
 	readonly output: string;
 }
 
-/**
- * Execute a command on an already-created managed terminal, resolving once the
- * command finishes, times out, backgrounds, enters the alternate buffer, or the
- * shell exits. Uses shell integration (OSC 633) for completion detection when
- * available and falls back to a sentinel echo otherwise.
- *
- * This is the shared shell-integration primitive used by both the Copilot SDK
- * shell tools and the agent-host `!command` runner.
- */
 export function executeShellCommand(
 	target: IShellCommandTarget,
 	command: string,
@@ -213,11 +142,6 @@ function registerAltBufferHandler(
 	});
 }
 
-/**
- * Execute a command using shell integration (OSC 633) for completion detection.
- * No sentinel echo is injected — the shell's own command-finished signal
- * provides the exit code and cleanly delineated output.
- */
 async function executeCommandWithShellIntegration(
 	target: IShellCommandTarget,
 	command: string,
@@ -282,10 +206,6 @@ async function executeCommandWithShellIntegration(
 	return result;
 }
 
-/**
- * Fallback: execute a command using a sentinel echo to detect completion.
- * Used when shell integration is not available.
- */
 async function executeCommandWithSentinel(
 	target: IShellCommandTarget,
 	command: string,
@@ -313,9 +233,6 @@ async function executeCommandWithSentinel(
 
 		const checkForSentinel = () => {
 			const fullContent = terminalManager.getContent(target.terminalUri) ?? '';
-			// Clamp offset: the terminal manager trims content when it exceeds
-			// 100k chars (slices to last 80k). If trimming happened after we
-			// captured offsetBefore, scan from the start of the current buffer.
 			const clampedOffset = Math.min(offsetBefore, fullContent.length);
 			const newContent = fullContent.substring(clampedOffset);
 			const parsed = parseSentinel(newContent, sentinelId);

@@ -15,13 +15,6 @@ import { IInstantiationService } from '../../../util/dardcor/platform/instantiat
 import { CopilotExtensionApi } from '../../api/dardcor/extensionApi';
 import { ContributionCollection, IExtensionContributionFactory } from '../../common/contributions';
 
-// ##################################################################################
-// ###                                                                            ###
-// ###  Shared extension activation code for both web and node.js extension host. ###
-// ###                                                                            ###
-// ###    !!! Prefer to add code in HERE to support all extension runtimes !!!    ###
-// ###                                                                            ###
-// ##################################################################################
 
 export interface IExtensionActivationConfiguration {
 	context: ExtensionContext;
@@ -35,16 +28,12 @@ export async function baseActivate(configuration: IExtensionActivationConfigurat
 	markChatExtGlobal(ChatExtGlobalPerfMark.WillActivate);
 	const context = configuration.context;
 	if (context.extensionMode === ExtensionMode.Test && !configuration.forceActivation && !isScenarioAutomation) {
-		// FIXME Running in tests, don't activate the extension
-		// Avoid bundling the extension code in the test bundle
 		return context;
 	}
 
-	// Check if the extension is running in a pre-release version of VS Code
 	const isStableVsCode = !(env.appName.includes('Insiders') || env.appName.includes('Exploration') || env.appName.includes('OSS'));
 	const showSwitchToReleaseViewCtxKey = 'github.dardcor.interactiveSession.switchToReleaseChannel';
 	if (context.extension.packageJSON.isPreRelease && isStableVsCode) {
-		// Prevent activation of the extension if the user is using a pre-release version in stable VS Code
 		commands.executeCommand('setContext', showSwitchToReleaseViewCtxKey, true);
 		return context;
 	} else {
@@ -56,7 +45,6 @@ export async function baseActivate(configuration: IExtensionActivationConfigurat
 	}
 
 	if (!isProduction) {
-		// Must do this before creating all the services which may rely on keys from .env
 		configuration.configureDevPackages?.();
 	}
 
@@ -72,8 +60,6 @@ export async function baseActivate(configuration: IExtensionActivationConfigurat
 			]);
 		} catch { }
 
-		// THIS is awaited because some contributions can block activation
-		// via `IExtensionContribution#activationBlocker`
 		const contributions = instantiationService.createInstance(ContributionCollection, configuration.contributions);
 		context.subscriptions.push(contributions);
 		try {
@@ -85,7 +71,7 @@ export async function baseActivate(configuration: IExtensionActivationConfigurat
 	});
 
 	if (ExtensionMode.Test === context.extensionMode && !isScenarioAutomation) {
-		return instantiationService; // The returned accessor is used in tests
+		return instantiationService;
 	}
 
 	const result = {
@@ -111,7 +97,6 @@ export function createInstantiationService(configuration: IExtensionActivationCo
 
 	instantiationService.invokeFunction(accessor => {
 
-		// Does the initial read of ignore files, but don't block
 		accessor.get(IIgnoreService).init();
 	});
 

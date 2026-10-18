@@ -10,7 +10,6 @@ import { ILinkComputerTarget, computeLinks } from '../../../common/languages/lin
 class SimpleLinkComputerTarget implements ILinkComputerTarget {
 
 	constructor(private _lines: string[]) {
-		// Intentional Empty
 	}
 
 	public getLineCount(): number {
@@ -262,13 +261,6 @@ suite('Editor Modes - Link Computer', () => {
 		);
 	});
 
-	// Removed because of #156875
-	// test('issue #151631: Link parsing stoped where comments include a single quote ', () => {
-	// 	assertLink(
-	// 		`aa https://regexper.com/#%2F''%2F aa`,
-	// 		`   https://regexper.com/#%2F''%2F   `,
-	// 	);
-	// });
 
 	test('issue #156875: Links include quotes ', () => {
 		assertLink(

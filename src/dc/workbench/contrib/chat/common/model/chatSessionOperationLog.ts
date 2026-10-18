@@ -17,21 +17,6 @@ import { IParsedChatRequest } from '../requestParser/chatParserTypes.js';
 import { IChatAgentEditedFileEvent, IChatDataSerializerLog, IChatModel, IChatPendingRequest, IChatProgressResponseContent, IChatRequestModel, IChatRequestVariableData, ISerializableChatData, ISerializableChatModelInputState, ISerializableChatRequestData, ISerializablePendingRequestData, SerializedChatResponsePart, serializeSendOptions } from './chatModel.js';
 import * as Adapt from './objectMutationLog.js';
 
-/**
- * ChatModel has lots of properties and lots of ways those properties can mutate.
- * The naive way to store the ChatModel is serializing it to JSON and calling it
- * a day. However, chats can get very, very long, and thus doing so is slow.
- *
- * In this file, we define a `storageSchema` that adapters from the `IChatModel`
- * into the serializable format. This schema tells us what properties in the chat
- * model correspond to the serialized properties, *and how they change*. For
- * example, `Adapt.constant(...)` defines a property that will never be checked
- * for changes after it's written, and `Adapt.primitive(...)` defines a property
- * that will be checked for changes using strict equality each time we store it.
- *
- * We can then use this to generate a log of mutations that we can append to
- * cheaply without rewriting and reserializing the entire request each time.
- */
 
 const toJson = <T>(obj: T): T extends { toJSON?(): infer R } ? R : T => {
 	const cast = obj as { toJSON?: () => T };
@@ -57,8 +42,6 @@ const responsePartSchema = Adapt.v<PersistedResponsePart, SerializedChatResponse
 				case 'markdownContent':
 					return a.content === (b as IChatMarkdownContent).content;
 
-				// Dynamic types that can change after initial push need deep equality
-				// Note: these are the *serialized* kind names (e.g. toolInvocationSerialized not toolInvocation)
 				case 'toolInvocationSerialized':
 				case 'elicitationSerialized':
 				case 'progressTaskSerialized':
@@ -67,11 +50,9 @@ const responsePartSchema = Adapt.v<PersistedResponsePart, SerializedChatResponse
 				case 'mcpServersStarting':
 				case 'thinking':
 				case 'planReview':
-				// Flips from routing to routed once the router answers.
 				case 'autoModeResolution':
 					return objectsEqual(a, b);
 
-				// Static types that won't change after being pushed can use strict equality.
 				case 'clearToPreviousToolInvocation':
 				case 'codeblockUri':
 				case 'command':
@@ -95,11 +76,6 @@ const responsePartSchema = Adapt.v<PersistedResponsePart, SerializedChatResponse
 					return a.kind === b.kind;
 
 				default: {
-					// Hello developer! You are probably here because you added a new chat response type.
-					// This logic controls when we'll update chat parts stored on disk as part of the session.
-					// If it's a 'static' type that is not expected to change, add it to the 'return true'
-					// block above. However it's a type that is going to change, add it to the 'objectsEqual'
-					// block or make something more tailored.
 					softAssertNever(a);
 
 					return objectsEqual(a, b);
@@ -130,7 +106,6 @@ const chatVariableSchema = Adapt.object<IChatRequestVariableData, IChatRequestVa
 });
 
 const requestSchema = Adapt.object<IChatRequestModel, ISerializableChatRequestData>({
-	// request parts
 	requestId: Adapt.t(m => m.id, Adapt.key()),
 	timestamp: Adapt.v(m => m.requestTimestamp),
 	confirmation: Adapt.v(m => m.confirmation),
@@ -140,10 +115,10 @@ const requestSchema = Adapt.object<IChatRequestModel, ISerializableChatRequestDa
 	modelId: Adapt.v(m => m.modelId),
 	editedFileEvents: Adapt.t(m => m.editedFileEvents, Adapt.array(agentEditedFileEventSchema)),
 	variableData: Adapt.t(m => m.variableData, chatVariableSchema),
-	isHidden: Adapt.v(() => undefined), // deprecated, always undefined for new data
+	isHidden: Adapt.v(() => undefined),
 	hiddenFromTranscript: Adapt.v(m => m.isHiddenFromTranscript),
 	requestHiddenFromTranscript: Adapt.v(m => m.isRequestHiddenFromTranscript && !m.isHiddenFromTranscript ? true : undefined),
-	isCanceled: Adapt.v(() => undefined), // deprecated, modelState is used instead
+	isCanceled: Adapt.v(() => undefined),
 
 	response: Adapt.t(m => m.response?.entireResponse.value.filter((p): p is PersistedResponsePart => p.kind !== 'mcpAuthenticationRequired' && p.kind !== 'mcpServersStartingSlow' && p.kind !== 'voiceProgress'), Adapt.array(responsePartSchema)),
 	responseId: Adapt.v(m => m.response?.id),
@@ -160,7 +135,7 @@ const requestSchema = Adapt.object<IChatRequestModel, ISerializableChatRequestDa
 	usedContext: Adapt.v(m => m.response?.usedContext, objectsEqual),
 	contentReferences: Adapt.v(m => m.response?.contentReferences, objectsEqual),
 	codeCitations: Adapt.v(m => m.response?.codeCitations, objectsEqual),
-	timeSpentWaiting: Adapt.v(m => m.response?.timestamp), // based on response timestamp
+	timeSpentWaiting: Adapt.v(m => m.response?.timestamp),
 	completionTokens: Adapt.v(m => m.response?.completionTokenCount),
 	promptTokens: Adapt.v(m => m.response?.usage?.promptTokens),
 	outputBuffer: Adapt.v(m => m.response?.usage?.outputBuffer),

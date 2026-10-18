@@ -9,7 +9,7 @@ export class WalkthroughCommandContribution extends Disposable {
 	constructor() {
 		super();
 		this._register(vscode.commands.registerCommand('github.dardcor.open.walkthrough', () => {
-			vscode.commands.executeCommand('workbench.action.openWalkthrough', { category: 'GitHub.dardcor-chat#dardcorWelcome' }, /* toSide */ false);
+			vscode.commands.executeCommand('workbench.action.openWalkthrough', { category: 'GitHub.dardcor-chat#dardcorWelcome' }, false);
 		}));
 
 		this._register(vscode.commands.registerCommand('github.dardcor.mcp.viewContext7', () => {

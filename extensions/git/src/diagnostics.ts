@@ -41,12 +41,10 @@ export class GitCommitInputBoxDiagnosticsManager {
 				return;
 			}
 
-			// Workspace setting
 			if (typeof inputValidation.workspaceValue === 'string') {
 				await config.update('inputValidation', inputValidation.workspaceValue !== 'off', false);
 			}
 
-			// User setting
 			if (typeof inputValidation.globalValue === 'string') {
 				await config.update('inputValidation', inputValidation.workspaceValue !== 'off', true);
 			}
@@ -204,7 +202,6 @@ export class GitCommitInputBoxCodeActionsProvider implements CodeActionProvider 
 				lineSegments.push(lineText.substring(position, lastSpaceBeforeThreshold));
 				position = lastSpaceBeforeThreshold + 1;
 			} else {
-				// Find first space after threshold
 				const firstSpaceAfterThreshold = lineText.indexOf(' ', position + lineLengthThreshold);
 				if (firstSpaceAfterThreshold !== -1) {
 					lineSegments.push(lineText.substring(position, firstSpaceAfterThreshold));

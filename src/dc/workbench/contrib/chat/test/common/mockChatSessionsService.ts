@@ -47,9 +47,8 @@ export class MockChatSessionsService implements IChatSessionsService {
 	private contributions: IChatSessionsExtensionPoint[] = [];
 	private optionGroups = new Map<string, IChatSessionProviderOptionGroup[]>();
 	private sessionOptions = new ResourceMap<ChatSessionOptionsMap>();
-	private inProgress = new Map</* chatSessionType*/ string, number>();
+	private inProgress = new Map< string, number>();
 
-	// For testing: allow triggering events
 	fireDidChangeItemsProviders(event: { chatSessionType: string }): void {
 		this._onDidChangeItemsProviders.fire(event);
 	}
@@ -104,13 +103,12 @@ export class MockChatSessionsService implements IChatSessionsService {
 	}
 
 	async activateChatSessionItemProvider(chatSessionType: string): Promise<void> {
-		// Noop, nothing to activate
 	}
 
 	async *getChatSessionItems(providerTypeFilter: readonly string[] | undefined, token: CancellationToken): AsyncIterable<{ readonly chatSessionType: string; readonly items: readonly IChatSessionItem[] }> {
 		for (const [chatSessionType, controllerEntry] of this.sessionItemControllers.entries()) {
 			if (!providerTypeFilter || providerTypeFilter.includes(chatSessionType)) {
-				await controllerEntry.initialRefresh; // ensure initial refresh is done
+				await controllerEntry.initialRefresh;
 				yield {
 					chatSessionType: chatSessionType,
 					items: controllerEntry.controller.items
@@ -337,8 +335,8 @@ export class MockChatSessionsService implements IChatSessionsService {
 		return controllerData.controller.deleteChatSessionItem(sessionResource, token);
 	}
 
-	private readonly _resourceAliases = new ResourceMap<URI>(); // real -> untitled
-	private readonly _realResources = new ResourceMap<URI>(); // untitled -> real
+	private readonly _resourceAliases = new ResourceMap<URI>();
+	private readonly _realResources = new ResourceMap<URI>();
 
 	registerSessionResourceAlias(untitledResource: URI, realResource: URI): void {
 		this._resourceAliases.set(realResource, untitledResource);
@@ -361,7 +359,6 @@ export class MockChatSessionsService implements IChatSessionsService {
 	}
 
 	fireSessionCommitted(_original: URI, _committed: URI): void {
-		// noop
 	}
 
 	registerChatSessionContribution(contribution: IChatSessionsExtensionPoint): IDisposable {

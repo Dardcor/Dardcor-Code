@@ -35,8 +35,6 @@ suite('voiceCloseCodes', () => {
 	});
 
 	test('leaves 1006 unmapped because the cause is genuinely unknown', () => {
-		// A browser reports 1006 for anything it cannot inspect: DNS, TLS, a proxy
-		// rejecting the upgrade.
 		assert.strictEqual(voiceCloseCodeInfo(1006), undefined);
 		assert.strictEqual(isTerminalCloseCode(1006), false);
 	});

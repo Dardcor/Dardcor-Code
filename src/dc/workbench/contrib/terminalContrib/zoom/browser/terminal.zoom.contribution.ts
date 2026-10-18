@@ -23,10 +23,6 @@ import * as dom from '../../../../../base/browser/dom.js';
 class TerminalMouseWheelZoomContribution extends Disposable implements ITerminalContribution {
 	static readonly ID = 'terminal.mouseWheelZoom';
 
-	/**
-	 * Currently focused find widget. This is used to track action context since
-	 * 'active terminals' are only tracked for non-detached terminal instanecs.
-	 */
 	static activeFindWidget?: TerminalMouseWheelZoomContribution;
 
 	static get(instance: ITerminalInstance | IDetachedTerminalInstance): TerminalMouseWheelZoomContribution | null {
@@ -63,8 +59,6 @@ class TerminalMouseWheelZoomContribution extends Disposable implements ITerminal
 	}
 
 	private _setupMouseWheelZoomListener(raw: RawXtermTerminal) {
-		// This is essentially a copy of what we do in the editor, just we modify font size directly
-		// as there is no separate zoom level concept in the terminal
 		const classifier = MouseWheelClassifier.INSTANCE;
 
 		let prevMouseWheelTime = 0;
@@ -78,16 +72,11 @@ class TerminalMouseWheelZoomContribution extends Disposable implements ITerminal
 					const delta = browserEvent.deltaY > 0 ? -1 : 1;
 					const newFontSize = this._clampFontSize(this._getConfigFontSize() + delta);
 					this._configurationService.updateValue(TerminalSettingId.FontSize, newFontSize);
-					// EditorZoom.setZoomLevel(zoomLevel + delta);
 					browserEvent.preventDefault();
 					browserEvent.stopPropagation();
 				}
 			} else {
-				// we consider mousewheel events that occur within 50ms of each other to be part of the same gesture
-				// we don't want to consider mouse wheel events where ctrl/cmd is pressed during the inertia phase
-				// we also want to accumulate deltaY values from the same gesture and use that to set the zoom level
 				if (Date.now() - prevMouseWheelTime > 50) {
-					// reset if more than 50ms have passed
 					gestureStartFontSize = this._getConfigFontSize();
 					gestureHasZoomModifiers = this._hasMouseWheelZoomModifiers(browserEvent);
 					gestureAccumulatedDelta = 0;
@@ -109,15 +98,12 @@ class TerminalMouseWheelZoomContribution extends Disposable implements ITerminal
 			}
 		};
 
-		// Use the capture phase to ensure we catch the event before the terminal's scrollable element consumes it
 		this._listener.value = dom.addDisposableListener(raw.element!, dom.EventType.MOUSE_WHEEL, wheelListener, { capture: true, passive: false });
 	}
 
 	private _hasMouseWheelZoomModifiers(browserEvent: WheelEvent | IMouseWheelEvent): boolean {
 		return (
 			isMacintosh
-				// on macOS we support cmd + two fingers scroll (`metaKey` set)
-				// and also the two fingers pinch gesture (`ctrKey` set)
 				? ((browserEvent.metaKey || browserEvent.ctrlKey) && !browserEvent.shiftKey && !browserEvent.altKey)
 				: (browserEvent.ctrlKey && !browserEvent.metaKey && !browserEvent.shiftKey && !browserEvent.altKey)
 		);

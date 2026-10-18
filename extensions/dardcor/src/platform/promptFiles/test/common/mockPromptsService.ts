@@ -130,7 +130,6 @@ export class MockPromptsService extends Disposable implements IPromptsService {
 		return Promise.resolve([...this._nestedAgentMDs]);
 	}
 
-	/** Register content so parseFile returns a parsed result for the given URI. */
 	setFileContent(uri: URI, content: string) {
 		this._fileContents.set(uri, content);
 	}

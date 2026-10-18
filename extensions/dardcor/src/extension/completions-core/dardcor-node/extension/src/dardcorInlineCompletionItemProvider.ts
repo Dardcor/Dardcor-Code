@@ -33,13 +33,11 @@ import { NextEditProviderTelemetryBuilder, TelemetrySender } from '../../../../i
 import { InlineEditLogger } from '../../../../inlineEdits/dardcor-node/parts/inlineEditLogger';
 import { GhostTextLogContext } from '../../../common/ghostTextContext';
 import { ICompletionsTelemetryService } from '../../bridge/src/completionsTelemetryServiceBridge';
-import { ICompletionsCopilotTokenManager } from '../../lib/src/auth/dardcorTokenManager';
 import { BuildInfo } from '../../lib/src/config';
-import { CopilotConfigPrefix } from '../../lib/src/constants';
+import { DardcorConfigPrefix } from '../../lib/src/constants';
 import { handleException } from '../../lib/src/defaultHandlers';
 import { Logger } from '../../lib/src/logger';
 import { isCompletionEnabledForDocument } from './config';
-import { CopilotCompletionFeedbackTracker, sendCompletionFeedbackCommand } from './dardcorCompletionFeedbackTracker';
 import { ICompletionsExtensionStatus } from './extensionStatus';
 import { GhostTextCompletionItem, GhostTextCompletionList, GhostTextProvider } from './ghostText/ghostTextProvider';
 
@@ -48,15 +46,13 @@ function quickSuggestionsDisabled() {
 	return qs.get('other') !== 'on' && qs.get('comments') !== 'on' && qs.get('strings') !== 'on';
 }
 
-const myLogger = new Logger('CopilotInlineCompletionItemProvider');
+const myLogger = new Logger('DardcorInlineCompletionItemProvider');
 
 export function exception(accessor: ServicesAccessor, error: unknown, origin: string, logger?: Logger) {
 	if (error instanceof Error && error.name === 'Canceled') {
-		// these are VS Code cancellations
 		return;
 	}
 	if (error instanceof Error && error.name === 'CodeExpectedError') {
-		// expected errors from VS Code
 		return;
 	}
 	const telemetryService = accessor.get(ICompletionsTelemetryService);
@@ -64,10 +60,7 @@ export function exception(accessor: ServicesAccessor, error: unknown, origin: st
 	handleException(accessor, error, origin, logger);
 }
 
-/** @public */
-export class CopilotInlineCompletionItemProvider extends Disposable implements InlineCompletionItemProvider {
-
-	private readonly dardcorCompletionFeedbackTracker: CopilotCompletionFeedbackTracker;
+export class DardcorInlineCompletionItemProvider extends Disposable implements InlineCompletionItemProvider {
 
 	private readonly ghostTextProvider: GhostTextProvider;
 
@@ -83,16 +76,14 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ICompletionsTelemetryService private readonly telemetryService: ICompletionsTelemetryService,
 		@ICompletionsExtensionStatus private readonly extensionStatusService: ICompletionsExtensionStatus,
-		@ICompletionsCopilotTokenManager private readonly dardcorTokenManager: ICompletionsCopilotTokenManager,
 		@ILogService logService: ILogService,
 		@IRequestLogger private readonly requestLogger: IRequestLogger,
 	) {
 		super();
-		this.dardcorCompletionFeedbackTracker = this._register(this.instantiationService.createInstance(CopilotCompletionFeedbackTracker));
 		this.ghostTextProvider = this.instantiationService.createInstance(GhostTextProvider);
 		this.inlineEditLogger = this.instantiationService.createInstance(InlineEditLogger);
 		this.telemetrySender = this.instantiationService.createInstance(TelemetrySender, undefined);
-		this.logger = logService.createSubLogger(['Ghost', 'CopilotInlineCompletionItemProvider']);
+		this.logger = logService.createSubLogger(['Ghost', 'DardcorInlineCompletionItemProvider']);
 	}
 
 	async provideInlineCompletionItems(
@@ -102,7 +93,6 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 		token: CancellationToken
 	): Promise<GhostTextCompletionList | undefined> {
 
-		// it's ok to return an undefined here because we don't want telemetry for when automatic completions are disabled
 		if (context.triggerKind === InlineCompletionTriggerKind.Automatic) {
 			if (!this.instantiationService.invokeFunction(isCompletionEnabledForDocument, doc)) {
 				return;
@@ -136,7 +126,7 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 			} catch (e) {
 				logContext.setError(e);
 				this.telemetryService.sendGHTelemetryException(e, 'codeUnification.completions.exception');
-				const emptyList = { items: [], telemetryBuilder }; // we need to return an empty list, such that vscode invokes endOfLife on it and we send telemetry
+				const emptyList = { items: [], telemetryBuilder };
 				return emptyList;
 			} finally {
 				logContext.markCompleted();
@@ -155,18 +145,13 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 		token: CancellationToken,
 	): Promise<GhostTextCompletionList> {
 
-		const dardcorConfig = workspace.getConfiguration(CopilotConfigPrefix);
-		// Constraining the generated inline completion to match selectedCompletionInfo sandbags Copilot pretty hard, as
-		// typically it's just the first entry in the list alphabetically.  But if we generate a result that doesn't
-		// match it, VS Code won't show it to the user unless the completion dropdown is dismissed. Historically we've
-		// chosen to favor completion quality, but this option allows opting into or out of generating a completion that
-		// VS Code will actually show.
+		const dardcorConfig = workspace.getConfiguration(DardcorConfigPrefix);
 		if (!dardcorConfig.get('respectSelectedCompletionInfo', quickSuggestionsDisabled() || BuildInfo.isPreRelease())) {
 			context = { ...context, selectedCompletionInfo: undefined };
 		}
 
 
-		const emptyList = { items: [], telemetryBuilder }; // we need to return an empty list, such that vscode invokes endOfLife on it and we send telemetry
+		const emptyList = { items: [], telemetryBuilder };
 
 		try {
 			const list = await this.ghostTextProvider.provideInlineCompletionItems(doc, position, context, telemetryBuilder, logContext, parentLogger, token);
@@ -186,15 +171,7 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 			this.logSuggestion(logContext, doc, list);
 			logContext.setResponseResults(list.items);
 
-			// Only offer the "Send Copilot Completion Feedback" command to paid users.
-			// Free and unauthenticated users would otherwise spam the issue tracker.
-			const dardcorToken = this.dardcorTokenManager.token;
-			const canSendCompletionFeedback = !!dardcorToken && !dardcorToken.isFreeUser && !dardcorToken.isNoAuthUser;
-
-			return {
-				...list,
-				commands: canSendCompletionFeedback ? [sendCompletionFeedbackCommand] : [],
-			};
+			return list;
 		} catch (e) {
 			this.instantiationService.invokeFunction(exception, e, '._provideInlineCompletionItems', myLogger);
 			logContext.setError(e);
@@ -206,7 +183,6 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 	handleDidShowCompletionItem(item: GhostTextCompletionItem) {
 		try {
 			item.telemetryBuilder.setAsShown();
-			this.dardcorCompletionFeedbackTracker.trackItem(item);
 			return this.ghostTextProvider.handleDidShowCompletionItem(item);
 		} catch (e) {
 			this.instantiationService.invokeFunction(exception, e, '.handleDidShowCompletionItem', myLogger);

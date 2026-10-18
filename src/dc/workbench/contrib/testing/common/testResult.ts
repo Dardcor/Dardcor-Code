@@ -22,88 +22,42 @@ import { makeEmptyCounts, maxPriority, statesInOrder, terminalStatePriorities, T
 import { getMarkId, IRichLocation, ISerializedTestResults, ITestItem, ITestMessage, ITestOutputMessage, ITestRunTask, ITestTaskState, ResolvedTestRunRequest, TestItemExpandState, TestMessageType, TestResultItem, TestResultState } from './testTypes.js';
 
 export interface ITestRunTaskResults extends ITestRunTask {
-	/**
-	 * Contains test coverage for the result, if it's available.
-	 */
 	readonly coverage: IObservable<TestCoverage | undefined>;
 
-	/**
-	 * Messages from the task not associated with any specific test.
-	 */
 	readonly otherMessages: ITestOutputMessage[];
 
-	/**
-	 * Test results output for the task.
-	 */
 	readonly output: ITaskRawOutput;
 }
 
 export interface ITestResult {
-	/**
-	 * Count of the number of tests in each run state.
-	 */
 	readonly counts: Readonly<TestStateCount>;
 
-	/**
-	 * Unique ID of this set of test results.
-	 */
 	readonly id: string;
 
-	/**
-	 * If the test is completed, the unix milliseconds time at which it was
-	 * completed. If undefined, the test is still running.
-	 */
 	readonly completedAt: number | undefined;
 
-	/**
-	 * Whether this test result is triggered from an auto run.
-	 */
 	readonly request: ResolvedTestRunRequest;
 
-	/**
-	 * Human-readable name of the test result.
-	 */
 	readonly name: string;
 
-	/**
-	 * Gets all tests involved in the run.
-	 */
 	tests: IterableIterator<TestResultItem>;
 
-	/**
-	 * List of this result's subtasks.
-	 */
 	tasks: ReadonlyArray<ITestRunTaskResults>;
 
-	/**
-	 * Gets the state of the test by its extension-assigned ID.
-	 */
 	getStateById(testExtId: string): TestResultItem | undefined;
 
-	/**
-	 * Serializes the test result. Used to save and restore results
-	 * in the workspace.
-	 */
 	toJSON(): ISerializedTestResults | undefined;
 
-	/**
-	 * Serializes the test result, includes messages. Used to send the test states to the extension host.
-	 */
 	toJSONWithMessages(): ISerializedTestResults | undefined;
 }
 
-/**
- * Output type exposed from live test results.
- */
 export interface ITaskRawOutput {
 	readonly onDidWriteData: Event<VSBuffer>;
 	readonly endPromise: Promise<void>;
 	readonly buffers: VSBuffer[];
 	readonly length: number;
 
-	/** Gets a continuous buffer for the desired range */
 	getRange(start: number, length: number): VSBuffer;
-	/** Gets an iterator of buffers for the range; may avoid allocation of getRange() */
 	getRangeIter(start: number, length: number): Iterable<VSBuffer>;
 }
 
@@ -121,21 +75,16 @@ export class TaskRawOutput implements ITaskRawOutput {
 	private readonly endDeferred = new DeferredPromise<void>();
 	private offset = 0;
 
-	/** @inheritdoc */
 	public readonly onDidWriteData = this.writeDataEmitter.event;
 
-	/** @inheritdoc */
 	public readonly endPromise = this.endDeferred.p;
 
-	/** @inheritdoc */
 	public readonly buffers: VSBuffer[] = [];
 
-	/** @inheritdoc */
 	public get length() {
 		return this.offset;
 	}
 
-	/** @inheritdoc */
 	getRange(start: number, length: number): VSBuffer {
 		const buf = VSBuffer.alloc(length);
 		let bufLastWrite = 0;
@@ -147,7 +96,6 @@ export class TaskRawOutput implements ITaskRawOutput {
 		return bufLastWrite < length ? buf.slice(0, bufLastWrite) : buf;
 	}
 
-	/** @inheritdoc */
 	*getRangeIter(start: number, length: number) {
 		let soFar = 0;
 		let internalLastRead = 0;
@@ -170,9 +118,6 @@ export class TaskRawOutput implements ITaskRawOutput {
 		}
 	}
 
-	/**
-	 * Appends data to the output, returning the byte range where the data can be found.
-	 */
 	public append(data: VSBuffer, marker?: number) {
 		const offset = this.offset;
 		let length = data.byteLength;
@@ -181,11 +126,6 @@ export class TaskRawOutput implements ITaskRawOutput {
 			return { offset, length };
 		}
 
-		// Bytes that should be 'trimmed' off the end of data. This is done because
-		// selections in the terminal are based on the entire line, and commonly
-		// the interesting marked range has a trailing new line. We don't want to
-		// select the trailing line (which might have other data)
-		// so we place the marker before all trailing trimbytes.
 		const enum TrimBytes {
 			CR = 13,
 			LF = 10,
@@ -222,7 +162,6 @@ export class TaskRawOutput implements ITaskRawOutput {
 		this.offset += data.byteLength;
 	}
 
-	/** Signals the output has ended. */
 	public end() {
 		this.endDeferred.complete();
 	}
@@ -247,7 +186,6 @@ export const maxCountPriority = (counts: Readonly<TestStateCount>) => {
 const getMarkCode = (marker: number, start: boolean) => `\x1b]633;SetMark;Id=${getMarkId(marker, start)};Hidden\x07`;
 
 interface TestResultItemWithChildren extends TestResultItem {
-	/** Children in the run */
 	children: TestResultItemWithChildren[];
 }
 
@@ -273,16 +211,11 @@ export type TestResultItemChange = { item: TestResultItem; result: ITestResult }
 	| { reason: TestResultItemChangeReason.NewMessage; message: ITestMessage }
 );
 
-/**
- * Results of a test. These are created when the test initially started running
- * and marked as "complete" when the run finishes.
- */
 export class LiveTestResult extends Disposable implements ITestResult {
 	private readonly completeEmitter = this._register(new Emitter<void>());
 	private readonly newTaskEmitter = this._register(new Emitter<number>());
 	private readonly endTaskEmitter = this._register(new Emitter<number>());
 	private readonly changeEmitter = this._register(new Emitter<TestResultItemChange>());
-	/** todo@connor4312: convert to a WellDefinedPrefixTree */
 	private readonly testById = new Map<string, TestResultItemWithChildren>();
 	private testMarkerCounter = 0;
 	private _completedAt?: number;
@@ -295,26 +228,16 @@ export class LiveTestResult extends Disposable implements ITestResult {
 	public readonly tasks: (ITestRunTaskResults & { output: TaskRawOutput })[] = [];
 	public readonly name = localize('runFinished', 'Test run at {0}', new Date().toLocaleString(language));
 
-	/**
-	 * @inheritdoc
-	 */
 	public get completedAt() {
 		return this._completedAt;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly counts = makeEmptyCounts();
 
-	/**
-	 * @inheritdoc
-	 */
 	public get tests() {
 		return this.testById.values();
 	}
 
-	/** Gets an included test item by ID. */
 	public getTestById(id: string) {
 		return this.testById.get(id)?.item;
 	}
@@ -347,23 +270,15 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		super();
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getStateById(extTestId: string) {
 		return this.testById.get(extTestId);
 	}
 
-	/**
-	 * Appends output that occurred during the test run.
-	 */
 	public appendOutput(output: VSBuffer, taskId: string, location?: IRichLocation, testId?: string): void {
 		const rawPreview = output.byteLength > 100 ? output.slice(0, 100).toString() + '…' : output.toString();
 		const preview = removeAnsiEscapeCodes(rawPreview);
 		let marker: number | undefined;
 
-		// currently, the UI only exposes jump-to-message from tests or locations,
-		// so no need to mark outputs that don't come from either of those.
 		if (testId || location) {
 			marker = this.testMarkerCounter++;
 		}
@@ -390,9 +305,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		}
 	}
 
-	/**
-	 * Adds a new run task to the results.
-	 */
 	public addTask(task: ITestRunTask) {
 		this.tasks.push({ ...task, coverage: observableValue(this, undefined), otherMessages: [], output: new TaskRawOutput() });
 
@@ -403,13 +315,9 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		this.newTaskEmitter.fire(this.tasks.length - 1);
 	}
 
-	/**
-	 * Add the chain of tests to the run. The first test in the chain should
-	 * be either a test root, or a previously-known test.
-	 */
 	public addTestChainToRun(controllerId: string, chain: ReadonlyArray<ITestItem>) {
 		let parent = this.testById.get(chain[0].extId);
-		if (!parent) { // must be a test root
+		if (!parent) {
 			parent = this.addTestToRun(controllerId, chain[0], null);
 		}
 
@@ -420,9 +328,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		return undefined;
 	}
 
-	/**
-	 * Updates the state of the test by its internal ID.
-	 */
 	public updateState(testId: string, taskId: string, state: TestResultState, duration?: number) {
 		const entry = this.testById.get(testId);
 		if (!entry) {
@@ -434,8 +339,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		const oldTerminalStatePrio = terminalStatePriorities[entry.tasks[index].state];
 		const newTerminalStatePrio = terminalStatePriorities[state];
 
-		// Ignore requests to set the state from one terminal state back to a
-		// "lower" one, e.g. from failed back to passed:
 		if (oldTerminalStatePrio !== undefined &&
 			(newTerminalStatePrio === undefined || newTerminalStatePrio < oldTerminalStatePrio)) {
 			return;
@@ -444,9 +347,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		this.fireUpdateAndRefresh(entry, index, state, duration);
 	}
 
-	/**
-	 * Appends a message for the test in the run.
-	 */
 	public appendMessage(testId: string, taskId: string, message: ITestMessage) {
 		const entry = this.testById.get(testId);
 		if (!entry) {
@@ -457,9 +357,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		this.changeEmitter.fire({ item: entry, result: this, reason: TestResultItemChangeReason.NewMessage, message });
 	}
 
-	/**
-	 * Marks the task in the test run complete.
-	 */
 	public markTaskComplete(taskId: string) {
 		const index = this.mustGetTaskIndex(taskId);
 		const task = this.tasks[index];
@@ -475,9 +372,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		this.endTaskEmitter.fire(index);
 	}
 
-	/**
-	 * Notifies the service that all tests are complete.
-	 */
 	public markComplete() {
 		if (this._completedAt !== undefined) {
 			throw new Error('cannot complete a test result multiple times');
@@ -508,9 +402,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		});
 	}
 
-	/**
-	 * Marks the test and all of its children in the run as retired.
-	 */
 	public markRetired(testIds: WellDefinedPrefixTree<undefined> | undefined) {
 		for (const [id, test] of this.testById) {
 			if (!test.retired && (!testIds || testIds.hasKeyOrParent(TestId.fromString(id).path))) {
@@ -520,9 +411,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		}
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public toJSON(): ISerializedTestResults | undefined {
 		return this.completedAt && this.persist ? this.doSerialize.value : undefined;
 	}
@@ -531,9 +419,6 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		return this.completedAt && this.persist ? this.doSerializeWithMessages.value : undefined;
 	}
 
-	/**
-	 * Updates all tests in the collection to the given state.
-	 */
 	protected setAllToState(state: TestResultState, taskId: string, when: (task: ITestTaskState, item: TestResultItem) => boolean) {
 		const index = this.mustGetTaskIndex(taskId);
 		for (const test of this.testById.values()) {
@@ -563,7 +448,7 @@ export class LiveTestResult extends Disposable implements ITestResult {
 		const newOwnComputed = maxPriority(...entry.tasks.map(t => t.state));
 		if (newOwnComputed === previousOwnComputed) {
 			if (newOwnDuration !== previousOwnDuration) {
-				this.changeEmitter.fire(changeEvent); // fire manually since state change won't do it
+				this.changeEmitter.fire(changeEvent);
 			}
 			return;
 		}
@@ -626,45 +511,21 @@ export class LiveTestResult extends Disposable implements ITestResult {
 	}));
 }
 
-/**
- * Test results hydrated from a previously-serialized test run.
- */
 export class HydratedTestResult implements ITestResult {
-	/**
-	 * @inheritdoc
-	 */
 	public readonly counts = makeEmptyCounts();
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly id: string;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly completedAt: number;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly tasks: ITestRunTaskResults[];
 
-	/**
-	 * @inheritdoc
-	 */
 	public get tests() {
 		return this.testById.values();
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly name: string;
 
-	/**
-	 * @inheritdoc
-	 */
 	public readonly request: ResolvedTestRunRequest;
 
 	private readonly testById = new Map<string, TestResultItem>();
@@ -695,23 +556,14 @@ export class HydratedTestResult implements ITestResult {
 		}
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public getStateById(extTestId: string) {
 		return this.testById.get(extTestId);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public toJSON(): ISerializedTestResults | undefined {
 		return this.persist ? this.serialized : undefined;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public toJSONWithMessages(): ISerializedTestResults | undefined {
 		return this.toJSON();
 	}

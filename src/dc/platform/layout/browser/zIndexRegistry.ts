@@ -13,7 +13,7 @@ export enum ZIndex {
 	SuggestWidget = 40,
 	Hover = 50,
 	DragImage = 1000,
-	MenubarMenuItemsHolder = 2000, // quick-input-widget
+	MenubarMenuItemsHolder = 2000,
 	ContextView = 2500,
 	ModalDialog = 2600,
 	PaneDropOverlay = 10000

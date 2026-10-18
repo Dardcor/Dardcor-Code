@@ -22,12 +22,6 @@ export abstract class StatementNode {
 		this.children.push(child);
 	}
 
-	/**
-	 * Called after the last child is added to this node when the tree is being
-	 * constructed. This is a callback derived classes can use to do any additional
-	 * processing once this branch of the tree is complete. The default behavior
-	 * is to do nothing.
-	 */
 	childrenFinished() { }
 
 	containsStatement(stmt: StatementNode): boolean {
@@ -47,7 +41,6 @@ export abstract class StatementNode {
 
 	abstract get isCompoundStatementType(): boolean;
 
-	/** Treat this node and its children as a single statement */
 	protected collapse() {
 		this.children.length = 0;
 		this.collapsed = true;
@@ -81,31 +74,6 @@ export abstract class StatementNode {
 	}
 }
 
-/**
- * A simplified view of a syntax tree.
- *
- * It contains only nodes which represent complete statements. Because statements may
- * be compound, a single statement may contain other statements within it.
- *
- * "Statement" refers to a syntactic unit of the language. It represents the smallest
- * division of a code completion we would consider when truncating. It may be a simple
- * statement such as:
- *
- *   `x = 1;`
- *
- * or a compound statement such as:
- *
- *   `if (x > 0) { x = 2; }`
- *
- * where the entire string comprises the parent statement, and `x = 2;` is
- * a child statement of the parent. Note that `x > 0` is not a statement, but
- * an expression.
- *
- * The view is further constrained to a portion of the overall document (the start and
- * end offsets). This view contains all statements which intersect that region, so
- * containing statements are included in the view, even though they may extend
- * beyond the region.
- */
 export abstract class StatementTree implements Disposable {
 	protected tree: Parser.Tree | undefined;
 	readonly statements: StatementNode[] = [];
@@ -196,17 +164,16 @@ export abstract class StatementTree implements Disposable {
 			.forEach(capture => {
 				const stmt = this.createNode(capture.node);
 				while (parents.length > 0 && !parents[0].containsStatement(stmt)) {
-					const completed = parents.shift(); // not a parent
+					const completed = parents.shift();
 					completed?.childrenFinished();
 				}
 				if (parents.length > 0) {
-					parents[0].addChild(stmt); // this is our parent
+					parents[0].addChild(stmt);
 				} else {
-					this.addStatement(stmt); // top-level statement
+					this.addStatement(stmt);
 				}
-				parents.unshift(stmt); // add to the stack
+				parents.unshift(stmt);
 			});
-		// finish up
 		parents.forEach(stmt => stmt.childrenFinished());
 	}
 
@@ -234,7 +201,6 @@ export abstract class StatementTree implements Disposable {
 	}
 
 	protected getQuery(language: Parser.Language, queryText: string): Parser.Query {
-		// TODO: query objects can be cached and reused
 		return language.query(queryText);
 	}
 
@@ -256,9 +222,6 @@ export abstract class StatementTree implements Disposable {
 	}
 }
 
-/*
- * Javascript and Typescript implementation
- */
 
 class JSStatementNode extends StatementNode {
 	static compoundTypeNames = new Set([
@@ -288,14 +251,9 @@ class JSStatementNode extends StatementNode {
 	}
 
 	private isSingleLineIfStatement(): boolean {
-		// must be an if statement
 		if (this.node.type !== 'if_statement') { return false; }
-		// must be a single line
 		if (this.node.startPosition.row !== this.node.endPosition.row) { return false; }
-		// Exclude if statements with braces so that block position is correct:
-		// can have a single statement without braces
 		if (this.children.length === 1 && this.children[0].node.type !== 'statement_block') { return true; }
-		// or two statements without braces if an else is present
 		if (
 			this.children.length === 2 &&
 			this.node.childForFieldName('alternative') !== null &&
@@ -317,10 +275,6 @@ class JSStatementTree extends StatementTree {
 	}
 
 	protected getStatementQueryText(): string {
-		// From https://github.com/tree-sitter/tree-sitter-javascript/blob/fdeb68ac8d2bd5a78b943528bb68ceda3aade2eb/grammar.js#L199-L226
-		// Because `statement` is declared `inline` in this version of the
-		// grammar, we search for each choice from its definition plus two
-		// class constructs we want to consider for trimming.
 		return `[
 			(export_statement)
 			(import_statement)
@@ -356,10 +310,6 @@ class TSStatementTree extends StatementTree {
 	}
 
 	protected getStatementQueryText(): string {
-		// From https://github.com/tree-sitter/tree-sitter-javascript/blob/fdeb68ac8d2bd5a78b943528bb68ceda3aade2eb/grammar.js#L199-L226
-		// Because `statement` is declared `inline` in this version of the
-		// grammar, we search for each choice from its definition plus two
-		// class constructs we want to consider for trimming.
 		return `[
 			(export_statement)
 			(import_statement)
@@ -387,9 +337,6 @@ class TSStatementTree extends StatementTree {
 	}
 }
 
-/*
- * Python implementation
- */
 class PyStatementNode extends StatementNode {
 	static compoundTypeNames = new Set([
 		'if_statement',
@@ -413,9 +360,7 @@ class PyStatementNode extends StatementNode {
 	}
 
 	private isSingleLineIfStatement(): boolean {
-		// must be an if statement
 		if (this.node.type !== 'if_statement') { return false; }
-		// must be a single line
 		return this.node.startPosition.row === this.node.endPosition.row;
 	}
 }
@@ -428,13 +373,6 @@ class PyStatementTree extends StatementTree {
 	}
 
 	protected getStatementQueryText(): string {
-		// Search for nodes of type `_simple_statement` and `_compound_statement`.
-		// Because these are both inlined, we search for each choice in the two
-		// definitions. It also adds `block` to more closely match the tree
-		// shape of JS/TS.
-		//
-		// For the _simple_statement definition see: https://github.com/tree-sitter/tree-sitter-python/blob/7473026494597de8bc403735b1bfec7ca846c0d6/grammar.js#L90-L106
-		// For the _compound_statement definition see: https://github.com/tree-sitter/tree-sitter-python/blob/7473026494597de8bc403735b1bfec7ca846c0d6/grammar.js#L230-L240
 		return `[
 			(future_import_statement)
 			(import_statement)
@@ -465,9 +403,6 @@ class PyStatementTree extends StatementTree {
 	}
 }
 
-/*
- * Go implementation
- */
 class GoStatementNode extends StatementNode {
 	static compoundTypeNames = new Set([
 		'function_declaration',
@@ -493,12 +428,6 @@ class GoStatementTree extends StatementTree {
 	}
 
 	protected getStatementQueryText(): string {
-		// Search for nodes of type `_top_level_declaration` and `_statement`.
-		// Because `_top_level_declaration` is inlined, we search for each
-		// choice in its definition. It also adds `block` to match the tree
-		// shape of JS/TS.
-		//
-		// For the _top_level_declaration definition see: https://github.com/tree-sitter/tree-sitter-go/blob/3c3775faa968158a8b4ac190a7fda867fd5fb748/grammar.js#L117-L122
 		return `[
 			(package_clause)
 			(function_declaration)
@@ -510,9 +439,6 @@ class GoStatementTree extends StatementTree {
 	}
 }
 
-/**
- * Php implementation
- */
 class PhpStatementNode extends StatementNode {
 	static compoundTypeNames = new Set([
 		'if_statement',
@@ -542,10 +468,6 @@ class PhpStatementTree extends StatementTree {
 		return new PhpStatementNode(node);
 	}
 	protected override getStatementQueryText(): string {
-		// Search for nodes of type `_statement` and a few other picked types.
-		// `compound_statement`, `method_declaration`, `property_declaration`, `const_declaration`, and `use_declaration` are
-		// not encompassed by `_statement` so we add them to the query to make multi-line reveal more useful.
-		// For the _statement definition see: https://github.com/tree-sitter/tree-sitter-php/blob/eb289f127fc341ae7129902a2dd1c6c197a4c1e7/common/define-grammar.js#L141
 		return `[
 			(statement)
 			(compound_statement)
@@ -557,9 +479,6 @@ class PhpStatementTree extends StatementTree {
 	}
 }
 
-/**
- * Ruby implementation
- */
 
 class RubyStatementNode extends StatementNode {
 	static compoundTypeNames = new Set(['if', 'case', 'while', 'until', 'for', 'begin', 'module', 'class', 'method']);
@@ -575,7 +494,6 @@ class RubyStatementTree extends StatementTree {
 	protected createNode(node: SyntaxNode): StatementNode {
 		return new RubyStatementNode(node);
 	}
-	//(if_modifier)
 	protected getStatementQueryText(): string {
 		return `[
 			(_statement)
@@ -584,9 +502,6 @@ class RubyStatementTree extends StatementTree {
 	}
 }
 
-/*
- * Java implementation
- */
 
 class JavaStatementNode extends StatementNode {
 	static compoundTypeNames = new Set([
@@ -615,17 +530,12 @@ class JavaStatementNode extends StatementNode {
 	}
 
 	override childrenFinished() {
-		// Collapse if_statements on a single line
 		if (this.isSingleLineIfStatement()) { this.collapse(); }
 	}
 
 	private isSingleLineIfStatement(): boolean {
-		// must be an if statement
 		if (this.node.type !== 'if_statement') { return false; }
-		// must be a single line
 		if (this.node.startPosition.row !== this.node.endPosition.row) { return false; }
-		// Exclude if statements with braces so that block position is correct:
-		// can have a single statement without braces
 		if (this.children.length === 1 && this.children[0].node.type !== 'block') { return true; }
 
 		return false;
@@ -633,15 +543,12 @@ class JavaStatementNode extends StatementNode {
 }
 
 class JavaStatementTree extends StatementTree {
-	// Grammar via: https://github.com/tree-sitter/tree-sitter-java/blob/master/src/grammar.json
-	// Node types via: https://github.com/tree-sitter/tree-sitter-java/blob/master/src/node-types.json
 	static readonly languageIds = new Set(['java']);
 
 	protected createNode(node: SyntaxNode): StatementNode {
 		return new JavaStatementNode(node);
 	}
 
-	// _class_body_declaration is inlined, so add those subtypes to the query
 	protected getStatementQueryText(): string {
 		return `[
 			(statement)
@@ -660,9 +567,6 @@ class JavaStatementTree extends StatementTree {
 	}
 }
 
-/*
- * C# implementation
- */
 class CSharpStatementNode extends StatementNode {
 	static compoundTypeNames = new Set([
 		'block',
@@ -694,12 +598,8 @@ class CSharpStatementNode extends StatementNode {
 	}
 
 	private isSingleLineIfStatement(): boolean {
-		// must be an if statement
 		if (this.node.type !== 'if_statement') { return false; }
-		// must be a single line
 		if (this.node.startPosition.row !== this.node.endPosition.row) { return false; }
-		// Exclude if statements with braces so that block position is correct:
-		// can have a single statement without braces
 		if (this.children.length === 1 && this.children[0].node.type !== 'block') { return true; }
 
 		return false;
@@ -730,9 +630,6 @@ class CSharpStatementTree extends StatementTree {
 	}
 }
 
-/*
- * C, C++ implementation
- */
 
 class CStatementNode extends StatementNode {
 	static compoundTypeNames = new Set([
@@ -750,7 +647,6 @@ class CStatementNode extends StatementNode {
 		'preproc_if',
 		'preproc_ifdef',
 
-		// C++ specific:
 		'namespace_definition',
 		'class_specifier',
 		'field_declaration_list',
@@ -767,17 +663,13 @@ class CStatementNode extends StatementNode {
 	}
 
 	private isSingleLineDeclarationStatement(): boolean {
-		// must be an declaration statement
 		if (this.node.type !== 'declaration') { return false; }
-		// must be a single line
 		if (this.node.startPosition.row !== this.node.endPosition.row) { return false; }
 		return true;
 	}
 
 	private isSingleLineConceptDefinition(): boolean {
-		// must be a concept definition
 		if (this.node.type !== 'concept_definition') { return false; }
-		// must be a single line
 		if (this.node.startPosition.row !== this.node.endPosition.row) { return false; }
 		return true;
 	}

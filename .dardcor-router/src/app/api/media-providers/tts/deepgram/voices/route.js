@@ -3,11 +3,6 @@ import { getProviderConnections } from "@/lib/localDb";
 
 const langNames = new Intl.DisplayNames(["en"], { type: "language" });
 
-/**
- * GET /api/media-providers/tts/deepgram/voices[?lang=en]
- * Returns { languages, byLang } grouped by language code (same shape as edge-tts/elevenlabs/inworld)
- * Each Deepgram voice = one model (canonical_name like "aura-2-thalia-en")
- */
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -29,7 +24,6 @@ export async function GET(request) {
 
     const byLang = {};
     for (const m of ttsModels) {
-      // Deepgram returns `languages: ["en"]` or sometimes language inferred from canonical_name suffix
       const langs = Array.isArray(m.languages) && m.languages.length
         ? m.languages
         : [m.canonical_name?.split("-").pop() || "en"];

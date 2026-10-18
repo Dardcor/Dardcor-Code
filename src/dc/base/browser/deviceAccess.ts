@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// https://wicg.github.io/webusb/
 
 interface UsbDevice {
 	readonly deviceClass: number;
@@ -72,7 +71,6 @@ export async function requestUsbDevice(options?: { filters?: unknown[] }): Promi
 	};
 }
 
-// https://wicg.github.io/serial/
 
 interface SerialPortInfo {
 	readonly usbVendorId?: number | undefined;
@@ -110,7 +108,6 @@ export async function requestSerialPort(options?: { filters?: unknown[] }): Prom
 	};
 }
 
-// https://wicg.github.io/webhid/
 
 interface HidDevice {
 	readonly opened: boolean;

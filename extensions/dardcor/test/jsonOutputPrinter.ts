@@ -44,7 +44,6 @@ export class NoopJSONOutputPrinter implements IJSONOutputPrinter {
 	declare readonly _serviceBrand: undefined;
 
 	print(obj: Output): void {
-		// noop
 	}
 }
 

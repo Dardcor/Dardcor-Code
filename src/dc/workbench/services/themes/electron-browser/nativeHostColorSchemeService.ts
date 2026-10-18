@@ -16,7 +16,6 @@ import { ILifecycleService, StartupKind } from '../../lifecycle/common/lifecycle
 
 export class NativeHostColorSchemeService extends Disposable implements IHostColorSchemeService {
 
-	// we remember the last color scheme value to restore for reloaded window
 	static readonly STORAGE_KEY = 'HostColorSchemeData';
 
 	declare readonly _serviceBrand: undefined;
@@ -35,7 +34,6 @@ export class NativeHostColorSchemeService extends Disposable implements IHostCol
 	) {
 		super();
 
-		// register listener with the OS
 		this._register(this.nativeHostService.onDidChangeColorScheme(scheme => this.update(scheme)));
 
 		let initial = environmentService.window.colorScheme;
@@ -45,7 +43,6 @@ export class NativeHostColorSchemeService extends Disposable implements IHostCol
 		this.dark = initial.dark;
 		this.highContrast = initial.highContrast;
 
-		// fetch the actual value from the OS
 		this.nativeHostService.getOSColorScheme().then(scheme => this.update(scheme));
 	}
 
@@ -58,7 +55,6 @@ export class NativeHostColorSchemeService extends Disposable implements IHostCol
 					return scheme as IColorScheme;
 				}
 			} catch (e) {
-				// ignore
 			}
 		}
 		return dftl;

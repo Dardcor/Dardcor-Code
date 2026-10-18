@@ -14,20 +14,9 @@ export interface ITitleService extends ITitlebarPart {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * The shared {@link WindowTitle} instance for the main window. Used by
-	 * components that need to render or react to the resolved `window.title`
-	 * (template variables, decorations, etc.) without instantiating their own.
-	 */
 	readonly windowTitle: WindowTitle;
 
-	/**
-	 * Get the status bar part that is rooted in the provided container.
-	 */
 	getPart(container: HTMLElement): ITitlebarPart;
 
-	/**
-	 * Creates a new auxililary title bar part in the provided container.
-	 */
 	createAuxiliaryTitlebarPart(container: HTMLElement, editorGroupsContainer: IEditorGroupsContainer, instantiationService: IInstantiationService): IAuxiliaryTitlebarPart;
 }

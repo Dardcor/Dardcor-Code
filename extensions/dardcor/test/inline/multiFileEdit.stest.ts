@@ -24,7 +24,6 @@ function executeEditTest(
 function forEditsAndAgent(callback: (strategy: EditTestStrategyPanel, variant: string | undefined, model: string | undefined, configurations: Configuration<any>[] | undefined) => void): void {
 	callback(EditTestStrategy.Edits, '', undefined, undefined);
 	callback(EditTestStrategy.Edits, '-claude', CHAT_MODEL.CLAUDE_SONNET, undefined);
-	// callback(EditTestStrategy.Agent, '-agent', undefined);
 }
 
 forEditsAndAgent((strategy, variant, model, configurations) => {
@@ -70,7 +69,6 @@ forEditsAndAgent((strategy, variant, model, configurations) => {
 						visibleRanges: [[18, 0, 46, 0]],
 						query: '#file:extension.ts Am I properly using dotenv in this file. The process.env.OPENAI_API_KEY keeps being undefined',
 						validate: async (outcome, workspace, accessor) => {
-							// TODO@add a good validation function here
 							assert.fail('not implemented');
 						}
 					}

@@ -204,7 +204,6 @@ suite('MainThreadEditors', () => {
 		bulkEdits = instaService.createInstance(MainThreadBulkEdits, SingleProxyRPCProtocol(null));
 		const documents = instaService.createInstance(MainThreadDocuments, SingleProxyRPCProtocol(null));
 
-		// Create editor locator
 		editorLocator = {
 			getEditor(id: string): MainThreadTextEditor | undefined {
 				return id === editorId ? testEditor : undefined;
@@ -216,7 +215,6 @@ suite('MainThreadEditors', () => {
 		editors = instaService.createInstance(MainThreadTextEditors, editorLocator, SingleProxyRPCProtocol(null));
 		modelService = instaService.invokeFunction(accessor => accessor.get(IModelService));
 
-		// Create a test code editor using the helper
 		const model = modelService.createModel('Hello world!', null, existingResource);
 		const testCodeEditor = disposables.add(createTestCodeEditor(model));
 
@@ -249,7 +247,6 @@ suite('MainThreadEditors', () => {
 			}
 		};
 
-		// Act as if the user edited the model
 		model.applyEdits([EditOperation.insert(new Position(0, 0), 'something')]);
 
 		return bulkEdits.$tryApplyWorkspaceEdit(new SerializableObjectWithBuffers({ edits: [workspaceResourceEdit] })).then((result) => {
@@ -279,11 +276,9 @@ suite('MainThreadEditors', () => {
 		};
 
 		const p1 = bulkEdits.$tryApplyWorkspaceEdit(new SerializableObjectWithBuffers({ edits: [workspaceResourceEdit1] })).then((result) => {
-			// first edit request succeeds
 			assert.strictEqual(result, true);
 		});
 		const p2 = bulkEdits.$tryApplyWorkspaceEdit(new SerializableObjectWithBuffers({ edits: [workspaceResourceEdit2] })).then((result) => {
-			// second edit request fails
 			assert.strictEqual(result, false);
 		});
 		return Promise.all([p1, p2]);

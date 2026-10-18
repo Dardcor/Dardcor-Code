@@ -15,10 +15,6 @@ import { ChatEntitlement } from '../../../../../services/chat/common/chatEntitle
 import { buildUpgradeUrlWithRedirect, ChatSetupStrategy, IChatSetupRunOptions } from '../../../browser/chatSetup/chatSetup.js';
 import { ChatSetup, getChatSetupDialogButtons, getChatSetupDialogFooter, IChatSetupDialogProviders, shouldShowMicrosoftProvider, showChatSetupDialogWithCancellation } from '../../../browser/chatSetup/chatSetupRunner.js';
 
-/**
- * Parses the final URL and extracts the decoded return_to value,
- * then extracts the decoded vscode URI from the return_to redirect.
- */
 function parseRedirectUrl(url: string): { returnTo: string; redirectHost: string; vscodeUri: string } {
 	const questionIdx = url.indexOf('return_to=');
 	const returnTo = decodeURIComponent(url.slice(questionIdx + 'return_to='.length));
@@ -142,8 +138,6 @@ suite('Chat setup dialog presentation', () => {
 		assert.deepStrictEqual({
 			withMicrosoft: buttonLabels({ allowContinueWithoutSignIn: true }, false, true),
 			withoutMicrosoft: buttonLabels({ allowContinueWithoutSignIn: true }, false, false),
-			// The enterprise dialog offers the same social providers, in the same order, because
-			// every one of them signs in against whichever host the default account points at.
 			enterprise: buttonLabels({}, true, true),
 		}, {
 			withMicrosoft: ['Continue with GitHub', 'Continue with Google', 'Continue with Apple', 'Continue with Microsoft', 'Continue with GHE', 'Continue Without Signing In'],

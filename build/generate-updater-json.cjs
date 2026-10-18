@@ -34,6 +34,13 @@ function generateUpdaterManifest(targetDir, repository, tagName, explicitVersion
 	const winExePath = path.join(dir, winExeName);
 	const winSha256 = fs.existsSync(winExePath) ? computeSha256(winExePath) : '';
 
+	const msiName = files.find(f => f.endsWith('.msi')) || `Dardcor-Code_${version}_x64_en-US.msi`;
+	const debX64 = files.find(f => f.includes('amd64.deb')) || `Dardcor-Code_${version}_amd64.deb`;
+	const debArm64 = files.find(f => f.includes('arm64.deb')) || `Dardcor-Code_${version}_arm64.deb`;
+	const dmgX64 = files.find(f => f.includes('x64.dmg')) || `Dardcor-Code_${version}_x64.dmg`;
+	const dmgArm64 = files.find(f => f.includes('aarch64.dmg')) || `Dardcor-Code_${version}_aarch64.dmg`;
+	const appTar = files.find(f => f.includes('universal.app.tar.gz')) || `Dardcor-Code_universal.app.tar.gz`;
+
 	const manifest = {
 		version: version,
 		name: `Dardcor Code v${version}`,
@@ -41,51 +48,51 @@ function generateUpdaterManifest(targetDir, repository, tagName, explicitVersion
 		notes: `https://github.com/${repo}/releases/tag/${tag}`,
 		platforms: {
 			'win32-x64-user': {
-				url: `https://github.com/${repo}/releases/download/${tag}/Dardcor-Code_${version}_x64-setup.exe`,
+				url: `https://github.com/${repo}/releases/download/${tag}/${winExeName}`,
 				name: version,
 				version: version,
 				productVersion: version,
 				sha256hash: winSha256
 			},
 			'win32-x64': {
-				url: `https://github.com/${repo}/releases/download/${tag}/Dardcor-Code_${version}_x64-setup.exe`,
+				url: `https://github.com/${repo}/releases/download/${tag}/${winExeName}`,
 				name: version,
 				version: version,
 				productVersion: version,
 				sha256hash: winSha256
 			},
 			'win32-x64-archive': {
-				url: `https://github.com/${repo}/releases/download/${tag}/Dardcor-Code_${version}_x64_en-US.msi`,
+				url: `https://github.com/${repo}/releases/download/${tag}/${msiName}`,
 				name: version,
 				version: version,
 				productVersion: version
 			},
 			'linux-x64': {
-				url: `https://github.com/${repo}/releases/download/${tag}/Dardcor-Code_${version}_amd64.deb`,
+				url: `https://github.com/${repo}/releases/download/${tag}/${debX64}`,
 				name: version,
 				version: version,
 				productVersion: version
 			},
 			'linux-arm64': {
-				url: `https://github.com/${repo}/releases/download/${tag}/Dardcor-Code_${version}_arm64.deb`,
+				url: `https://github.com/${repo}/releases/download/${tag}/${debArm64}`,
 				name: version,
 				version: version,
 				productVersion: version
 			},
 			'darwin-x64': {
-				url: `https://github.com/${repo}/releases/download/${tag}/Dardcor-Code_${version}_x64.dmg`,
+				url: `https://github.com/${repo}/releases/download/${tag}/${dmgX64}`,
 				name: version,
 				version: version,
 				productVersion: version
 			},
 			'darwin-arm64': {
-				url: `https://github.com/${repo}/releases/download/${tag}/Dardcor-Code_${version}_aarch64.dmg`,
+				url: `https://github.com/${repo}/releases/download/${tag}/${dmgArm64}`,
 				name: version,
 				version: version,
 				productVersion: version
 			},
 			'darwin': {
-				url: `https://github.com/${repo}/releases/download/${tag}/Dardcor-Code_universal.app.tar.gz`,
+				url: `https://github.com/${repo}/releases/download/${tag}/${appTar}`,
 				name: version,
 				version: version,
 				productVersion: version

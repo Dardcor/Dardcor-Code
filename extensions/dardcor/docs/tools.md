@@ -1,7 +1,7 @@
 ## So you want to write a tool
 
 New to LLM tools? Here are some starting resources
-- https://code.visualstudio.com/api/extension-guides/tools
+- https://www.dardcor-code.web.id/api/extension-guides/tools
 - https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview
 - https://platform.openai.com/docs/guides/function-calling?api-mode=chat
 - https://www.anthropic.com/engineering/building-effective-agents

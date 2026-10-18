@@ -36,7 +36,7 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 
 	static PREFIX = '#';
 
-	private static readonly TYPING_SEARCH_DELAY = 200; // this delay accommodates for the user typing a word and then stops typing to start searching
+	private static readonly TYPING_SEARCH_DELAY = 200;
 
 	private static TREAT_AS_GLOBAL_SYMBOL_TYPES = new Set<SymbolKind>([
 		SymbolKind.Class,
@@ -52,7 +52,6 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 
 	get defaultFilterValue(): string | undefined {
 
-		// Prefer the word under the cursor in the active editor as default filter
 		const editor = this.codeEditorService.getFocusedCodeEditor();
 		if (editor) {
 			return getSelectionSearchString(editor) ?? undefined;
@@ -102,17 +101,15 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 
 	private async doGetSymbolPicks(query: IPreparedQuery, options: { skipLocal?: boolean; skipSorting?: boolean } | undefined, token: CancellationToken): Promise<Array<ISymbolQuickPickItem>> {
 
-		// Split between symbol and container query
 		let symbolQuery: IPreparedQuery;
 		let containerQuery: IPreparedQuery | undefined;
 		if (query.values && query.values.length > 1) {
-			symbolQuery = pieceToQuery(query.values[0]); 		  // symbol: only match on first part
-			containerQuery = pieceToQuery(query.values.slice(1)); // container: match on all but first parts
+			symbolQuery = pieceToQuery(query.values[0]);
+			containerQuery = pieceToQuery(query.values.slice(1));
 		} else {
 			symbolQuery = query;
 		}
 
-		// Run the workspace symbol query
 		const workspaceSymbols = await getWorkspaceSymbols(symbolQuery.original, token);
 		if (token.isCancellationRequested) {
 			return [];
@@ -120,12 +117,9 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 
 		const symbolPicks: Array<ISymbolQuickPickItem> = [];
 
-		// Convert to symbol picks and apply filtering
 		const openSideBySideDirection = this.configuration.openSideBySideDirection;
 		for (const { symbol, provider } of workspaceSymbols) {
 
-			// Depending on the workspace symbols filter setting, skip over symbols that:
-			// - do not have a container
 			// - and are not treated explicitly as global symbols (e.g. classes)
 			if (options?.skipLocal && !SymbolsQuickAccessProvider.TREAT_AS_GLOBAL_SYMBOL_TYPES.has(symbol.kind) && !!symbol.containerName) {
 				continue;
@@ -133,24 +127,18 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 
 			const symbolLabel = symbol.name;
 
-			// Score by symbol label if searching
 			let symbolScore: number | undefined = undefined;
 			let symbolMatches: IMatch[] | undefined = undefined;
 			let skipContainerQuery = false;
 			if (symbolQuery.original.length > 0) {
 
-				// First: try to score on the entire query, it is possible that
-				// the symbol matches perfectly (e.g. searching for "change log"
-				// can be a match on a markdown symbol "change log"). In that
-				// case we want to skip the container query altogether.
 				if (symbolQuery !== query) {
-					[symbolScore, symbolMatches] = scoreFuzzy2(symbolLabel, { ...query, values: undefined /* disable multi-query support */ }, 0, 0);
+					[symbolScore, symbolMatches] = scoreFuzzy2(symbolLabel, { ...query, values: undefined }, 0, 0);
 					if (typeof symbolScore === 'number') {
-						skipContainerQuery = true; // since we consumed the query, skip any container matching
+						skipContainerQuery = true;
 					}
 				}
 
-				// Otherwise: score on the symbol query and match on the container later
 				if (typeof symbolScore !== 'number') {
 					[symbolScore, symbolMatches] = scoreFuzzy2(symbolLabel, symbolQuery, 0, 0);
 					if (typeof symbolScore !== 'number') {
@@ -170,7 +158,6 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 				}
 			}
 
-			// Score by container if specified and searching
 			let containerScore: number | undefined = undefined;
 			let containerMatches: IMatch[] | undefined = undefined;
 			if (!skipContainerQuery && containerQuery && containerQuery.original.length > 0) {
@@ -183,7 +170,7 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 				}
 
 				if (typeof symbolScore === 'number') {
-					symbolScore += containerScore; // boost symbolScore by containerScore
+					symbolScore += containerScore;
 				}
 			}
 
@@ -215,7 +202,6 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 				},
 				accept: async (keyMods, event) => this.openSymbol(provider, symbol, token, { keyMods, preserveFocus: event.inBackground, forcePinned: event.inBackground }),
 				attach: (keyMods, event) => {
-					// Only support adding context to chat when shift is pressed
 					if (keyMods.shift) {
 						const widget = this.chatWidgetService.lastFocusedWidget;
 						if (widget) {
@@ -231,14 +217,12 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 						return;
 					}
 
-					// Fallback to accept behavior.
 					this.openSymbol(provider, symbol, token, { keyMods, preserveFocus: event.inBackground, forcePinned: event.inBackground });
 				},
 			});
 
 		}
 
-		// Sort picks (unless disabled)
 		if (!options?.skipSorting) {
 			symbolPicks.sort((symbolA, symbolB) => this.compareSymbols(symbolA, symbolB));
 		}
@@ -248,7 +232,6 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 
 	private async openSymbol(provider: IWorkspaceSymbolProvider, symbol: IWorkspaceSymbol, token: CancellationToken, options: { keyMods: IKeyMods; forceOpenSideBySide?: boolean; preserveFocus?: boolean; forcePinned?: boolean }): Promise<void> {
 
-		// Resolve actual symbol to open for providers that can resolve
 		let symbolToOpen = symbol;
 		if (typeof provider.resolveWorkspaceSymbol === 'function') {
 			symbolToOpen = await provider.resolveWorkspaceSymbol(symbol, token) || symbol;
@@ -258,12 +241,10 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 			}
 		}
 
-		// Open HTTP(s) links with opener service
 		if (symbolToOpen.location.uri.scheme === Schemas.http || symbolToOpen.location.uri.scheme === Schemas.https) {
 			await this.openerService.open(symbolToOpen.location.uri, { fromUserGesture: true, allowContributedOpeners: true });
 		}
 
-		// Otherwise open as editor
 		else {
 			await this.editorService.openEditor({
 				resource: symbolToOpen.location.uri,
@@ -278,7 +259,6 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 
 	private compareSymbols(symbolA: ISymbolQuickPickItem, symbolB: ISymbolQuickPickItem): number {
 
-		// By score
 		if (typeof symbolA.score === 'number' && typeof symbolB.score === 'number') {
 			if (symbolA.score > symbolB.score) {
 				return -1;
@@ -289,7 +269,6 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 			}
 		}
 
-		// By name
 		if (symbolA.symbol && symbolB.symbol) {
 			const symbolAName = symbolA.symbol.name.toLowerCase();
 			const symbolBName = symbolB.symbol.name.toLowerCase();
@@ -299,7 +278,6 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 			}
 		}
 
-		// By kind
 		if (symbolA.symbol && symbolB.symbol) {
 			const symbolAKind = SymbolKinds.toIcon(symbolA.symbol.kind).id;
 			const symbolBKind = SymbolKinds.toIcon(symbolB.symbol.kind).id;

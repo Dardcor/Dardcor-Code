@@ -34,16 +34,13 @@ export class Askpass implements IIPCHandler, ITerminalEnvironmentProvider {
 		const sshAskpassScript = this.ipc ? askpassPaths.sshAskpass : askpassPaths.sshAskpassEmpty;
 
 		this.env = {
-			// GIT_ASKPASS
 			GIT_ASKPASS: askpassScript,
-			// VSCODE_GIT_ASKPASS
 			VSCODE_GIT_ASKPASS_NODE: process.execPath,
 			VSCODE_GIT_ASKPASS_EXTRA_ARGS: '',
 			VSCODE_GIT_ASKPASS_MAIN: askpassPaths.askpassMain
 		};
 
 		this.sshEnv = {
-			// SSH_ASKPASS
 			SSH_ASKPASS: sshAskpassScript,
 			SSH_ASKPASS_REQUIRE: 'force'
 		};
@@ -66,9 +63,6 @@ export class Askpass implements IIPCHandler, ITerminalEnvironmentProvider {
 	}
 
 	async handleAskpass(argv: string[]): Promise<string> {
-		// HTTPS (username | password)
-		// Username for 'https://github.com':
-		// Password for 'https://github.com':
 		const request = argv[2];
 		const host = argv[4].replace(/^["']+|["':]+$/g, '');
 
@@ -115,14 +109,9 @@ export class Askpass implements IIPCHandler, ITerminalEnvironmentProvider {
 	}
 
 	async handleSSHAskpass(argv: string[]): Promise<string> {
-		// SSH (passphrase | authenticity)
 		const request = argv[3];
 
-		// passphrase
 		if (/passphrase/i.test(request)) {
-			// Commit signing - Enter passphrase:
-			// Commit signing - Enter passphrase for '/c/Users/<username>/.ssh/id_ed25519':
-			// Git operation  - Enter passphrase for key '/c/Users/<username>/.ssh/id_ed25519':
 			let file: string | undefined = undefined;
 			if (argv[5] && !/key/i.test(argv[5])) {
 				file = extractFilePathFromArgs(argv, 5);
@@ -142,7 +131,6 @@ export class Askpass implements IIPCHandler, ITerminalEnvironmentProvider {
 			return await window.showInputBox(options) || '';
 		}
 
-		// authenticity
 		const host = argv[6].replace(/^["']+|["':]+$/g, '');
 		const fingerprint = argv[15];
 

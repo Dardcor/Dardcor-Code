@@ -31,13 +31,11 @@ export interface IAiSettingsSearchService {
 	readonly _serviceBrand: undefined;
 	readonly onProviderRegistered: Event<void>;
 
-	// Called from the Settings editor
 	isEnabled(): boolean;
 	startSearch(query: string, token: CancellationToken): void;
 	getEmbeddingsResults(query: string, token: CancellationToken): Promise<string[] | null>;
 	getLLMRankedResults(query: string, token: CancellationToken): Promise<string[] | null>;
 
-	// Called from the main thread
 	registerSettingsSearchProvider(provider: IAiSettingsSearchProvider): IDisposable;
 	handleSearchResult(results: AiSettingsSearchResult): void;
 }

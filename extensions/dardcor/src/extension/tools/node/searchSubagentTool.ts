@@ -26,24 +26,15 @@ import { IBuildPromptContext } from '../../prompt/common/intents';
 import type { IToolCallLoopResult } from '../../intents/node/toolCallingLoop';
 import { SearchSubagentToolCallingLoop, isContextOverflowBadRequest } from '../../prompt/node/searchSubagentToolCallingLoop';
 import { ToolName } from '../common/toolNames';
-import { CopilotToolMode, ICopilotTool, ICopilotToolCtor, ToolRegistry } from '../common/toolsRegistry';
+import { AgentToolMode, IAgentTool, IAgentToolCtor, ToolRegistry } from '../common/toolsRegistry';
 import { stripFinalAnswerTags, updateSubagentInvocation } from './subagentToolUtils';
 import { assertFileOkForTool, isFileExternalAndNeedsConfirmation } from './toolUtils';
 
 export interface ISearchSubagentParams {
 
-	/** Natural language query describing what to search for */
 	query: string;
-	/** User-visible description shown while invoking */
 	description: string;
-	/** Detailed instructions regarding the search subagent's objective */
 	details: string;
-	/**
-	 * Optional thoroughness level that controls how many tool-call turns the subagent is allowed.
-	 * - 'normal' → base limit × 1    (quick & balanced; sufficient for most cases)
-	 * - 'deep'   → base limit × 2    (broader exploration; only use when normal is not enough)
-	 * Only active when config.github.dardcor.chat.searchSubagent.thoroughnessEnabled is true.
-	 */
 	thoroughness?: 'normal' | 'deep';
 }
 
@@ -68,7 +59,7 @@ export function mapLoopResponseToText(result: IToolCallLoopResult): string {
 	return `The search subagent request failed with this message:\n${result.response.type}: ${result.response.reason}`;
 }
 
-class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
+class SearchSubagentTool implements IAgentTool<ISearchSubagentParams> {
 	public static readonly toolName = ToolName.SearchSubagent;
 	public static readonly nonDeferred = true;
 	protected readonly toolName: ToolName = ToolName.SearchSubagent;
@@ -106,8 +97,6 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 		};
 	}
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<ISearchSubagentParams>, token: vscode.CancellationToken) {
-		// Get the current working directory — prefer the session's working directory
-		// (agents window) over the first workspace folder.
 		const workingDir = new WorkingDirectory(options.workingDirectory, this.workspaceService);
 		const cwd = workingDir.getFolders()[0]?.fsPath;
 
@@ -123,10 +112,6 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 		const request = this._inputContext!.request!;
 		const parentSessionId = this._inputContext?.conversation?.sessionId ?? generateUuid();
 		const parentToolCallId = options.chatStreamToolCallId;
-		// Generate a stable session ID for this subagent invocation that will be used:
-		// 1. As subAgentInvocationId in the subagent's tool context
-		// 2. As subAgentInvocationId in toolMetadata for parent trajectory linking
-		// 3. As the session_id in the subagent's own trajectory
 		const subAgentInvocationId = parentToolCallId ?? generateUuid();
 
 		const toolCallLimit = this.configurationService.getExperimentBasedConfig(ConfigKey.Advanced.SearchSubagentToolCallLimit, this.experimentationService);
@@ -162,30 +147,20 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 			modelName,
 		});
 
-		// Create a new capturing token to group this search subagent and all its nested tool calls
-		// Similar to how DefaultIntentRequestHandler does it
-		// Pass the subAgentInvocationId so the trajectory uses this ID for explicit linking
 		const parentChatSessionId = getCurrentCapturingToken()?.chatSessionId ?? parentSessionId;
 		const searchSubagentToken = new CapturingToken(
 			`Search: ${options.input.query.substring(0, 50)}${options.input.query.length > 50 ? '...' : ''}`,
 			'search',
 			subAgentInvocationId,
-			'search',  // subAgentName for trajectory tracking
-			// Use invocation ID as chatSessionId so spans get their own log file
+			'search',
 			subAgentInvocationId,
-			// Link back to the parent session for debug log grouping and cloud session folding
 			parentChatSessionId,
 			'searchSubagent',
 		);
 
-		// Wrap the loop execution in captureInvocation with the new token
-		// All nested tool calls will now be logged under this same CapturingToken
-		// Build subagent trajectory metadata that will be logged via toolMetadata
-		// All nested tool calls are already logged by ToolCallingLoop.logToolResult()
 		const toolMetadata = {
 			query: options.input.query,
 			description: options.input.description,
-			// The subAgentInvocationId links this tool call to the subagent's trajectory
 			subAgentInvocationId: subAgentInvocationId,
 			agentName: 'search',
 			modelName,
@@ -201,7 +176,6 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 			}
 			subagentResponse = CONTEXT_OVERFLOW_FALLBACK;
 		}
-		// Parse and hydrate code snippets from <final_answer> tags
 		const hydratedResponse = stripFinalAnswerTags(await this.parseFinalAnswerAndHydrate(subagentResponse, cwd, options.workingDirectory, token));
 		updateSubagentInvocation(stream, parentToolCallId, this.toolName, {
 			description: options.input.description,
@@ -211,25 +185,15 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 			result: hydratedResponse,
 		});
 
-		// toolMetadata will be automatically included in exportAllPromptLogsAsJsonCommand
 		const result = new ExtendedLanguageModelToolResult([new LanguageModelTextPart(hydratedResponse)]);
 		result.toolMetadata = toolMetadata;
 		result.toolResultMessage = new MarkdownString(l10n.t`Search complete: ${options.input.description}`);
 		return result;
 	}
 
-	/**
-	 * Parse the path and line range subagent response and hydrate code snippets
-	 * @param response The subagent response containing paths and line ranges
-	 * @param cwd The current working directory to prepend to relative paths
-	 * @param workingDirectory The working directory URI from tool invocation context
-	 * @param token Cancellation token
-	 * @returns The response with actual code snippets appended to file paths
-	 */
 	private async parseFinalAnswerAndHydrate(response: string, cwd: string | undefined, workingDirectory: URI | undefined, token: vscode.CancellationToken): Promise<string> {
 		const lines = response.split('\n');
 
-		// Parse file:line-line format
 		const fileRangePattern = /^(.+):(\d+)-(\d+)$/;
 		const processedLines: string[] = [];
 
@@ -238,7 +202,6 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 
 			const match = trimmedLine.match(fileRangePattern);
 			if (!match) {
-				// I decided to keep non-matching lines as-is, since models sometimes return added info
 				processedLines.push(line);
 				continue;
 			}
@@ -247,14 +210,11 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 			const startLine = parseInt(startLineStr, 10);
 			const endLine = parseInt(endLineStr, 10);
 
-			// Resolve the candidate URI up front so we can reference it from both the
-			// try and the catch block (for the external-file check below).
 			const uri = (!path.isAbsolute(filePath) && cwd)
 				? URI.joinPath(URI.file(cwd), filePath)
 				: URI.file(filePath);
 
 			try {
-				// Enforce read-only file access via shared toolUtils guards before hydrating.
 				await this.instantiationService.invokeFunction(accessor =>
 					assertFileOkForTool(accessor, uri, this._inputContext, { readOnly: true, workingDirectory })
 				);
@@ -273,22 +233,15 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 				const code = snapshot.getText(range);
 				processedLines.push(`File: \`${uri.fsPath}\`, lines ${clampedStartLine}-${clampedEndLine}:\n\`\`\`\n${code}\n\`\`\``);
 			} catch {
-				// Drop the line entirely for files outside the workspace so we don't
-				// disclose the path back to the model. For inside-workspace failures
-				// (e.g. file missing), keep the original line with the error.
 				let isExternal = false;
 				try {
 					isExternal = await this.instantiationService.invokeFunction(accessor =>
 						isFileExternalAndNeedsConfirmation(accessor, uri, this._inputContext, { readOnly: true, workingDirectory })
 					);
 				} catch {
-					// isFileExternalAndNeedsConfirmation throws for nonexistent files;
-					// treat that as "not external" so the original line is preserved.
 				}
 
 				if (!isExternal) {
-					// If hydration fails (e.g. the captured path didn't resolve because the model's formatting drifted),
-					// keep the original line so the main agent still gets the model's answer instead of a noisy error suffix.
 					processedLines.push(line);
 				}
 			}
@@ -307,16 +260,12 @@ class SearchSubagentTool implements ICopilotTool<ISearchSubagentParams> {
 		};
 	}
 
-	async resolveInput(input: ISearchSubagentParams, promptContext: IBuildPromptContext, _mode: CopilotToolMode): Promise<ISearchSubagentParams> {
+	async resolveInput(input: ISearchSubagentParams, promptContext: IBuildPromptContext, _mode: AgentToolMode): Promise<ISearchSubagentParams> {
 		this._inputContext = promptContext;
 		return input;
 	}
 }
 
-/**
- * Identical to SearchSubagentTool but registered under the `explore_subagent` name.
- * Conditionally enabled via package.json `when` clause when the Explore agent is disabled.
- */
 class ExploreSubagentTool extends (SearchSubagentTool as new (...args: never[]) => SearchSubagentTool) {
 	public static readonly toolName = ToolName.ExploreSubagent;
 	public static readonly nonDeferred = true;
@@ -324,4 +273,4 @@ class ExploreSubagentTool extends (SearchSubagentTool as new (...args: never[]) 
 }
 
 ToolRegistry.registerTool(SearchSubagentTool);
-ToolRegistry.registerTool(ExploreSubagentTool as unknown as ICopilotToolCtor);
+ToolRegistry.registerTool(ExploreSubagentTool as unknown as IAgentToolCtor);

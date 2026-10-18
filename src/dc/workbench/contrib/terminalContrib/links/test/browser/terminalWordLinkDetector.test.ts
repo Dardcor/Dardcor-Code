@@ -83,8 +83,6 @@ suite('Workbench - TerminalWordLinkDetector', () => {
 		}
 	});
 
-	// These are failing - the link's start x is 1 px too far to the right bc it starts
-	// with a wide character, which the terminalLinkHelper currently doesn't account for
 	test.skip('should support wide characters', async () => {
 		await configurationService.setUserConfiguration('terminal', { integrated: { wordSeparators: ' []' } });
 		// eslint-disable-next-line local/code-no-any-casts

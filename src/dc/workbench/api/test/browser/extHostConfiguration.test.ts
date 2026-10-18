@@ -808,14 +808,14 @@ suite('ExtHostConfiguration', function () {
 
 		const shape = new class extends mock<MainThreadConfigurationShape>() {
 			override $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): Promise<any> {
-				return Promise.reject(new Error('Unknown Key')); // something !== OK
+				return Promise.reject(new Error('Unknown Key'));
 			}
 		};
 
 		return createExtHostConfiguration({}, shape)
 			.getConfiguration('')
 			.update('', true, false)
-			.then(() => assert.ok(false), err => { /* expecting rejection */ });
+			.then(() => assert.ok(false), err => { });
 	});
 
 	test('configuration change event', (done) => {

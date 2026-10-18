@@ -3,18 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * [start, end]
- */
 export interface ICellRange {
-	/**
-	 * zero based index
-	 */
 	start: number;
 
-	/**
-	 * zero based index
-	 */
 	end: number;
 }
 
@@ -76,7 +67,6 @@ export function reduceCellRanges(ranges: ICellRange[]): ICellRange[] {
 	}, [first] as ICellRange[]);
 
 	if (reduced.length > 1) {
-		// remove the (0, 0) range
 		return reduced.filter(range => !(range.start === range.end && range.start === 0));
 	}
 
@@ -99,12 +89,6 @@ export function cellRangesEqual(a: ICellRange[], b: ICellRange[]) {
 	return true;
 }
 
-/**
- * todo@rebornix test and sort
- * @param range
- * @param other
- * @returns
- */
 
 export function cellRangeContains(range: ICellRange, other: ICellRange): boolean {
 	return other.start >= range.start && other.end <= range.end;

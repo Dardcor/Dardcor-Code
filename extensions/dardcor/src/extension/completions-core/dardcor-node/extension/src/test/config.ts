@@ -5,10 +5,6 @@
 import { ConfigKey, ConfigKeyType, DefaultsOnlyConfigProvider, InMemoryConfigProvider } from '../../../lib/src/config';
 import { VSCodeConfigProvider } from '../config';
 
-/**
- * Provides the default configurations, except lets through the configured value
- * of test-only settings like the proxy override URL.
- */
 export class ExtensionTestConfigProvider extends InMemoryConfigProvider {
 	private readonly vscConfigProvider = new VSCodeConfigProvider();
 
